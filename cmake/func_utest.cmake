@@ -118,15 +118,15 @@ function(OpsTest_Level1_AddOpApiShared)
             ""
             ${ARGN}
     )
-    get_filename_component(_L0_Src "${OPS_ADV_DIR}/gmm/${TMP_SNAKE}/op_host/${TMP_SNAKE}.cpp" REALPATH)
+    get_filename_component(_L0_Src "${OPS_ADV_DIR}/${TMP_SUB_SYSTEM}/${TMP_SNAKE}/op_host/${TMP_SNAKE}.cpp" REALPATH)
     if (NOT EXISTS "${_L0_Src}")
         set(_L0_Src)
     endif ()
-    get_filename_component(_L2_Src "${OPS_ADV_DIR}/gmm/${TMP_SNAKE}/op_host/aclnn_${TMP_SNAKE}.cpp" REALPATH)
+    get_filename_component(_L2_Src "${OPS_ADV_DIR}/${TMP_SUB_SYSTEM}/${TMP_SNAKE}/op_host/aclnn_${TMP_SNAKE}.cpp" REALPATH)
     if (NOT EXISTS "${_L2_Src}")
         set(_L2_Src)
     endif ()
-    get_filename_component(_Inc "${OPS_ADV_DIR}/gmm/${TMP_SNAKE}/op_host/" REALPATH)
+    get_filename_component(_Inc "${OPS_ADV_DIR}/${TMP_SUB_SYSTEM}/${TMP_SNAKE}/op_host/" REALPATH)
     if (NOT EXISTS "${_Inc}")
         set(_Inc)
     endif ()
@@ -221,11 +221,11 @@ function(OpsTest_Level1_AddOpProtoShared)
             ""
             ${ARGN}
     )
-    get_filename_component(_Src "${OPS_ADV_DIR}/gmm/${TMP_SNAKE}/op_host/${TMP_SNAKE}_proto.cpp" REALPATH)
+    get_filename_component(_Src "${OPS_ADV_DIR}/${TMP_SUB_SYSTEM}/${TMP_SNAKE}/op_host/${TMP_SNAKE}_proto.cpp" REALPATH)
     if (NOT EXISTS "${_Src}")
         set(_Src)
     endif ()
-    get_filename_component(_Inc "${OPS_ADV_DIR}/gmm/${TMP_SNAKE}/op_host/" REALPATH)
+    get_filename_component(_Inc "${OPS_ADV_DIR}/${TMP_SUB_SYSTEM}/${TMP_SNAKE}/op_host/" REALPATH)
     if (NOT EXISTS "${_Inc}")
         set(_Inc)
     endif ()
@@ -310,11 +310,11 @@ function(OpsTest_Level1_AddOpTilingShared)
             ""
             ${ARGN}
     )
-    file(GLOB _Src1 "${OPS_ADV_DIR}/gmm/${TMP_SNAKE}/op_host/${TMP_SNAKE}_tiling.cc")
-    file(GLOB _Src2 "${OPS_ADV_DIR}/gmm/${TMP_SNAKE}/op_host/${TMP_SNAKE}_tiling.cpp")
+    file(GLOB _Src1 "${OPS_ADV_DIR}/${TMP_SUB_SYSTEM}/${TMP_SNAKE}/op_host/${TMP_SNAKE}_tiling.cc")
+    file(GLOB _Src2 "${OPS_ADV_DIR}/${TMP_SUB_SYSTEM}/${TMP_SNAKE}/op_host/${TMP_SNAKE}_tiling.cpp")
     list(APPEND _Sources ${TMP_SOURCES_EXT} ${_Src1} ${_Src2})
     list(REMOVE_DUPLICATES _Sources)
-    get_filename_component(_Inc "${OPS_ADV_DIR}/gmm/${TMP_SNAKE}/op_host/" REALPATH)
+    get_filename_component(_Inc "${OPS_ADV_DIR}/${TMP_SUB_SYSTEM}/${TMP_SNAKE}/op_host/" REALPATH)
     if (NOT EXISTS "${_Inc}")
         set(_Inc)
     endif ()
@@ -339,7 +339,7 @@ function(OpsTest_AddOpTilingShared)
     target_sources(${_Target}
             PRIVATE
                 ${_OpsTestUt_OpTilingSources}
-                ${OPS_ADV_DIR}/tests/ut/ops_test/framework/stubs/tiling/tiling_templates_registry.cpp
+                ${OPS_ADV_DIR}/tools/framework/stubs/tiling/tiling_templates_registry.cpp
     )
     target_include_directories(${_Target}
             PRIVATE
@@ -442,13 +442,13 @@ function(OpsTest_Level1_AddOpKernelStatic)
 
     # 编译变量处理
     set(_TargetPrefix  ${UTest_NamePrefix}_${TMP_BRIEF}_OpKernel)
-    aux_source_directory(${OPS_ADV_DIR}/gmm/${TMP_SNAKE} _Sources)
+    aux_source_directory(${OPS_ADV_DIR}/${TMP_SUB_SYSTEM}/${TMP_SNAKE} _Sources)
     list(APPEND _Sources ${TMP_SOURCES_EXT})
     set(_PrivateIncludeDirectories
             ${_OpsTest_GenDirInc}
             ${TMP_PRIVATE_INCLUDES_EXT}
     )
-    get_filename_component(_Inc "${OPS_ADV_DIR}/gmm/${TMP_SNAKE}" REALPATH)
+    get_filename_component(_Inc "${OPS_ADV_DIR}/${TMP_SUB_SYSTEM}/${TMP_SNAKE}" REALPATH)
     if (EXISTS "${_Inc}")
         list(APPEND _PrivateIncludeDirectories ${_Inc})
     endif ()
@@ -854,6 +854,33 @@ function(OpsTest_Level2_AddOp)
     )
 endfunction()
 
+function(op_add_ut_subdirectory OP_UT_LIST OP_UT_DIR_LIST)
+    set(_OP_UT_LIST)
+    set(_OP_UT_DIR_LIST)
+
+    file(GLOB OP_HOST_CMAKE_FILES "${CMAKE_CURRENT_SOURCE_DIR}/**/**/tests/CMakeLists.txt")
+
+    foreach(OP_CMAKE_FILE ${OP_HOST_CMAKE_FILES})
+        if ("${OP_CMAKE_FILE}" MATCHES "tests")
+            get_filename_component(OP_HOST_DIR "${OP_CMAKE_FILE}" DIRECTORY)
+            get_filename_component(OP_DIR "${OP_HOST_DIR}" DIRECTORY)
+        else()
+            get_filename_component(OP_DIR "${OP_CMAKE_FILE}" DIRECTORY)
+        endif()
+        get_filename_component(OP_NAME "${OP_DIR}" NAME)
+
+        list(APPEND _OP_UT_LIST ${OP_NAME})
+        list(APPEND _OP_UT_DIR_LIST ${OP_DIR})
+    endforeach()
+
+    list(REMOVE_DUPLICATES _OP_UT_LIST)
+    list(REMOVE_DUPLICATES _OP_UT_DIR_LIST)
+    list(SORT _OP_UT_LIST)
+    list(SORT _OP_UT_DIR_LIST)
+    set(${OP_UT_LIST} ${_OP_UT_LIST} PARENT_SCOPE)
+    set(${OP_UT_DIR_LIST} ${_OP_UT_DIR_LIST} PARENT_SCOPE)
+endfunction()
+
 # 私有函数, 外部不可直接调用, 用于执行包含多个算子的 UT 可执行程序
 #[[
 ]]
@@ -1011,7 +1038,7 @@ function(OpsTest_AddLaunch)
 
             set(_UTest_Main ${UTest_NamePrefix}_Main_Normal_${_OpBrief})
             add_executable(${_UTest_Main})
-            target_sources(${_UTest_Main} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/framework/main.cpp)
+            target_sources(${_UTest_Main} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tools/framework/main.cpp)
             target_compile_options(${_UTest_Main} PRIVATE -fPIC)
             target_link_libraries(${_UTest_Main}
                     PRIVATE
@@ -1068,7 +1095,7 @@ function(OpsTest_AddLaunch)
             string(REPLACE "UTest_" "" _OpBrief ${_OpBrief})
             set(_UTest_Main_Aclnn ${UTest_NamePrefix}_Main_Aclnn_${_OpBrief})
             add_executable(${_UTest_Main_Aclnn})
-            target_sources(${_UTest_Main_Aclnn} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/framework/main_aclnn.cpp)
+            target_sources(${_UTest_Main_Aclnn} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tools/framework/main_aclnn.cpp)
             target_compile_options(${_UTest_Main_Aclnn} PRIVATE -fPIC)
             target_link_libraries(${_UTest_Main_Aclnn}
                     PRIVATE

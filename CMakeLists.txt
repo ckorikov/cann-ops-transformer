@@ -234,7 +234,17 @@ endif ()
 
 add_subdirectory(common)
 if (BUILD_OPEN_PROJECT)
-   add_subdirectory(tests)
+    if (TESTS_UT_OPS_TEST)
+        add_subdirectory(tools/framework)
+        set(OP_UT_LIST)
+        set(OP_UT_DIR_LIST)
+        op_add_ut_subdirectory(OP_UT_LIST OP_UT_DIR_LIST)
+        foreach (OP_UT_LIST ${OP_UT_DIR_LIST})
+            add_subdirectory(${OP_UT_LIST}/tests)
+        endforeach ()
+        add_definitions(-Wno-builtin-macro-redefined)
+        OpsTest_AddLaunch()
+    endif ()
    if (TESTS_EXAMPLE_OPS_TEST)
        add_subdirectory(examples)
    endif ()
@@ -245,7 +255,11 @@ set(OP_DIR_LIST)
 op_add_subdirectory(OP_LIST OP_DIR_LIST)
 
 foreach (OP_DIR ${OP_DIR_LIST})
-    add_subdirectory(${OP_DIR}/op_host)
+    if (EXISTS "${OP_DIR}/op_host")
+        add_subdirectory(${OP_DIR}/op_host)
+    else()
+        add_subdirectory(${OP_DIR})
+    endif()
 endforeach ()
 
 set(OP_DEPEND_DIR_LIST)
@@ -254,7 +268,11 @@ op_add_depend_directory(
         OP_DIR_LIST OP_DEPEND_DIR_LIST
 )
 foreach (OP_DEPEND_DIR ${OP_DEPEND_DIR_LIST})
-    add_subdirectory(${OP_DEPEND_DIR}/op_host)
+    if (EXISTS "${OP_DEPEND_DIR}/ophost")
+        add_subdirectory(${OP_DEPEND_DIR}/op_host)
+    else()
+        add_subdirectory(${OP_DEPEND_DIR})
+    endif()
 endforeach ()
 
 # ------------------------------------------------ aclnn ------------------------------------------------
@@ -562,10 +580,17 @@ install(DIRECTORY ${OPS_ADV_UTILS_KERNEL_INC}/
 foreach (op_dir ${OP_DIR_LIST})
     get_filename_component(_op_name "${op_dir}" NAME)
 
-    file(GLOB KERNEL_FILES
+    if (EXISTS "${op_dir}/op_kernel")
+        file(GLOB KERNEL_FILES
+            ${op_dir}/op_kernel/*.cpp
+            ${op_dir}/op_kernel/*.h
+    )
+    else()
+        file(GLOB KERNEL_FILES
             ${op_dir}/*.cpp
             ${op_dir}/*.h
     )
+    endif()
 
     install(FILES ${KERNEL_FILES}
             DESTINATION ${IMPL_INSTALL_DIR}/ascendc/${_op_name}

@@ -47,11 +47,19 @@ function(op_add_subdirectory OP_LIST OP_DIR_LIST)
     "${CMAKE_CURRENT_SOURCE_DIR}/gmm/**/op_host/CMakeLists.txt"
     "${CMAKE_CURRENT_SOURCE_DIR}/moe/**/op_host/CMakeLists.txt"
     "${CMAKE_CURRENT_SOURCE_DIR}/attention/**/op_host/CMakeLists.txt"
-    "${CMAKE_CURRENT_SOURCE_DIR}/mc2/**/op_host/CMakeLists.txt")
+    "${CMAKE_CURRENT_SOURCE_DIR}/mc2/**/op_host/CMakeLists.txt"
+    "${CMAKE_CURRENT_SOURCE_DIR}/gmm/**/CMakeLists.txt"
+    "${CMAKE_CURRENT_SOURCE_DIR}/moe/**/CMakeLists.txt"
+    "${CMAKE_CURRENT_SOURCE_DIR}/attention/**/CMakeLists.txt"
+    "${CMAKE_CURRENT_SOURCE_DIR}/mc2/**/CMakeLists.txt")
 
     foreach(OP_CMAKE_FILE ${OP_HOST_CMAKE_FILES})
-        get_filename_component(OP_HOST_DIR "${OP_CMAKE_FILE}" DIRECTORY)
-        get_filename_component(OP_DIR "${OP_HOST_DIR}" DIRECTORY)
+        if ("${OP_CMAKE_FILE}" MATCHES "op_host")
+            get_filename_component(OP_HOST_DIR "${OP_CMAKE_FILE}" DIRECTORY)
+            get_filename_component(OP_DIR "${OP_HOST_DIR}" DIRECTORY)
+        else()
+            get_filename_component(OP_DIR "${OP_CMAKE_FILE}" DIRECTORY)
+        endif()
         get_filename_component(OP_NAME "${OP_DIR}" NAME)
 
         if (NOT BUILD_OPEN_PROJECT)
@@ -86,7 +94,7 @@ function(op_add_depend_directory)
     foreach(op_name ${DEP_OP_LIST})
         if (DEFINED ${op_name}_depends)
             foreach(depend_info ${${op_name}_depends})
-                if (NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${depend_info}/op_host/CMakeLists.txt)
+                if (NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${depend_info}/op_host/CMakeLists.txt AND NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/src/${depend_info}/CMakeLists.txt)
                     continue()
                 endif ()
 

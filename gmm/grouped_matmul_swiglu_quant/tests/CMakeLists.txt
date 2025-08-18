@@ -30,7 +30,7 @@ set(_GmmSwigluQuant_KernelPrivateCompileDefinitionsExt
 )
 
 OpsTest_Level2_AddOp(
-        SUB_SYSTEM                              transformer
+        SUB_SYSTEM                              gmm
         BRIEF                                   GMMSwigluQuant
         SNAKE                                   grouped_matmul_swiglu_quant
         KERNEL_TILING_DATA_DEF_H                ${_GmmSwigluQuant_KernelTilingDataDefH}

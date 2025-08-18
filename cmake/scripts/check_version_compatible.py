@@ -88,7 +88,7 @@ class VersionChecker:
 if __name__ == "__main__":
     logging.basicConfig(format='%(filename)s:%(lineno)d [%(levelname)s] %(message)s', level=logging.INFO)
     try:
-        logging.info(VersionChecker.main())
+        print(VersionChecker.main())
     except Exception as e:
         logging.error(e)
         exit(1)

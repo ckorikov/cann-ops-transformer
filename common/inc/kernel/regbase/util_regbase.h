@@ -76,11 +76,11 @@ struct RunParamStr;
     uint32_t firstHalfS1RealSize; \
     int64_t tensorQOffset;         /* query的offset  souter层确定 */ \
     int64_t attentionOutOffset;    /* attentionOut的offset  souter层确定 */ \
-    int64_t actualS1Size = 0;      /* Q的actualSeqLength */ \
-    int64_t actualS2Size = 0;    /* KV的actualSeqLength */ \
+    int64_t actualS1Size;      /* Q的actualSeqLength */ \
+    int64_t actualS2Size;    /* KV的actualSeqLength */ \
     uint64_t b1SSOffset; \
     uint64_t b1SSAttenMaskOffset; \
-    uint64_t b1SSOffsetAlign16 = 0
+    uint64_t b1SSOffsetAlign16
 
 template<>
 struct RunParamStr<false> {  // 分核与切块需要使用到参数
@@ -102,18 +102,13 @@ struct RunParamStr<true> {  // 分核与切块需要使用到参数
     int64_t cubeSOuterOffset;           // 单个S内 souter的 souterIdx * halfS1RealSize souter层确定
     int64_t keyCoreOffset;              // BN方向上，不同BN的Key的offset batch层确定
     int64_t valueCoreOffset;            // BN方向上，不同BN的value的offset batch层确定
-    uint64_t attenMaskCoreOffset;       // Souter方向上，不同Souter的attenMask的offset souter层确定
     uint64_t pseShiftCoreOffset;        // Souter方向上，不同souter的pseShift的offset
-    int64_t tensorBOffset;              // mm1 Key 的offset,后续更名为KFinalOffset
+    int64_t keyOffset;              // mm1 Key 的offset,后续更名为KFinalOffset
 
     // q k v attenMask不同轴的offset
     // B轴offset 
     int64_t qBOffset;             // bIdx * seqSize * multiHeadQ，后续更名为qBOffset batch层确定
     int64_t qRopeBOffset;         // batch层确定 actualSeqLengths相关
-
-    // Batch轴确定后，可以确定的信息
-    int32_t sOuterBlockNum;             // S1方向的切块个数，后续更名为s1SplitNum souter层确定 actseq相关
-    uint32_t maxInnerLoopTimes;         // S2方向的切块个数，用于判断是否为尾块，后续更名为s2SplitNum batch层确定 actseqkv相关
 
     // 左padding
     int64_t queryLeftPaddingSize;       // batch层确定
@@ -148,11 +143,12 @@ struct RunParamStr<true> {  // 分核与切块需要使用到参数
     int32_t vec2S1BaseSize; /* vector2侧开循环之后，经过切分的S1大小，例如把64切分成两份32 */ \
     int32_t vec2S1RealSize; /* vector2侧开循环之后，经过切分的S1的尾块大小，例如把63切分成两份32和31，第二份的实际大小是31 */ \
     int64_t vecCoreOffset; /* vec核基于cube核起始处s1方向偏移 */ \
+    int64_t keyOffset; /* mm1 Key 的 offset，后续更名为kFinalOffset */ \
+    int64_t valueOffset; /* mm2 Value 的 offset  复用tensorBOffset，后续更名为vFinalOffset */ \
     \
     int64_t taskId; \
     int64_t multiCoreInnerIdx = 0; \
     \
-    int64_t qOffset; \
     int64_t attentionOutOffset; \
     int64_t s1SizeAcc; /* 对于非TND场景 = boIdx * pseInfo.s2Size; TND场景等于前面boIdx个batch的s2之和（每个batch的s2不同）*/ \
     int64_t s2SizeAcc; /* 对于非TND场景 = boIdx * pseInfo.s2Size; TND场景等于前面boIdx个batch的s2之和（每个batch的s2不同）*/ \
@@ -165,8 +161,6 @@ struct RunParamStr<true> {  // 分核与切块需要使用到参数
     int64_t b1SSAttenMaskOffset; \
     int64_t b1SSOffsetAlign; /* TND场景s2 16对齐之后，前面batch的s1*s2之和 */ \
     int64_t deScaleKvOffset; /* KV的反量化scale内容在Gm中的偏移 原始shape为 [B, N2, 1, Ceil(S2, 128), 1] */ \
-    float descaleQK = 1.0f; /* deScaleQValue * deScaleKValue */ \
-    float deSCaleVValue; \
     uint8_t taskIdMod2; \
     uint8_t taskIdMod3; \
     uint8_t multiCoreIdxMod2 = 0; \
@@ -178,12 +172,7 @@ struct RunInfo;
 template <>
 struct RunInfo<true> {
     COMMON_RUN_INFO;
-    int64_t s1SizeThisBatch; // 非TND场景=总s1Size, Tnd场景下当前batch对应的s1
-    int64_t s2SizeThisBatch; // 非TND场景=总s2Size, Tnd场景下当前batch对应的s2
     // 推理新增
-    int64_t tensorBOffset;                // mm1 Key 的 offset，后续更名为kFinalOffset
-    int64_t valueOffset;                  // mm2 Value 的 offset  复用tensorBOffset，后续更名为vFinalOffset
-
     uint64_t pseShiftOffset;              // vector1 pse 的 offset
     int64_t queryLeftPaddingSize;
     int64_t kvLeftPaddingSize;
@@ -196,7 +185,7 @@ struct RunInfo<true> {
     // IFA_MLA
     int64_t nextTokensOfMlaPerBatch = 0; /* 在mla场景下左上顶点的nexttoken，用于计算BNSD的行无效 */ \
     int64_t kRopeOffset;
-    int64_t qRopeOffset;      
+    int64_t qRopeOffset;
 };
 
 template<>
@@ -217,8 +206,6 @@ struct RunInfo<false> {
     int64_t s1Size; /* s1总大小 */ \
     int64_t s2Size; /* s2总大小 */ \
     /* 轴的乘积 */ \
-    int64_t gS1o; \
-    int64_t n2GS1o; \
     int64_t s1D; \
     int64_t gS1D; \
     int64_t n2GS1D; \
@@ -230,9 +217,7 @@ struct RunInfo<false> {
     int64_t s2Dv; \
     int64_t n2S2Dv; \
     int64_t s1S2; \
-    int64_t gS1S2; \
     int64_t gS1; \
-    int64_t n2GS1; \
     int64_t gD; \
     int64_t n2D; \
     int64_t bN2D; \
@@ -303,9 +288,6 @@ struct RunInfo<false> {
 
 #define INFER_CONST_INFO \
     /* 推理新增 */ \
-    int64_t preTokens; /* 用户输入的preToken */ \
-    int64_t nextTokens; /* 用户输入的nextTokens */ \
-    \
     bool isRowInvalid; /* 是否使能行无效 */ \
     bool isActualLenDimsNull; /* 判断是否有actualseq */ \
     bool isActualLenDimsKVNull; /* 判断是否有actualseq_kv */ \
@@ -314,8 +296,6 @@ struct RunInfo<false> {
     uint32_t actualSeqLenSize; /* 用户输入的actualseq的长度 */ \
     uint32_t actualSeqLenKVSize; /* 用户输入的actualseq_kv的长度 */ \
     uint32_t isKvContinuous; /* 是否为tensorlist */ \
-    uint32_t isMaskMultiBatch; /* attenMask 是否为多 batch */ \
-    \
     /* service mm1 mm2 pageAttention */ \
     uint32_t blockTableDim2; \
     uint32_t blockSize; \
@@ -336,10 +316,7 @@ struct RunInfo<false> {
     /* FD */ \
     int64_t sInnerLoopSize; /* FD s2总大小 */ \
     int64_t actualCombineLoopSize; /* 实际规约块数 */ \
-    int64_t splitKVNum; \
-    uint32_t ropeDSize; \
-    uint32_t n1RopeD; \
-    uint32_t n2RopeD
+    int64_t splitKVNum
 
 template<bool isInfer = false, bool hasRope = false>
 struct ConstInfo;
@@ -361,11 +338,15 @@ template <>
 struct ConstInfo<false, true> {
     COMMON_CONST_INFO;
     ROPE_INFO;
+    int64_t n2GS1o; // 训练特有
+    int64_t gS1o;
 };
 
 template <>
 struct ConstInfo<false, false> {
     COMMON_CONST_INFO;
+    int64_t n2GS1o; // 训练特有
+    int64_t gS1o;
 };
 }
 

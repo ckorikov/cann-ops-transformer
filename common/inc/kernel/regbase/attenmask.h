@@ -42,7 +42,7 @@ enum class AttenMaskComputeMode {
 struct AttenMaskInfo {
     int64_t preTokens;
     int64_t nextTokens;
-    uint8_t compressMode = 0;
+    uint8_t compressMode;
     int64_t attenMaskShapeType;
     int64_t attenMaskS1Size;
     int64_t attenMaskS2Size;
@@ -169,6 +169,7 @@ __aicore__ inline int64_t ComputeOffsetForNoCompress(RunInfo<isInfer> &runInfo,
         int64_t s1Offset = runInfo.s1oIdx * constInfo.s1BaseSize + runInfo.vecCoreOffset;
         int64_t s2Offset = runInfo.s2LoopCount * constInfo.s2BaseSize;
         if constexpr (isInfer) {
+            s1Offset += (runInfo.nextTokensPerBatch < 0) ? -runInfo.nextTokensPerBatch : 0;
             s1Offset += runInfo.queryLeftPaddingSize;
             s2Offset += runInfo.kvLeftPaddingSize;
         } else {
