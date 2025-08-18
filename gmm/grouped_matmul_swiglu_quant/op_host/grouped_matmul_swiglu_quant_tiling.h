@@ -57,6 +57,7 @@ constexpr int64_t DOUBLE_WORKSPACE_SPLIT = 2;
 constexpr int64_t INT32_DTYPE_SIZE = 4;
 constexpr int64_t FP32_DTYPE_SIZE = 4;
 constexpr int64_t FP32_BLOCK_SIZE = 8;
+constexpr int64_t BLOCK_BYTE = 32;
 constexpr int64_t SWIGLU_REDUCE_FACTOR = 2;
 constexpr int64_t DOUBLE_BUFFER = 2;
 

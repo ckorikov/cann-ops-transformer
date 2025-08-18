@@ -46,7 +46,9 @@ struct GMMSwigluCompileInfo {
 static int64_t CalMaxRowInUb(gert::TilingContext* context, const uint64_t ubSize, const uint64_t n) {
   uint64_t tmpBufSize = (n / SWIGLU_REDUCE_FACTOR) * FP32_DTYPE_SIZE; 
   uint64_t perchannleBufSize = n * FP32_DTYPE_SIZE * DOUBLE_BUFFER; 
-  int64_t remainUbSize = ubSize - tmpBufSize - perchannleBufSize; 
+  uint64_t reduceMaxResBufSize = BLOCK_BYTE;
+  uint64_t reduceMaxTmpBufSize = BLOCK_BYTE;
+  int64_t remainUbSize = ubSize - tmpBufSize - perchannleBufSize - reduceMaxResBufSize - reduceMaxTmpBufSize; 
   int64_t maxRowInUb = remainUbSize / 
       (n * INT32_DTYPE_SIZE + n / SWIGLU_REDUCE_FACTOR + FP32_DTYPE_SIZE) / DOUBLE_BUFFER;
   int64_t curUb = DOUBLE_BUFFER * (

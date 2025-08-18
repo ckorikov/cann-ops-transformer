@@ -419,7 +419,9 @@ __aicore__ inline void GMMSwigluSplitWorkSpaceCompute<mmType, sync, CHANNELDTYPE
     pipe->InitBuffer(perChannelScaleInQueue, DOUBLE_BUFFER, gmmSwiglu->tokenLen * sizeof(float));
     pipe->InitBuffer(quantOutQueue, DOUBLE_BUFFER, gmmSwiglu->maxProcessRowNum * gmmSwiglu->tokenLen / SWIGLU_REDUCE_FACTOR * sizeof(int8_t));
     pipe->InitBuffer(quantScaleOutQueue, DOUBLE_BUFFER, AlignUp<int32_t>(gmmSwiglu->maxProcessRowNum, ALIGN_8_ELE) * sizeof(float));
-    pipe->InitBuffer(reduceWorkspace, gmmSwiglu->tokenLen / SWIGLU_REDUCE_FACTOR * sizeof(float));
+    // two 32 byte buffer for reduceMax calculation in Quant.
+    pipe->InitBuffer(reduceWorkspace, gmmSwiglu->tokenLen / SWIGLU_REDUCE_FACTOR * sizeof(float) + UB_BLOCK_UNIT_SIZE +
+                                          UB_BLOCK_UNIT_SIZE);
 }
 
 template <typename mmType, bool sync, typename CHANNELDTYPE>
@@ -521,30 +523,35 @@ __aicore__ inline void GMMSwigluSplitWorkSpaceCompute<mmType, sync, CHANNELDTYPE
 template <typename mmType, bool sync, typename CHANNELDTYPE>
 __aicore__ inline void GMMSwigluSplitWorkSpaceCompute<mmType, sync, CHANNELDTYPE>::Quant(uint32_t loopIdx, VecConfig& vecConfig) {
     LocalTensor<float> _inMMLocal = mmOutQueue.DeQue<float>();
-    Abs(_inMMLocal[loopIdx * gmmSwiglu->tokenLen + gmmSwiglu->tokenLen / BISECT],
-        _inMMLocal[loopIdx * gmmSwiglu->tokenLen],
-        gmmSwiglu->tokenLen / BISECT);
-    LocalTensor<float> workspaceLocal= reduceWorkspace.Get<float>();
+    uint64_t preOffset = loopIdx * gmmSwiglu->tokenLen;
+    uint64_t halfTokenLen = gmmSwiglu->tokenLen / BISECT;
+    Abs(_inMMLocal[preOffset + gmmSwiglu->tokenLen / BISECT], _inMMLocal[preOffset], halfTokenLen);
     PipeBarrier<PIPE_V>();
-    ReduceMaxTemplate(workspaceLocal, 
-        _inMMLocal, loopIdx * gmmSwiglu->tokenLen + gmmSwiglu->tokenLen / BISECT, gmmSwiglu->tokenLen / BISECT);
+    // reduceMax
+    LocalTensor<float> workLocal = reduceWorkspace.Get<float>(halfTokenLen);
+    LocalTensor<float> reduceResLocal = reduceWorkspace.GetWithOffset<float>(
+        FLOAT_UB_BLOCK_UNIT_SIZE, halfTokenLen * sizeof(float));
+    LocalTensor<float> reduceTmpLocal = reduceWorkspace.GetWithOffset<float>(
+        FLOAT_UB_BLOCK_UNIT_SIZE, halfTokenLen * sizeof(float) + UB_BLOCK_UNIT_SIZE);
+    ReduceMaxTemplate(reduceResLocal, workLocal, _inMMLocal[preOffset + gmmSwiglu->tokenLen / BISECT], 
+                      reduceTmpLocal, static_cast<uint32_t>(halfTokenLen));
+
     int32_t eventIdVToS = static_cast<int32_t>(GetTPipePtr()->FetchEventID(HardEvent::V_S));
     SetFlag<HardEvent::V_S>(eventIdVToS);
     WaitFlag<HardEvent::V_S>(eventIdVToS);
-    float quantScale = workspaceLocal.GetValue(0) / QUANT_SCALE_INT8;
+    float quantScale = reduceResLocal.GetValue(0) / QUANT_SCALE_INT8;
     LocalTensor<float> quantScaleLocal = quantScaleOutQueue.DeQue<float>();
     quantScaleLocal.SetValue(loopIdx, quantScale);
     quantScale = 1 / quantScale;
     int32_t eventIdSToV = static_cast<int32_t>(GetTPipePtr()->FetchEventID(HardEvent::S_V));
     SetFlag<HardEvent::S_V>(eventIdSToV);
     WaitFlag<HardEvent::S_V>(eventIdSToV);
-    Muls(_inMMLocal[loopIdx * gmmSwiglu->tokenLen], _inMMLocal[loopIdx * gmmSwiglu->tokenLen],
-         quantScale, gmmSwiglu->tokenLen / BISECT);
+    Muls(_inMMLocal[preOffset], _inMMLocal[preOffset], quantScale, halfTokenLen);
     PipeBarrier<PIPE_V>();
     LocalTensor<int8_t> quantLocal = quantOutQueue.DeQue<int8_t>();
-    int32_t dstTempOffset = static_cast<int32_t>(loopIdx * gmmSwiglu->tokenLen / BISECT);
-    int32_t srcTempOffset = static_cast<int32_t>(loopIdx * gmmSwiglu->tokenLen);
-    int32_t tempCount = static_cast<int32_t>(gmmSwiglu->tokenLen / BISECT);
+    int32_t dstTempOffset = static_cast<int32_t>(preOffset / BISECT);
+    int32_t srcTempOffset = static_cast<int32_t>(preOffset);
+    int32_t tempCount = static_cast<int32_t>(halfTokenLen);
     LocalTensor<int8_t> castSpace = reduceWorkspace.Get<int8_t>(UB_BLOCK_UNIT_SIZE);
     CastFp32ToInt8Template(quantLocal, _inMMLocal, castSpace, dstTempOffset, srcTempOffset, tempCount);
     mmOutQueue.EnQue(_inMMLocal);
