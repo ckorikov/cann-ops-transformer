@@ -3,7 +3,7 @@
 
 ## 概述
 
-本项目是[CANN](https://hiascend.com/software/cann) （Compute Architecture for Neural Networks）算子库中提供xxxx的高阶算子库，简称ops-transformer，涵盖了常见的xxxx等操作。
+本项目是[CANN](https://hiascend.com/software/cann) （Compute Architecture for Neural Networks）算子库中提供transformer类大模型算子的高阶算子库，简称ops-transformer，涵盖了常见的FlashAttention、MoE（Mixture of Experts）等算子。
 
 ops-transformer在CANN架构中的位置如下图所示：
 
@@ -37,7 +37,7 @@ ops-transformer项目关键目录如下：
 ├── common                             
 |   ├── inc                        # 项目公共头文件
 │   ├── src                        # 项目公共接口实现源代码
-├── gmm                            # GroupedMatMul类算子所有交付件，包括算子实现、接口调用、融合规则等
+├── gmm                            # GroupedMatmul类算子所有交付件，包括算子实现、接口调用、融合规则等
 ├── ......
 ├── examples                       # 项目工程使用示例
 ├── cmake   
@@ -161,32 +161,72 @@ ${tag_version}请替换为具体的标签名称，本源码仓与CANN版本的�
 
 
 ## 编译执行
-### 场景1
+### 自定义算子包编译
 
-xxxx，编译命令如下：
-
-  ```bash
-mkdir build && cd build     # 在融合算子源码根目录下创建临时目录并进入
-cmake ..
-  ```
-
-### 场景2
-
-xxxx，编译命令如下：
+进入本仓代码根目录，执行如下命令：
 
   ```bash
-xxx
+  mkdir build && cd build     # 在融合算子源码根目录下创建临时目录并进入
+  cmake ..
+  make package -j 并发数      # 编译并生成自定义算子run包，并发数请替换为实际取值
   ```
 
-## 本地验证
+**说明：**
 
-### 场景1
+编译时间较长，请耐心等待：在无缓存场景，使用72核编译器，**-j 144**并发执行，编译大约耗时13分钟。您可以通过**grep 'processor' /proc/cpuinfo | wc -l**命令查询当前服务器cpu核数，并发数=cpu核数*2。
 
-待补充
+若提示如下信息，则说明编译成功。
 
-### 场景2
+  ```
+  Self-extractable archive "CANN-custom_ops-<cann_version>-linux.<arch>.run" successfully created.
+  ```
 
-待补充
+编译成功后在 `本仓代码根目录/output` 目录生成自定义算子包：`CANN-custom_ops-<cann_version>-linux.<arch>.run`。
+
+其中，\<cann_version>表示软件版本号，\<arch>表示操作系统架构。
+
+### 自定义算子包安装<a name="2"></a>
+
+安装前，需确保所安装的自定义算子包与所安装CANN开发套件包CPU架构一致，并且要先设置CANN开发套件包环境变量，然后再进行安装，仅支持在配套版本安装自定义算子包，安装命令如下：
+
+  ```bash
+  source /usr/local/Ascend/ascend-toolkit/set_env.sh # 设置CANN开发套件包环境变量，以root用户默认路径为例，如已设置，则请忽略该操作
+  ./CANN-custom_ops-<cann_version>-linux.<arch>.run --quiet         # 安装自定义算子run包
+  ```
+
+执行上述命令后，自定义算子run包会默认安装到CANN软件包目录，例如，`/usr/local/Ascend/ascend-toolkit/latest/opp/vendors/` 目录。
+
+### 单元测试编译执行
+
+UT（单元测试用例），用来看护编译是否正常，进入本仓代码根目录，依次执行如下命令：
+
+  ```bash
+  mkdir build && cd build             # 在融合算子源码根目录下创建临时目录并进入
+  cmake .. -DTESTS_UT_OPS_TEST=ALL    # 指定编译所有融合算子的单元测试用例
+  make ops_test_utest -j 并发数        # 编译并执行所有融合算子的单元测试用例，并发数请替换为实际取值
+  ```
+
+执行UT用例依赖googletest单元测试框架，关于googletest更多功能请参见[googletest官网](https://google.github.io/googletest/advanced.html#running-a-subset-of-the-tests)。
+
+### 示例工程编译执行
+
+此操作需要在真实NPU环境上进行，并且依赖CANN开发套件包和算子二进制包，因此在编译前，需要参见[环境准备](#1)章节安装配套版本的CANN开发套件包和算子二进制包，并设置环境变量，然后进入本仓代码根目录，依次执行如下命令：
+
+  ```bash
+  mkdir build && cd build                 # 在融合算子源码根目录下创建临时目录并进入
+  cmake .. -DTESTS_EXAMPLE_OPS_TEST=ALL   # 指定编译所有examples用例示例
+  make                                    # 编译并执行所有examples用例
+  ```
+
+上述cmake编译参数详细解释请参见[cmake编译参数说明](./docs/common/cmake编译参数说明.md)。
+
+**说明**：当前还提供了一键式编译脚本，进入本仓代码根目录，可执行命令如下，您还可以通过**bash build.sh --help**命令查询更多可用参数；执行完自定义算子包一键式编译命令，需要完成[自定义算子包安装](#2)后，才能执行后续命令。
+
+  ```bash
+  bash build.sh         #自定义算子包编译
+  bash build.sh -t      #单元测试编译执行
+  bash build.sh -e      #示例工程编译执行
+  ```
 
 
 ## 回滚

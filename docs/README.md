@@ -21,13 +21,13 @@
 ## 算子原型
 | 算子分类 |  算子名  |    说明    |
 |---------|---------|------------|
-|cv|[CropAndResize](../cv/crop_and_resize/graph_plugin/crop_and_resize_proto.h)|从输入图像张量中裁剪并使用双线性采样或最近邻采样调整其大小。|
-|objdetect|xxx||
+|xxx|[xxxx](../xx/xx/graph_plugin/xxx.h)|xxx|
 
 ## 算子接口（aclnn）
 |    接口名   |      说明     |
 |-----------|------------|
-|[aclnnXxx](../cv/xxx/docs/aclnnXxx.md)|实现xx运算。|
+|[aclnnGroupedMatmulSwigluQuant](../gmm/grouped_matmul_swiglu_quant/docs/aclnnGroupedMatmulSwigluQuant.md)|实现融合GroupedMatmul 、dquant、swiglu和quant运算。|
+|[aclnnGroupedMatmulSwigluQuantWeightNZ](../gmm/grouped_matmul_swiglu_quant/docs/aclnnGroupedMatmulSwigluQuantWeightNZ.md)|实现融合GroupedMatmul 、dquant、swiglu和quant运，是aclnnGroupedMatmulSwigluQuant接口的weightNZ特化版本。|
 
 ## 融合规则
 |  融合Pass  |    说明    |
