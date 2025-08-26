@@ -10,5 +10,4 @@
 cmake_minimum_required(VERSION 3.16)
 project(ACLNN_EXAMPLE)
 
-
 add_subdirectory(gmm)

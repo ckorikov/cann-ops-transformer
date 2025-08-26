@@ -7,29 +7,4 @@
 # See LICENSE in the root of the software repository for the full text of the License.
 # ======================================================================================================================
 
-set(EXAMPLES_GMM_SCRIPTS ${CMAKE_CURRENT_SOURCE_DIR}/scripts)
-
-# 获取 SocName
-get_filename_component(_define_py ${OPS_ADV_CMAKE_DIR}/scripts/examples/get_soc_info.py REALPATH)
-execute_process(
-        COMMAND ${HI_PYTHON} ${_define_py} "-i=soc_name"
-        RESULT_VARIABLE _Rst
-        OUTPUT_VARIABLE _SocName
-        ERROR_QUIET
-)
-if (_RST)
-    message(WARNING "Can't get socName")
-else ()
-    if ("${_SocName}x" STREQUAL "x")
-        set(_SocName "Unknown")
-    endif ()
-    string(TOLOWER ${_SocName} _SocName)
-endif ()
-message(STATUS "SocName=${_SocName}")
-
-# 添加示例工程
-if (_SocName MATCHES ascend910b*)
-    add_subdirectory(grouped_matmul_swiglu_quant)
-else()
-    message(STATUS "GroupedMatmulSwigluQuant don't support SocName(${_SocName}), skip.")
-endif()
+add_subdirectory(grouped_matmul_swiglu_quant)
