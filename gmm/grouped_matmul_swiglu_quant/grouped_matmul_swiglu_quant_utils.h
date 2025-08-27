@@ -210,12 +210,12 @@ __aicore__ inline void ReduceMaxSmall(const LocalTensor<float> &dstLocal, const 
      */
     uint32_t repeat = count / VEC_LEN_ONCE_REPEAT_ELE;
     uint32_t tailNum = count % VEC_LEN_ONCE_REPEAT_ELE;
-    if (repeat > 0) {
-        WholeReduceMax(workLocal, srcLocal, VEC_LEN_ONCE_REPEAT_ELE, REPEAT_64, 1, 1, VEC_LEN_ONCE_REPEAT_BLOCK,
+    if (likely(repeat > 0)) {
+        WholeReduceMax(workLocal, srcLocal, VEC_LEN_ONCE_REPEAT_ELE, repeat, 1, 1, VEC_LEN_ONCE_REPEAT_BLOCK,
                        ReduceOrder::ORDER_ONLY_VALUE);
         PipeBarrier<PIPE_V>();
     }
-    if (tailNum != 0) {
+    if (unlikely(tailNum != 0)) {
         WholeReduceMax(workLocal[repeat], srcLocal[count - tailNum], tailNum, 1, 1, 1, VEC_LEN_ONCE_REPEAT_BLOCK,
                        ReduceOrder::ORDER_ONLY_VALUE);
         PipeBarrier<PIPE_V>();
