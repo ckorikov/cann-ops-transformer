@@ -15,9 +15,8 @@
 #include <climits>
 #include <graph/utils/type_utils.h>
 #include "register/op_impl_registry.h"
-#include "log/ops_log.h"
-#include "error/ops_error.h"
-#include "tiling/tiling_base.h"
+#include "log/log.h"
+#include "tiling_base/tiling_base.h"
 #include "grouped_matmul_swiglu_quant_tiling.h"
 using namespace ge;
 using namespace AscendC;
@@ -61,7 +60,7 @@ static int64_t CalMaxRowInUb(gert::TilingContext* context, const uint64_t ubSize
   }
   if (maxRowInUb < 1) {
     // when n > (ubSize - 72) / 19 = 10330, maxRowInUb < 1
-    OPS_LOG_E(context->GetNodeName(), "GMM_SWIGLU_QUANT TILING: n should not be greater than 10240, now is %lu\n", n); 
+    OP_LOGE(context->GetNodeName(), "GMM_SWIGLU_QUANT TILING: n should not be greater than 10240, now is %lu\n", n); 
   }
   return maxRowInUb;
 }
@@ -78,18 +77,15 @@ static void SetTilingKey(gert::TilingContext* context, bool isSplitWorkSpace) {
 
 ASCENDC_EXTERN_C graphStatus TilingGMMSwigluQuant(gert::TilingContext* context) {
   // set info
-  OPS_LOG_I(context->GetNodeName(), "Begin Run GMM Swiglu Tiling .");
+  OP_LOGD(context->GetNodeName(), "Begin Run GMM Swiglu Tiling .");
   
   auto compileInfoPtr = context->GetCompileInfo<GMMSwigluCompileInfo>();
   auto xTensor = context->GetInputTensor(X_INDEX);
-  OPS_LOG_E_IF_NULL(context, xTensor, return GRAPH_FAILED);
   const int64_t m = xTensor->GetStorageShape().GetDim(0);
   const int64_t k = xTensor->GetStorageShape().GetDim(1);
   auto wTensor = context->GetInputTensor(WEIGHT_INDEX);
-  OPS_LOG_E_IF_NULL(context, wTensor, return GRAPH_FAILED);
   const int64_t n = wTensor->GetStorageShape().GetDim(1) * wTensor->GetStorageShape().GetDim(4);
   auto groupListTensor = context->GetInputTensor(GROUPLIST_INDEX);
-  OPS_LOG_E_IF_NULL(context, groupListTensor, return GRAPH_FAILED);
   const int64_t groupNum = groupListTensor->GetStorageShape().GetDim(0);
   GMMSwigluQuantTilingData tilingData;
   const int64_t row = CalMaxRowInUb(context, compileInfoPtr->ubSize_, n);
@@ -102,15 +98,15 @@ ASCENDC_EXTERN_C graphStatus TilingGMMSwigluQuant(gert::TilingContext* context) 
   tilingData.gmmSwiglu.set_groupListLen(groupNum);
   tilingData.gmmSwiglu.set_tokenLen(n);
   
-  OPS_LOG_D(context->GetNodeName(),"grouped_matmul_swiglu_quant_tiling.");
-  OPS_LOG_D(context->GetNodeName(),"gmmSwigluBaseParams.groupNum:  %ld", groupNum);
-  OPS_LOG_D(context->GetNodeName(),"gmmSwigluBaseParams.coreNum:   %u ", compileInfoPtr->aicNum_);
-  OPS_LOG_D(context->GetNodeName(),"gmmSwigluBaseParams.M:         %ld", m);
-  OPS_LOG_D(context->GetNodeName(),"gmmSwigluBaseParams.K:         %ld", k);
-  OPS_LOG_D(context->GetNodeName(),"gmmSwigluBaseParams.N:         %ld", n);
-  OPS_LOG_D(context->GetNodeName(),"gmmSwiglu.maxProcessRowNum:    %ld", row);
-  OPS_LOG_D(context->GetNodeName(),"gmmSwiglu.groupListLen:        %ld", groupNum);
-  OPS_LOG_D(context->GetNodeName(),"gmmSwiglu.tokenLen:            %ld", n);
+  OP_LOGD(context->GetNodeName(),"grouped_matmul_swiglu_quant_tiling.");
+  OP_LOGD(context->GetNodeName(),"gmmSwigluBaseParams.groupNum:  %ld", groupNum);
+  OP_LOGD(context->GetNodeName(),"gmmSwigluBaseParams.coreNum:   %u ", compileInfoPtr->aicNum_);
+  OP_LOGD(context->GetNodeName(),"gmmSwigluBaseParams.M:         %ld", m);
+  OP_LOGD(context->GetNodeName(),"gmmSwigluBaseParams.K:         %ld", k);
+  OP_LOGD(context->GetNodeName(),"gmmSwigluBaseParams.N:         %ld", n);
+  OP_LOGD(context->GetNodeName(),"gmmSwiglu.maxProcessRowNum:    %ld", row);
+  OP_LOGD(context->GetNodeName(),"gmmSwiglu.groupListLen:        %ld", groupNum);
+  OP_LOGD(context->GetNodeName(),"gmmSwiglu.tokenLen:            %ld", n);
   
   auto ascendcPlatform = platform_ascendc::PlatformAscendC(context->GetPlatformInfo());
   using namespace matmul_tiling;
@@ -122,44 +118,42 @@ ASCENDC_EXTERN_C graphStatus TilingGMMSwigluQuant(gert::TilingContext* context) 
   tiling.SetShape(compileInfoPtr->baseM_, compileInfoPtr->baseN_, k);
   tiling.SetOrgShape(m, n, k);
   tiling.SetBufferSpace(-1, -1, -1);
-  OPS_ERR_IF(tiling.GetTiling(tilingData.mmTilingData) == -1,
-             OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "grouped_matmul_swiglu_quant_tiling, get tiling failed"),
+  OP_CHECK_IF(tiling.GetTiling(tilingData.mmTilingData) == -1,
+             OP_LOGE(context->GetNodeName(), "grouped_matmul_swiglu_quant_tiling, get tiling failed"),
              return GRAPH_FAILED);
   auto workspaceSizes = context->GetWorkspaceSizes(1);
   int64_t usrWorkspaceLimut = USER_WORKSPACE_LIMIT;
   int64_t mLimit = ((usrWorkspaceLimut / DOUBLE_WORKSPACE_SPLIT) / INT32_DTYPE_SIZE) / n;
-  OPS_ERR_IF(mLimit <= 0, 
-             OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(),"mLimit is %ld must over then 0.", mLimit),
+  OP_CHECK_IF(mLimit <= 0, 
+             OP_LOGE(context->GetNodeName(),"mLimit is %ld must over then 0.", mLimit),
              return GRAPH_FAILED);
   tilingData.gmmSwigluBaseParams.set_mLimit(mLimit);
   workspaceSizes[0] = SYS_WORKSPACE_SIZE + ((mLimit * DOUBLE_WORKSPACE_SPLIT > m \
                       ? m \
                       : mLimit * DOUBLE_WORKSPACE_SPLIT) * n * sizeof(int32_t));
   bool isSplitWorkSpace = m > mLimit * DOUBLE_WORKSPACE_SPLIT;
-  OPS_LOG_D(context->GetNodeName(), "USER_WORKSPACE_LIMIT:         %ld", usrWorkspaceLimut);
-  OPS_LOG_D(context->GetNodeName(), "mLimit:                       %ld", mLimit);
-  OPS_LOG_D(context->GetNodeName(), "workspaceSizes:               %lu", workspaceSizes[0]);
-  OPS_LOG_D(context->GetNodeName(), "isSplitWorkSpace:             %s", isSplitWorkSpace ? "true" : "false");
+  OP_LOGD(context->GetNodeName(), "USER_WORKSPACE_LIMIT:         %ld", usrWorkspaceLimut);
+  OP_LOGD(context->GetNodeName(), "mLimit:                       %ld", mLimit);
+  OP_LOGD(context->GetNodeName(), "workspaceSizes:               %lu", workspaceSizes[0]);
+  OP_LOGD(context->GetNodeName(), "isSplitWorkSpace:             %s", isSplitWorkSpace ? "true" : "false");
   SetTilingKey(context, isSplitWorkSpace);
   tilingData.SaveToBuffer(context->GetRawTilingData()->GetData(), context->GetRawTilingData()->GetCapacity());
   context->SetBlockDim(compileInfoPtr->aicNum_); // block dim is the number of aicube
   context->GetRawTilingData()->SetDataSize(tilingData.GetDataSize());
   
-  OPS_LOG_D(context->GetNodeName(), "End Run GMM Swiglu Tiling.");
+  OP_LOGD(context->GetNodeName(), "End Run GMM Swiglu Tiling.");
   return GRAPH_SUCCESS;
 }
 
 ASCENDC_EXTERN_C graphStatus TilingPrepareForGMMSwigluQuant(gert::TilingParseContext* context) {
   // get info
   fe::PlatFormInfos* platformInfoPtr = context->GetPlatformInfo();
-  OPS_LOG_E_IF_NULL(context, platformInfoPtr, return GRAPH_FAILED);
   auto compileInfoPtr = context->GetCompiledInfo<GMMSwigluCompileInfo>();
-  OPS_LOG_E_IF_NULL(context, compileInfoPtr, return GRAPH_FAILED);
 
   auto ascendcPlatform = platform_ascendc::PlatformAscendC(platformInfoPtr);
   compileInfoPtr->aicNum_ = ascendcPlatform.GetCoreNumAic();
   ascendcPlatform.GetCoreMemSize(platform_ascendc::CoreMemType::UB, compileInfoPtr->ubSize_);
-  OPS_LOG_D(context->GetNodeName(), "ubSize is %lu, aicNum is %u.", compileInfoPtr->ubSize_, compileInfoPtr->aicNum_);
+  OP_LOGD(context->GetNodeName(), "ubSize is %lu, aicNum is %u.", compileInfoPtr->ubSize_, compileInfoPtr->aicNum_);
   return GRAPH_SUCCESS;
 }
 

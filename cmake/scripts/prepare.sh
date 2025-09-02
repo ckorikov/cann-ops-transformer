@@ -73,6 +73,10 @@ while [[ $# -gt 0 ]]; do
         OP_DEBUG_CONFIG="$2"
         shift 2
         ;;
+    --build_ops_rty_kernel)
+        BUILD_OPS_RTY_KERNEL="$2"
+        shift 2
+        ;;
     --enable_ccache)
         ENABLE_CCACHE="$2"
         shift 2
@@ -123,6 +127,7 @@ function build() {
         -DASCEND_COMPUTE_UNIT=${CONVERT_ASCEND_COMPUTE_UNIT} \
         -DASCEND_OP_NAME=${CONVERT_ASCEND_OP_NAME} \
         -DENABLE_CCACHE=${ENABLE_CCACHE} \
+        -DBUILD_OPS_RTY_KERNEL=${BUILD_OPS_RTY_KERNEL} \
         -DOP_DEBUG_CONFIG=${OP_DEBUG_CONFIG}
 
     make ${JOB_NUM} prepare_build

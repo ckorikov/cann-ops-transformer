@@ -429,7 +429,8 @@ if [ "${BUILD}" == "host" ];then
     mkdir -p ${CURRENT_DIR}/output
     cp ${BUILD_DIR}/*.run ${CURRENT_DIR}/output
 elif [ "${BUILD}" == "kernel" ];then
-    cmake_config -DENABLE_OPS_HOST=OFF
+    CUSTOM_OPTION="${CUSTOM_OPTION} -DENABLE_OPS_HOST=OFF -DBUILD_OPS_RTY_KERNEL=ON"
+    cmake_config 
     build_kernel
 elif [ -n "${BUILD}" ];then
     cmake_config

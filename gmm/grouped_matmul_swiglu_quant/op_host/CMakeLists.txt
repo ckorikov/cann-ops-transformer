@@ -7,48 +7,16 @@
 # See LICENSE in the root of the software repository for the full text of the License.
 # ======================================================================================================================
 
-add_ops_compile_options(
-        OP_NAME GroupedMatmulSwigluQuant
-        OPTIONS --cce-auto-sync=on
-                -Wno-deprecated-declarations
-                -Werror
-)
-
-target_sources(op_host_aclnnExc PRIVATE
-        grouped_matmul_swiglu_quant_def.cpp
-)
-
-target_sources(opapi PRIVATE
-        grouped_matmul_swiglu_quant.cpp
-        aclnn_grouped_matmul_swiglu_quant.cpp
-)
-
-if (NOT BUILD_OPEN_PROJECT)
-    target_sources(aclnn_ops_train PRIVATE
-        grouped_matmul_swiglu_quant.cpp
-        aclnn_grouped_matmul_swiglu_quant.cpp
+if (BUILD_OPS_RTY_KERNEL)
+    add_ops_compile_options(
+            OP_NAME GroupedMatmulSwigluQuant
+            OPTIONS --cce-auto-sync=on
+                    -Wno-deprecated-declarations
+                    -Werror
     )
-
-    target_sources(aclnn_ops_infer PRIVATE
-        grouped_matmul_swiglu_quant.cpp
-        aclnn_grouped_matmul_swiglu_quant.cpp
+    target_sources(op_host_aclnnExc PRIVATE
+            grouped_matmul_swiglu_quant_def.cpp
     )
-endif ()
-
-target_sources(optiling PRIVATE
-        grouped_matmul_swiglu_quant_tiling.cpp
-)
-
-target_include_directories(optiling PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}
-)
-
-target_sources(opsproto PRIVATE
-        grouped_matmul_swiglu_quant_proto.cpp
-)
-
-file(GLOB _GMM_Aclnn_header "${CMAKE_CURRENT_SOURCE_DIR}/aclnn_grouped_matmul_swiglu_quant*.h")
-
-install(FILES ${_GMM_Aclnn_header}
-        DESTINATION ${ACLNN_INC_INSTALL_DIR} OPTIONAL
-)
+else()
+    add_modules_sources(OPTYPE grouped_matmul_swiglu_quant ACLNNTYPE aclnn_exclude)
+endif()

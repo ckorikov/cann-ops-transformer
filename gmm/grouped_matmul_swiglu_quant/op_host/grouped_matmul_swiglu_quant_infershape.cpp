@@ -13,7 +13,7 @@
  * \brief
  */
 #include "register/op_impl_registry.h"
-#include "log/ops_log.h"
+#include "log/log.h"
 #include "platform/platform_info.h"
 
 using namespace ge;
