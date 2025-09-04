@@ -178,7 +178,7 @@ op_add_depend_directory(
         OP_DIR_LIST OP_DEPEND_DIR_LIST
 )
 foreach (OP_DEPEND_DIR ${OP_DEPEND_DIR_LIST})
-    if (EXISTS "${OP_DEPEND_DIR}/ophost")
+    if (EXISTS "${OP_DEPEND_DIR}/op_host")
         add_subdirectory(${OP_DEPEND_DIR}/op_host)
     else()
         add_subdirectory(${OP_DEPEND_DIR})

@@ -45,13 +45,9 @@ function(op_add_subdirectory OP_LIST OP_DIR_LIST)
 
     file(GLOB OP_HOST_CMAKE_FILES 
     "${CMAKE_CURRENT_SOURCE_DIR}/gmm/**/op_host/CMakeLists.txt"
-    "${CMAKE_CURRENT_SOURCE_DIR}/moe/**/op_host/CMakeLists.txt"
     "${CMAKE_CURRENT_SOURCE_DIR}/attention/**/op_host/CMakeLists.txt"
-    "${CMAKE_CURRENT_SOURCE_DIR}/mc2/**/op_host/CMakeLists.txt"
     "${CMAKE_CURRENT_SOURCE_DIR}/gmm/**/CMakeLists.txt"
-    "${CMAKE_CURRENT_SOURCE_DIR}/moe/**/CMakeLists.txt"
-    "${CMAKE_CURRENT_SOURCE_DIR}/attention/**/CMakeLists.txt"
-    "${CMAKE_CURRENT_SOURCE_DIR}/mc2/**/CMakeLists.txt")
+    "${CMAKE_CURRENT_SOURCE_DIR}/attention/**/CMakeLists.txt")
 
     foreach(OP_CMAKE_FILE ${OP_HOST_CMAKE_FILES})
         if ("${OP_CMAKE_FILE}" MATCHES "op_host")
