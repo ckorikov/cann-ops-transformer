@@ -9,8 +9,8 @@
 # ----------------------------------------------------------------------------
 
 # Ascend mode
-if(DEFINED ENV{ASCEND_CUSTOM_PATH})
-  set(ASCEND_DIR $ENV{ASCEND_CUSTOM_PATH})
+if(DEFINED ENV{ASCEND_HOME_PATH})
+  set(ASCEND_DIR $ENV{ASCEND_HOME_PATH})
 else()
   if ("$ENV{USER}" STREQUAL "root")
     if(EXISTS /usr/local/Ascend/ascend-toolkit/latest)

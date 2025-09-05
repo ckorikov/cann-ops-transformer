@@ -6,7 +6,7 @@
 # INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
 # See LICENSE in the root of the software repository for the full text of the License.
 # ======================================================================================================================
-if (BUILD_OPS_RTY_KERNEL)
+if (BUILD_OPEN_PROJECT)
     add_library(ops_transformer_utils_tiling_headers INTERFACE)
 
     target_include_directories(ops_transformer_utils_tiling_headers INTERFACE
@@ -15,6 +15,7 @@ if (BUILD_OPS_RTY_KERNEL)
             $<$<BOOL:${BUILD_OPEN_PROJECT}>:$<BUILD_INTERFACE:${ASCEND_CANN_PACKAGE_PATH}/include/experiment/metadef>>
             $<$<BOOL:${BUILD_OPEN_PROJECT}>:$<BUILD_INTERFACE:${ASCEND_CANN_PACKAGE_PATH}/include/experiment/runtime>>
             $<$<BOOL:${BUILD_OPEN_PROJECT}>:$<BUILD_INTERFACE:${ASCEND_CANN_PACKAGE_PATH}/include/experiment/msprof>>
+            $<$<BOOL:OFF${BUILD_OPS_RTY_KERNEL}>:$<BUILD_INTERFACE:${ASCEND_CANN_PACKAGE_PATH}/include/op_common>>
             $<INSTALL_INTERFACE:include/ops_adv/utils>
     )
 
@@ -30,6 +31,7 @@ if (BUILD_OPS_RTY_KERNEL)
             $<$<BOOL:${BUILD_OPEN_PROJECT}>:$<BUILD_INTERFACE:${ASCEND_CANN_PACKAGE_PATH}/include/experiment/slog>>
             $<$<BOOL:${BUILD_OPEN_PROJECT}>:$<BUILD_INTERFACE:${ASCEND_CANN_PACKAGE_PATH}/include/experiment/metadef>>
             $<$<BOOL:${BUILD_OPEN_PROJECT}>:$<BUILD_INTERFACE:${ASCEND_CANN_PACKAGE_PATH}/include/aclnn/opdev>>
+            $<$<BOOL:OFF${BUILD_OPS_RTY_KERNEL}>:$<BUILD_INTERFACE:${ASCEND_CANN_PACKAGE_PATH}/include/op_common>>
             $<INSTALL_INTERFACE:include/ops_adv/utils>
     )
 
