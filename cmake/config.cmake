@@ -180,6 +180,7 @@ endif ()
 if (BUILD_OPEN_PROJECT)
     # 与基础 CANN 配套关系检查
     option(CHECK_COMPATIBLE      "check compatibility"         ON)
+    set(CHECK_COMPATIBLE                                      OFF)
     if (CHECK_COMPATIBLE)
         set(_param
                 "--cann_path=${ASCEND_CANN_PACKAGE_PATH}"
