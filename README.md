@@ -53,7 +53,7 @@ ops-transformer项目支持源码编译，进行源码编译前，请根据如�
 
 1. **获取软件包**
 
-   请参见"[开放项目与CANN版本配套表](https://gitee.com/ascend/cann-community/blob/master/README.md#cannversionmap)"获取对应的CANN开发套件包`Ascend-cann-toolkit_<cann_version>_linux-<arch>.run`、算子二进制包`Ascend-cann-kernels-<soc_version>_<cann_version>_linux.run`（二进制包，算子运行时依赖）、math类基础算子包`CANN-opp-math-<cann_version>-linux.<arch>.run`和算子基础框架包`CANN-ops-base-<cann_version>-linux.<arch>.run`。
+   请参见"[开放项目与CANN版本配套表](https://gitee.com/ascend/cann-community/blob/master/README.md#cannversionmap)"获取对应的CANN开发套件包`Ascend-cann-toolkit_<cann_version>_linux-<arch>.run`、算子二进制包`Ascend-cann-kernels-<soc_version>_<cann_version>_linux.run`或`Atlas-<soc_version>-cann-kernels_<cann_version>_linux-<arch>.run`（二进制包，算子运行时依赖）、math类基础算子包`CANN-ops-math-<cann_version>-linux.<arch>.run`和算子基础框架包`CANN-ops-base-<cann_version>-linux.<arch>.run`。
 
    - 为确保您的源码定制开发顺利进行，请选择配套的CANN版本与GitCode分支源码，使用master分支可能存在版本不匹配的风险。
    - 操作系统软件包获取和安装请参见[用户手册](https://hiascend.com/document/redirect/CannCommunityInstSoftware)。
@@ -62,7 +62,7 @@ ops-transformer项目支持源码编译，进行源码编译前，请根据如�
 
    ops-transformer项目运行依赖昇腾NPU驱动和固件，其安装过程参见[用户手册](https://hiascend.com/document/redirect/CannCommunityInstSoftware)，先选择安装场景，再按“准备软件包”、“准备用户”、“安装NPU驱动和固件”章节完成驱动和固件安装。
 
-   此外，ops-transformer源码编译用到的依赖如下，其中python、gcc安装方法请参见配套版本的[用户手册](https://hiascend.com/document/redirect/CannCommunityInstDepend)，先选择安装场景，再按“安装CANN > 安装依赖”章节完成相关依赖的安装。
+   此外，ops-transformer源码编译用到的依赖如下，其中python、gcc安装方法请参见配套版本的[用户手册](https://hiascend.com/document/redirect/CannCommunityInstSoftware)，先选择安装场景，再按“安装CANN > 安装依赖”章节完成相关依赖的安装。
 
    - python >= 3.7.0
 
@@ -106,7 +106,7 @@ ops-transformer项目支持源码编译，进行源码编译前，请根据如�
      # 算子基础框架包安装命令示例：
      ./CANN-ops-base-<cann_version>-linux.<arch>.run --full --quite
      # math类基础算子包安装命令示例：
-     ./CANN-opp-math-<cann_version>-linux.<arch>.run --full --quite
+     ./CANN-ops-math-<cann_version>-linux.<arch>.run --full --quite
      ```
 
      - 若使用root用户安装，安装完成后CANN开发套件包存储在`/usr/local/Ascend/ascend-toolkit/latest`路径；算子二进制包存储在`/usr/local/Ascend/ascend-toolkit/latest/opp/built-in/op_impl/ai_core/tbe/kernel`路径；算子基础框架包存储在`/usr/local/Ascend/latest/ops-base`路径；math类基础算子包存储在`/usr/local/Ascend/<cann_version>/opp/built-in/op_impl/ai_core/tbe/impl/ascendc`路径。
@@ -122,10 +122,10 @@ ops-transformer项目支持源码编译，进行源码编译前，请根据如�
      # 算子基础框架包安装命令示例：
      ./CANN-ops-base-<cann_version>-linux.<arch>.run --full --quite --install-path=${install_path}
      # math类基础算子包安装命令示例：
-     ./CANN-opp-math-<cann_version>-linux.<arch>.run --full --quite --install-path=${install_path}
+     ./CANN-ops-math-<cann_version>-linux.<arch>.run --full --quite --install-path=${install_path}
      ```
 
-     安装完成后，CANN开发套件包存储在`${install_path}/ascend-toolkit/latest`指定路径；算子二进制包存储在`${install_path}/ascend-toolkit/latest/opp/built-in/op_impl/ai_core/tbe/kernel`路径；算子基础框架包存储在`${install_path}/Ascend/latest/ops-base`路径；math类基础算子包存储在`${install_path}/Ascend/<cann_version>/opp/built-in/op_impl/ai_core/tbe/impl/ascendc`路径。
+     安装完成后，CANN开发套件包存储在`${install_path}/ascend-toolkit/latest`指定路径；算子二进制包存储在`${install_path}/ascend-toolkit/latest/opp/built-in/op_impl/ai_core/tbe/kernel`路径；算子基础框架包存储在`${install_path}/ascend-toolkit`路径；math类基础算子包存储在`${install_path}/Ascend/<cann_version>/opp/built-in/op_impl/ai_core/tbe/impl/ascendc`路径。
 
 4. **设置环境变量**
 
