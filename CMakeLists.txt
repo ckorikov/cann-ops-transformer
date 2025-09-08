@@ -50,6 +50,7 @@ include(cmake/func.cmake)
 
 if (BUILD_OPEN_PROJECT)
     include(cmake/intf.cmake)
+
     if (BUILD_OPS_RTY_KERNEL)
         message(STATUS "Build return yellow kernel.")
         include(cmake/rty_obj_func.cmake)
@@ -172,6 +173,9 @@ if (BUILD_OPS_RTY_KERNEL)
 endif ()
 
 add_subdirectory(common)
+if (NOT BUILD_OPS_RTY_KERNEL)
+    add_subdirectory(mc2)
+endif()
 
 set(OP_LIST)
 set(OP_DIR_LIST)
@@ -190,6 +194,7 @@ op_add_depend_directory(
         OP_LIST ${OP_LIST}
         OP_DIR_LIST OP_DEPEND_DIR_LIST
 )
+
 foreach (OP_DEPEND_DIR ${OP_DEPEND_DIR_LIST})
     if (EXISTS "${OP_DEPEND_DIR}/op_host")
         add_subdirectory(${OP_DEPEND_DIR}/op_host)

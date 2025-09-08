@@ -41,6 +41,10 @@ function(add_infer_modules)
       $<BUILD_INTERFACE:dlog_headers>
       $<$<TARGET_EXISTS:ops_base_util_objs>:$<TARGET_OBJECTS:ops_base_util_objs>>
       $<$<TARGET_EXISTS:ops_base_infer_objs>:$<TARGET_OBJECTS:ops_base_infer_objs>>
+
+      $<$<TARGET_EXISTS:${COMMON_NAME}_obj>:$<TARGET_OBJECTS:${COMMON_NAME}_obj>>
+      $<$<TARGET_EXISTS:ops_base_tiling_objs>:$<TARGET_OBJECTS:ops_base_tiling_objs>>
+      tiling_api
     )
   endif()
 endfunction()
@@ -187,6 +191,88 @@ macro(add_modules_sources)
   endif()
 
   file(GLOB OPTILING_SRCS ${SOURCE_DIR}/*_tiling*.cpp)
+  if (OPTILING_SRCS)
+    add_tiling_modules()
+    target_sources(${OPHOST_NAME}_tiling_obj PRIVATE ${OPTILING_SRCS})
+  endif()
+
+  file(GLOB AICPU_SRCS ${MODULE_DIR}/*_aicpu*.cpp)
+  if (AICPU_SRCS)
+    add_aicpu_kernel_modules()
+    target_sources(${OPHOST_NAME}_aicpu_obj PRIVATE ${AICPU_SRCS})
+  endif()
+
+  if (MODULE_OPTYPE)
+    list(LENGTH MODULE_OPTYPE OpTypeLen)
+    list(LENGTH MODULE_ACLNNTYPE AclnnTypeLen)
+    if(NOT ${OpTypeLen} EQUAL ${AclnnTypeLen})
+      message(FATAL_ERROR "OPTYPE AND ACLNNTYPE Should be One-to-One")
+    endif()
+    math(EXPR index "${OpTypeLen} - 1")
+    foreach(i RANGE ${index})
+      list(GET MODULE_OPTYPE ${i} OpType)
+      list(GET MODULE_ACLNNTYPE ${i} AclnnType)
+      if (${AclnnType} STREQUAL "aclnn" OR ${AclnnType} STREQUAL "aclnn_inner" OR ${AclnnType} STREQUAL "aclnn_exclude")
+        file(GLOB OPDEF_SRCS ${SOURCE_DIR}/${OpType}_def*.cpp)
+        if (OPDEF_SRCS)
+          target_sources(${OPHOST_NAME}_opdef_${AclnnType}_obj INTERFACE ${OPDEF_SRCS})
+        endif()
+      elseif(${AclnnType} STREQUAL "no_need_alcnn")
+        message(STATUS "aicpu or host aicpu no need aclnn.")
+      else()
+        message(FATAL_ERROR "ACLNN TYPE UNSPPORTED, ONLY SUPPORT aclnn/aclnn_inner/aclnn_exclude")
+      endif()
+    endforeach()
+  else()
+    file(GLOB OPDEF_SRCS ${SOURCE_DIR}/*_def*.cpp)
+    if(OPDEF_SRCS)
+      message(FATAL_ERROR
+      "Should Manually specify aclnn/aclnn_inner/aclnn_exclude\n"
+      "usage: add_modules_sources(OPTYPE optypes ACLNNTYPE aclnntypes)\n"
+      "example: add_modules_sources(OPTYPE add ACLNNTYPE aclnn_exclude)"
+      )
+    endif()
+  endif()
+endmacro()
+
+# mc2算子回黄编译框架
+macro(add_mc2_modules_sources)
+  set(multiValueArgs OPTYPE ACLNNTYPE)
+
+  cmake_parse_arguments(MODULE "" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+  set(SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
+
+  # opapi 默认全部编译
+  file(GLOB OPAPI_SRCS ${SOURCE_DIR}/op_api/aclnn_*.cpp)
+  if (OPAPI_SRCS)
+    add_opapi_modules()
+    target_sources(${OPHOST_NAME}_opapi_obj PRIVATE ${OPAPI_SRCS})
+  endif()
+
+  # file(GLOB OPAPI_HEADERS ${SOURCE_DIR}/op_api/aclnn_*.h)
+  # if (OPAPI_HEADERS)
+  #   target_sources(${OPHOST_NAME}_aclnn_inner_headers INTERFACE ${OPAPI_HEADERS})
+  # endif()
+
+  # 获取算子层级目录名称，判断是否编译该算子
+  get_filename_component(PARENT_DIR ${SOURCE_DIR} DIRECTORY)
+  get_filename_component(OP_NAME ${PARENT_DIR} NAME)
+  list(FIND ASCEND_OP_NAME ${OP_NAME} INDEX)
+  if(NOT "${ASCEND_OP_NAME}" STREQUAL "" AND INDEX EQUAL -1)
+    #ASCEND_OP_NAME 为空表示全部编译
+    return()
+  endif()
+  # 记录全局的COMPILED_OPS和COMPILED_OP_DIRS，其中COMPILED_OP_DIRS只记录到算子名，例如transformer/abs
+  set(COMPILED_OPS ${COMPILED_OPS} ${OP_NAME} CACHE STRING "Compiled Ops" FORCE)
+  set(COMPILED_OP_DIRS ${COMPILED_OP_DIRS} ${PARENT_DIR} CACHE STRING "Compiled Ops Dirs" FORCE)
+
+  file(GLOB OPINFER_SRCS ${SOURCE_DIR}/*_infershape*.cpp)
+  if (OPINFER_SRCS)
+    add_infer_modules()
+    target_sources(${OPHOST_NAME}_infer_obj PRIVATE ${OPINFER_SRCS})
+  endif()
+
+  file(GLOB OPTILING_SRCS ${SOURCE_DIR}/op_tiling/*_tiling*.cpp)
   if (OPTILING_SRCS)
     add_tiling_modules()
     target_sources(${OPHOST_NAME}_tiling_obj PRIVATE ${OPTILING_SRCS})

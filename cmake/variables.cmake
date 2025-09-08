@@ -94,6 +94,10 @@ set(OPAPI_INCLUDE
   ${OPS_TRANSFORMER_DIR}/common/include
   ${OPS_TRANSFORMER_DIR}/common/include/external
   $<$<NOT:$<BOOL:${BUILD_OPEN_PROJECT}>>:${TOP_DIR}/output/${PRODUCT}/aclnnop_resource>
+  
+  ${OPS_TRANSFORMER_DIR}/mc2/common/inc
+  ${OPS_TRANSFORMER_DIR}/mc2/3rd
+  ${TOP_DIR}/ace/comop/inc/external
 )
 
 set(OP_TILING_INCLUDE
@@ -105,6 +109,11 @@ set(OP_TILING_INCLUDE
   ${OPBASE_INC_DIRS}
   ${OPS_TRANSFORMER_DIR}
   ${OPS_TRANSFORMER_DIR}/common/include/
+
+  ${OPS_TRANSFORMER_DIR}/mc2/common/inc
+  ${OPS_TRANSFORMER_DIR}/mc2/3rd
+  ${METADEF_INC_DIR}/../common/util
+  ${TOP_DIR}/asl/ops/cann/ops/utils/inc
 )
 
 set(OP_PROTO_INCLUDE
@@ -113,6 +122,10 @@ set(OP_PROTO_INCLUDE
   ${METADEF_INCLUDE_DIRS}
   ${OPBASE_INC_DIRS}
   ${NPURUNTIME_INCLUDE_DIRS}
+
+  ${OPS_TRANSFORMER_DIR}/mc2/common/inc
+  ${OPS_TRANSFORMER_DIR}/mc2/3rd
+  ${METADEF_INC_DIR}/../common/util
 )
 
 set(AICPU_INCLUDE

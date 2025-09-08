@@ -84,7 +84,6 @@ if (BUILD_OPEN_PROJECT)
     target_link_libraries(opapi PRIVATE
             $<BUILD_INTERFACE:intf_pub>
             -Wl,--whole-archive
-            ops_aclnn
             -Wl,--no-whole-archive
             -lopapi
             nnopbase
@@ -219,6 +218,10 @@ if (BUILD_OPEN_PROJECT)
 endif ()
 
 add_subdirectory(common)
+if (NOT BUILD_OPS_RTY_KERNEL)
+    add_subdirectory(mc2)
+endif()
+
 if (BUILD_OPEN_PROJECT)
     if (TESTS_UT_OPS_TEST)
         add_subdirectory(tools/framework)
@@ -261,6 +264,11 @@ foreach (OP_DEPEND_DIR ${OP_DEPEND_DIR_LIST})
     endif()
 endforeach ()
 
+set(MC2_OP_LIST)
+set(MC2_OP_DIR_LIST)
+mc2_op_add_subdirectory(MC2_OP_LIST MC2_OP_DIR_LIST)
+list(APPEND OP_LIST ${MC2_OP_LIST})
+list(APPEND OP_DIR_LIST ${MC2_OP_DIR_LIST})
 # ------------------------------------------------ aclnn ------------------------------------------------
 get_target_property(base_aclnn_srcs op_host_aclnn SOURCES)
 get_target_property(base_aclnn_inner_srcs op_host_aclnnInner SOURCES)
@@ -440,9 +448,7 @@ else()
     )
 endif ()
 
-target_link_libraries(opapi PUBLIC 
-    $<$<TARGET_EXISTS:${OPHOST_NAME}_opapi_obj>:$<TARGET_OBJECTS:${OPHOST_NAME}_opapi_obj>>
-)
+target_link_libraries(opapi PUBLIC ${OPHOST_NAME}_opapi_obj)
 target_link_libraries(opsproto PUBLIC ${OPHOST_NAME}_infer_obj)
 target_link_libraries(optiling PUBLIC ${OPHOST_NAME}_tiling_obj)
 
