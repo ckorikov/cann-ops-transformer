@@ -93,7 +93,7 @@ set(OPAPI_INCLUDE
   ${OPS_TRANSFORMER_DIR}/
   ${OPS_TRANSFORMER_DIR}/common/include
   ${OPS_TRANSFORMER_DIR}/common/include/external
-  ${TOP_DIR}/output/${PRODUCT}/aclnnop_resource
+  $<$<NOT:$<BOOL:${BUILD_OPEN_PROJECT}>>:${TOP_DIR}/output/${PRODUCT}/aclnnop_resource>
 )
 
 set(OP_TILING_INCLUDE

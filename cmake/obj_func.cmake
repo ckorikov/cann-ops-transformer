@@ -18,7 +18,7 @@ macro(add_modules_sources)
   cmake_parse_arguments(MODULE "" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
   set(SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 
-  #opapi 默认全部编译
+  # opapi 默认全部编译
   file(GLOB OPAPI_SRCS ${SOURCE_DIR}/op_api/*.cpp)
   if (OPAPI_SRCS)
     # aclnn
@@ -72,25 +72,25 @@ macro(add_modules_sources)
     foreach(i RANGE ${index})
       list(GET MODULE_OPTYPE ${i} OpType)
       list(GET MODULE_ACLNNTYPE ${i} AclnnType)
-      if (${AclnnType} STREQUAL "aclnn" OR ${AclnnType} STREQUAL "aclnnInner" OR ${AclnnType} STREQUAL "aclnnExc")
+      if (${AclnnType} STREQUAL "aclnn" OR ${AclnnType} STREQUAL "aclnn_inner" OR ${AclnnType} STREQUAL "aclnn_exclude")
         file(GLOB OPDEF_SRCS ${SOURCE_DIR}/${OpType}_def*.cpp)
         
         if (OPDEF_SRCS)
-          target_sources(op_host_${AclnnType} INTERFACE ${OPDEF_SRCS})
+          target_sources(${OPHOST_NAME}_opdef_${AclnnType}_obj INTERFACE ${OPDEF_SRCS})
         endif()
       elseif(${AclnnType} STREQUAL "no_need_alcnn")
         message(STATUS "aicpu or host aicpu no need aclnn.")
       else()
-        message(FATAL_ERROR "ACLNN TYPE UNSPPORTED, ONLY SUPPORT aclnn/aclnn_inner/aclnnExc")
+        message(FATAL_ERROR "ACLNN TYPE UNSPPORTED, ONLY SUPPORT aclnn/aclnn_inner/aclnn_exclude")
       endif()
     endforeach()
   else()
     file(GLOB OPDEF_SRCS ${SOURCE_DIR}/*_def*.cpp)
     if(OPDEF_SRCS)
       message(FATAL_ERROR
-      "Should Manually specify aclnn/aclnn_inner/aclnnExc\n"
+      "Should Manually specify aclnn/aclnn_inner/aclnn_exclude\n"
       "usage: add_modules_sources(OPTYPE optypes ACLNNTYPE aclnntypes)\n"
-      "example: add_modules_sources(OPTYPE add ACLNNTYPE aclnnExc)"
+      "example: add_modules_sources(OPTYPE add ACLNNTYPE aclnn_exclude)"
       )
     endif()
   endif()

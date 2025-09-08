@@ -440,7 +440,9 @@ else()
     )
 endif ()
 
-target_link_libraries(opapi PUBLIC ${OPHOST_NAME}_opapi_obj)
+target_link_libraries(opapi PUBLIC 
+    $<$<TARGET_EXISTS:${OPHOST_NAME}_opapi_obj>:$<TARGET_OBJECTS:${OPHOST_NAME}_opapi_obj>>
+)
 target_link_libraries(opsproto PUBLIC ${OPHOST_NAME}_infer_obj)
 target_link_libraries(optiling PUBLIC ${OPHOST_NAME}_tiling_obj)
 

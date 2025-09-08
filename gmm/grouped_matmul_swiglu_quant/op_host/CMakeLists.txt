@@ -11,16 +11,15 @@ if (BUILD_OPEN_PROJECT)
     target_sources(op_host_aclnnExc PRIVATE
         grouped_matmul_swiglu_quant_def.cpp
     )
-    if (BUILD_OPS_RTY_KERNEL) # 回黄kernel
-        add_ops_compile_options(
-                OP_NAME GroupedMatmulSwigluQuant
-                OPTIONS --cce-auto-sync=on
-                        -Wno-deprecated-declarations
-                        -Werror
-        )
-    else() # custom
-        add_modules_sources(OPTYPE grouped_matmul_swiglu_quant ACLNNTYPE aclnnExc)
-    endif()
-else() # 回黄host
-    add_modules_sources(OPTYPE grouped_matmul_swiglu_quant ACLNNTYPE aclnn_exclude)  
+endif()
+
+if (BUILD_OPS_RTY_KERNEL) # 回黄kernel
+    add_ops_compile_options(
+        OP_NAME GroupedMatmulSwigluQuant
+        OPTIONS --cce-auto-sync=on
+                -Wno-deprecated-declarations
+                -Werror
+    )
+else()
+    add_modules_sources(OPTYPE grouped_matmul_swiglu_quant ACLNNTYPE aclnn_exclude)
 endif()
