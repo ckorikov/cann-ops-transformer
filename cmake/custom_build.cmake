@@ -226,7 +226,8 @@ if (BUILD_OPEN_PROJECT)
 endif ()
 
 add_subdirectory(common)
-if (NOT BUILD_OPS_RTY_KERNEL)
+# 自定义算子包未打通的，用NOT ENABLE_BUILT_IN隔离
+if (NOT BUILD_OPS_RTY_KERNEL AND NOT ENABLE_BUILT_IN)
     add_subdirectory(mc2)
 endif()
 
