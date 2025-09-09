@@ -205,7 +205,11 @@ function(add_ops_info_target)
     cmake_parse_arguments(OPINFO "" "COMPUTE_UNIT" "" ${ARGN})
 
     set(OPS_INFO_TARGET generate_ops_info_${OPINFO_COMPUTE_UNIT})
-    set(OPS_INFO_JSON ${ASCEND_AUTOGEN_DIR}/aic-${OPINFO_COMPUTE_UNIT}-ops-info.json)
+    if (ENABLE_BUILT_IN)
+        set(OPS_INFO_JSON ${ASCEND_AUTOGEN_DIR}/aic-${OPINFO_COMPUTE_UNIT}-ops-info-transformer.json)
+    else()
+        set(OPS_INFO_JSON ${ASCEND_AUTOGEN_DIR}/aic-${OPINFO_COMPUTE_UNIT}-ops-info.json)
+    endif()
     set(CUSTOM_OPS_INFO_DIR ${CUSTOM_DIR}/op_impl/ai_core/tbe/config/${OPINFO_COMPUTE_UNIT})
 
     set(OPS_INFO_INI          ${base_aclnn_binary_dir}/aic-${OPINFO_COMPUTE_UNIT}-ops-info.ini)
@@ -229,9 +233,15 @@ function(add_ops_info_target)
     add_dependencies(${OPS_INFO_TARGET} opbuild_gen_default opbuild_gen_inner opbuild_gen_exc)
     add_dependencies(generate_ops_info ${OPS_INFO_TARGET})
 
-    install(FILES ${OPS_INFO_JSON}
-            DESTINATION packages/vendors/${VENDOR_NAME}/op_impl/ai_core/tbe/config/${OPINFO_COMPUTE_UNIT} OPTIONAL
-    )
+    if (ENABLE_BUILT_IN)
+        install(FILES ${OPS_INFO_JSON}
+                DESTINATION ops_transformer/built-in/op_impl/ai_core/tbe/config/${OPINFO_COMPUTE_UNIT} OPTIONAL
+        )
+    else()
+        install(FILES ${OPS_INFO_JSON}
+                DESTINATION packages/vendors/${VENDOR_NAME}/op_impl/ai_core/tbe/config/${OPINFO_COMPUTE_UNIT} OPTIONAL
+        )
+    endif()
 endfunction()
 
 function(add_ops_compile_options)
@@ -365,7 +375,11 @@ endfunction()
 function(add_bin_compile_target)
     cmake_parse_arguments(BINARY "" "COMPUTE_UNIT" "OP_INFO" ${ARGN})
 
-    set(_INSTALL_DIR packages/vendors/${VENDOR_NAME}/op_impl/ai_core/tbe/kernel)
+    if (ENABLE_BUILT_IN)
+        set(_INSTALL_DIR ops_transformer/built-in/op_impl/ai_core/tbe/kernel)
+    else()
+        set(_INSTALL_DIR packages/vendors/${VENDOR_NAME}/op_impl/ai_core/tbe/kernel)
+    endif()
     set(_OUT_DIR ${ASCEND_BINARY_OUT_DIR}/${BINARY_COMPUTE_UNIT})
 
     set(BIN_OUT_DIR      ${_OUT_DIR}/bin)

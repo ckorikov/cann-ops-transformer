@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<block name="Opp910BOpsInfo" copy_type="delivery" src_path="lib/" dst_path="" install_path="" install_own="$username:$usergroup" install_mod="550" install_type="all" pkg_feature="opp_binary">
+    
+    <file_info value="opp_config_ascend910b" src_path="lib/host" dst_path="built-in/op_kernel/config/ascend910b/ops_transformer" chip = "Ascend910B" install_path="opp/built-in/op_kernel/config/ascend910b/ops_transformer">
+        <file value="aic-ascend910b-ops-info.json"/>
+    </file_info>   
+    
+    <dir_info value="910BOpsInfo" install_type="all">
+        <path value="opp/built-in/op_kernel" install_mod="550"/>
+        <path value="opp/built-in/op_kernel/config" install_mod="550"/>
+        <path value="opp/built-in/op_kernel/config/ascend910b" install_mod="550"/>
+        <path value="opp/built-in/op_kernel/config/ascend910b/ops_transformer" chip="Ascend910B" install_mod="550"/>
+    </dir_info>
+
+</block>

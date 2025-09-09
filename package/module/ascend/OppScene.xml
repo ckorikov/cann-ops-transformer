@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<block name="OppScene" install_own="$username:$usergroup" install_type="all">
+    <generate_info value="scene.info" dst_path="" install_path="ops_transformer" install_mod="440">
+        <os>$(OS_NAME)</os>
+        <os_version>$(OS_VER)</os_version>
+        <arch>$(ARCH)</arch>
+    </generate_info>
+</block>

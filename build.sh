@@ -432,6 +432,9 @@ elif [ "${BUILD}" == "kernel" ];then
     CUSTOM_OPTION="${CUSTOM_OPTION} -DENABLE_OPS_HOST=OFF -DBUILD_OPS_RTY_KERNEL=ON"
     cmake_config 
     build_kernel
+elif [ "${BUILD}" == "package" ];then
+    cmake_config -DENABLE_BUILT_IN=ON
+    build_package
 elif [ -n "${BUILD}" ];then
     cmake_config
     build ${BUILD}

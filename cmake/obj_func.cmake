@@ -335,3 +335,51 @@ function(add_tiling_modules)
     )
   endif()
 endfunction()
+
+function(add_graph_plugin_modules)
+  if(NOT TARGET ${GRAPH_PLUGIN_NAME}_obj)
+    add_library(${GRAPH_PLUGIN_NAME}_obj OBJECT)
+    target_include_directories(${GRAPH_PLUGIN_NAME}_obj PRIVATE ${OP_PROTO_INCLUDE})
+    target_compile_definitions(${GRAPH_PLUGIN_NAME}_obj PRIVATE OPS_UTILS_LOG_SUB_MOD_NAME="GRAPH_PLUGIN" LOG_CPP)
+    target_compile_options(
+      ${GRAPH_PLUGIN_NAME}_obj PRIVATE $<$<NOT:$<BOOL:${ENABLE_TEST}>>:-DDISABLE_COMPILE_V1> -Dgoogle=ascend_private
+                                       -fvisibility=hidden
+      )
+    target_link_libraries(
+      ${GRAPH_PLUGIN_NAME}_obj
+      PRIVATE $<BUILD_INTERFACE:$<IF:$<BOOL:${ENABLE_TEST}>,intf_llt_pub_asan_cxx17,intf_pub_cxx17>>
+              $<BUILD_INTERFACE:dlog_headers>
+              $<$<TARGET_EXISTS:ops_base_util_objs>:$<TARGET_OBJECTS:ops_base_util_objs>>
+              $<$<TARGET_EXISTS:ops_base_infer_objs>:$<TARGET_OBJECTS:ops_base_infer_objs>>
+      )
+  endif()
+endfunction()
+
+# useage: add_graph_plugin_sources()
+macro(add_graph_plugin_sources)
+  set(SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
+
+  # 获取算子层级目录名称，判断是否编译该算子
+  get_filename_component(PARENT_DIR ${SOURCE_DIR} DIRECTORY)
+  get_filename_component(OP_NAME ${PARENT_DIR} NAME)
+  if(DEFINED ASCEND_OP_NAME
+     AND NOT "${ASCEND_OP_NAME}" STREQUAL ""
+     AND NOT "${ASCEND_OP_NAME}" STREQUAL "all"
+     AND NOT "${ASCEND_OP_NAME}" STREQUAL "ALL"
+    )
+    if(NOT ${OP_NAME} IN_LIST ASCEND_OP_NAME)
+      return()
+    endif()
+  endif()
+
+  file(GLOB GRAPH_PLUGIN_SRCS ${SOURCE_DIR}/*_graph_plugin*.cpp)
+  if(GRAPH_PLUGIN_SRCS)
+    add_graph_plugin_modules()
+    target_sources(${GRAPH_PLUGIN_NAME}_obj PRIVATE ${GRAPH_PLUGIN_SRCS})
+  endif()
+
+  file(GLOB GRAPH_PLUGIN_PROTO_HEADERS ${SOURCE_DIR}/*_proto*.h)
+  if(GRAPH_PLUGIN_PROTO_HEADERS)
+    target_sources(${GRAPH_PLUGIN_NAME}_proto_headers INTERFACE ${GRAPH_PLUGIN_PROTO_HEADERS})
+  endif()
+endmacro()

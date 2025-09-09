@@ -54,7 +54,27 @@ if(ENABLE_CUSTOM)
   set(OPPROTO_LIB_INSTALL_DIR         packages/vendors/${VENDOR_NAME}/op_proto/lib/linux/${CMAKE_SYSTEM_PROCESSOR})
   set(VERSION_INFO_INSTALL_DIR        packages/vendors/${VENDOR_NAME}/)
 else()
-  # built-in package install path TODO
+  # built-in package install path 
+  set(ACLNN_INC_INSTALL_DIR           ops_transformer/built-in/op_impl/ai_core/tbe/op_api/include/aclnnop)
+  set(ACLNN_INC_LEVEL2_INSTALL_DIR    ops_transformer/built-in/op_impl/ai_core/tbe/op_api/include/aclnnop/level2)
+  set(ACLNN_LIB_INSTALL_DIR           ops_transformer/built-in/op_impl/ai_core/tbe/op_api/lib/linux/${CMAKE_SYSTEM_PROCESSOR})
+  set(OPS_INFO_INSTALL_DIR            ops_transformer/built-in/op_impl/ai_core/tbe/config)
+  set(IMPL_INSTALL_DIR                ops_transformer/built-in/op_impl/ai_core/tbe/impl/ascendc)
+  set(IMPL_DYNAMIC_INSTALL_DIR        ops_transformer/built-in/op_impl/ai_core/tbe/impl/dynamic)
+  set(BIN_KERNEL_INSTALL_DIR          ops_transformer/built-in/op_impl/ai_core/tbe/kernel)
+  set(BIN_KERNEL_CONFIG_INSTALL_DIR   ops_transformer/built-in/op_impl/ai_core/tbe/kernel/config)
+  set(OPHOST_INC_INSTALL_PATH         ops_transformer/built-in/op_impl/ai_core/tbe/op_tiling/include)
+  set(OPHOST_LIB_INSTALL_PATH         ops_transformer/built-in/op_impl/ai_core/tbe/op_tiling/lib/linux/${CMAKE_SYSTEM_PROCESSOR})
+  set(OPTILING_LIB_INSTALL_DIR        ${OPHOST_LIB_INSTALL_PATH})
+  set(OPGRAPH_INC_INSTALL_DIR         ops_transformer/built-in/op_graph/inc)
+  set(OPGRAPH_LIB_INSTALL_DIR         ops_transformer/built-in/op_graph/lib/linux/${CMAKE_SYSTEM_PROCESSOR})
+  set(COMMON_INC_INSTALL_DIR          ops_transformer/include)
+  set(COMMON_LIB_INSTALL_DIR          ops_transformer/lib)
+  set(VERSION_INFO_INSTALL_DIR        ops_transformer)
+endif()
+
+if (ENABLE_BUILT_IN)
+  set(IMPL_INSTALL_DIR                ops_transformer/built-in/op_impl/ai_core/tbe/impl)
 endif()
 
 # util path
@@ -82,6 +102,8 @@ execute_process(
 
 # pack path
 set(CMAKE_INSTALL_PREFIX ${CMAKE_SOURCE_DIR}/build_out)
+
+
 
 set(OPAPI_INCLUDE
   ${C_SEC_INCLUDE}

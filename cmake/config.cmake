@@ -235,6 +235,7 @@ if (BUILD_OPEN_PROJECT)
                 --ascend-op_name ${EP_ASCEND_OP_NAME}
                 --op_debug_config ${OP_DEBUG_CONFIG}
                 --build_ops_rty_kernel ${BUILD_OPS_RTY_KERNEL}
+                --enable_built_in ${ENABLE_BUILT_IN}
                 --enable_ccache ${ENABLE_CCACHE}
                 RESULT_VARIABLE result
                 OUTPUT_STRIP_TRAILING_WHITESPACE

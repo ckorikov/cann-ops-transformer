@@ -201,7 +201,7 @@ function(gen_norm_symbol)
 
   gen_ophost_symbol()
 
-  #gen_graph_plugin_symbol()
+  gen_graph_plugin_symbol()
 
   gen_opapi_symbol()
 

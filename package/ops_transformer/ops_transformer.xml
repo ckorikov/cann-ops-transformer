@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<config name="ops_transformer" copy_type="delivery" src_path="lib/" dst_path="ops_transformer" install_type="all" install_mod="550" install_own="$username:$usergroup">
+    <package_info>
+        <chip_name>CANN</chip_name>
+        <func_name>ops-transformer</func_name>
+        <suffix>run</suffix>
+        <install_script>ops_transformer/script/install.sh</install_script>
+        <help>ops_transformer/script/help.info</help>
+        <version>package/ops_transformer/version.xml</version>
+        <cleanup>ops_transformer/script/cleanup.sh</cleanup>
+        <parallel>true</parallel>
+        <check_features>true</check_features>
+    </package_info>
+    <version_info install="true" install_path="ops_transformer" install_own="$username:$usergroup" install_mod="440"/>
+    <file_info value="ops_transformer_script" copy_type="source" src_path="package/ops_transformer/scripts" dst_path="ops_transformer/script" install_path="ops_transformer/script">
+        <file value="cleanup.sh"/>
+        <file value="install.sh"/>
+        <file value="uninstall.sh"/>
+        <file value="help.info"/>
+        <file value="opp_install.sh"/>
+        <file value="opp_common.sh"/>
+        <file value="ver_check.sh"/>
+        <file value="opp_uninstall.sh"/>
+        <file value="opp_upgrade.sh"/>
+        <file value="opp_custom_install.sh"/>
+        <file value="opp_custom_uninstall.sh"/>
+        <file value="opp_custom_create_softlink.sh" rename="opp_custom_create_softlink.sh"/>
+        <file value="opp_custom_remove_softlink.sh" rename="opp_custom_remove_softlink.sh"/>
+        <file value="filelist.csv" copy_type="delivery" src_path="" dst_path=""/>
+        <file value="install_common_parser.sh" copy_type="delivery"/>
+        <file value="common_func_v2.inc" copy_type="delivery"/>
+        <file value="common_func_v3.inc" copy_type="delivery"/>
+        <file value="common_installer.inc" copy_type="source"/>
+        <file value="common_func.inc"/>
+        <file value="version_compatiable.inc"/>
+        <file value="check_version_required.awk"/>
+        <file value="common_interface.bash"/>
+        <file value="common_interface.csh"/>
+        <file value="common_interface.fish"/>
+        <file value="script_operator.inc" copy_type="source"/>
+        <file value="multi_version.inc" copy_type="source"/>
+        <file value="version_cfg.inc" copy_type="source"/>
+        <file value="merge_binary_info_config.py"/>
+    </file_info>
+    <file_info value="ops_transformer_script" copy_type="source" src_path="package/ops_transformer/scripts" dst_path="ops_transformer/bin" install_path="ops_transformer/bin">
+        <file value="prereq_check.bash"/>
+        <file value="prereq_check.csh"/>
+        <file value="prereq_check.fish"/>
+        <file value="setenv.bash"/>
+        <file value="setenv.csh"/>
+        <file value="setenv.fish"/>
+    </file_info>
+    <file_info value="filelist" copy_type="source" src_path="package/ops_transformer/scripts" dst_path="ops_transformer/script" install_path="ops_transformer/script" install_mod="440">
+        <file value="filelist.csv" copy_type="delivery" src_path="" dst_path=""/>
+    </file_info>
+    <block_info dependtree="false" dst_path="ops_transformer" block_conf_path="ascend">
+        <block name="EngineeringCommon"/>
+        <block name="EngineeringFiles"/>
+        <block name="OppScene"/>
+        <block name="OpsTransformer"/>
+        <block name="OpsTransformerInc"/>
+    </block_info>
+    <dir_info value="ops_transformer" install_path="ops_transformer" install_type="all">
+        <path value="ops_transformer/script" install_mod="555"/>
+        <path value="ops_transformer/bin" install_mod="555"/>
+        <path value="ops_transformer/lib64" install_mod="555"/>
+        <path value="ops_transformer/include" install_mod="555"/>
+    </dir_info>
+    <dir_info value="ops_transformer" install_path="" install_type="all">
+        <path value="$(TARGET_ENV)/lib64" install_mod="555"/>
+        <path value="$(TARGET_ENV)/include" install_mod="555"/>
+    </dir_info>
+</config>

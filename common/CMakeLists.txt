@@ -39,7 +39,7 @@ if (BUILD_OPEN_PROJECT)
             OPS_UTILS_LOG_SUB_MOD_NAME="OP_PROTO"
             OPS_UTILS_LOG_PACKAGE_TYPE=$<IF:$<BOOL:${BUILD_OPEN_PROJECT}>,"[Custom]","">
     )
-else()
+    
     add_library(${COMMON_NAME}_obj OBJECT)
 
     file(GLOB CPP_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/tiling_base/*.cpp")

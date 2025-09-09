@@ -73,3 +73,78 @@ target_link_options(intf_pub
             -Wl,-z,now
             -Wl,-z,noexecstack
 )
+
+# intf_pub_cxx14 for c++14
+add_library(intf_pub_cxx14 INTERFACE)
+target_compile_options(intf_pub_cxx14 INTERFACE
+  -Wall
+  -fPIC
+  $<IF:$<VERSION_GREATER:${CMAKE_C_COMPILER_VERSION},4.8.5>,-fstack-protector-strong,-fstack-protector-all>
+  $<$<COMPILE_LANGUAGE:CXX>:-std=c++14>
+)
+target_compile_definitions(intf_pub_cxx14 INTERFACE
+  _GLIBCXX_USE_CXX11_ABI=0
+  $<$<CONFIG:Release>:CFG_BUILD_NDEBUG>
+  $<$<CONFIG:Debug>:CFG_BUILD_DEBUG>
+  WIN64=1
+  LINUX=0
+)
+target_link_options(intf_pub_cxx14 INTERFACE
+  -Wl,-z,relro
+  -Wl,-z,now
+  -Wl,-z,noexecstack
+  $<$<CONFIG:Release>:-Wl,--build-id=none>
+)
+target_link_directories(intf_pub_cxx14 INTERFACE)
+target_link_libraries(intf_pub_cxx14 INTERFACE
+  -lpthread
+)
+
+# intf_pub_cxx14 for c++17
+add_library(intf_pub_cxx17 INTERFACE)
+target_compile_options(intf_pub_cxx17 INTERFACE
+    -Wall
+    -fPIC
+    $<IF:$<VERSION_GREATER:${CMAKE_C_COMPILER_VERSION},4.8.5>,-fstack-protector-strong,-fstack-protector-all>
+    $<$<COMPILE_LANGUAGE:CXX>:-std=c++17>)
+target_compile_definitions(intf_pub_cxx17 INTERFACE
+    _GLIBCXX_USE_CXX11_ABI=0
+    $<$<CONFIG:Release>:CFG_BUILD_NDEBUG>
+    $<$<CONFIG:Debug>:CFG_BUILD_DEBUG>
+    WIN64=1
+    LINUX=0)
+target_link_options(intf_pub_cxx17 INTERFACE
+    -Wl,-z,relro
+    -Wl,-z,now
+    -Wl,-z,noexecstack
+    $<$<CONFIG:Release>:-Wl,--build-id=none>)
+target_link_directories(intf_pub_cxx17 INTERFACE)
+target_link_libraries(intf_pub_cxx17 INTERFACE
+  -lpthread)
+
+#########intf_pub_aicpu#########
+add_library(intf_pub_aicpu INTERFACE)
+target_compile_options(intf_pub_aicpu INTERFACE
+  -Wall
+  -fPIC
+  $<IF:$<VERSION_GREATER:${CMAKE_C_COMPILER_VERSION},4.8.5>,-fstack-protector-strong,-fstack-protector-all>
+  $<$<COMPILE_LANGUAGE:CXX>:-std=c++11>
+)
+target_compile_definitions(intf_pub_aicpu INTERFACE
+  $<$<NOT:$<STREQUAL:${PRODUCT_SIDE},device>>:_GLIBCXX_USE_CXX11_ABI=0>
+  $<$<STREQUAL:${PRODUCT_SIDE},device>:_GLIBCXX_USE_CXX11_ABI=1>
+  $<$<CONFIG:Release>:CFG_BUILD_NDEBUG>
+  $<$<CONFIG:Debug>:CFG_BUILD_DEBUG>
+  WIN64=1
+  LINUX=0
+)
+target_link_options(intf_pub_aicpu INTERFACE
+  -Wl,-z,relro
+  -Wl,-z,now
+  -Wl,-z,noexecstack
+  $<$<CONFIG:Release>:-Wl,--build-id=none>
+)
+target_link_directories(intf_pub_aicpu INTERFACE)
+target_link_libraries(intf_pub_aicpu INTERFACE
+  -lpthread
+)

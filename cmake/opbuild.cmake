@@ -117,11 +117,12 @@ function(gen_aclnn_with_opdef)
     opbuild_out_srcs opbuild_out_headers)
 
   # 将头文件安装到packages/vendors/vendor_name/op_api/include
-  if(ENABLE_PACKAGE)
+  if(ENABLE_BUILT_IN)
     install(
       FILES ${opbuild_out_headers}
       DESTINATION ${ACLNN_INC_INSTALL_DIR} OPTIONAL
     )
+    install(FILES ${opbuild_out_headers} DESTINATION ${ACLNN_INC_LEVEL2_INSTALL_DIR} OPTIONAL)
   endif()
 
   # ascendc_impl_gen depends opbuild_custom_gen_aclnn_all, for opbuild will generate .ini
@@ -153,4 +154,18 @@ function(gen_aclnn_with_opdef)
       ${OPAPI_INCLUDE}
     )
   endif()
+endfunction()
+
+function(merge_graph_headers)
+  set(oneValueArgs TARGET OUT_DIR)
+  cmake_parse_arguments(MGPROTO "" "${oneValueArgs}" "" ${ARGN})
+  get_target_property(proto_headers ${GRAPH_PLUGIN_NAME}_proto_headers INTERFACE_SOURCES)
+  add_custom_command(OUTPUT ${MGPROTO_OUT_DIR}/ops_proto_transformer.h
+    COMMAND ${ASCEND_PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/scripts/util/merge_proto.py
+    ${proto_headers}
+    --output-file ${MGPROTO_OUT_DIR}/ops_proto_transformer.h
+  )
+  add_custom_target(${MGPROTO_TARGET} ALL
+    DEPENDS ${MGPROTO_OUT_DIR}/ops_proto_transformer.h
+  )
 endfunction()

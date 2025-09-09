@@ -96,9 +96,11 @@ if (BUILD_OPEN_PROJECT)
     set_target_properties(opapi PROPERTIES OUTPUT_NAME
             cust_opapi
     )
-    install(TARGETS opapi
-            LIBRARY DESTINATION packages/vendors/${VENDOR_NAME}/op_api/lib
-    )
+    if (NOT ENABLE_BUILT_IN)
+        install(TARGETS opapi
+                LIBRARY DESTINATION packages/vendors/${VENDOR_NAME}/op_api/lib
+        )
+    endif()
 
     # op proto
     add_library(opsproto SHARED)
@@ -131,9 +133,11 @@ if (BUILD_OPEN_PROJECT)
     set_target_properties(opsproto PROPERTIES OUTPUT_NAME
             cust_opsproto_rt2.0
     )
-    install(TARGETS opsproto
-            LIBRARY DESTINATION packages/vendors/${VENDOR_NAME}/op_proto/lib/linux/${CMAKE_SYSTEM_PROCESSOR}
-    )
+    if (NOT ENABLE_BUILT_IN)
+        install(TARGETS opsproto
+                LIBRARY DESTINATION packages/vendors/${VENDOR_NAME}/op_proto/lib/linux/${CMAKE_SYSTEM_PROCESSOR}
+        )
+    endif()
 
     # op tiling
     add_library(optiling SHARED)
@@ -178,9 +182,11 @@ if (BUILD_OPEN_PROJECT)
             COMMAND ${CMAKE_COMMAND} -E make_directory ${TILING_CUSTOM_DIR}
             COMMAND ln -sf $<TARGET_FILE:optiling> ${TILING_CUSTOM_FILE}
     )
-    install(TARGETS optiling
-            LIBRARY DESTINATION packages/vendors/${VENDOR_NAME}/op_impl/ai_core/tbe/op_tiling/lib/linux/${CMAKE_SYSTEM_PROCESSOR}
-    )
+    if (NOT ENABLE_BUILT_IN)
+        install(TARGETS optiling
+                LIBRARY DESTINATION packages/vendors/${VENDOR_NAME}/op_impl/ai_core/tbe/op_tiling/lib/linux/${CMAKE_SYSTEM_PROCESSOR}
+        )
+    endif()
 
     # optiling compat
     set(compat_optiling_dir  ${CMAKE_CURRENT_BINARY_DIR}/compat)
@@ -195,9 +201,11 @@ if (BUILD_OPEN_PROJECT)
             COMMAND ln -sf lib/linux/${CMAKE_SYSTEM_PROCESSOR}/$<TARGET_FILE_NAME:optiling> ${compat_optiling_file}
     )
 
-    install(FILES ${compat_optiling_file}
-            DESTINATION packages/vendors/${VENDOR_NAME}/op_impl/ai_core/tbe/op_tiling
-    )
+    if (NOT ENABLE_BUILT_IN)
+        install(FILES ${compat_optiling_file}
+                DESTINATION packages/vendors/${VENDOR_NAME}/op_impl/ai_core/tbe/op_tiling
+        )
+    endif()
 
     add_ops_tiling_keys(
             OP_NAME "ALL"
@@ -250,6 +258,10 @@ foreach (OP_DIR ${OP_DIR_LIST})
         add_subdirectory(${OP_DIR})
     endif()
 endforeach ()
+
+if (ENABLE_BUILT_IN)
+  add_subdirectory(gmm/grouped_matmul_swiglu_quant/op_graph)
+endif()
 
 set(OP_DEPEND_DIR_LIST)
 op_add_depend_directory(
@@ -385,10 +397,12 @@ if (BUILD_OPEN_PROJECT)
             ${generate_proto_srcs}
     )
     add_dependencies(opsproto ops_transformer_proto_headers)
-
-    install(FILES ${generate_proto_headers}
-            DESTINATION packages/vendors/${VENDOR_NAME}/op_proto/inc OPTIONAL
-    )
+    
+    if (NOT ENABLE_BUILT_IN)
+        install(FILES ${generate_proto_headers}
+                DESTINATION packages/vendors/${VENDOR_NAME}/op_proto/inc OPTIONAL
+        )
+    endif()
 
     redefine_file_macro(
             TARGET_NAME
@@ -642,7 +656,7 @@ if (ENABLE_OPS_KERNEL)
     endforeach ()
 endif ()
 
-if (BUILD_OPEN_PROJECT)
+if (NOT ENABLE_BUILT_IN AND BUILD_OPEN_PROJECT)
     add_custom_target(modify_vendor ALL
             DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/scripts/install.sh ${CMAKE_CURRENT_BINARY_DIR}/scripts/upgrade.sh
     )
