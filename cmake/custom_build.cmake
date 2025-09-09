@@ -85,7 +85,7 @@ if (BUILD_OPEN_PROJECT)
             $<BUILD_INTERFACE:intf_pub>
             -Wl,--whole-archive
             -Wl,--no-whole-archive
-            -lopapi
+        #     -lopapi
             nnopbase
             profapi
             ge_common_base
@@ -226,7 +226,6 @@ if (BUILD_OPEN_PROJECT)
 endif ()
 
 add_subdirectory(common)
-# 自定义算子包未打通的，用NOT ENABLE_BUILT_IN隔离
 if (NOT BUILD_OPS_RTY_KERNEL AND NOT ENABLE_BUILT_IN)
     add_subdirectory(mc2)
 endif()

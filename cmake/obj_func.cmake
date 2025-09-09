@@ -216,7 +216,7 @@ function(add_opapi_modules)
       -Wl,--whole-archive
       ops_aclnn
       -Wl,--no-whole-archive
-      -lopapi
+      # -lopapi
       nnopbase
       profapi
       ge_common_base

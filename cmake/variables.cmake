@@ -55,6 +55,9 @@ if(ENABLE_CUSTOM)
   set(VERSION_INFO_INSTALL_DIR        packages/vendors/${VENDOR_NAME}/)
 else()
   # built-in package install path 
+endif()
+
+if (ENABLE_BUILT_IN)
   set(ACLNN_INC_INSTALL_DIR           ops_transformer/built-in/op_impl/ai_core/tbe/op_api/include/aclnnop)
   set(ACLNN_INC_LEVEL2_INSTALL_DIR    ops_transformer/built-in/op_impl/ai_core/tbe/op_api/include/aclnnop/level2)
   set(ACLNN_LIB_INSTALL_DIR           ops_transformer/built-in/op_impl/ai_core/tbe/op_api/lib/linux/${CMAKE_SYSTEM_PROCESSOR})
@@ -71,9 +74,6 @@ else()
   set(COMMON_INC_INSTALL_DIR          ops_transformer/include)
   set(COMMON_LIB_INSTALL_DIR          ops_transformer/lib)
   set(VERSION_INFO_INSTALL_DIR        ops_transformer)
-endif()
-
-if (ENABLE_BUILT_IN)
   set(IMPL_INSTALL_DIR                ops_transformer/built-in/op_impl/ai_core/tbe/impl)
 endif()
 
