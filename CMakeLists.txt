@@ -15,6 +15,15 @@ option(BUILD_OPEN_PROJECT         "Build open ascend ops project."  ON)
 option(BUILD_OPS_RTY_KERNEL       "Build return yellow kernel."     OFF)
 option(ENABLE_CCACHE              "Enable ccache capability"        ON)
 option(ENABLE_BUILT_IN            "Enable built-in package"         OFF)
+option(ENABLE_TEST                "Enable test"                     OFF)
+option(ENABLE_UT_EXEC             "Enable exec ut"                  ON)
+option(ENABLE_ASAN                "Enable asan"                     OFF)
+option(OP_HOST_UT                 "Enable ophost ut"                OFF)
+option(OP_API_UT                  "Enable opapi ut"                 OFF)
+option(OP_GRAPH_UT                "Enable graph ut"                 OFF)
+option(OP_KERNEL_UT               "Enable kernel ut"                OFF)
+option(UT_TEST_ALL                "Enable all ut"                   OFF)
+
 set(ASCEND_COMPUTE_UNIT           "ascend910b"                    CACHE   STRING   "soc that need to be compiled")
 set(ASCEND_OP_NAME                "ALL"                           CACHE   STRING   "operators that need to be compiled")
 set(VENDOR_NAME                   "customize"                     CACHE   STRING   "vendor name")
@@ -37,6 +46,8 @@ if(NOT ${CMAKE_BUILD_MODE} STREQUAL "FALSE")
 else()
   if(UT_TEST_ALL OR PROTO_UT OR PASS_UT OR PLUGIN_UT OR ONNX_PLUGIN_UT OR OP_API_UT OR TILING_UT)
     set(COMPILE_OP_MODE -O0 -g)
+  elseif(ENABLE_TEST)
+    set(COMPILE_OP_MODE "-O0 -g")
   else()
     set(COMPILE_OP_MODE -O2)
   endif()
@@ -59,7 +70,41 @@ if (BUILD_OPEN_PROJECT)
         message(STATUS "Start building custom package.")
         include(cmake/dependencies.cmake)
         include(cmake/variables.cmake)
+        if(UT_TEST_ALL OR OP_HOST_UT)
+            include(cmake/third_party/nlohmann_json.cmake)
+            # ut common dependencies
+            include(cmake/intf_pub_llt_gccnative.cmake)
+            include(cmake/ut.cmake)
+            include(cmake/third_party/gtest.cmake)
+        
+            # op host ut
+            if(UT_TEST_ALL OR OP_HOST_UT)
+                set(OP_TILING_MODULE_NAME ${PKG_NAME}_op_tiling_ut)
+                add_optiling_modules(${OP_TILING_MODULE_NAME})
+            
+                set(OP_INFERSHAPE_MODULE_NAME ${PKG_NAME}_op_infershape_ut)
+                add_infershape_modules(${OP_INFERSHAPE_MODULE_NAME})
+            endif()
+
+            # op api ut
+            if(UT_TEST_ALL OR OP_API_UT)
+                set(OP_API_MODULE_NAME ${PKG_NAME}_op_api_ut)
+            endif()
+
+            # op graph ut
+            if(UT_TEST_ALL OR OP_GRAPH_UT)
+                set(OP_GRAPH_MODULE_NAME ${PKG_NAME}_op_graph_ut)
+            endif()
+        
+            # op kernel ut
+            if(UT_TEST_ALL OR OP_KERNEL_UT)
+                set(OP_KERNEL_MODULE_NAME ${PKG_NAME}_op_kernel_ut)
+            endif()
+        
+            add_subdirectory(tests/ut)
+        endif()
         include(cmake/obj_func.cmake)
+
         include(cmake/custom_build.cmake)
         message(STATUS "End building custom package.")
         if (ENABLE_BUILT_IN)

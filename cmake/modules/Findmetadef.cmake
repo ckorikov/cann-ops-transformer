@@ -53,6 +53,28 @@ else()
   endif()
 endif()
 
+find_library(OPP_REGISTER_LIB_DIR
+  NAME opp_registry
+  PATHS ${METADEF_LIB_SEARCH_PATHS}
+  PATH_SUFFIXES lib64
+  NO_CMAKE_SYSTEM_PATH
+  NO_CMAKE_FIND_ROOT_PATH
+)
+
+if(OPP_REGISTER_LIB_DIR)
+  get_filename_component(OPP_REGISTER_LIB_DIR ${OPP_REGISTER_LIB_DIR} REALPATH)
+  add_library(opp_registry SHARED IMPORTED)
+  set_target_properties(opp_registry PROPERTIES
+          INTERFACE_INCLUDE_DIRECTORIES ${METADEF_INC_DIR}
+          IMPORTED_LOCATION ${OPP_REGISTER_LIB_DIR}
+          )
+  message(STATUS "Found opp_registry library:${OPP_REGISTER_LIB_DIR}")
+else()
+  if(BUILD_WITH_INSTALLED_DEPENDENCY_CANN_PKG)
+    message(STATUS "Cannot find library opp_registry")
+  endif()
+endif()
+
 find_library(EXEGRAPH_LIB_DIR
   NAME exe_graph
   PATHS ${METADEF_LIB_SEARCH_PATHS}
@@ -72,6 +94,69 @@ if(EXEGRAPH_LIB_DIR)
 else()
   if(BUILD_WITH_INSTALLED_DEPENDENCY_CANN_PKG)
     message(STATUS "Cannot find library exe_graph")
+  endif()
+endif()
+
+find_library(GRAPH_BASE_LIB_DIR
+        NAME graph_base
+        PATHS ${METADEF_LIB_SEARCH_PATHS}
+        PATH_SUFFIXES lib64
+        NO_CMAKE_SYSTEM_PATH
+        NO_CMAKE_FIND_ROOT_PATH
+        )
+
+if(GRAPH_BASE_LIB_DIR)
+  get_filename_component(GRAPH_BASE_LIB_DIR ${GRAPH_BASE_LIB_DIR} REALPATH)
+  add_library(graph_base SHARED IMPORTED)
+  set_target_properties(graph_base PROPERTIES
+          IMPORTED_LOCATION ${GRAPH_BASE_LIB_DIR}
+          )
+  message(STATUS "Found graph_base library:${GRAPH_BASE_LIB_DIR}")
+else()
+  if(BUILD_WITH_INSTALLED_DEPENDENCY_CANN_PKG)
+    message(STATUS "Cannot find library graph_base")
+  endif()
+endif()
+
+find_library(ERROR_MANAGER_LIB_DIR
+        NAME error_manager
+        PATHS ${METADEF_LIB_SEARCH_PATHS}
+        PATH_SUFFIXES lib64
+        NO_CMAKE_SYSTEM_PATH
+        NO_CMAKE_FIND_ROOT_PATH
+        )
+
+if(ERROR_MANAGER_LIB_DIR)
+  get_filename_component(ERROR_MANAGER_LIB_DIR ${ERROR_MANAGER_LIB_DIR} REALPATH)
+  add_library(error_manager SHARED IMPORTED)
+  set_target_properties(error_manager PROPERTIES
+          IMPORTED_LOCATION ${ERROR_MANAGER_LIB_DIR}
+          )
+  message(STATUS "Found error_manager library:${ERROR_MANAGER_LIB_DIR}")
+else()
+  if(BUILD_WITH_INSTALLED_DEPENDENCY_CANN_PKG)
+    message(STATUS "Cannot find library error_manager")
+  endif()
+endif()
+
+find_library(METADEF_LIB_DIR
+        NAME metadef
+        PATHS ${METADEF_LIB_SEARCH_PATHS}
+        PATH_SUFFIXES lib64
+        NO_CMAKE_SYSTEM_PATH
+        NO_CMAKE_FIND_ROOT_PATH
+        )
+
+if(METADEF_LIB_DIR)
+  get_filename_component(METADEF_LIB_DIR ${METADEF_LIB_DIR} REALPATH)
+  add_library(metadef SHARED IMPORTED)
+  set_target_properties(metadef PROPERTIES
+          IMPORTED_LOCATION ${METADEF_LIB_DIR}
+          )
+  message(STATUS "Found metadef library:${METADEF_LIB_DIR}")
+else()
+  if(BUILD_WITH_INSTALLED_DEPENDENCY_CANN_PKG)
+    message(STATUS "Cannot find library metadef")
   endif()
 endif()
 
@@ -111,4 +196,31 @@ if(metadef_FOUND)
     set(METADEF_INCLUDE_DIRS ${METADEF_INC_DIR}/../ ${METADEF_INCLUDE_DIRS})
   endif()
   message(STATUS "Found source metadef include dir:  ${METADEF_INCLUDE_DIRS}")
+endif()
+
+
+
+set(METADEF_LIB_SEARCH_PATHS
+  ${ASCEND_DIR}/${SYSTEM_PREFIX}
+)
+
+find_library(GRAPH_LIB_DIR
+  NAME graph
+  PATHS ${METADEF_LIB_SEARCH_PATHS}
+  PATH_SUFFIXES lib64
+  NO_CMAKE_SYSTEM_PATH
+  NO_CMAKE_FIND_ROOT_PATH
+)
+
+if(GRAPH_LIB_DIR)
+  get_filename_component(GRAPH_LIB_DIR ${GRAPH_LIB_DIR} REALPATH)
+  add_library(graph SHARED IMPORTED)
+  set_target_properties(graph PROPERTIES
+    IMPORTED_LOCATION ${GRAPH_LIB_DIR}
+  )
+  message(STATUS "Found graph library:${GRAPH_LIB_DIR}")
+else()
+  if(BUILD_WITH_INSTALLED_DEPENDENCY_CANN_PKG)
+    message(STATUS "Cannot find library graph")
+  endif()
 endif()

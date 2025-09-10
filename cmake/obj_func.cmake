@@ -324,13 +324,13 @@ function(add_tiling_modules)
       exe_graph
       platform
       register
-      ascendalog
+      # ascendalog
       error_manager
       -Wl,--as-needed
       -Wl,--whole-archive
       tiling_api
       -Wl,--no-whole-archive
-      mmpa
+      # mmpa
       c_sec
     )
   endif()

@@ -9,7 +9,8 @@
 # ======================================================================================================================
 
 set -e
-
+RELEASE_TARGETS=("ophost" "opapi" "opgraph")
+UT_TARGETS=("ophost_test" "opapi_test" "opgraph_test" "opkernel_test")
 ########################################################################################################################
 # 预定义变量
 ########################################################################################################################
@@ -57,6 +58,8 @@ function help_info() {
     echo
     echo "-t|--test            Executes a unit test (UT). If there are multiple values, separate them with semicolons and use quotation marks."
     echo "                     For example: -t \"flash_attention_score\" or -t \"flash_attention_score;flash_attention_score_grad\" or -t \"all\""
+    echo "--ophost_test        Executes a host unit test (UT). If there are multiple values, separate them with semicolons and use quotation marks."
+    echo "                     For example: bash build.sh -ophost_test -n \"distribute_barrier\" -c \"ascend910_93\" or bash build.sh -ophost_test -c \"ascend910_93\" or bash build.sh -ophost_test"
     echo
     echo "-e|--example         Executes example."
     echo
@@ -156,6 +159,34 @@ function build_host(){
 
 function build_kernel(){
     build ops_transformer_kernel
+}
+
+
+set_ut_mode() {
+  REPOSITORY_NAME="transformer"
+  if [[ "$ENABLE_TEST" != "TRUE" ]]; then
+    return
+  fi
+  UT_TEST_ALL=TRUE
+  if [[ "$OP_HOST" == "TRUE" ]]; then
+    OP_HOST_UT=TRUE
+    UT_TEST_ALL=FALSE
+  fi
+  if [[ "$OP_API" == "TRUE" ]]; then
+    OP_API_UT=TRUE
+    UT_TEST_ALL=FALSE
+  fi
+  if [[ "$OP_GRAPH" == "TRUE" ]]; then
+    OP_GRAPH_UT=TRUE
+    UT_TEST_ALL=FALSE
+  fi
+  if [[ "$OP_KERNEL" == "TRUE" ]]; then
+    OP_KERNEL_UT=TRUE
+    UT_TEST_ALL=FALSE
+  fi
+  if [[ "$UT_TEST_ALL" == "TRUE" ]] || [[ "$OP_HOST_UT" == "TRUE" ]]; then
+    UT_TARGES+=("${REPOSITORY_NAME}_op_host_ut")
+  fi
 }
 
 ########################################################################################################################
@@ -274,12 +305,18 @@ while [[ $# -gt 0 ]]; do
         OPS_COMPILE_OPTIONS="$2"
         shift 2
         ;;
+    --ophost_test)
+        ENABLE_TEST=TRUE
+        OP_HOST=TRUE
+        shift
+        ;;
     *)
         help_info
         exit 1
         ;;
     esac
 done
+set_ut_mode
 
 if [ -n "${ascend_compute_unit}" ];then
     CUSTOM_OPTION="${CUSTOM_OPTION} -DASCEND_COMPUTE_UNIT=${ascend_compute_unit}"
@@ -295,6 +332,24 @@ fi
 
 if [ -n "${ascend_cmake_dir}" ];then
     CUSTOM_OPTION="${CUSTOM_OPTION} -DASCEND_CMAKE_DIR=${ascend_cmake_dir}"
+fi
+if [[ "$ENABLE_TEST" == "TRUE" ]]; then
+    CUSTOM_OPTION="${CUSTOM_OPTION} -DENABLE_TEST=TRUE"
+fi
+if [[ "$OP_HOST_UT" == "TRUE" ]]; then
+    CUSTOM_OPTION="${CUSTOM_OPTION} -DOP_HOST_UT=TRUE"
+fi
+if [[ "$OP_API_UT" == "TRUE" ]]; then
+    CUSTOM_OPTION="${CUSTOM_OPTION} -DOP_API_UT=TRUE"
+fi
+if [[ "$OP_GRAPH_UT" == "TRUE" ]]; then
+    CUSTOM_OPTION="${CUSTOM_OPTION} -DOP_GRAPH_UT=TRUE"
+fi
+if [[ "$OP_KERNEL_UT" == "TRUE" ]]; then
+    CUSTOM_OPTION="${CUSTOM_OPTION} -DOP_KERNEL_UT=TRUE"
+fi
+if [[ "$UT_TEST_ALL" == "TRUE" ]]; then
+    CUSTOM_OPTION="${CUSTOM_OPTION} -DUT_TEST_ALL=TRUE"
 fi
 
 if [ -n "${TEST}" ];then
@@ -418,27 +473,45 @@ else
         gen_bisheng ${ccache_system}
     fi
 fi
+build_ut() {
+  CORE_NUMS=$(cat /proc/cpuinfo | grep "processor" | wc -l)
+  dotted_line="----------------------------------------------------------------"
+  echo $dotted_line
+  echo "Start to build ut"
 
+  git submodule init && git submodule update
+  if [ ! -d "${BUILD_DIR}" ]; then
+    mkdir -p "${BUILD_DIR}"
+  fi
+  cd "${BUILD_DIR}" && cmake ${CUSTOM_OPTION} ..
+  cmake --build . --target ${UT_TARGES[@]} -j $CORE_NUMS
+  if [[ "$cov" =~ "TRUE" ]]; then
+    cmake --build . --target generate_ops_cpp_cov -- -j $CORE_NUMS
+  fi
+}
 cd ${BUILD_DIR}
-
-if [ "${BUILD}" == "host" ];then
-    cmake_config -DENABLE_OPS_KERNEL=OFF
-    build_host
-    # TO DO
-    rm -rf ${CURRENT_DIR}/output
-    mkdir -p ${CURRENT_DIR}/output
-    cp ${BUILD_DIR}/*.run ${CURRENT_DIR}/output
-elif [ "${BUILD}" == "kernel" ];then
-    CUSTOM_OPTION="${CUSTOM_OPTION} -DENABLE_OPS_HOST=OFF -DBUILD_OPS_RTY_KERNEL=ON"
-    cmake_config 
-    build_kernel
-elif [ "${BUILD}" == "package" ];then
-    cmake_config -DENABLE_BUILT_IN=ON
-    build_package
-elif [ -n "${BUILD}" ];then
-    cmake_config
-    build ${BUILD}
+if [[ "$ENABLE_TEST" == "TRUE" ]]; then
+    build_ut
 else
-    cmake_config
-    build_package
+    if [ "${BUILD}" == "host" ];then
+        cmake_config -DENABLE_OPS_KERNEL=OFF
+        build_host
+        # TO DO
+        rm -rf ${CURRENT_DIR}/output
+        mkdir -p ${CURRENT_DIR}/output
+        cp ${BUILD_DIR}/*.run ${CURRENT_DIR}/output
+    elif [ "${BUILD}" == "kernel" ];then
+        CUSTOM_OPTION="${CUSTOM_OPTION} -DENABLE_OPS_HOST=OFF -DBUILD_OPS_RTY_KERNEL=ON"
+        cmake_config 
+        build_kernel
+    elif [ "${BUILD}" == "package" ];then
+        cmake_config -DENABLE_BUILT_IN=ON
+        build_package
+    elif [ -n "${BUILD}" ];then
+        cmake_config
+        build ${BUILD}
+    else
+        cmake_config
+        build_package
+    fi
 fi

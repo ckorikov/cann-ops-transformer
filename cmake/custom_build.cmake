@@ -165,13 +165,13 @@ if (BUILD_OPEN_PROJECT)
             exe_graph
             platform
             register
-            ascendalog
+        #     ascendalog
             error_manager
             -Wl,--as-needed
             -Wl,--whole-archive
             tiling_api
             -Wl,--no-whole-archive
-            mmpa
+        #     mmpa
             c_sec
     )
     set_target_properties(optiling PROPERTIES OUTPUT_NAME
