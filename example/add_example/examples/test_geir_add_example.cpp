@@ -19,7 +19,7 @@
 
 #include "experiment_ops.h"
 #include "nn_other.h"
-#include "../../op_graph/lin_space_proto.h"
+#include "../op_graph/add_example_proto.h"
 
 #define FAILED -1
 #define SUCCESS 0
@@ -203,7 +203,7 @@ int main(int argc, char *argv[])
     std::cout << argv[1] << std::endl;
     char *endptr;
 
-    DataType inDtype = DT_FLOAT32;
+    DataType inDtype = DT_FLOAT;
 
     std::cout << inDtype << std::endl;
 

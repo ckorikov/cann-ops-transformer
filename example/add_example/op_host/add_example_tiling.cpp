@@ -34,6 +34,9 @@ constexpr uint32_t INDEXONE = 1;
 constexpr uint32_t INDEXTWO = 2;
 constexpr uint32_t INDEXTHREE = 3;
 
+struct AddExampleCompileInfo {
+};
+
 // 获取平台信息如ubSize, coreNum
 static ge::graphStatus GetPlatformInfo(gert::TilingContext* context, uint64_t& ubSize, int64_t& coreNum)
 {
@@ -92,10 +95,9 @@ ge::graphStatus GetShapeAttrsInfo(gert::TilingContext* context, int64_t& totalId
 
 ge::graphStatus GetWorkspaceSize(gert::TilingContext* context)
 {
-    uint32_t sysWorkspace = WS_SYS_SIZE;
     size_t* currentWorkspace = context->GetWorkspaceSizes(1);
     OP_CHECK_NULL_WITH_CONTEXT(context, currentWorkspace);
-    currentWorkspace[0] = sysWorkspace;
+    currentWorkspace[0] = WS_SYS_SIZE;
     return ge::GRAPH_SUCCESS;
 }
 
@@ -119,10 +121,10 @@ static ge::graphStatus AddExampleTilingFunc(gert::TilingContext* context)
     OP_CHECK_IF(
         GetWorkspaceSize(context) != ge::GRAPH_SUCCESS, OP_LOGE(context, "GetWorkspaceSize error"),
         return ge::GRAPH_FAILED);
-    AddExampleTilingData* tiling = context->GetTilingData<AddExampleTilingData>();
-    OP_CHECK_NULL_WITH_CONTEXT(context, tiling);
 
     // 4、设置tiling信息
+    AddExampleTilingData* tiling = context->GetTilingData<AddExampleTilingData>();
+    OP_CHECK_NULL_WITH_CONTEXT(context, tiling);
     OP_CHECK_IF(
         memset_s(tiling, sizeof(AddExampleTilingData), 0, sizeof(AddExampleTilingData)) != EOK,
         OP_LOGE(context, "set tiling data error"), return ge::GRAPH_FAILED);
@@ -133,10 +135,10 @@ static ge::graphStatus AddExampleTilingFunc(gert::TilingContext* context)
     uint64_t tilingKey = 0;
     // 区分dtype走不同得tiling key分支.
     if (dataType == ge::DT_FLOAT) {
-        tilingKey = GET_TPL_TILING_KEY(ELEMENTWISE_TPL_SCH_MODE_1);
+        tilingKey = GET_TPL_TILING_KEY(ELEMENTWISE_TPL_SCH_MODE_0);
         context->SetTilingKey(tilingKey);
     } else if (dataType == ge::DT_INT32) {
-        tilingKey = GET_TPL_TILING_KEY(ELEMENTWISE_TPL_SCH_MODE_0);
+        tilingKey = GET_TPL_TILING_KEY(ELEMENTWISE_TPL_SCH_MODE_1);
         context->SetTilingKey(tilingKey);
     } else {
         OP_LOGE(context, "get dtype error");
@@ -145,6 +147,11 @@ static ge::graphStatus AddExampleTilingFunc(gert::TilingContext* context)
     return ge::GRAPH_SUCCESS;
 }
 
+static ge::graphStatus TilingParseForAddExample([[maybe_unused]] gert::TilingParseContext* context)
+{
+    return ge::GRAPH_SUCCESS;
+}
+
 // tiling注册入口.
-IMPL_OP_OPTILING(AddExample).Tiling(AddExampleTilingFunc);
+IMPL_OP_OPTILING(AddExample).Tiling(AddExampleTilingFunc).TilingParse<AddExampleCompileInfo>(TilingParseForAddExample);
 } // namespace optiling

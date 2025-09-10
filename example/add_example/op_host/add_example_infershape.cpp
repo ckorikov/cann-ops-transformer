@@ -20,9 +20,9 @@ using namespace ge;
 namespace ops {
 static constexpr int64_t IDX_0 = 0;
 
-static ge::graphStatus InferShape4AddExample(gert::InferShapeContext* context)
+static ge::graphStatus InferShapeAddExample(gert::InferShapeContext* context)
 {
-    OP_LOGD(context->GetNodeName(), "Begin to do InferShape4AddExample");
+    OP_LOGD(context->GetNodeName(), "Begin to do InferShapeAddExample");
 
     // get input shapes
     const gert::Shape* xShape = context->GetInputShape(IDX_0);
@@ -40,21 +40,9 @@ static ge::graphStatus InferShape4AddExample(gert::InferShapeContext* context)
         yShape->SetDim(i, dim);
     }
 
-    OP_LOGD(context->GetNodeName(), "End to do InferShape4AddExample");
+    OP_LOGD(context->GetNodeName(), "End to do InferShapeAddExample");
     return GRAPH_SUCCESS;
 }
 
-static graphStatus InferDataType4AddExample(gert::InferDataTypeContext* context)
-{
-    OP_LOGD(context->GetNodeName(), "Begin to do InferDataType4AddExample");
-
-    // 设置输出的dtype
-    ge::DataType sizeDtype = context->GetInputDataType(IDX_0);
-    context->SetOutputDataType(IDX_0, sizeDtype);
-
-    OP_LOGD(context->GetNodeName(), "End to do InferDataType4AddExample");
-    return GRAPH_SUCCESS;
-}
-
-IMPL_OP_INFERSHAPE(AddExample).InferShape(InferShape4AddExample).InferDataType(InferDataType4AddExample);
+IMPL_OP_INFERSHAPE(AddExample).InferShape(InferShapeAddExample);
 } // namespace ops

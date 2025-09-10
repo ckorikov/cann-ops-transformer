@@ -11,7 +11,7 @@
 #include <iostream>
 #include <vector>
 #include "acl/acl.h"
-#include "aclnnop/aclnn_add_example.h"
+#include "aclnn_add_example.h"
 
 #define CHECK_RET(cond, return_expr) \
     do {                             \
@@ -65,10 +65,10 @@ int CreateAclTensor(
     aclTensor** tensor)
 {
     auto size = GetShapeSize(shape) * sizeof(T);
-    // 调用aclrtMalloc申请device侧内存
+    // 2. 申请device侧内存
     auto ret = aclrtMalloc(deviceAddr, size, ACL_MEM_MALLOC_HUGE_FIRST);
     CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclrtMalloc failed. ERROR: %d\n", ret); return ret);
-    // 调用aclrtMemcpy将host侧数据拷贝到device侧内存上
+    // 3. 调用aclrtMemcpy将host侧数据拷贝到device侧内存上
     ret = aclrtMemcpy(*deviceAddr, size, hostData.data(), size, ACL_MEMCPY_HOST_TO_DEVICE);
     CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclrtMemcpy failed. ERROR: %d\n", ret); return ret);
 
@@ -87,15 +87,13 @@ int CreateAclTensor(
 
 int main()
 {
-    // 1. （固定写法）device/stream初始化，参考acl API文档
-    // 根据自己的实际device填写deviceId
+    // 1. 调用acl进行device/stream初始化
     int32_t deviceId = 0;
     aclrtStream stream;
     auto ret = Init(deviceId, &stream);
     CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("Init acl failed. ERROR: %d\n", ret); return ret);
 
     // 2. 构造输入与输出，需要根据API的接口自定义构造
-
     aclTensor* selfX = nullptr;
     void* selfXDeviceAddr = nullptr;
     std::vector<int64_t> selfXShape = {32, 4, 4, 4};
@@ -121,7 +119,7 @@ int main()
     uint64_t workspaceSize = 0;
     aclOpExecutor* executor;
 
-    // 调用aclnnAddExample第一段接口
+    // 4. 调用aclnnAddExample第一段接口
     ret = aclnnAddExampleGetWorkspaceSize(selfX, selfY, out, &workspaceSize, &executor);
     CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclnnAddExampleGetWorkspaceSize failed. ERROR: %d\n", ret); return ret);
 
@@ -132,23 +130,23 @@ int main()
         CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("allocate workspace failed. ERROR: %d\n", ret); return ret);
     }
 
-    // 调用aclnnAddExample第二段接口
+    // 5. 调用aclnnAddExample第二段接口
     ret = aclnnAddExample(workspaceAddr, workspaceSize, executor, stream);
     CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclnnAddExample failed. ERROR: %d\n", ret); return ret);
 
-    // 4. （固定写法）同步等待任务执行结束
+    // 6. （固定写法）同步等待任务执行结束
     ret = aclrtSynchronizeStream(stream);
     CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclrtSynchronizeStream failed. ERROR: %d\n", ret); return ret);
 
     // 5. 获取输出的值，将device侧内存上的结果拷贝至host侧，需要根据具体API的接口定义修改
     PrintOutResult(outShape, &outDeviceAddr);
 
-    // 6. 释放aclTensor，需要根据具体API的接口定义修改
+    // 7. 释放aclTensor，需要根据具体API的接口定义修改
     aclDestroyTensor(selfX);
     aclDestroyTensor(selfY);
     aclDestroyTensor(out);
 
-    // 7. 释放device资源
+    // 8. 释放device资源
     aclrtFree(selfXDeviceAddr);
     aclrtFree(selfYDeviceAddr);
     aclrtFree(outDeviceAddr);
@@ -157,6 +155,8 @@ int main()
     }
     aclrtDestroyStream(stream);
     aclrtResetDevice(deviceId);
+
+    // 9. acl去初始化
     aclFinalize();
 
     return 0;

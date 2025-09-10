@@ -33,9 +33,9 @@ namespace ge {
 *Compatible with the TensorFlow operator Add.
 */
 REG_OP(AddExample)
-    .INPUT(x1, TensorType({DT_FLOAT}))
-    .INPUT(x2, TensorType({DT_FLOAT}))
-    .OUTPUT(y, TensorType({DT_FLOAT}))
+    .INPUT(x1, TensorType({DT_FLOAT, DT_INT32}))
+    .INPUT(x2, TensorType({DT_FLOAT, DT_INT32}))
+    .OUTPUT(y, TensorType({DT_FLOAT, DT_INT32}))
     .OP_END_FACTORY_REG(AddExample)
 
 } // namespace ge
