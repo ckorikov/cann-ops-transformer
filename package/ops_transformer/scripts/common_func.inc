@@ -898,8 +898,8 @@ get_install_package_dir() {
     local _pkg_name="$4"
     local _pkg_is_multi_version _pkg_version_dir _result
 
-    is_multi_version_pkg "_pkg_is_multi_version" "$pkg_version_path"
-    get_version_dir "_pkg_version_dir" "$pkg_version_path"
+    is_multi_version_pkg "_pkg_is_multi_version" "$_version_info_path"
+    get_version_dir "_pkg_version_dir" "$_version_info_path"
 
     if [ "$_pkg_is_multi_version" = "true" ]; then
         _result="$_install_path/$_pkg_version_dir/$_pkg_name"

@@ -21,11 +21,8 @@
         <file value="opp_common.sh"/>
         <file value="ver_check.sh"/>
         <file value="opp_uninstall.sh"/>
-        <file value="opp_upgrade.sh"/>
         <file value="opp_custom_install.sh"/>
         <file value="opp_custom_uninstall.sh"/>
-        <file value="opp_custom_create_softlink.sh" rename="opp_custom_create_softlink.sh"/>
-        <file value="opp_custom_remove_softlink.sh" rename="opp_custom_remove_softlink.sh"/>
         <file value="filelist.csv" copy_type="delivery" src_path="" dst_path=""/>
         <file value="install_common_parser.sh" copy_type="delivery"/>
         <file value="common_func_v2.inc" copy_type="delivery"/>

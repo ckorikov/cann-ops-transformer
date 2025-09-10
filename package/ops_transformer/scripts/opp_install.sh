@@ -9,43 +9,11 @@
 # See LICENSE in the root of the software repository for the full text of the License.
 # ----------------------------------------------------------------------------
 
-_CURR_OPERATE_USER="$(id -nu 2> /dev/null)"
-_CURR_OPERATE_GROUP="$(id -ng 2> /dev/null)"
-_DEFAULT_INSTALL_PATH=/usr/local/Ascend
-# defaults for general user
-if [ "$(id -u)" != "0" ]; then
-    _DEFAULT_USERNAME="${_CURR_OPERATE_USER}"
-    _DEFAULT_USERGROUP="${_CURR_OPERATE_GROUP}"
-    _DEFAULT_INSTALL_PATH="${HOME}/Ascend"
-fi
-
-# run package's files info
-_CURR_PATH=$(dirname $(readlink -f $0))
-_VERSION_INFO_FILE="${_CURR_PATH}""/../../version.info"
-_FILELIST_FILE="${_CURR_PATH}""/../../filelist.csv"
-_COMMON_PARSER_FILE="${_CURR_PATH}""/install_common_parser.sh"
-SCENE_FILE="${_CURR_PATH}""/../scene.info"
-platform_data=$(grep -e "arch" "$SCENE_FILE" | cut --only-delimited -d"=" -f2-)
-opp_platform_old_dir=ops_transformer_$platform_data-linux
-opp_platform_dir=ops_transformer
-upper_opp_platform=$(echo "${opp_platform_dir}" | tr 'a-z' 'A-Z')
-
-
-_INSTALL_INFO_SUFFIX="${opp_platform_dir}/ascend_install.info"
-_VERSION_INFO_SUFFIX="${opp_platform_dir}/version.info"
-
-_COMMON_INC_FILE="${_CURR_PATH}/common_func.inc"
-COMMON_FUNC_V2_PATH="${_CURR_PATH}/common_func_v2.inc"
-VERSION_CFG="${_CURR_PATH}/version_cfg.inc"
-_OPP_COMMON_FILE="${_CURR_PATH}/opp_common.sh"
-. "${_COMMON_INC_FILE}"
-. "${COMMON_FUNC_V2_PATH}"
-. "${VERSION_CFG}"
-. "${_OPP_COMMON_FILE}"
-
 PARAM_INVALID="0x0002"
 INSTALL_FAILED="0x0000"
 INSTALL_FAILED_DES="Update successfully."
+FILE_NOT_EXIST="0x0080"
+FILE_NOT_EXIST_DES="File not found."
 FILE_READ_FAILED="0x0082"
 FILE_READ_FAILED_DES="File read failed."
 FILE_WRITE_FAILED="0x0081"
@@ -53,963 +21,754 @@ FILE_WRITE_FAILED_DES="File write failed."
 PERM_DENIED="0x0093"
 PERM_DENIED_DES="Permission denied."
 
-logwitherrorlevel() {
-    _ret_status="$1"
-    _level="$2"
-    _msg="$3"
-    if [ "${_ret_status}" != 0 ]; then
-        if [ "${_level}" = "error" ]; then
-            logandprint "${_msg}"
-            exit 1
-        else
-            logandprint "${_msg}"
-        fi
-    fi
-}
+# run package's files info
+CURR_PATH=$(dirname $(readlink -f $0))
+VERSION_INFO_FILE="${CURR_PATH}/../../version.info"
+FILELIST_FILE="${CURR_PATH}/../../filelist.csv"
+COMMON_PARSER_FILE="${CURR_PATH}/install_common_parser.sh"
+SCENE_FILE="${CURR_PATH}/../scene.info"
+ASCEND_INSTALL_INFO="ascend_install.info"
 
-#check ascend_install.info for the change in code warning
-checkascendinfo() {
-    file_param="${version_install_dir}/${_INSTALL_INFO_SUFFIX}"
-    if [ -f "${file_param}" ]; then
-        inst_type=$(cat ${file_param} | grep "Opp_Install_Type" | awk -F = '{print $2}')
-        uname_param=$(cat ${file_param} | grep "UserName" | awk -F = '{print $2}')
-        ugroup_param=$(cat ${file_param} | grep "UserGroup" | awk -F = '{print $2}')
-        path_param=$(cat ${file_param} | grep "Opp_Install_path_Param" | awk -F = '{print $2}')
-        path_params=$(cat ${file_param} | grep "Opp_Install_Path_Param" | awk -F = '{print $2}')
-        version_param=$(cat ${file_param} | grep "Opp_Version" | awk -F = '{print $2}')
-        if [ "$inst_type" != "" ]; then
-            echo "${upper_opp_platform}_INSTALL_TYPE=${inst_type}" >> ${file_param}
-        fi
-        if [ "$uname_param" != "" ]; then
-            echo "USERNAME=${uname_param}" >> ${file_param}
-        fi
-        if [ "$ugroup_param" != "" ]; then
-            echo "USERGROUP=${ugroup_param}" >> ${file_param}
-        fi
-        if [ "$path_param" != "" ]; then
-		echo "${upper_opp_platform}_INSTALL_PATH_VAL=${path_param}" >> ${file_param}
-        fi
-        if [ "$path_params" != "" ]; then
-            echo "${upper_opp_platform}_INSTALL_PATH_PARAM=${path_params}" >> ${file_param}
-        fi
+ARCH_INFO=$(uname -m)
+OPP_PLATFORM_DIR=ops_transformer
+OPP_PLATFORM_UPPER=$(echo "${OPP_PLATFORM_DIR}" | tr '[:lower:]' '[:upper:]')
 
-        if [ "$version_param" != "" ]; then
-            echo "${upper_opp_platform}_VERSION=${version_param}" >> ${file_param}
-        fi
-    fi
-}
+TARGET_INSTALL_PATH=""
+TARGET_MOULDE_DIR=""  # TARGET_INSTALL_PATH + PKG_VERSION_DIR + OPP_PLATFORM_DIR
+TARGET_VERSION_DIR="" # TARGET_INSTALL_PATH + PKG_VERSION_DIR
+
+COMMON_INC_FILE="${CURR_PATH}/common_func.inc"
+COMMON_FUNC_V2_PATH="${CURR_PATH}/common_func_v2.inc"
+VERSION_CFG="${CURR_PATH}/version_cfg.inc"
+OPP_COMMON_FILE="${CURR_PATH}/opp_common.sh"
+
+. "${COMMON_INC_FILE}"
+. "${COMMON_FUNC_V2_PATH}"
+. "${VERSION_CFG}"
+. "${OPP_COMMON_FILE}"
 
 # keys of infos in ascend_install.info
 KEY_INSTALLED_UNAME="USERNAME"
 KEY_INSTALLED_UGROUP="USERGROUP"
-KEY_INSTALLED_TYPE="${upper_opp_platform}_INSTALL_TYPE"
-KEY_INSTALLED_FEATURE="${upper_opp_platform}_INSTALL_FEATURE"
-KEY_INSTALLED_CHIP="${upper_opp_platform}_INSTALL_CHIP"
-KEY_INSTALLED_PATH="${upper_opp_platform}_INSTALL_PATH_VAL"
-KEY_INSTALLED_VERSION="${upper_opp_platform}_VERSION"
-getinstalledinfo() {
-    _key="$1"
-    _res=""
-    if [ -f "${_INSTALL_INFO_FILE}" ]; then
-        chmod 644 "${_INSTALL_INFO_FILE}"> /dev/null 2>&1
-        checkascendinfo
-        case "${_key}" in
-        USERNAME)
-            res=$(cat ${_INSTALL_INFO_FILE} | grep "USERNAME" | awk -F = '{print $2}')
-            ;;
-        USERGROUP)
-            res=$(cat ${_INSTALL_INFO_FILE} | grep "USERGROUP" | awk -F = '{print $2}')
-            ;;
-        ${upper_opp_platform}_INSTALL_TYPE)
-            type="INSTALL_TYPE"
-            res=$(cat ${_INSTALL_INFO_FILE} | grep "${type}" | awk -F = '{print $2}')
-            ;;
-        ${upper_opp_platform}_INSTALL_PATH_VAL)
-            val="INSTALL_PATH_VAL"
-            res=$(cat ${_INSTALL_INFO_FILE} | grep ${val} | awk -F = '{print $2}')
-            ;;
-        ${upper_opp_platform}_VERSION)
-            version="VERSION"
-	        res=$(cat ${_INSTALL_INFO_FILE} | grep ${version} | awk -F = '{print $2}')
-            ;;
-        ${upper_opp_platform}_INSTALL_PATH_PARAM)
-            tmp_path_param="INSTALL_PATH_PARAM"
-	        res=$(cat ${_INSTALL_INFO_FILE} | grep ${param} | awk -F = '{print $2}')
-            ;;
-        esac
-    fi
-    echo "${res}"
+KEY_INSTALLED_TYPE="${OPP_PLATFORM_UPPER}_INSTALL_TYPE"
+KEY_INSTALLED_FEATURE="${OPP_PLATFORM_UPPER}_INSTALL_FEATURE"
+KEY_INSTALLED_CHIP="${OPP_PLATFORM_UPPER}_INSTALL_CHIP"
+KEY_INSTALLED_PATH="${OPP_PLATFORM_UPPER}_INSTALL_PATH_VAL"
+KEY_INSTALLED_VERSION="${OPP_PLATFORM_UPPER}_VERSION"
+
+get_opts() {
+  TARGET_INSTALL_PATH="$1"
+  TARGET_USERNAME="$2"
+  TARGET_USERGROUP="$3"
+  IN_FEATURE="$4"
+  INSTALL_TYPE="$5"
+  IS_FOR_ALL="$6"
+  IS_SETENV="$7"
+  IS_DOCKER_INSTALL="$8"
+  DOCKER_ROOT="$9"
+
+  if [ "${TARGET_INSTALL_PATH}" = "" ] || [ "${TARGET_USERNAME}" = "" ] ||
+    [ "${TARGET_USERGROUP}" = "" ] || [ "${INSTALL_TYPE}" = "" ]; then
+    logandprint "[ERROR]: ERR_NO:${PARAM_INVALID};ERR_DES:Empty paramters is invalid for install."
+    exit 1
+  fi
+
+  INSTALL_FOR_ALL=""
+  if [ "${IS_FOR_ALL}" = "y" ]; then
+    INSTALL_FOR_ALL="--install_for_all"
+  fi
 }
 
-# keys of infos in run package
-KEY_RUNPKG_VERSION="Version"
-getrunpkginfo() {
-    _key_param="$1"
-    if [ -f "${_VERSION_INFO_FILE}" ]; then
-        . "${_VERSION_INFO_FILE}"
-        case "${_key_param}" in
-        Version)
-            echo ${Version}
-            ;;
-        esac
-    fi
+init_install_env() {
+  get_version_dir "PKG_VERSION_DIR" "$VERSION_INFO_FILE"
+  get_package_version "RUN_PKG_VERSION" "$VERSION_INFO_FILE"
+  if [ "${PKG_VERSION_DIR}" = "" ]; then
+    TARGET_VERSION_DIR=${TARGET_INSTALL_PATH}
+  else
+    TARGET_VERSION_DIR=${TARGET_INSTALL_PATH}/${PKG_VERSION_DIR}
+  fi
+  TARGET_MOULDE_DIR=${TARGET_VERSION_DIR}/${OPP_PLATFORM_DIR}
+  INSTALL_INFO_FILE=${TARGET_MOULDE_DIR}/${ASCEND_INSTALL_INFO}
+
+  if [ "$(id -u)" != "0" ]; then
+    LOG_PATH_PERM="740"
+    LOG_FILE_PERM="640"
+    INSTALL_INFO_PERM="600"
+  else
+    LOG_PATH_PERM="750"
+    LOG_FILE_PERM="640"
+    INSTALL_INFO_PERM="644"
+  fi
+
+  if [ "${IS_FOR_ALL}" = "y" ]; then
+    BUILTIN_PERM="555"
+    CUSTOM_PERM="755"
+    CREATE_DIR_PERM="755"
+    ONLYREAD_PERM="444"
+  else
+    BUILTIN_PERM="550"
+    CUSTOM_PERM="750"
+    CREATE_DIR_PERM="750"
+    ONLYREAD_PERM="440"
+  fi
 }
 
-updateinstallinfo() {
-    _key_val="$1"
-    _val="$2"
-    _is_new_gen="$3"
-    _old_val=$(getinstalledinfo "${_key_val}")
-    _target_install_info="${version_install_dir}/$4"
-    if [ -f "${_target_install_info}" ]; then
-        chmod 644 "${_target_install_info}"
-        if [ "${_old_val}"x = ""x ] || [ "${_is_new_gen}" = "true" ]; then
-            echo "${_key_val}=${_val}" >> "${_target_install_info}"
-        else
-            sed -i "/${_key_val}/c ${_key_val}=${_val}" "${_target_install_info}"
-        fi
+log_with_errorlevel() {
+  local ret_status="$1"
+  local level="$2"
+  local msg="$3"
+  if [ "${ret_status}" != 0 ]; then
+    if [ "${level}" = "error" ]; then
+      logandprint "${msg}"
+      exit 1
     else
-        echo "${_key_val}=${_val}" > "${_target_install_info}"
+      logandprint "${msg}"
     fi
-
-    chmod 644 "${_target_install_info}" 2> /dev/null
-    if [ "$(id -u)" != "0" ]; then
-        chmod 600 "${_target_install_info}" 2> /dev/null
-    fi
+  fi
 }
 
-updatefeatureandchipinfo() {
-    _key_val="$1"
-    _val="$2"
-    _old_val=$(getinstalledinfo "${_key_val}")
-    _is_new_gen="$3"
-    _target_install_info="${version_install_dir}/$4"
-    if [ -f "${_target_install_info}" ]; then
-        chmod 644 "${_target_install_info}"
-        if [ "${_is_new_gen}" = "true" ]; then
-            echo "${_key_val}=${_val}" >> "${_target_install_info}"
-        else
-            grep_res=$(cat ${_target_install_info} | grep "$_key_val")
-            if [ "${grep_res}x" = "x" ]; then
-                echo "${_key_val}=${_val}" >> "${_target_install_info}"
-            else
-                sed -i "/${_key_val}/c ${_key_val}=${_val}" "${_target_install_info}"
-            fi
-        fi
+get_installed_info() {
+  local key="$1"
+  local res=""
+  if [ -f "${INSTALL_INFO_FILE}" ]; then
+    res=$(cat ${INSTALL_INFO_FILE} | grep "${key}" | awk -F = '{print $2}')
+  fi
+  echo "${res}"
+}
+
+update_install_info() {
+  local key_val="$1"
+  local val="$2"
+  local old_val=$(get_installed_info "${key_val}")
+  if [ -f "${INSTALL_INFO_FILE}" ]; then
+    if [ "x${old_val}" = "x" ]; then
+      echo "${key_val}=${val}" >>"${INSTALL_INFO_FILE}"
     else
-        echo "${_key_val}=${_val}" > "${_target_install_info}"
+      sed -i "/${key_val}/c ${key_val}=${val}" "${INSTALL_INFO_FILE}"
     fi
- 
-    chmod 644 "${_target_install_info}" 2> /dev/null
-    if [ "$(id -u)" != "0" ]; then
-        chmod 600 "${_target_install_info}" 2> /dev/null
-    fi
+  else
+    echo "${key_val}=${val}" >"${INSTALL_INFO_FILE}"
+  fi
 }
 
-updateinstallinfos() {
-    _uname="$1"
-    _ugroup="$2"
-    _type="$3"
-    _path="$4"
-    in_feature_new="$5"
-    chip_type_new="$6"
-    _version=$(getrunpkginfo "${KEY_RUNPKG_VERSION}")
-    _target_install_dir="${version_install_dir}/${_INSTALL_INFO_SUFFIX}"
-    _is_new_gen_param="false"
-    if [ ! -f "${_target_install_dir}" ]; then
-        _is_new_gen_param="true"
-    fi
-    updateinstallinfo "${KEY_INSTALLED_UNAME}" "${_uname}" "${_is_new_gen_param}" "${_INSTALL_INFO_SUFFIX}"
-    updateinstallinfo "${KEY_INSTALLED_UGROUP}" "${_ugroup}" "${_is_new_gen_param}" "${_INSTALL_INFO_SUFFIX}"
-    updateinstallinfo "${KEY_INSTALLED_TYPE}" "${_type}" "${_is_new_gen_param}" "${_INSTALL_INFO_SUFFIX}"
-    updatefeatureandchipinfo "${KEY_INSTALLED_FEATURE}" "${in_feature_new}" "${_is_new_gen_param}" "${_INSTALL_INFO_SUFFIX}"
-    updateinstallinfo "${KEY_INSTALLED_PATH}" "${_path}" "${_is_new_gen_param}" "${_INSTALL_INFO_SUFFIX}"
-    updateinstallinfo "${KEY_INSTALLED_VERSION}" "${_version}" "${_is_new_gen_param}" "${_INSTALL_INFO_SUFFIX}"
-    updatefeatureandchipinfo "${KEY_INSTALLED_CHIP}" "${chip_type_new}" "${_is_new_gen_param}" "${_INSTALL_INFO_SUFFIX}"
+update_install_infos() {
+  local uname="$1"
+  local ugroup="$2"
+  local type="$3"
+  local path="$4"
+  local version
+  get_package_version "version" "$VERSION_INFO_FILE"
+  comm_create_file "${INSTALL_INFO_FILE}" "${INSTALL_INFO_PERM}" "${TARGET_USERNAME}:${TARGET_USERGROUP}" "${IS_FOR_ALL}"
+
+  update_install_info "${KEY_INSTALLED_UNAME}" "${uname}"
+  update_install_info "${KEY_INSTALLED_UGROUP}" "${ugroup}"
+  update_install_info "${KEY_INSTALLED_TYPE}" "${type}"
+  update_install_info "${KEY_INSTALLED_PATH}" "${path}"
+  update_install_info "${KEY_INSTALLED_VERSION}" "${version}"
 }
 
-aicpuupdateinstallinfo(){
-    _uname_param="$1"
-    _ugroup_val="$2"
-    _type_param="$3"
-    _path_param="$4"
-    _target_install_path="${version_install_dir}$5"
-    if [ ! -f "${_target_install_path}" ]; then
-        _is_new_gen_res="true"
-    fi
-    updateinstallinfo "USERNAME" "${_uname_param}" "${_is_new_gen_res}" "$5"
-    updateinstallinfo "USERGROUP" "${_ugroup_val}" "${_is_new_gen_res}" "$5"
-    updateinstallinfo "Aicpu_Kernels_Install_Type" "${_type_param}" "${_is_new_gen_res}" "$5"
-    updateinstallinfo "Aicpu_Kernels_Install_Path_Param" "${_path_param}" "${_is_new_gen_res}" "$5"
+check_file_exist() {
+  local path_param="${1}"
+  if [ ! -f "${path_param}" ]; then
+    logandprint "[ERROR]: ERR_NO:${FILE_NOT_EXIST};ERR_DES:The file (${path_param}) does not existed."
+    exit 1
+  fi
 }
 
-checkfileexist() {
-    _path_val="$1"
-    if [ ! -f "${_path_val}" ];then
-        logandprint "[ERROR]: ERR_NO:${FILE_READ_FAILED};ERR_DES:The file (${_path_val}) does not existed, install failed."
-        return 1
-    fi
-    return 0
+check_env() {
+  check_file_exist "${FILELIST_FILE}"
+  check_file_exist "${COMMON_PARSER_FILE}"
 }
 
 createsoftlink() {
-    _src_path="$1"
-    _dst_path="$2"
-    if [ -L "$2" ]; then
-        logandprint "[WARNING]: Soft link for ops is existed. Cannot create new soft link."
-        return 0
-    fi
-    ln -s "${_src_path}" "${_dst_path}" 2> /dev/null
-    if [ "$?" != "0" ]; then
-        return 1
+  local src_path="$1"
+  local dst_path="$2"
+  if [ -e "$dst_path" ]; then
+    if [ -L "$dst_path" ]; then
+      `rm -f $dst_path`
     else
-        return 0
+      return 0
     fi
+  fi
+  ln -s "${src_path}" "${dst_path}" 2>/dev/null
+  log_with_errorlevel "$?" "error" "[ERROR]: ERR_NO:${PERM_DENIED};ERR_DES:${src_path} Create softlink to  ${dst_path} failed."
 }
 
-getinstallpath() {
-    docker_root_tmp="$(echo "${docker_root}" | sed "s#/\+\$##g")"
-    docker_root_regex="$(echo "${docker_root_tmp}" | sed "s#\/#\\\/#g")"
-    relative_path=$(echo "${version_install_dir}" | sed "s/^${docker_root_regex}//g" | sed "s/\/\+\$//g")
-    return
+get_install_path() {
+  docker_root_tmp="$(echo "${DOCKER_ROOT}" | sed "s#/\+\$##g")"
+  docker_root_regex="$(echo "${docker_root_tmp}" | sed "s#\/#\\\/#g")"
+  relative_path_val=$(echo "${TARGET_VERSION_DIR}" | sed "s/^${docker_root_regex}//g" | sed "s/\/\+\$//g")
+  return
 }
 
 setenv() {
-    logandprint "[INFO]: Set the environment path [ export ASCEND_OPS_TRANSFORMER_PATH=${relative_path_val}/${opp_platform_dir} ]."
-    if [ "${is_docker_install}" = y ] ; then
-         install_option="--docker-root=${docker_root}"
-    else
-        install_option=""
-    fi
-    if [ "${is_setenv}" = "y" ];then
-        install_option="${install_option} --setenv"
-    fi
-}
-
-createasoftlink(){
-    if [ "$2" = "All" ];then
-        touch $1/${opp_platform_dir}/built-in/op_impl/aicpu/aicpu_kernel/lib/libcpu_kernels_context.a
-        ln -sf $1/${opp_platform_dir}/built-in/op_impl/aicpu/aicpu_kernel/lib/Ascend310/libcpu_kernels_context.a  $1/${opp_platform_dir}/built-in/op_impl/aicpu/aicpu_kernel/lib/libcpu_kernels_context.a
-    elif [ "$2" = "exec_mode" ];then
-        logandprint "[INFO]: Install only files required at runtime (not compile time), include [libopsproto.so] and [liboptiling.so]"
-    else
-        ln -sf $1/${opp_platform_dir}/built-in/op_impl/aicpu/aicpu_kernel/lib/$2/libcpu_kernels_context.a  $1/${opp_platform_dir}/built-in/op_impl/aicpu/aicpu_kernel/lib/libcpu_kernels_context.a
-    fi
-}
-
-#mkdir custom to save custom asset
-#chmod 777 for custom dir to support Rl/Tiling files write in
-copy_custom_data(){
-    src_path=$1
-    package=$2
-    if [ -d "${src_path}/../temp_opp" ]; then
-        chmod -R 755 ${src_path}/../temp_opp
-        rm -fr "${src_path}/../temp_opp"
-        if [ "$?" = "0" ]; then
-            logandprint "[INFO]: Temp custom path delete success."
-        else
-            logandprint "[ERROR]: Temp custom path delete failed, please check."
-        fi
-    fi
-    if [ "${package}" = "opp" ]; then
-        asset_unit="op_impl op_proto fusion_pass fusion_rules framework data"
-        sub_unit="rl tiling"
-        for i in ${asset_unit}; do
-            custom_data=$(find ${src_path}/opp -name "custom" | grep ${i})
-            if [ ${i} = "data" ]; then
-                for unit in ${sub_unit}; do
-                    if [ -d "$src_path/opp/${i}/${unit}" ]; then
-                        chip_name=$(ls $src_path/opp/${i}/${unit})
-                        for name in ${chip_name}; do
-                            rl_tiling_data=$(find ${src_path}/opp -name "custom" | grep ${i} | grep ${unit} | grep ${name})
-                            if [ ${name} = "Ascend310" ]; then
-                                for recurrent in ${rl_tiling_data}; do
-                                    key_word=$(echo ${recurrent} | grep "310P")
-                                    val=$(ls -A ${recurrent})
-                                    if [ "x${val}" != "x" ] && [ "x${key_word}" = "x" ]; then
-                                        mkdir -p ${src_path}/../temp_opp/vendors/customize/${i}/${unit}/${name}
-                                        cp -f ${recurrent}/* ${src_path}/../temp_opp/vendors/customize/${i}/${unit}/${name}
-                                    fi
-                                done
-                            else
-                                vals=$(ls -A ${rl_tiling_data})
-                                if [ "x${vals}" != "x" ]; then
-                                    mkdir -p ${src_path}/../temp_opp/vendors/customize/${i}/${unit}/${name}
-                                    cp -f ${rl_tiling_data}/* ${src_path}/../temp_opp/vendors/customize/${i}/${unit}/${name}
-                                fi
-                            fi
-                        done
-                    fi
-                done
-            else
-                if [ "x${custom_data}" != "x" ]; then
-                    empty_val=$(ls -A ${custom_data})
-                else
-                    empty_val=""
-                fi
-                if [ "x${empty_val}" != "x" ]; then
-                  mkdir -p ${src_path}/../temp_opp/vendors/customize/${i}
-                  cp -rf $custom_data/* ${src_path}/../temp_opp/vendors/customize/${i}
-                  if [ "$i" = "op_impl" ]; then
-                    config_dir=$(find ${src_path}/../temp_opp/vendors/customize/${i} -name "ascend710")
-                    for rename_dir in ${config_dir};do
-                        if [ -d ${rename_dir} ]; then
-                            mv ${rename_dir} ${rename_dir}/../ascend310p
-                        fi
-                    done
-                    config_json=$(find ${src_path}/../temp_opp/vendors/customize/${i} -name "*ascend710*.json")
-                    for rename_file in ${config_json};do
-                        if [ -f ${rename_file} ]; then
-                            rename_cut=${rename_file%/*}
-                            mv ${rename_file} ${rename_cut}/aic-ascend310p-ops-info.json
-                        fi
-                    done
-                  fi
-                fi
-            fi
-        done
-    else
-        if [ -d ${src_path}/opp/vendors ]; then
-            vendors_res=$(ls -A ${src_path}/opp/vendors)
-            if [ -d "${src_path}/opp/vendors" ] && [ "x${vendors_res}" != "x" ]; then
-                mkdir ${src_path}/../temp_opp
-                cp -rfL ${src_path}/opp/vendors ${src_path}/../temp_opp
-            fi
-        fi 
-    fi
-}
-
-copy_data(){
-    src_dir=$1
-    dst_dir=$2
-    cp -rfL ${src_dir} ${dst_dir}
-    if [ "$?" = 0 ]; then
-        logandprint "[INFO]: Copy opp vendors module successfully."
-    else
-        logandprint "[ERROR]: Copy opp vendors module fail."
-        exit 1
-    fi
+  logandprint "[INFO]: Set the environment path [ export ASCEND_OPS_TRANSFORMER_PATH=${relative_path_val}/${OPP_PLATFORM_DIR} ]."
+  if [ "${IS_DOCKER_INSTALL}" = y ]; then
+    INSTALL_OPTION="--docker-root=${DOCKER_ROOT}"
+  else
+    INSTALL_OPTION=""
+  fi
+  if [ "${IS_SETENV}" = "y" ]; then
+    INSTALL_OPTION="${INSTALL_OPTION} --setenv"
+  fi
 }
 
 # 创建单个文件的软链接，链接文件级别
-sync_file_with_softlink() {
-    src_file=$1
-    dst_file=$2
+create_file_softlink() {
+  local src_file=$1
+  local dst_file=$2
+  local base_dir=$(dirname ${dst_file})
 
-    if [ ! -f "${src_file}" ]; then
-        logandprint "[ERROR]: src file ["${src_file}"] not exists to create soft link."
-    fi
-    if [ -L "${dst_file}" ]; then
-        rm -f ${dst_file}
-        exit 1
-    fi
+  comm_create_dir "${base_dir}" "${CREATE_DIR_PERM}" "${TARGET_USERNAME}:${TARGET_USERGROUP}" "${IS_FOR_ALL}"
 
-    # 获取相对路径
-    dst_dir="${dst_file%/*}"
-    if [ ! -d "${dst_dir}" ]; then
-        mkdir -p "${dst_dir}"
-        logandprint "[INFO]: Creating dir ("${dst_dir}") for dst link ("${dst_file}")."
-    fi
-    chmod -R "${_CREATE_DIR_PERM}" "${dst_dir}"
-    relative_file_path=$(realpath -s --relative-to="${dst_dir}" "${src_file}")
-    # 创建软连接
-    logandprint "[INFO]: Creating soft link from ("${src_file}") to ("${dst_file}")."
-    createsoftlink "${relative_file_path}" "${dst_file}"
-    logwitherrorlevel "$?" "warn" "[WARNING]: Create soft link for "${dst_file}" failed. \
-That may cause some issues for ops_transformer."
+  local relative_file_path=$(realpath -s --relative-to="${base_dir}" "${src_file}")
+  # 创建软连接
+  createsoftlink "${relative_file_path}" "${dst_file}"
 }
 
 # 创建单个目录的软连接，链接目录级别
-sync_dir_with_softlink() {
-    src_dir=$1
-    dst_dir=$2
+create_dir_softlink() {
+  local src_dir=$1
+  local dst_dir=$2
+  local base_dir=$(dirname ${dst_dir})
 
-    if [ ! -d "${src_dir}" ]; then
-        logandprint "[ERROR]: src dir ["${src_dir}"] not exists to create soft link."
-    fi
+  comm_create_dir "${base_dir}" "${CREATE_DIR_PERM}" "${TARGET_USERNAME}:${TARGET_USERGROUP}" "${IS_FOR_ALL}"
 
-    # 获取相对路径
-    relative_dir_path=$(realpath -s --relative-to="${dst_dir%/*}" "${src_dir}")
-    # 创建软连接
-    logandprint "[INFO]: Creating soft link from ("${src_dir}") to ("${dst_dir}")."
-    createsoftlink "${relative_dir_path}" "${dst_dir}"
-    logwitherrorlevel "$?" "warn" "[WARNING]: Create soft link for "${dst_dir}" failed. \
-    That may cause some issues for ops_transformer."
+  if [ ! -d "${src_dir}" ]; then
+    logandprint "[ERROR]: src dir ["${src_dir}"] not exists to create soft link."
+  fi
+
+  # 获取相对路径
+  relative_dir_path=$(realpath -s --relative-to="${base_dir}" "${src_dir}")
+  # 创建软连接
+  createsoftlink "${relative_dir_path}" "${dst_dir}"
 }
 
 # 创建目录下子目录的软连接，链接子目录级别
-sync_dirs_with_softlink() {
-    src_dir=$1
-    dst_dir=$2
+create_softlink_for_dirs() {
+  local src_dir=$1
+  local dst_dir=$2
 
-    if [ ! -d "${src_dir}" ]; then
-        logandprint "[ERROR]: src dir ["${src_dir}"] not exists to create soft link."
-    fi
-    if [ ! -d "${dst_dir}" ]; then
-        mkdir -p "${dst_dir}"
-        logandprint "[INFO]: dst dir ["${dst_dir}"] create success."
-    fi
-    chmod -R "${_CREATE_DIR_PERM}" "${dst_dir}"
-    # 搜索原目录下的子目录
-    logandprint "[INFO]: Sync dirs with soft link from ("${src_dir}") to ("${dst_dir}") finished."
-    find "${src_dir}" -mindepth 1 -maxdepth 1 -type d -print0 | while IFS= read -r -d '' dir_path; do
-        relative_diff_path="${dir_path#${src_dir}/}"
-        dst_dir_path="${dst_dir}/${relative_diff_path}"
-        src_dir_path="${src_dir}/${relative_diff_path}"
-        # 计算目录相对路径
-        relative_dir_path=$(realpath -s --relative-to="${dst_dir_path%/*}" "${src_dir_path}")
-        # 创建软连接
-        logandprint "[INFO]: Creating soft link from ("${dir_path}") to ("${dst_dir_path}")."
-        createsoftlink "${relative_dir_path}" "${dst_dir_path}"
-        logwitherrorlevel "$?" "warn" "[WARNING]: Create soft link for "${dst_dir_path}" failed. \
-That may cause some issues for ops_transformer."
-    done
-    logandprint "[INFO]: Sync dirs with soft link from ("${src_dir}") to ("${dst_dir}") finished."
+  if [ ! -d "${src_dir}" ]; then
+    logandprint "[ERROR]: src dir ["${src_dir}"] not exists to create soft link."
+    exit 1
+  fi
+
+  comm_create_dir "${dst_dir}" "${CREATE_DIR_PERM}" "${TARGET_USERNAME}:${TARGET_USERGROUP}" "${IS_FOR_ALL}"
+
+  find "${src_dir}" -mindepth 1 -maxdepth 1 -type d -print0 | while IFS= read -r -d '' src_dir_path; do
+    local sub_dir_name=$(basename ${src_dir_path})
+    local dst_dir_path="${dst_dir}/${sub_dir_name}"
+    # 计算目录相对路径
+    local relative_dir_path=$(realpath -s --relative-to="${dst_dir}" "${src_dir_path}")
+    # 创建软连接
+    createsoftlink "${relative_dir_path}" "${dst_dir_path}"
+  done
 }
 
 # 创建某目录下所有文件的软链接，链接文件级别，要求目录中不能有子目录
-sync_files_with_softlink() {
-    src_dir=$1
-    dst_dir=$2
+create_softlink_for_files() {
+  local src_dir=$1
+  local dst_dir=$2
+  local exclude_list="$3"
 
-    if [ ! -d "${src_dir}" ]; then
-        logandprint "[ERROR]: src dir ["${src_dir}"] not exists to create soft link."
+  if [ ! -d "${src_dir}" ]; then
+    logandprint "[ERROR]: src dir ["${src_dir}"] not exists, cannot create soft link."
+    exit 1
+  fi
+
+  comm_create_dir "${dst_dir}" "${CREATE_DIR_PERM}" "${TARGET_USERNAME}:${TARGET_USERGROUP}" "${IS_FOR_ALL}"
+
+  find "${src_dir}" -mindepth 1 -maxdepth 1 -type f -print0 | while IFS= read -r -d '' src_file_path; do
+    # 文件名
+    local file_name=$(basename ${src_file_path})
+    if $(echo ${exclude_list} | grep -wq ${file_name}); then
+      continue
     fi
-    if [ ! -d "${dst_dir}" ]; then
-        mkdir -p "${dst_dir}"
-        if [ "$?" = 0 ]; then
-            logandprint "[INFO]: dst dir ["${dst_dir}"] created."
-        else
-            logandprint "[ERROR]: dst dir ["${src_dir}"] create failed."
-            exit 1
-        fi
-    fi
-    chmod -R "${_CREATE_DIR_PERM}" "${dst_dir}"
-    # 遍历src_dir下的文件，在dst_dir中创建软连接
-    logandprint "[INFO]: Sync files with soft link from ("${src_dir}") to ("${dst_dir}") start."
-    find "${src_dir}" -type f -print0 | while IFS= read -r -d '' file_path; do
-        # 文件名
-        file_name="${file_path##*/}"
-        dst_path="${dst_dir}/${file_name}"
-        # 获取相对路径
-        relative_file_path=$(realpath --relative-to="${dst_dir%/*}" "${file_path}")
-        # 创建软连接
-        chmod u+w "${dst_dir}"  2> /dev/null
-        logandprint "[INFO]: Creating soft link from ("${file_path}") to ("${dst_path}")."
-        createsoftlink "${relative_file_path}" "${dst_path}"
-        logwitherrorlevel "$?" "warn" "[WARNING]: Create soft link for "${dst_path}" failed. \
-That may cause some issues for ops_transformer."
-    done
-    logandprint "[INFO]: Sync files with soft link from ("${src_dir}") to ("${dst_dir}") finished."
+    local dst_file_path="${dst_dir}/${file_name}"
+    # 获取相对路径
+    local relative_file_path=$(realpath --relative-to="${dst_dir}" "${src_file_path}")
+    # 创建软连接
+    createsoftlink "${relative_file_path}" "${dst_file_path}"
+  done
 }
 
 # 递归创建目录下所有文件的软链接，链接文件级别，目录中可以有子目录，对于子目录会创建对应目录不是链接
-sync_dirs_recursive_with_softlink() {
-    src_dir=$1
-    dst_dir=$2
+create_softlink_for_files_and_dirs() {
+  local src_dir=$1
+  local dst_dir=$2
 
-    if [ ! -d "${src_dir}" ]; then
-        logandprint "[ERROR]: src dir ["${src_dir}"] not exists to create soft link."
-    fi
-    if [ ! -d "${dst_dir}" ]; then
-        mkdir -p "${dst_dir}"
-        if [ "$?" = 0 ]; then
-            logandprint "[INFO]: dst dir ["${dst_dir}"] created."
-            chmod -R "${_BUILTIN_PERM}" "${dst_dir}" 2> /dev/null
-        else
-            logandprint "[ERROR]: dst dir ["${src_dir}"] create failed."
-            exit 1
-        fi
-    fi
-    chmod -R "${_CREATE_DIR_PERM}" "${dst_dir}"
-    # 搜索原目录下的子目录，并在目标路径下创建对应子目录
-    find "${src_dir}" -mindepth 1 -type d -print0 | while IFS= read -r -d '' dir_path; do
-        relative_dir_path="${dir_path#${src_dir}/}"
-        dst_dir_path="${dst_dir}/${relative_dir_path}"
-        if [ ! -d "${dst_dir_path}" ]; then
-            mkdir -p "${dst_dir_path}"
-            if [ "$?" -eq 0 ]; then
-                logandprint "[INFO]: Creating sync dir ("${dst_dir_path}") success."
-                chmod -R "${_BUILTIN_PERM}" "${dst_dir_path}" 2> /dev/null
-            else
-                logandprint "[WARNING]: Creating sync dir ("${dst_dir_path}") failed."
-            fi
-        fi
-    done
+  if [ ! -d "${src_dir}" ]; then
+    logandprint "[ERROR]: src dir ["${src_dir}"] not exists, cannot create soft link."
+    exit 1
+  fi
 
-    # 搜索文件，创建软连接
-    find "${src_dir}" -type f -print0 | while IFS= read -r -d '' file_path; do
-        relative_diff_path="${file_path#${src_dir}/}"
-        dst_file_path="${dst_dir}/${relative_diff_path}"
-        # 计算相对路径
-        relative_file_path=$(realpath -s --relative-to="${dst_file_path%/*}" "${file_path}")
-        logandprint "[INFO]: Creating soft link from ("${file_path}") to ("${dst_file_path}")."
-        createsoftlink "${relative_file_path}" "${dst_file_path}"
-        logwitherrorlevel "$?" "warn" "[WARNING]: Create soft link for "${dst_file_path}" failed. \
-That may cause some issues for ops_transformer."
-    done
+  comm_create_dir "${dst_dir}" "${CREATE_DIR_PERM}" "${TARGET_USERNAME}:${TARGET_USERGROUP}" "${IS_FOR_ALL}"
+  find "${src_dir}" -mindepth 1 -maxdepth 1 -type d -print0 | while IFS= read -r -d '' src_dir_path; do
+    local base_dir=$(basename ${src_dir_path})
+    local dst_dir_path="${dst_dir}/${base_dir}"
+    create_softlink_for_files_and_dirs ${src_dir_path} ${dst_dir_path}
+  done
+
+  create_softlink_for_files ${src_dir} ${dst_dir}
 }
 
-# init installation parameters
-_TARGET_INSTALL_PATH="$1"
-_TARGET_USERNAME="$2"
-_TARGET_USERGROUP="$3"
-_CHIP_TYPE="$4"
-install_type="$5"
-is_quiet="$6"
-_FIRST_NOT_EXIST_DIR="$7"
-is_the_last_dir_opp="$8"
-is_for_all="$9"
-is_setenv="${10}"
-is_docker_install="${11}"
-docker_root="${12}"
-is_install_path="${13}"
-in_feature_new="${14}"
-chip_type_new="${15}"
-#getinstallpath
-#relative_path_val=${relative_path}
-
-logandprint "[INFO]: Command opp_install"
-
-in_install_for_all=""
-if [ "${is_for_all}" = y ] ; then
-    in_install_for_all="--install_for_all"
-fi
-
-if [ "${_TARGET_INSTALL_PATH}" = "" ] || [ "${_TARGET_USERNAME}" = "" ] ||
-[ "${_TARGET_USERGROUP}" = "" ] || [ "${install_type}" = "" ] ||
-[ "${is_quiet}" = "" ]; then
-    logandprint "[ERROR]: ERR_NO:${PARAM_INVALID};ERR_DES:Empty paramters is invalid for install."
-    exit 1
-fi
-
-get_version "pkg_version" "$_VERSION_INFO_FILE"
-get_version_dir "pkg_version_dir" "$_VERSION_INFO_FILE"
-get_package_upgrade_version_dir "upgrade_version_dir" "$_TARGET_INSTALL_PATH" "${opp_platform_dir}"
-get_package_upgrade_version_dir "upgrade_old_version_dir" "$_TARGET_INSTALL_PATH" "${opp_platform_old_dir}"
-get_package_last_installed_version "last_installed" "$_TARGET_INSTALL_PATH" "${opp_platform_dir}"
-get_package_last_installed_version "last_installed_old" "$_TARGET_INSTALL_PATH" "${opp_platform_old_dir}"
-last_installed_version=$(echo ${last_installed} | cut --only-delimited -d":" -f2-)
-last_installed_old_version=$(echo ${last_installed} | cut --only-delimited -d":" -f2-)
-
-is_multi_version_pkg "pkg_is_multi_version" "$_VERSION_INFO_FILE"
-if [ "$pkg_is_multi_version" = "true" ]; then
-    get_version_dir "pkg_version_dir" "$_VERSION_INFO_FILE"
-    version_install_dir=${_TARGET_INSTALL_PATH}/${pkg_version_dir}
-else
-    version_install_dir=${_TARGET_INSTALL_PATH}
-fi
-getinstallpath
-relative_path_val=${relative_path}
-
-#Last Installed Version
-install_lower_dir=$(ls "${_TARGET_INSTALL_PATH}" 2> /dev/null)
-last_version_data=$(echo $install_lower_dir | awk -F ' ' '{print $1}')
-
-# init log file path
-_INSTALL_INFO_FILE="${version_install_dir}/${_INSTALL_INFO_SUFFIX}"
-if [ ! -f "${_INSTALL_INFO_FILE}" ]; then
-    _INSTALL_INFO_FILE="/etc/ascend_install.info"
-fi
-
-if [ "$(id -u)" != "0" ]; then
-    _LOG_PATH_PERM="740"
-    _LOG_FILE_PERM="640"
-    _INSTALL_INFO_PERM="600"
-    _LOG_PATH_AND_FILE_GROUP="root"
-else
-    _LOG_PATH_PERM="750"
-    _LOG_FILE_PERM="640"
-    _INSTALL_INFO_PERM="644"
-fi
-
-logandprint "[INFO]: Begin install opp module."
-checkfileexist "${_FILELIST_FILE}"
-if [ "$?" != 0 ]; then
-    exit 1
-fi
-
-checkfileexist "${_COMMON_PARSER_FILE}"
-if [ "$?" != 0 ]; then
-    exit 1
-fi
-
-_BUILTIN_PERM="550"
-_CUSTOM_PERM="750"
-_CREATE_DIR_PERM="750"
-_CREATE_FIRST_ASCEND_DIR_PERM="755"
-_ONLYREAD_PERM="440"
-if [ "${is_for_all}" = y ]; then
-    _BUILTIN_PERM="555"
-    _CUSTOM_PERM="755"
-    _CREATE_DIR_PERM="755"
-    _CREATE_FIRST_ASCEND_DIR_PERM="755"
-    _ONLYREAD_PERM="444"
-fi
-if [ "${_FIRST_NOT_EXIST_DIR}" != "" ]; then
-    mkdir -p "${version_install_dir}/${opp_platform_dir}" 2> /dev/null
-    chmod -R "${_CREATE_DIR_PERM}" "${_FIRST_NOT_EXIST_DIR}" 2> /dev/null
-    chown -R "${_TARGET_USERNAME}":"${_TARGET_USERGROUP}" "${_FIRST_NOT_EXIST_DIR}" 2> /dev/null
-    if [ "$(id -u)" = "0" ] && [ "${is_the_last_dir_opp}" = "0" ]; then
-        chmod -R "${_CREATE_FIRST_ASCEND_DIR_PERM}" "${_FIRST_NOT_EXIST_DIR}" 2> /dev/null
-        chown -R "root":"root" "${_FIRST_NOT_EXIST_DIR}" 2> /dev/null
+#create softlink for TARGET_MOULDE_DIR include
+create_module_include_softlink() {
+  local dir_mode=""
+  local dst_path=${TARGET_MOULDE_DIR}/include
+  if [ -d "${dst_path}" ]; then
+    dir_mode=$(stat -c %a ${dst_path})
+    if [ "$(id -u)" != 0 ] && [ ! -w "${dir_mode}" ]; then
+      chmod u+w "${dst_path}" 2>/dev/null
     fi
-fi
-# make the opp and the upper folder can write files
-is_change_dir_mode="false"
-if [ "$(id -u)" != 0 ] && [ ! -w "${version_install_dir}" ]; then
-    chmod u+w "${version_install_dir}" 2> /dev/null
-    is_change_dir_mode="true"
-fi
-
-# change installed folder's permission except aicpu
-subdirs_info=$(ls "${version_install_dir}/${opp_platform_dir}" 2> /dev/null)
-for dir in ${subdirs_info}; do
-    if [ "${dir}" != "Ascend310" ] && [ "${dir}" != "Ascend310RC" ] && [ "${dir}" != "Ascend910" ] && [ "${dir}" != "Ascend310P" ] && [ "${dir}" != "Ascend" ]  &&  [ "${dir}" != "aicpu" ] && [ "${dir}" != "script" ]; then
-        chmod -R "${_CUSTOM_PERM}" "${version_install_dir}/${opp_platform_dir}/${dir}" 2> /dev/null
-    fi
-done
-chmod "${_CUSTOM_PERM}" "${version_install_dir}/${opp_platform_dir}" 2> /dev/null
-
-logandprint "[INFO]: upgradePercentage:30%"
-# create opp path 、copy and chmod
-if [ -d $_TARGET_INSTALL_PATH/${last_installed_version}/opp/op_impl ] && [ ! -d $_TARGET_INSTALL_PATH/${last_installed_version}/opp/vendors ]; then
-    copy_custom_data $_TARGET_INSTALL_PATH/${last_installed_version} opp
-elif [ -d $_TARGET_INSTALL_PATH/${last_installed_version}/opp/op_impl ] && [ -d $_TARGET_INSTALL_PATH/${last_installed_version}/opp/vendors ]; then
-    vendor_content=$(ls -A $_TARGET_INSTALL_PATH/${last_installed_version}/opp/vendors)
-    if [ "x${vendor_content}" = "x" ]; then
-        copy_custom_data $_TARGET_INSTALL_PATH/${last_installed_version} opp
-    else
-        copy_custom_data $_TARGET_INSTALL_PATH/${last_installed_version}
-    fi
-elif [ "x${upgrade_old_version_dir}" != "x" ]; then
-    copy_custom_data $_TARGET_INSTALL_PATH/${last_installed_old_version}
-else
-    if [ -d ${version_install_dir}/${opp_platform_dir}/built-in ]; then
-        copy_custom_data  ${version_install_dir}
-    fi
-fi
-
-
-setenv
-
-logandprint "[INFO]: Update the opp install info."
-
-if [ "${in_feature_new}" = "" ]; then
-    in_feature_1="--feature=all"
-else
-    in_feature_1="--feature=${in_feature_new}"
-fi
-
-if [ "${chip_type_new}" = "" ]; then
-    chip_type_1="--chip=all"
-else
-    chip_type_1="--chip=${chip_type_new}"
-fi
-
-updateinstallinfos "${_TARGET_USERNAME}" "${_TARGET_USERGROUP}" "${install_type}" "${relative_path_val}" "${in_feature_new}" "${chip_type_new}"
-logwitherrorlevel "$?" "error" "[ERROR]: ERR_NO:${INSTALL_FAILED};ERR_DES:Update opp install info failed."
-sh "${_COMMON_PARSER_FILE}" --package="${opp_platform_dir}" --install --username="${_TARGET_USERNAME}" --usergroup="${_TARGET_USERGROUP}" --set-cann-uninstall \
-    --version=$pkg_version --version-dir=$pkg_version_dir $install_option ${in_install_for_all} ${in_feature_1} ${chip_type_1}  "${install_type}" "${_TARGET_INSTALL_PATH}" "${_FILELIST_FILE}"
-logwitherrorlevel "$?" "error" "[ERROR]: ERR_NO:${INSTALL_FAILED};ERR_DES:Install opp module files failed."
-
-# create softlink
-if [ "$platform_data" = "$(arch)" ]; then
-      logandprint "[INFO]: Creating ("${version_install_dir}""/ops") soft link from ("${version_install_dir}""/opp")."
-      cd "${version_install_dir}"
-      createsoftlink "opp" "ops"
-      logwitherrorlevel "$?" "warn" "[WARNING]: Create soft link for ops failed. That may \
-      cause some compatibility issues for old version envrionment."
-
-      if [ "$(id -u)" = "0" ]; then
-          chown -h "root":"root" "${version_install_dir}""/opp" 2> /dev/null
-          chown -h "root":"root" "${version_install_dir}""/ops" 2> /dev/null
-      else
-          chown -h "${_TARGET_USERNAME}":"${_TARGET_USERGROUP}" "${version_install_dir}""/opp" 2> /dev/null
-          chown -h "${_TARGET_USERNAME}":"${_TARGET_USERGROUP}" "${version_install_dir}""/ops" 2> /dev/null
-      fi
-      logwitherrorlevel "$?" "warn" "[WARNING]: Change [opp/ops] installed user or group failed. \
-      That may cause some compatibility issues for old version envrionment."
-fi
-
-# create ops_transformer library symbolic link in latest
-opapi_transformer_lib_src_path=${version_install_dir}/${opp_platform_dir}/built-in/op_impl/ai_core/tbe/op_api/lib/linux/${platform_data}/libopapi_transformer.so
-opgraph_transformer_lib_src_path=${version_install_dir}/${opp_platform_dir}/built-in/op_graph/lib/linux/${platform_data}/libopgraph_transformer.so
-ophost_transformer_lib_src_path=${version_install_dir}/${opp_platform_dir}/built-in/op_impl/ai_core/tbe/op_host/lib/linux/${platform_data}/libophost_transformer.so
-common_transformer_lib_src_path=${version_install_dir}/${opp_platform_dir}/${platform_data}-linux/lib64/libcommon_transformer.so
-opapi_transformer_lib_dst_path=${_TARGET_INSTALL_PATH}/latest/${platform_data}-linux/lib64/libopapi_transformer.so
-opgraph_transformer_lib_dst_path=${_TARGET_INSTALL_PATH}/latest/${platform_data}-linux/lib64/libopgraph_transformer.so
-ophost_transformer_lib_dst_path=${_TARGET_INSTALL_PATH}/latest/${platform_data}-linux/lib64/libophost_transformer.so
-common_transformer_lib_dst_path=${_TARGET_INSTALL_PATH}/latest/${platform_data}-linux/lib64/libcommon_transformer.so
-
-ops_transformer_lib_files=("opapi_transformer" "opgraph_transformer" "ophost_transformer" "common_transformer")
-for lib_name in "${ops_transformer_lib_files[@]}"
-do
-    src_path="${lib_name}_lib_src_path"
-    dst_path="${lib_name}_lib_dst_path"
-    sync_file_with_softlink "${!src_path}" "${!dst_path}"
-done
-
-# create aclnnop include symbilic link in ops_transformer/include and latest/include
-
-
-config_src_dir=${version_install_dir}/${opp_platform_dir}/built-in/op_impl/ai_core/tbe/config
-config_dst_dir=${_TARGET_INSTALL_PATH}/latest/opp/built-in/op_impl/ai_core/tbe/config
-sync_dirs_recursive_with_softlink ${config_src_dir} ${config_dst_dir}
-
-opp_opapi_transformer_lib_dst_path=${_TARGET_INSTALL_PATH}/latest/opp/built-in/op_impl/ai_core/tbe/op_api/lib/linux/${platform_data}/libopapi_transformer.so
-sync_file_with_softlink ${opapi_transformer_lib_src_path} ${opp_opapi_transformer_lib_dst_path}
-
-opp_ophost_transformer_lib_dst_path=${_TARGET_INSTALL_PATH}/latest/opp/built-in/op_impl/ai_core/tbe/op_host/lib/linux/${platform_data}/libophost_transformer.so
-sync_file_with_softlink ${ophost_transformer_lib_src_path} ${opp_ophost_transformer_lib_dst_path}
-
-opp_opgraph_transformer_lib_dst_path=${_TARGET_INSTALL_PATH}/latest/opp/built-in/op_graph/lib/linux/${platform_data}/libopgraph_transformer.so
-sync_file_with_softlink ${opgraph_transformer_lib_src_path} ${opp_opgraph_transformer_lib_dst_path}
-
-opgraph_transformer_h_src_path=${version_install_dir}/${opp_platform_dir}/built-in/op_graph/inc/ops_proto_transformer.h
-opp_opgraph_transformer_h_dst_path=${_TARGET_INSTALL_PATH}/latest/opp/built-in/op_graph/inc/ops_proto_transformer.h
-sync_file_with_softlink ${opgraph_transformer_h_src_path} ${opp_opgraph_transformer_h_dst_path}
-
-chmod -R "${_CREATE_DIR_PERM}" "${version_install_dir}/${opp_platform_dir}/include"
-chmod -R "${_CREATE_DIR_PERM}" "${_TARGET_INSTALL_PATH}/latest/${platform_data}-linux/include"
-aclnnop_src_dir=${version_install_dir}/${opp_platform_dir}/built-in/op_impl/ai_core/tbe/op_api/include/aclnnop
-aclnnop_ops_transformer_dst_dir=${version_install_dir}/${opp_platform_dir}/include/aclnnop
-aclnnop_latest_dst_dir=${_TARGET_INSTALL_PATH}/latest/${platform_data}-linux/include/aclnnop
-
-sync_dirs_recursive_with_softlink "${aclnnop_src_dir}" "${aclnnop_ops_transformer_dst_dir}"
-sync_dirs_recursive_with_softlink "${aclnnop_src_dir}" "${aclnnop_latest_dst_dir}"
-# create ops_transformer aclnn_kernels include symbolic link in latest
-aclnn_kernels_src_dir=${version_install_dir}/${opp_platform_dir}/${platform_data}-linux/include/aclnn_kernels
-aclnn_kernels_dst_dir=${_TARGET_INSTALL_PATH}/latest/${platform_data}-linux/include/aclnn_kernels
-sync_dirs_recursive_with_softlink "${aclnn_kernels_src_dir}" "${aclnn_kernels_dst_dir}"
-
-# create latest/opp symbolic link
-
-opp_opapi_dst_path=${_TARGET_INSTALL_PATH}/latest/opp/lib64/libopapi_transformer.so
-sync_file_with_softlink "${opapi_transformer_lib_dst_path}" "${opp_opapi_dst_path}"
-opp_aclnnop_src_dir=${_TARGET_INSTALL_PATH}/latest/${opp_platform_dir}/built-in/op_impl/ai_core/tbe/op_api/include/aclnnop
-opp_aclnnop_dst_dir=${_TARGET_INSTALL_PATH}/latest/opp/include/aclnnop
-opp_aclnnop_dst_dir2=${_TARGET_INSTALL_PATH}/latest/opp/include/aclnnop/ops_transformer
-sync_dirs_recursive_with_softlink "${opp_aclnnop_src_dir}" "${opp_aclnnop_dst_dir}"
-sync_dirs_recursive_with_softlink "${opp_aclnnop_src_dir}" "${opp_aclnnop_dst_dir2}"
-
-chmod -R "${_CREATE_DIR_PERM}" "${_TARGET_INSTALL_PATH}/latest/opp/built-in/op_impl/ai_core/tbe"
-opp_opimpl_ascendc_src_dir=${_TARGET_INSTALL_PATH}/latest/${opp_platform_dir}/built-in/op_impl/ai_core/tbe/impl/ascendc
-opp_opimpl_ascendc_dst_dir=${_TARGET_INSTALL_PATH}/latest/opp/built-in/op_impl/ai_core/tbe/impl/ascendc
-opp_opimpl_ascendc_dst_dir2=${_TARGET_INSTALL_PATH}/latest/opp/built-in/op_impl/ai_core/tbe/impl/ops_transformer/ascendc
-sync_dirs_with_softlink "${opp_opimpl_ascendc_src_dir}" "${opp_opimpl_ascendc_dst_dir}"
-sync_dirs_with_softlink "${opp_opimpl_ascendc_src_dir}" "${opp_opimpl_ascendc_dst_dir2}"
-
-opp_opimpl_dynamic_src_dir=${_TARGET_INSTALL_PATH}/latest/${opp_platform_dir}/built-in/op_impl/ai_core/tbe/impl/dynamic
-opp_opimpl_dynamic_dst_dir=${_TARGET_INSTALL_PATH}/latest/opp/built-in/op_impl/ai_core/tbe/impl/dynamic
-opp_opimpl_dynamic_dst_dir2=${_TARGET_INSTALL_PATH}/latest/opp/built-in/op_impl/ai_core/tbe/impl/ops_transformer/dynamic
-sync_dirs_recursive_with_softlink "${opp_opimpl_dynamic_src_dir}" "${opp_opimpl_dynamic_dst_dir}"
-sync_dirs_recursive_with_softlink "${opp_opimpl_dynamic_src_dir}" "${opp_opimpl_dynamic_dst_dir2}"
-
-kernel_dirs=$(ls ${_TARGET_INSTALL_PATH}/latest/${opp_platform_dir}/built-in/op_impl/ai_core/tbe/kernel)
-for dir in ${kernel_dirs}; do
-  src_path=${_TARGET_INSTALL_PATH}/latest/${opp_platform_dir}/built-in/op_impl/ai_core/tbe/kernel/${dir}
-  dst_path=${_TARGET_INSTALL_PATH}/latest/opp/built-in/op_impl/ai_core/tbe/kernel/${dir}/${opp_platform_dir}
-  dst_path2=${_TARGET_INSTALL_PATH}/latest/opp/built-in/op_impl/ai_core/tbe/kernel/${dir}
-  [ ! -d ${dst_path2} ] && mkdir -p ${dst_path2}
-  if [[ ${dir} =~ ascend* ]]; then
-    sync_dir_with_softlink "${src_path}" "${dst_path}"
-    kernels=$(ls ${src_path})
-    for kernel in ${kernels}; do
-      kernel_src_path=${src_path}/${kernel}
-      kernel_dst_path=${dst_path2}/${kernel}
-      sync_dir_with_softlink "${kernel_src_path}" "${kernel_dst_path}"
-    done
-  else
-    socs=$(ls ${src_path})
-    for soc in ${socs}; do
-      soc_src_path=${_TARGET_INSTALL_PATH}/latest/${opp_platform_dir}/built-in/op_impl/ai_core/tbe/kernel/${dir}/${soc}
-      soc_dst_path=${_TARGET_INSTALL_PATH}/latest/opp/built-in/op_impl/ai_core/tbe/kernel/${dir}/${soc}/${opp_platform_dir}
-      json_src_path=${soc_src_path}/
-      json_dst_path=${_TARGET_INSTALL_PATH}/latest/opp/built-in/op_impl/ai_core/tbe/kernel/${dir}/${soc}/
-      [ ! -d ${json_dst_path} ] && mkdir -p ${json_dst_path}
-      sync_files_with_softlink "${json_src_path}" "${json_dst_path}"
-      sync_dir_with_softlink "${soc_src_path}" "${soc_dst_path}"
-
-      binary_json_src_path=${json_src_path}/binary_info_config.json
-      binary_json_dst_path=${json_dst_path}/binary_info_config.json
-      if [ -L ${binary_json_dst_path} ]; then
-        rm -f ${binary_json_dst_path}
-        cp ${binary_json_src_path} ${binary_json_dst_path}
-      else
-        chmod +w ${binary_json_dst_path}
-        python3 merge_binary_info_config.py --base-file ${binary_json_dst_path} \
-        --update-file ${binary_json_src_path} --output-file ${binary_json_dst_path}
-        if [$? -ne 0 ]; then
-          logwitherrorlevel "$?" "error" "[ERROR]: ERR_NO:${INSTALL_FAILED};ERR_DES:Update binary_info_config info failed."
-          exit 1
-        fi
-        chmod -w ${binary_json_dst_path}
-      fi
-    done
   fi
-done
+  comm_create_dir "${dst_path}" "${CREATE_DIR_PERM}" "${TARGET_USERNAME}:${TARGET_USERGROUP}" "${IS_FOR_ALL}"
 
-#chmod to support copy
-if [ -d "${version_install_dir}/${opp_platform_dir}/vendors" ] && [ "$(id -u)" != "0" ]; then
-    chmod -R "${_CUSTOM_PERM}" ${version_install_dir}/${opp_platform_dir}/vendors
-fi
+  local aclnnop_src_dir=${TARGET_MOULDE_DIR}/built-in/op_impl/ai_core/tbe/op_api/include/aclnnop
+  local aclnnop_dst_dir=${TARGET_MOULDE_DIR}/include/aclnnop
+  create_softlink_for_files_and_dirs "${aclnnop_src_dir}" "${aclnnop_dst_dir}"
 
-#create custom dir
-#copy custom backup data
-if [ -d "$_TARGET_INSTALL_PATH/temp_opp/vendors" ]; then
-    copy_data ${_TARGET_INSTALL_PATH}/temp_opp/vendors ${version_install_dir}/opp
-    if [ -d "${version_install_dir}/opp/vendors/customize" ] && [ ! -f "${version_install_dir}/opp/vendors/config.ini" ]; then
-        touch "${version_install_dir}/opp/vendors/config.ini"
-        echo "load_priority=customize" > "${version_install_dir}/opp/vendors/config.ini"
+  if [ -n "$dir_mode" ]; then
+    chmod ${dir_mode} ${dst_path} 2>/dev/null
+  fi
+}
+
+#create latest [x86-64|aarch64]/lib64
+create_arch_lib_softlink() {
+  local dir_mode=""
+  local dst_lib_path="${TARGET_INSTALL_PATH}/latest/${ARCH_INFO}-linux/lib64"
+  if [ -d "${dst_lib_path}" ]; then
+    dir_mode=$(stat -c %a ${dst_lib_path})
+    if [ "$(id -u)" != 0 ] && [ ! -w "${dir_mode}" ]; then
+      chmod u+w "${dst_lib_path}" 2>/dev/null
     fi
-    tmp_val=$(find ${_TARGET_INSTALL_PATH} -name "temp_opp")
-    for val in ${tmp_val}; do
-        chmod -R 755 ${val}
-        rm -fr $val
-    done
-fi
+  fi
 
-# delete config file
-config_file=${version_install_dir}/opp/vendors/config.ini
-if [ -f ${config_file} ]; then
-    found_vendors="$(grep -w "load_priority" "$config_file" | cut --only-delimited -d"=" -f2-)"
-    if [ "${found_vendors}" = "customize" ]; then
-        if [ ! -d ${version_install_dir}/opp/vendors/customize ]; then
-            rm -f ${config_file}
-        fi
+  local ophost_transformer_lib_src_path=${TARGET_MOULDE_DIR}/built-in/op_impl/ai_core/tbe/op_host/lib/linux/${ARCH_INFO}/libophost_transformer.so
+  local ophost_transformer_lib_dst_path=${dst_lib_path}/libophost_transformer.so
+  create_file_softlink "${ophost_transformer_lib_src_path}" "${ophost_transformer_lib_dst_path}"
+  local opapi_transformer_lib_src_path=${TARGET_MOULDE_DIR}/built-in/op_impl/ai_core/tbe/op_api/lib/linux/${ARCH_INFO}/libopapi_transformer.so
+  local opapi_transformer_lib_dst_path=${dst_lib_path}/libopapi_transformer.so
+  create_file_softlink "${opapi_transformer_lib_src_path}" "${opapi_transformer_lib_dst_path}"
+  local opgraph_transformer_lib_src_path=${TARGET_MOULDE_DIR}/built-in/op_graph/lib/linux/${ARCH_INFO}/libopgraph_transformer.so
+  local opgraph_transformer_lib_dst_path=${dst_lib_path}/libopgraph_transformer.so
+  create_file_softlink "${opgraph_transformer_lib_src_path}" "${opgraph_transformer_lib_dst_path}"
+  local common_transformer_lib_src_path=${TARGET_MOULDE_DIR}/${ARCH_INFO}-linux/lib64/libcommon_transformer.so
+  local common_transformer_lib_dst_path=${dst_lib_path}/libcommon_transformer.so
+  create_file_softlink "${common_transformer_lib_src_path}" "${common_transformer_lib_dst_path}"
+
+  if [ -n "$dir_mode" ]; then
+    chmod ${dir_mode} ${dst_lib_path} 2>/dev/null
+  fi
+
+  dir_mode=""
+  local dst_inc_path="${TARGET_INSTALL_PATH}/latest/${ARCH_INFO}-linux/include"
+  if [ -d "${dst_inc_path}" ]; then
+    dir_mode=$(stat -c %a ${dst_inc_path})
+    if [ "$(id -u)" != 0 ] && [ ! -w "${dir_mode}" ]; then
+      chmod u+w "${dst_inc_path}" 2>/dev/null
     fi
-fi
+  fi
+  local aclnnop_src_dir=${TARGET_MOULDE_DIR}/built-in/op_impl/ai_core/tbe/op_api/include/aclnnop
+  local aclnnop_dst_dir=${TARGET_INSTALL_PATH}/latest/${ARCH_INFO}-linux/include/aclnnop
+  create_softlink_for_files_and_dirs "${aclnnop_src_dir}" "${aclnnop_dst_dir}"
 
-#rename the custom_impl to impl
-if [ -d ${version_install_dir}/opp/vendors ]; then
-    res_custom_impl=$(find ${version_install_dir}/opp/vendors -name "custom_impl")
-    custom_file=${version_install_dir}/opp/vendors/config.ini
-    if [ "x${res_custom_impl}" != "x" ] && [ -f "${custom_file}" ]; then
-        for path_val in ${res_custom_impl}; do
-            custom_name=$(grep -w "load_priority" ${custom_file} | cut --only-delimited -d"=" -f2- | cut --only-delimited -d"," -f1)
-            rename_flag_aicore=$(echo $path_val | grep "ai_core" 2> /dev/null)
-            rename_flag_veccore=$(echo $path_val | grep "vector_core" 2> /dev/null)
-            rename_flag_cpu=$(echo $path_val | grep "cpu" 2> /dev/null)
-            if [ "x${rename_flag_aicore}" != "x" ] || [ "x${rename_flag_veccore}" != "x" ]; then
-                mv ${path_val} ${path_val}/../${custom_name}_impl
-                if [ "$?" != 0 ]; then
-                    echo "[ERROR]: Rename ${path_val} to impl failed"
-                    exit 1
-                fi
-            fi
-            if [ "x${rename_flag_cpu}" != "x" ]; then
-                mv ${path_val} ${path_val}/../impl
-            fi
-        done
+  if [ -n "$dir_mode" ]; then
+    chmod ${dir_mode} ${dst_inc_path} 2>/dev/null
+  fi
+}
+
+create_opgraph_softlink() {
+  local dir_mode=""
+  local dst_path=${TARGET_INSTALL_PATH}/latest/opp/built-in/op_graph
+  if [ -d "${dst_path}" ]; then
+    dir_mode=$(stat -c %a ${dst_path})
+    if [ "$(id -u)" != 0 ] && [ ! -w "${dir_mode}" ]; then
+      chmod u+w "${dst_path}" 2>/dev/null
     fi
-fi
+  fi
+  comm_create_dir "${dst_path}" "${CREATE_DIR_PERM}" "${TARGET_USERNAME}:${TARGET_USERGROUP}" "${IS_FOR_ALL}"
 
-cd - > /dev/null
-#CHANGED
-#createasoftlink ${version_install_dir} $_CHIP_TYPE
+  local opgraph_transformer_lib_src_path=${TARGET_MOULDE_DIR}/built-in/op_graph/lib/linux/${ARCH_INFO}/libopgraph_transformer.so
+  local opgraph_transformer_lib_dst_path=${dst_path}/lib/linux/${ARCH_INFO}/libopgraph_transformer.so
+  create_file_softlink "${opgraph_transformer_lib_src_path}" "${opgraph_transformer_lib_dst_path}"
 
+  local opgraph_transformer_src_path=${TARGET_VERSION_DIR}/${OPP_PLATFORM_DIR}/built-in/op_graph/inc/ops_proto_transformer.h
+  local opgraph_transformer_dst_path=${dst_path}/inc/ops_proto_transformer.h
+  create_file_softlink ${opgraph_transformer_src_path} ${opgraph_transformer_dst_path}
 
-logandprint "[INFO]: upgradePercentage:50%"
+  if [ -n "$dir_mode" ]; then
+    chmod ${dir_mode} ${dst_path} 2>/dev/null
+  fi
+}
 
+create_tbe_kernel_softlink() {
+  local kernel_src_path=${TARGET_INSTALL_PATH}/latest/${OPP_PLATFORM_DIR}/built-in/op_impl/ai_core/tbe/kernel
+  if [ ! -d ${kernel_src_path} ]; then
+    logandprint "[INFO]: Package with no opp kernel, no need to install kernel."
+    return 0
+  fi
+  local dir_mode=""
+  local dst_path=${TARGET_INSTALL_PATH}/latest/opp/built-in/op_impl/ai_core/tbe/kernel
+  if [ -d "${dst_path}" ]; then
+    dir_mode=$(stat -c %a ${dst_path})
+    if [ "$(id -u)" != 0 ] && [ ! -w "${dir_mode}" ]; then
+      chmod u+w "${dst_path}" 2>/dev/null
+    fi
+  fi
+  comm_create_dir "${dst_path}" "${CREATE_DIR_PERM}" "${TARGET_USERNAME}:${TARGET_USERGROUP}" "${IS_FOR_ALL}"
 
-logandprint "[INFO]: Copying version.info"
-cp -f "${_VERSION_INFO_FILE}" "$version_install_dir""/${opp_platform_dir}"
-logwitherrorlevel "$?" "error" "[ERROR]: ERR_NO:${INSTALL_FAILED};ERR_DES:Copy version.info file failed."
+  local kernel_dirs=$(ls ${TARGET_INSTALL_PATH}/latest/${OPP_PLATFORM_DIR}/built-in/op_impl/ai_core/tbe/kernel)
+  for dir in ${kernel_dirs}; do
+    local kernel_src_dir=${kernel_src_path}/${dir}
+    local kernel_dst_dir_transformer=${dst_path}/${dir}/${OPP_PLATFORM_DIR}
+    local kernel_dst_dir=${dst_path}/${dir}
+    if [[ ${dir} =~ ascend* ]]; then
+      create_softlink_for_dirs "${kernel_src_dir}" "${kernel_dst_dir}"
+      create_dir_softlink "${kernel_src_dir}" "${kernel_dst_dir_transformer}"
+    else
+      local kernel_socs=$(ls ${kernel_src_dir})
+      for soc in ${kernel_socs}; do
+        soc_src_path=${TARGET_INSTALL_PATH}/latest/${OPP_PLATFORM_DIR}/built-in/op_impl/ai_core/tbe/kernel/${dir}/${soc}
 
-#if [ "$_CHIP_TYPE" = "All" ];then
-#    aicpuupdateinstallinfo "${_TARGET_USERNAME}" "${_TARGET_USERGROUP}" "${install_type}" "${version_install_dir}" "${opp_platform_dir}/Ascend310/aicpu/ascend_install.info"
-#    chown "${_TARGET_USERNAME}":"${_TARGET_USERGROUP}" ${version_install_dir}/${opp_platform_dir}/Ascend310/aicpu/ascend_install.info >/dev/null 2>&1
-#    chmod  440 ${version_install_dir}/${opp_platform_dir}/Ascend310/aicpu/ascend_install.info >/dev/null 2>&1
-#    aicpuupdateinstallinfo "${_TARGET_USERNAME}" "${_TARGET_USERGROUP}" "${install_type}" "${version_install_dir}" "${opp_platform_dir}/Ascend310RC/aicpu/ascend_install.info"
-#    chown "${_TARGET_USERNAME}":"${_TARGET_USERGROUP}" ${version_install_dir}/${opp_platform_dir}/Ascend310RC/aicpu/ascend_install.info >/dev/null 2>&1
-#    chmod  440 ${version_install_dir}/${opp_platform_dir}/Ascend310P/aicpu/ascend_install.info >/dev/null 2>&1
-#    aicpuupdateinstallinfo "${_TARGET_USERNAME}" "${_TARGET_USERGROUP}" "${install_type}" "${version_install_dir}" "${opp_platform_dir}/Ascend310P/aicpu/ascend_install.info"
-#    chown "${_TARGET_USERNAME}":"${_TARGET_USERGROUP}" ${version_install_dir}/${opp_platform_dir}/Ascend310P/aicpu/ascend_install.info >/dev/null 2>&1
-#    aicpuupdateinstallinfo "${_TARGET_USERNAME}" "${_TARGET_USERGROUP}" "${install_type}" "${version_install_dir}" "${opp_platform_dir}/Ascend910/aicpu/ascend_install.info"
-#    chown "${_TARGET_USERNAME}":"${_TARGET_USERGROUP}" ${version_install_dir}/${opp_platform_dir}/Ascend910/aicpu/ascend_install.info >/dev/null 2>&1
-#    chmod  440 ${version_install_dir}/${opp_platform_dir}/Ascend910/aicpu/ascend_install.info >/dev/null 2>&1
-#    if [ -d "${version_install_dir}/${opp_platform_dir}/Ascend/" ]; then
-#        aicpuupdateinstallinfo "${_TARGET_USERNAME}" "${_TARGET_USERGROUP}" "${install_type}" "${version_install_dir}" "${opp_platform_dir}/Ascend/aicpu/ascend_install.info"
-#        chown "${_TARGET_USERNAME}":"${_TARGET_USERGROUP}" ${version_install_dir}/${opp_platform_dir}/Ascend/aicpu/ascend_install.info >/dev/null 2>&1
-#        chmod  440 ${version_install_dir}/${opp_platform_dir}/Ascend/aicpu/ascend_install.info >/dev/null 2>&1
-#    fi
-#elif [ "$_CHIP_TYPE" = "exec_mode" ];then
-#    logandprint "[INFO]: Install only files required at runtime (not compile time), include [libopsproto.so] and [liboptiling.so]"
-#else
-#    aicpuupdateinstallinfo "${_TARGET_USERNAME}" "${_TARGET_USERGROUP}" "${install_type}" "${version_install_dir}" "${opp_platform_dir}/${_CHIP_TYPE}/aicpu/ascend_install.info"
-#    chown "${_TARGET_USERNAME}":"${_TARGET_USERGROUP}" ${version_install_dir}/${opp_platform_dir}/${_CHIP_TYPE}/aicpu/ascend_install.info >/dev/null 2>&1
-#    chmod 440 ${version_install_dir}/${opp_platform_dir}/${_CHIP_TYPE}/aicpu/ascend_install.info >/dev/null 2>&1
-#fi
+        local json_files_src_path=${kernel_src_path}/${dir}/${soc}
+        local json_files_dst_path=${dst_path}/${dir}/${soc}/
+        local json_files_dst_path_transformer=${dst_path}/${dir}/${soc}/${OPP_PLATFORM_DIR}
 
-# change log dir and file owner and rights
-chmod "${_LOG_PATH_PERM}" "${_LOG_PATH}" 2> /dev/null
-chmod "${_LOG_FILE_PERM}" "${_INSTALL_LOG_FILE}" 2> /dev/null
-chmod "${_LOG_FILE_PERM}" "${_OPERATE_LOG_FILE}" 2> /dev/null
+        create_softlink_for_files "${json_files_src_path}" "${json_files_dst_path}" "binary_info_config.json"
+        create_dir_softlink "${json_files_src_path}" "${json_files_dst_path_transformer}"
 
-# change installed folder's permission except aicpu
-chmod -R "${_BUILTIN_PERM}" "${version_install_dir}/${opp_platform_dir}/built-in/op_impl/ai_core/tbe/op_tiling/lib" 2> /dev/null
-chmod -R "${_BUILTIN_PERM}" "${version_install_dir}/${opp_platform_dir}/built-in/op_proto/lib" 2> /dev/null
-# subdirs=$(ls "${version_install_dir}/${opp_platform_dir}" 2> /dev/null)
-# for dir in ${subdirs}; do
-#     if  [ "${dir}" != "Ascend310" ] && [ "${dir}" != "Ascend310RC" ] && [ "${dir}" != "Ascend910" ] && [ "${dir}" != "Ascend310P" ] && [ "${dir}" != "Ascend" ]  && [ "${dir}" != "aicpu" ] && [ "${dir}" != "script" ] && [ "${dir}" != "vendors" ]; then
-#         chmod -R "${_BUILTIN_PERM}" "${version_install_dir}/${opp_platform_dir}/${dir}" 2> /dev/null
-#     fi
-# done
-
-if [ "$(id -u)" = "0" ]; then
-    chmod "755" "${version_install_dir}/${opp_platform_dir}" 2> /dev/null
-else
-    chmod "${_BUILTIN_PERM}" "${version_install_dir}/${opp_platform_dir}" 2> /dev/null
-fi
-
-chmod "${_ONLYREAD_PERM}" "${version_install_dir}""/${opp_platform_dir}/scene.info" 2> /dev/null
-chmod "${_ONLYREAD_PERM}" "${version_install_dir}""/${opp_platform_dir}/version.info" 2> /dev/null
-chmod 600 "${version_install_dir}""/${opp_platform_dir}/ascend_install.info" 2> /dev/null
-
-if [ "${is_change_dir_mode}" = "true" ]; then
-    chmod u-w "${version_install_dir}" 2> /dev/null
-fi
-#support sample to install
-opp_custom_list="op_impl op_proto framework"
-if [ "$(id -u)" != "0" ]; then
-    chmod u+w ${version_install_dir}/${opp_platform_dir}
-    for opp_custom in ${opp_custom_list}; do
-        if [ ! -d "${version_install_dir}/${opp_platform_dir}/${opp_custom}/custom" ]; then
-            mkdir -p "${version_install_dir}/${opp_platform_dir}/${opp_custom}/custom"
-            chmod 755 "${version_install_dir}/${opp_platform_dir}/${opp_custom}"
-            chmod "${_CUSTOM_PERM}" "${version_install_dir}/${opp_platform_dir}/${opp_custom}/custom"
+        local binary_json_src_path=${json_files_src_path}/binary_info_config.json
+        local binary_json_dst_path=${json_files_dst_path}/binary_info_config.json
+        if [ -L ${binary_json_dst_path} ]; then
+          rm -f ${binary_json_dst_path}
+          cp ${binary_json_src_path} ${binary_json_dst_path}
+        elif [ ! -e ${binary_json_dst_path} ]; then
+          cp ${binary_json_src_path} ${binary_json_dst_path}
+        else
+          local binary_json_mode=$(stat -c %a ${binary_json_dst_path})
+          if [ "$(id -u)" != 0 ] && [ ! -w "${binary_json_dst_path}" ]; then
+            chmod u+w "${binary_json_dst_path}" 2>/dev/null
+          fi
+          python3 ${CURR_PATH}/merge_binary_info_config.py --base-file ${binary_json_dst_path} \
+            --update-file ${binary_json_src_path} --output-file ${binary_json_dst_path}
+          if [ $? -ne 0 ]; then
+            log_with_errorlevel "$?" "error" "[ERROR]: ERR_NO:${INSTALL_FAILED};ERR_DES:Update binary_info_config info failed."
+            exit 1
+          fi
+          chmod ${binary_json_mode} ${binary_json_dst_path} 2>/dev/null
         fi
-    done
-    chmod u-w ${version_install_dir}/${opp_platform_dir}
-else
-    for opp_custom in ${opp_custom_list}; do
-        if [ ! -d "${version_install_dir}/${opp_platform_dir}/${opp_custom}/custom" ]; then
-            mkdir -p "${version_install_dir}/${opp_platform_dir}/${opp_custom}/custom"
-            chmod 755 "${version_install_dir}/${opp_platform_dir}/${opp_custom}"
-            chmod 755 "${version_install_dir}/${opp_platform_dir}/${opp_custom}/custom"
-        fi
-    done
-fi
+      done
+    fi
+  done
 
-# change installed folder's owner and group except aicpu
-subdirs=$(ls "${version_install_dir}/${opp_platform_dir}" 2> /dev/null)
-chown "${_TARGET_USERNAME}":"${_TARGET_USERGROUP}" "${version_install_dir}/${opp_platform_dir}" 2> /dev/null
-logwitherrorlevel "$?" "error" "[ERROR]: ERR_NO:${INSTALL_FAILED};ERR_DES:Change opp onwership failed.."
+  if [ -n "$dir_mode" ]; then
+    chmod ${dir_mode} ${dst_path} 2>/dev/null
+  fi
+}
 
-logandprint "[INFO]: upgradePercentage:100%"
+create_tbe_impl_softlink() {
+  local dir_mode=""
+  local dst_path=${TARGET_INSTALL_PATH}/latest/opp/built-in/op_impl/ai_core/tbe/impl
+  if [ -d "${dst_path}" ]; then
+    dir_mode=$(stat -c %a ${dst_path})
+    if [ "$(id -u)" != 0 ] && [ ! -w "${dir_mode}" ]; then
+      chmod u+w "${dst_path}" 2>/dev/null
+    fi
+  fi
 
-logandprint "[INFO]: Installation information listed below:"
-logandprint "[INFO]: Install path: (${version_install_dir}/${opp_platform_dir})"
-logandprint "[INFO]: Install log file path: (${_INSTALL_LOG_FILE})"
-logandprint "[INFO]: Operation log file path: (${_OPERATE_LOG_FILE})"
+  local impl_src=${TARGET_INSTALL_PATH}/latest/${OPP_PLATFORM_DIR}/built-in/op_impl/ai_core/tbe/impl
+  create_dir_softlink ${impl_src} ${dst_path}/${OPP_PLATFORM_DIR}
 
-if [ "${is_setenv}" != "y" ];then
+  ascendc_src_dir=${impl_src}/ascendc
+  ascendc_dst_dir=${dst_path}/ascendc
+  create_softlink_for_dirs "${ascendc_src_dir}" "${ascendc_dst_dir}"
+
+  dynamic_src_dir=${impl_src}/dynamic
+  dynamic_dst_dir=${dst_path}/dynamic
+  create_softlink_for_files "${dynamic_src_dir}" "${dynamic_dst_dir}"
+
+  if [ -n "$dir_mode" ]; then
+    chmod ${dir_mode} ${dst_path} 2>/dev/null
+  fi
+}
+
+create_tbe_softlink() {
+  local dir_mode=""
+  local dst_path=${TARGET_INSTALL_PATH}/latest/opp/built-in/op_impl/ai_core/tbe
+  if [ -d "${dst_path}" ]; then
+    dir_mode=$(stat -c %a ${dst_path})
+    if [ "$(id -u)" != 0 ] && [ ! -w "${dir_mode}" ]; then
+      chmod u+w "${dst_path}" 2>/dev/null
+    fi
+  fi
+  comm_create_dir "${dst_path}" "${CREATE_DIR_PERM}" "${TARGET_USERNAME}:${TARGET_USERGROUP}" "${IS_FOR_ALL}"
+
+  local opapi_transformer_lib_src_path=${TARGET_MOULDE_DIR}/built-in/op_impl/ai_core/tbe/op_api/lib/linux/${ARCH_INFO}/libopapi_transformer.so
+  local opapi_transformer_lib_dst_path=${dst_path}/op_api/lib/linux/${ARCH_INFO}/libopapi_transformer.so
+  create_file_softlink ${opapi_transformer_lib_src_path} ${opapi_transformer_lib_dst_path}
+
+  local ophost_transformer_lib_src_path=${TARGET_MOULDE_DIR}/built-in/op_impl/ai_core/tbe/op_host/lib/linux/${ARCH_INFO}/libophost_transformer.so
+  local ophost_transformer_lib_dst_path=${dst_path}/op_host/lib/linux/${ARCH_INFO}/libophost_transformer.so
+  create_file_softlink ${ophost_transformer_lib_src_path} ${ophost_transformer_lib_dst_path}
+
+  config_src_dir=${TARGET_MOULDE_DIR}/built-in/op_impl/ai_core/tbe/config
+  config_dst_dir=${dst_path}/config
+  create_softlink_for_files_and_dirs ${config_src_dir} ${config_dst_dir}
+
+  create_tbe_impl_softlink
+
+  create_tbe_kernel_softlink
+
+  if [ -n "$dir_mode" ]; then
+    chmod ${dir_mode} ${dst_path} 2>/dev/null
+  fi
+}
+
+#create softlink latest/opp/built-in
+create_latest_builtin_softlink() {
+  local dir_mode=""
+  local dst_path=${TARGET_INSTALL_PATH}/latest/opp/built-in
+  if [ -d "${dst_path}" ]; then
+    dir_mode=$(stat -c %a ${dst_path})
+    if [ "$(id -u)" != 0 ] && [ ! -w "${dir_mode}" ]; then
+      chmod u+w "${dst_path}" 2>/dev/null
+    fi
+  fi
+  comm_create_dir "${dst_path}" "${CREATE_DIR_PERM}" "${TARGET_USERNAME}:${TARGET_USERGROUP}" "${IS_FOR_ALL}"
+
+  create_opgraph_softlink
+
+  create_tbe_softlink
+
+  if [ -n "$dir_mode" ]; then
+    chmod ${dir_mode} ${dst_path} 2>/dev/null
+  fi
+}
+
+#create softlink latest/opp/lib64
+create_latest_lib_softlink() {
+  local dir_mode=""
+  local dst_path=${TARGET_INSTALL_PATH}/latest/opp/lib64
+  if [ -d "${dst_path}" ]; then
+    dir_mode=$(stat -c %a ${dst_path})
+    if [ "$(id -u)" != 0 ] && [ ! -w "${dir_mode}" ]; then
+      chmod u+w "${dst_path}" 2>/dev/null
+    fi
+  fi
+  comm_create_dir "${dst_path}" "${CREATE_DIR_PERM}" "${TARGET_USERNAME}:${TARGET_USERGROUP}" "${IS_FOR_ALL}"
+
+  local opapi_transformer_lib_src_path=${TARGET_MOULDE_DIR}/built-in/op_impl/ai_core/tbe/op_api/lib/linux/${ARCH_INFO}/libopapi_transformer.so
+  local opapi_transformer_lib_dst_path=${dst_path}/libopapi_transformer.so
+  create_file_softlink "${opapi_transformer_lib_src_path}" "${opapi_transformer_lib_dst_path}"
+
+  if [ -n "$dir_mode" ]; then
+    chmod ${dir_mode} ${dst_path} 2>/dev/null
+  fi
+}
+
+#create softlink latest/opp/include
+create_latest_include_softlink() {
+  local dir_mode=""
+  local dst_path=${TARGET_INSTALL_PATH}/latest/opp/include
+  if [ -d "${dst_path}" ]; then
+    dir_mode=$(stat -c %a ${dst_path})
+    if [ "$(id -u)" != 0 ] && [ ! -w "${dir_mode}" ]; then
+      chmod u+w "${dst_path}" 2>/dev/null
+    fi
+  fi
+  comm_create_dir "${dst_path}" "${CREATE_DIR_PERM}" "${TARGET_USERNAME}:${TARGET_USERGROUP}" "${IS_FOR_ALL}"
+
+  local opp_aclnnop_src_dir=${TARGET_INSTALL_PATH}/latest/${OPP_PLATFORM_DIR}/built-in/op_impl/ai_core/tbe/op_api/include/aclnnop
+  local opp_aclnnop_dst_dir=${dst_path}/aclnnop
+  local opp_aclnnop_dst_dir_transformer=${dst_path}/aclnnop/${OPP_PLATFORM_DIR}
+  create_softlink_for_files_and_dirs "${opp_aclnnop_src_dir}" "${opp_aclnnop_dst_dir}"
+  create_softlink_for_files_and_dirs "${opp_aclnnop_src_dir}" "${opp_aclnnop_dst_dir_transformer}"
+
+  if [ -n "$dir_mode" ]; then
+    chmod ${dir_mode} ${dst_path} 2>/dev/null
+  fi
+}
+
+#create softlink latest/opp
+create_latest_opp_softlink() {
+  local dir_mode=""
+  local dst_path=${TARGET_INSTALL_PATH}/latest/opp/
+  if [ -d "${dst_path}" ]; then
+    dir_mode=$(stat -c %a ${dst_path})
+    if [ "$(id -u)" != 0 ] && [ ! -w "${dir_mode}" ]; then
+      chmod u+w "${dst_path}" 2>/dev/null
+    fi
+  fi
+  comm_create_dir "${dst_path}" "${CREATE_DIR_PERM}" "${TARGET_USERNAME}:${TARGET_USERGROUP}" "${IS_FOR_ALL}"
+
+  create_latest_lib_softlink
+
+  create_latest_include_softlink
+
+  create_latest_builtin_softlink
+
+  if [ -n "$dir_mode" ]; then
+    chmod ${dir_mode} ${dst_path} 2>/dev/null
+  fi
+}
+
+#create latest [x86-64|aarch64]/include
+create_arch_include_softlink() {
+  local dir_mode=""
+  local dst_path=${TARGET_INSTALL_PATH}/latest/${ARCH_INFO}-linux/include
+  if [ -d "${dst_path}" ]; then
+    dir_mode=$(stat -c %a ${dst_path})
+    if [ "$(id -u)" != 0 ] && [ ! -w "${dir_mode}" ]; then
+      chmod u+w "${dst_path}" 2>/dev/null
+    fi
+  fi
+  comm_create_dir "${dst_path}" "${CREATE_DIR_PERM}" "${TARGET_USERNAME}:${TARGET_USERGROUP}" "${IS_FOR_ALL}"
+
+  local aclnn_kernels_src_dir=${TARGET_MOULDE_DIR}/${ARCH_INFO}-linux/include/aclnn_kernels
+  local aclnn_kernels_dst_dir=${dst_path}/aclnn_kernels
+  create_softlink_for_files_and_dirs "${aclnn_kernels_src_dir}" "${aclnn_kernels_dst_dir}"
+
+  if [ -n "$dir_mode" ]; then
+    chmod ${dir_mode} ${dst_path} 2>/dev/null
+  fi
+}
+
+create_latest_softlink() {
+  local dir_mode=""
+  local dst_path=${TARGET_INSTALL_PATH}/latest
+  if [ -d "${dst_path}" ]; then
+    dir_mode=$(stat -c %a ${dst_path})
+    if [ "$(id -u)" != 0 ] && [ ! -w "${dir_mode}" ]; then
+      chmod u+w "${dst_path}" 2>/dev/null
+    fi
+  fi
+  comm_create_dir "${dst_path}" "${CREATE_DIR_PERM}" "${TARGET_USERNAME}:${TARGET_USERGROUP}" "${IS_FOR_ALL}"
+
+  create_arch_lib_softlink
+
+  create_arch_include_softlink
+
+  create_latest_opp_softlink
+
+  if [ -n "$dir_mode" ]; then
+    chmod ${dir_mode} ${dst_path} 2>/dev/null
+  fi
+}
+
+install_opp() {
+  logandprint "[INFO]: Begin install opp module."
+  local version_mod=""
+  local module_mod=""
+  if [ -d ${TARGET_VERSION_DIR} ]; then
+    version_mod=$(stat -c %a ${TARGET_VERSION_DIR})
+    if [ "$(id -u)" != 0 ] && [ ! -w "${TARGET_VERSION_DIR}" ]; then
+      chmod u+w "${TARGET_VERSION_DIR}" 2>/dev/null
+    fi
+  fi
+  if [ -d ${TARGET_MOULDE_DIR} ]; then
+    module_mod=$(stat -c %a ${TARGET_MOULDE_DIR})
+    if [ "$(id -u)" != 0 ] && [ ! -w "${TARGET_MOULDE_DIR}" ]; then
+      chmod u+w "${TARGET_MOULDE_DIR}" 2>/dev/null
+    fi
+  fi
+  comm_create_dir "${TARGET_VERSION_DIR}" "${CREATE_DIR_PERM}" "${TARGET_USERNAME}:${TARGET_USERGROUP}" "${IS_FOR_ALL}"
+  comm_create_dir "${TARGET_MOULDE_DIR}" "${CREATE_DIR_PERM}" "${TARGET_USERNAME}:${TARGET_USERGROUP}" "${IS_FOR_ALL}"
+
+  setenv
+
+  logandprint "[INFO]: Update the opp install info."
+
+  update_install_infos "${TARGET_USERNAME}" "${TARGET_USERGROUP}" "${INSTALL_TYPE}" "${relative_path_val}"
+  log_with_errorlevel "$?" "error" "[ERROR]: ERR_NO:${INSTALL_FAILED};ERR_DES:Update opp install info failed."
+
+  bash "${COMMON_PARSER_FILE}" --package="${OPP_PLATFORM_DIR}" --install --username="${TARGET_USERNAME}" \
+    --usergroup="${TARGET_USERGROUP}" --set-cann-uninstall --version=$RUN_PKG_VERSION \
+    --version-dir=$PKG_VERSION_DIR $INSTALL_OPTION ${INSTALL_FOR_ALL} "--feature=all" "--chip=all" \
+    "${INSTALL_TYPE}" "${TARGET_INSTALL_PATH}" "${FILELIST_FILE}"
+  log_with_errorlevel "$?" "error" "[ERROR]: ERR_NO:${INSTALL_FAILED};ERR_DES:Install opp module files failed."
+
+  logandprint "[INFO]: upgradePercentage:30%"
+
+  create_module_include_softlink
+
+  create_latest_softlink
+
+  logandprint "[INFO]: Copying version.info"
+  cp -f "${VERSION_INFO_FILE}" "${TARGET_MOULDE_DIR}"
+  log_with_errorlevel "$?" "error" "[ERROR]: ERR_NO:${INSTALL_FAILED};ERR_DES:Copy version.info file failed."
+
+  if [ -n "${module_mod}" ]; then
+    chmod ${module_mod} "${TARGET_MOULDE_DIR}" 2>/dev/null
+  fi
+  if [ -n "${version_mod}" ]; then
+    chmod ${version_mod} "${TARGET_VERSION_DIR}" 2>/dev/null
+  fi
+
+  logandprint "[INFO]: upgradePercentage:50%"
+}
+
+main() {
+  logandprint "[INFO]: Command opp_install"
+
+  get_opts "$@"
+
+  init_install_env
+
+  get_package_upgrade_version_dir "upgrade_version_dir" "$TARGET_INSTALL_PATH" "${OPP_PLATFORM_DIR}"
+  get_package_last_installed_version "last_installed" "$TARGET_INSTALL_PATH" "${OPP_PLATFORM_DIR}"
+  last_installed_version=$(echo ${last_installed} | cut --only-delimited -d":" -f2-)
+
+  get_install_path
+
+  check_env
+
+  install_opp
+
+  #chmod to support copy
+  if [ -d "${TARGET_MOULDE_DIR}/vendors" ] && [ "$(id -u)" != "0" ]; then
+    chmod -R "${CUSTOM_PERM}" ${TARGET_MOULDE_DIR}/vendors
+  fi
+
+  # change log dir and file owner and rights
+  chmod "${LOG_PATH_PERM}" "${COMM_LOG_DIR}" 2>/dev/null
+  chmod "${LOG_FILE_PERM}" "${COMM_LOGFILE}" 2>/dev/null
+  chmod "${LOG_FILE_PERM}" "${COMM_OPERATION_LOGFILE}" 2>/dev/null
+
+  # change installed folder's permission except aicpu
+  chmod -R "${BUILTIN_PERM}" "${TARGET_MOULDE_DIR}/built-in/op_impl/ai_core/tbe/op_tiling/lib" 2>/dev/null
+  chmod -R "${BUILTIN_PERM}" "${TARGET_MOULDE_DIR}/built-in/op_proto/lib" 2>/dev/null
+
+  if [ "$(id -u)" = "0" ]; then
+    chmod "755" "${TARGET_MOULDE_DIR}" 2>/dev/null
+  else
+    chmod "${BUILTIN_PERM}" "${TARGET_MOULDE_DIR}" 2>/dev/null
+  fi
+
+  chmod "${ONLYREAD_PERM}" "${TARGET_MOULDE_DIR}/scene.info" 2>/dev/null
+  chmod "${ONLYREAD_PERM}" "${TARGET_MOULDE_DIR}/version.info" 2>/dev/null
+  chmod "${ONLYREAD_PERM}" "${TARGET_MOULDE_DIR}/ascend_install.info" 2>/dev/null
+
+  # change installed folder's owner and group except aicpu
+  chown "${TARGET_USERNAME}":"${TARGET_USERGROUP}" "${TARGET_MOULDE_DIR}" 2>/dev/null
+  log_with_errorlevel "$?" "error" "[ERROR]: ERR_NO:${INSTALL_FAILED};ERR_DES:Change opp onwership failed.."
+
+  logandprint "[INFO]: upgradePercentage:100%"
+
+  logandprint "[INFO]: Installation information listed below:"
+  logandprint "[INFO]: Install path: (${TARGET_MOULDE_DIR})"
+  logandprint "[INFO]: Install log file path: (${COMM_LOGFILE})"
+  logandprint "[INFO]: Operation log file path: (${COMM_OPERATION_LOGFILE})"
+
+  if [ "${IS_SETENV}" != "y" ]; then
     logandprint "[INFO]: Using requirements: when opp module install finished or \
-before you run the opp module, execute the command \
-[ export ASCEND_OPS_TRANSFORMER_PATH=${_TARGET_INSTALL_PATH}/latest/${opp_platform_dir} ] to set the environment path."
-fi
+ before you run the opp module, execute the command \
+ [ export ASCEND_OPS_TRANSFORMER_PATH=${TARGET_INSTALL_PATH}/latest/${OPP_PLATFORM_DIR} ] to set the environment path."
+  fi
 
-logandprint "[INFO]: Opp package installed successfully! The new version takes effect immediately."
+  logandprint "[INFO]: Opp package installed successfully! The new version takes effect immediately."
+}
+
+main "$@"
 exit 0
-
