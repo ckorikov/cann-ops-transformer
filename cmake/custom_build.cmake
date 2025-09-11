@@ -613,7 +613,7 @@ foreach (op_dir ${OP_DIR_LIST})
             OPTIONAL
     )
 
-    install(DIRECTORY ${op_dir}/arch35
+    install(DIRECTORY ${op_dir}/910_95
             DESTINATION ${IMPL_INSTALL_DIR}/ascendc/${_op_name}
             OPTIONAL
     )

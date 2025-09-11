@@ -118,12 +118,6 @@ attention:
             - incre_flash_attention
             - prompt_flash_attention
             - fused_infer_attention_score
-moe:  
-  moe_init_routing_v2:
-    module: True
-    src:
-      - moe/moe_init_routing_v2
-
 
 common:
   module: True
