@@ -85,16 +85,6 @@ function(gen_aclnn_classify host_obj prefix ori_out_srcs ori_out_headers opbuild
     endforeach()
   endif()
   # opbuild_gen_aclnn/opbuild_gen_aclnnInner/opbuild_gen_aclnnExc
-  gen_opbuild_target(
-    TARGET opbuild_gen_${prefix}
-    PREFIX ${prefix}
-    GENACLNN ${need_gen_aclnn}
-    IN_SRCS "${in_srcs}"
-    OUT_SRCS "${out_srcs}"
-    OUT_HEADERS "${out_headers}"
-    OUT_DIR ${ASCEND_AUTOGEN_PATH}
-    OUT_SUB_DIR ${sub_dir}
-  )
   if("${prefix}" STREQUAL "aclnnExc")
     get_target_property(exclude_headers ${OPHOST_NAME}_aclnn_exclude_headers INTERFACE_SOURCES)
     if(exclude_headers)
