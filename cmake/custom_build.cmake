@@ -84,8 +84,8 @@ if (BUILD_OPEN_PROJECT)
     target_link_libraries(opapi PRIVATE
             $<BUILD_INTERFACE:intf_pub>
             -Wl,--whole-archive
+            ops_aclnn
             -Wl,--no-whole-archive
-        #     -lopapi
             nnopbase
             profapi
             ge_common_base
@@ -165,14 +165,14 @@ if (BUILD_OPEN_PROJECT)
             exe_graph
             platform
             register
-        #     ascendalog
             error_manager
             -Wl,--as-needed
             -Wl,--whole-archive
             tiling_api
             -Wl,--no-whole-archive
-        #     mmpa
             c_sec
+            ${COMMON_NAME}_obj
+
     )
     set_target_properties(optiling PROPERTIES OUTPUT_NAME
             cust_opmaster_rt2.0

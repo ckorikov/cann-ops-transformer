@@ -214,9 +214,7 @@ function(add_opapi_modules)
       PRIVATE
       $<BUILD_INTERFACE:intf_pub>
       -Wl,--whole-archive
-      ops_aclnn
       -Wl,--no-whole-archive
-      # -lopapi
       nnopbase
       profapi
       ge_common_base
@@ -324,14 +322,13 @@ function(add_tiling_modules)
       exe_graph
       platform
       register
-      # ascendalog
       error_manager
       -Wl,--as-needed
       -Wl,--whole-archive
       tiling_api
       -Wl,--no-whole-archive
-      # mmpa
       c_sec
+      ${OPBASE_LIB_DIR}
     )
   endif()
 endfunction()
