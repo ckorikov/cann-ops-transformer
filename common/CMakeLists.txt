@@ -52,6 +52,7 @@ if (BUILD_OPEN_PROJECT)
       ${TILINGAPI_INC_DIRS}
       ${METADEF_INCLUDE_DIRS}
       ${OPS_TRANSFORMER_DIR}/common/include
+      ${OPS_TRANSFORMER_DIR}/common/inc
     )
 
     target_link_libraries(${COMMON_NAME}_obj
