@@ -37,18 +37,22 @@ function(gen_ophost_symbol)
     $<$<TARGET_EXISTS:${OPHOST_NAME}_infer_obj>:$<TARGET_OBJECTS:${OPHOST_NAME}_infer_obj>>
     $<$<TARGET_EXISTS:${OPHOST_NAME}_tiling_obj>:$<TARGET_OBJECTS:${OPHOST_NAME}_tiling_obj>>
     $<$<TARGET_EXISTS:${OPHOST_NAME}_aicpu_objs>:$<TARGET_OBJECTS:${OPHOST_NAME}_aicpu_objs>>
+    $<$<TARGET_EXISTS:${COMMON_NAME}_obj>:$<TARGET_OBJECTS:${COMMON_NAME}_obj>>
   )
 
-  target_link_libraries(${OPHOST_NAME}
-    PRIVATE
-    c_sec
-    ${COMMON_NAME}
-    -Wl,--no-as-needed
-    register
-    $<$<TARGET_EXISTS:opsbase>:opsbase>
-    -Wl,--as-needed
-    tiling_api
-  )
+  target_link_libraries(
+    ${OPHOST_NAME}
+    PRIVATE $<BUILD_INTERFACE:intf_pub_cxx17>
+            c_sec
+            -Wl,--no-as-needed
+            register
+            $<$<TARGET_EXISTS:opsbase>:opsbase>
+            -Wl,--as-needed
+            -Wl,--whole-archive
+            rt2_registry_static
+            -Wl,--no-whole-archive
+            tiling_api
+    )
 
   target_link_directories(${OPHOST_NAME}
     PRIVATE
