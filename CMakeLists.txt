@@ -59,6 +59,7 @@ set(CMAKE_CXX_STANDARD 17 CACHE STRING "c++17 is needed for this project")
 
 include(cmake/config.cmake)
 include(cmake/func.cmake)
+include(cmake/third_party/nlohmann_json.cmake)
 
 if (BUILD_OPEN_PROJECT)
     include(cmake/intf.cmake)
@@ -71,7 +72,6 @@ if (BUILD_OPEN_PROJECT)
         include(cmake/dependencies.cmake)
         include(cmake/variables.cmake)
         if(UT_TEST_ALL OR OP_HOST_UT)
-            include(cmake/third_party/nlohmann_json.cmake)
             # ut common dependencies
             include(cmake/intf_pub_llt_gccnative.cmake)
             include(cmake/ut.cmake)

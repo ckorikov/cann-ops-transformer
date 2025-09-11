@@ -121,6 +121,7 @@ set(OPAPI_INCLUDE
   ${OPS_TRANSFORMER_DIR}/
   ${OPS_TRANSFORMER_DIR}/common/include
   ${OPS_TRANSFORMER_DIR}/common/include/external
+  ${OPS_TRANSFORMER_DIR}/common/stub/op_api
   $<$<NOT:$<BOOL:${BUILD_OPEN_PROJECT}>>:${TOP_DIR}/output/${PRODUCT}/aclnnop_resource>
   
   ${OPS_TRANSFORMER_DIR}/mc2/common/inc
@@ -136,7 +137,9 @@ set(OP_TILING_INCLUDE
   ${NPURUNTIME_INCLUDE_DIRS}
   ${OPBASE_INC_DIRS}
   ${OPS_TRANSFORMER_DIR}
+  ${JSON_INCLUDE}
   ${OPS_TRANSFORMER_DIR}/common/include/
+  ${OPS_TRANSFORMER_DIR}/common/stub/op_tiling
 
   ${OPS_TRANSFORMER_DIR}/mc2/common/inc
   ${OPS_TRANSFORMER_DIR}/mc2/3rd

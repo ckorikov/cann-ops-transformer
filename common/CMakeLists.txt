@@ -6,6 +6,15 @@
 # INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
 # See LICENSE in the root of the software repository for the full text of the License.
 # ======================================================================================================================
+if(BUILD_WITH_INSTALLED_DEPENDENCY_CANN_PKG)
+    file(GLOB CURRENT_DIRS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/*)
+    foreach(SUB_DIR ${CURRENT_DIRS})
+        if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${SUB_DIR}/CMakeLists.txt")
+            add_subdirectory(${SUB_DIR})
+        endif()
+    endforeach()
+endif()
+
 if (BUILD_OPEN_PROJECT)
     add_library(ops_transformer_utils_tiling_headers INTERFACE)
 

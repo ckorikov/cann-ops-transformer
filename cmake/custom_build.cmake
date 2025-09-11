@@ -56,32 +56,25 @@ if (BUILD_OPEN_PROJECT)
     )
 
     # op api
-    add_library(opapi SHARED)
-    # When compiling a specified operator, there is an operator without aclnn src.
-    if(NOT "${ASCEND_OP_NAME}" STREQUAL "ALL")
-        add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/opapi_stub.cpp
-                COMMAND touch ${CMAKE_CURRENT_BINARY_DIR}/opapi_stub.cpp
-        )
-
-        target_sources(opapi PRIVATE
-                ${CMAKE_CURRENT_BINARY_DIR}/opapi_stub.cpp
-        )
-    endif()
-    target_compile_options(opapi PRIVATE
+    add_library(cust_opapi SHARED)
+    target_sources(cust_opapi PRIVATE
+        ${OPS_TRANSFORMER_DIR}/common/stub/op_api/opapi_stub.cpp
+    )
+    target_compile_options(cust_opapi PRIVATE
             $<$<COMPILE_LANGUAGE:CXX>:-std=gnu++1z>
     )
-    target_include_directories(opapi PRIVATE
+    target_include_directories(cust_opapi PRIVATE
             $<BUILD_INTERFACE:${ASCEND_CANN_PACKAGE_PATH}/include>
             $<BUILD_INTERFACE:${ASCEND_CANN_PACKAGE_PATH}/include/aclnn>
             $<BUILD_INTERFACE:${ASCEND_CANN_PACKAGE_PATH}/include/aclnn_kernels>
     )
-    target_compile_options(opapi PRIVATE
+    target_compile_options(cust_opapi PRIVATE
             -Werror=format
     )
-    target_compile_definitions(opapi PRIVATE
+    target_compile_definitions(cust_opapi PRIVATE
             -DACLNN_LOG_FMT_CHECK
     )
-    target_link_libraries(opapi PRIVATE
+    target_link_libraries(cust_opapi PRIVATE
             $<BUILD_INTERFACE:intf_pub>
             -Wl,--whole-archive
             ops_aclnn
@@ -93,26 +86,26 @@ if (BUILD_OPEN_PROJECT)
             ascendalog
             dl
     )
-    set_target_properties(opapi PROPERTIES OUTPUT_NAME
+    set_target_properties(cust_opapi PROPERTIES OUTPUT_NAME
             cust_opapi
     )
     if (NOT ENABLE_BUILT_IN)
-        install(TARGETS opapi
+        install(TARGETS cust_opapi
                 LIBRARY DESTINATION packages/vendors/${VENDOR_NAME}/op_api/lib
         )
     endif()
 
     # op proto
-    add_library(opsproto SHARED)
-    target_compile_options(opsproto PRIVATE
+    add_library(cust_proto SHARED)
+    target_compile_options(cust_proto PRIVATE
             $<$<COMPILE_LANGUAGE:CXX>:-std=c++11>
             -fvisibility=hidden
     )
-    target_compile_definitions(opsproto PRIVATE
+    target_compile_definitions(cust_proto PRIVATE
             LOG_CPP
             PROCESS_LOG
     )
-    target_link_libraries(opsproto PRIVATE
+    target_link_libraries(cust_proto PRIVATE
             $<BUILD_INTERFACE:intf_pub>
             $<BUILD_INTERFACE:ops_transformer_utils_proto_headers>
             $<$<BOOL:${alog_FOUND}>:$<BUILD_INTERFACE:alog_headers>>
@@ -130,29 +123,29 @@ if (BUILD_OPEN_PROJECT)
             -Wl,--as-needed
             c_sec
     )
-    set_target_properties(opsproto PROPERTIES OUTPUT_NAME
+    set_target_properties(cust_proto PROPERTIES OUTPUT_NAME
             cust_opsproto_rt2.0
     )
     if (NOT ENABLE_BUILT_IN)
-        install(TARGETS opsproto
+        install(TARGETS cust_proto
                 LIBRARY DESTINATION packages/vendors/${VENDOR_NAME}/op_proto/lib/linux/${CMAKE_SYSTEM_PROCESSOR}
         )
     endif()
 
     # op tiling
-    add_library(optiling SHARED)
-    target_sources(optiling PRIVATE
+    add_library(cust_opmaster SHARED)
+    target_sources(cust_opmaster PRIVATE
             ${CMAKE_CURRENT_SOURCE_DIR}/common/src/fallback_comm.cpp
     )
-    target_compile_options(optiling PRIVATE
+    target_compile_options(cust_opmaster PRIVATE
             $<$<COMPILE_LANGUAGE:CXX>:-std=c++11>
             -fvisibility=hidden
     )
-    target_compile_definitions(optiling PRIVATE
+    target_compile_definitions(cust_opmaster PRIVATE
             LOG_CPP
             PROCESS_LOG
     )
-    target_link_libraries(optiling PRIVATE
+    target_link_libraries(cust_opmaster PRIVATE
             $<BUILD_INTERFACE:intf_pub>
             $<BUILD_INTERFACE:ops_transformer_utils_tiling_headers>
             $<$<BOOL:${alog_FOUND}>:$<BUILD_INTERFACE:alog_headers>>
@@ -174,16 +167,16 @@ if (BUILD_OPEN_PROJECT)
             ${COMMON_NAME}_obj
 
     )
-    set_target_properties(optiling PROPERTIES OUTPUT_NAME
+    set_target_properties(cust_opmaster PROPERTIES OUTPUT_NAME
             cust_opmaster_rt2.0
     )
-    add_custom_command(TARGET optiling
+    add_custom_command(TARGET cust_opmaster
             POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E make_directory ${TILING_CUSTOM_DIR}
-            COMMAND ln -sf $<TARGET_FILE:optiling> ${TILING_CUSTOM_FILE}
+            COMMAND ln -sf $<TARGET_FILE:cust_opmaster> ${TILING_CUSTOM_FILE}
     )
     if (NOT ENABLE_BUILT_IN)
-        install(TARGETS optiling
+        install(TARGETS cust_opmaster
                 LIBRARY DESTINATION packages/vendors/${VENDOR_NAME}/op_impl/ai_core/tbe/op_tiling/lib/linux/${CMAKE_SYSTEM_PROCESSOR}
         )
     endif()
@@ -198,7 +191,7 @@ if (BUILD_OPEN_PROJECT)
     add_custom_command(
             OUTPUT ${compat_optiling_file}
             COMMAND ${CMAKE_COMMAND} -E make_directory ${compat_optiling_dir}
-            COMMAND ln -sf lib/linux/${CMAKE_SYSTEM_PROCESSOR}/$<TARGET_FILE_NAME:optiling> ${compat_optiling_file}
+            COMMAND ln -sf lib/linux/${CMAKE_SYSTEM_PROCESSOR}/$<TARGET_FILE_NAME:cust_opmaster> ${compat_optiling_file}
     )
 
     if (NOT ENABLE_BUILT_IN)
@@ -393,10 +386,10 @@ if (BUILD_OPEN_PROJECT)
     set_source_files_properties(${generate_proto_srcs}
             PROPERTIES GENERATED TRUE
     )
-    target_sources(opsproto PRIVATE
+    target_sources(cust_proto PRIVATE
             ${generate_proto_srcs}
     )
-    add_dependencies(opsproto ops_transformer_proto_headers)
+    add_dependencies(cust_proto ops_transformer_proto_headers)
     
     if (NOT ENABLE_BUILT_IN)
         install(FILES ${generate_proto_headers}
@@ -409,9 +402,9 @@ if (BUILD_OPEN_PROJECT)
             op_host_aclnn
             op_host_aclnnInner
             op_host_aclnnExc
-            opapi
-            opsproto
-            optiling
+            cust_opapi
+            cust_proto
+            cust_opmaster
             ops_aclnn
     )
 else()
@@ -429,13 +422,13 @@ else()
 
     if (generate_proto_srcs)
         set_source_files_properties(${generate_proto_srcs}
-                TARGET_DIRECTORY opsproto opsproto_rt2.0
+                TARGET_DIRECTORY cust_proto opsproto_rt2.0
                 PROPERTIES GENERATED TRUE
         )
-        target_sources(opsproto PRIVATE
+        target_sources(cust_proto PRIVATE
                 ${generate_proto_srcs}
         )
-        add_dependencies(opsproto ops_transformer_proto_headers)
+        add_dependencies(cust_proto ops_transformer_proto_headers)
 
         target_sources(opsproto_rt2.0 PRIVATE
                 ${generate_proto_srcs}
@@ -445,13 +438,13 @@ else()
 
     add_target_source(
             TARGET_NAME opmaster_rt2.0 opmaster_static_rt2.0
-            BASE_TARGET optiling
+            BASE_TARGET cust_opmaster
             SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}
     )
 
     add_target_source(
             TARGET_NAME opsproto_rt2.0 opsproto_static_rt2.0
-            BASE_TARGET opsproto
+            BASE_TARGET cust_proto
             SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}
     )
 
@@ -462,9 +455,16 @@ else()
     )
 endif ()
 
-target_link_libraries(opapi PUBLIC ${OPHOST_NAME}_opapi_obj)
-target_link_libraries(opsproto PUBLIC ${OPHOST_NAME}_infer_obj)
-target_link_libraries(optiling PUBLIC ${OPHOST_NAME}_tiling_obj)
+target_link_libraries(cust_opapi 
+    PUBLIC  ${OPHOST_NAME}_opapi_obj
+    PRIVATE $<$<BOOL:${BUILD_WITH_INSTALLED_DEPENDENCY_CANN_PKG}>:$<BUILD_INTERFACE:opapi>>
+)
+target_link_libraries(cust_opmaster 
+    PUBLIC ${OPHOST_NAME}_tiling_obj
+    PRIVATE $<$<BOOL:${BUILD_WITH_INSTALLED_DEPENDENCY_CANN_PKG}>:$<BUILD_INTERFACE:optiling>>
+    $<$<TARGET_EXISTS:opsbase>:opsbase>
+)
+target_link_libraries(cust_proto PUBLIC ${OPHOST_NAME}_infer_obj)
 
 if (generate_aclnn_headers)
     install(FILES ${generate_aclnn_headers}

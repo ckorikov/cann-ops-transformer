@@ -48,6 +48,16 @@ macro(add_modules_sources)
     # proto
     add_infer_modules()
     target_sources(${OPHOST_NAME}_infer_obj PRIVATE ${OPINFER_SRCS})
+  else()
+    if (NOT TARGET ${OPHOST_NAME}_infer_obj)
+      add_library(${OPHOST_NAME}_infer_obj OBJECT)
+      add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/proto_stub.cpp
+          COMMAND touch ${CMAKE_CURRENT_BINARY_DIR}/proto_stub.cpp
+      )
+      target_sources(${OPHOST_NAME}_infer_obj PRIVATE
+            ${CMAKE_CURRENT_BINARY_DIR}/proto_stub.cpp
+      )
+    endif()
   endif()
 
   file(GLOB OPTILING_SRCS ${SOURCE_DIR}/*_tiling*.cpp)
