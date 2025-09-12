@@ -102,10 +102,16 @@ function(gen_opapi_symbol)
 
   target_link_libraries(${OPAPI_NAME}
     PUBLIC
-    $<BUILD_INTERFACE:intf_pub_cxx17>
-    PRIVATE
-    c_sec
+    $<BUILD_INTERFACE:intf_pub>
+    -Wl,--whole-archive
+    ops_aclnn
+    -Wl,--no-whole-archive
     nnopbase
+    profapi
+    ge_common_base
+    ascend_dump
+    ascendalog
+    dl
   )
 endfunction()
 
