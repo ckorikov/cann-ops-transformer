@@ -22,7 +22,7 @@
 #include <cstdlib>
 
 #include "graph/utils/type_utils.h"
-#include "hcom_topo_info.h"
+#include "mc2_hcom_topo_info.h"
 #include "mat_mul_v3/op_host/op_tiling/arch35/matmul_v3_tiling_strategy.h"
 #include "mc2_log.h"
 #include "tiling/mc2_tiling_utils.h"
@@ -194,15 +194,11 @@ uint8_t Mc2GetCommAlgo(int64_t rankDim, uint64_t mValue, const char *group,
     return COMM_ALG_FULL_MESH;
   }
 
-  ge::HcomTopoInfo::TopoInfo topoInfo;
-  if (!ge::HcomTopoInfo::Instance().TryGetGroupTopoInfo(group, topoInfo)) {
+  uint32_t commSets = 0;
+  if (Mc2Hcom::MC2HcomTopology::TryGetGroupTopoType(group, &commSets)!=HCCL_SUCCESS) {
     OP_LOGW(context->GetNodeName(), " GroupTopoInfo not set.");
     return COMM_ALG_DEFAULT;
   }
-  auto commSets = topoInfo
-                      .topo_level_descs[static_cast<int32_t>(
-                          ge::HcomTopoInfo::TopoLevel::L0)]
-                      .comm_sets;
   OP_LOGD(context->GetNodeName(),
           " comm_sets from TopoInfo is %u, COMM_MESH is %u", commSets,
           COMM_MESH);
@@ -301,15 +297,11 @@ ge::graphStatus GetMatmulV3PriorityPolicy(
 }
 
 uint32_t Mc2TilingUtils::GetCommSets(const char *group) {
-  ge::HcomTopoInfo::TopoInfo topoInfo;
-  if (!ge::HcomTopoInfo::Instance().TryGetGroupTopoInfo(group, topoInfo)) {
+  uint32_t commSets = 0;
+  if (Mc2Hcom::MC2HcomTopology::TryGetGroupTopoType(group, &commSets)!=HCCL_SUCCESS) {
     OP_LOGW("", " GroupTopoInfo not set.");
     return COMM_UNDEFINED;
   }
-  auto commSets = topoInfo
-                      .topo_level_descs[static_cast<int32_t>(
-                          ge::HcomTopoInfo::TopoLevel::L0)]
-                      .comm_sets;
   OP_LOGI("", "Get commSets is %u", commSets);
   return commSets;
 }
@@ -381,11 +373,12 @@ uint64_t Mc2TilingUtils::GetMaxWindowSize() {
 
 bool GetRankSize(const std::string &opName, const char *group,
                  int64_t &rankSize) {
-  if (ge::HcomTopoInfo::Instance().GetGroupRankSize(group, rankSize) !=
-      ge::GRAPH_SUCCESS) {
-    OP_LOGE(opName, " fail to get group ranksize.");
-    return false;
+  uint32_t rankNum = static_cast<uint32_t>(rankSize);
+  if (Mc2Hcom::MC2HcomTopology::CommGetInstSizeByGroup(group, &rankNum) != HCCL_SUCCESS) {
+      OP_LOGE(opName, " fail to get group ranksize.");
+      return false;
   }
+  rankSize = static_cast<int64_t>(rankNum);
   return true;
 };
 

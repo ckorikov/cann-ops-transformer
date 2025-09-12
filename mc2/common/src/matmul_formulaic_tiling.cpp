@@ -18,7 +18,7 @@
  * \file matmul_formulaic_tiling.cc
  * \brief
  */
-#include "hcom_topo_info.h"
+#include "mc2_hcom_topo_info.h"
 #include "log/log.h"
 #include "register/op_def_registry.h"
 #include "tiling/matmul_formulaic_tiling.h"
@@ -347,9 +347,12 @@ ge::graphStatus MatmulFormulaicTiling::GetCubeTiling(
 }
 
 uint32_t MatmulFormulaicTiling::GetRankSize(const char *group) {
-  int64_t rankSize = 8;
-  (void)ge::HcomTopoInfo::Instance().GetGroupRankSize(group, rankSize);
-  return static_cast<uint32_t>(rankSize);
+  uint32_t rankSize = 8;
+  if (Mc2Hcom::MC2HcomTopology::CommGetInstSizeByGroup(group, &rankSize)!=HCCL_SUCCESS) {
+      OP_LOGE("", "Get rank size of group %s failed", group);
+      return 0;
+  }
+  return rankSize;
 }
 
 void MatmulFormulaicTiling::InitBaseBlockTiling() {

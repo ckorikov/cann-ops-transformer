@@ -145,6 +145,8 @@ set(OP_TILING_INCLUDE
   ${OPS_TRANSFORMER_DIR}/mc2/3rd
   ${METADEF_INC_DIR}/../common/util
   ${TOP_DIR}/asl/ops/cann/ops/utils/inc
+  ${TOP_DIR}/ace/comop/inc
+  ${TOP_DIR}/ace/comop/hccl/open_source/inc
 )
 
 set(OP_PROTO_INCLUDE
@@ -157,6 +159,8 @@ set(OP_PROTO_INCLUDE
   ${OPS_TRANSFORMER_DIR}/mc2/common/inc
   ${OPS_TRANSFORMER_DIR}/mc2/3rd
   ${METADEF_INC_DIR}/../common/util
+  ${TOP_DIR}/ace/comop/inc
+  ${TOP_DIR}/ace/comop/hccl/open_source/inc
 )
 
 set(AICPU_INCLUDE
