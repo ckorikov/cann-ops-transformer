@@ -15,7 +15,6 @@
 #include "register/op_impl_registry.h"
 #include "log/log.h"
 #include "platform/platform_info.h"
-#include "moe_init_routing_v2_tiling_util.h"
 
 using namespace ge;
 namespace ops {
@@ -45,13 +44,27 @@ static bool IsSameDim(int64_t dim1, int64_t dim2)
     return dim1 == dim2;
 }
 
+std::string PrintShape(const gert::Shape &shape)
+{
+    std::ostringstream oss;
+    oss << "[";
+    if (shape.GetDimNum() > 0) {
+        for (size_t i = 0; i < shape.GetDimNum() - 1; ++i) {
+            oss << shape.GetDim(i) << ", ";
+        }
+        oss << shape.GetDim(shape.GetDimNum() - 1);
+    }
+    oss << "]";
+    return oss.str();
+}
+
 static ge::graphStatus CheckInputShape(gert::InferShapeContext *context, const gert::Shape *xShape,
                                        const gert::Shape *expertIdxShape)
 {
     int64_t xN = xShape->GetDimNum() == 1U ? OTHER_SHAPE : xShape->GetDim(0);
     int64_t cols = xShape->GetDimNum() == 1U ? OTHER_SHAPE : xShape->GetDim(1);
     if (xN < OTHER_SHAPE || cols < OTHER_SHAPE) {
-        OP_LOGE(context->GetNodeName(), "Invalid x shape, shape is %s.", optiling::PrintShape(*xShape).c_str());
+        OP_LOGE(context->GetNodeName(), "Invalid x shape, shape is %s.", PrintShape(*xShape).c_str());
         return ge::GRAPH_FAILED;
     }
 
@@ -59,7 +72,7 @@ static ge::graphStatus CheckInputShape(gert::InferShapeContext *context, const g
     int64_t expertIdxK = expertIdxShape->GetDimNum() == 1U ? OTHER_SHAPE : expertIdxShape->GetDim(1);
     if (expertIdxN < OTHER_SHAPE || expertIdxK < OTHER_SHAPE) {
         OP_LOGE(context->GetNodeName(), "Invalid expertIdx shape, shape is %s.",
-                  optiling::PrintShape(*expertIdxShape).c_str());
+                  PrintShape(*expertIdxShape).c_str());
         return ge::GRAPH_FAILED;
     }
 
@@ -79,24 +92,24 @@ static ge::graphStatus CheckParm(gert::InferShapeContext *context, const gert::S
     if (xShape->GetDimNum() == 1U) {
         if (xShape->GetDim(0) != ge::UNKNOWN_DIM_NUM) {
             OP_LOGE(context->GetNodeName(), "The dynamic dim of x should be -2, current shape is %s.",
-                      optiling::PrintShape(*xShape).c_str());
+                      PrintShape(*xShape).c_str());
             return ge::GRAPH_FAILED;
         }
     } else if (xShape->GetDimNum() != DIM_TWO) {
         OP_LOGE(context->GetNodeName(), "The dim of x should be 2 or dynamic, current shape is %s.",
-                  optiling::PrintShape(*xShape).c_str());
+                  PrintShape(*xShape).c_str());
         return ge::GRAPH_FAILED;
     }
 
     if (expertIdxShape->GetDimNum() == 1U) {
         if (expertIdxShape->GetDim(0) != ge::UNKNOWN_DIM_NUM) {
             OP_LOGE(context->GetNodeName(), "The dynamic dim of expertIdx should be -2, current shape is %s.",
-                      optiling::PrintShape(*expertIdxShape).c_str());
+                      PrintShape(*expertIdxShape).c_str());
             return ge::GRAPH_FAILED;
         }
     } else if (expertIdxShape->GetDimNum() != DIM_TWO) {
         OP_LOGE(context->GetNodeName(), "The dim of expertIdx should be 2 or dynamic, current shape is %s.",
-                  optiling::PrintShape(*expertIdxShape).c_str());
+                  PrintShape(*expertIdxShape).c_str());
         return ge::GRAPH_FAILED;
     }
     if (activeNum < 0) {
