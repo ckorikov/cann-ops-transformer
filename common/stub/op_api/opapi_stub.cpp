@@ -14,13 +14,13 @@
  */
 
 #include "opdev/op_executor.h"
-#include "level0/cast.h"
-#include "level0/contiguous.h"
-#include "level0/pad.h"
-#include "level0/reshape.h"
-#include "level0/slice.h"
-#include "level0/transdata.h"
-#include "level0/transpose.h"
+#include "aclnn_kernels/cast.h"
+#include "aclnn_kernels/contiguous.h"
+#include "aclnn_kernels/pad.h"
+#include "aclnn_kernels/reshape.h"
+#include "aclnn_kernels/slice.h"
+#include "aclnn_kernels/transdata.h"
+#include "aclnn_kernels/transpose.h"
 
 #include "level0/add.h"
 #include "level0/axpy.h"
