@@ -233,6 +233,7 @@ endif ()
 add_subdirectory(common)
 if (NOT BUILD_OPS_RTY_KERNEL)
     add_subdirectory(mc2)
+    add_subdirectory(moe)
 endif()
 
 set(OP_LIST)
