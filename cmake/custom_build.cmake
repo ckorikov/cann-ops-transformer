@@ -221,7 +221,6 @@ endif ()
 add_subdirectory(common)
 if (NOT BUILD_OPS_RTY_KERNEL AND NOT ENABLE_BUILT_IN)
     add_subdirectory(mc2)
-    add_subdirectory(moe)
 endif()
 
 if (BUILD_OPEN_PROJECT)
