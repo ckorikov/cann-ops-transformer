@@ -57,9 +57,15 @@ if (BUILD_OPEN_PROJECT)
 
     # op api
     add_library(cust_opapi SHARED)
-    target_sources(cust_opapi PRIVATE
-        ${OPS_TRANSFORMER_DIR}/common/stub/op_api/opapi_stub.cpp
-    )
+    # When compiling a specified operator, there is an operator without aclnn src.	
+    if(NOT "${ASCEND_OP_NAME}" STREQUAL "ALL")	
+        add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/cust_opapi_stub.cpp	
+                COMMAND touch ${CMAKE_CURRENT_BINARY_DIR}/cust_opapi_stub.cpp	
+        )
+        target_sources(cust_opapi PRIVATE
+                ${CMAKE_CURRENT_BINARY_DIR}/cust_opapi_stub.cpp
+        )
+    endif()
     target_compile_options(cust_opapi PRIVATE
             $<$<COMPILE_LANGUAGE:CXX>:-std=gnu++1z>
     )
@@ -456,7 +462,8 @@ else()
     )
 endif ()
 
-target_link_libraries(cust_opapi 
+target_link_libraries(
+    cust_opapi 
     PUBLIC  ${OPHOST_NAME}_opapi_obj
     PRIVATE $<$<BOOL:${BUILD_WITH_INSTALLED_DEPENDENCY_CANN_PKG}>:$<BUILD_INTERFACE:opapi>>
 )
