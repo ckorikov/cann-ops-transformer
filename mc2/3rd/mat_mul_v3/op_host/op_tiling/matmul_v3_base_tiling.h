@@ -25,7 +25,7 @@
 #include "matmul_v3_compile_info.h"
 #include "matmul_v3_tiling.h"
 #include "matmul_v3_tuning.h"
-#include "tiling_base/tiling_base.h"
+#include "tiling/tiling_base.h"
 namespace optiling {
 struct Tiling;
 namespace matmul_v3 {

@@ -22,7 +22,7 @@
 #define __OP_HOST_BATCH_MAT_MUL_V3_BASE_TILING_H__
 
 #include "batch_mat_mul_v3_tiling.h"
-#include "tiling_base/tiling_base.h"
+#include "tiling/tiling_base.h"
 #include "aoe/op_tuning_tiling/gemm_tuning_tiling.h"
 #include "matmul_v3_base_tiling.h"
 
