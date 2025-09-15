@@ -1,8 +1,9 @@
-# Copyright(c) Huawei Technologies Co., Ltd.2025. All rights reserved.
-# This File is a part of the CANN Open Software.
-# Licensed under CANN Open Software License Agreement Version 1.0 (the "License");
-# Please refer to the Licence for details. You may not use this file except in compliance with the License.
-# THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+
+# Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
+# This file is a part of the CANN Open Software.
+# Licensed under CANN Open Software License Agreement Version 2.0 (the "License").
+# Please refer to the License for details. You may not use this file except in compliance with the License.
+# THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
 # INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
 # See LICENSE in the root of the software repository for the full text of the License.
 # ============================================================================
@@ -14,7 +15,6 @@ set(MAKESELF_HEADER_EXE ${CPACK_CMAKE_BINARY_DIR}/makeself/makeself-header.sh)
 if(NOT MAKESELF_EXE)
     message(FATAL_ERROR "makeself not found! Install it with: sudo apt install makeself")
 endif()
-
 
 # 创建临时安装目录
 set(STAGING_DIR "${CPACK_CMAKE_BINARY_DIR}/_CPack_Packages/makeself_staging")
@@ -30,37 +30,71 @@ if(NOT INSTALL_RESULT EQUAL 0)
     message(FATAL_ERROR "Installation to staging directory failed: ${INSTALL_RESULT}")
 endif()
 
-# 添加安装脚本
-message(STATUS "CMAKE_SOURCE_DIR = ${CPACK_CMAKE_SOURCE_DIR}")
-message(STATUS "CMAKE_CURRENT_SOURCE_DIR = ${CPACK_CMAKE_CURRENT_SOURCE_DIR}")
-message(STATUS "CMAKE_BINARY_DIR = ${CPACK_CMAKE_BINARY_DIR}")
-message(STATUS "CPACK_PACKAGE_FILE_NAME = ${CPACK_PACKAGE_FILE_NAME}")
-message(STATUS "STAGING_DIR = ${STAGING_DIR}")
-message(STATUS "CMAKE_COMMAND = ${CMAKE_COMMAND}")
-message(STATUS "CPACK_TEMPORARY_DIRECTORY = ${CPACK_TEMPORARY_DIRECTORY}")
+# 生成安装配置文件
+set(CSV_OUTPUT ${CPACK_CMAKE_BINARY_DIR}/filelist.csv)
+execute_process(
+    COMMAND python3 ${CPACK_CMAKE_SOURCE_DIR}/scripts/package/package.py --pkg_name ops_math --os_arch linux.${CPACK_ARCH}
+    WORKING_DIRECTORY ${CPACK_CMAKE_BINARY_DIR}
+    OUTPUT_VARIABLE result
+    ERROR_VARIABLE error
+    RESULT_VARIABLE code
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+message(STATUS "package.py result: ${code}")
+if (NOT code EQUAL 0)
+    message(FATAL_ERROR "Filelist generation failed: ${result}")
+else ()
+    message(STATUS "Filelist generated successfully: ${result}")
 
+    if (NOT EXISTS ${CSV_OUTPUT})
+        message(FATAL_ERROR "Output file not created: ${CSV_OUTPUT}")
+    endif ()
+endif ()
+set(SCENE_OUT_PUT
+    ${CPACK_CMAKE_BINARY_DIR}/scene.info
+)
+set(NN_VERSION_OUT_PUT
+    ${CPACK_CMAKE_BINARY_DIR}/ops_math_version.h
+)
+
+configure_file(
+    ${SCENE_OUT_PUT}
+    ${STAGING_DIR}/ops_math/
+    COPYONLY
+)
+configure_file(
+    ${CSV_OUTPUT}
+    ${STAGING_DIR}/ops_math/script/
+    COPYONLY
+)
+configure_file(
+    ${NN_VERSION_OUT_PUT}
+    ${STAGING_DIR}/ops_math/
+    COPYONLY
+)
+# makeself打包
 file(STRINGS ${CPACK_CMAKE_BINARY_DIR}/makeself.txt script_output)
 string(REPLACE " " ";" makeself_param_string "${script_output}")
-string(REGEX MATCH "CANN.*\\.run" package_name "${makeself_param_string}")
+string(REGEX MATCH "cann.*\\.run" package_name "${makeself_param_string}")
 
 message(STATUS "script output: ${script_output}")
 message(STATUS "makeself: ${makeself_param_string}")
 message(STATUS "package: ${package_name}")
 
 execute_process(COMMAND bash ${MAKESELF_EXE}
-    --header ${MAKESELF_HEADER_EXE}
-    --help-header ops_transformer/script/help.info
-    ${makeself_param_string} ops_transformer/script/install.sh
-    WORKING_DIRECTORY ${CPACK_TEMPORARY_DIRECTORY}
-    RESULT_VARIABLE EXEC_RESULT
-    ERROR_VARIABLE  EXEC_ERROR
+        --header ${MAKESELF_HEADER_EXE}
+        --help-header ops_transformer/script/help.info
+        ${makeself_param_string} ops_transformer/script/install.sh
+        WORKING_DIRECTORY ${STAGING_DIR}
+        RESULT_VARIABLE EXEC_RESULT
+        ERROR_VARIABLE  EXEC_ERROR
 )
 
 if(NOT EXEC_RESULT EQUAL 0)
     message(FATAL_ERROR "makeself packaging failed: ${EXEC_ERROR}")
 endif()
 
-execute_process(COMMAND cp ${CPACK_EXTERNAL_BUILT_PACKAGES_DIR}/${package_name} ${CPACK_PACKAGE_DIRECTORY}/
-    COMMAND echo "Copy ${CPACK_EXTERNAL_BUILT_PACKAGES_DIR}/${package_name} to ${CPACK_PACKAGE_DIRECTORY}/"
-    WORKING_DIRECTORY ${CPACK_TEMPORARY_DIRECTORY}
+execute_process(COMMAND mv ${STAGING_DIR}/${package_name} ${CPACK_PACKAGE_DIRECTORY}/
+    COMMAND echo "Move ${STAGING_DIR}/${package_name} to ${CPACK_PACKAGE_DIRECTORY}/"
+    WORKING_DIRECTORY ${STAGING_DIR}
 )

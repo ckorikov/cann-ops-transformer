@@ -111,7 +111,7 @@ ops-transformer项目支持源码编译，进行源码编译前，请根据如�
    - python >= 3.7.0
    - gcc >= 7.3.0
    - cmake >= 3.16.0
-   - pigz >= 2.8
+   - pigz（可选，安装后可提升打包速度，建议版本 >= 2.8）
    - dos2unix
    - googletest（仅执行UT时依赖，建议版本 [release-1.11.0](https://github.com/google/googletest/releases/tag/release-1.11.0)）
 
