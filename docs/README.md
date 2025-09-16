@@ -24,6 +24,11 @@
 |xxx|[xxxx](../xx/xx/graph_plugin/xxx.h)|xxx|xxx|
 
 ## 算子接口（aclnn）
+
+为方便调用算子，提供一套基于C的API（以aclnn为前缀API），无需提供IR（Intermediate Representation）定义，方便高效构建模型与应用开发，该方式也被称为“单算子API调用”，其详细介绍请参见[《AOL算子加速库接口》](https://hiascend.com/document/redirect/CannCommunityOplist)。
+
+本项目提供的所有算子接口清单如下：
+
 |    接口名   |      说明     |
 |-----------|------------|
 |[aclnnGroupedMatmulSwigluQuant](../gmm/grouped_matmul_swiglu_quant/docs/aclnnGroupedMatmulSwigluQuant.md)|实现融合GroupedMatmul 、dquant、swiglu和quant运算。|
@@ -47,17 +52,14 @@
 
 ## 算子调用
 
-本章提供了常见的算子调用方式：
+以`AddExample`算子为例，提供如下算子调用方式，开发者按需选择，算子详细调用流程参见[算子调用](./context/算子调用.md)。
 
 - aclnn调用算子 **（推荐）**：以aclnnXxx接口方式调用算子。
 - 图模式调用算子：以IR构图方式调用算子。
 
-开发者按需选择，不同方式下算子的调用流程和关键代码实现请参见[算子调用样例](./context/算子调用样例.md)。
-
 ## 算子调试调优
 
-本章提供了三种算子调试方式和一种算子调优方式
-开发者按需选择，具体细节可以参见[算子调试调优样例](./context/算子调试调优样例.md)。
+以`AddExample`算子为例，简单介绍常见算子调试、调优方法，开发者按需选择，使用方法参见[算子调试调优](./context/算子调试调优.md)。
 
 ## 参考文档
 
@@ -65,7 +67,7 @@
 
 - [《CANN 软件安装指南》](https://hiascend.com/document/redirect/CannCommunityInstSoftware)
 - [《应用开发（C&C++）》](https://hiascend.com/document/redirect/CannCommunityInferWizard)
-- [《Ascend C算子开发》](https://hiascend.com/document/redirect/CannCommunityAscendCQuick)
+- [《Ascend C算子开发》](https://hiascend.com/document/redirect/CannCommunityOpdevAscendC)
 - [《AOL算子加速库接口》](https://hiascend.com/document/redirect/CannCommunityOplist)
 - [《Ascend Graph开发指南》](https://hiascend.com/document/redirect/CannCommunityAscendGraph)
 - [《图融合和UB融合规则参考》](https://hiascend.com/document/redirect/CannCommunitygraphubfusionref)
