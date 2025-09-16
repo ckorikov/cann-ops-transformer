@@ -16,7 +16,7 @@
 
 #include <cstdlib>
 #include <string>
-#include "op_log.h"
+#include "log/log.h"
 #include "mc2_hcom_topo_info.h"
 #ifndef BUILD_OPEN_PROJECT
 #include "hcom/hcom_topo_info.h"
@@ -136,17 +136,17 @@ HcclResult MC2HcomTopology::CommGetInstSizeByGroup(const char *group, uint32_t *
     }
     HcclResult ret = GetInstance().CallHcomGetCommHandleByGroup(group, &hcclComm);
     if (ret != HCCL_SUCCESS) {
-        OP_LOGE("", "Failed to get comm handle.")
+        OP_LOGE("", "Failed to get comm handle.");
         return ret;
     }
-    HcclResult ret = GetInstance().CallCommGetNetLayers(hcclComm, &netLayers, &netLayerNum);
+    ret = GetInstance().CallCommGetNetLayers(hcclComm, &netLayers, &netLayerNum);
     if (ret != HCCL_SUCCESS) {
-        OP_LOGE("", "Failed to get net layers.")
+        OP_LOGE("", "Failed to get net layers.");
         return ret;
     }
-    HcclResult ret = GetInstance().CallCommGetInstSizeByNetLayer(hcclComm, *netLayers, rankNum);
+    ret = GetInstance().CallCommGetInstSizeByNetLayer(hcclComm, *netLayers, rankNum);
     if (ret != HCCL_SUCCESS) {
-        OP_LOGE("", "Failed to get inst size.")
+        OP_LOGE("", "Failed to get inst size.");
         return ret;
     }
     return HCCL_SUCCESS;
@@ -163,17 +163,17 @@ HcclResult MC2HcomTopology::TryGetGroupTopoType(const char *group, uint32_t *top
     }
     HcclResult ret = GetInstance().CallHcomGetCommHandleByGroup(group, &hcclComm);
     if (ret != HCCL_SUCCESS) {
-        OP_LOGE("", "Failed to get comm handle.")
+        OP_LOGE("", "Failed to get comm handle.");
         return ret;
     }
-    HcclResult ret = GetInstance().CallCommGetNetLayers(hcclComm, &netLayers, &netLayerNum);
+    ret = GetInstance().CallCommGetNetLayers(hcclComm, &netLayers, &netLayerNum);
     if (ret != HCCL_SUCCESS) {
-        OP_LOGE("", "Failed to get net layers.")
+        OP_LOGE("", "Failed to get net layers.");
         return ret;
     }
-    HcclResult ret = GetInstance().CallCommGetInstTopoTypeByNetLayer(hcclComm, *netLayers, topoType);
+    ret = GetInstance().CallCommGetInstTopoTypeByNetLayer(hcclComm, *netLayers, topoType);
     if (ret != HCCL_SUCCESS) {
-        OP_LOGE("", "Failed to get topo type.")
+        OP_LOGE("", "Failed to get topo type.");
         return ret;
     }
     return HCCL_SUCCESS;

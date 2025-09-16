@@ -127,6 +127,7 @@ set(OPAPI_INCLUDE
   ${OPS_TRANSFORMER_DIR}/mc2/common/inc
   ${OPS_TRANSFORMER_DIR}/mc2/3rd
   ${TOP_DIR}/ace/comop/inc/external
+  ${TOP_DIR}/ops/ops-nn/matmul/common/op_host/op_api
 )
 
 set(OP_TILING_INCLUDE
@@ -136,6 +137,8 @@ set(OP_TILING_INCLUDE
   ${TILINGAPI_INC_DIRS}
   ${NPURUNTIME_INCLUDE_DIRS}
   ${OPBASE_INC_DIRS}
+  ${NNOPBASE_INCLUDE_DIRS}
+  ${AICPU_INC_DIRS}
   ${OPS_TRANSFORMER_DIR}
   ${JSON_INCLUDE}
   ${OPS_TRANSFORMER_DIR}/common/include/

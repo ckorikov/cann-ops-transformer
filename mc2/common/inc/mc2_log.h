@@ -175,7 +175,7 @@ namespace ops {
     OP_LOGE_WITHOUT_REPORT(op_name, "%s", get_cstr(err_msg));                  \
     std::string errorStr = "E89999";                                           \
     REPORT_INNER_ERR_MSG(errorStr.c_str(), "%s",                               \
-                         ConcatString("op[", op_name, "],", err_msg).C_STR()); \
+                         ConcatString("op[", op_name, "],", err_msg).c_str()); \
   } while (0)
 
 namespace optiling {

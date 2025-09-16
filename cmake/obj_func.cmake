@@ -144,7 +144,10 @@ macro(add_mc2_modules_sources)
     target_sources(${OPHOST_NAME}_infer_obj PRIVATE ${OPINFER_SRCS})
   endif()
 
-  file(GLOB OPTILING_SRCS ${SOURCE_DIR}/op_tiling/*_tiling*.cpp)
+  file(GLOB OPTILING_SRCS
+      ${SOURCE_DIR}/op_tiling/*_tiling*.cpp
+      ${SOURCE_DIR}/op_tiling/arch35/*.cpp
+      ${SOURCE_DIR}/../graph_plugin/fallback_*.cpp)
   if (OPTILING_SRCS)
     # tiling
     add_tiling_modules()
@@ -301,6 +304,7 @@ function(add_tiling_modules)
 
       $<$<BOOL:${BUILD_OPEN_PROJECT}>:$<BUILD_INTERFACE:${ASCEND_CANN_PACKAGE_PATH}/aarch64-linux/include/op_common/op_host>>
       $<$<BOOL:${BUILD_OPEN_PROJECT}>:$<BUILD_INTERFACE:${ASCEND_CANN_PACKAGE_PATH}/include/experiment/metadef/common/util>>
+      $<$<BOOL:${BUILD_OPEN_PROJECT}>:$<BUILD_INTERFACE:${ASCEND_CANN_PACKAGE_PATH}/include/experiment>>
       ${OPS_TRANSFORMER_DIR}/mc2/common/inc
       ${OPS_TRANSFORMER_DIR}/mc2/3rd
     )

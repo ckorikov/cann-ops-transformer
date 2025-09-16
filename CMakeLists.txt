@@ -63,7 +63,7 @@ include(cmake/third_party/nlohmann_json.cmake)
 
 if (BUILD_OPEN_PROJECT)
     include(cmake/intf.cmake)
-
+    add_definitions(-DBUILD_OPEN_PROJECT)
     if (BUILD_OPS_RTY_KERNEL)
         message(STATUS "Build return yellow kernel.")
         include(cmake/rty_obj_func.cmake)
