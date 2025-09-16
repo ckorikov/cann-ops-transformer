@@ -286,7 +286,7 @@ static inline void DebugPrint(const gert::TilingContext *context, const MoeToken
     OP_LOGD(nodeName, ">>>>>>>>>>>>>>> Print MoeTokenUnpermute tiling data end <<<<<<<<<<<<<<<<");
 }
 
-ge::graphStatus TilingCompute(gert::TilingContext *context, const int64_t topK)
+ge::graphStatus PermuteTilingCompute(gert::TilingContext *context, const int64_t topK)
 {
     MoeTokenUnpermuteParam param;
 
@@ -313,7 +313,7 @@ static ge::graphStatus Tiling4MoeTokenPermuteGrad(gert::TilingContext *context)
 {
     const int *top_k = context->GetAttrs()->GetAttrPointer<int>(0);
     int64_t topk = static_cast<int64_t>(*top_k);
-    return TilingCompute(context, topk);
+    return PermuteTilingCompute(context, topk);
 }
 
 static ge::graphStatus TilingPrepareForMoeTokenPermuteGrad(gert::TilingParseContext *context)
