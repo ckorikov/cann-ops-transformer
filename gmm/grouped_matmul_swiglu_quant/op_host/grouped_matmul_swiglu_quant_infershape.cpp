@@ -21,13 +21,14 @@ namespace ops {
 const int64_t X_INDEX = 0;
 const int64_t WEIGHTSCALE_INDEX = 2;
 const int64_t M_DIM_INDEX = 0;
-const int64_t N_DIM_INDEX = 1;
 const int64_t DIM_LEN = 2;
 const int64_t SPLIT_RATIO = 2;
-static ge::graphStatus InferShape4GroupedMatmulSwigluQuant(gert::InferShapeContext* context) {
-    const gert::Shape* xShape = context->GetInputShape(X_INDEX);
-    const gert::Shape* weightScaleShape = context->GetInputShape(WEIGHTSCALE_INDEX);
+static ge::graphStatus InferShape4GroupedMatmulSwigluQuant(gert::InferShapeContext *context)
+{
+    const gert::Shape *xShape = context->GetInputShape(X_INDEX);
+    const gert::Shape *weightScaleShape = context->GetInputShape(WEIGHTSCALE_INDEX);
     int64_t m = xShape->GetDim(M_DIM_INDEX);
+    int64_t N_DIM_INDEX = weightScaleShape->GetDimNum() - 1;
     int64_t n = static_cast<int64_t>(weightScaleShape->GetDim(N_DIM_INDEX) / SPLIT_RATIO);
     auto outShape = context->GetOutputShape(0);
     outShape->SetDimNum(DIM_LEN);
@@ -39,7 +40,8 @@ static ge::graphStatus InferShape4GroupedMatmulSwigluQuant(gert::InferShapeConte
     return GRAPH_SUCCESS;
 }
 
-static graphStatus InferDataType4GroupedMatmulSwigluQuant(gert::InferDataTypeContext* context) {
+static graphStatus InferDataType4GroupedMatmulSwigluQuant(gert::InferDataTypeContext *context)
+{
     context->SetOutputDataType(0, DataType::DT_INT8);
     context->SetOutputDataType(1, DataType::DT_FLOAT);
     return GRAPH_SUCCESS;
@@ -48,4 +50,4 @@ static graphStatus InferDataType4GroupedMatmulSwigluQuant(gert::InferDataTypeCon
 IMPL_OP_INFERSHAPE(GroupedMatmulSwigluQuant)
     .InferShape(InferShape4GroupedMatmulSwigluQuant)
     .InferDataType(InferDataType4GroupedMatmulSwigluQuant);
-}  // namespace ops
+} // namespace ops

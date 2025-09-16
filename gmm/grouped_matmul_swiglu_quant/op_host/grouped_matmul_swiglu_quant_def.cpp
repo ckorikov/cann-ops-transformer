@@ -18,36 +18,43 @@
 namespace ops {
 class GroupedMatmulSwigluQuant : public OpDef {
 public:
-    explicit GroupedMatmulSwigluQuant(const char* name) : OpDef(name)
+    explicit GroupedMatmulSwigluQuant(const char *name) : OpDef(name)
     {
         this->Input("x")
             .ParamType(REQUIRED)
-            .DataType({ge::DT_INT8,ge::DT_INT8,ge::DT_INT8})
-            .Format({ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND});
+            .DataType({ge::DT_INT8, ge::DT_INT8, ge::DT_INT8, ge::DT_INT8, ge::DT_INT8})
+            .Format({ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND});
         this->Input("weight")
             .ParamType(REQUIRED)
-            .DataType({ge::DT_INT8,ge::DT_INT8,ge::DT_INT8})
-            .Format({ge::FORMAT_FRACTAL_NZ, ge::FORMAT_FRACTAL_NZ, ge::FORMAT_FRACTAL_NZ});
+            .DataType({ge::DT_INT8, ge::DT_INT8, ge::DT_INT8, ge::DT_INT4, ge::DT_INT4})
+            .Format({ge::FORMAT_FRACTAL_NZ, ge::FORMAT_FRACTAL_NZ, ge::FORMAT_FRACTAL_NZ, ge::FORMAT_ND,
+                     ge::FORMAT_FRACTAL_NZ});
         this->Input("weight_scale")
             .ParamType(REQUIRED)
-            .DataType({ge::DT_FLOAT, ge::DT_BF16, ge::DT_FLOAT16})
-            .Format({ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND});
+            .DataType({ge::DT_FLOAT, ge::DT_BF16, ge::DT_FLOAT16, ge::DT_UINT64, ge::DT_UINT64})
+            .Format({ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND});
         this->Input("x_scale")
             .ParamType(REQUIRED)
-            .DataType({ge::DT_FLOAT,ge::DT_FLOAT,ge::DT_FLOAT})
-            .Format({ge::FORMAT_ND,ge::FORMAT_ND,ge::FORMAT_ND});
+            .DataType({ge::DT_FLOAT, ge::DT_FLOAT, ge::DT_FLOAT, ge::DT_FLOAT, ge::DT_FLOAT})
+            .Format({ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND});
+        this->Input("weight_assistance_matrix")
+            .ParamType(OPTIONAL)
+            .DataType({ge::DT_FLOAT, ge::DT_FLOAT, ge::DT_FLOAT, ge::DT_FLOAT, ge::DT_FLOAT})
+            .Format({ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND});
         this->Input("group_list")
             .ParamType(REQUIRED)
-            .DataType({ge::DT_INT64,ge::DT_INT64,ge::DT_INT64})
-            .Format({ge::FORMAT_ND,ge::FORMAT_ND,ge::FORMAT_ND});
+            .DataType({ge::DT_INT64, ge::DT_INT64, ge::DT_INT64, ge::DT_INT64, ge::DT_INT64})
+            .Format({ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND});
         this->Output("y")
             .ParamType(REQUIRED)
-            .DataType({ge::DT_INT8,ge::DT_INT8,ge::DT_INT8})
-            .Format({ge::FORMAT_ND,ge::FORMAT_ND,ge::FORMAT_ND});
+            .DataType({ge::DT_INT8, ge::DT_INT8, ge::DT_INT8, ge::DT_INT8, ge::DT_INT8})
+            .Format({ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND});
         this->Output("y_scale")
             .ParamType(REQUIRED)
-            .DataType({ge::DT_FLOAT,ge::DT_FLOAT,ge::DT_FLOAT})
-            .Format({ge::FORMAT_ND,ge::FORMAT_ND,ge::FORMAT_ND});
+            .DataType({ge::DT_FLOAT, ge::DT_FLOAT, ge::DT_FLOAT, ge::DT_FLOAT, ge::DT_FLOAT})
+            .Format({ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND});
+        this->Attr("is_enable_weight_assistance_matrix").AttrType(OPTIONAL).Bool(true);
+        this->Attr("dequant_mode").AttrType(OPTIONAL).Int(0);
         OpAICoreConfig aicore_config;
         aicore_config.DynamicCompileStaticFlag(true)
             .DynamicFormatFlag(true)
@@ -60,6 +67,6 @@ public:
         this->AICore().AddConfig("ascend910_93", aicore_config);
     }
 };
- 
+
 OP_ADD(GroupedMatmulSwigluQuant);
-}
+} // namespace ops

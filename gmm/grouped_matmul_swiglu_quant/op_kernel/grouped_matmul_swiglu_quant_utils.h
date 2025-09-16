@@ -19,6 +19,26 @@
 #include "kernel_operator.h"
 #include "lib/matmul_intf.h"
 
+#if defined(__CCE_AICORE__) && __CCE_AICORE__ == 220
+// A8W4 MSD场景
+#if defined(ORIG_DTYPE_X) && defined(DT_INT8) && ORIG_DTYPE_X == DT_INT8 && defined(ORIG_DTYPE_WEIGHT) &&              \
+    defined(DT_INT4) && ORIG_DTYPE_WEIGHT == DT_INT4
+        #define GMM_SWIGLU_QUANT_A8W4_MSD
+        using DTYPE_X_A8W4_MSD = AscendC::int4b_t;
+// A8W8 场景
+#elif defined(ORIG_DTYPE_X) && defined(DT_INT8) && ORIG_DTYPE_X == DT_INT8 && defined(ORIG_DTYPE_WEIGHT) &&            \
+    defined(DT_INT8) && ORIG_DTYPE_WEIGHT == DT_INT8
+        #define GMM_SWIGLU_QUANT_A8W8
+#endif // 场景分类
+
+#if defined(FORMAT_WEIGHT) && FORMAT_WEIGHT == FORMAT_FRACTAL_NZ
+    constexpr CubeFormat wFormat = CubeFormat::NZ;
+#elif defined(FORMAT_WEIGHT) && FORMAT_WEIGHT == FORMAT_ND
+    constexpr CubeFormat wFormat = CubeFormat::ND;
+#endif // weight格式分类
+
+#endif // 芯片型号分类
+
 namespace GROUPED_MATMUL_SWIGLU_QUANT {
 using namespace AscendC;
 constexpr uint32_t INT8_BITS = 8;           // a int8 number has 8 bits
@@ -28,7 +48,7 @@ constexpr uint32_t UB_BLOCK_DOUBLE_UNIT_SIZE = 64;                   // 64: a bl
 constexpr uint32_t HALF_UB_BLOCK_UNIT_SIZE = UB_BLOCK_UNIT_SIZE / 2; // 2: a float16 data has two bytes
 constexpr uint32_t FLOAT_UB_BLOCK_UNIT_SIZE = 8;                     // 2: a float16 data has two bytes
 constexpr uint32_t SINGLE_CORE_M = 128;
-constexpr uint32_t SINGLE_CORE_N = 512;
+constexpr uint32_t SINGLE_CORE_N = 256;
 constexpr uint32_t SINGLE_CORE_K = 7168;
 constexpr uint32_t BASIC_M = 128;
 constexpr uint32_t BASIC_N = 256;
@@ -53,11 +73,12 @@ constexpr float QUANT_SCALE_INT8 = 127.0f;
 constexpr int64_t SWIGLU_REDUCE_FACTOR = 2;
 constexpr int64_t DOUBLE_BUFFER = 2;
 constexpr uint8_t NUM_8 = 8;
-
-constexpr MatmulConfig NZ_CFG_MDL = GetMDLConfig(false, false, 0, true, false, false, true);
+constexpr bool NO_BIAS = false;
+constexpr int64_t DOUBLE_ROW = 2;
+constexpr MatmulConfig CUSTOM_CFG_MDL = GetMDLConfig(false, false, 0, true, false, false, true);
 constexpr MatmulConfig GetMMCFG()
 {
-    MatmulConfig MM_CFG = NZ_CFG_MDL;
+    MatmulConfig MM_CFG = CUSTOM_CFG_MDL;
     MM_CFG.singleCoreM = SINGLE_CORE_M;
     MM_CFG.singleCoreN = SINGLE_CORE_N;
     MM_CFG.singleCoreK = SINGLE_CORE_K;
@@ -67,7 +88,7 @@ constexpr MatmulConfig GetMMCFG()
     return MM_CFG;
 }
 
-constexpr MatmulApiStaticTiling GetMMTiling(const MatmulApiStaticTiling &mmTiling)
+constexpr static MatmulApiStaticTiling GetMMTiling(const MatmulApiStaticTiling &mmTiling)
 {
     MatmulApiStaticTiling tiling = mmTiling;
     tiling.stepM = STEP_M;
@@ -76,15 +97,17 @@ constexpr MatmulApiStaticTiling GetMMTiling(const MatmulApiStaticTiling &mmTilin
     tiling.stepKb = STEP_Kb;
     tiling.depthA1 = DEPTH_A1;
     tiling.depthB1 = DEPTH_B1;
+    tiling.isBias = NO_BIAS;
     return tiling;
 }
 
-template <class AT_, class BT_, class CT_, class BiasT_, const MatmulConfig &MM_CFG>
+template <class AT_, class BT_, class CT_>
 struct MMImplType {
     using AT = AT_;
     using BT = BT_;
     using CT = CT_;
-    using BiasT = BiasT_;
+    // bias未被使用但高阶模板参数需要传入
+    using BiasT = MatmulType<AscendC::TPosition::GM, CubeFormat::ND, int32_t>;
     static constexpr MatmulConfig cfg = GetMMCFG();
     static constexpr MatmulApiStaticTiling mdl = GetMMTiling(GetMatmulApiTiling<AT, BT, CT, BiasT>(cfg));
     using MT = matmul::MatmulImpl<AT, BT, CT, BiasT, mdl>;
@@ -138,8 +161,26 @@ struct WorkSpaceSplitConfig {
     bool isLastLoop = false;
 };
 
+struct GMAddrParams {
+    // 输入 GM Tensor
+    GM_ADDR xGM;                     // 左矩阵
+    GM_ADDR weightGM;                // 右矩阵
+    GM_ADDR weightScaleGM;           // 权重scale
+    GM_ADDR xScaleGM;                // 激活scale
+    GM_ADDR weightAuxiliaryMatrixGM; // 权重辅助矩阵
+    GM_ADDR groupListGM;             // 分组矩阵
+    // 输出 GM Tensor
+    GM_ADDR yGM;      // 输出量化矩阵
+    GM_ADDR yScaleGM; // 输出scale矩阵
+    // workspace GM Tensor
+    GM_ADDR workSpaceGM; // 左矩阵前处理结果矩阵 (double workspace) + 中间处理结果矩阵 (double workspace)
+    int64_t workSpaceOffset1;
+    int64_t workSpaceOffset2;
+    int64_t workSpaceOffset3;
+};
+
 template <uint32_t base, typename T = uint32_t>
-__aicore__ inline T AlignUp(T a)
+__aicore__ inline auto AlignUp(T a) -> T
 {
     if (unlikely(base == 0)) {
         return a;
@@ -148,7 +189,7 @@ __aicore__ inline T AlignUp(T a)
 }
 
 template <typename T>
-__aicore__ inline T AlignUp(T a, T base)
+__aicore__ inline auto AlignUp(T a, T base) -> T
 {
     if (unlikely(base == 0)) {
         return a;
@@ -157,7 +198,7 @@ __aicore__ inline T AlignUp(T a, T base)
 }
 
 template <typename T>
-__aicore__ inline T AlignDown(T a, T base)
+__aicore__ inline auto AlignDown(T a, T base) -> T
 {
     if (unlikely(base == 0)) {
         return a;

@@ -13,12 +13,11 @@
 #include "opdev/op_executor.h"
 
 namespace l0op {
-const std::tuple<aclTensor*, aclTensor*> GroupedMatmulSwigluQuant(const aclTensor *x,
-                                                                  const aclTensor *weight,
-                                                                  const aclTensor *perChannelScale,
-                                                                  const aclTensor *perTokenScale,
-                                                                  const aclTensor *groupList,
-                                                                  aclOpExecutor *executor);
+const std::tuple<aclTensor *, aclTensor *>
+GroupedMatmulSwigluQuant(const aclTensor *x, const aclTensor *weight, const aclTensor *perChannelScale,
+                         const aclTensor *perTokenScale, const aclTensor *groupList,
+                         const aclTensor *weightAssistanceMatrix, bool isEnableWeightAssistanceMatrix, int dequantMode,
+                         aclOpExecutor *executor);
 }
 
 #endif

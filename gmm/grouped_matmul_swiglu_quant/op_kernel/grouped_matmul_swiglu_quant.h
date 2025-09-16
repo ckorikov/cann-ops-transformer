@@ -483,12 +483,12 @@ __aicore__ inline void GMMSwigluCompute<mmType, sync, CHANNELDTYPE>::Quant(uint3
     PipeBarrier<PIPE_V>();
     // reduceMax
     LocalTensor<float> workLocal = reduceWorkspace.Get<float>(halfTokenLen);
-    LocalTensor<float> reduceResLocal = reduceWorkspace.GetWithOffset<float>(
-        FLOAT_UB_BLOCK_UNIT_SIZE, halfTokenLen * sizeof(float));
+    LocalTensor<float> reduceResLocal =
+        reduceWorkspace.GetWithOffset<float>(FLOAT_UB_BLOCK_UNIT_SIZE, halfTokenLen * sizeof(float));
     LocalTensor<float> reduceTmpLocal = reduceWorkspace.GetWithOffset<float>(
         FLOAT_UB_BLOCK_UNIT_SIZE, halfTokenLen * sizeof(float) + UB_BLOCK_UNIT_SIZE);
-    ReduceMaxTemplate(reduceResLocal, workLocal, _inMMLocal[preOffset + gmmSwiglu->tokenLen / BISECT], 
-                      reduceTmpLocal, static_cast<uint32_t>(halfTokenLen));
+    ReduceMaxTemplate(reduceResLocal, workLocal, _inMMLocal[preOffset + gmmSwiglu->tokenLen / BISECT], reduceTmpLocal,
+                      static_cast<uint32_t>(halfTokenLen));
 
     int32_t eventIdVToS = static_cast<int32_t>(GetTPipePtr()->FetchEventID(HardEvent::V_S));
     SetFlag<HardEvent::V_S>(eventIdVToS);

@@ -20,35 +20,42 @@
 #include "tiling/tiling_api.h"
 
 namespace optiling {
+// GMM 基本信息
 BEGIN_TILING_DATA_DEF(GMMSwigluBaseParams)
-  TILING_DATA_FIELD_DEF(uint32_t, groupNum);
-  TILING_DATA_FIELD_DEF(uint32_t, coreNum);
-  TILING_DATA_FIELD_DEF(uint32_t, K);
-  TILING_DATA_FIELD_DEF(uint32_t, N);
-  TILING_DATA_FIELD_DEF(uint32_t, M);
-  TILING_DATA_FIELD_DEF(uint32_t, mLimit);
+TILING_DATA_FIELD_DEF(uint32_t, groupNum);
+TILING_DATA_FIELD_DEF(uint32_t, coreNum);
+TILING_DATA_FIELD_DEF(uint32_t, K);
+TILING_DATA_FIELD_DEF(uint32_t, N);
+TILING_DATA_FIELD_DEF(uint32_t, M);
+TILING_DATA_FIELD_DEF(uint32_t, mLimit);
+TILING_DATA_FIELD_DEF(uint32_t, workSpaceOffset1);
+TILING_DATA_FIELD_DEF(uint32_t, workSpaceOffset2);
+TILING_DATA_FIELD_DEF(uint32_t, quantGroupNum);
 END_TILING_DATA_DEF;
 REGISTER_TILING_DATA_CLASS(GMMSwigluBaseParamsOp, GMMSwigluBaseParams)
 
+// SwigluQuant部分tiling 基本信息
 BEGIN_TILING_DATA_DEF(GMMSwiglu)
-  TILING_DATA_FIELD_DEF(uint32_t, maxProcessRowNum);
-  TILING_DATA_FIELD_DEF(uint32_t, groupListLen);
-  TILING_DATA_FIELD_DEF(uint32_t, tokenLen);
+TILING_DATA_FIELD_DEF(uint32_t, maxProcessRowNum);
+TILING_DATA_FIELD_DEF(uint32_t, groupListLen);
+TILING_DATA_FIELD_DEF(uint32_t, tokenLen);
 END_TILING_DATA_DEF;
 REGISTER_TILING_DATA_CLASS(GMMSwigluOp, GMMSwiglu)
 
+// 结构体集合
 BEGIN_TILING_DATA_DEF(GMMSwigluQuantTilingData)
-  TILING_DATA_FIELD_DEF_STRUCT(GMMSwigluBaseParams, gmmSwigluBaseParams);
-  TILING_DATA_FIELD_DEF_STRUCT(GMMSwiglu, gmmSwiglu);
-  TILING_DATA_FIELD_DEF_STRUCT(TCubeTiling, mmTilingData);
+TILING_DATA_FIELD_DEF_STRUCT(GMMSwigluBaseParams, gmmSwigluBaseParams);
+TILING_DATA_FIELD_DEF_STRUCT(GMMSwiglu, gmmSwiglu);
+TILING_DATA_FIELD_DEF_STRUCT(TCubeTiling, mmTilingData);
 END_TILING_DATA_DEF;
 
 REGISTER_TILING_DATA_CLASS(GroupedMatmulSwigluQuant, GMMSwigluQuantTilingData)
-}
+} // namespace optiling
 
 namespace GroupedMatmulSwigluQuantTiling {
 constexpr uint32_t X_INDEX = 0;
 constexpr uint32_t WEIGHT_INDEX = 1;
+constexpr uint32_t WEIGHT_SCALE_INDEX = 2;
 constexpr uint32_t GROUPLIST_INDEX = 4;
 constexpr uint32_t BATCH_MODE_SCHEDULE = 1;
 constexpr uint32_t SYS_WORKSPACE_SIZE = 16 * 1024 * 1024;
