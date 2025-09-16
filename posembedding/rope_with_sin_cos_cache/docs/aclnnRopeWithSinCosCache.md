@@ -1,0 +1,437 @@
+# aclnnRopeWithSinCosCache
+
+## 支持的产品型号
+
+- <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>。
+- <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>。
+
+## 功能说明
+
+* 算子功能：推理网络为了提升性能，将sin和cos输入通过cache传入，执行旋转位置编码计算。
+* 计算公式：
+
+    1、**mrope模式**：positions的shape输入是[3, numTokens]：
+    $$
+    cosSin[i] = cosSinCache[positions[i]]
+    $$
+
+    $$
+    cos, sin = cosSin.chunk(2, dim=-1)
+    $$
+
+    $$
+    cos0 = cos[0, :, :mropeSection[0]]
+    $$
+
+    $$
+    cos1 = cos[1, :, mropeSection[0]:(mropeSection[0] + mropeSection[1])]
+    $$
+
+    $$
+    cos2 = cos[2, :, (mropeSection[0] + mropeSection[1]):(mropeSection[0] + mropeSection[1] + mropeSection[2])]
+    $$
+
+    $$
+    cos = torch.cat((cos0, cos1, cos2), dim=-1)
+    $$
+
+    $$
+    sin0 = sin[0, :, :mropeSection[0]]
+    $$
+
+    $$
+    sin1 = sin[1, :, mropeSection[0]:(mropeSection[0] + mropeSection[1])]
+    $$
+
+    $$
+    sin2 = sin[2, :, (mropeSection[0] + mropeSection[1]):(mropeSection[0] + mropeSection[1] + mropeSection[2])]
+    $$
+
+    $$
+    sin= torch.cat((sin0, sin1, sin2), dim=-1)
+    $$
+
+    $$
+    queryRot = query[..., :rotaryDim]
+    $$
+
+    $$
+    queryPass = query[..., rotaryDim:]
+    $$
+
+    （1）rotate\_half（GPT-NeoX style）计算模式：
+    $$
+    x1, x2 = torch.chunk(queryRot, 2, dim=-1)
+    $$
+
+    $$
+    o1[i] = x1[i] * cos[i] - x2[i] * sin[i]
+    $$
+
+    $$
+    o2[i] = x2[i] * cos[i] + x1[i] * sin[i]
+    $$
+
+    $$
+    queryRot = torch.cat((o1, o2), dim=-1)
+    $$
+
+    $$
+    query = torch.cat((queryRot, queryPass), dim=-1)
+    $$
+
+    （2）rotate\_interleaved（GPT-J style）计算模式：
+    $$
+    x1 = queryRot[..., ::2]
+    $$
+
+    $$
+    x2 = queryRot[..., 1::2]
+    $$
+
+    $$
+    queryRot = torch.stack((o1, o2), dim=-1)
+    $$
+
+    $$
+    query = torch.cat((queryRot, queryPass), dim=-1)
+    $$
+
+    2、**rope模式**：positions的shape输入是[numTokens]：
+    $$
+    cosSin[i] = cosSinCache[positions[i]]
+    $$
+
+    $$
+    cos, sin = cosSin.chunk(2, dim=-1)
+    $$
+
+    $$
+    queryRot = query[..., :rotaryDim]
+    $$
+
+    $$
+    queryPass = query[..., rotaryDim:]
+    $$
+
+    （1）rotate\_half（GPT-NeoX style）计算模式：
+    $$
+    x1, x2 = torch.chunk(queryRot, 2, dim=-1)
+    $$
+
+    $$
+    o1[i] = x1[i] * cos[i] - x2[i] * sin[i]
+    $$
+
+    $$
+    o2[i] = x2[i] * cos[i] + x1[i] * sin[i]
+    $$
+
+    $$
+    queryRot = torch.cat((o1, o2), dim=-1)
+    $$
+
+    $$
+    query = torch.cat((queryRot, queryPass), dim=-1)
+    $$
+
+    （2）rotate\_interleaved（GPT-J style）计算模式：
+    $$
+    x1 = query\_rot[..., ::2]
+    $$
+
+    $$
+    x2 = query\_rot[..., 1::2]
+    $$
+
+    $$
+    queryRot = torch.stack((o1, o2), dim=-1)
+    $$
+
+    $$
+    query = torch.cat((queryRot, queryPass), dim=-1)
+    $$
+
+## 函数原型
+
+每个算子分为[两段式接口](common/两段式接口.md)，必须先调用“aclnnRopeWithSinCosCacheGetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnRopeWithSinCosCache”接口执行计算。
+
+* `aclnnStatus aclnnRopeWithSinCosCacheGetWorkspaceSize(const aclTensor *positions, const aclTensor *queryIn, const aclTensor *keyIn, const aclTensor *cosSinCache, const aclIntArray *mropeSection, int64_t headSize, bool isNeoxStyle, aclTensor *queryOut, aclTensor *keyOut, uint64_t *workspaceSize, aclOpExecutor **executor)`
+* `aclnnStatus aclnnRopeWithSinCosCache(void *workspace, uint64_t workspaceSize, aclOpExecutor *executor, aclrtStream stream)`
+
+## aclnnRopeWithSinCosCacheGetWorkspaceSize
+
+*   **参数说明**：
+
+    - positions（aclTensor\*，计算输入）：Device侧的aclTensor，输入索引，公式中的`positions`，用于选取位置编码张量。要求是一个维度为1D或2D的Tensor，shape为(numTokens)或(3, numTokens)，1D维度输入是rope模式，2D维度输入是mrope模式。numTokens表示一个序列中的token数量。支持[非连续的Tensor](common/非连续的Tensor.md)，支持空Tensor。mrope/rope模式下数据类型支持INT32、INT64，[数据格式](common/数据格式.md)支持ND。
+    - queryIn（aclTensor\*，计算输入）：Device侧的aclTensor，表示要执行旋转位置编码的第一个张量，公式中的`query`，要求是一个维度为2D的Tensor，shape为(numTokens,  numQHeads*headSize)。numQHeads表示`query`的注意力头数量。headSize表示每个注意力头维度大小。支持[非连续的Tensor](common/非连续的Tensor.md)，支持空Tensor。mrope/rope模式下数据类型支持BFLOAT16、FLOAT16、FLOAT32，[数据格式](common/数据格式.md)支持ND。
+    - keyIn（aclTensor\*，计算输入）：Device侧的aclTensor，表示要执行旋转位置编码的第二个张量，公式中的`key`，要求是一个维度为2D的Tensor，shape为(numTokens,  numKHeads*headSize)。numKHeads表示`key`的注意力头数量。headSize表示每个注意力头维度大小。支持[非连续的Tensor](common/非连续的Tensor.md)，支持空Tensor。mrope/rope模式下数据类型支持BFLOAT16、FLOAT16、FLOAT32，[数据格式](common/数据格式.md)支持ND。
+    - cosSinCache（aclTensor\*，计算输入）：Device侧的aclTensor，表示参与计算的位置编码张量，要求shape为一个2D的(maxSeqLen, rotaryDim)。maxSeqLen表示模型处理的序列的最大长度。rotaryDim表示旋转位置嵌入的维度大小。支持[非连续的Tensor](common/非连续的Tensor.md)，支持空Tensor。mrope/rope模式下数据类型支持BFLOAT16、FLOAT16、FLOAT32，[数据格式](common/数据格式.md)支持ND。
+    - mropeSection（aclIntArray\*，计算输入）：mrope模式下用于整合输入的位置编码张量信息，公式中的`mropeSection`，输入mropeSection属性表示使能mrope模式。不使能mrope模式（即rope模式）输入为nullptr。
+    - headSize（int64_t, 计算输入）：表示每个注意力头维度大小。数据类型int64。
+    - isNeoxStyle（bool, 计算输入）：true表示rotate\_half（GPT-NeoX style）计算模式，false表示rotate\_interleaved（GPT-J style）计算模式。
+    - queryOut（aclTensor\*，计算输出）：输出query执行旋转位置编码后的结果，要求是一个2D的Tensor，shape为(numTokens,  numQHeads*headSize)。数据类型同query，mrope/rope模式下支持FLOAT、FLOAT16、BFLOAT16，[数据格式](common/数据格式.md)要求为ND。支持输出连续的Tensor。
+    - keyOut（aclTensor\*，计算输出）：输出key执行旋转位置编码后的结果，要求是一个2D的Tensor，shape为(numTokens,  numKvHeads*headSize)。数据类型同key，mrope/rope模式下支持FLOAT、FLOAT16、BFLOAT16，[数据格式](common/数据格式.md)要求为ND。输出连续的Tensor。
+    - workspaceSize（uint64\_t\*，出参）：返回用户需要在Device侧申请的workspace大小。
+    - executor（aclOpExecutor\*\*，出参）：返回op执行器，包含了算子计算流程。
+
+-   **返回值**：
+    
+    aclnnStatus：返回状态码，具体参见[aclnn返回码](./common/aclnn返回码.md)。
+
+    ```
+    第一段接口完成入参校验，出现以下场景时报错：
+    返回161001（ACLNN_ERR_PARAM_NULLPTR）: 传入的positions、queryIn、keyIn、cosSinCache、queryOut、keyOut是空指针。
+    返回161002（ACLNN_ERR_PARAM_INVALID）: 1. positions、queryIn、keyIn、cosSinCache的数据类型不在支持的范围之内。
+                                        2. positions、queryIn、keyIn、cosSinCache的shape不满足要求。
+                                        3. 推导出的数据类型无法转换为指定输出queryOut、keyOut的类型。
+                                        4. mrope模式下，mropeSection输入mropeSection[0]+mropeSection[1]+mropeSection[2]!=rotary_dim/2。
+    ```
+
+## aclnnRopeWithSinCosCache
+
+* **参数说明**​：
+  * workspace（void\*, 入参）：在Device侧申请的workspace内存地址。
+  * workspaceSize（uint64\_t, 入参）：在Device侧申请的workspace大小，由第一段接口aclnnRopeWithSinCosCacheGetWorkspaceSize获取。
+  * executor（aclOpExecutor\*, 入参）：op执行器，包含了算子计算流程。
+  * stream（aclrtStream, 入参）：指定执行任务的 AscendCL Stream流。
+
+- **返回值**
+  
+  aclnnStatus：返回状态码，具体参见[aclnn返回码](./common/aclnn返回码.md)。
+
+## 约束说明
+
+- queryIn、keyIn、cosSinCache只支持2维shape输入。
+- numQHeads支持范围: 1~32。
+- numKHeads支持范围: 1~32。
+- headSize支持范围: 16~128。数据类型为BFLOAT16或FLOAT16时为32的倍数，数据类型为FLOAT32时为16的倍数；
+- rotaryDim支持范围: 16~128，始终小于等于headSize。数据类型为BFLOAT16或FLOAT16时为32的倍数，数据类型为FLOAT32时为16的倍数；
+- 当输入tensor positions中值域超过cosSinCache的0维maxSeqLen，会有越界报错。
+
+## 调用示例
+示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](common/编译与运行样例.md)。
+```Cpp
+#include <iostream>
+#include <vector>
+#include "acl/acl.h"
+#include "aclnnop/level2/aclnn_rope_with_sin_cos_cache.h"
+#include <iostream>
+
+#define CHECK_RET(cond, return_expr)                                           \
+  do {                                                                         \
+    if (!(cond)) {                                                             \
+      return_expr;                                                             \
+    }                                                                          \
+  } while (0)
+
+#define LOG_PRINT(message, ...)                                                \
+  do {                                                                         \
+    printf(message, ##__VA_ARGS__);                                            \
+  } while (0)
+
+int64_t GetShapeSize(const std::vector<int64_t> &shape) {
+  int64_t shapeSize = 1;
+  for (auto i : shape) {
+    shapeSize *= i;
+  }
+  return shapeSize;
+}
+
+void PrintOutResult(std::vector<int64_t> &shape, void **deviceAddr) {
+  auto size = GetShapeSize(shape);
+  std::vector<float> resultData(size, 0);
+  auto ret = aclrtMemcpy(
+      resultData.data(), resultData.size() * sizeof(resultData[0]), *deviceAddr,
+      size * sizeof(resultData[0]), ACL_MEMCPY_DEVICE_TO_HOST);
+  CHECK_RET(
+      ret == ACL_SUCCESS,
+      LOG_PRINT("copy result from device to host failed. ERROR: %d\n", ret);
+      return );
+  for (int64_t i = 0; i < size; i++) {
+    LOG_PRINT("mean result[%ld] is: %f\n", i, resultData[i]);
+  }
+}
+
+int Init(int32_t deviceId, aclrtStream *stream) {
+  // 固定写法，AscendCL初始化
+  auto ret = aclInit(nullptr);
+  CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclInit failed. ERROR: %d\n", ret);
+            return ret);
+  ret = aclrtSetDevice(deviceId);
+  CHECK_RET(ret == ACL_SUCCESS,
+            LOG_PRINT("aclrtSetDevice failed. ERROR: %d\n", ret);
+            return ret);
+  ret = aclrtCreateStream(stream);
+  CHECK_RET(ret == ACL_SUCCESS,
+            LOG_PRINT("aclrtCreateStream failed. ERROR: %d\n", ret);
+            return ret);
+  return 0;
+}
+
+template <typename T>
+int CreateAclTensor(const std::vector<T> &hostData,
+                    const std::vector<int64_t> &shape, void **deviceAddr,
+                    aclDataType dataType, aclTensor **tensor) {
+  auto size = GetShapeSize(shape) * sizeof(T);
+  // 调用aclrtMalloc申请device侧内存
+  auto ret = aclrtMalloc(deviceAddr, size, ACL_MEM_MALLOC_HUGE_FIRST);
+  CHECK_RET(ret == ACL_SUCCESS,
+            LOG_PRINT("aclrtMalloc failed. ERROR: %d\n", ret);
+            return ret);
+  // 调用aclrtMemcpy将host侧数据拷贝到device侧内存上
+  ret = aclrtMemcpy(*deviceAddr, size, hostData.data(), size,
+                    ACL_MEMCPY_HOST_TO_DEVICE);
+  CHECK_RET(ret == ACL_SUCCESS,
+            LOG_PRINT("aclrtMemcpy failed. ERROR: %d\n", ret);
+            return ret);
+
+  // 计算连续tensor的strides
+  std::vector<int64_t> strides(shape.size(), 1);
+  for (int64_t i = shape.size() - 2; i >= 0; i--) {
+    strides[i] = shape[i + 1] * strides[i + 1];
+  }
+
+  // 调用aclCreateTensor接口创建aclTensor
+  *tensor = aclCreateTensor(shape.data(), shape.size(), dataType,
+                            strides.data(), 0, aclFormat::ACL_FORMAT_ND,
+                            shape.data(), shape.size(), *deviceAddr);
+  return 0;
+}
+
+int main() {
+  // 1. （固定写法）device/stream初始化，参考AscendCL对外接口列表
+  // 根据自己的实际device填写deviceId
+  int32_t deviceId = 0;
+  aclrtStream stream;
+  auto ret = Init(deviceId, &stream);
+  CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("Init acl failed. ERROR: %d\n", ret);
+            return ret);
+
+  // 2. 构造输入与输出，需要根据API的接口自定义构造
+  std::vector<int64_t> positionsShape = {2};
+  std::vector<int64_t> queryInShape = {2, 64};
+  std::vector<int64_t> keyInShape = {2, 64};
+  std::vector<int64_t> cosSinCacheShape = {2, 32};
+  std::vector<int64_t> queryOutShape = {2, 64};
+  std::vector<int64_t> keyOutShape = {2, 64};
+  void* positionsDeviceAddr = nullptr;
+  void* queryInDeviceAddr = nullptr;
+  void* keyInDeviceAddr = nullptr;
+  void* cosSinCacheDeviceAddr = nullptr;
+  void* queryOutDeviceAddr = nullptr;
+  void* keyOutDeviceAddr = nullptr;
+
+  aclTensor* positions = nullptr;
+  aclTensor* queryIn = nullptr;
+  aclTensor* keyIn = nullptr;
+  aclTensor* cosSinCache = nullptr;
+  int64_t headSize = 32;
+  bool isNeoxStyle = true;
+  aclTensor *queryOut = nullptr;
+  aclTensor *keyOut = nullptr;
+
+  std::vector<int64_t> positionsHostData = {0, 1};
+  std::vector<float> queryInHostData = {74, 54, 84, 125, 23, 78, 37, 72, 27, 98, 34, 107, 29, 23, 54, 60, 70, 49,
+                                        119, 54, 29, 54, 41, 99, 27, 62, 5, 46, 108, 39, 24, 123, 33, 82, 6, 40, 88,
+                                        24, 6, 116, 38, 119, 110, 5, 30, 79, 87, 18, 29, 100, 90, 24, 21, 93, 63, 68,
+                                        34, 112, 119, 48, 74, 43, 85, 64, 14, 49, 128, 59, 18, 37, 123, 76, 14, 63, 10,
+                                        39, 107, 124, 79, 16, 17, 76, 80, 47, 90, 41, 58, 82, 75, 80, 69, 37, 74, 36, 54,
+                                        26, 32, 54, 13, 100, 105, 15, 13, 69, 122, 26, 94, 59, 29, 14, 60, 8, 24, 17, 45,
+                                        33, 107, 122, 63, 111, 75, 128, 68, 31, 105, 6, 82, 99};
+  std::vector<float> keyInHostData = {112, 32, 66, 114, 69, 31, 117, 122, 77, 57, 78, 119, 115, 25, 54, 27, 122, 65, 15, 85,
+                                      33, 16, 36, 6, 95, 15, 43, 6, 66, 91, 14, 101, 78, 51, 110, 74, 56, 30, 127, 61, 53, 29,
+                                      32, 65, 114, 77, 26, 116, 89, 38, 75, 14, 96, 91, 87, 34, 25, 42, 57, 26, 51, 43, 23, 42,
+                                      40, 17, 98, 117, 53, 75, 68, 75, 38, 41, 115, 76, 67, 22, 76, 10, 24, 46, 85, 54, 61, 114,
+                                      10, 59, 6, 123, 58, 10, 115, 9, 13, 58, 66, 120, 23, 30, 83, 13, 11, 76, 18, 82, 57, 4,
+                                      117, 105, 8, 73, 127, 5, 91, 56, 12, 125, 20, 3, 104, 40, 46, 18, 89, 63, 99, 104};
+  std::vector<float> cosSinCacheHostData = {112, 32, 66, 114, 69, 31, 117, 122, 77, 57, 78, 119, 115, 25, 54, 27, 122, 65, 15, 85,
+                                      33, 16, 36, 6, 95, 15, 43, 6, 66, 91, 14, 101, 78, 51, 110, 74, 56, 30, 127, 61, 53, 29,
+                                      32, 65, 114, 77, 26, 116, 89, 38, 75, 14, 96, 91, 87, 34, 25, 42, 57, 26, 51, 43, 23, 42};
+  std::vector<float> queryOutHostData = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+  std::vector<float> keyOutHostData = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+
+  ret = CreateAclTensor(positionsHostData, positionsShape,
+                        &positionsDeviceAddr, aclDataType::ACL_INT64,
+                        &positions);
+  CHECK_RET(ret == ACL_SUCCESS, return ret);
+  ret = CreateAclTensor(queryInHostData, queryInShape, &queryInDeviceAddr,
+                      aclDataType::ACL_BF16, &queryIn);
+  CHECK_RET(ret == ACL_SUCCESS, return ret);
+  ret = CreateAclTensor(keyInHostData, keyInShape, &keyInDeviceAddr,
+                      aclDataType::ACL_BF16, &keyIn);
+  CHECK_RET(ret == ACL_SUCCESS, return ret);
+  ret = CreateAclTensor(cosSinCacheHostData, cosSinCacheShape, &cosSinCacheDeviceAddr,
+                      aclDataType::ACL_BF16, &cosSinCache);
+  CHECK_RET(ret == ACL_SUCCESS, return ret);
+
+  ret = CreateAclTensor(queryOutHostData, queryOutShape, &queryOutDeviceAddr, aclDataType::ACL_BF16,
+                        &queryOut);
+  CHECK_RET(ret == ACL_SUCCESS, return ret);
+  ret = CreateAclTensor(keyOutHostData, keyOutShape, &keyOutDeviceAddr, aclDataType::ACL_BF16,
+                        &keyOut);
+  CHECK_RET(ret == ACL_SUCCESS, return ret);
+
+  // 3. 调用CANN算子库API，需要修改为具体的Api名称
+  uint64_t workspaceSize = 0;
+  aclOpExecutor *executor;
+
+  // 调用aclnnRopeWithSinCosCache第一段接口
+  ret = aclnnRopeWithSinCosCacheGetWorkspaceSize(positions, queryIn, keyIn, cosSinCache, nullptr, headSize, isNeoxStyle, 
+                                               queryOut, keyOut, &workspaceSize, &executor);
+  CHECK_RET(
+      ret == ACL_SUCCESS,
+      LOG_PRINT("aclnnRopeWithSinCosCacheGetWorkspaceSize failed. ERROR: %d\n", ret);
+      return ret);
+
+  // 根据第一段接口计算出的workspaceSize申请device内存
+  void *workspaceAddr = nullptr;
+  if (workspaceSize > 0) {
+    ret = aclrtMalloc(&workspaceAddr, workspaceSize, ACL_MEM_MALLOC_HUGE_FIRST);
+    CHECK_RET(ret == ACL_SUCCESS,
+              LOG_PRINT("allocate workspace failed. ERROR: %d\n", ret);
+              return ret);
+  }
+
+  // 调用aclnnRopeWithSinCosCache第二段接口
+  ret = aclnnRopeWithSinCosCache(workspaceAddr, workspaceSize, executor, stream);
+  CHECK_RET(ret == ACL_SUCCESS,
+            LOG_PRINT("aclnnRopeWithSinCosCache failed. ERROR: %d\n", ret);
+            return ret);
+
+  // 4. （固定写法）同步等待任务执行结束
+  ret = aclrtSynchronizeStream(stream);
+  CHECK_RET(ret == ACL_SUCCESS,
+            LOG_PRINT("aclrtSynchronizeStream failed. ERROR: %d\n", ret);
+            return ret);
+
+  // 5.获取输出的值，将device侧内存上的结果拷贝至host侧，需要根据具体API的接口定义修改
+  PrintOutResult(queryOutShape, &queryOutDeviceAddr);
+  PrintOutResult(keyOutShape, &keyOutDeviceAddr);
+
+  // 6. 释放aclTensor和aclScalar，需要根据具体API的接口定义修改
+  aclDestroyTensor(positions);
+  aclDestroyTensor(queryIn);
+  aclDestroyTensor(keyIn);
+  aclDestroyTensor(cosSinCache);
+  aclDestroyTensor(queryOut);
+  aclDestroyTensor(keyOut);
+
+  // 7. 释放device资源
+  aclrtFree(positionsDeviceAddr);
+  aclrtFree(queryInDeviceAddr);
+  aclrtFree(keyInDeviceAddr);
+  aclrtFree(cosSinCacheDeviceAddr);
+  aclrtFree(queryOutDeviceAddr);
+  aclrtFree(keyOutDeviceAddr);
+
+  if (workspaceSize > 0) {
+    aclrtFree(workspaceAddr);
+  }
+  aclrtDestroyStream(stream);
+  aclrtResetDevice(deviceId);
+  aclFinalize();
+
+  return 0;
+}
+```
