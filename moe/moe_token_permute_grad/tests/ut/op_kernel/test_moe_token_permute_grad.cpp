@@ -49,7 +49,7 @@ TEST_F(moe_token_permute_grad_test, test_bf16) {
   // size_t probsByteSize = 6144 * 8 * sizeof(bfloat16_t);
   // output
   size_t inputDByteSize = 6144 * 5120 * sizeof(bfloat16_t);
-  size_t tilingDataSize = sizeof(MoeTokenUnpermuteTilingData);
+  size_t tilingDataSize = sizeof(MoeTokenPermuteGradTilingData);
 
   uint8_t* permuted_output_d = (uint8_t*)AscendC::GmAlloc(permutedOutDByteSize + 32);
   uint8_t* sorted_indices = (uint8_t*)AscendC::GmAlloc(sortedIndicesByteSize + 32);
@@ -64,7 +64,7 @@ TEST_F(moe_token_permute_grad_test, test_bf16) {
   char* path_ = get_current_dir_name();
   string path(path_);
 
-  MoeTokenUnpermuteTilingData* tilingDatafromBin = reinterpret_cast<MoeTokenUnpermuteTilingData*>(tiling);
+  MoeTokenPermuteGradTilingData* tilingDatafromBin = reinterpret_cast<MoeTokenPermuteGradTilingData*>(tiling);
 
   ICPU_SET_TILING_KEY(0);
   ICPU_RUN_KF(moe_token_permute_grad, blockDim, permuted_output_d, sorted_indices, input_grad, workspace, tiling);
@@ -93,7 +93,7 @@ TEST_F(moe_token_permute_grad_test, test_fp16) {
   // size_t probsByteSize = 6144 * 8 * sizeof(bfloat16_t);
   // output
   size_t inputDByteSize = 6144 * 5120 * sizeof(bfloat16_t);
-  size_t tilingDataSize = sizeof(MoeTokenUnpermuteTilingData);
+  size_t tilingDataSize = sizeof(MoeTokenPermuteGradTilingData);
 
   uint8_t* permuted_output_d = (uint8_t*)AscendC::GmAlloc(permutedOutDByteSize + 32);
   uint8_t* sorted_indices = (uint8_t*)AscendC::GmAlloc(sortedIndicesByteSize + 32);
@@ -108,7 +108,7 @@ TEST_F(moe_token_permute_grad_test, test_fp16) {
   char* path_ = get_current_dir_name();
   string path(path_);
 
-  MoeTokenUnpermuteTilingData* tilingDatafromBin = reinterpret_cast<MoeTokenUnpermuteTilingData*>(tiling);
+  MoeTokenPermuteGradTilingData* tilingDatafromBin = reinterpret_cast<MoeTokenPermuteGradTilingData*>(tiling);
 
   ICPU_SET_TILING_KEY(2);
   ICPU_RUN_KF(moe_token_permute_grad, blockDim, permuted_output_d, sorted_indices, input_grad, workspace, tiling);
@@ -137,7 +137,7 @@ TEST_F(moe_token_permute_grad_test, test_fp32) {
   // size_t probsByteSize = 6144 * 8 * sizeof(bfloat16_t);
   // output
   size_t inputDByteSize = 6144 * 5120 * sizeof(bfloat16_t);
-  size_t tilingDataSize = sizeof(MoeTokenUnpermuteTilingData);
+  size_t tilingDataSize = sizeof(MoeTokenPermuteGradTilingData);
 
   uint8_t* permuted_output_d = (uint8_t*)AscendC::GmAlloc(permutedOutDByteSize + 32);
   uint8_t* sorted_indices = (uint8_t*)AscendC::GmAlloc(sortedIndicesByteSize + 32);
@@ -152,7 +152,7 @@ TEST_F(moe_token_permute_grad_test, test_fp32) {
   char* path_ = get_current_dir_name();
   string path(path_);
 
-  MoeTokenUnpermuteTilingData* tilingDatafromBin = reinterpret_cast<MoeTokenUnpermuteTilingData*>(tiling);
+  MoeTokenPermuteGradTilingData* tilingDatafromBin = reinterpret_cast<MoeTokenPermuteGradTilingData*>(tiling);
 
   ICPU_SET_TILING_KEY(4);
   ICPU_RUN_KF(moe_token_permute_grad, blockDim, permuted_output_d, sorted_indices, input_grad, workspace, tiling);

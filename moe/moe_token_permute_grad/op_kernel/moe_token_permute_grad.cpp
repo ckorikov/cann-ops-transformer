@@ -24,7 +24,7 @@ extern "C" __global__ __aicore__ void moe_token_permute_grad(
     GM_ADDR tiling)
 {
     GET_TILING_DATA(tiling_data_in, tiling);
-    const MoeTokenUnpermuteTilingData* __restrict tiling_data = &tiling_data_in;
+    const MoeTokenPermuteGradTilingData* __restrict tiling_data = &tiling_data_in;
 
     // 调用unpermute计算， probs始终false
     if (TILING_KEY_IS(0)) {

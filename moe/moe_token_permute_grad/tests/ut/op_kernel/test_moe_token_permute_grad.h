@@ -22,7 +22,7 @@
 
 #define __aicore__
 
-struct MoeTokenUnpermuteTilingData {
+struct MoeTokenPermuteGradTilingData {
   int64_t hidden_size = 0;
   int64_t top_k = 0;
   int64_t num_out_tokens = 0;
@@ -37,11 +37,11 @@ struct MoeTokenUnpermuteTilingData {
   int64_t buffer_num = 0;
 };
 
-inline void InitMoeTokenUnpermuteTilingData(uint8_t* tiling, MoeTokenUnpermuteTilingData* const_data) {
-  memcpy(const_data, tiling, sizeof(MoeTokenUnpermuteTilingData));
+inline void InitMoeTokenPermuteGradTilingData(uint8_t* tiling, MoeTokenPermuteGradTilingData* const_data) {
+  memcpy(const_data, tiling, sizeof(MoeTokenPermuteGradTilingData));
 }
 
 #define GET_TILING_DATA(tilingData, tilingPointer) \
-  MoeTokenUnpermuteTilingData tilingData;          \
-  InitMoeTokenUnpermuteTilingData(tilingPointer, &tilingData)
+  MoeTokenPermuteGradTilingData tilingData;          \
+  InitMoeTokenPermuteGradTilingData(tilingPointer, &tilingData)
 #endif

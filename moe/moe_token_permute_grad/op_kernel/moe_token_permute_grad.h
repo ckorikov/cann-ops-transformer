@@ -37,7 +37,7 @@ public:
 
     __aicore__ inline void Init(
         GM_ADDR permuted_tokens, GM_ADDR sorted_indices, GM_ADDR probs, GM_ADDR unpermuted_tokens,
-        const MoeTokenUnpermuteTilingData* __restrict tiling_data);
+        const MoeTokenPermuteGradTilingData* __restrict tiling_data);
     __aicore__ inline void Process();
 
 protected:
@@ -83,7 +83,7 @@ protected:
 template <typename T1, typename T2, typename T3, bool PROBS>
 __aicore__ inline void KernelMoeTokenUnpermute<T1, T2, T3, PROBS>::Init(
     GM_ADDR permuted_tokens, GM_ADDR sorted_indices, GM_ADDR probs, GM_ADDR unpermuted_tokens,
-    const MoeTokenUnpermuteTilingData* __restrict tiling_data)
+    const MoeTokenPermuteGradTilingData* __restrict tiling_data)
 {
     ASSERT(GetBlockNum() != 0 && "block dim can not be zero!");
     // row_input
