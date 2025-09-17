@@ -61,6 +61,15 @@ function help_info() {
     echo "--ophost_test        Executes a host unit test (UT). If there are multiple values, separate them with semicolons and use quotation marks."
     echo "                     For example: bash build.sh -ophost_test -n \"distribute_barrier\" -c \"ascend910_93\" or bash build.sh -ophost_test -c \"ascend910_93\" or bash build.sh -ophost_test"
     echo
+    echo "--opapi_test         Executes a api unit test (UT). If there are multiple values, separate them with semicolons and use quotation marks."
+    echo "                     For example: bash build.sh -opapi_test -n \"distribute_barrier\" -c \"ascend910_93\" or bash build.sh -opapi_test -c \"ascend910_93\" or bash build.sh -opapi_test"
+    echo
+    echo "--opgraph_test       Executes a graph unit test (UT). If there are multiple values, separate them with semicolons and use quotation marks."
+    echo "                     For example: bash build.sh -opgraph_test -n \"distribute_barrier\" -c \"ascend910_93\" or bash build.sh -opgraph_test -c \"ascend910_93\" or bash build.sh -opgraph_test"
+    echo
+    echo "--opkernel_test      Executes a kernel unit test (UT). If there are multiple values, separate them with semicolons and use quotation marks."
+    echo "                     For example: bash build.sh -opkernel_test -n \"distribute_barrier\" -c \"ascend910_93\" or bash build.sh -opkernel_test -c \"ascend910_93\" or bash build.sh -opkernel_test"
+    echo
     echo "-e|--example         Executes example."
     echo
     echo "--tiling_key         Sets the tiling key list for operators. If there are multiple values, separate them with semicolons and use quotation marks. The default is all."
@@ -76,6 +85,12 @@ function help_info() {
     echo
 }
 
+
+export BASE_PATH=$(
+    cd "$(dirname $0)"
+    pwd
+)
+export BUILD_PATH="${BASE_PATH}/build"
 function log() {
     local current_time=`date +"%Y-%m-%d %H:%M:%S"`
     echo "[$current_time] "$1
@@ -187,6 +202,15 @@ set_ut_mode() {
   if [[ "$UT_TEST_ALL" == "TRUE" ]] || [[ "$OP_HOST_UT" == "TRUE" ]]; then
     UT_TARGES+=("${REPOSITORY_NAME}_op_host_ut")
   fi
+  if [[ "$UT_TEST_ALL" == "TRUE" ]] || [[ "$OP_API_UT" == "TRUE" ]]; then
+    UT_TARGES+=("${REPOSITORY_NAME}_op_api_ut")
+  fi
+  if [[ "$UT_TEST_ALL" == "TRUE" ]] || [[ "$OP_GRAPH_UT" == "TRUE" ]]; then
+    UT_TARGES+=("${REPOSITORY_NAME}_op_graph_ut")
+  fi
+  if [[ "$UT_TEST_ALL" == "TRUE" ]] || [[ "$OP_KERNEL_UT" == "TRUE" ]]; then
+    UT_TARGES+=("${REPOSITORY_NAME}_op_kernel_ut")
+  fi
 }
 
 ########################################################################################################################
@@ -219,7 +243,8 @@ while [[ $# -gt 0 ]]; do
         BUILD="$2"
         shift 2
         ;;
-    -t|--test)
+    -u|--test)
+        ENABLE_TEST=TRUE
         shift
         if [ -n "$1" ];then
             _parameter=$1
@@ -306,8 +331,27 @@ while [[ $# -gt 0 ]]; do
         shift 2
         ;;
     --ophost_test)
+        TEST="all"
         ENABLE_TEST=TRUE
         OP_HOST=TRUE
+        shift
+        ;;
+    --opapi_test)
+        TEST="all"
+        ENABLE_TEST=TRUE
+        OP_API=TRUE
+        shift
+        ;;
+    --opgraph_test)
+        TEST="all"
+        ENABLE_TEST=TRUE
+        OP_GRAPH=TRUE
+        shift
+        ;;
+    --opkernel_test)
+        TEST="all"
+        ENABLE_TEST=TRUE
+        OP_KERNEL=TRUE
         shift
         ;;
     *)
@@ -484,6 +528,13 @@ build_ut() {
     mkdir -p "${BUILD_DIR}"
   fi
   cd "${BUILD_DIR}" && cmake ${CUSTOM_OPTION} ..
+
+  local target="$1"
+  if [ "${VERBOSE}" == "true"]; then
+    local option="--verbose"
+  fi
+  cmake --build . --target ${target} ${JOB_NUM} ${option}
+
   cmake --build . --target ${UT_TARGES[@]} -j $CORE_NUMS
   if [[ "$cov" =~ "TRUE" ]]; then
     cmake --build . --target generate_ops_cpp_cov -- -j $CORE_NUMS
@@ -491,7 +542,7 @@ build_ut() {
 }
 cd ${BUILD_DIR}
 if [[ "$ENABLE_TEST" == "TRUE" ]]; then
-    build_ut
+    build_ut ${BUILD}
 else
     if [ "${BUILD}" == "host" ];then
         cmake_config -DENABLE_OPS_KERNEL=OFF

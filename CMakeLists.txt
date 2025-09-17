@@ -59,7 +59,8 @@ set(CMAKE_CXX_STANDARD 17 CACHE STRING "c++17 is needed for this project")
 
 include(cmake/config.cmake)
 include(cmake/func.cmake)
-include(cmake/third_party/nlohmann_json.cmake)
+include(cmake/external/json.cmake)
+include(${OPS_ADV_CMAKE_DIR}/ut.cmake)
 
 if (BUILD_OPEN_PROJECT)
     include(cmake/intf.cmake)
@@ -71,38 +72,6 @@ if (BUILD_OPEN_PROJECT)
         message(STATUS "Start building custom package.")
         include(cmake/dependencies.cmake)
         include(cmake/variables.cmake)
-        if(UT_TEST_ALL OR OP_HOST_UT)
-            # ut common dependencies
-            include(cmake/intf_pub_llt_gccnative.cmake)
-            include(cmake/ut.cmake)
-            include(cmake/third_party/gtest.cmake)
-        
-            # op host ut
-            if(UT_TEST_ALL OR OP_HOST_UT)
-                set(OP_TILING_MODULE_NAME ${PKG_NAME}_op_tiling_ut)
-                add_optiling_modules(${OP_TILING_MODULE_NAME})
-            
-                set(OP_INFERSHAPE_MODULE_NAME ${PKG_NAME}_op_infershape_ut)
-                add_infershape_modules(${OP_INFERSHAPE_MODULE_NAME})
-            endif()
-
-            # op api ut
-            if(UT_TEST_ALL OR OP_API_UT)
-                set(OP_API_MODULE_NAME ${PKG_NAME}_op_api_ut)
-            endif()
-
-            # op graph ut
-            if(UT_TEST_ALL OR OP_GRAPH_UT)
-                set(OP_GRAPH_MODULE_NAME ${PKG_NAME}_op_graph_ut)
-            endif()
-        
-            # op kernel ut
-            if(UT_TEST_ALL OR OP_KERNEL_UT)
-                set(OP_KERNEL_MODULE_NAME ${PKG_NAME}_op_kernel_ut)
-            endif()
-        
-            add_subdirectory(tests/ut)
-        endif()
         include(cmake/obj_func.cmake)
 
         include(cmake/custom_build.cmake)

@@ -10,7 +10,7 @@
 #### CPACK to package run #####
 
 # download makeself package
-include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/third_party/makeself-fetch.cmake)
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/external/makeself-fetch.cmake)
 
 function(pack_custom)
   message(STATUS "System processor: ${CMAKE_SYSTEM_PROCESSOR}")

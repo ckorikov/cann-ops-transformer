@@ -344,6 +344,7 @@ function(OpsTest_AddOpTilingShared)
     target_include_directories(${_Target}
             PRIVATE
                 ${_OpsTestUt_OpTilingPrivateIncludesExt}
+                ${OPS_TRANSFORMER_DIR}/common/include
     )
     target_compile_definitions(${_Target}
             PRIVATE
@@ -589,6 +590,9 @@ function(OpsTest_Level1_AddUTestCommonStatic)
                     -Wl,--no-whole-archive
                     platform
                     register
+                    rt2_registry_static
+                    error_manager
+                    metadef
                     tiling_api
                     $<BUILD_INTERFACE:intf_pub_utest>
                     $<BUILD_INTERFACE:_OpsTestUt_UTestCaseStatic_Wno>

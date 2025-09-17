@@ -27,6 +27,8 @@ if (NOT EXISTS "${MAKESELF_PATH}/makeself-header.sh" OR NOT EXISTS "${MAKESELF_P
     execute_process(
         COMMAND chmod 700 "${CMAKE_BINARY_DIR}/makeself/makeself.sh"
         COMMAND chmod 700 "${CMAKE_BINARY_DIR}/makeself/makeself-header.sh"
+        -E env
+        CMAKE_TLS_VERIFY=0
         RESULT_VARIABLE CHMOD_RESULT
         ERROR_VARIABLE CHMOD_ERROR
     )

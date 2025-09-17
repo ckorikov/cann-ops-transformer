@@ -27,10 +27,10 @@ find_package_handle_standard_args(json
   )
 
 if(json_FOUND)
-  set(JSON_INCLUDE_DIR ${JSON_INCLUDE})
+  set(JSON_INCLUDE_DIR ${JSON_INCLUDE_DIR})
 
   add_library(json INTERFACE IMPORTED)
   set_target_properties(json PROPERTIES
-    INTERFACE_INCLUDE_DIRECTORIES "${JSON_INCLUDE}")
+    INTERFACE_INCLUDE_DIRECTORIES "${JSON_INCLUDE_DIR}")
   target_compile_definitions(json INTERFACE nlohmann=ascend_nlohmann)
 endif()
