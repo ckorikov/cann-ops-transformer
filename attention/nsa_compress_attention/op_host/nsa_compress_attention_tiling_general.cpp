@@ -14,7 +14,7 @@
  */
 
 #include "log/log.h"
-#include "error/ops_error.h"
+#include "err/ops_err.h"
 #include <numeric>
 #include "tiling/data_copy_transpose_tiling.h"
 #include "tiling/tiling_base.h"

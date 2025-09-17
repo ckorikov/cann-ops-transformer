@@ -18,7 +18,7 @@
 #include <cmath>
 #include <cfloat>
 #include "log/log.h"
-#include "error/ops_error.h"
+#include "err/ops_err.h"
 #include <register/op_impl_registry.h>
 #include "tiling/data_copy_transpose_tiling.h"
 #include "tiling/tiling_templates_registry.h"
@@ -48,11 +48,11 @@ static ge::graphStatus CheckParams(const gert::TilingContext *context)
             // q shape: N2, T, G, D1
             // k shape: T, N2, D2
             OP_CHECK_IF((queryShape.GetDim(3) != keyShape.GetDim(2)),
-                        OPS_REPORT_VECTOR_INNER_ERR(context, "query or key shape is invalid"),
+                        OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "query or key shape is invalid"),
                         return ge::GRAPH_FAILED);
             // kD < vD
             OP_CHECK_IF((keyShape.GetDim(2) < valueShape.GetDim(2)),
-                OPS_REPORT_VECTOR_INNER_ERR(context, "key or value shape is invalid"),
+                OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "key or value shape is invalid"),
                 return ge::GRAPH_FAILED);
             return ge::SUCCESS;
         } else {

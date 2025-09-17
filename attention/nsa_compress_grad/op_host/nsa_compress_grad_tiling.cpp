@@ -17,7 +17,7 @@
 #include <cmath>
 #include <cfloat>
 #include "log/log.h"
-#include "error/ops_error.h"
+#include "err/ops_err.h"
 #include <register/op_impl_registry.h>
 #include "tiling/tiling_templates_registry.h"
 

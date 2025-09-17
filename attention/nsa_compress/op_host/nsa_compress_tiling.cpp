@@ -19,7 +19,7 @@
 #include <graph/utils/type_utils.h>
 #include "register/op_impl_registry.h"
 #include "log/log.h"
-#include "error/ops_error.h"
+#include "err/ops_err.h"
 #include "tiling/tiling_base.h"
 using namespace ge;
 using namespace AscendC;
@@ -43,19 +43,19 @@ static ge::graphStatus CheckParams(const gert::TilingContext *context)
         const int64_t actseqlenType = *context->GetAttrs()->GetAttrPointer<int64_t>(ACT_SEQ_LEN_TYPE_ATTRS_INDEX);
 
         OP_CHECK_IF((inputLayout[0] != 'T' || inputLayout[1] != 'N' || inputLayout[2] != 'D'),
-                   OPS_REPORT_VECTOR_INNER_ERR(context, "The inputLayout currently only supports the 'TND' format"),
+                   OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "The inputLayout currently only supports the 'TND' format"),
                    return ge::GRAPH_FAILED);
 
         OP_CHECK_IF(
             (inputShape.GetDim(1) != weightShape.GetDim(1)),
             OPS_REPORT_VECTOR_INNER_ERR(
-                context,
+                context->GetNodeName(),
                 "The 2nd dim of input must equal 2nd dim of weight, but got input.shape[1]=%ld, weight.shape[1]=%ld",
                 inputShape.GetDim(1), weightShape.GetDim(1)),
             return ge::GRAPH_FAILED);
 
         OP_CHECK_IF((weightShape.GetDim(0) != inputCompressBlockSize),
-                   OPS_REPORT_VECTOR_INNER_ERR(context,
+                   OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(),
                                                "The 1st dim of weight must equal compressBlockSize, but got "
                                                "weight.shape[0]=%ld, compressBlockSize=%ld",
                                                weightShape.GetDim(0), inputCompressBlockSize),
@@ -63,25 +63,25 @@ static ge::graphStatus CheckParams(const gert::TilingContext *context)
 
         OP_CHECK_IF((inputCompressBlockSize % 16 != 0),
                    OPS_REPORT_VECTOR_INNER_ERR(
-                       context, "compressBlockSize must be a multiple of 16, but got compressBlockSize=%ld",
+                       context->GetNodeName(), "compressBlockSize must be a multiple of 16, but got compressBlockSize=%ld",
                        inputCompressBlockSize),
                    return ge::GRAPH_FAILED);
 
         OP_CHECK_IF((inputCompressStride % 16 != 0),
-                   OPS_REPORT_VECTOR_INNER_ERR(context,
+                   OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(),
                                                "compressStride must be a multiple of 16, but got compressStride=%ld",
                                                inputCompressStride),
                    return ge::GRAPH_FAILED);
 
         OP_CHECK_IF((inputCompressBlockSize < inputCompressStride),
-                   OPS_REPORT_VECTOR_INNER_ERR(context,
+                   OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(),
                                                "compressStride can not greater than compressBlockSize, but got "
                                                "compressBlockSize=%ld, compressStride=%ld",
                                                inputCompressBlockSize, inputCompressStride),
                    return ge::GRAPH_FAILED);
 
         OP_CHECK_IF((actseqlenType == 1),
-                   OPS_REPORT_VECTOR_INNER_ERR(context, "actseqlenType only support 0, but got actseqlenType=%ld",
+                   OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "actseqlenType only support 0, but got actseqlenType=%ld",
                                                actseqlenType),
                    return ge::GRAPH_FAILED);
 

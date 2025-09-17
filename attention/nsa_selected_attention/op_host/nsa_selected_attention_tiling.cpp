@@ -18,7 +18,7 @@
 #include <cmath>
 #include <cfloat>
 #include "log/log.h"
-#include "error/ops_error.h"
+#include "err/ops_err.h"
 #include <register/op_impl_registry.h>
 #include "tiling/data_copy_transpose_tiling.h"
 #include "tiling/tiling_templates_registry.h"
@@ -93,32 +93,32 @@ static ge::graphStatus CheckParams(const gert::TilingContext *context)
             if (inputLayout[0] == 'B') {
                 // layout is BSH
                 OP_CHECK_IF((queryShape.GetDim(0) != keyShape.GetDim(0)),
-                        OPS_REPORT_VECTOR_INNER_ERR(context, "query or key shape is invalid"),
+                        OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "query or key shape is invalid"),
                         return ge::GRAPH_FAILED);
             } else {
                 if (inputLayout[0] == 'T') { // TND  N1 != N2
                     // q_D != k_D
                     OP_CHECK_IF((queryShape.GetDim(2) != keyShape.GetDim(2)),
-                            OPS_REPORT_VECTOR_INNER_ERR(context, "query or key shape is invalid"),
+                            OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "query or key shape is invalid"),
                             return ge::GRAPH_FAILED);
                     return ge::SUCCESS;
                 }
                 // layout is SBH
                 OP_CHECK_IF((queryShape.GetDim(1) != keyShape.GetDim(1)),
-                        OPS_REPORT_VECTOR_INNER_ERR(context, "query or key shape is invalid"),
+                        OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "query or key shape is invalid"),
                         return ge::GRAPH_FAILED);
             }
             // kD < vD
             OP_CHECK_IF((keyShape.GetDim(2) < valueShape.GetDim(2)),
-                OPS_REPORT_VECTOR_INNER_ERR(context, "key or value shape is invalid"),
+                OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "key or value shape is invalid"),
                 return ge::GRAPH_FAILED);
         } else if (strlen(inputLayout) == 4) { // 4: layout is BNSD or BSND
             OP_CHECK_IF((queryShape.GetDim(0) != keyShape.GetDim(0)),
-                    OPS_REPORT_VECTOR_INNER_ERR(context, "query or key shape is invalid"), return ge::GRAPH_FAILED);
+                    OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "query or key shape is invalid"), return ge::GRAPH_FAILED);
             OP_CHECK_IF((queryShape.GetDim(3) != keyShape.GetDim(3)),
-                    OPS_REPORT_VECTOR_INNER_ERR(context, "query or key shape is invalid"), return ge::GRAPH_FAILED);
+                    OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "query or key shape is invalid"), return ge::GRAPH_FAILED);
             OP_CHECK_IF((keyShape.GetDim(3) < valueShape.GetDim(3)),
-                    OPS_REPORT_VECTOR_INNER_ERR(context, "key or value shape is invalid"), return ge::GRAPH_FAILED);
+                    OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "key or value shape is invalid"), return ge::GRAPH_FAILED);
         } else {
             OP_LOGW(context, "invalid input_layout[%s].", inputLayout);
             return ge::GRAPH_FAILED;
@@ -183,13 +183,13 @@ static bool IsEmptyInput(gert::TilingContext *context)
         auto kernelType = context->GetInputDesc(KEY_INPUT_INDEX)->GetDataType();
         NsaSelectedAttentionEmptyInputTiling emptyInputTiling;
         auto compileInfoPtr = reinterpret_cast<const NsaSelectedAttentionCompileInfo *>(context->GetCompileInfo());
-        OP_CHECK_IF(compileInfoPtr == nullptr, OPS_REPORT_VECTOR_INNER_ERR(context, "compileInfoPtr is null"),
+        OP_CHECK_IF(compileInfoPtr == nullptr, OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "compileInfoPtr is null"),
                 return false);
         uint32_t coreNum = compileInfoPtr->aivNum;
         OP_CHECK_IF((coreNum <= 0),
-                OPS_REPORT_VECTOR_INNER_ERR(context, "platform info is invalid, coreNum=%u.", coreNum), return false);
+                OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "platform info is invalid, coreNum=%u.", coreNum), return false);
         OP_CHECK_IF((kernelType != ge::DT_FLOAT16 && kernelType != ge::DT_FLOAT && kernelType != ge::DT_BF16),
-                OPS_REPORT_VECTOR_INNER_ERR(context, "kernelType is invalid, kernelType is %d", kernelType),
+                OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "kernelType is invalid, kernelType is %d", kernelType),
                 return false);
         uint32_t attentionOutFormerNum;          // attentionOut的主核
         uint32_t attentionOutTailNum;            // attentionOut的尾核

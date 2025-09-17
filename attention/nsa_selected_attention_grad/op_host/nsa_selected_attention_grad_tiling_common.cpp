@@ -15,7 +15,7 @@
 
 #include "nsa_selected_attention_grad_tiling_common.h"
 #include "log/log.h"
-#include "error/ops_error.h"
+#include "err/ops_err.h"
 
 namespace optiling {
 namespace nsa {
@@ -111,14 +111,14 @@ ge::graphStatus CheckSoftmaxDtype(gert::TilingContext *context)
     auto softmaxMax = context->GetOptionalInputDesc(static_cast<size_t>(InputIndex::SOFTMAX_MAX));
     auto softmaxSum = context->GetOptionalInputDesc(static_cast<size_t>(InputIndex::SOFTMAX_SUM));
     OP_CHECK_IF(softmaxMax == nullptr || softmaxSum == nullptr,
-               OPS_REPORT_VECTOR_INNER_ERR(context, "softmax_max or softmax_sum is nullptr."), return ge::GRAPH_FAILED);
+               OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "softmax_max or softmax_sum is nullptr."), return ge::GRAPH_FAILED);
 
     auto softmaxMaxType = static_cast<uint32_t>(softmaxMax->GetDataType());
     auto softmaxSumType = static_cast<uint32_t>(softmaxSum->GetDataType());
 
     bool softmaxTypeCheck = (softmaxMaxType == softmaxSumType) && (softmaxMaxType == ge::DT_FLOAT);
     OP_CHECK_IF(softmaxTypeCheck != true,
-               OPS_REPORT_VECTOR_INNER_ERR(context, "softmaxMaxType should be DT_FLOAT and same with softmaxSumType"),
+               OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "softmaxMaxType should be DT_FLOAT and same with softmaxSumType"),
                return ge::GRAPH_FAILED);
 
     return ge::GRAPH_SUCCESS;
@@ -129,13 +129,13 @@ ge::graphStatus CheckAttentionInDtype(gert::TilingContext *context)
     auto query = context->GetInputDesc(static_cast<size_t>(InputIndex::QUERY));
     auto attentionIn = context->GetOptionalInputDesc(static_cast<size_t>(InputIndex::ATTENTION_OUT));
     OP_CHECK_IF(query == nullptr || attentionIn == nullptr,
-               OPS_REPORT_VECTOR_INNER_ERR(context, "query or attentionIn is nullptr."), return ge::GRAPH_FAILED);
+               OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "query or attentionIn is nullptr."), return ge::GRAPH_FAILED);
 
     auto queryType = static_cast<uint32_t>(query->GetDataType());
     auto attentionInType = static_cast<uint32_t>(attentionIn->GetDataType());
 
     OP_CHECK_IF(queryType != attentionInType,
-               OPS_REPORT_VECTOR_INNER_ERR(context, "invalid attentionIn dtype should be same with query's dtype"),
+               OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "invalid attentionIn dtype should be same with query's dtype"),
                return ge::GRAPH_FAILED);
 
     return ge::GRAPH_SUCCESS;

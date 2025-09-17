@@ -14,7 +14,7 @@
  */
 
 #include "log/log.h"
-#include "error/ops_error.h"
+#include "err/ops_err.h"
 #include <numeric>
 #include "tiling/tiling_type.h"
 #include "tiling/tiling_templates_registry.h"
