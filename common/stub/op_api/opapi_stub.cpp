@@ -1,4 +1,5 @@
-/**
+ 
+ /**
  * Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
  * This file is a part of the CANN Open Software.
  * Licensed under CANN Open Software License Agreement Version 1.0 (the "License").
@@ -284,6 +285,12 @@ const aclTensor *InplaceIndexAddWithSorted(const aclTensor * /*self*/, const int
                                            const aclTensor * /*sortedIndices*/, const aclTensor * /*pos*/,
                                            const aclTensor * /*value*/, const aclTensor * /*alphaTensor*/,
                                            aclOpExecutor * /*executor*/)
+{
+    return nullptr;
+}
+
+const aclTensor *GatherV3(const aclTensor *self, int64_t axis, const aclTensor *indices, aclOpExecutor *executor,
+                        int batchDims = 0, bool negativeIndexSupport = false)
 {
     return nullptr;
 }
