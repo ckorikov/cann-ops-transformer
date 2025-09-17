@@ -93,10 +93,11 @@ function(op_add_subdirectory OP_LIST OP_DIR_LIST)
     "${CMAKE_CURRENT_SOURCE_DIR}/attention/**/CMakeLists.txt"
     )
     if(BUILD_OPEN_PROJECT AND (NOT BUILD_OPS_RTY_KERNEL))
-        file(GLOB OP_HOST_CMAKE_FILES 
+        file(GLOB CANNDEV_OPS_HOST_CMAKE_FILES 
             "${CMAKE_CURRENT_SOURCE_DIR}/posembedding/**/op_host/CMakeLists.txt"
             "${CMAKE_CURRENT_SOURCE_DIR}/moe/**/op_host/CMakeLists.txt"
         )
+        List(APPEND OP_HOST_CMAKE_FILES ${CANNDEV_OPS_HOST_CMAKE_FILES})
     endif()
 
     foreach(OP_CMAKE_FILE ${OP_HOST_CMAKE_FILES})

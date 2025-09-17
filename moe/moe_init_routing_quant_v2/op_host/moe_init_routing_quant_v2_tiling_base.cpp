@@ -188,7 +188,6 @@ ge::graphStatus InnerMoeInitRoutingV2TilingBase::CheckOutShape()
 ge::graphStatus InnerMoeInitRoutingV2TilingBase::GetShapeAttrsInfo()
 {
     opName = context_->GetNodeName();
-    OPS_LOG_FULL(DLOG_DEBUG, opName, "Tilingstart");
 
     // 获取输入shape
     auto xShapePtr = context_->GetInputShape(INDEX_INPUT_X);

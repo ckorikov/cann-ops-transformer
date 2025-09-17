@@ -183,7 +183,6 @@ ge::graphStatus MoeInitRoutingQuantTilingBase::CheckOutShape()
 ge::graphStatus MoeInitRoutingQuantTilingBase::GetShapeAttrsInfo()
 {
     opName = context_->GetNodeName();
-    OPS_LOG_FULL(DLOG_DEBUG, opName, "Tilingstart");
 
     // 获取输入shape
     const gert::Shape xShape = context_->GetInputShape(0)->GetStorageShape();
