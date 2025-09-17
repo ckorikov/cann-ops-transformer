@@ -45,7 +45,7 @@ from common.py.utils.comm_log import CommLog
 def get_comments(package_name: PackageName) -> str:
     """获取run包注释。"""
     comments = '_'.join(
-        [package_name.chip_name.upper(), package_name.func_name.upper(), 'RUN_PACKAGE']
+        [package_name.product_name.upper(), package_name.func_name.upper(), 'RUN_PACKAGE']
     )
     return f'"{comments}"'
 

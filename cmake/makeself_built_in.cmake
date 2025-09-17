@@ -33,7 +33,7 @@ endif()
 # 生成安装配置文件
 set(CSV_OUTPUT ${CPACK_CMAKE_BINARY_DIR}/filelist.csv)
 execute_process(
-    COMMAND python3 ${CPACK_CMAKE_SOURCE_DIR}/scripts/package/package.py --pkg_name ops_math --os_arch linux.${CPACK_ARCH}
+    COMMAND python3 ${CPACK_CMAKE_SOURCE_DIR}/scripts/package/package.py --pkg_name ops_transformer --os_arch linux.${CPACK_ARCH}
     WORKING_DIRECTORY ${CPACK_CMAKE_BINARY_DIR}
     OUTPUT_VARIABLE result
     ERROR_VARIABLE error
@@ -54,22 +54,22 @@ set(SCENE_OUT_PUT
     ${CPACK_CMAKE_BINARY_DIR}/scene.info
 )
 set(NN_VERSION_OUT_PUT
-    ${CPACK_CMAKE_BINARY_DIR}/ops_math_version.h
+    ${CPACK_CMAKE_BINARY_DIR}/ops_transformer_version.h
 )
 
 configure_file(
     ${SCENE_OUT_PUT}
-    ${STAGING_DIR}/ops_math/
+    ${STAGING_DIR}/ops_transformer/
     COPYONLY
 )
 configure_file(
     ${CSV_OUTPUT}
-    ${STAGING_DIR}/ops_math/script/
+    ${STAGING_DIR}/ops_transformer/script/
     COPYONLY
 )
 configure_file(
     ${NN_VERSION_OUT_PUT}
-    ${STAGING_DIR}/ops_math/
+    ${STAGING_DIR}/ops_transformer/
     COPYONLY
 )
 # makeself打包

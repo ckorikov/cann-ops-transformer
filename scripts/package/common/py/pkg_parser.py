@@ -21,9 +21,8 @@ import sys
 from argparse import Namespace
 from functools import partial
 from io import StringIO
-from itertools import chain, filterfalse
+from itertools import chain
 from operator import attrgetter, itemgetter, methodcaller
-from pathlib import Path
 from typing import (
     Any, Callable, Dict, Iterable, Iterator, List, NamedTuple, Optional, Set, Tuple, Union
 )
@@ -250,33 +249,6 @@ def parse_package_attr(root_ele: ET.Element, args: Namespace) -> Dict:
         parse_package_info(package_info_ele),
         parse_package_attr_by_args(args),
     )
-
-
-def is_version_xml(filepath: str) -> bool:
-    """是否为xml版本配置。"""
-    if os.path.isfile(filepath) and VersionXml.match(filepath):
-        return True
-    return False
-
-
-def parse_version_xml(filepath: str, top_dir: str) -> Tuple[bool, Optional[VersionXml]]:
-    """解析版本配置。"""
-    full_path = os.path.join(top_dir, filepath)
-    if is_version_xml(full_path):
-        version_xml = VersionXml.parse(Path(full_path), top_dir)
-        return True, version_xml
-
-    return False, None
-
-
-def parse_version(version: str, top_dir: str) -> Tuple[str, Optional[VersionXml]]:
-    """解析版本号。"""
-    if not version:
-        return version, None
-    ret, version_xml = parse_version_xml(version, top_dir)
-    if ret:
-        return version_xml.get_release_version(), version_xml
-    return parse_version_conf(top_dir, version), None
 
 
 def render_cann_version(a_ver: int,
@@ -1050,7 +1022,7 @@ def parse_blocks(root_ele: ET.Element,
 
 
 def read_version_info() -> Tuple[str, str]:
-    version_path = os.path.join(pkg_utils.TOP_SOURCE_DIR, "package/version.info")
+    version_path = os.path.join(pkg_utils.TOP_DIR, "version.info")
     with open(version_path, 'r') as file:
         line1 = file.readline().strip()
         line2 = file.readline().strip()
