@@ -1,0 +1,87 @@
+/**
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+#ifndef _MOE_TUTEL_COMBINE_GATES_TILING_v2_H_
+#define _MOE_TUTEL_COMBINE_GATES_TILING_v2_H_
+
+#include "kernel_tiling/kernel_tiling.h"
+
+struct MoeFinalizeRoutingV2TilingData {
+    int64_t totalCoreNum;
+    int64_t usedCoreNum;
+    int64_t skip2IsNull;
+    int64_t biasRowNum;
+    int64_t totalRowNum;
+    int64_t H;
+    int64_t normalH;
+    int64_t unnormalH;
+    int64_t hSliceNum;
+    int64_t normalK;
+    int64_t unnormalK;
+    int64_t kSliceNum;
+    int64_t K;
+    int64_t normalCoreHandleNum;
+    int64_t normalCoreLoopNum;
+    int64_t normalCoreHandleNumPerLoop;
+    int64_t normalCoreHandleNumTailLoop;
+    int64_t tailCoreHandleNum;
+    int64_t tailCoreLoopNum;
+    int64_t tailCoreHandleNumPerLoop;
+    int64_t tailCoreHandleNumTailLoop;
+    int64_t tilingKey;
+    int64_t skip1IsNull;
+    int64_t ubSize_;
+    int64_t dropPadMode;
+    int64_t scalesIsNull;
+};
+
+#pragma pack(1)
+
+#pragma pack()
+
+#define CONVERT_TILING_DATA(tilingStruct, tilingDataPointer, tilingPointer) \
+    __ubuf__ tilingStruct* tilingDataPointer =                              \
+        reinterpret_cast<__ubuf__ tilingStruct*>((__ubuf__ uint8_t*)(tilingPointer));
+
+#define INIT_TILING_DATA(tilingStruct, tilingDataPointer, tilingPointer) \
+    CONVERT_TILING_DATA(tilingStruct, tilingDataPointer, tilingPointer);
+
+#define GET_TILING_DATA(tilingData, tilingPointer)                                             \
+    MoeFinalizeRoutingV2TilingData tilingData;                                                 \
+    INIT_TILING_DATA(MoeFinalizeRoutingV2TilingData, tilingDataPointer, tilingPointer);        \
+    (tilingData).totalCoreNum = tilingDataPointer->totalCoreNum;                               \
+    (tilingData).usedCoreNum = tilingDataPointer->usedCoreNum;                                 \
+    (tilingData).biasRowNum = tilingDataPointer->biasRowNum;                                   \
+    (tilingData).totalRowNum = tilingDataPointer->totalRowNum;                                 \
+    (tilingData).H = tilingDataPointer->H;                                                     \
+    (tilingData).K = tilingDataPointer->K;                                                     \
+    (tilingData).normalCoreHandleNum = tilingDataPointer->normalCoreHandleNum;                 \
+    (tilingData).normalCoreLoopNum = tilingDataPointer->normalCoreLoopNum;                     \
+    (tilingData).normalCoreHandleNumPerLoop = tilingDataPointer->normalCoreHandleNumPerLoop;   \
+    (tilingData).normalCoreHandleNumTailLoop = tilingDataPointer->normalCoreHandleNumTailLoop; \
+    (tilingData).tailCoreHandleNum = tilingDataPointer->tailCoreHandleNum;                     \
+    (tilingData).tailCoreLoopNum = tilingDataPointer->tailCoreLoopNum;                         \
+    (tilingData).tailCoreHandleNumPerLoop = tilingDataPointer->tailCoreHandleNumPerLoop;       \
+    (tilingData).tailCoreHandleNumTailLoop = tilingDataPointer->tailCoreHandleNumTailLoop;     \
+    (tilingData).tilingKey = tilingDataPointer->tilingKey;                                     \
+    (tilingData).skip2IsNull = tilingDataPointer->skip2IsNull;                                 \
+    (tilingData).normalH = tilingDataPointer->normalH;                                         \
+    (tilingData).unnormalH = tilingDataPointer->unnormalH;                                     \
+    (tilingData).hSliceNum = tilingDataPointer->hSliceNum;                                     \
+    (tilingData).normalK = tilingDataPointer->normalK;                                         \
+    (tilingData).unnormalK = tilingDataPointer->unnormalK;                                     \
+    (tilingData).kSliceNum = tilingDataPointer->kSliceNum;                                     \
+    (tilingData).skip1IsNull = tilingDataPointer->skip1IsNull;
+#endif // _MOE_FINALIZE_ROUTING_TILING_V2_H_

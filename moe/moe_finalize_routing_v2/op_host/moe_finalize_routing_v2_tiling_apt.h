@@ -1,0 +1,50 @@
+/**
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/*!
+ * \file moe_finalize_routing_v2_tiling_apt.h
+ * \brief
+ */
+
+#ifndef MOE_FINALIZE_ROUTING_V2_TILING_APT_H_
+#define MOE_FINALIZE_ROUTING_V2_TILING_APT_H_
+
+#include <cstdint>
+
+struct MoeFinalizeRoutingV2RegbaseTilingData {
+    int64_t row = 0;                        // BS
+    int64_t e = 0;                          // E
+    int64_t c = 0;                          // C
+    int64_t h = 0;                          // H
+    int64_t hAligned = 0;                   // H按block对齐后的大小
+    int64_t k = 0;                          // K
+    int64_t rowOfFormerBlock = 0;           // 整核处理的BS数
+    int64_t rowOfTailBlock = 0;             // 尾核处理的BS数
+    int64_t rowLoopOfFormerBlock = 0;       // 整核BS的循环次数
+    int64_t rowLoopOfTailBlock = 0;         // 尾核BS的循环次数
+    int64_t rowFactor = 0;                  // 每次循环处理的BS数
+    int64_t tailRowFactorOfFormerBlock = 0; // 整核处理的BS尾块数
+    int64_t tailRowFactorOfTailBlock = 0;   // 尾核处理的BS尾块数
+    int64_t hLoop = 0;                      // H循环次数
+    int64_t hFactor = 0;                    // 每次循环处理的H数
+    int64_t tailHFactor = 0;                // H尾块数
+    int64_t kLoop = 0;                      // K循环次数
+    int64_t kFactor = 0;                    // 每次循环处理的K数
+    int64_t tailKFactor = 0;                // K尾块数
+    int64_t activeNum = 0;                  // 实际传入的expandedX的第一维的大小
+};
+
+#endif

@@ -1,0 +1,263 @@
+/**
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/*!
+ * \file moe_finalize_routing_v2_apt.cpp
+ * \brief
+ */
+#include "moe_finalize_routing_v2_tiling_apt.h"
+#include "arch35/moe_finalize_routing_v2_h_full_load.h"
+#include "arch35/moe_finalize_routing_v2_h_partial_load.h"
+#include "arch35/moe_finalize_routing_v2_row_k_h_full_load.h"
+#include "arch35/moe_finalize_routing_v2_k_h_full_load.h"
+
+#define TILING_KEY_H_FULL_LOAD_DROPLESS_COLUMN_FP32 10000
+#define TILING_KEY_H_FULL_LOAD_DROPLESS_COLUMN_FP16 10001
+#define TILING_KEY_H_FULL_LOAD_DROPLESS_COLUMN_BF16 10002
+#define TILING_KEY_H_FULL_LOAD_DROP_PAD_COLUMN_FP32 10010
+#define TILING_KEY_H_FULL_LOAD_DROP_PAD_COLUMN_FP16 10011
+#define TILING_KEY_H_FULL_LOAD_DROP_PAD_COLUMN_BF16 10012
+#define TILING_KEY_H_FULL_LOAD_DROPLESS_ROW_FP32 10020
+#define TILING_KEY_H_FULL_LOAD_DROPLESS_ROW_FP16 10021
+#define TILING_KEY_H_FULL_LOAD_DROPLESS_ROW_BF16 10022
+#define TILING_KEY_H_FULL_LOAD_DROP_PAD_ROW_FP32 10030
+#define TILING_KEY_H_FULL_LOAD_DROP_PAD_ROW_FP16 10031
+#define TILING_KEY_H_FULL_LOAD_DROP_PAD_ROW_BF16 10032
+#define TILING_KEY_H_PARTIAL_LOAD_DROPLESS_COLUMN_FP32 20000
+#define TILING_KEY_H_PARTIAL_LOAD_DROPLESS_COLUMN_FP16 20001
+#define TILING_KEY_H_PARTIAL_LOAD_DROPLESS_COLUMN_BF16 20002
+#define TILING_KEY_H_PARTIAL_LOAD_DROP_PAD_COLUMN_FP32 20010
+#define TILING_KEY_H_PARTIAL_LOAD_DROP_PAD_COLUMN_FP16 20011
+#define TILING_KEY_H_PARTIAL_LOAD_DROP_PAD_COLUMN_BF16 20012
+#define TILING_KEY_H_PARTIAL_LOAD_DROPLESS_ROW_FP32 20020
+#define TILING_KEY_H_PARTIAL_LOAD_DROPLESS_ROW_FP16 20021
+#define TILING_KEY_H_PARTIAL_LOAD_DROPLESS_ROW_BF16 20022
+#define TILING_KEY_H_PARTIAL_LOAD_DROP_PAD_ROW_FP32 20030
+#define TILING_KEY_H_PARTIAL_LOAD_DROP_PAD_ROW_FP16 20031
+#define TILING_KEY_H_PARTIAL_LOAD_DROP_PAD_ROW_BF16 20032
+#define TILING_KEY_ROW_K_H_FULL_LOAD_DROPLESS_COLUMN_FP32 30000
+#define TILING_KEY_ROW_K_H_FULL_LOAD_DROPLESS_COLUMN_FP16 30001
+#define TILING_KEY_ROW_K_H_FULL_LOAD_DROPLESS_COLUMN_BF16 30002
+#define TILING_KEY_ROW_K_H_FULL_LOAD_DROP_PAD_COLUMN_FP32 30010
+#define TILING_KEY_ROW_K_H_FULL_LOAD_DROP_PAD_COLUMN_FP16 30011
+#define TILING_KEY_ROW_K_H_FULL_LOAD_DROP_PAD_COLUMN_BF16 30012
+#define TILING_KEY_ROW_K_H_FULL_LOAD_DROPLESS_ROW_FP32 30020
+#define TILING_KEY_ROW_K_H_FULL_LOAD_DROPLESS_ROW_FP16 30021
+#define TILING_KEY_ROW_K_H_FULL_LOAD_DROPLESS_ROW_BF16 30022
+#define TILING_KEY_ROW_K_H_FULL_LOAD_DROP_PAD_ROW_FP32 30030
+#define TILING_KEY_ROW_K_H_FULL_LOAD_DROP_PAD_ROW_FP16 30031
+#define TILING_KEY_ROW_K_H_FULL_LOAD_DROP_PAD_ROW_BF16 30032
+#define TILING_KEY_K_H_FULL_LOAD_DROPLESS_COLUMN_FP32 40000
+#define TILING_KEY_K_H_FULL_LOAD_DROPLESS_COLUMN_FP16 40001
+#define TILING_KEY_K_H_FULL_LOAD_DROPLESS_COLUMN_BF16 40002
+#define TILING_KEY_K_H_FULL_LOAD_DROP_PAD_COLUMN_FP32 40010
+#define TILING_KEY_K_H_FULL_LOAD_DROP_PAD_COLUMN_FP16 40011
+#define TILING_KEY_K_H_FULL_LOAD_DROP_PAD_COLUMN_BF16 40012
+#define TILING_KEY_K_H_FULL_LOAD_DROPLESS_ROW_FP32 40020
+#define TILING_KEY_K_H_FULL_LOAD_DROPLESS_ROW_FP16 40021
+#define TILING_KEY_K_H_FULL_LOAD_DROPLESS_ROW_BF16 40022
+#define TILING_KEY_K_H_FULL_LOAD_DROP_PAD_ROW_FP32 40030
+#define TILING_KEY_K_H_FULL_LOAD_DROP_PAD_ROW_FP16 40031
+#define TILING_KEY_K_H_FULL_LOAD_DROP_PAD_ROW_BF16 40032
+
+using namespace MoeFinalizeRoutingV2Regbase;
+
+#define MOE_FINALIZE_ROUTING_V2_H_FULLLOAD_IMPL(INPUT_TYPE, SCALE_DTYPE, DROP_PAD_MODE)                        \
+    do {                                                                                                       \
+        MoeFinalizeRoutingV2Regbase::MoeFinalizeRoutingV2HFullLoad<INPUT_TYPE, SCALE_DTYPE, DROP_PAD_MODE> op; \
+        op.Init(expandedX, expandedRowIdx, x1, x2, bias, scales, expertIdx, y, userWS, &tilingData, &tPipe);   \
+        op.Process();                                                                                          \
+    } while (0)
+
+#define MOE_FINALIZE_ROUTING_V2_H_PARTIALLOAD_IMPL(INPUT_TYPE, SCALE_DTYPE, DROP_PAD_MODE)                        \
+    do {                                                                                                          \
+        MoeFinalizeRoutingV2Regbase::MoeFinalizeRoutingV2HPartialLoad<INPUT_TYPE, SCALE_DTYPE, DROP_PAD_MODE> op; \
+        op.Init(expandedX, expandedRowIdx, x1, x2, bias, scales, expertIdx, y, userWS, &tilingData, &tPipe);      \
+        op.Process();                                                                                             \
+    } while (0)
+
+#define MOE_FINALIZE_ROUTING_V2_ROWKH_FULLLOAD_IMPL(INPUT_TYPE, SCALE_DTYPE, DROP_PAD_MODE)                        \
+    do {                                                                                                           \
+        MoeFinalizeRoutingV2Regbase::MoeFinalizeRoutingV2RowKHFullLoad<INPUT_TYPE, SCALE_DTYPE, DROP_PAD_MODE> op; \
+        op.Init(expandedX, expandedRowIdx, x1, x2, bias, scales, expertIdx, y, userWS, &tilingData, &tPipe);       \
+        op.Process();                                                                                              \
+    } while (0)
+
+#define MOE_FINALIZE_ROUTING_V2_KH_FULLLOAD_IMPL(INPUT_TYPE, SCALE_DTYPE, DROP_PAD_MODE)                        \
+    do {                                                                                                        \
+        MoeFinalizeRoutingV2Regbase::MoeFinalizeRoutingV2KHFullLoad<INPUT_TYPE, SCALE_DTYPE, DROP_PAD_MODE> op; \
+        op.Init(expandedX, expandedRowIdx, x1, x2, bias, scales, expertIdx, y, userWS, &tilingData, &tPipe);    \
+        op.Process();                                                                                           \
+    } while (0)
+
+extern "C" __global__ __aicore__ void moe_finalize_routing_v2(
+    GM_ADDR expandedX, GM_ADDR expandedRowIdx, GM_ADDR x1, GM_ADDR x2, GM_ADDR bias, GM_ADDR scales, GM_ADDR expertIdx,
+    GM_ADDR y, GM_ADDR workspace, GM_ADDR tiling)
+{
+    GM_ADDR userWS = GetUserWorkspace(workspace);
+    if (userWS == nullptr) {
+        return;
+    }
+
+    REGISTER_TILING_DEFAULT(MoeFinalizeRoutingV2RegbaseTilingData);
+    GET_TILING_DATA(tilingData, tiling);
+    TPipe tPipe;
+    if (TILING_KEY_IS(TILING_KEY_H_FULL_LOAD_DROPLESS_COLUMN_FP32)) {
+        MOE_FINALIZE_ROUTING_V2_H_FULLLOAD_IMPL(DTYPE_EXPANDED_X, float, DROPLESS_COLUMN);
+        return;
+    } else if (TILING_KEY_IS(TILING_KEY_H_FULL_LOAD_DROPLESS_COLUMN_FP16)) {
+        MOE_FINALIZE_ROUTING_V2_H_FULLLOAD_IMPL(DTYPE_EXPANDED_X, half, DROPLESS_COLUMN);
+        return;
+    } else if (TILING_KEY_IS(TILING_KEY_H_FULL_LOAD_DROPLESS_COLUMN_BF16)) {
+        MOE_FINALIZE_ROUTING_V2_H_FULLLOAD_IMPL(DTYPE_EXPANDED_X, bfloat16_t, DROPLESS_COLUMN);
+        return;
+    } else if (TILING_KEY_IS(TILING_KEY_H_FULL_LOAD_DROP_PAD_COLUMN_FP32)) {
+        MOE_FINALIZE_ROUTING_V2_H_FULLLOAD_IMPL(DTYPE_EXPANDED_X, float, DROP_PAD_COLUMN);
+        return;
+    } else if (TILING_KEY_IS(TILING_KEY_H_FULL_LOAD_DROP_PAD_COLUMN_FP16)) {
+        MOE_FINALIZE_ROUTING_V2_H_FULLLOAD_IMPL(DTYPE_EXPANDED_X, half, DROP_PAD_COLUMN);
+        return;
+    } else if (TILING_KEY_IS(TILING_KEY_H_FULL_LOAD_DROP_PAD_COLUMN_BF16)) {
+        MOE_FINALIZE_ROUTING_V2_H_FULLLOAD_IMPL(DTYPE_EXPANDED_X, bfloat16_t, DROP_PAD_COLUMN);
+        return;
+    } else if (TILING_KEY_IS(TILING_KEY_H_FULL_LOAD_DROPLESS_ROW_FP32)) {
+        MOE_FINALIZE_ROUTING_V2_H_FULLLOAD_IMPL(DTYPE_EXPANDED_X, float, DROPLESS_ROW);
+        return;
+    } else if (TILING_KEY_IS(TILING_KEY_H_FULL_LOAD_DROPLESS_ROW_FP16)) {
+        MOE_FINALIZE_ROUTING_V2_H_FULLLOAD_IMPL(DTYPE_EXPANDED_X, half, DROPLESS_ROW);
+        return;
+    } else if (TILING_KEY_IS(TILING_KEY_H_FULL_LOAD_DROPLESS_ROW_BF16)) {
+        MOE_FINALIZE_ROUTING_V2_H_FULLLOAD_IMPL(DTYPE_EXPANDED_X, bfloat16_t, DROPLESS_ROW);
+        return;
+    } else if (TILING_KEY_IS(TILING_KEY_H_FULL_LOAD_DROP_PAD_ROW_FP32)) {
+        MOE_FINALIZE_ROUTING_V2_H_FULLLOAD_IMPL(DTYPE_EXPANDED_X, float, DROP_PAD_ROW);
+        return;
+    } else if (TILING_KEY_IS(TILING_KEY_H_FULL_LOAD_DROP_PAD_ROW_FP16)) {
+        MOE_FINALIZE_ROUTING_V2_H_FULLLOAD_IMPL(DTYPE_EXPANDED_X, half, DROP_PAD_ROW);
+        return;
+    } else if (TILING_KEY_IS(TILING_KEY_H_FULL_LOAD_DROP_PAD_ROW_BF16)) {
+        MOE_FINALIZE_ROUTING_V2_H_FULLLOAD_IMPL(DTYPE_EXPANDED_X, bfloat16_t, DROP_PAD_ROW);
+        return;
+    } else if (TILING_KEY_IS(TILING_KEY_H_PARTIAL_LOAD_DROPLESS_COLUMN_FP32)) {
+        MOE_FINALIZE_ROUTING_V2_H_PARTIALLOAD_IMPL(DTYPE_EXPANDED_X, float, DROPLESS_COLUMN);
+        return;
+    } else if (TILING_KEY_IS(TILING_KEY_H_PARTIAL_LOAD_DROPLESS_COLUMN_FP16)) {
+        MOE_FINALIZE_ROUTING_V2_H_PARTIALLOAD_IMPL(DTYPE_EXPANDED_X, half, DROPLESS_COLUMN);
+        return;
+    } else if (TILING_KEY_IS(TILING_KEY_H_PARTIAL_LOAD_DROPLESS_COLUMN_BF16)) {
+        MOE_FINALIZE_ROUTING_V2_H_PARTIALLOAD_IMPL(DTYPE_EXPANDED_X, bfloat16_t, DROPLESS_COLUMN);
+        return;
+    } else if (TILING_KEY_IS(TILING_KEY_H_PARTIAL_LOAD_DROP_PAD_COLUMN_FP32)) {
+        MOE_FINALIZE_ROUTING_V2_H_PARTIALLOAD_IMPL(DTYPE_EXPANDED_X, float, DROP_PAD_COLUMN);
+        return;
+    } else if (TILING_KEY_IS(TILING_KEY_H_PARTIAL_LOAD_DROP_PAD_COLUMN_FP16)) {
+        MOE_FINALIZE_ROUTING_V2_H_PARTIALLOAD_IMPL(DTYPE_EXPANDED_X, half, DROP_PAD_COLUMN);
+        return;
+    } else if (TILING_KEY_IS(TILING_KEY_H_PARTIAL_LOAD_DROP_PAD_COLUMN_BF16)) {
+        MOE_FINALIZE_ROUTING_V2_H_PARTIALLOAD_IMPL(DTYPE_EXPANDED_X, bfloat16_t, DROP_PAD_COLUMN);
+        return;
+    } else if (TILING_KEY_IS(TILING_KEY_H_PARTIAL_LOAD_DROPLESS_ROW_FP32)) {
+        MOE_FINALIZE_ROUTING_V2_H_PARTIALLOAD_IMPL(DTYPE_EXPANDED_X, float, DROPLESS_ROW);
+        return;
+    } else if (TILING_KEY_IS(TILING_KEY_H_PARTIAL_LOAD_DROPLESS_ROW_FP16)) {
+        MOE_FINALIZE_ROUTING_V2_H_PARTIALLOAD_IMPL(DTYPE_EXPANDED_X, half, DROPLESS_ROW);
+        return;
+    } else if (TILING_KEY_IS(TILING_KEY_H_PARTIAL_LOAD_DROPLESS_ROW_BF16)) {
+        MOE_FINALIZE_ROUTING_V2_H_PARTIALLOAD_IMPL(DTYPE_EXPANDED_X, bfloat16_t, DROPLESS_ROW);
+        return;
+    } else if (TILING_KEY_IS(TILING_KEY_H_PARTIAL_LOAD_DROP_PAD_ROW_FP32)) {
+        MOE_FINALIZE_ROUTING_V2_H_PARTIALLOAD_IMPL(DTYPE_EXPANDED_X, float, DROP_PAD_ROW);
+        return;
+    } else if (TILING_KEY_IS(TILING_KEY_H_PARTIAL_LOAD_DROP_PAD_ROW_FP16)) {
+        MOE_FINALIZE_ROUTING_V2_H_PARTIALLOAD_IMPL(DTYPE_EXPANDED_X, half, DROP_PAD_ROW);
+        return;
+    } else if (TILING_KEY_IS(TILING_KEY_H_PARTIAL_LOAD_DROP_PAD_ROW_BF16)) {
+        MOE_FINALIZE_ROUTING_V2_H_PARTIALLOAD_IMPL(DTYPE_EXPANDED_X, bfloat16_t, DROP_PAD_ROW);
+        return;
+    } else if (TILING_KEY_IS(TILING_KEY_ROW_K_H_FULL_LOAD_DROPLESS_COLUMN_FP32)) {
+        MOE_FINALIZE_ROUTING_V2_ROWKH_FULLLOAD_IMPL(DTYPE_EXPANDED_X, float, DROPLESS_COLUMN);
+        return;
+    } else if (TILING_KEY_IS(TILING_KEY_ROW_K_H_FULL_LOAD_DROPLESS_COLUMN_FP16)) {
+        MOE_FINALIZE_ROUTING_V2_ROWKH_FULLLOAD_IMPL(DTYPE_EXPANDED_X, half, DROPLESS_COLUMN);
+        return;
+    } else if (TILING_KEY_IS(TILING_KEY_ROW_K_H_FULL_LOAD_DROPLESS_COLUMN_BF16)) {
+        MOE_FINALIZE_ROUTING_V2_ROWKH_FULLLOAD_IMPL(DTYPE_EXPANDED_X, bfloat16_t, DROPLESS_COLUMN);
+        return;
+    } else if (TILING_KEY_IS(TILING_KEY_ROW_K_H_FULL_LOAD_DROP_PAD_COLUMN_FP32)) {
+        MOE_FINALIZE_ROUTING_V2_ROWKH_FULLLOAD_IMPL(DTYPE_EXPANDED_X, float, DROP_PAD_COLUMN);
+        return;
+    } else if (TILING_KEY_IS(TILING_KEY_ROW_K_H_FULL_LOAD_DROP_PAD_COLUMN_FP16)) {
+        MOE_FINALIZE_ROUTING_V2_ROWKH_FULLLOAD_IMPL(DTYPE_EXPANDED_X, half, DROP_PAD_COLUMN);
+        return;
+    } else if (TILING_KEY_IS(TILING_KEY_ROW_K_H_FULL_LOAD_DROP_PAD_COLUMN_BF16)) {
+        MOE_FINALIZE_ROUTING_V2_ROWKH_FULLLOAD_IMPL(DTYPE_EXPANDED_X, bfloat16_t, DROP_PAD_COLUMN);
+        return;
+    } else if (TILING_KEY_IS(TILING_KEY_ROW_K_H_FULL_LOAD_DROPLESS_ROW_FP32)) {
+        MOE_FINALIZE_ROUTING_V2_ROWKH_FULLLOAD_IMPL(DTYPE_EXPANDED_X, float, DROPLESS_ROW);
+        return;
+    } else if (TILING_KEY_IS(TILING_KEY_ROW_K_H_FULL_LOAD_DROPLESS_ROW_FP16)) {
+        MOE_FINALIZE_ROUTING_V2_ROWKH_FULLLOAD_IMPL(DTYPE_EXPANDED_X, half, DROPLESS_ROW);
+        return;
+    } else if (TILING_KEY_IS(TILING_KEY_ROW_K_H_FULL_LOAD_DROPLESS_ROW_BF16)) {
+        MOE_FINALIZE_ROUTING_V2_ROWKH_FULLLOAD_IMPL(DTYPE_EXPANDED_X, bfloat16_t, DROPLESS_ROW);
+        return;
+    } else if (TILING_KEY_IS(TILING_KEY_ROW_K_H_FULL_LOAD_DROP_PAD_ROW_FP32)) {
+        MOE_FINALIZE_ROUTING_V2_ROWKH_FULLLOAD_IMPL(DTYPE_EXPANDED_X, float, DROP_PAD_ROW);
+        return;
+    } else if (TILING_KEY_IS(TILING_KEY_ROW_K_H_FULL_LOAD_DROP_PAD_ROW_FP16)) {
+        MOE_FINALIZE_ROUTING_V2_ROWKH_FULLLOAD_IMPL(DTYPE_EXPANDED_X, half, DROP_PAD_ROW);
+        return;
+    } else if (TILING_KEY_IS(TILING_KEY_ROW_K_H_FULL_LOAD_DROP_PAD_ROW_BF16)) {
+        MOE_FINALIZE_ROUTING_V2_ROWKH_FULLLOAD_IMPL(DTYPE_EXPANDED_X, bfloat16_t, DROP_PAD_ROW);
+        return;
+    } else if (TILING_KEY_IS(TILING_KEY_K_H_FULL_LOAD_DROPLESS_COLUMN_FP32)) {
+        MOE_FINALIZE_ROUTING_V2_KH_FULLLOAD_IMPL(DTYPE_EXPANDED_X, float, DROPLESS_COLUMN);
+        return;
+    } else if (TILING_KEY_IS(TILING_KEY_K_H_FULL_LOAD_DROPLESS_COLUMN_FP16)) {
+        MOE_FINALIZE_ROUTING_V2_KH_FULLLOAD_IMPL(DTYPE_EXPANDED_X, half, DROPLESS_COLUMN);
+        return;
+    } else if (TILING_KEY_IS(TILING_KEY_K_H_FULL_LOAD_DROPLESS_COLUMN_BF16)) {
+        MOE_FINALIZE_ROUTING_V2_KH_FULLLOAD_IMPL(DTYPE_EXPANDED_X, bfloat16_t, DROPLESS_COLUMN);
+        return;
+    } else if (TILING_KEY_IS(TILING_KEY_K_H_FULL_LOAD_DROP_PAD_COLUMN_FP32)) {
+        MOE_FINALIZE_ROUTING_V2_KH_FULLLOAD_IMPL(DTYPE_EXPANDED_X, float, DROP_PAD_COLUMN);
+        return;
+    } else if (TILING_KEY_IS(TILING_KEY_K_H_FULL_LOAD_DROP_PAD_COLUMN_FP16)) {
+        MOE_FINALIZE_ROUTING_V2_KH_FULLLOAD_IMPL(DTYPE_EXPANDED_X, half, DROP_PAD_COLUMN);
+        return;
+    } else if (TILING_KEY_IS(TILING_KEY_K_H_FULL_LOAD_DROP_PAD_COLUMN_BF16)) {
+        MOE_FINALIZE_ROUTING_V2_KH_FULLLOAD_IMPL(DTYPE_EXPANDED_X, bfloat16_t, DROP_PAD_COLUMN);
+        return;
+    } else if (TILING_KEY_IS(TILING_KEY_K_H_FULL_LOAD_DROPLESS_ROW_FP32)) {
+        MOE_FINALIZE_ROUTING_V2_KH_FULLLOAD_IMPL(DTYPE_EXPANDED_X, float, DROPLESS_ROW);
+        return;
+    } else if (TILING_KEY_IS(TILING_KEY_K_H_FULL_LOAD_DROPLESS_ROW_FP16)) {
+        MOE_FINALIZE_ROUTING_V2_KH_FULLLOAD_IMPL(DTYPE_EXPANDED_X, half, DROPLESS_ROW);
+        return;
+    } else if (TILING_KEY_IS(TILING_KEY_K_H_FULL_LOAD_DROPLESS_ROW_BF16)) {
+        MOE_FINALIZE_ROUTING_V2_KH_FULLLOAD_IMPL(DTYPE_EXPANDED_X, bfloat16_t, DROPLESS_ROW);
+        return;
+    } else if (TILING_KEY_IS(TILING_KEY_K_H_FULL_LOAD_DROP_PAD_ROW_FP32)) {
+        MOE_FINALIZE_ROUTING_V2_KH_FULLLOAD_IMPL(DTYPE_EXPANDED_X, float, DROP_PAD_ROW);
+        return;
+    } else if (TILING_KEY_IS(TILING_KEY_K_H_FULL_LOAD_DROP_PAD_ROW_FP16)) {
+        MOE_FINALIZE_ROUTING_V2_KH_FULLLOAD_IMPL(DTYPE_EXPANDED_X, half, DROP_PAD_ROW);
+        return;
+    } else if (TILING_KEY_IS(TILING_KEY_K_H_FULL_LOAD_DROP_PAD_ROW_BF16)) {
+        MOE_FINALIZE_ROUTING_V2_KH_FULLLOAD_IMPL(DTYPE_EXPANDED_X, bfloat16_t, DROP_PAD_ROW);
+        return;
+    }
+}
