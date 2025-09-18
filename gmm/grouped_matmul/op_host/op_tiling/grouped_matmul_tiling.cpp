@@ -75,41 +75,41 @@ constexpr int32_t BIAS_REMAIN_SPACE = 2 * 1024;
 constexpr int32_t MIN_BASE_M = 16;
 
 ge::graphStatus GMMTiling::CheckWeightNZShape(const gert::TilingContext* context, int64_t numInOneBlk) const {
-  // OP_CHECK_IF(numInOneBlk <= 0, // OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "numInOneBlk, the "
-  //            "input of CheckWeightNZShape has an invaild value %ld", numInOneBlk), return ge::GRAPH_FAILED);
+  OP_CHECK_IF(numInOneBlk <= 0, OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "numInOneBlk, the "
+             "input of CheckWeightNZShape has an invaild value %ld", numInOneBlk), return ge::GRAPH_FAILED);
   size_t i = 0;
   while (true) {
     auto wTensor = context->GetDynamicInputTensor(WEIGHT_INDEX, i++);
     if (wTensor == nullptr) { break; }
     gert::Shape wOriginShape = wTensor->GetOriginShape();
     int64_t lastDimValue = wOriginShape.GetDim(wOriginShape.GetDimNum() - 1);  // inner axis
-    // OP_CHECK_IF(lastDimValue % numInOneBlk != 0,
-    //            // OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(),
-    //            "the inner axis size of nz weight is expected to be a multiple of 32B, "
-    //            "but now the inner axis size is %ld.", lastDimValue),
-    //            return ge::GRAPH_FAILED);
+    OP_CHECK_IF(lastDimValue % numInOneBlk != 0,
+               OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(),
+               "the inner axis size of nz weight is expected to be a multiple of 32B, "
+               "but now the inner axis size is %ld.", lastDimValue),
+               return ge::GRAPH_FAILED);
   }
   return ge::GRAPH_SUCCESS;
 }
 
 ge::graphStatus GMMTiling::CheckMKN(const gert::TilingContext* context) {
   mmDataTypeSize_ = GetSizeByDataType(mmDType_);
-  // OP_CHECK_IF(mmDataTypeSize_ == 0, // OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(),
-  //            "GMM get mm dtype[%s] size is 0.", TypeUtils::DataTypeToAscendString(mmDType_).GetString()),
-  //            return ge::GRAPH_FAILED);
+  OP_CHECK_IF(mmDataTypeSize_ == 0, OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(),
+             "GMM get mm dtype[%s] size is 0.", TypeUtils::DataTypeToAscendString(mmDType_).GetString()),
+             return ge::GRAPH_FAILED);
   uint32_t numInOneBlk = 0;
   if (isA4W4_) {
     numInOneBlk = static_cast<uint32_t>(ONE_BLK_SIZE / INT4_DATA_TYPE_SIZE);
   } else {
     numInOneBlk = ONE_BLK_SIZE / mmDataTypeSize_;
   }
-  // OP_CHECK_IF(numInOneBlk == 0, // OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(),
-  //            "GMM numInOneBlk cannot be 0."), return ge::GRAPH_FAILED);
+  OP_CHECK_IF(numInOneBlk == 0, OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(),
+             "GMM numInOneBlk cannot be 0."), return ge::GRAPH_FAILED);
   int64_t maxMKN = INT_MAX / numInOneBlk * numInOneBlk;
-  // OP_CHECK_IF(maxM_ > maxMKN || maxN_ > maxMKN || maxK_ > maxMKN,
-  //            // OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(),
-  //            "32B-aligned m, n or k axis is out of range int32!"),
-  //            return ge::GRAPH_FAILED);
+  OP_CHECK_IF(maxM_ > maxMKN || maxN_ > maxMKN || maxK_ > maxMKN,
+             OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(),
+             "32B-aligned m, n or k axis is out of range int32!"),
+             return ge::GRAPH_FAILED);
   return ge::GRAPH_SUCCESS;
 }
 
@@ -121,9 +121,9 @@ void GMMTiling::SetTilingDataIsSingleTensor() {
 
 ge::graphStatus GMMTiling::PrepareTilingData(const gert::TilingContext* context) {
   // get transpose and groupType
-  // OP_CHECK_IF(GMMGetAttrs(context) != ge::GRAPH_SUCCESS,
-  //            // OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "GMMGetAttrs failed"),
-  //            return ge::GRAPH_FAILED);
+  OP_CHECK_IF(GMMGetAttrs(context) != ge::GRAPH_SUCCESS,
+             OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "GMMGetAttrs failed"),
+             return ge::GRAPH_FAILED);
   // get the first tensor's shape of weight and x
   auto xTensor = context->GetDynamicInputTensor(X_INDEX, 0);  // 0: get first tensor
   OP_CHECK_NULL_WITH_CONTEXT(context, xTensor);
@@ -149,9 +149,9 @@ ge::graphStatus GMMTiling::PrepareTilingData(const gert::TilingContext* context)
       // nzFactor_ is a factor used to compute n axis size. If weight is transposed, nzFactor_ is 16; otherwise nzFactor_ is 16 for bf16, 32 for int8
       nzFactor_ = transposeWeight_ ? 16 : static_cast<int32_t>(numInOneBlk);
     } else {
-      // OP_CHECK_IF(CheckWeightNZShape(context, static_cast<int64_t>(numInOneBlk)) != ge::GRAPH_SUCCESS,
-      //            // OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "the shape of nz weight is invaild."),
-      //            return ge::GRAPH_FAILED);
+      OP_CHECK_IF(CheckWeightNZShape(context, static_cast<int64_t>(numInOneBlk)) != ge::GRAPH_SUCCESS,
+                 OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "the shape of nz weight is invaild."),
+                 return ge::GRAPH_FAILED);
     }
   }
   isSingleWeight_ = (context->GetDynamicInputTensor(WEIGHT_INDEX, 1) == nullptr);
@@ -357,9 +357,9 @@ ge::graphStatus GMMTiling::SplitKSingleXSeparatedWeight(const gert::TilingContex
 }
 
 ge::graphStatus GMMTiling::Init(const gert::TilingContext* context) {
-  // OP_CHECK_IF(PrepareTilingData(context) != ge::GRAPH_SUCCESS,
-  //            // OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "GMM PrepareTilingData failed."),
-  //            return ge::GRAPH_FAILED);
+  OP_CHECK_IF(PrepareTilingData(context) != ge::GRAPH_SUCCESS,
+             OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "GMM PrepareTilingData failed."),
+             return ge::GRAPH_FAILED);
   auto compileInfoPtr = context->GetCompileInfo<GMMCompileInfo>();
   OP_CHECK_NULL_WITH_CONTEXT(context, compileInfoPtr);  // check compileInfoPtr is not null
 
@@ -380,9 +380,9 @@ ge::graphStatus GMMTiling::Init(const gert::TilingContext* context) {
   bool isMForA16W8MSD = totalM_ <= A16W8_MSD_AVERAGE_TOKEN_NUM * groupNum_;
   isA16W8Msd_ = isAllSingleTensor_ && groupType_ == SPLIT_M && isA16W8 && isKNForA16W8MSD && isMForA16W8MSD;
   mmDType_ = isA16W8Msd_ ? ge::DT_INT8 : xDType_;
-  // OP_CHECK_IF(CheckMKN(context) != ge::GRAPH_SUCCESS,
-  //            // OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "GMM CheckMKN failed."),
-  //            return ge::GRAPH_FAILED);
+  OP_CHECK_IF(CheckMKN(context) != ge::GRAPH_SUCCESS,
+             OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "GMM CheckMKN failed."),
+             return ge::GRAPH_FAILED);
   auto biasPtr = context->GetDynamicInputTensor(BIAS_INDEX, 0);  // 0: obtain the first tensor of the tensorList
   hasBias_ = !(biasPtr == nullptr || biasPtr->GetStorageShape().GetShapeSize() == 0);
   if (isA4W4_) {
@@ -572,8 +572,8 @@ ge::graphStatus GMMTiling::DivideUbAndSetWorkspace(gert::TilingContext* context,
   uint32_t ubSize = static_cast<uint32_t>(ubSize_);
   if ((xDType_ == ge::DT_BF16 || xDType_ == ge::DT_FLOAT16)) {
     DivideUbAndSetWorkspaceAntiquant(workspaces, aicNum, ubSize);
-    // OP_CHECK_IF(GetPerGroupNum(context) != ge::GRAPH_SUCCESS, // OPS_REPORT_VECTOR_INNER_ERR(
-    //            context->GetNodeName(), "GetPerGroupNum failed."), return ge::GRAPH_FAILED);
+    OP_CHECK_IF(GetPerGroupNum(context) != ge::GRAPH_SUCCESS, OPS_REPORT_VECTOR_INNER_ERR(
+               context->GetNodeName(), "GetPerGroupNum failed."), return ge::GRAPH_FAILED);
   } else if (xDType_ == ge::DT_INT8) {
     // if tuningConfig_ in [1,256], recompute coreNum
     constexpr int32_t tuningConfigLowerLimit = 1;
@@ -590,27 +590,27 @@ ge::graphStatus GMMTiling::DivideUbAndSetWorkspace(gert::TilingContext* context,
                             (static_cast<uint64_t>(baseN_) * scaleDataTypeSize +
                              static_cast<uint64_t>(baseM_) * sizeof(float)) * QUEUE_DOUBLE_BUFFER) :
       static_cast<uint32_t>(ubSize_ - baseN_ * scaleDataTypeSize * QUEUE_DOUBLE_BUFFER);
-    // OP_CHECK_IF(SetWorkspscesPerTokenQuant(aicNum, workspaces) != ge::GRAPH_SUCCESS,
-    //            // OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "SetWorkspscesPerTokenQuant failed."),
-    //            return ge::GRAPH_FAILED);
+    OP_CHECK_IF(SetWorkspscesPerTokenQuant(aicNum, workspaces) != ge::GRAPH_SUCCESS,
+               OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "SetWorkspscesPerTokenQuant failed."),
+               return ge::GRAPH_FAILED);
     if (isA8W4FakeA8W8_) {
       workspaces[0] += A8W4noMsdSpace_;
     }
   } else if (xDType_ == ge::DT_INT4) {
     ubSize = perTokenOrPerGroupSize_ == 1U ?  // is perToken
       static_cast<uint32_t>(ubSize_ - (static_cast<uint32_t>(baseM_) * sizeof(float)) * QUEUE_DOUBLE_BUFFER) : ubSize_;
-    // OP_CHECK_IF(SetWorkspscesPerTokenQuant(aicNum, workspaces) != ge::GRAPH_SUCCESS,
-    //   // OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "SetWorkspscesPerTokenQuant failed."),
-    //   return ge::GRAPH_FAILED);
+    OP_CHECK_IF(SetWorkspscesPerTokenQuant(aicNum, workspaces) != ge::GRAPH_SUCCESS,
+      OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "SetWorkspscesPerTokenQuant failed."),
+      return ge::GRAPH_FAILED);
   }
-  // OP_CHECK_IF(GMMSetUbDivideBlk() != ge::GRAPH_SUCCESS,
-  //            // OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(),
-  //            "GMMSetUbDivideBlk failed."),
-  //            return ge::GRAPH_FAILED);
-  // OP_CHECK_IF(GMMCalUbSize(context, ubSize) != ge::GRAPH_SUCCESS,
-  //            // OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(),
-  //            "GMMCalUbSize failed."),
-  //            return ge::GRAPH_FAILED);
+  OP_CHECK_IF(GMMSetUbDivideBlk() != ge::GRAPH_SUCCESS,
+             OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(),
+             "GMMSetUbDivideBlk failed."),
+             return ge::GRAPH_FAILED);
+  OP_CHECK_IF(GMMCalUbSize(context, ubSize) != ge::GRAPH_SUCCESS,
+             OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(),
+             "GMMCalUbSize failed."),
+             return ge::GRAPH_FAILED);
   return ge::GRAPH_SUCCESS;
 }
 
@@ -749,21 +749,21 @@ ge::graphStatus GMMTiling::RunFusionKernelTiling(gert::TilingContext* context) {
   }
   usedCoreNum_ = aicNum;
 
-  // OP_CHECK_IF(CalMMTiling(context, compileInfoPtr) != ge::GRAPH_SUCCESS,
-  //            // OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "GMM CalMMTiling failed"), return ge::GRAPH_FAILED);
+  OP_CHECK_IF(CalMMTiling(context, compileInfoPtr) != ge::GRAPH_SUCCESS,
+             OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "GMM CalMMTiling failed"), return ge::GRAPH_FAILED);
 
-  // OP_CHECK_IF(GMMSetMMTiling(context, compileInfoPtr) != ge::GRAPH_SUCCESS,
-  //            // OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "GMM GMMSetMMTiling failed"),
-  //            return ge::GRAPH_FAILED);
+  OP_CHECK_IF(GMMSetMMTiling(context, compileInfoPtr) != ge::GRAPH_SUCCESS,
+             OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "GMM GMMSetMMTiling failed"),
+             return ge::GRAPH_FAILED);
   tilingData.gmmBaseParams.set_singleN(0);  // 0 is the default value
   FullLoadK(compileInfoPtr);
-  // OP_CHECK_IF(DivideUbAndSetWorkspace(context, aicNum) != ge::GRAPH_SUCCESS,
-  //            // OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "GMM DivideUbAndSetWorkspace failed"),
-  //            return ge::GRAPH_FAILED);
+  OP_CHECK_IF(DivideUbAndSetWorkspace(context, aicNum) != ge::GRAPH_SUCCESS,
+             OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "GMM DivideUbAndSetWorkspace failed"),
+             return ge::GRAPH_FAILED);
 
-  // OP_CHECK_IF(DynamicTilingSingleN(context, usedCoreNum_, compileInfoPtr) != ge::GRAPH_SUCCESS,
-  //            // OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "GMM DynamicTilingSingleN failed"),
-  //            return ge::GRAPH_FAILED);
+  OP_CHECK_IF(DynamicTilingSingleN(context, usedCoreNum_, compileInfoPtr) != ge::GRAPH_SUCCESS,
+             OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "GMM DynamicTilingSingleN failed"),
+             return ge::GRAPH_FAILED);
   tilingData.gmmBaseParams.set_workspaceSize(workspacesSize_);
   tilingData.mmTilingData.set_usedCoreNum(usedCoreNum_);  // usedCoreNum is ai_core num
   tilingData.gmmBaseParams.set_coreNum(usedCoreNum_);  // ai cube number
@@ -816,16 +816,16 @@ void GMMTiling::PrintTilingInfo(gert::TilingContext *context) {
 }
 
 ge::graphStatus GMMTiling::GMMCalUbSize(const gert::TilingContext* context, uint32_t ubSize) {
-  // OP_CHECK_IF((ubDivideBlkNum_ == 0 || ubBlockAlign_ == 0),
-  //            // OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "ubDivideBlkNum and ubBlockAlign cannot be 0"),
-  //            return ge::GRAPH_FAILED);
+  OP_CHECK_IF((ubDivideBlkNum_ == 0 || ubBlockAlign_ == 0),
+             OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "ubDivideBlkNum and ubBlockAlign cannot be 0"),
+             return ge::GRAPH_FAILED);
   uint32_t ubCalSize = ubSize / ubDivideBlkNum_;  // divide the UB into ubDivideBlkNum_ pieces
   ubCalSize = ubCalSize / ubBlockAlign_ * ubBlockAlign_;  // 16k/8k/4k align.
   uint32_t ubRestBytes = ubSize - ubCalSize * ubIoBlkNum_;  // compute the rest memory in UB space
   ubRestBytes = ubRestBytes / UB_BLOCK_UNIT_SIZE * UB_BLOCK_UNIT_SIZE;  // 32B align.
-  // OP_CHECK_IF((ubCalSize == 0 || ubRestBytes == 0),
-  //            // OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "ubCalSize and ubRestBytes cannot be 0"),
-  //            return ge::GRAPH_FAILED);
+  OP_CHECK_IF((ubCalSize == 0 || ubRestBytes == 0),
+             OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "ubCalSize and ubRestBytes cannot be 0"),
+             return ge::GRAPH_FAILED);
   uint32_t ubBaseN = 0;  // init
   uint32_t ubBaseK = 0;  // init
   uint32_t ubBaseM = 0;  // init
@@ -855,9 +855,9 @@ ge::graphStatus GMMTiling::GMMCalUbSize(const gert::TilingContext* context, uint
     ubBaseM = ubCalSize / ubBaseN;
   }
   if (xDType_ == ge::DT_BF16 && (weightDtype_ == ge::DT_INT8 || weightDtype_ == ge::DT_INT4) && !isA16W8Msd_) {
-    // OP_CHECK_IF(ubBaseK == 0 || ubBaseN == 0,
-    //            // OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "ubBaseK or ubBaseN cannot be 0"),
-    //            return ge::GRAPH_FAILED);
+    OP_CHECK_IF(ubBaseK == 0 || ubBaseN == 0,
+               OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "ubBaseK or ubBaseN cannot be 0"),
+               return ge::GRAPH_FAILED);
   }
   tilingData.gmmBaseParams.set_ubCalSize(ubCalSize);
   tilingData.gmmBaseParams.set_ubRestBytes(ubRestBytes);  // in byte unit
@@ -975,19 +975,19 @@ ge::graphStatus GMMTiling::GMMGetAttrs(const gert::TilingContext* context) {
   auto compileInfoPtr = context->GetCompileInfo<GMMCompileInfo>();
   OP_CHECK_NULL_WITH_CONTEXT(context, compileInfoPtr);  // check compileInfoPtr is not null
   if (groupListType_ == GROUP_LIST_SPARSE_M) {
-    // OP_CHECK_IF((!(compileInfoPtr->socVersion == platform_ascendc::SocVersion::ASCEND910B ||
-    //               compileInfoPtr->socVersion == platform_ascendc::SocVersion::ASCEND910_93)),
-    //             // OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "This platform not support groupListType is 2"),
-    //             return ge::GRAPH_FAILED);
-    // OP_CHECK_IF(!isA8W8_,
-    //            // OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(),
-    //                                        "Only both x and weight dtype are int8 support groupListType is 2"),
-    //            return ge::GRAPH_FAILED);
-    // OP_CHECK_IF(groupType_ != SPLIT_M,
-    //            // OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(),
-    //                                        "When groupListType is 2 only support groupType 0, but get groupType %d",
-    //                                        groupType_),
-    //            return ge::GRAPH_FAILED);
+    OP_CHECK_IF((!(compileInfoPtr->socVersion == platform_ascendc::SocVersion::ASCEND910B ||
+                  compileInfoPtr->socVersion == platform_ascendc::SocVersion::ASCEND910_93)),
+                OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "This platform not support groupListType is 2"),
+                return ge::GRAPH_FAILED);
+    OP_CHECK_IF(!isA8W8_,
+               OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(),
+                                           "Only both x and weight dtype are int8 support groupListType is 2"),
+               return ge::GRAPH_FAILED);
+    OP_CHECK_IF(groupType_ != SPLIT_M,
+               OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(),
+                                           "When groupListType is 2 only support groupType 0, but get groupType %d",
+                                           groupType_),
+               return ge::GRAPH_FAILED);
   }
 
   auto perTokenScalePtr = context->GetOptionalInputTensor(PER_TOKEN_SCALE_INDEX);
@@ -1092,9 +1092,9 @@ ge::graphStatus GMMTiling::SetBias(const gert::TilingContext* context, matmul_ti
   } else {
     mm.SetBias(true);
     auto biasTensor = context->GetDynamicInputTensor(BIAS_INDEX, 0);
-    // OP_CHECK_IF(biasTensor == nullptr,
-    //            // OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "Get bias tensor failed."),
-    //            return ge::GRAPH_FAILED);
+    OP_CHECK_IF(biasTensor == nullptr,
+               OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "Get bias tensor failed."),
+               return ge::GRAPH_FAILED);
     mm.SetBiasType(matmul_tiling::TPosition::GM, matmul_tiling::CubeFormat::ND,
                    static_cast<matmul_tiling::DataType>(biasTensor->GetDataType()));
   }
@@ -1147,9 +1147,9 @@ ge::graphStatus GMMTiling::CalcStepKaKb(const gert::TilingContext* context, cons
   if (compileInfoPtr->socVersion == platform_ascendc::SocVersion::ASCEND310P) {
     availableL1Size = BEST_L1_PARTA + BEST_L1_PARTB;
   }
-  // OP_CHECK_IF(availableL1Size < L1_PARTA_SIZE,
-  //            // OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "availableL1Size is less than 256k"),
-  //            return ge::GRAPH_FAILED);
+  OP_CHECK_IF(availableL1Size < L1_PARTA_SIZE,
+             OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "availableL1Size is less than 256k"),
+             return ge::GRAPH_FAILED);
   // according to double buffer, recompute the params used for data movement from GM to L1
   uint64_t l1ASize = baseM_ > baseN_ ? L1_PARTA_SIZE : availableL1Size - L1_PARTA_SIZE;
   uint64_t l1BSize = availableL1Size - l1ASize;
@@ -1173,9 +1173,9 @@ ge::graphStatus GMMTiling::CalcStepKaKb(const gert::TilingContext* context, cons
     mmStepKa = std::min<uint32_t>(mmStepKa, std::max(1, 128 / baseK_));  // 128: nz inner block size. In practice, baseK_*mmStepKa=128 makes performance better.
   }
 
-  // OP_CHECK_IF(mmStepKa == 0 || mmStepKb == 0,
-  //            // OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "stepka or stepkb cannot be 0"),
-  //            return ge::GRAPH_FAILED);
+  OP_CHECK_IF(mmStepKa == 0 || mmStepKb == 0,
+             OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "stepka or stepkb cannot be 0"),
+             return ge::GRAPH_FAILED);
 
   if (mmStepKa > mmStepKb) {
     mmStepKa = mmStepKa / mmStepKb * mmStepKb;
@@ -1194,21 +1194,21 @@ ge::graphStatus GMMTiling::GMMSetMMTiling(const gert::TilingContext* context, co
   mm.SetAType(matmul_tiling::TPosition::GM, matmul_tiling::CubeFormat::ND, matmulDtype, false);
   mm.SetBType(matmul_tiling::TPosition::GM, wFormat_, matmulDtype, false);
   mm.SetCType(matmul_tiling::TPosition::GM, matmul_tiling::CubeFormat::ND_ALIGN, matmul_tiling::DataType::DT_FLOAT16);
-  // OP_CHECK_IF(SetBias(context, mm) != ge::GRAPH_SUCCESS,
-  //            // OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "SetBias failed."), return ge::GRAPH_FAILED);
+  OP_CHECK_IF(SetBias(context, mm) != ge::GRAPH_SUCCESS,
+             OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "SetBias failed."), return ge::GRAPH_FAILED);
   mm.SetOrgShape(mInMM, maxN_, maxK_);
   mm.SetShape(mInMM, baseN_, maxK_);
   mm.SetFixSplit(baseM_, baseN_, baseK_);
   mm.SetBufferSpace(compileInfoPtr->l1Size, compileInfoPtr->l0CSize, ubSize_);
-  // OP_CHECK_IF(mm.GetTiling(tilingData.mmTilingData) == -1,
-  //            // OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "matmul getTiling failed."),
-  //            return ge::GRAPH_FAILED);
+  OP_CHECK_IF(mm.GetTiling(tilingData.mmTilingData) == -1,
+             OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "matmul getTiling failed."),
+             return ge::GRAPH_FAILED);
 
   uint32_t mmStepKa = 1;
   uint32_t mmStepKb = 1;
-  // OP_CHECK_IF(CalcStepKaKb(context, compileInfoPtr, mInMM, mmStepKa, mmStepKb) != ge::GRAPH_SUCCESS,
-  //            // OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "matmul calc stepka or stepkb failed."),
-  //            return ge::GRAPH_FAILED);
+  OP_CHECK_IF(CalcStepKaKb(context, compileInfoPtr, mInMM, mmStepKa, mmStepKb) != ge::GRAPH_SUCCESS,
+             OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "matmul calc stepka or stepkb failed."),
+             return ge::GRAPH_FAILED);
 
   constexpr uint32_t stepM = 1;  // 1: stepM set fixed value 1
   constexpr uint32_t stepN = 1;  // 1: stepN set fixed value 1
@@ -1288,9 +1288,9 @@ ge::graphStatus GMMTiling::CalMMTiling(const gert::TilingContext* context, const
                      static_cast<int32_t>((compileInfoPtr->l0BSize / DOUBLE_BUFFER_L0A_L0B) /
                                           (static_cast<uint32_t>(baseN_) * mmDataTypeSize_));
   baseK_ = static_cast<int32_t>(SixteenAlign(static_cast<int64_t>(baseK_)));
-  // OP_CHECK_IF(baseK_ == 0,
-  //            // OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "baseK_ cannot be 0."),
-  //            return ge::GRAPH_FAILED);
+  OP_CHECK_IF(baseK_ == 0,
+             OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "baseK_ cannot be 0."),
+             return ge::GRAPH_FAILED);
   // according to the double buffer enabled L0A/L0C, compute baseM(cube)
   uint32_t maxBaseM = static_cast<uint32_t>(compileInfoPtr->l0CSize /
                                             (static_cast<uint32_t>(baseN_) * FP32_DATATYPE_SIZE));
@@ -1309,9 +1309,9 @@ ge::graphStatus GMMTiling::CalMMTiling(const gert::TilingContext* context, const
   if (baseM_ > MAX_BASEM) {
     baseM_ = MAX_BASEM;
   }
-  // OP_CHECK_IF(baseM_ == 0,
-  //            // OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "baseM_ cannot be 0."),
-  //            return ge::GRAPH_FAILED);
+  OP_CHECK_IF(baseM_ == 0,
+             OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "baseM_ cannot be 0."),
+             return ge::GRAPH_FAILED);
 
   return ge::GRAPH_SUCCESS;
 }
@@ -1735,15 +1735,15 @@ ASCENDC_EXTERN_C ge::graphStatus TilingGMM(gert::TilingContext* context) {
           return TilingRegistry::GetInstance().DoTilingImpl(context);
       } else if (xDType != weightDtype) {
           GroupedWeightQuantBatchMatmulTiling groupedWeightQuantTiling;
-          // OP_CHECK_IF(!groupedWeightQuantTiling.SetTiling(context),
-          //            // OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "SetTiling failed."), return ge::GRAPH_FAILED);
+          OP_CHECK_IF(!groupedWeightQuantTiling.SetTiling(context),
+                     OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "SetTiling failed."), return ge::GRAPH_FAILED);
           return ge::GRAPH_SUCCESS;
       }
       bool isUnQuant = (xDType == ge::DT_FLOAT16 || xDType == ge::DT_BF16) && (xDType == weightDtype);
       if (isUnQuant) {
         GroupedNoQuantMatmulTiling groupedNoQuantMatmulTiling;
-        // OP_CHECK_IF(!groupedNoQuantMatmulTiling.SetTiling(context),
-        //              // OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "SetTiling failed."), return ge::GRAPH_FAILED);
+        OP_CHECK_IF(!groupedNoQuantMatmulTiling.SetTiling(context),
+                     OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "SetTiling failed."), return ge::GRAPH_FAILED);
         return ge::GRAPH_SUCCESS;
       }
   }
@@ -1755,9 +1755,9 @@ ASCENDC_EXTERN_C ge::graphStatus TilingGMM(gert::TilingContext* context) {
     }
   }
 
-  // OP_CHECK_IF(tiling.Init(context) != ge::GRAPH_SUCCESS,
-  //            // OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "GMM tiling init failed"),
-  //            return ge::GRAPH_FAILED);
+  OP_CHECK_IF(tiling.Init(context) != ge::GRAPH_SUCCESS,
+             OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "GMM tiling init failed"),
+             return ge::GRAPH_FAILED);
   return tiling.RunFusionKernelTiling(context);
 }
 
@@ -1779,14 +1779,14 @@ ASCENDC_EXTERN_C ge::graphStatus TilingPrepareForGMM(gert::TilingParseContext* c
   ascendcPlatform.GetCoreMemSize(platform_ascendc::CoreMemType::L0_C, compileInfoPtr->l0CSize);
   ascendcPlatform.GetCoreMemSize(platform_ascendc::CoreMemType::L2, compileInfoPtr->l2Size);
 
-  // OP_CHECK_IF((compileInfoPtr->aicNum == 0 || compileInfoPtr->aivNum == 0 || compileInfoPtr->ubSize == 0 || \
-  //            compileInfoPtr->l1Size == 0 || compileInfoPtr->l0CSize == 0 || compileInfoPtr->l0ASize == 0 || \
-  //            compileInfoPtr->l0BSize == 0),
-  //            // OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(),
-  //            "platform info is invalid, aicNum=%u, aivNum=%u, ubSize=%lu, l1Size=%lu, l0CSize=%lu, l0ASize=%lu, l0BSize=%lu",
-  //            compileInfoPtr->aicNum, compileInfoPtr->aivNum, compileInfoPtr->ubSize, compileInfoPtr->l1Size,
-  //            compileInfoPtr->l0CSize, compileInfoPtr->l0ASize, compileInfoPtr->l0BSize),
-  //            return ge::GRAPH_FAILED);
+  OP_CHECK_IF((compileInfoPtr->aicNum == 0 || compileInfoPtr->aivNum == 0 || compileInfoPtr->ubSize == 0 || \
+             compileInfoPtr->l1Size == 0 || compileInfoPtr->l0CSize == 0 || compileInfoPtr->l0ASize == 0 || \
+             compileInfoPtr->l0BSize == 0),
+             OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(),
+             "platform info is invalid, aicNum=%u, aivNum=%u, ubSize=%lu, l1Size=%lu, l0CSize=%lu, l0ASize=%lu, l0BSize=%lu",
+             compileInfoPtr->aicNum, compileInfoPtr->aivNum, compileInfoPtr->ubSize, compileInfoPtr->l1Size,
+             compileInfoPtr->l0CSize, compileInfoPtr->l0ASize, compileInfoPtr->l0BSize),
+             return ge::GRAPH_FAILED);
 
   OP_LOGI(context->GetNodeName(), "Parse compile info success, soc: %d",
             static_cast<int>(compileInfoPtr->socVersion));
