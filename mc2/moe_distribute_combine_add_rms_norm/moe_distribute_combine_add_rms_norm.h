@@ -264,7 +264,6 @@ private:
     TBuf<> gmTpSendCountFloatBuf_;
     TBuf<> tokenBuf_;
     TBuf<> gammaBuf_;
-    TBuf<> yBuf_;
     TBuf<TPosition::VECCALC> reduceFp32Buf_;
     TBuf<> xActMaskTBuf_;
     TBuf<> xActMaskCastTBuf_;
@@ -725,7 +724,6 @@ __aicore__ inline void MoeDistributeCombineAddRmsNorm<TemplateMC2TypeFunc>::Allt
     tpipe_->InitBuffer(sumFloatBuf_, hFloatAlign32Size_);                // 28K add
     tpipe_->InitBuffer(moeSumQueue_, BUFFER_NUM, hExpandXAlign32Size_);  // 28K 搬入
     tpipe_->InitBuffer(gammaBuf_, hExpandXAlign32Size_);                 // 14K 用于搬入输入gamma
-    tpipe_->InitBuffer(yBuf_, hExpandXAlign32Size_);                     // 14K 用于搬入输入y
     tpipe_->InitBuffer(reduceFp32Buf_, NUM_PER_REP_FP32 * sizeof(float));
     tpipe_->InitBuffer(stateBuf_, (flagRcvCount_)*STATE_OFFSET);
     if constexpr (IsInt8Quant) {
@@ -1124,7 +1122,7 @@ __aicore__ inline void MoeDistributeCombineAddRmsNorm<TemplateMC2TypeFunc>::AddR
     SyncFunc<AscendC::HardEvent::S_V>();
     Muls(x_fp32, x_fp32, rstd_value, numCol);
     PipeBarrier<PIPE_V>();
-    LocalTensor<XType> yLocal = yBuf_.Get<XType>();
+    LocalTensor<XType> yLocal = rowTmpFloatBuf_.Get<XType>();
     Cast(yLocal, x_fp32, RoundMode::CAST_RINT, numCol);
     PipeBarrier<PIPE_V>();
     Cast(x_fp32, yLocal, RoundMode::CAST_NONE, numCol);
