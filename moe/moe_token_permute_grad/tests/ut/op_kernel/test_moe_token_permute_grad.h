@@ -8,8 +8,8 @@
  * See LICENSE in the root of the software repository for the full text of the License.
  */
 
-#ifndef _MOE_TOKEN_UNPERMUTE_TILING_H_
-#define _MOE_TOKEN_UNPERMUTE_TILING_H_
+#ifndef _MOE_TOKEN_PERMUTE_GRAD_TILING_H_
+#define _MOE_TOKEN_PERMUTE_GRAD_TILING_H_
 
 #include "kernel_tiling/kernel_tiling.h"
 
