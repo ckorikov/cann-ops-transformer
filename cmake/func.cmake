@@ -45,7 +45,8 @@ function(mc2_op_add_subdirectory MC2_OP_LIST MC2_OP_DIR_LIST)
 
     file(GLOB OP_HOST_CMAKE_FILES 
     "${CMAKE_CURRENT_SOURCE_DIR}/mc2/**/op_host/CMakeLists.txt"
-    "${CMAKE_CURRENT_SOURCE_DIR}/mc2/**/CMakeLists.txt")
+    "${CMAKE_CURRENT_SOURCE_DIR}/mc2/**/CMakeLists.txt"
+    "${CMAKE_CURRENT_SOURCE_DIR}/ffn/**/CMakeLists.txt")
 
     foreach(OP_CMAKE_FILE ${OP_HOST_CMAKE_FILES})
         if ("${OP_CMAKE_FILE}" MATCHES "op_host")
@@ -122,7 +123,6 @@ function(op_add_subdirectory OP_LIST OP_DIR_LIST)
                 endif ()
             endif ()
         endif ()
-
         list(APPEND _OP_LIST ${OP_NAME})
         list(APPEND _OP_DIR_LIST ${OP_DIR})
     endforeach()

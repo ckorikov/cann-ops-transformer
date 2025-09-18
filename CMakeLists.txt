@@ -203,6 +203,7 @@ add_subdirectory(common)
 if (NOT BUILD_OPS_RTY_KERNEL)
     add_subdirectory(mc2)
     add_subdirectory(posembedding)
+    add_subdirectory(ffn)
 endif()
 
 set(OP_LIST)
