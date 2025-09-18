@@ -18,9 +18,7 @@
  * \file moe_finalize_routing_tiling.h
  * \brief
  */
-
 #pragma once
-
 #include <cstdint>
 #include <limits>
 #include "register/tilingdata_base.h"
@@ -32,7 +30,6 @@
 #include "err/ops_err.h"
 
 namespace optiling {
-
 const int64_t DTYPE_FLOAT_BIG_K = 20000;
 const int64_t DTYPE_FLOAT16_BIG_K = 20001;
 const int64_t DTYPE_BF16_BIG_K = 20002;
@@ -52,7 +49,6 @@ const int64_t DTYPE_FLOAT_DB_ALL_BIAS = 20015;
 const int64_t DTYPE_FLOAT16_DB_ALL_BIAS = 20016;
 const int64_t DTYPE_BF16_ALL_BIAS = 20017;
 const int64_t DTYPE_FLOAT_CUTH_NETWORK = 20018;
-
 BEGIN_TILING_DATA_DEF(MoeFinalizeRoutingTilingData)
 TILING_DATA_FIELD_DEF(int64_t, totalCoreNum);
 TILING_DATA_FIELD_DEF(int64_t, usedCoreNum);

@@ -18,8 +18,8 @@
  * \file moe_finalize_routing_proto.h
  * \brief
  */
-#ifndef OPS_OP_PROTO_INC_MOEFINALIZE_ROUTE_H_
-#define OPS_OP_PROTO_INC_MOEFINALIZE_ROUTE_H_
+#ifndef OPS_OP_PROTO_INC_MOEFINALIZE_ROUTING_H_
+#define OPS_OP_PROTO_INC_MOEFINALIZE_ROUTING_H_
 
 #include "graph/operator_reg.h"
 
@@ -58,4 +58,4 @@ REG_OP(MoeFinalizeRouting)
 
 } // namespace ge
 
-#endif // OPS_OP_PROTO_INC_MOEFINALIZE_ROUTE_H_
+#endif // OPS_OP_PROTO_INC_MOEFINALIZE_ROUTING_H_
