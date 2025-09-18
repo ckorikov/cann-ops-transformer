@@ -285,4 +285,4 @@ git clone -b ${tag_version} https://gitcode.com/cann/ops-transformer-dev.git
 [ops-transformer安全声明](SECURITY.md)
 
 ## 许可证
-[CANN Open Software License Agreement Version 1.0](LICENSE)
+[CANN Open Software License Agreement Version 2.0](LICENSE)
