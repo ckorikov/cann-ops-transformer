@@ -13,14 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 /*!
  * \file moe_finalize_routing_v2_tiling.h
  * \brief
  */
-
 #pragma once
-
 #include <cstdint>
 #include <limits>
 #include "log/log.h"
@@ -33,7 +30,6 @@
 
 using namespace Ops::Transformer::OpTiling;
 namespace optiling {
-
 const int64_t DTYPE_FLOAT_BIG_K_V2 = 20000;
 const int64_t DTYPE_FLOAT16_BIG_K_V2 = 20001;
 const int64_t DTYPE_BF16_BIG_K_V2 = 20002;
