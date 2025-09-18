@@ -601,7 +601,7 @@ template <TemplateMC2TypeClass>
 __aicore__ inline void MoeDistributeCombineV2<TemplateMC2TypeFunc>::MaskSpecialExpert()
 {
     LocalTensor<int32_t> expertIdsTensor_ = expertScalesBuf_.Get<int32_t>();
-    LocalTensor<float> expertIdsFloat = mulBuf_.Get<float>();
+    LocalTensor<float> expertIdsFloat = rowTmpFloatBuf_.Get<float>();
     LocalTensor<uint8_t> maskTensor = expertScalesBuf_.Get<uint8_t>();
     LocalTensor<half> maskCalcTensor = tokenBuf_.Get<half>();
     LocalTensor<half> maskCalcSelectedTensor = rowTmpFloatBuf_.Get<half>();
@@ -701,10 +701,10 @@ __aicore__ inline void MoeDistributeCombineV2<TemplateMC2TypeFunc>::AlltoAllBuff
         DataCopyPad(expertMaskTensor_, xActiveMaskGM_, maskParams, maskCopyPadParams);
     }
     if (constExpertNum_ + zeroExpertNum_ + copyExpertNum_ > 0U) {
+        maskGenerateTensor_ = sumFloatBuf_.Get<bool>();
         if (!isInputExpertMaskFlag_) {
             tpipe_->InitBuffer(tokenTargetTBuf_, Ceil(axisBS_ * sizeof(half), UB_ALIGN) * UB_ALIGN);
             tokenTargetTensor_ = tokenTargetTBuf_.Get<half>();
-            maskGenerateTensor_ = sumFloatBuf_.Get<bool>();
             GenerateActiveMask(static_cast<half>(1));
         }
         MaskSpecialExpert();
