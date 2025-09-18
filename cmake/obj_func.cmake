@@ -34,7 +34,7 @@ macro(add_modules_sources)
   get_filename_component(PARENT_DIR ${SOURCE_DIR} DIRECTORY)
   get_filename_component(OP_NAME ${PARENT_DIR} NAME)
   list(FIND ASCEND_OP_NAME ${OP_NAME} INDEX)
-  if((NOT "${ASCEND_OP_NAME}" STREQUAL "ALL") AND 
+  if((NOT "${ASCEND_OP_NAME}" STREQUAL "ALL") AND
       (INDEX EQUAL -1))
     #ASCEND_OP_NAME 为"ALL"表示全部编译
     return()
@@ -42,7 +42,7 @@ macro(add_modules_sources)
   # 记录全局的COMPILED_OPS和COMPILED_OP_DIRS，其中COMPILED_OP_DIRS只记录到算子名，例如moe/moe_token_permute_with_routing_map_grad
   set(COMPILED_OPS ${COMPILED_OPS} ${OP_NAME} CACHE STRING "Compiled Ops" FORCE)
   set(COMPILED_OP_DIRS ${COMPILED_OP_DIRS} ${PARENT_DIR} CACHE STRING "Compiled Ops Dirs" FORCE)
-  
+
   file(GLOB OPINFER_SRCS ${SOURCE_DIR}/*_infershape*.cpp)
   if (OPINFER_SRCS)
     # proto
@@ -60,11 +60,12 @@ macro(add_modules_sources)
     endif()
   endif()
 
-  file(GLOB OPTILING_SRCS ${SOURCE_DIR}/*_tiling*.cpp)
-  if (OPTILING_SRCS)
-    # tiling
+  file(GLOB OPTILING_SRCS ${SOURCE_DIR}/*_tiling*.cpp ${SOURCE_DIR}/*fallback*.cpp)
+  file(GLOB_RECURSE SUB_OPTILING_SRC ${SOURCE_DIR}/op_tiling/*.cpp)
+  if (OPTILING_SRCS OR SUB_OPTILING_SRC)
     add_tiling_modules()
-    target_sources(${OPHOST_NAME}_tiling_obj PRIVATE ${OPTILING_SRCS})
+    target_sources(${OPHOST_NAME}_tiling_obj PRIVATE ${OPTILING_SRCS} ${SUB_OPTILING_SRC})
+    # target_include_directories(${OPHOST_NAME}_tiling_obj PRIVATE ${SOURCE_DIR}/../../ ${SOURCE_DIR})
   endif()
 
   file(GLOB AICPU_SRCS ${MODULE_DIR}/*_aicpu*.cpp)
@@ -84,7 +85,7 @@ macro(add_modules_sources)
       list(GET MODULE_ACLNNTYPE ${i} AclnnType)
       if (${AclnnType} STREQUAL "aclnn" OR ${AclnnType} STREQUAL "aclnn_inner" OR ${AclnnType} STREQUAL "aclnn_exclude")
         file(GLOB OPDEF_SRCS ${SOURCE_DIR}/${OpType}_def*.cpp)
-        
+
         if (OPDEF_SRCS)
           target_sources(${OPHOST_NAME}_opdef_${AclnnType}_obj INTERFACE ${OPDEF_SRCS})
         endif()
@@ -128,7 +129,7 @@ macro(add_mc2_modules_sources)
   get_filename_component(PARENT_DIR ${SOURCE_DIR} DIRECTORY)
   get_filename_component(OP_NAME ${PARENT_DIR} NAME)
   list(FIND ASCEND_OP_NAME ${OP_NAME} INDEX)
-  if((NOT "${ASCEND_OP_NAME}" STREQUAL "ALL") AND 
+  if((NOT "${ASCEND_OP_NAME}" STREQUAL "ALL") AND
       (INDEX EQUAL -1))
     #ASCEND_OP_NAME 为"ALL"表示全部编译
     return()
@@ -136,7 +137,7 @@ macro(add_mc2_modules_sources)
   # 记录全局的COMPILED_OPS和COMPILED_OP_DIRS，其中COMPILED_OP_DIRS只记录到算子名，例如moe/moe_token_permute_with_routing_map_grad
   set(COMPILED_OPS ${COMPILED_OPS} ${OP_NAME} CACHE STRING "Compiled Ops" FORCE)
   set(COMPILED_OP_DIRS ${COMPILED_OP_DIRS} ${PARENT_DIR} CACHE STRING "Compiled Ops Dirs" FORCE)
-  
+
   file(GLOB OPINFER_SRCS ${SOURCE_DIR}/*_infershape*.cpp)
   if (OPINFER_SRCS)
     # proto
@@ -171,7 +172,7 @@ macro(add_mc2_modules_sources)
       list(GET MODULE_ACLNNTYPE ${i} AclnnType)
       if (${AclnnType} STREQUAL "aclnn" OR ${AclnnType} STREQUAL "aclnn_inner" OR ${AclnnType} STREQUAL "aclnn_exclude")
         file(GLOB OPDEF_SRCS ${SOURCE_DIR}/${OpType}_def*.cpp)
-        
+
         if (OPDEF_SRCS)
           target_sources(${OPHOST_NAME}_opdef_${AclnnType}_obj INTERFACE ${OPDEF_SRCS})
         endif()

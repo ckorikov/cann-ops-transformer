@@ -99,13 +99,13 @@ else()
 endif()
 
 if (BUILD_OPS_RTY_KERNEL)
-    set(CMAKE_MODULE_PATH 
-        ${CMAKE_MODULE_PATH} 
+    set(CMAKE_MODULE_PATH
+        ${CMAKE_MODULE_PATH}
         ${CMAKE_CURRENT_LIST_DIR}/cmake/modules
     )
 
-    set(CMAKE_PREFIX_PATH 
-        ${CMAKE_PREFIX_PATH} 
+    set(CMAKE_PREFIX_PATH
+        ${CMAKE_PREFIX_PATH}
         ${ASCEND_CANN_PACKAGE_PATH}
     )
 
@@ -121,7 +121,7 @@ if (BUILD_OPS_RTY_KERNEL)
     if(NOT ${alog_FOUND})
         add_definitions(-DALOG_NOT_FOUND)
     endif()
-    
+
     add_library(op_host_aclnn SHARED EXCLUDE_FROM_ALL)
     target_link_libraries(op_host_aclnn PRIVATE
             ${_op_host_aclnn_link}

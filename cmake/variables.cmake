@@ -60,7 +60,7 @@ if(ENABLE_CUSTOM)
   set(OPPROTO_LIB_INSTALL_DIR         packages/vendors/${VENDOR_NAME}/op_proto/lib/linux/${CMAKE_SYSTEM_PROCESSOR})
   set(VERSION_INFO_INSTALL_DIR        packages/vendors/${VENDOR_NAME}/)
 else()
-  # built-in package install path 
+  # built-in package install path
 endif()
 
 if (ENABLE_BUILT_IN)
@@ -109,8 +109,6 @@ execute_process(
 # pack path
 set(CMAKE_INSTALL_PREFIX ${CMAKE_SOURCE_DIR}/build_out)
 
-
-
 set(OPAPI_INCLUDE
   ${C_SEC_INCLUDE}
   ${PLATFORM_INC_DIRS}
@@ -123,7 +121,7 @@ set(OPAPI_INCLUDE
   ${OPS_TRANSFORMER_DIR}/common/include/external
   ${OPS_TRANSFORMER_DIR}/common/stub/op_api
   $<$<NOT:$<BOOL:${BUILD_OPEN_PROJECT}>>:${TOP_DIR}/output/${PRODUCT}/aclnnop_resource>
-  
+
   ${OPS_TRANSFORMER_DIR}/mc2/common/inc
   ${OPS_TRANSFORMER_DIR}/mc2/3rd
   ${TOP_DIR}/ace/comop/inc/external
@@ -150,6 +148,8 @@ set(OP_TILING_INCLUDE
   ${TOP_DIR}/asl/ops/cann/ops/utils/inc
   ${TOP_DIR}/ace/comop/inc
   ${TOP_DIR}/ace/comop/hccl/open_source/inc
+  ${NNOPBASE_INCLUDE_DIRS}
+  ${AICPU_INC_DIRS}
 )
 
 set(OP_PROTO_INCLUDE

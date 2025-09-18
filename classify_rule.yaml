@@ -125,6 +125,30 @@ moe:
       - moe/moe_init_routing_v2
 
 
+  grouped_matmul:
+      module: True
+      src:
+        - gmm/grouped_matmul
+      tests:
+        ut:
+          ops_test:
+            src:
+              - gmm/grouped_matmul/tests
+            options:
+              - grouped_matmul
+
+  quant_grouped_matmul_inplace_add:
+      module: True
+      src:
+        - gmm/quant_grouped_matmul_inplace_add
+      tests:
+        ut:
+          ops_test:
+            src:
+              - gmm/quant_grouped_matmul_inplace_add/tests
+            options:
+              - quant_grouped_matmul_inplace_add
+
 common:
   module: True
   src:

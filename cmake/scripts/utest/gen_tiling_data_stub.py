@@ -24,6 +24,51 @@ from pathlib import Path
 from typing import List
 
 
+def check_if_new_tiling_file_path_existed(ori_file: Path) -> Path:
+    current_path = ori_file
+    target_dir = ori_file / "op_kernel"
+    while True:
+        if target_dir.is_dir():
+            break
+        parent_path = current_path.parent
+        if parent_path == current_path:
+            return ori_file, False
+        current_path = parent_path
+        target_dir = current_path / "op_kernel"
+    tiling_files = list(target_dir.glob("*tiling_data.h"))
+    if not tiling_files:
+        return ori_file, False
+    new_file = tiling_files[0]
+    new_path = target_dir / new_file.name
+    return new_path, True
+
+
+def process_fields(fields_str, struct_name):
+    field_pattern = re.compile(r"(\w+)\s+(\w+)(?:\s*=\d+)?;")
+    fields = field_pattern.findall(fields_str)
+    return fields
+
+
+def convert_to_old_tiling_struct_style(redirected_file_path):
+    with open(redirected_file_path, 'r') as f:
+        content = f.read()
+    struct_pattern = re.compile(r"struct (\w+) {([^}]*)}", re.DOTALL)
+    structs = struct_pattern.findall(content)
+    output = []
+    for struct_name, fields_str in structs:
+        fields = process_fields(fields_str, struct_name)
+        output.append(f"BEGIN_TILING_DATA_DEF({struct_name})")
+        for field_type, field_name in fields:
+            if field_type in ['uint32_t', 'uint8_t', 'uint16_t']:
+                output.append(f"TILING_DATA_FIELD_DEF({field_type}, {field_name});")
+            else:
+                output.append(f"TILING_DATA_FIELD_DEF_STRUCT({field_type}, {field_name});")
+        output.append("END_TILING_DATA_DEF;")
+        output.append(f"REGISTER_TILING_DATA_CLASS({struct_name}Op, {struct_name})\n")
+    result_code = '\n'.join(output)
+    return result_code
+
+
 class Process:
     _WRITE_FLAGS = os.O_WRONLY | os.O_CREAT | os.O_TRUNC
     _WRITE_MODES = stat.S_IWUSR | stat.S_IRUSR
@@ -73,9 +118,14 @@ class Process:
              "#include <kernel_tiling/kernel_tiling.h>\n"
              "\n")
         pattern = re.compile(r'[(](.*)[)]', re.S)
-        with open(ori_file, 'r') as fd:
-            lines = fd.readlines()
-            for line in lines:
+        ori_file, existed_flag = check_if_new_tiling_file_path_existed(ori_file)
+        if existed_flag:
+            lines = convert_to_old_tiling_struct_style(ori_file)
+            lines = lines.splitlines()
+        else:
+            with open(ori_file, 'r') as fd:
+                lines = fd.readlines()
+        for line in lines:
                 line = line.strip()
                 struct_src = ""
                 if line.startswith('BEGIN_TILING_DATA_DEF'):
