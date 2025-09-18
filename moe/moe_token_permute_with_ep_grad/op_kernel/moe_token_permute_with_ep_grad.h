@@ -33,7 +33,7 @@ public:
 
     __aicore__ inline void Init(
         GM_ADDR permuted_tokens, GM_ADDR sorted_indices, GM_ADDR probs, GM_ADDR unpermuted_tokens,
-        const MoeTokenUnpermuteWithEpTilingData* __restrict tiling_data, TPipe* t_pipe);
+        const MoeTokenPermuteWithEpGradTilingData* __restrict tiling_data, TPipe* t_pipe);
     __aicore__ inline void Process();
 
 protected:
@@ -103,7 +103,7 @@ protected:
 template <typename T1, typename T2, typename T3, bool PROBS, bool ISTOKEN>
 __aicore__ inline void KernelMoeTokenUnpermuteWithEp<T1, T2, T3, PROBS, ISTOKEN>::Init(
     GM_ADDR permuted_tokens, GM_ADDR sorted_indices, GM_ADDR probs, GM_ADDR unpermuted_tokens,
-    const MoeTokenUnpermuteWithEpTilingData* __restrict tiling_data, TPipe* t_pipe)
+    const MoeTokenPermuteWithEpGradTilingData* __restrict tiling_data, TPipe* t_pipe)
 {
     ASSERT(GetBlockNum() != 0 && "block dim can not be zero!");
     this->pipe = t_pipe;

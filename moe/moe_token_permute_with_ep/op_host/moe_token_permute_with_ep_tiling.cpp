@@ -190,8 +190,8 @@ private:
     void Tiling4VMSMiddleCompute();
     void Tiling4VBSCompute();
     void ShowTilingData();
-    void Tinlig4VBSMultiCoreCompute(PermuteVBSComputeTilingData* tilingData);
-    void Tinlig4VBSOneCoreCompute(PermuteVBSComputeTilingData* tilingData);
+    void Tinlig4VBSMultiCoreCompute(PermuteVBSComputeTilingEPData* tilingData);
+    void Tinlig4VBSOneCoreCompute(PermuteVBSComputeTilingEPData* tilingData);
 
     int64_t aivNum = 0;
     int64_t realCoreNumAiv = 0;
@@ -501,7 +501,7 @@ void MoeTokenPermuteWithEpTilingBase::ShowTilingData()
         moeTokenPermuteWithEpTilingData.indexCopyComputeParamsOp.get_probsUB());
     OP_LOGD(
         opName,
-        "PermuteVBSComputeTilingData is needCoreNum:%ld, perCoreElements:%ld, perCoreLoops:%ld, "
+        "PermuteVBSComputeTilingEPData is needCoreNum:%ld, perCoreElements:%ld, perCoreLoops:%ld, "
         "perCorePerLoopElements:%ld, "
         "perCoreLastLoopElements:%ld, lastCoreElements:%ld, lastCoreLoops:%ld, lastCorePerLoopElements:%ld, "
         "lastCoreLastLoopElements:%ld, oneLoopMaxElements:%ld, lastCoreWSindex:%ld",
@@ -517,7 +517,7 @@ void MoeTokenPermuteWithEpTilingBase::ShowTilingData()
         moeTokenPermuteWithEpTilingData.vbsComputeParamsOp.get_oneLoopMaxElements(),
         moeTokenPermuteWithEpTilingData.vbsComputeParamsOp.get_lastCoreWSindex());
     OP_LOGD(
-        opName, "PermuteVMSMiddleComputeTilingData is needCoreNum:%ld",
+        opName, "PermuteVMSMiddleComputeTilingEPData is needCoreNum:%ld",
         moeTokenPermuteWithEpTilingData.vmsMiddleComputeParamsOp.get_needCoreNum());
     OP_LOGD(
         opName, "moeTokenPermuteWithEpTilingData is coreNum:%ld, n:%ld, cols:%ld, colsAlign:%ld, k:%ld",
@@ -525,7 +525,7 @@ void MoeTokenPermuteWithEpTilingBase::ShowTilingData()
         moeTokenPermuteWithEpTilingData.get_cols(), moeTokenPermuteWithEpTilingData.get_colsAlign(),
         moeTokenPermuteWithEpTilingData.get_topK());
     OP_LOGD(
-        opName, "PermuteSortOutComputeTilingData is oneLoopMaxElements:%ld",
+        opName, "PermuteSortOutComputeTilingEPData is oneLoopMaxElements:%ld",
         moeTokenPermuteWithEpTilingData.sortOutComputeParamsOp.get_oneLoopMaxElements());
 }
 ge::graphStatus MoeTokenPermuteWithEpTilingBase::DoOpTiling()
@@ -572,7 +572,7 @@ ge::graphStatus MoeTokenPermuteWithEpTilingBase::PostTiling()
     return ge::GRAPH_SUCCESS;
 }
 
-void MoeTokenPermuteWithEpTilingBase::Tinlig4VBSOneCoreCompute(PermuteVBSComputeTilingData* tilingData)
+void MoeTokenPermuteWithEpTilingBase::Tinlig4VBSOneCoreCompute(PermuteVBSComputeTilingEPData* tilingData)
 {
     tilingData->set_needCoreNum(1);
     tilingData->set_perCoreElements(totalLength);
@@ -585,7 +585,7 @@ void MoeTokenPermuteWithEpTilingBase::Tinlig4VBSOneCoreCompute(PermuteVBSCompute
     tilingData->set_lastCoreLastLoopElements(tilingData->get_perCoreElements());
 }
 
-void MoeTokenPermuteWithEpTilingBase::Tinlig4VBSMultiCoreCompute(PermuteVBSComputeTilingData* tilingData)
+void MoeTokenPermuteWithEpTilingBase::Tinlig4VBSMultiCoreCompute(PermuteVBSComputeTilingEPData* tilingData)
 {
     int64_t needCoreNum = GetCeilInt(totalLength, sortLoopMaxElement);      // 向上取整
     needCoreNum = static_cast<int64_t>(std::pow(4, CeilLog4(needCoreNum))); // 用到多核时，核数最多是4^x

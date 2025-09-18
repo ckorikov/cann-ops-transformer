@@ -12,10 +12,10 @@
  * \file moe_token_permute_with_ep_infershape.cpp
  * \brief
  */
-#include "moe_token_permute_with_ep_tiling.h"
 #include "register/op_impl_registry.h"
 #include "log/log.h"
 #include "platform/platform_info.h"
+#include "util/shape_util.h"
 
 using namespace ge;
 namespace ops {

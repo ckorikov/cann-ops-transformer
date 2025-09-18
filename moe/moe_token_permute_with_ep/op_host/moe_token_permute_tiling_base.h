@@ -9,17 +9,17 @@
  */
 
 /*!
- * \file moe_token_permute_tiling.h
+ * \file moe_token_permute_tiling_base.h
  * \brief
  */
-#ifndef OPS_BUILT_IN_OP_TILING_RUNTIME_MOE_TOKEN_PERMUTE_WITH_H_
-#define OPS_BUILT_IN_OP_TILING_RUNTIME_MOE_TOKEN_PERMUTE_WITH_H_
+#ifndef MOE_TOKEN_PERMUTE_WITH_EP_MOE_TOKEN_PERMUTE_H_
+#define MOE_TOKEN_PERMUTE_WITH_EP_MOE_TOKEN_PERMUTE_H_
 #include <cmath>
 #include "tiling/tiling_api.h"
 #include "register/op_impl_registry.h"
 
 namespace optiling {
-BEGIN_TILING_DATA_DEF(PermuteVBSComputeTilingData)
+BEGIN_TILING_DATA_DEF(PermuteVBSComputeTilingEPData)
 TILING_DATA_FIELD_DEF(int64_t, needCoreNum);
 TILING_DATA_FIELD_DEF(int64_t, perCoreElements);
 TILING_DATA_FIELD_DEF(int64_t, perCoreLoops);
@@ -32,19 +32,19 @@ TILING_DATA_FIELD_DEF(int64_t, lastCoreLastLoopElements);
 TILING_DATA_FIELD_DEF(int64_t, oneLoopMaxElements);
 TILING_DATA_FIELD_DEF(int64_t, lastCoreWSindex);
 END_TILING_DATA_DEF;
-REGISTER_TILING_DATA_CLASS(PermuteVBSComputeTilingDataOp, PermuteVBSComputeTilingData)
+REGISTER_TILING_DATA_CLASS(PermuteVBSComputeTilingEPDataOp, PermuteVBSComputeTilingEPData)
 
-BEGIN_TILING_DATA_DEF(PermuteVMSMiddleComputeTilingData)
+BEGIN_TILING_DATA_DEF(PermuteVMSMiddleComputeTilingEPData)
 TILING_DATA_FIELD_DEF(int64_t, needCoreNum);
 END_TILING_DATA_DEF;
-REGISTER_TILING_DATA_CLASS(PermuteVMSMiddleComputeTilingDataOp, PermuteVMSMiddleComputeTilingData)
+REGISTER_TILING_DATA_CLASS(PermuteVMSMiddleComputeTilingEPDataOp, PermuteVMSMiddleComputeTilingEPData)
 
-BEGIN_TILING_DATA_DEF(PermuteSortOutComputeTilingData)
+BEGIN_TILING_DATA_DEF(PermuteSortOutComputeTilingEPData)
 TILING_DATA_FIELD_DEF(int64_t, oneLoopMaxElements);
 END_TILING_DATA_DEF;
-REGISTER_TILING_DATA_CLASS(PermuteSortOutComputeTilingDataOp, PermuteSortOutComputeTilingData)
+REGISTER_TILING_DATA_CLASS(PermuteSortOutComputeTilingEPDataOp, PermuteSortOutComputeTilingEPData)
 
-BEGIN_TILING_DATA_DEF(IndexCopyComputeTilingData)
+BEGIN_TILING_DATA_DEF(IndexCopyComputeTilingEPData)
 TILING_DATA_FIELD_DEF(int64_t, needCoreNum);
 TILING_DATA_FIELD_DEF(int64_t, frontCoreNum);
 TILING_DATA_FIELD_DEF(int64_t, tailCoreNum);
@@ -71,22 +71,6 @@ TILING_DATA_FIELD_DEF(int64_t, tokenUB);
 TILING_DATA_FIELD_DEF(int64_t, indicesUB);
 
 END_TILING_DATA_DEF;
-REGISTER_TILING_DATA_CLASS(IndexCopyComputeTilingDataOp, IndexCopyComputeTilingData)
-
-BEGIN_TILING_DATA_DEF(MoeTokenPermuteTilingData)
-TILING_DATA_FIELD_DEF(int64_t, coreNum);
-TILING_DATA_FIELD_DEF(int64_t, n);
-TILING_DATA_FIELD_DEF(int64_t, cols);
-TILING_DATA_FIELD_DEF(int64_t, colsAlign);
-
-TILING_DATA_FIELD_DEF(int64_t, topK);
-TILING_DATA_FIELD_DEF_STRUCT(PermuteVBSComputeTilingData, vbsComputeParamsOp);
-TILING_DATA_FIELD_DEF_STRUCT(PermuteVMSMiddleComputeTilingData, vmsMiddleComputeParamsOp);
-TILING_DATA_FIELD_DEF_STRUCT(PermuteSortOutComputeTilingData, sortOutComputeParamsOp);
-TILING_DATA_FIELD_DEF_STRUCT(IndexCopyComputeTilingData, indexCopyComputeParamsOp);
-END_TILING_DATA_DEF;
-REGISTER_TILING_DATA_CLASS(MoeTokenPermute, MoeTokenPermuteTilingData)
-struct MoeTokenPermuteCompileInfo {
-};
+REGISTER_TILING_DATA_CLASS(IndexCopyComputeTilingEPDataOp, IndexCopyComputeTilingEPData)
 } // namespace optiling
-#endif // MOE_TOKEN_PERMUTE
+#endif // MOE_TOKEN_PERMUTE_WITH_EP_MOE_TOKEN_PERMUTE_H_

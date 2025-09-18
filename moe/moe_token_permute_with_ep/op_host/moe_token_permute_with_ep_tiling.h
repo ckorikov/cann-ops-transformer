@@ -16,7 +16,7 @@
 #define OPS_BUILT_IN_OP_TILING_RUNTIME_MOE_TOKEN_PERMUTE_WITH_EP_H_
 
 #include <cmath>
-#include "moe_token_permute_tiling.h"
+#include "moe_token_permute_tiling_base.h"
 #include "register/op_impl_registry.h"
 #include "log/log.h"
 #include "tiling/tiling_api.h"
@@ -63,9 +63,9 @@ TILING_DATA_FIELD_DEF(int64_t, cols);
 TILING_DATA_FIELD_DEF(int64_t, colsAlign);
 
 TILING_DATA_FIELD_DEF(int64_t, topK);
-TILING_DATA_FIELD_DEF_STRUCT(PermuteVBSComputeTilingData, vbsComputeParamsOp);
-TILING_DATA_FIELD_DEF_STRUCT(PermuteVMSMiddleComputeTilingData, vmsMiddleComputeParamsOp);
-TILING_DATA_FIELD_DEF_STRUCT(PermuteSortOutComputeTilingData, sortOutComputeParamsOp);
+TILING_DATA_FIELD_DEF_STRUCT(PermuteVBSComputeTilingEPData, vbsComputeParamsOp);
+TILING_DATA_FIELD_DEF_STRUCT(PermuteVMSMiddleComputeTilingEPData, vmsMiddleComputeParamsOp);
+TILING_DATA_FIELD_DEF_STRUCT(PermuteSortOutComputeTilingEPData, sortOutComputeParamsOp);
 TILING_DATA_FIELD_DEF_STRUCT(IndexMixCopyComputeTilingData, indexCopyComputeParamsOp);
 END_TILING_DATA_DEF;
 REGISTER_TILING_DATA_CLASS(MoeTokenPermuteWithEp, MoeTokenPermuteWithEpTilingData)

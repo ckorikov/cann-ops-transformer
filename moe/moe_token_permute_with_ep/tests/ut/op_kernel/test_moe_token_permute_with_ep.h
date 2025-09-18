@@ -22,7 +22,7 @@
 
 #define __aicore__
 
-struct PermuteVBSComputeTilingData {
+struct PermuteVBSComputeTilingEPData {
     int64_t needCoreNum = 1;
     int64_t perCoreElements = 8;
     int64_t perCoreLoops = 1;
@@ -36,11 +36,11 @@ struct PermuteVBSComputeTilingData {
     int64_t lastCoreWSindex = 0;
 };
 
-struct PermuteVMSMiddleComputeTilingData {
+struct PermuteVMSMiddleComputeTilingEPData {
     int64_t needCoreNum = 0;
 };
 
-struct PermuteSortOutComputeTilingData {
+struct PermuteSortOutComputeTilingEPData {
     int64_t oneLoopMaxElements = 1024;
 };
 
@@ -81,9 +81,9 @@ struct MoeTokenPermuteWithEpTilingData {
     int64_t cols = 3;
     int64_t colsAlign = 16;
     int64_t topK = 2;
-    PermuteVBSComputeTilingData vbsComputeParamsOp;
-    PermuteVMSMiddleComputeTilingData vmsMiddleComputeParamsOp;
-    PermuteSortOutComputeTilingData sortOutComputeParamsOp;
+    PermuteVBSComputeTilingEPData vbsComputeParamsOp;
+    PermuteVMSMiddleComputeTilingEPData vmsMiddleComputeParamsOp;
+    PermuteSortOutComputeTilingEPData sortOutComputeParamsOp;
     IndexMixCopyComputeTilingData indexCopyComputeParamsOp;
 };
 

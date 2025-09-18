@@ -77,7 +77,7 @@ struct MoeTokenUnpermuteWithEpParam {
 
 ge::graphStatus PermuteWithEpGradTilingCompute(gert::TilingContext* context, const int64_t topK, const bool isUnpermute);
 
-BEGIN_TILING_DATA_DEF(MoeTokenUnpermuteWithEpTilingData)
+BEGIN_TILING_DATA_DEF(MoeTokenPermuteWithEpGradTilingData)
 TILING_DATA_FIELD_DEF(int64_t, hidden_size);
 TILING_DATA_FIELD_DEF(int64_t, permuted_probs_grad_length);
 TILING_DATA_FIELD_DEF(int64_t, top_k);
@@ -98,7 +98,7 @@ TILING_DATA_FIELD_DEF(int64_t, tokens_splited_remain);
 TILING_DATA_FIELD_DEF(int64_t, buffer_num);
 END_TILING_DATA_DEF;
 
-REGISTER_TILING_DATA_CLASS(MoeTokenPermuteWithEpGrad, MoeTokenUnpermuteWithEpTilingData)
+REGISTER_TILING_DATA_CLASS(MoeTokenPermuteWithEpGrad, MoeTokenPermuteWithEpGradTilingData)
 
 } // namespace optiling
 #endif // OPS_BUILT_IN_OP_TILING_RUNTIME_MOE_TOKEN_PERMUTE_WITH_EP_GRAD_H_

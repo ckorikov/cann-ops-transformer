@@ -47,9 +47,9 @@ private:
 private:
     GlobalTensor<float> workspaceGms[2];
 
-    const PermuteVBSComputeTilingData* vbsTilingData;
-    const PermuteVMSMiddleComputeTilingData* vmsTilingData;
-    const PermuteSortOutComputeTilingData* sortOutTilingData;
+    const PermuteVBSComputeTilingEPData* vbsTilingData;
+    const PermuteVMSMiddleComputeTilingEPData* vmsTilingData;
+    const PermuteSortOutComputeTilingEPData* sortOutTilingData;
 
     // for MoeMrgsort
     MoeMrgsort mrgsorter;

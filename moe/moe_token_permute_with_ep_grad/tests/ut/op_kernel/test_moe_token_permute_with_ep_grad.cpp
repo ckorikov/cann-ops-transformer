@@ -47,7 +47,7 @@ TEST_F(moe_token_permute_with_ep_grad_test, test_bf16_none_prob) {
   // output
   size_t inputDByteSize = 6144 * 5120 * sizeof(bfloat16_t);
   size_t inputProbsDByteSize = 6144 * 8 * sizeof(bfloat16_t);
-  size_t tilingDataSize = sizeof(MoeTokenUnpermuteWithEpTilingData);
+  size_t tilingDataSize = sizeof(MoeTokenPermuteWithEpGradTilingData);
 
   uint8_t* permuted_output_d = (uint8_t*)AscendC::GmAlloc(permutedOutDByteSize + 32);
   uint8_t* sorted_indices = (uint8_t*)AscendC::GmAlloc(sortedIndicesByteSize + 32);
@@ -63,7 +63,7 @@ TEST_F(moe_token_permute_with_ep_grad_test, test_bf16_none_prob) {
   char* path_ = get_current_dir_name();
   string path(path_);
 
-  MoeTokenUnpermuteWithEpTilingData* tilingDatafromBin = reinterpret_cast<MoeTokenUnpermuteWithEpTilingData*>(tiling);
+  MoeTokenPermuteWithEpGradTilingData* tilingDatafromBin = reinterpret_cast<MoeTokenPermuteWithEpGradTilingData*>(tiling);
 
   ICPU_SET_TILING_KEY(0);
   ICPU_RUN_KF(moe_token_permute_with_ep_grad, blockDim, permuted_output_d, sorted_indices, probs, input_grad, input_probs_grad, workspace, tiling);
@@ -90,7 +90,7 @@ TEST_F(moe_token_permute_with_ep_grad_test, test_bf16_with_prob) {
   // output
   size_t inputDByteSize = 6144 * 5120 * sizeof(bfloat16_t);
   size_t inputProbsDByteSize = 6144 * 8 * sizeof(bfloat16_t);
-  size_t tilingDataSize = sizeof(MoeTokenUnpermuteWithEpTilingData);
+  size_t tilingDataSize = sizeof(MoeTokenPermuteWithEpGradTilingData);
 
   uint8_t* permuted_output_d = (uint8_t*)AscendC::GmAlloc(permutedOutDByteSize + 32);
   uint8_t* sorted_indices = (uint8_t*)AscendC::GmAlloc(sortedIndicesByteSize + 32);
@@ -106,7 +106,7 @@ TEST_F(moe_token_permute_with_ep_grad_test, test_bf16_with_prob) {
   char* path_ = get_current_dir_name();
   string path(path_);
 
-  MoeTokenUnpermuteWithEpTilingData* tilingDatafromBin = reinterpret_cast<MoeTokenUnpermuteWithEpTilingData*>(tiling);
+  MoeTokenPermuteWithEpGradTilingData* tilingDatafromBin = reinterpret_cast<MoeTokenPermuteWithEpGradTilingData*>(tiling);
 
   ICPU_SET_TILING_KEY(1);
   ICPU_RUN_KF(moe_token_permute_with_ep_grad, blockDim, permuted_output_d, sorted_indices, probs, input_grad, input_probs_grad, workspace, tiling);

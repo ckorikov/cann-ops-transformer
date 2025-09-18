@@ -47,7 +47,7 @@ extern "C" __global__ __aicore__ void moe_token_permute_with_ep_grad(
 {
     KERNEL_TASK_TYPE_DEFAULT(KERNEL_TYPE_AIV_ONLY);
     GET_TILING_DATA(tiling_data_in, tiling);
-    const MoeTokenUnpermuteWithEpTilingData* __restrict tiling_data = &tiling_data_in;
+    const MoeTokenPermuteWithEpGradTilingData* __restrict tiling_data = &tiling_data_in;
     TPipe t_pipe;
     TPipe t_probs_pipe;
     if (TILING_KEY_IS(0)) {

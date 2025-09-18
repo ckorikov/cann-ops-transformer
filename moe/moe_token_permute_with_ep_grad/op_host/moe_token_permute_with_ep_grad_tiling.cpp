@@ -311,7 +311,7 @@ static inline void SetTilingKey(const gert::TilingContext* context, const bool i
 
 static inline void SetTilingData(gert::TilingContext* context, const MoeTokenUnpermuteWithEpParam& param)
 {
-    MoeTokenUnpermuteWithEpTilingData tilingData;
+    MoeTokenPermuteWithEpGradTilingData tilingData;
     tilingData.set_hidden_size(param.input.hiddenSize);
     tilingData.set_top_k(param.input.topK);
     tilingData.set_start(param.input.start);
