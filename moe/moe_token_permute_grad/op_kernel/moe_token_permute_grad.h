@@ -15,11 +15,11 @@
  */
 
 /*!
- * \file moe_token_unpermute.h
+ * \file MOE_TOKEN_PERMUTE_GRAD.h
  * \brief
  */
-#ifndef MOE_TOKEN_UNPERMUTE
-#define MOE_TOKEN_UNPERMUTE
+#ifndef MOE_TOKEN_PERMUTE_GRAD
+#define MOE_TOKEN_PERMUTE_GRAD
 
 #include "kernel_operator.h"
 #if __CCE_AICORE__ == 200
@@ -380,4 +380,4 @@ __aicore__ inline void KernelMoeTokenUnpermute<T1, T2, T3, PROBS>::CopyOut(
 
     this->outque.FreeTensor(temp_out_tensors);
 }
-#endif // MOE_TOKEN_UNPERMUTE
+#endif // MOE_TOKEN_PERMUTE_GRAD

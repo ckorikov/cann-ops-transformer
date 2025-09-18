@@ -13,7 +13,7 @@
  * \brief
  */
 
-#include "../../moe_token_unpermute/op_kernel/moe_token_unpermute.h"
+#include "moe_token_permute_grad.h"
 #include "kernel_operator.h"
 
 extern "C" __global__ __aicore__ void moe_token_permute_grad(
