@@ -124,8 +124,24 @@ set(OPAPI_INCLUDE
 
   ${OPS_TRANSFORMER_DIR}/mc2/common/inc
   ${OPS_TRANSFORMER_DIR}/mc2/3rd
+  ${TOP_DIR}/asl/ops/cann/ops/built-in/op_proto/runtime
   ${TOP_DIR}/ace/comop/inc/external
   ${TOP_DIR}/ops/ops-nn/matmul/common/op_host/op_api
+  ${TOP_DIR}/asl/ops/cann/ops/utils/inc/log/inner
+  ${TOP_DIR}/asl/ops/cann/ops/utils/inc/error
+  ${OPS_TRANSFORMER_DIR}/mc2/common
+  ${OPS_TRANSFORMER_DIR}/mc2/common/inc
+  ${TOP_DIR}/ace/comop/inc/external
+  ${OPS_TRANSFORMER_DIR}/mc2/3rd
+  ${TOP_DIR}/ace/npuruntime/inc/external
+  ${TOP_DIR}/ace/npuruntime/inc/nnopbase
+  ${TOP_DIR}/asl/ops/cann/ops/mc2/communication_and_computation
+  ${TOP_DIR}/ace/npuruntime/acl/inc/external/acl/error_codes
+  ${TOP_DIR}/asl/ops/cann/ops/built-in/op_tiling/runtime
+  ${TOP_DIR}/asl/ops/cann/ops/built-in
+  ${TOP_DIR}/ops-base/include/op_common/op_host
+  ${TOP_DIR}/ops-base/include
+  ${TOP_DIR}/asl/ops/cann/ops/built-in/op_fallback
 )
 
 set(OP_TILING_INCLUDE
@@ -139,17 +155,39 @@ set(OP_TILING_INCLUDE
   ${AICPU_INC_DIRS}
   ${OPS_TRANSFORMER_DIR}
   ${JSON_INCLUDE_DIR}
+  ${JSON_INCLUDE}
+  ${OPS_TRANSFORMER_DIR}/common/inc
+  ${OPS_TRANSFORMER_DIR}/common/include
   ${OPS_TRANSFORMER_DIR}/common/include/
   ${OPS_TRANSFORMER_DIR}/common/stub/op_tiling
-
+  
+  ${OPS_TRANSFORMER_DIR}/mc2/common
   ${OPS_TRANSFORMER_DIR}/mc2/common/inc
   ${OPS_TRANSFORMER_DIR}/mc2/3rd
+  ${TOP_DIR}/abl/msprof/inc
   ${METADEF_INC_DIR}/../common/util
   ${TOP_DIR}/asl/ops/cann/ops/utils/inc
   ${TOP_DIR}/ace/comop/inc
   ${TOP_DIR}/ace/comop/hccl/open_source/inc
   ${NNOPBASE_INCLUDE_DIRS}
   ${AICPU_INC_DIRS}
+  ${TOP_DIR}/asl/ops/cann/ops/built-in/op_tiling/cube
+  ${TOP_DIR}/ace/npuruntime/inc/external
+  ${TOP_DIR}/asl/ops/cann/ops/built-in/op_tiling
+  ${TOP_DIR}/asl/ops/cann/ops/built-in/op_api/inc
+  ${TOP_DIR}/asl/ops/cann/ops/built-in/op_proto/runtime
+  ${TOP_DIR}/asl/ops/cann/ops/common/inc
+  ${TOP_DIR}/asl/ops/cann/ops/ops-nn/inner
+  ${TOP_DIR}/asl/ops/cann/ops/matmul
+  ${TOP_DIR}/ace/npuruntime/acl/inc/external/acl/error_codes
+  ${TOP_DIR}/asl/ops/cann/ops/mc2/common/inc
+  ${TOP_DIR}/asl/ops/cann/ops/built-in/op_tiling/runtime
+  ${TOP_DIR}/asl/ops/cann/ops/built-in
+
+  ${TOP_DIR}/asl/ops/cann/ops/mc2/communication_and_computation
+  ${TOP_DIR}/ops-base/include/op_common/op_host
+  ${TOP_DIR}/ops-base/include
+  ${TOP_DIR}/asl/ops/cann/ops/built-in/op_fallback
 )
 
 set(OP_PROTO_INCLUDE
@@ -158,12 +196,30 @@ set(OP_PROTO_INCLUDE
   ${METADEF_INCLUDE_DIRS}
   ${OPBASE_INC_DIRS}
   ${NPURUNTIME_INCLUDE_DIRS}
-
+  ${OPS_TRANSFORMER_DIR}
+  ${OPS_TRANSFORMER_DIR}/mc2/common
   ${OPS_TRANSFORMER_DIR}/mc2/common/inc
   ${OPS_TRANSFORMER_DIR}/mc2/3rd
+  ${TOP_DIR}/abl/msprof/inc
   ${METADEF_INC_DIR}/../common/util
   ${TOP_DIR}/ace/comop/inc
   ${TOP_DIR}/ace/comop/hccl/open_source/inc
+  ${TOP_DIR}/asl/ops/cann/ops/utils/inc
+  ${TOP_DIR}/asl/ops/cann/ops/built-in/op_tiling/cube
+  ${TOP_DIR}/asl/ops/cann/ops/utils/inc/log/inner
+  ${TOP_DIR}/asl/ops/cann/ops/built-in/op_tiling
+  ${TOP_DIR}/ace/npuruntime/inc/external
+  ${TOP_DIR}/asl/ops/cann/ops/common/inc
+  ${TOP_DIR}/asl/ops/cann/ops/built-in/op_proto/runtime
+  ${TOP_DIR}/tmp/host-prefix/src/host-build/atc/opcompiler/ascendc_compiler/api/kernel_tiling
+  ${TOP_DIR}/asl/ops/cann/ops/ops-nn/inner
+  ${TOP_DIR}/asl/ops/cann/ops/matmul
+  ${TOP_DIR}/ace/npuruntime/acl/inc/external/acl/error_codes
+  ${TOP_DIR}/asl/ops/cann/ops/built-in/op_tiling/runtime
+  ${TOP_DIR}/asl/ops/cann/ops/built-in
+  ${TOP_DIR}/ops-base/include/op_common/op_host
+  ${TOP_DIR}/ops-base/include
+  ${TOP_DIR}/asl/ops/cann/ops/built-in/op_fallback
 )
 
 set(AICPU_INCLUDE
@@ -181,6 +237,7 @@ set(AICPU_INCLUDE
   ${HCCL_EXTERNAL_INCLUDE}
   ${ACL_EXTERNAL_INC_INCLUDE}
   # todo ops-base replaced later
+  ${OPS_TRANSFORMER_DIR}/mc2/3rd
   ${TOP_DIR}/asl/ops/cann/ops/built-in/aicpu/impl
   ${TOP_DIR}/asl/ops/cann/ops/built-in/aicpu/impl/utils
   ${TOP_DIR}/asl/ops/cann/ops/built-in/aicpu/impl/kernels/host/runtime/utils
@@ -205,6 +262,9 @@ set(AICPU_INCLUDE
   ${GRAPHENGINE_INCLUDE}
   ${GRAPHENGINE_INCLUDE}/external
   ${CMAKE_CURRENT_SOURCE_DIR}/kernels/device/hashmap
+  ${TOP_DIR}/asl/ops/cann/ops/matmul
+  ${TOP_DIR}/ops-base/include
+  ${TOP_DIR}/asl/ops/cann/ops/built-in/op_fallback
 )
 
 set(AICPU_DEFINITIONS

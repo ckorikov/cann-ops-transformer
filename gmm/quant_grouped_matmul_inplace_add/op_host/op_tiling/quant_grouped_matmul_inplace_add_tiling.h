@@ -22,8 +22,8 @@
 #include "../../op_kernel/quant_grouped_matmul_inplace_add_tiling_data.h"
 #include "register/tilingdata_base.h"
 #include "tiling/tiling_api.h"
-#include "tiling/tiling_base.h"
-
+#include "tiling_base/tiling_base.h"
+using namespace Ops::Transformer::OpTiling;
 namespace optiling {
 class QuantGroupedInplaceAddTiling : public GroupedQbmmTiling {
 public:

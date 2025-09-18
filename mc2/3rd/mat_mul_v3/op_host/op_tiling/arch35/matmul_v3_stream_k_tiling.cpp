@@ -1,17 +1,11 @@
-/* *
- * Copyright (c) Huawei Technologies Co., Ltd. 2025-2025. All rights reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+/**
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
+ * This file is a part of the CANN Open Software.
+ * Licensed under CANN Open Software License Agreement Version 1.0 (the "License").
+ * Please refer to the License for details. You may not use this file except in compliance with the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
  */
 
 
@@ -23,9 +17,9 @@
 #include "matmul_v3_stream_k_tiling.h"
 #include "./matmul_tiling_registry.h"
 #include "matmul_v3_tiling_strategy.h"
-#include "matmul/common/op_host/math_util.h"
+#include "common/op_host/math_util.h"
 
-using Ops::NN::MathUtil;
+using Ops::Transformer::MathUtil;
 namespace {
 using namespace optiling;
 using namespace optiling::matmul_v3_advanced;
@@ -39,9 +33,9 @@ bool CheckStreamKSKTilingDefault(const MatmulV3CompileInfo & /* compileInfo */, 
 bool CheckStreamKSKTiling91095(const MatmulV3CompileInfo &compileInfo, const MatMulV3Args &args)
 {
     constexpr uint64_t STREAM_K_MIN_K_THRESHOLD = 8192UL;
-    // 判断k轴是否大于32*512 / DtypeSize_, 小于就不走stream-k
+    // 判断k轴是否大于32*256 / DtypeSize_, 小于就不走stream-k
     if (ops::CeilAlign(static_cast<uint64_t>(args.kValue), BASIC_BLOCK_SIZE_256) <
-        std::max(STREAM_K_MIN_K_THRESHOLD, compileInfo.aicNum * BASIC_BLOCK_K_256_BYTE) * NUM_TWO / args.aDtypeSize) {
+        std::max(STREAM_K_MIN_K_THRESHOLD, compileInfo.aicNum * BASIC_BLOCK_K_256_BYTE) / args.aDtypeSize) {
         OP_LOGD(args.opName, "MatMulV3 tiling unenable state is DoStreamK value[%lu]", args.kValue);
         return false;
     }

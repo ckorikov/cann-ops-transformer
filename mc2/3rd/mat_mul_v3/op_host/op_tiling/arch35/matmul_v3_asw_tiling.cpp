@@ -1,17 +1,11 @@
-/* *
- * Copyright (c) Huawei Technologies Co., Ltd. 2025-2025. All rights reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+/**
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
+ * This file is a part of the CANN Open Software.
+ * Licensed under CANN Open Software License Agreement Version 1.0 (the "License").
+ * Please refer to the License for details. You may not use this file except in compliance with the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
  */
 
 /* !
@@ -21,12 +15,13 @@
 #include "matmul_v3_asw_tiling.h"
 #include "matmul_v3_tiling_strategy.h"
 #include "./matmul_tiling_registry.h"
-#include "matmul/common/op_host/math_util.h"
+#include "common/op_host/math_util.h"
 
-using Ops::NN::MathUtil;
+using Ops::Transformer::MathUtil;
 namespace optiling {
 namespace matmul_v3_advanced {
 using namespace strategy;
+constexpr uint64_t WINDOW_LEN = 4;
 
 MM_REGISTER_TILING_TEMPLATE(MatMulV3, MatMulV3AswTiling, ASCEND910_95, BASE);
 
@@ -49,24 +44,36 @@ void MatMulV3AswTiling::CalcTailBasicBlock()
     }
 }
 
-uint64_t MatMulV3AswTiling::GetOuterAxisTailCnt(
-    const uint64_t x, const uint64_t y, const uint64_t baseX, const uint64_t baseY, const uint64_t aicNum) const
+void MatMulV3AswTiling::GetOuterAxisTailCnt(const bool nLoadBalance, uint64_t& baseTailSplitCnt, uint64_t& tailMain)
 {
+    uint64_t aicNum = compileInfo_.aicNum;
+    uint64_t x = args_.mValue;
+    uint64_t y = args_.nValue;
+    uint64_t baseX = runInfo_.baseM;
+    uint64_t baseY = runInfo_.baseN;
+    if (nLoadBalance) {
+        x = args_.nValue;
+        y = args_.mValue;
+        baseX = runInfo_.baseN;
+        baseY = runInfo_.baseM;
+    }
+
     uint64_t xCnt = MathUtil::CeilDivision(x, baseX);
     uint64_t yCnt = MathUtil::CeilDivision(y, baseY);
     uint64_t xTail = x % baseX;
 
     uint64_t totalWindows = MathUtil::CeilDivision(xCnt * yCnt, aicNum);
     uint64_t mainWindows = MathUtil::CeilDivision((xCnt - 1UL) * yCnt + yCnt % aicNum, aicNum);
+    // 未做负载均衡的轴是核数的倍数且做负载均衡的轴是窗口的因子或轴的倍数，说明部分核只做主块
+    if (yCnt % aicNum == 0UL && (xCnt % WINDOW_LEN == 0UL || WINDOW_LEN % xCnt == 0UL)) {
+        mainWindows = totalWindows;
+    }
     uint64_t tailWindows = totalWindows - mainWindows;
     uint64_t perfRes = mainWindows * baseX + tailWindows * xTail;
 
     uint64_t baseTailCntMax = 1UL;
-    if (yCnt % aicNum != 0UL) {
-        baseTailCntMax = std::min((baseX - xTail) / BASIC_BLOCK_SIZE_16, xCnt);
-    }
+    baseTailCntMax = std::min((baseX - xTail) / BASIC_BLOCK_SIZE_16, xCnt);
 
-    uint64_t baseTailCnt = 1UL;
     for (uint64_t mergeLen = 1UL; mergeLen < baseTailCntMax; ++mergeLen) {
         uint64_t newTailMain =
             MathUtil::Align(MathUtil::CeilDivision((mergeLen * baseX + xTail), mergeLen + 1UL), BASIC_BLOCK_SIZE_16);
@@ -84,12 +91,13 @@ uint64_t MatMulV3AswTiling::GetOuterAxisTailCnt(
         }
         uint64_t curPerf = newMainRound * baseX + newTailRound * newTailMain +
                            (totalWindows - newMainRound - newTailRound) * newTailLast;
-        if (curPerf < perfRes) {
+        // m轴尽量多分基本块，n轴少分基本块
+        if (curPerf < perfRes || (!nLoadBalance && curPerf == perfRes)) {
             perfRes = curPerf;
-            baseTailCnt = mergeLen + 1UL;
+            tailMain = newTailMain;
+            baseTailSplitCnt = mergeLen + 1UL;
         }
     }
-    return baseTailCnt;
 }
 
 void MatMulV3AswTiling::OptimizeEdgeBasicBlock()
@@ -104,11 +112,9 @@ void MatMulV3AswTiling::OptimizeEdgeBasicBlock()
 
     bool balanceAfterFixp = args_.kValue <= BASIC_BLOCK_SIZE_256 && args_.nValue % BLOCK_BYTE_SIZE == 0UL;
     if (mBaseTail > 0UL && !args_.isATrans && (nBaseTail == 0UL || mBaseTail <= nBaseTail || balanceAfterFixp)) {
-        runInfo_.tailInfo.mBaseTailCnt =
-            GetOuterAxisTailCnt(args_.mValue, args_.nValue, runInfo_.baseM, runInfo_.baseN, compileInfo_.aicNum);
+        GetOuterAxisTailCnt(false, runInfo_.mBaseTailSplitCnt, runInfo_.tailInfo.mTailMain);
     } else if (nBaseTail > 0UL && args_.isBTrans && !balanceAfterFixp) {
-        runInfo_.tailInfo.nBaseTailCnt =
-            GetOuterAxisTailCnt(args_.nValue, args_.mValue, runInfo_.baseN, runInfo_.baseM, compileInfo_.aicNum);
+        GetOuterAxisTailCnt(true, runInfo_.nBaseTailSplitCnt, runInfo_.tailInfo.nTailMain);
     }
 }
 

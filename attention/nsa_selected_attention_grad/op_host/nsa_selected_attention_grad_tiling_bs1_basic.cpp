@@ -13,10 +13,10 @@
  * \brief
  */
 
-#include "log/log.h"
 #include "nsa_selected_attention_grad_tiling_bs1_basic.h"
-#include "tiling/tiling_templates_registry.h"
-
+#include "tiling_base/tiling_templates_registry.h"
+#include "err/ops_err.h"
+using namespace Ops::Transformer::OpTiling;
 namespace optiling {
 namespace nsa {
 constexpr uint32_t WORKSPACE_BASE_CAL = 32 * 1024 * 1024; // 100MB系统预留

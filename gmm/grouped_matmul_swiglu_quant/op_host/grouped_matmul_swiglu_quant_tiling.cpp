@@ -22,7 +22,7 @@
 using namespace ge;
 using namespace AscendC;
 using namespace GroupedMatmulSwigluQuantTiling;
-
+using namespace Ops::Transformer::OpTiling;
 namespace {
 template <typename T>
 static inline auto AlignUp(T a, T base) -> T
@@ -196,7 +196,7 @@ ASCENDC_EXTERN_C graphStatus TilingGMMSwigluQuant(gert::TilingContext *context)
     tiling.SetBufferSpace(-1, -1, -1);
     OP_CHECK_IF(
         tiling.GetTiling(tilingData.mmTilingData) == -1,
-        OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "grouped_matmul_swiglu_quant_tiling, get tiling failed"),
+         OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "grouped_matmul_swiglu_quant_tiling, get tiling failed"),
         return GRAPH_FAILED);
     auto workspaceSizes = context->GetWorkspaceSizes(1);
     int64_t usrWorkspaceLimut = USER_WORKSPACE_LIMIT;
@@ -207,7 +207,7 @@ ASCENDC_EXTERN_C graphStatus TilingGMMSwigluQuant(gert::TilingContext *context)
         mLimit = ((usrWorkspaceLimut / DOUBLE_WORKSPACE_SPLIT) / INT32_DTYPE_SIZE) / n;
     }
     OP_CHECK_IF(mLimit <= 0,
-                OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "mLimit is %ld must over then 0.", mLimit),
+                 OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "mLimit is %ld must over then 0.", mLimit),
                 return GRAPH_FAILED);
     tilingData.gmmSwigluBaseParams.set_mLimit(mLimit);
     int workSpaceMTemp = (mLimit * DOUBLE_WORKSPACE_SPLIT > m ? m : mLimit * DOUBLE_WORKSPACE_SPLIT);

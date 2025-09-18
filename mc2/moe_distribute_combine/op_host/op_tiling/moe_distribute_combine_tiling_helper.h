@@ -27,7 +27,8 @@
 #include "graph/utils/type_utils.h"
 #include "register/tilingdata_base.h"
 #include "mc2_log.h"
-#include "tiling/tiling_base.h"
+#include "tiling_base/tiling_base.h"
+using namespace Ops::Transformer::OpTiling;
 
 namespace optiling {
 constexpr uint32_t EXPAND_X_INDEX = 0;

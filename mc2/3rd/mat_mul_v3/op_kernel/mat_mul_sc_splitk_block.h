@@ -1,17 +1,11 @@
 /**
- * Copyright (c) Huawei Technologies Co., Ltd. 2023-2025. All rights reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
+ * This file is a part of the CANN Open Software.
+ * Licensed under CANN Open Software License Agreement Version 1.0 (the "License").
+ * Please refer to the License for details. You may not use this file except in compliance with the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
  */
 
 /*!
@@ -82,8 +76,8 @@ public:
     __aicore__ inline void Init(const MatmulTilingData *matmulTilingData);
     __aicore__ inline void UpdateBlockCnt();
     __aicore__ inline void InitBlockIndex();
-    __aicore__ inline void UpdateBlockParams(uint64_t innerMIndex, uint64_t kIndex);
-    __aicore__ inline void UpdateBlockParams_N(uint64_t innerNIndex, uint64_t kIndex);
+    __aicore__ inline void UpdateBlockParamsMk(uint64_t innerMIndex, uint64_t kIndex);
+    __aicore__ inline void UpdateBlockParamsNk(uint64_t innerNIndex, uint64_t kIndex);
     __aicore__ inline void UpdateBlockIndex();
     template <class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE>
     __aicore__ inline void CalcGMOffset(uint64_t innerMIndex, uint64_t kIndex, uint64_t innerNIndex, bool isNKM);
@@ -188,6 +182,8 @@ __aicore__ inline void MatmulSingleCoreSplitKBaseBlock::UpdateBlockCnt()
     }
     if (params_.rowOrder == 0) { // 单核切k中 l2IterateOrder 为默认值0时走原kernel
         params_.innerLoopN = 1;
+    } else { // 走NKM模板
+        params_.innerLoopM = 1;
     }
 }
 
@@ -202,7 +198,7 @@ __aicore__ inline void MatmulSingleCoreSplitKBaseBlock::InitBlockIndex()
     }
 }
 
-__aicore__ inline void MatmulSingleCoreSplitKBaseBlock::UpdateBlockParams(uint64_t innerMIndex, uint64_t kIndex)
+__aicore__ inline void MatmulSingleCoreSplitKBaseBlock::UpdateBlockParamsMk(uint64_t innerMIndex, uint64_t kIndex)
 {
     params_.innerSingleCoreM = params_.innerBlockM;
     if (innerMIndex == params_.innerLoopM - 1) {
@@ -215,7 +211,7 @@ __aicore__ inline void MatmulSingleCoreSplitKBaseBlock::UpdateBlockParams(uint64
     }
 }
 
-__aicore__ inline void MatmulSingleCoreSplitKBaseBlock::UpdateBlockParams_N(uint64_t innerNIndex, uint64_t kIndex)
+__aicore__ inline void MatmulSingleCoreSplitKBaseBlock::UpdateBlockParamsNk(uint64_t innerNIndex, uint64_t kIndex)
 {
     params_.innerSingleCoreN = params_.innerBlockN;
     if (innerNIndex == params_.innerLoopN - 1) {

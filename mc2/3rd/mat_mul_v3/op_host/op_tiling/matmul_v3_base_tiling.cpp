@@ -18,17 +18,17 @@
 #include "util/math_util.h"
 #include "log/log.h"
 #include "tiling_base/tiling_key.h"
-#include "error_util.h"
+#include "mc2_log.h"
 #include "op_cache_tiling.h"
 #include "runtime_kb_api.h"
 #include "matmul_v3_tuning.h"
-#include "matmul/common/op_host/math_util.h"
-#include "matmul/common/op_host/op_tiling/debug_tiling.h"
+#include "common/op_host/math_util.h"
+#include "common/op_host/op_tiling/debug_tiling.h"
 #include "platform/platform_infos_def.h"
 
 using namespace optiling::matmul_v3;
-using Ops::NN::Optiling::GET_TILINGKEY;
-using Ops::NN::MathUtil;
+using Ops::Transformer::OpTiling::GET_TILINGKEY;
+using Ops::Transformer::MathUtil;
 namespace tuningtiling {
 REGISTER_TUNING_TILING_CLASS(MatMulV3, MatMulV3TunnerTiling);
 }
@@ -66,7 +66,7 @@ constexpr uint64_t THREE_BATCH_DIM = 3;
 constexpr uint64_t FOUR_BATCH_DIM = 4;
 constexpr uint64_t LAST_DIM = 1;
 constexpr uint64_t LAST_SECOND_DIM = 2;
-constexpr uint64_t L2_SIZE_2 = 192 * 1024 * 1024;
+constexpr uint64_t L2_SIZE_2 = 192UL * 1024UL * 1024UL;
 constexpr uint64_t BLOCK = 128;
 constexpr uint64_t N_THRESHOLD = 256;
 constexpr uint64_t M_THRESHOLD = 256;
@@ -77,17 +77,25 @@ constexpr uint64_t UB_SIZE = 196352;
 constexpr uint64_t MIN_CORE_SPLITK = 8;
 constexpr uint64_t MIN_SPLITK_MN64 = 6144;
 constexpr uint64_t DELTAK_PER_CORE = 1024;
-constexpr uint64_t L1_BIAS_SIZE = 1 * 1024;
+constexpr uint64_t L1_BIAS_SIZE = 1UL * 1024UL;
 constexpr uint64_t STEP_NUM_3 = 3;
 constexpr uint64_t SINGLE_CORE_M_24 = 256UL;
 constexpr uint64_t SHAPE_LIMIT = 65535;
+static const int64_t SINGLE_CORE_SPLIT_SMALL_K = 1536;
+static const int64_t SINGLE_CORE_SPLIT_SMALL_MN = 384;
+static const int64_t SINGLE_CORE_SPLIT_LARGE_MN = 49152; // 128 * 384
 
 #define DO_CACL_TILING_ENABLE(func) if (func) { break; }
 
 inline uint64_t CalBaseSize(uint64_t cnt, uint64_t totalCoreNum, uint64_t size, uint64_t maxBase)
 {
-    uint64_t curCnt = totalCoreNum / cnt;
-    curCnt = std::max(curCnt, 1UL);
+    uint64_t curCnt = 0UL;
+    if (cnt == 0UL) {
+        curCnt = 1UL;
+    } else {
+        curCnt = totalCoreNum / cnt;
+        curCnt = std::max(curCnt, 1UL);
+    }
     uint64_t base = ops::CeilAlign(std::max(size / curCnt, 1UL), BASIC_ALIGN_16);
     base = std::min(base, maxBase);
     return base;
@@ -99,10 +107,10 @@ namespace matmul_v3 {
 using ge::float32_t;
 bool MatmulV3BaseTiling::CheckAoeTilingEnable(uint32_t aoeTilingEnable, const std::string &opName)
 {
-    if (aoeTilingEnable <= 1) {
+    if (aoeTilingEnable <= 1U) {
         return true;
     }
-    uint32_t tilingSplitK = aoeTilingEnable % 10; // aoe 的tilingEnable的个位
+    uint32_t tilingSplitK = aoeTilingEnable % 10U; // aoe 的tilingEnable的个位
     uint32_t maxTilingEnable = static_cast<uint32_t>(TilingEnableSplitCore::MULTI_CORE_SPLIT_K);
     if (context_->GetDeterministic() == 1) {
         maxTilingEnable = static_cast<uint32_t>(TilingEnableSplitCore::DETERMINISTIC_SPLIT_K);
@@ -113,13 +121,13 @@ bool MatmulV3BaseTiling::CheckAoeTilingEnable(uint32_t aoeTilingEnable, const st
         return false;
     }
     tilingEnable_.tilingEnableSplitCore = static_cast<TilingEnableSplitCore>(tilingSplitK);
-    uint32_t tilingFullLoad = (aoeTilingEnable / 10) % 10; // aoe 的tilingEnable的十位
+    uint32_t tilingFullLoad = (aoeTilingEnable / 10U) % 10U; // aoe 的tilingEnable的十位
     if (tilingFullLoad > static_cast<uint32_t>(TilingEnableFullLoad::BL1_FULL_LOAD)) {
         OP_LOGW(opName, "Invalid tilingEnable which the bit of full load %d is undefined", tilingFullLoad);
         return false;
     }
     tilingEnable_.tilingEnableFullLoad = static_cast<TilingEnableFullLoad>(tilingFullLoad);
-    uint32_t tilingFixOpti = (aoeTilingEnable / 1000) % 10; // aoe 的tilingEnable的千位
+    uint32_t tilingFixOpti = (aoeTilingEnable / 1000U) % 10U; // aoe 的tilingEnable的千位
     if (tilingFixOpti > static_cast<uint32_t>(TilingEnableFixOpti::VEC_NZ2ND_UNALIGNOUT)) {
         OP_LOGW(opName, "Invalid tilingEnable which the bit of fix-Opti %d is undefined", tilingFixOpti);
         return false;
@@ -162,7 +170,7 @@ void MatmulV3BaseTiling::InitCompileInfo() // 检查输入属性是否支持
     compileInfo.aicNum = static_cast<uint64_t>(ascendcPlatform.GetCoreNumAic());
     compileInfo.aivNum = static_cast<uint64_t>(ascendcPlatform.GetCoreNumAiv());
     compileInfo.socVersion = ascendcPlatform.GetSocVersion();
-    compileInfo.btSize = compileInfo.supportL0c2out ? 1024 : 0;                    // 1024 is btSize
+    compileInfo.btSize = compileInfo.supportL0c2out ? 1024UL : 0UL;                    // 1024 is btSize
     compileInfo.btSize = compileInfo.supportL12BtBf16 ? 4096 : compileInfo.btSize; // 4096 is btSize
     ascendcPlatform.GetCoreMemSize(platform_ascendc::CoreMemType::UB, compileInfo.ubSize);
     ascendcPlatform.GetCoreMemSize(platform_ascendc::CoreMemType::L1, compileInfo.l1Size);
@@ -186,7 +194,7 @@ ge::graphStatus MatmulV3BaseTiling::GetShapeAttrsInfo() // 检查输入属性是
     args_.opName = context_->GetNodeName();
     OP_TILING_CHECK(args_.opName == nullptr, CUBE_INNER_ERR_REPORT("matmul", "get op name invalid"),
         return ge::GRAPH_FAILED);
-    OP_LOGI(args_.opName, "TilingContext: %s", Ops::NN::DebugTilingContext(context_).c_str());
+    OP_LOGI(args_.opName, "TilingContext: %s", Ops::Transformer::DebugTilingContext(context_).c_str());
     OP_TILING_CHECK((CheckArgs() != ge::GRAPH_SUCCESS) || (GetArgs() != ge::GRAPH_SUCCESS),
         CUBE_INNER_ERR_REPORT(args_.opName, "invalid context"), return ge::GRAPH_FAILED);
     return ge::GRAPH_SUCCESS;
@@ -333,7 +341,8 @@ static ge::graphStatus GetShape(const gert::TilingContext &context, MatmulV3Args
         OP_LOGE(args.opName, "invalid input dim num");
         return ge::GRAPH_FAILED;
     }
-    int64_t k = mkDims[args.isATrans ? 0 : 1];
+    int64_t kDimsIndex = args.isATrans ? 0 : 1;
+    int64_t k = mkDims[kDimsIndex];
     int64_t kRight = 0;
     if (args.bFormat == ge::FORMAT_FRACTAL_NZ) {
         auto bOriginShape = context.GetInputShape(1)->GetOriginShape();
@@ -347,9 +356,13 @@ static ge::graphStatus GetShape(const gert::TilingContext &context, MatmulV3Args
         OP_LOGE(args.opName, "unequal input kDim values: k_left[%ld], k_right[%ld]", k, kRight);
         return ge::GRAPH_FAILED;
     }
-    int64_t m = mkDims[args.isATrans ? 1 : 0];
-    int64_t n = knDims[args.isBTrans ? 0 : 1];
-    auto isValidDimValue = [](int64_t dim) -> bool { return (dim > 0) && (dim <= INT32_MAX); };
+    int64_t mDimsIndex = args.isATrans ? 1 : 0;
+    int64_t m = mkDims[mDimsIndex];
+    int64_t nDimsIndex = args.isBTrans ? 0 : 1;
+    int64_t n = knDims[nDimsIndex];
+    auto isValidDimValue = [](int64_t dim) -> bool {
+        return (dim > 0) && (dim <= INT32_MAX);
+    };
     if (!isValidDimValue(m) || !isValidDimValue(k) || !isValidDimValue(n)) {
         OP_LOGE(args.opName, "illegal value: m[%ld], k[%ld], n[%ld]", m, k, n);
         return ge::GRAPH_FAILED;
@@ -383,6 +396,30 @@ ge::graphStatus MatmulV3BaseTiling::GetArgs()
         return ge::GRAPH_FAILED;
     }
     return OpSpecificCheck(*context_, args_);
+}
+
+inline bool GetNd2nzA(MatmulV3Args& args_, MatmulV3CompileInfo& compileInfo_)
+{
+    constexpr uint64_t nMataThread = 16384;
+    constexpr uint64_t mMataThread = 4096;
+    constexpr uint64_t kMataThread = 6656;
+    constexpr uint64_t compileNum = 24;
+    return !args_.isBTrans && args_.nValue % nMataThread == 0 &&
+           (args_.mValue > mMataThread || (args_.mValue == mMataThread && compileInfo_.aicNum >= compileNum)) &&
+           args_.kValue >= kMataThread && args_.bFormat == ge::FORMAT_ND &&
+           (args_.aType == ge::DT_FLOAT16 || args_.aType == ge::DT_BF16);
+}
+
+inline bool GetNd2nzB(MatmulV3Args& args_, MatmulV3CompileInfo& compileInfo_)
+{
+    constexpr uint64_t kMataCond = 16384;
+    constexpr uint64_t nMataCond = 7168;
+    constexpr uint64_t mMataCondMax = 4480;
+    constexpr uint64_t mMataCondMin = 4096;
+    constexpr uint64_t compileNum = 24;
+    return !args_.isATrans && args_.isBTrans && args_.kValue == kMataCond && args_.mValue >= mMataCondMin &&
+           args_.mValue <= mMataCondMax && args_.nValue >= nMataCond && args_.bFormat == ge::FORMAT_ND &&
+           (args_.aType == ge::DT_FLOAT16 || args_.aType == ge::DT_BF16) && compileInfo_.aicNum >= compileNum;
 }
 
 ge::graphStatus MatmulV3BaseTiling::GetMoreArgs()
@@ -441,21 +478,9 @@ ge::graphStatus MatmulV3BaseTiling::GetMoreArgs()
                                                   bDtypeSize_, args_.bFormat);
     // (k, n) n为16384的倍数时，mata冲突严重，m越大，右矩阵重复载入越多，冲突影响越大，将右矩阵先做nd2nz
     // 限制为fp16、bf16场景
-    constexpr uint64_t nMataThread = 16384;
-    constexpr uint64_t mMataThread = 4096;
-    constexpr uint64_t kMataThread = 6656;
-    bool mataConflictFlag = !args_.isBTrans && args_.nValue % nMataThread == 0 &&
-                            (args_.mValue > mMataThread || (args_.mValue == mMataThread && compileInfo_.aicNum >= 24)) &&
-                            args_.kValue >= kMataThread && args_.bFormat == ge::FORMAT_ND &&
-                            (args_.aType == ge::DT_FLOAT16 || args_.aType == ge::DT_BF16);
+    bool mataConflictFlag = GetNd2nzA(args_, compileInfo_);
     //  B 矩阵转置场景
-    constexpr uint64_t kMataCond = 16384;
-    constexpr uint64_t nMataCond = 7168;
-    constexpr uint64_t mMataCondMax = 4480;
-    constexpr uint64_t mMataCondMin = 4096;
-    bool mataConflictFlag2 = !args_.isATrans && args_.isBTrans && args_.kValue == kMataCond && args_.mValue >= mMataCondMin &&
-                             args_.mValue <= mMataCondMax && args_.nValue >= nMataCond && args_.bFormat == ge::FORMAT_ND &&
-                             (args_.aType == ge::DT_FLOAT16 || args_.aType == ge::DT_BF16) && compileInfo_.aicNum >= 24;
+    bool mataConflictFlag2 = GetNd2nzB(args_, compileInfo_);
     args_.nd2nzB = args_.nd2nzB || mataConflictFlag || mataConflictFlag2;
     OP_LOGI(args_.opName, "After judging nd2nz tiling condition, matrix A need vnchw mode nd2nz = %u, matrix B = %u.",
             static_cast<uint32_t>(args_.nd2nzA), static_cast<uint32_t>(args_.nd2nzB));
@@ -486,13 +511,16 @@ bool MatmulV3BaseTiling::IsOnTheWay(ge::Format matFormat, uint64_t innerSize, ui
 bool MatmulV3BaseTiling::NeedNd2NzVnchw(uint64_t outerSize, uint64_t innerSize, bool supportNd2NzOnTheWay,
                                         uint64_t dtypeSize, ge::Format matFormat) const
 {
+    if (dtypeSize == 0UL) {
+        return false;
+    }
     if (matFormat == ge::FORMAT_ND) {
         bool innerAlign = Is256BAlign(innerSize, dtypeSize);
         // 外轴<=8192 会导致数据量增大减慢搬运, 192B为最大奇数内轴长度, 384B为最大偶数内轴长度
-        bool willFitVnchwCond = outerSize > 8192 && (innerSize > 1) && (innerSize * dtypeSize <= 192 ||
-                                (innerSize * dtypeSize <= 384 && innerSize % 2 == 0) ||
-                                (innerSize * dtypeSize <= CACHELINE && innerSize % 4 == 0));
-        bool willInnerSizeEqualC0 = (innerSize == (32 / dtypeSize));
+        bool willFitVnchwCond = outerSize > 8192UL && (innerSize > 1UL) && (innerSize * dtypeSize <= 192UL ||
+                                (innerSize * dtypeSize <= 384UL && innerSize % 2UL == 0) ||
+                                (innerSize * dtypeSize <= CACHELINE && innerSize % 4UL == 0UL));
+        bool willInnerSizeEqualC0 = (innerSize == (32UL / dtypeSize));
         return (willFitVnchwCond && !innerAlign && !supportNd2NzOnTheWay && !willInnerSizeEqualC0);
     }
     return false;
@@ -603,11 +631,12 @@ void MatmulV3BaseTiling::OptimizeLoadBalanceBasicKernel()
 
 void MatmulV3BaseTiling::OptimizeBasicKernelStepK()
 {
-    OP_LOGI(args_.opName, "Optimize StepKa StepKb for BasicKernel, tilingKey_: %lu", tilingKey_);
     //判决门限
     //1. 需要tiling_key==10000000000000000001UL，表示时BasicKernel场景
     //2. baseM==128或256，baseN==256或128,baseK==64，刚好将L0 cache的利用最大化
-    //3. 要求m,n是256的倍数且大于等于768, k是256的倍数但不能是2的幂次方
+    //3. 要求m,n是256的倍数且大于等于768, k是256的倍数但不能是2的幂次方 或者m=[10368, 18000] && n,k=[1280, 5120]
+    //   或者k=[13788, 19304] && m,n=[1280, 5120]
+    //   或者m=[320000, 380000] && n=[960, 3500] && k=[1280, 3328]
     //4. M*N大于128*256*aicNum
     //5. 暂时适用于24核情况，aicNum == 24，其他核数目未验证
     //6. M,N,K不能为mata值16384或32768
@@ -618,33 +647,41 @@ void MatmulV3BaseTiling::OptimizeBasicKernelStepK()
     constexpr uint64_t MNCheck = 768;
     constexpr uint64_t mataCheck = 16384;
     constexpr uint64_t aicNumCheck = 24;
-
     bool disableMixNd2nz = !IsMixNd2nz(); // 1: disable mix nd2nz 0: enable mix nd2nz
     tilingKey_ = GET_TILINGKEY(disableMixNd2nz, tilingEnable_.tilingEnableSplitCore,
                                 tilingEnable_.tilingEnableFullLoad, 0, tilingEnable_.tilingEnableFixOpti); // tilingKey reverse:  01->10
     bool baseMNKFlag = runInfo_.baseM * runInfo_.baseN == baseMNCheck && runInfo_.baseK == baseKCheck;
     bool alignFlag = args_.mValue % alignCheck == 0 && args_.nValue % alignCheck == 0 && args_.kValue % alignCheck == 0 &&
                     args_.mValue >= MNCheck && args_.nValue >= MNCheck && !IsPowerOfTwo(args_.kValue);
+    bool middleMShapeFlag = args_.mValue >= 10368 && args_.mValue <= 18000 && args_.nValue >= 1280 &&
+                            args_.nValue <= 5120 && args_.kValue >= 1280 && args_.kValue <= 5120; // "middle-m" dimension is [10368, 18000]
+    bool middleKShapeFlag = args_.mValue >= 1280 && args_.mValue <= 5120 && args_.nValue >= 1280 &&
+                            args_.nValue <= 5120 && args_.kValue >= 13788 && args_.kValue <= 19304; // "middle-k" dimension is [13788, 19304]
+    bool BigMShapeFlag = args_.mValue >= 320000 && args_.mValue <= 380000 && args_.nValue >= 960 &&
+                         args_.nValue <= 3500 && args_.kValue >= 1280 && args_.kValue <= 3328; // "big-m" dimension is [320000, 380000]
     bool globalMNFlag = args_.mValue * args_.nValue > baseMNCheck * compileInfo_.aicNum;
     bool aicNumCheckFlag = compileInfo_.aicNum == aicNumCheck;
     bool notMataFlag = args_.mValue % mataCheck != 0 && args_.nValue % mataCheck != 0;
     bool dtypeFlag = (args_.aType == ge::DT_FLOAT16 || args_.aType == ge::DT_BF16) &&
                     (args_.bType == ge::DT_FLOAT16 || args_.bType == ge::DT_BF16) &&
                     (args_.cType == ge::DT_FLOAT16 || args_.cType == ge::DT_BF16);
-    if (tilingKey_ == 10000000000000000001UL && baseMNKFlag && alignFlag && globalMNFlag && aicNumCheckFlag && notMataFlag && dtypeFlag) {
+    if (tilingKey_ == 10000000000000000001UL && baseMNKFlag && notMataFlag && dtypeFlag &&
+        (alignFlag || middleMShapeFlag || middleKShapeFlag || BigMShapeFlag) && globalMNFlag && aicNumCheckFlag){
         OP_LOGI(args_.opName, "Fit optimization condition, tilingKey_: %lu", tilingKey_);
         OP_LOGI(args_.opName, "Fit optimization condition, M N K: %lu %lu %lu", args_.mValue, args_.nValue, args_.kValue);
         OP_LOGI(args_.opName, "Fit optimization condition, baseM baseN baseK: %lu %lu %lu", runInfo_.baseM, runInfo_.baseN, runInfo_.baseK);
         constexpr uint64_t oriStepKValue = 8;
         constexpr uint64_t optStepKValue = 4;
         if(runInfo_.stepKa == oriStepKValue) {
+            runInfo_.depthA1 = runInfo_.depthA1 / runInfo_.stepKa * optStepKValue;
             runInfo_.stepKa = optStepKValue;
         }
         if(runInfo_.stepKb == oriStepKValue) {
+            runInfo_.depthB1 = runInfo_.depthB1 / runInfo_.stepKb * optStepKValue;
             runInfo_.stepKb = optStepKValue;
         }
-        OP_LOGI(args_.opName, "stepKa: %lu", runInfo_.stepKa);
-        OP_LOGI(args_.opName, "stepKb: %lu", runInfo_.stepKb);
+        OP_LOGI(args_.opName, "stepKa: %lu, stepKb: %lu, depthA1: %lu, depthB1: %lu", 
+        runInfo_.stepKa, runInfo_.stepKb, runInfo_.depthA1, runInfo_.depthB1);
     }
     else {
         OP_LOGI(args_.opName, "Doesn't fit optimization condition, tilingKey_: %lu", tilingKey_);
@@ -1039,6 +1076,9 @@ bool MatmulV3BaseTiling::CheckUbOverFlow(uint64_t nAligned16, uint64_t nValue, c
 {
     uint64_t nAlignedLoop = MathUtil::CeilDivision(nAligned16, baseN);
     uint64_t nValueLoop = MathUtil::CeilDivision(nValue, baseN);
+    if (baseN == 0UL || dtypeSize == 0UL) {
+        return false;
+    }
     return ((nAlignedLoop != nValueLoop) &&
         ((nAligned16 - ((nValue / baseN) - 1) * baseN) * baseD > (compileInfo_.ubSize / NUMBER_TWO / dtypeSize)));
 }
@@ -1056,6 +1096,9 @@ void MatmulV3BaseTiling::CalcNd2NzTiling(uint64_t dtypeSize, uint64_t nValue, ui
         return;
     }
 
+    if (dtypeSize == 0) {
+        return;
+    }
     uint64_t vectorCoreNum = NUMBER_TWO * runInfo_.usedCoreNum;
     vectorCoreNum = std::max(vectorCoreNum, 1UL);
     uint64_t baseThres = VECTOR_D_BASE / dtypeSize;
@@ -1256,12 +1299,17 @@ void MatmulV3BaseTiling::FormulateBasicBlockDavid()
         mCore = MathUtil::CeilDivision(args_.mValue, runInfo_.baseM);
         if (mCore == 0) {
             OP_LOGE(args_.opName, "mCore is zero.");
+            return;
         }
         nCore = runInfo_.usedCoreNum / mCore;
         runInfo_.baseN = ops::CeilAlign(MathUtil::CeilDivision(args_.nValue, nCore), BASIC_BLOCK_SIZE_16);
     } else {
         runInfo_.baseN = ops::CeilAlign(MathUtil::CeilDivision(args_.nValue, nCore), BASIC_BLOCK_SIZE_16);
         nCore = MathUtil::CeilDivision(args_.nValue, runInfo_.baseN);
+        if (nCore == 0) {
+            OP_LOGE(args_.opName, "nCore is zero.");
+            return;
+        }
         mCore = runInfo_.usedCoreNum / nCore;
         runInfo_.baseM = ops::CeilAlign(MathUtil::CeilDivision(args_.mValue, mCore), BASIC_BLOCK_SIZE_16);
     }
@@ -1604,6 +1652,9 @@ void MatmulV3BaseTiling::InitL2SplitParams(MatmulV3L2SplitParams &l2SplitParams)
 bool MatmulV3BaseTiling::IsTailSmall(MatmulV3L2SplitParams &l2SplitParams, uint64_t outL2Split, uint64_t innerL2Split,
     uint64_t innerMaxConflict) const
 {
+    if (outL2Split == 0UL || innerL2Split == 0UL) {
+        return false;
+    }
     uint64_t outTailValue = ((l2SplitParams.outValue + outL2Split - 1) % outL2Split) + 1;
     uint64_t innerTailValue = ((l2SplitParams.innerValue + innerL2Split - 1) % innerL2Split) + 1;
     l2SplitParams.outTailCnt = MathUtil::CeilDivision(outTailValue, l2SplitParams.outBase);
@@ -1951,22 +2002,22 @@ void MatmulV3BaseTiling::CalTileFactor(uint64_t &nTile)
     return;
 }
 
-void MatmulV3BaseTiling::SetBasicBlockOfNK33()
+void MatmulV3BaseTiling::SetBasicBlockOfNK33(MatmulV3RunInfo &runInfo)
 {
     // 128是3*3算法的基本块
-    runInfo_.baseM = BASIC_BLOCK_SIZE_128;
-    runInfo_.baseN = BASIC_BLOCK_SIZE_128;
+    runInfo.baseM = BASIC_BLOCK_SIZE_128;
+    runInfo.baseN = BASIC_BLOCK_SIZE_128;
     // 256 means base size is 256Byte
-    runInfo_.baseK = BASIC_BLOCK_K_256_BYTE / aDtypeSize_;
-    runInfo_.usedCoreNum = compileInfo_.aicNum;
-    runInfo_.depthA1 = 6; // 6 = baseM * stepKa * DB_SIZE  1 * 3 * 2
-    runInfo_.depthB1 = 9; // 3*3算法, 9 = baseN * stepKb 3 * 3
-    runInfo_.stepM = 1; // 3*3算法, stepM需要设置为1
-    runInfo_.stepN = 3; // 3*3算法, stepN需要设置为3
+    runInfo.baseK = BASIC_BLOCK_K_256_BYTE / aDtypeSize_;
+    runInfo.usedCoreNum = compileInfo_.aicNum;
+    runInfo.depthA1 = 6; // 6 = baseM * stepKa * DB_SIZE  1 * 3 * 2
+    runInfo.depthB1 = 9; // 3*3算法, 9 = baseN * stepKb 3 * 3
+    runInfo.stepM = 1; // 3*3算法, stepM需要设置为1
+    runInfo.stepN = 3; // 3*3算法, stepN需要设置为3
 
-    runInfo_.stepKa = runInfo_.depthA1 / runInfo_.stepM / DB_SIZE;
-    runInfo_.stepKb = runInfo_.depthB1 / runInfo_.stepN;
-    runInfo_.iterateOrder = ITER_COL_FIRST;
+    runInfo.stepKa = runInfo.depthA1 / runInfo.stepM / DB_SIZE;
+    runInfo.stepKb = runInfo.depthB1 / runInfo.stepN;
+    runInfo.iterateOrder = ITER_COL_FIRST;
 }
 
 void MatmulV3BaseTiling::SetBasicBlockOfMK33(MatmulV3RunInfo &runInfo)
@@ -2065,8 +2116,32 @@ bool MatmulV3BaseTiling::IsMixNd2nz() // check different platform
     return nd2nz;
 }
 
+bool MatmulV3BaseTiling::IsSupportSingleCoreSplitSmallK(uint64_t xDim, uint64_t yDim) const
+{
+    // 条件0： A,B 矩阵数据仅支持 bf16/fp16, 矩阵格式支持 (ND,ND)
+    bool isDTypeFormatSupport = args_.aFormat == ge::FORMAT_ND && args_.bFormat == ge::FORMAT_ND &&
+                                (args_.aType == ge::DT_FLOAT16 || args_.aType == ge::DT_BF16) &&
+                                (args_.bType == ge::DT_FLOAT16 || args_.bType == ge::DT_BF16);
+    // 条件1： M,N 被128整除，K=1536 （对应DeepSeekV3 的Prefill阶段）
+    bool isSmallKwithLargeMN = (args_.kValue == SINGLE_CORE_SPLIT_SMALL_K) &&
+                            (args_.mValue % ALIGN_128 == 0 && args_.nValue % ALIGN_128 == 0);
+    // 条件2： N>>M 且 M = 384 或 M>>N 且 N = 384;
+    bool isLargeXSmallY = (xDim >= SINGLE_CORE_SPLIT_LARGE_MN && yDim == SINGLE_CORE_SPLIT_SMALL_MN);
+    // 条件3： M * N <= (L2 - 8) Mb， 以保证过程矩阵拷出不会溢出L2缓存;
+    int64_t l2CacheAllowance = 8388608; // 8 * 1024 * 1024
+    uint64_t l2CacheLimitation = (compileInfo_.l2Size - l2CacheAllowance) / DATA_SIZE_FP32;
+    bool isL2Enough = args_.nValue * args_.mValue <= l2CacheLimitation;
+    return isDTypeFormatSupport && isSmallKwithLargeMN && isLargeXSmallY && isL2Enough;
+}
+
 bool MatmulV3BaseTiling::IsSupportSingleCoreSplitK() const
 {
+    bool isMKNsmallK = IsSupportSingleCoreSplitSmallK(args_.nValue, args_.mValue);
+    bool isNKMsmallK = IsSupportSingleCoreSplitSmallK(args_.mValue, args_.nValue);
+    if (isMKNsmallK || isNKMsmallK) {
+        OP_LOGI(args_.opName, "Hit mat_mul_v3 single-core-splitk (K=1536) MKN/NKM channel.\n");
+        return true;
+    }
     // n非对齐为fixpipe bound, 走单核切K，由于存在串行的前vector处理，非对齐场景可能性能更差，维持原4M限制不变
     if (args_.isHf32 && !n256Align_ && args_.mValue * args_.nValue < DETER_THRES_OUT_SIZE * MB_SIZE) {
         return false;
@@ -2140,48 +2215,65 @@ void MatmulV3BaseTiling::IsGmToL1ByShape()
 
 bool MatmulV3BaseTiling::CheckSingleTilingOk(MatmulV3RunInfo &tmpRunInfo)
 {
-    bool is_NKM = args_.aType == ge::DT_FLOAT && args_.nValue <= NMK_N_THERS && args_.mValue >= NMK_M_THERS && args_.kValue >= SPLIT_K_THRES && args_.kValue < ND2NZ_ON_THE_FLY_LIMIT && !args_.isATrans && args_.isBTrans;
-    if (!is_NKM){
+    // 判断是否走NKM模板
+    bool isNKM = args_.aType == ge::DT_FLOAT && args_.nValue <= NMK_N_THERS && args_.mValue >= NMK_M_THERS
+                && args_.kValue >= SPLIT_K_THRES && args_.kValue < ND2NZ_ON_THE_FLY_LIMIT
+                && !args_.isATrans && args_.isBTrans;
+    // 判断是否支持K=1536场景下的单核切K
+    bool isMKNsmallK = IsSupportSingleCoreSplitSmallK(args_.nValue, args_.mValue);
+    bool isNKMsmallK = IsSupportSingleCoreSplitSmallK(args_.mValue, args_.nValue);
+    // MKN模板下，需要规避的case
+    if (CheckSingleCoreSplitKEdgeCases(tmpRunInfo, isNKM, isMKNsmallK, isNKMsmallK)) {
+        return false;
+    }
+    // singleM切分在256到384之间，使用33算法，但若时fp32的输出非对齐场景，singleK小容易fixpipe_bound
+    if (isMKNsmallK || (tmpRunInfo.singleCoreM > SINGLE_CORE_M_24 && 
+        tmpRunInfo.singleCoreM <= MULTI_CORE_SINGLE_K && !(args_.aType == ge::DT_FLOAT && !n256Align_))) {
+        SetBasicBlockOfMK33(tmpRunInfo);
+    } else if (isNKMsmallK) {
+        SetBasicBlockOfNK33(tmpRunInfo);
+    }
+    tmpRunInfo.singleCoreK = tmpRunInfo.stepKa * tmpRunInfo.baseK;
+    tmpRunInfo.dbL0c = DB_SIZE;
+    tilingEnable_.tilingEnableSplitCore = TilingEnableSplitCore::SINGLE_CORE_SPLIT_K; 
+    if (isNKM || isNKMsmallK) { // 走51：NKM模板
+        tilingEnable_.tilingEnableSplitCore = TilingEnableSplitCore::SINGLE_CORE_NKM_SPLIT_K;
+    } else if (args_.aType != ge::DT_FLOAT && args_.nValue % ALIGN_128 == 0 && !isMKNsmallK) {
+        IsGmToL1ByShape();  // 走61：GM_to_L1分核模板;当前 isMKNsmallK 用例走21模板性能优于61
+    }
+    tilingEnable_.tilingEnableFullLoad = TilingEnableFullLoad::BASE;
+    tilingEnable_.tilingEnableFixOpti = TilingEnableFixOpti::BASE;
+    runInfo_ = tmpRunInfo;
+    runInfo_.needUpdate = true;
+    runInfo_.l2Info.calOrder = isNKMsmallK ? 1: 0; // 0: 默认行优先； 1: 列优先
+    OP_LOGI(args_.opName, "MatMulV3 tiling enable state is SingleCoreSplitK");
+    return true;
+}
+
+bool MatmulV3BaseTiling::CheckSingleCoreSplitKEdgeCases(const MatmulV3RunInfo &tmpRunInfo,
+                                            bool isNKM, bool isMKNsmallK, bool isNKMsmallK)
+{
+    if (!isNKM && !isMKNsmallK && !isNKMsmallK) {
         // singlen过小场景, A的搬运串行占比过高, N小于512， 一般mac利用率较低
         if (tmpRunInfo.singleCoreN < 512UL) {
             OP_LOGD(args_.opName, "singleN too small.");
-            return false;
+            return true;
         }
         // 单核切K负载不均衡
         float32_t avgRatio = (static_cast<float32_t>(args_.mValue * args_.nValue) /
             static_cast<float32_t>(tmpRunInfo.singleCoreN * tmpRunInfo.singleCoreM * compileInfo_.aicNum));
         if (avgRatio < 0.7f) { // 0.7是经验值
             OP_LOGD(args_.opName, "singleK avg_ratio small than 0.7.");
-            return false;
+            return true;
         }
         // singleCoreN 小于等于640 mac利用率小于0.6，多核切K场景下N在896到2048之间mac利用率一般大于0.6
         if (n256Align_ && args_.nValue >= 896UL && args_.nValue <= 2048UL &&
             (tmpRunInfo.singleCoreN <= 640UL || avgRatio < 0.85f)) {
                 OP_LOGD(args_.opName, "multiK may better than singleK");
-            return false;
+            return true;
         }
     }
-    // singleM切分在256到384之间，使用33算法，但若时fp32的输出非对齐场景，singleK小容易fixpipe_bound
-    if (tmpRunInfo.singleCoreM > SINGLE_CORE_M_24 && tmpRunInfo.singleCoreM <= MULTI_CORE_SINGLE_K &&
-        !(args_.aType == ge::DT_FLOAT && !n256Align_)) {
-        SetBasicBlockOfMK33(tmpRunInfo);
-    }
-    tmpRunInfo.singleCoreK = tmpRunInfo.stepKa * tmpRunInfo.baseK;
-    tmpRunInfo.dbL0c = DB_SIZE;
-    OP_TILING_CHECK(!compileInfo_.supportL0c2out || compileInfo_.supportL12BtBf16 || !IsSupportSingleCoreSplitK(),
-        OP_LOGI(args_.opName, "MatMulV3 tiling not support SingleCoreSplitK."), return false);
-    tilingEnable_.tilingEnableSplitCore = TilingEnableSplitCore::SINGLE_CORE_SPLIT_K;
-    if (is_NKM) {
-        tilingEnable_.tilingEnableSplitCore = TilingEnableSplitCore::SINGLE_CORE_NKM_SPLIT_K;
-    } else if(args_.aType != ge::DT_FLOAT && args_.nValue % ALIGN_128 == 0) {
-        IsGmToL1ByShape();
-    }
-    tilingEnable_.tilingEnableFullLoad = TilingEnableFullLoad::BASE;
-    tilingEnable_.tilingEnableFixOpti = TilingEnableFixOpti::BASE;
-    runInfo_ = tmpRunInfo;
-    runInfo_.needUpdate = true;
-    OP_LOGI(args_.opName, "MatMulV3 tiling enable state is SingleCoreSplitK");
-    return true;
+    return false;
 }
 
 bool MatmulV3BaseTiling::DoSingleCoreSplitKTiling()
@@ -2203,6 +2295,11 @@ bool MatmulV3BaseTiling::DoSingleCoreSplitKTiling()
     mTile = MathUtil::CeilDivision(args_.mValue, tmpRunInfo.stepM * tmpRunInfo.baseM);
     CalTileFactor(nTile); // nTile向上靠近aic_num的因子， 如ntile=5，aic_num=24，调整ntile为6
     if (mTile * nTile >= compileInfo_.aicNum) {
+        if (nTile == 0UL) {
+            mTile = 1UL;
+        } else {
+            mTile = std::max(compileInfo_.aicNum / nTile, 1UL);
+        }
         mTile = std::max(compileInfo_.aicNum / nTile, 1UL);
         tmpRunInfo.singleCoreM = ops::CeilAlign(MathUtil::CeilDivision(args_.mValue, mTile), mAlignLength);
         tmpRunInfo.singleCoreM = std::min(tmpRunInfo.singleCoreM, args_.mValue);
@@ -2214,7 +2311,11 @@ bool MatmulV3BaseTiling::DoSingleCoreSplitKTiling()
             return CheckSingleTilingOk(tmpRunInfo);
         }
     }
-    nTile = std::max(compileInfo_.aicNum / mTile, 1UL);
+    if (mTile == 0) {
+        nTile = 1UL;
+    } else {
+        nTile = std::max(compileInfo_.aicNum / mTile, 1UL);
+    }
     uint64_t totalCnt = 0UL;
     uint64_t singleCoreN = args_.nValue;
     constexpr uint64_t singleCoreNThreshold = 1024UL;
@@ -2378,7 +2479,7 @@ bool MatmulV3BaseTiling::DoDeterministicMultiCoreSplitKTiling()
     // MK耗时和NK耗时的比较合并为M和N的比较
     uint64_t L2_SIZE_70_pct = compileInfo_.l2Size * 7 / 10;
     if (IsNkOrder()) {
-        SetBasicBlockOfNK33();
+        SetBasicBlockOfNK33(runInfo_);
         // 多核切K在k完成分核，m轴不分核, n轴做外层循环进行pingpong
         runInfo_.singleCoreM = args_.mValue;
         // singleCoreN * singleCoreK表示基本块大小，一次IterateALL完成singleCoreM * singleCoreN的计算

@@ -1,17 +1,11 @@
 /**
- * Copyright (c) Huawei Technologies Co., Ltd. 2025-2025. All rights reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
+ * This file is a part of the CANN Open Software.
+ * Licensed under CANN Open Software License Agreement Version 1.0 (the "License").
+ * Please refer to the License for details. You may not use this file except in compliance with the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
  */
 
 /*!
@@ -20,10 +14,10 @@
  */
 #include "matmul_v3_l2_cache.h"
 #include "tiling_base/tiling_key.h"
-#include "matmul/common/op_host/math_util.h"
+#include "common/op_host/math_util.h"
 
 using namespace optiling::matmul_v3;
-using Ops::NN::MathUtil;
+using Ops::Transformer::MathUtil;
 
 namespace optiling {
 namespace matmul_v3 {
@@ -105,25 +99,25 @@ void L2Cache::SetL2CacheFlag(bool aEnableL2Cache, bool bEnableL2Cache, bool cEna
                              bool biasEnableL2Cache, uint32_t &l2CacheFlag)
 {
     if (aEnableL2Cache && bEnableL2Cache && cEnableL2Cache && biasEnableL2Cache) {
-        l2CacheFlag |= (1 << ALL_L2_ENABLE_BIT);
+        l2CacheFlag |= (1U << ALL_L2_ENABLE_BIT);
         OP_LOGD(args_.opName, "l2CacheFlag: %u", l2CacheFlag);
         return;
     }
 
     if (!aEnableL2Cache) {
-        l2CacheFlag |= (1 << A_L2_DISABLE_BIT);
+        l2CacheFlag |= (1U << A_L2_DISABLE_BIT);
     }
 
     if (!bEnableL2Cache) {
-        l2CacheFlag |= (1 << B_L2_DISABLE_BIT);
+        l2CacheFlag |= (1U << B_L2_DISABLE_BIT);
     }
 
     if (!cEnableL2Cache) {
-        l2CacheFlag |= (1 << C_L2_DISABLE_BIT);
+        l2CacheFlag |= (1U << C_L2_DISABLE_BIT);
     }
 
     if (!biasEnableL2Cache) {
-        l2CacheFlag |= (1 << BIAS_L2_DISABLE_BIT);
+        l2CacheFlag |= (1U << BIAS_L2_DISABLE_BIT);
     }
 
     OP_LOGI(args_.opName, "l2CacheFlag: %u", l2CacheFlag);

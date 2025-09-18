@@ -16,8 +16,8 @@
 #define GROUPED_QUANT_MATMUL_TILING_H
 
 #include "../grouped_matmul_tiling.h"
-#include "tiling/tiling_base.h"
-
+#include "tiling_base/tiling_base.h"
+using namespace Ops::Transformer::OpTiling;
 namespace optiling {
 namespace GmmConstant {
 constexpr uint64_t MX_GROUP_SIZE = 32;

@@ -1,17 +1,11 @@
 /**
- * Copyright (c) Huawei Technologies Co., Ltd. 2023-2025. All rights reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
+ * This file is a part of the CANN Open Software.
+ * Licensed under CANN Open Software License Agreement Version 1.0 (the "License").
+ * Please refer to the License for details. You may not use this file except in compliance with the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
  */
 
 /*!
@@ -22,18 +16,20 @@
 
 #include <type_traits>
 
-#include "cube_tiling_runtime.h"
-#include "matmul_v3_simplifiedkey.h"
-#include "matmul_v3_platform_common.h"
-#include "arch35/matmul_v3_compile_info_advanced.h"
+#include "mat_mul_v3/op_host/op_tiling/matmul_v3_simplifiedkey.h"
+#include "mat_mul_v3/op_host/op_tiling/matmul_v3_platform_common.h"
+#include "mat_mul_v3/op_host/op_tiling/arch35/matmul_v3_compile_info_advanced.h"
 #include "./arch35/batch_matmul_v3_tiling_advanced.h"
 #include "batch_mat_mul_v3_base_tiling.h"
 
-#include "tiling/tiling_templates_registry.h"
+#include "tiling_base/tiling_templates_registry.h"
 #include "register/op_def_registry.h"
+#include "platform/platform_infos_def.h"
+#include "op_cache_tiling.h"
 
 using namespace optiling::batch_mat_mul_v3;
 using namespace optiling::matmul_v3;
+using Ops::Transformer::OpTiling::TilingRegistry;
 
 namespace optiling {
 
@@ -78,13 +74,9 @@ static ge::graphStatus TilingPrepareForBatchMatMulV3(gert::TilingParseContext *c
     ascendcPlatform.GetCoreMemSize(platform_ascendc::CoreMemType::L0_C, compileInfoPtr->l0CSize);
     ascendcPlatform.GetCoreMemSize(platform_ascendc::CoreMemType::L2, compileInfoPtr->l2Size);
 
-    gert::GemmCompileInfo tbeCompileInfo;
-    tbeCompileInfo.ParseRuntimePlatformInfo(context->GetNodeName(), *platformInfo);
-    tbeCompileInfo.core_num = compileInfoPtr->aicNum;
-    OP_TILING_CHECK(tbeCompileInfo.core_num <= 0L,
-                    CUBE_INNER_ERR_REPORT(context->GetNodeName(), "aicNum value is [%d]", tbeCompileInfo.core_num),
-                    return ge::GRAPH_FAILED);
-    optiling::PlatformInfo::GetInstance().SetInstance(tbeCompileInfo);
+    if(!TilingPrepareForOpCache(context)) {
+        return ge::GRAPH_FAILED;
+    }
     OP_LOGI(
         context->GetNodeName(),
         "compile info success soc:%d, l1Size:%lu, l2Size:%lu, coreNum:%lu, supportL0c2out:%d, supportL12BtBf16:%d",

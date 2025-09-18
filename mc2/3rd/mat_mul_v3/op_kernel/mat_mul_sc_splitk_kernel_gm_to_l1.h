@@ -1,17 +1,11 @@
 /**
- * Copyright (c) Huawei Technologies Co., Ltd. 2023-2025. All rights reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
+ * This file is a part of the CANN Open Software.
+ * Licensed under CANN Open Software License Agreement Version 1.0 (the "License").
+ * Please refer to the License for details. You may not use this file except in compliance with the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
  */
 
 /*!
@@ -296,7 +290,7 @@ MatMulBaseKernelSingleCoreSplitKGmToL1<A_TYPE, B_TYPE, L0C_TYPE, OUTPUT_TYPE, BI
                 VectorProcess(innerMIndex, cGM, srcAddr, ubBuf);
             }
             if ASCEND_IS_AIC {
-                block_.UpdateBlockParams(innerMIndex, K_INDEX_0);
+                block_.UpdateBlockParamsMk(innerMIndex, K_INDEX_0);
                 block_.template CalcGMOffset<A_TYPE, B_TYPE, L0C_TYPE, BIAS_TYPE>(innerMIndex, K_INDEX_0, N_INDEX_0, false);
                 nmloop_ = MMV3DivCeil(block_.params_.innerSingleCoreM, M0);
                 nnloop_ = MMV3DivCeil(block_.params_.innerSingleCoreN, N0);
@@ -310,7 +304,7 @@ MatMulBaseKernelSingleCoreSplitKGmToL1<A_TYPE, B_TYPE, L0C_TYPE, OUTPUT_TYPE, BI
                     bool lastK = kIndex == block_.params_.loopK - 1;
                     int32_t realK = lastK ? block_.matmulTilingData_->matmulTiling.Ka - kIndex * k0 : k0; 
                     int32_t nextRealK =  kIndex ==  block_.params_.loopK - 2 ? block_.matmulTilingData_->matmulTiling.Ka - (kIndex + 1) * k0 : k0; 
-                    block_.UpdateBlockParams(innerMIndex, kIndex);
+                    block_.UpdateBlockParamsMk(innerMIndex, kIndex);
                     if (kIndex != 0) {
                         SetAtomicAdd<float>();
                     } else {
@@ -361,7 +355,7 @@ MatMulBaseKernelSingleCoreSplitKGmToL1<A_TYPE, B_TYPE, L0C_TYPE, OUTPUT_TYPE, BI
     // Cast f322f16
     WaitFlagDevLocal(5);
     // do_cast C：innerSingleCoreM * nCoreUse
-    block_.UpdateBlockParams(innerMIndex, 0);
+    block_.UpdateBlockParamsMk(innerMIndex, 0);
     uint64_t singleMOffset = block_.params_.mIndex * block_.matmulTilingData_->matmulTiling.singleCoreM;
     uint64_t innerMOffset = innerMIndex * block_.params_.innerBlockM;
     uint64_t offset = (singleMOffset + innerMOffset) * block_.matmulTilingData_->matmulTiling.N +
@@ -757,7 +751,7 @@ MatMulBaseKernelSingleCoreSplitKGmToL1<A_TYPE, B_TYPE, L0C_TYPE, OUTPUT_TYPE, BI
     for (uint64_t j = 0; j < block_.params_.realRound; ++j) {
         block_.UpdateBlockCnt();
         for (uint64_t innerMIndex = 0; innerMIndex < block_.params_.innerLoopM; ++innerMIndex) {
-            block_.UpdateBlockParams(innerMIndex, K_INDEX_0);
+            block_.UpdateBlockParamsMk(innerMIndex, K_INDEX_0);
             block_.template CalcGMOffset<A_TYPE, B_TYPE, L0C_TYPE, BIAS_TYPE>(innerMIndex, K_INDEX_0, N_INDEX_0, false);
             nmloop_ = MMV3DivCeil(block_.params_.innerSingleCoreM, M0);
             nnloop_ = MMV3DivCeil(block_.params_.innerSingleCoreN, N0);
@@ -771,7 +765,7 @@ MatMulBaseKernelSingleCoreSplitKGmToL1<A_TYPE, B_TYPE, L0C_TYPE, OUTPUT_TYPE, BI
                 bool lastK = kIndex == block_.params_.loopK - 1;
                 int32_t realK = lastK ? MMV3CeilAlign(block_.matmulTilingData_->matmulTiling.Ka - kIndex * k0, block_.params_.c0Size) : k0; 
                 int32_t nextRealK =  kIndex ==  block_.params_.loopK - 2 ? MMV3CeilAlign(block_.matmulTilingData_->matmulTiling.Ka - (kIndex + 1) * k0, block_.params_.c0Size) : k0; 
-                block_.UpdateBlockParams(innerMIndex, kIndex);
+                block_.UpdateBlockParamsMk(innerMIndex, kIndex);
                 if (kIndex != 0) {
                     SetAtomicAdd<float>();
                 } else {

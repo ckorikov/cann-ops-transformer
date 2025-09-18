@@ -1,17 +1,11 @@
 /**
- * Copyright (c) Huawei Technologies Co., Ltd. 2023-2025. All rights reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
+ * This file is a part of the CANN Open Software.
+ * Licensed under CANN Open Software License Agreement Version 1.0 (the "License").
+ * Please refer to the License for details. You may not use this file except in compliance with the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
  */
 
 /*!
@@ -68,11 +62,11 @@ public:
 
     __aicore__ inline void End()
     {
-        if (innerParams_.nd2nzFlag == ND2NZ_SELECT::ONLY_B) {
+        if (innerParams_.nd2nzFlag == static_cast<int32_t>(ND2NZ_SELECT::ONLY_B)) {
             mmb_.End();
-        } else if (innerParams_.nd2nzFlag == ND2NZ_SELECT::ONLY_A) {
+        } else if (innerParams_.nd2nzFlag == static_cast<int32_t>(ND2NZ_SELECT::ONLY_A)) {
             mma_.End();
-        } else if (innerParams_.nd2nzFlag == ND2NZ_SELECT::BOTH_AB) {
+        } else if (innerParams_.nd2nzFlag == static_cast<int32_t>(ND2NZ_SELECT::BOTH_AB)) {
             mmab_.End();
         }
     }
@@ -128,13 +122,13 @@ MatMulUnAlignedSingleCoreSplitKKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLOCK_T
             innerParams_.castAddr = innerParams_.cGM;
         }
 
-        if (innerParams_.nd2nzFlag == ND2NZ_SELECT::ONLY_B) {
+        if (innerParams_.nd2nzFlag == static_cast<int32_t>(ND2NZ_SELECT::ONLY_B)) {
             mmb_.UnAlignedInit(innerParams_.aGM, innerParams_.alignedworkspaceGM, innerParams_.castAddr, biasGM,
                 offsetWGM, workspaceGM, matmulTilingData, pipe_);
-        } else if (innerParams_.nd2nzFlag == ND2NZ_SELECT::ONLY_A) {
+        } else if (innerParams_.nd2nzFlag == static_cast<int32_t>(ND2NZ_SELECT::ONLY_A)) {
             mma_.UnAlignedInit(innerParams_.alignedworkspaceGM, innerParams_.bGM, innerParams_.castAddr, biasGM,
                 offsetWGM, workspaceGM, matmulTilingData, pipe_);
-        } else if (innerParams_.nd2nzFlag == ND2NZ_SELECT::BOTH_AB) {
+        } else if (innerParams_.nd2nzFlag == static_cast<int32_t>(ND2NZ_SELECT::BOTH_AB)) {
             mmab_.UnAlignedInit(innerParams_.alignedworkspaceGM,
                 innerParams_.alignedworkspaceGM +
                 innerParams_.alignedOriM * innerParams_.alignedKaSize * innerParams_.inputDtypeSize,
@@ -176,12 +170,12 @@ MatMulUnAlignedSingleCoreSplitKKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLOCK_T
 
     innerParams_.castAddr = innerParams_.alignedworkspaceGM;
     if (innerParams_.nd2nzA) {
-        innerParams_.nd2nzFlag = ND2NZ_SELECT::ONLY_A;
+        innerParams_.nd2nzFlag = static_cast<int32_t>(ND2NZ_SELECT::ONLY_A);
         innerParams_.castAddr = innerParams_.alignedworkspaceGM +
             innerParams_.alignedOriM * innerParams_.alignedKaSize * innerParams_.inputDtypeSize;
     }
     if (innerParams_.nd2nzB) {
-        innerParams_.nd2nzFlag = ND2NZ_SELECT::ONLY_B;
+        innerParams_.nd2nzFlag = static_cast<int32_t>(ND2NZ_SELECT::ONLY_B);
         innerParams_.castAddr = innerParams_.alignedworkspaceGM +
             innerParams_.alignedKbSize * innerParams_.alignedOriN * innerParams_.inputDtypeSize;
     }
@@ -193,15 +187,15 @@ MatMulUnAlignedSingleCoreSplitKKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLOCK_T
             matmulTilingData_->matmulTiling.depthB1 >=
             innerParams_.alignedOriN * innerParams_.alignedKbSize;
         if (isAFullLoad) {
-            innerParams_.nd2nzFlag = ND2NZ_SELECT::ONLY_B;
+            innerParams_.nd2nzFlag = static_cast<int32_t>(ND2NZ_SELECT::ONLY_B);
             innerParams_.castAddr = innerParams_.alignedworkspaceGM +
                 innerParams_.alignedOriN * innerParams_.alignedKbSize * innerParams_.inputDtypeSize;
         } else if (isBFullLoad) {
-            innerParams_.nd2nzFlag = ND2NZ_SELECT::ONLY_A;
+            innerParams_.nd2nzFlag = static_cast<int32_t>(ND2NZ_SELECT::ONLY_A);
             innerParams_.castAddr = innerParams_.alignedworkspaceGM +
                 innerParams_.alignedOriM * innerParams_.alignedKaSize * innerParams_.inputDtypeSize;
         } else {
-            innerParams_.nd2nzFlag = ND2NZ_SELECT::BOTH_AB;
+            innerParams_.nd2nzFlag = static_cast<int32_t>(ND2NZ_SELECT::BOTH_AB);
             innerParams_.castAddr =
                 innerParams_.alignedworkspaceGM + (innerParams_.alignedOriM + innerParams_.alignedOriN) *
                 innerParams_.alignedKaSize * innerParams_.inputDtypeSize;
@@ -251,13 +245,13 @@ __aicore__ inline void MatMulUnAlignedSingleCoreSplitKKernel<A_TYPE, B_TYPE, C_T
             innerParams_.castAddr = innerParams_.cGM;
         }
 
-        if (innerParams_.nd2nzFlag == ND2NZ_SELECT::ONLY_B) {
+        if (innerParams_.nd2nzFlag == static_cast<int32_t>(ND2NZ_SELECT::ONLY_B)) {
             mmb_.UpdateGlobalTensor(innerParams_.aGM, innerParams_.alignedworkspaceGM, innerParams_.castAddr, biasGM,
                 offsetWGM, workspaceGM);
-        } else if (innerParams_.nd2nzFlag == ND2NZ_SELECT::ONLY_A) {
+        } else if (innerParams_.nd2nzFlag == static_cast<int32_t>(ND2NZ_SELECT::ONLY_A)) {
             mma_.UpdateGlobalTensor(innerParams_.alignedworkspaceGM, innerParams_.bGM, innerParams_.castAddr, biasGM,
                 offsetWGM, workspaceGM);
-        } else if (innerParams_.nd2nzFlag == ND2NZ_SELECT::BOTH_AB) {
+        } else if (innerParams_.nd2nzFlag == static_cast<int32_t>(ND2NZ_SELECT::BOTH_AB)) {
             mmab_.UpdateGlobalTensor(innerParams_.alignedworkspaceGM,
                 innerParams_.alignedworkspaceGM +
                 innerParams_.alignedOriM * innerParams_.alignedKaSize * innerParams_.inputDtypeSize,
@@ -273,13 +267,13 @@ __aicore__ inline void
 MatMulUnAlignedSingleCoreSplitKKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLOCK_TYPE, MM_CFG>::ProcessNDtoNZ()
 {
     // ND2NZ
-    if (innerParams_.nd2nzFlag == ND2NZ_SELECT::ONLY_B) {
+    if (innerParams_.nd2nzFlag == static_cast<int32_t>(ND2NZ_SELECT::ONLY_B)) {
         MatrixBtoNZV2<typename B_TYPE::T>(innerParams_.alignedworkspaceGM, innerParams_.bGM, matmulTilingData_->matmulTiling, innerParams_.isTransposeBIn, ubBuf_,
                                           innerParams_.baseBN, innerParams_.baseBD);
-    } else if (innerParams_.nd2nzFlag == ND2NZ_SELECT::ONLY_A) {
+    } else if (innerParams_.nd2nzFlag == static_cast<int32_t>(ND2NZ_SELECT::ONLY_A)) {
         MatrixAtoNZV2<typename A_TYPE::T>(innerParams_.alignedworkspaceGM, innerParams_.aGM, matmulTilingData_->matmulTiling, innerParams_.isTransposeAIn, ubBuf_,
                                           innerParams_.baseAN, innerParams_.baseAD);
-    } else if (innerParams_.nd2nzFlag == ND2NZ_SELECT::BOTH_AB) {
+    } else if (innerParams_.nd2nzFlag == static_cast<int32_t>(ND2NZ_SELECT::BOTH_AB)) {
         MatrixAtoNZV2<typename A_TYPE::T>(innerParams_.alignedworkspaceGM, innerParams_.aGM, matmulTilingData_->matmulTiling, innerParams_.isTransposeAIn, ubBuf_,
                                           innerParams_.baseAN, innerParams_.baseAD);
         event_t eventMTE3MTE2 = static_cast<event_t>(GetTPipePtr()->FetchEventID(HardEvent::MTE3_MTE2));

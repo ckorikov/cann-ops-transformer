@@ -30,10 +30,10 @@
 #include "exe_graph/runtime/storage_format.h"
 #include "exe_graph/runtime/storage_shape.h"
 #include "tiling//tiling_base.h"
-#include "tiling/tiling_templates_registry.h"
+#include "tiling_base/tiling_templates_registry.h"
 #include "tiling/tiling_type.h"
 #include "test_cube_util.h"
-
+using namespace Ops::Transformer::OpTiling;
 using namespace ut_util;
 using namespace std;
 using namespace ge;

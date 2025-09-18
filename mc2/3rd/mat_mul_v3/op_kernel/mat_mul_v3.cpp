@@ -29,6 +29,7 @@
 #if defined(__CCE_AICORE__) && __CCE_AICORE__ == 220
 #include "mat_mul_multi_core_splitk_kernel.h"
 #endif
+
 using namespace AscendC;
 using namespace matmul;
 #ifndef DTYPE_BIAS
@@ -161,7 +162,8 @@ constexpr CubeFormat format_y = CubeFormat::ND;
     } while (0)
 
 extern "C" __global__ __aicore__ void mat_mul_v3(GM_ADDR aGM, GM_ADDR bGM, GM_ADDR biasGM,
-    GM_ADDR offsetWGM, GM_ADDR cGM, GM_ADDR workspaceGM, GM_ADDR tilingGM)
+                                                 GM_ADDR offsetWGM, GM_ADDR cGM, 
+                                                 GM_ADDR workspaceGM, GM_ADDR tilingGM)
 {
     __gm__ uint8_t *user = GetUserWorkspace(workspaceGM);
     GET_TILING_DATA(tilingData, tilingGM);
@@ -187,7 +189,7 @@ extern "C" __global__ __aicore__ void mat_mul_v3(GM_ADDR aGM, GM_ADDR bGM, GM_AD
     } else if (TILING_KEY_IS(10000000000000000021UL)) {
         MMV3_IMPL_CLASS(MatMulSingleCoreSplitKKernel, format_x1, MatmulSingleCoreSplitKBaseBlock, MM_CFG_PRELOAD_MK);
     } else if (TILING_KEY_IS(10000000000000000051UL)) {
-        MMV3_IMPL_CLASS(MatMulSingleCoreSplitKKernel, format_x1, MatmulSingleCoreSplitKBaseBlock, MM_CFG_PRELOAD_MK, true);
+        MMV3_IMPL_CLASS(MatMulSingleCoreSplitKKernel, format_x1, MatmulSingleCoreSplitKBaseBlock, MM_CFG_PRELOAD_NK, true);
     } else if (TILING_KEY_IS(10000000000000000061UL)) {
         MMV3_IMPL_CLASS(MatMulSingleCoreSplitKKernelGmToL1, format_x1, MatmulSingleCoreSplitKBaseBlock, MM_CFG_PRELOAD_MK);
     } else if (TILING_KEY_IS(10000000000000000020UL)) {

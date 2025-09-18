@@ -1,17 +1,11 @@
 /**
- * Copyright (c) Huawei Technologies Co., Ltd. 2023-2025. All rights reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
+ * This file is a part of the CANN Open Software.
+ * Licensed under CANN Open Software License Agreement Version 1.0 (the "License").
+ * Please refer to the License for details. You may not use this file except in compliance with the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
  */
 
 /*!
@@ -40,6 +34,10 @@ public:
 
     __aicore__ inline void UpdateGlobalTensor(GM_ADDR aGM, GM_ADDR bGM, GM_ADDR cGM, GM_ADDR biasGM, GM_ADDR offsetWGM,
         GM_ADDR workspaceGM);
+
+    __aicore__ inline void ProcessBlockMKN(GM_ADDR cGM, GM_ADDR srcAddr, TBuf<TPosition::VECCALC> &ubBuf);
+
+    __aicore__ inline void ProcessBlockNKM(GM_ADDR cGM, GM_ADDR srcAddr, TBuf<TPosition::VECCALC> &ubBuf);
 
     __aicore__ inline void Process(GM_ADDR cGM, GM_ADDR srcAddr, TBuf<TPosition::VECCALC> &ubBuf);
 
@@ -182,62 +180,124 @@ MatMulBaseKernelSingleCoreSplitK<A_TYPE, B_TYPE, L0C_TYPE, OUTPUT_TYPE, BIAS_TYP
 template <class A_TYPE, class B_TYPE, class L0C_TYPE, class OUTPUT_TYPE, class BIAS_TYPE, class BLOCK_TYPE,
     const MatmulConfig &MM_CFG, const bool IS_NKM>
 __aicore__ inline void
+MatMulBaseKernelSingleCoreSplitK<A_TYPE, B_TYPE, L0C_TYPE, OUTPUT_TYPE, BIAS_TYPE, BLOCK_TYPE, MM_CFG, IS_NKM>::ProcessBlockMKN(
+    GM_ADDR cGM, GM_ADDR srcAddr, TBuf<TPosition::VECCALC> &ubBuf)
+{
+    for (uint64_t innerMIndex = 0; innerMIndex < block_.params_.innerLoopM; ++innerMIndex) {
+        if ASCEND_IS_AIV {
+            // Cast f322f16
+            WaitFlagDevLocal(AIC_SYNC_AIV_FLAG);
+            // do_cast C：innerSingleCoreM * nCoreUse
+            block_.UpdateBlockParamsMk(innerMIndex, 0);
+            uint64_t singleMOffset = block_.params_.mIndex * block_.matmulTilingData_->matmulTiling.singleCoreM;
+            uint64_t innerMOffset = innerMIndex * block_.params_.innerBlockM;
+            uint64_t offset = (singleMOffset + innerMOffset) * block_.matmulTilingData_->matmulTiling.N +
+                                block_.params_.nIndex * block_.matmulTilingData_->matmulTiling.singleCoreN;
+            uint64_t vMOffset = MMV3DivCeil(block_.params_.innerSingleCoreM, NUM_TWO);
+            if (GetBlockIdx() % NUM_TWO == 1) { // 一个C核对应两个V核中的第二个V核的计算处理
+                offset = offset + vMOffset * block_.matmulTilingData_->matmulTiling.N;
+                vMOffset = block_.params_.innerSingleCoreM - vMOffset;
+            }
+            uint64_t singleSize = vMOffset * block_.params_.nCoreUse;
+            Cast32to16V220(reinterpret_cast<__gm__ typename OUTPUT_TYPE::T *>(cGM) + offset,
+                            reinterpret_cast<__gm__ float *>(srcAddr) + offset,
+                            singleSize,
+                            block_.params_.nCoreUse,
+                            block_.matmulTilingData_->matmulTiling.N,
+                            ubBuf);
+            PipeBarrier<PIPE_ALL>();
+        }
+        if ASCEND_IS_AIC {
+            for (uint64_t kIndex = 0; kIndex < block_.params_.loopK; ++kIndex) {
+                block_.UpdateBlockParamsMk(innerMIndex, kIndex);
+                for (uint64_t innerNIndex = 0; innerNIndex < block_.params_.innerLoopN; ++innerNIndex) {
+                    block_.template CalcGMOffset<A_TYPE, B_TYPE, L0C_TYPE, BIAS_TYPE>(innerMIndex, kIndex, innerNIndex, false);
+                    SetParamAndExec(kIndex);
+                }
+            }
+            // c侧做完才能做v侧
+#if defined(__CCE_AICORE__) && __CCE_AICORE__ == 220
+            NotifyEvent<PIPE_FIX>(AIC_SYNC_AIV_FLAG);
+#endif
+            PipeBarrier<PIPE_ALL>();
+        }
+    }
+}
+
+template <class A_TYPE, class B_TYPE, class L0C_TYPE, class OUTPUT_TYPE, class BIAS_TYPE, class BLOCK_TYPE,
+    const MatmulConfig &MM_CFG, const bool IS_NKM>
+__aicore__ inline void
+MatMulBaseKernelSingleCoreSplitK<A_TYPE, B_TYPE, L0C_TYPE, OUTPUT_TYPE, BIAS_TYPE, BLOCK_TYPE, MM_CFG, IS_NKM>::ProcessBlockNKM(
+    GM_ADDR cGM, GM_ADDR srcAddr, TBuf<TPosition::VECCALC> &ubBuf)
+{
+    for (uint64_t innerNIndex = 0; innerNIndex < block_.params_.innerLoopN; ++innerNIndex) {
+        if ASCEND_IS_AIV {
+            // Cast f322f16
+            WaitFlagDevLocal(AIC_SYNC_AIV_FLAG);
+            // do_cast C：mCoreUse * innerSingleCoreN
+            block_.UpdateBlockParamsNk(innerNIndex, 0);
+            uint64_t singleNOffset = block_.params_.nIndex * block_.matmulTilingData_->matmulTiling.singleCoreN;
+            uint64_t innerNOffset = innerNIndex * block_.params_.innerBlockN;
+            uint64_t offset = (singleNOffset + innerNOffset) +
+                                block_.params_.mIndex * block_.matmulTilingData_->matmulTiling.singleCoreM * block_.matmulTilingData_->matmulTiling.N;
+            uint64_t vMOffset = MMV3DivCeil(block_.params_.mCoreUse, NUM_TWO);
+            if (GetBlockIdx() % NUM_TWO == 1) { // 一个C核对应两个V核中的第二个V核的计算处理
+                offset = offset + vMOffset * block_.matmulTilingData_->matmulTiling.N;
+                vMOffset = block_.params_.innerSingleCoreM - vMOffset;
+            }
+            uint64_t singleSize = vMOffset * block_.params_.innerSingleCoreN;
+            Cast32to16V220(reinterpret_cast<__gm__ typename OUTPUT_TYPE::T *>(cGM) + offset,
+                            reinterpret_cast<__gm__ float *>(srcAddr) + offset,
+                            singleSize,
+                            block_.params_.innerSingleCoreN,
+                            block_.matmulTilingData_->matmulTiling.N,
+                            ubBuf);
+            PipeBarrier<PIPE_ALL>();
+        }
+
+        if ASCEND_IS_AIC {
+            for (uint64_t kIndex = 0; kIndex < block_.params_.loopK; ++kIndex) {
+                block_.UpdateBlockParamsNk(innerNIndex, kIndex);
+                for (uint64_t innerMIndex = 0; innerMIndex < block_.params_.innerLoopM; ++innerMIndex) {
+                    block_.template CalcGMOffset<A_TYPE, B_TYPE, L0C_TYPE, BIAS_TYPE>(innerMIndex, kIndex, innerNIndex, true);
+                    SetParamAndExec(kIndex);
+                }
+            }
+            // c侧做完才能做v侧
+#if defined(__CCE_AICORE__) && __CCE_AICORE__ == 220
+            NotifyEvent<PIPE_FIX>(AIC_SYNC_AIV_FLAG);
+#endif
+            PipeBarrier<PIPE_ALL>();
+        }
+    }
+}
+
+template <class A_TYPE, class B_TYPE, class L0C_TYPE, class OUTPUT_TYPE, class BIAS_TYPE, class BLOCK_TYPE,
+    const MatmulConfig &MM_CFG, const bool IS_NKM>
+__aicore__ inline void
 MatMulBaseKernelSingleCoreSplitK<A_TYPE, B_TYPE, L0C_TYPE, OUTPUT_TYPE, BIAS_TYPE, BLOCK_TYPE, MM_CFG, IS_NKM>::Process(
     GM_ADDR cGM, GM_ADDR srcAddr, TBuf<TPosition::VECCALC> &ubBuf)
 {
     block_.InitBlockIndex();
     if ASCEND_IS_AIC {
         mm_.SetHF32(block_.params_.isHf32, 1); // 1: round mode is round to the nearest tie away from zero
+        //  SetL2CacheHint 的逻辑: 左、右矩阵仅搬运一次的情形
+        if (IS_NKM && (block_.matmulTilingData_->matmulTiling.stepN * 
+            block_.matmulTilingData_->matmulTiling.baseN == block_.matmulTilingData_->matmulTiling.N)) {
+            aGlobal_.SetL2CacheHint(CacheMode::CACHE_MODE_DISABLE);
+        } else if (!IS_NKM && (block_.matmulTilingData_->matmulTiling.stepM * 
+            block_.matmulTilingData_->matmulTiling.baseM == block_.matmulTilingData_->matmulTiling.M)) {
+            bGlobal_.SetL2CacheHint(CacheMode::CACHE_MODE_DISABLE);
+        }
     }
     for (uint64_t j = 0; j < block_.params_.realRound; ++j) {
         block_.UpdateBlockCnt();
-        for (uint64_t innerMIndex = 0; innerMIndex < block_.params_.innerLoopM; ++innerMIndex) {
-            if ASCEND_IS_AIV {
-                // Cast f322f16
-                WaitFlagDevLocal(5);
-                // do_cast C：innerSingleCoreM * nCoreUse
-                block_.UpdateBlockParams(innerMIndex, 0);
-                uint64_t singleMOffset = block_.params_.mIndex * block_.matmulTilingData_->matmulTiling.singleCoreM;
-                uint64_t innerMOffset = innerMIndex * block_.params_.innerBlockM;
-                uint64_t offset = (singleMOffset + innerMOffset) * block_.matmulTilingData_->matmulTiling.N +
-                                  block_.params_.nIndex * block_.matmulTilingData_->matmulTiling.singleCoreN;
-                uint64_t vMOffset = MMV3DivCeil(block_.params_.innerSingleCoreM, NUM_TWO);
-                if (GetBlockIdx() % NUM_TWO == 1) { // 一个C核对应两个V核中的第二个V核的计算处理
-                    offset = offset + vMOffset * block_.matmulTilingData_->matmulTiling.N;
-                    vMOffset = block_.params_.innerSingleCoreM - vMOffset;
-                }
-                uint64_t singleSize = vMOffset * block_.params_.nCoreUse;
-                Cast32to16V220(reinterpret_cast<__gm__ typename OUTPUT_TYPE::T *>(cGM) + offset,
-                    reinterpret_cast<__gm__ float *>(srcAddr) + offset, singleSize, block_.params_.nCoreUse, block_.matmulTilingData_->matmulTiling.N, ubBuf);
-                PipeBarrier<PIPE_ALL>();
-            }
-            if ASCEND_IS_AIC {
-                for (uint64_t kIndex = 0; kIndex < block_.params_.loopK; ++kIndex) {
-                    block_.UpdateBlockParams(innerMIndex, kIndex);
-                    for (uint64_t innerNIndex = 0; innerNIndex < block_.params_.innerLoopN; ++innerNIndex) {
-                        block_.template CalcGMOffset<A_TYPE, B_TYPE, L0C_TYPE, BIAS_TYPE>(innerMIndex, kIndex, innerNIndex, false);
-                        mm_.SetSingleShape(block_.params_.innerSingleCoreM, block_.params_.innerSingleCoreN, block_.params_.kCoreUse);
-                        mm_.SetTensorA(aGlobal_[block_.offset_.offsetA], block_.params_.isTransposeA);
-                        mm_.SetTensorB(bGlobal_[block_.offset_.offsetB], block_.params_.isTransposeB);
-                        if (kIndex == 0) {
-                            block_.params_.atomicAddFlag = false;
-                            if (block_.matmulTilingData_->matmulTiling.isBias) {
-                                mm_.SetBias(biasGlobal_[block_.offset_.offsetBias]);
-                            }
-                        } else {
-                            block_.params_.atomicAddFlag = true;
-                        }
-                        mm_.IterateAll(cGlobal_[block_.offset_.offsetC], block_.params_.atomicAddFlag);
-                        mm_.ClearBias();
-                    }
-                }
-                // c侧做完才能做v侧
-#if defined(__CCE_AICORE__) && __CCE_AICORE__ == 220
-                NotifyEvent<PIPE_FIX>(5);
-#endif
-                PipeBarrier<PIPE_ALL>();
-            }
+        if constexpr (!IS_NKM) {
+            ProcessBlockMKN(cGM, srcAddr, ubBuf);
+        } else {
+            ProcessBlockNKM(cGM, srcAddr, ubBuf);
         }
+
         block_.UpdateBlockIndex();
     }
     PipeBarrier<PIPE_ALL>();
@@ -256,7 +316,7 @@ MatMulBaseKernelSingleCoreSplitK<A_TYPE, B_TYPE, L0C_TYPE, OUTPUT_TYPE, BIAS_TYP
     if constexpr (!IS_NKM) {
         for (uint64_t innerMIndex = 0; innerMIndex < block_.params_.innerLoopM; ++innerMIndex) {
             for (int kIndex = 0; kIndex < block_.params_.loopK; ++kIndex) {
-                block_.UpdateBlockParams(innerMIndex, kIndex);
+                block_.UpdateBlockParamsMk(innerMIndex, kIndex);
                 for (uint64_t innerNIndex = 0; innerNIndex < block_.params_.innerLoopN; ++innerNIndex) {
                     block_.template CalcGMOffset<A_TYPE, B_TYPE, L0C_TYPE, BIAS_TYPE>(innerMIndex, kIndex, innerNIndex, IS_NKM);
                     SetParamAndExec(kIndex);
@@ -266,7 +326,7 @@ MatMulBaseKernelSingleCoreSplitK<A_TYPE, B_TYPE, L0C_TYPE, OUTPUT_TYPE, BIAS_TYP
     } else {
         for (uint64_t innerNIndex = 0; innerNIndex < block_.params_.innerLoopN; ++innerNIndex) {
             for (int kIndex = 0; kIndex < block_.params_.loopK; ++kIndex) {
-                block_.UpdateBlockParams_N(innerNIndex, kIndex);
+                block_.UpdateBlockParamsNk(innerNIndex, kIndex);
                 for (uint64_t innerMIndex = 0; innerMIndex < block_.params_.innerLoopM; ++innerMIndex) {
                     block_.template CalcGMOffset<A_TYPE, B_TYPE, L0C_TYPE, BIAS_TYPE>(innerMIndex, kIndex, innerNIndex, IS_NKM);
                     SetParamAndExec(kIndex);

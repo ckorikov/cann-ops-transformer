@@ -19,9 +19,9 @@
 #include "register/op_impl_registry.h"
 #include "log/log.h"
 #include "tiling_base/tiling_base.h"
-#include "tiling/tiling_templates_registry.h"
+#include "tiling_base/tiling_templates_registry.h"
 #include "moe_init_routing_quant_v2_tiling_base.h"
-
+using namespace Ops::Transformer::OpTiling;
 namespace optiling {
 BEGIN_TILING_DATA_DEF(MoeInitRoutingQuantV2TilingData)
 TILING_DATA_FIELD_DEF(int64_t, coreNum);

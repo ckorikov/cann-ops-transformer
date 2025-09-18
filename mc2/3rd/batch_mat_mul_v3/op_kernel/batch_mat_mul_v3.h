@@ -1,17 +1,11 @@
-/* *
- * Copyright (c) Huawei Technologies Co., Ltd. 2023-2025. All rights reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+/**
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
+ * This file is a part of the CANN Open Software.
+ * Licensed under CANN Open Software License Agreement Version 1.0 (the "License").
+ * Please refer to the License for details. You may not use this file except in compliance with the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
  */
 
 /* !
@@ -564,15 +558,15 @@ __aicore__ inline void BatchMatMulUnalignedMultiBatchKernel<A_TYPE, B_TYPE, C_TY
 
     if (innerParams_.nd2nzFlag == ND2NZ_SELECT::ONLY_B) {
         mmb_.block_.SetC0(c0Size);
-        mmb_.block_.SetNd2nzFlag(innerParams_.nd2nzFlag);
+        mmb_.block_.SetNd2nzFlag(static_cast<uint64_t>(innerParams_.nd2nzFlag));
         mmb_.Init(aGM, innerParams_.workspaceGMNZ, cGM, biasGM, offsetWGM, workspaceGM, tilingPtr_, pipe_);
     } else if (innerParams_.nd2nzFlag == ND2NZ_SELECT::ONLY_A) {
         mma_.block_.SetC0(c0Size);
-        mma_.block_.SetNd2nzFlag(innerParams_.nd2nzFlag);
+        mma_.block_.SetNd2nzFlag(static_cast<uint64_t>(innerParams_.nd2nzFlag));
         mma_.Init(innerParams_.workspaceGMNZ, bGM, cGM, biasGM, offsetWGM, workspaceGM, tilingPtr_, pipe_);
     } else if (innerParams_.nd2nzFlag == ND2NZ_SELECT::BOTH_AB) {
         mmab_.block_.SetC0(c0Size);
-        mmab_.block_.SetNd2nzFlag(innerParams_.nd2nzFlag);
+        mmab_.block_.SetNd2nzFlag(static_cast<uint64_t>(innerParams_.nd2nzFlag));
         mmab_.Init(innerParams_.workspaceGMNZ, innerParams_.workspaceGMabNZ, cGM, biasGM, offsetWGM, workspaceGM,
             tilingPtr_, pipe_);
     }

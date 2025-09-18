@@ -1,24 +1,18 @@
 /**
- * Copyright (c) Huawei Technologies Co., Ltd. 2023-2025. All rights reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
+ * This file is a part of the CANN Open Software.
+ * Licensed under CANN Open Software License Agreement Version 1.0 (the "License").
+ * Please refer to the License for details. You may not use this file except in compliance with the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
  */
 #include "aclnn_mm.h"
 
 #include "aclnn_kernels/common/op_error_check.h"
 #include "aclnn_kernels/contiguous.h"
-#include "matmul/common/op_host/op_api/cube_util.h"
-#include "matmul/common/op_host/op_api/matmul_util.h"
+#include "common/op_host/op_api/cube_util.h"
+#include "common/op_host/op_api/matmul_util.h"
 #include "opdev/op_dfx.h"
 #include "opdev/op_executor.h"
 #include "opdev/op_log.h"
@@ -27,13 +21,12 @@
 
 using namespace op;
 using namespace std;
-using namespace Ops::NN;
+using namespace Ops::Transformer;
 
 namespace {
 static const int64_t DIMS_TWO = 2;
 static const int64_t M_DIM_SELF_IDX = 0;
 static const int64_t K_DIM_SELF_IDX = 1;
-
 static const std::initializer_list<op::DataType> DTYPE_SUPPORT_LIST = {
     DataType::DT_FLOAT, DataType::DT_FLOAT16, DataType::DT_BF16};
 static const std::initializer_list<op::DataType> DTYPE_SUPPORT_LIST_WITHOUT_BF16 = {
@@ -222,7 +215,7 @@ aclnnStatus aclnnMmGetWorkspaceSize(
 
     if (matmulOut->IsEmpty()) {
         // 当输出为空tensor的场景，空tensor处理
-        *workspaceSize = 0;
+        *workspaceSize = 0UL;
         unique_executor.ReleaseTo(executor);
         return ACLNN_SUCCESS;
     }

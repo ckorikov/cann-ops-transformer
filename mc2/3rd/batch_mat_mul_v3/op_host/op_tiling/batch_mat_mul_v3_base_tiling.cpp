@@ -1,17 +1,11 @@
 /**
- * Copyright (c) Huawei Technologies Co., Ltd. 2023-2025. All rights reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
+ * This file is a part of the CANN Open Software.
+ * Licensed under CANN Open Software License Agreement Version 1.0 (the "License").
+ * Please refer to the License for details. You may not use this file except in compliance with the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
  */
 
 /*!
@@ -19,14 +13,19 @@
  * \brief
  */
 #include "batch_mat_mul_v3_base_tiling.h"
-#include "cube/util/math_util.h"
-#include "op_util.h"
-#include "tiling/tiling_type.h"
-#include "aoe/runtime_kb/runtime_bank_manager.h"
-#include "cache_tiling.h"
+#include "util/math_util.h"
+#include "log/log.h"
+#include "tiling_base/tiling_key.h"
+#include "mc2_log.h"
+#include "op_cache_tiling.h"
+#include "runtime_kb_api.h"
+#include "common/op_host/math_util.h"
+#include "common/op_host/op_tiling/debug_tiling.h"
+#include "platform/platform_infos_def.h"
 
-using namespace optiling::cachetiling;
 using namespace optiling::batch_mat_mul_v3;
+using Ops::Transformer::OpTiling::GET_TILINGKEY;
+using Ops::Transformer::MathUtil;
 
 namespace optiling {
 namespace batch_mat_mul_v3 {

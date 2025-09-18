@@ -1,17 +1,11 @@
 /**
- * Copyright (c) Huawei Technologies Co., Ltd. 2023-2025. All rights reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
+ * This file is a part of the CANN Open Software.
+ * Licensed under CANN Open Software License Agreement Version 1.0 (the "License").
+ * Please refer to the License for details. You may not use this file except in compliance with the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
  */
 
 /* !
@@ -47,8 +41,8 @@ struct AswBlockArgs {
     uint64_t totalCnt = 0UL;
     uint64_t blockBaseM = 0UL;
     uint64_t blockBaseN = 0UL;
-    uint64_t mBaseTailCnt = 0UL;
-    uint64_t nBaseTailCnt = 0UL;
+    uint64_t mBaseTailSplitCnt = 0UL;
+    uint64_t nBaseTailSplitCnt = 0UL;
     uint64_t mBaseNormCnt = 0UL;
     uint64_t nBaseNormCnt = 0UL;
     uint64_t mBaseTail = 0UL;
@@ -92,6 +86,12 @@ public:
     __aicore__ inline void CalcGMOffset();
     template <class A_TYPE, class B_TYPE>
     __aicore__ inline void CalcSplitKGMOffset(uint64_t splitKIndex);
+    template <
+        typename IndexType, typename BaseNormCntType, typename BlockBaseType, typename BaseTailMainType,
+        typename SplitAddrOffsetType>
+    __aicore__ inline uint64_t CalculateOffset(
+        IndexType cntIndex, BaseNormCntType baseNormCnt, BlockBaseType blockBase, BaseTailMainType baseTailMain,
+        SplitAddrOffsetType splitAddrOffset);
 
 public:
     AswBlockOffset offset_;
@@ -105,12 +105,12 @@ private:
 template <class A_TYPE, class B_TYPE>
 __aicore__ inline void MatmulAswBlock::LoadBalanceInit()
 {
-    params_.mBaseTailMain = params_.mBaseTailCnt == 1UL ? params_.mBaseTail :
-        MMV3CeilAlign(params_.mBaseTail / params_.mBaseTailCnt, BLOCK_BYTE_SIZE / sizeof(typename A_TYPE::T));
-    params_.mBaseTailLast = params_.mBaseTail - (params_.mBaseTailCnt - 1UL) * params_.mBaseTailMain;
-    params_.nBaseTailMain = params_.nBaseTailCnt == 1UL ? params_.nBaseTail :
-        MMV3CeilAlign(params_.nBaseTail / params_.nBaseTailCnt, BLOCK_BYTE_SIZE / sizeof(typename B_TYPE::T));
-    params_.nBaseTailLast = params_.nBaseTail - (params_.nBaseTailCnt - 1UL) * params_.nBaseTailMain;
+    params_.mBaseTailMain = params_.mBaseTailSplitCnt == 1UL ? params_.mBaseTail :
+        static_cast<uint64_t>(matmulTilingData_->mTailMain);
+    params_.mBaseTailLast = params_.mBaseTail - (params_.mBaseTailSplitCnt - 1UL) * params_.mBaseTailMain;
+    params_.nBaseTailMain = params_.nBaseTailSplitCnt == 1UL ? params_.nBaseTail :
+        static_cast<uint64_t>(matmulTilingData_->nTailMain);
+    params_.nBaseTailLast = params_.nBaseTail - (params_.nBaseTailSplitCnt - 1UL) * params_.nBaseTailMain;
 }
 
 template <class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE>
@@ -124,13 +124,14 @@ __aicore__ inline void MatmulAswBlock::Init(const void *tilingData)
     params_.nSplitAddrOffset = 0UL;
     params_.blockBaseM = static_cast<uint64_t>(matmulTilingData_->tCubeTiling.baseM);
     params_.blockBaseN = static_cast<uint64_t>(matmulTilingData_->tCubeTiling.baseN);
-    params_.mCnt = (matmulTilingData_->tCubeTiling.M + params_.blockBaseM - 1UL) / params_.blockBaseM; // m方向base块数
-    params_.nCnt = (matmulTilingData_->tCubeTiling.N + params_.blockBaseN - 1UL) / params_.blockBaseN; // n方向base块数
+    params_.mCnt = MMV3DivCeil(matmulTilingData_->tCubeTiling.M, params_.blockBaseM); // m方向base块数
+    params_.nCnt = MMV3DivCeil(matmulTilingData_->tCubeTiling.N, params_.blockBaseN); // n方向base块数
     params_.totalCnt = params_.mCnt * params_.nCnt;
-    params_.mBaseTailCnt = static_cast<uint64_t>(matmulTilingData_->mBaseTailCnt);
-    params_.nBaseTailCnt = static_cast<uint64_t>(matmulTilingData_->nBaseTailCnt);
-    params_.mBaseNormCnt = params_.mCnt - params_.mBaseTailCnt;
-    params_.nBaseNormCnt = params_.nCnt - params_.nBaseTailCnt;
+    params_.mBaseTailSplitCnt = static_cast<uint64_t>(matmulTilingData_->mBaseTailSplitCnt);
+    params_.nBaseTailSplitCnt = static_cast<uint64_t>(matmulTilingData_->nBaseTailSplitCnt);
+    params_.mBaseNormCnt = params_.mCnt - params_.mBaseTailSplitCnt;
+    params_.nBaseNormCnt = params_.nCnt - params_.nBaseTailSplitCnt;
+
     // m方向上的base尾块
     params_.mBaseTail = matmulTilingData_->tCubeTiling.M - params_.mBaseNormCnt * params_.blockBaseM;
     // n方向上的base尾块
@@ -166,7 +167,6 @@ __aicore__ inline void MatmulAswBlock::Init(const void *tilingData)
     }
 }
 
-// aswt模板当m切块是2或者是4的倍数，则可以偏移分核进行负载均衡
 __aicore__ inline uint64_t MatmulAswBlock::GetNewBlockIdx(uint64_t roundIdx)
 {
     uint64_t newBlockIdx = GetBlockIdx();
@@ -209,8 +209,8 @@ __aicore__ inline void MatmulAswBlock::UpdateBlockParams(uint64_t roundIdx)
     }
 
     if (roundIdx == params_.round - 1UL && (params_.mBaseSplitCnt != 1UL || params_.nBaseSplitCnt != 1UL)) {
-        uint64_t singleCoreMSplit = (params_.singleCoreM + params_.mBaseSplitCnt - 1UL) / params_.mBaseSplitCnt;
-        uint64_t singleCoreNSplit = (params_.singleCoreN + params_.nBaseSplitCnt - 1UL) / params_.nBaseSplitCnt;
+        uint64_t singleCoreMSplit = MMV3DivCeil(params_.singleCoreM, params_.mBaseSplitCnt);
+        uint64_t singleCoreNSplit = MMV3DivCeil(params_.singleCoreN, params_.nBaseSplitCnt);
         if constexpr (B_TYPE::format != CubeFormat::ND) {
             singleCoreNSplit = MMV3CeilAlign(singleCoreNSplit, params_.nAlignSize);
         }
@@ -239,18 +239,26 @@ __aicore__ inline void MatmulAswBlock::UpdateBlockParams(uint64_t roundIdx)
     }
 }
 
+template <
+    typename IndexType, typename BaseNormCntType, typename BlockBaseType, typename BaseTailMainType,
+    typename SplitAddrOffsetType>
+__aicore__ inline uint64_t MatmulAswBlock::CalculateOffset(
+    IndexType cntIndex, BaseNormCntType baseNormCnt, BlockBaseType blockBase, BaseTailMainType baseTailMain,
+    SplitAddrOffsetType splitAddrOffset)
+{
+    if (cntIndex > baseNormCnt) {
+        return baseNormCnt * blockBase + (cntIndex - baseNormCnt) * baseTailMain + splitAddrOffset;
+    }
+    return cntIndex * blockBase + splitAddrOffset;
+}
+
 template <class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE>
 __aicore__ inline void MatmulAswBlock::CalcGMOffset()
 {
-    uint64_t mOffset = params_.mCntIndex * params_.blockBaseM + params_.mSplitAddrOffset;
-    uint64_t nOffset = params_.nCntIndex * params_.blockBaseN + params_.nSplitAddrOffset;
-    if (params_.mCntIndex > params_.mBaseNormCnt) {
-        mOffset = mOffset - (params_.mCntIndex - params_.mBaseNormCnt) * (params_.blockBaseM - params_.mBaseTailMain);
-    }
-    if (params_.nCntIndex > params_.nBaseNormCnt) {
-        nOffset = nOffset - (params_.nCntIndex - params_.nBaseNormCnt) * (params_.blockBaseN - params_.nBaseTailMain);
-    }
-
+    uint64_t mOffset = CalculateOffset(
+        params_.mCntIndex, params_.mBaseNormCnt, params_.blockBaseM, params_.mBaseTailMain, params_.mSplitAddrOffset);
+    uint64_t nOffset = CalculateOffset(
+        params_.nCntIndex, params_.nBaseNormCnt, params_.blockBaseN, params_.nBaseTailMain, params_.nSplitAddrOffset);
     if constexpr (A_TYPE::isTrans) {
         offset_.offsetA = mOffset;
     } else {
@@ -282,14 +290,10 @@ __aicore__ inline void MatmulAswBlock::CalcSplitKGMOffset(uint64_t splitKIndex)
     if (params_.splitKRound == 1) {
         return;
     }
-    uint64_t mOffset = params_.mCntIndex * params_.blockBaseM + params_.mSplitAddrOffset;
-    uint64_t nOffset = params_.nCntIndex * params_.blockBaseN + params_.nSplitAddrOffset;
-    if (params_.mCntIndex > params_.mBaseNormCnt) {
-        mOffset = mOffset - (params_.mCntIndex - params_.mBaseNormCnt) * (params_.blockBaseM - params_.mBaseTailMain);
-    }
-    if (params_.nCntIndex > params_.nBaseNormCnt) {
-        nOffset = nOffset - (params_.nCntIndex - params_.nBaseNormCnt) * (params_.blockBaseN - params_.nBaseTailMain);
-    }
+    uint64_t mOffset = CalculateOffset(
+        params_.mCntIndex, params_.mBaseNormCnt, params_.blockBaseM, params_.mBaseTailMain, params_.mSplitAddrOffset);
+    uint64_t nOffset = CalculateOffset(
+        params_.nCntIndex, params_.nBaseNormCnt, params_.blockBaseN, params_.nBaseTailMain, params_.nSplitAddrOffset);
     if constexpr (A_TYPE::isTrans) {
         offset_.offsetA = mOffset + splitKIndex * params_.singleCoreSplitK * matmulTilingData_->tCubeTiling.M;
     } else {

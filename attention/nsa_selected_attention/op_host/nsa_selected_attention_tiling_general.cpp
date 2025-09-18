@@ -17,10 +17,10 @@
 #include "err/ops_err.h"
 #include <numeric>
 #include "tiling/tiling_type.h"
-#include "tiling/tiling_templates_registry.h"
+#include "tiling_base/tiling_templates_registry.h"
 #include "nsa_selected_attention_tiling.h"
-#include "tiling/tiling_base.h"
-
+#include "tiling_base/tiling_base.h"
+using namespace Ops::Transformer::OpTiling;
 
 namespace optiling {
 namespace NSA {

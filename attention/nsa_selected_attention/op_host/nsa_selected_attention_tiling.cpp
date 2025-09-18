@@ -21,8 +21,8 @@
 #include "err/ops_err.h"
 #include <register/op_impl_registry.h>
 #include "tiling/data_copy_transpose_tiling.h"
-#include "tiling/tiling_templates_registry.h"
-
+#include "tiling_base/tiling_templates_registry.h"
+using namespace Ops::Transformer::OpTiling;
 using namespace ge;
 using namespace AscendC;
 

@@ -45,8 +45,8 @@
 #include "tiling/moe_tiling_base.h"
 #include "arch35/moe_distribute_dispatch_tiling_arch35.h"
 #include "moe_distribute_dispatch_tiling_a2a3.h"
-#include "tiling/tiling_templates_registry.h"
-
+#include "tiling_base/tiling_templates_registry.h"
+using namespace Ops::Transformer::OpTiling;
 using namespace AscendC;
 using namespace ge;
 namespace {

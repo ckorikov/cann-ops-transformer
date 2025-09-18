@@ -25,7 +25,7 @@
  * 以下函数声明需要保持与 CMakeList.txt 中调用 OpsTest_Level2_AddOp 函数时 KERNEL_PRIVATE_COMPILE_DEFINITIONS_EXT
  * 参数所控制的 Kernel 入口一致.
  */
-
+using namespace Ops::Transformer::OpTiling;
 #define MOE_INIT_ROUTING_V2_KERNEL_PARAM                                                                               \
     (GM_ADDR x, GM_ADDR expertIdx, GM_ADDR expandedX, GM_ADDR expandedRowIdx, GM_ADDR expertTokensCountOrCumsum,       \
      GM_ADDR expertTokensBeforeCapacity, GM_ADDR workspace, GM_ADDR tiling)

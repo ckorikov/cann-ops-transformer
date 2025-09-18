@@ -1,17 +1,11 @@
 /**
- * Copyright (c) Huawei Technologies Co., Ltd. 2025-2025. All rights reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
+ * This file is a part of the CANN Open Software.
+ * Licensed under CANN Open Software License Agreement Version 1.0 (the "License").
+ * Please refer to the License for details. You may not use this file except in compliance with the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
  */
 
 /*!
@@ -33,11 +27,20 @@ constexpr uint64_t TILINGDATA_SPLIT_NUM = 2;
 #pragma pack(push, 8)
 struct MatMulV3TilingData {
     TCubeTiling tCubeTiling;
+    // aswt滑窗最后一轮m或n方向的切分次数
     uint32_t mTailCnt = 0;
     uint32_t nTailCnt = 0;
+    // streamk 根据核数计算的k方向切分次数
     uint32_t kTailCnt = 0;
-    uint32_t mBaseTailCnt = 0;
-    uint32_t nBaseTailCnt = 0;
+    // 负载均衡时，若一边需要均衡，则对应尾块均衡合并后的块数
+    // -----------------------------------N=4673------------------------------------
+    // -------------------------------------------nTailMain=240--nBaseTailSplitCnt=8
+    // --------------------------------------------|-v------nBaseTail=1857----------
+    // |256|256|256|256|256|256|256|256|256|256|256|240|240|240|240|240|240|240|177| 
+    uint32_t mBaseTailSplitCnt = 1;
+    uint32_t nBaseTailSplitCnt = 1;
+    uint32_t mTailMain = 0;
+    uint32_t nTailMain = 0;
     uint32_t isHf32 = 0;
 };
 #pragma pack(pop)
@@ -87,6 +90,10 @@ struct MatMulV3BasicTilingData {
     uint32_t baseK = 0;
     uint32_t mTailCnt = 0;
     uint32_t nTailCnt = 0;
+    uint32_t mBaseTailSplitCnt = 1;
+    uint32_t nBaseTailSplitCnt = 1;
+    uint32_t mTailMain = 1;
+    uint32_t nTailMain = 1;
     uint32_t isHf32 = 0;
     uint32_t l1BufferNum = 0;
     uint32_t l0cDB = 1; // 默认不开db为1

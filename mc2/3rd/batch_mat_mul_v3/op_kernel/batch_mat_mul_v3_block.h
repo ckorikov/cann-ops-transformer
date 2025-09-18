@@ -1,17 +1,11 @@
 /**
- * Copyright (c) Huawei Technologies Co., Ltd. 2023-2025. All rights reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
+ * This file is a part of the CANN Open Software.
+ * Licensed under CANN Open Software License Agreement Version 1.0 (the "License").
+ * Please refer to the License for details. You may not use this file except in compliance with the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
  */
 
 /* !
@@ -281,11 +275,11 @@ __aicore__ inline void BatchMatMulUnalignedMultiBatchBaseBlock::Init(const void*
     innerB = DivCeil(innerB, c0Size_) * c0Size_;
     outterA = DivCeil(outterA, ALIGNED_H) * ALIGNED_H;
     outterB = DivCeil(outterB, ALIGNED_H) * ALIGNED_H;
-    if (nd2nzFlag_ == ND2NZ_SELECT::ONLY_A) {
+    if (nd2nzFlag_ == static_cast<int32_t>(ND2NZ_SELECT::ONLY_A)) {
         params_.singleASize = innerA * outterA;
-    } else if (nd2nzFlag_ == ND2NZ_SELECT::ONLY_B) {
+    } else if (nd2nzFlag_ == static_cast<int32_t>(ND2NZ_SELECT::ONLY_B)) {
         params_.singleBSize = innerB * outterB;
-    } else if (nd2nzFlag_ == ND2NZ_SELECT::BOTH_AB) {
+    } else if (nd2nzFlag_ == static_cast<int32_t>(ND2NZ_SELECT::BOTH_AB)) {
         params_.singleASize = innerA * outterA;
         params_.singleBSize = innerB * outterB;
     }
@@ -310,11 +304,15 @@ __aicore__ inline void BatchMatMulUnalignedMultiBatchBaseBlock::CalculateBatchOf
     params_.batchOffset = loopIndex * batchMatmulTilingData_->multiBatchInfo.batchTileBlock;
     params_.batchOffsetA = params_.batchOffset;
     params_.batchOffsetB = params_.batchOffset;
-    if ((nd2nzFlag_ == ND2NZ_SELECT::ONLY_A || ND2NZ_SELECT::BOTH_AB) && !alignedA) {
+    if (((nd2nzFlag_ == static_cast<int32_t>(ND2NZ_SELECT::ONLY_A)) ||
+         (nd2nzFlag_ == static_cast<int32_t>(ND2NZ_SELECT::BOTH_AB))) &&
+        !alignedA) {
         //loopIndex % 2 == 1,pong时在workspace偏移一个batchTileBlock
         params_.batchOffsetA = batchMatmulTilingData_->multiBatchInfo.batchTileBlock * (loopIndex % 2);
     }
-    if ((nd2nzFlag_ == ND2NZ_SELECT::ONLY_B || ND2NZ_SELECT::BOTH_AB) && !alignedB) {
+    if (((nd2nzFlag_ == static_cast<int32_t>(ND2NZ_SELECT::ONLY_B)) ||
+         (nd2nzFlag_ == static_cast<int32_t>(ND2NZ_SELECT::BOTH_AB))) &&
+        !alignedB) {
         //loopIndex % 2 == 1,pong时在workspace偏移一个batchTileBlock
         params_.batchOffsetB = batchMatmulTilingData_->multiBatchInfo.batchTileBlock * (loopIndex % 2);
     }

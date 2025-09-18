@@ -1,17 +1,11 @@
 /**
- * Copyright (c) Huawei Technologies Co., Ltd. 2023-2024. All rights reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
+ * This file is a part of the CANN Open Software.
+ * Licensed under CANN Open Software License Agreement Version 1.0 (the "License").
+ * Please refer to the License for details. You may not use this file except in compliance with the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
  */
 
 /*!
@@ -61,11 +55,11 @@ public:
 
     __aicore__ inline void End()
     {
-        if (innerParams_.nd2nzFlag == ND2NZ_SELECT::ONLY_B) {
+        if (innerParams_.nd2nzFlag == static_cast<int32_t>(ND2NZ_SELECT::ONLY_B)) {
             mmb_.End();
-        } else if (innerParams_.nd2nzFlag == ND2NZ_SELECT::ONLY_A) {
+        } else if (innerParams_.nd2nzFlag == static_cast<int32_t>(ND2NZ_SELECT::ONLY_A)) {
             mma_.End();
-        } else if (innerParams_.nd2nzFlag == ND2NZ_SELECT::BOTH_AB) {
+        } else if (innerParams_.nd2nzFlag == static_cast<int32_t>(ND2NZ_SELECT::BOTH_AB)) {
             mmab_.End();
         }
     }
@@ -105,21 +99,21 @@ __aicore__ inline void MatmulBaseUnAlignedKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TY
     innerParams_.baseBD = matmulTilingData->baseBD;
 
     if (nd2nzA) {
-        innerParams_.nd2nzFlag = ND2NZ_SELECT::ONLY_A;
+        innerParams_.nd2nzFlag = static_cast<int32_t>(ND2NZ_SELECT::ONLY_A);
     }
     if (nd2nzB) {
-        innerParams_.nd2nzFlag = ND2NZ_SELECT::ONLY_B;
+        innerParams_.nd2nzFlag = static_cast<int32_t>(ND2NZ_SELECT::ONLY_B);
     }
     if (nd2nzA && nd2nzB) {
-        innerParams_.nd2nzFlag = ND2NZ_SELECT::BOTH_AB;
+        innerParams_.nd2nzFlag = static_cast<int32_t>(ND2NZ_SELECT::BOTH_AB);
     }
 
     CalculateabGM(aGM, bGM, cGM, biasGM, offsetWGM, workspaceGM);
-    if (innerParams_.nd2nzFlag == ND2NZ_SELECT::ONLY_B) {
+    if (innerParams_.nd2nzFlag == static_cast<int32_t>(ND2NZ_SELECT::ONLY_B)) {
         mmb_.Init(aGM, innerParams_.workspaceGMNZ, cGM, biasGM, offsetWGM, workspaceGM, matmulTilingData_, pipe_);
-    } else if (innerParams_.nd2nzFlag == ND2NZ_SELECT::ONLY_A) {
+    } else if (innerParams_.nd2nzFlag == static_cast<int32_t>(ND2NZ_SELECT::ONLY_A)) {
         mma_.Init(innerParams_.workspaceGMNZ, bGM, cGM, biasGM, offsetWGM, workspaceGM, matmulTilingData_, pipe_);
-    } else if (innerParams_.nd2nzFlag == ND2NZ_SELECT::BOTH_AB) {
+    } else if (innerParams_.nd2nzFlag == static_cast<int32_t>(ND2NZ_SELECT::BOTH_AB)) {
         mmab_.Init(innerParams_.workspaceGMNZ, innerParams_.workspaceGMabNZ, cGM, biasGM, offsetWGM, workspaceGM,
             matmulTilingData_, pipe_);
     }
@@ -131,11 +125,11 @@ MatmulBaseUnAlignedKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLOCK_TYPE, MM_CFG>
     GM_ADDR aGM, GM_ADDR bGM, GM_ADDR cGM, GM_ADDR biasGM, GM_ADDR offsetWGM, GM_ADDR workspaceGM)
 {
     CalculateabGM(aGM, bGM, cGM, biasGM, offsetWGM, workspaceGM);
-    if (innerParams_.nd2nzFlag == ND2NZ_SELECT::ONLY_B) {
+    if (innerParams_.nd2nzFlag == static_cast<int32_t>(ND2NZ_SELECT::ONLY_B)) {
         mmb_.UpdateGlobalTensor(aGM, innerParams_.workspaceGMNZ, cGM, biasGM, offsetWGM, workspaceGM);
-    } else if (innerParams_.nd2nzFlag == ND2NZ_SELECT::ONLY_A) {
+    } else if (innerParams_.nd2nzFlag == static_cast<int32_t>(ND2NZ_SELECT::ONLY_A)) {
         mma_.UpdateGlobalTensor(innerParams_.workspaceGMNZ, bGM, cGM, biasGM, offsetWGM, workspaceGM);
-    } else if (innerParams_.nd2nzFlag == ND2NZ_SELECT::BOTH_AB) {
+    } else if (innerParams_.nd2nzFlag == static_cast<int32_t>(ND2NZ_SELECT::BOTH_AB)) {
         mmab_.UpdateGlobalTensor(
             innerParams_.workspaceGMNZ, innerParams_.workspaceGMabNZ, cGM, biasGM, offsetWGM, workspaceGM);
     }
@@ -166,15 +160,15 @@ __aicore__ inline void
 MatmulBaseUnAlignedKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLOCK_TYPE, MM_CFG>::ProcessNDtoNZ()
 {
     // ND2NZ
-    if (innerParams_.nd2nzFlag == ND2NZ_SELECT::ONLY_B) {
+    if (innerParams_.nd2nzFlag == static_cast<int32_t>(ND2NZ_SELECT::ONLY_B)) {
         MatrixBtoNZV2<typename B_TYPE::T>(innerParams_.workspaceGMNZ, innerParams_.bGMNZ,
             matmulTilingData_->matmulTiling, innerParams_.isTransposeB, ubBuf_, innerParams_.baseBN,
             innerParams_.baseBD);
-    } else if (innerParams_.nd2nzFlag == ND2NZ_SELECT::ONLY_A) {
+    } else if (innerParams_.nd2nzFlag == static_cast<int32_t>(ND2NZ_SELECT::ONLY_A)) {
         MatrixAtoNZV2<typename A_TYPE::T>(innerParams_.workspaceGMNZ, innerParams_.aGMNZ,
             matmulTilingData_->matmulTiling, innerParams_.isTransposeA, ubBuf_, innerParams_.baseAN,
             innerParams_.baseAD);
-    } else if (innerParams_.nd2nzFlag == ND2NZ_SELECT::BOTH_AB) {
+    } else if (innerParams_.nd2nzFlag == static_cast<int32_t>(ND2NZ_SELECT::BOTH_AB)) {
         MatrixAtoNZV2<typename A_TYPE::T>(innerParams_.workspaceGMNZ, innerParams_.aGMNZ,
             matmulTilingData_->matmulTiling, innerParams_.isTransposeA, ubBuf_, innerParams_.baseAN,
             innerParams_.baseAD);
@@ -200,11 +194,11 @@ __aicore__ inline void MatmulBaseUnAlignedKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TY
     uint64_t index, uint8_t enAtomic)
 {
     ProcessNDtoNZ();
-    if (innerParams_.nd2nzFlag == ND2NZ_SELECT::ONLY_B) {
+    if (innerParams_.nd2nzFlag == static_cast<int32_t>(ND2NZ_SELECT::ONLY_B)) {
         mmb_.Process(index, enAtomic);
-    } else if (innerParams_.nd2nzFlag == ND2NZ_SELECT::ONLY_A) {
+    } else if (innerParams_.nd2nzFlag == static_cast<int32_t>(ND2NZ_SELECT::ONLY_A)) {
         mma_.Process(index, enAtomic);
-    } else if (innerParams_.nd2nzFlag == ND2NZ_SELECT::BOTH_AB) {
+    } else if (innerParams_.nd2nzFlag == static_cast<int32_t>(ND2NZ_SELECT::BOTH_AB)) {
         mmab_.Process(index, enAtomic);
     }
 }

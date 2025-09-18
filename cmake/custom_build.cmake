@@ -83,8 +83,8 @@ if (BUILD_OPEN_PROJECT)
     target_link_libraries(cust_opapi PRIVATE
             $<BUILD_INTERFACE:intf_pub>
             -Wl,--whole-archive
-            ops_aclnn
             -Wl,--no-whole-archive
+        #     -lopapi
             nnopbase
             profapi
             ge_common_base
@@ -142,6 +142,11 @@ if (BUILD_OPEN_PROJECT)
     add_library(cust_opmaster SHARED)
     target_sources(cust_opmaster PRIVATE
             ${CMAKE_CURRENT_SOURCE_DIR}/common/src/fallback_comm.cpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/mc2/common/src/mc2_hcom_topo_info.cpp
+    )
+    target_include_directories(cust_opmaster PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/mc2/common/inc
+            $<$<BOOL:${BUILD_OPEN_PROJECT}>:$<BUILD_INTERFACE:${ASCEND_CANN_PACKAGE_PATH}/include/experiment>>
     )
     target_compile_options(cust_opmaster PRIVATE
             $<$<COMPILE_LANGUAGE:CXX>:-std=c++11>
@@ -164,14 +169,14 @@ if (BUILD_OPEN_PROJECT)
             exe_graph
             platform
             register
+        #     ascendalog
             error_manager
             -Wl,--as-needed
             -Wl,--whole-archive
             tiling_api
             -Wl,--no-whole-archive
+        #     mmpa
             c_sec
-            ${COMMON_NAME}_obj
-
     )
     set_target_properties(cust_opmaster PROPERTIES OUTPUT_NAME
             cust_opmaster_rt2.0
@@ -617,7 +622,7 @@ foreach (op_dir ${OP_DIR_LIST})
             OPTIONAL
     )
 
-    install(DIRECTORY ${op_dir}/arch35
+    install(DIRECTORY ${op_dir}/910_95
             DESTINATION ${IMPL_INSTALL_DIR}/ascendc/${_op_name}
             OPTIONAL
     )

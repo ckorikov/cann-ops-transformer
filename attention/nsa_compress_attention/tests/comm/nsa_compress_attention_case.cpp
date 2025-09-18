@@ -19,9 +19,9 @@
 #include <register/op_impl_registry.h>
 #include "tests/utils/log.h"
 #include "tests/utils/platform.h"
-#include "tiling/tiling_base.h"
-#include "tiling/tiling_templates_registry.h"
-
+#include "tiling_base/tiling_base.h"
+#include "tiling_base/tiling_templates_registry.h"
+using namespace Ops::Transformer::OpTiling;
 /**
  * 以下函数声明需要保持与 CMakeList.txt 中调用 OpsTest_Level2_AddOp 函数时 KERNEL_PRIVATE_COMPILE_DEFINITIONS_EXT
  * 参数所控制的 Kernel 入口一致.

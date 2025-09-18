@@ -1,17 +1,12 @@
 /**
  * Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
+ * This file is a part of CANN Open Software.
+ * Licensed under CANN Open Software License Agreement Version 2.0 (the "License").
+ * Please refer to the License for details. You may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO NON-INFERINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See the LICENSE in the root of the software repository for the full text of the License.
  */
 
 /*!
@@ -116,12 +111,26 @@ inline const char *get_cstr(const std::string &str) { return str.c_str(); }
     EXPR;                                \
   }
 
+#define OPS_CHECK(COND, LOG_FUNC, EXPR)                         \
+    if (COND) {                                                 \
+        LOG_FUNC;                                               \
+        EXPR;                                                   \
+    }
+
 #define OPS_LOG_E(opName, ...) \
   D_OP_LOGE(Ops::Base::GetOpInfo(opName), __VA_ARGS__)
 #define OPS_LOG_I(opName, ...) \
   D_OP_LOGI(Ops::Base::GetOpInfo(opName), __VA_ARGS__)
 #define OPS_LOG_D(opName, ...) \
   D_OP_LOGD(Ops::Base::GetOpInfo(opName), __VA_ARGS__)
+#define OP_LOGE_IF(condition, return_value, op_name, fmt, ...) \
+  static_assert(std::is_same<bool, std::decay<decltype(condition)>::type>::value, "condition should be bool"); \
+  do {                                                         \
+    if (condition) {                                            \
+      OP_LOGE(Ops::Base::GetOpInfo(op_name), fmt, ##__VA_ARGS__);                     \
+      return return_value;                                      \
+    }                                                          \
+  } while (0)
 
 #define CUBE_INNER_ERR_REPORT(op_name, err_msg, ...)              \
   do {                                                            \
@@ -178,6 +187,7 @@ namespace ops {
                          ConcatString("op[", op_name, "],", err_msg).c_str()); \
   } while (0)
 
+  #define OPS_REPORT_VECTOR_INNER_ERR(opName, ...) OPS_LOG_E(opName, ##__VA_ARGS__)
 namespace optiling {
 #define VECTOR_INNER_ERR_REPORT_TILING(op_name, err_msg, ...)     \
   do {                                                            \

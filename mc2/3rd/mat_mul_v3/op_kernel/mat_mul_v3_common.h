@@ -1,17 +1,11 @@
 /**
- * Copyright (c) Huawei Technologies Co., Ltd. 2023-2025. All rights reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
+ * This file is a part of the CANN Open Software.
+ * Licensed under CANN Open Software License Agreement Version 1.0 (the "License").
+ * Please refer to the License for details. You may not use this file except in compliance with the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
  */
 
 /*!
@@ -83,13 +77,15 @@ constexpr MatmulConfig MM_CFG_ORDER_M = GetNormalConfig(false, false, false, Bat
 constexpr MatmulConfig MM_CFG_MULTI_BATCH_OUT = GetNormalConfig(false, false, false, BatchMode::BATCH_LESS_THAN_L1, true,
     IterateOrder::ORDER_M, ScheduleType::INNER_PRODUCT, true, false, BatchOutMode::MULTI_BATCH);
 
-enum ND2NZ_SELECT {
+enum class ND2NZ_SELECT : int32_t
+{
     ONLY_A = 1,
     ONLY_B = 2,
     BOTH_AB = 3
 };
 
-enum FIXPIPE_OPT_SELECT {
+enum class FIXPIPE_OPT_SELECT : int32_t
+{
     BASE = 0,
     BASE_ENABLE_ALIGNOUT = 1,
     VEC_NZ2ND_UNALIGNOUT = 2

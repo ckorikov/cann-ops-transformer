@@ -26,6 +26,7 @@
 #include "log/log.h"
 #include "tiling_base/tiling_base.h"
 #include "moe_init_routing_v2_tiling_util.h"
+using namespace Ops::Transformer::OpTiling;
 
 namespace optiling {
 BEGIN_TILING_DATA_DEF(MoeV2VBSComputeTilingData)

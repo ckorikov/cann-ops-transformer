@@ -22,11 +22,11 @@
 #include "platform/platform_info.h"
 #include "register/op_def_registry.h"
 // #include "external/exe_graph/runtime/shape.h"
-#include "tiling/tiling_templates_registry.h"
+#include "tiling_base/tiling_templates_registry.h"
 #include "tiling/tiling_type.h"
 #include "moe_gating_top_k_softmax_v2_tiling.h"
 using namespace AscendC;
-
+using namespace Ops::Transformer::OpTiling;
 namespace optiling {
 static const int32_t SIZE_2 = 2;
 static const int32_t FP32_SIZE = 4;

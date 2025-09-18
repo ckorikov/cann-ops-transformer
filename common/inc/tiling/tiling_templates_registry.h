@@ -19,10 +19,10 @@
 #include <string>
 #include <memory>
 #include <exe_graph/runtime/tiling_context.h>
-#include "tiling/tiling_base.h"
+#include "tiling_base/tiling_base.h"
 #include "log/ops_log.h"
 #include "error/ops_error.h"
-
+using namespace Ops::Transformer::OpTiling;
 namespace optiling {
 
 template <typename T> std::unique_ptr<TilingBaseClass> TILING_CLASS(gert::TilingContext *context)

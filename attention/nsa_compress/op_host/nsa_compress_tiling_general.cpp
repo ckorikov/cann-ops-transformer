@@ -14,9 +14,9 @@
  */
 
 #include <cmath>
-#include "log/log.h"
 #include "nsa_compress_tiling.h"
 #include "nsa_compress_tiling_common.h"
+#include "err/ops_err.h"
 
 namespace optiling {
 namespace Nsa {

@@ -25,10 +25,10 @@
 // #include "register/op_compile_info_base.h"
 #include "register/tilingdata_base.h"
 #include "tiling/tiling_api.h"
-#include "tiling/tiling_base.h"
+#include "tiling_base/tiling_base.h"
 // #include "op_tiling_util.h"
 // #include "runtime2_util.h"
-
+using namespace Ops::Transformer::OpTiling;
 namespace optiling {
 BEGIN_TILING_DATA_DEF(MoeGatingTopKSoftmaxV2TilingData)
 TILING_DATA_FIELD_DEF(uint32_t, row);

@@ -20,10 +20,10 @@
 #include "register/op_impl_registry.h"
 #include "log/log.h"
 #include "err/ops_err.h"
-#include "tiling/tiling_base.h"
+#include "tiling_base/tiling_base.h"
 using namespace ge;
 using namespace AscendC;
-
+using namespace Ops::Transformer::OpTiling;
 namespace optiling {
 
 static ge::graphStatus CheckParams(const gert::TilingContext *context)

@@ -16,10 +16,10 @@
 #pragma once
 
 #include "nsa_selected_attention_grad_tiling_common.h"
-#include "tiling/tiling_base.h"
+#include "tiling_base/tiling_base.h"
 #include "tiling/tiling_type.h"
 #include "nsa_selected_attention_grad_tiling.h"
-
+using namespace Ops::Transformer::OpTiling;
 namespace optiling {
 namespace nsa {
 struct TempParams {

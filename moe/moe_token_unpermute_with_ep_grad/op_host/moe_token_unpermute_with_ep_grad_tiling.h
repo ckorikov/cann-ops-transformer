@@ -28,7 +28,7 @@
 #include "tiling_base/tiling_base.h"
 #include "tiling_base/tiling_templates_registry.h"
 #include "util/math_util.h"
-
+using namespace Ops::Transformer::OpTiling;
 namespace optiling {
 
 BEGIN_TILING_DATA_DEF(MoeTokenUnpermuteWithEpGradTilingData)

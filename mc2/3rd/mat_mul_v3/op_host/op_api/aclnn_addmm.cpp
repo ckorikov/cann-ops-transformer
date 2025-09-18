@@ -1,17 +1,11 @@
 /**
- * Copyright (c) Huawei Technologies Co., Ltd. 2023. All rights reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
+ * This file is a part of the CANN Open Software.
+ * Licensed under CANN Open Software License Agreement Version 1.0 (the "License").
+ * Please refer to the License for details. You may not use this file except in compliance with the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
  */
 
 #include "aclnn_addmm.h"
@@ -21,8 +15,8 @@
 #include "aclnn_kernels/cast.h"
 #include "aclnn_kernels/contiguous.h"
 #include "matmul.h"
-#include "matmul/common/op_host/op_api/cube_util.h"
-#include "matmul/common/op_host/op_api/matmul_util.h"
+#include "common/op_host/op_api/cube_util.h"
+#include "common/op_host/op_api/matmul_util.h"
 #include "level0/muls.h"
 
 #include "aclnn/aclnn_base.h"
@@ -39,27 +33,34 @@
 #include "util/math_util.h"
 
 using Ops::Base::CeilDiv;
-using namespace Ops::NN;
+using namespace Ops::Transformer;
 using namespace op;
 #ifdef __cplusplus
 extern "C" {
 #endif
 namespace {
+struct AclnnAddmmTensor {
+    const aclTensor* self;
+    const aclTensor* mat1;
+    const aclTensor* mat2;
+    const aclScalar* beta;
+    const aclScalar* alpha;
+    aclTensor* out;
+};
+
 static const size_t LAST_SECOND_DIM_INDEX = 2;
 static const size_t LAST_FIRST_DIM_INDEX = 1;
 static const int NZ_STORAGE_PENULTIMATE_DIM = 16;
 static const int NZ_K0_VALUE_16 = 16;
 
-static inline bool CheckNotNull(
-    const aclTensor* self, const aclTensor* mat1, const aclTensor* mat2, const aclScalar* beta, const aclScalar* alpha,
-    const aclTensor* out)
+static inline bool CheckNotNull(AclnnAddmmTensor& addmmTensor)
 {
-    OP_CHECK_NULL(self, return false);
-    OP_CHECK_NULL(mat1, return false);
-    OP_CHECK_NULL(mat2, return false);
-    OP_CHECK_NULL(beta, return false);
-    OP_CHECK_NULL(alpha, return false);
-    OP_CHECK_NULL(out, return false);
+    OP_CHECK_NULL(addmmTensor.self, return false);
+    OP_CHECK_NULL(addmmTensor.mat1, return false);
+    OP_CHECK_NULL(addmmTensor.mat2, return false);
+    OP_CHECK_NULL(addmmTensor.beta, return false);
+    OP_CHECK_NULL(addmmTensor.alpha, return false);
+    OP_CHECK_NULL(addmmTensor.out, return false);
     return true;
 }
 
@@ -150,27 +151,27 @@ static inline bool CheckMathType(const aclTensor* self, const aclTensor* mat2, i
     return CheckCubeMathTypeForMm(promoteType, cubeMathType);
 }
 
-static aclnnStatus CheckParams(
-    const aclTensor* self, const aclTensor* mat1, const aclTensor* mat2, const aclScalar* beta, const aclScalar* alpha,
-    const aclTensor* out, int8_t cubeMathType)
+static aclnnStatus CheckParams(AclnnAddmmTensor& addmmTensor, int8_t cubeMathType)
 {
     // 1. 检查参数是否为空指针
-    CHECK_RET(CheckNotNull(self, mat1, mat2, beta, alpha, out), ACLNN_ERR_PARAM_NULLPTR);
+    CHECK_RET(CheckNotNull(addmmTensor), ACLNN_ERR_PARAM_NULLPTR);
 
     // 2. 检查输入的数据类型是否在API支持的数据类型范围之内，需要根据api定义校验
-    CHECK_RET(CheckDtypeValid(self, mat1, mat2, out), ACLNN_ERR_PARAM_INVALID);
+    CHECK_RET(
+        CheckDtypeValid(addmmTensor.self, addmmTensor.mat1, addmmTensor.mat2, addmmTensor.out),
+        ACLNN_ERR_PARAM_INVALID);
 
     // 3. 检查mat1和mat2是否满足matmul条件
-    CHECK_RET(CheckMatmul(mat1, mat2), ACLNN_ERR_PARAM_INVALID);
+    CHECK_RET(CheckMatmul(addmmTensor.mat1, addmmTensor.mat2), ACLNN_ERR_PARAM_INVALID);
 
     // 4. 检查self和mat1@mat2是否能broadcast
-    CHECK_RET(CheckBroadcast(self, mat1, mat2), ACLNN_ERR_PARAM_INVALID);
+    CHECK_RET(CheckBroadcast(addmmTensor.self, addmmTensor.mat1, addmmTensor.mat2), ACLNN_ERR_PARAM_INVALID);
 
     // 5. 检查out必须和mat1@mat2的shape一致
-    CHECK_RET(CheckOutShape(mat1, mat2, out), ACLNN_ERR_PARAM_INVALID);
+    CHECK_RET(CheckOutShape(addmmTensor.mat1, addmmTensor.mat2, addmmTensor.out), ACLNN_ERR_PARAM_INVALID);
 
     // 6. 检查cubeMathType
-    CHECK_RET(CheckMathType(mat1, mat2, cubeMathType), ACLNN_ERR_PARAM_INVALID);
+    CHECK_RET(CheckMathType(addmmTensor.mat1, addmmTensor.mat2, cubeMathType), ACLNN_ERR_PARAM_INVALID);
 
     return ACLNN_SUCCESS;
 }
@@ -230,50 +231,47 @@ static const aclTensor* AddProcess(
     return addOut;
 }
 
-static const aclTensor* MatmulMulProcess(
-    const aclTensor* mat1, const aclTensor* mat2, const aclScalar* alpha, int8_t cubeMathType, const aclTensor* out,
-    aclOpExecutor* executor)
+static const aclTensor* MatmulMulProcess(AclnnAddmmTensor& addmmTensor, int8_t cubeMathType, aclOpExecutor* executor)
 {
-    auto matmulOut = ExecMmOp(mat1, mat2, cubeMathType, executor);
+    auto matmulOut = ExecMmOp(addmmTensor.mat1, addmmTensor.mat2, cubeMathType, executor);
     CHECK_RET(matmulOut != nullptr, nullptr);
 
     const aclTensor* mulOut = nullptr;
-    if (fabs(alpha->ToFloat() - 1.0f) <= numeric_limits<float>::epsilon()) {
+    if (fabs(addmmTensor.alpha->ToFloat() - 1.0f) <= numeric_limits<float>::epsilon()) {
         mulOut = matmulOut;
     } else {
-        mulOut = l0op::Muls(matmulOut, alpha->ToFloat(), executor);
+        mulOut = l0op::Muls(matmulOut, addmmTensor.alpha->ToFloat(), executor);
         CHECK_RET(mulOut != nullptr, nullptr);
     }
-    auto castOut = l0op::Cast(mulOut, out->GetDataType(), executor);
+    auto castOut = l0op::Cast(mulOut, addmmTensor.out->GetDataType(), executor);
     return castOut;
 }
 
 static const aclTensor* AddMatmulProcess(
-    const aclTensor* mat1, const aclTensor* mat2, const aclTensor* self, const aclScalar* beta, const aclScalar* alpha,
-    const aclTensor* out, int8_t cubeMathType, aclOpExecutor* uniqueExecutor)
+    AclnnAddmmTensor& addmmTensor, int8_t cubeMathType, aclOpExecutor* uniqueExecutor)
 {
-    auto selfContiguous = l0op::Contiguous(self, uniqueExecutor);
-    if (self != nullptr && self->GetDataType() == op::DataType::DT_BF16) {
+    auto selfContiguous = l0op::Contiguous(addmmTensor.self, uniqueExecutor);
+    if (addmmTensor.self != nullptr && addmmTensor.self->GetDataType() == op::DataType::DT_BF16) {
         selfContiguous = l0op::Cast(selfContiguous, op::DataType::DT_FLOAT, uniqueExecutor);
     }
     CHECK_RET(selfContiguous != nullptr, nullptr);
 
     const aclTensor* mulOut = nullptr;
-    if (fabs(beta->ToFloat() - 1.0f) <= numeric_limits<float>::epsilon()) {
+    if (fabs(addmmTensor.beta->ToFloat() - 1.0f) <= numeric_limits<float>::epsilon()) {
         mulOut = selfContiguous;
     } else {
-        mulOut = l0op::Muls(selfContiguous, beta->ToFloat(), uniqueExecutor);
+        mulOut = l0op::Muls(selfContiguous, addmmTensor.beta->ToFloat(), uniqueExecutor);
         CHECK_RET(mulOut != nullptr, nullptr);
     }
 
     // matmul
-    auto matmulOut = ExecMmOp(mat1, mat2, cubeMathType, uniqueExecutor);
+    auto matmulOut = ExecMmOp(addmmTensor.mat1, addmmTensor.mat2, cubeMathType, uniqueExecutor);
     CHECK_RET(matmulOut != nullptr, nullptr);
 
-    auto addOut = AddProcess(mulOut, matmulOut, alpha, uniqueExecutor);
+    auto addOut = AddProcess(mulOut, matmulOut, addmmTensor.alpha, uniqueExecutor);
     CHECK_RET(addOut != nullptr, nullptr);
 
-    auto castOut = l0op::Cast(addOut, out->GetDataType(), uniqueExecutor);
+    auto castOut = l0op::Cast(addOut, addmmTensor.out->GetDataType(), uniqueExecutor);
     return castOut;
 }
 
@@ -360,9 +358,7 @@ static inline bool CheckMatmulWeightNz(const aclTensor* mat1, const aclTensor* m
     return true;
 }
 
-static aclnnStatus AddmmCheckWeightNzParam(
-    const aclTensor* self, const aclTensor* mat1, const aclTensor* mat2, const aclScalar* beta, const aclScalar* alpha,
-    aclTensor* out, int8_t cubeMathType)
+static aclnnStatus AddmmCheckWeightNzParam(AclnnAddmmTensor& addmmTensor, int8_t cubeMathType)
 {
     auto socVersion = GetCurrentPlatformInfo().GetSocVersion();
     bool isSupportSocVersion = (socVersion == SocVersion::ASCEND910B || socVersion == SocVersion::ASCEND910_93);
@@ -373,48 +369,51 @@ static aclnnStatus AddmmCheckWeightNzParam(
         return ACLNN_ERR_PARAM_INVALID;
     }
     // 仅支持 self ND， mat1 Nd，mat2 Nz排布
-    if (self->GetStorageFormat() != Format::FORMAT_ND || mat1->GetStorageFormat() != Format::FORMAT_ND ||
-        mat2->GetStorageFormat() != Format::FORMAT_FRACTAL_NZ) {
+    if (addmmTensor.self->GetStorageFormat() != Format::FORMAT_ND ||
+        addmmTensor.mat1->GetStorageFormat() != Format::FORMAT_ND ||
+        addmmTensor.mat2->GetStorageFormat() != Format::FORMAT_FRACTAL_NZ) {
         OP_LOGE(
             ACLNN_ERR_PARAM_INVALID, "Invalid format, Format of self is [%s], mat1 is [%s], mat2 is [%s].",
-            op::ToString(self->GetStorageFormat()).GetString(), op::ToString(mat1->GetStorageFormat()).GetString(),
-            op::ToString(mat2->GetStorageFormat()).GetString());
+            op::ToString(addmmTensor.self->GetStorageFormat()).GetString(),
+            op::ToString(addmmTensor.mat1->GetStorageFormat()).GetString(),
+            op::ToString(addmmTensor.mat2->GetStorageFormat()).GetString());
         return ACLNN_ERR_PARAM_INVALID;
     }
     // 1. 检查参数是否为空指针
-    CHECK_RET(CheckNotNull(self, mat1, mat2, beta, alpha, out), ACLNN_ERR_PARAM_NULLPTR);
+    CHECK_RET(CheckNotNull(addmmTensor), ACLNN_ERR_PARAM_NULLPTR);
 
     // 2. 检查输入的数据类型是否在API支持的数据类型范围之内，需要根据api定义校验
-    CHECK_RET(CheckDtypeValid(self, mat1, mat2, out), ACLNN_ERR_PARAM_INVALID);
+    CHECK_RET(CheckDtypeValid(addmmTensor.self, addmmTensor.mat1, addmmTensor.mat2,
+        addmmTensor.out), ACLNN_ERR_PARAM_INVALID);
 
     // 3. 检查mat1和mat2是否满足matmulweightNz条件
-    CHECK_RET(CheckMatmulWeightNz(mat1, mat2), ACLNN_ERR_PARAM_INVALID);
+    CHECK_RET(CheckMatmulWeightNz(addmmTensor.mat1, addmmTensor.mat2), ACLNN_ERR_PARAM_INVALID);
 
     // 4. 检查self和mat1@mat2是否能broadcast
-    CHECK_RET(CheckBroadcast(self, mat1, mat2), ACLNN_ERR_PARAM_INVALID);
+    CHECK_RET(CheckBroadcast(addmmTensor.self, addmmTensor.mat1, addmmTensor.mat2), ACLNN_ERR_PARAM_INVALID);
 
     // 5. 检查out必须和mat1@mat2的shape一致
-    CHECK_RET(CheckOutShape(mat1, mat2, out), ACLNN_ERR_PARAM_INVALID);
+    CHECK_RET(CheckOutShape(addmmTensor.mat1, addmmTensor.mat2, addmmTensor.out), ACLNN_ERR_PARAM_INVALID);
 
     // 6. 检查cubeMathType
-    CHECK_RET(CheckMathType(mat1, mat2, cubeMathType), ACLNN_ERR_PARAM_INVALID);
+    CHECK_RET(CheckMathType(addmmTensor.mat1, addmmTensor.mat2, cubeMathType), ACLNN_ERR_PARAM_INVALID);
 
     return ACL_SUCCESS;
 }
 
 static bool ProcessEmptyTensor(
-    const aclTensor* self, const aclTensor* mat1, const aclTensor* mat2, const aclScalar* beta, aclTensor* out,
-    uint64_t* workspaceSize, aclOpExecutor* executor)
+   AclnnAddmmTensor& addmmTensor, uint64_t* workspaceSize, aclOpExecutor* executor)
 {
     // 如果self是空tensor，返回空tensor。如果mat1 a*b 和mat2 b*c是空tensor，a*c也是空tensor，返回空tensor
-    if (self->IsEmpty() || CheckMulResIsEmpty(mat1, mat2)) {
+    if (addmmTensor.self->IsEmpty() || CheckMulResIsEmpty(addmmTensor.mat1, addmmTensor.mat2)) {
         *workspaceSize = 0;
         return true;
     }
 
     // 如果mat1 a*b 和mat2 b*c是空tensor，但是a*c不是空tensor, 返回Beta self
-    if (!CheckMulResIsEmpty(mat1, mat2) && (mat1->IsEmpty() || mat2->IsEmpty())) {
-        auto addmmRes = AddmmMulEmptyProcess(self, beta, out, executor);
+    if (!CheckMulResIsEmpty(addmmTensor.mat1, addmmTensor.mat2) &&
+        (addmmTensor.mat1->IsEmpty() || addmmTensor.mat2->IsEmpty())) {
+        auto addmmRes = AddmmMulEmptyProcess(addmmTensor.self, addmmTensor.beta, addmmTensor.out, executor);
         CHECK_RET(addmmRes == ACLNN_SUCCESS, addmmRes);
         *workspaceSize = executor->GetWorkspaceSize();
         return true;
@@ -429,20 +428,21 @@ aclnnStatus aclnnAddmmGetWorkspaceSize(
 {
     L2_DFX_PHASE_1(aclnnAddmm, DFX_IN(self, mat1, mat2, beta, alpha, cubeMathType), DFX_OUT(out));
 
-    auto ret = CheckParams(self, mat1, mat2, beta, alpha, out, cubeMathType);
+    AclnnAddmmTensor addmmTensor = {self, mat1, mat2, beta, alpha, out};
+    auto ret = CheckParams(addmmTensor, cubeMathType);
     CHECK_RET(ret == ACLNN_SUCCESS, ret);
 
     auto uniqueExecutor = CREATE_EXECUTOR();
     CHECK_RET(uniqueExecutor.get() != nullptr, ACLNN_ERR_INNER_CREATE_EXECUTOR);
 
-    if (ProcessEmptyTensor(self, mat1, mat2, beta, out, workspaceSize, uniqueExecutor.get())) {
+    if (ProcessEmptyTensor(addmmTensor, workspaceSize, uniqueExecutor.get())) {
         uniqueExecutor.ReleaseTo(executor);
         return ACLNN_SUCCESS;
     }
 
     const aclTensor* castOut = nullptr;
     if (fabs(beta->ToFloat() - 0.0f) <= numeric_limits<float>::epsilon()) {
-        castOut = MatmulMulProcess(mat1, mat2, alpha, cubeMathType, out, uniqueExecutor.get());
+        castOut = MatmulMulProcess(addmmTensor, cubeMathType, uniqueExecutor.get());
     } else if (NeedToConvertBias(self, mat1, mat2, beta, alpha)) {
         OP_LOGI("aclnnAddmm run in NeedToConvertBias branch");
         auto biasMmOut = ExecMmOpWithBias(mat1, mat2, self, cubeMathType, uniqueExecutor.get());
@@ -461,7 +461,7 @@ aclnnStatus aclnnAddmmGetWorkspaceSize(
             castOut = l0op::Cast(gemmV3Out, out->GetDataType(), uniqueExecutor.get());
         } else {
             // beta * self (self为bf16时cast为fp32保证精度)。
-            castOut = AddMatmulProcess(mat1, mat2, self, beta, alpha, out, cubeMathType, uniqueExecutor.get());
+            castOut = AddMatmulProcess(addmmTensor, cubeMathType, uniqueExecutor.get());
         }
     }
     CHECK_RET(castOut != nullptr, ACLNN_ERR_INNER_NULLPTR);
@@ -504,26 +504,28 @@ ACLNN_API aclnnStatus aclnnAddmmWeightNzGetWorkspaceSize(
 {
     L2_DFX_PHASE_1(aclnnAddmmWeightNz, DFX_IN(self, mat1, mat2, beta, alpha, cubeMathType), DFX_OUT(out));
 
-    auto ret = AddmmCheckWeightNzParam(self, mat1, mat2, beta, alpha, out, cubeMathType);
+    AclnnAddmmTensor addmmTensor = {self, mat1, mat2, beta, alpha, out};
+
+    auto ret = AddmmCheckWeightNzParam(addmmTensor, cubeMathType);
     CHECK_RET(ret == ACLNN_SUCCESS, ret);
     auto uniqueExecutor = CREATE_EXECUTOR();
     CHECK_RET(uniqueExecutor.get() != nullptr, ACLNN_ERR_INNER_CREATE_EXECUTOR);
 
-    if (ProcessEmptyTensor(self, mat1, mat2, beta, out, workspaceSize, uniqueExecutor.get())) {
+    if (ProcessEmptyTensor(addmmTensor, workspaceSize, uniqueExecutor.get())) {
         uniqueExecutor.ReleaseTo(executor);
         return ACLNN_SUCCESS;
     }
 
     const aclTensor* castOut = nullptr;
     if (fabs(beta->ToFloat() - 0.0f) <= numeric_limits<float>::epsilon()) {
-        castOut = MatmulMulProcess(mat1, mat2, alpha, cubeMathType, out, uniqueExecutor.get());
+        castOut = MatmulMulProcess(addmmTensor, cubeMathType, uniqueExecutor.get());
     } else if (NeedToConvertBias(self, mat1, mat2, beta, alpha)) {
         OP_LOGD("aclnnAddmmWeightNz run in NeedToConvertBias branch");
         auto biasMmOut = ExecMmOpWithBias(mat1, mat2, self, cubeMathType, uniqueExecutor.get());
         CHECK_RET(biasMmOut != nullptr, ACLNN_ERR_INNER_NULLPTR);
         castOut = l0op::Cast(biasMmOut, out->GetDataType(), uniqueExecutor.get());
     } else {
-        castOut = AddMatmulProcess(mat1, mat2, self, beta, alpha, out, cubeMathType, uniqueExecutor.get());
+        castOut = AddMatmulProcess(addmmTensor, cubeMathType, uniqueExecutor.get());
     }
     CHECK_RET(castOut != nullptr, ACLNN_ERR_INNER_NULLPTR);
 

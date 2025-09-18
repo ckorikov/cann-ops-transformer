@@ -24,7 +24,7 @@
 #include <cstdint>
 
 namespace Ops {
-namespace NN {
+namespace Transformer {
 namespace Optiling {
 constexpr uint64_t RecursiveSum() { return 0; }
 
@@ -46,5 +46,5 @@ constexpr uint64_t GET_TILINGKEY(Args... templatedIds) {
                  DtypeEnum::dtype, LayoutEnum::layout, SparseEnum::sparse))
 #endif
 }  // namespace Optiling
-}  // namespace NN
+}  // namespace Transformer
 }  // namespace Ops

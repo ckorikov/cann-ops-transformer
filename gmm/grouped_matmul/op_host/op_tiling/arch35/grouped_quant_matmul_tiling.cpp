@@ -12,9 +12,9 @@
 
 #include "log/log.h"
 #include "log/error_code.h"
-#include "tiling/tiling_templates_registry.h"
+#include "tiling_base/tiling_templates_registry.h"
 #include "tiling/tiling_type.h"
-
+using namespace Ops::Transformer::OpTiling;
 using namespace GroupedMatmul;
 using namespace optiling::GmmConstant;
 namespace optiling {

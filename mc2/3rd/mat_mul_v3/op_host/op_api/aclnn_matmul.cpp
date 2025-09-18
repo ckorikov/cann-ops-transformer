@@ -1,17 +1,11 @@
 /**
- * Copyright (c) Huawei Technologies Co., Ltd. 2023-2025. All rights reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
+ * This file is a part of the CANN Open Software.
+ * Licensed under CANN Open Software License Agreement Version 1.0 (the "License").
+ * Please refer to the License for details. You may not use this file except in compliance with the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
  */
 
 /*!
@@ -38,12 +32,12 @@
 #include "level0/unsqueeze.h"
 
 #include "util/math_util.h"
-#include "matmul/common/op_host/op_api/cube_util.h"
-#include "matmul/common/op_host/op_api/matmul_util.h"
+#include "common/op_host/op_api/cube_util.h"
+#include "common/op_host/op_api/matmul_util.h"
 #include "common/op_api_def.h"
 
 using Ops::Base::CeilDiv;
-using namespace Ops::NN;
+using namespace Ops::Transformer;
 using namespace op;
 #ifdef __cplusplus
 extern "C" {
@@ -207,12 +201,9 @@ inline static aclnnStatus CheckParam(
     return ACLNN_SUCCESS;
 }
 
-static const aclTensor* ProcessEmptyTensor(
-    const aclTensor* self, const aclTensor* mat2, const aclTensor* out, aclOpExecutor* executor)
+static const aclTensor* ProcessEmptyTensor(const aclTensor* self, const aclTensor* out, aclOpExecutor* executor)
 {
     // 获取shape信息
-    op::Shape selfShape = self->GetViewShape();
-    op::Shape mat2Shape = mat2->GetViewShape();
     op::Shape outShape = out->GetViewShape();
     auto output = executor->AllocTensor(outShape, self->GetDataType());
     CHECK_RET(output != nullptr, nullptr);
@@ -297,7 +288,6 @@ bool CheckWeightNzShapeValid(const aclTensor* self, const aclTensor* mat2)
     op::Shape selfShape = self->GetViewShape();
     op::Shape mat2Shape = mat2->GetViewShape();
     auto dimTensor1 = selfShape.GetDimNum();
-    auto dimTensor2 = mat2Shape.GetDimNum();
     auto selfKDim = selfShape.GetDim(dimTensor1 - 1);
     auto mat2KDim = mat2Shape.GetDim(0);
     if (selfKDim != mat2KDim) {
@@ -396,13 +386,11 @@ static const aclTensor* BuildMatMulWeightNzGraph(
 {
     // 空tensor 处理
     if (self->IsEmpty() || mat2->IsEmpty()) {
-        auto emptyOut = ProcessEmptyTensor(self, mat2, out, executor);
+        auto emptyOut = ProcessEmptyTensor(self, out, executor);
         CHECK_RET(emptyOut != nullptr, nullptr);
         return emptyOut;
     }
 
-    auto dimTensor1 = self->GetViewShape().GetDimNum();
-    auto dimTensor2 = mat2->GetViewShape().GetDimNum();
     const aclTensor* matmulOut = nullptr;
 
     // adpat for weightNz transpose scene
@@ -487,7 +475,7 @@ static const aclTensor* BuildMatMulGraph(
 {
     // 空tensor 处理
     if (self->IsEmpty() || mat2->IsEmpty()) {
-        auto emptyOut = ProcessEmptyTensor(self, mat2, out, executor);
+        auto emptyOut = ProcessEmptyTensor(self, out, executor);
         CHECK_RET(emptyOut != nullptr, nullptr);
         return emptyOut;
     }

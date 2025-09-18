@@ -17,8 +17,8 @@
 
 #include "register/tilingdata_base.h"
 #include "tiling/tiling_api.h"
-#include "tiling/tiling_templates_registry.h"
-
+#include "tiling_base/tiling_templates_registry.h"
+using namespace Ops::Transformer::OpTiling;
 namespace optiling {
 const size_t MAX_CORE_NUM = 48; // 使用的CORE数
 

@@ -1,17 +1,11 @@
 /**
- * Copyright (c) Huawei Technologies Co., Ltd. 2025-2025. All rights reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
+ * This file is a part of the CANN Open Software.
+ * Licensed under CANN Open Software License Agreement Version 1.0 (the "License").
+ * Please refer to the License for details. You may not use this file except in compliance with the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
  */
 
 /*!
@@ -35,7 +29,7 @@ constexpr uint64_t BASIC_ALIGN_16 = 16;
 constexpr uint64_t BASIC_ALIGN_32 = 32;
 constexpr uint64_t BASIC_ALIGN_256 = 256;
 constexpr uint64_t BASIC_ALIGN_512 = 512;
-constexpr uint64_t MB_SIZE = 1024 * 1024;
+constexpr uint64_t MB_SIZE = 1024UL * 1024UL;
 constexpr uint64_t KB_SIZE = 1024;
 constexpr uint64_t DB_SIZE = 2;
 constexpr uint64_t DB_OFF_SIZE = 1;
@@ -73,12 +67,13 @@ constexpr size_t BIAS_IDX = 2;
 constexpr uint64_t NMK_N_THERS = 64;
 constexpr uint64_t NMK_M_THERS = 1920;
 
-enum class CalcType {
+enum class CalcType : int32_t
+{
   M_BY_BASE_NK,
   MN_BY_BASE_K
 };
 
-enum class MatmulV3Trans
+enum class MatmulV3Trans : int32_t
 {
     NO_TRANS = 0,
     A_TRANS = 1,
@@ -86,15 +81,15 @@ enum class MatmulV3Trans
     AB_TRANS = 3
 };
 
-enum class TilingCalcSelect  //选择不同的计算Tiling的方法
-{
+enum class TilingCalcSelect : int32_t //选择不同的计算Tiling的方法
+{  
     ALL = 0,
     BASE = 1,
     SINGLE_CORE_SPLIT_K = 2,
     DETERMINISTIC_SPLIT_K = 3
 };
 
-enum class TilingEnableSplitCore // 互斥flag, 对应不同切K模板选择
+enum class TilingEnableSplitCore : int32_t // 互斥flag, 对应不同切K模板选择
 {
     BASE = 0,
     SINGLE_CORE_SPLIT_K = 2,
@@ -105,15 +100,15 @@ enum class TilingEnableSplitCore // 互斥flag, 对应不同切K模板选择
     MAX = 10 //模板类别不能超过10个
 };
 
-enum class TilingEnableFullLoad// 互斥flag, 对应不同全载模板选择
-{
+enum class TilingEnableFullLoad : int32_t // 互斥flag, 对应不同全载模板选择
+{ 
     BASE = 0,
     AL1_FULL_LOAD = 1,
     BL1_FULL_LOAD = 2,
     MAX = 10 //模板类别不能超过10个
 };
 
-enum class TilingEnableFixOpti// 互斥flag, 对应不同输出优化模板选择
+enum class TilingEnableFixOpti : int32_t // 互斥flag, 对应不同输出优化模板选择
 {
     BASE = 0,
     BASE_ENABLE_ALIGNOUT = 1,
@@ -202,7 +197,7 @@ struct MatmulV3L2SplitParams
     uint64_t innerTailCnt = 0;
 };
 
-const static std::map<ge::DataType, matmul_tiling::DataType> DTYPE_MAP =
+const std::map<ge::DataType, matmul_tiling::DataType> DTYPE_MAP =
 {
     {ge::DT_FLOAT16, matmul_tiling::DataType::DT_FLOAT16},
     {ge::DT_FLOAT, matmul_tiling::DataType::DT_FLOAT},
@@ -246,10 +241,11 @@ inline uint64_t GetSizeC0(const uint64_t& dataTypeSize) {
 
 template<typename T>
 inline bool IsNumAlign(T base, uint64_t size) {
-    if (size == 0) {
+    if (size == 0UL) {
         return false;
     }
-    if (base % size == 0) {
+
+    if (base % size == 0UL) {
         return true;
     }
     return false;

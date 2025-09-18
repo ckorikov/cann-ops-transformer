@@ -13,10 +13,10 @@
  * \brief
  */
  
-#include "log/log.h"
 #include "nsa_selected_attention_grad_tiling_bs1.h"
-#include "tiling/tiling_templates_registry.h"
-
+#include "tiling_base/tiling_templates_registry.h"
+#include "err/ops_err.h"
+using namespace Ops::Transformer::OpTiling;
 namespace optiling {
 namespace nsa {
 constexpr uint32_t FLOAT_PRECISION_SIZE = 4;

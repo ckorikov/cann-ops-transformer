@@ -16,13 +16,12 @@
 #define AIR_CXX_RUNTIME_V2_OP_IMPL_MOE_INIT_ROUTING_H
 #include <cmath>
 #include "tiling/tiling_api.h"
-#include "tiling/tiling_base.h"
 #include "log/log.h" 
 #include "register/op_impl_registry.h" 
 #include "register/tilingdata_base.h" 
-#include "tiling/tiling_templates_registry.h" 
+#include "tiling_base/tiling_templates_registry.h" 
 #include "util/math_util.h" 
-
+using namespace Ops::Transformer::OpTiling;
 namespace optiling {
 BEGIN_TILING_DATA_DEF(VBSComputeTilingData)
 TILING_DATA_FIELD_DEF(int64_t, needCoreNum);

@@ -1,17 +1,11 @@
-/* *
- * Copyright (c) Huawei Technologies Co., Ltd. 2025-2025. All rights reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+/**
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
+ * This file is a part of the CANN Open Software.
+ * Licensed under CANN Open Software License Agreement Version 1.0 (the "License").
+ * Please refer to the License for details. You may not use this file except in compliance with the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
  */
 
 
@@ -22,11 +16,13 @@
 #include "matmul_v3_asw_basic_tiling.h"
 #include "matmul_v3_tiling_strategy.h"
 #include "./matmul_tiling_registry.h"
-#include "matmul/common/op_host/math_util.h"
+#include "common/op_host/math_util.h"
 
-using Ops::NN::MathUtil;
+using Ops::Transformer::MathUtil;
 namespace optiling {
 namespace matmul_v3_advanced {
+
+constexpr uint64_t FP32_SPLIT_K_THRESHOLD = 8192UL;
 using namespace strategy;
 MM_REGISTER_TILING_TEMPLATE(MatMulV3, MatMulV3AswBasicApiTiling, ASCEND910_95, BASIC_ASWT);
 
@@ -42,6 +38,12 @@ bool MatMulV3AswBasicApiTiling::IsCapable()
         OP_LOGD(args_.opName, "ND is the only supported format for basic api");
         return false;
     }
+    if (args_.aDtypeSize == DATA_SIZE_FP32 && !args_.isHf32 && args_.bFormat == ge::FORMAT_ND &&
+        args_.kValue > FP32_SPLIT_K_THRESHOLD) {
+        OP_LOGD(args_.opName, "fp32 big k is not supported for basic api");
+        return false;
+    }
+
     OP_LOGI(args_.opName, "MatMulV3 tiling enable state basic api");
     return true;
 }

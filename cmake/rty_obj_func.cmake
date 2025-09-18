@@ -190,8 +190,13 @@ macro(add_modules_sources)
     target_sources(${OPHOST_NAME}_infer_obj PRIVATE ${OPINFER_SRCS})
   endif()
 
-  file(GLOB OPTILING_SRCS ${SOURCE_DIR}/*_tiling*.cpp ${SOURCE_DIR}/*fallback*.cpp)
   file(GLOB_RECURSE SUB_OPTILING_SRC ${SOURCE_DIR}/op_tiling/*.cpp)
+  file(GLOB OPTILING_SRCS 
+      ${SOURCE_DIR}/*_tiling*.cpp
+      ${SOURCE_DIR}/*fallback*.cpp
+      ${SOURCE_DIR}/op_tiling/arch35/*.cpp
+      ${SOURCE_DIR}/../graph_plugin/fallback_*.cpp
+      )
   if (OPTILING_SRCS OR SUB_OPTILING_SRC)
     add_tiling_modules()
     target_sources(${OPHOST_NAME}_tiling_obj PRIVATE ${OPTILING_SRCS} ${SUB_OPTILING_SRC})
@@ -243,6 +248,11 @@ macro(add_mc2_modules_sources)
 
   cmake_parse_arguments(MODULE "" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
   set(SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
+  
+   # 获取父目录和祖父目录路径
+  get_filename_component(CMAKE_PARENT_DIR ${CMAKE_CURRENT_SOURCE_DIR} DIRECTORY)
+  get_filename_component(CMAKE_GRANDPARENT_DIR ${CMAKE_PARENT_DIR} DIRECTORY)
+  get_filename_component(ASCEND_PARENT_DIR ${ASCEND_CANN_PACKAGE_PATH} DIRECTORY)
 
   # opapi 默认全部编译
   file(GLOB OPAPI_SRCS ${SOURCE_DIR}/op_api/aclnn_*.cpp)

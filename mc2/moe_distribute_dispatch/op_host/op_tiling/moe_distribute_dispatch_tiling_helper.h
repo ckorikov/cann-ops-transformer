@@ -28,7 +28,7 @@
 #include "tiling/tiling_api.h"
 #include "graph/utils/type_utils.h"
 #include "mc2_log.h"
-#include "tiling/tiling_base.h"
+#include "tiling_base/tiling_base.h"
 
 namespace optiling {
 constexpr uint32_t X_INDEX = 0U;

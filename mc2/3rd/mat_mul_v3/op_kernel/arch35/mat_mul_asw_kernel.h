@@ -1,17 +1,11 @@
 /**
- * Copyright (c) Huawei Technologies Co., Ltd. 2023-2025. All rights reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
+ * This file is a part of the CANN Open Software.
+ * Licensed under CANN Open Software License Agreement Version 1.0 (the "License").
+ * Please refer to the License for details. You may not use this file except in compliance with the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
  */
 
 /* !
@@ -38,6 +32,7 @@ public:
         GM_ADDR workspaceGM, const void *tilingData, TPipe *pipe);
     __aicore__ inline void UpdateGlobalTensor(GM_ADDR aGM, GM_ADDR bGM, GM_ADDR cGM, GM_ADDR biasGM, GM_ADDR offsetWGM,
         GM_ADDR workspaceGM);
+    __aicore__ inline void UpdateBias(uint64_t kIndex);
     __aicore__ inline void InitInputs(GM_ADDR aGM, GM_ADDR bGM, GM_ADDR cGM, GM_ADDR biasGM);
     __aicore__ inline void Process(uint8_t enAtomic = 0);
     __aicore__ inline void End() { mm_.End(); }
@@ -91,8 +86,20 @@ __aicore__ inline void MatmulAswKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLOCK_
     InitInputs(aGM, bGM, cGM, biasGM);
 }
 
+template <class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE, class BLOCK_TYPE, const MatmulConfig& MM_CFG>
+__aicore__ inline void MatmulAswKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLOCK_TYPE, MM_CFG>::UpdateBias(
+    uint64_t kIndex)
+{
+    if (block_.matmulTilingData_->tCubeTiling.isBias) {
+        if (kIndex == block_.params_.splitKRound - 1) {
+            mm_.SetBias(biasGlobal_[block_.offset_.offsetBias]);
+        } else {
+            mm_.ClearBias();
+        }
+    }
+}
 
-template <class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE, class BLOCK_TYPE, const MatmulConfig &MM_CFG>
+template <class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE, class BLOCK_TYPE, const MatmulConfig& MM_CFG>
 __aicore__ inline void MatmulAswKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLOCK_TYPE, MM_CFG>::Process(uint8_t enAtomic)
 {
     if ASCEND_IS_AIV {
@@ -111,14 +118,12 @@ __aicore__ inline void MatmulAswKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLOCK_
                 block_.template CalcGMOffset<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE>();
                 for (uint64_t kIndex = 0; kIndex < block_.params_.splitKRound; kIndex++) {
                     uint64_t singleShapeK = kIndex == block_.params_.splitKRound - 1 ? block_.params_.singleShapeKTail :
-                        block_.params_.singleCoreSplitK;
+                                                                                       block_.params_.singleCoreSplitK;
                     mm_.SetSingleShape(block_.params_.singleCoreM, block_.params_.singleCoreN, singleShapeK);
                     block_.template CalcSplitKGMOffset<A_TYPE, B_TYPE>(kIndex);
                     mm_.SetTensorA(aGlobal_[block_.offset_.offsetA], A_TYPE::isTrans);
                     mm_.SetTensorB(bGlobal_[block_.offset_.offsetB], B_TYPE::isTrans);
-                    if (kIndex == block_.params_.splitKRound - 1 && block_.matmulTilingData_->tCubeTiling.isBias) {
-                        mm_.SetBias(biasGlobal_[block_.offset_.offsetBias]);
-                    }
+                    UpdateBias(kIndex);
                     mm_.Iterate();
                     mm_.GetTensorC(cGlobal_[block_.offset_.offsetC], enAtomic || kIndex != 0);
                 }

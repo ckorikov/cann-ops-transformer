@@ -1,17 +1,11 @@
 /**
- * Copyright (c) Huawei Technologies Co., Ltd. 2023-2025. All rights reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
+ * This file is a part of the CANN Open Software.
+ * Licensed under CANN Open Software License Agreement Version 1.0 (the "License").
+ * Please refer to the License for details. You may not use this file except in compliance with the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
  */
 
 /*!
@@ -22,10 +16,9 @@
 #define __OP_HOST_BATCH_MAT_MUL_V3_BASE_TILING_H__
 
 #include "batch_mat_mul_v3_tiling.h"
-#include "tiling/tiling_base.h"
-#include "aoe/op_tuning_tiling/gemm_tuning_tiling.h"
-#include "matmul_v3_base_tiling.h"
-
+#include "tiling_base/tiling_base.h"
+#include "mat_mul_v3/op_host/op_tiling/matmul_v3_base_tiling.h"
+using namespace Ops::Transformer::OpTiling;
 namespace optiling {
 namespace batch_mat_mul_v3 {
 struct BatchShapeInfo {

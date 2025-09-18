@@ -22,8 +22,8 @@
 #include "tests/utils/io.h"
 #include "tests/utils/platform.h"
 #include "tiling/gmm/tiling_data.h"
-#include "tiling/tiling_templates_registry.h"
-
+#include "tiling_base/tiling_templates_registry.h"
+using namespace Ops::Transformer::OpTiling;
 using Case = ops::adv::tests::utils::Case;
 using GroupedMatmulCase = ops::adv::tests::grouped_matmul::GroupedMatmulCase;
 using ops::adv::tests::utils::ReadFile;

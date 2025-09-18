@@ -1,17 +1,11 @@
 /**
- * Copyright (c) Huawei Technologies Co., Ltd. 2023-2025. All rights reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
+ * This file is a part of the CANN Open Software.
+ * Licensed under CANN Open Software License Agreement Version 1.0 (the "License").
+ * Please refer to the License for details. You may not use this file except in compliance with the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
  */
 
 /* !
@@ -69,6 +63,14 @@ public:
     int64_t isHf32_{0};
     int64_t l1BuferNum_{0};
     int32_t l0cDB_{1};
+    int64_t mL1NormCnt_{0};
+    int64_t mL1TailSplitCnt_{1};
+    int64_t mL1TailMain_{0};
+    int64_t mL1TailLast_{0};
+    int64_t nL1NormCnt_{0};
+    int64_t nL1TailSplitCnt_{1};
+    int64_t nL1TailMain_{0};
+    int64_t nL1TailLast_{0};
 
     static constexpr uint64_t WINDOW_LEN = 4UL;
     using BlockShape = Shape<int64_t, int64_t, int64_t, int64_t>;
@@ -83,7 +85,8 @@ public:
         const BatchMatMulV3BasicTilingData* tilingData;
     };
 public:
-    __aicore__ inline BlockSchedulerAswtBuiltIn(const ProblemShape& shape, int64_t blockIdx, int64_t blockNum, const Params& params)
+    __aicore__ inline BlockSchedulerAswtBuiltIn(
+        const ProblemShape& shape, int64_t blockIdx, int64_t blockNum, const Params& params)
         : blockIdx_(blockIdx), blockNum_(blockNum)
     {
         k_ = shape.k;
@@ -103,16 +106,24 @@ public:
         perCoreBlockNum_ = GetPerBlockNum(blockNum_, mTileNum_, nTileNum_, batch_);
         tileNum_ = mTileNum_ * nTileNum_;
         int64_t tailTileNum = tileNum_ % blockNum_;
-        tailL1M_ = shape.m - (mTileNum_ - 1) * params.tilingData->mL1;
-        tailL1N_ = shape.n - (nTileNum_ - 1) * params.tilingData->nL1;
+        mL1TailSplitCnt_ = params.tilingData->mBaseTailSplitCnt;
+        nL1TailSplitCnt_ = params.tilingData->nBaseTailSplitCnt;
+        mL1NormCnt_ = mTileNum_ - mL1TailSplitCnt_;
+        nL1NormCnt_ = nTileNum_ - nL1TailSplitCnt_;
+        tailL1M_ = shape.m - mL1NormCnt_ * params.tilingData->mL1;
+        tailL1N_ = shape.n - nL1NormCnt_ * params.tilingData->nL1;
+        mL1TailMain_ = mL1TailSplitCnt_ == 1 ? tailL1M_ : params.tilingData->mTailMain;
+        mL1TailLast_ = tailL1M_ - (mL1TailSplitCnt_ - 1) * mL1TailMain_;
+        nL1TailMain_ = nL1TailSplitCnt_ == 1 ? tailL1N_ : params.tilingData->nTailMain;
+        nL1TailLast_ = tailL1N_ - (nL1TailSplitCnt_ - 1) * nL1TailMain_;
 
         if (batch_ == 1) {
             mTailCnt_ = params.tilingData->mTailCnt;
             nTailCnt_ = params.tilingData->nTailCnt;
-            int64_t mTailSplit = (tailL1M_ + mTailCnt_ - 1) / mTailCnt_;
-            int64_t nTailSplit = (tailL1N_ + nTailCnt_ - 1) / nTailCnt_;
-            mTailCnt_ = (tailL1M_ + mTailSplit - 1) / mTailSplit;
-            nTailCnt_ = (tailL1N_ + nTailSplit - 1) / nTailSplit;
+            int64_t mTailSplit = CeilDiv(mL1TailLast_, mTailCnt_);
+            int64_t nTailSplit = CeilDiv(nL1TailLast_, nTailCnt_);
+            mTailCnt_ = CeilDiv(mL1TailLast_, mTailSplit);
+            nTailCnt_ = CeilDiv(nL1TailLast_, nTailSplit);
             tailCnt_ = mTailCnt_ * nTailCnt_;
             tileNum_ += (tailCnt_ - 1) * tailTileNum;
         }
@@ -163,8 +174,14 @@ public:
     __aicore__ inline BlockShape GetBlockShape(int64_t tileIdx)
     {
         UpdateMNTileIdx(tileIdx);
-        int64_t blkM = (mTileIdx_ == (mTileNum_ - 1)) ? tailL1M_ : mL1_;
-        int64_t blkN = (nTileIdx_ == (nTileNum_ - 1)) ? tailL1N_ : nL1_;
+        int64_t blkM = mL1_;
+        int64_t blkN = nL1_;
+        if (mTileIdx_ >= mL1NormCnt_) {
+            blkM = mTileIdx_ == (mTileNum_ - 1) ? mL1TailLast_ : mL1TailMain_;
+        }
+        if (nTileIdx_ >= nL1NormCnt_) {
+            blkN = nTileIdx_ == (nTileNum_ - 1) ? nL1TailLast_ : nL1TailMain_;
+        }
         if (tileIdx / blockNum_ != (perCoreBlockNum_ - 1) || tailCnt_ == 1) {
             return {blkM, blkN, k_, batch_};
         }
@@ -189,11 +206,15 @@ public:
         if (batch_ > 1) {
             batchIdx = tileIdx / tileNum_;
         }
-
-        return {mTileIdx_ * mL1_ + mSplitOffset_,
-                nTileIdx_ * nL1_ + nSplitOffset_,
-                0,
-                batchIdx};
+        int64_t mOffset = mTileIdx_ * mL1_ + mSplitOffset_;
+        int64_t nOffset = nTileIdx_ * nL1_ + nSplitOffset_;
+        if (mTileIdx_ > mL1NormCnt_) {
+            mOffset = mL1NormCnt_ * mL1_ + (mTileIdx_ - mL1NormCnt_) * mL1TailMain_ + mSplitOffset_;
+        }
+        if (nTileIdx_ > nL1NormCnt_) {
+            nOffset = nL1NormCnt_ * nL1_ + (nTileIdx_ - nL1NormCnt_) * nL1TailMain_ + nSplitOffset_;
+        }
+        return {mOffset, nOffset, 0, batchIdx};
     }
 
 private:

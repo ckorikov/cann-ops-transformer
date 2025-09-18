@@ -17,12 +17,12 @@
 #include "err/ops_err.h"
 #include <numeric>
 #include "tiling/data_copy_transpose_tiling.h"
-#include "tiling/tiling_base.h"
-#include "tiling/tiling_templates_registry.h"
+#include "tiling_base/tiling_base.h"
+#include "tiling_base/tiling_templates_registry.h"
 #include "tiling/tiling_type.h"
 #include "nsa_compress_attention_tiling.h"
 #include "nsa_compress_attention_tiling_common.h"
-
+using namespace Ops::Transformer::OpTiling;
 namespace optiling {
 namespace NsaCompressAttention {
 const int64_t DIM_0 = 0L;

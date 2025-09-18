@@ -26,14 +26,14 @@
 #include "tiling/tiling_api.h"
 #include "graph/utils/type_utils.h"
 #include "mc2_log.h"
-#include "tiling/tiling_base.h"
+#include "tiling_base/tiling_base.h"
 #include "tiling/mc2_tiling_struct.h"
 #include "tiling/matmul_formulaic_tiling.h"
 #include "../../3rd/mat_mul_v3/op_host/op_tiling/matmul_v3_tiling.h"
 #include "tiling/mc2_tiling_utils.h"
 #include "context_transfer.h"
 #include "platform/platform_infos_def.h"
-
+using namespace Ops::Transformer::OpTiling;
 namespace optiling {
 
 class MoeTilingBase : public TilingBaseClass {

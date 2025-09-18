@@ -25,8 +25,9 @@
 
 #include "aclnn/aclnn_base.h"
 #include "fallback_comm.h"
-#include "error/ops_error.h"
+#include "mc2_log.h"
 #include "runtime/base.h"
+#include "log/ops_log.h"
 
 namespace fallback {
 using namespace std;

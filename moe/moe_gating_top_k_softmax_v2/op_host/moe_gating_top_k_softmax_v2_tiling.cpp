@@ -28,7 +28,8 @@
 #include "tiling/tiling_api.h"
 #include "moe_gating_top_k_softmax_v2_tiling.h"
 // #include "external/exe_graph/runtime/shape.h"
-#include "tiling/tiling_templates_registry.h"
+#include "tiling_base/tiling_templates_registry.h"
+using namespace Ops::Transformer::OpTiling;
 using namespace AscendC;
 namespace optiling {
 
