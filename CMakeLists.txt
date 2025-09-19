@@ -220,10 +220,8 @@ endforeach ()
 
 add_subdirectory(moe)
 list(APPEND OP_LIST "moe_init_routing_v2")
-list(APPEND OP_LIST "moe_init_routing")
 list(APPEND OP_LIST "moe_token_unpermute_with_ep_grad")
 list(APPEND OP_DIR_LIST ${CMAKE_CURRENT_SOURCE_DIR}/moe/moe_init_routing_v2)
-list(APPEND OP_DIR_LIST ${CMAKE_CURRENT_SOURCE_DIR}/moe/moe_init_routing)
 list(APPEND OP_DIR_LIST ${CMAKE_CURRENT_SOURCE_DIR}/moe/moe_token_unpermute_with_ep_grad)
 
 set(OP_DEPEND_DIR_LIST)

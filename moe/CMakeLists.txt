@@ -12,7 +12,6 @@ file(GLOB SUBDIRECTORIES LIST_DIRECTORIES true RELATIVE ${CMAKE_CURRENT_SOURCE_D
 # 遍历子目录
 if (BUILD_OPS_RTY_KERNEL) # 只有原融合算子仓的算子走
   add_subdirectory(moe_init_routing_v2)
-  add_subdirectory(moe_init_routing)
   add_subdirectory(moe_token_unpermute_with_ep_grad)
 else()
   foreach(SUBDIR ${SUBDIRECTORIES})
