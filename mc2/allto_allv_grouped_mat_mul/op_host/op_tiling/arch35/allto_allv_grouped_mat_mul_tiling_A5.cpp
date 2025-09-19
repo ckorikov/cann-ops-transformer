@@ -15,7 +15,7 @@
  */
 
 /*!
- * \file allto_allv_grouped_mat_mul_tiling_A5.cc
+ * \file allto_allv_grouped_mat_mul_tiling_A5.cpp
  * \brief
  */
 
@@ -965,7 +965,7 @@ static ge::graphStatus CalAndSetMMTiling(
     OP_TILING_CHECK(curBaseK == 0, OP_LOGE(A5_INNER_DEBUG, "curBaseK cannot be 0."), return ge::GRAPH_FAILED);
 
     // 基于使能 double buffer的L0A内存与L0B内存计算BaseM(cube)
-    uint32_t maxBaseM = PLATFORM_SIZE.l0CSize / (curBaseN * mmDataTypeSize);
+    uint32_t maxBaseM = PLATFORM_SIZE.l0CSize / (curBaseN * sizeof(float));
     uint32_t curBaseM =
         std::min<uint32_t>((PLATFORM_SIZE.l0ASize / DOUBLE_BUFFER_L0A_L0B / (curBaseK * mmDataTypeSize)), maxBaseM);
     curBaseM = SixteenAlign(curBaseM);
