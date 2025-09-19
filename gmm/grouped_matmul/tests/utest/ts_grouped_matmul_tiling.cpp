@@ -908,7 +908,7 @@ const auto Tc_Gmm_Tiling_Case_David = ::testing::Values(
               0),                                                                       // actType
         0),
     GroupedMatmulCase(
-        "GroupedQuantMM_mxfp8_Case0", true, "", /* CaseName, Enable, DebugInfo */
+        "GroupedQuantMM_mxfp8_typem_false_true", true, "", /* CaseName, Enable, DebugInfo */
         OpInfo(ControlInfo(true, false),
                ExpectInfo(true, 20000000001, 32)), /* ExpectSuccess, ExpectTilingKey, ExpectTilingBlockDim */
         Param({GenTensorList("x", {{256, 512}}, ge::DataType::DT_FLOAT8_E5M2),
@@ -923,7 +923,37 @@ const auto Tc_Gmm_Tiling_Case_David = ::testing::Values(
               GenTensor("group_list", {4}, ge::DataType::DT_INT64), {64, 64, 64, 64}, 2, -1, true, false, 0, 1, 0),
         0),
     GroupedMatmulCase(
-        "GroupedQuantMM_mxfp8_Case1", true, "", /* CaseName, Enable, DebugInfo */
+        "GroupedQuantMM_mxfp8_typem_false_false", true, "", /* CaseName, Enable, DebugInfo */
+        OpInfo(ControlInfo(true, false),
+               ExpectInfo(true, 20000000000, 32)), /* ExpectSuccess, ExpectTilingKey, ExpectTilingBlockDim */
+        Param({GenTensorList("x", {{256, 512}}, ge::DataType::DT_FLOAT8_E5M2),
+               GenTensorList("weight", {{4, 512, 128}}, ge::DataType::DT_FLOAT8_E5M2),
+               GenTensorList("bias", {{}}, ge::DataType::DT_FLOAT),
+               GenTensorList("scale", {{4, 8, 128, 2}}, ge::DataType::DT_FLOAT8_E8M0),
+               GenTensorList("offset", {{}}, ge::DataType::DT_FLOAT),
+               GenTensorList("antiquant_scale", {{}}, ge::DataType::DT_FLOAT16),
+               GenTensorList("antiquant_offset", {{}}, ge::DataType::DT_FLOAT16),
+               GenTensorList("y", {{256, 128}}, ge::DataType::DT_BF16)},
+              GenTensor("per_token_scale", {256, 8, 2}, ge::DataType::DT_FLOAT8_E8M0),
+              GenTensor("group_list", {4}, ge::DataType::DT_INT64), {64, 64, 64, 64}, 2, -1, false, false, 0, 1, 0),
+        0),
+   GroupedMatmulCase(
+        "GroupedQuantMM_mxfp8_typem_true_false_error", true, "", /* CaseName, Enable, DebugInfo */
+        OpInfo(ControlInfo(true, false),
+               ExpectInfo(false, 20000000001, 32)), /* ExpectSuccess, ExpectTilingKey, ExpectTilingBlockDim */
+        Param({GenTensorList("x", {{512, 256}}, ge::DataType::DT_FLOAT8_E5M2),
+               GenTensorList("weight", {{4, 512, 128}}, ge::DataType::DT_FLOAT8_E5M2),
+               GenTensorList("bias", {{}}, ge::DataType::DT_FLOAT),
+               GenTensorList("scale", {{4, 8, 128, 2}}, ge::DataType::DT_FLOAT8_E8M0),
+               GenTensorList("offset", {{}}, ge::DataType::DT_FLOAT),
+               GenTensorList("antiquant_scale", {{}}, ge::DataType::DT_FLOAT16),
+               GenTensorList("antiquant_offset", {{}}, ge::DataType::DT_FLOAT16),
+               GenTensorList("y", {{256, 128}}, ge::DataType::DT_BF16)},
+              GenTensor("per_token_scale", {256, 8, 2}, ge::DataType::DT_FLOAT8_E8M0),
+              GenTensor("group_list", {4}, ge::DataType::DT_INT64), {64, 64, 64, 64}, 2, -1, false, true, 0, 1, 0),
+        0),
+    GroupedMatmulCase(
+        "GroupedQuantMM_mxfp8_typek_true_false_0", true, "", /* CaseName, Enable, DebugInfo */
         OpInfo(ControlInfo(true, false),
                ExpectInfo(true, 20000000010, 32)), /* ExpectSuccess, ExpectTilingKey, ExpectTilingBlockDim */
         Param({GenTensorList("x", {{960, 2068}}, ge::DataType::DT_FLOAT8_E5M2),
@@ -938,7 +968,7 @@ const auto Tc_Gmm_Tiling_Case_David = ::testing::Values(
               GenTensor("group_list", {4}, ge::DataType::DT_INT64), {0,}, 2, -1, false, true, 2, 1, 0),
         0),
     GroupedMatmulCase(
-        "GroupedQuantMM_mxfp8_Case2", true, "", /* CaseName, Enable, DebugInfo */
+        "GroupedQuantMM_mxfp8_typek_true_false_1", true, "", /* CaseName, Enable, DebugInfo */
         OpInfo(ControlInfo(true, false),
                ExpectInfo(true, 20000000010, 32)), /* ExpectSuccess, ExpectTilingKey, ExpectTilingBlockDim */
         Param({GenTensorList("x", {{8192, 7168}}, ge::DataType::DT_FLOAT8_E5M2),

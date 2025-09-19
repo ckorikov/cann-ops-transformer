@@ -184,11 +184,6 @@ actual is %zu", xScaleDimNum), return false);
     auto wScaleLastDim = static_cast<uint64_t>(wScaleShape.GetDim(wScaleDimNum - 1));
     auto xScaleLastDim = static_cast<uint64_t>(xScaleShape.GetDim(xScaleDimNum - 1));
     auto expectedKDimValue = CeilDiv(inputParams_.kSize, MXFP_BASEK_FACTOR);
-    OP_CHECK_IF(!inputParams_.transB || inputParams_.transA,
-               OP_LOGE(inputParams_.opName,
-                                         "When split m in mx quant mode, the expected transpose attrs of x and \
-weight are false and true, but the actual transpose attrs of x and weight are %d and %d.",
-                                         inputParams_.transA, inputParams_.transB), return false);
     OP_CHECK_IF(wScaleEDim != inputParams_.groupNum || wScaleKDim != expectedKDimValue ||
                    wScaleNDim != inputParams_.nSize || wScaleLastDim != MXFP_MULTI_BASE_SIZE,
                OP_LOGE(

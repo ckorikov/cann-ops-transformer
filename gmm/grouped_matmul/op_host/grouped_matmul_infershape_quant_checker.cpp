@@ -171,14 +171,14 @@ graphStatus GroupedMatmulQuantChecker::CheckFormatValid(const gert::InferShapeCo
     const auto xDesc = context->GetDynamicInputDesc(GMM_INDEX_IN_X, 0);
     OP_CHECK_NULL_WITH_CONTEXT(context, xDesc);
     const auto xFormat = xDesc->GetOriginFormat();
-    OP_CHECK_IF(xFormat != ge::FORMAT_ND && xFormat != ge::FORMAT_NCL,
-              OP_LOGE(context->GetNodeName(), "Format of x only support ND or NCL for now, but now is [%s].",
+    OP_CHECK_IF(xFormat != ge::FORMAT_ND && xFormat != ge::FORMAT_NCL && xFormat != ge::FORMAT_NCHW,
+              OP_LOGE(context->GetNodeName(), "Format of x only supports ND, NCL or NCHW for now, but it is [%s].",
                         ge::TypeUtils::FormatToAscendString(xFormat).GetString()), return GRAPH_FAILED);
     const auto weightDesc = context->GetDynamicInputDesc(GMM_INDEX_IN_WEIGHT, 0);
     OP_CHECK_NULL_WITH_CONTEXT(context, weightDesc);
     const auto weightFormat = weightDesc->GetOriginFormat();
-    OP_CHECK_IF(weightFormat != ge::FORMAT_ND && weightFormat != ge::FORMAT_NCL,
-              OP_LOGE(context->GetNodeName(), "Format of weight only support ND or NCL for now, but now is [%s].",
+    OP_CHECK_IF(xFormat != ge::FORMAT_ND && xFormat != ge::FORMAT_NCL && xFormat != ge::FORMAT_NCHW,
+              OP_LOGE(context->GetNodeName(), "Format of weight only supports ND, NCL or NCHW for now, but it is [%s].",
                         ge::TypeUtils::FormatToAscendString(weightFormat).GetString()), return GRAPH_FAILED);
     return GRAPH_SUCCESS;
 }

@@ -1924,6 +1924,19 @@ const auto Tc_Gmm_Aclnn_David_Case = ::testing::Values(
                                    GenTensorList("pertoken_scale", {{5, 1}}, ge::DataType::DT_FLOAT),
                                    GenTensorList("y", {{5, 2019}}, ge::DataType::DT_FLOAT16)},
                                    GenTensor("grouped_list", {3}, ge::DataType::DT_INT64), {0, 0, 3}, 3, -1, true, false,
-                                   0, 0, 0, FunctionType::PERTILE, AclnnGroupedMatmulVersion::V4)));
+                                   0, 0, 0, FunctionType::PERTILE, AclnnGroupedMatmulVersion::V4)),
+    AclnnGroupedMatmulCase(
+       "Test_GMMV4_9591_mxpf8_split_m_false_false_case", true, "",               /* CaseName,Enable,DebugInfo */
+       OpInfo(ControlInfo(true, false),                        /* RunTiling,RunKernel */
+              ExpectInfo(false,                                 /* ExpectSuccess */
+                            ExpectInfo::kInvalidTilingKey,        /* ExpectTilingKey */
+                            ExpectInfo::kInvalidTilingBlockDim)), /* ExpectTilingBlockDim */
+       AclnnGroupedMatmulParam({GenTensorList("x", {{4096, 7168}}, ge::DataType::DT_FLOAT8_E4M3FN),
+                                   GenTensorList("weight", {{1, 7168, 4096}}, ge::DataType::DT_FLOAT8_E4M3FN),
+                                   GenTensorList("scale", {{1, 112, 4096, 2}}, ge::DataType::DT_FLOAT8_E8M0),
+                                   GenTensorList("pertoken_scale", {{4096, 112, 2}}, ge::DataType::DT_FLOAT8_E8M0),
+                                   GenTensorList("y", {{4096, 4096}}, ge::DataType::DT_INT8)},
+                                   GenTensor("grouped_list", {32}, ge::DataType::DT_INT64), {64}, 3, -1, false, false,
+                                   0, 1, 0, FunctionType::MXFP, AclnnGroupedMatmulVersion::V4)));
 INSTANTIATE_TEST_SUITE_P(GroupedMatmulDavid, Ts_Aclnn_GroupedMatmul_WithParam_Ascend910_9591, Tc_Gmm_Aclnn_David_Case);
 }  // namespace

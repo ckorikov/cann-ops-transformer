@@ -464,7 +464,10 @@ extern "C" __global__ __aicore__ void grouped_matmul(GM_ADDR x, GM_ADDR weight, 
 #ifndef __CCE_KT_TEST__
 #if defined(V310_GMM_QUANT) // Quant: A8W8
 #if defined(V310_GMM_QUANT_MX) // mxfpx
-    if (TILING_KEY_IS(20000000001)) { // transX = false, transW = true, groupType = 0
+    if (TILING_KEY_IS(20000000000)) { // transX = false, transW = false, groupType = 0
+        KERNEL_TASK_TYPE(20000000000, KERNEL_TYPE_AIC_ONLY);
+        GMM_QUANT_IMPL_CLASS(false, false, GmmASWKernel);
+    } else if (TILING_KEY_IS(20000000001)) { // transX = false, transW = true, groupType = 0
         KERNEL_TASK_TYPE(20000000001, KERNEL_TYPE_AIC_ONLY);
         GMM_QUANT_IMPL_CLASS(false, true, GmmASWKernel);
     }

@@ -133,7 +133,7 @@ __aicore__ inline void QuantASWBlockSch::UpdateGroupOffset(int32_t m, int32_t n,
         params_.cGroupAddrOffset += params_.m * params_.n;
         if constexpr (QuantUtils::IsMxType<scaleType>()) {
             uint64_t scaleK = QuantUtils::MXFP_MULTI_BASE_SIZE;
-            if constexpr (!aTrans && bTrans) { // mx (m, ceil(k / 64) * 2)
+            if constexpr (!aTrans) { // mx (m, ceil(k / 64), 2)
                 scaleK *= QuantUtils::CeilDiv(params_.k, QuantUtils::MXFP_DIVISOR_SIZE);
                 params_.xScaleGroupAddrOffset += params_.m * scaleK;
                 params_.wScaleGroupAddrOffset += params_.n * scaleK;
@@ -308,11 +308,15 @@ __aicore__ inline void QuantASWBlockSch::CalcGMOffset()
     offset_.offsetC = mOffset * params_.n + nOffset;
 
     if constexpr (QuantUtils::IsMxType<scaleType>()) {
-        uint64_t scaleK = QuantUtils::MXFP_MULTI_BASE_SIZE; // groupType k (k / 64, m, 2)
-        if constexpr (!aTrans && bTrans) { // mx (m, ceil(k / 64) * 2)
+        uint64_t pertokenScaleK = QuantUtils::MXFP_MULTI_BASE_SIZE;
+        uint64_t scaleK = QuantUtils::MXFP_MULTI_BASE_SIZE;
+        if constexpr (!aTrans) { // mx (m, ceil(k / 64), 2)
+            pertokenScaleK *= QuantUtils::CeilDiv(params_.k, QuantUtils::MXFP_DIVISOR_SIZE);
+        }
+        if constexpr (bTrans) { // mx (n, ceil(k / 64), 2)
             scaleK *= QuantUtils::CeilDiv(params_.k, QuantUtils::MXFP_DIVISOR_SIZE);
         }
-        offset_.offsetPerTokenScale = mOffset * scaleK;
+        offset_.offsetPerTokenScale = mOffset * pertokenScaleK;
         offset_.offsetScale = nOffset * scaleK;
     } else {
         offset_.offsetPerTokenScale = mOffset;

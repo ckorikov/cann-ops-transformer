@@ -13,7 +13,6 @@
  * \brief
  */
 #include "grouped_matmul_infershape_weight_quant_checker.h"
-
 #include "grouped_matmul_infershape_common_util.h"
 
 using namespace ge;

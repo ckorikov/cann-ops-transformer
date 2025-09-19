@@ -211,7 +211,7 @@ aclnnStatus AclnnGroupedMatmul91095Checker<T>::CheckMxFp8TypeMCaseInputShape(con
     size_t scaleDimNum = dimInfo.scaleDimNum;
     size_t pertokenScaleDimNum = dimInfo.pertokenScaleDimNum;
     int64_t groupNum = dimInfo.groupNum;
-    // split m, x is (m,k), weight is (e,k,n), scale is (e, ceil(k/64)*2, n), pertoken is (m, ceil(k/64)*2)
+    // split m, x is (m,k), weight is (e,k,n), scale is (e, ceil(k/64), n, 2), pertoken is (m, ceil(k/64), 2)
     CHECK_COND(xDimNum == MX_SPLIT_M_SINGLE_X_DIM, ACLNN_ERR_PARAM_INVALID,
                "In mx quant mode, the %s dim num should be 2 when split m, but actual is [%zu].", xName_.c_str(), xDimNum);
     CHECK_COND(weightDimNum == MX_SPLIT_M_SINGLE_WEIGHT_DIM, ACLNN_ERR_PARAM_INVALID,
@@ -338,15 +338,14 @@ aclnnStatus AclnnGroupedMatmul91095Checker<T>::CheckGroupedMatmulMxfp8() const
     CHECK_COND(CheckGroupedMatmulMxfp8Dtype() == ACLNN_SUCCESS, ACLNN_ERR_PARAM_INVALID,
                "CheckGroupedMatmulMxfp8Dtype failed");
     if (gmmParams_.groupType == SPLIT_M) {
-        CHECK_COND(gmmParams_.transposeWeight && !gmmParams_.transposeX, ACLNN_ERR_PARAM_INVALID,
-                   "When groupType is 0 (split m), the transposition of %s/%s only support false/true, but actual \
- tranpositions are %s/%s.",
-                   xName_.c_str(), weightName_.c_str(), gmmParams_.transposeX ? "true" : "false",
-                   gmmParams_.transposeWeight ? "true" : "false");
+        CHECK_COND(!gmmParams_.transposeX, ACLNN_ERR_PARAM_INVALID,
+                   "When groupType is 0 (split m), the transposition of X only support false, but actual \
+tranposition is %s.",
+                   gmmParams_.transposeX ? "true" : "false");
     } else if (gmmParams_.groupType == SPLIT_K) {
         CHECK_COND(!gmmParams_.transposeWeight && gmmParams_.transposeX, ACLNN_ERR_PARAM_INVALID,
                    "When groupType is 2 (split K), the transposition of %s/%s only support true/false, but actual \
- transpositions are %s/%s.",
+transpositions are %s/%s.",
                    xName_.c_str(), weightName_.c_str(), gmmParams_.transposeX ? "true" : "false",
                    gmmParams_.transposeWeight ? "true" : "false");
     }
