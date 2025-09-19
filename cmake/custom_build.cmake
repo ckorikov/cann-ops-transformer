@@ -142,7 +142,6 @@ if (BUILD_OPEN_PROJECT)
     add_library(cust_opmaster SHARED)
     target_sources(cust_opmaster PRIVATE
             ${CMAKE_CURRENT_SOURCE_DIR}/common/src/fallback_comm.cpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/mc2/common/src/mc2_hcom_topo_info.cpp
     )
     target_include_directories(cust_opmaster PRIVATE
             ${CMAKE_CURRENT_SOURCE_DIR}/mc2/common/inc
@@ -231,7 +230,6 @@ endif ()
 
 add_subdirectory(common)
 if (NOT BUILD_OPS_RTY_KERNEL AND NOT ENABLE_BUILT_IN)
-    add_subdirectory(mc2)
     add_subdirectory(ffn)
 endif()
 
@@ -269,6 +267,22 @@ if (ENABLE_BUILT_IN)
   add_subdirectory(gmm/grouped_matmul_swiglu_quant/op_graph)
 endif()
 
+# set(MC2_OP_LIST)
+# set(MC2_OP_DIR_LIST)
+
+# mc2_op_add_subdirectory(MC2_OP_LIST MC2_OP_DIR_LIST)
+
+#  foreach (MC2_OP_DIR ${MC2_OP_DIR_LIST})
+#     if (EXISTS "${MC2_OP_DIR}/ophost")
+#         add_subdirectory(${MC2_OP_DIR}/op_host)
+#     else()
+#         add_subdirectory(${MC2_OP_DIR})
+#     endif()
+# endforeach ()
+
+# list(APPEND OP_LIST ${MC2_OP_LIST})
+# list(APPEND OP_DIR_LIST ${MC2_OP_DIR_LIST})
+
 set(OP_DEPEND_DIR_LIST)
 op_add_depend_directory(
         OP_LIST ${OP_LIST}
@@ -282,11 +296,6 @@ foreach (OP_DEPEND_DIR ${OP_DEPEND_DIR_LIST})
     endif()
 endforeach ()
 
-set(MC2_OP_LIST)
-set(MC2_OP_DIR_LIST)
-mc2_op_add_subdirectory(MC2_OP_LIST MC2_OP_DIR_LIST)
-list(APPEND OP_LIST ${MC2_OP_LIST})
-list(APPEND OP_DIR_LIST ${MC2_OP_DIR_LIST})
 # ------------------------------------------------ aclnn ------------------------------------------------
 get_target_property(base_aclnn_srcs op_host_aclnn SOURCES)
 get_target_property(base_aclnn_inner_srcs op_host_aclnnInner SOURCES)
