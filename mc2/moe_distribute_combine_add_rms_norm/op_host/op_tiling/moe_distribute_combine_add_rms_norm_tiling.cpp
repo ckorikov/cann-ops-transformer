@@ -220,6 +220,10 @@ static ge::graphStatus GetAttrAndSetTilingData(const gert::TilingContext *contex
     int64_t copyExpertNum = *copyExpertNumPtr;
     int64_t constExpertNum = *constExpertNumPtr;
 
+    OP_TILING_CHECK(zeroExpertNum == -1, OP_LOGE(nodeName, "zeroExpertNum is -1."), return ge::GRAPH_FAILED);
+    OP_TILING_CHECK(copyExpertNum == -1, OP_LOGE(nodeName, "copyExpertNum is -1."), return ge::GRAPH_FAILED);
+    OP_TILING_CHECK(constExpertNum == -1, OP_LOGE(nodeName, "constExpertNum is -1."), return ge::GRAPH_FAILED);
+
     OP_TILING_CHECK(
         (moeExpertNum + zeroExpertNum + copyExpertNum + constExpertNum) > INT32_MAX,
         OP_LOGE(nodeName, "moeExpertNum + zeroExpertNum + copyExpertNum + constExpertNum exceeds MAX_INT32."),
@@ -499,7 +503,7 @@ static bool CheckTensorDataType(const gert::TilingContext *context, const char *
         OP_TILING_CHECK(
             (oriXDesc->GetDataType() != ge::DT_BF16),
             OP_LOGE(
-                nodeName, "ori_x dataType is invalid, dataType should be bf16 or float16, but is %s",
+                nodeName, "ori_x dataType is invalid, dataType should be bf16, but is %s",
                 Ops::Base::ToString(oriXDesc->GetDataType()).c_str()),
             return false);
     }
@@ -509,7 +513,7 @@ static bool CheckTensorDataType(const gert::TilingContext *context, const char *
         OP_TILING_CHECK(
             (constExpertAlpha1Desc->GetDataType() != ge::DT_BF16),
             OP_LOGE(
-                nodeName, "const_expert_alpha_1 dataType is invalid, dataType should be bf16 or float16, but is %s",
+                nodeName, "const_expert_alpha_1 dataType is invalid, dataType should be bf16, but is %s",
                 Ops::Base::ToString(constExpertAlpha1Desc->GetDataType()).c_str()),
             return false);
     }
@@ -519,7 +523,7 @@ static bool CheckTensorDataType(const gert::TilingContext *context, const char *
         OP_TILING_CHECK(
             (constExpertAlpha2Desc->GetDataType() != ge::DT_BF16),
             OP_LOGE(
-                nodeName, "const_expert_alpha_2 dataType is invalid, dataType should be bf16 or float16, but is %s",
+                nodeName, "const_expert_alpha_2 dataType is invalid, dataType should be bf16, but is %s",
                 Ops::Base::ToString(constExpertAlpha2Desc->GetDataType()).c_str()),
             return false);
     }
@@ -529,7 +533,7 @@ static bool CheckTensorDataType(const gert::TilingContext *context, const char *
         OP_TILING_CHECK(
             (constExpertVDesc->GetDataType() != ge::DT_BF16),
             OP_LOGE(
-                nodeName, "const_expert_v dataType is invalid, dataType should be bf16 or float16, but is %s",
+                nodeName, "const_expert_v dataType is invalid, dataType should be bf16, but is %s",
                 Ops::Base::ToString(constExpertVDesc->GetDataType()).c_str()),
             return false);
     }
@@ -537,7 +541,7 @@ static bool CheckTensorDataType(const gert::TilingContext *context, const char *
     auto expandXDesc = context->GetInputDesc(EXPAND_X_INDEX);
     OP_TILING_CHECK(expandXDesc == nullptr, OP_LOGE(nodeName, "expandxDesc is null."), return false);
     OP_TILING_CHECK((expandXDesc->GetDataType() != ge::DT_BF16) && (expandXDesc->GetDataType() != ge::DT_FLOAT16),
-        OP_LOGE(nodeName, "expandX dataType is invalid, dataType should be bf16 or float16, but is %s",
+        OP_LOGE(nodeName, "expandX dataType is invalid, dataType should be bf16, but is %s",
         Ops::Base::ToString(expandXDesc->GetDataType()).c_str()), return false);
     auto expertIdsDesc = context->GetInputDesc(EXPERT_IDS_INDEX);
     OP_TILING_CHECK(expertIdsDesc == nullptr, OP_LOGE(nodeName, "expertIdsDesc is null."), return false);
@@ -772,7 +776,7 @@ static bool CheckTensorShape(const gert::TilingContext *context, MoeDistributeCo
         OP_TILING_CHECK(elasticInfoDim0 != (ELASTIC_METAINFO_OFFSET + RANK_LIST_NUM * epWorldSize),
             OP_LOGE(nodeName, "elasticInfo's dim0 not equal to 4 + 2 * epWorldSize, "
             "elasticInfo's dim0 is %ld, epWorldSize is %ld.",
-            elasticInfoDim0, epWorldSize), return ge::GRAPH_FAILED);
+            elasticInfoDim0, epWorldSize), return false);
         A = std::max( static_cast<int64_t>(maxBs * maxSharedGroupNum) , globalBs * std::min(static_cast<int64_t>(localMoeExpertNum), expertIdsDim1));
     }
     // 校验expandX的维度并设h
@@ -1036,7 +1040,7 @@ static bool CheckAttrs(const gert::TilingContext *context, MoeDistributeCombineV
         localMoeExpertNum, tpWorldSize), return false);
     // 校验tp=2时是否没有动态缩容参数
     OP_TILING_CHECK((tpWorldSize > 1) && (tilingData.moeDistributeCombineV2Info.hasElasticInfo), OP_LOGE(nodeName, "Cannot support elasticInfo "
-        "in a case when tpWorldSize = %u > 1", tpWorldSize), return ge::GRAPH_FAILED);
+        "in a case when tpWorldSize = %u > 1", tpWorldSize), return false);
     tilingData.moeDistributeCombineV2Info.moeExpertPerRankNum = localMoeExpertNum;
 
     // 校验输入expertIds的维度0并设bs
@@ -1076,11 +1080,9 @@ static bool CheckAttrs(const gert::TilingContext *context, MoeDistributeCombineV
     const gert::StorageShape *constExpertAlpha2StorageShape = context->GetOptionalInputShape(CONST_EXPERT_ALPHA_2_INDEX);
     const gert::StorageShape *constExpertVStorageShape = context->GetOptionalInputShape(CONST_EXPERT_V_INDEX);
 
-    OP_TILING_CHECK(copyExpertNum > 0 && oriXStorageShape == nullptr,
-        OP_LOGE(nodeName, "oriX must be exist when copyExpertNum > 0"), return GRAPH_FAILED);
     OP_TILING_CHECK(constExpertNum > 0 && (oriXStorageShape == nullptr || constExpertAlpha1StorageShape == nullptr ||
                     constExpertAlpha2StorageShape == nullptr || constExpertVStorageShape == nullptr),
-        OP_LOGE(nodeName, "oriX、alpha1、alpha2、V must be exist when constExpertNum > 0"), return GRAPH_FAILED);
+        OP_LOGE(nodeName, "oriX、alpha1、alpha2、V must be exist when constExpertNum > 0"), return false);
 
     return true;
 }
