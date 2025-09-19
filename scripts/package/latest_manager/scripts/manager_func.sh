@@ -1457,10 +1457,6 @@ recreate_compatiable_softlink_in_multi_version_uninstall() {
             done
 
             if [ "$package" = "runtime" ]; then
-                # 产品线nnrt包，runtime与aicpu_kernels包并存的场景。
-                # 由于aicpu_kernels包并不是严格按照多版本设计实现，所以没有重建软链的能力，
-                # 卸载时依赖其它包（也就是runtime包）协助创建aicpu_kernels包的兼容版本软链。
-                # 这里假设aicpu_kernels包的软链总是跟随runtime包。
                 deal_with_aicpu_package "${scope_install_path}" "${scope_version_dir}" "${scope_latest_dir}"
                 ret="$?" && [ $ret -ne 0 ] && return $ret
             fi

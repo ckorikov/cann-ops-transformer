@@ -33,7 +33,7 @@ endif()
 # 生成安装配置文件
 set(CSV_OUTPUT ${CPACK_CMAKE_BINARY_DIR}/filelist.csv)
 execute_process(
-    COMMAND python3 ${CPACK_CMAKE_SOURCE_DIR}/scripts/package/package.py --pkg_name ops_transformer --os_arch linux.${CPACK_ARCH}
+    COMMAND python3 ${CPACK_CMAKE_SOURCE_DIR}/scripts/package/package.py --pkg_name ops_transformer --chip_name ${CPACK_SOC} --os_arch linux-${CPACK_ARCH}
     WORKING_DIRECTORY ${CPACK_CMAKE_BINARY_DIR}
     OUTPUT_VARIABLE result
     ERROR_VARIABLE error
@@ -94,7 +94,9 @@ if(NOT EXEC_RESULT EQUAL 0)
     message(FATAL_ERROR "makeself packaging failed: ${EXEC_ERROR}")
 endif()
 
-execute_process(COMMAND mv ${STAGING_DIR}/${package_name} ${CPACK_PACKAGE_DIRECTORY}/
+execute_process(
+    COMMAND mkdir -p ${CPACK_PACKAGE_DIRECTORY}
+    COMMAND mv ${STAGING_DIR}/${package_name} ${CPACK_PACKAGE_DIRECTORY}/
     COMMAND echo "Move ${STAGING_DIR}/${package_name} to ${CPACK_PACKAGE_DIRECTORY}/"
     WORKING_DIRECTORY ${STAGING_DIR}
 )

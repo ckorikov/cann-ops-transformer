@@ -407,7 +407,6 @@ comm_err_file_or_directory_not_exist() {
     comm_exit_log 1
 }
 
-# 对产品线开放
 os_name() {
     if [ ! -f "$1" ];then
         HostOsName=unknown
@@ -418,12 +417,6 @@ os_name() {
 
     HostOsName=$(cat "$1" | grep ^NAME= | awk -F "[\" ]" '{print $2}')
     HostOsFullName=$(cat "$1" | grep ^NAME= | awk -F "\"" '{print $2}')
-    # 例一: Huawei Cloud EulerOS
-    # HostOsName为Huawei
-    # HostOsFullName为Huawei Cloud EulerOS
-    # 例二: CentOS Linux
-    # HostOsName为CentOS
-    # HostOsFullName为CentOS Linux
 
     if [ x"$HostOsName" = "x" ];then
         HostOsName=$(cat "$1" | grep ^NAME= | awk -F "[=]" '{print $2}')
@@ -440,7 +433,6 @@ os_name() {
     return
 }
 
-# 对产品线开放
 get_os_info() {
     if [ -f /etc/os-release ];then
         os_name /etc/os-release

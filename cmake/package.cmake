@@ -137,6 +137,17 @@ function(pack_built_in)
       DESTINATION ops_transformer/bin
   )
 
+  string(FIND "${ASCEND_COMPUTE_UNIT}" ";" SEMICOLON_INDEX)
+  if (SEMICOLON_INDEX GREATER -1)
+      # 截取分号前的字串
+      math(EXPR SUBSTRING_LENGTH "${SEMICOLON_INDEX}")
+      string(SUBSTRING "${ASCEND_COMPUTE_UNIT}" 0 "${SUBSTRING_LENGTH}" compute_unit)
+  else()
+      # 没有分号取全部内容
+      set(compute_unit "${ASCEND_COMPUTE_UNIT}")
+  endif()
+
+  message(STATUS "current compute_unit is: ${compute_unit}")
 
   # ============= CPack =============
   set(CPACK_PACKAGE_NAME "${PROJECT_NAME}")
@@ -150,6 +161,7 @@ function(pack_built_in)
   set(CPACK_CMAKE_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}")
   set(CPACK_CMAKE_CURRENT_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
   # set(CPACK_COMPONENTS_ALL runtime documentation)
+  set(CPACK_SOC "${compute_unit}")
   set(CPACK_ARCH "${ARCH}")
   set(CPACK_SET_DESTDIR ON)
   set(CPACK_GENERATOR External)

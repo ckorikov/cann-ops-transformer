@@ -58,7 +58,7 @@ class PackageName:
         ext_name = self.get_attribute('ext_name')
         package_suffix = "debug" if self.package_suffix == "debug" else None
 
-        region1 = "-".join(filter(None, [product_name, chip_name, func_name]))
+        region1 = "-".join(filter(None, [product_name, remove_ascend(chip_name), func_name]))
         region2 = ".".join(filter(None, [version]))
         region3 = "-".join(filter(None, [os_arch, chip_plat, deploy_type, package_suffix, ext_name]))
         package_name = "_".join(filter(None, [region1, region2, region3]))
@@ -71,6 +71,15 @@ class MakeselfPkgParams(NamedTuple):
     package_name: str
     comments: str
     cleanup: Optional[str] = None
+
+
+def remove_ascend(text):
+    if text is None:
+        return None
+    text_lower = text.lower()
+    if "ascend" in text_lower:
+        return text_lower.replace("ascend", "")
+    return text_lower
 
 
 def get_func_name(func_name: str, package_attr) -> str:
