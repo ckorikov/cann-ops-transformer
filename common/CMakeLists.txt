@@ -68,4 +68,25 @@ if (BUILD_OPEN_PROJECT)
       $<BUILD_INTERFACE:intf_pub_cxx17>
       tiling_api
     )
+else()
+    add_library(${COMMON_NAME}_obj OBJECT)
+
+    file(GLOB CPP_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/tiling_base/*.cpp")
+
+    target_sources(${COMMON_NAME}_obj PRIVATE ${CPP_SOURCES})
+
+    target_include_directories(${COMMON_NAME}_obj
+      PRIVATE
+      ${C_SEC_INCLUDE}
+      ${TILINGAPI_INC_DIRS}
+      ${METADEF_INCLUDE_DIRS}
+      ${OPS_TRANSFORMER_DIR}/common/include
+      ${OPS_TRANSFORMER_DIR}/common/inc
+    )
+
+    target_link_libraries(${COMMON_NAME}_obj
+      PRIVATE
+      $<BUILD_INTERFACE:intf_pub_cxx17>
+      tiling_api
+    )
 endif()
