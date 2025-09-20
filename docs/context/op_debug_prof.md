@@ -1,30 +1,34 @@
 
+
 # 算子调试调优
 
-## 调试定位
+## 调试定位（AI Core算子）
 
-算子运行过程中，如果出现算子执行失败、精度异常等问题，可以通过printf、DumpTensor接口打印各阶段信息，如Kernel中间结果，进行问题分析和定位。
+算子运行过程中，如果出现算子执行失败、精度异常等问题，可以打印各阶段信息，如Kernel中间结果，进行问题分析和定位。
 
-本章以`AddExample`自定义算子为例：
-- **printf**
+以`AddExample`算子为例，常见调试方法如下：
 
-  该接口支持打印Scalar类型数据，如整数、字符、布尔型等，详细介绍请参见[《Ascend C API》](https://hiascend.com/document/redirect/CannCommunityAscendCApi)中“算子调测API >  printf”。
-    ```c++
-    blockLength_ = tilingData->totalLength / AscendC::GetBlockNum();
-    tileNum_ = tilingData->tileNum;
-    tileLength_ = blockLength_ / tileNum_ / BUFFER_NUM;
-    // 打印当前核计算Block长度
-    AscendC::PRINTF("Tiling blockLength\n", blockLength_);
-    ```
-- **DumpTensor**
+* **printf**
+
+  该接口支持打印Scalar类型数据，如整数、字符、布尔型等，详细介绍请参见[《Ascend C API》](https://hiascend.com/document/redirect/CannCommunityAscendCApi)中“算子调测API > printf”。
+  
+  ```c++
+  blockLength_ = tilingData->totalLength / AscendC::GetBlockNum();
+  tileNum_ = tilingData->tileNum;
+  tileLength_ = blockLength_ / tileNum_ / BUFFER_NUM;
+  // 打印当前核计算Block长度
+  AscendC::PRINTF("Tiling blockLength\n", blockLength_);
+  ```
+* **DumpTensor**
 
   该接口支持Dump指定Tensor的内容，同时支持打印自定义附加信息，比如当前行号等，详细介绍请参见[《Ascend C API》](https://hiascend.com/document/redirect/CannCommunityAscendCApi)中“算子调测API > DumpTensor”。
-    ```c++
-    AscendC::LocalTensor<T> zLocal = outputQueueZ.DeQue<T>();
-    // 打印zLocal Tensor信息
-    DumpTensor(zLocal, 0, 128);
-    AscendC::DataCopy(outputGMZ[progress * tileLength_], zLocal, tileLength_);
-    ```
+  
+  ```c++
+  AscendC::LocalTensor<T> zLocal = outputQueueZ.DeQue<T>();
+  // 打印zLocal Tensor信息
+  DumpTensor(zLocal, 0, 128);
+  AscendC::DataCopy(outputGMZ[progress * tileLength_], zLocal, tileLength_);
+  ```
 
 对于复杂场景的问题定位，比如算子卡死、GM/UB访问越界等场景，可以采取**单步调试**的方式，具体操作请参见[msDebug](https://www.hiascend.com/document/redirect/CannCommunityToolMsdebug)算子调试工具。
 

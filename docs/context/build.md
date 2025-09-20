@@ -7,7 +7,7 @@ build.sh是本项目的构建脚本，默认在项目根目录下，其作用是
 ## 使用方法 
 1. **配置环境变量**
    
-   参考本项目README中“[环境准备](../../README.md#环境准备)”章节完成环境变量配置。
+   参考[快速入门 > 环境准备](./QuickStart.md#环境准备)完成环境变量配置。
    ```bash
    # 默认路径安装，以root用户为例
    source /usr/local/Ascend/ascend-toolkit/set_env.sh

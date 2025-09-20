@@ -1,4 +1,4 @@
-# 算子开发指南
+# AI Core算子开发指南
 
 > 说明：
 >
@@ -25,7 +25,7 @@ graph LR
 
    ② 算子设计：分析实际业务诉求，合理设计算子规格，包括算子输入、输出、属性的数据类型、shape等。
 
-2. [工程创建](#工程创建)：基于本项目开发算子时，需按要求创建算子目录，方便后续算子的编译和部署。
+2. [工程创建](#工程创建)：开发算子前，需按要求创建算子目录，方便后续算子的编译和部署。
 
 3. [Tiling实现](#Tiling实现)：实现Host侧算子Tiling函数。
 
@@ -46,13 +46,11 @@ graph LR
 ##  前提条件
 **1. 环境部署**
 
-基于本项目开发算子前，请参考本项目[README](../../README.md)完成环境准备，包括依赖的NPU驱动和固件、CANN软件包、第三方依赖等。
+开发算子前，请参考[快速入门 > 环境准备](./quick_start.md#环境准备)完成环境搭建。
 
 **2. 算子设计**
 
-开发算子前，需提前确定目标算子的功能和计算逻辑，并将数学计算逻辑转化为可执行的代码逻辑。
-
-本章以自定义`AddExample`算子设计为例，主要分为以下步骤：
+确定目标算子的功能和计算逻辑，并将数学计算逻辑转化为可执行的代码逻辑。以自定义`AddExample`算子设计为例，设计步骤如下：
 
 ```mermaid
 graph LR
@@ -61,7 +59,7 @@ graph LR
     C -->D([明确所需接口])
 ```
 
-`AddExample`算子的设计规格如下：
+`AddExample`算子设计规格如下：
 
 <table>
 <tr>
@@ -122,29 +120,41 @@ graph LR
 
 ## 工程创建
 
-> 说明：后续将支持一键自动生成算子工程目录能力，当前需手动创建。
+工程创建是算子开发的重要步骤，为后续代码编写、编译构建和调试提供统一的目录结构和文件组织方式。
 
-工程创建是算子开发中的重要步骤，为后续代码编写、编译构建和调试提供统一的目录结构和文件组织方式。
+本项目`build.sh`，支持快速创建算子目录。进入项目根目录，执行以下命令：
 
-开发者可拷贝本项目example目录下`AddExample`算子开发工程，目录结构如下，文件名请替换为实际的算子名。
+```bash
+# 创建指定算子目录，如bash build.sh --genop=example/add_example
+bash build.sh --genop=${op_class}/${op_name}
+```
+- \$\{op_class\}表示算子类型，如transformer类。
+- \$\{op_name\}表示算子名的小写下划线形式，如`AddExample`算子对应为add\_example。
+
+如果命令执行成功，会看到如下提示信息：
+
+```bash
+Create the initial directory for ${op_name} under ${op_class} success
+```
+创建完成后，目录结构如下所示：
 
 ```
-add_example                                   # 替换为实际算子名，小写下划线形式
-├── op_host                                   # Host侧实现
-│   ├── add_example_def.cpp                   # 算子信息库，定义算子基本信息，如名称、输入输出、数据类型等
-│   ├── add_example_infershape.cpp            # InferShape实现，实现算子形状推导，在运行时推导输出shape
-│   ├── add_example_tiling.cpp                # Tiling实现，将张量划分为多个小块，区分数据类型进行并行计算
-│   └── CMakeLists.txt                        # Host侧cmakelist文件
-└── op_kernel                                 # Device侧Kernel实现
-│   ├── add_example_tiling_key.h              # Tilingkey文件，定义Tiling策略的Key，标识不同的划分方式
-│   ├── add_example_tiling_data.h             # Tilingdata文件，存储Tiling策略相关的配置数据，如块大小、并行度
-│   ├── add_example.cpp                       # Kernel入口文件，包含主函数和调度逻辑
-│   └── add_example.h                         # Kernel实现文件，定义Kernel头文件，包含函数声明、结构定义、逻辑实现
-├── op_graph                                  # 图融合相关实现
-│   ├── CMakeLists.txt                        # op_graph侧cmakelist文件
-│   ├── add_example_graph_plugin.cpp          # InferDataType文件，实现算子类型推导，在运行时推导输出dataType
-│   └── add_example_proto.h                   # 算子原型定义，用于图优化和融合阶段识别算子
-└── CMakeLists.txt                            # 算子cmakelist入口
+${op_name}                              # 替换为实际算子名的小写下划线形式
+├── op_host                             # Host侧实现
+│   ├── ${op_name}_def.cpp              # 算子信息库，定义算子基本信息，如名称、输入输出、数据类型等
+│   ├── ${op_name}_infershape.cpp       # InferShape实现，实现算子形状推导，在运行时推导输出shape
+│   ├── ${op_name}_tiling.cpp           # Tiling实现，将张量划分为多个小块，区分数据类型进行并行计算
+│   └── CMakeLists.txt                  # Host侧cmakelist文件
+└── op_kernel                           # Device侧Kernel实现
+│   ├── ${op_name}_tiling_key.h         # Tilingkey文件，定义Tiling策略的Key，标识不同的划分方式
+│   ├── ${op_name}_tiling_data.h        # Tilingdata文件，存储Tiling策略相关的配置数据，如块大小、并行度
+│   ├── ${op_name}.cpp                  # Kernel入口文件，包含主函数和调度逻辑
+│   └── ${op_name}.h                    # Kernel实现文件，定义Kernel头文件，包含函数声明、结构定义、逻辑实现
+├── op_graph                            # 图融合相关实现
+│   ├── CMakeLists.txt                  # op_graph侧cmakelist文件
+│   ├── ${op_name}_graph_infer.cpp      # InferDataType文件，实现算子类型推导，在运行时推导输出dataType
+│   └── ${op_name}_proto.h              # 算子原型定义，用于图优化和融合阶段识别算子
+└── CMakeLists.txt                      # 算子cmakelist入口
 ```
 
 ## Tiling实现
@@ -352,8 +362,7 @@ ASCENDC_TPL_SEL(
 #endif
 ```
 
-完整代码请参考`example/add_example/op_kernel`目录下[add_example_tiling_key.h](../../example/add_example/op_kernel/add_example_tiling_key.h)。如需实现复杂参数组合完成分支选择（涉及多TilingKey场景），请参考[《Ascend C算子开发》](https://hiascend.com/document/redirect/CannCommunityOpdevAscendC)中 "算子实现 > 工程化算子开发 > Host侧Tiling实现 > Tiling模板编程"。
-
+完整代码请参考`example/add_example/op_kernel`目录下[add_example_tiling_key.h](../../example/add_example/op_kernel/add_example_tiling_key.h)。如需实现复杂参数组合完成分支选择（涉及多TilingKey场景），请参考[《Ascend C算子开发》](https://hiascend.com/document/redirect/CannCommunityOpdevAscendC)中"算子实现 > Host侧Tiling实现 >  Tiling模板编程"。
 
 ## Kernel实现
 
@@ -520,7 +529,7 @@ __aicore__ inline void AddExample<T>::CopyOut(int32_t progress)
 
 ## Shape与DataType推导（可选）
 
-在深度学习中，当一个算子（Op）被加入计算图时，为了确保图的正确性和后续的编译、优化、执行流程顺利进行，通常需要为该算子实现两个关键的推导函数：
+在深度学习中，当一个算子被加入计算图时，为确保图的正确性和后续的编译、优化、执行流程顺利进行，通常需要为该算子实现两个关键的推导函数：
   - InferShape：用于推导输出张量的形状（shape）。
   - InferDataType：用于推导输出张量的数据类型（dataType）。
 
@@ -582,7 +591,7 @@ IMPL_OP_INFERSHAPE(AddExample).
 
 ## 框架适配
 
-目前算子主要支持两种调用方式：aclnn调用和图模式调用，详细介绍参见[算子调用](./算子调用.md)。
+目前算子支持两种调用方式：aclnn调用和图模式调用，详细介绍参见[算子验证](#算子验证)。
 
 - **aclnn适配**
 
@@ -614,27 +623,27 @@ IMPL_OP_INFERSHAPE(AddExample).
 
 ## 编译部署
 
-算子Host侧和Kernel侧开发完成后，需要对算子工程进行编译，生成自定义算子安装包\*\.run，详细的编译操作如下：
+算子开发完成后，需对算子工程进行编译，生成自定义算子安装包\*\.run，详细的编译操作如下：
 
 1. **准备工作。**
 
-    参考[前提条件](#前提条件)完成基础环境搭建。同时检查算子开发交付件是否完备、是否在对应算子分类目录下。
+    参考[前提条件](#前提条件)完成基础环境搭建，同时检查算子开发交付件是否完备，是否在对应算子分类目录下。
 
 2. **编译自定义算子包。**
 
-    以`AddExample`算子为例，假设开发交付件在`example`目录，完整代码参见[add_example](./add_example)。
+    以`AddExample`算子为例，假设开发交付件在`example`目录，完整代码参见[add_example](../../example/add_example)目录。
 
-    进入本项目根目录，执行如下编译命令（命令介绍参见[build参数说明](./build参数说明.md)）：
+    进入项目根目录，执行如下编译命令（命令介绍参见[build参数说明](./build.md)）：
 
     ```bash
     # 编译指定算子，如--ops=add_example
-    bash build.sh --package --soc=${soc_version} --vendor_name=${vendor_name} --ops=${op1,op2,...}
+    bash build.sh --pkg --soc=${soc_version} --vendor_name=${vendor_name} --ops=${op1,op2,...}
     ```
 
     若提示如下信息，说明编译成功：
 
     ```bash
-    Self-extractable archive "CANN-ops-transformer-${vendor_name}-linux.${arch}.run" successfully created.
+    Self-extractable archive "cann-ops-transformer-${vendor_name}-linux.${arch}.run" successfully created.
     ```
 
     若未指定`${vendor_name}`默认使用`custom`作为包名。编译成功后，生成的自定义算子\*\.run包存放于build_out目录。
@@ -650,13 +659,13 @@ IMPL_OP_INFERSHAPE(AddExample).
     执行以下命令进行安装：
     
     ```bash
-    ./CANN-ops-transformer-${vendor_name}-linux.${arch}.run
+    ./cann-ops-transformer-${vendor_name}-linux.${arch}.run
     ```
-    自定义算子包安装在`${ASCEND_HOME_PATH}/latest/opp/vendor`路径中，`${ASCEND_HOME_PATH}`是通过[环境变量](../../README.md#环境准备)设置的路径，表示CANN软件安装根目录。
+    自定义算子包安装在`${ASCEND_HOME_PATH}/latest/opp/vendor`路径中，`${ASCEND_HOME_PATH}`表示CANN软件安装目录，可提前在环境变量中配置。
     
     自定义算子包的目录结构示例如下：
     ```
-    ├── CANN-ops-transformer-${vendor_name}-linux.${arch}.run    # 包名
+    ├── cann-ops-transformer-${vendor_name}-linux.${arch}.run           # 包名
     ├── bin
     │   └── set_env.bash                                         # 环境变量source脚本
     ├── op_api
@@ -708,6 +717,6 @@ IMPL_OP_INFERSHAPE(AddExample).
 
 ## 算子验证
 
-开发好的算子可通过aclnn、图模式等方式验证算子功能，详细的调用流程请参见[算子调用](./算子调用.md)。
+开发好的算子可通过aclnn、图模式等方式验证算子功能，详细的调用流程请参见[算子调用](./op_invocation.md)。
 
 同时，支持开发者使用第三方框架或主流AI框架对接本项目算子，如适配过程遇到困难，可通过issue方式联系技术支持。
