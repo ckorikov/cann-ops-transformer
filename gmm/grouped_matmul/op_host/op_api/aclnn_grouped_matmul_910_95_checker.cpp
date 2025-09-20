@@ -294,11 +294,11 @@ aclnnStatus AclnnGroupedMatmul91095Checker<T>::CheckMxFp8TypeKCaseInputShape(con
                "The n dim of %s[%ld] and n dim of %s[%ld] should be equal.", weightName_.c_str(), weightNDimValue,
                scaleName_.c_str(), scaleNDimValue);
     CHECK_COND(pertokenKDimValue == (xKDimValue / MXFP_DIVISOR_SIZE + groupNum), ACLNN_ERR_PARAM_INVALID,
-               "The k dim of %s[%ld] should be equal to k // 64 + g, which it is[%ld].", perTokenScaleName_.c_str(),
-               pertokenKDimValue, xKDimValue / MXFP_DIVISOR_SIZE + groupNum);
+               "The k dim of %s[%ld] should be equal to the k dim of %s[%ld] divided by 64, plus the groupSize[%ld].",
+                perTokenScaleName_.c_str(), pertokenKDimValue, xName_.c_str(), xKDimValue, groupNum);
     CHECK_COND(scaleKDimValue == (xKDimValue / MXFP_DIVISOR_SIZE + groupNum), ACLNN_ERR_PARAM_INVALID,
-               "The k dim of %s[%ld] should be equal to k // 64 + g, but it is[%ld].", scaleName_.c_str(),
-               scaleKDimValue, (xKDimValue / MXFP_DIVISOR_SIZE + groupNum));
+               "The k dim of %s[%ld] should be equal to the k dim of %s[%ld] divided by 64, plus the groupSize[%ld].",
+                scaleName_.c_str(), scaleKDimValue, xName_.c_str(), xKDimValue, groupNum);
     CHECK_COND(scaleLastDimValue == 2, ACLNN_ERR_PARAM_INVALID, // last dim should be 2 in mx typek quant mode
                "The last dim of %s[%ld] should be 2 when split k in mx quant mode.", scaleName_.c_str(),
                scaleLastDimValue);

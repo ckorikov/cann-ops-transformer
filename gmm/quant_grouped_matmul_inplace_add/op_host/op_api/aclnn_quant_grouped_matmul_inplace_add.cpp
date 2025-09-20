@@ -75,10 +75,10 @@ static aclnnStatus IsTcQuant(qgmm_add::QuantGroupedMatmulInplaceAddParams params
 {
     auto x1ScaleDimNum = params.scale1Optional->GetViewShape().GetDimNum();
     CHECK_COND(x1ScaleDimNum == 1 || x1ScaleDimNum == 2, ACLNN_ERR_PARAM_INVALID, // 2 max dim num in T-C quant
-               "The dimension of scale1 should be 1 or 2 in T-C quant mode, but actual is %zu", x1ScaleDimNum);
+               "The dimension of scale1 should be 1 or 2 in T-C quant mode, but actual is %zu.", x1ScaleDimNum);
     auto x2ScaleDimNum = params.scale2->GetViewShape().GetDimNum();
     CHECK_COND(x2ScaleDimNum == 2, ACLNN_ERR_PARAM_INVALID, // 2 max dim num in T-C quant
-               "The dimension of scale2 should be 2 in T-C quant mode, but actual is %zu", x2ScaleDimNum);
+               "The dimension of scale2 should be 2 in T-C quant mode, but actual is %zu.", x2ScaleDimNum);
     auto nDim = params.x2->GetViewShape().GetDim(1);
     auto g = params.groupList->GetViewShape().GetDim(0);
     auto x1ScaleLastDim = params.scale1Optional->GetViewShape().GetDim(x1ScaleDimNum - 1);
@@ -103,6 +103,24 @@ but the actual is (%ld, %ld).",
     return ACLNN_SUCCESS;
 }
 
+
+static aclnnStatus IsMxQuantDim(qgmm_add::QuantGroupedMatmulInplaceAddParams params)
+{
+    auto x1ScaleDimNum = params.scale1Optional->GetViewShape().GetDimNum();
+    auto x2ScaleDimNum = params.scale2->GetViewShape().GetDimNum();
+    CHECK_COND(x2ScaleDimNum == gmm::MX_SPLIT_K_SCALE_DIM, ACLNN_ERR_PARAM_INVALID,
+               "In Mx Quant, the scale2 dim num should be 3, but actual is [%zu].", x2ScaleDimNum);
+    CHECK_COND(x1ScaleDimNum == gmm::MX_SPLIT_K_PER_TOKEN_SCALE_DIM, ACLNN_ERR_PARAM_INVALID,
+               "In Mx Quant, the scale1 dim num should be 3, but actual is [%zu].", x1ScaleDimNum);
+    auto scale1LastDimValue = params.scale1Optional->GetViewShape().GetDim(gmm::MX_SPLIT_K_PER_TOKEN_SCALE_DIM - 1);
+    auto scale2LastDimValue = params.scale2->GetViewShape().GetDim(gmm::MX_SPLIT_K_SCALE_DIM - 1);
+    CHECK_COND(scale1LastDimValue == 2, ACLNN_ERR_PARAM_INVALID, // last dim should be 2 in mx quant mode
+               "The last dim of scale1 should be 2 in mx quant mode, but actual is %ld.", scale1LastDimValue);
+    CHECK_COND(scale2LastDimValue == 2, ACLNN_ERR_PARAM_INVALID, // last dim should be 2 in mx typek quant mode
+               "The last dim of scale2 should be 2 in mx quant mode, but actual is %ld.", scale2LastDimValue);
+    return ACLNN_SUCCESS;
+}
+
 static aclnnStatus CheckShape(qgmm_add::QuantGroupedMatmulInplaceAddParams params)
 {
     auto x2DimNum = params.x2->GetViewShape().GetDimNum();
@@ -110,13 +128,13 @@ static aclnnStatus CheckShape(qgmm_add::QuantGroupedMatmulInplaceAddParams param
     auto groupListDimNum = params.groupList->GetViewShape().GetDimNum();
     auto yDimNum = params.yRef->GetViewShape().GetDimNum();
     CHECK_COND(x1DimNum == 2, ACLNN_ERR_PARAM_INVALID, // 2 max dim num
-               "The dimension of x1 should be 2, but actual is %zu", x1DimNum);
+               "The dimension of x1 should be 2, but actual is %zu.", x1DimNum);
     CHECK_COND(x2DimNum == 2, ACLNN_ERR_PARAM_INVALID, // 2 max dim num
-               "The dimension of x2 should be 2, but actual is %zu", x2DimNum);
+               "The dimension of x2 should be 2, but actual is %zu.", x2DimNum);
     CHECK_COND(groupListDimNum == 1, ACLNN_ERR_PARAM_INVALID,
-               "The dimension of groupList should be 1, but actual is %ld", groupListDimNum);
+               "The dimension of groupList should be 1, but actual is %ld.", groupListDimNum);
     CHECK_COND(yDimNum == 3, ACLNN_ERR_PARAM_INVALID, // 3 max dim num
-               "The dimension of yRef should be 3, but actual is %zu", yDimNum);
+               "The dimension of yRef should be 3, but actual is %zu.", yDimNum);
     auto aKDim = params.x1->GetViewShape().GetDim(1);
     auto bKDim = params.x2->GetViewShape().GetDim(0);
     auto nDim = params.x2->GetViewShape().GetDim(1);
@@ -126,6 +144,8 @@ static aclnnStatus CheckShape(qgmm_add::QuantGroupedMatmulInplaceAddParams param
     auto yGDim = params.yRef->GetViewShape().GetDim(0);
     auto yMDim = params.yRef->GetViewShape().GetDim(1);
     auto yNDim = params.yRef->GetViewShape().GetDim(2);
+
+    CHECK_COND(mDim > 0, ACLNN_ERR_PARAM_INVALID, "The M value[%ld] in x1 should be positive.", mDim);
 
     CHECK_COND(aKDim == bKDim, ACLNN_ERR_PARAM_INVALID,
                "The kDimNum of x1/x2 should be equal, but the actual is %ld/%ld.", aKDim, bKDim);
@@ -156,6 +176,7 @@ static aclnnStatus CheckDtype(qgmm_add::QuantGroupedMatmulInplaceAddParams param
                    op::ToString(params.scale1Optional->GetDataType()).GetString());
     } else if ((x1Dtype == DataType::DT_FLOAT8_E4M3FN || x1Dtype == DataType::DT_FLOAT8_E5M2) &&
                (x2Dtype == DataType::DT_FLOAT8_E4M3FN || x2Dtype == DataType::DT_FLOAT8_E5M2)) {
+        CHECK_COND(IsMxQuantDim(params) == ACLNN_SUCCESS, ACLNN_ERR_PARAM_INVALID, "Check IsMxQuantDim failed.");
         CHECK_COND(params.scale2->GetDataType() == DataType::DT_FLOAT8_E8M0, ACLNN_ERR_PARAM_INVALID,
                    "With FLOAT8_E4M3FN/FLOAT8_E5M2 inputs, scale2 dtype should be FLOAT8_E8M0, actual dtype is %s.",
                    op::ToString(params.scale2->GetDataType()).GetString());
@@ -313,7 +334,7 @@ aclnnStatus aclnnQuantGroupedMatmulInplaceAdd(void *workspace, uint64_t workspac
 {
     L2_DFX_PHASE_2(aclnnQuantGroupedMatmulInplaceAdd);
     CHECK_COND(CommonOpExecutorRun(workspace, workspaceSize, executor, stream) == ACLNN_SUCCESS, ACLNN_ERR_INNER,
-               "This is an error in QuantGMMInplaceAdd launch aicore");
+               "This is an error in QuantGMMInplaceAdd launch aicore.");
     return ACLNN_SUCCESS;
 }
 
