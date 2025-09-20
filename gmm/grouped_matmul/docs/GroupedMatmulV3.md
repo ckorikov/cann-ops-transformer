@@ -68,11 +68,11 @@
 
 ## 实现原理
 
-详细实现原理参考[GroupedMatmul设计](./common/GroupedMatmul算子设计介绍.md)。
+详细实现原理参考[GroupedMatmul设计](../../../docs/inner/common/GroupedMatmul算子设计介绍.md)。
 
 ## 算子执行接口
 
-每个算子分为[两段式接口](common/两段式接口.md)，必须先调用“aclnnGroupedMatmulV3GetWorkspaceSize”接口获取入参并根据计算流程计算所需workspace大小，再调用“aclnnGroupedMatmulV3”接口执行计算。
+每个算子分为[两段式接口](../../../docs/context/两段式接口.md)，必须先调用“aclnnGroupedMatmulV3GetWorkspaceSize”接口获取入参并根据计算流程计算所需workspace大小，再调用“aclnnGroupedMatmulV3”接口执行计算。
 
 * `aclnnStatus aclnnGroupedMatmulV3GetWorkspaceSize(const aclTensorList* x, const aclTensorList* weight, const aclTensorList* biasOptional, const aclTensorList* scaleOptional, const aclTensorList* offsetOptional, const aclTensorList* antiquantScaleOptional, const aclTensorList* antiquantOffsetOptional, const aclTensor* groupListOptional, int64_t splitItem, int64_t groupType, const aclTensorList* y, uint64_t* workspaceSize, aclOpExecutor** executor)`
 * `aclnnStatus aclnnGroupedMatmulV3(void* workspace, uint64_t workspaceSize, aclOpExecutor* executor, aclrtStream stream)`
@@ -85,37 +85,37 @@
 ### aclnnGroupedMatmulV3GetWorkspaceSize
 
 - **参数说明：**
-  -   x（aclTensorList\*，计算输入）：必选参数，Device侧的aclTensorList，公式中的输入x，[数据格式](common/数据格式.md)支持ND，支持的最大长度为128个。
+  -   x（aclTensorList\*，计算输入）：必选参数，Device侧的aclTensorList，公式中的输入x，[数据格式](../../../docs/context/数据格式.md)支持ND，支持的最大长度为128个。
       - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：数据类型支持FLOAT16、BFLOAT16、INT8、FLOAT32。
       - <term>Atlas 推理系列产品</term>：数据类型支持FLOAT16。
       - <term>昇腾910_95 AI处理器</term>：数据类型支持FLOAT16、BFLOAT16。
-  -   weight（aclTensorList\*，计算输入）：必选参数，Device侧的aclTensorList，公式中的weight，[数据格式](common/数据格式.md)支持ND，支持的最大长度为128个。
+  -   weight（aclTensorList\*，计算输入）：必选参数，Device侧的aclTensorList，公式中的weight，[数据格式](../../../docs/context/数据格式.md)支持ND，支持的最大长度为128个。
       - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：数据类型支持FLOAT16、BFLOAT16、INT8、FLOAT32。
       - <term>Atlas 推理系列产品</term>：数据类型支持FLOAT16。
       - <term>昇腾910_95 AI处理器</term>：数据类型支持FLOAT16、BFLOAT16、INT8。
-  -   biasOptional（aclTensorList\*，计算输入）可选参数，Device侧的aclTensorList，公式中的bias，[数据格式](common/数据格式.md)支持ND，长度与weight相同。
+  -   biasOptional（aclTensorList\*，计算输入）可选参数，Device侧的aclTensorList，公式中的bias，[数据格式](../../../docs/context/数据格式.md)支持ND，长度与weight相同。
       - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：数据类型支持FLOAT16、FLOAT32、INT32。
       - <term>Atlas 推理系列产品</term>：数据类型支持FLOAT16。
       - <term>昇腾910_95 AI处理器</term>：数据类型支持FLOAT16、BFLOAT16、FLOAT32。
-  -   scaleOptional（aclTensorList\*，计算输入）可选参数，Device侧的aclTensorList，代表量化参数中的缩放因子，数据类型支持UINT64，[数据格式](common/数据格式.md)支持ND，长度与weight相同。
+  -   scaleOptional（aclTensorList\*，计算输入）可选参数，Device侧的aclTensorList，代表量化参数中的缩放因子，数据类型支持UINT64，[数据格式](../../../docs/context/数据格式.md)支持ND，长度与weight相同。
       - <term>Atlas 推理系列产品</term>：功能暂不支持，需传空指针。
       - <term>昇腾910_95 AI处理器</term>：功能暂不支持，需传空指针。
-  -   offsetOptional（aclTensorList\*，计算输入）可选参数，Device侧的aclTensorList，代表量化参数中的偏移量，数据类型支持FLOAT32，[数据格式](common/数据格式.md)支持ND，长度与weight相同。
+  -   offsetOptional（aclTensorList\*，计算输入）可选参数，Device侧的aclTensorList，代表量化参数中的偏移量，数据类型支持FLOAT32，[数据格式](../../../docs/context/数据格式.md)支持ND，长度与weight相同。
       - <term>Atlas 推理系列产品</term>：功能暂不支持，需传空指针。
       - <term>昇腾910_95 AI处理器</term>：功能暂不支持，需传空指针。
-  -   antiquantScaleOptional（aclTensorList\*，计算输入）可选参数，Device侧的aclTensorList，代表伪量化参数中的缩放因子，[数据格式](common/数据格式.md)支持ND，长度与weight相同。
+  -   antiquantScaleOptional（aclTensorList\*，计算输入）可选参数，Device侧的aclTensorList，代表伪量化参数中的缩放因子，[数据格式](../../../docs/context/数据格式.md)支持ND，长度与weight相同。
       - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>昇腾910_95 AI处理器</term>：数据类型支持FLOAT16、BFLOAT16。
       - <term>Atlas 推理系列产品</term>：数据类型支持FLOAT16，功能暂不支持，需传空指针。
-  -   antiquantOffsetOptional（aclTensorList\*，计算输入）可选参数，Device侧的aclTensorList，代表伪量化参数中的偏移量，[数据格式](common/数据格式.md)支持ND，长度与weight相同。
+  -   antiquantOffsetOptional（aclTensorList\*，计算输入）可选参数，Device侧的aclTensorList，代表伪量化参数中的偏移量，[数据格式](../../../docs/context/数据格式.md)支持ND，长度与weight相同。
       - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>昇腾910_95 AI处理器</term>：数据类型支持FLOAT16、BFLOAT16。
       - <term>Atlas 推理系列产品</term>：数据类型支持FLOAT16，功能暂不支持，需传空指针。
-  -   groupListOptional（aclTensor\*，计算输入）：可选参数，Device侧的aclTensor类型，代表输入和输出分组轴方向的matmul大小分布，数据类型支持INT64，[数据格式](common/数据格式.md)支持ND。需注意：当输出中TensorList的长度为1时，groupListOptional中的最后一个值约束了输出数据的有效部分，groupListOptional中未指定的部分将不会参与更新。
+  -   groupListOptional（aclTensor\*，计算输入）：可选参数，Device侧的aclTensor类型，代表输入和输出分组轴方向的matmul大小分布，数据类型支持INT64，[数据格式](../../../docs/context/数据格式.md)支持ND。需注意：当输出中TensorList的长度为1时，groupListOptional中的最后一个值约束了输出数据的有效部分，groupListOptional中未指定的部分将不会参与更新。
   -   splitItem（int64\_t，计算输入）：整数型参数，代表输出是否要做tensor切分，0/1代表输出为多tensor；2/3代表输出为单tensor。
   -   groupType（int64\_t，计算输入）：整数型参数，代表需要分组的轴，如矩阵乘为C[m,n]=A[m,k]xB[k,n]，则groupType取值-1：不分组，0：m轴分组，1：n轴分组，2：k轴分组。
       - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：当前不支持n轴分组。
       - <term>Atlas 推理系列产品</term>：当前只支持m轴分组。
       - <term>昇腾910_95 AI处理器</term>：当前不支持n轴分组。
-  -   y（aclTensorList\*，计算输出）：Device侧的aclTensorList，公式中的输出y，[数据格式](common/数据格式.md)支持ND，支持的最大长度为128个。
+  -   y（aclTensorList\*，计算输出）：Device侧的aclTensorList，公式中的输出y，[数据格式](../../../docs/context/数据格式.md)支持ND，支持的最大长度为128个。
       - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：数据类型支持FLOAT16、BFLOAT16、INT8、FLOAT32。
       - <term>Atlas 推理系列产品</term>：数据类型支持FLOAT16。
       - <term>Atlas 推理系列产品</term>：数据类型支持FLOAT16、BFLOAT16。
@@ -124,7 +124,7 @@
 
 - **返回值：**
 
-  返回aclnnStatus状态码，具体参见[aclnn返回码](common/aclnn返回码.md)。
+  返回aclnnStatus状态码，具体参见[aclnn返回码](../../../docs/context/aclnn返回码.md)。
 
   ```
   第一段接口完成入参校验，若出现以下错误码，则对应原因为：
@@ -151,7 +151,7 @@
 
 -   **返回值：**
 
-    返回aclnnStatus状态码，具体参见[aclnn返回码](common/aclnn返回码.md)。
+    返回aclnnStatus状态码，具体参见[aclnn返回码](../../../docs/context/aclnn返回码.md)。
 
 ## 约束说明
   - 如果传入groupListOptional，groupListOptional必须为非负递增数列，groupListOptional长度不能为1。
@@ -250,7 +250,7 @@ REG_OP(GroupedMatmul)
 
 - aclnn单算子调用方式
 
-  通过aclnn单算子调用示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](common/编译与运行样例.md)。
+  通过aclnn单算子调用示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](../../../docs/context/编译与运行样例.md)。
 
     ```c++
   #include <iostream>

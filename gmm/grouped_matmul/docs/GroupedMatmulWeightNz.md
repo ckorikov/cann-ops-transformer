@@ -79,11 +79,11 @@
 
 ## 实现原理
 
-详细实现原理参考[GroupedMatmul设计](./common/GroupedMatmul算子设计介绍.md)。
+详细实现原理参考[GroupedMatmul设计](../../../docs/inner/common/GroupedMatmul算子设计介绍.md)。
 
 ## 算子执行接口
 
-每个算子分为[两段式接口](common/两段式接口.md)，必须先调用“aclnnGroupedMatmulWeightNzGetWorkspaceSize”接口获取入参并根据计算流程计算所需workspace大小，再调用“aclnnGroupedMatmulWeightNz”接口执行计算。
+每个算子分为[两段式接口](../../../docs/context/两段式接口.md)，必须先调用“aclnnGroupedMatmulWeightNzGetWorkspaceSize”接口获取入参并根据计算流程计算所需workspace大小，再调用“aclnnGroupedMatmulWeightNz”接口执行计算。
 
 * `aclnnStatus aclnnGroupedMatmulWeightNzGetWorkspaceSize(const aclTensorList *x, const aclTensorList *weight, const aclTensorList *biasOptional, const aclTensorList *scaleOptional, const aclTensorList *offsetOptional, const aclTensorList *antiquantScaleOptional, const aclTensorList *antiquantOffsetOptional, const aclTensorList *perTokenScaleOptional, const aclTensor *groupListOptional, const aclTensorList *activationInputOptional, const aclTensorList *activationQuantScaleOptional, const aclTensorList *activationQuantOffsetOptional, int64_t splitItem, int64_t groupType, int64_t groupListType, int64_t actType, aclIntArray *tuningConfigOptional, int64_t quantGroupSize, aclTensorList *out, aclTensorList *activationFeatureOutOptional, aclTensorList *dynQuantScaleOutOptional, uint64_t *workspaceSize, aclOpExecutor **executor)`
 * `aclnnStatus aclnnGroupedMatmulWeightNz(void* workspace, uint64_t workspaceSize, aclOpExecutor* executor, aclrtStream stream)`
@@ -96,33 +96,33 @@
 ### aclnnGroupedMatmulWeightNzGetWorkspaceSize
 
 - **参数说明：**
-  -   x（aclTensorList *，计算输入）：Device侧的aclTensorList，公式中的输入x，[数据格式](common/数据格式.md)支持ND，支持的最大长度为128个。
+  -   x（aclTensorList *，计算输入）：Device侧的aclTensorList，公式中的输入x，[数据格式](../../../docs/context/数据格式.md)支持ND，支持的最大长度为128个。
       - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：数据类型支持FLOAT16、BFLOAT16、INT8。
       - <term>Atlas 推理系列产品</term>：数据类型支持FLOAT16。
       - <term>昇腾910_95 AI处理器</term>：数据类型支持FLOAT16、BFLOAT16。
-  -   weight（aclTensorList *，计算输入）：Device侧的aclTensorList，公式中的weight，[数据格式](common/数据格式.md)支持昇腾亲和数据排布格式(nz)，支持的最大长度为128个。
-      - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：数据类型支持FLOAT16、BFLOAT16、INT8、INT4，[数据格式](common/数据格式.md)支持ND和FRACTAL_NZ格式。可使用aclnnCalculateMatmulWeightSizeV2接口以及aclnnTransMatmulWeight接口完成输入Format从ND到昇腾亲和数据排布格式（NZ）的转换，具体使用限制请参考这两个接口的接口说明书。
-      - <term>Atlas 推理系列产品</term>：数据类型支持FLOAT16，[数据格式](common/数据格式.md)仅支持FRACTAL_NZ格式。可使用aclnnCalculateMatmulWeightSizeV2接口以及aclnnTransMatmulWeight接口完成输入Format从ND到昇腾亲和数据排布格式（NZ）的转换，具体使用限制请参考这两个接口的接口说明书。
-      - <term>昇腾910_95 AI处理器</term>：数据类型支持FLOAT16、BFLOAT16、FLOAT4_E2M1,[数据格式](common/数据格式.md)支持ND和FRACTAL_NZ格式。可使用aclnnNpuFormatCast接口完成输入Format从ND到昇腾亲和数据排布格式（NZ）的转换，具体使用限制请参考该接口的接口说明书.
-  -   biasOptional（aclTensorList *，计算输入）：可选参数，Device侧的aclTensorList，公式中的bias，[数据格式](common/数据格式.md)支持ND，长度与weight相同。
+  -   weight（aclTensorList *，计算输入）：Device侧的aclTensorList，公式中的weight，[数据格式](../../../docs/context/数据格式.md)支持昇腾亲和数据排布格式(nz)，支持的最大长度为128个。
+      - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：数据类型支持FLOAT16、BFLOAT16、INT8、INT4，[数据格式](../../../docs/context/数据格式.md)支持ND和FRACTAL_NZ格式。可使用aclnnCalculateMatmulWeightSizeV2接口以及aclnnTransMatmulWeight接口完成输入Format从ND到昇腾亲和数据排布格式（NZ）的转换，具体使用限制请参考这两个接口的接口说明书。
+      - <term>Atlas 推理系列产品</term>：数据类型支持FLOAT16，[数据格式](../../../docs/context/数据格式.md)仅支持FRACTAL_NZ格式。可使用aclnnCalculateMatmulWeightSizeV2接口以及aclnnTransMatmulWeight接口完成输入Format从ND到昇腾亲和数据排布格式（NZ）的转换，具体使用限制请参考这两个接口的接口说明书。
+      - <term>昇腾910_95 AI处理器</term>：数据类型支持FLOAT16、BFLOAT16、FLOAT4_E2M1,[数据格式](../../../docs/context/数据格式.md)支持ND和FRACTAL_NZ格式。可使用aclnnNpuFormatCast接口完成输入Format从ND到昇腾亲和数据排布格式（NZ）的转换，具体使用限制请参考该接口的接口说明书.
+  -   biasOptional（aclTensorList *，计算输入）：可选参数，Device侧的aclTensorList，公式中的bias，[数据格式](../../../docs/context/数据格式.md)支持ND，长度与weight相同。
       - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：数据类型支持FLOAT16、FLOAT32、INT32。
       - <term>Atlas 推理系列产品</term>：数据类型支持FLOAT16。
       - <term>昇腾910_95 AI处理器</term>：数据类型支持BFLOAT16、FLOAT16、FLOAT32。
-  -   scaleOptional（aclTensorList *，计算输入）：可选参数，Device侧的aclTensorList，代表量化参数中的缩放因子，[数据格式](common/数据格式.md)支持ND，一般情况下，长度与weight相同。综合约束请参见[约束说明](#约束说明)。
+  -   scaleOptional（aclTensorList *，计算输入）：可选参数，Device侧的aclTensorList，代表量化参数中的缩放因子，[数据格式](../../../docs/context/数据格式.md)支持ND，一般情况下，长度与weight相同。综合约束请参见[约束说明](#约束说明)。
       - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：数据类型支持UINT64、BFLOAT16、FLOAT32。
       - <term>Atlas 推理系列产品</term>、<term>昇腾910_95 AI处理器</term>：功能暂不支持，需传空指针。
-  -   offsetOptional（aclTensorList *，计算输入）：可选参数，Device侧的aclTensorList，代表量化参数中的偏移量，数据类型支持FLOAT32，[数据格式](common/数据格式.md)支持ND，长度与weight相同。
+  -   offsetOptional（aclTensorList *，计算输入）：可选参数，Device侧的aclTensorList，代表量化参数中的偏移量，数据类型支持FLOAT32，[数据格式](../../../docs/context/数据格式.md)支持ND，长度与weight相同。
       - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>、<term>昇腾910_95 AI处理器</term>：功能暂不支持，需传空指针。
-  -   antiquantScaleOptional（aclTensorList *，计算输入）：可选参数，Device侧的aclTensorList，代表伪量化参数中的缩放因子，[数据格式](common/数据格式.md)支持ND，长度与weight相同。综合约束请参见[约束说明](#约束说明)。
+  -   antiquantScaleOptional（aclTensorList *，计算输入）：可选参数，Device侧的aclTensorList，代表伪量化参数中的缩放因子，[数据格式](../../../docs/context/数据格式.md)支持ND，长度与weight相同。综合约束请参见[约束说明](#约束说明)。
       - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：数据类型支持FLOAT16、BFLOAT16。
       - <term>Atlas 推理系列产品</term>、<term>昇腾910_95 AI处理器</term>：数据类型支持FLOAT8_E8M0。
-  -   antiquantOffsetOptional（aclTensorList *，计算输入）：可选参数，Device侧的aclTensorList，代表伪量化参数中的偏移量，[数据格式](common/数据格式.md)支持ND，长度与weight相同。综合约束请参见[约束说明](#约束说明)。
+  -   antiquantOffsetOptional（aclTensorList *，计算输入）：可选参数，Device侧的aclTensorList，代表伪量化参数中的偏移量，[数据格式](../../../docs/context/数据格式.md)支持ND，长度与weight相同。综合约束请参见[约束说明](#约束说明)。
       - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：数据类型支持FLOAT16、BFLOAT16。
       - <term>Atlas 推理系列产品</term>、<term>昇腾910_95 AI处理器</term>：功能暂不支持，需传空指针。
-  -   perTokenScaleOptional（aclTensorList *，计算输入）：可选参数，Device侧的aclTensorList，代表量化参数中的由x量化引入的缩放因子，[数据格式](common/数据格式.md)支持ND，一般情况下，只支持1维且长度与x的M相同。仅支持x、weight、out均为单tensor（TensorList长度为1）场景。综合约束请参见[约束说明](#约束说明)。
+  -   perTokenScaleOptional（aclTensorList *，计算输入）：可选参数，Device侧的aclTensorList，代表量化参数中的由x量化引入的缩放因子，[数据格式](../../../docs/context/数据格式.md)支持ND，一般情况下，只支持1维且长度与x的M相同。仅支持x、weight、out均为单tensor（TensorList长度为1）场景。综合约束请参见[约束说明](#约束说明)。
       - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：数据类型支持FLOAT32。
       - <term>Atlas 推理系列产品</term>、<term>昇腾910_95 AI处理器</term>：功能不支持，需传空指针。
-  -   groupListOptional（aclTensor *，计算输入）：可选参数，Device侧的aclTensor类型，代表输入和输出分组轴方向的matmul大小分布，数据类型支持INT64，[数据格式](common/数据格式.md)支持ND。需注意：当输出中TensorList的长度为1时，groupListOptional中的最后一个值约束了输出数据的有效部分，groupListOptional中未指定的部分将不会参与更新。
+  -   groupListOptional（aclTensor *，计算输入）：可选参数，Device侧的aclTensor类型，代表输入和输出分组轴方向的matmul大小分布，数据类型支持INT64，[数据格式](../../../docs/context/数据格式.md)支持ND。需注意：当输出中TensorList的长度为1时，groupListOptional中的最后一个值约束了输出数据的有效部分，groupListOptional中未指定的部分将不会参与更新。
   -   activationInputOptional（aclTensorList *，计算输入）：可选参数，Device侧的aclTensorList类型，代表激活函数的反向输入，当前只支持传入nullptr。
   -   activationQuantScaleOptional（aclTensorList *，计算输入）：可选参数，Device侧的aclTensorList类型，当前只支持传入nullptr。
   -   activationQuantOffsetOptional（aclTensorList *，计算输入）：可选参数，Device侧的aclTensorList类型，当前只支持传入nullptr。
@@ -149,7 +149,7 @@
   -   tuningConfigOptional（aclIntArray*，计算输入）：可选参数，Host侧的aclIntArray，数组里面存储INT64的元素, 要求是非负数且不大于x矩阵的行数。数组中第一个元素表示各个专家处理的token数的预期值，算子tiling时会按照数组中第一个元素进行最优tiling，性能更优。从第二个元素开始预留，用户无须填写，未来会进行扩展。兼容历史版本，用户如不适用该参数，不传(即为nullptr)即可。
       - <term>Atlas 推理系列产品</term>、<term>昇腾910_95 AI处理器</term>：不支持此参数。
       - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：适用于量化场景（x和weight为int8类型，输出为int8/fp16/bf16/int32类型），且为单tensor单专家的场景。
-  -   out（aclTensorList *，计算输出）：Device侧的aclTensorList，公式中的输出y，[数据格式](common/数据格式.md)支持ND，支持的最大长度为128个。
+  -   out（aclTensorList *，计算输出）：Device侧的aclTensorList，公式中的输出y，[数据格式](../../../docs/context/数据格式.md)支持ND，支持的最大长度为128个。
       - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：数据类型支持FLOAT16、BFLOAT16、INT8、FLOAT32、INT32。
       - <term>Atlas 推理系列产品</term>：数据类型支持FLOAT16。
       - <term>昇腾910_95 AI处理器</term>：数据类型支持FLOAT16、BFLOAT16。
@@ -160,7 +160,7 @@
 
 - **返回值：**
 
-  返回aclnnStatus状态码，具体参见[aclnn返回码](common/aclnn返回码.md)。
+  返回aclnnStatus状态码，具体参见[aclnn返回码](../../../docs/context/aclnn返回码.md)。
 
   ```
   第一段接口完成入参校验，若出现以下错误码，则对应原因为：
@@ -188,7 +188,7 @@
 
 -   **返回值：**
 
-    返回aclnnStatus状态码，具体参见[aclnn返回码](common/aclnn返回码.md)。
+    返回aclnnStatus状态码，具体参见[aclnn返回码](../../../docs/context/aclnn返回码.md)。
 
 ## 约束说明
   - 如果传入groupListOptional，当groupListType为0时，groupListOptional必须为非负单调非递减数列，当groupListType为1时，groupListOptional必须为非负数列，且长度不能为1，groupListType为2时，groupListOptional的第二列数据必须为非负数列，且长度不能为1。
@@ -307,7 +307,7 @@ REG_OP(GroupedMatmul)
 
 - aclnn单算子调用方式
 
-  通过aclnn单算子调用示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](common/编译与运行样例.md)。
+  通过aclnn单算子调用示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](../../../docs/context/编译与运行样例.md)。
 
 
 ```c++
