@@ -72,6 +72,8 @@ function help_info() {
     echo
     echo "-e|--example         Executes example."
     echo
+    echo "    --run_example Compile and execute the test_aclnn_xxx.cpp/test_geir_xxx.cpp"
+    echo
     echo "--tiling_key         Sets the tiling key list for operators. If there are multiple values, separate them with semicolons and use quotation marks. The default is all."
     echo "                     For example: --tiling_key \"1\" or --tiling_key \"1;2;3;4\""
     echo
@@ -137,6 +139,51 @@ function build()
         local option="--verbose"
     fi
     cmake --build . --target ${target} ${JOB_NUM} ${option}
+}
+
+ARCH_INFO=$(uname -m)
+
+export INCLUDE_PATH="${ASCEND_HOME_PATH}/include"
+export ACLNN_INCLUDE_PATH="${INCLUDE_PATH}/aclnn"
+export COMPILER_INCLUDE_PATH="${ASCEND_HOME_PATH}/compiler/include"
+export GRAPH_INCLUDE_PATH="${COMPILER_INCLUDE_PATH}/graph"
+export GE_INCLUDE_PATH="${COMPILER_INCLUDE_PATH}/ge"
+export INC_INCLUDE_PATH="${ASCEND_OPP_PATH}/built-in/op_proto/inc"
+export LINUX_INCLUDE_PATH="${ASCEND_HOME_PATH}/${ARCH_INFO}-linux/include"
+export EAGER_LIBRARY_OPP_PATH="${ASCEND_OPP_PATH}/lib64"
+export EAGER_LIBRARY_PATH="${ASCEND_HOME_PATH}/lib64"
+export GRAPH_LIBRARY_STUB_PATH="${ASCEND_HOME_PATH}/compiler/lib64/stub"
+export GRAPH_LIBRARY_PATH="${ASCEND_HOME_PATH}/compiler/lib64"
+
+export EAGER_INCLUDE_OPP_ACLNNOP_PATH="${ASCEND_OPP_PATH}/include/aclnnop"
+
+function build_example()
+{
+    log "Start to run example,name:${EXAMPLE_NAME} mode:${EXAMPLE_MODE}"
+
+    if [ ! -d "${BUILD_PATH}" ]; then
+    	mkdir -p ${BUILD_PATH}
+    fi
+
+    # 清理CMake缓存
+    # clean_cmake_cache
+    clean
+
+    cd "${BUILD_PATH}"
+    if [[ "${EXAMPLE_MODE}" == "eager" ]]; then
+        file=$(find ../ -path "*/${EXAMPLE_NAME}/examples/*" -name test_aclnn_${EXAMPLE_NAME}.cpp)
+        log "[DEBUGGING] Found file:${file}"
+        g++ ${file} -I ${INCLUDE_PATH} -I ${ACLNN_INCLUDE_PATH} -I ${EAGER_INCLUDE_OPP_ACLNNOP_PATH} -L ${EAGER_LIBRARY_OPP_PATH} -L ${EAGER_LIBRARY_PATH} -lopapi -lopapi_transformer -lascendcl -lnnopbase -o test_aclnn_${EXAMPLE_NAME}
+        ./test_aclnn_${EXAMPLE_NAME}
+    elif [[ "${EXAMPLE_MODE}" == "graph" ]]; then
+        file=$(find ../ -path "*/${EXAMPLE_NAME}/examples/*" -name test_geir_${EXAMPLE_NAME}.cpp)
+        log "[DEBUGGING] Found file:${file}"
+        g++ ${file} -I ${GRAPH_INCLUDE_PATH} -I ${GE_INCLUDE_PATH} -I ${LINUX_INCLUDE_PATH} -I ${INC_INCLUDE_PATH} -L ${GRAPH_LIBRARY_STUB_PATH} -L ${GRAPH_LIBRARY_PATH} -lgraph -lge_runner -lgraph_base -o test_geir_${EXAMPLE_NAME}
+        ./test_geir_${EXAMPLE_NAME}
+    else
+        usage
+        exit 1
+    fi
 }
 
 function gen_bisheng(){
@@ -259,7 +306,13 @@ while [[ $# -gt 0 ]]; do
             TEST="all"
         fi
         ;;
-    -e|--example)
+    --run_example)
+        ENABLE_RUN_EXAMPLE=TRUE
+        EXAMPLE_NAME="$2"
+        EXAMPLE_MODE="$3"
+        shift 3
+        ;;
+     -e|--example)
         shift
         if [ -n "$1" ];then
             _parameter=$1
@@ -558,6 +611,8 @@ else
     elif [ "${BUILD}" == "package" ];then
         cmake_config -DENABLE_BUILT_IN=ON
         build_package
+    elif [[ "$ENABLE_RUN_EXAMPLE" == "TRUE" ]];then
+        build_example
     elif [ -n "${BUILD}" ];then
         cmake_config
         build ${BUILD}
