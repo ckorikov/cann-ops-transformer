@@ -16,11 +16,17 @@ endif()
 if (BUILD_OPS_RTY_KERNEL)
     add_ops_compile_options(
             OP_NAME FlashAttentionScore
-            OPTIONS --cce-auto-sync=on
+            OPTIONS --cce-auto-sync=off
                     -Wno-deprecated-declarations
                     -Werror
     )
     set(flash_attention_score_depends attention/common PARENT_SCOPE)
 else()
+    add_ops_compile_options(
+            OP_NAME FlashAttentionScore
+            OPTIONS --cce-auto-sync=off
+                    -Wno-deprecated-declarations
+                    -Werror
+    )
     add_modules_sources(OPTYPE flash_attention_score ACLNNTYPE aclnn_inner)
 endif()
