@@ -13,7 +13,7 @@
   * \brief fallback function of op MoeUpdateExpert
   */
 
-#include "fallback.h"
+#include "fallback/fallback.h"
 #include "log/log.h"
 
 namespace fallback

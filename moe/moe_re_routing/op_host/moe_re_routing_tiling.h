@@ -16,7 +16,7 @@
 #define OPS_BUILT_IN_OP_TILING_RUNTIME_MOE_RE_ROUTING_H_
 
 #include "tiling_base/tiling_base.h"
-#include "tiling/tiling_type.h"
+#include "tiling_base/tiling_type.h"
 #include "register/op_impl_registry.h"
 #include "register/tilingdata_base.h"
 #include "tiling/tiling_api.h"

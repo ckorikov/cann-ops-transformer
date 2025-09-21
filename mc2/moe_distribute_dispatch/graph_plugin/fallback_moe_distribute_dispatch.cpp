@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#include "fallback_comm.h"
-#include "fallback.h"
+#include "fallback/fallback_comm.h"
+#include "fallback/fallback.h"
 #include "mc2_log.h"
 
 #ifdef __cplusplus

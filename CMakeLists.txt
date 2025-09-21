@@ -365,6 +365,17 @@ if (BUILD_OPS_RTY_KERNEL)
 
     add_dependencies(ops_transformer_proto_headers opbuild_gen_default opbuild_gen_inner opbuild_gen_exc)
 
+    if (NOT BUILD_OPEN_PROJECT)
+        if (generate_proto_srcs)
+            install_package(
+                    PACKAGE ops_adv
+                    TARGETS ops_proto_headers
+                    FILES ${generate_proto_headers}
+                    DESTINATION include/ops_adv/proto
+            )
+        endif ()
+    endif ()
+
     if (generate_aclnn_srcs)
         add_custom_command(OUTPUT ${generate_aclnn_srcs} ${generate_aclnn_headers}
                 COMMAND mkdir -p ${base_aclnn_binary_dir}

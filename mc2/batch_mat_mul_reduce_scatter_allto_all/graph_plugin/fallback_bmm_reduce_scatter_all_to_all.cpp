@@ -19,7 +19,7 @@
  * \brief fallback function of op bmm_reduce_scatter_all_to_all
  */
 
-#include "fallback.h"
+#include "fallback/fallback.h"
 #include "op_mc2.h"
 #include "mc2_log.h"
 

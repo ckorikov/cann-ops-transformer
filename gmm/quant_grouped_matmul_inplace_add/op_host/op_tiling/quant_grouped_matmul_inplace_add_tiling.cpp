@@ -11,7 +11,7 @@
 #include <climits>
 #include "log/log.h"
 #include "tiling_base/tiling_templates_registry.h"
-#include "tiling/tiling_type.h"
+#include "tiling_base/tiling_type.h"
 #include "register/op_impl_registry.h"
 #include "quant_grouped_matmul_inplace_add_tiling.h"
 using namespace Ops::Transformer::OpTiling;

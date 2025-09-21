@@ -34,7 +34,7 @@
 #include "exe_graph/runtime/storage_shape.h"
 #include "tiling_base/tiling_base.h"
 #include "tiling_base/tiling_templates_registry.h"
-#include "tiling/tiling_type.h"
+#include "tiling_base/tiling_type.h"
 using namespace Ops::Transformer::OpTiling;
 using namespace ut_util;
 using namespace std;

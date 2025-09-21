@@ -13,7 +13,7 @@
  * \brief fallback function of op allto_all_all_gather_batch_mat_mul
  */
 
-#include "fallback.h"
+#include "fallback/fallback.h"
 #include "op_mc2.h"
 #include "mc2_log.h"
 

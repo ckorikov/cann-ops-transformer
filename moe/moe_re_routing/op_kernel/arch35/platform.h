@@ -63,8 +63,8 @@ template<typename T>
 __aicore__ inline constexpr bool IsSupportAtomicAddTypeSIMD()
 {
 #if __CCE_AICORE__ == 310
-    return ops::IsSame<T, float>::value || ops::IsSame<T, half>::value || ops::IsSame<T, int16_t>::value ||
-        ops::IsSame<T, int32_t>::value || ops::IsSame<T, int8_t>::value || ops::IsSame<T, bfloat16_t>::value;
+    return AscendC::IsSameType<T, float>::value || AscendC::IsSameType<T, half>::value || AscendC::IsSameType<T, int16_t>::value ||
+        AscendC::IsSameType<T, int32_t>::value || AscendC::IsSameType<T, int8_t>::value || AscendC::IsSameType<T, bfloat16_t>::value;
 #else
     return false;
 #endif

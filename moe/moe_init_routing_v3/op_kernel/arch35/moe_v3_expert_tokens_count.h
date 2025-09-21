@@ -21,8 +21,6 @@
 namespace MoeInitRoutingV3 {
 using namespace AscendC;
 
-constexpr int64_t SIMT_THREAD_NUM = 2048;
-
 constexpr int64_t KEY_VALUE_MODE = 2LL;
 constexpr int64_t KEY_VALUE_MODE_DIM_NUM = 2LL;
 

@@ -8,7 +8,7 @@
  * See LICENSE in the root of the software repository for the full text of the License.
  */
 
-#include "fallback_comm.h"
+#include "fallback/fallback_comm.h"
 #include "fallback_opapi.h"
 
 #ifdef __cplusplus

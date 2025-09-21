@@ -23,7 +23,7 @@
 #define __MC2_TILING_COMMON_VAR_H__
 
 
-#include "tiling/tiling_type.h"
+#include "tiling_base/tiling_type.h"
 
 namespace optiling {
 constexpr int64_t MAX_HCCL_HANDLE_LIMIT = 32;

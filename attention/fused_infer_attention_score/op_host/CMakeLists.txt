@@ -1,0 +1,55 @@
+# Copyright (c) 2024-2025 Huawei Technologies Co., Ltd.
+# This file is a part of the CANN Open Software.
+# Licensed under CANN Open Software License Agreement Version 1.0 (the "License").
+# Please refer to the License for details. You may not use this file except in compliance with the License.
+# THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+# INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+# See LICENSE in the root of the software repository for the full text of the License.
+# ======================================================================================================================
+
+if (BUILD_OPEN_PROJECT)
+set(fused_infer_attention_score_depends attention/incre_flash_attention attention/prompt_flash_attention attention/flash_attention_score attention/common PARENT_SCOPE)
+    target_sources(op_host_aclnnInner PRIVATE
+        fused_infer_attention_score_def.cpp
+    )
+endif()
+
+if (BUILD_OPS_RTY_KERNEL) # 回黄kernel
+    add_ops_compile_options(
+        OP_NAME FusedInferAttentionScore
+        OPTIONS --cce-auto-sync=off
+                -Wno-deprecated-declarations
+                -Werror
+                -mllvm -cce-vf-remove-membar=false
+                -mllvm -cce-aicore-hoist-movemask=false
+                --op_relocatable_kernel_binary=true
+    )
+else()
+
+    add_modules_sources(OPTYPE fused_infer_attention_score ACLNNTYPE aclnn_inner)
+endif()
+
+if(NOT BUILD_OPEN_PROJECT) #
+    add_opmaster_ct_tilingsink_modules()
+    target_sources(${PKG_NAME}_opmaster_ct_tilingsink_obj PRIVATE
+        fused_infer_attention_score_tiling.cpp
+        ../regbase/ophost/fused_infer_attention_score_tiling_v2.cpp
+        fused_infer_attention_score_tiling_v3.cpp
+        fused_infer_attention_score_tiling_check.cpp
+        ../../common/op_host/fia_tiling_shape.cpp
+        ../../common/op_host/fia_tiling_info.cpp
+        ../../common/op_host/arch32/fia_tiling_mla.cpp
+        fused_infer_attention_score_tiling_info_parser.cpp
+    )
+    add_tiling_modules()
+    target_sources(${OPHOST_NAME}_tiling_obj PRIVATE
+        ../../common/op_host/fia_tiling_shape.cpp
+        ../../common/op_host/fia_tiling_info.cpp
+        ../../common/op_host/arch32/fia_tiling_mla.cpp
+        ../regbase/ophost/fused_infer_attention_score_tiling_v2.cpp
+        ../../common/op_host/arch-310/flash_attention_score_tiling_regbase.cpp
+        ../../common/op_host/arch-310/flash_attention_score_grad_tiling_s1s2_bn2gs1s2_regbase.cpp
+        ../../common/op_host/arch-310/flash_attention_score_grad_tiling_common_regbase.cpp
+        fallback_fused_infer_attention_score.cpp
+    )
+endif()

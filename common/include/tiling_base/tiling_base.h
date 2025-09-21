@@ -55,6 +55,33 @@ struct CompileInfoCommon {
     uint32_t rsvd;
 };
 
+struct FlashAttentionScoreGradCompileInfo {
+    uint32_t aivNum;
+    uint32_t aicNum;
+    uint64_t ubSize;
+    uint64_t l1Size;
+    uint64_t l0aSize;
+    uint64_t l0bSize;
+    uint64_t l0cSize;
+    uint64_t l2CacheSize;
+    int64_t coreNum;
+    platform_ascendc::SocVersion socVersion;
+};
+
+struct FACompileInfoCommon {
+    uint32_t aivNum;
+    uint32_t aicNum;
+    uint64_t ubSize;
+    uint64_t l1Size;
+    uint64_t l0aSize;
+    uint64_t l0bSize;
+    uint64_t l0cSize;
+    uint64_t l2CacheSize;
+    int64_t coreNum;
+    int32_t socVersion;
+    uint32_t rsvd;
+};
+
 class TilingBaseClass {
 public:
     explicit TilingBaseClass(gert::TilingContext* context) : context_(context)

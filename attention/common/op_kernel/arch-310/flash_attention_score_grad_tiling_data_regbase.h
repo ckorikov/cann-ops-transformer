@@ -1,0 +1,523 @@
+/*
+ * Copyright (c) Huawei Technologies Co., Ltd. 2024-2025. All rights reserved.
+ * This file is a part of the CANN Open Software.
+ * Licensed under CANN Open Software License Agreement Version 1.0 (the "License").
+ * Please refer to the License for details. You may not use this file except in compliance with the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
+ */
+
+/*!
+ * \file flash_attention_score_grad_tiling_data_regbase.h
+ * \brief
+ */
+
+ #pragma once
+
+ #include <cstdint>
+ 
+ namespace optiling {
+ namespace fag {
+ class FlashAttentionScoreGradEmptyTensorTilingDataRegbase {
+ public:
+     uint32_t formerDqNum;
+     uint32_t formerDkNum;
+     uint32_t formerDvNum;
+     uint32_t formerDpseNum;
+     uint32_t res;
+     uint64_t singleCoreDqNum;
+     uint64_t tailCoreDqNum;
+     uint64_t singleCoreDkNum;
+     uint64_t tailCoreDkNum;
+     uint64_t singleCoreDvNum;
+     uint64_t tailCoreDvNum;
+     uint64_t singleCoreDpseNum;
+     uint64_t tailCoreDpseNum;
+ 
+     uint32_t get_formerDqNum() const { return formerDqNum; }
+     uint32_t get_formerDkNum() const { return formerDkNum; }
+     uint32_t get_formerDvNum() const { return formerDvNum; }
+     uint32_t get_formerDpseNum() const { return formerDpseNum; }
+     uint32_t get_res() const { return res; }
+     uint64_t get_singleCoreDqNum() const { return singleCoreDqNum; }
+     uint64_t get_tailCoreDqNum() const { return tailCoreDqNum; }
+     uint64_t get_singleCoreDkNum() const { return singleCoreDkNum; }
+     uint64_t get_tailCoreDkNum() const { return tailCoreDkNum; }
+     uint64_t get_singleCoreDvNum() const { return singleCoreDvNum; }
+     uint64_t get_tailCoreDvNum() const { return tailCoreDvNum; }
+     uint64_t get_singleCoreDpseNum() const { return singleCoreDpseNum; }
+     uint64_t get_tailCoreDpseNum() const { return tailCoreDpseNum; }
+ 
+     void set_formerDqNum(uint32_t formerDqNum) { this->formerDqNum = formerDqNum; }
+     void set_formerDkNum(uint32_t formerDkNum) { this->formerDkNum = formerDkNum; }
+     void set_formerDvNum(uint32_t formerDvNum) { this->formerDvNum = formerDvNum; }
+     void set_formerDpseNum(uint32_t formerDpseNum) { this->formerDpseNum = formerDpseNum; }
+     void set_res(uint32_t res) { this->res = res; }
+     void set_singleCoreDqNum(uint64_t singleCoreDqNum) { this->singleCoreDqNum = singleCoreDqNum; }
+     void set_tailCoreDqNum(uint64_t tailCoreDqNum) { this->tailCoreDqNum = tailCoreDqNum; }
+     void set_singleCoreDkNum(uint64_t singleCoreDkNum) { this->singleCoreDkNum = singleCoreDkNum; }
+     void set_tailCoreDkNum(uint64_t tailCoreDkNum) { this->tailCoreDkNum = tailCoreDkNum; }
+     void set_singleCoreDvNum(uint64_t singleCoreDvNum) { this->singleCoreDvNum = singleCoreDvNum; }
+     void set_tailCoreDvNum(uint64_t tailCoreDvNum) { this->tailCoreDvNum = tailCoreDvNum; }
+     void set_singleCoreDpseNum(uint64_t singleCoreDpseNum) { this->singleCoreDpseNum = singleCoreDpseNum; }
+     void set_tailCoreDpseNum(uint64_t tailCoreDpseNum) { this->tailCoreDpseNum = tailCoreDpseNum; }
+ };
+ 
+ class FlashAttentionScoreGradS1S2BNGS1S2BaseParamsRegbase {
+ public:
+     int64_t coreNum;
+     int64_t b;
+     int64_t n2;
+     int64_t g;
+     int64_t s1;
+     int64_t s2;
+     int64_t d;
+     int64_t d1;
+     float scaleValue;
+     float keepProb;
+     int64_t keepProbUint8;
+     uint8_t dropMaskOuter;
+     uint32_t layout;
+     uint32_t pseOptional;
+     uint32_t pseType;
+     uint32_t pseShapeType;
+     uint32_t pseLayoutType;
+     uint32_t pseDtype;
+     uint32_t qStartIdx;
+     uint32_t kvStartIdx;
+     uint32_t attenMaskOptional;
+     uint32_t attenMaskDtype;
+     uint32_t attenMaskShapeType;
+     int64_t s1Token;
+     int64_t s2Token;
+     uint32_t sparseMode;
+     int64_t seed;
+     int64_t offset;
+     uint32_t attenMaskCompressMode;
+     uint32_t attenMaskS2Size;
+     uint8_t isSplitByBlockIdx;
+ 
+     int64_t get_coreNum() const {return coreNum;}
+     int64_t get_b() const {return b;}
+     int64_t get_n2() const {return n2;}
+     int64_t get_g() const {return g;}
+     int64_t get_s1() const {return s1;}
+     int64_t get_s2() const {return s2;}
+     int64_t get_d() const {return d;}
+     int64_t get_d1() const {return d1;}
+     float get_scaleValue() const {return scaleValue;}
+     float get_keepProb() const {return keepProb;}
+     int64_t get_keepProbUint8() const {return keepProbUint8;}
+     uint8_t get_dropMaskOuter() const {return dropMaskOuter;}
+     uint32_t get_layout() const {return layout;}
+     uint32_t get_pseOptional() const {return pseOptional;}
+     uint32_t get_pseType() const {return pseType;}
+     uint32_t get_qStartIdx() const {return qStartIdx;}
+     uint32_t get_kvStartIdx() const {return kvStartIdx;}
+     uint32_t get_attenMaskOptional() const {return attenMaskOptional;}
+     uint32_t get_attenMaskDtype() const {return attenMaskDtype;}
+     uint32_t get_attenMaskShapeType() const {return attenMaskShapeType;}
+     int64_t get_s1Token() const {return s1Token;}
+     int64_t get_s2Token() const {return s2Token;}
+     uint32_t get_sparseMode() const {return sparseMode;}
+     int64_t get_seed() const {return seed;}
+     int64_t get_offset() const {return offset;}
+     uint32_t get_attenMaskCompressMode() const {return attenMaskCompressMode;}
+     uint32_t get_attenMaskS2Size() const {return attenMaskS2Size;}
+     uint8_t get_isSplitByBlockIdx() const {return isSplitByBlockIdx;}
+ 
+     void set_coreNum(int64_t coreNum) { this->coreNum = coreNum; }
+     void set_b(int64_t b) { this->b = b; }
+     void set_n2(int64_t n2) { this->n2 = n2; }
+     void set_g(int64_t g) { this->g = g; }
+     void set_s1(int64_t s1) { this->s1 = s1; }
+     void set_s2(int64_t s2) { this->s2 = s2; }
+     void set_d(int64_t d) { this->d = d; }
+     void set_d1(int64_t d1) { this->d1 = d1; }
+     void set_scaleValue(float scaleValue) { this->scaleValue = scaleValue; }
+     void set_keepProb(float keepProb) { this->keepProb = keepProb; }
+     void set_keepProbUint8(int64_t keepProbUint8) { this->keepProbUint8 = keepProbUint8; }
+     void set_dropMaskOuter(uint8_t dropMaskOuter) { this->dropMaskOuter = dropMaskOuter; }
+     void set_layout(uint32_t layout) { this->layout = layout; }
+     void set_pseOptional(uint32_t pseOptional) { this->pseOptional = pseOptional; }
+     void set_pseType(uint32_t pseType) { this->pseType = pseType; }
+     void set_pseShapeType(uint32_t pseShapeType) { this->pseShapeType = pseShapeType; }
+     void set_pseLayoutType(uint32_t pseLayoutType) { this->pseLayoutType = pseLayoutType; }
+     void set_pseDtype(uint32_t pseDtype) { this->pseDtype = pseDtype; }
+     void set_qStartIdx(uint32_t qStartIdx) { this->qStartIdx = qStartIdx; }
+     void set_kvStartIdx(uint32_t kvStartIdx) { this->kvStartIdx = kvStartIdx; }
+     void set_attenMaskOptional(uint32_t attenMaskOptional) { this->attenMaskOptional = attenMaskOptional; }
+     void set_attenMaskDtype(uint32_t attenMaskDtype) { this->attenMaskDtype = attenMaskDtype; }
+     void set_attenMaskShapeType(uint32_t attenMaskShapeType) { this->attenMaskShapeType = attenMaskShapeType; }
+     void set_s1Token(int64_t s1Token) { this->s1Token = s1Token; }
+     void set_s2Token(int64_t s2Token) { this->s2Token = s2Token; }
+     void set_sparseMode(uint32_t sparseMode) { this->sparseMode = sparseMode; }
+     void set_seed(int64_t seed) { this->seed = seed; }
+     void set_offset(int64_t offset) { this->offset = offset; }
+     void set_attenMaskCompressMode(uint32_t attenMaskCompressMode) { this->attenMaskCompressMode = attenMaskCompressMode; }
+     void set_attenMaskS2Size(uint32_t attenMaskS2Size) { this->attenMaskS2Size = attenMaskS2Size; }
+     void set_isSplitByBlockIdx(uint8_t isSplitByBlockIdx) { this->isSplitByBlockIdx = isSplitByBlockIdx; }
+ };
+ 
+ class FlashAttentionScoreGradS1S2BNGS1S2SplitCoreParamsRegbase {
+ public:
+     int64_t s1Outer;
+     uint32_t s1Inner;
+     uint32_t s1CvInner;
+     uint32_t s1Tail;
+     uint32_t s1CvTail;
+     int64_t s2Outer;
+     uint32_t s2Inner;
+     uint32_t s2Tail;
+     uint32_t blockOuter;
+     uint32_t maxValidBBLen;
+     uint32_t noNeedDeter;
+     int64_t bandIdx;
+     int64_t deterMaxRound;
+     uint64_t dqIsNeedDeter[36];
+     uint64_t dkDvIsNeedDeter[36];
+ 
+     int64_t get_s1Outer() const { return s1Outer; }
+     uint32_t get_s1Inner() const { return s1Inner; }
+     uint32_t get_s1CvInner() const { return s1CvInner; }
+     uint32_t get_s1Tail() const { return s1Tail; }
+     uint32_t get_s1CvTail() const { return s1CvTail; }
+     int64_t get_s2Outer() const { return s2Outer; }
+     uint32_t get_s2Inner() const { return s2Inner; }
+     uint32_t get_s2Tail() const { return s2Tail; }
+     uint32_t get_blockOuter() const { return blockOuter; }
+     uint32_t get_maxValidBBLen() const { return maxValidBBLen; }
+     uint32_t get_noNeedDeter() const { return noNeedDeter; }
+     int64_t get_bandIdx() const { return bandIdx; }
+     int64_t get_deterMaxRound() const { return deterMaxRound; }
+     const uint64_t* get_dqIsNeedDeter() const { return dqIsNeedDeter; }
+     uint64_t get_dqIsNeedDeter(int index) const { return dqIsNeedDeter[index]; }
+     const uint64_t* get_dkDvIsNeedDeter() const { return dkDvIsNeedDeter; }
+     uint64_t get_dkDvIsNeedDeter(int index) const { return dkDvIsNeedDeter[index]; }
+ 
+     void set_s1Outer(int64_t val) { s1Outer = val; }
+     void set_s1Inner(uint32_t val) { s1Inner = val; }
+     void set_s1CvInner(uint32_t val) { s1CvInner = val; }
+     void set_s1Tail(uint32_t val) { s1Tail = val; }
+     void set_s1CvTail(uint32_t val) { s1CvTail = val; }
+     void set_s2Outer(int64_t val) { s2Outer = val; }
+     void set_s2Inner(uint32_t val) { s2Inner = val; }
+     void set_s2Tail(uint32_t val) { s2Tail = val; }
+     void set_blockOuter(uint32_t val) { blockOuter = val; }
+     void set_maxValidBBLen(uint32_t val) { maxValidBBLen = val; }
+     void set_noNeedDeter(uint32_t val) { noNeedDeter = val; }
+     void set_bandIdx(int64_t val) { bandIdx = val; }
+     void set_deterMaxRound(int64_t value) { deterMaxRound = value; }
+     void set_dqIsNeedDeter(const uint64_t* val) { 
+         for (int i = 0; i < 36; ++i) {
+             dqIsNeedDeter[i] = val[i];
+         }
+     }
+     void set_dqIsNeedDeter(int index, uint64_t val) { dqIsNeedDeter[index] = val; }
+     void set_dkDvIsNeedDeter(const uint64_t* val) { 
+         for (int i = 0; i < 36; ++i) {
+             dkDvIsNeedDeter[i] = val[i];
+         }
+     }
+     void set_dkDvIsNeedDeter(int index, uint64_t val) { dkDvIsNeedDeter[index] = val; }
+ };
+ 
+ class BlockNumListParamsRegbase {
+ public:
+     int64_t blockStarts[36];
+     int64_t blockEnds[36];
+ 
+     const int64_t* get_blockStarts() const {
+         return blockStarts;
+     }
+     int64_t get_blockStarts(int index) const {
+         return blockStarts[index];
+     }
+     const int64_t* get_blockEnds() const {
+         return blockEnds;
+     }
+     int64_t get_blockEnds(int index) const {
+         return blockEnds[index];
+     }
+ 
+     void set_blockStarts(const int64_t* val) {
+         for (int i = 0; i < 36; ++i) {
+             blockStarts[i] = val[i];
+         }
+     }
+     void set_blockStarts(int index, int64_t val) {
+         blockStarts[index] = val;
+     }
+     void set_blockEnds(const int64_t* val) {
+         for (int i = 0; i < 36; ++i) {
+             blockEnds[i] = val[i];
+         }
+     }
+     void set_blockEnds(int index, int64_t val) {
+         blockEnds[index] = val;
+     }
+ };
+ 
+ class PreParamsRegbase {
+ public:
+     uint64_t maskPreBlockTotal;
+     uint64_t maskSingleCoreNum;
+     uint32_t qPreBlockFactor;
+     uint64_t qPreBlockTotal;
+     uint32_t qPreBlockTail;
+     uint32_t kPreBlockFactor;
+     uint64_t kPreBlockTotal;
+     uint32_t kPreBlockTail;
+     uint32_t vPreBlockFactor;
+     uint64_t vPreBlockTotal;
+     uint32_t vPreBlockTail;
+     uint32_t maskCoreNum;
+     uint32_t castBufferLen;
+     uint32_t outputBufferLen;
+     uint32_t inputBufferLen;
+     uint32_t singleUBProcessNum;
+     uint32_t maskSingleCoreLoop;
+     uint32_t maskLastLoopNum;
+     uint32_t maskTailCoreLoop;
+     uint32_t maskTailCoreLastLoopNum;
+     uint32_t dropoutIsDivisibleBy8;
+     bool sValueZeroUnderTND;
+ 
+     uint64_t get_maskPreBlockTotal() const { return maskPreBlockTotal; }
+     uint64_t get_maskSingleCoreNum() const { return maskSingleCoreNum; }
+     uint32_t get_qPreBlockFactor() const { return qPreBlockFactor; }
+     uint64_t get_qPreBlockTotal() const { return qPreBlockTotal; }
+     uint32_t get_qPreBlockTail() const { return qPreBlockTail; }
+     uint32_t get_kPreBlockFactor() const { return kPreBlockFactor; }
+     uint64_t get_kPreBlockTotal() const { return kPreBlockTotal; }
+     uint32_t get_kPreBlockTail() const { return kPreBlockTail; }
+     uint32_t get_vPreBlockFactor() const { return vPreBlockFactor; }
+     uint64_t get_vPreBlockTotal() const { return vPreBlockTotal; }
+     uint32_t get_vPreBlockTail() const { return vPreBlockTail; }
+     uint32_t get_maskCoreNum() const { return maskCoreNum; }
+     uint32_t get_castBufferLen() const { return castBufferLen; }
+     uint32_t get_outputBufferLen() const { return outputBufferLen; }
+     uint32_t get_inputBufferLen() const { return inputBufferLen; }
+     uint32_t get_singleUBProcessNum() const { return singleUBProcessNum; }
+     uint32_t get_maskSingleCoreLoop() const { return maskSingleCoreLoop; }
+     uint32_t get_maskLastLoopNum() const { return maskLastLoopNum; }
+     uint32_t get_maskTailCoreLoop() const { return maskTailCoreLoop; }
+     uint32_t get_maskTailCoreLastLoopNum() const { return maskTailCoreLastLoopNum; }
+     uint32_t get_dropoutIsDivisibleBy8() const { return dropoutIsDivisibleBy8; }
+     bool get_sValueZeroUnderTND() const { return sValueZeroUnderTND; }
+ 
+     void set_maskPreBlockTotal(uint64_t val) { maskPreBlockTotal = val; }
+     void set_maskSingleCoreNum(uint64_t val) { maskSingleCoreNum = val; }
+     void set_qPreBlockFactor(uint32_t val) { qPreBlockFactor = val; }
+     void set_qPreBlockTotal(uint64_t val) { qPreBlockTotal = val; }
+     void set_qPreBlockTail(uint32_t val) { qPreBlockTail = val; }
+     void set_kPreBlockFactor(uint32_t val) { kPreBlockFactor = val; }
+     void set_kPreBlockTotal(uint64_t val) { kPreBlockTotal = val; }
+     void set_kPreBlockTail(uint32_t val) { kPreBlockTail = val; }
+     void set_vPreBlockFactor(uint32_t val) { vPreBlockFactor = val; }
+     void set_vPreBlockTotal(uint64_t val) { vPreBlockTotal = val; }
+     void set_vPreBlockTail(uint32_t val) { vPreBlockTail = val; }
+     void set_maskCoreNum(uint32_t val) { maskCoreNum = val; }
+     void set_castBufferLen(uint32_t val) { castBufferLen = val; }
+     void set_outputBufferLen(uint32_t val) { outputBufferLen = val; }
+     void set_inputBufferLen(uint32_t val) { inputBufferLen = val; }
+     void set_singleUBProcessNum(uint32_t val) { singleUBProcessNum = val; }
+     void set_maskSingleCoreLoop(uint32_t val) { maskSingleCoreLoop = val; }
+     void set_maskLastLoopNum(uint32_t val) { maskLastLoopNum = val; }
+     void set_maskTailCoreLoop(uint32_t val) { maskTailCoreLoop = val; }
+     void set_maskTailCoreLastLoopNum(uint32_t val) { maskTailCoreLastLoopNum = val; }
+     void set_dropoutIsDivisibleBy8(uint32_t val) { dropoutIsDivisibleBy8 = val; }
+     void set_sValueZeroUnderTND(bool val) { sValueZeroUnderTND = val; }
+ };
+ 
+ class PostParamsRegbase {
+ public:
+     uint32_t postUbBaseSize;
+     uint32_t qPostBlockFactor;
+     uint64_t qPostBlockTotal;
+     uint32_t qPostBaseNum;
+     uint32_t qPostTailNum;
+     uint32_t kPostBlockFactor;
+     uint64_t kPostBlockTotal;
+     uint32_t kPostBaseNum;
+     uint32_t kPostTailNum;
+     uint32_t vPostBlockFactor;
+     uint64_t vPostBlockTotal;
+     uint32_t vPostBaseNum;
+     uint32_t vPostTailNum;
+     uint64_t dqWorkSpaceOffset;
+     uint64_t dkWorkSpaceOffset;
+     uint64_t dvWorkSpaceOffset;
+     uint64_t vScaleDsWorkSpaceOffset;
+     uint64_t dropMaskGmOffset;
+     uint64_t deterGmOffset;
+     uint64_t deterWorkSpaceOffset;
+ 
+     uint32_t get_postUbBaseSize() const { return postUbBaseSize; }
+     uint32_t get_qPostBlockFactor() const { return qPostBlockFactor; }
+     uint64_t get_qPostBlockTotal() const { return qPostBlockTotal; }
+     uint32_t get_qPostBaseNum() const { return qPostBaseNum; }
+     uint32_t get_qPostTailNum() const { return qPostTailNum; }
+     uint32_t get_kPostBlockFactor() const { return kPostBlockFactor; }
+     uint64_t get_kPostBlockTotal() const { return kPostBlockTotal; }
+     uint32_t get_kPostBaseNum() const { return kPostBaseNum; }
+     uint32_t get_kPostTailNum() const { return kPostTailNum; }
+     uint32_t get_vPostBlockFactor() const { return vPostBlockFactor; }
+     uint64_t get_vPostBlockTotal() const { return vPostBlockTotal; }
+     uint32_t get_vPostBaseNum() const { return vPostBaseNum; }
+     uint32_t get_vPostTailNum() const { return vPostTailNum; }
+     uint64_t get_dqWorkSpaceOffset() const { return dqWorkSpaceOffset; }
+     uint64_t get_dkWorkSpaceOffset() const { return dkWorkSpaceOffset; }
+     uint64_t get_dvWorkSpaceOffset() const { return dvWorkSpaceOffset; }
+     uint64_t get_vScaleDsWorkSpaceOffset() const { return vScaleDsWorkSpaceOffset; }
+     uint64_t get_dropMaskGmOffset() const { return dropMaskGmOffset; }
+     uint64_t get_deterGmOffset() const { return deterGmOffset; }
+     uint64_t get_deterWorkSpaceOffset() const { return deterWorkSpaceOffset; }
+ 
+     void set_postUbBaseSize(uint32_t value) { postUbBaseSize = value; }
+     void set_qPostBlockFactor(uint32_t value) { qPostBlockFactor = value; }
+     void set_qPostBlockTotal(uint64_t value) { qPostBlockTotal = value; }
+     void set_qPostBaseNum(uint32_t value) { qPostBaseNum = value; }
+     void set_qPostTailNum(uint32_t value) { qPostTailNum = value; }
+     void set_kPostBlockFactor(uint32_t value) { kPostBlockFactor = value; }
+     void set_kPostBlockTotal(uint64_t value) { kPostBlockTotal = value; }
+     void set_kPostBaseNum(uint32_t value) { kPostBaseNum = value; }
+     void set_kPostTailNum(uint32_t value) { kPostTailNum = value; }
+     void set_vPostBlockFactor(uint32_t value) { vPostBlockFactor = value; }
+     void set_vPostBlockTotal(uint64_t value) { vPostBlockTotal = value; }
+     void set_vPostBaseNum(uint32_t value) { vPostBaseNum = value; }
+     void set_vPostTailNum(uint32_t value) { vPostTailNum = value; }
+     void set_dqWorkSpaceOffset(uint64_t value) { dqWorkSpaceOffset = value; }
+     void set_dkWorkSpaceOffset(uint64_t value) { dkWorkSpaceOffset = value; }
+     void set_dvWorkSpaceOffset(uint64_t value) { dvWorkSpaceOffset = value; }
+     void set_vScaleDsWorkSpaceOffset(uint64_t value) { vScaleDsWorkSpaceOffset = value; }
+     void set_dropMaskGmOffset(uint64_t value) { dropMaskGmOffset = value; }
+     void set_deterGmOffset(uint64_t value) { deterGmOffset = value; }
+     void set_deterWorkSpaceOffset(uint64_t value) { deterWorkSpaceOffset = value; }
+ };
+
+ class DeterParamRegbase {
+ public:
+     constexpr static int64_t DETER_PREFIX_NUM = 132;
+
+     int64_t deterPrefixStep;
+     int64_t deterPrefix[DETER_PREFIX_NUM];
+     int64_t deterPrefixAlign[DETER_PREFIX_NUM];
+     int64_t deterPrefix0[DETER_PREFIX_NUM];
+     int64_t deterPrefix1[DETER_PREFIX_NUM];
+     int64_t deterPrefix2[DETER_PREFIX_NUM];
+
+     int64_t get_deterPrefixStep() const
+     {
+         return deterPrefixStep;
+     }
+     const int64_t *get_deterPrefix() const
+     {
+         return deterPrefix;
+     }
+     int64_t get_deterPrefix(int index) const
+     {
+         return deterPrefix[index];
+     }
+     const int64_t *get_deterPrefixAlign() const
+     {
+         return deterPrefixAlign;
+     }
+     int64_t get_deterPrefixAlign(int index) const
+     {
+         return deterPrefixAlign[index];
+     }
+     const int64_t *get_deterPrefix0() const
+     {
+         return deterPrefix0;
+     }
+     int64_t get_deterPrefix0(int index) const
+     {
+         return deterPrefix0[index];
+     }
+     const int64_t *get_deterPrefix1() const
+     {
+         return deterPrefix1;
+     }
+     int64_t get_deterPrefix1(int index) const
+     {
+         return deterPrefix1[index];
+     }
+     const int64_t *get_deterPrefix2() const
+     {
+         return deterPrefix2;
+     }
+     int64_t get_deterPrefix2(int index) const
+     {
+         return deterPrefix2[index];
+     }
+
+     void set_deterPrefixStep(int64_t value)
+     {
+         deterPrefixStep = value;
+     }
+     void set_deterPrefix(const int64_t *val)
+     {
+         for (int i = 0; i < DETER_PREFIX_NUM; ++i) {
+             deterPrefix[i] = val[i];
+         }
+     }
+     void set_deterPrefix(int index, int64_t val)
+     {
+         deterPrefix[index] = val;
+     }
+     void set_deterPrefixAlign(const int64_t *val)
+     {
+         for (int i = 0; i < DETER_PREFIX_NUM; ++i) {
+             deterPrefixAlign[i] = val[i];
+         }
+     }
+     void set_deterPrefixAlign(int index, int64_t val)
+     {
+         deterPrefixAlign[index] = val;
+     }
+     void set_deterPrefix0(const int64_t *val)
+     {
+         for (int i = 0; i < DETER_PREFIX_NUM; ++i) {
+             deterPrefix0[i] = val[i];
+         }
+     }
+     void set_deterPrefix0(int index, int64_t val)
+     {
+         deterPrefix0[index] = val;
+     }
+     void set_deterPrefix1(const int64_t *val)
+     {
+         for (int i = 0; i < DETER_PREFIX_NUM; ++i) {
+             deterPrefix1[i] = val[i];
+         }
+     }
+     void set_deterPrefix1(int index, int64_t val)
+     {
+         deterPrefix1[index] = val;
+     }
+     void set_deterPrefix2(const int64_t *val)
+     {
+         for (int i = 0; i < DETER_PREFIX_NUM; ++i) {
+             deterPrefix2[i] = val[i];
+         }
+     }
+     void set_deterPrefix2(int index, int64_t val)
+     {
+         deterPrefix2[index] = val;
+     }
+ };
+
+ template<const bool isNewDeter = false>
+ class FlashAttentionScoreGradTilingDataUs1s2Bbn2gs1s2Regbase {
+ public:
+     FlashAttentionScoreGradS1S2BNGS1S2BaseParamsRegbase s1s2BNGS1S2BaseParams;
+     FlashAttentionScoreGradS1S2BNGS1S2SplitCoreParamsRegbase s1s2BNGS1S2SplitCoreParams;
+     BlockNumListParamsRegbase s1s2BNGS1S2BlockNumList;
+     PreParamsRegbase preTilingData;
+     PostParamsRegbase postTilingData;
+     typename std::conditional<isNewDeter, DeterParamRegbase, std::nullptr_t>::type deterParam;
+ };
+ }  // namespace fag
+ }  // namespace optiling

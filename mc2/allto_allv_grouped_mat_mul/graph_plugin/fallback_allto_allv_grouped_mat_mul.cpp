@@ -18,7 +18,7 @@
  * \file fallback_allto_allv_grouped_mat_mul.cpp
  * \brief fallback function of op AlltoAllvGroupedMatMul
  */
-#include "fallback_comm.h"
+#include "fallback/fallback_comm.h"
 #include "fallback_opapi.h"
 #include "op_mc2.h"
 #include "error/ops_error.h"

@@ -21,8 +21,6 @@
 namespace MoeInitRoutingV3 {
 using namespace AscendC;
 
-constexpr int64_t SIMT_THREAD_NUM = 2048;
-
 class RowIdxGather {
 public:
     __aicore__ inline RowIdxGather(){};
