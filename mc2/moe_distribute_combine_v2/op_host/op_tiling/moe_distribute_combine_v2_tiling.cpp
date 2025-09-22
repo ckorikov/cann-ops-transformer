@@ -1313,7 +1313,7 @@ static ge::graphStatus MoeDistributeCombineCheckCommAlg(gert::TilingContext *con
     }
 }
 
-static uint64_t MoeDistributeCombineA2CalcTilingKey(gert::TilingContext *context, const bool isLayered, const int32_t commQuantMode)
+static uint64_t MoeDistributeCombineA2CalcTilingKey(const bool isLayered, const int32_t commQuantMode)
 {
     uint64_t tilingKey = TILING_KEY_BASE_A2;
     if (isLayered) {
@@ -1359,7 +1359,7 @@ static ge::graphStatus MoeDistributeCombineA2TilingFuncImpl(gert::TilingContext*
     context->SetBlockDim(blockDim);
     context->SetAicpuBlockDim(mc2tiling::AICPU_BLOCK_DIM_A2);
 
-    uint64_t tilingKey = MoeDistributeCombineA2CalcTilingKey(context, isLayered, commQuantMode);
+    uint64_t tilingKey = MoeDistributeCombineA2CalcTilingKey(isLayered, commQuantMode);
     context->SetTilingKey(tilingKey);
     // 2. workspace
     size_t *workSpaces = context->GetWorkspaceSizes(1);

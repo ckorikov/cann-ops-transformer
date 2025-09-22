@@ -25,7 +25,7 @@
 using namespace ge;
 
 namespace optiling {
-inline bool MoeDistributeDispatchTilingHelper::CheckInputTensorDim(gert::TilingContext *context, 
+inline bool MoeDistributeDispatchTilingHelper::CheckInputTensorDim(const gert::TilingContext *context,
     const char *nodeName, const bool isScales, const uint32_t quantMode)
 {
     const gert::StorageShape *xStorageShape = context->GetInputShape(X_INDEX);
@@ -74,7 +74,7 @@ inline bool MoeDistributeDispatchTilingHelper::CheckInputTensorDim(gert::TilingC
     return true;
 }
 
-inline bool MoeDistributeDispatchTilingHelper::CheckDynamicScalesDim(gert::TilingContext *context, 
+inline bool MoeDistributeDispatchTilingHelper::CheckDynamicScalesDim(const gert::TilingContext *context,
     const char *nodeName, const uint32_t quantMode)
 {
     if ((quantMode == static_cast<uint32_t>(QuantModeA5::PERTOKEN_DYNAMIC_QUANT))) {
@@ -137,7 +137,7 @@ inline bool MoeDistributeDispatchTilingHelper::CheckOutputTensorDim(gert::Tiling
 }
 
 inline bool MoeDistributeDispatchTilingHelper::CheckEpTpRecvTensorDim(
-    gert::TilingContext *context, const char *nodeName)
+    const gert::TilingContext *context, const char *nodeName)
 {
     const gert::StorageShape *epRecvCountStorageShape = context->GetOutputShape(OUTPUT_EP_RECV_COUNTS_INDEX);
     OP_TILING_CHECK(epRecvCountStorageShape == nullptr, OP_LOGE(nodeName, "epRecvCountShape is null."), return false);
@@ -174,7 +174,7 @@ bool MoeDistributeDispatchTilingHelper::CheckTensorDim(gert::TilingContext *cont
 }
 
 inline bool MoeDistributeDispatchTilingHelper::CheckCommonOutputTensorDataType(
-    gert::TilingContext *context, const char *nodeName)
+    const gert::TilingContext *context, const char *nodeName)
 {
     auto expandIdxDesc = context->GetOutputDesc(OUTPUT_EXPAND_IDX_INDEX);
     OP_TILING_CHECK(expandIdxDesc == nullptr, OP_LOGE(nodeName, "expandIdxDesc is null."), return false);
@@ -204,7 +204,7 @@ inline bool MoeDistributeDispatchTilingHelper::CheckCommonOutputTensorDataType(
     return true;
 }
 
-inline bool MoeDistributeDispatchTilingHelper::CheckInputTensorDataType(gert::TilingContext *context, 
+inline bool MoeDistributeDispatchTilingHelper::CheckInputTensorDataType(const gert::TilingContext *context,
     const char *nodeName, const bool isScales)
 {
     auto xDesc = context->GetInputDesc(X_INDEX);
@@ -262,7 +262,7 @@ bool MoeDistributeDispatchTilingHelper::CheckTensorDataType(gert::TilingContext 
     return true;
 }
 
-inline bool MoeDistributeDispatchTilingHelper::CheckTensorDataTypeNoScales(gert::TilingContext *context, 
+inline bool MoeDistributeDispatchTilingHelper::CheckTensorDataTypeNoScales(const gert::TilingContext *context,
     const char *nodeName, const bool isScales)
 {
     auto xDesc = context->GetInputDesc(X_INDEX);
@@ -306,7 +306,7 @@ inline bool MoeDistributeDispatchTilingHelper::CheckTensorDataTypeNoScales(gert:
 }
 
 inline bool MoeDistributeDispatchTilingHelper::CheckTensorDataTypeStaticOrDynamic(
-    gert::TilingContext *context, const char *nodeName, bool isScales)
+    const gert::TilingContext *context, const char *nodeName, bool isScales)
 {
     auto xDesc = context->GetInputDesc(X_INDEX);
     OP_TILING_CHECK(xDesc == nullptr, OP_LOGE(nodeName, "xDesc is null."), return false);
@@ -332,7 +332,7 @@ inline bool MoeDistributeDispatchTilingHelper::CheckTensorDataTypeStaticOrDynami
 }
 
 inline bool MoeDistributeDispatchTilingHelper::CheckTensorDataTypeMxfp8(
-    gert::TilingContext *context, const char *nodeName, const uint32_t quantMode)
+    const gert::TilingContext *context, const char *nodeName)
 {
     auto xDesc = context->GetInputDesc(X_INDEX);
     OP_TILING_CHECK(xDesc == nullptr, OP_LOGE(nodeName, "xDesc is null."), return false);
@@ -356,7 +356,7 @@ inline bool MoeDistributeDispatchTilingHelper::CheckDistinctTensorDataType(gert:
         OP_TILING_CHECK(!CheckTensorDataTypeNoScales(context, nodeName, isScales), 
             OP_LOGE(nodeName, "CheckTensorDataType for nonquant mode failed."), return false);
     } else if (quantMode == static_cast<uint32_t>(QuantModeA5::MX_QUANT)) {
-        OP_TILING_CHECK(!CheckTensorDataTypeMxfp8(context, nodeName, quantMode), 
+        OP_TILING_CHECK(!CheckTensorDataTypeMxfp8(context, nodeName),
             OP_LOGE(nodeName, "CheckTensorDataType for mx quant mode failed."), return false);
     } else {
         // static/dynamic/pertolen/pertile/hif8
@@ -383,7 +383,7 @@ bool MoeDistributeDispatchTilingHelper::CheckTensorDataTypeA5(gert::TilingContex
     return true;
 }
 
-bool MoeDistributeDispatchTilingHelper::CheckTensorFormat(gert::TilingContext *context, const char *nodeName,
+bool MoeDistributeDispatchTilingHelper::CheckTensorFormat(const gert::TilingContext *context, const char *nodeName,
     const bool isScales, const uint32_t quantMode)
 {
     auto xDesc = context->GetInputDesc(X_INDEX);

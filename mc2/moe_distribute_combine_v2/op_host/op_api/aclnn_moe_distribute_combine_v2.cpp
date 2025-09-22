@@ -81,9 +81,7 @@ static bool CheckNotNull(const aclTensor* expandX, const aclTensor* expertIds, c
 static aclnnStatus CheckParams(const aclTensor* expandX, const aclTensor* expertIds, const aclTensor* expandIdx,
                                const aclTensor* epSendCounts, 
                                const aclTensor* expertScales, const char* groupEp, const char* groupTp,
-                               int64_t epWorldSize, int64_t tpWorldSize, int64_t epRankId, int64_t tpRankId,
-                               int64_t expertShardType, int64_t sharedExpertRankNum, int64_t moeExpertNum,
-                               int64_t globalBs, aclTensor* x)
+                               aclTensor* x)
 {
     OP_LOGD("aclnn_moe_distribute_combine_v2 checkparams start");
     CHECK_RET(CheckNotNull(expandX, expertIds, expandIdx, epSendCounts, expertScales, groupEp,
@@ -118,8 +116,7 @@ aclnnStatus aclnnMoeDistributeCombineV2GetWorkspaceSize(const aclTensor* expandX
 {
     const static bool is910B = GetCurrentPlatformInfo().GetSocVersion() == SocVersion::ASCEND910B;
     auto ret_param = CheckParams(expandX, expertIds, assistInfoForCombine, epSendCounts, expertScales, groupEp,
-        groupTp, epWorldSize, tpWorldSize, epRankId, tpRankId, expertShardType, sharedExpertRankNum,
-        moeExpertNum, globalBs, xOut);
+        groupTp, xOut);
     CHECK_RET(ret_param == ACLNN_SUCCESS, ret_param);
 
     if (is910B) {

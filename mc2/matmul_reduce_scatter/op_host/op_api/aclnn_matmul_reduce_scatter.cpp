@@ -247,5 +247,3 @@ aclnnStatus aclnnMatmulReduceScatter(void *workspace, uint64_t workspaceSize, ac
 #ifdef __cplusplus
 }
 #endif
-
-

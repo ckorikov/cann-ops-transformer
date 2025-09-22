@@ -28,7 +28,6 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <sys/stat.h>
 #include <unistd.h>
 #include <cmath>
 #include <cstdint>
@@ -38,7 +37,6 @@
 #include "register/op_def_registry.h"
 #include "register/tilingdata_base.h"
 #include "tiling/mc2_tiling_utils.h"
-#include "../../../op_kernel/moe_distribute_dispatch_tiling.h"
 
 namespace {
 constexpr uint32_t ATTR_GROUP_EP_INDEX = 0;
@@ -194,7 +192,7 @@ inline ge::graphStatus CheckExpertAttrs(const char *nodeName, const int64_t *exp
     return ge::GRAPH_SUCCESS;
 }
 
-inline ge::graphStatus CheckOutputDataType(gert::TilingContext *context, const char *nodeName, const int64_t quantMode)
+inline ge::graphStatus CheckOutputDataType(const gert::TilingContext *context, const char *nodeName, const int64_t quantMode)
 {
     auto expandXDesc = context->GetOutputDesc(OUTPUT_EXPAND_X_INDEX);
     OP_TILING_CHECK(expandXDesc == nullptr, OP_LOGE(nodeName, "Failed to get expandX datatype."), return ge::GRAPH_FAILED);
@@ -275,7 +273,7 @@ static ge::graphStatus GetContextAttrs(gert::TilingContext *context, const char 
     return ge::GRAPH_SUCCESS;
 }
 
-inline uint32_t CalcRealMode(gert::TilingContext *context, const char *nodeName)
+inline uint32_t CalcRealMode(const gert::TilingContext *context, const char *nodeName)
 {
     auto attrs = context->GetAttrs();
     auto quantModePtr = attrs->GetAttrPointer<int64_t>(ATTR_QUANT_MODE_INDEX);
@@ -292,7 +290,7 @@ inline uint32_t CalcRealMode(gert::TilingContext *context, const char *nodeName)
     return static_cast<uint32_t>(modeToFind->second);
 }
 
-static ge::graphStatus CheckQuantModeAndScales(gert::TilingContext *context, const char *nodeName,
+static ge::graphStatus CheckQuantModeAndScales(const gert::TilingContext *context, const char *nodeName,
     bool isScales, const uint32_t quantMode)
 {
     OP_TILING_CHECK(isScales && (quantMode == static_cast<uint32_t>(QuantModeA5::MX_QUANT)),
@@ -333,7 +331,7 @@ inline ge::graphStatus CheckEpWorldSize(const char *nodeName, uint32_t epWorldSi
     return ge::GRAPH_SUCCESS;
 }
 
-static ge::graphStatus CheckAttrs(gert::TilingContext *context, const char *nodeName,
+static ge::graphStatus CheckAttrs(const gert::TilingContext *context, const char *nodeName,
     MoeDistributeDispatchTilingDataA5 &tilingData, uint32_t &localMoeExpertNum)
 {
     uint32_t epWorldSize = tilingData.dispatchTilingInfo.get_epWorldSize();
@@ -390,7 +388,7 @@ static ge::graphStatus CheckAttrs(gert::TilingContext *context, const char *node
     return ge::GRAPH_SUCCESS;
 }
 
-inline ge::graphStatus CheckTwoDimScalesShape(gert::TilingContext *context, const char *nodeName,
+inline ge::graphStatus CheckTwoDimScalesShape(const gert::TilingContext *context, const char *nodeName,
     MoeDistributeDispatchTilingDataA5 &tilingData, const int64_t scalesDim0, const int64_t scalesDim1)
 {
     uint32_t sharedExpertRankNum = tilingData.dispatchTilingInfo.get_sharedExpertRankNum();   
@@ -462,7 +460,7 @@ inline ge::graphStatus CheckAndSetScalesInfo(gert::TilingContext *context, const
     return ge::GRAPH_SUCCESS;
 }
 
-inline ge::graphStatus CheckExpandXShape(gert::TilingContext *context, const char *nodeName,
+inline ge::graphStatus CheckExpandXShape(const gert::TilingContext *context, const char *nodeName,
     MoeDistributeDispatchTilingDataA5 &tilingData, const int64_t xDim1, uint32_t A)
 {
     // 校验expandX的维度
@@ -478,7 +476,7 @@ inline ge::graphStatus CheckExpandXShape(gert::TilingContext *context, const cha
     return ge::GRAPH_SUCCESS;
 }
 
-inline ge::graphStatus CheckDynamicScalesShape(gert::TilingContext *context, const char *nodeName,
+inline ge::graphStatus CheckDynamicScalesShape(const gert::TilingContext *context, const char *nodeName,
     MoeDistributeDispatchTilingDataA5 &tilingData, const uint32_t quantMode, uint32_t A)
 {
     // 校验dynamicScales的维度
@@ -511,8 +509,8 @@ inline ge::graphStatus CheckDynamicScalesShape(gert::TilingContext *context, con
     return ge::GRAPH_SUCCESS;
 }
 
-inline ge::graphStatus CheckExpandIdxShape(gert::TilingContext *context, const char *nodeName,
-    const int64_t localMoeExpertNum, const int64_t xDim0, const int64_t expertIdsDim1)
+inline ge::graphStatus CheckExpandIdxShape(const gert::TilingContext *context, const char *nodeName,
+    const int64_t xDim0, const int64_t expertIdsDim1)
 {
     // 校验expandIdx的维度
     const gert::StorageShape *expandIdxStorageShape = context->GetOutputShape(OUTPUT_EXPAND_IDX_INDEX);
@@ -523,7 +521,7 @@ inline ge::graphStatus CheckExpandIdxShape(gert::TilingContext *context, const c
     return ge::GRAPH_SUCCESS;
 }
 
-inline ge::graphStatus CheckExpertTokenNumsShape(gert::TilingContext *context, const char *nodeName, 
+inline ge::graphStatus CheckExpertTokenNumsShape(const gert::TilingContext *context, const char *nodeName,
     const bool isSharedExpert, const int64_t localMoeExpertNum)
 {
     // 校验expertTokenNums的维度
@@ -540,7 +538,7 @@ inline ge::graphStatus CheckExpertTokenNumsShape(gert::TilingContext *context, c
     return ge::GRAPH_SUCCESS;
 }
 
-inline ge::graphStatus CheckEpTpTecvTensorShape(gert::TilingContext *context, const char *nodeName,
+inline ge::graphStatus CheckEpTpTecvTensorShape(const gert::TilingContext *context, const char *nodeName,
     MoeDistributeDispatchTilingDataA5 &tilingData, const bool isSharedExpert, const int64_t localMoeExpertNum)
 {
     // 校验epRecvCount和tpRecvCount的维度
@@ -603,7 +601,7 @@ static ge::graphStatus CheckTensorShape(gert::TilingContext *context, const char
     OP_TILING_CHECK(CheckExpandXShape(context, nodeName, tilingData, xDim1, A) != ge::GRAPH_SUCCESS 
         || CheckDynamicScalesShape(context, nodeName, tilingData, quantMode, A) != ge::GRAPH_SUCCESS, 
         OP_LOGE(nodeName, "Check expandX or dynamicScales shape failed."), return ge::GRAPH_FAILED);
-    OP_TILING_CHECK(CheckExpandIdxShape(context, nodeName, localMoeExpertNum, xDim0, expertIdsDim1) != ge::GRAPH_SUCCESS 
+    OP_TILING_CHECK(CheckExpandIdxShape(context, nodeName, xDim0, expertIdsDim1) != ge::GRAPH_SUCCESS
         || CheckExpertTokenNumsShape(context, nodeName, isSharedExpert, localMoeExpertNum) != ge::GRAPH_SUCCESS, 
         OP_LOGE(nodeName, "Check expandIdx or expertTokenNums shape failed."), return ge::GRAPH_FAILED);
     // 校验epRecvCount和tpRecvCount的维度
@@ -653,7 +651,7 @@ static void SetTilingData(gert::TilingContext *context, MoeDistributeDispatchTil
     context->GetRawTilingData()->SetDataSize(tilingData.GetDataSize());
 }
 
-inline ge::graphStatus CheckCommAttrs(gert::TilingContext* context, const char *nodeName, 
+inline ge::graphStatus CheckCommAttrs(const char *nodeName,
     MoeDistributeDispatchTilingDataA5 &tilingData, uint32_t localMoeExpertNum)
 {
     uint64_t maxWindowSize = mc2tiling::Mc2TilingUtils::GetMaxWindowSize();
@@ -727,7 +725,7 @@ ge::graphStatus MoeDistributeDispatchTilingImpl(gert::TilingContext* context)
     OP_TILING_CHECK(CheckAndSetScalesInfo(context, nodeName, tilingData, isScales, realMode) != ge::GRAPH_SUCCESS,
         OP_LOGE(nodeName, "Check scales info failed."), return ge::GRAPH_FAILED);
     // Comm
-    OP_TILING_CHECK(CheckCommAttrs(context, nodeName, tilingData, localMoeExpertNum) != ge::GRAPH_SUCCESS,
+    OP_TILING_CHECK(CheckCommAttrs(nodeName, tilingData, localMoeExpertNum) != ge::GRAPH_SUCCESS,
         OP_LOGE(nodeName, "CheckCommAttrs failed."), return ge::GRAPH_FAILED);
     tilingData.dispatchTilingInfo.set_totalWinSize(mc2tiling::Mc2TilingUtils::GetMaxWindowSize());
     OP_TILING_CHECK(SetWorkSpace(context, nodeName) != ge::GRAPH_SUCCESS, OP_LOGE(nodeName, "Tiling set workspace failed."), return ge::GRAPH_FAILED);

@@ -48,8 +48,8 @@ extern "C" void __attribute__((weak)) NnopbaseSetHcclServerType(void *executor, 
 
 // check nullptr
 static bool CheckNotNull(const aclTensor *expandX, const aclTensor *expertIds, const aclTensor *expandIdx,
-                         const aclTensor *epSendCounts, const aclTensor *tpSendCounts, const aclTensor *expertScales,
-                         const char *groupEp, const char *groupTp, aclTensor *x)
+                         const aclTensor *epSendCounts, const aclTensor *expertScales,
+                         const char *groupEp, aclTensor *x)
 {
     OP_LOGD("aclnn_moe_distribute_combine CheckNotNull start");
     OP_CHECK_NULL(expandX, return false);
@@ -70,13 +70,11 @@ static bool CheckNotNull(const aclTensor *expandX, const aclTensor *expertIds, c
 static aclnnStatus CheckParams(const aclTensor *expandX, const aclTensor *expertIds, const aclTensor *expandIdx,
                                const aclTensor *epSendCounts, const aclTensor *tpSendCounts,
                                const aclTensor *expertScales, const char *groupEp, const char *groupTp,
-                               int64_t epWorldSize, int64_t tpWorldSize, int64_t epRankId, int64_t tpRankId,
-                               int64_t expertShardType, int64_t sharedExpertRankNum, int64_t moeExpertNum,
-                               int64_t globalBs, aclTensor *x)
+                               aclTensor *x)
 {
     OP_LOGD("aclnn_moe_distribute_combine checkparams start");
     CHECK_RET(
-        CheckNotNull(expandX, expertIds, expandIdx, epSendCounts, tpSendCounts, expertScales, groupEp, groupTp, x),
+        CheckNotNull(expandX, expertIds, expandIdx, epSendCounts, expertScales, groupEp, x),
         ACLNN_ERR_PARAM_NULLPTR);
     const static bool is910B = GetCurrentPlatformInfo().GetSocVersion() == SocVersion::ASCEND910B;
     if (is910B) {
@@ -105,8 +103,7 @@ aclnnStatus MoeDistributeCombineGetWorkspaceSize(
     aclTensor *x, uint64_t *workspaceSize, aclOpExecutor **executor)
 {
     auto ret_param = CheckParams(expandX, expertIds, expandIdx, epSendCounts, tpSendCounts, expertScales, groupEp,
-                                 groupTp, epWorldSize, tpWorldSize, epRankId, tpRankId, expertShardType,
-                                 sharedExpertRankNum, moeExpertNum, globalBs, x);
+                                 groupTp, x);
     CHECK_RET(ret_param == ACLNN_SUCCESS, ret_param);
 
     aclnnStatus ret = aclnnInnerMoeDistributeCombineGetWorkspaceSize(

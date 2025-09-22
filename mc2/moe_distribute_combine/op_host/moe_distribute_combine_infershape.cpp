@@ -67,8 +67,6 @@ static ge::graphStatus InferDataTypeMoeDistributeCombine(gert::InferDataTypeCont
     return ge::GRAPH_SUCCESS;
 }
 
-
-
 IMPL_OP_INFERSHAPE(MoeDistributeCombine)
     .InferShape(InferShapeMoeDistributeCombine)
     .InferDataType(InferDataTypeMoeDistributeCombine);

@@ -28,7 +28,6 @@
 #include <cstring>
 #include <cmath>
 #include <cstdint>
-#include <sys/stat.h>
 #include <sys/types.h>
 #include <queue>
 #include <vector>
@@ -323,7 +322,7 @@ static bool CheckAttrs(gert::TilingContext *context, MoeDistributeCombineTilingD
 
 inline ge::graphStatus CheckInputTensorShape(gert::TilingContext *context, MoeDistributeCombineTilingDataA5 &tilingData,
                                              const char *nodeName, bool isShared, int64_t tpWorldSize,
-                                             int64_t expandXDim0, int64_t expandXDim1, int64_t expertIdsDim0,
+                                             int64_t expertIdsDim0,
                                              int64_t expertIdsDim1)
 {
     // 校验expandIdx的维度
@@ -420,7 +419,7 @@ static bool CheckTensorShape(gert::TilingContext *context, MoeDistributeCombineT
     tilingData.combineTilingInfo.set_k(static_cast<uint32_t>(expertIdsDim1));
     // 校验expandIdx、epSendCount和tpSendCount、expertScales的维度
     OP_TILING_CHECK(CheckInputTensorShape(context, tilingData, nodeName, isShared, tpWorldSize, expandXDim0,
-                                          expandXDim1, expertIdsDim0, expertIdsDim1) != ge::GRAPH_SUCCESS,
+                                          expertIdsDim1) != ge::GRAPH_SUCCESS,
                     OP_LOGE(nodeName, "CheckInputTensorShape failed."), return false);
     // 校验x的维度
     const gert::StorageShape *xStorageShape = context->GetOutputShape(OUTPUT_X_INDEX);
@@ -463,7 +462,7 @@ static void SetTilingData(gert::TilingContext *context, MoeDistributeCombineTili
     context->GetRawTilingData()->SetDataSize(tilingData.GetDataSize());
 }
 
-inline ge::graphStatus CheckCommAttrs(gert::TilingContext *context, const char *nodeName,
+inline ge::graphStatus CheckCommAttrs(const char *nodeName,
                                       MoeDistributeCombineTilingDataA5 &tilingData, uint32_t localMoeExpertNum)
 {
     uint64_t maxWindowSize = mc2tiling::Mc2TilingUtils::GetMaxWindowSize();
@@ -511,7 +510,7 @@ ge::graphStatus MoeDistributeCombineTilingImpl(gert::TilingContext *context)
     OP_TILING_CHECK(!CheckTensorShape(context, tilingData, nodeName, isShared, localMoeExpertNum),
                     OP_LOGE(nodeName, "param dim check failed."), return ge::GRAPH_FAILED);
     // Comm
-    OP_TILING_CHECK(CheckCommAttrs(context, nodeName, tilingData, localMoeExpertNum) != ge::GRAPH_SUCCESS,
+    OP_TILING_CHECK(CheckCommAttrs(nodeName, tilingData, localMoeExpertNum) != ge::GRAPH_SUCCESS,
                     OP_LOGE(nodeName, "CheckCommAttrs failed."), return ge::GRAPH_FAILED);
     tilingData.combineTilingInfo.set_totalWinSize(mc2tiling::Mc2TilingUtils::GetMaxWindowSize());
     OP_TILING_CHECK(SetWorkSpace(context, nodeName) != ge::GRAPH_SUCCESS,

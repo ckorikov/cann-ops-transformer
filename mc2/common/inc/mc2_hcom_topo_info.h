@@ -18,9 +18,7 @@
 #define MC2_HCOM_TOPOLOGY_H
 
 #include <memory>
-#include <dlfcn.h>
 #include "hccl/hcom.h"
-#include "ge_common/ge_api_types.h"
 
 static constexpr uint32_t COMM_ALG_DEFAULT = 0U;
 static constexpr uint32_t COMM_MESH = 0b1U;

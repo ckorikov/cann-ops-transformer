@@ -63,7 +63,7 @@ static bool CheckUbOverFlowMC2(uint64_t ubSize, uint64_t nAligned16, uint64_t nV
             ((nAligned16 - ((nValue / baseN) - 1) * baseN) * baseD > (ubSize / NUMBER_TWO / dtypeSize)));
 }
 
-static void CalcNd2NzTilingMC2(mc2tiling::TilingArgs& args, uint64_t ubSize, uint64_t dtypeSize,
+static void CalcNd2NzTilingMC2(const mc2tiling::TilingArgs& args, uint64_t ubSize, uint64_t dtypeSize,
                                uint64_t nValue, uint64_t dValue, uint64_t &baseN, uint64_t &baseD)
 {
     constexpr uint64_t mataD = 16384;
@@ -409,7 +409,7 @@ static ge::graphStatus MCSpliteMReduceScatter(gert::TilingContext* ctx, MatmulRe
     return ge::GRAPH_SUCCESS;
 }
 
-static void SetReduceScatterTilingArgs(gert::TilingContext* context, mc2tiling::TilingArgs& args)
+static void SetReduceScatterTilingArgs(const gert::TilingContext* context, mc2tiling::TilingArgs& args)
 {
     auto coreNum = platform_ascendc::PlatformAscendC(context->GetPlatformInfo()).GetCoreNumAic();
     auto aType = context->GetInputDesc(0)->GetDataType();
@@ -518,7 +518,7 @@ static ge::graphStatus SetMatmulTilingMatmulReduceScatter(gert::TilingContext* c
     tilingData.socParam.baseBN = baseN;
     // 为通信而进行调整搬运
     if (args.cmdType == mc2tiling::AicpuComType::HCCL_CMD_REDUCE_SCATTER) {
-        if (args.rankDim <= 0 || args.orgMValue % args.rankDim) {
+        if (args.rankDim <= 0 || static_cast<bool>(args.orgMValue % args.rankDim)) {
             OP_LOGE(context->GetNodeName(), "rankDim error : %u, mValue=%lu", args.rankDim, args.orgMValue);
             return ge::GRAPH_FAILED;
         }

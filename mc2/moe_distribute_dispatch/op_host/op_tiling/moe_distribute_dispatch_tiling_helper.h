@@ -106,19 +106,19 @@ protected:
         const bool isScales, const uint32_t quantMode);    
     static bool CheckTensorDataTypeA5(gert::TilingContext *context, const char *nodeName,
         const bool isScales, const uint32_t quantMode);
-    static bool CheckTensorFormat(gert::TilingContext *context, const char *nodeName,
+    static bool CheckTensorFormat(const gert::TilingContext *context, const char *nodeName,
         const bool isScales, const uint32_t quantMode);
 private:
-    inline static bool CheckInputTensorDim(gert::TilingContext *context, const char *nodeName, 
+    inline static bool CheckInputTensorDim(const gert::TilingContext *context, const char *nodeName,
         const bool isScales, const uint32_t quantMode);
-    inline static bool CheckDynamicScalesDim(gert::TilingContext *context, const char *nodeName, const uint32_t quantMode);
+    inline static bool CheckDynamicScalesDim(const gert::TilingContext *context, const char *nodeName, const uint32_t quantMode);
     inline static bool CheckOutputTensorDim(gert::TilingContext *context, const char *nodeName, const uint32_t quantMode);
-    inline static bool CheckEpTpRecvTensorDim(gert::TilingContext *context, const char *nodeName);
-    inline static bool CheckCommonOutputTensorDataType(gert::TilingContext *context, const char *nodeName);
-    inline static bool CheckInputTensorDataType(gert::TilingContext *context, const char *nodeName, const bool isScales);
-    inline static bool CheckTensorDataTypeNoScales(gert::TilingContext *context, const char *nodeName, const bool isScales);
-    inline static bool CheckTensorDataTypeStaticOrDynamic(gert::TilingContext *context, const char *nodeName, bool isScales);
-    inline static bool CheckTensorDataTypeMxfp8(gert::TilingContext *context, const char *nodeName, const uint32_t quantMode);
+    inline static bool CheckEpTpRecvTensorDim(const gert::TilingContext *context, const char *nodeName);
+    inline static bool CheckCommonOutputTensorDataType(const gert::TilingContext *context, const char *nodeName);
+    inline static bool CheckInputTensorDataType(const gert::TilingContext *context, const char *nodeName, const bool isScales);
+    inline static bool CheckTensorDataTypeNoScales(const gert::TilingContext *context, const char *nodeName, const bool isScales);
+    inline static bool CheckTensorDataTypeStaticOrDynamic(const gert::TilingContext *context, const char *nodeName, bool isScales);
+    inline static bool CheckTensorDataTypeMxfp8(const gert::TilingContext *context, const char *nodeName);
     inline static bool CheckDistinctTensorDataType(gert::TilingContext *context, const char *nodeName,
         const bool isScales, const uint32_t quantMode);
 };

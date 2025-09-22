@@ -18,7 +18,6 @@
 
 #include "acl/acl.h"
 #include "runtime/kernel.h"
-#include "op_mc2.h"
 #include "hccl/hccl_types.h"
 #include "opdev/common_types.h"
 
@@ -103,39 +102,6 @@ typedef struct tagHcclAndAicpuResource {
     HcclCombinOpParam hccl_param = {0};
     void *aicpu_win_addr = nullptr;
 } HcclAndAicpuResource;
-
-// static void ConstructAicpuArgs(rtAicpuArgsEx_t &argsInfo, ops::ApiParamDef &apiParam)
-// {
-//     rtHostInputInfo_t *host_info = (rtHostInputInfo_t *)apiParam.hostInputInfo;
-//     host_info->addrOffset = NUM_FIVE * sizeof(void *);
-//     host_info->dataOffset = NUM_SIX * sizeof(void *);
-
-//     argsInfo.args = (void *)&apiParam;
-//     argsInfo.hostInputInfoPtr = host_info;
-//     argsInfo.kernelOffsetInfoPtr = nullptr;
-//     argsInfo.argsSize = sizeof(apiParam);
-//     argsInfo.hostInputInfoNum = 1;
-//     argsInfo.kernelOffsetInfoNum = 0;
-//     argsInfo.soNameAddrOffset = (uint16_t)((char *)&apiParam.soName - (char *)&apiParam);
-//     argsInfo.kernelNameAddrOffset = (uint16_t)((char *)&apiParam.kernelName - (char *)&apiParam);
-//     argsInfo.isNoNeedH2DCopy = false;
-//     return;
-// }
-
-// static rtAicpuArgsEx_t GetArgsInfo(const AicpuRpcServerModeLaunchOpAPI &apiParam)
-// {
-//     rtAicpuArgsEx_t argsInfo;
-//     argsInfo.args = (void *)&apiParam;
-//     argsInfo.hostInputInfoPtr = NULL;
-//     argsInfo.kernelOffsetInfoPtr = NULL;
-//     argsInfo.argsSize = sizeof(apiParam);
-//     argsInfo.hostInputInfoNum = 0;
-//     argsInfo.kernelOffsetInfoNum = 0;
-//     argsInfo.soNameAddrOffset = (uint16_t)((char *)&apiParam.so_name - (char *)&apiParam);
-//     argsInfo.kernelNameAddrOffset = (uint16_t)((char *)&apiParam.kernel_name - (char *)&apiParam);
-//     argsInfo.isNoNeedH2DCopy = false;
-//     return argsInfo;
-// }
 
 // all_to_all allgather/reducescatter bmm算子X type支持fp16和bf16
 static const std::initializer_list<op::DataType> MOE_X_DTYPE_SUPPORT_LIST = {
