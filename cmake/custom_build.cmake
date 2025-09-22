@@ -476,19 +476,33 @@ else()
             SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}
     )
 endif ()
-
-target_link_libraries(
-    cust_opapi 
-    PUBLIC  ${OPHOST_NAME}_opapi_obj
-    PRIVATE $<$<BOOL:${BUILD_WITH_INSTALLED_DEPENDENCY_CANN_PKG}>:$<BUILD_INTERFACE:opapi>>
+target_sources(
+    cust_opapi
+    PUBLIC $<$<TARGET_EXISTS:${OPHOST_NAME}_opapi_obj>:$<TARGET_OBJECTS:${OPHOST_NAME}_opapi_obj>>
+    PUBLIC $<$<TARGET_EXISTS:opbuild_gen_aclnn_all>:$<TARGET_OBJECTS:opbuild_gen_aclnn_all>>
 )
-target_link_libraries(cust_opmaster 
-    PUBLIC ${OPHOST_NAME}_tiling_obj
+target_link_libraries(
+    cust_opapi
+    PRIVATE $<$<BOOL:${BUILD_WITH_INSTALLED_DEPENDENCY_CANN_PKG}>:$<BUILD_INTERFACE:opapi>>
+    $<$<TARGET_EXISTS:opsbase>:opsbase>
+)
+target_sources(
+    cust_opmaster
+    PUBLIC $<$<TARGET_EXISTS:${OPHOST_NAME}_tiling_obj>:$<TARGET_OBJECTS:${OPHOST_NAME}_tiling_obj>>
+)
+target_link_libraries(
+    cust_opmaster 
     PRIVATE $<$<BOOL:${BUILD_WITH_INSTALLED_DEPENDENCY_CANN_PKG}>:$<BUILD_INTERFACE:optiling>>
     $<$<TARGET_EXISTS:opsbase>:opsbase>
 )
-target_link_libraries(cust_proto PUBLIC ${OPHOST_NAME}_infer_obj)
-
+target_sources(
+    cust_proto
+    PUBLIC $<$<TARGET_EXISTS:${OPHOST_NAME}_infer_obj>:$<TARGET_OBJECTS:${OPHOST_NAME}_infer_obj>>
+)
+target_link_libraries(
+    cust_proto PRIVATE
+    $<$<TARGET_EXISTS:opsbase>:opsbase>
+)
 if (generate_aclnn_headers)
     install(FILES ${generate_aclnn_headers}
             DESTINATION ${ACLNN_INC_INSTALL_DIR} OPTIONAL
