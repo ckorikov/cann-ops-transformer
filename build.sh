@@ -27,6 +27,10 @@ UBSAN="false"
 COV="false"
 CLANG="false"
 VERBOSE="false"
+THREAD_NUM=8
+ENABLE_CREATE_LIB=FALSE
+ENABLE_OPKERNEL=FALSE
+BUILD_LIBS=()
 
 PR_CHANGED_FILES=""  # PR场景, 修改文件清单, 可用于标识是否PR场景
 
@@ -223,6 +227,26 @@ function build_kernel(){
     build ops_transformer_kernel
 }
 
+build_lib() {
+  echo $dotted_line
+  echo "Start to build libs ${BUILD_LIBS[@]}"
+  clean
+
+  if [ ! -d "${BUILD_PATH}" ]; then
+    mkdir -p "${BUILD_PATH}"
+  fi
+
+  cd "${BUILD_PATH}" && cmake .. -DENABLE_BUILT_IN=ON
+
+  for lib in "${BUILD_LIBS[@]}"; do
+    echo "Building target ${lib}"
+    cmake --build . --target ${lib} -j $THREAD_NUM
+  done
+
+  echo $dotted_line
+  echo "Build libs ${BUILD_LIBS[@]} success"
+  echo $dotted_line
+}
 
 set_ut_mode() {
   REPOSITORY_NAME="transformer"
@@ -273,6 +297,11 @@ while [[ $# -gt 0 ]]; do
     -n|--op-name)
         ascend_op_name="$2"
         shift 2
+        ;;
+    --ops=*)
+        OPTARG=$1
+        ascend_op_name=${OPTARG#*=}
+        shift
         ;;
     -c|--compute-unit)
         ascend_compute_unit="$2"
@@ -375,6 +404,11 @@ while [[ $# -gt 0 ]]; do
         TILING_KEY="$2"
         shift 2
         ;;
+    --tiling_key=*)
+        OPTARG=$1
+        TILING_KEY=${OPTARG#*=}
+        shift
+        ;;
     --op_debug_config)
         OP_DEBUG_CONFIG="$2"
         shift 2
@@ -407,6 +441,33 @@ while [[ $# -gt 0 ]]; do
         OP_KERNEL=TRUE
         shift
         ;;
+    --vendor_name=*)
+        OPTARG=$1
+        vendor_name=${OPTARG#*=}
+        shift
+        ;;
+    --pkg)
+        shift
+        ;;
+    --opgraph)
+        BUILD_LIBS+=("opgraph_transformer")
+        ENABLE_CREATE_LIB=TRUE
+        shift
+        ;;
+    --opapi)
+        BUILD_LIBS+=("opapi_transformer")
+        ENABLE_CREATE_LIB=TRUE
+        shift
+        ;;
+    --ophost)
+        BUILD_LIBS+=("ophost_transformer")
+        ENABLE_CREATE_LIB=TRUE
+        shift
+        ;;
+    --opkernel)
+        ENABLE_OPKERNEL=TRUE
+        shift
+        ;;
     *)
         help_info
         exit 1
@@ -414,6 +475,10 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 set_ut_mode
+
+if [ -n "${vendor_name}" ];then
+    CUSTOM_OPTION="${CUSTOM_OPTION} -DVENDOR_NAME=${vendor_name}"
+fi
 
 if [ -n "${ascend_compute_unit}" ];then
     CUSTOM_OPTION="${CUSTOM_OPTION} -DASCEND_COMPUTE_UNIT=${ascend_compute_unit}"
@@ -596,6 +661,11 @@ build_ut() {
 cd ${BUILD_DIR}
 if [[ "$ENABLE_TEST" == "TRUE" ]]; then
     build_ut ${BUILD}
+elif [[ "$ENABLE_CREATE_LIB" == "TRUE" ]]; then
+    build_lib
+elif [[ "$ENABLE_OPKERNEL" == "TRUE" ]]; then
+    cmake_config -DENABLE_OPS_HOST=OFF
+    build_kernel
 else
     if [ "${BUILD}" == "host" ];then
         cmake_config -DENABLE_OPS_KERNEL=OFF

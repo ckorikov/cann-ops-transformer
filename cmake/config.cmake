@@ -216,6 +216,7 @@ if (BUILD_OPEN_PROJECT)
 
         string(REPLACE ";" "::" EP_ASCEND_COMPUTE_UNIT "${ASCEND_COMPUTE_UNIT}")
 
+        string(REPLACE "," ";" ASCEND_OP_NAME "${ASCEND_OP_NAME}")
         string(REPLACE ";" "::" EP_ASCEND_OP_NAME "${ASCEND_OP_NAME}")
 
         execute_process(COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/cmake/scripts/prepare.sh

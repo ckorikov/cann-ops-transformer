@@ -61,12 +61,12 @@ function(gen_ophost_symbol)
 endfunction()
 
 # graph_plugin shared
-function(gen_graph_plugin_symbol)
-  add_library(${GRAPH_PLUGIN_NAME} SHARED
+function(gen_opgraph_symbol)
+  add_library(${OPGRAPH_NAME} SHARED
     $<$<TARGET_EXISTS:${GRAPH_PLUGIN_NAME}_obj>:$<TARGET_OBJECTS:${GRAPH_PLUGIN_NAME}_obj>>
   )
 
-  target_link_libraries(${GRAPH_PLUGIN_NAME}
+  target_link_libraries(${OPGRAPH_NAME}
     PRIVATE
     c_sec
     -Wl,--no-as-needed
@@ -75,13 +75,13 @@ function(gen_graph_plugin_symbol)
     -Wl,--as-needed
   )
 
-  target_link_directories(${GRAPH_PLUGIN_NAME}
+  target_link_directories(${OPGRAPH_NAME}
     PRIVATE
     ${ASCEND_DIR}/${SYSTEM_PREFIX}/lib64
   )
 
-  set_target_properties(${GRAPH_PLUGIN_NAME} PROPERTIES OUTPUT_NAME "opgraph_transformer")
-  install(TARGETS ${GRAPH_PLUGIN_NAME}
+  set_target_properties(${OPGRAPH_NAME} PROPERTIES OUTPUT_NAME "opgraph_transformer")
+  install(TARGETS ${OPGRAPH_NAME}
     LIBRARY DESTINATION ${OPGRAPH_LIB_INSTALL_DIR}
   )
   install(FILES ${ASCEND_GRAPH_CONF_DST}/ops_proto_transformer.h
@@ -207,7 +207,7 @@ function(gen_norm_symbol)
 
   gen_ophost_symbol()
 
-  gen_graph_plugin_symbol()
+  gen_opgraph_symbol()
 
   gen_opapi_symbol()
 

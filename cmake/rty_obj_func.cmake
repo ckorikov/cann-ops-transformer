@@ -11,7 +11,6 @@
 # ACLNNTYPE 支持类型aclnn/aclnn_inner/aclnn_exclude
 # OPTYPE 和 ACLNNTYPE 需一一对应
 
-# 用于黄区回黄构建host侧obj生成
 # 添加infer object
 function(add_infer_modules)
   if (NOT TARGET ${OPHOST_NAME}_infer_obj)

@@ -11,6 +11,7 @@
 set(COMMON_NAME common_${PKG_NAME})
 set(OPHOST_NAME ophost_${PKG_NAME})
 set(OPAPI_NAME opapi_${PKG_NAME})
+set(OPGRAPH_NAME opgraph_${PKG_NAME})
 set(GRAPH_PLUGIN_NAME graph_plugin_${PKG_NAME})
 if(NOT CANN_3RD_LIB_PATH)
   set(CANN_3RD_LIB_PATH ${PROJECT_SOURCE_DIR}/third_party)
