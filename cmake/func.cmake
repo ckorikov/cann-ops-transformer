@@ -490,7 +490,6 @@ function(add_bin_compile_target)
             set(DYNAMIC_PY_FILE ${OP_SRC_OUT_DIR}/${op_type}.py)
             add_custom_command(OUTPUT ${DYNAMIC_PY_FILE}
                     COMMAND cp -rf ${ASCEND_IMPL_OUT_DIR}/dynamic/${op_file}.py ${DYNAMIC_PY_FILE}
-                    COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/cmake/scripts/update_get_kernel_source.sh ${DYNAMIC_PY_FILE}
             )
 
             add_custom_target(${OP_TARGET_NAME}_py_copy
@@ -578,7 +577,7 @@ function(add_bin_compile_target)
             )
 
             if (ENABLE_OPS_HOST OR ENABLE_HOST_TILING)
-                add_dependencies(${OP_TARGET_NAME}_${op_index} optiling generate_ops_info)
+                add_dependencies(${OP_TARGET_NAME}_${op_index} optiling_compat generate_ops_info)
             endif ()
             add_dependencies(${OP_TARGET_NAME}_${op_index} ${OP_TARGET_NAME}_src_copy ${OP_TARGET_NAME}_py_copy ${OP_TARGET_NAME}_mkdir)
             add_dependencies(${OP_TARGET_NAME} ${OP_TARGET_NAME}_${op_index})

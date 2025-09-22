@@ -425,7 +425,7 @@ if (BUILD_OPS_RTY_KERNEL)
     )
 
     add_custom_target(generate_transformer_adapt_py
-            COMMAND ${HI_PYTHON} ${ASCENDC_CMAKE_UTIL_DIR}/ascendc_impl_build.py
+            COMMAND ${HI_PYTHON} ${CMAKE_CURRENT_SOURCE_DIR}/cmake/scripts/util/ascendc_impl_build.py
             \"\"
             \"\"
             \"\"
