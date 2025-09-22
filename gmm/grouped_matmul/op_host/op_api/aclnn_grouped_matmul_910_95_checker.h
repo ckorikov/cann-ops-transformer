@@ -54,6 +54,7 @@ private:
     aclnnStatus CheckFp8Params(DataType &scaleDtype) const;
     aclnnStatus CheckNonMxQuantTransposeStatus() const;
     bool CheckTensorListSizeForEachInput() const;
+    bool IsSpecialMXCase(const T *tensorList) const;
     aclnnStatus CheckMxFp8TypeKCaseInputShape(const TensorDimInfo &dimInfo, size_t index) const;
     aclnnStatus CheckMxFp8TypeMCaseInputShape(const TensorDimInfo &dimInfo, size_t index) const;
     bool LastTwoDimValueIsOne(const aclTensor *tensor) const;

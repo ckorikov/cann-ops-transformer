@@ -330,6 +330,24 @@ aclnnStatus AclnnGroupedMatmul91095Checker<T>::CheckGroupedMatmulMxfp8Shape() co
 }
 
 template <typename T>
+bool AclnnGroupedMatmul91095Checker<T>::IsSpecialMXCase(const T *tensorList) const
+{   
+    // 已校验mx场景scale的shape大于或等于3维度，不存在越界取值问题
+    // mx特殊场景 (m,k,2) -> shape(1,1,2), stride(2,2,1); (k,m,2) -> shape(1,1,2), stride(2,2,1), 无法通过stride识别转置
+    for (size_t i = 0; i < GetInputTensorSize(tensorList); i++) {
+        auto tensorDimNum = GetInputTensor(tensorList, i)->GetViewShape().GetDimNum();
+        auto secondLastDimValue =
+            GetInputTensor(tensorList, i)->GetViewShape().GetDim(tensorDimNum - LAST_SECOND_DIM_INDEX);
+        auto thirdLastDimValue =
+            GetInputTensor(tensorList, i)->GetViewShape().GetDim(tensorDimNum - LAST_THIRD_DIM_INDEX);
+        if (secondLastDimValue == 1 && thirdLastDimValue == 1) {
+            return true;
+        }
+    }
+    return false;
+}
+
+template <typename T>
 aclnnStatus AclnnGroupedMatmul91095Checker<T>::CheckGroupedMatmulMxfp8() const
 {
     CHECK_COND(gmmParams_.biasOptional == nullptr, ACLNN_ERR_PARAM_INVALID, "mxfp8 does not support bias.");
@@ -349,19 +367,25 @@ transpositions are %s/%s.",
                    xName_.c_str(), weightName_.c_str(), gmmParams_.transposeX ? "true" : "false",
                    gmmParams_.transposeWeight ? "true" : "false");
     }
-    bool transposeScale = IsTransposeForMXShape(GetInputTensor(gmmParams_.scaleOptional));
-    bool transposePerTokenScale = IsTransposeForMXShape(GetInputTensor(gmmParams_.perTokenScaleOptional));
-    CHECK_COND(transposeScale == gmmParams_.transposeWeight, ACLNN_ERR_PARAM_INVALID,
-               "The transposition of %s/%s should be equal, but actual transpositions are %s/%s.", scaleName_.c_str(),
-               weightName_.c_str(), transposeScale ? "true" : "false", gmmParams_.transposeWeight ? "true" : "false");
-    CHECK_COND(transposePerTokenScale == gmmParams_.transposeX, ACLNN_ERR_PARAM_INVALID,
-               "The transposition of %s/%s should be equal, but actual transpositions are %s/%s.",
-               perTokenScaleName_.c_str(), xName_.c_str(), transposePerTokenScale ? "true" : "false",
-               gmmParams_.transposeX ? "true" : "false");
+
     CHECK_COND(CheckGroupedMatmulPerGroupDim() == ACLNN_SUCCESS, ACLNN_ERR_PARAM_INVALID,
                "CheckGroupedMatmulPerGroupDim failed");
     CHECK_COND(CheckGroupedMatmulMxfp8Shape() == ACLNN_SUCCESS, ACLNN_ERR_PARAM_INVALID,
                "CheckGroupedMatmulMxfp8Shape failed");
+    bool transposeScale = IsTransposeForMXShape(GetInputTensor(gmmParams_.scaleOptional));
+    bool transposePerTokenScale = IsTransposeForMXShape(GetInputTensor(gmmParams_.perTokenScaleOptional));
+    if (!IsSpecialMXCase(gmmParams_.scaleOptional)) {
+        CHECK_COND(transposeScale == gmmParams_.transposeWeight, ACLNN_ERR_PARAM_INVALID,
+                   "The transposition of %s/%s should be equal, but actual transpositions are %s/%s.",
+                   scaleName_.c_str(), weightName_.c_str(), transposeScale ? "true" : "false",
+                   gmmParams_.transposeWeight ? "true" : "false");
+    }
+    if (!IsSpecialMXCase(gmmParams_.perTokenScaleOptional)) {
+        CHECK_COND(transposePerTokenScale == gmmParams_.transposeX, ACLNN_ERR_PARAM_INVALID,
+                   "The transposition of %s/%s should be equal, but actual transpositions are %s/%s.",
+                   perTokenScaleName_.c_str(), xName_.c_str(), transposePerTokenScale ? "true" : "false",
+                   gmmParams_.transposeX ? "true" : "false");
+    }
     return ACLNN_SUCCESS;
 }
 

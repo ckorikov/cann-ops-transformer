@@ -1913,12 +1913,25 @@ const auto Tc_Gmm_Aclnn_David_Case = ::testing::Values(
                                  GenTensor("grouped_list", {2}, ge::DataType::DT_INT64), {0, 1}, 3, -1, false,
                                  true, 0, 1, 0, FunctionType::ANTIQUANT, AclnnGroupedMatmulVersion::WeightNz)),
     AclnnGroupedMatmulCase(
-       "Test_GMMV4_9591_TYPEM_pertile_success", true, "",               /* CaseName,Enable,DebugInfo */
-       OpInfo(ControlInfo(true, false),                        /* RunTiling,RunKernel */
+        "Test_GMMV4_9591_mxpf8_special_scale_shape", true, "",               /* CaseName,Enable,DebugInfo */
+        OpInfo(ControlInfo(true, false),                        /* RunTiling,RunKernel */
+               ExpectInfo(false,                                 /* ExpectSuccess */
+                          ExpectInfo::kInvalidTilingKey,        /* ExpectTilingKey */
+                          ExpectInfo::kInvalidTilingBlockDim)), /* ExpectTilingBlockDim */
+        AclnnGroupedMatmulParam({GenTensorList("x", {{1, 1}}, ge::DataType::DT_FLOAT8_E4M3FN),
+                                 GenTensorList("weight", {{1, 1, 1}}, ge::DataType::DT_FLOAT8_E4M3FN),
+                                 GenTensorList("scale", {{1, 1, 1, 2}}, ge::DataType::DT_FLOAT8_E8M0),
+                                 GenTensorList("pertoken_scale", {{1, 1, 2}}, ge::DataType::DT_FLOAT8_E8M0),
+                                 GenTensorList("y", {{1, 1}}, ge::DataType::DT_INT8)},
+                                 GenTensor("grouped_list", {1}, ge::DataType::DT_INT64), {1}, 3, -1, true, false,
+                                 0, 1, 0, FunctionType::MXFP, AclnnGroupedMatmulVersion::V4)),
+    AclnnGroupedMatmulCase(
+        "Test_GMMV4_9591_TYPEM_pertile_success", true, "",               /* CaseName,Enable,DebugInfo */
+        OpInfo(ControlInfo(true, false),                        /* RunTiling,RunKernel */
               ExpectInfo(false,                                 /* ExpectSuccess */
                             ExpectInfo::kInvalidTilingKey,        /* ExpectTilingKey */
                             ExpectInfo::kInvalidTilingBlockDim)), /* ExpectTilingBlockDim */
-       AclnnGroupedMatmulParam({GenTensorList("x", {{5, 76}}, ge::DataType::DT_HIFLOAT8),
+        AclnnGroupedMatmulParam({GenTensorList("x", {{5, 76}}, ge::DataType::DT_HIFLOAT8),
                                    GenTensorList("weight", {{1, 76, 2019}}, ge::DataType::DT_HIFLOAT8),
                                    GenTensorList("scale", {{1, 1, 16}}, ge::DataType::DT_FLOAT),
                                    GenTensorList("pertoken_scale", {{5, 1}}, ge::DataType::DT_FLOAT),
