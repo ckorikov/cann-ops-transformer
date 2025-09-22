@@ -78,6 +78,7 @@ static void ConvertShapePFA(gert::TilingContext &context, ContextParamsForPFATil
     contextKeyParams.valueAntiquantScaleShape = context.GetOptionalInputShape(VALUE_ANTIQUANT_SCALE_INDEX);
     contextKeyParams.KeyAntiquantOffsetShape = context.GetOptionalInputShape(KEY_ANTIQUANT_OFFSET_INDEX);
     contextKeyParams.valueAntiquantOffsetShape = context.GetOptionalInputShape(VALUE_ANTIQUANT_OFFSET_INDEX);
+    contextKeyParams.learnableSinkShape = context.GetOptionalInputShape(LEARNABLE_SINK_INDEX);
 }
 
 static ge::graphStatus ConvertAttrsPFA(gert::TilingContext &context, ContextParamsForPFATiling &contextKeyParams)
@@ -395,6 +396,7 @@ static ge::graphStatus ConvertContextToParamsPFA(gert::TilingContext &context,
     contextKeyParams.keySharedPrefix = context.GetOptionalInputTensor(KEY_SHARED_PREFIX_INDEX);
     contextKeyParams.valueSharedPrefix = context.GetOptionalInputTensor(VALUE_SHARED_PREFIX_INDEX);
     contextKeyParams.actualSharedPrefixLen = context.GetOptionalInputTensor(ACTUAL_SHARED_PREFIX_LEN_INDEX);
+    contextKeyParams.learnableSink = context.GetOptionalInputTensor(LEARNABLE_SINK_INDEX);
     contextKeyParams.hasKeyAntiquantScale =
         (context.GetOptionalInputTensor(KEY_ANTIQUANT_SCALE_INDEX) == nullptr) ? false : true;
     contextKeyParams.hasValueAntiquantScale =
@@ -402,6 +404,9 @@ static ge::graphStatus ConvertContextToParamsPFA(gert::TilingContext &context,
 
     ConvertDataTypePFA(context, contextKeyParams);
     ConvertShapePFA(context, contextKeyParams);
+
+    contextKeyParams.hasLearnableSink = ((contextKeyParams.learnableSink != nullptr) && (contextKeyParams.learnableSinkShape != nullptr) &&
+                                        (contextKeyParams.learnableSinkShape->GetStorageShape().GetShapeSize() != 0) ) ? true : false;
 
     OP_CHECK_IF(ConvertAttrsPFA(context, contextKeyParams) != ge::GRAPH_SUCCESS,
         OPS_REPORT_VECTOR_INNER_ERR(context.GetNodeName(), "convert attrs failed"), return ge::GRAPH_FAILED);
@@ -1213,6 +1218,11 @@ static ge::graphStatus CheckOutShape(gert::TilingContext &context, uint32_t &tem
             ret = CheckOutShapeInBNSD(context);
         }
     }
+    bool isLearnableSink = context.GetOptionalInputTensor(LEARNABLE_SINK_INDEX) != nullptr ? true : false;
+    OP_CHECK_IF((isLearnableSink) && !(((inputLayoutStr == "TND") || (inputLayoutStr == "NTD_TND")) && ((tempD == 64) || (tempD == 128))),
+               OPS_REPORT_VECTOR_INNER_ERR(context.GetNodeName(), "Only layout TND/NTD_TND and valueD = 128/64 supported learnable_sink, but actual layout is %s and D = %u!",
+               inputLayoutStr.c_str(), tempD),
+               return ge::GRAPH_FAILED);
 
     return ret;
 }

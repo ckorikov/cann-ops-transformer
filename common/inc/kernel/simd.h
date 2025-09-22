@@ -16,6 +16,10 @@
 #ifndef INCLUDE_SIMD_H
 #define INCLUDE_SIMD_H
 
+#ifdef __CCE_KT_TEST__
+#define __bf16 bfloat16_t
+#endif
+
 #include "hardware.h"
 #include "kernel_operator.h"
 

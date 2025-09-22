@@ -3827,10 +3827,14 @@ uint32_t IFATiling::GetTotalQBlockNum() const
         const int64_t *actualLenDataQ = context_->actualSeqLengthsQ.tensor->GetData<int64_t>();
 
         uint32_t totalQblockSum = 0;
+        uint32_t curSeqLenQ = 0;
+        uint32_t preSeqLenQ = 0;
         for (int bIdx = 0; bIdx < static_cast<int>(actualLenQDims_); bIdx++) {
-            // actualLenDataQ里的值非负
-            uint32_t tmpBlkNum = (static_cast<uint32_t>(actualLenDataQ[bIdx]) + seqStepQ_ - 1) / seqStepQ_;
+            // actualLenDataQ里的值单调递增
+            curSeqLenQ = static_cast<uint32_t>(actualLenDataQ[bIdx]);
+            uint32_t tmpBlkNum = static_cast<uint32_t>(curSeqLenQ - preSeqLenQ + seqStepQ_ - 1) / seqStepQ_;
             totalQblockSum += static_cast<uint32_t>(tmpBlkNum);
+            preSeqLenQ = curSeqLenQ;
         }
 
         return totalQblockSum;

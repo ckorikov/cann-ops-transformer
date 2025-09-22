@@ -831,6 +831,7 @@ struct ExtraInfoMla {
     uint64_t antiqValueParamOffset;
     static constexpr uint32_t n2Idx = 0;
     uint64_t actS1Size = 1;
+    bool isLastTask = false;
 };
 
 #define QUANT_MM2_FP16

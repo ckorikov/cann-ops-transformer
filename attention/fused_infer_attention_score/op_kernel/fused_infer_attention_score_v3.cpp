@@ -69,8 +69,6 @@ extern "C" __global__ __aicore__ void fused_infer_attention(
 
 #if (ORIG_DTYPE_QUERY == DT_FLOAT16) && (ORIG_DTYPE_ATTENTION_OUT == DT_FLOAT16) && (ORIG_DTYPE_KEY == DT_FLOAT16)
     // fp16 7buf_nz
-    TILING_KEY_IS(105000000020200000);
-    TILING_KEY_IS(105000000020300000);
     TILING_KEY_IS(105000000020200001);
     TILING_KEY_IS(105000000020300001);
     TILING_KEY_IS(105000000020200002);
@@ -89,13 +87,7 @@ extern "C" __global__ __aicore__ void fused_infer_attention(
     TILING_KEY_IS(105000000000200002);
     TILING_KEY_IS(105000000000300002);
 // fp16 7buf_nz
-#if TILING_KEY_VAR == 105000000020200000   // 7buf
-    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FusedIncreFlashAttentionAttenPreloadMla, half, half, half, half, true, false,
-                                  FIA_LAYOUT::BNSD, false, false, FIA_LAYOUT::NZ);
-#elif TILING_KEY_VAR == 105000000020300000 // 7buf
-    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FusedIncreFlashAttentionAttenPreloadMla, half, half, half, half, true, true,
-                                  FIA_LAYOUT::BNSD, false, false, FIA_LAYOUT::NZ);
-#elif TILING_KEY_VAR == 105000000020200001 // 7buf
+#if TILING_KEY_VAR == 105000000020200001 // 7buf
     INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FusedIncreFlashAttentionAttenPreloadMla, half, half, half, half, true, false,
                                   FIA_LAYOUT::BSH, false, false, FIA_LAYOUT::NZ);
 #elif TILING_KEY_VAR == 105000000020300001 // 7buf
@@ -149,8 +141,6 @@ extern "C" __global__ __aicore__ void fused_infer_attention(
 
 #if (ORIG_DTYPE_QUERY == DT_BF16) && (ORIG_DTYPE_ATTENTION_OUT == DT_BF16) && (ORIG_DTYPE_KEY == DT_BF16)
     // bfl6 7buf_nz
-    TILING_KEY_IS(105000000020222220);
-    TILING_KEY_IS(105000000020322220);
     TILING_KEY_IS(105000000020222221);
     TILING_KEY_IS(105000000020322221);
     TILING_KEY_IS(105000000020222222);
@@ -170,13 +160,7 @@ extern "C" __global__ __aicore__ void fused_infer_attention(
     TILING_KEY_IS(105000000000322222);
 
 // bf16 7buf_nz
-#if TILING_KEY_VAR == 105000000020222220   // 7buf
-    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FusedIncreFlashAttentionAttenPreloadMla, bfloat16_t, bfloat16_t, bfloat16_t,
-                                  bfloat16_t, true, false, FIA_LAYOUT::BNSD, false, false, FIA_LAYOUT::NZ);
-#elif TILING_KEY_VAR == 105000000020322220 // 7buf
-    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FusedIncreFlashAttentionAttenPreloadMla, bfloat16_t, bfloat16_t, bfloat16_t,
-                                  bfloat16_t, true, true, FIA_LAYOUT::BNSD, false, false, FIA_LAYOUT::NZ);
-#elif TILING_KEY_VAR == 105000000020222221 // 7buf
+#if TILING_KEY_VAR == 105000000020222221 // 7buf
     INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FusedIncreFlashAttentionAttenPreloadMla, bfloat16_t, bfloat16_t, bfloat16_t,
                                   bfloat16_t, true, false, FIA_LAYOUT::BSH, false, false, FIA_LAYOUT::NZ);
 #elif TILING_KEY_VAR == 105000000020322221 // 7buf

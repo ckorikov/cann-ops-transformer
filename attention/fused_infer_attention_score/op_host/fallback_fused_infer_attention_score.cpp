@@ -49,6 +49,7 @@ static const size_t QUERY_ROPE_INDEX = 24;
 static const size_t KEY_ROPE_INDEX = 25;
 static const size_t KEY_ROPE_ANTIQUANT_SCALE_INDEX = 26;
 static const size_t DEQUANT_SCALE_QUERY_INDEX = 27;
+static const size_t LEARNABLE_SINK_INDEX = 28;
 
 static const size_t ATTR_N_INDEX = 0;
 static const size_t ATTR_SCALE_INDEX = 1;
@@ -101,6 +102,7 @@ struct FusedInferHostTensorParams {
     const gert::Tensor *keyRopeGe = nullptr;
     const gert::Tensor *keyRopeAntiquantScaleGe = nullptr;
     const gert::Tensor *dequantScaleQueryGe = nullptr;
+    const gert::Tensor *learnableSinkGe = nullptr;
 };
 
 static graphStatus FiaFillTensorParams(const OpExecuteContext *host_api_ctx, FusedInferHostTensorParams &fiaTensors)
@@ -147,6 +149,7 @@ static graphStatus FiaFillTensorParams(const OpExecuteContext *host_api_ctx, Fus
     fiaTensors.keyRopeGe = host_api_ctx->GetOptionalInputTensor(KEY_ROPE_INDEX);
     fiaTensors.keyRopeAntiquantScaleGe = host_api_ctx->GetOptionalInputTensor(KEY_ROPE_ANTIQUANT_SCALE_INDEX);
     fiaTensors.dequantScaleQueryGe = host_api_ctx->GetOptionalInputTensor(DEQUANT_SCALE_QUERY_INDEX);
+    fiaTensors.learnableSinkGe = host_api_ctx->GetOptionalInputTensor(LEARNABLE_SINK_INDEX);
     
     return GRAPH_SUCCESS;
 }
@@ -303,7 +306,7 @@ static graphStatus FusedInferHostExecuteFunc(OpExecuteContext *host_api_ctx)
         fiaTensors.kvPaddingGe, fiaTensors.keyAntiquantScaleGe, fiaTensors.keyAntiquantOffsetGe,
         fiaTensors.valueAntiquantScaleGe, fiaTensors.valueAntiquantOffsetGe, fiaTensors.keySharedPrefixGe,
         fiaTensors.valueSharedPrefixGe, actualSeqInfo.actSeqSharedPrefix, fiaTensors.queryRopeGe, fiaTensors.keyRopeGe,
-        fiaTensors.keyRopeAntiquantScaleGe, fiaTensors.dequantScaleQueryGe, sclarParams.numHeads,
+        fiaTensors.keyRopeAntiquantScaleGe, fiaTensors.dequantScaleQueryGe, fiaTensors.learnableSinkGe, sclarParams.numHeads,
         sclarParams.dScaleValue, sclarParams.preTokens, sclarParams.nextTokens, attrPointers.layout, sclarParams.kvHeadNum,
         sclarParams.sparseMode, sclarParams.innerPrecise, sclarParams.blockSize, sclarParams.antiquantMode,
         sclarParams.softmaxLseFlag, sclarParams.keyAntiquantMode, sclarParams.valueAntiquantMode,

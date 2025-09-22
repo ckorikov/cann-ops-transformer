@@ -217,7 +217,7 @@ public:
         l0b_buf_tensor = buf.GetBuffer<BufferType::ASCEND_L0B, KV_T>(0);
         l0c_buf_tensor = buf.GetBuffer<BufferType::ASCEND_L0C, float>(0);
 
-        batchSize = tiling->tilingBase.batchSize;
+        batchSize_ = tiling->tilingBase.batchSize;
         qHeadNum_ = tiling->tilingBase.qHeadNum;
         embedding_size = tiling->tilingBase.headSize;
         kvHeadNum_ = tiling->tilingBase.kvHeadNum;
@@ -267,27 +267,41 @@ public:
         SET_FLAG(FIX, M, EVENT_ID0);
         SET_FLAG(FIX, M, EVENT_ID1);
 
-        uint32_t cur_batch = 0;
-        uint32_t pre_total_q_blk_num = 0;
-        uint32_t cur_seq_len_q = actualSeqLenGmTensorQ.GetValue(cur_batch);
-        uint32_t accum_seq_len_q = cur_seq_len_q;
-        uint32_t queryBlkNumCurBatch = (cur_seq_len_q + seqStepQ_ - 1) / seqStepQ_;
-        uint32_t process_num = totalBlockNumQ_ * qHeadNum_;
-        for (uint32_t process = 0; process < process_num; process++) {
-            // batch 0, queryBlkNumCurBatch * qHeadNum_ 分核处理； batch 1, 任务进判断处理
-            if (process >= queryBlkNumCurBatch * qHeadNum_) {
+        uint32_t curBatchIdx = 0;
+        // kvSeqLen相关数据
+        uint32_t preAccumSeqLenKv = 0;
+        uint32_t accumSeqLenKv = actualSeqLenGmTensorKv.GetValue(curBatchIdx);
+        uint32_t kvSeqLenCurBatch = accumSeqLenKv - preAccumSeqLenKv;
+
+        // kvSeqQ相关数据
+        uint32_t preAccumBlkNumQ = 0;
+        uint32_t preAccumSeqLenQ = 0;
+        uint32_t accumSeqLengthQ = actualSeqLenGmTensorQ.GetValue(curBatchIdx);
+        uint32_t qSeqLenCurBatch = accumSeqLengthQ - preAccumSeqLenQ;
+        uint32_t accumQueryBlkNum = preAccumBlkNumQ + (qSeqLenCurBatch + seqStepQ_ - 1) / seqStepQ_;
+
+        uint32_t totalProcessNum = totalBlockNumQ_ * qHeadNum_;
+        for (uint32_t process = 0; process < totalProcessNum; process++) {
+            if (process >= accumQueryBlkNum * qHeadNum_) {
                 bool doRunLoopFlag = true;
                 while (doRunLoopFlag) {
-                    cur_batch++;
-                    pre_total_q_blk_num = queryBlkNumCurBatch;
-                    uint32_t q_seqlen = actualSeqLenGmTensorQ.GetValue(cur_batch);
-                    accum_seq_len_q += q_seqlen;
-                    queryBlkNumCurBatch += (q_seqlen + seqStepQ_ - 1) / seqStepQ_;
-                    if(q_seqlen != 0) {
+                    curBatchIdx++;
+                    // 记录上一次的累计数据
+                    preAccumBlkNumQ = accumQueryBlkNum;
+                    preAccumSeqLenQ = accumSeqLengthQ;
+                    preAccumSeqLenKv = accumSeqLenKv;
+
+                    accumSeqLenKv = actualSeqLenGmTensorKv.GetValue(curBatchIdx);
+                    kvSeqLenCurBatch = accumSeqLenKv - preAccumSeqLenKv;
+                    accumSeqLengthQ = actualSeqLenGmTensorQ.GetValue(curBatchIdx);
+                    qSeqLenCurBatch = accumSeqLengthQ - preAccumSeqLenQ;
+                    // 必须逐步累加，不能用Q的前序和计算，会有batch的尾块问题
+                    accumQueryBlkNum += (qSeqLenCurBatch + seqStepQ_ - 1) / seqStepQ_;
+                    if(qSeqLenCurBatch != 0) {
                         break;
                     }
 
-                    if (cur_batch >= batchSize - 1) {
+                    if (curBatchIdx >= batchSize_ - 1) {
                         doRunLoopFlag = false;
                         break;
                     }
@@ -303,35 +317,33 @@ public:
                 continue;
             }
 
-            uint32_t q_seqlen = actualSeqLenGmTensorQ.GetValue(cur_batch);
-            uint32_t kv_seqlen = actualSeqLenGmTensorKv.GetValue(cur_batch);
-            uint64_t addr_q_scalar = (accum_seq_len_q - q_seqlen) * qHeadNum_ * embedding_size;
+            uint64_t queryOffsetBase = preAccumSeqLenQ * qHeadNum_ * embedding_size;
 
-            uint32_t process_idx = process - pre_total_q_blk_num * qHeadNum_;
+            uint32_t process_idx = process - preAccumBlkNumQ * qHeadNum_;
             uint32_t m_idx = process_idx / qHeadNum_;
             uint32_t head_idx = process_idx % qHeadNum_;
             uint32_t kvHeadIdx = head_idx / groupNum;
 
-            uint32_t m_loop = (q_seqlen + seqStepQ_ - 1) / seqStepQ_;
-            uint32_t n_loop = (kv_seqlen + seqStepKv_ - 1) / seqStepKv_;  // seqStepKv_ != kvBlockSize_ 处理
+            uint32_t m_loop = (qSeqLenCurBatch + seqStepQ_ - 1) / seqStepQ_;
+            uint32_t n_loop = (kvSeqLenCurBatch + seqStepKv_ - 1) / seqStepKv_;  // seqStepKv_ != kvBlockSize_ 处理
 
-            uint32_t qk_m = (m_idx == (m_loop - 1)) ? (q_seqlen - m_idx * seqStepQ_) : seqStepQ_;
+            uint32_t qk_m = (m_idx == (m_loop - 1)) ? (qSeqLenCurBatch - m_idx * seqStepQ_) : seqStepQ_;
             uint32_t qk_round_m = (qk_m + BLOCK_SIZE_D - 1) / BLOCK_SIZE_D * BLOCK_SIZE_D;
 
             uint64_t qk_index = 0;
             /**************** pre_load *****************/
-            uint32_t qk_n = (qk_index == (n_loop - 1)) ? kv_seqlen : seqStepKv_;
+            uint32_t qk_n = (qk_index == (n_loop - 1)) ? kvSeqLenCurBatch : seqStepKv_;
             uint32_t qk_round_n = (qk_n + BLOCK_SIZE_D - 1) / BLOCK_SIZE_D * BLOCK_SIZE_D;
 
             uint32_t pingpong_flag = 0;
             uint32_t offset = pingpong_flag * L0AB_HALF_BUF_SIZE_D;
-            uint64_t q_offset = addr_q_scalar + head_idx * embedding_size + m_idx * seqStepQ_ * stride_qo;
+            uint64_t q_offset = queryOffsetBase + head_idx * embedding_size + m_idx * seqStepQ_ * stride_qo;
 
             uint32_t sv_n = seqStepKv_;
             uint32_t sv_round_n = (sv_n + BLOCK_SIZE_D - 1) / BLOCK_SIZE_D * BLOCK_SIZE_D;
             uint32_t n_end = n_loop;
             if (is_triu_mask) {
-                uint32_t triu_seq = mask_type == MASK_TYPE_3 ? max_kv - q_seqlen : kv_seqlen - q_seqlen;
+                uint32_t triu_seq = mask_type == MASK_TYPE_3 ? max_kv - qSeqLenCurBatch : kvSeqLenCurBatch - qSeqLenCurBatch;
                 uint32_t n_offset = ((m_idx + 1) * seqStepQ_ + triu_seq + seqStepKv_ - 1) / seqStepKv_;
                 n_end = n_offset > n_loop ? n_loop : n_offset;
             }
@@ -374,7 +386,7 @@ public:
                         pingpong_flag = (n_idx + split_idx) % DOUBLE_BUFFER_NUM;
                         offset = pingpong_flag * L0AB_HALF_BUF_SIZE_D;
                         if (n_idx + split_idx == (n_loop - 1)) {
-                            qk_n = (kv_seqlen - (n_idx + split_idx) * seqStepKv_);
+                            qk_n = (kvSeqLenCurBatch - (n_idx + split_idx) * seqStepKv_);
                             qk_round_n = (qk_n + BLOCK_SIZE_D - 1) / BLOCK_SIZE_D * BLOCK_SIZE_D;
                         }
                         WAIT_FLAG(M, MTE1, pingpong_flag);
@@ -477,7 +489,7 @@ public:
                     offset = pingpong_flag * L0AB_HALF_BUF_SIZE_D;
                     if (n_idx + split_idx >= KV_INC) {
                         if (n_idx + split_idx == (n_loop + KV_INC - 1)) {
-                            sv_n = (kv_seqlen - (n_idx + split_idx - KV_INC) * seqStepKv_);
+                            sv_n = (kvSeqLenCurBatch - (n_idx + split_idx - KV_INC) * seqStepKv_);
                             sv_round_n = (sv_n + BLOCK_SIZE_D - 1) / BLOCK_SIZE_D * BLOCK_SIZE_D;
                         }
                         int64_t v_offset = blockIdx_ * BLOCKSIZE_CALC_256 * 1 * embedding_size; 
@@ -528,7 +540,7 @@ public:
                     offset = pingpong_flag * L0AB_HALF_BUF_SIZE_D;
                     if (n_idx + split_idx >= KV_INC) {
                         if (n_idx + split_idx == (n_loop + KV_INC - 1)) {
-                            sv_n = (kv_seqlen - (n_idx + split_idx - KV_INC) * seqStepKv_);
+                            sv_n = (kvSeqLenCurBatch - (n_idx + split_idx - KV_INC) * seqStepKv_);
                             sv_round_n = (sv_n + BLOCK_SIZE_D - 1) / BLOCK_SIZE_D * BLOCK_SIZE_D;
                         }
                         // *** Prepare P to L1
@@ -624,7 +636,6 @@ public:
         WAIT_FLAG(M, MTE1, EVENT_ID1);
         WAIT_FLAG(FIX, M, EVENT_ID0);
         WAIT_FLAG(FIX, M, EVENT_ID1);
-        PIPE_BARRIER(ALL);
     }
 
 private:
@@ -654,7 +665,7 @@ private:
     AscendC::LocalTensor<KV_T> l0b_buf_tensor;
     AscendC::LocalTensor<float> l0c_buf_tensor;
 
-    uint32_t batchSize;
+    uint32_t batchSize_;
     uint32_t qHeadNum_;
     uint32_t embedding_size;
     uint32_t kvHeadNum_;
@@ -719,6 +730,7 @@ public:
         SetVectorMask<int8_t>((uint64_t)-1, (uint64_t)-1);
         uint32_t start_seq = 0;
         uint32_t stepNumPerBlock = kvBlockSize_ / seqStepKv_;
+        PIPE_BARRIER(ALL);
 
         // [qk_n, sub_m, head_size]
         SET_FLAG(V, MTE2, EVENT_ID5);
@@ -1028,7 +1040,7 @@ public:
         go_ubuf_tensor = buf.GetBuffer<BufferType::ASCEND_UB, float>(go_ubuf_offset);
         mask16_ubuf_tensor = buf.GetBuffer<BufferType::ASCEND_UB, MASK_DATA_TYPE>(mask16_ubuf_offset);
 
-        batchSize = tiling->tilingBase.batchSize;
+        batchSize_ = tiling->tilingBase.batchSize;
         qHeadNum_ = tiling->tilingBase.qHeadNum;
         embedding_size = tiling->tilingBase.headSize;
         kvHeadNum_ = tiling->tilingBase.kvHeadNum;
@@ -1082,26 +1094,40 @@ public:
 
         uint32_t go_flag_scalar = 1;
 
-        uint32_t cur_batch = 0;
-        uint32_t cur_seq_len_q = actualSeqLenGmTensorQ.GetValue(cur_batch);
-        uint32_t accum_seq_len_q = cur_seq_len_q;
-        uint32_t pre_total_q_blk_num = 0;
-        uint32_t cur_total_q_blk_num = (cur_seq_len_q + seqStepQ_ - 1) / seqStepQ_;
-        uint32_t process_num = totalBlockNumQ_ * qHeadNum_;
-        for (uint32_t process = 0; process < process_num; process++) {
-            if (process >= cur_total_q_blk_num * qHeadNum_) {
+        uint32_t curBatchIdx = 0;
+        // kvSeqLen相关数据
+        uint32_t preAccumSeqLenKv = 0;
+        uint32_t accumSeqLenKv = actualSeqLenGmTensorKv.GetValue(curBatchIdx);
+        uint32_t kvSeqLenCurBatch = accumSeqLenKv - preAccumSeqLenKv;
+
+        // seqLenQ相关数据
+        uint32_t preAccumBlkNumQ = 0;
+        uint32_t preAccumSeqLenQ = 0;
+        uint32_t accumSeqLenQ = actualSeqLenGmTensorQ.GetValue(curBatchIdx);
+        uint32_t qSeqLenCurBatch = accumSeqLenQ - preAccumSeqLenQ;
+        uint32_t accumQueryBlkNum = preAccumBlkNumQ + (qSeqLenCurBatch + seqStepQ_ - 1) / seqStepQ_;
+        uint32_t totalProcessNum = totalBlockNumQ_ * qHeadNum_;
+
+        for (uint32_t process = 0; process < totalProcessNum; process++) {
+            if (process >= accumQueryBlkNum * qHeadNum_) {
                 bool doRunCircleFlag = true;
                 while (doRunCircleFlag) {
-                    cur_batch++;
-                    pre_total_q_blk_num = cur_total_q_blk_num;
-                    uint32_t q_seqlen = actualSeqLenGmTensorQ.GetValue(cur_batch);
-                    accum_seq_len_q += q_seqlen;
-                    cur_total_q_blk_num += (q_seqlen + seqStepQ_ - 1) / seqStepQ_;
-                    if(q_seqlen != 0) {
+                    curBatchIdx++;
+                    // 记录上一次的累计数据
+                    preAccumBlkNumQ = accumQueryBlkNum;
+                    preAccumSeqLenQ = accumSeqLenQ;
+                    preAccumSeqLenKv = accumSeqLenKv;
+
+                    accumSeqLenKv = actualSeqLenGmTensorKv.GetValue(curBatchIdx);
+                    kvSeqLenCurBatch = accumSeqLenKv - preAccumSeqLenKv;
+                    accumSeqLenQ = actualSeqLenGmTensorQ.GetValue(curBatchIdx);
+                    qSeqLenCurBatch = accumSeqLenQ - preAccumSeqLenQ;
+                    accumQueryBlkNum += (qSeqLenCurBatch + seqStepQ_ - 1) / seqStepQ_;
+                    if(qSeqLenCurBatch != 0) {
                         break;
                     }
 
-                    if (cur_batch >= batchSize - 1) {
+                    if (curBatchIdx >= batchSize_ - 1) {
                         doRunCircleFlag = false;
                         break;
                     }
@@ -1118,19 +1144,17 @@ public:
                 continue;
             }
 
-            uint32_t q_seqlen = actualSeqLenGmTensorQ.GetValue(cur_batch);
-            uint32_t kv_seqlen = actualSeqLenGmTensorKv.GetValue(cur_batch);
-            uint64_t addr_o_scalar = (accum_seq_len_q - q_seqlen) * qHeadNum_ * embedding_size;
+            uint64_t outputOffsetBase = preAccumSeqLenQ * qHeadNum_ * embedding_size;
             uint64_t mask_scalar = 0;
 
-            uint32_t process_idx = process - pre_total_q_blk_num * qHeadNum_;
+            uint32_t process_idx = process - preAccumBlkNumQ * qHeadNum_;
             uint32_t m_idx = process_idx / qHeadNum_;
             uint32_t head_idx = process_idx % qHeadNum_;
 
-            uint32_t m_loop = (q_seqlen + seqStepQ_ - 1) / seqStepQ_;
-            uint32_t n_loop = (kv_seqlen + seqStepKv_ - 1) / seqStepKv_;
+            uint32_t m_loop = (qSeqLenCurBatch + seqStepQ_ - 1) / seqStepQ_;
+            uint32_t n_loop = (kvSeqLenCurBatch + seqStepKv_ - 1) / seqStepKv_;
 
-            uint32_t qk_m = (m_idx == (m_loop - 1)) ? (q_seqlen - m_idx * seqStepQ_) : seqStepQ_;
+            uint32_t qk_m = (m_idx == (m_loop - 1)) ? (qSeqLenCurBatch - m_idx * seqStepQ_) : seqStepQ_;
             uint32_t sub_m = (subBlockIdx_ == 1) ? (qk_m - qk_m / AIC_AIV_RATIO) : qk_m / AIC_AIV_RATIO;
             uint32_t sub_m_d128 = (sub_m + VECTOR_SIZE_D - 1) / VECTOR_SIZE_D;             // up aligned to 128
             uint32_t sub_m_d64 = (sub_m + FLOAT_VECTOR_SIZE_D - 1) / FLOAT_VECTOR_SIZE_D;  // up aligned to 64
@@ -1150,18 +1174,18 @@ public:
 
             uint64_t qk_index = 0;
             /******** pre_load *******/
-            uint32_t qk_n = (qk_index == (n_loop - 1)) ? kv_seqlen : seqStepKv_;
+            uint32_t qk_n = (qk_index == (n_loop - 1)) ? kvSeqLenCurBatch : seqStepKv_;
             uint32_t qk_round_n = (qk_n + BLOCK_SIZE_D - 1) / BLOCK_SIZE_D * BLOCK_SIZE_D;
 
             uint32_t pingpong_flag = 0;
             uint32_t offset = pingpong_flag * UB_HALF_BUF_SIZE_D;
-            uint64_t mask_offset = (cur_batch * batch_stride + head_idx * head_stride) * max_context_len + m_idx * seqStepQ_ * max_context_len;
+            uint64_t mask_offset = (curBatchIdx * batch_stride + head_idx * head_stride) * max_context_len + m_idx * seqStepQ_ * max_context_len;
             mask_offset += mask_scalar;
 
-            uint64_t o_offset = addr_o_scalar + head_idx * embedding_size + m_idx * seqStepQ_ * stride_qo;
+            uint64_t o_offset = outputOffsetBase + head_idx * embedding_size + m_idx * seqStepQ_ * stride_qo;
             uint32_t n_end = n_loop;
             if (is_triu_mask) {
-                uint32_t triu_seq = mask_type == 3 ? max_kv - q_seqlen : kv_seqlen - q_seqlen;
+                uint32_t triu_seq = mask_type == 3 ? max_kv - qSeqLenCurBatch : kvSeqLenCurBatch - qSeqLenCurBatch;
                 uint32_t n_offset = ((m_idx + 1) * seqStepQ_ + triu_seq + seqStepKv_ - 1) / seqStepKv_;
                 n_end = n_offset > n_loop ? n_loop : n_offset;
             }
@@ -1181,9 +1205,9 @@ public:
                                         antiquantOffsetGmTensor_[hiddenSizeOffsetWithBiasKv],                   // deq_offset
                                         antiquantScaleGmTensor_[hiddenSizeOffsetKv],                            // deq_scale
                                         kvHeadNum_ * embedding_size,                                            // hidden_size
-                                        cur_batch,                                                              // batch_idx
+                                        curBatchIdx,                                                              // batch_idx
                                         n_idx + split_idx,                                                      // n_idx
-                                        kv_seqlen,                                                              // kv_seq_len
+                                        kvSeqLenCurBatch,                                                              // kv_seq_len
                                         sub_m_kv,                                                               // sub_m
                                         hiddenSizeOffsetKv,                                                     // hiddenSizeOffsetKv
                                         n_loop,                                                                 // real_n_loop
@@ -1204,9 +1228,9 @@ public:
                                         antiquantOffsetGmTensor_[hiddenSizeOffsetWithBiasKv],                                    // deq_offset
                                         antiquantScaleGmTensor_[hiddenSizeOffsetKv],                                            // deq_scale
                                         kvHeadNum_ * embedding_size,                                     // hidden_size
-                                        cur_batch,                                                         // batch_idx
+                                        curBatchIdx,                                                         // batch_idx
                                         split_idx + n_idx,                                                             // n_idx
-                                        kv_seqlen,                                                     // kv_seq_len
+                                        kvSeqLenCurBatch,                                                     // kv_seq_len
                                         sub_m_kv,                                                             // sub_m
                                         hiddenSizeOffsetKv,                                                      // hiddenSizeOffsetKv
                                         n_loop,                                                       // real_n_loop
@@ -1222,7 +1246,7 @@ public:
                         for (uint32_t split_idx = 0; split_idx < KV_INC && n_idx + split_idx < n_end; split_idx++) {
                             WAIT_FLAG(V, MTE2, split_idx * CONST_TWO);
                             if (n_idx + split_idx == (n_loop - 1)) {
-                                qk_n_temp = (kv_seqlen - (n_idx + split_idx) * seqStepKv_);
+                                qk_n_temp = (kvSeqLenCurBatch - (n_idx + split_idx) * seqStepKv_);
                             }
                             if (long_seq == 0) {
                                 gm_to_ub_align<ArchType::ASCEND_V220, half>(
@@ -1248,7 +1272,7 @@ public:
                         pingpong_flag = (n_idx + split_idx) % DOUBLE_BUFFER_NUM;
                         offset = pingpong_flag * UB_HALF_BUF_SIZE_D;
                         if (n_idx + split_idx == (n_loop - 1)) {
-                            qk_n = (kv_seqlen - (n_idx + split_idx) * seqStepKv_);
+                            qk_n = (kvSeqLenCurBatch - (n_idx + split_idx) * seqStepKv_);
                             qk_round_n = (qk_n + BLOCK_SIZE_D - 1) / BLOCK_SIZE_D * BLOCK_SIZE_D;
                         }
                         if (sub_m > 0) {
@@ -1788,7 +1812,6 @@ public:
         WAIT_FLAG(V, MTE2, EVENT_ID1);
         WAIT_FLAG(V, MTE2, EVENT_ID2);
         WAIT_FLAG(MTE3, V, EVENT_ID0);
-        PIPE_BARRIER(ALL);
     }
 
     __aicore__ inline void set_mask_d(int32_t len)
@@ -1859,7 +1882,7 @@ private:
     AscendC::LocalTensor<float> tv_ubuf_tensor;
     AscendC::LocalTensor<float> go_ubuf_tensor;
 
-    uint32_t batchSize;
+    uint32_t batchSize_;
     uint32_t qHeadNum_;
     uint32_t embedding_size;
     uint32_t kvHeadNum_;

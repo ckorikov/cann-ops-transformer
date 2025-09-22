@@ -144,7 +144,7 @@ aclnnStatus aclnnFusedInferAttentionScoreV3GetMaxWorkspaceSize(
         queryPaddingSizeOptional, kvPaddingSizeOptional, keyAntiquantScaleOptional, keyAntiquantOffsetOptional,
         valueAntiquantScaleOptional, valueAntiquantOffsetOptional, tensorKeySharedPrefixOptional,
         tensorValueSharedPrefixOptional, fakeActualSeqArrays.actualSharedPrefixLenOptional, queryRopeOptional,
-        keyRopeOptional, keyRopeAntiquantScaleOptional, nullptr, numHeads, scaleValue, preTokens, nextTokens,
+        keyRopeOptional, keyRopeAntiquantScaleOptional, nullptr, nullptr, numHeads, scaleValue, preTokens, nextTokens,
         inputLayout, numKeyValueHeads, sparseMode, innerPrecise, blockSize, antiquantMode, softmaxLseFlag,
         keyAntiquantMode, valueAntiquantMode, 0, 0, attentionOut, placeHolder, workspaceSize, executor);
     if (softmaxLseFlag == false) {
@@ -207,7 +207,7 @@ aclnnStatus aclnnFusedInferAttentionScoreV3GetWorkspaceSize(
         queryPaddingSizeOptional, kvPaddingSizeOptional, keyAntiquantScaleOptional, keyAntiquantOffsetOptional,
         valueAntiquantScaleOptional, valueAntiquantOffsetOptional, tensorKeySharedPrefixOptional,
         tensorValueSharedPrefixOptional, actualSharedPrefixLenOptional, queryRopeOptional,
-        keyRopeOptional, keyRopeAntiquantScaleOptional, nullptr, numHeads, scaleValue, preTokens, nextTokens,
+        keyRopeOptional, keyRopeAntiquantScaleOptional, nullptr, nullptr, numHeads, scaleValue, preTokens, nextTokens,
         inputLayout, numKeyValueHeads, sparseMode, innerPrecise, blockSize, antiquantMode, softmaxLseFlag,
         keyAntiquantMode, valueAntiquantMode, 0, 0, attentionOut, placeHolder, workspaceSize, executor);
     if (softmaxLseFlag == false) {
@@ -217,7 +217,6 @@ aclnnStatus aclnnFusedInferAttentionScoreV3GetWorkspaceSize(
         if (NnopbaseDisableOptionalInput != nullptr) {
             NnopbaseDisableOptionalInput(*executor, 27U); // 27 is input irIndex
             NnopbaseDisableOptionalInput(*executor, 28U); // 28 is input irIndex
-            NnopbaseDisableOptionalInput(*executor, 29U); // 29 is input irIndex，占位符
         }
     }
     return ret;

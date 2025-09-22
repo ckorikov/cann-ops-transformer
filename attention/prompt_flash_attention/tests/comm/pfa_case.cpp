@@ -30,8 +30,8 @@
     (__gm__ uint8_t * query, __gm__ uint8_t * key, __gm__ uint8_t * value, __gm__ uint8_t * pseShift,                  \
      __gm__ uint8_t * attenMask, __gm__ uint8_t * actualSeqLengths, __gm__ uint8_t * actualSeqLengthsKV,               \
      __gm__ uint8_t * deq_scale1, __gm__ uint8_t * quant_scale1, __gm__ uint8_t * deq_scale2,                          \
-     __gm__ uint8_t * quant_scale2, __gm__ uint8_t * quant_offset2, __gm__ uint8_t * attentionOut,                     \
-     __gm__ uint8_t * workspace, __gm__ uint8_t * tiling)
+     __gm__ uint8_t * quant_scale2, __gm__ uint8_t * quant_offset2, __gm__ uint8_t * learnableSink,                    \
+     __gm__ uint8_t * attentionOut, __gm__ uint8_t * workspace, __gm__ uint8_t * tiling)
 
 typedef void(*PfaKernelFunc) PFA_KERNEL_PARAM;
 
@@ -51,7 +51,7 @@ bool RunPromptFlashAttention(void *func, uint64_t tilingKey, int64_t blockDim, s
     ICPU_RUN_KF(kernelFunc, blockDim, inputs[0]->GetDevData(), inputs[1]->GetDevData(), inputs[2]->GetDevData(),
                 inputs[3]->GetDevData(), inputs[4]->GetDevData(), inputs[5]->GetDevData(), inputs[6]->GetDevData(),
                 inputs[7]->GetDevData(), inputs[8]->GetDevData(), inputs[9]->GetDevData(), inputs[10]->GetDevData(),
-                inputs[11]->GetDevData(), outputs[0]->GetDevData(), workspace, tilingData);
+                inputs[11]->GetDevData(), inputs[12]->GetDevData(), outputs[0]->GetDevData(), workspace, tilingData);
     return true;
 }
 
@@ -126,6 +126,9 @@ bool PfaCase::InitParam()
         quantScale2 = Tensor("quantScale2", {1}, "1", ge::DataType::DT_FLOAT, ge::FORMAT_ND);
         quantOffset2 = Tensor("quantOffset2", {1}, "1", ge::DataType::DT_FLOAT, ge::FORMAT_ND);
     }
+    if (mParam.hasLearnableSink) {
+        learnableSink = Tensor("learnableSink", {mParam.n}, "N", mParam.qDataType, ge::FORMAT_ND);
+    }
     return true;
 }
 
@@ -134,7 +137,7 @@ bool PfaCase::InitOpInfo()
     bool rst = mCtx.SetOpName("PromptFlashAttention");
     rst = rst && mCtx.SetDeterministic(false);
     rst = rst && mCtx.SetInputs({&query, &key, &value, &pseShift, &attenMask, &actualSeqLengths, &actualSeqLengthsKV,
-                                 &deqScale1, &quantScale1, &deqScale2, &quantScale2, &quantOffset2});
+                                 &deqScale1, &quantScale1, &deqScale2, &quantScale2, &quantOffset2, &learnableSink});
     rst = rst && mCtx.SetOutputs({&attentionOut});
     rst = rst && mCtx.SetTilingDataMaxSize(4096);
     rst = rst && mCtx.SetAttrs({{"num_heads", mParam.numHeads},

@@ -565,7 +565,17 @@ template <typename INPUT_T, typename T, bool pageAttention>
 __aicore__ inline void PfaMatmulKvNd<INPUT_T, T, pageAttention>::CopyInMm1AToL1(LocalTensor<INPUT_T> &aL1Tensor, const SplitSameABExtraInfo &info)
 {
     auto srcGm = queryGm[info.qCoreOffset];
+
     copyInMm1AToL1Params.nValue = info.cubeS1RealSize;
+    if (unlikely(info.gBaseSize > 1)) {
+        copyInMm1AToL1Params.ndNum = info.gBaseSize;
+        copyInMm1AToL1Params.dValue = copyInMm1AToL1Params.dValue;
+        copyInMm1AToL1Params.srcNdMatrixStride = copyInMm1AToL1Params.dValue;
+        copyInMm1AToL1Params.dstNzC0Stride = Align<uint32_t>(info.cubeS1RealSize * info.gBaseSize, (uint32_t)BLOCK_CUBE);
+        copyInMm1AToL1Params.dstNzMatrixStride = info.cubeS1RealSize * 32 / sizeof(INPUT_T);
+        DataCopy(aL1Tensor, srcGm, copyInMm1AToL1Params);
+        return;
+    }
     copyInMm1AToL1Params.dstNzC0Stride = Align<uint32_t>(info.cubeS1RealSize, (uint32_t)BLOCK_CUBE);
     DataCopy(aL1Tensor, srcGm, copyInMm1AToL1Params);
 }
@@ -809,7 +819,7 @@ __aicore__ inline void PfaMatmulKvNd<INPUT_T, T, pageAttention>::ComputeMm1(cons
         kL0SplitSize = 128; // qkv D等长=128，不切K轴场景
     }
 
-    uint32_t mSizeAct = info.cubeS1RealSize;
+    uint32_t mSizeAct = info.cubeS1RealSize * info.gBaseSize;
     uint32_t mL1Size = Align(mSizeAct, (uint32_t)BLOCK_CUBE);
     uint32_t kSizeAct = dSize + ropeDSize;
     uint32_t kSize = BlockAlign<INPUT_T>(kSizeAct);
@@ -896,6 +906,7 @@ __aicore__ inline void PfaMatmulKvNd<INPUT_T, T, pageAttention>::ComputeMm1(cons
             self_->Load3DDataAToL0NonFMatrix(self_->aL0TensorPingPong[pingpong], qL1Tensor, mL1Size, subMStart, subMSize, subKStart, subKSize);
         } else {
             self_->Load3DDataAToL0(self_->aL0TensorPingPong[pingpong], qL1Tensor, mL1Size, subMStart, subMSize, subKStart, subKSize);
+            self_->template ResetLoad3DConfig<mSplitSize>();
         }
         return self_->aL0TensorPingPong[pingpong];
     } DEF_LAMBDA_END(LoadAToL0);
@@ -1021,7 +1032,7 @@ __aicore__ inline void PfaMatmulKvNd<INPUT_T, T, pageAttention>::ComputeMm2(cons
     constexpr uint32_t kSplitSize = 256;
     constexpr uint32_t kL0SplitSize = 128;
 
-    uint32_t mSizeAct = info.cubeS1RealSize;
+    uint32_t mSizeAct = info.cubeS1RealSize * info.gBaseSize;
     uint32_t mInputSize = Align(mSizeAct, (uint32_t)BLOCK_CUBE);
     uint32_t kSizeAct = info.s2RealSize;
     uint32_t kSize = info.s2AlignedSize;
@@ -1099,6 +1110,7 @@ __aicore__ inline void PfaMatmulKvNd<INPUT_T, T, pageAttention>::ComputeMm2(cons
             self_->Load3DDataAToL0NonFMatrix(self_->aL0TensorPingPong[pingpong], pL1Tensor, mL1Size, subMStart, subMSize, subKStart, subKSize);
         } else {
             self_->Load3DDataAToL0(self_->aL0TensorPingPong[pingpong], pL1Tensor, mL1Size, subMStart, subMSize, subKStart, subKSize);
+            self_->template ResetLoad3DConfig<mSplitSize>();
         }
         return self_->aL0TensorPingPong[pingpong];
     } DEF_LAMBDA_END(LoadAToL0);

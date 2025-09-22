@@ -274,7 +274,7 @@ __aicore__ inline void MergePrefixModeMask(LocalTensor<uint8_t> &maskPre, LocalT
 }
 #endif
                                       
-template <bool hasAtten, bool hasRope = false, bool isInfer = false>
+template <bool hasAtten, bool hasRope = false, bool isInfer = false, DTemplateType dTemplateType = DTemplateType::Aligned128>
 __aicore__ inline int64_t ComputeAttenMaskInnerOffset(RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo,
                                                       AttenMaskInfo &attenMaskInfo)
 {
@@ -349,6 +349,17 @@ __aicore__ inline int64_t ComputeAttenMaskInnerOffset(RunInfo<isInfer> &runInfo,
             deltaCausalOrNext = s1Offset - s2Offset;
         } else if (attenMaskInfo.compressMode == static_cast<uint8_t>(AttenMaskCompressMode::RIGHT_DOWN_CAUSAL_MODE)) {
             deltaCausalOrNext = s1Offset - s2Offset - deltaN;
+            if constexpr (hasRope && (dTemplateType == DTemplateType::Aligned576) && isInfer) {
+                if (constInfo.layoutType == (uint32_t)LayOutTypeEnum::LAYOUT_BNSD) {
+                    deltaCausalOrNext = runInfo.nextTokensOfMlaPerBatch - s2Offset;
+                } else {
+                    if (runInfo.nextTokensPerBatch < 0) {
+                        s1Offset -= runInfo.nextTokensPerBatch;
+                    }
+                    deltaCausalOrNext = (s1Offset + runInfo.vecCoreOffset) / constInfo.gSize - s2Offset + 
+                        runInfo.nextTokensOfMlaPerBatch;
+                }
+            }
         } else if (attenMaskInfo.compressMode == static_cast<uint8_t>(AttenMaskCompressMode::BAND_MODE)) {
             if constexpr (isInfer) {
                 /* 推理的S1循环会跳过无效行，训练的不会；原因是推理在最开始存在无效行场景下会对
@@ -378,17 +389,23 @@ __aicore__ inline int64_t ComputeAttenMaskInnerOffset(RunInfo<isInfer> &runInfo,
             return 0;
         }
         GetAttenMaskComputeMode<hasAtten>(deltaCausalOrNext, deltaPre, s1Offset, runInfo, constInfo, attenMaskInfo);
-        int64_t ret = ComputeOffsetForCausal(deltaCausalOrNext, constInfo.s1BaseSize, constInfo.s2BaseSize,
-            attenMaskInfo.attenMaskS2Size, runInfo.vecCoreOffset);
+        int64_t ret = 0;
+        if constexpr (hasRope && (dTemplateType == DTemplateType::Aligned576)) {
+            ret = ComputeOffsetForCausal(deltaCausalOrNext, constInfo.s1BaseSize, constInfo.s2BaseSize,
+                attenMaskInfo.attenMaskS2Size, 0);
+        } else {
+            ret = ComputeOffsetForCausal(deltaCausalOrNext, constInfo.s1BaseSize, constInfo.s2BaseSize,
+                attenMaskInfo.attenMaskS2Size, runInfo.vecCoreOffset);
+        }
         return ret;
     }
 }
 
-template <bool hasAtten, bool isFd = false, bool hasRope = false, bool isInfer = false>
+template <bool hasAtten, bool isFd = false, bool hasRope = false, bool isInfer = false, DTemplateType dTemplateType = DTemplateType::Aligned128>
 __aicore__ inline int64_t ComputeAttenMaskOffset(RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo,
     AttenMaskInfo &attenMaskInfo)
 {
-    auto result = ComputeAttenMaskInnerOffset<hasAtten, hasRope, isInfer>(runInfo, constInfo, attenMaskInfo);
+    auto result = ComputeAttenMaskInnerOffset<hasAtten, hasRope, isInfer, dTemplateType>(runInfo, constInfo, attenMaskInfo);
     if constexpr (isFd) {
         result += runInfo.flashDecodeS2Idx * constInfo.sInnerLoopSize;
     }
@@ -461,6 +478,7 @@ __aicore__ inline void AttenMaskCopyIn(TQue<QuePosition::VECIN, 1> &attenMaskInQ
         return;
     }
 }
+
 }
 
 #endif // ATTENMASK_H

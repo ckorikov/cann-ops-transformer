@@ -2111,8 +2111,8 @@ bool PromptFlashAttentionTiling::CheckPAKeyValueParams(ContextParamsForPFATiling
 bool PromptFlashAttentionTiling::CheckPASparseMode(ContextParamsForPFATiling& contextKeyParams) {
     const int32_t* sparseMode = contextKeyParams.sparseMode;
     const gert::StorageShape* attenMaskShape = contextKeyParams.attentionMaskShape;
-    OP_CHECK_IF((sparseMode == nullptr) || (*sparseMode != SPARSE_MODE_NO_MASK && *sparseMode != SPARSE_MODE_RIGHT_DOWN),
-        OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName, "When Layout is TND/NTD_TND and PA enabled, sparseMode only support 0 or 3, but sparseMode = %d",
+    OP_CHECK_IF((sparseMode == nullptr) || (*sparseMode != SPARSE_MODE_NO_MASK && *sparseMode != SPARSE_MODE_RIGHT_DOWN && *sparseMode != SPARSE_MODE_BAND),
+        OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName, "When Layout is TND/NTD_TND and PA enabled, sparseMode only support 0 or 3 or 4, but sparseMode = %d",
         *sparseMode),
         return false);
     OP_CHECK_IF((*sparseMode == SPARSE_MODE_NO_MASK && attenMaskShape != nullptr),
@@ -3539,13 +3539,40 @@ void PromptFlashAttentionTiling::MatchTemplate(uint32_t valueD)
 
     s1BasicBlock = std::numeric_limits<int64_t>::max();
     s2BasicBlock = std::numeric_limits<int64_t>::max();
-    s1BasicBlockBest = (InputLayoutIsTNDLike() && (valueD == 128U)) ? 512L : 256L; // TND基本块设为(512, 512)
+    s1BasicBlockBest = (InputLayoutIsTNDLike() && (valueD <= D_SIZE_128)) ? 512L : 256L; // TND基本块设为(512, 512)
     s1BasicBlock = std::min(s1BasicBlockBest, alignedS1);
     s2BasicBlock = std::min(128L, alignedS2);
     s1VecBasicBlock = s1BasicBlock / AIV_AIC_NUM_RATIO;
-    nRatio = (InputLayoutIsTNDLike() && (valueD == 128U)) ? 4L : 8L; // TND基本块设为(512, 128*4)
+    nRatio = (InputLayoutIsTNDLike() && (valueD <= D_SIZE_128)) ? 4L : 8L; // TND基本块设为(512, 128*4)
     dBasicBlock = std::min(128L, alignedD);
     (void)CalcUBSize();
+}
+
+ge::graphStatus PromptFlashAttentionTiling::CheckLearnableSinkWhenLayoutIsTND(ContextParamsForPFATiling& contextKeyParams) {
+    const gert::StorageShape* queryShape = contextKeyParams.queryInputShape;
+    const gert::StorageShape* valueShape = contextKeyParams.valueInputShape;
+    int64_t queryN = GetNFromInputShape(QUERY_INDEX, queryShape);
+    int64_t valueD = GetDFromInputShape(VALUE_INDEX, valueShape);
+
+    if (contextKeyParams.hasLearnableSink == false) {
+        return ge::GRAPH_SUCCESS;
+    }
+
+    const gert::StorageShape* learnableSinkShape = contextKeyParams.learnableSinkShape;
+    OP_CHECK_IF(learnableSinkShape->GetStorageShape().GetDimNum() != DIM_NUM_1,
+        OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName, "learnable_sink enable, learnable_sink dim(%ld) must be 1!", learnableSinkShape->GetStorageShape().GetDimNum()),
+        return ge::GRAPH_FAILED);
+
+    int64_t sinkN = learnableSinkShape->GetStorageShape().GetDim(FIRST_DIM);
+    OP_CHECK_IF(sinkN != queryN,
+        OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName, "learnable_sink enable, sinkN shape(%ld) must be same equal queryN(%ld)!", sinkN, queryN),
+        return ge::GRAPH_FAILED);
+    // learnable sink场景，只支持valueD<=128的baseapi模板
+    OP_CHECK_IF(valueD != D_SIZE_128 && valueD != D_SIZE_64,
+        OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName, "When Layout is TND, learnable_sink only support valueD equal 64/128."),
+        return ge::GRAPH_FAILED);
+
+    return ge::GRAPH_SUCCESS;
 }
 
 ge::graphStatus PromptFlashAttentionTiling::CheckInputShapeWhenLayoutIsTND(ContextParamsForPFATiling& contextKeyParams) {
@@ -3672,14 +3699,18 @@ ge::graphStatus PromptFlashAttentionTiling::CheckInputShapeWhenLayoutIsTND(Conte
                    queryRopeD, keyRopeD, queryD, keyD, valueD), return ge::GRAPH_FAILED);
     } else {
         // QKD=192&&VD=192/128 || QKV D等长且等于128
-        OP_CHECK_IF(!(((queryD == D_SIZE_192) && (keyD == D_SIZE_192) && ((valueD == D_SIZE_192) || (valueD == D_SIZE_128))) || ((queryD == keyD) && (queryD == valueD) && (valueD == D_SIZE_128))),
-                   OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName, "When layout is %s, queryD(%ld), keyD(%ld) and valueD(%ld) must be same equal 192/128, or queryD and keyD equal 192 and valueD equal 128.",
+        OP_CHECK_IF(!(((queryD == D_SIZE_192) && (keyD == D_SIZE_192) && ((valueD == D_SIZE_192) || (valueD == D_SIZE_128))) || ((queryD == keyD) && (queryD == valueD) && (valueD == D_SIZE_128 || valueD == D_SIZE_64))),
+                   OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName, "When layout is %s, queryD(%ld), keyD(%ld) and valueD(%ld) must be same equal 192/128/64, or queryD and keyD equal 192 and valueD equal 128.",
                    layoutStr.c_str(), queryD, keyD, valueD), return ge::GRAPH_FAILED);
     }
     // G不等于1时，VD不能等于192
     OP_CHECK_IF((queryN / keyN != 1) && (valueD == D_SIZE_192),
                OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName, "When layout is %s, When G(%ld) not 1, valueD(%ld) should not be 192.", layoutStr.c_str(), queryN / keyN, valueD),
                return ge::GRAPH_FAILED);
+
+    if (CheckLearnableSinkWhenLayoutIsTND(contextKeyParams) != ge::GRAPH_SUCCESS) {
+        return ge::GRAPH_FAILED;
+    }
 
     OP_CHECK_IF(contextKeyParams.inputDataType != ge::DT_BF16,
                OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName, "When layout is %s, inputDataType should be bf16", layoutStr.c_str()),
@@ -3729,6 +3760,36 @@ ge::graphStatus PromptFlashAttentionTiling::CheckActSeqWhenLayoutIsTND(ContextPa
         }
         lastActSeq = curActSeq;
         lastActSeqKV = curActSeqKV;
+    }
+    return ge::GRAPH_SUCCESS;
+}
+
+ge::graphStatus PromptFlashAttentionTiling::CheckVarLenPreNextToken(ContextParamsForPFATiling& contextKeyParams,
+    int32_t sparseMode, int64_t sparsePreTokens, int64_t sparseNextTokens)
+{
+    // Band下不能出现：
+    // preToken < -q_s
+    // nextToken < -kv_s
+    // preToken + nextToken < 0
+    if (sparseMode != SPARSE_MODE_BAND) {
+        return ge::GRAPH_SUCCESS;
+    }
+
+    OP_CHECK_IF(sparsePreTokens + sparseNextTokens < 0,
+        OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName,
+            "The sum of preTokens[%ld] and nextTokens[%ld] must be greater than or equal to 0.",
+            sparsePreTokens, sparseNextTokens),
+        return ge::GRAPH_FAILED);
+
+    for (int64_t i = 0; i < bSize; ++i) {
+        if (actualSeqLenData[i] == 0 || actualSeqLenKvData[i] == 0) {
+            continue;
+        }
+        OP_CHECK_IF((sparsePreTokens + actualSeqLenData[i] < 0 || sparseNextTokens + actualSeqLenKvData[i] < 0),
+            OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName,
+                "Batch[%ld], actualSeqLen[%ld] + preTokens[%ld] must be greater than or equal to 0 and actualSeqLenKv[%ld] + nextTokens[%ld] must be greater than or equal to 0",
+                i, actualSeqLenData[i], sparsePreTokens, actualSeqLenKvData[i], sparseNextTokens),
+            return ge::GRAPH_FAILED);
     }
     return ge::GRAPH_SUCCESS;
 }
@@ -4733,12 +4794,17 @@ ge::graphStatus PromptFlashAttentionTiling::RunBigKernelTilingWithParams(Context
     // Add TND Template there
     if(InputLayoutIsTNDLike()) {
         // sparseMode Check
-        OP_CHECK_IF((sparseModeVal != SPARSE_MODE_NO_MASK && sparseModeVal != SPARSE_MODE_RIGHT_DOWN),
-            OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName, "When Layout is TND, sparseMode only support 0 or 3, but sparseMode = %d",
+        OP_CHECK_IF((sparseModeVal != SPARSE_MODE_NO_MASK && sparseModeVal != SPARSE_MODE_RIGHT_DOWN &&
+            sparseModeVal != SPARSE_MODE_BAND),
+            OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName,
+                "When Layout is TND, sparseMode only support 0,3 or 4, but sparseMode = %d",
             sparseModeVal),
             return ge::GRAPH_FAILED);
         OP_CHECK_IF((sparseModeVal == SPARSE_MODE_NO_MASK && attenMaskShape != nullptr),
-            OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName, "When Layout is TND, sparseMode = 0, not support attentionMask"),
+            OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName, "When Layout is TND, sparseMode = 0 not support attentionMask."),
+            return ge::GRAPH_FAILED);
+        OP_CHECK_IF((sparseModeVal == SPARSE_MODE_BAND && (valueD != D_SIZE_128 && valueD != D_SIZE_64)),
+            OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName, "When Layout is TND, sparseMode = 4 only support valueD equal 64/128."),
             return ge::GRAPH_FAILED);
 
         // TND流程
@@ -4774,6 +4840,7 @@ ge::graphStatus PromptFlashAttentionTiling::RunBigKernelTilingWithParams(Context
             inputParams.set_fromFused(1);
         }
         inputParams.set_isSoftMaxLseEnable(contextKeyParams.isSoftMaxLseEnable);
+        inputParams.set_hasLearnableSink(contextKeyParams.hasLearnableSink);
         SparseTypeEnum sparseType = SparseTypeEnum::ALL;
         if (sparseModeVal == SPARSE_MODE_ALL_MASK) {
             if (sparsePreTokens < s1Size - 1 || sparseNextTokens < s2Size - 1) {
@@ -4796,6 +4863,12 @@ ge::graphStatus PromptFlashAttentionTiling::RunBigKernelTilingWithParams(Context
             sparsePreTokens = s2Size;
             sparseNextTokens = 0;
             sparseType = SparseTypeEnum::RIGHT_DOWN_CAUSAL;
+        } else if (sparseModeVal == SPARSE_MODE_BAND) {
+            if (CheckVarLenPreNextToken(contextKeyParams, sparseModeVal, sparsePreTokens, sparseNextTokens) !=
+                ge::GRAPH_SUCCESS) {
+                return ge::GRAPH_FAILED;
+            }
+            sparseType = SparseTypeEnum::BAND;
         }
         inputParams.set_attenMaskDataType(1);
         inputParams.set_attenMaskShapeType(2);
@@ -4803,6 +4876,8 @@ ge::graphStatus PromptFlashAttentionTiling::RunBigKernelTilingWithParams(Context
         uint8_t attenMaskCompressMode = static_cast<uint8_t>(AttenMaskCompressMode::NO_COMPRESS_MODE);
         if (sparseModeVal == SPARSE_MODE_RIGHT_DOWN) {
             attenMaskCompressMode = static_cast<uint8_t>(AttenMaskCompressMode::RIGHT_DOWN_CAUSAL_MODE);
+        } else if (sparseModeVal == SPARSE_MODE_BAND) {
+            attenMaskCompressMode = static_cast<uint8_t>(AttenMaskCompressMode::BAND_MODE);
         }
         inputParams.set_attenMaskCompressMode(attenMaskCompressMode);
         inputParams.set_attenMaskS2Size(2048);
@@ -4836,9 +4911,26 @@ ge::graphStatus PromptFlashAttentionTiling::RunBigKernelTilingWithParams(Context
         coreParams.set_n2BaseTailSize(1);
         coreParams.set_n2OuterSize(n2Size);
 
-        coreParams.set_gBaseSize(1);
-        coreParams.set_gBaseTailSize(1);
-        coreParams.set_gOuterSize(gSize); // special
+        bool allSeqLenEqualOne = true;
+        for (auto i = 0; i < bSize; ++i) {
+            if (actualSeqLenData[i] != 1) {
+                allSeqLenEqualOne = false;
+                break;
+            }
+        }
+
+        bool hasRope = ((contextKeyParams.queryRope != nullptr) || (contextKeyParams.keyRope != nullptr));
+        bool hasLse = contextKeyParamsPtr->isSoftMaxLseEnable;
+        constexpr int64_t G_SIZE_THRESHOLD = 16;
+        if (allSeqLenEqualOne && gSize <= G_SIZE_THRESHOLD && !hasRope && !hasLse) {
+            coreParams.set_gBaseSize(gSize);
+            coreParams.set_gBaseTailSize(gSize);
+            coreParams.set_gOuterSize(1);
+        } else {
+            coreParams.set_gBaseSize(1);
+            coreParams.set_gBaseTailSize(1);
+            coreParams.set_gOuterSize(gSize);
+        }
         
         s1SparseValidSize = sparsePreTokens;
         s2SparseValidSize = sparseNextTokens;
@@ -4865,7 +4957,7 @@ ge::graphStatus PromptFlashAttentionTiling::RunBigKernelTilingWithParams(Context
                                              4 * coreParams.get_s1BaseSize() * alignedD * softmaxDataTypeSize) *
                                              aicNum) + WORK_SPACE_RESERVE_SIZE;
         mlaRunFlag_ = true;
-        if (valueD == 128U) { // valueD = 128 && base api
+        if (valueD <= D_SIZE_128) { // valueD <= 128 && base api
             if (attenMaskShape == nullptr) {
                 tilingKey = BENCHMARK_TILING_KEY_3;
             } else {

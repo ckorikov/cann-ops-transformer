@@ -50,6 +50,7 @@ namespace {
         static constexpr uint32_t nidx = 0;
         uint64_t actS1Size = 1;
         bool isValid = false;
+        bool isLastTask = false;
     };
 
     struct TransposeInfo {
@@ -2792,7 +2793,7 @@ IncreFlashAttentionAttenPreloadMla<IFAT>::DealQuantBmm2ResBaseBlock(const ExtraI
 
     // 除第一个循环外，均需要更新中间计算结果
     if (!info.isFirstSInnerLoop) {
-        if ((info.bn2IdxInCurCore == bn2LoopTimes - 1) && (info.s2Idx + 1 == info.curSInnerLoopTimes)) {
+        if (info.isLastTask) {
             event_t eventIdMte2WaitMte3 = static_cast<event_t>(GetTPipePtr()->FetchEventID(HardEvent::MTE3_MTE2));
             SetFlag<HardEvent::MTE3_MTE2>(eventIdMte2WaitMte3);
             WaitFlag<HardEvent::MTE3_MTE2>(eventIdMte2WaitMte3);
@@ -3127,6 +3128,7 @@ __aicore__ inline void IncreFlashAttentionAttenPreloadMla<IFAT>::CalcParams(uint
     info.isBmm2Output = false;
     info.actS1Size = task.actS1Size;
     info.isValid = task.isValid;
+    info.isLastTask = task.isLastTask;
 
     if constexpr (ANTIQUANT) {
         info.isBmm2Output = false;
@@ -3467,6 +3469,7 @@ __aicore__ inline void IncreFlashAttentionAttenPreloadMla<IFAT>::ProcessBalance(
                     ctx.actS1Size = actS1Size;
                     ctx.isValid = (s2Idx <= tmpS2LoopEnd);
                     bool isLast = isEnd && (s2Idx == s2End);
+                    ctx.isLastTask = isLast;
 
                     // PreloadPipeline loop初始值要求为PRE_LOAD_NUM_MLA
                     PreloadPipeline(gloop + PRE_LOAD_NUM_MLA, extraInfo, ctx);
@@ -3535,6 +3538,7 @@ __aicore__ inline void IncreFlashAttentionAttenPreloadMla<IFAT>::ProcessBXXD()
             ctx.isValid = (sInnerLoopIdx < sInnerLoopTimes);
 
             bool isLast = isOuterLoopLast && (sInnerLoopIdx == sInnerLoopTimes - 1);
+            ctx.isLastTask = isLast;
 
             if constexpr (ANTIQUANT || QUANT) {
                 // PreloadPipeline loop初始值要求为PRE_LOAD_NUM_MLA

@@ -503,6 +503,11 @@ public:
             .DataTypeList({ge::DT_FLOAT})
             .FormatList({ge::FORMAT_ND})
             .AutoContiguous();
+        this->Input("learnable_sink")
+            .ParamType(OPTIONAL)
+            .DataTypeList({ge::DT_BF16})
+            .FormatList({ge::FORMAT_ND})
+            .AutoContiguous();
         this->Output("attention_out")
             .ParamType(REQUIRED)
             .DataType({ge::DT_FLOAT16, ge::DT_FLOAT16, ge::DT_BF16,    ge::DT_INT8,    ge::DT_FLOAT16, ge::DT_FLOAT16,

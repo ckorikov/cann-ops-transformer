@@ -37,6 +37,7 @@ constexpr uint32_t DIM_1 = 1;
 constexpr uint32_t DIM_2 = 2;
 constexpr uint32_t DIM_3 = 3;
 constexpr uint32_t DIM_4 = 4;
+constexpr size_t DIM_NUM_1 = 1;
 constexpr size_t DIM_NUM_3 = 3;
 constexpr size_t DIM_NUM_4 = 4;
 constexpr size_t DIM_NUM_5 = 5;

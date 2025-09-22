@@ -115,9 +115,9 @@ __aicore__ inline void CopyInMaxSum(FagConstInfo &constInfo, FagRunInfo &runInfo
     }
     LocalTensor<T2> maxSumTensor = maxSumInQue.AllocTensor<T2>();
     DataCopyPad(maxSumTensor, sumGm[maxSumGmOffset],
-                {1, static_cast<uint16_t>(VECTOR_BASEM * MAX_SUM_REDUCE_AXIS_SIZE), 0, 0}, {false, 0, 0, 0});
+                {1, static_cast<uint16_t>(runInfo.commonRunInfo.halfS1RealSize * MAX_SUM_REDUCE_AXIS_SIZE), 0, 0}, {false, 0, 0, 0});
     DataCopyPad(maxSumTensor[VECTOR_BASEM * MAX_SUM_REDUCE_AXIS_SIZE / sizeof(T2)], maxGm[maxSumGmOffset],
-                {1, static_cast<uint16_t>(VECTOR_BASEM * MAX_SUM_REDUCE_AXIS_SIZE), 0, 0}, {false, 0, 0, 0});
+                {1, static_cast<uint16_t>(runInfo.commonRunInfo.halfS1RealSize * MAX_SUM_REDUCE_AXIS_SIZE), 0, 0}, {false, 0, 0, 0});
     maxSumInQue.EnQue(maxSumTensor);
 }
 

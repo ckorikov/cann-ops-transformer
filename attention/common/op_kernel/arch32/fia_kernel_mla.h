@@ -264,7 +264,7 @@ protected:
     __aicore__ inline void UpdateInnerLoopCond();
     __aicore__ inline void DealActSeqLenIsZero(uint32_t bIdx, uint32_t n2Idx);
     __aicore__ inline void CalcParams(uint32_t loop, uint64_t s2Start, uint32_t s2LoopIdx, AttentionCommon::RunInfo &info);
-    __aicore__ inline void GetAxisStartIdx(uint32_t bN2EndPrev, uint32_t gS1EndPrev, uint32_t s2EndPrev);
+    __aicore__ inline void GetAxisEndIdx(uint32_t bN2End, uint32_t s1GEnd, uint32_t s2End);
     __aicore__ inline uint64_t GetBalanceActualSeqLengths(GlobalTensor<uint64_t> &actualSeqLengths, uint32_t bIdx);
     __aicore__ inline uint32_t GetActualSeqLenKV(uint32_t bIdx);
     __aicore__ inline uint64_t GetTNDBatchOffset(int bIdx);
@@ -488,6 +488,10 @@ template <typename IFAT>
 __aicore__ inline void FusedIncreFlashAttentionAttenPreloadMla<IFAT>::UpdateInnerNum(uint32_t &s2End, uint32_t actS1Size,
                                                                                      uint32_t actS2Size, uint32_t s1Idx)
 {
+    if (actS2Size == 0) {
+        s2End = 1;
+        return;
+    }
     if (!constInfo.slidingFlag) {
         s2End = (actS2Size + constInfo.s2BaseSize - 1) / constInfo.s2BaseSize;
         return;
@@ -763,12 +767,12 @@ template <typename IFAT> __aicore__ inline void FusedIncreFlashAttentionAttenPre
                       (uint8_t *)(tilingData->fdParams.s2SplitStartIdxOfCore), sizeof(s2SplitStartIdxOfCore));
 #endif
     // TND分核信息
-    constInfo.bN2End = bN2End[aiCoreIdx];
-    constInfo.gS1End = gS1End[aiCoreIdx];
-    constInfo.s2End = s2End[aiCoreIdx];
     if (aiCoreIdx != 0) {
-        GetAxisStartIdx(bN2End[aiCoreIdx - 1], gS1End[aiCoreIdx - 1], s2End[aiCoreIdx - 1]);
+        constInfo.bN2Start = bN2End[aiCoreIdx - 1];
+        constInfo.gS1Start = gS1End[aiCoreIdx - 1];
+        constInfo.s2Start = s2End[aiCoreIdx - 1];
     }
+    GetAxisEndIdx(bN2End[aiCoreIdx], gS1End[aiCoreIdx], s2End[aiCoreIdx]);
 
     constInfo.coreStartKVSplitPos = s2SplitStartIdxOfCore[aiCoreIdx];
 }
@@ -1156,32 +1160,34 @@ FusedIncreFlashAttentionAttenPreloadMla<IFAT>::GetBalanceActualSeqLengths(Global
 }
 
 template <typename IFAT>
-__aicore__ inline void FusedIncreFlashAttentionAttenPreloadMla<IFAT>::GetAxisStartIdx(uint32_t bN2EndPrev,
-                                                                                      uint32_t s1GEndPrev,
-                                                                                      uint32_t s2EndPrev)
+__aicore__ inline void FusedIncreFlashAttentionAttenPreloadMla<IFAT>::GetAxisEndIdx(uint32_t bN2End, uint32_t s1GEnd,
+                                                                                    uint32_t s2End)
 {
-    uint32_t bEndPrev = bN2EndPrev / kvHeadNum; // constInfo.kvHeadNum
-    uint32_t actualSeqQPrev = GetBalanceActualSeqLengths(actualSeqLengthsGmQ, bEndPrev);
-    uint32_t actualSeqKVPrev = GetActualSeqLenKV(bEndPrev);
-    uint32_t s1GPrevBaseNum = (actualSeqQPrev * constInfo.gSize + constInfo.mBaseSize - 1) / constInfo.mBaseSize;
-    uint32_t s2PrevBaseNum = 0;
-    UpdateInnerNum(s2PrevBaseNum, actualSeqQPrev, actualSeqKVPrev, s1GEndPrev);
-    if (actualSeqQPrev == 0 || actualSeqKVPrev == 0) {
-        s2PrevBaseNum = 1;
-        s1GPrevBaseNum = 1;
+    constInfo.bN2End = bN2End;
+    if (s1GEnd == 0 && s2End == 0) {
+        constInfo.bN2End = bN2End - 1;
     }
-    constInfo.bN2Start = bN2EndPrev;
-    constInfo.gS1Start = s1GEndPrev;
-    if (s2EndPrev >= s2PrevBaseNum - 1) { // 上个核把S2处理完了
-        constInfo.s2Start = 0;
-        if (s1GEndPrev >= s1GPrevBaseNum - 1) { // 上个核把S1G处理完了
-            constInfo.gS1Start = 0;
-            constInfo.bN2Start++;
-        } else {
-            constInfo.gS1Start++;
+    if (s2End > 0) {
+        constInfo.gS1End = s1GEnd;  
+        constInfo.s2End = s2End - 1;
+        return;  
+    }
+
+    uint32_t bEnd = constInfo.bN2End / kvHeadNum;
+    uint32_t actualSeqQ = GetBalanceActualSeqLengths(actualSeqLengthsGmQ, bEnd);
+    uint32_t actualSeqKV = GetActualSeqLenKV(bEnd);
+    uint32_t s2BaseNum = 0;
+    if (s1GEnd > 0) {
+        constInfo.gS1End = s1GEnd - 1;  
+    } else {
+        uint32_t s1GBaseNum = (actualSeqQ * constInfo.gSize + constInfo.mBaseSize - 1) / constInfo.mBaseSize;
+        if (actualSeqQ == 0) {
+            s1GBaseNum = 1;
+            s2BaseNum = 1;
         }
-    } else { // 上个核没有把S2处理完，只需要更新s2Start，其他与上个核保持一致
-        constInfo.s2Start = s2EndPrev + 1;
-    }
+        constInfo.gS1End = s1GBaseNum - 1;
+    } 
+    UpdateInnerNum(s2BaseNum, actualSeqQ, actualSeqKV, constInfo.gS1End); 
+    constInfo.s2End = s2BaseNum - 1;
 }
 #endif // FIA_KERNEL_MLA_H

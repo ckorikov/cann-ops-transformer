@@ -48,7 +48,6 @@ struct PseInfo {
     uint32_t pseStride;
     int64_t qStartIdx;
     int64_t kvStartIdx;
-    bool align8 = false;
 };
 
 template <typename INPUT_T, bool hasPse>
@@ -211,13 +210,8 @@ __aicore__ inline void PseAlibiCopyIn(LocalTensor<INPUT_T> &dstTensor, GlobalTen
         }
         int64_t offset = PseAlibiComputeOffset<hasPse>(runInfo, constInfo, pseInfo);
         if constexpr (IsSameType<INPUT_T, T>::value) {
-            if (!pseInfo.align8){
-                DataCopyIn<INPUT_T, hasPse>(dstTensor, srcTensor, offset, runInfo.halfS1RealSize, pseInfo.readS2Size,
-                                            constInfo.s2BaseSize, pseInfo.pseS2Size);
-            } else {
-                DataCopyInAlign8<INPUT_T, hasPse>(dstTensor, srcTensor, offset, runInfo.halfS1RealSize,
-                        pseInfo.readS2Size, pseInfo.pseS2Size);
-            }
+            DataCopyIn<INPUT_T, hasPse>(dstTensor, srcTensor, offset, runInfo.halfS1RealSize, pseInfo.readS2Size,
+                                        constInfo.s2BaseSize, pseInfo.pseS2Size);
             return;
         }
 
@@ -239,18 +233,13 @@ __aicore__ inline void PseCopyIn(LocalTensor<INPUT_T> &dstTensor, GlobalTensor<I
         int64_t s1Size = pseInfo.pseLayoutType == pse1S2 ? 1 : runInfo.halfS1RealSize;
         int64_t pseS2Size;
         if constexpr (isInfer) {
-            pseS2Size = constInfo.s2Size;
+            pseS2Size = pseInfo.pseS2Size;
         } else {
             pseS2Size = runInfo.actualS2Size;
         }
         if constexpr (IsSameType<INPUT_T, T>::value) {
-            if (!pseInfo.align8){
-                DataCopyIn<INPUT_T, hasPse>(dstTensor, srcTensor, offset, s1Size, runInfo.s2RealSize,
-                                            constInfo.s2BaseSize, pseS2Size);
-            } else {
-                DataCopyInAlign8<INPUT_T, hasPse>(dstTensor, srcTensor, offset, s1Size, runInfo.s2RealSize,
-                                                  pseS2Size);
-            }
+            DataCopyIn<INPUT_T, hasPse>(dstTensor, srcTensor, offset, s1Size, runInfo.s2RealSize,
+                                        constInfo.s2BaseSize, pseS2Size);
             return;
         }
         DataCopyIn<INPUT_T, hasPse>(dstTensor, srcTensor, offset, s1Size, runInfo.s2RealSize, constInfo.s2BaseSize,
@@ -274,18 +263,13 @@ __aicore__ inline void PseCopyIn(TQue<QuePosition::VECIN, 1> &pseInQue, GlobalTe
         int64_t s1Size = pseInfo.pseLayoutType == pse1S2 ? 1 : runInfo.halfS1RealSize;
         int64_t pseS2Size;
         if constexpr (isInfer) {
-            pseS2Size = constInfo.s2Size;
+            pseS2Size = pseInfo.pseS2Size;
         } else {
             pseS2Size = runInfo.actualS2Size;
         }
         if constexpr (IsSameType<INPUT_T, T>::value) {
-            if (!pseInfo.align8){
-                DataCopyIn<INPUT_T, hasPse>(pseUb, srcTensor, offset, s1Size, runInfo.s2RealSize, constInfo.s2BaseSize,
-                                            pseS2Size);
-            } else {
-                DataCopyInAlign8<INPUT_T, hasPse>(pseUb, srcTensor, offset, s1Size, runInfo.s2RealSize,
-                                                  pseS2Size);
-            }
+            DataCopyIn<INPUT_T, hasPse>(pseUb, srcTensor, offset, s1Size, runInfo.s2RealSize, constInfo.s2BaseSize,
+                                        pseS2Size);
             pseInQue.template EnQue(pseUb);
             return;
         }
@@ -316,6 +300,10 @@ __aicore__ inline void ComputeInnerPseOffset(float &slopes, float &posShift, Run
         slopes = ((__gm__ T *)pseSlope)[offset] * -1;
         int64_t s1Offset = runInfo.s1oIdx * constInfo.s1BaseSize + runInfo.vecCoreOffset;
         int64_t s2Offset = runInfo.s2StartIdx + runInfo.s2LoopCount * constInfo.s2BaseSize;
+        if constexpr (isInfer) {
+            s1Offset += (runInfo.nextTokensPerBatch < 0) ? -runInfo.nextTokensPerBatch : 0;
+            s2Offset = runInfo.s2LoopCount * constInfo.s2BaseSize;
+        }
         posShift = float(s2Offset + pseInfo.kvStartIdx - s1Offset - pseInfo.qStartIdx);
         return;
     }

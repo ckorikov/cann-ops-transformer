@@ -36,7 +36,7 @@ public:
 
     __aicore__ inline void
     UnpackInit(__gm__ uint8_t *query, __gm__ uint8_t *key, __gm__ uint8_t *value, __gm__ uint8_t *attenMask,
-               __gm__ uint8_t *actualSeqLengths, __gm__ uint8_t *actualSeqLengthsKv, __gm__ uint8_t *queryRope, __gm__ uint8_t *keyRope, __gm__ uint8_t *blockTable,
+               __gm__ uint8_t *actualSeqLengths, __gm__ uint8_t *actualSeqLengthsKv, __gm__ uint8_t *queryRope, __gm__ uint8_t *keyRope, __gm__ uint8_t *blockTable, __gm__ uint8_t* learnableSink,
                __gm__ uint8_t *attentionOut, __gm__ uint8_t *softmaxLse, __gm__ uint8_t *workspace, const TILING_TYPE *__restrict tiling, TPipe *tPipe);
 
     __aicore__ inline void Process();
@@ -82,10 +82,10 @@ template <typename TILING_TYPE, ImplModeEnum implMode, LayOutTypeEnum layOutType
 __aicore__ inline void PromptFlashAttentionVarLenScoreSameABBaseApi<TILING_TYPE, implMode, layOutType, hasAtten, INPUT_T, T,
                                                         bmm1Format, mmPolicyType, pageAttention>::UnpackInit(
     __gm__ uint8_t *query, __gm__ uint8_t *key, __gm__ uint8_t *value, __gm__ uint8_t *attenMask, __gm__ uint8_t *actualSeqLengths,
-    __gm__ uint8_t *actualSeqLengthsKv, __gm__ uint8_t *queryRope, __gm__ uint8_t *keyRope, __gm__ uint8_t *blockTable, __gm__ uint8_t *attentionOut, 
+    __gm__ uint8_t *actualSeqLengthsKv, __gm__ uint8_t *queryRope, __gm__ uint8_t *keyRope, __gm__ uint8_t *blockTable, __gm__ uint8_t* learnableSink, __gm__ uint8_t *attentionOut, 
     __gm__ uint8_t *softmaxLse, __gm__ uint8_t *workspace, const TILING_TYPE *__restrict tiling, TPipe *tPipe)
 {
-    this->InitInput(query, key, value, queryRope, keyRope, attenMask, blockTable, attentionOut, softmaxLse, workspace, tiling, tPipe); // gm设置
+    this->InitInput(query, key, value, queryRope, keyRope, attenMask, blockTable, learnableSink, attentionOut, softmaxLse, workspace, tiling, tPipe); // gm设置
     this->ComputeConstexpr();
     qListGm.SetGlobalBuffer((__gm__ int64_t *)actualSeqLengths);
     kvListGm.SetGlobalBuffer((__gm__ int64_t *)actualSeqLengthsKv);
@@ -148,6 +148,11 @@ __aicore__ inline void PromptFlashAttentionVarLenScoreSameABBaseApi<TILING_TYPE,
     this->n2D = this->tilingData->PFAinputParams.n2Size * this->dSize;
     this->n2G = this->tilingData->PFAinputParams.n2Size * this->tilingData->PFAinputParams.gSize;
     this->n2GD = this->tilingData->PFAinputParams.n2Size * this->gD;
+    this->n2GOuterSize = this->tilingData->PFAinputParams.n2Size * this->tilingData->PFAcoreParams.gOuterSize;
+    this->gBaseSize = this->tilingData->PFAcoreParams.gBaseSize;
+    if (unlikely(this->gBaseSize > 1)) {
+        this->notSplitG = true;
+    }
     this->gD2 = this->tilingData->PFAinputParams.gSize * this->valueDSize;
     this->n2D2 = this->tilingData->PFAinputParams.n2Size * this->valueDSize;
     this->n2GD2 = this->tilingData->PFAinputParams.n2Size * this->gD2;
@@ -288,7 +293,7 @@ __aicore__ inline void PromptFlashAttentionVarLenScoreSameABBaseApi<TILING_TYPE,
     int64_t actualS2Len;
     for (int64_t i = 0; i < this->tilingData->PFAinputParams.bSize; i++) {
         GetSeqQlenKvlenByBoidx(i, actualS1Len, actualS2Len);
-        actualS1Outersize += (CeilDiv(actualS1Len, this->cubeS1BaseSize) * this->n2G);
+        actualS1Outersize += (CeilDiv(actualS1Len, this->cubeS1BaseSize) * this->n2GOuterSize);
         if (offset >= actualS1Outersize) {
             this->s1OuterSizeAcc = actualS1Outersize;
             this->s1SizeAcc += actualS1Len;
@@ -310,7 +315,7 @@ __aicore__ inline void PromptFlashAttentionVarLenScoreSameABBaseApi<TILING_TYPE,
     int64_t actualS1Len;
     int64_t actualS2Len;
     GetSeqQlenKvlenByBoidx(this->boIdx, actualS1Len, actualS2Len);
-    int64_t actualS1Outersize = this->s1OuterSizeAcc + (CeilDiv(actualS1Len, this->cubeS1BaseSize) * this->n2G);
+    int64_t actualS1Outersize = this->s1OuterSizeAcc + (CeilDiv(actualS1Len, this->cubeS1BaseSize) * this->n2GOuterSize);
     while (multiCoreInnerIdx >= actualS1Outersize) {
         this->s1OuterSizeAcc = actualS1Outersize;
         this->s1SizeAcc += actualS1Len;
@@ -318,13 +323,13 @@ __aicore__ inline void PromptFlashAttentionVarLenScoreSameABBaseApi<TILING_TYPE,
         this->attenB1SSOffset += actualS1Len * actualS2Len;
         this->boIdx++;
         GetSeqQlenKvlenByBoidx(this->boIdx, actualS1Len, actualS2Len);
-        actualS1Outersize = this->s1OuterSizeAcc + (CeilDiv(actualS1Len, this->cubeS1BaseSize) * this->n2G);
+        actualS1Outersize = this->s1OuterSizeAcc + (CeilDiv(actualS1Len, this->cubeS1BaseSize) * this->n2GOuterSize);
     }
     // 计算轴的idx
     int64_t tmpS1Outersize = CeilDiv(actualS1Len, this->cubeS1BaseSize);
     actualS1Outersize = multiCoreInnerIdx - this->s1OuterSizeAcc;
-    this->n2oIdx = actualS1Outersize / tmpS1Outersize / this->tilingData->PFAinputParams.gSize;
-    this->goIdx = actualS1Outersize / tmpS1Outersize % this->tilingData->PFAinputParams.gSize;
+    this->n2oIdx = actualS1Outersize / tmpS1Outersize / this->tilingData->PFAcoreParams.gOuterSize;
+    this->goIdx = actualS1Outersize / tmpS1Outersize % this->tilingData->PFAcoreParams.gOuterSize;
     this->s1oIdx = actualS1Outersize % tmpS1Outersize;
     GetSeqQlenKvlenByBoidx(this->boIdx, this->s1Size, this->s2Size);
 }
@@ -344,14 +349,21 @@ __aicore__ inline void PromptFlashAttentionVarLenScoreSameABBaseApi<TILING_TYPE,
         this->s2StartIdx = 0;
         this->s2EndIdx = Min((this->s1oIdx + 1) * this->cubeS1BaseSize + actualS2Len - actualS1Len, actualS2Len);
     } else if (this->tilingData->PFAinputParams.sparseType == static_cast<uint8_t>(SparseModeEnum::BAND)) {
-        this->s2StartIdx = Max(
-            this->s1oIdx * this->cubeS1BaseSize - this->tilingData->PFAcoreParams.s1SparseValidSize, 0);
-        this->s2EndIdx =
-            Min((this->s1oIdx + 1) * this->cubeS1BaseSize + this->tilingData->PFAcoreParams.s2SparseValidSize, actualS2Len);
+        int64_t s1SparseValidSize = this->tilingData->PFAcoreParams.s1SparseValidSize + actualS1Len - actualS2Len;
+        int64_t s2SparseValidSize = this->tilingData->PFAcoreParams.s2SparseValidSize - actualS1Len + actualS2Len;
+        this->s2StartIdx = Max(this->s1oIdx * this->cubeS1BaseSize - s1SparseValidSize, 0);
+        this->s2EndIdx = Min((this->s1oIdx + 1) * this->cubeS1BaseSize + s2SparseValidSize, actualS2Len);
         // s1baseSize行都无效时，需要将startIdx设置为0，,endIdx设置为S2realSize
         if (this->s2EndIdx - this->s2StartIdx <= 0) {
             this->s2StartIdx = 0;
             this->s2EndIdx = actualS2Len;
+        }
+
+        if ((layOutType == LayOutTypeEnum::LAYOUT_TND) || (layOutType == LayOutTypeEnum::LAYOUT_NTD_TND)) {
+            // preTonke < 0 或者 nextToken < q_s - kv_s 则为 sparseMode4的行无效场景，设置行无效标记
+            if ((this->tilingData->PFAinputParams.preTokens < 0) || (this->tilingData->PFAinputParams.nextTokens < actualS1Len - actualS2Len)) {
+                this->hasSparse4InvalidLine = true;
+            }
         }
     } else if (this->tilingData->PFAinputParams.sparseType == static_cast<uint8_t>(SparseModeEnum::BAND_COMPRESS)) {
         this->s2StartIdx = Max(this->s1oIdx * this->cubeS1BaseSize - actualS1Len +
@@ -571,6 +583,7 @@ __aicore__ inline void PromptFlashAttentionVarLenScoreSameABBaseApi<TILING_TYPE,
 
     GetSeqQlenKvlenByBoidx(extraInfo.boIdx, extraInfo.s1Size, extraInfo.s2Size);
     extraInfo.cubeS1RealSize = Min(this->cubeS1BaseSize, extraInfo.s1Size - extraInfo.s1oIdx * this->cubeS1BaseSize);
+    extraInfo.gBaseSize = this->gBaseSize;
     this->ComputeBmm1Tail(extraInfo);
 
     extraInfo.qCoreOffset = this->CalcBmm1TensorAGmOffset(extraInfo);
@@ -663,6 +676,7 @@ __aicore__ inline void PromptFlashAttentionVarLenScoreSameABBaseApi<TILING_TYPE,
     extraInfo.s1Size = srcInfo.s1Size;
     extraInfo.s2Size = srcInfo.s2Size;
     extraInfo.vecCoreOffset = srcInfo.vecCoreOffset;
+    extraInfo.gBaseSize = srcInfo.gBaseSize;
 }
 
 template <typename TILING_TYPE, ImplModeEnum implMode, LayOutTypeEnum layOutType, bool hasAtten, typename INPUT_T, typename T,
@@ -671,7 +685,7 @@ __aicore__ inline void PromptFlashAttentionVarLenScoreSameABBaseApi<TILING_TYPE,
                                                         bmm1Format, mmPolicyType, pageAttention>::ComputeBmm1Tail(SplitSameABExtraInfo &extraInfo)
 {
     extraInfo.s1RealSize = (extraInfo.cubeS1RealSize + 1) / 2;
-    extraInfo.vecCoreOffset = this->cubeSubIdx * extraInfo.s1RealSize;
+    extraInfo.vecCoreOffset = this->cubeSubIdx * extraInfo.s1RealSize * extraInfo.gBaseSize;
     if (this->cubeSubIdx == 1) {
         extraInfo.s1RealSize = extraInfo.cubeS1RealSize - extraInfo.s1RealSize;
     }
@@ -703,17 +717,17 @@ __aicore__ inline void PromptFlashAttentionVarLenScoreSameABBaseApi<TILING_TYPE,
     // In scenes where s2 is less than 8, when traversing s1basesize for computation, there is a memory issue.
     // Therefore, it's changed to compute once
     if (unlikely(extraInfo.s2RealSize < fp32BaseSize)) {
-        extraInfo.vec1S1BaseSize = Min(1024 / extraInfo.s2RealSizeAlign64 * 8, extraInfo.s1RealSize); // Maximize the ub
-        extraInfo.realSplitN = CeilDiv(extraInfo.s1RealSize, extraInfo.vec1S1BaseSize);
+        extraInfo.vec1S1BaseSize = Min(1024 / extraInfo.s2RealSizeAlign64 * 8, extraInfo.s1RealSize * this->gBaseSize); // Maximize the ub
+        extraInfo.realSplitN = CeilDiv(extraInfo.s1RealSize * this->gBaseSize, extraInfo.vec1S1BaseSize);
     } else {
-        extraInfo.vec1S1BaseSize = Min(1024 / extraInfo.s2RealSizeAlign64 * 8, extraInfo.s1RealSize); // Maximize the ub
-        extraInfo.realSplitN = CeilDiv(extraInfo.s1RealSize, extraInfo.vec1S1BaseSize);
+        extraInfo.vec1S1BaseSize = Min(1024 / extraInfo.s2RealSizeAlign64 * 8, extraInfo.s1RealSize * this->gBaseSize); // Maximize the ub
+        extraInfo.realSplitN = CeilDiv(extraInfo.s1RealSize * this->gBaseSize, extraInfo.vec1S1BaseSize);
     }
 
-    if (this->valueDSizeAlign16 > 64) {
-        extraInfo.vec2S1BaseSize = STAGE2_TBUF_SIZE / this->valueDSizeAlign16;
+    if (unlikely(this->notSplitG)) {
+        extraInfo.vec2S1BaseSize = extraInfo.s1RealSize;
     } else {
-        extraInfo.vec2S1BaseSize = Min(128, extraInfo.s1RealSize);
+        extraInfo.vec2S1BaseSize = STAGE2_TBUF_SIZE / this->valueDSizeAlign16;   // 32 * 128 / 64 = 64
     }
     extraInfo.needNz2Nd = (BMM1_OUT_ISFIXED_ND || (extraInfo.s2RealSize % 64 == 0)) ? 0 : 1;
     return;

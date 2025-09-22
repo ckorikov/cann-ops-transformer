@@ -106,7 +106,7 @@
     do {                                                                                                                \
         INVOKE_PFA_NO_KFC_TILING_DATA_MLA(tiling);                                                                             \
         templateClass<__VA_ARGS__> op;                                                                                  \
-        op.UnpackInit(query, key, value, attenMask, actualSeqLengths, actualSeqLengthsKV, queryRope, keyRope, blocktable, \
+        op.UnpackInit(query, key, value, attenMask, actualSeqLengths, actualSeqLengthsKV, queryRope, keyRope, blocktable, learnableSink, \
                      attentionOut, softmaxLse, user, tilingData, &tPipe);                                               \
         op.Process();                                                                                                   \
     } while (0)
@@ -191,7 +191,7 @@ extern "C" __global__ __aicore__ void prompt_flash_attention_FIAS(__gm__ uint8_t
                                                              __gm__ uint8_t* key_antiquant_scale, __gm__ uint8_t* key_antiquant_offset,
                                                              __gm__ uint8_t* value_antiquant_scale, __gm__ uint8_t* value_antiquant_offset,
                                                              __gm__ uint8_t* keySharedPrefix, __gm__ uint8_t* valueSharedPrefix, __gm__ uint8_t* actualSharedPrefixLen,
-                                                             __gm__ uint8_t * queryRope, __gm__ uint8_t * keyRope,
+                                                             __gm__ uint8_t * queryRope, __gm__ uint8_t * keyRope, __gm__ uint8_t* learnableSink,
                                                              __gm__ uint8_t *attentionOut, __gm__ uint8_t *softmaxLse,
                                                              __gm__ uint8_t* workspace, __gm__ uint8_t* tiling)
 {
@@ -860,5 +860,5 @@ extern "C" __global__ __aicore__ void prompt_flash_attention(__gm__ uint8_t* que
                                                              __gm__ uint8_t* workspace, __gm__ uint8_t* tiling)
 {
     prompt_flash_attention_FIAS(query, key, value, pseShift, attenMask, actualSeqLengths, actualSeqLengthsKV, deq_scale1, quant_scale1, deq_scale2, quant_scale2,
-                                quant_offset2, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, attentionOut, nullptr, workspace, tiling);
+                                quant_offset2, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, attentionOut, nullptr, workspace, tiling);
 }

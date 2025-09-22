@@ -45,6 +45,7 @@ struct ContextParamsForPFATiling {
     const gert::Tensor *keySharedPrefix = nullptr;
     const gert::Tensor *valueSharedPrefix = nullptr;
     const gert::Tensor *actualSharedPrefixLen = nullptr;
+    const gert::Tensor *learnableSink = nullptr;
 
     const gert::Tensor *KeyAntiquantScale = nullptr;
     const gert::Tensor *valueAntiquantScale = nullptr;
@@ -88,6 +89,7 @@ struct ContextParamsForPFATiling {
     const gert::StorageShape *valueAntiquantOffsetShape = nullptr;
     const gert::StorageShape *queryRope = nullptr;
     const gert::StorageShape *keyRope = nullptr;
+    const gert::StorageShape *learnableSinkShape = nullptr;
     ge::DataType KeyAntiquantScaleType = ge::DataType::DT_FLOAT16;
     ge::DataType valueAntiquantScaleType = ge::DataType::DT_FLOAT16;
     ge::DataType KeyAntiquantOffsetType = ge::DataType::DT_FLOAT16;
@@ -125,6 +127,7 @@ struct ContextParamsForPFATiling {
     const int64_t *keyAntiquantMode = nullptr;
     const int64_t *valueAntiquantMode = nullptr;
     bool hasKeyAntiquantOffset = 0;
+    bool hasLearnableSink = 0;
 };
 
 } // namespace optiling

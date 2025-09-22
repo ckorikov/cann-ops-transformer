@@ -55,6 +55,8 @@ static const int64_t s2sizeLimitMin = 1024;
 static const int64_t SAMEAB_D_LIMIT_128 = 128L;
 static const int64_t SAMEAB_D_LIMIT_196 = 196L;
 
+static const int64_t MAX_VAR_LEN_SEQ_LEN = 20000;
+
 struct AxesInfo {
     int64_t b;
     int64_t n1;
@@ -443,9 +445,10 @@ static aclnnStatus AnalysisInput(const aclTensor *query, const aclTensor *key, c
     }
 
     if ((actualSeqQLenOptional != nullptr && actualSeqKvLenOptional != nullptr) && 
-                    (actualSeqQLenOptional->Size() > 2048 || actualSeqKvLenOptional->Size() > 2048)) {
+                    (actualSeqQLenOptional->Size() > MAX_VAR_LEN_SEQ_LEN || 
+                    actualSeqKvLenOptional->Size() > MAX_VAR_LEN_SEQ_LEN)) {
         OP_LOGW("The input parameter exceeds the operator range, unknown risks exist: " 
-               "actualSeqQLen size and actualSeqKvLen size must <= 2048, but got %lu.", actualSeqQLenOptional->Size());
+               "actualSeqQLen size and actualSeqKvLen size must <= 20000, but got %lu.", actualSeqQLenOptional->Size());
     }
 
     if (shapeInfo.axes.n2 == 0 || shapeInfo.axes.d == 0) {

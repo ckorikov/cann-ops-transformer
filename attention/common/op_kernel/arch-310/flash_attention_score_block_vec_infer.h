@@ -85,7 +85,7 @@ public:
     __aicore__ inline void FlashDecodeCompute(ConstInfo<isInfer, hasRope> &constInfo, GlobalTensor<INPUT_T> &keyGm, __gm__ int64_t *actualSeqKvlenAddr);
 
     template <typename VEC2_RES_T>
-    __aicore__ inline void PostQuant(ConstInfo<isInfer, hasRope> &constInfo, RunInfo<isInfer> &runInfo, LocalTensor<OUTPUT_T> &attenOut, LocalTensor<VEC2_RES_T> &vec2ResUb, int64_t vec2S1Idx);
+    __aicore__ inline void PostQuant(ConstInfo<isInfer, hasRope> &constInfo, RunInfo<isInfer> &runInfo, LocalTensor<OUTPUT_T> &attenOut, LocalTensor<VEC2_RES_T> &vec2ResUb, int64_t vec2S1Idx, int64_t dSizeAligned64);
 
     __aicore__ inline void FDPostQuant(ConstInfo<isInfer, hasRope> &constInfo, LocalTensor<OUTPUT_T> &attenOut, LocalTensor<T> &accumOutLocal, uint64_t perChannelQuantOffset, uint32_t dealRowCount);
 
@@ -766,7 +766,7 @@ template <typename VEC2_RES_T>
 __aicore__ inline void FABlockVecInfer<TEMPLATE_ARGS>::PostQuant(ConstInfo<isInfer, hasRope> &constInfo,
                                                                       RunInfo<isInfer> &runInfo, LocalTensor<OUTPUT_T> &attenOut,
                                                                       LocalTensor<VEC2_RES_T> &vec2ResUb,
-                                                                      int64_t vec2S1Idx)
+                                                                      int64_t vec2S1Idx, int64_t dSizeAligned64)
 {
     uint32_t s1RowCount = constInfo.isGqa ? 1U : runInfo.vec2S1RealSize; // s1=1, gS合轴, bn2分核
     uint32_t gRowCount = constInfo.isGqa ? runInfo.vec2S1RealSize : 1U;  // s1>1, bn1分核
@@ -785,7 +785,7 @@ __aicore__ inline void FABlockVecInfer<TEMPLATE_ARGS>::PostQuant(ConstInfo<isInf
             if (i + 1 == loopCount) {
                 gSplitSize = tailSplitSize;
             }
-            uint32_t splitOffset = startRow * constInfo.dSizeV;
+            uint32_t splitOffset = startRow * dSizeAligned64;
             if (constInfo.isPostQuantBF16) {
                 PostQuantPerChnl(constInfo, attenOut, vec2ResUb, perChannelQuantOffset + startRow * constInfo.dSizeV,
                                  gSplitSize, s1RowCount, splitOffset, postQuantScaleBf16Gm, postQuantOffsetBf16Gm);

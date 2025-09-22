@@ -71,6 +71,7 @@ public:
         PseShiftShapeType pseShiftType = PseShiftShapeType::NONE;
         AttenMaskShapeType attenMaskType = AttenMaskShapeType::NONE;
         QuantShapeType quantType = QuantShapeType::NONE;
+        bool hasLearnableSink = false;
         std::vector<int64_t> actualSeqLength = {};
         std::vector<int64_t> actualSeqLengthKV = {};
         Param();
@@ -89,7 +90,7 @@ public:
 
     int64_t h;
     Tensor query, key, value, pseShift, attenMask, actualSeqLengths, actualSeqLengthsKV, deqScale1, quantScale1,
-        deqScale2, quantScale2, quantOffset2, attentionOut;
+        deqScale2, quantScale2, quantOffset2, learnableSink, attentionOut;
     OpInfo mOpInfo;
     Context mCtx;
     Param mParam;

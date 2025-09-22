@@ -80,7 +80,7 @@ aclnnStatus aclnnFusedInferAttentionScoreV2GetWorkspaceSize(
         quantOffset2Optional, antiquantScaleOptional, antiquantOffsetOptional, blockTableOptional,
         queryPaddingSizeOptional, kvPaddingSizeOptional, keyAntiquantScaleOptional, keyAntiquantOffsetOptional,
         valueAntiquantScaleOptional, valueAntiquantOffsetOptional, tensorKeySharedPrefixOptional,
-        tensorValueSharedPrefixOptional, actualSharedPrefixLenOptional, nullptr, nullptr, nullptr, nullptr,
+        tensorValueSharedPrefixOptional, actualSharedPrefixLenOptional, nullptr, nullptr, nullptr, nullptr, nullptr,
         numHeads, scaleValue, preTokens, nextTokens,
         inputLayout, numKeyValueHeads, sparseMode, innerPrecise, blockSize, antiquantMode, softmaxLseFlag,
         keyAntiquantMode, valueAntiquantMode, 0, 0, attentionOut, placeHolder, workspaceSize, executor);
@@ -91,7 +91,6 @@ aclnnStatus aclnnFusedInferAttentionScoreV2GetWorkspaceSize(
             NnopbaseDisableOptionalInput(*executor, 26U); // 26 is input irIndex
             NnopbaseDisableOptionalInput(*executor, 27U); // 27 is input irIndex
             NnopbaseDisableOptionalInput(*executor, 28U); // 28 is input irIndex
-            NnopbaseDisableOptionalInput(*executor, 29U); // 29 is input irIndex，占位符
         }
     }
     if (softmaxLseFlag == false) {

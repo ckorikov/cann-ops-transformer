@@ -33,7 +33,7 @@ __attribute__((visibility("default"))) aclnnStatus aclnnFusedInferAttentionScore
     const aclTensor *keySharedPrefixOptional, const aclTensor *valueSharedPrefixOptional,
     const aclIntArray *actualSharedPrefixLenOptional, const aclTensor *queryRopeOptional, 
     const aclTensor *keyRopeOptional, const aclTensor *keyRopeAntiquantScaleOptional,
-    const aclTensor *dequantScaleQueryOptional, int64_t numHeads, double scaleValue, int64_t preTokens,
+    const aclTensor *dequantScaleQueryOptional, const aclTensor *learnableSinkOptional, int64_t numHeads, double scaleValue, int64_t preTokens,
     int64_t nextTokens, char *inputLayout, int64_t numKeyValueHeads, int64_t sparseMode, int64_t innerPrecise,
     int64_t blockSize, int64_t antiquantMode, bool softmaxLseFlag,
     int64_t keyAntiquantMode, int64_t valueAntiquantMode, int64_t queryQuantMode,

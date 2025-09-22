@@ -49,8 +49,7 @@ constexpr uint32_t QUERY_ROPE_INDEX = 24;
 constexpr uint32_t KEY_ROPE_INDEX = 25;
 constexpr uint32_t KEY_ROPE_ANTIQUANT_SCALE_INDEX = 26;
 constexpr uint32_t DEQUANT_SCALE_QUERY_INDEX = 27;
-constexpr uint32_t Q_START_IDX_INDEX = 28;
-constexpr uint32_t KV_START_IDX_INDEX = 29;
+constexpr uint32_t LEARNABLE_SINK_INDEX = 28;
 } // namespace optiling
 
 #endif // FUSED_INFER_ATTENTION_SCORE_TILING_INPUT_INDEX_H

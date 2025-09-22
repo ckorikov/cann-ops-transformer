@@ -2082,3 +2082,59 @@ TEST_F(Ts_Pfa_Ascend910B2, case_pfa_Tpipe2)
     cs.mOpInfo.mExp.mSuccess = false;
     ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
 }
+
+TEST_F(Ts_Pfa_Ascend910B2, case_TND_sink_swa_1)
+{
+    PfaCase cs;
+    cs.mParam.b = 1;
+    cs.mParam.n = 1;
+    cs.mParam.s = 128;
+    cs.mParam.d = 128;
+    cs.mParam.layout = "TND";
+    cs.mParam.qDataType = ge::DT_BF16;
+    cs.mParam.kvDataType = ge::DT_BF16;
+    cs.mParam.outDataType = ge::DT_BF16;
+    cs.mParam.actualSeqLength = {128};
+    cs.mParam.actualSeqLengthKV = {128};
+    cs.mParam.attenMaskType = AttenMaskShapeType::SPARSE;
+    cs.mParam.numHeads = 32;
+    cs.mParam.sparseMode = 4;
+    cs.mParam.hasLearnableSink = true;
+    cs.mOpInfo.mExp.mSuccess = true;
+    ASSERT_TRUE(cs.Init());
+    cs.query = Tensor("query", {128, 32, 128}, "TND", cs.mParam.qDataType, ge::FORMAT_ND);
+    cs.key = Tensor("key", {128, 32, 128}, "TND", cs.mParam.kvDataType, ge::FORMAT_ND);
+    cs.value = Tensor("value", {128, 32, 128}, "TND", cs.mParam.kvDataType, ge::FORMAT_ND);
+    cs.attenMask = Tensor("attenMask", {2048,2048}, "TND", ge::DT_INT8, ge::FORMAT_ND);
+    cs.attentionOut =
+        Tensor("attentionOut", {128, 32, 128}, "TND", cs.mParam.outDataType, ge::FORMAT_ND);
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
+TEST_F(Ts_Pfa_Ascend910B2, case_TND_sink_swa_2)
+{
+    PfaCase cs;
+    cs.mParam.b = 1;
+    cs.mParam.n = 5;
+    cs.mParam.s = 2;
+    cs.mParam.d = 64;
+    cs.mParam.layout = "TND";
+    cs.mParam.qDataType = ge::DT_BF16;
+    cs.mParam.kvDataType = ge::DT_BF16;
+    cs.mParam.outDataType = ge::DT_BF16;
+    cs.mParam.actualSeqLength = {2};
+    cs.mParam.actualSeqLengthKV = {2};
+    cs.mParam.attenMaskType = AttenMaskShapeType::SPARSE;
+    cs.mParam.numHeads = 5;
+    cs.mParam.sparseMode = 4;
+    cs.mParam.hasLearnableSink = true;
+    cs.mOpInfo.mExp.mSuccess = true;
+    ASSERT_TRUE(cs.Init());
+    cs.query = Tensor("query", {2, 5, 64}, "TND", cs.mParam.qDataType, ge::FORMAT_ND);
+    cs.key = Tensor("key", {2, 1, 64}, "TND", cs.mParam.kvDataType, ge::FORMAT_ND);
+    cs.value = Tensor("value", {2, 1, 64}, "TND", cs.mParam.kvDataType, ge::FORMAT_ND);
+    cs.attenMask = Tensor("attenMask", {2048,2048}, "TND", ge::DT_INT8, ge::FORMAT_ND);
+    cs.attentionOut =
+        Tensor("attentionOut", {2, 5, 64}, "TND", cs.mParam.outDataType, ge::FORMAT_ND);
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}

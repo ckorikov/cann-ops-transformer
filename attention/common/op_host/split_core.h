@@ -277,16 +277,13 @@ void RecordFDInfo(const BaseInfo &baseInfo, const InnerSplitParams &innerSplitPa
     res.numOfFdHead += 1U;
 }
 
-void AssignByBatch(const SplitBatchInfo &splitBatchInfo, AssignInfo &assignInfo, std::vector<uint32_t> &blockNumOnCore, uint32_t &coreUse, uint32_t &maxCost)
+void AssignByBatch(const SplitBatchInfo &splitBatchInfo, AssignInfo &assignInfo)
 {
     // 1、按整batch分配
     while (IsSpaceEnough(assignInfo.costLimit, assignInfo.curCostOnCore, splitBatchInfo.batchLastBlockCost[assignInfo.bIdx] / 2, assignInfo.batchLeftCost)) {// 2: 当前batch分配给当前核后，超出部分小于最后一块的一半（对齐按块分配的标准），则可以分配
         assignInfo.curCostOnCore += assignInfo.batchLeftCost;
         assignInfo.curBlockOnCore += assignInfo.batchLeftBlock;
         if (assignInfo.bIdx == splitBatchInfo.lastValidBIdx) {  // 所有负载全部分配完
-            blockNumOnCore[assignInfo.curCoreIdx] = assignInfo.curBlockOnCore;
-            coreUse = assignInfo.curCoreIdx + 1U;
-            maxCost = std::max(maxCost, assignInfo.curCostOnCore);
             return;
         }
 
@@ -321,6 +318,7 @@ void AssignByRow(const SplitBatchInfo &splitBatchInfo, AssignInfo &assignInfo)
         assignInfo.s1GLeftCost = (assignInfo.s1GIdx == splitBatchInfo.s1GBaseNum[assignInfo.bIdx] - 1 && splitBatchInfo.s1GTailSize[assignInfo.bIdx] != 0) ? 
                         splitBatchInfo.tialS1GTotalCost[assignInfo.bIdx] : splitBatchInfo.normalS1GTotalCost[assignInfo.bIdx];   // 更新行剩余，需要考虑是不是尾行
         assignInfo.batchLeftBlock -= assignInfo.s1GLeftBlock;
+        assignInfo.s1GLeftBlock = splitBatchInfo.s2BaseNum[assignInfo.bIdx];
         if (assignInfo.s1GIdx == splitBatchInfo.s1GBaseNum[assignInfo.bIdx] - 1) {  // 根据AssignByBatch的规则，最后一行一定不会被分配
             return;
         }
@@ -374,7 +372,7 @@ void GetBlockNumOnCore(const BaseInfo &baseInfo, const SplitBatchInfo &splitBatc
         assignInfo.curCostOnCore = 0U;
         assignInfo.curBlockOnCore = 0U;
         // 1、按整batch分配
-        AssignByBatch(splitBatchInfo, assignInfo, blockNumOnCore, coreUse, maxCost);
+        AssignByBatch(splitBatchInfo, assignInfo);
 
         // 2、按行分配
         AssignByRow(splitBatchInfo, assignInfo);
@@ -387,6 +385,7 @@ void GetBlockNumOnCore(const BaseInfo &baseInfo, const SplitBatchInfo &splitBatc
         assignInfo.curCoreIdx ++;
         assignInfo.unassignedCost -= assignInfo.curCostOnCore;
     }
+    coreUse = assignInfo.curCoreIdx;
 }
 
 void CalSplitBatchInfo(const BaseInfo &baseInfo, const InnerSplitParams &innerSplitParams, SplitBatchInfo &splitBatchInfo, uint32_t coreNum)
@@ -544,6 +543,25 @@ void SplitCore(const BaseInfo &baseInfo, const InnerSplitParams &innerSplitParam
     res.usedCoreNum = coreUse;
     // 3、根据每个核的分配数量重建分核方案，获取切分点、记录归约信息等
     ReconSplitPlan(baseInfo, innerSplitParams, splitBatchInfo, blockNumOnCore, outerSplitParams, fDParams, res);
+    
+    // 4、刷新每个核各轴结束位置，结束位置为开区间
+    for (uint32_t i = 0; i < coreUse; i++) {
+        uint32_t s1GCarry = 0U;
+        uint32_t bN2Carry = 0U;
+        uint32_t curBEnd = outerSplitParams.bN2End[i] / baseInfo.n2Size;
+
+        outerSplitParams.s2End[i] += 1U;
+        if (outerSplitParams.s2End[i] == splitBatchInfo.s2BaseNum[curBEnd]) {
+            s1GCarry = 1U;
+            outerSplitParams.s2End[i] = 0U;
+        }
+        outerSplitParams.gS1End[i] += s1GCarry;
+        if (outerSplitParams.gS1End[i] == splitBatchInfo.s1GBaseNum[curBEnd]) {
+            bN2Carry = 1U;
+            outerSplitParams.gS1End[i] = 0U;
+        }
+        outerSplitParams.bN2End[i] += bN2Carry;
+    }
 }
 
 void SplitCoreOfBand(const BaseInfo &baseInfo, const InnerSplitParams &innerSplitParams, uint32_t coreNum, OuterSplitParams outerSplitParams, FlashDecodeParams fDParams, SplitCoreRes &res) {
@@ -581,7 +599,7 @@ void SplitCoreOfBand(const BaseInfo &baseInfo, const InnerSplitParams &innerSpli
     uint32_t accumBaseNum = 0;       // 当前累积的基本块数
     uint32_t targetBaseNum = 0;
     uint32_t currCoreIdx = 0;
-    uint32_t lastValidBIdx = 0;
+    uint32_t lastValidBN2Idx = 0;
     res.numOfFdHead = 0U;
     res.maxS2SplitNum = 1U;
     fDParams.s2SplitStartIdxOfCore[0] = 0U; //每核头块所处当前线段被切的第几部分
@@ -615,6 +633,20 @@ void SplitCoreOfBand(const BaseInfo &baseInfo, const InnerSplitParams &innerSpli
                     outerSplitParams.bN2End[currCoreIdx] = bN2Idx;
                     outerSplitParams.gS1End[currCoreIdx] = s1GIdx;
                     outerSplitParams.s2End[currCoreIdx] = s2Idx;
+                    uint32_t s1GCarry = 0U;
+                    uint32_t bN2Carry = 0U;
+
+                    outerSplitParams.s2End[currCoreIdx] += 1U;
+                    if (outerSplitParams.s2End[currCoreIdx] == s2End) {
+                        s1GCarry = 1U;
+                        outerSplitParams.s2End[currCoreIdx] = 0U;
+                    }
+                    outerSplitParams.gS1End[currCoreIdx] += s1GCarry;
+                    if (outerSplitParams.gS1End[currCoreIdx] == splitBatchInfo.s1GBaseNum[bIdx]) {
+                        bN2Carry = 1U;
+                        outerSplitParams.gS1End[currCoreIdx] = 0U;
+                    }
+                    outerSplitParams.bN2End[currCoreIdx] += bN2Carry;
                     currCoreIdx += 1U;
                     if (s2Idx < s2End - 1U) {    // 只有切到S2的中间位置，才涉及规约，将currKvSplitPart加1
                         currKvSplitPart += 1U;
@@ -636,14 +668,14 @@ void SplitCoreOfBand(const BaseInfo &baseInfo, const InnerSplitParams &innerSpli
             }
         }
         if ((splitBatchInfo.s1GBaseNum[bIdx] > 0) && (splitBatchInfo.s2BaseNum[bIdx] > 0)) {
-            lastValidBIdx = bIdx;
+            lastValidBN2Idx = bN2Idx;
         }
     }
     if (accumBaseNum < targetBaseNum) {
         // 更新最后一个核的End分核信息
-        outerSplitParams.bN2End[currCoreIdx] = lastValidBIdx;
-        outerSplitParams.gS1End[currCoreIdx] = splitBatchInfo.s1GBaseNum[lastValidBIdx] - 1;
-        outerSplitParams.s2End[currCoreIdx] = splitBatchInfo.s2BaseNum[lastValidBIdx]  - 1;
+        outerSplitParams.bN2End[currCoreIdx] = lastValidBN2Idx + 1;
+        outerSplitParams.gS1End[currCoreIdx] = 0U;
+        outerSplitParams.s2End[currCoreIdx] = 0U;
         currCoreIdx += 1U;
     }
     res.usedCoreNum = currCoreIdx;

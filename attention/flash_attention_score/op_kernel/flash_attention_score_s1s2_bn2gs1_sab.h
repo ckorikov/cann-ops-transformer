@@ -454,6 +454,7 @@ FlashAttentionScoreS1s2Bn2gs1SameAB<implMode, layOutType, hasPse, hasAtten, hasD
     } else {
         this->cubeBlockIdx = GetBlockIdx(); // cube:0-23
         this->vecBlockIdx = this->cubeBlockIdx * 2;
+        this->cubeSubIdx = 0;
     }
 
     if ASCEND_IS_AIC {

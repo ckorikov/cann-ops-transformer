@@ -236,8 +236,13 @@ public:
                         lastBatchQSum = getTotalLen(batchIdx, seqLenQ);
                         lastBatchKSum = getTotalLen(batchIdx, seqLenK);
                         batchIdx += 1;
-                        s1 = getSeqLen(batchIdx, seqLenQ);
-                        s2 = getSeqLen(batchIdx, seqLenK);
+                        if(batchIdx < batchNum){
+                            s1 = getSeqLen(batchIdx, seqLenQ);
+                            s2 = getSeqLen(batchIdx, seqLenK);
+                        }else{
+                            s1 = 0;
+                            s2 = 0;
+                        }
                         s2TailLength = s2 % 128;
                         s1TailLength = s1 % 128;
 

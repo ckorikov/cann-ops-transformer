@@ -1792,7 +1792,7 @@ __aicore__ inline void FlashAttentionScoreGradS1s2Bn2gs1s2SameAB<FAGT>::ComputeM
                         // B矩阵
                         if (sliceIdx == 0 && n == 0) {
                             CopyGmToL1(kL1Tensor[bL1Offset],
-                                dxGm[dbParam.aTensorOffsetCv + m * mSplitSize * dbParam.s1Stride / d * value_d +
+                                dxGm[dbParam.aTensorOffsetCv / d * value_d + m * mSplitSize * dbParam.s1Stride / d * value_d +
                                     dLoopIdx * dSplitSize], subMSizeAct, subDSizeAct, dbParam.s1Stride / d * value_d );
                         }
                         SetFlag<HardEvent::MTE2_MTE1>(eventIdMte2ToMte1);
@@ -1809,7 +1809,7 @@ __aicore__ inline void FlashAttentionScoreGradS1s2Bn2gs1s2SameAB<FAGT>::ComputeM
                         gmBaseBlockOffset = (sliceIdx * s2SliceSize + n * nSplitSize) * dbParam.s2Stride / d * value_d +
                             dLoopIdx * dSplitSize;
                     }
-                    mm3.GetTensorC(dvWorkSpaceGm[dkvOffset + gmBaseBlockOffset], 1);
+                    mm3.GetTensorC(dvWorkSpaceGm[dvOffset + gmBaseBlockOffset], 1);
                 }
             }
             SetFlag<HardEvent::MTE1_MTE2>(eventIdMte1ToMte2);

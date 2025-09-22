@@ -63,7 +63,7 @@ protected:
 
     __aicore__ inline void InitInput(__gm__ uint8_t *query, __gm__ uint8_t *key, __gm__ uint8_t *value,
                                      __gm__ uint8_t *queryRope, __gm__ uint8_t *keyRope,
-                                     __gm__ uint8_t *attenMask, __gm__ uint8_t *blockTable,
+                                     __gm__ uint8_t *attenMask, __gm__ uint8_t *blockTable, __gm__ uint8_t *learnableSink,
                                      __gm__ uint8_t *attentionOut, __gm__ uint8_t *softmaxLse, __gm__ uint8_t *workspace,
                                     const TILING_TYPE *__restrict tiling, TPipe *tPipe);
     __aicore__ inline uint64_t CalcBmm2TensorBGmOffset(const SplitSameABExtraInfo &extraInfo);
@@ -140,7 +140,8 @@ protected:
     TBuf<> stage2TBuf;
     TBuf<> softmaxSumBuf[2];
     TBuf<> softmaxExpBuf[2];
-    TBuf<> softmaxMaxBuf;
+    TBuf<> sinkBuf;
+    TBuf<> softmaxMaxBuf[2];
     TBuf<> softmaxLseBuf;
     TBuf<> commonTBuf; // common的复用空间
     TBuf<> softmaxTempBuf;
@@ -170,6 +171,8 @@ protected:
     GlobalTensor<INPUT_T> stage1Res[2];
     GlobalTensor<half> pseAlibiGm;
 
+    LocalTensor<float> sinkUb; // sinkUb
+
     constexpr static int32_t repeatMaxBytes = 256;
     constexpr static int32_t repeatMaxTimes = 255;
     // 轴的乘积
@@ -192,6 +195,8 @@ protected:
     int64_t n2GD;
     int64_t bN2GD;
     int64_t gS2;
+    int64_t n2GOuterSize;
+    int64_t gBaseSize;
 
     // MLA 带rope, qRope
     int64_t gRopeD;
@@ -281,10 +286,16 @@ protected:
     GlobalTensor<uint8_t> attenMaskGmInt;
     // pageAttention
     GlobalTensor<int32_t> blockTableGm;
+    GlobalTensor<bfloat16_t> sinkGm;
     int32_t kvCacheBlockSize = 0;
     int32_t maxBlockNumPerBatch = 0;
 
     int64_t attenMaskOffsetPre = 0;
+    int64_t sinkN1Offset = -1;
+    int64_t sinkS1Size = -1;
+    bool hasSink = false;
+    bool hasSparse4InvalidLine = false;
+    bool notSplitG = false;
 };
 
 template <typename TILING_TYPE, ImplModeEnum implMode, LayOutTypeEnum layOutType, bool hasAtten, typename INPUT_T,
@@ -295,7 +306,7 @@ MlaS1s2Bn2gs1SameABBaseApi<TILING_TYPE, implMode, layOutType, hasAtten, INPUT_T,
     __gm__ uint8_t *attentionOut, __gm__ uint8_t *softmaxLse, __gm__ uint8_t *workspace, const TILING_TYPE *__restrict tiling,
     TPipe *tPipe)
 {
-    this->InitInput(query, key, value, nullptr, nullptr, attenMask, nullptr, attentionOut, softmaxLse, workspace, tiling, tPipe); // gm设置
+    this->InitInput(query, key, value, nullptr, nullptr, attenMask, nullptr, nullptr, attentionOut, softmaxLse, workspace, tiling, tPipe); // gm设置
 
     this->ComputeConstexpr();
     this->InitBuffer();
@@ -305,10 +316,17 @@ template <typename TILING_TYPE, ImplModeEnum implMode, LayOutTypeEnum layOutType
     typename T, CubeFormat bmm1Format, MmPolicyType mmPolicyType, bool pageAttention>
 __aicore__ inline void
 MlaS1s2Bn2gs1SameABBaseApi<TILING_TYPE, implMode, layOutType, hasAtten, INPUT_T, T,
-    bmm1Format, mmPolicyType, pageAttention>::InitInput(__gm__ uint8_t *query, __gm__ uint8_t *key, __gm__ uint8_t *value,
-    __gm__ uint8_t *queryRope, __gm__ uint8_t *keyRope, __gm__ uint8_t *attenMask, __gm__ uint8_t *blockTable,
-    __gm__ uint8_t *attentionOut, __gm__ uint8_t *softmaxLse, __gm__ uint8_t *workspace, const TILING_TYPE *__restrict tiling,
-    TPipe *tPipe)
+    bmm1Format, mmPolicyType, pageAttention>::InitInput(__gm__ uint8_t *query, __gm__ uint8_t *key,
+                                                        __gm__ uint8_t *value,
+                                                        __gm__ uint8_t *queryRope, __gm__ uint8_t *keyRope,
+                                                        __gm__ uint8_t *attenMask,
+                                                        __gm__ uint8_t *blockTable,
+                                                        __gm__ uint8_t *learnableSink,
+                                                        __gm__ uint8_t *attentionOut,
+                                                        __gm__ uint8_t *softmaxLse,
+                                                        __gm__ uint8_t *workspace,
+                                                        const TILING_TYPE *__restrict tiling,
+                                                        TPipe *tPipe)
 {
     if ASCEND_IS_AIV {
         this->vecBlockIdx = GetBlockIdx();
@@ -351,6 +369,11 @@ MlaS1s2Bn2gs1SameABBaseApi<TILING_TYPE, implMode, layOutType, hasAtten, INPUT_T,
     this->attentionOutGm.SetGlobalBuffer((__gm__ INPUT_T *)attentionOut);
     if (this->tilingData->PFAinputParams.isSoftMaxLseEnable) {
         this->softmaxLseGm.SetGlobalBuffer((__gm__ float *)softmaxLse);
+    }
+
+    if (this->tilingData->PFAinputParams.hasLearnableSink) {
+        this->hasSink = true;
+        this->sinkGm.SetGlobalBuffer((__gm__ bfloat16_t *)learnableSink);
     }
 
     // 补齐到512， 统一按T处理
@@ -428,14 +451,14 @@ __aicore__ inline void MlaS1s2Bn2gs1SameABBaseApi<TILING_TYPE, implMode, layOutT
 {
     if ASCEND_IS_AIV {
         constexpr uint64_t V1_BASE_TILE_SZ = 8 * 1024;
-        const uint64_t v2S1Base = V1_BASE_TILE_SZ / this->s2BaseNRatioSize;
-        const uint64_t v2BaseTileSz = v2S1Base * this->valueDSizeAlign16;
 
         // 计算中间结果buffer
         this->pipe->InitBuffer(this->stage1PingBuf, V1_BASE_TILE_SZ * sizeof(T));  // V1计算中间结果，32K
 
         // 输入buffer
-        this->pipe->InitBuffer(this->pseTBuf, V1_BASE_TILE_SZ * sizeof(T) / 2);  // pse/second to,e atten mask/cast stage1 result, 16k
+        this->pipe->InitBuffer(this->pseTBuf, V1_BASE_TILE_SZ * sizeof(uint8_t));  // pse/second to,e atten mask/cast stage1 result, 8k
+
+        // 输入buffer
         this->pipe->InitBuffer(this->stage2TBuf, 2 * STAGE2_TBUF_SIZE * sizeof(T));  // V32K
 
         // 临时空间
@@ -444,9 +467,15 @@ __aicore__ inline void MlaS1s2Bn2gs1SameABBaseApi<TILING_TYPE, implMode, layOutT
         // 长生命周期空间
         this->pipe->InitBuffer(this->softmaxSumBuf[0], vecS1BaseSize * sizeof(float) * this->softmaxReduceSize);  // 1K if cubeS1BaseSize > 256 else 4K
         this->pipe->InitBuffer(this->softmaxSumBuf[1], vecS1BaseSize * sizeof(float) * this->softmaxReduceSize);  // 1K if cubeS1BaseSize > 256 else 4K
-        this->pipe->InitBuffer(this->softmaxMaxBuf, vecS1BaseSize * sizeof(float) * this->softmaxReduceSize);     // 1K if cubeS1BaseSize > 256 else 4K
+        this->pipe->InitBuffer(this->softmaxMaxBuf[0], vecS1BaseSize * sizeof(float) * this->softmaxReduceSize);  // 1K if cubeS1BaseSize > 256 else 4K
+        this->pipe->InitBuffer(this->softmaxMaxBuf[1], vecS1BaseSize * sizeof(float) * this->softmaxReduceSize);  // 1K if cubeS1BaseSize > 256 else 4K
         this->pipe->InitBuffer(this->softmaxExpBuf[0], vecS1BaseSize * sizeof(float) * this->softmaxReduceSize);  // 1K if cubeS1BaseSize > 256 else 4K
         this->pipe->InitBuffer(this->softmaxExpBuf[1], vecS1BaseSize * sizeof(float) * this->softmaxReduceSize);  // 1K if cubeS1BaseSize > 256 else 4K
+
+        if (this->hasSink) {
+            this->pipe->InitBuffer(this->sinkBuf, vecS1BaseSize * sizeof(float) * this->softmaxReduceSize); // 1K if cubeS1BaseSize > 256 else 4K
+            this->sinkUb = this->sinkBuf.template Get<float>();
+        }
 
         // 输出空间
         this->pipe->InitBuffer(this->outPBuf, V1_BASE_TILE_SZ * sizeof(INPUT_T)); // 输出P到GM，16K
@@ -996,7 +1025,7 @@ MlaS1s2Bn2gs1SameABBaseApi<TILING_TYPE, implMode, layOutType, hasAtten, INPUT_T,
     extraInfo.vec1S1RealSize = extraInfo.vec1S1BaseSize;
     for (int32_t loopIdx = 0; loopIdx < extraInfo.realSplitN; ++loopIdx) {
         if (loopIdx == extraInfo.realSplitN - 1) {
-            extraInfo.vec1S1RealSize = extraInfo.s1RealSize - loopIdx * extraInfo.vec1S1BaseSize;
+            extraInfo.vec1S1RealSize = extraInfo.s1RealSize * this->gBaseSize - loopIdx * extraInfo.vec1S1BaseSize;
         }
 
         WaitFlag<HardEvent::V_MTE2>(this->v1ReadyToInBmm1ResEvent);
@@ -1136,8 +1165,18 @@ MlaS1s2Bn2gs1SameABBaseApi<TILING_TYPE, implMode, layOutType, hasAtten, INPUT_T,
                 s2StrideSize = this->tilingData->PFAinputParams.attenMaskS2Size;
             }
         }
-        BoolCopyIn(attenMaskUb, this->attenMaskGmInt, maskOffset, extraInfo.vec1S1RealSize, extraInfo.s2RealSize,
-                s2StrideSize, 64);
+        int64_t maskSize = extraInfo.vec1S1RealSize / extraInfo.gBaseSize * (CeilDiv(extraInfo.s2RealSize, 64) * 64);  // CeilDiv(extraInfo.s2RealSize, 64) * 64
+
+        if (unlikely(this->notSplitG)) {
+            for (int64_t loop = 0; loop < extraInfo.gBaseSize; ++loop) {
+                LocalTensor<uint8_t> dst = attenMaskUb[loop * maskSize];
+                BoolCopyIn(dst, this->attenMaskGmInt, maskOffset, extraInfo.vec1S1RealSize / extraInfo.gBaseSize, extraInfo.s2RealSize,
+                        s2StrideSize, 64);
+            }
+        } else {
+            BoolCopyIn(attenMaskUb, this->attenMaskGmInt, maskOffset, extraInfo.vec1S1RealSize, extraInfo.s2RealSize,
+                    s2StrideSize, 64);
+        }
         return;
     }
 }
@@ -1158,8 +1197,8 @@ MlaS1s2Bn2gs1SameABBaseApi<TILING_TYPE, implMode, layOutType, hasAtten, INPUT_T,
             int64_t delta = 0;
             int64_t deltaPre = 0;
             int64_t deltaN = static_cast<int64_t>((extraInfo.s1Size)) - static_cast<int64_t>((extraInfo.s2Size));
-            int64_t s1Offset = extraInfo.s1oIdx * this->cubeS1BaseSize + extraInfo.vecCoreOffset +
-                            loopIdx * extraInfo.vec1S1BaseSize;
+            int64_t s1Offset = extraInfo.s1oIdx * this->cubeS1BaseSize + (extraInfo.vecCoreOffset  +
+                            loopIdx * extraInfo.vec1S1BaseSize) / extraInfo.gBaseSize;
             int64_t s2Offset = extraInfo.s2StartIdx + extraInfo.s2LoopCount * this->s2BaseNRatioSize;
             if (this->tilingData->PFAinputParams.attenMaskCompressMode ==
                 static_cast<uint8_t>(AttenMaskCompressMode::LEFT_UP_CAUSAL_MODE)) {
@@ -1175,7 +1214,7 @@ MlaS1s2Bn2gs1SameABBaseApi<TILING_TYPE, implMode, layOutType, hasAtten, INPUT_T,
                 int64_t transNextTokens = extraInfo.s2Size - Max(extraInfo.s1Size - tmpNext, 0);
                 deltaPre = s1Offset - s2Offset - transPreTokens - 1;
                 int64_t maskOffsetPre =
-                    ComputeOffsetForCausal(deltaPre, extraInfo.vec1S1BaseSize, this->s2BaseNRatioSize,
+                    ComputeOffsetForCausal(deltaPre, extraInfo.vec1S1BaseSize / extraInfo.gBaseSize, this->s2BaseNRatioSize,
                                         this->tilingData->PFAinputParams.attenMaskS2Size);
                 this->attenMaskOffsetPre = maskOffsetPre; // save offset value for the 2nd mask operation.
                 delta = s1Offset - s2Offset + transNextTokens;
@@ -1198,7 +1237,7 @@ MlaS1s2Bn2gs1SameABBaseApi<TILING_TYPE, implMode, layOutType, hasAtten, INPUT_T,
                 return 0;
             }
             this->GetAttenMaskComputeMode(delta, deltaPre, s1Offset, extraInfo);
-            return ComputeOffsetForCausal(delta, extraInfo.vec1S1BaseSize, this->s2BaseNRatioSize,
+            return ComputeOffsetForCausal(delta, extraInfo.vec1S1BaseSize / extraInfo.gBaseSize, this->s2BaseNRatioSize,
                                         this->tilingData->PFAinputParams.attenMaskS2Size);
         }
         // compress mode
@@ -1308,7 +1347,7 @@ MlaS1s2Bn2gs1SameABBaseApi<TILING_TYPE, implMode, layOutType, hasAtten, INPUT_T,
     if constexpr (bmm1Format == CubeFormat::NZ) {
         if (extraInfo.needNz2Nd == 1) {
             Nz2NdInfo nz2NdInfo;
-            nz2NdInfo.ndFirstAxisRealSize = extraInfo.cubeS1RealSize;
+            nz2NdInfo.ndFirstAxisRealSize = extraInfo.cubeS1RealSize * extraInfo.gBaseSize;
             nz2NdInfo.ndFirstAxisBaseSize = extraInfo.vec1S1BaseSize;
             nz2NdInfo.ndFirstAxisLoopSize = extraInfo.vec1S1RealSize;
             nz2NdInfo.ndLastAxis = extraInfo.s2RealSizeAlign64;
@@ -1393,7 +1432,7 @@ __aicore__ inline void
 MlaS1s2Bn2gs1SameABBaseApi<TILING_TYPE, implMode, layOutType, hasAtten, INPUT_T, T,
     bmm1Format, mmPolicyType, pageAttention>::SoftMaxCheckResCompress(SplitSameABExtraInfo &extraInfo, int64_t vec1S1realSplitN)
 {
-    if constexpr (implMode == ImplModeEnum::AA_INVALID_LINE_HIGH_PRECISION) {
+    if constexpr (implMode == ImplModeEnum::AA_HIGH_PRECISION) {
         if (unlikely(extraInfo.realSplitN == 1)) {
             bool res = IsIncludeInvalidLine(this->softMaxCheckRes, vec1S1realSplitN);
             UpdateSoftMaxCheckRes(this->softMaxCheckRes, 0, res);
@@ -1418,7 +1457,7 @@ MlaS1s2Bn2gs1SameABBaseApi<TILING_TYPE, implMode, layOutType, hasAtten, INPUT_T,
     bmm1Format, mmPolicyType, pageAttention>::InvalidLineSplitS2Process(SplitSameABExtraInfo &extraInfo,
     LocalTensor<T> &srcTensor, LocalTensor<T> &maxUb, int64_t loopIdx)
 {
-    if constexpr (implMode == ImplModeEnum::AA_INVALID_LINE_HIGH_PRECISION) {
+    if constexpr (implMode == ImplModeEnum::AA_HIGH_PRECISION) {
         if (loopIdx == 0 && extraInfo.s2LoopCount == extraInfo.s2LoopLimit) {
             int64_t vec1S1BaseSize = Min(8, extraInfo.s1RealSize);
             int64_t vec1S1realSplitN = CeilDiv(extraInfo.s1RealSize, vec1S1BaseSize);
@@ -1443,7 +1482,7 @@ MlaS1s2Bn2gs1SameABBaseApi<TILING_TYPE, implMode, layOutType, hasAtten, INPUT_T,
 
         if (loopIdx == extraInfo.realSplitN - 1 && extraInfo.s2LoopCount == extraInfo.s2LoopLimit &&
             IsIncludeInvalidLine(this->softMaxCheckRes, extraInfo.realSplitN)) {
-            LocalTensor<T> maxTensor = this->softmaxMaxBuf.template Get<T>();
+            LocalTensor<T> maxTensor = this->softmaxMaxBuf[extraInfo.multiCoreInnerIdxMod2].template Get<T>();
             LocalTensor<T> sumTensor;
             sumTensor = this->softmaxSumBuf[extraInfo.multiCoreInnerIdxMod2].template Get<T>();
 
@@ -1480,7 +1519,7 @@ MlaS1s2Bn2gs1SameABBaseApi<TILING_TYPE, implMode, layOutType, hasAtten, INPUT_T,
                             static_cast<uint32_t>(this->softmaxReduceSize)};
     LocalTensor<T> sumUb = this->softmaxSumBuf[extraInfo.multiCoreInnerIdxMod2]
                         .template Get<T>()[loopIdx * extraInfo.vec1S1BaseSize * this->softmaxReduceSize];
-    LocalTensor<T> maxUb = this->softmaxMaxBuf
+    LocalTensor<T> maxUb = this->softmaxMaxBuf[extraInfo.multiCoreInnerIdxMod2]
                         .template Get<T>()[loopIdx * extraInfo.vec1S1BaseSize * this->softmaxReduceSize];
 
     sumUb.SetShapeInfo(ShapeInfo(2, maxSumShape, DataFormat::ND));
@@ -1542,32 +1581,18 @@ MlaS1s2Bn2gs1SameABBaseApi<TILING_TYPE, implMode, layOutType, hasAtten, INPUT_T,
         }
     }
 
-    if constexpr (implMode == ImplModeEnum::AA_INVALID_LINE_HIGH_PRECISION) {
-        if (extraInfo.s2Size > SPLIT_S2_SIZE_LIMIT) {
-            this->InvalidLineSplitS2Process(extraInfo, srcTensor, maxUb, loopIdx);
-        } else {
-            SoftMaxShapeInfo softmaxShapeInfo{
-                static_cast<uint32_t>(vec1S1RealSize), static_cast<uint32_t>(extraInfo.s2RealSizeAlign64),
-                static_cast<uint32_t>(vec1S1RealSize), static_cast<uint32_t>(extraInfo.s2RealSizeAlign64)};
-            if (this->softmaxReduceSize == 1) {
-                AdjustSoftMaxRes<T, T, false, 1>(srcTensor, maxUb, this->negativeIntScalar, 0.0, softmaxShapeInfo);
+    if constexpr (implMode == ImplModeEnum::AA_HIGH_PRECISION) {
+        if (unlikely(this->hasSparse4InvalidLine)) {
+            if (extraInfo.s2Size > SPLIT_S2_SIZE_LIMIT) {
+                this->InvalidLineSplitS2Process(extraInfo, srcTensor, maxUb, loopIdx);
             } else {
-                AdjustSoftMaxRes<T, T>(srcTensor, maxUb, this->negativeIntScalar, 0.0, softmaxShapeInfo);
-            }
-            if (loopIdx == extraInfo.realSplitN - 1 && extraInfo.s2LoopCount == extraInfo.s2LoopLimit) {
-                LocalTensor<T> maxTensor = this->softmaxMaxBuf.template Get<T>();
-                LocalTensor<T> sumTensor;
-                sumTensor = this->softmaxSumBuf[extraInfo.multiCoreInnerIdxMod2].template Get<T>();
-
-                SoftMaxShapeInfo softmaxFullShapeInfo{
-                    static_cast<uint32_t>(extraInfo.s1RealSize), static_cast<uint32_t>(fp32BaseSize),
-                    static_cast<uint32_t>(extraInfo.s1RealSize), static_cast<uint32_t>(fp32BaseSize)};
+                SoftMaxShapeInfo softmaxShapeInfo{
+                    static_cast<uint32_t>(vec1S1RealSize), static_cast<uint32_t>(extraInfo.s2RealSizeAlign64),
+                    static_cast<uint32_t>(vec1S1RealSize), static_cast<uint32_t>(extraInfo.s2RealSizeAlign64)};
                 if (this->softmaxReduceSize == 1) {
-                    AdjustSoftMaxRes<T, T, false, 1>(sumTensor, maxTensor, this->negativeIntScalar,
-                                                    this->positiveFloatScalar, softmaxFullShapeInfo);
+                    AdjustSoftMaxRes<T, T, false, 1>(srcTensor, maxUb, this->negativeIntScalar, 0.0, softmaxShapeInfo);
                 } else {
-                    AdjustSoftMaxRes<T, T>(sumTensor, maxTensor, this->negativeIntScalar,
-                                        this->positiveFloatScalar, softmaxFullShapeInfo);
+                     AdjustSoftMaxRes<T, T>(srcTensor, maxUb, this->negativeIntScalar, 0.0, softmaxShapeInfo);
                 }
             }
         }
@@ -1580,7 +1605,7 @@ MlaS1s2Bn2gs1SameABBaseApi<TILING_TYPE, implMode, layOutType, hasAtten, INPUT_T,
              extraInfo.goIdx + extraInfo.s1oIdx * this->cubeS1BaseSize *
              this->n2G + extraInfo.vecCoreOffset * this->n2G) * static_cast<int64_t>(1);
         LocalTensor<T> lseTensor = this->softmaxLseTmpUb[this->vecS1BaseSize * ONE_BLK_SIZE / sizeof(T)];
-        LocalTensor<T> maxTensor = this->softmaxMaxBuf.template Get<T>();
+        LocalTensor<T> maxTensor = this->softmaxMaxBuf[extraInfo.multiCoreInnerIdxMod2].template Get<T>();
         LocalTensor<T> sumTensor = this->softmaxSumBuf[extraInfo.multiCoreInnerIdxMod2].template Get<T>();
         PipeBarrier<PIPE_V>();
         Log(lseTensor, sumTensor, extraInfo.s1RealSize);
@@ -1589,6 +1614,14 @@ MlaS1s2Bn2gs1SameABBaseApi<TILING_TYPE, implMode, layOutType, hasAtten, INPUT_T,
         LocalTensor<T>& softmaxTemp = this->softmaxLseTmpUb;
         PipeBarrier<PIPE_V>();
         Brcb(softmaxTemp, lseTensor, (extraInfo.s1RealSize + 7) / 8, {1, 8});
+        if (unlikely(this->hasSparse4InvalidLine)) {
+            SoftMaxShapeInfo softmaxFullShapeInfo{
+                static_cast<uint32_t>(extraInfo.s1RealSize), static_cast<uint32_t>(fp32BaseSize),
+                static_cast<uint32_t>(extraInfo.s1RealSize), static_cast<uint32_t>(fp32BaseSize)};
+            AdjustSoftMaxRes<T, T, false, 1>(softmaxTemp,  maxTensor, this->negativeIntScalar, 3e+99, softmaxFullShapeInfo);  
+            PipeBarrier<PIPE_V>();
+        }
+
         event_t eventIdVToMte3 = static_cast<event_t>(GetTPipePtr() -> FetchEventID(HardEvent::V_MTE3));
         SetFlag<HardEvent::V_MTE3>(eventIdVToMte3);
         WaitFlag<HardEvent::V_MTE3>(eventIdVToMte3);
@@ -1665,8 +1698,8 @@ MlaS1s2Bn2gs1SameABBaseApi<TILING_TYPE, implMode, layOutType, hasAtten, INPUT_T,
         if (s1oIdx == vec2LoopLimit - 1) {
             extraInfo.vec2S1RealSize = extraInfo.s1RealSize - s1oIdx * extraInfo.vec2S1BaseSize;
         }
-        int64_t mm2ResCalcSize = extraInfo.vec2S1RealSize * this->valueDSizeAlign16;
-        int64_t mm2ResOffset = (extraInfo.vecCoreOffset + s1oIdx * extraInfo.vec2S1BaseSize) * this->valueDSizeAlign16;
+        int64_t mm2ResCalcSize = extraInfo.vec2S1RealSize * this->valueDSizeAlign16 * this->gBaseSize;
+        int64_t mm2ResOffset = (extraInfo.vecCoreOffset + s1oIdx * extraInfo.vec2S1BaseSize) * this->valueDSizeAlign16 * this->gBaseSize;
         WaitFlag<HardEvent::V_MTE2>(this->v2VecFreeEvent);
 
         Nz2NdInfo nz2NdInfo;
@@ -1686,7 +1719,7 @@ MlaS1s2Bn2gs1SameABBaseApi<TILING_TYPE, implMode, layOutType, hasAtten, INPUT_T,
                                    nz2NdInfo.loopIdx * nz2NdInfo.ndFirstAxisBaseSize * this->valueDSize;
             DataCopy2D(curBmm2ResTensor,
                        this->mm2Res[extraInfo.taskIdMod2][bmmResOffset],
-                       extraInfo.vec2S1RealSize, this->valueDSizeAlign16, this->valueDSizeAlign16);                      
+                       extraInfo.vec2S1RealSize * this->gBaseSize, this->valueDSizeAlign16, this->valueDSizeAlign16);                      
         }
 
         if (likely(extraInfo.s2LoopCount != 0)) {
@@ -1803,15 +1836,40 @@ MlaS1s2Bn2gs1SameABBaseApi<TILING_TYPE, implMode, layOutType, hasAtten, INPUT_T,
     PipeBarrier<PIPE_V>();
     if (this->softmaxReduceSize == 1) {
         LocalTensor<T> softmaxTemp = this->commonTBuf.template Get<T>();
-        Brcb(softmaxTemp, sumUb, (extraInfo.s1RealSize + 7) / 8, {1, 8});
+        if (unlikely(hasSink)) {
+            if (likely(!this->notSplitG)) {
+                int64_t n1Offset = extraInfo.n2oIdx * this->tilingData->PFAinputParams.gSize + extraInfo.goIdx;
+                Duplicate<float>(this->sinkUb, ToFloat(this->sinkGm.GetValue(n1Offset)), extraInfo.vec2S1RealSize);
+                PipeBarrier<PIPE_V>();
+            } else {
+                int64_t n1Offset;
+                for (int64_t loop = extraInfo.gBaseSize - 1; loop >= 0; --loop) {
+                    n1Offset = extraInfo.n2oIdx * this->tilingData->PFAinputParams.gSize + loop;
+                    Duplicate(this->sinkUb, ToFloat(this->sinkGm.GetValue(n1Offset)), extraInfo.s1RealSize * (loop + 1));
+                    PipeBarrier<PIPE_V>();
+                }
+                this->sinkN1Offset = n1Offset;
+                this->sinkS1Size = extraInfo.vec2S1RealSize;
+            }
+            auto offset = s1oIdx * extraInfo.vec2S1BaseSize * extraInfo.gBaseSize;
+            auto size = extraInfo.vec2S1RealSize * extraInfo.gBaseSize;
+            LocalTensor<T> maxUb = this->softmaxMaxBuf[extraInfo.multiCoreInnerIdxMod2].template Get<T>();
+            Sub(softmaxTemp, this->sinkUb, maxUb[offset], size);
+            PipeBarrier<PIPE_V>();
+            Exp(softmaxTemp, softmaxTemp, size);
+            PipeBarrier<PIPE_V>();
+            Add(sumUb[offset], sumUb[offset], softmaxTemp, size);
+        }
+
+        Brcb(softmaxTemp, sumUb, (extraInfo.s1RealSize * extraInfo.gBaseSize + 7) / 8, {1, 8});
         PipeBarrier<PIPE_V>();
         for (int i = 0; i < loop; ++i) {
             Div(bmm2ResOutUb[i * repeatMaxSize], srcBmm2ResUb[i * repeatMaxSize],
-                softmaxTemp[s1oIdx * extraInfo.vec2S1BaseSize * 8], repeatMaxSize, extraInfo.vec2S1RealSize, repeatParams);
+                softmaxTemp[s1oIdx * extraInfo.vec2S1BaseSize * 8], repeatMaxSize, extraInfo.vec2S1RealSize * extraInfo.gBaseSize, repeatParams);
         }
         if (likely(remain)) {
             Div(bmm2ResOutUb[loop * repeatMaxSize], srcBmm2ResUb[loop * repeatMaxSize],
-                softmaxTemp[s1oIdx * extraInfo.vec2S1BaseSize * 8], remain, extraInfo.vec2S1RealSize, repeatParams);
+                softmaxTemp[s1oIdx * extraInfo.vec2S1BaseSize * 8], remain, extraInfo.vec2S1RealSize * extraInfo.gBaseSize, repeatParams);
         }
     } else {
         if constexpr (IsSameType<T, half>::value) {
@@ -1905,21 +1963,42 @@ MlaS1s2Bn2gs1SameABBaseApi<TILING_TYPE, implMode, layOutType, hasAtten, INPUT_T,
         gOffset = extraInfo.goIdx * this->valueDSize;
     }
     int64_t vCoreOffset = bOffset + n2Offset + gOffset + s1Offset;
-    // dataCopyParams.dstStride类型定义uint16_t，65535是其最大值
-    if (likely(dstStride <= 65535)) {
-        dataCopyParams.blockCount = extraInfo.vec2S1RealSize;
-        dataCopyParams.dstStride = static_cast<uint16_t>(dstStride);
-        DataCopyPad(this->attentionOutGm[vCoreOffset +
-                    (s1oIdx * extraInfo.vec2S1BaseSize + extraInfo.vecCoreOffset) * attenOutOffset],
-                    attenOut, dataCopyParams);
-    } else {
-        dataCopyParams.blockCount = 1;
-        dataCopyParams.dstStride = 0;
-
-        for (int32_t i = 0; i < extraInfo.vec2S1RealSize; i++) {
+    if (likely(!this->notSplitG)) {
+        if (likely(dstStride <= 65535)) {
+            dataCopyParams.blockCount = extraInfo.vec2S1RealSize;
+            dataCopyParams.dstStride = static_cast<uint16_t>(dstStride);
             DataCopyPad(this->attentionOutGm[vCoreOffset +
-                        (s1oIdx * extraInfo.vec2S1BaseSize + extraInfo.vecCoreOffset) * attenOutOffset +
-                        i * datacopyOffset], attenOut[i * this->valueDSizeAlign16], dataCopyParams);
+                        (s1oIdx * extraInfo.vec2S1BaseSize + extraInfo.vecCoreOffset) * attenOutOffset],
+                        attenOut, dataCopyParams);
+        } else {
+            dataCopyParams.blockCount = 1;
+            dataCopyParams.dstStride = 0;
+    
+            for (int32_t i = 0; i < extraInfo.vec2S1RealSize; i++) {
+                DataCopyPad(this->attentionOutGm[vCoreOffset +
+                            (s1oIdx * extraInfo.vec2S1BaseSize + extraInfo.vecCoreOffset) * attenOutOffset +
+                            i * datacopyOffset], attenOut[i * this->valueDSizeAlign16], dataCopyParams);
+            }
+        }
+        return;
+    }
+    // dataCopyParams.dstStride类型定义uint16_t，65535是其最大值
+    for (int32_t i = 0; i < extraInfo.gBaseSize; ++i) {
+        if (likely(dstStride <= 65535)) {
+            dataCopyParams.blockCount = extraInfo.vec2S1RealSize;
+            dataCopyParams.dstStride = static_cast<uint16_t>(dstStride); // static_cast<uint16_t>(dstStride);
+            DataCopyPad(this->attentionOutGm[vCoreOffset +
+                        (s1oIdx * extraInfo.vec2S1BaseSize + extraInfo.vecCoreOffset) * attenOutOffset + i * this->valueDSize],
+                        attenOut[i * dataCopyParams.blockCount * this->valueDSizeAlign16], dataCopyParams);
+        } else {
+            dataCopyParams.blockCount = 1;
+            dataCopyParams.dstStride = 0;
+
+            for (int32_t j = 0; j < extraInfo .vec2S1RealSize; j++) {
+                DataCopyPad(this->attentionOutGm[vCoreOffset +
+                            (s1oIdx * extraInfo.vec2S1BaseSize + extraInfo.vecCoreOffset) * attenOutOffset + i * this->valueDSize +
+                            j * datacopyOffset], attenOut[i * dataCopyParams.blockCount * this->valueDSizeAlign16 + j * this->valueDSizeAlign16], dataCopyParams);
+            }
         }
     }
 }

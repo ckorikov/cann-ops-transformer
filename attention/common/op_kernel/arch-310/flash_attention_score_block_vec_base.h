@@ -864,7 +864,7 @@ __aicore__ inline void FABlockVecBase<TEMPLATE_BASE_ARGS>::Bmm2DataCopyOut(
         if constexpr (!POST_QUANT) {
             Cast(attenOut, vec2ResUb, RoundMode::CAST_ROUND, vec2CalcSize);
         } else {
-            GetDerived()->PostQuant(constInfo, runInfo, attenOut, vec2ResUb, vec2S1Idx);
+            GetDerived()->PostQuant(constInfo, runInfo, attenOut, vec2ResUb, vec2S1Idx, dSizeAligned64);
         }
         SetFlag<HardEvent::V_MTE3>(vToMte3Id[0]);
         WaitFlag<HardEvent::V_MTE3>(vToMte3Id[0]);

@@ -37,6 +37,7 @@ extern "C" __global__ __aicore__ void fused_infer_attention_score(__gm__ uint8_t
                                                              __gm__ uint8_t* valueAntiquantScale, __gm__ uint8_t* valueAntiquantOffset,
                                                              __gm__ uint8_t* keySharedPrefix, __gm__ uint8_t* valueSharedPrefix, __gm__ uint8_t* actualSharedPrefixLen,
                                                              __gm__ uint8_t* queryRope, __gm__ uint8_t* keyRope, __gm__ uint8_t* keyRopeAntiquantScale, __gm__ uint8_t* dequantScaleQuery,
+                                                             __gm__ uint8_t* learnableSink,
                                                              __gm__ uint8_t* attentionOut, __gm__ uint8_t* softmaxLse, __gm__ uint8_t* workspace,
                                                              __gm__ uint8_t* tiling) {
   // judge ifa or pfa by range of tilingKey
@@ -49,8 +50,8 @@ extern "C" __global__ __aicore__ void fused_infer_attention_score(__gm__ uint8_t
                                   antiquantOffset, blocktable, queryPaddingSize, kvPaddingSize, 
                                   keyAntiquantScale, keyAntiquantOffset, valueAntiquantScale, 
                                   valueAntiquantOffset, keySharedPrefix, valueSharedPrefix, 
-                                  actualSharedPrefixLen, queryRope, keyRope, attentionOut,
-                                  softmaxLse, workspace, tiling);
+                                  actualSharedPrefixLen, queryRope, keyRope, learnableSink,
+                                  attentionOut, softmaxLse, workspace, tiling);
     #else //__CCE_AICORE__ > 200
       prompt_flash_attention_FIAS(query, key, value, pse_shift, attenMask, actualSeqLengths, 
                                   actualSeqLengthsKV, deq_scale1, quant_scale1,
@@ -58,8 +59,8 @@ extern "C" __global__ __aicore__ void fused_infer_attention_score(__gm__ uint8_t
                                   antiquantOffset, blocktable, queryPaddingSize, kvPaddingSize, 
                                   keyAntiquantScale, keyAntiquantOffset, valueAntiquantScale, 
                                   valueAntiquantOffset, keySharedPrefix, valueSharedPrefix, 
-                                  actualSharedPrefixLen, queryRope, keyRope, attentionOut,
-                                  softmaxLse, workspace, tiling);
+                                  actualSharedPrefixLen, queryRope, keyRope, learnableSink, 
+                                  attentionOut, softmaxLse, workspace, tiling);
   } else if (TILING_KEY_VAR >= 100000000000000000) {
     fused_infer_attention(query, key, value, pse_shift, attenMask, actualSeqLengths,
                           actualSeqLengthsKV, deq_scale1, quant_scale1, deq_scale2, quant_scale2,

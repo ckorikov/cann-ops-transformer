@@ -959,7 +959,7 @@ FlashAttentionScoreGradS1s2Bn2<T1, T2, MM_CFG, MM_OUT_FORMAT, PSE_CFG, ATTEN_MAS
         srcStrideN1 = dimN2 * dimG * dimD;
         srcStrideN2 = dimN2 * dimD;
     }
-    dimDAlign = (dimD + C0_SIZE - 1) / C0_SIZE * C0_SIZE;
+    dimDAlign = (dimD + dataCopyBlockNum - 1) / dataCopyBlockNum * dataCopyBlockNum;
     attenMaskDimS2 = tilingData->opInfo.attenMaskS2Size;
 
     actual_seq_qlen_addr = actual_seq_qlen;

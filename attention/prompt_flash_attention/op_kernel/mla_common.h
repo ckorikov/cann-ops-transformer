@@ -190,6 +190,7 @@ struct SplitSameABExtraInfo {
     int64_t s2Size;
     int64_t softmaxLseOffset;
     int64_t vecCoreOffset;
+    int64_t gBaseSize = 1;
 };
 
 template <typename T>

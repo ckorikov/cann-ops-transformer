@@ -65,8 +65,8 @@ struct RunParamStr;
     int64_t s1oIdx; \
     int64_t n2oIdx; \
     int64_t goIdx; \
-    int32_t s2LoopStartIdx;        /* S2方向的循环控制信息  souter层确定 */ \
-    int32_t s2LoopEndIdx;          /* S2方向的循环控制信息  souter层确定 */ \
+    int32_t s2LoopStartIdx;        /* S2方向的循环控制信息 souter层确定 */ \
+    int32_t s2LoopEndIdx;          /* S2方向的循环控制信息 souter层确定 */ \
     int64_t s2LineStartIdx;        /* S2方向按行的起始位置 */ \
     int64_t s2LineEndIdx;          /* S2方向按行的结束位置 */ \
     /* cube视角的sOuter，在SAMEAB场景中cubeSOuterSize为两倍的 halfS1RealSize souter层确定 */ \
@@ -74,13 +74,15 @@ struct RunParamStr;
     uint32_t s1RealSizeAlign32;    /* dn场景使用 */ \
     uint32_t halfS1RealSize; \
     uint32_t firstHalfS1RealSize; \
-    int64_t tensorQOffset;         /* query的offset  souter层确定 */ \
-    int64_t attentionOutOffset;    /* attentionOut的offset  souter层确定 */ \
+    int64_t tensorQOffset;         /* query的offset souter层确定 */ \
+    int64_t attentionOutOffset;    /* attentionOut的offset souter层确定 */ \
     int64_t actualS1Size;      /* Q的actualSeqLength */ \
     int64_t actualS2Size;    /* KV的actualSeqLength */ \
     uint64_t b1SSOffset; \
     uint64_t b1SSAttenMaskOffset; \
-    uint64_t b1SSOffsetAlign16
+    uint64_t b1SSOffsetAlign16; \
+    int64_t qRopeNBGOffset;             /* QueryRope 的 offset */ \
+    int64_t kRopeNBGOffset;             /* G方向上,不同g的KeyRope的offset */ 
 
 template<>
 struct RunParamStr<false> {  // 分核与切块需要使用到参数
@@ -118,8 +120,6 @@ struct RunParamStr<true> {  // 分核与切块需要使用到参数
     int64_t softmaxLseOffset;       // souter层确定
 
     // IFA_MLA
-    int64_t qRopeNBGOffset;             // QueryRope 的 offset
-    int64_t kRopeNBGOffset;             // G方向上，不同g的KeyRope的offset
     int64_t actualSeqLengthOfMlaPerBatch = 0; // 在mla场景下Q的actualSeqLength
     int64_t nextTokensOfMlaPerBatch = 0;   // 在mla场景下左上顶点的nexttoken，用于计算BNSD的行无效
 };
@@ -143,8 +143,11 @@ struct RunParamStr<true> {  // 分核与切块需要使用到参数
     int32_t vec2S1BaseSize; /* vector2侧开循环之后，经过切分的S1大小，例如把64切分成两份32 */ \
     int32_t vec2S1RealSize; /* vector2侧开循环之后，经过切分的S1的尾块大小，例如把63切分成两份32和31，第二份的实际大小是31 */ \
     int64_t vecCoreOffset; /* vec核基于cube核起始处s1方向偏移 */ \
-    int64_t keyOffset; /* mm1 Key 的 offset，后续更名为kFinalOffset */ \
-    int64_t valueOffset; /* mm2 Value 的 offset  复用tensorBOffset，后续更名为vFinalOffset */ \
+    int64_t queryOffset; /* mm1 Query的offset*/\
+    int64_t keyOffset; /* mm1 Key的offset */ \
+    int64_t valueOffset; /* mm2 Value的offset*/ \
+    int64_t qRopeOffset; \
+    int64_t kRopeOffset; \
     \
     int64_t taskId; \
     int64_t multiCoreInnerIdx = 0; \
@@ -161,10 +164,12 @@ struct RunParamStr<true> {  // 分核与切块需要使用到参数
     int64_t b1SSAttenMaskOffset; \
     int64_t b1SSOffsetAlign; /* TND场景s2 16对齐之后，前面batch的s1*s2之和 */ \
     int64_t deScaleKvOffset; /* KV的反量化scale内容在Gm中的偏移 原始shape为 [B, N2, 1, Ceil(S2, 128), 1] */ \
+    int64_t nextTokensOfMlaPerBatch = 0; /* 在mla场景下左上顶点的nexttoken，用于计算BNSD的行无效 */ \
     uint8_t taskIdMod2; \
     uint8_t taskIdMod3; \
     uint8_t multiCoreIdxMod2 = 0; \
-    uint8_t multiCoreIdxMod3 = 0
+    uint8_t multiCoreIdxMod3 = 0; \
+    int64_t sOuterOffset
 
 template<bool isInfer = false>
 struct RunInfo;
@@ -181,11 +186,6 @@ struct RunInfo<true> {
 
     // FD相关
     int64_t flashDecodeS2Idx;
-
-    // IFA_MLA
-    int64_t nextTokensOfMlaPerBatch = 0; /* 在mla场景下左上顶点的nexttoken，用于计算BNSD的行无效 */ \
-    int64_t kRopeOffset;
-    int64_t qRopeOffset;
 };
 
 template<>
@@ -259,10 +259,14 @@ struct RunInfo<false> {
     int64_t mm2Kb; \
     /* dq 或者attentionOut的Stride */ \
     int64_t attentionOutStride; \
-    uint32_t subBlockIdx; \
-    uint32_t layoutType; \
+    uint32_t aivIdx; \
+    uint8_t layoutType; \
+    uint8_t enableKVPrefetch; \
+    uint8_t subBlockIdx;\
+    bool softMaxCheckRes; \
     float keepProb; \
-    float scaleValue
+    float scaleValue; \
+    int64_t matmulMSize     /* 在matmul运算中，左矩阵的M轴大小需要区分GS1合轴与不合轴的情况 */
 
 
 #define ROPE_INFO \
@@ -306,7 +310,7 @@ struct RunInfo<false> {
     /* GS1合轴场景，外层循环是B、N2，内层循环G、S1，headNumRatio = 1 */ \
     /* GS1不合轴场景，外层循环是B、N2、G，内层循环S1，headNumRatio = gSize */ \
     uint32_t headNumRatio; \
-    uint8_t rsvd; \
+    bool rsvd1; \
     bool isSoftmaxLseEnable; \
     /* 左padding */ \
     bool isQHasLeftPadding; \
@@ -316,7 +320,41 @@ struct RunInfo<false> {
     /* FD */ \
     int64_t sInnerLoopSize; /* FD s2总大小 */ \
     int64_t actualCombineLoopSize; /* 实际规约块数 */ \
-    int64_t splitKVNum
+    int64_t splitKVNum; \
+    /* 后量化 */ \
+    bool isPostQuantPerChnl; \
+    bool isPostQuantBF16; \
+    bool isPostQuantOffsetExist; \
+    float postQuantScaleValue; \
+    float postQuantOffsetValue
+
+#define CV_SHARED_PARAMS \
+    /* base params */ \
+    uint32_t bSize;  \
+    uint32_t n2Size;  \
+    uint32_t gSize;  \
+    uint32_t s1Size;  \
+    uint32_t s2Size;  \
+    uint32_t dSize : 16;  \
+    uint32_t dSizeV : 16;  \
+    /* special params */  \
+    int64_t preTokens;  \
+    int64_t nextTokens;  \
+    uint32_t attenMaskS1Size;  \
+    uint32_t attenMaskS2Size;  \
+    int64_t s1SparseValidSize;  \
+    int64_t s2SparseValidSize;  \
+    /* core params */ \
+    volatile int64_t multiCoreInnerOffset;  /* 二次赋值的变量需要volatile修饰 */ \
+    volatile int64_t multiCoreInnerLimit;  /* 二次赋值的变量需要volatile修饰 */ \
+    uint32_t s1OuterSize;  \
+    uint32_t bandIndex;  \
+    uint32_t compressMode : 4;  \
+    uint32_t implMode : 4;  \
+    uint32_t layoutType : 4;  \
+    uint32_t sparseType : 8;  \
+    uint32_t dSizeRope : 12; \
+    uint32_t coreNum;
 
 template<bool isInfer = false, bool hasRope = false>
 struct ConstInfo;
@@ -347,6 +385,77 @@ struct ConstInfo<false, false> {
     COMMON_CONST_INFO;
     int64_t n2GS1o; // 训练特有
     int64_t gS1o;
+};
+
+/* only support b32 or b64 */
+template <bool isInfer = false, bool isPa = false>
+struct CVSharedParams;
+
+template<>
+struct CVSharedParams<false, false> {
+    CV_SHARED_PARAMS;
+};
+
+/* CVSharedParams需要小于等于CacheLine的大小：128Bytes */
+template<>
+struct CVSharedParams<true, false> {
+    CV_SHARED_PARAMS;
+    uint32_t fromFused : 1;
+    uint32_t isGqa : 1;
+    uint32_t isKvContinuous : 1;
+    uint32_t isRowInvalid : 1;
+    uint32_t isActualSeqLengthsNull : 1;
+    uint32_t isActualSeqLengthsKVNull : 1;
+    uint32_t isQHasLeftPadding : 1;
+    uint32_t isKVHasLeftPadding : 1;
+    uint32_t isBSNDOut : 1;
+    uint32_t needInit : 1;
+    uint32_t isPostQuantPerChnl : 1;
+    uint32_t isPostQuantBF16 : 1;
+    uint32_t headNumRatio : 20;
+
+    uint32_t actualSeqLengthsSize;
+    uint32_t actualSeqLengthsKVSize;
+    uint32_t splitKVNum;
+
+    uint32_t bnStartIdx;
+    uint32_t bnEndIdx;
+
+    uint32_t queryRightPaddingSize;
+    uint32_t kvRightPaddingSize;
+};
+
+template<>
+struct CVSharedParams<true, true> {
+    CV_SHARED_PARAMS;
+    uint32_t fromFused : 1;
+    uint32_t isGqa : 1;
+    uint32_t isKvContinuous : 1;
+    uint32_t isRowInvalid : 1;
+    uint32_t isActualSeqLengthsNull : 1;
+    uint32_t isActualSeqLengthsKVNull : 1;
+    uint32_t isQHasLeftPadding : 1;
+    uint32_t isKVHasLeftPadding : 1;
+    uint32_t isBSNDOut : 1;
+    uint32_t needInit : 1;
+    uint32_t isPostQuantPerChnl : 1;
+    uint32_t isPostQuantBF16 : 1;
+    uint32_t headNumRatio : 20;
+
+    uint32_t actualSeqLengthsSize;
+    uint32_t actualSeqLengthsKVSize;
+    uint32_t splitKVNum;
+
+    uint32_t bnStartIdx;
+    uint32_t bnEndIdx;
+
+    uint32_t queryRightPaddingSize;
+    uint32_t kvRightPaddingSize;
+
+    int32_t blockSize;
+    int32_t blockTableDim2;
+    int32_t paBlockNumSum;
+    uint32_t paLayoutType;
 };
 }
 

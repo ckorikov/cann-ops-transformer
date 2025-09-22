@@ -272,6 +272,7 @@ BEGIN_TILING_DATA_DEF(PFAInputParams)
     TILING_DATA_FIELD_DEF(uint32_t, rsv1);
     TILING_DATA_FIELD_DEF(int64_t, qStartIdx);
     TILING_DATA_FIELD_DEF(int64_t, kvStartIdx);
+    TILING_DATA_FIELD_DEF(uint32_t, hasLearnableSink);
 END_TILING_DATA_DEF;
 REGISTER_TILING_DATA_CLASS(PFAInputParamsOp, PFAInputParams)
 
@@ -723,6 +724,10 @@ protected:
                       const std::vector<int64_t> &sparseStartIdx, std::vector<int64_t> &localValue);
     ge::graphStatus CheckInputShapeWhenLayoutIsTND(ContextParamsForPFATiling& contextKeyParams);
     ge::graphStatus CheckActSeqWhenLayoutIsTND(ContextParamsForPFATiling& contextKeyParams);
+
+    ge::graphStatus CheckVarLenPreNextToken(ContextParamsForPFATiling& contextKeyParams,
+        int32_t sparseMode, int64_t sparsePreTokens, int64_t sparseNextTokens);
+    ge::graphStatus CheckLearnableSinkWhenLayoutIsTND(ContextParamsForPFATiling& contextKeyParams);
 
 protected:
     ContextParamsForPFATiling* contextKeyParamsPtr = nullptr;

@@ -28,6 +28,7 @@ extern aclnnStatus aclnnInnerFusedInferAttentionScoreGetWorkspaceSize(
     const aclTensor *valueAntiquantOffset, const aclTensor *keySharedPrefix, const aclTensor *valueSharedPrefix,
     const aclIntArray *actualSharedPrefixLen, const aclTensor *query_rope,
     const aclTensor *key_rope, const aclTensor *keyRopeAntiquantScale, const aclTensor *dequantScaleQuery,
+    const aclTensor *learnableSink,
     int64_t numHeads, double scaleValue, int64_t preTokens,
     int64_t nextTokens, char *inputLayout, int64_t numKeyValueHeads, int64_t sparseMode, int64_t innerPrecise,
     int64_t blockSize, int64_t antiquantMode, bool softmaxLseFlag,

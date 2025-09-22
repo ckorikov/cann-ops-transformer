@@ -59,7 +59,7 @@ static constexpr size_t WORK_SPACE_RESERVE_SIZE = 16 * 1024 * 1024;
 static const int64_t ATTEN_MASK_S1_REV_INDEX = 2L;
 static const int64_t ATTEN_MASK_COMPRESS_LIMIT = 2048L;
 static const int64_t ATTEN_MASK_COMPRESS_PREFIX_LIMIT = 3072L;
-static const int64_t MAX_VAR_LEN_SEQ_LEN = 4096L;
+static const int64_t MAX_VAR_LEN_SEQ_LEN = 20000L;
 static const int64_t S2_REUSE_SIZE_512 = 512L;
 static const int64_t S2_REUSE_SIZE_1024 = 1024L;
 static const int64_t S1_REUSE_SIZE_3840 = 3840L;
@@ -1418,8 +1418,8 @@ bool FlashAttentionScoreTilingBase::AnalyzeOptionalInput()
             * FA正向对这种情况进行了兼容，能够得到正确的计算结果。
             * FA反向未兼容，因此统一拦截异常输入。
             */
-            OP_LOGE(context_, "Get PseInput is nullptr, but pseType is not default=%u, now pseType=%ld", PSE_OUTER_ADD_MUL_TYPE, pseType);
-            return ge::GRAPH_FAILED;
+            OP_LOGE(context_, "Get PseInput is nullptr, but pseType is not default=%u, now pseType=%ld.", PSE_OUTER_ADD_MUL_TYPE, pseType);
+            return false;
         }
     }
     if (pseShape != nullptr && pseShape->GetStorageShape().GetDimNum() != 0) {

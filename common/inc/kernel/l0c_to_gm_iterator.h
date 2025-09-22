@@ -16,6 +16,10 @@
 #ifndef L0C_TO_GM_ITERATOR_H
 #define L0C_TO_GM_ITERATOR_H
 
+#ifdef __CCE_KT_TEST__
+#define __bf16 bfloat16_t
+#endif
+
 #include "iterator.h"
 constexpr uint32_t BLOCK_NUM = 16;
 constexpr uint32_t BLOCK_SIZE_INT8 = 32;

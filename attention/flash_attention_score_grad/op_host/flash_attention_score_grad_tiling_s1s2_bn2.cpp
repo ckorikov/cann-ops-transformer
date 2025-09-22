@@ -491,7 +491,7 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2::GetPseInfo()
             * FA正向对这种情况进行了兼容，能够得到正确的计算结果。
             * FA反向未兼容，因此统一拦截异常输入。
             */
-            OP_LOGE(context_, "Get PseInput is nullptr, but pseType is not default=%u, now pseType=%ld", PSE_OUTER_ADD_MUL_TYPE, tmpData_.pseType);
+            OP_LOGE(context_, "Get PseInput is nullptr, but pseType is not default=%u, now pseType=%ld.", PSE_OUTER_ADD_MUL_TYPE, tmpData_.pseType);
             return ge::GRAPH_FAILED;
         }
     }
@@ -806,6 +806,7 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2::GetShapeAttrsInfo()
             tmpData_.layout = static_cast<uint32_t>(InputLayout::BSH);
             td_.opInfo.set_layout(static_cast<uint32_t>(InputLayout::BSH));
         }
+        OP_LOGI(context_, "bn2 template enable tnd to bsh.");
     }
 
     td_.opInfo.set_preTokens(*context_->GetAttrs()->GetAttrPointer<int>(PRE_TOKENS));

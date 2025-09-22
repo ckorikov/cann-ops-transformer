@@ -69,10 +69,8 @@ template<typename INPUT_T, typename T = INPUT_T, ImplModeEnum implMode = ImplMod
     DTemplateType dVTemplateType = DTemplateType::Aligned128,
     PseTypeEnum pseMode = PseTypeEnum::PSE_NONE_TYPE, bool hasAtten = false, bool hasDrop = false, bool hasRope = false,
     typename OUTPUT_T = INPUT_T, bool isInfer = false, bool isPa = false, bool isFd = false>
-class FlashAttentionKvsameBN2GS1S2
-    : public FlashAttentionScoreS1s2Const<FlashAttentionKvsameBN2GS1S2<CHILD_SPEC_TEMPLATE_ARGS>, CHILD_SPEC_TEMPLATE_ARGS> {
+class FlashAttentionKvsameBN2GS1S2 {
 public:
-    using BaseClass = FlashAttentionScoreS1s2Const<FlashAttentionKvsameBN2GS1S2<CHILD_SPEC_TEMPLATE_ARGS>, CHILD_SPEC_TEMPLATE_ARGS>;
     __aicore__ inline FlashAttentionKvsameBN2GS1S2() {};
     __aicore__ inline void Init(__gm__ uint8_t *query, __gm__ uint8_t *key, __gm__ uint8_t *value, __gm__ uint8_t *pse,
                                 __gm__ uint8_t *attenMask, __gm__ uint8_t *actualSeqLengths, __gm__ uint8_t *actualSeqLengthsKv,

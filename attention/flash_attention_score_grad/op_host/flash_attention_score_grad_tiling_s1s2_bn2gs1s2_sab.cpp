@@ -459,7 +459,7 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2gs1s2SameAb::ProcessPseInfo(
             * FA正向对这种情况进行了兼容，能够得到正确的计算结果。
             * FA反向未兼容，因此统一拦截异常输入。
             */
-            OP_LOGE(context_, "Get PseInput is nullptr, but pseType is not default=%u, now pseType=%ld", PSE_OUTER_ADD_MUL_TYPE, fBaseParams.pseType);
+            OP_LOGE(context_, "Get PseInput is nullptr, but pseType is not default=%u, now pseType=%ld.", PSE_OUTER_ADD_MUL_TYPE, fBaseParams.pseType);
             return ge::GRAPH_FAILED;
         }
     }
