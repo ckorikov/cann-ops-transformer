@@ -254,7 +254,7 @@ macro(add_mc2_modules_sources)
   get_filename_component(ASCEND_PARENT_DIR ${ASCEND_CANN_PACKAGE_PATH} DIRECTORY)
 
   # opapi 默认全部编译
-  file(GLOB OPAPI_SRCS ${SOURCE_DIR}/op_api/aclnn_*.cpp)
+  file(GLOB OPAPI_SRCS ${SOURCE_DIR}/op_api/*.cpp)
   if (OPAPI_SRCS)
     add_opapi_modules()
     target_sources(${OPHOST_NAME}_opapi_obj PRIVATE ${OPAPI_SRCS})
@@ -283,9 +283,8 @@ macro(add_mc2_modules_sources)
     target_sources(${OPHOST_NAME}_infer_obj PRIVATE ${OPINFER_SRCS})
   endif()
 
-  file(GLOB OPTILING_SRCS
-      ${SOURCE_DIR}/op_tiling/*_tiling*.cpp
-      ${SOURCE_DIR}/op_tiling/arch35/*.cpp
+  file(GLOB_RECURSE OPTILING_SRCS 
+      ${SOURCE_DIR}/op_tiling/*.cpp
       ${SOURCE_DIR}/../graph_plugin/fallback_*.cpp)
   if (OPTILING_SRCS)
     add_tiling_modules()

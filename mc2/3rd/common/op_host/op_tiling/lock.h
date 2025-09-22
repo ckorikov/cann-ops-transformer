@@ -21,7 +21,7 @@
 
 namespace Ops {
 namespace Transformer {
-namespace optiling {
+namespace Optiling {
 class RWLock {
 public:
     RWLock() : _status(0), _waiting_readers(0), _waiting_writers(0) {}

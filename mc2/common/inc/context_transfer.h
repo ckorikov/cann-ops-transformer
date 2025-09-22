@@ -19,6 +19,7 @@
  */
 #ifndef _CONTEXT_TRANSFER_H_
 #define _CONTEXT_TRANSFER_H_
+#include "runtime/tiling_context.h"
 
 namespace optiling {
 

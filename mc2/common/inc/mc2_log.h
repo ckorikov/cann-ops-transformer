@@ -117,27 +117,38 @@ inline const char *get_cstr(const std::string &str) { return str.c_str(); }
         EXPR;                                                   \
     }
 
+#define OPS_LOG_FULL(LEVEL, OPS_DESC, ...) 
+
 #define OPS_LOG_E(opName, ...) \
   D_OP_LOGE(Ops::Base::GetOpInfo(opName), __VA_ARGS__)
+#define OPS_LOG_W(opName, ...) \
+  D_OP_LOGW(Ops::Base::GetOpInfo(opName), __VA_ARGS__)
 #define OPS_LOG_I(opName, ...) \
   D_OP_LOGI(Ops::Base::GetOpInfo(opName), __VA_ARGS__)
 #define OPS_LOG_D(opName, ...) \
   D_OP_LOGD(Ops::Base::GetOpInfo(opName), __VA_ARGS__)
-#define OP_LOGE_IF(condition, return_value, op_name, fmt, ...) \
-  static_assert(std::is_same<bool, std::decay<decltype(condition)>::type>::value, "condition should be bool"); \
-  do {                                                         \
-    if (condition) {                                            \
-      OP_LOGE(Ops::Base::GetOpInfo(op_name), fmt, ##__VA_ARGS__);                     \
-      return return_value;                                      \
-    }                                                          \
-  } while (0)
-
+#define OP_LOGE_IF(condition, returnValue, opName, fmt, ...)                                                     \
+    static_assert(std::is_same<bool, std::decay<decltype(condition)>::type>::value, "condition should be bool"); \
+    do {                                                                                                         \
+        if (unlikely(condition)) {                                                                               \
+            OP_LOGE(Ops::Base::GetOpInfo(opName), fmt, ##__VA_ARGS__);                                           \
+            return returnValue;                                                                                  \
+        }                                                                                                        \
+    } while (0)
 #define CUBE_INNER_ERR_REPORT(op_name, err_msg, ...)              \
   do {                                                            \
     D_OP_LOGE(op_name, err_msg, ##__VA_ARGS__);                   \
     REPORT_INNER_ERR_MSG("E69999", "op[%s], " err_msg,            \
                          get_cstr(Ops::Base::GetOpInfo(op_name)), \
                          ##__VA_ARGS__);                          \
+  } while (0)
+#define OP_LOGI_IF_RETURN(condition, returnValue, opName, fmt, ...)                                             \
+  static_assert(std::is_same<bool, std::decay<decltype(condition)>::type>::value, "condition should be bool");  \
+  do {                                                                                                          \
+    if (unlikely(condition)) {                                                                                  \
+      OP_LOGI(Ops::Base::GetOpInfo(opName), fmt, ##__VA_ARGS__);                                                \
+      return returnValue;                                                                                       \
+    }                                                                                                           \
   } while (0)
 #define GE_ASSERT(exp, ...)                                     \
   do {                                                          \
@@ -178,6 +189,19 @@ namespace ops {
 #define GE_ASSERT_SUCCESS(v, ...) GE_ASSERT(((v) == ge::SUCCESS), __VA_ARGS__)
 #define GE_ASSERT_NOTNULL(v, ...) GE_ASSERT(((v) != nullptr), __VA_ARGS__)
 #define GE_ASSERT_GRAPH_SUCCESS(v, ...) GE_ASSERT(((v) == 0), __VA_ARGS__)
+#define GE_ASSERT_TRUE(v, ...) GE_ASSERT((v), __VA_ARGS__)
+#define GE_ASSERT_EQ(x, y)                                    \
+  do {                                                        \
+    const auto &xv = (x);                                     \
+    const auto &yv = (y);                                     \
+    if (xv != yv) {                                           \
+      std::stringstream ss;                                   \
+      ss << "Assert (" << #x << " == " << #y <<               \
+            ")failed, expect " << yv << " actual " << xv;     \
+      REPORT_INNER_ERROR("E19999", "%s", ss.str().c_str());   \
+      return ::ErrorResult();                                 \
+    }                                                         \
+  } while (0)
 
 #define VECTOR_INFER_SHAPE_INNER_ERR_REPORT(op_name, err_msg)                  \
   do {                                                                         \
@@ -208,7 +232,9 @@ namespace optiling {
 #else
 #define OPS_ERR_IF(COND, LOG_FUNC, EXPR)
 #define OPS_CHECK(COND, LOG_FUNC, EXPR)
+#define OPS_LOG_FULL(LEVEL, OPS_DESC, ...) 
 #define OPS_LOG_E(opName, ...)
+#define OPS_LOG_W(opName, ...)
 #define OPS_LOG_I(opName, ...)
 #define OPS_LOG_D(opName, ...)
 #define CUBE_INNER_ERR_REPORT(op_name, err_msg, ...)

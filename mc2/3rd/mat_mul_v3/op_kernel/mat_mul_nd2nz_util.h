@@ -40,6 +40,12 @@ enum class ND2NZ_DB_TYPE : int32_t
     NO_DB_REUSE_OUTPUT
 };
 
+enum class Nd2NzMode : int32_t
+{
+    MULTI_CORE = 0,
+    SINGLE_CORE = 1
+};
+
 template <class T>
 __aicore__ inline void Copy(const LocalTensor<T>& dstLocal, const LocalTensor<T>& srcLocal, uint32_t count) {
     constexpr uint32_t copyLen = SINGLE_COPY_SIZE / sizeof(T);

@@ -484,6 +484,11 @@ ge::graphStatus MatmulV3BaseTiling::GetMoreArgs()
     args_.nd2nzB = args_.nd2nzB || mataConflictFlag || mataConflictFlag2;
     OP_LOGI(args_.opName, "After judging nd2nz tiling condition, matrix A need vnchw mode nd2nz = %u, matrix B = %u.",
             static_cast<uint32_t>(args_.nd2nzA), static_cast<uint32_t>(args_.nd2nzB));
+    if (args_.nd2nzA && NeedNd2NzVnchw(outerSizeA, innerSizeA, supportNd2NzOnTheWayA, aDtypeSize_, args_.aFormat)) {
+        args_.unAlignProcessType = 1;
+    } else {
+        args_.unAlignProcessType = 0;
+    }
     return ge::GRAPH_SUCCESS;
 }
 
@@ -601,8 +606,7 @@ void MatmulV3BaseTiling::OptimizeLoadBalanceBasicKernel()
     uint64_t baseKCheck = BASIC_BLOCK_SIZE_128 / aDtypeSize_;
     constexpr uint64_t aicNumCheck = 24;
     bool baseMNKFlag = runInfo_.baseM * runInfo_.baseN == baseMNCheck && runInfo_.baseK == baseKCheck;
-    bool disableMixNd2nz = !IsMixNd2nz(); // 1: disable mix nd2nz 0: enable mix nd2nz
-    tilingKey_ = GET_TILINGKEY(disableMixNd2nz, tilingEnable_.tilingEnableSplitCore,
+    tilingKey_ = GET_TILINGKEY(GetMixNd2nzType(), tilingEnable_.tilingEnableSplitCore,
                                 tilingEnable_.tilingEnableFullLoad, 0, tilingEnable_.tilingEnableFixOpti);
     bool tilingKeyCheckFlag = tilingKey_ == 10000000000000000001UL || tilingKey_ == 10000000000000000000UL;
     bool aicNumCheckFlag = compileInfo_.aicNum == aicNumCheck;
@@ -647,8 +651,7 @@ void MatmulV3BaseTiling::OptimizeBasicKernelStepK()
     constexpr uint64_t MNCheck = 768;
     constexpr uint64_t mataCheck = 16384;
     constexpr uint64_t aicNumCheck = 24;
-    bool disableMixNd2nz = !IsMixNd2nz(); // 1: disable mix nd2nz 0: enable mix nd2nz
-    tilingKey_ = GET_TILINGKEY(disableMixNd2nz, tilingEnable_.tilingEnableSplitCore,
+    tilingKey_ = GET_TILINGKEY(GetMixNd2nzType(), tilingEnable_.tilingEnableSplitCore,
                                 tilingEnable_.tilingEnableFullLoad, 0, tilingEnable_.tilingEnableFixOpti); // tilingKey reverse:  01->10
     bool baseMNKFlag = runInfo_.baseM * runInfo_.baseN == baseMNCheck && runInfo_.baseK == baseKCheck;
     bool alignFlag = args_.mValue % alignCheck == 0 && args_.nValue % alignCheck == 0 && args_.kValue % alignCheck == 0 &&
@@ -1641,8 +1644,8 @@ void MatmulV3BaseTiling::InitL2SplitParams(MatmulV3L2SplitParams &l2SplitParams)
         l2SplitParams.innerDtypeSize = aDtypeSize_;
     }
 
-    l2SplitParams.maxConflictDim = 6;     // 24核最多冲突6核
-    l2SplitParams.minConflictDim = 3;     // 24核内轴不亲和最多冲突3核
+    l2SplitParams.maxConflictDim = std::min(compileInfo_.aicNum, 6UL);     // 24核最多冲突6核
+    l2SplitParams.minConflictDim = std::min(compileInfo_.aicNum, 3UL);     // 24核内轴不亲和最多冲突3核
     if (compileInfo_.aicNum == 20) {      // 针对20核的场景
         l2SplitParams.maxConflictDim = 5; // 20核最多冲突5核
         l2SplitParams.minConflictDim = 4; // 20核内轴不亲和最多冲突4核
@@ -1816,20 +1819,49 @@ bool MatmulV3BaseTiling::DoBL1FullLoadTiling()
     uint64_t innerSizeA = args_.isATrans ? args_.mValue : args_.kValue;
     uint64_t outerSizeA = args_.isATrans ? args_.kValue : args_.mValue;
     // Update cases which can used vnchw_conv. 72368 is an experiment threshold value
+    uint64_t mUpperLimit = 98048; // mValue should be no more than 98048
+    uint64_t mLowerLimit = 30848; // mValue should be bigger than 30848
     bool nd2nzAUsingVnchwConv =
         (args_.aType == ge::DT_FLOAT && outerSizeA >= VNCHW_UP_THRES && innerSizeA <= c0 && innerSizeA > 1);
-    bool supportNd2NzOnTheWayB = std::find(SUPPORT_ND2NZ_GM2L0.begin(), SUPPORT_ND2NZ_GM2L0.end(), args_.nValue) !=
-                                           SUPPORT_ND2NZ_GM2L0.end() &&
-                                 (!args_.isBTrans || std::find(SUPPORT_ND2NZ_GM2L0.begin(), SUPPORT_ND2NZ_GM2L0.end(),
-                                    args_.kValue * aDtypeSize_) != SUPPORT_ND2NZ_GM2L0.end());
+    bool supportNd2NzOnTheFly =
+        std::find(SUPPORT_ND2NZ_GM2L0.begin(), SUPPORT_ND2NZ_GM2L0.end(), args_.nValue) != SUPPORT_ND2NZ_GM2L0.end() &&
+        (!args_.isBTrans ||
+         std::find(SUPPORT_ND2NZ_GM2L0.begin(), SUPPORT_ND2NZ_GM2L0.end(), args_.kValue * aDtypeSize_) !=
+         SUPPORT_ND2NZ_GM2L0.end());
     // mValue should be 16 times more than max of k/nValue, and kValue should be no more than 256
     bool validMK = args_.mValue > 16 * std::max(args_.kValue, args_.nValue) && args_.kValue <= 256;
     uint64_t biasSize = args_.hasBias ? runInfo_.baseN * GetSizeByDataType(ge::DT_FLOAT) : 0; // 默认最高精度保证BF16
     bool bl1SizeValid = (compileInfo_.l1Size / NUM_HALF - biasSize) > args_.kValue * args_.nValue * bDtypeSize_;
-    bool alignedBl1FullLoad = (supportNd2NzOnTheWayB && !args_.nd2nzB);
-    if (!validMK || (!alignedBl1FullLoad && !(nd2nzAUsingVnchwConv && bl1SizeValid))) {
-      return false;
+    bool alignedBl1FullLoad = (supportNd2NzOnTheFly && !args_.nd2nzB);
+    bool bl1FullLoadCheck = !validMK || (!alignedBl1FullLoad && !(nd2nzAUsingVnchwConv && bl1SizeValid));
+    uint64_t mTailBlock = (args_.mValue / BASIC_BLOCK_SIZE_128) % 12; // 当baseM为128时，M方向上分核数量为12的尾块数量
+    bool mTailBlockCheck = false;
+    if (mTailBlock == 0) { // 尾块数量为0时，特殊处理
+        // 当baseM为128时，M方向上分核数量为12的尾块数量加127向上取整后是否为1
+        mTailBlockCheck = ((args_.mValue + 127) / BASIC_BLOCK_SIZE_128) % 12 == 1;
+    } else if (mTailBlock == 6) { // 尾块数量为6时，特殊处理
+        // 当baseM为128时，M方向上分核数量为12的尾块数量加127向上取整后是否为7
+        mTailBlockCheck = ((args_.mValue + 127) / BASIC_BLOCK_SIZE_128) % 12 != 7;
+    } else if (mTailBlock >= 1 && mTailBlock < 6) { // 尾块数量在1-6之间
+        mTailBlockCheck = true;
     }
+    bool bL1CoreSplitFullLoadCheck =
+        ((args_.aType == ge::DT_BF16 && args_.bType == ge::DT_BF16) ||
+         (args_.aType == ge::DT_FLOAT16 && args_.bType == ge::DT_FLOAT16)) &&
+        (args_.mValue >= mLowerLimit) && (args_.mValue <= mUpperLimit) && (args_.nValue == 512) && // N is 512
+        (args_.kValue == 512) && mTailBlockCheck && !args_.isATrans && args_.isBTrans && // K is 512
+        (args_.aFormat == ge::FORMAT_ND) && (args_.bFormat == ge::FORMAT_ND);
+    if (!bl1FullLoadCheck) {
+        return DoBL1FullLoadTilingBase();
+    } else if (bL1CoreSplitFullLoadCheck) {
+        return DoBL1CoreSplitFullLoadTiling();
+    }
+    return false;
+}
+
+bool MatmulV3BaseTiling::DoBL1FullLoadTilingBase()
+{
+    uint64_t c0 = BLOCK_BYTE_SIZE / aDtypeSize_;
     tilingEnable_.tilingEnableFullLoad = TilingEnableFullLoad::BL1_FULL_LOAD;
     tilingEnable_.tilingEnableSplitCore = TilingEnableSplitCore::BASE;
     // fine tune tiling
@@ -1844,7 +1876,7 @@ bool MatmulV3BaseTiling::DoBL1FullLoadTiling()
     runInfo_.depthB1 = runInfo_.stepN * runInfo_.stepKb;
     uint64_t dtypeSize = GetSizeByDataType(args_.aType);
     uint64_t loadSize = static_cast<uint64_t>(runInfo_.baseK) *
-        (runInfo_.depthA1 * runInfo_.baseM + runInfo_.depthB1 * runInfo_.baseN) * dtypeSize;
+                        (runInfo_.depthA1 * runInfo_.baseM + runInfo_.depthB1 * runInfo_.baseN) * dtypeSize;
     loadSize += args_.hasBias ? runInfo_.baseN * dtypeSize : 0;
     // Check L1 load size
     while (loadSize > compileInfo_.l1Size) {
@@ -1854,6 +1886,32 @@ bool MatmulV3BaseTiling::DoBL1FullLoadTiling()
     }
     runInfo_.singleCoreM = DB_SIZE * runInfo_.baseM;
     runInfo_.singleCoreN = args_.nValue;
+    dtypeSize = GetSizeByDataType(ge::DT_FLOAT);
+    runInfo_.dbL0c = runInfo_.baseM * runInfo_.baseN * dtypeSize * DB_SIZE <= compileInfo_.l0CSize ? DB_SIZE : 1;
+    runInfo_.l2Info.mTile = 1;
+    runInfo_.l2Info.nTile = 1;
+    runInfo_.l2Info.mTileBlock = MathUtil::CeilDivision(args_.mValue, runInfo_.singleCoreM);
+    runInfo_.l2Info.nTileBlock = 1;
+    runInfo_.l2Info.calOrder = 1;
+    return true;
+}
+
+bool MatmulV3BaseTiling::DoBL1CoreSplitFullLoadTiling()
+{
+    tilingEnable_.tilingEnableFullLoad = TilingEnableFullLoad::BL1_FULL_LOAD;
+    tilingEnable_.tilingEnableSplitCore = TilingEnableSplitCore::BASE;
+    runInfo_.baseN = args_.nValue / NUM_HALF;
+    runInfo_.singleCoreN = runInfo_.baseN;
+    runInfo_.stepM = 1;
+    runInfo_.stepN = 1;
+    runInfo_.stepKb = MathUtil::CeilDivision(args_.kValue, runInfo_.baseK);
+    runInfo_.stepKa = runInfo_.stepKb;
+    runInfo_.depthA1 = DB_SIZE * runInfo_.stepKa;
+    runInfo_.depthB1 = runInfo_.stepN * runInfo_.stepKb;
+    uint64_t dtypeSize = GetSizeByDataType(args_.aType);
+    runInfo_.baseM = 128; // baseM为128
+    uint64_t mCore = 12;  // M方向分核数量为12
+    runInfo_.singleCoreM = ops::CeilAlign(MathUtil::CeilDivision(args_.mValue, mCore), runInfo_.baseM);
     dtypeSize = GetSizeByDataType(ge::DT_FLOAT);
     runInfo_.dbL0c = runInfo_.baseM * runInfo_.baseN * dtypeSize * DB_SIZE <= compileInfo_.l0CSize ? DB_SIZE : 1;
     runInfo_.l2Info.mTile = 1;
@@ -2070,7 +2128,7 @@ void MatmulV3BaseTiling::DoIncreTiling()
         OP_LOGI(args_.opName, "M > 128, doesn't belong to IncreShape.");
         return;
     }
-    if (IsMixNd2nz()) { // 对应要求 N和K < 65536，K 256B对齐
+    if (GetMixNd2nzType() != MixNd2NzType::NO_ND2NZ) { // 对应要求 N和K < 65536，K 256B对齐
         OP_LOGI(args_.opName, "IncreShape shouldn't be MixNd2nz, please check shape size.");
         return;
     }
@@ -2104,16 +2162,23 @@ void MatmulV3BaseTiling::DoIncreTiling()
         runInfo_.stepKa, runInfo_.stepKb, runInfo_.dbL0c);
 }
 
-bool MatmulV3BaseTiling::IsMixNd2nz() // check different platform
+MixNd2NzType MatmulV3BaseTiling::GetMixNd2nzType() // check different platform
 {
-    bool nd2nz = false;
     if (compileInfo_.supportL12BtBf16) {
-        return nd2nz; // current not support mix kernel
+        return MixNd2NzType::NO_ND2NZ; // current not support mix kernel
     }
     if (compileInfo_.supportL0c2out) {
-        nd2nz = args_.nd2nzA || args_.nd2nzB;
+        if (args_.nd2nzA && !args_.nd2nzB && args_.unAlignProcessType > 0 &&
+            tilingEnable_.tilingEnableFullLoad == TilingEnableFullLoad::BL1_FULL_LOAD &&
+            tilingEnable_.tilingEnableSplitCore == TilingEnableSplitCore::BASE &&
+            tilingEnable_.tilingEnableFixOpti == TilingEnableFixOpti::BASE) {
+            return MixNd2NzType::V_PARALELL_ND2NZ;
+        }
+        if (args_.nd2nzA || args_.nd2nzB) {
+            return MixNd2NzType::V_HEAD_ND2NZ;
+        }
     }
-    return nd2nz;
+    return MixNd2NzType::NO_ND2NZ;
 }
 
 bool MatmulV3BaseTiling::IsSupportSingleCoreSplitSmallK(uint64_t xDim, uint64_t yDim) const
@@ -2127,10 +2192,10 @@ bool MatmulV3BaseTiling::IsSupportSingleCoreSplitSmallK(uint64_t xDim, uint64_t 
                             (args_.mValue % ALIGN_128 == 0 && args_.nValue % ALIGN_128 == 0);
     // 条件2： N>>M 且 M = 384 或 M>>N 且 N = 384;
     bool isLargeXSmallY = (xDim >= SINGLE_CORE_SPLIT_LARGE_MN && yDim == SINGLE_CORE_SPLIT_SMALL_MN);
-    // 条件3： M * N <= (L2 - 8) Mb， 以保证过程矩阵拷出不会溢出L2缓存;
-    int64_t l2CacheAllowance = 8388608; // 8 * 1024 * 1024
-    uint64_t l2CacheLimitation = (compileInfo_.l2Size - l2CacheAllowance) / DATA_SIZE_FP32;
-    bool isL2Enough = args_.nValue * args_.mValue <= l2CacheLimitation;
+    // 条件3： M * N <= 0.65 * l2Size: fixpipe 拷出矩阵占L2缓存的比例过大时，会有读写冲突，导致性能出现劣化
+    constexpr double cacheRatio = 0.65;
+    uint64_t l2CacheLimitation = static_cast<uint64_t>(compileInfo_.l2Size * cacheRatio) / DATA_SIZE_FP32;
+    bool isL2Enough = (args_.nValue * args_.mValue <= l2CacheLimitation);
     return isDTypeFormatSupport && isSmallKwithLargeMN && isLargeXSmallY && isL2Enough;
 }
 
@@ -2193,7 +2258,7 @@ bool MatmulV3BaseTiling::IsSupportSingleCoreSplitK() const
 
 void MatmulV3BaseTiling::IsGmToL1ByShape()
 {
-    bool disableMixNd2nz = !IsMixNd2nz();
+    bool disableMixNd2nz = (GetMixNd2nzType() == MixNd2NzType::NO_ND2NZ);
     uint64_t aMatrix;
     uint64_t bMatrix;
     if (disableMixNd2nz) {
@@ -2596,7 +2661,7 @@ uint64_t MatmulV3BaseTiling::GetTilingKey() const
 void MatmulV3BaseTiling::DoTilingKey()
 {
     // 1: disable mix nd2nz 0: enable mix nd2nz
-    uint64_t disableMixNd2nz = !IsMixNd2nz();
+    uint64_t disableMixNd2nz = static_cast<uint64_t>(GetMixNd2nzType());
     tilingKey_ = GET_TILINGKEY(disableMixNd2nz, tilingEnable_.tilingEnableSplitCore,
                                tilingEnable_.tilingEnableFullLoad, 0, tilingEnable_.tilingEnableFixOpti); // tilingKey reverse:  01->10
     OP_LOGI(args_.opName, "DoTilingKey: %lu", tilingKey_);

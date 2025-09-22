@@ -124,15 +124,15 @@ __aicore__ inline void CopyPadNd2Nz<bfloat16_t>(const GlobalTensor<bfloat16_t>& 
 #endif
 
 #if defined(__DAV_C220_VEC__)
-template <class T>
+template <class T, Nd2NzMode mode = Nd2NzMode::MULTI_CORE>
 __aicore__ inline bool Nd2nzVnchwMM(GlobalTensor<T>& dst, GlobalTensor<T>& src, uint32_t height, uint32_t width,
                                     uint32_t batch, TBuf<TPosition::VECCALC>& ubBuffer, uint32_t usedCoreNum) {
     KernelND2NZMM<T> op;
     op.Init((GM_ADDR)dst[0].GetPhyAddr(), (GM_ADDR)src[0].GetPhyAddr(), height, width, batch, ubBuffer, usedCoreNum);
-    return op.ProcessMM();
+    return op.template ProcessMM<mode>();
 }
 
-template <>
+template <Nd2NzMode mode = Nd2NzMode::MULTI_CORE>
 __aicore__ inline bool Nd2nzVnchwMM(GlobalTensor<bfloat16_t>& dst, GlobalTensor<bfloat16_t>& src, uint32_t height,
                                     uint32_t width, uint32_t batch,
                                     TBuf<TPosition::VECCALC>& ubBuffer, uint32_t usedCoreNum)
@@ -141,7 +141,7 @@ __aicore__ inline bool Nd2nzVnchwMM(GlobalTensor<bfloat16_t>& dst, GlobalTensor<
     GlobalTensor<half> srcGlobalTrans;
     dstGlobalTrans.SetGlobalBuffer((__gm__ half*)dst.GetPhyAddr(0));
     srcGlobalTrans.SetGlobalBuffer((__gm__ half*)src.GetPhyAddr(0));
-    return Nd2nzVnchwMM(dstGlobalTrans, srcGlobalTrans, height, width, batch, ubBuffer, usedCoreNum);
+    return Nd2nzVnchwMM<half, mode>(dstGlobalTrans, srcGlobalTrans, height, width, batch, ubBuffer, usedCoreNum);
 }
 #endif
 

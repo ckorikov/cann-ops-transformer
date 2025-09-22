@@ -61,8 +61,8 @@ protected:
 
     void InitCompileInfo();
 protected:
-    ge::graphStatus CheckArgs();
-    ge::graphStatus GetArgs();
+    virtual ge::graphStatus CheckArgs();
+    virtual ge::graphStatus GetArgs();
     virtual ge::graphStatus GetMoreArgs();
     ge::graphStatus CheckDimsAligned310P();
     ge::graphStatus InitTilingData();
@@ -107,6 +107,8 @@ protected:
     bool DoAL1FullLoadTiling();
     bool ShouldUseDeterministicMultiCoreSplitKwithSmallMN() const;
     bool DoBL1FullLoadTiling();
+    bool DoBL1FullLoadTilingBase();
+    bool DoBL1CoreSplitFullLoadTiling();
     bool SupportMultiSplitK() const;
     void GetMoreMultiCoreSplitKArgs();
     bool DoDeterministicMultiCoreSplitKTiling();
@@ -118,7 +120,7 @@ protected:
     bool NeedSolveFixBound();
     bool CheckAoeTilingEnable(uint32_t aoeTilingEnable, const std::string &opName);
     void SetBasicBlockOf24(MatmulV3RunInfo &runInfo, const uint64_t &mTile, const uint64_t &nTile) const;
-    bool IsMixNd2nz();
+    MixNd2NzType GetMixNd2nzType();
     void IsGmToL1ByShape();
     void InitL2SplitParams(MatmulV3L2SplitParams &l2SplitParams) const;
     bool IsTailSmall(MatmulV3L2SplitParams &l2SplitParams, uint64_t outL2Split, uint64_t innerL2Split,

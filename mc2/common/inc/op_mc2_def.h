@@ -37,6 +37,7 @@ const int NUM_SEVEN = 7;
 const int NUM_EIGHT = 8;
 const int NUM_TEN = 10;
 const int COMMUNICATION_DATA_SIZE = 10;  // 10*1024以上two shot
+static const char *REDUCE_OP_SUM = "sum";
 static constexpr size_t BIAS_SUPPORTED_DIMENSIONAL = 2U;
 static constexpr size_t SUPPORTED_DIMENSIONAL = 3U;
 static constexpr int64_t EXPERT_LOWER_LIMIT = 2L;

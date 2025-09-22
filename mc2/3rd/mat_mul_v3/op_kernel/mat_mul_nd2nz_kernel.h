@@ -35,9 +35,13 @@ class KernelND2NZMM {
                                 TBuf<TPosition::VECCALC>& ubBuffer, uint32_t usedCoreNum);
     template <ND2NZ_DB_TYPE TYPE, bool noZero = false>
     __aicore__ inline bool SetBufMM();
+    template<Nd2NzMode mode = Nd2NzMode::MULTI_CORE>
     __aicore__ inline bool ProcessMM();
+    template<Nd2NzMode mode>
     __aicore__ inline void ProcessInOutDB();
+    template<Nd2NzMode mode>
     __aicore__ inline void ProcessNoDBReuse();
+    template<Nd2NzMode mode>
     __aicore__ inline void ProcessOutDBReuse();
 
    private:
@@ -111,7 +115,8 @@ __aicore__ inline void KernelND2NZMM<T>::PadD(uint64_t progress, LocalTensor<T>&
 
 template <class T>
 __aicore__ inline void KernelND2NZMM<T>::Init(GM_ADDR dst, GM_ADDR src, uint32_t height, uint32_t width, uint32_t batch,
-                                            TBuf<TPosition::VECCALC>& ubBuffer, uint32_t usedCoreNum) {
+                                            TBuf<TPosition::VECCALC>& ubBuffer, uint32_t usedCoreNum)
+{
     height_ = height;
     width_ = width;
     batch_ = batch;
@@ -223,30 +228,32 @@ __aicore__ inline bool KernelND2NZMM<T>::SetBufMM() {
         Duplicate(zeroBuf_, T(0), copyInSize_);
     }
 
-    PipeBarrier<PIPE_ALL>();
+    // PipeBarrier<PIPE_ALL>();
     return true;
 }
 
 template <class T>
+template <Nd2NzMode mode>
 __aicore__ inline bool KernelND2NZMM<T>::ProcessMM() {
     if (width_ % c0_ == 0) {
         if (SetBufMM<ND2NZ_DB_TYPE::IN_OUTPUT, true>()) { // issue:when innersize > 49152B, will return false and break.
-            ProcessInOutDB();
+            ProcessInOutDB<mode>();
             return true;
         }
         return false;
     } else if (SetBufMM<ND2NZ_DB_TYPE::OUTPUT>()) {
-        ProcessOutDBReuse();
+        ProcessOutDBReuse<mode>();
         return true;
     } else if (SetBufMM<ND2NZ_DB_TYPE::NO_DB_REUSE_OUTPUT>()) {
         // now max totalwidth = 2 * width + widthalign = 3 * 512B <<< ubsize, so this branch will never be used.
-        ProcessNoDBReuse();
+        ProcessNoDBReuse<mode>();
         return true;
     }
     return false;
 }
 
 template <class T>
+template <Nd2NzMode mode>
 __aicore__ inline void KernelND2NZMM<T>::ProcessInOutDB() {
     uint32_t nLoop = heightTotalTail_ ? nFullProgress_ + 1 : nFullProgress_;
     uint32_t j = 0;
@@ -254,7 +261,8 @@ __aicore__ inline void KernelND2NZMM<T>::ProcessInOutDB() {
     SetFlag<HardEvent::MTE3_V>(EVENT_ID0);
     SetFlag<HardEvent::V_MTE2>(EVENT_ID1);
     SetFlag<HardEvent::MTE3_V>(EVENT_ID1);
-    for (int32_t i = blockIdx_; i < nLoop; i += blockDim_, j++) {
+    int32_t start_idx = (mode == Nd2NzMode::MULTI_CORE ? blockIdx_ : GetSubBlockIdx());
+    for (int32_t i = start_idx; i < nLoop; i += blockDim_, j++) {
         if (j % 2 == 1) {
             WaitFlag<HardEvent::V_MTE2>(EVENT_ID0);
             CopyIn(i, inBuf_);
@@ -282,17 +290,20 @@ __aicore__ inline void KernelND2NZMM<T>::ProcessInOutDB() {
     WaitFlag<HardEvent::MTE3_V>(EVENT_ID0);
     WaitFlag<HardEvent::V_MTE2>(EVENT_ID1);
     WaitFlag<HardEvent::MTE3_V>(EVENT_ID1);
-    PipeBarrier<PIPE_ALL>();
+    if constexpr (mode == Nd2NzMode::MULTI_CORE) {
+        PipeBarrier<PIPE_ALL>();
+    }
 }
 
 template <class T>
+template <Nd2NzMode mode>
 __aicore__ inline void KernelND2NZMM<T>::ProcessOutDBReuse() {
     uint32_t nLoop = heightTotalTail_ ? nFullProgress_ + 1 : nFullProgress_;
     uint32_t j = 0;
     SetFlag<HardEvent::MTE3_MTE2>(EVENT_ID0);
     SetFlag<HardEvent::MTE3_MTE2>(EVENT_ID1);
-
-    for (int32_t i = blockIdx_; i < nLoop; i += blockDim_, j++) {
+    int32_t start_idx = (mode == Nd2NzMode::MULTI_CORE ? blockIdx_ : GetSubBlockIdx());
+    for (int32_t i = start_idx; i < nLoop; i += blockDim_, j++) {
         if (j % 2 == 1) {
             WaitFlag<HardEvent::MTE3_MTE2>(EVENT_ID0);
             CopyIn(i, outBuf_);
@@ -317,14 +328,17 @@ __aicore__ inline void KernelND2NZMM<T>::ProcessOutDBReuse() {
     }
     WaitFlag<HardEvent::MTE3_MTE2>(EVENT_ID0);
     WaitFlag<HardEvent::MTE3_MTE2>(EVENT_ID1);
-    PipeBarrier<PIPE_ALL>();
+    if constexpr (mode == Nd2NzMode::MULTI_CORE) {
+        PipeBarrier<PIPE_ALL>();
+    }
 }
 
 template <class T>
+template <Nd2NzMode mode>
 __aicore__ inline void KernelND2NZMM<T>::ProcessNoDBReuse() {
     uint32_t nLoop = heightTotalTail_ ? nFullProgress_ + 1 : nFullProgress_;
-
-    for (int32_t i = blockIdx_; i < nLoop; i += blockDim_) {
+    int32_t start_idx = (mode == Nd2NzMode::MULTI_CORE ? blockIdx_ : GetSubBlockIdx());
+    for (int32_t i = start_idx; i < nLoop; i += blockDim_) {
         CopyIn(i, outBuf_);
         SetFlag<HardEvent::MTE2_V>(EVENT_ID0);
         WaitFlag<HardEvent::MTE2_V>(EVENT_ID0);
@@ -336,7 +350,9 @@ __aicore__ inline void KernelND2NZMM<T>::ProcessNoDBReuse() {
         SetFlag<HardEvent::MTE3_MTE2>(EVENT_ID0);
         WaitFlag<HardEvent::MTE3_MTE2>(EVENT_ID0);
     }
-    PipeBarrier<PIPE_ALL>();
+    if constexpr (mode == Nd2NzMode::MULTI_CORE) {
+        PipeBarrier<PIPE_ALL>();
+    }
 }
 
 

@@ -1,0 +1,29 @@
+/**
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
+ * This file is a part of the CANN Open Software.
+ * Licensed under CANN Open Software License Agreement Version 1.0 (the "License").
+ * Please refer to the License for details. You may not use this file except in compliance with the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
+ */
+
+/*!
+ * \file qbmm_custom_mm_policy.h
+ * \brief
+ */
+#ifndef QBMM_CUSTOM_MM_POLICY_H
+#define QBMM_CUSTOM_MM_POLICY_H
+
+#include "lib/matmul_intf.h"
+#include "qbmm_copy_cube_out.h"
+
+namespace AscendC {
+template <const auto &MM_CFG, typename IMPL, typename A_TYPE, typename B_TYPE, typename C_TYPE, typename BIAS_TYPE>
+class QBmmCustomMatmulPolicy : public AscendC::Impl::Detail::MatmulPolicy<MM_CFG, IMPL, A_TYPE, B_TYPE, C_TYPE,
+    BIAS_TYPE> {
+public:
+    using CopyCubeOut = QBmmCustomCopyCubeOut<IMPL, A_TYPE, B_TYPE, C_TYPE, MM_CFG, McgShfMode::DUAL_DST_SPLIT_M>;
+};
+}  // namespace AscendC
+#endif  // QBMM_CUSTOM_MM_POLICY_H

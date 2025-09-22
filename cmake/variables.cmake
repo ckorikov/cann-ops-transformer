@@ -125,15 +125,13 @@ set(OPAPI_INCLUDE
 
   ${OPS_TRANSFORMER_DIR}/mc2/common/inc
   ${OPS_TRANSFORMER_DIR}/mc2/3rd
+  ${OPS_TRANSFORMER_DIR}/mc2
   ${TOP_DIR}/asl/ops/cann/ops/built-in/op_proto/runtime
   ${TOP_DIR}/ace/comop/inc/external
   ${TOP_DIR}/ops/ops-nn/matmul/common/op_host/op_api
   ${TOP_DIR}/asl/ops/cann/ops/utils/inc/log/inner
   ${TOP_DIR}/asl/ops/cann/ops/utils/inc/error
-  ${OPS_TRANSFORMER_DIR}/mc2/common
-  ${OPS_TRANSFORMER_DIR}/mc2/common/inc
   ${TOP_DIR}/ace/comop/inc/external
-  ${OPS_TRANSFORMER_DIR}/mc2/3rd
   ${TOP_DIR}/ace/npuruntime/inc/external
   ${TOP_DIR}/ace/npuruntime/inc/nnopbase
   ${TOP_DIR}/asl/ops/cann/ops/mc2/communication_and_computation
@@ -164,6 +162,7 @@ set(OP_TILING_INCLUDE
   ${OPS_TRANSFORMER_DIR}/mc2/common
   ${OPS_TRANSFORMER_DIR}/mc2/common/inc
   ${OPS_TRANSFORMER_DIR}/mc2/3rd
+  ${OPS_TRANSFORMER_DIR}/mc2
   ${TOP_DIR}/abl/msprof/inc
   ${METADEF_INC_DIR}/../common/util
   ${TOP_DIR}/asl/ops/cann/ops/utils/inc
@@ -200,6 +199,7 @@ set(OP_PROTO_INCLUDE
   ${OPS_TRANSFORMER_DIR}/mc2/common
   ${OPS_TRANSFORMER_DIR}/mc2/common/inc
   ${OPS_TRANSFORMER_DIR}/mc2/3rd
+  ${OPS_TRANSFORMER_DIR}/mc2
   ${TOP_DIR}/abl/msprof/inc
   ${METADEF_INC_DIR}/../common/util
   ${TOP_DIR}/ace/comop/inc

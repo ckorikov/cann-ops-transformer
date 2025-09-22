@@ -36,7 +36,7 @@ struct MatMulV3TilingData {
     // -----------------------------------N=4673------------------------------------
     // -------------------------------------------nTailMain=240--nBaseTailSplitCnt=8
     // --------------------------------------------|-v------nBaseTail=1857----------
-    // |256|256|256|256|256|256|256|256|256|256|256|240|240|240|240|240|240|240|177| 
+    // |256|256|256|256|256|256|256|256|256|256|256|240|240|240|240|240|240|240|177|
     uint32_t mBaseTailSplitCnt = 1;
     uint32_t nBaseTailSplitCnt = 1;
     uint32_t mTailMain = 0;
@@ -88,6 +88,7 @@ struct MatMulV3BasicTilingData {
     uint32_t baseM = 0;
     uint32_t baseN = 0;
     uint32_t baseK = 0;
+    uint32_t skSingleCoreK = 0;
     uint32_t mTailCnt = 0;
     uint32_t nTailCnt = 0;
     uint32_t mBaseTailSplitCnt = 1;

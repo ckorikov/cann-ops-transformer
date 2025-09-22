@@ -80,7 +80,7 @@ class TilingCache {
  private:
   std::map<uint32_t, HashItem> map_;
   uint32_t size_ = 0;
-  Ops::Transformer::optiling::RWLock rwlock_;
+  Ops::Transformer::Optiling::RWLock rwlock_;
 };
 }  // namespace Transformer
 }  // namespace Ops

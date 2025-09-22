@@ -42,13 +42,15 @@ ge::graphStatus CommonParamCheck(
     OP_LOGE_IF(groupStr == nullptr, GRAPH_FAILED, context->GetNodeName(), "Get group failed.");
     commParas.rankSize = -1;
     if (*rankSizeAttr <= 0) {
-        if ((HcomTopoInfo::Instance().GetGroupRankSize(groupStr, commParas.rankSize)) != ge::GRAPH_SUCCESS ||
+        uint32_t rankNum= 0;
+        if ((ge::HcomTopoInfo::Instance().GetGroupRankSize(groupStr, &rankNum)) != ge::GRAPH_SUCCESS ||
             commParas.rankSize <= 0) {
             OP_LOGE(
                 context->GetNodeName(), "Get rank size failed, group [%s], rankSize [%ld]", groupStr,
                 commParas.rankSize);
             return ge::GRAPH_FAILED;
         }
+        commParas.rankSize = static_cast<int64_t>(rankNum);
     } else {
         commParas.rankSize = *rankSizeAttr;
     }

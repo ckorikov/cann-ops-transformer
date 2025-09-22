@@ -81,6 +81,13 @@ enum class MatmulV3Trans : int32_t
     AB_TRANS = 3
 };
 
+enum class MixNd2NzType : int32_t
+{
+    V_HEAD_ND2NZ = 0, // 所有核在头部做nd2nz
+    NO_ND2NZ = 1, // 不做nd2nz
+    V_PARALELL_ND2NZ = 2 // vect和cube并行做nd2nz
+};
+
 enum class TilingCalcSelect : int32_t //选择不同的计算Tiling的方法
 {  
     ALL = 0,
@@ -141,6 +148,7 @@ struct MatmulV3Args
     ge::Format aFormat = ge::FORMAT_ND;
     ge::Format bFormat = ge::FORMAT_ND;
     ge::Format outFormat = ge::FORMAT_ND;
+    uint8_t unAlignProcessType = 0;
     uint64_t mValue = 0L;
     uint64_t mOriValue = 0L;
     uint64_t nOriValue = 0L;

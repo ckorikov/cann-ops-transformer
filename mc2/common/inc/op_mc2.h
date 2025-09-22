@@ -31,7 +31,11 @@ struct ApiParamDef {
     char hostInputInfo[16];
 };
 
-enum class MC2Type : uint32_t { K_MM_ALL_REDUCE, K_ALL_GATHER_MM, K_MM_REDUCE_SCATTER };
+enum class MC2Type : uint32_t {
+    K_MM_ALL_REDUCE,
+    K_ALL_GATHER_MM,
+    K_MM_REDUCE_SCATTER
+};
 
 enum class MC2InputIdx : size_t {
     K_X1,
@@ -46,7 +50,25 @@ enum class MC2InputIdx : size_t {
     K_COMMQUANTSCALE2
 };
 
-enum class MC2OutputIdx : size_t { K_Y, K_GATHER_OUT };
+enum class MC2V2InputIdx : size_t {
+    K_X1,
+    K_X2,
+    K_BIAS,
+    K_X1SCALE,
+    K_X2SCALE,
+    K_QUNATSCALE
+};
+
+enum class MC2OutputIdx : size_t {
+    K_Y,
+    K_GATHER_OUT,
+    K_AMAX_OUT
+};
+
+enum class MC2ReduceScatterV2OutputIdx : size_t {
+    K_Y,
+    K_AMAX_OUT
+};
 
 enum class MC2AddRmsNormInputIdx : size_t {
     K_X1,
@@ -60,7 +82,10 @@ enum class MC2AddRmsNormInputIdx : size_t {
     K_MAX
 };
 
-enum class MC2AddRmsNormOutputIdx : size_t { K_Y, K_NORM_OUT };
+enum class MC2AddRmsNormOutputIdx : size_t {
+    K_Y,
+    K_NORM_OUT
+};
 
 enum class AllGatherMMAttrIdx : size_t {
     K_GROUP,
@@ -72,9 +97,57 @@ enum class AllGatherMMAttrIdx : size_t {
     K_IS_GATHER_OUT
 };
 
-enum class MmReduceScatterAttrIdx : size_t { K_GROUP, K_OP, K_TRANS_X1, K_TRANS_X2, K_COMM_TURN, K_RANK_SIZE };
+enum class AllGatherMMV2AttrIdx : size_t {
+    K_GROUP,
+    K_TRANS_X1,
+    K_TRANS_X2,
+    K_GATHER_IDX,
+    K_COMM_TURN,
+    K_RANK_SIZE,
+    K_BLOCK_SIZE,
+    K_GROUP_SIZE,
+    K_IS_GATHER_OUT,
+    K_IS_AMAX_OUT,
+    K_Y_DTYPE
+};
 
-enum class MmAllReduceAttrIdx : size_t {
+enum class MmReduceScatterAttrIdx : size_t {
+    K_GROUP,
+    K_OP,
+    K_TRANS_X1,
+    K_TRANS_X2,
+    K_COMM_TURN,
+    K_RANK_SIZE
+};
+
+enum class MmReduceScatterV2AttrIdx : size_t {
+    K_GROUP,
+    K_OP,
+    K_TRANS_X1,
+    K_TRANS_X2,
+    K_COMM_TURN,
+    K_RANK_SIZE,
+    K_BLOCK_SIZE,
+    K_GROUP_SIZE,
+    K_IS_AMAX_OUT,
+    K_Y_DTYPE
+};
+
+enum class MmAllReduceAttrIdx : size_t
+{
+    K_GROUP,
+    K_OP,
+    K_TRANS_X1,
+    K_TRANS_X2,
+    K_COMM_TURN,
+    K_ANTIQUANT_GROUP_SIZE,
+    K_GROUP_SIZE,
+    K_DTYPE_Y,
+    K_COMM_QUANT_MODE
+};
+
+enum class MmAllReduceAddRmsNormAttrIdx : size_t
+{
     K_GROUP,
     K_OP,
     K_TRANS_X1,
@@ -100,7 +173,8 @@ const std::vector<int64_t> ACT_TYPE_SUPPORT_VEC = {
     static_cast<int64_t>(AlltoAllAllGatherBatchMatMulActType::ALLTOALL_ALLGATHER_BATCHMATMUL_ACT_TYPE_GELU),
     static_cast<int64_t>(AlltoAllAllGatherBatchMatMulActType::ALLTOALL_ALLGATHER_BATCHMATMUL_ACT_TYPE_SILU),
     static_cast<int64_t>(AlltoAllAllGatherBatchMatMulActType::ALLTOALL_ALLGATHER_BATCHMATMUL_ACT_TYPE_RELU),
-    static_cast<int64_t>(AlltoAllAllGatherBatchMatMulActType::ALLTOALL_ALLGATHER_BATCHMATMUL_ACT_TYPE_FASTGELU)};
+    static_cast<int64_t>(AlltoAllAllGatherBatchMatMulActType::ALLTOALL_ALLGATHER_BATCHMATMUL_ACT_TYPE_FASTGELU)
+};
 
 enum class MC2MoeInputIdx : size_t {
     K_X,
@@ -129,9 +203,15 @@ enum class BmmReduceScatterAlltoAllAttrIdx : size_t {
     K_IS_TRANS_W
 };
 
-enum class AlltoAllAllGatherBmmOutIdx : size_t { K_Y1, K_Y2, K_Y3 };
+enum class AlltoAllAllGatherBmmOutIdx : size_t {
+    K_Y1,
+    K_Y2,
+    K_Y3
+};
 
-enum class BmmReduceScatterAlltoAllOutIdx : size_t { K_Y };
+enum class BmmReduceScatterAlltoAllOutIdx : size_t {
+    K_Y
+};
 
 enum class AlltoAllvGroupedMatMulInputIdx : size_t {
     K_GMM_X,
@@ -142,7 +222,11 @@ enum class AlltoAllvGroupedMatMulInputIdx : size_t {
     K_MM_WEIGHT
 };
 
-enum class AlltoAllvGroupedMatMulOutputIdx : size_t { K_GMM_Y, K_MM_Y, K_PERMUTE_OUT };
+enum class AlltoAllvGroupedMatMulOutputIdx : size_t {
+    K_GMM_Y,
+    K_MM_Y,
+    K_PERMUTE_OUT
+};
 
 enum class AlltoAllvGroupedMatMulAttrIdx : size_t {
     K_GROUP,
@@ -163,7 +247,10 @@ enum class GroupedMatMulAlltoAllvInputIdx : size_t {
     K_MM_WEIGHT
 };
 
-enum class GroupedMatMulAlltoAllvOutputIdx : size_t { K_Y, K_MM_Y };
+enum class GroupedMatMulAlltoAllvOutputIdx : size_t {
+    K_Y,
+    K_MM_Y
+};
 
 enum class GroupedMatMulAlltoAllvAttrIdx : size_t {
     K_GROUP,

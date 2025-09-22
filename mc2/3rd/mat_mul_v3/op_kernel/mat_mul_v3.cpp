@@ -19,6 +19,7 @@
 #include "mat_mul_sc_splitk_kernel.h"
 #include "mat_mul_sc_splitk_kernel_gm_to_l1.h"
 #include "mat_mul_unaligned_base_kernel.h"
+#include "mat_mul_cvp_base_kernel.h"
 #include "mat_mul_unaligned_deterministic_splitk_kernel.h"
 #include "mat_mul_unaligned_sc_splitk_kernel.h"
 #include "mat_mul_unaligned_sc_splitk_kernel_gm_to_l1.h"
@@ -221,6 +222,8 @@ extern "C" __global__ __aicore__ void mat_mul_v3(GM_ADDR aGM, GM_ADDR bGM, GM_AD
     } else if (TILING_KEY_IS(10000000000000000200UL)) {
         MMV3_IMPL_CLASS(MatmulBaseUnAlignedKernelBL1FullLoad, format_x1, MatmulBaseBlock, MM_CFG_NO_PRELOAD,
                         MatmulCallBackFunc<nullptr, nullptr, CopyBL1>);
+    } else if (TILING_KEY_IS(10000000000000000202UL)) {
+        MMV3_IMPL_CLASS(MatmulCvpBaseKernel, format_x1, MatmulBaseBlock, MM_CFG_NO_PRELOAD);
     } else if (TILING_KEY_IS(10000000000000010200UL)) {
         MMV3_IMPL_CLASS(MatmulBaseAToNZWithBL1FixpipeKernel, CubeFormat::NZ, MatmulBaseBlock, MM_CFG_NO_PRELOAD,
                         MatmulCallBackFunc<nullptr, nullptr, CopyBL1>);

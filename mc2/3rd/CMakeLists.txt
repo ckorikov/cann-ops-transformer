@@ -10,15 +10,29 @@
 
 if(BUILD_OPEN_PROJECT)
     file(GLOB MC2_3RD_SRCS 
-        ${CMAKE_CURRENT_SOURCE_DIR}/batch_mat_mul_v3/op_host/op_tiling/batch_mat_mul_v3_base_tiling.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/batch_mat_mul_v3/op_host/batch_mat_mul_v3_def.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/mat_mul_v3/op_host/op_tiling/matmul_v3_base_tiling.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/mat_mul_v3/op_host/op_tiling/matmul_v3_tiling.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/mat_mul_v3/op_host/op_tiling/arch35/matmul_v3_tiling_advanced.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/mat_mul_v3/op_host/op_tiling/matmul_v3_l2_cache.cpp
+        # mm
         ${CMAKE_CURRENT_SOURCE_DIR}/mat_mul_v3/op_host/mat_mul_v3_def.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/common/op_host/op_tiling/debug_tiling.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/mat_mul_v3/op_host/op_tiling/matmul_v3_tiling.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/mat_mul_v3/op_host/op_tiling/matmul_v3_l2_cache.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/mat_mul_v3/op_host/op_tiling/matmul_v3_base_tiling.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/mat_mul_v3/op_host/op_tiling/arch35/matmul_v3_tiling_advanced.cpp
+        # bmm
+        ${CMAKE_CURRENT_SOURCE_DIR}/batch_mat_mul_v3/op_host/batch_mat_mul_v3_def.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/batch_mat_mul_v3/op_host/op_tiling/batch_mat_mul_v3_base_tiling.cpp
+        # qbmm
+        ${CMAKE_CURRENT_SOURCE_DIR}/quant_batch_matmul_v3/op_host/op_tiling/quant_batch_matmul_v3_tiling.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/quant_batch_matmul_v3/op_host/op_tiling/quant_batch_matmul_v3_tiling_base.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/quant_batch_matmul_v3/op_host/op_tiling/arch35/adaptive_sliding_window_tiling.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/quant_batch_matmul_v3/op_host/op_tiling/arch35/quant_batch_matmul_v3_checker.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/quant_batch_matmul_v3/op_host/op_tiling/arch35/quant_batch_matmul_v3_checker.cpp
+        # wqbmm
+        ${CMAKE_CURRENT_SOURCE_DIR}/weight_quant_batch_matmul_v2/op_host/op_tiling/*.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/weight_quant_batch_matmul_v2/op_host/op_tiling/arch35/*.cpp
+
+        # mm common
+        ${CMAKE_CURRENT_SOURCE_DIR}/common/op_host/op_tiling/*.cpp
     )
+
     if(MC2_3RD_SRCS)
         add_tiling_modules()
         target_sources(${OPHOST_NAME}_tiling_obj PRIVATE ${MC2_3RD_SRCS})

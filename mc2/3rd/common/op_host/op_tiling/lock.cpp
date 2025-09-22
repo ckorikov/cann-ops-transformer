@@ -16,7 +16,7 @@
 
 namespace Ops {
 namespace Transformer {
-namespace optiling {
+namespace Optiling {
 void RWLock::rdlock()
 {
     std::unique_lock<std::mutex> lck(_mtx);
