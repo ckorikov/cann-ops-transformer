@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2024 Huawei Technologies Co., Ltd.
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
  * This file is a part of the CANN Open Software.
  * Licensed under CANN Open Software License Agreement Version 1.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
@@ -8,13 +8,8 @@
  * See LICENSE in the root of the software repository for the full text of the License.
  */
 
-/*!
- * \file test_moe_finalize_routing.cpp
- * \brief
- */
-
 #include "acl/acl.h"
-#include "aclnnop/aclnn_moe_finalize_routing.h"
+#include "aclnnop/aclnn_moe_finalize_routing_v2.h"
 #include <iostream>
 #include <vector>
 
@@ -113,6 +108,7 @@ int main() {
   std::vector<int32_t> expandedExpertIdxHostData = {0, 1, 0, 1, 0, 1};
   std::vector<int32_t> expandedRowIdxHostData = {2, 1, 4, 3, 0, 5};
   std::vector<float> outHostData(12, 0.0f);
+  int64_t dropPadMode = 0;
   // 创建expandedX aclTensor
   ret = CreateAclTensor(expandedXHostData, expandedXShape, &expandedXAddr,
                         aclDataType::ACL_FLOAT, &expandedX);
@@ -146,19 +142,19 @@ int main() {
   uint64_t workspaceSize = 0;
   aclOpExecutor* executor;
 
-  // 调用aclnnMoeFinalizeRouting第一段接口
-  ret = aclnnMoeFinalizeRoutingGetWorkspaceSize(expandedX, x1, x2Optional, bias, scales,
-                                                expandedRowIdx, expandedExpertIdx, out, &workspaceSize, &executor);
-  CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclnnMoeFinalizeRoutingGetWorkspaceSize failed. ERROR: %d\n", ret); return ret);
+  // 调用aclnnMoeFinalizeRoutingV2第一段接口
+  ret = aclnnMoeFinalizeRoutingV2GetWorkspaceSize(expandedX, expandedRowIdx, x1, x2Optional, bias, scales,
+                                                  expandedExpertIdx, dropPadMode, out, &workspaceSize, &executor);
+  CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclnnMoeFinalizeRoutingV2GetWorkspaceSize failed. ERROR: %d\n", ret); return ret);
   // 根据第一段接口计算出的workspaceSize申请device内存
   void* workspaceAddr = nullptr;
   if (workspaceSize > 0) {
       ret = aclrtMalloc(&workspaceAddr, workspaceSize, ACL_MEM_MALLOC_HUGE_FIRST);
       CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("allocate workspace failed. ERROR: %d\n", ret); return ret;);
   }
-  // 调用aclnnMoeFinalizeRouting第二段接口
-  ret = aclnnMoeFinalizeRouting(workspaceAddr, workspaceSize, executor, stream);
-  CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclnnMoeFinalizeRouting failed. ERROR: %d\n", ret); return ret);
+  // 调用aclnnMoeFinalizeRoutingV2第二段接口
+  ret = aclnnMoeFinalizeRoutingV2(workspaceAddr, workspaceSize, executor, stream);
+  CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclnnMoeFinalizeRoutingV2 failed. ERROR: %d\n", ret); return ret);
 
   // 4.（ 固定写法）同步等待任务执行结束
   ret = aclrtSynchronizeStream(stream);
