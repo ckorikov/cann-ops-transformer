@@ -16,6 +16,7 @@ if(UT_TEST_ALL OR OP_HOST_UT)
     function(add_optiling_ut_modules OP_TILING_MODULE_NAME)
         ## add optiling ut common object: math_op_tiling_ut_common_obj
         add_library(${OP_TILING_MODULE_NAME}_common_obj OBJECT)
+        add_dependencies(${OP_TILING_MODULE_NAME}_common_obj json)
         file(GLOB OP_TILING_UT_COMMON_SRC
             ${UT_COMMON_INC}/tiling_context_faker.cpp
             ${UT_COMMON_INC}/tiling_case_executor.cpp
@@ -38,6 +39,7 @@ if(UT_TEST_ALL OR OP_HOST_UT)
         ## add optiling ut cases object: math_op_tiling_ut_cases_obj
         if(NOT TARGET ${OP_TILING_MODULE_NAME}_cases_obj)
             add_library(${OP_TILING_MODULE_NAME}_cases_obj OBJECT)
+            add_dependencies(${OP_TILING_MODULE_NAME}_cases_obj json)
         endif()
         target_include_directories(${OP_TILING_MODULE_NAME}_cases_obj PRIVATE
             ${UT_COMMON_INC}
@@ -52,6 +54,7 @@ if(UT_TEST_ALL OR OP_HOST_UT)
 
         ## add op tiling ut cases static lib: libmath_op_tiling_ut_cases.a
         add_library(${OP_TILING_MODULE_NAME}_cases STATIC)
+        add_dependencies(${OP_TILING_MODULE_NAME}_cases json)
         target_link_libraries(${OP_TILING_MODULE_NAME}_cases PRIVATE
             ${OP_TILING_MODULE_NAME}_common_obj
             ${OP_TILING_MODULE_NAME}_cases_obj
@@ -78,6 +81,7 @@ if(UT_TEST_ALL OR OP_HOST_UT)
         ## add opinfershape ut cases object: math_op_infershape_ut_cases_obj
         if(NOT TARGET ${OP_INFERSHAPE_MODULE_NAME}_cases_obj)
             add_library(${OP_INFERSHAPE_MODULE_NAME}_cases_obj OBJECT)
+            add_dependencies(${OP_INFERSHAPE_MODULE_NAME}_cases_obj json)
         endif()
         target_include_directories(${OP_INFERSHAPE_MODULE_NAME}_cases_obj PRIVATE
             ${UT_COMMON_INC}
