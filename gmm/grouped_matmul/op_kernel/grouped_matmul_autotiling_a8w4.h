@@ -57,6 +57,7 @@
 #define FACTOR_64               64
 #define FACTOR_22               22
 #define FACTOR_7                7
+#define FACTOR_128              128
 #define FACTOR_4096             4096
 /* 维度数值 */
 #define DIM_VAL1                1
@@ -653,78 +654,6 @@ public:
     Dim offset_pos;
     bool active;
     bool odd_even;
-};
-
-//新迭代器
-template <class Dim>
-class New_CartesianIterator
-{
-public:
-    __aicore__ inline New_CartesianIterator(Cartesian<Dim> cartesianC, Dim tiling, uint32_t start_pos)
-    {
-        iter_tiling = tiling.s[0];
-        ori_pos = cartesianC.pos.s[0];
-        ori_vec = cartesianC.vec.s[0];
-        offset_pos = start_pos;
-        start_pos = start_pos;
-        active = false;
-        max_times = ceilINT(ori_vec, iter_tiling);
-        iter_times = 0;
-        active = true;
-    }
-
-    __aicore__ inline bool posIterator(Cartesian<Dim> &cartesianUnisorC)
-    {
-        //迭代器重置
-        if (!active) {
-            iter_times = 0;
-            active = true;
-            return false;
-        }
-
-        cartesianUnisorC.pos.s[0] = offset_pos;
-
-        //迭代一次
-        uint32_t temp0 = offset_pos + iter_tiling;
-        if (temp0 < ori_pos + ori_vec) {
-            cartesianUnisorC.vec.s[0] = iter_tiling;
-            offset_pos = temp0;
-        } else {
-            cartesianUnisorC.vec.s[0] = ori_pos + ori_vec - offset_pos;
-            offset_pos = ori_pos;
-        }
-
-        //是否最后一轮
-        if (iter_times == (max_times - 1)) {
-            active = false;
-            offset_pos = start_pos;
-            iter_times++;
-            return true;
-        }
-
-        iter_times++;
-        active = true;
-        return true;
-    }
-
-    __aicore__ inline bool isFirst()
-    {
-        return (iter_times == 1);
-    }
-
-    __aicore__ inline bool isLast()
-    {
-        return (iter_times == max_times);
-    }
-
-    uint32_t iter_tiling;//单次迭代大小
-    uint32_t ori_pos;//迭代最低位置
-    uint32_t ori_vec;//迭代总大小
-    uint32_t offset_pos;//当前位置
-    bool active;//迭代器存活状态
-    uint32_t max_times;//总迭代次数
-    uint32_t iter_times;//当前迭代次数
-    uint32_t start_pos;//起始位置
 };
 
 /*
@@ -1982,8 +1911,7 @@ public:
             Dim1 vec_KK(current_K, 'K');
             Cartesian<Dim1> cartesianK(pos_KK, vec_KK);
             Dim1 miniK(mk, 'K');
-            uint32_t start_pos = (blockId % ceilINT(current_K, mk)) * mk;
-            New_CartesianIterator<Dim1> unisorIteratorK(cartesianK, miniK, start_pos);
+            CartesianIterator<Dim1> unisorIteratorK(cartesianK, miniK);
             Cartesian<Dim1> cartesianUnisorK;
             cartesianUnisorK.pos = pos_KK;
             cartesianUnisorK.vec = vec_KK;
@@ -2061,8 +1989,8 @@ public:
                         bool LastNIter = (cartesianUnisorN.pos.getAxisByName('N') + Base_N >= Last_N);
                         bool firstMIter = (cartesianUnisorM.pos.getAxisByName('M') == first_M);
                         bool LastMIter = (cartesianUnisorM.pos.getAxisByName('M') + Base_M >= Last_M);
-                        bool firstKIter = (unisorIteratorK.isFirst());
-                        bool lastKIter = (unisorIteratorK.isLast());
+                        bool firstKIter = (posK.getAxisByName('K') == first_K);
+                        bool lastKIter = (posK.getAxisByName('K') + mk >= last_K);
                         bool NN_firstflag = (firstNIter && firstKIter);
                         bool NN_lastflag = (LastNIter && lastKIter);
                         bool isFirstMN = (firstMIter && firstNIter);
@@ -2257,6 +2185,10 @@ public:
             return;
         }
         uint32_t current_M = ceilINT(single_M, FACTOR_2); //取一半
+        bool single_aiv = (single_M < FACTOR_128);
+        if (single_aiv) {
+            current_M = single_M;
+        }
         if (current_M % FACTOR_2 != 0) {
             current_M = current_M + 1;
         }
@@ -2273,6 +2205,9 @@ public:
         uint32_t SubBlockIdx = GetSubBlockIdx();
         //第二个V核，暂时不考虑尾块
         if (SubBlockIdx == 1) {
+            if (single_aiv) {
+                return;
+            }
             pos_MM = pos_M + current_M;
             current_M = single_M - current_M;
 
@@ -2286,7 +2221,7 @@ public:
 
         //UB内存是192KB 需要三块Half大小的内存 每块不能超过64KB Base_M * Base_N <= 32 * 1024
         uint32_t UB_Size = szMemUB - FACTOR_8 * current_N - FACTOR_4 * current_M;
-        uint32_t Base_M = szMemUB / FACTOR_2 / FACTOR_4 / current_N;
+        uint32_t Base_M = UB_Size / FACTOR_2 / FACTOR_4 / current_N;
         if (Base_M % FACTOR_2 != 0) {
             Base_M  = Base_M - 1;
         }
@@ -2325,7 +2260,7 @@ public:
         //Sa初始化
         Dim1 vec_sa(Base_M / FACTOR_2, 'M');
         Unisor<UBMem, Dim1> UBUnisor_sa;
-        UBUnisor_sa.init_RealShape(vec_sa, FP32, this->pipe);
+        UBUnisor_sa.init(vec_sa, FP32, this->pipe);
         Unisor<UBMem, Dim2> UBUnisor_sa_broadcast;
         UBUnisor_sa_broadcast.init_RealShape(vec_work, FP32, this->pipe);
         UBUnisor_sa_broadcast.setCartesian(pos_work, vec_work);
@@ -2773,17 +2708,6 @@ __aicore__ inline void dynamic_unisor_programming(GM_ADDR gmA, GM_ADDR gmB, GM_A
     Unisor<GlobalMem, Dim1> saUnisor(gmSa, vec_sa, FP32, true);
     Unisor<GlobalMem, Dim2> swUnisor(gmSw, vec_sw, FP32, true);
 
-    //只有A8输入和C的输出Tensor必须关闭L2的Cache
-    inputAUnisor.inputGlobal.SetL2CacheHint(AscendC::CacheMode::CACHE_MODE_DISABLE);
-    biasUnisor.inputGlobal.SetL2CacheHint(AscendC::CacheMode::CACHE_MODE_DISABLE);
-    outputCUnisor.inputGlobal.SetL2CacheHint(AscendC::CacheMode::CACHE_MODE_DISABLE);
-    offsetUnisor.inputGlobal.SetL2CacheHint(AscendC::CacheMode::CACHE_MODE_DISABLE);
-    saUnisor.inputGlobal.SetL2CacheHint(AscendC::CacheMode::CACHE_MODE_DISABLE);
-    swUnisor.inputGlobal.SetL2CacheHint(AscendC::CacheMode::CACHE_MODE_DISABLE);
-
-    //workSpace“可以”全部都不关闭L2的Cache
-    SyncUnisor.SetL2CacheHint(AscendC::CacheMode::CACHE_MODE_DISABLE);
-    workUnisorPing.inputGlobal.SetL2CacheHint(AscendC::CacheMode::CACHE_MODE_DISABLE);
     uint32_t work_count = 0;
 
     inputAUnisor.pos.setAxisName('M', 'K');
@@ -2835,8 +2759,6 @@ __aicore__ inline void dynamic_unisor_programming(GM_ADDR gmA, GM_ADDR gmB, GM_A
     bool hardSyncFlag = true;
     uint32_t hardSyncRounds = op.ceilINT(HardWareSyncAmount, single_M * numAic); // 硬 + 软同步混合中 硬同步的计算量
     uint32_t preComputeAmount = single_M * numAic * hardSyncRounds;
-
-    AscendC::SyncAll<false>();
 
     if (hardSyncFlag) {
         preComputeAmount = total_M / FACTOR_2;

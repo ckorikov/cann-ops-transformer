@@ -596,8 +596,8 @@ extern "C" __global__ __aicore__ void grouped_matmul(GM_ADDR x, GM_ADDR weight, 
         GM_ADDR sw = scale;
         GM_ADDR workspaceDevice = user1;
 
-        GMMA4W8AutotilingCompute op(A, B, C, groupListOptional, bias_, offset_, sa, sw, workspaceDevice, &tilingData,
-                                    &tPipe);
+        GMMA4W8AutotilingCompute op(A, B, C, groupListOptional, bias_, offset_, sa, sw, workspaceDevice,
+                                    const_cast<A8W4HPTiling *>(&tilingData), &tPipe);
         op.Init();
         op.Process();
     }
