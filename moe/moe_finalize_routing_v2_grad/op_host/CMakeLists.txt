@@ -8,7 +8,7 @@
 # ======================================================================================================================
 
 if (BUILD_OPEN_PROJECT)
-    target_sources(op_host_aclnn PRIVATE
+    target_sources(op_host_aclnnInner PRIVATE
         moe_finalize_routing_v2_grad_def.cpp
     )
     if (BUILD_OPS_RTY_KERNEL) # 回黄kernel
