@@ -220,9 +220,9 @@ static ge::graphStatus GetAttrAndSetTilingData(const gert::TilingContext *contex
     int64_t copyExpertNum = *copyExpertNumPtr;
     int64_t constExpertNum = *constExpertNumPtr;
 
-    OP_TILING_CHECK(zeroExpertNum == -1, OP_LOGE(nodeName, "zeroExpertNum is -1."), return ge::GRAPH_FAILED);
-    OP_TILING_CHECK(copyExpertNum == -1, OP_LOGE(nodeName, "copyExpertNum is -1."), return ge::GRAPH_FAILED);
-    OP_TILING_CHECK(constExpertNum == -1, OP_LOGE(nodeName, "constExpertNum is -1."), return ge::GRAPH_FAILED);
+    OP_TILING_CHECK(zeroExpertNum == -1, OP_LOGE(nodeName, "zeroExpertNum is -1, only support [0, %d).", 2147483647), return ge::GRAPH_FAILED);
+    OP_TILING_CHECK(copyExpertNum == -1, OP_LOGE(nodeName, "copyExpertNum is -1, only support [0, %d).", 2147483647), return ge::GRAPH_FAILED);
+    OP_TILING_CHECK(constExpertNum == -1, OP_LOGE(nodeName, "constExpertNum is -1, only support [0, %d).", 2147483647), return ge::GRAPH_FAILED);
 
     OP_TILING_CHECK(
         (moeExpertNum + zeroExpertNum + copyExpertNum + constExpertNum) > INT32_MAX,
@@ -1080,9 +1080,12 @@ static bool CheckAttrs(const gert::TilingContext *context, MoeDistributeCombineV
     const gert::StorageShape *constExpertAlpha2StorageShape = context->GetOptionalInputShape(CONST_EXPERT_ALPHA_2_INDEX);
     const gert::StorageShape *constExpertVStorageShape = context->GetOptionalInputShape(CONST_EXPERT_V_INDEX);
 
+    OP_TILING_CHECK(copyExpertNum > 0 && oriXStorageShape == nullptr,
+        OP_LOGE(nodeName, "ori_x must be exist when copyExpertNum > 0"), return false);
+
     OP_TILING_CHECK(constExpertNum > 0 && (oriXStorageShape == nullptr || constExpertAlpha1StorageShape == nullptr ||
                     constExpertAlpha2StorageShape == nullptr || constExpertVStorageShape == nullptr),
-        OP_LOGE(nodeName, "oriX、alpha1、alpha2、V must be exist when constExpertNum > 0"), return false);
+        OP_LOGE(nodeName, "ori_x、const_expert_alpha_1、const_expert_alpha_2、const_expert_v must be exist when constExpertNum > 0"), return false);
 
     return true;
 }
