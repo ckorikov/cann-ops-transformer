@@ -203,7 +203,6 @@ add_subdirectory(common)
 if (NOT BUILD_OPS_RTY_KERNEL)
     add_subdirectory(mc2)
     add_subdirectory(posembedding)
-    add_subdirectory(ffn)
 endif()
 
 set(OP_LIST)
@@ -223,6 +222,9 @@ list(APPEND OP_LIST "moe_init_routing_v2")
 list(APPEND OP_LIST "moe_token_unpermute_with_ep_grad")
 list(APPEND OP_DIR_LIST ${CMAKE_CURRENT_SOURCE_DIR}/moe/moe_init_routing_v2)
 list(APPEND OP_DIR_LIST ${CMAKE_CURRENT_SOURCE_DIR}/moe/moe_token_unpermute_with_ep_grad)
+add_subdirectory(ffn)
+list(APPEND OP_LIST "ffn")
+list(APPEND OP_DIR_LIST ${CMAKE_CURRENT_SOURCE_DIR}/ffn/ffn)
 
 set(OP_DEPEND_DIR_LIST)
 op_add_depend_directory(

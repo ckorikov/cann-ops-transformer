@@ -229,9 +229,7 @@ if (BUILD_OPEN_PROJECT)
 endif ()
 
 add_subdirectory(common)
-if (NOT BUILD_OPS_RTY_KERNEL AND NOT ENABLE_BUILT_IN)
-    add_subdirectory(ffn)
-endif()
+
 
 if (BUILD_OPEN_PROJECT)
     if (TESTS_UT_OPS_TEST)
