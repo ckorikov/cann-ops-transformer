@@ -52,7 +52,7 @@ __aicore__ inline void HalfRotaryVF(
     __local_mem__ T* outUb = (__local_mem__ T*)rotaryTensor.GetPhyAddr();
     __local_mem__ T* currInUb;
     __local_mem__ T* currOutUb;
-    uint32_t vecLen = platform::GetVRegSize() / sizeof(T);
+    uint32_t vecLen = Ops::Base::GetVRegSize() / sizeof(T);
     uint32_t halfD = dLen / HALF_INTERLEAVE_COEF;
     uint32_t halfDAlign = Ops::Base::CeilAlign(halfD, static_cast<uint32_t>(BLOCK_TYPE_SIZE / sizeof(T)));
     uint16_t repeatTimes = Ops::Base::CeilDiv(halfD, vecLen);
@@ -97,7 +97,7 @@ __aicore__ inline void QuarterRotaryVF(
     __local_mem__ T* outUb = (__local_mem__ T*)rotaryTensor.GetPhyAddr();
     __local_mem__ T* currInUb;
     __local_mem__ T* currOutUb;
-    uint32_t vecLen = platform::GetVRegSize() / sizeof(T);
+    uint32_t vecLen = Ops::Base::GetVRegSize() / sizeof(T);
     uint32_t quarterD = dLen / QUARTER_MODE_COEF;
     uint32_t quarterDAlign = Ops::Base::CeilAlign(quarterD, static_cast<uint32_t>(BLOCK_TYPE_SIZE / sizeof(T)));
     uint16_t repeatTimes = Ops::Base::CeilDiv(quarterD, vecLen);
@@ -154,7 +154,7 @@ __aicore__ inline void InterleaveRotaryVF(
     __local_mem__ T* outUb = (__local_mem__ T*)rotaryTensor.GetPhyAddr();
     __local_mem__ T* currInUb;
     __local_mem__ T* currOutUb;
-    uint32_t vecLen = platform::GetVRegSize() / sizeof(T);
+    uint32_t vecLen = Ops::Base::GetVRegSize() / sizeof(T);
     uint32_t dAlignLen = Ops::Base::CeilAlign(dLen, static_cast<uint32_t>(BLOCK_TYPE_SIZE / sizeof(T)));
     uint32_t loopSize = vecLen * HALF_INTERLEAVE_COEF;
     uint16_t dLoopCnt = Ops::Base::CeilDiv(dLen, loopSize);
@@ -212,7 +212,7 @@ __aicore__ inline void DSDSinInterleaveHalfVF(
     __local_mem__ T* currInUb;
     __local_mem__ T* currOutUb;
 
-    uint32_t vecLen = platform::GetVRegSize() / sizeof(T);
+    uint32_t vecLen = Ops::Base::GetVRegSize() / sizeof(T);
     uint32_t dAlignLen = Ops::Base::CeilAlign(dLen, static_cast<uint32_t>(BLOCK_TYPE_SIZE / sizeof(T)));
     uint32_t halfD = dLen / HALF_INTERLEAVE_COEF;
     uint32_t halfDAlign = Ops::Base::CeilAlign(halfD, static_cast<uint32_t>(BLOCK_TYPE_SIZE / sizeof(T)));
@@ -267,7 +267,7 @@ __aicore__ inline void DSCosInterleaveHalfVF(
     __local_mem__ T* currInUb;
     __local_mem__ T* currOutUb;
 
-    uint32_t vecLen = platform::GetVRegSize() / sizeof(T);
+    uint32_t vecLen = Ops::Base::GetVRegSize() / sizeof(T);
     uint32_t dAlignLen = Ops::Base::CeilAlign(dLen, static_cast<uint32_t>(BLOCK_TYPE_SIZE / sizeof(T)));
     uint32_t halfD = dLen / HALF_INTERLEAVE_COEF;
     uint32_t halfDAlign = Ops::Base::CeilAlign(halfD, static_cast<uint32_t>(BLOCK_TYPE_SIZE / sizeof(T)));
