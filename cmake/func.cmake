@@ -346,7 +346,6 @@ function(add_ops_src_copy)
             add_custom_command(OUTPUT ${OPS_UTILS_INC_KERNEL_DIR}
                     COMMAND mkdir -p ${OPS_UTILS_INC_KERNEL_DIR}/regbase
                     COMMAND cp -rf ${OPS_ADV_UTILS_KERNEL_INC}/*.* ${OPS_UTILS_INC_KERNEL_DIR}
-                    COMMAND cp -rf ${OPS_ADV_UTILS_KERNEL_INC}/regbase/*.* ${OPS_UTILS_INC_KERNEL_DIR}/regbase
             )
 
             add_custom_target(${OPS_UTILS_INC_KERNEL_TARGET}

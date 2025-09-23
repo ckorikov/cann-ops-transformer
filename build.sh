@@ -664,7 +664,7 @@ if [[ "$ENABLE_TEST" == "TRUE" ]]; then
 elif [[ "$ENABLE_CREATE_LIB" == "TRUE" ]]; then
     build_lib
 elif [[ "$ENABLE_OPKERNEL" == "TRUE" ]]; then
-    cmake_config -DENABLE_OPS_HOST=OFF
+    cmake_config -DENABLE_HOST_TILING=true
     build_kernel
 else
     if [ "${BUILD}" == "host" ];then
