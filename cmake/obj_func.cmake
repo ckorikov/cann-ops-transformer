@@ -257,7 +257,7 @@ function(add_infer_modules)
     target_include_directories(${OPHOST_NAME}_infer_obj
       PRIVATE ${OP_PROTO_INCLUDE}
       $<BUILD_INTERFACE:${ASCEND_CANN_PACKAGE_PATH}/include>
-
+      $<BUILD_INTERFACE:${OPS_TRANSFORMER_DIR}/common/include>
       $<$<BOOL:${BUILD_OPEN_PROJECT}>:$<BUILD_INTERFACE:${ASCEND_CANN_PACKAGE_PATH}/include/experiment>>
       $<$<BOOL:${BUILD_OPEN_PROJECT}>:$<BUILD_INTERFACE:${ASCEND_CANN_PACKAGE_PATH}/include/experiment/hccl/external>>
       $<$<BOOL:${BUILD_OPEN_PROJECT}>:$<BUILD_INTERFACE:${ASCEND_CANN_PACKAGE_PATH}/include/experiment/metadef/common/util>>
