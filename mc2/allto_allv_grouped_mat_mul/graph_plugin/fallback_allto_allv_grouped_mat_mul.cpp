@@ -21,7 +21,6 @@
 #include "fallback/fallback_comm.h"
 #include "fallback_opapi.h"
 #include "op_mc2.h"
-#include "error/ops_error.h"
 
 namespace fallback
 {

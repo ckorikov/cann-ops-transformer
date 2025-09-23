@@ -54,8 +54,8 @@ static bool CheckNotNull(const aclTensor *x, const aclTensor *weight, const char
 }
 
 // check input/output dtype
-static bool CheckDtypeValid(const aclTensor* x, const aclTensor* weight, const aclTensor* bias, aclTensor* y1Out,
-                            aclTensor* y2OutOptional, aclTensor* y3OutOptional)
+static bool CheckDtypeValid(const aclTensor* x, const aclTensor* weight, const aclTensor* bias, const aclTensor* y1Out,
+                            const aclTensor* y2OutOptional, const aclTensor* y3OutOptional)
 {
     OP_CHECK_DTYPE_NOT_SUPPORT(x, MOE_X_DTYPE_SUPPORT_LIST, return false);
     OP_CHECK_DTYPE_NOT_SUPPORT(weight, MOE_X_DTYPE_SUPPORT_LIST, return false);
@@ -90,7 +90,7 @@ static bool CheckDtypeValid(const aclTensor* x, const aclTensor* weight, const a
 
 // check shape dim
 static bool CheckIfTensorThreeDim(const aclTensor* x, const aclTensor* weight, const aclTensor* bias,
-                                  aclTensor* y1Out, aclTensor* y2OutOptional, aclTensor* y3OutOptional)
+                                  const aclTensor* y1Out, const aclTensor* y2OutOptional, const aclTensor* y3OutOptional)
 {
     OP_CHECK_WRONG_DIMENSION(x, SUPPORTED_DIMENSIONAL, return false);
     OP_CHECK_WRONG_DIMENSION(weight, SUPPORTED_DIMENSIONAL, return false);

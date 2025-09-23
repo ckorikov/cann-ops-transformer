@@ -31,7 +31,6 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <sys/stat.h>
 #include <sys/types.h>
 
 #include "mc2_tiling_common_var.h"
@@ -669,12 +668,12 @@ static ge::graphStatus MC2SetWorkspaceShard(gert::TilingContext* context,
         return ge::GRAPH_FAILED);
     
     // 2EcH + ECH
-    uint64_t commOut = 2 * (uint64_t)tilingData.commonTiling.get_expert() * \
-                        (uint64_t)tilingData.commonTiling.get_COverTp() * \
-                        (uint64_t)tilingData.commonTiling.get_H() + \
-                        (uint64_t)tilingData.commonTiling.get_expert() * \
-                        (uint64_t)tilingData.commonTiling.get_C() * \
-                        (uint64_t)tilingData.commonTiling.get_H();
+    uint64_t commOut = 2 * static_cast<uint64_t>(tilingData.commonTiling.get_expert()) * \
+                        static_cast<uint64_t>(tilingData.commonTiling.get_COverTp()) * \
+                        static_cast<uint64_t>(tilingData.commonTiling.get_H()) + \
+                        static_cast<uint64_t>(tilingData.commonTiling.get_expert()) * \
+                        static_cast<uint64_t>(tilingData.commonTiling.get_C()) * \
+                        static_cast<uint64_t>(tilingData.commonTiling.get_H());
 
     if (isLite) {
         uint64_t localMaxC = std::max(tilingData.commonTiling.localTileC.get_tileLen(),

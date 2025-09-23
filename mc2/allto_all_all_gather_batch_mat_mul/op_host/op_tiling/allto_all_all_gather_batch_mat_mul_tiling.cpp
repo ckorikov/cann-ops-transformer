@@ -21,7 +21,6 @@
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
 #include <cmath>
@@ -29,7 +28,6 @@
 #include <string>
 
 #include "tiling/mc2_tiling_common_var.h"
-// #include "hcom_topo_info.h"
 #include "mc2_log.h"
 #include "graph/utils/type_utils.h"
 #include "register/op_def_registry.h"

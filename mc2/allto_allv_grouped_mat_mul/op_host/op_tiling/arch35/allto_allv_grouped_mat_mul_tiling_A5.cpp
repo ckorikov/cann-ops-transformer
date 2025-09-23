@@ -1002,7 +1002,7 @@ static void SetTilingData(gert::TilingContext* context, AlltoAllvGroupedMatMulTi
     context->GetRawTilingData()->SetDataSize(tilingData.GetDataSize());
 }
 
-static bool CheckIsNeedMM(gert::TilingContext* context, AlltoAllvGroupedMatMulTilingDataA5& tilingData)
+static bool CheckIsNeedMM(const gert::TilingContext* context, AlltoAllvGroupedMatMulTilingDataA5& tilingData)
 {
     if (!tilingData.commonTilingInfo.get_isNeedMM()) {
             OP_TILING_CHECK(
