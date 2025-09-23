@@ -15,6 +15,8 @@
 |moe|[moe_gating_top_k](../moe/moe_gating_top_k/README.md)|[MoeGatingTopK](../moe/moe_gating_top_k/op_graph/moe_gating_top_k_proto.h)|MoE计算中，对输入x做Sigmoid计算，对计算结果分组进行排序，最后根据分组排序的结果选取前k个专家。|
 |moe|[moe_re_routing](../moe/moe_re_routing/README.md)|[MoeReRouting](../moe/moe_re_routing/op_graph/moe_re_routing_proto.h)|MoE网络中，进行AlltoAll操作从其他卡上拿到需要算的token后，将token按照专家顺序重新排列。|
 |posembedding|[interleave_rope](../posembedding/interleave_rope/README.md)|[InterleaveRope](../posembedding/interleave_rope/op_graph/interleave_rope_proto.h)|针对单输入 x 进行旋转位置编码。|
+|PromptFlashAttention|[prompt_flash_attention](../attention/prompt_flash_attention)|-|全量推理场景的FlashAttention算子|
+|IncreFlashAttention|[incre_flash_attention](../attention/incre_flash_attention)|-|增量推理场景的FlashAttention算子|
 |xxx|[xxxx](../xx/xx/graph_plugin/xxx.h)|xxx|xxx|
 
 ## 算子接口（aclnn）
@@ -28,7 +30,8 @@
 |[aclnnGroupedMatmulSwigluQuant](../gmm/grouped_matmul_swiglu_quant/docs/aclnnGroupedMatmulSwigluQuant.md)|实现融合GroupedMatmul 、dquant、swiglu和quant运算。|
 |[aclnnGroupedMatmulSwigluQuantWeightNZ](../gmm/grouped_matmul_swiglu_quant/docs/aclnnGroupedMatmulSwigluQuantWeightNZ.md)|实现融合GroupedMatmul 、dquant、swiglu和quant运，是aclnnGroupedMatmulSwigluQuant接口的weightNZ特化版本。|
 |[aclnnMoeGatingTopK](../moe/moe_gating_top_k/docs/aclnnMoeGatingTopK.md)|MoE计算中，对输入x做Sigmoid计算，对计算结果分组进行排序，最后根据分组排序的结果选取前k个专家。|
-
+|[aclnnPromptFlashAttentionV3](../attention/prompt_flash_attention/docs/aclnnPromptFlashAttentionV3.md)|实现全量推理场景的FlashAttention算子，支持sparse优化、actualSeqLengthsKv优化、int8量化功能、innerPrecise参数|
+|[aclnnIncreFlashAttentionV4](../attention/incre_flash_attention/docs/aclnnIncreFlashAttentionV4.md)|在全量推理场景的FlashAttention算子的基础上实现**增量推理**|
 ## 图融合规则
 
 使用图方式描述网络时，可采用图融合提升算子性能。图融合是指[GE（Graph Engine）](https://www.hiascend.com/cann/graph-engine)按融合规则进行改图的过程，使用融合后的算子替换融合前的算子。图融合详细介绍请参见[《图融合和UB融合规则参考》](https://hiascend.com/document/redirect/CannCommunitygraphubfusionref)。
