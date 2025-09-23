@@ -14,13 +14,13 @@ if(UT_TEST_ALL OR OP_HOST_UT)
   ## set variables
   set(OP_HOST_UT_EXE ${PKG_NAME}_op_host_ut)
 
-  ## add optiling ut cases static lib: libmath_op_tiling_ut_cases.a
+  ## add optiling ut cases static lib: libtransformer_op_tiling_ut_cases.a
   add_optiling_ut_modules(${OP_TILING_MODULE_NAME})
 
-  ## add opinfershape ut cases static lib: libmath_op_infershape_ut_cases.a
+  ## add opinfershape ut cases static lib: libtransformer_op_infershape_ut_cases.a
   add_infershape_ut_modules(${OP_INFERSHAPE_MODULE_NAME})
 
-  ## add ophost source so: libophost_math_ut.so
+  ## add ophost source so: libophost_transformer_ut.so
   add_library(${OPHOST_NAME}_ut SHARED
       $<$<TARGET_EXISTS:${OPHOST_NAME}_infer_obj>:$<TARGET_OBJECTS:${OPHOST_NAME}_infer_obj>>
       $<$<TARGET_EXISTS:${OPHOST_NAME}_tiling_obj>:$<TARGET_OBJECTS:${OPHOST_NAME}_tiling_obj>>

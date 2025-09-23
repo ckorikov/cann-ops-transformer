@@ -22,7 +22,7 @@ USER_ID=$(id -u)
 PARENT_JOB="false"
 HOST_TILING="false"
 CHECK_COMPATIBLE="true"
-ASAN="false"
+ASAN="true"
 UBSAN="false"
 COV="false"
 CLANG="false"
@@ -31,6 +31,15 @@ THREAD_NUM=8
 ENABLE_CREATE_LIB=FALSE
 ENABLE_OPKERNEL=FALSE
 BUILD_LIBS=()
+OP_API_UT=FALSE
+OP_HOST_UT=FALSE
+OP_GRAPH_UT=FALSE
+OP_KERNEL_UT=FALSE
+OP_API=FALSE
+OP_HOST=FALSE
+OP_GRAPH=FALSE
+OP_KERNEL=FALSE
+ENABLE_UT_EXEC=TRUE
 
 PR_CHANGED_FILES=""  # PR场景, 修改文件清单, 可用于标识是否PR场景
 
@@ -44,50 +53,162 @@ fi
 
 CUSTOM_OPTION="-DBUILD_OPEN_PROJECT=ON"
 
+dotted_line="---------------------------------------------------------------------------------------------------------------------"
 ########################################################################################################################
 # 预定义函数
 ########################################################################################################################
 
 function help_info() {
+    local specific_help="$1"
+
+    if [[ -n "$specific_help" ]]; then
+        case "$specific_help" in
+            test)
+                echo "Test Options:"
+                echo $dotted_line
+                echo "    -u|--test                     Executes a unit test (UT). If there are multiple values, separate them with semicolons and use quotation marks."
+                echo "    --noexec               Only compile ut, do not execute"
+                echo "    --cov                  Compiles with cov."
+                echo "    --disable_asan         Disable ASAN (Address Sanitizer), only supported in UTest."
+                echo "    --ophost_test          Executes a host unit test (UT). If there are multiple values, separate them with semicolons and use quotation marks."
+                echo "    --opapi_test           Executes a api unit test (UT). If there are multiple values, separate them with semicolons and use quotation marks."
+                echo "    --opgraph_test         Executes a graph unit test (UT). If there are multiple values, separate them with semicolons and use quotation marks."
+                echo "    --ophost -u            Same as --ophost_test"
+                echo "    --opapi -u             Same as --opapi_test"
+                echo "    --opgraph -u           Same as --opgraph_test"
+                echo $dotted_line
+                echo "Examples:"
+                echo "    bash build.sh -u --noexec --cov"
+                echo "    bash build.sh --ophost_test --opapi_test --noexec"
+                echo "    bash build.sh --ophost --opapi --opgraph -u --cov"
+                return
+                ;;
+            ophost)
+                echo "Ophost Build Options:"
+                echo $dotted_line
+                echo "    --ophost               Build ophost library"
+                echo $dotted_line
+                echo "Examples:"
+                echo "    bash build.sh --ophost"
+                return
+                ;;
+            opapi)
+                echo "Opapi Build Options:"
+                echo $dotted_line
+                echo "    --opapi                Build opapi library"
+                echo $dotted_line
+                echo "Examples:"
+                echo "    bash build.sh --opapi"
+                return
+                ;;
+            opgraph)
+                echo "Opgraph Build Options:"
+                echo $dotted_line
+                echo "    --opgraph              Build opgraph library"
+                echo $dotted_line
+                echo "Examples:"
+                echo "    bash build.sh --opgraph"
+                return
+                ;;
+            opkernel)
+                echo "Opkernel Build Options:"
+                echo $dotted_line
+                echo "    --opkernel             Build binary kernel"
+                echo $dotted_line
+                echo "Examples:"
+                echo "    bash build.sh --opkernel"
+                return
+                ;;
+            ophost_test)
+                echo "Ophost Test Options:"
+                echo $dotted_line
+                echo "    --ophost_test          Executes a host unit test (UT). If there are multiple values, separate them with semicolons and use quotation marks."
+                echo "    --noexec               Only compile ut, do not execute"
+                echo "    --cov                  Compiles with cov."
+                echo "    --disable_asan         Disable ASAN (Address Sanitizer), only supported in UTest."
+                echo $dotted_line
+                echo "Examples:"
+                echo "    bash build.sh --ophost_test --noexec --cov"
+                return
+                ;;
+            opapi_test)
+                echo "Opapi Test Options:"
+                echo $dotted_line
+                echo "    --opapi_test           Executes a api unit test (UT). If there are multiple values, separate them with semicolons and use quotation marks."
+                echo "    --noexec               Only compile ut, do not execute"
+                echo "    --cov                  Compiles with cov."
+                echo "    --disable_asan         Disable ASAN (Address Sanitizer), only supported in UTest."
+                echo $dotted_line
+                echo "Examples:"
+                echo "    bash build.sh --opapi_test --noexec --cov"
+                return
+                ;;
+            opgraph_test)
+                echo "Opgraph Test Options:"
+                echo $dotted_line
+                echo "    --opgraph_test         Executes a graph unit test (UT). If there are multiple values, separate them with semicolons and use quotation marks."
+                echo "    --noexec               Only compile ut, do not execute"
+                echo "    --cov                  Compiles with cov."
+                echo "    --disable_asan         Disable ASAN (Address Sanitizer), only supported in UTest."
+                echo $dotted_line
+                echo "Examples:"
+                echo "    bash build.sh --opgraph_test --noexec --cov"
+                return
+                ;;
+        esac
+    fi
     echo "Usage: $0 [options]"
     echo "Options:"
+    echo $dotted_line
+    echo "    Build parameters "
+    echo $dotted_line
+    echo "    -h|--help            Displays help message."
     echo
-    echo "-h|--help            Displays help message."
+    echo "    -n|--op-name         Specifies the compiled operator. If there are multiple values, separate them with semicolons and use quotation marks. The default is all."
+    echo "                         For example: -n \"flash_attention_score\" or -n \"flash_attention_score;flash_attention_score_grad\""
     echo
-    echo "-n|--op-name         Specifies the compiled operator. If there are multiple values, separate them with semicolons and use quotation marks. The default is all."
-    echo "                     For example: -n \"flash_attention_score\" or -n \"flash_attention_score;flash_attention_score_grad\""
+    echo "    -c|--compute-unit    Specifies the chip type. If there are multiple values, separate them with semicolons and use quotation marks. The default is ascend910b."
+    echo "                         For example: -c \"ascend910b\" or -c \"ascend910b;ascend310p\""
     echo
-    echo "-c|--compute-unit    Specifies the chip type. If there are multiple values, separate them with semicolons and use quotation marks. The default is ascend910b."
-    echo "                     For example: -c \"ascend910b\" or -c \"ascend910b;ascend310p\""
+    echo "    -u|--test            Executes a unit test (UT). If there are multiple values, separate them with semicolons and use quotation marks."
+    echo "                         For example: -t \"flash_attention_score\" or -t \"flash_attention_score;flash_attention_score_grad\" or -t \"all\""
+    echo $dotted_line
+    echo "    The following are all supported arguments:"
+    echo $dotted_line
+    echo "    --ophost             Build ophost_math.so"
     echo
-    echo "-t|--test            Executes a unit test (UT). If there are multiple values, separate them with semicolons and use quotation marks."
-    echo "                     For example: -t \"flash_attention_score\" or -t \"flash_attention_score;flash_attention_score_grad\" or -t \"all\""
-    echo "--ophost_test        Executes a host unit test (UT). If there are multiple values, separate them with semicolons and use quotation marks."
-    echo "                     For example: bash build.sh -ophost_test -n \"distribute_barrier\" -c \"ascend910_93\" or bash build.sh -ophost_test -c \"ascend910_93\" or bash build.sh -ophost_test"
+    echo "    --opapi              Build opapi_math.so"
     echo
-    echo "--opapi_test         Executes a api unit test (UT). If there are multiple values, separate them with semicolons and use quotation marks."
-    echo "                     For example: bash build.sh -opapi_test -n \"distribute_barrier\" -c \"ascend910_93\" or bash build.sh -opapi_test -c \"ascend910_93\" or bash build.sh -opapi_test"
+    echo "    --opgraph            Build graph_plugin_math.so"
     echo
-    echo "--opgraph_test       Executes a graph unit test (UT). If there are multiple values, separate them with semicolons and use quotation marks."
-    echo "                     For example: bash build.sh -opgraph_test -n \"distribute_barrier\" -c \"ascend910_93\" or bash build.sh -opgraph_test -c \"ascend910_93\" or bash build.sh -opgraph_test"
+    echo "    --opkernel           Build binary kernel"
     echo
-    echo "--opkernel_test      Executes a kernel unit test (UT). If there are multiple values, separate them with semicolons and use quotation marks."
-    echo "                     For example: bash build.sh -opkernel_test -n \"distribute_barrier\" -c \"ascend910_93\" or bash build.sh -opkernel_test -c \"ascend910_93\" or bash build.sh -opkernel_test"
+    echo "    --ophost_test        Executes a host unit test (UT). If there are multiple values, separate them with semicolons and use quotation marks."
+    echo "                         For example: bash build.sh -ophost_test -n \"distribute_barrier\" -c \"ascend910_93\" or bash build.sh -ophost_test -c \"ascend910_93\" or bash build.sh -ophost_test"
     echo
-    echo "-e|--example         Executes example."
+    echo "    --opapi_test         Executes a api unit test (UT). If there are multiple values, separate them with semicolons and use quotation marks."
+    echo "                         For example: bash build.sh -opapi_test -n \"distribute_barrier\" -c \"ascend910_93\" or bash build.sh -opapi_test -c \"ascend910_93\" or bash build.sh -opapi_test"
     echo
-    echo "    --run_example Compile and execute the test_aclnn_xxx.cpp/test_geir_xxx.cpp"
+    echo "    --opgraph_test       Executes a graph unit test (UT). If there are multiple values, separate them with semicolons and use quotation marks."
+    echo "                         For example: bash build.sh -opgraph_test -n \"distribute_barrier\" -c \"ascend910_93\" or bash build.sh -opgraph_test -c \"ascend910_93\" or bash build.sh -opgraph_test"
     echo
-    echo "--tiling_key         Sets the tiling key list for operators. If there are multiple values, separate them with semicolons and use quotation marks. The default is all."
-    echo "                     For example: --tiling_key \"1\" or --tiling_key \"1;2;3;4\""
+    echo "    --opkernel_test      Executes a kernel unit test (UT). If there are multiple values, separate them with semicolons and use quotation marks."
+    echo "                         For example: bash build.sh -opkernel_test -n \"distribute_barrier\" -c \"ascend910_93\" or bash build.sh -opkernel_test -c \"ascend910_93\" or bash build.sh -opkernel_test"
     echo
-    echo "--asan               Compiles with AddressSanitizer, only supported in UTest."
+    echo "    -e|--example         Executes example."
     echo
-    echo "--ubsan              Compiles with UndefinedBehaviorSanitizer, only supported in UTest."
+    echo "    --tiling_key         Sets the tiling key list for operators. If there are multiple values, separate them with semicolons and use quotation marks. The default is all."
+    echo "                         For example: --tiling_key \"1\" or --tiling_key \"1;2;3;4\""
     echo
-    echo "--cov                Compiles with cov."
+    echo "    --disable_asan       Disable ASAN (Address Sanitizer), only supported in UTest."
     echo
-    echo "--verbose            Displays more compilation information."
+    echo "    --ubsan              Compiles with UndefinedBehaviorSanitizer, only supported in UTest."
+    echo
+    echo "    --cov                Compiles with cov."
+    echo
+    echo "    --noexec             Only compile ut, do not execute."
+    echo
+    echo "    --verbose            Displays more compilation information."
     echo
 }
 
@@ -287,6 +408,26 @@ set_ut_mode() {
 ########################################################################################################################
 # 参数解析处理
 ########################################################################################################################
+for arg in "$@"; do
+    if [[ "$arg" == "--help" || "$arg" == "-h" ]]; then
+        SHOW_HELP="general"
+        # 检查 --help 前面的命令
+        for prev_arg in "$@"; do
+            case "$prev_arg" in
+            --opkernel) SHOW_HELP="opkernel" ;;
+            -u|--test) SHOW_HELP="test" ;;
+            --ophost) SHOW_HELP="ophost" ;;
+            --opapi) SHOW_HELP="opapi" ;;
+            --opgraph) SHOW_HELP="opgraph" ;;
+            --ophost_test) SHOW_HELP="ophost_test" ;;
+            --opapi_test) SHOW_HELP="opapi_test" ;;
+            --opgraph_test) SHOW_HELP="opgraph_test" ;;
+            esac
+        done
+      help_info "$SHOW_HELP"
+      exit 0
+    fi
+  done
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -384,8 +525,8 @@ while [[ $# -gt 0 ]]; do
         VERBOSE="true"
         shift
         ;;
-    --asan)
-        ASAN="true"
+    --disable_asan)
+        ASAN="false"
         shift
         ;;
     --ubsan)
@@ -468,6 +609,10 @@ while [[ $# -gt 0 ]]; do
         ENABLE_OPKERNEL=TRUE
         shift
         ;;
+    --noexec)
+        ENABLE_UT_EXEC=FALSE
+        shift
+        ;;
     *)
         help_info
         exit 1
@@ -513,7 +658,9 @@ fi
 if [[ "$UT_TEST_ALL" == "TRUE" ]]; then
     CUSTOM_OPTION="${CUSTOM_OPTION} -DUT_TEST_ALL=TRUE"
 fi
-
+if [[ "$ENABLE_UT_EXEC" == "TRUE" ]]; then
+    CUSTOM_OPTION="${CUSTOM_OPTION} -DENABLE_UT_EXEC=TRUE"
+fi
 if [ -n "${TEST}" ];then
     if [ -n "${PR_CHANGED_FILES}" ];then
         TEST=$(python3 "$CURRENT_DIR"/cmake/scripts/parse_changed_files.py -c "$CURRENT_DIR"/classify_rule.yaml -f "$PR_CHANGED_FILES" get_related_ut)
@@ -545,7 +692,7 @@ if [ -n "${TEST}" ];then
     fi
 
     if [ "${ASAN}" == "true" ];then
-        CUSTOM_OPTION="${CUSTOM_OPTION} -DENABLE_ASAN=true"
+        CUSTOM_OPTION="${CUSTOM_OPTION} -DENABLE_ASAN=TRUE"
     fi
 
     if [ "${UBSAN}" == "true" ];then

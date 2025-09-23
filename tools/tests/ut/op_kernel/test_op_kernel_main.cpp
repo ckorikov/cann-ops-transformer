@@ -19,15 +19,15 @@ public:
     virtual void SetUp() {
         cout << "Global Environment SetpUp." << endl;
 
-        /* load libmath_op_kernel_ut_${socversion}_ut.so for init tiling funcs and infershape funcs */
+        /* load libtransformer_op_kernel_ut_${socversion}_ut.so for init tiling funcs and infershape funcs */
         const char* buildPath = std::getenv("BUILD_PATH");
         if (buildPath == nullptr) {
             cout << "getenv BUILD_PATH failed." << endl;
             return;
         }
 
-        string opKernelTilingSoPath = buildPath + string("/tests/ut/op_kernel/libmath_op_kernel_ut_tiling.so");
-        gert::OppSoDesc oppSoDesc(ge::AscendString(opKernelTilingSoPath.c_str()), "math_op_kernel_ut_so");
+        string opKernelTilingSoPath = buildPath + string("/tests/ut/op_kernel/libtransformer_op_kernel_ut_tiling.so");
+        gert::OppSoDesc oppSoDesc(ge::AscendString(opKernelTilingSoPath.c_str()), "transformer_op_kernel_ut_so");
         shared_ptr<gert::OpImplSpaceRegistryV2> opImplSpaceRegistryV2 = make_shared<gert::OpImplSpaceRegistryV2>();
         if (opImplSpaceRegistryV2->AddSoToRegistry(oppSoDesc) == ge::GRAPH_FAILED) {
             cout << "add so to registry failed." << endl;

@@ -590,7 +590,7 @@ function(OpsTest_Level1_AddUTestCommonStatic)
                     -Wl,--no-whole-archive
                     platform
                     register
-                    rt2_registry_static
+                    opp_registry
                     error_manager
                     metadef
                     tiling_api
@@ -872,6 +872,14 @@ function(op_add_ut_subdirectory OP_UT_LIST OP_UT_DIR_LIST)
             get_filename_component(OP_DIR "${OP_CMAKE_FILE}" DIRECTORY)
         endif()
         get_filename_component(OP_NAME "${OP_DIR}" NAME)
+
+        if (DEFINED TESTS_UT_OPS_TEST AND NOT "${TESTS_UT_OPS_TEST}" STREQUAL "")
+            if (NOT "${TESTS_UT_OPS_TEST}" STREQUAL "all" AND NOT "${TESTS_UT_OPS_TEST}" STREQUAL "ALL")
+                if (NOT ${OP_NAME} IN_LIST TESTS_UT_OPS_TEST)
+                    continue()
+                endif ()
+            endif ()
+        endif ()        
 
         list(APPEND _OP_UT_LIST ${OP_NAME})
         list(APPEND _OP_UT_DIR_LIST ${OP_DIR})

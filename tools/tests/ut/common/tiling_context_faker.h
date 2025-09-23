@@ -8,8 +8,8 @@
  * See LICENSE in the root of the software repository for the full text of the License.
  */
 
-#ifndef OPS_MATH_DEV_TESTS_UT_COMMON_TILING_CONTEXT_FAKER_H
-#define OPS_MATH_DEV_TESTS_UT_COMMON_TILING_CONTEXT_FAKER_H
+#ifndef OPS_TRANSFORMER_DEV_TESTS_UT_COMMON_TILING_CONTEXT_FAKER_H
+#define OPS_TRANSFORMER_DEV_TESTS_UT_COMMON_TILING_CONTEXT_FAKER_H
 
 #include "op_tiling_context_builder.h"
 
@@ -106,4 +106,4 @@ public:
 };
 
 } // namespace gert
-#endif // OPS_MATH_DEV_TESTS_UT_COMMON_INFERSHAPE_CONTEXT_FAKER_H
+#endif // OPS_TRANSFORMER_DEV_TESTS_UT_COMMON_TILING_CONTEXT_FAKER_H

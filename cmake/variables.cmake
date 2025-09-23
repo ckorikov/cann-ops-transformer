@@ -88,6 +88,7 @@ endif()
 set(ASCEND_TENSOR_COMPILER_PATH ${ASCEND_DIR}/compiler)
 set(ASCEND_CCEC_COMPILER_PATH ${ASCEND_TENSOR_COMPILER_PATH}/ccec_compiler/bin)
 set(OP_BUILD_TOOL ${ASCEND_DIR}/tools/opbuild/op_build)
+set(UT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/tools/tests/ut)
 
 # output path
 set(ASCEND_AUTOGEN_PATH     ${CMAKE_BINARY_DIR}/autogen)

@@ -26,10 +26,10 @@ if(UT_TEST_ALL OR OP_API_UT)
     endif()
   endforeach()
 
-  ## add opapi ut cases object: math_op_tiling_ut_cases_obj
+  ## add opapi ut cases object: transformer_op_tiling_ut_cases_obj
   add_opapi_ut_modules(${OP_API_MODULE_NAME})
 
-  ## add opapi source so: libopapi_math_ut.so
+  ## add opapi source so: libopapi_transformer_ut.so
   add_library(${OPAPI_NAME}_ut SHARED
           $<TARGET_OBJECTS:${OPHOST_NAME}_opapi_obj>
           )
@@ -37,7 +37,7 @@ if(UT_TEST_ALL OR OP_API_UT)
           $<BUILD_INTERFACE:intf_llt_pub_asan_cxx17>
           )
 
-  ## add opapi ut exe:  math_op_api_ut
+  ## add opapi ut exe:  transformer_op_api_ut
   add_executable(${OP_API_UT_EXE}
           test_op_api_main.cpp
           $<TARGET_OBJECTS:${OP_API_MODULE_NAME}_cases_obj>

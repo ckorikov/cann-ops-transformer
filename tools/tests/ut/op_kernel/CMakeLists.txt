@@ -14,7 +14,7 @@ if(UT_TEST_ALL OR OP_KERNEL_UT)
     ## set variables
     set(OP_KERNEL_UT_EXE ${PKG_NAME}_op_kernel_ut)
 
-    ## add opkernel ut cases dynamic lib: libmath_op_kernel_ut_cases.so
+    ## add opkernel ut cases dynamic lib: libtransformer_op_kernel_ut_cases.so
     add_opkernel_ut_modules(${OP_KERNEL_MODULE_NAME})
 
     ## add op tiling so
