@@ -35,9 +35,9 @@ aclnnStatus aclnnFusedInferAttentionScoreGetWorkspaceSize(
     aclnnStatus ret = aclnnInnerFusedInferAttentionScoreGetWorkspaceSize(
         query, key, value, pseShift, attenMask, actualSeqLengths, actualSeqLengthsKv, deqScale1, quantScale1, deqScale2,
         quantScale2, quantOffset2, antiquantScale, antiquantOffset, blockTable, queryPaddingSize, kvPaddingSize,
-        nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
+        nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
         numHeads, scaleValue, preTokens, nextTokens,
-        inputLayout, numKeyValueHeads, sparseMode, innerPrecise, blockSize, antiquantMode, softmaxLseFlag, 0, 0, 0, 0,
+        inputLayout, numKeyValueHeads, sparseMode, innerPrecise, blockSize, antiquantMode, softmaxLseFlag, 0, 0, 0, 0, 0,
         attentionOut, placeHolder, workspaceSize, executor);
     if (softmaxLseFlag == false) {
         aclDestroyTensor(tempTensor);

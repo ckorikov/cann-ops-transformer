@@ -130,10 +130,10 @@ aclnnStatus aclnnFusedInferAttentionScoreV4GetMaxWorkspaceSize(
         queryPaddingSizeOptional, kvPaddingSizeOptional, keyAntiquantScaleOptional, keyAntiquantOffsetOptional,
         valueAntiquantScaleOptional, valueAntiquantOffsetOptional, tensorKeySharedPrefixOptional,
         tensorValueSharedPrefixOptional, fakeActualSharedPrefixLenOptional, queryRopeOptional,
-        keyRopeOptional, keyRopeAntiquantScaleOptional, dequantScaleQueryOptional, learnableSinkOptional,
+        keyRopeOptional, keyRopeAntiquantScaleOptional, dequantScaleQueryOptional, learnableSinkOptional, nullptr, nullptr,
         numHeads, scaleValue, preTokens, nextTokens,
         inputLayout, numKeyValueHeads, sparseMode, innerPrecise, blockSize, antiquantMode, softmaxLseFlag,
-        keyAntiquantMode, valueAntiquantMode, queryQuantMode, 0, attentionOut, placeHolder, workspaceSize, executor);
+        keyAntiquantMode, valueAntiquantMode, queryQuantMode, 0, 0, attentionOut, placeHolder, workspaceSize, executor);
     if (softmaxLseFlag == false) {
         aclDestroyTensor(tempTensor);
     }
@@ -197,14 +197,19 @@ aclnnStatus aclnnFusedInferAttentionScoreV4GetWorkspaceSize(
         queryPaddingSizeOptional, kvPaddingSizeOptional, keyAntiquantScaleOptional, keyAntiquantOffsetOptional,
         valueAntiquantScaleOptional, valueAntiquantOffsetOptional, tensorKeySharedPrefixOptional,
         tensorValueSharedPrefixOptional, actualSharedPrefixLenOptional, queryRopeOptional,
-        keyRopeOptional, keyRopeAntiquantScaleOptional, dequantScaleQueryOptional, learnableSinkOptional,
+        keyRopeOptional, keyRopeAntiquantScaleOptional, dequantScaleQueryOptional, learnableSinkOptional, nullptr, nullptr,
         numHeads, scaleValue, preTokens, nextTokens,
         inputLayout, numKeyValueHeads, sparseMode, innerPrecise, blockSize, antiquantMode, softmaxLseFlag,
-        keyAntiquantMode, valueAntiquantMode, queryQuantMode, 0, attentionOut, placeHolder, workspaceSize, executor);
+        keyAntiquantMode, valueAntiquantMode, queryQuantMode, 0, 0, attentionOut, placeHolder, workspaceSize, executor);
     if (softmaxLseFlag == false) {
         aclDestroyTensor(tempTensor);
     }
-    
+    if (ret == 0) {
+        if (NnopbaseDisableOptionalInput != nullptr) {
+            NnopbaseDisableOptionalInput(*executor, 29U); // 29 is input irIndex，占位符
+            NnopbaseDisableOptionalInput(*executor, 30U); // 30 is input irIndex，占位符
+        }
+    }
     return ret;
 }
 

@@ -37,7 +37,7 @@ extern "C" __global__ __aicore__ void fused_infer_attention_score(__gm__ uint8_t
                                                              __gm__ uint8_t* valueAntiquantScale, __gm__ uint8_t* valueAntiquantOffset,
                                                              __gm__ uint8_t* keySharedPrefix, __gm__ uint8_t* valueSharedPrefix, __gm__ uint8_t* actualSharedPrefixLen,
                                                              __gm__ uint8_t* queryRope, __gm__ uint8_t* keyRope, __gm__ uint8_t* keyRopeAntiquantScale, __gm__ uint8_t* dequantScaleQuery,
-                                                             __gm__ uint8_t* learnableSink,
+                                                             __gm__ uint8_t* learnableSink, __gm__ uint8_t* qStartIdx, __gm__ uint8_t* kvStartIdx,
                                                              __gm__ uint8_t* attentionOut, __gm__ uint8_t* softmaxLse, __gm__ uint8_t* workspace,
                                                              __gm__ uint8_t* tiling) {
   // judge ifa or pfa by range of tilingKey

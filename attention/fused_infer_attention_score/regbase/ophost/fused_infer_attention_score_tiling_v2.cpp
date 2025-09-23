@@ -383,8 +383,8 @@ static ge::graphStatus ConvertContextToParamsPFA(gert::TilingContext* context, C
     contextKeyParams.keyRopeInputShape = context->GetOptionalInputShape(KEY_ROPE_INDEX);
     contextKeyParams.kRopeDataType = (contextKeyParams.keyRopeInputShape != nullptr) ?
         context->GetOptionalInputDesc(KEY_ROPE_INDEX)->GetDataType() : contextKeyParams.kDataType;
-    contextKeyParams.qStartIdx = nullptr;
-    contextKeyParams.kvStartIdx = nullptr;
+    contextKeyParams.qStartIdx = context->GetOptionalInputTensor(Q_START_IDX_INDEX);
+    contextKeyParams.kvStartIdx = context->GetOptionalInputTensor(KV_START_IDX_INDEX);
     contextKeyParams.pseType = attrs->GetAttrPointer<int64_t>(PSE_TYPE_INDEX);
 
     const string layoutStr = string(contextKeyParams.layout);

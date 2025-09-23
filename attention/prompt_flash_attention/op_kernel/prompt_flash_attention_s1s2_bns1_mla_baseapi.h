@@ -1859,6 +1859,7 @@ MlaS1s2Bn2gs1SameABBaseApi<TILING_TYPE, implMode, layOutType, hasAtten, INPUT_T,
             Exp(softmaxTemp, softmaxTemp, size);
             PipeBarrier<PIPE_V>();
             Add(sumUb[offset], sumUb[offset], softmaxTemp, size);
+            PipeBarrier<PIPE_V>();
         }
 
         Brcb(softmaxTemp, sumUb, (extraInfo.s1RealSize * extraInfo.gBaseSize + 7) / 8, {1, 8});

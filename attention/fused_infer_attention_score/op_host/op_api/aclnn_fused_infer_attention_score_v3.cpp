@@ -144,9 +144,9 @@ aclnnStatus aclnnFusedInferAttentionScoreV3GetMaxWorkspaceSize(
         queryPaddingSizeOptional, kvPaddingSizeOptional, keyAntiquantScaleOptional, keyAntiquantOffsetOptional,
         valueAntiquantScaleOptional, valueAntiquantOffsetOptional, tensorKeySharedPrefixOptional,
         tensorValueSharedPrefixOptional, fakeActualSeqArrays.actualSharedPrefixLenOptional, queryRopeOptional,
-        keyRopeOptional, keyRopeAntiquantScaleOptional, nullptr, nullptr, numHeads, scaleValue, preTokens, nextTokens,
+        keyRopeOptional, keyRopeAntiquantScaleOptional, nullptr, nullptr, nullptr, nullptr, numHeads, scaleValue, preTokens, nextTokens,
         inputLayout, numKeyValueHeads, sparseMode, innerPrecise, blockSize, antiquantMode, softmaxLseFlag,
-        keyAntiquantMode, valueAntiquantMode, 0, 0, attentionOut, placeHolder, workspaceSize, executor);
+        keyAntiquantMode, valueAntiquantMode, 0, 0, 0, attentionOut, placeHolder, workspaceSize, executor);
     if (softmaxLseFlag == false) {
         aclDestroyTensor(tempTensor);
     }
@@ -207,9 +207,9 @@ aclnnStatus aclnnFusedInferAttentionScoreV3GetWorkspaceSize(
         queryPaddingSizeOptional, kvPaddingSizeOptional, keyAntiquantScaleOptional, keyAntiquantOffsetOptional,
         valueAntiquantScaleOptional, valueAntiquantOffsetOptional, tensorKeySharedPrefixOptional,
         tensorValueSharedPrefixOptional, actualSharedPrefixLenOptional, queryRopeOptional,
-        keyRopeOptional, keyRopeAntiquantScaleOptional, nullptr, nullptr, numHeads, scaleValue, preTokens, nextTokens,
+        keyRopeOptional, keyRopeAntiquantScaleOptional, nullptr, nullptr, nullptr, nullptr, numHeads, scaleValue, preTokens, nextTokens,
         inputLayout, numKeyValueHeads, sparseMode, innerPrecise, blockSize, antiquantMode, softmaxLseFlag,
-        keyAntiquantMode, valueAntiquantMode, 0, 0, attentionOut, placeHolder, workspaceSize, executor);
+        keyAntiquantMode, valueAntiquantMode, 0, 0, 0, attentionOut, placeHolder, workspaceSize, executor);
     if (softmaxLseFlag == false) {
         aclDestroyTensor(tempTensor);
     }
@@ -217,6 +217,8 @@ aclnnStatus aclnnFusedInferAttentionScoreV3GetWorkspaceSize(
         if (NnopbaseDisableOptionalInput != nullptr) {
             NnopbaseDisableOptionalInput(*executor, 27U); // 27 is input irIndex
             NnopbaseDisableOptionalInput(*executor, 28U); // 28 is input irIndex
+            NnopbaseDisableOptionalInput(*executor, 29U); // 29 is input irIndex，占位符
+            NnopbaseDisableOptionalInput(*executor, 30U); // 30 is input irIndex
         }
     }
     return ret;

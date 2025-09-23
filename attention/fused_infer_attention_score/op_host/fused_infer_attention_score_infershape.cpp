@@ -57,6 +57,14 @@ static constexpr uint32_t FIA_INPUT_QUERY_PADDING_SIZE_INDEX = 15;
 static constexpr uint32_t FIA_INPUT_KV_PADDING_SIZE_INDEX = 16;
 static constexpr uint32_t FIA_INPUT_ACTUAL_SHARED_PREFIX_LEN_INDEX = 23;
 static constexpr uint32_t FIA_QUERY_ROPE_INDEX = 24;
+static constexpr uint32_t FIA_OUT_DTYPE_INDEX = 15;
+
+static const std::map<int64_t, ge::DataType> TORCH_DTYPE_ENUM_VALUE_TO_GE_DTYPE_MAP = {
+    {5,  ge::DT_FLOAT16}, 
+    {15, ge::DT_BF16},
+    {23, ge::DT_FLOAT8_E5M2},
+    {24, ge::DT_FLOAT8_E4M3FN},
+    {290, ge::DT_HIFLOAT8}};
 
 static ge::graphStatus InferShapeFusedInferAttentionScore(gert::InferShapeContext *context)
 {
@@ -411,6 +419,16 @@ static ge::graphStatus InferDataTypeFusedInferAttentionScore(gert::InferDataType
     // 10 is quant_scale2's index, if not instantiated or illegal return ge::DT_UNDEFINED
     if (context->GetOptionalInputDataType(FIA_QUANT_SCALE2_INDEX) != ge::DT_UNDEFINED) {
         outputType = ge::DT_INT8;
+
+        auto attrs = context->GetAttrs();
+        OP_CHECK_NULL_WITH_CONTEXT(context, attrs);
+        const int64_t *outTypePtr = attrs->GetInt(FIA_OUT_DTYPE_INDEX);
+        if (outTypePtr != nullptr) {
+            auto iter = TORCH_DTYPE_ENUM_VALUE_TO_GE_DTYPE_MAP.find(*outTypePtr);
+            if (iter != TORCH_DTYPE_ENUM_VALUE_TO_GE_DTYPE_MAP.end()) {
+                outputType = iter->second;
+            }
+        }
     } else if (context->GetInputDataType(FIA_QUERY_INDEX) == ge::DT_INT8 ||
         context->GetInputDataType(FIA_QUERY_INDEX) == ge::DT_FLOAT8_E5M2 ||
         context->GetInputDataType(FIA_QUERY_INDEX) == ge::DT_FLOAT8_E4M3FN ||

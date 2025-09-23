@@ -124,6 +124,7 @@ static const int64_t S1_BASIC_BLOCK_L1CARRY_MAX = 128L;
 static const int64_t D_SIZE_L1CARRY_MAX = 256L;
 static const int64_t D2_SIZE_L1CARRY_MAX = 256L;
 static const int64_t SOFTMAX_OUT_LAYOUT_INDEX = 12L;
+static const int64_t B4_SEQ_LIMIT = 48000L;
 
 enum LayoutType : uint8_t {
     None = 0,
@@ -3607,7 +3608,11 @@ protected:
 
     int64_t GetNRatio() override
     {
-        return 8L;
+        if (l2CacheSize <= B4_L2_CACHESIZE && isSameAB && alignedD == SAMEAB_D_LIMIT_128 && realT1Size >= B4_SEQ_LIMIT) {
+            return 4L;
+        } else {
+            return 8L;
+        }
     }
 
     void GetBufferNum(BufferNum &bufferNum) const override
