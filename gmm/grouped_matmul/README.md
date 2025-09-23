@@ -64,7 +64,44 @@
 
 
 ## 参数说明
-  TODO
+|参数名| 输入/输出   |    描述 |数据类型 |
+|-----|---------|------|------|
+|x|输入|公式中的输入`x`。| FLOAT<sup>1</sup>、FLOAT16、INT16<sup>1</sup>、INT8、INT4<sup>1</sup>、BFLOAT16、FLOAT8_E5M2<sup>2</sup>、FLOAT8_E4M3FN<sup>2</sup>、HIFLOAT8<sup>2</sup> |
+|weight|输入|公式中的`weight`。|FLOAT<sup>1</sup>、FLOAT16、INT16<sup>1</sup>、INT8、INT4、BFLOAT16、FLOAT8_E5M2<sup>2</sup>、FLOAT8_E4M3FN<sup>2</sup>、HIFLOAT8<sup>2</sup> |
+|biasOptional|可选输入|公式中的`bias`。| FLOAT、FLOAT16、INT32、BFLOAT16<sup>2</sup> |
+|scaleOptional|可选输入|公式中的`scale`，代表量化参数中的缩放因子。| FLOAT、UINT64、BFLOAT16、FLOAT8_E8M0<sup>2</sup>、INT64<sup>2</sup> |
+|offsetOptional|可选输入|公式中的`offset`，代表量化参数中的偏移量。| FLOAT |
+|antiquantScaleOptional|可选输入|公式中的`antiquant_scale`，代表伪量化参数中的缩放因子。| FLOAT16、BFLOAT16 |
+|antiquantOffsetOptional|可选输入|公式中的`antiquant_offset`，代表伪量化参数中的缩放因子。| FLOAT16、BFLOAT16 |
+|perTokenScaleOptional|可选输入|公式中的`per_token_scale`，代表量化参数中的由x量化引入的缩放因子。| FLOAT、FLOAT8_E8M0<sup>2</sup> |
+|groupListOptional|可选输入|代表输入和输出分组轴方向的matmul大小分布。| INT64 |
+|activationInputOptional|可选输入|代表激活函数的反向输入，当前只支持传入nullptr。| - |
+|activationQuantScaleOptional|可选输入|当前只支持传入nullptr。| - |
+|activationQuantOffsetOptional|可选输入|当前只支持传入nullptr。| - |
+|splitItem|属性|代表输出是否要做tensor切分。| INT64 |
+|groupType|属性|代表需要分组的轴。| INT64 |
+|groupListType|属性|代表groupList输入的分组方式。| INT64 |
+|actType|属性|代表激活函数类型。| INT64 |
+|tuningConfigOptional|可选输入|代表各个专家处理的token数的预期值，用于优化tiling。| INT64 |
+|out|输出|公式中的输出`y`。| FLOAT、FLOAT16、INT32<sup>1</sup>、INT8<sup>1</sup>、BFLOAT16 |
+|activationFeatureOutOptional|输出|激活函数的输入数据，当前只支持传入nullptr。| - |
+|dynQuantScaleOutOptional|输出|当前只支持传入nullptr。| - |
+
+
+- <term>昇腾910_95 AI处理器</term>：
+  
+  - 上表数据类型列中的角标“1”代表该系列不支持的数据类型。
+  - 输入参数x、weight均不支持FLOAT、INT16类型，且x不支持int4类型；
+  - 输出参数out不支持INT32、INT8类型。
+- <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：
+  
+  - 上表数据类型列中的角标“2”代表该系列不支持的数据类型。
+  - 不支持FLOAT8_E5M2、FLOAT8_E4M3FN、HIFLOAT8、FLOAT8_E8M0类型。
+  - 输入参数biasOptional不支持BFLOAT16；
+  - 输入参数scaleOptional不支持INT64类型。
+- <term>Atlas 推理系列产品</term>：
+  
+  - 仅支持x、weight、out均为FLOAT16的场景，其中weight仅支持NZ数据格式。
 
 ## 约束说明
   - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：
@@ -184,5 +221,4 @@
 
 | 调用方式      | 调用样例                 | 说明                                                         |
 |--------------|-------------------------|--------------------------------------------------------------|
-| aclnn调用 | [test_aclnn_grouped_matmul] | 通过接口方式调用GroupedMatmul算子。 |
-| 图模式调用 | [test_geir_grouped_matmul]   | 通过构图方式调用GroupedMatmul算子。 |
+| aclnn调用 | [test_aclnn_grouped_matmul](examples/test_grouped_matmul_v5.cpp) | 通过接口方式调用[GroupedMatmul](docs/GroupedMatmulV5.md)算子。 |
