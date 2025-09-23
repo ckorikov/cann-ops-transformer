@@ -64,8 +64,7 @@ public:
   int64_t tokens_splited_length;
   int64_t tokens_splited_num;
   int64_t tokens_splited_remain;
-  int64_t usedCoreNum;
-  
+  int64_t usedCoreNum; 
 };
 
 template <typename T1, typename T2, typename T3, bool PROBS>

@@ -199,8 +199,7 @@ aclnnStatus aclnnRopeWithSinCosCacheGetWorkspaceSize(
     int64_t queryStride = queryIn->GetViewStrides()[0];
     int64_t keyStride = keyIn->GetViewStrides()[0];
 
-    std::tuple<aclTensor*, aclTensor*> result;
-    result = l0op::RopeWithSinCosCache(
+    std::tuple<aclTensor*, aclTensor*> result = l0op::RopeWithSinCosCache(
         positions, queryIn, keyIn, cosSinCacheContiguous, mropeSection, headSize, isNeoxStyle, queryStride, keyStride,
         numQheads, numKheads, uniqueExecutor.get());
     auto query = std::get<0>(result);
