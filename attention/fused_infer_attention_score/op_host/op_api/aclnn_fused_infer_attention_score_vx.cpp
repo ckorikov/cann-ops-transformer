@@ -270,7 +270,7 @@ aclnnStatus aclnnFusedInferAttentionScoreVXGetMaxWorkspaceSize(
         std::vector<int64_t> shape = {0};
         int64_t addr = 0xff;
         tempTensor = aclCreateTensor(shape.data(), shape.size(), aclDataType::ACL_FLOAT, shape.data(), 0, ACL_FORMAT_ND,
-                                     shape.data(), shape.size(), (void *)&addr);
+                                     shape.data(), shape.size(), static_cast<void*>(&addr));
         placeHolder = tempTensor;
     } else {
         placeHolder = softmaxLse;
@@ -347,7 +347,7 @@ aclnnStatus aclnnFusedInferAttentionScoreVXGetWorkspaceSize(
         std::vector<int64_t> shape = {0};
         int64_t addr = 0xff;
         tempTensor = aclCreateTensor(shape.data(), shape.size(), aclDataType::ACL_FLOAT, shape.data(), 0, ACL_FORMAT_ND,
-                                     shape.data(), shape.size(), (void *)&addr);
+                                     shape.data(), shape.size(), static_cast<void*>(&addr));
         placeHolder = tempTensor;
     } else {
         placeHolder = softmaxLse;

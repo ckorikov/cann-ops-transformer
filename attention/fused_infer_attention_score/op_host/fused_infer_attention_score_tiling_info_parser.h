@@ -71,12 +71,12 @@ public:
     ge::graphStatus GetPaddingSizeFlag();
     ge::graphStatus GetActualSeqInfo();
     ge::graphStatus GetPreNextToken();
-    TilingKeyLayout MapStringToLayout(FiaLayout &layoutString);
+    TilingKeyLayout MapStringToLayout(FiaLayout &layoutString) const;
     void GenerateAxisInfo(FiaTilingInfo &fiaInfo);
     void GenerateDtypeInfo(FiaTilingInfo &fiaInfo);
     void GenerateInfo(FiaTilingInfo &fiaInfo);
-    ge::graphStatus ParseAxisInfo(FiaTilingInfo &fiaInfo);
-    ge::graphStatus ParseFeatureInfo(FiaTilingInfo &fiaInfo);
+    ge::graphStatus ParseAxisInfo();
+    ge::graphStatus ParseFeatureInfo();
     ge::graphStatus Parse(FiaTilingInfo &fiaInfo);
 
 public:

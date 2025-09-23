@@ -51,6 +51,8 @@ constexpr uint32_t BLIMIT = 65536;
 constexpr uint32_t QK_D_PFA_MLA = 192;
 constexpr uint32_t V_D_PFA_MLA = 128;
 
+constexpr uint32_t SHAPE_INDEX_TWO = 2;
+
 #ifndef ASCEND_OPTILING_UT
 static bool CheckTensorList(gert::TilingContext* context, ContextParamsForPFATiling& contextKeyParams, 
     const string layoutStr, int64_t batchOfQ) {
@@ -146,7 +148,7 @@ static bool CheckTensorList(gert::TilingContext* context, ContextParamsForPFATil
         int64_t keyRopeS = 0;
 
         if (contextKeyParams.keyRopeInputShape != nullptr) {
-            keyRopeS = contextKeyParams.keyRopeInputShape->GetStorageShape().GetDim(2);
+            keyRopeS = contextKeyParams.keyRopeInputShape->GetStorageShape().GetDim(SHAPE_INDEX_TWO);
             OP_CHECK_IF(contextKeyParams.keyRopeInputShape->GetStorageShape().GetDim(0) != validBatchOfK,
                 OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "Batch of Key(%ld) do NOT equal to Batch of KeyRope(%ld) under tensorlist mode!", 
                 validBatchOfK, contextKeyParams.keyRopeInputShape->GetStorageShape().GetDim(0)),

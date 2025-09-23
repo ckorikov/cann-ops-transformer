@@ -159,7 +159,7 @@ ge::graphStatus FiaInfoParser::GetNpuInfo()
         (socVersion_ != platform_ascendc::SocVersion::ASCEND910B) &&
         (socVersion_ != platform_ascendc::SocVersion::ASCEND910_95) &&
         (socVersion_ != platform_ascendc::SocVersion::ASCEND910_55)) {
-        OPS_REPORT_VECTOR_INNER_ERR(opName_, "SOC Version[%d] is not support.", (int32_t)socVersion_);
+        OPS_REPORT_VECTOR_INNER_ERR(opName_, "SOC Version[%d] is not support.", static_cast<int32_t>(socVersion_));
         return GRAPH_FAILED;
     }
 
@@ -746,7 +746,7 @@ ge::graphStatus FiaInfoParser::GetPreNextToken()
     return ge::GRAPH_SUCCESS;
 }
 
-TilingKeyLayout FiaInfoParser::MapStringToLayout(FiaLayout &layoutString)
+TilingKeyLayout FiaInfoParser::MapStringToLayout(FiaLayout &layoutString) const
 {
     const std::map<FiaLayout, TilingKeyLayout> layoutMap = {
         {FiaLayout::BSH, TilingKeyLayout::BSH_BSND},
@@ -863,17 +863,17 @@ ge::graphStatus FiaInfoParser::Parse(FiaTilingInfo &fiaInfo)
         ge::GRAPH_SUCCESS != GetKvLayout()) {
         return ge::GRAPH_FAILED;
     }
-    if (ge::GRAPH_SUCCESS != ParseAxisInfo(fiaInfo)) {
+    if (ge::GRAPH_SUCCESS != ParseAxisInfo()) {
         return ge::GRAPH_FAILED;
     }
-    if (ge::GRAPH_SUCCESS != ParseFeatureInfo(fiaInfo)) {
+    if (ge::GRAPH_SUCCESS != ParseFeatureInfo()) {
         return ge::GRAPH_FAILED;
     }
     GenerateInfo(fiaInfo);
     return ge::GRAPH_SUCCESS;
 }
 
-ge::graphStatus FiaInfoParser::ParseAxisInfo(FiaTilingInfo &fiaInfo)
+ge::graphStatus FiaInfoParser::ParseAxisInfo()
 {
     if (ge::GRAPH_SUCCESS != GetN1Size() ||
         ge::GRAPH_SUCCESS != GetN2Size()) {
@@ -893,7 +893,7 @@ ge::graphStatus FiaInfoParser::ParseAxisInfo(FiaTilingInfo &fiaInfo)
     return ge::GRAPH_SUCCESS;
 }
 
-ge::graphStatus FiaInfoParser::ParseFeatureInfo(FiaTilingInfo &fiaInfo)
+ge::graphStatus FiaInfoParser::ParseFeatureInfo()
 {
     if (ge::GRAPH_SUCCESS != GetMaxWorkspaceFlag() ||
         ge::GRAPH_SUCCESS != GetAttenMaskInfo() ||
