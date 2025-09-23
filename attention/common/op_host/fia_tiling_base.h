@@ -64,19 +64,19 @@ protected:
     virtual bool IsCapable() = 0;
     virtual ge::graphStatus DoOpTiling() = 0;
 
-    [[nodiscard]] ge::graphStatus SetBlockDim(uint32_t blockDim)
+    [[nodiscard]] ge::graphStatus SetBlockDim(uint32_t blockDim) const
     {
         context_->SetBlockDim(blockDim);
         return ge::GRAPH_SUCCESS;
     }
 
-    [[nodiscard]] ge::graphStatus SetTilingKey(uint64_t tilingKey)
+    [[nodiscard]] ge::graphStatus SetTilingKey(uint64_t tilingKey) const
     {
         context_->SetTilingKey(tilingKey);
         return ge::GRAPH_SUCCESS;
     }
 
-    [[nodiscard]] ge::graphStatus SetWorkspaceSize(uint64_t workspaceSize)
+    [[nodiscard]] ge::graphStatus SetWorkspaceSize(uint64_t workspaceSize) const
     {
         OP_CHECK_IF(context_->GetWorkspaceSizes(1) == nullptr,
             OPS_REPORT_VECTOR_INNER_ERR(context_->GetNodeName(), "workSpaceSize got from ge is nullptr"),
@@ -86,7 +86,7 @@ protected:
         return ge::GRAPH_SUCCESS;
     }
 
-    [[nodiscard]] ge::graphStatus SetTilingData(TilingDef &tilingData)
+    [[nodiscard]] ge::graphStatus SetTilingData(TilingDef &tilingData) const
     {
         OP_CHECK_IF(context_->GetRawTilingData() == nullptr,
             OPS_REPORT_VECTOR_INNER_ERR(context_->GetNodeName(), "RawTilingData got from GE context is nullptr."),
@@ -114,7 +114,7 @@ protected:
     }
 
     [[nodiscard]] std::string GetTensorDebugStr(const gert::StorageShape *shape,
-                                                const gert::CompileTimeTensorDesc *tensor)
+                                                const gert::CompileTimeTensorDesc *tensor) const
     {
         if (shape == nullptr || tensor == nullptr) {
             return "nil ";

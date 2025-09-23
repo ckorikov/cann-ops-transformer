@@ -119,12 +119,12 @@ public:
         return invalidDimValue_;
     }
 
-    ge::graphStatus CheckHasB(const std::string &funcName) { return CheckHasAxis(FiaAxis::B, funcName); }
-    ge::graphStatus CheckHasS(const std::string &funcName) { return CheckHasAxis(FiaAxis::S, funcName); }
-    ge::graphStatus CheckHasD(const std::string &funcName) { return CheckHasAxis(FiaAxis::D, funcName); }
-    ge::graphStatus CheckHasN(const std::string &funcName) { return CheckHasAxis(FiaAxis::N, funcName); }
-    ge::graphStatus CheckHasH(const std::string &funcName) { return CheckHasAxis(FiaAxis::H, funcName); }
-    ge::graphStatus CheckHasT(const std::string &funcName) { return CheckHasAxis(FiaAxis::T, funcName); }
+    ge::graphStatus CheckHasB(const std::string &funcName) const { return CheckHasAxis(FiaAxis::B, funcName); }
+    ge::graphStatus CheckHasS(const std::string &funcName) const { return CheckHasAxis(FiaAxis::S, funcName); }
+    ge::graphStatus CheckHasD(const std::string &funcName) const { return CheckHasAxis(FiaAxis::D, funcName); }
+    ge::graphStatus CheckHasN(const std::string &funcName) const { return CheckHasAxis(FiaAxis::N, funcName); }
+    ge::graphStatus CheckHasH(const std::string &funcName) const { return CheckHasAxis(FiaAxis::H, funcName); }
+    ge::graphStatus CheckHasT(const std::string &funcName) const { return CheckHasAxis(FiaAxis::T, funcName); }
 
 private:
     bool HasAxis(const FiaAxis &axis) const;

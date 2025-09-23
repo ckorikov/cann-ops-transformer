@@ -1013,20 +1013,10 @@ template <typename IFAT> __aicore__ inline void IfaServiceFlashAttentionVector<I
         // vec1 compute
         ProcessVec1SingleBuf(info, mSplitInfo);
         CrossCoreSetFlag<AttentionCommon::ConstInfo::FIA_SYNC_MODE2, PIPE_MTE3>(constInfo.syncV1C2);
-        // if (i + 1 == nBufferLoopTimes) {
-        //     CrossCoreSetFlag<AttentionCommon::ConstInfo::FIA_SYNC_MODE2, PIPE_MTE3>(constInfo.syncV1C2);
-        // }
-
-        // if (i == 0) {
-        //     CrossCoreWaitFlag(constInfo.syncC2V1);
-        // }
         CrossCoreWaitFlag(constInfo.syncC2V1);
         // add nUpdate to mm2ResGm
         ProcessAmlaNupdate(info, mSplitInfo);
         CrossCoreSetFlag<AttentionCommon::ConstInfo::FIA_SYNC_MODE2, PIPE_MTE3>(constInfo.syncV1NupdateC2);
-        // if (i + 1 == nBufferLoopTimes) {
-        //     CrossCoreSetFlag<AttentionCommon::ConstInfo::FIA_SYNC_MODE2, PIPE_MTE3>(constInfo.syncV1NupdateC2);
-        // }
         // move lse for flash decode
         if (info.s2Idx == info.curSInnerLoopTimes - 1) {
             if (info.tndIsS2SplitCore) {

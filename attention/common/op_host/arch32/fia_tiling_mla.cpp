@@ -29,6 +29,7 @@ namespace optiling {
 
 constexpr uint64_t PRE_LOAD_NUM_MLA = 2;
 constexpr uint32_t BLOCK_TABLE_ELEM_BYTE = 4;
+constexpr uint32_t INFO_NUMS = 2;
 
 constexpr uint64_t FIA_TILINGKEYOFFSET = uint64_t(100000000000000000UL);          // 10^17 mmd todo
 constexpr uint64_t FIA_PERF_MODE_TILINGKEYOFFSET = uint64_t(1000000000000000UL); // 10^15
@@ -157,13 +158,13 @@ void FiaMlaTiling::GenTilingKey()
     OP_LOGI(fiaInfo_->opName, "FIA tilingKey_: %lu.", tilingKey_);
 }
 
-bool FiaMlaTiling::IsFlashDecode(uint32_t coreNum)
+bool FiaMlaTiling::IsFlashDecode()
 {
     uint32_t tndFDCoreArrLen = tilingData_.fdParams.get_numOfFdHead();
     return tndFDCoreArrLen > 0U;
 }
 
-bool FiaMlaTiling::DealSameSeqEachBatch()
+bool FiaMlaTiling::DealSameSeqEachBatch() const
 {
     if (!fiaInfo_->batchContinuousFlag){
         if (fiaInfo_->actualSeqLenFlag){
@@ -176,7 +177,7 @@ bool FiaMlaTiling::DealSameSeqEachBatch()
     }
 }
 
-void FiaMlaTiling::ZeroTensorProcess()
+void FiaMlaTiling::ZeroTensorProcess() const
 {
     if (fiaInfo_->s2Size == 0) {
         /*
@@ -197,7 +198,7 @@ void FiaMlaTiling::InitParams()
     ZeroTensorProcess();
 }
 
-void FiaMlaTiling::CalcInnerSize(uint32_t s2Size)
+void FiaMlaTiling::CalcInnerSize(uint32_t seqSize)
 {
     /**
      * sInnerSize：s2的切分大小，直接决定了MM的singleN/K和vector的切块大小，但当前切分也并非适用所有case。
@@ -222,9 +223,9 @@ void FiaMlaTiling::CalcInnerSize(uint32_t s2Size)
     sInnerSize_ = 512U;
     // FlashDecode时，如果S2的计算量>=256(确保切分后不小于128)但又不足以分2次计算时，则修改sInnerSize_，均分为2份进行计算，确保Nbuffer=2
     if (splitKVFlag_ && fiaInfo_->inputLayout != TilingKeyLayout::TND) {
-        if (s2Size == 256U) {
+        if (seqSize == 256U) {
             sInnerSize_ = 128U;
-        } else if (s2Size > 256U && s2Size <= sInnerSize_) {
+        } else if (seqSize > 256U && seqSize <= sInnerSize_) {
             sInnerSize_ = (sInnerSize_ + 1U) / 2U;
         }
     }
@@ -236,12 +237,12 @@ void FiaMlaTiling::CalcInnerSize(uint32_t s2Size)
         }
     }
 
-    sInnerLoopTimes_ = (s2Size + sInnerSize_ - 1U) / sInnerSize_;
-    sInnerSizeTail_ = s2Size - (sInnerLoopTimes_ - 1U) * sInnerSize_;
+    sInnerLoopTimes_ = (seqSize + sInnerSize_ - 1U) / sInnerSize_;
+    sInnerSizeTail_ = seqSize - (sInnerLoopTimes_ - 1U) * sInnerSize_;
     // tiling下沉 && flash decoder场景时，sInnerSize_基块大小不按照真实值修改
     // 否则会导致 tiling下沉 && flash decoder 场景时开辟workspace空间大小小于真实运行时所需的workspace大小
-    if (sInnerSize_ > s2Size) {
-        sInnerSize_ = s2Size;
+    if (sInnerSize_ > seqSize) {
+        sInnerSize_ = seqSize;
     }
     sInnerSizeAlign_ = Align(sInnerSize_, BYTE_BLOCK); // 元素个数按照基本块大小对齐
 
@@ -357,7 +358,7 @@ void FiaMlaTiling::SplitBalanced()
     usedCoreNum_ = res.usedCoreNum;
 
     //kvSplitPart_,用于lse out workspace计算
-    if (IsFlashDecode(coreNum_)) {
+    if (IsFlashDecode()) {
         splitKVFlag_ = true;
         kvSplit_++;
         kvSplitPart_ = res.maxS2SplitNum;
@@ -394,8 +395,8 @@ void FiaMlaTiling::FillTilingBaseParamsMla()
 // for flash decode
 void FiaMlaTiling::FillTilingWorkspaceParamsMla()
 {
-    tilingData_.workspaceParams.set_fdAccumOutSize(aicNum_ * 2 * fiaInfo_->n2Size * mBaseSize_ * headDimAlign_);   // 每个核可能有头规约和尾规约，一共两份规约信息
-    tilingData_.workspaceParams.set_fdLogSumExpSize(2 * aicNum_ * 2 * fiaInfo_->n2Size * mBaseSize_  // 每个核可能有头规约和尾规约，一共两份规约信息;sum + max
+    tilingData_.workspaceParams.set_fdAccumOutSize(aicNum_ * INFO_NUMS * fiaInfo_->n2Size * mBaseSize_ * headDimAlign_);   // 每个核可能有头规约和尾规约，一共两份规约信息
+    tilingData_.workspaceParams.set_fdLogSumExpSize(INFO_NUMS * aicNum_ * INFO_NUMS * fiaInfo_->n2Size * mBaseSize_  // 每个核可能有头规约和尾规约，一共两份规约信息;sum + max
                                                     * (BYTE_BLOCK / BLOCK_TABLE_ELEM_BYTE));
     tilingData_.workspaceParams.set_mm1ResSize(mm1ResSize_);
     tilingData_.workspaceParams.set_mm2ResSize(mm2ResSize_);
@@ -521,5 +522,5 @@ ge::graphStatus FiaMlaTiling::DoOpTiling()
 // 0xx:非量化，1xx:伪量化, 2xx:全量化
 // x0x:mla, x1x: gpa, x2x: 泛化
 // 个位代表特化模板到泛化模板的优先级排序
-REGISTER_TILING_TEMPLATE_FIA(FusedInferAttentionScore, FiaMlaTiling, std::vector<int32_t>({(int32_t)platform_ascendc::SocVersion::ASCEND910B}), 9);
+REGISTER_TILING_TEMPLATE_FIA(FusedInferAttentionScore, FiaMlaTiling, std::vector<int32_t>({static_cast<int32_t>(platform_ascendc::SocVersion::ASCEND910B)}), 9);
 } // namespace optiling

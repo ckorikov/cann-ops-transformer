@@ -94,7 +94,7 @@ public:
 
     ge::graphStatus DoTilingImpl(gert::TilingContext *context, TilingInfo *tilingInfo)
     {
-        int32_t soc_version = (int32_t)platform_ascendc::SocVersion::RESERVED_VERSION;
+        int32_t soc_version = static_cast<int32_t>(platform_ascendc::SocVersion::RESERVED_VERSION);
         const char *op_type = context->GetNodeType();
         fe::PlatFormInfos *platformInfoPtr = context->GetPlatformInfo();
         if (platformInfoPtr == nullptr) {
@@ -104,7 +104,7 @@ public:
         auto ascendcPlatform = platform_ascendc::PlatformAscendC(platformInfoPtr);
         soc_version = static_cast<int32_t>(ascendcPlatform.GetSocVersion());
         OP_LOGI(context, "soc version is %d", soc_version);
-        if (soc_version == (int32_t)platform_ascendc::SocVersion::RESERVED_VERSION) {
+        if (soc_version == static_cast<int32_t>(platform_ascendc::SocVersion::RESERVED_VERSION)) {
             OPS_REPORT_VECTOR_INNER_ERR(op_type, "Do op tiling failed, cannot find soc version.");
             return ge::GRAPH_FAILED;
         }

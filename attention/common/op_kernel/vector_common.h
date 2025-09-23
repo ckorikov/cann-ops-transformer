@@ -37,6 +37,9 @@ constexpr uint32_t FP32_BLOCK_ELEMENT_NUM = BYTE_BLOCK / sizeof(float);
 constexpr uint32_t FP32_REPEAT_ELEMENT_NUM = REPEAT_BLOCK_BYTE / sizeof(float);
 // repeat stride不能超过256
 constexpr uint32_t REPEATE_STRIDE_UP_BOUND = 256;
+constexpr int64_t HALF_NUM = 2;
+constexpr int64_t STRIDE_LENGTH = 8;
+constexpr int64_t MAX_VALID_LENGTH = 1024;
 
 __aicore__ inline void VecMulMat(LocalTensor<float> dstUb, LocalTensor<float> src0Ub, LocalTensor<float> src1Ub,
                                  uint32_t dealRowCount, uint32_t columnCount, uint32_t actualColumnCount)
@@ -139,11 +142,11 @@ __aicore__ inline void VecMulBlkMat(LocalTensor<float> dstUb, LocalTensor<float>
     } else {
         // [1, columnCount] * [1, 8]
         repeatParams.src0BlkStride = 1;
-        repeatParams.src0RepStride = 8;
+        repeatParams.src0RepStride = STRIDE_LENGTH;
         repeatParams.src1BlkStride = 0;
         repeatParams.src1RepStride = 0;
         repeatParams.dstBlkStride = 1;
-        repeatParams.dstRepStride = 8;
+        repeatParams.dstRepStride = STRIDE_LENGTH;
         for (uint32_t i = 0; i < dealRowCount; i++) {
             Mul(dstUb[i * columnCount], src0Ub, src1Ub[i * FP32_BLOCK_ELEMENT_NUM], mask, loopCount, repeatParams);
             if (remainCount > 0) {
@@ -337,8 +340,8 @@ __aicore__ inline void RowSum(LocalTensor<float> &dstUb, LocalTensor<float> srcU
         pipe_barrier(PIPE_V);
     }
 
-    for (uint32_t loopCount = blockCount / 2; loopCount > 0; loopCount = blockCount / 2) {
-        blockCount = (blockCount + 1) / 2;
+    for (uint32_t loopCount = blockCount / HALF_NUM; loopCount > 0; loopCount = blockCount / HALF_NUM) {
+        blockCount = (blockCount + 1) / HALF_NUM;
         for (uint32_t j = 0; j < loopCount; j++) {
             Add(srcUb[j * dtypeMask], srcUb[j * dtypeMask], srcUb[(j + blockCount) * dtypeMask], dtypeMask,
                 dealRowCount, repeatParamsMax);
@@ -381,7 +384,7 @@ __aicore__ inline void RowSumForLongColumnCount(LocalTensor<float> &dstUb, Local
         pipe_barrier(PIPE_V);
 
         uint32_t validLen = split;
-        while (validLen > 1024) {
+        while (validLen > MAX_VALID_LENGTH) {
             uint32_t copyLen = validLen / 2;
 
             offset = 0;
@@ -428,8 +431,8 @@ __aicore__ inline void RowMax(LocalTensor<float> &dstUb, LocalTensor<float> &src
         pipe_barrier(PIPE_V);
     }
 
-    for (uint32_t loopCount = blockCount / 2; loopCount > 0; loopCount = blockCount / 2) {
-        blockCount = (blockCount + 1) / 2;
+    for (uint32_t loopCount = blockCount / HALF_NUM; loopCount > 0; loopCount = blockCount / HALF_NUM) {
+        blockCount = (blockCount + 1) / HALF_NUM;
         for (uint32_t j = 0; j < loopCount; j++) {
             Max(srcUb[j * dtypeMask], srcUb[j * dtypeMask], srcUb[(j + blockCount) * dtypeMask], dtypeMask,
                 dealRowCount, repeatParamsMax);
@@ -462,7 +465,7 @@ __aicore__ inline void RowMaxForLongColumnCount(LocalTensor<float> &dstUb, Local
         pipe_barrier(PIPE_V);
 
         uint32_t validLen = split;
-        while (validLen > 1024) {
+        while (validLen > MAX_VALID_LENGTH) {
             uint32_t copyLen = validLen / 2;
 
             offset = 0;
@@ -659,14 +662,6 @@ template <typename OUT_T>
 __aicore__ inline void Bmm2DataCopyOutNBSDGTiling(LocalTensor<OUT_T> &attenOutUb, const FusedTransposeInfo &transInfo,
                                                   const AttentionCommon::ConstInfo &constInfo, GlobalTensor<OUT_T> &attentionOutGm)
 {
-    /*
-    uint32_t gStartIdx = info.gIdx * constInfo.gSizeSub + (mSizeVStart + startRow) / info.s1Size
-    uint32_t gEndIdx = info.gIdx * constInfo.gSizeSub + (mSizeVStart + startRow + dealRowCount - 1) / info.s1Size
-    uint32_t gCount = gEndIdx - gStartIdx + 1
-    uint32_t s1StartIdx = (mSizeVStart + startRow) % info.s1Size
-    uint32_t s1EndIdx = (mSizeVStart + startRow + dealRowCount - 1) % info.s1Size
-    uint32_t s1Count = dealRowCount;
-    */
     bool hasHeadBlock = transInfo.s1StartIdx != 0;
     bool hasTailBlock = (transInfo.s1EndIdx + 1) != constInfo.qSeqSize;
     uint32_t attenOutUbOffset = 0;

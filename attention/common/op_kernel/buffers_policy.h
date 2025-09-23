@@ -150,7 +150,7 @@ public:
             flag1_ = 1;
             return a_;
         } else if (flag1_ == 1) {
-            flag1_ = 2;
+            flag1_ = NUM_2;
             return b_;
         } else {
             flag1_ = 0;
@@ -175,7 +175,7 @@ public:
             flag2_ = 1;
             return a_;
         } else if (flag2_ == 1){ 
-            flag2_ = 2;
+            flag2_ = NUM_2;
             return b_;
         } else {
             flag2_ = 0;

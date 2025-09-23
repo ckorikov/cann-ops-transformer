@@ -347,7 +347,7 @@ void AssignByBlock(const SplitBatchInfo &splitBatchInfo, AssignInfo &assignInfo)
     }
 }
 
-void GetBlockNumOnCore(const BaseInfo &baseInfo, const SplitBatchInfo &splitBatchInfo, uint32_t coreNum, std::vector<uint32_t> &blockNumOnCore, uint32_t &coreUse, uint32_t &maxCost) 
+void GetBlockNumOnCore(const SplitBatchInfo &splitBatchInfo, uint32_t coreNum, std::vector<uint32_t> &blockNumOnCore, uint32_t &coreUse, uint32_t &maxCost) 
 {
     // 初始化负载上限
     if (coreNum == 0U) {
@@ -538,7 +538,7 @@ void SplitCore(const BaseInfo &baseInfo, const InnerSplitParams &innerSplitParam
     uint32_t maxCost = 0;
     std::vector<uint32_t> blockNumOnCore(coreNum);
     uint32_t maxCore = std::min(coreNum, splitBatchInfo.totalBlockNum);
-    GetBlockNumOnCore(baseInfo, splitBatchInfo, maxCore, blockNumOnCore, coreUse, maxCost);
+    GetBlockNumOnCore(splitBatchInfo, maxCore, blockNumOnCore, coreUse, maxCost);
 
     res.usedCoreNum = coreUse;
     // 3、根据每个核的分配数量重建分核方案，获取切分点、记录归约信息等

@@ -36,9 +36,9 @@ protected:
 private:
     ge::graphStatus GetPlatformInfo();
     void GenTilingKey();
-    bool DealSameSeqEachBatch();
+    bool DealSameSeqEachBatch() const;
 
-    void ZeroTensorProcess();
+    void ZeroTensorProcess() const;
     void InitParams();
 
     void Split();
@@ -46,7 +46,7 @@ private:
     void CalcInnerSize(uint32_t seqSize);
     void CalcMBaseSize();
 
-    bool IsFlashDecode(uint32_t coreNum);
+    bool IsFlashDecode();
 
     void CalcMmResSize();
     void CalcMaxMmResSize();
