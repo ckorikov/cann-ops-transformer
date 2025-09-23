@@ -20,9 +20,6 @@
  */
 #include <cmath>
 #include "moe_init_routing_v2_grad_tiling.h"
-// #include "register/op_def_registry.h"
-// #include "tiling/tiling_templates_registry.h"
-// #include "op_util.h"
 using namespace AscendC;
 namespace optiling {
 const static size_t DIM_ONE = 1;
@@ -190,7 +187,6 @@ ge::graphStatus MoeInitRoutingV2GradTilingBaseClass::CheckParamsValidity(
 ge::graphStatus MoeInitRoutingV2GradTilingBaseClass::GetShapeAttrsInfo()
 {
     opName = context_->GetNodeName();
-    // OP_LOGD(opName, "TilingContext: %s", Ops::NN::DebugTilingContext(context_).c_str());
 
     // 获取输入shape
     auto xShapePtr = context_->GetInputShape(0);

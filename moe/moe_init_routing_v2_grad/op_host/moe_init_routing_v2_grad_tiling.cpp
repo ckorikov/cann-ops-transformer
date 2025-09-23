@@ -19,9 +19,6 @@
  * \brief
  */
 #include "moe_init_routing_v2_grad_tiling.h"
-// #include "register/op_def_registry.h"
-// #include "tiling/tiling_templates_registry.h"
-// #include "op_util.h"
 
 namespace optiling {
 const static int64_t MAX_BINARY_ADD_BUFFER_CNT = 64;
