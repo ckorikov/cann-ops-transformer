@@ -1928,7 +1928,7 @@ static aclnnStatus aclnnGroupedMatmulGetWorkspaceSizeCommon(const aclTensorList 
 
 aclnnStatus CheckCommonParam(const aclTensorList *x , const aclTensorList *weight,
   const aclTensor *groupListOptional, int64_t splitItem, int64_t groupType, int64_t groupListType,
-  int64_t actType, aclTensorList *out) {
+  int64_t actType, const aclTensorList *out) {
   auto socVersion = GetCurrentPlatformInfo().GetSocVersion();
   bool is310P = socVersion == SocVersion::ASCEND310P;
   bool supportedCaseOn310P = x->Size() == 1 && out->Size() == 1 && weight->Size() == 1 && groupType == 0;

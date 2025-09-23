@@ -99,7 +99,7 @@ static inline aclTensor *GeTensor2AclTensor(const gert::Tensor *geTensor, bool e
     return out;
 }
 
-static graphStatus PrepareAclTensor(OpExecuteContext *host_api_ctx, const aclTensor *&tensor, size_t index,
+static graphStatus PrepareAclTensor(const OpExecuteContext *host_api_ctx, const aclTensor *&tensor, size_t index,
                                     bool enableTranspose)
 {
     if (index != INDEX_INPUT_SCALE1) {

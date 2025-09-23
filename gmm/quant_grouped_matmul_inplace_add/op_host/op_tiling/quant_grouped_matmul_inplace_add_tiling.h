@@ -23,8 +23,9 @@
 #include "register/tilingdata_base.h"
 #include "tiling/tiling_api.h"
 #include "tiling_base/tiling_base.h"
-using namespace Ops::Transformer::OpTiling;
+
 namespace optiling {
+using namespace Ops::Transformer::OpTiling;
 class QuantGroupedInplaceAddTiling : public GroupedQbmmTiling {
 public:
     explicit QuantGroupedInplaceAddTiling(gert::TilingContext *context) : GroupedQbmmTiling(context)

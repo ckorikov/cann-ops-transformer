@@ -23,7 +23,7 @@ public:
 
 private:
     aclnnStatus CheckGmmQuantParamsEmpty() const;
-    aclnnStatus CheckTensorListDtype(const aclTensorList *tensorList, const DataType &dtype,
+    aclnnStatus CheckTensorListDtype(const aclTensorList *tensorList, const DataType &xDtype,
                                      const DataType &weightDtype) const;
     aclnnStatus CheckTensorListShape(const aclTensorList *tensorList, const std::string &tensorType) const;
 
@@ -40,5 +40,5 @@ private:
 private:
     GroupedMatmulParams gmmParams_;
 };
-}  // namespace gmm
+} // namespace gmm
 #endif

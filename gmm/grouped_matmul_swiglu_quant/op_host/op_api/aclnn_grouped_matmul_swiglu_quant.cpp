@@ -41,6 +41,10 @@ static constexpr int64_t NZ_DIM_4_INT4 = 64L;
 static constexpr int64_t NZ_DIM_3 = 16L;
 static constexpr int64_t OUTPUT_IDX_0 = 0L;
 static constexpr int64_t OUTPUT_IDX_1 = 1L;
+static constexpr int64_t DIM_IDX_0 = 0L;
+static constexpr int64_t DIM_IDX_1 = 1L;
+static constexpr int64_t DIM_IDX_2 = 2L;
+static constexpr int64_t DIM_IDX_3 = 4L;
 static constexpr size_t X_DIM_LIMIT = 2UL;
 static constexpr size_t WEIGHT_ND_DIM_LIMIT = 3UL;
 static constexpr size_t WEIGHT_NZ_DIM_LIMIT = 5UL;
@@ -221,12 +225,12 @@ static bool CheckInputOutShape_A8W4(const aclTensor *x, const aclTensor *weight,
     // 通过weightScale的维度判断是否为perchannel 或 pergroup量化模式
     if (weightScale->GetViewShape().GetDimNum() == WEIGHT_SCALE_PERCHANNEL_DIM_LIMIT) {
         // weightScale入参在perchannel场景期望shape [E, N]
-        n = weightScale->GetViewShape().GetDim(1);
+        n = weightScale->GetViewShape().GetDim(DIM_IDX_1);
         weightScaleExpectShape = {e, n};
     } else if (weightScale->GetViewShape().GetDimNum() == WEIGHT_SCALE_PERGROUP_DIM_LIMIT) {
         // weightScale入参在pergroup场景期望shape [E, KGroupCount, N]
-        n = weightScale->GetViewShape().GetDim(2);
-        KGroupCount = weightScale->GetViewShape().GetDim(1);
+        n = weightScale->GetViewShape().GetDim(DIM_IDX_2);
+        KGroupCount = weightScale->GetViewShape().GetDim(DIM_IDX_1);
         KGroupSize = KGroupCount > 0 ? k / KGroupCount : k;
         weightScaleExpectShape = {e, KGroupCount, n};
     }
@@ -440,7 +444,7 @@ static aclnnStatus aclnnGroupedMatmulSwigluQuantGetWorkspaceSizeCommon(
     if (bias != nullptr) {
         isEnableWeightAssistanceMatrix = true;
     }
-    if (isEnableWeightAssistanceMatrix && weightScale->GetViewShape().GetDimNum() == 3) {
+    if (isEnableWeightAssistanceMatrix && weightScale->GetViewShape().GetDimNum() == WEIGHT_SCALE_PERGROUP_DIM_LIMIT) {
         dequantMode = 1;
     }
     auto ret_0 = l0op::GroupedMatmulSwigluQuant(x, weight, weightScale, xScale, groupList, bias,

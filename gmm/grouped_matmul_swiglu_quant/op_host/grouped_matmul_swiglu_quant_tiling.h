@@ -58,6 +58,11 @@ constexpr uint32_t WEIGHT_INDEX = 1;
 constexpr uint32_t WEIGHT_SCALE_INDEX = 2;
 constexpr uint32_t GROUPLIST_INDEX = 4;
 constexpr uint32_t BATCH_MODE_SCHEDULE = 1;
+constexpr uint32_t DIM_0 = 0;
+constexpr uint32_t DIM_1 = 1;
+constexpr uint32_t DIM_2 = 2;
+constexpr uint32_t DIM_3 = 3;
+constexpr uint32_t DIM_4 = 4;
 constexpr uint32_t SYS_WORKSPACE_SIZE = 16 * 1024 * 1024;
 constexpr int64_t USER_WORKSPACE_LIMIT = 64 * 1024 * 1024;
 constexpr int64_t DOUBLE_WORKSPACE_SPLIT = 2;
@@ -67,7 +72,14 @@ constexpr int64_t FP32_BLOCK_SIZE = 8;
 constexpr int64_t BLOCK_BYTE = 32;
 constexpr int64_t SWIGLU_REDUCE_FACTOR = 2;
 constexpr int64_t DOUBLE_BUFFER = 2;
-
+constexpr int64_t ND_WEIGHT_DIM_LIMIT = 3;
+constexpr int64_t NZ_WEIGHT_DIM_LIMIT = 5;
+constexpr int64_t DOUBLE_ROW = 2;
+constexpr int64_t PERCHANNEL_WSCALE_DIM_LIMIT = 2;
+constexpr int64_t PERGROUP_WSCALE_DIM_LIMIT = 3;
+constexpr int64_t A8W4_MSD_TILING_KEY_MODE = 2;
+constexpr int64_t SPLITWORKSPACE_TILING_KEY_MODE = 1;
+constexpr int64_t COMMON_TILING_KEY_MODE = 0;
 } // namespace GroupedMatmulSwigluQuantTiling
 
 #endif // AIR_CXX_RUNTIME_V2_OP_IMPL_GROUPED_MATMUL_SWIGLU_QUANT_H

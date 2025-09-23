@@ -43,7 +43,7 @@ struct GMMSwigluCompileInfo {
     uint32_t baseN_ = 256;
 };
 
-static int64_t CalMaxRowInUb_A8W4(gert::TilingContext *context, const uint64_t ubSize, const uint64_t n)
+static int64_t CalMaxRowInUb_A8W4(const gert::TilingContext *context, const uint64_t ubSize, const uint64_t n)
 {
     const uint64_t FP32_DTYPE_SIZE = 4;
     const uint64_t INT8_DTYPE_SIZE = 1;
@@ -80,12 +80,13 @@ static int64_t CalMaxRowInUb_A8W4(gert::TilingContext *context, const uint64_t u
     return maxRowEstimate;
 }
 
-static int64_t CalMaxRowInUb(gert::TilingContext *context, const uint64_t ubSize, const uint64_t n)
+static int64_t CalMaxRowInUb(const gert::TilingContext *context, const uint64_t ubSize, const uint64_t n)
 {
     uint64_t tmpBufSize = (n / SWIGLU_REDUCE_FACTOR) * FP32_DTYPE_SIZE;
     uint64_t perchannleBufSize = n * FP32_DTYPE_SIZE * DOUBLE_BUFFER;
     uint64_t reduceMaxResBufSize = BLOCK_BYTE;
     uint64_t reduceMaxTmpBufSize = BLOCK_BYTE;
+    const uint64_t CONSTANT_TERM = 64;
     int64_t remainUbSize = ubSize - tmpBufSize - perchannleBufSize - reduceMaxResBufSize - reduceMaxTmpBufSize;
     int64_t maxRowInUb =
         remainUbSize / (n * INT32_DTYPE_SIZE + n / SWIGLU_REDUCE_FACTOR + FP32_DTYPE_SIZE) / DOUBLE_BUFFER;
@@ -93,8 +94,8 @@ static int64_t CalMaxRowInUb(gert::TilingContext *context, const uint64_t ubSize
                                      AlignUp(maxRowInUb, FP32_BLOCK_SIZE) * FP32_DTYPE_SIZE);
     if (curUb > remainUbSize) {
         // 64 : make sure ub does not excceed maxUbSize after align up to 8
-        maxRowInUb =
-            (remainUbSize - 64) / (n * INT32_DTYPE_SIZE + n / SWIGLU_REDUCE_FACTOR + FP32_DTYPE_SIZE) / DOUBLE_BUFFER;
+        maxRowInUb = (remainUbSize - CONSTANT_TERM) /
+                     (n * INT32_DTYPE_SIZE + n / SWIGLU_REDUCE_FACTOR + FP32_DTYPE_SIZE) / DOUBLE_BUFFER;
     }
     if (maxRowInUb < 1) {
         // when n > (ubSize - 72) / 19 = 10330, maxRowInUb < 1
@@ -106,13 +107,13 @@ static int64_t CalMaxRowInUb(gert::TilingContext *context, const uint64_t ubSize
 static void SetTilingKey(gert::TilingContext *context, bool isSplitWorkSpace, bool isA8W4MSD)
 {
     if (isA8W4MSD) { // A8W4 MSD tiling_key使用4
-        context->SetTilingKey(2);
+        context->SetTilingKey(A8W4_MSD_TILING_KEY_MODE);
         context->SetScheduleMode(BATCH_MODE_SCHEDULE);
     } else if (isSplitWorkSpace) {
-        context->SetTilingKey(1);
+        context->SetTilingKey(SPLITWORKSPACE_TILING_KEY_MODE);
         context->SetScheduleMode(BATCH_MODE_SCHEDULE);
     } else {
-        context->SetTilingKey(0);
+        context->SetTilingKey(COMMON_TILING_KEY_MODE);
         context->SetScheduleMode(BATCH_MODE_SCHEDULE);
     }
 }
@@ -137,17 +138,17 @@ ASCENDC_EXTERN_C graphStatus TilingGMMSwigluQuant(gert::TilingContext *context)
     auto wTensor = context->GetInputTensor(WEIGHT_INDEX);
     OP_CHECK_NULL_WITH_CONTEXT(context, wTensor);
     int64_t n = 0;
-    if (wTensor->GetStorageShape().GetDimNum() == 3) { // ND
-        n = wTensor->GetStorageShape().GetDim(2);
-    } else if (wTensor->GetStorageShape().GetDimNum() == 5) { // NZ
-        n = wTensor->GetStorageShape().GetDim(1) * wTensor->GetStorageShape().GetDim(4);
+    if (wTensor->GetStorageShape().GetDimNum() == ND_WEIGHT_DIM_LIMIT) { // ND
+        n = wTensor->GetStorageShape().GetDim(DIM_2);
+    } else if (wTensor->GetStorageShape().GetDimNum() == NZ_WEIGHT_DIM_LIMIT) { // NZ
+        n = wTensor->GetStorageShape().GetDim(DIM_1) * wTensor->GetStorageShape().GetDim(DIM_4);
     }
     auto wScaleTensor = context->GetInputTensor(WEIGHT_SCALE_INDEX);
     OP_CHECK_NULL_WITH_CONTEXT(context, wScaleTensor);
     int64_t quantGroupNum = 0;
-    if (wScaleTensor->GetStorageShape().GetDimNum() == 2) { // perChannel
+    if (wScaleTensor->GetStorageShape().GetDimNum() == PERCHANNEL_WSCALE_DIM_LIMIT) { // perChannel
         quantGroupNum = 1;
-    } else if (wScaleTensor->GetStorageShape().GetDimNum() == 3) { // perGroup
+    } else if (wScaleTensor->GetStorageShape().GetDimNum() == PERGROUP_WSCALE_DIM_LIMIT) { // perGroup
         quantGroupNum = wScaleTensor->GetStorageShape().GetDim(1);
     }
     auto groupListTensor = context->GetInputTensor(GROUPLIST_INDEX);
@@ -196,7 +197,7 @@ ASCENDC_EXTERN_C graphStatus TilingGMMSwigluQuant(gert::TilingContext *context)
     tiling.SetBufferSpace(-1, -1, -1);
     OP_CHECK_IF(
         tiling.GetTiling(tilingData.mmTilingData) == -1,
-         OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "grouped_matmul_swiglu_quant_tiling, get tiling failed"),
+        OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "grouped_matmul_swiglu_quant_tiling, get tiling failed"),
         return GRAPH_FAILED);
     auto workspaceSizes = context->GetWorkspaceSizes(1);
     int64_t usrWorkspaceLimut = USER_WORKSPACE_LIMIT;
@@ -207,17 +208,18 @@ ASCENDC_EXTERN_C graphStatus TilingGMMSwigluQuant(gert::TilingContext *context)
         mLimit = ((usrWorkspaceLimut / DOUBLE_WORKSPACE_SPLIT) / INT32_DTYPE_SIZE) / n;
     }
     OP_CHECK_IF(mLimit <= 0,
-                 OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "mLimit is %ld must over then 0.", mLimit),
+                OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "mLimit is %ld must over then 0.", mLimit),
                 return GRAPH_FAILED);
     tilingData.gmmSwigluBaseParams.set_mLimit(mLimit);
     int workSpaceMTemp = (mLimit * DOUBLE_WORKSPACE_SPLIT > m ? m : mLimit * DOUBLE_WORKSPACE_SPLIT);
     tilingData.gmmSwigluBaseParams.set_workSpaceOffset1(workSpaceMTemp * k * sizeof(int8_t));
-    tilingData.gmmSwigluBaseParams.set_workSpaceOffset2(2 * workSpaceMTemp * n * sizeof(half));
+    tilingData.gmmSwigluBaseParams.set_workSpaceOffset2(DOUBLE_ROW * workSpaceMTemp * n * sizeof(half));
     if (isA8W4MSD) {
         workspaceSizes[0] =
             SYS_WORKSPACE_SIZE +                    // 系统预留16MB
             (workSpaceMTemp * k * sizeof(int8_t)) + // 第一阶段 预处理左矩阵 (mLimit, K) * int8 * 2(double WorkSpace)
-            (2 * workSpaceMTemp * n * sizeof(half)); // 第二阶段 矩阵乘结果 (2 * mLimit, N) * fp16 * 2(double WorkSpace)
+            (DOUBLE_ROW * workSpaceMTemp * n *
+             sizeof(half)); // 第二阶段 矩阵乘结果 (2 * mLimit, N) * fp16 * 2(double WorkSpace)
     } else {
         workspaceSizes[0] = SYS_WORKSPACE_SIZE + (workSpaceMTemp * n * sizeof(int32_t));
     }

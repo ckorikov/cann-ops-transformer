@@ -56,7 +56,7 @@ static inline uint32_t SixteenAlign(uint32_t a, bool up = false)
 };
 
 static ge::graphStatus CalTCubeTiling(
-    gert::TilingContext* context, GroupedMatmulAddTilingData& tiling, int32_t m, int32_t k, int32_t n, int32_t baseM,
+    const gert::TilingContext* context, GroupedMatmulAddTilingData& tiling, int32_t m, int32_t k, int32_t n, int32_t baseM,
     int32_t baseN, int32_t baseK)
 {
     auto xType = context->GetInputDesc(INDEX_IN_X)->GetDataType();
@@ -161,7 +161,7 @@ static ge::graphStatus CalMmTiling(
     return ge::GRAPH_SUCCESS;
 }
 
-static void PrintInfo(gert::TilingContext* context, GroupedMatmulAddTilingData& tiling)
+static void PrintInfo(const gert::TilingContext* context, GroupedMatmulAddTilingData& tiling)
 {
     auto nodeName = context->GetNodeName();
     OP_LOGD(nodeName, ">>>>>>>>>>>>>>> Start to print GroupedMatmulAdd tiling data <<<<<<<<<<<<<<<<");
@@ -198,7 +198,7 @@ static void PrintInfo(gert::TilingContext* context, GroupedMatmulAddTilingData& 
     OP_LOGD(nodeName, ">>>>>>>>>>>>>>> Print GroupedMatmulAdd tiling data end <<<<<<<<<<<<<<<<");
 }
 
-static ge::graphStatus TilingCheck4GroupedMatmulAdd(gert::TilingContext* context)
+static ge::graphStatus TilingCheck4GroupedMatmulAdd(const gert::TilingContext* context)
 {
     auto xShape = context->GetInputShape(INDEX_IN_X)->GetOriginShape();
     auto wShape = context->GetInputShape(INDEX_IN_W)->GetOriginShape();

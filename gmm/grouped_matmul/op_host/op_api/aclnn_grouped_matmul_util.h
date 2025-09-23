@@ -12,9 +12,8 @@
 #include "opdev/common_types.h"
 #include "opdev/op_executor.h"
 
-using namespace op;
-
 namespace gmm {
+using namespace op;
 constexpr int64_t NO_SPLIT = -1L;
 constexpr int64_t SPLIT_M = 0L;
 constexpr int64_t SPLIT_K = 2L;

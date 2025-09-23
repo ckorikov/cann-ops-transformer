@@ -17,7 +17,7 @@
 
 #include "../grouped_matmul_tiling.h"
 #include "tiling_base/tiling_base.h"
-using namespace Ops::Transformer::OpTiling;
+
 namespace optiling {
 namespace GmmConstant {
 constexpr uint64_t MX_GROUP_SIZE = 32;
@@ -113,9 +113,9 @@ struct GQmmInputInfo {
     bool isSingleY = false;
 };
 
-class GroupedQbmmTiling : public TilingBaseClass {
+class GroupedQbmmTiling : public Ops::Transformer::OpTiling::TilingBaseClass {
 public:
-    explicit GroupedQbmmTiling(gert::TilingContext *context) : TilingBaseClass(context)
+    explicit GroupedQbmmTiling(gert::TilingContext *context) : Ops::Transformer::OpTiling::TilingBaseClass(context)
     {
         Reset();
     }
@@ -123,7 +123,7 @@ public:
 
     void Reset(gert::TilingContext *context) override
     {
-        TilingBaseClass::Reset(context);
+        Ops::Transformer::OpTiling::TilingBaseClass::Reset(context);
         Reset();
     }
 

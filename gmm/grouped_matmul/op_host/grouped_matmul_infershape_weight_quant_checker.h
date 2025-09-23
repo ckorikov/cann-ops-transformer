@@ -17,31 +17,30 @@
 #include "platform/platform_info.h"
 #include "register/op_impl_registry.h"
 
-using namespace ge;
 namespace ops {
 
 class GroupedMatmulWeightQuantChecker {
 public:
     GroupedMatmulWeightQuantChecker(){};
     ~GroupedMatmulWeightQuantChecker(){};
-    graphStatus GetXAndWeightDimValue(const gert::InferShapeContext *context, const GMMAttrs &gmmAttrs);
-    graphStatus CheckShape(const gert::InferShapeContext *context, const GroupedMatmulCommonUtil &commonUtil);
-    graphStatus InferOutShape(gert::InferShapeContext *context) const;
-    graphStatus CheckDtype(const gert::InferDataTypeContext *context) const;
-    graphStatus InferOutDtype(gert::InferDataTypeContext *context) const;
+    ge::graphStatus GetXAndWeightDimValue(const gert::InferShapeContext *context, const GMMAttrs &gmmAttrs);
+    ge::graphStatus CheckShape(const gert::InferShapeContext *context, const GroupedMatmulCommonUtil &commonUtil);
+    ge::graphStatus InferOutShape(gert::InferShapeContext *context) const;
+    ge::graphStatus CheckDtype(const gert::InferDataTypeContext *context) const;
+    ge::graphStatus InferOutDtype(gert::InferDataTypeContext *context) const;
 
 private:
-    graphStatus CheckShapeForXAndWeight(const gert::InferShapeContext *context, const GMMAttrs &gmmAttrs) const;
-    graphStatus CheckShapeForTensorList(const gert::InferShapeContext *context, size_t gmm_index,
+    ge::graphStatus CheckShapeForXAndWeight(const gert::InferShapeContext *context, const GMMAttrs &gmmAttrs) const;
+    ge::graphStatus CheckShapeForTensorList(const gert::InferShapeContext *context, size_t gmm_index,
                                         const std::string &tensorType) const;
-    graphStatus CheckFormatValid(const gert::InferShapeContext *context) const;
-    graphStatus CheckScenarioValidForShape(const gert::InferShapeContext *context, const GMMAttrs &gmmAttrs) const;
-    graphStatus CheckShapeValid(const gert::InferShapeContext *context, const GMMAttrs &gmmAttrs);
-    graphStatus CheckShapeForWeightQuantParam(const gert::InferShapeContext *context) const;
-    graphStatus CheckShapeForGrouplist(const gert::InferShapeContext *context, const gert::Shape *groupListShape) const;
-    graphStatus UpdateShapeY(gert::InferShapeContext *context, size_t idxY, std::vector<int64_t> &yDims) const;
-    graphStatus CheckGroupSize(const gert::InferShapeContext *context, const GMMAttrs &gmmAttrs) const;
-    graphStatus CheckTransposeValid(const gert::InferShapeContext *context, const GMMAttrs &gmmAttrs) const;
+    ge::graphStatus CheckFormatValid(const gert::InferShapeContext *context) const;
+    ge::graphStatus CheckScenarioValidForShape(const gert::InferShapeContext *context, const GMMAttrs &gmmAttrs) const;
+    ge::graphStatus CheckShapeValid(const gert::InferShapeContext *context, const GMMAttrs &gmmAttrs);
+    ge::graphStatus CheckShapeForWeightQuantParam(const gert::InferShapeContext *context) const;
+    ge::graphStatus CheckShapeForGrouplist(const gert::InferShapeContext *context, const gert::Shape *groupListShape) const;
+    ge::graphStatus UpdateShapeY(gert::InferShapeContext *context, size_t idxY, std::vector<int64_t> &yDims) const;
+    ge::graphStatus CheckGroupSize(const gert::InferShapeContext *context, const GMMAttrs &gmmAttrs) const;
+    ge::graphStatus CheckTransposeValid(const gert::InferShapeContext *context, const GMMAttrs &gmmAttrs) const;
 
 private:
     int64_t groupNum_; //当前含义为M分组数g
