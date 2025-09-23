@@ -50,7 +50,7 @@ static constexpr size_t DISPATCH_INPUT_ATTR_QUANT_MODE_INDEX = 10;
 static constexpr size_t DISPATCH_INPUT_ATTR_GLOBAL_BS_INDEX = 11;
 
 
-static bool IsPlatform910B(gert::InferShapeContext *context) {
+static bool IsPlatform910B(const gert::InferShapeContext *context) {
     fe::PlatformInfo platform_info;
     fe::OptionalInfo optional_info;
     GE_ASSERT_SUCCESS(fe::PlatformInfoManager::Instance().GetPlatformInfoWithOutSocVersion(platform_info, optional_info));
@@ -214,8 +214,6 @@ static ge::graphStatus InferShapeMoeDistributeDispatch(gert::InferShapeContext *
     OP_LOGD(context->GetNodeName(), "End to do InferShapeMoeDistributeDispatch.");
     return ge::GRAPH_SUCCESS;
 }
-
-
 
 static ge::graphStatus InferDataTypeMoeDistributeDispatch(gert::InferDataTypeContext *context)
 {

@@ -244,7 +244,6 @@ ge::Status Mc2MoeInsertTask(const gert::ExeResGenerationContext *context, std::v
   const std::string opTypeStr = opType;
   waitTask.set_private_def("group_ep", sizeof("group_ep"));
 
-  
   tasks.insert(tasks.begin() + aicoreIndex, waitTask);
   OPS_LOG_EVENT(nodeName, "Generate notify wait task for mc2 node successfully.");
   aicoreIndex += 1L;
