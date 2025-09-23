@@ -26,7 +26,6 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
 #include <cmath>
@@ -390,7 +389,7 @@ static bool CheckTensorFormat(gert::TilingContext *context, const char *nodeName
             ge::FORMAT_FRACTAL_NZ, OP_LOGE(nodeName, "xActiveMask format is invalid."), return false);
     }
     
-    if (hasElasticInfo) {
+    if (static_cast<bool>(hasElasticInfo)) {
         auto elasticInfoDesc = context->GetOptionalInputDesc(ELASTIC_INFO_INDEX);
         OP_TILING_CHECK(elasticInfoDesc == nullptr, OP_LOGE(nodeName, "elasticInfoDesc is null."), return false);
         OP_TILING_CHECK(static_cast<ge::Format>(ge::GetPrimaryFormat(elasticInfoDesc->GetStorageFormat())) ==
@@ -562,7 +561,7 @@ static ge::graphStatus GetAttrAndSetTilingData(gert::TilingContext *context, con
     return ge::GRAPH_SUCCESS;
 }
 
-static bool CheckSharedAttrs(gert::TilingContext *context, const char *nodeName,
+static bool CheckSharedAttrs(const char *nodeName,
     MoeDistributeDispatchV2TilingData &tilingData)
 {
     uint32_t sharedExpertNum = tilingData.moeDistributeDispatchV2Info.sharedExpertNum;
@@ -594,7 +593,7 @@ static ge::graphStatus CheckAttrs(gert::TilingContext *context, const char *node
     uint32_t moeExpertNum = tilingData.moeDistributeDispatchV2Info.moeExpertNum;
     uint32_t sharedExpertRankNum = tilingData.moeDistributeDispatchV2Info.sharedExpertRankNum;
 
-    OP_TILING_CHECK(!CheckSharedAttrs(context, nodeName, tilingData),
+    OP_TILING_CHECK(!CheckSharedAttrs(nodeName, tilingData),
         OP_LOGE(nodeName, "Check shared expert related attributes falied."), return ge::GRAPH_FAILED);
 
     // 校验moe专家数量能否均分给多机

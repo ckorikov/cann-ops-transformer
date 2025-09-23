@@ -449,7 +449,7 @@ static bool CheckOptionalInputTensorDim(gert::TilingContext *context, const char
     return true;
 }
 
-static bool CheckOutputTensorDim(gert::TilingContext *context, const char *nodeName, const bool isActiveMask)
+static bool CheckOutputTensorDim(gert::TilingContext *context, const char *nodeName)
 {
     const gert::StorageShape *yStorageShape = context->GetOutputShape(OUTPUT_Y_INDEX);
     OP_TILING_CHECK(yStorageShape == nullptr, OP_LOGE(nodeName, "yOut is null."), return false);
@@ -489,7 +489,7 @@ static bool CheckTensorDim(gert::TilingContext *context, const char *nodeName, c
     OP_TILING_CHECK(!CheckOptionalInputTensorDim(context, nodeName, isActiveMask, hasElasticInfo),
         OP_LOGE(nodeName, "param shape of optional input tensor is invalid"), return false);
     
-    OP_TILING_CHECK(!CheckOutputTensorDim(context, nodeName, isActiveMask),
+    OP_TILING_CHECK(!CheckOutputTensorDim(context, nodeName),
         OP_LOGE(nodeName, "param shape of output tensor is invalid"), return false);
 
     return true;
