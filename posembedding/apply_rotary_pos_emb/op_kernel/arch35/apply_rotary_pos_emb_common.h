@@ -23,6 +23,7 @@
 
 #include "kernel_operator.h"
 #include "../../inc/load_store_utils.h"
+#include "op_kernel/math_util.h"
 
 using namespace AscendC;
 
@@ -74,8 +75,8 @@ __aicore__ inline void HalfAlignVF(
     __local_mem__ T* inUb = (__local_mem__ T*)inTensor.GetPhyAddr();
     __local_mem__ T* outUb = (__local_mem__ T*)outTensor.GetPhyAddr();
     uint32_t halfD = dLen / HALF_INTERLEAVE_COEF;
-    uint32_t halfDAlign = ops::CeilAlign(halfD, static_cast<uint32_t>(BLOCK_TYPE_SIZE / sizeof(T)));
-    uint16_t repeatTimes = ops::CeilDiv(halfD, VL_FLOAT32_SIZE);
+    uint32_t halfDAlign = Ops::Base::CeilAlign(halfD, static_cast<uint32_t>(BLOCK_TYPE_SIZE / sizeof(T)));
+    uint16_t repeatTimes = Ops::Base::CeilDiv(halfD, VL_FLOAT32_SIZE);
     __local_mem__ T* currInUb;
     __local_mem__ T* currOutUb;
     __local_mem__ T* currSinUb;
@@ -141,8 +142,8 @@ __aicore__ inline void QuarterAlignVF(
     __local_mem__ T* inUb = (__local_mem__ T*)inTensor.GetPhyAddr();
     __local_mem__ T* outUb = (__local_mem__ T*)outTensor.GetPhyAddr();
     uint32_t quarterD = dLen / QUARTER_MODE_COEF;
-    uint32_t quarterDAlign = ops::CeilAlign(quarterD, static_cast<uint32_t>(BLOCK_TYPE_SIZE / sizeof(T)));
-    uint16_t repeatTimes = ops::CeilDiv(quarterD, VL_FLOAT32_SIZE);
+    uint32_t quarterDAlign = Ops::Base::CeilAlign(quarterD, static_cast<uint32_t>(BLOCK_TYPE_SIZE / sizeof(T)));
+    uint16_t repeatTimes = Ops::Base::CeilDiv(quarterD, VL_FLOAT32_SIZE);
     __local_mem__ T* currInUb;
     __local_mem__ T* currOutUb;
     __local_mem__ T* currSinUb;
@@ -225,7 +226,7 @@ __aicore__ inline void InterleaveModeVF(
     __local_mem__ T* inUb = (__local_mem__ T*)inTensor.GetPhyAddr();
     __local_mem__ T* outUb = (__local_mem__ T*)outTensor.GetPhyAddr();
     uint16_t repeatTimes = dLen / VL_FLOAT32_SIZE;
-    uint32_t dAlignLen = ops::CeilAlign(dLen, static_cast<uint32_t>(BLOCK_TYPE_SIZE / sizeof(T)));
+    uint32_t dAlignLen = Ops::Base::CeilAlign(dLen, static_cast<uint32_t>(BLOCK_TYPE_SIZE / sizeof(T)));
     uint16_t loopNum = repeatTimes / 2;
     uint32_t tailNum = dLen - loopNum * 2 * VL_FLOAT32_SIZE;
     uint16_t tailTwoVL = tailNum / VL_FLOAT32_SIZE;
@@ -338,9 +339,9 @@ __aicore__ inline void DeepSeekInterleaveModeVF(
     __local_mem__ T* cosUb = (__local_mem__ T*)cosTensor.GetPhyAddr();
     __local_mem__ T* inUb = (__local_mem__ T*)inTensor.GetPhyAddr();
     __local_mem__ T* outUb = (__local_mem__ T*)outTensor.GetPhyAddr();
-    uint32_t dAlign = ops::CeilAlign(dLen, static_cast<uint32_t>(BLOCK_TYPE_SIZE / sizeof(T)));
+    uint32_t dAlign = Ops::Base::CeilAlign(dLen, static_cast<uint32_t>(BLOCK_TYPE_SIZE / sizeof(T)));
     uint32_t halfD = dLen / HALF_INTERLEAVE_COEF;
-    uint32_t halfDAlign = ops::CeilAlign(halfD, static_cast<uint32_t>(BLOCK_TYPE_SIZE / sizeof(T)));
+    uint32_t halfDAlign = Ops::Base::CeilAlign(halfD, static_cast<uint32_t>(BLOCK_TYPE_SIZE / sizeof(T)));
     uint16_t repeatTimes = halfD / VL_FLOAT32_SIZE;
     uint32_t tailTwoNum = dLen - repeatTimes * VL_FLOAT32_SIZE * HALF_INTERLEAVE_COEF;
     uint16_t tailTwoVL = tailTwoNum > VL_FLOAT32_SIZE ? 1 : 0;

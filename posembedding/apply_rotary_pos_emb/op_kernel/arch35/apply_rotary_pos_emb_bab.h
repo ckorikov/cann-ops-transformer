@@ -86,7 +86,7 @@ __aicore__ inline void ApplyRotaryPosEmbBAB<T>::Init(
     }
     this->dSplitSize_ = tilingData_->D / dSplitCoef_ * sizeof(T);
     ubFactorS_ = tilingData_->ubFactorS;
-    this->dAlign_ = ops::CeilAlign<int64_t>(tilingData_->D / dSplitCoef_, BLOCK_TYPE_SIZE / sizeof(T)) * dSplitCoef_;
+    this->dAlign_ = Ops::Base::CeilAlign<int64_t>(tilingData_->D / dSplitCoef_, BLOCK_TYPE_SIZE / sizeof(T)) * dSplitCoef_;
     int64_t ubFactorN =
         tilingData_->ubFactorQN > tilingData_->ubFactorKN ? tilingData_->ubFactorQN : tilingData_->ubFactorKN;
     this->qGm_.SetGlobalBuffer((__gm__ T*)q);
@@ -123,7 +123,7 @@ __aicore__ inline void ApplyRotaryPosEmbBAB<T>::Process()
     uint32_t bIdxStart = bIdx_ * tilingData_->blockFactorB;
     for (uint32_t bIdx = bIdxStart; bIdx < bIdxStart + bNum_; bIdx++) {
         uint32_t sIdxStart = sIdx_ * tilingData_->blockFactorS;
-        uint32_t sLoopCnt = ops::CeilDiv(sNum_, ubFactorS_);
+        uint32_t sLoopCnt = Ops::Base::CeilDiv(sNum_, ubFactorS_);
         for (uint32_t loopIdx = 0; loopIdx < sLoopCnt; loopIdx++) {
             uint32_t currSNum = (loopIdx != sLoopCnt - 1) ? ubFactorS_ : sNum_ - loopIdx * ubFactorS_;
             ProcessNLoop(bIdx, sIdxStart + loopIdx * ubFactorS_, currSNum);

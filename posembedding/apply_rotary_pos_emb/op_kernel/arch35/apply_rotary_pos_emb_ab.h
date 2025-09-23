@@ -91,7 +91,7 @@ __aicore__ inline void ApplyRotaryPosEmbAB<T>::Process()
 {
     uint32_t BSNum =
         (GetBlockIdx() == tilingData_->blockNumBS - 1) ? tilingData_->blockTailBS : tilingData_->blockFactorBS;
-    uint32_t bsLoopCnt = ops::CeilDiv(BSNum, ubFactorBS_);
+    uint32_t bsLoopCnt = Ops::Base::CeilDiv(BSNum, ubFactorBS_);
     for (uint32_t loopIdx = 0; loopIdx < bsLoopCnt; loopIdx++) {
         uint32_t currBSNum = (loopIdx != bsLoopCnt - 1) ? ubFactorBS_ : BSNum - loopIdx * ubFactorBS_;
         DataCopyExtParams cosParams = {

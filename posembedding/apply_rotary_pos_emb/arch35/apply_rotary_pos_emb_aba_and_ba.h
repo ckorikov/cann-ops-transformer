@@ -141,7 +141,7 @@ __aicore__ inline void ApplyRotaryPosEmbABAAndBA<T, IsBBoardcast>::InitAllBuffer
     } else if (tilingData_->rotaryMode == static_cast<int64_t>(ApplyRotaryPosEmbRotaryMode::QUARTER)) {
         this->dSplitCoef_ = QUARTER_MODE_COEF;
     }
-    this->dAlign_ = ops::CeilAlign<int64_t>(D_ / dSplitCoef_, BLOCK_TYPE_SIZE / sizeof(T)) * dSplitCoef_;
+    this->dAlign_ = Ops::Base::CeilAlign<int64_t>(D_ / dSplitCoef_, BLOCK_TYPE_SIZE / sizeof(T)) * dSplitCoef_;
 
     this->pipe_->InitBuffer(this->qInQueue_, DOUBLE_BUFFER, ubFactorB_ * ubFactorS_ * ubFactorN_ * dAlign_ * sizeof(T));
     this->pipe_->InitBuffer(
@@ -176,7 +176,7 @@ template <typename T, bool IsBBoardcast>
 __aicore__ inline void ApplyRotaryPosEmbABAAndBA<T, IsBBoardcast>::Process()
 {
     // 在S轴进行循环
-    int64_t ubLoopCount = ops::CeilDiv(sBlockLength_, ubFactorS_);
+    int64_t ubLoopCount = Ops::Base::CeilDiv(sBlockLength_, ubFactorS_);
     for (int64_t ubLoopIdx = 0; ubLoopIdx < ubLoopCount; ubLoopIdx++) {
         this->ProcessInSLoop(
             sBlockStart_ + ubLoopIdx * ubFactorS_,
@@ -188,7 +188,7 @@ template <typename T, bool IsBBoardcast>
 __aicore__ inline void ApplyRotaryPosEmbABAAndBA<T, IsBBoardcast>::ProcessInSLoop(int64_t sUbStart, int64_t sUbLength)
 {
     // 在B轴进行循环
-    int64_t ubLoopCount = ops::CeilDiv(bBlockLength_, ubFactorB_);
+    int64_t ubLoopCount = Ops::Base::CeilDiv(bBlockLength_, ubFactorB_);
     if constexpr (IsBBoardcast) {
         // cos和sin需要在B轴广播的情况
         this->CopyInCosAndSin(sUbStart, sUbLength, 0, 1);
@@ -223,7 +223,7 @@ __aicore__ inline void ApplyRotaryPosEmbABAAndBA<T, IsBBoardcast>::ProcessInSBLo
     int64_t sUbStart, int64_t sUbLength, int64_t bUbStart, int64_t bUbLength, LocalTensor<T>& cos, LocalTensor<T>& sin)
 {
     // 循环处理Q
-    int64_t qUbLoopCount = ops::CeilDiv(tilingData_->QN, ubFactorN_);
+    int64_t qUbLoopCount = Ops::Base::CeilDiv(tilingData_->QN, ubFactorN_);
     for (int64_t ubLoopIdx = 0; ubLoopIdx < qUbLoopCount; ubLoopIdx++) {
         this->ProcessInSBNLoop(
             sUbStart, sUbLength, bUbStart, bUbLength, ubLoopIdx * ubFactorN_,
@@ -231,7 +231,7 @@ __aicore__ inline void ApplyRotaryPosEmbABAAndBA<T, IsBBoardcast>::ProcessInSBLo
             sin, qGm_, qOutGm_);
     }
     // 循环处理K
-    int64_t kUbLoopCount = ops::CeilDiv(tilingData_->KN, ubFactorN_);
+    int64_t kUbLoopCount = Ops::Base::CeilDiv(tilingData_->KN, ubFactorN_);
     for (int64_t ubLoopIdx = 0; ubLoopIdx < kUbLoopCount; ubLoopIdx++) {
         this->ProcessInSBNLoop(
             sUbStart, sUbLength, bUbStart, bUbLength, ubLoopIdx * ubFactorN_,
