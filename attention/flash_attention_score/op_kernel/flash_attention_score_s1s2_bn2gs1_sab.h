@@ -2304,6 +2304,9 @@ __aicore__ inline void FlashAttentionScoreS1s2Bn2gs1SameAB<implMode, layOutType,
     AscendC::DataCopyParams copyParams = {blockCount, blockLen, srcStride, dstStride};
     event_t eventIdMte1ToMte2 = static_cast<event_t>(GetTPipePtr()->FetchEventID(HardEvent::MTE1_MTE2));
     event_t eventIdMte2ToMte1 = static_cast<event_t>(GetTPipePtr()->FetchEventID(HardEvent::MTE2_MTE1));
+    event_t Mte1ToMte2Flag[2];
+    Mte1ToMte2Flag[0] = static_cast<event_t>(GetTPipePtr()->AllocEventID<HardEvent::MTE1_MTE2>());
+    Mte1ToMte2Flag[1] = static_cast<event_t>(GetTPipePtr()->AllocEventID<HardEvent::MTE1_MTE2>());
     SetFlag<HardEvent::MTE1_MTE2>(eventIdMte1ToMte2);
     WaitFlag<HardEvent::MTE1_MTE2>(eventIdMte1ToMte2);
     for (int32_t curRow = 0;curRow < aRowNum;curRow++) {
@@ -2312,21 +2315,30 @@ __aicore__ inline void FlashAttentionScoreS1s2Bn2gs1SameAB<implMode, layOutType,
                 posA = curRow * aColNum + curK;
                 posB = curK * bColNum + curCol;
                 aSrcOffset = mm2BaseK * extraInfo.cubeS1RealSize * curK + BLOCK_CUBE * mm2BaseM * curRow;
+                this->mm2LoadDataB(scmBTensor, bSrc, mm2BaseK, mm2BaseN, K_V_INDEX, posB, mm2BBaseSize, this->d2Size);
+                if (posA % 2 == 0 && posA > 0) {
+                    WaitFlag<HardEvent::MTE1_MTE2>(Mte1ToMte2Flag[(posA / 2) % 2]);
+                }
                 this->mm2LoadDataA(scmATensor, aSrc[aSrcOffset], copyParams, Q_VEC1_INDEX, posA, mm2ABaseSize);
-                this->mm2LoadDataB(scmBTensor, bSrc, mm2BaseK, mm2BaseN, K_V_INDEX, posB, mm2BBaseSize);
+                
                 SetFlag<HardEvent::MTE2_MTE1>(eventIdMte2ToMte1);
                 WaitFlag<HardEvent::MTE2_MTE1>(eventIdMte2ToMte1);
                 bmm2.SetTensorA(scmATensor);
                 bmm2.SetTensorB(scmBTensor);
                 bmm2.SetTail(mm2BaseM, mm2BaseN, mm2BaseK);
                 bmm2.template Iterate<false>(curK != 0);
+                if (posA % 2 == 0) {
+                    SetFlag<HardEvent::MTE1_MTE2>(Mte1ToMte2Flag[(posA / 2 + 1) % 2]);
+                }
                 cOffset = curRow * mm2BaseM * BLOCK_CUBE;
             }
             bmm2.GetTensorC(this->mm2Res[extraInfo.taskIdMod2][cOffset]);
         }
     }
-    SetFlag<HardEvent::MTE1_MTE2>(eventIdMte1ToMte2);
-    WaitFlag<HardEvent::MTE1_MTE2>(eventIdMte1ToMte2);
+    WaitFlag<HardEvent::MTE1_MTE2>(Mte1ToMte2Flag[(posA / 2 + 1) % 2]);
+
+    GetTPipePtr()->ReleaseEventID<HardEvent::MTE1_MTE2>(Mte1ToMte2Flag[0]);
+    GetTPipePtr()->ReleaseEventID<HardEvent::MTE1_MTE2>(Mte1ToMte2Flag[1]);
 
     bmm2.End();
     scmATensor.SetAddr(TscmGlobal[Q_VEC1_INDEX].srcAddr);
