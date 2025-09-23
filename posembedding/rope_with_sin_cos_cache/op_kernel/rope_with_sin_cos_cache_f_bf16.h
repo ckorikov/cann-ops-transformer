@@ -142,10 +142,10 @@ __aicore__ inline void RopeWithSinCosCacheFP16<T>::Compute(uint64_t index, uint6
     uint64_t offset = index * this->num_tokens_each_loop_current_core * q_size;
     uint64_t offsetk = index * this->num_tokens_each_loop_current_core * k_size;
 
-    uint32_t dstShape_[] = {static_cast<uint32_t>(this->num_heads_max), static_cast<uint32_t>(this->rotary_dim)};
-    uint32_t dstShape_4Negone_[] = {
+    uint32_t dstShape_[2] = {static_cast<uint32_t>(this->num_heads_max), static_cast<uint32_t>(this->rotary_dim)};
+    uint32_t dstShape_4Negone_[2] = {
         static_cast<uint32_t>(loopN * this->num_heads_max), static_cast<uint32_t>(this->rotary_dim)};
-    uint32_t srcShape_[] = {1, static_cast<uint32_t>(this->rotary_dim)};
+    uint32_t srcShape_[2] = {1, static_cast<uint32_t>(this->rotary_dim)};
 
     LocalTensor<T> inQQueBeforeCastLocal = inQQueBeforeCast.AllocTensor<T>();
     LocalTensor<T> inQueueCosSinCacheBeforeCastLocal = inQueueCosSinCacheBeforeCast.AllocTensor<T>();

@@ -22,11 +22,8 @@
 #define AIR_CXX_RUNTIME_V2_OP_IMPL_MOE_GATING_TOP_K_SOFTMAX_H_
 #include <cstdint>
 #include <vector>
-// #include "register/op_compile_info_base.h"
 #include "register/tilingdata_base.h"
 #include "tiling/tiling_api.h"
-// #include "op_tiling_util.h"
-// #include "runtime2_util.h"
 
 namespace optiling {
 enum MoeGatingTopKSoftmaxTilingKey

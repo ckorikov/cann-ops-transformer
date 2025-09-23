@@ -18,10 +18,9 @@
  * \file moe_gating_top_k_softmax_tiling_e_k_full_load.cpp
  * \brief
  */
-// #include "graph/utils/op_desc_utils.h"
+
 #include "platform/platform_info.h"
 #include "register/op_def_registry.h"
-// #include "external/exe_graph/runtime/shape.h"
 #include "tiling_base/tiling_templates_registry.h"
 #include "tiling_base/tiling_type.h"
 #include "moe_gating_top_k_softmax_tiling_base.h"

@@ -18,16 +18,12 @@
  * \file moe_gating_top_k_softmax_v2_tiling_k_renorm.cpp
  * \brief
  */
-// #include "graph/utils/op_desc_utils.h"
 #include "platform/platform_info.h"
 #include "register/op_def_registry.h"
-// #include "external/exe_graph/runtime/shape.h"
 #include "tiling_base/tiling_templates_registry.h"
 #include "tiling_base/tiling_type.h"
 #include "tiling/tiling_api.h"
 #include "moe_gating_top_k_softmax_v2_tiling.h"
-// #include "op_tiling_util.h"
-// #include "moe_gating_top_k_softmax_v2_tiling_base.h"
 #include "log/log.h"
 using namespace Ops::Transformer::OpTiling;
 using namespace AscendC;

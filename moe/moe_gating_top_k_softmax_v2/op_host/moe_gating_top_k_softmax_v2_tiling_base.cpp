@@ -20,12 +20,7 @@
  */
 #include "moe_gating_top_k_softmax_v2_tiling.h"
 #include "log/log.h"
-// #include "error_log.h"
-// #include "error_util.h"
-// #include "op_tiling_util.h"
-// #include "graph/utils/op_desc_utils.h"
 #include "platform/platform_info.h"
-// #include "external/exe_graph/runtime/shape.h"
 #include "tiling_base/tiling_templates_registry.h"
 using namespace Ops::Transformer::OpTiling;
 using namespace AscendC;

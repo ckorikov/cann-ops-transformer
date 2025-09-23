@@ -25,9 +25,6 @@
 #include "register/op_def_registry.h"
 #include "tiling/tiling_api.h"
 #include "tiling_base/tiling_base.h"
-// #include "op_tiling_util.h"
-// #include "runtime/runtime2_util.h"
-// #include "register/op_compile_info_base.h"
 using namespace Ops::Transformer::OpTiling;
 namespace optiling {
 BEGIN_TILING_DATA_DEF(MoeGatingTopKSoftmaxEKFullLoadTilingData)

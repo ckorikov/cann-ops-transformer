@@ -22,12 +22,9 @@
 #define AIR_CXX_RUNTIME_V2_OP_IMPL_MOE_GATING_TOP_K_SOFTMAX_V2_H_
 #include <cstdint>
 #include <vector>
-// #include "register/op_compile_info_base.h"
 #include "register/tilingdata_base.h"
 #include "tiling/tiling_api.h"
 #include "tiling_base/tiling_base.h"
-// #include "op_tiling_util.h"
-// #include "runtime2_util.h"
 using namespace Ops::Transformer::OpTiling;
 namespace optiling {
 BEGIN_TILING_DATA_DEF(MoeGatingTopKSoftmaxV2TilingData)
