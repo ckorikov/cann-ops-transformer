@@ -158,7 +158,7 @@ static bool CheckShape(
 
 static aclnnStatus CheckParams(
     const aclTensor* positions, const aclTensor* queryIn, const aclTensor* keyIn, const aclTensor* cosSinCache,
-    const aclIntArray* mropeSection, int64_t headSize, bool isNeoxStyle, aclTensor* queryOut, aclTensor* keyOut)
+    int64_t headSize, bool isNeoxStyle, aclTensor* queryOut, aclTensor* keyOut)
 {
     // 1. 检查参数是否为空指针
     CHECK_RET(CheckNotNull(positions, queryIn, keyIn, cosSinCache, queryOut, keyOut), ACLNN_ERR_PARAM_NULLPTR);
@@ -190,7 +190,7 @@ aclnnStatus aclnnRopeWithSinCosCacheGetWorkspaceSize(
 
     // 固定写法，参数检查
     auto ret =
-        CheckParams(positions, queryIn, keyIn, cosSinCache, mropeSection, headSize, isNeoxStyle, queryOut, keyOut);
+        CheckParams(positions, queryIn, keyIn, cosSinCache, headSize, isNeoxStyle, queryOut, keyOut);
     CHECK_RET(ret == ACLNN_SUCCESS, ret);
     CHECK_RET(headSize != 0, ACLNN_ERR_PARAM_INVALID);
     int64_t numQheads = queryIn->GetViewShape()[1] / headSize;

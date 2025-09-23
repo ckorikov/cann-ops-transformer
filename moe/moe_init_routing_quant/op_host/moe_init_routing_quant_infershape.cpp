@@ -74,7 +74,7 @@ static ge::graphStatus CheckInputShape(
 }
 
 static ge::graphStatus CheckInputDimsAndAttr(
-    gert::InferShapeContext* context, const gert::Shape* xShape, const gert::Shape* rowIdxShape,
+    const gert::InferShapeContext* context, const gert::Shape* xShape, const gert::Shape* rowIdxShape,
     const gert::Shape* expertIdxShape, const int64_t activeNum)
 {
     if (xShape->GetDimNum() == 1U) {
@@ -138,7 +138,7 @@ static void ShowInputShapeInfo(
 }
 
 static void ShowOutputShapeInfo(
-    gert::InferShapeContext* context, const gert::Shape* expandedXShape, const gert::Shape* expandedRowIdx,
+    const gert::InferShapeContext* context, const gert::Shape* expandedXShape, const gert::Shape* expandedRowIdx,
     const gert::Shape* expandedExpertIdxShape)
 {
     OP_LOGD(

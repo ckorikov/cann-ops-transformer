@@ -19,9 +19,6 @@
  * \brief
  */
 #include <iostream>
-// #include "register/op_def_registry.h"
-// #include "runtime2_util.h"
-// #include "tiling/tiling_api.h"
 #include "moe_token_unpermute_with_ep_grad_tiling.h"
 
 namespace optiling {

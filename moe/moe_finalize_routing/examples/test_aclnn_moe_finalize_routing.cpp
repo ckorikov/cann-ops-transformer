@@ -68,6 +68,7 @@ int main() {
   // 1. （固定写法）device/stream初始化, 参考AscendCL对外接口列表
   // 根据自己的实际device填写deviceId
   int32_t deviceId = 0;
+  int64_t outSize = 12;
   aclrtStream stream;
   auto ret = Init(deviceId, &stream);
   // check根据自己的需要处理
@@ -107,7 +108,7 @@ int main() {
   std::vector<float> scalesHostData = {1.3, 1.6, 1.2, 1.8, 1.2, 2.3};
   std::vector<int32_t> expandedExpertIdxHostData = {0, 1, 0, 1, 0, 1};
   std::vector<int32_t> expandedRowIdxHostData = {2, 1, 4, 3, 0, 5};
-  std::vector<float> outHostData(12, 0.0f);
+  std::vector<float> outHostData(outSize, 0.0f);
   // 创建expandedX aclTensor
   ret = CreateAclTensor(expandedXHostData, expandedXShape, &expandedXAddr,
                         aclDataType::ACL_FLOAT, &expandedX);

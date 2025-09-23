@@ -58,7 +58,7 @@ std::string PrintShape(const gert::Shape &shape)
     return oss.str();
 }
 
-static ge::graphStatus CheckInputShape(gert::InferShapeContext *context, const gert::Shape *xShape,
+static ge::graphStatus CheckInputShape(const gert::InferShapeContext *context, const gert::Shape *xShape,
                                        const gert::Shape *expertIdxShape)
 {
     int64_t xN = xShape->GetDimNum() == 1U ? OTHER_SHAPE : xShape->GetDim(0);

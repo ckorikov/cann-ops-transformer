@@ -79,44 +79,76 @@ __aicore__ inline void BinaryAddFunc(LocalTensor<float> tmpBuffer, int32_t hidde
     PipeBarrier<PIPE_V>();
 }
 
-__aicore__ inline void ReduceSumFunc(LocalTensor<float> dstBuffer, LocalTensor<float> tmpBuffer, int32_t hiddensizeLen) {
-    if (hiddensizeLen >= 4096) { // 二分累加到8192以内，再累加成4096大小，用blockreducesum
-        #ifndef __CCE_KT_TEST__
-            BinaryAddFunc(tmpBuffer, hiddensizeLen, 8192, 4096); // 累加成4096大小
-        #endif
+__aicore__ inline void ReduceSumFunc(LocalTensor<float> dstBuffer, LocalTensor<float> tmpBuffer, int32_t hiddensizeLen)
+{
+    // 定义阈值常量
+    const int32_t chunkLimit4096 = 4096;
+    const int32_t chunkLimit512 = 512;
+    const int32_t chunkLimit64 = 64;
+    // 定义BlockReduceSum参数常量
+    const int32_t repeatTime64 = 64;
+    const int32_t repeatTime8 = 8;
+    const int32_t repeatTime1 = 1;
+    const int32_t maskValue64 = 64;
+    const int32_t dstStride1 = 1;
+    const int32_t srcBlockStride1 = 1;
+    const int32_t srcRepeatStride8 = 8;
+    // 定义中间reduce目标大小
+    const int32_t targetSize8192 = 8192;
+    const int32_t targetSize1024 = 1024;
+    const int32_t targetSize128 = 128;
+    // 定义WholeReduceSum参数
+    const int32_t wholeReduceInputSize8 = 8;
+    if (hiddensizeLen >= chunkLimit4096) {
+// 二分累加到8192以内，再累加成4096大小，用blockreducesum
+#ifndef __CCE_KT_TEST__
+        BinaryAddFunc(tmpBuffer, hiddensizeLen, targetSize8192, chunkLimit4096);
+#endif
         // 用BlockReduceSum+WholeReduceSum 把4096 reduce成1个
         PipeBarrier<PIPE_V>();
-        BlockReduceSum(tmpBuffer, tmpBuffer, 64, 64, 1, 1, 8); // 输出512
+        BlockReduceSum(tmpBuffer, tmpBuffer, repeatTime64, maskValue64, dstStride1, srcBlockStride1,
+                       srcRepeatStride8); // 输出512
         PipeBarrier<PIPE_V>();
-        BlockReduceSum(tmpBuffer, tmpBuffer, 8, 64, 1, 1, 8); // 输出64
+        BlockReduceSum(tmpBuffer, tmpBuffer, repeatTime8, maskValue64, dstStride1, srcBlockStride1,
+                       srcRepeatStride8); // 输出64
         PipeBarrier<PIPE_V>();
-        BlockReduceSum(tmpBuffer, tmpBuffer, 1, 64, 1, 1, 8); // 输出8
+        BlockReduceSum(tmpBuffer, tmpBuffer, repeatTime1, maskValue64, dstStride1, srcBlockStride1,
+                       srcRepeatStride8); // 输出8
         PipeBarrier<PIPE_V>();
-        WholeReduceSum(dstBuffer, tmpBuffer, 8, 1, 1, 1, 8); // 输出1
+        WholeReduceSum(dstBuffer, tmpBuffer, wholeReduceInputSize8, dstStride1, dstStride1, dstStride1,
+                       srcRepeatStride8); // 输出1
         PipeBarrier<PIPE_V>();
-    } else if (hiddensizeLen >= 512) { // 二分累加到1024以内，再累加成512大小，用blockreducesum
+    } else if (hiddensizeLen >= chunkLimit512) {
+        // 二分累加到1024以内，再累加成512大小，用blockreducesum
         PipeBarrier<PIPE_V>();
-        BinaryAddFunc(tmpBuffer, hiddensizeLen, 1024, 512); // 累加成512大小
+        BinaryAddFunc(tmpBuffer, hiddensizeLen, targetSize1024, chunkLimit512); // 累加成512大小
         PipeBarrier<PIPE_V>();
         // 用BlockReduceSum+WholeReduceSum 把512 reduce成1个
-        BlockReduceSum(tmpBuffer, tmpBuffer, 8, 64, 1, 1, 8); // 输出64
+        BlockReduceSum(tmpBuffer, tmpBuffer, repeatTime8, maskValue64, dstStride1, srcBlockStride1,
+                       srcRepeatStride8); // 输出64
         PipeBarrier<PIPE_V>();
-        BlockReduceSum(tmpBuffer, tmpBuffer, 1, 64, 1, 1, 8); // 输出8
+        BlockReduceSum(tmpBuffer, tmpBuffer, repeatTime1, maskValue64, dstStride1, srcBlockStride1,
+                       srcRepeatStride8); // 输出8
         PipeBarrier<PIPE_V>();
-        WholeReduceSum(dstBuffer, tmpBuffer, 8, 1, 1, 1, 8); // 输出1
+        WholeReduceSum(dstBuffer, tmpBuffer, wholeReduceInputSize8, dstStride1, dstStride1, dstStride1,
+                       srcRepeatStride8); // 输出1
         PipeBarrier<PIPE_V>();
-    } else if (hiddensizeLen >= 64) { // 二分累加到128以内，再累加成64大小，用blockreducesum
+    } else if (hiddensizeLen >= chunkLimit64) {
+        // 二分累加到128以内，再累加成64大小，用blockreducesum
         PipeBarrier<PIPE_V>();
-        BinaryAddFunc(tmpBuffer, hiddensizeLen, 128, 64); // 累加成64大小
+        BinaryAddFunc(tmpBuffer, hiddensizeLen, targetSize128, chunkLimit64); // 累加成64大小
         PipeBarrier<PIPE_V>();
         // 用BlockReduceSum+WholeReduceSum 把64 reduce成1个
-        BlockReduceSum(tmpBuffer, tmpBuffer, 1, 64, 1, 1, 8); // 输出8
+        BlockReduceSum(tmpBuffer, tmpBuffer, repeatTime1, maskValue64, dstStride1, srcBlockStride1,
+                       srcRepeatStride8); // 输出8
         PipeBarrier<PIPE_V>();
-        WholeReduceSum(dstBuffer, tmpBuffer, 8, 1, 1, 1, 8); // 输出1
+        WholeReduceSum(dstBuffer, tmpBuffer, wholeReduceInputSize8, dstStride1, dstStride1, dstStride1,
+                       srcRepeatStride8); // 输出1
         PipeBarrier<PIPE_V>();
-    } else { // 64个以内的元素直接WholeReduceSum成1个
+    } else {
+        // 64个以内的元素直接WholeReduceSum成1个
         PipeBarrier<PIPE_V>();
-        WholeReduceSum(dstBuffer, tmpBuffer, hiddensizeLen, 1, 1, 1, 8);
+        WholeReduceSum(dstBuffer, tmpBuffer, hiddensizeLen, dstStride1, dstStride1, dstStride1, srcRepeatStride8);
         PipeBarrier<PIPE_V>();
     }
 }

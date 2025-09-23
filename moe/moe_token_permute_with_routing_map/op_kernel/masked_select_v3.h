@@ -33,6 +33,7 @@ constexpr int32_t HALf_INTERVAL = 2;
 constexpr int32_t MASK_LEN = 64;
 constexpr int32_t REPEAT_STRIDE_8 = 8;
 constexpr int32_t HALF_INTERVAL_THRESHOLD = 128;
+constexpr int64_t ONE_BLOCK_NUM = 8;
 
 template <typename Tp, Tp v>
 struct integral_constant {
@@ -206,7 +207,7 @@ public:
         if (this->blockIdx < needCoreNum) {
             int32_t loopCount = this->tileNum;
             PipeBarrier<PIPE_V>();
-            Duplicate(offsetLocal, 0, 8);
+            Duplicate(offsetLocal, 0, ONE_BLOCK_NUM);
 
             PipeBarrier<PIPE_V>();
 

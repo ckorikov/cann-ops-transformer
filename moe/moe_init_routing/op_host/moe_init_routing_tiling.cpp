@@ -183,7 +183,6 @@ ge::graphStatus MoeInitRountingTilingBase::CheckOutShape()
 
 ge::graphStatus MoeInitRountingTilingBase::GetShapeAttrsInfo()
 {
-
     // 获取输入shape
     const gert::Shape xShape = context_->GetInputShape(0)->GetStorageShape();
     const gert::Shape rowIdxShape = context_->GetInputShape(1)->GetStorageShape();

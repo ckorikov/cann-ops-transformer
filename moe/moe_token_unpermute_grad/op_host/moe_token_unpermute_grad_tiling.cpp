@@ -96,7 +96,7 @@ inline int64_t GetGreatestDivisor(int64_t num, int64_t div)
     return div;
 }
 
-static void MoeTokenUnpermuteGradPrintParam(gert::TilingContext* context, MoeTokenUnpermuteGradTilingData& tiling)
+static void MoeTokenUnpermuteGradPrintParam(const gert::TilingContext* context, MoeTokenUnpermuteGradTilingData& tiling)
 {
     auto nodeName = context->GetNodeName();
     OP_LOGD(nodeName, ">>>>>>>>>>>>>>> Start to print MoeTokenUnpermuteGrad tiling data <<<<<<<<<<<<<<<<");

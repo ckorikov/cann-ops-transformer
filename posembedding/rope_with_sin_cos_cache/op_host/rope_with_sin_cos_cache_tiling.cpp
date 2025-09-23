@@ -107,7 +107,7 @@ static void SetTiling(TilingParams& params, RopeWithSinCosCacheTilingData& tilin
     tiling.set_num_tokens_tail_core_last_loop(params.num_tokens_tail_core_last_loop);
 }
 
-static ge::graphStatus TilingKeyChose(gert::TilingContext* context, TilingParams& params)
+static ge::graphStatus TilingKeyChose(const gert::TilingContext* context, TilingParams& params)
 {
     auto qDtype = context->GetInputDesc(INPUT_QUERY_IN_INDEX)->GetDataType();
     if (qDtype == ge::DT_BF16) {

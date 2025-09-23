@@ -22,9 +22,6 @@
 #include "register/op_impl_registry.h"
 #include "util/math_util.h"
 #include "util/shape_util.h"
-// #include "runtime_util.h"
-// #include "op_util.h"
-// #include "op_log.h"
 
 using namespace ge;
 static constexpr size_t INPUT_PERMUTED_TOKENS_IDX = 2;

@@ -699,7 +699,7 @@ void MoeTokenPermuteWithEpTilingBase::Tiling4IndexCopyCompute()
     int64_t probsUB = 1;
     if (ubLeft >= BUFFER_NUM * oneTokenBtypeSizeAlign32) {
         onceUbTokenNums = GetDiv(
-            (int64_t)aicoreParams_.ubSize,
+            static_cast<int64_t>(aicoreParams_.ubSize),
             oneTokenBtypeSizeAlign32 * BUFFER_NUM + PROBS_SPACE_SCALE * topK * BUFFER_NUM * INT32_DTYPE_SIZE);
         onceUbTokenNums = std::min(onceUbTokenNums, MAX_BLOCK_COUNT);
         int64_t TopKUbLeft = aicoreParams_.ubSize - onceUbTokenNums * oneTokenBtypeSizeAlign32 * BUFFER_NUM;

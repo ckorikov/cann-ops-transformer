@@ -91,67 +91,6 @@ static inline int64_t ComputeMaxHiddenSize(MoeTokenUnpermuteParam& param, int64_
 
 static inline ge::graphStatus InputParamCheck(const gert::TilingContext* context)
 {
-    // const gert::StorageShape* tokensShape = context->GetInputShape(0);
-    // const gert::StorageShape* indicesShape = context->GetInputShape(1);
-    // const gert::StorageShape* probsShape = context->GetInputShape(2);
-    // auto dataTensor0 = context->GetInputTensor(0);
-    // auto dataTensor1 = context->GetInputTensor(1);
-    // auto nodeName = context->GetNodeName();
-    // auto ascendcPlatform = platform_ascendc::PlatformAscendC(context->GetPlatformInfo());
-    // auto is310P = (ascendcPlatform.GetSocVersion() == platform_ascendc::SocVersion::ASCEND310P);
-    // OP_TILING_CHECK(
-    //     tokensShape == nullptr || indicesShape == nullptr || dataTensor0 == nullptr || dataTensor1 == nullptr,
-    //     VECTOR_INNER_ERR_REPORT_TILIING(nodeName, "[MoeTokenUnpermute] permutedTokens or sortedIndices is nullptr."),
-    //     return ge::GRAPH_FAILED);
-    // OP_TILING_CHECK(
-    //     tokensShape->GetStorageShape().GetDimNum() != 2,
-    //     VECTOR_INNER_ERR_REPORT_TILIING(nodeName, "[MoeTokenUnpermute] permutedTokens's shape is not 2D."),
-    //     return ge::GRAPH_FAILED);
-    // if (is310P) {
-    //     int64_t hidden_size = tokensShape->GetStorageShape().GetDim(1);
-    //     OP_TILING_CHECK(
-    //         hidden_size % ALIGN_128 != 0,
-    //         VECTOR_INNER_ERR_REPORT_TILIING(
-    //             nodeName, "permutedTokens's hiddensize is [%ld]. Hiddensize should be an integer multiple of 128 on 310p",hidden_size),
-    //         return ge::GRAPH_FAILED);
-
-    //     OP_TILING_CHECK(
-    //         hidden_size > MAX_HIDDEN_SIZE_310P,
-    //         VECTOR_INNER_ERR_REPORT_TILIING(
-    //             nodeName, "permutedTokens's hiddensize is [%ld]. Hiddensize should not be greater than 10240 on 310p",hidden_size),
-    //         return ge::GRAPH_FAILED);
-
-    //     OP_TILING_CHECK(
-    //         context->GetInputDesc(0)->GetDataType() == ge::DT_BF16,
-    //         VECTOR_INNER_ERR_REPORT_TILIING(nodeName, "permutedToekn's dtype is BF16, which is not support on 310p"),
-    //         return ge::GRAPH_FAILED);
-
-    //     OP_TILING_CHECK(
-    //         context->GetInputDesc(2) != nullptr && context->GetInputDesc(2)->GetDataType() == ge::DT_BF16,
-    //         VECTOR_INNER_ERR_REPORT_TILIING(nodeName, "probs's dtype is BF16, which is not support on 310p"),
-    //         return ge::GRAPH_FAILED);
-    // }
-    // if (probsShape != nullptr) {
-    //     OP_TILING_CHECK(
-    //         probsShape->GetStorageShape().GetDimNum() != 2,
-    //         VECTOR_INNER_ERR_REPORT_TILIING(nodeName, "[MoeTokenUnpermute] probs's shape is not 2D."),
-    //         return ge::GRAPH_FAILED);
-
-    //     int64_t tokensNum = probsShape->GetStorageShape().GetDim(0);
-    //     int64_t topK = probsShape->GetStorageShape().GetDim(1);
-    //     int64_t totalLength = indicesShape->GetStorageShape().GetDim(0);
-
-    //     OP_TILING_CHECK(
-    //         totalLength != tokensNum * topK,
-    //         VECTOR_INNER_ERR_REPORT_TILIING(
-    //             nodeName,
-    //             "[MoeTokenUnpermute] permutedTokens's dim(0) is not equal to probs's dim(0) * probs's dim(1)."),
-    //         return ge::GRAPH_FAILED);
-    //     OP_TILING_CHECK(
-    //         topK > 512, VECTOR_INNER_ERR_REPORT_TILIING(nodeName, "[MoeTokenUnpermute] topK can not larger than 512."),
-    //         return ge::GRAPH_FAILED);
-    // }
-
     return ge::GRAPH_SUCCESS;
 }
 

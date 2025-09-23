@@ -252,7 +252,7 @@ aclnnStatus aclnnMoeTokenPermuteWithRoutingMapGetWorkspaceSize(
 }
 
 aclnnStatus aclnnMoeTokenPermuteWithRoutingMap(
-    void* workspace, uint64_t workspaceSize, aclOpExecutor* executor, const aclrtStream stream)
+    void* workspace, uint64_t workspaceSize, aclOpExecutor* executor, aclrtStream stream)
 {
     // 固定写法，调用框架能力，完成计算
     L2_DFX_PHASE_2(aclnnMoeTokenPermuteWithRoutingMap);

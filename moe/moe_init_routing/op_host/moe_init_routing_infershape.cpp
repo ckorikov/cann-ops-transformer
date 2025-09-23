@@ -126,7 +126,7 @@ static ge::graphStatus CheckInputDimsAndAttr(
 }
 
 static void ShowInputShapeInfo(
-    gert::InferShapeContext* context, const gert::Shape* xShape, const gert::Shape* rowIdxShape,
+    const gert::InferShapeContext* context, const gert::Shape* xShape, const gert::Shape* rowIdxShape,
     const gert::Shape* expertIdxShape, const int64_t activeNum)
 {
     OP_LOGD(context->GetNodeName(), "x shape is: %s.", Ops::Base::ToString(*xShape).c_str());
@@ -136,7 +136,7 @@ static void ShowInputShapeInfo(
 }
 
 static void ShowOutputShapeInfo(
-    gert::InferShapeContext* context, const gert::Shape* expandedXShape, const gert::Shape* expandedRowIdx,
+    const gert::InferShapeContext* context, const gert::Shape* expandedXShape, const gert::Shape* expandedRowIdx,
     const gert::Shape* expandedExpertIdxShape)
 {
     OP_LOGD(
