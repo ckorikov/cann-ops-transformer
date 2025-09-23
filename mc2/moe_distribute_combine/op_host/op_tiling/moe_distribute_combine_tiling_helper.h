@@ -49,14 +49,14 @@ public:
 
 protected:
     static bool CheckTensorDim(gert::TilingContext *context, const char *nodeName);
-    static bool CheckTensorDataType(gert::TilingContext *context, const char *nodeName);
-    static bool CheckTensorFormat(gert::TilingContext *context, const char *nodeName);
+    static bool CheckTensorDataType(const gert::TilingContext *context, const char *nodeName);
+    static bool CheckTensorFormat(const gert::TilingContext *context, const char *nodeName);
 
 private:
-    inline static bool CheckInputTensorDim(gert::TilingContext *context, const char *nodeName);
-    inline static bool CheckInputSendCountsTensorDim(gert::TilingContext *context, const char *nodeName);
-    inline static bool CheckInputExpertScalesTensorDim(gert::TilingContext *context, const char *nodeName);
-    inline static bool CheckOutputTensorDim(gert::TilingContext *context, const char *nodeName);
+    inline static bool CheckInputTensorDim(const gert::TilingContext *context, const char *nodeName);
+    inline static bool CheckInputSendCountsTensorDim(const gert::TilingContext *context, const char *nodeName);
+    inline static bool CheckInputExpertScalesTensorDim(const gert::TilingContext *context, const char *nodeName);
+    inline static bool CheckOutputTensorDim(const gert::TilingContext *context, const char *nodeName);
 };
 } // namespace optiling
 #endif // MOE_DISTRIBUTE_COMBINE_TILING_HELPER_H

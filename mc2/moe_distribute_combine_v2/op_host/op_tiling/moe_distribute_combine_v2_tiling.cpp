@@ -1195,7 +1195,7 @@ static ge::graphStatus MoeDistributeCombineA2CheckAttrAndSetTiling(const gert::T
     return ge::GRAPH_SUCCESS;
 }
 
-static ge::graphStatus MoeDistributeCombineA2CheckShapeAndSetTiling(gert::TilingContext *context,
+static ge::graphStatus MoeDistributeCombineA2CheckShapeAndSetTiling(const gert::TilingContext *context,
                                                                     MoeDistributeCombineA2Info &info, bool isLayered)
 {
     const gert::StorageShape *expandXStorageShape = context->GetInputShape(EXPAND_X_INDEX);
@@ -1262,7 +1262,7 @@ static ge::graphStatus MoeDistributeCombineA2CheckShapeAndSetTiling(gert::Tiling
     return ge::GRAPH_SUCCESS;
 }
 
-static ge::graphStatus MoeDistributeCombineA2GetPlatformInfoAndSetTiling(gert::TilingContext *context, MoeDistributeCombineA2Info& info)
+static ge::graphStatus MoeDistributeCombineA2GetPlatformInfoAndSetTiling(const gert::TilingContext *context, MoeDistributeCombineA2Info& info)
 {
     auto ascendcPlatform = platform_ascendc::PlatformAscendC(context->GetPlatformInfo());
     uint32_t aivNum = ascendcPlatform.GetCoreNumAiv();
@@ -1280,7 +1280,7 @@ static ge::graphStatus MoeDistributeCombineA2GetPlatformInfoAndSetTiling(gert::T
 
 // 为了兼容老版本，在未配置commAlg参数时，读取环境变量；
 // commAlg参数当前支持"fullmesh"和"hierarchy"两种，其余报错。
-static ge::graphStatus MoeDistributeCombineCheckCommAlg(gert::TilingContext *context, bool &isLayered)
+static ge::graphStatus MoeDistributeCombineCheckCommAlg(const gert::TilingContext *context, bool &isLayered)
 {
     isLayered = false;
     auto attrs = context->GetAttrs();

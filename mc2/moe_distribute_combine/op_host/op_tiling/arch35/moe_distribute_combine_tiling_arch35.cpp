@@ -166,7 +166,7 @@ inline ge::graphStatus CheckSharedExpertAttrs(const char *nodeName, const int64_
     return ge::GRAPH_SUCCESS;
 }
 
-static ge::graphStatus GetAttrAndSetTilingData(gert::TilingContext *context,
+static ge::graphStatus GetAttrAndSetTilingData(const gert::TilingContext *context,
                                                MoeDistributeCombineTilingDataA5 &tilingData, const char *nodeName)
 {
     auto attrs = context->GetAttrs();
@@ -252,7 +252,7 @@ inline ge::graphStatus CheckEpWorldSize(const char *nodeName, uint32_t epWorldSi
     return ge::GRAPH_SUCCESS;
 }
 
-static bool CheckAttrs(gert::TilingContext *context, MoeDistributeCombineTilingDataA5 &tilingData, const char *nodeName,
+static bool CheckAttrs(const gert::TilingContext *context, MoeDistributeCombineTilingDataA5 &tilingData, const char *nodeName,
                        uint32_t &localMoeExpertNum)
 {
     uint32_t epWorldSize = tilingData.combineTilingInfo.get_epWorldSize();
@@ -320,7 +320,7 @@ static bool CheckAttrs(gert::TilingContext *context, MoeDistributeCombineTilingD
     return true;
 }
 
-inline ge::graphStatus CheckInputTensorShape(gert::TilingContext *context, MoeDistributeCombineTilingDataA5 &tilingData,
+inline ge::graphStatus CheckInputTensorShape(const gert::TilingContext *context, MoeDistributeCombineTilingDataA5 &tilingData,
                                              const char *nodeName, bool isShared, int64_t tpWorldSize,
                                              int64_t expertIdsDim0,
                                              int64_t expertIdsDim1)

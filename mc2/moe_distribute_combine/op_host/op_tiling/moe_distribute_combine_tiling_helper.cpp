@@ -24,7 +24,7 @@
 using namespace ge;
 
 namespace optiling {
-inline bool MoeDistributeCombineTilingHelper::CheckInputTensorDim(gert::TilingContext *context, const char *nodeName)
+inline bool MoeDistributeCombineTilingHelper::CheckInputTensorDim(const gert::TilingContext *context, const char *nodeName)
 {
     const gert::StorageShape *expandXStorageShape = context->GetInputShape(EXPAND_X_INDEX);
     OP_TILING_CHECK(expandXStorageShape == nullptr, OP_LOGE(nodeName, "expandX is null."), return false);
@@ -54,7 +54,7 @@ inline bool MoeDistributeCombineTilingHelper::CheckInputTensorDim(gert::TilingCo
     return true;
 }
 
-inline bool MoeDistributeCombineTilingHelper::CheckInputSendCountsTensorDim(gert::TilingContext *context,
+inline bool MoeDistributeCombineTilingHelper::CheckInputSendCountsTensorDim(const gert::TilingContext *context,
                                                                             const char *nodeName)
 {
     const gert::StorageShape *epSendCountsStorageShape = context->GetInputShape(EP_SEND_COUNTS_INDEX);
@@ -75,7 +75,7 @@ inline bool MoeDistributeCombineTilingHelper::CheckInputSendCountsTensorDim(gert
     return true;
 }
 
-inline bool MoeDistributeCombineTilingHelper::CheckInputExpertScalesTensorDim(gert::TilingContext *context,
+inline bool MoeDistributeCombineTilingHelper::CheckInputExpertScalesTensorDim(const gert::TilingContext *context,
                                                                               const char *nodeName)
 {
     const gert::StorageShape *expertScalesStorageShape = context->GetInputShape(EXPERT_SCALES_INDEX);
@@ -89,7 +89,7 @@ inline bool MoeDistributeCombineTilingHelper::CheckInputExpertScalesTensorDim(ge
     return true;
 }
 
-inline bool MoeDistributeCombineTilingHelper::CheckOutputTensorDim(gert::TilingContext *context, const char *nodeName)
+inline bool MoeDistributeCombineTilingHelper::CheckOutputTensorDim(const gert::TilingContext *context, const char *nodeName)
 {
     const gert::StorageShape *xStorageShape = context->GetOutputShape(OUTPUT_X_INDEX);
     OP_TILING_CHECK(xStorageShape == nullptr, OP_LOGE(nodeName, "x is null."), return false);
@@ -120,7 +120,7 @@ bool MoeDistributeCombineTilingHelper::CheckTensorDim(gert::TilingContext *conte
 }
 
 // 校验数据类型
-bool MoeDistributeCombineTilingHelper::CheckTensorDataType(gert::TilingContext *context, const char *nodeName)
+bool MoeDistributeCombineTilingHelper::CheckTensorDataType(const gert::TilingContext *context, const char *nodeName)
 {
     auto expandXDesc = context->GetInputDesc(EXPAND_X_INDEX);
     OP_TILING_CHECK(expandXDesc == nullptr, OP_LOGE(nodeName, "expandxDesc is null."), return false);
@@ -174,7 +174,7 @@ bool MoeDistributeCombineTilingHelper::CheckTensorDataType(gert::TilingContext *
     return true;
 }
 
-bool MoeDistributeCombineTilingHelper::CheckTensorFormat(gert::TilingContext *context, const char *nodeName)
+bool MoeDistributeCombineTilingHelper::CheckTensorFormat(const gert::TilingContext *context, const char *nodeName)
 {
     auto expandXDesc = context->GetInputDesc(EXPAND_X_INDEX);
     OP_TILING_CHECK(expandXDesc == nullptr, OP_LOGE(nodeName, "expandxDesc is null."), return false);
