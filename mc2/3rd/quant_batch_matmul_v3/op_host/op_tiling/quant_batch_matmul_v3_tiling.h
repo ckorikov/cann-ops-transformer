@@ -8,13 +8,10 @@
  * See LICENSE in the root of the software repository for the full text of the License.
  */
 
-
-
 /*!
  * \file quant_batch_matmul_v3_tiling.h
  * \brief
  */
-
 
 #ifndef QUANT_BATCH_MATMUL_V3_TILING_H
 #define QUANT_BATCH_MATMUL_V3_TILING_H

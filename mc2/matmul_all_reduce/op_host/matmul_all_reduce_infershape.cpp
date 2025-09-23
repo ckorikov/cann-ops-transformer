@@ -56,7 +56,7 @@ static ge::graphStatus CheckScaleShape(
     return ge::GRAPH_SUCCESS;
 }
 
-static ge::graphStatus InferShapeForMatmul(gert::InferShapeContext* context, MatmulShapeInfo& shape, bool is_arn)
+static ge::graphStatus InferShapeForMatmul(const gert::InferShapeContext* context, MatmulShapeInfo& shape, bool is_arn)
 {
     const auto shape_x1 = context->GetInputShape(static_cast<size_t>(MC2InputIdx::K_X1));
     OPS_CHECK_NULL_WITH_CONTEXT(context, shape_x1);
@@ -100,7 +100,8 @@ static ge::graphStatus InferShapeForMatmul(gert::InferShapeContext* context, Mat
                 context->GetNodeName(), "Invalid shape for x1(k): %ld, x2(k): %ld", shape.k,
                 shape_x2->GetDim(shapeX2KIndex)),
             return ge::GRAPH_FAILED);
-        const size_t scale_idx = static_cast<size_t>(MC2InputIdx::K_SCALE);
+        const size_t scale_idx =
+            is_arn ? static_cast<size_t>(MC2AddRmsNormInputIdx::K_SCALE) : static_cast<size_t>(MC2InputIdx::K_SCALE);
         const int64_t* p = attrs->GetInt(static_cast<size_t>(MmAllReduceAttrIdx::K_ANTIQUANT_GROUP_SIZE));
         const int64_t group_size = (p != nullptr ? *p : 0);
         OPS_CHECK(

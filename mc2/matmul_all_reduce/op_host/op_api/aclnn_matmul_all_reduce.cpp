@@ -31,7 +31,6 @@
 #include "opdev/make_op_executor.h"
 #include "opdev/op_log.h"
 #include "opdev/platform.h"
-// #include "matmul_util.h"
 #include "matmul_all_reduce_util.h"
 #include "aclnn_kernels/contiguous.h"
 #include "matmul_all_reduce_util.h"

@@ -14,7 +14,6 @@
 #include "opdev/common_types.h"
 #include "opdev/platform.h"
 #include "acl/acl.h"
-// #include "matmul_util.h"
 #include "matmul_all_reduce/op_host/op_api/matmul_all_reduce_util.h"
 
 #ifdef __cplusplus

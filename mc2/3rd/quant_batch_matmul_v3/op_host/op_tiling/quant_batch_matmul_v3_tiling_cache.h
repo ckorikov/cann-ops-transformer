@@ -17,7 +17,6 @@
 
 #include "quant_batch_matmul_v3_basic_tiling.h"
 #include "common/op_host/op_tiling/tiling_cache.h"
-using Ops::Transformer::OpTiling::AiCoreParams;
 
 namespace optiling {
 struct QuantBatchMatmulV3BitField {
@@ -35,7 +34,7 @@ struct QuantBatchMatmulV3BitField {
 
 class QuantBatchMatmulV3HashInput {
 public:
-    explicit QuantBatchMatmulV3HashInput(const QuantBatchMatmulInfo &params, const AiCoreParams &aicoreParams);
+    explicit QuantBatchMatmulV3HashInput(const QuantBatchMatmulInfo &params, const Ops::Transformer::OpTiling::AiCoreParams &aicoreParams);
     ~QuantBatchMatmulV3HashInput() = default;
     bool operator==(const QuantBatchMatmulV3HashInput &params) const
     {
@@ -70,7 +69,7 @@ private:
 
 class QuantBatchMatmulV3HashItem {
 public:
-    explicit QuantBatchMatmulV3HashItem(const QuantBatchMatmulInfo &params, const AiCoreParams &aicoreParams)
+    explicit QuantBatchMatmulV3HashItem(const QuantBatchMatmulInfo &params, const Ops::Transformer::OpTiling::AiCoreParams &aicoreParams)
         : hashKey_(params, aicoreParams)
     {
     }

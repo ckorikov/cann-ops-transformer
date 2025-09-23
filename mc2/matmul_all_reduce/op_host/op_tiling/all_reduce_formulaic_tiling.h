@@ -83,7 +83,7 @@ public:
     }
 
     void EstimateKernelTime() override;
-    void SmallShortCheck(uint64_t totalLen, uint64_t& longTileLen, uint64_t& shortTileLen);
+    void SmallShortCheck(const uint64_t totalLen, uint64_t& longTileLen, const uint64_t& shortTileLen);
     void UniformCutSetShort(uint64_t totalLen, uint64_t minAlign, uint64_t& shortTileLen);
     void SelectTilingMethod() override;
 };

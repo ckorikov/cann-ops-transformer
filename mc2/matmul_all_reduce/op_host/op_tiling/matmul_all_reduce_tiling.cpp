@@ -38,11 +38,11 @@
 #include "matmul_all_reduce_tiling_910.h"
 #include "weight_quant_matmul_all_reduce_tiling.h"
 #include "util/math_util.h"
-// #if defined(__DAV_C310__)
+// __DAV_C310__
 #include "arch35/quant_matmul_all_reduce_tiling_910_95.h"
 #include "arch35/matmul_all_reduce_tiling_910_95.h"
 #include "arch35/weight_quant_matmul_all_reduce_tiling_910_95.h"
-// #endif
+// end __DAV_C310__
 #include "arch31/matmul_all_reduce_tiling_310_general.h"
 #include "arch31/quant_matmul_all_reduce_tiling_310_general.h"
 #include "arch31/weight_quant_matmul_all_reduce_tiling_310p.h"
@@ -293,13 +293,13 @@ void MatmulAllReduceTilingBase::SetMCutSocVersion(SocVersion& inputSocVersion)
         OP_LOGD(opName_, "TileCnt enter 310P branch.");
         return;
     }
-    // #if defined(__DAV_C310__)
+    // __DAV_C310__
     if (socVersion_ == platform_ascendc::SocVersion::ASCEND910_95) {
         inputSocVersion = SocVersion::SOC910_95;
         OP_LOGD(opName_, "TileCnt enter 910_95 branch.");
         return;
     }
-    // #endif
+    // end __DAV_C310__
     auto platformInfo = context_->GetPlatformInfo();
     auto ascendcPlatform = platform_ascendc::PlatformAscendC(platformInfo);
     uint64_t socMemSize = L2_CACHE_SIZE_910_B4;
@@ -486,14 +486,14 @@ ge::graphStatus MatmulAllReduceTilingBase::GetWorkspaceSize()
     MutableRCSTilingData().set_biasLen(biasLen);
     uint64_t gmcFloat = 0;
 
-    // #if defined(__DAV_C310__)
+    // __DAV_C310__
     // 910D需要自己申请一块workSpace存放mm的输出
     if (socVersion_ == platform_ascendc::SocVersion::ASCEND910_95) {
         gmcFloat = static_cast<uint64_t>(MutableRCSTilingData().get_rankM()) *
                    static_cast<uint64_t>(MutableRCSTilingData().get_rankN()) *
                    static_cast<uint64_t>(args_.outputDtypeSize);
     }
-    // #endif
+    // end __DAV_C310__
 
     uint32_t mmOutInt32Len = 0;
     if (isUbQuant_) {
@@ -753,8 +753,8 @@ ge::graphStatus MatmulAllReduceTilingBase::CheckA8W8()
             "when both dtype of x1 and dtype of x2 are equal to int8,"
             "antiquantScale, antiquantOffset should be null"),
         return ge::GRAPH_FAILED);
-    // #if defined(__DAV_C310__)
-    // #endif
+    // __DAV_C310__
+    // end __DAV_C310__
     if ((socVersion_ == platform_ascendc::SocVersion::ASCEND910B) ||
         (socVersion_ == platform_ascendc::SocVersion::ASCEND910_95)) {
         OP_TILING_CHECK(
@@ -1482,8 +1482,8 @@ AntiQuantType MatmulAllReduceTilingBase::GetAntiQuantType()
 
 void MatmulAllReduceTilingBase::CalcUbTiling()
 {
-    // #if defined(__DAV_C310__)
-    // #endif
+    // __DAV_C310__
+    // end __DAV_C310__
     uint32_t addX3UbBufFac =
         ((args_.geCType == ge::DT_BF16) && (socVersion_ != platform_ascendc::SocVersion::ASCEND910_95)) ?
             ADD_X3_BF16_UB_BUF_FACTOR :
@@ -1528,11 +1528,11 @@ REGISTER_TILING_TEMPLATE("MatmulAllReduce", QuantMatmulAllReduceTiling310General
 REGISTER_TILING_TEMPLATE("MatmulAllReduce", UnQuantMatmulAllReduceTiling310, 4);
 REGISTER_TILING_TEMPLATE("MatmulAllReduce", MatmulAllReduceTiling910, 5);
 REGISTER_TILING_TEMPLATE("MatmulAllReduce", MatmulAllReduceTiling310General, 6);
-// #if defined(__DAV_C310__)
+// __DAV_C310__
 REGISTER_TILING_TEMPLATE("MatmulAllReduce", QuantMatmulAllReduceTilingA5, 7);
 REGISTER_TILING_TEMPLATE("MatmulAllReduce", WeightQuantMatmulAllReduceTilingA5, 8);
 REGISTER_TILING_TEMPLATE("MatmulAllReduce", MatmulAllReduceTilingA5, 9);
-// #endif
+// end __DAV_C310__
 
 ge::graphStatus MatmulAllReduceTilingFunc(gert::TilingContext* context)
 {

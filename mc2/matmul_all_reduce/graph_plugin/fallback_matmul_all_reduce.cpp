@@ -33,7 +33,7 @@ struct MatmulParas {
 };
 
 inline ge::graphStatus GetMatmulPara(
-    gert::OpExecuteContext* host_api_ctx, size_t x1_idx, size_t x2_idx, size_t bias_idx, MatmulParas& para)
+    const gert::OpExecuteContext* host_api_ctx, size_t x1_idx, size_t x2_idx, size_t bias_idx, MatmulParas& para)
 {
     const auto x1 = host_api_ctx->GetInputTensor(x1_idx);
     OPS_CHECK(x1 == nullptr, OP_LOGE(host_api_ctx->GetNodeName(), "x1 is null"), return ge::GRAPH_FAILED);
@@ -77,7 +77,7 @@ struct QuantParas {
 };
 
 inline ge::graphStatus GetQuantPara(
-    gert::OpExecuteContext* host_api_ctx, size_t scale_idx, size_t offset_idx, size_t dequant_idx, size_t pertoken_idx,
+    const gert::OpExecuteContext* host_api_ctx, size_t scale_idx, size_t offset_idx, size_t dequant_idx, size_t pertoken_idx,
     size_t comm_quant_scale_1_idx, size_t comm_quant_scale_2_idx, QuantParas& para)
 {
     const auto attrs = host_api_ctx->GetAttrs();
@@ -127,7 +127,7 @@ struct CommParas {
     int64_t comm_turn;
 };
 
-inline ge::graphStatus GetCommPara(gert::OpExecuteContext* host_api_ctx, CommParas& para)
+inline ge::graphStatus GetCommPara(const gert::OpExecuteContext* host_api_ctx, CommParas& para)
 {
     const auto attrs = host_api_ctx->GetAttrs();
     OPS_CHECK(attrs == nullptr, OP_LOGE(host_api_ctx->GetNodeName(), "attrs is null"), return ge::GRAPH_FAILED);
@@ -149,7 +149,7 @@ struct AllReduceParas {
     int64_t comm_quant_mode;
 };
 
-ge::graphStatus GetAllReducePara(gert::OpExecuteContext* host_api_ctx, AllReduceParas& para)
+ge::graphStatus GetAllReducePara(const gert::OpExecuteContext* host_api_ctx, AllReduceParas& para)
 {
     const auto attrs = host_api_ctx->GetAttrs();
 

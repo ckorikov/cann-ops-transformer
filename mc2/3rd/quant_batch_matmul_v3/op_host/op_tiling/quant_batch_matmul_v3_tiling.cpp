@@ -24,8 +24,8 @@
 #include <map>
 #include <numeric>
 
-#include "tiling/tiling_templates_registry.h"
-#include "tiling/tiling_type.h"
+#include "tiling_base/tiling_templates_registry.h"
+#include "tiling_base/tiling_type.h"
 #include "cube_tiling_runtime.h"
 #include "graph/utils/type_utils.h"
 #include "op_log.h"

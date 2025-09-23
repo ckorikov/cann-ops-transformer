@@ -23,8 +23,6 @@
 #include "op_cache_tiling.h"
 #include "common/op_host/math_util.h"
 
-using Ops::Transformer::OpTiling::TilingBaseClass;
-
 namespace optiling {
 
 constexpr uint64_t BASIC_ALIGN_16 = 16;
@@ -113,7 +111,7 @@ enum class BasicQuantMode : uint32_t {
     PERBLOCK_MODE = 0x1U << 4,
 };
 
-class QuantBatchMatmulV3TilingBase : public TilingBaseClass {
+class QuantBatchMatmulV3TilingBase : public Ops::Transformer::OpTiling::TilingBaseClass {
 public:
     explicit QuantBatchMatmulV3TilingBase(gert::TilingContext *context, bool isTilingOut);
     ~QuantBatchMatmulV3TilingBase() override = default;

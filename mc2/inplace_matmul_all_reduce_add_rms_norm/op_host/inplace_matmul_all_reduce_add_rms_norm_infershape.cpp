@@ -55,7 +55,7 @@ static ge::graphStatus CheckScaleShape(
     return ge::GRAPH_SUCCESS;
 }
 
-static ge::graphStatus InferShapeForMatmul(gert::InferShapeContext* context, MatmulShapeInfo& shape, bool is_arn)
+static ge::graphStatus InferShapeForMatmul(const gert::InferShapeContext* context, MatmulShapeInfo& shape, bool is_arn)
 {
     const auto shape_x1 = context->GetInputShape(static_cast<size_t>(MC2InputIdx::K_X1));
     OPS_CHECK_NULL_WITH_CONTEXT(context, shape_x1);
@@ -114,7 +114,7 @@ static ge::graphStatus InferShapeForMatmul(gert::InferShapeContext* context, Mat
     return ge::GRAPH_SUCCESS;
 }
 
-static bool InferAllZeroShape(gert::InferShapeContext* context)
+static bool InferAllZeroShape(const gert::InferShapeContext* context)
 {
     const auto shape_x1 = context->GetInputShape(static_cast<size_t>(MC2AddRmsNormInputIdx::K_X1));
     if (shape_x1 == nullptr) {

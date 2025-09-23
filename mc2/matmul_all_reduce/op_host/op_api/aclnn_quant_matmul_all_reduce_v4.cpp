@@ -31,7 +31,6 @@
 #include "opdev/make_op_executor.h"
 #include "opdev/op_log.h"
 #include "opdev/platform.h"
-// #include "matmul_util.h"
 #include "matmul_all_reduce_util.h"
 #include "aclnn_kernels/contiguous.h"
 #include "matmul_all_reduce_util.h"
@@ -147,7 +146,7 @@ static bool CheckDtypeValid(
 // 检查传入的reduction数值是否在可选范围内
 static bool CheckAttr(const char* reduceOp, int64_t streamMode)
 {
-    if (strncmp(reduceOp, REDUCE_OP_SUM, NUM_THREE)) {
+    if (strncmp(reduceOp, REDUCE_OP_SUM, NUM_THREE) != 0) {
         OP_LOGE(ACLNN_ERR_PARAM_INVALID, "Expected reduceOp to be sum, but got=%s.", reduceOp);
         return false;
     }

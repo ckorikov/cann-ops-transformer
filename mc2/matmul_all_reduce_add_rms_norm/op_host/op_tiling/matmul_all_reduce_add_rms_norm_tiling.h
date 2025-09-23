@@ -62,7 +62,7 @@ class MMNTilingTransferHelper : public MatmulAllReduceTiling910
 {
 public:
     MMNTilingTransferHelper(
-        MatmulAllReduceAddRmsNormTiling& weightQuantMatmulAllReduceAddRmsNormTiling,
+        MatmulAllReduceAddRmsNormTiling& MatmulAllReduceAddRmsNormTiling,
         MatmulAllReduce910TilingData& data);
     ge::graphStatus GetShapeAttrsInfo() override;
 

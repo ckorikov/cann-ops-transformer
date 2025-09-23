@@ -42,7 +42,8 @@ protected:
     void DoWeightAntiQuantTiling();
 
     void GetL2CacheParm(
-        uint64_t& l2CacheSize, uint64_t& singleMatrixSize, uint32_t& tileSize, uint32_t& tileLimit, bool useNewPara);
+        uint64_t& l2CacheSize, uint64_t& singleMatrixSize,
+        uint32_t& tileSize, uint32_t& tileLimit, bool useNewPara) override;
 
     void SetTransLength(matmul_tiling::MultiCoreMatmulTiling& mm1, TCubeTiling& cubeTiling);
 

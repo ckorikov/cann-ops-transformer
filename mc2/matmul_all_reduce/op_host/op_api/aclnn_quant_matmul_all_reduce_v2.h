@@ -66,7 +66,7 @@ ACLNN_API aclnnStatus aclnnQuantMatmulAllReduceV2GetWorkspaceSize(
  * @return aclnnStatus: 返回状态码
  */
 ACLNN_API aclnnStatus
-aclnnQuantMatmulAllReduceV2(void* workspace, uint64_t workspaceSize, aclOpExecutor* executor, aclrtStream stream);
+aclnnQuantMatmulAllReduceV2(void* workspace, uint64_t workspaceSize, aclOpExecutor* executor, const aclrtStream stream);
 
 #ifdef __cplusplus
 }

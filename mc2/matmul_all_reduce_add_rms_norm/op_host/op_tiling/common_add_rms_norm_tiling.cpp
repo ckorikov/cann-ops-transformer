@@ -33,6 +33,13 @@ constexpr uint32_t VALUE_256 = 256U;
 constexpr uint32_t VALUE_1024 = 1024U;
 constexpr uint32_t SMALL_REDUCE_NUM = 2000;
 constexpr uint32_t COL_ALIGN_SIZE = 260;
+constexpr uint32_t NUM_ROW_IDX = 0;
+constexpr uint32_t NUM_COL_IDX = 1;
+constexpr uint32_t BLOCK_FACTOR_IDX = 2;
+constexpr uint32_t ROW_FACTOR_IDX = 3;
+constexpr uint32_t UB_FACTOR_IDX = 4;
+constexpr uint32_t EPSILON_IDX = 5;
+constexpr uint32_t AVG_FACTOR_IDX = 6;
 
 using TilingInfo = std::tuple<uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, float, float>;
 void SetWorkSpaceSize(AddRMSNormTilingOutput& addRmsNormTilingOutput)
@@ -54,13 +61,13 @@ void SetBlockDim(const uint32_t numRow, const uint32_t blockFactor, AddRMSNormTi
 void SetTilingData(const TilingInfo& tilingInfo, AddRMSNormTilingOutput& addRmsNormTilingOutput)
 {
     auto&& tilingData = addRmsNormTilingOutput.addRmsNormTilingData;
-    tilingData.set_num_row(std::get<0>(tilingInfo));
-    tilingData.set_num_col(std::get<1>(tilingInfo));
-    tilingData.set_block_factor(std::get<2>(tilingInfo));
-    tilingData.set_row_factor(std::get<3>(tilingInfo));
-    tilingData.set_ub_factor(std::get<4>(tilingInfo));
-    tilingData.set_epsilon(std::get<5>(tilingInfo));
-    tilingData.set_avg_factor(std::get<6>(tilingInfo));
+    tilingData.set_num_row(std::get<NUM_ROW_IDX>(tilingInfo));
+    tilingData.set_num_col(std::get<NUM_COL_IDX>(tilingInfo));
+    tilingData.set_block_factor(std::get<BLOCK_FACTOR_IDX>(tilingInfo));
+    tilingData.set_row_factor(std::get<ROW_FACTOR_IDX>(tilingInfo));
+    tilingData.set_ub_factor(std::get<UB_FACTOR_IDX>(tilingInfo));
+    tilingData.set_epsilon(std::get<EPSILON_IDX>(tilingInfo));
+    tilingData.set_avg_factor(std::get<AVG_FACTOR_IDX>(tilingInfo));
 }
 ge::graphStatus AssembleX1Shape(const AddRMSNormTilingDepend& addRmsNormTilingDepend, gert::Shape& xShape)
 {

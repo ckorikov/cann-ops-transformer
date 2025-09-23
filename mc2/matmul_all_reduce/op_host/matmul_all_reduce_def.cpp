@@ -509,7 +509,6 @@ public:
         this->AICore().AddConfig("ascend910_95", aicore_config);
         this->MC2().HcclGroup("group");
 
-
         OpAICoreConfig aicore_config_910b;
         aicore_config_910b.Input("x1")
             .ParamType(REQUIRED)

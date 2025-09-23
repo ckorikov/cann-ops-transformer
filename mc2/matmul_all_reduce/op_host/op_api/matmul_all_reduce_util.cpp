@@ -19,7 +19,6 @@
 #include "opdev/op_dfx.h"
 #include "opdev/op_executor.h"
 #include "opdev/op_log.h"
-// #include "matmul_util.h"
 
 using namespace op;
 

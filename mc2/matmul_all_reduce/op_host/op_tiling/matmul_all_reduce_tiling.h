@@ -245,7 +245,7 @@ protected:
     bool CheckPlatformInfo() const;
     bool CheckMXScenarioScaleShape(
         const uint64_t dimZeroValue, const uint64_t kValue, 
-        const gert::StorageShape* scaleShape, const bool isPertoken, bool isMXfp4) const;
+        const gert::StorageShape* scaleShape, const bool isPertoken, const bool isMXfp4) const;
     AllReduceScenario GetAllReduceScenario(
         const DataType aType, const DataType bType, const gert::StorageShape* dequantScale,
         const gert::StorageShape* antiQuantScale) const;
