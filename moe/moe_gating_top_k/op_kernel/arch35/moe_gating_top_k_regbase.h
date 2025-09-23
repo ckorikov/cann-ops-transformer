@@ -18,8 +18,8 @@
 #include <cmath>
 #include "common.h"
 #include "kernel_operator.h"
-#include "kernel_utils.h"
-#include "load_store_utils.h"
+#include "../../inc/kernel_utils.h"
+#include "../../inc/load_store_utils.h"
 
 namespace MoeGatingTopK {
 using namespace AscendC;
