@@ -19,7 +19,7 @@
 
 namespace optiling {
 
-class MoeReRoutingTiling : public TilingBaseClass {
+class MoeReRoutingTiling : public Ops::Transformer::OpTiling::TilingBaseClass {
 public:
     explicit MoeReRoutingTiling(gert::TilingContext *context_) : TilingBaseClass(context_)
     {}

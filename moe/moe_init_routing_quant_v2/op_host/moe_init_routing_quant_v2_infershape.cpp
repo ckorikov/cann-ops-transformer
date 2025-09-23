@@ -68,7 +68,7 @@ static bool isSameDim(int64_t dim1, int64_t dim2)
 }
 
 static ge::graphStatus CheckInputShape(
-    gert::InferShapeContext* context, const gert::Shape* xShape, const gert::Shape* expertIdxShape)
+    const gert::InferShapeContext* context, const gert::Shape* xShape, const gert::Shape* expertIdxShape)
 {
     int64_t x_n = xShape->GetDimNum() == 1U ? OTHER_SHAPE : xShape->GetDim(0);
     int64_t cols = xShape->GetDimNum() == 1U ? OTHER_SHAPE : xShape->GetDim(1);
@@ -94,7 +94,7 @@ static ge::graphStatus CheckInputShape(
 }
 
 static ge::graphStatus CheckParm(
-    gert::InferShapeContext* context, MoeInitRoutingQuantV2InputParam moeInitRoutingQuantV2InputParam)
+    const gert::InferShapeContext* context, MoeInitRoutingQuantV2InputParam moeInitRoutingQuantV2InputParam)
 {
     const gert::Shape* xShape = moeInitRoutingQuantV2InputParam.xShape;
     const gert::Shape* expertIdxShape = moeInitRoutingQuantV2InputParam.expertIdxShape;
@@ -198,7 +198,7 @@ static ge::graphStatus CheckScaleOffset(gert::InferShapeContext* context, const 
 }
 
 static ge::graphStatus CheckScaleOffsetInput(
-    gert::InferShapeContext* context, const int64_t quantMode, const int64_t dropPadMode, const int64_t expertNum,
+    gert::InferShapeContext* context, const int64_t quantMode, const int64_t expertNum,
     const int64_t cols)
 {
     const gert::Shape* scaleShape = context->GetInputShape(INDEX_INPUT_SCALE);
@@ -380,7 +380,7 @@ static ge::graphStatus InferShape4MoeInitRoutingQuantV2(gert::InferShapeContext*
     }
 
     int64_t cols = xShape->GetDimNum() == 1U ? OTHER_SHAPE : xShape->GetDim(1);
-    if (CheckScaleOffsetInput(context, quantMode, dropPadMode, expertNum, cols) != ge::GRAPH_SUCCESS) {
+    if (CheckScaleOffsetInput(context, quantMode, expertNum, cols) != ge::GRAPH_SUCCESS) {
         return ge::GRAPH_FAILED;
     }
 

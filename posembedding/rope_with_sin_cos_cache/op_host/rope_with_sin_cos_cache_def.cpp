@@ -19,7 +19,6 @@
  * \brief
  */
 #include "register/op_def_registry.h"
-#include <cstdint>
 
 namespace ops {
 class RopeWithSinCosCache : public OpDef

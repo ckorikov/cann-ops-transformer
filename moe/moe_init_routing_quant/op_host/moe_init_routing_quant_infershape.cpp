@@ -35,7 +35,7 @@ static bool isSameDim(int64_t dim1, int64_t dim2)
 }
 
 static ge::graphStatus CheckInputShape(
-    gert::InferShapeContext* context, const gert::Shape* xShape, const gert::Shape* rowIdxShape,
+    const gert::InferShapeContext* context, const gert::Shape* xShape, const gert::Shape* rowIdxShape,
     const gert::Shape* expertIdxShape)
 {
     int64_t x_n = xShape->GetDimNum() == 1U ? NEG_ONE : xShape->GetDim(0);
@@ -128,7 +128,7 @@ static ge::graphStatus CheckInputDimsAndAttr(
 }
 
 static void ShowInputShapeInfo(
-    gert::InferShapeContext* context, const gert::Shape* xShape, const gert::Shape* rowIdxShape,
+    const gert::InferShapeContext* context, const gert::Shape* xShape, const gert::Shape* rowIdxShape,
     const gert::Shape* expertIdxShape, const int64_t activeNum)
 {
     OP_LOGD(context->GetNodeName(), "x shape is: %s.", Ops::Base::ToString(*xShape).c_str());

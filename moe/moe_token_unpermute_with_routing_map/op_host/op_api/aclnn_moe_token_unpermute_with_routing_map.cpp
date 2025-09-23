@@ -110,7 +110,10 @@ static inline bool CheckNotNull(const aclTensor* permuteTokens,
 static inline bool CheckDtypeValid(const aclTensor* permuteTokens,
                                    const aclTensor* sortedIndices,
                                    const aclTensor* probsOptional,
-                                   aclTensor* unpermutedTokens, aclTensor* outIndex, aclTensor* permuteTokenId, aclTensor* permuteProbs)
+                                   const aclTensor* unpermutedTokens, 
+                                   const aclTensor* outIndex, 
+                                   const aclTensor* permuteTokenId, 
+                                   const aclTensor* permuteProbs)
 {
     // 检查gradY的数据类型是否在支持列表内
     OP_CHECK_DTYPE_NOT_SUPPORT(permuteTokens, dtype_list, return false);
@@ -164,9 +167,7 @@ static bool CheckShapeValid(const aclTensor* permuteTokens, const aclTensor* sor
 
 static aclnnStatus CheckParams(const aclTensor* permuteTokens,
                                const aclTensor* sortedIndices,
-                               const aclTensor* routingMapOptional,
                                const aclTensor* probsOptional, 
-                               bool paddedMode,
                                const aclIntArray* restoreShapeOptional,
                                aclTensor* unpermutedTokens, aclTensor* outIndex, aclTensor* permuteTokenId, aclTensor* permuteProbs)
 {
@@ -206,8 +207,8 @@ aclnnStatus aclnnMoeTokenUnpermuteWithRoutingMapGetWorkspaceSize(const aclTensor
                    DFX_IN(permutedTokens, sortedIndices, routingMapOptional, probsOptional, paddedMode, restoreShapeOptional),
                    DFX_OUT(unpermutedTokens, outIndex, permuteTokenId, permuteProbs));
 
-    auto ret = CheckParams(permutedTokens, sortedIndices, routingMapOptional, probsOptional, 
-                           paddedMode, restoreShapeOptional, unpermutedTokens, outIndex, permuteTokenId, permuteProbs);
+    auto ret = CheckParams(permutedTokens, sortedIndices, probsOptional, 
+                           restoreShapeOptional, unpermutedTokens, outIndex, permuteTokenId, permuteProbs);
     CHECK_RET(ret == ACLNN_SUCCESS, ret);
 
     // 固定写法，创建OpExecutor
@@ -242,7 +243,7 @@ aclnnStatus aclnnMoeTokenUnpermuteWithRoutingMapGetWorkspaceSize(const aclTensor
         permuteprob = l0op::MoeTokenUnpermuteWithRoutingMap(permuteTokensContiguous, sortedIndicesContiguous, routingMapOptionalContiguous, probsOptionalContiguous, 
                                                             paddedMode, restoreShapeOptional, uniqueExecutor.get()); //传参
         if(paddedMode == true){
-            int64_t tensorSize = (int64_t)(permuteTokensContiguous->GetViewShape().GetDimNum());
+            int64_t tensorSize = static_cast<int64_t>(permuteTokensContiguous->GetViewShape().GetDimNum());
             std::vector<int64_t> tensorShape(2);
             tensorShape[0] = (permuteTokensContiguous->GetViewShape())[0];
             tensorShape[1] = 1;

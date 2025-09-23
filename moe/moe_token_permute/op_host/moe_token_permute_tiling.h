@@ -20,7 +20,6 @@
 #include "log/log.h"
 #include "tiling_base/tiling_base.h"
 #include "tiling_base/tiling_templates_registry.h"
-using namespace Ops::Transformer::OpTiling;
 namespace optiling {
 BEGIN_TILING_DATA_DEF(PermuteVBSComputeTilingData)
 TILING_DATA_FIELD_DEF(int64_t, needCoreNum);

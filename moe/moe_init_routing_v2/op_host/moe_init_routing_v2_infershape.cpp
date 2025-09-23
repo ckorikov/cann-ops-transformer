@@ -84,7 +84,7 @@ static ge::graphStatus CheckInputShape(const gert::InferShapeContext *context, c
     return ge::GRAPH_SUCCESS;
 }
 
-static ge::graphStatus CheckParm(gert::InferShapeContext *context, const gert::Shape *xShape,
+static ge::graphStatus CheckParm(const gert::InferShapeContext *context, const gert::Shape *xShape,
                                  const gert::Shape *expertIdxShape, const int64_t activeNum,
                                  const int64_t expertCapacity, const int64_t expertNum, const int64_t dropPadMode,
                                  const int64_t expertTokensCountOrCumsumFlag)

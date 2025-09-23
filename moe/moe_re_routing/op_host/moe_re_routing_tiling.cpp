@@ -22,7 +22,7 @@ namespace optiling {
 ge::graphStatus Tiling4MoeReRouting(gert::TilingContext *context)
 {
     OP_LOGD(context, "TilingForMoeReRouting running.");
-    return TilingRegistry::GetInstance().DoTilingImpl(context);
+    return Ops::Transformer::OpTiling::TilingRegistry::GetInstance().DoTilingImpl(context);
 }
 
 ge::graphStatus TilingPrepare4MoeReRouting(gert::TilingParseContext *context)

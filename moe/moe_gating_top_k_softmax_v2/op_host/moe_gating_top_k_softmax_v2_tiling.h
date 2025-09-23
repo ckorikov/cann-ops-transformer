@@ -25,7 +25,6 @@
 #include "register/tilingdata_base.h"
 #include "tiling/tiling_api.h"
 #include "tiling_base/tiling_base.h"
-using namespace Ops::Transformer::OpTiling;
 namespace optiling {
 BEGIN_TILING_DATA_DEF(MoeGatingTopKSoftmaxV2TilingData)
 TILING_DATA_FIELD_DEF(uint32_t, row);
@@ -207,7 +206,7 @@ inline int colNumKey(const uint32_t& col)
     }
 }
 
-class MoeGatingTopKSoftmaxV2BaseTiling : public TilingBaseClass
+class MoeGatingTopKSoftmaxV2BaseTiling : public Ops::Transformer::OpTiling::TilingBaseClass
 {
 public:
     explicit MoeGatingTopKSoftmaxV2BaseTiling(gert::TilingContext* context) : TilingBaseClass(context)

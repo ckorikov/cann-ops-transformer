@@ -140,7 +140,7 @@ inline static int64_t VmsLoops(int64_t x)
 } // namespace
 
 namespace optiling {
-class MoeTokenPermuteWithRoutingMapTilingBase : public TilingBaseClass
+class MoeTokenPermuteWithRoutingMapTilingBase : public Ops::Transformer::OpTiling::TilingBaseClass
 {
 public:
     explicit MoeTokenPermuteWithRoutingMapTilingBase(gert::TilingContext* context) : TilingBaseClass(context)
@@ -769,7 +769,7 @@ void MoeTokenPermuteWithRoutingMapTilingBase::Tiling4IndexCopyCompute()
     int64_t indicesUB = 1;
     if (ubLeft >= BUFFER_NUM * oneTokenBtypeSizeAlign32) {
         onceUbTokenNums = GetDiv(
-            (int64_t)aicoreParams_.ubSize,
+            static_cast<int64_t>(aicoreParams_.ubSize),
             oneTokenBtypeSizeAlign32 * BUFFER_NUM + topK * BUFFER_NUM * INT32_DTYPE_SIZE);
         onceUbTokenNums = std::min(onceUbTokenNums, MAX_BLOCK_COUNT);
         int64_t TopKUbLeft = aicoreParams_.ubSize - onceUbTokenNums * oneTokenBtypeSizeAlign32 * BUFFER_NUM;

@@ -85,7 +85,7 @@ ge::graphStatus MoeFinalizeRoutingTilingV2::DoLibApiTiling()
 
 ge::graphStatus TilingForMoeFinalizeRoutingV2(gert::TilingContext* context)
 {
-    return TilingRegistry::GetInstance().DoTilingImpl(context);
+    return Ops::Transformer::OpTiling::TilingRegistry::GetInstance().DoTilingImpl(context);
 }
 
 ge::graphStatus TilingPrepareForMoeFinalizeRoutingV2(gert::TilingParseContext* context)

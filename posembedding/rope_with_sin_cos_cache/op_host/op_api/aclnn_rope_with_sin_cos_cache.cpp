@@ -27,7 +27,6 @@
 #include "aclnn_kernels/cast.h"
 #include "aclnn_rope_with_sin_cos_cache.h"
 #include "aclnn_kernels/common/op_error_check.h"
-#include "common/op_api_def.h"
 
 #include "aclnn/aclnn_base.h"
 #include "opdev/common_types.h"
@@ -50,6 +49,7 @@ static const int64_t KEY_OUT_INDEX = 1;
 
 static const int64_t DIM_ONE = 0;
 static const int64_t DIM_TWO = 1;
+static const int64_t DIM_MUM = 2;
 
 static const std::initializer_list<op::DataType> ASCEND910B_DTYPE_SUPPORT_LIST = {
     op::DataType::DT_FLOAT16, op::DataType::DT_BF16,  op::DataType::DT_FLOAT,
@@ -112,11 +112,11 @@ static int64_t GetTensorNumel(const aclTensor* x, size_t startIdx)
 }
 
 static bool CheckShape(
-    const aclTensor* positions, const aclTensor* queryIn, const aclTensor* keyIn, const aclTensor* cosSinCache,
+    const aclTensor* queryIn, const aclTensor* keyIn, const aclTensor* cosSinCache,
     const aclTensor* queryOut, const aclTensor* keyOut)
 {
     // 检查输入的所有shape是不是2维；
-    if (queryIn->GetViewShape().GetDimNum() != 2) {
+    if (queryIn->GetViewShape().GetDimNum() != DIM_MUM) {
         OP_LOGE(
             ACLNN_ERR_PARAM_INVALID,
             "Expected queryIn to be a vector of size 2, "
@@ -125,7 +125,7 @@ static bool CheckShape(
         return false;
     }
 
-    if (keyIn->GetViewShape().GetDimNum() != 2) {
+    if (keyIn->GetViewShape().GetDimNum() != DIM_MUM) {
         OP_LOGE(
             ACLNN_ERR_PARAM_INVALID,
             "Expected keyIn to be a vector of size 2, "
@@ -134,7 +134,7 @@ static bool CheckShape(
         return false;
     }
 
-    if (cosSinCache->GetViewShape().GetDimNum() != 2) {
+    if (cosSinCache->GetViewShape().GetDimNum() != DIM_MUM) {
         OP_LOGE(
             ACLNN_ERR_PARAM_INVALID,
             "Expected cosSinCache to be a vector of size 2, "
@@ -158,7 +158,7 @@ static bool CheckShape(
 
 static aclnnStatus CheckParams(
     const aclTensor* positions, const aclTensor* queryIn, const aclTensor* keyIn, const aclTensor* cosSinCache,
-    int64_t headSize, bool isNeoxStyle, aclTensor* queryOut, aclTensor* keyOut)
+    const aclIntArray* mropeSection, aclTensor* queryOut, aclTensor* keyOut)
 {
     // 1. 检查参数是否为空指针
     CHECK_RET(CheckNotNull(positions, queryIn, keyIn, cosSinCache, queryOut, keyOut), ACLNN_ERR_PARAM_NULLPTR);
@@ -167,7 +167,7 @@ static aclnnStatus CheckParams(
     CHECK_RET(CheckDtypeValid(positions, queryIn, keyIn, cosSinCache, queryOut, keyOut), ACLNN_ERR_PARAM_INVALID);
 
     // 3. 检查shape是否支持
-    CHECK_RET(CheckShape(positions, queryIn, keyIn, cosSinCache, queryOut, keyOut), ACLNN_ERR_PARAM_INVALID);
+    CHECK_RET(CheckShape(queryIn, keyIn, cosSinCache, queryOut, keyOut), ACLNN_ERR_PARAM_INVALID);
 
     return ACLNN_SUCCESS;
 }
@@ -190,7 +190,7 @@ aclnnStatus aclnnRopeWithSinCosCacheGetWorkspaceSize(
 
     // 固定写法，参数检查
     auto ret =
-        CheckParams(positions, queryIn, keyIn, cosSinCache, headSize, isNeoxStyle, queryOut, keyOut);
+        CheckParams(positions, queryIn, keyIn, cosSinCache, mropeSection, queryOut, keyOut);
     CHECK_RET(ret == ACLNN_SUCCESS, ret);
     CHECK_RET(headSize != 0, ACLNN_ERR_PARAM_INVALID);
     int64_t numQheads = queryIn->GetViewShape()[1] / headSize;

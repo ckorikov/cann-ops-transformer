@@ -25,7 +25,6 @@
 #include "register/op_def_registry.h"
 #include "tiling/tiling_api.h"
 #include "tiling_base/tiling_base.h"
-using namespace Ops::Transformer::OpTiling;
 namespace optiling {
 BEGIN_TILING_DATA_DEF(MoeGatingTopKSoftmaxEKFullLoadTilingData)
 TILING_DATA_FIELD_DEF(uint32_t, tilingKey);
@@ -108,7 +107,7 @@ REGISTER_TILING_DATA_CLASS(MoeGatingTopKSoftmax_15, MoeGatingTopKSoftmaxPerfTili
 REGISTER_TILING_DATA_CLASS(MoeGatingTopKSoftmax_16, MoeGatingTopKSoftmaxPerfTilingData);
 REGISTER_TILING_DATA_CLASS(MoeGatingTopKSoftmax_17, MoeGatingTopKSoftmaxPerfTilingData);
 
-class MoeGatingTopKSoftmaxBaseTiling : public TilingBaseClass
+class MoeGatingTopKSoftmaxBaseTiling : public Ops::Transformer::OpTiling::TilingBaseClass
 {
 public:
     explicit MoeGatingTopKSoftmaxBaseTiling(gert::TilingContext* context) : TilingBaseClass(context)

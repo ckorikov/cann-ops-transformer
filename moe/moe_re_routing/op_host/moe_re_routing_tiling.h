@@ -26,7 +26,6 @@
 #include "platform/platform_infos_def.h"
 #include "util/math_util.h"
 #include "tiling/platform/platform_ascendc.h"
-using namespace Ops::Transformer::OpTiling;
 namespace optiling {
 BEGIN_TILING_DATA_DEF(MoeReRoutingTilingData)
 TILING_DATA_FIELD_DEF(int64_t, coreNum);

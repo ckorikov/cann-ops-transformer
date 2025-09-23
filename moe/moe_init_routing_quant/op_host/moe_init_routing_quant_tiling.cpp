@@ -38,7 +38,7 @@ inline static int64_t CeilLog4(int64_t x)
     return std::ceil(std::log(x) / std::log(NUM_FOUR));
 }
 
-class MoeInitRoutingQuantTilingBase : public TilingBaseClass
+class MoeInitRoutingQuantTilingBase : public Ops::Transformer::OpTiling::TilingBaseClass
 {
 public:
     explicit MoeInitRoutingQuantTilingBase(gert::TilingContext* context) : TilingBaseClass(context)

@@ -326,7 +326,7 @@ REGISTER_TILING_TEMPLATE("InterleaveRope", InterleaveRopeTiling, 1000);
 ge::graphStatus Tiling4InterleaveRope(gert::TilingContext* context)
 {
     OP_LOGD(context, "TilingForInterleaveRope running.");
-    return TilingRegistry::GetInstance().DoTilingImpl(context);
+    return Ops::Transformer::OpTiling::TilingRegistry::GetInstance().DoTilingImpl(context);
 }
 
 ge::graphStatus TilingPrepare4InterleaveRope(gert::TilingParseContext* context)

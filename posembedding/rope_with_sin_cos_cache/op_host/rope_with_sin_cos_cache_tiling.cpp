@@ -78,8 +78,6 @@ struct TilingParams {
 } // namespace
 
 namespace optiling {
-static void PrintTiling(gert::TilingContext* context, TilingParams& params)
-{}
 
 static void SetTiling(TilingParams& params, RopeWithSinCosCacheTilingData& tiling)
 {
@@ -241,7 +239,6 @@ static ge::graphStatus TilingRopeWithSinCosCache(gert::TilingContext* context)
     TilingKeyChose(context, params);
     TilingCompute(context, params);
     SetTiling(params, tiling);
-    PrintTiling(context, params);
     tiling.SaveToBuffer(context->GetRawTilingData()->GetData(), context->GetRawTilingData()->GetCapacity());
     context->GetRawTilingData()->SetDataSize(tiling.GetDataSize());
 

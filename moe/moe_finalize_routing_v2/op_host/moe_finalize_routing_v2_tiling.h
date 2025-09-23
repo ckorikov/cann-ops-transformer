@@ -28,7 +28,6 @@
 #include "util/math_util.h"
 #include "op_common/op_host/util/platform_util.h"
 
-using namespace Ops::Transformer::OpTiling;
 namespace optiling {
 const int64_t DTYPE_FLOAT_BIG_K_V2 = 20000;
 const int64_t DTYPE_FLOAT16_BIG_K_V2 = 20001;
@@ -125,7 +124,7 @@ struct ShapeParamsV2 {
     const gert::StorageShape* scalesShape = nullptr;
 };
 
-class MoeFinalizeRoutingTilingV2 : public TilingBaseClass
+class MoeFinalizeRoutingTilingV2 : public Ops::Transformer::OpTiling::TilingBaseClass
 {
 public:
     explicit MoeFinalizeRoutingTilingV2(gert::TilingContext* context) : TilingBaseClass(context){};

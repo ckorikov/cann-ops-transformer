@@ -26,7 +26,6 @@
 #include "platform/platform_infos_def.h"
 #include "util/math_util.h"
 #include "tiling/platform/platform_ascendc.h"
-using namespace Ops::Transformer::OpTiling;
 
 namespace optiling {
 BEGIN_TILING_DATA_DEF(InterleaveRopeTilingData)
@@ -62,7 +61,7 @@ struct InterleaveRopeCompileInfo {
     int64_t ubSize = 0;
 };
 
-class InterleaveRopeTiling : public TilingBaseClass {
+class InterleaveRopeTiling : public Ops::Transformer::OpTiling::TilingBaseClass {
 public:
     explicit InterleaveRopeTiling(gert::TilingContext* context_) : TilingBaseClass(context_)
     {}

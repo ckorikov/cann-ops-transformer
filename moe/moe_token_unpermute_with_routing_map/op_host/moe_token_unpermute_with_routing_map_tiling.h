@@ -21,7 +21,6 @@
 #include "tiling_base/tiling_base.h"
 #include "tiling_base/tiling_templates_registry.h"
 #include "util/math_util.h"
-using namespace Ops::Transformer::OpTiling;
 namespace optiling {
 
 struct TilingPadParams {

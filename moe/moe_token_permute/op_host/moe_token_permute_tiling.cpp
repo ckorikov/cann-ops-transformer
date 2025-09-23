@@ -133,7 +133,7 @@ inline static int64_t VmsLoops(int64_t x)
 } // namespace
 
 namespace optiling {
-class MoeTokenPermuteTilingBase : public TilingBaseClass
+class MoeTokenPermuteTilingBase : public Ops::Transformer::OpTiling::TilingBaseClass
 {
 public:
     explicit MoeTokenPermuteTilingBase(gert::TilingContext* context) : TilingBaseClass(context)

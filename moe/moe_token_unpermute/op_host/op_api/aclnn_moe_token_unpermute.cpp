@@ -49,24 +49,24 @@ extern aclnnStatus aclnnInnerMoeFinalizeRoutingV2GetWorkspaceSize(
 extern aclnnStatus aclnnInnerMoeFinalizeRoutingV2(
     void* workspace, uint64_t workspaceSize, aclOpExecutor* executor, aclrtStream stream);
 extern aclnnStatus aclnnInnerMoeTokenUnpermuteGetWorkspaceSize(
-    const aclTensor* permutedTokens, const aclTensor* SortedIndices, const aclTensor* probsOptional, bool paddedMode,
+    const aclTensor* permutedTokens, const aclTensor* sortedIndices, const aclTensor* probsOptional, bool paddedMode,
     const aclIntArray* restoreShapeOptional, aclTensor* out, uint64_t* workspaceSize, aclOpExecutor** executor);
 extern aclnnStatus aclnnInnerMoeTokenUnpermute(
     void* workspace, uint64_t workspaceSize, aclOpExecutor* executor, aclrtStream stream);
 
 aclnnStatus aclnnMoeTokenUnpermuteGetWorkspaceSize(
-    const aclTensor* permutedTokens, const aclTensor* SortedIndices, const aclTensor* probsOptional, bool paddedMode,
+    const aclTensor* permutedTokens, const aclTensor* sortedIndices, const aclTensor* probsOptional, bool paddedMode,
     const aclIntArray* restoreShapeOptional, aclTensor* out, uint64_t* workspaceSize, aclOpExecutor** executor)
 {
     static bool useMoeFinalizeRoutingV2 = GetCurrentPlatformInfo().GetSocVersion() == SocVersion::ASCEND910_95;
     if (!useMoeFinalizeRoutingV2) {
         return aclnnInnerMoeTokenUnpermuteGetWorkspaceSize(
-            permutedTokens, SortedIndices, probsOptional, paddedMode, restoreShapeOptional, out, workspaceSize,
+            permutedTokens, sortedIndices, probsOptional, paddedMode, restoreShapeOptional, out, workspaceSize,
             executor);
     }
     CHECK_RET(paddedMode == false, ACLNN_ERR_PARAM_INVALID);
     aclnnStatus ret = aclnnInnerMoeFinalizeRoutingV2GetWorkspaceSize(
-        permutedTokens, SortedIndices, nullptr, nullptr, nullptr, probsOptional, nullptr, READ_INDEX_BY_ROW, out,
+        permutedTokens, sortedIndices, nullptr, nullptr, nullptr, probsOptional, nullptr, READ_INDEX_BY_ROW, out,
         workspaceSize, executor);
     if (ret != ACLNN_SUCCESS) {
         OP_LOGE(
