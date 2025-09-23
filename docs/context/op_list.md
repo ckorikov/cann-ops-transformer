@@ -7,7 +7,8 @@
 
 | 算子分类 | 算子目录                                                                          | 算子IR                                                                                                      | 说明                                                                                       |
 | -------- |-------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------|
-| xxx   | [xxx]()                                               | [xxx]()                                                                |  说明xxx |
+| attention   | [nsa_compress_attention_infer](../../attention/nsa_compress_attention_infer)                                               | -                                                                |  实现Native Sparse Attention推理过程中，Compress Attention的计算。 |
+| attention   | [nsa_compress_with_cache](../../attention/nsa_compress_with_cache)                                               | -                                                                |  实现Native-Sparse-Attention推理阶段的KV压缩。 |
 
 
 
