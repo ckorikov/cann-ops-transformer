@@ -102,8 +102,8 @@ inline uint32_t AlignData(const uint32_t a, const uint32_t b)
 ge::graphStatus CheckTndSoftmaxMaxShape(gert::TilingContext *context, int64_t t1, int64_t n1);
 ge::graphStatus CheckTndSoftmaxSumShape(gert::TilingContext *context, int64_t t1, int64_t n1);
 ge::graphStatus CheckAttentionInShape(gert::TilingContext *context);
-ge::graphStatus CheckSoftmaxDtype(gert::TilingContext *context);
-ge::graphStatus CheckAttentionInDtype(gert::TilingContext *context);
+ge::graphStatus CheckSoftmaxDtype(const gert::TilingContext *context);
+ge::graphStatus CheckAttentionInDtype(const gert::TilingContext *context);
 ge::graphStatus CheckTndShapeValid(gert::TilingContext *context, int64_t t1, int64_t n1, int64_t d, int64_t d2);
 ge::graphStatus CheckDtypeValid(gert::TilingContext *context);
 bool IsSameShape(const gert::StorageShape *aShape, const gert::StorageShape *bShape);

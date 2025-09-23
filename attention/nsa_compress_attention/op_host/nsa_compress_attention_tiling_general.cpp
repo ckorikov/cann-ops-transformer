@@ -237,7 +237,7 @@ ge::graphStatus NsaCompressAttentionTilingBase::GetPlatformInfo()
 {
     auto platformInfoPtr = context_->GetPlatformInfo();
     if (platformInfoPtr == nullptr) {
-        auto compileInfoPtr = reinterpret_cast<const NsaCompressAttentionCompileInfo *>(context_->GetCompileInfo());
+        auto compileInfoPtr = context_->GetCompileInfo<NsaCompressAttentionCompileInfo>();
         OP_CHECK_IF(compileInfoPtr == nullptr, OPS_REPORT_VECTOR_INNER_ERR(opName, "compileInfoPtr is null."),
                    return ge::GRAPH_FAILED);
 
@@ -457,7 +457,7 @@ ge::graphStatus NsaCompressAttentionTilingBase::CheckAttr()
     uint64_t minS2Val = *std::min_element(actualSeqLenKvData.begin(), actualSeqLenKvData.begin() + bSize);
     uint64_t isM = selectBlockSize / compressStride;
     uint64_t minSelS2Val = CeilDiv(minS2Val, isM);
-    OP_CHECK_IF(selectBlockCount < 1 || selectBlockCount > 32 || (uint64_t)selectBlockCount > minSelS2Val,
+    OP_CHECK_IF(selectBlockCount < 1 || selectBlockCount > 32 || static_cast<uint64_t>(selectBlockCount) > minSelS2Val,
         OPS_REPORT_VECTOR_INNER_ERR(opName,
             "selectBlockCount must be greater than 1 and less than 32 and less than min(SelSkv)."),
             return ge::GRAPH_FAILED);
@@ -757,7 +757,8 @@ void NsaCompressAttentionTilingBase::TopKTiling()
     uint32_t S2size = s2BasicBlock / importanceScoreParams.get_isM(); //4096/(l'/d)
     uint32_t S2sizeAlign32 = (S2size + BLOCK_BYTE - 1) / BLOCK_BYTE * BLOCK_BYTE;
     int32_t k = selectBlockCount;
-    uint32_t topkBase = std::min((aicoreParams_.ubSize - 2 * SIZE_1024 - 20 * S2sizeAlign32) / (4 * S2sizeAlign32 + 8 * k), (uint64_t)s1VecBasicBlock);
+    uint32_t topkBase = std::min((aicoreParams_.ubSize - 2 * SIZE_1024 - 20 * S2sizeAlign32) /
+        (4 * S2sizeAlign32 + 8 * k), static_cast<uint64_t>(s1VecBasicBlock));
     uint32_t dtypesize = 4;  // float类型
     auto ascendcPlatform = platform_ascendc::PlatformAscendC(context_->GetPlatformInfo());
     AscendC::TopKTilingFunc(ascendcPlatform, 

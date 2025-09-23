@@ -19,7 +19,6 @@
 #include "tiling_base/tiling_base.h"
 #include "tiling_base/tiling_type.h"
 #include "nsa_selected_attention_grad_tiling.h"
-using namespace Ops::Transformer::OpTiling;
 namespace optiling {
 namespace nsa {
 struct TempParams {
@@ -43,7 +42,7 @@ struct TempParams {
     uint32_t isDeterministic = 0;
 };
 
-class NsaSelectedAttentionGradTiling : public TilingBaseClass {
+class NsaSelectedAttentionGradTiling : public Ops::Transformer::OpTiling::TilingBaseClass {
 public:
     explicit NsaSelectedAttentionGradTiling(gert::TilingContext *context) : TilingBaseClass(context)
     {

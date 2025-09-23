@@ -34,7 +34,7 @@ static const uint64_t DIM_2 = 2;
 
 aclnnStatus CheckNsaCmpAttnParam(const aclTensor *query, const aclTensor *key, const aclTensor *value, const char *inputLayout,
     const aclTensor *softmaxMaxOut, const aclTensor *softmaxSumOut, const aclTensor *attentionOutOut, 
-    const aclTensor *topkIndicesOut, const uint64_t *workspaceSize, aclOpExecutor **executor)
+    const aclTensor *topkIndicesOut, const uint64_t *workspaceSize, aclOpExecutor ** const executor)
 {
     // 必须的参数指针判空
     CHECK_RET(query != nullptr, ACLNN_ERR_INNER_NULLPTR);
@@ -94,12 +94,8 @@ aclnnStatus Preprocess(const aclTensor *&query, const aclTensor *&key, aclOpExec
     // Only support TND now
     Shape qShape = query->GetViewShape();
     Shape kShape = key->GetViewShape();
-    auto t = qShape[DIM_0];
-    auto n1 = qShape[DIM_1];
-    auto n2 = kShape[DIM_1];
-    auto d1 = qShape[DIM_2];
 
-    FVector<int64_t, DIM_NUM_4> reshapedQueryShape = {t, n2, n1 / n2, d1}; // T,N2,G,D
+    FVector<int64_t, DIM_NUM_4> reshapedQueryShape = {qShape[DIM_0], kShape[DIM_1], qShape[DIM_1] / kShape[DIM_1], qShape[DIM_2]}; // T,N2,G,D
     query = l0op::Reshape(
                 query, executor->AllocIntArray(reshapedQueryShape.data(), reshapedQueryShape.size()), executor);
     CHECK_RET(query != nullptr, ACLNN_ERR_INNER_NULLPTR);
@@ -116,17 +112,13 @@ aclnnStatus Postprocess(const aclTensor *&attenOut, const aclTensor *&topkIndice
 {
     // AttenOut transpose from N2,T,G,D2 to T,N1,D2
     Shape attenOutShape = attenOut->GetViewShape(); // N2,T,G,D2
-    auto n2 = attenOutShape[DIM_0];
-    auto t = attenOutShape[DIM_1];
-    auto g = attenOutShape[DIM_2];
-    auto d2 = attenOutShape[DIM_3];
 
     FVector<int64_t, DIM_NUM_4> transedShape = {1, 0, 2, 3}; // T,N2,G,D2
     auto perm = executor->AllocIntArray(transedShape.data(), transedShape.size());
     attenOut = l0op::Transpose(attenOut, perm, executor);
     CHECK_RET(attenOut != nullptr, ACLNN_ERR_INNER_NULLPTR);
 
-    FVector<int64_t, DIM_NUM_3> reshapedShape = {t, n2 * g, d2}; // T,N1,D2
+    FVector<int64_t, DIM_NUM_3> reshapedShape = {attenOutShape[DIM_1], attenOutShape[DIM_0] * attenOutShape[DIM_2], attenOutShape[DIM_3]}; // T,N1,D2
     attenOut = l0op::Reshape(attenOut, executor->AllocIntArray(reshapedShape.data(), reshapedShape.size()), executor);
     CHECK_RET(attenOut != nullptr, ACLNN_ERR_INNER_NULLPTR);
 

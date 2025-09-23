@@ -56,7 +56,7 @@ ge::graphStatus NsaSelectedAttentionGradTiling::GetPlatformInfo()
     auto platformInfoPtr = context_->GetPlatformInfo();
     uint64_t l2CacheSize;
     if (platformInfoPtr == nullptr) {
-        auto compileInfoPtr = reinterpret_cast<const NsaSelectedAttentionGradCompileInfo *>(context_->GetCompileInfo());
+        auto compileInfoPtr = context_->GetCompileInfo<NsaSelectedAttentionGradCompileInfo>();
         OP_CHECK_IF(compileInfoPtr == nullptr, OPS_REPORT_VECTOR_INNER_ERR(context_->GetNodeName(), "compile_info is null."),
                    return ge::GRAPH_FAILED);
         aicoreParams_.blockDim = compileInfoPtr->aivNum;
@@ -127,7 +127,8 @@ ge::graphStatus NsaSelectedAttentionGradTiling::GetShapeAttrsInfo()
         return ge::GRAPH_FAILED;
     }
 
-    if (selected_block_count > (int)SELECTED_BLOCK_COUNT_MAX || selected_block_count < (int)SELECTED_BLOCK_COUNT_MIN) {
+    if (selected_block_count > static_cast<int>(SELECTED_BLOCK_COUNT_MAX) ||
+                    selected_block_count < static_cast<int>(SELECTED_BLOCK_COUNT_MIN)) {
         OP_LOGE(context_,
                   "NsaSelectedAttentionGrad only support selected_block_count [1,32], now "
                   "selected_block_count=%d.",

@@ -188,7 +188,7 @@ ge::graphStatus NsaSelectedAttentionTiling::GetPlatformInfo()
 {
     auto platformInfoPtr = context_->GetPlatformInfo();
     if (platformInfoPtr == nullptr) {
-        auto compileInfoPtr = reinterpret_cast<const NsaSelectedAttentionCompileInfo *>(context_->GetCompileInfo());
+        auto compileInfoPtr = context_->GetCompileInfo<NsaSelectedAttentionCompileInfo>();
         OP_CHECK_IF(compileInfoPtr == nullptr, OPS_REPORT_VECTOR_INNER_ERR(opName, "compileInfoPtr is null."),
                 return ge::GRAPH_FAILED);
         aivNum = compileInfoPtr->aivNum;
@@ -206,7 +206,7 @@ ge::graphStatus NsaSelectedAttentionTiling::GetPlatformInfo()
         ascendcPlatform.GetCoreMemSize(platform_ascendc::CoreMemType::L0_C, aicoreParams_.l0cSize);
         ascendcPlatform.GetCoreMemSize(platform_ascendc::CoreMemType::L2, l2CacheSize);
     }
-    OP_LOGI(context_, 
+    OP_LOGI(context_,
         "get platform from compileInfo.aivNum(%u) aicNum(%u) ubSize(%lu) l1Size(%lu) l0cSize(%lu).",
             aivNum, aicNum, aicoreParams_.ubSize, aicoreParams_.l1Size, aicoreParams_.l0cSize);
 

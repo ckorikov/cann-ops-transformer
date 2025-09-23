@@ -54,7 +54,7 @@ ge::graphStatus NsaSelectedAttentionGradBasicTiling::GetPlatformInfo()
     auto platformInfoPtr = context_->GetPlatformInfo();
     uint64_t l2CacheSize;
     if (platformInfoPtr == nullptr) {
-        auto compileInfoPtr = reinterpret_cast<const NsaSelectedAttentionGradCompileInfo *>(context_->GetCompileInfo());
+        auto compileInfoPtr = context_->GetCompileInfo<NsaSelectedAttentionGradCompileInfo>();
         OP_CHECK_IF(compileInfoPtr == nullptr, OPS_REPORT_VECTOR_INNER_ERR(context_->GetNodeName(), "compile_info is null."),
                    return ge::GRAPH_FAILED);
         aicoreParams_.blockDim = compileInfoPtr->aivNum;

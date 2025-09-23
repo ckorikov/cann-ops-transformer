@@ -89,7 +89,7 @@ void AnalysisAxisForTnd(const Shape &qShape, const Shape &kShape, const Shape &v
 }
 
 aclnnStatus AnalysisAxis(const aclTensor *query, const aclTensor *key, const aclTensor *value, 
-                         const aclTensor *topkIndices, const char *inputLayout, NSAShapeInfo &shapeInfo)
+                         const char *inputLayout, NSAShapeInfo &shapeInfo)
 {
     Shape qShape = query->GetViewShape();
     Shape kShape = key->GetViewShape();
@@ -141,7 +141,7 @@ aclnnStatus AnalysisInput(const aclTensor *query, const aclTensor *key, const ac
                           const aclIntArray *actualSeqKvLenOptional = nullptr)
 {
     CHECK_RET(
-        AnalysisAxis(query, key, value, topkIndices, inputLayout, shapeInfo) == ACLNN_SUCCESS, ACLNN_ERR_PARAM_INVALID);
+        AnalysisAxis(query, key, value, inputLayout, shapeInfo) == ACLNN_SUCCESS, ACLNN_ERR_PARAM_INVALID);
 
     if (shapeInfo.axes.d > HEAD_DIM_MAX) {
         OP_LOGE(ACLNN_ERR_PARAM_INVALID, "Head dim must <= 768, but got %ld", shapeInfo.axes.d);
@@ -206,7 +206,7 @@ aclnnStatus Contiguous(const aclTensor *&query, const aclTensor *&key, const acl
     return ACLNN_SUCCESS;
 }
 
-aclnnStatus PreprocessQKV(const aclTensor *&query, const aclTensor *&key, const aclTensor *&value,
+aclnnStatus PreprocessQKV(const aclTensor *&value,
                           const struct NSAShapeInfo &shapeInfo, aclOpExecutor *executor)
 {
     if (shapeInfo.needPadValue) {
@@ -223,7 +223,7 @@ aclnnStatus PreprocessQKV(const aclTensor *&query, const aclTensor *&key, const 
 aclnnStatus CheckNsaParam(const aclTensor *query, const aclTensor *key, const aclTensor *value, 
     const aclTensor *topkIndices, const aclIntArray *actualSeqQLenOptional, const aclIntArray *actualSeqKvLenOptional, 
     const char *inputLayout, const aclTensor *softmaxMaxOut, const aclTensor *softmaxSumOut, 
-    const aclTensor *attentionOut, const uint64_t *workspaceSize, aclOpExecutor **executor)
+    const aclTensor *attentionOut, const uint64_t *workspaceSize, aclOpExecutor ** const executor)
 {
     // 必须的参数指针判空
     CHECK_RET(query != nullptr, ACLNN_ERR_INNER_NULLPTR);
@@ -296,7 +296,7 @@ aclnnStatus aclnnNsaSelectedAttentionGetWorkspaceSize(
     CHECK_RET(Contiguous(query, key, value, topkIndices, attenMaskOptional, l0Executor) == ACLNN_SUCCESS,
               ACLNN_ERR_INNER_NULLPTR);
 
-    CHECK_RET(PreprocessQKV(query, key, value, shapeInfo, l0Executor) == ACLNN_SUCCESS, ACLNN_ERR_INNER_NULLPTR);
+    CHECK_RET(PreprocessQKV(value, shapeInfo, l0Executor) == ACLNN_SUCCESS, ACLNN_ERR_INNER_NULLPTR);
 
         auto l0NsaSelectedAttentionOuts = l0op::NsaSelectedAttention(
         query, key, value, topkIndices, attenMaskOptional, actualSeqQLenOptional, 

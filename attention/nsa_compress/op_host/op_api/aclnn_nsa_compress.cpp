@@ -61,8 +61,8 @@ struct CompressShapeInfo {
     int64_t actSeqLenType = 0;
 };
 
-static aclnnStatus CheckNsaCompressParam(const aclTensor *input, const aclTensor *weight, aclTensor *output,
-                                         uint64_t *workspaceSize, aclOpExecutor **executor)
+static aclnnStatus CheckNsaCompressParam(const aclTensor *input, const aclTensor *weight, const aclTensor *output,
+                                         const uint64_t *workspaceSize, aclOpExecutor ** const executor)
 {
     // 必须的参数指针判空
     CHECK_RET(input != nullptr, ACLNN_ERR_PARAM_NULLPTR);
@@ -73,7 +73,7 @@ static aclnnStatus CheckNsaCompressParam(const aclTensor *input, const aclTensor
     return ACLNN_SUCCESS;
 }
 
-static aclnnStatus InputDtypeCheck(const aclTensor *input, const aclTensor *weight, aclTensor *output)
+static aclnnStatus InputDtypeCheck(const aclTensor *input, const aclTensor *weight, const aclTensor *output)
 {
     auto inputDtype = input->GetDataType();
     auto weightDtype = weight->GetDataType();
@@ -105,34 +105,29 @@ static aclnnStatus AnalysisAxis(const aclTensor *input, const aclTensor *weight,
     shapeInfo.compressBlockSize = compressBlockSize;
     shapeInfo.compressStride = compressStride;
 
-    shapeInfo.headNum = inputShape[DIM_NUM_1];
-    shapeInfo.headDim = inputShape[DIM_NUM_2];
-
-    if (shapeInfo.headNum <= 0) {
-        OP_LOGE(ACLNN_ERR_PARAM_INVALID, "Head Num must > 0, but got %ld", shapeInfo.headNum);
+    if (inputShape[DIM_NUM_1] <= 0) {
+        OP_LOGE(ACLNN_ERR_PARAM_INVALID, "Head Num must > 0, but got %ld", inputShape[DIM_NUM_1]);
         return ACLNN_ERR_PARAM_INVALID;
     }
-    if (shapeInfo.headDim <= 0) {
-        OP_LOGE(ACLNN_ERR_PARAM_INVALID, "Head Dim must > 0, but got %ld", shapeInfo.headDim);
+    if (inputShape[DIM_NUM_2] <= 0) {
+        OP_LOGE(ACLNN_ERR_PARAM_INVALID, "Head Dim must > 0, but got %ld", inputShape[DIM_NUM_2]);
         return ACLNN_ERR_PARAM_INVALID;
     }
 
-    int64_t weightC = weightShape[DIM_NUM_0];
-    int64_t weightN = weightShape[DIM_NUM_1];
     // 检查weight的shape(compressBlockSize, N), weight与input的shape满足broadcast关系
-    if (weightC != compressBlockSize) {
+    if (weightShape[DIM_NUM_0] != compressBlockSize) {
         OP_LOGE(ACLNN_ERR_PARAM_INVALID,
                 "weight.shape[0] and compressBlockSize should be same, but got weight.shape[0]=%ld "
                 "and compressBlockSize=%ld",
-                weightC, compressBlockSize);
+                weightShape[DIM_NUM_0], compressBlockSize);
         return ACLNN_ERR_PARAM_INVALID;
     }
 
-    if (weightN != shapeInfo.headNum) {
+    if (weightShape[DIM_NUM_1] != inputShape[DIM_NUM_1]) {
         OP_LOGE(ACLNN_ERR_PARAM_INVALID,
                 "weight.shape[1] and headNum should be same, but got weight.shape[1]=%ld "
                 "and headNum=%ld",
-                weightN, shapeInfo.headNum);
+                weightShape[DIM_NUM_1], inputShape[DIM_NUM_1]);
         return ACLNN_ERR_PARAM_INVALID;
     }
 

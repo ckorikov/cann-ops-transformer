@@ -105,7 +105,7 @@ ge::graphStatus CheckAttentionInShape(gert::TilingContext *context)
     return ge::GRAPH_SUCCESS;
 }
 
-ge::graphStatus CheckSoftmaxDtype(gert::TilingContext *context)
+ge::graphStatus CheckSoftmaxDtype(const gert::TilingContext *context)
 {
     auto softmaxMax = context->GetOptionalInputDesc(static_cast<size_t>(InputIndex::SOFTMAX_MAX));
     auto softmaxSum = context->GetOptionalInputDesc(static_cast<size_t>(InputIndex::SOFTMAX_SUM));
@@ -123,7 +123,7 @@ ge::graphStatus CheckSoftmaxDtype(gert::TilingContext *context)
     return ge::GRAPH_SUCCESS;
 }
 
-ge::graphStatus CheckAttentionInDtype(gert::TilingContext *context)
+ge::graphStatus CheckAttentionInDtype(const gert::TilingContext *context)
 {
     auto query = context->GetInputDesc(static_cast<size_t>(InputIndex::QUERY));
     auto attentionIn = context->GetOptionalInputDesc(static_cast<size_t>(InputIndex::ATTENTION_OUT));

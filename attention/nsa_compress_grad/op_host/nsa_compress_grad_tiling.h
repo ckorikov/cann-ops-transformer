@@ -26,8 +26,7 @@
 #include <register/op_def_registry.h>
 #include <tiling/tiling_api.h>
 #include "tiling_base/tiling_base.h"
-using namespace Ops::Transformer::OpTiling;
-using std::size_t;
+
 
 namespace optiling {
 
@@ -63,7 +62,7 @@ struct NsaCompileInfo {
     platform_ascendc::SocVersion socVersion;
 };
 
-class NsaCompressGradTiling: public TilingBaseClass {
+class NsaCompressGradTiling : public Ops::Transformer::OpTiling::TilingBaseClass {
 public:
     explicit NsaCompressGradTiling(gert::TilingContext *context): TilingBaseClass(context)
     {

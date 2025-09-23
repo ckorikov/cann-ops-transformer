@@ -17,6 +17,7 @@
 #include "nsa_compress_tiling.h"
 #include "nsa_compress_tiling_common.h"
 #include "err/ops_err.h"
+using namespace Ops::Transformer::OpTiling;
 
 namespace optiling {
 namespace Nsa {
@@ -162,7 +163,7 @@ protected:
     {
         auto platformInfoPtr = context_->GetPlatformInfo();
         if (platformInfoPtr == nullptr) {
-            auto compileInfoPtr = reinterpret_cast<const NsaCompressCompileInfo *>(context_->GetCompileInfo());
+            auto compileInfoPtr = context_->GetCompileInfo<NsaCompressCompileInfo>();
             OP_CHECK_IF(compileInfoPtr == nullptr, OPS_REPORT_VECTOR_INNER_ERR(opName, "compileInfoPtr is null."),
                        return ge::GRAPH_FAILED);
             aivNum = compileInfoPtr->aivNum;

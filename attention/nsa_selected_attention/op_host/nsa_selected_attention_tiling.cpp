@@ -182,7 +182,7 @@ static bool IsEmptyInput(gert::TilingContext *context)
         */
         auto kernelType = context->GetInputDesc(KEY_INPUT_INDEX)->GetDataType();
         NsaSelectedAttentionEmptyInputTiling emptyInputTiling;
-        auto compileInfoPtr = reinterpret_cast<const NsaSelectedAttentionCompileInfo *>(context->GetCompileInfo());
+        auto compileInfoPtr = context->GetCompileInfo<NsaSelectedAttentionCompileInfo>();
         OP_CHECK_IF(compileInfoPtr == nullptr, OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "compileInfoPtr is null"),
                 return false);
         uint32_t coreNum = compileInfoPtr->aivNum;
