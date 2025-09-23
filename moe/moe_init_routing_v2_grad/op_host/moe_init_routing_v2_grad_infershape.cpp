@@ -20,8 +20,6 @@
  */
 #include "log/log.h"
 #include "register/op_impl_registry.h"
-// #include "runtime_util.h"
-// #include "op_log.h"
 
 using namespace ge;
 namespace ops {

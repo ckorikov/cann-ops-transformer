@@ -20,12 +20,8 @@
  */
 #include <cmath>
 #include "moe_init_routing_v2_grad_tiling.h"
-// #include "register/op_def_registry.h"
 #include "util/platform_util.h"
 #include "util/math_util.h"
-// #include "tiling/tiling_templates_registry.h"
-// #include "op_util.h"
-//#include "../inc/platform.h"
 #include "kernel_tiling/kernel_tiling.h"
 
 namespace optiling {
