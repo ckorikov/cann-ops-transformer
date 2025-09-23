@@ -28,12 +28,6 @@ else()
 endif()
 
 if(NOT BUILD_OPEN_PROJECT) #
-    add_opmaster_ct_tilingsink_modules()
-    target_sources(${PKG_NAME}_opmaster_ct_tilingsink_obj PRIVATE
-        incre_flash_attention_tiling.cpp
-        incre_flash_attention_tiling_check.cpp
-        ../regbase/ophost/incre_flash_attention_tiling_v2.cpp
-    )
     target_sources(${OPHOST_NAME}_tiling_obj PRIVATE
         incre_flash_attention_tiling.cpp
         incre_flash_attention_tiling_check.cpp

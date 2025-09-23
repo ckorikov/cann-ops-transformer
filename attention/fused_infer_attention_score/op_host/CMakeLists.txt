@@ -30,17 +30,6 @@ else()
 endif()
 
 if(NOT BUILD_OPEN_PROJECT) #
-    add_opmaster_ct_tilingsink_modules()
-    target_sources(${PKG_NAME}_opmaster_ct_tilingsink_obj PRIVATE
-        fused_infer_attention_score_tiling.cpp
-        ../regbase/ophost/fused_infer_attention_score_tiling_v2.cpp
-        fused_infer_attention_score_tiling_v3.cpp
-        fused_infer_attention_score_tiling_check.cpp
-        ../../common/op_host/fia_tiling_shape.cpp
-        ../../common/op_host/fia_tiling_info.cpp
-        ../../common/op_host/arch32/fia_tiling_mla.cpp
-        fused_infer_attention_score_tiling_info_parser.cpp
-    )
     add_tiling_modules()
     target_sources(${OPHOST_NAME}_tiling_obj PRIVATE
         ../../common/op_host/fia_tiling_shape.cpp

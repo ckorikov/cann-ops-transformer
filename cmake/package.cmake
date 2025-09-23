@@ -148,6 +148,14 @@ function(pack_built_in)
   endif()
 
   message(STATUS "current compute_unit is: ${compute_unit}")
+  ExternalProject_Get_Property(tiling_sink_task BINARY_DIR)
+  install(FILES
+      ${BINARY_DIR}/Ascend310P-v8.3-libopmaster.so
+      DESTINATION ops_transformer/built-in/op_impl/ai_core/tbe/op_master_device/lib/)
+
+  install(FILES
+      ${BINARY_DIR}/Ascend-v8.3-libopmaster.so
+      DESTINATION ops_transformer/built-in/op_impl/ai_core/tbe/op_master_device/lib/)
 
   # ============= CPack =============
   set(CPACK_PACKAGE_NAME "${PROJECT_NAME}")

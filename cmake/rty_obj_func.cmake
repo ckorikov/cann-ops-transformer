@@ -356,38 +356,3 @@ if(NOT ${CMAKE_BUILD_MODE} STREQUAL "FALSE")
   else()
    set(compile_opt_mode -O2)
 endif()
-
-# 添加tiling opmaster_ct_tilingsink
-function(add_opmaster_ct_tilingsink_modules)
-  if (NOT TARGET ${PKG_NAME}_opmaster_ct_tilingsink_obj)
-    add_library(${PKG_NAME}_opmaster_ct_tilingsink_obj OBJECT)
-    target_include_directories(${PKG_NAME}_opmaster_ct_tilingsink_obj
-      PRIVATE ${OP_TILING_INCLUDE}
-    )
-    target_compile_definitions(${PKG_NAME}_opmaster_ct_tilingsink_obj
-      PRIVATE
-      OPS_UTILS_LOG_SUB_MOD_NAME="OP_TILING"
-      $<$<BOOL:${BUILD_UT}>:ASCEND_OPTILING_UT>
-      LOG_CPP
-    )
-    
-    target_compile_options(${PKG_NAME}_opmaster_ct_tilingsink_obj
-      PRIVATE
-      ${compile_opt_mode}
-      -Dgoogle=ascend_private
-      -fvisibility=hidden
-      -DDISABLE_COMPILE_V1
-      -fPIC
-      "-fno-strict-aliasing"
-      "-fno-common"
-    )
-
-    target_link_libraries(${PKG_NAME}_opmaster_ct_tilingsink_obj
-      PRIVATE
-      $<BUILD_INTERFACE:intf_pub_cxx17>
-      $<$<BOOL:${BUILD_OPEN_PROJECT}>:$<BUILD_INTERFACE:alog_headers>>
-      $<$<NOT:$<BOOL:${BUILD_OPEN_PROJECT}>>:$<BUILD_INTERFACE:slog_headers>>
-      ${_op_tiling_link_libs}
-    )
-  endif()
-endfunction()

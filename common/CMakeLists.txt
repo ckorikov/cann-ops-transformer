@@ -91,3 +91,39 @@ else()
       tiling_api
     )
 endif()
+
+if(EXISTS ${TOP_DIR}/build/product/onetrack/sys_version/sys_version.conf)
+    execute_process(COMMAND grep -Po "^\\d+\\.\\d+" ${TOP_DIR}/build/product/onetrack/sys_version/sys_version.conf
+        OUTPUT_VARIABLE SYS_VERSION
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+else()
+    set(SYS_VERSION 8.3)
+endif()
+
+if (NOT BUILD_OPS_RTY_KERNEL)
+    if (BUILD_OPEN_PROJECT)
+        ExternalProject_Add(tiling_sink_task
+            SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/tiling_sink
+            CONFIGURE_COMMAND ${CMAKE_COMMAND}
+                -G ${CMAKE_GENERATOR}
+                -DBUILD_OPEN_PROJECT=${BUILD_OPEN_PROJECT}
+                -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+                -DASCEND_CANN_PACKAGE_PATH=${ASCEND_CANN_PACKAGE_PATH}
+                -DCMAKE_C_COMPILER=${ASCEND_CANN_PACKAGE_PATH}/toolkit/toolchain/hcc/bin/aarch64-target-linux-gnu-gcc
+                -DCMAKE_CXX_COMPILER=${ASCEND_CANN_PACKAGE_PATH}/toolkit/toolchain/hcc/bin/aarch64-target-linux-gnu-g++
+                -DCMAKE_C_COMPILER_LAUNCHER=${CMAKE_C_COMPILER_LAUNCHER}
+                -DCMAKE_CXX_COMPILER_LAUNCHER=${CMAKE_CXX_COMPILER_LAUNCHER}
+                -DSYS_VERSION=${SYS_VERSION}
+                -DENABLE_BUILT_IN=${ENABLE_BUILT_IN}
+                -DOPS_ADV_CMAKE_DIR=${OPS_ADV_CMAKE_DIR}
+                -DPRODUCT_SIDE=device
+                <SOURCE_DIR>
+            INSTALL_COMMAND ""
+            BUILD_ALWAYS TRUE
+            BUILD_BYPRODUCTS
+        )
+    else()
+        add_subdirectory(src/tiling_sink)
+    endif()
+endif()
