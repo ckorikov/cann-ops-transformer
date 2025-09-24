@@ -32,6 +32,7 @@ using namespace ge;
 using namespace AscendC;
 using std::pair;
 namespace optiling {
+void TilingGetTempCompileInfo(platform_ascendc::PlatformAscendC&, PromptFlashAttentionCompileInfo&);
 
 const int64_t tokenDefault = 2147483647; // 2147483647 for token default value
 const int32_t sparseDefault = 0;
@@ -158,7 +159,7 @@ ge::graphStatus IFATiling::PreProcess()
     return ge::GRAPH_SUCCESS;
 }
 
-bool IFATiling::IsBalanceSplitCore() {
+bool IFATiling::IsBalanceSplitCore() const {
     if (perfMode_ != IfaPerfMode::CUBE_VIEW_MM_MLA) {
         return false;
     }
@@ -812,7 +813,7 @@ ge::graphStatus IFATiling::ProcessActualSeqLen()
         OP_LOGD(context_->opName, "the key/value's actual sequence lengths is not nullptr");
 
         actualSeqLenFlag_ = true;
-        actualLenDims_ = context_->actualSeqLengths.tensor->GetShapeSize();
+        actualLenDims_ = static_cast<uint32_t>(context_->actualSeqLengths.tensor->GetShapeSize());
         OP_LOGD(context_->opName, "number of elements in the key/value's actual sequence lengths is %u", actualLenDims_);
         if (actualLenDims_ == 0U) {
             // pa场景必须带actual_seq_lens
@@ -847,7 +848,7 @@ ge::graphStatus IFATiling::CheckActualSeqLens()
         OP_LOGE(context_->opName, "TND the query's actual sequence lengths should not be null!");
         return ge::GRAPH_FAILED;
     }
-    actualLenQDims_ = context_->actualSeqLengthsQ.tensor->GetShapeSize();
+    actualLenQDims_ = static_cast<uint32_t>(context_->actualSeqLengthsQ.tensor->GetShapeSize());
     if (actualLenQDims_ == 0U) {
         OP_LOGE(context_->opName, "TND actualLenQDims_ is 0!");
         return ge::GRAPH_FAILED;
@@ -1037,7 +1038,7 @@ ge::graphStatus IFATiling::ProcessQuant()
     return ge::GRAPH_SUCCESS;
 }
 
-ge::graphStatus IFATiling::CheckQkvQuantParams4FullQuant()
+ge::graphStatus IFATiling::CheckQkvQuantParams4FullQuant() const
 {
     auto dequantScaleQuery = context_->dequantScaleQuery.tensor;
     auto dequantScaleKey = context_->keyAntiquantScale.tensor;
@@ -1211,7 +1212,7 @@ ge::graphStatus IFATiling::CheckKVAntiQuantParamsShapeInPagedAttention(const ger
     return ge::GRAPH_SUCCESS;
 }
 
-ge::graphStatus IFATiling::CheckKVAntiQuantParamsInPagedAttention() {
+ge::graphStatus IFATiling::CheckKVAntiQuantParamsInPagedAttention() const {
     auto keyAntiquantScaleTensor = context_->keyAntiquantScale.tensor;
     auto KeyAntiquantScaleShape = keyAntiquantScaleTensor->GetStorageShape();
     if (CheckKVAntiQuantParamsShapeInPagedAttention(KeyAntiquantScaleShape) != ge::GRAPH_SUCCESS) {
@@ -1519,7 +1520,7 @@ ge::graphStatus IFATiling::CheckKeyAndValueAntiquantOffset(const uint32_t keyAnt
     return ge::GRAPH_SUCCESS;
 }
 
-ge::graphStatus IFATiling::CheckKvAntiquant4SplitMode()
+ge::graphStatus IFATiling::CheckKvAntiquant4SplitMode() const
 {   
     OP_LOGD(context_->opName, "kv antiquant is split mode");
     uint32_t keyAntiquantMode = context_->keyAntiquantMode != nullptr ? static_cast<uint32_t>(*context_->keyAntiquantMode) : 0U;
@@ -1769,7 +1770,7 @@ ge::graphStatus IFATiling::Split()
     }
 }
 
-ge::graphStatus IFATiling::ProcessGqaKvNz()
+ge::graphStatus IFATiling::ProcessGqaKvNz() const
 {
     if (!gqaKvNZFlag_) {
         return ge::GRAPH_SUCCESS;
@@ -2074,7 +2075,7 @@ std::vector<int64_t> IFATiling::InitSparseValidArray(const int64_t *actualLens) 
 }
 // code copy from flash_attention_score_tiling
 bool IFATiling::BalanceLoad(const std::vector<int64_t> &sparseValidArray, int64_t totalSize, int64_t validAivNum,
-                            std::vector<int64_t> &localValue, std::vector<int64_t> &sparseStartIdx)
+                            std::vector<int64_t> &localValue, std::vector<int64_t> &sparseStartIdx) const
 {
     // to avoid buffer overflow, or maybe sometimes we want to only verify single
     // core
@@ -2121,7 +2122,7 @@ bool IFATiling::BalanceLoad(const std::vector<int64_t> &sparseValidArray, int64_
 }
 
 void IFATiling::InitLoadValue(const std::vector<int64_t> &sparseValidArray, int64_t totalSize, int64_t validAivNum,
-                              const std::vector<int64_t> &sparseStartIdx, std::vector<int64_t> &localValue)
+                              const std::vector<int64_t> &sparseStartIdx, std::vector<int64_t> &localValue) const
 {
     for (int64_t idx = 0; idx < validAivNum; ++idx) {
         int64_t start = sparseStartIdx[idx];
@@ -2419,7 +2420,7 @@ std::pair<uint32_t, uint32_t> IFATiling::GetPreLoadNumAndActCoreNum() const
     return std::make_pair(preLoadNum, actCoreNum);
 }
 
-void IFATiling::CalcWorkSpaceForBmmAll(IfaWorkSpaceSizeParams &params, uint32_t preLoadNum, uint32_t actCoreNum)
+void IFATiling::CalcWorkSpaceForBmmAll(const IfaWorkSpaceSizeParams& params, uint32_t preLoadNum, uint32_t actCoreNum)
 {
     workspaceSize_ += preLoadNum * (mmResUbSize_ * actCoreNum * params.mmResElemSize);
     if (ropeFlag_) {
@@ -2523,7 +2524,7 @@ void IFATiling::NormalCalcFDWorkSpace(const uint32_t actCoreNum) {
         } else {
            accumOutSize = FDParamNums * headDimAlign_;
         }
-        logSumExpSize = 2 * FDParamNums * (BYTE_BLOCK / blockTypeSize_);  // log和sum的存储空间一致，共需要2份内存
+        logSumExpSize = NUM2 * FDParamNums * (BYTE_BLOCK / blockTypeSize_);  // log和sum的存储空间一致，共需要2份内存
         workspaceSize_ += static_cast<size_t>((accumOutSize + logSumExpSize)) * static_cast<size_t>(blockTypeSize_);
         if (socVersion_ == IfaSocVersion::SOC_ASCEND_310P) {
             workspaceSize_ += static_cast<size_t>(actCoreNum) * 32U; // 每个核SyncAll软同步需要32Byte记录状态
@@ -2640,7 +2641,7 @@ void IFATiling::FillTilingSplitKV() const
     tilingData_->splitKVParams.set_sInnerLoopSize(sInnerLoopSize_);
     if (inputLayout_ == IfaLayout::TND) {
         tilingData_->splitKVParams.set_accumOutSize(tSeqSize_ * numHeads_ * kvSplitPart_ * headDimAlign_);
-        tilingData_->splitKVParams.set_logSumExpSize(2 * batchSizeQ_ * numHeads_ * kvSplitPart_ * qSeqSize_ *   // 2份
+        tilingData_->splitKVParams.set_logSumExpSize(NUM2 * batchSizeQ_ * numHeads_ * kvSplitPart_ * qSeqSize_ *   // 2份
                                                     (BYTE_BLOCK / blockTypeSize_)); // 2: sum + max
     } else {
         if (slidingFlag_) {
@@ -2648,7 +2649,7 @@ void IFATiling::FillTilingSplitKV() const
         } else {
            tilingData_->splitKVParams.set_accumOutSize(batchSizeQ_ * numHeads_ * kvSplitPart_ * headDimAlign_);
         }
-        tilingData_->splitKVParams.set_logSumExpSize(2 * batchSizeQ_ * numHeads_ * kvSplitPart_ *
+        tilingData_->splitKVParams.set_logSumExpSize(NUM2 * batchSizeQ_ * numHeads_ * kvSplitPart_ *
                                                     (BYTE_BLOCK / blockTypeSize_)); // 2: sum + max
     }
     if (!splitKVFlag_) {
@@ -2662,7 +2663,7 @@ void IFATiling::FillTilingCoreParams() const
     memcpy_s(coreStartIdx, MAX_CORE_NUM * sizeof(uint32_t), startIdxEachCore_, MAX_CORE_NUM * sizeof(uint32_t));
 }
 
-void IFATiling::FillTilingSingleCoreParams()
+void IFATiling::FillTilingSingleCoreParams() const
 {
     tilingData_->increFlashAttentionSingleCoreParams.set_sInnerLoopTimes(sInnerLoopTimes_);
     tilingData_->increFlashAttentionSingleCoreParams.set_singleProcessSInnerSize(sInnerSize_);
@@ -2831,7 +2832,7 @@ bool IFATiling::GetBmm2Tiling(const matmul_tiling::DataType &kvType, const uint3
     return true;
 }
 
-bool IFATiling::FillTilingBmm()
+bool IFATiling::FillTilingBmm() const
 {
     matmul_tiling::DataType qType;
     matmul_tiling::DataType kvType;
@@ -3604,7 +3605,7 @@ bool IFATiling::AtbCheckFlag() {
     }
 }
 
-bool IFATiling::AtbCheckFlag310()
+bool IFATiling::AtbCheckFlag310() const
 {
     if(context_->query.shape->GetStorageShape().GetDimNum() == DIM_NUM_TWO) {
         return context_->query.shape->GetStorageShape().GetDim(1) == *context_->numHeads * BLOCK_SIZE;
@@ -3777,11 +3778,11 @@ bool IFATiling::AtbCheckFlag910() {
     return context_->blockTable.tensor != nullptr && context_->key.desc->GetDataType() == ge::DT_INT8 && multiSeqQ;
 }
 
-ge::graphStatus IFATiling::AtbTilingCheck910() {
+ge::graphStatus IFATiling::AtbTilingCheck910() const {
     return ge::GRAPH_SUCCESS;
 }
 
-uint32_t IFATiling::GetTotalWorkspaceSize() {
+uint32_t IFATiling::GetTotalWorkspaceSize() const {
     if (socVersion_ == IfaSocVersion::SOC_ASCEND_310P) {
         return static_cast<uint32_t>(libapiSize_);
     }
@@ -3792,7 +3793,7 @@ uint32_t IFATiling::GetTotalWorkspaceSize() {
     return usrWorkspaceSize + static_cast<uint32_t>(libapiSize_);
 }
 
-uint32_t IFATiling::GetHeadSize() {
+uint32_t IFATiling::GetHeadSize() const {
     if (socVersion_ == IfaSocVersion::SOC_ASCEND_310P) {
         return context_->query.shape->GetStorageShape().GetDim(1) * BLOCK_SIZE / numHeads_;
     }

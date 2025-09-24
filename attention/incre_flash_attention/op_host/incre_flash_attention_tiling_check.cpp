@@ -134,7 +134,7 @@ std::string IFATiling::GetTensorDimString(const gert::Shape shape) const
     return ss.str();
 }
 
-ge::graphStatus IFATiling::CheckInputParameterFormat()
+ge::graphStatus IFATiling::CheckInputParameterFormat() const
 {
     auto qFormat = context_->query.desc->GetOriginFormat();
     auto kFormat = context_->key.desc->GetOriginFormat();
@@ -173,7 +173,7 @@ ge::graphStatus IFATiling::CheckInputParameterFormat()
   return ge::GRAPH_SUCCESS;
 }
 
-ge::graphStatus IFATiling::CheckInputAntiquantFormat()
+ge::graphStatus IFATiling::CheckInputAntiquantFormat() const
 {
     if(context_->antiquantScale.desc != nullptr){
         auto aScaleFormat = context_->antiquantScale.desc->GetOriginFormat();
@@ -442,7 +442,7 @@ ge::graphStatus IFATiling::CheckKVHeadNum(const gert::StorageShape *inputShape) 
     return ge::GRAPH_SUCCESS;
 }
 
-ge::graphStatus IFATiling::CheckKVShape(const size_t &size, const gert::StorageShape *keyTensorInList, const gert::StorageShape *valueTensorInList)
+ge::graphStatus IFATiling::CheckKVShape(const size_t &size, const gert::StorageShape *keyTensorInList, const gert::StorageShape *valueTensorInList) const
 {
     /* kv not continuous */
     std::string layOutStr = context_->layOut;
@@ -731,7 +731,7 @@ ge::graphStatus IFATiling::CheckKVAntiQuantPerHead(const gert::Shape &inputParaS
     }
 }
 
-ge::graphStatus IFATiling::CheckKVAntiQuantPerChannel(const gert::Shape& inputParaShape)
+ge::graphStatus IFATiling::CheckKVAntiQuantPerChannel(const gert::Shape& inputParaShape) const
 {
     std::string layOutStr = context_->layOut;
     if (gqaKvNZFlag_ && kvAntiParamSplitFlag_) {
@@ -935,7 +935,7 @@ ge::graphStatus IFATiling::SharedPrefixCheckBasic()
     return ge::GRAPH_SUCCESS;
 }
 
-ge::graphStatus IFATiling::SharedPrefixCheckShapes(const gert::Shape &keyShape, const gert::Shape &valueShape)
+ge::graphStatus IFATiling::SharedPrefixCheckShapes(const gert::Shape &keyShape, const gert::Shape &valueShape) const
 {
     OP_CHECK_IF(
         !ShapeEqual(keyShape, valueShape),
@@ -1021,7 +1021,7 @@ bool IFATiling::IsFlashDecode(uint32_t coreNum, IfaPerfMode perfMode)
     return false;
 }
 
-bool IFATiling::CheckCoreOkFlag(uint32_t coreNum,IfaPerfMode perfMode)
+bool IFATiling::CheckCoreOkFlag(uint32_t coreNum,IfaPerfMode perfMode) const
 {
     bool coreOkFlag = false;
     float flashDecodeBNRatio = static_cast<float>(0.4); // 0.4, 经验值
@@ -1455,7 +1455,7 @@ ge::graphStatus IFATiling::ProcessAttenMask()
     }
     
     auto maskShape = context_->attenMask.tensor; // input shape = 4
-    uint32_t batchSizeOfMask = maskShape->GetStorageShape().GetDim(0);
+    uint32_t batchSizeOfMask = static_cast<uint32_t>(maskShape->GetStorageShape().GetDim(0));
     if (batchSizeOfMask != batchSize_) {
         OP_LOGE(context_->opName, "batchSize[%u] of atten_mask must be equal to batchSize[%u] of query.",
                   batchSizeOfMask, batchSize_);
@@ -1463,7 +1463,7 @@ ge::graphStatus IFATiling::ProcessAttenMask()
     }
 
     auto dimNumOfMask = maskShape->GetStorageShape().GetDimNum();
-    attenMaskSize_ = maskShape->GetStorageShape().GetDim(dimNumOfMask - 1);
+    attenMaskSize_ = static_cast<uint32_t>(maskShape->GetStorageShape().GetDim(dimNumOfMask - 1));
     uint32_t minAttenMaskSize = pageAttentionFlag_ ? sMax_ : maxActualseq_;
     if (attenMaskSize_ < minAttenMaskSize) {
         OP_LOGE(context_->opName, "s Size[%u] of atten_mask must be greater than or equal to sMax[%u].",
@@ -1704,7 +1704,7 @@ ge::graphStatus IFATiling::CheckMlaKeyRopeNzLayout(const gert::Shape keyRopeShap
     return ge::GRAPH_SUCCESS;
 }
 
-ge::graphStatus IFATiling::CheckMlaKeyRope()
+ge::graphStatus IFATiling::CheckMlaKeyRope() const
 {
     if (!pageAttentionFlag_) {
         OP_LOGE(context_->opName, "only PageAttention KvCache is supported in MLA mode");

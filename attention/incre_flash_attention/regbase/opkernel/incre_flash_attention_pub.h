@@ -35,8 +35,11 @@ typedef struct {
   uint32_t N2;
   uint32_t K2;
 } IFAProfile;
-
-#define MAX(a, b) ((a) > (b) ? (a) : (b))
+template <typename T>
+__aicore__ inline uint64_t MAX(T x, T y)
+{
+    return (x > y) ? static_cast<uint64_t>(x) : static_cast<uint64_t>(y);
+};
 static constexpr IFAProfile IFA_PROFILE_DEFAULT = {0, 0, 0, 0, 0, 0, 0, 0, 0};
 static constexpr IFAProfile IFA_PROFILE_D64 = {16, 64, 512, 16, 256, 64, 16, 64, 256};
 static constexpr IFAProfile IFA_PROFILE_D128 = {16, 128, 256, 16, 128, 128, 16, 128, 128};
@@ -47,6 +50,9 @@ static constexpr IFAProfile IFA_PROFILE_D64_PSE_OR_BAND = {8, 64, 512, 16, 256, 
 static constexpr IFAProfile IFA_PROFILE_D64_S256 = {16, 64, 256, 16, 256, 64, 16, 64, 256};
 static constexpr IFAProfile IFA_PROFILE_D64_S128 = {16, 64, 128, 16, 128, 64, 16, 64, 128};
 static constexpr IFAProfile IFA_PROFILE_D128_S128 = {16, 128, 128, 16, 128, 128, 16, 128, 128};
+
+constexpr uint32_t SHARED_CO1_BUFFER_SIZE_KB = 64;
+constexpr uint32_t BYTES_PER_KB = 1024;
 
 // 生成matmul MDL模板配置
 __aicore__ static constexpr MatmulConfig GenConfMM1MDL(const IFAProfile& ifa) {
@@ -95,7 +101,7 @@ __aicore__ static constexpr MatmulConfig GenConfMM1MDL(const IFAProfile& ifa) {
   mm1Cfg.enableStaticPadZeros = false;
   mm1Cfg.isA2B2Shared = false;
   mm1Cfg.isCO1Shared = false;
-  mm1Cfg.sharedCO1BufferSize = 64 * 1024;
+  mm1Cfg.sharedCO1BufferSize = SHARED_CO1_BUFFER_SIZE_KB * BYTES_PER_KB;
   return mm1Cfg;
 }
 
@@ -146,7 +152,7 @@ static constexpr MatmulConfig GenConfMM1(const IFAProfile& ifa) {
   mm1Cfg.enableStaticPadZeros = false;
   mm1Cfg.isA2B2Shared = false;
   mm1Cfg.isCO1Shared = false;
-  mm1Cfg.sharedCO1BufferSize = 64 * 1024;
+  mm1Cfg.sharedCO1BufferSize = SHARED_CO1_BUFFER_SIZE_KB * BYTES_PER_KB;
   return mm1Cfg;
 }
 
@@ -197,7 +203,7 @@ static constexpr MatmulConfig GenConfMM2(const IFAProfile& ifa) {
   mm2Cfg.enableStaticPadZeros = false;
   mm2Cfg.isA2B2Shared = false;
   mm2Cfg.isCO1Shared = false;
-  mm2Cfg.sharedCO1BufferSize = 64 * 1024;
+  mm2Cfg.sharedCO1BufferSize = SHARED_CO1_BUFFER_SIZE_KB * BYTES_PER_KB;
   return mm2Cfg;
 }
 

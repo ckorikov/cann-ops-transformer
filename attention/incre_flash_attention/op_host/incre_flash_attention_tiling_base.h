@@ -176,6 +176,26 @@ constexpr uint32_t DIM_IDX_2 = 2;
 constexpr uint32_t DIM_IDX_3 = 3;
 constexpr uint32_t HALF_REDUCE_RATE = 2;
 constexpr uint32_t WS_REPEAT_NUM = 4;
+constexpr uint32_t NUM0 = 0;
+constexpr uint32_t NUM1 = 1;
+constexpr uint32_t NUM2 = 2;
+constexpr uint32_t NUM3 = 3;
+constexpr uint32_t NUM4 = 4;
+constexpr uint32_t NUM5 = 5;
+constexpr uint32_t NUM6 = 6;
+constexpr uint32_t NUM7 = 7;
+constexpr uint32_t NUM8 = 8;
+constexpr uint32_t NUM9 = 9;
+constexpr uint32_t NUM15 = 15;
+constexpr uint32_t NUM16 = 16;
+constexpr uint32_t NUM24 = 24;
+constexpr uint32_t NUM32 = 32;
+constexpr uint32_t NUM64 = 64;
+constexpr uint32_t NUM100 = 100;
+constexpr uint32_t NUM128 = 128;
+constexpr uint32_t NUM256 = 256;
+constexpr uint32_t NUM512 = 512;
+constexpr uint32_t NUM1024 = 1024;
 }// namespace optiling
 
 

@@ -23,16 +23,15 @@
 #include <set>
 #include "register/tilingdata_base.h"
 #include "tiling/tiling_api.h"
-#include "exe_graph/runtime/tiling_context.h"
+#include "exe_graph/runtime/tiling_context.h"	
 #include "register/op_def_registry.h"
-#include "incre_flash_attention_tiling_mla.h"
-#include "incre_flash_attention_tiling_context.h"
+#include "incre_flash_attention_tiling_mla.h"	
+#include "incre_flash_attention_tiling_context.h"	
 #include "incre_flash_attention_tiling_base.h"
-#include "incre_flash_attention_tiling_struct.h"
-#include "../../incre_flash_attention/op_host/incre_flash_attention_tiling.h"
+#include "incre_flash_attention_tiling_struct.h"	
+#include "../../incre_flash_attention/op_host/incre_flash_attention_tiling.h"	
 #include "../../prompt_flash_attention/op_host/prompt_flash_attention_tiling.h"
 #include "../../prompt_flash_attention/op_host/prompt_flash_attention_tiling_context.h"
-
 #ifdef ASCENDC_OP_TEST
 #define IFA_EXTERN_C extern "C"
 #else
@@ -49,17 +48,17 @@ public:
         IncreFlashAttentionTilingDataV2 &tilingData, bool isWorkspace = false);
     ge::graphStatus IncreFlashAttentionSetTilingData(gert::TilingContext &context, IncreFlashAttentionTilingDataV2 &tilingData);
     static ge::graphStatus ConvertContext(gert::TilingContext &context, IncreFlashAttentionContext &ifaContext);
-    bool NeedRollBack()
+    bool NeedRollBack() const
     {
         return passToOldTiling_;
     }
 
-    bool TilingDataBack()
+    bool TilingDataBack() const
     {
         return !atbRunFlag_;
     }
     uint32_t GetAntiquantSeqLength() const;
-    bool IsBalanceSplitCore();
+    bool IsBalanceSplitCore() const;
 
 private:
     ge::graphStatus GetNpuInfo();
@@ -85,10 +84,10 @@ private:
     ge::graphStatus ProcessAntiQuant();
     ge::graphStatus CheckKeyAndValueAntiquantScaleOffset();
     ge::graphStatus CheckKeyAndValueAntiquantOffset(const uint32_t keyAntiquantModeKvSep,const uint32_t valueAntiquantModeKvSep);
-    ge::graphStatus CheckKvAntiquant4SplitMode();
+    ge::graphStatus CheckKvAntiquant4SplitMode() const;
     ge::graphStatus ProcessAntiQuantMode();
     ge::graphStatus ProcessQuant();
-    ge::graphStatus CheckQkvQuantParams4FullQuant();
+    ge::graphStatus CheckQkvQuantParams4FullQuant() const;
     ge::graphStatus ProcessBlockTable();
     ge::graphStatus ProcessKVPaddingSize();
     ge::graphStatus ProcessSharedPrefix();
@@ -102,9 +101,9 @@ private:
     ge::graphStatus AtbSplitBlock() const;
     ge::graphStatus AtbCheckMask();
     ge::graphStatus AtbTilingCheck310();
-    ge::graphStatus AtbTilingCheck910();
+    ge::graphStatus AtbTilingCheck910() const;
     bool AtbCheckFlag();
-    bool AtbCheckFlag310();
+    bool AtbCheckFlag310() const;
     bool AtbCheckFlag910();
     void SetupPerfMode();
     bool EnableAllVec() const;
@@ -121,8 +120,8 @@ private:
     void SetCoreNum();
     void SetDealBN2Num();
     uint32_t GetTotalQBlockNum() const;
-    uint32_t GetTotalWorkspaceSize();
-    uint32_t GetHeadSize();
+    uint32_t GetTotalWorkspaceSize() const;
+    uint32_t GetHeadSize() const;
     uint32_t CalcSeqStepKv() const;
     uint32_t CalcSeqStepQ() const;
 
@@ -137,7 +136,7 @@ private:
     ge::graphStatus ProcessPageAttentionFlag();
     ge::graphStatus KvShapePostProcess();
     ge::graphStatus CheckKVHeadNum(const gert::StorageShape *inputShape) const;
-    ge::graphStatus CheckKVShape(const size_t &size, const gert::StorageShape *keyTensorInList, const gert::StorageShape *valueTensorInList);
+    ge::graphStatus CheckKVShape(const size_t &size, const gert::StorageShape *keyTensorInList, const gert::StorageShape *valueTensorInList) const;
     ge::graphStatus CheckQKOutShapeBsh(size_t dimOfQ, size_t dimOfK, size_t dimOfOut,
         const gert::StorageShape *queryShape, const gert::StorageShape *keyShape) const;
     ge::graphStatus CheckQKOutShapeTnd(size_t dimOfQ, size_t dimOfK, size_t dimOfOut,
@@ -149,7 +148,7 @@ private:
     ge::graphStatus ZeroTensorProcess();
     ge::graphStatus SharedPrefixTiling();
     ge::graphStatus SharedPrefixCheckBasic();
-    ge::graphStatus SharedPrefixCheckShapes(const gert::Shape &keyShape, const gert::Shape &valueShape);
+    ge::graphStatus SharedPrefixCheckShapes(const gert::Shape &keyShape, const gert::Shape &valueShape) const;
 
     ge::graphStatus CheckUbSpace();
     ge::graphStatus CheckPABlockSize() const;
@@ -161,9 +160,9 @@ private:
     ge::graphStatus CheckKVAntiQuantMode();
     ge::graphStatus CheckKVAntiQuantPerToken(const gert::Shape &inputParaShape) const;
     ge::graphStatus CheckKVAntiQuantPerHead(const gert::Shape &inputParaShape) const;
-    ge::graphStatus CheckKVAntiQuantParamsInPagedAttention();
+    ge::graphStatus CheckKVAntiQuantParamsInPagedAttention() const;
     ge::graphStatus CheckKVAntiQuantParamsShapeInPagedAttention(const gert::Shape &inputParaShape) const;
-    ge::graphStatus CheckKVAntiQuantPerChannel(const gert::Shape &inputParaShape);
+    ge::graphStatus CheckKVAntiQuantPerChannel(const gert::Shape &inputParaShape) const;
     ge::graphStatus CheckGqaAntiQuantPerChannel(const gert::Shape &inputParaShape) const;
     ge::graphStatus CheckKVAntiQuantParaShapeLegal(const gert::Shape &inputParaShape);
     ge::graphStatus CheckAntiQuantParam(const gert::Tensor *antiquantScaleTensor,
@@ -177,8 +176,8 @@ private:
         const gert::CompileTimeTensorDesc *antiquantOffsetDesc, ge::DataType antiquantScaleType) const;   
     ge::graphStatus CheckSupportKVLeftPadding();
     ge::graphStatus CheckInputFormatAndLimits();
-    ge::graphStatus CheckInputParameterFormat();
-    ge::graphStatus CheckInputAntiquantFormat();
+    ge::graphStatus CheckInputParameterFormat() const;
+    ge::graphStatus CheckInputAntiquantFormat() const;
     ge::graphStatus ProcessCheckATBInputWithPage() const;
     ge::graphStatus CheckKeyShapeInput() const;
     ge::graphStatus CheckValueShapeInput() const;
@@ -189,7 +188,7 @@ private:
     std::string GetTensorDimString(const gert::Shape shape) const;
     uint32_t GetTypeSize(ge::DataType dtype) const;
 
-    ge::graphStatus CheckMlaKeyRope();
+    ge::graphStatus CheckMlaKeyRope() const;
     ge::graphStatus CheckMlaQueryRope();
     ge::graphStatus CheckMlaMisc() const;
     ge::graphStatus CheckDefaultMisc(std::string scene) const;
@@ -216,8 +215,8 @@ private:
     bool ShapeEqual(const gert::Shape &aShape, const gert::Shape &bShape) const;
 
     ge::graphStatus Split();
-    void GetActualSeqInfo(const int64_t *actual_seq_kv, ActualSeqInfo &actualSeqInfo) const;
-    void GetSeqTilingInfo(const int64_t *actual_seq_kv, const ActualSeqInfo &actualSeqInfo,
+    void GetActualSeqInfo(const int64_t *actualSeqKv, ActualSeqInfo &actualSeqInfo) const;
+    void GetSeqTilingInfo(const int64_t *actualSeqKv, const ActualSeqInfo &actualSeqInfo,
         SeqTilingInfo &seqTilingInfo) const;
     void FillBalancedSplitCoreInfo(const TilingIndexes &tilingIdx, BalancedSplitTilingInfo &tilingInfo);
     void EndSplitForCurrentCore(const TilingIndexes &tilingIdx, const SeqTilingInfo &seqTilingInfo,
@@ -227,7 +226,7 @@ private:
     ge::graphStatus SplitUnbalanced();
     ge::graphStatus CalcInnerSize(uint32_t seqSize);
     ge::graphStatus SplitBN();
-    ge::graphStatus ProcessGqaKvNz();
+    ge::graphStatus ProcessGqaKvNz() const;
     ge::graphStatus CheckGqaTensor() const;
     ge::graphStatus CheckGqaIOTensor() const;
     ge::graphStatus CheckGqaAntiquantTensor() const;
@@ -241,14 +240,14 @@ private:
 
     std::vector<int64_t> InitSparseValidArray(const int64_t *actualLens) const;
     bool BalanceLoad(const std::vector<int64_t> &sparseValidArray, int64_t totalSize, int64_t validAivNum,
-        std::vector<int64_t> &localValue, std::vector<int64_t> &sparseStartIdx);
+        std::vector<int64_t> &localValue, std::vector<int64_t> &sparseStartIdx) const;
     void InitLoadValue(const std::vector<int64_t> &sparseValidArray, int64_t totalSize, int64_t validAivNum,
-        const std::vector<int64_t> &sparseStartIdx, std::vector<int64_t> &localValue);
+        const std::vector<int64_t> &sparseStartIdx, std::vector<int64_t> &localValue) const;
     void SetSparseStartIdx(const std::vector<int64_t> &sparseValidArray, int64_t totalSize, int64_t validAivNum,
         uint32_t *sparseStartIdx, int64_t splitFactorSize);
 
     bool IsFlashDecode(uint32_t coreNum, IfaPerfMode perfMode);
-    bool CheckCoreOkFlag(uint32_t coreNum,IfaPerfMode perfMode);
+    bool CheckCoreOkFlag(uint32_t coreNum,IfaPerfMode perfMode) const;
     bool DealSameSeqEachBatch() const;
     bool HasZeroSeqBatch() const;
     bool IsKvZeroBatchSplit(bool needUpdate, uint32_t lastValidBMoreIdx, uint32_t bSize,
@@ -262,21 +261,21 @@ private:
     bool GetMatmulType(ge::DataType getype, matmul_tiling::DataType *mmType) const;
 
     std::pair<uint32_t, uint32_t> GetPreLoadNumAndActCoreNum() const;
-    void CalcWorkSpaceForBmmAll(IfaWorkSpaceSizeParams &params, uint32_t preLoadNum, uint32_t actCoreNum);
+    void CalcWorkSpaceForBmmAll(const IfaWorkSpaceSizeParams& params, uint32_t preLoadNum, uint32_t actCoreNum);
     ge::graphStatus CalcWorkSpace();
     ge::graphStatus CalcBlockDim();
     ge::graphStatus GetKvLayoutInfo(KvLayoutInfo &kvLayoutInfo) const;
     ge::graphStatus GetInputLayoutVal(uint8_t &layoutVal) const;
     ge::graphStatus GetInputQueryVal(uint8_t &inputQVal) const;
     ge::graphStatus GetInputKvVal(uint8_t &inputKvVal) const;
-    ge::graphStatus GetOutputVal(uint8_t &inputKvVal) const;
+    ge::graphStatus GetOutputVal(uint8_t &outputVal) const;
     ge::graphStatus GenTilingKey() const;
 
     ge::graphStatus FillTiling();
     void FillTilingBaseParams();
     void FillTilingSplitKV() const;
     void FillTilingCoreParams() const;
-    void FillTilingSingleCoreParams();
+    void FillTilingSingleCoreParams() const;
     void FillTilingSingleCoreTensorSize() const;
     void FillTilingSoftmax() const;
     void FillTilingSoftmaxFlashTiling();
@@ -284,7 +283,7 @@ private:
     void FillTilingOutputParams() const;
     bool GetBmm1Tiling(const matmul_tiling::DataType &kvType, const uint32_t M) const;
     bool GetBmm2Tiling(const matmul_tiling::DataType &kvType, const uint32_t M) const;
-    bool FillTilingBmm(); // may fail
+    bool FillTilingBmm() const; // may fail
 
     ge::graphStatus FillTilingMla();
     void FillTilingBaseParamsMla();
@@ -488,13 +487,13 @@ private:
 
 std::string DataTypeToSerialString(ge::DataType type);
 
-ge::graphStatus PFAConvertContext(ContextParamsForPFATiling &contextKeyParams, gert::TilingContext *context);
+ge::graphStatus PFAConvertContext(ContextParamsForPFATiling& contextKeyParams, gert::TilingContext* context);
 
-ge::graphStatus TilingPrepareForIncreFlashAttention(gert::TilingParseContext *context);
-ge::graphStatus TilingIncreFlashAttentionAdapter(gert::TilingContext *context, IncreFlashAttentionContext &ifaContext,
-    IncreFlashAttentionTilingDataV2 &ifaTilingData);
+ge::graphStatus TilingPrepareForIncreFlashAttention(gert::TilingParseContext* context);
+ge::graphStatus TilingIncreFlashAttentionAdapter(gert::TilingContext* context, IncreFlashAttentionContext& ifaContext,
+    IncreFlashAttentionTilingDataV2& ifaTilingData);
 
-IFA_EXTERN_C ge::graphStatus TilingIncreFlashAttention(gert::TilingContext *context);
+IFA_EXTERN_C ge::graphStatus TilingIncreFlashAttention(gert::TilingContext* context);
 
 } // namespace optiling
 #endif // AIR_CXX_RUNTIME_V2_OP_IMPL_INCREFLASHATTENTIONSCORE_H_
