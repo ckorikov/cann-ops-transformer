@@ -16,27 +16,6 @@
 #define PROMPT_FLASH_ATTENTION_BASE_MLA_HIGH_PRECISION_H
 #include "kernel_operator.h"
 
-constexpr int32_t ZERO = 0;
-constexpr int32_t ONE = 1;
-constexpr int32_t TWO = 2;
-constexpr int32_t THREE = 3;
-constexpr int32_t FOUR = 4;
-constexpr int32_t FIVE = 5;
-constexpr int32_t EIGHT = 8;
-constexpr int32_t SIXTEEN = 16;
-
-constexpr int32_t MASK_TYPE_ALIBI_COMPRESS = 2;
-constexpr int32_t ALIBI_LEFT_ALIGN_DISABLE = 0;
-constexpr int32_t ALIBI_COMPRESS_OFFSET_DISABLE = 0;
-constexpr int32_t MASK_TYPE_NONE = 0; 
-constexpr int32_t SBLOCK_STACK_DOUBLE = 2;
-
-constexpr uint32_t PINGPONG_FLAG_M_MTE1_OFFSET_ONE = 1;
-constexpr uint32_t PINGPONG_FLAG_M_MTE1_OFFSET_TWO = 2;
-constexpr uint32_t PINGPONG_FLAG_M_MTE1_OFFSET_FOUR = 4;
-constexpr uint32_t PINGPONG_FLAG_OFFSET_FIVE = 5;
-constexpr uint32_t PINGPONG_FLAG_M_MTE1_OFFSET_SIX = 6;
-
 template <typename TILING_TYPE, typename IN_DATA_TYPE, const bool IS_BF16 = true, typename...Args>
 struct PFAHighPrecisionMLAType {
     using tilingType = TILING_TYPE;
@@ -196,7 +175,7 @@ public:
                 MNibd mnIbd = GetPPmnIbd(qSeqlen, kvSeqlen, embd, isMLA);
                 ppMScalar = PP_MM[mnIbd.mIbd];
                 ppNScalar = PP_NN[mnIbd.nIbd];
-                curTotalQBlkNum += (qSeqlen != ZERO) ? ((qSeqlen + ppMScalar - ONE) / ppMScalar) : ZERO;
+                curTotalQBlkNum += (qSeqlen != 0) ? ((qSeqlen + ppMScalar - 1) / ppMScalar) : 0;
             }
             nextProcess = process + GetBlockNum();
             if (isTriuMask) {
@@ -250,13 +229,13 @@ public:
             if (isTriuMask) {
                 nEnd = mIdx + 1;
             }
-            uint32_t sBlockStack = nEnd > FOUR ? TWO : ONE; // Currently not splitting K
-            uint32_t launchDelay = sBlockStack * TWO;
+            uint32_t sBlockStack = nEnd > 4 ? 2 : 1; // Currently not splitting K
+            uint32_t launchDelay = sBlockStack * 2;
             uint32_t vectMod = 2 * launchDelay;
             for (uint32_t nIdx = 0; nIdx < nEnd + launchDelay; nIdx += sBlockStack) {
                 if (nIdx < nEnd) {
                     for (uint32_t splitIdx = 0; splitIdx < sBlockStack && nIdx + splitIdx < nEnd; splitIdx++) {
-                        pingpongFlag = (nIdx + splitIdx) % TWO;
+                        pingpongFlag = (nIdx + splitIdx) % 2;
                         offset = pingpongFlag * L0AB_HALF_BUF_SIZE;
                         if (nIdx + splitIdx == (nLoop - 1)) {
                             qkN = (kvSeqlen - (nIdx + splitIdx) * ppNScalar);
@@ -309,7 +288,7 @@ public:
                             AscendC::WaitFlag<AscendC::HardEvent::M_MTE1>((pingpongFlag));
                             LoadDataToCa(l0aBufTensor[offset], l1qBufAddrTensor[offset], qkRoundK, qkRoundM, qkM);
                             // *** Prepare K to L1
-                            AscendC::SetFlag<AscendC::HardEvent::MTE1_MTE2>((pingpongFlag + PINGPONG_FLAG_OFFSET_FIVE));
+                            AscendC::SetFlag<AscendC::HardEvent::MTE1_MTE2>((pingpongFlag + 5));
                             AscendC::SetFlag<AscendC::HardEvent::MTE1_M>((pingpongFlag));
 
                             AscendC::WaitFlag<AscendC::HardEvent::MTE1_MTE2>((pingpongFlag));
@@ -340,9 +319,9 @@ public:
                                 }
                             }
 
-                            AscendC::SetFlag<AscendC::HardEvent::MTE2_MTE1>((pingpongFlag + PINGPONG_FLAG_M_MTE1_OFFSET_FOUR));
-                            AscendC::WaitFlag<AscendC::HardEvent::MTE2_MTE1>((pingpongFlag + PINGPONG_FLAG_M_MTE1_OFFSET_FOUR));
-                            AscendC::WaitFlag<AscendC::HardEvent::M_MTE1>((pingpongFlag + PINGPONG_FLAG_M_MTE1_OFFSET_TWO));
+                            AscendC::SetFlag<AscendC::HardEvent::MTE2_MTE1>((pingpongFlag + 4));
+                            AscendC::WaitFlag<AscendC::HardEvent::MTE2_MTE1>((pingpongFlag + 4));
+                            AscendC::WaitFlag<AscendC::HardEvent::M_MTE1>((pingpongFlag + 2));
                             AscendC::LoadData(l0bBufTensor[offset],
                                             l1kBufAddrTensor[offset],
                                             AscendC::LoadData2dParams(0,
@@ -353,10 +332,10 @@ public:
                                                                     false,
                                                                     0));
                             AscendC::SetFlag<AscendC::HardEvent::MTE1_MTE2>((pingpongFlag));
-                            AscendC::SetFlag<AscendC::HardEvent::MTE1_M>((pingpongFlag + PINGPONG_FLAG_M_MTE1_OFFSET_TWO));
+                            AscendC::SetFlag<AscendC::HardEvent::MTE1_M>((pingpongFlag + 2));
 
                             AscendC::WaitFlag<AscendC::HardEvent::MTE1_M>((pingpongFlag));
-                            AscendC::WaitFlag<AscendC::HardEvent::MTE1_M>((pingpongFlag + PINGPONG_FLAG_M_MTE1_OFFSET_TWO));
+                            AscendC::WaitFlag<AscendC::HardEvent::MTE1_M>((pingpongFlag + 2));
                             if (splitIdx == 0 && initc) {
                                 AscendC::WaitFlag<AscendC::HardEvent::FIX_M>((EVENT_ID0));
                                 AscendC::WaitFlag<AscendC::HardEvent::FIX_M>((EVENT_ID1));
@@ -367,7 +346,7 @@ public:
                                         AscendC::MmadParams(qkM, qkN, qkK, 0, false, initc));
                             AscendC::PipeBarrier<PIPE_M>();
                             AscendC::SetFlag<AscendC::HardEvent::M_MTE1>((pingpongFlag));
-                            AscendC::SetFlag<AscendC::HardEvent::M_MTE1>((pingpongFlag + PINGPONG_FLAG_M_MTE1_OFFSET_TWO));
+                            AscendC::SetFlag<AscendC::HardEvent::M_MTE1>((pingpongFlag + 2));
                         }
                         kOffset += ppNScalar * strideK;
                     }
@@ -379,7 +358,7 @@ public:
                     } else {
                         svN = ppNScalar * sBlockStack;
                     }
-                    uint32_t svRoundN = (svN + BLOCK_SIZE - ONE) / BLOCK_SIZE * BLOCK_SIZE;
+                    uint32_t svRoundN = (svN + BLOCK_SIZE - 1) / BLOCK_SIZE * BLOCK_SIZE;
                     // copy S to gm
                     auto intriParams = AscendC::FixpipeParamsV220(svRoundN, // nSize
                                                                 qkM, // mSize
@@ -393,7 +372,7 @@ public:
                     AscendC::CrossCoreSetFlag<2, PIPE_FIX>(QK_READY);
                 }
                 if (nIdx >= launchDelay) {
-                    uint32_t l0cPingpongFlag = nIdx % TWO;
+                    uint32_t l0cPingpongFlag = nIdx % 2;
                     uint32_t l0cOffset = l0cPingpongFlag * L0AB_HALF_BUF_SIZE;
                     uint32_t svNTriu = nEnd * ppNScalar;
                     if (nIdx + sBlockStack > nEnd + launchDelay - 1) {
@@ -836,28 +815,28 @@ public:
                     }
                     qkRoundN = (qkN + BLOCK_SIZE - 1) / BLOCK_SIZE * BLOCK_SIZE;
                     if (qkN <= VECTOR_SIZE) {
-                        if (subM > ZERO && maskType != MASK_TYPE_NONE) {
+                        if (subM > 0 && maskType != 0) {
                             if (alibiCoeffGm != nullptr) {
-                                if (alibiLeftAlign == ALIBI_LEFT_ALIGN_DISABLE) {
-                                    if (nIdx == nEnd - ONE) {
-                                        maskOffset = ZERO;
-                                        deltaUint = ZERO;
-                                        delta = ZERO;
+                                if (alibiLeftAlign == 0) {
+                                    if (nIdx == nEnd - 1) {
+                                        maskOffset = 0;
+                                        deltaUint = 0;
+                                        delta = 0;
                                     } else {
                                         maskOffset = BASE_MASK_SIZE * maxSeqlen;
                                         deltaUint = mIdx * ppMScalar - nIdx * ppNScalar;
                                         delta = baseY + deltaUint;
                                     }
                                 } else {
-                                    if (nIdx == nEnd - ONE) {
-                                        maskOffset = ZERO;
+                                    if (nIdx == nEnd - 1) {
+                                        maskOffset = 0;
                                     } else {
                                         maskOffset = BASE_MASK_SIZE * maxSeqlen;
                                     }
                                     delta = -baseY * nIdx;
                                 }
-                            } else if (maskType == MASK_TYPE_ALIBI_COMPRESS && alibiCompressOffset > ALIBI_COMPRESS_OFFSET_DISABLE) {
-                                if (nIdx == nEnd - ONE) {
+                            } else if (maskType == 2 && alibiCompressOffset > 0) {
+                                if (nIdx == nEnd - 1) {
                                     maskOffset = headIdx * alibiCompressOffset * BASE_MASK_SIZE;
                                 } else {
                                     deltaUint = mIdx * ppMScalar - nIdx * ppNScalar;
@@ -867,8 +846,8 @@ public:
                             if (longSeq == 0) {
                                 AscendC::WaitFlag<AscendC::HardEvent::V_MTE2>((EVENT_ID1));
                                 AscendC::DataCopyPad(mask16UbufTensor,
-                                                    maskGmTensor[maskOffset + subBlockIdx * qkM / TWO * maxSeqlen],
-                                                    AscendC::DataCopyExtParams(subM, qkN * TWO, (maxSeqlen - qkN) * TWO, 0, 0),
+                                                    maskGmTensor[maskOffset + subBlockIdx * qkM / 2 * maxSeqlen],
+                                                    AscendC::DataCopyExtParams(subM, qkN * 2, (maxSeqlen - qkN) * 2, 0, 0),
                                                     AscendC::DataCopyPadExtParams<IN_DATA_TYPE>(false, 0, 0, 0));
                                 AscendC::SetFlag<AscendC::HardEvent::MTE2_V>((EVENT_ID1));
                                 maskOffset += qkN;
@@ -985,18 +964,18 @@ public:
                             }
 
                             // *** ls = ls + mask
-                            if (maskType != MASK_TYPE_NONE) {
-                                if (longSeq == ZERO) {
+                            if (maskType != 0) {
+                                if (longSeq == 0) {
                                     AscendC::Add<float, false>(
                                         lsUbufTensor,
                                         lsUbufTensor,
                                         maskUbufTensor,
                                         (uint64_t)0,
-                                        (subM * qkRoundN + FLOAT_VECTOR_SIZE - ONE) / FLOAT_VECTOR_SIZE,
+                                        (subM * qkRoundN + FLOAT_VECTOR_SIZE - 1) / FLOAT_VECTOR_SIZE,
                                         AscendC::BinaryRepeatParams(1, 1, 1, 8, 8, 8)
                                     );
                                     AscendC::SetFlag<AscendC::HardEvent::V_MTE2>((EVENT_ID1));
-                                } else if (ppNScalar == FLOAT_VECTOR_SIZE && sBlockStack == SBLOCK_STACK_DOUBLE && nIdx == nEnd - TWO) {
+                                } else if (ppNScalar == FLOAT_VECTOR_SIZE && sBlockStack == 2 && nIdx == nEnd - 2) {
                                     __set_mask(qkN - FLOAT_VECTOR_SIZE);
                                     AscendC::Add<float, false>(
                                         lsUbufTensor[FLOAT_VECTOR_SIZE],
@@ -1068,7 +1047,7 @@ public:
                                     0,
                                     1,
                                     1,
-                                    qkRoundN / EIGHT
+                                    qkRoundN / 8
                                 );
                                 AscendC::PipeBarrier<PIPE_V>();
                                 AscendC::BlockReduceMax<float, false>(
@@ -1089,7 +1068,7 @@ public:
                                         0,
                                         1,
                                         1,
-                                        qkRoundN / EIGHT
+                                        qkRoundN / 8
                                     );
                                     AscendC::PipeBarrier<PIPE_V>();
                                     AscendC::BlockReduceMax<float, false>(
@@ -1122,7 +1101,7 @@ public:
                                         0,
                                         1,
                                         1,
-                                        qkRoundN / EIGHT
+                                        qkRoundN / 8
                                     );
                                     AscendC::PipeBarrier<PIPE_V>();
                                     __set_vcg_mask((qkN % FLOAT_VECTOR_SIZE + FLOAT_BLOCK_SIZE - 1)/ FLOAT_BLOCK_SIZE);
@@ -1384,7 +1363,7 @@ public:
                                         delta = -baseY * nIdx;
                                     }
                                     AscendC::DataCopy(mask16UbufTensor,
-                                                    maskGmTensor[maskOffset + (subBlockIdx * qkM / TWO + splitIdx * mSlice) * SOFTMAX_MAX_LENGTH],
+                                                    maskGmTensor[maskOffset + (subBlockIdx * qkM / 2 + splitIdx * mSlice) * SOFTMAX_MAX_LENGTH],
                                                     AscendC::DataCopyParams(mSplit,
                                                                             qkRoundN / BLOCK_SIZE,
                                                                             (SOFTMAX_MAX_LENGTH - qkRoundN) / BLOCK_SIZE,
@@ -1463,7 +1442,7 @@ public:
                                                         (float)-baseY,
                                                         (uint64_t)0,
                                                         mSplit,
-                                                        AscendC::UnaryRepeatParams(1, 1, qkRoundN / EIGHT, qkRoundN / EIGHT)
+                                                        AscendC::UnaryRepeatParams(1, 1, qkRoundN / 8, qkRoundN / 8)
                                                     );
                                                     AscendC::Adds<float, false>(
                                                         maskUbufTensor[128 + FLOAT_VECTOR_SIZE],
@@ -1471,7 +1450,7 @@ public:
                                                         (float)-baseY,
                                                         (uint64_t)0,
                                                         mSplit,
-                                                        AscendC::UnaryRepeatParams(1, 1, qkRoundN / EIGHT, qkRoundN / EIGHT)
+                                                        AscendC::UnaryRepeatParams(1, 1, qkRoundN / 8, qkRoundN / 8)
                                                     );
                                                 } else {
                                                     AscendC::Adds<float, false>(
@@ -1480,7 +1459,7 @@ public:
                                                         baseY,
                                                         (uint64_t)0,
                                                         mSplit,
-                                                        AscendC::UnaryRepeatParams(1, 1, qkRoundN / EIGHT, qkRoundN / EIGHT)
+                                                        AscendC::UnaryRepeatParams(1, 1, qkRoundN / 8, qkRoundN / 8)
                                                     );
                                                     AscendC::Adds<float, false>(
                                                         maskUbufTensor[128 + FLOAT_VECTOR_SIZE],
@@ -1488,7 +1467,7 @@ public:
                                                         baseY,
                                                         (uint64_t)0,
                                                         mSplit,
-                                                        AscendC::UnaryRepeatParams(1, 1, qkRoundN / EIGHT, qkRoundN / EIGHT)
+                                                        AscendC::UnaryRepeatParams(1, 1, qkRoundN / 8, qkRoundN / 8)
                                                     );
                                                 }
                                                 AscendC::PipeBarrier<PIPE_V>();

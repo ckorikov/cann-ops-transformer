@@ -128,12 +128,10 @@
                 kvPaddingSize, keySharedPrefix, valueSharedPrefix, actualSharedPrefixLen, attentionOut, softmaxLse, user, tiling_data, tiling, nullptr, nullptr); \
     } while (0)
 #define INVOKE_PFA_NO_KFC_TILING_DATA_MLA(tiling)                                                                      \
-    do {                                                                                                               \
-            GET_TILING_DATA_WITH_STRUCT(MLAGeneralTilingData, tiling_data_in, tiling);                                 \
-            const MLAGeneralTilingData *__restrict tilingData = &tiling_data_in;                                       \
-            const TCubeTiling *__restrict bmm1tiling = nullptr;                                                        \
-            const TCubeTiling *__restrict bmm2tiling = nullptr;                                                        \
-    } while(0)                                                                                                         
+    GET_TILING_DATA_WITH_STRUCT(MLAGeneralTilingData, tiling_data_in, tiling);                                         \
+    const MLAGeneralTilingData *__restrict tilingData = &tiling_data_in;                                               \
+    const TCubeTiling *__restrict bmm1tiling = nullptr;                                                                \
+    const TCubeTiling *__restrict bmm2tiling = nullptr
 #ifdef __DAV_C220_CUBE__
 #define INVOKE_PFA_TILING_DATA(tiling)                                                                                 \
     GET_TILING_DATA_MEMBER(PromptFlashAttentionTilingData, bmm1TilingDataRect, bmm1TilingData, tiling);                \
@@ -143,10 +141,8 @@
     const PromptFlashAttentionTilingData* __restrict tiling_data = nullptr
 
 #define INVOKE_PFA_TILING_DATA_BASE_API(tiling)                                                                        \
-    do {                                                                                                               \
-        GET_TILING_DATA_WITH_STRUCT(PromptFlashAttentionBaseApiTilingData, tiling_data_in, tiling);                    \
-        const PromptFlashAttentionBaseApiTilingData* __restrict tiling_data = &tiling_data_in;                         \
-    } while(0)
+    GET_TILING_DATA_WITH_STRUCT(PromptFlashAttentionBaseApiTilingData, tiling_data_in, tiling);                        \
+    const PromptFlashAttentionBaseApiTilingData* __restrict tiling_data = &tiling_data_in
 
 #define INVOKE_PFA_TILING_DATA_MLA(tiling)                                                                             \
     GET_TILING_DATA_MEMBER(MLAGeneralTilingData, bmm1TilingData, bmm1TilingDataVar, tiling);                           \
