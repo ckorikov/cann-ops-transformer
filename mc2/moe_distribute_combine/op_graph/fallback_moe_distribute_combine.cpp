@@ -111,7 +111,7 @@ static graphStatus MoeDistributeCombineExecuteFunc(OpExecuteContext* host_api_ct
     group_ep, *ep_word_size, *ep_rank_id, *moe_expert_num, group_tp, *tp_word_size, *tp_rank_id,
     *expert_shard_type, *shared_expert_num, *shared_expert_rank_num, *global_bs_ptr, *out_dtype_ptr, 
     *comm_quant_mode_ptr, *group_list_type_ptr, y);
-  OP_CHECK_IF(api_ret != ge::GRAPH_SUCCESS, OP_LOGE(MoeDistributeCombineInfo,"aclnn api error code %d", api_ret), return api_ret);
+  OP_CHECK_IF(api_ret != ge::GRAPH_SUCCESS, OP_LOGE(MoeDistributeCombineInfo,"aclnn api error code %u", api_ret), return api_ret);
   return GRAPH_SUCCESS;
 }
 

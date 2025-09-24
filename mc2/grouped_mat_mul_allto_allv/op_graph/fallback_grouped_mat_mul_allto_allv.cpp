@@ -100,7 +100,7 @@ static ge::graphStatus GroupedMatMulAlltoAllvExecuteFunc(gert::OpExecuteContext*
                                         recvCountsTensor, mmX, mmWeight, group, *epWorldSize, actSendCountsSeqArray,
                                         actRecvCountsSeqArray, *transGmmWeight, *transMmWeight, y, mmY);
     OPS_ERR_IF(api_ret != ge::GRAPH_SUCCESS,
-             OP_LOGE("GroupedMatMulAlltoAllvFallback", "Aclnn api error code %d", api_ret), return ge::GRAPH_FAILED);
+             OP_LOGE("GroupedMatMulAlltoAllvFallback", "Aclnn api error code %u", api_ret), return ge::GRAPH_FAILED);
     return ge::GRAPH_SUCCESS;
 }
 

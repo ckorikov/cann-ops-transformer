@@ -60,6 +60,7 @@ macro(add_modules_sources)
       ${SOURCE_DIR}/*fallback*.cpp
       ${SOURCE_DIR}/*_tiling*.cpp
       ${SOURCE_DIR}/op_tiling/arch35/*.cpp
+      ${SOURCE_DIR}/../op_graph/fallback_*.cpp
       ${SOURCE_DIR}/../graph_plugin/fallback_*.cpp)
   if (OPTILING_SRCS OR SUB_OPTILING_SRC)
     # tiling

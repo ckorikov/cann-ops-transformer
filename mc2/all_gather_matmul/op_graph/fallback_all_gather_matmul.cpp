@@ -63,7 +63,7 @@ static ge::graphStatus AllGatherMatmulExecuteFunc(gert::OpExecuteContext *host_a
   const int64_t stream_mode = 1; // STOP_ON_FAILURE
   const auto api_ret = EXEC_OPAPI_CMD(aclnnAllGatherMatmul, x1_acl, x2_acl, bias, group, gather_index, comm_turn,
                                       stream_mode, y, gatherOut);
-  OPS_ERR_IF(api_ret != ge::GRAPH_SUCCESS, OPS_LOG_E(allGatherInfo, "Aclnn api error code %d", api_ret),
+  OPS_ERR_IF(api_ret != ge::GRAPH_SUCCESS, OPS_LOG_E(allGatherInfo, "Aclnn api error code %u", api_ret),
            return ge::GRAPH_FAILED);
   return ge::GRAPH_SUCCESS;
 }

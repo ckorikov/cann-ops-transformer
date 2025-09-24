@@ -60,7 +60,7 @@ static ge::graphStatus MatmulReduceScatterExecuteFunc(gert::OpExecuteContext *ho
   const int64_t stream_mode = 1; // STOP_ON_FAILURE
   const auto api_ret = EXEC_OPAPI_CMD(aclnnMatmulReduceScatter, x1_acl, x2_acl, bias,
                                       group, op, comm_turn, stream_mode, y);
-  OPS_CHECK(api_ret != ge::GRAPH_SUCCESS, OPS_LOG_E(reduceScatterInfo, "Aclnn api error code %d", api_ret),
+  OPS_CHECK(api_ret != ge::GRAPH_SUCCESS, OPS_LOG_E(reduceScatterInfo, "Aclnn api error code %u", api_ret),
            return ge::GRAPH_FAILED);
   return ge::GRAPH_SUCCESS;
 }

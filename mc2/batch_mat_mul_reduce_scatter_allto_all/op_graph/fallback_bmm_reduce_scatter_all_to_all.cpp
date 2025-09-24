@@ -56,7 +56,7 @@ static ge::graphStatus BmmReduceScatterAlltoAllExecuteFunc(gert::OpExecuteContex
 
   const auto apiRet = EXEC_OPAPI_CMD(aclnnBatchMatMulReduceScatterAlltoAll, x, weightAcl, bias, groupEp, groupTp,
     *epSize, *tpSize, *yShard, y);
-  OPS_ERR_IF(apiRet != ge::GRAPH_SUCCESS, OPS_LOG_E(fallbackInfo, "Aclnn api error code %d", apiRet),
+  OPS_ERR_IF(apiRet != ge::GRAPH_SUCCESS, OPS_LOG_E(fallbackInfo, "Aclnn api error code %u", apiRet),
     return ge::GRAPH_FAILED);
   return ge::GRAPH_SUCCESS;
 }

@@ -79,7 +79,7 @@ namespace fallback
             balancedExpertIds, balancedActiveMask);
 
         OPS_CHECK(apiRet != ge::GRAPH_SUCCESS,
-        OP_LOGE("MoeUpdateExpertFallback", "Aclnn api error code %d", apiRet), return ge::GRAPH_FAILED);
+        OP_LOGE("MoeUpdateExpertFallback", "Aclnn api error code %u", apiRet), return ge::GRAPH_FAILED);
         return ge::GRAPH_SUCCESS;
     }
 

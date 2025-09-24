@@ -70,7 +70,7 @@ static ge::graphStatus AlltoAllAllGatherBmmExecuteFunc(gert::OpExecuteContext *h
 
   const auto apiRet = EXEC_OPAPI_CMD(aclnnAlltoAllAllGatherBatchMatMul, x, weightAcl, bias, groupEp, groupTp,
     *epWorldSize, *tpWorldSize, *xShardType, *actType, y1, y2, y3);
-  OPS_ERR_IF(apiRet != ge::GRAPH_SUCCESS, OPS_LOG_E(fallbackInfo, "Aclnn api error code %d", apiRet),
+  OPS_ERR_IF(apiRet != ge::GRAPH_SUCCESS, OPS_LOG_E(fallbackInfo, "Aclnn api error code %u", apiRet),
     return ge::GRAPH_FAILED);
   return ge::GRAPH_SUCCESS;
 }

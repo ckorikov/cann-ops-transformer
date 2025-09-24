@@ -124,14 +124,14 @@ static graphStatus MoeDistributeDispatchV2ExecuteFunc(OpExecuteContext* host_api
                                         *shared_expert_rank_num, *quant_mode_ptr, *global_bs_ptr, *expert_token_nums_type_ptr, *comm_alg_ptr, *zero_expert_num_ptr,
                                         *copy_expert_num_ptr, *const_expert_num_ptr, expand_x, dynamic_scales, assist_info_for_combine, expert_token_nums, 
                                         ep_recv_count, tp_recv_count, expand_scales);
-    OP_CHECK_IF(api_ret != ge::GRAPH_SUCCESS, OP_LOGE(MoeDistributeDispatchV2Info, "aclnn api error code %d", api_ret),
+    OP_CHECK_IF(api_ret != ge::GRAPH_SUCCESS, OP_LOGE(MoeDistributeDispatchV2Info, "aclnn api error code %u", api_ret),
             return ge::GRAPH_FAILED);
   } else {
     const auto api_ret = EXEC_OPAPI_CMD(aclnnMoeDistributeDispatchV2, x, expand_ids, scales, x_active_mask, expert_scales, group_ep, *ep_world_size, *ep_rank_id,
                                         *moe_expert_num, group_tp, *tp_world_size, *tp_rank_id, *expert_shard_type, *shared_expert_num, *shared_expert_rank_num,
                                         *quant_mode_ptr, *global_bs_ptr, *expert_token_nums_type_ptr, *comm_alg_ptr, expand_x, dynamic_scales,
                                         assist_info_for_combine, expert_token_nums, ep_recv_count, tp_recv_count, expand_scales);
-    OP_CHECK_IF(api_ret != ge::GRAPH_SUCCESS, OP_LOGE(MoeDistributeDispatchV2Info, "aclnn api error code %d", api_ret),
+    OP_CHECK_IF(api_ret != ge::GRAPH_SUCCESS, OP_LOGE(MoeDistributeDispatchV2Info, "aclnn api error code %u", api_ret),
             return ge::GRAPH_FAILED);
   }
   return GRAPH_SUCCESS;

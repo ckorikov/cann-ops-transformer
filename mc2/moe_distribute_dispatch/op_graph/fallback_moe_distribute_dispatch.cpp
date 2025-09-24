@@ -109,7 +109,7 @@ static graphStatus MoeDistributeDispatchExecuteFunc(OpExecuteContext* host_api_c
                                       *moe_expert_num, group_tp, *tp_world_size, *tp_rank_id, *expert_shard_type, *shared_expert_num, *shared_expert_rank_num,
                                       *quant_mode_ptr, *global_bs_ptr, *expert_token_nums_type_ptr, expand_x, dynamic_scales, expand_idx, expert_token_nums, 
                                       ep_recv_count, tp_recv_count, expand_scales);
-  OP_CHECK_IF(api_ret != ge::GRAPH_SUCCESS, OP_LOGE(MoeDistributeDispatchInfo, "aclnn api error code %d", api_ret),
+  OP_CHECK_IF(api_ret != ge::GRAPH_SUCCESS, OP_LOGE(MoeDistributeDispatchInfo, "aclnn api error code %u", api_ret),
            return ge::GRAPH_FAILED);
   return GRAPH_SUCCESS;
 }
