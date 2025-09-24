@@ -83,8 +83,8 @@ public:
     }
 
     void EstimateKernelTime() override;
-    void SmallShortCheck(const uint64_t totalLen, uint64_t& longTileLen, const uint64_t& shortTileLen);
-    void UniformCutSetShort(uint64_t totalLen, uint64_t minAlign, uint64_t& shortTileLen);
+    void SmallShortCheck(const uint64_t totalLen, uint64_t& longTileLen, const uint64_t& shortTileLen) const;
+    void UniformCutSetShort(const uint64_t totalLen, const uint64_t minAlign, uint64_t& shortTileLen) const;
     void SelectTilingMethod() override;
 };
 #endif //__ALL_REDUCE_FORMULAIC_TILING_H__

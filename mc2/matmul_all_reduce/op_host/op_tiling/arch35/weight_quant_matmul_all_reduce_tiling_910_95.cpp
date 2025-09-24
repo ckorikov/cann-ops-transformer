@@ -205,7 +205,7 @@ ge::graphStatus WeightQuantMatmulAllReduceTilingA5::GetWorkspaceSize()
     OP_LOGI(opName_, "Set max workspace size=%lu to context.", myWorkSpaceSize_);
     size_t* workspaces = context_->GetWorkspaceSizes(1); // set workspace
     workspaces[0] = myWorkSpaceSize_;
-    return GRAPH_SUCCESS;
+    return ge::GRAPH_SUCCESS;
 }
 
 void WeightQuantMatmulAllReduceTilingA5::PrintMatmulAsTiling(bool isTail)
@@ -322,7 +322,7 @@ ge::graphStatus WeightQuantMatmulAllReduceTilingA5::DoWeightQuantTiling()
     } else {
         GE_ASSERT_GRAPH_SUCCESS(mmTile.MatmulDoTiling());
         if (MutableRCSTilingData().get_tailCnt() == 0) {
-            return GRAPH_SUCCESS;
+            return ge::GRAPH_SUCCESS;
         }
         args_.mValue = tailMValue_;
         WeightQuantTilingTransferHelperA5 mmTail(*this, weightQuantMatmulAllReduceA5TilingData_.tailRegBaseMmTiling);
@@ -370,7 +370,7 @@ ge::graphStatus WeightQuantMatmulAllReduceTilingA5::DoWeightQuantAsTiling()
     WeightQuantAsTilingTransferHelper mmTile(*this, weightQuantMatmulAllReduceA5Fp8TilingData_.tileMmASTiling);
     GE_ASSERT_GRAPH_SUCCESS(mmTile.MatmulDoTiling());
     if (MutableRCSTilingData().get_tailCnt() == 0) {
-        return GRAPH_SUCCESS;
+        return ge::GRAPH_SUCCESS;
     }
     args_.mValue = tailMValue_;
     WeightQuantAsTilingTransferHelper mmTail(*this, weightQuantMatmulAllReduceA5Fp8TilingData_.tailMmASTiling);

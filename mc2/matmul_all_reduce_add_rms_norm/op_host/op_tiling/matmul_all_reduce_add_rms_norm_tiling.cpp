@@ -19,6 +19,7 @@
 #include "register/op_def_registry.h"
 #include "tiling_base/tiling_templates_registry.h"
 
+using Ops::Transformer::OpTiling::TilingRegistry;
 namespace optiling {
 namespace {
 constexpr char MRN[] = "MatmulAllReduceAddRmsNorm";

@@ -37,11 +37,8 @@
 #include "context_transfer.h"
 #include "tiling_base/tiling_base.h"
 
-using namespace AscendC;
-using namespace ge;
-using namespace Ops::Transformer::OpTiling;
-
 namespace optiling {
+
 BEGIN_TILING_DATA_DEF(MatmulAllReduceTilingData)
 TILING_DATA_FIELD_DEF_STRUCT(Mc2Msg, msg);
 TILING_DATA_FIELD_DEF_STRUCT(RCSTiling, param);
@@ -160,7 +157,7 @@ enum class ParamValue
     DEQUANT = 6,
 };
 
-class MatmulAllReduceTilingBase : public TilingBaseClass
+class MatmulAllReduceTilingBase : public Ops::Transformer::OpTiling::TilingBaseClass
 {
 public:
     explicit MatmulAllReduceTilingBase(gert::TilingContext* context)
@@ -247,9 +244,9 @@ protected:
         const uint64_t dimZeroValue, const uint64_t kValue, 
         const gert::StorageShape* scaleShape, const bool isPertoken, const bool isMXfp4) const;
     AllReduceScenario GetAllReduceScenario(
-        const DataType aType, const DataType bType, const gert::StorageShape* dequantScale,
+        const ge::DataType aType, const ge::DataType bType, const gert::StorageShape* dequantScale,
         const gert::StorageShape* antiQuantScale) const;
-    bool IsA16W8Scenario(const DataType aType, const DataType bType, const gert::StorageShape* antiQuantScale) const;
+    bool IsA16W8Scenario(const ge::DataType aType, const ge::DataType bType, const gert::StorageShape* antiQuantScale) const;
     bool AnalyzeInputs();
     bool SetArgs(ge::DataType aType, ge::DataType bType, ge::DataType cType, ge::DataType biasType, bool isBias);
     uint64_t GetNValue() const;

@@ -54,6 +54,7 @@
 using namespace AscendC;
 using namespace ge;
 using namespace Mc2Log;
+using Ops::Transformer::OpTiling::TilingRegistry;
 
 namespace optiling {
 constexpr char HCCL_BUFFSIZE[] = "HCCL_BUFFSIZE";

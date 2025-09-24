@@ -84,7 +84,7 @@ ge::graphStatus MatmulAllReduceTiling910::GetWorkspaceSize()
     myWorkSpaceSize_ = std::max(myWorkSpaceSize_, workspaceSize_);
     size_t* workspaces = context_->GetWorkspaceSizes(1);
     workspaces[0] = myWorkSpaceSize_;
-    return GRAPH_SUCCESS;
+    return ge::GRAPH_SUCCESS;
 }
 
 ge::graphStatus MatmulAllReduceTiling910::PostTiling()
@@ -114,7 +114,7 @@ ge::graphStatus MatmulAllReduceTiling910::Do910Tiling()
     } else {
         GE_ASSERT_GRAPH_SUCCESS(mmTile.DoTiling());
         if (MutableRCSTilingData().get_tailCnt() == 0) {
-            return GRAPH_SUCCESS;
+            return ge::GRAPH_SUCCESS;
         }
         args_.mValue = tailMValue_;
         TilingTransferHelper mmTail(*this, matmulAllReduce910TilingData_.tailmatmulTiling);

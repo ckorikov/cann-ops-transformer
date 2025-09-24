@@ -148,7 +148,8 @@ void MMPlusQuantAllReduce::EstimateKernelTime()
         totalA2ATime, tilingM_.GetMinLen(), tilingM_.tileArgs.mAlignLen, ratioCalcComm_);
 }
 
-void MMPlusQuantAllReduce::SmallShortCheck(const uint64_t totalLen, uint64_t& longTileLen, const uint64_t& shortTileLen)
+void MMPlusQuantAllReduce::SmallShortCheck(
+    const uint64_t totalLen, uint64_t& longTileLen, const uint64_t& shortTileLen) const
 {
     // 确保长块长度合法
     longTileLen = std::max(longTileLen, shortTileLen);
@@ -170,7 +171,7 @@ void MMPlusQuantAllReduce::SmallShortCheck(const uint64_t totalLen, uint64_t& lo
         longTileLen, shortTileLen);
 }
 
-void MMPlusQuantAllReduce::UniformCutSetShort(const uint64_t totalLen, const uint64_t minAlign, uint64_t& shortTileLen)
+void MMPlusQuantAllReduce::UniformCutSetShort(const uint64_t totalLen, const uint64_t minAlign, uint64_t& shortTileLen) const
 {
     // 进入切分的判断条件是 totalLen >= 2 * minAlign = shortTileLen
     // 修改shortTileLen后依然要满足上述约束

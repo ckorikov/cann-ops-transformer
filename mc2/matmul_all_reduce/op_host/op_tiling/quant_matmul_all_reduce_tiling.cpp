@@ -87,7 +87,7 @@ ge::graphStatus QuantMatmulAllReduceTiling::GetWorkspaceSize()
     myWorkSpaceSize_ = myWorkSpaceSize_ + int8WorkSpace;
     OP_LOGI(opName_, " set max workspace size %lu to context", myWorkSpaceSize_);
     workspaces[0] = myWorkSpaceSize_;
-    return GRAPH_SUCCESS;
+    return ge::GRAPH_SUCCESS;
 }
 ge::graphStatus QuantMatmulAllReduceTiling::PostTiling()
 {
@@ -134,7 +134,7 @@ ge::graphStatus QuantMatmulAllReduceTiling::DoQuantTiling()
         GE_ASSERT_GRAPH_SUCCESS(mmTile.DoTiling());
         OP_LOGI(opName_, "asd asdzxc");
         if (MutableRCSTilingData().get_tailCnt() == 0) {
-            return GRAPH_SUCCESS;
+            return ge::GRAPH_SUCCESS;
         }
         OP_LOGI(opName_, "asd 00");
         args_.mValue = tailMValue_;

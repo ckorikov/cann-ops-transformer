@@ -206,7 +206,7 @@ ge::graphStatus QuantMatmulAllReduceTilingA5::GetWorkspaceSize()
     myWorkSpaceSize_ = myWorkSpaceSize_ + gmcFloat + INT8_WORKSPACE_CNT * commInt8WorkSpace + commFp32WorkSpace;
     OP_LOGI(opName_, "Set max workspace size=%lu to context.", myWorkSpaceSize_);
     workspaces[0] = myWorkSpaceSize_;
-    return GRAPH_SUCCESS;
+    return ge::GRAPH_SUCCESS;
 }
 
 ge::graphStatus QuantMatmulAllReduceTilingA5::PostTiling()

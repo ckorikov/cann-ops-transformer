@@ -195,9 +195,7 @@ static void ProcessTransposedX2(const aclTensor* x2, uint64_t& x2Dim0, uint64_t&
 }
 
 static bool CheckShape(
-    const aclTensor* x1, const aclTensor* x2, const aclTensor* bias, const aclTensor* x2Scale, const aclTensor* x1Scale,
-    const aclTensor* commQuantScale1Optional, const aclTensor* commQuantScale2Optional, const aclTensor* x3,
-    const aclTensor* output)
+    const aclTensor* x1, const aclTensor* x2, const aclTensor* bias, const aclTensor* x3, const aclTensor* output)
 {
     OP_CHECK_MIN_DIM(x1, TWO_DIMS, return false);
     OP_CHECK_MAX_DIM(x1, THREE_DIMS, return false);
@@ -260,7 +258,7 @@ static aclnnStatus CheckParams(
 
     // 4. 检查输出shape
     CHECK_RET(
-        CheckShape(x1, x2, bias, x2Scale, x1Scale, commQuantScale1Optional, commQuantScale2Optional, x3, output),
+        CheckShape(x1, x2, bias, x3, output),
         ACLNN_ERR_PARAM_INVALID);
 
     return ACLNN_SUCCESS;

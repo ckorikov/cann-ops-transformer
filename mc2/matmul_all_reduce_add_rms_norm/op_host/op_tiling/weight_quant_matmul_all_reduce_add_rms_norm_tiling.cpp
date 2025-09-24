@@ -118,8 +118,8 @@ WeightQuantMatmulAllReduceAddRmsNormTiling::WeightQuantMatmulAllReduceAddRmsNorm
     : TilingBaseClass(context)
 {
     tilingData_.SetDataPtr(context_->GetRawTilingData()->GetData());
-    helper_ = std::move(std::unique_ptr<WeightQuantMMNTilingTransferHelper>(new (
-        std::nothrow) WeightQuantMMNTilingTransferHelper(*this, tilingData_.weightQuantMatmulAllReduceTilingData)));
+    helper_ = std::move(std::unique_ptr<WeightQuantMMNTilingTransferHelper>(
+        std::make_unique<WeightQuantMMNTilingTransferHelper>(*this, tilingData_.weightQuantMatmulAllReduceTilingData)));
 }
 
 ge::graphStatus WeightQuantMatmulAllReduceAddRmsNormTiling::GetWorkspaceSize()

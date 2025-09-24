@@ -142,7 +142,7 @@ ge::graphStatus WeightQuantMatmulAllReduceTiling::GetWorkspaceSize()
     OP_LOGI(opName_, " set max workspace size %lu to context", myWorkSpaceSize_);
     size_t* workspaces = context_->GetWorkspaceSizes(1); // set workspace
     workspaces[0] = myWorkSpaceSize_;
-    return GRAPH_SUCCESS;
+    return ge::GRAPH_SUCCESS;
 }
 ge::graphStatus WeightQuantMatmulAllReduceTiling::PostTiling()
 {
@@ -169,7 +169,7 @@ ge::graphStatus WeightQuantMatmulAllReduceTiling::DoWeightQuantTiling()
     } else {
         GE_ASSERT_GRAPH_SUCCESS(mmTile.DoTiling());
         if (MutableRCSTilingData().get_tailCnt() == 0) {
-            return GRAPH_SUCCESS;
+            return ge::GRAPH_SUCCESS;
         }
         args_.mValue = tailMValue_;
         WeightQuantTilingTransferHelper mmTail(*this, weightQuantMatmulAllReduceTilingData_.tailmatmulTiling);
