@@ -8,6 +8,9 @@
  * See LICENSE in the root of the software repository for the full text of the License.
  */
 
+// mc2编译依赖
+// 
+// mc2编译依赖
 /*!
  * \file quant_batch_matmul_v3_tiling.h
  * \brief

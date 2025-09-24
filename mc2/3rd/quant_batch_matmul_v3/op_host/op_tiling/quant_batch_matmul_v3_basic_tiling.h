@@ -58,6 +58,7 @@ public:
     ~QuantBatchMatmulV3BasicTiling() override = default;
 
     BasicTiling basicTiling_;
+    QuantBatchMatmulV3Trans trans_ = QuantBatchMatmulV3Trans::NO_TRANS;
 
 protected:
     bool IsCapable() override;
@@ -141,10 +142,9 @@ protected:
     void SetCalcOrderinMNClashCase(uint64_t mTotalCnt, uint64_t nTotalCnt);
 
 private:
-    QuantBatchMatmulV3Trans trans_ = QuantBatchMatmulV3Trans::NO_TRANS;
     bool isInBasicWhiteList = false;
-    platform_ascendc::SocVersion socVersion;
     gert::TilingContext *context;
+    platform_ascendc::SocVersion socVersion;
     mutable bool isAicAiv1_2 = false;
 };
 

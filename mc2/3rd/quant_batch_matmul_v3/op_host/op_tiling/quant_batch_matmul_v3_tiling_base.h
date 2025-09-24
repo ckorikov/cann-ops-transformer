@@ -127,7 +127,7 @@ protected:
     virtual const gert::Shape &GetScaleShape(const size_t index);
     virtual const gert::StorageShape *GetPertokenShape(const size_t index);
     virtual const gert::StorageShape *GetBiasShape(const size_t index);
-    bool AnalyzeInputs();
+    virtual bool AnalyzeInputs();
     // mc2使用的直接接口：end
 
     virtual bool GetUbDequantExtreSpace();
@@ -136,9 +136,9 @@ protected:
     virtual bool CheckShape(const std::vector<gert::Shape *> &mandtoryShape, const gert::StorageShape* biasShape,
                             const gert::StorageShape* pertokenShape, const std::vector<int64_t> &dimValueOfMKN) const;
     
-    ge::graphStatus CheckContext();
-    bool AnalyzeDtype();
-    bool AnalyzeAttrs();
+    virtual ge::graphStatus CheckContext();
+    virtual bool AnalyzeDtype();
+    virtual bool AnalyzeAttrs();
     void SetFormat();
     bool SetQuantMode(const gert::Shape& scaleShape, const gert::StorageShape *pertokenShape);
     bool SetX1QuantMode(BasicQuantMode &x1QuantMode, bool isFp8Hif8Input, const gert::StorageShape *pertokenShape);
