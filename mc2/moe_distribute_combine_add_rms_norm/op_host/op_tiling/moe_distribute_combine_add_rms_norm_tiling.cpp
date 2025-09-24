@@ -357,7 +357,7 @@ static bool CheckInputTensorDim(const gert::TilingContext *context, const char *
     return true;
 }
 
-static bool CheckOptionalInputTensorDim(gert::TilingContext *context, const char *nodeName, const bool isActiveMask, const bool hasElasticInfo)
+static bool CheckOptionalInputTensorDim(const gert::TilingContext *context, const char *nodeName, const bool isActiveMask, const bool hasElasticInfo)
 {
     const gert::StorageShape* oriXStorageShape = context->GetOptionalInputShape(ORI_X_INDEX);
     if (oriXStorageShape != nullptr) {
@@ -449,7 +449,7 @@ static bool CheckOptionalInputTensorDim(gert::TilingContext *context, const char
     return true;
 }
 
-static bool CheckOutputTensorDim(gert::TilingContext *context, const char *nodeName)
+static bool CheckOutputTensorDim(const gert::TilingContext *context, const char *nodeName)
 {
     const gert::StorageShape *yStorageShape = context->GetOutputShape(OUTPUT_Y_INDEX);
     OP_TILING_CHECK(yStorageShape == nullptr, OP_LOGE(nodeName, "yOut is null."), return false);
@@ -1127,7 +1127,7 @@ static void CalTilingKey(uint64_t &tilingKey, const uint64_t tpWorldSize, uint32
     }
 }
 
-static void SetHCommCfg(gert::TilingContext *context, MoeDistributeCombineV2TilingData *tiling,
+static void SetHCommCfg(const gert::TilingContext *context, MoeDistributeCombineV2TilingData *tiling,
     const std::string groupEp, const std::string groupTp)
 {
     const char* nodeName = context->GetNodeName();

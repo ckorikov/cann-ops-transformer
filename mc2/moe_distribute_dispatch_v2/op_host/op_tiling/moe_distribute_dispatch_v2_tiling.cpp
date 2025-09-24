@@ -162,7 +162,7 @@ static void PrintTilingDataInfo(const char *nodeName, MoeDistributeDispatchV2Til
     OP_LOGD(nodeName, "hasElastic is %d.", tilingData.moeDistributeDispatchV2Info.hasElasticInfo);
 }
 
-static bool CheckTensorDim(gert::TilingContext *context, const char *nodeName,
+static bool CheckTensorDim(const gert::TilingContext *context, const char *nodeName,
     const bool isScales, const uint32_t quantMode, const bool isActiveMask, const bool hasElasticInfo)
 {
     const gert::StorageShape *xStorageShape = context->GetInputShape(X_INDEX);
@@ -362,7 +362,7 @@ static bool CheckTensorDataType(const gert::TilingContext *context, const char *
     return true;
 }
 
-static bool CheckTensorFormat(gert::TilingContext *context, const char *nodeName,
+static bool CheckTensorFormat(const gert::TilingContext *context, const char *nodeName,
     const bool isScales, const uint32_t quantMode, const bool isActiveMask, const uint32_t hasElasticInfo)
 {
     auto xDesc = context->GetInputDesc(X_INDEX);
@@ -431,7 +431,7 @@ static bool CheckTensorFormat(gert::TilingContext *context, const char *nodeName
     return true;
 }
 
-static ge::graphStatus GetAttrAndSetTilingData(gert::TilingContext *context, const char *nodeName,
+static ge::graphStatus GetAttrAndSetTilingData(const gert::TilingContext *context, const char *nodeName,
     MoeDistributeDispatchV2TilingData &tilingData, std::string &groupEp, std::string &groupTp)
 {
     auto attrs = context->GetAttrs();
@@ -562,7 +562,7 @@ static ge::graphStatus GetAttrAndSetTilingData(gert::TilingContext *context, con
 }
 
 static bool CheckSharedAttrs(const char *nodeName,
-    MoeDistributeDispatchV2TilingData &tilingData)
+    const MoeDistributeDispatchV2TilingData &tilingData)
 {
     uint32_t sharedExpertNum = tilingData.moeDistributeDispatchV2Info.sharedExpertNum;
     uint32_t sharedExpertRankNum = tilingData.moeDistributeDispatchV2Info.sharedExpertRankNum;
@@ -585,7 +585,7 @@ static bool CheckSharedAttrs(const char *nodeName,
     return true;
 }
 
-static ge::graphStatus CheckAttrs(gert::TilingContext *context, const char *nodeName,
+static ge::graphStatus CheckAttrs(const gert::TilingContext *context, const char *nodeName,
     MoeDistributeDispatchV2TilingData &tilingData, uint32_t &localMoeExpertNum, bool isActiveMask)
 {
     uint32_t epWorldSize = tilingData.moeDistributeDispatchV2Info.epWorldSize;
@@ -958,7 +958,7 @@ static ge::graphStatus MoeDistributeDispatchA3TilingFuncImpl(gert::TilingContext
 }
 
 // a2函数
-static ge::graphStatus MoeDistributeDispatchA2CheckAttrAndSetTiling(gert::TilingContext *context, MoeDistributeDispatchA2Info& info)
+static ge::graphStatus MoeDistributeDispatchA2CheckAttrAndSetTiling(const gert::TilingContext *context, MoeDistributeDispatchA2Info& info)
 {
     auto attrs = context->GetAttrs();
     OP_TILING_CHECK(attrs == nullptr, OP_LOGE(K_INNER_DEBUG, "attrs is null."), return ge::GRAPH_FAILED);
@@ -1042,7 +1042,7 @@ static ge::graphStatus MoeDistributeDispatchA2CheckAttrAndSetTiling(gert::Tiling
     return ge::GRAPH_SUCCESS;
 }
 
-static ge::graphStatus MoeDistributeDispatchA2CheckShapeAndSetTiling(gert::TilingContext *context,
+static ge::graphStatus MoeDistributeDispatchA2CheckShapeAndSetTiling(const gert::TilingContext *context,
                                                                      MoeDistributeDispatchA2Info &info,
                                                                      bool isLayered)
 {
@@ -1115,7 +1115,7 @@ static ge::graphStatus MoeDistributeDispatchA2CheckShapeAndSetTiling(gert::Tilin
     return ge::GRAPH_SUCCESS;
 }
 
-static ge::graphStatus MoeDistributeDispatchA2GetPlatformInfoAndSetTiling(gert::TilingContext *context, MoeDistributeDispatchA2Info& info)
+static ge::graphStatus MoeDistributeDispatchA2GetPlatformInfoAndSetTiling(const gert::TilingContext *context, MoeDistributeDispatchA2Info& info)
 {
     auto ascendcPlatform = platform_ascendc::PlatformAscendC(context->GetPlatformInfo());
     uint32_t aivNum = ascendcPlatform.GetCoreNumAiv();
@@ -1132,7 +1132,7 @@ static ge::graphStatus MoeDistributeDispatchA2GetPlatformInfoAndSetTiling(gert::
 
 // 为了兼容老版本，在未配置commAlg参数时，读取环境变量；
 // commAlg参数当前支持"fullmesh"和"hierarchy"两种，其余使用默认fullmesh不分层方案。
-static ge::graphStatus MoeDistributeDispatchA2CheckCommAlg(gert::TilingContext *context, bool &isLayered)
+static ge::graphStatus MoeDistributeDispatchA2CheckCommAlg(const gert::TilingContext *context, bool &isLayered)
 {
     isLayered = false;
     auto attrs = context->GetAttrs();
@@ -1165,7 +1165,7 @@ static ge::graphStatus MoeDistributeDispatchA2CheckCommAlg(gert::TilingContext *
     }
 }
 
-static uint64_t MoeDistributeDispatchA2CalcTilingKey(gert::TilingContext *context, const bool isLayered)
+static uint64_t MoeDistributeDispatchA2CalcTilingKey(const gert::TilingContext *context, const bool isLayered)
 {
     uint64_t tilingKey = TILING_KEY_BASE_A2 + INIT_TILINGKEY_A2;
     if (isLayered) {

@@ -36,6 +36,7 @@
 
 using namespace AscendC;
 using namespace ge;
+using namespace Ops::Transformer::OpTiling;
 
 namespace optiling {
 constexpr uint32_t GMM_X_INDEX = 0;

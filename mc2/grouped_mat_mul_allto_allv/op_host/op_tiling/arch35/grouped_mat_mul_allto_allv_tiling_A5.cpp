@@ -37,6 +37,7 @@
 
 using namespace ge;
 using namespace AscendC;
+using namespace Ops::Transformer::OpTiling;
 
 namespace optiling {
 

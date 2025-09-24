@@ -70,19 +70,19 @@ public:
     ge::graphStatus RunFusionKernelTiling(gert::TilingContext* context);
 
 protected:
-    ge::graphStatus CheckAttrs(const gert::TilingContext* context);
-    ge::graphStatus CheckInputDataType(const gert::TilingContext* context);
+    ge::graphStatus CheckAttrs(const gert::TilingContext* context) const;
+    ge::graphStatus CheckInputDataType(const gert::TilingContext* context) const;
     ge::graphStatus CheckOptionalInputDataType(const gert::TilingContext* context);
-    ge::graphStatus CheckOutputDataType(const gert::TilingContext* context);
+    ge::graphStatus CheckOutputDataType(const gert::TilingContext* context) const;
     ge::graphStatus CheckDataType(const gert::TilingContext* context);
-    ge::graphStatus CheckInputShape(const gert::TilingContext* context);
+    ge::graphStatus CheckInputShape(const gert::TilingContext* context) const;
     ge::graphStatus CheckExpertScalesShape(const gert::TilingContext* context);
     ge::graphStatus CheckPruningThresholdShape(const gert::TilingContext* context);
     ge::graphStatus CheckActiveMaskShape(const gert::TilingContext* context);
     ge::graphStatus CheckOptionalInputShape(const gert::TilingContext* context);
-    ge::graphStatus CheckOutputShape(const gert::TilingContext* context);
+    ge::graphStatus CheckOutputShape(const gert::TilingContext* context) const;
     ge::graphStatus CheckShape(const gert::TilingContext* context);
-    uint64_t GetTilingKey();
+    uint64_t GetTilingKey() const;
 
 private:
     uint32_t libApiWorkSpaceSize_{0U};
@@ -90,7 +90,7 @@ private:
     uint64_t keyScales_{0ULL};
 };
 
-ge::graphStatus MoeUpdateExpertTiling::CheckAttrs(const gert::TilingContext* context)
+ge::graphStatus MoeUpdateExpertTiling::CheckAttrs(const gert::TilingContext* context) const
 {
     int64_t localRankId = -1LL;
     int64_t worldSize = -1LL;
@@ -136,7 +136,7 @@ ge::graphStatus MoeUpdateExpertTiling::CheckAttrs(const gert::TilingContext* con
     return ge::GRAPH_SUCCESS;
 }
 
-ge::graphStatus MoeUpdateExpertTiling::CheckInputDataType(const gert::TilingContext* context)
+ge::graphStatus MoeUpdateExpertTiling::CheckInputDataType(const gert::TilingContext* context) const
 {
     auto expertIdsDesc = context->GetInputDesc(EXPERT_IDS_INDEX);
     OP_TILING_CHECK(expertIdsDesc == nullptr,
@@ -199,7 +199,7 @@ ge::graphStatus MoeUpdateExpertTiling::CheckOptionalInputDataType(const gert::Ti
     return ge::GRAPH_SUCCESS;
 }
 
-ge::graphStatus MoeUpdateExpertTiling::CheckOutputDataType(const gert::TilingContext* context)
+ge::graphStatus MoeUpdateExpertTiling::CheckOutputDataType(const gert::TilingContext* context) const
 {
     auto expertIdsDesc = context->GetInputDesc(EXPERT_IDS_INDEX);
     OP_TILING_CHECK(expertIdsDesc == nullptr,
@@ -238,7 +238,7 @@ ge::graphStatus MoeUpdateExpertTiling::CheckDataType(const gert::TilingContext* 
     return ge::GRAPH_SUCCESS;
 }
 
-ge::graphStatus MoeUpdateExpertTiling::CheckInputShape(const gert::TilingContext* context)
+ge::graphStatus MoeUpdateExpertTiling::CheckInputShape(const gert::TilingContext* context) const
 {
     int64_t worldSize = static_cast<int64_t>(MAX_WORLD_SIZE);
     if (tilingData->worldSize != -1LL) {
@@ -394,7 +394,7 @@ ge::graphStatus MoeUpdateExpertTiling::CheckOptionalInputShape(const gert::Tilin
     return ge::GRAPH_SUCCESS;
 }
 
-ge::graphStatus MoeUpdateExpertTiling::CheckOutputShape(const gert::TilingContext* context)
+ge::graphStatus MoeUpdateExpertTiling::CheckOutputShape(const gert::TilingContext* context) const
 {
     const gert::StorageShape* balancedExperIdsStorageShape = context->GetOutputShape(OUTPUT_BALANCED_EXPERT_IDS);
     OP_TILING_CHECK(balancedExperIdsStorageShape == nullptr,
@@ -458,7 +458,7 @@ ge::graphStatus MoeUpdateExpertTiling::Init(gert::TilingContext* context)
     return ge::GRAPH_SUCCESS;
 }
 
-uint64_t MoeUpdateExpertTiling::GetTilingKey()
+uint64_t MoeUpdateExpertTiling::GetTilingKey() const
 {
     uint64_t tilingKey = (tailorCfg_ == TAILOR_NONE) ? 0ULL : 1ULL;
     tilingKey += keyScales_;

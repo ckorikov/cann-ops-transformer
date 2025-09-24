@@ -65,7 +65,7 @@ static void PrintTilingDataInfo(DistributeBarrierTilingData &tilingData) {
             tilingData.distributeBarrierInfo.totalUbSize);
 }
 
-static bool CheckAndSetAttrs(gert::TilingContext *context,
+static bool CheckAndSetAttrs(const gert::TilingContext *context,
                              DistributeBarrierTilingData &tilingData,
                              std::string &group) {
   auto attrs = context->GetAttrs();

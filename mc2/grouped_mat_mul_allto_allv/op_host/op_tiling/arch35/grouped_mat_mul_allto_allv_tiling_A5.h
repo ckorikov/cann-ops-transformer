@@ -30,7 +30,7 @@
 #include "tiling/mc2_tiling_struct.h"
 #include "tiling/tiling_api.h"
 #include "tiling_base/tiling_base.h"
-using namespace Ops::Transformer::OpTiling;
+
 namespace optiling {
 
 constexpr uint32_t MAX_EXPERT_SIZE = 512U;
