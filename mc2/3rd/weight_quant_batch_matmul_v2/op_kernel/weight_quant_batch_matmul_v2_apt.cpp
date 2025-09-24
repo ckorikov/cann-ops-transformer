@@ -536,8 +536,7 @@ extern "C" __global__ __aicore__ void weight_quant_batch_matmul_v2(
 #endif
 #endif
 #if defined(ORIG_DTYPE_X) && defined(DT_BF16) && ORIG_DTYPE_X == DT_BF16
-#undef DTYPE_BIAS
-#define DTYPE_BIAS float
+using DTYPE_BIAS = float
 #if (defined(MICROSCALING))
 #if (defined(FORMAT_WEIGHT) && (FORMAT_WEIGHT == FORMAT_FRACTAL_NZ))
     if (TILING_KEY_IS(2000020003000004141UL)) {

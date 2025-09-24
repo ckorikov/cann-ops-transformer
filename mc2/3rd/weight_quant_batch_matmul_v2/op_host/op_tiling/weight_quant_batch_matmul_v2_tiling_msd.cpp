@@ -400,8 +400,9 @@ ge::graphStatus WeightQuantBatchMatmulV2Msd::DoMSDGroupSplitKOpTiling()
             matmulInfoPtr_->kSize),
         return ge::GRAPH_FAILED);
     // cube开db，需要乘以2
+    constexpr int32_t FACTOR = 2;
     tilingData_->matmulTiling.set_depthB1(
-        2 * tilingData_->matmulTiling.get_stepKb() * tilingData_->matmulTiling.get_stepN());
+        FACTOR * tilingData_->matmulTiling.get_stepKb() * tilingData_->matmulTiling.get_stepN());
     blkDim_ = std::max(
         std::min(
             kBlockNum * ops::CeilDiv(matmulInfoPtr_->mSize, static_cast<uint64_t>(tilingData_->get_v1BaseM())),

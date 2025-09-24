@@ -836,11 +836,6 @@ void WeightQuantBatchMatmulV2WeightNz::InitCompileInfo()
     ascendcPlatform.GetCoreMemSize(platform_ascendc::CoreMemType::L0_B, compileInfoPtr_->l0bSize);
     compileInfoPtr_->workspaceNum = ascendcPlatform.GetLibApiWorkSpaceSize();
     compileInfoPtr_->socVersion = ascendcPlatform.GetSocVersion();
-
-    // gert::GemmCompileInfo gmmcompileInfo;
-    // gmmcompileInfo.ParseRuntimePlatformInfo(context_->GetNodeName(), *platformInfoPtr);
-    // gmmcompileInfo.core_num = compileInfoPtr_->aicNum;
-    // optiling::PlatformInfo::GetInstance().SetInstance(gmmcompileInfo);
     TilingPrepareForOpCache(context_);
     OP_LOGD(context_->GetNodeName(), "MatmulAllReduce Init Quant Tiling Compile Info Success");
 }

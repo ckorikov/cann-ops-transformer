@@ -18,6 +18,23 @@
 #include <algorithm>
 
 namespace Mc2Moe {
+
+enum class EpSize : int64_t {
+    SIZE_2 = 2,
+    SIZE_4 = 4,
+    SIZE_8 = 8,
+    SIZE_16 = 16,
+    SIZE_32 = 32
+};
+
+enum class TpSize : int64_t {
+    SIZE_2 = 2,
+    SIZE_4 = 4,
+    SIZE_8 = 8,
+    SIZE_16 = 16,
+    SIZE_32 = 32
+};
+
 static const std::vector<ge::DataType> DTYPE_SUPPORT_LIST = {ge::DataType::DT_FLOAT16, ge::DataType::DT_BF16};
 
 static const std::vector<ge::DataType> BIAS_DTYPE_SUPPORT = {ge::DataType::DT_FLOAT16, ge::DataType::DT_FLOAT};
@@ -25,12 +42,12 @@ static const std::vector<ge::DataType> BIAS_DTYPE_SUPPORT = {ge::DataType::DT_FL
 // ep tp 值校验
 bool EpTpSizeCheck(const int64_t epSize, const int64_t tpSize)
 {
-    if ((epSize != 2) && (epSize != 4) && (epSize != 8) && (epSize != 16) &&
-        (epSize != 32)) {  // 当前 ep 仅支持 2 4 8 16 32
+    if ((epSize != static_cast<int64_t>(EpSize::SIZE_2)) && (epSize != static_cast<int64_t>(EpSize::SIZE_4)) && (epSize != static_cast<int64_t>(EpSize::SIZE_8)) 
+    && (epSize != static_cast<int64_t>(EpSize::SIZE_16)) && (epSize != static_cast<int64_t>(EpSize::SIZE_32))) {  // 当前 ep 仅支持 2 4 8 16 32
         return false;
     }
-    if ((tpSize != 2) && (tpSize != 4) && (tpSize != 8) && (tpSize != 16) &&
-        (tpSize != 32)) {  // 当前 tp 仅支持 2 4 8 16 32
+    if ((tpSize != static_cast<int64_t>(TpSize::SIZE_2)) && (tpSize != static_cast<int64_t>(TpSize::SIZE_4)) && (tpSize != static_cast<int64_t>(TpSize::SIZE_8)) 
+    && (tpSize != static_cast<int64_t>(TpSize::SIZE_16)) && (tpSize != static_cast<int64_t>(TpSize::SIZE_32))) {  // 当前 tp 仅支持 2 4 8 16 32
         return false;
     }
 

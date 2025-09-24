@@ -27,11 +27,12 @@ namespace Ops {
 namespace Transformer {
 namespace Optiling {
 constexpr uint64_t RecursiveSum() { return 0; }
+constexpr uint64_t BASE_MULTIPLIER_SCALE = 10;
 
 template <typename T, typename... Args>
 constexpr uint64_t RecursiveSum(T templatedId, Args... templatedIds) {
   return static_cast<uint64_t>(templatedId) +
-         10 * RecursiveSum(templatedIds...);
+         BASE_MULTIPLIER_SCALE * RecursiveSum(templatedIds...);
 }
 
 constexpr uint64_t TILINGKEYOFFSET = uint64_t(10000000000000000000UL);

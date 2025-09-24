@@ -99,11 +99,10 @@ public:
     }
     // Constructor
     explicit MatmulPerformanceModel(const mc2tiling::TilingArgs& args,
-        SocVersion inputSocVersion = SocVersion::SOC910_B)
+        SocVersion inputSocVersion = SocVersion::SOC910_B) : calcType_(MatmulCalcType::FP16)
     {
         mmShapeInfo_.socType = inputSocVersion;
         mmShapeInfo_.coreNum = args.aicCoreNum; // 每die核数
-        calcType_ = MatmulCalcType::FP16;
         mmShapeInfo_.inMatrixADtypeSize = args.inputDtypeSize;
         mmShapeInfo_.inMatrixBDtypeSize = mmShapeInfo_.inMatrixADtypeSize;
         mmShapeInfo_.outMatrixCDtypeSize = args.outputDtypeSize;

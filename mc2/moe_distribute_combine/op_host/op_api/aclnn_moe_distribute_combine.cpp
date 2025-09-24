@@ -68,8 +68,7 @@ static bool CheckNotNull(const aclTensor *expandX, const aclTensor *expertIds, c
 
 // 入参校验
 static aclnnStatus CheckParams(const aclTensor *expandX, const aclTensor *expertIds, const aclTensor *expandIdx,
-                               const aclTensor *epSendCounts, const aclTensor *tpSendCounts,
-                               const aclTensor *expertScales, const char *groupEp, const char *groupTp,
+                               const aclTensor *epSendCounts, const aclTensor *expertScales, const char *groupEp, const char *groupTp,
                                aclTensor *x)
 {
     OP_LOGD("aclnn_moe_distribute_combine checkparams start");
@@ -102,7 +101,7 @@ aclnnStatus MoeDistributeCombineGetWorkspaceSize(
     int64_t sharedExpertRankNum, int64_t globalBs, int64_t outDtype, int64_t commQuantMode, int64_t groupListType,
     aclTensor *x, uint64_t *workspaceSize, aclOpExecutor **executor)
 {
-    auto ret_param = CheckParams(expandX, expertIds, expandIdx, epSendCounts, tpSendCounts, expertScales, groupEp,
+    auto ret_param = CheckParams(expandX, expertIds, expandIdx, epSendCounts, expertScales, groupEp,
                                  groupTp, x);
     CHECK_RET(ret_param == ACLNN_SUCCESS, ret_param);
 

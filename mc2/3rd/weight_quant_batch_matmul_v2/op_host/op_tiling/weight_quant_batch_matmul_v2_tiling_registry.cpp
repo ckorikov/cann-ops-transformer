@@ -104,11 +104,6 @@ static ge::graphStatus TilingParseForWeightQuantBatchMatmulV2(gert::TilingParseC
     ascendcPlatform.GetCoreMemSize(platform_ascendc::CoreMemType::L0_B, compileInfoPtr->l0bSize);
     compileInfoPtr->workspaceNum = ascendcPlatform.GetLibApiWorkSpaceSize();
     compileInfoPtr->socVersion = ascendcPlatform.GetSocVersion();
-
-    // gert::GemmCompileInfo compileInfo;
-    // compileInfo.ParseRuntimePlatformInfo(context->GetNodeName(), *platformInfoPtr);
-    // compileInfo.core_num = compileInfoPtr->aicNum;
-    // optiling::PlatformInfo::GetInstance().SetInstance(compileInfo);
     TilingPrepareForOpCache(context);
     return ge::GRAPH_SUCCESS;
 }
