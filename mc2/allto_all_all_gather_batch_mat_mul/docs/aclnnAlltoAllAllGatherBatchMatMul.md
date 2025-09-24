@@ -33,7 +33,7 @@ $$
 
 ## 函数原型
 
-每个算子分为[两段式接口](common/两段式接口.md)，必须先调用"aclnnAlltoAllAllGatherBatchMatMulGetWorkspaceSize"接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用"aclnnAlltoAllAllGatherBatchMatMul"接口执行计算。
+每个算子分为两段式接口，必须先调用"aclnnAlltoAllAllGatherBatchMatMulGetWorkspaceSize"接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用"aclnnAlltoAllAllGatherBatchMatMul"接口执行计算。
 
 ```cpp
 aclnnStatus aclnnAlltoAllAllGatherBatchMatMulGetWorkspaceSize(
@@ -248,7 +248,7 @@ aclnnStatus aclnnAlltoAllAllGatherBatchMatMul(
 
 **返回值**
 
-返回aclnnStatus状态码，具体参见[aclnn返回码](common/aclnn返回码.md)。
+返回aclnnStatus状态码，具体参见aclnn返回码。
 
 ## 约束说明
 
@@ -284,7 +284,7 @@ aclnnStatus aclnnAlltoAllAllGatherBatchMatMul(
 
 ## 调用示例
 
-示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](common/编译与运行样例.md)。
+示例代码如下，仅供参考，具体编译和执行过程请参考编译与运行样例。
 
 ```Cpp
 #include <thread>

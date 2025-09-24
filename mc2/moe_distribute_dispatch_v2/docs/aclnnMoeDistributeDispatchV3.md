@@ -36,11 +36,11 @@ $$
     -   constExpertNum≠0：通过传入大于0的constExpertNum参数使能本特性，同时还需传入有效的oriXOptional、constExpertAlpha1Optional、constExpertAlpha2Optional、constExpertVOptional参数。
         $$Moe(oriXOptional) = constExpertAlpha1Optional * oriXOptional + constExpertAlpha2Optional * constExpertVOptional$$
     详细说明请参考以下参数说明。
-      参数oriXOptional、constExpertAlpha1Optional、constExpertAlpha2Optional、constExpertVOptional见[aclnnMoeDistributeCombineV3.md](aclnnMoeDistributeCombineV3.md)文档。
+      参数oriXOptional、constExpertAlpha1Optional、constExpertAlpha2Optional、constExpertVOptional见aclnnMoeDistributeCombineV3.md文档。
 
 ## 函数原型
 
-每个算子分为[两段式接口](common/两段式接口.md)，必须先调用 “aclnnMoeDistributeDispatchV3GetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnMoeDistributeDispatchV3”接口执行计算。
+每个算子分为两段式接口，必须先调用 “aclnnMoeDistributeDispatchV3GetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnMoeDistributeDispatchV3”接口执行计算。
 
 ```cpp
 aclnnStatus aclnnMoeDistributeDispatchV3GetWorkspaceSize(
@@ -419,7 +419,7 @@ aclnnStatus aclnnMoeDistributeDispatchV3(
 
 ### 返回值
 
-返回aclnnStatus状态码，具体参见[aclnn返回码](common/aclnn返回码.md)。
+返回aclnnStatus状态码，具体参见aclnn返回码。
 
 ## 约束说明
 

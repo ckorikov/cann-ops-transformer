@@ -36,7 +36,7 @@ $$
 
 ## 函数原型
 
-每个算子分为[两段式接口](common/两段式接口.md)，必须先调用 “aclnnMoeDistributeDispatchV2GetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnMoeDistributeDispatchV2”接口执行计算。
+每个算子分为两段式接口，必须先调用 “aclnnMoeDistributeDispatchV2GetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnMoeDistributeDispatchV2”接口执行计算。
 
 ```cpp
 aclnnStatus aclnnMoeDistributeDispatchV2GetWorkspaceSize(
@@ -301,7 +301,7 @@ aclnnStatus aclnnMoeDistributeDispatchV2(
 
 ### 返回值
 
-返回aclnnStatus状态码，具体参见[aclnn返回码](common/aclnn返回码.md)。
+返回aclnnStatus状态码，具体参见aclnn返回码。
 
 第一段接口完成入参校验，出现以下场景时报错：
 
@@ -380,7 +380,7 @@ aclnnStatus aclnnMoeDistributeDispatchV2(
 
 ### 返回值
 
-返回aclnnStatus状态码，具体参见[aclnn返回码](common/aclnn返回码.md)。
+返回aclnnStatus状态码，具体参见aclnn返回码。
 
 ## 约束说明
 

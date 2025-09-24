@@ -289,4 +289,4 @@
 
 | 调用方式  | 样例代码                                  | 说明                                                     |
 | :--------: | :----------------------------------------: | :-------------------------------------------------------: |
-| aclnn接口 | [test_moe_distribute_dispatch.cpp](test_moe_distribute_dispatch.cpp) | 通过[aclnnMoeDistributeDispatch](aclnnMoeDistributeDispatch.md)接口方式调用moe_distribute_dispatch算子。 |
+| aclnn接口 | [test_moe_distribute_dispatch.cpp](./examples/test_moe_distribute_dispatch.cpp) | 通过[aclnnMoeDistributeDispatch](./docs/aclnnMoeDistributeDispatch.md)接口方式调用moe_distribute_dispatch算子。 |

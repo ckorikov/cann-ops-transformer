@@ -20,7 +20,7 @@
 
 ## 函数原型
 
-每个算子分为[两段式接口](common/两段式接口.md)，必须先调用 `aclnnMoeDistributeCombineGetWorkspaceSize`接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用`aclnnMoeDistributeCombine`接口执行计算。
+每个算子分为两段式接口，必须先调用 `aclnnMoeDistributeCombineGetWorkspaceSize`接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用`aclnnMoeDistributeCombine`接口执行计算。
 
 ```cpp
 aclnnStatus aclnnMoeDistributeCombineGetWorkspaceSize(
@@ -285,7 +285,7 @@ aclnnStatus aclnnMoeDistributeCombine(
 
 ### 返回值
 
-返回aclnnStatus状态码，具体参见[aclnn返回码](common/aclnn返回码.md)。
+返回aclnnStatus状态码，具体参见aclnn返回码。
 
 第一段接口完成入参校验，出现以下场景时报错：
 
@@ -364,7 +364,7 @@ aclnnStatus aclnnMoeDistributeCombine(
 
 ### 返回值
 
-返回aclnnStatus状态码，具体参见[aclnn返回码](common/aclnn返回码.md)。
+返回aclnnStatus状态码，具体参见aclnn返回码。
 
 ## 约束说明
 
@@ -413,7 +413,7 @@ aclnnStatus aclnnMoeDistributeCombine(
 
 ## 调用示例
 
-- <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：示例代码请参考[aclnnMoeDistributeCombineV2接口](aclnnMoeDistributeCombineV2.md)调用过程，仅供参考，请根据实际情况配置；
+- <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：示例代码请参考aclnnMoeDistributeCombineV2接口调用过程，仅供参考，请根据实际情况配置；
 - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>昇腾910_95 AI处理器</term>：示例代码如下，调起combine和dispatch算子，仅供参考，请根据实际情况配置。
 
 - 文件准备：    

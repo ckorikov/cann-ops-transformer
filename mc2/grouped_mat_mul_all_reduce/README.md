@@ -142,5 +142,5 @@ $$
 
 | 调用方式  | 样例代码                                  | 说明                                                     |
 | :--------: | :----------------------------------------: | :-------------------------------------------------------: |
-| aclnn接口 | [test_grouped_mat_mul_all_reduce.cpp](test_grouped_mat_mul_all_reduce.cpp) | 通过[aclnnGroupedMatMulAllReduce](aclnnGroupedMatMulAllReduce.md)接口方式调用grouped_mat_mul_all_reduce算子。 |
+| aclnn接口 | [test_grouped_mat_mul_all_reduce.cpp](./examples/test_grouped_mat_mul_all_reduce.cpp) | 通过[aclnnGroupedMatMulAllReduce](./docs/aclnnGroupedMatMulAllReduce.md)接口方式调用grouped_mat_mul_all_reduce算子。 |
 
