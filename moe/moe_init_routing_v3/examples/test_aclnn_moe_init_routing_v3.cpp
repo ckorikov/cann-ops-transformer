@@ -1,7 +1,18 @@
-#include "acl/acl.h"
-#include "aclnnop/aclnn_moe_init_routing_v3.h"
+/**
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
+ * This file is a part of the CANN Open Software.
+ * Licensed under CANN Open Software License Agreement Version 2.0 (the "License").
+ * Please refer to the License for details. You may not use this file except in compliance with the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
+ */
+
 #include <iostream>
 #include <vector>
+#include "acl/acl.h"
+#include "aclnnop/aclnn_moe_init_routing_v3.h"
+
 #define CHECK_RET(cond, return_expr) \
     do {                             \
         if (!(cond)) {               \
@@ -10,7 +21,7 @@
     } while (0)
 #define LOG_PRINT(message, ...)         \
     do {                                \
-        printf(message, ##__VA_ARGS__); \
+        printf(message, ##__VA_ARGS__); \哎
     } while (0)
 int64_t GetShapeSize(const std::vector<int64_t> &shape)
 {
