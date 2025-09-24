@@ -51,6 +51,7 @@ constexpr uint8_t SHARE_RANK_NUM_IDX = 2U;
 constexpr uint8_t MOE_NUM_IDX = 3U;
 constexpr uint32_t DIM_NUM = 2;
 constexpr size_t MASK_CALC_NEED_WORKSPACE = 10UL * 1024UL;
+constexpr uint32_t FALG_AFTER_WAIT = 10;
 
 template<AscendC::HardEvent event>
 __aicore__ inline void SyncFunc()
@@ -74,7 +75,7 @@ public:
                                 GM_ADDR workspaceGM, TPipe *pipe, const MoeDistributeCombineV2TilingData *tilingData);
     __aicore__ inline void Process();
 private:
-    __aicore__ inline void InitDataStatus();
+    __aicore__ inline void InitDataStatus(const MoeDistributeCombineV2TilingData *tilingData);
     __aicore__ inline void InitInputAndOutput(GM_ADDR expandX, GM_ADDR expertIds, GM_ADDR expandIdx,
                                               GM_ADDR epSendCount, GM_ADDR expertScales, GM_ADDR xActiveMask,
                                               GM_ADDR sharedExpertX, GM_ADDR elasticInfo, GM_ADDR oriX,
@@ -149,10 +150,13 @@ private:
     GlobalTensor<ExpandXType> constExpertAlpha1GM_;
     GlobalTensor<ExpandXType> constExpertAlpha2GM_;
     GlobalTensor<ExpandXType> constExpertVGM_;
+    GlobalTensor<uint32_t> selfDataStatusTensor_;
+
     GM_ADDR epWindowGM_;
     GM_ADDR tpWindowGM_;
     GM_ADDR stateGM_;
     GM_ADDR maskCalcWorkspaceGM_;
+    GM_ADDR statusDataSpaceGm_;
 
     LocalTensor<XType> winTpSendCountTensor_;
     LocalTensor<ExpandXType> gmTpSendCountTensor_;
@@ -162,6 +166,7 @@ private:
     LocalTensor<int32_t> elasticInfoTensor_;
     LocalTensor<bool> maskStrideTensor_;
     LocalTensor<bool> maskGenerateTensor_;
+    LocalTensor<uint32_t> datastateLocalTensor_;
 
     // tiling侧已确保数据上限， 相乘不会越界，因此统一采用uin32_t进行处理
     uint32_t axisBS_{0};
@@ -210,6 +215,7 @@ private:
     uint32_t scaleNumAlignSize_{0};
     uint32_t flagRcvCount_{0};
     uint32_t axisBsAlignSize_{0};
+    uint32_t opCnt_{0};
 
     TQueBind<QuePosition::VECIN, QuePosition::VECOUT, 1> moeQueue_;
     TQue<QuePosition::VECIN, 1> moeSumQueue_;
@@ -326,18 +332,34 @@ __aicore__ inline void MoeDistributeCombineV2<TemplateMC2TypeFunc>::ExpertMaskCa
 }
 
 template <TemplateMC2TypeClass>
-__aicore__ inline void MoeDistributeCombineV2<TemplateMC2TypeFunc>::InitDataStatus()
+__aicore__ inline void MoeDistributeCombineV2<TemplateMC2TypeFunc>::InitDataStatus(const MoeDistributeCombineV2TilingData *tilingData)
 {
     auto contextGM0 = AscendC::GetHcclContext<HCCL_GROUP_ID_0>();
     epWinContext_ = (__gm__ HcclOpResParam*)contextGM0;
-    GM_ADDR statusDataSpaceGm = (GM_ADDR)epWinContext_->localWindowsExp;
+    statusDataSpaceGm_ = (GM_ADDR)epWinContext_->localWindowsExp;
 
-    GlobalTensor<int32_t> selfDataStatusTensor;
-    selfDataStatusTensor.SetGlobalBuffer((__gm__ int32_t*)(statusDataSpaceGm + STATE_WIN_OFFSET + coreIdx_ * WIN_ADDR_ALIGN));
-    DataCacheCleanAndInvalid<int32_t, CacheLine::SINGLE_CACHE_LINE, DcciDst::CACHELINE_OUT>(selfDataStatusTensor);
-    dataState_ = selfDataStatusTensor(0);
-    selfDataStatusTensor(0) = ((dataState_ == 0) ? 1 : 0);
-    DataCacheCleanAndInvalid<int32_t, CacheLine::SINGLE_CACHE_LINE, DcciDst::CACHELINE_OUT>(selfDataStatusTensor);
+    selfDataStatusTensor_.SetGlobalBuffer((__gm__ uint32_t*)(statusDataSpaceGm_ + STATE_WIN_OFFSET + coreIdx_ * WIN_ADDR_ALIGN));
+    TBuf<> datastateBuf;
+    tpipe_->InitBuffer(datastateBuf, UB_ALIGN + UB_ALIGN);
+    LocalTensor<uint64_t> datastateLocalTensor64;
+    datastateLocalTensor_ = datastateBuf.Get<uint32_t>();
+    datastateLocalTensor64 = datastateBuf.Get<uint64_t>();
+    DataCopy(datastateLocalTensor_, selfDataStatusTensor_, (UB_ALIGN + UB_ALIGN) / sizeof(uint32_t));
+    SyncFunc<AscendC::HardEvent::MTE2_S>();
+    dataState_ = datastateLocalTensor_.GetValue(0);
+    datastateLocalTensor_.SetValue(0, dataState_ == 0 ? 1 : 0);
+    datastateLocalTensor_.SetValue(1, 1);
+    datastateLocalTensor_.SetValue(2, tilingData->moeDistributeCombineV2Info.epRankId);
+    datastateLocalTensor_.SetValue(3, tilingData->moeDistributeCombineV2Info.moeExpertNum);
+    datastateLocalTensor_.SetValue(4, tilingData->moeDistributeCombineV2Info.epWorldSize);
+    datastateLocalTensor_.SetValue(5, tilingData->moeDistributeCombineV2Info.globalBs);
+    datastateLocalTensor_.SetValue(8, epWinContext_->localUsrRankId);
+    datastateLocalTensor_.SetValue(9, epWinContext_->rankSize);
+    opCnt_ = datastateLocalTensor64.GetValue(3);
+    opCnt_ = opCnt_ + 1;
+    datastateLocalTensor64.SetValue(3, opCnt_);
+    SyncFunc<AscendC::HardEvent::S_MTE3>();
+    DataCopy(selfDataStatusTensor_, datastateLocalTensor_, (UB_ALIGN + UB_ALIGN) / sizeof(uint32_t));
 }
 
 template <TemplateMC2TypeClass>
@@ -450,7 +472,7 @@ __aicore__ inline void MoeDistributeCombineV2<TemplateMC2TypeFunc>::Init(
 
     maskCalcWorkspaceGM_ = workspaceGM + coreIdx_ * MASK_CALC_NEED_WORKSPACE;
 
-    InitDataStatus();
+    InitDataStatus(tilingData);
 
     InitInputAndOutput(
         expandX, expertIds, expandIdx, epSendCount, expertScales, xActiveMask, sharedExpertX, elasticInfo, oriX, constExpertAlpha1,
@@ -1229,6 +1251,15 @@ __aicore__ inline void MoeDistributeCombineV2<TemplateMC2TypeFunc>::Process()
         SetWaitTpStatusAndDisPatch();
         AlltoAllBuffInitAndMaskCal();
         LocalWindowCopy();
+
+        DataCopyParams dataCopyParams{1U, sizeof(uint32_t), 0U, 0U};
+        datastateLocalTensor_ = expertScalesBuf_.Get<uint32_t>();
+        datastateLocalTensor_.SetValue(0, FALG_AFTER_WAIT);
+        selfDataStatusTensor_.SetGlobalBuffer(
+            (__gm__ uint32_t*)(statusDataSpaceGm_ + STATE_WIN_OFFSET + coreIdx_ * WIN_ADDR_ALIGN + sizeof(uint32_t)));
+        SyncFunc<AscendC::HardEvent::S_MTE3>();
+        DataCopyPad(selfDataStatusTensor_, datastateLocalTensor_, dataCopyParams);
+        PipeBarrier<PIPE_MTE3>();
     }
 }
 
