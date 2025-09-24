@@ -89,7 +89,7 @@ __aicore__ inline void MoeGatingTopKWithoutGroup<T>::CopyInBiasAndInitExpertId()
             WaitFlag<HardEvent::MTE2_V>(eventIdMte2ToV);
             Cast(biasTensor, biasTensor[expertCountAlign_].ReinterpretCast<T>(), RoundMode::CAST_NONE,
                  expertCountAlign_);
-            pipe_barrier(PIPE_V);
+            PipeBarrier<PIPE_V>();
         }
     }
     ArithProgression(expertIdTensor, static_cast<int32_t>(0), static_cast<int32_t>(1), expertCount_);
@@ -121,13 +121,13 @@ __aicore__ inline void MoeGatingTopKWithoutGroup<T>::ComputeX()
     if constexpr (!IsSameType<T, float>::value) {
         Cast(xInLocalTensor, xInLocalTensor[expertCountAlign_].ReinterpretCast<T>(), RoundMode::CAST_NONE,
              expertCount_);
-        pipe_barrier(PIPE_V);
+        PipeBarrier<PIPE_V>();
     }
 
     if (tilingData_->normType == NORM_TYPE_SIGMOID) { // sigmoid
         LocalTensor<uint8_t> calcNormTmpTensor = calcTmpBuf_.Get<uint8_t>();
         Sigmoid(xNormTensor, xInLocalTensor, calcNormTmpTensor, expertCount_);
-        pipe_barrier(PIPE_V);
+        PipeBarrier<PIPE_V>();
     } else { // softmax
         LocalTensor<float> reduceValueTensor = calcTmpBuf_.Get<float>();
         LocalTensor<float> calcTmp = calcTmpBuf_.Get<float>()[8];
@@ -140,9 +140,9 @@ __aicore__ inline void MoeGatingTopKWithoutGroup<T>::ComputeX()
         SetFlag<HardEvent::S_V>(eventIdSToV);
         WaitFlag<HardEvent::S_V>(eventIdSToV);
         Adds(xNormTensor, xInLocalTensor, -maxValue, expertCount_);
-        pipe_barrier(PIPE_V);
+        PipeBarrier<PIPE_V>();
         Exp(xNormTensor, xNormTensor, expertCount_);
-        pipe_barrier(PIPE_V);
+        PipeBarrier<PIPE_V>();
         ReduceSum(reduceValueTensor, xNormTensor, calcTmp, expertCount_);
         eventIdVToS = static_cast<event_t>(GetTPipePtr()->FetchEventID(HardEvent::V_S));
         SetFlag<HardEvent::V_S>(eventIdVToS);
@@ -152,7 +152,7 @@ __aicore__ inline void MoeGatingTopKWithoutGroup<T>::ComputeX()
         SetFlag<HardEvent::S_V>(eventIdSToV);
         WaitFlag<HardEvent::S_V>(eventIdSToV);
         Muls(xNormTensor, xNormTensor, 1.0f / sumValue, expertCount_);
-        pipe_barrier(PIPE_V);
+        PipeBarrier<PIPE_V>();
     }
     if (addBias_) {
         Add(xNormWithBiasTensor, xNormTensor, biasTensor, expertCount_);
@@ -168,7 +168,7 @@ __aicore__ inline void MoeGatingTopKWithoutGroup<T>::ComputeX()
         mask0 = mask0 & (UINT64_MAX >> ONE_REPEAT_SORT_NUM);
         uint64_t mask[2] = {mask0, 0};
         Duplicate(xNormWithBiasTensor.ReinterpretCast<int32_t>()[duplicateIndex], FLOAT32_NEG_INF, mask, 1, 1, 1);
-        pipe_barrier(PIPE_V);
+        PipeBarrier<PIPE_V>();
     }
     xInQueue_.FreeTensor(xInLocalTensor);
 }
@@ -195,7 +195,7 @@ __aicore__ inline void MoeGatingTopKWithoutGroup<T>::SelectTopKExpertIdx()
     LocalTensor<int32_t> topKExpertId = topKExpertIdBuf_.Get<int32_t>();
     LocalTensor<float> sortedScore = calcTmpBuf_.Get<float>();
     LocalTensor<float> sortTmp = calcTmpBuf_.Get<float>()[expertCountAlign_ * CONSTANT_TWO];
-    pipe_barrier(PIPE_ALL);
+    PipeBarrier<PIPE_ALL>();
     Sort<float, true>(sortedScore, xNormWithBiasTensor, expertIdTensor, sortTmp,
                       expertCountAlign_ / ONE_REPEAT_SORT_NUM);
 
@@ -207,7 +207,7 @@ __aicore__ inline void MoeGatingTopKWithoutGroup<T>::SelectTopKExpertIdx()
 
     uint64_t rsvdCnt = 0;    // 用于保存筛选后保留下来的元素个数
     uint8_t src1Pattern = 2; // 内置固定模式
-    pipe_barrier(PIPE_V);
+    PipeBarrier<PIPE_V>();
     GatherMask(topKExpertId, sortedScore.template ReinterpretCast<int32_t>(), src1Pattern, false,
                static_cast<uint32_t>(0), gatherMaskParams, rsvdCnt);
 
@@ -222,16 +222,16 @@ __aicore__ inline void MoeGatingTopKWithoutGroup<T>::SelectTopKExpertScore()
     LocalTensor<float> yOutTensor = yOutQueue_.AllocTensor<float>();
     LocalTensor<int32_t> topKExpertId = topKExpertIdBuf_.Get<int32_t>();
     LocalTensor<int32_t> topKExpertIdWithByte = calcTmpBuf_.Get<int32_t>();
-    pipe_barrier(PIPE_V);
+    PipeBarrier<PIPE_V>();
     Muls(topKExpertIdWithByte, topKExpertId, static_cast<int32_t>(sizeof(float)), k_);
-    pipe_barrier(PIPE_V);
+    PipeBarrier<PIPE_V>();
     Gather(yOutTensor, xNormTensor, topKExpertIdWithByte.template ReinterpretCast<uint32_t>(), static_cast<uint32_t>(0),
            k_);
 
     if (tilingData_->normType == NORM_TYPE_SIGMOID) {
         LocalTensor<float> maxValueTensor = calcTmpBuf_.Get<float>();
         LocalTensor<float> tmpTensor = calcTmpBuf_.Get<float>()[BLOCK_BYTES];
-        pipe_barrier(PIPE_V);
+        PipeBarrier<PIPE_V>();
         ReduceSum(maxValueTensor, yOutTensor, tmpTensor, k_);
         event_t eventIdVToS = static_cast<event_t>(GetTPipePtr()->FetchEventID(HardEvent::V_S));
         SetFlag<HardEvent::V_S>(eventIdVToS);
@@ -241,14 +241,14 @@ __aicore__ inline void MoeGatingTopKWithoutGroup<T>::SelectTopKExpertScore()
         SetFlag<HardEvent::S_V>(eventIdSToV);
         WaitFlag<HardEvent::S_V>(eventIdSToV);
         Duplicate(tmpTensor, sumValue, k_);
-        pipe_barrier(PIPE_V);
+        PipeBarrier<PIPE_V>();
         Div(yOutTensor, yOutTensor, tmpTensor, k_);
     }
-    pipe_barrier(PIPE_V);
+    PipeBarrier<PIPE_V>();
     Muls(yOutTensor, yOutTensor, tilingData_->routedScalingFactor, k_);
 
     if constexpr (!IsSameType<T, float>::value) {
-        pipe_barrier(PIPE_V);
+        PipeBarrier<PIPE_V>();
         Cast(yOutTensor.ReinterpretCast<T>(), yOutTensor, RoundMode::CAST_RINT, k_);
     }
 
