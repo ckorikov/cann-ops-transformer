@@ -21,10 +21,9 @@
 #include "tiling_base/tiling_base.h"
 #include "matmul_v3_tuning.h"
 #include "op_cache_tiling.h"
-using Ops::Transformer::OpTiling::TilingBaseClass;
 namespace optiling {
 namespace matmul_v3 {
-class MatmulV3BaseTiling : public TilingBaseClass {
+class MatmulV3BaseTiling : public Ops::Transformer::OpTiling::TilingBaseClass {
 public:
  public:
     explicit MatmulV3BaseTiling(gert::TilingContext* context)

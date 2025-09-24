@@ -34,18 +34,18 @@ struct InferShapeBatchTensor {
 class InferShapeBatchMatMul {
 public:
     InferShapeBatchMatMul(
-        gert::InferShapeContext* context, InferShapeBatchTensor& inferShapeTensor,
+        gert::InferShapeContext* context, const InferShapeBatchTensor& inferShapeTensor,
         size_t batch_matmul_bias_index = BATCH_MATMUL_BIAS_IDX)
         : op_name(context->GetNodeName()),
           shape_a(inferShapeTensor.input_shape_a),
           shape_b(inferShapeTensor.input_shape_b),
           trans_a(inferShapeTensor.input_trans_a),
           trans_b(inferShapeTensor.input_trans_b),
+          num_dima(shape_a.GetDimNum()),
+          num_dimb(shape_b.GetDimNum()),
           shape_out(*(context->GetOutputShape(0))),
           shape_bias(context->GetOptionalInputShape(batch_matmul_bias_index))
     {
-        num_dima = shape_a.GetDimNum();
-        num_dimb = shape_b.GetDimNum();
         num_dim = std::max(num_dima, num_dimb);
         num_dim_bias = 0;
         if (shape_bias != nullptr) {
@@ -59,15 +59,14 @@ public:
         : op_name(context->GetNodeName()),
           shape_a(input_shape_a),
           shape_b(input_shape_b),
+          trans_a(*(context->GetAttrs()->GetAttrPointer<bool>(0))),
+          trans_b(*(context->GetAttrs()->GetAttrPointer<bool>(1))),
+          shape_bias(context->GetOptionalInputShape(BATCH_MATMUL_FIXPIPE_BIAS_IDX)),
+          num_dima(shape_a.GetDimNum()),
+          num_dimb(shape_b.GetDimNum()),
           shape_out(*(context->GetOutputShape(0)))
     {
-        shape_bias = context->GetOptionalInputShape(BATCH_MATMUL_FIXPIPE_BIAS_IDX);
-        num_dima = shape_a.GetDimNum();
-        num_dimb = shape_b.GetDimNum();
         num_dim = std::max(num_dima, num_dimb);
-        auto attrs = context->GetAttrs();
-        trans_a = *(attrs->GetAttrPointer<bool>(0));
-        trans_b = *(attrs->GetAttrPointer<bool>(1));
         num_dim_bias = 0;
         if (shape_bias != nullptr) {
             num_dim_bias = shape_bias->GetDimNum();

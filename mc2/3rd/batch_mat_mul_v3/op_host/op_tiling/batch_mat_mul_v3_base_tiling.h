@@ -18,7 +18,6 @@
 #include "batch_mat_mul_v3_tiling.h"
 #include "tiling_base/tiling_base.h"
 #include "mat_mul_v3/op_host/op_tiling/matmul_v3_base_tiling.h"
-using namespace Ops::Transformer::OpTiling;
 namespace optiling {
 namespace batch_mat_mul_v3 {
 struct BatchShapeInfo {
