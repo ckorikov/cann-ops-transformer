@@ -1,12 +1,12 @@
-# ops_transformer
+# ops-transformer
 
 ## Latest News🔥
 
-- [2025/09] ops_transformer项目首次上线。
+- [2025/09] ops-transformer项目首次上线。
 
 ## 🚀概述
 
-ops_transformer是[CANN](https://hiascend.com/software/cann) （Compute Architecture for Neural Networks）算子库中提供transformer类大模型计算的算子库，包括gmm类、moe类等，全量算子清单请参见[算子清单](docs/context/op_list.md)。
+ops-transformer是[CANN](https://hiascend.com/software/cann) （Compute Architecture for Neural Networks）算子库中提供transformer类大模型计算的算子库，包括gmm类、moe类等，全量算子清单请参见[算子清单](docs/context/op_list.md)。
 
 ![原理图](docs/figures/architecture.png)
 

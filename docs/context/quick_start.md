@@ -120,23 +120,27 @@
     进入项目根目录，执行如下编译命令：
 
     ```bash
-    bash build.sh --build package
+    bash build.sh --pkg [--jit] --soc=${soc_version}
     ```
+    - --jit（可选）：推荐设置，表示不编译算子的二进制文件。
+    - --soc：\$\{soc\_version\}表示NPU型号。Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件使用"ascend910b"（默认），Atlas A3 训练系列产品/Atlas A3 推理系列产品使用"ascend910_93"。
 
     若提示如下信息，则说明编译成功。
 
     ```bash
-    Self-extractable archive "CANN-ops-transformer-${cann_version}-linux.${arch}.run" successfully created.
+    Self-extractable archive "cann-${soc_name}-ops-transformer_${cann_version}_linux.${arch}.run" successfully created.
     ```
 
-   编译成功后，run包存放于build_out目录下。
+    \$\{soc\_name\}表示NPU型号名称，即\$\{soc\_version\}删除“ascend”后剩余的内容。编译成功后，run包存放于build_out目录下。
+    
 
 2. **安装ops-transformer包**
    
     ```bash
-    ./cann-${soc_name}-ops-transformer-${cann_version}-linux.${arch}.run --full --install-path=${install_path}/ascend-toolkit
+    ./cann-${soc_name}-ops-transformer_${cann_version}_linux.${arch}.run --full --install-path=${install_path}/ascend-toolkit
     ```
-    ops-transformer包默认安装路径为：`/usr/local/Ascend`，如需自定义安装路径，可使用"--install-path"参数指定。
+    
+    \$\{install\_path\}：表示指定安装路径，需要与toolkit包安装在相同路径。
 
 ### 自定义算子包
 
@@ -145,23 +149,27 @@
     进入项目根目录，执行如下编译命令：
     
     ```bash
-    # 方式1：编译所有算子
-    bash build.sh
-    # 方式2：编译指定算子，如op1、op2
-    bash build.sh -n "op1;op2"
+    bash build.sh --pkg --soc=${soc_version} [--vendor_name=${vendor_name}] [--ops=${op_list}]
     ```
-    - -n（可选）：**仅编译部分算子设置**。"op1;op2"表示待编译的算子，多个算子之间使用英文分号";"分隔并使用引号。
+    - --soc：\$\{soc\_version\}表示NPU型号。Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件使用"ascend910b"（默认），Atlas A3 训练系列产品/Atlas A3 推理系列产品使用"ascend910_93"。
+    - --vendor_name（可选）：\$\{vendor\_name\}表示构建的自定义算子包名称，不指定时默认名为custom。
+    - --ops（可选）：\$\{op\_list\}表示待编译算子，全量算子参见[算子列表](./op_list.md)，不指定时默认编译所有算子。格式形如"abs,add_lora,..."，多算子之间用英文逗号","分隔。
+    
+    若提示如下信息，说明编译成功。
+    ```bash
+    Self-extractable archive "cann-ops-transformer-${vendor_name}_linux-${arch}.run" successfully created.
+    ```
+    编译成功后，run包存放于项目根目录的build_out目录下。
 
 2. **安装自定义算子包**
    
     ```bash
-    source /usr/local/Ascend/ascend-toolkit/set_env.sh # 设置CANN开发套件包环境变量，以root用户默认路径为例，如已设置，则请忽略该操作
-    ./CANN-custom_ops-<cann_version>-linux-${arch}.run
+    ./cann-ops-math-${vendor_name}_linux-${arch}.run
     ```
     
-    自定义算子包安装路径为`${ASCEND_HOME_PATH}/opp/vendors`，\$\{ASCEND\_HOME\_PATH\}已在[环境准备](#环境准备)章节通过环境变量配置。
+    自定义算子包安装路径为`${ASCEND_HOME_PATH}/opp/vendors`，\$\{ASCEND\_HOME\_PATH\}表示CANN toolkit包安装路径，一般为\$\{install\_path\}/ascend-toolkit/latest，可通过环境变量配置。 
 
-## 本地验证 (功能待实现)
+## 本地验证
 
 通过根目录的build.sh脚本执行算子样例、UT用例等，build参数介绍参见[build参数说明](./build.md#参数说明)。
 

@@ -32,16 +32,6 @@
 |[aclnnMoeGatingTopK](../moe/moe_gating_top_k/docs/aclnnMoeGatingTopK.md)|MoE计算中，对输入x做Sigmoid计算，对计算结果分组进行排序，最后根据分组排序的结果选取前k个专家。|
 |[aclnnPromptFlashAttentionV3](../attention/prompt_flash_attention/docs/aclnnPromptFlashAttentionV3.md)|实现全量推理场景的FlashAttention算子，支持sparse优化、actualSeqLengthsKv优化、int8量化功能、innerPrecise参数|
 |[aclnnIncreFlashAttentionV4](../attention/incre_flash_attention/docs/aclnnIncreFlashAttentionV4.md)|在全量推理场景的FlashAttention算子的基础上实现**增量推理**|
-## 图融合规则
-
-使用图方式描述网络时，可采用图融合提升算子性能。图融合是指[GE（Graph Engine）](https://www.hiascend.com/cann/graph-engine)按融合规则进行改图的过程，使用融合后的算子替换融合前的算子。图融合详细介绍请参见[《图融合和UB融合规则参考》](https://hiascend.com/document/redirect/CannCommunitygraphubfusionref)。
-
-本项目提供的所有融合规则清单如下：
-
-|  规则名  |    说明    |
-|---------|------------|
-|[MatmulxxxPass](../math/xxx/xx.md)|待补充。|
-
 
 ## 算子开发指南
 
