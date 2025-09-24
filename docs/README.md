@@ -17,6 +17,7 @@
 |posembedding|[interleave_rope](../posembedding/interleave_rope/README.md)|[InterleaveRope](../posembedding/interleave_rope/op_graph/interleave_rope_proto.h)|针对单输入 x 进行旋转位置编码。|
 |PromptFlashAttention|[prompt_flash_attention](../attention/prompt_flash_attention)|-|全量推理场景的FlashAttention算子|
 |IncreFlashAttention|[incre_flash_attention](../attention/incre_flash_attention)|-|增量推理场景的FlashAttention算子|
+|FusedInferAttentionScore|[fused_infer_attention_score](../attention/fused_infer_attention_score)|-|decode & prefill场景的FlashAttention算子|
 |xxx|[xxxx](../xx/xx/graph_plugin/xxx.h)|xxx|xxx|
 
 ## 算子接口（aclnn）
@@ -32,6 +33,7 @@
 |[aclnnMoeGatingTopK](../moe/moe_gating_top_k/docs/aclnnMoeGatingTopK.md)|MoE计算中，对输入x做Sigmoid计算，对计算结果分组进行排序，最后根据分组排序的结果选取前k个专家。|
 |[aclnnPromptFlashAttentionV3](../attention/prompt_flash_attention/docs/aclnnPromptFlashAttentionV3.md)|实现全量推理场景的FlashAttention算子，支持sparse优化、actualSeqLengthsKv优化、int8量化功能、innerPrecise参数|
 |[aclnnIncreFlashAttentionV4](../attention/incre_flash_attention/docs/aclnnIncreFlashAttentionV4.md)|在全量推理场景的FlashAttention算子的基础上实现**增量推理**|
+|[aclnnFusedInferAttentionScoreV4](../attention/fused_infer_attention_score/docs/aclnnFusedInferAttentionScoreV4.md)|适配decode & prefill场景的FlashAttention算子|
 
 ## 算子开发指南
 

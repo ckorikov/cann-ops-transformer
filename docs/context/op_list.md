@@ -12,6 +12,4 @@
 |PromptFlashAttention|[prompt_flash_attention](../../attention/prompt_flash_attention)|-|全量推理场景的FlashAttention算子|
 |IncreFlashAttention|[incre_flash_attention](../../attention/incre_flash_attention)|-|增量推理场景的FlashAttention算子|
 |attention|[nsa_select_attention_infer](../../attention/nsa_select_attention_infer)|-|实现Native Sparse Attention推理过程中，Selected Attention的计算。|
-
-
-
+|FusedInferAttentionScore|[fused_infer_attention_score](../../attention/fused_infer_attention_score)|-|decode & prefill场景的FlashAttention算子|
