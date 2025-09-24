@@ -17,8 +17,8 @@
 
 #include "batch_mat_mul_v3_block.h"
 #include "batch_mat_mul_v3_com_base_block.h"
-#include "../mat_mul_v3/mat_mul_unaligned_base_kernel.h"
-#include "../mat_mul_v3/mat_mul_l1_full_load.h"
+#include "../../mat_mul_v3/op_kernel/mat_mul_unaligned_base_kernel.h"
+#include "../../mat_mul_v3/op_kernel/mat_mul_l1_full_load.h"
 #include "kernel_operator.h"
 #include "lib/matmul_intf.h"
 

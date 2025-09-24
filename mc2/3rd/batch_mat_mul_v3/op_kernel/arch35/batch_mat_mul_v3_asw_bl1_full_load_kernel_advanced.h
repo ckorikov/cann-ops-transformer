@@ -16,7 +16,7 @@
 #define BATCH_MAT_MUL_V3_ASW_BL1_FULL_LOAD_KERNEL_ADVANCED_H
 
 #include "batch_mat_mul_v3_asw_block_advanced.h"
-#include "../../mat_mul_v3/arch35/mat_mul_v3_full_load_kernel_helper.h"
+#include "../../../mat_mul_v3/op_kernel/arch35/mat_mul_v3_full_load_kernel_helper.h"
 #include "kernel_operator.h"
 #include "lib/matmul_intf.h"
 

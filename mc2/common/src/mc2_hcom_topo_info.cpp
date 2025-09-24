@@ -16,6 +16,7 @@
 
 #include <cstdlib>
 #include <string>
+#include <dlfcn.h>
 #include "log/log.h"
 #include "mc2_hcom_topo_info.h"
 #ifndef BUILD_OPEN_PROJECT

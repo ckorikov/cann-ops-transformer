@@ -8,10 +8,10 @@
 # ======================================================================================================================
 
 if (BUILD_OPEN_PROJECT)  # custom
-    target_sources(op_host_aclnnInner PRIVATE
-        matmul_all_reduce_def.cpp
-    )
-    add_mc2_modules_sources(OPTYPE matmul_all_reduce matmul_all_reduce ACLNNTYPE aclnn aclnn_inner)
+    # target_sources(op_host_aclnnInner PRIVATE
+    #     matmul_all_reduce_def.cpp
+    # )
+    # add_mc2_modules_sources(OPTYPE matmul_all_reduce matmul_all_reduce ACLNNTYPE aclnn aclnn_inner)
 else() # 回黄host
     add_mc2_modules_sources(OPTYPE matmul_all_reduce matmul_all_reduce ACLNNTYPE aclnn aclnn_inner) 
 endif()

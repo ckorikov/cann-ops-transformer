@@ -8,10 +8,10 @@
 # ======================================================================================================================
 
 if (BUILD_OPEN_PROJECT)  # custom
-    target_sources(op_host_aclnnInner PRIVATE
-        inplace_matmul_all_reduce_add_rms_norm_def.cpp
-    )
-    add_mc2_modules_sources(OPTYPE inplace_matmul_all_reduce_add_rms_norm inplace_matmul_all_reduce_add_rms_norm ACLNNTYPE aclnn aclnn_inner)
+    # target_sources(op_host_aclnnInner PRIVATE
+    #     inplace_matmul_all_reduce_add_rms_norm_def.cpp
+    # )
+    # add_mc2_modules_sources(OPTYPE inplace_matmul_all_reduce_add_rms_norm inplace_matmul_all_reduce_add_rms_norm ACLNNTYPE aclnn aclnn_inner)
 else() # 回黄host
     add_mc2_modules_sources(OPTYPE inplace_matmul_all_reduce_add_rms_norm inplace_matmul_all_reduce_add_rms_norm ACLNNTYPE aclnn aclnn_inner)
 endif()

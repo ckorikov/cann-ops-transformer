@@ -157,6 +157,7 @@ macro(add_mc2_modules_sources)
       ${OPTILING_SRCS}
       ${OPS_TRANSFORMER_DIR}/mc2/common/src/matmul_formulaic_tiling.cpp
       ${OPS_TRANSFORMER_DIR}/mc2/common/src/mc2_tiling_utils.cpp
+      ${OPS_TRANSFORMER_DIR}/mc2/common/src/mc2_log.cpp
     )
   endif()
 
@@ -261,6 +262,7 @@ function(add_infer_modules)
       $<$<BOOL:${BUILD_OPEN_PROJECT}>:$<BUILD_INTERFACE:${ASCEND_CANN_PACKAGE_PATH}/include/experiment>>
       $<$<BOOL:${BUILD_OPEN_PROJECT}>:$<BUILD_INTERFACE:${ASCEND_CANN_PACKAGE_PATH}/include/experiment/hccl/external>>
       $<$<BOOL:${BUILD_OPEN_PROJECT}>:$<BUILD_INTERFACE:${ASCEND_CANN_PACKAGE_PATH}/include/experiment/metadef/common/util>>
+      $<$<BOOL:${BUILD_OPEN_PROJECT}>:$<BUILD_INTERFACE:${ASCEND_CANN_PACKAGE_PATH}/include/external>>
       ${OPS_TRANSFORMER_DIR}/mc2/common/inc
       ${OPS_TRANSFORMER_DIR}/mc2/3rd
     )
@@ -362,7 +364,16 @@ endfunction()
 function(add_graph_plugin_modules)
   if(NOT TARGET ${GRAPH_PLUGIN_NAME}_obj)
     add_library(${GRAPH_PLUGIN_NAME}_obj OBJECT)
-    target_include_directories(${GRAPH_PLUGIN_NAME}_obj PRIVATE ${OP_PROTO_INCLUDE})
+    target_include_directories(${GRAPH_PLUGIN_NAME}_obj PRIVATE 
+      ${OP_PROTO_INCLUDE}
+
+      $<$<BOOL:${BUILD_OPEN_PROJECT}>:$<BUILD_INTERFACE:${ASCEND_CANN_PACKAGE_PATH}/include/experiment>>
+      $<$<BOOL:${BUILD_OPEN_PROJECT}>:$<BUILD_INTERFACE:${ASCEND_CANN_PACKAGE_PATH}/include/experiment/hccl/external>>
+      $<$<BOOL:${BUILD_OPEN_PROJECT}>:$<BUILD_INTERFACE:${ASCEND_CANN_PACKAGE_PATH}/include/experiment/metadef/common/util>>
+      $<$<BOOL:${BUILD_OPEN_PROJECT}>:$<BUILD_INTERFACE:${ASCEND_CANN_PACKAGE_PATH}/include/external>>
+      ${OPS_TRANSFORMER_DIR}/mc2/common/inc
+      ${OPS_TRANSFORMER_DIR}/mc2/3rd
+    )
     target_compile_definitions(${GRAPH_PLUGIN_NAME}_obj PRIVATE OPS_UTILS_LOG_SUB_MOD_NAME="GRAPH_PLUGIN" LOG_CPP)
     target_compile_options(
       ${GRAPH_PLUGIN_NAME}_obj PRIVATE $<$<NOT:$<BOOL:${ENABLE_TEST}>>:-DDISABLE_COMPILE_V1> -Dgoogle=ascend_private
@@ -395,7 +406,10 @@ macro(add_graph_plugin_sources)
     endif()
   endif()
 
-  file(GLOB GRAPH_PLUGIN_SRCS ${SOURCE_DIR}/*_graph_plugin*.cpp)
+  file(GLOB GRAPH_PLUGIN_SRCS 
+      ${SOURCE_DIR}/*_graph_plugin*.cpp
+      ${SOURCE_DIR}/../op_host/*_infershape.cpp
+  )
   if(GRAPH_PLUGIN_SRCS)
     add_graph_plugin_modules()
     target_sources(${GRAPH_PLUGIN_NAME}_obj PRIVATE ${GRAPH_PLUGIN_SRCS})

@@ -18,7 +18,7 @@
 
 #include "kernel_operator.h"
 #include "lib/matmul_intf.h"
-#include "../batch_mat_mul_v3/batch_mat_mul_v3.h"
+#include "../3rd/batch_mat_mul_v3/op_kernel/batch_mat_mul_v3.h"
 
 using namespace AscendC;
 using namespace matmul;

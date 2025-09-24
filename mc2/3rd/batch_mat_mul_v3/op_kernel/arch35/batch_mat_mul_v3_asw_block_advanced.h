@@ -17,8 +17,8 @@
 
 #include "kernel_operator.h"
 #include "lib/matmul_intf.h"
-#include "../../mat_mul_v3/mat_mul_v3_common.h"
-#include "../../mat_mul_v3/arch35/mat_mul_tiling_data.h"
+#include "../../../mat_mul_v3/op_kernel/mat_mul_v3_common.h"
+#include "../../../mat_mul_v3/op_kernel/arch35/mat_mul_tiling_data.h"
 
 namespace BatchMatMulV3Advanced {
 

@@ -19,7 +19,7 @@
 #include "include/matmul/block/block_scheduler_utils.h"
 #include "include/matmul/block/block_scheduler_policy.h"
 #include "include/utils/status_utils.h"
-#include "../../mat_mul_v3/arch35/mat_mul_tiling_data.h"
+#include "../../../mat_mul_v3/op_kernel/arch35/mat_mul_tiling_data.h"
 
 namespace Act {
 namespace Gemm {

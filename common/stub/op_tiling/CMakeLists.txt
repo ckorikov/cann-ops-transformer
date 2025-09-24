@@ -14,7 +14,7 @@
 # limitations under the License.
 #/
 
-set(CMAKE_LIBRARY_OUTPUT_DIRECTOR ${PROJECT_SOURCE_DIR}/build)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/build)
 
 file(GLOB_RECURSE OP_TILING_FILES "*.cpp")
 

@@ -8,8 +8,9 @@
  * See LICENSE in the root of the software repository for the full text of the License.
  */
 
-#include "fallback/fallback_comm.h"
-#include "fallback_opapi.h"
+#include "fallback/fallback.h"
+#include "op_mc2.h"
+#include "mc2_log.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -70,7 +71,7 @@ static graphStatus PrepareOutputTensorListGMMAllReduce(OpExecuteContext* host_ap
 }
 
 static graphStatus GroupedMatMulAllReduceExecuteFunc(OpExecuteContext* host_api_ctx) {
-    OP_CHECK(host_api_ctx == nullptr, OP_LOGE("gmm_all_reduce_fallback", "host_api_ctx is null"), return GRAPH_FAILED);
+    OPS_ERR_IF(host_api_ctx == nullptr, OP_LOGE("gmm_all_reduce_fallback", "host_api_ctx is null"), return GRAPH_FAILED);
     std::vector<const gert::Tensor*> geTensorListX;
     size_t numGeX = 0;
     PrepareInputTensorListGMMAllReduce(host_api_ctx, geTensorListX, GMMAllReduceInOutIdx::INPUT_X, numGeX);
@@ -96,13 +97,13 @@ static graphStatus GroupedMatMulAllReduceExecuteFunc(OpExecuteContext* host_api_
     }
 
     auto attrs = host_api_ctx->GetAttrs();
-    OP_CHECK(attrs == nullptr, OP_LOGE("gmm_all_reduce_fallback", "attrs is null"), return GRAPH_FAILED);
+    OPS_ERR_IF(attrs == nullptr, OP_LOGE("gmm_all_reduce_fallback", "attrs is null"), return GRAPH_FAILED);
     const int64_t* splitItem = attrs->GetAttrPointer<int64_t>(GMMAllReduceAttrIdx::K_SPLIT_ITEM);
-    OP_CHECK(splitItem == nullptr, OP_LOGE("gmm_all_reduce_fallback", "splitItem is null"), return GRAPH_FAILED);
+    OPS_ERR_IF(splitItem == nullptr, OP_LOGE("gmm_all_reduce_fallback", "splitItem is null"), return GRAPH_FAILED);
     const char *group = attrs->GetStr(static_cast<size_t>(GMMAllReduceAttrIdx::K_GROUP));
-    OP_CHECK(group == nullptr, OP_LOGE("gmm_all_reduce_fallback", "group is null"), return ge::GRAPH_FAILED);
+    OPS_ERR_IF(group == nullptr, OP_LOGE("gmm_all_reduce_fallback", "group is null"), return ge::GRAPH_FAILED);
     const char *op = attrs->GetStr(static_cast<size_t>(GMMAllReduceAttrIdx::K_OP));
-    OP_CHECK(op == nullptr, OP_LOGE("gmm_all_reduce_fallback", "op is null"), return ge::GRAPH_FAILED);
+    OPS_ERR_IF(op == nullptr, OP_LOGE("gmm_all_reduce_fallback", "op is null"), return ge::GRAPH_FAILED);
     const int64_t *comm_turn_ptr = attrs->GetInt(static_cast<size_t>(GMMAllReduceAttrIdx::K_COMM_TURN));
     const int64_t comm_turn = (comm_turn_ptr != nullptr ? *comm_turn_ptr : 0);
     const int64_t stream_mode = 1;  // 1  STOP_ON_FAILURE
@@ -117,7 +118,7 @@ static graphStatus GroupedMatMulAllReduceExecuteFunc(OpExecuteContext* host_api_
                                   geTensorListX, geTensorListWeight, geTensorListBias, groupListIntArray,
                                   *splitItem, group, op, comm_turn,
                                   stream_mode, geTensorListY);
-    OP_CHECK(api_ret != GRAPH_SUCCESS, OP_LOGE("gmm_all_reduce_fallback", "api_ret failed:%d", api_ret),
+    OPS_ERR_IF(api_ret != GRAPH_SUCCESS, OP_LOGE("gmm_all_reduce_fallback", "api_ret failed:%u", api_ret),
              return GRAPH_FAILED);
     return GRAPH_SUCCESS;
 }

@@ -41,14 +41,14 @@ ge::graphStatus CommonParamCheck(
     const char* groupStr = attrs->GetAttrPointer<char>(GROUP);
     OP_LOGE_IF(groupStr == nullptr, GRAPH_FAILED, context->GetNodeName(), "Get group failed.");
     commParas.rankSize = -1;
+    uint32_t rankNum = 0;
     if (*rankSizeAttr <= 0) {
-        uint32_t rankNum= 0;
-        if ((ge::HcomTopoInfo::Instance().GetGroupRankSize(groupStr, &rankNum)) != ge::GRAPH_SUCCESS ||
-            commParas.rankSize <= 0) {
+        if ((Mc2Hcom::MC2HcomTopology::CommGetInstSizeByGroup(groupStr, &rankNum)) != HCCL_SUCCESS || rankNum == 0) {
             OP_LOGE(
-                context->GetNodeName(), "Get rank size failed, group [%s], rankSize [%ld]", groupStr,
-                commParas.rankSize);
+                context->GetNodeName(), "Get rank size failed, group [%s], rankSize [%u]", groupStr, rankNum);
             return ge::GRAPH_FAILED;
+        } else {
+            commParas.rankSize = rankNum;
         }
         commParas.rankSize = static_cast<int64_t>(rankNum);
     } else {

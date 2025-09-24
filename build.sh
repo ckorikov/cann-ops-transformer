@@ -263,6 +263,7 @@ function build()
     if [ "${VERBOSE}" == "true" ];then
         local option="--verbose"
     fi
+    export LD_LIBRARY_PATH=${BUILD_DIR}:$LD_LIBRARY_PATH
     cmake --build . --target ${target} ${JOB_NUM} ${option}
 }
 

@@ -135,6 +135,49 @@ function(op_add_subdirectory OP_LIST OP_DIR_LIST)
     set(${OP_DIR_LIST} ${_OP_DIR_LIST} PARENT_SCOPE)
 endfunction()
 
+function(mc2_op_add_subdirectory MC2_OP_LIST MC2_OP_DIR_LIST)
+    set(_OP_LIST)
+    set(_OP_DIR_LIST)
+
+    file(GLOB OP_HOST_CMAKE_FILES 
+    "${CMAKE_CURRENT_SOURCE_DIR}/mc2/**/op_host/CMakeLists.txt"
+    "${CMAKE_CURRENT_SOURCE_DIR}/mc2/**/CMakeLists.txt")
+
+    foreach(OP_CMAKE_FILE ${OP_HOST_CMAKE_FILES})
+        if ("${OP_CMAKE_FILE}" MATCHES "op_host")
+            get_filename_component(OP_HOST_DIR "${OP_CMAKE_FILE}" DIRECTORY)
+            get_filename_component(OP_DIR "${OP_HOST_DIR}" DIRECTORY)
+        else()
+            get_filename_component(OP_DIR "${OP_CMAKE_FILE}" DIRECTORY)
+        endif()
+        get_filename_component(OP_NAME "${OP_DIR}" NAME)
+
+        if (NOT BUILD_OPEN_PROJECT)
+            if (EXISTS ${TOP_DIR}/asl/ops/cann/ops/built-in/tbe/impl/ascendc/${OP_NAME})
+                continue()
+            endif ()
+        endif ()
+
+        if (DEFINED ASCEND_OP_NAME AND NOT "${ASCEND_OP_NAME}" STREQUAL "")
+            if (NOT "${ASCEND_OP_NAME}" STREQUAL "all" AND NOT "${ASCEND_OP_NAME}" STREQUAL "ALL")
+                if (NOT ${OP_NAME} IN_LIST ASCEND_OP_NAME)
+                    continue()
+                endif ()
+            endif ()
+        endif ()
+
+        list(APPEND _OP_LIST ${OP_NAME})
+        list(APPEND _OP_DIR_LIST ${OP_DIR})
+    endforeach()
+
+    list(REMOVE_DUPLICATES _OP_LIST)
+    list(REMOVE_DUPLICATES _OP_DIR_LIST)
+    list(SORT _OP_LIST)
+    list(SORT _OP_DIR_LIST)
+    set(${MC2_OP_LIST} ${_OP_LIST} PARENT_SCOPE)
+    set(${MC2_OP_DIR_LIST} ${_OP_DIR_LIST} PARENT_SCOPE)
+endfunction()
+
 function(op_add_depend_directory)
     cmake_parse_arguments(DEP "" "OP_DIR_LIST" "OP_LIST" ${ARGN})
     set(_OP_DEPEND_DIR_LIST)
@@ -354,31 +397,27 @@ function(add_ops_src_copy)
         endif ()
     endif ()
 
-    set(MC2_OPS_LIST "matmul_reduce_scatter;grouped_mat_mul_allto_allv;grouped_mat_mul_all_reduce;
-        batch_mat_mul_reduce_scatter_allto_all;allto_allv_grouped_mat_mul;allto_all_all_gather_batch_mat_mul;
-        distribute_barrier;moe_distribute_combine_add_rms_norm;moe_distribute_dispatch;moe_distribute_combine;
-        moe_distribute_dispatch_v2;moe_distribute_combine_v2;moe_update_expert") # mc2算子列表
+    set(MC2_OPS_LIST "matmul_reduce_scatter;grouped_mat_mul_allto_allv;grouped_mat_mul_all_reduce;batch_mat_mul_reduce_scatter_allto_all;allto_allv_grouped_mat_mul;allto_all_all_gather_batch_mat_mul;distribute_barrier;moe_distribute_combine_add_rms_norm;moe_distribute_dispatch;moe_distribute_combine;moe_distribute_dispatch_v2;moe_distribute_combine_v2;moe_update_expert") # mc2算子列表
 
-      get_filename_component(FOLDER_NAME "${SRC_COPY_DST}" NAME_WE)
+    get_filename_component(FOLDER_NAME "${SRC_COPY_DST}" NAME_WE)
     list(FIND MC2_OPS_LIST "${FOLDER_NAME}" INDEX)
     if(NOT INDEX EQUAL -1)
         set(BELONG_MC2_OPS TRUE)
     endif()
 
-      if(NOT BUILD_OPS_RTY_KERNEL AND BELONG_MC2_OPS)
+    if(NOT BUILD_OPS_RTY_KERNEL AND BELONG_MC2_OPS)
         file(GLOB SRC_FILES ${SRC_COPY_SRC}/* ${SRC_COPY_SRC}/op_kernel/*)
     else()
         file(GLOB SRC_FILES ${SRC_COPY_SRC}/*)
     endif()
-
     list(FILTER SRC_FILES EXCLUDE REGEX "op_host")
     if (NOT TARGET ${SRC_COPY_TARGET_NAME})
         set(_BUILD_FLAG ${SRC_COPY_DST}/${SRC_COPY_TARGET_NAME}.done)
         if (NOT BUILD_OPS_RTY_KERNEL AND BELONG_MC2_OPS)
-              add_custom_command(OUTPUT ${_BUILD_FLAG}
-                      COMMAND mkdir -p ${SRC_COPY_DST}
-                      COMMAND cp -rf ${SRC_FILES} ${SRC_COPY_DST}
-                      COMMAND rm -rf ${SRC_COPY_DST}/op_kernel/
+            add_custom_command(OUTPUT ${_BUILD_FLAG}
+                    COMMAND mkdir -p ${SRC_COPY_DST}
+                    COMMAND cp -rf ${SRC_FILES} ${SRC_COPY_DST}
+                    COMMAND rm -rf ${SRC_COPY_DST}/op_kernel/
                     COMMAND touch ${_BUILD_FLAG}
             )
         else()

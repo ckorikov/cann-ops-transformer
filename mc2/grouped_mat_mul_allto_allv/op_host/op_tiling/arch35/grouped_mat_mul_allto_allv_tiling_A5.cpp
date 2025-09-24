@@ -25,7 +25,6 @@
 #include <numeric>
 #include <vector>
 #include "mc2_hcom_topo_info.h"
-#include "graph/utils/op_desc_utils.h"
 #include "graph/utils/type_utils.h"
 #include "register/op_def_registry.h"
 #include "tiling/matmul_formulaic_tiling.h"

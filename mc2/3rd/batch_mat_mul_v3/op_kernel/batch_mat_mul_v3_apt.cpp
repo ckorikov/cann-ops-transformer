@@ -12,13 +12,13 @@
  * \file batch_mat_mul_v3.cpp
  * \brief
  */
-#include "../mat_mul_v3/arch35/mat_mul_tiling_data.h"
+#include "../../mat_mul_v3/op_kernel/arch35/mat_mul_tiling_data.h"
 #include "arch35/batch_mat_mul_v3_asw_kernel_advanced.h"
 #include "arch35/batch_mat_mul_v3_asw_al1_full_load_kernel_advanced.h"
 #include "arch35/batch_mat_mul_v3_asw_bl1_full_load_kernel_advanced.h"
 #include "arch35/batch_mat_mul_v3_iterbatch_kernel_advanced.h"
 #include "arch35/batch_mat_mul_v3_iterbatch_basicapi_act.h"
-#include "../mat_mul_v3/arch35/mat_mul_pingpong_basic_act.h"
+#include "../../mat_mul_v3/op_kernel/arch35/mat_mul_pingpong_basic_act.h"
 
 using namespace AscendC;
 using namespace matmul;

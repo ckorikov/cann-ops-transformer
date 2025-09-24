@@ -7,11 +7,11 @@
 # See LICENSE in the root of the software repository for the full text of the License.
 # ======================================================================================================================
 
-if (BUILD_OPEN_PROJECT AND ASCEND_COMPUTE_UNIT STREQUAL "ascend910_93")  # custom
-    target_sources(op_host_aclnnInner PRIVATE
-        moe_distribute_dispatch_v2_def.cpp
-    )
-    add_mc2_modules_sources(OPTYPE moe_distribute_dispatch_v2 ACLNNTYPE aclnn_inner)
+if (BUILD_OPEN_PROJECT)  # custom
+    # target_sources(op_host_aclnnInner PRIVATE
+    #     moe_distribute_dispatch_v2_def.cpp
+    # )
+    # add_mc2_modules_sources(OPTYPE moe_distribute_dispatch_v2 ACLNNTYPE aclnn_inner)
 else() # 回黄host
     add_mc2_modules_sources(OPTYPE moe_distribute_dispatch_v2 ACLNNTYPE aclnn_inner) 
 endif()

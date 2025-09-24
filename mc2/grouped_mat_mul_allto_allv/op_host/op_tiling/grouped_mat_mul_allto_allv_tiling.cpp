@@ -28,7 +28,6 @@
 #include "tiling/mc2_tiling_common_var.h"
 #include "mc2_hcom_topo_info.h"
 #include "mc2_log.h"
-#include "graph/utils/op_desc_utils.h"
 #include "graph/utils/type_utils.h"
 #include "register/op_def_registry.h"
 #include "tiling/hccl_formulaic_tiling.h"

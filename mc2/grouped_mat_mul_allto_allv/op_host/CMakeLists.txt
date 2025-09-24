@@ -7,7 +7,7 @@
 # See LICENSE in the root of the software repository for the full text of the License.
 # ======================================================================================================================
 
-if (BUILD_OPEN_PROJECT AND ASCEND_COMPUTE_UNIT STREQUAL "ascend910_93")  # custom
+if (BUILD_OPEN_PROJECT)  # custom
     target_sources(op_host_aclnnInner PRIVATE
         grouped_mat_mul_allto_allv_def.cpp
     )

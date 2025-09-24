@@ -6,12 +6,6 @@
 # INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
 # See LICENSE in the root of the software repository for the full text of the License.
 # ======================================================================================================================
-
-if (BUILD_OPEN_PROJECT)  # custom
-    # target_sources(op_host_aclnnInner PRIVATE
-    #     moe_distribute_combine_v2_def.cpp
-    # )
-    # add_mc2_modules_sources(OPTYPE moe_distribute_combine_v2 ACLNNTYPE aclnn_inner)
-else() # 回黄host
-    add_mc2_modules_sources(OPTYPE moe_distribute_combine_v2 ACLNNTYPE aclnn_inner) 
-endif()
+# if (BUILD_OPEN_PROJECT)
+#     add_graph_plugin_sources()
+# endif()
