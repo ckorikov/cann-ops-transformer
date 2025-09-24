@@ -263,7 +263,7 @@ ge::graphStatus CheckTndShapeValid(gert::TilingContext *context, int64_t t1, int
 ge::graphStatus CheckDtypeValid(gert::TilingContext *context);
 bool IsSameShape(const gert::StorageShape *aShape, const gert::StorageShape *bShape);
 bool IsSameShapeButValueDLeEqD(const gert::StorageShape *aShape, const gert::StorageShape *bShape);
-bool isTndSABHit(gert::TilingContext *context);
+bool isTndSABHit(const gert::TilingContext *context);
 
 // dq/dv/dk vdup and dropMask bit2bool
 BEGIN_TILING_DATA_DEF(PreParams)
