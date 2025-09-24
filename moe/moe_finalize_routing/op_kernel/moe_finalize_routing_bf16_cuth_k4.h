@@ -299,7 +299,7 @@ __aicore__ inline void MoeFinalizeRoutingBf16CuthK4<T>::CopyIn(int64_t nLoopIdx,
     DataCopyPadParams padParamsExpert{isPadKInt32_, 0, static_cast<uint8_t>(rightPaddingKInt32_), 0};
     DataCopyPad(expertForSourceRowLocal, gmExpertForSourceRow_[nLoopIdx / (cutNumH_ + 1) * K_], copyParamsExpert,
                 padParamsExpert);
-    set_flag(PIPE_MTE2, PIPE_S, EVENT_ID0);
+    SetFlag<HardEvent::MTE2_S>(EVENT_ID0);
 
     if (skip2IsNull_ == 0) {
         skip2Queue_.EnQue(skip2Local);
@@ -356,64 +356,64 @@ __aicore__ inline void MoeFinalizeRoutingBf16CuthK4<T>::Compute(int64_t nLoopIdx
     LocalTensor<float> biasCastUb3 = biasCastBuf3_.Get<float>();
 
     /*******************************乒***********************************************/
-    wait_flag(PIPE_MTE2, PIPE_S, EVENT_ID0);
+    WaitFlag<HardEvent::MTE2_S>(EVENT_ID0);
     int64_t biasIndexDb0 = expertForSourceRowLocal.GetValue(0);
     float scalesValDb0 = ToFloat(scalesLocal.GetValue(0));
     int64_t biasIndexDb1 = expertForSourceRowLocal.GetValue(1);
     float scalesValDb1 = ToFloat(scalesLocal.GetValue(1));
-    set_flag(PIPE_S, PIPE_MTE2, EVENT_ID0);
+    SetFlag<HardEvent::S_MTE2>(EVENT_ID0);
 
     int64_t expandedSrcToDstRowIndexDb0 = nLoopIdx / (cutNumH_ + 1) + 0 * BS_ + GetBlockIdx() * normalCoreHandleNum_;
     int64_t expandedPermutedRowsIndexDb0 = gmExpandedSrcToDstRow_.GetValue(expandedSrcToDstRowIndexDb0);
     int64_t expandedSrcToDstRowIndexDb1 = nLoopIdx / (cutNumH_ + 1) + 1 * BS_ + GetBlockIdx() * normalCoreHandleNum_;
     int64_t expandedPermutedRowsIndexDb1 = gmExpandedSrcToDstRow_.GetValue(expandedSrcToDstRowIndexDb1);
-    set_flag(PIPE_S, PIPE_MTE2, EVENT_ID2);
+    SetFlag<HardEvent::S_MTE2>(EVENT_ID2);
 
     /*******************************乓***********************************************/
     int64_t biasIndexDb2 = expertForSourceRowLocal.GetValue(2);
     float scalesValDb2 = ToFloat(scalesLocal.GetValue(2));
     int64_t biasIndexDb3 = expertForSourceRowLocal.GetValue(3);
     float scalesValDb3 = ToFloat(scalesLocal.GetValue(3));
-    set_flag(PIPE_S, PIPE_MTE2, EVENT_ID1);
+    SetFlag<HardEvent::S_MTE2>(EVENT_ID1);
 
     int64_t expandedSrcToDstRowIndexDb2 = nLoopIdx / (cutNumH_ + 1) + 2 * BS_ + GetBlockIdx() * normalCoreHandleNum_;
     int64_t expandedPermutedRowsIndexDb2 = gmExpandedSrcToDstRow_.GetValue(expandedSrcToDstRowIndexDb2);
     int64_t expandedSrcToDstRowIndexDb3 = nLoopIdx / (cutNumH_ + 1) + 3 * BS_ + GetBlockIdx() * normalCoreHandleNum_;
     int64_t expandedPermutedRowsIndexDb3 = gmExpandedSrcToDstRow_.GetValue(expandedSrcToDstRowIndexDb3);
-    set_flag(PIPE_S, PIPE_MTE2, EVENT_ID3);
+    SetFlag<HardEvent::S_MTE2>(EVENT_ID3);
 
     DataCopyParams copyParams{1, static_cast<uint16_t>(dataLen * sizeof(T)), 0, 0};
     DataCopyPadParams padParams{isPadH, 0, static_cast<uint8_t>(rightPaddingH), 0};
 
     /*******************************乒***********************************************/
-    wait_flag(PIPE_S, PIPE_MTE2, EVENT_ID0);
+    WaitFlag<HardEvent::S_MTE2>(EVENT_ID0);
     DataCopyPad(biasTmpUbDb0, gmBias_[biasIndexDb0 * H_ + bias], copyParams, padParams);
     DataCopyPad(biasTmpUbDb1, gmBias_[biasIndexDb1 * H_ + bias], copyParams, padParams);
-    set_flag(PIPE_MTE2, PIPE_V, EVENT_ID0);
+    SetFlag<HardEvent::MTE2_V>(EVENT_ID0);
 
-    wait_flag(PIPE_S, PIPE_MTE2, EVENT_ID2);
+    WaitFlag<HardEvent::S_MTE2>(EVENT_ID2);
     DataCopyPad(expandedPermutedTmpUbDb0, gmExpandedPermutedRows_[expandedPermutedRowsIndexDb0 * H_ + bias], copyParams,
                 padParams);
     DataCopyPad(expandedPermutedTmpUbDb1, gmExpandedPermutedRows_[expandedPermutedRowsIndexDb1 * H_ + bias], copyParams,
                 padParams);
-    set_flag(PIPE_MTE2, PIPE_V, EVENT_ID2);
+    SetFlag<HardEvent::MTE2_V>(EVENT_ID2);
 
     /*******************************乓***********************************************/
-    wait_flag(PIPE_S, PIPE_MTE2, EVENT_ID1);
+    WaitFlag<HardEvent::S_MTE2>(EVENT_ID1);
     DataCopyPad(biasTmpUbDb2, gmBias_[biasIndexDb2 * H_ + bias], copyParams, padParams);
     DataCopyPad(biasTmpUbDb3, gmBias_[biasIndexDb3 * H_ + bias], copyParams, padParams);
-    set_flag(PIPE_MTE2, PIPE_V, EVENT_ID1);
+    SetFlag<HardEvent::MTE2_V>(EVENT_ID1);
 
-    wait_flag(PIPE_S, PIPE_MTE2, EVENT_ID3);
+    WaitFlag<HardEvent::S_MTE2>(EVENT_ID3);
     DataCopyPad(expandedPermutedTmpUbDb2, gmExpandedPermutedRows_[expandedPermutedRowsIndexDb2 * H_ + bias], copyParams,
                 padParams);
     DataCopyPad(expandedPermutedTmpUbDb3, gmExpandedPermutedRows_[expandedPermutedRowsIndexDb3 * H_ + bias], copyParams,
                 padParams);
-    set_flag(PIPE_MTE2, PIPE_V, EVENT_ID3);
+    SetFlag<HardEvent::MTE2_V>(EVENT_ID3);
 
     /*******************************乒***********************************************/
-    wait_flag(PIPE_MTE2, PIPE_V, EVENT_ID0);
-    wait_flag(PIPE_MTE2, PIPE_V, EVENT_ID2);
+    WaitFlag<HardEvent::MTE2_V>(EVENT_ID0);
+    WaitFlag<HardEvent::MTE2_V>(EVENT_ID2);
     Cast(expandedPermutedRowsCastUb0, expandedPermutedTmpUbDb0, RoundMode::CAST_NONE, dataLen);
     Cast(biasCastUb0, biasTmpUbDb0, RoundMode::CAST_NONE, dataLen);
     Cast(expandedPermutedRowsCastUb1, expandedPermutedTmpUbDb1, RoundMode::CAST_NONE, dataLen);
@@ -430,8 +430,8 @@ __aicore__ inline void MoeFinalizeRoutingBf16CuthK4<T>::Compute(int64_t nLoopIdx
     Add(skip1CastUb[0], skip1CastUb[0], expandedPermutedRowsCastUb1, dataLen);
 
     /*******************************乓***********************************************/
-    wait_flag(PIPE_MTE2, PIPE_V, EVENT_ID1);
-    wait_flag(PIPE_MTE2, PIPE_V, EVENT_ID3);
+    WaitFlag<HardEvent::MTE2_V>(EVENT_ID1);
+    WaitFlag<HardEvent::MTE2_V>(EVENT_ID3);
     Cast(expandedPermutedRowsCastUb2, expandedPermutedTmpUbDb2, RoundMode::CAST_NONE, dataLen);
     Cast(biasCastUb2, biasTmpUbDb2, RoundMode::CAST_NONE, dataLen);
     Cast(expandedPermutedRowsCastUb3, expandedPermutedTmpUbDb3, RoundMode::CAST_NONE, dataLen);
@@ -448,7 +448,7 @@ __aicore__ inline void MoeFinalizeRoutingBf16CuthK4<T>::Compute(int64_t nLoopIdx
     Add(skip1CastUb[0], skip1CastUb[0], expandedPermutedRowsCastUb3, dataLen);
     PipeBarrier<PIPE_V>();
     Cast(outLocal, skip1CastUb, RoundMode::CAST_ROUND, dataLen);
-    set_flag(PIPE_V, PIPE_MTE3, EVENT_ID0);
+    SetFlag<HardEvent::V_MTE3>(EVENT_ID0);
 
     outQueue_.EnQue(outLocal);
     expertForSourceRowQueue_.FreeTensor(expertForSourceRowLocal);
@@ -464,7 +464,7 @@ __aicore__ inline void MoeFinalizeRoutingBf16CuthK4<T>::CopyOut(int64_t nLoopIdx
 {
     LocalTensor<T> outLocal = outQueue_.DeQue<T>();
     DataCopyParams copyParams{1, static_cast<uint16_t>(dataLen * sizeof(T)), 0, 0};
-    wait_flag(PIPE_V, PIPE_MTE3, EVENT_ID0);
+    WaitFlag<HardEvent::V_MTE3>(EVENT_ID0);
     DataCopyPad(gmOut_[nLoopIdx / (cutNumH_ + 1) * H_ + bias], outLocal, copyParams);
     outQueue_.FreeTensor(outLocal);
 }

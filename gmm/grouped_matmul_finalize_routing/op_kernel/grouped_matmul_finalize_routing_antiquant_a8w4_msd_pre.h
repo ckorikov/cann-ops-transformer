@@ -125,10 +125,10 @@ __aicore__ inline void GMMA8W4PreProcess::ProcessPerToken(uint32_t xloop)
     SetFlag<HardEvent::MTE2_V>(EVENT_ID0);
     WaitFlag<HardEvent::MTE2_V>(EVENT_ID0);
     Cast(xHighHalfTensor, xTensor, AscendC::RoundMode::CAST_NONE, vK);
-    pipe_barrier(PIPE_V);
+    PipeBarrier<PIPE_V>();
     if (withOffset == uint32_t(1)) {
         Cast(xHighFloatTensor, xHighHalfTensor, AscendC::RoundMode::CAST_NONE, vK);
-        pipe_barrier(PIPE_V);
+        PipeBarrier<PIPE_V>();
 
         SetFlag<HardEvent::MTE3_V>(EVENT_ID2);
         WaitFlag<HardEvent::MTE3_V>(EVENT_ID2);
@@ -142,7 +142,7 @@ __aicore__ inline void GMMA8W4PreProcess::ProcessPerToken(uint32_t xloop)
     }
     // INT8中高4bit转为int4
     Muls(xHighHalfTensor, xHighHalfTensor, oneEight, vK);
-    pipe_barrier(PIPE_V);
+    PipeBarrier<PIPE_V>();
     WaitFlag<HardEvent::MTE3_V>(EVENT_ID1);
     Cast(xHighI4Tensor, xHighHalfTensor, AscendC::RoundMode::CAST_FLOOR, vK);
     SetFlag<HardEvent::V_MTE3>(EVENT_ID0);
@@ -156,14 +156,14 @@ __aicore__ inline void GMMA8W4PreProcess::ProcessPerToken(uint32_t xloop)
         And(xLowHalfTensor[lenVk * LEN_128].ReinterpretCast<int16_t>(), xTensor[lenVk * LEN_128 * TWO].ReinterpretCast<int16_t>(),
                 xLowI16Tensor, LEN_128, lastLenVk, {1, 1, 1, 8, 8, 0});
     }
-    pipe_barrier(PIPE_V);
+    PipeBarrier<PIPE_V>();
     SetFlag<HardEvent::V_MTE2>(EVENT_ID0);
     Cast(xLowHalfTensor2.ReinterpretCast<half>(), xLowHalfTensor.ReinterpretCast<int8_t>(), AscendC::RoundMode::CAST_NONE, vK);
-    pipe_barrier(PIPE_V);
+    PipeBarrier<PIPE_V>();
     // uint4转为int4,需要减8
     const half MINUS_EIGHT = static_cast<half>(-8);     // shrink 0~15 to -8~7
     Adds(xHighHalfTensor, xLowHalfTensor2, MINUS_EIGHT, vK);
-    pipe_barrier(PIPE_V);
+    PipeBarrier<PIPE_V>();
     WaitFlag<HardEvent::MTE3_V>(EVENT_ID0);
     Cast(xLowI4Tensor, xHighHalfTensor.ReinterpretCast<half>(), AscendC::RoundMode::CAST_NONE, vK);
     SetFlag<HardEvent::V_MTE3>(EVENT_ID1);
@@ -215,9 +215,9 @@ __aicore__ inline void GMMA8W4PreProcess::Process()
     SetFlag<HardEvent::MTE2_V>(EVENT_ID0);
     WaitFlag<HardEvent::MTE2_V>(EVENT_ID0);
     Cast(groupListFTensor, groupListTensor, AscendC::RoundMode::CAST_ROUND, groupNum);
-    pipe_barrier(PIPE_V);
+    PipeBarrier<PIPE_V>();
     ReduceSum(groupListFTensor, groupListFTensor, workTensor, groupNum);
-    pipe_barrier(PIPE_V);
+    PipeBarrier<PIPE_V>();
     Cast(groupListTensor, groupListFTensor, AscendC::RoundMode::CAST_ROUND, 1);
     SetFlag<HardEvent::V_S>(EVENT_ID0);
     ProcessLoop();

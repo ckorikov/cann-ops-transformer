@@ -277,7 +277,7 @@ __aicore__ inline void MoeFinalizeRoutingV2Bf16Cuth<T, TS, ISBIASEXIST>::CopyIn(
             expertForSourceRowLocal, gmExpertForSourceRow_[nLoopIdx / (tilingData_.hSliceNum + 1) * tilingData_.K],
             copyParamsExpert, padParamsExpert);
     }
-    set_flag(PIPE_MTE2, PIPE_S, EVENT_ID0);
+    SetFlag<HardEvent::MTE2_S>(EVENT_ID0);
 
     if (tilingData_.skip2IsNull == 0) {
         skip2Queue_.EnQue(skip2Local);
@@ -348,14 +348,14 @@ __aicore__ inline void MoeFinalizeRoutingV2Bf16Cuth<T, TS, ISBIASEXIST>::Compute
     DataCopyParams copyParams{1, static_cast<uint16_t>(dataLen * sizeof(T)), 0, 0};
     DataCopyPadParams padParams{isPadH, 0, static_cast<uint8_t>(rightPaddingH), 0};
 
-    wait_flag(PIPE_MTE2, PIPE_S, EVENT_ID0);
-    set_flag(PIPE_V, PIPE_S, EVENT_ID0);
-    set_flag(PIPE_V, PIPE_S, EVENT_ID1);
-    set_flag(PIPE_V, PIPE_S, EVENT_ID2);
-    set_flag(PIPE_V, PIPE_S, EVENT_ID3);
+    WaitFlag<HardEvent::MTE2_S>(EVENT_ID0);
+    SetFlag<HardEvent::V_S>(EVENT_ID0);
+    SetFlag<HardEvent::V_S>(EVENT_ID1);
+    SetFlag<HardEvent::V_S>(EVENT_ID2);
+    SetFlag<HardEvent::V_S>(EVENT_ID3);
     for (int64_t i = 0; i < tilingData_.K / PARALLEL_NUM; i++) {
         /*******************************乒***********************************************/
-        wait_flag(PIPE_V, PIPE_S, EVENT_ID0);
+        WaitFlag<HardEvent::V_S>(EVENT_ID0);
         int64_t expandedSrcToDstRowIndexDb0 = 0;
         if (tilingData_.dropPadMode == MODE_VALUE_0 || tilingData_.dropPadMode == MODE_VALUE_1) {
             expandedSrcToDstRowIndexDb0 = nLoopIdx / (tilingData_.hSliceNum + 1) +
@@ -366,9 +366,9 @@ __aicore__ inline void MoeFinalizeRoutingV2Bf16Cuth<T, TS, ISBIASEXIST>::Compute
                                           GetBlockIdx() * tilingData_.normalCoreHandleNum * tilingData_.K;
         }
         int64_t expandedPermutedRowsIndexDb0 = gmExpandedSrcToDstRow_.GetValue(expandedSrcToDstRowIndexDb0);
-        set_flag(PIPE_S, PIPE_MTE2, EVENT_ID0);
+        SetFlag<HardEvent::S_MTE2>(EVENT_ID0);
 
-        wait_flag(PIPE_V, PIPE_S, EVENT_ID2);
+        WaitFlag<HardEvent::V_S>(EVENT_ID2);
 
         int64_t biasIndexDb0 = 0;
         if constexpr (ISBIASEXIST) {
@@ -382,10 +382,10 @@ __aicore__ inline void MoeFinalizeRoutingV2Bf16Cuth<T, TS, ISBIASEXIST>::Compute
                 scalesValDb0 = scalesLocal.GetValue(PARALLEL_NUM * i);
             }
         }
-        set_flag(PIPE_S, PIPE_MTE2, EVENT_ID2);
+        SetFlag<HardEvent::S_MTE2>(EVENT_ID2);
 
         /*******************************乓***********************************************/
-        wait_flag(PIPE_V, PIPE_S, EVENT_ID1);
+        WaitFlag<HardEvent::V_S>(EVENT_ID1);
         int64_t expandedSrcToDstRowIndexDb1 = 0;
         if (tilingData_.dropPadMode == MODE_VALUE_0 || tilingData_.dropPadMode == MODE_VALUE_1) {
             expandedSrcToDstRowIndexDb1 = nLoopIdx / (tilingData_.hSliceNum + 1) +
@@ -397,9 +397,9 @@ __aicore__ inline void MoeFinalizeRoutingV2Bf16Cuth<T, TS, ISBIASEXIST>::Compute
                                           GetBlockIdx() * tilingData_.normalCoreHandleNum * tilingData_.K;
         }
         int64_t expandedPermutedRowsIndexDb1 = gmExpandedSrcToDstRow_.GetValue(expandedSrcToDstRowIndexDb1);
-        set_flag(PIPE_S, PIPE_MTE2, EVENT_ID1);
+        SetFlag<HardEvent::S_MTE2>(EVENT_ID1);
 
-        wait_flag(PIPE_V, PIPE_S, EVENT_ID3);
+        WaitFlag<HardEvent::V_S>(EVENT_ID3);
 
         int64_t biasIndexDb1 = 0;
         if constexpr (ISBIASEXIST) {
@@ -413,48 +413,48 @@ __aicore__ inline void MoeFinalizeRoutingV2Bf16Cuth<T, TS, ISBIASEXIST>::Compute
                 scalesValDb1 = scalesLocal.GetValue(PARALLEL_NUM * i + 1);
             }
         }
-        set_flag(PIPE_S, PIPE_MTE2, EVENT_ID3);
+        SetFlag<HardEvent::S_MTE2>(EVENT_ID3);
 
         /*******************************乒***********************************************/
-        wait_flag(PIPE_S, PIPE_MTE2, EVENT_ID0);
+        WaitFlag<HardEvent::S_MTE2>(EVENT_ID0);
         if constexpr (ISBIASEXIST) {
             DataCopyPad(biasTmpUbDb0, gmBias_[biasIndexDb0 * tilingData_.H + bias], copyParams, padParams);
         }
-        set_flag(PIPE_MTE2, PIPE_V, EVENT_ID0);
+        SetFlag<HardEvent::MTE2_V>(EVENT_ID0);
 
-        wait_flag(PIPE_S, PIPE_MTE2, EVENT_ID2);
+        WaitFlag<HardEvent::S_MTE2>(EVENT_ID2);
         if (expandedPermutedRowsIndexDb0 != INVALID_ROW_INDEX) {
             DataCopyPad(
                 expandedPermutedTmpUbDb0, gmExpandedPermutedRows_[expandedPermutedRowsIndexDb0 * tilingData_.H + bias],
                 copyParams, padParams);
         }
-        set_flag(PIPE_MTE2, PIPE_V, EVENT_ID2);
+        SetFlag<HardEvent::MTE2_V>(EVENT_ID2);
 
         /*******************************乓***********************************************/
-        wait_flag(PIPE_S, PIPE_MTE2, EVENT_ID1);
+        WaitFlag<HardEvent::S_MTE2>(EVENT_ID1);
         if constexpr (ISBIASEXIST) {
             DataCopyPad(biasTmpUbDb1, gmBias_[biasIndexDb1 * tilingData_.H + bias], copyParams, padParams);
         }
-        set_flag(PIPE_MTE2, PIPE_V, EVENT_ID1);
+        SetFlag<HardEvent::MTE2_V>(EVENT_ID1);
 
-        wait_flag(PIPE_S, PIPE_MTE2, EVENT_ID3);
+        WaitFlag<HardEvent::S_MTE2>(EVENT_ID3);
         if (expandedPermutedRowsIndexDb1 != INVALID_ROW_INDEX) {
             DataCopyPad(
                 expandedPermutedTmpUbDb1, gmExpandedPermutedRows_[expandedPermutedRowsIndexDb1 * tilingData_.H + bias],
                 copyParams, padParams);
         }
-        set_flag(PIPE_MTE2, PIPE_V, EVENT_ID3);
+        SetFlag<HardEvent::MTE2_V>(EVENT_ID3);
 
         /*******************************乒***********************************************/
-        wait_flag(PIPE_MTE2, PIPE_V, EVENT_ID0);
-        wait_flag(PIPE_MTE2, PIPE_V, EVENT_ID2);
+        WaitFlag<HardEvent::MTE2_V>(EVENT_ID0);
+        WaitFlag<HardEvent::MTE2_V>(EVENT_ID2);
         if (expandedPermutedRowsIndexDb0 != INVALID_ROW_INDEX) {
             Cast(expandedPermutedRowsCastUb0, expandedPermutedTmpUbDb0, RoundMode::CAST_NONE, dataLen);
         }
         if constexpr (ISBIASEXIST) {
             Cast(biasCastUb0, biasTmpUbDb0, RoundMode::CAST_NONE, dataLen);
         }
-        set_flag(PIPE_V, PIPE_S, EVENT_ID0);
+        SetFlag<HardEvent::V_S>(EVENT_ID0);
         PipeBarrier<PIPE_V>();
         if (expandedPermutedRowsIndexDb0 != INVALID_ROW_INDEX) {
             if constexpr (ISBIASEXIST) {
@@ -470,30 +470,30 @@ __aicore__ inline void MoeFinalizeRoutingV2Bf16Cuth<T, TS, ISBIASEXIST>::Compute
                 Muls(skip1CastUb[0], expandedPermutedRowsCastUb0, scalesValDb0, dataLen);
             }
             initFlag_ = true;
-            set_flag(PIPE_V, PIPE_S, EVENT_ID2);
+            SetFlag<HardEvent::V_S>(EVENT_ID2);
         } else {
             if (expandedPermutedRowsIndexDb0 == INVALID_ROW_INDEX &&
                 (tilingData_.dropPadMode == MODE_VALUE_1 || tilingData_.dropPadMode == MODE_VALUE_3)) {
-                set_flag(PIPE_V, PIPE_S, EVENT_ID2);
+                SetFlag<HardEvent::V_S>(EVENT_ID2);
                 PipeBarrier<PIPE_V>();
             } else {
                 Muls(expandedPermutedRowsCastUb0, expandedPermutedRowsCastUb0, scalesValDb0, dataLen);
-                set_flag(PIPE_V, PIPE_S, EVENT_ID2);
+                SetFlag<HardEvent::V_S>(EVENT_ID2);
                 PipeBarrier<PIPE_V>();
                 Add(skip1CastUb[0], skip1CastUb[0], expandedPermutedRowsCastUb0, dataLen);
             }
         }
 
         /*******************************乓***********************************************/
-        wait_flag(PIPE_MTE2, PIPE_V, EVENT_ID1);
-        wait_flag(PIPE_MTE2, PIPE_V, EVENT_ID3);
+        WaitFlag<HardEvent::MTE2_V>(EVENT_ID1);
+        WaitFlag<HardEvent::MTE2_V>(EVENT_ID3);
         if (expandedPermutedRowsIndexDb1 != INVALID_ROW_INDEX) {
             Cast(expandedPermutedRowsCastUb1, expandedPermutedTmpUbDb1, RoundMode::CAST_NONE, dataLen);
         }
         if constexpr (ISBIASEXIST) {
             Cast(biasCastUb1, biasTmpUbDb1, RoundMode::CAST_NONE, dataLen);
         }
-        set_flag(PIPE_V, PIPE_S, EVENT_ID1);
+        SetFlag<HardEvent::V_S>(EVENT_ID1);
         PipeBarrier<PIPE_V>();
         if (expandedPermutedRowsIndexDb1 != INVALID_ROW_INDEX) {
             if constexpr (ISBIASEXIST) {
@@ -504,14 +504,14 @@ __aicore__ inline void MoeFinalizeRoutingV2Bf16Cuth<T, TS, ISBIASEXIST>::Compute
         if (expandedPermutedRowsIndexDb1 != INVALID_ROW_INDEX) {
             Muls(expandedPermutedRowsCastUb1, expandedPermutedRowsCastUb1, scalesValDb1, dataLen);
         }
-        set_flag(PIPE_V, PIPE_S, EVENT_ID3);
+        SetFlag<HardEvent::V_S>(EVENT_ID3);
         if (expandedPermutedRowsIndexDb1 != INVALID_ROW_INDEX) {
             PipeBarrier<PIPE_V>();
             Add(skip1CastUb[0], skip1CastUb[0], expandedPermutedRowsCastUb1, dataLen);
         }
     }
     if (tilingData_.K % PARALLEL_NUM != 0) {
-        wait_flag(PIPE_V, PIPE_S, EVENT_ID0);
+        WaitFlag<HardEvent::V_S>(EVENT_ID0);
         int64_t expandedSrcToDstRowIndexDb0 = 0;
         if (tilingData_.dropPadMode == MODE_VALUE_0 || tilingData_.dropPadMode == MODE_VALUE_1) {
             expandedSrcToDstRowIndexDb0 = nLoopIdx / (tilingData_.hSliceNum + 1) +
@@ -522,9 +522,9 @@ __aicore__ inline void MoeFinalizeRoutingV2Bf16Cuth<T, TS, ISBIASEXIST>::Compute
                                           GetBlockIdx() * tilingData_.normalCoreHandleNum * tilingData_.K;
         }
         int64_t expandedPermutedRowsIndexDb0 = gmExpandedSrcToDstRow_.GetValue(expandedSrcToDstRowIndexDb0);
-        set_flag(PIPE_S, PIPE_MTE2, EVENT_ID0);
+        SetFlag<HardEvent::S_MTE2>(EVENT_ID0);
 
-        wait_flag(PIPE_V, PIPE_S, EVENT_ID2);
+        WaitFlag<HardEvent::V_S>(EVENT_ID2);
         int64_t biasIndexDb0 = 0;
         if constexpr (ISBIASEXIST) {
             biasIndexDb0 = expertForSourceRowLocal.GetValue(tilingData_.K - 1);
@@ -537,31 +537,31 @@ __aicore__ inline void MoeFinalizeRoutingV2Bf16Cuth<T, TS, ISBIASEXIST>::Compute
                 scalesValDb0 = scalesLocal.GetValue(tilingData_.K - 1);
             }
         }
-        set_flag(PIPE_S, PIPE_MTE2, EVENT_ID2);
+        SetFlag<HardEvent::S_MTE2>(EVENT_ID2);
 
-        wait_flag(PIPE_S, PIPE_MTE2, EVENT_ID0);
+        WaitFlag<HardEvent::S_MTE2>(EVENT_ID0);
         if constexpr (ISBIASEXIST) {
             DataCopyPad(biasTmpUbDb0, gmBias_[biasIndexDb0 * tilingData_.H + bias], copyParams, padParams);
         }
-        set_flag(PIPE_MTE2, PIPE_V, EVENT_ID0);
+        SetFlag<HardEvent::MTE2_V>(EVENT_ID0);
 
-        wait_flag(PIPE_S, PIPE_MTE2, EVENT_ID2);
+        WaitFlag<HardEvent::S_MTE2>(EVENT_ID2);
         if (expandedPermutedRowsIndexDb0 != INVALID_ROW_INDEX) {
             DataCopyPad(
                 expandedPermutedTmpUbDb0, gmExpandedPermutedRows_[expandedPermutedRowsIndexDb0 * tilingData_.H + bias],
                 copyParams, padParams);
         }
-        set_flag(PIPE_MTE2, PIPE_V, EVENT_ID2);
+        SetFlag<HardEvent::MTE2_V>(EVENT_ID2);
 
-        wait_flag(PIPE_MTE2, PIPE_V, EVENT_ID0);
-        wait_flag(PIPE_MTE2, PIPE_V, EVENT_ID2);
+        WaitFlag<HardEvent::MTE2_V>(EVENT_ID0);
+        WaitFlag<HardEvent::MTE2_V>(EVENT_ID2);
         if (expandedPermutedRowsIndexDb0 != INVALID_ROW_INDEX) {
             Cast(expandedPermutedRowsCastUb0, expandedPermutedTmpUbDb0, RoundMode::CAST_NONE, dataLen);
         }
         if constexpr (ISBIASEXIST) {
             Cast(biasCastUb0, biasTmpUbDb0, RoundMode::CAST_NONE, dataLen);
         }
-        set_flag(PIPE_V, PIPE_S, EVENT_ID0);
+        SetFlag<HardEvent::V_S>(EVENT_ID0);
         PipeBarrier<PIPE_V>();
         if (expandedPermutedRowsIndexDb0 != INVALID_ROW_INDEX) {
             if constexpr (ISBIASEXIST) {
@@ -577,27 +577,27 @@ __aicore__ inline void MoeFinalizeRoutingV2Bf16Cuth<T, TS, ISBIASEXIST>::Compute
                 Muls(skip1CastUb[0], expandedPermutedRowsCastUb0, scalesValDb0, dataLen);
             }
             initFlag_ = true;
-            set_flag(PIPE_V, PIPE_S, EVENT_ID2);
+            SetFlag<HardEvent::V_S>(EVENT_ID2);
         } else {
             if (expandedPermutedRowsIndexDb0 == INVALID_ROW_INDEX &&
                 (tilingData_.dropPadMode == MODE_VALUE_1 || tilingData_.dropPadMode == MODE_VALUE_3)) {
-                set_flag(PIPE_V, PIPE_S, EVENT_ID2);
+                SetFlag<HardEvent::V_S>(EVENT_ID2);
                 PipeBarrier<PIPE_V>();
             } else {
                 Muls(expandedPermutedRowsCastUb0, expandedPermutedRowsCastUb0, scalesValDb0, dataLen);
-                set_flag(PIPE_V, PIPE_S, EVENT_ID2);
+                SetFlag<HardEvent::V_S>(EVENT_ID2);
                 PipeBarrier<PIPE_V>();
                 Add(skip1CastUb[0], skip1CastUb[0], expandedPermutedRowsCastUb0, dataLen);
             }
         }
     }
-    wait_flag(PIPE_V, PIPE_S, EVENT_ID0);
-    wait_flag(PIPE_V, PIPE_S, EVENT_ID1);
-    wait_flag(PIPE_V, PIPE_S, EVENT_ID2);
-    wait_flag(PIPE_V, PIPE_S, EVENT_ID3);
+    WaitFlag<HardEvent::V_S>(EVENT_ID0);
+    WaitFlag<HardEvent::V_S>(EVENT_ID1);
+    WaitFlag<HardEvent::V_S>(EVENT_ID2);
+    WaitFlag<HardEvent::V_S>(EVENT_ID3);
     PipeBarrier<PIPE_V>();
     Cast(outLocal, skip1CastUb, RoundMode::CAST_RINT, dataLen);
-    set_flag(PIPE_V, PIPE_MTE3, EVENT_ID0);
+    SetFlag<HardEvent::V_MTE3>(EVENT_ID0);
     outQueue_.EnQue(outLocal);
 
     if constexpr (ISBIASEXIST) {
@@ -620,7 +620,7 @@ __aicore__ inline void MoeFinalizeRoutingV2Bf16Cuth<T, TS, ISBIASEXIST>::CopyOut
 {
     LocalTensor<T> outLocal = outQueue_.DeQue<T>();
     DataCopyParams copyParams{1, static_cast<uint16_t>(dataLen * sizeof(T)), 0, 0};
-    wait_flag(PIPE_V, PIPE_MTE3, EVENT_ID0);
+    WaitFlag<HardEvent::V_MTE3>(EVENT_ID0);
     DataCopyPad(gmOut_[nLoopIdx / (tilingData_.hSliceNum + 1) * tilingData_.H + bias], outLocal, copyParams);
     outQueue_.FreeTensor(outLocal);
 }

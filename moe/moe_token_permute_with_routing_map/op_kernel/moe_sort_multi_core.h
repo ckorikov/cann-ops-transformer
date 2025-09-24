@@ -100,7 +100,7 @@ __aicore__ inline void MoeSortMultiCore<T>::VBSCopyIn(int64_t progress, int64_t 
         DataCopyPadCustom(inLocal, expertForSourceRowGm[inOffset], dataCopyParams, DataCopyPadCustomParams);
     }
 
-    pipe_barrier(PIPE_V);
+    PipeBarrier<PIPE_V>();
 
     sortDataCopyInQueue.EnQue(inLocal);
 }
@@ -115,10 +115,10 @@ __aicore__ inline void MoeSortMultiCore<T>::UBSortCompute(int64_t progress, int6
     Cast(expertForSourceRowLocalFp32, sortDataLocal, RoundMode::CAST_ROUND, size);
 
     sortDataCopyInQueue.FreeTensor(sortDataLocal);
-    pipe_barrier(PIPE_V);
+    PipeBarrier<PIPE_V>();
 
     Muls(expertForSourceRowLocalFp32, expertForSourceRowLocalFp32, (float)-1, sortNum);
-    pipe_barrier(PIPE_V);
+    PipeBarrier<PIPE_V>();
 
     int64_t duplicateNum = size % ONE_REPEAT_SORT_NUM;
     if (duplicateNum > 0) {
@@ -129,14 +129,14 @@ __aicore__ inline void MoeSortMultiCore<T>::UBSortCompute(int64_t progress, int6
         uint64_t mask[2] = {mask0, 0};
         Duplicate(expertForSourceRowLocalFp32[duplicateIndex], MIN_FP32, mask, 1, DST_BLK_STRIDE, DST_REP_STRIDE);
     }
-    pipe_barrier(PIPE_V);
+    PipeBarrier<PIPE_V>();
 
     LocalTensor<float> concatLocal;
 
     LocalTensor<float> sortedLocal = sortedBuffer.Get<float>(GetSortLen<float>(sortNum));
     LocalTensor<float> outLocal = sortDataCopyOutQueue.AllocTensor<float>();
     LocalTensor<uint32_t> sourceRowLocal = indexLocal.ReinterpretCast<uint32_t>();
-    pipe_barrier(PIPE_V);
+    PipeBarrier<PIPE_V>();
 
     Sort<float, true>(
         outLocal, expertForSourceRowLocalFp32, sourceRowLocal, sortedLocal, sortNum / ONE_REPEAT_SORT_NUM);
@@ -251,7 +251,7 @@ __aicore__ inline void MoeSortMultiCore<T>::VBSProcess()
             sortCoreLoopElements);
         for (int64_t loop = 0; loop < sortCoreLoops - 1; loop++) {
             UBSortProcess(loop, sortCoreLoopElements, sortNum);
-            pipe_barrier(PIPE_V);
+            PipeBarrier<PIPE_V>();
 
             Adds(indexLocal, indexLocal, (int32_t)sortCoreLoopElements, sortCoreLoopElements);
         }

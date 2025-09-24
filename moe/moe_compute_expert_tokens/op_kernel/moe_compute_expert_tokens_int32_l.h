@@ -269,8 +269,8 @@ __aicore__ inline void MoeComputeExpertTokensInt32L<T>::ComputeTailCoreBefore(
     int32_t lastIdx = 0;        // 最后一个可以找到的专家索引
     int32_t lastVal = lastVal_; // 最后一个可以找到的专家号
 
-    set_flag(PIPE_MTE2, PIPE_S, EVENT_ID0);
-    wait_flag(PIPE_MTE2, PIPE_S, EVENT_ID0);
+    SetFlag<HardEvent::MTE2_S>(EVENT_ID0);
+    WaitFlag<HardEvent::MTE2_S>(EVENT_ID0);
 
     currVal_ = input.GetValue(startIdx);
 
@@ -279,7 +279,7 @@ __aicore__ inline void MoeComputeExpertTokensInt32L<T>::ComputeTailCoreBefore(
         return;
     }
 
-    set_flag(PIPE_V, PIPE_S, EVENT_ID0);
+    SetFlag<HardEvent::V_S>(EVENT_ID0);
     for (int32_t target = startTarget; target <= endTarget; target++) {
         int32_t low = startIdx;
         int32_t high = endIdx - startIdx;
@@ -294,7 +294,7 @@ __aicore__ inline void MoeComputeExpertTokensInt32L<T>::ComputeTailCoreBefore(
                 targetLocation = mid;
             }
         }
-        wait_flag(PIPE_V, PIPE_S, EVENT_ID0);
+        WaitFlag<HardEvent::V_S>(EVENT_ID0);
         // 可以找到
         if (input.GetValue(targetLocation) == target) {
             Duplicate(
@@ -307,9 +307,9 @@ __aicore__ inline void MoeComputeExpertTokensInt32L<T>::ComputeTailCoreBefore(
             // target找不到，该位置数置为0
             Duplicate(output[(target - handleExpertNumMainCorePerLoop_ * loop1Idx) * ONCE_ALGN_NUM_INT32], lastVal, 1);
         }
-        set_flag(PIPE_V, PIPE_S, EVENT_ID0);
+        SetFlag<HardEvent::V_S>(EVENT_ID0);
     }
-    wait_flag(PIPE_V, PIPE_S, EVENT_ID0);
+    WaitFlag<HardEvent::V_S>(EVENT_ID0);
 
     if (currVal_ >= 0 && currVal_ >= prevVal_ && currVal_ >= startTarget &&
         currVal_ - handleExpertNumMainCorePerLoop_ * loop1Idx > 0) {
@@ -338,8 +338,8 @@ __aicore__ inline void MoeComputeExpertTokensInt32L<T>::ComputeBefore(
     int32_t lastIdx = 0;        // 最后一个可以找到的专家索引
     int32_t lastVal = lastVal_; // 最后一个可以找到的专家号
 
-    set_flag(PIPE_MTE2, PIPE_S, EVENT_ID0);
-    wait_flag(PIPE_MTE2, PIPE_S, EVENT_ID0);
+    SetFlag<HardEvent::MTE2_S>(EVENT_ID0);
+    WaitFlag<HardEvent::MTE2_S>(EVENT_ID0);
 
     currVal_ = input.GetValue(startIdx);
 
@@ -348,7 +348,7 @@ __aicore__ inline void MoeComputeExpertTokensInt32L<T>::ComputeBefore(
         return;
     }
 
-    set_flag(PIPE_V, PIPE_S, EVENT_ID0);
+    SetFlag<HardEvent::V_S>(EVENT_ID0);
     for (int32_t target = startTarget; target <= endTarget; target++) {
         int32_t low = startIdx;
         int32_t high = endIdx - startIdx;
@@ -363,7 +363,7 @@ __aicore__ inline void MoeComputeExpertTokensInt32L<T>::ComputeBefore(
                 targetLocation = mid;
             }
         }
-        wait_flag(PIPE_V, PIPE_S, EVENT_ID0);
+        WaitFlag<HardEvent::V_S>(EVENT_ID0);
         // 可以找到
         if (input.GetValue(targetLocation) == target) {
             int32_t startOffset = handleNumPerCoreBefore_ * GetBlockIdx() + loop2Idx * handleNumPerLoopBefore_;
@@ -377,9 +377,9 @@ __aicore__ inline void MoeComputeExpertTokensInt32L<T>::ComputeBefore(
             // target找不到，该位置数置为0
             Duplicate(output[(target - handleExpertNumMainCorePerLoop_ * loop1Idx) * ONCE_ALGN_NUM_INT32], lastVal, 1);
         }
-        set_flag(PIPE_V, PIPE_S, EVENT_ID0);
+        SetFlag<HardEvent::V_S>(EVENT_ID0);
     }
-    wait_flag(PIPE_V, PIPE_S, EVENT_ID0);
+    WaitFlag<HardEvent::V_S>(EVENT_ID0);
 
     if (currVal_ >= 0 && currVal_ >= prevVal_ && currVal_ >= startTarget &&
         currVal_ - handleExpertNumMainCorePerLoop_ * loop1Idx > 0) {

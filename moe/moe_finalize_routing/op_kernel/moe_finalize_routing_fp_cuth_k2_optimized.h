@@ -310,7 +310,7 @@ __aicore__ inline void MoeFinalizeRoutingFpCuthK2Optimized<T>::CopyIn(int64_t nL
     expertForSourceRowQueue_.EnQue(expertForSourceRowLocal);
 
     event_t eventIDMTE2ToS = static_cast<event_t>(GetTPipePtr()->FetchEventID(HardEvent::MTE2_S));
-    set_flag(PIPE_MTE2, PIPE_S, eventIDMTE2ToS);
+    SetFlag<HardEvent::MTE2_S>(eventIDMTE2ToS);
 
     // ---------------------------- [Skip] -------------------------------
     DataCopyParams copyParamsSkip{static_cast<uint16_t>(lineNumInCurrentLoop),
@@ -353,14 +353,14 @@ __aicore__ inline void MoeFinalizeRoutingFpCuthK2Optimized<T>::Compute(int64_t n
     DataCopyPadParams padParams{isPadH, 0, static_cast<uint8_t>(rightPaddingH), 0};
 
     event_t eventIDMTE2ToS = static_cast<event_t>(GetTPipePtr()->FetchEventID(HardEvent::MTE2_S));
-    wait_flag(PIPE_MTE2, PIPE_S, eventIDMTE2ToS);
+    WaitFlag<HardEvent::MTE2_S>(eventIDMTE2ToS);
 
     for (int64_t i = 0; i < lineNumInCurrentLoop; i++) {
         int64_t outRowIndex = i * AlignmentProcess(normalH_);
         for (int64_t j = 0; j < K_ / PARALLEL_NUM; j++) {
             /*******************************乒***********************************************/
             if (!((i == 0) && (j == 0))) {
-                wait_flag(PIPE_V, PIPE_S, EVENT_ID0);
+                WaitFlag<HardEvent::V_S>(EVENT_ID0);
             }
             int64_t expandedSrcToDstRowIndexDb0 =
                 baseRowLine + i + PARALLEL_NUM * j * Int32AlignmentProcess(curCoreHandleNum_);
@@ -368,46 +368,46 @@ __aicore__ inline void MoeFinalizeRoutingFpCuthK2Optimized<T>::Compute(int64_t n
             int64_t expandedPermutedRowsIndexDb0 = expandedSrcToDstRow_.GetValue(expandedSrcToDstRowIndexDb0);
 
             int64_t biasIndexDb0 = expertForSourceRowLocal.GetValue(i * Int32AlignmentProcess(K_) + PARALLEL_NUM * j);
-            set_flag(PIPE_S, PIPE_MTE2, EVENT_ID0);
+            SetFlag<HardEvent::S_MTE2>(EVENT_ID0);
 
             /*******************************乒***********************************************/
-            wait_flag(PIPE_S, PIPE_MTE2, EVENT_ID0);
+            WaitFlag<HardEvent::S_MTE2>(EVENT_ID0);
             DataCopyPad(expandedPermutedTmpUbDb0, gmExpandedPermutedRows_[expandedPermutedRowsIndexDb0 * H_ + bias],
                         copyParams, padParams);
             DataCopyPad(biasTmpUbDb0, gmBias_[biasIndexDb0 * H_ + bias], copyParams, padParams);
-            set_flag(PIPE_MTE2, PIPE_V, EVENT_ID0);
+            SetFlag<HardEvent::MTE2_V>(EVENT_ID0);
 
             /*******************************乓***********************************************/
             if (!((i == 0) && (j == 0))) {
-                wait_flag(PIPE_V, PIPE_S, EVENT_ID1);
+                WaitFlag<HardEvent::V_S>(EVENT_ID1);
             }
             int64_t expandedSrcToDstRowIndexDb1 =
                 baseRowLine + i + (PARALLEL_NUM * j + 1) * Int32AlignmentProcess(curCoreHandleNum_);
             int64_t expandedPermutedRowsIndexDb1 = expandedSrcToDstRow_.GetValue(expandedSrcToDstRowIndexDb1);
             int64_t biasIndexDb1 =
                 expertForSourceRowLocal.GetValue(i * Int32AlignmentProcess(K_) + PARALLEL_NUM * j + 1);
-            set_flag(PIPE_S, PIPE_MTE2, EVENT_ID1);
+            SetFlag<HardEvent::S_MTE2>(EVENT_ID1);
 
             /*******************************乓***********************************************/
-            wait_flag(PIPE_S, PIPE_MTE2, EVENT_ID1);
+            WaitFlag<HardEvent::S_MTE2>(EVENT_ID1);
             DataCopyPad(expandedPermutedTmpUbDb1, gmExpandedPermutedRows_[expandedPermutedRowsIndexDb1 * H_ + bias],
                         copyParams, padParams);
             DataCopyPad(biasTmpUbDb1, gmBias_[biasIndexDb1 * H_ + bias], copyParams, padParams);
-            set_flag(PIPE_MTE2, PIPE_V, EVENT_ID1);
+            SetFlag<HardEvent::MTE2_V>(EVENT_ID1);
 
             if (!((i == 0) && (j == 0))) {
-                wait_flag(PIPE_V, PIPE_S, EVENT_ID2);
+                WaitFlag<HardEvent::V_S>(EVENT_ID2);
             }
             T scalesValDb0 = skip1Skip2ScalesLocal[normalCoreHandleNumPerLoop_ * AlignmentProcess(normalH_)].GetValue(
                 i * AlignmentProcess(K_) + PARALLEL_NUM * j);
-            set_flag(PIPE_S, PIPE_V, EVENT_ID2);
+            SetFlag<HardEvent::S_V>(EVENT_ID2);
 
             if (!((i == 0) && (j == 0))) {
-                wait_flag(PIPE_V, PIPE_S, EVENT_ID3);
+                WaitFlag<HardEvent::V_S>(EVENT_ID3);
             }
             T scalesValDb1 = skip1Skip2ScalesLocal[normalCoreHandleNumPerLoop_ * AlignmentProcess(normalH_)].GetValue(
                 i * AlignmentProcess(K_) + PARALLEL_NUM * j + 1);
-            set_flag(PIPE_S, PIPE_V, EVENT_ID3);
+            SetFlag<HardEvent::S_V>(EVENT_ID3);
 
             if ((i == 0) && (j == 0)) {
                 if (skip2IsNull_ == 0) {
@@ -421,31 +421,31 @@ __aicore__ inline void MoeFinalizeRoutingFpCuthK2Optimized<T>::Compute(int64_t n
             }
 
             /*******************************乒***********************************************/
-            wait_flag(PIPE_MTE2, PIPE_V, EVENT_ID0);
+            WaitFlag<HardEvent::MTE2_V>(EVENT_ID0);
             Add(skip1Skip2ScalesLocal, expandedPermutedTmpUbDb0, biasTmpUbDb0, dataLen);
             if (!((i == (lineNumInCurrentLoop - 1)) && (j == (K_ / PARALLEL_NUM - 1)))) {
-                set_flag(PIPE_V, PIPE_S, EVENT_ID0);
+                SetFlag<HardEvent::V_S>(EVENT_ID0);
             }
             PipeBarrier<PIPE_V>();
-            wait_flag(PIPE_S, PIPE_V, EVENT_ID2);
+            WaitFlag<HardEvent::S_V>(EVENT_ID2);
             Muls(skip1Skip2ScalesLocal, skip1Skip2ScalesLocal, scalesValDb0, dataLen);
             if (!((i == (lineNumInCurrentLoop - 1)) && (j == (K_ / PARALLEL_NUM - 1)))) {
-                set_flag(PIPE_V, PIPE_S, EVENT_ID2);
+                SetFlag<HardEvent::V_S>(EVENT_ID2);
             }
             PipeBarrier<PIPE_V>();
             Add(outLocal[outRowIndex], outLocal[outRowIndex], skip1Skip2ScalesLocal, dataLen);
 
             /*******************************乓***********************************************/
-            wait_flag(PIPE_MTE2, PIPE_V, EVENT_ID1);
+            WaitFlag<HardEvent::MTE2_V>(EVENT_ID1);
             Add(tmpLocal, expandedPermutedTmpUbDb1, biasTmpUbDb1, dataLen);
             if (!((i == (lineNumInCurrentLoop - 1)) && (j == (K_ / PARALLEL_NUM - 1)))) {
-                set_flag(PIPE_V, PIPE_S, EVENT_ID1);
+                SetFlag<HardEvent::V_S>(EVENT_ID1);
             }
             PipeBarrier<PIPE_V>();
-            wait_flag(PIPE_S, PIPE_V, EVENT_ID3);
+            WaitFlag<HardEvent::S_V>(EVENT_ID3);
             Muls(tmpLocal, tmpLocal, scalesValDb1, dataLen);
             if (!((i == (lineNumInCurrentLoop - 1)) && (j == (K_ / PARALLEL_NUM - 1)))) {
-                set_flag(PIPE_V, PIPE_S, EVENT_ID3);
+                SetFlag<HardEvent::V_S>(EVENT_ID3);
             }
 
             PipeBarrier<PIPE_V>();

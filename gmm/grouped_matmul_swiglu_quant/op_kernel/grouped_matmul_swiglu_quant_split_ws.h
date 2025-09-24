@@ -468,17 +468,17 @@ __aicore__ inline void GMMSwigluSplitWorkSpaceCompute<mmType, sync, CHANNELDTYPE
     mmOutQueue.EnQue(_inMMLocal_1);
     LocalTensor<float> _inMMLocal_2 = mmOutQueue.DeQue<float>();
     int32_t eventIdSToV = static_cast<int32_t>(GetTPipePtr()->FetchEventID(HardEvent::S_V));
-    set_flag(PIPE_S, PIPE_V, eventIdSToV);
+    SetFlag<HardEvent::S_V>(eventIdSToV);
     for (uint32_t i = 0; i < vecConfig.innerLoopNum; i++) {
-        wait_flag(PIPE_S, PIPE_V, eventIdSToV);
+        WaitFlag<HardEvent::S_V>(eventIdSToV);
         float scale = perTokenScaleGM.GetValue(vecConfig.curIdx + workspaceSplitConfig.leftMatrixStartIndex);
-        set_flag(PIPE_S, PIPE_V, eventIdSToV);
-        wait_flag(PIPE_S, PIPE_V, eventIdSToV);
+        SetFlag<HardEvent::S_V>(eventIdSToV);
+        WaitFlag<HardEvent::S_V>(eventIdSToV);
         Muls(_inMMLocal_2[i * gmmSwiglu->tokenLen], _inMMLocal_2[i * gmmSwiglu->tokenLen], scale, gmmSwiglu->tokenLen);
-        set_flag(PIPE_S, PIPE_V, eventIdSToV);
+        SetFlag<HardEvent::S_V>(eventIdSToV);
         vecConfig.curIdx++;
     }
-    wait_flag(PIPE_S, PIPE_V, eventIdSToV);
+    WaitFlag<HardEvent::S_V>(eventIdSToV);
     vecConfig.curOffset = vecConfig.curIdx * gmmSwiglu->tokenLen;
     mmOutQueue.EnQue(_inMMLocal_2);
 }

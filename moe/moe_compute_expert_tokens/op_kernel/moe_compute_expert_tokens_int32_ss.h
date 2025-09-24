@@ -181,8 +181,8 @@ __aicore__ inline void MoeComputeExpertTokensInt32SS<T>::Compute()
     Cast(inputCast, input, RoundMode::CAST_NONE, handleNum_);
     Duplicate(output, 0, numOfExpert_);
 
-    set_flag(PIPE_V, PIPE_S, EVENT_ID0);
-    wait_flag(PIPE_V, PIPE_S, EVENT_ID0);
+    SetFlag<HardEvent::V_S>(EVENT_ID0);
+    WaitFlag<HardEvent::V_S>(EVENT_ID0);
     float startTarget = inputCast.GetValue(startIdx);
     float endTarget = inputCast.GetValue(endIdx);
 
@@ -205,8 +205,8 @@ __aicore__ inline void MoeComputeExpertTokensInt32SS<T>::Compute()
         PipeBarrier<PIPE_V>();
         ReduceMax<float>(reduceMaxAnsBuf, resultBuf, workLocal, handleNum_, true);
 
-        set_flag(PIPE_V, PIPE_S, EVENT_ID0);
-        wait_flag(PIPE_V, PIPE_S, EVENT_ID0);
+        SetFlag<HardEvent::V_S>(EVENT_ID0);
+        WaitFlag<HardEvent::V_S>(EVENT_ID0);
         bool isFind = reduceMaxAnsBuf.GetValue(0) != 0;
         if (!isFind) {
             output.SetValue(static_cast<int32_t>(target), lastVal);
@@ -214,8 +214,8 @@ __aicore__ inline void MoeComputeExpertTokensInt32SS<T>::Compute()
         }
         ReduceSum<float>(reduceSumAnsBuf, resultBuf, workLocal, handleNum_);
 
-        set_flag(PIPE_V, PIPE_S, EVENT_ID0);
-        wait_flag(PIPE_V, PIPE_S, EVENT_ID0);
+        SetFlag<HardEvent::V_S>(EVENT_ID0);
+        WaitFlag<HardEvent::V_S>(EVENT_ID0);
         float index = reduceMaxAnsBuf.GetValue(1);
         float sumNum = reduceSumAnsBuf.GetValue(0);
         targetLocation = (reinterpret_cast<int32_t&>(index) + sumNum);

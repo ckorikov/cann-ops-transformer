@@ -81,7 +81,7 @@ __aicore__ inline void DataCopyCustom(
             DataCopyParams copyParams = {1, static_cast<uint16_t>(alignElem / numPerBlock), 0, 0};
             for (uint32_t i = 0; i < blockCount; i++) {
                 DataCopy(dstGm[i * elem], inLocal[i * alignElem], copyParams);
-                pipe_barrier(PIPE_MTE3);
+                PipeBarrier<PIPE_MTE3>();
             }
         }
     }

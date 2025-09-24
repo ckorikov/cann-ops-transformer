@@ -273,7 +273,7 @@ __aicore__ inline void MoeFinalizeRoutingV2Bf16CuthK2<T, TS, ISBIASEXIST>::CopyI
             expertForSourceRowLocal, gmExpertForSourceRow_[nLoopIdx / (tilingData_.hSliceNum + 1) * tilingData_.K],
             copyParamsExpert, padParamsExpert);
     }
-    set_flag(PIPE_MTE2, PIPE_S, EVENT_ID0);
+    SetFlag<HardEvent::MTE2_S>(EVENT_ID0);
 
     if (tilingData_.skip2IsNull == 0) {
         skip2Queue_.EnQue(skip2Local);
@@ -347,7 +347,7 @@ __aicore__ inline void MoeFinalizeRoutingV2Bf16CuthK2<T, TS, ISBIASEXIST>::Compu
         expertForSourceRowLocal = expertForSourceRowQueue_.DeQue<int32_t>();
     }
     /*******************************乒***********************************************/
-    wait_flag(PIPE_MTE2, PIPE_S, EVENT_ID0);
+    WaitFlag<HardEvent::MTE2_S>(EVENT_ID0);
     int64_t biasIndexDb0 = 0;
     if constexpr (ISBIASEXIST) {
         biasIndexDb0 = expertForSourceRowLocal.GetValue(0);
@@ -360,7 +360,7 @@ __aicore__ inline void MoeFinalizeRoutingV2Bf16CuthK2<T, TS, ISBIASEXIST>::Compu
             scalesValDb0 = scalesLocal.GetValue(0);
         }
     }
-    set_flag(PIPE_S, PIPE_MTE2, EVENT_ID0);
+    SetFlag<HardEvent::S_MTE2>(EVENT_ID0);
     int64_t expandedSrcToDstRowIndexDb0 = 0;
     if (tilingData_.dropPadMode == MODE_VALUE_0 || tilingData_.dropPadMode == MODE_VALUE_1) {
         expandedSrcToDstRowIndexDb0 = nLoopIdx / (tilingData_.hSliceNum + 1) + 0 * tilingData_.totalRowNum +
@@ -370,7 +370,7 @@ __aicore__ inline void MoeFinalizeRoutingV2Bf16CuthK2<T, TS, ISBIASEXIST>::Compu
                                       GetBlockIdx() * tilingData_.normalCoreHandleNum * tilingData_.K;
     }
     int64_t expandedPermutedRowsIndexDb0 = gmExpandedSrcToDstRow_.GetValue(expandedSrcToDstRowIndexDb0);
-    set_flag(PIPE_S, PIPE_MTE2, EVENT_ID2);
+    SetFlag<HardEvent::S_MTE2>(EVENT_ID2);
 
     /*******************************乓***********************************************/
     int64_t biasIndexDb1 = 0;
@@ -386,7 +386,7 @@ __aicore__ inline void MoeFinalizeRoutingV2Bf16CuthK2<T, TS, ISBIASEXIST>::Compu
         }
     }
 
-    set_flag(PIPE_S, PIPE_MTE2, EVENT_ID1);
+    SetFlag<HardEvent::S_MTE2>(EVENT_ID1);
     int64_t expandedSrcToDstRowIndexDb1 = 0;
     if (tilingData_.dropPadMode == MODE_VALUE_0 || tilingData_.dropPadMode == MODE_VALUE_1) {
         expandedSrcToDstRowIndexDb1 = nLoopIdx / (tilingData_.hSliceNum + 1) + 1 * tilingData_.totalRowNum +
@@ -396,44 +396,44 @@ __aicore__ inline void MoeFinalizeRoutingV2Bf16CuthK2<T, TS, ISBIASEXIST>::Compu
                                       GetBlockIdx() * tilingData_.normalCoreHandleNum * tilingData_.K;
     }
     int64_t expandedPermutedRowsIndexDb1 = gmExpandedSrcToDstRow_.GetValue(expandedSrcToDstRowIndexDb1);
-    set_flag(PIPE_S, PIPE_MTE2, EVENT_ID3);
+    SetFlag<HardEvent::S_MTE2>(EVENT_ID3);
 
     DataCopyParams copyParams{1, static_cast<uint16_t>(dataLen * sizeof(T)), 0, 0};
     DataCopyPadParams padParams{isPadH, 0, static_cast<uint8_t>(rightPaddingH), 0};
 
     /*******************************乒***********************************************/
-    wait_flag(PIPE_S, PIPE_MTE2, EVENT_ID0);
+    WaitFlag<HardEvent::S_MTE2>(EVENT_ID0);
     if constexpr (ISBIASEXIST) {
         DataCopyPad(biasTmpUbDb0, gmBias_[biasIndexDb0 * tilingData_.H + bias], copyParams, padParams);
     }
-    set_flag(PIPE_MTE2, PIPE_V, EVENT_ID0);
+    SetFlag<HardEvent::MTE2_V>(EVENT_ID0);
 
-    wait_flag(PIPE_S, PIPE_MTE2, EVENT_ID2);
+    WaitFlag<HardEvent::S_MTE2>(EVENT_ID2);
     if (expandedPermutedRowsIndexDb0 != INVALID_ROW_INDEX) {
         DataCopyPad(
             expandedPermutedTmpUbDb0, gmExpandedPermutedRows_[expandedPermutedRowsIndexDb0 * tilingData_.H + bias],
             copyParams, padParams);
     }
-    set_flag(PIPE_MTE2, PIPE_V, EVENT_ID2);
+    SetFlag<HardEvent::MTE2_V>(EVENT_ID2);
 
     /*******************************乓***********************************************/
-    wait_flag(PIPE_S, PIPE_MTE2, EVENT_ID1);
+    WaitFlag<HardEvent::S_MTE2>(EVENT_ID1);
     if constexpr (ISBIASEXIST) {
         DataCopyPad(biasTmpUbDb1, gmBias_[biasIndexDb1 * tilingData_.H + bias], copyParams, padParams);
     }
-    set_flag(PIPE_MTE2, PIPE_V, EVENT_ID1);
+    SetFlag<HardEvent::MTE2_V>(EVENT_ID1);
 
-    wait_flag(PIPE_S, PIPE_MTE2, EVENT_ID3);
+    WaitFlag<HardEvent::S_MTE2>(EVENT_ID3);
     if (expandedPermutedRowsIndexDb1 != INVALID_ROW_INDEX) {
         DataCopyPad(
             expandedPermutedTmpUbDb1, gmExpandedPermutedRows_[expandedPermutedRowsIndexDb1 * tilingData_.H + bias],
             copyParams, padParams);
     }
-    set_flag(PIPE_MTE2, PIPE_V, EVENT_ID3);
+    SetFlag<HardEvent::MTE2_V>(EVENT_ID3);
 
     /*******************************乒***********************************************/
-    wait_flag(PIPE_MTE2, PIPE_V, EVENT_ID0);
-    wait_flag(PIPE_MTE2, PIPE_V, EVENT_ID2);
+    WaitFlag<HardEvent::MTE2_V>(EVENT_ID0);
+    WaitFlag<HardEvent::MTE2_V>(EVENT_ID2);
     if (expandedPermutedRowsIndexDb0 != INVALID_ROW_INDEX) {
         Cast(expandedPermutedRowsCastUb0, expandedPermutedTmpUbDb0, RoundMode::CAST_NONE, dataLen);
     }
@@ -467,8 +467,8 @@ __aicore__ inline void MoeFinalizeRoutingV2Bf16CuthK2<T, TS, ISBIASEXIST>::Compu
     }
 
     /*******************************乓***********************************************/
-    wait_flag(PIPE_MTE2, PIPE_V, EVENT_ID1);
-    wait_flag(PIPE_MTE2, PIPE_V, EVENT_ID3);
+    WaitFlag<HardEvent::MTE2_V>(EVENT_ID1);
+    WaitFlag<HardEvent::MTE2_V>(EVENT_ID3);
     if (expandedPermutedRowsIndexDb1 != INVALID_ROW_INDEX) {
         Cast(expandedPermutedRowsCastUb1, expandedPermutedTmpUbDb1, RoundMode::CAST_NONE, dataLen);
     }
@@ -490,7 +490,7 @@ __aicore__ inline void MoeFinalizeRoutingV2Bf16CuthK2<T, TS, ISBIASEXIST>::Compu
     }
 
     Cast(outLocal, skip1CastUb, RoundMode::CAST_RINT, dataLen);
-    set_flag(PIPE_V, PIPE_MTE3, EVENT_ID0);
+    SetFlag<HardEvent::V_MTE3>(EVENT_ID0);
 
     outQueue_.EnQue(outLocal);
     if constexpr (ISBIASEXIST) {
@@ -513,7 +513,7 @@ __aicore__ inline void MoeFinalizeRoutingV2Bf16CuthK2<T, TS, ISBIASEXIST>::CopyO
 {
     LocalTensor<T> outLocal = outQueue_.DeQue<T>();
     DataCopyParams copyParams{1, static_cast<uint16_t>(dataLen * sizeof(T)), 0, 0};
-    wait_flag(PIPE_V, PIPE_MTE3, EVENT_ID0);
+    WaitFlag<HardEvent::V_MTE3>(EVENT_ID0);
     DataCopyPad(gmOut_[nLoopIdx / (tilingData_.hSliceNum + 1) * tilingData_.H + bias], outLocal, copyParams);
     outQueue_.FreeTensor(outLocal);
 }

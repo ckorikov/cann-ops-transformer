@@ -56,9 +56,9 @@ __aicore__ inline void MoeSortOneCore<T>::CopyIn()
         DataCopyPadCustom(inLocal, expertForSourceRowGm, dataCopyParams, DataCopyPadCustomParams);
     }
     sortDataCopyInQueue.EnQue(inLocal);
-    pipe_barrier(PIPE_V);
+    PipeBarrier<PIPE_V>();
     ArithProgression<int32_t>(indexLocal, static_cast<int32_t>(0), static_cast<int32_t>(1), this->totalLength);
-    pipe_barrier(PIPE_V);
+    PipeBarrier<PIPE_V>();
 }
 
 template <typename T>
@@ -73,10 +73,10 @@ __aicore__ inline void MoeSortOneCore<T>::SortCompute()
 
     Cast(expertForSourceRowLocalFp32, expertForSourceRowLocal, RoundMode::CAST_ROUND, this->tileLength);
 
-    pipe_barrier(PIPE_V);
+    PipeBarrier<PIPE_V>();
 
     Muls(expertForSourceRowLocalFp32, expertForSourceRowLocalFp32, (float)-1, this->tileLength);
-    pipe_barrier(PIPE_V);
+    PipeBarrier<PIPE_V>();
 
     int64_t duplicateNum = this->totalLength % ONE_REPEAT_SORT_NUM;
     if (duplicateNum > 0) {

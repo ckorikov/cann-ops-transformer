@@ -334,39 +334,39 @@ __aicore__ inline void MoeFinalizeRoutingFpCutK<T>::Compute(int64_t nLoopIdx, in
             DataCopyPadParams padParamsExpert{isPadKInt32, 0, static_cast<uint8_t>(rightPaddingKInt32), 0};
             DataCopyPad(expertForSourceRowLocal, gmExpertForSourceRow_[biasInRow * K_ + i * K_ + biasOfK],
                         copyParamsExpert, padParamsExpert);
-            set_flag(PIPE_MTE2, PIPE_S, EVENT_ID0);
-            wait_flag(PIPE_MTE2, PIPE_S, EVENT_ID0);
-            set_flag(PIPE_V, PIPE_S, EVENT_ID0);
-            set_flag(PIPE_V, PIPE_S, EVENT_ID1);
+            SetFlag<HardEvent::MTE2_S>(EVENT_ID0);
+            WaitFlag<HardEvent::MTE2_S>(EVENT_ID0);
+            SetFlag<HardEvent::V_S>(EVENT_ID0);
+            SetFlag<HardEvent::V_S>(EVENT_ID1);
             for (int64_t j = 0; j < len; j++) {
-                wait_flag(PIPE_V, PIPE_S, EVENT_ID0);
+                WaitFlag<HardEvent::V_S>(EVENT_ID0);
                 int64_t expandedSrcToDstRowIndex = biasInRow + i + (j + biasOfK) * BS_ + biasInCore_;
                 int64_t expandedPermutedRowsIndex = gmExpandedSrcToDstRow_.GetValue(expandedSrcToDstRowIndex);
-                set_flag(PIPE_S, PIPE_MTE2, EVENT_ID0);
+                SetFlag<HardEvent::S_MTE2>(EVENT_ID0);
 
-                wait_flag(PIPE_V, PIPE_S, EVENT_ID1);
+                WaitFlag<HardEvent::V_S>(EVENT_ID1);
                 int64_t biasIndexDb0 = expertForSourceRowLocal.GetValue(j);
                 T scalesValDb0 = scalesLocal.GetValue(j);
-                set_flag(PIPE_S, PIPE_MTE2, EVENT_ID1);
+                SetFlag<HardEvent::S_MTE2>(EVENT_ID1);
 
-                wait_flag(PIPE_S, PIPE_MTE2, EVENT_ID0);
-                wait_flag(PIPE_S, PIPE_MTE2, EVENT_ID1);
+                WaitFlag<HardEvent::S_MTE2>(EVENT_ID0);
+                WaitFlag<HardEvent::S_MTE2>(EVENT_ID1);
                 DataCopyPad(expandedPermutedTmpUb, gmExpandedPermutedRows_[expandedPermutedRowsIndex * H_ + bias],
                             copyParams, padParams);
                 DataCopyPad(biasTmpUb, gmBias_[biasIndexDb0 * H_ + bias], copyParams, padParams);
-                set_flag(PIPE_MTE2, PIPE_V, EVENT_ID0);
+                SetFlag<HardEvent::MTE2_V>(EVENT_ID0);
 
-                wait_flag(PIPE_MTE2, PIPE_V, EVENT_ID0);
+                WaitFlag<HardEvent::MTE2_V>(EVENT_ID0);
                 Add(skip1Local, expandedPermutedTmpUb, biasTmpUb, dataLen);
-                set_flag(PIPE_V, PIPE_S, EVENT_ID0);
+                SetFlag<HardEvent::V_S>(EVENT_ID0);
                 PipeBarrier<PIPE_V>();
                 Muls(skip1Local, skip1Local, scalesValDb0, dataLen);
-                set_flag(PIPE_V, PIPE_S, EVENT_ID1);
+                SetFlag<HardEvent::V_S>(EVENT_ID1);
                 PipeBarrier<PIPE_V>();
                 Add(outLocal[outRowIndex], outLocal[outRowIndex], skip1Local, dataLen);
             }
-            wait_flag(PIPE_V, PIPE_S, EVENT_ID0);
-            wait_flag(PIPE_V, PIPE_S, EVENT_ID1);
+            WaitFlag<HardEvent::V_S>(EVENT_ID0);
+            WaitFlag<HardEvent::V_S>(EVENT_ID1);
         }
     }
     outQueue_.EnQue(outLocal);

@@ -383,17 +383,17 @@ __aicore__ inline void GMMSwigluCompute<mmType, sync, CHANNELDTYPE>::customDataC
 
     mmOutQueue.EnQue(_inMMLocal_1);
     LocalTensor<float> _inMMLocal_2 = mmOutQueue.DeQue<float>();
-    set_flag(PIPE_S, PIPE_V, EVENT_ID0);
+    SetFlag<HardEvent::S_V>(EVENT_ID0);
     for (uint32_t i = 0; i < vecConfig.innerLoopNum; i++) {
-        wait_flag(PIPE_S, PIPE_V, EVENT_ID0);
+        WaitFlag<HardEvent::S_V>(EVENT_ID0);
         float scale = perTokenScaleGM.GetValue(vecConfig.curIdx);
-        set_flag(PIPE_S, PIPE_V, EVENT_ID0);
-        wait_flag(PIPE_S, PIPE_V, EVENT_ID0);
+        SetFlag<HardEvent::S_V>(EVENT_ID0);
+        WaitFlag<HardEvent::S_V>(EVENT_ID0);
         Muls(_inMMLocal_2[i * gmmSwiglu->tokenLen], _inMMLocal_2[i * gmmSwiglu->tokenLen], scale, gmmSwiglu->tokenLen);
-        set_flag(PIPE_S, PIPE_V, EVENT_ID0);
+        SetFlag<HardEvent::S_V>(EVENT_ID0);
         vecConfig.curIdx++;
     }
-    wait_flag(PIPE_S, PIPE_V, EVENT_ID0);
+    WaitFlag<HardEvent::S_V>(EVENT_ID0);
     vecConfig.curOffset = vecConfig.curIdx * gmmSwiglu->tokenLen;
     mmOutQueue.EnQue(_inMMLocal_2);
 }

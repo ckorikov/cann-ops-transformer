@@ -148,7 +148,7 @@ __aicore__ inline void MoeGatherOutSmallActiveRow<T>::Process()
                     intriParams.blockLen = this->colsTileLength * sizeof(T);
                     DataCopyPadParams dataCopyPadParams;
                     DataCopyPad(inLocal, inputActivationsGm[inputOffset], intriParams, dataCopyPadParams);
-                    pipe_barrier(PIPE_ALL);
+                    PipeBarrier<PIPE_ALL>();
                     outOffset = (loop * perLoopRows + row) * cols + colsLoop * maxColsOneLoop;
                     DataCopyPad(expandedActivationsGm[outOffset], inLocal, intriParams);
                     inputActivationsCopyInQueue.FreeTensor(inLocal);

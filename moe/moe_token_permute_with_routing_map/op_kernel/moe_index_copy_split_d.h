@@ -230,18 +230,18 @@ __aicore__ inline void MoeindexCopySplitDOp<T, ifNumOutTokens>::Process()
     if (this->blockIdx < this->indexCopyTilingData->needCoreNum) {
         for (int64_t outLoop = 0; outLoop < CoreLoop - 1; outLoop++) {
             CopyInIndices(outLoop, indicesCopyParams);
-            pipe_barrier(PIPE_MTE2);
+            PipeBarrier<PIPE_MTE2>();
             for (int64_t innerLoop = 0; innerLoop < onceIndicesTokenNums; innerLoop++) {
                 CopyInAndOut(offset, innerLoop);
                 offset += cols;
             }
             indicesQueue.FreeTensor(indicesLocal);
-            set_flag(PIPE_S, PIPE_MTE2, indicesSToMte2);
-            wait_flag(PIPE_S, PIPE_MTE2, indicesSToMte2);
+            SetFlag<HardEvent::S_MTE2>(indicesSToMte2);
+            WaitFlag<HardEvent::S_MTE2>(indicesSToMte2);
         }
         CopyInIndices(CoreLoop - 1, indicesCopyLastParams);
 
-        pipe_barrier(PIPE_MTE2);
+        PipeBarrier<PIPE_MTE2>();
 
         for (int64_t innerLoop = 0; innerLoop < CoreLastTokenNums; innerLoop++) {
             CopyInAndOut(offset, innerLoop);

@@ -119,8 +119,8 @@ __aicore__ inline void MoeInitRoutingV2GradDroplessCompute<T>::GradProcess(
         LocalTensor<T> xLocalT =
             this->binBuff.template GetWithOffset<T>(this->perCpyCols, binBuffOffset + this->cpyOffset);
         this->CopyInWithCastFloat((int64_t)xRow, xLocal, xLocalT, colOffset, cpyCols);
-        set_flag(PIPE_MTE2, PIPE_V, eventMte2V);
-        wait_flag(PIPE_MTE2, PIPE_V, eventMte2V);
+        SetFlag<HardEvent::MTE2_V>(eventMte2V);
+        WaitFlag<HardEvent::MTE2_V>(eventMte2V);
     }
 
     // S2：K超过累加buffer的情况下，多出的部分，被加数位置，直接累加到对应的buffer中
@@ -130,8 +130,8 @@ __aicore__ inline void MoeInitRoutingV2GradDroplessCompute<T>::GradProcess(
     // S3：拷贝加数，累加到对应的被加数buffer中
     GradProcessTokenAccumulate(
         tokenIdxStart + 1, tokenIdxEnd, tokenBinBuffSizeOffset, tokenTmpBuffSizeOffset, colOffset, cpyCols);
-    set_flag(PIPE_V, PIPE_S, eventVS);
-    wait_flag(PIPE_V, PIPE_S, eventVS);
+    SetFlag<HardEvent::V_S>(eventVS);
+    WaitFlag<HardEvent::V_S>(eventVS);
 
     // S4：递归完成二分累加
     int64_t stride = 1;

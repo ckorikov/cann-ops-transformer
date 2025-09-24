@@ -146,8 +146,8 @@ __aicore__ inline void MoeInitRoutingV2GradBase<T>::CopyInWithCastFloat(
 
     if constexpr (!IsSameType<T, float>::value) {
         event_t eventMte2V = static_cast<event_t>(GetTPipePtr()->FetchEventID(HardEvent::MTE2_V));
-        set_flag(PIPE_MTE2, PIPE_V, eventMte2V);
-        wait_flag(PIPE_MTE2, PIPE_V, eventMte2V);
+        SetFlag<HardEvent::MTE2_V>(eventMte2V);
+        WaitFlag<HardEvent::MTE2_V>(eventMte2V);
         Cast(xLocal, xLocalT, RoundMode::CAST_NONE, cpyCols);
     }
 }
@@ -167,13 +167,13 @@ __aicore__ inline void MoeInitRoutingV2GradBase<T>::BinaryAddWithMovIn(
     event_t eventMte2V = static_cast<event_t>(GetTPipePtr()->FetchEventID(HardEvent::MTE2_V));
     event_t eventVMte2 = static_cast<event_t>(GetTPipePtr()->FetchEventID(HardEvent::V_MTE2));
 
-    set_flag(PIPE_V, PIPE_MTE2, eventVMte2);
-    wait_flag(PIPE_V, PIPE_MTE2, eventVMte2);
+    SetFlag<HardEvent::V_MTE2>(eventVMte2);
+    WaitFlag<HardEvent::V_MTE2>(eventVMte2);
 
     CopyIn(xRow, inLocalT, colOffset, cpyCols);
 
-    set_flag(PIPE_MTE2, PIPE_V, eventMte2V);
-    wait_flag(PIPE_MTE2, PIPE_V, eventMte2V);
+    SetFlag<HardEvent::MTE2_V>(eventMte2V);
+    WaitFlag<HardEvent::MTE2_V>(eventMte2V);
 
     if constexpr (!IsSameType<T, float>::value) {
         Cast(inLocal, inLocalT, RoundMode::CAST_NONE, cpyCols);
@@ -196,8 +196,8 @@ __aicore__ inline void MoeInitRoutingV2GradBase<T>::CopyOut(
         PipeBarrier<PIPE_V>();
         Cast(tmpLocalT, xLocal, RoundMode::CAST_RINT, cpyCols);
     }
-    set_flag(PIPE_V, PIPE_MTE3, eventVMte3);
-    wait_flag(PIPE_V, PIPE_MTE3, eventVMte3);
+    SetFlag<HardEvent::V_MTE3>(eventVMte3);
+    WaitFlag<HardEvent::V_MTE3>(eventVMte3);
 
     DataCopyExtParams dataCopyParams{static_cast<uint16_t>(1), static_cast<uint32_t>(cpyCols * sizeof(T)), 0, 0, 0};
 
@@ -206,14 +206,14 @@ __aicore__ inline void MoeInitRoutingV2GradBase<T>::CopyOut(
     } else {
         DataCopyPad(gradXGm[outOffset], tmpLocalT, dataCopyParams);
     }
-    set_flag(PIPE_MTE3, PIPE_MTE2, eventMte3Mte2);
-    wait_flag(PIPE_MTE3, PIPE_MTE2, eventMte3Mte2);
+    SetFlag<HardEvent::MTE3_MTE2>(eventMte3Mte2);
+    WaitFlag<HardEvent::MTE3_MTE2>(eventMte3Mte2);
 
-    set_flag(PIPE_MTE3, PIPE_V, eventMte3V);
-    wait_flag(PIPE_MTE3, PIPE_V, eventMte3V);
+    SetFlag<HardEvent::MTE3_V>(eventMte3V);
+    WaitFlag<HardEvent::MTE3_V>(eventMte3V);
 
-    set_flag(PIPE_MTE3, PIPE_S, eventMte3S);
-    wait_flag(PIPE_MTE3, PIPE_S, eventMte3S);
+    SetFlag<HardEvent::MTE3_S>(eventMte3S);
+    WaitFlag<HardEvent::MTE3_S>(eventMte3S);
 }
 
 } // namespace MoeInitRoutingV2Grad

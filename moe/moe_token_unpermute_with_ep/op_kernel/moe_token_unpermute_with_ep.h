@@ -282,15 +282,15 @@ __aicore__ inline void KernelMoeTokenUnpermuteWithEp<T1, T2, T3, PROBS, ISTOKEN>
     bool needCopyIn = false;
     float prob_value = 0;
 
-    set_flag(PIPE_MTE2, PIPE_S, probsMte2ToS);
-    wait_flag(PIPE_MTE2, PIPE_S, probsMte2ToS);
-    set_flag(PIPE_V, PIPE_S, probsVToS);
-    wait_flag(PIPE_V, PIPE_S, probsVToS);
+    SetFlag<HardEvent::MTE2_S>(probsMte2ToS);
+    WaitFlag<HardEvent::MTE2_S>(probsMte2ToS);
+    SetFlag<HardEvent::V_S>(probsVToS);
+    WaitFlag<HardEvent::V_S>(probsVToS);
     T2 acl_token_idx = this->indicesLocal.GetValue(start_token);
-    set_flag(PIPE_S, PIPE_MTE2, probsSToMte2);
-    wait_flag(PIPE_S, PIPE_MTE2, probsSToMte2);
-    set_flag(PIPE_S, PIPE_V, probsSToV);
-    wait_flag(PIPE_S, PIPE_V, probsSToV);
+    SetFlag<HardEvent::S_MTE2>(probsSToMte2);
+    WaitFlag<HardEvent::S_MTE2>(probsSToMte2);
+    SetFlag<HardEvent::S_V>(probsSToV);
+    WaitFlag<HardEvent::S_V>(probsSToV);
 
     if constexpr (PROBS) {
         prob_value = this->probs_tensor.GetValue(start_token);
@@ -309,15 +309,15 @@ __aicore__ inline void KernelMoeTokenUnpermuteWithEp<T1, T2, T3, PROBS, ISTOKEN>
     }
     // 处理剩余的Token数据
     for (int64_t token_index = start_token + 1; token_index < end_token; ++token_index) {
-        set_flag(PIPE_MTE2, PIPE_S, probsMte2ToS);
-        wait_flag(PIPE_MTE2, PIPE_S, probsMte2ToS);
-        set_flag(PIPE_V, PIPE_S, probsVToS);
-        wait_flag(PIPE_V, PIPE_S, probsVToS);
+        SetFlag<HardEvent::MTE2_S>(probsMte2ToS);
+        WaitFlag<HardEvent::MTE2_S>(probsMte2ToS);
+        SetFlag<HardEvent::V_S>(probsVToS);
+        WaitFlag<HardEvent::V_S>(probsVToS);
         acl_token_idx = this->indicesLocal.GetValue(token_index);
-        set_flag(PIPE_S, PIPE_MTE2, probsSToMte2);
-        wait_flag(PIPE_S, PIPE_MTE2, probsSToMte2);
-        set_flag(PIPE_S, PIPE_V, probsSToV);
-        wait_flag(PIPE_S, PIPE_V, probsSToV);
+        SetFlag<HardEvent::S_MTE2>(probsSToMte2);
+        WaitFlag<HardEvent::S_MTE2>(probsSToMte2);
+        SetFlag<HardEvent::S_V>(probsSToV);
+        WaitFlag<HardEvent::S_V>(probsSToV);
         if constexpr (PROBS) {
             prob_value = this->probs_tensor.GetValue(token_index);
             needCopyIn = acl_token_idx >= this->start && acl_token_idx < this->end && prob_value != 0;
@@ -430,15 +430,15 @@ __aicore__ inline void KernelMoeTokenUnpermuteWithEp<T1, T2, T3, PROBS, ISTOKEN>
 {
     int64_t end_prob = start_prob + this->top_k;
     for (int64_t prob_index = start_prob; prob_index < end_prob; ++prob_index) {
-        set_flag(PIPE_MTE2, PIPE_S, probsMte2ToS);
-        wait_flag(PIPE_MTE2, PIPE_S, probsMte2ToS);
-        set_flag(PIPE_V, PIPE_S, probsVToS);
-        wait_flag(PIPE_V, PIPE_S, probsVToS);
+        SetFlag<HardEvent::MTE2_S>(probsMte2ToS);
+        WaitFlag<HardEvent::MTE2_S>(probsMte2ToS);
+        SetFlag<HardEvent::V_S>(probsVToS);
+        WaitFlag<HardEvent::V_S>(probsVToS);
         T2 acl_prob_idx = this->indicesLocal.GetValue(prob_index);
-        set_flag(PIPE_S, PIPE_MTE2, probsSToMte2);
-        wait_flag(PIPE_S, PIPE_MTE2, probsSToMte2);
-        set_flag(PIPE_S, PIPE_V, probsSToV);
-        wait_flag(PIPE_S, PIPE_V, probsSToV);
+        SetFlag<HardEvent::S_MTE2>(probsSToMte2);
+        WaitFlag<HardEvent::S_MTE2>(probsSToMte2);
+        SetFlag<HardEvent::S_V>(probsSToV);
+        WaitFlag<HardEvent::S_V>(probsSToV);
 
         CopyProbIn(acl_prob_idx, h_index, h_length);
         CopyProbOut(out_prob_index * this->top_k + prob_index - start_prob, h_index, h_length);
@@ -456,15 +456,15 @@ __aicore__ inline void KernelMoeTokenUnpermuteWithEp<T1, T2, T3, PROBS, ISTOKEN>
         this->copyParams.blockLen = h_length * sizeof(T1);
         DataCopyPad(probsTmpLocal, this->tokensGM[offset], this->copyParams, this->extParams1);
     } else {
-        set_flag(PIPE_MTE3, PIPE_V, probsMte3ToV);
-        wait_flag(PIPE_MTE3, PIPE_V, probsMte3ToV);
-        set_flag(PIPE_MTE2, PIPE_V, probsMte2ToV);
-        wait_flag(PIPE_MTE2, PIPE_V, probsMte2ToV);
+        SetFlag<HardEvent::MTE3_V>(probsMte3ToV);
+        WaitFlag<HardEvent::MTE3_V>(probsMte3ToV);
+        SetFlag<HardEvent::MTE2_V>(probsMte2ToV);
+        WaitFlag<HardEvent::MTE2_V>(probsMte2ToV);
         Duplicate(probsTmpLocal, static_cast<T1>(0), h_length);
-        set_flag(PIPE_V, PIPE_MTE3, probsVToMte3);
-        wait_flag(PIPE_V, PIPE_MTE3, probsVToMte3);
-        set_flag(PIPE_V, PIPE_MTE2, probsVToMte2);
-        wait_flag(PIPE_V, PIPE_MTE2, probsVToMte2);
+        SetFlag<HardEvent::V_MTE3>(probsVToMte3);
+        WaitFlag<HardEvent::V_MTE3>(probsVToMte3);
+        SetFlag<HardEvent::V_MTE2>(probsVToMte2);
+        WaitFlag<HardEvent::V_MTE2>(probsVToMte2);
     }
     this->probs_inoutque.template EnQue<T1>(probsTmpLocal);
 }

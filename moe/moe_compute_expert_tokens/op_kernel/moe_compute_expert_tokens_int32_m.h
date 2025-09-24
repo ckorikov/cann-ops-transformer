@@ -287,11 +287,11 @@ __aicore__ inline void MoeComputeExpertTokensInt32M<T>::ComputeBefore(int64_t lo
     if (loopIdx == 0) {
         Duplicate(outputQueueBefore_, 0, initExpertNum_);
     }
-    set_flag(PIPE_MTE2, PIPE_S, EVENT_ID0);
+    SetFlag<HardEvent::MTE2_S>(EVENT_ID0);
     int32_t startIdx = 0;
     int32_t endIdx = startIdx + numOfLoop - 1;
 
-    wait_flag(PIPE_MTE2, PIPE_S, EVENT_ID0);
+    WaitFlag<HardEvent::MTE2_S>(EVENT_ID0);
     int32_t startTarget = input.GetValue(startIdx);
     int32_t endTarget = input.GetValue(endIdx);
 
@@ -299,7 +299,7 @@ __aicore__ inline void MoeComputeExpertTokensInt32M<T>::ComputeBefore(int64_t lo
     int32_t lastVal = 0; // 最后一个可以找到的专家号
 
     // main core
-    set_flag(PIPE_V, PIPE_S, EVENT_ID0);
+    SetFlag<HardEvent::V_S>(EVENT_ID0);
     for (int32_t target = startTarget; target <= endTarget; target++) {
         int32_t low = startIdx;
         int32_t high = endIdx - startIdx;
@@ -314,7 +314,7 @@ __aicore__ inline void MoeComputeExpertTokensInt32M<T>::ComputeBefore(int64_t lo
                 targetLocation = mid;
             }
         }
-        wait_flag(PIPE_V, PIPE_S, EVENT_ID0);
+        WaitFlag<HardEvent::V_S>(EVENT_ID0);
         // 可以找到
         int32_t startOffset = GetBlockIdx() * normalCoreHandleNumBefore_ + loopIdx * curCoreHandleNumPerLoopBefore_;
         if (input.GetValue(targetLocation) == target) {
@@ -325,9 +325,9 @@ __aicore__ inline void MoeComputeExpertTokensInt32M<T>::ComputeBefore(int64_t lo
             // target找不到，该位置数置为0
             Duplicate(outputQueueBefore_[target * 8], lastVal, 1);
         }
-        set_flag(PIPE_V, PIPE_S, EVENT_ID0);
+        SetFlag<HardEvent::V_S>(EVENT_ID0);
     }
-    wait_flag(PIPE_V, PIPE_S, EVENT_ID0);
+    WaitFlag<HardEvent::V_S>(EVENT_ID0);
     if ((lastIdx + 1) * 8 != outputQueueBefore_.GetSize()) {
         Duplicate(outputQueueBefore_[(lastIdx + 1) * 8], lastVal, (numOfExpert_ - (lastIdx + 1)) * 8);
         PipeBarrier<PIPE_V>();
@@ -339,7 +339,7 @@ __aicore__ inline void MoeComputeExpertTokensInt32M<T>::ComputeBefore(int64_t lo
 template <typename T>
 __aicore__ inline void MoeComputeExpertTokensInt32M<T>::CopyOutBefore()
 {
-    wait_flag(PIPE_V, PIPE_MTE3, EVENT_ID0);
+    WaitFlag<HardEvent::V_MTE3>(EVENT_ID0);
     uint16_t blockCount = numOfExpert_;
     uint16_t blockLen = sizeof(T);
     uint16_t srcStride = 0;
@@ -363,7 +363,7 @@ __aicore__ inline void MoeComputeExpertTokensInt32M<T>::ProcessBefore()
         CopyInBefore(n, numOfLoop);
         ComputeBefore(n, numOfLoop);
     }
-    set_flag(PIPE_V, PIPE_MTE3, EVENT_ID0);
+    SetFlag<HardEvent::V_MTE3>(EVENT_ID0);
     CopyOutBefore();
 }
 

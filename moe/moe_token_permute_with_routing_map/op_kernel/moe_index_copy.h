@@ -229,20 +229,20 @@ __aicore__ inline void MoeindexCopyOp<T, ifNumOutTokens>::Process()
     if (this->blockIdx < this->indexCopyTilingData->needCoreNum) {
         for (int64_t outLoop = 0; outLoop < CoreLoop - 1; outLoop++) {
             CopyInIndices(outLoop, indicesCopyParams, indicesPadParams);
-            set_flag(PIPE_MTE2, PIPE_S, indicesMte2ToS);
-            wait_flag(PIPE_MTE2, PIPE_S, indicesMte2ToS);
+            SetFlag<HardEvent::MTE2_S>(indicesMte2ToS);
+            WaitFlag<HardEvent::MTE2_S>(indicesMte2ToS);
             for (int64_t innerLoop = 0; innerLoop < onceIndicesTokenMoveTimes; innerLoop++) {
                 CopyIn(outoffset, tokenCopyParams, padParams);
                 CopyOut(innerLoop, onceUbTokenNums, tokenCopyOutParams, padParams);
                 outoffset += onceUbTokenCols;
             }
             indicesBuffer.FreeTensor(indicesLocal);
-            set_flag(PIPE_S, PIPE_MTE2, indicesSToMte2);
-            wait_flag(PIPE_S, PIPE_MTE2, indicesSToMte2);
+            SetFlag<HardEvent::S_MTE2>(indicesSToMte2);
+            WaitFlag<HardEvent::S_MTE2>(indicesSToMte2);
         }
         CopyInIndices(CoreLoop - 1, indicesCopyLastParams, indicesPadParams);
-        set_flag(PIPE_MTE2, PIPE_S, indicesMte2ToS);
-        wait_flag(PIPE_MTE2, PIPE_S, indicesMte2ToS);
+        SetFlag<HardEvent::MTE2_S>(indicesMte2ToS);
+        WaitFlag<HardEvent::MTE2_S>(indicesMte2ToS);
         for (int64_t innerLoop = 0; innerLoop < LastonceIndicesTokenMoveTimes - 1; innerLoop++) {
             CopyIn(outoffset, tokenCopyParams, padParams);
             CopyOut(innerLoop, onceUbTokenNums, tokenCopyOutParams, padParams);

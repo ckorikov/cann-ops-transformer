@@ -133,17 +133,17 @@ __aicore__ inline void GMMA8W4FakeQuantPreProcess<wFormat>::Process()
 
                 AscendC::WaitFlag<AscendC::HardEvent::MTE2_V>(EVENT_ID0);
                 Cast(ALocalF16, ALocalI4, AscendC::RoundMode::CAST_NONE, handleBytePerBuffer);
-                pipe_barrier(PIPE_V);
+                PipeBarrier<PIPE_V>();
                 Cast(ALocalI8, ALocalF16, AscendC::RoundMode::CAST_NONE, handleBytePerBuffer);
 
                 if constexpr (wFormat == CubeFormat::NZ) {
                     //to NZ 1
-                    pipe_barrier(PIPE_V);
+                    PipeBarrier<PIPE_V>();
                     DataCopy(ALocalI8NZ, ALocalI8, {kLen, 1, 1, 0});
-                    pipe_barrier(PIPE_V);
+                    PipeBarrier<PIPE_V>();
                     //to NZ 2
                     DataCopy(ALocalI8NZ[kLen * 32], ALocalI8[32], {kLen, 1, 1, 0});
-                    pipe_barrier(PIPE_V);
+                    PipeBarrier<PIPE_V>();
                 }
                 AscendC::SetFlag<AscendC::HardEvent::V_MTE3>(EVENT_ID0);
                 if constexpr (wFormat == CubeFormat::ND) {
@@ -162,17 +162,17 @@ __aicore__ inline void GMMA8W4FakeQuantPreProcess<wFormat>::Process()
 
                 AscendC::WaitFlag<AscendC::HardEvent::MTE2_V>(EVENT_ID1);
                 Cast(BLocalF16, BLocalI4, AscendC::RoundMode::CAST_NONE, handleBytePerBuffer);
-                pipe_barrier(PIPE_V);
+                PipeBarrier<PIPE_V>();
                 Cast(BLocalI8, BLocalF16, AscendC::RoundMode::CAST_NONE, handleBytePerBuffer);
 
                 if constexpr (wFormat == CubeFormat::NZ) {
                     //to NZ 1
-                    pipe_barrier(PIPE_V);
+                    PipeBarrier<PIPE_V>();
                     DataCopy(BLocalI8NZ, BLocalI8, {kLen, 1, 1, 0});
-                    pipe_barrier(PIPE_V);
+                    PipeBarrier<PIPE_V>();
                     //to NZ 2
                     DataCopy(BLocalI8NZ[kLen * 32], BLocalI8[32], {kLen, 1, 1, 0});
-                    pipe_barrier(PIPE_V);
+                    PipeBarrier<PIPE_V>();
                 }
                 AscendC::SetFlag<AscendC::HardEvent::V_MTE3>(EVENT_ID1);
 
@@ -216,7 +216,7 @@ __aicore__ inline void GMMA8W4FakeQuantPreProcess<wFormat>::ScaleProcess() {
     const uint64_t this_core_u64 = startNum == blockDim - 1 ? tiling->groupNum * tiling->n - each_core_u64 * (blockDim - 1) : each_core_u64;
     const uint64_t start_element_u64 = each_core_u64 * startNum;
     int loop_size_u64 = 0;
-    pipe_barrier(PIPE_ALL);
+    PipeBarrier<PIPE_ALL>();
     for (int start_loc = 0; start_loc < this_core_u64; start_loc += SCALE_SIZE) {
         loop_size_u64 = SCALE_SIZE;
         if(start_loc + SCALE_SIZE > this_core_u64) loop_size_u64 = this_core_u64 - start_loc;
@@ -234,13 +234,13 @@ __aicore__ inline void GMMA8W4FakeQuantPreProcess<wFormat>::ScaleProcess() {
             }
             int repeatCast = pr_this_time / 64;
             AscendC::PairReduceSum<float>(scaleF32[pr_start / 2], scaleF32[pr_start], repeatCast, 64, 1, 1, 8);
-            pipe_barrier(PIPE_V);
+            PipeBarrier<PIPE_V>();
         }
         if (pr_last > 0) {
             AscendC::PairReduceSum<float>(scaleF32[(loop_size_f32 - pr_last)/ 2], scaleF32[loop_size_f32 - pr_last], 1, pr_last, 1, 1, 8);
         }
         if constexpr (sizeof(DTYPE_SCALE_OUT) == 2) { // to bf16
-            pipe_barrier(PIPE_V);
+            PipeBarrier<PIPE_V>();
             Cast(scaleBF16, scaleF32, AscendC::RoundMode::CAST_FLOOR, loop_size_u64);
         }
         AscendC::SetFlag<AscendC::HardEvent::V_MTE3>(EVENT_ID0);
@@ -250,7 +250,7 @@ __aicore__ inline void GMMA8W4FakeQuantPreProcess<wFormat>::ScaleProcess() {
         #else
             DataCopy(scaleOutGm[start_element_u64+start_loc], scaleBF16 , loop_size_u64);
         #endif
-        pipe_barrier(PIPE_ALL);
+        PipeBarrier<PIPE_ALL>();
     }
 }
 

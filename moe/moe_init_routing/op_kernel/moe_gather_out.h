@@ -144,7 +144,7 @@ __aicore__ inline void MoeGatherOut<T>::CopyOut(
                 DataCopyPad(expandedActivationsGm[outOffset], inLocal[inOffset], intriParams);
             }
         }
-        pipe_barrier(PIPE_ALL);
+        PipeBarrier<PIPE_ALL>();
     }
     inputActivationsCopyInQueue.FreeTensor(inLocal);
 }

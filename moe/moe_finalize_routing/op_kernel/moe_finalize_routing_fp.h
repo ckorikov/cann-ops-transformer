@@ -299,12 +299,12 @@ __aicore__ inline void MoeFinalizeRoutingFP<T>::Compute(int64_t nLoopIdx, int64_
                 nLoopIdx * curCoreHandleNumPerLoop_ + i + j * BS_ + GetBlockIdx() * normalCoreHandleNum_;
             int64_t expandedPermutedRowsIndex = gmExpandedSrcToDstRow_.GetValue(expandedSrcToDstRowIndex);
 
-            set_flag(PIPE_MTE2, PIPE_S, EVENT_ID1);
-            wait_flag(PIPE_MTE2, PIPE_S, EVENT_ID1);
+            SetFlag<HardEvent::MTE2_S>(EVENT_ID1);
+            WaitFlag<HardEvent::MTE2_S>(EVENT_ID1);
             int64_t biasIndex = expertForSourceRowLocal.GetValue(i * Int32AlignmentProcess(K_) + j);
 
-            set_flag(PIPE_MTE2, PIPE_S, EVENT_ID2);
-            wait_flag(PIPE_MTE2, PIPE_S, EVENT_ID2);
+            SetFlag<HardEvent::MTE2_S>(EVENT_ID2);
+            WaitFlag<HardEvent::MTE2_S>(EVENT_ID2);
             T scalesVal = scalesLocal.GetValue(i * AlignmentProcess(K_) + j);
 
             // expandedPermutedRows的row拷贝
@@ -315,13 +315,13 @@ __aicore__ inline void MoeFinalizeRoutingFP<T>::Compute(int64_t nLoopIdx, int64_
 
             DataCopyPad(biasTmpUb, gmBias_[biasIndex * H_], copyParams, padParams);
 
-            pipe_barrier(PIPE_ALL);
+            PipeBarrier<PIPE_ALL>();
             Add(expandedPermutedTmpUb, expandedPermutedTmpUb, biasTmpUb, H_);
 
-            pipe_barrier(PIPE_ALL);
+            PipeBarrier<PIPE_ALL>();
             Muls(expandedPermutedTmpUb, expandedPermutedTmpUb, scalesVal, H_);
 
-            pipe_barrier(PIPE_ALL);
+            PipeBarrier<PIPE_ALL>();
             Add(outLocal[outRowIndex], outLocal[outRowIndex], expandedPermutedTmpUb, H_);
         }
     }

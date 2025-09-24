@@ -142,9 +142,9 @@ __aicore__ inline void GMMA8W4PreProcess::Process()
     SetFlag<HardEvent::MTE2_V>(EVENT_ID0);
     WaitFlag<HardEvent::MTE2_V>(EVENT_ID0);
     Cast(groupListFTensor, groupListTensor, AscendC::RoundMode::CAST_ROUND, groupNum);
-    pipe_barrier(PIPE_V);
+    PipeBarrier<PIPE_V>();
     ReduceSum(groupListFTensor, groupListFTensor, workTensor, groupNum);
-    pipe_barrier(PIPE_V);
+    PipeBarrier<PIPE_V>();
     Cast(groupListTensor, groupListFTensor, AscendC::RoundMode::CAST_ROUND, 1);
     SetFlag<HardEvent::V_S>(EVENT_ID0);
     WaitFlag<HardEvent::V_S>(EVENT_ID0);
@@ -160,11 +160,11 @@ __aicore__ inline void GMMA8W4PreProcess::Process()
         SetFlag<HardEvent::MTE2_V>(EVENT_ID0);
         WaitFlag<HardEvent::MTE2_V>(EVENT_ID0);
         Cast(xHighHalfTensor, xTensor, AscendC::RoundMode::CAST_NONE, vK);
-        pipe_barrier(PIPE_V);
+        PipeBarrier<PIPE_V>();
 
         if (withOffset == WITH_OFFSET) {
             Cast(xHighFloatTensor, xHighHalfTensor, AscendC::RoundMode::CAST_NONE, vK);
-            pipe_barrier(PIPE_V);
+            PipeBarrier<PIPE_V>();
 
             SetFlag<HardEvent::MTE3_V>(EVENT_ID2);
             WaitFlag<HardEvent::MTE3_V>(EVENT_ID2);
@@ -178,7 +178,7 @@ __aicore__ inline void GMMA8W4PreProcess::Process()
         }
 
         Muls(xHighHalfTensor, xHighHalfTensor, one_eight, vK);
-        pipe_barrier(PIPE_V);
+        PipeBarrier<PIPE_V>();
         WaitFlag<HardEvent::MTE3_V>(EVENT_ID1);
         Cast(xHighI4Tensor, xHighHalfTensor, AscendC::RoundMode::CAST_FLOOR, vK);
         SetFlag<HardEvent::V_MTE3>(EVENT_ID0);
@@ -189,13 +189,13 @@ __aicore__ inline void GMMA8W4PreProcess::Process()
         if (LAST_LEN_VK > 0) {
             And(xLowHalfTensor[LEN_VK * LEN_128].ReinterpretCast<int16_t>(), xTensor[LEN_VK * LEN_128 * TWO].ReinterpretCast<int16_t>(), xLowI16Tensor, LAST_LEN_VK, 1, {1,1,1,8,8,0});
         }
-        pipe_barrier(PIPE_V);
+        PipeBarrier<PIPE_V>();
         SetFlag<HardEvent::V_MTE2>(EVENT_ID0);
         Cast(xLowHalfTensor2.ReinterpretCast<half>(), xLowHalfTensor.ReinterpretCast<int8_t>(), AscendC::RoundMode::CAST_NONE, vK);
-        pipe_barrier(PIPE_V);
+        PipeBarrier<PIPE_V>();
         const half MINUS_EIGHT = static_cast<half>(-8);     // shrink 0~15 to -8~7
         Adds(xHighHalfTensor, xLowHalfTensor2, MINUS_EIGHT, vK);
-        pipe_barrier(PIPE_V);
+        PipeBarrier<PIPE_V>();
         WaitFlag<HardEvent::MTE3_V>(EVENT_ID0);
         Cast(xLowI4Tensor, xHighHalfTensor.ReinterpretCast<half>(), AscendC::RoundMode::CAST_NONE, vK);
         SetFlag<HardEvent::V_MTE3>(EVENT_ID1);
