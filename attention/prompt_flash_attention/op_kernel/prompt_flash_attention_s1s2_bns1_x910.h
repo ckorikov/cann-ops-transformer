@@ -487,7 +487,7 @@ protected:
     }
 
     __aicore__ inline void SoftmaxResCopyOut(LocalTensor<computeType> &mmResUb, int64_t gmOffset, int pingpong, int ubPingpong, uint32_t singleProcessSInnerSizeNow) {
-        if constexpr (PFAT::calcMode == Mode::HighPrecision ||
+        if constexpr (PFAT::calcMode == OptimizationMode::HighPrecision ||
             IsSameType<T, bfloat16_t>::value) {
             // The same ub buffer is used before and after cast.
             LocalTensor<T> tmpSoftmaxResUb = mmResUb.template ReinterpretCast<T>();
@@ -506,7 +506,7 @@ protected:
 
         PFAComputeParam *params = this->headParams;
 
-        if constexpr (PFAT::calcMode == Mode::HighPrecision ||
+        if constexpr (PFAT::calcMode == OptimizationMode::HighPrecision ||
             IsSameType<T, bfloat16_t>::value) {
             // Under compact arrangement, the offset needs to be modified when copying fp16 data to fp32 global memory.
             GlobalTensor<T> tmpBmm1ResGmDb;
@@ -514,7 +514,7 @@ protected:
             LocalTensor<T> tmpSoftmaxResUb = mmResUb.template ReinterpretCast<T>();
             DataCopy(tmpBmm1ResGmDb, tmpSoftmaxResUb, this->mm1GmUbCopyParam[ubPingpong]);
         } else {
-            if constexpr (PFAT::MM_TYPE == MatMulType::MM_IBSHARE_NORM && PFAT::calcMode == Mode::HighPerformance) {
+            if constexpr (PFAT::MM_TYPE == MatMulType::MM_IBSHARE_NORM && PFAT::calcMode == OptimizationMode::HighPerformance) {
                 PFAComputeParam *params = this->headParams;
                 if (params->isLastInnerIter && params->singleProcessSInnerBmmTail <= SINGLE_PROCESS_SINNER_BMMTAIL_LIMIT) {
                     this->mm1GmUbCopyParam[ubPingpong].dstStride = (params->mm2SingleKAlign - params->mm1SingleCoreN) * sizeof(T) / MM2_SINGLE_K_ALIGN_SIZE;
@@ -576,7 +576,7 @@ protected:
                 }
                 PipeBarrier<PIPE_V>();
                 this->tempBmm2Queue.FreeTensor(this->pseShiftUb);
-                if (params->useMask && params->sparseBandSelect0) {  // mask pre fetch. In non band mode, the sparseBandSelect0 is true. Just focus on the previous useMask.
+                if (params->useMask && params->sparseBandSelect0) {  // mask pre fetch. In non band OptimizationMode, the sparseBandSelect0 is true. Just focus on the previous useMask.
                     if constexpr (PFAT::enablePrefix) {
                         padSize = params->isPrefixInnerIter ? params->padPrefixSize : params->padSize;
                     } else {
@@ -587,7 +587,7 @@ protected:
                 }
             }
 
-            if(this->attentionMaskType == 4) { // 4:band mode of sparseMode
+            if(this->attentionMaskType == 4) { // 4:band OptimizationMode of sparseMode
                 SparseBandElewiseCompute(ubPingpong, souterSize, attenMaskOffsetPre);
             } else {
                 this->template ElewiseCompute<U>(this->mmResUb[ubPingpong], souterSize, params->singleProcessSInnerSizeNow,
@@ -648,7 +648,7 @@ protected:
                     pseShiftOffset += souterSize * this->pseShiftStride;
                     this->PseOrMaskCopyIn(pseShiftOffset, nextSouterSize, params->isInnerTail,
                         params->pseShiftCopyInCol, params->singleProcessSInnerBmmTail, padSize, false, nextSouterSize);
-                } else if (params->useMask && params->sparseBandSelect0) {  // mask pre fetch. In non band mode, the sparseBandSelect0 is true. Just focus on the previous useMask.
+                } else if (params->useMask && params->sparseBandSelect0) {  // mask pre fetch. In non band OptimizationMode, the sparseBandSelect0 is true. Just focus on the previous useMask.
                     if constexpr (PFAT::enablePrefix) {
                         padSize = params->isPrefixInnerIter ? params->padPrefixSize : params->padSize;
                     } else {
@@ -701,7 +701,7 @@ protected:
         PFAComputeParam *params = this->headParams;
 
         uint32_t mm2KaStride = params->mm1SingleCoreN;
-        if constexpr (PFAT::MM_TYPE == MatMulType::MM_IBSHARE_NORM && (IsSameType<T, half>::value && PFAT::calcMode == Mode::HighPerformance)) {
+        if constexpr (PFAT::MM_TYPE == MatMulType::MM_IBSHARE_NORM && (IsSameType<T, half>::value && PFAT::calcMode == OptimizationMode::HighPerformance)) {
             mm2KaStride = params->isLastInnerIter && params->singleProcessSInnerBmmTail <= SINGLE_PROCESS_SINNER_BMMTAIL_LIMIT 
                         ? params->mm2SingleKAlign 
                         : params->mm1SingleCoreN;
@@ -744,7 +744,7 @@ protected:
             this->tilingData->promptAttentionBaseParams.headSize, params->singleProcessSInnerBmmTail);
         if constexpr (IsSameType<T, int8_t>::value) {
             this->bmm2.SetTensorA(this->quant1ResGmDb[params->gmPingpong]);
-        } else if constexpr (PFAT::msdMode != MsdMode::MSD_ON and (PFAT::calcMode == Mode::HighPrecision ||
+        } else if constexpr (PFAT::msdMode != MsdMode::MSD_ON and (PFAT::calcMode == OptimizationMode::HighPrecision ||
             IsSameType<T, bfloat16_t>::value)) {
             uint64_t gmSize = this->tilingData->promptAttentionSingleCoreParams.singleProcessSOuterSize *
                               this->tilingData->promptAttentionSingleCoreParams.singleProcessSInnerSize;
@@ -1007,7 +1007,7 @@ __aicore__ inline void PromptFlashAttentionS1s2Bns1X910<PFAT>::Bmm1VecInputCopyI
     }
 
     if constexpr (PFAT::msdMode == MsdMode::MSD_ON) {
-        if (this->tilingData->promptAttentionBaseParams.headSize > 256) { // 256:big d for msd mode
+        if (this->tilingData->promptAttentionBaseParams.headSize > 256) { // 256:big d for msd OptimizationMode
             uint32_t msdComputeLinesTiling = this->tilingData->promptAttentionTensorSizeRect.msdComputeLines;
             this->softmaxSouterStepLen = this->softmaxSouterStepLen > msdComputeLinesTiling ? msdComputeLinesTiling : this->softmaxSouterStepLen;
         } else {
@@ -1027,7 +1027,7 @@ __aicore__ inline void PromptFlashAttentionS1s2Bns1X910<PFAT>::Bmm1VecInputCopyI
         }
         this->PseOrMaskCopyIn(params->pseShiftOffset, souterSize, params->isInnerTail, params->pseShiftCopyInCol,
             params->singleProcessSInnerBmmTail, padSize, false, souterTailMaskCopyInSize);
-    } else if (params->useMask && params->sparseBandSelect0) {  // In non band mode, sparseBandSelect0 is true. Just focus on what's ahead useMask.
+    } else if (params->useMask && params->sparseBandSelect0) {  // In non band OptimizationMode, sparseBandSelect0 is true. Just focus on what's ahead useMask.
         if constexpr (PFAT::enablePrefix) {
             padSize = params->isPrefixInnerIter ? params->padPrefixSize : params->padSize;
         } else {
@@ -2108,7 +2108,7 @@ __aicore__ inline void PromptFlashAttentionS1s2Bns1X910<PFAT>::SInnerLoopFunc(in
     int64_t firstInnerMargin = (sInnerFirstToken - startIndex * basicSInnerSize) / softmaxInnerBasicSize * softmaxInnerBasicSize;
     int64_t lastInnerMargin = (endIndex * basicSInnerSize - sInnerLastToken) / softmaxInnerBasicSize * softmaxInnerBasicSize;
     if constexpr (PFAT::MM_TYPE == MatMulType::MM_PA) {
-        firstInnerMargin = 0; // To ensure that the mm is not transferred across blocks in PA mode, firstInnerMargin must be set to 0.
+        firstInnerMargin = 0; // To ensure that the mm is not transferred across blocks in PA OptimizationMode, firstInnerMargin must be set to 0.
     }
     params->tensorAOffset = this->tensorACoreOffset;
     params->mm1SingleCoreN = params->singleProcessSInnerSize;
@@ -2193,7 +2193,7 @@ __aicore__ inline void PromptFlashAttentionS1s2Bns1X910<PFAT>::SInnerLoopFunc(in
                 || (sInnerLastToken - params->singleProcessSOuterSize < ((int64_t)(sInnerLoopIdx + 1) * (int64_t)basicSInnerSize)));
         }
 
-        // Determine whether the row invalidation mode is enabled in the core.
+        // Determine whether the row invalidation OptimizationMode is enabled in the core.
         CheckRowInvalid(preTokens, nextTokens, params);
  
         if (this->attentionMaskType == 4) {
@@ -2204,7 +2204,7 @@ __aicore__ inline void PromptFlashAttentionS1s2Bns1X910<PFAT>::SInnerLoopFunc(in
             sInnerOffset = params->attenMaskOffsetPre % SPARSE_ATTENTION_MASK_SIZE;
             params->sparseBandSelect1 = (sOuterOffset > (sInnerOffset - (int32_t)params->singleProcessSOuterSize));
             params->useMask = params->sparseBandSelect0 || params->sparseBandSelect1;
-        } else {        // In Non band mode，not involved sparseBandSelect0 and sparseBandSelect1. Set all to true to ensure that it does not affect public processes.
+        } else {        // In Non band OptimizationMode，not involved sparseBandSelect0 and sparseBandSelect1. Set all to true to ensure that it does not affect public processes.
             params->sparseBandSelect0 = true;
             params->sparseBandSelect1 = true;
         }
@@ -2550,7 +2550,7 @@ __aicore__ inline void PromptFlashAttentionS1s2Bns1X910<PFAT>::InitEachCoreWorks
 
     if constexpr (!IsSameType<T, KV_T>::value && IsSameType<KV_T, int8_t>::value && PFAT::msdMode != MsdMode::MSD_ON) {  // The offset is too large. workspace can be optimized. For details, see the IFA.
         GlobalTensor<T> workspaceGmAntiquant;
-        // High precision mode, workspace is fp32，but antiquant result is fp16.
+        // High precision OptimizationMode, workspace is fp32，but antiquant result is fp16.
         workspaceGmAntiquant.SetGlobalBuffer((__gm__ T*)this->workspaceGm[buff_offset].GetPhyAddr());
         int64_t kvAntiquantSize = this->tilingData->promptAttentionSingleCoreParams.singleProcessSInnerSize * \
             this->tilingData->promptAttentionBaseParams.headSize;

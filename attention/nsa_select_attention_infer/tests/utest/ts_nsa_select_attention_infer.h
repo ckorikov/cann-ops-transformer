@@ -7,16 +7,17 @@
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
-
 /*!
- * \file ts_nsag_param.h
- * \brief nsaGrad UTest 相关基类定义.
+ * \file ts_nsa_select_attention_infer.h
+ * \brief  UTest 相关基类定义.
  */
-
+#pragma once
 
 #include "tests/utest/ts.h"
-#include "nsag_case.h"
+#include "nsa_select_attention_infer_case.h"
 
-using nsaGradCase = ops::adv::tests::nsaGrad::NsaGradCase;
+using NsaSelectAttentionInferCase = ops::adv::tests::NsaSelectAttentionInfer::NsaSelectAttentionInferCase;
 
-class Ts_nsaGrad : public Ts<nsaGradCase> {};
+class Ts_NsaSelectAttentionInfer
+    : public Ts<NsaSelectAttentionInferCase>
+    {};

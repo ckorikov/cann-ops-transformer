@@ -13,25 +13,28 @@
 ########################################################################################################################
 
 set(_PFA_TilingSourcesExt
-        ${OPS_ADV_DIR}/src/transformer/attention/prompt_flash_attention/op_host/prompt_flash_attention_tiling.cpp
-        ${OPS_ADV_DIR}/src/transformer/attention/prompt_flash_attention/regbase/ophost/prompt_flash_attention_tiling_v2.cpp
-        ${OPS_ADV_DIR}/src/transformer/attention/prompt_flash_attention/op_host/prompt_flash_attention_tiling_register.cpp
+        ${OPS_TRANSFORMER_DIR}/attention/prompt_flash_attention/op_host/prompt_flash_attention_tiling.cpp
+        ${OPS_TRANSFORMER_DIR}/attention/prompt_flash_attention/regbase/ophost/prompt_flash_attention_tiling_v2.cpp
+        ${OPS_TRANSFORMER_DIR}/attention/prompt_flash_attention/op_host/prompt_flash_attention_tiling_register.cpp
 )
 
 set(_PFA_KernelTilingDataDefH
-        ${OPS_ADV_DIR}/src/utils/inc/tiling/data_copy_transpose_tiling_def.h
-        ${CMAKE_SOURCE_DIR}/src/transformer/attention/prompt_flash_attention/op_host/prompt_flash_attention_tiling.h
+        ${OPS_TRANSFORMER_DIR}/common/include/tiling_base/data_copy_transpose_tiling_def.h
+        ${CMAKE_SOURCE_DIR}/attention/prompt_flash_attention/op_host/prompt_flash_attention_tiling.h
 )
 
-set(_PFA_TargetPrivateIncludesExt
-    ops_utils_tiling_headers
+set(_PFA_UTestCommonPrivateIncludeExt
+        ${OPBASE_INC_DIRS}
+        ${OPS_TRANSFORMER_DIR}/common/include
 )
+
+set(_PFA_TargetPrivateIncludesExt)
 
 set(_PFA_OpKernelPrivateIncludesExt
-        ${OPS_ADV_DIR}/src/utils/inc/kernel
+        ${OPS_TRANSFORMER_DIR}/common/include/kernel
 )
 
-aux_source_directory(${CMAKE_SOURCE_DIR}/src/transformer/attention/prompt_flash_attention _PFA_KernelSourcesExt)
+aux_source_directory(${CMAKE_SOURCE_DIR}/attention/prompt_flash_attention/op_kernel _PFA_KernelSourcesExt)
 set(_PFA_CompileDefintions
         PFA_UT
 )
@@ -45,4 +48,5 @@ OpsTest_Level2_AddOp(
         TILING_SOURCES_EXT                      ${_PFA_TilingSourcesExt}
         UTEST_COMMON_PRIVATE_LINK_LIBRARIES_EXT ${_PFA_TargetPrivateIncludesExt}
         KERNEL_PRIVATE_INCLUDES_EXT             ${_PFA_OpKernelPrivateIncludesExt}
+        UTEST_COMMON_PRIVATE_INCLUDES_EXT       ${_PFA_UTestCommonPrivateIncludeExt}
 )

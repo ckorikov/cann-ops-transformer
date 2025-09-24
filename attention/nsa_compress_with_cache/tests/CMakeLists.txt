@@ -12,32 +12,32 @@
 ########################################################################################################################
 
 set(_NCWC_OpApiSourcesExt
-        ${OPS_ADV_DIR}/src/transformer/nsa_compress_with_cache/ophost/nsa_compress_with_cache.cpp
-        ${OPS_ADV_DIR}/src/transformer/nsa_compress_with_cache/ophost/aclnn_nsa_compress_with_cache.cpp
+        ${OPS_TRANSFORMER_DIR}/attention/nsa_compress_with_cache/op_host/op_api/nsa_compress_with_cache.cpp
+        ${OPS_TRANSFORMER_DIR}/attention/nsa_compress_with_cache/op_host/op_api/aclnn_nsa_compress_with_cache.cpp
 )
 
 set(_NCWC_OpProtoSourcesExt
-        ${OPS_ADV_DIR}/src/transformer/nsa_compress_with_cache/ophost/nsa_compress_with_cache_proto.cpp
+        ${OPS_TRANSFORMER_DIR}/attention/nsa_compress_with_cache/op_host/nsa_compress_with_cache_infershape.cpp
 )
 
 set(_NCWC_OpTilingSourcesExt)
-file(GLOB _Src1 "${OPS_ADV_DIR}/src/transformer/nsa_compress_with_cache/ophost/nsa_compress_with_cache_tiling*.cc")
-file(GLOB _Src2 "${OPS_ADV_DIR}/src/transformer/nsa_compress_with_cache/ophost/nsa_compress_with_cache_tiling*.cpp")
+file(GLOB _Src1 "${OPS_TRANSFORMER_DIR}/attention/nsa_compress_with_cache/op_host/nsa_compress_with_cache_tiling*.cc")
+file(GLOB _Src2 "${OPS_TRANSFORMER_DIR}/attention/nsa_compress_with_cache/op_host/nsa_compress_with_cache_tiling*.cpp")
 list(APPEND _NCWC_OpTilingSourcesExt ${_Src1} ${_Src2})
 
 set(_NCWC_OpTilingPrivateIncludesExt)
 
 set(_NCWC_OpKernelTilingDataDefH
         # 公共
-        ${OPS_ADV_DIR}/src/utils/inc/tiling/data_copy_transpose_tiling_def.h
+        ${OPS_TRANSFORMER_DIR}/common/include/tiling_base/data_copy_transpose_tiling_def.h
         # NCWC
-        ${OPS_ADV_DIR}/src/transformer/nsa_compress_with_cache/ophost/nsa_compress_with_cache_tiling.h
+        ${OPS_TRANSFORMER_DIR}/attention/nsa_compress_with_cache/op_host/nsa_compress_with_cache_tiling.h
 )
 
 set(_NCWC_OpKernelSourcesExt)
 
 set(_NCWC_OpKernelPrivateIncludesExt
-        ${OPS_ADV_DIR}/src/utils/inc/kernel
+        ${OPS_TRANSFORMER_DIR}/common/include/kernel
 )
 
 set(_NCWC_OpKernelPrivateCompileDefinitionsExt
@@ -45,10 +45,12 @@ set(_NCWC_OpKernelPrivateCompileDefinitionsExt
         KernelCtrlParam nsa_compress_with_cache bf16 ORIG_DTYPE_QUERY=DT_BF16    DTYPE_DQ=bfloat16_t KFC_L1_RESERVER_SIZE=0
 )
 set(_NCWC_UTestCommonPrivateIncludeExt
-        ${OPS_ADV_DIR}/src/transformer/nsa_compress_with_cache/ophost
+        ${OPBASE_INC_DIRS}
+        ${OPS_TRANSFORMER_DIR}/common/include
+        ${OPS_TRANSFORMER_DIR}/attention/nsa_compress_with_cache/op_host
+        ${OPS_TRANSFORMER_DIR}/attention/nsa_compress_with_cache/op_host/op_api
 )
 set(_NCWC_UTestCommonPrivateLinkLibrariesExt
-        ops_utils_tiling_headers
         ${UTest_NamePrefix}_OpTiling
         error_manager
 )
@@ -66,7 +68,7 @@ list(APPEND _NCWC_UTestAclnnSourcesExtForce ${_Src1} ${_Src2})
 set(_NCWC_UTestCompileDefinitions)
 
 list(APPEND _NCWC_OpKernelSourcesExt
-        ${OPS_ADV_DIR}/src/transformer/nsa_compress_with_cache/nsa_compress_with_cache.cpp
+        ${OPS_TRANSFORMER_DIR}/attention/nsa_compress_with_cache/op_kernel/nsa_compress_with_cache.cpp
 )
 
 file(GLOB_RECURSE _Src1 "${CMAKE_CURRENT_SOURCE_DIR}/utest/*.cc")

@@ -14,12 +14,12 @@
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error=deprecated-declarations -Wno-deprecated-declarations")
 
 set(_ncai_TilingSourcesExt
-        ${OPS_ADV_DIR}/src/transformer/nsa_compress_attention_infer/ophost/nsa_compress_attention_infer_tiling.cpp
+        ${OPS_TRANSFORMER_DIR}/attention/nsa_compress_attention_infer/op_host/nsa_compress_attention_infer_tiling.cpp
 )
 
 set(_ncai_KernelTilingDataDefH
-        ${OPS_ADV_DIR}/src/utils/inc/tiling/data_copy_transpose_tiling_def.h
-        ${CMAKE_SOURCE_DIR}/src/transformer/nsa_compress_attention_infer/ophost/nsa_compress_attention_infer_tiling.h
+        ${OPS_TRANSFORMER_DIR}/common/include/tiling_base/data_copy_transpose_tiling_def.h
+        ${CMAKE_SOURCE_DIR}/attention/nsa_compress_attention_infer/op_host/nsa_compress_attention_infer_tiling.h
 )
 
 set(_ncai_CompileDefintions
@@ -27,20 +27,25 @@ set(_ncai_CompileDefintions
 )
 
 set(_ncai_KernelTilingExtInclude
-        ${CMAKE_SOURCE_DIR}/src/transformer/nsa_compress_attention_infer/ophost/
+        ${CMAKE_SOURCE_DIR}/attention/nsa_compress_attention_infer/op_host/
+        ${CMAKE_SOURCE_DIR}/attention/nsa_compress_attention_infer/op_host/op_api/
+)
+
+set(_ncai_UTestCommonPrivateIncludeExt
+        ${OPBASE_INC_DIRS}
+        ${OPS_TRANSFORMER_DIR}/common/include
 )
 
 set(_ncai_TargetPrivateLinkLibrariesExt
-        ops_utils_tiling_headers
         ${UTest_NamePrefix}_OpTiling
         error_manager
 )
 
 set(_ncai_OpKernelPrivateIncludesExt
-        ${OPS_ADV_DIR}/src/utils/inc/kernel
+        ${OPS_TRANSFORMER_DIR}/common/include/kernel
 )
 
-aux_source_directory(${CMAKE_SOURCE_DIR}/src/transformer/nsa_compress_attention_infer _ncai_KernelSourcesExt)
+aux_source_directory(${CMAKE_SOURCE_DIR}/attention/nsa_compress_attention_infer/op_kernel _ncai_KernelSourcesExt)
 
 OpsTest_Level2_AddOp(
         SUB_SYSTEM                              transformer
@@ -53,4 +58,5 @@ OpsTest_Level2_AddOp(
         TILING_PRIVATE_INCLUDES_EXT             ${_ncai_KernelTilingExtInclude}
         KERNEL_PRIVATE_COMPILE_DEFINITIONS_EXT  ${_ncai_CompileDefintions}
         UTEST_COMMON_PRIVATE_LINK_LIBRARIES_EXT ${_ncai_TargetPrivateLinkLibrariesExt}
+        UTEST_COMMON_PRIVATE_INCLUDES_EXT       ${_ncai_UTestCommonPrivateIncludeExt}
 )

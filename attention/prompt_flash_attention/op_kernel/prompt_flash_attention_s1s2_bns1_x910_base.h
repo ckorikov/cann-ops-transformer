@@ -87,14 +87,14 @@ struct GetMatmulConfig<MatMulType::MM_PA> {
     static constexpr bool ibshare_value = false;
 };
 
-template <PFALayout L, typename T, typename U, typename O = T, typename KV_T = T, Mode M = Mode::HighPerformance, const MatMulType MM_TYPE_TMP = MatMulType::MM_MDL, const bool F = false,  const MsdMode MSD_MODE = MsdMode::MSD_OFF, typename...Args>
+template <PFALayout L, typename T, typename U, typename O = T, typename KV_T = T, OptimizationMode M = OptimizationMode::HighPerformance, const MatMulType MM_TYPE_TMP = MatMulType::MM_MDL, const bool F = false,  const MsdMode MSD_MODE = MsdMode::MSD_OFF, typename...Args>
 struct PFAType {
     using inputType = T;
     using maskType = U;
     using outputType = O;
     using kvInputType = KV_T;
     static constexpr PFALayout layout = L;
-    static constexpr Mode calcMode = M;
+    static constexpr OptimizationMode calcMode = M;
     static constexpr MatMulType MM_TYPE = MM_TYPE_TMP;
     static constexpr MatmulConfig mmCFG = GetMatmulConfig<MM_TYPE>::mmcfg_value;
     static constexpr bool ibShare = GetMatmulConfig<MM_TYPE>::ibshare_value;
@@ -882,7 +882,7 @@ protected:
             DataCopyTranspose2<O> (attentionOutGm, outputQuantRes[nextTokensOffset * tilingData->promptAttentionBaseParams.headSize],
                                 CopyTransposeType::TRANSPOSE_ND_UB_GM, transposeParams,
                                 transposeTilingData22, multiSeqOffset);
-        } else if constexpr (PFAT::calcMode == Mode::HighPrecision ||
+        } else if constexpr (PFAT::calcMode == OptimizationMode::HighPrecision ||
             IsSameType<T, bfloat16_t>::value) {
             LocalTensor<T> FinalResUb = bmm2ResUb.template ReinterpretCast<T>();
 
@@ -956,7 +956,7 @@ protected:
             WaitFlag<HardEvent::V_MTE3>(enQueEvtID);
             DataCopy(attentionOutGm[this->preHeadParams->attentionOutOffset + attentionOutTokenOffset],
                         outputQuantRes[attentionOutTokenOffset], dataCopyParams);
-        } else if constexpr (PFAT::calcMode == Mode::HighPrecision ||
+        } else if constexpr (PFAT::calcMode == OptimizationMode::HighPrecision ||
             IsSameType<T, bfloat16_t>::value) {
             LocalTensor<T> FinalResUb = bmm2ResUb.template ReinterpretCast<T>();
 
@@ -1252,7 +1252,7 @@ protected:
             this->attenMaskUb.SetSize(sOuterSize * maskCopyInCol);
             LocalTensor<uint8_t> selectSpace = selectSpaceUb.Get<uint8_t>(this->selectSpaceUbSize);
             computeType scalar;
-            if constexpr (PFAT::calcMode == Mode::HighPrecision ||
+            if constexpr (PFAT::calcMode == OptimizationMode::HighPrecision ||
                 IsSameType<T, bfloat16_t>::value) { // Set the size of the attention mask tensor.
                 uint32_t tmp = 0xFF7FFFFF;  // minimum value of fp32
                 scalar = *((float*)&tmp);
@@ -1285,7 +1285,7 @@ protected:
             this->attenMaskUb.SetSize(sOuterSize * maskCopyInCol);
             LocalTensor<uint8_t> selectSpace = selectSpaceUb.Get<uint8_t>(this->selectSpaceUbSize);
             computeType scalar;
-            if constexpr (PFAT::calcMode == Mode::HighPrecision ||
+            if constexpr (PFAT::calcMode == OptimizationMode::HighPrecision ||
                 IsSameType<T, bfloat16_t>::value) {
                 uint32_t tmp = 0xFF7FFFFF;  // minimum value of fp32
                 scalar = *((float*)&tmp);
@@ -1676,7 +1676,7 @@ __aicore__ inline void PromptFlashAttentionS1s2Bns1X910Base<PFAT>::InitMsdBuffer
     msdSoftmaxScaleResRowSumUb[1] = msdSoftmaxRowSumScaleBuff[1].Get<FT>();
 
     // msd展开次数, 高精度3次, 高性能2次
-    msdIterNum = (PFAT::calcMode == Mode::HighPerformance || PFAT::msdMode == MsdMode::MSD_ON)? 2 : 3;
+    msdIterNum = (PFAT::calcMode == OptimizationMode::HighPerformance || PFAT::msdMode == MsdMode::MSD_ON)? 2 : 3;
 }
 
 template<typename PFAT>
@@ -1773,7 +1773,7 @@ __aicore__ inline void PromptFlashAttentionS1s2Bns1X910Base<PFAT>::Init(__gm__ u
     uint32_t preAccumSOuter = 0;
     uint32_t h = tilingData->promptAttentionBaseParams.headNumSize * tilingData->promptAttentionBaseParams.headSize;
     uint32_t s = tilingData->promptAttentionBaseParams.seqSize;
-    if constexpr ((PFAT::calcMode != Mode::HighPrecision) && 
+    if constexpr ((PFAT::calcMode != OptimizationMode::HighPrecision) && 
                   (IsSameType<T, half>::value || IsSameType<T, int8_t>::value)) {
         this->negativeScalar = NEGATIVE_MIN_VAULE_FP16;
     }

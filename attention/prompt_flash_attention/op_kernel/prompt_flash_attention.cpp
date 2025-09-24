@@ -329,105 +329,105 @@ extern "C" __global__ __aicore__ void prompt_flash_attention_FIAS(__gm__ uint8_t
                 TILING_KEY_IS(1000000800010001012);
                 #if TILING_KEY_VAR == 1000000000000101612
                     // BSH layout HighPrecision
-                    INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BSH, half, bool, half, half, Mode::HighPrecision>);
+                    INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BSH, half, bool, half, half, OptimizationMode::HighPrecision>);
                 #elif TILING_KEY_VAR == 1000000000010101612
                     // BSH layout HighPrecision, enable PA
-                    INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BSH, half, bool, half, half, Mode::HighPrecision, MatMulType::MM_PA>);
+                    INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BSH, half, bool, half, half, OptimizationMode::HighPrecision, MatMulType::MM_PA>);
                 #elif TILING_KEY_VAR == 1000000000100101612
                     // Prefix BSH layout HighPrecision
-                    INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BSH, half, bool, half, half, Mode::HighPrecision, MatMulType::MM_MDL, true>);
+                    INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BSH, half, bool, half, half, OptimizationMode::HighPrecision, MatMulType::MM_MDL, true>);
                 #elif TILING_KEY_VAR == 1000000000002101612
                     // BSH layout HighPrecision, enable L1 reuse
-                    INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BSH, half, bool, half, half, Mode::HighPrecision, MatMulType::MM_IBSHARE_NORM>);
+                    INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BSH, half, bool, half, half, OptimizationMode::HighPrecision, MatMulType::MM_IBSHARE_NORM>);
                 #elif TILING_KEY_VAR == 1000000000000001612
                     // BNSD layout HighPrecision
-                    INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, half, bool, half, half, Mode::HighPrecision>);
+                    INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, half, bool, half, half, OptimizationMode::HighPrecision>);
                 #elif TILING_KEY_VAR == 1000000000010001612
                     // BNSD layout HighPrecision, enable PA
-                    INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, half, bool, half, half, Mode::HighPrecision, MatMulType::MM_PA>);
+                    INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, half, bool, half, half, OptimizationMode::HighPrecision, MatMulType::MM_PA>);
                 #elif TILING_KEY_VAR == 1000000000100001612
                     // Prefix BNSD layout HighPrecision
-                    INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, half, bool, half, half, Mode::HighPrecision, MatMulType::MM_MDL, true>);
+                    INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, half, bool, half, half, OptimizationMode::HighPrecision, MatMulType::MM_MDL, true>);
                 #elif TILING_KEY_VAR == 1000000800000101612
                     // BSH layout HighPrecision
-                    INVOKE_PFA_KVANTIQUANT_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BSH, half, bool, half, int8_t, Mode::HighPrecision>);
+                    INVOKE_PFA_KVANTIQUANT_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BSH, half, bool, half, int8_t, OptimizationMode::HighPrecision>);
                 #elif TILING_KEY_VAR == 1000000800100101612
                     // Prefix BSH layout HighPrecision
-                    INVOKE_PFA_KVANTIQUANT_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BSH, half, bool, half, int8_t, Mode::HighPrecision, MatMulType::MM_MDL, true>);
+                    INVOKE_PFA_KVANTIQUANT_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BSH, half, bool, half, int8_t, OptimizationMode::HighPrecision, MatMulType::MM_MDL, true>);
                 #elif TILING_KEY_VAR == 1000000800000001612
                     // BNSD layout HighPrecision
-                    INVOKE_PFA_KVANTIQUANT_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, half, bool, half, int8_t, Mode::HighPrecision>);
+                    INVOKE_PFA_KVANTIQUANT_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, half, bool, half, int8_t, OptimizationMode::HighPrecision>);
                 #elif TILING_KEY_VAR == 1000000800100001612
                     // Prefix BNSD layout HighPrecision
-                    INVOKE_PFA_KVANTIQUANT_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, half, bool, half, int8_t, Mode::HighPrecision, MatMulType::MM_MDL, true>);
+                    INVOKE_PFA_KVANTIQUANT_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, half, bool, half, int8_t, OptimizationMode::HighPrecision, MatMulType::MM_MDL, true>);
                 #elif TILING_KEY_VAR == 1000000000001001612
                     // BNSD layout HighPrecision
-                    INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, half, bool, half, half, Mode::HighPrecision, MatMulType::MM_NORM>);
+                    INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, half, bool, half, half, OptimizationMode::HighPrecision, MatMulType::MM_NORM>);
                 #elif TILING_KEY_VAR == 1000000000101001612
                     // Prefix BNSD layout HighPrecision
-                    INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, half, bool, half, half, Mode::HighPrecision, MatMulType::MM_NORM, true>);
+                    INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, half, bool, half, half, OptimizationMode::HighPrecision, MatMulType::MM_NORM, true>);
                 #elif TILING_KEY_VAR == 1000000000002001612
                     // BNSD layout HighPrecision
-                    INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, half, bool, half, half, Mode::HighPrecision, MatMulType::MM_IBSHARE_NORM>);
+                    INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, half, bool, half, half, OptimizationMode::HighPrecision, MatMulType::MM_IBSHARE_NORM>);
                 #elif TILING_KEY_VAR == 1000000000010101012
                     // no anti-quant path for CVDIFF-BSH, half in half out, enable PA
-                    INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BSH, half, bool, half, half, Mode::HighPerformance, MatMulType::MM_PA>);
+                    INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BSH, half, bool, half, half, OptimizationMode::HighPerformance, MatMulType::MM_PA>);
                 #elif TILING_KEY_VAR == 1000000000002101012
                     // no anti-quant path for CVDIFF-BSH, half in half out, enable L1 reuse
-                    INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BSH, half, uint8_t, half, half, Mode::HighPerformance, MatMulType::MM_IBSHARE_NORM>);
+                    INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BSH, half, uint8_t, half, half, OptimizationMode::HighPerformance, MatMulType::MM_IBSHARE_NORM>);
                 #elif TILING_KEY_VAR == 1000000000100101012
                     // Prefix no anti-quant path for CVDIFF-BSH, half in half out
                     if (maskByteNum == FLOAT16BYTENUM) {
-                        INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BSH, half, half, half, half, Mode::HighPerformance, MatMulType::MM_MDL, true>);
+                        INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BSH, half, half, half, half, OptimizationMode::HighPerformance, MatMulType::MM_MDL, true>);
                     } else {
-                        INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BSH, half, bool, half, half, Mode::HighPerformance, MatMulType::MM_MDL, true>);
+                        INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BSH, half, bool, half, half, OptimizationMode::HighPerformance, MatMulType::MM_MDL, true>);
                     }
                 #elif TILING_KEY_VAR == 1000000800000101012
                     // anti-quant path for CVDIFF-BSH, half in half out
                     INVOKE_PFA_KVANTIQUANT_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BSH, half, bool, half, int8_t>);
                 #elif TILING_KEY_VAR == 1000000800100101012
                     // Prefix anti-quant path for CVDIFF-BSH, half in half out
-                    INVOKE_PFA_KVANTIQUANT_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BSH, half, bool, half, int8_t, Mode::HighPerformance, MatMulType::MM_MDL, true>);
+                    INVOKE_PFA_KVANTIQUANT_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BSH, half, bool, half, int8_t, OptimizationMode::HighPerformance, MatMulType::MM_MDL, true>);
                 #elif TILING_KEY_VAR == 1000000000100001012
                     // Prefix no anti-quant path for CVDIFF-BNSD, half in half out
                     if (maskByteNum == FLOAT16BYTENUM) {
-                        INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, half, half, half, half, Mode::HighPerformance, MatMulType::MM_MDL, true>);
+                        INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, half, half, half, half, OptimizationMode::HighPerformance, MatMulType::MM_MDL, true>);
                     } else {
-                        INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, half, uint8_t, half, half, Mode::HighPerformance, MatMulType::MM_MDL, true>);
+                        INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, half, uint8_t, half, half, OptimizationMode::HighPerformance, MatMulType::MM_MDL, true>);
                     }
                 #elif TILING_KEY_VAR == 1000000000001001012
-                    INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, half, uint8_t, half, half, Mode::HighPerformance, MatMulType::MM_NORM>);
+                    INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, half, uint8_t, half, half, OptimizationMode::HighPerformance, MatMulType::MM_NORM>);
                 #elif TILING_KEY_VAR == 1000000000010001012
                     // no anti-quant path for CVDIFF-BNSD, half in half out, enable PA
-                    INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, half, uint8_t, half, half, Mode::HighPerformance, MatMulType::MM_PA>);
+                    INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, half, uint8_t, half, half, OptimizationMode::HighPerformance, MatMulType::MM_PA>);
                 #elif TILING_KEY_VAR == 1000000000101001012  // enable prefix
-                    INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, half, uint8_t, half, half, Mode::HighPerformance, MatMulType::MM_NORM, true>);
+                    INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, half, uint8_t, half, half, OptimizationMode::HighPerformance, MatMulType::MM_NORM, true>);
                 #elif TILING_KEY_VAR == 1000000000002001012
-                    INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, half, uint8_t, half, half, Mode::HighPerformance, MatMulType::MM_IBSHARE_NORM>);
+                    INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, half, uint8_t, half, half, OptimizationMode::HighPerformance, MatMulType::MM_IBSHARE_NORM>);
                 #elif TILING_KEY_VAR == 1000000800000001012
                     // anti-quant path for CVDIFF-BNSD, half in half out
                     INVOKE_PFA_KVANTIQUANT_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, half, bool, half, int8_t>);
                 #elif TILING_KEY_VAR == 1000000800100001012
                     // Prefix anti-quant path for CVDIFF-BNSD, half in half out
-                    INVOKE_PFA_KVANTIQUANT_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, half, bool, half, int8_t, Mode::HighPerformance, MatMulType::MM_MDL, true>);
+                    INVOKE_PFA_KVANTIQUANT_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, half, bool, half, int8_t, OptimizationMode::HighPerformance, MatMulType::MM_MDL, true>);
                 #elif TILING_KEY_VAR == 1000000400300101612  // enable prefix, enable MSD
                     // BSH layout fp16 cvdiff
-                    INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BSH, half, bool, half, int8_t, Mode::HighPrecision, MatMulType::MM_MDL, true, MsdMode::MSD_ON>);
+                    INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BSH, half, bool, half, int8_t, OptimizationMode::HighPrecision, MatMulType::MM_MDL, true, MsdMode::MSD_ON>);
                 #elif TILING_KEY_VAR == 1000000400300001612
                     // BNSD layout fp16 cvdiff
-                    INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, half, bool, half, int8_t, Mode::HighPrecision, MatMulType::MM_MDL, true, MsdMode::MSD_ON>);
+                    INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, half, bool, half, int8_t, OptimizationMode::HighPrecision, MatMulType::MM_MDL, true, MsdMode::MSD_ON>);
                 #elif TILING_KEY_VAR == 1000000400200101612
                     // BSH layout fp16 cvdiff
-                    INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BSH, half, bool, half, int8_t, Mode::HighPrecision, MatMulType::MM_MDL, false, MsdMode::MSD_ON>);
+                    INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BSH, half, bool, half, int8_t, OptimizationMode::HighPrecision, MatMulType::MM_MDL, false, MsdMode::MSD_ON>);
                 #elif TILING_KEY_VAR == 1000000400200001612
                     // BNSD layout fp16 cvdiff
-                    INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, half, bool, half, int8_t, Mode::HighPrecision, MatMulType::MM_MDL, false, MsdMode::MSD_ON>);
+                    INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, half, bool, half, int8_t, OptimizationMode::HighPrecision, MatMulType::MM_MDL, false, MsdMode::MSD_ON>);
                 #elif TILING_KEY_VAR == 2000000000004000012
-                    INVOKE_PFA_GENERAL_OP_IMPL_BASE_API(PromptFlashAttentionBaseApiHighPrecisionV, PFATypeNew<PromptFlashAttentionBaseApiTilingData, half, half, half, float, half, float, half, Mode::HighPrecision>);
+                    INVOKE_PFA_GENERAL_OP_IMPL_BASE_API(PromptFlashAttentionBaseApiHighPrecisionV, PFATypeNew<PromptFlashAttentionBaseApiTilingData, half, half, half, float, half, float, half, OptimizationMode::HighPrecision>);
                 #elif TILING_KEY_VAR == 2000000010004000012
                     INVOKE_PFA_GENERAL_OP_IMPL_MLA(PromptFlashAttentionBaseMLAHighPrecision, PFAHighPrecisionMLAType<PromptFlashAttentionBaseApiTilingData, half, false>);
                 #elif TILING_KEY_VAR == 1000000800010101012
-                    INVOKE_PFA_KVANTIQUANT_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BSH, half, bool, half, int8_t, Mode::HighPerformance, MatMulType::MM_PA_ANTIQUANT>);
+                    INVOKE_PFA_KVANTIQUANT_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BSH, half, bool, half, int8_t, OptimizationMode::HighPerformance, MatMulType::MM_PA_ANTIQUANT>);
                 #elif TILING_KEY_VAR == 1000000800010001012
                     INVOKE_PFA_KVANTIQUANT_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, half, bool, half, int8_t>);
                 #endif
@@ -463,73 +463,73 @@ extern "C" __global__ __aicore__ void prompt_flash_attention_FIAS(__gm__ uint8_t
                     INVOKE_PFA_INT8_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BSH, half, bool, int8_t>);
                 #elif TILING_KEY_VAR == 1000000000010121012
                     // no anti-quant path for CVDIFF-BSH, half in int8 out, enable PA
-                    INVOKE_PFA_INT8_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BSH, half, bool, int8_t, half, Mode::HighPerformance, MatMulType::MM_PA>);
+                    INVOKE_PFA_INT8_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BSH, half, bool, int8_t, half, OptimizationMode::HighPerformance, MatMulType::MM_PA>);
                 #elif TILING_KEY_VAR == 1000000000100121012
                     // Prefix no anti-quant path for CVDIFF-BSH, half in int8 out
-                    INVOKE_PFA_INT8_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BSH, half, bool, int8_t, half, Mode::HighPerformance, MatMulType::MM_MDL, true>);
+                    INVOKE_PFA_INT8_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BSH, half, bool, int8_t, half, OptimizationMode::HighPerformance, MatMulType::MM_MDL, true>);
                 #elif TILING_KEY_VAR == 1000000800000121012
                     // anti-quant path for CVDIFF-BSH, half in int8 out
                     INVOKE_PFA_KVANTIQUANT_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BSH, half, bool, int8_t, int8_t>);
                 #elif TILING_KEY_VAR == 1000000800100121012
                     // Prefix anti-quant path for CVDIFF-BSH, half in int8 out
-                    INVOKE_PFA_KVANTIQUANT_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BSH, half, bool, int8_t, int8_t, Mode::HighPerformance, MatMulType::MM_MDL, true>);
+                    INVOKE_PFA_KVANTIQUANT_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BSH, half, bool, int8_t, int8_t, OptimizationMode::HighPerformance, MatMulType::MM_MDL, true>);
                 #elif TILING_KEY_VAR == 1000000000000021012
                     // no anti-quant path for CVDIFF-BNSD, half in int8 out
                     INVOKE_PFA_INT8_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, half, bool, int8_t>);
                 #elif TILING_KEY_VAR == 1000000000010021012
                     // no anti-quant path for CVDIFF-BNSD, half in int8 out, enable PA
-                    INVOKE_PFA_INT8_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, half, bool, int8_t, half, Mode::HighPerformance, MatMulType::MM_PA>);
+                    INVOKE_PFA_INT8_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, half, bool, int8_t, half, OptimizationMode::HighPerformance, MatMulType::MM_PA>);
                 #elif TILING_KEY_VAR == 1000000000100021012
                     // Prefix no anti-quant path for CVDIFF-BNSD, half in int8 out
-                    INVOKE_PFA_INT8_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, half, bool, int8_t, half, Mode::HighPerformance, MatMulType::MM_MDL, true>);
+                    INVOKE_PFA_INT8_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, half, bool, int8_t, half, OptimizationMode::HighPerformance, MatMulType::MM_MDL, true>);
                 #elif TILING_KEY_VAR == 1000000800000021012
                     // anti-quant path for CVDIFF-BNSD, half in int8 out
                     INVOKE_PFA_KVANTIQUANT_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, half, bool, int8_t, int8_t>);
                 #elif TILING_KEY_VAR == 1000000800100021012
                     // Prefix anti-quant path for CVDIFF-BNSD, half in int8 out
-                    INVOKE_PFA_KVANTIQUANT_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, half, bool, int8_t, int8_t, Mode::HighPerformance, MatMulType::MM_MDL, true>);
+                    INVOKE_PFA_KVANTIQUANT_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, half, bool, int8_t, int8_t, OptimizationMode::HighPerformance, MatMulType::MM_MDL, true>);
                 #elif TILING_KEY_VAR == 1000000000000121612
                     // no anti-quant path for CVDIFF-BSH, half in int8 out
-                    INVOKE_PFA_INT8_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BSH, half, bool, int8_t, half, Mode::HighPrecision>);
+                    INVOKE_PFA_INT8_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BSH, half, bool, int8_t, half, OptimizationMode::HighPrecision>);
                 #elif TILING_KEY_VAR == 1000000000010121612
                     // no anti-quant path for CVDIFF-BSH, half in int8 out, enable PA
-                    INVOKE_PFA_INT8_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BSH, half, bool, int8_t, half, Mode::HighPrecision, MatMulType::MM_PA>);
+                    INVOKE_PFA_INT8_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BSH, half, bool, int8_t, half, OptimizationMode::HighPrecision, MatMulType::MM_PA>);
                 #elif TILING_KEY_VAR == 1000000000100121612
                     // Prefix no anti-quant path for CVDIFF-BSH, half in int8 out
-                    INVOKE_PFA_INT8_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BSH, half, bool, int8_t, half, Mode::HighPrecision, MatMulType::MM_MDL, true>);
+                    INVOKE_PFA_INT8_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BSH, half, bool, int8_t, half, OptimizationMode::HighPrecision, MatMulType::MM_MDL, true>);
                 #elif TILING_KEY_VAR == 1000000800000121612
                     // anti-quant path for CVDIFF-BSH, half in int8 out
-                    INVOKE_PFA_KVANTIQUANT_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BSH, half, bool, int8_t, int8_t, Mode::HighPrecision>);
+                    INVOKE_PFA_KVANTIQUANT_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BSH, half, bool, int8_t, int8_t, OptimizationMode::HighPrecision>);
                 #elif TILING_KEY_VAR == 1000000800100121612
                     // Prefix anti-quant path for CVDIFF-BSH, half in int8 out
-                    INVOKE_PFA_KVANTIQUANT_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BSH, half, bool, int8_t, int8_t, Mode::HighPrecision, MatMulType::MM_MDL, true>);
+                    INVOKE_PFA_KVANTIQUANT_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BSH, half, bool, int8_t, int8_t, OptimizationMode::HighPrecision, MatMulType::MM_MDL, true>);
                 #elif TILING_KEY_VAR == 1000000000000021612
                     // no anti-quant path for CVDIFF-BNSD, half in int8 out
-                    INVOKE_PFA_INT8_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, half, bool, int8_t, half, Mode::HighPrecision>);
+                    INVOKE_PFA_INT8_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, half, bool, int8_t, half, OptimizationMode::HighPrecision>);
                 #elif TILING_KEY_VAR == 1000000000010021612
                     // no anti-quant path for CVDIFF-BNSD, half in int8 out, enable PA
-                    INVOKE_PFA_INT8_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, half, bool, int8_t, half, Mode::HighPrecision, MatMulType::MM_PA>);
+                    INVOKE_PFA_INT8_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, half, bool, int8_t, half, OptimizationMode::HighPrecision, MatMulType::MM_PA>);
                 #elif TILING_KEY_VAR == 1000000000100021612
                     // Prefix no anti-quant path for CVDIFF-BNSD, half in int8 out
-                    INVOKE_PFA_INT8_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, half, bool, int8_t, half, Mode::HighPrecision, MatMulType::MM_MDL, true>);
+                    INVOKE_PFA_INT8_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, half, bool, int8_t, half, OptimizationMode::HighPrecision, MatMulType::MM_MDL, true>);
                 #elif TILING_KEY_VAR == 1000000800000021612
                     // anti-quant path for CVDIFF-BNSD, half in int8 out
-                    INVOKE_PFA_KVANTIQUANT_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, half, bool, int8_t, int8_t, Mode::HighPrecision>);
+                    INVOKE_PFA_KVANTIQUANT_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, half, bool, int8_t, int8_t, OptimizationMode::HighPrecision>);
                 #elif TILING_KEY_VAR == 1000000800100021612
                     // Prefix anti-quant path for CVDIFF-BNSD, half in int8 out
-                    INVOKE_PFA_KVANTIQUANT_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, half, bool, int8_t, int8_t, Mode::HighPrecision, MatMulType::MM_MDL, true>);
+                    INVOKE_PFA_KVANTIQUANT_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, half, bool, int8_t, int8_t, OptimizationMode::HighPrecision, MatMulType::MM_MDL, true>);
                 #elif TILING_KEY_VAR == 1000000400300121612  // enable prefix, enable MSD
                     // BSH layout fp16 in int8 out cvdiff
-                    INVOKE_PFA_INT8_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BSH, half, bool, int8_t, int8_t, Mode::HighPrecision, MatMulType::MM_MDL, true, MsdMode::MSD_ON>);
+                    INVOKE_PFA_INT8_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BSH, half, bool, int8_t, int8_t, OptimizationMode::HighPrecision, MatMulType::MM_MDL, true, MsdMode::MSD_ON>);
                 #elif TILING_KEY_VAR == 1000000400300021612
                     // BNSD layout fp16 in int8 out cvdiff
-                    INVOKE_PFA_INT8_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, half, bool, int8_t, int8_t, Mode::HighPrecision, MatMulType::MM_MDL, true, MsdMode::MSD_ON>);
+                    INVOKE_PFA_INT8_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, half, bool, int8_t, int8_t, OptimizationMode::HighPrecision, MatMulType::MM_MDL, true, MsdMode::MSD_ON>);
                 #elif TILING_KEY_VAR == 1000000400200121612
                     // BSH layout fp16 in int8 out cvdiff, enable MSD
-                    INVOKE_PFA_INT8_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BSH, half, bool, int8_t, int8_t, Mode::HighPrecision, MatMulType::MM_MDL, false, MsdMode::MSD_ON>);
+                    INVOKE_PFA_INT8_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BSH, half, bool, int8_t, int8_t, OptimizationMode::HighPrecision, MatMulType::MM_MDL, false, MsdMode::MSD_ON>);
                 #elif TILING_KEY_VAR == 1000000400200021612
                     // BNSD layout fp16 in int8 out cvdiff, enable MSD
-                    INVOKE_PFA_INT8_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, half, bool, int8_t, int8_t, Mode::HighPrecision, MatMulType::MM_MDL, false, MsdMode::MSD_ON>);
+                    INVOKE_PFA_INT8_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, half, bool, int8_t, int8_t, OptimizationMode::HighPrecision, MatMulType::MM_MDL, false, MsdMode::MSD_ON>);
                 #endif
             #endif
         #endif
@@ -578,7 +578,7 @@ extern "C" __global__ __aicore__ void prompt_flash_attention_FIAS(__gm__ uint8_t
                 INVOKE_PFA_GENERAL_OP_IMPL_BASE_API(PromptFlashAttentionBaseApiHighPrecisionNoMask, PFAHighPrecisionBaseType<PromptFlashAttentionBaseApiTilingData, float, bfloat16_t, bfloat16_t, bfloat16_t, bfloat16_t, float>);
             #elif TILING_KEY_VAR == 2000000000004010112
                 INVOKE_PFA_GENERAL_OP_IMPL_BASE_API(PromptFlashAttentionBaseApiHighPrecisionV,
-                                                    PFATypeNew<PromptFlashAttentionBaseApiTilingData, bfloat16_t, bfloat16_t, bfloat16_t, float, bfloat16_t, float, bfloat16_t, Mode::HighPrecision>);
+                                                    PFATypeNew<PromptFlashAttentionBaseApiTilingData, bfloat16_t, bfloat16_t, bfloat16_t, float, bfloat16_t, float, bfloat16_t, OptimizationMode::HighPrecision>);
             #elif TILING_KEY_VAR == 2000000010004010112
                 INVOKE_PFA_GENERAL_OP_IMPL_MLA(PromptFlashAttentionBaseMLAHighPrecision, PFAHighPrecisionMLAType<PromptFlashAttentionBaseApiTilingData, bfloat16_t, true>);
             #elif TILING_KEY_VAR == 4000000000000000000
@@ -655,37 +655,37 @@ extern "C" __global__ __aicore__ void prompt_flash_attention_FIAS(__gm__ uint8_t
                     INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BSH, bfloat16_t, bool, bfloat16_t>);
                 #elif TILING_KEY_VAR == 1000000000010111112
                     // BSH layout bf16 cvdiff, enable PA
-                    INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BSH, bfloat16_t, bool, bfloat16_t, bfloat16_t, Mode::HighPerformance, MatMulType::MM_PA>);
+                    INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BSH, bfloat16_t, bool, bfloat16_t, bfloat16_t, OptimizationMode::HighPerformance, MatMulType::MM_PA>);
                 #elif TILING_KEY_VAR == 1000000000002111112
                     // BSH layout bf16 cvdiff, enable L1 reuse
-                    INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BSH, bfloat16_t, bool, bfloat16_t, bfloat16_t, Mode::HighPerformance, MatMulType::MM_IBSHARE_NORM>);
+                    INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BSH, bfloat16_t, bool, bfloat16_t, bfloat16_t, OptimizationMode::HighPerformance, MatMulType::MM_IBSHARE_NORM>);
                 #elif TILING_KEY_VAR == 1000000000100111112  // enable prefix
                     // BSH layout bf16 cvdiff
-                    INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BSH, bfloat16_t, bool, bfloat16_t, bfloat16_t, Mode::HighPerformance, MatMulType::MM_MDL, true>);
+                    INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BSH, bfloat16_t, bool, bfloat16_t, bfloat16_t, OptimizationMode::HighPerformance, MatMulType::MM_MDL, true>);
                 #elif TILING_KEY_VAR == 1000000000000011112
                     // BNSD layout bf16 cvdiff
                     INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, bfloat16_t, bool, bfloat16_t>);
                 #elif TILING_KEY_VAR == 1000000000010011112
                     // BNSD layout bf16 cvdiff, enable PA
-                    INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, bfloat16_t, bool, bfloat16_t, bfloat16_t, Mode::HighPerformance, MatMulType::MM_PA>);
+                    INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, bfloat16_t, bool, bfloat16_t, bfloat16_t, OptimizationMode::HighPerformance, MatMulType::MM_PA>);
                 #elif TILING_KEY_VAR == 1000000000002011112
                     // BNSD layout bf16 cvdiff, enable L1 reuse
-                    INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, bfloat16_t, bool, bfloat16_t, bfloat16_t, Mode::HighPerformance, MatMulType::MM_IBSHARE_NORM>);
+                    INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, bfloat16_t, bool, bfloat16_t, bfloat16_t, OptimizationMode::HighPerformance, MatMulType::MM_IBSHARE_NORM>);
                 #elif TILING_KEY_VAR == 1000000000100011112  // enable prefix
                     // BNSD layout bf16 cvdiff
-                    INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, bfloat16_t, bool, bfloat16_t, bfloat16_t, Mode::HighPerformance, MatMulType::MM_MDL, true>);
+                    INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, bfloat16_t, bool, bfloat16_t, bfloat16_t, OptimizationMode::HighPerformance, MatMulType::MM_MDL, true>);
                 #elif TILING_KEY_VAR == 1000000400300111112  // enable prefix, enable MSD
                     // BSH layout bf16 cvdiff
-                    INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BSH, bfloat16_t, bool, bfloat16_t, int8_t, Mode::HighPerformance, MatMulType::MM_MDL, true, MsdMode::MSD_ON>);
+                    INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BSH, bfloat16_t, bool, bfloat16_t, int8_t, OptimizationMode::HighPerformance, MatMulType::MM_MDL, true, MsdMode::MSD_ON>);
                 #elif TILING_KEY_VAR == 1000000400300011112  // enable prefix, enable MSD
                     // BNSD layout bf16 cvdiff
-                    INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, bfloat16_t, bool, bfloat16_t, int8_t, Mode::HighPerformance, MatMulType::MM_MDL, true, MsdMode::MSD_ON>);
+                    INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, bfloat16_t, bool, bfloat16_t, int8_t, OptimizationMode::HighPerformance, MatMulType::MM_MDL, true, MsdMode::MSD_ON>);
                 #elif TILING_KEY_VAR == 1000000400200111112
                     // BSH layout bf16 cvdiff
-                    INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BSH, bfloat16_t, bool, bfloat16_t, int8_t, Mode::HighPerformance, MatMulType::MM_MDL, false, MsdMode::MSD_ON>);
+                    INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BSH, bfloat16_t, bool, bfloat16_t, int8_t, OptimizationMode::HighPerformance, MatMulType::MM_MDL, false, MsdMode::MSD_ON>);
                 #elif TILING_KEY_VAR == 1000000400200011112
                     // BNSD layout bf16 cvdiff
-                    INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, bfloat16_t, bool, bfloat16_t, int8_t, Mode::HighPerformance, MatMulType::MM_MDL, false, MsdMode::MSD_ON>);
+                    INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, bfloat16_t, bool, bfloat16_t, int8_t, OptimizationMode::HighPerformance, MatMulType::MM_MDL, false, MsdMode::MSD_ON>);
                 #endif
     
             #endif
@@ -706,31 +706,31 @@ extern "C" __global__ __aicore__ void prompt_flash_attention_FIAS(__gm__ uint8_t
                     INVOKE_PFA_INT8_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BSH, bfloat16_t, bool, int8_t>);
                 #elif TILING_KEY_VAR == 1000000000010121112
                     // BSH layout bf16 in int8 out cvdiff, enable PA
-                    INVOKE_PFA_INT8_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BSH, bfloat16_t, bool, int8_t, bfloat16_t, Mode::HighPerformance, MatMulType::MM_PA>);
+                    INVOKE_PFA_INT8_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BSH, bfloat16_t, bool, int8_t, bfloat16_t, OptimizationMode::HighPerformance, MatMulType::MM_PA>);
                 #elif TILING_KEY_VAR == 1000000000100121112  // enable prefix
                     // BSH layout bf16 in int8 out cvdiff
-                    INVOKE_PFA_INT8_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BSH, bfloat16_t, bool, int8_t, bfloat16_t, Mode::HighPerformance, MatMulType::MM_MDL, true>);
+                    INVOKE_PFA_INT8_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BSH, bfloat16_t, bool, int8_t, bfloat16_t, OptimizationMode::HighPerformance, MatMulType::MM_MDL, true>);
                 #elif TILING_KEY_VAR == 1000000000000021112
                     // BNSD layout bf16 in int8 out cvdiff
                     INVOKE_PFA_INT8_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, bfloat16_t, bool, int8_t>);
                 #elif TILING_KEY_VAR == 1000000000010021112
                     // BNSD layout bf16 in int8 out cvdiff, enable PA
-                    INVOKE_PFA_INT8_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, bfloat16_t, bool, int8_t, bfloat16_t, Mode::HighPerformance, MatMulType::MM_PA>);
+                    INVOKE_PFA_INT8_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, bfloat16_t, bool, int8_t, bfloat16_t, OptimizationMode::HighPerformance, MatMulType::MM_PA>);
                 #elif TILING_KEY_VAR == 1000000000100021112  // enable prefix
                     // BNSD layout bf16 in int8 out cvdiff
-                    INVOKE_PFA_INT8_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, bfloat16_t, bool, int8_t, bfloat16_t, Mode::HighPerformance, MatMulType::MM_MDL, true>);
+                    INVOKE_PFA_INT8_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, bfloat16_t, bool, int8_t, bfloat16_t, OptimizationMode::HighPerformance, MatMulType::MM_MDL, true>);
                 #elif TILING_KEY_VAR == 1000000400300121112  // enable prefix, enable MSD, enable MSD
                     // BSH layout bf16 in int8 out cvdiff
-                    INVOKE_PFA_INT8_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BSH, bfloat16_t, bool, int8_t, int8_t, Mode::HighPerformance, MatMulType::MM_MDL, true, MsdMode::MSD_ON>);
+                    INVOKE_PFA_INT8_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BSH, bfloat16_t, bool, int8_t, int8_t, OptimizationMode::HighPerformance, MatMulType::MM_MDL, true, MsdMode::MSD_ON>);
                 #elif TILING_KEY_VAR == 1000000400300021112  // enable prefix, enable MSD
                     // BNSD layout bf16 in int8 out cvdiff
-                    INVOKE_PFA_INT8_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, bfloat16_t, bool, int8_t, int8_t, Mode::HighPerformance, MatMulType::MM_MDL, true, MsdMode::MSD_ON>);
+                    INVOKE_PFA_INT8_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, bfloat16_t, bool, int8_t, int8_t, OptimizationMode::HighPerformance, MatMulType::MM_MDL, true, MsdMode::MSD_ON>);
                 #elif TILING_KEY_VAR == 1000000400200121112
                     // BSH layout bf16 in int8 out cvdiff, enable MSD
-                    INVOKE_PFA_INT8_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BSH, bfloat16_t, bool, int8_t, int8_t, Mode::HighPerformance, MatMulType::MM_MDL, false, MsdMode::MSD_ON>);
+                    INVOKE_PFA_INT8_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BSH, bfloat16_t, bool, int8_t, int8_t, OptimizationMode::HighPerformance, MatMulType::MM_MDL, false, MsdMode::MSD_ON>);
                 #elif TILING_KEY_VAR == 1000000400200021112
                     // BNSD layout bf16 in int8 out cvdiff, enable MSD
-                    INVOKE_PFA_INT8_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, bfloat16_t, bool, int8_t, int8_t, Mode::HighPerformance, MatMulType::MM_MDL, false, MsdMode::MSD_ON>);
+                    INVOKE_PFA_INT8_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, bfloat16_t, bool, int8_t, int8_t, OptimizationMode::HighPerformance, MatMulType::MM_MDL, false, MsdMode::MSD_ON>);
                 #endif
             #endif
         #endif
@@ -762,15 +762,15 @@ extern "C" __global__ __aicore__ void prompt_flash_attention_FIAS(__gm__ uint8_t
             #elif TILING_KEY_VAR == 1000000000000021212
                 INVOKE_PFA_INT8_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BSH, int8_t, bool, int8_t>);
             #elif TILING_KEY_VAR == 1000000000010021212  // enable PA
-                INVOKE_PFA_INT8_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BSH, int8_t, bool, int8_t, int8_t, Mode::HighPerformance, MatMulType::MM_PA>);
+                INVOKE_PFA_INT8_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BSH, int8_t, bool, int8_t, int8_t, OptimizationMode::HighPerformance, MatMulType::MM_PA>);
             #elif TILING_KEY_VAR == 1000000000100021212  // enable prefix
-                INVOKE_PFA_INT8_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BSH, int8_t, bool, int8_t, int8_t, Mode::HighPerformance, MatMulType::MM_MDL, true>);
+                INVOKE_PFA_INT8_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BSH, int8_t, bool, int8_t, int8_t, OptimizationMode::HighPerformance, MatMulType::MM_MDL, true>);
             #elif TILING_KEY_VAR == 1000000000000021217
                 INVOKE_PFA_INT8_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, int8_t, bool, int8_t>);
             #elif TILING_KEY_VAR == 1000000000010021217  // enable PA
-                INVOKE_PFA_INT8_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, int8_t, bool, int8_t, int8_t, Mode::HighPerformance, MatMulType::MM_PA>);
+                INVOKE_PFA_INT8_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, int8_t, bool, int8_t, int8_t, OptimizationMode::HighPerformance, MatMulType::MM_PA>);
             #elif TILING_KEY_VAR == 1000000000100021217  // enable prefix
-                INVOKE_PFA_INT8_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, int8_t, bool, int8_t, int8_t, Mode::HighPerformance, MatMulType::MM_MDL, true>);
+                INVOKE_PFA_INT8_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, int8_t, bool, int8_t, int8_t, OptimizationMode::HighPerformance, MatMulType::MM_MDL, true>);
             #endif
         #endif
         #if (ORIG_DTYPE_QUERY == DT_INT8) && (ORIG_DTYPE_ATTENTION_OUT == DT_FLOAT16) && (ORIG_DTYPE_KEY != DT_INT4)
@@ -801,15 +801,15 @@ extern "C" __global__ __aicore__ void prompt_flash_attention_FIAS(__gm__ uint8_t
             #elif TILING_KEY_VAR == 1000000000000001212
                 INVOKE_PFA_INT8_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BSH, int8_t, bool, half>);
             #elif TILING_KEY_VAR == 1000000000010001212  // enable PA
-                INVOKE_PFA_INT8_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BSH, int8_t, bool, half, int8_t, Mode::HighPerformance, MatMulType::MM_PA>);
+                INVOKE_PFA_INT8_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BSH, int8_t, bool, half, int8_t, OptimizationMode::HighPerformance, MatMulType::MM_PA>);
             #elif TILING_KEY_VAR == 1000000000000001217
                 INVOKE_PFA_INT8_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, int8_t, bool, half>);
             #elif TILING_KEY_VAR == 1000000000010001217  // enable PA
-                INVOKE_PFA_INT8_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, int8_t, bool, half, int8_t, Mode::HighPerformance, MatMulType::MM_PA>);
+                INVOKE_PFA_INT8_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, int8_t, bool, half, int8_t, OptimizationMode::HighPerformance, MatMulType::MM_PA>);
             #elif TILING_KEY_VAR == 1000000000100001212  // enable prefix
-                INVOKE_PFA_INT8_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BSH, int8_t, bool, half, int8_t, Mode::HighPerformance, MatMulType::MM_MDL, true>);
+                INVOKE_PFA_INT8_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BSH, int8_t, bool, half, int8_t, OptimizationMode::HighPerformance, MatMulType::MM_MDL, true>);
             #elif TILING_KEY_VAR == 1000000000100001217  // enable prefix
-                INVOKE_PFA_INT8_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, int8_t, bool, half, int8_t, Mode::HighPerformance, MatMulType::MM_MDL, true>);
+                INVOKE_PFA_INT8_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<PFALayout::BNSD, int8_t, bool, half, int8_t, OptimizationMode::HighPerformance, MatMulType::MM_MDL, true>);
             #endif
         #endif
         TILING_KEY_IS(1000000000000000020);

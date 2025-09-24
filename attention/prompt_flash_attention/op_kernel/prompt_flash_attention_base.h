@@ -25,12 +25,12 @@ using namespace matmul;
 
 constexpr uint32_t BATCH_NUM_MAX = 128;
 
-enum Mode {
+enum OptimizationMode {
     HighPrecision,
     HighPerformance
 };
 
-template<typename T, Mode M = Mode::HighPerformance>
+template<typename T, OptimizationMode M = OptimizationMode::HighPerformance>
 struct PromptFlashAttentionTypeTraits
 {
     using mmInputType = T;
@@ -42,7 +42,7 @@ struct PromptFlashAttentionTypeTraits
 };
 
 template<>
-struct PromptFlashAttentionTypeTraits<half, Mode::HighPerformance>
+struct PromptFlashAttentionTypeTraits<half, OptimizationMode::HighPerformance>
 {
     using mmInputType = half;
     using mmBiasType = float;
@@ -55,7 +55,7 @@ struct PromptFlashAttentionTypeTraits<half, Mode::HighPerformance>
 #if (__CCE_AICORE__ > 200)
 
 template<>
-struct PromptFlashAttentionTypeTraits<half, Mode::HighPrecision>
+struct PromptFlashAttentionTypeTraits<half, OptimizationMode::HighPrecision>
 {
     using mmInputType = half;
     using mmBiasType = float;
@@ -90,7 +90,7 @@ struct PromptFlashAttentionTypeTraits<int8_t>
 
 constexpr uint32_t BOOLBYTENUM = 32;
 constexpr uint32_t UB_ALIGN = 32U;
-template<typename T, typename U, CubeFormat FORMAT, typename O, Mode M = Mode::HighPerformance>
+template<typename T, typename U, CubeFormat FORMAT, typename O, OptimizationMode M = OptimizationMode::HighPerformance>
 class PromptFlashAttentionBase {
 public:
     __aicore__ inline PromptFlashAttentionBase() {};
@@ -383,7 +383,7 @@ protected:
     __aicore__ inline void InitOutputSingleCore();
 };
 
-template<typename T, typename U, CubeFormat FORMAT, typename O, Mode M>
+template<typename T, typename U, CubeFormat FORMAT, typename O, OptimizationMode M>
 __aicore__ inline void PromptFlashAttentionBase<T, U, FORMAT, O, M>::Init(__gm__ uint8_t* query, __gm__ uint8_t* key,
                                         __gm__ uint8_t* value, __gm__ uint8_t* pseShift, __gm__ uint8_t* attenMask,
                                         __gm__ uint8_t* actualSeqLengths, __gm__ uint8_t* actualSeqLengthsKV, __gm__ uint8_t* blocktable,
@@ -529,7 +529,7 @@ __aicore__ inline void PromptFlashAttentionBase<T, U, FORMAT, O, M>::Init(__gm__
     }
 }
 
-template<typename T, typename U, CubeFormat FORMAT, typename O,  Mode M>
+template<typename T, typename U, CubeFormat FORMAT, typename O,  OptimizationMode M>
 __aicore__ inline void PromptFlashAttentionBase<T, U, FORMAT, O, M>::InitQuant(__gm__ uint8_t* deq_scale1,
                                                              __gm__ uint8_t* scale1, __gm__ uint8_t* deq_scale2,
                                                              __gm__ uint8_t* scale2, __gm__ uint8_t* offset2) {
@@ -554,14 +554,14 @@ __aicore__ inline void PromptFlashAttentionBase<T, U, FORMAT, O, M>::InitQuant(_
     if (offset2 != nullptr) { quantOffset2 = *(reinterpret_cast<__gm__ float*>(offset2));}
 }
 
-template<typename T, typename U, CubeFormat FORMAT, typename O,  Mode M>
+template<typename T, typename U, CubeFormat FORMAT, typename O,  OptimizationMode M>
 __aicore__ inline void PromptFlashAttentionBase<T, U, FORMAT, O, M>::InitMsd(__gm__ uint8_t* key_antiquant_scale, __gm__ uint8_t* key_antiquant_offset, 
                                                                              __gm__ uint8_t* value_antiquant_scale, __gm__ uint8_t* value_antiquant_offset){
     return;
 }
    
 
-template<typename T, typename U, CubeFormat FORMAT, typename O,  Mode M>
+template<typename T, typename U, CubeFormat FORMAT, typename O,  OptimizationMode M>
 __aicore__ inline void PromptFlashAttentionBase<T, U, FORMAT, O, M>::InitOutputSingleCore()
 {
     auto &initParams = tilingData->promptAttentionInitOutputParams;
@@ -580,7 +580,7 @@ __aicore__ inline void PromptFlashAttentionBase<int8_t, half, CubeFormat::ND, in
 template<>
 __aicore__ inline void PromptFlashAttentionBase<int8_t, float, CubeFormat::ND, int8_t>::InitOutputSingleCore() {}
 #endif
-template<typename T, typename U, CubeFormat FORMAT, typename O,  Mode M>
+template<typename T, typename U, CubeFormat FORMAT, typename O,  OptimizationMode M>
 __aicore__ inline void PromptFlashAttentionBase<T, U, FORMAT, O, M>::initOffset() {
     offsetSS = tilingData->promptAttentionBaseParams.seqSize * tilingData->promptAttentionBaseParams.seqSize;
     offsetSH = tilingData->promptAttentionBaseParams.seqSize * tilingData->promptAttentionBaseParams.headSize;
@@ -590,7 +590,7 @@ __aicore__ inline void PromptFlashAttentionBase<T, U, FORMAT, O, M>::initOffset(
     offsetNSH = tilingData->promptAttentionBaseParams.headNumSize * offsetSH;
 }
 
-template<typename T, typename U, CubeFormat FORMAT, typename O,  Mode M>
+template<typename T, typename U, CubeFormat FORMAT, typename O,  OptimizationMode M>
 __aicore__ inline void PromptFlashAttentionBase<T, U, FORMAT, O, M>::InitTensorSize(
                 const PromptAttentionSingleCoreTensorSize* tensorSizeTiling) {
     mmResUbSize = tensorSizeTiling->mmResUbSize;            // Matrix mu result UB size
@@ -610,7 +610,7 @@ __aicore__ inline void PromptFlashAttentionBase<T, U, FORMAT, O, M>::InitTensorS
     mm2TmpUbSize_ = tensorSizeTiling->mm2TmpUbSize;
 }
 
-template<typename T, typename U, CubeFormat FORMAT, typename O,  Mode M>
+template<typename T, typename U, CubeFormat FORMAT, typename O,  OptimizationMode M>
 __aicore__ inline void PromptFlashAttentionBase<T, U, FORMAT, O, M>::ElewiseCompute(LocalTensor<mmOutputType>& mmResUb,
                                                                                     uint32_t computeSize, uint32_t type) {
     if (useMask) {
@@ -650,24 +650,24 @@ __aicore__ inline void PromptFlashAttentionBase<T, U, FORMAT, O, M>::ElewiseComp
     }
 }
 
-template<typename T, typename U, CubeFormat FORMAT, typename O,  Mode M>
+template<typename T, typename U, CubeFormat FORMAT, typename O,  OptimizationMode M>
 __aicore__ inline void PromptFlashAttentionBase<T, U, FORMAT, O, M>::SoftmaxBasicComputeFirst(LocalTensor<mmOutputType>& mmResUb,
                                         LocalTensor<float>& softmaxMaxUb, LocalTensor<float>& softmaxSumUb, SoftMaxShapeInfo& shapeInfo) {
     SoftMax<softmaxType, true, true> (mmResUb, softmaxSumUb, softmaxMaxUb, mmResUb, softmaxTilingData, shapeInfo);
 }
 
-template<typename T, typename U, CubeFormat FORMAT, typename O,  Mode M>
+template<typename T, typename U, CubeFormat FORMAT, typename O,  OptimizationMode M>
 __aicore__ inline void PromptFlashAttentionBase<T, U, FORMAT, O, M>::SoftmaxComputeFirst(LocalTensor<mmOutputType>& mmResUb,
                                         LocalTensor<float>& softmaxMaxUb, LocalTensor<float>& softmaxSumUb, SoftMaxShapeInfo& shapeInfo) {
     SoftMax<softmaxType, true> (mmResUb, softmaxSumUb, softmaxMaxUb, mmResUb, softmaxTilingData, shapeInfo);
 }
 
-template<typename T, typename U, CubeFormat FORMAT, typename O,  Mode M>
+template<typename T, typename U, CubeFormat FORMAT, typename O,  OptimizationMode M>
 __aicore__ inline bool PromptFlashAttentionBase<T, U, FORMAT, O, M>::IsSoftmaxBasic() {
     return ((this->softmaxTilingData.splitM % 8 ==0) && (this->softmaxTilingData.splitK % 64 ==0));
 }
 
-template<typename T, typename U, CubeFormat FORMAT, typename O,  Mode M>
+template<typename T, typename U, CubeFormat FORMAT, typename O,  OptimizationMode M>
 __aicore__ inline void PromptFlashAttentionBase<T, U, FORMAT, O, M>::SoftmaxBasicCompute(LocalTensor<mmOutputType>& mmResUb,
                                         LocalTensor<float>& softmaxMaxUb, LocalTensor<float>& softmaxSumUb,
                                         LocalTensor<softmaxType>& softmaxExpUb, SoftMaxShapeInfo& shapeInfo) {
@@ -676,7 +676,7 @@ __aicore__ inline void PromptFlashAttentionBase<T, U, FORMAT, O, M>::SoftmaxBasi
                                 softmaxMaxUb, softmaxFlashTilingData, true, shapeInfo);
 }
 
-template<typename T, typename U, CubeFormat FORMAT, typename O,  Mode M>
+template<typename T, typename U, CubeFormat FORMAT, typename O,  OptimizationMode M>
 __aicore__ inline void PromptFlashAttentionBase<T, U, FORMAT, O, M>::SoftmaxCompute(LocalTensor<mmOutputType>& mmResUb,
                                         LocalTensor<float>& softmaxMaxUb, LocalTensor<float>& softmaxSumUb,
                                         LocalTensor<softmaxType>& softmaxExpUb, SoftMaxShapeInfo& shapeInfo) {
@@ -685,7 +685,7 @@ __aicore__ inline void PromptFlashAttentionBase<T, U, FORMAT, O, M>::SoftmaxComp
                           softmaxMaxUb, softmaxFlashTilingData, true, shapeInfo);
 }
 
-template<typename T, typename U, CubeFormat FORMAT, typename O,  Mode M>
+template<typename T, typename U, CubeFormat FORMAT, typename O,  OptimizationMode M>
 __aicore__ inline void PromptFlashAttentionBase<T, U, FORMAT, O, M>::SoftmaxBasicComputeFirstNoTail(LocalTensor<mmOutputType>& mmResUb,
                                                         LocalTensor<float>& softmaxMaxUb, LocalTensor<float>& softmaxSumUb,
                                                         LocalTensor<softmaxType>& softmaxExpUb, LocalTensor<uint8_t>& sharedTmpUb,
@@ -694,7 +694,7 @@ __aicore__ inline void PromptFlashAttentionBase<T, U, FORMAT, O, M>::SoftmaxBasi
                                          mmResUb, softmaxExpUb, softmaxSumUb, softmaxMaxUb, sharedTmpUb, softmaxFlashTilingData, shapeInfo);
                                                         }
 
-template<typename T, typename U, CubeFormat FORMAT, typename O,  Mode M>
+template<typename T, typename U, CubeFormat FORMAT, typename O,  OptimizationMode M>
 __aicore__ inline void PromptFlashAttentionBase<T, U, FORMAT, O, M>::SoftmaxBasicComputeNoTail(LocalTensor<mmOutputType>& mmResUb,
                                                     LocalTensor<float>& softmaxMaxUb, LocalTensor<float>& softmaxSumUb,
                                                     LocalTensor<softmaxType>& softmaxExpUb, LocalTensor<uint8_t>& sharedTmpUb,
@@ -703,7 +703,7 @@ __aicore__ inline void PromptFlashAttentionBase<T, U, FORMAT, O, M>::SoftmaxBasi
                                         mmResUb, softmaxExpUb, softmaxSumUb, softmaxMaxUb, sharedTmpUb, softmaxFlashTilingData, shapeInfo);
                                                     }
 
-template<typename T, typename U, CubeFormat FORMAT, typename O,  Mode M>
+template<typename T, typename U, CubeFormat FORMAT, typename O,  OptimizationMode M>
 __aicore__ inline void PromptFlashAttentionBase<T, U, FORMAT, O, M>::SoftmaxBasicComputeFirstNoTail(LocalTensor<mmOutputType>& mmResUb,
                                             LocalTensor<float>& softmaxMaxUb, LocalTensor<float>& softmaxSumUb,
                                             LocalTensor<softmaxType>& softmaxExpUb, SoftMaxShapeInfo& shapeInfo) {
@@ -711,7 +711,7 @@ __aicore__ inline void PromptFlashAttentionBase<T, U, FORMAT, O, M>::SoftmaxBasi
                                          mmResUb, softmaxExpUb, softmaxSumUb, softmaxMaxUb, softmaxFlashTilingData, shapeInfo);
 }
 
-template<typename T, typename U, CubeFormat FORMAT, typename O,  Mode M>
+template<typename T, typename U, CubeFormat FORMAT, typename O,  OptimizationMode M>
 __aicore__ inline void PromptFlashAttentionBase<T, U, FORMAT, O, M>::SoftmaxBasicComputeNoTail(LocalTensor<mmOutputType>& mmResUb,
                                             LocalTensor<float>& softmaxMaxUb, LocalTensor<float>& softmaxSumUb,
                                             LocalTensor<softmaxType>& softmaxExpUb, SoftMaxShapeInfo& shapeInfo) {
@@ -719,7 +719,7 @@ __aicore__ inline void PromptFlashAttentionBase<T, U, FORMAT, O, M>::SoftmaxBasi
                                         mmResUb, softmaxExpUb, softmaxSumUb, softmaxMaxUb, softmaxFlashTilingData, shapeInfo);
 }
 
-template<typename T, typename U, CubeFormat FORMAT, typename O,  Mode M>
+template<typename T, typename U, CubeFormat FORMAT, typename O,  OptimizationMode M>
 __aicore__ inline void PromptFlashAttentionBase<T, U, FORMAT, O, M>::SoftmaxComputeFirstTail(LocalTensor<mmOutputType>& mmResUb,
                                             LocalTensor<float>& softmaxMaxUb, LocalTensor<float>& softmaxSumUb,
                                             LocalTensor<softmaxType>& softmaxExpUb, SoftMaxShapeInfo& shapeInfo) {
@@ -727,7 +727,7 @@ __aicore__ inline void PromptFlashAttentionBase<T, U, FORMAT, O, M>::SoftmaxComp
                                           mmResUb, softmaxExpUb, softmaxSumUb, softmaxMaxUb, softmaxFlashTilingData, shapeInfo);
 }
 
-template<typename T, typename U, CubeFormat FORMAT, typename O,  Mode M>
+template<typename T, typename U, CubeFormat FORMAT, typename O,  OptimizationMode M>
 __aicore__ inline void PromptFlashAttentionBase<T, U, FORMAT, O, M>::SoftmaxComputeTail(LocalTensor<mmOutputType>& mmResUb,
                                             LocalTensor<float>& softmaxMaxUb, LocalTensor<float>& softmaxSumUb,
                                             LocalTensor<softmaxType>& softmaxExpUb, SoftMaxShapeInfo& shapeInfo) {
@@ -735,20 +735,20 @@ __aicore__ inline void PromptFlashAttentionBase<T, U, FORMAT, O, M>::SoftmaxComp
                                          mmResUb, softmaxExpUb, softmaxSumUb, softmaxMaxUb, softmaxFlashTilingData, shapeInfo);
 }
 
-template<typename T, typename U, CubeFormat FORMAT, typename O,  Mode M>
+template<typename T, typename U, CubeFormat FORMAT, typename O,  OptimizationMode M>
 __aicore__ inline bool PromptFlashAttentionBase<T, U, FORMAT, O, M>::IsSoftmaxFlashBasic() {
     return ((this->softmaxFlashTilingData.splitM % 8 ==0) && (this->softmaxFlashTilingData.splitK % 64 ==0));
 }
 
 // quant: add quant functions
-template<typename T, typename U, CubeFormat FORMAT, typename O,  Mode M>
+template<typename T, typename U, CubeFormat FORMAT, typename O,  OptimizationMode M>
 __aicore__ inline void PromptFlashAttentionBase<T, U, FORMAT, O, M>::QuantCompute(LocalTensor<int8_t> quantResUb, LocalTensor<mmOutputType> mmResUb,
                                                                                     float scale, float offset, uint32_t computeSize) {
     AscendQuant(quantResUb, mmResUb, scale, offset, computeSize);
 }
 
 
-template<typename T, typename U, CubeFormat FORMAT, typename O,  Mode M>
+template<typename T, typename U, CubeFormat FORMAT, typename O,  OptimizationMode M>
 __aicore__ inline void PromptFlashAttentionBase<T, U, FORMAT, O, M>::Bmm2UpdateDivNoTail(LocalTensor<mmOutputType>& bmm2ResPreUb,
                                             LocalTensor<float>& softmaxSumUb, LocalTensor<softmaxType>& softmaxExpUb) {
     int32_t headLoop = (tilingData->promptAttentionBaseParams.headSize + softmaxTypeByteNum - 1) / softmaxTypeByteNum;
@@ -798,7 +798,7 @@ __aicore__ inline void PromptFlashAttentionBase<T, U, FORMAT, O, M>::Bmm2UpdateD
     }
 }
 
-template<typename T, typename U, CubeFormat FORMAT, typename O, Mode M>
+template<typename T, typename U, CubeFormat FORMAT, typename O, OptimizationMode M>
 __aicore__ inline void PromptFlashAttentionBase<T, U, FORMAT, O, M>::Bmm2Compute(uint32_t offset, LocalTensor<mmOutputType>& bmm2ResL1) {
 #if (__CCE_AICORE__ > 200)
     if constexpr (IsSameType<mmInputType, bfloat16_t>::value ||
@@ -829,7 +829,7 @@ __aicore__ inline void PromptFlashAttentionBase<T, U, FORMAT, O, M>::Bmm2Compute
     bmm2.SetTail(-1, -1, singleProcessSInnerBmmTail);
 }
 
-template<typename T, typename U, CubeFormat FORMAT, typename O,  Mode M>
+template<typename T, typename U, CubeFormat FORMAT, typename O,  OptimizationMode M>
 __aicore__ inline void PromptFlashAttentionBase<T, U, FORMAT, O, M>::UpdateVmul(LocalTensor<softmaxType>& softmaxExpUb) {
     LocalTensor<mmOutputType> bmm2ResPreUb = tempBmm2Ub.Get<mmOutputType>(bmm2ResUbSize);
 
@@ -856,7 +856,7 @@ __aicore__ inline void PromptFlashAttentionBase<T, U, FORMAT, O, M>::UpdateVmul(
     }
 }
 
-template<typename T, typename U, CubeFormat FORMAT, typename O,  Mode M>
+template<typename T, typename U, CubeFormat FORMAT, typename O,  OptimizationMode M>
 __aicore__ inline void PromptFlashAttentionBase<T, U, FORMAT, O, M>::ComputePseShiftOffset(int sInnerOffsetDataSize) {
     if (!usePseShift) {
         return;
@@ -865,7 +865,7 @@ __aicore__ inline void PromptFlashAttentionBase<T, U, FORMAT, O, M>::ComputePseS
     pseShiftOffset = pseShiftCoreOffset + (uint64_t)sInnerOffsetDataSize;
 }
 
-template<typename T, typename U, CubeFormat FORMAT, typename O,  Mode M>
+template<typename T, typename U, CubeFormat FORMAT, typename O,  OptimizationMode M>
 __aicore__ inline void PromptFlashAttentionBase<T, U, FORMAT, O, M>::ComputeAttenMaskOffset(int sInnerOffsetDataSize) {
     int32_t delta;
     if (attentionMaskType == 2 || attentionMaskType == 3 || attentionMaskType == 4) { // 2:leftUp mode of sparseMode, 3:rightdown mode of sparseMode, 4:band mode of sparseMode
@@ -886,7 +886,7 @@ __aicore__ inline void PromptFlashAttentionBase<T, U, FORMAT, O, M>::ComputeAtte
     }
 }
 
-template<typename T, typename U, CubeFormat FORMAT, typename O,  Mode M>
+template<typename T, typename U, CubeFormat FORMAT, typename O,  OptimizationMode M>
 __aicore__ inline void PromptFlashAttentionBase<T, U, FORMAT, O, M>::ComputeAttenMaskOffsetPre(int sInnerOffsetDataSize) {
     if (attentionMaskType == 0 || attentionMaskType == 1) {
         return;
@@ -901,7 +901,7 @@ __aicore__ inline void PromptFlashAttentionBase<T, U, FORMAT, O, M>::ComputeAtte
     }
 }
 
-template<typename T, typename U, CubeFormat FORMAT, typename O,  Mode M>
+template<typename T, typename U, CubeFormat FORMAT, typename O,  OptimizationMode M>
 __aicore__ inline void PromptFlashAttentionBase<T, U, FORMAT, O, M>::ComputeOffset(uint32_t sInnerLoopIdx) {
     int sInnerOffsetDataSize = sInnerLoopIdx * singleProcessSInnerSize;
     ComputePseShiftOffset(sInnerOffsetDataSize);
@@ -912,7 +912,7 @@ __aicore__ inline void PromptFlashAttentionBase<T, U, FORMAT, O, M>::ComputeOffs
     tensorBOffset = tensorBCoreOffset + sInnerOffsetDataSize * MultiHeadKV;
 }
 
-template<typename T, typename U, CubeFormat FORMAT, typename O,  Mode M>
+template<typename T, typename U, CubeFormat FORMAT, typename O,  OptimizationMode M>
 __aicore__ inline void PromptFlashAttentionBase<T, U, FORMAT, O, M>::ComputeOffsetWithBNSD(uint32_t sInnerLoopIdx) {
     int sInnerOffsetDataSize = sInnerLoopIdx * singleProcessSInnerSize;
     ComputePseShiftOffset(sInnerOffsetDataSize);
@@ -921,7 +921,7 @@ __aicore__ inline void PromptFlashAttentionBase<T, U, FORMAT, O, M>::ComputeOffs
     valueOffset = valueCoreOffset + sInnerOffsetDataSize * tilingData->promptAttentionBaseParams.headSize;
 }
 
-template<typename T, typename U, CubeFormat FORMAT, typename O,  Mode M>
+template<typename T, typename U, CubeFormat FORMAT, typename O,  OptimizationMode M>
 __aicore__ inline void PromptFlashAttentionBase<T, U, FORMAT, O, M>::DataCopyTransposeOut(LocalTensor<mmOutputType>& bmm2ResUb) {
     TransposeParams transposeParams;
     transposeParams.bIndex = 0;
@@ -1043,7 +1043,7 @@ __aicore__ inline void PromptFlashAttentionBase<T, U, FORMAT, O, M>::DataCopyTra
     }
 }
 
-template<typename T, typename U, CubeFormat FORMAT, typename O,  Mode M>
+template<typename T, typename U, CubeFormat FORMAT, typename O,  OptimizationMode M>
 __aicore__ inline void PromptFlashAttentionBase<T, U, FORMAT, O, M>::DataCopyOutWithBNSD(LocalTensor<mmOutputType>& bmm2ResUb) {
     uint32_t copySize = (this->singleProcessSOuterSize - nextTokensOffset) * tilingData->promptAttentionBaseParams.headSize;
     if (preTokensPerBatch < 0) {
@@ -1137,7 +1137,7 @@ __aicore__ inline void PromptFlashAttentionBase<T, U, FORMAT, O, M>::DataCopyOut
     }
 }
 
-template<typename T, typename U, CubeFormat FORMAT, typename O,  Mode M>
+template<typename T, typename U, CubeFormat FORMAT, typename O,  OptimizationMode M>
 __aicore__ inline void PromptFlashAttentionBase<T, U, FORMAT, O, M>::CalPseShiftOffset(int sIdx) {
     if (!usePseShift) {
         return;
@@ -1156,7 +1156,7 @@ __aicore__ inline void PromptFlashAttentionBase<T, U, FORMAT, O, M>::CalPseShift
                          (uint64_t)sOuterOffset * pseShiftS2;
 }
 
-template<typename T, typename U, CubeFormat FORMAT, typename O,  Mode M>
+template<typename T, typename U, CubeFormat FORMAT, typename O,  OptimizationMode M>
 __aicore__ inline void PromptFlashAttentionBase<T, U, FORMAT, O, M>::LoopSOuterOffsetInit(uint32_t seqListOffsetSize, int sIdx) {
     uint64_t attenMaskBatchOffset = 0;
     if (attenMaskBatch != 1) {
@@ -1182,7 +1182,7 @@ __aicore__ inline void PromptFlashAttentionBase<T, U, FORMAT, O, M>::LoopSOuterO
     valueCoreOffset = tensorBCoreOffset;
 }
 
-template<typename T, typename U, CubeFormat FORMAT, typename O,  Mode M>
+template<typename T, typename U, CubeFormat FORMAT, typename O,  OptimizationMode M>
 __aicore__ inline void PromptFlashAttentionBase<T, U, FORMAT, O, M>::LoopSOuterOffsetInitWithBNSD(uint32_t seqListOffsetSize,
                                                                                     int sIdx) {
     uint64_t attenMaskBatchOffset = 0;
@@ -1214,13 +1214,13 @@ __aicore__ inline void PromptFlashAttentionBase<T, U, FORMAT, O, M>::LoopSOuterO
     attentionOutOffset = seqListOffsetSize + batchNOffset * head_stride_q + (sOuterOffset + nextTokensOffset) * seq_stride;
 }
 
-template<typename T, typename U, CubeFormat FORMAT, typename O,  Mode M>
+template<typename T, typename U, CubeFormat FORMAT, typename O,  OptimizationMode M>
 __aicore__ inline void PromptFlashAttentionBase<T, U, FORMAT, O, M>::Bmm2UpdateAdd(LocalTensor<mmOutputType>& bmm2ResUb) {
     LocalTensor<mmOutputType> bmm2ResPreUb = tempBmm2Ub.Get<mmOutputType>(bmm2ResUbSize);
     Add(bmm2ResPreUb, bmm2ResUb, bmm2ResPreUb, bmm2ResUbSize);
 }
 
-template<typename T, typename U, CubeFormat FORMAT, typename O, Mode M>
+template<typename T, typename U, CubeFormat FORMAT, typename O, OptimizationMode M>
 __aicore__ inline void PromptFlashAttentionBase<T, U, FORMAT, O, M>::GetSingleCoreParam(int sIdx) {
     actualSeqLengthPerBatch = isActualLenDimsNull ? tilingData->promptAttentionBaseParams.seqSize :
                               actualSeqLengthsGm.GetValue(sIdx);
@@ -1255,7 +1255,7 @@ __aicore__ inline void PromptFlashAttentionBase<T, U, FORMAT, O, M>::GetSingleCo
     softmaxFlashTilingData = tilingData->softmaxFlashTilingDataRect;
 }
 
-template<typename T, typename U, CubeFormat FORMAT, typename O, Mode M>
+template<typename T, typename U, CubeFormat FORMAT, typename O, OptimizationMode M>
 __aicore__ inline void PromptFlashAttentionBase<T, U, FORMAT, O, M>::GetSparseParam(int32_t* preTokens,
                                                                                  int32_t* nextTokens) {
     if (attentionMaskType == 3) {  // SPARSE_MODE_RIGHT_DOWN : 3
@@ -1270,7 +1270,7 @@ __aicore__ inline void PromptFlashAttentionBase<T, U, FORMAT, O, M>::GetSparsePa
     nextTokensPerBatch = *nextTokens;
 }
 
-template<typename T, typename U, CubeFormat FORMAT, typename O, Mode M>
+template<typename T, typename U, CubeFormat FORMAT, typename O, OptimizationMode M>
 __aicore__ inline void PromptFlashAttentionBase<T, U, FORMAT, O, M>::ComputeTokenOffset() {
     if (sOuterOffset < nextTokensPerBatch * (-1) &&
         (sOuterOffset + this->singleProcessSOuterSize) > nextTokensPerBatch * (-1)) {

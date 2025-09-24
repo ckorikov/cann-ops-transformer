@@ -98,7 +98,7 @@ __aicore__ __attribute__((always_inline)) inline MNibd GetPPmnIbd(uint32_t qSeqL
     return mnIbd;
 }
 
-template <typename TILING_TYPE, typename Q_T, typename KV_T, typename O_T, typename S_T, typename P_T, typename TMP_T, typename U_T = O_T, Mode M = Mode::HighPerformance, const int MASK_TYPE = 0, const bool SWA_FLAG = false, const bool SWA_COMPRESS = false, typename...Args>
+template <typename TILING_TYPE, typename Q_T, typename KV_T, typename O_T, typename S_T, typename P_T, typename TMP_T, typename U_T = O_T, OptimizationMode M = OptimizationMode::HighPerformance, const int MASK_TYPE = 0, const bool SWA_FLAG = false, const bool SWA_COMPRESS = false, typename...Args>
 struct PFATypeNew {
     using tilingType = TILING_TYPE;
     using qDType = Q_T;
@@ -111,7 +111,7 @@ struct PFATypeNew {
     static constexpr int maskType = MASK_TYPE;
     static constexpr bool swaFlag = SWA_FLAG;
     static constexpr bool swaCompress = SWA_COMPRESS;
-    static constexpr Mode calcMode = M;
+    static constexpr OptimizationMode calcMode = M;
 };
 
 #ifdef __DAV_C220_CUBE__

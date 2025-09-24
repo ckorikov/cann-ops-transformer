@@ -13,42 +13,48 @@
 ########################################################################################################################
 
 set(_FIA_TilingSourcesExt
-        ${OPS_ADV_DIR}/src/transformer/attention/incre_flash_attention/ophost/incre_flash_attention_tiling.cpp
-        ${OPS_ADV_DIR}/src/transformer/attention/incre_flash_attention/ophost/incre_flash_attention_tiling_check.cpp
-        ${OPS_ADV_DIR}/src/transformer/attention/incre_flash_attention/ophost/incre_flash_attention_tiling_register.cpp
-        ${OPS_ADV_DIR}/src/transformer/attention/incre_flash_attention/regbase/ophost/incre_flash_attention_tiling_v2.cpp
-        ${OPS_ADV_DIR}/src/transformer/attention/prompt_flash_attention/op_host/prompt_flash_attention_tiling.cpp
-        ${OPS_ADV_DIR}/src/transformer/attention/prompt_flash_attention/regbase/ophost/prompt_flash_attention_tiling_v2.cpp
-        ${OPS_ADV_DIR}/src/transformer/attention/prompt_flash_attention/op_host/prompt_flash_attention_tiling_register.cpp
-        ${OPS_ADV_DIR}/src/transformer/attention/fused_infer_attention_score/op_host/fused_infer_attention_score_tiling.cpp
-        ${OPS_ADV_DIR}/src/transformer/attention/fused_infer_attention_score/regbase/ophost/fused_infer_attention_score_tiling_v2.cpp
-        ${OPS_ADV_DIR}/src/transformer/attention/fused_infer_attention_score/op_host/fused_infer_attention_score_tiling_register.cpp
-        ${OPS_ADV_DIR}/src/transformer/attention/fused_infer_attention_score/op_host/fused_infer_attention_score_tiling_v3.cpp
-        ${OPS_ADV_DIR}/src/transformer/attention/fused_infer_attention_score/op_host/fused_infer_attention_score_tiling_check.cpp
-        ${OPS_ADV_DIR}/src/transformer/attention/fused_infer_attention_score/op_host/fused_infer_attention_score_tiling_info_parser.cpp
-        ${OPS_ADV_DIR}/src/transformer/attention/common/op_host/fia_tiling_info.cpp
-        ${OPS_ADV_DIR}/src/transformer/attention/common/op_host/fia_tiling_shape.cpp
-        ${OPS_ADV_DIR}/src/transformer/attention/common/op_host/arch32/fia_tiling_mla.cpp
+        ${OPS_TRANSFORMER_DIR}/attention/incre_flash_attention/op_host/incre_flash_attention_tiling.cpp
+        ${OPS_TRANSFORMER_DIR}/attention/incre_flash_attention/op_host/incre_flash_attention_tiling_check.cpp
+        ${OPS_TRANSFORMER_DIR}/attention/incre_flash_attention/op_host/incre_flash_attention_tiling_register.cpp
+        ${OPS_TRANSFORMER_DIR}/attention/incre_flash_attention/regbase/ophost/incre_flash_attention_tiling_v2.cpp
+        ${OPS_TRANSFORMER_DIR}/attention/prompt_flash_attention/op_host/prompt_flash_attention_tiling.cpp
+        ${OPS_TRANSFORMER_DIR}/attention/prompt_flash_attention/regbase/ophost/prompt_flash_attention_tiling_v2.cpp
+        ${OPS_TRANSFORMER_DIR}/attention/prompt_flash_attention/op_host/prompt_flash_attention_tiling_register.cpp
+        ${OPS_TRANSFORMER_DIR}/attention/fused_infer_attention_score/op_host/fused_infer_attention_score_tiling.cpp
+        ${OPS_TRANSFORMER_DIR}/attention/fused_infer_attention_score/regbase/ophost/fused_infer_attention_score_tiling_v2.cpp
+        ${OPS_TRANSFORMER_DIR}/attention/fused_infer_attention_score/op_host/fused_infer_attention_score_tiling_register.cpp
+        ${OPS_TRANSFORMER_DIR}/attention/fused_infer_attention_score/op_host/fused_infer_attention_score_tiling_v3.cpp
+        ${OPS_TRANSFORMER_DIR}/attention/fused_infer_attention_score/op_host/fused_infer_attention_score_tiling_check.cpp
+        ${OPS_TRANSFORMER_DIR}/attention/fused_infer_attention_score/op_host/fused_infer_attention_score_tiling_info_parser.cpp
+        ${OPS_TRANSFORMER_DIR}/attention/common/op_host/fia_tiling_info.cpp
+        ${OPS_TRANSFORMER_DIR}/attention/common/op_host/fia_tiling_shape.cpp
+        ${OPS_TRANSFORMER_DIR}/attention/common/op_host/arch32/fia_tiling_mla.cpp
 )
 
 set(_FIA_KernelTilingDataDefH
-        ${OPS_ADV_DIR}/src/utils/inc/tiling/data_copy_transpose_tiling_def.h
-        ${CMAKE_SOURCE_DIR}/src/transformer/attention/incre_flash_attention/ophost/incre_flash_attention_tiling.h
-        ${CMAKE_SOURCE_DIR}/src/transformer/attention/prompt_flash_attention/op_host/prompt_flash_attention_tiling.h
+        ${OPS_TRANSFORMER_DIR}/common/include/tiling_base/data_copy_transpose_tiling_def.h
+        ${CMAKE_SOURCE_DIR}/attention/incre_flash_attention/op_host/incre_flash_attention_tiling.h
+        ${CMAKE_SOURCE_DIR}/attention/prompt_flash_attention/op_host/prompt_flash_attention_tiling.h
 )
 set(_FIA_KernelTilingExtInclude
-        ${CMAKE_SOURCE_DIR}/src/transformer/attention/incre_flash_attention/ophost/
-        ${CMAKE_SOURCE_DIR}/src/transformer/attention/prompt_flash_attention/op_host/
+        ${CMAKE_SOURCE_DIR}/attention/incre_flash_attention/op_host/
+        ${CMAKE_SOURCE_DIR}/attention/incre_flash_attention/op_host/op_api/
+        ${CMAKE_SOURCE_DIR}/attention/prompt_flash_attention/op_host/
+        ${CMAKE_SOURCE_DIR}/attention/prompt_flash_attention/op_host/op_api/
+)
+
+set(_FIA_UTestCommonPrivateIncludeExt
+        ${OPBASE_INC_DIRS}
+        ${OPS_TRANSFORMER_DIR}/common/include
 )
 
 set(_FIA_OpKernelPrivateIncludesExt
-        ${OPS_ADV_DIR}/src/utils/inc/kernel
+        ${OPS_TRANSFORMER_DIR}/common/include/kernel
 )
 
-set(_FIA_TargetPrivateLinkLibrariesExt
-        ops_utils_tiling_headers
-)
-aux_source_directory(${CMAKE_SOURCE_DIR}/src/transformer/attention/fused_infer_attention_score _FIA_KernelSourcesExt)
+set(_FIA_TargetPrivateLinkLibrariesExt)
+
+aux_source_directory(${CMAKE_SOURCE_DIR}/attention/fused_infer_attention_score/op_kernel _FIA_KernelSourcesExt)
 set(_FIA_CompileDefintions
         KernelCtrlParam incre_flash_attention,incre_flash_attention_FIAS,prompt_flash_attention,prompt_flash_attention_FIAS fia PFA_UT
 )
@@ -63,4 +69,5 @@ OpsTest_Level2_AddOp(
         KERNEL_PRIVATE_COMPILE_DEFINITIONS_EXT  ${_FIA_CompileDefintions}
         UTEST_COMMON_PRIVATE_LINK_LIBRARIES_EXT ${_FIA_TargetPrivateLinkLibrariesExt}
         KERNEL_PRIVATE_INCLUDES_EXT             ${_FIA_OpKernelPrivateIncludesExt}
+        UTEST_COMMON_PRIVATE_INCLUDES_EXT       ${_FIA_UTestCommonPrivateIncludeExt}
 )

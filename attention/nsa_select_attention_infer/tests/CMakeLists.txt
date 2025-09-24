@@ -1,4 +1,4 @@
-# Copyright (c) 2024 Huawei Technologies Co., Ltd.
+# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is a part of the CANN Open Software.
 # Licensed under CANN Open Software License Agreement Version 1.0 (the "License").
 # Please refer to the License for details. You may not use this file except in compliance with the License.
@@ -7,35 +7,46 @@
 # See LICENSE in the root of the software repository for the full text of the License.
 # ======================================================================================================================
 
+
 ########################################################################################################################
 # 调用编译方法, 生成对应编译目标
 ########################################################################################################################
 
-set(_nsag_TilingSourcesExt
-        ${OPS_ADV_DIR}/src/transformer/attention/nsa_selected_attention_grad/op_host/nsa_selected_attention_grad_tiling_bs1.cpp
-        ${OPS_ADV_DIR}/src/transformer/attention/nsa_selected_attention_grad/op_host/nsa_selected_attention_grad_tiling_bs1_basic.cpp
-        ${OPS_ADV_DIR}/src/transformer/attention/nsa_selected_attention_grad/op_host/nsa_selected_attention_grad_tiling_common.cpp
-        ${OPS_ADV_DIR}/src/transformer/attention/nsa_selected_attention_grad/op_host/nsa_selected_attention_grad_tiling.cpp
+set(_NSA_SELECT_ATTENTION_INFER_TilingSourcesExt
+        ${OPS_TRANSFORMER_DIR}/attention/nsa_select_attention_infer/op_host/nsa_select_attention_infer_tiling.cpp
+        ${OPS_TRANSFORMER_DIR}/attention/nsa_select_attention_infer/op_host/nsa_select_attention_infer_tiling_check.cpp
+        ${OPS_TRANSFORMER_DIR}/attention/nsa_select_attention_infer/op_host/nsa_select_attention_infer_tiling_register.cpp
 )
 
-set(_nsag_KernelTilingDataDefH
-        ${OPS_ADV_DIR}/src/utils/inc/tiling/data_copy_transpose_tiling_def.h
-        ${CMAKE_SOURCE_DIR}/src/transformer/attention/nsa_selected_attention_grad/op_host/nsa_selected_attention_grad_tiling.h
+set(_NSA_SELECT_ATTENTION_INFER_KernelTilingDataDefH
+        ${OPS_TRANSFORMER_DIR}/common/include/tiling_base/data_copy_transpose_tiling_def.h
+        ${CMAKE_SOURCE_DIR}/attention/nsa_select_attention_infer/op_host/nsa_select_attention_infer_tiling.h
 )
 
-set(_nsag_TargetPrivateLinkLibrariesExt
-        ops_utils_tiling_headers
-        ${UTest_NamePrefix}_OpTiling
-        error_manager
+set(_NsaSelectedAttention_TilingPrivateIncludesExt
+        ${CMAKE_SOURCE_DIR}/attention/nsa_select_attention_infer/op_host/
+        ${CMAKE_SOURCE_DIR}/attention/nsa_select_attention_infer/op_host/op_api/
 )
-aux_source_directory(${CMAKE_SOURCE_DIR}/src/transformer/attention/nsa_selected_attention_grad/op_kernel _nsag_KernelSourcesExt)
 
+set(_NSA_SELECT_ATTENTION_INFER_UTestCommonPrivateIncludeExt
+        ${OPBASE_INC_DIRS}
+        ${OPS_TRANSFORMER_DIR}/common/include
+)
+
+set(_NSA_SELECT_ATTENTION_INFER_TargetPrivateLinkLibrariesExt)
+set(_NSA_SELECT_ATTENTION_INFER_CompileDefintions
+        ORIG_DTYPE_QUERY=DT_FLOAT16
+)
+aux_source_directory(${CMAKE_SOURCE_DIR}/attention/nsa_select_attention_infer/op_kernel _NSA_SELECT_ATTENTION_INFER_KernelSourcesExt)
 OpsTest_Level2_AddOp(
-        SUB_SYSTEM                              transformer/attention
-        BRIEF                                   nsaGrad
-        SNAKE                                   nsa_selected_attention_grad
-        KERNEL_TILING_DATA_DEF_H                ${_nsag_KernelTilingDataDefH}
-        KERNEL_SOURCES_EXT                      ${_nsag_KernelSourcesExt}
-        TILING_SOURCES_EXT                      ${_nsag_TilingSourcesExt}
-        UTEST_COMMON_PRIVATE_LINK_LIBRARIES_EXT ${_nsag_TargetPrivateLinkLibrariesExt}
+        SUB_SYSTEM                              transformer
+        BRIEF                                   NsaSelectAttentionInfer
+        SNAKE                                   nsa_select_attention_infer
+        TILING_SOURCES_EXT                      ${_NSA_SELECT_ATTENTION_INFER_TilingSourcesExt}
+        TILING_PRIVATE_INCLUDES_EXT             ${_NsaSelectedAttention_TilingPrivateIncludesExt}
+        KERNEL_SOURCES_EXT                      ${_NSA_SELECT_ATTENTION_INFER_KernelSourcesExt}
+        KERNEL_TILING_DATA_DEF_H                ${_NSA_SELECT_ATTENTION_INFER_KernelTilingDataDefH}
+        UTEST_COMMON_PRIVATE_LINK_LIBRARIES_EXT ${_NSA_SELECT_ATTENTION_INFER_TargetPrivateLinkLibrariesExt}
+        KERNEL_PRIVATE_COMPILE_DEFINITIONS_EXT  ${_NSA_SELECT_ATTENTION_INFER_CompileDefintions}
+        UTEST_COMMON_PRIVATE_INCLUDES_EXT       ${_NSA_SELECT_ATTENTION_INFER_UTestCommonPrivateIncludeExt}
 )

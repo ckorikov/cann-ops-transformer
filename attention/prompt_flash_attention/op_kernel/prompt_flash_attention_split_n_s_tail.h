@@ -18,7 +18,7 @@
 #include "prompt_flash_attention_base.h"
 
 using namespace matmul;
-template<typename T, typename U, CubeFormat FORMAT, typename O, Mode M = Mode::HighPerformance>
+template<typename T, typename U, CubeFormat FORMAT, typename O, OptimizationMode M = OptimizationMode::HighPerformance>
 class PromptFlashAttentionSplitNSTail : public PromptFlashAttentionBase<T, U, FORMAT, O, M>
 {
 public:
@@ -53,13 +53,13 @@ protected:
     __aicore__ inline void ComputeEachCore(uint32_t coreIdx);
 };
 
-template<typename T, typename U, CubeFormat FORMAT, typename O, Mode M>
+template<typename T, typename U, CubeFormat FORMAT, typename O, OptimizationMode M>
 __aicore__ inline void PromptFlashAttentionSplitNSTail<T, U, FORMAT, O, M>::Process()
 {
     ComputeEachCore(this->tmp_block_idx);
 }
 
-template<typename T, typename U, CubeFormat FORMAT, typename O, Mode M>
+template<typename T, typename U, CubeFormat FORMAT, typename O, OptimizationMode M>
 __aicore__ inline void PromptFlashAttentionSplitNSTail<T, U, FORMAT, O, M>::PseShiftCopyIn(uint64_t offset, uint32_t sinnerSize,
                                                                            uint32_t sInnerLoopIdx) {
     if (!(this->usePseShift)) {
@@ -93,7 +93,7 @@ __aicore__ inline void PromptFlashAttentionSplitNSTail<T, U, FORMAT, O, M>::PseS
     this->attenMaskQueue.EnQue(pseShiftUb);
 }
 
-template<typename T, typename U, CubeFormat FORMAT, typename O, Mode M>
+template<typename T, typename U, CubeFormat FORMAT, typename O, OptimizationMode M>
 __aicore__ inline void PromptFlashAttentionSplitNSTail<T, U, FORMAT, O, M>::PseShiftProcess(int64_t sInnerLoopIdx,
     uint32_t computeSize, LocalTensor<mmOutputType>& mmResUb) {
     if (this->usePseShift) {
@@ -113,7 +113,7 @@ __aicore__ inline void PromptFlashAttentionSplitNSTail<T, U, FORMAT, O, M>::PseS
     }
 }
 
-template<typename T, typename U, CubeFormat FORMAT, typename O, Mode M>
+template<typename T, typename U, CubeFormat FORMAT, typename O, OptimizationMode M>
 __aicore__ inline void PromptFlashAttentionSplitNSTail<T, U, FORMAT, O, M>::AttenMaskCopyIn(uint64_t offset, uint32_t sinnerSize,
                                                                                          uint32_t sInnerLoopIdx)
 {
@@ -149,7 +149,7 @@ __aicore__ inline void PromptFlashAttentionSplitNSTail<T, U, FORMAT, O, M>::Atte
     this->attenMaskQueue.EnQue(attenMaskUb);
 }
 
-template<typename T, typename U, CubeFormat FORMAT, typename O, Mode M>
+template<typename T, typename U, CubeFormat FORMAT, typename O, OptimizationMode M>
 __aicore__ inline void PromptFlashAttentionSplitNSTail<T, U, FORMAT, O, M>::Bmm1ResDoVecBmm2ComputeFirst(LocalTensor<mmOutputType>& mmResUb,
                                             LocalTensor<float>& softmaxMaxUb, LocalTensor<float>& softmaxSumUb,
                                             bool isLast, event_t eventID, int64_t sInnerLoopIdx) {
@@ -209,7 +209,7 @@ __aicore__ inline void PromptFlashAttentionSplitNSTail<T, U, FORMAT, O, M>::Bmm1
     SetFlag<HardEvent::MTE3_MTE2>(eventID);
 }
 
-template<typename T, typename U, CubeFormat FORMAT, typename O, Mode M>
+template<typename T, typename U, CubeFormat FORMAT, typename O, OptimizationMode M>
 __aicore__ inline void PromptFlashAttentionSplitNSTail<T, U, FORMAT, O, M>::Bmm1ResDoVecBmm2Compute(LocalTensor<mmOutputType>& mmResUb,
                                             LocalTensor<float>& softmaxMaxUb, LocalTensor<float>& softmaxSumUb,
                                             LocalTensor<softmaxType>& softmaxExpUb, bool isLast,
@@ -295,7 +295,7 @@ __aicore__ inline void PromptFlashAttentionSplitNSTail<T, U, FORMAT, O, M>::Bmm1
     SetFlag<HardEvent::MTE3_MTE2>(eventID);
 }
 
-template<typename T, typename U, CubeFormat FORMAT, typename O, Mode M>
+template<typename T, typename U, CubeFormat FORMAT, typename O, OptimizationMode M>
 __aicore__ inline void PromptFlashAttentionSplitNSTail<T, U, FORMAT, O, M>::SInnerLoopFunc(int32_t startIndex, int32_t endIndex) {
     if (startIndex < 0) {
         startIndex = 0;
@@ -330,7 +330,7 @@ __aicore__ inline void PromptFlashAttentionSplitNSTail<T, U, FORMAT, O, M>::SInn
     ComputeEachCoreSInnerLoop(startIndex, endIndex);
 }
 
-template<typename T, typename U, CubeFormat FORMAT, typename O, Mode M>
+template<typename T, typename U, CubeFormat FORMAT, typename O, OptimizationMode M>
 __aicore__ inline void PromptFlashAttentionSplitNSTail<T, U, FORMAT, O, M>::ComputeEachCoreSInnerLoop(uint32_t startIndex,
                                                                                      uint32_t endIndex) {
     bool isSecond = true;
@@ -369,7 +369,7 @@ __aicore__ inline void PromptFlashAttentionSplitNSTail<T, U, FORMAT, O, M>::Comp
     WaitFlag<HardEvent::MTE3_MTE2>(eventID);
 }
 
-template<typename T, typename U, CubeFormat FORMAT, typename O, Mode M>
+template<typename T, typename U, CubeFormat FORMAT, typename O, OptimizationMode M>
 __aicore__ inline void PromptFlashAttentionSplitNSTail<T, U, FORMAT, O, M>::ComputeEachCore(uint32_t coreIdx) {
     this->spmTmpSize = this->tilingData->promptAttentionTensorSizeRect.spmTmpSize;
     this->mmResUbSize = this->tilingData->promptAttentionTensorSizeRect.mmResUbSize;
