@@ -303,8 +303,9 @@ static aclnnStatus Contiguous(FaTensorInput &faTensorInput, aclOpExecutor *execu
     return ACLNN_SUCCESS;
 }
 
-static aclnnStatus CheckFaParam(FaTensorInput &faTensorInput, const char *inputLayout, FaTensorOutput &faTensorOutput,
-                                const uint64_t *workspaceSize, aclOpExecutor **executor)
+static aclnnStatus CheckFaParam(
+    const FaTensorInput &faTensorInput, const char *inputLayout,
+    const FaTensorOutput &faTensorOutput, const uint64_t *workspaceSize, aclOpExecutor **executor)
 {
     // 必须的参数指针判空
     CHECK_RET(faTensorInput.query != nullptr, ACLNN_ERR_INNER_NULLPTR);

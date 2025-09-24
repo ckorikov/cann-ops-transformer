@@ -26,7 +26,9 @@ namespace optiling {
 constexpr int64_t ATTEN_MASK_DIM_NUM = 2;
 constexpr int64_t ATTEN_MASK_NUM = 2048;
 constexpr int64_t S_MAX = 32768;
-
+constexpr int64_t DIM_NUM_2 = 2;
+constexpr int64_t SPECIAL_HEADDIM_128 = 128;
+constexpr int64_t C0_SIZE = 16;
 
 ge::graphStatus FlashAttentionScoreGraTilingMla::GetShapeAttrsInfo()
 {
@@ -135,8 +137,8 @@ ge::graphStatus FlashAttentionScoreGraTilingMla::SetBaseInfo()
     fBaseParams.t2 = keyShape->GetStorageShape().GetDim(0);
     fBaseParams.n1 = queryShape->GetStorageShape().GetDim(1);
     fBaseParams.n2 = keyShape->GetStorageShape().GetDim(1);
-    fBaseParams.d = queryShape->GetStorageShape().GetDim(2);
-    fBaseParams.dv = valueShape->GetStorageShape().GetDim(2);
+    fBaseParams.d = queryShape->GetStorageShape().GetDim(DIM_NUM_2);
+    fBaseParams.dv = valueShape->GetStorageShape().GetDim(DIM_NUM_2);
     OP_CHECK_IF(fBaseParams.n2 == 0, OP_LOGE(context_, "dim N2 is 0."), return ge::GRAPH_FAILED);
     fBaseParams.g = fBaseParams.n1 / fBaseParams.n2;
     fBaseParams.s1 = *std::max_element(fBaseParams.actualSeqQlen.begin(), fBaseParams.actualSeqQlen.end());
@@ -211,7 +213,7 @@ bool FlashAttentionScoreGraTilingMla::IsAttenMskCapable()
 
 bool FlashAttentionScoreGraTilingMla::IsShapeCapable()
 {
-    if (fBaseParams.d != fBaseParams.dv || fBaseParams.d > 128 || fBaseParams.d % 16 != 0) {
+    if (fBaseParams.d != fBaseParams.dv || fBaseParams.d > SPECIAL_HEADDIM_128 || fBaseParams.d % C0_SIZE != 0) {
         return false;
     }
 
@@ -356,7 +358,8 @@ ge::graphStatus FlashAttentionScoreGraTilingMla::GetPlatformInfo()
 {
     auto platformInfoPtr = context_->GetPlatformInfo();
     if (platformInfoPtr == nullptr) {
-        auto compileInfoPtr = reinterpret_cast<const FlashAttentionScoreGradCompileInfo *>(context_->GetCompileInfo());
+        auto compileInfoPtr = reinterpret_cast<const Ops::Transformer::OpTiling::FlashAttentionScoreGradCompileInfo *>(
+            context_->GetCompileInfo());
         OP_CHECK_IF(compileInfoPtr == nullptr, OP_LOGE(context_, "compile_info is null"),
                    return ge::GRAPH_FAILED);
 
@@ -418,8 +421,9 @@ ASCENDC_EXTERN_C ge::graphStatus TilingPrepareForMultiHeadLatentAttentionGrad(ge
     return ge::GRAPH_SUCCESS;
 }
 
-REGISTER_TILING_TEMPLATE_WITH_SOCVERSION(FlashAttentionScoreGrad, FlashAttentionScoreGraTilingMla,
-                                         std::vector<int32_t>({(int32_t)platform_ascendc::SocVersion::ASCEND910B,
-                                                               (int32_t)platform_ascendc::SocVersion::ASCEND910_93}),
-                                         1001);
+REGISTER_TILING_TEMPLATE_WITH_SOCVERSION(
+    FlashAttentionScoreGrad, FlashAttentionScoreGraTilingMla,
+    std::vector<int32_t>({static_cast<int32_t>(platform_ascendc::SocVersion::ASCEND910B),
+                          static_cast<int32_t>(platform_ascendc::SocVersion::ASCEND910_93)}),
+    1001);
 } // namespace optiling

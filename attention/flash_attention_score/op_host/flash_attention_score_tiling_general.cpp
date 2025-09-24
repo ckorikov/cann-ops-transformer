@@ -1410,8 +1410,7 @@ bool FlashAttentionScoreTilingBase::AnalyzeOptionalInput()
     // 0: (B,N2,G,S1,S2), 1: (B,N2,G,1,S2)
     PseShapeType pseShapeType = PSE_B_N2_G_1_S2;
     auto pseShape = context_->GetOptionalInputShape(PSE_INPUT_INDEX);
-
-    if(pseShape == nullptr || pseShape->GetStorageShape().GetDimNum() == 0 ) {
+    if (pseShape == nullptr || pseShape->GetStorageShape().GetDimNum() == 0) {
         if(pseType != PSE_OUTER_ADD_MUL_TYPE){
             /*
             * 1. pseType非默认值
@@ -4397,11 +4396,11 @@ protected:
 };
 
 // NOTE manually initialize tiling data in hostapi scenario in highest priority template
-REGISTER_TILING_TEMPLATE_WITH_SOCVERSION(FlashAttentionScore, FlashAttentionScoreTilingDropMask, std::vector<int32_t>({(int32_t)platform_ascendc::SocVersion::ASCEND910B, (int32_t)platform_ascendc::SocVersion::ASCEND910_93}), 90);
-REGISTER_TILING_TEMPLATE_WITH_SOCVERSION(FlashAttentionScore, FlashAttentionVarLenScoreTiling, std::vector<int32_t>({(int32_t)platform_ascendc::SocVersion::ASCEND910B, (int32_t)platform_ascendc::SocVersion::ASCEND910_93}), 94);
-REGISTER_TILING_TEMPLATE_WITH_SOCVERSION(FlashAttentionScore, FlashAttentionScoreTilingS1s2Bn2gs1SameAB, std::vector<int32_t>({(int32_t)platform_ascendc::SocVersion::ASCEND910B, (int32_t)platform_ascendc::SocVersion::ASCEND910_93}), 95);
-REGISTER_TILING_TEMPLATE_WITH_SOCVERSION(FlashAttentionScore, FlashAttentionScoreTilingS1s2Bn2gs1, std::vector<int32_t>({(int32_t)platform_ascendc::SocVersion::ASCEND910B, (int32_t)platform_ascendc::SocVersion::ASCEND910_93}), 96);
-REGISTER_TILING_TEMPLATE_WITH_SOCVERSION(FlashAttentionScore, FlashAttentionScoreTilingS1Bn2gs1, std::vector<int32_t>({(int32_t)platform_ascendc::SocVersion::ASCEND910B, (int32_t)platform_ascendc::SocVersion::ASCEND910_93}), 97);
-REGISTER_TILING_TEMPLATE_WITH_SOCVERSION(FlashAttentionScore, FlashAttentionScoreTilingB, std::vector<int32_t>({(int32_t)platform_ascendc::SocVersion::ASCEND910B, (int32_t)platform_ascendc::SocVersion::ASCEND910_93}), 98);
+REGISTER_TILING_TEMPLATE_WITH_SOCVERSION(FlashAttentionScore, FlashAttentionScoreTilingDropMask, std::vector<int32_t>({static_cast<int32_t>(platform_ascendc::SocVersion::ASCEND910B), static_cast<int32_t>(platform_ascendc::SocVersion::ASCEND910_93)}), 90);
+REGISTER_TILING_TEMPLATE_WITH_SOCVERSION(FlashAttentionScore, FlashAttentionVarLenScoreTiling, std::vector<int32_t>({static_cast<int32_t>(platform_ascendc::SocVersion::ASCEND910B), static_cast<int32_t>(platform_ascendc::SocVersion::ASCEND910_93)}), 94);
+REGISTER_TILING_TEMPLATE_WITH_SOCVERSION(FlashAttentionScore, FlashAttentionScoreTilingS1s2Bn2gs1SameAB, std::vector<int32_t>({static_cast<int32_t>(platform_ascendc::SocVersion::ASCEND910B), static_cast<int32_t>(platform_ascendc::SocVersion::ASCEND910_93)}), 95);
+REGISTER_TILING_TEMPLATE_WITH_SOCVERSION(FlashAttentionScore, FlashAttentionScoreTilingS1s2Bn2gs1, std::vector<int32_t>({static_cast<int32_t>(platform_ascendc::SocVersion::ASCEND910B), static_cast<int32_t>(platform_ascendc::SocVersion::ASCEND910_93)}), 96);
+REGISTER_TILING_TEMPLATE_WITH_SOCVERSION(FlashAttentionScore, FlashAttentionScoreTilingS1Bn2gs1, std::vector<int32_t>({static_cast<int32_t>(platform_ascendc::SocVersion::ASCEND910B), static_cast<int32_t>(platform_ascendc::SocVersion::ASCEND910_93)}), 97);
+REGISTER_TILING_TEMPLATE_WITH_SOCVERSION(FlashAttentionScore, FlashAttentionScoreTilingB, std::vector<int32_t>({static_cast<int32_t>(platform_ascendc::SocVersion::ASCEND910B), static_cast<int32_t>(platform_ascendc::SocVersion::ASCEND910_93)}), 98);
 } // namespace FA
 } // namespace optiling

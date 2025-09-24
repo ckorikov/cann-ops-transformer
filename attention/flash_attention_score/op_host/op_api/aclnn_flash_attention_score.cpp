@@ -314,7 +314,6 @@ static bool IsNeedPad(FaShapeInfo &shapeInfo, const aclIntArray *actualSeqQLenOp
     if (shapeInfo.inputLayout != InputLayout::BNSD &&
          shapeInfo.inputLayout != InputLayout::TND && shapeInfo.axes.n1 == shapeInfo.axes.n2 &&
          shapeInfo.needTranspose == false) {
-
         if (shapeInfo.axes.d == HEAD_DIM_72 || shapeInfo.axes.d == HEAD_DIM_88) {
             shapeInfo.padNum = 0;
         }
@@ -711,8 +710,8 @@ static aclnnStatus CheckFaParam(const aclTensor *query, const aclTensor *key, co
 static aclnnStatus isSupportMultiInput(const aclTensor *query, const aclTensor *queryRope,
                                        const aclTensor *key, const aclTensor *keyRope, const aclTensor *value, 
                                        const aclTensor *attenMaskOptional, const aclTensor *pseShiftOptional,
-                                       const aclTensor *dropMaskOptional, double keepProb, FaShapeInfo &faShape,
-                                       int64_t sparseMode)
+                                       const aclTensor *dropMaskOptional, double keepProb,
+                                       const FaShapeInfo &faShape, int64_t sparseMode)
 {
     CHECK_RET((queryRope == nullptr && keyRope == nullptr) || (queryRope != nullptr && keyRope != nullptr),
             ACLNN_ERR_PARAM_NULLPTR);
@@ -1104,7 +1103,6 @@ aclnnStatus aclnnFlashAttentionVarLenScoreV3GetWorkspaceSize(
     const aclTensor *softmaxMaxOut, const aclTensor *softmaxSumOut, const aclTensor *softmaxOutOut,
     const aclTensor *attentionOutOut, uint64_t *workspaceSize, aclOpExecutor **executor)
 {
-
     CHECK_RET(CheckFaParam(query, key, value, inputLayout, softmaxMaxOut, softmaxSumOut, attentionOutOut,
         workspaceSize, executor) == ACLNN_SUCCESS, ACLNN_ERR_PARAM_NULLPTR);
     L2_DFX_PHASE_1(aclnnFlashAttentionVarLenScoreV3,

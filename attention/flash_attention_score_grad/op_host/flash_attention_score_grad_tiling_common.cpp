@@ -15,7 +15,6 @@
 
 #include "flash_attention_score_grad_tiling_common.h"
 #include "log/log.h"
-#include "log/error_code.h"
 #include "err/ops_err.h"
 
 namespace optiling {
@@ -315,7 +314,7 @@ bool IsSameShapeButValueDLeEqD(const gert::StorageShape *aShape, const gert::Sto
 }
 
 
-bool isTndSABHit(gert::TilingContext *context)
+bool isTndSABHit(const gert::TilingContext *context)
 {
     auto actualSeqQLenTensor = context->GetOptionalInputTensor(ACTUAL_SEQ_Q_LEN);
     auto actualSeqKVLenTensor = context->GetOptionalInputTensor(ACTUAL_SEQ_KV_LEN);
@@ -332,7 +331,7 @@ bool isTndSABHit(gert::TilingContext *context)
         uint64_t len = 1;
 
         for (int64_t i = actualSeqQLen - 1; i >= 0; --i) {
-            if (qTensor[i]) {
+            if (qTensor[i] != 0) {
                 qSum = qTensor[i];
                 kvSum = kvTensor[i];
                 len = i + 1;

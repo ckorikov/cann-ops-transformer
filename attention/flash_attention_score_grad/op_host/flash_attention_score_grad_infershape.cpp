@@ -96,10 +96,8 @@ ge::graphStatus InferShape4FlashAttentionScoreGrad(gert::InferShapeContext *cont
     OP_CHECK_NULL_WITH_CONTEXT(context, dpseShape);
 
     gert::Shape *dqRopeShape = context->GetOutputShape(4);
-    // OP_CHECK_NULL_WITH_CONTEXT(context, dqRopeShape);
 
     gert::Shape *dkRopeShape = context->GetOutputShape(5);
-    // OP_CHECK_NULL_WITH_CONTEXT(context, dkRopeShape);
     const gert::Shape *pseShape = context->GetOptionalInputShape(4);
     if (pseShape != nullptr && pseShape->GetShapeSize() != 0) {
         OP_LOGD(context, "pse_shift is not nullptr");

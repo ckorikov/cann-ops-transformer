@@ -236,7 +236,8 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2::GetPlatformInfo()
 {
     auto platformInfoPtr = context_->GetPlatformInfo();
     if (platformInfoPtr == nullptr) {
-        auto compileInfoPtr = reinterpret_cast<const FlashAttentionScoreGradCompileInfo *>(context_->GetCompileInfo());
+        auto compileInfoPtr = reinterpret_cast<const Ops::Transformer::OpTiling::FlashAttentionScoreGradCompileInfo *>(
+            context_->GetCompileInfo());
         OP_CHECK_IF(compileInfoPtr == nullptr, OP_LOGE(context_, "compile_info is null"),
                    return ge::GRAPH_FAILED);
 
@@ -2103,13 +2104,15 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2::SetBmm4TilingData(uint32_t
     return ge::GRAPH_SUCCESS;
 }
 
-REGISTER_TILING_TEMPLATE_WITH_SOCVERSION(FlashAttentionScoreGrad, FlashAttentionScoreGradTilingS1s2Bn2,
-                                         std::vector<int32_t>({(int32_t)platform_ascendc::SocVersion::ASCEND910B,
-                                                               (int32_t)platform_ascendc::SocVersion::ASCEND910_93}),
-                                         15000);
-REGISTER_TILING_TEMPLATE_WITH_SOCVERSION(FlashAttentionScoreGrad, FlashAttentionScoreGradTilingDeterministic,
-                                         std::vector<int32_t>({(int32_t)platform_ascendc::SocVersion::ASCEND910B,
-                                                               (int32_t)platform_ascendc::SocVersion::ASCEND910_93}),
-                                         1000);
+REGISTER_TILING_TEMPLATE_WITH_SOCVERSION(
+    FlashAttentionScoreGrad, FlashAttentionScoreGradTilingS1s2Bn2,
+    std::vector<int32_t>({static_cast<int32_t>(platform_ascendc::SocVersion::ASCEND910B),
+                          static_cast<int32_t>(platform_ascendc::SocVersion::ASCEND910_93)}),
+    15000);
+REGISTER_TILING_TEMPLATE_WITH_SOCVERSION(
+    FlashAttentionScoreGrad, FlashAttentionScoreGradTilingDeterministic,
+    std::vector<int32_t>({static_cast<int32_t>(platform_ascendc::SocVersion::ASCEND910B),
+                          static_cast<int32_t>(platform_ascendc::SocVersion::ASCEND910_93)}),
+    1000);
 
 } // namespace optiling

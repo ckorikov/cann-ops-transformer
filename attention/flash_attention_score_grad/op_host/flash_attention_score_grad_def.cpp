@@ -205,10 +205,10 @@ public:
             .Float(1.0);
         this->Attr("pre_tockens")
             .AttrType(OPTIONAL)
-            .Int(2147483647);
+            .Int(2147483647); // default pre_tockens
         this->Attr("next_tockens")
             .AttrType(OPTIONAL)
-            .Int(2147483647);
+            .Int(2147483647); // default next_tockens
         this->Attr("head_num")
             .AttrType(REQUIRED)
             .Int();
@@ -226,7 +226,7 @@ public:
             .Int(1);
         this->Attr("seed")
             .AttrType(OPTIONAL)
-            .Int(2);
+            .Int(2); // default seed
         this->Attr("offset")
             .AttrType(OPTIONAL)
             .Int(0);

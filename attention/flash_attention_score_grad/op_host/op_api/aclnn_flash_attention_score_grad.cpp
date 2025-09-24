@@ -101,6 +101,7 @@ static const int64_t TND_MAX_S1_SUM = 160 * 1024;
 static const int64_t TND_MAX_DDIM = 96;
 static const uint64_t DIM_NUM_4 = 4;
 static const uint64_t DIM_NUM_3 = 3;
+static const uint64_t DIM_NUM_2 = 2;
 
 char defaultSoftmaxInLayout[] = "";
 
@@ -237,7 +238,7 @@ static aclnnStatus isSupportMultiInput(const aclTensor *query, const aclTensor *
     auto qRopeDtype = queryRope->GetDataType();
     auto qRopeShape = queryRope->GetViewShape();
     auto kRopeShape = keyRope->GetViewShape();
-    if (qRopeShape.GetDim(2) > fagShape.dDim || kRopeShape.GetDim(2) > fagShape.dDim) {
+    if (qRopeShape.GetDim(DIM_NUM_2) > fagShape.dDim || kRopeShape.GetDim(DIM_NUM_2) > fagShape.dDim) {
         OP_LOGE(ACLNN_ERR_PARAM_INVALID, "Invalid input, do not support query_rope and key_rope when"
                 " the head-dim of query_rope or key_rope is larger than the head-dim of query.");
         return ACLNN_ERR_PARAM_INVALID;
@@ -314,14 +315,14 @@ static aclnnStatus GetInputShapeInfo(const aclTensor *query, const aclTensor *ke
         fagShape.n2Dim = fagShape.h2Dim / fagShape.dDim;
         fagShape.s1Dim = (fagShape.inputLayoutStr == "BSH") ? queryShape.GetDim(1) : queryShape.GetDim(0);
         fagShape.s2Dim = (fagShape.inputLayoutStr == "BSH") ? keyShape.GetDim(1) : keyShape.GetDim(0);
-        fagShape.dkDim = keyShape.GetDim(2) / fagShape.n2Dim;
-        fagShape.dvDim = valueShape.GetDim(2) / fagShape.n2Dim;
+        fagShape.dkDim = keyShape.GetDim(DIM_NUM_2) / fagShape.n2Dim;
+        fagShape.dvDim = valueShape.GetDim(DIM_NUM_2) / fagShape.n2Dim;
     } else if (fagShape.inputLayoutStr == "TND") {
         fagShape.dDim = queryShape.GetDim(2);  // 2:d
         fagShape.n1Dim = queryShape.GetDim(1); // 1:n1
         fagShape.n2Dim = keyShape.GetDim(1);    // 1:n2
-        fagShape.dkDim = keyShape.GetDim(2);
-        fagShape.dvDim = valueShape.GetDim(2);
+        fagShape.dkDim = keyShape.GetDim(DIM_NUM_2);
+        fagShape.dvDim = valueShape.GetDim(DIM_NUM_2);
     } else if (queryShape.GetDimNum() > MIN_DIM) {
         fagShape.dDim = queryShape.GetDim(3); // 3:d
         fagShape.dkDim = keyShape.GetDim(3); // key Head-dim
@@ -1105,7 +1106,7 @@ static aclnnStatus FlashAttentionScoreGradGetWorkspace(
     double keepProb, int64_t preTokens, int64_t nextTokens, int64_t headNum,
     char *inputLayout, int64_t innerPrecise, int64_t sparseMode, const aclTensor* dqOut,
     const aclTensor *dkOut, const aclTensor *dvOut, const aclTensor *dpseOut, char *softmaxInLayout,
-    uint64_t *workspaceSize, aclOpExecutor *executor) {
+    const uint64_t *workspaceSize, aclOpExecutor *executor) {
     (void) workspaceSize;
     // 检查tensor维度是否大于2
     auto ret = InvalidTensorDimCheck(query, nullptr, key, nullptr, value, dy, attentionInOptional, dqOut, nullptr, dkOut, nullptr, dvOut);
@@ -1149,7 +1150,7 @@ static aclnnStatus FlashAttentionScoreGradGetWorkspace(
     CHECK_RET(ret == ACLNN_SUCCESS, ret);
 
     if (strcmp(softmaxInLayout, "same_as_input") == 0) {
-        ret = TransposeSoftMaxTensor(&softmaxMaxOptionalCngs,&softmaxSumOptionalCngs,fagShape,executor);
+        ret = TransposeSoftMaxTensor(&softmaxMaxOptionalCngs, &softmaxSumOptionalCngs, fagShape, executor);
         CHECK_RET(ret == ACLNN_SUCCESS, ret);
     }
 
@@ -1330,7 +1331,7 @@ static aclnnStatus FlashAttentionScoreGradV2GetWorkspace(
     double keepProb, int64_t preTokens, int64_t nextTokens, int64_t headNum,
     char *inputLayout, int64_t innerPrecise, int64_t sparseMode, int64_t pseType,
     const aclTensor *dqOut, const aclTensor *dkOut, const aclTensor *dvOut, const aclTensor *dpseOut,
-    uint64_t *workspaceSize, aclOpExecutor *executor) {
+    const uint64_t *workspaceSize, aclOpExecutor *executor) {
     (void) workspaceSize;
     // 检查tensor维度是否大于2
     auto ret = InvalidTensorDimCheck(query, nullptr, key, nullptr, value, dy, attentionInOptional, dqOut, nullptr, dkOut, nullptr, dvOut);
@@ -1548,7 +1549,7 @@ static aclnnStatus FlashAttentionScoreGradV3GetWorkspace(
     double keepProb, int64_t preTokens, int64_t nextTokens, int64_t headNum,
     char *inputLayout, int64_t innerPrecise, int64_t sparseMode, int64_t pseType,
     const aclTensor *dqOut, const aclTensor *dqRopeOut, const aclTensor *dkOut, const aclTensor *dkRopeOut, const aclTensor *dvOut, const aclTensor *dpseOut,
-    uint64_t *workspaceSize, aclOpExecutor *executor) {
+    const uint64_t *workspaceSize, aclOpExecutor *executor) {
     (void) workspaceSize;
     // 检查tensor维度是否大于2
     auto ret = InvalidTensorDimCheck(query, queryRope, key, keyRope, value, dy, attentionInOptional, dqOut, dqRopeOut, dkOut, dkRopeOut, dvOut);
@@ -1636,7 +1637,6 @@ aclnnStatus aclnnFlashAttentionUnpaddingScoreGradV3GetWorkspaceSize(
     char *inputLayout, int64_t innerPrecise, int64_t sparseMode, int64_t pseType,
     const aclTensor *dqOut, const aclTensor *dqRopeOut, const aclTensor *dkOut, const aclTensor *dkRopeOut, const aclTensor *dvOut, const aclTensor *dpseOut,
     uint64_t *workspaceSize, aclOpExecutor **executor) {
-
     L2_DFX_PHASE_1(aclnnFlashAttentionUnpaddingScoreGradV3,
         DFX_IN(query, queryRope, keyIn, keyInRope, value, dy, pseShiftOptional, dropMaskOptional, paddingMaskOptional, attenMaskOptional,
                softmaxMaxOptional, softmaxSumOptional, softmaxInOptional, attentionInOptional, prefixOptional,

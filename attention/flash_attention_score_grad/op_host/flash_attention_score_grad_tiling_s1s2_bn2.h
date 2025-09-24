@@ -20,8 +20,6 @@
 #include "tiling_base/tiling_type.h"
 #include "flash_attention_score_grad_tiling_s1s2_bn2_def.h"
 
-using namespace Ops::Transformer::OpTiling;
-
 namespace optiling {
 
 constexpr uint32_t CORE_LIST_NUM = 50;
@@ -62,9 +60,9 @@ struct TempParamsS1s2Bn2 {
     bool isL1CustomEnable = false;
 };
 
-class FlashAttentionScoreGradTilingS1s2Bn2 : public TilingBaseClass {
+class FlashAttentionScoreGradTilingS1s2Bn2 : public Ops::Transformer::OpTiling::TilingBaseClass {
 public:
-    explicit FlashAttentionScoreGradTilingS1s2Bn2(gert::TilingContext *context) : TilingBaseClass(context)
+    explicit FlashAttentionScoreGradTilingS1s2Bn2(gert::TilingContext *context) : Ops::Transformer::OpTiling::TilingBaseClass(context)
     {
     }
 

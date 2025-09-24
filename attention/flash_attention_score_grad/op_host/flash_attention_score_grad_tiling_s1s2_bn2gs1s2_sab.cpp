@@ -64,6 +64,7 @@ constexpr uint32_t SHAPE_INFO = 32;
 constexpr uint32_t C0_SIZE = 16;
 constexpr uint32_t BLOCK_SIZE = 32;
 constexpr uint32_t DB_NUM = 2;
+constexpr uint32_t SOFTMAX_REDUCE_SIZE = 8;
 
 constexpr uint32_t SAMEAB_S1_BASE = 512;
 constexpr uint32_t SAMEAB_S1_256 = 256;
@@ -81,7 +82,8 @@ constexpr int64_t VEC_SPLIT_NUM = 3;
 constexpr float HALF = 0.5f;
 const char *TEMPLATE_NAME_SAME_AB = "FlashAttentionScoreGradTilingS1s2Bn2gs1s2SameAb";
 constexpr int64_t S_MAX = 8192;
-constexpr int64_t D_128 = 128;
+constexpr int64_t SPECIAL_HEADDIM_128 = 128;
+constexpr int64_t SPECIAL_HEADDIM_256 = 256;
 constexpr int64_t B_1 = 1;
 constexpr int64_t B_16 = 16;
 constexpr int64_t G_4 = 4;
@@ -114,7 +116,7 @@ bool FlashAttentionScoreGradTilingS1s2Bn2gs1s2SameAb::IsCapable()
             float keep_prob = fBaseParams.keepProb;
             float epsilon = 1e-10f;
             auto dropMask = context_->GetOptionalInputDesc(DROP_MASK);
-            if ((fBaseParams.d == D_128) && (fBaseParams.b >= B_1) && (fBaseParams.b <= B_16) &&
+            if ((fBaseParams.d == SPECIAL_HEADDIM_128) && (fBaseParams.b >= B_1) && (fBaseParams.b <= B_16) &&
                 (fBaseParams.g >= G_4) && (fBaseParams.t1 == fBaseParams.t2) &&
                 (fBaseParams.sparseMode == SPARSE_MODE_3 || fBaseParams.sparseMode == 0) && (1.0f - keep_prob < epsilon) &&
                 (fBaseParams.pseOptional == EMPTY_TENSOR) && (dropMask == nullptr)) {
@@ -213,9 +215,9 @@ uint64_t FlashAttentionScoreGradTilingS1s2Bn2gs1s2SameAb::GetTilingKey() const
         s2TemplateType = STemplateTypeSab::Aligned512;
         if (fBaseParams.d == 64) {
             dTemplateType = DTemplateTypeSab::Aligned64;
-        } else if (fBaseParams.d == 128) {
+        } else if (fBaseParams.d == SPECIAL_HEADDIM_128) {
             dTemplateType = DTemplateTypeSab::Aligned128;
-        } else if (fBaseParams.d > 128 && fBaseParams.d <= 256) {
+        } else if (fBaseParams.d > SPECIAL_HEADDIM_128 && fBaseParams.d <= SPECIAL_HEADDIM_256) {
             dTemplateType = DTemplateTypeSab::Aligned192;
         }
     }
@@ -235,7 +237,8 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2gs1s2SameAb::GetPlatformInfo
 
     auto platformInfoPtr = context_->GetPlatformInfo();
     if (platformInfoPtr == nullptr) {
-        auto compileInfoPtr = reinterpret_cast<const FlashAttentionScoreGradCompileInfo *>(context_->GetCompileInfo());
+        auto compileInfoPtr = reinterpret_cast<const Ops::Transformer::OpTiling::FlashAttentionScoreGradCompileInfo *>(
+            context_->GetCompileInfo());
         OP_CHECK_IF(compileInfoPtr == nullptr, OP_LOGE(context_, "compile_info is null"),
                    return ge::GRAPH_FAILED);
 
@@ -1157,11 +1160,11 @@ void FlashAttentionScoreGradTilingS1s2Bn2gs1s2SameAb::ChooseL1Custom()
     bool splitCond = fBaseParams.s1CvInner == 512 && fBaseParams.s2CvInner == 512;
     bool ShapeCond = fBaseParams.layoutType == INPUT_FORMAT_BN2GS2D;
     if (inputCond && optionalInputCond && dtmCond && splitCond) {
-        if (fBaseParams.d == 128) {
+        if (fBaseParams.d == SPECIAL_HEADDIM_128) {
             fBaseParams.enableL1Custom = true;
             fBaseParams.mm1IsNZOut = true;
             fBaseParams.mm2IsNZOut = true;
-        } else if (fBaseParams.d > 128 && fBaseParams.d <= 256) {
+        } else if (fBaseParams.d > SPECIAL_HEADDIM_128 && fBaseParams.d <= SPECIAL_HEADDIM_256) {
             if (ShapeCond && fBaseParams.attenMaskOptional != EMPTY_TENSOR) {
                 fBaseParams.enableL1Custom = true;
                 fBaseParams.mm1IsNZOut = true;
@@ -1289,13 +1292,13 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2gs1s2SameAb::DoLibApiTiling(
     mm1.SetBias(false);
     uint32_t baseBlockSize = 128;
     uint32_t baseM = std::min(fBaseParams.s1CvInner, baseBlockSize);
-    uint32_t baseN = fBaseParams.d > 64 ? 128 : 256;
+    uint32_t baseN = fBaseParams.d > 64 ? SPECIAL_HEADDIM_128 : SPECIAL_HEADDIM_256;
     if (fBaseParams.enableL1Custom) {
         mm1.SetFixSplit(baseM, baseN, -1);
         OP_CHECK_IF(mm1.GetTiling(tilingData.mm1TilingData) != 0,
                    OP_LOGE(context_, "l1 custom matmul1 tilingData get fail."),
                    return ge::GRAPH_FAILED);
-        if (fBaseParams.d > 128 && fBaseParams.d <= 256) {
+        if (fBaseParams.d > SPECIAL_HEADDIM_128 && fBaseParams.d <= SPECIAL_HEADDIM_256) {
             int64_t baseK = (fBaseParams.d / 2 + INPUT_ALIGN - 1) / INPUT_ALIGN * INPUT_ALIGN;
             tilingData.mm1TilingData.set_baseK(baseK);
             tilingData.mm1TilingData.set_stepM(2);
@@ -1309,8 +1312,8 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2gs1s2SameAb::DoLibApiTiling(
                    OP_LOGE(context_, "matmul1 tilingData get fail."), return ge::GRAPH_FAILED);
     }
     SetMatmulTilingBufferInfo(tilingData.mm1TilingData);
-    if (fBaseParams.enableL1Custom && fBaseParams.d > 128 && fBaseParams.d <= 256) {
-        tilingData.mm1TilingData.set_dbL0C(2);
+    if (fBaseParams.enableL1Custom && fBaseParams.d > SPECIAL_HEADDIM_128 && fBaseParams.d <= SPECIAL_HEADDIM_256) {
+        tilingData.mm1TilingData.set_dbL0C(DB_NUM);
     }
 
     // format left[B, N2, G, S1, S2] right[B, N2, G, S1, D] result[B, N2, G, S2, D]
@@ -1352,7 +1355,7 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2gs1s2SameAb::DoLibApiTiling(
     }
     SetMatmulTilingBufferInfo(tilingData.mm2TilingData);
     if (fBaseParams.enableL1Custom) {
-        tilingData.mm2TilingData.set_dbL0C(2);
+        tilingData.mm2TilingData.set_dbL0C(DB_NUM);
     }
 
     // format left[B, N2, G, S1, S2] right[B, N2, 1, S2, D] result[B, N2, G, S1, D]
@@ -1382,7 +1385,7 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2gs1s2SameAb::DoLibApiTiling(
     }
     SetMatmulTilingBufferInfo(tilingData.mm3TilingData);
     if (fBaseParams.enableL1Custom) {
-        tilingData.mm2TilingData.set_dbL0C(2);
+        tilingData.mm2TilingData.set_dbL0C(DB_NUM);
     }
 
     // 这里是否需要修改为与kernel一致
@@ -1439,8 +1442,8 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2gs1s2SameAb::GetWorkspaceSiz
             (workspaceSize + static_cast<size_t>(fBaseParams.dropMaskSize) + GM_ALIGN) / GM_ALIGN * GM_ALIGN;
     }
     // sfmg workspace
-    workspaceSize = workspaceSize + static_cast<size_t>(AlignTo(fBaseParams.sfmgNormalAxisSize * 8 * FP32_BYTES,
-                                                                static_cast<int64_t>(GM_ALIGN)));
+    workspaceSize = workspaceSize + static_cast<size_t>(AlignTo(
+        fBaseParams.sfmgNormalAxisSize * SOFTMAX_REDUCE_SIZE * FP32_BYTES, static_cast<int64_t>(GM_ALIGN)));
 
     // matmal1/matmal2 workspace size
     size_t vectorCoreNum = fBaseParams.coreNum;
@@ -1482,16 +1485,16 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2gs1s2SameAb::GetWorkspaceSiz
         int64_t dRopeAlign = (fBaseParams.rope_d + FP16_BLOCK_NUMS - 1) / FP16_BLOCK_NUMS * FP16_BLOCK_NUMS;
         int64_t cvS2Inner = fBaseParams.s2CvInner;
         workspaces[0] +=
-            AlignUp(fBaseParams.s1CvInner * dAlign * FP32_BYTES * fBaseParams.coreNum / 2 * DB_NUM, GM_ALIGN);
+            AlignUp(fBaseParams.s1CvInner * dAlign * FP32_BYTES * fBaseParams.aicNum * DB_NUM, GM_ALIGN);
         if (fBaseParams.rope_d > 0) {
             workspaces[0] +=
-                AlignUp(fBaseParams.s1CvInner * dRopeAlign * FP32_BYTES * fBaseParams.coreNum / 2 * DB_NUM, GM_ALIGN);
+                AlignUp(fBaseParams.s1CvInner * dRopeAlign * FP32_BYTES * fBaseParams.aicNum * DB_NUM, GM_ALIGN);
         }
-        workspaces[0] += AlignUp(cvS2Inner * dAlign * FP32_BYTES * fBaseParams.coreNum / 2 * DB_NUM, GM_ALIGN);
+        workspaces[0] += AlignUp(cvS2Inner * dAlign * FP32_BYTES * fBaseParams.aicNum * DB_NUM, GM_ALIGN);
         if (fBaseParams.rope_d > 0) {
-            workspaces[0] += AlignUp(cvS2Inner * dRopeAlign * FP32_BYTES * fBaseParams.coreNum / 2 * DB_NUM, GM_ALIGN);
+            workspaces[0] += AlignUp(cvS2Inner * dRopeAlign * FP32_BYTES * fBaseParams.aicNum * DB_NUM, GM_ALIGN);
         }
-        workspaces[0] += AlignUp(cvS2Inner * value_dAlign * FP32_BYTES * fBaseParams.coreNum / 2 * DB_NUM, GM_ALIGN);
+        workspaces[0] += AlignUp(cvS2Inner * value_dAlign * FP32_BYTES * fBaseParams.aicNum * DB_NUM, GM_ALIGN);
     }
 
     return ge::GRAPH_SUCCESS;
@@ -2040,7 +2043,15 @@ void FlashAttentionScoreGradTilingS1s2Bn2gs1s2SameAb::DetermineMode()
 }
 
 
-REGISTER_TILING_TEMPLATE_WITH_SOCVERSION(FlashAttentionScoreGrad, FlashAttentionScoreGradTilingS1s2Bn2gs1s2SameAb, std::vector<int32_t>({(int32_t)platform_ascendc::SocVersion::ASCEND910B, (int32_t)platform_ascendc::SocVersion::ASCEND910_93}), 15500);
-REGISTER_TILING_TEMPLATE_WITH_SOCVERSION(FlashAttentionScoreGrad, FlashAttentionScoreGradTilingSameABDeterministic, std::vector<int32_t>({(int32_t)platform_ascendc::SocVersion::ASCEND910B, (int32_t)platform_ascendc::SocVersion::ASCEND910_93}), 1100);
+REGISTER_TILING_TEMPLATE_WITH_SOCVERSION(
+    FlashAttentionScoreGrad, FlashAttentionScoreGradTilingS1s2Bn2gs1s2SameAb,
+    std::vector<int32_t>({static_cast<int32_t>(platform_ascendc::SocVersion::ASCEND910B),
+                          static_cast<int32_t>(platform_ascendc::SocVersion::ASCEND910_93)}),
+    15500);
+REGISTER_TILING_TEMPLATE_WITH_SOCVERSION(
+    FlashAttentionScoreGrad, FlashAttentionScoreGradTilingSameABDeterministic,
+    std::vector<int32_t>({static_cast<int32_t>(platform_ascendc::SocVersion::ASCEND910B),
+                          static_cast<int32_t>(platform_ascendc::SocVersion::ASCEND910_93)}),
+    1100);
 
 } // namespace optiling

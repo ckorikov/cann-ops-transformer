@@ -19,8 +19,6 @@
 #include "tiling_base/tiling_base.h"
 #include "flash_attention_score_grad_tiling_s1s2_bn2gs1s2_def.h"
 
-using namespace Ops::Transformer::OpTiling;
-
 namespace optiling {
 
 constexpr uint32_t CORE_LIST_NUM = 50;
@@ -130,9 +128,9 @@ struct FuzzyBaseInfoParams { // 频繁使用的基础参数
     TilingDataType mode;
 };
 
-class FlashAttentionScoreGradTilingS1s2Bn2gs1s2 : public TilingBaseClass {
+class FlashAttentionScoreGradTilingS1s2Bn2gs1s2 : public Ops::Transformer::OpTiling::TilingBaseClass {
 public:
-    explicit FlashAttentionScoreGradTilingS1s2Bn2gs1s2(gert::TilingContext *context) : TilingBaseClass(context)
+    explicit FlashAttentionScoreGradTilingS1s2Bn2gs1s2(gert::TilingContext *context) : Ops::Transformer::OpTiling::TilingBaseClass(context)
     {
     }
     FlashAttentionScoreGradTilingDataS1s2Bn2gs1s2 tilingData;

@@ -43,17 +43,21 @@ using namespace AscendC;
 #ifdef __DAV_C220_CUBE__ // CUBE 实现
 
 #define COPY_TILING_DATA(tiling)                                                                                       \
-    GET_TILING_DATA_MEMBER(FlashAttentionScoreGeneralTilingData, bmm1TilingData, bmm1TilingDataVar, tiling);           \
-    GET_TILING_DATA_MEMBER(FlashAttentionScoreGeneralTilingData, bmm2TilingData, bmm2TilingDataVar, tiling);           \
-    const FlashAttentionScoreGeneralTilingData *__restrict tilingData = nullptr;                                       \
-    const TCubeTiling *__restrict bmm1tiling = &bmm1TilingDataVar;                                                     \
-    const TCubeTiling *__restrict bmm2tiling = &bmm2TilingDataVar;                                        
+    do {                                                                                                               \
+        GET_TILING_DATA_MEMBER(FlashAttentionScoreGeneralTilingData, bmm1TilingData, bmm1TilingDataVar, tiling);       \
+        GET_TILING_DATA_MEMBER(FlashAttentionScoreGeneralTilingData, bmm2TilingData, bmm2TilingDataVar, tiling);       \
+        const FlashAttentionScoreGeneralTilingData *__restrict tilingData = nullptr;                                   \
+        const TCubeTiling *__restrict bmm1tiling = &bmm1TilingDataVar;                                                 \
+        const TCubeTiling *__restrict bmm2tiling = &bmm2TilingDataVar;                                                 \
+    } while (0)
 
 #define COPY_TILING_DATA_SAMEAB(tiling)                                                                                \
-    GET_TILING_DATA_WITH_STRUCT(FlashAttentionScoreGeneralTilingData, tilingDataIn, tiling);                           \
-    const FlashAttentionScoreGeneralTilingData *__restrict tilingData = &tilingDataIn;                                 \
-    const TCubeTiling *__restrict bmm1tiling = &(tilingData->bmm1TilingData);                                          \
-    const TCubeTiling *__restrict bmm2tiling = &(tilingData->bmm2TilingData);                                          
+    do {                                                                                                               \
+        GET_TILING_DATA_WITH_STRUCT(FlashAttentionScoreGeneralTilingData, tilingDataIn, tiling);                       \
+        const FlashAttentionScoreGeneralTilingData *__restrict tilingData = &tilingDataIn;                             \
+        const TCubeTiling *__restrict bmm1tiling = &(tilingData->bmm1TilingData);                                      \
+        const TCubeTiling *__restrict bmm2tiling = &(tilingData->bmm2TilingData);                                      \
+    } while (0)
 
 #define INVOKE_FA_GENERAL_OP_IMPL(templateClass, ...)                                                                  \
     do {                                                                                                               \

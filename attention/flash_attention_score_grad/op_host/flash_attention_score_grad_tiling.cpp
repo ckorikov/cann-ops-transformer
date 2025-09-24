@@ -48,6 +48,7 @@ constexpr uint32_t LAYOUT_ATTR_IDX = 5;
 
 constexpr uint32_t FAG_EMPTY_TILING_KEY = 90;
 constexpr uint32_t TILING_KEY_1 = 1U;
+constexpr size_t WORKSPACE_SIZE = 100 * 1024 * 1024;
 
 static uint32_t CalculateTschBlockDim(uint32_t sliceNum, uint32_t aicCoreNum, uint32_t aivCoreNum)
 {
@@ -130,7 +131,7 @@ public:
             (dqNum < aivNum && dkNum < aivNum && dpseNum < aivNum) ? std::max(std::max(dqNum, dkNum), dpseNum) : aivNum;
         context->SetBlockDim(CalculateTschBlockDim(sliceNum, aicNum, aivNum));
         size_t *workspaces = context->GetWorkspaceSizes(1);
-        workspaces[0] = 100 * 1024 * 1024;
+        workspaces[0] = WORKSPACE_SIZE;
         tilingData.SaveToBuffer(context->GetRawTilingData()->GetData(), context->GetRawTilingData()->GetCapacity());
         context->GetRawTilingData()->SetDataSize(tilingData.GetDataSize());
         return ge::GRAPH_SUCCESS;
@@ -202,7 +203,7 @@ public:
             (dqNum < aivNum && dkNum < aivNum && dpseNum < aivNum) ? std::max(std::max(dqNum, dkNum), dpseNum) : aivNum;
         context->SetBlockDim(CalculateTschBlockDim(sliceNum, aicNum, aivNum));
         size_t *workspaces = context->GetWorkspaceSizes(1);
-        workspaces[0] = 100 * 1024 * 1024;
+        workspaces[0] = WORKSPACE_SIZE;
         return ge::GRAPH_SUCCESS;
     }
 };

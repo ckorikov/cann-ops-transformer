@@ -157,7 +157,8 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2gs1s2::GetPlatformInfo()
 
     auto platformInfoPtr = context_->GetPlatformInfo();
     if (platformInfoPtr == nullptr) {
-        auto compileInfoPtr = reinterpret_cast<const FlashAttentionScoreGradCompileInfo *>(context_->GetCompileInfo());
+        auto compileInfoPtr = reinterpret_cast<const Ops::Transformer::OpTiling::FlashAttentionScoreGradCompileInfo *>(
+            context_->GetCompileInfo());
         OP_CHECK_IF(compileInfoPtr == nullptr, OP_LOGE(context_, "compile_info is null"),
                    return ge::GRAPH_FAILED);
 
@@ -2356,7 +2357,6 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2gs1s2::DoPreTiling()
         tilingData.preTilingData.set_kRopePreBlockTail(kRopePreTailNum);
     }
 
-
     int64_t vPreBlockFactor = (fBaseParams.vSizeAlign + maskUsedCoreNum - 1) / maskUsedCoreNum;
     OP_CHECK_IF(vPreBlockFactor == 0, OP_LOGE(context_, "divisor vPreBlockFactor is 0."),
                return ge::GRAPH_FAILED);
@@ -2543,6 +2543,10 @@ void FlashAttentionScoreGradTilingS1s2Bn2gs1s2::DetermineMode()
 }
 
 
-REGISTER_TILING_TEMPLATE_WITH_SOCVERSION(FlashAttentionScoreGrad, FlashAttentionScoreGradTilingS1s2Bn2gs1s2, std::vector<int32_t>({(int32_t)platform_ascendc::SocVersion::ASCEND910B, (int32_t)platform_ascendc::SocVersion::ASCEND910_93}), 16000);
+REGISTER_TILING_TEMPLATE_WITH_SOCVERSION(
+    FlashAttentionScoreGrad, FlashAttentionScoreGradTilingS1s2Bn2gs1s2,
+    std::vector<int32_t>({static_cast<int32_t>(platform_ascendc::SocVersion::ASCEND910B),
+                          static_cast<int32_t>(platform_ascendc::SocVersion::ASCEND910_93)}),
+    16000);
 
 } // namespace optiling

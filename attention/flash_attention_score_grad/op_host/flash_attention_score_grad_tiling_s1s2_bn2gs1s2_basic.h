@@ -20,8 +20,6 @@
 #include "flash_attention_score_grad_tiling_s1s2_bn2gs1s2_basic_def.h"
 #include "flash_attention_score_grad_tiling_common.h"
 
-using namespace Ops::Transformer::OpTiling;
-
 namespace optiling {
 struct MlaBaseInfoParams {
     uint32_t coreNum;
@@ -76,9 +74,9 @@ struct MultiHeadLatentAttentionGradCompileInfo {
     int64_t coreNum;
 };
 
-class FlashAttentionScoreGraTilingMla : public TilingBaseClass {
+class FlashAttentionScoreGraTilingMla : public Ops::Transformer::OpTiling::TilingBaseClass {
 public:
-    explicit FlashAttentionScoreGraTilingMla(gert::TilingContext *context) : TilingBaseClass(context)
+    explicit FlashAttentionScoreGraTilingMla(gert::TilingContext *context) : Ops::Transformer::OpTiling::TilingBaseClass(context)
     {
     }
     FlashAttentionGradMlaTilingData tilingData;
