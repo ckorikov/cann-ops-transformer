@@ -278,6 +278,7 @@ private:
     bool hasElasticInfoFlag_ = false;
     bool isScalingDownFlag_ = false;
     bool isShareExpertRankFlag_ = false;
+    bool enableSpecialExpert_ = false;
 
     // int8量化
     TBuf<> xAbsBuf_;
@@ -456,6 +457,7 @@ __aicore__ inline void MoeDistributeCombineAddRmsNorm<TemplateMC2TypeFunc>::Init
     copyExpertNum_ = tilingData->moeDistributeCombineV2Info.copyExpertNum;
     constExpertNum_ = tilingData->moeDistributeCombineV2Info.constExpertNum;
     moeExpertNum_ = tilingData->moeDistributeCombineV2Info.moeExpertNum;
+    enableSpecialExpert_ = (constExpertNum_ + zeroExpertNum_ + copyExpertNum_ > 0U);
 
     stateOffset_ = STATE_OFFSET;
     uint32_t hFloatSize = axisH_ * static_cast<uint32_t>(sizeof(float));
@@ -711,7 +713,7 @@ __aicore__ inline void MoeDistributeCombineAddRmsNorm<TemplateMC2TypeFunc>::Allt
     uint32_t maxSizeTokenBuf = hExpandXAlign32Size_;
     uint32_t maxSizeRowTmpFloatBuf = hFloatAlign32Size_;
     activeMaskAlignSize_ = axisBS_ * (Ceil(axisK_ * sizeof(bool), UB_ALIGN) * UB_ALIGN);
-    if (isInputExpertMaskFlag_) {
+    if (isInputExpertMaskFlag_ || enableSpecialExpert_) {
         uint32_t activeMaskAlignHalfSize = activeMaskAlignSize_ * sizeof(half);
         maxSizeTokenBuf = activeMaskAlignSize_ > hExpandXAlign32Size_ ? activeMaskAlignSize_ : hExpandXAlign32Size_;
         maxSizeRowTmpFloatBuf = activeMaskAlignHalfSize > hFloatAlign32Size_ ? activeMaskAlignHalfSize : hFloatAlign32Size_;
@@ -751,7 +753,7 @@ __aicore__ inline void MoeDistributeCombineAddRmsNorm<TemplateMC2TypeFunc>::Allt
         DataCopyExtParams maskParams{1U, static_cast<uint32_t>(axisBS_ * axisK_ * sizeof(bool)), 0U, 0U, 0U};
         DataCopyPad(expertMaskTensor_, xActiveMaskGM_, maskParams, maskCopyPadParams);
     }
-    if (constExpertNum_ + zeroExpertNum_ + copyExpertNum_ > 0U) {
+    if (enableSpecialExpert_) {
         maskGenerateTensor_ = sumFloatBuf_.Get<bool>();
         if (!isInputExpertMaskFlag_) {
             tpipe_->InitBuffer(tokenTargetTBuf_, Ceil(axisBS_ * sizeof(half), UB_ALIGN) * UB_ALIGN);
