@@ -12,3 +12,4 @@
 |[aclnnNsaCompressWithCache](../../attention/nsa_compress_with_cache/docs/aclnnNsaCompressWithCache.md)|实现Native-Sparse-Attention推理阶段的KV压缩。|
 |[aclnnPromptFlashAttentionV3](../../attention/prompt_flash_attention/docs/aclnnPromptFlashAttentionV3.md)|实现全量推理场景的FlashAttention算子，支持sparse优化、actualSeqLengthsKv优化、int8量化功能、innerPrecise参数|
 |[aclnnIncreFlashAttentionV4](../../attention/incre_flash_attention/docs/aclnnIncreFlashAttentionV4.md)|在全量推理场景的FlashAttention算子的基础上实现增量推理|
+|[aclnnNsaSelectedAttentionInfer](../../attention/nsa_select_attention_infer/docs/aclnnNsaSelectedAttentionInfer.md)|实现Native Sparse Attention推理过程中，Selected Attention的计算。|
