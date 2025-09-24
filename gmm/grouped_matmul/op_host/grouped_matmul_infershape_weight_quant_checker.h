@@ -40,7 +40,6 @@ private:
     ge::graphStatus CheckShapeForGrouplist(const gert::InferShapeContext *context, const gert::Shape *groupListShape) const;
     ge::graphStatus UpdateShapeY(gert::InferShapeContext *context, size_t idxY, std::vector<int64_t> &yDims) const;
     ge::graphStatus CheckGroupSize(const gert::InferShapeContext *context, const GMMAttrs &gmmAttrs) const;
-    ge::graphStatus CheckTransposeValid(const gert::InferShapeContext *context, const GMMAttrs &gmmAttrs) const;
 
 private:
     int64_t groupNum_; //当前含义为M分组数g

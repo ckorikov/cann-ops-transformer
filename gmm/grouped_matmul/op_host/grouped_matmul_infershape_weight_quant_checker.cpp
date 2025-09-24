@@ -344,26 +344,6 @@ bool CheckUnknownShape(const gert::InferShapeContext *context) {
     return hasUnknownShape;
 }
 
-ge::graphStatus GroupedMatmulWeightQuantChecker::CheckTransposeValid(const gert::InferShapeContext *context,
-                                                                 const GMMAttrs &gmmAttrs) const {
-    auto weightDesc = context->GetDynamicInputDesc(GMM_INDEX_IN_WEIGHT, 0);
-    auto weightDtype = weightDesc->GetDataType();
-    OP_CHECK_IF(gmmAttrs.transposeX, OP_LOGE(context->GetNodeName(), "Unsupport transposeX for weight quant."),
-              return ge::GRAPH_FAILED);
-    if (weightDtype != ge::DT_FLOAT4_E2M1 && weightDtype != ge::DT_FLOAT) {
-        OP_CHECK_IF(!gmmAttrs.transposeWeight,
-                  OP_LOGE(context->GetNodeName(),
-                            "Unsupport Weight not transpose for weight quant when weight dtype is not fp4."),
-                  return ge::GRAPH_FAILED);
-    } else {
-        OP_CHECK_IF(
-            gmmAttrs.transposeWeight,
-            OP_LOGE(context->GetNodeName(), "Unsupport Weight transpose for weight quant when weight dtype is fp4."),
-            return ge::GRAPH_FAILED);
-    }
-    return ge::GRAPH_SUCCESS;
-}
-
 ge::graphStatus GroupedMatmulWeightQuantChecker::CheckShape(const gert::InferShapeContext *context,
                                                         const GroupedMatmulCommonUtil &commonUtil) {
     if (xMDim_ < 0 || CheckUnknownShape(context)) {
@@ -376,8 +356,6 @@ ge::graphStatus GroupedMatmulWeightQuantChecker::CheckShape(const gert::InferSha
               OP_LOGE(context->GetNodeName(), "CheckShapeValid failed."), return ge::GRAPH_FAILED);
     OP_CHECK_IF(CheckFormatValid(context) != ge::GRAPH_SUCCESS, OP_LOGE(context->GetNodeName(), "CheckFormatValid failed."),
               return ge::GRAPH_FAILED);
-    OP_CHECK_IF(CheckTransposeValid(context, commonUtil.attrsInfo) != ge::GRAPH_SUCCESS,
-              OP_LOGE(context->GetNodeName(), "CheckTransposeValid failed."), return ge::GRAPH_FAILED);
     return ge::GRAPH_SUCCESS;
 }
 
