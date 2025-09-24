@@ -95,7 +95,6 @@ static ge::graphStatus InferShapeSwinTransformerLnQkvQuant(gert::InferShapeConte
       inputSize *= shapeValue;
   }
 
-
   OP_LOGW(context->GetNodeName(), "inputSize: %d", inputSize);
   qShape->SetDimNum(OUTPUT_CHANNEL);
   kShape->SetDimNum(OUTPUT_CHANNEL);
