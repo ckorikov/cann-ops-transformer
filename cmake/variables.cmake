@@ -305,3 +305,15 @@ set(AICPU_LINK
   -Wl,--as-needed
   $<$<STREQUAL:${PRODUCT_SIDE},device>:malblas_static>
 )
+
+if(EXISTS ${TOP_DIR}/build/product/onetrack/sys_version/sys_version.conf)
+    execute_process(COMMAND grep -Po "^\\d+\\.\\d+" ${TOP_DIR}/build/product/onetrack/sys_version/sys_version.conf
+        OUTPUT_VARIABLE SYS_VERSION
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+else()
+    execute_process(COMMAND grep -Po "(?<=Version=)[0-9]+\.[0-9]+" ${OPS_TRANSFORMER_DIR}/version.info
+        OUTPUT_VARIABLE SYS_VERSION
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+endif()

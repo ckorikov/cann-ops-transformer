@@ -1,3 +1,5 @@
+cmake_minimum_required(VERSION 3.16)
+
 project(tiling_sink_project)
 
 include(${CMAKE_CURRENT_SOURCE_DIR}/../../../cmake/intf.cmake)

@@ -92,15 +92,6 @@ else()
     )
 endif()
 
-if(EXISTS ${TOP_DIR}/build/product/onetrack/sys_version/sys_version.conf)
-    execute_process(COMMAND grep -Po "^\\d+\\.\\d+" ${TOP_DIR}/build/product/onetrack/sys_version/sys_version.conf
-        OUTPUT_VARIABLE SYS_VERSION
-        OUTPUT_STRIP_TRAILING_WHITESPACE
-    )
-else()
-    set(SYS_VERSION 8.3)
-endif()
-
 if (NOT BUILD_OPS_RTY_KERNEL)
     if (BUILD_OPEN_PROJECT)
         ExternalProject_Add(tiling_sink_task
@@ -115,7 +106,6 @@ if (NOT BUILD_OPS_RTY_KERNEL)
                 -DCMAKE_C_COMPILER_LAUNCHER=${CMAKE_C_COMPILER_LAUNCHER}
                 -DCMAKE_CXX_COMPILER_LAUNCHER=${CMAKE_CXX_COMPILER_LAUNCHER}
                 -DSYS_VERSION=${SYS_VERSION}
-                -DENABLE_BUILT_IN=${ENABLE_BUILT_IN}
                 -DOPS_ADV_CMAKE_DIR=${OPS_ADV_CMAKE_DIR}
                 -DPRODUCT_SIDE=device
                 <SOURCE_DIR>
