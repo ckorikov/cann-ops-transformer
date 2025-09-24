@@ -47,7 +47,7 @@ struct InputParam {
   int64_t totalLength = 0;
   int64_t numOutTokens = 0;
   int64_t tokensDtypeSize = 0;
-  int64_t numExperts = 0;
+  int64_t numExperts = 1;
   int64_t indicesDtypeSize = 0;
   int64_t probsDtypeSize = 0;
   bool haveProbs = false;
@@ -359,36 +359,29 @@ static inline void Tiling4MaskedSelect(MoeTokenUnpermuteWithRoutingMapTilingData
 
   // 一个block存放的元素
   uint32_t alignNum = BLOCK_SIZE / NUM_TWO;       // 256/<8>=32
-
   // ub对齐后长度
   uint64_t oneDataSize = IO_QUE * DOUBLE_BUFFER * sizeOfDataType + MASK_ONE_DATA_SIZE + INDEX_ONE_DATA_SIZE;
   uint64_t ubLength = ((ubSize - ONE_BLOCK_BYTE * DOUBLE_BUFFER * DOUBLE_BUFFER) / oneDataSize) / alignNum * alignNum;
-
-  ubLength = ubLength > static_cast<uint64_t>(param.input.tokensNum) ? param.input.tokensNum : ubLength;//一次ub能放多少数
-  // 核内拆分，策略是尽可能的填满ub_size,最后一包单独处理，
+  ubLength = ubLength > static_cast<uint64_t>(param.input.tokensNum) ? param.input.tokensNum : ubLength;
   // ub能放的元素个数
   // 运行核数
   blockDim = (static_cast<uint64_t>(param.input.numExperts) > aivUseNum) ? aivUseNum : param.input.numExperts;
   mstilingData->set_needCoreNum(blockDim);
-
   // 切分流程
   formerNum = param.input.numExperts % blockDim;
   if (formerNum == 0){
       formerNum = blockDim;
   }
   tailNum = blockDim - formerNum;
-
-  formerLength = (param.input.numExperts + blockDim -1) / blockDim * param.input.tokensNum;//算的多的核需要算多少数
-  formerTileNum = (formerLength + ubLength - 1) / ubLength;//算的多的核要用多少次ub
-  formerTileLength = ubLength;//算的多的核一次ub能放多少数
-  formerLastTileLength = formerLength % ubLength;//算的多的核最后一次ub需要算多少数
-
+  formerLength = (param.input.numExperts + blockDim -1) / blockDim * param.input.tokensNum;
+  formerTileNum = (formerLength + ubLength - 1) / ubLength;
+  formerTileLength = ubLength;
+  formerLastTileLength = formerLength % ubLength;
   if (formerLastTileLength == 0) {
       formerLastTileLength = ubLength;
   }
-
   if (tailNum > 0) {
-      tailLength = (totalLength -formerLength * formerNum) / tailNum; // 一定可能整出
+      tailLength = (totalLength -formerLength * formerNum) / tailNum; 
       tailTileNum = (tailLength + ubLength - 1) / ubLength;
       tailTileLength = ubLength;
       tailLastTileLength = tailLength % ubLength;
@@ -396,9 +389,7 @@ static inline void Tiling4MaskedSelect(MoeTokenUnpermuteWithRoutingMapTilingData
           tailLastTileLength = ubLength;
       }
   }
-
   param.core.maxUsedCoreNum = std::max(param.core.usedCoreNum, static_cast<int64_t>(blockDim)); 
-
   mstilingData->set_formerNum(formerNum);
   mstilingData->set_formerLength(formerLength);
   mstilingData->set_formertileNum(formerTileNum);
