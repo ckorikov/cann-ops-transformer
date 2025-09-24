@@ -1,22 +1,21 @@
 # aclnnAllGatherMatmul
-
 ## 产品支持情况
-| 产品                                                         | 是否支持 |
-| :----------------------------------------------------------- | :------: |
-| <term>昇腾910_95 AI处理器</term>                             |    √     |
-| <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>     |    √     |
-| <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term> |    √     |
-| <term>Atlas 200I/500 A2 推理产品</term>                      |    ×     |
-| <term>Atlas 推理系列产品 </term>                             |    ×     |
-| <term>Atlas 训练系列产品</term>                              |    ×     |
-| <term>Atlas 200/300/500 推理产品</term>                      |    ×     |
+| 产品                                                                            | 是否支持 |
+| :------------------------------------------------------------------------------ | :------: |
+| <term>昇腾910_95 AI处理器</term>                                                | √       |
+| <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>                        | √       |
+| <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term> | √       |
+| <term>Atlas 200I/500 A2 推理产品</term>                                         | ×       |
+| <term>Atlas 推理系列产品 </term>                                                | ×       |
+| <term>Atlas 训练系列产品</term>                                                 | ×       |
+| <term>Atlas 200/300/500 推理产品</term>                                         | ×       |
 
 **说明：** 使用该接口时，请确保驱动固件包和CANN包都为配套的8.0.RC2版本或者配套的更高版本，否则将会引发报错，比如BUS ERROR等。
 
 
 ## 功能说明
 
--   **算子功能**：完成all\_gather通信+matmul融合。
+-   **算子功能**：完成AllGather通信与MatMul计算融合。
 -   **计算公式**：
 
     $$
@@ -36,52 +35,222 @@
 ## aclnnAllGatherMatmulGetWorkspaceSize
 
 -   **参数说明：**
-    -   x1（aclTensor\*，计算输入）：Device侧的aclTensor，即计算公式中的x1。数据类型支持FLOAT16、BFLOAT16，且与x2的数据类型保持一致。[数据格式](common/数据格式.md)支持ND。**当前版本仅支持两维输入，且仅支持不转置场景**。
-    -   x2（aclTensor\*，计算输入）：Device侧的aclTensor，即计算公式中的x2。数据类型支持FLOAT16、BFLOAT16，且与x1的数据类型保持一致。[数据格式](common/数据格式.md)支持ND。支持通过转置构造的[非连续的Tensor](common/非连续的Tensor.md)。**当前版本仅支持两维输入**。
-    -   bias（aclTensor\*，计算输入）：Device侧的aclTensor，即计算公式中的bias。数据类型支持FLOAT16、BFLOAT16。[数据格式](common/数据格式.md)支持ND。支持传入空指针的场景。**当前版本仅支持一维输入，且暂不支持bias输入为非0的场景**。
-    -   group（char\*，计算输入）：Host侧标识通信域的字符串，通信域名称。数据类型支持String。通过Hccl提供的接口“extern HcclResult HcclGetCommName(HcclComm comm, char* commName);”获取，其中commName即为group。
-    -   gatherIndex（int64\_t，计算输入）：Host侧的整型，标识gather目标，0表示目标为x1，1表示目标为x2。数据类型支持INT64。**当前版本仅支持输入0。**
-    -   commTurn（int64\_t，计算输入）：Host侧的整型，通信数据切分数，即总数据量/单次通信量。数据类型支持INT64。**当前版本仅支持输入0。**
-    -   streamMode（int64\_t，计算输入）：Host侧的整型，流模式的枚举，当前只支持枚举值1，类型支持INT64。
-    -   output（aclTensor\*，计算输出）：Device侧的aclTensor，all\_gather通信+mm计算的结果，即计算公式中的output。数据类型支持FLOAT16、BFLOAT16，且与x1的数据类型保持一致。[数据格式](common/数据格式.md)支持ND。
-    -   gatherOut（aclTensor\*，计算输出）：Device侧的aclTensor，仅输出all\_gather通信后的结果，即计算公式中的gatherOut。数据类型支持FLOAT16、BFLOAT16，且与x1的数据类型保持一致。[数据格式](common/数据格式.md)支持ND。
-    -   workspaceSize（uint64\_t\*，出参）：返回需要在Device侧申请的workspace大小。
-    -   executor（aclOpExecutor \*\*，出参）：返回op执行器，包含了算子计算流程。
+    <table style="undefined;table-layout: fixed; width: 1567px"><colgroup>
+      <col style="width: 170px">
+      <col style="width: 120px">
+      <col style="width: 300px">  
+      <col style="width: 330px">  
+      <col style="width: 212px">  
+      <col style="width: 100px"> 
+      <col style="width: 190px">
+      <col style="width: 145px">
+      </colgroup>
+      <thead>
+        <tr>
+          <th>参数名</th>
+          <th>输入/输出</th>
+          <th>描述</th>
+          <th>使用说明</th>
+          <th>数据类型</th>
+          <th>数据格式</th>
+          <th>维度(shape)</th>
+          <th>非连续Tensor</th>
+        </tr></thead>
+      <tbody>
+        <tr>
+          <td>x1</td>
+          <td>输入</td>
+          <td>Device侧的aclTensor，即计算公式中的x1。</td>
+          <td><li>支持空Tensor。</li><li>与x2的数据类型保持一致。</li><li>当前版本仅支持两维shape输入，且仅支持不转置场景。</li></td>
+          <td>FLOAT16、BFLOAT16</td>
+          <td>ND</td>
+          <td>2</td>
+          <td>√</td>
+        </tr>
+        <tr>
+          <td>x2</td>
+          <td>输入</td>
+          <td>Device侧的aclTensor，即计算公式中的x2。</td>
+          <td><li>支持空Tensor。</li><li>与x1的数据类型保持一致。</li><li>当前版本仅支持两维输入，支持转置/不转置场景。</li><li>支持通过转置构造非连续Tensor。</li></td>
+          <td>FLOAT16、BFLOAT16</td>
+          <td>ND</td>
+          <td>2</td>
+          <td>√</td>
+        </tr>
+        <tr>
+          <td>bias</td>
+          <td>输入</td>
+          <td>Device侧的aclTensor，即计算公式中的bias。</td>
+          <td><li>支持传入空指针场景。</li><li>当前版本仅支持一维输入，且暂不支持bias输入为非0的场景。</li></td>
+          <td>FLOAT16、BFLOAT16</td>
+          <td>ND</td>
+          <td>1</td>
+          <td>√</td>
+        </tr>
+        <tr>
+          <td>group</td>
+          <td>输入</td>
+          <td>Host侧标识通信域的字符串，通信域名称。</td>
+          <td>通过Hccl提供的接口“extern HcclResult HcclGetCommName(HcclComm comm, char* commName);”获取，其中commName即为group。</td>
+          <td>String</td>
+          <td>-</td>
+          <td>-</td>
+          <td>-</td>
+        </tr>
+        <tr>
+          <td>gatherIndex</td>
+          <td>输入</td>
+          <td>Host侧的整型，标识Gather目标。</td>
+          <td><li>0表示目标为x1，1表示目标为x2。</li><li>当前版本仅支持输入0。</li></td>
+          <td>INT64</td>
+          <td>-</td>
+          <td>-</td>
+          <td>-</td>
+        </tr>
+        <tr>
+          <td>commTurn</td>
+          <td>输入</td>
+          <td>Host侧的整型，通信数据切分数，即总数据量/单次通信量。</td>
+          <td>当前版本仅支持输入0。</td>
+          <td>INT64</td>
+          <td>-</td>
+          <td>-</td>
+          <td>-</td>
+        </tr>
+        <tr>
+          <td>streamMode</td>
+          <td>输入</td>
+          <td>Host侧的整型，流模式的枚举。</td>
+          <td>当前只支持枚举值1。</td>
+          <td>INT64</td>
+          <td>-</td>
+          <td>-</td>
+          <td>-</td>
+        </tr>
+        <tr>
+          <td>output</td>
+          <td>输出</td>
+          <td>Device侧的aclTensor，AllGather通信与MatMul计算的结果，即计算公式中的output。</td>
+          <td><li>不支持空Tensor。</li><li>与x1的数据类型保持一致。</li></td>
+          <td>FLOAT16、BFLOAT16</td>
+          <td>ND</td>
+          <td>2</td>
+          <td>√</td>
+        </tr>
+        <tr>
+          <td>gatherOut</td>
+          <td>输出</td>
+          <td>Device侧的aclTensor，仅输出AllGather通信后的结果，即计算公式中的gatherOut。</td>
+          <td><li>不支持空Tensor。</li><li>与x1的数据类型保持一致。</li></td>
+          <td>FLOAT16、BFLOAT16</td>
+          <td>ND</td>
+          <td>2</td>
+          <td>√</td>
+        </tr>
+        <tr>
+          <td>workspaceSize</td>
+          <td>输出</td>
+          <td>返回需要在Device侧申请的workspace大小。</td>
+          <td>-</td>
+          <td>-</td>
+          <td>-</td>
+          <td>-</td>
+          <td>-</td>
+        </tr>
+        <tr>
+          <td>executor</td>
+          <td>输出</td>
+          <td>返回op执行器，包含了算子计算流程。</td>
+          <td>-</td>
+          <td>-</td>
+          <td>-</td>
+          <td>-</td>
+          <td>-</td>
+        </tr>
+      </tbody>
+    </table>
 
 -   **返回值：**
 
     返回aclnnStatus状态码，具体参见[aclnn返回码](common/aclnn返回码.md)。
-
-    ```
     第一段接口完成入参校验，出现以下场景时报错：
-    161001 (ACLNN_ERR_PARAM_NULLPTR): 1. 传入的x1、x2或output是空指针。
-    161002 (ACLNN_ERR_PARAM_INVALID): 1. x1、x2、bias或output的数据类型不在支持的范围之内。
-                                      2. streamMode不在合法范围内。
-                                      3. x1是空tensor。
-    ```
+    <table style="undefined;table-layout: fixed; width: 1030px"><colgroup>
+    <col style="width: 250px">
+    <col style="width: 130px">
+    <col style="width: 650px">
+    </colgroup>
+    <thead>
+    <tr>
+        <th>返回值</th>
+        <th>错误码</th>
+        <th>描述</th>
+    </tr></thead>
+    <tbody>
+    <tr>
+        <td>ACLNN_ERR_PARAM_NULLPTR</td>
+        <td>161001</td>
+        <td>传入的x1、x2或output是空指针。</td>
+    </tr>
+    <tr>
+        <td rowspan="3">ACLNN_ERR_PARAM_INVALID</td>
+        <td rowspan="3">161002</td>
+        <td>x1、x2、bias或output的数据类型不在支持的范围之内。</td>
+    </tr>
+    <tr>
+        <td>streamMode不在合法范围内。</td>
+    </tr>
+    <tr>
+        <td>x1是空tensor。</td>
+    </tr>
+    </tbody>
+    </table>
 
 ## aclnnAllGatherMatmul
-
 -   **参数说明：**
-    -   workspace（void\*，入参）：在Device侧申请的workspace内存地址。
-    -   workspaceSize（uint64\_t，入参）：在Device侧申请的workspace大小，由第一段接口aclnnAllGatherMatmulGetWorkspaceSize获取。
-    -   executor（aclOpExecutor\*，入参）：op执行器，包含了算子计算流程。
-    -   stream（aclrtStream，入参）：指定执行任务的Stream。
-
+    <table style="undefined;table-layout: fixed; width: 1312px"><colgroup>
+    <col style="width: 158px">
+    <col style="width: 120px">
+    <col style="width: 750px">
+    <thead>
+    <tr>
+        <th>参数名</th>
+        <th>输入/输出</th>
+        <th>描述</th>
+    </tr></thead>
+    <tbody>
+    <tr>
+        <td>workspace</td>
+        <td>输入</td>
+        <td>在Device侧申请的workspace内存地址。</td>
+    </tr>
+    <tr>
+        <td>workspaceSize</td>
+        <td>输入</td>
+        <td>在Device侧申请的workspace大小，由第一段接口aclnnAllGatherMatmulGetWorkspaceSize获取。</td>
+    </tr>
+    <tr>
+        <td>executor</td>
+        <td>输入</td>
+        <td>op执行器，包含了算子计算流程。</td>
+    </tr>
+    <tr>
+        <td>stream</td>
+        <td>输入</td>
+        <td>指定执行任务的Stream。</td>
+    </tr>
+    </tbody></table>
 -   **返回值：**
 
     返回aclnnStatus状态码，具体参见[aclnn返回码](common/aclnn返回码.md)。
 
 ## 约束说明
 
-- 输入x1为2维，其shape为\(m, k\)。x2必须是2维，其shape为\(k, n\)，轴满足mm算子入参要求，k轴相等，且k轴取值范围为\[256, 65535\)。bias暂不支持输入为非0的场景。
+- 输入x1为2维，其shape为(m, k)。x2必须是2维，其shape为(k, n)，轴满足MatMul算子入参要求，k轴相等，且k轴取值范围为[256, 65535)
 - x1/x2支持的空tensor场景，m和n可以为空，k不可为空，且需要满足以下条件：
     - m为空，k不为空，n不为空；
     - m不为空，k不为空，n为空；
     - m为空，k不为空，n为空。
-- x1、x2计算输入的数据类型要和output计算输出的数据类型一致。
-- x2矩阵支持转置/不转置场景，x1矩阵只支持不转置场景。
-- 输出为2维，其shape为\(m*rank\_size, n\), rank\_size为卡数。
+- 输出为2维，其shape为(m*rank_size, n), rank_size为卡数。
 - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：支持2、4、8卡，并且仅支持hccs链路all mesh组网。
 - <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：支持2、4、8、16、32卡，并且仅支持hccs链路double ring组网。
 - <term>昇腾910_95 AI处理器</term>：支持2、4、8、16、32、64卡，并且仅支持hccs链路all mesh组网。
