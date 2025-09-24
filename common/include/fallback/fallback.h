@@ -28,7 +28,6 @@
 #include "mc2_log.h"
 #include "runtime/base.h"
 #include "log/log.h"
-#include "log/error_code.h"
 
 namespace fallback {
 using namespace std;
@@ -68,7 +67,7 @@ using _aclCreateScalar = aclScalar* (*)(void* value, aclDataType data_type);
 using _aclCreateIntArray = aclIntArray* (*)(const int64_t* value, uint64_t size);
 using _aclCreateFloatArray = aclFloatArray* (*)(const float* value, uint64_t size);
 using _aclCreateBoolArray = aclBoolArray* (*)(const bool* value, uint64_t size);
-using _aclCreateTensorList = aclTensorList* (*)(const aclTensor* const* value, uint64_t size);
+using _aclCreateTensorList = aclTensorList* (*)(const aclTensor* const *value, uint64_t size);
 
 using _aclDestroyTensor = int (*)(const aclTensor* tensor);
 using _aclDestroyScalar = int (*)(const aclScalar* scalar);

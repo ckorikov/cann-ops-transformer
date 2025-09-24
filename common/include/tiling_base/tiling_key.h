@@ -25,9 +25,10 @@ constexpr uint64_t RecursiveSum()
     return 0;
 }
 
+constexpr uint64_t kBase = 10; // 10进制进位基数
 template <typename T, typename... Args> constexpr uint64_t RecursiveSum(T templateId, Args... templateIds)
 {
-    return static_cast<uint64_t>(templateId) + 10 * RecursiveSum(templateIds...);
+    return static_cast<uint64_t>(templateId) + kBase * RecursiveSum(templateIds...);
 }
 
 // TilingKey 的生成规则：

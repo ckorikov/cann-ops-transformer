@@ -100,7 +100,7 @@ public:
         const char* op_type = context->GetNodeType();
         fe::PlatFormInfos* platformInfoPtr = context->GetPlatformInfo();
         if (platformInfoPtr == nullptr) {
-            auto compileInfoPtr = reinterpret_cast<const CompileInfoCommon*>(context->GetCompileInfo());
+            auto compileInfoPtr = static_cast<const CompileInfoCommon*>(context->GetCompileInfo());
             OP_CHECK_IF(
                 compileInfoPtr == nullptr, OP_LOGE(op_type, "compileInfoPtr is null."), return ge::GRAPH_FAILED);
             soc_version = compileInfoPtr->socVersion;
