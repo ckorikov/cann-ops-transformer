@@ -127,7 +127,8 @@ aclnnStatus aclnnIncreFlashAttentionV4(
 - **参数说明**
 
   <div style="overflow-x: auto;">
-  <table style="undefined;table-layout: fixed; width: 1567px"><colgroup> 
+  <table style="undefined;table-layout: fixed; width: 1567px">
+  <colgroup> 
    <col style="width: 190px"> 
    <col style="width: 120px"> 
    <col style="width: 300px"> 
@@ -136,7 +137,7 @@ aclnnStatus aclnnIncreFlashAttentionV4(
    <col style="width: 100px">  
    <col style="width: 170px">  
    <col style="width: 145px">   
-     </colgroup>
+   </colgroup>
     <thead>
       <tr>
         <th>参数名</th>
@@ -266,7 +267,7 @@ aclnnStatus aclnnIncreFlashAttentionV4(
         <td><ul><li>支持空Tensor。</li><li>支持per-tensor，per-channel（list），由shape决定，BNSD场景下shape为(2, N, 1, D)，BSH场景下shape为(2, H)，BSND场景下shape为(2, N, D)。</li></ul></td>
         <td>FLOAT16、BFLOAT16、FLOAT32</td>
         <td>ND</td>
-        <td><ul><li>(2, N, 1, D))</li><li>(2, H)</li><li>(2, N, D)</li><li>(2)</li></ul></td>
+        <td><ul><li>(2, N, 1, D)</li><li>(2, H)</li><li>(2, N, D)</li><li>(2)</li></ul></td>
         <td>×</td>
       </tr>
         <tr>
@@ -276,7 +277,7 @@ aclnnStatus aclnnIncreFlashAttentionV4(
         <td><ul><li>支持空Tensor。</li><li>支持per-tensor，per-channel（list），由shape决定，BNSD场景下shape为(2, N, 1, D)，BSH场景下shape为(2, H)，BSND场景下shape为(2, N, D)。</li></ul></td>
         <td>FLOAT16、BFLOAT16、FLOAT32</td>
         <td>ND</td>
-        <td><ul><li>(2, N, 1, D))</li><li>(2, H)</li><li>(2, N, D)</li><li>(2)</li></ul></td>
+        <td><ul><li>(2, N, 1, D)</li><li>(2, H)</li><li>(2, N, D)</li><li>(2)</li></ul></td>
         <td>×</td>
       </tr>
       <tr>
@@ -389,15 +390,17 @@ aclnnStatus aclnnIncreFlashAttentionV4(
         <td>-</td>
         <td>-</td>
       </tr>
-    </tbody></table></div>
-  
-  
+    </tbody></table>
+    </div>
+
+
+
 - **返回值**
   
 
-aclnnStatus：返回状态码，具体参见[aclnn返回码](../../../docs/context/aclnn返回码.md)。
+  返回aclnnStatus状态码，具体参见[aclnn返回码](../../../docs/context/aclnn返回码.md)。
 
-第一段接口完成入参校验，出现以下场景时报错：
+  第一段接口完成入参校验，出现以下场景时报错：
 
   <div style="overflow-x: auto;">
   <table style="undefined;table-layout: fixed; width: 1030px"><colgroup>
