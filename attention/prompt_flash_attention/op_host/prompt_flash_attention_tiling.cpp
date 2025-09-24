@@ -182,6 +182,26 @@ const int32_t PP_BLOCK_BUFFER_SIZE = 128 * 128;
 const int32_t PP_MM_NUM = 8;
 const int32_t PP_INDEX = 16;
 constexpr std::array<int32_t, PP_MM_NUM> PP_MM = {16, 32, 48, 64, 80, 96, 112, 128};
+
+constexpr int32_t QUERY_INPUT_DIM_NUM = 4;
+constexpr int32_t ZERO = 0;
+constexpr int32_t ONE = 1;
+constexpr int32_t TWO = 2;
+constexpr int32_t THREE = 3;
+constexpr int32_t FOUR = 4;
+constexpr int32_t EIGHT = 8;
+constexpr int32_t SIXTEEN = 16;
+
+constexpr int32_t BMM_BLOCK_SIZE_THRESHOLD_LOWER_64 = 64;
+constexpr int32_t BMM_BLOCK_SIZE_THRESHOLD_UPPER_128 = 128;
+constexpr int32_t INPUT_LAYOUT_TILING_KEY_FACTOR = 100000;
+constexpr float KEEP_PROB_FULL = 1.0f;
+
+constexpr int64_t BYTES_PER_KB = 1024;
+constexpr int64_t ATTEN_MASK_S2_SIZE_DEFAULT = 2048;
+constexpr int64_t S1_VEC2_BASE_8 = 8;
+constexpr int64_t S1_VEC2_MULTIPLIER_2 = 2;
+
 inline int32_t ConvertValueToIndexMM(int32_t val, int32_t idxBound)
 {
     return (val > PP_MM[idxBound]) ? idxBound : (val / PP_INDEX - 1);
@@ -2801,45 +2821,45 @@ void PromptFlashAttentionTiling::SetBaseApiTilingData(ContextParamsForPFATiling&
 
     if (curShortSocName == platform_ascendc::SocVersion::ASCEND310P) {
         if (inputLayout == InputLayout::BSH) {
-            batchSize = queryShape->GetStorageShape().GetDim(0);
-            s = queryShape->GetStorageShape().GetDim(2);
-            seqInnerSize = queryShape->GetStorageShape().GetDim(2);
-            headSize = queryShape->GetStorageShape().GetDim(1) * 16 / headNum;
-            headSizeV = valueShape->GetStorageShape().GetDim(1) * 16 / kvHeadNum;
+            batchSize = queryShape->GetStorageShape().GetDim(ZERO);
+            s = queryShape->GetStorageShape().GetDim(TWO);
+            seqInnerSize = queryShape->GetStorageShape().GetDim(TWO);
+            headSize = queryShape->GetStorageShape().GetDim(ONE) * SIXTEEN / headNum;
+            headSizeV = valueShape->GetStorageShape().GetDim(ONE) * SIXTEEN / kvHeadNum;
         } else if (inputLayout == InputLayout::BNSD) {
             inLayoutType = 3U;
-            batchSize = queryShape->GetStorageShape().GetDim(0) / headNum;
-            s = queryShape->GetStorageShape().GetDim(2);
-            seqInnerSize = queryShape->GetStorageShape().GetDim(2);
-            headSize = queryShape->GetStorageShape().GetDim(1) * 16;
-            headSizeV = valueShape->GetStorageShape().GetDim(1) * 16;
+            batchSize = queryShape->GetStorageShape().GetDim(ZERO) / headNum;
+            s = queryShape->GetStorageShape().GetDim(TWO);
+            seqInnerSize = queryShape->GetStorageShape().GetDim(TWO);
+            headSize = queryShape->GetStorageShape().GetDim(ONE) * SIXTEEN;
+            headSizeV = valueShape->GetStorageShape().GetDim(ONE) * SIXTEEN;
         }
     } else {
         if (inputLayout == InputLayout::SH) {
             inLayoutType = 0U;
-            batchSize = actualLenDims == 0 ? 1 : actualLenDims; // When the input layout is SH and actual_seq is not input, the batch of query is set to 1.
-            s = queryShape->GetStorageShape().GetDim(0);
-            seqInnerSize = keyShape->GetStorageShape().GetDim(0);
-            headSize = queryShape->GetStorageShape().GetDim(1) / headNum;
-            headSizeV = valueShape->GetStorageShape().GetDim(1) / kvHeadNum;
+            batchSize = actualLenDims == static_cast<size_t>(ZERO) ? ONE : actualLenDims; // When the input layout is SH and actual_seq is not input, the batch of query is set to 1.
+            s = queryShape->GetStorageShape().GetDim(ZERO);
+            seqInnerSize = keyShape->GetStorageShape().GetDim(ZERO);
+            headSize = queryShape->GetStorageShape().GetDim(ONE) / headNum;
+            headSizeV = valueShape->GetStorageShape().GetDim(ONE) / kvHeadNum;
         } else if (inputLayout == InputLayout::BSH) {
-            batchSize = queryShape->GetStorageShape().GetDim(0);
-            s = queryShape->GetStorageShape().GetDim(1);
-            seqInnerSize = keyShape->GetStorageShape().GetDim(1);
-            headSize = queryShape->GetStorageShape().GetDim(2) / headNum;
-            headSizeV = valueShape->GetStorageShape().GetDim(2) / kvHeadNum;
+            batchSize = queryShape->GetStorageShape().GetDim(ZERO);
+            s = queryShape->GetStorageShape().GetDim(ONE);
+            seqInnerSize = keyShape->GetStorageShape().GetDim(ONE);
+            headSize = queryShape->GetStorageShape().GetDim(TWO) / headNum;
+            headSizeV = valueShape->GetStorageShape().GetDim(TWO) / kvHeadNum;
         } else if (inputLayout == InputLayout::BSND) {
-            batchSize = queryShape->GetStorageShape().GetDim(0);
-            s = queryShape->GetStorageShape().GetDim(1);
-            seqInnerSize = keyShape->GetStorageShape().GetDim(1);
-            headSize = queryShape->GetStorageShape().GetDim(3);
-            headSizeV = valueShape->GetStorageShape().GetDim(3);
+            batchSize = queryShape->GetStorageShape().GetDim(ZERO);
+            s = queryShape->GetStorageShape().GetDim(ONE);
+            seqInnerSize = keyShape->GetStorageShape().GetDim(ONE);
+            headSize = queryShape->GetStorageShape().GetDim(THREE);
+            headSizeV = valueShape->GetStorageShape().GetDim(THREE);
         } else if (inputLayout == InputLayout::BNSD) {
-            batchSize = queryShape->GetStorageShape().GetDim(0);
-            s = queryShape->GetStorageShape().GetDim(2); // dim num: 2
-            seqInnerSize = keyShape->GetStorageShape().GetDim(2); // dim num: 2
-            headSize = queryShape->GetStorageShape().GetDim(3);
-            headSizeV = valueShape->GetStorageShape().GetDim(3);
+            batchSize = queryShape->GetStorageShape().GetDim(ZERO);
+            s = queryShape->GetStorageShape().GetDim(TWO); // dim num: 2
+            seqInnerSize = keyShape->GetStorageShape().GetDim(TWO); // dim num: 2
+            headSize = queryShape->GetStorageShape().GetDim(THREE);
+            headSizeV = valueShape->GetStorageShape().GetDim(THREE);
         }
     }
     actualSeqLengths.resize(batchSize);
@@ -2957,7 +2977,7 @@ ge::graphStatus PromptFlashAttentionTiling::CheckBaseAPISupportScenarios(Context
     // 310 PFA 增加
     std::string layoutStr(contextKeyParams.layout);
     if (curShortSocName == platform_ascendc::SocVersion::ASCEND310P && (layoutStr == "BSH" || layoutStr == "BNSD") &&
-        (contextKeyParams.queryInputShape->GetStorageShape().GetDimNum() == 4 && contextKeyParams.queryInputShape->GetStorageShape().GetDim(3) == BLOCK_SIZE)) {
+        (contextKeyParams.queryInputShape->GetStorageShape().GetDimNum() == QUERY_INPUT_DIM_NUM && contextKeyParams.queryInputShape->GetStorageShape().GetDim(THREE) == BLOCK_SIZE)) {
         atbRunFlag_ = true;
         return ge::GRAPH_SUCCESS;
     }
@@ -3420,7 +3440,7 @@ bool PromptFlashAttentionTiling::SetBmm2TilingInput(int64_t tmpS1BasicBlock, int
         if (bmm2.SetBufferSpace(ascendPlatformInfo.l1Size, ascendPlatformInfo.l0CSize) != 0) {
             return false;
         }
-        if (valueDSize > 64 && valueDSize <= 128) {
+        if (valueDSize > BMM_BLOCK_SIZE_THRESHOLD_LOWER_64 && valueDSize <= BMM_BLOCK_SIZE_THRESHOLD_UPPER_128) {
             int64_t baseM = std::min(BMM_BASICBLOCK_M_128, AlignUp(s1Size, FRACTAL_NUM));
             int64_t baseN = std::min(BMM_BASICBLOCK_N_128, AlignUp(valueDSize, FRACTAL_NUM));
             bmm2.SetFixSplit(baseM, baseN);
@@ -3484,7 +3504,7 @@ int64_t PromptFlashAttentionTiling::CalcMaxS1BasicBlockSize(int64_t actualD, con
     int64_t alignUnit = BYTE_BLOCK / dataTypeSize;
     int64_t maxS1BasicBlock = ascendPlatformInfo.ubSize / dataTypeSize /
         (FRACTAL_NUM * bufferNum.bufferS1S2Num + actualD * bufferNum.bufferS1DNum +
-         (bufferNum.bufferExpNum + 2) * alignUnit); // here 2 means FlashSoftMax sum and max output
+         (bufferNum.bufferExpNum + TWO) * alignUnit); // here 2 means FlashSoftMax sum and max output
     return AlignDown(maxS1BasicBlock, FRACTAL_NUM);
 }
 
@@ -4289,7 +4309,7 @@ ge::graphStatus PromptFlashAttentionTiling::RunBigKernelTilingWithParams(Context
                 return ge::GRAPH_FAILED;
             }
             gSize = n1Size / n2Size;
-            dSize = queryShape->GetStorageShape().GetDim(2);
+            dSize = queryShape->GetStorageShape().GetDim(TWO);
             h1 = n1Size * dSize;
             h2 = n2Size * dSize;
             h = h1;
@@ -4823,9 +4843,9 @@ ge::graphStatus PromptFlashAttentionTiling::RunBigKernelTilingWithParams(Context
         inputParams.set_valueDSize(valueD);
         inputParams.set_scaleValue(*scaleValue);
         inputParams.set_alignedS2(alignedS2);
-        inputParams.set_layoutType(4);
-        inputParams.set_qStartIdx(0);
-        inputParams.set_kvStartIdx(0);
+        inputParams.set_layoutType(FOUR);
+        inputParams.set_qStartIdx(ZERO);
+        inputParams.set_kvStartIdx(ZERO);
         inputParams.set_keepProb(1.0);
         if (contextKeyParams.blockTableShape != nullptr) {
             const gert::StorageShape* blockTableShape = contextKeyParams.blockTableShape;
@@ -4870,8 +4890,8 @@ ge::graphStatus PromptFlashAttentionTiling::RunBigKernelTilingWithParams(Context
             }
             sparseType = SparseTypeEnum::BAND;
         }
-        inputParams.set_attenMaskDataType(1);
-        inputParams.set_attenMaskShapeType(2);
+        inputParams.set_attenMaskDataType(ONE);
+        inputParams.set_attenMaskShapeType(TWO);
 
         uint8_t attenMaskCompressMode = static_cast<uint8_t>(AttenMaskCompressMode::NO_COMPRESS_MODE);
         if (sparseModeVal == SPARSE_MODE_RIGHT_DOWN) {
@@ -4880,7 +4900,7 @@ ge::graphStatus PromptFlashAttentionTiling::RunBigKernelTilingWithParams(Context
             attenMaskCompressMode = static_cast<uint8_t>(AttenMaskCompressMode::BAND_MODE);
         }
         inputParams.set_attenMaskCompressMode(attenMaskCompressMode);
-        inputParams.set_attenMaskS2Size(2048);
+        inputParams.set_attenMaskS2Size(ATTEN_MASK_S2_SIZE_DEFAULT);
         inputParams.set_sparseType(static_cast<uint8_t>(sparseType));
         inputParams.set_preTokens(sparsePreTokens);
         inputParams.set_nextTokens(sparseNextTokens);
@@ -4900,7 +4920,7 @@ ge::graphStatus PromptFlashAttentionTiling::RunBigKernelTilingWithParams(Context
         coreParams.set_dBaseTailSize(CalcTailSize(static_cast<int64_t>(hDivN), dBasicBlock));
         coreParams.set_dOuterSize(CeilDivision(static_cast<int64_t>(hDivN), dBasicBlock));
         // 向下取整保证数据量不超32K
-        int64_t s1Vec2BaseSize = 8 * 1024 * 2 / (alignedD * dataTypeSize);
+        int64_t s1Vec2BaseSize = S1_VEC2_BASE_8 * BYTES_PER_KB * S1_VEC2_MULTIPLIER_2 / (alignedD * static_cast<int64_t>(dataTypeSize));
         coreParams.set_s1Vec2BaseSize(std::min(s1Vec2BaseSize, S1_VEC2_BASE_SIZE_MAX));
         coreParams.set_s1Vec2BaseTailSize(s1Size % coreParams.get_s1Vec2BaseSize());
         coreParams.set_bBaseSize(1);
@@ -4953,8 +4973,8 @@ ge::graphStatus PromptFlashAttentionTiling::RunBigKernelTilingWithParams(Context
         size_t *workspaces = contextKeyParams.workspaceSize;
         int64_t bmm1Bytes = coreParams.get_nRatio() * tensorSizeParams.get_bmm1ResUbSize() * softmaxDataTypeSize;
         // UB不常驻，stage1占用3倍的空间，stage2占用4倍空间
-        workspaces[0] = static_cast<size_t>((bmm1Bytes * 3 +
-                                             4 * coreParams.get_s1BaseSize() * alignedD * softmaxDataTypeSize) *
+        workspaces[0] = static_cast<size_t>((bmm1Bytes * THREE +
+                                             FOUR * coreParams.get_s1BaseSize() * alignedD * softmaxDataTypeSize) *
                                              aicNum) + WORK_SPACE_RESERVE_SIZE;
         mlaRunFlag_ = true;
         if (valueD <= D_SIZE_128) { // valueD <= 128 && base api
@@ -4977,7 +4997,7 @@ ge::graphStatus PromptFlashAttentionTiling::RunBigKernelTilingWithParams(Context
                 tilingKey += KVCACHE_ND_TILING_KEY;
             }
         }
-        tilingKey += (static_cast<int32_t>(inputLayout) - static_cast<int32_t>(InputLayout::TND)) * 100000;
+        tilingKey += static_cast<uint32_t>((static_cast<int32_t>(inputLayout) - static_cast<int32_t>(InputLayout::TND)) * INPUT_LAYOUT_TILING_KEY_FACTOR);
         blockDimToBeSet = CalcTschBlockDim(mlaTilingData.PFAmultiCoreParams.get_coreNum(), aicNum, aivNum);
         return ge::GRAPH_SUCCESS;
     }
@@ -5542,7 +5562,7 @@ ge::graphStatus PromptFlashAttentionTiling::CheckBaseApiMaskVal(ContextParamsFor
         for (int32_t i = maskDim - 1; i >= 0; i--) {
             uint32_t supportShapeVal = supportShape[i];
             uint32_t actualShapeVal = pseShiftShape->GetStorageShape().GetDim(i);
-            if (i >= maskDim - 2) {
+            if (i >= maskDim - TWO) {
                 OP_CHECK_IF(actualShapeVal < supportShapeVal,
                    OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName,
                         "%s mask dim %d shape invalid, should be greater than %u, actual is %u",
@@ -5674,10 +5694,10 @@ ge::graphStatus PromptFlashAttentionTiling::SetBaseApiAlibiMaskInfo(ContextParam
         baseParams->set_headStride(maxSeqLen);
         baseParams->set_maskStride(NUM_0);
     } else if (maskDim == NUM_4) {
-        OP_CHECK_IF(pseShiftShape->GetStorageShape().GetDim(2) * pseShiftShape->GetStorageShape().GetDim(1) > UINT32_MAX,
+        OP_CHECK_IF(pseShiftShape->GetStorageShape().GetDim(TWO) * pseShiftShape->GetStorageShape().GetDim(ONE) > UINT32_MAX,
                    OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName, "Alibi mask shape value invalid."),
                    return ge::GRAPH_FAILED);
-        baseParams->set_maskStride(pseShiftShape->GetStorageShape().GetDim(1) * pseShiftShape->GetStorageShape().GetDim(2));
+        baseParams->set_maskStride(pseShiftShape->GetStorageShape().GetDim(ONE) * pseShiftShape->GetStorageShape().GetDim(TWO));
         baseParams->set_headStride(maxSeqLen);
     } else if (maskDim == NUM_2) {
         OP_CHECK_IF(maxSeqLen != LONG_SEQ_ALIBI_LEN,

@@ -19,6 +19,8 @@
 constexpr int32_t TMP_SIZET = 16384;               // 128 * 256 * 2
 constexpr int32_t BLOCK_QK = 128;
 constexpr int32_t LOCAL_SIZE = 6;
+constexpr int32_t MAX_ALLOWED_LENGTH = 16;  
+constexpr int32_t MIN_ALLOWED_LENGTH = 1; 
 
 template <typename TILING_TYPE, typename...Args>
 struct PFAMLAType {
@@ -535,7 +537,7 @@ __aicore__ inline void unpad_flashattention_mla(
 
 __aicore__ __attribute__((always_inline)) inline void __set_vcg_mask_mla(int32_t len)
 {
-    if (len > 16 || len < 1) {
+    if (len > MAX_ALLOWED_LENGTH || len < MIN_ALLOWED_LENGTH) {
         AscendC::SetVectorMask<int8_t>((uint64_t)-1, (uint64_t)-1);
         return;
     }
