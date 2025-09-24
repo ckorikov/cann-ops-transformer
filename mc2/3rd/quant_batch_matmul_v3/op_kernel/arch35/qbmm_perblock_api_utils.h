@@ -1,7 +1,7 @@
 /**
  * Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
  * This file is a part of the CANN Open Software.
- * Licensed under CANN Open Software License Agreement Version 1.0 (the "License").
+ * Licensed under CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
  * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
@@ -282,7 +282,7 @@ __aicore__ inline void MatMulPerBlock<MATMUL_PERBLOCK_FUNC_PARAMS>::AicBaseMadPr
         NotifyVector(crossPingPongID_);
         needAicWait_ = needAicWait_ || crossPingPongID_ == 1;
         inQueueTensorCL0.FreeTensor(cL0);
-        crossPingPongID_ = (crossPingPongID_ + 1U) & 1U;
+        crossPingPongID_ = (crossPingPongID_ + 1UL) & 1UL;
         kAL1Offset = kAL1Offset + matmulTiling_->baseK;
         kBL1Offset = kBL1Offset + matmulTiling_->baseK;
         baseCount_++;
@@ -416,7 +416,7 @@ __aicore__ inline void MatMulPerBlock<MATMUL_PERBLOCK_FUNC_PARAMS>::ProcessAivSi
                                 block_->ubParams_.validM, block_->ubParams_.validN, block_->ubParams_.singleN);
         }
         AscendC::CrossCoreSetFlag<AIC_SYNC_AIV_MODE, PIPE_V>(AIC_SYNC_AIV_FLAG + crossPingPongID_);
-        crossPingPongID_ = (crossPingPongID_ + 1U) & 1U;
+        crossPingPongID_ = (crossPingPongID_ + 1UL) & 1UL;
     }
     AivPostProcess(mmAddUb);
     vecQueAdd_.FreeTensor(mmAddUb);
@@ -545,7 +545,7 @@ __aicore__ inline void MatMulPerBlock<MATMUL_PERBLOCK_FUNC_PARAMS>::PerformTenso
     }
 
     AscendC::CrossCoreSetFlag<AIC_SYNC_AIV_MODE, PIPE_V>(AIC_SYNC_AIV_FLAG + crossPingPongID_);
-    crossPingPongID_ = (crossPingPongID_ + 1U) & 1U;
+    crossPingPongID_ = (crossPingPongID_ + 1UL) & 1UL;
 }
 
 MATMUL_PERBLOCK_CLASS_TEM_PARAMS

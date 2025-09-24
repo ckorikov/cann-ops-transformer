@@ -1,7 +1,7 @@
 /**
  * Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
  * This file is a part of the CANN Open Software.
- * Licensed under CANN Open Software License Agreement Version 1.0 (the "License").
+ * Licensed under CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
  * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
@@ -60,10 +60,10 @@ template <typename x1Type, typename x2Type, typename biasType, typename yType, C
 __aicore__ inline void
 MatMulPerBlockASW<x1Type, x2Type, biasType, yType, formatX1, formatX2, formatY, aTrans, bTrans>::Process()
 {
-    if (quantBmmTilingData_->params.batchC == 1) {
-        block_.offset_.batchCOffset = 0;
-        block_.offset_.batchAOffset = 0;
-        block_.offset_.batchBOffset = 0;
+    if (quantBmmTilingData_->params.batchC == 1UL) {
+        block_.offset_.batchCOffset = 0UL;
+        block_.offset_.batchAOffset = 0UL;
+        block_.offset_.batchBOffset = 0UL;
         ProcessWithoutBatch();
     } else {
         ProcessWithBatch<MatMulPerBlockASW>(block_, *this);

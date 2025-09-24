@@ -1,7 +1,7 @@
 /**
  * Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
  * This file is a part of the CANN Open Software.
- * Licensed under CANN Open Software License Agreement Version 1.0 (the "License").
+ * Licensed under CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
  * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
@@ -89,7 +89,7 @@ __aicore__ inline void MatmulAswKernelAL1FullLoad<LOCAL_TEMPLATE_FUNC_PARAMS>::P
     isMultiCore_ = this->block_.tilingData_->matmulTiling.singleCoreM < this->block_.tilingData_->matmulTiling.M;
     uint64_t innerAlignedBlock = 0;
     if constexpr (DequantBmm::IsMxType<scaleType>()) {
-        innerAlignedBlock = MXFP_DIVISOR_SIZE;
+        innerAlignedBlock = static_cast<uint64_t>(MXFP_DIVISOR_SIZE);
     } else {
         innerAlignedBlock = ONE_BLK_SIZE / sizeof(x1Type);
     }
@@ -122,7 +122,7 @@ __aicore__ inline void MatmulAswKernelAL1FullLoad<LOCAL_TEMPLATE_FUNC_PARAMS>::P
             initConstValueParams.blockNum = mAligned * MXFP_GROUP_SIZE * sizeof(x1Type) / DATA_BLOCK;
             initConstValueParams.dstGap = 0;
             initConstValueParams.initValue = 0;
-            uint64_t offset = mAligned * (kAligned - MXFP_GROUP_SIZE) / 2; // 2 means 2 8-bit elements
+            uint64_t offset = mAligned * (kAligned - MXFP_GROUP_SIZE) / 2UL; // 2 means 2 8-bit elements
             InitConstValue(padTensor[offset], initConstValueParams);
             PipeBarrier<PIPE_MTE2>();
         }
@@ -132,7 +132,7 @@ __aicore__ inline void MatmulAswKernelAL1FullLoad<LOCAL_TEMPLATE_FUNC_PARAMS>::P
     if constexpr (DequantBmm::IsMxType<scaleType>()) {
         pipe_->InitBuffer(
             InQueueScaleA_, 1,
-            mAligned * DequantBmm::CeilDiv(kAligned, MXFP_DIVISOR_SIZE) * MXFP_MULTI_BASE_SIZE * sizeof(fp8_e8m0_t));
+            mAligned * DequantBmm::CeilDiv(kAligned, static_cast<uint64_t>(MXFP_DIVISOR_SIZE)) * MXFP_MULTI_BASE_SIZE * sizeof(fp8_e8m0_t));
         scaleALocal_ = InQueueScaleA_.AllocTensor<fp8_e8m0_t>();
         CopyInScaleA<fp8_e8m0_t, aTrans>(this->block_, this->blockIdx_, isMultiCore_, scaleALocal_,
                                             this->scaleAGlobal_);

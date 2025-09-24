@@ -1,7 +1,7 @@
 /**
  * Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
  * This file is a part of the CANN Open Software.
- * Licensed under CANN Open Software License Agreement Version 1.0 (the "License").
+ * Licensed under CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
  * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
@@ -15,7 +15,7 @@
 #ifndef QBMM_MIX_ONLINE_DYNAMIC_H
 #define QBMM_MIX_ONLINE_DYNAMIC_H
 
-#include "../../inc/platform.h"
+#include "../../../../inc/platform.h"
 #include "mm_extension_interface/qbmm_custom_mm_policy.h"
 #include "qbmm_asw_block.h"
 #include "../quant_batch_matmul_v3_base.h"

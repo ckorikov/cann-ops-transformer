@@ -1,7 +1,7 @@
 /**
  * Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
  * This file is a part of the CANN Open Software.
- * Licensed under CANN Open Software License Agreement Version 1.0 (the "License").
+ * Licensed under CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
  * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
@@ -115,25 +115,25 @@ private:
 __aicore__ inline void QuantBmmAswBlock::Init(const DequantBmm::QuantBatchMatmulV3TilingDataParams *tilingData,
                                               uint32_t blockIdx)
 {
-    params_.mSplitAddrOffset = 0;
-    params_.nSplitAddrOffset = 0;
+    params_.mSplitAddrOffset = 0UL;
+    params_.nSplitAddrOffset = 0UL;
     blockIdx_ = blockIdx;
     tilingData_ = tilingData;
     params_.mCnt = DequantBmm::CeilDiv(tilingData_->matmulTiling.M, tilingData_->matmulTiling.baseM);
     params_.nCnt = DequantBmm::CeilDiv(tilingData_->matmulTiling.N, tilingData_->matmulTiling.baseN);
     params_.totalCnt = params_.mCnt * params_.nCnt;
-    params_.mBaseTail = tilingData_->matmulTiling.M - (params_.mCnt - 1) * tilingData_->matmulTiling.baseM;
-    params_.nBaseTail = tilingData_->matmulTiling.N - (params_.nCnt - 1) * tilingData_->matmulTiling.baseN;
-    params_.totalTailTile = static_cast<uint64_t>(tilingData_->adaptiveSlidingWin.mTailTile) * const_cast<uint64_t>(tilingData_->adaptiveSlidingWin.nTailTile);
+    params_.mBaseTail = tilingData_->matmulTiling.M - (params_.mCnt - 1UL) * tilingData_->matmulTiling.baseM;
+    params_.nBaseTail = tilingData_->matmulTiling.N - (params_.nCnt - 1UL) * tilingData_->matmulTiling.baseN;
+    params_.totalTailTile = static_cast<uint64_t>(tilingData_->adaptiveSlidingWin.mTailTile) * static_cast<uint64_t>(tilingData_->adaptiveSlidingWin.nTailTile);
     params_.round = DequantBmm::CeilDiv(params_.totalCnt, tilingData_->matmulTiling.usedCoreNum);
     params_.mCoreNum = DequantBmm::Min(WINDOW_LEN, params_.mCnt);
-    params_.mainRow = params_.mCnt / params_.mCoreNum - 1;
+    params_.mainRow = params_.mCnt / params_.mCoreNum - 1UL;
     params_.mTailCoreNum = params_.mCnt - params_.mCoreNum * params_.mainRow;
     params_.groupSizeM = tilingData_->params.groupSizeM;
     params_.groupSizeK = tilingData_->params.groupSizeK;
     params_.groupSizeN = tilingData_->params.groupSizeN;
 
-    offset_.offsetBias = 0;
+    offset_.offsetBias = 0UL;
 }
 
 __aicore__ inline void QuantBmmAswBlock::UpdateBasicIndex(uint64_t roundIdx)
@@ -209,8 +209,8 @@ __aicore__ inline void QuantBmmAswBlock::UpdateBlockParams(uint64_t roundIdx)
 
 __aicore__ inline void QuantBmmAswBlock::ResetAddressOffsets()
 {
-    params_.mSplitAddrOffset = 0;
-    params_.nSplitAddrOffset = 0;
+    params_.mSplitAddrOffset = 0UL;
+    params_.nSplitAddrOffset = 0UL;
 }
 
 template <bool bTrans, CubeFormat formatX2>
@@ -356,7 +356,7 @@ __aicore__ inline void QuantBmmAswBlock::UpdatePerBlockUBParam()
                             : DequantBmm::CeilDiv(params_.singleCoreM, static_cast<uint64_t>(DequantBmm::GetTaskRation()));
     ubParams_.singleN = mmParams_.fixpipeD;
     if (AscendC::GetSubBlockIdx() == 1) {
-        auto ubParamsRes = ubParams_.fixpipeSplitN ? 0 : ubParams_.singleM
+        auto ubParamsRes = ubParams_.fixpipeSplitN ? 0 : ubParams_.singleM;
         ubParams_.offsetM = ubParams_.offsetM + ubParamsRes;
         if (ubParams_.fixpipeSplitN) {
             uint64_t dirtyN = mmParams_.fixpipeN - params_.singleCoreN;

@@ -1,7 +1,7 @@
 /**
  * Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
  * This file is a part of the CANN Open Software.
- * Licensed under CANN Open Software License Agreement Version 1.0 (the "License").
+ * Licensed under CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
  * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
@@ -32,7 +32,7 @@ __aicore__ inline void CopyInA1(const QuantBmmAswBlock& block, uint32_t blockIdx
     uint64_t shapeM = matmulTilingData.matmulTiling.M;
     uint64_t shapeK = matmulTilingData.matmulTiling.Ka;
     uint64_t mCntIdx = blockIdx % block.params_.mCnt;
-    uint64_t singleCoreM = isMultiCore && mCntIdx == block.params_.mCnt - 1
+    uint64_t singleCoreM = isMultiCore && mCntIdx == block.params_.mCnt - 1UL
                           ? block.params_.mBaseTail
                           : static_cast<uint64_t>(matmulTilingData.matmulTiling.singleCoreM);
     uint64_t nDim = singleCoreM;
@@ -87,7 +87,7 @@ __aicore__ inline void CopyInScaleA(const QuantBmmAswBlock& block, uint32_t bloc
     uint64_t shapeK =
         DequantBmm::Align(DequantBmm::CeilDiv(multiTilingData.matmulTiling.Ka, MXFP_GROUP_SIZE), MXFP_MULTI_BASE_SIZE);
     uint64_t mCntIdx = blockId % block.params_.mCnt;
-    uint64_t singleCoreM = isMultiCore && mCntIdx == block.params_.mCnt - 1
+    uint64_t singleCoreM = isMultiCore && mCntIdx == block.params_.mCnt - 1UL
                           ? block.params_.mBaseTail
                           : static_cast<uint64_t>(multiTilingData.matmulTiling.singleCoreM);
 
