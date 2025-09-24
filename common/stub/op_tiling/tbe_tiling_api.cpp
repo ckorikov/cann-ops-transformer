@@ -21,4 +21,9 @@ bool GetTbeTiling(gert::TilingContext* context, Conv3dBpInputV2RunInfo& runInfoV
 {
     return true;
 }
+
+bool GetTbeTiling(gert::TilingContext* context, Conv3dBackpropV2TBETilingData& tbeTilingForV2, const optiling::OpTypeV2 opType)
+{
+    return true;
+}
 }
