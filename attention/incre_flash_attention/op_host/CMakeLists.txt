@@ -27,7 +27,7 @@ else()
     add_modules_sources(OPTYPE incre_flash_attention ACLNNTYPE aclnn_inner)
 endif()
 
-if(NOT BUILD_OPEN_PROJECT) #
+if(NOT BUILD_OPS_RTY_KERNEL) #
     target_sources(${OPHOST_NAME}_tiling_obj PRIVATE
         incre_flash_attention_tiling.cpp
         incre_flash_attention_tiling_check.cpp
