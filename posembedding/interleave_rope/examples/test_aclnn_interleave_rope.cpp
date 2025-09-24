@@ -9,7 +9,7 @@
  */
 
 #include "acl/acl.h"
-#include "aclnnop/aclnn_interleave_rope.h"
+#include "aclnn_interleave_rope.h"
 #include <iostream>
 #include <vector>
 #include <random>
