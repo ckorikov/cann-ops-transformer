@@ -205,12 +205,8 @@ public:
     ge::graphStatus RunBigKernelTiling(NsaSelectAttentionInferContext &context, NsaSelectAttentionInferTilingDataV2 &tilingData,
                                     bool isWorkspace = false);
     ge::graphStatus NsaSelectAttentionInferSetTilingData(gert::TilingContext &context,
-                                                    NsaSelectAttentionInferTilingDataV2 &tilingData);
+                                                    NsaSelectAttentionInferTilingDataV2 &tilingData) const;
     static ge::graphStatus ConvertContext(gert::TilingContext &context, NsaSelectAttentionInferContext &nsaContext);
-    bool NeedRollBack()
-    {
-        return passToOldTiling_;
-    }
 
 private:
     ge::graphStatus GetNpuInfo();
@@ -224,19 +220,19 @@ private:
     void SetCoreNum();
 
     ge::graphStatus InitInOutMode();
-    ge::graphStatus CheckBaseInputsNull();
-    ge::graphStatus InputAttrsPreProcess();
+    ge::graphStatus CheckBaseInputsNull() const;
+    ge::graphStatus InputAttrsPreProcess() const;
     ge::graphStatus QKVPreProcess();
     ge::graphStatus ProcessPageAttentionFlag();
     ge::graphStatus KvShapePostProcess();
     ge::graphStatus CheckQKOutShape();
-    ge::graphStatus TNDCheckQKOutShape();
+    ge::graphStatus TNDCheckQKOutShape() const;
     ge::graphStatus ZeroTensorProcess();
 
     ge::graphStatus CheckUbSpace();
-    ge::graphStatus CheckPABlockSize();
+    ge::graphStatus CheckPABlockSize() const;
 
-    ge::graphStatus CheckInputFormatAndLimits();
+    ge::graphStatus CheckInputFormatAndLimits() const;
     ge::graphStatus CheckInputParameterFormat();
     ge::graphStatus CheckInputAntiquantFormat();
     bool CalcUbBmm();
@@ -245,11 +241,11 @@ private:
     ge::graphStatus CalcInnerSize(uint32_t seqSize);
     ge::graphStatus SplitBN();
 
-    std::vector<int64_t> InitSparseValidArray(const int64_t *actualLens);
+    std::vector<int64_t> InitSparseValidArray(const int64_t *actualLens) const;
     bool BalanceLoad(const std::vector<int64_t> &sparseValidArray, int64_t totalSize, int64_t validAivNum,
-                    std::vector<int64_t> &localValue, std::vector<int64_t> &sparseStartIdx);
+                    std::vector<int64_t> &localValue, std::vector<int64_t> &sparseStartIdx) const;
     void InitLoadValue(const std::vector<int64_t> &sparseValidArray, int64_t totalSize, int64_t validAivNum,
-                    const std::vector<int64_t> &sparseStartIdx, std::vector<int64_t> &localValue);
+                    const std::vector<int64_t> &sparseStartIdx, std::vector<int64_t> &localValue) const;
     void SetSparseStartIdx(const std::vector<int64_t> &sparseValidArray, int64_t totalSize, int64_t validAivNum,
                         uint32_t *sparseStartIdx, int64_t splitFactorSize);
 
@@ -259,14 +255,14 @@ private:
 
     ge::graphStatus CalcWorkSpace();
     ge::graphStatus CalcBlockDim();
-    ge::graphStatus GenTilingKey();
+    ge::graphStatus GenTilingKey() const;
 
     ge::graphStatus FillTiling();
-    void FillTilingBaseParams();
-    void FillTilingSplitKV();
+    void FillTilingBaseParams() const;
+    void FillTilingSplitKV() const;
     void FillTilingCoreParams();
-    void FillTilingSingleCoreParams();
-    void FillTilingSingleCoreTensorSize();
+    void FillTilingSingleCoreParams() const;
+    void FillTilingSingleCoreTensorSize() const;
     void FillTilingTranspose();
     void FillTilingOutputParams();
     bool FillTilingBmm(); // may fail

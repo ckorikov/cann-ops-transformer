@@ -368,11 +368,11 @@ protected:
 
     void setTilingData()
     {
-        tilingData.set_kvCacheSize((uint64_t)batchSize * pageNumPerBatch * pageBlockSize * headNum * headDim);
+        tilingData.set_kvCacheSize(static_cast<uint64_t>(batchSize) * pageNumPerBatch * pageBlockSize * headNum * headDim);
         tilingData.set_kvCacheSizePerCore(TOKEN_NUM_PER_TILE * headsNumPerCore * headDim);
-        tilingData.set_weightSize((uint64_t)compressBlockSize * headNum);
+        tilingData.set_weightSize(static_cast<uint64_t>(compressBlockSize) * headNum);
         tilingData.set_weightSizePerCore(TOKEN_NUM_PER_TILE * headsNumPerCore * headDim);
-        tilingData.set_compressKvCacheSize((uint64_t)outTokenNum * headNum * headDim);
+        tilingData.set_compressKvCacheSize(static_cast<uint64_t>(outTokenNum) * headNum * headDim);
         tilingData.set_compressKvCacheSizePerCore(headsNumPerCore * headDim);
         tilingData.set_blockTableSize(batchSize * pageNumPerBatch);
         tilingData.set_headNum(headNum);

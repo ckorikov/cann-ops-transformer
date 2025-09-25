@@ -25,7 +25,7 @@ using namespace ge;
 using namespace AscendC;
 namespace optiling {
 
-ge::graphStatus NsaSelectTiling::CheckPABlockSize()
+ge::graphStatus NsaSelectTiling::CheckPABlockSize() const
 {
     OP_CHECK_IF(
         blockSize_ == 0,
@@ -40,7 +40,7 @@ ge::graphStatus NsaSelectTiling::CheckPABlockSize()
     return ge::GRAPH_SUCCESS;
 }
 
-ge::graphStatus NsaSelectTiling::CheckBaseInputsNull() {
+ge::graphStatus NsaSelectTiling::CheckBaseInputsNull() const {
     // Check base input tensors
     OP_CHECK_IF(context_->query.shape == nullptr, OP_LOGE(context_->opName, "Shape of tensor query is nullptr"),
             return ge::GRAPH_FAILED);
@@ -98,7 +98,7 @@ ge::graphStatus NsaSelectTiling::CheckBaseInputsNull() {
 }
 
 
-ge::graphStatus NsaSelectTiling::CheckInputFormatAndLimits()
+ge::graphStatus NsaSelectTiling::CheckInputFormatAndLimits() const
 {
     OP_CHECK_IF(
         ((inputQType_ != inputKvType_)),
@@ -180,7 +180,7 @@ ge::graphStatus NsaSelectTiling::CheckQKOutShape()
     return ge::GRAPH_SUCCESS;
 }
 
-ge::graphStatus NsaSelectTiling::TNDCheckQKOutShape()
+ge::graphStatus NsaSelectTiling::TNDCheckQKOutShape() const
 {
     const gert::StorageShape *queryShape = context_->query.shape;
     const gert::StorageShape *keyShape = context_->key.shape;

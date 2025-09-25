@@ -120,7 +120,7 @@ void AnalysisAxisForTND(const Shape &qShape, const Shape &kShape, const Shape &v
 }
 
 aclnnStatus AnalysisAxisShape(const aclTensor *query, const aclTensor *key, const aclTensor *value, 
-                        const aclTensor *topkIndices, const char *inputLayout, NSAShapeInfo &shapeInfo)
+                                const char *inputLayout, NSAShapeInfo &shapeInfo)
 {
     Shape qShape = query->GetViewShape();
     Shape kShape = key->GetViewShape();
@@ -183,7 +183,7 @@ aclnnStatus AnalysisInputNsa(const aclTensor *query, const aclTensor *key, const
 {
     CHECK_RET(DtypeCheck(query, key, value, topkIndices)  == ACLNN_SUCCESS, ACLNN_ERR_PARAM_INVALID);
     CHECK_RET(
-        AnalysisAxisShape(query, key, value, topkIndices, inputLayout, shapeInfo) == ACLNN_SUCCESS, ACLNN_ERR_PARAM_INVALID);
+        AnalysisAxisShape(query, key, value, inputLayout, shapeInfo) == ACLNN_SUCCESS, ACLNN_ERR_PARAM_INVALID);
 
     if (shapeInfo.axes.d != HEAD_DIM_MAX) {
         OP_LOGE(ACLNN_ERR_PARAM_INVALID, "QK Head dim must == 192, but got %ld", shapeInfo.axes.d);

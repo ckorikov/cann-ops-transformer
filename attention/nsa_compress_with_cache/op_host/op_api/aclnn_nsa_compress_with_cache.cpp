@@ -49,8 +49,8 @@ struct CompressWithCacheShapeInfo {
 static const std::initializer_list<op::DataType> DTYPE_SUPPORT_LIST = {DataType::DT_FLOAT16, DataType::DT_BF16};
 
 static aclnnStatus CheckNsaCompressWithCacheParam(const aclTensor *input, const aclTensor *weight,
-                                                  const aclTensor *slotMapping, aclTensor *outputCacheRef,
-                                                  uint64_t *workspaceSize, aclOpExecutor **executor)
+                                                  const aclTensor *slotMapping, const aclTensor *outputCacheRef,
+                                                  const uint64_t *workspaceSize, aclOpExecutor *const* executor)
 {
     // 必须的参数指针判空
     CHECK_RET(input != nullptr, ACLNN_ERR_PARAM_NULLPTR);
@@ -82,7 +82,7 @@ static aclnnStatus Contiguous(const aclTensor *&input, const aclTensor *&weight,
 }
 
 static aclnnStatus InputDtypeCheck(const aclTensor *input, const aclTensor *weight, const aclTensor *slotMapping,
-                                   const aclTensor *blockTableOptional, aclTensor *outputCache)
+                                   const aclTensor *blockTableOptional, const aclTensor *outputCache)
 {
     OP_CHECK_DTYPE_NOT_SUPPORT(input, DTYPE_SUPPORT_LIST, return ACLNN_ERR_PARAM_INVALID);
     OP_CHECK_DTYPE_NOT_SUPPORT(weight, DTYPE_SUPPORT_LIST, return ACLNN_ERR_PARAM_INVALID);

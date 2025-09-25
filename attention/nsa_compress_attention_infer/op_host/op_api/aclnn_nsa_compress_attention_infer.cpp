@@ -133,9 +133,7 @@ aclnnStatus nsaCompressAttentionInferValidateParam(
     const aclTensor *value,
     const aclTensor *blockTableOptional,
     const aclTensor *output,
-    const aclTensor *topKOutput,
-    char *layoutOptional,
-    uint64_t *workspaceSize)
+    const aclTensor *topKOutput)
 {
     Shape qShape = query->GetViewShape();
     auto batchSize = qShape[0];
@@ -271,7 +269,7 @@ aclnnStatus aclnnNsaCompressAttentionInferGetWorkspaceSize(
         actualCmpKvSeqLenOptional, layoutOptional, output, topKOutput, 
     workspaceSize) == ACLNN_SUCCESS, ACLNN_ERR_PARAM_NULLPTR);
     CHECK_RET(nsaCompressAttentionInferValidateParam(query, key, value, blockTableOptional,
-        output, topKOutput, layoutOptional, workspaceSize) == ACLNN_SUCCESS, ACLNN_ERR_PARAM_INVALID);
+        output, topKOutput) == ACLNN_SUCCESS, ACLNN_ERR_PARAM_INVALID);
     L2_DFX_PHASE_1(aclnnNsaCompressAttentionInfer,
                     DFX_IN(query, key, value, attentionMaskOptional, blockTableOptional, actualQSeqLenOptional,
                     actualCmpKvSeqLenOptional, actualSelKvSeqLenOptional, topKMaskOptional, numHeads, numKeyValueHeads,

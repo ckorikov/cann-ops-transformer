@@ -153,7 +153,7 @@ public:
     NCAITiling() = default;
     ~NCAITiling() = default;
 
-    ge::graphStatus GetNCAITiling(NsaCompressAttentionInferContext &context,
+    ge::graphStatus GetNCAITiling(NsaCompressAttentionInferContext &ncaiContext,
                                    NsaCompressAttentionInferTilingData &tilingData, bool isWorkspace = false);
     ge::graphStatus NSICASetTilingData(gert::TilingContext &context,
                                        NsaCompressAttentionInferTilingData &tilingData);

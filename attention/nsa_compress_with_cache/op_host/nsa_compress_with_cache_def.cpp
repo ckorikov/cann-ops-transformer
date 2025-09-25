@@ -12,8 +12,6 @@
  * \file nsa_compress_with_cache_def.cpp
  * \brief
  */
-
-#include <cstdint>
 #include "register/op_def_registry.h"
 namespace ops {
 class NsaCompressWithCache : public OpDef {

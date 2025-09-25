@@ -71,11 +71,11 @@ ge::graphStatus NsaSelectTiling::GetNpuInfo()
 
 ge::graphStatus NsaSelectTiling::PreProcess()
 {
-    if (ProcessBaseInputs()) {
+    if (ProcessBaseInputs() != ge::GRAPH_SUCCESS) {
         return ge::GRAPH_FAILED;
     }
 
-    if (ProcessOptionalTensors()) {
+    if (ProcessOptionalTensors() != ge::GRAPH_SUCCESS) {
         return ge::GRAPH_FAILED;
     }
 
@@ -157,7 +157,7 @@ ge::graphStatus NsaSelectTiling::QKVPreProcess()
         headDimV_ = context_->value.shape->GetStorageShape().GetDim(dimTwo) / numKvHeads_; // 2, dim of H
         sOfHeadnum = static_cast<uint32_t>(numHeads_);
         uint32_t kDimNum = context_->key.shape->GetStorageShape().GetDimNum();
-        if ((*context_->kvHeadNums) && (kDimNum == 3U)) { // 3, dim of kv when the layout of kv is BSH
+        if ((*context_->kvHeadNums != 0) && (kDimNum == 3U)) { // 3, dim of kv when the layout of kv is BSH
             sOfHeadnum = static_cast<uint32_t>(headDim_ * numHeads_ * numKvHeads_) / context_->key.shape->GetStorageShape().GetDim(2); // 2, dim of H
         }
     } else if (layout == "BSND") {
@@ -187,7 +187,7 @@ ge::graphStatus NsaSelectTiling::QKVPreProcess()
     return ge::GRAPH_SUCCESS;
 }
 
-ge::graphStatus NsaSelectTiling::InputAttrsPreProcess()
+ge::graphStatus NsaSelectTiling::InputAttrsPreProcess() const
 {
     OP_CHECK_IF(
         context_->blockTable.tensor->GetStorageShape().GetShapeSize() == 0,
@@ -375,7 +375,7 @@ ge::graphStatus NsaSelectTiling::SplitBN()
     return ge::GRAPH_SUCCESS;
 }
 
-std::vector<int64_t> NsaSelectTiling::InitSparseValidArray(const int64_t *actualLens)
+std::vector<int64_t> NsaSelectTiling::InitSparseValidArray(const int64_t *actualLens) const
 {
     std::vector<int64_t> res(isMtpFlag_ ? (totalQseq_ * numKvHeads_) : (batchSize_ * numKvHeads_ * gOuter_));
     const int64_t *actualQLenData = context_->actualQSeqLengths.tensor->GetData<int64_t>();
@@ -396,7 +396,7 @@ std::vector<int64_t> NsaSelectTiling::InitSparseValidArray(const int64_t *actual
 }
 // code copy from flash_attention_score_tiling
 bool NsaSelectTiling::BalanceLoad(const std::vector<int64_t> &sparseValidArray, int64_t totalSize, int64_t validAivNum,
-                            std::vector<int64_t> &localValue, std::vector<int64_t> &sparseStartIdx)
+                            std::vector<int64_t> &localValue, std::vector<int64_t> &sparseStartIdx) const
 {
     // to avoid buffer overflow, or maybe sometimes we want to only verify single
     // core
@@ -443,7 +443,7 @@ bool NsaSelectTiling::BalanceLoad(const std::vector<int64_t> &sparseValidArray, 
 }
 
 void NsaSelectTiling::InitLoadValue(const std::vector<int64_t> &sparseValidArray, int64_t totalSize, int64_t validAivNum,
-                            const std::vector<int64_t> &sparseStartIdx, std::vector<int64_t> &localValue)
+                            const std::vector<int64_t> &sparseStartIdx, std::vector<int64_t> &localValue) const
 {
     for (int64_t idx = 0; idx < validAivNum; ++idx) {
         int64_t start = sparseStartIdx[idx];
@@ -598,7 +598,7 @@ ge::graphStatus NsaSelectTiling::FillTiling()
     return ge::GRAPH_SUCCESS;
 }
 
-void NsaSelectTiling::FillTilingBaseParams()
+void NsaSelectTiling::FillTilingBaseParams() const
 {
     tilingData_->baseParams.set_batchSize(batchSize_);
     tilingData_->baseParams.set_seqSize(sMax_);
@@ -625,7 +625,7 @@ void NsaSelectTiling::FillTilingBaseParams()
 }
 
 // for flash decode
-void NsaSelectTiling::FillTilingSplitKV()
+void NsaSelectTiling::FillTilingSplitKV() const
 {
     tilingData_->splitKVParams.set_s2(kvSplitPart_);
     int64_t sInnerLoopSize_ = (maxActualseq_ + (kvSplitPart_ - 1)) / kvSplitPart_;
@@ -644,7 +644,7 @@ void NsaSelectTiling::FillTilingCoreParams()
     memcpy_s(coreStartIdx, MAX_CORE_NUM * sizeof(uint32_t), startIdxEachCore_, MAX_CORE_NUM * sizeof(uint32_t));
 }
 
-void NsaSelectTiling::FillTilingSingleCoreParams()
+void NsaSelectTiling::FillTilingSingleCoreParams() const
 {
     tilingData_->nsaSelectAttentionInferSingleCoreParams.set_sInnerLoopTimes(sInnerLoopTimes_);
     tilingData_->nsaSelectAttentionInferSingleCoreParams.set_singleProcessSInnerSize(sInnerSize_);
@@ -656,13 +656,13 @@ void NsaSelectTiling::FillTilingSingleCoreParams()
     tilingData_->nsaSelectAttentionInferSingleCoreParams.set_groupSplitSize(groupSplitSize_);
 }
 
-void NsaSelectTiling::FillTilingSingleCoreTensorSize()
+void NsaSelectTiling::FillTilingSingleCoreTensorSize() const
 {
     tilingData_->nsaSelectAttentionInferSingleCoreTensorSize.set_mmResUbSize(mmResUbSize_);
     tilingData_->nsaSelectAttentionInferSingleCoreTensorSize.set_bmm2ResUbSize(bmm2ResUbSize_);
 }
 
-ge::graphStatus NsaSelectTiling::GenTilingKey()
+ge::graphStatus NsaSelectTiling::GenTilingKey() const
 {
     uint32_t layoutVal = 0U;
     uint32_t inputQVal = 0U;
@@ -777,7 +777,7 @@ ge::graphStatus NsaSelectTiling::RunBigKernelTiling(NsaSelectAttentionInferConte
 }
 
 ge::graphStatus NsaSelectTiling::NsaSelectAttentionInferSetTilingData(gert::TilingContext &context,
-                                                            NsaSelectAttentionInferTilingDataV2 &tilingData)
+                                                            NsaSelectAttentionInferTilingDataV2 &tilingData) const
 {
     OP_CHECK_IF(context.GetRawTilingData() == nullptr,
             OPS_REPORT_VECTOR_INNER_ERR("NsaSelectAttentionInfer", "RawTilingData got from GE context is nullptr."),
