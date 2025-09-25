@@ -1,0 +1,251 @@
+# 算子调用
+> 说明：本项目阐述如何与社区版CANN开发套件包配合使用，对于商发版（8.3.RC1版本）CANN开发套件包，其使用指导请参见“[商发版本说明](./commercial_release.md)”，此处不详细介绍。
+
+## 前提条件
+
+使用本项目前，请确保如下基础依赖、NPU驱动和固件已安装。
+
+1. **安装依赖**
+
+   本项目源码编译用到的依赖如下，请注意版本要求。
+
+   - python >= 3.7.0
+   - gcc >= 7.3.0
+   - cmake >= 3.16.0
+   - pigz（可选，安装后可提升打包速度，建议版本 >= 2.4）
+   - dos2unix
+   - Gawk
+   - googletest（仅执行UT时依赖，建议版本 [release-1.11.0](https://github.com/google/googletest/releases/tag/release-1.11.0)）
+
+   上述依赖包，可以通过执行本代码仓根目录下的install\_deps.sh文件完成安装，具体命令如下：
+   ```bash
+   bash install_deps.sh
+   ```
+
+2. **安装驱动与固件（可选）**
+
+   如需本地运行项目算子，请参见《[CANN 软件安装指南](https://www.hiascend.com/document/redirect/CannCommunityInstSoftware)》，按要求完成NPU驱动和固件软件包安装；否则可跳过本操作。
+
+## 环境准备
+
+1. **安装社区版CANN toolkit包**
+
+    根据实际环境，下载对应`Ascend-cann-toolkit_${cann_version}_linux-${arch}.run`包，下载链接为[toolkit x86_64包](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/CANN/community/Ascend-cann-toolkit_8.3.RC1_linux-x86_64.run)、[toolkit aarch64包](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/CANN/community/Ascend-cann-toolkit_8.3.RC1_linux-aarch64.run)。
+    
+    ```bash
+    # 确保安装包具有可执行权限
+    chmod +x Ascend-cann-toolkit_${cann_version}_linux-${arch}.run
+    # 安装命令
+    ./Ascend-cann-toolkit_${cann_version}_linux-${arch}.run --full --force --install-path=${install_path}
+    ```
+    - \$\{cann\_version\}：表示CANN包版本号。
+    - \$\{arch\}：表示CPU架构，如aarch64、x86_64。
+    - \$\{install\_path\}：表示指定安装路径，默认安装在/usr/local/Ascend目录下。
+
+2. **安装社区版CANN legacy包（可选）**
+
+    如需本地运行项目算子，需额外安装此包，否则跳过本操作。
+
+    根据产品型号和环境架构，下载对应`${soc_version}-opp_legacy-${cann_version}-linux-${arch}.run`包，下载链接如下：
+
+    - Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件：[legacy x86_64包](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/CANN/community/cann-910b-opp_legacy-8.3.RC1-linux-x86_64.run)、[legacy aarch64包](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/CANN/community/cann-910b-opp_legacy-8.3.RC1-linux-aarch64.run)。
+    - Atlas A3 训练系列产品/Atlas A3 推理系列产品：[legacy x86_64包](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/CANN/community/cann-910_93-opp_legacy-8.3.RC1-linux-x86_64.run)、[legacy aarch64包](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/CANN/community/cann-910_93-opp_legacy-8.3.RC1-linux-aarch64.run)。
+
+    ```bash
+    # 确保安装包具有可执行权限
+    chmod +x cann-${soc_version}-opp_legacy-${cann_version}-linux-${arch}.run
+    # 安装命令
+    ./cann-${soc_version}-opp_legacy-${cann_version}-linux-${arch}.run --full --install-path=${install_path}
+    ```
+    - \$\{soc\_version\}：表示NPU型号。
+    - \$\{install\_path\}：表示指定安装路径，需要与toolkit包安装在相同路径，默认安装在/usr/local/Ascend目录下。
+
+3. **配置环境变量**
+	
+	根据实际场景，选择合适的命令。
+
+    ```bash
+   # 默认路径安装，以root用户为例（非root用户，将/usr/local替换为${HOME}）
+   source /usr/local/Ascend/set_env.sh
+   # 指定路径安装
+   # source ${install_path}/set_env.sh
+    ```
+
+4. **下载源码**
+
+    ```bash
+    # 下载项目源码，以master分支为例
+    git clone https://gitcode.com/cann/ops-transformer-dev.git
+    # 安装根目录requirements.txt依赖
+    pip3 install -r requirements.txt
+    ```
+
+## 编译执行
+
+> 说明：若基于商发版（8.3.RC1及之前版本）CANN包对算子源码修改，请使用“自定义算子包”方式编译和安装。
+>
+
+若基于社区版CANN包对算子源码修改，可使用[自定义算子包](#自定义算子包)和[ops-transformer包](#ops-transformer包)方式编译执行。
+
+- 自定义算子包：选择部分算子编译生成的包称为自定义算子包，以**挂载**形式作用于CANN包，不改变原始包内容。注意自定义算子包优先级高于原始CANN包。
+- ops-transformer包：选择整个项目编译生成的包称为ops-transformer包，可**完整替换**CANN包对应部分。
+
+### 自定义算子包
+
+1. **编译自定义算子包**
+
+    进入项目根目录，执行如下编译命令：
+    
+    ```bash
+    bash build.sh --pkg --soc=${soc_version} [--vendor_name=${vendor_name}] [--ops=${op_list}]
+    # 以interleave_rope算子编译为例
+    # bash build.sh --pkg --soc=ascend910b --ops=interleave_rope
+    ```
+    - --soc：\$\{soc\_version\}表示NPU型号。Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件使用"ascend910b"（默认），Atlas A3 训练系列产品/Atlas A3 推理系列产品使用"ascend910_93"。
+    - --vendor_name（可选）：\$\{vendor\_name\}表示构建的自定义算子包名，默认名为custom。
+    - --ops（可选）：\$\{op\_list\}表示待编译算子，不指定时默认编译所有算子（参见[算子列表](./op_list.md)）。格式形如"apply_rotary_pos_emb,rope_quant_kvcache,..."，多算子之间用英文逗号","分隔。
+    约束：当前自定义算子包的vendor_name和ops都是可选输入，如果都不选，编译出的是built-in包；若需要编译所有算子的自定义算子包，需要参数vendor_name。
+     
+    若提示如下信息，说明编译成功。
+    ```bash
+    Self-extractable archive "cann-ops-transformer-${vendor_name}_linux-${arch}.run" successfully created.
+    ```
+    编译成功后，run包存放于项目根目录的build_out目录下。
+    
+2. **安装自定义算子包**
+   
+    ```bash
+    ./cann-ops-transformer-${vendor_name}_linux-${arch}.run
+    ```
+    
+    自定义算子包安装路径为`${ASCEND_HOME_PATH}/opp/vendors`，\$\{ASCEND\_HOME\_PATH\}表示CANN toolkit包安装路径，一般为\$\{install\_path\}/latest，可通过环境变量配置。
+    自定义算子包不支持卸载指令。
+
+### ops-transformer包
+
+1. **编译ops-transformer包**
+
+    进入项目根目录，执行如下编译命令：
+
+    ```bash
+    bash build.sh --pkg [--jit] --soc=${soc_version}
+    ```
+    - --jit（可选）：推荐设置，表示不编译算子的二进制文件。
+    - --soc：\$\{soc\_version\}表示NPU型号。Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件使用"ascend910b"（默认），Atlas A3 训练系列产品/Atlas A3 推理系列产品使用"ascend910_93"。
+
+    若提示如下信息，说明编译成功。
+
+    ```bash
+    Self-extractable archive "cann-${soc_name}-ops-transformer_${cann_version}_linux-${arch}.run" successfully created.
+    ```
+
+   \$\{soc\_name\}表示NPU型号名称，即\$\{soc\_version\}删除“ascend”后剩余的内容。编译成功后，run包存放于build_out目录下。
+
+2. **安装ops-transformer包**
+
+    ```bash
+    ./cann-${soc_name}-ops-math_${cann_version}_linux-${arch}.run --full --install-path=${install_path}
+    ```
+
+    \$\{install\_path\}：表示指定安装路径，需要与toolkit包安装在相同路径，默认安装在/usr/local/Ascend路径下。
+
+## 本地验证 
+
+通过项目根目录build.sh脚本，可快速调用算子和UT用例，验证项目功能是否正常，build参数介绍参见[build参数说明](./build.md)。
+
+目前算子支持API方式（aclnn接口）和图模式调用，**推荐aclnn调用**，项目可调用算子参见[算子列表](./op_list.md)，算子对应的aclnn接口参见[aclnn接口列表](./op_api_list.md)。
+
+- **执行算子样例**
+  
+    不同算子包使用不同执行命令，执行完成后会打印算子执行结果。
+    
+    - 完成ops-transformer包安装后，执行命令如下：
+        ```bash
+        bash build.sh --run_example ${op} ${mode}
+        # 以interleave_rope算子example执行为例
+        # bash build.sh --run_example interleave_rope eager
+        ```
+        
+        - \$\{op\}：表示待执行算子，算子名小写下划线形式，如interleave_rope。       
+        - \$\{mode\}：表示算子执行模式，目前支持eager（aclnn调用）、graph（图模式调用）。
+
+        以interleave_rope算子（算子名参考[算子列表](./op_list.md)中算子目录）为例，执行如下命令：
+        ```bash
+        bash build.sh --run_example interleave_rope eager
+        ```
+        执行完成后会打印运行结果。posembedding\interleave_rope\examples\test_aclnn_interleave_rope.cpp
+        ```
+        ...
+        result[65528] is: 0.000000
+        result[65529] is: 0.000000
+        result[65530] is: 0.000000
+        result[65531] is: 0.000000
+        result[65532] is: 0.000000
+        result[65533] is: 0.000000
+        result[65534] is: 0.000000
+        result[65535] is: 0.000000
+        ```
+        
+    - 完成自定义算子包安装后，执行命令如下：
+        ```bash
+        bash build.sh --run_example ${op} ${mode} ${pkg_mode} [--vendor_name=${vendor_name}]
+        # 以interleave_rope算子example执行为例
+        # bash build.sh --run_example interleave_rope eager cust --vendor_name=custom
+        ```
+
+        - \$\{op\}：表示待执行算子，算子名小写下划线形式，如interleave_rope。
+        - \$\{mode\}：表示执行模式，目前支持eager（aclnn调用）、graph（图模式调用）。
+        - \$\{pkg_mode\}：表示包模式，目前仅支持cust，即自定义算子包。         
+        - \$\{vendor\_name\}（可选）：与构建的自定义算子包设置一致，默认名为custom。
+
+        说明：\$\{mode\}为graph时，不指定\$\{pkg_mode\}和\$\{vendor\_name\}
+
+        以interleave_rope算子为例，执行如下命令：
+        ```bash
+        bash build.sh --run_example interleave_rope eager cust --vendor_name=custom
+        ```
+        执行完成后会打印运行结果。
+    
+        ```
+        ...
+        result[65528] is: 0.000000
+        result[65529] is: 0.000000
+        result[65530] is: 0.000000
+        result[65531] is: 0.000000
+        result[65532] is: 0.000000
+        result[65533] is: 0.000000
+        result[65534] is: 0.000000
+        result[65535] is: 0.000000
+        ```
+- **执行算子UT**
+
+	> 说明：执行UT用例依赖googletest单元测试框架，详细介绍参见[googletest官网](https://google.github.io/googletest/advanced.html#running-a-subset-of-the-tests)。
+
+    ```bash
+  # 安装根目录下test相关requirements.txt依赖
+  pip3 install -r tests/requirements.txt
+  # 方式1: 编译并执行指定算子和对应功能的UT测试用例（选其一）
+  bash build.sh -u --[opapi|ophost|opkernel] --ops=interleave_rope
+  # 方式2: 编译并执行所有的UT测试用例
+  # bash build.sh -u
+  # 方式3: 编译所有的UT测试用例但不执行
+  # bash build.sh -u --noexec
+  # 方式4: 编译并执行对应功能的UT测试用例（选其一）
+  # bash build.sh -u --[opapi|ophost|opkernel]
+  # 方式5: 编译对应功能的UT测试用例但不执行（选其一）
+  # bash build.sh -u --noexec --[opapi|ophost|opkernel]
+    ```
+  
+    假设验证ophost功能是否正常，执行如下命令：
+    ```bash
+  bash build.sh -u --ophost
+    ```
+
+    执行完成后出现如下内容，表示执行成功。
+    ```bash
+  Global Environment TearDown
+  [==========] ${n} tests from ${m} test suites ran. (${x} ms total)
+  [  PASSED  ] ${n} tests.
+  [100%] Built target transformer_op_host_ut
+    ```
+    \$\{n\}表示执行了n个用例，\$\{m\}表示m项测试，\$\{x\}表示执行用例消耗的时间，单位为毫秒。

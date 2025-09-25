@@ -59,7 +59,7 @@ $QK^T$矩阵在attenMask为True的位置会被遮蔽，效果如下：
 - sparseModeOptional为4时，代表band场景，即计算preTokensOptional和nextTokensOptional之间的部分，参数起点为右下角，preTokensOptional和nextTokensOptional之间需要有交集。attenMaskOptional为优化后的压缩下三角矩阵（2048*2048）。Masked $QK^T$矩阵示意如下：
   ![原理图](../figures/sparsemode为4遮挡矩阵.png)
   
-- sparseModeOptional为5时，代表prefix非压缩场景，即在rightDownCasual的基础上，左侧加上一个长为Sq，宽为N的矩阵，N的值由可选输入prefix获取，例如下图中表示batch=2场景下prefix传入数组[4,5]，每个batch轴的N值可以不一样，参数起点为左上角。
+- sparseModeOptional为5时，代表prefix非压缩场景，即在rightDownCausal的基础上，左侧加上一个长为Sq，宽为N的矩阵，N的值由可选输入prefix获取，例如下图中表示batch=2场景下prefix传入数组[4,5]，每个batch轴的N值可以不一样，参数起点为左上角。
   该场景下忽略preTokensOptional、nextTokensOptional取值，attenMaskOptional矩阵数据格式须为BNSS或B1SS，Masked $QK^T$矩阵示意如下：
   ![原理图](../figures/sparsemode为5遮挡矩阵.png)
   attenMaskOptional应传入矩阵示意如下：

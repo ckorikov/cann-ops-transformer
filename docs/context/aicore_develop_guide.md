@@ -1,22 +1,17 @@
 # AI Core算子开发指南
 
-> 说明：
->
-> - 算子开发过程中涉及的基本概念如Tiling、Kernel、Ascend C接口等，详细介绍请参考[《Ascend C算子开发》](https://hiascend.com/document/redirect/CannCommunityOpdevAscendC)。
-> - 开发指南以AddExample算子开发过程为例，完整的样例代码可访问本项目example目录获取。
+> 说明：算子开发过程中涉及的基本概念如Tiling、Kernel、Ascend C接口等，详细介绍请参考[《Ascend C算子开发》](https://hiascend.com/document/redirect/CannCommunityOpdevAscendC)。
 
-本章以开发`AddExample`算子为例，介绍新算子开发流程以及涉及的交付件，流程图如下所示：
+开发指南以`AddExample`算子开发为例，介绍新算子开发流程以及涉及的交付件，流程图如下，完整样例代码请访问项目`example`目录。
 
 ```mermaid
 graph LR
 	A([前提条件]) --> W([工程创建])
 	W --> B([Tiling实现])
     B --> C([Kernel实现])
-    C -.->|可选|D([Shape与DataType <br> 推导])
-    D --> E([框架适配])
-    E --> F([编译部署])
-    F --> G([算子验证])
-    style D stroke-dasharray:5 5
+    C --> D([aclnn适配])
+    D --> E([编译部署])
+    E --> F([算子验证])
 ```
 
 1. [前提条件](#前提条件)：
@@ -31,22 +26,17 @@ graph LR
 
 4. [Kernel实现](#Kernel实现)：实现Device侧算子核函数。
 
-5. [Shape与DataType推导（可选）](#Shape与DataType推导（可选）)：仅当算子入图场景，才需要完成InferShape和InferDataType实现。
+5. [aclnn适配](#aclnn适配)：自定义算子推荐aclnn接口调用，需完成二进制发布。如需入图，请参考[附录](#附录)。
 
-6. [框架适配](#框架适配)：自定义算子目前仅支持aclnn接口或图方式调用，为成功调用，需完成对应框架的适配。
+6. [编译部署](#编译部署)：通过工程编译脚本完成自定义算子的编译和安装。 
 
-7. [编译部署](#编译部署)：通过工程编译脚本完成自定义算子的编译和安装。 
+7. [算子验证](#算子验证)：通过常见算子调用方式，验证自定义算子功能。  
 
-8. [算子验证](#算子验证)：通过常见算子调用方式，验证自定义算子功能。  
-
-对于上述流程，不同调用场景对应的算子开发步骤不同，开发者按需实现即可。
-- **aclnn调用场景**：除了步骤5，需要实现上述其它步骤。
-- **图模式调用场景**：需要实现上述所有步骤。
 
 ##  前提条件
 **1. 环境部署**
 
-开发算子前，请参考[快速入门 > 环境准备](./quick_start.md#环境准备)完成环境搭建。
+开发算子前，请参考[环境准备](./quick_op_invocation.md#环境准备)完成环境搭建。
 
 **2. 算子设计**
 
@@ -156,6 +146,8 @@ ${op_name}                              # 替换为实际算子名的小写下�
 │   └── ${op_name}_proto.h              # 算子原型定义，用于图优化和融合阶段识别算子
 └── CMakeLists.txt                      # 算子cmakelist入口
 ```
+
+使用上述命令行创建算子工程后，若要手动删除新创建出的算子工程，需要同时删除与算子工程同目录CMakeLists.txt中新添加的add_subdirectory(${op_class})
 
 ## Tiling实现
 
@@ -299,7 +291,7 @@ graph TD
 
   对于复杂算子，Kernel可能需要根据不同Tiling策略选择不同的执行路径。请根据实际需求设置TilingKey，标识不同的分支策略。
 
-对于上述操作，以`AddExample`算子实现为例，示例代码如下：
+先在\$\{op\_name\}\_tiling\_data.h中定义TilingData结构体，存储Tiling策略数据（如块大小），示例如下，`AddExample`算子完整代码请参考`example/add_example/op_kernel`下[add_example_tiling_data.h](../../example/add_example/op_kernel/add_example_tiling_data.h)。
 
 ```CPP
 // 定义TilingData结构体
@@ -308,7 +300,7 @@ struct AddExampleTilingData {
      int64_t  tileNum;        // 每个核内部数据切块数量
 };
 ```
-完整代码请参考`example/add_example/op_kernel`目录下[add_example_tiling_data.h](../../example/add_example/op_kernel/add_example_tiling_data.h)。
+再在\$\{op\_name\}\_tiling.cpp实现关键操作代码，代码如下，`AddExample`算子完整代码请参考`example/add_example/op_host`目录下[add_example_tiling.cpp](../../example/add_example/op_host/add_example_tiling.cpp)。
 
 ```CPP
 // 设置Kernel使用核数
@@ -341,9 +333,7 @@ if (dataType == ge::DT_FLOAT) {
     return ge::GRAPH_FAILED;
 }
 ```
-完整代码请参考`example/add_example/op_host`目录下[add_example_tiling.cpp](../../example/add_example/op_host/add_example_tiling.cpp)。
-
-注意，TilingKey可通过模板化编程实现，示例代码如下：
+注意，TilingKey可通过模板化编程实现，示例代码如下，完整代码请参考`example/add_example/op_kernel`下[add_example_tiling_key.h](../../example/add_example/op_kernel/add_example_tiling_key.h)。
 
 ```C++
 #define ELEMENTWISE_TPL_SCH_MODE_0 0
@@ -362,7 +352,7 @@ ASCENDC_TPL_SEL(
 #endif
 ```
 
-完整代码请参考`example/add_example/op_kernel`目录下[add_example_tiling_key.h](../../example/add_example/op_kernel/add_example_tiling_key.h)。如需实现复杂参数组合完成分支选择（涉及多TilingKey场景），请参考[《Ascend C算子开发》](https://hiascend.com/document/redirect/CannCommunityOpdevAscendC)中"算子实现 > Host侧Tiling实现 >  Tiling模板编程"。
+如需实现复杂参数组合完成分支选择（涉及多TilingKey场景），请参考[《Ascend C算子开发》](https://hiascend.com/document/redirect/CannCommunityOpdevAscendC)中"算子实现 > Host侧Tiling实现 >  Tiling模板编程"。
 
 ## Kernel实现
 
@@ -412,7 +402,7 @@ graph LR
 
 ### 代码实现
 
-根据上述步骤，编写`AddExample`算子的Kernel实现，示例代码如下：
+根据上述步骤编写Kernel入口文件\$\{op\_name\}.cpp ，包含主函数和调度逻辑，示例如下，`AddExample`算子完整代码请参考`example/add_example/op_kernel`下[add_example.cpp](../../example/add_example/op_kernel/add_example.cpp)。
 
 ```CPP
 // 1、核函数定义
@@ -436,7 +426,7 @@ __global__ __aicore__ void add_example(GM_ADDR x, GM_ADDR y, GM_ADDR z, GM_ADDR 
     ....
 }
 ```
-完整代码请参考`example/add_example/op_kernel`目录下[add_example.cpp](../../example/add_example/op_kernel/add_example.cpp)。
+在\$\{op\_name\}.h中定义Kernel头文件，包含函数声明、结构定义、逻辑实现等，示例如下，`AddExample`算子完整代码请参考`example/add_example/op_kernel`下[add_example.h](../../example/add_example/op_kernel/add_example.h)。
 
 ```C++
 // 2、定义Kernel类
@@ -525,101 +515,21 @@ __aicore__ inline void AddExample<T>::CopyOut(int32_t progress)
     ....
 }
 ```
-完整代码请参考`example/add_example/op_kernel`目录下[add_example.h](../../example/add_example/op_kernel/add_example.h)。
+## aclnn适配
 
-## Shape与DataType推导（可选）
+完成算子开发和编译后，会自动生成aclnn接口（一套基于C 的API），可在应用程序中调用aclnn接口实现调用算子的目的。该方式依赖算子的二进制包，为了生成对应的二进制包，需要增加二进制编译json：
 
-在深度学习中，当一个算子被加入计算图时，为确保图的正确性和后续的编译、优化、执行流程顺利进行，通常需要为该算子实现两个关键的推导函数：
-  - InferShape：用于推导输出张量的形状（shape）。
-  - InferDataType：用于推导输出张量的数据类型（dataType）。
+以`AddExample`算子为例：
 
-操作步骤如下：
+1. 在`example/add_example/op_host`目录新建`config/${soc_version}`文件夹，用于存放配置文件。
 
-**1. 注册InferShape与InferData。**
+2. 在`${soc_version}`目录新建json文件，命名为`${op_name}_binary.json`，用于描述算子相关信息，包括算子输入、输出、shape、data type、format等信息，完整定义请参考[add_example_binary.json](../../example/add_example/op_host/config/ascend910b/add_example_binary.json)。
 
-   实现两个目标函数之前，需要先进行注册，告诉框架算子的shape和data type推导逻辑由哪两个函数来处理。
+3. 在`scripts/kernel/binary_config`目录[ascendc_config.json](../../scripts/kernel/binary_config/ascendc_config.json)中，注册算子的NPU型号和实现模式，示例如下：
 
-**2. InferShape推导实现。**
-
-   Infershape函数的作用是根据输入的shape推导输出的shape。
-
-**3. InferDataType推导实现。**
-
-   InferDataType函数的作用是根据输入的data type推导输出的data type。
-
-根据上述步骤，编写`AddExample`算子的推导实现，示例代码如下：
-
-```C++
-// AddExample算子逻辑是两个数相加，因此输出shape与输入shape一致
-static ge::graphStatus InferShapeAddExample(gert::InferShapeContext* context)
-{
-    ....
-    // 获取输入shape
-    const gert::Shape* xShape = context->GetInputShape(IDX_0);
-    // 获取输出shape
-    gert::Shape* yShape = context->GetOutputShape(IDX_0);
-    // 获取输入DimNum
-    auto xShapeSize = xShape->GetDimNum();
-    // 设置输出的DimNum
-    yShape->SetDimNum(xShapeSize);
-    // 依次将输入Dim值设置给输出
-    for (size_t i = 0; i < xShapeSize; i++) {
-        int64_t dim = xShape->GetDim(i);
-        yShape->SetDim(i, dim);
-    }
-    ....
-}
-
-// AddExample算子逻辑是两个数相加，因此输出dataType与输入dataType一致
-static ge::graphStatus InferDataTypeAddExample(gert::InferDataTypeContext* context)
-{
-    ....
-    // 获取输入的dataType
-    ge::DataType sizeDtype = context->GetInputDataType(IDX_0);
-    // 将输出dataType设置到输出
-    context->SetOutputDataType(IDX_0, sizeDtype);
-    ....
-}
-
-// 注册InferShape与InferData
-IMPL_OP_INFERSHAPE(AddExample).
-    InferShape(InferShapeAddExample).
-    InferDataType(InferDataTypeAddExample);
-```
-
-完整代码请参考`example/add_example/op_host`目录下[add_example_infershape.cpp](../../example/add_example/op_host/add_example_infershape.cpp)。
-
-## 框架适配
-
-目前算子支持两种调用方式：aclnn调用和图模式调用，详细介绍参见[算子验证](#算子验证)。
-
-- **aclnn适配**
-
-    完成算子开发和编译后，会自动生成aclnn接口（一套基于C 的API），您可以直接在应用程序中调用aclnn接口实现调用算子的目的。注意，该方式依赖算子的二进制包，为了生成对应的二进制包，需要完成如下适配操作：
-
-    以`AddExample`算子为例：
-
-    1. 在`example/add_example/op_host`目录新建`config/${soc_version}`文件夹，用于存放配置文件。
-    
-    2. 在`${soc_version}`目录新建json文件，命名为`${op_name}_binary.json`，用于描述算子相关信息，包括算子输入、输出、shape、data type、format等信息，完整定义请参考 [add_example_binary.json](../../example/add_example/op_host/config/ascend910b/add_example_binary.json)。
-    
-    3. 待补充
-
-- **图模式适配**
-
-    图模式调用需要将算子原型注册到[Graph Engine](https://www.hiascend.com/cann/graph-engine)（简称GE）中，以便GE能够识别该类型算子的输入、输出及属性信息。注册通过`REG_OP`接口完成，开发者需要定义算子的输入、输出张量类型及数量等基本信息。
-
-    示例代码如下，展示了如何注册`AddExample`算子：
-    
-    ```CPP
-    REG_OP(AddExample)
-        .INPUT(x1, TensorType({DT_FLOAT}))
-        .INPUT(x2, TensorType({DT_FLOAT}))
-        .OUTPUT(y, TensorType({DT_FLOAT}))
-        .OP_END_FACTORY_REG(AddExample)
+    ```json
+    {"name":"AddExample", "compute_units": ["${soc_version}"], "auto_sync":true, "impl_mode" : "high_performance"},
     ```
-
-    完整代码请参考`example/add_example/op_graph`目录下[add_example_proto.h](../../example/add_example/op_graph/add_example_proto.h)。
 
 ## 编译部署
 
@@ -637,13 +547,13 @@ IMPL_OP_INFERSHAPE(AddExample).
 
     ```bash
     # 编译指定算子，如--ops=add_example
-    bash build.sh --pkg --soc=${soc_version} --vendor_name=${vendor_name} --ops=${op1,op2,...}
+    bash build.sh --pkg --soc=${soc_version} --vendor_name=${vendor_name} --ops=${op_list}
     ```
 
     若提示如下信息，说明编译成功：
 
     ```bash
-    Self-extractable archive "cann-ops-transformer-${vendor_name}-linux.${arch}.run" successfully created.
+    Self-extractable archive "cann-ops-transformer-${vendor_name}_linux-${arch}.run" successfully created.
     ```
 
     若未指定`${vendor_name}`默认使用`custom`作为包名。编译成功后，生成的自定义算子\*\.run包存放于build_out目录。
@@ -659,13 +569,14 @@ IMPL_OP_INFERSHAPE(AddExample).
     执行以下命令进行安装：
     
     ```bash
-    ./cann-ops-transformer-${vendor_name}-linux.${arch}.run
+    ./cann-ops-transformer-${vendor_name}_linux-${arch}.run
     ```
     自定义算子包安装在`${ASCEND_HOME_PATH}/latest/opp/vendor`路径中，`${ASCEND_HOME_PATH}`表示CANN软件安装目录，可提前在环境变量中配置。
+    自定义算子包不支持卸载指令。
     
     自定义算子包的目录结构示例如下：
     ```
-    ├── cann-ops-transformer-${vendor_name}-linux.${arch}.run           # 包名
+    ├── cann-ops-transformer-${vendor_name}_linux-${arch}.run           # 包名
     ├── bin
     │   └── set_env.bash                                         # 环境变量source脚本
     ├── op_api
@@ -717,6 +628,93 @@ IMPL_OP_INFERSHAPE(AddExample).
 
 ## 算子验证
 
-开发好的算子可通过aclnn、图模式等方式验证算子功能，详细的调用流程请参见[算子调用](./op_invocation.md)。
+开发好的算子完成编译部署后，可通过aclnn方式验证功能，方法请参考[算子调用方式](./op_invocation.md)。
 
-同时，支持开发者使用第三方框架或主流AI框架对接本项目算子，如适配过程遇到困难，可通过issue方式联系技术支持。
+## 附录
+自定义算子如需运行图模式，不需要[aclnn适配](#aclnn适配)，做如下交付件适配：
+```
+${op_name}                              # 替换为实际算子名的小写下划线形式
+├── op_host                             # Host侧实现
+│   └── ${op_name}_infershape.cpp       # InferShape实现，实现算子形状推导，在运行时推导输出shape
+├── op_graph                            # 图融合相关实现
+│   ├── CMakeLists.txt                  # op_graph侧cmakelist文件
+│   ├── ${op_name}_graph_infer.cpp      # InferDataType文件，实现算子类型推导，在运行时推导输出dataType
+└── └── ${op_name}_proto.h              # 算子原型定义，用于图优化和融合阶段识别算子
+```
+
+### Shape与DataType推导
+
+在深度学习中，当一个算子被加入计算图时，为确保图的正确性和后续的编译、优化、执行流程顺利进行，通常需要为该算子实现两个关键的推导函数：
+  - InferShape：用于推导输出张量的形状（shape）。
+  - InferDataType：用于推导输出张量的数据类型（dataType）。
+
+操作步骤如下：
+
+**1. 注册InferShape与InferDataType。**
+
+   实现两个目标函数之前，需要先进行注册，框架判断算子的shape和data type推导逻辑由哪两个函数来处理。
+
+**2. InferShape推导实现。**
+
+   Infershape函数的作用是根据输入的shape推导输出的shape。
+
+**3. InferDataType推导实现。**
+
+   InferDataType函数的作用是根据输入的data type推导输出的data type。
+
+根据上述步骤，编写`AddExample`算子的推导实现，示例代码如下：
+
+```C++
+// AddExample算子逻辑是两个数相加，因此输出shape与输入shape一致
+static ge::graphStatus InferShapeAddExample(gert::InferShapeContext* context)
+{
+    ....
+    // 获取输入shape
+    const gert::Shape* xShape = context->GetInputShape(IDX_0);
+    // 获取输出shape
+    gert::Shape* yShape = context->GetOutputShape(IDX_0);
+    // 获取输入DimNum
+    auto xShapeSize = xShape->GetDimNum();
+    // 设置输出的DimNum
+    yShape->SetDimNum(xShapeSize);
+    // 依次将输入Dim值设置给输出
+    for (size_t i = 0; i < xShapeSize; i++) {
+        int64_t dim = xShape->GetDim(i);
+        yShape->SetDim(i, dim);
+    }
+    ....
+}
+
+// AddExample算子逻辑是两个数相加，因此输出dataType与输入dataType一致
+static ge::graphStatus InferDataTypeAddExample(gert::InferDataTypeContext* context)
+{
+    ....
+    // 获取输入的dataType
+    ge::DataType sizeDtype = context->GetInputDataType(IDX_0);
+    // 将输出dataType设置到输出
+    context->SetOutputDataType(IDX_0, sizeDtype);
+    ....
+}
+
+// 注册InferShape与InferDataType
+IMPL_OP_INFERSHAPE(AddExample).
+    InferShape(InferShapeAddExample).
+    InferDataType(InferDataTypeAddExample);
+```
+
+完整代码请参考`example/add_example/op_host`目录下[add_example_infershape.cpp](../../example/add_example/op_host/add_example_infershape.cpp)。   
+
+### 算子原型配置
+图模式调用需要将算子原型注册到[Graph Engine](https://www.hiascend.com/cann/graph-engine)（简称GE）中，以便GE能够识别该类型算子的输入、输出及属性信息。注册通过`REG_OP`接口完成，开发者需要定义算子的输入、输出张量类型及数量等基本信息。
+
+示例代码如下，展示了如何注册`AddExample`算子：
+
+```CPP
+REG_OP(AddExample)
+    .INPUT(x1, TensorType({DT_FLOAT}))
+    .INPUT(x2, TensorType({DT_FLOAT}))
+    .OUTPUT(y, TensorType({DT_FLOAT}))
+    .OP_END_FACTORY_REG(AddExample)
+```
+
+完整代码请参考`example/add_example/op_graph`目录下[add_example_proto.h](../../example/add_example/op_graph/add_example_proto.h)。

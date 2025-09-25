@@ -188,11 +188,11 @@ function help_info() {
     echo $dotted_line
     echo "    The following are all supported arguments:"
     echo $dotted_line
-    echo "    --ophost             Build ophost_math.so"
+    echo "    --ophost             Build ophost_transformer.so"
     echo
-    echo "    --opapi              Build opapi_math.so"
+    echo "    --opapi              Build opapi_transformer.so"
     echo
-    echo "    --opgraph            Build graph_plugin_math.so"
+    echo "    --opgraph            Build graph_plugin_transformer.so"
     echo
     echo "    --opkernel           Build binary kernel"
     echo
