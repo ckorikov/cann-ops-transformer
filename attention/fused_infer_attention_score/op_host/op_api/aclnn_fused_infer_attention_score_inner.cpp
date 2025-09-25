@@ -103,19 +103,20 @@ void PrefixTensorPreProcess(const aclTensor *&tensorKey, const aclTensor *&tenso
     OP_LOGD("The conversion of kvPrefix from int32 to int4 is completed.");
 }
 
-aclnnStatus FakeArray(const aclIntArray *inArray, aclIntArray *&outArray) {
-    OP_LOGD("start fake array");
+aclnnStatus FakeArray(const aclIntArray *inArray, aclTensor *&outTensor) {
+    OP_LOGD("start fake tensor");
     if (inArray != nullptr) {
         OP_LOGD("input array is not nullptr");
-        uint64_t size = inArray->Size();
-        // tiling侧认为有tensor但没有data就是计算最大workspace
-        outArray = aclCreateIntArray(nullptr, size);
-        if (outArray == nullptr) {
-            OP_LOGE(ACLNN_ERR_INNER_NULLPTR, "Try alloc array failed");
+        int64_t size = static_cast<int64_t>(inArray->Size());
+        std::vector<int64_t> shape = {size};
+        outTensor = aclCreateTensor(shape.data(), shape.size(), aclDataType::ACL_INT64, nullptr,
+                                    0, ACL_FORMAT_ND, shape.data(), shape.size(), nullptr);
+        if (outTensor == nullptr) {
+            OP_LOGE(ACLNN_ERR_INNER_NULLPTR, "Try alloc tensor failed");
             return ACLNN_ERR_INNER_NULLPTR;
         }
     }
-    OP_LOGD("end fake array");
+    OP_LOGD("end fake tensor");
     return ACLNN_SUCCESS;
 }
 

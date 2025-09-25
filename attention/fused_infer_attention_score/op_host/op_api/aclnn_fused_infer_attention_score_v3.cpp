@@ -62,29 +62,29 @@ struct FiaActualSeqInArrays {
     const aclIntArray *actualSharedPrefixLenOptional = nullptr;
 };
 
-struct FiaActualSeqOutArrays {
-    aclIntArray *actualSeqLengthsOptional = nullptr;
-    aclIntArray *actualSeqLengthsKvOptional = nullptr;
-    aclIntArray *actualSharedPrefixLenOptional = nullptr;
+struct FiaActualSeqOutTensors {
+    aclTensor *actualSeqLengthsOptional = nullptr;
+    aclTensor *actualSeqLengthsKvOptional = nullptr;
+    aclTensor *actualSharedPrefixLenOptional = nullptr;
 };
 
-aclnnStatus FakeFiaActualSeqArrays(const FiaActualSeqInArrays &inArrays,  FiaActualSeqOutArrays &outArrays) {
+aclnnStatus FakeFiaActualSeqArrays(const FiaActualSeqInArrays &inArrays,  FiaActualSeqOutTensors &outTensors) {
     // nullptr不处理， nullptr是空指针，这样不会影响原来就不传入actual seq length为空的逻辑
-    aclnnStatus ret = FakeArray(inArrays.actualSeqLengthsOptional, outArrays.actualSeqLengthsOptional);
+    aclnnStatus ret = FakeArray(inArrays.actualSeqLengthsOptional, outTensors.actualSeqLengthsOptional);
     CHECK_RET_CODE(ret, "Try alloc fake actualSeqLengthsOptional failed");
 
-    ret = FakeArray(inArrays.actualSeqLengthsKvOptional, outArrays.actualSeqLengthsKvOptional);
+    ret = FakeArray(inArrays.actualSeqLengthsKvOptional, outTensors.actualSeqLengthsKvOptional);
     if (ret != ACLNN_SUCCESS) {
         OP_LOGE(ACLNN_ERR_INNER_NULLPTR, "Try alloc fake actualSeqLengthsKvOptional failed");
-        aclDestroyIntArray(outArrays.actualSeqLengthsOptional); // 没有返回值无需校验
+        aclDestroyTensor(outTensors.actualSeqLengthsOptional); // 没有返回值无需校验
         return ret;
     }
 
-    ret = FakeArray(inArrays.actualSharedPrefixLenOptional, outArrays.actualSharedPrefixLenOptional);
+    ret = FakeArray(inArrays.actualSharedPrefixLenOptional, outTensors.actualSharedPrefixLenOptional);
     if (ret != ACLNN_SUCCESS) {
         OP_LOGE(ACLNN_ERR_INNER_NULLPTR, "Try alloc fake actualSharedPrefixLenOptional failed");
-        aclDestroyIntArray(outArrays.actualSeqLengthsOptional); // 没有返回值无需校验
-        aclDestroyIntArray(outArrays.actualSeqLengthsKvOptional);
+        aclDestroyTensor(outTensors.actualSeqLengthsOptional); // 没有返回值无需校验
+        aclDestroyTensor(outTensors.actualSeqLengthsKvOptional);
         return ret;
     }
     return ret;
@@ -127,8 +127,8 @@ aclnnStatus aclnnFusedInferAttentionScoreV3GetMaxWorkspaceSize(
     PrefixTensorPreProcess(tensorKeySharedPrefixOptional, tensorValueSharedPrefixOptional);
 
     FiaActualSeqInArrays actualSeqArrays{actualSeqLengthsOptional, actualSeqLengthsKvOptional, actualSharedPrefixLenOptional};
-    FiaActualSeqOutArrays fakeActualSeqArrays{};
-    aclnnStatus ret = FakeFiaActualSeqArrays(actualSeqArrays, fakeActualSeqArrays);
+    FiaActualSeqOutTensors fakeActualSeqTensors{};
+    aclnnStatus ret = FakeFiaActualSeqArrays(actualSeqArrays, fakeActualSeqTensors);
     if (ret != ACLNN_SUCCESS) {
         return ret;
     }
@@ -137,22 +137,22 @@ aclnnStatus aclnnFusedInferAttentionScoreV3GetMaxWorkspaceSize(
     const aclTensor *tempTensor = nullptr;
     FusedInferAttentionScoreProcessSoftmaxLse(softmaxLseFlag, softmaxLse, tempTensor, placeHolder);
 
-    ret = aclnnInnerFusedInferAttentionScoreGetWorkspaceSize(
-        query, tensorListKey, tensorListValue, pseShiftOptional, attenMaskOptional, fakeActualSeqArrays.actualSeqLengthsOptional,
-        fakeActualSeqArrays.actualSeqLengthsKvOptional, deqScale1Optional, quantScale1Optional, deqScale2Optional, quantScale2Optional,
+    ret = aclnnInnerFusedInferAttentionScoreTensorGetWorkspaceSize(
+        query, tensorListKey, tensorListValue, pseShiftOptional, attenMaskOptional, fakeActualSeqTensors.actualSeqLengthsOptional,
+        fakeActualSeqTensors.actualSeqLengthsKvOptional, deqScale1Optional, quantScale1Optional, deqScale2Optional, quantScale2Optional,
         quantOffset2Optional, antiquantScaleOptional, antiquantOffsetOptional, blockTableOptional,
         queryPaddingSizeOptional, kvPaddingSizeOptional, keyAntiquantScaleOptional, keyAntiquantOffsetOptional,
         valueAntiquantScaleOptional, valueAntiquantOffsetOptional, tensorKeySharedPrefixOptional,
-        tensorValueSharedPrefixOptional, fakeActualSeqArrays.actualSharedPrefixLenOptional, queryRopeOptional,
+        tensorValueSharedPrefixOptional, fakeActualSeqTensors.actualSharedPrefixLenOptional, queryRopeOptional,
         keyRopeOptional, keyRopeAntiquantScaleOptional, nullptr, nullptr, nullptr, nullptr, numHeads, scaleValue, preTokens, nextTokens,
         inputLayout, numKeyValueHeads, sparseMode, innerPrecise, blockSize, antiquantMode, softmaxLseFlag,
         keyAntiquantMode, valueAntiquantMode, 0, 0, 0, attentionOut, placeHolder, workspaceSize, executor);
     if (softmaxLseFlag == false) {
         aclDestroyTensor(tempTensor);
     }
-    aclDestroyIntArray(fakeActualSeqArrays.actualSeqLengthsOptional); // 只会成功，无需校验
-    aclDestroyIntArray(fakeActualSeqArrays.actualSeqLengthsKvOptional);
-    aclDestroyIntArray(fakeActualSeqArrays.actualSharedPrefixLenOptional);
+    aclDestroyTensor(fakeActualSeqTensors.actualSeqLengthsOptional); // 只会成功，无需校验
+    aclDestroyTensor(fakeActualSeqTensors.actualSeqLengthsKvOptional);
+    aclDestroyTensor(fakeActualSeqTensors.actualSharedPrefixLenOptional);
     return ret;
 }
 

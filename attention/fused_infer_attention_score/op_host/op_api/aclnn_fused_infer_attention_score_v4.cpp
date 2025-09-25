@@ -96,9 +96,9 @@ aclnnStatus aclnnFusedInferAttentionScoreV4GetMaxWorkspaceSize(
     TensorPreProcess(tensorListKey, tensorListValue);
     PrefixTensorPreProcess(tensorKeySharedPrefixOptional, tensorValueSharedPrefixOptional);
 
-    aclIntArray *fakeActualSeqLengthsOptional{nullptr};
-    aclIntArray *fakeActualSeqLengthsKvOptional{nullptr};
-    aclIntArray *fakeActualSharedPrefixLenOptional{nullptr};
+    aclTensor *fakeActualSeqLengthsOptional{nullptr};
+    aclTensor *fakeActualSeqLengthsKvOptional{nullptr};
+    aclTensor *fakeActualSharedPrefixLenOptional{nullptr};
 
     // nullptr不处理， nullptr是空指针，这样不会影响原来就不传入actual seq length为空的逻辑
     aclnnStatus ret = FakeArray(actualSeqLengthsOptional, fakeActualSeqLengthsOptional);
@@ -107,15 +107,15 @@ aclnnStatus aclnnFusedInferAttentionScoreV4GetMaxWorkspaceSize(
     ret = FakeArray(actualSeqLengthsKvOptional, fakeActualSeqLengthsKvOptional);
     if (ret != ACLNN_SUCCESS) {
         OP_LOGE(ACLNN_ERR_INNER_NULLPTR, "Try alloc fake actualSeqLengthsKvOptional failed");
-        aclDestroyIntArray(fakeActualSeqLengthsOptional); // 没有返回值无需校验
+        aclDestroyTensor(fakeActualSeqLengthsOptional); // 没有返回值无需校验
         return ret;
     }
 
     ret = FakeArray(actualSharedPrefixLenOptional, fakeActualSharedPrefixLenOptional);
     if (ret != ACLNN_SUCCESS) {
         OP_LOGE(ACLNN_ERR_INNER_NULLPTR, "Try alloc fake actualSharedPrefixLenOptional failed");
-        aclDestroyIntArray(fakeActualSeqLengthsOptional); // 没有返回值无需校验
-        aclDestroyIntArray(fakeActualSeqLengthsKvOptional);
+        aclDestroyTensor(fakeActualSeqLengthsOptional); // 没有返回值无需校验
+        aclDestroyTensor(fakeActualSeqLengthsKvOptional);
        return ret;
     }
 
@@ -123,7 +123,7 @@ aclnnStatus aclnnFusedInferAttentionScoreV4GetMaxWorkspaceSize(
     const aclTensor *tempTensor = nullptr;
     FusedInferAttentionScoreProcessSoftmaxLse(softmaxLseFlag, softmaxLse, tempTensor, placeHolder);
 
-    ret = aclnnInnerFusedInferAttentionScoreGetWorkspaceSize(
+    ret = aclnnInnerFusedInferAttentionScoreTensorGetWorkspaceSize(
         query, tensorListKey, tensorListValue, pseShiftOptional, attenMaskOptional, fakeActualSeqLengthsOptional,
         fakeActualSeqLengthsKvOptional, deqScale1Optional, quantScale1Optional, deqScale2Optional, quantScale2Optional,
         quantOffset2Optional, antiquantScaleOptional, antiquantOffsetOptional, blockTableOptional,
@@ -137,9 +137,9 @@ aclnnStatus aclnnFusedInferAttentionScoreV4GetMaxWorkspaceSize(
     if (softmaxLseFlag == false) {
         aclDestroyTensor(tempTensor);
     }
-    aclDestroyIntArray(fakeActualSeqLengthsOptional); // 只会成功，无需校验
-    aclDestroyIntArray(fakeActualSeqLengthsKvOptional);
-    aclDestroyIntArray(fakeActualSharedPrefixLenOptional);
+    aclDestroyTensor(fakeActualSeqLengthsOptional); // 只会成功，无需校验
+    aclDestroyTensor(fakeActualSeqLengthsKvOptional);
+    aclDestroyTensor(fakeActualSharedPrefixLenOptional);
     return ret;
 }
 
