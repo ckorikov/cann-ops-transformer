@@ -846,16 +846,16 @@ FlashAttentionScoreBn2gs1s2B<FA_BN2GS1S2B_FUNCTION_PARAMS_TEMPLATE>::ProcessVec1
                      extraInfo.vecS1BaseSize * extraInfo.s2AlignSize);
             }
             if constexpr (hasPse == true) {
-                PipeBarrier<PIPE_V>();
+                pipe_barrier(PIPE_V);
                 PseCompute<T, hasPse>(stage1PongTensor, stage1PingTensor, this->pseInfo);
             }
             this->CopyInAttenMask(extraInfo, -1);
             if (this->tilingData->inputParams.pseType == (uint32_t)PseTypeEnum::PSE_OUTER_ADD_MUL_TYPE) {
-                PipeBarrier<PIPE_V>();
+                pipe_barrier(PIPE_V);
                 Muls(stage1PingTensor, stage1PongTensor, static_cast<T>(this->tilingData->inputParams.scaleValue),
                      extraInfo.vecS1BaseSize * extraInfo.s2AlignSize);
             } else {
-                PipeBarrier<PIPE_V>();
+                pipe_barrier(PIPE_V);
                 Muls(stage1PingTensor, stage1PongTensor, static_cast<T>(1.0),
                      extraInfo.vecS1BaseSize * extraInfo.s2AlignSize);
             }
@@ -891,7 +891,7 @@ FlashAttentionScoreBn2gs1s2B<FA_BN2GS1S2B_FUNCTION_PARAMS_TEMPLATE>::ProcessVec1
                     auto attenMaskCasualTmp = attenMaskCasualUb.ReinterpretCast<uint16_t>();
                     auto attenMaskPrefixUbTmp = attenMaskPrefixUb.ReinterpretCast<uint16_t>();
                     And(attenMaskCasualTmp, attenMaskCasualTmp, attenMaskPrefixUbTmp, maskTotalNum);
-                    PipeBarrier<PIPE_V>();
+                    pipe_barrier(PIPE_V);
                     attenMaskCasualUb = attenMaskCasualTmp.ReinterpretCast<uint8_t>();
                     this->ComputeAttenMask(extraInfo, stage1PingTensor, 0);
                 }
@@ -927,7 +927,7 @@ FlashAttentionScoreBn2gs1s2B<FA_BN2GS1S2B_FUNCTION_PARAMS_TEMPLATE>::ProcessVec1
             if constexpr (hasDrop == true) {
                 LocalTensor<uint8_t> apiTmpBuffer = this->commonTBuf.template Get<uint8_t>();
                 LocalTensor<uint8_t> dropMaskUb = this->maskTBufPong.template Get<uint8_t>();
-                PipeBarrier<PIPE_V>();
+                pipe_barrier(PIPE_V);
                 SetFlag<HardEvent::MTE2_V>(eventIdMte2ToV);
                 WaitFlag<HardEvent::MTE2_V>(eventIdMte2ToV);
                 this->dropMaskInfo.firstAxis = static_cast<uint32_t>(extraInfo.vecS1BaseSize);
@@ -946,7 +946,7 @@ FlashAttentionScoreBn2gs1s2B<FA_BN2GS1S2B_FUNCTION_PARAMS_TEMPLATE>::ProcessVec1
             if (loopIdxNew < this->biN2G * this->s1OuterSize - 1) {
                 SetFlag<HardEvent::V_MTE2>(eventIdVToMte2B);
             }
-            PipeBarrier<PIPE_V>();
+            pipe_barrier(PIPE_V);
 
             if (loopIdxNew > 0) {
                 WaitFlag<HardEvent::MTE3_V>(eventIdMte3ToV);
@@ -1168,7 +1168,7 @@ __aicore__ inline void FlashAttentionScoreBn2gs1s2B<FA_BN2GS1S2B_FUNCTION_PARAMS
     repeatParams.dstRepStride = this->dSizeAlign16 / blockSize;
     int32_t s1OuterLoop = vec2S1BaseSize / repeatMaxTimes;
     int32_t s1OuterRemain = vec2S1BaseSize % repeatMaxTimes;
-    PipeBarrier<PIPE_V>();
+    pipe_barrier(PIPE_V);
     if constexpr (IsSameType<T, half>::value) {
         LocalTensor<T> sumCastTensor;
         if (extraInfo.taskId % 2 == 0) {
@@ -1177,7 +1177,7 @@ __aicore__ inline void FlashAttentionScoreBn2gs1s2B<FA_BN2GS1S2B_FUNCTION_PARAMS
             sumCastTensor = this->vecOut.template Get<T>();
         }
         Cast(sumCastTensor, sumTensor, RoundMode::CAST_ROUND, sumTensor.GetSize());
-        PipeBarrier<PIPE_V>();
+        pipe_barrier(PIPE_V);
         for (int32_t i = 0; i < s1OuterLoop; i++) {
             int32_t innerLoop = this->dSizeAlign16 / repeatMaxSize;
             int32_t innerRemain = this->dSizeAlign16 % repeatMaxSize;
@@ -1250,7 +1250,7 @@ __aicore__ inline void FlashAttentionScoreBn2gs1s2B<FA_BN2GS1S2B_FUNCTION_PARAMS
     SplitBExtraInfo &extraInfo, int64_t vec2S1Idx, LocalTensor<T> &bmm2Res, LocalTensor<INPUT_T> &attentionOut)
 {
     uint32_t calcSize = bmm2Res.GetSize();
-    PipeBarrier<PIPE_V>();
+    pipe_barrier(PIPE_V);
 
     if constexpr (!IsSameType<INPUT_T, T>::value) {
         Cast(attentionOut, bmm2Res, RoundMode::CAST_ROUND, calcSize);
@@ -1321,7 +1321,7 @@ FlashAttentionScoreBn2gs1s2B<FA_BN2GS1S2B_FUNCTION_PARAMS_TEMPLATE>::CopyInAtten
         LocalTensor<uint8_t> attenMaskUb = this->maskTBufPing.template Get<uint8_t>();
         if (this->attenMaskCompressMode == static_cast<uint8_t>(AttenMaskCompressMode::PREFIX_MODE) &&
             maskOffset != -1) {
-            PipeBarrier<PIPE_V>();
+            pipe_barrier(PIPE_V);
             attenMaskUb = this->pseTBuf.template Get<uint8_t>();
         }
         if (maskOffset == -1) {
@@ -1514,7 +1514,7 @@ __aicore__ inline void FlashAttentionScoreBn2gs1s2B<FA_BN2GS1S2B_FUNCTION_PARAMS
     expUb.SetShapeInfo(ShapeInfo(2, expShape, DataFormat::ND));
 
     LocalTensor<uint8_t> apiTmpBuffer = this->commonTBuf.template Get<uint8_t>();
-    PipeBarrier<PIPE_V>();
+    pipe_barrier(PIPE_V);
     SoftMaxTiling softmaxFlashTilingData;
     if (IsBasicBlockInSoftMax(extraInfo.vecS1BaseSize, this->s2Size)) {
         SoftmaxFlashV2<T, false, true, true>(srcTensor, sumUb, maxUb, srcTensor, expUb, sumUb, maxUb, apiTmpBuffer,

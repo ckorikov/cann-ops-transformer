@@ -203,7 +203,7 @@ __aicore__ inline void VectorSoftmaxGrad<TYPE, TILING_TYPE>::CopyInSfmg(int64_t 
 
 template <typename TYPE, class TILING_TYPE> __aicore__ inline void VectorSoftmaxGrad<TYPE, TILING_TYPE>::Process()
 {
-    PipeBarrier<PIPE_ALL>(); // 去掉pre和sfmg之间的SyncALL，这里需要增加pipeALL
+    pipe_barrier(PIPE_ALL); // 去掉pre和sfmg之间的SyncALL，这里需要增加pipeALL
 
     uint32_t usedCoreNums = usedCoreNum;
     if (cBlockIdx < usedCoreNums) {
@@ -240,14 +240,14 @@ template <typename TYPE, class TILING_TYPE> __aicore__ inline void VectorSoftmax
             input1Que.DeQue<TYPE>();
             int64_t calcSize = nBurst * dAlign;
             Cast(sfmgClc1, input1Buf, RoundMode::CAST_NONE, calcSize);
-            PipeBarrier<PIPE_V>();
+            pipe_barrier(PIPE_V);
             input1Que.FreeTensor(input1Buf);
 
             // cast 2
             input2Que.EnQue(input2Buf);
             input2Que.DeQue<TYPE>();
             Cast(sfmgClc2, input2Buf, RoundMode::CAST_NONE, calcSize);
-            PipeBarrier<PIPE_V>();
+            pipe_barrier(PIPE_V);
             input2Que.FreeTensor(input2Buf);
 
             // pre copyIn next nBurst
@@ -262,7 +262,7 @@ template <typename TYPE, class TILING_TYPE> __aicore__ inline void VectorSoftmax
             // sfmg
             outputBuf = out1Que.AllocTensor<float>();
             Duplicate<float>(outputBuf, 0.0, nBurst * 8);
-            PipeBarrier<PIPE_V>();
+            pipe_barrier(PIPE_V);
 
             uint32_t shapeArray[] = {static_cast<uint32_t>(nBurst), static_cast<uint32_t>(dAlign)};
             sfmgClc1.SetShapeInfo(ShapeInfo(2, shapeArray, AscendC::DataFormat::ND));
@@ -278,7 +278,7 @@ template <typename TYPE, class TILING_TYPE> __aicore__ inline void VectorSoftmax
                 SoftmaxGradFront<float, false>(outputBuf, sfmgClc1, sfmgClc2, tempBuf,
                                                tilingData->mlaTensorTilingData.softmaxGradTilingData);
             }
-            PipeBarrier<PIPE_V>();
+            pipe_barrier(PIPE_V);
 
             // copyOut
             out1Que.EnQue(outputBuf);

@@ -391,7 +391,7 @@ __aicore__ inline void FlashAttentionScoreGradPost<OUT_TYPE, TILING_TYPE, CAST_D
             inQueueCommon.FreeTensor(vecIn);
         }
 
-        PipeBarrier<PIPE_V>();
+        pipe_barrier(PIPE_V);
         if (needMuls) {
 
             if constexpr (!AscendC::IsSameType<OUT_TYPE, float>::value) {
@@ -402,12 +402,12 @@ __aicore__ inline void FlashAttentionScoreGradPost<OUT_TYPE, TILING_TYPE, CAST_D
                  sLen * dAlign);
             }
 
-            PipeBarrier<PIPE_V>();
+            pipe_barrier(PIPE_V);
         }
 
         if constexpr (!AscendC::IsSameType<OUT_TYPE, float>::value) {
             Cast(vecOut[ubOffset], tmpTensor[ubOffset], RoundMode::CAST_ROUND, sLen * dAlign);
-            PipeBarrier<PIPE_V>();
+            pipe_barrier(PIPE_V);
         }
 
         outQueueCommon.EnQue(vecOut);
@@ -454,8 +454,8 @@ __aicore__ inline void FlashAttentionScoreGradPost<OUT_TYPE, TILING_TYPE, CAST_D
         if ((sLen > 0) && (inUbOffset + dataLen + dAlign / C0_SIZE * cal_block_num) * sizeof(float) >
                               ubBaseSize * 2 + nzReservedSize) {
             inUbOffset = 0;
-            SetFlag<HardEvent::V_MTE2>(static_cast<int32_t>(curEventId));
-            WaitFlag<HardEvent::V_MTE2>(static_cast<int32_t>(curEventId));
+            set_flag(PIPE_V, PIPE_MTE2, curEventId);
+            wait_flag(PIPE_V, PIPE_MTE2, curEventId);
         }
     }
     GetTPipePtr()->ReleaseEventID<HardEvent::V_MTE2>(mte2WaitVPing);
@@ -543,7 +543,7 @@ __aicore__ inline void FlashAttentionScoreGradPost<OUT_TYPE, TILING_TYPE, CAST_D
             dataSize1 = i + kvPostBaseNum >= kvPostBlockTotal ? 0 : dataSize1;
             NZVecClc(dvWorkSpaceGm, dvGm, dataSize1, actual_seq_kvlen_addr, 1, s2, false, 1, d, dAlign);
         }
-        PipeBarrier<PIPE_ALL>();
+        pipe_barrier(PIPE_ALL);
     }
 }
 
@@ -576,7 +576,7 @@ __aicore__ inline void FlashAttentionScoreGradPost<OUT_TYPE, TILING_TYPE, CAST_D
             DataCopy(dqGm[i], vecOut, (dataSize + 7) / 8 * 8); // dataSize(fp16) align 32B
         } else {
             Muls(vecIn, vecIn, (float)tilingData->postTilingData.scaleValue, dataSize);
-            PipeBarrier<PIPE_V>();
+            pipe_barrier(PIPE_V);
             Cast(vecOut, vecIn, AscendC::RoundMode::CAST_ROUND, dataSize);
             outQueue.EnQue(vecOut);
             outQueue.template DeQue<OUT_TYPE>();
@@ -585,7 +585,7 @@ __aicore__ inline void FlashAttentionScoreGradPost<OUT_TYPE, TILING_TYPE, CAST_D
         inQueue.FreeTensor(vecIn);
         outQueue.FreeTensor(vecOut);
     }
-    PipeBarrier<PIPE_ALL>();
+    pipe_barrier(PIPE_ALL);
     
     if constexpr (HAS_ROPE == ENABLE) {
         // init qRope
@@ -609,7 +609,7 @@ __aicore__ inline void FlashAttentionScoreGradPost<OUT_TYPE, TILING_TYPE, CAST_D
                 DataCopy(dqRopeGm[i], vecOut, (dataSize + 7) / 8 * 8); // dataSize(fp16) align 32B
             } else {
                 Muls(vecIn, vecIn, (float)tilingData->postTilingData.scaleValue, dataSize);
-                PipeBarrier<PIPE_V>();
+                pipe_barrier(PIPE_V);
                 Cast(vecOut, vecIn, AscendC::RoundMode::CAST_ROUND, dataSize);
                 outQueue.EnQue(vecOut);
                 outQueue.template DeQue<OUT_TYPE>();
@@ -618,7 +618,7 @@ __aicore__ inline void FlashAttentionScoreGradPost<OUT_TYPE, TILING_TYPE, CAST_D
             inQueue.FreeTensor(vecIn);
             outQueue.FreeTensor(vecOut);
         }
-        PipeBarrier<PIPE_ALL>();
+        pipe_barrier(PIPE_ALL);
     }
     // init k
     uint64_t kvBegin = cBlockIdx * kvPostBlockFactor * kvPostBaseNum;
@@ -641,7 +641,7 @@ __aicore__ inline void FlashAttentionScoreGradPost<OUT_TYPE, TILING_TYPE, CAST_D
             DataCopy(dkGm[i], vecOut, (dataSize + 7) / 8 * 8); // dataSize(fp16) align 32B
         } else {
             Muls(vecIn, vecIn, (float)tilingData->postTilingData.scaleValue, dataSize);
-            PipeBarrier<PIPE_V>();
+            pipe_barrier(PIPE_V);
             Cast(vecOut, vecIn, AscendC::RoundMode::CAST_ROUND, dataSize);
             outQueue.EnQue(vecOut);
             outQueue.template DeQue<OUT_TYPE>();
@@ -650,7 +650,7 @@ __aicore__ inline void FlashAttentionScoreGradPost<OUT_TYPE, TILING_TYPE, CAST_D
         inQueue.FreeTensor(vecIn);
         outQueue.FreeTensor(vecOut);
     }
-    PipeBarrier<PIPE_ALL>();
+    pipe_barrier(PIPE_ALL);
 
     if constexpr (HAS_ROPE == ENABLE) {
         // init kRope
@@ -674,7 +674,7 @@ __aicore__ inline void FlashAttentionScoreGradPost<OUT_TYPE, TILING_TYPE, CAST_D
                 DataCopy(dkRopeGm[i], vecOut, (dataSize + 7) / 8 * 8); // dataSize(fp16) align 32B
             } else {
                 Muls(vecIn, vecIn, (float)tilingData->postTilingData.scaleValue, dataSize);
-                PipeBarrier<PIPE_V>();
+                pipe_barrier(PIPE_V);
                 Cast(vecOut, vecIn, AscendC::RoundMode::CAST_ROUND, dataSize);
                 outQueue.EnQue(vecOut);
                 outQueue.template DeQue<OUT_TYPE>();
@@ -683,7 +683,7 @@ __aicore__ inline void FlashAttentionScoreGradPost<OUT_TYPE, TILING_TYPE, CAST_D
             inQueue.FreeTensor(vecIn);
             outQueue.FreeTensor(vecOut);
         }
-        PipeBarrier<PIPE_ALL>();
+        pipe_barrier(PIPE_ALL);
     }
 
     // init v
@@ -881,7 +881,7 @@ public:
                 DataCopy(dqGm[i], vecOut, (dataSize + 7) / 8 * 8); // dataSize(fp16) align 32B
             } else {
                 Muls(vecIn, vecIn, (float)tilingData->postTilingData.scaleValue, dataSize);
-                PipeBarrier<PIPE_V>();
+                pipe_barrier(PIPE_V);
                 Cast(vecOut, vecIn, AscendC::RoundMode::CAST_ROUND, dataSize);
                 outQueue.EnQue(vecOut);
                 outQueue.template DeQue<OUT_TYPE>();
@@ -890,7 +890,7 @@ public:
             inQueue.FreeTensor(vecIn);
             outQueue.FreeTensor(vecOut);
         }
-        PipeBarrier<PIPE_ALL>();
+        pipe_barrier(PIPE_ALL);
 
         if constexpr (HAS_ROPE == ENABLE) {
             // init qRope
@@ -914,7 +914,7 @@ public:
                     DataCopy(dqRopeGm[i], vecOut, (dataSize + 7) / 8 * 8); // dataSize(fp16) align 32B
                 } else {
                     Muls(vecIn, vecIn, (float)tilingData->postTilingData.scaleValue, dataSize);
-                    PipeBarrier<PIPE_V>();
+                    pipe_barrier(PIPE_V);
                     Cast(vecOut, vecIn, AscendC::RoundMode::CAST_ROUND, dataSize);
                     outQueue.EnQue(vecOut);
                     outQueue.template DeQue<OUT_TYPE>();
@@ -923,7 +923,7 @@ public:
                 inQueue.FreeTensor(vecIn);
                 outQueue.FreeTensor(vecOut);
             }
-            PipeBarrier<PIPE_ALL>();
+            pipe_barrier(PIPE_ALL);
         }
 
         // init k
@@ -947,7 +947,7 @@ public:
                 DataCopy(dkGm[i], vecOut, (dataSize + 7) / 8 * 8); // dataSize(fp16) align 32B
             } else {
                 Muls(vecIn, vecIn, (float)tilingData->postTilingData.scaleValue, dataSize);
-                PipeBarrier<PIPE_V>();
+                pipe_barrier(PIPE_V);
                 Cast(vecOut, vecIn, AscendC::RoundMode::CAST_ROUND, dataSize);
                 outQueue.EnQue(vecOut);
                 outQueue.template DeQue<OUT_TYPE>();
@@ -956,7 +956,7 @@ public:
             inQueue.FreeTensor(vecIn);
             outQueue.FreeTensor(vecOut);
         }
-        PipeBarrier<PIPE_ALL>();
+        pipe_barrier(PIPE_ALL);
 
         if constexpr (HAS_ROPE == ENABLE) {
             // init kRope
@@ -980,7 +980,7 @@ public:
                     DataCopy(dkRopeGm[i], vecOut, (dataSize + 7) / 8 * 8); // dataSize(fp16) align 32B
                 } else {
                     Muls(vecIn, vecIn, (float)tilingData->postTilingData.scaleValue, dataSize);
-                    PipeBarrier<PIPE_V>();
+                    pipe_barrier(PIPE_V);
                     Cast(vecOut, vecIn, AscendC::RoundMode::CAST_ROUND, dataSize);
                     outQueue.EnQue(vecOut);
                     outQueue.template DeQue<OUT_TYPE>();
@@ -989,7 +989,7 @@ public:
                 inQueue.FreeTensor(vecIn);
                 outQueue.FreeTensor(vecOut);
             }
-            PipeBarrier<PIPE_ALL>();
+            pipe_barrier(PIPE_ALL);
         }
 
         // init v
@@ -1106,7 +1106,7 @@ public:
                 inQueueCommon.FreeTensor(vecIn);
             }
 
-            PipeBarrier<PIPE_V>();
+            pipe_barrier(PIPE_V);
             if (needMuls) {
                 if constexpr (!AscendC::IsSameType<OUT_TYPE, float>::value) {
                     Muls(tmpTensor[ubOffset], tmpTensor[ubOffset], (float)tilingData->postTilingData.scaleValue,
@@ -1116,12 +1116,12 @@ public:
                     sLen * dAlign);
                 }
 
-                PipeBarrier<PIPE_V>();
+                pipe_barrier(PIPE_V);
             }
 
             if constexpr (!AscendC::IsSameType<OUT_TYPE, float>::value) {
                 Cast(vecOut[ubOffset], tmpTensor[ubOffset], RoundMode::CAST_ROUND, sLen * dAlign);
-                PipeBarrier<PIPE_V>();
+                pipe_barrier(PIPE_V);
             }
 
             outQueueCommon.EnQue(vecOut);
@@ -1166,8 +1166,8 @@ public:
             if ((sLen > 0) && (inUbOffset + dataLen + dAlign / C0_SIZE * cal_block_num) * sizeof(float) >
                                 ubBaseSize * 2 + nzReservedSize) {
                 inUbOffset = 0;
-                SetFlag<HardEvent::V_MTE2>(static_cast<int32_t>(curEventId));
-                WaitFlag<HardEvent::V_MTE2>(static_cast<int32_t>(curEventId));
+                set_flag(PIPE_V, PIPE_MTE2, curEventId);
+                wait_flag(PIPE_V, PIPE_MTE2, curEventId);
             }
         }
         GetTPipePtr()->ReleaseEventID<HardEvent::V_MTE2>(mte2WaitVPing);
@@ -1257,7 +1257,7 @@ public:
                 dataSize1 = i + vPostBaseNum >= vPostBlockTotal ? 0 : dataSize1;
                 NZVecClc(dvWorkSpaceGm, dvGm, dataSize1, actual_seq_kvlen_addr, 1, s2, false, 1, value_d, value_dAlign);
             }
-            PipeBarrier<PIPE_ALL>();
+            pipe_barrier(PIPE_ALL);
         }
     }
     __aicore__ inline void ComputeDataCopyOffset(int64_t curG, int64_t &curS, int64_t d, int64_t dAlign)
@@ -1541,7 +1541,7 @@ public:
                 DataCopy(dqGm[i], vecOut, (dataSize + 7) / 8 * 8); // dataSize(fp16) align 32B
             } else {
                 Muls(vecIn, vecIn, (float)tilingData->postTilingData.scaleValue, dataSize);
-                PipeBarrier<PIPE_V>();
+                pipe_barrier(PIPE_V);
                 Cast(vecOut, vecIn, AscendC::RoundMode::CAST_ROUND, dataSize);
                 outQueue.EnQue(vecOut);
                 outQueue.template DeQue<OUT_TYPE>();
@@ -1550,7 +1550,7 @@ public:
             inQueue.FreeTensor(vecIn);
             outQueue.FreeTensor(vecOut);
         }
-        PipeBarrier<PIPE_ALL>();
+        pipe_barrier(PIPE_ALL);
 
         if constexpr (HAS_ROPE == ENABLE) {
             // init qRope
@@ -1574,7 +1574,7 @@ public:
                     DataCopy(dqRopeGm[i], vecOut, (dataSize + 7) / 8 * 8); // dataSize(fp16) align 32B
                 } else {
                     Muls(vecIn, vecIn, (float)tilingData->postTilingData.scaleValue, dataSize);
-                    PipeBarrier<PIPE_V>();
+                    pipe_barrier(PIPE_V);
                     Cast(vecOut, vecIn, AscendC::RoundMode::CAST_ROUND, dataSize);
                     outQueue.EnQue(vecOut);
                     outQueue.template DeQue<OUT_TYPE>();
@@ -1583,7 +1583,7 @@ public:
                 inQueue.FreeTensor(vecIn);
                 outQueue.FreeTensor(vecOut);
             }
-            PipeBarrier<PIPE_ALL>();
+            pipe_barrier(PIPE_ALL);
         }
 
         // init k
@@ -1607,7 +1607,7 @@ public:
                 DataCopy(dkGm[i], vecOut, (dataSize + 7) / 8 * 8); // dataSize(fp16) align 32B
             } else {
                 Muls(vecIn, vecIn, (float)tilingData->postTilingData.scaleValue, dataSize);
-                PipeBarrier<PIPE_V>();
+                pipe_barrier(PIPE_V);
                 Cast(vecOut, vecIn, AscendC::RoundMode::CAST_ROUND, dataSize);
                 outQueue.EnQue(vecOut);
                 outQueue.template DeQue<OUT_TYPE>();
@@ -1616,7 +1616,7 @@ public:
             inQueue.FreeTensor(vecIn);
             outQueue.FreeTensor(vecOut);
         }
-        PipeBarrier<PIPE_ALL>();
+        pipe_barrier(PIPE_ALL);
 
         if constexpr (HAS_ROPE == ENABLE) {
             // init kRope
@@ -1640,7 +1640,7 @@ public:
                     DataCopy(dkRopeGm[i], vecOut, (dataSize + 7) / 8 * 8); // dataSize(fp16) align 32B
                 } else {
                     Muls(vecIn, vecIn, (float)tilingData->postTilingData.scaleValue, dataSize);
-                    PipeBarrier<PIPE_V>();
+                    pipe_barrier(PIPE_V);
                     Cast(vecOut, vecIn, AscendC::RoundMode::CAST_ROUND, dataSize);
                     outQueue.EnQue(vecOut);
                     outQueue.template DeQue<OUT_TYPE>();
@@ -1649,7 +1649,7 @@ public:
                 inQueue.FreeTensor(vecIn);
                 outQueue.FreeTensor(vecOut);
             }
-            PipeBarrier<PIPE_ALL>();
+            pipe_barrier(PIPE_ALL);
         }
 
         // init v
@@ -1766,7 +1766,7 @@ public:
                 inQueueCommon.FreeTensor(vecIn);
             }
 
-            PipeBarrier<PIPE_V>();
+            pipe_barrier(PIPE_V);
             if (needMuls) {
                 if constexpr (!AscendC::IsSameType<OUT_TYPE, float>::value) {
                     Muls(tmpTensor[ubOffset], tmpTensor[ubOffset], (float)tilingData->postTilingData.scaleValue,
@@ -1776,12 +1776,12 @@ public:
                     sLen * dAlign);
                 }
 
-                PipeBarrier<PIPE_V>();
+                pipe_barrier(PIPE_V);
             }
 
             if constexpr (!AscendC::IsSameType<OUT_TYPE, float>::value) {
                 Cast(vecOut[ubOffset], tmpTensor[ubOffset], RoundMode::CAST_ROUND, sLen * dAlign);
-                PipeBarrier<PIPE_V>();
+                pipe_barrier(PIPE_V);
             }
 
             outQueueCommon.EnQue(vecOut);
@@ -1826,8 +1826,8 @@ public:
             if ((sLen > 0) && (inUbOffset + dataLen + dAlign / C0_SIZE * cal_block_num) * sizeof(float) >
                                 ubBaseSize * 2 + nzReservedSize) {
                 inUbOffset = 0;
-                SetFlag<HardEvent::V_MTE2>(static_cast<int32_t>(curEventId));
-                WaitFlag<HardEvent::V_MTE2>(static_cast<int32_t>(curEventId));
+                set_flag(PIPE_V, PIPE_MTE2, curEventId);
+                wait_flag(PIPE_V, PIPE_MTE2, curEventId);
             }
         }
         GetTPipePtr()->ReleaseEventID<HardEvent::V_MTE2>(mte2WaitVPing);
@@ -1917,7 +1917,7 @@ public:
                 dataSize1 = i + vPostBaseNum >= vPostBlockTotal ? 0 : dataSize1;
                 NZVecClc(dvWorkSpaceGm, dvGm, dataSize1, actual_seq_kvlen_addr, 1, s2, false, 1, value_d, value_dAlign);
             }
-            PipeBarrier<PIPE_ALL>();
+            pipe_barrier(PIPE_ALL);
         }
     }
     __aicore__ inline void ComputeDataCopyOffset(int64_t curG, int64_t &curS, int64_t d, int64_t dAlign)

@@ -651,7 +651,7 @@ NsaCompressAttentionS1s2Bn2gs1SameAB<layOutType, hasAtten, hasTopkMask, INPUT_T,
         WaitFlag<HardEvent::MTE2_V>(eventIdMte2ToV);
         AscendC::ConfusionTranspose<float>(trans, softmaxRes, sharedBuf,
             AscendC::TransposeType::TRANSPOSE_ND2ND_ONLY, transposeInfoForward);
-        PipeBarrier<PIPE_V>();
+        pipe_barrier(PIPE_V);
 
         int64_t lineOffset = innerLoop - isInfo.isM;
         if (loopIdx == 0) {
@@ -665,7 +665,7 @@ NsaCompressAttentionS1s2Bn2gs1SameAB<layOutType, hasAtten, hasTopkMask, INPUT_T,
             int64_t dstOffset = (scoreLoop * isInfo.isM + lineOffset ) * vS1MulsGsize;
             uint64_t unalignedLen = (s2Offset + scoreLoop * isInfo.isM + lineOffset - extraInfo.s2RealSize) * vS1MulsGsize;
             Duplicate(trans[dstOffset - unalignedLen], (float)0.0, unalignedLen + vS1MulsGsize);
-            PipeBarrier<PIPE_V>();
+            pipe_barrier(PIPE_V);
         }
 
         DataCopyParams dataCopyParamsTrans;
@@ -691,16 +691,16 @@ NsaCompressAttentionS1s2Bn2gs1SameAB<layOutType, hasAtten, hasTopkMask, INPUT_T,
                 trans[transOffset], static_cast<float>(times),
                 static_cast<int32_t>(vS1MulsGsize),
                 scoreLoop - scoreIdx, {1, 1, 8, srcStride});
-            PipeBarrier<PIPE_V>();
+            pipe_barrier(PIPE_V);
             Add(scoreRes[scoreIdx * vS1MulsGsize], 
                 scoreRes[scoreIdx * vS1MulsGsize + ubOffset], 
                 scoreRes[scoreIdx * vS1MulsGsize], 
                 static_cast<int32_t>(vS1MulsGsize),
                 scoreLoop - scoreIdx, {1, 1, 1, 8, 8, 8});
-            PipeBarrier<PIPE_V>();
+            pipe_barrier(PIPE_V);
         }
 
-        PipeBarrier<PIPE_V>();
+        pipe_barrier(PIPE_V);
         WaitFlag<HardEvent::MTE3_V>(eventIdMte3ToV);
         AscendC::ConfusionTranspose<float>(transBack, scoreRes, sharedBuf,
             AscendC::TransposeType::TRANSPOSE_ND2ND_ONLY, transposeInfoBackward);

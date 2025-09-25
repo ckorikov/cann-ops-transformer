@@ -105,7 +105,7 @@ __aicore__ inline void FlashAttentionScoreDropMaskAdapter::Process()
     binaryRepeatParams.src1RepStride = 0;
     binaryRepeatParams.dstBlkStride = 1;
     binaryRepeatParams.dstRepStride = 8; // 8: 256B / 32B
-    PipeBarrier<PIPE_V>();
+    pipe_barrier(PIPE_V);
     for (int64_t loop = 0; loop < singleCoreCalNum; ++loop) {
         int64_t totalOffset = coreOffset + loop;
         int32_t realBaseUbCalSize = baseUbCalSize;
@@ -140,7 +140,7 @@ __aicore__ inline void FlashAttentionScoreDropMaskAdapter::Compute(int32_t calSi
 {
     AscendC::LocalTensor<half> dropMaskSelRes = dropMaskSelResTBuf.template Get<half>();
     AscendC::LocalTensor<uint8_t> dropMaskUb = dropMaskInputQueue.template DeQue<uint8_t>();
-    PipeBarrier<PIPE_V>();
+    pipe_barrier(PIPE_V);
 
     int32_t loop = calSize / SELECT_MAX_REPEAT_MASK;
     for (int32_t idx = 0; idx < loop; ++idx) {
@@ -154,7 +154,7 @@ __aicore__ inline void FlashAttentionScoreDropMaskAdapter::Compute(int32_t calSi
            static_cast<half>(0), AscendC::SELMODE::VSEL_TENSOR_SCALAR_MODE, Min(calSize, SELECT_MAX_MASK), repeat,
            binaryRepeatParams);
 
-    PipeBarrier<PIPE_V>();
+    pipe_barrier(PIPE_V);
     dropMaskInputQueue.FreeTensor(dropMaskUb);
 
     AscendC::LocalTensor<uint8_t> dropMaskOutUb = dropMaskOutputQueue.template AllocTensor<uint8_t>();
@@ -165,7 +165,7 @@ __aicore__ inline void FlashAttentionScoreDropMaskAdapter::Compute(int32_t calSi
 __aicore__ inline void FlashAttentionScoreDropMaskAdapter::CopyOut(int64_t offset, int32_t calSize)
 {
     AscendC::LocalTensor<uint8_t> dropMaskOutUb = dropMaskOutputQueue.template DeQue<uint8_t>();
-    PipeBarrier<PIPE_V>();
+    pipe_barrier(PIPE_V);
     AscendC::DataCopyParams dataCopyParams;
     dataCopyParams.blockCount = 1;
     dataCopyParams.blockLen = calSize;

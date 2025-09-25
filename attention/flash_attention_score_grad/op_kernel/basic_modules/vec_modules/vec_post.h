@@ -138,7 +138,7 @@ template <typename OUT_TYPE, class TILING_TYPE> __aicore__ inline void VectorPos
         inQueue.template DeQue<float>();
 
         Muls(vecIn, vecIn, (float)tilingData->mlaTensorTilingData.scaleValue, dataSize);
-        PipeBarrier<PIPE_V>();
+        pipe_barrier(PIPE_V);
         Cast(vecOut, vecIn, AscendC::RoundMode::CAST_ROUND, dataSize);
         outQueue.EnQue(vecOut);
         outQueue.template DeQue<OUT_TYPE>();
@@ -147,7 +147,7 @@ template <typename OUT_TYPE, class TILING_TYPE> __aicore__ inline void VectorPos
         inQueue.FreeTensor(vecIn);
         outQueue.FreeTensor(vecOut);
     }
-    PipeBarrier<PIPE_ALL>();
+    pipe_barrier(PIPE_ALL);
     // init k
     uint64_t kvBegin = cBlockIdx * kvPostBlockFactor * kvPostBaseNum;
     uint64_t kvEnd = (cBlockIdx + 1) * kvPostBlockFactor * kvPostBaseNum;
@@ -163,7 +163,7 @@ template <typename OUT_TYPE, class TILING_TYPE> __aicore__ inline void VectorPos
         inQueue.EnQue(vecIn);
         inQueue.template DeQue<float>();
         Muls(vecIn, vecIn, (float)tilingData->mlaTensorTilingData.scaleValue, dataSize);
-        PipeBarrier<PIPE_V>();
+        pipe_barrier(PIPE_V);
         Cast(vecOut, vecIn, AscendC::RoundMode::CAST_ROUND, dataSize);
         outQueue.EnQue(vecOut);
         outQueue.template DeQue<OUT_TYPE>();
@@ -171,7 +171,7 @@ template <typename OUT_TYPE, class TILING_TYPE> __aicore__ inline void VectorPos
         inQueue.FreeTensor(vecIn);
         outQueue.FreeTensor(vecOut);
     }
-    PipeBarrier<PIPE_ALL>();
+    pipe_barrier(PIPE_ALL);
 
     // init v
     for (uint64_t i = kvBegin; i < kvEnd; i = i + kvPostBaseNum) {

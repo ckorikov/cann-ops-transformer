@@ -708,7 +708,7 @@ __aicore__ inline void
                                         static_cast<uint32_t>(bIn * n * g * (32 / sizeof(T2)))};
     sftFrontResInner.SetShapeInfo(ShapeInfo(2, sftFrontResInnerShape, DataFormat::ND));
     Duplicate<T2>(sftFrontResInner, 0.0, sftFrontResSize);
-    PipeBarrier<PIPE_V>();
+    pipe_barrier(PIPE_V);
 
     for (int64_t dSizeIdx = 0; dSizeIdx < dSize; dSizeIdx++) {
         int64_t dInner = (dSizeIdx == dSize - 1) ? dInnerTail : clcDInner;
@@ -781,7 +781,7 @@ __aicore__ inline void
         castedDxInner.SetShapeInfo(ShapeInfo(2, dxShape, DataFormat::ND));
         Cast(castedFrontResInner, frontResInner, RoundMode::CAST_NONE, bInNGSq * dInnerAlign);
         Cast(castedDxInner, dxInner, RoundMode::CAST_NONE, bInNGSq * dInnerAlign);
-        PipeBarrier<PIPE_V>();
+        pipe_barrier(PIPE_V);
 
         vecInQue1.FreeTensor(dxInner);
         vecInQue2.FreeTensor(frontResInner);
@@ -795,11 +795,11 @@ __aicore__ inline void
             SoftmaxGradFront<T2, false>(softmaxTensor, castedFrontResInner, castedDxInner, apiClcTensor,
                                         this->ordTilingData_->softmaxGradTilingData);
         }
-        PipeBarrier<PIPE_V>();
+        pipe_barrier(PIPE_V);
         vecClc1.FreeTensor(castedDxInner);
         vecClc2.FreeTensor(castedFrontResInner);
         Add(sftFrontResInner, softmaxTensor, sftFrontResInner, sftFrontResSize);
-        PipeBarrier<PIPE_V>();
+        pipe_barrier(PIPE_V);
         vecInQue1.FreeTensor(softmaxTensor);
         vecOutQue1.FreeTensor(apiClcTensor);
     }
@@ -864,7 +864,7 @@ __aicore__ inline void
         vecClc1.DeQue<T2>();
         auto tmpTensor = vecOutQue1.AllocTensor<T2>();
         DataCopy(tmpTensor, mm1Res, sQ * bIn * n * g * sKVAlign + bIn * n * g * sKVAlign / C0_SIZE * VEC_REPEAT);
-        PipeBarrier<PIPE_V>();
+        pipe_barrier(PIPE_V);
         for (int64_t i = 0; i < bIn * n * g; i++) {
             int64_t sQLoop = (sQ + PER_COPY_MAX_NUM - 1) / PER_COPY_MAX_NUM;
             int64_t sQTail = sQ % PER_COPY_MAX_NUM;
@@ -889,7 +889,7 @@ __aicore__ inline void
         ComputeDropMask<float, true>(dpRes, mm1Res, dpMask, apiClcTensor, this->dropMaskInfo);
         vecOutQue1.FreeTensor(apiClcTensor);
 
-        PipeBarrier<PIPE_V>();
+        pipe_barrier(PIPE_V);
         dropoutQue.FreeTensor(dpMask);
     }
 
@@ -899,7 +899,7 @@ __aicore__ inline void
     mm1Res.SetShapeInfo(ShapeInfo(2, tempInnerMatOutShape, DataFormat::ND));
 
     ClcSub(frontResInner1, dpRes, sftFrontResInner);
-    PipeBarrier<PIPE_V>();
+    pipe_barrier(PIPE_V);
 
     vecClc1.FreeTensor(frontResInner1);
 
@@ -1064,7 +1064,7 @@ __aicore__ inline void
                  VEC_REPEAT * c1Remain, nRepeat, nz2ndParams);
         }
     }
-    PipeBarrier<PIPE_V>();
+    pipe_barrier(PIPE_V);
 }
 
 template <typename T1, typename T2, const MatmulConfig &MM_CFG, LayoutMode layout,
@@ -1183,7 +1183,7 @@ __aicore__ inline void
         vecClc2.DeQue<T2>();
         auto tmpTensor = vecOutQue1.AllocTensor<T2>();
         DataCopy(tmpTensor, reMatmulResInner, sQ * bIn * n * g * sKVAlign + bIn * n * g * sKVAlign / C0_SIZE * VEC_REPEAT);
-        PipeBarrier<PIPE_V>();
+        pipe_barrier(PIPE_V);
         for (int64_t i = 0; i < bIn * n * g; i++) {
             int64_t sQLoop = (sQ + PER_COPY_MAX_NUM - 1) / PER_COPY_MAX_NUM;
             int64_t sQTail = sQ % PER_COPY_MAX_NUM;
@@ -1205,7 +1205,7 @@ __aicore__ inline void
         auto castedPseUb = vecOutQue1.AllocTensor<T2>();
         castedPseUb.SetSize(eleNum);
         Cast(castedPseUb, pseUb, RoundMode::CAST_NONE, eleNum);
-        PipeBarrier<PIPE_V>();
+        pipe_barrier(PIPE_V);
         if (pseShapeType == PSE_1NSS) {
             for (int64_t i = 0; i < bIn; i++) {
                 LocalTensor<T2> pseRes = reMatmulResInner[i * eleNum];
@@ -1223,7 +1223,7 @@ __aicore__ inline void
         }
         vecOutQue1.FreeTensor(castedPseUb);
         vecInQue2.FreeTensor(pseUb);
-        PipeBarrier<PIPE_V>();
+        pipe_barrier(PIPE_V);
         clcAttenMask = CopyInAttenMask(attenMaskOffset);
     }
     LocalTensor<float> maxInner = maxSumQue.AllocTensor<float>();
@@ -1237,21 +1237,21 @@ __aicore__ inline void
     maxSumQue.DeQue<float>();
 
     Muls(reMatmulResInner, reMatmulResInner, (T2)scaleValue, innerMatResNum);
-    PipeBarrier<PIPE_V>();
+    pipe_barrier(PIPE_V);
     if (clcAttenMask) {
         ClcAttenMask(reMatmulResInner);
-        PipeBarrier<PIPE_V>();
+        pipe_barrier(PIPE_V);
     }
     uint32_t tempInnerMatOutShape[2];
     tempInnerMatOutShape[0] = bInNGSq;
     tempInnerMatOutShape[1] = sKVAlign;
     dvDropResInner.SetShapeInfo(ShapeInfo(2, tempInnerMatOutShape, DataFormat::ND));
     ClcSoftMax(softmaxResInner, attenMaskResInner, maxInner, sumInner);
-    PipeBarrier<PIPE_V>();
+    pipe_barrier(PIPE_V);
 
     mulResInner.SetShapeInfo(ShapeInfo(2, tempInnerMatOutShape, DataFormat::ND));
     Mul(mulResInner, softmaxResInner, subResInner, innerMatResNum);
-    PipeBarrier<PIPE_ALL>();
+    pipe_barrier(PIPE_ALL);
 
 
     if (isDrop) {
@@ -1270,7 +1270,7 @@ __aicore__ inline void
         ComputeDropMask<float, true>(softmaxResInner, softmaxResInner, dpMask, apiClcTensor, this->dropMaskInfo);
         vecOutQue1.FreeTensor(apiClcTensor);
 
-        PipeBarrier<PIPE_V>();
+        pipe_barrier(PIPE_V);
         dropoutQue.FreeTensor(dpMask);
     }
 

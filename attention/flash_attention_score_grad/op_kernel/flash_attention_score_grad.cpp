@@ -539,7 +539,7 @@ extern "C" __global__ __aicore__ void flash_attention_score_grad(
 #else
     KERNEL_TASK_TYPE_DEFAULT(KERNEL_TYPE_MIX_AIC_1_2);
     TPipe pipeIn;
-    SetMaskNorm();
+    set_mask_norm();
     __gm__ uint8_t *user = GetUserWorkspace(workspace);
 
 // --------------------------------------------float16 tilingkey------------------------------------------------------

@@ -694,14 +694,14 @@ __aicore__ inline void
     apiClcTensor.SetSize(apiClcQueueSize);
 
     if constexpr (IS_BF16) {
-        PipeBarrier<PIPE_V>();
+        pipe_barrier(PIPE_V);
         LocalTensor<T2> castedAttentionIn = vecClc2.Get<T2>(softmaxGradInputNum); // 临时借用softmaxGradOutUb内存
         LocalTensor<T2> castedDx = vecClc1.Get<T2>(softmaxGradInputNum);
         castedAttentionIn.SetShapeInfo(ShapeInfo(2, softmaxGradInputShape, DataFormat::ND));
         castedDx.SetShapeInfo(ShapeInfo(2, softmaxGradInputShape, DataFormat::ND));
         Cast(castedAttentionIn, attentionInUb, RoundMode::CAST_NONE, softmaxGradInputNum);
         Cast(castedDx, dxUb, RoundMode::CAST_NONE, softmaxGradInputNum);
-        PipeBarrier<PIPE_V>();
+        pipe_barrier(PIPE_V);
 
         if (isBasicBlock) {
             SoftmaxGradFront<T2, true>(softmaxGradOutUb, castedAttentionIn, castedDx, apiClcTensor,
@@ -765,14 +765,14 @@ __aicore__ inline void
     /* 这里复用了Calc1，这时mm还没有GetTensorC，Clc1处于闲置状态 */
     LocalTensor<T2> softmaxGradTempRes = vecClc1.Get<T2>(softmaxGradOutUb.GetSize());
     if constexpr (IS_BF16) {
-        PipeBarrier<PIPE_V>();
+        pipe_barrier(PIPE_V);
         LocalTensor<T2> castedAttentionIn = vecCast.Get<T2>(softmaxGradInputNum);
         LocalTensor<T2> castedDx = vecClc1.Get<T2>(softmaxGradInputNum);
         castedAttentionIn.SetShapeInfo(ShapeInfo(2, softmaxGradInputShape, DataFormat::ND));
         castedDx.SetShapeInfo(ShapeInfo(2, softmaxGradInputShape, DataFormat::ND));
         Cast(castedAttentionIn, attentionInUb, RoundMode::CAST_NONE, softmaxGradInputNum);
         Cast(castedDx, dxUb, RoundMode::CAST_NONE, softmaxGradInputNum);
-        PipeBarrier<PIPE_V>();
+        pipe_barrier(PIPE_V);
 
         if (isBasicBlock) {
             SoftmaxGradFront<T2, true>(softmaxGradTempRes, castedAttentionIn, castedDx, apiClcTensor,
@@ -791,9 +791,9 @@ __aicore__ inline void
         }
     }
 
-    PipeBarrier<PIPE_V>();
+    pipe_barrier(PIPE_V);
     Add(softmaxGradOutUb, softmaxGradOutUb, softmaxGradTempRes, softmaxGradOutUb.GetSize());
-    PipeBarrier<PIPE_V>();
+    pipe_barrier(PIPE_V);
 
     apiClcQue.FreeTensor(apiClcTensor);
 }
@@ -808,7 +808,7 @@ __aicore__ inline void
     int64_t softmaxGradInputNum = 0;
     // 清空softmaxGradOutUb
     Duplicate<T2>(softmaxGradOutUb, 0, softmaxGradOutUb.GetSize());
-    PipeBarrier<PIPE_V>();
+    pipe_barrier(PIPE_V);
     for (int64_t i = 0; i < dRange; ++i) {
         LocalTensor<T1> attentionInUb = vecInQue1.AllocTensor<T1>(); // 必须要放在循环内，做MTE和v之间的pipe等待
         LocalTensor<T1> dxUb = vecInQue1.AllocTensor<T1>();
@@ -860,7 +860,7 @@ __aicore__ inline void
                 Sub(frontResInner[src0Offset], dpResInner[src0Offset], sftFrontResInner[src1Offset], subMask,
                     sKVAlignBlockNumVec, {(uint8_t)(sKVAlignBlockNumVec), (uint8_t)(sKVAlignBlockNumVec), 1, 1, 1, 0});
             }
-            PipeBarrier<PIPE_V>();
+            pipe_barrier(PIPE_V);
         }
     }
 }
@@ -969,7 +969,7 @@ __aicore__ inline void
         SimpleSoftMax<T2, true, false>(softmaxResInner, sumInner, maxInner, reMatmulResInner, apiClcTensor,
                                        ordTilingData_->softmaxTilingData);
     }
-    PipeBarrier<PIPE_V>();
+    pipe_barrier(PIPE_V);
     apiClcQue.FreeTensor(apiClcTensor);
 }
 
@@ -1009,18 +1009,18 @@ __aicore__ inline void
 
 
     if (isDrop) {
-        PipeBarrier<PIPE_V>();
+        pipe_barrier(PIPE_V);
         // for compute dropout mask
         dropMaskInfo.firstAxis = nIn * g * sQ;
         vecInQue2.DeQue<uint8_t>();
         LocalTensor<uint8_t> apiClcTensor = apiClcQue.AllocTensor<uint8_t>();
         apiClcTensor.SetSize(ordTilingData_->splitCoreParams.apiClcQueueSize);
         ComputeDropMask<float, true>(dpResUb, dpMatmmulResUb, dpMaskInner, apiClcTensor, this->dropMaskInfo);
-        PipeBarrier<PIPE_V>();
+        pipe_barrier(PIPE_V);
         apiClcQue.FreeTensor(apiClcTensor);
     }
 
-    PipeBarrier<PIPE_V>();
+    pipe_barrier(PIPE_V);
     ClcSub(frontResUb, dpMatmmulResUb, softmaxGradOutUb);
     event_t v2WaitMte2 = static_cast<event_t>(GetTPipePtr()->FetchEventID(HardEvent::V_MTE2));
     SetFlag<HardEvent::V_MTE2>(v2WaitMte2);
@@ -1039,7 +1039,7 @@ __aicore__ inline void
     int64_t offset = previousBatchCnt * sQ * sKV + nCvIndex * oriNIn * g * sQ * sKV;
     if constexpr (IS_BF16) {
         LocalTensor<T1> castedMulResPad = vecInQue1.AllocTensor<T1>();
-        PipeBarrier<PIPE_V>();
+        pipe_barrier(PIPE_V);
         castedMulResPad.SetSize(innerMatResNum);
         Cast(castedMulResPad, mulResInner, RoundMode::CAST_ROUND, innerMatResNum);
         event_t mte3WaitV = static_cast<event_t>(GetTPipePtr()->FetchEventID(HardEvent::V_MTE3));
@@ -1064,10 +1064,10 @@ __aicore__ inline void
     } else {
         DataCopyPad(mulWorkSpaceGm[pingpongIdx * pingPongMulOffset + offset], mulResInner,
                     {static_cast<uint16_t>(nIn * g * sQ), static_cast<uint16_t>(sKV * inputDTypeSize), 0, 0});
-        PipeBarrier<PIPE_V>();
+        pipe_barrier(PIPE_V);
         DataCopyPad(dropWorkSpaceGm[pingpongIdx * pingPongDropOffset + offset], dvDropResInner,
                     {static_cast<uint16_t>(nIn * g * sQ), static_cast<uint16_t>(sKV * inputDTypeSize), 0, 0});
-        PipeBarrier<PIPE_V>();
+        pipe_barrier(PIPE_V);
     }
 }
 
@@ -1199,7 +1199,7 @@ __aicore__ inline void
         auto castedPseUb = vecInQue1.AllocTensor<T2>();
         castedPseUb.SetSize(eleNum);
         Cast(castedPseUb, pseUb, RoundMode::CAST_NONE, eleNum);
-        PipeBarrier<PIPE_V>();
+        pipe_barrier(PIPE_V);
         if (pseShapeType == 1) {
             pseInfo.vec1S1RealSize = sQ;
             for (int64_t batchIndex = 0; batchIndex < nIn * g; ++batchIndex) {
@@ -1212,7 +1212,7 @@ __aicore__ inline void
         }
         vecInQue1.FreeTensor(castedPseUb);
         vecInQue2.FreeTensor(pseUb);
-        PipeBarrier<PIPE_V>();
+        pipe_barrier(PIPE_V);
         clcAttenMask = CopyInAttenMask(attenMaskOffset);
     }
     LocalTensor<float> maxInner = vecInQue1.AllocTensor<float>();
@@ -1225,10 +1225,10 @@ __aicore__ inline void
     SetFlag<HardEvent::MTE2_S>(sWaitMte2);
     WaitFlag<HardEvent::MTE2_S>(sWaitMte2);
     Muls(reMatmulResInner, reMatmulResInner, (T2)scaleValue, innerMatResNumVec);
-    PipeBarrier<PIPE_V>();
+    pipe_barrier(PIPE_V);
     if (clcAttenMask) {
         ClcAttenMask(reMatmulResInner);
-        PipeBarrier<PIPE_V>();
+        pipe_barrier(PIPE_V);
     }
     uint32_t tempInnerMatOutShape[2];
     tempInnerMatOutShape[0] = nIn * g * sQ;
@@ -1238,10 +1238,10 @@ __aicore__ inline void
     ClcSoftMax(softmaxResInner, attenMaskResInner, maxInner, sumInner);
 
     mulResInner.SetShapeInfo(ShapeInfo(2, tempInnerMatOutShape, DataFormat::ND));
-    PipeBarrier<PIPE_V>();
+    pipe_barrier(PIPE_V);
 
     Mul(mulResInner, softmaxResInner, subResInner, innerMatResNumVec);
-    PipeBarrier<PIPE_V>();
+    pipe_barrier(PIPE_V);
 
     if (isDrop) {
         LocalTensor<uint8_t> dpMask = vecInQue2.AllocTensor<uint8_t>();
@@ -1255,7 +1255,7 @@ __aicore__ inline void
         apiClcTensor.SetSize(ordTilingData_->splitCoreParams.apiClcQueueSize);
         ComputeDropMask<float, true>(softmaxResInner, softmaxResInner, dpMask, apiClcTensor, this->dropMaskInfo);
 
-        PipeBarrier<PIPE_V>();
+        pipe_barrier(PIPE_V);
         apiClcQue.FreeTensor(apiClcTensor);
         vecInQue2.FreeTensor(dpMask);
     }

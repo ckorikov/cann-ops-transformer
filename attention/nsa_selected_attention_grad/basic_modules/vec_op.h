@@ -380,17 +380,17 @@ __aicore__ inline void VecOp<NSAGT>::CalRowsumAndSftCopyIn(const int64_t dyGmOff
     DataCopyPadExtParams<float> padParams2{false, 0, 0, 0};
 
     DataCopyPad(attentionGradT1Tensor, attentionGradGm[dyGmOffset], copyParams, padParams);
-    SetFlag<HardEvent::MTE2_V>(static_cast<int32_t>(vWaitMte2));
+    set_flag(PIPE_MTE2, PIPE_V, vWaitMte2);
     DataCopyPad(attentionT1Tensor, attentionGm[dyGmOffset], copyParams, padParams);
-    SetFlag<HardEvent::MTE2_V>(static_cast<int32_t>(vWaitMte2));
+    set_flag(PIPE_MTE2, PIPE_V, vWaitMte2);
     DataCopyPad(maxTensor, softmaxMaxGm[sumGmOffset], copyParams2, padParams2);
     DataCopyPad(sumTensor, softmaxSumGm[sumGmOffset], copyParams2, padParams2);
-    SetFlag<HardEvent::MTE2_V>(static_cast<int32_t>(vWaitMte2));
-    WaitFlag<HardEvent::MTE2_V>(static_cast<int32_t>(vWaitMte2));
+    set_flag(PIPE_MTE2, PIPE_V, vWaitMte2);
+    wait_flag(PIPE_MTE2, PIPE_V, vWaitMte2);
     Cast(attentionGradFP32Tensor, attentionGradT1Tensor, RoundMode::CAST_NONE, dataSize);
-    WaitFlag<HardEvent::MTE2_V>(static_cast<int32_t>(vWaitMte2));
+    wait_flag(PIPE_MTE2, PIPE_V, vWaitMte2);
     Cast(attentionFP32Tensor, attentionT1Tensor, RoundMode::CAST_NONE, dataSize);
-    PipeBarrier<PIPE_V>();
+    pipe_barrier(PIPE_V);
     SoftmaxGradFront<float, false>(rowSumOutTensor, attentionGradFP32Tensor, attentionFP32Tensor, helpTensor,
                                    tilingData->softmaxGradTilingData);
 }
@@ -459,27 +459,27 @@ __aicore__ inline void VecOp<NSAGT>::CalSoftmax(const int32_t loopIdx, const int
 
     DataCopyPad(pTensor, mm1WorkspaceGm[mm12Addr], {1, static_cast<uint32_t>(dataSize * sizeof(float)), 0, 0, 0},
                 {false, 0, 0, 0});
-    SetFlag<HardEvent::MTE2_V>(static_cast<int32_t>(vWaitMte2));
-    WaitFlag<HardEvent::MTE2_V>(static_cast<int32_t>(vWaitMte2));
+    set_flag(PIPE_MTE2, PIPE_V, vWaitMte2);
+    wait_flag(PIPE_MTE2, PIPE_V, vWaitMte2);
 
     Muls(pTensor, pTensor, scaleValue, dataSize);
-    PipeBarrier<PIPE_V>();
+    pipe_barrier(PIPE_V);
 
     if constexpr (ATTEN_ENABLE) {
         CalAttenMsk(indicesGmOffset, s1Index, processM, blkCntOffset);
-        PipeBarrier<PIPE_V>();
+        pipe_barrier(PIPE_V);
     }
 
     SimpleSoftMax<float, true, false>(pTensor, tmpSumTensor, tmpMaxTensor, pTensor, helpTensor,
                                       tilingData->softmaxTilingData);
-    PipeBarrier<PIPE_V>();
+    pipe_barrier(PIPE_V);
     Cast(sftOutT1Tensor, pTensor, RoundMode::CAST_ROUND, dataSize);
-    SetFlag<HardEvent::V_MTE3>(static_cast<int32_t>(mte3WaitV));
-    WaitFlag<HardEvent::V_MTE3>(static_cast<int32_t>(mte3WaitV));
+    set_flag(PIPE_V, PIPE_MTE3, mte3WaitV);
+    wait_flag(PIPE_V, PIPE_MTE3, mte3WaitV);
 
     DataCopyPad(pWorkspaceGm[mm345Addr], sftOutT1Tensor, {1, static_cast<uint32_t>(dataSize * sizeof(T1)), 0, 0, 0});
-    SetFlag<HardEvent::MTE3_MTE2>(static_cast<int32_t>(mte2WaitMte3));
-    WaitFlag<HardEvent::MTE3_MTE2>(static_cast<int32_t>(mte2WaitMte3));
+    set_flag(PIPE_MTE3, PIPE_MTE2, mte2WaitMte3);
+    wait_flag(PIPE_MTE3, PIPE_MTE2, mte2WaitMte3);
 }
 
 template <typename NSAGT>
@@ -492,19 +492,19 @@ __aicore__ inline void VecOp<NSAGT>::CalSoftmaxGrad(const int32_t loopIdx, const
 
     DataCopyPad(dPTensor, mm2WorkspaceGm[mm12Addr], {1, static_cast<uint32_t>(dataSize * sizeof(float)), 0, 0, 0},
                 {false, 0, 0, 0});
-    SetFlag<HardEvent::MTE2_V>(static_cast<int32_t>(vWaitMte2));
-    WaitFlag<HardEvent::MTE2_V>(static_cast<int32_t>(vWaitMte2));
+    set_flag(PIPE_MTE2, PIPE_V, vWaitMte2);
+    wait_flag(PIPE_MTE2, PIPE_V, vWaitMte2);
     CalSub(dPTensor, tmpRowSumOutTensor, processM, params.sftBaseN);
-    PipeBarrier<PIPE_V>();
+    pipe_barrier(PIPE_V);
     Mul(pTensor, pTensor, dPTensor, dataSize);
-    PipeBarrier<PIPE_V>();
+    pipe_barrier(PIPE_V);
     Cast(sftgOutT1Tensor, pTensor, RoundMode::CAST_ROUND, dataSize);
-    SetFlag<HardEvent::V_MTE3>(static_cast<int32_t>(mte3WaitV));
-    WaitFlag<HardEvent::V_MTE3>(static_cast<int32_t>(mte3WaitV));
+    set_flag(PIPE_V, PIPE_MTE3, mte3WaitV);
+    wait_flag(PIPE_V, PIPE_MTE3, mte3WaitV);
 
     DataCopyPad(dsWorkspaceGm[mm345Addr], sftgOutT1Tensor, {1, static_cast<uint32_t>(dataSize * sizeof(T1)), 0, 0, 0});
-    SetFlag<HardEvent::MTE3_MTE2>(static_cast<int32_t>(mte2WaitMte3));
-    WaitFlag<HardEvent::MTE3_MTE2>(static_cast<int32_t>(mte2WaitMte3));
+    set_flag(PIPE_MTE3, PIPE_MTE2, mte2WaitMte3);
+    wait_flag(PIPE_MTE3, PIPE_MTE2, mte2WaitMte3);
 }
 
 template <typename NSAGT>
@@ -521,7 +521,7 @@ __aicore__ inline void VecOp<NSAGT>::Process(const int64_t dyGmOffset, const int
 
     for (int32_t i = 0; i < loop; i++) {
         if (i == 0) {
-            WaitFlag<HardEvent::MTE2_V>(static_cast<int32_t>(vWaitMte2)); // wait softmax_max and softmax_sum MTE2
+            wait_flag(PIPE_MTE2, PIPE_V, vWaitMte2); // wait softmax_max and softmax_sum MTE2
         }
         if (i == loop - 1 && tailM != 0) {
             processM = tailM;

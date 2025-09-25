@@ -182,14 +182,14 @@ __aicore__ inline void VecOp<IN_TYPE, TILING_TYPE>::Process(const VecAddrInfo &a
     blockLen = addrs.blockLength;
     event_t mte2WaitMte3 = static_cast<event_t>(GetTPipePtr()->FetchEventID(HardEvent::MTE3_MTE2));
     sparseMode = tilingData->mlaTensorTilingData.sparseMode;
-    SetFlag<HardEvent::MTE3_MTE2>(static_cast<int32_t>(mte2WaitMte3));
-    WaitFlag<HardEvent::MTE3_MTE2>(static_cast<int32_t>(mte2WaitMte3));
+    set_flag(PIPE_MTE3, PIPE_MTE2, mte2WaitMte3);
+    wait_flag(PIPE_MTE3, PIPE_MTE2, mte2WaitMte3);
     if (taskId == 0 && sparseMode != 0) {
         LocalTensor<uint8_t> attenMaskUbuint8 =
             unifiedBuffer.GetWithOffset<uint8_t>(16 * 1024 / sizeof(uint8_t), BoolBegin);
         CopyInAttenMaskBool(attenMaskUbuint8, 0, BASE_BLOCK_LENGTH, BASE_BLOCK_LENGTH);
     }
-    PipeBarrier<PIPE_V>();
+    pipe_barrier(PIPE_V);
     for (uint32_t i = 0; i < blockLen; ++i) {
         auto &blockInfo = addrs.VecBlkInfo[i];
         ///////////////////////////////////////////////////////////////
@@ -343,16 +343,16 @@ VecOp<IN_TYPE, TILING_TYPE>::CalcSoftMax(LocalTensor<float> &dstTensor, LocalTen
                 subMaskCount, s1Extend,
                 {static_cast<uint8_t>(1), static_cast<uint8_t>(1), 0, static_cast<uint8_t>(s2ExtendAlign / 8),
                  static_cast<uint8_t>(s2ExtendAlign / 8), 1});
-            PipeBarrier<PIPE_V>();
+            pipe_barrier(PIPE_V);
             Exp(vecOutBuffer[subIdx * cal_repeat_num], dstTensor[subIdx * cal_repeat_num], subMaskCount, s1Extend,
                 {static_cast<uint8_t>(1), static_cast<uint8_t>(1), static_cast<uint8_t>(s2ExtendAlign / 8),
                  static_cast<uint8_t>(s2ExtendAlign / 8)});
-            PipeBarrier<PIPE_V>();
+            pipe_barrier(PIPE_V);
             Div(dstTensor[subIdx * cal_repeat_num], vecOutBuffer[subIdx * cal_repeat_num], src1Tensor, subMaskCount,
                 s1Extend,
                 {static_cast<uint8_t>(1), static_cast<uint8_t>(1), 0, static_cast<uint8_t>(s2ExtendAlign / 8),
                  static_cast<uint8_t>(s2ExtendAlign / 8), 1});
-            PipeBarrier<PIPE_V>();
+            pipe_barrier(PIPE_V);
         }
     }
 }
@@ -363,7 +363,7 @@ __aicore__ inline void VecOp<IN_TYPE, TILING_TYPE>::SubGrapA(int64_t curIdx, con
 {
     uint32_t ubBufferOffset = 0;
     if (curIdx > 0) {
-        WaitFlag<HardEvent::MTE3_MTE2>(static_cast<int32_t>(mte2WaitMte3A));
+        wait_flag(PIPE_MTE3, PIPE_MTE2, mte2WaitMte3A);
     }
     LocalTensor<float> vecInBuffer3 =
         unifiedBuffer.GetWithOffset<float>(8 * 1024 / sizeof(float), ubBufferOffset + T2BlockBegin);
@@ -373,12 +373,12 @@ __aicore__ inline void VecOp<IN_TYPE, TILING_TYPE>::SubGrapA(int64_t curIdx, con
         unifiedBuffer.GetWithOffset<float>(32 * 1024 / sizeof(float), ubBufferOffset + T2Begin);
     DataCopyPad(vecClc2Buffer, mm2WorkspaceGm[copyInOffset], copyInParam, {false, 0, 0, 0});
     event_t vWaitMte2 = static_cast<event_t>(GetTPipePtr()->FetchEventID(HardEvent::MTE2_V));
-    SetFlag<HardEvent::MTE2_V>(static_cast<int32_t>(vWaitMte2));
-    WaitFlag<HardEvent::MTE2_V>(static_cast<int32_t>(vWaitMte2));
-    PipeBarrier<PIPE_V>();
+    set_flag(PIPE_MTE2, PIPE_V, vWaitMte2);
+    wait_flag(PIPE_MTE2, PIPE_V, vWaitMte2);
+    pipe_barrier(PIPE_V);
     Muls(vecClc2Buffer, vecClc2Buffer, scaleValue, s1Extend * s2ExtendAlign);
 
-    PipeBarrier<PIPE_V>();
+    pipe_barrier(PIPE_V);
     if (sparseMode != 0) {
         LocalTensor<uint8_t> attenMaskUbuint8 =
             unifiedBuffer.GetWithOffset<uint8_t>(16 * 1024 / sizeof(uint8_t), ubBufferOffset + BoolBegin);
@@ -390,7 +390,7 @@ __aicore__ inline void VecOp<IN_TYPE, TILING_TYPE>::SubGrapA(int64_t curIdx, con
     ///////////////////////////////////////////////////////////////
     // simpleSoftMax
     ///////////////////////////////////////////////////////////////
-    PipeBarrier<PIPE_V>();
+    pipe_barrier(PIPE_V);
     LocalTensor<float> simpleSoftmaxResBuf = unifiedBuffer.GetWithOffset<float>(33 * 1024 / sizeof(float), DbBegin);
     CalcSoftMax(simpleSoftmaxResBuf, vecClc2Buffer, vecInBuffer3, s1Extend, s2Extend, s2ExtendAlign,
                 tilingData->mlaTensorTilingData.softmaxTilingData);
@@ -400,14 +400,14 @@ __aicore__ inline void VecOp<IN_TYPE, TILING_TYPE>::SubGrapA(int64_t curIdx, con
     ///////////////////////////////////////////////////////////////
     LocalTensor<IN_TYPE> vecCopyOutBuffer =
         unifiedBuffer.GetWithOffset<IN_TYPE>(17 * 1024 / sizeof(IN_TYPE), ubBufferOffset + T1Begin);
-    PipeBarrier<PIPE_V>();
+    pipe_barrier(PIPE_V);
     Cast(vecCopyOutBuffer, vecDropBuffer, RoundMode::CAST_ROUND, s1Extend * s2ExtendAlign);
     event_t mte3WaitV = static_cast<event_t>(GetTPipePtr()->FetchEventID(HardEvent::V_MTE3));
-    SetFlag<HardEvent::V_MTE3>(static_cast<int32_t>(mte3WaitV));
-    WaitFlag<HardEvent::V_MTE3>(static_cast<int32_t>(mte3WaitV));
+    set_flag(PIPE_V, PIPE_MTE3, mte3WaitV);
+    wait_flag(PIPE_V, PIPE_MTE3, mte3WaitV);
     DataCopyPad(dropWorkSpaceGm[copyOutOffset], vecCopyOutBuffer, copyOutParam);
     if (curIdx < blockLen - 1) {
-        SetFlag<HardEvent::MTE3_MTE2>(static_cast<int32_t>(mte2WaitMte3A));
+        set_flag(PIPE_MTE3, PIPE_MTE2, mte2WaitMte3A);
     }
 }
 
@@ -417,7 +417,7 @@ __aicore__ inline void VecOp<IN_TYPE, TILING_TYPE>::SubGrapB(int64_t curIdx, con
 {
     uint32_t ubBufferOffset = DbBegin;
     if (curIdx > 0) {
-        WaitFlag<HardEvent::MTE3_MTE2>(static_cast<int32_t>(mte2WaitMte3B));
+        wait_flag(PIPE_MTE3, PIPE_MTE2, mte2WaitMte3B);
     }
     // copyIn sfmg
     LocalTensor<float> sfmgClc3 = unifiedBuffer.GetWithOffset<float>(SFMG_UB_SIZE / sizeof(float), SFMG_UB_OFFSET);
@@ -428,13 +428,13 @@ __aicore__ inline void VecOp<IN_TYPE, TILING_TYPE>::SubGrapB(int64_t curIdx, con
     // copyIn cube result
     DataCopyPad(vecClc1Buffer, mm1WorkspaceGm[copyInOffset], copyInParam, {false, 0, 0, 0});
     event_t vWaitMte2 = static_cast<event_t>(GetTPipePtr()->FetchEventID(HardEvent::MTE2_V));
-    SetFlag<HardEvent::MTE2_V>(static_cast<int32_t>(vWaitMte2));
-    WaitFlag<HardEvent::MTE2_V>(static_cast<int32_t>(vWaitMte2));
+    set_flag(PIPE_MTE2, PIPE_V, vWaitMte2);
+    wait_flag(PIPE_MTE2, PIPE_V, vWaitMte2);
     ///////////////////////////////////////////////////////////////
     // sub
     ///////////////////////////////////////////////////////////////
     uint32_t sub_block_cout = (s2ExtendAlign + cal_repeat_num - 1) / cal_repeat_num;
-    PipeBarrier<PIPE_V>();
+    pipe_barrier(PIPE_V);
     for (uint32_t subIdx = 0; subIdx < sub_block_cout; subIdx++) {
         uint32_t subMaskCout =
             (subIdx == sub_block_cout - 1) ? (s2ExtendAlign - subIdx * cal_repeat_num) : cal_repeat_num;
@@ -446,20 +446,20 @@ __aicore__ inline void VecOp<IN_TYPE, TILING_TYPE>::SubGrapB(int64_t curIdx, con
     ///////////////////////////////////////////////////////////////
     // mul
     ///////////////////////////////////////////////////////////////
-    PipeBarrier<PIPE_V>();
+    pipe_barrier(PIPE_V);
     LocalTensor<float> simpleSoftmaxResBuf = unifiedBuffer.GetWithOffset<float>(32 * 1024 / sizeof(float), DbBegin);
     Mul(vecClc1Buffer, vecClc1Buffer, simpleSoftmaxResBuf, s1Extend * s2ExtendAlign);
-    PipeBarrier<PIPE_V>();
+    pipe_barrier(PIPE_V);
     LocalTensor<IN_TYPE> vecCopyOutBuffer =
         unifiedBuffer.GetWithOffset<IN_TYPE>(17 * 1024 / sizeof(IN_TYPE), ubBufferOffset + T1Begin);
     Cast(vecCopyOutBuffer, vecClc1Buffer, RoundMode::CAST_ROUND, s1Extend * s2ExtendAlign);
     event_t mte3WaitV = static_cast<event_t>(GetTPipePtr()->FetchEventID(HardEvent::V_MTE3));
-    SetFlag<HardEvent::V_MTE3>(static_cast<int32_t>(mte3WaitV));
-    WaitFlag<HardEvent::V_MTE3>(static_cast<int32_t>(mte3WaitV));
+    set_flag(PIPE_V, PIPE_MTE3, mte3WaitV);
+    wait_flag(PIPE_V, PIPE_MTE3, mte3WaitV);
     // dyv = dp -> ds
     DataCopyPad(mulWorkSpaceGm[copyOutOffset], vecCopyOutBuffer, copyOutParam);
     if (curIdx < blockLen - 1) {
-        SetFlag<HardEvent::MTE3_MTE2>(static_cast<int32_t>(mte2WaitMte3B));
+        set_flag(PIPE_MTE3, PIPE_MTE2, mte2WaitMte3B);
     }
 }
 #endif
