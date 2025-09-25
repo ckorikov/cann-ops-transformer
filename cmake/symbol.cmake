@@ -213,13 +213,14 @@ endfunction()
 function(gen_norm_symbol)
   gen_common_symbol()
 
-  gen_ophost_symbol()
+  if (ENABLE_OPS_HOST)
+    gen_ophost_symbol()
+    gen_opapi_symbol()
+    gen_built_in_opapi_symbol()
+  endif()
 
   gen_opgraph_symbol()
 
-  gen_opapi_symbol()
-
-  gen_built_in_opapi_symbol()
 endfunction()
 
 function(gen_cust_symbol)

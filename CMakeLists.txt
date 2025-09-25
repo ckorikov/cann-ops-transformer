@@ -56,6 +56,9 @@ endif()
 set(PKG_NAME transformer)
 set(OPS_TRANSFORMER_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 set(CMAKE_CXX_STANDARD 17 CACHE STRING "c++17 is needed for this project")
+set_directory_properties(PROPERTIES
+    ADDITIONAL_MAKE_CLEAN_FILES "${CMAKE_BINARY_DIR}/_CPack_Packages"
+)
 
 include(cmake/config.cmake)
 include(cmake/func.cmake)
@@ -78,12 +81,15 @@ if (BUILD_OPEN_PROJECT)
         include(cmake/custom_build.cmake)
         message(STATUS "End building custom package.")
         if (ENABLE_BUILT_IN)
+            message(STATUS "Start building built-in package.")
             include(cmake/opbuild.cmake)
             merge_graph_headers(
                 TARGET merge_ops_proto ALL
                 OUT_DIR ${ASCEND_GRAPH_CONF_DST}
             )
-            gen_aclnn_with_opdef()
+            if (ENABLE_OPS_HOST)
+                gen_aclnn_with_opdef()
+            endif()
             include(cmake/symbol.cmake)
             gen_norm_symbol()
             include(cmake/package.cmake)

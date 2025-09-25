@@ -161,7 +161,26 @@ function(pack_built_in)
   # ============= CPack =============
   set(CPACK_PACKAGE_NAME "${PROJECT_NAME}")
   set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
-  set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}-${CMAKE_SYSTEM_NAME}")
+  string(REGEX REPLACE "^.*[Aa]scend" "" soc_version_temp "${COMPUTE_UNIT}")
+  # 检查是否成功提取
+  if("${soc_version_temp}" STREQUAL "${COMPUTE_UNIT}")
+    # 如果没有找到 "ascend"，使用默认值或报错
+    message(WARNING "Failed to extract soc_version from COMPUTE_UNIT: ${COMPUTE_UNIT}")
+    set(soc_version "unknown")
+  else()
+    set(soc_version "${soc_version_temp}")
+  endif()
+  
+  if(NOT ENABLE_OPS_KERNEL)
+    set(CPACK_PACKAGE_FILE_NAME "CANN--${CPACK_PACKAGE_NAME}.run")
+  else()
+    if("${VERSION}" STREQUAL "")
+        set(CPACK_PACKAGE_FILE_NAME "cann-${soc_version}-ops-transformer_linux-${ARCH}.run")
+    else()
+        set(CPACK_PACKAGE_FILE_NAME "cann-${soc_version}-ops-transformer_${VERSION}_linux-${ARCH}.run")
+    endif()
+    
+  endif()
 
   set(CPACK_INSTALL_PREFIX "/")
 
@@ -174,7 +193,9 @@ function(pack_built_in)
   set(CPACK_ARCH "${ARCH}")
   set(CPACK_SET_DESTDIR ON)
   set(CPACK_GENERATOR External)
-  set(CPACK_EXTERNAL_PACKAGE_SCRIPT "${CMAKE_SOURCE_DIR}/cmake/makeself_built_in.cmake")
+  if (ENABLE_BUILT_IN)
+    set(CPACK_EXTERNAL_PACKAGE_SCRIPT "${CMAKE_SOURCE_DIR}/cmake/makeself_built_in.cmake")
+  endif()
   set(CPACK_EXTERNAL_ENABLE_STAGING true)
   set(CPACK_PACKAGE_DIRECTORY "${CMAKE_INSTALL_PREFIX}")
 

@@ -77,10 +77,6 @@ file(STRINGS ${CPACK_CMAKE_BINARY_DIR}/makeself.txt script_output)
 string(REPLACE " " ";" makeself_param_string "${script_output}")
 string(REGEX MATCH "cann.*\\.run" package_name "${makeself_param_string}")
 
-message(STATUS "script output: ${script_output}")
-message(STATUS "makeself: ${makeself_param_string}")
-message(STATUS "package: ${package_name}")
-
 execute_process(COMMAND bash ${MAKESELF_EXE}
         --header ${MAKESELF_HEADER_EXE}
         --help-header ops_transformer/script/help.info

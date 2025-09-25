@@ -18,6 +18,7 @@ UT_TARGETS=("ophost_test" "opapi_test" "opgraph_test" "opkernel_test")
 CURRENT_DIR=$(dirname $(readlink -f ${BASH_SOURCE[0]}))
 BUILD_DIR=${CURRENT_DIR}/build
 OUTPUT_DIR=${CURRENT_DIR}/output
+BUILD_OUT_DIR=${CURRENT_DIR}/build_out
 USER_ID=$(id -u)
 PARENT_JOB="false"
 HOST_TILING="false"
@@ -30,6 +31,13 @@ VERBOSE="false"
 THREAD_NUM=8
 ENABLE_CREATE_LIB=FALSE
 ENABLE_OPKERNEL=FALSE
+ENABLE_BUILD_PKG=FALSE
+ENABLE_BUILT_IN=FALSE
+ENABLE_BUILT_JIT=FALSE
+ENABLE_BUILT_CUSTOM=FALSE
+ASCEND_SOC_UNITS="ascend910b"
+SUPPORT_COMPUTE_UNIT_SHORT=("ascend910b" "ascend910_93" "ascend910_95" "ascend310p" "ascend910")
+CMAKE_BUILD_MODE=""
 BUILD_LIBS=()
 OP_API_UT=FALSE
 OP_HOST_UT=FALSE
@@ -39,6 +47,7 @@ OP_API=FALSE
 OP_HOST=FALSE
 OP_GRAPH=FALSE
 OP_KERNEL=FALSE
+SOC_ARRAY=()
 ENABLE_UT_EXEC=TRUE
 
 PR_CHANGED_FILES=""  # PR场景, 修改文件清单, 可用于标识是否PR场景
@@ -169,6 +178,10 @@ function help_info() {
     echo
     echo "    -c|--compute-unit    Specifies the chip type. If there are multiple values, separate them with semicolons and use quotation marks. The default is ascend910b."
     echo "                         For example: -c \"ascend910b\" or -c \"ascend910b;ascend310p\""
+    echo "    --jit                  Build run package without kernel bin"
+    echo
+    echo "-n|--op-name         Specifies the compiled operator. If there are multiple values, separate them with semicolons and use quotation marks. The default is all."
+    echo "                     For example: -n \"flash_attention_score\" or -n \"flash_attention_score;flash_attention_score_grad\""
     echo
     echo "    -u|--test            Executes a unit test (UT). If there are multiple values, separate them with semicolons and use quotation marks."
     echo "                         For example: -t \"flash_attention_score\" or -t \"flash_attention_score;flash_attention_score_grad\" or -t \"all\""
@@ -250,6 +263,15 @@ function clean()
     mkdir -p ${BUILD_DIR} ${OUTPUT_DIR}
 }
 
+function clean_build_out()
+{
+    if [ -n "${BUILD_OUT_DIR}" ];then
+        rm -rf ${BUILD_OUT_DIR}
+    fi
+
+    mkdir -p ${BUILD_OUT_DIR}
+}
+
 function cmake_config()
 {
     local extra_option="$1"
@@ -264,6 +286,7 @@ function build()
         local option="--verbose"
     fi
     export LD_LIBRARY_PATH=${BUILD_DIR}:$LD_LIBRARY_PATH
+    
     cmake --build . --target ${target} ${JOB_NUM} ${option}
 }
 
@@ -298,12 +321,10 @@ function build_example()
     cd "${BUILD_PATH}"
     if [[ "${EXAMPLE_MODE}" == "eager" ]]; then
         file=$(find ../ -path "*/${EXAMPLE_NAME}/examples/*" -name test_aclnn_${EXAMPLE_NAME}.cpp)
-        log "[DEBUGGING] Found file:${file}"
         g++ ${file} -I ${INCLUDE_PATH} -I ${ACLNN_INCLUDE_PATH} -I ${EAGER_INCLUDE_OPP_ACLNNOP_PATH} -L ${EAGER_LIBRARY_OPP_PATH} -L ${EAGER_LIBRARY_PATH} -lopapi -lopapi_transformer -lascendcl -lnnopbase -o test_aclnn_${EXAMPLE_NAME}
         ./test_aclnn_${EXAMPLE_NAME}
     elif [[ "${EXAMPLE_MODE}" == "graph" ]]; then
         file=$(find ../ -path "*/${EXAMPLE_NAME}/examples/*" -name test_geir_${EXAMPLE_NAME}.cpp)
-        log "[DEBUGGING] Found file:${file}"
         g++ ${file} -I ${GRAPH_INCLUDE_PATH} -I ${GE_INCLUDE_PATH} -I ${LINUX_INCLUDE_PATH} -I ${INC_INCLUDE_PATH} -L ${GRAPH_LIBRARY_STUB_PATH} -L ${GRAPH_LIBRARY_PATH} -lgraph -lge_runner -lgraph_base -o test_geir_${EXAMPLE_NAME}
         ./test_geir_${EXAMPLE_NAME}
     else
@@ -370,6 +391,12 @@ build_lib() {
   echo $dotted_line
 }
 
+function process_soc_input(){
+    local input_string="$1"
+    local value_part="${input_string#*=}"
+    ASCEND_SOC_UNITS="${value_part//,/;}"
+}
+
 set_ut_mode() {
   REPOSITORY_NAME="transformer"
   if [[ "$ENABLE_TEST" != "TRUE" ]]; then
@@ -406,6 +433,11 @@ set_ut_mode() {
   fi
 }
 
+if [[ $# -eq 0 ]]; then
+    help_info
+    exit 1
+fi
+
 ########################################################################################################################
 # 参数解析处理
 ########################################################################################################################
@@ -436,6 +468,16 @@ while [[ $# -gt 0 ]]; do
         help_info
         exit
         ;;
+    --pkg)
+        ENABLE_BUILD_PKG=TRUE
+        ENABLE_BUILT_IN=TRUE            # 只输入--pkg时编builtin包
+        shift
+        ;;
+    --jit)
+        ENABLE_BUILT_JIT=TRUE
+        shift
+        BUILD="jit"
+        ;;
     -n|--op-name)
         ascend_op_name="$2"
         shift 2
@@ -443,12 +485,18 @@ while [[ $# -gt 0 ]]; do
     --ops=*)
         OPTARG=$1
         ascend_op_name=${OPTARG#*=}
+        ENABLE_BUILT_CUSTOM=TRUE
+        ENABLE_BUILT_IN=FALSE
         shift
         ;;
     -c|--compute-unit)
         ascend_compute_unit="$2"
         shift 2
         ;;
+    --soc=*)
+        process_soc_input "$1"
+        shift 1
+    ;;
     --ccache)
         CCACHE_PROGRAM="$2"
         shift 2
@@ -522,7 +570,7 @@ while [[ $# -gt 0 ]]; do
         ascend_cmake_dir="$2"
         shift 2
         ;;
-    --verbose)
+    -v|--verbose)
         VERBOSE="true"
         shift
         ;;
@@ -586,9 +634,8 @@ while [[ $# -gt 0 ]]; do
     --vendor_name=*)
         OPTARG=$1
         vendor_name=${OPTARG#*=}
-        shift
-        ;;
-    --pkg)
+        ENABLE_BUILT_CUSTOM=TRUE
+        ENABLE_BUILT_IN=FALSE
         shift
         ;;
     --opgraph)
@@ -612,6 +659,23 @@ while [[ $# -gt 0 ]]; do
         ;;
     --noexec)
         ENABLE_UT_EXEC=FALSE
+        ;;
+    -j)
+        INPUT_JOB_NUM=$2
+        shift 2
+        ;;
+    --debug)
+        CMAKE_BUILD_MODE="${CMAKE_BUILD_MODE} -g"
+        shift
+        ;;
+    -O[0-3])
+        build_mode=$1
+        CMAKE_BUILD_MODE="${CMAKE_BUILD_MODE} ${build_mode}"
+        shift
+        ;;
+    --make_clean)
+        clean
+        clean_build_out
         shift
         ;;
     *)
@@ -624,6 +688,10 @@ set_ut_mode
 
 if [ -n "${vendor_name}" ];then
     CUSTOM_OPTION="${CUSTOM_OPTION} -DVENDOR_NAME=${vendor_name}"
+fi
+
+if [ -n "${VERSION}" ];then
+    CUSTOM_OPTION="${CUSTOM_OPTION} -DVERSION=${VERSION}"
 fi
 
 if [ -n "${ascend_compute_unit}" ];then
@@ -662,6 +730,7 @@ fi
 if [[ "$ENABLE_UT_EXEC" == "TRUE" ]]; then
     CUSTOM_OPTION="${CUSTOM_OPTION} -DENABLE_UT_EXEC=TRUE"
 fi
+
 if [ -n "${TEST}" ];then
     if [ -n "${PR_CHANGED_FILES}" ];then
         TEST=$(python3 "$CURRENT_DIR"/cmake/scripts/parse_changed_files.py -c "$CURRENT_DIR"/classify_rule.yaml -f "$PR_CHANGED_FILES" get_related_ut)
@@ -730,7 +799,11 @@ if [ -n "${OPS_COMPILE_OPTIONS}" ];then
 fi
 
 if [ "${HOST_TILING}" == "true" ];then
-    CUSTOM_OPTION="${CUSTOM_OPTION} -DENABLE_HOST_TILING=true"
+    CUSTOM_OPTION="${CUSTOM_OPTION} -DENABLE_HOST_TILING=ON"
+fi
+
+if [ -n "${CMAKE_BUILD_MODE}"] && [ "${CMAKE_BUILD_MODE}" != "" ];then
+    CUSTOM_OPTION="${CUSTOM_OPTION} -DCMAKE_BUILD_MODE=${CMAKE_BUILD_MODE}"
 fi
 
 if [ -n "${ascend_package_path}" ];then
@@ -748,15 +821,43 @@ else
     exit 1
 fi
 
-if [ "${PARENT_JOB}" == "false" ]; then
+function get_cpu_num() {
     CPU_NUM=$(($(cat /proc/cpuinfo | grep "^processor" | wc -l)*2)) 
     if [ -n "${OPS_CPU_NUMBER}" ]; then
         if [[ "${OPS_CPU_NUMBER}" =~ ^[0-9]+$ ]]; then
             CPU_NUM="${OPS_CPU_NUMBER}"
         fi
     fi
+}
+
+if [ "${PARENT_JOB}" == "false" ]; then
+    get_cpu_num
     JOB_NUM="-j${CPU_NUM}"
 fi
+
+if [ -n "${INPUT_JOB_NUM}" ]; then
+    get_cpu_num
+    if [ ${INPUT_JOB_NUM} -gt ${CPU_NUM}  ]; then
+        INPUT_JOB_NUM=${CPU_NUM}
+    fi
+    JOB_NUM="-j${INPUT_JOB_NUM}"
+fi
+
+# 非打包命令调用，打包模式会打进同一个包里
+function set_compute_unit_option() {
+    IFS=';' read -ra SOC_ARRAY <<< "$ASCEND_SOC_UNITS"  # 分割字符串为数组
+    local COMPUTE_UNIT_SHORT=""
+    for soc in "${SOC_ARRAY[@]}"; do
+      for support_unit in "${SUPPORT_COMPUTE_UNIT_SHORT[@]}"; do
+        lowercase_word=$(echo "$soc" | tr '[:upper:]' '[:lower:]')
+        if [[ "$lowercase_word" == *"$support_unit"* ]]; then
+          COMPUTE_UNIT_SHORT="$COMPUTE_UNIT_SHORT$support_unit;"
+          break
+        fi
+      done
+    done
+    CUSTOM_OPTION="$CUSTOM_OPTION -DASCEND_COMPUTE_UNIT=$COMPUTE_UNIT_SHORT"
+}
 
 CUSTOM_OPTION="${CUSTOM_OPTION} -DCUSTOM_ASCEND_CANN_PACKAGE_PATH=${ASCEND_CANN_PACKAGE_PATH} -DCHECK_COMPATIBLE=${CHECK_COMPATIBLE}"
 
@@ -806,36 +907,73 @@ build_ut() {
     cmake --build . --target generate_ops_cpp_cov -- -j $CORE_NUMS
   fi
 }
+
+function build_pkg_for_single_soc() {
+    local single_soc_option="$1"
+    local original_option="${CUSTOM_OPTION}"
+    if [[ "$ENABLE_BUILT_JIT" == "TRUE" ]]; then
+        CUSTOM_OPTION="${CUSTOM_OPTION}  -DENABLE_OPS_HOST=ON -DENABLE_BUILT_IN=ON -DENABLE_OPS_KERNEL=OFF"
+        cmake_config ${single_soc_option}
+        build_package
+        CUSTOM_OPTION="${original_option}"
+    elif [[ "$ENABLE_BUILT_IN" == "TRUE" ]]; then   
+        CUSTOM_OPTION="${CUSTOM_OPTION}  -DENABLE_BUILT_IN=ON -DENABLE_OPS_HOST=ON -DENABLE_OPS_KERNEL=ON"
+        cmake_config ${single_soc_option}
+        build_package
+        CUSTOM_OPTION="${original_option}"
+    fi
+}
+
 cd ${BUILD_DIR}
 if [[ "$ENABLE_TEST" == "TRUE" ]]; then
     build_ut ${BUILD}
 elif [[ "$ENABLE_CREATE_LIB" == "TRUE" ]]; then
     build_lib
 elif [[ "$ENABLE_OPKERNEL" == "TRUE" ]]; then
-    cmake_config -DENABLE_HOST_TILING=true
+    set_compute_unit_option
+    cmake_config -DENABLE_HOST_TILING=ON
     build_kernel
+elif [[ "$ENABLE_BUILT_CUSTOM" == "TRUE" ]]; then      # --ops, --vendor 新命令新使用
+    set_compute_unit_option
+    CUSTOM_OPTION="${CUSTOM_OPTION}  -DENABLE_OPS_HOST=ON -DENABLE_OPS_KERNEL=ON -DENABLE_BUILT_IN=OFF"
+    if [[ "$ENABLE_BUILD_PKG" == "TRUE" ]]; then      # --pkg 新命令新使用
+        cmake_config " -DENABLE_BUILD_PKG=ON"
+    else
+        cmake_config " -DENABLE_BUILD_PKG=OFF"
+    fi
+    build_package
+elif [[ "$ENABLE_BUILD_PKG" == "TRUE" ]]; then      # --pkg 新命令新使用
+    IFS=';' read -ra SOC_ARRAY <<< "$ASCEND_SOC_UNITS"  # 分割字符串为数组
+    CUSTOM_OPTION="${CUSTOM_OPTION} -DENABLE_BUILD_PKG=ON"
+    for soc in "${SOC_ARRAY[@]}"; do
+        soc=$(echo "${soc}" | xargs)  # 去除前后空格
+        soc_options=" -DASCEND_COMPUTE_UNIT=${soc}"
+        if [[ -n "${soc}" ]]; then  # 检查非空
+            build_pkg_for_single_soc ${soc_options} && make clean
+        fi
+    done
 else
+    CUSTOM_OPTION="${CUSTOM_OPTION} -DENABLE_BUILD_PKG=ON"
     if [ "${BUILD}" == "host" ];then
-        cmake_config -DENABLE_OPS_KERNEL=OFF
+        cmake_config -DENABLE_OPS_KERNEL=OFF -DENABLE_OPS_HOST=ON
         build_host
         # TO DO
         rm -rf ${CURRENT_DIR}/output
         mkdir -p ${CURRENT_DIR}/output
         cp ${BUILD_DIR}/*.run ${CURRENT_DIR}/output
     elif [ "${BUILD}" == "kernel" ];then
-        CUSTOM_OPTION="${CUSTOM_OPTION} -DENABLE_OPS_HOST=OFF -DBUILD_OPS_RTY_KERNEL=ON"
+        CUSTOM_OPTION="${CUSTOM_OPTION} -DENABLE_OPS_HOST=OFF -DENABLE_OPS_KERNEL=ON -DBUILD_OPS_RTY_KERNEL=ON"
         cmake_config 
         build_kernel
     elif [ "${BUILD}" == "package" ];then
-        cmake_config -DENABLE_BUILT_IN=ON
+        CUSTOM_OPTION="${CUSTOM_OPTION}  -DENABLE_BUILT_IN=ON -DENABLE_OPS_HOST=ON -DENABLE_OPS_KERNEL=ON"
+        cmake_config
         build_package
     elif [[ "$ENABLE_RUN_EXAMPLE" == "TRUE" ]];then
         build_example
     elif [ -n "${BUILD}" ];then
+        CUSTOM_OPTION="${CUSTOM_OPTION}  -DENABLE_OPS_HOST=ON -DENABLE_OPS_KERNEL=ON"
         cmake_config
         build ${BUILD}
-    else
-        cmake_config
-        build_package
     fi
 fi

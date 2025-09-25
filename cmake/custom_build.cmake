@@ -486,9 +486,11 @@ target_sources(
     cust_opmaster
     PUBLIC $<$<TARGET_EXISTS:${OPHOST_NAME}_tiling_obj>:$<TARGET_OBJECTS:${OPHOST_NAME}_tiling_obj>>
 )
+
 target_link_libraries(
     cust_opmaster
     PUBLIC $<$<TARGET_EXISTS:${COMMON_NAME}_obj>:$<TARGET_OBJECTS:${COMMON_NAME}_obj>>
+#     PUBLIC ${COMMON_NAME}_OBJ
     PRIVATE $<$<BOOL:${BUILD_WITH_INSTALLED_DEPENDENCY_CANN_PKG}>:$<BUILD_INTERFACE:optiling>>
     $<$<TARGET_EXISTS:opsbase>:opsbase>
 )
@@ -639,17 +641,17 @@ foreach (op_dir ${OP_DIR_LIST})
     endif()
 
     install(FILES ${KERNEL_FILES}
-            DESTINATION ${IMPL_INSTALL_DIR}/ascendc/${_op_name}
-            OPTIONAL
+        DESTINATION ${IMPL_INSTALL_DIR}/ascendc/${_op_name}
+        OPTIONAL
+    )
+
+    install(DIRECTORY ${op_dir}/regbase/opkernel
+        DESTINATION ${IMPL_INSTALL_DIR}/ascendc/${_op_name}/regbase
+        OPTIONAL
     )
 
     install(DIRECTORY ${op_dir}/910_95
             DESTINATION ${IMPL_INSTALL_DIR}/ascendc/${_op_name}
-            OPTIONAL
-    )
-
-    install(DIRECTORY ${op_dir}/regbase/opkernel
-            DESTINATION ${IMPL_INSTALL_DIR}/ascendc/${_op_name}/regbase
             OPTIONAL
     )
 endforeach ()
@@ -742,7 +744,9 @@ if (NOT ENABLE_BUILT_IN AND BUILD_OPEN_PROJECT)
     set(CPACK_GENERATOR External)
     set(CPACK_CMAKE_GENERATOR "Unix Makefiles")
     set(CPACK_EXTERNAL_ENABLE_STAGING TRUE)
-    set(CPACK_EXTERNAL_PACKAGE_SCRIPT ${ASCEND_CMAKE_DIR}/makeself.cmake)
+    if (ENABLE_BUILD_PKG)
+      set(CPACK_EXTERNAL_PACKAGE_SCRIPT ${ASCEND_CMAKE_DIR}/makeself.cmake)
+    endif()
     set(CPACK_EXTERNAL_BUILT_PACKAGES ${CPACK_PACKAGE_DIRECTORY}/_CPack_Packages/Linux/External/${CPACK_PACKAGE_FILE_NAME}/${CPACK_PACKAGE_FILE_NAME})
     include(CPack)
 endif ()
