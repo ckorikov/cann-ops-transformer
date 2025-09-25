@@ -1,5 +1,3 @@
-声明：本文使用[Creative Commons License version 4.0](https://creativecommons.org/licenses/by/4.0/legalcode)许可协议，转载、引用或修改等操作请遵循此许可协议。
-
 # NsaSelectedAttentionGrad
 
 ## 产品支持情况
@@ -16,7 +14,6 @@
 |<term>Atlas 训练系列产品</term>|      ×     |
 |<term>Atlas 200I/300/500 推理产品</term>|      ×     |
 
-产品形态详细说明请参见[昇腾产品形态说明](https://www.hiascend.com/document/redirect/CannCommunityProductForm)。
 
 ## 功能说明
 
@@ -24,98 +21,353 @@
 
 - 计算公式：
 
-    根据传入的topkIndice对keyIn和value选取数量为selectedBlockCount个大小为selectedBlockSize的数据重排，公式如下：
+  根据传入的topkIndice对keyIn和value选取数量为selectedBlockCount个大小为selectedBlockSize的数据重排，公式如下：
 
-    $$
-    selectedKey = Gather(key, topkIndices[i]),0<=i<selectedBlockCount \\
-    selectedValue = Gather(value, topkIndices[i]),0<=i<selectedBlockCount
-    $$
+  $$
+  selectedKey = Gather(key, topkIndices[i]),0<=i<selectedBlockCount \\
+  selectedValue = Gather(value, topkIndices[i]),0<=i<selectedBlockCount
+  $$
 
-    接着，进行注意力机制的反向计算，计算公式为：
+  接着，进行注意力机制的反向计算，计算公式为：
 
-    $$
-    V=P^TdY
-    $$
+  $$
+  V=P^TdY
+  $$
 
-    $$
-    Q=\frac{((dS)*K)}{\sqrt{d}}
-    $$
+  $$
+  Q=\frac{((dS)*K)}{\sqrt{d}}
+  $$
 
-    $$
-    K=\frac{((dS)^T*Q)}{\sqrt{d}}
-    $$
+  $$
+  K=\frac{((dS)^T*Q)}{\sqrt{d}}
+  $$
+  
 
+## 函数原型
 
-## 实现原理
+每个算子分为[两段式接口](../../../docs/context/两段式接口.md)，必须先调用“aclnnNsaSelectedAttentionGradGetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnNsaSelectedAttentionGrad”接口执行计算。
 
-整体计算流程如下：
-
-1. 根据topkIndices挑选topK个KV，并将结果Gather后输出WorkSpace。同时需要保存attenMask相关变量。
-2. 进入常规的FA计算流过程。
-3. 直接输出dq的结果，dk和dv需要将FAG的计算结果输出根据indices放回原来的位置。
-
-## 算子执行接口
-
-每个算子分为[两段式接口](common/两段式接口.md)，必须先调用“aclnnNsaSelectedAttentionGradGetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnNsaSelectedAttentionGrad”接口执行计算。
-
-* `aclnnStatus aclnnNsaSelectedAttentionGradGetWorkspaceSize(const aclTensor *query, const aclTensor *key, const aclTensor *value, const aclTensor *attentionOut, const aclTensor *attentionOutGrad, const aclTensor *softmaxMax, const aclTensor *softmaxSum, const aclTensor *topkIndices, const aclIntArray *actualSeqQLenOptional,const aclIntArray *actualSeqKvLenOptional, const aclTensor *attenMaskOptional, double scaleValue, int64_t selectedBlockSize, int64_t  selectedBlockCount, int64_t headNum, char *inputLayout, int64_t sparseMode, aclTensor *dqOut, aclTensor *dkOut, aclTensor *dvOut, uint64_t *workspaceSize, aclOpExecutor **executor)`
-* `aclnnStatus aclnnNsaSelectedAttentionGrad(void *workspace, uint64_t workspaceSize, aclOpExecutor *executor, aclrtStream stream)`
-
+```c++
+aclnnStatus aclnnNsaSelectedAttentionGradGetWorkspaceSize(
+  const aclTensor *query,
+  const aclTensor *key,
+  const aclTensor *value,
+  const aclTensor *attentionOut,
+  const aclTensor *attentionOutGrad,
+  const aclTensor *softmaxMax,
+  const aclTensor *softmaxSum,
+  const aclTensor *topkIndices,
+  const aclIntArray *actualSeqQLenOptional,
+  const aclIntArray *actualSeqKvLenOptional,
+  const aclTensor *attenMaskOptional,
+  double scaleValue,
+  int64_t selectedBlockSize,
+  int64_t selectedBlockCount,
+  int64_t headNum,
+  char *inputLayout,
+  int64_t sparseMode,
+  aclTensor *dqOut,
+  aclTensor *dkOut,
+  aclTensor *dvOut,
+  uint64_t *workspaceSize,
+  aclOpExecutor **executor)
+```
+```c++
+aclnnStatus aclnnNsaSelectedAttentionGrad(
+  void *workspace,
+  uint64_t workspaceSize,
+  aclOpExecutor *executor,
+  aclrtStream stream);
+```
 **说明**：
-
-- 算子执行接口对外屏蔽了算子内部实现逻辑以及不同代际NPU的差异，且开发者无需编译算子，实现了算子的精简调用。
-- 若开发者不使用算子执行接口的调用算子，也可以定义基于Ascend IR的算子描述文件，通过ATC工具编译获得算子om文件，然后加载模型文件执行算子，详细调用方法可参见《应用开发指南》的[单算子调用 > 单算子模型执行](https://hiascend.com/document/redirect/CannCommunityCppOpcall)章节。
 
 ### aclnnNsaSelectedAttentionGradGetWorkspaceSize
 
 - **参数说明：**
 
-  - query（aclTensor \*，计算输入）：Device侧的aclTensor，公式中的输入Q，数据类型支持BFLOAT16和FLOAT16，shape支持3维，[数据格式](common/数据格式.md)支持ND，综合约束请见[约束说明](#约束说明)。
-  - key（aclTensor \*，计算输入）：Device侧的aclTensor，公式中的输入K，数据类型支持BFLOAT16和FLOAT16，数据类型与`query`一致，shape支持3维，[数据格式](common/数据格式.md)支持ND，综合约束请见[约束说明](#约束说明)。
-  - value（aclTensor \*，计算输入）：Device侧的aclTensor，公式中的输入V，数据类型支持BFLOAT16和FLOAT16，数据类型与`query`一致，shape支持3维，[数据格式](common/数据格式.md)支持ND，综合约束请见[约束说明](#约束说明)。
-  - attentionOut（aclTensor \*，计算输入）：Device侧的aclTensor，注意力正向计算的最终输出，数据类型支持BFLOAT16和FLOAT16，数据类型与`query`一致，shape支持3维，[数据格式](common/数据格式.md)支持ND。
-  - attentionOutGrad（aclTensor \*，计算输入）：Device侧的aclTensor，公式中的输入dY，数据类型支持BFLOAT16和FLOAT16，数据类型与`query`一致，shape支持3维，[数据格式](common/数据格式.md)支持ND，综合约束请见[约束说明](#约束说明)。
-  - softmaxMax（aclTensor \*，计算输入）：Device侧的aclTensor，注意力正向计算的中间输出，数据类型支持FLOAT，shape支持3维，[数据格式](common/数据格式.md)支持ND。综合约束请见[约束说明](#约束说明)。
-  - softmaxSum（aclTensor \*，计算输入）：Device侧的aclTensor，注意力正向计算的中间输出，数据类型支持FLOAT，shape支持3维，[数据格式](common/数据格式.md)支持ND；综合约束请见[约束说明](#约束说明)。
-  - topkIndices（aclTensor \*，计算输入）：Device侧的aclTensor，公式中的所选择KV的索引，数据类型支持INT32，shape支持3维，[数据格式](common/数据格式.md)支持ND，综合约束请见[约束说明](#约束说明)。
-  - actualSeqQLenOptional（aclIntArray \*，计算输入）：数据类型支持INT64，描述了每个Batch对应的`query` S大小；综合约束请见[约束说明](#约束说明)。
-  - actualSeqKvLenOptional（aclIntArray \*，计算输入）：数据类型支持INT64，描述了每个Batch对应的`key/value` S大小。
-  - attenMaskOptional（aclTensor \*，计算输入）：Device侧的aclTensor，0代表保留，1代表掩掉的mask矩阵，**预留参数，暂不支持**。
-  - scaleValue（double，计算输入）：公式中d开根号的倒数，代表缩放系数，作为计算流中Muls的scalar值，数据类型支持DOUBLE。一般设置为$D^{-0.5}$。
-  - selectedBlockSize（int64_t，计算输入）：所选择的块的大小，数据类型支持INT64，目前支持16~128，需对齐16。
-  - selectedBlockCount（int64_t，计算输入）：所选择的块的数量，数据类型支持INT64，目前支持1~32。
-  - headNum（int64_t，计算输入）：Host侧的int64_t，代表输入`query`的N轴长度，数据类型支持INT64；综合约束请见[约束说明](#约束说明)。
-  - inputLayout（string \*，计算输入）：Host侧的string，代表输入`query`、`keyIn`、`value`的数据排布格式，支持TND。
-    - `query`、`keyIn`、`value`数据排布格式支持从多种维度解读，其中B（Batch）表示输入样本批量大小、S（Seq-Length）表示输入样本序列长度、H（Head-Size）表示隐藏层的大小、N（Head-Num）表示多头数、G（Group）表示组数，仅对Q生效，D（Head-Dim）表示隐藏层最小的单元尺寸，且满足D=H/N。
-  - sparseMode（int64_t，计算输入）：Host侧的int，表示sparse的模式。数据类型支持INT32。目前仅支持sparseMode=0或2。sparse不同模式的详细说明请参见[sparse模式说明](./common/sparse_mode参数说明.md)。
-  - dqOut（aclTensor \*，计算输出）：Device侧的aclTensor，公式中的dQ，表示query的梯度，计算输出，数据类型支持BFLOAT16和FLOAT16，数据类型与query一致，shape支持3维，shape必须与query的shape一致,[数据格式](common/数据格式.md)支持ND。
-  - dkOut（aclTensor \*，计算输出）：Device侧的aclTensor，公式中的dK，表示key的梯度，计算输出，数据类型支持BFLOAT16和FLOAT16，数据类型与query一致，shape支持3维，shape必须与key的shape一致，[数据格式](common/数据格式.md)支持ND。
-  - dvOut（aclTensor \*，计算输出）：Device侧的aclTensor，公式中的dV，表示value的梯度，计算输出，数据类型支持BFLOAT16和FLOAT16，数据类型与query一致，shape支持3维，shape必须与value的shape一致，[数据格式](common/数据格式.md)支持ND。
-  - workspaceSize（uint64\_t \*，出参）：返回用户需要在Device侧申请的workspace大小。
-  - executor（aclOpExecutor \*\*，出参）：返回op执行器，包含了算子计算流程。
+<table style="undefined;table-layout: fixed; width: 1565px">
+<colgroup>
+  <col style="width: 146px">
+  <col style="width: 135px">
+  <col style="width: 326px">
+  <col style="width: 246px">
+  <col style="width: 275px">
+  <col style="width: 101px">
+  <col style="width: 190px">
+  <col style="width: 146px">
+</colgroup>
+<thead>
+  <tr>
+    <th>参数名</th>
+    <th>输入/输出</th>
+    <th>描述</th>
+    <th>使用说明</th>
+    <th>数据类型</th>
+    <th>数据格式</th>
+    <th>维度(shape)</th>
+    <th>非连续Tensor</th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <td>query</td>
+    <td>输入</td>
+    <td>公式中的query。</td>
+    <td>-</td>
+    <td>BFLOAT16、FLOAT16</td>
+    <td>ND</td>
+    <td>3-4</td>
+    <td>√</td>
+  </tr>
+  <tr>
+    <td>key</td>
+    <td>输入</td>
+    <td>公式中的key。</td>
+    <td>-</td>
+    <td>BFLOAT16、FLOAT16</td>
+    <td>ND</td>
+    <td>3-4</td>
+    <td>√</td>
+  </tr>
+  <tr>
+    <td>value</td>
+    <td>输入</td>
+    <td>公式中的value。</td>
+    <td>-</td>
+    <td>BFLOAT16、FLOAT16</td>
+    <td>ND</td>
+    <td>3-4</td>
+    <td>√</td>
+  </tr>
+  <tr>
+    <td>topkIndices</td>
+    <td>输入</td>
+    <td>公式中的topk_indices。</td>
+    <td>-</td>
+    <td>INT32</td>
+    <td>ND</td>
+    <td>3</td>
+    <td>√</td>
+  </tr>
+  <tr>
+    <td>attenMaskOptional</td>
+    <td>输入</td>
+    <td>公式中的atten_mask。</td>
+    <td>-</td>
+    <td>BOOL、UINT8</td>
+    <td>ND</td>
+    <td>2</td>
+    <td>√</td>
+  </tr>
+  <tr>
+    <td>actualSeqQLenOptional</td>
+    <td>输入</td>
+    <td>query每个Batch的S累加和长度。</td>
+    <td>-</td>
+    <td>INT64</td>
+    <td>ND</td>
+    <td>1</td>
+    <td>-</td>
+  </tr>
+  <tr>
+    <td>actualSeqKvLenOptional</td>
+    <td>输入</td>
+    <td>key/value每个Batch的S累加和长度。</td>
+    <td>-</td>
+    <td>INT64</td>
+    <td>ND</td>
+    <td>1</td>
+    <td>-</td>
+  </tr>
+  <tr>
+    <td>scaleValue</td>
+    <td>输入</td>
+    <td>缩放系数scale。</td>
+    <td>一般为 D^-0.5。</td>
+    <td>DOUBLE</td>
+    <td>-</td>
+    <td>-</td>
+    <td>-</td>
+  </tr>
+  <tr>
+    <td>headNum</td>
+    <td>输入</td>
+    <td>head个数。</td>
+    <td>-</td>
+    <td>INT64</td>
+    <td>-</td>
+    <td>-</td>
+    <td>-</td>
+  </tr>
+  <tr>
+    <td>inputLayout</td>
+    <td>输入</td>
+    <td>query/key/value数据排布格式。</td>
+    <td>当前仅支持TND。</td>
+    <td>String</td>
+    <td>-</td>
+    <td>-</td>
+    <td>-</td>
+  </tr>
+  <tr>
+    <td>selectedBlockSize</td>
+    <td>输入</td>
+    <td>每个block长度。</td>
+    <td>-</td>
+    <td>INT64</td>
+    <td>-</td>
+    <td>-</td>
+    <td>-</td>
+  </tr>
+  <tr>
+    <td>selectedBlockCount</td>
+    <td>输入</td>
+    <td>select block数量。</td>
+    <td>-</td>
+    <td>INT64</td>
+    <td>-</td>
+    <td>-</td>
+    <td>-</td>
+  </tr>
+  <tr>
+    <td>sparseMode</td>
+    <td>输入</td>
+    <td>sparse模式。</td>
+    <td>支持0或2。</td>
+    <td>INT32</td>
+    <td>-</td>
+    <td>-</td>
+    <td>-</td>
+  </tr>
+  <tr>
+    <td>softmaxMaxOut</td>
+    <td>输出</td>
+    <td>Softmax计算的Max中间结果。</td>
+    <td>用于反向计算。</td>
+    <td>FLOAT</td>
+    <td>ND</td>
+    <td>3</td>
+    <td>√</td>
+  </tr>
+  <tr>
+    <td>softmaxSumOut</td>
+    <td>输出</td>
+    <td>Softmax计算的Sum中间结果。</td>
+    <td>用于反向计算。</td>
+    <td>FLOAT</td>
+    <td>ND</td>
+    <td>3</td>
+    <td>√</td>
+  </tr>
+  <tr>
+    <td>attentionOut</td>
+    <td>输出</td>
+    <td>计算公式的最终输出。</td>
+    <td>-</td>
+    <td>BFLOAT16、FLOAT16</td>
+    <td>ND</td>
+    <td>3</td>
+    <td>√</td>
+  </tr>
+  <tr>
+    <td>workspaceSize</td>
+    <td>输出</td>
+    <td>返回需要在Device侧申请的workspace大小。</td>
+    <td>-</td>
+    <td>-</td>
+    <td>-</td>
+    <td>-</td>
+    <td>-</td>
+  </tr>
+  <tr>
+    <td>executor</td>
+    <td>输出</td>
+    <td>返回op执行器，包含算子计算流程。</td>
+    <td>-</td>
+    <td>-</td>
+    <td>-</td>
+    <td>-</td>
+    <td>-</td>
+  </tr>
+</tbody>
+</table>
+
 
 - **返回值：**
 
-  返回aclnnStatus状态码，具体参见[aclnn返回码](common/aclnn返回码.md)。
+返回aclnnStatus状态码，具体参见[aclnn返回码](../../../docs/context/aclnn返回码.md)。
+<table style="undefined;table-layout: fixed;width: 1155px"><colgroup>
+<col style="width: 319px">
+<col style="width: 144px">
+<col style="width: 671px">
+</colgroup>
+<thead>
+  <tr>
+    <th>返回码</th>
+    <th>错误码</th>
+    <th>描述</th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <td>ACLNN_ERR_PARAM_NULLPTR</td>
+    <td>161001</td>
+    <td>传入参数是必选输入，输出或者必选属性，且是空指针。</td>
+  </tr>
+  <tr>
+    <td rowspan="3">ACLNN_ERR_PARAM_INVALID</td>
+    <td rowspan="3">161002</td>
+    <td>query、keyIn、value、dy、pseShiftOptional、dropMaskOptional、paddingMaskOptional、attenMaskOptional、softmaxMaxOptional、softmaxSumOptional、softmaxInOptional、attentionInOptional、dqOut、dkOut、dvOut的数据类型不在支持的范围内。</td>
+  </tr>
+  <tr>
+    <td>query、keyIn、value、dy、pseShiftOptional、dropMaskOptional、paddingMaskOptional、attenMaskOptional、softmaxMaxOptional、softmaxSumOptional、softmaxInOptional、attentionInOptional、dqOut、dkOut、dvOut的数据格式不在支持的范围内。</td>
+  </tr>
+</tbody>
+</table>
 
-  ```
-  第一段接口完成入参校验，出现以下场景时报错：
-  - 返回161001（ACLNN_ERR_PARAM_NULLPTR）：传入参数是必选输入，输出或者必选属性，且是空指针。
-  - 返回161002（ACLNN_ERR_PARAM_INVALID）：query、keyIn、value、dy、pseShiftOptional、dropMaskOptional、paddingMaskOptional、attenMaskOptional、softmaxMaxOptional、softmaxSumOptional、softmaxInOptional、attentionInOptional、dqOut、dkOut、dvOut的数据类型和数据格式不在支持的范围内。
-  ```
 
 ### aclnnNsaSelectedAttentionGrad
 
 - **参数说明：**
 
-  -   workspace（void \*，入参）：在Device侧申请的workspace内存地址。
-  -   workspaceSize（uint64\_t，入参）：在Device侧申请的workspace大小，由第一段接口aclnnNsaSelectedAttentionGradGetWorkspaceSize获取。
-  -   executor（aclOpExecutor \*，入参）：op执行器，包含了算子计算流程。
-  -   stream（aclrtStream，入参）：指定执行任务的AscendCL stream流。
+  <table style="undefined;table-layout: fixed; width: 598px"><colgroup>
+  <col style="width: 144px">
+  <col style="width: 125px">
+  <col style="width: 700px">
+  </colgroup>
+  <thead>
+    <tr>
+      <th>参数名</th>
+      <th>输入/输出</th>
+      <th>描述</th>
+    </tr></thead>
+  <tbody>
+    <tr>
+      <td>workspace</td>
+      <td>输入</td>
+      <td>在Device侧申请的workspace内存地址。</td>
+    </tr>
+    <tr>
+      <td>workspaceSize</td>
+      <td>输入</td>
+      <td>在Device侧申请的workspace大小，由第一段接口aclnnNsaSelectedAttentionGradGetWorkspaceSize获取。</td>
+    </tr>
+    <tr>
+      <td>executor</td>
+      <td>输入</td>
+      <td>op执行器，包含了算子计算流程。</td>
+    </tr>
+    <tr>
+      <td>stream</td>
+      <td>输入</td>
+      <td>指定执行任务的AscendCL stream流。</td>
+    </tr>
+  </tbody>
+  </table>
 
--   **返回值：**
+- **返回值：**
 
-    返回aclnnStatus状态码，具体参见[aclnn返回码](common/aclnn返回码.md)。
+  返回aclnnStatus状态码，具体参见[aclnn返回码](../../../docs/context/aclnn返回码.md)。
 
 ## 约束说明
 
@@ -138,7 +390,6 @@
 - 关于topkIndices参数shape的约束：[T1, N2, selectedBlockCount]。
 
 
-参数解释请参见**算子执行接口**。
 
 ## 调用示例
 
@@ -150,7 +401,7 @@
 
 - aclnn单算子调用方式
 
-  通过aclnn单算子调用示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](common/编译与运行样例.md)。
+  通过aclnn单算子调用示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](../../../docs/context/编译与运行样例.md)。
 
 ```c++
 #include <iostream>

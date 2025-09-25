@@ -13,7 +13,7 @@
 | <term>Atlas 200/300/500 推理产品</term>                      |    ×    |
 
 ## 功能说明
--  **算子功能**：执行单路旋转位置编码[aclnnRotaryPositionEmbedding](aclnnRotaryPositionEmbedding.md)的反向计算。
+-  **算子功能**：执行单路旋转位置编码[aclnnRotaryPositionEmbedding](../../rotary_position_embedding/docs/aclnnRotaryPositionEmbedding.md)的反向计算。
 -  **计算公式**：
   
     取旋转位置编码的正向计算中，boardcast的轴列表为`dims`，则计算公式可表达如下：
@@ -138,59 +138,243 @@
     $$
 
 ## 函数原型
-每个算子分为[两段式接口](common/两段式接口.md)，必须先调用“aclnnRotaryPositionEmbeddingGradGetWorkspaceSize”接口获取入参并根据流程计算所需workspace大小，再调用“aclnnRotaryPositionEmbeddingGrad”接口执行计算。
+每个算子分为[两段式接口](../../../docs/context/两段式接口.md)，必须先调用“aclnnRotaryPositionEmbeddingGradGetWorkspaceSize”接口获取入参并根据流程计算所需workspace大小，再调用“aclnnRotaryPositionEmbeddingGrad”接口执行计算。
 
-* `aclnnStatus aclnnRotaryPositionEmbeddingGradGetWorkspaceSize(const aclTensor *dy, const aclTensor *cos, const aclTensor *sin, const aclTensor *xOptional, int64_t mode, const aclTensor *dxOut, const aclTensor *dcosOut, const aclTensor *dsinOut, uint64_t *workspaceSize, aclOpExecutor **executor)`
-* `aclnnStatus aclnnRotaryPositionEmbeddingGrad(void *workspace, uint64_t workspaceSize, aclOpExecutor *executor, aclrtStream stream)`
-
+```c++
+aclnnStatus aclnnRotaryPositionEmbeddingGradGetWorkspaceSize(
+    const aclTensor *dy,
+    const aclTensor *cos,
+    const aclTensor *sin,
+    const aclTensor *xOptional,
+    int64_t mode,
+    const aclTensor *dxOut,
+    const aclTensor *dcosOut,
+    const aclTensor *dsinOut,
+    uint64_t *workspaceSize,
+    aclOpExecutor **executor)
+```
+```c++
+aclnnStatus aclnnRotaryPositionEmbeddingGrad(
+    void *workspace,
+    uint64_t workspaceSize,
+    aclOpExecutor *executor,
+    aclrtStream stream)
+```
 ## aclnnRotaryPositionEmbeddingGradGetWorkspaceSize
 
-- **参数说明：**
+<table style="undefined;table-layout: fixed; width: 1565px">
+<colgroup>
+  <col style="width: 146px">
+  <col style="width: 135px">
+  <col style="width: 326px">
+  <col style="width: 246px">
+  <col style="width: 275px">
+  <col style="width: 101px">
+  <col style="width: 190px">
+  <col style="width: 146px">
+</colgroup>
+<thead>
+  <tr>
+    <th>参数名</th>
+    <th>输入/输出</th>
+    <th>描述</th>
+    <th>使用说明</th>
+    <th>数据类型</th>
+    <th>数据格式</th>
+    <th>维度(shape)</th>
+    <th>非连续Tensor</th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <td>dy</td>
+    <td>输入</td>
+    <td>旋转位置编码正向输出 y 的导数。</td>
+    <td>-</td>
+    <td>BFLOAT16、FLOAT16、FLOAT32</td>
+    <td>ND</td>
+    <td>4</td>
+    <td>√</td>
+  </tr>
+  <tr>
+    <td>cos</td>
+    <td>输入</td>
+    <td>正向计算输入 cos。</td>
+    <td>与 dy 数据类型一致。</td>
+    <td>BFLOAT16、FLOAT16、FLOAT32</td>
+    <td>ND</td>
+    <td>4</td>
+    <td>√</td>
+  </tr>
+  <tr>
+    <td>sin</td>
+    <td>输入</td>
+    <td>正向计算输入 sin。</td>
+    <td>与 dy 数据类型一致。</td>
+    <td>BFLOAT16、FLOAT16、FLOAT32</td>
+    <td>ND</td>
+    <td>4</td>
+    <td>√</td>
+  </tr>
+  <tr>
+    <td>xOptional</td>
+    <td>可选输入</td>
+    <td>正向计算输入 x，空指针时不计算 dcosOut 和 dsinOut。</td>
+    <td>与 dy 数据类型一致。</td>
+    <td>BFLOAT16、FLOAT16、FLOAT32</td>
+    <td>ND</td>
+    <td>4</td>
+    <td>√</td>
+  </tr>
+  <tr>
+    <td>mode</td>
+    <td>输入</td>
+    <td>旋转模式。</td>
+    <td>
+      <ul>
+        <li>Atlas A3/A2 系列：0=half，1=interleave。</li>
+        <li>昇腾910_95：2=quarter，3=interleave-half。</li>
+      </ul>
+    </td>
+    <td>INT64</td>
+    <td>-</td>
+    <td>-</td>
+    <td>-</td>
+  </tr>
+  <tr>
+    <td>dxOut</td>
+    <td>输出</td>
+    <td>正向计算输入 x 的导数。</td>
+    <td>与 dy 数据类型一致。</td>
+    <td>BFLOAT16、FLOAT16、FLOAT32</td>
+    <td>ND</td>
+    <td>4</td>
+    <td>x</td>
+  </tr>
+  <tr>
+    <td>dcosOut</td>
+    <td>输出</td>
+    <td>正向计算输入 cos 的导数，xOptional 非空时有效。</td>
+    <td>与 dy 数据类型一致。</td>
+    <td>BFLOAT16、FLOAT16、FLOAT32</td>
+    <td>ND</td>
+    <td>4</td>
+    <td>x</td>
+  </tr>
+  <tr>
+    <td>dsinOut</td>
+    <td>输出</td>
+    <td>正向计算输入 sin 的导数，xOptional 非空时有效。</td>
+    <td>与 dy 数据类型一致。</td>
+    <td>BFLOAT16、FLOAT16、FLOAT32</td>
+    <td>ND</td>
+    <td>4</td>
+    <td>x</td>
+  </tr>
+  <tr>
+    <td>workspaceSize</td>
+    <td>输出</td>
+    <td>返回需要在Device侧申请的workspace大小。</td>
+    <td>-</td>
+    <td>-</td>
+    <td>-</td>
+    <td>-</td>
+    <td>-</td>
+  </tr>
+  <tr>
+    <td>executor</td>
+    <td>输出</td>
+    <td>返回op执行器，包含算子计算流程。</td>
+    <td>-</td>
+    <td>-</td>
+    <td>-</td>
+    <td>-</td>
+    <td>-</td>
+  </tr>
+</tbody>
+</table>
 
-  - dy（aclTensor\*，计算输入）：表示旋转位置编码的正向计算中输出`y`的导数，公式中的`dy`，Device侧的aclTensor。支持[非连续的Tensor](common/非连续的Tensor.md)，[数据格式](common/数据格式.md)支持ND，维度为4维，数据类型支持BFLOAT16、FLOAT16、FLOAT32。
-  - cos（aclTensor*，计算输入）：表示旋转位置编码的正向计算中的输入`cos`，公式中的`cos`，Device侧的aclTensor。支持[非连续的Tensor](common/非连续的Tensor.md)，[数据格式](common/数据格式.md)支持ND，维度为4维，数据类型支持BFLOAT16、FLOAT16、FLOAT32，且必须与`dy`的数据类型一致。
-  - sin（aclTensor*，计算输入）：表示旋转位置编码的正向计算中的输入`sin`，公式中的`sin`，Device侧的aclTensor。支持[非连续的Tensor](common/非连续的Tensor.md)，[数据格式](common/数据格式.md)支持ND，维度为4维，数据类型支持BFLOAT16、FLOAT16、FLOAT32，且必须与`dy`的数据类型一致。
-  - xOptional（aclTensor*，可选计算输入）：表示旋转位置编码的正向计算中的输入`x`，公式中的`x`，Device侧的aclTensor。如果该输入为空指针，则不会计算输出`dcosOut`和`dsinOut`。支持[非连续的Tensor](common/非连续的Tensor.md)，[数据格式](common/数据格式.md)支持ND，维度为4维，数据类型支持BFLOAT16、FLOAT16、FLOAT32，且必须与`dy`的数据类型一致。
-  - mode（int64_t，计算输入）：表示公式中的旋转模式，数据类型为INT64，支持的枚举值如下：
-   
-    - <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>、<term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：
-      - 0：表示旋转模式为half模式。
-      - 1：表示旋转模式为interleave模式。
-    
-    - <term>昇腾910_95 AI处理器</term>：
-      - 2：表示旋转模式为quarter模式。
-      - 3：表示旋转模式为interleave-half模式。
-  -   dxOut（aclTensor\*，计算输出）：表示旋转位置编码的正向计算中输入`x`的导数，公式中的`dx`，Device侧的aclTensor。 不支持[非连续的Tensor](common/非连续的Tensor.md)，[数据格式](common/数据格式.md)支持ND，维度为4维，数据类型支持BFLOAT16、FLOAT16、FLOAT32，且必须与`dy`的数据类型一致。
-  -   dcosOut（aclTensor\*，计算输出）：表示旋转位置编码的正向计算中输入`cos`的导数，公式中的`dcos`，Device侧的aclTensor。只有当输入`xOptional`不是空指针时，此输出才有意义。不支持[非连续的Tensor](common/非连续的Tensor.md)，[数据格式](common/数据格式.md)支持ND，维度为4维，数据类型支持BFLOAT16、FLOAT16、FLOAT32，且必须与`dy`的数据类型一致。
-  -   dsinOut（aclTensor\*，计算输出）：表示旋转位置编码的正向计算中输入`sin`的导数，公式中的`dsin`，Device侧的aclTensor。 只有当输入`xOptional`不是空指针时，此输出才有意义。不支持[非连续的Tensor](common/非连续的Tensor.md)，[数据格式](common/数据格式.md)支持ND，维度为4维，数据类型支持BFLOAT16、FLOAT16、FLOAT32，且必须与`dy`的数据类型一致。
-  - workspaceSize（uint64_t\*，出参）：返回需要在Device侧申请的workspace大小。
-  - executor（aclOpExecutor\*\*，出参）：返回op执行器，包含了算子计算流程。
 
 - **返回值：**
 
-  aclnnStatus：返回状态码，具体参见[aclnn返回码](common/aclnn返回码.md)。
+返回aclnnStatus状态码，具体参见[aclnn返回码](../../../docs/context/aclnn返回码.md)。
+<table style="undefined;table-layout: fixed;width: 1155px"><colgroup>
+<col style="width: 319px">
+<col style="width: 144px">
+<col style="width: 671px">
+</colgroup>
+<thead>
+  <tr>
+    <th>返回码</th>
+    <th>错误码</th>
+    <th>描述</th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <td>ACLNN_ERR_PARAM_NULLPTR</td>
+    <td>161001</td>
+    <td>传入的必选输入dy、cos、sin和输出dxOut、dcosOut、dsinOut是空指针。</td>
+  </tr>
+  <tr>
+    <td>ACLNN_ERR_PARAM_INVALID</td>
+    <td>161002</td>
+    <td>传入的输入dy、cos、sin、xOptinal和输出dxOut、dcosOut、dsinOut的数据类型和格式不在支持的范围内。</td>
+  </tr>
+  <tr>
+    <td rowspan="2">ACLNN_ERR_INNER_TILING_ERROR</td>
+    <td rowspan="2">561002</td>
+    <td>传入的参数shape不满足约束说明章节中的条件。</td>
+  </tr>
+  <tr>
+    <td>传入的mode参数不在0、1、2、3范围内。 </td>
+  </tr>
+</tbody>
+</table>
 
-  ```
-  第一段接口完成入参校验，若出现以下错误码，则对应原因为：
-  返回161001（ACLNN_ERR_PARAM_NULLPTR）：1.传入的必选输入dy、cos、sin和输出dxOut、dcosOut、dsinOut是空指针。
-  返回161002（ACLNN_ERR_PARAM_INVALID）：1.传入的输入dy、cos、sin、xOptinal和输出dxOut、dcosOut、dsinOut的数据类型和格式不在支持的范围内。
-  返回561002（ACLNN_ERR_INNER_TILING_ERROR）: 1.传入的参数shape不满足约束说明章节中的条件。
-                                          2.传入的mode参数不在0、1、2、3范围内。 
-  ```
 
 ## aclnnRotaryPositionEmbeddingGrad
 
 - **参数说明：**
 
-  * workspace（void\*，入参）：在Device侧申请的workspace内存地址。
-  * workspaceSize（uint64_t，入参）：在Device侧申请的workspace大小，由第一段接口aclnnRotaryPositionEmbeddingGradGetWorkspaceSize获取。
-  * executor（aclOpExecutor\*，入参）：op执行器，包含了算子计算流程。
-  * stream（aclrtStream，入参）：指定执行任务的Stream。
+  <table style="undefined;table-layout: fixed; width: 598px"><colgroup>
+  <col style="width: 144px">
+  <col style="width: 125px">
+  <col style="width: 700px">
+  </colgroup>
+  <thead>
+    <tr>
+      <th>参数名</th>
+      <th>输入/输出</th>
+      <th>描述</th>
+    </tr></thead>
+  <tbody>
+    <tr>
+      <td>workspace</td>
+      <td>输入</td>
+      <td>在Device侧申请的workspace内存地址。</td>
+    </tr>
+    <tr>
+      <td>workspaceSize</td>
+      <td>输入</td>
+      <td>在Device侧申请的workspace大小，由第一段接口aclnnRotaryPositionEmbeddingGradGetWorkspaceSize获取。</td>
+    </tr>
+    <tr>
+      <td>executor</td>
+      <td>输入</td>
+      <td>op执行器，包含了算子计算流程。</td>
+    </tr>
+    <tr>
+      <td>stream</td>
+      <td>输入</td>
+      <td>指定执行任务的AscendCL stream流。</td>
+    </tr>
+  </tbody>
+  </table>
 
 - **返回值：**
 
-  aclnnStatus：返回状态码，具体参见[aclnn返回码](common/aclnn返回码.md)。
-
+  返回aclnnStatus状态码，具体参见[aclnn返回码](../../../docs/context/aclnn返回码.md)。
 ## 约束说明
   - <term>昇腾910_95 AI处理器</term>：
     
@@ -222,7 +406,7 @@
 
 ## 调用示例
 
-示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](common/编译与运行样例.md)。
+示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](../../../docs/context/编译与运行样例.md)。
 
 ```Cpp
 #include "acl/acl.h"

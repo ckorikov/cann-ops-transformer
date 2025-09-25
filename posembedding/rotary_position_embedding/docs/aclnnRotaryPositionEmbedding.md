@@ -1,151 +1,336 @@
 # aclnnRotaryPositionEmbedding
 
-## 支持的产品型号
-- <term>昇腾910_95 AI处理器</term>。
+## 产品支持情况
+
+| 产品                                                         | 是否支持 |
+| :----------------------------------------------------------- | :------: |
+| <term>昇腾910_95 AI处理器</term>                             |    √     |
+| <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>     |    √     |
+| <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term> |    √     |
+| <term>Atlas 200I/500 A2 推理产品</term>                      |    ×     |
+| <term>Atlas 推理系列产品 </term>                             |    ×     |
+| <term>Atlas 训练系列产品</term>                              |    ×     |
+| <term>Atlas 200/300/500 推理产品</term>                      |    ×     |
 
 ## 功能说明
 -  **算子功能**：执行单路旋转位置编码计算。
 -  **计算公式**：
 
-  （1）half模式（mode等于0）：
-  $$
-  x1 = x[..., : x.shape[-1] // 2]
-  $$
-  
-  $$
-  x2 = x[..., x.shape[-1] // 2 :]
-  $$
-  
-  $$
-  x\_rotate = torch.cat((-x2, x1), dim=-1)
-  $$
-  
-  $$
-  y = x * cos + x\_rotate * sin
-  $$
-  （2）interleave模式（mode等于1）：
-  $$
-  x1 = x[..., ::2].view(-1, 1)
-  $$
-  
-  $$
-  x2 = x[..., 1::2].view(-1, 1)
-  $$
+    - <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>、<term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：
 
-  $$
-  x\_rotate = torch.cat((-x2, x1), dim=-1).view(x.shape[0], x.shape[1], x.shape[2], x.shape[3])
-  $$
+    （1）half模式（mode等于0）：
+    $$
+    x1 = x[..., : x.shape[-1] // 2]
+    $$
 
-  $$
-  y = x * cos + x\_rotate * sin
-  $$
-  （3）quarter模式（mode等于2）：
-  $$
-  x1 = x[..., : x.shape[-1] // 4]
-  $$
-  
-  $$
-  x2 = x[..., x.shape[-1] // 4 : x.shape[-1] // 2]
-  $$
+    $$
+    x2 = x[..., x.shape[-1] // 2 :]
+    $$
 
-  $$
-  x3 = x[..., x.shape[-1] // 2 : x.shape[-1] // 4 * 3]
-  $$
+    $$
+    x\_rotate = torch.cat((-x2, x1), dim=-1)
+    $$
 
-  $$
-  x4 = x[..., x.shape[-1] // 4 * 3 :]
-  $$
-  
-  $$
-  x\_rotate = torch.cat((-x2, x1, -x4, x3), dim=-1)
-  $$
-  
-  $$
-  y = x * cos + x\_rotate * sin
-  $$
+    $$
+    y = x * cos + x\_rotate * sin
+    $$
+        （2）interleave模式（mode等于1）：
+    $$
+    x1 = x[..., ::2].view(-1, 1)
+    $$
 
-  （4）interleave-half模式（mode等于3），该模式会先将奇数位的输入抽取到前半部分，将偶数位的输入抽取到后半部分，再进行half处理：
-  $$
-  x1 = x[..., ::2]
-  $$
-  
-  $$
-  x2 = x[..., 1::2]
-  $$
+    $$
+    x2 = x[..., 1::2].view(-1, 1)
+    $$    
+    $$
+    x\_rotate = torch.cat((-x2, x1), dim=-1).view(x.shape[0], x.shape[1], x.shape[2], x.shape[3])
+    $$    
+    $$
+    y = x * cos + x\_rotate * sin
+    $$
 
-  $$
-  x\_part1 = torch.cat((x1, x2), dim=-1)
-  $$
-  
-  $$
-  x\_part2 = torch.cat((-x2, x1), dim=-1)
-  $$
+    - <term>昇腾910_95 AI处理器</term>：
+    
+    （3）quarter模式（mode等于2）：
+    $$
+    x1 = x[..., : x.shape[-1] // 4]
+    $$
 
-  $$
-  y = x\_part1 * cos + x\_part2 * sin
-  $$  
+    $$
+    x2 = x[..., x.shape[-1] // 4 : x.shape[-1] // 2]
+    $$    
+    $$
+    x3 = x[..., x.shape[-1] // 2 : x.shape[-1] // 4 * 3]
+    $$    
+    $$
+    x4 = x[..., x.shape[-1] // 4 * 3 :]
+    $$
+
+    $$
+    x\_rotate = torch.cat((-x2, x1, -x4, x3), dim=-1)
+    $$
+
+    $$
+    y = x * cos + x\_rotate * sin
+    $$    
+    （4）interleave-half模式（mode等于3），该模式会先将奇数位的输入抽取到前半部分，将偶数位的输入抽取到后半部分，再进行half处理：
+    $$
+    x1 = x[..., ::2]
+    $$
+
+    $$
+    x2 = x[..., 1::2]
+    $$    
+    $$
+    x\_part1 = torch.cat((x1, x2), dim=-1)
+    $$
+
+    $$
+    x\_part2 = torch.cat((-x2, x1), dim=-1)
+    $$    
+    $$
+    y = x\_part1 * cos + x\_part2 * sin
+    $$  
 
 ## 函数原型
-每个算子分为[两段式接口](common/两段式接口.md)，必须先调用“aclnnRotaryPositionEmbeddingGetWorkspaceSize”接口获取入参并根据流程计算所需workspace大小，再调用“aclnnRotaryPositionEmbedding”接口执行计算。
+每个算子分为[两段式接口](../../../docs/context/两段式接口.md)，必须先调用“aclnnRotaryPositionEmbeddingGetWorkspaceSize”接口获取入参并根据流程计算所需workspace大小，再调用“aclnnRotaryPositionEmbedding”接口执行计算。
 
-* `aclnnStatus aclnnRotaryPositionEmbeddingGetWorkspaceSize(const aclTensor *x, const aclTensor *cos, const aclTensor *sin, int64_t mode, aclTensor *out, uint64_t *workspaceSize, aclOpExecutor **executor)`
-* `aclnnStatus aclnnRotaryPositionEmbedding(void *workspace, uint64_t workspaceSize, aclOpExecutor *executor, aclrtStream stream)`
-
+```c++
+aclnnStatus aclnnRotaryPositionEmbeddingGetWorkspaceSize(
+    const aclTensor *x,
+    const aclTensor *cos,
+    const aclTensor *sin,
+    int64_t mode,
+    aclTensor *out,
+    uint64_t *workspaceSize,
+    aclOpExecutor **executor)
+```
+```c++
+aclnnStatus aclnnRotaryPositionEmbedding(
+    void *workspace,
+    uint64_t workspaceSize,
+    aclOpExecutor *executor,
+    aclrtStream stream)
+```
 ## aclnnRotaryPositionEmbeddingGetWorkspaceSize
 
-- **参数说明：**
+<table style="undefined;table-layout: fixed; width: 1565px">
+<colgroup>
+  <col style="width: 146px">
+  <col style="width: 135px">
+  <col style="width: 326px">
+  <col style="width: 246px">
+  <col style="width: 275px">
+  <col style="width: 101px">
+  <col style="width: 190px">
+  <col style="width: 146px">
+</colgroup>
+<thead>
+  <tr>
+    <th>参数名</th>
+    <th>输入/输出</th>
+    <th>描述</th>
+    <th>使用说明</th>
+    <th>数据类型</th>
+    <th>数据格式</th>
+    <th>维度(shape)</th>
+    <th>非连续Tensor</th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <td>x</td>
+    <td>输入</td>
+    <td>待执行旋转位置编码的张量，公式中的x。</td>
+    <td>-</td>
+    <td>BFLOAT16、FLOAT16、FLOAT32</td>
+    <td>ND</td>
+    <td>4</td>
+    <td>√</td>
+  </tr>
+  <tr>
+    <td>cos</td>
+    <td>输入</td>
+    <td>位置编码张量，公式中的cos。</td>
+    <td>与x数据类型一致。</td>
+    <td>BFLOAT16、FLOAT16、FLOAT32</td>
+    <td>ND</td>
+    <td>4</td>
+    <td>√</td>
+  </tr>
+  <tr>
+    <td>sin</td>
+    <td>输入</td>
+    <td>位置编码张量，公式中的sin。</td>
+    <td>与x数据类型一致。</td>
+    <td>BFLOAT16、FLOAT16、FLOAT32</td>
+    <td>ND</td>
+    <td>4</td>
+    <td>√</td>
+  </tr>
+  <tr>
+    <td>mode</td>
+    <td>输入</td>
+    <td>旋转模式。</td>
+    <td>
+      <ul>
+        <li>Atlas A3/A2 系列：0=half，1=interleave。</li>
+        <li>昇腾910_95：2=quarter，3=interleave-half。</li>
+      </ul>
+    </td>
+    <td>INT64</td>
+    <td>-</td>
+    <td>-</td>
+    <td>-</td>
+  </tr>
+  <tr>
+    <td>out</td>
+    <td>输出</td>
+    <td>旋转位置编码计算结果，公式中的y。</td>
+    <td>与x数据类型一致。</td>
+    <td>BFLOAT16、FLOAT16、FLOAT32</td>
+    <td>ND</td>
+    <td>4</td>
+    <td>x</td>
+  </tr>
+  <tr>
+    <td>workspaceSize</td>
+    <td>输出</td>
+    <td>返回需要在Device侧申请的workspace大小。</td>
+    <td>-</td>
+    <td>-</td>
+    <td>-</td>
+    <td>-</td>
+    <td>-</td>
+  </tr>
+  <tr>
+    <td>executor</td>
+    <td>输出</td>
+    <td>返回op执行器，包含算子计算流程。</td>
+    <td>-</td>
+    <td>-</td>
+    <td>-</td>
+    <td>-</td>
+    <td>-</td>
+  </tr>
+</tbody>
+</table>
 
-  - x（aclTensor\*，计算输入）：表示待执行旋转位置编码的张量，公式中的`x`，Device侧的aclTensor。支持[非连续的Tensor](common/非连续的Tensor.md)，[数据格式](common/数据格式.md)支持ND，维度为4维，数据类型支持BFLOAT16、FLOAT16、FLOAT32。
-  - cos（aclTensor*，计算输入）：表示参与计算的位置编码张量，公式中的`cos`，Device侧的aclTensor。支持[非连续的Tensor](common/非连续的Tensor.md)，[数据格式](common/数据格式.md)支持ND，维度为4维，数据类型支持BFLOAT16、FLOAT16、FLOAT32，且必须与x的数据类型一致。
-  - sin（aclTensor*，计算输入）：表示参与计算的位置编码张量，公式中的`sin`，Device侧的aclTensor，支持[非连续的Tensor](common/非连续的Tensor.md)，[数据格式](common/数据格式.md)支持ND，维度为4维，数据类型支持BFLOAT16、FLOAT16、FLOAT32，且必须与x的数据类型一致。
-  - mode（int64_t，计算输入）：表示公式中的旋转模式，数据类型为int64，支持的枚举值如下：
-    - 0：表示旋转模式为half模式。
-    - 1：表示旋转模式为interleave模式。
-    - 2：表示旋转模式为quarter模式。
-    - 3：表示旋转模式为interleave-half模式。
-  -   out（aclTensor\*，计算输出）：表示旋转位置编码的计算结果张量，公式中的`y`，Device侧的aclTensor。 不支持[非连续的Tensor](common/非连续的Tensor.md)，[数据格式](common/数据格式.md)支持ND，维度为4维，数据类型支持BFLOAT16、FLOAT16、FLOAT32，且必须与x的数据类型一致。
-  - workspaceSize（uint64_t\*，出参）：返回需要在Device侧申请的workspace大小。
-  - executor（aclOpExecutor\*\*，出参）：返回op执行器，包含了算子计算流程。
 
 - **返回值：**
 
-  aclnnStatus： 返回状态码，具体参见[aclnn返回码](common/aclnn返回码.md)。
+返回aclnnStatus状态码，具体参见[aclnn返回码](../../../docs/context/aclnn返回码.md)。
+<table style="undefined;table-layout: fixed;width: 1155px"><colgroup>
+<col style="width: 319px">
+<col style="width: 144px">
+<col style="width: 671px">
+</colgroup>
+<thead>
+  <tr>
+    <th>返回码</th>
+    <th>错误码</th>
+    <th>描述</th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <td>ACLNN_ERR_PARAM_NULLPTR</td>
+    <td>161001</td>
+    <td>传入的x、cos、sin或out是空指针。</td>
+  </tr>
+  <tr>
+    <td>ACLNN_ERR_PARAM_INVALID</td>
+    <td>161002</td>
+    <td>传入的x、cos、sin、out的数据类型和格式不在支持的范围内。</td>
+  </tr>
+  <tr>
+    <td rowspan="2">ACLNN_ERR_INNER_TILING_ERROR</td>
+    <td rowspan="2">561002</td>
+    <td>传入的x、cos、sin、out的shape不匹配。</td>
+  </tr>
+  <tr>
+    <td>传入的mode参数不在0、1、2、3范围内。 </td>
+  </tr>
+</tbody>
+</table>
 
-  ```
-  第一段接口完成入参校验，若出现以下错误码，则对应原因为：
-  返回161001（ACLNN_ERR_PARAM_NULLPTR）：1.传入的x、cos、sin或out是空指针。
-  返回161002（ACLNN_ERR_PARAM_INVALID）：1.传入的x、cos、sin、out的数据类型和格式不在支持的范围内。
-  返回561002（ACLNN_ERR_INNER_TILING_ERROR）: 1.传入的x、cos、sin、out的shape不匹配。
-                                          2.传入的mode参数不在0、1、2、3范围内。 
-  ```
 
 ## aclnnRotaryPositionEmbedding
 
 - **参数说明：**
 
-  * workspace（void\*，入参）：在Device侧申请的workspace内存地址。
-  * workspaceSize（uint64_t，入参）：在Device侧申请的workspace大小，由第一段接口aclnnRotaryPositionEmbeddingGetWorkspaceSize获取。
-  * executor（aclOpExecutor\*，入参）：op执行器，包含了算子计算流程。
-  * stream（aclrtStream，入参）：指定执行任务的AscendCL Stream流。
+  <table style="undefined;table-layout: fixed; width: 598px"><colgroup>
+  <col style="width: 144px">
+  <col style="width: 125px">
+  <col style="width: 700px">
+  </colgroup>
+  <thead>
+    <tr>
+      <th>参数名</th>
+      <th>输入/输出</th>
+      <th>描述</th>
+    </tr></thead>
+  <tbody>
+    <tr>
+      <td>workspace</td>
+      <td>输入</td>
+      <td>在Device侧申请的workspace内存地址。</td>
+    </tr>
+    <tr>
+      <td>workspaceSize</td>
+      <td>输入</td>
+      <td>在Device侧申请的workspace大小，由第一段接口aclnnRotaryPositionEmbeddingGetWorkspaceSize获取。</td>
+    </tr>
+    <tr>
+      <td>executor</td>
+      <td>输入</td>
+      <td>op执行器，包含了算子计算流程。</td>
+    </tr>
+    <tr>
+      <td>stream</td>
+      <td>输入</td>
+      <td>指定执行任务的AscendCL stream流。</td>
+    </tr>
+  </tbody>
+  </table>
 
 - **返回值：**
 
-  aclnnStatus：返回状态码，具体参见[aclnn返回码](common/aclnn返回码.md)。
+  返回aclnnStatus状态码，具体参见[aclnn返回码](../../../docs/context/aclnn返回码.md)。
 
 ## 约束说明
-  用(B, S, N, D)表示四维输入x的shape，在该表示下，各参数的shape约束可以描述如下：
-  - 输入张量x、cos、sin及输出张量y的D维度大小必须相同，且小于等于1024。对于half、interleave和interleave-half模式，D必须能被2整除，对于quarter模式，D必须能被4整除。
-  - 输入张量x和输出张量y的shape必须完全相同。
-  - 输入张量cos和sin的shape必须完全相同，且必须满足下列条件之一：
-    - 前三维大小都为1，即shape为(1, 1, 1, D)。
-    - 前三维的大小和x前三维的大小完全相等，即shape为(B, S, N, D)。
-    - 前三维中，第二维和第三维中的一个大小为1，剩余的维度及第一维大小与x的对应维度相等，即shape为(B, 1, N, D)或(B, S, 1, D)。
-    - 前三维中，两个维度大小为1，剩余的一个维度大小与x的对应维度相等，即shape为(1, 1, N, D)，(1, S, 1, D)或(B, 1, 1, D)。
-  当x为空tensor时，输出也为空tensor，且不受上述shape约束限制。
+  - <term>昇腾910_95 AI处理器</term>：
+
+    用(B, S, N, D)表示四维输入x的shape，在该表示下，各参数的shape约束可以描述如下：
+    - 输入张量x、cos、sin及输出张量y的D维度大小必须相同，且小于等于1024。对于half、interleave和interleave-half模式，D必须能被2整除，对于quarter模式，D必须能被4整除。
+    - 输入张量x和输出张量y的shape必须完全相同。
+    - 输入张量cos和sin的shape必须完全相同，且必须满足下列条件之一：
+      - 前三维大小都为1，即shape为(1, 1, 1, D)。
+      - 前三维的大小和x前三维的大小完全相等，即shape为(B, S, N, D)。
+      - 前三维中，第二维和第三维中的一个大小为1，剩余的维度及第一维大小与x的对应维度相等，即shape为(B, 1, N, D)或(B, S, 1, D)。
+      - 前三维中，两个维度大小为1，剩余的一个维度大小与x的对应维度相等，即shape为(1, 1, N, D)，(1, S, 1, D)或(B, 1, 1, D)。
+    当x为空tensor时，输出也为空tensor，且不受上述shape约束限制。
+
+  - <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>、<term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：
+    
+    输入张量x支持BNSD、BSND、SBND排布。
+    输入张量x、cos、sin及输出张量y的D维度大小必须相同，满足D<896，且必须为2的倍数。
+    输入张量x和输出张量y的shape必须完全相同。
+    输入张量cos和sin的shape必须完全相同.
+    - half模式：
+      - B，N < 1000;
+      - 当x为BNSD时，cos、sin支持11SD、B1SD、BNSD
+      - 当x为BSND时，cos、sin支持1S1D、BS1D、BSND
+      - 当x为SBND时，cos、sin支持S11D、SB1D、SBND
+    - interleave模式：
+      - B * N < 1000
+      - 当x为BNSD时，cos、sin支持11SD
+      - 当x为BSND时，cos、sin支持1S1D
+      - 当x为SBND时，cos、sin支持S11D
 
 ## 调用示例
 
-示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](common/编译与运行样例.md)。
+示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](../../../docs/context/编译与运行样例.md)。
 
 ```Cpp
 #include "acl/acl.h"
@@ -174,7 +359,11 @@ int64_t GetShapeSize(const std::vector<int64_t>& shape) {
 }
 
 int Init(int32_t deviceId, aclrtStream* stream) {
+<<<<<<< HEAD
     // 固定写法，AscendCL初始化
+=======
+    // 固定写法，资源初始化
+>>>>>>> b09f372 (aclnn资料)
     auto ret = aclInit(nullptr);
     CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclInit failed. ERROR: %d\n", ret); return ret);
     ret = aclrtSetDevice(deviceId);
@@ -209,7 +398,11 @@ int CreateAclTensor(const std::vector<T>& hostData, const std::vector<int64_t>& 
 }
 
 int main() {
+<<<<<<< HEAD
     // 1. 固定写法，device/stream初始化, 参考AscendCL对外接口列表
+=======
+    // 1. 固定写法，device/stream初始化, 参考acl API手册
+>>>>>>> b09f372 (aclnn资料)
     // 根据自己的实际device填写deviceId
     int32_t deviceId = 0;
     aclrtStream stream;

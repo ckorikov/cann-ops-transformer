@@ -1,5 +1,3 @@
-声明：本文使用[Creative Commons License version 4.0](https://creativecommons.org/licenses/by/4.0/legalcode)许可协议，转载、引用或修改等操作请遵循此许可协议。
-
 # NsaCompressGrad
 
 ## 产品支持情况
@@ -16,7 +14,6 @@
 |<term>Atlas 训练系列产品</term>|      ×     |
 |<term>Atlas 200I/300/500 推理产品</term>|      ×     |
 
-产品形态详细说明请参见[昇腾产品形态说明](https://www.hiascend.com/document/redirect/CannCommunityProductForm)。
 
 ## 功能说明
 
@@ -33,87 +30,326 @@
     \text{dk} = W^\top \cdot \text{dk\_cmp}
     $$
 
-## 实现原理
 
-整体计算流程如下：
+## 函数原型
 
-1. 分别搬运左矩阵`outputGrad`和右矩阵`input`、`weight`。
-2. 左矩阵`outputGrad`和右矩阵`input`计算得到`inputGrad`。左矩阵`outputGrad`和右矩阵`weight`计算得到`weightGrad`。
+每个算子分为[两段式接口](../../../docs/context/两段式接口.md)，必须先调用“aclnnNsaCompressGradGetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnNsaCompressGrad”接口执行计算。
 
-## 算子执行接口
-
-每个算子分为[两段式接口](common/两段式接口.md)，必须先调用“aclnnNsaCompressGradGetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnNsaCompressGrad”接口执行计算。
-
-- `aclnnStatus aclnnNsaCompressGradGetWorkspaceSize(const aclTensor *outputGrad, const aclTensor *input, const aclTensor *weight, const aclIntArray *actSeqLenOptionalOptional, int64_t compressBlockSize, int64_t compressStride, int64_t actSeqLenType, char *layoutOptionalOptional, const aclTensor *inputGradOut, const aclTensor *weightGradOut, uint64_t *workspaceSize, aclOpExecutor **executor)`
-- `aclnnStatus aclnnNsaCompressGrad(void *workspace, uint64_t workspaceSize,  aclOpExecutor *executor, aclrtStream stream)`
-
+```c++
+aclnnStatus aclnnNsaCompressGradGetWorkspaceSize(
+  const aclTensor *outputGrad,
+  const aclTensor *input,
+  const aclTensor *weight,
+  const aclIntArray *actSeqLenOptionalOptional,
+  int64_t compressBlockSize,
+  int64_t compressStride,
+  int64_t actSeqLenType,
+  char *layoutOptionalOptional,
+  const aclTensor *inputGradOut,
+  const aclTensor *weightGradOut,
+  uint64_t *workspaceSize,
+  aclOpExecutor **executor)
+```
+```c++
+aclnnStatus aclnnNsaCompressGrad(
+  void *workspace,
+  uint64_t workspaceSize,
+  aclOpExecutor *executor,
+  aclrtStream stream)
+```
 ### aclnnNsaCompressGradGetWorkspaceSize
 
 - **参数说明：**
-  
-  - outputGrad（aclTensor \*，计算输入）：Device侧的aclTensor, 正向算子输出的反向梯度。shape支持[T, N, D]，数据类型支持BFLOAT16、FLOAT16，[数据格式](common/数据格式.md)支持ND，支持[非连续的Tensor](common/非连续的Tensor.md)，不支持空Tensor。
-  - input（aclTensor \*，计算输入）：Device侧的aclTensor, 表示待压缩张量。shape支持[T, N, D]，数据类型支持BFLOAT16、FLOAT16，[数据格式](common/数据格式.md)支持ND，支持[非连续的Tensor](common/非连续的Tensor.md)，不支持空Tensor。
-  - weight（aclTensor \*，计算输入）：Device侧的aclTensor，压缩的权重。shape为[compressBlockSize, N]，weight与input的shape满足broadcast关系，数据类型与inpu保持一致，[数据格式](common/数据格式.md)支持ND。支持[非连续的Tensor](common/非连续的Tensor.md)，不支持空Tensor。
-  - actSeqLenOptional（aclIntArray \*，计算输入）：可选参数，Host侧的aclIntArray，数据类型支持INT64，[数据格式](common/数据格式.md)支持ND，描述了每个Batch对应的S大小，各batch的sequence长度不相等时需要输入，其余场景下输入nullptr。
-  - compressBlockSize（int64_t，计算输入）：Host侧的int64_t，压缩滑窗大小。
-  - compressStride（int64_t，计算输入）：Host侧的int64_t，两次压缩滑窗间隔大小。
-  - actSeqLenType（int64_t，计算输入）：Host侧的int64_t，可取值0或1，0代表actSeqLenOptional中数值为前继batch的系列大小的cumsum结果（累积和），1代表actSeqLenOptional中数值为每个batch中序列大小，当前仅支持0。
-  - layoutOptional （char \*, 计算输入）：Host侧的string，代表输入input的数据排布格式，支持TND。
-    说明： input数据排布格式支持从多种维度解读，其中T是B和S合轴紧密排列的数据（每个batch的actSeqLen）、B（Batch）表示输入样本批量大小、S（Seq-Length）表示输入样本序列长度、H（Head-Size）表示隐藏层的大小、N（Head-Num）表示多头数、D（Head-Dim）表示隐藏层最小的单元尺寸，且满足D=H/N。
-  - inputGrad（aclTensor \*，计算输出）：Device侧的aclTensor，input的梯度。shape与input保持一致，数据类型与input保持一致，[数据格式](common/数据格式.md)支持ND。支持[非连续的Tensor](common/非连续的Tensor.md)，不支持空Tensor。
-  - weightGrad（aclTensor \*，计算输出）：Device侧的aclTensor，weight的梯度。shape与weight保持一致，数据类型与weight保持一致，[数据格式](common/数据格式.md)支持ND。支持[非连续的Tensor](common/非连续的Tensor.md)，不支持空Tensor。
-  - workspaceSize（uint64_t \*，出参）：返回需要在Device侧申请的workspace大小。
-  - executor（aclOpExecutor \*\*，出参）：返回op执行器，包含了算子计算流程。
+
+<table style="undefined;table-layout: fixed; width: 1565px">
+  <colgroup>
+    <col style="width: 146px">
+    <col style="width: 135px">
+    <col style="width: 326px">
+    <col style="width: 246px">
+    <col style="width: 275px">
+    <col style="width: 101px">
+    <col style="width: 190px">
+    <col style="width: 146px">
+  </colgroup>
+  <thead>
+    <tr>
+      <th>参数名</th>
+      <th>输入/输出</th>
+      <th>描述</th>
+      <th>使用说明</th>
+      <th>数据类型</th>
+      <th>数据格式</th>
+      <th>维度(shape)</th>
+      <th>非连续Tensor</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>query</td>
+      <td>输入</td>
+      <td>Device侧的aclTensor，公式中的query。</td>
+      <td>-</td>
+      <td>FLOAT16、BFLOAT16</td>
+      <td>ND</td>
+      <td>3-4</td>
+      <td>√</td>
+    </tr>
+    <tr>
+      <td>key</td>
+      <td>输入</td>
+      <td>Device侧的aclTensor，公式中的key。</td>
+      <td>-</td>
+      <td>FLOAT16、BFLOAT16</td>
+      <td>ND</td>
+      <td>3-4</td>
+      <td>√</td>
+    </tr>
+    <tr>
+      <td>value</td>
+      <td>输入</td>
+      <td>Device侧的aclTensor，公式中的value。</td>
+      <td>-</td>
+      <td>FLOAT16、BFLOAT16</td>
+      <td>ND</td>
+      <td>3-4</td>
+      <td>√</td>
+    </tr>
+    <tr>
+      <td>attenMaskOptional</td>
+      <td>输入</td>
+      <td>Device侧的aclTensor，公式中的atten_mask。</td>
+      <td>
+        <ul>
+          <li>输入shape需为[S,S]。</li>
+          <li>TND场景只支持SS格式，SS分别是max(Sq)和max(CmqSkv)。</li>
+        </ul>
+      </td>
+      <td>BOOL</td>
+      <td>ND</td>
+      <td>2</td>
+      <td>√</td>
+    </tr>
+    <tr>
+      <td>actualSeqQLenOptional</td>
+      <td>输入</td>
+      <td>Host侧的aclIntArray，描述每个Batch对应的query S大小(Sq)。</td>
+      <td>-</td>
+      <td>INT64</td>
+      <td>ND</td>
+      <td>1</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>outputGrad</td>
+      <td>输入</td>
+      <td>Device侧的aclTensor，正向算子输出的反向梯度。</td>
+      <td>-</td>
+      <td>BFLOAT16、FLOAT16</td>
+      <td>ND</td>
+      <td>3</td>
+      <td>√</td>
+    </tr>
+    <tr>
+      <td>input</td>
+      <td>输入</td>
+      <td>Device侧的aclTensor，待压缩张量。</td>
+      <td>-</td>
+      <td>BFLOAT16、FLOAT16</td>
+      <td>ND</td>
+      <td>3</td>
+      <td>√</td>
+    </tr>
+    <tr>
+      <td>weight</td>
+      <td>输入</td>
+      <td>Device侧的aclTensor，压缩的权重，与input的shape满足broadcast关系。</td>
+      <td>数据类型与input一致。</td>
+      <td>BFLOAT16、FLOAT16</td>
+      <td>ND</td>
+      <td>2</td>
+      <td>√</td>
+    </tr>
+    <tr>
+      <td>actSeqLenOptional</td>
+      <td>输入</td>
+      <td>Host侧的aclIntArray，描述每个Batch对应的S大小，各batch长度不等时需要输入。</td>
+      <td>-</td>
+      <td>INT64</td>
+      <td>ND</td>
+      <td>1</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>compressBlockSize</td>
+      <td>输入</td>
+      <td>Host侧的int64_t，压缩滑窗大小。</td>
+      <td>-</td>
+      <td>INT64</td>
+      <td>-</td>
+      <td>-</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>compressStride</td>
+      <td>输入</td>
+      <td>Host侧的int64_t，两次压缩滑窗间隔大小。</td>
+      <td>-</td>
+      <td>INT64</td>
+      <td>-</td>
+      <td>-</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>actSeqLenType</td>
+      <td>输入</td>
+      <td>Host侧的int64_t，取值0或1，当前仅支持0。</td>
+      <td>-</td>
+      <td>INT64</td>
+      <td>-</td>
+      <td>-</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>layoutOptional</td>
+      <td>输入</td>
+      <td>Host侧的string，代表输入input的数据排布格式，支持TND。</td>
+      <td>-</td>
+      <td>string</td>
+      <td>-</td>
+      <td>-</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>inputGrad</td>
+      <td>输出</td>
+      <td>Device侧的aclTensor，input的梯度，与input shape一致。</td>
+      <td>数据类型与input一致。</td>
+      <td>BFLOAT16、FLOAT16</td>
+      <td>ND</td>
+      <td>3</td>
+      <td>√</td>
+    </tr>
+    <tr>
+      <td>weightGrad</td>
+      <td>输出</td>
+      <td>Device侧的aclTensor，weight的梯度，与weight shape一致。</td>
+      <td>数据类型与weight一致。</td>
+      <td>BFLOAT16、FLOAT16</td>
+      <td>ND</td>
+      <td>2</td>
+      <td>√</td>
+    </tr>
+    <tr>
+      <td>workspaceSize</td>
+      <td>输出</td>
+      <td>返回需要在Device侧申请的workspace大小。</td>
+      <td>-</td>
+      <td>-</td>
+      <td>-</td>
+      <td>-</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>executor</td>
+      <td>输出</td>
+      <td>返回op执行器，包含算子计算流程。</td>
+      <td>-</td>
+      <td>-</td>
+      <td>-</td>
+      <td>-</td>
+      <td></td>
+    </tr>
+  </tbody>
+</table>
+
 - **返回值：**
-  
-  返回aclnnStatus状态码，具体参见[aclnn返回码](common/aclnn返回码.md)。
-  
-  ```
-  第一段接口完成入参校验，若出现以下错误码，则对应原因为：
-  - 返回161001（ACLNN_ERR_PARAM_NULLPTR）：传入的input、weight、outputGrad、inputGrad或weightGrad是空指针。
-  - 返回161002（ACLNN_ERR_PARAM_INVALID）：1. input和weight的数据类型不在支持的范围之内。
-                                          2. input和weight的shape无法做broadcast。
-                                          3. layoutOptional不合法
-  ```
+
+返回aclnnStatus状态码，具体参见[aclnn返回码](../../../docs/context/aclnn返回码.md)。
+<table style="undefined;table-layout: fixed;width: 1155px"><colgroup>
+<col style="width: 319px">
+<col style="width: 144px">
+<col style="width: 671px">
+</colgroup>
+<thead>
+  <tr>
+    <th>返回码</th>
+    <th>错误码</th>
+    <th>描述</th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <td>ACLNN_ERR_PARAM_NULLPTR</td>
+    <td>161001</td>
+    <td>传入的input、weight、outputGrad、inputGrad或weightGrad是空指针。</td>
+  </tr>
+  <tr>
+    <td rowspan="3">ACLNN_ERR_PARAM_INVALID</td>
+    <td rowspan="3">161002</td>
+    <td>input和weight的数据类型不在支持的范围之内。</td>
+  </tr>
+  <tr>
+    <td>input和weight的shape无法做broadcast。</td>
+  </tr>
+  <tr>
+    <td>layoutOptional不合法。</td>
+  </tr>
+</tbody>
+</table>
+
 
 ### aclnnNsaCompressGrad
 
 - **参数说明：**
-  
-  - workspace（void\*，入参）：在Device侧申请的workspace内存地址。
-  - workspaceSize（uint64\_t，入参）：在Device侧申请的workspace大小，由第一段接口aclnnNsaCompressGradGetWorkspaceSize获取。
-  - executor（aclOpExecutor\*，入参）：op执行器，包含了算子计算流程。
-  - stream（aclrtStream，入参）：指定执行任务的AscendCL stream流。
+
+  <table style="undefined;table-layout: fixed; width: 598px"><colgroup>
+  <col style="width: 144px">
+  <col style="width: 125px">
+  <col style="width: 700px">
+  </colgroup>
+  <thead>
+    <tr>
+      <th>参数名</th>
+      <th>输入/输出</th>
+      <th>描述</th>
+    </tr></thead>
+  <tbody>
+    <tr>
+      <td>workspace</td>
+      <td>输入</td>
+      <td>在Device侧申请的workspace内存地址。</td>
+    </tr>
+    <tr>
+      <td>workspaceSize</td>
+      <td>输入</td>
+      <td>在Device侧申请的workspace大小，由第一段接口aclnnNsaCompressGradGetWorkspaceSize获取。</td>
+    </tr>
+    <tr>
+      <td>executor</td>
+      <td>输入</td>
+      <td>op执行器，包含了算子计算流程。</td>
+    </tr>
+    <tr>
+      <td>stream</td>
+      <td>输入</td>
+      <td>指定执行任务的AscendCL stream流。</td>
+    </tr>
+  </tbody>
+  </table>
+
 - **返回值：**
-  
-  返回aclnnStatus状态码，具体参见[aclnn返回码](common/aclnn返回码.md)。
+
+  返回aclnnStatus状态码，具体参见[aclnn返回码](../../../docs/context/aclnn返回码.md)。
 
 ## 约束说明
 
 - compressBlockSize和compressStride要是16的整数倍，且compressBlockSize > compressStride
 
-## 算子原型
-
-```c++
-REG_OP(NsaCompressGrad)
-    .INPUT(outputGrad, TensorType({DT_FLOAT16, DT_BF16}))
-    .INPUT(input, TensorType({DT_FLOAT16, DT_BF16}))
-    .INPUT(weight, TensorType({DT_FLOAT16, DT_BF16}))
-    .OPTIONAL_INPUT(actSeqLenOptional, TensorType({DT_INT64}))
-    .OUTPUT(inputGrad, TensorType({DT_FLOAT16, DT_BF16}))
-    .OUTPUT(weightGrad, TensorType({DT_FLOAT16, DT_BF16}))
-    .REQUIRED_ATTR(compressBlockSize, Int)
-    .REQUIRED_ATTR(compressStride, Int)
-    .REQUIRED_ATTR(actSeqLenType, Int)
-    .ATTR(layoutOptional, String, TND)
-    .OP_END_FACTORY_REG(NsaCompressGrad)
-```
-
-参数解释请参见**算子执行接口**。
 
 ## 调用示例
 
-通过aclnn单算子调用示例代码如下（以Atlas A2 训练系列产品），仅供参考，具体编译和执行过程请参考[编译与运行样例](common/编译与运行样例.md)。
+通过aclnn单算子调用示例代码如下（以Atlas A2 训练系列产品），仅供参考，具体编译和执行过程请参考[编译与运行样例](../../../docs/context/编译与运行样例.md)。
 
 ```c++
 #include <algorithm>
