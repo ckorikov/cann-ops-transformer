@@ -9,7 +9,7 @@
  */
 
 /*!
- * \file fia_tiling_mla.cpp
+ * \file fia_tiling_nonquant_mla.cpp
  * \brief
  */
 
@@ -19,7 +19,7 @@
 #include <algorithm>
 #include <graph/utils/type_utils.h>
 #include "err/ops_err.h"
-#include "fia_tiling_mla.h"
+#include "fia_tiling_nonquant_mla.h"
 #include "../fia_tiling_templates_registry.h"
 #include "../split_core.h"
 
@@ -28,16 +28,14 @@ using namespace AscendC;
 namespace optiling {
 
 constexpr uint64_t PRE_LOAD_NUM_MLA = 2;
-constexpr uint32_t BLOCK_TABLE_ELEM_BYTE = 4;
-constexpr uint32_t INFO_NUMS = 2;
 
-constexpr uint64_t FIA_TILINGKEYOFFSET = uint64_t(100000000000000000UL);          // 10^17 mmd todo
+constexpr uint64_t FIA_TILINGKEYOFFSET = uint64_t(100000000000000000UL); // 10^17
 constexpr uint64_t FIA_PERF_MODE_TILINGKEYOFFSET = uint64_t(1000000000000000UL); // 10^15
 
 template <typename T> 
 inline auto Align(T num, T rnd) -> T
 {
-    return (((rnd) == 0) ? 0 : (((num) + (rnd)-1) / (rnd) * (rnd)));
+    return (((rnd) == 0) ? 0 : (((num) + (rnd) - 1) / (rnd) * (rnd)));
 }
 
 constexpr uint64_t RecursiveSum()
@@ -56,12 +54,12 @@ constexpr uint64_t FIA_GET_TILINGKEY(Args... templateIds)
     return RecursiveSum(templateIds...);
 }
 
-void FiaMlaTiling::InitTilingInfo(TilingInfo *tilingInfo)
+void FiaTilingNonQuantMla::InitTilingInfo(TilingInfo *tilingInfo)
 {
     fiaInfo_ = static_cast<FiaTilingInfo *>(tilingInfo);
 }
 
-ge::graphStatus FiaMlaTiling::GetPlatformInfo()
+ge::graphStatus FiaTilingNonQuantMla::GetPlatformInfo()
 {
     OP_CHECK_IF(fiaInfo_->platformInfo == nullptr,
         OPS_REPORT_VECTOR_INNER_ERR(fiaInfo_->opName, "GetPlatformInfo is nullptr."), return ge::GRAPH_FAILED);
@@ -77,7 +75,7 @@ ge::graphStatus FiaMlaTiling::GetPlatformInfo()
     return ge::GRAPH_SUCCESS;
 }
 
-bool FiaMlaTiling::IsCapable()
+bool FiaTilingNonQuantMla::IsCapable()
 {
     if (fiaInfo_ == nullptr) {
         return false;
@@ -91,23 +89,11 @@ bool FiaMlaTiling::IsCapable()
         if ((qDataType == ge::DT_FLOAT16 || qDataType == ge::DT_BF16) && (qDataType == kDataType)) {
             return true;
         }
-        // MLA BF16伪量化
-        if ((qDataType == ge::DT_BF16) && (kDataType == ge::DT_INT8)) {
-            return false;
-        }
-        // MLA FP16伪量化
-        if ((qDataType == ge::DT_FLOAT16) && (kDataType == ge::DT_INT8)) {
-            return false;
-        }
-        // MLA全量化
-        if ((qDataType == ge::DT_INT8) && (kDataType == ge::DT_INT8)) {
-            return false;
-        }
     }
     return false;
 }
 
-void FiaMlaTiling::GenTilingKey()
+void FiaTilingNonQuantMla::GenTilingKey()
 {
     uint8_t layoutVal{0};
     uint8_t inputQVal{0};
@@ -115,8 +101,8 @@ void FiaMlaTiling::GenTilingKey()
     uint8_t outputVal{0};
     uint8_t originVal{0};
     uint8_t splitKvVal = kvSplit_ > 0U ? 1U : 0U;
-    // page attention 新模板上线后删除fiaInfo_->s2Size != 0的特殊处理
-    uint8_t paVal = (fiaInfo_->pageAttentionFlag && fiaInfo_->s2Size != static_cast<int64_t>(0)) ? static_cast<uint8_t>(1 * 2) : static_cast<uint8_t>(0);
+    uint8_t paVal = (fiaInfo_->pageAttentionFlag && fiaInfo_->s2Size != static_cast<int64_t>(0)) ?
+        static_cast<uint8_t>(1 * 2) : static_cast<uint8_t>(0);
     uint8_t antiquantModeVal = 0;
     uint64_t modeVal = fiaInfo_->sysPrefixFlag ? 2U : 1U;
     uint8_t kvLayoutVal = 0;
@@ -158,16 +144,16 @@ void FiaMlaTiling::GenTilingKey()
     OP_LOGI(fiaInfo_->opName, "FIA tilingKey_: %lu.", tilingKey_);
 }
 
-bool FiaMlaTiling::IsFlashDecode()
+bool FiaTilingNonQuantMla::IsFlashDecode()
 {
     uint32_t tndFDCoreArrLen = tilingData_.fdParams.get_numOfFdHead();
     return tndFDCoreArrLen > 0U;
 }
 
-bool FiaMlaTiling::DealSameSeqEachBatch() const
+bool FiaTilingNonQuantMla::DealSameSeqEachBatch() const
 {
-    if (!fiaInfo_->batchContinuousFlag){
-        if (fiaInfo_->actualSeqLenFlag){
+    if (!fiaInfo_->batchContinuousFlag) {
+        if (fiaInfo_->actualSeqLenFlag) {
             return fiaInfo_->isSameActualseq;
         } else {
             return fiaInfo_->isSameSeqAllKVTensor;
@@ -177,7 +163,7 @@ bool FiaMlaTiling::DealSameSeqEachBatch() const
     }
 }
 
-void FiaMlaTiling::ZeroTensorProcess() const
+void FiaTilingNonQuantMla::ZeroTensorProcess() const
 {
     if (fiaInfo_->s2Size == 0) {
         /*
@@ -189,7 +175,7 @@ void FiaMlaTiling::ZeroTensorProcess() const
     }
 }
 
-void FiaMlaTiling::InitParams()
+void FiaTilingNonQuantMla::InitParams()
 {
     perfMode_ = IfaPerfMode::CUBE_VIEW_MM_MLA;
     coreNum_ = aicNum_;
@@ -198,28 +184,8 @@ void FiaMlaTiling::InitParams()
     ZeroTensorProcess();
 }
 
-void FiaMlaTiling::CalcInnerSize(uint32_t seqSize)
+void FiaTilingNonQuantMla::CalcInnerSize(uint32_t seqSize)
 {
-    /**
-     * sInnerSize：s2的切分大小，直接决定了MM的singleN/K和vector的切块大小，但当前切分也并非适用所有case。
-     * 1、非GQA场景：按照vector的最大基本块8*1024进行切分，sInnerSize=8192
-     * 2、GQA场景：(1) 非伪量化：vector计算比较少，cube MTE2bound，
-     *                          因此，cube发射大块，减少通信次数。sInnerSize=8192
-     *            (2) 伪量化：vector比较重，尽量较少vector的循环次数,
-     *                          因此，cube发小块，期望vector尽量被cube的mte2掩盖。sInnerSize=1024
-     */
-    sInnerSize_ = MAX_SPLIT_SIZE; // 8192
-
-    /** 当前版本限制workspace大小不超过32MB，否则会影响网络中前后算子性能，
-        *  GQA场景下 nNumOfQInOneGroup和sInnerSize_切分大小直接影响workspace大小,
-        *  具体计算参考CalcWorkSpace函数，这里根据nNumOfQInOneGroup将sInnerSize_
-        *  分为8192，4096，2048三档，nNumOfQInOneGroup增大时减小sInnerSize_，
-        *   保证最终workspace大小不超过32MB。
-        */
-    uint32_t sInnerSize[3U] = {8192U, 4096U, 2048U};
-    uint32_t idx = std::min(fiaInfo_->gSize / 5U, 2U);
-    sInnerSize_ = sInnerSize[idx];
-
     sInnerSize_ = 512U;
     // FlashDecode时，如果S2的计算量>=256(确保切分后不小于128)但又不足以分2次计算时，则修改sInnerSize_，均分为2份进行计算，确保Nbuffer=2
     if (splitKVFlag_ && fiaInfo_->inputLayout != TilingKeyLayout::TND) {
@@ -232,8 +198,9 @@ void FiaMlaTiling::CalcInnerSize(uint32_t seqSize)
 
     // PA特性泛化场景，blockSize可能为112等值，无法被sInnerSize_整除，当step*base跨block时，搬运处理复杂，通过向下对齐避免
     if (fiaInfo_->pageAttentionFlag && fiaInfo_->blockSize != 0) {
-        if ((static_cast<int32_t>(sInnerSize_) > static_cast<int32_t>(fiaInfo_->blockSize)) && (static_cast<int32_t>(sInnerSize_) % static_cast<int32_t>(fiaInfo_->blockSize) != 0)) {
-            sInnerSize_ = static_cast<uint32_t>((static_cast<uint32_t>(sInnerSize_) / static_cast<uint32_t>(fiaInfo_->blockSize)) * static_cast<uint32_t>(fiaInfo_->blockSize));
+        uint32_t blockSize = static_cast<uint32_t>(fiaInfo_->blockSize);
+        if ((sInnerSize_ > blockSize) && (sInnerSize_ % blockSize != 0)) {
+            sInnerSize_ = (sInnerSize_ / blockSize) * blockSize;
         }
     }
 
@@ -252,7 +219,7 @@ void FiaMlaTiling::CalcInnerSize(uint32_t seqSize)
 /**
  * @brief 根据shape调整mBaseSize，在一定范围内可以不开FD
  */
-void FiaMlaTiling::CalcMBaseSize()
+void FiaTilingNonQuantMla::CalcMBaseSize()
 {
     uint32_t bN2 = fiaInfo_->bSize * fiaInfo_->n2Size;
     uint32_t s1G = fiaInfo_->s1Size * fiaInfo_->gSize;
@@ -276,18 +243,20 @@ void FiaMlaTiling::CalcMBaseSize()
     // 计算最小公倍数
     uint32_t lcm = (bN2 / originalA) * aicNum_;
     uint32_t splitOfS1G = lcm / bN2;    // 求S1G被切多少份，可以不开FD
-    if (splitOfS1G == 0U || s1G % splitOfS1G != 0U) { // 如果不能等分S1G，则不切S2无法做到负载不均衡，不修改mBaseSize，直接按照最大mBaseSize进行切分
+    // 如果不能等分S1G，则不切S2无法做到负载不均衡，不修改mBaseSize，直接按照最大mBaseSize进行切分
+    if (splitOfS1G == 0U || s1G % splitOfS1G != 0U) {
         return;
     }
     uint32_t mBaseSizeTmp = s1G / splitOfS1G;   // 计算可以等分S1G的mBaseSize
-    if (mBaseSizeTmp > mBaseSize_ || mBaseSizeTmp < 128U) { // 128：最小的mBaseSize，计算的理论mBaseSize需要在原定mBaseSize和最小mBaseSize区间内
+    // 128：最小的mBaseSize，计算的理论mBaseSize需要在原定mBaseSize和最小mBaseSize区间内
+    if (mBaseSizeTmp > mBaseSize_ || mBaseSizeTmp < 128U) {
         return;
     }
 
     mBaseSize_ = mBaseSizeTmp;  // 满足以上条件则更新mBaseSize
 }
 
-void FiaMlaTiling::SplitBalanced()
+void FiaTilingNonQuantMla::Split()
 {
     CalcInnerSize(static_cast<uint32_t>(fiaInfo_->s2Size));
 
@@ -368,12 +337,7 @@ void FiaMlaTiling::SplitBalanced()
     CalcMmResSize();
 }
 
-void FiaMlaTiling::Split()
-{
-    SplitBalanced();
-}
-
-void FiaMlaTiling::FillTilingBaseParamsMla()
+void FiaTilingNonQuantMla::FillTilingBaseParams()
 {
     tilingData_.baseParams.set_bSize(fiaInfo_->bSize);
     tilingData_.baseParams.set_s2Size(fiaInfo_->s2Size);
@@ -382,33 +346,40 @@ void FiaMlaTiling::FillTilingBaseParamsMla()
     tilingData_.baseParams.set_gSize(fiaInfo_->n1Size / fiaInfo_->n2Size);
     tilingData_.baseParams.set_actualSeqS1Dims(fiaInfo_->actualLenQDims);
     tilingData_.baseParams.set_actualSeqS2Dims(fiaInfo_->actualLenDims);
-    tilingData_.maskParams.set_attenMaskFlag(fiaInfo_->attenMaskFlag ? 1 : 0);
-    tilingData_.maskParams.set_attenMaskSize(fiaInfo_->attenMaskSize);
     tilingData_.baseParams.set_outputLayout(static_cast<uint32_t>(fiaInfo_->outputLayout));
-    tilingData_.maskParams.set_preToken(fiaInfo_->preToken);
-    tilingData_.maskParams.set_nextToken(fiaInfo_->nextToken);
     tilingData_.baseParams.set_slidingFlag(fiaInfo_->slidingFlag);
     tilingData_.baseParams.set_needInit(fiaInfo_->needInit);
     tilingData_.baseParams.set_usedCoreNum(usedCoreNum_);
 }
 
-// for flash decode
-void FiaMlaTiling::FillTilingWorkspaceParamsMla()
-{
-    tilingData_.workspaceParams.set_fdAccumOutSize(aicNum_ * INFO_NUMS * fiaInfo_->n2Size * mBaseSize_ * headDimAlign_);   // 每个核可能有头规约和尾规约，一共两份规约信息
-    tilingData_.workspaceParams.set_fdLogSumExpSize(INFO_NUMS * aicNum_ * INFO_NUMS * fiaInfo_->n2Size * mBaseSize_  // 每个核可能有头规约和尾规约，一共两份规约信息;sum + max
-                                                    * (BYTE_BLOCK / BLOCK_TABLE_ELEM_BYTE));
-    tilingData_.workspaceParams.set_mm1ResSize(mm1ResSize_);
-    tilingData_.workspaceParams.set_mm2ResSize(mm2ResSize_);
-}
-
-void FiaMlaTiling::FillTilingPageAttenParamsMla()
+void FiaTilingNonQuantMla::FillTilingPageAttenParams()
 {
     tilingData_.pageAttenParams.set_blockSize(fiaInfo_->blockSize);
     tilingData_.pageAttenParams.set_maxBlockNumPerBatch(fiaInfo_->maxBlockNumPerBatch);
 }
 
-void FiaMlaTiling::CalcMmResSize()
+void FiaTilingNonQuantMla::FillTilingMaskParams()
+{
+    tilingData_.maskParams.set_attenMaskFlag(fiaInfo_->attenMaskFlag ? 1 : 0);
+    tilingData_.maskParams.set_attenMaskSize(fiaInfo_->attenMaskSize);
+    tilingData_.maskParams.set_preToken(fiaInfo_->preToken);
+    tilingData_.maskParams.set_nextToken(fiaInfo_->nextToken);
+}
+
+void FiaTilingNonQuantMla::FillTilingWorkspaceParams()
+{
+    uint32_t accumOutElemNumOfOneFdTask = fiaInfo_->n2Size * mBaseSize_ * headDimAlign_;
+    // max和sum总共两份
+    uint32_t sumAndMaxElemNumOfOneFdTask = 2 * fiaInfo_->n2Size * mBaseSize_ * (BYTE_BLOCK / sizeof(float));
+    // 每个核可能有头规约和尾规约，一共两份规约信息
+    constexpr uint32_t MAX_FD_TASK_NUMS = 2;
+    tilingData_.workspaceParams.set_fdAccumOutSize(aicNum_ * MAX_FD_TASK_NUMS * accumOutElemNumOfOneFdTask);
+    tilingData_.workspaceParams.set_fdLogSumExpSize(aicNum_ * MAX_FD_TASK_NUMS * sumAndMaxElemNumOfOneFdTask);
+    tilingData_.workspaceParams.set_mm1ResSize(mm1ResSize_);
+    tilingData_.workspaceParams.set_mm2ResSize(mm2ResSize_);
+}
+
+void FiaTilingNonQuantMla::CalcMmResSize()
 {
     int64_t mSize = std::min(fiaInfo_->gSize * fiaInfo_->s1Size, mBaseSize_);
     mSize = Align(mSize, static_cast<int64_t>(16U));
@@ -416,26 +387,27 @@ void FiaMlaTiling::CalcMmResSize()
     mm2ResSize_ = static_cast<int64_t>(headDimAlign_) * mSize;
 }
 
-void FiaMlaTiling::CalcMaxMmResSize()
+void FiaTilingNonQuantMla::CalcMaxMmResSize()
 {
     constexpr int64_t S2_SIZE_MAX = 512;
     mm1ResSize_ = S2_SIZE_MAX * static_cast<int64_t>(mBaseSize_);
     mm2ResSize_ = static_cast<int64_t>(headDimAlign_) * static_cast<int64_t>(mBaseSize_);
 }
 
-void FiaMlaTiling::FillTiling()
+void FiaTilingNonQuantMla::FillTiling()
 {
-    FillTilingBaseParamsMla();
-    FillTilingWorkspaceParamsMla();
-    FillTilingPageAttenParamsMla();
+    FillTilingBaseParams();
+    FillTilingPageAttenParams();
+    FillTilingMaskParams();
+    FillTilingWorkspaceParams();
 }
 
-uint32_t FiaMlaTiling::CalcFlashDecodeParamNums(const uint32_t coreNum) const
+uint32_t FiaTilingNonQuantMla::CalcFlashDecodeParamNums(const uint32_t coreNum) const
 {
     return coreNum * 2U * fiaInfo_->n2Size * mBaseSize_; // 每个核可能有头规约和尾规约，一共两份规约信息
 }
 
-uint64_t FiaMlaTiling::CalcNormalWorkspaceSize(uint32_t coreNum, int64_t mm1ResSize,
+uint64_t FiaTilingNonQuantMla::CalcNormalWorkspaceSize(uint32_t coreNum, int64_t mm1ResSize,
     int64_t mm2ResSize, uint32_t mBaseSize) const
 {
     constexpr uint32_t MM1_RES_ELEM_SIZE = 4;      // 4: fp32
@@ -450,21 +422,21 @@ uint64_t FiaMlaTiling::CalcNormalWorkspaceSize(uint32_t coreNum, int64_t mm1ResS
     workspaceSize += PRE_LOAD_NUM_MLA * coreNum * mm1ResSize * V1_RES_ELEM_SIZE;
     workspaceSize += PRE_LOAD_NUM_MLA * coreNum * mm2ResSize * MM2_RES_ELEM_SIZE;
     workspaceSize += PRE_LOAD_NUM_MLA * coreNum * mm2ResSize * V2_RES_ELEM_SIZE;
-    workspaceSize += PRE_LOAD_NUM_MLA * coreNum * mBaseSize * N_UPDATE_ELEM_SIZE;        //aMla nUpdate, mBaseSize=128
-    workspaceSize += PRE_LOAD_NUM_MLA * coreNum * mBaseSize * SOFTMAX_SUM_ELEM_SIZE;     //aMla softmaxSum, mBaseSize=128
+    workspaceSize += PRE_LOAD_NUM_MLA * coreNum * mBaseSize * N_UPDATE_ELEM_SIZE; //aMla nUpdate, mBaseSize=128
+    workspaceSize += PRE_LOAD_NUM_MLA * coreNum * mBaseSize * SOFTMAX_SUM_ELEM_SIZE; //aMla softmaxSum, mBaseSize=128
     return workspaceSize;
 }
 
-uint64_t FiaMlaTiling::CalcFlashDecodeWorkspace(const uint32_t coreNum) const
+uint64_t FiaTilingNonQuantMla::CalcFlashDecodeWorkspace(const uint32_t coreNum) const
 {
     uint64_t flashDecodeParamNums = static_cast<uint64_t>(CalcFlashDecodeParamNums(coreNum));
     uint64_t accumOutSize = flashDecodeParamNums * static_cast<uint64_t>(headDimAlign_);
-    uint64_t logSumExpSize = 2 * flashDecodeParamNums * (BYTE_BLOCK / static_cast<uint64_t>(BLOCK_TABLE_ELEM_BYTE)); // log和sum的存储空间一致，共需要2份内存
-    uint64_t workspaceSize = (accumOutSize + logSumExpSize) * static_cast<uint64_t>(BLOCK_TABLE_ELEM_BYTE);
+    uint64_t logSumExpSize = 2 * flashDecodeParamNums * (BYTE_BLOCK / sizeof(float)); // log和sum的存储空间一致,需要2份
+    uint64_t workspaceSize = (accumOutSize + logSumExpSize) * sizeof(float);
     return workspaceSize;
 }
 
-void FiaMlaTiling::CalcWorkspaceSize()
+void FiaTilingNonQuantMla::CalcWorkspaceSize()
 {
     workspaceSize_ = libapiSize_;
     workspaceSize_ += CalcNormalWorkspaceSize(coreNum_, mm1ResSize_, mm2ResSize_, mBaseSize_);
@@ -473,7 +445,7 @@ void FiaMlaTiling::CalcWorkspaceSize()
     }
 }
 
-void FiaMlaTiling::CalcMaxWorkspaceSize()
+void FiaTilingNonQuantMla::CalcMaxWorkspaceSize()
 {
     CalcMaxMmResSize();
     workspaceSize_ = libapiSize_;
@@ -481,7 +453,7 @@ void FiaMlaTiling::CalcMaxWorkspaceSize()
     workspaceSize_ += CalcFlashDecodeWorkspace(aicNum_);
 }
 
-void FiaMlaTiling::CalcBlockDim(uint32_t coreNum)
+void FiaTilingNonQuantMla::CalcBlockDim(uint32_t coreNum)
 {
     auto ascendcPlatform = platform_ascendc::PlatformAscendC(fiaInfo_->platformInfo);
     auto aicNum = coreNum;
@@ -491,7 +463,7 @@ void FiaMlaTiling::CalcBlockDim(uint32_t coreNum)
     OP_LOGI(fiaInfo_->opName, "FIA block dim: %u aiv Num: %u aic Num: %u.", blockDim_, aivNum, aicNum);
 }
 
-ge::graphStatus FiaMlaTiling::DoOpTiling()
+ge::graphStatus FiaTilingNonQuantMla::DoOpTiling()
 {
     if (GetPlatformInfo() != ge::GRAPH_SUCCESS) {
         return ge::GRAPH_FAILED;
@@ -518,9 +490,10 @@ ge::graphStatus FiaMlaTiling::DoOpTiling()
     return ge::GRAPH_SUCCESS;
 }
 
-// 百位代表非量化、伪量化、全量化等场景，十位表示gqa、mla、泛化，个位代表特化模板到泛化模板的优先级排序
-// 0xx:非量化，1xx:伪量化, 2xx:全量化
-// x0x:mla, x1x: gpa, x2x: 泛化
-// 个位代表特化模板到泛化模板的优先级排序
-REGISTER_TILING_TEMPLATE_FIA(FusedInferAttentionScore, FiaMlaTiling, std::vector<int32_t>({static_cast<int32_t>(platform_ascendc::SocVersion::ASCEND910B)}), 9);
+// 值越小表示优先级越高. 对于FIA, 使用3位数表示优先级, 优先级编码含义为:
+// 1. 百位代表非量化、伪量化、全量化等场景, 即: 0xx-非量化，1xx-伪量化, 2xx-全量化
+// 2. 十位表示gqa、mla、泛化，即: x0x-mla, x1x-gpa, x2x-泛化
+// 3. 个位代表特化模板到泛化模板的优先级排序
+REGISTER_TILING_TEMPLATE_FIA(FusedInferAttentionScore, FiaTilingNonQuantMla,
+    std::vector<int32_t>({static_cast<int32_t>(platform_ascendc::SocVersion::ASCEND910B)}), 1);
 } // namespace optiling

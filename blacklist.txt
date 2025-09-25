@@ -355,8 +355,8 @@ attention/fused_infer_attention_score/common/op_host/fia_tiling_info.h
 attention/fused_infer_attention_score/common/op_host/fia_tiling_info.cpp
 attention/fused_infer_attention_score/common/op_host/fia_tiling_shape.h
 attention/fused_infer_attention_score/common/op_host/fia_tiling_shape.cpp
-attention/fused_infer_attention_score/common/op_host/fia_tiling_mla.h
-attention/fused_infer_attention_score/common/op_host/fia_tiling_mla.cpp
+attention/fused_infer_attention_score/common/op_host/fia_tiling_nonquant_mla.h
+attention/fused_infer_attention_score/common/op_host/fia_tiling_nonquant_mla.cpp
 attention/fused_infer_attention_score/common/op_host/split_core.h
 attention/fused_infer_attention_score/common/op_kernel/buffer.h
 attention/fused_infer_attention_score/common/op_kernel/buffers_policy.h
@@ -367,9 +367,9 @@ attention/fused_infer_attention_score/common/op_kernel/memory_copy.h
 attention/fused_infer_attention_score/common/op_kernel/matmul.h
 attention/fused_infer_attention_score/common/op_kernel/fia_public_define.h
 attention/fused_infer_attention_score/common/op_kernel/vector_common.h
-attention/fused_infer_attention_score/common/op_kernel/service_vector_mla_amla.h
-attention/fused_infer_attention_score/common/op_kernel/service_matmul_mla_amla.h
-attention/fused_infer_attention_score/common/op_kernel/fia_kernel_mla.h
+attention/fused_infer_attention_score/common/op_kernel/fia_block_vec_nonquant_mla.h
+attention/fused_infer_attention_score/common/op_kernel/fia_block_cube_nonquant_mla.h
+attention/fused_infer_attention_score/common/op_kernel/fia_kernel_nonquant_mla.h
 attention/fused_infer_attention_score/fused_infer_attention_score_v3.cpp
 attention/fused_infer_attention_score/ophost/aclnn_fused_infer_attention_score.h
 attention/fused_infer_attention_score/ophost/aclnn_fused_infer_attention_score.cpp

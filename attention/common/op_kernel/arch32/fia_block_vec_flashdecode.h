@@ -9,11 +9,11 @@
  */
 
 /*!
- * \file service_vector_flashdecode.h
+ * \file fia_block_vec_flashdecode.h
  * \brief
  */
-#ifndef SERVICE_VECTOR_FLASHDECODE_H
-#define SERVICE_VECTOR_FLASHDECODE_H
+#ifndef FIA_BLOCK_VEC_FLASHDECODE_H
+#define FIA_BLOCK_VEC_FLASHDECODE_H
 
 #include "kernel_operator.h"
 #include "kernel_operator_list_tensor_intf.h"
@@ -30,14 +30,14 @@ struct TaskInfo {
     uint32_t actualCombineLoopSize;
 };
 
-template <typename IFAT> 
-class ServiceFlashDecode {
+template <typename FIAT> 
+class FiaBlockVecFlashDecode {
 public:
     // =================================类型定义区=================================
     // 中间计算数据类型为float，高精度模式
     using T = float;
-    using OUT_T = typename IFAT::outputType;  
-    static constexpr FIA_LAYOUT LAYOUT_T = IFAT::layout; 
+    using OUT_T = typename FIAT::outputType;  
+    static constexpr FIA_LAYOUT LAYOUT_T = FIAT::layout; 
 
     __aicore__ inline void InitGlobalTensor(GlobalTensor<T> lseMaxFdGm, GlobalTensor<T> lseSumFdGm, GlobalTensor<T> accumOutGm, 
             GlobalTensor<OUT_T> attentionOutGm, GlobalTensor<uint64_t> actualSeqLengthsGmQ);
@@ -98,8 +98,8 @@ private:
     TBuf<> fdLseSumUbBuf; // 64B: 16*4
 };
 
-template <typename IFAT> __aicore__ inline 
-void ServiceFlashDecode<IFAT>::InitGlobalTensor(GlobalTensor<T> lseMaxFdGm, 
+template <typename FIAT> __aicore__ inline 
+void FiaBlockVecFlashDecode<FIAT>::InitGlobalTensor(GlobalTensor<T> lseMaxFdGm, 
                                                         GlobalTensor<T> lseSumFdGm, 
                                                         GlobalTensor<T> accumOutGm,
                                                         GlobalTensor<OUT_T> attentionOutGm,
@@ -112,21 +112,21 @@ void ServiceFlashDecode<IFAT>::InitGlobalTensor(GlobalTensor<T> lseMaxFdGm,
    this->actualSeqLengthsGmQ = actualSeqLengthsGmQ;
 }
 
-template <typename IFAT> __aicore__ inline 
-void ServiceFlashDecode<IFAT>::InitParams(const AttentionCommon::ConstInfo &constInfo)
+template <typename FIAT> __aicore__ inline 
+void FiaBlockVecFlashDecode<FIAT>::InitParams(const AttentionCommon::ConstInfo &constInfo)
 {
    this->constInfo = constInfo;
 }
 
 
-template <typename IFAT>__aicore__ inline 
-void ServiceFlashDecode<IFAT>::InitDecodeParams()
+template <typename FIAT>__aicore__ inline 
+void FiaBlockVecFlashDecode<FIAT>::InitDecodeParams()
 {
     this->blockIdx = GetBlockIdx();
 }
 
-template <typename IFAT> __aicore__ inline 
-void ServiceFlashDecode<IFAT>::InitBuffers(TPipe *pipe)
+template <typename FIAT> __aicore__ inline 
+void FiaBlockVecFlashDecode<FIAT>::InitBuffers(TPipe *pipe)
 {
     if ASCEND_IS_AIV {
         pipe->Reset();
@@ -144,8 +144,8 @@ void ServiceFlashDecode<IFAT>::InitBuffers(TPipe *pipe)
     }
 }
 
-template <typename IFAT> __aicore__ inline 
-void ServiceFlashDecode<IFAT>::AllocEventID()
+template <typename FIAT> __aicore__ inline 
+void FiaBlockVecFlashDecode<FIAT>::AllocEventID()
 {
     SetFlag<AscendC::HardEvent::V_MTE2>(SYNC_LSE_SUM_BUF1_FLAG);
     SetFlag<AscendC::HardEvent::V_MTE2>(SYNC_LSE_SUM_BUF2_FLAG);
@@ -156,8 +156,8 @@ void ServiceFlashDecode<IFAT>::AllocEventID()
     SetFlag<AscendC::HardEvent::MTE3_V>(SYNC_FDOUTPUT_BUF_FLAG);
 }
 
-template <typename IFAT> __aicore__ inline 
-void ServiceFlashDecode<IFAT>::FreeEventID()
+template <typename FIAT> __aicore__ inline 
+void FiaBlockVecFlashDecode<FIAT>::FreeEventID()
 {
     WaitFlag<AscendC::HardEvent::V_MTE2>(SYNC_LSE_SUM_BUF1_FLAG);
     WaitFlag<AscendC::HardEvent::V_MTE2>(SYNC_LSE_SUM_BUF2_FLAG);
@@ -168,8 +168,8 @@ void ServiceFlashDecode<IFAT>::FreeEventID()
     WaitFlag<AscendC::HardEvent::MTE3_V>(SYNC_FDOUTPUT_BUF_FLAG);
 }
 
-template <typename IFAT> __aicore__ inline 
-void ServiceFlashDecode<IFAT>::CopyAccumOutIn(LocalTensor<T> &accumOutLocal, uint32_t splitKVIndex,
+template <typename FIAT> __aicore__ inline 
+void FiaBlockVecFlashDecode<FIAT>::CopyAccumOutIn(LocalTensor<T> &accumOutLocal, uint32_t splitKVIndex,
     uint32_t startRow, uint32_t dealRowCount)
 {
     DataCopyExtParams copyInParams;
@@ -189,8 +189,8 @@ void ServiceFlashDecode<IFAT>::CopyAccumOutIn(LocalTensor<T> &accumOutLocal, uin
     DataCopyPad(accumOutLocal, accumOutGm[combineAccumOutOffset], copyInParams, copyInPadParams);
 }
 
-template <typename IFAT> __aicore__ inline 
-void ServiceFlashDecode<IFAT>::CopyLseIn(uint32_t startRow,
+template <typename FIAT> __aicore__ inline 
+void FiaBlockVecFlashDecode<FIAT>::CopyLseIn(uint32_t startRow,
     uint32_t dealRowCount, uint64_t baseOffset, uint32_t cntM)
 {
     LocalTensor<T> lseSum = cntM % 2 == 0 ? fdSumBuf1.Get<T>() : fdSumBuf2.Get<T>();
@@ -215,8 +215,8 @@ void ServiceFlashDecode<IFAT>::CopyLseIn(uint32_t startRow,
     WaitFlag<AscendC::HardEvent::MTE2_V>(SYNC_LSE_MAX_BUF1_FLAG + cntM % 2);
 }
 
-template <typename IFAT> __aicore__ inline void
-ServiceFlashDecode<IFAT>::ComputeScaleValue(LocalTensor<T> &lseExp, 
+template <typename FIAT> __aicore__ inline void
+FiaBlockVecFlashDecode<FIAT>::ComputeScaleValue(LocalTensor<T> &lseExp, 
                                                     uint32_t startRow,
                                                     uint32_t dealRowCount, 
                                                     uint32_t cntM)
@@ -254,8 +254,8 @@ ServiceFlashDecode<IFAT>::ComputeScaleValue(LocalTensor<T> &lseExp,
 }
 
 
-template <typename IFAT>__aicore__ inline 
-void ServiceFlashDecode<IFAT>::Bmm2DataCopyOut(uint64_t attenOutOffset, LocalTensor<OUT_T> &attenOutUb,
+template <typename FIAT>__aicore__ inline 
+void FiaBlockVecFlashDecode<FIAT>::Bmm2DataCopyOut(uint64_t attenOutOffset, LocalTensor<OUT_T> &attenOutUb,
                                                                uint32_t startRow, uint32_t dealRowCount,
                                                                uint32_t columnCount, uint32_t actualColumnCount)
 {
@@ -268,8 +268,8 @@ void ServiceFlashDecode<IFAT>::Bmm2DataCopyOut(uint64_t attenOutOffset, LocalTen
                 dataCopyParams);
 }
 
-template <typename IFAT>__aicore__ inline 
-void ServiceFlashDecode<IFAT>::ReduceFinalRes(LocalTensor<T> &reduceOut, 
+template <typename FIAT>__aicore__ inline 
+void FiaBlockVecFlashDecode<FIAT>::ReduceFinalRes(LocalTensor<T> &reduceOut, 
                                                       LocalTensor<T> &mm2Res, 
                                                       LocalTensor<T> &lseLocal, 
                                                       uint32_t cntKV, 
@@ -288,8 +288,8 @@ void ServiceFlashDecode<IFAT>::ReduceFinalRes(LocalTensor<T> &reduceOut,
     }
 }
 
-template <typename IFAT> __aicore__ inline 
-void ServiceFlashDecode<IFAT>::CopyFinalResOut(LocalTensor<T> &accumOutLocal, 
+template <typename FIAT> __aicore__ inline 
+void FiaBlockVecFlashDecode<FIAT>::CopyFinalResOut(LocalTensor<T> &accumOutLocal, 
                                                        uint32_t startRow,
                                                        uint32_t dealRowCount, 
                                                        uint64_t attenOutOffset)
@@ -330,8 +330,8 @@ void ServiceFlashDecode<IFAT>::CopyFinalResOut(LocalTensor<T> &accumOutLocal,
 }
 
 
-template <typename IFAT> __aicore__ inline void
-ServiceFlashDecode<IFAT>::FlashDecode(FDparams &fd)
+template <typename FIAT> __aicore__ inline void
+FiaBlockVecFlashDecode<FIAT>::FlashDecode(FDparams &fd)
 {
     if (blockIdx >= fd.usedVecNumOfFd) {
         return;
@@ -419,6 +419,6 @@ ServiceFlashDecode<IFAT>::FlashDecode(FDparams &fd)
             reduceMLoop += 1;
         }
         tmpFdS1gOuterMStart = 0;
-    }    
+    }
 }
 #endif

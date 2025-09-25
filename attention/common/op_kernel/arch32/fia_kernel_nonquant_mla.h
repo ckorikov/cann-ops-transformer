@@ -9,12 +9,12 @@
  */
 
 /*!
- * \file fia_kernel_mla.h
+ * \file fia_kernel_nonquant_mla.h
  * \brief
  */
 
-#ifndef FIA_KERNEL_MLA_H
-#define FIA_KERNEL_MLA_H
+#ifndef FIA_KERNEL_NONQUANT_MLA_H
+#define FIA_KERNEL_NONQUANT_MLA_H
 
 #include "kernel_operator.h"
 #include "kernel_operator_list_tensor_intf.h"
@@ -23,40 +23,19 @@
 #include "lib/matrix/matmul/tiling.h"
 #include "../fia_public_define.h"
 #include "../vector_common.h"
-#include "service_vector_mla_amla.h"
-#include "service_matmul_mla_amla.h"
-#include "service_vector_flashdecode.h"
+#include "fia_block_vec_nonquant_mla.h"
+#include "fia_block_cube_nonquant_mla.h"
+#include "fia_block_vec_flashdecode.h"
 
 using namespace matmul;
 using AscendC::CacheMode;
 using AscendC::CrossCoreSetFlag;
 using AscendC::CrossCoreWaitFlag;
 
-// 由于S2循环前，RunInfo还没有赋值，使用Bngs1Param临时存放B、N、S1轴相关的信息；同时减少重复计算
-struct TempLoopInfo {
-    uint32_t bn2IdxInCurCore = 0;
-    uint32_t bIdx = 0U;
-    uint32_t n2Idx = 0U;
-    uint64_t s2BasicSizeTail = 0U; // S2方向循环的尾基本块大小
-    uint32_t s2LoopTimes = 0U; // S2方向循环的总次数，无论TND还是BXXD都是等于实际次数，不用减1
-    // uint32_t bn2LoopTimes = 0U; // Bn2X的总循环次数
-    uint64_t curActualSeqLen = 0ULL;
-    bool curActSeqLenIsZero = false;
-    // TND
-    uint64_t actS1Size = 1ULL; // TND场景下当前Batch循环处理的S1轴的大小，非TND场景下不要用这个字段
-    uint32_t tndCoreStartKVSplitPos;
-    bool tndIsS2SplitCore;
-
-    uint32_t gS1Idx = 0U;
-    uint64_t mBasicSizeTail = 0U; // gS1方向循环的尾基本块大小
-    int32_t preTokensPerBatch = 0;
-    int32_t nextTokensPerBatch = 0;
-};
-
-template <typename IFAT> 
-class FusedIncreFlashAttentionAttenPreloadMla {
+template <typename FIAT>
+class FiaKernelNonQuantMla {
 public:
-    __aicore__ inline FusedIncreFlashAttentionAttenPreloadMla(){};
+    __aicore__ inline FiaKernelNonQuantMla(){};
     __aicore__ inline void Init(__gm__ uint8_t *query, __gm__ uint8_t *key, __gm__ uint8_t *value,
                                 __gm__ uint8_t *pseShift, __gm__ uint8_t *attenMask, __gm__ uint8_t *actualSeqLengthsQ,
                                 __gm__ uint8_t *actualSeqLengths, __gm__ uint8_t *blockTable,
@@ -81,20 +60,18 @@ public:
     // =================================类型定义区=================================
     // 中间计算数据类型为float，高精度模式
     using T = float;
-    using Q_T = typename IFAT::queryType;
-    using KV_T = typename IFAT::kvType;
-    using OUT_T = typename IFAT::outputType;
-    using ORIGIN_T = typename IFAT::orginalType;
-    static constexpr bool PAGE_ATTENTION = IFAT::pageAttention;
-    static constexpr bool FLASH_DECODE = IFAT::flashDecode;
-    static constexpr FIA_LAYOUT LAYOUT_T = IFAT::layout;
-    static constexpr FIA_LAYOUT KV_LAYOUT_T = IFAT::kvLayout;
-    static constexpr AMLA_MODE AMLA = IFAT::isAMla;
-    static constexpr bool BALANCE = IFAT::isBalance;
+    using Q_T = typename FIAT::queryType;
+    using KV_T = typename FIAT::kvType;
+    using OUT_T = typename FIAT::outputType;
+    using ORIGIN_T = typename FIAT::orginalType;
+    static constexpr bool PAGE_ATTENTION = FIAT::pageAttention;
+    static constexpr bool FLASH_DECODE = FIAT::flashDecode;
+    static constexpr FIA_LAYOUT LAYOUT_T = FIAT::layout;
+    static constexpr FIA_LAYOUT KV_LAYOUT_T = FIAT::kvLayout;
 
     static constexpr bool QUANT = (IsSameType<Q_T, KV_T>::value && IsSameType<KV_T, int8_t>::value);
     static constexpr uint8_t PER_CHANNEL_MODE = 0; // 伪量化: K V per-channel
-    static constexpr uint8_t ANTIQUANT_MODE = IFAT::antiquantMode;
+    static constexpr uint8_t ANTIQUANT_MODE = FIAT::antiquantMode;
     static constexpr bool ANTIQUANT = !IsSameType<Q_T, KV_T>::value;
     static constexpr bool ANTIQUANT_PER_CHANNEL = (ANTIQUANT && (ANTIQUANT_MODE == PER_CHANNEL_MODE));
     using ANTIQ_PARAMS_T = Q_T;
@@ -105,9 +82,9 @@ public:
     using MM1_OUT_T = typename AscendC::Conditional<QUANT, int32_t, TMP_T>::type;
     using MM2_OUT_T = typename AscendC::Conditional<QUANT, half, TMP_T>::type;
 
-    ServiceMatmulMlaAmla<IFAT> matmulService;
-    IfaServiceFlashAttentionVector<IFAT> vectorService;
-    ServiceFlashDecode<IFAT> fdService;
+    FiaBlockCubeNonQuantMla<FIAT> matmulService;
+    FiaBlockVecNonQuantMla<FIAT> vectorService;
+    FiaBlockVecFlashDecode<FIAT> fdService;
 
     // =================================常量区=================================
     static constexpr uint32_t PRELOAD_NUM = 2;
@@ -121,17 +98,6 @@ public:
     static constexpr uint32_t SYNC_C2_V1_FLAG = 4;
     static constexpr uint32_t SYNC_V1_NUPDATE_C2_FLAG = 5;
 
-    static constexpr uint64_t SYNC_INPUT_BUF1_FLAG = 2;
-    static constexpr uint64_t SYNC_INPUT_BUF1_PONG_FLAG = 3;
-    static constexpr uint64_t SYNC_INPUT_BUF2_FLAG = 4;
-    static constexpr uint64_t SYNC_INPUT_BUF2_PONG_FLAG = 5;
-    static constexpr uint64_t SYNC_OUTPUT_BUF1_FLAG = 4;
-    static constexpr uint64_t SYNC_OUTPUT_BUF2_FLAG = 5;
-
-    static constexpr int32_t FP32_MAX_MASK_ELEMENT_NUM = 64;
-    static constexpr uint32_t BLOCK_ELEMENT_NUM = fa_base_vector::BYTE_BLOCK / sizeof(T); // 32/4=8
-    static constexpr uint32_t BASE_BLOCK_MAX_ELEMENT_NUM = AttentionCommon::ConstInfo::BUFFER_SIZE_BYTE_32K / sizeof(T); // 32768/4=8096
-
     static constexpr uint64_t kvHeadNum = 1ULL;
     static constexpr uint64_t headDim = 512ULL;
     static constexpr uint64_t headDimAlign = 512ULL;
@@ -141,6 +107,27 @@ public:
     static constexpr int64_t fdPrefetchLen = 2;
 
 protected:
+    // 由于S2循环前，RunInfo还没有赋值，使用Bngs1Param临时存放B、N、S1轴相关的信息；同时减少重复计算
+    struct TempLoopInfo {
+        uint32_t bn2IdxInCurCore = 0;
+        uint32_t bIdx = 0U;
+        uint32_t n2Idx = 0U;
+        uint64_t s2BasicSizeTail = 0U; // S2方向循环的尾基本块大小
+        uint32_t s2LoopTimes = 0U; // S2方向循环的总次数，无论TND还是BXXD都是等于实际次数，不用减1
+        // uint32_t bn2LoopTimes = 0U; // Bn2X的总循环次数
+        uint64_t curActualSeqLen = 0ULL;
+        bool curActSeqLenIsZero = false;
+        // TND
+        uint64_t actS1Size = 1ULL; // TND场景下当前Batch循环处理的S1轴的大小，非TND场景下不要用这个字段
+        uint32_t tndCoreStartKVSplitPos;
+        bool tndIsS2SplitCore;
+
+        uint32_t gS1Idx = 0U;
+        uint64_t mBasicSizeTail = 0U; // gS1方向循环的尾基本块大小
+        int32_t preTokensPerBatch = 0;
+        int32_t nextTokensPerBatch = 0;
+    };
+
     const FusedInferAttentionScoreTilingData *__restrict tilingData = nullptr;
     TPipe *pipe = nullptr;
 
@@ -149,12 +136,7 @@ protected:
     // for workspace pingpong
     const uint32_t dbWorkspaceRatio = PRELOAD_NUM;
 
-    uint64_t mSizeVector = 0ULL;
-
     uint64_t s2BatchBaseOffset = 0;
-
-    // attention mask
-    uint32_t attenMaskSizeAlign = 0U;
 
     // offset
     uint64_t tensorACoreOffset = 0ULL;
@@ -206,27 +188,9 @@ protected:
     GlobalTensor<int32_t> mm2ResInt32Gm;
     GlobalTensor<UPDATE_T> vec2ResGm;
 
-    GlobalTensor<T> accumOutGm; // no
-    GlobalTensor<T> lseSumFdGm; // no
-    GlobalTensor<T> lseMaxFdGm; // no
-    // ================================Local Buffer区====================================
-    // queue
-    TBuf<> inputBuff1;  // 64K
-    TBuf<> inputBuff2;  // 16K
-    TBuf<> outputBuff1; // 32K
-    TBuf<> outputBuff2; // 4K
-
-    // 临时tbuf
-    TBuf<> tmpBuff1; // 32K
-
-    TBuf<> softmaxMaxBuff; // PRELOAD_NUM * 2K
-    TBuf<> softmaxExpBuff; // PRELOAD_NUM * 2K
-    TBuf<> softmaxSumBuff; // PRELOAD_NUM * 2K
-
-    LocalTensor<T> softmaxMaxUb;
-    LocalTensor<T> softmaxSumUb;
-    LocalTensor<T> softmaxExpUb;    
-
+    GlobalTensor<T> accumOutGm;
+    GlobalTensor<T> lseSumFdGm;
+    GlobalTensor<T> lseMaxFdGm;
     // ================================类成员变量====================================
     // aic、aiv核信息
     uint32_t tmpBlockIdx = 0U;
@@ -235,8 +199,6 @@ protected:
 
     AttentionCommon::ConstInfo constInfo{};
     TempLoopInfo tempLoopInfo{};
-    // 下面先临时存放，后续改进写法，直接删掉
-    uint32_t beforeBlockSplitBn2Nums = 0U;
     // ================================Util functions==================================
     template <typename T> __aicore__ inline T Align(T num, T rnd)
     {
@@ -277,18 +239,14 @@ protected:
     // ================================Mm1==============================================
     __aicore__ inline void ComputeMm1(const AttentionCommon::RunInfo &info);
     // ================================Mm2==============================================
-    __aicore__ inline void ComputeMm2(const AttentionCommon::RunInfo &info);   
-
-    template <typename RT>
-    __aicore__ inline void RowsCopyGmToUb(const LocalTensor<RT> &dst, const GlobalTensor<RT> &src, uint32_t rows,
-                                          uint32_t columnCount, uint32_t actualColumnCount);
+    __aicore__ inline void ComputeMm2(const AttentionCommon::RunInfo &info);
 
     __aicore__ inline void InitAllZeroOutput(uint32_t bIdx, uint32_t n2Idx);
     __aicore__ inline uint64_t SeqLenFromTensorList(uint32_t bIdx);
     __aicore__ inline void FlashDecode();
 };
 
-template <typename IFAT> __aicore__ inline void FusedIncreFlashAttentionAttenPreloadMla<IFAT>::InitTilingData()
+template <typename FIAT> __aicore__ inline void FiaKernelNonQuantMla<FIAT>::InitTilingData()
 {
     usedCoreNum = tilingData->baseParams.usedCoreNum;
     constInfo.mmResUbSize = tilingData->workspaceParams.mm1ResSize;
@@ -326,7 +284,7 @@ template <typename IFAT> __aicore__ inline void FusedIncreFlashAttentionAttenPre
     constInfo.syncV1NupdateC2 = SYNC_V1_NUPDATE_C2_FLAG;
 }
 
-template <typename IFAT> __aicore__ inline void FusedIncreFlashAttentionAttenPreloadMla<IFAT>::InitBuffers()
+template <typename FIAT> __aicore__ inline void FiaKernelNonQuantMla<FIAT>::InitBuffers()
 {
     if ASCEND_IS_AIV {
         vectorService.InitBuffers(pipe);
@@ -335,9 +293,9 @@ template <typename IFAT> __aicore__ inline void FusedIncreFlashAttentionAttenPre
     }
 }
 
-template <typename IFAT>
+template <typename FIAT>
 __aicore__ inline void
-FusedIncreFlashAttentionAttenPreloadMla<IFAT>::InitActualSeqLen(__gm__ uint8_t *actualSeqLengthsQ,
+FiaKernelNonQuantMla<FIAT>::InitActualSeqLen(__gm__ uint8_t *actualSeqLengthsQ,
                                                                 __gm__ uint8_t *actualSeqLengths)
 {
     constInfo.actualLenQDims = tilingData->baseParams.actualSeqS1Dims;
@@ -350,8 +308,8 @@ FusedIncreFlashAttentionAttenPreloadMla<IFAT>::InitActualSeqLen(__gm__ uint8_t *
     }
 }
 
-template <typename IFAT>
-__aicore__ inline void FusedIncreFlashAttentionAttenPreloadMla<IFAT>::InitAllZeroOutput(uint32_t bIdx, uint32_t n2Idx)
+template <typename FIAT>
+__aicore__ inline void FiaKernelNonQuantMla<FIAT>::InitAllZeroOutput(uint32_t bIdx, uint32_t n2Idx)
 {
     if (constInfo.outputLayout == FIA_LAYOUT::TND) {
         uint32_t tSize = actualSeqLengthsGmQ.GetValue(constInfo.batchSize - 1);
@@ -396,8 +354,8 @@ __aicore__ inline void FusedIncreFlashAttentionAttenPreloadMla<IFAT>::InitAllZer
     }
 }
 
-template <typename IFAT>
-__aicore__ inline void FusedIncreFlashAttentionAttenPreloadMla<IFAT>::InitOutputSingleCore()
+template <typename FIAT>
+__aicore__ inline void FiaKernelNonQuantMla<FIAT>::InitOutputSingleCore()
 {
     if (usedCoreNum != 0) {
         uint64_t totalOutputSize = constInfo.batchSize * constInfo.qHeadNum * constInfo.qSeqSize * constInfo.headDim;
@@ -409,8 +367,8 @@ __aicore__ inline void FusedIncreFlashAttentionAttenPreloadMla<IFAT>::InitOutput
     }
 }
 
-template <typename IFAT>
-__aicore__ inline int64_t FusedIncreFlashAttentionAttenPreloadMla<IFAT>::ClipSInnerToken(int64_t sInnerToken,
+template <typename FIAT>
+__aicore__ inline int64_t FiaKernelNonQuantMla<FIAT>::ClipSInnerToken(int64_t sInnerToken,
                                                                                          int64_t minValue, int64_t maxValue)
 {
     sInnerToken = sInnerToken > minValue ? sInnerToken : minValue;
@@ -418,15 +376,15 @@ __aicore__ inline int64_t FusedIncreFlashAttentionAttenPreloadMla<IFAT>::ClipSIn
     return sInnerToken;
 }
 
-template <typename IFAT>
-__aicore__ inline void FusedIncreFlashAttentionAttenPreloadMla<IFAT>::GetActualSeqLen(uint32_t bIdx, uint32_t s1Idx)
+template <typename FIAT>
+__aicore__ inline void FiaKernelNonQuantMla<FIAT>::GetActualSeqLen(uint32_t bIdx, uint32_t s1Idx)
 {
     tempLoopInfo.curActualSeqLen = GetActualSeqLenKV(bIdx);
     tempLoopInfo.actS1Size = GetBalanceActualSeqLengths(actualSeqLengthsGmQ, bIdx);
 }
 
-template <typename IFAT>
-__aicore__ inline uint32_t FusedIncreFlashAttentionAttenPreloadMla<IFAT>::GetActualSeqLenKV(uint32_t bIdx)
+template <typename FIAT>
+__aicore__ inline uint32_t FiaKernelNonQuantMla<FIAT>::GetActualSeqLenKV(uint32_t bIdx)
 {
     if (constInfo.actualLenDims == 0) {
         if (!batchContinuous) {
@@ -440,8 +398,8 @@ __aicore__ inline uint32_t FusedIncreFlashAttentionAttenPreloadMla<IFAT>::GetAct
     }
 }
 
-template <typename IFAT>
-__aicore__ inline void FusedIncreFlashAttentionAttenPreloadMla<IFAT>::GetPreNextTokensLeftUp()
+template <typename FIAT>
+__aicore__ inline void FiaKernelNonQuantMla<FIAT>::GetPreNextTokensLeftUp()
 {
     if (!constInfo.attenMaskFlag) {
         return;
@@ -456,8 +414,8 @@ __aicore__ inline void FusedIncreFlashAttentionAttenPreloadMla<IFAT>::GetPreNext
     }
 }
 
-template <typename IFAT>
-__aicore__ inline void FusedIncreFlashAttentionAttenPreloadMla<IFAT>::UpdateInner(uint32_t &s2Start, uint32_t &s2End,
+template <typename FIAT>
+__aicore__ inline void FiaKernelNonQuantMla<FIAT>::UpdateInner(uint32_t &s2Start, uint32_t &s2End,
                                                                                   uint32_t &curS2Start, uint32_t &curS2End,
                                                                                   uint32_t s1Idx, bool isStart, bool isEnd)
 {
@@ -484,8 +442,8 @@ __aicore__ inline void FusedIncreFlashAttentionAttenPreloadMla<IFAT>::UpdateInne
     tempLoopInfo.s2LoopTimes = isEnd ? constInfo.s2End + 1 : curS2End;
 }
 
-template <typename IFAT>
-__aicore__ inline void FusedIncreFlashAttentionAttenPreloadMla<IFAT>::UpdateInnerNum(uint32_t &s2End, uint32_t actS1Size,
+template <typename FIAT>
+__aicore__ inline void FiaKernelNonQuantMla<FIAT>::UpdateInnerNum(uint32_t &s2End, uint32_t actS1Size,
                                                                                      uint32_t actS2Size, uint32_t s1Idx)
 {
     if (actS2Size == 0) {
@@ -509,15 +467,15 @@ __aicore__ inline void FusedIncreFlashAttentionAttenPreloadMla<IFAT>::UpdateInne
     s2End = (s2LastToken + constInfo.s2BaseSize - 1) / constInfo.s2BaseSize;
 }
 
-template <typename IFAT>
-__aicore__ inline void FusedIncreFlashAttentionAttenPreloadMla<IFAT>::DealActSeqLenIsZero(uint32_t bIdx, uint32_t n2Idx)
+template <typename FIAT>
+__aicore__ inline void FiaKernelNonQuantMla<FIAT>::DealActSeqLenIsZero(uint32_t bIdx, uint32_t n2Idx)
 {
     if ASCEND_IS_AIV {
         InitAllZeroOutput(bIdx, n2Idx);
     }
 }
 
-template <typename IFAT> __aicore__ inline void FusedIncreFlashAttentionAttenPreloadMla<IFAT>::UpdateInnerLoopCond()
+template <typename FIAT> __aicore__ inline void FiaKernelNonQuantMla<FIAT>::UpdateInnerLoopCond()
 {
     if ((tempLoopInfo.curActualSeqLen == 0) || (tempLoopInfo.actS1Size == 0)) {
         tempLoopInfo.curActSeqLenIsZero = true;
@@ -533,8 +491,8 @@ template <typename IFAT> __aicore__ inline void FusedIncreFlashAttentionAttenPre
     tempLoopInfo.s2LoopTimes = 0;
 }
 
-template <typename IFAT>
-__aicore__ inline uint64_t FusedIncreFlashAttentionAttenPreloadMla<IFAT>::SeqLenFromTensorList(uint32_t bIndex)
+template <typename FIAT>
+__aicore__ inline uint64_t FiaKernelNonQuantMla<FIAT>::SeqLenFromTensorList(uint32_t bIndex)
 {
     uint64_t dimInfo[4]; // this mem is used to set shapeinfo, BSH(3) or BNSD(4)
     AscendC::TensorDesc<__gm__ uint8_t> keyTensorDesc;
@@ -548,8 +506,8 @@ __aicore__ inline uint64_t FusedIncreFlashAttentionAttenPreloadMla<IFAT>::SeqLen
     }
 }
 
-template <typename IFAT>
-__aicore__ inline void FusedIncreFlashAttentionAttenPreloadMla<IFAT>::Init(
+template <typename FIAT>
+__aicore__ inline void FiaKernelNonQuantMla<FIAT>::Init(
     __gm__ uint8_t *query, __gm__ uint8_t *key, __gm__ uint8_t *value, __gm__ uint8_t *pseShift,
     __gm__ uint8_t *attenMask, __gm__ uint8_t *actualSeqLengthsQ, __gm__ uint8_t *actualSeqLengths,
     __gm__ uint8_t *blockTable, __gm__ uint8_t *kvPaddingSize, __gm__ uint8_t *queryRope, __gm__ uint8_t *keyRope,
@@ -608,28 +566,15 @@ __aicore__ inline void FusedIncreFlashAttentionAttenPreloadMla<IFAT>::Init(
     // |Q--|mm1ResGm(存S)|vec1ResGm(存A1,A2)|mm2ResGm(存O)|vec2ResGm
     // |Core0_Q1-Core0_Q2-Core1_Q1-Core1_Q2....Core32_Q1-Core32_Q2|Core0_mmRes
     uint64_t offset = 0;
-    if constexpr (ANTIQUANT) {
-        size_t qPreSizeMla = msdIterNum * constInfo.gSize * (headDim + headDimRope) * constInfo.qSeqSize;
-
-        // 每个核处理gSize * (headDim + headDimRope) * constInfo.qSeqSize个Q
-        queryPreProcessResGm.SetGlobalBuffer(
-            (__gm__ KV_T *)(workspace + offset + aiCoreIdx * dbWorkspaceRatio * qPreSizeMla * sizeof(KV_T)));
-        offset += GetBlockNum() * dbWorkspaceRatio * qPreSizeMla * sizeof(KV_T);
-    }
 
     mm1ResGm.SetGlobalBuffer(
         (__gm__ MM1_OUT_T *)(workspace + offset +
                              aiCoreIdx * dbWorkspaceRatio * constInfo.mmResUbSize * sizeof(MM1_OUT_T)));
     offset += GetBlockNum() * dbWorkspaceRatio * constInfo.mmResUbSize * sizeof(MM1_OUT_T);
-    if constexpr (ANTIQUANT) {
-        vec1ResGm.SetGlobalBuffer((
-            __gm__ KV_T *)(workspace + offset + aiCoreIdx * dbWorkspaceRatio * constInfo.vec1ResUbSize * sizeof(KV_T)));
-        offset += GetBlockNum() * dbWorkspaceRatio * constInfo.vec1ResUbSize * sizeof(KV_T);
-    } else {
-        vec1ResGm.SetGlobalBuffer(
-            (__gm__ KV_T *)(workspace + offset + aiCoreIdx * dbWorkspaceRatio * constInfo.mmResUbSize * sizeof(KV_T)));
-        offset += GetBlockNum() * dbWorkspaceRatio * constInfo.mmResUbSize * sizeof(KV_T);
-    }
+
+    vec1ResGm.SetGlobalBuffer(
+        (__gm__ KV_T *)(workspace + offset + aiCoreIdx * dbWorkspaceRatio * constInfo.mmResUbSize * sizeof(KV_T)));
+    offset += GetBlockNum() * dbWorkspaceRatio * constInfo.mmResUbSize * sizeof(KV_T);
 
     mm2ResGm.SetGlobalBuffer(
         (__gm__ MM2_OUT_T *)(workspace + offset +
@@ -637,22 +582,9 @@ __aicore__ inline void FusedIncreFlashAttentionAttenPreloadMla<IFAT>::Init(
     offset += GetBlockNum() * dbWorkspaceRatio * constInfo.bmm2ResUbSize * sizeof(MM2_OUT_T);
     mm2ResInt32Gm.SetGlobalBuffer(reinterpret_cast<__gm__ int32_t *>(mm2ResGm.GetPhyAddr(0)));
 
-
-    if constexpr (ANTIQUANT) {
-        vec2ResGm.SetGlobalBuffer(
-            (__gm__ UPDATE_T *)(workspace + offset +
-                                aiCoreIdx * dbWorkspaceRatio * constInfo.bmm2ResUbSize * sizeof(UPDATE_T)));
-        offset += GetBlockNum() * dbWorkspaceRatio * constInfo.bmm2ResUbSize * sizeof(UPDATE_T);
-    } else if constexpr (QUANT) {
-        vec2ResGm.SetGlobalBuffer(
-            (__gm__ UPDATE_T *)(workspace + offset +
-                                aiCoreIdx * dbWorkspaceRatio * constInfo.bmm2ResUbSize * sizeof(UPDATE_T)));
-        offset += GetBlockNum() * dbWorkspaceRatio * constInfo.bmm2ResUbSize * sizeof(UPDATE_T);
-    } else {
-        vec2ResGm.SetGlobalBuffer(
-            (__gm__ T *)(workspace + offset + aiCoreIdx * dbWorkspaceRatio * constInfo.bmm2ResUbSize * sizeof(T)));
-        offset += GetBlockNum() * dbWorkspaceRatio * constInfo.bmm2ResUbSize * sizeof(T);
-    }
+    vec2ResGm.SetGlobalBuffer(
+        (__gm__ T *)(workspace + offset + aiCoreIdx * dbWorkspaceRatio * constInfo.bmm2ResUbSize * sizeof(T)));
+    offset += GetBlockNum() * dbWorkspaceRatio * constInfo.bmm2ResUbSize * sizeof(T);
 
     if constexpr (FLASH_DECODE) {
         accumOutGm.SetGlobalBuffer((__gm__ float *)(workspace + offset));
@@ -692,7 +624,7 @@ __aicore__ inline void FusedIncreFlashAttentionAttenPreloadMla<IFAT>::Init(
     }
 }
 
-template <typename IFAT> __aicore__ inline void FusedIncreFlashAttentionAttenPreloadMla<IFAT>::InitKeyGm(uint32_t bIdx)
+template <typename FIAT> __aicore__ inline void FiaKernelNonQuantMla<FIAT>::InitKeyGm(uint32_t bIdx)
 {
     ListTensorDesc keyListTensorDesc((__gm__ void *)keyPtr);
     key_ = (__gm__ uint8_t *)keyListTensorDesc.GetDataPtr<__gm__ uint8_t>(bIdx);
@@ -700,8 +632,8 @@ template <typename IFAT> __aicore__ inline void FusedIncreFlashAttentionAttenPre
     keyGm.SetGlobalBuffer((__gm__ KV_T *)key_);
 }
 
-template <typename IFAT>
-__aicore__ inline void FusedIncreFlashAttentionAttenPreloadMla<IFAT>::InitValueGm(uint32_t bIdx)
+template <typename FIAT>
+__aicore__ inline void FiaKernelNonQuantMla<FIAT>::InitValueGm(uint32_t bIdx)
 {
     ListTensorDesc valueListTensorDesc((__gm__ void *)valuePtr);
     value_ = (__gm__ uint8_t *)valueListTensorDesc.GetDataPtr<__gm__ uint8_t>(bIdx);
@@ -709,8 +641,8 @@ __aicore__ inline void FusedIncreFlashAttentionAttenPreloadMla<IFAT>::InitValueG
     valueGm.SetGlobalBuffer((__gm__ KV_T *)value_);
 }
 
-template <typename IFAT>
-__aicore__ inline void FusedIncreFlashAttentionAttenPreloadMla<IFAT>::InitQuant(
+template <typename FIAT>
+__aicore__ inline void FiaKernelNonQuantMla<FIAT>::InitQuant(
     __gm__ uint8_t *deqScale1, __gm__ uint8_t *quantScale1, __gm__ uint8_t *deqScale2, __gm__ uint8_t *quantScale2,
     __gm__ uint8_t *quantOffset2, __gm__ uint8_t *antiquantScale, __gm__ uint8_t *antiquantOffset,
     __gm__ uint8_t *keyAntiquantScale, __gm__ uint8_t *keyAntiquantOffset, __gm__ uint8_t *valueAntiquantScale,
@@ -726,8 +658,8 @@ __aicore__ inline void FusedIncreFlashAttentionAttenPreloadMla<IFAT>::InitQuant(
     }
 }
 
-template <typename IFAT>
-__aicore__ inline void FusedIncreFlashAttentionAttenPreloadMla<IFAT>::InitAntiquant(
+template <typename FIAT>
+__aicore__ inline void FiaKernelNonQuantMla<FIAT>::InitAntiquant(
     __gm__ uint8_t *antiquantScale, __gm__ uint8_t *antiquantOffset, __gm__ uint8_t *keyAntiquantScale,
     __gm__ uint8_t *keyAntiquantOffset, __gm__ uint8_t *valueAntiquantScale, __gm__ uint8_t *valueAntiquantOffset,
     __gm__ uint8_t *keyRopeAntiquantScale)
@@ -745,7 +677,7 @@ __aicore__ inline void FusedIncreFlashAttentionAttenPreloadMla<IFAT>::InitAntiqu
     }
 }
 
-template <typename IFAT> __aicore__ inline void FusedIncreFlashAttentionAttenPreloadMla<IFAT>::InitCalcParamsEach()
+template <typename FIAT> __aicore__ inline void FiaKernelNonQuantMla<FIAT>::InitCalcParamsEach()
 {
     // 这里是编译器优化写法，定义一个局部数组变量coreSidxEnd(存在栈上)，使用copy_data_align64接口
     // 可以只从ub中拷贝tiling中coreSidxEnd的内容到栈上，而非将整个increFlashAttentionCoreParams
@@ -777,24 +709,8 @@ template <typename IFAT> __aicore__ inline void FusedIncreFlashAttentionAttenPre
     constInfo.coreStartKVSplitPos = s2SplitStartIdxOfCore[aiCoreIdx];
 }
 
-template <typename IFAT>
-template <typename RT>
-__aicore__ inline void
-FusedIncreFlashAttentionAttenPreloadMla<IFAT>::RowsCopyGmToUb(const LocalTensor<RT> &dst, const GlobalTensor<RT> &src,
-                                                              uint32_t dealRowCount, uint32_t columnCount,
-                                                              uint32_t actualColumnCount)
-{
-    DataCopyParams dataCopyParams;
-    dataCopyParams.blockCount = dealRowCount;
-    dataCopyParams.blockLen = (actualColumnCount * sizeof(RT)) / fa_base_vector::BYTE_BLOCK;
-    dataCopyParams.srcStride = 0;
-    dataCopyParams.dstStride = (columnCount - actualColumnCount) * sizeof(RT) / fa_base_vector::BYTE_BLOCK;
-    DataCopy(dst, src, dataCopyParams);
-}
-
-
-template <typename IFAT>
-__aicore__ inline void FusedIncreFlashAttentionAttenPreloadMla<IFAT>::CalcParams(uint32_t loop, uint64_t s2Start,
+template <typename FIAT>
+__aicore__ inline void FiaKernelNonQuantMla<FIAT>::CalcParams(uint32_t loop, uint64_t s2Start,
                                                                                  uint32_t s2LoopIdx, AttentionCommon::RunInfo &info)
 {
     info.loop = loop;
@@ -805,7 +721,6 @@ __aicore__ inline void FusedIncreFlashAttentionAttenPreloadMla<IFAT>::CalcParams
 
     info.tndIsS2SplitCore = tempLoopInfo.tndIsS2SplitCore;
     info.tndCoreStartKVSplitPos = tempLoopInfo.tndCoreStartKVSplitPos;
-    info.isBmm2Output = false;
 
     info.actS1Size = tempLoopInfo.actS1Size;
     info.actS2Size = tempLoopInfo.curActualSeqLen;
@@ -824,27 +739,6 @@ __aicore__ inline void FusedIncreFlashAttentionAttenPreloadMla<IFAT>::CalcParams
     }
 
     info.isValid = s2LoopIdx < tempLoopInfo.s2LoopTimes;
-    // if constexpr (!FLASH_DECODE && (constInfo.outputLayout == LAYOUT_T)) {
-    //     info.isBmm2Output = (info.curSInnerLoopTimes == 1);
-    // }
-
-    if constexpr (ANTIQUANT) {
-        info.isBmm2Output = false;
-    }
-
-    if ASCEND_IS_AIV {
-        info.mSize = info.actMBaseSize;
-        if constexpr (AMLA != AMLA_MODE::NORMAL) {
-            info.mSizeV = (info.mSize <= 16) ? info.mSize : (((info.mSize + 15) / 16 + 1) / 2 * 16);
-        } else {
-            info.mSizeV = (info.mSize + 1) / 2;
-        }
-        info.mSizeVStart = 0;
-        if (tmpBlockIdx % 2 == 1) {
-            info.mSizeVStart = info.mSizeV;
-            info.mSizeV = info.mSize - info.mSizeV;
-        }
-    }
 
     if (batchContinuous) {
         info.isChangeBatch = false;
@@ -913,10 +807,6 @@ __aicore__ inline void FusedIncreFlashAttentionAttenPreloadMla<IFAT>::CalcParams
     }
     info.attenOutOffset = tensorACoreOffset;
 
-    info.antiqKeyParamOffset = info.n2Idx * headDim;
-    info.antiqValueParamOffset = info.n2Idx * headDim;
-    info.antiqKeyRopeParamOffset = info.n2Idx * headDimRope;
-
     uint64_t sInnerOffsetDataSize = info.s2Idx * constInfo.s2BaseSize;
 
     attenMaskCoreOffset = info.bIdx * constInfo.attenMaskSize;
@@ -925,8 +815,8 @@ __aicore__ inline void FusedIncreFlashAttentionAttenPreloadMla<IFAT>::CalcParams
     info.s2BatchOffset = s2BatchBaseOffset + sInnerOffsetDataSize;
 }
 
-template <typename IFAT>
-__aicore__ inline void FusedIncreFlashAttentionAttenPreloadMla<IFAT>::ComputeMm1(const AttentionCommon::RunInfo &info)
+template <typename FIAT>
+__aicore__ inline void FiaKernelNonQuantMla<FIAT>::ComputeMm1(const AttentionCommon::RunInfo &info)
 {
     if (info.isChangeBatch) {
         InitKeyGm(info.bIdx);
@@ -943,8 +833,8 @@ __aicore__ inline void FusedIncreFlashAttentionAttenPreloadMla<IFAT>::ComputeMm1
     }
 }
 
-template <typename IFAT>
-__aicore__ inline void FusedIncreFlashAttentionAttenPreloadMla<IFAT>::ComputeMm2(const AttentionCommon::RunInfo &info)
+template <typename FIAT>
+__aicore__ inline void FiaKernelNonQuantMla<FIAT>::ComputeMm2(const AttentionCommon::RunInfo &info)
 {
     if (info.isChangeBatch) {
         InitValueGm(info.bIdx);
@@ -963,8 +853,8 @@ __aicore__ inline void FusedIncreFlashAttentionAttenPreloadMla<IFAT>::ComputeMm2
     }
 }
 
-template <typename IFAT>
-__aicore__ inline void FusedIncreFlashAttentionAttenPreloadMla<IFAT>::FlashDecode()
+template <typename FIAT>
+__aicore__ inline void FiaKernelNonQuantMla<FIAT>::FlashDecode()
 {
     if (tmpBlockIdx < tilingData->fdParams.usedVecNumOfFd) {
         FDparams fdParams;
@@ -1019,7 +909,7 @@ __aicore__ inline void FusedIncreFlashAttentionAttenPreloadMla<IFAT>::FlashDecod
     }
 }
 
-template <typename IFAT> __aicore__ inline void FusedIncreFlashAttentionAttenPreloadMla<IFAT>::Process()
+template <typename FIAT> __aicore__ inline void FiaKernelNonQuantMla<FIAT>::Process()
 {
     // usedCoreNum: 使用的总核数
     if (aiCoreIdx < usedCoreNum) {
@@ -1045,15 +935,15 @@ template <typename IFAT> __aicore__ inline void FusedIncreFlashAttentionAttenPre
     }
 }
 
-template <typename IFAT>
-__aicore__ inline void FusedIncreFlashAttentionAttenPreloadMla<IFAT>::GetBN2Idx(uint32_t bN2Idx, uint32_t &bIdx,
+template <typename FIAT>
+__aicore__ inline void FiaKernelNonQuantMla<FIAT>::GetBN2Idx(uint32_t bN2Idx, uint32_t &bIdx,
                                                                                 uint32_t &n2Idx)
 {
     bIdx = bN2Idx / kvHeadNum;
     n2Idx = bN2Idx % kvHeadNum;
 }
 
-template <typename IFAT> __aicore__ inline void FusedIncreFlashAttentionAttenPreloadMla<IFAT>::ProcessBalance()
+template <typename FIAT> __aicore__ inline void FiaKernelNonQuantMla<FIAT>::ProcessBalance()
 {
     AttentionCommon::RunInfo extraInfo[FIA_PRELOAD_TASK_CACHE_SIZE];
     uint32_t gloop = 0;
@@ -1103,9 +993,9 @@ template <typename IFAT> __aicore__ inline void FusedIncreFlashAttentionAttenPre
     }
 }
 
-template <typename IFAT>
+template <typename FIAT>
 __aicore__ inline void
-FusedIncreFlashAttentionAttenPreloadMla<IFAT>::PreloadPipeline(uint32_t loop, uint64_t s2Start, uint64_t s2LoopIdx,
+FiaKernelNonQuantMla<FIAT>::PreloadPipeline(uint32_t loop, uint64_t s2Start, uint64_t s2LoopIdx,
                                                                AttentionCommon::RunInfo extraInfo[FIA_PRELOAD_TASK_CACHE_SIZE])
 {
     AttentionCommon::RunInfo &extraInfo0 = extraInfo[loop % FIA_PRELOAD_TASK_CACHE_SIZE];       // 本轮任务
@@ -1135,9 +1025,9 @@ FusedIncreFlashAttentionAttenPreloadMla<IFAT>::PreloadPipeline(uint32_t loop, ui
     }
 }
 
-template <typename IFAT>
+template <typename FIAT>
 __aicore__ inline uint64_t
-FusedIncreFlashAttentionAttenPreloadMla<IFAT>::GetBalanceActualSeqLengths(GlobalTensor<uint64_t> &actualSeqLengths,
+FiaKernelNonQuantMla<FIAT>::GetBalanceActualSeqLengths(GlobalTensor<uint64_t> &actualSeqLengths,
                                                                           uint32_t bIdx)
 {
     if constexpr (LAYOUT_T == FIA_LAYOUT::TND) {
@@ -1159,8 +1049,8 @@ FusedIncreFlashAttentionAttenPreloadMla<IFAT>::GetBalanceActualSeqLengths(Global
     }
 }
 
-template <typename IFAT>
-__aicore__ inline void FusedIncreFlashAttentionAttenPreloadMla<IFAT>::GetAxisEndIdx(uint32_t bN2End, uint32_t s1GEnd,
+template <typename FIAT>
+__aicore__ inline void FiaKernelNonQuantMla<FIAT>::GetAxisEndIdx(uint32_t bN2End, uint32_t s1GEnd,
                                                                                     uint32_t s2End)
 {
     constInfo.bN2End = bN2End;
@@ -1190,4 +1080,4 @@ __aicore__ inline void FusedIncreFlashAttentionAttenPreloadMla<IFAT>::GetAxisEnd
     UpdateInnerNum(s2BaseNum, actualSeqQ, actualSeqKV, constInfo.gS1End); 
     constInfo.s2End = s2BaseNum - 1;
 }
-#endif // FIA_KERNEL_MLA_H
+#endif // FIA_KERNEL_NONQUANT_MLA_H

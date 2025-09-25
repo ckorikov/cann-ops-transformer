@@ -34,7 +34,7 @@ if(NOT BUILD_OPS_RTY_KERNEL) #
     target_sources(${OPHOST_NAME}_tiling_obj PRIVATE
         ../../common/op_host/fia_tiling_shape.cpp
         ../../common/op_host/fia_tiling_info.cpp
-        ../../common/op_host/arch32/fia_tiling_mla.cpp
+        ../../common/op_host/arch32/fia_tiling_nonquant_mla.cpp
         ../regbase/ophost/fused_infer_attention_score_tiling_v2.cpp
         ../../common/op_host/arch-310/flash_attention_score_tiling_regbase.cpp
         ../../common/op_host/arch-310/flash_attention_score_grad_tiling_s1s2_bn2gs1s2_regbase.cpp

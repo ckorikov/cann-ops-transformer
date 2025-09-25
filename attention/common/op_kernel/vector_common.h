@@ -595,15 +595,6 @@ __aicore__ inline void Bmm2DataCopyOutNBSDMTiling(LocalTensor<OUT_T> &attenOutUb
                                                   GlobalTensor<uint64_t> &actualSeqLengthsGmQ,
                                                   GlobalTensor<OUT_T> &attentionOutGm)
 {
-    /*
-    attenOutUb: gCount(S1G)*D，gCount是两个vec和M轴切分的结果
-    uint32_t s1StartIdx = info.s1Idx * constInfo.s1SizeSub + (mSizeVStart + startRow) / info.gSize;
-    uint32_t s1EndIdx = info.s1Idx * constInfo.s1SizeSub + (mSizeVStart + startRow + dealRowCount - 1) / info.gSize;
-    uint32_t s1Count = s1EndIdx - s1StartIdx + 1;
-    uint32_t gStartIdx = (mSizeVStart + startRow) % gSize;
-    uint32_t gEndIdx = (mSizeVStart + startRow + dealRowCount - 1) % gSize;
-    uint32_t gCount = dealRowCount;
-    */
     uint32_t tSize = constInfo.batchSize * constInfo.qSeqSize;
     uint32_t tBase = transInfo.bIdx * constInfo.qSeqSize;
     if constexpr (LAYOUT_T == FIA_LAYOUT::TND) {
@@ -630,8 +621,6 @@ __aicore__ inline void Bmm2DataCopyOutNBSDMTiling(LocalTensor<OUT_T> &attenOutUb
                                   tBase * headDim +                                     // B轴的偏移
                                   s1Idx * headDim;                                      // S1轴的偏移
         bool dstStrideFlag = ((tSize - 1) * headDim * sizeof(OUT_T) / 32U) > UINT16_MAX ? 1 : 0;
-        // bool dstStrideFlag = ((constInfo.batchSize * constInfo.qSeqSize - transInfo.s1Size) * headDim * sizeof(OUT_T)
-        // / 32U) > UINT16_MAX ? 1 : 0;
         if (dstStrideFlag) {
             DataCopyExtParams dataCopyParams;
             dataCopyParams.blockCount = gCountOneS1;

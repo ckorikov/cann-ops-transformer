@@ -32,7 +32,7 @@ set(_FIA_TilingSourcesExt
         ${OPS_TRANSFORMER_DIR}/attention/fused_infer_attention_score/op_host/fused_infer_attention_score_tiling_info_parser.cpp
         ${OPS_TRANSFORMER_DIR}/attention/common/op_host/fia_tiling_info.cpp
         ${OPS_TRANSFORMER_DIR}/attention/common/op_host/fia_tiling_shape.cpp
-        ${OPS_TRANSFORMER_DIR}/attention/common/op_host/arch32/fia_tiling_mla.cpp
+        ${OPS_TRANSFORMER_DIR}/attention/common/op_host/arch32/fia_tiling_nonquant_mla.cpp
 )
 
 set(_FIA_KernelTilingDataDefH

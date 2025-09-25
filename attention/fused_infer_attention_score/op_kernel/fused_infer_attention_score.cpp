@@ -40,10 +40,9 @@ extern "C" __global__ __aicore__ void fused_infer_attention_score(__gm__ uint8_t
                                                              __gm__ uint8_t* learnableSink, __gm__ uint8_t* qStartIdx, __gm__ uint8_t* kvStartIdx,
                                                              __gm__ uint8_t* attentionOut, __gm__ uint8_t* softmaxLse, __gm__ uint8_t* workspace,
                                                              __gm__ uint8_t* tiling) {
-  // judge ifa or pfa by range of tilingKey
-  // todo mmd update tiling key
-  if(TILING_KEY_VAR >= 1000000000000000000) {
-    #if (__CCE_AICORE__ == 310) || (defined __DAV_310R6__)
+  // judge ifa or pfa or fia by range of tilingKey
+  if(TILING_KEY_VAR >= 1000000000000000000) { // 10^18
+#if (__CCE_AICORE__ == 310) || (defined __DAV_310R6__)
       prompt_flash_attention_FIAS(query, key, value, pse_shift, attenMask, actualSeqLengths, 
                                   actualSeqLengthsKV, deq_scale1, quant_scale1,
                                   deq_scale2, quant_scale2, quant_offset2, antiquantScale, 
@@ -52,7 +51,7 @@ extern "C" __global__ __aicore__ void fused_infer_attention_score(__gm__ uint8_t
                                   valueAntiquantOffset, keySharedPrefix, valueSharedPrefix, 
                                   actualSharedPrefixLen, queryRope, keyRope, learnableSink,
                                   attentionOut, softmaxLse, workspace, tiling);
-    #else //__CCE_AICORE__ > 200
+#else //__CCE_AICORE__ > 200
       prompt_flash_attention_FIAS(query, key, value, pse_shift, attenMask, actualSeqLengths, 
                                   actualSeqLengthsKV, deq_scale1, quant_scale1,
                                   deq_scale2, quant_scale2, quant_offset2, antiquantScale, 
@@ -61,14 +60,14 @@ extern "C" __global__ __aicore__ void fused_infer_attention_score(__gm__ uint8_t
                                   valueAntiquantOffset, keySharedPrefix, valueSharedPrefix, 
                                   actualSharedPrefixLen, queryRope, keyRope, learnableSink, 
                                   attentionOut, softmaxLse, workspace, tiling);
-  } else if (TILING_KEY_VAR >= 100000000000000000) {
+  } else if (TILING_KEY_VAR >= 100000000000000000) { // 10^17
     fused_infer_attention(query, key, value, pse_shift, attenMask, actualSeqLengths,
                           actualSeqLengthsKV, deq_scale1, quant_scale1, deq_scale2, quant_scale2,
                           quant_offset2, antiquantScale, antiquantOffset, blocktable, queryPaddingSize, kvPaddingSize,
                           keyAntiquantScale, keyAntiquantOffset, valueAntiquantScale, valueAntiquantOffset,
                           keySharedPrefix, valueSharedPrefix, actualSharedPrefixLen, queryRope, keyRope, keyRopeAntiquantScale,
                           attentionOut, softmaxLse, workspace, tiling);
-    #endif
+#endif
   } else {
 
     incre_flash_attention_FIAS(query, key, value, pse_shift, attenMask, actualSeqLengths,

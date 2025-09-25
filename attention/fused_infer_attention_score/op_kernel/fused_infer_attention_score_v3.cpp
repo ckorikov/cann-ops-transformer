@@ -9,7 +9,7 @@
  */
 
 /*!
- * \file incre_flash_attention.cpp
+ * \file fused_infer_attention_score_v3.cpp
  * \brief
  */
 
@@ -20,7 +20,7 @@
 // 在这组DType中，若没有mla模板的key，包含mla模板编译会报错：unknown type name 'FusedInferAttentionScoreTilingData'
 #if ((ORIG_DTYPE_QUERY == DT_FLOAT16) && (ORIG_DTYPE_ATTENTION_OUT == DT_FLOAT16) && (ORIG_DTYPE_KEY == DT_FLOAT16)) || \
     ((ORIG_DTYPE_QUERY == DT_BF16) && (ORIG_DTYPE_ATTENTION_OUT == DT_BF16) && (ORIG_DTYPE_KEY == DT_BF16))
-#include "../../common/op_kernel/arch32/fia_kernel_mla.h"
+#include "../../common/op_kernel/arch32/fia_kernel_nonquant_mla.h"
 #endif
 #endif // FIA_ENABLE_MLA
 
@@ -88,53 +88,53 @@ extern "C" __global__ __aicore__ void fused_infer_attention(
     TILING_KEY_IS(105000000000300002);
 // fp16 7buf_nz
 #if TILING_KEY_VAR == 105000000020200001 // 7buf
-    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FusedIncreFlashAttentionAttenPreloadMla, half, half, half, half, true, false,
+    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, half, half, half, half, true, false,
                                   FIA_LAYOUT::BSH, false, false, FIA_LAYOUT::NZ);
 #elif TILING_KEY_VAR == 105000000020300001 // 7buf
-    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FusedIncreFlashAttentionAttenPreloadMla, half, half, half, half, true, true,
+    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, half, half, half, half, true, true,
                                   FIA_LAYOUT::BSH, false, false, FIA_LAYOUT::NZ);
 #elif TILING_KEY_VAR == 105000000020200002 // 7buf
-    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FusedIncreFlashAttentionAttenPreloadMla, half, half, half, half, true, false,
+    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, half, half, half, half, true, false,
                                   FIA_LAYOUT::TND, false, false, FIA_LAYOUT::NZ);
 #elif TILING_KEY_VAR == 105000000020300002 // 7buf
-    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FusedIncreFlashAttentionAttenPreloadMla, half, half, half, half, true, true,
+    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, half, half, half, half, true, true,
                                   FIA_LAYOUT::TND, false, false, FIA_LAYOUT::NZ);
 // fp16 7buf_nd
 #elif TILING_KEY_VAR == 105000000010200000 // 7buf
-    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FusedIncreFlashAttentionAttenPreloadMla, half, half, half, half, true, false,
+    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, half, half, half, half, true, false,
                                   FIA_LAYOUT::BNSD, false, false, FIA_LAYOUT::BSH);
 #elif TILING_KEY_VAR == 105000000010300000 // 7buf
-    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FusedIncreFlashAttentionAttenPreloadMla, half, half, half, half, true, true,
+    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, half, half, half, half, true, true,
                                   FIA_LAYOUT::BNSD, false, false, FIA_LAYOUT::BSH);
 #elif TILING_KEY_VAR == 105000000000200000 // 7buf
-    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FusedIncreFlashAttentionAttenPreloadMla, half, half, half, half, true, false,
+    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, half, half, half, half, true, false,
                                   FIA_LAYOUT::BNSD, false, false, FIA_LAYOUT::BNSD);
 #elif TILING_KEY_VAR == 105000000000300000 // 7buf
-    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FusedIncreFlashAttentionAttenPreloadMla, half, half, half, half, true, true,
+    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, half, half, half, half, true, true,
                                   FIA_LAYOUT::BNSD, false, false, FIA_LAYOUT::BNSD);
 #elif TILING_KEY_VAR == 105000000010000001 // 7buf
-    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FusedIncreFlashAttentionAttenPreloadMla, half, half, half, half, false, false,
+    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, half, half, half, half, false, false,
                                   FIA_LAYOUT::BSH, false, false, FIA_LAYOUT::BSH);
 #elif TILING_KEY_VAR == 105000000010100001 // 7buf
-    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FusedIncreFlashAttentionAttenPreloadMla, half, half, half, half, false, true,
+    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, half, half, half, half, false, true,
                                   FIA_LAYOUT::BSH, false, false, FIA_LAYOUT::BSH);
 #elif TILING_KEY_VAR == 105000000010200001 // 7buf
-    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FusedIncreFlashAttentionAttenPreloadMla, half, half, half, half, true, false,
+    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, half, half, half, half, true, false,
                                   FIA_LAYOUT::BSH, false, false, FIA_LAYOUT::BSH);
 #elif TILING_KEY_VAR == 105000000010300001 // 7buf
-    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FusedIncreFlashAttentionAttenPreloadMla, half, half, half, half, true, true,
+    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, half, half, half, half, true, true,
                                   FIA_LAYOUT::BSH, false, false, FIA_LAYOUT::BSH);
 #elif TILING_KEY_VAR == 105000000010200002 // 7buf
-    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FusedIncreFlashAttentionAttenPreloadMla, half, half, half, half, true, false,
+    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, half, half, half, half, true, false,
                                   FIA_LAYOUT::TND, false, false, FIA_LAYOUT::BSH);
 #elif TILING_KEY_VAR == 105000000010300002 // 7buf
-    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FusedIncreFlashAttentionAttenPreloadMla, half, half, half, half, true, true,
+    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, half, half, half, half, true, true,
                                   FIA_LAYOUT::TND, false, false, FIA_LAYOUT::BSH);
 #elif TILING_KEY_VAR == 105000000000200002 // 7buf
-    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FusedIncreFlashAttentionAttenPreloadMla, half, half, half, half, true, false,
+    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, half, half, half, half, true, false,
                                   FIA_LAYOUT::TND, false, false, FIA_LAYOUT::BNSD);
 #elif TILING_KEY_VAR == 105000000000300002 // 7buf
-    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FusedIncreFlashAttentionAttenPreloadMla, half, half, half, half, true, true,
+    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, half, half, half, half, true, true,
                                   FIA_LAYOUT::TND, false, false, FIA_LAYOUT::BNSD);
 #endif
 #endif
@@ -161,54 +161,54 @@ extern "C" __global__ __aicore__ void fused_infer_attention(
 
 // bf16 7buf_nz
 #if TILING_KEY_VAR == 105000000020222221 // 7buf
-    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FusedIncreFlashAttentionAttenPreloadMla, bfloat16_t, bfloat16_t, bfloat16_t,
+    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, bfloat16_t, bfloat16_t, bfloat16_t,
                                   bfloat16_t, true, false, FIA_LAYOUT::BSH, false, false, FIA_LAYOUT::NZ);
 #elif TILING_KEY_VAR == 105000000020322221 // 7buf
-    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FusedIncreFlashAttentionAttenPreloadMla, bfloat16_t, bfloat16_t, bfloat16_t,
+    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, bfloat16_t, bfloat16_t, bfloat16_t,
                                   bfloat16_t, true, true, FIA_LAYOUT::BSH, false, false, FIA_LAYOUT::NZ);
 #elif TILING_KEY_VAR == 105000000020222222 // 7buf
-    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FusedIncreFlashAttentionAttenPreloadMla, bfloat16_t, bfloat16_t, bfloat16_t,
+    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, bfloat16_t, bfloat16_t, bfloat16_t,
                                   bfloat16_t, true, false, FIA_LAYOUT::TND, false, false, FIA_LAYOUT::NZ);
 #elif TILING_KEY_VAR == 105000000020322222 // 7buf
-    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FusedIncreFlashAttentionAttenPreloadMla, bfloat16_t, bfloat16_t, bfloat16_t,
+    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, bfloat16_t, bfloat16_t, bfloat16_t,
                                   bfloat16_t, true, true, FIA_LAYOUT::TND, false, false, FIA_LAYOUT::NZ);
 // #ifdef ND_7BUFFER
 // 7buf_nd
 #elif TILING_KEY_VAR == 105000000010222220 // 7buf
-    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FusedIncreFlashAttentionAttenPreloadMla, bfloat16_t, bfloat16_t, bfloat16_t,
+    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, bfloat16_t, bfloat16_t, bfloat16_t,
                                   bfloat16_t, true, false, FIA_LAYOUT::BNSD, false, false, FIA_LAYOUT::BSH);
 #elif TILING_KEY_VAR == 105000000010322220 // 7buf
-    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FusedIncreFlashAttentionAttenPreloadMla, bfloat16_t, bfloat16_t, bfloat16_t,
+    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, bfloat16_t, bfloat16_t, bfloat16_t,
                                   bfloat16_t, true, true, FIA_LAYOUT::BNSD, false, false, FIA_LAYOUT::BSH);
 #elif TILING_KEY_VAR == 105000000000222220 // 7buf
-    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FusedIncreFlashAttentionAttenPreloadMla, bfloat16_t, bfloat16_t, bfloat16_t,
+    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, bfloat16_t, bfloat16_t, bfloat16_t,
                                   bfloat16_t, true, false, FIA_LAYOUT::BNSD, false, false, FIA_LAYOUT::BNSD);
 #elif TILING_KEY_VAR == 105000000000322220 // 7buf
-    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FusedIncreFlashAttentionAttenPreloadMla, bfloat16_t, bfloat16_t, bfloat16_t,
+    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, bfloat16_t, bfloat16_t, bfloat16_t,
                                   bfloat16_t, true, true, FIA_LAYOUT::BNSD, false, false, FIA_LAYOUT::BNSD);
 #elif TILING_KEY_VAR == 105000000010022221 // 7buf
-    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FusedIncreFlashAttentionAttenPreloadMla, bfloat16_t, bfloat16_t, bfloat16_t,
+    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, bfloat16_t, bfloat16_t, bfloat16_t,
                                   bfloat16_t, false, false, FIA_LAYOUT::BSH, false, false, FIA_LAYOUT::BSH);
 #elif TILING_KEY_VAR == 105000000010122221 // 7buf
-    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FusedIncreFlashAttentionAttenPreloadMla, bfloat16_t, bfloat16_t, bfloat16_t,
+    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, bfloat16_t, bfloat16_t, bfloat16_t,
                                    bfloat16_t, false, true, FIA_LAYOUT::BSH, false, false, FIA_LAYOUT::BSH);
 #elif TILING_KEY_VAR == 105000000010222221 // 7buf
-    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FusedIncreFlashAttentionAttenPreloadMla, bfloat16_t, bfloat16_t, bfloat16_t,
+    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, bfloat16_t, bfloat16_t, bfloat16_t,
                                   bfloat16_t, true, false, FIA_LAYOUT::BSH, false, false, FIA_LAYOUT::BSH);
 #elif TILING_KEY_VAR == 105000000010322221 // 7buf
-    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FusedIncreFlashAttentionAttenPreloadMla, bfloat16_t, bfloat16_t, bfloat16_t,
+    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, bfloat16_t, bfloat16_t, bfloat16_t,
                                   bfloat16_t, true, true, FIA_LAYOUT::BSH, false, false, FIA_LAYOUT::BSH);
 #elif TILING_KEY_VAR == 105000000010222222 // 7buf
-    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FusedIncreFlashAttentionAttenPreloadMla, bfloat16_t, bfloat16_t, bfloat16_t,
+    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, bfloat16_t, bfloat16_t, bfloat16_t,
                                   bfloat16_t, true, false, FIA_LAYOUT::TND, false, false, FIA_LAYOUT::BSH);
 #elif TILING_KEY_VAR == 105000000010322222 // 7buf
-    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FusedIncreFlashAttentionAttenPreloadMla, bfloat16_t, bfloat16_t, bfloat16_t,
+    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, bfloat16_t, bfloat16_t, bfloat16_t,
                                   bfloat16_t, true, true, FIA_LAYOUT::TND, false, false, FIA_LAYOUT::BSH);
 #elif TILING_KEY_VAR == 105000000000222222 // 7buf
-    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FusedIncreFlashAttentionAttenPreloadMla, bfloat16_t, bfloat16_t, bfloat16_t,
+    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, bfloat16_t, bfloat16_t, bfloat16_t,
                                   bfloat16_t, true, false, FIA_LAYOUT::TND, false, false, FIA_LAYOUT::BNSD);
 #elif TILING_KEY_VAR == 105000000000322222 // 7buf
-    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FusedIncreFlashAttentionAttenPreloadMla, bfloat16_t, bfloat16_t, bfloat16_t,
+    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, bfloat16_t, bfloat16_t, bfloat16_t,
                                   bfloat16_t, true, true, FIA_LAYOUT::TND, false, false, FIA_LAYOUT::BNSD);
 #endif
 #endif

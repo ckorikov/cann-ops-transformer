@@ -48,17 +48,9 @@ enum class FIA_LAYOUT : uint32_t
     NTD = 5
 };
 
-enum class AMLA_MODE : uint32_t
-{
-    NORMAL = 0,
-    AMLA = 1,
-    AMLA_3BUF = 2
-};
-
 template <typename Q_T, typename KV_T, typename OUT_T, typename ORIGIN_T, const bool PAGE_ATTENTION = false,
           const bool FLASH_DECODE = false, FIA_LAYOUT LAYOUT_T = FIA_LAYOUT::BSH, const uint8_t ANTIQUANT_MODE = 0,
-          const bool SHARED_PREFIX = false, FIA_LAYOUT KV_LAYOUT_T = FIA_LAYOUT::BSH,
-          const AMLA_MODE AMLA = AMLA_MODE::NORMAL, const bool BALANCE = false, typename... Args>
+          const bool SHARED_PREFIX = false, FIA_LAYOUT KV_LAYOUT_T = FIA_LAYOUT::BSH, typename... Args>
 struct FIAType {
     using queryType = Q_T;
     using kvType = KV_T;
@@ -70,8 +62,6 @@ struct FIAType {
     static constexpr uint8_t antiquantMode = ANTIQUANT_MODE;
     static constexpr bool sharedPrefix = SHARED_PREFIX;
     static constexpr FIA_LAYOUT kvLayout = KV_LAYOUT_T;
-    static constexpr AMLA_MODE isAMla = AMLA;
-    static constexpr bool isBalance = BALANCE;
 };
 
 struct FDparams {
@@ -109,17 +99,10 @@ struct RunInfo {
     uint32_t gSize;
     uint32_t s1Size;
     uint32_t s2Size;
-    uint32_t mSize;
-    uint32_t mSizeV;
-    uint32_t mSizeVStart;
     uint32_t tndIsS2SplitCore;
     uint32_t tndCoreStartKVSplitPos;
-    bool isBmm2Output;
     bool isValid = false;
 
-    uint64_t antiqKeyParamOffset;
-    uint64_t antiqKeyRopeParamOffset;
-    uint64_t antiqValueParamOffset;
     static constexpr uint32_t n2Idx = 0;
     uint64_t actS1Size = 1;
 

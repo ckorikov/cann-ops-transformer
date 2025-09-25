@@ -788,7 +788,7 @@ void FiaInfoParser::GenerateInfo(FiaTilingInfo &fiaInfo)
     fiaInfo.innerPrecise = *opParamInfo_.innerPrecise;
     fiaInfo.pageAttentionFlag = (kvStorageMode_ == KvStorageMode::PAGE_ATTENTION);
     fiaInfo.blockSize = blockSize_;
-    fiaInfo.blockTypeSize =  sizeof(float);
+    fiaInfo.blockTypeSize = sizeof(float);
     fiaInfo.maxBlockNumPerBatch = maxBlockNumPerBatch_;
 
     fiaInfo.actualLenQDims = actualLenQDims_;

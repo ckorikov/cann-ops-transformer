@@ -9,11 +9,11 @@
  */
 
 /*!
- * \file fia_tiling_mla.h
+ * \file fia_tiling_nonquant_mla.h
  * \brief
  */
-#ifndef FIA_TILING_MLA_NO_QUNAT_H
-#define FIA_TILING_MLA_NO_QUNAT_H
+#ifndef FIA_TILING_NONQUNAT_MLA_H
+#define FIA_TILING_NONQUNAT_MLA_H
 
 #include "register/tilingdata_base.h"
 #include "exe_graph/runtime/tiling_context.h"
@@ -23,10 +23,10 @@
 
 namespace optiling {
 
-class FiaMlaTiling : public FiaTilingBase {
+class FiaTilingNonQuantMla : public FiaTilingBase {
 public:
-    explicit FiaMlaTiling(gert::TilingContext *context) : FiaTilingBase(context) {}
-    ~FiaMlaTiling() override = default;
+    explicit FiaTilingNonQuantMla(gert::TilingContext *context) : FiaTilingBase(context) {}
+    ~FiaTilingNonQuantMla() override = default;
 
 protected:
     void InitTilingInfo(TilingInfo *tilingInfo) override;
@@ -42,7 +42,6 @@ private:
     void InitParams();
 
     void Split();
-    void SplitBalanced();
     void CalcInnerSize(uint32_t seqSize);
     void CalcMBaseSize();
 
@@ -51,9 +50,10 @@ private:
     void CalcMmResSize();
     void CalcMaxMmResSize();
 
-    void FillTilingBaseParamsMla();
-    void FillTilingWorkspaceParamsMla();
-    void FillTilingPageAttenParamsMla();
+    void FillTilingBaseParams();
+    void FillTilingPageAttenParams();
+    void FillTilingMaskParams();
+    void FillTilingWorkspaceParams();
 
     void FillTiling();
 
@@ -71,18 +71,12 @@ private:
     uint32_t kvSplitPart_ = 1;
     int64_t mm1ResSize_ = 0;
     int64_t mm2ResSize_ = 0;
-    size_t qPreSizeMla_= 0;
     uint32_t sInnerLoopTimes_ = 0;
-    uint32_t sInnerSize_ = 0; // flash attention
+    uint32_t sInnerSize_ = 0;
     uint32_t sInnerSizeTail_ = 0;
     uint32_t sInnerSizeAlign_ = 0;
     uint32_t kvSplit_ = 0;
     uint32_t usedCoreNum_ = 0;
-    uint32_t formerCoreNum_ = 0;
-    uint32_t blockSplitBn2Range_ = 0;
-    uint32_t tailSplitedBatchRange_ = 0;
-
-    uint32_t startIdxEachCore_[MAX_CORE_NUM] = {};
 
     // platform info
     uint32_t aicNum_ = 0;
@@ -104,4 +98,4 @@ private:
 };
 
 } // namespace optiling
-#endif // FIA_TILING_MLA_NO_QUNAT_H
+#endif // FIA_TILING_NONQUNAT_MLA_H

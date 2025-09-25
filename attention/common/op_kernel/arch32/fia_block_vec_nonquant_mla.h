@@ -9,11 +9,11 @@
  */
 
 /*!
- * \file service_vector_mla_amla.h
+ * \file fia_block_vec_nonquant_mla.h
  * \brief
  */
-#ifndef SERVICE_VECTOR_MLA_AMLA_H
-#define SERVICE_VECTOR_MLA_AMLA_H
+#ifndef FIA_BLOCK_VEC_NONQUANT_MLA_H
+#define FIA_BLOCK_VEC_NONQUANT_MLA_H
 
 #include "kernel_operator.h"
 #include "kernel_operator_list_tensor_intf.h"
@@ -27,30 +27,28 @@ using namespace AttentionCommon;
 using AscendC::CrossCoreSetFlag;
 using AscendC::CrossCoreWaitFlag;
 
-template <typename IFAT> 
-class IfaServiceFlashAttentionVector {
+template <typename FIAT> 
+class FiaBlockVecNonQuantMla {
 public:
     // =================================类型定义区=================================
     // 中间计算数据类型为float，高精度模式
     using T = float;
 
-    using Q_T = typename IFAT::queryType;
-    using KV_T = typename IFAT::kvType;
-    using OUT_T = typename IFAT::outputType;
-    using ORIGIN_T = typename IFAT::orginalType;
-    static constexpr bool PAGE_ATTENTION = IFAT::pageAttention;
-    static constexpr bool FLASH_DECODE = IFAT::flashDecode;
-    static constexpr FIA_LAYOUT LAYOUT_T = IFAT::layout;
-    static constexpr FIA_LAYOUT KV_LAYOUT_T = IFAT::kvLayout;
-    static constexpr AMLA_MODE AMLA = IFAT::isAMla;
-    static constexpr bool BALANCE = IFAT::isBalance;
+    using Q_T = typename FIAT::queryType;
+    using KV_T = typename FIAT::kvType;
+    using OUT_T = typename FIAT::outputType;
+    using ORIGIN_T = typename FIAT::orginalType;
+    static constexpr bool PAGE_ATTENTION = FIAT::pageAttention;
+    static constexpr bool FLASH_DECODE = FIAT::flashDecode;
+    static constexpr FIA_LAYOUT LAYOUT_T = FIAT::layout;
+    static constexpr FIA_LAYOUT KV_LAYOUT_T = FIAT::kvLayout;
 
     using UPDATE_T = T;
     using TMP_T = T;
     using MM1_OUT_T = float;
     using MM2_OUT_T = float;
 
-    __aicore__ inline IfaServiceFlashAttentionVector(){};
+    __aicore__ inline FiaBlockVecNonQuantMla(){};
     __aicore__ inline void ProcessVec1L(const AttentionCommon::RunInfo &info);
     __aicore__ inline void ProcessVec2L(const AttentionCommon::RunInfo &info);
     __aicore__ inline void InitBuffers(TPipe *pipe);
@@ -157,7 +155,7 @@ protected:
     static constexpr T BOOL_ATTEN_MASK_SCALAR_VALUE = -1000000000000.0; // 用于mask为bool类型
     static constexpr uint64_t kvHeadNum = 1ULL;
     static constexpr uint32_t BASE_BLOCK_MAX_ELEMENT_NUM = AttentionCommon::ConstInfo::BUFFER_SIZE_BYTE_32K / sizeof(T); // 32768/4=8096
-    static constexpr uint32_t BLOCK_ELEMENT_NUM = fa_base_vector::BYTE_BLOCK / sizeof(T);                               // 32/4=8
+    static constexpr uint32_t BLOCK_ELEMENT_NUM = fa_base_vector::BYTE_BLOCK / sizeof(T); // 32/4=8
     static constexpr T FLOAT_E_SCALAR = 8388608;
     static constexpr T LN2 = 0.6931471805599453094172;
     static constexpr T RECIP_OF_LN2 = 1 / LN2;
@@ -209,7 +207,7 @@ private:
     const FusedInferAttentionScoreTilingData *__restrict tilingData;
 };
 
-template <typename IFAT> __aicore__ inline void IfaServiceFlashAttentionVector<IFAT>::InitBuffers(TPipe *pipe)
+template <typename FIAT> __aicore__ inline void FiaBlockVecNonQuantMla<FIAT>::InitBuffers(TPipe *pipe)
 {
     // queue
     pipe->InitBuffer(inputBuff1, AttentionCommon::ConstInfo::BUFFER_SIZE_BYTE_32K * 2); // 2:pingpong
@@ -245,24 +243,24 @@ template <typename IFAT> __aicore__ inline void IfaServiceFlashAttentionVector<I
     softmaxSumDefaultUb = softmaxSumDefaultBuff.Get<T>();
 }
 
-template <typename IFAT>
+template <typename FIAT>
 __aicore__ inline void
-IfaServiceFlashAttentionVector<IFAT>::InitParams(const struct AttentionCommon::ConstInfo &constInfo,
+FiaBlockVecNonQuantMla<FIAT>::InitParams(const struct AttentionCommon::ConstInfo &constInfo,
                                                  const FusedInferAttentionScoreTilingData *__restrict tilingData)
 {
     this->constInfo = constInfo;
     this->tilingData = tilingData;
 }
 
-template <typename IFAT>
+template <typename FIAT>
 __aicore__ inline void
-IfaServiceFlashAttentionVector<IFAT>::InitMm2ResInt32GmGlobalTensor(GlobalTensor<int32_t> mm2ResInt32Gm)
+FiaBlockVecNonQuantMla<FIAT>::InitMm2ResInt32GmGlobalTensor(GlobalTensor<int32_t> mm2ResInt32Gm)
 {
     this->mm2ResInt32Gm = mm2ResInt32Gm;
 }
 
-template <typename IFAT>
-__aicore__ inline void IfaServiceFlashAttentionVector<IFAT>::InitVec1GlobalTensor(
+template <typename FIAT>
+__aicore__ inline void FiaBlockVecNonQuantMla<FIAT>::InitVec1GlobalTensor(
     GlobalTensor<MM1_OUT_T> mm1ResGm, GlobalTensor<KV_T> vec1ResGm, GlobalTensor<bool> attenMaskBoolGm,
     GlobalTensor<uint64_t> actualSeqLengthsGmQ, GlobalTensor<uint64_t> actualSeqLengthsGm, GlobalTensor<T> lseMaxFdGm,
     GlobalTensor<T> lseSumFdGm)
@@ -277,8 +275,8 @@ __aicore__ inline void IfaServiceFlashAttentionVector<IFAT>::InitVec1GlobalTenso
 }
 
 
-template <typename IFAT>
-__aicore__ inline void IfaServiceFlashAttentionVector<IFAT>::InitVec2GlobalTensor(GlobalTensor<T> accumOutGm,
+template <typename FIAT>
+__aicore__ inline void FiaBlockVecNonQuantMla<FIAT>::InitVec2GlobalTensor(GlobalTensor<T> accumOutGm,
                                                                                   GlobalTensor<UPDATE_T> vec2ResGm,
                                                                                   GlobalTensor<MM2_OUT_T> mm2ResGm,
                                                                                   GlobalTensor<OUT_T> attentionOutGm)
@@ -289,7 +287,7 @@ __aicore__ inline void IfaServiceFlashAttentionVector<IFAT>::InitVec2GlobalTenso
     this->attentionOutGm = attentionOutGm;
 }
 
-template <typename IFAT> __aicore__ inline void IfaServiceFlashAttentionVector<IFAT>::AllocEventID()
+template <typename FIAT> __aicore__ inline void FiaBlockVecNonQuantMla<FIAT>::AllocEventID()
 {
     SetFlag<AscendC::HardEvent::V_MTE2>(SYNC_INPUT_BUF1_FLAG);
     SetFlag<AscendC::HardEvent::V_MTE2>(SYNC_INPUT_BUF1_PONG_FLAG);
@@ -299,7 +297,7 @@ template <typename IFAT> __aicore__ inline void IfaServiceFlashAttentionVector<I
     SetFlag<AscendC::HardEvent::MTE3_V>(SYNC_OUTPUT_BUF2_FLAG);
 }
 
-template <typename IFAT> __aicore__ inline void IfaServiceFlashAttentionVector<IFAT>::FreeEventID()
+template <typename FIAT> __aicore__ inline void FiaBlockVecNonQuantMla<FIAT>::FreeEventID()
 {
     WaitFlag<AscendC::HardEvent::V_MTE2>(SYNC_INPUT_BUF1_FLAG);
     WaitFlag<AscendC::HardEvent::V_MTE2>(SYNC_INPUT_BUF1_PONG_FLAG);
@@ -309,15 +307,15 @@ template <typename IFAT> __aicore__ inline void IfaServiceFlashAttentionVector<I
     WaitFlag<AscendC::HardEvent::MTE3_V>(SYNC_OUTPUT_BUF2_FLAG);
 }
 
-template <typename IFAT> __aicore__ inline void IfaServiceFlashAttentionVector<IFAT>::InitSoftmaxDefaultBuffer()
+template <typename FIAT> __aicore__ inline void FiaBlockVecNonQuantMla<FIAT>::InitSoftmaxDefaultBuffer()
 {
     Duplicate(softmaxMaxDefaultUb, SOFTMAX_MIN_NUM, SOFTMAX_TMP_BUFFER_OFFSET / sizeof(T));
     Duplicate(softmaxSumDefaultUb, FLOAT_ZERO, SOFTMAX_TMP_BUFFER_OFFSET / sizeof(T));
 }
 
-template <typename IFAT>
+template <typename FIAT>
 __aicore__ inline void
-IfaServiceFlashAttentionVector<IFAT>::AttenMaskCopyDirectly(const AttentionCommon::RunInfo &info, LocalTensor<bool> &attenMaskUb,
+FiaBlockVecNonQuantMla<FIAT>::AttenMaskCopyDirectly(const AttentionCommon::RunInfo &info, LocalTensor<bool> &attenMaskUb,
                                                             uint32_t dealRowCount, uint32_t actualColumnCount)
 {
     LocalTensor<bool> maskUb = inputBuff2.Get<bool>();
@@ -352,8 +350,8 @@ IfaServiceFlashAttentionVector<IFAT>::AttenMaskCopyDirectly(const AttentionCommo
     }
 }
 
-template <typename IFAT>
-__aicore__ inline void IfaServiceFlashAttentionVector<IFAT>::ComputeLogSumExpAndCopyToGm(const AttentionCommon::RunInfo &info,
+template <typename FIAT>
+__aicore__ inline void FiaBlockVecNonQuantMla<FIAT>::ComputeLogSumExpAndCopyToGm(const AttentionCommon::RunInfo &info,
                                                                                          const MSplitInfo &mSplitInfo,
                                                                                          LocalTensor<T> &softmaxSumUb,
                                                                                          LocalTensor<T> &softmaxMaxUb)
@@ -390,9 +388,9 @@ __aicore__ inline void IfaServiceFlashAttentionVector<IFAT>::ComputeLogSumExpAnd
     SetFlag<AscendC::HardEvent::MTE3_V>(SYNC_OUTPUT_BUF2_FLAG);
 }
 
-template <typename IFAT>
+template <typename FIAT>
 __aicore__ inline void
-IfaServiceFlashAttentionVector<IFAT>::AttenMaskCopyForBNSD(const AttentionCommon::RunInfo &info, const MSplitInfo &mSplitInfo,
+FiaBlockVecNonQuantMla<FIAT>::AttenMaskCopyForBNSD(const AttentionCommon::RunInfo &info, const MSplitInfo &mSplitInfo,
                                                            LocalTensor<bool> &attenMaskUb, uint32_t startRow,
                                                            uint32_t dealRowCount)
 {
@@ -453,9 +451,9 @@ IfaServiceFlashAttentionVector<IFAT>::AttenMaskCopyForBNSD(const AttentionCommon
     attenMaskUb = attenMaskUbDst;
 }
 
-template <typename IFAT>
+template <typename FIAT>
 __aicore__ inline void
-IfaServiceFlashAttentionVector<IFAT>::AttenMaskCopyForSplitG(const AttentionCommon::RunInfo &info, const MSplitInfo &mSplitInfo,
+FiaBlockVecNonQuantMla<FIAT>::AttenMaskCopyForSplitG(const AttentionCommon::RunInfo &info, const MSplitInfo &mSplitInfo,
                                                              LocalTensor<bool> &attenMaskUb, uint32_t startRow,
                                                              uint32_t dealRowCount, bool &selectNext, bool &selectPre)
 {
@@ -563,8 +561,8 @@ IfaServiceFlashAttentionVector<IFAT>::AttenMaskCopyForSplitG(const AttentionComm
     attenMaskUb = attenMaskUbDst.template ReinterpretCast<bool>();
 }
 
-template <typename IFAT>
-__aicore__ inline bool IfaServiceFlashAttentionVector<IFAT>::IsSkipAttenMask(const AttentionCommon::RunInfo &info,
+template <typename FIAT>
+__aicore__ inline bool FiaBlockVecNonQuantMla<FIAT>::IsSkipAttenMask(const AttentionCommon::RunInfo &info,
                                                                              const MSplitInfo &mSplitInfo,
                                                                              uint32_t startRow, uint32_t dealRowCount)
 {
@@ -600,8 +598,8 @@ __aicore__ inline bool IfaServiceFlashAttentionVector<IFAT>::IsSkipAttenMask(con
     return false;
 }
 
-template <typename IFAT>
-__aicore__ inline void IfaServiceFlashAttentionVector<IFAT>::ElewiseCompute(
+template <typename FIAT>
+__aicore__ inline void FiaBlockVecNonQuantMla<FIAT>::ElewiseCompute(
     const AttentionCommon::RunInfo &info, const MSplitInfo &mSplitInfo, LocalTensor<T> &mmResUb, TBuf<> &tmpBuf, uint32_t startRow,
     uint32_t dealRowCount, uint32_t columnCount, uint32_t actualColumnCount)
 {
@@ -614,8 +612,8 @@ __aicore__ inline void IfaServiceFlashAttentionVector<IFAT>::ElewiseCompute(
 }
 
 
-template <typename IFAT>
-__aicore__ inline void IfaServiceFlashAttentionVector<IFAT>::AttentionMaskCompute(
+template <typename FIAT>
+__aicore__ inline void FiaBlockVecNonQuantMla<FIAT>::AttentionMaskCompute(
     const AttentionCommon::RunInfo &info, const MSplitInfo &mSplitInfo, LocalTensor<T> &mmResUb, TBuf<> &tmpBuf, uint32_t startRow,
     uint32_t dealRowCount, uint32_t columnCount, uint32_t actualColumnCount)
 {
@@ -656,8 +654,8 @@ __aicore__ inline void IfaServiceFlashAttentionVector<IFAT>::AttentionMaskComput
     SetFlag<AscendC::HardEvent::V_MTE2>(SYNC_INPUT_BUF2_FLAG + pingpongFlag);
 }
 
-template <typename IFAT>
-__aicore__ inline void IfaServiceFlashAttentionVector<IFAT>::SoftmaxFlashV2Compute(
+template <typename FIAT>
+__aicore__ inline void FiaBlockVecNonQuantMla<FIAT>::SoftmaxFlashV2Compute(
     const AttentionCommon::RunInfo &info, const MSplitInfo &mSplitInfo, LocalTensor<T> &mmResUb, LocalTensor<uint8_t> &softmaxTmpUb,
     uint32_t startRow, uint32_t dealRowCount, uint32_t columnCount, uint32_t actualColumnCount)
 {
@@ -683,8 +681,8 @@ __aicore__ inline void IfaServiceFlashAttentionVector<IFAT>::SoftmaxFlashV2Compu
         softmaxExpUb[softmaxOutOffset], inSumTensor, inMaxTensor, softmaxTmpUb, newTiling, srcShape);
 }
 
-template <typename IFAT>
-__aicore__ inline void IfaServiceFlashAttentionVector<IFAT>::AmlaVecCompute(
+template <typename FIAT>
+__aicore__ inline void FiaBlockVecNonQuantMla<FIAT>::AmlaVecCompute(
     const AttentionCommon::RunInfo &info, const MSplitInfo &mSplitInfo, LocalTensor<T> &mmResUb, LocalTensor<uint8_t> &softmaxTmpUb,
     uint32_t startRow, uint32_t dealRowCount, uint32_t columnCount, uint32_t actualColumnCount)
 {
@@ -776,10 +774,10 @@ __aicore__ inline void IfaServiceFlashAttentionVector<IFAT>::AmlaVecCompute(
     SetFlag<AscendC::HardEvent::MTE3_V>(SYNC_OUTPUT_BUF2_FLAG);
 }
 
-template <typename IFAT>
+template <typename FIAT>
 template <typename RT>
 __aicore__ inline void
-IfaServiceFlashAttentionVector<IFAT>::DealInvalidRowsBelow(const AttentionCommon::RunInfo &info, LocalTensor<RT> &attenOutUb,
+FiaBlockVecNonQuantMla<FIAT>::DealInvalidRowsBelow(const AttentionCommon::RunInfo &info, LocalTensor<RT> &attenOutUb,
                                                            uint32_t wsMStart, uint32_t dealRowCount, uint32_t columnCount)
 {
     // BSH and TND
@@ -802,10 +800,10 @@ IfaServiceFlashAttentionVector<IFAT>::DealInvalidRowsBelow(const AttentionCommon
     }
 }
 
-template <typename IFAT>
+template <typename FIAT>
 template <typename RT>
 __aicore__ inline void
-IfaServiceFlashAttentionVector<IFAT>::DealInvalidRows(const AttentionCommon::RunInfo &info, LocalTensor<RT> &attenOutUb,
+FiaBlockVecNonQuantMla<FIAT>::DealInvalidRows(const AttentionCommon::RunInfo &info, LocalTensor<RT> &attenOutUb,
                                                       uint32_t wsMStart, uint32_t dealRowCount, uint32_t columnCount,
                                                       uint32_t actualColumnCount)
 {
@@ -855,9 +853,9 @@ IfaServiceFlashAttentionVector<IFAT>::DealInvalidRows(const AttentionCommon::Run
 }
 
 
-template <typename IFAT>
+template <typename FIAT>
 __aicore__ inline void
-IfaServiceFlashAttentionVector<IFAT>::DealBmm1ResBaseBlock(const AttentionCommon::RunInfo &info, const MSplitInfo &mSplitInfo,
+FiaBlockVecNonQuantMla<FIAT>::DealBmm1ResBaseBlock(const AttentionCommon::RunInfo &info, const MSplitInfo &mSplitInfo,
                                                            uint32_t startRow, uint32_t dealRowCount,
                                                            uint32_t columnCount, uint32_t actualColumnCount)
 {
@@ -896,8 +894,8 @@ IfaServiceFlashAttentionVector<IFAT>::DealBmm1ResBaseBlock(const AttentionCommon
     SetFlag<AscendC::HardEvent::MTE3_V>(SYNC_OUTPUT_BUF1_FLAG);
 }
 
-template <typename IFAT>
-__aicore__ inline void IfaServiceFlashAttentionVector<IFAT>::ProcessAmlaNupdate(const AttentionCommon::RunInfo &info,
+template <typename FIAT>
+__aicore__ inline void FiaBlockVecNonQuantMla<FIAT>::ProcessAmlaNupdate(const AttentionCommon::RunInfo &info,
                                                                                 const MSplitInfo &mSplitInfo)
 {
     if (mSplitInfo.vecDealM == 0) {
@@ -958,8 +956,8 @@ __aicore__ inline void IfaServiceFlashAttentionVector<IFAT>::ProcessAmlaNupdate(
     SetFlag<AscendC::HardEvent::MTE3_V>(SYNC_OUTPUT_BUF2_FLAG);
 }
 
-template <typename IFAT>
-__aicore__ inline void IfaServiceFlashAttentionVector<IFAT>::ProcessVec1SingleBuf(const AttentionCommon::RunInfo &info,
+template <typename FIAT>
+__aicore__ inline void FiaBlockVecNonQuantMla<FIAT>::ProcessVec1SingleBuf(const AttentionCommon::RunInfo &info,
                                                                                   const MSplitInfo &mSplitInfo)
 {
     if (mSplitInfo.vecDealM == 0) {
@@ -985,7 +983,7 @@ __aicore__ inline void IfaServiceFlashAttentionVector<IFAT>::ProcessVec1SingleBu
     }
 }
 
-template <typename IFAT> __aicore__ inline void IfaServiceFlashAttentionVector<IFAT>::ProcessVec1L(const AttentionCommon::RunInfo &info)
+template <typename FIAT> __aicore__ inline void FiaBlockVecNonQuantMla<FIAT>::ProcessVec1L(const AttentionCommon::RunInfo &info)
 {
     uint32_t nBufferLoopTimes = (info.actMBaseSize + constInfo.nBufferMBaseSize - 1) / constInfo.nBufferMBaseSize;
     uint32_t nBufferTail = info.actMBaseSize - (nBufferLoopTimes - 1) * constInfo.nBufferMBaseSize;
@@ -1025,8 +1023,8 @@ template <typename IFAT> __aicore__ inline void IfaServiceFlashAttentionVector<I
     }
 }
 
-template <typename IFAT>
-__aicore__ inline uint64_t IfaServiceFlashAttentionVector<IFAT>::CalcAccumOffset(uint32_t bN2Idx, uint32_t gS1Idx)
+template <typename FIAT>
+__aicore__ inline uint64_t FiaBlockVecNonQuantMla<FIAT>::CalcAccumOffset(uint32_t bN2Idx, uint32_t gS1Idx)
 {
 #ifdef ASCENDC_CPU_DEBUG
     const uint32_t *bN2IdxOfFdHead = tilingData->fdParams.bN2IdxOfFdHead;
@@ -1053,8 +1051,8 @@ __aicore__ inline uint64_t IfaServiceFlashAttentionVector<IFAT>::CalcAccumOffset
 }
 
 
-template <typename IFAT>
-__aicore__ inline void IfaServiceFlashAttentionVector<IFAT>::ProcessVec2SingleBuf(const AttentionCommon::RunInfo &info,
+template <typename FIAT>
+__aicore__ inline void FiaBlockVecNonQuantMla<FIAT>::ProcessVec2SingleBuf(const AttentionCommon::RunInfo &info,
                                                                                   const MSplitInfo &mSplitInfo)
 {
     if (info.s2Idx + 1 != info.curSInnerLoopTimes) {
@@ -1067,7 +1065,7 @@ __aicore__ inline void IfaServiceFlashAttentionVector<IFAT>::ProcessVec2SingleBu
     ProcessVec2Inner(info, mSplitInfo, 0, mSplitInfo.vecDealM);
 }
 
-template <typename IFAT> __aicore__ inline void IfaServiceFlashAttentionVector<IFAT>::ProcessVec2L(const AttentionCommon::RunInfo &info)
+template <typename FIAT> __aicore__ inline void FiaBlockVecNonQuantMla<FIAT>::ProcessVec2L(const AttentionCommon::RunInfo &info)
 {
     uint32_t nBufferLoopTimes = (info.actMBaseSize + constInfo.nBufferMBaseSize - 1) / constInfo.nBufferMBaseSize;
     uint32_t nBufferTail = info.actMBaseSize - (nBufferLoopTimes - 1) * constInfo.nBufferMBaseSize;
@@ -1089,8 +1087,8 @@ template <typename IFAT> __aicore__ inline void IfaServiceFlashAttentionVector<I
     }
 }
 
-template <typename IFAT>
-__aicore__ inline void IfaServiceFlashAttentionVector<IFAT>::ProcessVec2Inner(const AttentionCommon::RunInfo &info,
+template <typename FIAT>
+__aicore__ inline void FiaBlockVecNonQuantMla<FIAT>::ProcessVec2Inner(const AttentionCommon::RunInfo &info,
                                                                               const MSplitInfo &mSplitInfo,
                                                                               uint32_t mStartRow, uint32_t mDealSize)
 {
@@ -1111,8 +1109,8 @@ __aicore__ inline void IfaServiceFlashAttentionVector<IFAT>::ProcessVec2Inner(co
 }
 
 
-template <typename IFAT>
-__aicore__ inline void IfaServiceFlashAttentionVector<IFAT>::GetConfusionTransposeTiling(
+template <typename FIAT>
+__aicore__ inline void FiaBlockVecNonQuantMla<FIAT>::GetConfusionTransposeTiling(
     int64_t numR, int64_t numC, const uint32_t stackBufferSize, const uint32_t typeSize,
     ConfusionTransposeTiling &tiling)
 {
@@ -1132,9 +1130,9 @@ __aicore__ inline void IfaServiceFlashAttentionVector<IFAT>::GetConfusionTranspo
     tiling.param5 = repeat;
 }
 
-template <typename IFAT>
+template <typename FIAT>
 __aicore__ inline void
-IfaServiceFlashAttentionVector<IFAT>::Bmm2FDDataCopyOut(const AttentionCommon::RunInfo &info, LocalTensor<T> &bmm2ResUb,
+FiaBlockVecNonQuantMla<FIAT>::Bmm2FDDataCopyOut(const AttentionCommon::RunInfo &info, LocalTensor<T> &bmm2ResUb,
                                                         uint32_t wsMStart, uint32_t dealRowCount, uint32_t columnCount,
                                                         uint32_t actualColumnCount)
 {
@@ -1158,9 +1156,9 @@ IfaServiceFlashAttentionVector<IFAT>::Bmm2FDDataCopyOut(const AttentionCommon::R
     SetFlag<AscendC::HardEvent::MTE3_V>(SYNC_OUTPUT_BUF1_FLAG);
 }
 
-template <typename IFAT>
+template <typename FIAT>
 __aicore__ inline void
-IfaServiceFlashAttentionVector<IFAT>::Bmm2DataCopyOutTrans(const AttentionCommon::RunInfo &info, LocalTensor<OUT_T> &attenOutUb,
+FiaBlockVecNonQuantMla<FIAT>::Bmm2DataCopyOutTrans(const AttentionCommon::RunInfo &info, LocalTensor<OUT_T> &attenOutUb,
                                                            uint32_t wsMStart, uint32_t dealRowCount,
                                                            uint32_t columnCount, uint32_t actualColumnCount)
 {
@@ -1192,9 +1190,9 @@ IfaServiceFlashAttentionVector<IFAT>::Bmm2DataCopyOutTrans(const AttentionCommon
     return;
 }
 
-template <typename IFAT>
+template <typename FIAT>
 __aicore__ inline void
-IfaServiceFlashAttentionVector<IFAT>::Bmm2CastAndCopyOut(const AttentionCommon::RunInfo &info, LocalTensor<T> &bmm2ResUb,
+FiaBlockVecNonQuantMla<FIAT>::Bmm2CastAndCopyOut(const AttentionCommon::RunInfo &info, LocalTensor<T> &bmm2ResUb,
                                                          uint32_t wsMStart, uint32_t dealRowCount, uint32_t columnCount,
                                                          uint32_t actualColumnCount)
 {
@@ -1213,9 +1211,9 @@ IfaServiceFlashAttentionVector<IFAT>::Bmm2CastAndCopyOut(const AttentionCommon::
     SetFlag<AscendC::HardEvent::MTE3_V>(SYNC_OUTPUT_BUF1_FLAG);
 }
 
-template <typename IFAT>
+template <typename FIAT>
 __aicore__ inline void
-IfaServiceFlashAttentionVector<IFAT>::Bmm2ResCopyOut(const AttentionCommon::RunInfo &info, LocalTensor<T> &bmm2ResUb, uint32_t wsMStart,
+FiaBlockVecNonQuantMla<FIAT>::Bmm2ResCopyOut(const AttentionCommon::RunInfo &info, LocalTensor<T> &bmm2ResUb, uint32_t wsMStart,
                                                      uint32_t dealRowCount, uint32_t columnCount,
                                                      uint32_t actualColumnCount)
 {
@@ -1230,9 +1228,9 @@ IfaServiceFlashAttentionVector<IFAT>::Bmm2ResCopyOut(const AttentionCommon::RunI
     }
 }
 
-template <typename IFAT>
+template <typename FIAT>
 __aicore__ inline void
-IfaServiceFlashAttentionVector<IFAT>::DealBmm2ResBaseBlock(const AttentionCommon::RunInfo &info, const MSplitInfo &mSplitInfo,
+FiaBlockVecNonQuantMla<FIAT>::DealBmm2ResBaseBlock(const AttentionCommon::RunInfo &info, const MSplitInfo &mSplitInfo,
                                                            uint32_t startRow, uint32_t dealRowCount,
                                                            uint32_t columnCount, uint32_t actualColumnCount)
 {

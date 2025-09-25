@@ -9,11 +9,11 @@
  */
 
 /*!
- * \file service_matmul_mla_amla.h
+ * \file fia_block_cube_nonquant_mla.h
  * \brief use 7 buffer for matmul l1, better pipeline
  */
-#ifndef SERVICE_MATMUL_MLA_AMLA_H
-#define SERVICE_MATMUL_MLA_AMLA_H
+#ifndef FIA_BLOCK_CUBE_NONQUANT_MLA_H
+#define FIA_BLOCK_CUBE_NONQUANT_MLA_H
 
 #include "kernel_operator.h"
 #include "kernel_operator_list_tensor_intf.h"
@@ -27,25 +27,23 @@
 using namespace fa_base_matmul;
 using namespace AttentionCommon;
 
-// 调用buffer manager需要打开#define BASE_MM
-
-template <typename IFAT> 
-class ServiceMatmulMlaAmla {
+template <typename FIAT> 
+class FiaBlockCubeNonQuantMla {
 public:
     // 中间计算数据类型为float, 高精度模式
     using T = float;
 
-    using Q_T = typename IFAT::queryType;
-    using KV_T = typename IFAT::kvType;
-    using OUT_T = typename IFAT::outputType;
-    static constexpr bool PAGE_ATTENTION = IFAT::pageAttention;
-    static constexpr FIA_LAYOUT LAYOUT_T = IFAT::layout;
-    static constexpr FIA_LAYOUT KV_LAYOUT_T = IFAT::kvLayout;
+    using Q_T = typename FIAT::queryType;
+    using KV_T = typename FIAT::kvType;
+    using OUT_T = typename FIAT::outputType;
+    static constexpr bool PAGE_ATTENTION = FIAT::pageAttention;
+    static constexpr FIA_LAYOUT LAYOUT_T = FIAT::layout;
+    static constexpr FIA_LAYOUT KV_LAYOUT_T = FIAT::kvLayout;
 
     static constexpr bool KVINT4 = IsSameType<KV_T, int4b_t>::value;
     using MM_OUT_T = T;
 
-    __aicore__ inline ServiceMatmulMlaAmla(){};
+    __aicore__ inline FiaBlockCubeNonQuantMla(){};
     __aicore__ inline void InitParams(const AttentionCommon::ConstInfo &constInfo);
     __aicore__ inline void InitMm1GlobalTensor(GlobalTensor<Q_T> queryGm, GlobalTensor<Q_T> qRopeGm,
                                                GlobalTensor<KV_T> keyGm, GlobalTensor<KV_T> kRopeGm,
@@ -176,14 +174,14 @@ private:
     uint32_t cL0BufIter = 0;
 };
 
-template <typename IFAT> __aicore__ inline void ServiceMatmulMlaAmla<IFAT>::InitParams(const ConstInfo &constInfo)
+template <typename FIAT> __aicore__ inline void FiaBlockCubeNonQuantMla<FIAT>::InitParams(const ConstInfo &constInfo)
 {
     this->constInfo = constInfo;
 }
 
-template <typename IFAT>
+template <typename FIAT>
 __aicore__ inline void
-ServiceMatmulMlaAmla<IFAT>::InitMm1GlobalTensor(GlobalTensor<Q_T> queryGm, GlobalTensor<Q_T> qRopeGm,
+FiaBlockCubeNonQuantMla<FIAT>::InitMm1GlobalTensor(GlobalTensor<Q_T> queryGm, GlobalTensor<Q_T> qRopeGm,
                                                    GlobalTensor<KV_T> keyGm, GlobalTensor<KV_T> kRopeGm,
                                                    GlobalTensor<MM_OUT_T> mm1ResGm)
 {
@@ -195,9 +193,9 @@ ServiceMatmulMlaAmla<IFAT>::InitMm1GlobalTensor(GlobalTensor<Q_T> queryGm, Globa
     this->mm1ResGm = mm1ResGm;
 }
 
-template <typename IFAT>
+template <typename FIAT>
 __aicore__ inline void
-ServiceMatmulMlaAmla<IFAT>::InitMm2GlobalTensor(GlobalTensor<KV_T> vec1ResGm, GlobalTensor<KV_T> valueGm,
+FiaBlockCubeNonQuantMla<FIAT>::InitMm2GlobalTensor(GlobalTensor<KV_T> vec1ResGm, GlobalTensor<KV_T> valueGm,
                                                    GlobalTensor<MM_OUT_T> mm2ResGm, GlobalTensor<OUT_T> attentionOutGm)
 {
     // mm2
@@ -208,8 +206,8 @@ ServiceMatmulMlaAmla<IFAT>::InitMm2GlobalTensor(GlobalTensor<KV_T> vec1ResGm, Gl
     this->mm2ResInt32Gm.SetGlobalBuffer(reinterpret_cast<__gm__ int32_t *>(mm2ResGm.GetPhyAddr(0)));
 }
 
-template <typename IFAT>
-__aicore__ inline void ServiceMatmulMlaAmla<IFAT>::InitPageAttentionInfo(GlobalTensor<int32_t> blockTableGm,
+template <typename FIAT>
+__aicore__ inline void FiaBlockCubeNonQuantMla<FIAT>::InitPageAttentionInfo(GlobalTensor<int32_t> blockTableGm,
                                                                             uint32_t blockSize,
                                                                             uint32_t maxBlockNumPerBatch)
 {
@@ -218,7 +216,7 @@ __aicore__ inline void ServiceMatmulMlaAmla<IFAT>::InitPageAttentionInfo(GlobalT
     this->maxBlockNumPerBatch = maxBlockNumPerBatch;
 }
 
-template <typename IFAT> __aicore__ inline void ServiceMatmulMlaAmla<IFAT>::InitBuffers(TPipe *pipe)
+template <typename FIAT> __aicore__ inline void FiaBlockCubeNonQuantMla<FIAT>::InitBuffers(TPipe *pipe)
 {
 #ifdef BASE_MM
     l1BufferManager.Init(pipe, 524288);                // L1 total size
@@ -243,17 +241,17 @@ template <typename IFAT> __aicore__ inline void ServiceMatmulMlaAmla<IFAT>::Init
     cL0TensorPingPong = tmpBufL0C.Get<MM_OUT_T>();
 }
 
-template <typename IFAT> __aicore__ inline void ServiceMatmulMlaAmla<IFAT>::UpdateKey(GlobalTensor<KV_T> keyGm)
+template <typename FIAT> __aicore__ inline void FiaBlockCubeNonQuantMla<FIAT>::UpdateKey(GlobalTensor<KV_T> keyGm)
 {
     this->keyGm = keyGm;
 }
 
-template <typename IFAT> __aicore__ inline void ServiceMatmulMlaAmla<IFAT>::UpdateValue(GlobalTensor<KV_T> valueGm)
+template <typename FIAT> __aicore__ inline void FiaBlockCubeNonQuantMla<FIAT>::UpdateValue(GlobalTensor<KV_T> valueGm)
 {
     this->valueGm = valueGm;
 }
 
-template <typename IFAT> __aicore__ inline void ServiceMatmulMlaAmla<IFAT>::AllocEventID()
+template <typename FIAT> __aicore__ inline void FiaBlockCubeNonQuantMla<FIAT>::AllocEventID()
 {
 #ifdef BASE_MM
 #else
@@ -267,7 +265,7 @@ template <typename IFAT> __aicore__ inline void ServiceMatmulMlaAmla<IFAT>::Allo
 #endif
 }
 
-template <typename IFAT> __aicore__ inline void ServiceMatmulMlaAmla<IFAT>::FreeEventID()
+template <typename FIAT> __aicore__ inline void FiaBlockCubeNonQuantMla<FIAT>::FreeEventID()
 {
 #ifdef BASE_MM
     l1KV3Buffers.Uninit(l1BufferManager);
@@ -286,8 +284,8 @@ template <typename IFAT> __aicore__ inline void ServiceMatmulMlaAmla<IFAT>::Free
     mmL0BBuffers.Uninit(l0bBufferManager);
 }
 
-template <typename IFAT>
-__aicore__ inline void ServiceMatmulMlaAmla<IFAT>::CopyGmToL1(LocalTensor<KV_T> &l1Tensor,
+template <typename FIAT>
+__aicore__ inline void FiaBlockCubeNonQuantMla<FIAT>::CopyGmToL1(LocalTensor<KV_T> &l1Tensor,
                                                                  GlobalTensor<KV_T> &gmSrcTensor, uint32_t srcN,
                                                                  uint32_t srcD, uint32_t srcDstride)
 {
@@ -309,8 +307,8 @@ __aicore__ inline void ServiceMatmulMlaAmla<IFAT>::CopyGmToL1(LocalTensor<KV_T> 
 }
 
 // info只用到了tensorAOffset, 需要修改
-template <typename IFAT>
-__aicore__ inline void ServiceMatmulMlaAmla<IFAT>::CopyInMm1AToL1(LocalTensor<KV_T> &l1Tensor, const AttentionCommon::RunInfo &info,
+template <typename FIAT>
+__aicore__ inline void FiaBlockCubeNonQuantMla<FIAT>::CopyInMm1AToL1(LocalTensor<KV_T> &l1Tensor, const AttentionCommon::RunInfo &info,
                                                                      uint32_t mSeqIdx, uint32_t mSizeAct,
                                                                      uint32_t headSize, uint32_t headOffset)
 {
@@ -318,8 +316,8 @@ __aicore__ inline void ServiceMatmulMlaAmla<IFAT>::CopyInMm1AToL1(LocalTensor<KV
     CopyGmToL1(l1Tensor, srcGm, mSizeAct, headSize, constInfo.headDim);
 }
 
-template <typename IFAT>
-__aicore__ inline void ServiceMatmulMlaAmla<IFAT>::CopyInMm1ARopeToL1(LocalTensor<KV_T> &l1Tensor,
+template <typename FIAT>
+__aicore__ inline void FiaBlockCubeNonQuantMla<FIAT>::CopyInMm1ARopeToL1(LocalTensor<KV_T> &l1Tensor,
                                                                          const AttentionCommon::RunInfo &info, uint32_t mSeqIdx,
                                                                          uint32_t mSizeAct)
 {
@@ -327,8 +325,8 @@ __aicore__ inline void ServiceMatmulMlaAmla<IFAT>::CopyInMm1ARopeToL1(LocalTenso
     CopyGmToL1(l1Tensor, srcGm, mSizeAct, constInfo.headDimRope, constInfo.headDimRope);
 }
 
-template <typename IFAT>
-__aicore__ inline void ServiceMatmulMlaAmla<IFAT>::CopyInMm2AToL1(LocalTensor<KV_T> &aL1Tensor, const AttentionCommon::RunInfo &info,
+template <typename FIAT>
+__aicore__ inline void FiaBlockCubeNonQuantMla<FIAT>::CopyInMm2AToL1(LocalTensor<KV_T> &aL1Tensor, const AttentionCommon::RunInfo &info,
                                                                      uint32_t mSeqIdx, uint32_t subMSizeAct,
                                                                      uint32_t nSize, uint32_t nOffset)
 {
@@ -338,8 +336,8 @@ __aicore__ inline void ServiceMatmulMlaAmla<IFAT>::CopyInMm2AToL1(LocalTensor<KV
     CopyGmToL1(aL1Tensor, srcGm, subMSizeAct, nSize, info.actualSingleProcessSInnerSizeAlign);
 }
 
-template <typename IFAT>
-__aicore__ inline void ServiceMatmulMlaAmla<IFAT>::ComputeMm1(const AttentionCommon::RunInfo &info, const MSplitInfo mSplitInfo)
+template <typename FIAT>
+__aicore__ inline void FiaBlockCubeNonQuantMla<FIAT>::ComputeMm1(const AttentionCommon::RunInfo &info, const MSplitInfo mSplitInfo)
 {
     // 最外层还需要一层m的循环
     uint32_t mSize = mSplitInfo.nBufferDealM;
@@ -605,8 +603,8 @@ __aicore__ inline void ServiceMatmulMlaAmla<IFAT>::ComputeMm1(const AttentionCom
     qpL1BufIter += mL1Loops;
 }
 
-template <typename IFAT>
-__aicore__ inline void ServiceMatmulMlaAmla<IFAT>::ComputeMm2(const AttentionCommon::RunInfo &info, const MSplitInfo mSplitInfo)
+template <typename FIAT>
+__aicore__ inline void FiaBlockCubeNonQuantMla<FIAT>::ComputeMm2(const AttentionCommon::RunInfo &info, const MSplitInfo mSplitInfo)
 {
     uint32_t mSize = mSplitInfo.nBufferDealM;
     uint32_t mSizeAlign = (mSize + 16 - 1) / 16;
