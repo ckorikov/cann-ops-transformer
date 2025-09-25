@@ -451,20 +451,7 @@ get_opts() {
   while true; do
     # skip 2 parameters avoid run pkg and directory as input parameter
     case "$1" in
-      --version)
-        if [ -e "${VERSION_INFO_FILE}" ]; then
-          . "${VERSION_INFO_FILE}"
-          echo ${Version}
-          exitlog
-          exit 0
-        else
-          echo "[ERROR]: ERR_NO:${FILE_NOT_EXIST};ERR_DES:${FILE_NOT_EXIST_DES}.\
- The version file (${VERSION_INFO_FILE}) not exists or without execute permission."
-          exitlog
-          exit 1
-        fi
-        ;;
-      --run | --full | --devel)
+      --full)
         IN_INSTALL_TYPE=$(echo ${1} | awk -F"--" '{print $2}')
         IS_INSTALL="y"
         ((CONFLICT_CMD_NUMS++))
@@ -494,30 +481,6 @@ get_opts() {
         ;;
       --install-for-all)
         IS_FOR_ALL="y"
-        shift
-        ;;
-      --check)
-        IS_CHECK="y"
-        ((CONFLICT_CMD_NUMS++))
-        shift
-        ;;
-      --check-path=*)
-        check_path=$1
-        ((CONFLICT_CMD_NUMS++))
-        shift
-        ;;
-      --pre-check)
-        IS_PRE_CHECK="y"
-        shift
-        ;;
-      --setenv)
-        IS_SETENV="y"
-        shift
-        ;;
-      --docker-root=*)
-        IS_DOCKER_INSTALL="y"
-        DOCKER_ROOT=$(echo $1 | cut -d"=" -f2)
-        check_docker_path ${DOCKER_ROOT}
         shift
         ;;
       -*)

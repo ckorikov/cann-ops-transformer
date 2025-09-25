@@ -75,12 +75,13 @@ function(pack_built_in)
       OWNER_READ OWNER_WRITE OWNER_EXECUTE  # 目录权限
       GROUP_READ GROUP_EXECUTE
       WORLD_READ WORLD_EXECUTE
+      REGEX "(setenv|prereq_check)\\.(bash|fish|csh)" EXCLUDE
   )
 
   set(SCRIPTS_FILES
       ${CMAKE_SOURCE_DIR}/scripts/package/common/sh/check_version_required.awk
       ${CMAKE_SOURCE_DIR}/scripts/package/common/sh/common_func.inc
-      ${CMAKE_SOURCE_DIR}/scripts/package/common/sh/common_interface.bash
+      ${CMAKE_SOURCE_DIR}/scripts/package/common/sh/common_interface.sh
       ${CMAKE_SOURCE_DIR}/scripts/package/common/sh/common_interface.csh
       ${CMAKE_SOURCE_DIR}/scripts/package/common/sh/common_interface.fish
       ${CMAKE_SOURCE_DIR}/scripts/package/common/sh/version_compatiable.inc

@@ -18,6 +18,8 @@ endif()
 
 # 创建临时安装目录
 set(STAGING_DIR "${CPACK_CMAKE_BINARY_DIR}/_CPack_Packages/makeself_staging")
+# 先删除再创建
+file(REMOVE_RECURSE "${STAGING_DIR}")
 file(MAKE_DIRECTORY "${STAGING_DIR}")
 
 # 执行安装到临时目录
@@ -93,6 +95,6 @@ endif()
 execute_process(
     COMMAND mkdir -p ${CPACK_PACKAGE_DIRECTORY}
     COMMAND mv ${STAGING_DIR}/${package_name} ${CPACK_PACKAGE_DIRECTORY}/
-    COMMAND echo "Move ${STAGING_DIR}/${package_name} to ${CPACK_PACKAGE_DIRECTORY}/"
+    COMMAND echo "build pkg success: ${CPACK_PACKAGE_DIRECTORY}/${package_name}"
     WORKING_DIRECTORY ${STAGING_DIR}
 )

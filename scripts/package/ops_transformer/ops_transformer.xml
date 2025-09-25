@@ -7,7 +7,6 @@
         <suffix>run</suffix>
         <install_script>ops_transformer/script/install.sh</install_script>
         <help>ops_transformer/script/help.info</help>
-        <version>package/ops_transformer/version.xml</version>
         <cleanup>ops_transformer/script/cleanup.sh</cleanup>
         <parallel>true</parallel>
         <check_features>true</check_features>
