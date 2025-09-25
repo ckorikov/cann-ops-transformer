@@ -80,7 +80,7 @@
         auto op_ky = std::static_pointer_cast<bank_key>(in_args);                          \
         return false;                                                                      \
     }                                                                                      \
-    REGISTER_OP_BANK_KEY_PARSE_FUN(op, ParseFunc##op##bank_key, LoadFunc##op##bank_key);
+    REGISTER_OP_BANK_KEY_PARSE_FUN(op, ParseFunc##op##bank_key, LoadFunc##op##bank_key)
 
 // v2
 #define DECLARE_STRUCT_RELATE_WITH_OP_V2(op, bank_key, ...)                                     \
@@ -116,7 +116,7 @@
         }                                                                                       \
         return true;                                                                            \
     }                                                                                           \
-    REGISTER_OP_BANK_KEY_PARSE_FUN_V2(op, ParseFuncV2##op##bank_key, LoadFuncV2##op##bank_key);
+    REGISTER_OP_BANK_KEY_PARSE_FUN_V2(op, ParseFuncV2##op##bank_key, LoadFuncV2##op##bank_key)
 
 namespace tuningtiling {
 // v1兼容老版本om

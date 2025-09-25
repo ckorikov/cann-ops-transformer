@@ -167,8 +167,8 @@ static bool CheckShapeValidWithTrans(const aclTensor* self, const aclTensor* mat
     OP_CHECK_WRONG_DIMENSION(mat2, DIMS_TWO, return false);
     op::Shape selfShape = self->GetViewShape();
     op::Shape mat2Shape = mat2->GetViewShape();
-    auto selfKDim = transSelf ? selfShape.GetDim(0) : selfShape.GetDim(1);
-    auto mat2KDim = transMat2 ? mat2Shape.GetDim(1) : mat2Shape.GetDim(0);
+    auto selfKDim = transSelf > 0 ? selfShape.GetDim(0) : selfShape.GetDim(1);
+    auto mat2KDim = transMat2 > 0 ? mat2Shape.GetDim(1) : mat2Shape.GetDim(0);
     if (selfKDim != mat2KDim) {
         OP_LOGE(ACLNN_ERR_PARAM_INVALID, "The k-axis of the two inputs are different.");
         return false;
@@ -202,8 +202,8 @@ static const aclTensor* ProcessEmptyTensorWithTrans(
     // 获取shape信息
     op::Shape selfShape = self->GetViewShape();
     op::Shape mat2Shape = mat2->GetViewShape();
-    auto mDim = transSelf ? selfShape.GetDim(1) : selfShape.GetDim(0);
-    auto nDim = transMat2 ? mat2Shape.GetDim(0) : mat2Shape.GetDim(1);
+    auto mDim = transSelf > 0 ? selfShape.GetDim(1) : selfShape.GetDim(0);
+    auto nDim = transMat2 > 0 ? mat2Shape.GetDim(0) : mat2Shape.GetDim(1);
     op::Shape outShape = {mDim, nDim};
     auto out = executor->AllocTensor(outShape, self->GetDataType());
     if (out->IsEmpty()) {
@@ -296,9 +296,9 @@ static MmOpInfo GetMatmulOpInfoWithTrans(
     // 获取m、k、n轴的大小
     op::Shape selfShape = self->GetViewShape();
     op::Shape mat2Shape = mat2->GetViewShape();
-    int64_t mDim = transSelf ? selfShape.GetDim(1) : selfShape.GetDim(0);
-    int64_t kDim = transSelf ? selfShape.GetDim(0) : selfShape.GetDim(1);
-    int64_t nDim = transMat2 ? mat2Shape.GetDim(0) : mat2Shape.GetDim(1);
+    int64_t mDim = transSelf > 0 ? selfShape.GetDim(1) : selfShape.GetDim(0);
+    int64_t kDim = transSelf > 0 ? selfShape.GetDim(0) : selfShape.GetDim(1);
+    int64_t nDim = transMat2 > 0 ? mat2Shape.GetDim(0) : mat2Shape.GetDim(1);
 
     // Dtype和Format初始化
     MmOpInfo mmOpInfo;
@@ -313,8 +313,8 @@ static MmOpInfo GetMatmulOpInfoWithTrans(
     mmOpInfo.shapeInfo.nDim = nDim;
     mmOpInfo.shapeInfo.mDim = mDim;
 
-    mmOpInfo.shapeInfo.transposeX1 = transSelf ? true : false;
-    mmOpInfo.shapeInfo.transposeX2 = transMat2 ? true : false;
+    mmOpInfo.shapeInfo.transposeX1 = transSelf > 0;
+    mmOpInfo.shapeInfo.transposeX2 = transMat2 > 0;
     mmOpInfo.support_info = mmOpInfo.ori_info;
     // 如果允许降精度处理， 则开启HF32模式（0x40），否则采用默认模式; 后续此字段配置需要按照字段表进行配置
     mmOpInfo.opImplModeEnum = (cubeMathType == ALLOW_FP32_DOWN_PRECISION) || (cubeMathType == USE_HF32) ? 0x40 : 0x1;
@@ -514,6 +514,9 @@ inline static bool CheckSupportVnchwconv(int64_t outerDim, int64_t innerDim, int
 
 static bool IsMiddleSizedShape(int64_t m, int64_t k, int64_t n)
 {
+    constexpr int64_t baseBlock256 = 256L;
+    constexpr int64_t baseBlock128 = 128L;
+    constexpr double threshold = 0.7;
     auto isMiddleSizedDim = [](int64_t dim) -> bool {
         return dim >= 1024 && dim <= 10368; // currently define "middle-sized" dimension interval as [1024, 10368]
     };
@@ -548,8 +551,8 @@ static bool IsMiddleSizedShape(int64_t m, int64_t k, int64_t n)
         int64_t cnt = CeilDiv(m, baseM) * CeilDiv(n, baseN);
         return static_cast<double>(cnt) / CeilAlign(cnt, coreNum);
     };
-    if (getCoreUtilization(128, 256) <= 0.7 &&
-        getCoreUtilization(256, 128) <= 0.7) { // 128 256 base block, 0.7 threshold
+    if (getCoreUtilization(baseBlock128, baseBlock256) <= threshold &&
+        getCoreUtilization(baseBlock256, baseBlock128) <= threshold) { // 128 256 base block, 0.7 threshold
         OP_LOGD("Not V3 middle-size case, AI core utilization not great enough");
         return false;
     }
@@ -613,7 +616,7 @@ static bool CheckHitV3Shape(
         x1DtypeFlag);
 
     std::function<bool(const std::initializer_list<std::initializer_list<int64_t>>)> caseCheckFun =
-        [=](const std::initializer_list<std::initializer_list<int64_t>>& list) -> bool {
+        [checkCase](const std::initializer_list<std::initializer_list<int64_t>>& list) -> bool {
         return std::any_of(list.begin(), list.end(), [checkCase](std::initializer_list<int64_t> oneCase) {
             return checkCase.size() == oneCase.size() && std::equal(oneCase.begin(), oneCase.end(), checkCase.begin());
         });
