@@ -48,6 +48,12 @@ constexpr size_t DIM_NUM_FOUR = 4;
 std::string RopeModeToSerialString(const RopeMode &ropeMode);
 std::string FusedDataTypeToSerialString(ge::DataType type);
 
+template <typename vecT, typename T>
+static bool VecContains(const vecT& vec, const T& value)
+{
+    return std::find(vec.begin(), vec.end(), value) != vec.end();
+}
+
 class TilingCheck {
 public:
     static ge::graphStatus Check(const FiaTilingInfo &fiaInfo);

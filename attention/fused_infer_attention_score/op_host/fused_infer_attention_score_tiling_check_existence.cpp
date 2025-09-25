@@ -9,7 +9,7 @@
  */
 
 /*!
- * \file fused_infer_attention_score_tiling_check_existence.cc
+ * \file fused_infer_attention_score_tiling_check_existence.cpp
  * \brief
  */
 
@@ -20,7 +20,8 @@
 #include <sstream>
 #include <numeric>
 #include <algorithm>
-
+#include "tiling/tiling_api.h"
+#include "fused_infer_attention_score_tiling_check.h"
 
 using std::map;
 using std::string;
@@ -51,12 +52,6 @@ ge::graphStatus FiaTilingCheck::CheckRopeExistence() const
 
     OP_LOGI(opName_, "rope mode is %s", RopeModeToSerialString(ropeMode_).c_str());
     return ge::GRAPH_SUCCESS;
-}
-
-template <typename vecT, typename T>
-bool VecContains(const vecT& vec, const T& value)
-{
-    return std::find(vec.begin(), vec.end(), value) != vec.end();
 }
 
 std::string DtypeListToStr(const std::vector<DataType> &dtypeList)

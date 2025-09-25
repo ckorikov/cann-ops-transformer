@@ -32,11 +32,6 @@
 #include "fused_infer_attention_score_tiling_input_index.h"
 #include "fused_infer_attention_score_tiling_output_index.h"
 #include "../../incre_flash_attention/op_host/incre_flash_attention_tiling_base.h"
-#include "fused_infer_attention_score_tiling_check_single_para.cc"
-#include "fused_infer_attention_score_tiling_check_existence.cc"
-#include "fused_infer_attention_score_tiling_check_feature.cc"
-#include "fused_infer_attention_score_tiling_check_consistency.cc"
-
 
 using std::map;
 using std::string;

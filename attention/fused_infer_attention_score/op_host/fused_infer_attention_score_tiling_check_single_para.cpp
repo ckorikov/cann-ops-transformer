@@ -9,7 +9,7 @@
  */
 
 /*!
- * \file fused_infer_attention_score_tiling_check_single_para.cc
+ * \file fused_infer_attention_score_tiling_check_single_para.cpp
  * \brief
  */
 
@@ -20,7 +20,8 @@
 #include <sstream>
 #include <numeric>
 #include <algorithm>
-
+#include "tiling/tiling_api.h"
+#include "fused_infer_attention_score_tiling_check.h"
 
 using std::string;
 using std::pair;

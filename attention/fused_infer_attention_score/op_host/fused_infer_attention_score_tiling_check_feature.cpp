@@ -9,7 +9,7 @@
  */
 
 /*!
- * \file fused_infer_attention_score_tiling_check_feature.cc
+ * \file fused_infer_attention_score_tiling_check_feature.cpp
  * \brief
  */
 
@@ -19,7 +19,8 @@
 #include <sstream>
 #include <numeric>
 #include <algorithm>
-
+#include "tiling/tiling_api.h"
+#include "fused_infer_attention_score_tiling_check.h"
 
 using std::string;
 using std::pair;
@@ -150,6 +151,9 @@ ge::graphStatus FiaTilingCheck::CheckFeatureMlaNoQuantDtype() const
 
 ge::graphStatus FiaTilingCheck::CheckFeatureMlaNoquantPa() const
 {
+    constexpr uint32_t MAX_BLOCK_SIZE = 512;
+    constexpr uint32_t COPYND2NZ_SRC_STRIDE_LIMITATION = 65535;
+
     if (fiaInfo_.slidingFlag && kvStorageMode_ != KvStorageMode::PAGE_ATTENTION) {
         return ge::GRAPH_SUCCESS;
     }

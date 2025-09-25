@@ -11,6 +11,10 @@ set(src_files
   ${ATTENTION_SRC}/common/op_host/fia_tiling_shape.cpp
   ${ATTENTION_SRC}/fused_infer_attention_score/op_host/fused_infer_attention_score_tiling.cpp
   ${ATTENTION_SRC}/fused_infer_attention_score/op_host/fused_infer_attention_score_tiling_check.cpp
+  ${ATTENTION_SRC}/fused_infer_attention_score/op_host/fused_infer_attention_score_tiling_check_single_para.cpp
+  ${ATTENTION_SRC}/fused_infer_attention_score/op_host/fused_infer_attention_score_tiling_check_existence.cpp
+  ${ATTENTION_SRC}/fused_infer_attention_score/op_host/fused_infer_attention_score_tiling_check_feature.cpp
+  ${ATTENTION_SRC}/fused_infer_attention_score/op_host/fused_infer_attention_score_tiling_check_consistency.cpp
   ${ATTENTION_SRC}/fused_infer_attention_score/op_host/fused_infer_attention_score_tiling_info_parser.cpp
   ${ATTENTION_SRC}/fused_infer_attention_score/op_host/fused_infer_attention_score_tiling_v3.cpp
   ${ATTENTION_SRC}/fused_infer_attention_score/regbase/ophost/fused_infer_attention_score_tiling_v2.cpp

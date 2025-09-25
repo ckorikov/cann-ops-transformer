@@ -9,7 +9,7 @@
  */
 
 /*!
- * \file fused_infer_attention_score_tiling_check_consistency.cc
+ * \file fused_infer_attention_score_tiling_check_consistency.cpp
  * \brief
  */
 
@@ -19,7 +19,8 @@
 #include <sstream>
 #include <numeric>
 #include <algorithm>
-
+#include "tiling/tiling_api.h"
+#include "fused_infer_attention_score_tiling_check.h"
 
 using std::map;
 using std::string;
@@ -198,6 +199,12 @@ ge::graphStatus FiaTilingCheck::CheckKVShapeForTensorList() const
 
 uint32_t FiaTilingCheck::GetTypeSize(ge::DataType dtype) const
 {
+    constexpr uint32_t NUM_BYTES_FLOAT = 4;
+    constexpr uint32_t NUM_BYTES_FLOAT16 = 2;
+    constexpr uint32_t NUM_BYTES_BF16 = 2;
+    constexpr uint32_t NUM_BYTES_BOOL = 1;
+    constexpr uint32_t NUM_BYTES_INT8 = 1;
+
     uint32_t typeSize = NUM_BYTES_FLOAT16;
     switch (dtype) {
         case ge::DT_FLOAT:
