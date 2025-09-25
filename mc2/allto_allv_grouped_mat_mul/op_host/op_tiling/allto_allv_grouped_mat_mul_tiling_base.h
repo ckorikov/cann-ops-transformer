@@ -28,13 +28,13 @@
 #include "tiling/matmul_formulaic_tiling.h"
 #include "mat_mul_v3/op_host/op_tiling/matmul_v3_tiling.h"
 #include "tiling/mc2_tiling_utils.h"
-using namespace Ops::Transformer::OpTiling;
+
 namespace optiling {
 
-class AlltoAllvGmmTilingBase : public TilingBaseClass
+class AlltoAllvGmmTilingBase : public Ops::Transformer::OpTiling::TilingBaseClass
 {
 public:
-    explicit AlltoAllvGmmTilingBase(gert::TilingContext* context) : TilingBaseClass(context){};
+    explicit AlltoAllvGmmTilingBase(gert::TilingContext* context) : Ops::Transformer::OpTiling::TilingBaseClass(context){};
 
 protected:
     ge::graphStatus GetPlatformInfo() override;
