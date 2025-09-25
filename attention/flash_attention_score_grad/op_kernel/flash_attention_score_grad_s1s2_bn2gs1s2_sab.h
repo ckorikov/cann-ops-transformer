@@ -780,17 +780,17 @@ FlashAttentionScoreGradS1s2Bn2gs1s2SameAB<FAGT>::CalcSoftMax(
               subMaskCount, s1Extend,
               {static_cast<uint8_t>(1), static_cast<uint8_t>(1), 0,
               static_cast<uint8_t>(s2ExtendAlign / 8), static_cast<uint8_t>(s2ExtendAlign / 8), 1});
-      pipe_barrier(PIPE_V);
+      PipeBarrier<PIPE_V>();
       Exp(vecOutBuffer[subIdx * cal_repeat_num], dstTensor[subIdx * cal_repeat_num],
           subMaskCount, s1Extend,
               {static_cast<uint8_t>(1), static_cast<uint8_t>(1),
               static_cast<uint8_t>(s2ExtendAlign / 8), static_cast<uint8_t>(s2ExtendAlign / 8)});
-      pipe_barrier(PIPE_V);
+      PipeBarrier<PIPE_V>();
       Div(dstTensor[subIdx * cal_repeat_num], vecOutBuffer[subIdx * cal_repeat_num], src1Tensor,
               subMaskCount, s1Extend,
               {static_cast<uint8_t>(1), static_cast<uint8_t>(1), 0,
               static_cast<uint8_t>(s2ExtendAlign / 8), static_cast<uint8_t>(s2ExtendAlign / 8), 1});
-      pipe_barrier(PIPE_V);
+      PipeBarrier<PIPE_V>();
     }
   }
 }
@@ -2380,7 +2380,7 @@ __aicore__ inline void FlashAttentionScoreGradS1s2Bn2gs1s2SameAB<FAGT>::CalcDkvR
         SetFlag<HardEvent::MTE3_V>(vWaitMte3);
         WaitFlag<HardEvent::MTE3_V>(vWaitMte3);
         Duplicate<float>(resBuf, 0.0, singleCoreDataNum);
-        pipe_barrier(PIPE_V);
+        PipeBarrier<PIPE_V>();
         int64_t blockId = -1;
         int64_t maxS2Extend = 0;
         for (int8_t coreId = groupId; coreId < cubeCoreNum; coreId++) {
@@ -2399,7 +2399,7 @@ __aicore__ inline void FlashAttentionScoreGradS1s2Bn2gs1s2SameAB<FAGT>::CalcDkvR
 
                 if constexpr (MM2_OUT_FORMAT == CubeFormat::NZ) {
                     if (s2CalcExtend != s2CalcInner) {
-                        pipe_barrier(PIPE_V);
+                        PipeBarrier<PIPE_V>();
                         Duplicate<float>(inBuf, 0.0, singleCoreDataNum);
                         event_t mte2WaitV = static_cast<event_t>(GetTPipePtr()->FetchEventID(HardEvent::V_MTE2));
                         SetFlag<HardEvent::V_MTE2>(mte2WaitV);
@@ -2517,7 +2517,7 @@ template <typename FAGT>
         SetFlag<HardEvent::MTE3_V>(vWaitMte3);
         WaitFlag<HardEvent::MTE3_V>(vWaitMte3);
         Duplicate<float>(dqRes, 0.0, singleCoreDataNum);
-        pipe_barrier(PIPE_V);
+        PipeBarrier<PIPE_V>();
         int64_t blockId = -1;
         int64_t maxS1Extend = 0;
         for (int8_t coreId = groupId; coreId < cubeCoreNum; coreId++) {
@@ -2537,7 +2537,7 @@ template <typename FAGT>
                 //copyOut & add
                 if constexpr (MM2_OUT_FORMAT == CubeFormat::NZ) {
                     if (s1CalcExtend != s1CalcInner) {
-                        pipe_barrier(PIPE_V);  // 循环间的反向同步
+                        PipeBarrier<PIPE_V>();  // 循环间的反向同步
                         Duplicate<float>(inBuf, 0.0, singleCoreDataNum);
                         event_t mte2WaitV = static_cast<event_t>(GetTPipePtr()->FetchEventID(HardEvent::V_MTE2));
                         SetFlag<HardEvent::V_MTE2>(mte2WaitV);
@@ -2725,8 +2725,8 @@ __aicore__ inline void FlashAttentionScoreGradS1s2Bn2gs1s2SameAB<FAGT>::Process(
             if constexpr (IS_DTM != ENABLE) {
                 if ASCEND_IS_AIC {
                     if constexpr(!(DTEMPLATETYPE == DTemplateType::Aligned128 || DTEMPLATETYPE == DTemplateType::Aligned192 || DTEMPLATETYPE == DTemplateType::Aligned64)) {
-                        set_flag(PIPE_MTE1, PIPE_MTE2, eventIdMte1ToMte2);
-                        wait_flag(PIPE_MTE1, PIPE_MTE2, eventIdMte1ToMte2);
+                        SetFlag<HardEvent::MTE1_MTE2>(static_cast<int32_t>(eventIdMte1ToMte2));
+                        WaitFlag<HardEvent::MTE1_MTE2>(static_cast<int32_t>(eventIdMte1ToMte2));
                     }
                     CrossCoreWaitFlag(SYNC_V1_C2_FLAG[dbParams[(taskId - 1) % 3].taskId % 2]);
                     if constexpr (DTEMPLATETYPE == DTemplateType::Aligned128) {
@@ -2756,8 +2756,8 @@ __aicore__ inline void FlashAttentionScoreGradS1s2Bn2gs1s2SameAB<FAGT>::Process(
             }
             if (taskId > 0 && dbParams[(taskId - 1) % 3].blockId != -1) {
                 if ASCEND_IS_AIC {
-                    set_flag(PIPE_MTE1, PIPE_MTE2, eventIdMte1ToMte2);
-                    wait_flag(PIPE_MTE1, PIPE_MTE2, eventIdMte1ToMte2);
+                    SetFlag<HardEvent::MTE1_MTE2>(static_cast<int32_t>(eventIdMte1ToMte2));
+                    WaitFlag<HardEvent::MTE1_MTE2>(static_cast<int32_t>(eventIdMte1ToMte2));
                     CrossCoreWaitFlag(SYNC_V1_C2_FLAG[dbParams[(taskId - 1) % 3].taskId % 2]);
                     DTMComputeMMDqkv(dbParams[(taskId - 1) % 3], dbParams[(taskId) % 3].blockId);
                     CrossCoreSetFlag<SYNC_MODE2, PIPE_FIX>(SYNC_C2_V1_FLAG[dbParams[(taskId - 1) % 3].taskId % 2]);
@@ -3055,7 +3055,7 @@ FlashAttentionScoreGradS1s2Bn2gs1s2SameAB<FAGT>::NZ2ND(LocalTensor<T2> &mmTensor
                  VEC_REPEAT * c1_remain, n_repeat, nz2ndParams);
         }
     }
-    pipe_barrier(PIPE_V);
+    PipeBarrier<PIPE_V>();
 }
 
 template <typename FAGT>
@@ -3158,7 +3158,7 @@ FlashAttentionScoreGradS1s2Bn2gs1s2SameAB<FAGT>::SubGrapA(int64_t curIdx, int64_
     uint32_t ubTmpBufferOffset = 0;
 
     if (curIdx > 0) {
-        wait_flag(PIPE_MTE3, PIPE_MTE2, mte2WaitMte3A);
+        WaitFlag<HardEvent::MTE3_MTE2>(static_cast<int32_t>(mte2WaitMte3A));
     }
 
     LocalTensor<float> vecInBuffer3 =
@@ -3240,7 +3240,7 @@ FlashAttentionScoreGradS1s2Bn2gs1s2SameAB<FAGT>::SubGrapA(int64_t curIdx, int64_
         unifiedBuffer.GetWithOffset<uint8_t>(8 * 1024 / sizeof(uint8_t), ubBufferOffset + U8Begin);
     if constexpr (IS_DROP == ENABLE) {
         if constexpr (IsSameType<T1, float>::value) {
-            pipe_barrier(PIPE_ALL);
+            PipeBarrier<PIPE_ALL>();
         }
         DropOutCopy(vecInDropBuffer, curS1Idx, s2VBegin);
     }
@@ -3258,17 +3258,17 @@ FlashAttentionScoreGradS1s2Bn2gs1s2SameAB<FAGT>::SubGrapA(int64_t curIdx, int64_
                         {false, 0, 0, 0});
         }
         event_t vWaitMte2 = static_cast<event_t>(GetTPipePtr()->FetchEventID(HardEvent::MTE2_V));
-        set_flag(PIPE_MTE2, PIPE_V, vWaitMte2);
-        wait_flag(PIPE_MTE2, PIPE_V, vWaitMte2);
+        SetFlag<HardEvent::MTE2_V>(static_cast<int32_t>(vWaitMte2));
+        WaitFlag<HardEvent::MTE2_V>(static_cast<int32_t>(vWaitMte2));
     } else {
         int64_t mmAddr = pingpongIdx * cubeBaseMN + curS1Idx * s1VecSize * C0_SIZE + curS2Idx * dbParam.s1CvExtendAlign * s2VecSize;
         NZCopyIn(mmAddr, mm2WorkspaceGm, vecClc2Buffer, s1VecSize, s2ExtendAlign, dbParam.s1CvExtendAlign);
         event_t vWaitMte2 = static_cast<event_t>(GetTPipePtr()->FetchEventID(HardEvent::MTE2_V));
-        set_flag(PIPE_MTE2, PIPE_V, vWaitMte2);
-        wait_flag(PIPE_MTE2, PIPE_V, vWaitMte2);
+        SetFlag<HardEvent::MTE2_V>(static_cast<int32_t>(vWaitMte2));
+        WaitFlag<HardEvent::MTE2_V>(static_cast<int32_t>(vWaitMte2));
         auto tmpTensor = unifiedBuffer.GetWithOffset<T2>(TMP_UB_SIZE / sizeof(T2), TMP_UB_OFFSET);
         DataCopy(tmpTensor, vecClc2Buffer, s1VecSize * s2ExtendAlign + s2ExtendAlign / C0_SIZE * VEC_REPEAT);
-        pipe_barrier(PIPE_V);
+        PipeBarrier<PIPE_V>();
         NZ2ND(vecClc2Buffer, tmpTensor, s1VecSize, s2ExtendAlign);
     }
 
@@ -3278,7 +3278,7 @@ FlashAttentionScoreGradS1s2Bn2gs1s2SameAB<FAGT>::SubGrapA(int64_t curIdx, int64_
     // pse shape  0--BN2G1S2    1--BN2GS1S2
     if constexpr (IS_PSE == ENABLE) {
         if (TilingData->s1s2BNGS1S2BaseParams.pseType != (uint32_t)PseTypeEnum::PSE_OUTER_ADD_MUL_TYPE) {
-        pipe_barrier(PIPE_V);
+        PipeBarrier<PIPE_V>();
         Muls(vecClc2Buffer, vecClc2Buffer, (T2)(TilingData->s1s2BNGS1S2BaseParams.scaleValue),
             s1ExtendSubGraph * s2ExtendAlign);
         }
@@ -3293,29 +3293,29 @@ FlashAttentionScoreGradS1s2Bn2gs1s2SameAB<FAGT>::SubGrapA(int64_t curIdx, int64_
             if constexpr (!IsSameType<T1, float>::value) {
                 uint32_t calculateRowsAlign = (s2Extend + input_block_num - 1) / input_block_num * input_block_num;
                 Cast(castTensor, pseUbT1, RoundMode::CAST_NONE, repeatTimes * calculateRowsAlign);
-                pipe_barrier(PIPE_V);
+                PipeBarrier<PIPE_V>();
             } else {
                 event_t mte2WaitV = static_cast<event_t>(GetTPipePtr()->FetchEventID(HardEvent::V_MTE2));
-                set_flag(PIPE_V, PIPE_MTE2, mte2WaitV);
-                wait_flag(PIPE_V, PIPE_MTE2, mte2WaitV);
+                SetFlag<HardEvent::V_MTE2>(static_cast<int32_t>(mte2WaitV));
+                WaitFlag<HardEvent::V_MTE2>(static_cast<int32_t>(mte2WaitV));
                 if constexpr (INPUT_LAYOUT == TND) {
                     PseCopyIn<T1, T2, LayOutTypeEnum::LAYOUT_TND, true>(castTensor, castTensor, this->pseGm, pseInfo);
                 } else {
                     PseCopyIn<T1, T2, LayOutTypeEnum::LAYOUT_BNSD, true>(castTensor, castTensor, this->pseGm, pseInfo);
                 }
                 event_t vWaitMte2 = static_cast<event_t>(GetTPipePtr()->FetchEventID(HardEvent::MTE2_V));
-                set_flag(PIPE_MTE2, PIPE_V, vWaitMte2);
-                wait_flag(PIPE_MTE2, PIPE_V, vWaitMte2);
+                SetFlag<HardEvent::MTE2_V>(static_cast<int32_t>(vWaitMte2));
+                WaitFlag<HardEvent::MTE2_V>(static_cast<int32_t>(vWaitMte2));
             }
         } else {
             PseSlopeCast<T2, true>(castTensor, pseUb, pseSlope, pseInfo);
         }
-        pipe_barrier(PIPE_V);
+        PipeBarrier<PIPE_V>();
         PseCompute<T2, true>(vecClc2Buffer, castTensor, pseInfo);
-        pipe_barrier(PIPE_V);
+        PipeBarrier<PIPE_V>();
     }
     if (TilingData->s1s2BNGS1S2BaseParams.pseType == (uint32_t)PseTypeEnum::PSE_OUTER_ADD_MUL_TYPE) {
-        pipe_barrier(PIPE_V);
+        PipeBarrier<PIPE_V>();
         Muls(vecClc2Buffer, vecClc2Buffer, (T2)(TilingData->s1s2BNGS1S2BaseParams.scaleValue),
             s1ExtendSubGraph * s2ExtendAlign);
     }
@@ -3325,7 +3325,7 @@ FlashAttentionScoreGradS1s2Bn2gs1s2SameAB<FAGT>::SubGrapA(int64_t curIdx, int64_
     // attenMaskOffset     attenMaskShapeType  0--111S1S2        1--B11S1S2         2--BN2GS1S2
     if constexpr (IS_ATTEN_MASK == ENABLE) {
         int64_t compressMode = TilingData->s1s2BNGS1S2BaseParams.attenMaskCompressMode;
-        pipe_barrier(PIPE_V);
+        PipeBarrier<PIPE_V>();
 
         if (compressMode == 4) {   // 4: prefix compress
             if (prefixCompressCanSimplify == false) {
@@ -3335,17 +3335,17 @@ FlashAttentionScoreGradS1s2Bn2gs1s2SameAB<FAGT>::SubGrapA(int64_t curIdx, int64_
                 int32_t maskNum = s1ExtendSubGraph * s2ExtendPadAlign / 2; // 除2数据量按照uint16类型折半
 
                 event_t mte2WaitV = static_cast<event_t>(GetTPipePtr()->FetchEventID(HardEvent::V_MTE2));
-                set_flag(PIPE_V, PIPE_MTE2, mte2WaitV);
-                wait_flag(PIPE_V, PIPE_MTE2, mte2WaitV);
+                SetFlag<HardEvent::V_MTE2>(static_cast<int32_t>(mte2WaitV));
+                WaitFlag<HardEvent::V_MTE2>(static_cast<int32_t>(mte2WaitV));
                 CopyInAttenMaskBool(attenMaskUbPreuint8, attenMaskOffsetPre, s1ExtendSubGraph, s2Extend);
 
                 event_t vWaitMte2 = static_cast<event_t>(GetTPipePtr()->FetchEventID(HardEvent::MTE2_V));
-                set_flag(PIPE_MTE2, PIPE_V, vWaitMte2);
-                wait_flag(PIPE_MTE2, PIPE_V, vWaitMte2);
+                SetFlag<HardEvent::MTE2_V>(static_cast<int32_t>(vWaitMte2));
+                WaitFlag<HardEvent::MTE2_V>(static_cast<int32_t>(vWaitMte2));
                 auto attenMaskUbuint8Tmp = attenMaskUbuint8.ReinterpretCast<uint16_t>();
                 auto attenMaskUbPreuint8Tmp = attenMaskUbPreuint8.ReinterpretCast<uint16_t>();
                 And(attenMaskUbuint8Tmp, attenMaskUbPreuint8Tmp, attenMaskUbuint8Tmp, maskNum);
-                pipe_barrier(PIPE_V);
+                PipeBarrier<PIPE_V>();
                 attenMaskUbuint8 = attenMaskUbuint8Tmp.ReinterpretCast<uint8_t>();
             }
         }
@@ -3359,12 +3359,12 @@ FlashAttentionScoreGradS1s2Bn2gs1s2SameAB<FAGT>::SubGrapA(int64_t curIdx, int64_
 
         if ((compressMode == 3 || unpadUseBand) && AttenBandMode == AttenMaskCompress::All) {   // 3: band
             event_t mte2WaitV = static_cast<event_t>(GetTPipePtr()->FetchEventID(HardEvent::V_MTE2));
-            set_flag(PIPE_V, PIPE_MTE2, mte2WaitV);
-            wait_flag(PIPE_V, PIPE_MTE2, mte2WaitV);
+            SetFlag<HardEvent::V_MTE2>(static_cast<int32_t>(mte2WaitV));
+            WaitFlag<HardEvent::V_MTE2>(static_cast<int32_t>(mte2WaitV));
             CopyInAttenMaskBool(attenMaskUbuint8, attenMaskOffsetPre, s1ExtendSubGraph, s2Extend);
             event_t vWaitMte2 = static_cast<event_t>(GetTPipePtr()->FetchEventID(HardEvent::MTE2_V));
-            set_flag(PIPE_MTE2, PIPE_V, vWaitMte2);
-            wait_flag(PIPE_MTE2, PIPE_V, vWaitMte2);
+            SetFlag<HardEvent::MTE2_V>(static_cast<int32_t>(vWaitMte2));
+            WaitFlag<HardEvent::MTE2_V>(static_cast<int32_t>(vWaitMte2));
             CalcAttenMaskBool(vecClc2Buffer, attenMaskUbuint8, s1ExtendSubGraph, s2ExtendAlign, 1);
         }
     }
@@ -3372,7 +3372,7 @@ FlashAttentionScoreGradS1s2Bn2gs1s2SameAB<FAGT>::SubGrapA(int64_t curIdx, int64_
     ///////////////////////////////////////////////////////////////
     // simpleSoftMax
     ///////////////////////////////////////////////////////////////
-    pipe_barrier(PIPE_V);
+    PipeBarrier<PIPE_V>();
     LocalTensor<float> simpleSoftmaxResBuf = unifiedBuffer.GetWithOffset<float>(33 * 1024 / sizeof(T2), DbBegin);
     CalcSoftMax(simpleSoftmaxResBuf, vecClc2Buffer, vecInBuffer3, s1ExtendSubGraph, s2Extend, s2ExtendAlign, TilingData->softmaxTilingData);
 
@@ -3382,7 +3382,7 @@ FlashAttentionScoreGradS1s2Bn2gs1s2SameAB<FAGT>::SubGrapA(int64_t curIdx, int64_
     LocalTensor<T2> vecDropBuffer = simpleSoftmaxResBuf;
     if constexpr (IS_DROP == ENABLE) {
         vecDropBuffer = unifiedBuffer.GetWithOffset<T2>(33 * 1024 / sizeof(T2), TMP_UB_OFFSET);
-        pipe_barrier(PIPE_V);
+        PipeBarrier<PIPE_V>();
         LocalTensor<uint8_t> tmpDropBuffer =
             unifiedBuffer.GetWithOffset<uint8_t>(32 * 1024 / sizeof(uint8_t), ubBufferOffset + T1Begin);
 
@@ -3391,7 +3391,7 @@ FlashAttentionScoreGradS1s2Bn2gs1s2SameAB<FAGT>::SubGrapA(int64_t curIdx, int64_
         dropMaskInfo.maskLstAxis = s2ExtendAlign;
         ComputeDropMask<T2, true>(vecDropBuffer, simpleSoftmaxResBuf, vecInDropBuffer, tmpDropBuffer, this->dropMaskInfo);
         if constexpr (IsSameType<T1, float>::value) {
-            pipe_barrier(PIPE_ALL);
+            PipeBarrier<PIPE_ALL>();
         }
     }
 
@@ -3401,13 +3401,13 @@ FlashAttentionScoreGradS1s2Bn2gs1s2SameAB<FAGT>::SubGrapA(int64_t curIdx, int64_
     LocalTensor<T1> vecCopyOutBuffer = vecDropBuffer.template ReinterpretCast<T1>();
     if constexpr (!IsSameType<T1, float>::value) {
         vecCopyOutBuffer = unifiedBuffer.GetWithOffset<T1>(17 * 1024 / sizeof(T1), ubBufferOffset + T1Begin);
-        pipe_barrier(PIPE_V);
+        PipeBarrier<PIPE_V>();
         Cast(vecCopyOutBuffer, vecDropBuffer, RoundMode::CAST_ROUND, s1ExtendSubGraph * s2ExtendAlign);
     }
     int64_t copyOutOffset = 0;
     DataCopyParams copyOutParam;
     if constexpr (MM_OUT_FORMAT == CubeFormat::NZ) {
-        pipe_barrier(PIPE_V);
+        PipeBarrier<PIPE_V>();
         LocalTensor<T1> tmpTensor = unifiedBuffer.GetWithOffset<T1>(TMP_UB_SIZE / sizeof(T1), TMP_UB_OFFSET);
         copyOutOffset = pingpongIdx * cubeBaseMN * DTYPE_FACTOR + curS1Idx * s1VecSize * C0_SIZE +
                         curS2Idx * dbParam.s1CvExtendAlign * DTYPE_FACTOR * s2VecSize;
@@ -3418,7 +3418,7 @@ FlashAttentionScoreGradS1s2Bn2gs1s2SameAB<FAGT>::SubGrapA(int64_t curIdx, int64_
             static_cast<uint16_t>((dbParam.s1CvExtendAlign * DTYPE_FACTOR - s1ExtendSubGraph) * C0_SIZE * sizeof(T1))
         };
         DataCopy(tmpTensor, vecCopyOutBuffer, s1ExtendSubGraph * s2ExtendAlign);
-        pipe_barrier(PIPE_V);
+        PipeBarrier<PIPE_V>();
         ND2NZ(vecCopyOutBuffer, tmpTensor, s1ExtendSubGraph, s2ExtendAlign);
     } else {
         copyOutOffset = pingpongIdx * cubeBaseMN * DTYPE_FACTOR +
@@ -3431,12 +3431,12 @@ FlashAttentionScoreGradS1s2Bn2gs1s2SameAB<FAGT>::SubGrapA(int64_t curIdx, int64_
         };
     }
     event_t mte3WaitV = static_cast<event_t>(GetTPipePtr()->FetchEventID(HardEvent::V_MTE3));
-    set_flag(PIPE_V, PIPE_MTE3, mte3WaitV);
-    wait_flag(PIPE_V, PIPE_MTE3, mte3WaitV);
+    SetFlag<HardEvent::V_MTE3>(static_cast<int32_t>(mte3WaitV));
+    WaitFlag<HardEvent::V_MTE3>(static_cast<int32_t>(mte3WaitV));
     DataCopyPad(dropWorkSpaceGm[copyOutOffset], vecCopyOutBuffer, copyOutParam);
 
     if (curIdx < vecLoopEnd - vecLoopStart - 1) {
-        set_flag(PIPE_MTE3, PIPE_MTE2, mte2WaitMte3A);
+        SetFlag<HardEvent::MTE3_MTE2>(static_cast<int32_t>(mte2WaitMte3A));
     }
 }
 
@@ -3451,7 +3451,7 @@ FlashAttentionScoreGradS1s2Bn2gs1s2SameAB<FAGT>::SubGrapB(int64_t curIdx, int64_
     s2ExtendAlign = (s2Extend + 15) / 16 * 16;
 
     if (curIdx > 0) {
-        wait_flag(PIPE_MTE3, PIPE_MTE2, mte2WaitMte3B);
+        WaitFlag<HardEvent::MTE3_MTE2>(static_cast<int32_t>(mte2WaitMte3B));
     }
 
     if (preS1Idx != curS1Idx) {    // copyIn sfmg
@@ -3466,7 +3466,7 @@ FlashAttentionScoreGradS1s2Bn2gs1s2SameAB<FAGT>::SubGrapB(int64_t curIdx, int64_
         int64_t s2VBegin = dbParam.s2oIdx * s2CvInner + curS2Idx * s2VecSize;
         DropOutCopy(vecInDropBuffer, curS1Idx, s2VBegin);
         if constexpr (IsSameType<T1, float>::value) {
-            pipe_barrier(PIPE_ALL);
+            PipeBarrier<PIPE_ALL>();
         }
     }
 
@@ -3482,17 +3482,17 @@ FlashAttentionScoreGradS1s2Bn2gs1s2SameAB<FAGT>::SubGrapB(int64_t curIdx, int64_
                         {false, 0, 0, 0});
         }
         event_t vWaitMte2 = static_cast<event_t>(GetTPipePtr()->FetchEventID(HardEvent::MTE2_V));
-        set_flag(PIPE_MTE2, PIPE_V, vWaitMte2);
-        wait_flag(PIPE_MTE2, PIPE_V, vWaitMte2);
+        SetFlag<HardEvent::MTE2_V>(static_cast<int32_t>(vWaitMte2));
+        WaitFlag<HardEvent::MTE2_V>(static_cast<int32_t>(vWaitMte2));
     } else {
         int64_t mmAddr = pingpongIdx * cubeBaseMN + curS1Idx * s1VecSize * C0_SIZE + curS2Idx * dbParam.s1CvExtendAlign * s2VecSize;
         NZCopyIn(mmAddr, mm1WorkspaceGm, vecClc1Buffer, s1VecSize, s2ExtendAlign, dbParam.s1CvExtendAlign);
         event_t vWaitMte2 = static_cast<event_t>(GetTPipePtr()->FetchEventID(HardEvent::MTE2_V));
-        set_flag(PIPE_MTE2, PIPE_V, vWaitMte2);
-        wait_flag(PIPE_MTE2, PIPE_V, vWaitMte2);
+        SetFlag<HardEvent::MTE2_V>(static_cast<int32_t>(vWaitMte2));
+        WaitFlag<HardEvent::MTE2_V>(static_cast<int32_t>(vWaitMte2));
         auto tmpTensor = unifiedBuffer.GetWithOffset<T2>(TMP_UB_SIZE / sizeof(T2), TMP_UB_OFFSET);
         DataCopy(tmpTensor, vecClc1Buffer, s1VecSize * s2ExtendAlign + s2ExtendAlign / C0_SIZE * VEC_REPEAT);
-        pipe_barrier(PIPE_V);
+        PipeBarrier<PIPE_V>();
         NZ2ND(vecClc1Buffer, tmpTensor, s1VecSize, s2ExtendAlign);
     }
 
@@ -3507,14 +3507,14 @@ FlashAttentionScoreGradS1s2Bn2gs1s2SameAB<FAGT>::SubGrapB(int64_t curIdx, int64_
         dropMaskInfo.maskLstAxis = s2ExtendAlign;
         ComputeDropMask<T2, true>(vecClc1Buffer, vecClc1Buffer, vecInDropBuffer, tmpDropBuffer, this->dropMaskInfo);
     }
-    pipe_barrier(PIPE_V);
+    PipeBarrier<PIPE_V>();
     //
     ///////////////////////////////////////////////////////////////
     // sub to improve
     ///////////////////////////////////////////////////////////////
     uint32_t sub_block_cout = (s2ExtendAlign + cal_repeat_num - 1) / cal_repeat_num;
     LocalTensor<float> sfmgClc3 = unifiedBuffer.GetWithOffset<float>(SFMG_UB_SIZE / sizeof(float), SFMG_UB_OFFSET);
-    pipe_barrier(PIPE_V);
+    PipeBarrier<PIPE_V>();
     for (uint32_t subIdx = 0; subIdx < sub_block_cout; subIdx++) {
         uint32_t subMaskCout =
             (subIdx == sub_block_cout - 1) ? (s2ExtendAlign - subIdx * cal_repeat_num) : cal_repeat_num;
@@ -3527,22 +3527,22 @@ FlashAttentionScoreGradS1s2Bn2gs1s2SameAB<FAGT>::SubGrapB(int64_t curIdx, int64_
     ///////////////////////////////////////////////////////////////
     // mul
     ///////////////////////////////////////////////////////////////
-    pipe_barrier(PIPE_V);
+    PipeBarrier<PIPE_V>();
     LocalTensor<float> simpleSoftmaxResBuf = unifiedBuffer.GetWithOffset<float>(32 * 1024 / sizeof(float), DbBegin);
     Mul(vecClc1Buffer, vecClc1Buffer, simpleSoftmaxResBuf, s1ExtendSubGraph * s2ExtendAlign);
     LocalTensor<T1> vecCopyOutBuffer = vecClc1Buffer.template ReinterpretCast<T1>();
     if constexpr (!IsSameType<T1, float>::value) {
         vecCopyOutBuffer = unifiedBuffer.GetWithOffset<T1>(17 * 1024 / sizeof(T1), ubBufferOffset + T1Begin);
-        pipe_barrier(PIPE_V);
+        PipeBarrier<PIPE_V>();
         Cast(vecCopyOutBuffer, vecClc1Buffer, RoundMode::CAST_ROUND, s1ExtendSubGraph * s2ExtendAlign);
     }
     int64_t copyOutOffset = 0;
     DataCopyParams copyOutParam;
     if constexpr (MM_OUT_FORMAT == CubeFormat::NZ) {
         auto tmpTensor1 = unifiedBuffer.GetWithOffset<T1>(TMP_UB_SIZE / sizeof(T1), TMP_UB_OFFSET);
-        pipe_barrier(PIPE_V);
+        PipeBarrier<PIPE_V>();
         DataCopy(tmpTensor1, vecCopyOutBuffer, s1ExtendSubGraph * s2ExtendAlign);
-        pipe_barrier(PIPE_V);
+        PipeBarrier<PIPE_V>();
         ND2NZ(vecCopyOutBuffer, tmpTensor1, s1ExtendSubGraph, s2ExtendAlign);
 
         copyOutOffset = pingpongIdx * cubeBaseMN * DTYPE_FACTOR + curS1Idx * s1VecSize * C0_SIZE +
@@ -3564,13 +3564,13 @@ FlashAttentionScoreGradS1s2Bn2gs1s2SameAB<FAGT>::SubGrapB(int64_t curIdx, int64_
         };
     }
     event_t mte3WaitV = static_cast<event_t>(GetTPipePtr()->FetchEventID(HardEvent::V_MTE3));
-    set_flag(PIPE_V, PIPE_MTE3, mte3WaitV);
-    wait_flag(PIPE_V, PIPE_MTE3, mte3WaitV);
+    SetFlag<HardEvent::V_MTE3>(static_cast<int32_t>(mte3WaitV));
+    WaitFlag<HardEvent::V_MTE3>(static_cast<int32_t>(mte3WaitV));
 
     DataCopyPad(mulWorkSpaceGm[copyOutOffset], vecCopyOutBuffer, copyOutParam);
 
     if (curIdx < vecLoopEnd - vecLoopStart - 1) {
-        set_flag(PIPE_MTE3, PIPE_MTE2, mte2WaitMte3B);
+        SetFlag<HardEvent::MTE3_MTE2>(static_cast<int32_t>(mte2WaitMte3B));
     }
 }
 
@@ -3660,8 +3660,8 @@ __aicore__ inline void FlashAttentionScoreGradS1s2Bn2gs1s2SameAB<FAGT>::ComputeV
 
     preS1Idx = -1;
     event_t mte2WaitMte3 = static_cast<event_t>(GetTPipePtr()->FetchEventID(HardEvent::MTE3_MTE2));
-    set_flag(PIPE_MTE3, PIPE_MTE2, mte2WaitMte3);
-    wait_flag(PIPE_MTE3, PIPE_MTE2, mte2WaitMte3);
+    SetFlag<HardEvent::MTE3_MTE2>(static_cast<int32_t>(mte2WaitMte3));
+    WaitFlag<HardEvent::MTE3_MTE2>(static_cast<int32_t>(mte2WaitMte3));
     for (int32_t i = vecLoopStart, loopCnt = 0; i < vecLoopEnd; i++, loopCnt++) {
         int32_t curS1Idx;
         int32_t curS2Idx;

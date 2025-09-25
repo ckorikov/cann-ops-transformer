@@ -2271,9 +2271,9 @@ FlashAttentionScoreGradS1s2Bn2<T1, T2, MM_CFG, MM_OUT_FORMAT, PSE_CFG, ATTEN_MAS
     MM2_OUT_FORMAT, POST, L1CUSTOM>::CastTo32(
     LocalTensor<T2> &dstTensor, LocalTensor<T1> &srcTensor, uint32_t count)
 {
-    pipe_barrier(PIPE_V);
+    PipeBarrier<PIPE_V>();
     Cast(dstTensor, srcTensor, RoundMode::CAST_NONE, count); // 以前是s1_inner * rp.vS2InnerAlign
-    pipe_barrier(PIPE_V);
+    PipeBarrier<PIPE_V>();
 }
 
 template <typename T1, typename T2, const MatmulConfig &MM_CFG, const CubeFormat MM_OUT_FORMAT, const uint64_t PSE_CFG,
@@ -2284,9 +2284,9 @@ FlashAttentionScoreGradS1s2Bn2<T1, T2, MM_CFG, MM_OUT_FORMAT, PSE_CFG, ATTEN_MAS
     MM2_OUT_FORMAT, POST, L1CUSTOM>::CastTo16(
     LocalTensor<T1> &dstTensor, LocalTensor<T2> &srcTensor, uint32_t count)
 {
-    pipe_barrier(PIPE_V);
+    PipeBarrier<PIPE_V>();
     Cast(dstTensor, srcTensor, RoundMode::CAST_ROUND, count); // 以前是s1_inner * rp.vS2InnerAlign
-    pipe_barrier(PIPE_V);
+    PipeBarrier<PIPE_V>();
 }
 
 template <typename T1, typename T2, const MatmulConfig &MM_CFG, const CubeFormat MM_OUT_FORMAT, const uint64_t PSE_CFG,
@@ -2326,7 +2326,7 @@ FlashAttentionScoreGradS1s2Bn2<T1, T2, MM_CFG, MM_OUT_FORMAT, PSE_CFG, ATTEN_MAS
     } else {
         SelectWithBytesMask(dstTensor, scalar, dstTensor, attenMaskTensor, helpTensor, info);
     }
-    pipe_barrier(PIPE_V);
+    PipeBarrier<PIPE_V>();
 }
 
 template <typename T1, typename T2, const MatmulConfig &MM_CFG, const CubeFormat MM_OUT_FORMAT, const uint64_t PSE_CFG,
@@ -2362,7 +2362,7 @@ FlashAttentionScoreGradS1s2Bn2<T1, T2, MM_CFG, MM_OUT_FORMAT, PSE_CFG, ATTEN_MAS
         SimpleSoftMax<T2, true, false>(dstTensor, sumTensor, maxTensor, dstTensor, helpTensor,
                                        tilingData->softmaxTilingData);
     }
-    pipe_barrier(PIPE_V);
+    PipeBarrier<PIPE_V>();
 }
 
 
@@ -2401,7 +2401,7 @@ FlashAttentionScoreGradS1s2Bn2<T1, T2, MM_CFG, MM_OUT_FORMAT, PSE_CFG, ATTEN_MAS
 
         // operation
         if (loop > 0) {
-            wait_flag(PIPE_V, PIPE_MTE2, mte2WaitVPong);
+            WaitFlag<HardEvent::V_MTE2>(static_cast<int32_t>(mte2WaitVPong));
         }
         if constexpr (!IsSameType<T1, float>::value) {
             dyT1Tensor.SetSize(s1Inner_ * dAlign_);
@@ -2411,13 +2411,13 @@ FlashAttentionScoreGradS1s2Bn2<T1, T2, MM_CFG, MM_OUT_FORMAT, PSE_CFG, ATTEN_MAS
             dyT2Tensor.SetSize(s1Inner_ * dAlign_);
             MTE2_STFGrad(dyGm, dyGmAddr, dyT2Tensor, dimD, s1Inner_);
         }
-        set_flag(PIPE_MTE2, PIPE_V, vWaitMte2Pong);
-        wait_flag(PIPE_MTE2, PIPE_V, vWaitMte2Pong);
+        SetFlag<HardEvent::MTE2_V>(static_cast<int32_t>(vWaitMte2Pong));
+        WaitFlag<HardEvent::MTE2_V>(static_cast<int32_t>(vWaitMte2Pong));
 
         if constexpr (!IsSameType<T1, float>::value) {
             CastTo32(dyT2Tensor, dyT1Tensor, s1Inner_ * dAlign_);
             if (loop < times_ - 1) {
-                set_flag(PIPE_V, PIPE_MTE2, mte2WaitVPong);
+                SetFlag<HardEvent::V_MTE2>(static_cast<int32_t>(mte2WaitVPong));
             }
         }
 
@@ -2426,7 +2426,7 @@ FlashAttentionScoreGradS1s2Bn2<T1, T2, MM_CFG, MM_OUT_FORMAT, PSE_CFG, ATTEN_MAS
 
         // operation
         if (loop > 0) {
-            wait_flag(PIPE_V, PIPE_MTE2, mte2WaitVPing);
+            WaitFlag<HardEvent::V_MTE2>(static_cast<int32_t>(mte2WaitVPing));
         }
         if constexpr (!IsSameType<T1, float>::value) {
             attentionT1Tensor.SetSize(s1Inner_ * dAlign_);
@@ -2436,15 +2436,15 @@ FlashAttentionScoreGradS1s2Bn2<T1, T2, MM_CFG, MM_OUT_FORMAT, PSE_CFG, ATTEN_MAS
             attentionT2Tensor.SetSize(s1Inner_ * dAlign_);
             MTE2_STFGrad(attentionInGm, attentionInGmAddr, attentionT2Tensor, dimD, s1Inner_);
         }
-        set_flag(PIPE_MTE2, PIPE_V, vWaitMte2Ping);
-        wait_flag(PIPE_MTE2, PIPE_V, vWaitMte2Ping);
+        SetFlag<HardEvent::MTE2_V>(static_cast<int32_t>(vWaitMte2Ping));
+        WaitFlag<HardEvent::MTE2_V>(static_cast<int32_t>(vWaitMte2Ping));
         if constexpr (!IsSameType<T1, float>::value) {
             CastTo32(attentionT2Tensor, attentionT1Tensor, s1Inner_ * dAlign_);
             if (loop < times_ - 1) {
-                set_flag(PIPE_V, PIPE_MTE2, mte2WaitVPing);
+                SetFlag<HardEvent::V_MTE2>(static_cast<int32_t>(mte2WaitVPing));
             }
         } else {
-            pipe_barrier(PIPE_V);
+            PipeBarrier<PIPE_V>();
         }
 
         // params
@@ -2466,11 +2466,11 @@ FlashAttentionScoreGradS1s2Bn2<T1, T2, MM_CFG, MM_OUT_FORMAT, PSE_CFG, ATTEN_MAS
 
         if constexpr (IsSameType<T1, float>::value) {
             if (loop < times_ - 1) {
-                set_flag(PIPE_V, PIPE_MTE2, mte2WaitVPing);
+                SetFlag<HardEvent::V_MTE2>(static_cast<int32_t>(mte2WaitVPing));
             }
 
             if (loop < times_ - 1) {
-                set_flag(PIPE_V, PIPE_MTE2, mte2WaitVPong);
+                SetFlag<HardEvent::V_MTE2>(static_cast<int32_t>(mte2WaitVPong));
             }
         }
     }
@@ -2541,9 +2541,9 @@ FlashAttentionScoreGradS1s2Bn2<T1, T2, MM_CFG, MM_OUT_FORMAT, PSE_CFG, ATTEN_MAS
     MM2_OUT_FORMAT, POST, L1CUSTOM>::DoMul(
     LocalTensor<T2> &dstTensor, LocalTensor<T2> &srcTensor, PingPongEmitInsn &insn)
 {
-    pipe_barrier(PIPE_V);
+    PipeBarrier<PIPE_V>();
     Mul(dstTensor, dstTensor, srcTensor, insn.s1Inner * insn.s2InnerAlign);
-    pipe_barrier(PIPE_V);
+    PipeBarrier<PIPE_V>();
 }
 
 template <typename T1, typename T2, const MatmulConfig &MM_CFG, const CubeFormat MM_OUT_FORMAT, const uint64_t PSE_CFG,
@@ -2553,9 +2553,9 @@ __aicore__ inline void FlashAttentionScoreGradS1s2Bn2<T1, T2, MM_CFG, MM_OUT_FOR
                                         DROPOUT_CFG, LAYOUT, MM2_OUT_FORMAT, POST, L1CUSTOM>::DoMulsScale(LocalTensor<T2> &dstTensor,
                                                                                         PingPongEmitInsn &insn)
 {
-    pipe_barrier(PIPE_V);
+    PipeBarrier<PIPE_V>();
     Muls(dstTensor, dstTensor, scaleValue, insn.s1Inner * insn.s2InnerAlign);
-    pipe_barrier(PIPE_V);
+    PipeBarrier<PIPE_V>();
 }
 
 template <typename T1, typename T2, const MatmulConfig &MM_CFG, const CubeFormat MM_OUT_FORMAT, const uint64_t PSE_CFG,
@@ -3008,7 +3008,7 @@ FlashAttentionScoreGradS1s2Bn2<T1, T2, MM_CFG, MM_OUT_FORMAT, PSE_CFG, ATTEN_MAS
     3. 限制：rp.vS1Inner <= 255, 代码没有写repeat>255的分支
     */
     DataCopy(nzTensor, ndTensor, insn.s2InnerAlign * insn.s1Inner + insn.s2InnerAlign / C0_SIZE * B32_BLOCK_NUM);
-    pipe_barrier(PIPE_V);
+    PipeBarrier<PIPE_V>();
 
     CopyRepeatParams nz2ndParams;
     nz2ndParams.srcStride = insn.s1Inner * C0_SIZE / B32_BLOCK_NUM + 1;
@@ -3032,7 +3032,7 @@ FlashAttentionScoreGradS1s2Bn2<T1, T2, MM_CFG, MM_OUT_FORMAT, PSE_CFG, ATTEN_MAS
                  VEC_REPEAT * c1_remain, n_repeat, nz2ndParams);
         }
     }
-    pipe_barrier(PIPE_V);
+    PipeBarrier<PIPE_V>();
 }
 
 template <typename T1, typename T2, const MatmulConfig &MM_CFG, const CubeFormat MM_OUT_FORMAT, const uint64_t PSE_CFG,
@@ -3189,7 +3189,7 @@ FlashAttentionScoreGradS1s2Bn2<T1, T2, MM_CFG, MM_OUT_FORMAT, PSE_CFG, ATTEN_MAS
 
         CopyInDropMask<true>(dropmaskTensor, dropoutWorkspaceGm, dropMaskGm, this->dropMaskInfo);
         if constexpr (IsSameType<T1, float>::value) {
-            pipe_barrier(PIPE_ALL);
+            PipeBarrier<PIPE_ALL>();
         }
     }
 }
@@ -3297,18 +3297,18 @@ __aicore__ inline void FlashAttentionScoreGradS1s2Bn2<T1, T2, MM_CFG, MM_OUT_FOR
 
         // [MTE2][PSE][ATMASK][SUM/MAX][DROPOUT][MM2]
         if (!isFirst) {
-            wait_flag(PIPE_V, PIPE_MTE2, eventIdMte2WaitV); // x3
+            WaitFlag<HardEvent::V_MTE2>(static_cast<int32_t>(eventIdMte2WaitV)); // x3
         }
 
         LocalTensor<half> pseTensorHalf = pseTensor.template ReinterpretCast<half>();
 
         if (IsSameType<T1, float>::value && !isFirst && PSE_CFG == 0) {
-            wait_flag(PIPE_MTE3, PIPE_MTE2, eventIdMte2WaitMte3); // x3
+            WaitFlag<HardEvent::MTE3_MTE2>(static_cast<int32_t>(eventIdMte2WaitMte3)); // x3
         }
 
         if constexpr (PSE_CFG != 0) {
             if (!isFirst) {
-                wait_flag(PIPE_MTE3, PIPE_MTE2, eventIdMte2WaitMte3);
+                WaitFlag<HardEvent::MTE3_MTE2>(static_cast<int32_t>(eventIdMte2WaitMte3));
             }
             if constexpr (LAYOUT == TND) {
                 pseInfo.bSSOffset = seqS1S2ProductSum;
@@ -3365,8 +3365,8 @@ __aicore__ inline void FlashAttentionScoreGradS1s2Bn2<T1, T2, MM_CFG, MM_OUT_FOR
             MTE2ForMM2(mm2Tensor, mm2Addr, emitInsn);
         }
 
-        set_flag(PIPE_MTE2, PIPE_V, eventIdVWaitMte2);
-        wait_flag(PIPE_MTE2, PIPE_V, eventIdVWaitMte2);
+        SetFlag<HardEvent::MTE2_V>(static_cast<int32_t>(eventIdVWaitMte2));
+        WaitFlag<HardEvent::MTE2_V>(static_cast<int32_t>(eventIdVWaitMte2));
 
         // [VEC][NZ2ND][PSE][ATMASK][SFTMAX][DROPOUT]
         if constexpr (MM_OUT_FORMAT == CubeFormat::NZ) {
@@ -3383,8 +3383,8 @@ __aicore__ inline void FlashAttentionScoreGradS1s2Bn2<T1, T2, MM_CFG, MM_OUT_FOR
                 if constexpr (!IsSameType<T1, float>::value) {
                     CastTo32(b32Node0, pseTensor, count);
                 } else {
-                    set_flag(PIPE_V, PIPE_MTE2, eventIdMte2WaitV);
-                    wait_flag(PIPE_V, PIPE_MTE2, eventIdMte2WaitV);
+                    SetFlag<HardEvent::V_MTE2>(static_cast<int32_t>(eventIdMte2WaitV));
+                    WaitFlag<HardEvent::V_MTE2>(static_cast<int32_t>(eventIdMte2WaitV));
                     if constexpr (LAYOUT == TND) {
                         PseCopyIn<T1, T2, LayOutTypeEnum::LAYOUT_TND, true>(b32Node0, b32Node0, this->pseShiftGm,
                                                                             this->pseInfo);
@@ -3392,17 +3392,17 @@ __aicore__ inline void FlashAttentionScoreGradS1s2Bn2<T1, T2, MM_CFG, MM_OUT_FOR
                         PseCopyIn<T1, T2, LayOutTypeEnum::LAYOUT_BNSD, true>(b32Node0, b32Node0, this->pseShiftGm,
                                                                             this->pseInfo);
                     }
-                    set_flag(PIPE_MTE2, PIPE_V, eventIdVWaitMte2);
-                    wait_flag(PIPE_MTE2, PIPE_V, eventIdVWaitMte2);
+                    SetFlag<HardEvent::MTE2_V>(static_cast<int32_t>(eventIdVWaitMte2));
+                    WaitFlag<HardEvent::MTE2_V>(static_cast<int32_t>(eventIdVWaitMte2));
                 }
             } else {
                 PseSlopeCast<T2, true>(b32Node0, pseTensorHalf, pseSlope, pseInfo);
             }
             mm2Tensor.SetSize(emitInsn.s1Inner * emitInsn.s2InnerAlign);
             b32Node0.SetSize(emitInsn.s1Inner * emitInsn.s2InnerAlign);
-            pipe_barrier(PIPE_V);
+            PipeBarrier<PIPE_V>();
             PseCompute<T2, true>(mm2Tensor, b32Node0, this->pseInfo);
-            pipe_barrier(PIPE_V);
+            PipeBarrier<PIPE_V>();
         }
 
         if (tilingData->opInfo.pseType == (uint32_t)PseTypeEnum::PSE_OUTER_ADD_MUL_TYPE) {
@@ -3410,7 +3410,7 @@ __aicore__ inline void FlashAttentionScoreGradS1s2Bn2<T1, T2, MM_CFG, MM_OUT_FOR
         }
 
         if (PSE_CFG == 0 && !isFirst) {
-            wait_flag(PIPE_MTE3, PIPE_V, eventIdVWaitMte3); // x4
+            WaitFlag<HardEvent::MTE3_V>(static_cast<int32_t>(eventIdVWaitMte3)); // x4
         }
 
         if constexpr (ATTEN_MASK_CFG != 0) {
@@ -3420,16 +3420,16 @@ __aicore__ inline void FlashAttentionScoreGradS1s2Bn2<T1, T2, MM_CFG, MM_OUT_FOR
                         (emitInsn.s2Inner + 31) / 32 * 32; // attenmask做pad时会32对齐，故加31/32做ceil
                     int32_t maskNum = emitInsn.s1Inner * s2InnerAlign / 2; // 除2数据量按照uint16类型折半
 
-                    set_flag(PIPE_V, PIPE_MTE2, eventIdMte2WaitV);
-                    wait_flag(PIPE_V, PIPE_MTE2, eventIdMte2WaitV);
+                    SetFlag<HardEvent::V_MTE2>(static_cast<int32_t>(eventIdMte2WaitV));
+                    WaitFlag<HardEvent::V_MTE2>(static_cast<int32_t>(eventIdMte2WaitV));
                     MTE2_ATMask(attenmaskPreTensor, attenmaskPreAddr, emitInsn);
 
-                    set_flag(PIPE_MTE2, PIPE_V, eventIdVWaitMte2);
-                    wait_flag(PIPE_MTE2, PIPE_V, eventIdVWaitMte2);
+                    SetFlag<HardEvent::MTE2_V>(static_cast<int32_t>(eventIdVWaitMte2));
+                    WaitFlag<HardEvent::MTE2_V>(static_cast<int32_t>(eventIdVWaitMte2));
                     auto attenmaskTensorTmp = attenmaskTensor.template ReinterpretCast<uint16_t>();
                     auto attenmaskPreTensorTmp = attenmaskPreTensor.template ReinterpretCast<uint16_t>();
                     And(attenmaskTensorTmp, attenmaskPreTensorTmp, attenmaskTensorTmp, maskNum);
-                    pipe_barrier(PIPE_V);
+                    PipeBarrier<PIPE_V>();
                     attenmaskTensor = attenmaskTensorTmp.template ReinterpretCast<uint8_t>();
                 }
             }
@@ -3441,12 +3441,12 @@ __aicore__ inline void FlashAttentionScoreGradS1s2Bn2<T1, T2, MM_CFG, MM_OUT_FOR
             }
 
             if ((compressMode == BAND_MODE || unpadUseBand) && AttenBandMode == AttenMaskCompress::All) {
-                set_flag(PIPE_V, PIPE_MTE2, eventIdMte2WaitV);
-                wait_flag(PIPE_V, PIPE_MTE2, eventIdMte2WaitV);
+                SetFlag<HardEvent::V_MTE2>(static_cast<int32_t>(eventIdMte2WaitV));
+                WaitFlag<HardEvent::V_MTE2>(static_cast<int32_t>(eventIdMte2WaitV));
                 MTE2_ATMask(attenmaskTensor, attenmaskPreAddr, emitInsn);
                 event_t vWaitMte2Stage1 = static_cast<event_t>(GetTPipePtr()->FetchEventID(HardEvent::MTE2_V));
-                set_flag(PIPE_MTE2, PIPE_V, eventIdVWaitMte2);
-                wait_flag(PIPE_MTE2, PIPE_V, eventIdVWaitMte2);
+                SetFlag<HardEvent::MTE2_V>(static_cast<int32_t>(eventIdVWaitMte2));
+                WaitFlag<HardEvent::MTE2_V>(static_cast<int32_t>(eventIdVWaitMte2));
                 DoMaskU8(mm2Tensor, attenmaskTensor, b8Node0, emitInsn, 1);
             }
         }
@@ -3460,7 +3460,7 @@ __aicore__ inline void FlashAttentionScoreGradS1s2Bn2<T1, T2, MM_CFG, MM_OUT_FOR
                 dropMaskInfo.lstAxis = emitInsn.s2InnerAlign;
                 dropMaskInfo.maskLstAxis = emitInsn.s2Inner;
                 ComputeDropMask<T2, true>(b32Node0, mm2Tensor, dropmaskTensor, b8FusedTensor, this->dropMaskInfo);
-                pipe_barrier(PIPE_V);
+                PipeBarrier<PIPE_V>();
 
                 CastTo16(pseTensor, b32Node0, emitInsn.s1Inner * emitInsn.s2InnerAlign);
             } else {
@@ -3474,17 +3474,17 @@ __aicore__ inline void FlashAttentionScoreGradS1s2Bn2<T1, T2, MM_CFG, MM_OUT_FOR
             }
 
             if constexpr (MM_OUT_FORMAT == CubeFormat::NZ) {
-                pipe_barrier(PIPE_V);
+                PipeBarrier<PIPE_V>();
                 DataCopy(b16Node0, pseTensor, emitInsn.s1Inner * emitInsn.s2InnerAlign);
-                pipe_barrier(PIPE_V);
+                PipeBarrier<PIPE_V>();
                 ND2NZ(pseTensor, b16Node0, emitInsn);
             }
  
             // [MTE3]
-            set_flag(PIPE_V, PIPE_MTE3, eventIdMte3WaitV);
-            wait_flag(PIPE_V, PIPE_MTE3, eventIdMte3WaitV);
+            SetFlag<HardEvent::V_MTE3>(static_cast<int32_t>(eventIdMte3WaitV));
+            WaitFlag<HardEvent::V_MTE3>(static_cast<int32_t>(eventIdMte3WaitV));
             CopyoutWorkspace(mm4InputWorkspaceGm[mm4Addr], pseTensor, emitInsn);
-            set_flag(PIPE_MTE3, PIPE_MTE2, eventIdMte2WaitMte3); // x1
+            SetFlag<HardEvent::MTE3_MTE2>(static_cast<int32_t>(eventIdMte2WaitMte3)); // x1
         } else {
              if constexpr (DROPOUT_CFG != 0) {
                 // for compute dropout mask
@@ -3492,11 +3492,11 @@ __aicore__ inline void FlashAttentionScoreGradS1s2Bn2<T1, T2, MM_CFG, MM_OUT_FOR
                 dropMaskInfo.lstAxis = emitInsn.s2InnerAlign;
                 dropMaskInfo.maskLstAxis = emitInsn.s2Inner;
                 ComputeDropMask<T2, true>(b32Node0, mm2Tensor, dropmaskTensor, b8FusedTensor, this->dropMaskInfo);
-                pipe_barrier(PIPE_ALL);
+                PipeBarrier<PIPE_ALL>();
             }
 
             if (lowerMask != 0) {
-                pipe_barrier(PIPE_V);
+                PipeBarrier<PIPE_V>();
                 uint64_t mask[2] = {static_cast<uint64_t>(lowerMask), static_cast<uint64_t>(highMask)};
                 if constexpr (DROPOUT_CFG != 0) {
                     if (isPseInnerGenerate) {
@@ -3518,15 +3518,15 @@ __aicore__ inline void FlashAttentionScoreGradS1s2Bn2<T1, T2, MM_CFG, MM_OUT_FOR
             }
 
             // [MTE3]
-            set_flag(PIPE_V, PIPE_MTE3, eventIdMte3WaitV);
-            wait_flag(PIPE_V, PIPE_MTE3, eventIdMte3WaitV);
+            SetFlag<HardEvent::V_MTE3>(static_cast<int32_t>(eventIdMte3WaitV));
+            WaitFlag<HardEvent::V_MTE3>(static_cast<int32_t>(eventIdMte3WaitV));
             if constexpr (DROPOUT_CFG != 0) {
                 CopyoutWorkspace(mm4InputWorkspaceGm[mm4Addr], b32Node0, emitInsn);
             } else {
                 CopyoutWorkspace(mm4InputWorkspaceGm[mm4Addr], mm2Tensor, emitInsn);
             }
 
-            set_flag(PIPE_MTE3, PIPE_MTE2, eventIdMte2WaitMte3); // x1
+            SetFlag<HardEvent::MTE3_MTE2>(static_cast<int32_t>(eventIdMte2WaitMte3)); // x1
         }
     }
 
@@ -3579,7 +3579,7 @@ __aicore__ inline void FlashAttentionScoreGradS1s2Bn2<T1, T2, MM_CFG, MM_OUT_FOR
         }
 
         // [MTE2][MM2]
-        wait_flag(PIPE_MTE3, PIPE_MTE2, eventIdMte2WaitMte3); // x1
+        WaitFlag<HardEvent::MTE3_MTE2>(static_cast<int32_t>(eventIdMte2WaitMte3)); // x1
         if constexpr (MM_OUT_FORMAT == CubeFormat::NZ) {
             if constexpr (L1CUSTOM) {
                 NZCopyIn(mmPingpongIdx * mm1WorkspaceLen / sizeof(T2) + mm1Addr, mm1WorkspaceGm, mm1Tensor, emitInsn, processM);
@@ -3593,8 +3593,8 @@ __aicore__ inline void FlashAttentionScoreGradS1s2Bn2<T1, T2, MM_CFG, MM_OUT_FOR
         DropOutCopy(dropmaskTensor, emitInsn);
 
         // [VEC][NZ2ND][DROPOUT]
-        set_flag(PIPE_MTE2, PIPE_V, eventIdVWaitMte2);
-        wait_flag(PIPE_MTE2, PIPE_V, eventIdVWaitMte2);
+        SetFlag<HardEvent::MTE2_V>(static_cast<int32_t>(eventIdVWaitMte2));
+        WaitFlag<HardEvent::MTE2_V>(static_cast<int32_t>(eventIdVWaitMte2));
         if constexpr (MM_OUT_FORMAT == CubeFormat::NZ) {
             NZ2ND(mm1Tensor, b32Node0, emitInsn);
         }
@@ -3605,7 +3605,7 @@ __aicore__ inline void FlashAttentionScoreGradS1s2Bn2<T1, T2, MM_CFG, MM_OUT_FOR
             dropMaskInfo.lstAxis = emitInsn.s2InnerAlign;
             dropMaskInfo.maskLstAxis = emitInsn.s2Inner;
             ComputeDropMask<T2, true>(mm1Tensor, mm1Tensor, dropmaskTensor, b8Node0, this->dropMaskInfo);
-            pipe_barrier(PIPE_V);
+            PipeBarrier<PIPE_V>();
         }
         auto partGradTensor = softmaxGradOutTensor[emitInsn.vLoopS1 * vec.baseM * 8]; // [rp.SFTS1Inner, 8]
         DoSub(mm1Tensor, partGradTensor, emitInsn);
@@ -3617,7 +3617,7 @@ __aicore__ inline void FlashAttentionScoreGradS1s2Bn2<T1, T2, MM_CFG, MM_OUT_FOR
         }
 
         if (!isLast) {
-            set_flag(PIPE_V, PIPE_MTE2, eventIdMte2WaitV); // x3
+            SetFlag<HardEvent::V_MTE2>(static_cast<int32_t>(eventIdMte2WaitV)); // x3
         }
 
         if (lowerMask != 0) {
@@ -3637,15 +3637,15 @@ __aicore__ inline void FlashAttentionScoreGradS1s2Bn2<T1, T2, MM_CFG, MM_OUT_FOR
         }
 
         if constexpr (MM_OUT_FORMAT == CubeFormat::NZ) {
-            pipe_barrier(PIPE_V);
+            PipeBarrier<PIPE_V>();
             DataCopy(b16Node0, pseTensor, emitInsn.s1Inner * emitInsn.s2InnerAlign);
-            pipe_barrier(PIPE_V);
+            PipeBarrier<PIPE_V>();
             ND2NZ(pseTensor, b16Node0, emitInsn);
         }
 
         // [MTE3]
-        set_flag(PIPE_V, PIPE_MTE3, eventIdMte3WaitV);
-        wait_flag(PIPE_V, PIPE_MTE3, eventIdMte3WaitV);
+        SetFlag<HardEvent::V_MTE3>(static_cast<int32_t>(eventIdMte3WaitV));
+        WaitFlag<HardEvent::V_MTE3>(static_cast<int32_t>(eventIdMte3WaitV));
         if constexpr (!IsSameType<T1, float>::value) {
             CopyoutWorkspace(mm3InputWorkspaceGm[mm3Addr], pseTensor, emitInsn);
         } else {
@@ -3654,16 +3654,16 @@ __aicore__ inline void FlashAttentionScoreGradS1s2Bn2<T1, T2, MM_CFG, MM_OUT_FOR
 
         if constexpr (!IsSameType<T1, float>::value) {
             if (PSE_CFG != 0 && !isLast) {
-                set_flag(PIPE_MTE3, PIPE_MTE2, eventIdMte2WaitMte3); // x2
+                SetFlag<HardEvent::MTE3_MTE2>(static_cast<int32_t>(eventIdMte2WaitMte3)); // x2
             }
         } else {
             if (!isLast) {
-                set_flag(PIPE_MTE3, PIPE_MTE2, eventIdMte2WaitMte3); // x2
+                SetFlag<HardEvent::MTE3_MTE2>(static_cast<int32_t>(eventIdMte2WaitMte3)); // x2
             }
         }
 
         if (PSE_CFG == 0 && !isLast) {
-            set_flag(PIPE_MTE3, PIPE_V, eventIdVWaitMte3); // x4
+            SetFlag<HardEvent::MTE3_V>(static_cast<int32_t>(eventIdVWaitMte3)); // x4
         }
     }
     GetTPipePtr()->ReleaseEventID<HardEvent::V_MTE2>(mte2WaitVPing);
@@ -3908,7 +3908,7 @@ FlashAttentionScoreGradS1s2Bn2<T1, T2, MM_CFG, MM_OUT_FORMAT, PSE_CFG, ATTEN_MAS
         // STFGrad结果外提
         DoSoftmaxGrad(softmaxGradOutTensor); // [rp.SFTS1Inner, 8] FP32
 
-        pipe_barrier(PIPE_ALL);
+        PipeBarrier<PIPE_ALL>();
 
         rp.SFTLoopS1 = SFTLoopS1;
         VectorByS1S2(mm1Addr, mm2Addr, mm3Addr, mm4Addr, processM);
@@ -3926,7 +3926,7 @@ FlashAttentionScoreGradS1s2Bn2<T1, T2, MM_CFG, MM_OUT_FORMAT, PSE_CFG, ATTEN_MAS
             mm3Addr += sft.singleM * b16AlignProcessN;
             mm4Addr += sft.singleM * b16AlignProcessN;
         }
-        pipe_barrier(PIPE_ALL);
+        PipeBarrier<PIPE_ALL>();
     }
 }
 
@@ -4088,8 +4088,8 @@ FlashAttentionScoreGradS1s2Bn2<T1, T2, MM_CFG, MM_OUT_FORMAT, PSE_CFG, ATTEN_MAS
     mte2WaitMte3 = static_cast<event_t>(GetTPipePtr()->AllocEventID<HardEvent::MTE3_MTE2>());
     mte3WaitV = static_cast<event_t>(GetTPipePtr()->AllocEventID<HardEvent::V_MTE3>());
 
-    set_flag(PIPE_MTE3, PIPE_MTE2, mte2WaitMte3);
-    wait_flag(PIPE_MTE3, PIPE_MTE2, mte2WaitMte3);
+    SetFlag<HardEvent::MTE3_MTE2>(static_cast<int32_t>(mte2WaitMte3));
+    WaitFlag<HardEvent::MTE3_MTE2>(static_cast<int32_t>(mte2WaitMte3));
 
     if constexpr (L1CUSTOM) {
         CrossCoreWaitFlag(SYNC_C2_V2_FLAG[0]);
@@ -4098,8 +4098,8 @@ FlashAttentionScoreGradS1s2Bn2<T1, T2, MM_CFG, MM_OUT_FORMAT, PSE_CFG, ATTEN_MAS
     }
     PostProcessQ();
 
-    set_flag(PIPE_MTE3, PIPE_MTE2, mte2WaitMte3);
-    wait_flag(PIPE_MTE3, PIPE_MTE2, mte2WaitMte3);
+    SetFlag<HardEvent::MTE3_MTE2>(static_cast<int32_t>(mte2WaitMte3));
+    WaitFlag<HardEvent::MTE3_MTE2>(static_cast<int32_t>(mte2WaitMte3));
     if constexpr (L1CUSTOM) {
         CrossCoreWaitFlag(SYNC_C2_V2_FLAG[1]);
     } else {
@@ -4109,8 +4109,8 @@ FlashAttentionScoreGradS1s2Bn2<T1, T2, MM_CFG, MM_OUT_FORMAT, PSE_CFG, ATTEN_MAS
     if(calIndices.gIndex == dimG -1){
         PostProcessKV();
         if(likely(!isLast)){
-            set_flag(PIPE_MTE3, PIPE_MTE2, mte2WaitMte3);
-            wait_flag(PIPE_MTE3, PIPE_MTE2, mte2WaitMte3);
+            SetFlag<HardEvent::MTE3_MTE2>(static_cast<int32_t>(mte2WaitMte3));
+            WaitFlag<HardEvent::MTE3_MTE2>(static_cast<int32_t>(mte2WaitMte3));
         }
     }
     // update used data
@@ -4142,15 +4142,15 @@ __aicore__ inline void FlashAttentionScoreGradS1s2Bn2<T1, T2, MM_CFG, MM_OUT_FOR
     if constexpr (MM2_OUT_FORMAT == CubeFormat::NZ){
         PostProcessNZ(dkWorkspaceGm, dkGm, 1);
         if constexpr (!AscendC::IsSameType<T1, float>::value){
-            set_flag(PIPE_MTE3, PIPE_MTE2, mte2WaitMte3);
-            wait_flag(PIPE_MTE3, PIPE_MTE2, mte2WaitMte3);
+            SetFlag<HardEvent::MTE3_MTE2>(static_cast<int32_t>(mte2WaitMte3));
+            WaitFlag<HardEvent::MTE3_MTE2>(static_cast<int32_t>(mte2WaitMte3));
             PostProcessNZ(dvWorkspaceGm, dvGm, 2);
         }
     }else{
         PostProcessND(dkWorkspaceGm, dkGm, 1);
         if constexpr (!AscendC::IsSameType<T1, float>::value){
-            set_flag(PIPE_MTE3, PIPE_MTE2, mte2WaitMte3);
-            wait_flag(PIPE_MTE3, PIPE_MTE2, mte2WaitMte3);
+            SetFlag<HardEvent::MTE3_MTE2>(static_cast<int32_t>(mte2WaitMte3));
+            WaitFlag<HardEvent::MTE3_MTE2>(static_cast<int32_t>(mte2WaitMte3));
             PostProcessND(dvWorkspaceGm, dvGm, 2);
         }
     }
@@ -4187,13 +4187,13 @@ FlashAttentionScoreGradS1s2Bn2<T1, T2, MM_CFG, MM_OUT_FORMAT, PSE_CFG, ATTEN_MAS
         }
 
         if (i > 0) {
-            wait_flag(PIPE_MTE3, PIPE_MTE2, mte2WaitMte3);
+            WaitFlag<HardEvent::MTE3_MTE2>(static_cast<int32_t>(mte2WaitMte3));
         }
 
         PostCalNZ(workspaceGm, outGm, procS, SIdx, type);
 
         if (i < processLoop - 1) {
-            set_flag(PIPE_MTE3, PIPE_MTE2, mte2WaitMte3);
+            SetFlag<HardEvent::MTE3_MTE2>(static_cast<int32_t>(mte2WaitMte3));
         }
         SIdx += procS;
     }
@@ -4229,8 +4229,8 @@ FlashAttentionScoreGradS1s2Bn2<T1, T2, MM_CFG, MM_OUT_FORMAT, PSE_CFG, ATTEN_MAS
 
     DataCopyPad(postInBuf, workspaceGm[inGmOffset], extParams, padExtParams);
 
-    set_flag(PIPE_MTE2, PIPE_V, vWaitMte2);
-    wait_flag(PIPE_MTE2, PIPE_V, vWaitMte2);
+    SetFlag<HardEvent::MTE2_V>(static_cast<int32_t>(vWaitMte2));
+    WaitFlag<HardEvent::MTE2_V>(static_cast<int32_t>(vWaitMte2));
 
     if constexpr (AscendC::IsSameType<T1, float>::value) {
         if (needMuls) {
@@ -4239,7 +4239,7 @@ FlashAttentionScoreGradS1s2Bn2<T1, T2, MM_CFG, MM_OUT_FORMAT, PSE_CFG, ATTEN_MAS
     } else {
         if (needMuls) {
             Muls(postInBuf, postInBuf, postScaleValue, dataSize);
-            pipe_barrier(PIPE_V);
+            PipeBarrier<PIPE_V>();
         }
         Cast(postTmpBuf, postInBuf, AscendC::RoundMode::CAST_ROUND, dataSize);
     }
@@ -4253,15 +4253,15 @@ FlashAttentionScoreGradS1s2Bn2<T1, T2, MM_CFG, MM_OUT_FORMAT, PSE_CFG, ATTEN_MAS
     uint64_t outLocalOffset = 0;
     uint64_t loop = C0Num;
 
-    pipe_barrier(PIPE_V);
+    PipeBarrier<PIPE_V>();
     for (uint64_t i = 0; i < loop; i++) {
         DataCopy(postOutBuf[outLocalOffset], postTmpBuf[inLocalOffset], repeatParams);
         inLocalOffset += C0_SIZE * procS;
         outLocalOffset += C0_SIZE;
     }
 
-    set_flag(PIPE_V, PIPE_MTE3, mte3WaitV);
-    wait_flag(PIPE_V, PIPE_MTE3, mte3WaitV);
+    SetFlag<HardEvent::V_MTE3>(static_cast<int32_t>(mte3WaitV));
+    WaitFlag<HardEvent::V_MTE3>(static_cast<int32_t>(mte3WaitV));
 
     DataCopyExtParams outExt;
     outExt.blockCount = procS;
@@ -4321,12 +4321,12 @@ __aicore__ inline void FlashAttentionScoreGradS1s2Bn2<T1, T2, MM_CFG, MM_OUT_FOR
             procS = remainS;
         }
         if (i > 0) {
-            wait_flag(PIPE_MTE3, PIPE_MTE2, mte2WaitMte3);
+            WaitFlag<HardEvent::MTE3_MTE2>(static_cast<int32_t>(mte2WaitMte3));
         }
         PostCalND(workspaceGm, outGm, procS, gmOffset, type);
 
         if (i < loop - 1) {
-            set_flag(PIPE_MTE3, PIPE_MTE2, mte2WaitMte3);
+            SetFlag<HardEvent::MTE3_MTE2>(static_cast<int32_t>(mte2WaitMte3));
         }
         gmOffset += loopOffset;
     }
@@ -4374,8 +4374,8 @@ __aicore__ inline void FlashAttentionScoreGradS1s2Bn2<T1, T2, MM_CFG, MM_OUT_FOR
     DataCopyExtParams extParams{ blockCount, inBlockLen, srcStride, 0, 0 };
     DataCopyPad(postInBuf, workspaceGm[gmOffset], extParams, padExtParams);
 
-    set_flag(PIPE_MTE2, PIPE_V, vWaitMte2);
-    wait_flag(PIPE_MTE2, PIPE_V, vWaitMte2);
+    SetFlag<HardEvent::MTE2_V>(static_cast<int32_t>(vWaitMte2));
+    WaitFlag<HardEvent::MTE2_V>(static_cast<int32_t>(vWaitMte2));
 
     if constexpr (AscendC::IsSameType<T1, float>::value) {
         if(needMuls){
@@ -4384,13 +4384,13 @@ __aicore__ inline void FlashAttentionScoreGradS1s2Bn2<T1, T2, MM_CFG, MM_OUT_FOR
     }else {
         if(needMuls){
             Muls(postInBuf, postInBuf, postScaleValue, dataSize);
-            pipe_barrier(PIPE_V);
+            PipeBarrier<PIPE_V>();
         }
         Cast(postOutBuf, postInBuf, AscendC::RoundMode::CAST_ROUND, dataSize);
     }
 
-    set_flag(PIPE_V, PIPE_MTE3, mte3WaitV);
-    wait_flag(PIPE_V, PIPE_MTE3, mte3WaitV);
+    SetFlag<HardEvent::V_MTE3>(static_cast<int32_t>(mte3WaitV));
+    WaitFlag<HardEvent::V_MTE3>(static_cast<int32_t>(mte3WaitV));
 
     DataCopyExtParams outExtParams{ blockCount, outBlockLen, 0, dstStride, 0 };
     DataCopyPad(outGm[gmOffset], postOutBuf, outExtParams);
@@ -4468,7 +4468,7 @@ FlashAttentionScoreGradS1s2Bn2<T1, T2, MM_CFG, MM_OUT_FORMAT, PSE_CFG, ATTEN_MAS
                 SendMatmul1L1Tscm(rp.processM, realProcessN, inputMMLeftMatrixAddr, inputMMRighMatrixtAddr, rp.mm1mm2OrgM);
                 CrossCoreSetFlag<SYNC_MODE2, PIPE_FIX>(SYNC_C1_V1_FLAG[(currentLoop + 1) % 3]);
                 if (currentLoop > 0) {
-                    set_flag(PIPE_FIX, PIPE_MTE2, eventIdFixToMte2);
+                    SetFlag<HardEvent::FIX_MTE2>(static_cast<int32_t>(eventIdFixToMte2));
                 }
             }
         } else {
@@ -4515,7 +4515,7 @@ FlashAttentionScoreGradS1s2Bn2<T1, T2, MM_CFG, MM_OUT_FORMAT, PSE_CFG, ATTEN_MAS
 
             if constexpr (L1CUSTOM) {
                 if ASCEND_IS_AIC {
-                    wait_flag(PIPE_FIX, PIPE_MTE2, eventIdFixToMte2);
+                    WaitFlag<HardEvent::FIX_MTE2>(static_cast<int32_t>(eventIdFixToMte2));
                     CrossCoreWaitFlag(SYNC_V1_C2_FLAG[currentLoop % 3]);
                     SendMatmulDQL1Tscm(lastRealProcessN, b16LastRealAlignProcessN, lastProcessM, lastMM3InputWorkspaceAddr,
                                 last_mm3_4_tensor_1_s2_addr, last_mm3_4_out_g_s1_addr, isLastWorkSpaceFinished, qAtomic);

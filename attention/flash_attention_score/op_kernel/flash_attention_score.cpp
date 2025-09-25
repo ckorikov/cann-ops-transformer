@@ -447,7 +447,7 @@ flash_attention_score(__gm__ uint8_t *query, __gm__ uint8_t *key, __gm__ uint8_t
     }
 #else
     TPipe tPipe;
-    set_mask_norm();
+    SetMaskNorm();
     REGISTER_TILING_DEFAULT(FlashAttentionScoreGeneralTilingData);
     if constexpr (KernelTypeKey == 1) {
         REGISTER_TILING_FOR_TILINGKEY("(TILING_KEY_VAR == 0x0)", FlashAttentionScoreTilingData);

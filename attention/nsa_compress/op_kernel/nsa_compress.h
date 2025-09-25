@@ -165,13 +165,13 @@ public:
         uint32_t dim = this->subTiling.subHeadNum * this->subTiling.subHeadDim;
 
         AscendC::Add(tensor, tensor, tensor[alignReduceSize * dim], addVectorNum * dim);
-        pipe_barrier(PIPE_V);
+        PipeBarrier<PIPE_V>();
 
         // reduce step: reduce compressBlockSize to 1
         while (alignReduceSize > 1) {
             alignReduceSize = alignReduceSize >> 1;
             AscendC::Add(tensor[0], tensor[0], tensor[alignReduceSize * dim], alignReduceSize * dim);
-            pipe_barrier(PIPE_V);
+            PipeBarrier<PIPE_V>();
         }
     }
 
@@ -190,24 +190,24 @@ public:
                 AscendC::Add(overlapMgt.overlapLocal[dstOverlapIdx * subTiling.GetSubTilingKvDim()],
                              overlapMgt.overlapLocal[dstOverlapIdx * subTiling.GetSubTilingKvDim()], subResultLocal,
                              subTiling.GetSubTilingKvDim());
-                pipe_barrier(PIPE_V);
+                PipeBarrier<PIPE_V>();
             } else {
                 AscendC::DataCopy(overlapMgt.overlapLocal[dstOverlapIdx * subTiling.GetSubTilingKvDim()],
                                   subResultLocal, subTiling.GetSubTilingKvDim());
-                pipe_barrier(PIPE_V);
+                PipeBarrier<PIPE_V>();
             }
         } else {
             if (beforeState == CompressState::COMPRESS_TOKEN_INITIATED &&
                 cur_state == CompressState::COMPRESS_TOKEN_COMPLETED) {
                 AscendC::DataCopy(overlapMgt.overlapLocal[dstOverlapIdx * subTiling.GetSubTilingKvDim()],
                                   this->subResultLocal, this->subTiling.GetSubTilingKvDim());
-                pipe_barrier(PIPE_V);
+                PipeBarrier<PIPE_V>();
             } else {
                 // 压缩成功，需要把当前sub_kv & overlap 交集部分(mul & reduce规约)累加到前一次数据上
                 AscendC::Add(overlapMgt.overlapLocal[dstOverlapIdx * subTiling.GetSubTilingKvDim()],
                              overlapMgt.overlapLocal[dstOverlapIdx * subTiling.GetSubTilingKvDim()],
                              this->subResultLocal, this->subTiling.GetSubTilingKvDim());
-                pipe_barrier(PIPE_V);
+                PipeBarrier<PIPE_V>();
             }
 
             if (outQueCompressKv.HasTensorInQue()) {
@@ -216,7 +216,7 @@ public:
             AscendC::LocalTensor<T> compressKvCacheLocal = outQueCompressKv.AllocTensor<T>();
             AscendC::Cast(compressKvCacheLocal, overlapMgt.overlapLocal[dstOverlapIdx * subTiling.GetSubTilingKvDim()],
                           AscendC::RoundMode::CAST_ROUND, this->subTiling.subHeadNum * this->subTiling.subHeadDim);
-            pipe_barrier(PIPE_V);
+            PipeBarrier<PIPE_V>();
 
             outQueCompressKv.EnQue<T>(compressKvCacheLocal);
 
@@ -280,12 +280,12 @@ public:
             uint32_t src1UbOffset = Eight * headIdx;
             uint32_t dstUbOffset = headDim * headIdx;
             Mul(dstUb[dstUbOffset], src0Ub[src0UbOffset], src1Ub[src1UbOffset], mask, loopCount, repeatParams);
-            pipe_barrier(PIPE_V);
+            PipeBarrier<PIPE_V>();
 
             if (remainCount > 0) {
                 Mul(dstUb[dstUbOffset + loopCount * mask], src0Ub[src0UbOffset + loopCount * mask],
                     src1Ub[src1UbOffset], remainCount, 1, repeatParams);
-                pipe_barrier(PIPE_V);
+                PipeBarrier<PIPE_V>();
             }
         }
     }
@@ -402,7 +402,7 @@ __aicore__ inline void KernelNASCompress<T>::InitWeight()
     AscendC::LocalTensor<float> WeightLocalFP32 = inQueueCastWeightFp32.Get<float>();
     AscendC::Cast(WeightLocalFP32, weightLocal, AscendC::RoundMode::CAST_NONE,
                   tiling.compressBlockSize * coreHeadNumAlign);
-    pipe_barrier(PIPE_V);
+    PipeBarrier<PIPE_V>();
 
     uint32_t dstShape[2];
     uint32_t srcShape[2];
@@ -416,7 +416,7 @@ __aicore__ inline void KernelNASCompress<T>::InitWeight()
 
     AscendC::LocalTensor<float> BroadCastWeightLocal = inBroadCastWeightFp32.Get<float>();
     AscendC::BroadCast<float, 2, 1>(BroadCastWeightLocal, WeightLocalFP32, dstShape, srcShape);
-    pipe_barrier(PIPE_V);
+    PipeBarrier<PIPE_V>();
 
     pipe->InitBuffer(inQueueWeightFp32, 1,
                      tiling.compressBlockSize * coreInfo.coreHeadNums * ubBlockFloatNum * sizeof(float));
@@ -424,7 +424,7 @@ __aicore__ inline void KernelNASCompress<T>::InitWeight()
     broadcastWeightLocal = inQueueWeightFp32.AllocTensor<float>();
     AscendC::DataCopy(broadcastWeightLocal, BroadCastWeightLocal,
                       AscendC::DataCopyParams(tiling.compressBlockSize, coreInfo.coreHeadNums, dummySize, 0));
-    pipe_barrier(PIPE_V);
+    PipeBarrier<PIPE_V>();
 }
 
 template <typename T> 
@@ -433,7 +433,7 @@ __aicore__ inline void KernelNASCompress<T>::Compute()
     // acquire sub_compress_kv
     AscendC::LocalTensor<T> kvCacheLocal = inQueueKvFp16.DeQue<T>();
     AscendC::Cast(castKvCacheLocal, kvCacheLocal, AscendC::RoundMode::CAST_NONE, this->subTiling.subKvSize);
-    pipe_barrier(PIPE_V);
+    PipeBarrier<PIPE_V>();
     inQueueKvFp16.FreeTensor(kvCacheLocal);
 
     // 1. 依次遍历每个overlap区域
@@ -468,7 +468,7 @@ __aicore__ inline void KernelNASCompress<T>::Compute()
 
             if (reduceToken > 1) {
                 ReduceBlock(this->subResultLocal, reduceToken);
-                pipe_barrier(PIPE_V);
+                PipeBarrier<PIPE_V>();
             }
 
             CompressState beforeState = overlapMgt.seqContext[dstOverlapIdx].GetCompressState();
@@ -501,9 +501,9 @@ __aicore__ inline void KernelNASCompress<T>::CopyOut()
     if (coreInfo.coreCompressIdx < coreInfo.coreCompressNum) {
         uint32_t compressOffset =
             coreInfo.coreCompressOffset + coreInfo.coreCompressIdx * tiling.headNum * tiling.headDim;
-        pipe_barrier(PIPE_ALL);
+        PipeBarrier<PIPE_ALL>();
         AscendC::DataCopy(compressKvGm[compressOffset], compressKvCacheLocal, coreInfo.coreCompressSize);
-        pipe_barrier(PIPE_ALL);
+        PipeBarrier<PIPE_ALL>();
         coreInfo.coreCompressIdx += 1;
     }
     outQueCompressKv.FreeTensor(compressKvCacheLocal);

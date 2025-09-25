@@ -706,17 +706,17 @@ __aicore__ inline void SelectedAttentionGrad<NSAGT>::CalRowsumAndSftCopyIn()
     DataCopyPadExtParams<float> padParams2{false, 0, 0, 0};
 
     DataCopyPad(attentionGradT1Tensor, attentionGradGm[lastS1AGGmAddr], copyParams, padParams);
-    set_flag(PIPE_MTE2, PIPE_V, vWaitMte2);
+    SetFlag<HardEvent::MTE2_V>(static_cast<int32_t>(vWaitMte2));
     DataCopyPad(attentionT1Tensor, attentionGm[lastS1AGGmAddr], copyParams, padParams);
-    set_flag(PIPE_MTE2, PIPE_V, vWaitMte2);
+    SetFlag<HardEvent::MTE2_V>(static_cast<int32_t>(vWaitMte2));
     DataCopyPad(maxTensor, softmaxMaxGm[sumMaxAddr], copyParams2, padParams2);
     DataCopyPad(sumTensor, softmaxSumGm[sumMaxAddr], copyParams2, padParams2);
-    set_flag(PIPE_MTE2, PIPE_V, vWaitMte2);
-    wait_flag(PIPE_MTE2, PIPE_V, vWaitMte2);
+    SetFlag<HardEvent::MTE2_V>(static_cast<int32_t>(vWaitMte2));
+    WaitFlag<HardEvent::MTE2_V>(static_cast<int32_t>(vWaitMte2));
     Cast(attentionGradFP32Tensor, attentionGradT1Tensor, RoundMode::CAST_NONE, dataSize);
-    wait_flag(PIPE_MTE2, PIPE_V, vWaitMte2);
+    WaitFlag<HardEvent::MTE2_V>(static_cast<int32_t>(vWaitMte2));
     Cast(attentionFP32Tensor, attentionT1Tensor, RoundMode::CAST_NONE, dataSize);
-    pipe_barrier(PIPE_V);
+    PipeBarrier<PIPE_V>();
     SoftmaxGradFront<float, false>(rowSumOutTensor, attentionGradFP32Tensor, attentionFP32Tensor, helpTensor,
                                    tilingData->softmaxGradTilingData);
 }
@@ -782,28 +782,28 @@ __aicore__ inline void SelectedAttentionGrad<NSAGT>::CalSoftmax(const int32_t lo
 
     DataCopyPad(pTensor, mm2WorkspaceGm[mm12Addr], {1, static_cast<uint32_t>(dataSize * sizeof(float)), 0, 0, 0},
                 {false, 0, 0, 0});
-    set_flag(PIPE_MTE2, PIPE_V, vWaitMte2);
-    wait_flag(PIPE_MTE2, PIPE_V, vWaitMte2);
+    SetFlag<HardEvent::MTE2_V>(static_cast<int32_t>(vWaitMte2));
+    WaitFlag<HardEvent::MTE2_V>(static_cast<int32_t>(vWaitMte2));
 
     Muls(pTensor, pTensor, scaleValue, dataSize);
-    pipe_barrier(PIPE_V);
+    PipeBarrier<PIPE_V>();
 
     if constexpr (ATTEN_ENABLE) {
         CalAttenMsk(processM);
-        pipe_barrier(PIPE_V);
+        PipeBarrier<PIPE_V>();
     }
 
     SimpleSoftMax<float, true, false>(pTensor, tmpSumTensor, tmpMaxTensor, pTensor, helpTensor,
                                       tilingData->softmaxTilingData);
-    pipe_barrier(PIPE_V);
+    PipeBarrier<PIPE_V>();
     Cast(sftOutT1Tensor, pTensor, RoundMode::CAST_ROUND, dataSize);
-    set_flag(PIPE_V, PIPE_MTE3, mte3WaitV);
-    wait_flag(PIPE_V, PIPE_MTE3, mte3WaitV);
+    SetFlag<HardEvent::V_MTE3>(static_cast<int32_t>(mte3WaitV));
+    WaitFlag<HardEvent::V_MTE3>(static_cast<int32_t>(mte3WaitV));
 
     DataCopyPad(dvInputWorkspaceGm[mm345Addr], sftOutT1Tensor,
                 {1, static_cast<uint32_t>(dataSize * sizeof(T1)), 0, 0, 0});
-    set_flag(PIPE_MTE3, PIPE_MTE2, mte2WaitMte3);
-    wait_flag(PIPE_MTE3, PIPE_MTE2, mte2WaitMte3);
+    SetFlag<HardEvent::MTE3_MTE2>(static_cast<int32_t>(mte2WaitMte3));
+    WaitFlag<HardEvent::MTE3_MTE2>(static_cast<int32_t>(mte2WaitMte3));
 }
 
 template <typename NSAGT>
@@ -816,20 +816,20 @@ __aicore__ inline void SelectedAttentionGrad<NSAGT>::CalSoftmaxGrad(const int32_
 
     DataCopyPad(dPTensor, mm1WorkspaceGm[mm12Addr], {1, static_cast<uint32_t>(dataSize * sizeof(float)), 0, 0, 0},
                 {false, 0, 0, 0});
-    set_flag(PIPE_MTE2, PIPE_V, vWaitMte2);
-    wait_flag(PIPE_MTE2, PIPE_V, vWaitMte2);
+    SetFlag<HardEvent::MTE2_V>(static_cast<int32_t>(vWaitMte2));
+    WaitFlag<HardEvent::MTE2_V>(static_cast<int32_t>(vWaitMte2));
     CalSub(dPTensor, tmpRowSumOutTensor, processM, params.sftBaseN);
-    pipe_barrier(PIPE_V);
+    PipeBarrier<PIPE_V>();
     Mul(pTensor, pTensor, dPTensor, dataSize);
-    pipe_barrier(PIPE_V);
+    PipeBarrier<PIPE_V>();
     Cast(sftgOutT1Tensor, pTensor, RoundMode::CAST_ROUND, dataSize);
-    set_flag(PIPE_V, PIPE_MTE3, mte3WaitV);
-    wait_flag(PIPE_V, PIPE_MTE3, mte3WaitV);
+    SetFlag<HardEvent::V_MTE3>(static_cast<int32_t>(mte3WaitV));
+    WaitFlag<HardEvent::V_MTE3>(static_cast<int32_t>(mte3WaitV));
 
     DataCopyPad(dsInputWorkspaceGm[mm345Addr], sftgOutT1Tensor,
                 {1, static_cast<uint32_t>(dataSize * sizeof(T1)), 0, 0, 0});
-    set_flag(PIPE_MTE3, PIPE_MTE2, mte2WaitMte3);
-    wait_flag(PIPE_MTE3, PIPE_MTE2, mte2WaitMte3);
+    SetFlag<HardEvent::MTE3_MTE2>(static_cast<int32_t>(mte2WaitMte3));
+    WaitFlag<HardEvent::MTE3_MTE2>(static_cast<int32_t>(mte2WaitMte3));
 }
 
 template <typename NSAGT>
@@ -845,7 +845,7 @@ __aicore__ inline void SelectedAttentionGrad<NSAGT>::VectorProcess(int64_t mm12A
     for (int32_t i = 0; i < loop; i++) {
         if (i == 0) {
             mm2.WaitIterateAll();
-            wait_flag(PIPE_MTE2, PIPE_V, vWaitMte2); // wait softmax_max and softmax_sum MTE2
+            WaitFlag<HardEvent::MTE2_V>(static_cast<int32_t>(vWaitMte2)); // wait softmax_max and softmax_sum MTE2
         }
         if (i == loop - 1 && tailM != 0) {
             processM = tailM;
@@ -882,22 +882,22 @@ __aicore__ inline void SelectedAttentionGrad<NSAGT>::ScatterProcess(GlobalTensor
 
         DataCopy(scatterTensor, inGmTensor[scatterOffset], selectedBlockSize * headDim);
 
-        set_flag(PIPE_MTE2, PIPE_MTE3, mte3WaitMte2);
-        wait_flag(PIPE_MTE2, PIPE_MTE3, mte3WaitMte2);
+        SetFlag<HardEvent::MTE2_MTE3>(static_cast<int32_t>(mte3WaitMte2));
+        WaitFlag<HardEvent::MTE2_MTE3>(static_cast<int32_t>(mte3WaitMte2));
 
         SetAtomicAdd<float>();
         DataCopyPad(outGmTensor[outOffset], scatterTensor, intriParams);
         SetAtomicNone();
 
-        set_flag(PIPE_MTE3, PIPE_MTE2, mte2WaitMte3);
-        wait_flag(PIPE_MTE3, PIPE_MTE2, mte2WaitMte3);
+        SetFlag<HardEvent::MTE3_MTE2>(static_cast<int32_t>(mte2WaitMte3));
+        WaitFlag<HardEvent::MTE3_MTE2>(static_cast<int32_t>(mte2WaitMte3));
     }
 }
 
 template <typename NSAGT>
 __aicore__ inline void SelectedAttentionGrad<NSAGT>::Scatter()
 {
-    pipe_barrier(PIPE_ALL);
+    PipeBarrier<PIPE_ALL>();
     // copy tokIndices in
     uint64_t gmOffset = secondLastS1Offset * (dimN2 * selectedBlockCount) +
                         secondLastS1Index * (dimN2 * selectedBlockCount) + secondLastN2Index * selectedBlockCount;
@@ -907,12 +907,12 @@ __aicore__ inline void SelectedAttentionGrad<NSAGT>::Scatter()
     intriParams.srcStride = 0;
     intriParams.dstStride = 0;
     DataCopyPad(topkIndicesTensor, topkIndicesGm[gmOffset], intriParams, {false, 0, 0, 0});
-    set_flag(PIPE_MTE2, PIPE_S, sWaitMte2);
-    wait_flag(PIPE_MTE2, PIPE_S, sWaitMte2);
+    SetFlag<HardEvent::MTE2_S>(static_cast<int32_t>(sWaitMte2));
+    WaitFlag<HardEvent::MTE2_S>(static_cast<int32_t>(sWaitMte2));
 
     ScatterProcess(scatterDkWorkspaceGm, dkWorkspaceGm, secondLastScatterDkGmAddr, dimDqk);
     ScatterProcess(scatterDvWorkspaceGm, dvWorkspaceGm, secondLastScatterDvGmAddr, dimDv);
-    pipe_barrier(PIPE_ALL);
+    PipeBarrier<PIPE_ALL>();
 }
 
 template <typename NSAGT>
@@ -966,16 +966,16 @@ __aicore__ inline void SelectedAttentionGrad<NSAGT>::Gather(GlobalTensor<T1> &in
         intriParams.srcStride = (dimN2 - 1) * headDim * sizeof(T1);
         intriParams.dstStride = 0;
         DataCopyPad(gatherTensor, inGmTensor[inGmOffset], intriParams, {false, 0, 0, 0});
-        set_flag(PIPE_MTE2, PIPE_MTE3, mte3WaitMte2);
-        wait_flag(PIPE_MTE2, PIPE_MTE3, mte3WaitMte2);
+        SetFlag<HardEvent::MTE2_MTE3>(static_cast<int32_t>(mte3WaitMte2));
+        WaitFlag<HardEvent::MTE2_MTE3>(static_cast<int32_t>(mte3WaitMte2));
 
         intriParams.blockCount = 1;
         intriParams.blockLen = dataSize * sizeof(T1);
         intriParams.srcStride = 0;
         intriParams.dstStride = 0;
         DataCopyPad(outGmTensor[workSpaceOffset], gatherTensor, intriParams);
-        set_flag(PIPE_MTE3, PIPE_MTE2, mte2WaitMte3);
-        wait_flag(PIPE_MTE3, PIPE_MTE2, mte2WaitMte3);
+        SetFlag<HardEvent::MTE3_MTE2>(static_cast<int32_t>(mte2WaitMte3));
+        WaitFlag<HardEvent::MTE3_MTE2>(static_cast<int32_t>(mte2WaitMte3));
 
         workSpaceOffset += dataSize;
     }
@@ -993,12 +993,12 @@ __aicore__ inline void SelectedAttentionGrad<NSAGT>::SelectAndGather()
     uint64_t gmOffset = currentS1Offset * (dimN2 * selectedBlockCount) + s1Index * (dimN2 * selectedBlockCount) +
                         n2Index * selectedBlockCount;
     DataCopyPad(topkIndicesTensor, topkIndicesGm[gmOffset], intriParams, {false, 0, 0, 0});
-    set_flag(PIPE_MTE2, PIPE_S, sWaitMte2);
-    wait_flag(PIPE_MTE2, PIPE_S, sWaitMte2);
+    SetFlag<HardEvent::MTE2_S>(static_cast<int32_t>(sWaitMte2));
+    WaitFlag<HardEvent::MTE2_S>(static_cast<int32_t>(sWaitMte2));
 
     Gather(keyGm, selectedKWorkspaceGm, selectedKGmAddr, dimDqk);
     Gather(valueGm, selectedVWorkspaceGm, selectedVGmAddr, dimDv);
-    pipe_barrier(PIPE_ALL);
+    PipeBarrier<PIPE_ALL>();
 }
 
 template <typename NSAGT>
@@ -1118,7 +1118,7 @@ __aicore__ inline void SelectedAttentionGrad<NSAGT>::Process()
     if (blockIdx >= usedCoreNum) {
         return;
     }
-    pipe_barrier(PIPE_ALL); // wait init GM
+    PipeBarrier<PIPE_ALL>(); // wait init GM
 
     for (int64_t i = 0; i < processBS1ByCore; i++) {
         GetTndSeqLen(blockIdx + usedCoreNum * i);
@@ -1177,7 +1177,7 @@ __aicore__ inline void SelectedAttentionGrad<NSAGT>::ScatterUseOneCore(int64_t* 
 template <typename NSAGT> __aicore__ inline void SelectedAttentionGrad<NSAGT>::DeterministicProcess()
 {
     if (blockIdx < usedCoreNum) {
-        pipe_barrier(PIPE_ALL); // wait init GM
+        PipeBarrier<PIPE_ALL>(); // wait init GM
         for (int64_t i = 0; i < processBS1ByCore; i++) {
             GetTndSeqLen(blockIdx + usedCoreNum * i);
             for (int64_t n2Idx = 0; n2Idx < dimN2; n2Idx++) {
@@ -1199,7 +1199,7 @@ template <typename NSAGT> __aicore__ inline void SelectedAttentionGrad<NSAGT>::D
         int64_t scatterDkGmAddr;
         int64_t scatterDvGmAddr;
         InitAddrArray(scatterDkAddrArray, scatterDvAddrArray, mmPingpongIdxArray);
-        pipe_barrier(PIPE_ALL); // wait init GM
+        PipeBarrier<PIPE_ALL>(); // wait init GM
         scatterCoreNum = usedCoreNum;
         for (int64_t i = 0; i < formerCoreProcessNNum - 1; i++) {
             Getbindex(i, usedCoreNum, bIndexArray);

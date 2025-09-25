@@ -1370,7 +1370,7 @@ FlashAttentionScoreS1s2Bn2gs1SameAB<implMode, layOutType, hasPse, hasAtten, hasD
     int32_t s1OuterTempOffset = this->repeatMaxTimes * 16;
     int64_t vec1Offset = extraInfo.vecCoreOffset * 16 + loopIdx * extraInfo.vec1S1BaseSize * 16;
     int64_t offsetJ = 8 * extraInfo.vec1S1RealSize * 16 + 128;
-    pipe_barrier(PIPE_V);
+    PipeBarrier<PIPE_V>();
     for (int64_t outerIndex = 0; outerIndex < s1OuterLoop; ++outerIndex) {
         for (int64_t j = 0; j < s2InnerLoop; ++j) {
             Copy(nzResUbTmp[outerIndex * s1OuterTempOffset + j * offsetJ],
@@ -1459,7 +1459,7 @@ FlashAttentionScoreS1s2Bn2gs1SameAB<implMode, layOutType, hasPse, hasAtten, hasD
 
         this->CopyInAttenMask(extraInfo, loopIdx, -1);
         if (this->tilingData->inputParams.pseType != (uint32_t)PseTypeEnum::PSE_OUTER_ADD_MUL_TYPE) {
-            pipe_barrier(PIPE_V);
+            PipeBarrier<PIPE_V>();
             Muls(stage1PingTensor, actualUseTensor, static_cast<T>(this->tilingData->inputParams.scaleValue),
                  extraInfo.vec1S1RealSize * extraInfo.s2RealSizeAlign64);
         }
@@ -1506,13 +1506,13 @@ FlashAttentionScoreS1s2Bn2gs1SameAB<implMode, layOutType, hasPse, hasAtten, hasD
                     WaitFlag<HardEvent::MTE2_V>(eventIdMte2ToV);
                 }
             }
-            pipe_barrier(PIPE_V);
+            PipeBarrier<PIPE_V>();
             PseCompute<T, hasPse>(this->tilingData->inputParams.pseType !=
                                   (uint32_t)PseTypeEnum::PSE_OUTER_ADD_MUL_TYPE ? stage1PingTensor : actualUseTensor,
                                   commonTBuf, this->pseInfo);
         }
         if (this->tilingData->inputParams.pseType == (uint32_t)PseTypeEnum::PSE_OUTER_ADD_MUL_TYPE) {
-            pipe_barrier(PIPE_V);
+            PipeBarrier<PIPE_V>();
             Muls(stage1PingTensor, actualUseTensor, static_cast<T>(this->tilingData->inputParams.scaleValue),
             extraInfo.vec1S1RealSize * extraInfo.s2RealSizeAlign64);
         }
@@ -1549,7 +1549,7 @@ FlashAttentionScoreS1s2Bn2gs1SameAB<implMode, layOutType, hasPse, hasAtten, hasD
                     WaitFlag<HardEvent::MTE2_V>(eventIdMte2ToV);
                     And(attenMaskCasualTmp, attenMaskCasualTmp, attenMaskPrefixUbTmp, maskNum);
                     maskType = 0;
-                    pipe_barrier(PIPE_V);
+                    PipeBarrier<PIPE_V>();
                 } else {
                     secondTimeMaskUb = this->pseTBuf.template Get<uint8_t>();
                     maskType = 1;
@@ -1595,7 +1595,7 @@ FlashAttentionScoreS1s2Bn2gs1SameAB<implMode, layOutType, hasPse, hasAtten, hasD
         if constexpr (hasDrop == true) {
             LocalTensor<uint8_t> apiTmpBuffer = this->commonTBuf.template Get<uint8_t>();
             LocalTensor<uint8_t> dropMaskUb = this->maskTBufPong.template Get<uint8_t>();
-            pipe_barrier(PIPE_V);
+            PipeBarrier<PIPE_V>();
 
             SetFlag<HardEvent::MTE2_V>(eventIdMte2ToV);
             WaitFlag<HardEvent::MTE2_V>(eventIdMte2ToV);
@@ -1614,7 +1614,7 @@ FlashAttentionScoreS1s2Bn2gs1SameAB<implMode, layOutType, hasPse, hasAtten, hasD
         if (loopIdx > 0) {
             WaitFlag<HardEvent::MTE3_V>(eventIdMte3ToV);
         }
-        pipe_barrier(PIPE_V);
+        PipeBarrier<PIPE_V>();
         if constexpr (!IsSameType<T, INPUT_T>::value) {
             LocalTensor<INPUT_T> stage1CastTensor;
             if constexpr (hasPse == true) {
@@ -2114,7 +2114,7 @@ FlashAttentionScoreS1s2Bn2gs1SameAB<implMode, layOutType, hasPse, hasAtten, hasD
 
     expUb.SetShapeInfo(ShapeInfo(2, maxSumShape, DataFormat::ND));
     LocalTensor<uint8_t> apiTmpBuffer = this->commonTBuf.template Get<uint8_t>();
-    pipe_barrier(PIPE_V);
+    PipeBarrier<PIPE_V>();
     if (unlikely(extraInfo.s2LoopCount == 0)) {
         if (this->softmaxReduceSize == 1) {
             SoftMaxTiling newTiling = AscendC::SoftMaxFlashV2TilingFuncImpl(vec1S1RealSize,
@@ -2208,7 +2208,7 @@ FlashAttentionScoreS1s2Bn2gs1SameAB<implMode, layOutType, hasPse, hasAtten, hasD
         event_t eventIdVToMte3 = static_cast<event_t>(GetTPipePtr()->FetchEventID(HardEvent::V_MTE3));
         if (this->softmaxReduceSize == 1) {
             LocalTensor<T> softmaxTemp = this->softmaxTempBuf.template Get<T>();
-            pipe_barrier(PIPE_V);
+            PipeBarrier<PIPE_V>();
             Brcb(softmaxTemp, maxTensor, (extraInfo.s1RealSize + 7) / 8, {1, 8});
             SetFlag<HardEvent::V_MTE3>(eventIdVToMte3);
             WaitFlag<HardEvent::V_MTE3>(eventIdVToMte3);
@@ -2386,7 +2386,7 @@ FlashAttentionScoreS1s2Bn2gs1SameAB<implMode, layOutType, hasPse, hasAtten, hasD
         WaitFlag<HardEvent::V_MTE2>(eventIdVToMTE2);
         LocalTensor<T> tempUb = this->stage1PongBuf.template Get<T>();
         NzToNd(nz2NdInfo, this->mm2Res[extraInfo.taskIdMod2], tempUb, stage2BufTensor);
-        pipe_barrier(PIPE_V);
+        PipeBarrier<PIPE_V>();
 
         if (likely(extraInfo.s2LoopCount != 0)) {
             SetFlag<HardEvent::MTE3_MTE2>(eventIdMte3ToMte2);
@@ -2400,7 +2400,7 @@ FlashAttentionScoreS1s2Bn2gs1SameAB<implMode, layOutType, hasPse, hasAtten, hasD
             DataCopy(bmm2ResUb, stage2BufTensor, mm2ResCalcSize);
         } else {
             this->Bmm2ResultMul(extraInfo, bmm2ResUb, s1oIdx);
-            pipe_barrier(PIPE_V);
+            PipeBarrier<PIPE_V>();
             Add(bmm2ResUb, bmm2ResUb, stage2BufTensor, mm2ResCalcSize);
         }
 
@@ -2431,7 +2431,7 @@ FlashAttentionScoreS1s2Bn2gs1SameAB<implMode, layOutType, hasPse, hasAtten, hasD
                                 bmm1Format, mmPolicyType, hasRope>::Bmm2ResultMul(SplitSameABExtraInfo &extraInfo,
                                                            LocalTensor<T> &bmm2ResUb, int64_t s1oIdx)
 {
-    pipe_barrier(PIPE_V);
+    PipeBarrier<PIPE_V>();
     LocalTensor<T> expUb = softmaxExpBuf[extraInfo.taskIdMod2].template Get<T>();
 
     BinaryRepeatParams repeatParams;
@@ -2448,7 +2448,7 @@ FlashAttentionScoreS1s2Bn2gs1SameAB<implMode, layOutType, hasPse, hasAtten, hasD
     if (this->softmaxReduceSize == 1) {
         LocalTensor<T> softmaxTemp = this->softmaxTempBuf.template Get<T>();
         Brcb(softmaxTemp, expUb, (extraInfo.s1RealSize + 7) / 8, {1, 8});
-        pipe_barrier(PIPE_V);
+        PipeBarrier<PIPE_V>();
         for (int i = 0; i < loop; ++i) {
             Mul(bmm2ResUb[i * repeatMaxSize], softmaxTemp[softmaxTempOffset], bmm2ResUb[i * repeatMaxSize],
                 repeatMaxSize, extraInfo.vec2S1RealSize, repeatParams);
@@ -2489,11 +2489,11 @@ FlashAttentionScoreS1s2Bn2gs1SameAB<implMode, layOutType, hasPse, hasAtten, hasD
     LocalTensor<float> sumUb = softmaxSumBuf[extraInfo.multiCoreInnerIdxMod2].template Get<float>();
     int32_t calcSize = sumUb.GetSize();
     // 用optionalInputQueue的queue
-    pipe_barrier(PIPE_V);
+    PipeBarrier<PIPE_V>();
     if (this->softmaxReduceSize == 1) {
         LocalTensor<T> softmaxTemp = this->softmaxTempBuf.template Get<T>();
         Brcb(softmaxTemp, sumUb, (extraInfo.s1RealSize + 7) / 8, {1, 8});
-        pipe_barrier(PIPE_V);
+        PipeBarrier<PIPE_V>();
         for (int i = 0; i < loop; ++i) {
             Div(bmm2ResUb[i * repeatMaxSize], bmm2ResUb[i * repeatMaxSize],
                 softmaxTemp[s1oIdx * extraInfo.vec2S1BaseSize * 8], repeatMaxSize, extraInfo.vec2S1RealSize, repeatParams);
@@ -2542,7 +2542,7 @@ FlashAttentionScoreS1s2Bn2gs1SameAB<implMode, layOutType, hasPse, hasAtten, hasD
     LocalTensor<T> bmm2ResUb = this->stage2TBuf.template Get<T>();
     LocalTensor<INPUT_T> attenOut = this->stage2TBuf.template Get<INPUT_T>();
     bmm2ResUb.SetSize(mm2ResCalcSize);
-    pipe_barrier(PIPE_V);
+    PipeBarrier<PIPE_V>();
 
     if constexpr (!IsSameType<INPUT_T, T>::value) {
         Cast(attenOut, bmm2ResUb, RoundMode::CAST_ROUND, mm2ResCalcSize);
