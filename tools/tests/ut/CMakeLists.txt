@@ -14,7 +14,7 @@ set(UT_COMMON_INC ${CMAKE_CURRENT_SOURCE_DIR}/common CACHE STRING "ut common inc
 
 ## load ut common depends
 include(${PROJECT_SOURCE_DIR}/cmake/intf_pub_llt_gccnative.cmake)
-include(${PROJECT_SOURCE_DIR}/cmake/external/gtest.cmake)
+include(${PROJECT_SOURCE_DIR}/cmake/third_party/gtest.cmake)
 
 file(GLOB SUBDIRECTORIES LIST_DIRECTORIES true RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/*)
 foreach(SUBDIR ${SUBDIRECTORIES})

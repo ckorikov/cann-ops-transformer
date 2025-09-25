@@ -62,7 +62,7 @@ set_directory_properties(PROPERTIES
 
 include(cmake/config.cmake)
 include(cmake/func.cmake)
-include(cmake/external/json.cmake)
+include(cmake/third_party/json.cmake)
 include(${OPS_ADV_CMAKE_DIR}/ut.cmake)
 
 if (BUILD_OPEN_PROJECT)
