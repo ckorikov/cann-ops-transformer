@@ -34,7 +34,7 @@
     - expertIds（aclTensor\*，计算输入）：每个token的topK个专家索引，Device侧的aclTensor，要求为一个2D的Tensor，shape为 \(BS, K\)，数据类型支持INT32，数据格式要求为ND，支持非连续的Tensor。
     - scales（aclTensor\*，计算输入）：每个专家的平滑系数或者融合了每个专家的量化平滑系数的量化系数或者量化系数，Device侧的aclTensor，要求是一个1D的Tensor或者2D的Tensor，数据格式要求为ND，支持非连续的Tensor。
         - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：当HCCL_INTRA_PCIE_ENABLE为1且HCCL_INTRA_ROCE_ENABLE为0时，要求传nullptr。
-        - <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：数据类型支持FLOAT32。quantMode取值为0时传空指针。quantMode取值为2时，可以选择传入有效数据或者传空指针，传入有效数据时，其shape为 \(H, \)、\(sharedExpertNum + moeExpertNum, H\)，\(moeExpertNum, H\)。
+        - <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：数据类型支持FLOAT32。quantMode取值为0时传空指针。quantMode取值为2时，可以选择传入有效数据或者传空指针，传入有效数据时且有共享专家卡时shape为 \(sharedExpertNum + moeExpertNum, H\)，无共享专家卡时shape为 \(moeExpertNum, H\)。
         - <term>昇腾910_95 AI处理器</term>：数据类型支持FLOAT32、FLOAT8_E8M0。quantMode取值为0时，可以传入空指针或者有效数据，传入有效数据时，其shape为 \(BS, N\)，N由前置算子的量化模式决定，如果为pertensor量化，则N取值为1，如果为pertoken量化，则N取值为1，如果为pergroup量化，则N取值为Ceil(H/128)，如果为mx量化，则N取值为Ceil(H/32)。如果quantMode取值为1时，必须传入有效数据，其shape为 \(1, \)、\(H, \)、\(sharedExpertNum + moeExpertNum, H\)，\(moeExpertNum, H\)。quantMode取值为2或3时，可以传空指针或者传入有效数据，传入有效数据时，其shape为 \(sharedExpertNum + moeExpertNum, H\)，\(moeExpertNum, H\)。quantMode取值为4时，必须传入空指针。
     - xActiveMask（aclTensor\*，计算输入）：Device侧的aclTensor，预留参数。
         - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>、<term>昇腾910_95 AI处理器</term>：当前版本不支持，传空指针即可。
