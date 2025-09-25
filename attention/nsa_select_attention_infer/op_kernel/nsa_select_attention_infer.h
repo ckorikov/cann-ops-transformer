@@ -23,6 +23,7 @@ using namespace matmul;
 using AscendC::CacheMode;
 using AscendC::CrossCoreSetFlag;
 using AscendC::CrossCoreWaitFlag;
+using namespace AscendC::PipeBarrier;
 
 #define PRE_LOAD_NUM 4
 
@@ -678,7 +679,7 @@ __aicore__ inline void NsaSelectAttentionInfer<NSAT>::SoftmaxFlashV2Compute(uint
         softmaxTmpUb,  // 临时空间
         newTiling, 
         srcShape);
-    pipe_barrier(PIPE_V);
+    PipeBarrier(PIPE_V);
 }
 
 template <typename NSAT>
@@ -718,7 +719,7 @@ NsaSelectAttentionInfer<NSAT>::ElewiseCompute(uint32_t loop, LocalTensor<T> &mmR
                                               uint32_t columnCount)
 {
     Muls(mmResUb, mmResUb, static_cast<T>(tilingData->baseParams.scaleValue), dealRowCount * columnCount);
-    pipe_barrier(PIPE_V);
+    PipeBarrier(PIPE_V);
 }
 
 template <typename NSAT>
@@ -738,7 +739,7 @@ NsaSelectAttentionInfer<NSAT>::DealBmm1ResBaseBlock(const uint32_t loop, uint32_
     inputQue1.DeQue<MM_OUT_T>();
     DataCopy(mmResUb, tmpMmResUb, computeSize);
     inputQue1.FreeTensor(tmpMmResUb);
-    pipe_barrier(PIPE_V);
+    PipeBarrier(PIPE_V);
     ElewiseCompute(loop, mmResUb, dealRowCount, columnCount);
     LocalTensor<T> tmpAFloorUb = tmpBuff2.Get<T>();
     LocalTensor<uint8_t> softmaxTmpUb = tmpAFloorUb.template ReinterpretCast<uint8_t>();
@@ -805,22 +806,22 @@ NsaSelectAttentionInfer<NSAT>::DealBmm2ResBaseBlock(const uint32_t loop, uint32_
         inputQue2.EnQue(bmm2ResPreUb);
 
         inputQue2.DeQue<T>();
-        pipe_barrier(PIPE_V);
+        PipeBarrier(PIPE_V);
         RowMuls(bmm2ResPreUb, bmm2ResPreUb, softmaxExpUb[loop % (PRE_LOAD_NUM)][baseOffset], dealRowCount, columnCount, actualColumnCount);
-        pipe_barrier(PIPE_V);
+        PipeBarrier(PIPE_V);
         Add(bmm2ResUb, bmm2ResUb, bmm2ResPreUb, vec2ComputeSize);
         inputQue2.FreeTensor(bmm2ResPreUb);
     }
 
     // 最后一次输出计算结果，否则将中间结果暂存至workspace
     if (info.s2Idx + 1 == info.curSInnerLoopTimes) {
-        pipe_barrier(PIPE_V);
+        PipeBarrier(PIPE_V);
         RowDivs(bmm2ResUb, bmm2ResUb, softmaxSumUb[loop % (PRE_LOAD_NUM)][baseOffset], dealRowCount, columnCount, actualColumnCount);
 
-        pipe_barrier(PIPE_V);
+        PipeBarrier(PIPE_V);
         Bmm2CastAndCopyOut(info, bmm2ResUb, startRow, dealRowCount, columnCount, actualColumnCount);
     } else {
-        pipe_barrier(PIPE_V);
+        PipeBarrier(PIPE_V);
         LocalTensor<T> tmpBmm2Res = outputQue1.AllocTensor<T>();
         DataCopy(tmpBmm2Res, bmm2ResUb, dealRowCount * columnCount);
         outputQue1.EnQue(tmpBmm2Res);

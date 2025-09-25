@@ -269,7 +269,7 @@ public:
             SET_FLAG(S, V, EVENT_ID0);
             WAIT_FLAG(S, V, EVENT_ID0);
             PIPE_BARRIER(V);
-            vector_dup((__ubuf__ float *)dst_tensor.GetPhyAddr() + rowIdx * 16, scale, 1, 1, 1, 8, 8);
+            Duplicate((__ubuf__ float *)dst_tensor.GetPhyAddr() + rowIdx * 16, scale, 1, 1, 1, 8, 8);
         }
         PIPE_BARRIER(V);
     }

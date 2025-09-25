@@ -2299,7 +2299,7 @@ IncreFlashAttentionAttenSplitBbn2s2Us2<IFAT>::ReduceFinalRes(LocalTensor<T> &dst
         PipeBarrier<PIPE_V>();
         Add(dst, dst, accumOutLocal, dealRowCount * headDimVAlign);
         PipeBarrier<PIPE_V>();
-        // pipe_barrier(PIPI_V)与inputQue1.FreeTensor之间没有关系，这里的PIPE_V是为了让Add和接下来的VEC指令隔开
+        // PipeBarrier(PIPI_V)与inputQue1.FreeTensor之间没有关系，这里的PIPE_V是为了让Add和接下来的VEC指令隔开
         inputQue1.FreeTensor(accumOutLocal);
     }
 }

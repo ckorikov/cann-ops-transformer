@@ -953,7 +953,7 @@ __aicore__ inline void PromptFlashAttentionS1s2Bns1X310Base<PFAT>::CopyND2NZOnTh
     int32_t calcHeightAlign = (height + BLOCK_CUBE - 1) / BLOCK_CUBE;
     if (height % BLOCK_CUBE != 0) {
         int64_t repeat = calcWidth * calcHeightAlign;
-        create_cbuf_matrix((__cbuf__ void*)dst.GetPhyAddr(), repeat, 0);
+        InitConstValue((__cbuf__ void*)dst.GetPhyAddr(), {repeat, 0})
         pipe_barrier(PIPE_MTE2);
     }
     // gCol unaligned ,can not use dma copy repeat stride

@@ -1139,7 +1139,7 @@ public:
                                 );
                                 AscendC::PipeBarrier<PIPE_V>();
                             } else {
-                                // *** hm = vmax(lm, gm)
+                                // *** hm = max(lm, gm)
                                 AscendC::Max<float, false>(
                                     hmUbufTensor,
                                     lmUbufTensor,
@@ -1730,7 +1730,7 @@ public:
                                         );
                                         AscendC::PipeBarrier<PIPE_V>();
                                     } else {
-                                        // *** hm = vmax(lm, gm)
+                                        // *** hm = max(lm, gm)
                                         AscendC::Max<float, false>(
                                             hmUbufTensor[splitIdx * mSlice],
                                             lmUbufTensor,

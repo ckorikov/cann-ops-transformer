@@ -103,8 +103,8 @@ public:
         LocalTensor<float> fp32_beta = fp32BetaTmpBuf.Get<float>(BATCH_NUM * 128);
         LocalTensor<dataType> half_tmp = calcTmpBuf.Get<half>(128 * 2);
         DataCopy(half_tmp[0], gammGlobal, SEQ_LENGTH);
-        set_flag(PIPE_MTE2, PIPE_V, EVENT_ID0);
-        wait_flag(PIPE_MTE2, PIPE_V, EVENT_ID0);
+        SetFlag(PIPE_MTE2, PIPE_V, EVENT_ID0);
+        WaitFlag(PIPE_MTE2, PIPE_V, EVENT_ID0);
         uint32_t castIdx = 0;
         while (castIdx < BATCH_NUM) {
             Cast(fp32_gamma[SEQ_LENGTH * castIdx], half_tmp[0], AscendC::RoundMode::CAST_NONE, SEQ_LENGTH);
@@ -112,8 +112,8 @@ public:
             ++castIdx;
         }
         DataCopy(half_tmp[SEQ_LENGTH], betaGlobal, SEQ_LENGTH);
-        set_flag(PIPE_MTE2, PIPE_V, EVENT_ID0);
-        wait_flag(PIPE_MTE2, PIPE_V, EVENT_ID0);
+        SetFlag(PIPE_MTE2, PIPE_V, EVENT_ID0);
+        WaitFlag(PIPE_MTE2, PIPE_V, EVENT_ID0);
         castIdx = 0;
         while (castIdx < BATCH_NUM) {
             Cast(fp32_beta[SEQ_LENGTH * castIdx], half_tmp[SEQ_LENGTH], AscendC::RoundMode::CAST_NONE, SEQ_LENGTH);
@@ -202,24 +202,24 @@ private:
                                             AscendC::LocalTensor<float> tmpSub, AscendC::LocalTensor<float> mean)
     {
         PipeBarrier<PIPE_V>();
-        set_flag(PIPE_V, PIPE_S, EVENT_ID0);
-        wait_flag(PIPE_V, PIPE_S, EVENT_ID0);
+        SetFlag(PIPE_V, PIPE_S, EVENT_ID0);
+        WaitFlag(PIPE_V, PIPE_S, EVENT_ID0);
         for (uint32_t idx = 0 ;idx < BATCH_NUM ;++idx) {
             float delta = sum.GetValue(idx * 64) + sum.GetValue(idx * 64 + 32);   // transpose for 64 , 32
             float variance = delta * avg_factor_;
             sum.SetValue(idx, variance + epsilon);
         }
-        set_flag(PIPE_S, PIPE_V, EVENT_ID0);
-        wait_flag(PIPE_S, PIPE_V, EVENT_ID0);
+        SetFlag(PIPE_S, PIPE_V, EVENT_ID0);
+        WaitFlag(PIPE_S, PIPE_V, EVENT_ID0);
         Sqrt(sum, sum, BATCH_NUM);
         PipeBarrier<PIPE_V>();
         for (uint32_t idx = 0 ;idx < BATCH_NUM ;++idx) {
-            set_flag(PIPE_V, PIPE_S, EVENT_ID0);
-            wait_flag(PIPE_V, PIPE_S, EVENT_ID0);
+            SetFlag(PIPE_V, PIPE_S, EVENT_ID0);
+            WaitFlag(PIPE_V, PIPE_S, EVENT_ID0);
             float factor = sum.GetValue(idx);
-            set_flag(PIPE_S, PIPE_V, EVENT_ID0);
+            SetFlag(PIPE_S, PIPE_V, EVENT_ID0);
 
-            wait_flag(PIPE_S, PIPE_V, EVENT_ID0);
+            WaitFlag(PIPE_S, PIPE_V, EVENT_ID0);
             PipeBarrier<PIPE_V>();
             Duplicate(sqx[idx * SEQ_LENGTH], factor, 64, 4, 1, 8);   // transpose for 64, 4, 8
             PipeBarrier<PIPE_V>();
@@ -253,13 +253,13 @@ private:
             BlockReduceSum<float>(work, fp32x, 16, 64, 8, 1, 8);  // 16 element in one block, 64 num, 8 block
             PipeBarrier<PIPE_V>();
             BlockReduceSum<float>(sum, work, 16, 8, 4, 1, 8);    // 16 element in one block, 8 num, 4 block
-            set_flag(PIPE_V, PIPE_S, EVENT_ID0);
-            wait_flag(PIPE_V, PIPE_S, EVENT_ID0);
+            SetFlag(PIPE_V, PIPE_S, EVENT_ID0);
+            WaitFlag(PIPE_V, PIPE_S, EVENT_ID0);
             for (uint32_t idx = 0 ;idx < BATCH_NUM ;++idx) {
                 float hSum = sum.GetValue(idx * 64) + sum.GetValue(idx * 64 +32);
                 float meanScalar = hSum * avg_factor_;
-                set_flag(PIPE_S, PIPE_V, EVENT_ID0);
-                wait_flag(PIPE_S, PIPE_V, EVENT_ID0);
+                SetFlag(PIPE_S, PIPE_V, EVENT_ID0);
+                WaitFlag(PIPE_S, PIPE_V, EVENT_ID0);
                 PipeBarrier<PIPE_V>();
 
                 Duplicate(mean[idx * SEQ_LENGTH], meanScalar, 64,4,1,8); // copy 64 element, 4 num, 8 block

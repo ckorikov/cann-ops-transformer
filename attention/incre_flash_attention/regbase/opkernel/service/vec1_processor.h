@@ -305,10 +305,13 @@ __aicore__ inline void Vec1Processor<IFAT>::Vec1CopyResToL1(TSCM<TPosition::VECI
     uint16_t srcStride =
         ALIGN((uint16_t)taskParam.dealRowCount, (uint16_t)PROFILE.G) - taskParam.dealRowCount + 1;  // 解写写ub的bank冲突
     uint16_t dstStride = ALIGN((uint16_t)taskParam.dealRowCount, (uint16_t)16) - taskParam.dealRowCount;
-    __ubuf__ void* src = (__ubuf__ void*)bmm2InResUb.GetPhyAddr();
-    __cbuf__ void* dst = (__cbuf__ void*)bmm2LeftScmTensor.GetPhyAddr();
 
-    copy_ubuf_to_cbuf((__cbuf__ void*)dst, (__ubuf__ void*)src, 0, nBurst, lenBurst, srcStride, dstStride);
+    DataCopyParams intriParamsTemp;
+    intriParamsTemp.blockCount = nBurst;
+    intriParamsTemp.blockLen = lenBurst;
+    intriParamsTemp.dstStride = dstStride; 
+    intriParamsTemp.srcStride = srcStride;
+    DataCopy(bmm2LeftScmTensor, bmm2InResUb, intriParamsTemp);
 
     mm2AScm.template EnQue(bmm2LeftScmTensor);
 }

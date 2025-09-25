@@ -87,8 +87,8 @@ __aicore__ inline void FFNProcess<ComputeType>::Process()
     mnConfig1.blockDimM = Ceil(mnConfig1.m, mnConfig1.baseM);
     MM1Process(mnConfig1);
 
-    set_flag(PIPE_MTE3, PIPE_S, EVENT_ID7);
-    wait_flag(PIPE_MTE3, PIPE_S, EVENT_ID7);
+    SetFlag(PIPE_MTE3, PIPE_S, EVENT_ID7);
+    WaitFlag(PIPE_MTE3, PIPE_S, EVENT_ID7);
     computeOp.AllCoreSync();
 
     MNConfig mnConfig2;
