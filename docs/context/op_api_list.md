@@ -14,3 +14,5 @@
 |[aclnnIncreFlashAttentionV4](../../attention/incre_flash_attention/docs/aclnnIncreFlashAttentionV4.md)|在全量推理场景的FlashAttention算子的基础上实现增量推理|
 |[aclnnNsaSelectedAttentionInfer](../../attention/nsa_select_attention_infer/docs/aclnnNsaSelectedAttentionInfer.md)|实现Native Sparse Attention推理过程中，Selected Attention的计算。|
 |[aclnnFusedInferAttentionScoreV4](../../attention/fused_infer_attention_score/docs/aclnnFusedInferAttentionScoreV4.md)|适配decode & prefill场景的FlashAttention算子|
+|[aclnnMlaProlog](../../attention/mla_prolog/docs/aclnnMlaProlog.md)|Multi-Head Latent Attention前处理的计算 。|
+|[aclnnMlaPrologV2WeightNz](../../attention/mla_prolog_v2/docs/aclnnMlaPrologV2WeightNz.md)|Multi-Head Latent Attention前处理的计算 。|
