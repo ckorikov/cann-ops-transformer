@@ -27,6 +27,8 @@
 
 namespace optiling {
 
+ge::graphStatus MoeDistributeCombineTilingImpl(gert::TilingContext* context);
+
 BEGIN_TILING_DATA_DEF(MoeDistributeCombineInfo)
     TILING_DATA_FIELD_DEF(uint32_t, epWorldSize);
     TILING_DATA_FIELD_DEF(uint32_t, tpWorldSize);
@@ -43,6 +45,7 @@ BEGIN_TILING_DATA_DEF(MoeDistributeCombineInfo)
     TILING_DATA_FIELD_DEF(uint32_t, aivNum);
     TILING_DATA_FIELD_DEF(uint64_t, totalUbSize);
     TILING_DATA_FIELD_DEF(uint64_t, totalWinSize);
+    TILING_DATA_FIELD_DEF(uint32_t, hasSharedExpertX);
 END_TILING_DATA_DEF;
 REGISTER_TILING_DATA_CLASS(MoeDistributeCombineInfoOp, MoeDistributeCombineInfo);
 
@@ -55,6 +58,7 @@ BEGIN_TILING_DATA_DEF(MoeDistributeCombineTilingDataA5)
 END_TILING_DATA_DEF;
 // Register for all but only used by A5.
 REGISTER_TILING_DATA_CLASS(MoeDistributeCombine, MoeDistributeCombineTilingDataA5);
+REGISTER_TILING_DATA_CLASS(MoeDistributeCombineV2, MoeDistributeCombineTilingDataA5);
 
 class MoeDistributeCombineTilingA5 : public MoeTilingBase {
 public:

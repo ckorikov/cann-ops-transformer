@@ -67,7 +67,7 @@ class MoeDistributeCombineA5 {
 public:
     __aicore__ inline MoeDistributeCombineA5(){};
     __aicore__ inline void Init(GM_ADDR expandX, GM_ADDR expertIds, GM_ADDR expandIdx, GM_ADDR epSendCount,
-                                GM_ADDR tpSendCount, GM_ADDR scales, GM_ADDR XOut, GM_ADDR workspaceGM,
+                                GM_ADDR tpSendCount, GM_ADDR scales, GM_ADDR sharedExpertX, GM_ADDR XOut, GM_ADDR workspaceGM,
                                 TPipe *pipe, const MoeDistributeCombineTilingDataA5 *tilingData);
     __aicore__ inline void Process();
 private:
@@ -98,6 +98,9 @@ private:
                                                 uint32_t &tokenOffset, DataCopyExtParams &copyOutParams,
                                                 GlobalTensor<ExpandXType> &rowTmpGT, GM_ADDR sharedBase);
     __aicore__ inline void Calculate();
+
+    __aicore__ inline void HandleSharedExpertX(uint32_t &tokenIndex, uint32_t &tokenOffset, DataCopyParams &copyInParams,
+                                               DataCopyPadParams &padInParams, uint32_t &processLen);
     TPipe *pipe_;
 
     GlobalTensor<ExpandXType> expandXGT_;
@@ -126,6 +129,7 @@ private:
     uint32_t moeExpertNum_;
     uint32_t moeExpertRankNum_;
     uint32_t localExpertNum_;
+    uint32_t hasSharedExpertX_;
 
     uint32_t bskNum_;
     uint32_t perTokenSize_;
@@ -134,6 +138,7 @@ private:
 
     TQue<QuePosition::VECIN, BUFFER_NUM> moeQue_;
     TQue<QuePosition::VECIN, BUFFER_NUM> sharedQue_;
+    TQue<QuePosition::VECIN, BUFFER_NUM> sharedExpertXQue_;
     TQue<QuePosition::VECOUT, BUFFER_NUM> outQue_;
     TQueBind<QuePosition::VECIN, QuePosition::VECOUT, BUFFER_NUM> tokenQue_;
 
@@ -144,13 +149,14 @@ private:
     GM_ADDR sendSizeGM_;
     GM_ADDR sendOffsetGM_;
     GM_ADDR recvBufGM_;
+    GM_ADDR sharedExpertXGM_;
     uint64_t recvOffset_;
 };
 
 template <TemplateMC2TypeClass>
 __aicore__ inline void MoeDistributeCombineA5<TemplateMC2TypeFunc>::Init(GM_ADDR expandX, GM_ADDR expertIds,
-    GM_ADDR expandIdx, GM_ADDR epSendCount, GM_ADDR tpSendCount, GM_ADDR scales, GM_ADDR XOut, GM_ADDR workspaceGM,
-    TPipe *pipe, const MoeDistributeCombineTilingDataA5 *tilingData)
+    GM_ADDR expandIdx, GM_ADDR epSendCount, GM_ADDR tpSendCount, GM_ADDR scales, GM_ADDR sharedExpertX,
+    GM_ADDR XOut, GM_ADDR workspaceGM, TPipe *pipe, const MoeDistributeCombineTilingDataA5 *tilingData)
 {
     pipe_ = pipe;
     aivId_ = GetBlockIdx();
@@ -162,6 +168,7 @@ __aicore__ inline void MoeDistributeCombineA5<TemplateMC2TypeFunc>::Init(GM_ADDR
     sharedExpertRankNum_ = tilingData->combineTilingInfo.sharedExpertRankNum;
     epWorldSize_ = tilingData->combineTilingInfo.epWorldSize;
     moeExpertNum_ = tilingData->combineTilingInfo.moeExpertNum;
+    hasSharedExpertX_ = tilingData->combineTilingInfo.hasSharedExpertX;
     moeExpertRankNum_ = epWorldSize_ - sharedExpertRankNum_;
     localExpertNum_ = moeExpertNum_ / moeExpertRankNum_;
     isShareExpertRank_ = epRankId_ < sharedExpertRankNum_;
@@ -176,6 +183,7 @@ __aicore__ inline void MoeDistributeCombineA5<TemplateMC2TypeFunc>::Init(GM_ADDR
     expandScalesGT_.SetGlobalBuffer((__gm__ float *)scales);
     expandOutGT_.SetGlobalBuffer((__gm__ ExpandXType *)XOut);
 
+    sharedExpertXGM_ = sharedExpertX;
     sendBufGM_ = workspaceGM;
     sendSizeGM_ = sendBufGM_ + epWorldSize_ * perRankDataSize_;
     sendOffsetGM_ = sendSizeGM_ + epWorldSize_ * sizeof(uint64_t) * DUAL_DATA;
@@ -385,7 +393,7 @@ __aicore__ inline void MoeDistributeCombineA5<TemplateMC2TypeFunc>::MoePrepare()
     LocalTensor<int32_t> sizeI32LT = sizeLT.ReinterpretCast<int32_t>();
     Duplicate(sizeI32LT, 0, DUAL_DATA * eachCnt * (sizeof(uint64_t) / sizeof(int32_t)) + rankNum);
 
-    SyncFunc<AscendC::HardEvent::MTE2_S>();
+    SyncFunc<AscendC::HardEvent::V_S>();
 
     HandleMoeRank(startRank, sizeLT, eachCnt, rankNum, offsetLT, sendOffsetLT);
 
@@ -429,6 +437,10 @@ __aicore__ inline void MoeDistributeCombineA5<TemplateMC2TypeFunc>::CalculateIni
         pipe_->InitBuffer(sharedQue_, BUFFER_NUM, perTokenSize_);
     }
 
+    if (hasSharedExpertX_ > 0) {
+        pipe_->InitBuffer(sharedExpertXQue_, BUFFER_NUM, perTokenSize_);
+    }
+
     uint32_t tokenF32Size = axisH_ * sizeof(float);
     pipe_->InitBuffer(tmpBuf, tokenF32Size);
     castLT_ = tmpBuf.Get<float>();
@@ -461,6 +473,24 @@ __aicore__ inline void MoeDistributeCombineA5<TemplateMC2TypeFunc>::Communicatio
         hccl_.Wait(hcclHandleId_);
     }
     SyncAll<true>();
+}
+
+template <TemplateMC2TypeClass>
+__aicore__ inline void MoeDistributeCombineA5<TemplateMC2TypeFunc>::HandleSharedExpertX(uint32_t &tokenIndex,
+    uint32_t &tokenOffset, DataCopyParams &copyInParams, DataCopyPadParams &padInParams, uint32_t &processLen)
+{
+    GlobalTensor<ExpandXType> sharedExpertXGT;
+    if (hasSharedExpertX_ > 0) {
+        auto rowTmpLocal = sharedExpertXQue_.AllocTensor<ExpandXType>();
+        GM_ADDR shareExpertXAddr = sharedExpertXGM_ + tokenIndex * perTokenSize_ + tokenOffset * sizeof(ExpandXType);
+        sharedExpertXGT.SetGlobalBuffer((__gm__ ExpandXType *)(shareExpertXAddr));
+        DataCopyPad(rowTmpLocal, sharedExpertXGT, copyInParams, padInParams);
+        sharedExpertXQue_.EnQue(rowTmpLocal);
+        rowTmpLocal = sharedExpertXQue_.DeQue<ExpandXType>();
+        Cast(castLT_, rowTmpLocal, AscendC::RoundMode::CAST_NONE, processLen);
+        AscendC::Add(sumLT_, sumLT_, castLT_, processLen);
+        sharedExpertXQue_.FreeTensor<ExpandXType>(rowTmpLocal);
+    }
 }
 
 template <TemplateMC2TypeClass>
@@ -506,6 +536,8 @@ __aicore__ inline void MoeDistributeCombineA5<TemplateMC2TypeFunc>::HandleCalcul
             AscendC::Add(sumLT_, sumLT_, castLT_, processLen);
             sharedQue_.FreeTensor(t0);
         }
+
+        HandleSharedExpertX(tokenIndex, tokenOffset, copyInParams, padInParams, processLen);
         auto outLT = outQue_.AllocTensor<ExpandXType>();
         Cast(outLT, sumLT_, AscendC::RoundMode::CAST_RINT, processLen);
         outQue_.EnQue(outLT);

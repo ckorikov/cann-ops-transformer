@@ -51,6 +51,18 @@ inline bool MoeDistributeCombineTilingHelper::CheckInputTensorDim(const gert::Ti
                             expandIdxStorageShape->GetStorageShape().GetDimNum()),
                     return false);
     OP_LOGD(nodeName, "expandIdx dim0 = %ld", expandIdxStorageShape->GetStorageShape().GetDim(0));
+    
+    const gert::StorageShape *sharedExpertX = context->GetOptionalInputShape(SHARED_EXPERT_X_INDEX);
+    if (sharedExpertX != nullptr) {
+        auto attrs = context->GetAttrs();
+        auto sharedExpertRankNumPtr = attrs->GetAttrPointer<int64_t>(ATTR_SHARED_EXPERT_RANK_NUM_INDEX);
+        OP_TILING_CHECK(*sharedExpertRankNumPtr != 0, OP_LOGE(nodeName, "sharedExpertX only support input None "\
+            "when sharedExpertRankNum is non-zero."), return false);
+        OP_TILING_CHECK(((sharedExpertX->GetStorageShape().GetDimNum() != TWO_DIMS) &&
+                        (sharedExpertX->GetStorageShape().GetDimNum() != THREE_DIMS)),
+                        OP_LOGE(nodeName, "sharedExpertX must be 2-dimension or 3-dimension, but got %lu dim",
+                                sharedExpertX->GetStorageShape().GetDimNum()), return false);
+    }
     return true;
 }
 
@@ -126,44 +138,39 @@ bool MoeDistributeCombineTilingHelper::CheckTensorDataType(const gert::TilingCon
     OP_TILING_CHECK(expandXDesc == nullptr, OP_LOGE(nodeName, "expandxDesc is null."), return false);
     OP_TILING_CHECK((expandXDesc->GetDataType() != ge::DT_BF16) && (expandXDesc->GetDataType() != ge::DT_FLOAT16),
                     OP_LOGE(nodeName, "expandX dataType is invalid, dataType should be bf16 or float16, but is %s",
-                            Ops::Base::ToString(expandXDesc->GetDataType()).c_str()),
-                    return false);
-
+                            Ops::Base::ToString(expandXDesc->GetDataType()).c_str()), return false);
     auto expertIdsDesc = context->GetInputDesc(EXPERT_IDS_INDEX);
     OP_TILING_CHECK(expertIdsDesc == nullptr, OP_LOGE(nodeName, "expertIdsDesc is null."), return false);
     OP_TILING_CHECK((expertIdsDesc->GetDataType() != ge::DT_INT32),
                     OP_LOGE(nodeName, "expertIds dataType is invalid, dataType should be int32, but is %s",
-                            Ops::Base::ToString(expertIdsDesc->GetDataType()).c_str()),
-                    return false);
-
+                            Ops::Base::ToString(expertIdsDesc->GetDataType()).c_str()), return false);
     auto expandIdxDesc = context->GetInputDesc(EXPAND_IDX_INDEX);
     OP_TILING_CHECK(expandIdxDesc == nullptr, OP_LOGE(nodeName, "expandIdxDesc is null."), return false);
     OP_TILING_CHECK((expandIdxDesc->GetDataType() != ge::DT_INT32),
                     OP_LOGE(nodeName, "expandIdx dataType is invalid, dataType should be int32, but is %s",
-                            Ops::Base::ToString(expandIdxDesc->GetDataType()).c_str()),
-                    return false);
-
+                            Ops::Base::ToString(expandIdxDesc->GetDataType()).c_str()), return false);
     auto epSendCountsDesc = context->GetInputDesc(EP_SEND_COUNTS_INDEX);
     OP_TILING_CHECK(epSendCountsDesc == nullptr, OP_LOGE(nodeName, "epSendCountsDesc is null."), return false);
     OP_TILING_CHECK((epSendCountsDesc->GetDataType() != ge::DT_INT32),
                     OP_LOGE(nodeName, "epSendCounts dataType is invalid, dataType should be int32, but is %s",
-                            Ops::Base::ToString(epSendCountsDesc->GetDataType()).c_str()),
-                    return false);
-
+                            Ops::Base::ToString(epSendCountsDesc->GetDataType()).c_str()), return false);
     auto tpSendCountsDesc = context->GetOptionalInputDesc(TP_SEND_COUNTS_INDEX);
     OP_TILING_CHECK(tpSendCountsDesc == nullptr, OP_LOGE(nodeName, "tpSendCountsDesc is null."), return false);
     OP_TILING_CHECK((tpSendCountsDesc->GetDataType() != ge::DT_INT32),
                     OP_LOGE(nodeName, "tpSendCounts dataType is invalid, dataType should be int32, but is %s",
-                            Ops::Base::ToString(tpSendCountsDesc->GetDataType()).c_str()),
-                    return false);
-
+                            Ops::Base::ToString(tpSendCountsDesc->GetDataType()).c_str()), return false);
     auto expertScalesDesc = context->GetInputDesc(EXPERT_SCALES_INDEX);
     OP_TILING_CHECK(expertScalesDesc == nullptr, OP_LOGE(nodeName, "expertScalesDesc is null."), return false);
     OP_TILING_CHECK((expertScalesDesc->GetDataType() != ge::DT_FLOAT),
                     OP_LOGE(nodeName, "expertScales dataType is invalid, dataType should be float, but is %s",
-                            Ops::Base::ToString(expertScalesDesc->GetDataType()).c_str()),
-                    return false);
-
+                            Ops::Base::ToString(expertScalesDesc->GetDataType()).c_str()), return false);
+    auto sharedExpertXDesc = context->GetOptionalInputDesc(SHARED_EXPERT_X_INDEX);
+    if (sharedExpertXDesc != nullptr) {
+        OP_TILING_CHECK(sharedExpertXDesc->GetDataType() != expandXDesc->GetDataType(),
+            OP_LOGE(nodeName, "sharedExpertX dataType should be the same as expandX dataType, but got sharedExpertX"
+            "dataType %s, expandX dataType %s.", Ops::Base::ToString(sharedExpertXDesc->GetDataType()).c_str(),
+            Ops::Base::ToString(expandXDesc->GetDataType()).c_str()), return false);
+    }
     auto xDesc = context->GetOutputDesc(OUTPUT_X_INDEX);
     OP_TILING_CHECK(xDesc == nullptr, OP_LOGE(nodeName, "xDesc is null."), return false);
     OP_TILING_CHECK((xDesc->GetDataType() != expandXDesc->GetDataType()),

@@ -70,7 +70,10 @@ constexpr int64_t K_MAX = 8;
 constexpr uint64_t MB_SIZE = 1024UL * 1024UL;
 constexpr uint32_t SYSTEM_NEED_WORKSPACE = 16U * 1024U * 1024U;
 
-constexpr uint32_t DAVID_EP_WORLD_SIZE = 4;
+constexpr uint32_t DAVID_EP_WORLD_SIZE_FOUR = 4;
+constexpr uint32_t DAVID_EP_WORLD_SIZE_TWO = 2;
+constexpr uint32_t ENABLE = 1;
+constexpr uint32_t NOT_ENABLE = 0;
 
 const std::string OP_NAME = "MoeDistributeCombineA5";
 } // namespace
@@ -234,8 +237,8 @@ static ge::graphStatus GetAttrAndSetTilingData(const gert::TilingContext *contex
 
 inline ge::graphStatus CheckEpWorldSize(const char *nodeName, uint32_t epWorldSize)
 {
-    // Only the value 4 is supported currently
-    if (epWorldSize == DAVID_EP_WORLD_SIZE) {
+    // Only the value 4 or 2 is supported currently
+    if ((epWorldSize == DAVID_EP_WORLD_SIZE_FOUR) || (epWorldSize == DAVID_EP_WORLD_SIZE_TWO)) {
         OP_LOGD(nodeName, "epWorldSize=%u, skip validation\n", epWorldSize);
     } else {
         // 检验epWorldSize是否是8的倍数
@@ -320,19 +323,49 @@ static bool CheckAttrs(const gert::TilingContext *context, MoeDistributeCombineT
     return true;
 }
 
+inline ge::graphStatus CheckSharedExpertXShape(const gert::TilingContext *context, MoeDistributeCombineTilingDataA5 &tilingData,
+    const char *nodeName, int64_t expandXDim1, int64_t expertIdsDim0)
+{
+    const gert::StorageShape *sharedExpertXShape = context->GetOptionalInputShape(SHARED_EXPERT_X_INDEX);
+    uint32_t isSharedExpertX = (sharedExpertXShape != nullptr) ? ENABLE : NOT_ENABLE;
+    tilingData.combineTilingInfo.set_hasSharedExpertX(isSharedExpertX);
+    if (sharedExpertXShape == nullptr) {
+        return ge::GRAPH_SUCCESS;
+    }
+    int64_t sharedExpertXDim0 = sharedExpertXShape->GetStorageShape().GetDim(0);
+    int64_t sharedExpertXDim1 = sharedExpertXShape->GetStorageShape().GetDim(1);
+    if (sharedExpertXShape->GetStorageShape().GetDimNum() == TWO_DIMS) {
+        OP_TILING_CHECK(sharedExpertXDim0 != expertIdsDim0,
+            OP_LOGE(nodeName, "sharedExpertX's dim0 not equal to bs, sharedExpertX's dim0 = %ld, bs = %ld",
+            sharedExpertXDim0, expertIdsDim0), return ge::GRAPH_FAILED);
+        OP_TILING_CHECK(sharedExpertXDim1 != expandXDim1, OP_LOGE(nodeName,
+            "sharedExpertX's dim1 not equal to h, sharedExpertX's dim1 = %ld, h = %ld",
+            sharedExpertXDim1, expandXDim1), return ge::GRAPH_FAILED);
+    } else {
+        int64_t sharedExpertXDim2 = sharedExpertXShape->GetStorageShape().GetDim(TWO_DIMS);
+        OP_TILING_CHECK(sharedExpertXDim0 * sharedExpertXDim1 != expertIdsDim0,
+            OP_LOGE(nodeName, "sharedExpertX's dim0 * sharedExpertX's dim1 not equal to bs, "
+            "sharedExpertX's dim0 * sharedExpertX's dim1 = (%ld * %ld), bs = %ld.",
+            sharedExpertXDim0, sharedExpertXDim1, expertIdsDim0), return ge::GRAPH_FAILED);
+        OP_TILING_CHECK(sharedExpertXDim2 != expandXDim1, OP_LOGE(nodeName,
+            "sharedExpertX's dim2 not equal to h, sharedExpertX's dim2 = %ld, h = %ld",
+            sharedExpertXDim2, expandXDim1), return ge::GRAPH_FAILED);
+    }
+    return ge::GRAPH_SUCCESS;
+}
+
 inline ge::graphStatus CheckInputTensorShape(const gert::TilingContext *context, MoeDistributeCombineTilingDataA5 &tilingData,
                                              const char *nodeName, bool isShared, int64_t tpWorldSize,
-                                             int64_t expertIdsDim0,
+                                             int64_t expertIdsDim0, int64_t expandXDim1,
                                              int64_t expertIdsDim1)
 {
     // 校验expandIdx的维度
     const gert::StorageShape *expandIdxStorageShape = context->GetInputShape(EXPAND_IDX_INDEX);
     OP_TILING_CHECK(expandIdxStorageShape == nullptr, OP_LOGE(nodeName, "expandIdx is null."), return ge::GRAPH_FAILED);
     int64_t expandIdxDim0 = expandIdxStorageShape->GetStorageShape().GetDim(0);
-    OP_TILING_CHECK(expandIdxDim0 != expertIdsDim0 * expertIdsDim1,
-                    OP_LOGE(nodeName, "The expandIdxDim0 not equals to bs * k, expandIdxDim0=%ld, (bs * k)=%ld.",
-                            expandIdxDim0, expertIdsDim0 * expertIdsDim1),
-                    return ge::GRAPH_FAILED);
+    OP_TILING_CHECK(expandIdxDim0 < expertIdsDim0 * expertIdsDim1, OP_LOGE(nodeName,
+        "The expandIdxDim0 < bs * k, expandIdxDim0=%ld, (bs * k)=%ld.", expandIdxDim0, expertIdsDim0 * expertIdsDim1),
+        return ge::GRAPH_FAILED);
 
     // 校验epSendCount和tpSendCount的维度
     int64_t epWorldSize = static_cast<int64_t>(tilingData.combineTilingInfo.get_epWorldSize());
@@ -376,6 +409,8 @@ inline ge::graphStatus CheckInputTensorShape(const gert::TilingContext *context,
                     OP_LOGE(nodeName, "expertScales' dim1 not equal to k, expertScalesDim1=%ld, k=%ld",
                             expertScalesDim1, expertIdsDim1),
                     return ge::GRAPH_FAILED);
+    OP_TILING_CHECK(CheckSharedExpertXShape(context, tilingData, nodeName, expandXDim1, expertIdsDim0) !=
+        ge::GRAPH_SUCCESS, OP_LOGE(nodeName, "CheckSharedExpertXShape failed."), return ge::GRAPH_FAILED);
     return ge::GRAPH_SUCCESS;
 }
 
@@ -418,7 +453,7 @@ static bool CheckTensorShape(gert::TilingContext *context, MoeDistributeCombineT
                     return false);
     tilingData.combineTilingInfo.set_k(static_cast<uint32_t>(expertIdsDim1));
     // 校验expandIdx、epSendCount和tpSendCount、expertScales的维度
-    OP_TILING_CHECK(CheckInputTensorShape(context, tilingData, nodeName, isShared, tpWorldSize, expandXDim0,
+    OP_TILING_CHECK(CheckInputTensorShape(context, tilingData, nodeName, isShared, tpWorldSize, expertIdsDim0, expandXDim1,
                                           expertIdsDim1) != ge::GRAPH_SUCCESS,
                     OP_LOGE(nodeName, "CheckInputTensorShape failed."), return false);
     // 校验x的维度
@@ -450,9 +485,9 @@ static void SetHcclTiling(const gert::TilingContext *context, MoeDistributeCombi
     tilingData.set_hcommCnt(1);
     const char *nodeName = context->GetNodeName();
     tilingData.hcommCfgATA.set_srcDataType(static_cast<uint32_t>(
-        mc2tiling::ConvertGeTypeToHcclType(nodeName, context->GetInputDesc(EXPAND_X_INDEX)->GetDataType())));
+        mc2tiling::ConvertGeTypeToHcclType(nodeName, ge::DT_INT8)));
     tilingData.hcommCfgATA.set_dstDataType(static_cast<uint32_t>(
-        mc2tiling::ConvertGeTypeToHcclType(nodeName, context->GetInputDesc(EXPAND_X_INDEX)->GetDataType())));
+        mc2tiling::ConvertGeTypeToHcclType(nodeName, ge::DT_INT8)));
     tilingData.hcommCfgATA.set_opType(static_cast<uint32_t>(mc2tiling::AicpuComType::HCCL_CMD_HALFALLTOALLV));
 }
 

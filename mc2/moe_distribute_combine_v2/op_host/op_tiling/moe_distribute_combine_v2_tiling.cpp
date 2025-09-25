@@ -40,6 +40,7 @@
 #include "register/op_def_registry.h"
 #include "platform/platform_infos_def.h"
 #include "../../../moe_distribute_combine/op_kernel/moe_distribute_combine_tiling.h"
+#include "../../../moe_distribute_combine/op_host/op_tiling/arch35/moe_distribute_combine_tiling_arch35.h"
 #include "../../op_kernel/moe_distribute_combine_v2_tiling.h"
 
 using namespace AscendC;
@@ -1400,6 +1401,8 @@ static ge::graphStatus MoeDistributeCombineV2TilingFunc(gert::TilingContext* con
     ge::graphStatus ret;
     if (socVersion == "Ascend910B") {
         ret = MoeDistributeCombineA2TilingFuncImpl(context);
+    } else if (socVersion == "Ascend910_95") {
+        ret = MoeDistributeCombineTilingImpl(context);
     } else {
         ret = MoeDistributeCombineA3TilingFuncImpl(context);
     }
