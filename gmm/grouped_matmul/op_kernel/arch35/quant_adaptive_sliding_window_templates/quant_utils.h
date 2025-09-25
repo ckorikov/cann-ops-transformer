@@ -80,6 +80,12 @@ __aicore__ inline constexpr bool IsMxType()
     return AscendC::IsSameType<T, AscendC::fp8_e8m0_t>::value;
 }
 
+template <typename T>
+__aicore__ inline constexpr bool IsFp4()
+{
+    return (AscendC::IsSameType<T, fp4x2_e2m1_t>::value || AscendC::IsSameType<T, fp4x2_e1m2_t>::value);
+}
+
 template <typename aType, typename biasType>
 __aicore__ inline constexpr bool IsBiasEpilogue()
 {

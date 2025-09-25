@@ -365,7 +365,7 @@ __aicore__ inline void GQmmMixRegbaseKernel<LOCAL_TEMPLATE_FUNC_MIX_PARAMS>::Pro
         int32_t kSize;
         // 更新group内的输入参数M,N,K
         SetMNK(groupIdx, mSize, nSize, kSize);
-        block_.template UpdateGroupOffset<aTrans, bTrans, scaleType>(mSize, nSize, kSize, groupIdx);
+        block_.template UpdateGroupOffset<aTrans, bTrans, xType, scaleType>(mSize, nSize, kSize, groupIdx);
         if (mSize <= 0 || nSize <= 0) {
             continue;
         }

@@ -22,6 +22,7 @@ namespace optiling {
 namespace GmmConstant {
 constexpr uint64_t MX_GROUP_SIZE = 32;
 constexpr uint64_t NUM_HALF = 2;
+constexpr uint64_t EVEN_FACTOR = 2;
 constexpr uint32_t DB_SIZE = 2;
 constexpr uint32_t BASIC_BLOCK_SIZE_512 = 512;
 constexpr uint32_t BASIC_BLOCK_SIZE_256 = 256;
@@ -35,6 +36,8 @@ constexpr uint32_t SCALER_FACTOR_MAX = 127;
 constexpr uint32_t SCALER_FACTOR_MIN = 1;
 constexpr uint32_t SCALER_FACTOR_DEFAULT = 1;
 constexpr uint32_t SCALER_FACTOR_B_BIT = 8;
+constexpr uint32_t SCALER_FACTOR_M_BIT = 16;
+constexpr uint32_t SCALER_FACTOR_N_BIT = 24;
 constexpr uint64_t MTE2_MIN_LOAD_SIZE_V120 = 64 * 1024UL;
 constexpr uint64_t MAX_REPEAT_TIMES = 255; // InitOutput接口取值
 constexpr size_t LAST_FIRST_DIM_INDEX = 1;
@@ -43,6 +46,7 @@ constexpr uint64_t PER_BLOCK_GROUP_SIZE = 128;
 constexpr uint64_t SPLIT_M_W_DIMS = 3;
 constexpr uint64_t SPLIT_K_W_DIMS = 2;
 constexpr uint64_t X_DIMS = 2;
+constexpr uint64_t BIAS_DIMS = 2;
 constexpr uint64_t MXFP_MULTI_BASE_SIZE = 2;
 constexpr uint64_t MXFP_BASEK_FACTOR = 64;
 constexpr size_t MXFP_TYPE_K_SCALE_DIM_NUM = 3;
@@ -170,6 +174,9 @@ private:
                               const gert::Shape &wShape);
     bool CheckQuantParamsForMXTypeM(const gert::Shape &xScaleShape, const gert::Shape &wScaleShape) const;
     bool CheckQuantParamsForMXTypeK(const gert::Shape &xScaleShape, const gert::Shape &wScaleShape) const;
+    bool CheckFp4Shape() const;
+    bool CheckBiasDtype() const;
+    bool CheckBiasShape(const gert::StorageShape *biasStorageShape) const;
     bool CheckQuantParamsForMxQuantMode(const gert::StorageShape *xScaleStorageShape,
                                         const gert::Shape &wScaleShape) const;
     bool CheckQuantParams(const gert::StorageShape *xScaleStorageShape, const gert::Shape &wScaleShape) const;
