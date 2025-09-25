@@ -24,12 +24,10 @@
 #include <string>
 
 #include <sys/types.h>
-#include <sys/stat.h>
 #include "register/op_def_registry.h"
 #include "tiling/tiling_api.h"
 #include "tiling_base/data_copy_transpose_tiling.h"
 #include "log/log.h"
-#include "log/error_code.h"
 #include "err/ops_err.h"
 
 using namespace ge;
@@ -679,7 +677,7 @@ bool PromptFlashAttentionTilingV2::CheckPostQuantShape(const ContextParamsForPFA
             return false);
     }
 
-    uint64_t quantScale2ShapeSizePerChannel = (uint64_t)queryShapeInfo.n * (uint64_t)valueShapeInfo.d;
+    uint64_t quantScale2ShapeSizePerChannel = static_cast<uint64_t>(queryShapeInfo.n) * static_cast<uint64_t>(valueShapeInfo.d);
     OP_CHECK_IF(quantScale2ShapeSize < 0 || 
         ((static_cast<uint64_t>(quantScale2ShapeSize) != 1U) && 
          (static_cast<uint64_t>(quantScale2ShapeSize) != quantScale2ShapeSizePerChannel)),

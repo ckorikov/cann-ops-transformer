@@ -20,7 +20,6 @@
 #include "tiling/tiling_api.h"
 #include "tiling_base/data_copy_transpose_tiling.h"
 #include "log/log.h"
-#include "log/error_code.h"
 #include "err/ops_err.h"
 #include "../regbase/ophost/prompt_flash_attention_tiling_v2.h"
 #include "../../prompt_flash_attention/op_host/prompt_flash_attention_tiling.h"
@@ -928,7 +927,7 @@ void PromptFlashAttentionTiling::SetSplitCoreMode(PromptFlashAttentionTilingData
     }
     bool enableOneNByCubeSeqMode = actualSeqLength >= seq16K && (b * n >= 12U);  // 12 : b * n should be more than 12.
     bool enableNBSByCubeSeqMode = actualSeqLength >= seq3K && (b * n * sOuterLoopByCube >= coreNum);
-    bool noBalance = (baseParams->get_headNumRatio() != 1 || b != 1 || tilingData.promptAttentionInitOutputParams.get_needInit()) ||
+    bool noBalance = static_cast<uint32_t>((baseParams->get_headNumRatio()) != 1 || b != 1 || tilingData.promptAttentionInitOutputParams.get_needInit()) ||
                      (actualSeqLength >= seq8K && contextKeyParamsPtr->attentionMask == nullptr);
     if (baseCond && enableOneNByCubeToken && enableOneNByCubeSeqMode) {
         splitCoreMode = SplitCoreMode::SPLIT_ONEN_CUBE;
@@ -3495,8 +3494,7 @@ int64_t PromptFlashAttentionTiling::CalcMaxS2BasicBlockSize(const BufferNum &buf
     // if D full load, use alignedD in above formula
     // if D not full load, use S2 basic block var in above formula
     // just ignore apiTmp now, consider it at last
-    int64_t tmpS2BasicBlock;
-    tmpS2BasicBlock = (ascendPlatformInfo.ubSize - tmpS1BasicBlock * (bufferNum.bufferExpNum + 2) * BYTE_BLOCK -
+    int64_t tmpS2BasicBlock = (ascendPlatformInfo.ubSize - tmpS1BasicBlock * (bufferNum.bufferExpNum + 2) * BYTE_BLOCK -
                         tmpS1BasicBlock * alignedD * bufferNum.bufferS1DNum * dataTypeSize) /
                         (tmpS1BasicBlock * bufferNum.bufferS1S2Num * dataTypeSize);
     return std::min(AlignDown(tmpS2BasicBlock, FRACTAL_NUM), alignedS2);
@@ -4390,7 +4388,7 @@ ge::graphStatus PromptFlashAttentionTiling::RunBigKernelTilingWithParams(Context
             if (!CheckPASparseMode(contextKeyParams)) {
                 return ge::GRAPH_FAILED;
             }
-            if (!CheckPAWhenBaseApi(contextKeyParams, tempData, tempDataKV, (int32_t)(*n), (int32_t)h, (int32_t)tilingData.promptAttentionBaseParams.get_headNumRatio())) {
+            if (!CheckPAWhenBaseApi(contextKeyParams, tempData, tempDataKV, static_cast<int32_t>(*n), static_cast<int32_t>(h), static_cast<int32_t>(tilingData.promptAttentionBaseParams.get_headNumRatio()))) {
                 return ge::GRAPH_FAILED;
             }
         } else {

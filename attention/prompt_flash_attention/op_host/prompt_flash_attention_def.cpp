@@ -13,7 +13,6 @@
  * \brief
  */
 #include "register/op_def_registry.h"
-#include <cstdint>
 
 // namespace optiling {
 // ge::graphStatus TilingPromptFlashAttention(gert::TilingContext* context);

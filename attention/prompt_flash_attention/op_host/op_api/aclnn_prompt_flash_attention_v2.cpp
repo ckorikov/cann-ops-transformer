@@ -17,7 +17,6 @@
 #include "aclnn_kernels/transpose.h"
 #include "opdev/common_types.h"
 #include "opdev/fast_vector.h"
-#include "opdev/op_errno.h"
 #include "opdev/op_executor.h"
 
 using namespace op;

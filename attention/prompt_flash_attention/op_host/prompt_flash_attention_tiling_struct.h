@@ -14,7 +14,6 @@
  */
 #ifndef PROMPT_FLASH_ATTENTION_TILING_STRUCT_H
 #define PROMPT_FLASH_ATTENTION_TILING_STRUCT_H
-#include <cstdint>
 namespace optiling {
 
 enum class InputLayout {

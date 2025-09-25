@@ -11,7 +11,6 @@
 #include "fallback/fallback_comm.h"
 #include "fallback/fallback.h"
 #include "log/log.h"
-#include "log/error_code.h"
 
 #ifdef __cplusplus
 extern "C" {
