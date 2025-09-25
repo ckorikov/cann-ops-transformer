@@ -121,6 +121,30 @@ enum  BlockType {
 
 using BlockCost = std::array<std::array<uint32_t, static_cast<uint32_t>(BLOCK_MAX_TYPE)>, static_cast<uint32_t>(BLOCK_MAX_TYPE)>;
 
+void RecordFDInfo(const BaseInfo &baseInfo, const InnerSplitParams &innerSplitParams, const SplitBatchInfo &splitBatchInfo, 
+                const OuterSplitParams &outerSplitParams, FlashDecodeParams &fDParams, SplitCoreRes &res, uint32_t curCoreIdx, uint32_t currKvSplitPart);
+void SplitCoreOfBand(const BaseInfo &baseInfo, const InnerSplitParams &innerSplitParams, uint32_t coreNum, OuterSplitParams outerSplitParams, FlashDecodeParams fDParams, SplitCoreRes &res);
+void CaclCostTable(BlockCost &typeCost, uint32_t s1NomralSize, uint32_t s2NormalSize, uint32_t s1GTailSize, uint32_t s2TailSize);
+int64_t ClipSInnerToken(int64_t sInnerToken, int64_t minValue, int64_t maxValue);
+void SplitCore(const BaseInfo &baseInfo, const InnerSplitParams &innerSplitParams, uint32_t coreNum, OuterSplitParams &outerSplitParams, FlashDecodeParams &fDParams, SplitCoreRes &res);
+void GetBlockNumOnCore(const SplitBatchInfo &splitBatchInfo, uint32_t coreNum, std::vector<uint32_t> &blockNumOnCore, uint32_t &coreUse, uint32_t &maxCost);
+void CaclAllCost(const BlockCost &typeCost, SplitBatchInfo &splitBatchInfo, uint32_t bIdx);
+void GetSqeSize(const BaseInfo &baseInfo, uint32_t &s1Size, uint32_t &s2Size, uint32_t bIdx);
+void CalSplitBatchInfo(const BaseInfo &baseInfo, const InnerSplitParams &innerSplitParams, SplitBatchInfo &splitBatchInfo, uint32_t coreNum);
+void GetPreNextTokenLeftUp(const BaseInfo &baseInfo, int64_t s1Size, int64_t s2Size,
+                           int64_t &preTokenLeftUp, int64_t &nextTokenLeftUp);
+void SplitFD(SplitCoreRes &res, FlashDecodeParams &fDParams, uint32_t coreNum);
+void CalBasicCost(uint32_t basicM, uint32_t basicS2, uint32_t &cost);
+void AssignByRow(const SplitBatchInfo &splitBatchInfo, AssignInfo &assignInfo);
+bool IsSpaceEnough(uint32_t spaceLimit, uint32_t spaceOccupied, uint32_t spaceTolerance, uint32_t newOccupancy);
+void ReconSplitPlan(const BaseInfo &baseInfo, const InnerSplitParams &innerSplitParams, const SplitBatchInfo &splitBatchInfo, const std::vector<uint32_t> &blockNumOnCore, OuterSplitParams &outerSplitParams, FlashDecodeParams &fDParams, SplitCoreRes &res);
+void UpdateSInnerLoop(const BaseInfo &baseInfo, const InnerSplitParams &innerSplitParams, uint32_t &s2Start, uint32_t &s2End,
+                      uint32_t s1Idx, int64_t s2Size, int64_t preTokenLeftUp, int64_t nextTokenLeftUp, bool seqZeroFlag);
+void AssignByBlock(const SplitBatchInfo &splitBatchInfo, AssignInfo &assignInfo);
+void AssignByBatch(const SplitBatchInfo &splitBatchInfo, AssignInfo &assignInfo);
+uint32_t GetCalcBlockNumOneHead(const BaseInfo &baseInfo, const InnerSplitParams &innerSplitParams, uint32_t s1GBaseNum,
+                                uint32_t s2BaseNum, uint32_t s2Size, int64_t preTokenLeftUp, int64_t nextTokenLeftUp, bool seqZeroFlag);
+                                
 int64_t ClipSInnerToken(int64_t sInnerToken, int64_t minValue, int64_t maxValue) {
     sInnerToken = sInnerToken > minValue ? sInnerToken : minValue;
     sInnerToken = sInnerToken < maxValue ? sInnerToken : maxValue;

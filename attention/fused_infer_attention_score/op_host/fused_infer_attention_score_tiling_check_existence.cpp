@@ -54,7 +54,7 @@ ge::graphStatus FiaTilingCheck::CheckRopeExistence() const
     return ge::GRAPH_SUCCESS;
 }
 
-std::string DtypeListToStr(const std::vector<DataType> &dtypeList)
+static std::string DtypeListToStr(const std::vector<DataType> &dtypeList)
 {
     std::ostringstream oss;
     oss << "[";
@@ -69,7 +69,7 @@ std::string DtypeListToStr(const std::vector<DataType> &dtypeList)
     return oss.str();
 }
 
-std::string DtypeDoubleListToStr(const std::vector<std::vector<DataType>> &dtypeDoubleList)
+static std::string DtypeDoubleListToStr(const std::vector<std::vector<DataType>> &dtypeDoubleList)
 {
     std::ostringstream oss;
     for (size_t i = 0; i < dtypeDoubleList.size(); ++i) {
