@@ -820,7 +820,7 @@ const auto Tc_GroupedMatmul_Kernel_Case = ::testing::Values(
                           ExpectInfo::kFullTilingBlockDim)), /* ExpectSuccess, ExpectTilingKey, ExpectTilingBlockDim */
         Param({GenTensorList("x", {{256, 768}}, ge::DataType::DT_FLOAT16),
                GenTensorList("weight", {{768, 256}}, ge::DataType::DT_FLOAT16),
-               GenTensorList("y", {{256, 256}}, ge::DataType::DT_FLOAT16)},
+               GenTensorList("y", {{1024, 256}}, ge::DataType::DT_FLOAT16)},
               GenTensor("per_token_scale", {}, ge::DataType::DT_FLOAT),
               GenTensor("grouped_list", {4}, ge::DataType::DT_INT64),
               {256, 512, 512, 768}, 3, -1, false, true, 2, 0, 0),

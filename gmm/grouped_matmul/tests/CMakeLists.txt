@@ -11,35 +11,35 @@
 # 调用编译方法, 生成对应编译目标
 ########################################################################################################################
 set(_GMM_TilingSourcesExt
-        ${CMAKE_SOURCE_DIR}/src/transformer/gmm/grouped_matmul/op_host/grouped_matmul_tiling.cpp
-        ${CMAKE_SOURCE_DIR}/src/transformer/gmm/grouped_matmul/op_host/arch35/grouped_weight_quant_batch_matmul_tiling.cpp
-        ${CMAKE_SOURCE_DIR}/src/transformer/gmm/grouped_matmul/op_host/arch35/grouped_quant_matmul_tiling.cpp
-        ${CMAKE_SOURCE_DIR}/src/transformer/gmm/grouped_matmul/op_host/arch35/grouped_no_quant_matmul_tiling.cpp
+        ${CMAKE_SOURCE_DIR}/gmm/grouped_matmul/op_host/op_tiling/grouped_matmul_tiling.cpp
+        ${CMAKE_SOURCE_DIR}/gmm/grouped_matmul/op_host/op_tiling/arch35/grouped_weight_quant_batch_matmul_tiling.cpp
+        ${CMAKE_SOURCE_DIR}/gmm/grouped_matmul/op_host/op_tiling/arch35/grouped_quant_matmul_tiling.cpp
+        ${CMAKE_SOURCE_DIR}/gmm/grouped_matmul/op_host/op_tiling/arch35/grouped_no_quant_matmul_tiling.cpp
 )
 
 set(_GMM_TilingPrivateIncludesExt
-        ${CMAKE_SOURCE_DIR}/src/transformer/gmm/grouped_matmul/op_host
+        ${CMAKE_SOURCE_DIR}/gmm/grouped_matmul/op_host
 )
 
 set(_GMM_KernelTilingDataDefH
-        ${CMAKE_SOURCE_DIR}/src/transformer/gmm/grouped_matmul/op_host/grouped_matmul_tiling.h
+        ${CMAKE_SOURCE_DIR}/gmm/grouped_matmul/op_host/op_tiling/grouped_matmul_tiling.h
 )
 
 set(_GMM_OpApiSourcesExt
-        ${CMAKE_SOURCE_DIR}/src/transformer/gmm/grouped_matmul/op_host/grouped_matmul.cpp
-        ${CMAKE_SOURCE_DIR}/src/transformer/gmm/grouped_matmul/op_host/op_api/aclnn_grouped_matmul_util.cpp
-        ${CMAKE_SOURCE_DIR}/src/transformer/gmm/grouped_matmul/op_host/op_api/arch35/aclnn_grouped_matmul_910_95_checker.cpp
-        ${CMAKE_SOURCE_DIR}/src/transformer/gmm/grouped_matmul/op_host/op_api/arch35/aclnn_grouped_matmul_weight_quant_910_95_checker.cpp
-        ${CMAKE_SOURCE_DIR}/src/transformer/gmm/grouped_matmul/op_host/op_api/aclnn_grouped_matmul.cpp
+        ${CMAKE_SOURCE_DIR}/gmm/grouped_matmul/op_host/op_api/grouped_matmul.cpp
+        ${CMAKE_SOURCE_DIR}/gmm/grouped_matmul/op_host/op_api/aclnn_grouped_matmul_util.cpp
+        ${CMAKE_SOURCE_DIR}/gmm/grouped_matmul/op_host/op_api/aclnn_grouped_matmul_910_95_checker.cpp
+        ${CMAKE_SOURCE_DIR}/gmm/grouped_matmul/op_host/op_api/aclnn_grouped_matmul_weight_quant_910_95_checker.cpp
+        ${CMAKE_SOURCE_DIR}/gmm/grouped_matmul/op_host/op_api/aclnn_grouped_matmul.cpp
 )
 
 set(_GMM_OpProtoSourcesExt
-        ${CMAKE_SOURCE_DIR}/src/transformer/gmm/grouped_matmul/op_host/grouped_matmul_infershape.cpp
-        ${CMAKE_SOURCE_DIR}/src/transformer/gmm/grouped_matmul/op_host/arch35/grouped_matmul_infershape_quant_checker.cpp
-        ${CMAKE_SOURCE_DIR}/src/transformer/gmm/grouped_matmul/op_host/arch35/grouped_matmul_infershape_weight_quant_checker.cpp
+        ${CMAKE_SOURCE_DIR}/gmm/grouped_matmul/op_host/grouped_matmul_infershape.cpp
+        ${CMAKE_SOURCE_DIR}/gmm/grouped_matmul/op_host/grouped_matmul_infershape_quant_checker.cpp
+        ${CMAKE_SOURCE_DIR}/gmm/grouped_matmul/op_host/grouped_matmul_infershape_weight_quant_checker.cpp
 )
 
-aux_source_directory(${CMAKE_SOURCE_DIR}/src/transformer/gmm/grouped_matmul/ _GMM_KernelSourcesExt)
+aux_source_directory(${CMAKE_SOURCE_DIR}/gmm/grouped_matmul/op_kernel/ _GMM_KernelSourcesExt)
 set(_GMM_KernelPrivateCompileDefinitionsExt
         KernelCtrlParam grouped_matmul bf16 DTYPE_X=bfloat16_t DTYPE_WEIGHT=bfloat16_t DTYPE_BIAS=float DTYPE_SCALE=uint64_t DTYPE_Y=bfloat16_t ORIG_DTYPE_X=DT_BF16 ORIG_DTYPE_WEIGHT=DT_BF16 ORIG_DTYPE_Y=DT_BF16
         KernelCtrlParam grouped_matmul fp16 DTYPE_X=half DTYPE_WEIGHT=half DTYPE_BIAS=half DTYPE_SCALE=uint64_t DTYPE_Y=half ORIG_DTYPE_X=DT_FLOAT16 ORIG_DTYPE_WEIGHT=DT_FLOAT16 ORIG_DTYPE_Y=DT_FLOAT16
@@ -57,32 +57,36 @@ set(_GMM_KernelPrivateCompileDefinitionsExt
 )
 
 set(_GMM_TargetPrivateIncludeExt
-        ${CMAKE_SOURCE_DIR}/src/transformer/gmm/grouped_matmul/op_host
+        ${CMAKE_SOURCE_DIR}/gmm/grouped_matmul/op_host
+        ${CMAKE_SOURCE_DIR}/gmm/grouped_matmul/op_host/op_api
+        ${CMAKE_SOURCE_DIR}/common/include
+        ${OPBASE_INC_DIRS}
 )
 
 set(_GMM_TillingPrivateLinkLibrariesExt
 )
 
 set(_GMM_TargetPrivateLinkLibrariesExt
-        ops_utils_tiling_headers
+        ${UTest_NamePrefix}_OpTiling 
+        error_manager
 )
 
 if ("${CMAKE_C_COMPILER_ID}" STREQUAL "Clang")
         message(STATUS "The UTest of grouped_matmul don't supported clang compiler yet.")
 else ()
-        # OpsTest_Level2_AddOp(
-        #         SUB_SYSTEM                              transformer
-        #         BRIEF                                   GMM
-        #         SNAKE                                   grouped_matmul
-        #         OPAPI_SOURCES_EXT                       ${_GMM_OpApiSourcesExt}
-        #         PROTO_SOURCES_EXT                       ${_GMM_OpProtoSourcesExt}
-        #         TILING_SOURCES_EXT                      ${_GMM_TilingSourcesExt}
-        #         TILING_PRIVATE_INCLUDES_EXT             ${_GMM_TilingPrivateIncludesExt}
-        #         TILING_PRIVATE_LINK_LIBRARIES_EXT       ${_GMM_TillingPrivateLinkLibrariesExt}
-        #         KERNEL_SOURCES_EXT                      ${_GMM_KernelSourcesExt}
-        #         KERNEL_TILING_DATA_DEF_H                ${_GMM_KernelTilingDataDefH}
-        #         KERNEL_PRIVATE_COMPILE_DEFINITIONS_EXT  ${_GMM_KernelPrivateCompileDefinitionsExt}
-        #         UTEST_COMMON_PRIVATE_INCLUDES_EXT       ${_GMM_TargetPrivateIncludeExt}
-        #         UTEST_COMMON_PRIVATE_LINK_LIBRARIES_EXT ${_GMM_TargetPrivateLinkLibrariesExt}
-        # )
+        OpsTest_Level2_AddOp(
+                SUB_SYSTEM                              transformer
+                BRIEF                                   GMM
+                SNAKE                                   grouped_matmul
+                OPAPI_SOURCES_EXT                       ${_GMM_OpApiSourcesExt}
+                PROTO_SOURCES_EXT                       ${_GMM_OpProtoSourcesExt}
+                TILING_SOURCES_EXT                      ${_GMM_TilingSourcesExt}
+                TILING_PRIVATE_INCLUDES_EXT             ${_GMM_TilingPrivateIncludesExt}
+                TILING_PRIVATE_LINK_LIBRARIES_EXT       ${_GMM_TillingPrivateLinkLibrariesExt}
+                KERNEL_SOURCES_EXT                      ${_GMM_KernelSourcesExt}
+                KERNEL_TILING_DATA_DEF_H                ${_GMM_KernelTilingDataDefH}
+                KERNEL_PRIVATE_COMPILE_DEFINITIONS_EXT  ${_GMM_KernelPrivateCompileDefinitionsExt}
+                UTEST_COMMON_PRIVATE_INCLUDES_EXT       ${_GMM_TargetPrivateIncludeExt}
+                UTEST_COMMON_PRIVATE_LINK_LIBRARIES_EXT ${_GMM_TargetPrivateLinkLibrariesExt}
+        )
 endif()

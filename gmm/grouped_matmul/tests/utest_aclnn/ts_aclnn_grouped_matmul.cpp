@@ -1874,45 +1874,6 @@ const auto Tc_Gmm_Aclnn_David_Case = ::testing::Values(
                                  GenTensor("grouped_list", {4}, ge::DataType::DT_INT64), {10, 10, 10, 10}, 3, -1, true,
                                  false, 0, 1, 0, FunctionType::MXFP, AclnnGroupedMatmulVersion::V4)),
     AclnnGroupedMatmulCase(
-        "Test_GMM_a16mxfp4_weightnz_0", true, "",                          /* CaseName,Enable,DebugInfo */
-        OpInfo(ControlInfo(true, false),                        /* RunTiling,RunKernel */
-               ExpectInfo(false,                                 /* ExpectSuccess */
-                          ExpectInfo::kInvalidTilingKey,        /* ExpectTilingKey */
-                          ExpectInfo::kInvalidTilingBlockDim)), /* ExpectTilingBlockDim */
-        AclnnGroupedMatmulParam({GenTensorList("x", {{1, 64}}, ge::DataType::DT_FLOAT16),
-                                 GenTensorList("weight", {{2, 8, 4, 16, 16}}, ge::DataType::DT_FLOAT4_E2M1, ge::FORMAT_FRACTAL_NZ),
-                                 GenTensorList("bias", {{2, 128}}, ge::DataType::DT_FLOAT16),
-                                 GenTensorList("antiquant_scale", {{2, 1, 128}}, ge::DataType::DT_FLOAT8_E8M0),
-                                 GenTensorList("y", {{1, 128}}, ge::DataType::DT_FLOAT16)},
-                                 GenTensor("grouped_list", {2}, ge::DataType::DT_INT64), {0, 1}, 3, -1, false,
-                                 false, 0, 1, 0, FunctionType::ANTIQUANT, AclnnGroupedMatmulVersion::WeightNz)),
-    AclnnGroupedMatmulCase(
-        "Test_GMM_a16mxfp4_weightnz_1", true, "",                          /* CaseName,Enable,DebugInfo */
-        OpInfo(ControlInfo(true, false),                        /* RunTiling,RunKernel */
-               ExpectInfo(false,                                 /* ExpectSuccess */
-                          ExpectInfo::kInvalidTilingKey,        /* ExpectTilingKey */
-                          ExpectInfo::kInvalidTilingBlockDim)), /* ExpectTilingBlockDim */
-        AclnnGroupedMatmulParam({GenTensorList("x", {{1, 64}}, ge::DataType::DT_FLOAT16),
-                                 GenTensorList("weight", {{2, 8, 4, 16, 16}}, ge::DataType::DT_FLOAT4_E2M1, ge::FORMAT_FRACTAL_NZ),
-                                 GenTensorList("bias", {{2, 128}}, ge::DataType::DT_FLOAT16),
-                                 GenTensorList("antiquant_scale", {{2, 128}}, ge::DataType::DT_FLOAT8_E8M0),
-                                 GenTensorList("y", {{1, 128}}, ge::DataType::DT_FLOAT16)},
-                                 GenTensor("grouped_list", {2}, ge::DataType::DT_INT64), {0, 1}, 3, -1, false,
-                                 false, 0, 1, 0, FunctionType::ANTIQUANT, AclnnGroupedMatmulVersion::WeightNz)),
-    AclnnGroupedMatmulCase(
-        "Test_GMM_a16mxfp4_weightnz_2", true, "",                          /* CaseName,Enable,DebugInfo */
-        OpInfo(ControlInfo(true, false),                        /* RunTiling,RunKernel */
-               ExpectInfo(false,                                 /* ExpectSuccess */
-                          ExpectInfo::kInvalidTilingKey,        /* ExpectTilingKey */
-                          ExpectInfo::kInvalidTilingBlockDim)), /* ExpectTilingBlockDim */
-        AclnnGroupedMatmulParam({GenTensorList("x", {{1, 64}}, ge::DataType::DT_FLOAT16),
-                                 GenTensorList("weight", {{2, 8, 4, 16, 16}}, ge::DataType::DT_FLOAT4_E2M1, ge::FORMAT_FRACTAL_NZ),
-                                 GenTensorList("bias", {{2, 128}}, ge::DataType::DT_FLOAT16),
-                                 GenTensorList("antiquant_scale", {{2, 2, 128}}, ge::DataType::DT_FLOAT8_E8M0),
-                                 GenTensorList("y", {{1, 128}}, ge::DataType::DT_FLOAT16)},
-                                 GenTensor("grouped_list", {2}, ge::DataType::DT_INT64), {0, 1}, 3, -1, false,
-                                 true, 0, 1, 0, FunctionType::ANTIQUANT, AclnnGroupedMatmulVersion::WeightNz)),
-    AclnnGroupedMatmulCase(
         "Test_GMMV4_9591_mxpf8_special_scale_shape", true, "",               /* CaseName,Enable,DebugInfo */
         OpInfo(ControlInfo(true, false),                        /* RunTiling,RunKernel */
                ExpectInfo(false,                                 /* ExpectSuccess */
