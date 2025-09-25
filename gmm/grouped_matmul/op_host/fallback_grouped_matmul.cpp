@@ -235,7 +235,7 @@ static graphStatus PrepareOutputTensorVector(OpExecuteContext *host_api_ctx,
   return GRAPH_SUCCESS;
 }
 
-static bool IsPerTileQuantMode(OpExecuteContext* host_api_ctx, bool transposeX, bool transposeWeight, int64_t groupType)
+static bool IsPerTileQuantMode(const OpExecuteContext* host_api_ctx, bool transposeX, bool transposeWeight, int64_t groupType)
 {
   auto perTokenScaleTensor = host_api_ctx->GetOptionalInputTensor(INDEX_GMM_INPUT_PER_TOKEN_SCALE);
   auto x = host_api_ctx->GetDynamicInputTensor(INDEX_GMM_INPUT_X, 0);

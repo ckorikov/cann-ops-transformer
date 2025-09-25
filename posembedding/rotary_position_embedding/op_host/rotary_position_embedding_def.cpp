@@ -18,7 +18,6 @@
  * \file rotary_position_embedding.cpp
  * \brief
  */
-#include <cstdint>
 #include "register/op_def_registry.h"
 
 namespace ops {

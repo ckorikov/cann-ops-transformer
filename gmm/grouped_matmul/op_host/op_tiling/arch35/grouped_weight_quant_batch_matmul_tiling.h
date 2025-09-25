@@ -20,7 +20,6 @@
 
 #include "../grouped_matmul_tiling.h"
 #include "log/log.h"
-#include "log/error_code.h"
 #include "register/op_impl_registry.h"
 
 namespace optiling {
@@ -192,7 +191,7 @@ public:
         return;
     }
 
-    uint64_t GenTilingKey()
+    uint64_t GenTilingKey() const
     {
         PrintTilingKeyLog();
         uint64_t tilingKey = 0;

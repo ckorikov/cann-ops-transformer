@@ -568,7 +568,7 @@ static ge::graphStatus CheckGroupedMatmulQuant(gert::InferShapeContext* context,
               return GRAPH_FAILED);
     return GRAPH_SUCCESS;
 }
-static bool isA8W4AsymmetricQuant(gert::InferShapeContext* context) {
+static bool isA8W4AsymmetricQuant(const gert::InferShapeContext* context) {
     auto offsetShape = context->GetDynamicInputShape(GMM_INDEX_IN_OFFSET, 0);
     if (offsetShape == nullptr) {
         return false;
@@ -1304,7 +1304,7 @@ static ge::graphStatus XSingleYSeparated(gert::InferShapeContext* context,
 }
 
 static ge::graphStatus GMMSetOutputShape(gert::InferShapeContext* context, GMMAttrs& gmmAttrs,
-                                         GMMSetOutputParams& outputParams, const gert::Shape* x0Shape,
+                                        const GMMSetOutputParams& outputParams, const gert::Shape* x0Shape,
                                          const gert::Shape* w0Shape) {
     bool isSingleX = outputParams.isSingleX;
     bool isSingleY = outputParams.isSingleY;

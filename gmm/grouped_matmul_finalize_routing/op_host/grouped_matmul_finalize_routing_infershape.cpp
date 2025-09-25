@@ -99,7 +99,7 @@ static ge::graphStatus ValidateXAndWShapes(const char* op_name, CheckXandWParams
     return ge::GRAPH_SUCCESS;
 }
 
-static ge::graphStatus ValidateScaleAndBias(InferShapeContext *context, const char* op_name, CheckXandWParams& xAndWParams)
+static ge::graphStatus ValidateScaleAndBias(const InferShapeContext *context, const char* op_name, const CheckXandWParams& xAndWParams)
 {
     auto shape_scale = context->GetOptionalInputShape(scaleOptionIndex);
     OP_CHECK_IF(shape_scale == nullptr, OPS_REPORT_CUBE_INNER_ERR(op_name, "scale is not given."), return ge::GRAPH_FAILED);
@@ -132,7 +132,7 @@ static ge::graphStatus ValidateScaleAndBias(InferShapeContext *context, const ch
     return ge::GRAPH_SUCCESS;
 }
 
-static ge::graphStatus ValidatePertokenAndGroupList(InferShapeContext *context, const char* op_name, CheckXandWParams& xAndWParams)
+static ge::graphStatus ValidatePertokenAndGroupList(const InferShapeContext *context, const char* op_name, const CheckXandWParams& xAndWParams)
 {
     if (context->GetOptionalInputShape(pertokenScaleOptionIndex) != nullptr) {
         OP_CHECK_IF(context->GetOptionalInputShape(pertokenScaleOptionIndex)->GetDimNum() != OneDimNum ||
@@ -148,7 +148,7 @@ static ge::graphStatus ValidatePertokenAndGroupList(InferShapeContext *context, 
     return ge::GRAPH_SUCCESS;
 }
 
-static ge::graphStatus ValidateSharedInputAndLogit(InferShapeContext *context, int& bsdp, const char* op_name, CheckXandWParams& xAndWParams)
+static ge::graphStatus ValidateSharedInputAndLogit(const InferShapeContext *context, int& bsdp, const char* op_name, const CheckXandWParams& xAndWParams)
 {
     if (context->GetOptionalInputShape(sharedInputOptionIndex) == nullptr) {
         OP_CHECK_IF(context->GetOptionalInputShape(logitOptionIndex) != nullptr,
@@ -171,7 +171,7 @@ static ge::graphStatus ValidateSharedInputAndLogit(InferShapeContext *context, i
     return ge::GRAPH_SUCCESS;
 }
 
-static ge::graphStatus ValidateRowIndex(InferShapeContext *context, const char* op_name, CheckXandWParams& xAndWParams)
+static ge::graphStatus ValidateRowIndex(const InferShapeContext *context, const char* op_name, const CheckXandWParams& xAndWParams)
 {
     OP_CHECK_IF(context->GetOptionalInputShape(rowIndexOptionIndex) == nullptr,
         OPS_REPORT_CUBE_INNER_ERR(op_name, "row_index is not given."), return ge::GRAPH_FAILED);
@@ -181,7 +181,7 @@ static ge::graphStatus ValidateRowIndex(InferShapeContext *context, const char* 
     return ge::GRAPH_SUCCESS;
 }
 
-static ge::graphStatus SetupOutputAndCheckAttrs(InferShapeContext *context, int& bsdp, const char* op_name, CheckXandWParams& xAndWParams)
+static ge::graphStatus SetupOutputAndCheckAttrs(InferShapeContext *context, const int& bsdp, const char* op_name, CheckXandWParams& xAndWParams)
 {
     auto attrs = context->GetAttrs();
     auto shape_out = context->GetOutputShape(0);
@@ -206,7 +206,7 @@ static ge::graphStatus SetupOutputAndCheckAttrs(InferShapeContext *context, int&
     return ge::GRAPH_SUCCESS;
 }
 
-static ge::graphStatus ValidateOffsetShape(InferShapeContext *context, const char* op_name, CheckXandWParams& xAndWParams)
+static ge::graphStatus ValidateOffsetShape(const InferShapeContext *context, const char* op_name, const CheckXandWParams& xAndWParams)
 {
     auto shape_offset = context->GetOptionalInputShape(offsetOptionIndex);
     if (shape_offset != nullptr) {

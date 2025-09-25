@@ -46,7 +46,7 @@ extern "C" {
  */
 __attribute__((visibility("default"))) aclnnStatus aclnnMoeTokenPermuteWithRoutingMapGradGetWorkspaceSize(
     const aclTensor* permutedTokenOutputGrad, const aclTensor* permutedProbsOutputGradOptional,
-    const aclTensor* sortedIndices, const aclTensor* routingMapOptional, int64_t expertsNum, int64_t tokensNum,
+    const aclTensor* sortedIndices, const aclTensor* routingMapOptional, int64_t numExperts, int64_t tokensNum,
     bool dropAndPad, aclTensor* tokensGradOut, aclTensor* probsGradOutOptional, uint64_t* workspaceSize,
     aclOpExecutor** executor);
 
@@ -60,7 +60,7 @@ __attribute__((visibility("default"))) aclnnStatus aclnnMoeTokenPermuteWithRouti
  * @return aclnnStatus: 返回状态码
  */
 __attribute__((visibility("default"))) aclnnStatus aclnnMoeTokenPermuteWithRoutingMapGrad(
-    void* workspace, uint64_t workspaceSize, aclOpExecutor* executor, aclrtStream stream);
+    void* workspace, uint64_t workspaceSize, aclOpExecutor* executor, const aclrtStream stream);
 
 #ifdef __cplusplus
 }
