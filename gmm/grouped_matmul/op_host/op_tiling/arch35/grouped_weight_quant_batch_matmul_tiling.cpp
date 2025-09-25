@@ -93,9 +93,10 @@ bool GroupedWeightQuantBatchMatmulTiling::AnalyzeAttr(const gert::TilingContext 
 
 bool GroupedWeightQuantBatchMatmulTiling::CalcResplitTiling(const gert::TilingContext *context)
 {
-    uint64_t c0Size;
+    uint64_t c0Size = 0;
+    OP_CHECK_IF(!GetC0Size(context, xDType_, c0Size), OP_LOGE(context->GetNodeName(), "Get C0 size failed"), return false);
     OP_CHECK_IF(
-        !GetC0Size(context, xDType_, c0Size) || (weightNzFlag_ && !transB_ && nSize_ % c0Size > 0),
+        (weightNzFlag_ && !transB_ && nSize_ % c0Size > 0),
         OP_LOGE(
             context->GetNodeName(),
             "Invalid C0 size[%lu], expect greater than 0 and divisible by N[%lu] when weight format is FRACTAL_NZ",
