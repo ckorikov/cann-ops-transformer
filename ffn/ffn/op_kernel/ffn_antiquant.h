@@ -352,8 +352,8 @@ protected:
         KernelTiling(tilingData->mm1TilingData.baseM, tilingData->mm1TilingData.baseN, n1, true);
         SplitMM1();
 
-        SetFlag(PIPE_MTE3, PIPE_S, EVENT_ID7);
-        WaitFlag(PIPE_MTE3, PIPE_S, EVENT_ID7);
+        set_flag(PIPE_MTE3, PIPE_S, EVENT_ID7);
+        wait_flag(PIPE_MTE3, PIPE_S, EVENT_ID7);
         SyncAll<true>();
 
         SplitMM2();
@@ -639,8 +639,8 @@ protected:
                 offsetInQueue.FreeTensor(offsetInUb);
             }
         }
-        SetFlag(PIPE_MTE3, PIPE_S, EVENT_ID7);
-        WaitFlag(PIPE_MTE3, PIPE_S, EVENT_ID7);
+        set_flag(PIPE_MTE3, PIPE_S, EVENT_ID7);
+        wait_flag(PIPE_MTE3, PIPE_S, EVENT_ID7);
     }
 
     __aicore__ inline void CastWeightNormal(GlobalTensor<int8_t> weightGm, GlobalTensor<T> wWorkspaceGm,
@@ -675,8 +675,8 @@ protected:
             scaleInQueue.FreeTensor(scaleInUb);
             offsetInQueue.FreeTensor(offsetInUb);
         }
-        SetFlag(PIPE_MTE3, PIPE_S, EVENT_ID7);
-        WaitFlag(PIPE_MTE3, PIPE_S, EVENT_ID7);
+        set_flag(PIPE_MTE3, PIPE_S, EVENT_ID7);
+        wait_flag(PIPE_MTE3, PIPE_S, EVENT_ID7);
     }
 
     __aicore__ inline void CalcOffsetAndCastWeight(bool isMatMul1)

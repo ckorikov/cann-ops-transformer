@@ -116,8 +116,8 @@ public:
             if (mm1ExpertParallInfo.expertParallelism > 0) {
                 MM1Process(mm1ExpertParallInfo, mnConfig, whetherFirstMM1);
                 // Step2: sync
-                SetFlag(PIPE_MTE3, PIPE_S, EVENT_ID7);
-                WaitFlag(PIPE_MTE3, PIPE_S, EVENT_ID7);
+                set_flag(PIPE_MTE3, PIPE_S, EVENT_ID7);
+                wait_flag(PIPE_MTE3, PIPE_S, EVENT_ID7);
                 SyncAll<true>();
             }
 
@@ -503,9 +503,9 @@ protected:
             LocalTensor<half> scalecUbFp16 = srcUbFp16[ubCalSize];
             LocalTensor<uint8_t> quantTmp1 = scalecUbFp16[computeBaseN1].template ReinterpretCast<uint8_t>();
             Cast(srcUbFp16, actOut, RoundMode::CAST_NONE, tmpsize);
-            PipeBarrier(PIPE_V);
+            pipe_barrier(PIPE_V);
             Cast(scalecUbFp16, scaleSrcUb, RoundMode::CAST_NONE, computeBaseN1);
-            PipeBarrier(PIPE_V);
+            pipe_barrier(PIPE_V);
             AscendQuant(quantOutUb, srcUbFp16, quantTmp1, scalecUbFp16, static_cast<half>(quantOffset[expertIdx]),
                         computeBaseN1, tmpsize);
             scaleQueue.FreeTensor(scaleSrcUb);
@@ -517,7 +517,7 @@ protected:
             scaleSrcUbFp16 = scaleSrcUbFp16[ubCalSize];
             quantTmp = tmpBuff[ubCalSize * sizeof(half) + computeBaseN1 * sizeof(half)];
             Cast(scaleSrcUbFp16, scaleSrcUb, RoundMode::CAST_NONE, computeBaseN1);
-            PipeBarrier(PIPE_V);
+            pipe_barrier(PIPE_V);
             LocalTensor<T> quantOutUb = vecOutQueue.AllocTensor<T>();
             AscendQuant(quantOutUb, actOut, quantTmp, scaleSrcUbFp16, static_cast<half>(quantOffset[expertIdx]),
                         computeBaseN1, tmpsize);
@@ -824,13 +824,13 @@ protected:
         LocalTensor<uint32_t> tmpU82 = tmpU81[indexNum];
         int firstValue = 0;
         CreateVecIndex(tmpS81, firstValue, indexNum);
-        PipeBarrier(PIPE_V);
+        pipe_barrier(PIPE_V);
         uint32_t scalarValue = 1;
         ShiftRight(tmpU82, tmpU81, scalarValue, indexNum);
-        PipeBarrier(PIPE_V);
+        pipe_barrier(PIPE_V);
         int32_t scalar = 4;
         Muls(tmpS81, tmpS82, scalar, indexNum);
-        PipeBarrier(PIPE_V);
+        pipe_barrier(PIPE_V);
         gatherIndex = tmpS81.ReinterpretCast<uint32_t>();
     }
 
@@ -853,7 +853,7 @@ protected:
             LocalTensor<uint32_t> dequantInitLocal = vecOutQueue.AllocTensor<uint32_t>();
             uint32_t scalarZeroValue = 0;
             Duplicate(dequantInitLocal, scalarZeroValue, 2 * baseN); // 2: double
-            PipeBarrier(PIPE_V);
+            pipe_barrier(PIPE_V);
 
             LocalTensor<uint32_t> dequantLocal = vecInQueue.AllocTensor<uint32_t>();
             DataCopyParams intriParams1;
@@ -869,7 +869,7 @@ protected:
             LocalTensor<uint32_t> dequantSrcLocal = vecInQueue.DeQue<uint32_t>();
             Gather(dequantInitLocal, dequantSrcLocal, gatherIndex, 0, mask,
                    (uint8_t)(baseNAlign / (DATABLOCK_NUM_IN_GATHER * sizeof(dequantT))), (uint16_t)(sizeof(uint64_t)));
-            PipeBarrier(PIPE_ALL);
+            pipe_barrier(PIPE_ALL);
             vecInQueue.FreeTensor(dequantSrcLocal);
 
             DataCopyParams intriParams2;

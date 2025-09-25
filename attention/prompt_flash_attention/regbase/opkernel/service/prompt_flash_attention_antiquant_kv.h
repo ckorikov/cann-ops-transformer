@@ -164,14 +164,11 @@ __aicore__ inline void PromptFlashAttentionAntiQuantKV<PFAT>::AntiquantProcess(G
     uint16_t dstStep = AntiquantAlign((uint16_t)params.singleProcessSInnerSizeNow, (uint16_t)16); // 16:对齐单位
     uint16_t dstStride = dstStep - dealRowCount;
 
-    DataCopyParams intriParamsTemp;
-    intriParamsTemp.blockCount = nBurst;
-    intriParamsTemp.blockLen = lenBurst;
-    intriParamsTemp.dstStride = dstStride; 
-    intriParamsTemp.srcStride = srcStride;
-    DataCopy(keyValueScm[keyL1Offset], keyValueDstUb, intriParamsTemp);
+    __ubuf__ void* src = (__ubuf__ void*)keyValueDstUb.GetPhyAddr();
+    __cbuf__ void* dst = (__cbuf__ void*)keyValueScm[keyL1Offset].GetPhyAddr();
 
-    DataCopy((__cbuf__ void*)dst, (__ubuf__ void*)src, )
+    copy_ubuf_to_cbuf((__cbuf__ void*)dst, (__ubuf__ void*)src, 0, nBurst, lenBurst, srcStride, dstStride);
+
     antiquantOutputQueue.FreeTensor(keyValueDstUb);
 }
 

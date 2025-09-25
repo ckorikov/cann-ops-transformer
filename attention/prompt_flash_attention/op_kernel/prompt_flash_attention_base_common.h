@@ -580,7 +580,7 @@ struct OnlineSoftmaxStage1<float, float, P_DTYPE, MASK_DTYPE, MaskType::MASK_TYP
             AscendC::PipeBarrier<PIPE_V>();
         } else {
             SetVecMask(m);
-            // *** hm = max(lm, gm)
+            // *** hm = vmax(lm, gm)
             AscendC::Max<float, false>(
                 hatRowmaxUb,
                 localRowmaxUb,

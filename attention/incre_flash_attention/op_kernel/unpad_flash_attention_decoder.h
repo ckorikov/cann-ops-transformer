@@ -63,7 +63,7 @@ SoftmaxExp<float, float, Enums::PrecType::BMM1_FP32_EXP_FP32>(AscendC::LocalTens
                                                        AscendC::LocalTensor<float> tmp, uint32_t pSize)
 {
     ub_to_ub<ArchType::ASCEND_V200, float>(tmp, src, 0, 1, pSize / 8, 0, 0);
-    PipeBarrier(V);
+    PIPE_BARRIER(V);
     // 2 for Repeatimes above 255
     for (int32_t vexpIdx = 0; vexpIdx < 2; ++vexpIdx) {
         exp_v<ArchType::ASCEND_V200, float>(tmp[vexpIdx * pSize / 2], tmp[vexpIdx * pSize / 2],
@@ -74,7 +74,7 @@ SoftmaxExp<float, float, Enums::PrecType::BMM1_FP32_EXP_FP32>(AscendC::LocalTens
                                             8                              // srcRepeatStride
         );
     }
-    PipeBarrier(V);
+    PIPE_BARRIER(V);
     // 2 for Repeatimes above 255
     for (int32_t vconvIdx = 0; vconvIdx < 2; ++vconvIdx) {
         conv_v<ArchType::ASCEND_V200, float, half>(dst[vconvIdx * pSize / 2], tmp[vconvIdx * pSize / 2],
@@ -287,12 +287,12 @@ public:
                                                 len / BLOCK_SIZE_T, // repeat
                                                 1, 0, BLOCK_SIZE_T, 1);
         }
-        PipeBarrier(V);
+        PIPE_BARRIER(V);
         for (int32_t vtransIdx = 0; vtransIdx < (len / BLOCK_SIZE_T); ++vtransIdx) { // (BLOCK_SIZE_T, len) -> (len, BLOCK_SIZE_T)
             tranpose_v<ArchType::ASCEND_V200, half>(dst_tensor[vtransIdx * CUBE_MATRIX_SIZE_T],
                                                     dst_tensor[vtransIdx * CUBE_MATRIX_SIZE_T]);
         }
-        PipeBarrier(V);
+        PIPE_BARRIER(V);
     }
     __aicore__ void ExpandToBlockFloat(AscendC::LocalTensor<float> dst_tensor, AscendC::LocalTensor<float> src_tensor,
                                        int32_t len)
@@ -301,10 +301,10 @@ public:
             float scale = (float)*((__ubuf__ float *)src_tensor.GetPhyAddr() + rowIdx);
             SET_FLAG(S, V, EVENT_ID0);
             WAIT_FLAG(S, V, EVENT_ID0);
-            PipeBarrier(V);
-            Duplicate((__ubuf__ float *)dst_tensor.GetPhyAddr() + rowIdx * BLOCK_SIZE_T, scale, 1, 1, 1, 8, 8)
+            PIPE_BARRIER(V);
+            vector_dup((__ubuf__ float *)dst_tensor.GetPhyAddr() + rowIdx * BLOCK_SIZE_T, scale, 1, 1, 1, 8, 8);
         }
-        PipeBarrier(V);
+        PIPE_BARRIER(V);
     }
 
 public:
@@ -654,7 +654,7 @@ __aicore__ inline void UnpadFlashAttentionCommon<float, half, Enums::PrecType::B
         lsUbuf_tensor[Pingflag * LOCAL_STORAGE_BUFFER_SIZE],
         l0cBuf_tensor[Pingflag * L0AB_HALF_BUF_SIZE_T],
         1, pSize / CUBE_MATRIX_SIZE_T, 0, 0);
-    PipeBarrier(V);
+    PIPE_BARRIER(V);
     SET_FLAG(V, M, Pingflag);
     muls_v<ArchType::ASCEND_V200, half>(
         lsUbuf_tensor[Pingflag * LOCAL_STORAGE_BUFFER_SIZE],
@@ -662,7 +662,7 @@ __aicore__ inline void UnpadFlashAttentionCommon<float, half, Enums::PrecType::B
         local_tor,
         (fn + 127) / VECTOR_SIZE_T, 1, fm, 8, fm * 8);
 
-    PipeBarrier(V);
+    PIPE_BARRIER(V);
     if (gmSrcm != nullptr) {
         WAIT_FLAG(MTE1, V, Pingflag);
         add_v<ArchType::ASCEND_V200, half>(
@@ -670,7 +670,7 @@ __aicore__ inline void UnpadFlashAttentionCommon<float, half, Enums::PrecType::B
             lsUbuf_tensor[Pingflag * LOCAL_STORAGE_BUFFER_SIZE],
             maskUbuf_tensor[Pingflag * LOCAL_STORAGE_BUFFER_SIZE],
             n0 / VECTOR_SIZE_T, 1, 1, 1, 8, 8, 8);
-        PipeBarrier(V);
+        PIPE_BARRIER(V);
         if (n0 % VECTOR_SIZE_T != 0) {
             __set_mask(n0 % VECTOR_SIZE_T);
             add_v<ArchType::ASCEND_V200, half>(
@@ -678,7 +678,7 @@ __aicore__ inline void UnpadFlashAttentionCommon<float, half, Enums::PrecType::B
                 lsUbuf_tensor[Pingflag * LOCAL_STORAGE_BUFFER_SIZE + (n0 / VECTOR_SIZE_T) * VECTOR_SIZE_T],
                 maskUbuf_tensor[Pingflag * LOCAL_STORAGE_BUFFER_SIZE + (n0 / VECTOR_SIZE_T) * VECTOR_SIZE_T],
                 1, 1, 1, 1, 8, 8, 8);
-            PipeBarrier(V);
+            PIPE_BARRIER(V);
             SetVectorMask<int8_t>(0xffffffffffffffff, 0xffffffffffffffff);
         }
         SET_FLAG(V, MTE1, Pingflag);
@@ -691,14 +691,14 @@ __aicore__ inline void UnpadFlashAttentionCommon<float, half, Enums::PrecType::B
             lmUbuf_tensor,
             lsUbuf_tensor[Pingflag * LOCAL_STORAGE_BUFFER_SIZE],
             1, 1, 1, 8);
-        PipeBarrier(V);
+        PIPE_BARRIER(V);
     } else {
         ub_to_ub<ArchType::ASCEND_V200, half>(
             tvUbuf_tensor,
             lsUbuf_tensor[Pingflag * LOCAL_STORAGE_BUFFER_SIZE],
             0, 1, 8, 8, 8);
 
-        PipeBarrier(V);
+        PIPE_BARRIER(V);
         if (n0 % VECTOR_SIZE_T != 0) {
             __set_mask(n0 % VECTOR_SIZE_T);
         }
@@ -707,16 +707,16 @@ __aicore__ inline void UnpadFlashAttentionCommon<float, half, Enums::PrecType::B
             tvUbuf_tensor,
             lsUbuf_tensor[Pingflag * LOCAL_STORAGE_BUFFER_SIZE + VECTOR_SIZE_T],
             1, 1, 1, 1, 8, 8, 8 );
-        PipeBarrier(V);
+        PIPE_BARRIER(V);
         SetVectorMask<int8_t>(0xffffffffffffffff, 0xffffffffffffffff);
         cmax_v<ArchType::ASCEND_V200, half, AscendC::ReduceOrder::ORDER_ONLY_VALUE>(
             lmUbuf_tensor,
             tvUbuf_tensor,
             1, 1, 1, 8);
-        PipeBarrier(V);
+        PIPE_BARRIER(V);
     }
     SetVectorMask<int8_t>((uint64_t)-1, (uint64_t)-1);
-    PipeBarrier(V);
+    PIPE_BARRIER(V);
 
     if (initGgDm == 0) {
         max_v<ArchType::ASCEND_V200, half>(
@@ -724,19 +724,19 @@ __aicore__ inline void UnpadFlashAttentionCommon<float, half, Enums::PrecType::B
             lmUbuf_tensor,
             gmUbuf_tensor,
             1, 1, 1, 1, 8, 8, 8);
-        PipeBarrier(V);
+        PIPE_BARRIER(V);
         sub_v<ArchType::ASCEND_V200, half>(
             dmUbuf_tensor[Pingflag * UB_HALF_LINE_SIZE_T],
             gmUbuf_tensor,
             hmUbuf_tensor,
             1, 1, 1, 1, 8, 8, 8);
 
-        PipeBarrier(V);
+        PIPE_BARRIER(V);
         ub_to_ub<ArchType::ASCEND_V200, half>(
             gmUbuf_tensor,
             hmUbuf_tensor,
             0, 1, 1, 0, 0);
-        PipeBarrier(V);
+        PIPE_BARRIER(V);
         ExpandToBlockHalf(tvUbuf_tensor, hmUbuf_tensor, fm);
     } else {
         initGgDm = 0;
@@ -748,7 +748,7 @@ __aicore__ inline void UnpadFlashAttentionCommon<float, half, Enums::PrecType::B
             gmUbuf_tensor,
             lmUbuf_tensor,
             0, 1, 1, 0, 0);
-        PipeBarrier(V);
+        PIPE_BARRIER(V);
         ExpandToBlockHalf(tvUbuf_tensor, gmUbuf_tensor, fm);
     }
     sub_v<ArchType::ASCEND_V200, half>(
@@ -756,25 +756,25 @@ __aicore__ inline void UnpadFlashAttentionCommon<float, half, Enums::PrecType::B
         lsUbuf_tensor[Pingflag * LOCAL_STORAGE_BUFFER_SIZE],
         tvUbuf_tensor.ReinterpretCast<half>(),
         (fn + 127) / VECTOR_SIZE_T, 1, 1, 0, 8, 8, 0);
-    PipeBarrier(V);
+    PIPE_BARRIER(V);
     conv_v<ArchType::ASCEND_V200, half, float>(
         ls32Ubuf_tensor[Pingflag * LOCAL_STORAGE_BUFFER_SIZE],
         lsUbuf_tensor[Pingflag * LOCAL_STORAGE_BUFFER_SIZE],
         (fn + 63) / FLOAT_VECTOR_SIZE_T, 1, 1, 8, 4);
 
-    PipeBarrier(V);
+    PIPE_BARRIER(V);
     exp_v<ArchType::ASCEND_V200, float>(
         ls32Ubuf_tensor[Pingflag * LOCAL_STORAGE_BUFFER_SIZE],
         ls32Ubuf_tensor[Pingflag * LOCAL_STORAGE_BUFFER_SIZE],
         (fn + FLOAT_VECTOR_SIZE_T - 1) / FLOAT_VECTOR_SIZE_T, 1, 1, 8, 8);
-    PipeBarrier(V);
+    PIPE_BARRIER(V);
     WAIT_FLAG(MTE3, V, Pingflag);
     conv_v<ArchType::ASCEND_V200, float, half>(
         lpUbuf_tensor[Pingflag * LOCAL_STORAGE_BUFFER_SIZE],
         ls32Ubuf_tensor[Pingflag * LOCAL_STORAGE_BUFFER_SIZE],
         (fn + FLOAT_VECTOR_SIZE_T - 1) / FLOAT_VECTOR_SIZE_T, 1, 1, 4, 8);
 
-    PipeBarrier(V);
+    PIPE_BARRIER(V);
     SET_FLAG(V, MTE3, Pingflag);
     SetMaskNorm();
     if (n0 < FLOAT_VECTOR_SIZE_T) {
@@ -793,7 +793,7 @@ __aicore__ inline void UnpadFlashAttentionCommon<float, half, Enums::PrecType::B
                 ls32Ubuf_tensor[Pingflag * LOCAL_STORAGE_BUFFER_SIZE],
                 ls32Ubuf_tensor[Pingflag * LOCAL_STORAGE_BUFFER_SIZE + vcalcIdx * FLOAT_VECTOR_SIZE_T],
                 1, 1, 1, 1, 8, 8, 8);
-            PipeBarrier(V);
+            PIPE_BARRIER(V);
         }
         if (n0 % FLOAT_VECTOR_SIZE_T != 0) {
             __set_mask(n0 % FLOAT_VECTOR_SIZE_T);
@@ -802,7 +802,7 @@ __aicore__ inline void UnpadFlashAttentionCommon<float, half, Enums::PrecType::B
                 ls32Ubuf_tensor[Pingflag * LOCAL_STORAGE_BUFFER_SIZE],
                 ls32Ubuf_tensor[Pingflag * LOCAL_STORAGE_BUFFER_SIZE + (n0 / FLOAT_VECTOR_SIZE_T) * FLOAT_VECTOR_SIZE_T],
                 1, 1, 1, 1, 8, 8, 8);
-            PipeBarrier(V);
+            PIPE_BARRIER(V);
             SetVectorMask<int8_t>(0xffffffffffffffff, 0xffffffffffffffff);
         }
         cadd_v<ArchType::ASCEND_V200, float>(
@@ -810,7 +810,7 @@ __aicore__ inline void UnpadFlashAttentionCommon<float, half, Enums::PrecType::B
             ls32Ubuf_tensor[Pingflag * LOCAL_STORAGE_BUFFER_SIZE],
             1, 1, 1, 2);
     }
-    PipeBarrier(V);
+    PIPE_BARRIER(V);
     SetMaskNorm();
     SetVectorMask<int8_t>(0xffffffffffffffff, 0xffffffffffffffff);
     WAIT_FLAG(MTE1, MTE3, Pingflag);
@@ -829,7 +829,7 @@ __aicore__ inline void UnpadFlashAttentionCommon<float, half, Enums::PrecType::B
             lsUbuf_tensor[Pongflag * LOCAL_STORAGE_BUFFER_SIZE],
             l0cBuf_tensor[Pongflag * L0AB_HALF_BUF_SIZE_T],
             1, pSize / CUBE_MATRIX_SIZE_T, 0, 0);
-        PipeBarrier(V);
+        PIPE_BARRIER(V);
         SET_FLAG(V, M, Pongflag);
 
         muls_v<ArchType::ASCEND_V200, half>(
@@ -837,7 +837,7 @@ __aicore__ inline void UnpadFlashAttentionCommon<float, half, Enums::PrecType::B
             lsUbuf_tensor[Pongflag * LOCAL_STORAGE_BUFFER_SIZE],
             local_tor,
             (bn + 127) / VECTOR_SIZE_T, 1, fm, 8, fm * 8);
-        PipeBarrier(V);
+        PIPE_BARRIER(V);
         if (gmSrcm != nullptr) {
             WAIT_FLAG(MTE1, V, Pongflag);
             add_v<ArchType::ASCEND_V200, half>(
@@ -846,7 +846,7 @@ __aicore__ inline void UnpadFlashAttentionCommon<float, half, Enums::PrecType::B
                 maskUbuf_tensor[Pongflag * LOCAL_STORAGE_BUFFER_SIZE],
                 n1 / VECTOR_SIZE_T, 1, 1, 1, 8, 8, 8);
 
-            PipeBarrier(V);
+            PIPE_BARRIER(V);
             if (n1 % VECTOR_SIZE_T != 0) {
                 __set_mask(n1 % VECTOR_SIZE_T);
                 add_v<ArchType::ASCEND_V200, half>(lsUbuf_tensor[Pongflag * LOCAL_STORAGE_BUFFER_SIZE + (n1 / VECTOR_SIZE_T) * VECTOR_SIZE_T],
@@ -854,7 +854,7 @@ __aicore__ inline void UnpadFlashAttentionCommon<float, half, Enums::PrecType::B
                                                    maskUbuf_tensor[Pongflag * LOCAL_STORAGE_BUFFER_SIZE + (n1 / VECTOR_SIZE_T) * VECTOR_SIZE_T],
                                                    1, 1, 1, 1, 8, 8, 8);
 
-                PipeBarrier(V);
+                PIPE_BARRIER(V);
                 SetVectorMask<int8_t>(0xffffffffffffffff, 0xffffffffffffffff);
             }
             SET_FLAG(V, MTE1, Pongflag);
@@ -868,13 +868,13 @@ __aicore__ inline void UnpadFlashAttentionCommon<float, half, Enums::PrecType::B
                 lmUbuf_tensor,
                 lsUbuf_tensor[Pongflag * LOCAL_STORAGE_BUFFER_SIZE],
                 1, 1, 1, 8);
-            PipeBarrier(V);
+            PIPE_BARRIER(V);
         } else {
             ub_to_ub<ArchType::ASCEND_V200, half>(
                 tvUbuf_tensor,
                 lsUbuf_tensor[Pongflag * LOCAL_STORAGE_BUFFER_SIZE],
                 0, 1, 8, 8, 8);
-            PipeBarrier(V);
+            PIPE_BARRIER(V);
             if (n1 % VECTOR_SIZE_T != 0) {
                 __set_mask(n1 % VECTOR_SIZE_T);
             }
@@ -884,61 +884,61 @@ __aicore__ inline void UnpadFlashAttentionCommon<float, half, Enums::PrecType::B
                 lsUbuf_tensor[Pongflag * LOCAL_STORAGE_BUFFER_SIZE + VECTOR_SIZE_T],
                 1, 1, 1, 1, 8, 8, 8);
 
-            PipeBarrier(V);
+            PIPE_BARRIER(V);
             SetVectorMask<int8_t>(0xffffffffffffffff, 0xffffffffffffffff);
             cmax_v<ArchType::ASCEND_V200, half, AscendC::ReduceOrder::ORDER_ONLY_VALUE>(
                 lmUbuf_tensor,
                 tvUbuf_tensor,
                 1, 1, 1, 8);
-            PipeBarrier(V);
+            PIPE_BARRIER(V);
         }
         SetVectorMask<int8_t>(0xffffffffffffffff, 0xffffffffffffffff);
-        PipeBarrier(V);
+        PIPE_BARRIER(V);
         max_v<ArchType::ASCEND_V200, half>(
             hmUbuf_tensor,
             lmUbuf_tensor,
             gmUbuf_tensor,
             1, 1, 1, 1, 8, 8, 8);
 
-        PipeBarrier(V);
+        PIPE_BARRIER(V);
         sub_v<ArchType::ASCEND_V200, half>(
             dmUbuf_tensor[Pongflag * UB_HALF_LINE_SIZE_T],
             gmUbuf_tensor,
             hmUbuf_tensor,
             1, 1, 1, 1, 8, 8, 8);
 
-        PipeBarrier(V);
+        PIPE_BARRIER(V);
         ExpandToBlockHalf(tvUbuf_tensor, hmUbuf_tensor, fm); 
         ub_to_ub<ArchType::ASCEND_V200, half>(
             gmUbuf_tensor,
             hmUbuf_tensor,
             0, 1, 1, 0, 0);
 
-        PipeBarrier(V);
+        PIPE_BARRIER(V);
         sub_v<ArchType::ASCEND_V200, half>(
             lsUbuf_tensor[Pongflag * LOCAL_STORAGE_BUFFER_SIZE],
             lsUbuf_tensor[Pongflag * LOCAL_STORAGE_BUFFER_SIZE],
             tvUbuf_tensor,
             (bn + 127) / VECTOR_SIZE_T, 1, 1, 0, 8, 8, 0);
 
-        PipeBarrier(V);
+        PIPE_BARRIER(V);
         conv_v<ArchType::ASCEND_V200, half, float>(
             ls32Ubuf_tensor[Pongflag * LOCAL_STORAGE_BUFFER_SIZE],
             lsUbuf_tensor[Pongflag * LOCAL_STORAGE_BUFFER_SIZE],
             (bn + FLOAT_VECTOR_SIZE_T - 1) / FLOAT_VECTOR_SIZE_T, 1, 1, 8, 4);
-        PipeBarrier(V);
+        PIPE_BARRIER(V);
         exp_v<ArchType::ASCEND_V200, float>(
             ls32Ubuf_tensor[Pongflag * LOCAL_STORAGE_BUFFER_SIZE],
             ls32Ubuf_tensor[Pongflag * LOCAL_STORAGE_BUFFER_SIZE],
             (bn + FLOAT_VECTOR_SIZE_T - 1) / FLOAT_VECTOR_SIZE_T, 1, 1, 8, 8);
 
-        PipeBarrier(V);
+        PIPE_BARRIER(V);
         WAIT_FLAG(MTE3, V, Pongflag);
         conv_v<ArchType::ASCEND_V200, float, half>(
             lpUbuf_tensor[Pongflag * LOCAL_STORAGE_BUFFER_SIZE],
             ls32Ubuf_tensor[Pongflag * LOCAL_STORAGE_BUFFER_SIZE],
             (bn + FLOAT_VECTOR_SIZE_T - 1) / FLOAT_VECTOR_SIZE_T, 1, 1, 4, 8);
-        PipeBarrier(V);
+        PIPE_BARRIER(V);
         SET_FLAG(V, MTE3, Pongflag);
         SetMaskNorm();
         if (n1 < FLOAT_VECTOR_SIZE_T) {
@@ -957,7 +957,7 @@ __aicore__ inline void UnpadFlashAttentionCommon<float, half, Enums::PrecType::B
                     ls32Ubuf_tensor[Pongflag * LOCAL_STORAGE_BUFFER_SIZE],
                     ls32Ubuf_tensor[Pongflag * LOCAL_STORAGE_BUFFER_SIZE + vcalcIdx * FLOAT_VECTOR_SIZE_T],
                     1, 1, 1, 1, 8, 8, 8);
-                PipeBarrier(V);
+                PIPE_BARRIER(V);
             }
             if (n1 % FLOAT_VECTOR_SIZE_T != 0) {
                 SetVectorMask<int8_t>(0x0, ((long)1 << (n1 % FLOAT_VECTOR_SIZE_T)) - 1);
@@ -966,7 +966,7 @@ __aicore__ inline void UnpadFlashAttentionCommon<float, half, Enums::PrecType::B
                     ls32Ubuf_tensor[Pongflag * LOCAL_STORAGE_BUFFER_SIZE],
                     ls32Ubuf_tensor[Pongflag * LOCAL_STORAGE_BUFFER_SIZE + n1 / FLOAT_VECTOR_SIZE_T * FLOAT_VECTOR_SIZE_T],
                     1, 1, 1, 1, 8, 8, 8);
-                PipeBarrier(V);
+                PIPE_BARRIER(V);
                 SetVectorMask<int8_t>(0xffffffffffffffff, 0xffffffffffffffff);
             }
             cadd_v<ArchType::ASCEND_V200, float>(
@@ -974,7 +974,7 @@ __aicore__ inline void UnpadFlashAttentionCommon<float, half, Enums::PrecType::B
                 ls32Ubuf_tensor[Pongflag * LOCAL_STORAGE_BUFFER_SIZE],
                 1, 1, 1, 2);
         }
-        PipeBarrier(V);
+        PIPE_BARRIER(V);
         SetMaskNorm();
         SetVectorMask<int8_t>(0xffffffffffffffff, 0xffffffffffffffff);
         WAIT_FLAG(MTE1, MTE3, Pongflag);
@@ -1050,7 +1050,7 @@ __aicore__ inline void UnpadFlashAttentionCommon<float, half, Enums::PrecType::B
         loUbuf_tensor[Pingflag * LOCAL_STORAGE_BUFFER_SIZE],
         l0cBuf_tensor[Pingflag * L0AB_HALF_BUF_SIZE_T],
         1, oSize / CUBE_MATRIX_SIZE_T, 0, 0);
-    PipeBarrier(V);
+    PIPE_BARRIER(V);
     // 8. ################ Update Pong Starts #######################
     if (n1 != -1) {
         WAIT_FLAG(M, V, Pongflag);
@@ -1058,7 +1058,7 @@ __aicore__ inline void UnpadFlashAttentionCommon<float, half, Enums::PrecType::B
             loUbuf_tensor[Pongflag * LOCAL_STORAGE_BUFFER_SIZE],
             l0cBuf_tensor[Pongflag * L0AB_HALF_BUF_SIZE_T],
             1, oSize / CUBE_MATRIX_SIZE_T, 0, 0);
-        PipeBarrier(V);
+        PIPE_BARRIER(V);
     }
     if (initGgO == 0) {
         conv_v<ArchType::ASCEND_V200, half, float>(
@@ -1066,36 +1066,36 @@ __aicore__ inline void UnpadFlashAttentionCommon<float, half, Enums::PrecType::B
             dmUbuf_tensor[Pingflag * UB_HALF_LINE_SIZE_T],
             mD64, 1, 1, uint16_t(8), uint16_t(4));
 
-        PipeBarrier(V);
+        PIPE_BARRIER(V);
         exp_v<ArchType::ASCEND_V200, float>(
             tvUbuf_tensor.ReinterpretCast<float>(),
             tvUbuf_tensor.ReinterpretCast<float>(),
             mD64, 1, 1, uint16_t(8), uint16_t(8));
-        PipeBarrier(V);
+        PIPE_BARRIER(V);
         mul_v<ArchType::ASCEND_V200, float>(
             glUbuf_tensor,
             tvUbuf_tensor.ReinterpretCast<float>(),
             glUbuf_tensor,
             mD64, 1, 1, 1, 8, 8, 8);
-        PipeBarrier(V);
+        PIPE_BARRIER(V);
         add_v<ArchType::ASCEND_V200, float>(
             glUbuf_tensor,
             glUbuf_tensor,
             llUbuf_tensor[Pingflag * UB_FLOAT_LINE_SIZE_T],
             mD64, 1, 1, 1, 8, 8, 8);
-        PipeBarrier(V);
+        PIPE_BARRIER(V);
         ExpandToBlockHalf(tvUbuf_tensor, dmUbuf_tensor[Pingflag * UB_HALF_LINE_SIZE_T], fm);
 
         conv_v<ArchType::ASCEND_V200, half, float>(
             tvUbuf_tensor.ReinterpretCast<float>()[fm * BLOCK_SIZE_T / 2],
             tvUbuf_tensor,
             fm * BLOCK_SIZE_T / FLOAT_VECTOR_SIZE_T, 1, 1, uint16_t(8), uint16_t(4));
-        PipeBarrier(V);
+        PIPE_BARRIER(V);
         exp_v<ArchType::ASCEND_V200, float>(
             tvUbuf_tensor.ReinterpretCast<float>()[fm * BLOCK_SIZE_T / 2],
             tvUbuf_tensor.ReinterpretCast<float>()[fm * BLOCK_SIZE_T / 2],
             fm * BLOCK_SIZE_T / FLOAT_VECTOR_SIZE_T, 1, 1, uint16_t(8), uint16_t(8));
-        PipeBarrier(V);
+        PIPE_BARRIER(V);
         SetVectorMask<int8_t>(0xffffffffffffffff, 0xffffffffffffffff);
 
         if (vmPingpongFlag == 1) {
@@ -1109,7 +1109,7 @@ __aicore__ inline void UnpadFlashAttentionCommon<float, half, Enums::PrecType::B
                 goUbuf_tensor[vmulIdx * fm * BLOCK_SIZE_T],
                 tvUbuf_tensor.ReinterpretCast<float>()[fm * BLOCK_SIZE_T / 2],
                 fm * BLOCK_SIZE_T / FLOAT_VECTOR_SIZE_T, 1, 1, 1, 8, 8, 8);
-            PipeBarrier(V);
+            PIPE_BARRIER(V);
         }
         for (int32_t vaddIdx = 0; vaddIdx < 2; ++vaddIdx) {
             add_v<ArchType::ASCEND_V200, float>(
@@ -1117,14 +1117,14 @@ __aicore__ inline void UnpadFlashAttentionCommon<float, half, Enums::PrecType::B
                 goUbuf_tensor[vaddIdx * oSize / 2],
                 loUbuf_tensor[Pingflag * LOCAL_STORAGE_BUFFER_SIZE + vaddIdx * oSize / 2],
                 oSize / 2 / FLOAT_VECTOR_SIZE_T, 1, 1, 1, 8, 8, 8);
-            PipeBarrier(V);
+            PIPE_BARRIER(V);
         }
     } else {
         ub_to_ub<ArchType::ASCEND_V200, float>(
             glUbuf_tensor,
             llUbuf_tensor[Pingflag * UB_FLOAT_LINE_SIZE_T],
             0, 1, fm / 8, 0, 0);
-        PipeBarrier(V);
+        PIPE_BARRIER(V);
         if (vmPingpongFlag == 1) {
             WAIT_FLAG(MTE3, V, EVENT_ID2);
             vmPingpongFlag = 0;
@@ -1133,9 +1133,9 @@ __aicore__ inline void UnpadFlashAttentionCommon<float, half, Enums::PrecType::B
             goUbuf_tensor,
             loUbuf_tensor[Pingflag * LOCAL_STORAGE_BUFFER_SIZE],
             0, 1, oSize / 8, 0, 0);
-        PipeBarrier(V);
+        PIPE_BARRIER(V);
     }
-    PipeBarrier(V);
+    PIPE_BARRIER(V);
     initGgO = 0;
     // 7. ################ Update Ping Ends #######################
     if (n1 != -1) {
@@ -1143,36 +1143,36 @@ __aicore__ inline void UnpadFlashAttentionCommon<float, half, Enums::PrecType::B
             tvUbuf_tensor.ReinterpretCast<float>(),
             dmUbuf_tensor[Pongflag * UB_HALF_LINE_SIZE_T],
             mD64, 1, 1, uint16_t(8), uint16_t(4));
-        PipeBarrier(V);
+        PIPE_BARRIER(V);
         exp_v<ArchType::ASCEND_V200, float>(
             tvUbuf_tensor.ReinterpretCast<float>(),
             tvUbuf_tensor.ReinterpretCast<float>(),
             mD64, 1, 1, uint16_t(8), uint16_t(8));
-        PipeBarrier(V);
+        PIPE_BARRIER(V);
         mul_v<ArchType::ASCEND_V200, float>(
             glUbuf_tensor,
             tvUbuf_tensor.ReinterpretCast<float>(),
             glUbuf_tensor,
             mD64, 1, 1, 1, 8, 8, 8);
-        PipeBarrier(V);
+        PIPE_BARRIER(V);
         add_v<ArchType::ASCEND_V200, float>(
             glUbuf_tensor,
             glUbuf_tensor,
             llUbuf_tensor[Pongflag * UB_FLOAT_LINE_SIZE_T],
             mD64, 1, 1, 1, 8, 8, 8);
-        PipeBarrier(V);
+        PIPE_BARRIER(V);
         SetVectorMask<int8_t>(0xffffffffffffffff, 0xffffffffffffffff);
         ExpandToBlockHalf(tvUbuf_tensor, dmUbuf_tensor[Pongflag * UB_HALF_LINE_SIZE_T], fm);
         conv_v<ArchType::ASCEND_V200, half, float>(
             tvUbuf_tensor.ReinterpretCast<float>()[fm * BLOCK_SIZE_T / 2],
             tvUbuf_tensor,
             fm * BLOCK_SIZE_T / FLOAT_VECTOR_SIZE_T, 1, 1, uint16_t(8), uint16_t(4));
-        PipeBarrier(V);
+        PIPE_BARRIER(V);
         exp_v<ArchType::ASCEND_V200, float>(
             tvUbuf_tensor.ReinterpretCast<float>()[fm * BLOCK_SIZE_T / 2],
             tvUbuf_tensor.ReinterpretCast<float>()[fm * BLOCK_SIZE_T / 2],
             fm * BLOCK_SIZE_T / FLOAT_VECTOR_SIZE_T, 1, 1, uint16_t(8), uint16_t(8));
-        PipeBarrier(V);
+        PIPE_BARRIER(V);
         SetVectorMask<int8_t>(0xffffffffffffffff, 0xffffffffffffffff);
         if (vmPingpongFlag == 1) {
             WAIT_FLAG(MTE3, V, EVENT_ID2);
@@ -1186,7 +1186,7 @@ __aicore__ inline void UnpadFlashAttentionCommon<float, half, Enums::PrecType::B
                 tvUbuf_tensor.ReinterpretCast<float>()[fm * BLOCK_SIZE_T / 2],
                 fm * BLOCK_SIZE_T / FLOAT_VECTOR_SIZE_T, 1, 1, 1, 8, 8, 8);
 
-            PipeBarrier(V);
+            PIPE_BARRIER(V);
         }
         for (int32_t vaddIdx = 0; vaddIdx < 2; ++vaddIdx) { // update Oj
             add_v<ArchType::ASCEND_V200, float>(
@@ -1194,7 +1194,7 @@ __aicore__ inline void UnpadFlashAttentionCommon<float, half, Enums::PrecType::B
                 goUbuf_tensor[vaddIdx * oSize / 2],
                 loUbuf_tensor[Pongflag * LOCAL_STORAGE_BUFFER_SIZE + vaddIdx * oSize / 2],
                 oSize / 2 / FLOAT_VECTOR_SIZE_T, 1, 1, 1, 8, 8, 8);
-            PipeBarrier(V);
+            PIPE_BARRIER(V);
         }
         SET_FLAG(V, M, Pongflag + 2);
     }
@@ -1206,12 +1206,12 @@ __aicore__ inline void UnpadFlashAttentionCommon<float, half, Enums::PrecType::B
             glUbuf_tensor.ReinterpretCast<half>(),
             glUbuf_tensor,
             mD64, 1, 1, uint16_t(4), uint16_t(8));
-        PipeBarrier(V);
+        PIPE_BARRIER(V);
         conv_v<ArchType::ASCEND_V200, float, half>(
             goUbuf_tensor.ReinterpretCast<half>(),
             goUbuf_tensor,
             oSize / FLOAT_VECTOR_SIZE_T, 1, 1, uint16_t(4), uint16_t(8));
-        PipeBarrier(V);
+        PIPE_BARRIER(V);
 
         ExpandToBlockHalf(tvUbuf_tensor, glUbuf_tensor.ReinterpretCast<half>(), fm);
 
@@ -1222,7 +1222,7 @@ __aicore__ inline void UnpadFlashAttentionCommon<float, half, Enums::PrecType::B
                 tvUbuf_tensor,
                 m0 * BLOCK_SIZE_T / VECTOR_SIZE_T, 1, 1, 1, 8, 8, 8);
 
-            PipeBarrier(V);
+            PIPE_BARRIER(V);
         }
         int32_t blockV = VECTOR_SIZE_T / BLOCK_SIZE_T;
         if (m0 % blockV != 0) {
@@ -1234,7 +1234,7 @@ __aicore__ inline void UnpadFlashAttentionCommon<float, half, Enums::PrecType::B
                 fk / BLOCK_SIZE_T, 1, 1, 1, fm, fm, 0);
             SetVectorMask<int8_t>(-1, -1);
         }
-        PipeBarrier(V);
+        PIPE_BARRIER(V);
         SET_FLAG(V, MTE3, EVENT_ID2);
         WAIT_FLAG(V, MTE3, EVENT_ID2);
 
@@ -1468,7 +1468,7 @@ __aicore__ inline void UnpadFlashAttentionDecoder<IFAT>::Process()
     WAIT_FLAG(M, MTE1, EVENT_ID1);
     WAIT_FLAG(M, MTE1, EVENT_ID2);
     WAIT_FLAG(M, MTE1, EVENT_ID3);
-    PipeBarrier(ALL);
+    PIPE_BARRIER(ALL);
 }
 
 template <typename IFAT>

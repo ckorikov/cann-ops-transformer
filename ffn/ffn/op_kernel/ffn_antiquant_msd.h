@@ -331,8 +331,8 @@ FFNAntiQuantMSD<xT, wT, mm1Type, mm2Type, c1T, yT, biasT>::GetMaxToken(__gm__ ui
         // copy tokens array from GM
         expertTokensGm.SetGlobalBuffer((__gm__ int64_t *)expertTokens);
         DataCopy(ubTokens, expertTokensGm, AlignUp<EXPERT_NUM_ALIGN>(expertNum)); // 32Byte alignment
-        SetFlag(PIPE_MTE2, PIPE_S, EVENT_ID0);
-        WaitFlag(PIPE_MTE2, PIPE_S, EVENT_ID0);
+        set_flag(PIPE_MTE2, PIPE_S, EVENT_ID0);
+        wait_flag(PIPE_MTE2, PIPE_S, EVENT_ID0);
         if (tilingData->ffnBaseParams.tokensIndexFlag) {
             TokensIndicesToValues(ubTokens, expertNum);
         }
@@ -487,7 +487,7 @@ __aicore__ inline void FFNAntiQuantMSD<xT, wT, mm1Type, mm2Type, c1T, yT, biasT>
     inQueueX_.EnQue(xLocal);
     LocalTensor<xT> xFP16InUb = inQueueX_.DeQue<xT>();
     Cast(middleResult1, xFP16InUb, RoundMode::CAST_NONE, curBaseM * alignedBaseK);
-    PipeBarrier(PIPE_V);
+    pipe_barrier(PIPE_V);
     inQueueX_.FreeTensor(xFP16InUb);
 }
 
@@ -595,7 +595,7 @@ __aicore__ inline void FFNAntiQuantMSD<xT, wT, mm1Type, mm2Type, c1T, yT, biasT>
 {
     uint32_t alignedBaseK = (curBaseK + NUM_ALIGN_TO_SIXTEEN) & (~NUM_ALIGN_TO_SIXTEEN);
     Abs(middleResult2, middleResult1, curBaseM * alignedBaseK);
-    PipeBarrier(PIPE_V);
+    pipe_barrier(PIPE_V);
 
     // calc ReduceMax
     LocalTensor<float> blockReduceMaxInUb = outQueueY_.AllocTensor<float>();
@@ -603,7 +603,7 @@ __aicore__ inline void FFNAntiQuantMSD<xT, wT, mm1Type, mm2Type, c1T, yT, biasT>
         ReduceMax(blockReduceMaxInUb[idxM * FACTOR_FOR_FLOAT_ALIGN_TO_32BYTE], middleResult2[idxM * curBaseK],
                   middleResult3[idxM * curBaseK], curBaseK, false);
     }
-    PipeBarrier(PIPE_V);
+    pipe_barrier(PIPE_V);
     for (uint32_t idxM = 0; idxM < curBaseM; ++idxM) {
         float aLocalMax = blockReduceMaxInUb.GetValue(idxM * FACTOR_FOR_FLOAT_ALIGN_TO_32BYTE);
         event_t eventIdSToV = static_cast<event_t>(GetTPipePtr()->FetchEventID(HardEvent::S_V));
@@ -635,7 +635,7 @@ __aicore__ inline void FFNAntiQuantMSD<xT, wT, mm1Type, mm2Type, c1T, yT, biasT>
         ReduceSum(blockReduceSumInUb[idxM * FACTOR_FOR_FLOAT_ALIGN_TO_32BYTE], middleResult1[idxM * curBaseK],
                   middleResult3[idxM * curBaseK], curBaseK);
     }
-    PipeBarrier(PIPE_V);
+    pipe_barrier(PIPE_V);
     for (uint32_t idxM = 0; idxM < curBaseM; ++idxM) {
         float aLocalSum = blockReduceSumInUb.GetValue(idxM * FACTOR_FOR_FLOAT_ALIGN_TO_32BYTE);
         event_t eventIdSToV = static_cast<event_t>(GetTPipePtr()->FetchEventID(HardEvent::S_V));
@@ -703,11 +703,11 @@ __aicore__ inline void FFNAntiQuantMSD<xT, wT, mm1Type, mm2Type, c1T, yT, biasT>
     // A1 : floor(128 * A/AMax)
     LocalTensor<int8_t> a1Int8InUb = outQueueY_.AllocTensor<int8_t>();
     Muls(middleResult2, middleResult3, static_cast<float>(128), curBaseM * alignedBaseK);
-    PipeBarrier(PIPE_V);
+    pipe_barrier(PIPE_V);
     Cast(middleResult1, middleResult2, RoundMode::CAST_FLOOR, curBaseM * alignedBaseK);
-    PipeBarrier(PIPE_V);
+    pipe_barrier(PIPE_V);
     Cast(middleResultFP16, middleResult1, RoundMode::CAST_NONE, curBaseM * alignedBaseK);
-    PipeBarrier(PIPE_V);
+    pipe_barrier(PIPE_V);
     Cast(a1Int8InUb, middleResultFP16, RoundMode::CAST_NONE, curBaseM * alignedBaseK);
 
     // A1 : DATACOPY a1(int8) ub->gm
@@ -723,13 +723,13 @@ __aicore__ inline void FFNAntiQuantMSD<xT, wT, mm1Type, mm2Type, c1T, yT, biasT>
 
     // A2 : floor((A/AMax - A1/128)*128*128)
     Sub(middleResult3, middleResult2, middleResult1, curBaseM * alignedBaseK);
-    PipeBarrier(PIPE_V);
+    pipe_barrier(PIPE_V);
     Muls(middleResult1, middleResult3, static_cast<float>(128), curBaseM * alignedBaseK);
-    PipeBarrier(PIPE_V);
+    pipe_barrier(PIPE_V);
     Cast(middleResult1, middleResult1, RoundMode::CAST_FLOOR, curBaseM * alignedBaseK);
-    PipeBarrier(PIPE_V);
+    pipe_barrier(PIPE_V);
     Cast(middleResultFP16, middleResult1, RoundMode::CAST_NONE, curBaseM * alignedBaseK);
-    PipeBarrier(PIPE_V);
+    pipe_barrier(PIPE_V);
     outQueueY_.FreeTensor(a1Int8);
     LocalTensor<int8_t> a2Int8InUb = outQueueY_.AllocTensor<int8_t>();
     Cast(a2Int8InUb, middleResultFP16, RoundMode::CAST_NONE, curBaseM * alignedBaseK);
@@ -796,7 +796,7 @@ __aicore__ inline void FFNAntiQuantMSD<xT, wT, mm1Type, mm2Type, c1T, yT, biasT>
     inQueueReduceMax_.EnQue(aMaxLocal);
     LocalTensor<float> aMaxInUb = inQueueReduceMax_.DeQue<float>();
     Muls(aMax, aMaxInUb, static_cast<float>(1.001), m * FACTOR_FOR_FLOAT_ALIGN_TO_32BYTE);
-    PipeBarrier(PIPE_V);
+    pipe_barrier(PIPE_V);
     inQueueReduceMax_.FreeTensor(aMaxInUb);
 }
 
@@ -827,7 +827,7 @@ __aicore__ inline void FFNAntiQuantMSD<xT, wT, mm1Type, mm2Type, c1T, yT, biasT>
     inQueueX_.EnQue(offsetF16);
     LocalTensor<xT> offsetF16InUb = inQueueX_.DeQue<xT>();
     Cast(tmpScaleAndOffset, offsetF16InUb, RoundMode::CAST_NONE, curV2BaseN);
-    PipeBarrier(PIPE_V);
+    pipe_barrier(PIPE_V);
     inQueueX_.FreeTensor(offsetF16InUb);
     // (m, 8) (1, n) -> (m, n)
     uint32_t mask = DATASIZE_EACH_REPEAT_TIME / sizeof(float);
@@ -862,7 +862,7 @@ __aicore__ inline void FFNAntiQuantMSD<xT, wT, mm1Type, mm2Type, c1T, yT, biasT>
     inQueueX_.EnQue(scaleF16);
     LocalTensor<xT> scaleF16InUb = inQueueX_.DeQue<xT>();
     Cast(tmpScaleAndOffset, scaleF16InUb, RoundMode::CAST_NONE, curV2BaseN);
-    PipeBarrier(PIPE_V);
+    pipe_barrier(PIPE_V);
     inQueueX_.FreeTensor(scaleF16InUb);
 }
 
@@ -888,7 +888,7 @@ __aicore__ inline void FFNAntiQuantMSD<xT, wT, mm1Type, mm2Type, c1T, yT, biasT>
     SetFlag<HardEvent::MTE2_V>(eventIdMte2ToV0);
     WaitFlag<HardEvent::MTE2_V>(eventIdMte2ToV0);
     Cast(middleResult1, c1S32InUb, RoundMode::CAST_NONE, curV2BaseM * curBaseNAligned);
-    PipeBarrier(PIPE_V);
+    pipe_barrier(PIPE_V);
     Muls(middleResult1, middleResult1, static_cast<float>(1.0 / 128), curV2BaseM * curBaseNAligned);
 
     // process C2
@@ -898,12 +898,12 @@ __aicore__ inline void FFNAntiQuantMSD<xT, wT, mm1Type, mm2Type, c1T, yT, biasT>
     WaitFlag<HardEvent::MTE2_V>(eventIdMte2ToV1);
     GetTPipePtr()->ReleaseEventID<HardEvent::MTE2_V>(eventIdMte2ToV1);
     Cast(middleResult3, c2S32InUb, RoundMode::CAST_NONE, curV2BaseM * curBaseNAligned);
-    PipeBarrier(PIPE_V);
+    pipe_barrier(PIPE_V);
     Muls(middleResult3, middleResult3, static_cast<float>(1.0 / (128 * 128)), curV2BaseM * curBaseNAligned);
-    PipeBarrier(PIPE_V);
+    pipe_barrier(PIPE_V);
     // process C1+C2
     Add(middleResult1, middleResult3, middleResult1, curV2BaseM * curBaseNAligned);
-    PipeBarrier(PIPE_V);
+    pipe_barrier(PIPE_V);
 }
 
 template <typename xT, typename wT, typename mm1Type, typename mm2Type, typename c1T, typename yT, typename biasT>
@@ -933,7 +933,7 @@ __aicore__ inline void FFNAntiQuantMSD<xT, wT, mm1Type, mm2Type, c1T, yT, biasT>
                 aMax[(offsetM + idxM) * FACTOR_FOR_FLOAT_ALIGN_TO_32BYTE], tailN, 1, repeatParams);
         }
     }
-    PipeBarrier(PIPE_V);
+    pipe_barrier(PIPE_V);
 }
 
 template <typename xT, typename wT, typename mm1Type, typename mm2Type, typename c1T, typename yT, typename biasT>
@@ -943,13 +943,13 @@ __aicore__ inline void FFNAntiQuantMSD<xT, wT, mm1Type, mm2Type, c1T, yT, biasT>
     uint32_t curBaseNAligned = (curV2BaseN + NUM_ALIGN_TO_THIRTYTWO) & (~NUM_ALIGN_TO_THIRTYTWO);
     // add with processed offset
     Add(middleResult2, middleResult2, middleResult3, curV2BaseM * curBaseNAligned);
-    PipeBarrier(PIPE_V);
+    pipe_barrier(PIPE_V);
 
     // multiply with scale (m, n) * (1, n) -> (m, n)
     for (uint32_t idxM = 0; idxM < curV2BaseM; ++idxM) {
         Mul(middleResult3[idxM * curV2BaseN], middleResult2[idxM * curV2BaseN], tmpScaleAndOffset, curBaseNAligned);
     }
-    PipeBarrier(PIPE_V);
+    pipe_barrier(PIPE_V);
 
     // add bias
     if (tilingParams.hasBias) {
@@ -961,7 +961,7 @@ __aicore__ inline void FFNAntiQuantMSD<xT, wT, mm1Type, mm2Type, c1T, yT, biasT>
         for (uint32_t idxM = 0; idxM < curV2BaseM; ++idxM) {
             Add(middleResult3[idxM * curV2BaseN], middleResult3[idxM * curV2BaseN], tmpLocal, curBaseNAligned);
         }
-        PipeBarrier(PIPE_V);
+        pipe_barrier(PIPE_V);
     }
 }
 
@@ -1001,7 +1001,7 @@ FFNAntiQuantMSD<xT, wT, mm1Type, mm2Type, c1T, yT, biasT>::ActivationCompute(uin
         FasterGelu(middleResult1, middleResult3, tmpLocal, computeSize);
     } else if (active == ActiveType::RELU) {
         Relu(middleResult1, middleResult3, computeSize);
-        PipeBarrier(PIPE_V);
+        pipe_barrier(PIPE_V);
     } else if (active == ActiveType::SILU) {
         Silu(middleResult1, middleResult3, computeSize);
     } else if (active == ActiveType::GELU) {
@@ -1026,7 +1026,7 @@ __aicore__ inline void FFNAntiQuantMSD<xT, wT, mm1Type, mm2Type, c1T, yT, biasT>
         LocalTensor<biasT> biasInUb = inQueueX_.DeQue<biasT>();
         Cast(tmpLocal, biasInUb, RoundMode::CAST_NONE,
              (curV2BaseN + NUM_ALIGN_TO_THIRTYTWO) & (~NUM_ALIGN_TO_THIRTYTWO));
-        PipeBarrier(PIPE_V);
+        pipe_barrier(PIPE_V);
         inQueueX_.FreeTensor(biasInUb);
     } else {
         DataCopyPad2D(tmpLocal, biasGm[offsetAndScaleOffset], 1, curV2BaseN, tilingParams.n);

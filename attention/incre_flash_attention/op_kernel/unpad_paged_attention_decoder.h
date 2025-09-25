@@ -117,14 +117,14 @@ public:
                 srcTensor,
                 0.0, len / BLOCK_SIZE_I, 1, 0, BLOCK_TWO * BLOCK_NUM, 1);
         }
-        PipeBarrier(V);
+        PIPE_BARRIER(V);
         // (16, len) -> (len, 16)
         for (int32_t vtransIdx = 0; vtransIdx < (len / BLOCK_SIZE_I); ++vtransIdx) {
             tranpose_v<ArchType::ASCEND_V200, half>(
                 dstTensor[vtransIdx * CUBE_MATRIX_SIZE_I],
                 dstTensor[vtransIdx * CUBE_MATRIX_SIZE_I]);
         }
-        PipeBarrier(V);
+        PIPE_BARRIER(V);
     }
 
     __aicore__ inline void InitOffsetPrefill()
@@ -583,13 +583,13 @@ __aicore__ inline void PagedAttentionDecoder<CalcMode::CALC_MODE_DEFAULT>::Decod
         lsUbufTensor[PingFlag * LOCAL_STORAGE_BUFFER_SIZE],
         l0cBufTensor[PingFlag * L0AB_HALF_BUF_SIZE_I],
         1, pSize / CUBE_MATRIX_SIZE_I, 0, 0);
-    PipeBarrier(V);
+    PIPE_BARRIER(V);
     SET_FLAG(V, M, PingFlag);
     muls_v<ArchType::ASCEND_V200, half>(
         lsUbufTensor[PingFlag * LOCAL_STORAGE_BUFFER_SIZE],
         lsUbufTensor[PingFlag * LOCAL_STORAGE_BUFFER_SIZE],
         localTor, n0AlignVector, 1, fm, 8, fm * 8);
-    PipeBarrier(V);
+    PIPE_BARRIER(V);
     
     if (maskType != 0) {
         WAIT_FLAG(MTE1, V, PingFlag);
@@ -598,14 +598,14 @@ __aicore__ inline void PagedAttentionDecoder<CalcMode::CALC_MODE_DEFAULT>::Decod
                                            maskUbufTensor[PingFlag * LOCAL_STORAGE_BUFFER_SIZE],
                                            n0Actual / VECTOR_SIZE_I, 
                                            1, 1, 1, 8, 8, 8);
-        PipeBarrier(V);
+        PIPE_BARRIER(V);
         if (n0Actual % VECTOR_SIZE_I != 0) {
             SetMask(n0Actual % VECTOR_SIZE_I);
             add_v<ArchType::ASCEND_V200, half>(lsUbufTensor[PingFlag * LOCAL_STORAGE_BUFFER_SIZE + (n0Actual / VECTOR_SIZE_I) * VECTOR_SIZE_I],
                                                lsUbufTensor[PingFlag * LOCAL_STORAGE_BUFFER_SIZE + (n0Actual / VECTOR_SIZE_I) * VECTOR_SIZE_I],
                                                maskUbufTensor[PingFlag * LOCAL_STORAGE_BUFFER_SIZE + (n0Actual / VECTOR_SIZE_I) * VECTOR_SIZE_I],
                                                1, 1, 1, 1, 8, 8, 8);
-            PipeBarrier(V);
+            PIPE_BARRIER(V);
             SetVectorMask<int8_t>(0xffffffffffffffff, 0xffffffffffffffff);
         }
         SET_FLAG(V, MTE1, PingFlag);
@@ -619,13 +619,13 @@ __aicore__ inline void PagedAttentionDecoder<CalcMode::CALC_MODE_DEFAULT>::Decod
             lmUbufTensor,
             lsUbufTensor[PingFlag * LOCAL_STORAGE_BUFFER_SIZE],
             1, 1, 1, 8);
-        PipeBarrier(V);
+        PIPE_BARRIER(V);
     } else {
         ub_to_ub<ArchType::ASCEND_V200, half>(
             tvUbufTensor,
             lsUbufTensor[PingFlag * LOCAL_STORAGE_BUFFER_SIZE],
             0, 1, 8, 8, 8);
-        PipeBarrier(V);
+        PIPE_BARRIER(V);
         if (n0Actual % VECTOR_SIZE_I != 0) {
             SetMask(n0Actual % VECTOR_SIZE_I);
         }
@@ -634,16 +634,16 @@ __aicore__ inline void PagedAttentionDecoder<CalcMode::CALC_MODE_DEFAULT>::Decod
             tvUbufTensor,
             lsUbufTensor[PingFlag * LOCAL_STORAGE_BUFFER_SIZE + VECTOR_SIZE_I],
             1, 1, 1, 1, 8, 8, 8);
-        PipeBarrier(V);
+        PIPE_BARRIER(V);
         SetVectorMask<int8_t>(0xffffffffffffffff, 0xffffffffffffffff);
         cmax_v<ArchType::ASCEND_V200, half, AscendC::ReduceOrder::ORDER_ONLY_VALUE>(
             lmUbufTensor,
             tvUbufTensor,
             1, 1, 1, 8);
-        PipeBarrier(V);
+        PIPE_BARRIER(V);
     }
     SetVectorMask<int8_t>((uint64_t)-1, (uint64_t)-1);
-    PipeBarrier(V);
+    PIPE_BARRIER(V);
 
     if (initGgDm == 0) {
         max_v<ArchType::ASCEND_V200, half>(
@@ -651,18 +651,18 @@ __aicore__ inline void PagedAttentionDecoder<CalcMode::CALC_MODE_DEFAULT>::Decod
             lmUbufTensor,
             gmUbufTensor[gmUOffset],
             1, 1, 1, 1, 8, 8, 8);
-        PipeBarrier(V);
+        PIPE_BARRIER(V);
         sub_v<ArchType::ASCEND_V200, half>(
             dmUbufTensor[PingFlag * UB_HALF_LINE_SIZE_I],
             gmUbufTensor[gmUOffset],
             hmUbufTensor,
             1, 1, 1, 1, 8, 8, 8);
-        PipeBarrier(V);
+        PIPE_BARRIER(V);
         ub_to_ub<ArchType::ASCEND_V200, half>(
             gmUbufTensor[gmUOffset],
             hmUbufTensor,
             0, 1, 1, 0, 0);
-        PipeBarrier(V);
+        PIPE_BARRIER(V);
         ExpandToBlockHalf(tvUbufTensor, hmUbufTensor, fm);
     } else {
         initGgDm = 0;
@@ -670,30 +670,30 @@ __aicore__ inline void PagedAttentionDecoder<CalcMode::CALC_MODE_DEFAULT>::Decod
             gmUbufTensor[gmUOffset],
             lmUbufTensor,
             0, 1, 1, 0, 0);
-        PipeBarrier(V);
+        PIPE_BARRIER(V);
         ExpandToBlockHalf(tvUbufTensor, gmUbufTensor[gmUOffset], fm);
     }
     sub_v<ArchType::ASCEND_V200, half>(lsUbufTensor[PingFlag * LOCAL_STORAGE_BUFFER_SIZE],
                                        lsUbufTensor[PingFlag * LOCAL_STORAGE_BUFFER_SIZE],
                                        tvUbufTensor,
                                        n0AlignVector, 1, 1, 0, 8, 8, 0);
-    PipeBarrier(V);
+    PIPE_BARRIER(V);
     conv_v<ArchType::ASCEND_V200, half, float>(
         ls32UbufTensor[PingFlag * LOCAL_STORAGE_BUFFER_SIZE],
         lsUbufTensor[PingFlag * LOCAL_STORAGE_BUFFER_SIZE],
         n0AlignFloat, 1, 1, 8, 4);
-    PipeBarrier(V);
+    PIPE_BARRIER(V);
     exp_v<ArchType::ASCEND_V200, float>(
         ls32UbufTensor[PingFlag * LOCAL_STORAGE_BUFFER_SIZE],
         ls32UbufTensor[PingFlag * LOCAL_STORAGE_BUFFER_SIZE],
         n0AlignFloat, 1, 1, 8, 8);
-    PipeBarrier(V);
+    PIPE_BARRIER(V);
     WAIT_FLAG(MTE3, V, PingFlag);
     conv_v<ArchType::ASCEND_V200, float, half>(
         lpUbufTensor[PingFlag * LOCAL_STORAGE_BUFFER_SIZE],
         ls32UbufTensor[PingFlag * LOCAL_STORAGE_BUFFER_SIZE],
         n0AlignFloat, 1, 1, 4, 8);
-    PipeBarrier(V);
+    PIPE_BARRIER(V);
     SET_FLAG(V, MTE3, PingFlag);
     SetMaskNorm();
 
@@ -716,7 +716,7 @@ __aicore__ inline void PagedAttentionDecoder<CalcMode::CALC_MODE_DEFAULT>::Decod
                 ls32UbufTensor[PingFlag * LOCAL_STORAGE_BUFFER_SIZE],
                 ls32UbufTensor[PingFlag * LOCAL_STORAGE_BUFFER_SIZE + vcalcIdx * FLOAT_VECTOR_SIZE_I],
                 1, 1, 1, 1, 8, 8, 8);
-            PipeBarrier(V);
+            PIPE_BARRIER(V);
         }
         if (n0Actual % FLOAT_VECTOR_SIZE_I != 0) {
             SetMask(n0Actual % FLOAT_VECTOR_SIZE_I);
@@ -725,7 +725,7 @@ __aicore__ inline void PagedAttentionDecoder<CalcMode::CALC_MODE_DEFAULT>::Decod
                 ls32UbufTensor[PingFlag * LOCAL_STORAGE_BUFFER_SIZE],
                 ls32UbufTensor[PingFlag * LOCAL_STORAGE_BUFFER_SIZE + (n0Actual / FLOAT_VECTOR_SIZE_I) * FLOAT_VECTOR_SIZE_I],
                 1, 1, 1, 1, 8, 8, 8);
-            PipeBarrier(V);
+            PIPE_BARRIER(V);
             SetVectorMask<int8_t>(0xffffffffffffffff, 0xffffffffffffffff);
         }
         cadd_v<ArchType::ASCEND_V200, float>(
@@ -734,7 +734,7 @@ __aicore__ inline void PagedAttentionDecoder<CalcMode::CALC_MODE_DEFAULT>::Decod
             1, 1, 1, 2);
     }
 
-    PipeBarrier(V);
+    PIPE_BARRIER(V);
     SetMaskNorm();
     SetVectorMask<int8_t>(0xffffffffffffffff, 0xffffffffffffffff);
     WAIT_FLAG(MTE1, MTE3, PingFlag);
@@ -753,7 +753,7 @@ __aicore__ inline void PagedAttentionDecoder<CalcMode::CALC_MODE_DEFAULT>::Decod
             lsUbufTensor[PongFlag * LOCAL_STORAGE_BUFFER_SIZE],
             l0cBufTensor[PongFlag * L0AB_HALF_BUF_SIZE_I],
             1, pSize / CUBE_MATRIX_SIZE_I, 0, 0);
-        PipeBarrier(V);
+        PIPE_BARRIER(V);
         SET_FLAG(V, M, PongFlag);
 
         muls_v<ArchType::ASCEND_V200, half>(
@@ -761,7 +761,7 @@ __aicore__ inline void PagedAttentionDecoder<CalcMode::CALC_MODE_DEFAULT>::Decod
             lsUbufTensor[PongFlag * LOCAL_STORAGE_BUFFER_SIZE],
             localTor,
             n1AlignVector, 1, fm, 8, fm * 8);
-        PipeBarrier(V);
+        PIPE_BARRIER(V);
         if (maskType != 0) {
             WAIT_FLAG(MTE1, V, PongFlag);
             add_v<ArchType::ASCEND_V200, half>(
@@ -769,7 +769,7 @@ __aicore__ inline void PagedAttentionDecoder<CalcMode::CALC_MODE_DEFAULT>::Decod
                 lsUbufTensor[PongFlag * LOCAL_STORAGE_BUFFER_SIZE],
                 maskUbufTensor[PongFlag * LOCAL_STORAGE_BUFFER_SIZE],
                 n1Actual / VECTOR_SIZE_I, 1, 1, 1, 8, 8, 8);
-            PipeBarrier(V);
+            PIPE_BARRIER(V);
             if (n1Actual % VECTOR_SIZE_I != 0) {
                 SetMask(n1Actual % VECTOR_SIZE_I);
                 add_v<ArchType::ASCEND_V200, half>(
@@ -777,7 +777,7 @@ __aicore__ inline void PagedAttentionDecoder<CalcMode::CALC_MODE_DEFAULT>::Decod
                     lsUbufTensor[PongFlag * LOCAL_STORAGE_BUFFER_SIZE + n1Actual / VECTOR_SIZE_I * VECTOR_SIZE_I],
                     maskUbufTensor[PongFlag * LOCAL_STORAGE_BUFFER_SIZE + n1Actual / VECTOR_SIZE_I * VECTOR_SIZE_I],
                     1, 1, 1, 1, 8, 8, 8);
-                PipeBarrier(V);
+                PIPE_BARRIER(V);
                 SetVectorMask<int8_t>(0xffffffffffffffff, 0xffffffffffffffff);
             }
             SET_FLAG(V, MTE1, PongFlag);
@@ -791,13 +791,13 @@ __aicore__ inline void PagedAttentionDecoder<CalcMode::CALC_MODE_DEFAULT>::Decod
                 lmUbufTensor,
                 lsUbufTensor[PongFlag * LOCAL_STORAGE_BUFFER_SIZE],
                 1, 1, 1, 8);
-            PipeBarrier(V);
+            PIPE_BARRIER(V);
         } else {
             ub_to_ub<ArchType::ASCEND_V200, half>(
                 tvUbufTensor,
                 lsUbufTensor[PongFlag * LOCAL_STORAGE_BUFFER_SIZE],
                 0, 1, 8, 8, 8);
-            PipeBarrier(V);
+            PIPE_BARRIER(V);
             if (n1Actual % VECTOR_SIZE_I != 0) {
                 SetMask(n1Actual % VECTOR_SIZE_I);
             }
@@ -806,57 +806,57 @@ __aicore__ inline void PagedAttentionDecoder<CalcMode::CALC_MODE_DEFAULT>::Decod
                 tvUbufTensor,
                 lsUbufTensor[PongFlag * LOCAL_STORAGE_BUFFER_SIZE + VECTOR_SIZE_I],
                 1, 1, 1, 1, 8, 8, 8);
-            PipeBarrier(V);
+            PIPE_BARRIER(V);
             SetVectorMask<int8_t>(0xffffffffffffffff, 0xffffffffffffffff);
             cmax_v<ArchType::ASCEND_V200, half, AscendC::ReduceOrder::ORDER_ONLY_VALUE>(
                 lmUbufTensor,
                 tvUbufTensor,
                 1, 1, 1, 8);
-            PipeBarrier(V);
+            PIPE_BARRIER(V);
         }
         SetVectorMask<int8_t>((uint64_t)-1, (uint64_t)-1);
         
-        PipeBarrier(V);
+        PIPE_BARRIER(V);
         max_v<ArchType::ASCEND_V200, half>(
             hmUbufTensor,
             lmUbufTensor,
             gmUbufTensor[gmUOffset],
             1, 1, 1, 1, 8, 8, 8);
-        PipeBarrier(V);
+        PIPE_BARRIER(V);
         sub_v<ArchType::ASCEND_V200, half>(
             dmUbufTensor[PongFlag * UB_HALF_LINE_SIZE_I],
             gmUbufTensor[gmUOffset],
             hmUbufTensor,
             1, 1, 1, 1, 8, 8, 8);
-        PipeBarrier(V);
+        PIPE_BARRIER(V);
         ExpandToBlockHalf(tvUbufTensor, hmUbufTensor, fm);
         ub_to_ub<ArchType::ASCEND_V200, half>(
             gmUbufTensor[gmUOffset],
             hmUbufTensor,
             0, 1, 1, 0, 0);
-        PipeBarrier(V);
+        PIPE_BARRIER(V);
         sub_v<ArchType::ASCEND_V200, half>(
             lsUbufTensor[PongFlag * LOCAL_STORAGE_BUFFER_SIZE],
             lsUbufTensor[PongFlag * LOCAL_STORAGE_BUFFER_SIZE],
             tvUbufTensor,
             n1AlignVector, 1, 1, 0, 8, 8, 0);
-        PipeBarrier(V);
+        PIPE_BARRIER(V);
         conv_v<ArchType::ASCEND_V200, half, float>(
             ls32UbufTensor[PongFlag * LOCAL_STORAGE_BUFFER_SIZE],
             lsUbufTensor[PongFlag * LOCAL_STORAGE_BUFFER_SIZE],
             n1AlignFloat, 1, 1, 8, 4);
-        PipeBarrier(V);
+        PIPE_BARRIER(V);
         exp_v<ArchType::ASCEND_V200, float>(
             ls32UbufTensor[PongFlag * LOCAL_STORAGE_BUFFER_SIZE],
             ls32UbufTensor[PongFlag * LOCAL_STORAGE_BUFFER_SIZE],
             n1AlignFloat, 1, 1, 8, 8);
-        PipeBarrier(V);
+        PIPE_BARRIER(V);
         WAIT_FLAG(MTE3, V, PongFlag);
         conv_v<ArchType::ASCEND_V200, float, half>(
             lpUbufTensor[PongFlag * LOCAL_STORAGE_BUFFER_SIZE],
             ls32UbufTensor[PongFlag * LOCAL_STORAGE_BUFFER_SIZE],
             n1AlignFloat, 1, 1, 4, 8);
-        PipeBarrier(V);
+        PIPE_BARRIER(V);
         SET_FLAG(V, MTE3, PongFlag);
         SetMaskNorm();
 
@@ -876,7 +876,7 @@ __aicore__ inline void PagedAttentionDecoder<CalcMode::CALC_MODE_DEFAULT>::Decod
                     ls32UbufTensor[PongFlag * LOCAL_STORAGE_BUFFER_SIZE],
                     ls32UbufTensor[PongFlag * LOCAL_STORAGE_BUFFER_SIZE + vcalcIdx * FLOAT_VECTOR_SIZE_I],
                     1, 1, 1, 1, 8, 8, 8);
-                PipeBarrier(V);
+                PIPE_BARRIER(V);
             }
             if (n1Actual % FLOAT_VECTOR_SIZE_I != 0) {
                 SetVectorMask<int8_t>(0x0, ((long)1 << (n1Actual % FLOAT_VECTOR_SIZE_I)) - 1);
@@ -885,7 +885,7 @@ __aicore__ inline void PagedAttentionDecoder<CalcMode::CALC_MODE_DEFAULT>::Decod
                     ls32UbufTensor[PongFlag * LOCAL_STORAGE_BUFFER_SIZE],
                     ls32UbufTensor[PongFlag * LOCAL_STORAGE_BUFFER_SIZE + (n1Actual / FLOAT_VECTOR_SIZE_I) * FLOAT_VECTOR_SIZE_I],
                     1, 1, 1, 1, 8, 8, 8);
-                PipeBarrier(V);
+                PIPE_BARRIER(V);
                 SetVectorMask<int8_t>(0xffffffffffffffff, 0xffffffffffffffff);
             }
             cadd_v<ArchType::ASCEND_V200, float>(
@@ -894,7 +894,7 @@ __aicore__ inline void PagedAttentionDecoder<CalcMode::CALC_MODE_DEFAULT>::Decod
                 1, 1, 1, 2);
         }
 
-        PipeBarrier(V);
+        PIPE_BARRIER(V);
         SetMaskNorm();
         SetVectorMask<int8_t>(0xffffffffffffffff, 0xffffffffffffffff);
         WAIT_FLAG(MTE1, MTE3, PongFlag);
@@ -970,7 +970,7 @@ __aicore__ inline void PagedAttentionDecoder<CalcMode::CALC_MODE_DEFAULT>::Decod
         loUbufTensor,
         l0cBufTensor[PingFlag * L0AB_HALF_BUF_SIZE_I],
         fk / BLOCK_SIZE_I, 1, 0, 0);
-    PipeBarrier(V);
+    PIPE_BARRIER(V);
     // 8. ################ Update Pong Starts #######################
     if (n1Actual != 0) {
         WAIT_FLAG(M, V, PongFlag);
@@ -978,32 +978,32 @@ __aicore__ inline void PagedAttentionDecoder<CalcMode::CALC_MODE_DEFAULT>::Decod
             loUbufTensor[PongFlag * LOCAL_STORAGE_BUFFER_SIZE],
             l0cBufTensor[PongFlag * L0AB_HALF_BUF_SIZE_I],
             fk / BLOCK_SIZE_I, 1, 0, 0);
-        PipeBarrier(V);
+        PIPE_BARRIER(V);
     }
     if (initGgO == 0) {
         conv_v<ArchType::ASCEND_V200, half, float>(
             tvUbufTensor.ReinterpretCast<float>(),
             dmUbufTensor[PingFlag * UB_HALF_LINE_SIZE_I],
             mAlignFloat, 1, 1, uint16_t(8), uint16_t(4));
-        PipeBarrier(V);
+        PIPE_BARRIER(V);
         exp_v<ArchType::ASCEND_V200, float>(
             tvUbufTensor.ReinterpretCast<float>(),
             tvUbufTensor.ReinterpretCast<float>(),
             mAlignFloat, 1, 1, uint16_t(8), uint16_t(8));
-        PipeBarrier(V);
+        PIPE_BARRIER(V);
         SetVectorMask<int8_t>(0x0, ((long)1 << (16)) - 1);
         mul_v<ArchType::ASCEND_V200, float>(
             glUbufTensor[glUOffset],
             tvUbufTensor.ReinterpretCast<float>(),
             glUbufTensor[glUOffset],
             mAlignFloat, 1, 1, 1, 8, 8, 8);
-        PipeBarrier(V);
+        PIPE_BARRIER(V);
         add_v<ArchType::ASCEND_V200, float>(
             glUbufTensor[glUOffset],
             glUbufTensor[glUOffset],
             llUbufTensor[PingFlag * UB_FLOAT_LINE_SIZE_I],
             mAlignFloat, 1, 1, 1, 8, 8, 8);
-        PipeBarrier(V);
+        PIPE_BARRIER(V);
         SetVectorMask<int8_t>(0xffffffffffffffff, 0xffffffffffffffff);
         ExpandToBlockHalf(tvUbufTensor, dmUbufTensor[PingFlag * UB_HALF_LINE_SIZE_I], fm);
 
@@ -1011,17 +1011,17 @@ __aicore__ inline void PagedAttentionDecoder<CalcMode::CALC_MODE_DEFAULT>::Decod
             tvUbufTensor[BLOCK_SIZE_I],
             tvUbufTensor,
             0.0, kAlignFloat, 1, 0, 8, 0);
-        PipeBarrier(V);
+        PIPE_BARRIER(V);
         conv_v<ArchType::ASCEND_V200, half, float>(
             tvUbufTensor.ReinterpretCast<float>()[fk],
             tvUbufTensor,
             kAlignFloat, 1, 1, uint16_t(8), uint16_t(4));
-        PipeBarrier(V);
+        PIPE_BARRIER(V);
         exp_v<ArchType::ASCEND_V200, float>(
             tvUbufTensor.ReinterpretCast<float>()[fk],
             tvUbufTensor.ReinterpretCast<float>()[fk],
             kAlignFloat, 1, 1, uint16_t(8), uint16_t(8));
-        PipeBarrier(V);
+        PIPE_BARRIER(V);
         if (vmPingPongFlag == 1) {
             WAIT_FLAG(MTE3, V, EVENT_ID2);
             vmPingPongFlag = 0;
@@ -1031,19 +1031,19 @@ __aicore__ inline void PagedAttentionDecoder<CalcMode::CALC_MODE_DEFAULT>::Decod
             goUbufTensor[goUOffset],
             tvUbufTensor.ReinterpretCast<float>()[fk],
             kAlignFloat, 1, 1, 1, 8, 8, 8);
-        PipeBarrier(V);
+        PIPE_BARRIER(V);
         add_v<ArchType::ASCEND_V200, float>(
             goUbufTensor[goUOffset],
             goUbufTensor[goUOffset],
             loUbufTensor[PingFlag * LOCAL_STORAGE_BUFFER_SIZE],
             kAlignFloat, 1, 1, 1, 8, 8, 8);
-        PipeBarrier(V);
+        PIPE_BARRIER(V);
     } else {
         ub_to_ub<ArchType::ASCEND_V200, float>(
             glUbufTensor[glUOffset],
             llUbufTensor[PingFlag * UB_FLOAT_LINE_SIZE_I],
             0, 1, 1, 0, 0);
-        PipeBarrier(V);
+        PIPE_BARRIER(V);
         if (vmPingPongFlag == 1) {
             WAIT_FLAG(MTE3, V, EVENT_ID2);
             vmPingPongFlag = 0;
@@ -1052,9 +1052,9 @@ __aicore__ inline void PagedAttentionDecoder<CalcMode::CALC_MODE_DEFAULT>::Decod
             goUbufTensor[goUOffset],
             loUbufTensor[PingFlag * LOCAL_STORAGE_BUFFER_SIZE],
             0, 1, fk / 8, 0, 0);
-        PipeBarrier(V);
+        PIPE_BARRIER(V);
     }
-    PipeBarrier(V);
+    PIPE_BARRIER(V);
     initGgO = 0;
 
     // 7. ################ Update Ping Ends #######################
@@ -1063,25 +1063,25 @@ __aicore__ inline void PagedAttentionDecoder<CalcMode::CALC_MODE_DEFAULT>::Decod
             tvUbufTensor.ReinterpretCast<float>(),
             dmUbufTensor[PongFlag * UB_HALF_LINE_SIZE_I],
             mAlignFloat, 1, 1, uint16_t(8), uint16_t(4));
-        PipeBarrier(V);
+        PIPE_BARRIER(V);
         exp_v<ArchType::ASCEND_V200, float>(
             tvUbufTensor.ReinterpretCast<float>(),
             tvUbufTensor.ReinterpretCast<float>(),
             mAlignFloat, 1, 1, uint16_t(8), uint16_t(8));
-        PipeBarrier(V);
+        PIPE_BARRIER(V);
         SetVectorMask<int8_t>(0x0, ((long)1 << (16)) - 1);
         mul_v<ArchType::ASCEND_V200, float>(
             glUbufTensor[glUOffset],
             tvUbufTensor.ReinterpretCast<float>(),
             glUbufTensor[glUOffset],
             mAlignFloat, 1, 1, 1, 8, 8, 8);
-        PipeBarrier(V);
+        PIPE_BARRIER(V);
         add_v<ArchType::ASCEND_V200, float>(
             glUbufTensor[glUOffset],
             glUbufTensor[glUOffset],
             llUbufTensor[PongFlag * UB_FLOAT_LINE_SIZE_I],
             mAlignFloat, 1, 1, 1, 8, 8, 8);
-        PipeBarrier(V);
+        PIPE_BARRIER(V);
         SetVectorMask<int8_t>(0xffffffffffffffff, 0xffffffffffffffff);
         ExpandToBlockHalf(tvUbufTensor, dmUbufTensor[PongFlag * UB_HALF_LINE_SIZE_I], fm);
 
@@ -1089,17 +1089,17 @@ __aicore__ inline void PagedAttentionDecoder<CalcMode::CALC_MODE_DEFAULT>::Decod
             tvUbufTensor[BLOCK_SIZE_I],
             tvUbufTensor,
             0.0, kAlignFloat, 1, 0, 8, 0);
-        PipeBarrier(V);
+        PIPE_BARRIER(V);
         conv_v<ArchType::ASCEND_V200, half, float>(
             tvUbufTensor.ReinterpretCast<float>()[fk],
             tvUbufTensor,
             kAlignFloat, 1, 1, uint16_t(8), uint16_t(4));
-        PipeBarrier(V);
+        PIPE_BARRIER(V);
         exp_v<ArchType::ASCEND_V200, float>(
             tvUbufTensor.ReinterpretCast<float>()[fk],
             tvUbufTensor.ReinterpretCast<float>()[fk],
             kAlignFloat, 1, 1, uint16_t(8), uint16_t(8));
-        PipeBarrier(V);
+        PIPE_BARRIER(V);
 
         if (vmPingPongFlag == 1) {
             WAIT_FLAG(MTE3, V, EVENT_ID2);
@@ -1112,13 +1112,13 @@ __aicore__ inline void PagedAttentionDecoder<CalcMode::CALC_MODE_DEFAULT>::Decod
             tvUbufTensor.ReinterpretCast<float>()[fk],
             kAlignFloat, 1, 1, 1, 8, 8, 8);
 
-        PipeBarrier(V);
+        PIPE_BARRIER(V);
         add_v<ArchType::ASCEND_V200, float>(
             goUbufTensor[goUOffset],
             goUbufTensor[goUOffset],
             loUbufTensor[PongFlag * LOCAL_STORAGE_BUFFER_SIZE],
             kAlignFloat, 1, 1, 1, 8, 8, 8);
-        PipeBarrier(V);
+        PIPE_BARRIER(V);
         SET_FLAG(V, M, PongFlag);
     }
     SET_FLAG(V, M, PingFlag);
@@ -1130,13 +1130,13 @@ __aicore__ inline void PagedAttentionDecoder<CalcMode::CALC_MODE_DEFAULT>::Decod
             glUbufTensor[glUOffset].ReinterpretCast<half>(),
             glUbufTensor[glUOffset],
             mAlignFloat, 1, 1, uint16_t(4), uint16_t(8));
-        PipeBarrier(V);
+        PIPE_BARRIER(V);
         SetVectorMask<int8_t>(0xffffffffffffffff, 0xffffffffffffffff);
         conv_v<ArchType::ASCEND_V200, float, half>(
             goUbufTensor[goUOffset].ReinterpretCast<half>(),
             goUbufTensor[goUOffset],
             kAlignFloat, 1, 1, uint16_t(4), uint16_t(8));
-        PipeBarrier(V);
+        PIPE_BARRIER(V);
         ExpandToBlockHalf(tvUbufTensor, glUbufTensor[glUOffset].ReinterpretCast<half>(), fm);
 
         SetVectorMask<int8_t>(0x0, ((long)1 << (16)) - 1);
@@ -1146,10 +1146,10 @@ __aicore__ inline void PagedAttentionDecoder<CalcMode::CALC_MODE_DEFAULT>::Decod
                 goUbufTensor[goUOffset].ReinterpretCast<half>()[vdivIdx * BLOCK_SIZE_I],
                 tvUbufTensor,
                 1, 1, 1, 1, 8, 8, 8);
-            PipeBarrier(V);
+            PIPE_BARRIER(V);
         }
         SetVectorMask<int8_t>(0xffffffffffffffff, 0xffffffffffffffff);
-        PipeBarrier(V);
+        PIPE_BARRIER(V);
         SET_FLAG(V, MTE3, EVENT_ID2);
         WAIT_FLAG(V, MTE3, EVENT_ID2);
         ub_to_gm<ArchType::ASCEND_V200, half>(
@@ -1287,7 +1287,7 @@ protected:
         WAIT_FLAG(M, MTE1, EVENT_ID1);
         WAIT_FLAG(M, MTE1, EVENT_ID2);
         WAIT_FLAG(M, MTE1, EVENT_ID3);
-        PipeBarrier(ALL);
+        PIPE_BARRIER(ALL);
     }
 };
 
@@ -1384,6 +1384,8 @@ __aicore__ inline void PagedAttentionDecoderMask<IFAT>::RunDefault(uint32_t star
     const uint32_t blockTablesUbOffset = 4 * UB_UINT8_BLOCK_SIZE_I + 12 * UB_UINT8_LINE_SIZE_I;
     const uint32_t contextLenUbLen = 2 * UB_UINT8_LINE_SIZE_I;
     const uint32_t blockTablesUbLen = 20 * UB_UINT8_LINE_SIZE_I;
+    __ubuf__ int64_t *contextLenUb = (__ubuf__ int64_t *)get_imm(contextLenUbOffset);
+    __ubuf__ int32_t *blockTablesUb = (__ubuf__ int32_t *)get_imm(blockTablesUbOffset);
     AscendC::LocalTensor<int64_t> contextLenUbTensor;
     AscendC::LocalTensor<int32_t> blockTablesUbTensor;
     contextLenUbTensor.InitBuffer((const uint32_t)contextLenUbOffset, (const uint32_t)contextLenUbLen);
@@ -1402,7 +1404,7 @@ __aicore__ inline void PagedAttentionDecoderMask<IFAT>::RunDefault(uint32_t star
             0, 1, Align<uint32_t>(maxNumBlocksPerQuery * 4, BUFFER_SIZE_BYTE_32B) / BUFFER_SIZE_BYTE_32B + 1, 0, 0);
         SET_FLAG(MTE2, S, EVENT_ID0);
         WAIT_FLAG(MTE2, S, EVENT_ID0);
-        uint32_t contextLen = (uint32_t)(*((__ubuf__ int64_t *)contextLenUbTensor.GetPhyAddr() + curBatch - startBatch));
+        uint32_t contextLen = (uint32_t)(*((__ubuf__ int64_t *)contextLenUb + curBatch - startBatch));
         uint32_t nLoop = (contextLen + blockSize - 1) / blockSize;
         uint32_t tail = contextLen % blockSize == 0 ? blockSize : contextLen % blockSize;
         uint32_t mActual = 1;
@@ -1412,12 +1414,12 @@ __aicore__ inline void PagedAttentionDecoderMask<IFAT>::RunDefault(uint32_t star
         uint64_t kvHeadOffset = (headId / groupNum) * strideKV;
         half localTor = 0;
         for (uint32_t nIdx = 0; nIdx < nLoop; nIdx += 2) {
-            uint64_t numBlocksId0 = (uint64_t)(*((__ubuf__ int32_t *)blockTablesUbTensor.GetPhyAddr() + nIdx)); // 跨batch
+            uint64_t numBlocksId0 = (uint64_t)(*((__ubuf__ int32_t *)blockTablesUb + nIdx)); // 跨batch
             uint64_t kvOffset0 = numBlocksId0 * blockSize * kvHeads * embeddingSize + kvHeadOffset;
             uint64_t numBlocksId1 = 0;
             uint64_t kvOffset1 = 0;
             if ((nIdx + 1) != nLoop) {
-                numBlocksId1 = (uint64_t)(*((__ubuf__ int32_t *)blockTablesUbTensor.GetPhyAddr() + (nIdx + 1)));
+                numBlocksId1 = (uint64_t)(*((__ubuf__ int32_t *)blockTablesUb + (nIdx + 1))); // 跨batch
                 kvOffset1 = numBlocksId1 * blockSize * kvHeads * embeddingSize + kvHeadOffset;
             }
             uint32_t warpO = (nIdx == (nLoop - 1) || (nIdx + 1) == (nLoop - 1)) ? 1 : 0;

@@ -9,7 +9,6 @@
  */
 
 #include "kernel_operator.h"
-using namespace AscendC;
 
 namespace NsaCompressWithCacheBase {
 constexpr uint32_t BROADCAST_DIM_NUM_1 = 1;
@@ -86,7 +85,7 @@ protected:
 
         AscendC::LocalTensor<float> castWeightCalcLocal = castWeightBuf.template Get<float>();
         AscendC::Cast(castWeightCalcLocal, weightLocal, AscendC::RoundMode::CAST_NONE, tilingData->weightSize);
-        PipeBarrier(PIPE_ALL);
+        pipe_barrier(PIPE_ALL);
         inQueue.FreeTensor(weightLocal);
     }
 
@@ -133,13 +132,13 @@ protected:
         uint32_t addVectorNum = reduceSize - alignReduceSize;
         AscendC::Add(tensor, tensor, tensor[alignReduceSize * tilingData->compressKvCacheSizePerCore],
                      addVectorNum * tilingData->compressKvCacheSizePerCore);
-        PipeBarrier(PIPE_V);
+        pipe_barrier(PIPE_V);
         // reduce step: reduce compressBlockSize to 1
         while (alignReduceSize > 1) {
             alignReduceSize = alignReduceSize >> 1;
             AscendC::Add(tensor, tensor, tensor[alignReduceSize * tilingData->compressKvCacheSizePerCore],
                          alignReduceSize * tilingData->compressKvCacheSizePerCore);
-            PipeBarrier(PIPE_V);
+            pipe_barrier(PIPE_V);
         }
     }
 
@@ -151,7 +150,7 @@ protected:
             tilingData->kvCacheSizePerCore,
             (tilingData->compressKvCacheSizePerCore * repeatIdx + kvCalcBufSize * pingPongIdx) * sizeof(float));
         AscendC::Cast(castKvCacheLocal, kvCacheLocal, AscendC::RoundMode::CAST_NONE, tilingData->kvCacheSizePerCore);
-        PipeBarrier(PIPE_V);
+        pipe_barrier(PIPE_V);
         inQueue.FreeTensor(kvCacheLocal);
 
         AscendC::LocalTensor<float> broadcastWeightLocal =
@@ -159,7 +158,7 @@ protected:
 
         // elem-wise mul & reduce
         AscendC::Mul(castKvCacheLocal, castKvCacheLocal, broadcastWeightLocal, tilingData->kvCacheSizePerCore);
-        PipeBarrier(PIPE_V);
+        pipe_barrier(PIPE_V);
         ReduceBlock(castKvCacheLocal, this->tilingData->tokenNumPerTile, this->tilingData->tokenNumPerTile / NUM_2);
     }
 
@@ -174,7 +173,7 @@ protected:
         AscendC::LocalTensor<T> compressKvCacheLocal = outQueue.AllocTensor<T>();
         AscendC::Cast(compressKvCacheLocal, castKvCacheLocal, AscendC::RoundMode::CAST_RINT,
                       tilingData->compressKvCacheSizePerCore);
-        PipeBarrier(PIPE_V);
+        pipe_barrier(PIPE_V);
         outQueue.EnQue<T>(compressKvCacheLocal);
     }
 
@@ -300,7 +299,7 @@ protected:
         AscendC::BroadCast<float, BROADCAST_DIM_SIZE_2, BROADCAST_DIM_NUM_1>(
             firstBroadcastWeightLocal, castWeightCalcLocal, this->firstBroadCastWeightShape, this->weightShape,
             tempLocal);
-        PipeBarrier(PIPE_V);
+        pipe_barrier(PIPE_V);
         // 跳读数据，切分headNum
         AscendC::LocalTensor<float> tileWeightCalcLocal =
             tileWeightBuf.template Get<float>()[this->tileWeightLen * this->pingPongIdx];
@@ -314,11 +313,11 @@ protected:
                       {1, static_cast<uint16_t>(this->tilingData->coresNumPerCompress),
                        static_cast<uint16_t>(FP32_NUM_PER_UB_BLOCK),
                        static_cast<uint16_t>(FP32_NUM_PER_UB_BLOCK * this->tilingData->coresNumPerCompress)});
-        PipeBarrier(PIPE_V);
+        pipe_barrier(PIPE_V);
         // 二次广播
         AscendC::BroadCast<float, BROADCAST_DIM_SIZE_2, BROADCAST_DIM_NUM_1>(
             broadcastWeightLocal, tileWeightCalcLocal, this->finalBroadCastWeightShape, this->tiledweightShape);
-        PipeBarrier(PIPE_V);
+        pipe_barrier(PIPE_V);
     }
 
     uint32_t firstBroadCastSize;
@@ -384,13 +383,13 @@ protected:
                       {1, static_cast<uint16_t>(this->tilingData->coresNumPerCompress),
                        static_cast<uint16_t>(FP32_NUM_PER_UB_BLOCK),
                        static_cast<uint16_t>(FP32_NUM_PER_UB_BLOCK * this->tilingData->coresNumPerCompress)});
-        PipeBarrier(PIPE_V);
+        pipe_barrier(PIPE_V);
         // 二次广播
         AscendC::LocalTensor<float> broadcastWeightLocal =
             this->broadcastWeightBuf.template Get<float>()[this->tilingData->weightSizePerCore * this->pingPongIdx];
         AscendC::BroadCast<float, BROADCAST_DIM_SIZE_2, BROADCAST_DIM_NUM_1>(
             broadcastWeightLocal, tileWeightCalcLocal, this->finalBroadCastWeightShape, this->tiledweightShape);
-        PipeBarrier(PIPE_V);
+        pipe_barrier(PIPE_V);
     }
 
     uint32_t tiledweightShape[BROADCAST_DIM_SIZE_2];
@@ -449,7 +448,7 @@ protected:
             broadcastWeightLocal,
             castWeightCalcLocal[tile_idx * this->tilingData->tokenNumPerTile * this->tilingData->headNum],
             this->BroadCastWeightShape, this->weightShape);
-        PipeBarrier(PIPE_V);
+        pipe_barrier(PIPE_V);
     }
 
     uint32_t weightShape[BROADCAST_DIM_SIZE_2];

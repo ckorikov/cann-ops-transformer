@@ -357,7 +357,7 @@ protected:
         } else if (active == ActiveType::GELU) {
             Gelu(activeResUbFp32, mm1ResUb, tmpLocal, computeSize);
         }
-        PipeBarrier(PIPE_V);
+        pipe_barrier(PIPE_V);
         vecInQueue.FreeTensor(mm1ResUb);
         Cast(activeResUb, activeResUbFp32, RoundMode::CAST_ROUND, computeSize);
         vecOutQueue.template EnQue<T>(activeResUb);
@@ -516,7 +516,7 @@ protected:
             outLocalBias2 = vecOutQueue.template DeQue<c2T>();
             DataCopyParams intriParams2{1, static_cast<uint16_t>(curBaseN2 * sizeof(c2T)), 0, 0};
             for (uint32_t loopCnt = 0; loopCnt < tokens; loopCnt++) {
-                PipeBarrier(PIPE_ALL);
+                pipe_barrier(PIPE_ALL);
                 DataCopyPad(yGm[(tokensOffset + loopCnt) * n2 + offset + n2InnerIdx * baseN2], outLocalBias2,
                             intriParams2);
             }
@@ -634,8 +634,8 @@ protected:
             if (mm1ExpertParallInfo.expertParallelism > 0) {
                 MM1Process(mm1ExpertParallInfo, waitIterateAll, mnConfig, mm2WaitStatus, firstMM1);
                 // Step2: sync
-                SetFlag(PIPE_MTE3, PIPE_S, EVENT_ID7);
-                WaitFlag(PIPE_MTE3, PIPE_S, EVENT_ID7);
+                set_flag(PIPE_MTE3, PIPE_S, EVENT_ID7);
+                wait_flag(PIPE_MTE3, PIPE_S, EVENT_ID7);
                 SyncAll<true>();
             }
 

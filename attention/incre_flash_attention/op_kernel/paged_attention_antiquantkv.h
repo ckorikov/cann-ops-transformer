@@ -464,7 +464,7 @@ public:
                             1      // cmatrixInitVal
                         );
                         SET_FLAG(M, MTE1, pingpong_flag);
-                        PipeBarrier(ALL);
+                        PIPE_BARRIER(ALL);
                         // copy S to gm
                         l0c_to_gm<ArchType::ASCEND_V220, DataFormatT::ND, S_DATA_TYPE, float>(
                             s_gm_tensor[(uint64_t)blockIdx_ * TMP_SIZE_64K + (n_idx + split_idx) % vect_mod * TMP_SIZE_64K / vect_mod],
@@ -608,7 +608,7 @@ public:
                             1      // cmatrixInitVal
                         );
                         SET_FLAG(M, MTE1, pingpong_flag);
-                        PipeBarrier(ALL);
+                        PIPE_BARRIER(ALL);
                         // copy O to gm
                         l0c_to_gm<ArchType::ASCEND_V220, DataFormatT::ND, float, float>(
                             o_tmp_gm_tensor[(uint64_t)blockIdx_ * TMP_SIZE_64K + (n_idx + split_idx + KV_INC) % vect_mod * TMP_SIZE_64K / vect_mod],
@@ -730,7 +730,7 @@ public:
         SetVectorMask<int8_t>((uint64_t)-1, (uint64_t)-1);
         uint32_t start_seq = 0;
         uint32_t stepNumPerBlock = kvBlockSize_ / seqStepKv_;
-        PipeBarrier(ALL);
+        PIPE_BARRIER(ALL);
 
         // [qk_n, sub_m, head_size]
         SET_FLAG(V, MTE2, EVENT_ID5);
@@ -824,7 +824,7 @@ public:
                 );
                 SET_FLAG(V, MTE2, EVENT_ID5 + dequant_ping_pang);
                 // cast src(fp16) -> src(float)
-                PipeBarrier(V);
+                PIPE_BARRIER(V);
                 count = numel_kv / MAX_NUMEL_INST_B32;
                 for (uint32_t i = 0; i < count; ++i) {
                     conv_v<ArchType::ASCEND_V220, half, float>(
@@ -848,7 +848,7 @@ public:
                 );
                 if (bias_flag) {
                     // src(float) <- src(float) + offset(float)
-                    PipeBarrier(V);
+                    PIPE_BARRIER(V);
                     count = sub_hiddensize / FLOAT_VECTOR_SIZE_D;
                     for (uint32_t i = 0; i < count; ++i) {
                         add_v<ArchType::ASCEND_V220, float>(
@@ -882,7 +882,7 @@ public:
                     }
                 }
                 // src(float) <- src(float) * scale(float)
-                PipeBarrier(V);
+                PIPE_BARRIER(V);
                 count = sub_hiddensize / FLOAT_VECTOR_SIZE_D;
                 for (uint32_t i = 0; i < count; ++i) {
                     mul_v<ArchType::ASCEND_V220, float>(
@@ -917,7 +917,7 @@ public:
                 // cast src(float) -> src(half)
                 count = numel_kv / MAX_NUMEL_INST_B32;
                 SetVectorMask<int8_t>((uint64_t)-1, (uint64_t)-1);
-                PipeBarrier(V);
+                PIPE_BARRIER(V);
                 for (uint32_t i = 0; i < count; ++i) {
                     conv_v<ArchType::ASCEND_V220, float, DEQUANT_KV_TYPE>(
                         kvUbTensorDequant_[dequant_ping_pang * num_deq_kv + i * MAX_NUMEL_INST_B32], // dst
@@ -1315,7 +1315,7 @@ public:
                                 );
                                 SetVectorMask<int8_t>((uint64_t)-1, (uint64_t)-1);
                             }
-                            PipeBarrier(V);
+                            PIPE_BARRIER(V);
 
                             // *** ls = ls + mask
                             if (mask_gm != nullptr) {
@@ -1330,7 +1330,7 @@ public:
                                         BLOCK_NUM_IN_REPEAT,                                                    // src0RepeatStride
                                         BLOCK_NUM_IN_REPEAT                                                     // src1RepeatStride
                                     );
-                                    PipeBarrier(V);
+                                    PIPE_BARRIER(V);
                                 }
                                 SET_FLAG(V, MTE2, split_idx * CONST_TWO);
                             }
@@ -1355,7 +1355,7 @@ public:
                                     (qk_round_n - VECTOR_SIZE_D) / BLOCK_SIZE_D,  // srcGap
                                     0                                         // dstGap
                                 );
-                                PipeBarrier(V);
+                                PIPE_BARRIER(V);
                                 set_mask_d(qk_n - VECTOR_SIZE_D);
                                 max_v<ArchType::ASCEND_V220, half>(ls32_ubuf_tensor.ReinterpretCast<half>(),
                                     ls32_ubuf_tensor.ReinterpretCast<half>(),
@@ -1368,7 +1368,7 @@ public:
                                     BLOCK_NUM_IN_REPEAT,                       // src0RepeatStride
                                     qk_round_n / BLOCK_SIZE_D  // src1RepeatStride
                                 );
-                                PipeBarrier(V);
+                                PIPE_BARRIER(V);
                                 SetVectorMask<int8_t>((uint64_t)-1, (uint64_t)-1);
                                 cmax_v<ArchType::ASCEND_V220, half, AscendC::ReduceOrder::ORDER_ONLY_VALUE>(lm_ubuf_tensor,
                                     ls32_ubuf_tensor.ReinterpretCast<half>(),
@@ -1378,7 +1378,7 @@ public:
                                     BLOCK_NUM_IN_REPEAT           // srcRepeatStride
                                 );
                             }
-                            PipeBarrier(V);
+                            PIPE_BARRIER(V);
                             if ((n_idx + split_idx) == 0) {
                                 // *** hm = lm
                                 ub_to_ub<ArchType::ASCEND_V220, half>(
@@ -1390,9 +1390,9 @@ public:
                                     0,                         // srcGap
                                     0                          // dstGap
                                 );
-                                PipeBarrier(V);
+                                PIPE_BARRIER(V);
                             } else {
-                                // *** hm = max(lm, gm)
+                                // *** hm = vmax(lm, gm)
                                 max_v<ArchType::ASCEND_V220, half>(hm_ubuf_tensor,
                                     lm_ubuf_tensor,
                                     gm_ubuf_tensor,
@@ -1404,7 +1404,7 @@ public:
                                     BLOCK_NUM_IN_REPEAT,           // src0RepeatStride
                                     BLOCK_NUM_IN_REPEAT            // src1RepeatStride
                                 );
-                                PipeBarrier(V);
+                                PIPE_BARRIER(V);
                                 // *** dm = gm - hm
                                 sub_v<ArchType::ASCEND_V220, half>(dm_ubuf_tensor[(n_idx + split_idx) % vect_mod * UB_HALF_LINE_SIZE_D],
                                     gm_ubuf_tensor,
@@ -1417,7 +1417,7 @@ public:
                                     BLOCK_NUM_IN_REPEAT,           // src0RepeatStride
                                     BLOCK_NUM_IN_REPEAT            // src1RepeatStride
                                 );
-                                PipeBarrier(V);
+                                PIPE_BARRIER(V);
                             }
                             // *** gm = hm
                             ub_to_ub<ArchType::ASCEND_V220, half>(
@@ -1429,7 +1429,7 @@ public:
                                 0,                         // srcGap
                                 0                          // dstGap
                             );
-                            PipeBarrier(V);
+                            PIPE_BARRIER(V);
                             // *** hm_block = expand_to_block(hm), 存放于 tv
                             brcb_v<ArchType::ASCEND_V220, uint16_t>(
                                 tv_ubuf_tensor.ReinterpretCast<uint16_t>(),
@@ -1438,7 +1438,7 @@ public:
                                 BLOCK_NUM_IN_REPEAT,                              // dstRepeatStride
                                 round_sub_m / FLOAT_BLOCK_SIZE_D  // repeat
                             );
-                            PipeBarrier(V);
+                            PIPE_BARRIER(V);
                             // *** ls = ls - hm_block
                             for (uint32_t vsub_idx = 0; vsub_idx < qk_n / VECTOR_SIZE_D; ++vsub_idx) {
                                 sub_v<ArchType::ASCEND_V220, half>(ls_ubuf_tensor[offset + vsub_idx * VECTOR_SIZE_D],
@@ -1468,7 +1468,7 @@ public:
                                 );
                                 SetVectorMask<int8_t>((uint64_t)-1, (uint64_t)-1);
                             }
-                            PipeBarrier(V);
+                            PIPE_BARRIER(V);
                             // *** ls = castfp16to32(ls)
                             conv_v<ArchType::ASCEND_V220, half, float>(ls32_ubuf_tensor,
                                 ls_ubuf_tensor[offset],
@@ -1478,7 +1478,7 @@ public:
                                 BLOCK_NUM_IN_REPEAT,                                                                 // dstRepeatStride
                                 BLOCK_NUM_IN_REPEAT_HALF                                                                  // srcRepeatStride
                             );
-                            PipeBarrier(V);
+                            PIPE_BARRIER(V);
                             // *** ls = exp(ls)
                             exp_v<ArchType::ASCEND_V220, float>(ls32_ubuf_tensor,
                                 ls32_ubuf_tensor,
@@ -1488,7 +1488,7 @@ public:
                                 BLOCK_NUM_IN_REPEAT,                                                                 // dstRepeatStride
                                 BLOCK_NUM_IN_REPEAT                                                                  // srcRepeatStride
                             );
-                            PipeBarrier(V);
+                            PIPE_BARRIER(V);
                             // *** lp = castfp32to16(ls)
                             conv_v<ArchType::ASCEND_V220, float, P_DATA_TYPE>(lp_ubuf_tensor[offset],
                                 ls32_ubuf_tensor,
@@ -1498,7 +1498,7 @@ public:
                                 BLOCK_NUM_IN_REPEAT_HALF,                                                                 // dstRepeatStride
                                 BLOCK_NUM_IN_REPEAT                                                                  // srcRepeatStride
                             );
-                            PipeBarrier(V);
+                            PIPE_BARRIER(V);
                             SET_FLAG(V, MTE3, EVENT_ID0);
                             // *** ll = rowsum(ls32)
                             if (qk_n <= FLOAT_VECTOR_SIZE_D) {
@@ -1524,7 +1524,7 @@ public:
                                         qk_round_n / FLOAT_BLOCK_SIZE_D,  // src0RepeatStride
                                         qk_round_n / FLOAT_BLOCK_SIZE_D   // src1RepeatStride
                                     );
-                                    PipeBarrier(V);
+                                    PIPE_BARRIER(V);
                                 }
                                 if (qk_n % FLOAT_VECTOR_SIZE_D > 0) {
                                     set_mask_d(qk_n % FLOAT_VECTOR_SIZE_D);
@@ -1541,7 +1541,7 @@ public:
                                     );
                                     SetVectorMask<int8_t>((uint64_t)-1, (uint64_t)-1);
                                 }
-                                PipeBarrier(V);
+                                PIPE_BARRIER(V);
                                 cadd_v<ArchType::ASCEND_V220, float>(ll_ubuf_tensor[(n_idx + split_idx) % vect_mod * UB_FLOAT_LINE_SIZE_D],
                                     ls32_ubuf_tensor,
                                     sub_m,                          // repeat
@@ -1550,7 +1550,7 @@ public:
                                     qk_round_n / FLOAT_BLOCK_SIZE_D   // srcRepeatStride
                                 );
                             }
-                            PipeBarrier(V);
+                            PIPE_BARRIER(V);
                             WAIT_FLAG(V, MTE3, EVENT_ID0);
 
                             ub_to_gm<ArchType::ASCEND_V220, P_DATA_TYPE>(
@@ -1602,7 +1602,7 @@ public:
                                 BLOCK_NUM_IN_REPEAT,          // dstRepeatStride
                                 BLOCK_NUM_IN_REPEAT_HALF           // srcRepeatStride
                             );
-                            PipeBarrier(V);
+                            PIPE_BARRIER(V);
                             // *** dm_block = expand_to_block(dm), 存放于 tv
                             brcb_v<ArchType::ASCEND_V220, uint32_t>(tv_ubuf_tensor.ReinterpretCast<uint32_t>()[VECTOR_SIZE_D],
                                 tv_ubuf_tensor.ReinterpretCast<uint32_t>(),
@@ -1610,7 +1610,7 @@ public:
                                 BLOCK_NUM_IN_REPEAT,                              // dstRepeatStride
                                 round_sub_m / FLOAT_BLOCK_SIZE_D  // repeat
                             );
-                            PipeBarrier(V);
+                            PIPE_BARRIER(V);
                             // *** dm = exp(dm)
                             exp_v<ArchType::ASCEND_V220, float>(tv_ubuf_tensor,
                                 tv_ubuf_tensor,
@@ -1620,7 +1620,7 @@ public:
                                 BLOCK_NUM_IN_REPEAT,          // dstRepeatStride
                                 BLOCK_NUM_IN_REPEAT           // srcRepeatStride
                             );
-                            PipeBarrier(V);
+                            PIPE_BARRIER(V);
                             // *** gl = dm * gl
                             mul_v<ArchType::ASCEND_V220, float>(gl_ubuf_tensor,
                                 tv_ubuf_tensor,
@@ -1633,7 +1633,7 @@ public:
                                 BLOCK_NUM_IN_REPEAT,          // src0RepeatStride
                                 BLOCK_NUM_IN_REPEAT           // src1RepeatStride
                             );
-                            PipeBarrier(V);
+                            PIPE_BARRIER(V);
                             // *** gl = ll + gl
                             add_v<ArchType::ASCEND_V220, float>(gl_ubuf_tensor,
                                 gl_ubuf_tensor,
@@ -1646,7 +1646,7 @@ public:
                                 BLOCK_NUM_IN_REPEAT,          // src0RepeatStride
                                 BLOCK_NUM_IN_REPEAT           // src1RepeatStride
                             );
-                            PipeBarrier(V);
+                            PIPE_BARRIER(V);
                             // *** dm_block = exp(dm_block)
                             exp_v<ArchType::ASCEND_V220, float>(tv_ubuf_tensor[VECTOR_SIZE_D],
                                 tv_ubuf_tensor[VECTOR_SIZE_D],
@@ -1656,7 +1656,7 @@ public:
                                 BLOCK_NUM_IN_REPEAT,                                                                       // dstRepeatStride
                                 BLOCK_NUM_IN_REPEAT                                                                        // srcRepeatStride
                             );
-                            PipeBarrier(V);
+                            PIPE_BARRIER(V);
                             if (go_flag_scalar == 1) {
                                 WAIT_FLAG(MTE3, V, EVENT_ID0);
                                 go_flag_scalar = 0;
@@ -1690,7 +1690,7 @@ public:
                                 );
                                 SetVectorMask<int8_t>((uint64_t)-1, (uint64_t)-1);
                             }
-                            PipeBarrier(V);
+                            PIPE_BARRIER(V);
                             // *** go = lo + go
                             add_v<ArchType::ASCEND_V220, float>(go_ubuf_tensor,
                                 go_ubuf_tensor,
@@ -1703,7 +1703,7 @@ public:
                                 BLOCK_NUM_IN_REPEAT,                                                              // src0RepeatStride
                                 BLOCK_NUM_IN_REPEAT                                                               // src1RepeatStride
                             );
-                            PipeBarrier(V);
+                            PIPE_BARRIER(V);
                         } else {
                             // *** gl = ll
                             ub_to_ub<ArchType::ASCEND_V220, float>(
@@ -1715,7 +1715,7 @@ public:
                                 0,                               // srcGap
                                 0                                // dstGap
                             );
-                            PipeBarrier(V);
+                            PIPE_BARRIER(V);
                             if (go_flag_scalar == 1) {
                                 WAIT_FLAG(MTE3, V, EVENT_ID0);
                                 go_flag_scalar = 0;
@@ -1730,11 +1730,11 @@ public:
                                 0,                                   // srcGap
                                 0                                    // dstGap
                             );
-                            PipeBarrier(V);
+                            PIPE_BARRIER(V);
                         }
                         SET_FLAG(V, MTE2, EVENT_ID1);
                         if (n_idx + split_idx == (n_end + KV_INC - 1)) {
-                            PipeBarrier(V);
+                            PIPE_BARRIER(V);
                             // *** gl_block = expand_to_block(gl), 存放于 tv
                             brcb_v<ArchType::ASCEND_V220, uint32_t>(tv_ubuf_tensor.ReinterpretCast<uint32_t>(),
                                 gl_ubuf_tensor.ReinterpretCast<uint32_t>(),
@@ -1742,7 +1742,7 @@ public:
                                 BLOCK_NUM_IN_REPEAT,                              // dstRepeatStride
                                 round_sub_m / FLOAT_BLOCK_SIZE_D  // repeat
                             );
-                            PipeBarrier(V);
+                            PIPE_BARRIER(V);
                             // *** go = go / gl_block
                             for (uint32_t vdiv_idx = 0; vdiv_idx < headDim_ / FLOAT_VECTOR_SIZE_D; ++vdiv_idx) {
                                 div_v<ArchType::ASCEND_V220, float>(go_ubuf_tensor.ReinterpretCast<float>()[vdiv_idx * FLOAT_VECTOR_SIZE_D],
@@ -1773,7 +1773,7 @@ public:
                                 SetVectorMask<int8_t>((uint64_t)-1, (uint64_t)-1);
                             }
 
-                            PipeBarrier(V);
+                            PIPE_BARRIER(V);
 
                             conv_v<ArchType::ASCEND_V220, float, P_DATA_TYPE>(go_ubuf_tensor.ReinterpretCast<P_DATA_TYPE>(),
                                 go_ubuf_tensor.ReinterpretCast<float>(),

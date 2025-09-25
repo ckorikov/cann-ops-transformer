@@ -34,7 +34,7 @@ __aicore__ inline void  CopyND2NZOnTheFly(
     constexpr uint32_t UB_ALIGN_NZ = 32U;
     if (height % BLOCK_CUBE != 0) {
         int64_t repeat = calcWidth * calcHeightAlign;
-        InitConstValue((__cbuf__ void*)dst.GetPhyAddr(), {repeat, 0})
+        create_cbuf_matrix((__cbuf__ void*)dst.GetPhyAddr(), repeat, 0);
         PipeBarrier<PIPE_MTE2>();
     }
     int src_gap = gCol * sizeof(Q_T) / UB_ALIGN_NZ - 1;
@@ -1908,6 +1908,6 @@ __aicore__ inline void IncreFlashAttentionMulAttenCube310P<IFAT>::Process()
         }
         ProcessVec2(sInnerLoopTimes-1);
     }
-    PipeBarrier(PIPE_ALL);
+    pipe_barrier(PIPE_ALL);
 }
 #endif 
