@@ -36,15 +36,15 @@
    - Gawk
    - googletest（仅执行UT时依赖，建议版本 [release-1.11.0](https://github.com/google/googletest/releases/tag/release-1.11.0)）
 
-   上述依赖包，可以通过执行本代码仓根目录下的install\_deps.sh文件完成安装，具体命令如下：
-   ```bash
-   bash install_deps.sh
-   ```
+上述依赖包可通过项目根目录下install\_deps.sh安装，命令如下：
+```bash
+bash install_deps.sh
+```
 
-   - 项目使用的python依赖包，具体参见项目根目录中requirements.txt，安装命令如下：
-     ```bash
-     pip3 install -r requirements.txt
-     ```
+项目使用的python依赖包，可通过根目录下requirements.txt安装，命令如下：
+```bash
+pip3 install -r requirements.txt
+```
 ## 下载源码
 通过`git`命令下载待修改项目的源码：
 ```bash
@@ -77,8 +77,9 @@ source /usr/local/Ascend/ascend-toolkit/set_env.sh
     ```
     - --soc：Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件使用"ascend910b"（默认），Atlas A3 训练系列产品/Atlas A3 推理系列产品使用"ascend910_93"。
     - --vendor_name（可选）：\$\{vendor\_name\}表示构建的自定义算子包名，默认名为custom。
-    - --ops（可选）：\$\{op\_list\}表示待编译算子，不指定时默认编译所有算子（参见[算子列表](./op_list.md)）。格式形如"abs,add_lora,..."，多算子之间用英文逗号","分隔。
-    约束：当前自定义算子包的vendor_name和ops都是可选输入，如果都不选，编译出的是built-in包；若需要编译所有算子的自定义算子包，需要参数vendor_name。
+    - --ops（可选）：\$\{op\_list\}表示待编译算子，不指定时默认编译所有算子（参见[算子列表](./op_list.md)）。格式形如"apply_rotary_pos_emb,rope_quant_kvcache,..."，多算子之间用英文逗号","分隔。
+    
+    说明：若\$\{vendor\_name\}和\$\{op\_list\}都不传入编译的是built-in包；若编译所有算子的自定义算子包，需传入\$\{vendor\_name\}。
     
     若提示如下信息，说明编译成功。
     ```bash
@@ -91,5 +92,4 @@ source /usr/local/Ascend/ascend-toolkit/set_env.sh
     ./cann-ops-${ops_project}-${vendor_name}-linux.${arch}.run
     ```
 
-    自定义算子包安装路径为`${ASCEND_HOME_PATH}/opp/vendors`，\$\{ASCEND\_HOME\_PATH\}表示CANN包安装路径，一般为\$\{install\_path\}/ascend-toolkit/latest，可通过环境变量配置。
-    自定义算子包不支持卸载指令。
+    自定义算子包安装路径为`${ASCEND_HOME_PATH}/opp/vendors`，\$\{ASCEND\_HOME\_PATH\}已通过环境变量配置，表示CANN toolkit包安装路径，一般为\$\{install\_path\}/ascend-toolkit/latest。注意自定义算子包不支持卸载。

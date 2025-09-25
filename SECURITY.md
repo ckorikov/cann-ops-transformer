@@ -34,7 +34,7 @@
 ---
 
 ## 漏洞机制说明
-具体请参考（https://gitcode.com/cann/community/blob/master/docs/security/security.md）。
+[漏洞管理](https://gitcode.com/cann/community/blob/master/security/security.md)
 
 ## 附录
 

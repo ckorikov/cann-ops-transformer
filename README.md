@@ -10,6 +10,36 @@ ops-transformer是[CANN](https://hiascend.com/software/cann) （Compute Architec
 
 <img src="docs/figures/architecture.png" alt="架构图"  width="750px" height="400px">
 
+## 🔍目录结构
+```
+├── cmake                          # 项目工程编译目录
+├── common                         # 项目公共头文件和公共源码
+├── attention                      # attention类算子
+├── docs                           # 项目文档介绍
+├── example                        # 使用通用算子开发和调用示例
+├── ...
+├── moe                            # moe类算子
+├── posembedding                   # posembedding类算子
+│   ├── interleave_rope            # interleave_rope算子所有交付件，如Tiling、Kernel等
+│   │   ├── CMakeLists.txt         # 算子编译配置文件
+│   │   ├── docs                   # 算子说明文档
+│   │   ├── examples               # 算子使用示例
+│   │   ├── op_graph               # 算子构图相关目录
+│   │   ├── op_host                # 算子信息库、Tiling、InferShape相关实现目录
+│   │   │   └── op_api             # 算子aclnn接口实现目录
+│   │   ├── op_kernel              # 算子kernel目录
+│   │   └── README.md              # 算子说明文档
+│   ├── ...
+│   └── CMakeLists.txt             # 算子编译配置文件
+├── scripts                        # 脚本目录，包含自定义算子、kernel构建相关配置文件
+├── tests                          # 测试工程目录
+├── CMakeLists.txt
+├── README.md
+├── build.sh                       # 项目工程编译脚本
+├── install_deps.sh                # 安装依赖包脚本
+└── requirements.txt               # 本项目需要的第三方依赖包
+```
+
 ## ⚡️快速入门
 
 若您希望快速体验算子的调用和开发过程，请访问如下文档获取简易教程。

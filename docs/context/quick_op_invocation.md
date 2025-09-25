@@ -17,7 +17,7 @@
    - Gawk
    - googletest（仅执行UT时依赖，建议版本 [release-1.11.0](https://github.com/google/googletest/releases/tag/release-1.11.0)）
 
-   上述依赖包，可以通过执行本代码仓根目录下的install\_deps.sh文件完成安装，具体命令如下：
+   上述依赖包可通过项目根目录下install\_deps.sh安装，命令如下：
    ```bash
    bash install_deps.sh
    ```
@@ -40,13 +40,13 @@
     ```
     - \$\{cann\_version\}：表示CANN包版本号。
     - \$\{arch\}：表示CPU架构，如aarch64、x86_64。
-    - \$\{install\_path\}：表示指定安装路径，默认安装在/usr/local/Ascend目录下。
+    - \$\{install\_path\}：表示指定安装路径，默认安装在`/usr/local/Ascend`目录。
 
 2. **安装社区版CANN legacy包（可选）**
 
     如需本地运行项目算子，需额外安装此包，否则跳过本操作。
 
-    根据产品型号和环境架构，下载对应`${soc_version}-opp_legacy-${cann_version}-linux-${arch}.run`包，下载链接如下：
+    根据产品型号和环境架构，下载对应`cann-${soc_version}-opp_legacy-${cann_version}-linux-${arch}.run`包，下载链接如下：
 
     - Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件：[legacy x86_64包](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/CANN/community/cann-910b-opp_legacy-8.3.RC1-linux-x86_64.run)、[legacy aarch64包](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/CANN/community/cann-910b-opp_legacy-8.3.RC1-linux-aarch64.run)。
     - Atlas A3 训练系列产品/Atlas A3 推理系列产品：[legacy x86_64包](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/CANN/community/cann-910_93-opp_legacy-8.3.RC1-linux-x86_64.run)、[legacy aarch64包](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/CANN/community/cann-910_93-opp_legacy-8.3.RC1-linux-aarch64.run)。
@@ -58,7 +58,7 @@
     ./cann-${soc_version}-opp_legacy-${cann_version}-linux-${arch}.run --full --install-path=${install_path}
     ```
     - \$\{soc\_version\}：表示NPU型号。
-    - \$\{install\_path\}：表示指定安装路径，需要与toolkit包安装在相同路径，默认安装在/usr/local/Ascend目录下。
+    - \$\{install\_path\}：表示指定安装路径，需要与toolkit包安装在相同路径，默认安装在`/usr/local/Ascend`目录。
 
 3. **配置环境变量**
 	
@@ -98,13 +98,14 @@
     
     ```bash
     bash build.sh --pkg --soc=${soc_version} [--vendor_name=${vendor_name}] [--ops=${op_list}]
-    # 以interleave_rope算子编译为例
+    # 以InterleaveRope算子编译为例
     # bash build.sh --pkg --soc=ascend910b --ops=interleave_rope
     ```
     - --soc：\$\{soc\_version\}表示NPU型号。Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件使用"ascend910b"（默认），Atlas A3 训练系列产品/Atlas A3 推理系列产品使用"ascend910_93"。
     - --vendor_name（可选）：\$\{vendor\_name\}表示构建的自定义算子包名，默认名为custom。
     - --ops（可选）：\$\{op\_list\}表示待编译算子，不指定时默认编译所有算子（参见[算子列表](./op_list.md)）。格式形如"apply_rotary_pos_emb,rope_quant_kvcache,..."，多算子之间用英文逗号","分隔。
-    约束：当前自定义算子包的vendor_name和ops都是可选输入，如果都不选，编译出的是built-in包；若需要编译所有算子的自定义算子包，需要参数vendor_name。
+
+    说明：若\$\{vendor\_name\}和\$\{op\_list\}都不传入编译的是built-in包；若编译所有算子的自定义算子包，需传入\$\{vendor\_name\}。
      
     若提示如下信息，说明编译成功。
     ```bash
@@ -118,8 +119,7 @@
     ./cann-ops-transformer-${vendor_name}_linux-${arch}.run
     ```
     
-    自定义算子包安装路径为`${ASCEND_HOME_PATH}/opp/vendors`，\$\{ASCEND\_HOME\_PATH\}表示CANN toolkit包安装路径，一般为\$\{install\_path\}/latest，可通过环境变量配置。
-    自定义算子包不支持卸载指令。
+    自定义算子包安装路径为`${ASCEND_HOME_PATH}/opp/vendors`，\$\{ASCEND\_HOME\_PATH\}已通过环境变量配置，表示CANN toolkit包安装路径，一般为\$\{install\_path\}/latest。注意自定义算子包不支持卸载。
 
 ### ops-transformer包
 
@@ -147,7 +147,7 @@
     ./cann-${soc_name}-ops-math_${cann_version}_linux-${arch}.run --full --install-path=${install_path}
     ```
 
-    \$\{install\_path\}：表示指定安装路径，需要与toolkit包安装在相同路径，默认安装在/usr/local/Ascend路径下。
+    \$\{install\_path\}：表示指定安装路径，需要与toolkit包安装在相同路径，默认安装在`/usr/local/Ascend`目录。
 
 ## 本地验证 
 
@@ -157,39 +157,20 @@
 
 - **执行算子样例**
   
-    不同算子包使用不同执行命令，执行完成后会打印算子执行结果。
-    
     - 完成ops-transformer包安装后，执行命令如下：
         ```bash
         bash build.sh --run_example ${op} ${mode}
-        # 以interleave_rope算子example执行为例
+        # 以InterleaveRope算子example执行为例
         # bash build.sh --run_example interleave_rope eager
         ```
         
-        - \$\{op\}：表示待执行算子，算子名小写下划线形式，如interleave_rope。       
+        - \$\{op\}：表示待执行算子（参见[算子列表](./op_list.md)），算子名小写下划线形式，如interleave_rope。            
         - \$\{mode\}：表示算子执行模式，目前支持eager（aclnn调用）、graph（图模式调用）。
-
-        以interleave_rope算子（算子名参考[算子列表](./op_list.md)中算子目录）为例，执行如下命令：
-        ```bash
-        bash build.sh --run_example interleave_rope eager
-        ```
-        执行完成后会打印运行结果。posembedding\interleave_rope\examples\test_aclnn_interleave_rope.cpp
-        ```
-        ...
-        result[65528] is: 0.000000
-        result[65529] is: 0.000000
-        result[65530] is: 0.000000
-        result[65531] is: 0.000000
-        result[65532] is: 0.000000
-        result[65533] is: 0.000000
-        result[65534] is: 0.000000
-        result[65535] is: 0.000000
-        ```
         
     - 完成自定义算子包安装后，执行命令如下：
         ```bash
         bash build.sh --run_example ${op} ${mode} ${pkg_mode} [--vendor_name=${vendor_name}]
-        # 以interleave_rope算子example执行为例
+        # 以InterleaveRope算子example执行为例
         # bash build.sh --run_example interleave_rope eager cust --vendor_name=custom
         ```
 
@@ -200,11 +181,7 @@
 
         说明：\$\{mode\}为graph时，不指定\$\{pkg_mode\}和\$\{vendor\_name\}
 
-        以interleave_rope算子为例，执行如下命令：
-        ```bash
-        bash build.sh --run_example interleave_rope eager cust --vendor_name=custom
-        ```
-        执行完成后会打印运行结果。
+         执行算子样例后会打印执行结果，以Abs算子为例，结果如下：
     
         ```
         ...
