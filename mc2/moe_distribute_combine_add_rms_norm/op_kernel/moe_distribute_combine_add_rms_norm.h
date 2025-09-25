@@ -108,10 +108,6 @@ private:
     __aicore__ inline void BuffInit();
     __aicore__ inline void SplitCoreCal();
     __aicore__ inline void WaitDispatch(uint32_t tokenIndex);
-    __aicore__ inline void ReduceSumCustom(const LocalTensor<float>& dst_local, const LocalTensor<float>& src_local,
-                                           const LocalTensor<float>& work_local, int32_t count);
-    __aicore__ inline void ReduceSumFP32(const LocalTensor<float>& dst_local, const LocalTensor<float>& src_local,
-                                         const LocalTensor<float>& work_local, int32_t count);
     __aicore__ inline void AddRmsNormAddCompute(uint32_t tokenIndex, uint32_t tokenOffset, uint32_t numCol,
                                                 LocalTensor<float>& x1TmpFloatLocal,
                                                 LocalTensor<float>& x2TmpFloatLocal,
@@ -1030,53 +1026,6 @@ __aicore__ inline void MoeDistributeCombineAddRmsNorm<TemplateMC2TypeFunc>::Wait
 }
 
 template <TemplateMC2TypeClass>
-__aicore__ inline void MoeDistributeCombineAddRmsNorm<TemplateMC2TypeFunc>::ReduceSumFP32(
-    const LocalTensor<float>& dst_local, const LocalTensor<float>& src_local, const LocalTensor<float>& work_local,
-    int32_t count)
-{
-    // count need smaller than 255 repeat
-    uint64_t mask = NUM_PER_REP_FP32;
-    int32_t repeatTimes = count / NUM_PER_REP_FP32;
-    int32_t tailCount = count % NUM_PER_REP_FP32;
-    int32_t bodyCount = repeatTimes * NUM_PER_REP_FP32;
-    BinaryRepeatParams repeatParams;
-    repeatParams.src0RepStride = ONE_REPEAT_BYTE_SIZE / ONE_BLK_SIZE;
-    repeatParams.src0BlkStride = 1;
-    repeatParams.src1RepStride = 0;
-    repeatParams.src1BlkStride = 1;
-    repeatParams.dstRepStride = 0;
-    repeatParams.dstBlkStride = 1;
-    Duplicate(work_local, ZERO, NUM_PER_REP_FP32);
-    PipeBarrier<PIPE_V>();
-    if (likely(repeatTimes > 0)) {
-        Add(work_local, src_local, work_local, mask, repeatTimes, repeatParams);
-        PipeBarrier<PIPE_V>();
-    }
-    if (unlikely(tailCount != 0)) {
-        Add(work_local, src_local[bodyCount], work_local, tailCount, 1, repeatParams);
-        PipeBarrier<PIPE_V>();
-    }
-    AscendCUtils::SetMask<float>(NUM_PER_REP_FP32);
-#if defined(__CCE_AICORE__) && __CCE_AICORE__ == 220
-    if (g_coreType == AIV) {
-        vcadd((__ubuf__ float*)dst_local.GetPhyAddr(), (__ubuf__ float*)work_local.GetPhyAddr(), 1, 0, 1, 0, false);
-    }
-#else
-    vcadd((__ubuf__ float*)dst_local.GetPhyAddr(), (__ubuf__ float*)work_local.GetPhyAddr(), 1, 1, 1,
-          DEFAULT_REPEAT_STRIDE);
-#endif
-    PipeBarrier<PIPE_V>();
-}
-
-template <TemplateMC2TypeClass>
-__aicore__ inline void MoeDistributeCombineAddRmsNorm<TemplateMC2TypeFunc>::ReduceSumCustom(
-    const LocalTensor<float>& dst_local, const LocalTensor<float>& src_local, const LocalTensor<float>& work_local,
-    int32_t count)
-{
-    ReduceSumFP32(dst_local, src_local, work_local, count);
-}
-
-template <TemplateMC2TypeClass>
 __aicore__ inline void MoeDistributeCombineAddRmsNorm<TemplateMC2TypeFunc>::AddRmsNormAddCompute(
     uint32_t tokenIndex, uint32_t tokenOffset, uint32_t numCol, LocalTensor<float>& x1TmpFloatLocal,
     LocalTensor<float>& x2TmpFloatLocal, LocalTensor<float>& addOutTmpFloatLocal,
@@ -1103,7 +1052,7 @@ __aicore__ inline void MoeDistributeCombineAddRmsNorm<TemplateMC2TypeFunc>::AddR
     PipeBarrier<PIPE_V>();
     Muls(sqx, sqx, armAvgFactor_, numCol);
     PipeBarrier<PIPE_V>();
-    ReduceSumCustom(sqx, sqx, reduce_buf_local, numCol);
+    ReduceSum(sqx, sqx, reduce_buf_local, numCol);
     PipeBarrier<PIPE_V>();
     Adds(sqx, sqx, epsilon_, 1);
     PipeBarrier<PIPE_V>();
