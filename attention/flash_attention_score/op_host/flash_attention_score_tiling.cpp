@@ -13,7 +13,6 @@
  * \brief
  */
 
-#include "flash_attention_score_tiling.h"
 #include <queue>
 #include <cmath>
 #include <cfloat>
@@ -24,6 +23,7 @@
 #include "tiling_base/data_copy_transpose_tiling.h"
 #include "tiling_base/tiling_templates_registry.h"
 #include "flash_attention_score_tiling_common.h"
+#include "../op_kernel/flash_attention_score_tiling.h"
 
 using namespace ge;
 using namespace AscendC;
@@ -100,8 +100,6 @@ void FlashAttentionScoreEmptyInputTiling::FlashAttentionScoreSetEmptyInputTiling
     OP_CHECK_IF(context->GetRawTilingData() == nullptr,
         OP_LOGE(context, "FlashAttentionScoreSetEmptyInputTilingData occurs nullptr!"),
         return);
-    faTilingData.SaveToBuffer(context->GetRawTilingData()->GetData(), context->GetRawTilingData()->GetCapacity());
-    context->GetRawTilingData()->SetDataSize(faTilingData.GetDataSize());
 }
 
 static ge::graphStatus CheckParams(const gert::TilingContext *context)
