@@ -21,6 +21,10 @@
 
 #ifndef ASCENDC_MOE_DISTRIBUTE_DISPATCH_TILING_H
 #define ASCENDC_MOE_DISTRIBUTE_DISPATCH_TILING_H
+
+#include <cstdint>
+#include "kernel_tiling/kernel_tiling.h"
+
 struct MoeDistributeDispatchA2Info {
     uint32_t epWorldSize;                // epWorldSize
     uint32_t tpWorldSize;                // tpWorldSize
