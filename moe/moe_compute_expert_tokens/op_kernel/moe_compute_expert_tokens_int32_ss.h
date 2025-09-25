@@ -241,8 +241,8 @@ __aicore__ inline void MoeComputeExpertTokensInt32SS<T>::CopyOut()
     uint16_t srcStride = 0;
     uint16_t dstStride = 0;
     DataCopyParams dataCopyParams{blockCount, blockLen, srcStride, dstStride};
-    set_atomic_s32();
-    set_atomic_max();
+    SetAtomicAdd<int32_t>();
+    SetAtomicMax<int32_t>();
     DataCopyPad(gmOutput_, output, dataCopyParams);
     SetAtomicNone();
     tmpOutQueue_.FreeTensor(output);

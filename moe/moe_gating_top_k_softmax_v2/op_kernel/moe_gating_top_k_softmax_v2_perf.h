@@ -206,7 +206,7 @@ private:
         DuplicatePadValue(src, curRowsNum, colBytesAlign, col, *((float*)&tmp));
         if constexpr (colRange == ColRangeEnum::SMALLER_THAN_8 || renorm == 1) {
             AscendCUtils::SetMaskCount<float>();
-            set_vector_mask(0, curRowsNum * BLOCK_B32_SIZE);
+            SetVectorMask<float, MaskMode::COUNTER>(0, curRowsNum * BLOCK_B32_SIZE);
             BlockReduceMaxIntrinsicsImpl(
                 (__ubuf__ float*)dst.GetPhyAddr(), (__ubuf__ float*)src.GetPhyAddr(), 1, 1, 1, CONSTANT_EIGHT);
             AscendCUtils::SetMaskNorm<float>();
@@ -239,11 +239,11 @@ private:
                 intriParams);
             PipeBarrier<PIPE_V>();
             AscendCUtils::SetMaskCount<float>();
-            set_vector_mask(0, curRowsNum * REPEAT_B32_SIZE);
+            SetVectorMask<float, MaskMode::COUNTER>(0, curRowsNum * REPEAT_B32_SIZE);
             BlockReduceMaxIntrinsicsImpl(
                 (__ubuf__ float*)tmpBuffer.GetPhyAddr(), (__ubuf__ float*)dst.GetPhyAddr(), 1, 1, 1, CONSTANT_EIGHT);
             PipeBarrier<PIPE_V>();
-            set_vector_mask(0, curRowsNum * BLOCK_B32_SIZE);
+            SetVectorMask<float, MaskMode::COUNTER>(0, curRowsNum * BLOCK_B32_SIZE);
             BlockReduceMaxIntrinsicsImpl(
                 (__ubuf__ float*)dst.GetPhyAddr(), (__ubuf__ float*)tmpBuffer.GetPhyAddr(), 1, 1, 1, CONSTANT_EIGHT);
             AscendCUtils::SetMaskNorm<float>();
@@ -258,7 +258,7 @@ private:
         DuplicatePadValue(src, curRowsNum, colBytesAlign, col, 0.0f);
         if constexpr (colRange == ColRangeEnum::SMALLER_THAN_8 || renorm == 1) {
             AscendCUtils::SetMaskCount<float>();
-            set_vector_mask(0, curRowsNum * BLOCK_B32_SIZE);
+            SetVectorMask<float, MaskMode::COUNTER>(0, curRowsNum * BLOCK_B32_SIZE);
             BlockReduceSumIntrinsicsImpl(
                 (__ubuf__ float*)dst.GetPhyAddr(), (__ubuf__ float*)src.GetPhyAddr(), 1, 1, 1, CONSTANT_EIGHT);
             AscendCUtils::SetMaskNorm<float>();
@@ -289,11 +289,11 @@ private:
                 intriParams);
             PipeBarrier<PIPE_V>();
             AscendCUtils::SetMaskCount<float>();
-            set_vector_mask(0, curRowsNum * REPEAT_B32_SIZE);
+            SetVectorMask<float, MaskMode::COUNTER>(0, curRowsNum * REPEAT_B32_SIZE);
             BlockReduceSumIntrinsicsImpl(
                 (__ubuf__ float*)tmpBuffer.GetPhyAddr(), (__ubuf__ float*)dst.GetPhyAddr(), 1, 1, 1, CONSTANT_EIGHT);
             PipeBarrier<PIPE_V>();
-            set_vector_mask(0, curRowsNum * BLOCK_B32_SIZE);
+            SetVectorMask<float, MaskMode::COUNTER>(0, curRowsNum * BLOCK_B32_SIZE);
             BlockReduceSumIntrinsicsImpl(
                 (__ubuf__ float*)dst.GetPhyAddr(), (__ubuf__ float*)tmpBuffer.GetPhyAddr(), 1, 1, 1, CONSTANT_EIGHT);
             AscendCUtils::SetMaskNorm<float>();
