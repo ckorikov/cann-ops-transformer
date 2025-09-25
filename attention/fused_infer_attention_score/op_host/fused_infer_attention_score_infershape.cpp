@@ -39,6 +39,7 @@ static constexpr int32_t FIA_UNKNOWN_DIMS = -2;
 static constexpr uint32_t LAYOUT_PA_BBH_DIM_NUMS = 3;
 static constexpr uint32_t LAYOUT_PA_BNBD_DIM_NUMS = 4;
 static constexpr uint32_t LAYOUT_PA_NZ_DIM_NUMS = 5;
+static constexpr uint32_t NUM_0 = 0;
 static constexpr uint32_t NUM_1 = 1;
 static constexpr uint32_t FIA_QUERY_INDEX = 0;
 static constexpr uint32_t FIA_VALUE_INDEX = 2;
@@ -401,7 +402,7 @@ static ge::graphStatus InferShapeFusedInferAttentionScore(gert::InferShapeContex
         }
     } else {
         softmaxLseShape->SetDimNum(FIA_LAYOUT_DIM_NUMS_1);
-        (*softmaxLseShape)[FIA_LAYOUT_DIM0] = NUM_1;
+        (*softmaxLseShape)[FIA_LAYOUT_DIM0] = NUM_0;
     }
     OP_LOGD(context->GetNodeName(), "FusedInferAttentionScore InferShape end.");
     return ge::GRAPH_SUCCESS;
