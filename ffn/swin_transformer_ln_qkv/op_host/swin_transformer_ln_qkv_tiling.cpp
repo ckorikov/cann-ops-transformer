@@ -12,7 +12,6 @@
  * \file swin_transformer_ln_qkv_tiling.cpp
  * \brief
  */
-// #include "op_const.h"
 #include "register/op_def_registry.h"
 #include "platform/platform_info.h"
 #include "swin_transformer_ln_qkv_tiling.h"
