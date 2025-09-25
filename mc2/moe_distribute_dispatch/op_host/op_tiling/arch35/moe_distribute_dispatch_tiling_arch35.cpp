@@ -67,7 +67,8 @@ constexpr int64_t MOE_EXPERT_MAX_NUM = 512;
 constexpr int64_t K_MAX = 8;
 constexpr uint32_t SYSTEM_NEED_WORKSPACE = 16U * 1024U * 1024U;
 
-constexpr uint32_t DAVID_EP_WORLD_SIZE = 4;
+constexpr uint32_t DAVID_EP_WORLD_SIZE_FOUR = 4;
+constexpr uint32_t DAVID_EP_WORLD_SIZE_TWO = 2;
 
 constexpr uint64_t MX_BLOCK_SIZE = 32U;
 constexpr uint64_t PERTILE_BLOCK_SIZE = 128U;
@@ -309,8 +310,8 @@ static ge::graphStatus CheckQuantModeAndScales(const gert::TilingContext *contex
 
 inline ge::graphStatus CheckEpWorldSize(const char *nodeName, uint32_t epWorldSize)
 {
-    // Only the value 4 is supported currently
-    if (epWorldSize == DAVID_EP_WORLD_SIZE) {
+    // Only the value 4 or 2 is supported currently
+    if ( (epWorldSize == DAVID_EP_WORLD_SIZE_FOUR) || (epWorldSize == DAVID_EP_WORLD_SIZE_TWO) ) {
         OP_LOGD(nodeName, "epWorldSize=%u, skip validation\n", epWorldSize);
     } else {
         // 检验epWorldSize是否是8的倍数
@@ -509,8 +510,8 @@ inline ge::graphStatus CheckExpandIdxShape(const gert::TilingContext *context, c
     // 校验expandIdx的维度
     const gert::StorageShape *expandIdxStorageShape = context->GetOutputShape(OUTPUT_EXPAND_IDX_INDEX);
     const int64_t expandIdxDim0 = expandIdxStorageShape->GetStorageShape().GetDim(0);
-    OP_TILING_CHECK(expandIdxDim0 != expertIdsDim1 * xDim0, OP_LOGE(nodeName,
-        "expandIdxDim0 != bs * k, expandIdxDim0=%ld, (bs * k)=%ld.", expandIdxDim0, xDim0 * expertIdsDim1),
+    OP_TILING_CHECK(expandIdxDim0 < expertIdsDim1 * xDim0, OP_LOGE(nodeName,
+        "expandIdxDim0 < bs * k, expandIdxDim0=%ld, (bs * k)=%ld.", expandIdxDim0, xDim0 * expertIdsDim1),
         return ge::GRAPH_FAILED);
     return ge::GRAPH_SUCCESS;
 }

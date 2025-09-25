@@ -12,16 +12,25 @@
  * \file moe_distribute_dispatch_v2.cpp
  * \brief
  */
-#include "moe_distribute_dispatch_v2.h"
 #include "kernel_operator.h"
+#if defined(__DAV_C310__)
+#include "../moe_distribute_dispatch/arch35/moe_distribute_dispatch_arch35.h"
+#else
 #include "moe_distribute_dispatch_v2_tiling.h"
 #include "../moe_distribute_dispatch/moe_distribute_dispatch_a2.h"
 #include "../moe_distribute_dispatch/moe_distribute_dispatch_a2_layered.h"
 #include "../moe_distribute_dispatch/moe_distribute_dispatch_a2_layered_aicpu.h"
+#include "moe_distribute_dispatch_v2.h"
+#endif
 
-using namespace AscendC;
+#if defined(__DAV_C310__)
+using namespace MoeDistributeDispatchA5Impl;
+#else
 using namespace MoeDistributeDispatchV2Impl;
 using namespace MoeDistributeDispatchA2Impl;
+#endif
+
+using namespace AscendC;
 /*
 * A3 tilingkey说明
 * 5位的十进制数
@@ -40,9 +49,105 @@ extern "C" __global__ __aicore__ void moe_distribute_dispatch_v2(
     GM_ADDR expandXOut, GM_ADDR dynamicScalesOut, GM_ADDR assistInfoOut, GM_ADDR expertTokenNumsOut,
     GM_ADDR epSendCountsOut, GM_ADDR tpSendCountsOut, GM_ADDR expandScalesOut, GM_ADDR workspaceGM, GM_ADDR tilingGM)
 {
+#if defined(__DAV_C310__)
+    GET_TILING_DATA_WITH_STRUCT(MoeDistributeDispatchTilingDataA5, tilingData, tilingGM);
+#else
     REGISTER_TILING_DEFAULT(MoeDistributeDispatchV2TilingData);
     REGISTER_TILING_FOR_TILINGKEY("TILING_KEY_VAR >= 2000000000", MoeDistributeDispatchA2TilingData);
+#endif
     TPipe pipe;
+#if defined(__DAV_C310__)
+#if (ORIG_DTYPE_EXPAND_X == DT_BF16 || ORIG_DTYPE_EXPAND_X == DT_FLOAT16)
+    if (TILING_KEY_IS(1000000000000000000)) {
+        MoeDistributeDispatchA5<DTYPE_X, DTYPE_EXPAND_X, UNQUANT_MODE, false, false> op;
+        op.Init(x, expertIds, scales, expandXOut, dynamicScalesOut, assistInfoOut, expertTokenNumsOut, epSendCountsOut,
+                tpSendCountsOut, workspaceGM, &pipe, &tilingData);
+        op.Process();
+    }
+#elif ((ORIG_DTYPE_X == DT_FLOAT8_E5M2) && (ORIG_DTYPE_EXPAND_X == DT_FLOAT8_E5M2)) ||   \
+    ((ORIG_DTYPE_X == DT_FLOAT8_E4M3FN) && (ORIG_DTYPE_EXPAND_X == DT_FLOAT8_E4M3FN)) || \
+    ((ORIG_DTYPE_X == DT_HIFLOAT8) && (ORIG_DTYPE_EXPAND_X == DT_HIFLOAT8))
+    if (TILING_KEY_IS(1000000000000000010)) {
+        MoeDistributeDispatchA5<DTYPE_X, DTYPE_EXPAND_X, UNQUANT_MODE, true, false> op;
+        op.Init(x, expertIds, scales, expandXOut, dynamicScalesOut, assistInfoOut, expertTokenNumsOut, epSendCountsOut,
+                tpSendCountsOut, workspaceGM, &pipe, &tilingData);
+        op.Process();
+    }
+#elif (ORIG_DTYPE_EXPAND_X == DT_INT8 || ORIG_DTYPE_EXPAND_X == DT_FLOAT8_E5M2 || \
+       ORIG_DTYPE_EXPAND_X == DT_FLOAT8_E4M3FN || ORIG_DTYPE_EXPAND_X == DT_HIFLOAT8)
+    if (TILING_KEY_IS(1000000000000000011)) {
+        MoeDistributeDispatchA5<DTYPE_X, DTYPE_EXPAND_X, STATIC_QUANT_MODE, true, false> op;
+        op.Init(x, expertIds, scales, expandXOut, dynamicScalesOut, assistInfoOut, expertTokenNumsOut, epSendCountsOut,
+                tpSendCountsOut, workspaceGM, &pipe, &tilingData);
+        op.Process();
+    } else if (TILING_KEY_IS(1000000000000000002)) {
+        MoeDistributeDispatchA5<DTYPE_X, DTYPE_EXPAND_X, DYNAMIC_QUANT_MODE, false, false> op;
+        op.Init(x, expertIds, scales, expandXOut, dynamicScalesOut, assistInfoOut, expertTokenNumsOut, epSendCountsOut,
+                tpSendCountsOut, workspaceGM, &pipe, &tilingData);
+        op.Process();
+    } else if (TILING_KEY_IS(1000000000000000012)) {
+        MoeDistributeDispatchA5<DTYPE_X, DTYPE_EXPAND_X, DYNAMIC_QUANT_MODE, true, false> op;
+        op.Init(x, expertIds, scales, expandXOut, dynamicScalesOut, assistInfoOut, expertTokenNumsOut, epSendCountsOut,
+                tpSendCountsOut, workspaceGM, &pipe, &tilingData);
+        op.Process();
+    } else if (TILING_KEY_IS(1000000000000000003)) {
+        MoeDistributeDispatchA5<DTYPE_X, DTYPE_EXPAND_X, MXFP8_E5M2_QUANT_MODE, false, false> op;
+        op.Init(x, expertIds, scales, expandXOut, dynamicScalesOut, assistInfoOut, expertTokenNumsOut, epSendCountsOut,
+                tpSendCountsOut, workspaceGM, &pipe, &tilingData);
+        op.Process();
+    } else if (TILING_KEY_IS(1000000000000000004)) {
+        MoeDistributeDispatchA5<DTYPE_X, DTYPE_EXPAND_X, MXFP8_E4M3_QUANT_MODE, false, false> op;
+        op.Init(x, expertIds, scales, expandXOut, dynamicScalesOut, assistInfoOut, expertTokenNumsOut, epSendCountsOut,
+                tpSendCountsOut, workspaceGM, &pipe, &tilingData);
+        op.Process();
+    } else if (TILING_KEY_IS(1000000000000000005)) {
+        MoeDistributeDispatchA5<DTYPE_X, DTYPE_EXPAND_X, FP8_E5M2_PERTOKEN_QUANT_MODE, false, false> op;
+        op.Init(x, expertIds, scales, expandXOut, dynamicScalesOut, assistInfoOut, expertTokenNumsOut, epSendCountsOut,
+                tpSendCountsOut, workspaceGM, &pipe, &tilingData);
+        op.Process();
+    } else if (TILING_KEY_IS(1000000000000000015)) {
+        MoeDistributeDispatchA5<DTYPE_X, DTYPE_EXPAND_X, FP8_E5M2_PERTOKEN_QUANT_MODE, true, false> op;
+        op.Init(x, expertIds, scales, expandXOut, dynamicScalesOut, assistInfoOut, expertTokenNumsOut, epSendCountsOut,
+                tpSendCountsOut, workspaceGM, &pipe, &tilingData);
+        op.Process();
+    } else if (TILING_KEY_IS(1000000000000000006)) {
+        MoeDistributeDispatchA5<DTYPE_X, DTYPE_EXPAND_X, FP8_E4M3_PERTOKEN_QUANT_MODE, false, false> op;
+        op.Init(x, expertIds, scales, expandXOut, dynamicScalesOut, assistInfoOut, expertTokenNumsOut, epSendCountsOut,
+                tpSendCountsOut, workspaceGM, &pipe, &tilingData);
+        op.Process();
+    } else if (TILING_KEY_IS(1000000000000000016)) {
+        MoeDistributeDispatchA5<DTYPE_X, DTYPE_EXPAND_X, FP8_E4M3_PERTOKEN_QUANT_MODE, true, false> op;
+        op.Init(x, expertIds, scales, expandXOut, dynamicScalesOut, assistInfoOut, expertTokenNumsOut, epSendCountsOut,
+                tpSendCountsOut, workspaceGM, &pipe, &tilingData);
+        op.Process();
+    } else if (TILING_KEY_IS(1000000000000000007)) {
+        MoeDistributeDispatchA5<DTYPE_X, DTYPE_EXPAND_X, FP8_E5M2_PERTILE_QUANT_MODE, false, false> op;
+        op.Init(x, expertIds, scales, expandXOut, dynamicScalesOut, assistInfoOut, expertTokenNumsOut, epSendCountsOut,
+                tpSendCountsOut, workspaceGM, &pipe, &tilingData);
+        op.Process();
+    } else if (TILING_KEY_IS(1000000000000000017)) {
+        MoeDistributeDispatchA5<DTYPE_X, DTYPE_EXPAND_X, FP8_E5M2_PERTILE_QUANT_MODE, true, false> op;
+        op.Init(x, expertIds, scales, expandXOut, dynamicScalesOut, assistInfoOut, expertTokenNumsOut, epSendCountsOut,
+                tpSendCountsOut, workspaceGM, &pipe, &tilingData);
+        op.Process();
+    } else if (TILING_KEY_IS(1000000000000000008)) {
+        MoeDistributeDispatchA5<DTYPE_X, DTYPE_EXPAND_X, FP8_E4M3_PERTILE_QUANT_MODE, false, false> op;
+        op.Init(x, expertIds, scales, expandXOut, dynamicScalesOut, assistInfoOut, expertTokenNumsOut, epSendCountsOut,
+                tpSendCountsOut, workspaceGM, &pipe, &tilingData);
+        op.Process();
+    } else if (TILING_KEY_IS(1000000000000000018)) {
+        MoeDistributeDispatchA5<DTYPE_X, DTYPE_EXPAND_X, FP8_E4M3_PERTILE_QUANT_MODE, true, false> op;
+        op.Init(x, expertIds, scales, expandXOut, dynamicScalesOut, assistInfoOut, expertTokenNumsOut, epSendCountsOut,
+                tpSendCountsOut, workspaceGM, &pipe, &tilingData);
+        op.Process();
+    } else if (TILING_KEY_IS(1000000000000000019)) {
+        MoeDistributeDispatchA5<DTYPE_X, DTYPE_EXPAND_X, HIF8_PERTENSOR_QUANT_MODE, true, false> op;
+        op.Init(x, expertIds, scales, expandXOut, dynamicScalesOut, assistInfoOut, expertTokenNumsOut, epSendCountsOut,
+                tpSendCountsOut, workspaceGM, &pipe, &tilingData);
+        op.Process();
+    }
+#endif
+#else
 #if (ORIG_DTYPE_EXPAND_X == DT_BF16 || ORIG_DTYPE_EXPAND_X == DT_FLOAT16)
     if (TILING_KEY_IS(10000)) {
         GET_TILING_DATA_WITH_STRUCT(MoeDistributeDispatchV2TilingData, tilingData, tilingGM);
@@ -179,5 +284,6 @@ extern "C" __global__ __aicore__ void moe_distribute_dispatch_v2(
             op.Process();
         }
     }
+#endif
 #endif
 }

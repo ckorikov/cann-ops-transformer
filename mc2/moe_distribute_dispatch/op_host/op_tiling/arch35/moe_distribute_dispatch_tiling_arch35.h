@@ -21,6 +21,8 @@
 
 namespace optiling {
 
+ge::graphStatus MoeDistributeDispatchTilingImpl(gert::TilingContext* context);
+
 BEGIN_TILING_DATA_DEF(MoeDistributeDispatchInfo)
     TILING_DATA_FIELD_DEF(uint32_t, epWorldSize);
     TILING_DATA_FIELD_DEF(uint32_t, tpWorldSize);
@@ -58,7 +60,7 @@ BEGIN_TILING_DATA_DEF(MoeDistributeDispatchTilingDataA5)
 END_TILING_DATA_DEF;
 // Register for all but only used by A5.
 REGISTER_TILING_DATA_CLASS(MoeDistributeDispatch, MoeDistributeDispatchTilingDataA5);
-
+REGISTER_TILING_DATA_CLASS(MoeDistributeDispatchV2, MoeDistributeDispatchTilingDataA5);
 class MoeDistributeDispatchTilingA5 : public MoeTilingBase {
 public:
     explicit MoeDistributeDispatchTilingA5(gert::TilingContext *context) : MoeTilingBase (context) {};

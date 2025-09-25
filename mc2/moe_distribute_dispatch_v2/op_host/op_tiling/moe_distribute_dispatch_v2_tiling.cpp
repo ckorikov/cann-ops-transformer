@@ -34,6 +34,7 @@
 #include "register/op_def_registry.h"
 #include "platform/platform_infos_def.h"
 #include "../../../moe_distribute_dispatch/op_kernel/moe_distribute_dispatch_tiling.h"
+#include "../../../moe_distribute_dispatch/op_host/op_tiling/arch35/moe_distribute_dispatch_tiling_arch35.h"
 #include "../../op_kernel/moe_distribute_dispatch_v2_tiling.h"
 
 using namespace AscendC;
@@ -1245,6 +1246,8 @@ static ge::graphStatus MoeDistributeDispatchV2TilingFunc(gert::TilingContext* co
     ge::graphStatus ret;
     if (socVersion == "Ascend910B") {
         ret = MoeDistributeDispatchA2TilingFuncImpl(context);
+    } else if(socVersion == "Ascend910_95"){
+        ret = MoeDistributeDispatchTilingImpl(context);
     } else {
         ret = MoeDistributeDispatchA3TilingFuncImpl(context);
     }
