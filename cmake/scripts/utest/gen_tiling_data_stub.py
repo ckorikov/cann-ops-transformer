@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 # coding: utf-8
-# Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
+# This program is free software, you can redistribute it and/or modify.
+# Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is a part of the CANN Open Software.
 # Licensed under CANN Open Software License Agreement Version 2.0 (the "License").
 # Please refer to the License for details. You may not use this file except in compliance with the License.
-# THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
-# INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+# THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
 # See LICENSE in the root of the software repository for the full text of the License.
 # ======================================================================================================================
 """
@@ -82,14 +82,15 @@ class Process:
     def _get_begin_source(cls, ori_file: Path, gen_file: Path) -> str:
         bgn_src: str = \
             ("/**\n"
+             " * This program is free software, you can redistribute it and/or modify.\n"
              " * Copyright (c) {year} Huawei Technologies Co., Ltd.\n"
              " * This file is a part of the CANN Open Software.\n"
              " * Licensed under CANN Open Software License Agreement Version 2.0 (the \"License\").\n"
              " * Please refer to the License for details. "
              "You may not use this file except in compliance with the License.\n"
              " * THIS SOFTWARE IS PROVIDED ON AN \"AS IS\" BASIS, "
-             "WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,\n"
-             " * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.\n"
+             "WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, "
+             "INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.\n"
              " * See LICENSE in the root of the software repository for the full text of the License.\n"
              " */\n").format(year=datetime.datetime.today().year)
         bgn_src += "\n"
