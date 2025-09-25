@@ -680,11 +680,11 @@ static bool CheckTensorShape(const gert::TilingContext *context, MoeDistributeCo
         A = globalBs * std::min(static_cast<int64_t>(localMoeExpertNum), expertIdsDim1);
     }
 
+    const int64_t epWorldSize = static_cast<int64_t>(tilingData.moeDistributeCombineV2Info.epWorldSize);
     if (hasElasticInfo) {
         const gert::StorageShape *elasticInfoStorageShape = context->GetOptionalInputShape(ELASTIC_INFO_INDEX);
         const int64_t elasticInfoDim0 = elasticInfoStorageShape->GetStorageShape().GetDim(0);
-        const int64_t epWorldSize = static_cast<int64_t>(tilingData.moeDistributeCombineV2Info.epWorldSize);
-
+        
         OP_TILING_CHECK(elasticInfoDim0 != (ELASTIC_METAINFO_OFFSET + RANK_LIST_NUM * epWorldSize),
             OP_LOGE(nodeName, "elasticInfo's dim0 not equal to 4 + 2 * epWorldSize, "
             "elasticInfo's dim0 is %ld, epWorldSize is %ld.",
@@ -712,7 +712,6 @@ static bool CheckTensorShape(const gert::TilingContext *context, MoeDistributeCo
         return false);
 
     // 校验epSendCount和tpSendCount的维度
-    int64_t epWorldSize = static_cast<int64_t>(tilingData.moeDistributeCombineV2Info.epWorldSize);
     int64_t moeExpertPerRankNum = static_cast<int64_t>(tilingData.moeDistributeCombineV2Info.moeExpertPerRankNum);
     const gert::StorageShape *epSendCountStorageShape = context->GetInputShape(EP_SEND_COUNTS_INDEX);
     const gert::StorageShape *tpSendCountStorageShape = context->GetOptionalInputShape(TP_SEND_COUNTS_INDEX);
@@ -1221,15 +1220,15 @@ static ge::graphStatus MoeDistributeCombineA2CheckShapeAndSetTiling(const gert::
         OP_LOGE(K_INNER_DEBUG, "expandXshape is invalid"), return GRAPH_FAILED);
     uint32_t h = expandXStorageShape->GetStorageShape().GetDim(1);
     uint32_t maxHiddenSizeA2 = isLayered ? LAYERED_MAX_HIDDEN_SIZE_A2 : MAX_HIDDEN_SIZE_A2;
-    OP_TILING_CHECK(h <= 0 || h > maxHiddenSizeA2 || h % BLOCK_SIZE_A2 != 0,
+    OP_TILING_CHECK(h == 0 || h > maxHiddenSizeA2 || h % BLOCK_SIZE_A2 != 0,
         OP_LOGE(K_INNER_DEBUG, "hiddensize is invalid."), return GRAPH_FAILED);
     OP_TILING_CHECK(expertIdStorageShape->GetStorageShape().GetDimNum() != TWO_DIMS,
         OP_LOGE(K_INNER_DEBUG, "expertIdshape is invalid"), return GRAPH_FAILED);
     uint32_t bs = expertIdStorageShape->GetStorageShape().GetDim(0);
-    OP_TILING_CHECK(bs <= 0 || bs > MAX_BATCH_SIZE_A2,
+    OP_TILING_CHECK(bs == 0 || bs > MAX_BATCH_SIZE_A2,
         OP_LOGE(K_INNER_DEBUG, "batchsize is invalid."), return GRAPH_FAILED);
     uint32_t k = expertIdStorageShape->GetStorageShape().GetDim(1);
-    OP_TILING_CHECK(k <= 0 || k > MAX_K_VALUE_A2,
+    OP_TILING_CHECK(k == 0 || k > MAX_K_VALUE_A2,
         OP_LOGE(K_INNER_DEBUG, "k is invalid."), return GRAPH_FAILED);
 
     bool isTokenMask = (xActiveMaskStorageShape != nullptr);
@@ -1279,6 +1278,7 @@ static ge::graphStatus MoeDistributeCombineCheckCommAlg(const gert::TilingContex
 {
     isLayered = false;
     auto attrs = context->GetAttrs();
+    OP_TILING_CHECK(attrs == nullptr, OP_LOGE(K_INNER_DEBUG, "attrs is null."), return ge::GRAPH_FAILED);
     auto commAlg = attrs->GetAttrPointer<char>(static_cast<int>(ATTR_COMM_ALG_INDEX));
     if (commAlg == nullptr || strlen(commAlg) == 0 || strcmp(commAlg, "0") == 0) {
         OP_LOGW(K_INNER_DEBUG, "Attr commAlg is invalid, please configure fullmesh or hierarchy.");

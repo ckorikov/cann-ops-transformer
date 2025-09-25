@@ -544,6 +544,8 @@ ge::graphStatus MoeDistributeCombineTilingImpl(gert::TilingContext *context)
     tilingData.combineTilingInfo.set_totalWinSize(mc2tiling::Mc2TilingUtils::GetMaxWindowSize());
     OP_TILING_CHECK(SetWorkSpace(context, nodeName) != ge::GRAPH_SUCCESS,
                     VECTOR_INNER_ERR_REPORT_TILING(nodeName, "Tiling set workspace Failed"), return ge::GRAPH_FAILED);
+    OP_TILING_CHECK(context->GetInputDesc(EXPAND_X_INDEX) == nullptr,
+         OP_LOGE(nodeName, "expanxDesc is null. Set hccl tiling failed."), return ge::GRAPH_FAILED);
     SetHcclTiling(context, tilingData);
     // Tiling Key support only 1 scenario in current version
     uint64_t tilingKey = TILING_KEY_BASE_A5;

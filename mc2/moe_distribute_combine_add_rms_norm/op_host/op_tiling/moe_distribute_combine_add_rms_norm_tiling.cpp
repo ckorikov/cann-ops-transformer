@@ -268,12 +268,6 @@ static ge::graphStatus GetAttrAndSetTilingData(const gert::TilingContext *contex
     OP_TILING_CHECK((*commQuantModePtr != 0) && (*commQuantModePtr != INT8_COMM_QUANT),
         OP_LOGE(nodeName, "commQuantMode only support 0(default) or 2(int8 comm quant), but got commQuantMode=%ld.",
         *commQuantModePtr), return ge::GRAPH_FAILED);
-    int64_t moePerRankNum = moeExpertNum / (epWorldSize - sharedExpertRankNum);
-    int64_t curDispatchStatusNum = moePerRankNum * epWorldSize;
-    OP_TILING_CHECK((curDispatchStatusNum > DISPATCH_STATUS_MAX_SUPPORT_NUM),
-        OP_LOGE(nodeName, "The moe experts num must meet the conditions,"
-        " (moeExpertNum / (epWorldSize - sharedExpertRankNum)) * epWorldSize <= 1280, but cur is %ld.",
-        curDispatchStatusNum), return ge::GRAPH_FAILED);
 
     commQuantMode = static_cast<uint32_t>(*commQuantModePtr);
     groupEp = string(groupEpPtr);

@@ -49,15 +49,19 @@ static ge::graphStatus InferShapeCheck(gert::InferShapeContext* context) {
 }
  
 static ge::graphStatus MoeDistributeCombineAddRmsNormInferShape(gert::InferShapeContext* context) {
-    OP_LOGD(context->GetNodeName(), "Begin to do Infershape of MoeDistributeCombineAddRmsNormInferShape.");
     if (InferShapeCheck(context) == GRAPH_FAILED) {
         return GRAPH_FAILED;
     }
- 
+
+    OP_LOGD(context->GetNodeName(), "Begin to do Infershape of MoeDistributeCombineAddRmsNormInferShape.");
     const gert::Shape* residualX = context->GetInputShape(IDX_FIVE);
+    OPS_CHECK_NULL_WITH_CONTEXT(context, residualX);
     gert::Shape* x1OutShape = context->GetOutputShape(IDX_ZERO);
+    OPS_CHECK_NULL_WITH_CONTEXT(context, x1OutShape);
     gert::Shape* rstdOutShape = context->GetOutputShape(IDX_ONE);
+    OPS_CHECK_NULL_WITH_CONTEXT(context, rstdOutShape);
     gert::Shape* x2OutShape = context->GetOutputShape(IDX_TWO);
+    OPS_CHECK_NULL_WITH_CONTEXT(context, x2OutShape);
  
     size_t dimNum = residualX->GetDimNum();
     x1OutShape->SetDimNum(IDX_THREE);

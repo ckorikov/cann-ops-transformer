@@ -30,6 +30,9 @@ static constexpr size_t COMBINE_OUTPUT_X_INDEX = 0;
 
 static ge::graphStatus InferShapeMoeDistributeCombine(gert::InferShapeContext *context)
 {
+    if (context == nullptr){
+        return ge::GRAPH_FAILED;
+    }
     OP_LOGD(context->GetNodeName(), "Begin to do InferShapeMoeDistributeCombine.");
     // 获取输入shape
     const gert::Shape *expandXShape = context->GetInputShape(COMBINE_INPUT_EXPERT_X_INDEX);

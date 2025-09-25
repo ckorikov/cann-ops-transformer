@@ -1077,11 +1077,11 @@ static ge::graphStatus MoeDistributeDispatchA2CheckShapeAndSetTiling(const gert:
     OP_TILING_CHECK(attrs == nullptr, OP_LOGE(K_INNER_DEBUG, "attrs is null."), return ge::GRAPH_FAILED);
     auto quantModePtr = attrs->GetAttrPointer<int>(ATTR_QUANT_MODE_INDEX);
     uint32_t maxHiddenSizeA2 = isLayered ? LAYERED_MAX_HIDDEN_SIZE_A2 : MAX_HIDDEN_SIZE_A2;
-    OP_TILING_CHECK(h % BLOCK_SIZE_A2 != 0 || h <= 0 || h > maxHiddenSizeA2,
+    OP_TILING_CHECK(h % BLOCK_SIZE_A2 != 0 || h == 0 || h > maxHiddenSizeA2,
         OP_LOGE(K_INNER_DEBUG, "hiddensize is invalid."), return GRAPH_FAILED);
-    OP_TILING_CHECK(bs <= 0 || bs > MAX_BATCH_SIZE_A2,
+    OP_TILING_CHECK(bs == 0 || bs > MAX_BATCH_SIZE_A2,
         OP_LOGE(K_INNER_DEBUG, "batchsize is invalid."), return GRAPH_FAILED);
-    OP_TILING_CHECK(k <= 0 || k > MAX_K_VALUE_A2,
+    OP_TILING_CHECK(k == 0 || k > MAX_K_VALUE_A2,
         OP_LOGE(K_INNER_DEBUG, "k is invalid."), return GRAPH_FAILED);
     OP_TILING_CHECK(*quantModePtr == UNQUANT_MODE && isScales,
         OP_LOGE(K_INNER_DEBUG, "scales should be null when quantMode is unQuant."), return GRAPH_FAILED);

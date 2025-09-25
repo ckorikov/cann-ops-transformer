@@ -62,6 +62,9 @@ static bool IsPlatform910B(const gert::InferShapeContext *context) {
 
 static ge::graphStatus InferShapeMoeDistributeDispatchV2(gert::InferShapeContext *context)
 {
+    if (context == nullptr){
+        return ge::GRAPH_FAILED;
+    }
     OP_LOGD(context->GetNodeName(), "Begin to do InferShapeMoeDistributeDispatchV2.");
     // 获取输入shape
     const gert::Shape *xShape = context->GetInputShape(DISPATCH_INPUT_X_INDEX);

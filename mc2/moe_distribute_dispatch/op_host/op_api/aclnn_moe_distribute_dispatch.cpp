@@ -129,13 +129,13 @@ aclnnStatus aclnnMoeDistributeDispatchGetWorkspaceSize(const aclTensor* x, const
 {
     if (GetCurrentPlatformInfo().GetSocVersion() == SocVersion::ASCEND910B) {
         const char* groupTpEmptyWord = "";
-        aclnnStatus ret = MoeDistributeDispatchGetWorkspaceSize(x, expertIds, scales, xActiveMask, expertScales,
+        aclnnStatus distributeDispatchRet = MoeDistributeDispatchGetWorkspaceSize(x, expertIds, scales, xActiveMask, expertScales,
                                                                                 groupEp, epWorldSize, epRankId, moeExpertNum,
                                                                                 groupTpEmptyWord, tpWorldSize, tpRankId, expertShardType, sharedExpertNum,
                                                                                 sharedExpertRankNum, quantMode, globalBs, expertTokenNumsType,
                                                                                 expandX, dynamicScales, expandIdx, expertTokenNums, epRecvCounts, tpRecvCounts,
                                                                                 expandScales, workspaceSize, executor);
-        return ret;
+        return distributeDispatchRet;
     }
     aclnnStatus ret = MoeDistributeDispatchGetWorkspaceSize(x, expertIds, scales, xActiveMask, expertScales,
                                                                             groupEp, epWorldSize, epRankId, moeExpertNum,
