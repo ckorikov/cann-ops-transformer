@@ -58,7 +58,7 @@ static bool CheckNotNull(const aclTensor* x, const aclTensor* expertIds, const c
     OP_CHECK_NULL(epRecvCounts, return false);
     OP_LOGD("aclnn_moe_distribute_dispatch_v3 CheckNotNull success");
     if ((groupEp == nullptr)||(strnlen(groupEp, HCCL_GROUP_NAME_MAX) == 0)) {
-        OP_LOGE(ACLNN_ERR_PARAM_NULLPTR, "group gropuEp name is Empty");
+        OP_LOGE(ACLNN_ERR_PARAM_NULLPTR, "group groupEp name is Empty");
         return false;
     }
     return true;

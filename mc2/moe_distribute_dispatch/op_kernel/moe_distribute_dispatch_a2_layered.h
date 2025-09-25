@@ -176,7 +176,7 @@ private:
     uint32_t weightOffsetInStruct_{0};
     uint32_t cntOffsetInStruct_{0};
     uint32_t scaleOffsetInStruct_{0};
-    uint32_t scaleLennStruct_{0};
+    uint32_t scaleLenInStruct_{0};
     uint32_t flagLenInStruct_{0};
     uint32_t flagOffsetInStruct_{0};
     int32_t magicVal_{0};
@@ -252,9 +252,9 @@ __aicore__ inline void MoeDistributeDispatchA2Layered<TemplateMC2TypeA2layeredFu
     expLenInStruct_ = alignK_ * sizeof(uint32_t);   // 为了对齐，使用 alignK_ 计算tokenStruct中的内存
     weightLenInStruct_ = alignK_ * sizeof(uint32_t);
     realLenInStruct_ = axisK_ * sizeof(uint32_t);   // 内存中实际有效部分，跟 axisK_ 有关
-    scaleLennStruct_ = UB_32B_ALIGN;
+    scaleLenInStruct_ = UB_32B_ALIGN;
     flagLenInStruct_ = UB_32B_ALIGN;
-    tokenStructLen_ = flagLenInStruct_ + tokenLenInStruct_ + expLenInStruct_ + weightLenInStruct_ + scaleLennStruct_;
+    tokenStructLen_ = flagLenInStruct_ + tokenLenInStruct_ + expLenInStruct_ + weightLenInStruct_ + scaleLenInStruct_;
 
     /* 注意：flag必须放置在整个token struct的最前端，而且token和token之间不能连续发送。
        原因：两条ROCE消息通过PCIE总线写到GM内存时，只有第二条消息的第一个分片的写操作和上一条消息保证是保序的，其余分片可能比第一条消息更早写入。
@@ -361,7 +361,7 @@ __aicore__ inline void MoeDistributeDispatchA2Layered<TemplateMC2TypeA2layeredFu
     PipeBarrier<PIPE_ALL>();
 
     // Make sure we don't overflow the SQ in an infinite loop - no need to mitigate endless loop as the host
-    // will timeout and kill the kernel, same as all2all krenel if it fails to complete (e.g. in case of link loss)
+    // will timeout and kill the kernel, same as all2all kernel if it fails to complete (e.g. in case of link loss)
     while(1) {
         cacheWriteThrough((__gm__ uint8_t*)curHardwareTailAddr, 8);
         if ((curHead - *(__gm__ uint32_t*)(curHardwareTailAddr)) < QP_DEPTH - 1) {
@@ -394,7 +394,7 @@ __aicore__ inline void MoeDistributeDispatchA2Layered<TemplateMC2TypeA2layeredFu
     memDetail = (__gm__ HcclAiRMAMemInfo*)(mem_info_table + sizeof_memdetail * destRankId);
     *(__gm__ uint32_t*)(sgeAddr + sizeof(uint32_t)) = ((__gm__ MemDetails*)(memDetail->memDetailPtr +
         memDetail->sizeOfMemDetails * static_cast<uint32_t>(HcclAiRMAMemType::LOCAL_OUTPUT)))->key; // L_Key
-    *(__gm__ uint64_t*)(sgeAddr + 2 * sizeof(uint32_t)) = (uint64_t)srcDmaAddr; // src VA addr memory registerd by RNIC
+    *(__gm__ uint64_t*)(sgeAddr + 2 * sizeof(uint32_t)) = (uint64_t)srcDmaAddr; // src VA addr memory registered by RNIC
 
     // wqe & sge cache flush
     cacheWriteThrough(wqeAddr, sizeof(struct hns_roce_rc_sq_wqe) + sizeof(struct hns_roce_lite_wqe_data_seg));
@@ -892,7 +892,7 @@ SendDataToServer(uint32_t destServerId)
     uint32_t dstRankId = rankId_ % SERVER_RANK_SIZE + destServerId * SERVER_RANK_SIZE;
     uint64_t destServerMask = (1UL << destServerId);
 
-    // 根据BufferID选择对应WinodwBuffer -> 根据对应本机的Server选择Dst对应预留区域
+    // 根据BufferID选择对应WindowBuffer -> 根据对应本机的Server选择Dst对应预留区域
     uint64_t dstRdmaAddr = (uint64_t)(hccl_.GetWindowsInAddr(dstRankId) + (halfWinSize_ * bufferId_ * 1UL) +
                                     (serverId_ * SERVER_SIZE_ON_WIN * 1UL));
     uint64_t srcRdmaAddrBase = (uint64_t)(hccl_.GetWindowsOutAddr(rankId_) + (halfWinSize_ * bufferId_ * 1UL));

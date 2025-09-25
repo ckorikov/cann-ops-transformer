@@ -19,8 +19,8 @@ namespace Mc2Log {
 
 static void PrintTCubeTilingDataSecondPart(const std::string &opName,
                                            optiling::TCubeTiling &tiling) {
-  OP_LOGD(opName, " tiling.deptchAL1CacheUB %d", tiling.get_depthAL1CacheUB());
-  OP_LOGD(opName, " tiling.deptchBL1CacheUB %d", tiling.get_depthBL1CacheUB());
+  OP_LOGD(opName, " tiling.depthAL1CacheUB %d", tiling.get_depthAL1CacheUB());
+  OP_LOGD(opName, " tiling.depthBL1CacheUB %d", tiling.get_depthBL1CacheUB());
   OP_LOGD(opName, " tiling.get_dbL0A %d", tiling.get_dbL0A());
   OP_LOGD(opName, " tiling.get_dbL0B %d", tiling.get_dbL0B());
   OP_LOGD(opName, " tiling.get_dbL0C %d", tiling.get_dbL0C());

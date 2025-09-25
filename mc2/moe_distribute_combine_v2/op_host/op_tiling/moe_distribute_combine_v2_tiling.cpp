@@ -882,7 +882,7 @@ static bool CheckAttrs(const gert::TilingContext *context, MoeDistributeCombineV
     uint32_t sharedExpertRankNum = tilingData.moeDistributeCombineV2Info.sharedExpertRankNum;
 
     OP_TILING_CHECK(!CheckSharedAttrs(nodeName, tilingData),
-        OP_LOGE(nodeName, "Check shared expert related attributes falied."), return false);
+        OP_LOGE(nodeName, "Check shared expert related attributes failed."), return false);
 
     // 校验moe专家数量能否均分给多机
     OP_TILING_CHECK(moeExpertNum % (epWorldSize - sharedExpertRankNum) != 0,
@@ -970,7 +970,7 @@ static ge::graphStatus SetWorkspace(gert::TilingContext *context, const char *no
     OP_TILING_CHECK(workspace == nullptr, VECTOR_INNER_ERR_REPORT_TILING(nodeName, "get workspace failed"),
         return ge::GRAPH_FAILED);
     workspace[0] = SYSTEM_NEED_WORKSPACE + aivNum * MASK_CALC_NEED_WORKSPACE;
-    OP_LOGD(nodeName, "workspce[0] size is %ld", workspace[0]);
+    OP_LOGD(nodeName, "workspace[0] size is %ld", workspace[0]);
     return ge::GRAPH_SUCCESS;
 }
 

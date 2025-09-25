@@ -220,7 +220,7 @@ uint8_t Mc2GetCommAlgo(int64_t rankDim, uint64_t mValue, const char *group,
   }
   if ((mValue % CHECK_VALUE_ODD != 0) || (mValue % rankDim != 0)) {
     OP_LOGW(context->GetNodeName(),
-            " m value is odd or cannot be devided by rankDim.");
+            " m value is odd or cannot be divided by rankDim.");
     return COMM_ALG_DEFAULT;
   }
   return COMM_ALG_DOUBLE_RING;
@@ -283,7 +283,7 @@ ge::graphStatus GetMatmulV3PriorityPolicy(
   }
 
   if (priorities.empty()) {
-    OP_LOGE(opName, "vesion %u can't find suitable matmul priorities",
+    OP_LOGE(opName, "version %u can't find suitable matmul priorities",
             static_cast<uint32_t>(socVersion));
     return ge::GRAPH_FAILED;
   }

@@ -48,8 +48,8 @@ constexpr uint32_t FP8_E4M3_PERTILE_QUANT_MODE = 8;
 constexpr uint32_t HIF8_PERTENSOR_QUANT_MODE = 9;
 
 #define TemplateMC2TypeClass \
-    typename XType, typename ExpandXOutType, int32_t QuantMode, bool IsSmoothScaleExist, bool IsNeedAllgater
-#define TemplateMC2TypeFunc XType, ExpandXOutType, QuantMode, IsSmoothScaleExist, IsNeedAllgater
+    typename XType, typename ExpandXOutType, int32_t QuantMode, bool IsSmoothScaleExist, bool IsNeedAllgather
+#define TemplateMC2TypeFunc XType, ExpandXOutType, QuantMode, IsSmoothScaleExist, IsNeedAllgather
 
 using namespace AscendC;
 template <TemplateMC2TypeClass>

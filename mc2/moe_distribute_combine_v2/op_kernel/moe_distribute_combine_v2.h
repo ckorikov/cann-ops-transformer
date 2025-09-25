@@ -229,7 +229,7 @@ private:
     TBuf<> xActMaskTBuf_;
     TBuf<> xActMaskCastTBuf_;
     TBuf<> tokenTargetTBuf_;
-    TBuf<> vaildBsIndexTBuf_;
+    TBuf<> validBsIndexTBuf_;
     TBuf<> xActMaskSumTBuf_;
     TBuf<> stateBuf_;
     TBuf<> expertMaskBuf_;
@@ -256,7 +256,7 @@ private:
     LocalTensor<float> scaleDupLocalTensor_;
     LocalTensor<XType> sendLocalTensor_;
     LocalTensor<half> tokenTargetTensor_;
-    LocalTensor<int32_t> vaildBsIndexTensor_;
+    LocalTensor<int32_t> validBsIndexTensor_;
     LocalTensor<bool> expertMaskTensor_;
     LocalTensor<float> expertScalesLocal_;
     LocalTensor<float> rowTmpFloatLocal_;
@@ -323,7 +323,7 @@ __aicore__ inline void MoeDistributeCombineV2<TemplateMC2TypeFunc>::ExpertMaskCa
     CompareScalar(maskTensor, maskTempTensor, static_cast<half>(1), AscendC::CMPMODE::EQ, calCnt);
     CreateVecIndex(bsIndexTensor, 0, axisBS_);
     PipeBarrier<PIPE_V>();
-    GatherMask(vaildBsIndexTensor_, bsIndexTensor, maskTensorInt32, true, mask, {1, 1, 0, 0}, activeMaskBsCnt_);
+    GatherMask(validBsIndexTensor_, bsIndexTensor, maskTensorInt32, true, mask, {1, 1, 0, 0}, activeMaskBsCnt_);
 }
 
 template <TemplateMC2TypeClass>
@@ -708,10 +708,10 @@ __aicore__ inline void MoeDistributeCombineV2<TemplateMC2TypeFunc>::AlltoAllBuff
     }
     if (isInputExpertMaskFlag_) {
         tpipe_->InitBuffer(tokenTargetTBuf_, Ceil(axisBS_ * sizeof(half), UB_ALIGN) * UB_ALIGN);
-        tpipe_->InitBuffer(vaildBsIndexTBuf_, Ceil(axisBS_ * sizeof(int32_t), UB_ALIGN) * UB_ALIGN);
+        tpipe_->InitBuffer(validBsIndexTBuf_, Ceil(axisBS_ * sizeof(int32_t), UB_ALIGN) * UB_ALIGN);
         tpipe_->InitBuffer(expertMaskBuf_, Ceil(axisBS_ * axisK_ * sizeof(bool), UB_ALIGN) * UB_ALIGN);
         tokenTargetTensor_ = tokenTargetTBuf_.Get<half>();
-        vaildBsIndexTensor_ = vaildBsIndexTBuf_.Get<int32_t>();
+        validBsIndexTensor_ = validBsIndexTBuf_.Get<int32_t>();
         ExpertMaskCalCnt(); // 计算二维mask
         expertMaskTensor_ = expertMaskBuf_.Get<bool>();
         DataCopyPadExtParams<bool> maskCopyPadParams{false, 0U, 0U, 0U};
@@ -1160,7 +1160,7 @@ __aicore__ inline void MoeDistributeCombineV2<TemplateMC2TypeFunc>::LocalWindowC
     for (uint32_t curIdx = beginIndex; curIdx < endIndex; curIdx++) {
         uint32_t tokenIndex = curIdx;
         if (isInputExpertMaskFlag_) {
-            tokenIndex = vaildBsIndexTensor_.GetValue(curIdx);
+            tokenIndex = validBsIndexTensor_.GetValue(curIdx);
         }
         WaitDispatch(tokenIndex);
         uint32_t index = tokenIndex * axisK_;

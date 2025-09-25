@@ -121,10 +121,10 @@ BEGIN_TILING_DATA_DEF(Mc2Msg)                        // 同aicpu_hccl_def KFCTil
     TILING_DATA_FIELD_DEF(uint32_t, workspaceOff);   // 使用workspace作为recvbuf时的workspace偏移
     TILING_DATA_FIELD_DEF(uint32_t, notifyOff);      // device notify write/read value偏移
 
-    TILING_DATA_FIELD_DEF(uint16_t, notifyBeginCnt); // notift write value的使用个数
-    TILING_DATA_FIELD_DEF(uint16_t, notifyEndCnt);   // notift write value的使用个数
+    TILING_DATA_FIELD_DEF(uint16_t, notifyBeginCnt); // notify write value的使用个数
+    TILING_DATA_FIELD_DEF(uint16_t, notifyEndCnt);   // notify write value的使用个数
     TILING_DATA_FIELD_DEF(uint8_t, useBufferType);    // recvBuf类型
-    TILING_DATA_FIELD_DEF(uint8_t, funID);           // funtion ID
+    TILING_DATA_FIELD_DEF(uint8_t, funID);           // function ID
     TILING_DATA_FIELD_DEF(uint8_t, dataType);        // hccl 数据类型
     TILING_DATA_FIELD_DEF(uint8_t, groupNum);        // groupNum
 
@@ -139,7 +139,7 @@ BEGIN_TILING_DATA_DEF(Mc2Msg)                        // 同aicpu_hccl_def KFCTil
     TILING_DATA_FIELD_DEF(uint8_t, exitPolicy);      // 退出策略，0，一次通信任务下发完成直接退出；1. 通信任务执行完成退出；2.
                                                      // 等待AIC通知退出(可以多次执行任务)。
     TILING_DATA_FIELD_DEF(uint8_t, commAlg);         // 用于指定具体通信算法。
-                                                     // 0：defualt, 1：fullmesh, 2：doublering, 3：switchwing
+                                                     // 0：default, 1：fullmesh, 2：doublering, 3：switchwing
     TILING_DATA_FIELD_DEF(uint8_t, taskType);        // 从参数获取通信任务，直接下发。AIC自己发Record激活
     TILING_DATA_FIELD_DEF(uint8_t, debugMode);       // 调测模式
                                                      // 1:单独执行CUBE

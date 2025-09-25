@@ -81,7 +81,7 @@ uint64_t GetStepSmallK91095(const MatMulV3Args &args, const MatMulV3RunInfo &run
     static const double SMALL_TAIL = 0.25;
     bool isSmallTail = static_cast<double>(stepBigK % stepSmallK) / stepSmallK <= SMALL_TAIL;
     isSmallTail = (isSmallTail && !isTrans) || runInfo.baseK * dtypeSize >= BASIC_BLOCK_SIZE_256;
-    // A/B全载场景，要求单核K除以basek大于8，使stepKb/stepKa增大，搬运量变为64K，减少mte2耗时。
+    // A/B全载场景，要求单核K除以baseK大于8，使stepKb/stepKa增大，搬运量变为64K，减少mte2耗时。
     if ((inputType == ge::DT_FLOAT && !args.isHf32) || (inputFormat == ge::FORMAT_ND && 
     (runInfo.singleCoreK / runInfo.baseK) < (BASIC_BLOCK_SIZE_16 / NUM_TWO) && !isBL1FullLoad)) {
         stepSmallK = 1UL;
@@ -210,7 +210,7 @@ void MatMulV3AswFullLoadTiling::DoAL1FullLoad(bool isKFullLoad, uint64_t bBatchD
 {
     resetLoadBalance(runInfo_);
     if (isKFullLoad) {
-        OP_LOGD(args_.opName, "AL1 is full loaded with m splited in multi cores");
+        OP_LOGD(args_.opName, "AL1 is full loaded with m split in multi cores");
         runInfo_.singleCoreM = std::min(runInfo_.singleCoreM, args_.mValue);
         return;
     }
@@ -327,7 +327,7 @@ void MatMulV3AswFullLoadTiling::AdjustTiling91095Basic(uint64_t biasBatchDimAll)
     while (loadSize > compileInfo_.l1Size) {
         // 第一轮有限调整stepK为2， 进一步的调整baseM
         runInfo_.baseM = (runInfo_.stepKa == std::min(runInfo_.stepKb, 2UL)) ? runInfo_.baseM >> 1 : runInfo_.baseM;
-        runInfo_.stepKa = std::min(runInfo_.stepKb, 2UL); // 最小为2保证baseK * 2 * adtype = 256B
+        runInfo_.stepKa = std::min(runInfo_.stepKb, 2UL); // 最小为2保证baseK * 2 * aDtype = 256B
         runInfo_.depthA1 = DB_SIZE * runInfo_.stepKa;
         runInfo_.baseM = ops::CeilAlign(runInfo_.baseM, BASIC_BLOCK_SIZE_16);
         loadSize -= runInfo_.depthA1 * runInfo_.baseM * runInfo_.baseK * args_.aDtypeSize;
@@ -362,7 +362,7 @@ void MatMulV3AswFullLoadTiling::AdjustTilingDefault(uint64_t biasBatchDimAll)
     while (loadSize > compileInfo_.l1Size) {	
         // 第一轮有限调整stepK为2， 进一步的调整baseM
         runInfo_.baseM = (runInfo_.stepKa == std::min(runInfo_.stepKb, 2UL)) ? runInfo_.baseM >> 1 : runInfo_.baseM;
-        runInfo_.stepKa = std::min(runInfo_.stepKb, 2UL); // 最小为2保证baseK * 2 * adtype = 256B
+        runInfo_.stepKa = std::min(runInfo_.stepKb, 2UL); // 最小为2保证baseK * 2 * aDtype = 256B
         runInfo_.depthA1 = DB_SIZE * runInfo_.stepKa;
         runInfo_.baseM = ops::CeilAlign(runInfo_.baseM, BASIC_BLOCK_SIZE_16);	
         loadSize -= runInfo_.depthA1 * runInfo_.baseM * runInfo_.baseK * args_.aDtypeSize;	
@@ -381,11 +381,11 @@ void MatMulV3AswFullLoadTiling::DoBL1FullLoad(bool isKFullLoad, uint64_t aBatchD
     OP_LOGI(args_.opName, "MatMulV3 tiling enable state is DoBL1FullLoad.");
     resetLoadBalance(runInfo_);
     if (isKFullLoad) {
-        OP_LOGD(args_.opName, "BL1 is full loaded with n splited in multi cores.");
+        OP_LOGD(args_.opName, "BL1 is full loaded with n split in multi cores.");
         runInfo_.singleCoreN = std::min(runInfo_.singleCoreN, args_.nValue);
         return;
     }
-    // fine tune tiling basen
+    // fine tune tiling baseN
     uint64_t nAlignedValue = ops::CeilAlign(args_.nValue, BASIC_BLOCK_SIZE_16);
     uint64_t bl0Size = nAlignedValue * runInfo_.baseK * args_.bDtypeSize * DB_SIZE;
     runInfo_.baseN = bl0Size <= compileInfo_.l0BSize ? nAlignedValue : std::min(nAlignedValue, runInfo_.baseN);

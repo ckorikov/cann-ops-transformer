@@ -62,9 +62,9 @@ void CalL1TilingDefault(const MatmulV3CompileInfo &compileInfo, const MatMulV3Ar
     uint64_t depthBSize = runInfo.depthB1 * runInfo.baseN * runInfo.baseK * args.bDtypeSize;
     if (depthASize + depthBSize > totalL1Size - reserveBTSize) {
         if (runInfo.baseM <= runInfo.baseN) {
-            runInfo.depthA1 = std::max(runInfo.depthA1 / NUM_TWO, 1UL);  // 2: adjust deptch for l1 buffer
+            runInfo.depthA1 = std::max(runInfo.depthA1 / NUM_TWO, 1UL);  // 2: adjust depth for l1 buffer
         } else {
-            runInfo.depthB1 = std::max(runInfo.depthB1 / NUM_TWO, 1UL);  // 2: adjust deptch for l1 buffer
+            runInfo.depthB1 = std::max(runInfo.depthB1 / NUM_TWO, 1UL);  // 2: adjust depth for l1 buffer
         }
     }
     runInfo.stepKa = std::max(runInfo.depthA1 / DB_SIZE, 1UL);
@@ -175,11 +175,11 @@ bool CheckIfDoubleAswt91095(const MatMulV3Args &args, const uint64_t batchC)
     if (batchC * args.mValue * args.nValue * args.aDtypeSize < halfL2Size) {  // check matC exceed half L2
         return false;
     }
-    if ((args.mValue * args.nValue / (args.mValue + args.nValue)) > cubeBoundRatio) {  // check if cube bound or streamk
+    if ((args.mValue * args.nValue / (args.mValue + args.nValue)) > cubeBoundRatio) {  // check if cube bound or streamK
         return false;
     }
     if (args.kValue > (args.mValue >> 1) ||
-        args.kValue > (args.nValue >> 1)) {  // check if matA or matb occupies most of L2
+        args.kValue > (args.nValue >> 1)) {  // check if matA or matB occupies most of L2
         return false;
     }
     return true;

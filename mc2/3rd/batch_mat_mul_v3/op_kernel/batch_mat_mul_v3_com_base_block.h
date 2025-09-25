@@ -270,7 +270,7 @@ __aicore__ inline void BatchMatMulCommonBaseBlock::UpdateBlockParams(uint64_t mT
 __aicore__ inline void BatchMatMulCommonBaseBlock::UpdateBlockCnt(uint64_t bmTileIndex, uint64_t nTileIndex)
 {
     // 当前Tile切分不跨Batch
-    // 计算偏移时每一个Tile块的起始偏移是无需区分尾块场景的，跨batch用M计算偏移，batch内用singcoreM计算
+    // 计算偏移时每一个Tile块的起始偏移是无需区分尾块场景的，跨batch用M计算偏移，batch内用singlecoreM计算
     uint32_t batchTileCnt = CeilDiv(params_.mCnt, params_.mTileCnt); // mCnt > 0 mtileCnt > 0 无等于0场景
     uint64_t curBatchCnt = bmTileIndex / batchTileCnt;
     uint64_t curBatchTileIdx = bmTileIndex % batchTileCnt;

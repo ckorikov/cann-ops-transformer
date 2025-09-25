@@ -78,7 +78,7 @@ void OneCalcTwoCommBase::GetTiling() {
           clusterInfo.nValue);
   // Get threshold values
   // Local AG/RS: tile_e_local * C * (H/Tp) * Tp * dTypeSize
-  // Non-local AG/RS: tile_e * ((Ep - 1) * tile_c) * (H/Tp) * Tp * dTypeSizez
+  // Non-local AG/RS: tile_e * ((Ep - 1) * tile_c) * (H/Tp) * Tp * dTypeSize
   // A2A: Ep * tile_c * (H/Tp) * dTypeSize
   // Non-local BMM: tile_e * ((Ep - 1) * tile_c) * H * (M / Tp), or tile_e *
   // ((Ep - 1) * Tp * tile_c) * H * (M / Tp)

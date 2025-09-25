@@ -373,7 +373,7 @@ static bool GetTransposeAttrValue(const aclTensor *tensor) {
     // check if tensor is contiguous layout
     // viewStride [1, K] viewShape [K, N] -> transpose=True
     // viewStride [K, 1] viewShape [K, N] -> transpose=False
-    // K or N = 1 -> transpose=undeterminated
+    // K or N = 1 -> transpose=undetermined
     if (tensor->GetViewStrides()[dim2] == 1 && tensor->GetViewStrides()[dim1] == tensor->GetViewShape().GetDim(dim2)) {
         OP_LOGI("Matmul GetTransposeAttrValue, find tensor not contiguous.");
         return true;
@@ -393,7 +393,7 @@ static const aclTensor* BuildMatMulWeightNzGraph(
 
     const aclTensor* matmulOut = nullptr;
 
-    // adpat for weightNz transpose scene
+    // adapt for weightNz transpose scene
     bool transposeX2 = GetTransposeAttrValue(mat2);
     // swap last two dims value
     if (transposeX2) {
@@ -411,7 +411,7 @@ static const aclTensor* BuildMatMulWeightNzGraph(
     // Set Nz format
     mat2 = SetTensorToNZFormat(mat2, weightNzShape, executor);
 
-    // 固定selt二维 mat2四维
+    // 固定self二维 mat2四维
     matmulOut = ExecMmOpWithBias(self, mat2, nullptr, cubeMathType, executor, transposeX2);
     CHECK_RET(matmulOut != nullptr, nullptr);
 
@@ -520,9 +520,9 @@ static const aclTensor* BuildMatMulGraph(
         // t1:(n, m) * t2:(N, m, p)
         FVector<int64_t> dimData;
         if (dimTensor1 == 1) {
-            dimData = FVector<int64_t>{0}; // unsquee dim 0
+            dimData = FVector<int64_t>{0}; // unsqueeze dim 0
         } else {
-            dimData = FVector<int64_t>{0, 1}; //  unsquee dim 0,1
+            dimData = FVector<int64_t>{0, 1}; //  unsqueeze dim 0,1
         }
         auto selfUnsqueeze = ContiguousUnsqueezeNd(self, dimData, executor);
         CHECK_RET(selfUnsqueeze != nullptr, nullptr);

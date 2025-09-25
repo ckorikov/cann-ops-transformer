@@ -334,7 +334,7 @@ ge::graphStatus BatchMatmulV3BaseTiling::DoLibApiTiling()
 /*
  * Algorithm to calculate the best (baseM, baseN) that gives even workload amongst iterations.
  * Parameter `divisor` is used to control the starting point of the algorithm.
- * Choosing different starting point can sometimes get better performence.
+ * Choosing different starting point can sometimes get better performance.
  * The starting point of `divisor = 2` is half of that of `divisor = 1`
  */
 static void CalcBaseMN(uint64_t &baseM, uint64_t &baseN, const matmul_v3::MatmulV3Args &args, uint64_t divisor = 1UL)
@@ -765,9 +765,9 @@ void BatchMatmulV3BaseTiling::CalculateNd2nzWorkspaceSize() {
  * Func:    tune down parameter x until either y(x) is below target value, or x has reached its minimum
  * Args:    `target` - target value
  *          `y` - current value of y(x)
- *          `x` - the paramter being tuned
+ *          `x` - the parameter being tuned
  *          `dydx` - the slope, dy/dx
- *          `step` - the step length (i.e. the minimul variation value) of x. Default is 1.
+ *          `step` - the step length (i.e. the minimum variation value) of x. Default is 1.
  * Note:    `x` is assumed to be aligned to `step`, that makes `step` the minimum of `x`.
  */
 static void TuneDownParam(uint64_t target, uint64_t &y, uint64_t &x, uint64_t dydx, uint64_t step = 1UL)

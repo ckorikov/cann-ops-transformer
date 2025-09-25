@@ -16,11 +16,11 @@ namespace fallback {
 using namespace ge;
 using namespace gert;
 
-const char *MoeDistributeCombineV2Info = "MoeDisbuteCombineV2Fallback";
+const char *MoeDistributeCombineV2Info = "MoeDistributeCombineV2Fallback";
 
 static graphStatus MoeDistributeCombineV2ExecuteFunc(OpExecuteContext* host_api_ctx)
 {
-  OP_LOGD(MoeDistributeCombineV2Info, "start to fallback for moeDisbuteCombineV2");
+  OP_LOGD(MoeDistributeCombineV2Info, "start to fallback for moeDistributeCombineV2");
   OP_CHECK_IF(host_api_ctx == nullptr, OP_LOGE(MoeDistributeCombineV2Info,"host_api_ctx is null"), return ge::GRAPH_FAILED);
   const auto expand_x = host_api_ctx->GetInputTensor(static_cast<size_t>(0));
   OP_CHECK_IF(expand_x == nullptr, OP_LOGE(MoeDistributeCombineV2Info,"expand_x is null"), return ge::GRAPH_FAILED);

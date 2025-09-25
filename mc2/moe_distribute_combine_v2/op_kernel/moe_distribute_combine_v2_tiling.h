@@ -12,8 +12,8 @@
  * \file moe_distribute_combine_v2_tiling.h
  * \brief
  */
-#ifndef MOE_DISTRIBUTE_CMOBINE_V2_TILING_H
-#define MOE_DISTRIBUTE_CMOBINE_V2_TILING_H
+#ifndef MOE_DISTRIBUTE_COMBINE_V2_TILING_H
+#define MOE_DISTRIBUTE_COMBINE_V2_TILING_H
 
 #include <cstdint>
 #include "kernel_tiling/kernel_tiling.h"
@@ -53,4 +53,4 @@ struct MoeDistributeCombineV2TilingData {
     MoeDistributeCombineV2Info moeDistributeCombineV2Info;
 };
 
-#endif //__MOE_DISTRIBUTE_CMOBINE_V2_TILING_H__
+#endif //__MOE_DISTRIBUTE_COMBINE_V2_TILING_H__

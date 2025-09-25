@@ -197,7 +197,7 @@ ge::graphStatus MatMulV3StreamKTiling::DoOpTiling()
         runInfo_.tailInfo.kCnt = MathUtil::CeilDivision(args_.kValue, skSingleCoreK);
     }
     MatMulV3TilingHelper::CalL1Tiling(compileInfo_, args_, runInfo_);
-    // depthb1 is less than deptha1
+    // depthB1 is less than depthA1
     if (runInfo_.baseM == runInfo_.baseN && runInfo_.depthB1 == runInfo_.depthA1 * NUM_TWO) {
         runInfo_.depthA1 = runInfo_.depthA1 * NUM_TWO;
         runInfo_.depthB1 = runInfo_.depthB1 / NUM_TWO;

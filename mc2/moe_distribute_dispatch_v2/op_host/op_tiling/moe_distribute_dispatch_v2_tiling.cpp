@@ -589,7 +589,7 @@ static ge::graphStatus CheckAttrs(const gert::TilingContext *context, const char
     uint32_t sharedExpertRankNum = tilingData.moeDistributeDispatchV2Info.sharedExpertRankNum;
 
     OP_TILING_CHECK(!CheckSharedAttrs(nodeName, tilingData),
-        OP_LOGE(nodeName, "Check shared expert related attributes falied."), return ge::GRAPH_FAILED);
+        OP_LOGE(nodeName, "Check shared expert related attributes failed."), return ge::GRAPH_FAILED);
 
     // 校验moe专家数量能否均分给多机
     localMoeExpertNum = moeExpertNum / (epWorldSize - sharedExpertRankNum);

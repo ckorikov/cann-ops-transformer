@@ -75,7 +75,7 @@ static bool IsPlatform910B(const char *nodeName) {
 static bool GetGroupCnt(const char *nodeName, const char *opType, int32_t &cnt) {
   const std::string opTypeStr = opType;
   if (GROUP_CNT_MAP.find(opTypeStr) == GROUP_CNT_MAP.end()) {
-    OPS_LOG_E(nodeName, "Op type [%s] has not registe in group cnt map.", opType);
+    OPS_LOG_E(nodeName, "Op type [%s] has not register in group cnt map.", opType);
     return false;
   }
   cnt = GROUP_CNT_MAP.at(opTypeStr);
@@ -241,8 +241,8 @@ ge::Status Mc2MoeInsertTask(const gert::ExeResGenerationContext *context, std::v
   tasks.insert(tasks.begin() + aicoreIndex, waitTask);
   OPS_LOG_EVENT(nodeName, "Generate notify wait task for mc2 node successfully.");
   aicoreIndex += 1L;
-  bool needAicpuTesk = IsPlatform910B(nodeName) || NO_AI_CPU_SET.find(opTypeStr) == NO_AI_CPU_SET.end();
-  if (needAicpuTesk) {
+  bool needAicpuTask = IsPlatform910B(nodeName) || NO_AI_CPU_SET.find(opTypeStr) == NO_AI_CPU_SET.end();
+  if (needAicpuTask) {
     domi::TaskDef aicpuTask{};
     if (CreateAicpuTaskMc2Moe(context, aicpuTask, groupCnt) != ge::GRAPH_SUCCESS) {
       return ge::GRAPH_FAILED;
@@ -346,7 +346,7 @@ ge::Status Mc2MoeGenTaskFunc(const gert::ExeResGenerationContext *context,
 ge::Status Mc2MoeGenTaskFuncV2(const gert::ExeResGenerationContext *context,
   std::vector<std::vector<uint8_t>> &tasks) {
   const char *nodeName = context->GetNodeName();
-  OPS_LOG_EVENT(nodeName, "MC2 Generate taask start.");
+  OPS_LOG_EVENT(nodeName, "MC2 Generate task start.");
   if (IsPlatform910B(nodeName)) {
     return Mc2GenTaskUtils::CommonKFCMc2GenTask(context, tasks, Mc2MoeGenTaskCallback);
   }

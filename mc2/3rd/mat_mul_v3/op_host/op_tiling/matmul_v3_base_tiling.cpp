@@ -308,14 +308,14 @@ static ge::graphStatus OpSpecificCheck(const gert::TilingContext &context, const
     std::vector<ge::DataType> dtype = {args.aType, args.bType, args.cType};
     if (args.hasBias) { dtype.push_back(args.biasType); }
     auto isValidDtype = [&args](const std::vector<ge::DataType> &dtypeList) -> ge::graphStatus {
-        const std::vector<std::vector<ge::DataType> > dtypeSuportList = {
+        const std::vector<std::vector<ge::DataType> > dtypeSupportList = {
             // x1,              x2,             y,              bias
             {ge::DT_FLOAT16,    ge::DT_FLOAT16, ge::DT_FLOAT16, ge::DT_FLOAT16},
             {ge::DT_FLOAT16,    ge::DT_FLOAT16, ge::DT_FLOAT16, ge::DT_FLOAT},
             {ge::DT_FLOAT,      ge::DT_FLOAT,   ge::DT_FLOAT,   ge::DT_FLOAT},
             {ge::DT_BF16,       ge::DT_BF16,    ge::DT_BF16,    ge::DT_FLOAT}
         };
-        for (auto &supported : dtypeSuportList) {
+        for (auto &supported : dtypeSupportList) {
             if (std::equal(dtypeList.begin(), dtypeList.end(), supported.begin())) {
                 return ge::GRAPH_SUCCESS;
             }
@@ -1581,9 +1581,9 @@ void MatmulV3BaseTiling::CalL1Tiling()
     uint64_t depthBSize = runInfo_.depthB1 * runInfo_.baseN * runInfo_.baseK * bDtypeSize_;
     if (depthASize + depthBSize > totalL1Size - reserveBTSize) {
         if (runInfo_.baseM <= runInfo_.baseN) {
-            runInfo_.depthA1 = runInfo_.depthA1 / NUM_HALF; // 2: adjust deptch for l1 buffer
+            runInfo_.depthA1 = runInfo_.depthA1 / NUM_HALF; // 2: adjust depth for l1 buffer
         } else {
-            runInfo_.depthB1 = runInfo_.depthB1 / NUM_HALF; // 2: adjust deptch for l1 buffer
+            runInfo_.depthB1 = runInfo_.depthB1 / NUM_HALF; // 2: adjust depth for l1 buffer
         }
     }
     runInfo_.stepKa = runInfo_.depthA1 / DB_SIZE;
@@ -1773,7 +1773,7 @@ bool MatmulV3BaseTiling::DoBL1FullloadWithFixpipeTiling() {
 
 bool MatmulV3BaseTiling::DoAL1FullLoadTiling()
 {
-    // only support fp32, and resreict transpose attrs as network cases
+    // only support fp32, and restrict transpose attrs as network cases
     if (!compileInfo_.supportL0c2out || args_.aType != ge::DT_FLOAT || args_.isATrans || !args_.isBTrans) {
         return false;
     }
@@ -2217,7 +2217,7 @@ bool MatmulV3BaseTiling::IsSupportSingleCoreSplitK() const
     }
     constexpr uint64_t splitKThres = 1024; // 1024: 切K阈值
     constexpr uint64_t splitBaseThres = BASIC_BLOCK_SIZE_128 * 3; // 3*128: 33算法 step=3
-    constexpr uint64_t splitKCubeThres = 5; // 5: cube dound阈值
+    constexpr uint64_t splitKCubeThres = 5; // 5: cube bound阈值
     bool isMKNLargeEnough = ((args_.mValue * args_.kValue >= splitKCubeThres * splitBaseThres * splitBaseThres) &&
         (args_.nValue >= splitKThres) &&
         (args_.mValue >= splitBaseThres) &&

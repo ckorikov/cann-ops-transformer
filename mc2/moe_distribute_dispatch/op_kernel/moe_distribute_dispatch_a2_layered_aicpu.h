@@ -238,7 +238,7 @@ __aicore__ inline void MoeDistributeDispatchA2LayeredAicpu<TemplateMC2TypeA2laye
             rankId_ / SERVER_RANK_SIZE * SERVER_RANK_SIZE + i) + shareMemOffset_));
     }
 
-    // struce相关信息初始化计算
+    // struct相关信息初始化计算
     tokenStructLen_ = axisH_ * sizeof(ExpandXOutType) + INFO_NUM_IN_TOKENSTRUCK * (axisK_ * sizeof(uint32_t));
     tokenLenInStruct_ = axisH_ * sizeof(ExpandXOutType);
     expLenInStruct_ = alignK_ * sizeof(uint32_t);
@@ -1113,15 +1113,15 @@ __aicore__ inline void MoeDistributeDispatchA2LayeredAicpu<TemplateMC2TypeA2laye
             tokenCntInBatch = tokenCntCurAiv - (batchCnt - 1) * tokenCntInUB;
         }
         // 计算当前Core处理的Token偏移
-        uint32_t tokenStruceIdx = localAivId * tokenCntPerAiv + tokenCntPreRemain + batchIdx * tokenCntInUB;
+        uint32_t tokenStructIdx = localAivId * tokenCntPerAiv + tokenCntPreRemain + batchIdx * tokenCntInUB;
         // 等待GM->UB
         if (formServerId == rankId_ / SERVER_RANK_SIZE) {
             SyncFunc<AscendC::HardEvent::S_MTE2>();
-            DataCopy(localUB, sendTokensU8Tensor_[WinInTokenOffset + tokenStruceIdx * tokenStructLen_],
+            DataCopy(localUB, sendTokensU8Tensor_[WinInTokenOffset + tokenStructIdx * tokenStructLen_],
                     tokenCntInBatch * tokenStructLen_);
         } else {
             SyncFunc<AscendC::HardEvent::S_MTE2>();
-            DataCopy(localUB, readTokensU8Tensor_[WinInTokenOffset + tokenStruceIdx * tokenStructLen_],
+            DataCopy(localUB, readTokensU8Tensor_[WinInTokenOffset + tokenStructIdx * tokenStructLen_],
                 tokenCntInBatch * tokenStructLen_);
         }
         SyncFunc<AscendC::HardEvent::MTE2_S>();

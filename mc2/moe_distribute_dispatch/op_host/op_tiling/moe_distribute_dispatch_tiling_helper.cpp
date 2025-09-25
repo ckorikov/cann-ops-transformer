@@ -42,7 +42,7 @@ inline bool MoeDistributeDispatchTilingHelper::CheckInputTensorDim(const gert::T
         const gert::StorageShape *scalesStorageShape = context->GetOptionalInputShape(SCALES_INDEX);
         OP_TILING_CHECK(scalesStorageShape == nullptr, OP_LOGE(nodeName, "scalesShape is null."), return false);
         if (quantMode != static_cast<uint32_t>(QuantModeA5::STATIC_QUANT)) {
-            // the cond is campatible with A2/A3 because static quant is only supported on A5
+            // the cond is compatible with A2/A3 because static quant is only supported on A5
             OP_TILING_CHECK(scalesStorageShape->GetStorageShape().GetDimNum() != TWO_DIMS,
                 OP_LOGE(nodeName, "scales dims must be 2 when quantMode=%u, but current dim num is %lu.",
                 quantMode, scalesStorageShape->GetStorageShape().GetDimNum()), return false);
@@ -51,7 +51,7 @@ inline bool MoeDistributeDispatchTilingHelper::CheckInputTensorDim(const gert::T
         } else {
             OP_TILING_CHECK((scalesStorageShape->GetStorageShape().GetDimNum() != ONE_DIM)
                 && (scalesStorageShape->GetStorageShape().GetDimNum() != TWO_DIMS),
-                OP_LOGE(nodeName, "scalesShape dims must be 1 or 2 when quaneMode is 1, but current dim num is %lu.",
+                OP_LOGE(nodeName, "scalesShape dims must be 1 or 2 when quantMode is 1, but current dim num is %lu.",
                 scalesStorageShape->GetStorageShape().GetDimNum()), return false);
             // additional check for hif8 quant
             auto expandXDesc = context->GetOutputDesc(OUTPUT_EXPAND_X_INDEX);
@@ -402,7 +402,7 @@ bool MoeDistributeDispatchTilingHelper::CheckTensorFormat(const gert::TilingCont
     OP_TILING_CHECK(static_cast<ge::Format>(ge::GetPrimaryFormat(expandXDesc->GetStorageFormat())) ==
         ge::FORMAT_FRACTAL_NZ, OP_LOGE(nodeName, "expandX format is invalid."), return false);
 
-    // quantMode 2, campatible with A2/A3
+    // quantMode 2, compatible with A2/A3
     if (quantMode >= static_cast<uint32_t>(QuantModeA5::PERTOKEN_DYNAMIC_QUANT)) {
         auto dynamicScalesDesc = context->GetOutputDesc(OUTPUT_DYNAMIC_SCALES_INDEX);
         OP_TILING_CHECK(dynamicScalesDesc == nullptr, OP_LOGE(nodeName, "dynamicScalesDesc is null."),

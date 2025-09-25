@@ -103,11 +103,11 @@ inline ge::graphStatus CheckEpAndTpWorldSize(const char *nodeName, const int64_t
                                              const int64_t *tpWorldSizePtr)
 {
     OP_TILING_CHECK((*epWorldSizePtr <= 0) || (*epWorldSizePtr > MAX_EP_WORLD_SIZE),
-                    OP_LOGE(nodeName, "The valid range of epWorldSize is (0, %ld], but acutually got epWorldSize=%ld.",
+                    OP_LOGE(nodeName, "The valid range of epWorldSize is (0, %ld], but actually got epWorldSize=%ld.",
                             MAX_EP_WORLD_SIZE, *epWorldSizePtr),
                     return ge::GRAPH_FAILED);
     OP_TILING_CHECK((*tpWorldSizePtr < 0) || (*tpWorldSizePtr > MAX_TP_WORLD_SIZE),
-                    OP_LOGE(nodeName, "The valid range of tpWorldSize is [0, %ld], but acutually got tpWorldSize=%ld.",
+                    OP_LOGE(nodeName, "The valid range of tpWorldSize is [0, %ld], but actually got tpWorldSize=%ld.",
                             MAX_TP_WORLD_SIZE, *tpWorldSizePtr),
                     return ge::GRAPH_FAILED);
     return ge::GRAPH_SUCCESS;
@@ -116,7 +116,7 @@ inline ge::graphStatus CheckEpAndTpWorldSize(const char *nodeName, const int64_t
 inline ge::graphStatus CheckEpRankId(const char *nodeName, const int64_t *epWorldSizePtr, const int64_t *epRankIdPtr)
 {
     OP_TILING_CHECK((*epRankIdPtr < 0) || (*epRankIdPtr >= *epWorldSizePtr),
-                    OP_LOGE(nodeName, "The valid range of epRankId is [0, %ld), but acutually got epRankId=%ld.",
+                    OP_LOGE(nodeName, "The valid range of epRankId is [0, %ld), but actually got epRankId=%ld.",
                             *epWorldSizePtr, *epRankIdPtr),
                     return ge::GRAPH_FAILED);
     return ge::GRAPH_SUCCESS;
@@ -127,7 +127,7 @@ inline ge::graphStatus CheckTpRankId(const char *nodeName, const int64_t *tpWorl
 {
     if (*tpWorldSizePtr > 1) {
         OP_TILING_CHECK((*tpRankIdPtr < 0) || (*tpRankIdPtr >= *tpWorldSizePtr),
-                        OP_LOGE(nodeName, "The valid range of tpRankId is [0, %ld), but acutually got tpRankId=%ld.",
+                        OP_LOGE(nodeName, "The valid range of tpRankId is [0, %ld), but actually got tpRankId=%ld.",
                                 *tpWorldSizePtr, *tpRankIdPtr),
                         return ge::GRAPH_FAILED);
         OP_TILING_CHECK((groupTpPtr == nullptr), OP_LOGE(nodeName, "The groupTpPtr is null."), return ge::GRAPH_FAILED);
@@ -153,7 +153,7 @@ inline ge::graphStatus CheckSharedExpertAttrs(const char *nodeName, const int64_
     OP_TILING_CHECK(
         (*sharedExpertRankNumPtr < 0) || (*sharedExpertRankNumPtr >= *epWorldSizePtr),
         OP_LOGE(nodeName,
-                "The valid range of sharedExpertRankNum is [0, %ld), but acutually got sharedExpertRankNum=%ld.",
+                "The valid range of sharedExpertRankNum is [0, %ld), but actually got sharedExpertRankNum=%ld.",
                 *epWorldSizePtr, *sharedExpertRankNumPtr),
         return ge::GRAPH_FAILED);
     OP_TILING_CHECK(
@@ -184,7 +184,7 @@ static ge::graphStatus GetAttrAndSetTilingData(const gert::TilingContext *contex
     OP_TILING_CHECK(
         (len == 0) || (len == MAX_GROUP_NAME_LENGTH),
         OP_LOGE(nodeName,
-                "Valid length of groupEp must be in the range (0, %lu), but acutually got strnlen(groupEp)=%lu.",
+                "Valid length of groupEp must be in the range (0, %lu), but actually got strnlen(groupEp)=%lu.",
                 MAX_GROUP_NAME_LENGTH, len),
         return ge::GRAPH_FAILED);
     OP_TILING_CHECK(epWorldSizePtr == nullptr, OP_LOGE(nodeName, "The epWorldSize is null."), return ge::GRAPH_FAILED);
@@ -216,7 +216,7 @@ static ge::graphStatus GetAttrAndSetTilingData(const gert::TilingContext *contex
                     OP_LOGE(nodeName, "CheckEpRankId failed."), return ge::GRAPH_FAILED);
     OP_TILING_CHECK((*moeExpertNumPtr <= 0) || (*moeExpertNumPtr > MOE_EXPERT_MAX_NUM),
                     OP_LOGE(nodeName,
-                            "The valid range of moeExpertNum is (0, %ld], but acutually got moeExpertNum=%ld.",
+                            "The valid range of moeExpertNum is (0, %ld], but actually got moeExpertNum=%ld.",
                             MOE_EXPERT_MAX_NUM, *moeExpertNumPtr),
                     return ge::GRAPH_FAILED);
     tilingData.combineTilingInfo.set_epWorldSize(static_cast<uint32_t>(*epWorldSizePtr));
@@ -469,7 +469,7 @@ static ge::graphStatus SetWorkSpace(gert::TilingContext *context, const char *no
     OP_TILING_CHECK(workspace == nullptr, VECTOR_INNER_ERR_REPORT_TILING(nodeName, "get workspace failed"),
                     return ge::GRAPH_FAILED);
     workspace[0] = SYSTEM_NEED_WORKSPACE;
-    OP_LOGD(nodeName, "workspce[0] size is %ld", workspace[0]);
+    OP_LOGD(nodeName, "workspace[0] size is %ld", workspace[0]);
     return ge::GRAPH_SUCCESS;
 }
 

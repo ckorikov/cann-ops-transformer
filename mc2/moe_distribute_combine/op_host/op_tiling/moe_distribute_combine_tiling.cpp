@@ -636,7 +636,7 @@ static ge::graphStatus SetWorkspace(gert::TilingContext *context, const char *no
     OP_TILING_CHECK(workspace == nullptr, VECTOR_INNER_ERR_REPORT_TILING(nodeName, "get workspace failed"),
                     return ge::GRAPH_FAILED);
     workspace[0] = SYSTEM_NEED_WORKSPACE;
-    OP_LOGD(nodeName, "workspce[0] size is %ld", workspace[0]);
+    OP_LOGD(nodeName, "workspace[0] size is %ld", workspace[0]);
     return ge::GRAPH_SUCCESS;
 }
 

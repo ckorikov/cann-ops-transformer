@@ -263,21 +263,21 @@ ge::graphStatus MoeUpdateExpertTiling::CheckInputShape(const gert::TilingContext
             tilingData->k),
         return ge::GRAPH_FAILED);
 
-    const gert::StorageShape* eplbTalbeStorageShape = context->GetInputShape(EPLB_TABLE_INDEX);
-    OP_TILING_CHECK(eplbTalbeStorageShape == nullptr,
+    const gert::StorageShape* eplbTableStorageShape = context->GetInputShape(EPLB_TABLE_INDEX);
+    OP_TILING_CHECK(eplbTableStorageShape == nullptr,
         OP_LOGE(MOE_UPDATE_EXPERT_DEBUG, "eplb_table shape is null."), return ge::GRAPH_FAILED);
-    OP_TILING_CHECK((eplbTalbeStorageShape->GetStorageShape().GetDimNum() != NUM_TWO),
+    OP_TILING_CHECK((eplbTableStorageShape->GetStorageShape().GetDimNum() != NUM_TWO),
         OP_LOGE(MOE_UPDATE_EXPERT_DEBUG, "The dim of eplb_table(moeExpertNum, F) should be 2, but got %lu!",
-            eplbTalbeStorageShape->GetStorageShape().GetDimNum()),
+            eplbTableStorageShape->GetStorageShape().GetDimNum()),
         return ge::GRAPH_FAILED);
-    tilingData->moeExpertNum = eplbTalbeStorageShape->GetStorageShape().GetDim(0);
+    tilingData->moeExpertNum = eplbTableStorageShape->GetStorageShape().GetDim(0);
     OP_TILING_CHECK(((tilingData->moeExpertNum <= 0) || (tilingData->moeExpertNum > MAX_MOE_EXPERT_NUM) ||
         (tilingData->moeExpertNum < tilingData->k)),
         OP_LOGE(MOE_UPDATE_EXPERT_DEBUG,
             "eplb_table's dim0(moeExpertNum) should be in (0, %d], and not less than K[%d], but got %d!",
             MAX_MOE_EXPERT_NUM, tilingData->k, tilingData->moeExpertNum),
         return ge::GRAPH_FAILED);
-    tilingData->f = eplbTalbeStorageShape->GetStorageShape().GetDim(1);
+    tilingData->f = eplbTableStorageShape->GetStorageShape().GetDim(1);
     OP_TILING_CHECK(((tilingData->f <= 1) || (static_cast<int64_t>(tilingData->f) > worldSize + 1)),
         OP_LOGE(MOE_UPDATE_EXPERT_DEBUG, "eplb_table's dim1(f) should be in (1, %ld], but got %d!",
             worldSize + 1, tilingData->f),
@@ -396,19 +396,19 @@ ge::graphStatus MoeUpdateExpertTiling::CheckOptionalInputShape(const gert::Tilin
 
 ge::graphStatus MoeUpdateExpertTiling::CheckOutputShape(const gert::TilingContext* context) const
 {
-    const gert::StorageShape* balancedExperIdsStorageShape = context->GetOutputShape(OUTPUT_BALANCED_EXPERT_IDS);
-    OP_TILING_CHECK(balancedExperIdsStorageShape == nullptr,
+    const gert::StorageShape* balancedExpertIdsStorageShape = context->GetOutputShape(OUTPUT_BALANCED_EXPERT_IDS);
+    OP_TILING_CHECK(balancedExpertIdsStorageShape == nullptr,
         OP_LOGE(MOE_UPDATE_EXPERT_DEBUG, "balanced_expert_ids shape is null."), return ge::GRAPH_FAILED);
-    OP_TILING_CHECK((balancedExperIdsStorageShape->GetStorageShape().GetDimNum() != NUM_TWO),
+    OP_TILING_CHECK((balancedExpertIdsStorageShape->GetStorageShape().GetDimNum() != NUM_TWO),
         OP_LOGE(MOE_UPDATE_EXPERT_DEBUG, "The dim of balanced_expert_ids(BS, K) should be 2, but got %lu!",
-            balancedExperIdsStorageShape->GetStorageShape().GetDimNum()),
+            balancedExpertIdsStorageShape->GetStorageShape().GetDimNum()),
         return ge::GRAPH_FAILED);
-    OP_TILING_CHECK(((balancedExperIdsStorageShape->GetStorageShape().GetDim(0) != tilingData->bs) ||
-        (balancedExperIdsStorageShape->GetStorageShape().GetDim(1) != tilingData->k)),
+    OP_TILING_CHECK(((balancedExpertIdsStorageShape->GetStorageShape().GetDim(0) != tilingData->bs) ||
+        (balancedExpertIdsStorageShape->GetStorageShape().GetDim(1) != tilingData->k)),
         OP_LOGE(MOE_UPDATE_EXPERT_DEBUG,
-            "balanced_expert_ids dim(bs, k) should be equals to epert_ids's dim[%d, %d], but got [%lu, %lu]!",
-            tilingData->bs, tilingData->k, balancedExperIdsStorageShape->GetStorageShape().GetDim(0),
-            balancedExperIdsStorageShape->GetStorageShape().GetDim(1)),
+            "balanced_expert_ids dim(bs, k) should be equals to expert_ids's dim[%d, %d], but got [%ld, %ld]!",
+            tilingData->bs, tilingData->k, balancedExpertIdsStorageShape->GetStorageShape().GetDim(0),
+            balancedExpertIdsStorageShape->GetStorageShape().GetDim(1)),
         return ge::GRAPH_FAILED);
 
     const gert::StorageShape* balancedActiveMaskShape = context->GetOutputShape(OUTPUT_ACTIVE_MASK_IDS);
@@ -421,7 +421,7 @@ ge::graphStatus MoeUpdateExpertTiling::CheckOutputShape(const gert::TilingContex
     OP_TILING_CHECK(((balancedActiveMaskShape->GetStorageShape().GetDim(0) != tilingData->bs) ||
         (balancedActiveMaskShape->GetStorageShape().GetDim(1) != tilingData->k)),
         OP_LOGE(MOE_UPDATE_EXPERT_DEBUG,
-            "balanced_active_mask dim(bs, k) should be equals to epert_ids's dim[%d, %d], but got [%lu, %lu]!",
+            "balanced_active_mask dim(bs, k) should be equals to expert_ids's dim[%d, %d], but got [%ld, %ld]!",
             tilingData->bs, tilingData->k, balancedActiveMaskShape->GetStorageShape().GetDim(0),
             balancedActiveMaskShape->GetStorageShape().GetDim(1)),
         return ge::GRAPH_FAILED);

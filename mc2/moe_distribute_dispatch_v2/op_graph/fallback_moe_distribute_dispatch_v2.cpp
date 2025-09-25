@@ -24,7 +24,7 @@ const char *MoeDistributeDispatchV2Info = "MoeDistributeDispatchV2Fallback";
 
 static graphStatus MoeDistributeDispatchV2ExecuteFunc(OpExecuteContext* host_api_ctx)
 {
-  OP_LOGD(MoeDistributeDispatchV2Info, "start to fallback for moeDisbuteDispatchV2");
+  OP_LOGD(MoeDistributeDispatchV2Info, "start to fallback for moeDistributeDispatchV2");
   OP_CHECK_IF(host_api_ctx == nullptr, OP_LOGE(MoeDistributeDispatchV2Info, "host_api_ctx is null"), return ge::GRAPH_FAILED);
   const auto x = host_api_ctx->GetInputTensor(static_cast<size_t>(0));
   OP_CHECK_IF(x == nullptr, OP_LOGE(MoeDistributeDispatchV2Info, "x is null"), return ge::GRAPH_FAILED);
