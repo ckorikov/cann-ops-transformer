@@ -1131,7 +1131,7 @@ __aicore__ inline void MlaPrologVecS1CubS2<MLAPT>::RmsNormAndScatterCkv(LocalTen
         }; 
         if constexpr (std::is_same<mmCkvKrOutputType, int32_t>::value) {
             QuantPerTensor(outputLocal, tmpOut, quantScaleCkvLocal_, sharedBuf, rectangleParams);
-            pipe_barrier(PIPE_V);
+            AscendC::PipeBarrier<PIPE_V>();
         } else {
             QuantPerChannel(outputLocal, tmpOut, quantScaleCkvLocal_, sharedBuf, rectangleParams);
         }
@@ -1477,7 +1477,7 @@ __aicore__ inline void MlaPrologVecS1CubS2<MLAPT>::DequantQcQrSplitN(const Dequa
     // cast
     WaitFlag<HardEvent::MTE2_V>(EVENT_ID1);
     Dequant(computeLocal, inputLocal, scaleLocal, scale2Local, dequantParams);
-    PipeBarrier<PIPE_V>();
+    AscendC::PipeBarrier<PIPE_V>();
     // cast
     Cast(outputLocal, computeLocal, RoundMode::CAST_RINT, count);
     SetFlag<HardEvent::V_MTE3>(EVENT_ID2);

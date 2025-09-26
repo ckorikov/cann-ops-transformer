@@ -11,6 +11,7 @@
  /*!
   * \file mla_prolog_comm.h
   * \brief 存放各种vector的公共组件
+  * pipe_barrier 修改
   */
 
 #ifndef MLA_PROLOG_VECTOR_COMM_H
@@ -176,7 +177,7 @@ __aicore__ inline void RowMax(LocalTensor<float> &dstUb, LocalTensor<float> &src
     repeatParamsMax.dstRepStride = rectangleParams.stride / FP32_BLOCK_ELEMENT_NUM;
     if (blockCount > 0 && remain > 0) {
         Max(srcUb, srcUb, srcUb[blockCount * dtypeMask], remain, rectangleParams.row, repeatParamsMax);
-        pipe_barrier(PIPE_V);
+        AscendC::PipeBarrier<PIPE_V>();
     }
 
     for (uint32_t columnLoopCount = blockCount >> 1; columnLoopCount > 0; columnLoopCount = blockCount >> 1) { // 2: 每次处理2个block
@@ -185,7 +186,7 @@ __aicore__ inline void RowMax(LocalTensor<float> &dstUb, LocalTensor<float> &src
             Max(srcUb[j * dtypeMask], srcUb[j * dtypeMask], srcUb[(j + blockCount) * dtypeMask], dtypeMask,
                 rectangleParams.row, repeatParamsMax);
         }
-        pipe_barrier(PIPE_V);
+        AscendC::PipeBarrier<PIPE_V>();
     }
 
     WholeReduceMax(dstUb, srcUb, (rectangleParams.col < dtypeMask) ? rectangleParams.col : dtypeMask, rectangleParams.row, 1, 1,
@@ -208,9 +209,9 @@ __aicore__ inline void Dequant(const LocalTensor<float> &outputLocal, const Loca
                                const LocalTensor<float> &scale2Local, const Rectangle& rectangleParams) {
     uint64_t cnt = rectangleParams.col * rectangleParams.row;
     Cast(outputLocal, inputLocal, RoundMode::CAST_RINT, cnt);
-    PipeBarrier<PIPE_V>();
+    AscendC::PipeBarrier<PIPE_V>();
     RowMuls(outputLocal, outputLocal, scale2Local, rectangleParams);
-    PipeBarrier<PIPE_V>();
+    AscendC::PipeBarrier<PIPE_V>();
     VecMulMat(outputLocal, scaleLocal, outputLocal, rectangleParams);
 }
 
@@ -228,11 +229,11 @@ __aicore__ inline void CastFP32ToINT8(const LocalTensor<int8_t> outLocal, const 
     LocalTensor<int32_t> int32 = shareTmpUb.ReinterpretCast<int32_t>();
     LocalTensor<half> tmpHalf = shareTmpUb.ReinterpretCast<half>();
     Cast(int32, inputLocal, RoundMode::CAST_RINT, cnt);
-    pipe_barrier(PIPE_V);
+    AscendC::PipeBarrier<PIPE_V>();
     SetDeqScale(static_cast<half>(1.0));
-    pipe_barrier(PIPE_V);
+    AscendC::PipeBarrier<PIPE_V>();
     Cast(tmpHalf, int32, RoundMode::CAST_ROUND, cnt);
-    pipe_barrier(PIPE_V);
+    AscendC::PipeBarrier<PIPE_V>();
     Cast(outLocal, tmpHalf, RoundMode::CAST_TRUNC, cnt);
 }
 
@@ -253,7 +254,7 @@ __aicore__ inline void QuantPerChannel(const LocalTensor<int8_t> &outLocal, cons
                                        const LocalTensor<uint8_t> &shareTmpUb, const Rectangle& rectangleParams)
 {
     VecMulMat(inputLocal, quantScaleLocal, inputLocal, rectangleParams);
-    PipeBarrier<PIPE_V>();
+    AscendC::PipeBarrier<PIPE_V>();
     CastFP32ToINT8(outLocal, inputLocal, shareTmpUb, rectangleParams.row * rectangleParams.col);
 }
 
@@ -273,7 +274,7 @@ __aicore__ inline void QuantPerTensor(const LocalTensor<int8_t> &outLocal, const
                                    const LocalTensor<uint8_t> &shareTmpUb, const Rectangle& rectangleParams)
 {
     RowMuls(inputLocal, inputLocal, quantScaleLocal, rectangleParams);
-    PipeBarrier<PIPE_V>();
+    AscendC::PipeBarrier<PIPE_V>();
     CastFP32ToINT8(outLocal, inputLocal, shareTmpUb, rectangleParams.row * rectangleParams.col);
 }
 
@@ -295,7 +296,7 @@ __aicore__ inline void DynamicQuant(const LocalTensor<float> &outputLocal, const
     LocalTensor<float> rowMaxBrcb = inputCopy[Align(computeSize, (uint64_t)ALIGN_BLOCK_SIZE)];
     // abs(x)
     Abs(inputCopy, inputLocal, computeSize);
-    pipe_barrier(PIPE_V);
+    AscendC::PipeBarrier<PIPE_V>();
     Rectangle rectangleParams {
         (uint32_t)row,
         (uint32_t)col,
@@ -303,18 +304,18 @@ __aicore__ inline void DynamicQuant(const LocalTensor<float> &outputLocal, const
     };
     // rowMax(abs(x))
     RowMax(inputCopy, inputCopy, rectangleParams);
-    pipe_barrier(PIPE_V);
+    AscendC::PipeBarrier<PIPE_V>();
 
     // scaleOut = rowMax(abs(x)) / 127
     Div(scale, inputCopy, maxInt8Tensor, row);
-    pipe_barrier(PIPE_V);
+    AscendC::PipeBarrier<PIPE_V>();
 
     // 1 / scaleOut = 127 / rowMax(abs(x))
     Div(inputCopy, maxInt8Tensor, inputCopy, row);
-    pipe_barrier(PIPE_V);
+    AscendC::PipeBarrier<PIPE_V>();
 
     Brcb(rowMaxBrcb, inputCopy, static_cast<uint8_t> (CeilDivT(row, brcnNum)), {1, brcnNum});
-    pipe_barrier(PIPE_V);
+    AscendC::PipeBarrier<PIPE_V>();
 
     // x * 1 / scaleOut
     RowMuls(outputLocal, inputLocal, rowMaxBrcb, rectangleParams);
@@ -339,7 +340,7 @@ __aicore__ inline void RmsNorm(const LocalTensor<float> &outLocal, const LocalTe
     LocalTensor<float> xSquareLocal = shareTmpUb.ReinterpretCast<float>();
     LocalTensor<float> xSumLocal = xSquareLocal[cnt];
     Mul(xSquareLocal, inputLocal, inputLocal, cnt);
-    pipe_barrier(PIPE_V);
+    AscendC::PipeBarrier<PIPE_V>();
 
     // calcNum >> 6 : calcNum / 64(FP32_REPEAT_ELEMENT_NUM)
     uint64_t repeatTimesAdd = static_cast<uint64_t>(cnt) >> 6;
@@ -352,21 +353,21 @@ __aicore__ inline void RmsNorm(const LocalTensor<float> &outLocal, const LocalTe
         0 // src1RepStrideIn
     };
     Add(xSquareLocal, xSquareLocal[FP32_REPEAT_ELEMENT_NUM], xSquareLocal, FP32_REPEAT_ELEMENT_NUM, repeatTimesAdd - 1, addParams);
-    pipe_barrier(PIPE_V);
+    AscendC::PipeBarrier<PIPE_V>();
     WholeReduceSum(xSumLocal, xSquareLocal, FP32_REPEAT_ELEMENT_NUM, 1, 8, 1, 8);
-    pipe_barrier(PIPE_V);
+    AscendC::PipeBarrier<PIPE_V>();
 
     // Calc: xSum = xSum * reciprocal
     Muls<float>(xSumLocal, xSumLocal, rmsNormParams.reciprocal, 1);
-    pipe_barrier(PIPE_V);
+    AscendC::PipeBarrier<PIPE_V>();
 
     // Calc: xSum = xSum + epsilon
     Adds<float>(xSumLocal, xSumLocal, rmsNormParams.epsilon, 1);
-    pipe_barrier(PIPE_V);
+    AscendC::PipeBarrier<PIPE_V>();
 
     // Calc: xSum = sqrt(xSum)
     Sqrt(xSumLocal, xSumLocal, 1);
-    pipe_barrier(PIPE_V);
+    AscendC::PipeBarrier<PIPE_V>();
 
     // Calc: xSquare[1, 8] = brc(xSum[1,1])
     BrcbRepeatParams repeatParams = {
@@ -374,7 +375,7 @@ __aicore__ inline void RmsNorm(const LocalTensor<float> &outLocal, const LocalTe
         1 // dstRepStride
     };
     Brcb(xSquareLocal, xSumLocal, 1, repeatParams);
-    pipe_barrier(PIPE_V);
+    AscendC::PipeBarrier<PIPE_V>();
 
     // Calc: inputLocal = inputLocal / xSquareLocal
     uint64_t mask[2] = {UINT64_MAX, UINT64_MAX};
@@ -388,11 +389,11 @@ __aicore__ inline void RmsNorm(const LocalTensor<float> &outLocal, const LocalTe
     };
     Div(inputLocal, inputLocal, xSquareLocal, mask, cnt / 64, divParams);
 
-    pipe_barrier(PIPE_V);
+    AscendC::PipeBarrier<PIPE_V>();
 
     Cast(xSquareLocal, gammaLocal, RoundMode::CAST_NONE, cnt);
 
-    pipe_barrier(PIPE_V);
+    AscendC::PipeBarrier<PIPE_V>();
 
     Mul(outLocal, inputLocal, xSquareLocal, cnt);
 }
@@ -428,7 +429,7 @@ __aicore__ inline void RotaryPosEmb(const LocalTensor<C> &outputLocal, const Loc
     // 取偶数索引元素
     GatherMask(reArrLocal[cnt >> 1], inputLocal, 2, true,
                col * row, gatherMaskParams, rsvdCnt);
-    pipe_barrier(PIPE_V);
+    AscendC::PipeBarrier<PIPE_V>();
     uint8_t blockNumPerRow = col / (ALIGN_BLOCK_SIZE / sizeof(C));
     uint8_t blockNumPerRowHalf = blockNumPerRow >> 1;
     uint8_t blockNumSinCosRepStride = sinCosRepStride / (ALIGN_BLOCK_SIZE / sizeof(C));
@@ -447,7 +448,7 @@ __aicore__ inline void RotaryPosEmb(const LocalTensor<C> &outputLocal, const Loc
                  col >> 1, row, mulParams);
     Mul(outputLocalSinTmp[col >> 1], reArrLocal, sinLocal[col >> 1],
                  col >> 1, row, mulParams);
-    pipe_barrier(PIPE_V);
+    AscendC::PipeBarrier<PIPE_V>();
     Add(outputLocal, outputLocal, outputLocalSinTmp, cnt);
 }
 

@@ -69,7 +69,7 @@ __aicore__ inline void DequantPerTokenQc(const GlobalTensor<O> &outputGm, const 
         WaitFlag<HardEvent::MTE2_V>(EVENT_ID1);
         // compute
         Dequant(computeLocal, inputLocal, scaleLocal, deQuantScaleQcQrLocal, rectangleParams);
-        PipeBarrier<PIPE_V>();
+        AscendC::PipeBarrier<PIPE_V>();
         // cast
         Cast(outputLocal, computeLocal, RoundMode::CAST_RINT, count);
         SetFlag<HardEvent::V_MTE3>(EVENT_ID2);
@@ -138,7 +138,7 @@ __aicore__ inline void DequantSplitNQc(const GlobalTensor<O> &outputGm, const Gl
         WaitFlag<HardEvent::MTE2_V>(EVENT_ID1);
         // compute
         Dequant(computeLocal, inputLocal, scaleLocal, deQuantScaleQcQrLocal, rectangleParams);
-        PipeBarrier<PIPE_V>();
+        AscendC::PipeBarrier<PIPE_V>();
         // cast
         Cast(outputLocal, computeLocal, RoundMode::CAST_RINT, count);
         SetFlag<HardEvent::V_MTE3>(EVENT_ID2);

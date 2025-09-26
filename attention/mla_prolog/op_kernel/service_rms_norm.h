@@ -11,6 +11,7 @@
 /*!
  * \file service_rms_norm.h
  * \brief
+ * 0924做pipe_barrier修改
  */
 
 #ifndef SERVICE_RMS_NORM_H
@@ -63,7 +64,7 @@ __aicore__ inline void RmsNormNormal(const LocalTensor<O>& outputLocal, const Gl
             (uint32_t)rmsNormParams.col //columnStride
         };
         Dequant(xFp32Local, xInt32Local, dequantScaleWDqLocal, dequantScaleXLocal, rectangleParams);
-        pipe_barrier(PIPE_V);
+        AscendC::PipeBarrier<PIPE_V>();
     } else {
         LocalTensor<T> inputLocal = xFp32Local[rmsNormParams.col].template ReinterpretCast<T>();
         DataCopyPad(inputLocal, inputGm, copyParams, padParams);
@@ -72,21 +73,21 @@ __aicore__ inline void RmsNormNormal(const LocalTensor<O>& outputLocal, const Gl
         WaitFlag<HardEvent::MTE2_V>(EVENT_ID1);
         // Cast input to fp32 [1, col]
         Cast(xFp32Local, inputLocal, RoundMode::CAST_NONE, cnt);
-        pipe_barrier(PIPE_V);
+        AscendC::PipeBarrier<PIPE_V>();
     }
 
     LocalTensor<C> rmsnormShareUB = xFp32Local[rmsNormParams.col];
 
     if constexpr (std::is_same<C, O>::value) {
         RmsNorm(outputLocal, xFp32Local, gammaLocal, rmsnormShareUB.template ReinterpretCast<uint8_t>(), rmsNormParams);
-        pipe_barrier(PIPE_V);
+        AscendC::PipeBarrier<PIPE_V>();
     } else {
         RmsNorm(xFp32Local, xFp32Local, gammaLocal, rmsnormShareUB.template ReinterpretCast<uint8_t>(), rmsNormParams);
     
         // Cast xFp32 to outputLocal
-        pipe_barrier(PIPE_V);
+        AscendC::PipeBarrier<PIPE_V>();
         Cast(outputLocal, xFp32Local, RoundMode::CAST_RINT, cnt);
-        pipe_barrier(PIPE_V);
+        AscendC::PipeBarrier<PIPE_V>();
     }
 }
 
@@ -117,19 +118,19 @@ __aicore__ inline void RmsNormDynamicQuant(const LocalTensor<int8_t>& outputLoca
     int64_t cnt = rmsNormParams.row * rmsNormParams.col;
     LocalTensor<C> xFp32Local = shareTmpUb.ReinterpretCast<C>();
     RmsNormNormal<T,GammaType,C,C>(xFp32Local, inputGm, gammaLocal, dequantScaleWDqLocal, dequantScaleXLocal, shareTmpUb[rmsNormParams.col * sizeof(C)], rmsNormParams);
-    pipe_barrier(PIPE_V);
+    AscendC::PipeBarrier<PIPE_V>();
     if (enableSmoothScalesCq) {
         Mul(xFp32Local, xFp32Local, smoothLocal, cnt);
     }
-    pipe_barrier(PIPE_V);
+    AscendC::PipeBarrier<PIPE_V>();
     LocalTensor<C> maxInt8Tensor = shareTmpUb.ReinterpretCast<C>()[cnt];
     int64_t rowAlign = Align(rmsNormParams.row, FP32_BLOCK_ELEMENT_NUM);
     Duplicate<C>(maxInt8Tensor, static_cast<C>(127.0), rowAlign);
-    pipe_barrier(PIPE_V);
+    AscendC::PipeBarrier<PIPE_V>();
     DynamicQuant(xFp32Local, outputScales, xFp32Local, maxInt8Tensor, shareTmpUb[(cnt + rowAlign) * sizeof(C)], rmsNormParams.row, rmsNormParams.col);
-    pipe_barrier(PIPE_V);
+    AscendC::PipeBarrier<PIPE_V>();
     CastFP32ToINT8(outputLocal, xFp32Local, shareTmpUb, cnt);
-    pipe_barrier(PIPE_V);
+    AscendC::PipeBarrier<PIPE_V>();
 }
 
 } // namespace MlaProlog

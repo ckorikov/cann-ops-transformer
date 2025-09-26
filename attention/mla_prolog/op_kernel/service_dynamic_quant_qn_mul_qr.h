@@ -54,14 +54,14 @@ __aicore__ inline void DynamicQuantMultiRow(const GlobalTensor<O>& outputGm, con
 
         Cast(inputLocal, inputHalf, RoundMode::CAST_NONE, computeSize);
         SetFlag<HardEvent::V_MTE2>(DYNAMIC_QUANT_INPUT_READY);
-        pipe_barrier(PIPE_V);
+        AscendC::PipeBarrier<PIPE_V>();
         DynamicQuant(inputLocal, scaleOutputLocal[scaleOffset], inputLocal, maxInt8Tensor, shareTmpUb, subRow, col);
-        pipe_barrier(PIPE_V);
+        AscendC::PipeBarrier<PIPE_V>();
         // float -> half -> int
         WaitFlag<HardEvent::MTE3_V>(DYNAMIC_QUANT_OUTPUT_READY); // 搬运是否已经完成可以计算
         LocalTensor<half> tmpf16Ub = outputLocal.template ReinterpretCast<half>();
         Cast(tmpf16Ub, inputLocal, AscendC::RoundMode::CAST_ROUND, computeSize);
-        pipe_barrier(PIPE_V);
+        AscendC::PipeBarrier<PIPE_V>();
         // Calc: out = round(x / scaleOut)
         LocalTensor<O> tmpMMResCastTensor = outputLocal.template ReinterpretCast<O>();
         Cast(tmpMMResCastTensor, tmpf16Ub, AscendC::RoundMode::CAST_ROUND, computeSize);
@@ -112,17 +112,17 @@ __aicore__ inline void MulQr(const GlobalTensor<T>& outputGmRope, const GlobalTe
         WaitFlag<HardEvent::MTE2_V>(MUL_QR);
 
         Cast(qrFp32Local, qrInputLocal[inputLocalRopeOffset], RoundMode::CAST_NONE, computeSizeRope);
-        pipe_barrier(PIPE_V);
+        AscendC::PipeBarrier<PIPE_V>();
         Duplicate(reciprocalLocal, quantScaleCkvRope, subRowRope * computeBlockAlign);
-        pipe_barrier(PIPE_V);
+        AscendC::PipeBarrier<PIPE_V>();
         // cal: quantScaleCkv / dequantScaleQn
         Div(reciprocalLocal, reciprocalLocal, dequantScaleBrcbLocal[dequantScaleOffset], subRowRope * computeBlockAlign);
-        pipe_barrier(PIPE_V);
+        AscendC::PipeBarrier<PIPE_V>();
         // cal: x * quantScaleCkv / dequantScaleQn
         RowMuls(qrFp32Local, qrFp32Local, reciprocalLocal, Rectangle{(uint32_t)subRowRope, (uint32_t)colRope, (uint32_t)colRope});
-        pipe_barrier(PIPE_V);
+        AscendC::PipeBarrier<PIPE_V>();
         Cast(outputLocalRope, qrFp32Local, RoundMode::CAST_RINT, computeSizeRope);
-        pipe_barrier(PIPE_V);
+        AscendC::PipeBarrier<PIPE_V>();
 
         SetFlag<HardEvent::V_MTE3>(MUL_QR);
         WaitFlag<HardEvent::V_MTE3>(MUL_QR);
@@ -203,13 +203,13 @@ __aicore__ inline void DynamicQuantQnWithMulQr(
 
     // Dynamic Quant
     Duplicate(maxInt8Tensor, static_cast<C>(maxInt8), brcbCnt);
-    pipe_barrier(PIPE_V);
+    AscendC::PipeBarrier<PIPE_V>();
 
     DynamicQuantMultiRow(outputGm, scaleOutputLocal, inputGm, outputLocal, inputHalf, inputLocal, maxInt8Tensor,
                         dynamicQuantUb.template ReinterpretCast<uint8_t>(), row, col, subRow, queryOutStride, DYNAMIC_QUANT_INPUT_READY, DYNAMIC_QUANT_OUTPUT_READY);
 
     Brcb(scaleBrcb, scaleOutputLocal, CeilDivT(row, computeBlockAlign), {1, computeBlockAlign});
-    pipe_barrier(PIPE_V);
+    AscendC::PipeBarrier<PIPE_V>();
 
     // DataCopyParams  : count len srcStrideIn dstStrideIn
     DataCopyParams scaleOutCopyParams {(uint16_t)row, (uint16_t)sizeof(C), 0, (uint16_t)((scaleOutStride - 1) * sizeof(C))};

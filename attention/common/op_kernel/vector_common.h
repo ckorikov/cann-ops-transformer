@@ -331,7 +331,7 @@ __aicore__ inline void RowSum(LocalTensor<float> &dstUb, LocalTensor<float> srcU
     repeatParamsMax.dstRepStride = columnCount / (BYTE_BLOCK / sizeof(float));
     if (blockCount > 0 && remain > 0) {
         Add(srcUb, srcUb, srcUb[blockCount * dtypeMask], remain, dealRowCount, repeatParamsMax);
-        pipe_barrier(PIPE_V);
+        AscendC::PipeBarrier<PIPE_V>();
     }
 
     for (uint32_t loopCount = blockCount / HALF_NUM; loopCount > 0; loopCount = blockCount / HALF_NUM) {
@@ -340,7 +340,7 @@ __aicore__ inline void RowSum(LocalTensor<float> &dstUb, LocalTensor<float> srcU
             Add(srcUb[j * dtypeMask], srcUb[j * dtypeMask], srcUb[(j + blockCount) * dtypeMask], dtypeMask,
                 dealRowCount, repeatParamsMax);
         }
-        pipe_barrier(PIPE_V);
+        AscendC::PipeBarrier<PIPE_V>();
     }
 
     WholeReduceSum(dstUb, srcUb, (actualColumnCount < dtypeMask) ? actualColumnCount : dtypeMask, dealRowCount, 1, 1,
@@ -375,7 +375,7 @@ __aicore__ inline void RowSumForLongColumnCount(LocalTensor<float> &dstUb, Local
             Add(srcUb[offset], srcUb[offset], srcUb[offset + split], actualColumnCount - split);
             offset += columnCount;
         }
-        pipe_barrier(PIPE_V);
+        AscendC::PipeBarrier<PIPE_V>();
 
         uint32_t validLen = split;
         while (validLen > MAX_VALID_LENGTH) {
@@ -386,14 +386,14 @@ __aicore__ inline void RowSumForLongColumnCount(LocalTensor<float> &dstUb, Local
                 Add(srcUb[offset], srcUb[offset], srcUb[offset + copyLen], copyLen);
                 offset += columnCount;
             }
-            pipe_barrier(PIPE_V);
+            AscendC::PipeBarrier<PIPE_V>();
 
             validLen = copyLen;
         }
 
         for (uint32_t i = 0; i < dealRowCount; i++) {
             DataCopy(srcUb[i * validLen], srcUb[i * columnCount], validLen);
-            pipe_barrier(PIPE_V);
+            AscendC::PipeBarrier<PIPE_V>();
         }
 
         newColumnCount = validLen;
@@ -422,7 +422,7 @@ __aicore__ inline void RowMax(LocalTensor<float> &dstUb, LocalTensor<float> &src
     repeatParamsMax.dstRepStride = columnCount / FP32_BLOCK_ELEMENT_NUM;
     if (blockCount > 0 && remain > 0) {
         Max(srcUb, srcUb, srcUb[blockCount * dtypeMask], remain, dealRowCount, repeatParamsMax);
-        pipe_barrier(PIPE_V);
+        AscendC::PipeBarrier<PIPE_V>();
     }
 
     for (uint32_t loopCount = blockCount / HALF_NUM; loopCount > 0; loopCount = blockCount / HALF_NUM) {
@@ -431,7 +431,7 @@ __aicore__ inline void RowMax(LocalTensor<float> &dstUb, LocalTensor<float> &src
             Max(srcUb[j * dtypeMask], srcUb[j * dtypeMask], srcUb[(j + blockCount) * dtypeMask], dtypeMask,
                 dealRowCount, repeatParamsMax);
         }
-        pipe_barrier(PIPE_V);
+        AscendC::PipeBarrier<PIPE_V>();
     }
 
     WholeReduceMax(dstUb, srcUb, (actualColumnCount < dtypeMask) ? actualColumnCount : dtypeMask, dealRowCount, 1, 1,
@@ -456,7 +456,7 @@ __aicore__ inline void RowMaxForLongColumnCount(LocalTensor<float> &dstUb, Local
             Max(srcUb[offset], srcUb[offset], srcUb[offset + split], actualColumnCount - split);
             offset += columnCount;
         }
-        pipe_barrier(PIPE_V);
+        AscendC::PipeBarrier<PIPE_V>();
 
         uint32_t validLen = split;
         while (validLen > MAX_VALID_LENGTH) {
@@ -467,14 +467,14 @@ __aicore__ inline void RowMaxForLongColumnCount(LocalTensor<float> &dstUb, Local
                 Max(srcUb[offset], srcUb[offset], srcUb[offset + copyLen], copyLen);
                 offset += columnCount;
             }
-            pipe_barrier(PIPE_V);
+            AscendC::PipeBarrier<PIPE_V>();
 
             validLen = copyLen;
         }
 
         for (uint32_t i = 0; i < dealRowCount; i++) {
             DataCopy(srcUb[i * validLen], srcUb[i * columnCount], validLen);
-            pipe_barrier(PIPE_V);
+            AscendC::PipeBarrier<PIPE_V>();
         }
 
         newColumnCount = validLen;

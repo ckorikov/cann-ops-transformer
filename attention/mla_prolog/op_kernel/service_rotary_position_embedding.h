@@ -75,19 +75,19 @@ __aicore__ inline void RotaryPosEmbPerTensor(LocalTensor<O>& outputLocal, const 
             (uint32_t)cnt //columnStride
         };
         Dequant(kFp32Local, kLocal, channelDeqScaleLocal, scale, rectangleParams);
-        pipe_barrier(PIPE_V);
+        AscendC::PipeBarrier<PIPE_V>();
     } else {
         Cast(kFp32Local, kLocal, RoundMode::CAST_NONE, cnt);
-        pipe_barrier(PIPE_V);
+        AscendC::PipeBarrier<PIPE_V>();
     }
     if constexpr (std::is_same<O,C>::value) {
         RotaryPosEmb(outputLocal, kFp32Local, cosLocal, sinLocal, ropeShareUB.template ReinterpretCast<uint8_t>(), ropeParams.row, ropeParams.col, 0);
-        PipeBarrier<PIPE_V>();
+        AscendC::PipeBarrier<PIPE_V>();
     } else {
         RotaryPosEmb(kFp32OutputLocal, kFp32Local, cosLocal, sinLocal, ropeShareUB.template ReinterpretCast<uint8_t>(), ropeParams.row, ropeParams.col, 0);
-        pipe_barrier(PIPE_V);
+        AscendC::PipeBarrier<PIPE_V>();
         Cast(outputLocal, kFp32OutputLocal, RoundMode::CAST_RINT, cnt);
-        PipeBarrier<PIPE_V>();
+        AscendC::PipeBarrier<PIPE_V>();
     }
 }
 
@@ -154,21 +154,21 @@ __aicore__ inline void RotaryPosEmbPerHead(LocalTensor<O>& outputLocal, const Gl
         // row  col stride
         Rectangle rectangleParams {(uint32_t)ropeParams.row,  (uint32_t)ropeParams.col, (uint32_t)ropeParams.col};
         Dequant(kFp32Local, kLocal, scaleLocal, deQuantScale, rectangleParams);
-        pipe_barrier(PIPE_V);
+        AscendC::PipeBarrier<PIPE_V>();
     } else {
         Cast(kFp32Local, kLocal, RoundMode::CAST_NONE, cnt);
-        pipe_barrier(PIPE_V);
+        AscendC::PipeBarrier<PIPE_V>();
     }
     LocalTensor<C> kFp32OutputLocalSinTmp = shareTmpUb.ReinterpretCast<C>()[baseOffset + cnt * 2];
     RotaryPosEmb(kFp32OutputLocal, kFp32Local, cosLocal, sinLocal, ropeShareUB.template ReinterpretCast<uint8_t>(), ropeParams.row, ropeParams.col, ropeParams.col);
-    PipeBarrier<PIPE_V>();
+    AscendC::PipeBarrier<PIPE_V>();
 
     if constexpr (std::is_same<O,C>::value) {
         DataCopy(outputLocal, kFp32OutputLocal, cnt);
-        PipeBarrier<PIPE_V>();
+        AscendC::PipeBarrier<PIPE_V>();
     } else {
         Cast(outputLocal, kFp32OutputLocal, RoundMode::CAST_RINT, cnt);
-        PipeBarrier<PIPE_V>();
+        AscendC::PipeBarrier<PIPE_V>();
     }
 }
 
@@ -181,12 +181,12 @@ __aicore__ inline void RopePostQuantPerChannel(LocalTensor<O> &outputLocal, Loca
     } else {
         inFp32 = shareTmpUb.ReinterpretCast<float>()[cnt];
         Cast(inFp32, inputLocal, RoundMode::CAST_NONE, cnt);
-        pipe_barrier(PIPE_V);
+        AscendC::PipeBarrier<PIPE_V>();
     }
     Mul(inFp32, inFp32, quantScaleLocal, cnt);
-    pipe_barrier(PIPE_V);
+    AscendC::PipeBarrier<PIPE_V>();
     CastFP32ToINT8(outputLocal, inFp32, shareTmpUb, cnt);
-    pipe_barrier(PIPE_V);
+    AscendC::PipeBarrier<PIPE_V>();
 }
 
 }
