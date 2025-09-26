@@ -1384,8 +1384,6 @@ __aicore__ inline void PagedAttentionDecoderMask<IFAT>::RunDefault(uint32_t star
     const uint32_t blockTablesUbOffset = 4 * UB_UINT8_BLOCK_SIZE_I + 12 * UB_UINT8_LINE_SIZE_I;
     const uint32_t contextLenUbLen = 2 * UB_UINT8_LINE_SIZE_I;
     const uint32_t blockTablesUbLen = 20 * UB_UINT8_LINE_SIZE_I;
-    __ubuf__ int64_t *contextLenUb = (__ubuf__ int64_t *)get_imm(contextLenUbOffset);
-    __ubuf__ int32_t *blockTablesUb = (__ubuf__ int32_t *)get_imm(blockTablesUbOffset);
     AscendC::LocalTensor<int64_t> contextLenUbTensor;
     AscendC::LocalTensor<int32_t> blockTablesUbTensor;
     contextLenUbTensor.InitBuffer((const uint32_t)contextLenUbOffset, (const uint32_t)contextLenUbLen);
@@ -1404,7 +1402,7 @@ __aicore__ inline void PagedAttentionDecoderMask<IFAT>::RunDefault(uint32_t star
             0, 1, Align<uint32_t>(maxNumBlocksPerQuery * 4, BUFFER_SIZE_BYTE_32B) / BUFFER_SIZE_BYTE_32B + 1, 0, 0);
         SET_FLAG(MTE2, S, EVENT_ID0);
         WAIT_FLAG(MTE2, S, EVENT_ID0);
-        uint32_t contextLen = (uint32_t)(*((__ubuf__ int64_t *)contextLenUb + curBatch - startBatch));
+        uint32_t contextLen = (uint32_t)(*((__ubuf__ int64_t *)contextLenUbTensor.GetPhyAddr() + curBatch - startBatch));
         uint32_t nLoop = (contextLen + blockSize - 1) / blockSize;
         uint32_t tail = contextLen % blockSize == 0 ? blockSize : contextLen % blockSize;
         uint32_t mActual = 1;
@@ -1414,12 +1412,12 @@ __aicore__ inline void PagedAttentionDecoderMask<IFAT>::RunDefault(uint32_t star
         uint64_t kvHeadOffset = (headId / groupNum) * strideKV;
         half localTor = 0;
         for (uint32_t nIdx = 0; nIdx < nLoop; nIdx += 2) {
-            uint64_t numBlocksId0 = (uint64_t)(*((__ubuf__ int32_t *)blockTablesUb + nIdx)); // 跨batch
+            uint64_t numBlocksId0 = (uint64_t)(*((__ubuf__ int32_t *)blockTablesUbTensor.GetPhyAddr() + nIdx));
             uint64_t kvOffset0 = numBlocksId0 * blockSize * kvHeads * embeddingSize + kvHeadOffset;
             uint64_t numBlocksId1 = 0;
             uint64_t kvOffset1 = 0;
             if ((nIdx + 1) != nLoop) {
-                numBlocksId1 = (uint64_t)(*((__ubuf__ int32_t *)blockTablesUb + (nIdx + 1))); // 跨batch
+                numBlocksId1 = (uint64_t)(*((__ubuf__ int32_t *)blockTablesUbTensor.GetPhyAddr() + (nIdx + 1)));
                 kvOffset1 = numBlocksId1 * blockSize * kvHeads * embeddingSize + kvHeadOffset;
             }
             uint32_t warpO = (nIdx == (nLoop - 1) || (nIdx + 1) == (nLoop - 1)) ? 1 : 0;

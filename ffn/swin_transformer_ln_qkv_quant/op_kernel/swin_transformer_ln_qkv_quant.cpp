@@ -128,7 +128,7 @@ public:
         WaitFlag<HardEvent::MTE2_V>(eventIdMte2ToV);
         Cast(fp32GammaLocal, fp16Gamma, AscendC::RoundMode::CAST_NONE, lnBaseK);
         Cast(fp32BetaLocal, fp16Beta, AscendC::RoundMode::CAST_NONE, lnBaseK);
-        pipe_barrier(PIPE_V);
+        PipeBarrier<PIPE_V>();
         AscendC::LocalTensor<int8_t> aL1Buffer = inBufAL1.Get<int8_t>();
         AscendC::LocalTensor<int8_t> mmANz = lnSharedBuffer.Get<int8_t>();
         AscendC::LocalTensor<int8_t> matAInt8Ub = mmANz[lnBaseM16Align * lnBufferK * sizeof(half)];
@@ -162,9 +162,9 @@ public:
                 } else {
                     LnComputeNlarge(xFp32, mean, tmpSub, fp32GammaLocal, fp32BetaLocal);
                 }
-                pipe_barrier(PIPE_V);
+                PipeBarrier<PIPE_V>();
                 Quant(matAInt8Ub, loopIdx, gmCopyInOffset + subMLoopIdx * lnBaseM16Align * lnBaseK);
-                pipe_barrier(PIPE_V);
+                PipeBarrier<PIPE_V>();
                 this->VecND2NZ(mmANz, matAInt8Ub, actualLnBaseM, lnBaseK, lnBaseK);
 
                 event_t eventIdVToMte3 = static_cast<event_t>(GetTPipePtr()->FetchEventID(HardEvent::V_MTE3));
@@ -181,7 +181,7 @@ public:
                     DataCopy(aL1Buffer[subMLoopIdx * lnBaseM16Align * BLOCK_SIZE_32], mmANz, intriParams2L1);
                 }
 #endif
-                pipe_barrier(PIPE_ALL);
+                PipeBarrier<PIPE_ALL>();
             }
             if (splitNFlag) {
                 for (uint32_t mmNSubIdx = 0; mmNSubIdx < nSplitPart; ++mmNSubIdx) {
@@ -234,7 +234,7 @@ private:
         int32_t addRollTail = actualLnBaseM - addRoll * mask;
         int32_t bakRoll = lnBaseK / mask;
         int32_t bakRollTail = lnBaseK - bakRoll * mask;
-        pipe_barrier(PIPE_V);
+        PipeBarrier<PIPE_V>();
         constexpr uint64_t blockNumTrans = BLOCK_SIZE_16;
  
         uint64_t dstLocalList[BLOCK_SIZE_16];
@@ -252,7 +252,7 @@ private:
             }
             TransDataTo5HD<half>(dstLocalList, srcLocalList, transParams);
         }
-        pipe_barrier(PIPE_V);
+        PipeBarrier<PIPE_V>();
         Cast(xLocalFp32, lnOutLocalFp16, AscendC::RoundMode::CAST_NONE, lnBaseM16Align * lnBufferK);
         PipeBarrier<PIPE_V>();
         for (int32_t ll = 0; ll < addRoll; ll++) {
@@ -262,7 +262,7 @@ private:
             Add(meanTmp[mask * addRoll], xLocalFp32[mask * addRoll], meanTmp[mask * addRoll],
                 addRollTail, lnBufferK, params);
         }
-        pipe_barrier(PIPE_V);
+        PipeBarrier<PIPE_V>();
         Muls(meanTmp, meanTmp, avgFactor, actualLnBaseM);
 
         PipeBarrier<PIPE_V>();
@@ -273,11 +273,11 @@ private:
             Sub(tmpSub[mask * addRoll], xLocalFp32[mask * addRoll], meanTmp[mask * addRoll], addRollTail,
                     lnBufferK, params1);
         }
-        pipe_barrier(PIPE_V);
+        PipeBarrier<PIPE_V>();
         Mul(xLocalFp32, tmpSub, tmpSub, lnBufferK * lnBaseM16Align);
-        pipe_barrier(PIPE_V);
+        PipeBarrier<PIPE_V>();
         Duplicate(meanTmp, float(0.0), lnBaseM16Align);
-        pipe_barrier(PIPE_V);
+        PipeBarrier<PIPE_V>();
         for (int32_t ll = 0; ll < addRoll; ll++) {
             Add(meanTmp[mask * ll], xLocalFp32[mask * ll], meanTmp[mask * ll], mask, lnBufferK, params);
         }
@@ -287,11 +287,11 @@ private:
         }
         PipeBarrier<PIPE_V>();
         Muls(meanTmp, meanTmp, avgFactor, actualLnBaseM);
-        pipe_barrier(PIPE_V);
+        PipeBarrier<PIPE_V>();
         Adds(meanTmp, meanTmp, epsilon, actualLnBaseM);
-        pipe_barrier(PIPE_V);
+        PipeBarrier<PIPE_V>();
         Sqrt(meanTmp, meanTmp, actualLnBaseM);
-        pipe_barrier(PIPE_V);
+        PipeBarrier<PIPE_V>();
         for (int32_t ll = 0; ll < addRoll; ll++) {
             Div(xLocalFp32[mask * ll], tmpSub[mask * ll], meanTmp[mask * ll], mask, lnBufferK, params1);
         }
@@ -299,7 +299,7 @@ private:
             Div(xLocalFp32[mask * addRoll], tmpSub[mask * addRoll], meanTmp[mask * addRoll],
                 addRollTail, lnBufferK, params1);
         }
-        pipe_barrier(PIPE_V);
+        PipeBarrier<PIPE_V>();
 
         for (int32_t k1 = 0; k1 < roll; k1++) {
             dstOffset = 0;
@@ -312,7 +312,7 @@ private:
             }
             TransDataTo5HD<float>(dstLocalList, srcLocalList, transParams1);
         }
-        pipe_barrier(PIPE_V);
+        PipeBarrier<PIPE_V>();
         for (int32_t ll = 0; ll < bakRoll; ll++) {
             Mul(xLocalFp32[mask * ll], tmpSub[mask * ll], fp32Gamma[mask * ll], mask, actualLnBaseM, params2);
         }
@@ -320,7 +320,7 @@ private:
             Mul(xLocalFp32[mask * bakRoll], tmpSub[mask * bakRoll], fp32Gamma[mask * bakRoll], bakRollTail, \
                 actualLnBaseM, params2);
         }
-        pipe_barrier(PIPE_V);
+        PipeBarrier<PIPE_V>();
         for (int32_t ll = 0; ll < bakRoll; ll++) {
             Add(tmpSub[mask * ll], xLocalFp32[mask * ll], fp32Beta[mask * ll], mask, actualLnBaseM, params2);
         }
@@ -328,7 +328,7 @@ private:
             Add(tmpSub[mask * bakRoll], xLocalFp32[mask * bakRoll], fp32Beta[mask * bakRoll], bakRollTail, \
                 actualLnBaseM, params2);
         }
-        pipe_barrier(PIPE_V);
+        PipeBarrier<PIPE_V>();
         Cast(lnOutLocalFp16, tmpSub, AscendC::RoundMode::CAST_NONE, actualLnBaseM * lnBaseK);
         inQueueb.FreeTensor(inputXLocal);
     }
@@ -353,7 +353,7 @@ private:
         int32_t bakRollTail = lnBaseM16Align - bakRoll * repeatMax;
         int32_t bakRollK = lnBufferK / mask;
         int32_t bakRollKTail = lnBufferK - bakRollK * mask;
-        pipe_barrier(PIPE_V);
+        PipeBarrier<PIPE_V>();
         AscendC::LocalTensor<half> lnOutLocalFp16 = lnSharedBuffer.Get<half>();
         constexpr uint64_t blockNumTrans = BLOCK_SIZE_16;
         uint64_t dstLocalList[BLOCK_SIZE_16];
@@ -373,7 +373,7 @@ private:
         }
         PipeBarrier<PIPE_V>();
         Cast(xLocalFp32, lnOutLocalFp16, AscendC::RoundMode::CAST_NONE, lnBaseM16Align * lnBufferK);
-        pipe_barrier(PIPE_V);
+        PipeBarrier<PIPE_V>();
 
         for (int32_t lll = 0; lll < addRollM; lll++) {
             for (int32_t ll = 0; ll < rollK; ll++) {
@@ -395,9 +395,9 @@ private:
                         meanTmp[mask * addRollM], addRollMTail, rollKTail, params);
             }
         }
-        pipe_barrier(PIPE_V);
+        PipeBarrier<PIPE_V>();
         Muls(meanTmp, meanTmp, avgFactor, mAlign);
-        pipe_barrier(PIPE_V);
+        PipeBarrier<PIPE_V>();
         for (int32_t lll = 0; lll < addRollM; lll++) {
             for (int32_t ll = 0; ll < rollK; ll++) {
                 Sub(tmpSub[repeatMax * ll * lnBaseM16Align + mask * lll],
@@ -422,11 +422,11 @@ private:
                     meanTmp[mask * addRollM], addRollMTail, rollKTail, params1);
             }
         }
-        pipe_barrier(PIPE_V);
+        PipeBarrier<PIPE_V>();
         Mul(xLocalFp32, tmpSub, tmpSub, lnBufferK * lnBaseM16Align);
         PipeBarrier<PIPE_V>();
         Duplicate(meanTmp, float(0.0), lnBaseM16Align);
-        pipe_barrier(PIPE_V);
+        PipeBarrier<PIPE_V>();
         for (int32_t lll = 0; lll < addRollM; lll++) {
             for (int32_t ll = 0; ll < rollK; ll++) {
                 Add(meanTmp[mask * lll], xLocalFp32[repeatMax * lnBaseM16Align * ll + mask * lll],
@@ -448,11 +448,11 @@ private:
             }
         }
         Muls(meanTmp, meanTmp, avgFactor, mAlign);
-        pipe_barrier(PIPE_V);
+        PipeBarrier<PIPE_V>();
         Adds(meanTmp, meanTmp, epsilon, mAlign);
-        pipe_barrier(PIPE_V);
+        PipeBarrier<PIPE_V>();
         Sqrt(meanTmp, meanTmp, mAlign);
-        pipe_barrier(PIPE_V);
+        PipeBarrier<PIPE_V>();
         for (int32_t lll = 0; lll < addRollM; lll++) {
             for (int32_t ll = 0; ll < rollK; ll++) {
                 Div(xLocalFp32[repeatMax * ll * lnBaseM16Align + mask * lll],
@@ -477,7 +477,7 @@ private:
                     meanTmp[mask * addRollM], addRollMTail, rollKTail, params1);
             }
         }
-        pipe_barrier(PIPE_V);
+        PipeBarrier<PIPE_V>();
         for (int32_t k1 = 0; k1 < roll8; k1++) {
             dstOffset = 0;
             srcOffset = 0;
@@ -490,7 +490,7 @@ private:
             }
             TransDataTo5HD<float>(dstLocalList, srcLocalList, transParams1);
         }
-        pipe_barrier(PIPE_V);
+        PipeBarrier<PIPE_V>();
         for (int32_t lll = 0; lll < bakRollK; lll++) {
             for (int32_t ll = 0; ll < bakRoll; ll++) {
                 Mul(xLocalFp32[repeatMax * ll * lnBufferK + mask * lll],
@@ -515,7 +515,7 @@ private:
                     fp32Gamma[mask * bakRollK], bakRollKTail, bakRollTail, params2);
             }
         }
-        pipe_barrier(PIPE_V);
+        PipeBarrier<PIPE_V>();
         for (int32_t lll = 0; lll < bakRollK; lll++) {
             for (int32_t ll = 0; ll < bakRoll; ll++) {
                 Add(tmpSub[repeatMax * ll * lnBufferK + mask * lll],
@@ -540,7 +540,7 @@ private:
                     fp32Beta[mask * bakRollK], bakRollKTail, bakRollTail, params2);
             }
         }
-        pipe_barrier(PIPE_V);
+        PipeBarrier<PIPE_V>();
         Cast(lnOutLocalFp16, tmpSub, AscendC::RoundMode::CAST_NONE, actualLnBaseM * lnBaseK);
         inQueueb.FreeTensor(inputXLocal);
     }

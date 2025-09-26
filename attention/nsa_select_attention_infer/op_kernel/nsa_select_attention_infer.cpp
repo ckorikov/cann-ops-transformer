@@ -16,7 +16,6 @@
 #include "kernel_operator.h"
 #include "nsa_select_attention_infer.h"
 #include "nsa_public_define.h"
-using namespace AscendC;
 
 #define INVOKE_NSA_NO_KFC_OP_IMPL(templateClass, ...)                                                       \
     do {                                                                                                    \

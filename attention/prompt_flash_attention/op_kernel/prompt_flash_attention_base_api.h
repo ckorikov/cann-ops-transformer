@@ -1651,7 +1651,7 @@ public:
                                 );
                                 AscendC::PipeBarrier<PIPE_V>();
                             } else {
-                                // *** hm = vmax(lm, gm)
+                                // *** hm = MAX(lm, gm)
                                 AscendC::Max<half, false>(
                                     hmUbufTensor,
                                     lmUbufTensor,
@@ -2100,7 +2100,7 @@ public:
                                 );
                                 AscendC::PipeBarrier<PIPE_V>();
                             } else {
-                                // *** hm = vmax(lm, gm)
+                                // *** hm = MAX(lm, gm)
                                 AscendC::Max<half, false>(
                                     hmUbufTensor,
                                     lmUbufTensor,
@@ -3580,7 +3580,7 @@ public:
                                 );
                                 AscendC::PipeBarrier<PIPE_V>();
                             } else {
-                                // *** hm = vmax(lm, gm)
+                                // *** hm = MAX(lm, gm)
                                 AscendC::Max<float, false>(
                                     hmUbufTensor,
                                     lmUbufTensor,
@@ -4397,7 +4397,7 @@ public:
                                         );
                                         AscendC::PipeBarrier<PIPE_V>();
                                     } else {
-                                        // *** hm = vmax(lm, gm)
+                                        // *** hm = MAX(lm, gm)
                                         AscendC::Max<float, false>(
                                             hmUbufTensor[splitIdx * mSlice],
                                             lmUbufTensor,

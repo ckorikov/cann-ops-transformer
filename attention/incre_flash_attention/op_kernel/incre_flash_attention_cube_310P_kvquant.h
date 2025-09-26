@@ -1908,6 +1908,6 @@ __aicore__ inline void IncreFlashAttentionMulAttenCube310P<IFAT>::Process()
         }
         ProcessVec2(sInnerLoopTimes-1);
     }
-    pipe_barrier(PIPE_ALL);
+    PipeBarrier<PIPE_ALL>();
 }
 #endif 

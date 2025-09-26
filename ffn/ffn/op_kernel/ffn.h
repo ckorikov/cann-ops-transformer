@@ -266,8 +266,8 @@ __aicore__ inline LocalTensor<int64_t> GetUbTokens(__gm__ uint8_t *expertTokens,
         // copy tokens array from GM
         expertTokensGm.SetGlobalBuffer((__gm__ int64_t *)expertTokens);
         DataCopy(ubTokens, expertTokensGm, AlignUp<EXPERT_NUM_ALIGN>(expertNum)); // 32-byte alignment
-        set_flag(PIPE_MTE2, PIPE_S, EVENT_ID0);
-        wait_flag(PIPE_MTE2, PIPE_S, EVENT_ID0);
+        SetFlag<HardEvent::MTE2_S>(EVENT_ID0);
+        WaitFlag<HardEvent::MTE2_S>(EVENT_ID0);
         if (tilingData->ffnBaseParams.tokensIndexFlag) {
             TokensIndicesToValues(ubTokens, expertNum);
         }
@@ -399,7 +399,7 @@ __aicore__ inline void ApplyActivation(ActiveType activationType, LocalTensor<T>
         FasterGelu(dst, src, tmpLocal, dataSize);
     } else if (activationType == ActiveType::RELU) {
         Relu(dst, src, dataSize);
-        pipe_barrier(PIPE_V);
+        PipeBarrier<PIPE_V>();
     } else if (activationType == ActiveType::SILU) {
         Silu(dst, src, dataSize);
     } else if (activationType == ActiveType::GELU) {

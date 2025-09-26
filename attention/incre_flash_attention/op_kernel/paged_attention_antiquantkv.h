@@ -1392,7 +1392,7 @@ public:
                                 );
                                 PIPE_BARRIER(V);
                             } else {
-                                // *** hm = vmax(lm, gm)
+                                // *** hm = MAX(lm, gm)
                                 max_v<ArchType::ASCEND_V220, half>(hm_ubuf_tensor,
                                     lm_ubuf_tensor,
                                     gm_ubuf_tensor,

@@ -941,7 +941,7 @@ __aicore__ inline void unpad_flashattention_mla(
                             );
                             AscendC::PipeBarrier<PIPE_V>();
                         } else {
-                            // *** hm = vmax(lm, gm)
+                            // *** hm = MAX(lm, gm)
                             AscendC::Max<half, false>(
                                 hmUbufTensor,
                                 lmUbufTensor,
@@ -1322,7 +1322,7 @@ __aicore__ inline void unpad_flashattention_mla(
                             );
                             AscendC::PipeBarrier<PIPE_V>();
                         } else {
-                            // *** hm = vmax(lm, gm)
+                            // *** hm = MAX(lm, gm)
                             AscendC::Max<half, false>(
                                 hmUbufTensor,
                                 lmUbufTensor,

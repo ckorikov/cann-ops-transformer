@@ -8,7 +8,7 @@
 # ======================================================================================================================
 
 if (BUILD_OPEN_PROJECT)
-
+set(incre_flash_attention_depends attention/prompt_flash_attention attention/flash_attention_score attention/common PARENT_SCOPE)
     target_sources(op_host_aclnnInner PRIVATE
         incre_flash_attention_def.cpp
     )
@@ -22,7 +22,6 @@ if (BUILD_OPS_RTY_KERNEL)
                 -mllvm -cce-vf-remove-membar=false
                 -Werror
     )
-    set(incre_flash_attention_depends attention/prompt_flash_attention attention/flash_attention_score attention/common PARENT_SCOPE)
 else()
     add_modules_sources(OPTYPE incre_flash_attention ACLNNTYPE aclnn_inner)
 endif()
