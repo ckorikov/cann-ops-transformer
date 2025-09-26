@@ -1967,11 +1967,11 @@ ge::graphStatus PromptFlashAttentionTiling::processPageAttentionInputFlag(Contex
 }
 
 bool PromptFlashAttentionTiling::checkPABlockSizeAndBlockTable(ContextParamsForPFATiling& contextKeyParams, const gert::Tensor* actualSeqLenKV, 
-    const int32_t* blockSize, int64_t b) {
-    OP_CHECK_IF((*blockSize % BLOCK_SIZE_BASE != 0U || *blockSize < BLOCK_SIZE_BASE || *blockSize > BLOCK_SIZE_MAX),
+    const int32_t* curBlockSize, int64_t b) {
+    OP_CHECK_IF((*curBlockSize % BLOCK_SIZE_BASE != 0U || *curBlockSize < BLOCK_SIZE_BASE || *curBlockSize > BLOCK_SIZE_MAX),
                     OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName,
                     "block size(%d) should be a multiple of %d, and can't greater than %d when PA enable",
-                    *blockSize, BLOCK_SIZE_BASE, BLOCK_SIZE_MAX),
+                    *curBlockSize, BLOCK_SIZE_BASE, BLOCK_SIZE_MAX),
                     return false);
     const gert::StorageShape* blockTableShape = contextKeyParams.blockTableShape;
     OP_CHECK_IF((((blockTableShape != nullptr) && (blockTableShape->GetStorageShape().GetShapeSize() == 0)) ||
@@ -1998,14 +1998,14 @@ bool PromptFlashAttentionTiling::checkPABlockSizeAndBlockTable(ContextParamsForP
 }
 
 bool PromptFlashAttentionTiling::culActSeqLenParamsWhenPA(ContextParamsForPFATiling& contextKeyParams, const gert::Tensor* actualSeqLenKV, int64_t& blockNumValid, 
-    int32_t& maxBlockNumPerBatch, int32_t tempBlockSize, const int32_t* blockSize, int64_t b) {
+    int32_t& maxBlockNumPerBatch, int32_t tempBlockSize, const int32_t* curBlockSize, int64_t b) {
     int32_t actualSeqKVPerBatch = 0;
     int32_t blockNumPerBatch = 0;
     int32_t maxKvSeqLen = 0;
     for (int32_t i = 0; i < b; i++) {
         actualSeqKVPerBatch = static_cast<int32_t>(actualSeqLenKV->GetData<int64_t>()[i]);
         maxKvSeqLen = std::max(maxKvSeqLen, static_cast<int32_t>(actualSeqLenKV->GetData<int64_t>()[i]));
-        blockNumPerBatch = (actualSeqKVPerBatch + *blockSize - 1) / *blockSize;
+        blockNumPerBatch = (actualSeqKVPerBatch + *curBlockSize - 1) / *curBlockSize;
         blockNumValid += blockNumPerBatch;
         if (blockNumPerBatch > maxBlockNumPerBatch) {
             maxBlockNumPerBatch = blockNumPerBatch;
@@ -2020,15 +2020,15 @@ bool PromptFlashAttentionTiling::culActSeqLenParamsWhenPA(ContextParamsForPFATil
 }
 
 bool PromptFlashAttentionTiling::checkPAKeyValueDimsWhenBBH(ContextParamsForPFATiling& contextKeyParams, int32_t keyDim1, int32_t keyDim2, int32_t keyDim3, 
-    int64_t blockNumValid, const int32_t* blockSize, int32_t h, int32_t headNumRatio) {
+    int64_t blockNumValid, const int32_t* curBlockSize, int32_t h, int32_t headNumRatio) {
     auto hKV = h / headNumRatio; // the function SetTilingHeadNumRatio ensures that headNumRatio is not 0.
     int32_t tempBlockSize = keyDim2;
     int32_t tempKVH = keyDim3;
     PAlayoutType = 1;  // If it is three-dimensional, PAlayoutType = 1
-    OP_CHECK_IF(((tempBlockSize != *blockSize) || (tempKVH * headNumRatio != h)), 
+    OP_CHECK_IF(((tempBlockSize != *curBlockSize) || (tempKVH * headNumRatio != h)), 
                 OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName,
                 "the dim of key [%d, %d, %d] is invalid, which should be [>=%ld, %d, %d] when PA enable", keyDim1,
-                keyDim2, keyDim3, blockNumValid, *blockSize, hKV), // When assigning headNumRatio, it is guaranteed that it will not be 0
+                keyDim2, keyDim3, blockNumValid, *curBlockSize, hKV), // When assigning headNumRatio, it is guaranteed that it will not be 0
                 return false);
     // In the BSH input of the PA scenario, it is required that the h of the KV matrix does not exceed 65535.  The dim and dim3 of the K/V have already been verified to be equal, so only the K matrix is verified here.
     OP_CHECK_IF(keyDim3 > 65535, 
@@ -2039,7 +2039,7 @@ bool PromptFlashAttentionTiling::checkPAKeyValueDimsWhenBBH(ContextParamsForPFAT
 }
 
 bool PromptFlashAttentionTiling::checkPAKeyValueDimsWhenBNBD(ContextParamsForPFATiling& contextKeyParams, const gert::StorageShape* keyShape, const gert::StorageShape* valueShape, 
-    int32_t keyDim1, int32_t keyDim2, int32_t keyDim3, int64_t blockNumValid, const int32_t* blockSize, int32_t n, int32_t h, int32_t headNumRatio) {
+    int32_t keyDim1, int32_t keyDim2, int32_t keyDim3, int64_t blockNumValid, const int32_t* curBlockSize, int32_t n, int32_t h, int32_t headNumRatio) {
     if (n == 0) {
         return false;
     }
@@ -2053,15 +2053,15 @@ bool PromptFlashAttentionTiling::checkPAKeyValueDimsWhenBNBD(ContextParamsForPFA
     int32_t tempBlockSize = keyDim3;
     int32_t tempKD = keyDim4;
     PAlayoutType = 0;  // If it is four-dimensional, PAlayoutType = 0
-    OP_CHECK_IF(((tempKVN * headNumRatio != n) || (tempBlockSize != *blockSize) || (tempKD != (h / n))),
+    OP_CHECK_IF(((tempKVN * headNumRatio != n) || (tempBlockSize != *curBlockSize) || (tempKD != (h / n))),
                 OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName,
                 "the dim of key [%d, %d, %d, %d] is invalid, which should be [>=%ld, %d, %d, %d] when PA enable",
-                keyDim1, keyDim2, keyDim3, keyDim4, blockNumValid, nKV, *blockSize, tempKD), return false);
+                keyDim1, keyDim2, keyDim3, keyDim4, blockNumValid, nKV, *curBlockSize, tempKD), return false);
     return true;
 }
 
 bool PromptFlashAttentionTiling::checkPAKeyValueDimsWhenNZ(ContextParamsForPFATiling& contextKeyParams, const gert::StorageShape* keyShape, const gert::StorageShape* valueShape, 
-    int32_t keyDim1, int32_t keyDim2, int32_t keyDim3, int64_t blockNumValid, const int32_t* blockSize, int32_t h, int32_t n, int32_t headNumRatio) {
+    int32_t keyDim1, int32_t keyDim2, int32_t keyDim3, int64_t blockNumValid, const int32_t* curBlockSize, int32_t h, int32_t n, int32_t headNumRatio) {
     if (n == 0) {
         return false;
     }
@@ -2082,15 +2082,15 @@ bool PromptFlashAttentionTiling::checkPAKeyValueDimsWhenNZ(ContextParamsForPFATi
                     "the fifth dim of key can not be 0"), return false);
     int32_t lastDim = NUM_32 / (sizeof(keyShape->GetStorageShape().GetDim(FIFTH_DIM)) / sizeof(kDataType));
     int32_t tempKD = keyDim3 * lastDim;
-    OP_CHECK_IF(((tempKVN * headNumRatio != n) || (tempBlockSize != *blockSize) || (tempKD != (h / n))),
+    OP_CHECK_IF(((tempKVN * headNumRatio != n) || (tempBlockSize != *curBlockSize) || (tempKD != (h / n))),
                 OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName,
                 "the dim of key [%d, %d, %d, %d, %d] is invalid, which should be [>=%ld, %d, %d, %d, %d] when PA enable",
-                keyDim1, keyDim2, keyDim3, keyDim4, keyDim5, blockNumValid, nKV, (hKV / nKV) / lastDim, *blockSize, lastDim), return false);
+                keyDim1, keyDim2, keyDim3, keyDim4, keyDim5, blockNumValid, nKV, (hKV / nKV) / lastDim, *curBlockSize, lastDim), return false);
     return true;
 }
 
 bool PromptFlashAttentionTiling::CheckPAKeyValueParams(ContextParamsForPFATiling& contextKeyParams, const gert::StorageShape* keyShape, const gert::StorageShape* valueShape, 
-    int64_t blockNumValid, const int32_t* blockSize, int32_t n, int32_t h, int32_t headNumRatio) {
+    int64_t blockNumValid, const int32_t* curBlockSize, int32_t n, int32_t h, int32_t headNumRatio) {
     int32_t keyDim = keyShape->GetStorageShape().GetDimNum();
     int32_t valueDim = valueShape->GetStorageShape().GetDimNum();
     OP_CHECK_IF(keyDim != valueDim,
@@ -2110,15 +2110,15 @@ bool PromptFlashAttentionTiling::CheckPAKeyValueParams(ContextParamsForPFATiling
                 OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName,
                 "the dim of key and value are inconsistent when PA enable"), return false);
     if (keyDim == NUM_4) {  // dim num: 4
-        if (!checkPAKeyValueDimsWhenBNBD(contextKeyParams, keyShape, valueShape, keyDim1, keyDim2, keyDim3, blockNumValid, blockSize, n, h, headNumRatio)) {
+        if (!checkPAKeyValueDimsWhenBNBD(contextKeyParams, keyShape, valueShape, keyDim1, keyDim2, keyDim3, blockNumValid, curBlockSize, n, h, headNumRatio)) {
             return false;
         }
     } else if (keyDim == NUM_5) { // dim num: 4
-        if (!checkPAKeyValueDimsWhenNZ(contextKeyParams, keyShape, valueShape, keyDim1, keyDim2, keyDim3, blockNumValid, blockSize, h, n, headNumRatio)) {
+        if (!checkPAKeyValueDimsWhenNZ(contextKeyParams, keyShape, valueShape, keyDim1, keyDim2, keyDim3, blockNumValid, curBlockSize, h, n, headNumRatio)) {
             return false;
         }
     } else { // dim num: 3
-        if (!checkPAKeyValueDimsWhenBBH(contextKeyParams, keyDim1, keyDim2, keyDim3, blockNumValid, blockSize, h, headNumRatio)) {
+        if (!checkPAKeyValueDimsWhenBBH(contextKeyParams, keyDim1, keyDim2, keyDim3, blockNumValid, curBlockSize, h, headNumRatio)) {
             return false;
         }
     }
@@ -2140,9 +2140,9 @@ bool PromptFlashAttentionTiling::CheckPASparseMode(ContextParamsForPFATiling& co
 
 bool PromptFlashAttentionTiling::CheckPAWhenBaseApi(ContextParamsForPFATiling& contextKeyParams, const gert::Tensor* actualSeqLenQ,
     const gert::Tensor* actualSeqLenKV, int32_t n, int32_t h, int32_t headNumRatio) {
-    const int32_t* blockSize = contextKeyParams.blockSize;
+    const int32_t* curBlockSize = contextKeyParams.blockSize;
     auto b = actualSeqLenQ->GetShapeSize();
-    if (!checkPABlockSizeAndBlockTable(contextKeyParams, actualSeqLenKV, blockSize, b)) {
+    if (!checkPABlockSizeAndBlockTable(contextKeyParams, actualSeqLenKV, curBlockSize, b)) {
         return false;
     }
     const gert::StorageShape* keyShape = contextKeyParams.keyInputShape;
@@ -2157,10 +2157,10 @@ bool PromptFlashAttentionTiling::CheckPAWhenBaseApi(ContextParamsForPFATiling& c
     } else if (inputKvLayout == InputLayout::NZ) { // B N D/16 B 16
         tempBlockSize = keyShape->GetStorageShape().GetDim(FOURTH_DIM);
     }
-    if (tempBlockSize == 0 || !culActSeqLenParamsWhenPA(contextKeyParams, actualSeqLenKV, blockNumValid, maxBlockNumPerBatch, tempBlockSize, blockSize, b)) {
+    if (tempBlockSize == 0 || !culActSeqLenParamsWhenPA(contextKeyParams, actualSeqLenKV, blockNumValid, maxBlockNumPerBatch, tempBlockSize, curBlockSize, b)) {
         return false;
     }
-    if (blockNumValid == 0 || !CheckPAKeyValueParams(contextKeyParams, keyShape, valueShape, blockNumValid, blockSize, n, h, headNumRatio)) {
+    if (blockNumValid == 0 || !CheckPAKeyValueParams(contextKeyParams, keyShape, valueShape, blockNumValid, curBlockSize, n, h, headNumRatio)) {
         return false;
     }
     const gert::StorageShape* blockTableShape = contextKeyParams.blockTableShape;
@@ -2169,7 +2169,7 @@ bool PromptFlashAttentionTiling::CheckPAWhenBaseApi(ContextParamsForPFATiling& c
     // When blockTableDim2>maxBlockNumPerBatch, the kernel should use blockTableDim2 as the second dimension when indexing block id in blockTable.
     // But for the verification of mask S2 axis, maxBlockNumPerBatch * tempBlockSize should still be used as the verification benchmark.
     if (contextKeyParams.fromTilingSink != 0) {
-        tmpS2 = blockTableDim2 * (*blockSize); // Tiling sinking scene, workspace needs to be calculated, at this time, blockTableDim2 * blockSize is used as S2.
+        tmpS2 = blockTableDim2 * (*curBlockSize); // Tiling sinking scene, workspace needs to be calculated, at this time, blockTableDim2 * blockSize is used as S2.
         return true;
     }
     OP_CHECK_IF((maxBlockNumPerBatch == 0),
@@ -2195,14 +2195,14 @@ bool PromptFlashAttentionTiling::CheckPAWhenBaseApi(ContextParamsForPFATiling& c
 
 bool PromptFlashAttentionTiling::CheckPATypeAndShape(ContextParamsForPFATiling& contextKeyParams,
     const gert::Tensor* actualSeqLenKV, int32_t b, int32_t n, int32_t h, int32_t headNumRatio) {
-    const int32_t* blockSize = contextKeyParams.blockSize;
+    const int32_t* curBlockSize = contextKeyParams.blockSize;
     if (n == 0) {
         return false;
     }    
-    OP_CHECK_IF((*blockSize % BLOCK_SIZE_BASE != 0 || *blockSize < BLOCK_SIZE_BASE || *blockSize > BLOCK_SIZE_MAX),
+    OP_CHECK_IF((*curBlockSize % BLOCK_SIZE_BASE != 0 || *curBlockSize < BLOCK_SIZE_BASE || *curBlockSize > BLOCK_SIZE_MAX),
                     OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName,
                     "block size(%d) should be a multiple of %d, and can't greater than %d when PA enable",
-                    *blockSize, BLOCK_SIZE_BASE, BLOCK_SIZE_MAX),
+                    *curBlockSize, BLOCK_SIZE_BASE, BLOCK_SIZE_MAX),
                     return false);
 
     const gert::StorageShape* blockTableShape = contextKeyParams.blockTableShape;
@@ -2217,7 +2217,7 @@ bool PromptFlashAttentionTiling::CheckPATypeAndShape(ContextParamsForPFATiling& 
     // But for the verification of mask S2 axis, maxBlockNumPerBatch * tempBlockSize should still be used as the verification benchmark.
 
     if (contextKeyParams.fromTilingSink != 0U) {
-        tmpS2 = blockTableDim2 * (*blockSize); // Tiling sinking scene, workspace needs to be calculated, at this time, blockTableDim2 * blockSize is used as S2.
+        tmpS2 = blockTableDim2 * (*curBlockSize); // Tiling sinking scene, workspace needs to be calculated, at this time, blockTableDim2 * blockSize is used as S2.
         return true;
     }
     const gert::StorageShape* keyShape = contextKeyParams.keyInputShape;
@@ -2266,7 +2266,7 @@ bool PromptFlashAttentionTiling::CheckPATypeAndShape(ContextParamsForPFATiling& 
     for (int32_t i = 0; i < b; i++) {
         actualSeqKVPerBatch = actualSeqLenKV->GetShapeSize() > 1 ? static_cast<int32_t>(actualSeqLenKV->GetData<int64_t>()[i]) :
                               static_cast<int32_t>(actualSeqLenKV->GetData<int64_t>()[0]);
-        blockNumPerBatch = (actualSeqKVPerBatch + *blockSize - 1) / *blockSize;
+        blockNumPerBatch = (actualSeqKVPerBatch + *curBlockSize - 1) / *curBlockSize;
         blockNumValid += blockNumPerBatch;
         if (blockNumPerBatch > maxBlockNumPerBatch) {
             maxBlockNumPerBatch = blockNumPerBatch;
@@ -2275,10 +2275,10 @@ bool PromptFlashAttentionTiling::CheckPATypeAndShape(ContextParamsForPFATiling& 
 
     if (keyDim == NUM_3) {  // dim num: 3
         PAlayoutType = 1U;  // If it is three-dimensional, PAlayoutType = 1
-        OP_CHECK_IF(((tempBlockSize != *blockSize) || (tempH * headNumRatio != h)),
+        OP_CHECK_IF(((tempBlockSize != *curBlockSize) || (tempH * headNumRatio != h)),
                     OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName,
                     "the dim of key [%d, %d, %d] is invalid, which should be [>=%ld, %d, %d] when PA enable", keyDim1,
-                    keyDim2, keyDim3, blockNumValid, *blockSize, h / headNumRatio),  // When assigning headNumRatio, it is guaranteed that it will not be 0
+                    keyDim2, keyDim3, blockNumValid, *curBlockSize, h / headNumRatio),  // When assigning headNumRatio, it is guaranteed that it will not be 0
                     return false);
         // In the BSH input of the PA scenario, it is required that the h of the KV matrix does not exceed 65535.  The dim and dim3 of the K/V have already been verified to be equal, so only the K matrix is verified here.
         OP_CHECK_IF(keyDim3 > 65535,
@@ -2288,10 +2288,10 @@ bool PromptFlashAttentionTiling::CheckPATypeAndShape(ContextParamsForPFATiling& 
                     return false);
     } else {
         PAlayoutType = 0U;  // If it is four-dimensional, PAlayoutType = 0
-        OP_CHECK_IF(((tempN * headNumRatio != n) || (tempBlockSize != *blockSize) || (tempD != (h / n))),
+        OP_CHECK_IF(((tempN * headNumRatio != n) || (tempBlockSize != *curBlockSize) || (tempD != (h / n))),
                     OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName,
                     "the dim of key [%d, %d, %d, %d] is invalid, which should be [>=%ld, %d, %d, %d] when PA enable",
-                    keyDim1, keyDim2, keyDim3, keyDim4, blockNumValid, n / headNumRatio, *blockSize, (h / n)),
+                    keyDim1, keyDim2, keyDim3, keyDim4, blockNumValid, n / headNumRatio, *curBlockSize, (h / n)),
                     return false);
     }
 
@@ -2300,13 +2300,13 @@ bool PromptFlashAttentionTiling::CheckPATypeAndShape(ContextParamsForPFATiling& 
         OP_CHECK_IF(((keyDim != 3) && (keyDim != 4)),
                     OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName,
                     "the layout of query is %s, key and value layout should be [>=%ld, %d, %d] or [>=%ld, %d, %d, %d] when PA enable",
-                    layoutStr.c_str(), blockNumValid, *blockSize, h, blockNumValid, n, *blockSize, (h / n)),
+                    layoutStr.c_str(), blockNumValid, *curBlockSize, h, blockNumValid, n, *curBlockSize, (h / n)),
                     return false);
     } else if (layoutStr == "BSH" || layoutStr == "BSND") {
         OP_CHECK_IF(keyDim != 3,
                     OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName,
                     "the layout of query is %s, key and value layout should be [>=%ld, %d, %d] when PA enable",
-                    layoutStr.c_str(), blockNumValid, *blockSize, h),
+                    layoutStr.c_str(), blockNumValid, *curBlockSize, h),
                     return false);
     } else {
         OP_LOGE(contextKeyParams.opName, "unsupported input data layout when PA enable");
@@ -3576,7 +3576,7 @@ ge::graphStatus PromptFlashAttentionTiling::CheckLearnableSinkWhenLayoutIsTND(Co
 
     const gert::StorageShape* learnableSinkShape = contextKeyParams.learnableSinkShape;
     OP_CHECK_IF(learnableSinkShape->GetStorageShape().GetDimNum() != DIM_NUM_1,
-        OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName, "learnable_sink enable, learnable_sink dim(%ld) must be 1!", learnableSinkShape->GetStorageShape().GetDimNum()),
+        OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName, "learnable_sink enable, learnable_sink dim(%zu) must be 1!", learnableSinkShape->GetStorageShape().GetDimNum()),
         return ge::GRAPH_FAILED);
 
     int64_t sinkN = learnableSinkShape->GetStorageShape().GetDim(FIRST_DIM);
@@ -4132,7 +4132,7 @@ ge::graphStatus PromptFlashAttentionTiling::RunBigKernelTilingWithParams(Context
     const int64_t* nextTokens = contextKeyParams.nextToken;
     const int64_t* preTokens = contextKeyParams.preToken;
     const float* scaleValue = contextKeyParams.scaleValue;
-    const int32_t* blockSize = contextKeyParams.blockSize;
+    const int32_t* curBlockSize = contextKeyParams.blockSize;
 
     int64_t sparsePreTokens;
     int64_t sparseNextTokens;
@@ -4719,7 +4719,7 @@ ge::graphStatus PromptFlashAttentionTiling::RunBigKernelTilingWithParams(Context
     tilingData.promptAttentionBaseParams.set_scaleValue(*scaleValue);
     tilingData.promptAttentionBaseParams.set_headSize(hDivN);
     if (enablePA) {
-        tilingData.promptAttentionBaseParams.set_blockSize(*blockSize);
+        tilingData.promptAttentionBaseParams.set_blockSize(*curBlockSize);
     } else {
         tilingData.promptAttentionBaseParams.set_blockSize(BLOCK_SIZE_BASE);
     }

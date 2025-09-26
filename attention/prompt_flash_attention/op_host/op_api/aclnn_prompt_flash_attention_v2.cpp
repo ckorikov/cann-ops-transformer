@@ -49,6 +49,7 @@ aclnnStatus aclnnPromptFlashAttentionV2GetWorkspaceSize(
     const aclTensor *attentionOut,  // Attention output tensor
     uint64_t *workspaceSize,
     aclOpExecutor **executor) {
+        (void) pseShift;
         int64_t innerPrecise = 1;
         return InnerPromptFlashAttentionGetWorkspaceSize(query, key, value, nullptr, attenMask,
                                                               actualSeqLengths, actualSeqLengthsKv,

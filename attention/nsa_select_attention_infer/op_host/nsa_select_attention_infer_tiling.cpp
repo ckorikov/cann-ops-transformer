@@ -140,7 +140,7 @@ ge::graphStatus NsaSelectTiling::QKVPreProcess()
         OP_CHECK_IF(
             actQLen < 1 || actQLen > 4, // actualQSeqLengths必须大于0，小于4
             OP_LOGE(context_->opName,
-                    "the value of actual_q_seq_lengths[%d] must be greater than or equal to 1 and  less than 4, but it is %ld", i, actQLen),
+                    "the value of actual_q_seq_lengths[%u] must be greater than or equal to 1 and  less than 4, but it is %ld", i, actQLen),
             return ge::GRAPH_FAILED);
         maxactLen_ = std::max(maxactLen_, actQLen);
     }
@@ -307,7 +307,7 @@ ge::graphStatus NsaSelectTiling::ProcessActualSeqLen()
         OP_CHECK_IF(
             actLen < 1 || actLen > 4, // actualQSeqLengths必须大于0，小于等于4
             OP_LOGE(context_->opName,
-                    "the value of actual_q_seq_lengths[%d] must be greater than or equal to 1 and  less than 4, but it is %ld", i,
+                    "the value of actual_q_seq_lengths[%u] must be greater than or equal to 1 and  less than 4, but it is %ld", i,
                     actLen),
             return ge::GRAPH_FAILED);
         totalQseq_ += static_cast<uint32_t>(actLen);

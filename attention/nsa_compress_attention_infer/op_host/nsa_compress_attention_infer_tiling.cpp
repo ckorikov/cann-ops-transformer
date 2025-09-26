@@ -651,6 +651,7 @@ ASCENDC_EXTERN_C ge::graphStatus TilingNsaCompressAttentionInfer(gert::TilingCon
 }
 
 ASCENDC_EXTERN_C ge::graphStatus TilingPrepareForNsaCompressAttentionInfer(gert::TilingParseContext* context) {
+    (void) context;
     return ge::GRAPH_SUCCESS;
 }
 

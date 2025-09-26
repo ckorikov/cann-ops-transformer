@@ -35,6 +35,7 @@ aclnnStatus aclnnIncreFlashAttentionGetWorkspaceSize(const aclTensor *query, con
                                                      int64_t numKeyValueHeads, const aclTensor *attentionOut,
                                                      uint64_t *workspaceSize, aclOpExecutor **executor)
 {
+    (void) pseShift;
     aclnnStatus ret = aclnnInnerIncreFlashAttentionGetWorkspaceSize(
         query, key, value, nullptr, attenMask, actualSeqLengths, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
         nullptr, nullptr, nullptr, numHeads, scaleValue, inputLayout, numKeyValueHeads, 0, 1, attentionOut,

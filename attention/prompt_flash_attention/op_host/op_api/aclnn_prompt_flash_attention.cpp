@@ -42,7 +42,8 @@ aclnnStatus aclnnPromptFlashAttentionGetWorkspaceSize(
     int64_t numKeyValueHeads,
     const aclTensor *attentionOut,
     uint64_t *workspaceSize,
-    aclOpExecutor **executor) {       
+    aclOpExecutor **executor) {   
+        (void) pseShift;    
         const aclIntArray *actualSeqLengthsKv = nullptr;
         int64_t sparseMode = 0;
         int64_t innerPrecise = 1;
