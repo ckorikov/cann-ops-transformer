@@ -33,9 +33,9 @@ public:
     __aicore__ uint64_t getSeqRealLength(int32_t sIdx, int32_t len, int32_t s_block_num, int32_t s_tail)
     {
         if (s_tail > 0 && (sIdx + len == s_block_num)) {
-            return (len - 1) * 128 + s_tail;
+            return (len - 1) * BASE_BLOCK_LENGTH + s_tail;
         } else {
-            return len * 128;
+            return len * BASE_BLOCK_LENGTH;
         }
     }
 
@@ -114,9 +114,9 @@ public:
         vecPhyAddr.S2Idx = s2Id + col;
         vecPhyAddr.n2Idx = headNumIdx / g;
         vecPhyAddr.gIdx = headNumIdx % g;
-        vecPhyAddr.offset = blockId * 128 * 128;
-        vecPhyAddr.lengthy = 128;
-        vecPhyAddr.lengthx = 128;
+        vecPhyAddr.offset = blockId * BASE_BLOCK_LENGTH * BASE_BLOCK_LENGTH;
+        vecPhyAddr.lengthy = BASE_BLOCK_LENGTH;
+        vecPhyAddr.lengthx = BASE_BLOCK_LENGTH;
 
         if ((row + s1Id == s1BlockNum - 1) && s1TailLength > 0) {
             vecPhyAddr.lengthy = s1TailLength;
@@ -163,7 +163,7 @@ public:
                             s1MaxLength = s1Idx + lens;
                         }
 
-                        if (lens == 4) {
+                        if (lens == ROW_4) {
                             int col = (VEC_BLOCK_LIMIT - num) / lens;
                             int kx;
                             bool ur;
@@ -174,36 +174,36 @@ public:
                             if ((sparseType == 0) || (s2Idx + col < kxMax) || reachS2Edge) {
                                 kx = s2Idx + col < kxMax ? col : s2BlockNum - s2Idx;
                                 ur = true;
-                                record(s1Idx, s2Idx, kx, 2, kx * 2, ur, lastBatchQSum, lastBatchKSum);
-                                num += kx * 2;
-                                record(s1Idx + 2, s2Idx, kx, 2, kx * 2, ur, lastBatchQSum, lastBatchKSum);
-                                num += kx * 2;
+                                record(s1Idx, s2Idx, kx, ROW_2, kx * ROW_2, ur, lastBatchQSum, lastBatchKSum);
+                                num += kx * ROW_2;
+                                record(s1Idx + ROW_2, s2Idx, kx, ROW_2, kx * ROW_2, ur, lastBatchQSum, lastBatchKSum);
+                                num += kx * ROW_2;
                                 s2Idx += kx;
 
                                 if (s2Idx >= s2BlockNum) {
                                     s2Idx = 0;
-                                    s1Idx += 4;
+                                    s1Idx += ROW_4;
                                 }
                             } else if (s2Idx + col > s1Idx + 1) {
-                                kx = s1Idx + 2 - s2Idx;
+                                kx = s1Idx + ROW_2 - s2Idx;
                                 ur = false;
-                                record(s1Idx, s2Idx, kx, 2, kx * 2 - 1, ur, lastBatchQSum, lastBatchKSum);
-                                num += kx * 2 - 1;
-                                s1Idx += 2;
+                                record(s1Idx, s2Idx, kx, ROW_2, kx * ROW_2 - 1, ur, lastBatchQSum, lastBatchKSum);
+                                num += kx * ROW_2 - 1;
+                                s1Idx += ROW_2;
 
-                                blockAdd(2);
+                                blockAdd(ROW_2);
                             } else {
                                 kx = (VEC_BLOCK_LIMIT + 1 - num) / lens;
                                 int have_ur_block = kx != col;
                                 ur = kx == col;
-                                record(s1Idx, s2Idx, kx, 2, kx * 2 - have_ur_block, ur, lastBatchQSum, lastBatchKSum);
-                                num += kx * 2 - have_ur_block;
-                                record(s1Idx + 2, s2Idx, kx, 2, kx * 2, true, lastBatchQSum, lastBatchKSum);
-                                num += kx * 2;
+                                record(s1Idx, s2Idx, kx, ROW_2, kx * ROW_2 - have_ur_block, ur, lastBatchQSum, lastBatchKSum);
+                                num += kx * ROW_2 - have_ur_block;
+                                record(s1Idx + ROW_2, s2Idx, kx, ROW_2, kx * ROW_2, true, lastBatchQSum, lastBatchKSum);
+                                num += kx * ROW_2;
 
                                 s2Idx += kx;
                                 if (have_ur_block) {
-                                    s1Idx += 2;
+                                    s1Idx += ROW_2;
                                 }
                             }
                         } else {
@@ -243,11 +243,11 @@ public:
                             s1 = 0;
                             s2 = 0;
                         }
-                        s2TailLength = s2 % 128;
-                        s1TailLength = s1 % 128;
+                        s2TailLength = s2 % BASE_BLOCK_LENGTH;
+                        s1TailLength = s1 % BASE_BLOCK_LENGTH;
 
-                        s1BlockNum = (s1 + 127) / 128;
-                        s2BlockNum = (s2 + 127) / 128;
+                        s1BlockNum = (s1 + BASE_BLOCK_LENGTH - 1) / BASE_BLOCK_LENGTH;
+                        s2BlockNum = (s2 + BASE_BLOCK_LENGTH - 1) / BASE_BLOCK_LENGTH;
                     } else {
                         break;
                     }
@@ -333,6 +333,9 @@ private:
 
     constexpr static int32_t VEC_BLOCK_LIMIT = 16; // 每个section的处理block上限
     constexpr static int32_t VEC_COL_LIMIT = 4;    // 每个section的处理列上限
+    constexpr static int32_t BASE_BLOCK_LENGTH = 128;
+    constexpr static int32_t ROW_2 = 2;
+    constexpr static int32_t ROW_4 = 4;
 
     __gm__ uint8_t *seqLenQ;
     __gm__ uint8_t *seqLenK;

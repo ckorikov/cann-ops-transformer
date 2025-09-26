@@ -502,7 +502,6 @@ extern "C" __global__ __aicore__ void flash_attention_score_grad(
     __gm__ uint8_t *dqRope, __gm__ uint8_t *dkRope, __gm__ uint8_t *workspace, __gm__ uint8_t *tiling_data)
 #endif
 {
-
 #if __CCE_AICORE__ == 310
     constexpr bool needDeterPrefix = NEED_DETER_PREFIX(DeterType, IsTnd);
     REGISTER_TILING_DEFAULT(optiling::fag::FlashAttentionScoreGradTilingDataUs1s2Bbn2gs1s2Regbase<needDeterPrefix>);

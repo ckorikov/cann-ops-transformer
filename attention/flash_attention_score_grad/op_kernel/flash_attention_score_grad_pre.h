@@ -391,7 +391,6 @@ public:
         if (g_coreType == AIV && cBlockIdx < TilingData->preTilingData.kvPreBlockTotal) {
             if constexpr (INIT_OUTPUT) {
                 InitOutput<float>(dkWorkSpaceGm[dkvOffset], initdkSize, 0);
-
             }
         }
 

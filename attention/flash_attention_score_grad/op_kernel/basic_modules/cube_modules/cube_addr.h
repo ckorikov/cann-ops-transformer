@@ -31,13 +31,12 @@ public:
     int32_t lastBatchQSum;
     int32_t lastBatchKSum;
 
-
     __aicore__ uint64_t getSeqRealLength(int32_t sIdx, int32_t len, int32_t s_block_num, int32_t s_tail)
     {
         if (s_tail > 0 && (sIdx + len == s_block_num)) {
-            return (len - 1) * 128 + s_tail;
+            return (len - 1) * BASE_BLOCK_LENGTH + s_tail;
         } else {
-            return len * 128;
+            return len * BASE_BLOCK_LENGTH;
         }
     }
 
@@ -61,18 +60,18 @@ public:
     __aicore__ uint64_t getLeftAddr(int32_t batchIdx, int32_t headNumIdx, int32_t s1, int32_t s1Idx, int32_t headDim,
                                     int32_t lastBatchSum)
     {
-        return lastBatchSum * headNum * headDim + (s1Idx * 128 * headNum + headNumIdx) * headDim;
+        return lastBatchSum * headNum * headDim + (s1Idx * BASE_BLOCK_LENGTH * headNum + headNumIdx) * headDim;
     }
 
     __aicore__ uint64_t getRightAddr(int32_t batchIdx, int32_t headNumIdx, int32_t s2, int32_t s2Idx, int32_t headDim,
                                      int32_t lastBatchSum)
     {
-        return lastBatchSum * n2 * headDim + (s2Idx * 128 * n2 + (headNumIdx / g)) * headDim;
+        return lastBatchSum * n2 * headDim + (s2Idx * BASE_BLOCK_LENGTH * n2 + (headNumIdx / g)) * headDim;
     }
 
     __aicore__ uint64_t getOutAddr(int32_t workspacePos)
     {
-        return workspacePos * 128 * 128;
+        return workspacePos * BASE_BLOCK_LENGTH * BASE_BLOCK_LENGTH;
     }
 
     __aicore__ void blockAdd(int ky)
@@ -229,7 +228,7 @@ public:
                             s1MaxLength = s1Idx + lens;
                         }
 
-                        if (lens == 4) {
+                        if (lens == ROW_4) {
                             int col = (limit - num) / lens;
                             int kx;
                             bool ur;
@@ -240,16 +239,16 @@ public:
                                 kx = s2Idx + col < kxMax ? col : s2BlockNum - s2Idx;
                                 ur = true;
 
-                                record_cube3(s1Idx, s2Idx, kx, 4, kx * 4, ur, lastBatchQSum, lastBatchKSum);
-                                record(s1Idx, s2Idx, kx, 2, kx * 2, ur, lastBatchQSum, lastBatchKSum);
-                                num += kx * 2;
-                                record(s1Idx + 2, s2Idx, kx, 2, kx * 2, ur, lastBatchQSum, lastBatchKSum);
-                                num += kx * 2;
+                                record_cube3(s1Idx, s2Idx, kx, ROW_4, kx * ROW_4, ur, lastBatchQSum, lastBatchKSum);
+                                record(s1Idx, s2Idx, kx, ROW_2, kx * ROW_2, ur, lastBatchQSum, lastBatchKSum);
+                                num += kx * ROW_2;
+                                record(s1Idx + ROW_2, s2Idx, kx, ROW_2, kx * ROW_2, ur, lastBatchQSum, lastBatchKSum);
+                                num += kx * ROW_2;
                                 s2Idx += kx;
 
                                 if (s2Idx >= s2BlockNum) {
                                     s2Idx = 0;
-                                    s1Idx += 4;
+                                    s1Idx += ROW_4;
                                 }
                             } else if (s2Idx + col > s1Idx + 1) {
                                 ur = false;
@@ -272,27 +271,27 @@ public:
                                     }
                                 }
 
-                                record_cube3(s1Idx, s2Idx, kx, 4, cnt, ur, lastBatchQSum, lastBatchKSum);
-                                kx = s1Idx + 2 - s2Idx;
+                                record_cube3(s1Idx, s2Idx, kx, ROW_4, cnt, ur, lastBatchQSum, lastBatchKSum);
+                                kx = s1Idx + ROW_2 - s2Idx;
                                 ur = false;
-                                record(s1Idx, s2Idx, kx, 2, kx * 2 - 1, ur, lastBatchQSum, lastBatchKSum);
-                                num += kx * 2 - 1;
-                                s1Idx += 2;
-                                blockAdd(2);
+                                record(s1Idx, s2Idx, kx, ROW_2, kx * ROW_2 - 1, ur, lastBatchQSum, lastBatchKSum);
+                                num += kx * ROW_2 - 1;
+                                s1Idx += ROW_2;
+                                blockAdd(ROW_2);
                             } else {
                                 kx = (limit + 1 - num) / lens;
                                 int have_ur_block = kx != col;
                                 ur = kx == col;
 
-                                record_cube3(s1Idx, s2Idx, kx, 4, kx * 4 - have_ur_block, ur, lastBatchQSum,
+                                record_cube3(s1Idx, s2Idx, kx, ROW_4, kx * ROW_4 - have_ur_block, ur, lastBatchQSum,
                                              lastBatchKSum);
-                                record(s1Idx, s2Idx, kx, 2, kx * 2 - have_ur_block, ur, lastBatchQSum, lastBatchKSum);
-                                num += kx * 2 - have_ur_block;
-                                record(s1Idx + 2, s2Idx, kx, 2, kx * 2, true, lastBatchQSum, lastBatchKSum);
-                                num += kx * 2;
+                                record(s1Idx, s2Idx, kx, ROW_2, kx * ROW_2 - have_ur_block, ur, lastBatchQSum, lastBatchKSum);
+                                num += kx * ROW_2 - have_ur_block;
+                                record(s1Idx + ROW_2, s2Idx, kx, ROW_2, kx * ROW_2, true, lastBatchQSum, lastBatchKSum);
+                                num += kx * ROW_2;
                                 s2Idx += kx;
                                 if (have_ur_block) {
-                                    s1Idx += 2;
+                                    s1Idx += ROW_2;
                                 }
                             }
                         } else {
@@ -331,12 +330,11 @@ public:
                             s1 = 0;
                             s2 = 0;
                         }
-                        s2TailLength = s2 % 128;
-                        s1TailLength = s1 % 128;
+                        s2TailLength = s2 % BASE_BLOCK_LENGTH;
+                        s1TailLength = s1 % BASE_BLOCK_LENGTH;
 
-                        s1BlockNum = (s1 + 127) / 128;
-                        s2BlockNum = (s2 + 127) / 128;
-
+                        s1BlockNum = (s1 + BASE_BLOCK_LENGTH - 1) / BASE_BLOCK_LENGTH;
+                        s2BlockNum = (s2 + BASE_BLOCK_LENGTH - 1) / BASE_BLOCK_LENGTH;
                     } else {
                         break;
                     }
@@ -345,7 +343,7 @@ public:
                 }
             }
 
-            if (num >= 13) {
+            if (num > limit - col_limit) {
                 num = 0;
                 coreSegmentBlockNum++;
                 if (coreSegmentBlockNum == roundId * coreNum) {
@@ -415,6 +413,7 @@ private:
     int32_t s2 = 0;              // 当前处理的batch的s2方向sequnce
     int32_t num = 0;             // 处理到当前section的累计block数
     int32_t limit = 16;          // 每个section的处理block上限
+    int32_t col_limit = 4;       // 每个section的处理列上限
     int32_t lastBlockLength = 0; // 上个section计算的column数
     int32_t coreSegmentBlockNum = 0;
     int32_t batchNum = 0;
@@ -422,6 +421,10 @@ private:
     int32_t headNum = 0;
     int32_t headDim = 0;
     int32_t sparseType = 0;
+
+    constexpr static int32_t BASE_BLOCK_LENGTH = 128;
+    constexpr static int32_t ROW_2 = 2;
+    constexpr static int32_t ROW_4 = 4;
 
     __gm__ uint8_t *seqLenQ;
     __gm__ uint8_t *seqLenK;

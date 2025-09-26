@@ -1308,8 +1308,9 @@ FlashAttentionScoreGradS1s2Bn2<T1, T2, MM_CFG, MM_OUT_FORMAT, PSE_CFG, ATTEN_MAS
 {    
     uint32_t AIdx = reuseA ? aIdx+5 : aIdx;
     uint32_t BIdx = reuseB ? bIdx+5 : bIdx;
-
-    return AIdx*100 + matmulIdx*10 + BIdx;
+    uint32_t AWeight = 100;
+    uint32_t Mweight = 10;
+    return AIdx*AWeight + matmulIdx*Mweight + BIdx;
 }
 
 template <typename T1, typename T2, const MatmulConfig &MM_CFG, const CubeFormat MM_OUT_FORMAT, const uint64_t PSE_CFG,

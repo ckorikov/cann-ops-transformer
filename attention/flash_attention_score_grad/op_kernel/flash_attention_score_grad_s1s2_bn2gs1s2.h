@@ -2525,7 +2525,6 @@ __aicore__ inline void FlashAttentionScoreGradS1s2Bn2gs1s2<T1, T2, IS_ATTEN_MASK
             mm1.SetTensorB(keyRopeGm[bTensorOffsetCv1 / d * rope_d], true);
             mm1.template IterateAll<false>(mm2WorkspaceGm, true, false, true);
         }
-        
     }
 
     int64_t s1_size = s1;
