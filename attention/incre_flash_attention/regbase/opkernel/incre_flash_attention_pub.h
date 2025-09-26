@@ -47,15 +47,6 @@ static constexpr IFAProfile IFA_PROFILE_D128_S128 = {16, 128, 128, 16, 128, 128,
 
 constexpr uint32_t SHARED_CO1_BUFFER_SIZE_KB = 64;
 constexpr uint32_t BYTES_PER_KB = 1024;
-constexpr uint32_t FA_SOUTER_CONST_16 = 16;
-constexpr uint32_t FA_SINNER_CONST_1024  = 1024;
-constexpr uint32_t FA_SINNER_CONST_512  = 512;
-constexpr uint32_t FA_SINNER_CONST_256  = 256;
-constexpr uint32_t FA_SINNER_CONST_128  = 128;
-constexpr uint32_t FA_DSIZE_CONST_64  = 64;
-constexpr uint32_t FA_DSIZE_CONST_128  = 128;
-constexpr uint32_t FA_DSIZE_CONST_256  = 256;
-constexpr uint32_t FA_DSIZE_CONST_512  = 512;
 
 // 生成matmul MDL模板配置
 __aicore__ static constexpr MatmulConfig GenConfMM1MDL(const IFAProfile& ifa) {

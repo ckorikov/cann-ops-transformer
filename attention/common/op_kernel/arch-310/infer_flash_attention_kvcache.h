@@ -522,31 +522,6 @@ __aicore__ inline void ComputeOffset(const RunParamStr<isInfer>& runParam,
 }
 
 TEMPLATE_INTF
-__aicore__ inline void ComputeOffsetForAntiquant(const RunParamStr<isInfer>& runParam,
-    const ConstInfo<isInfer, hasRope> &constInfo, uint32_t sInnerLoopIdx, RunInfo<isInfer> &runInfo)
-{
-    if constexpr (layout == LayOutTypeEnum::LAYOUT_BSH || layout == LayOutTypeEnum::LAYOUT_TND) {
-        runInfo.valueOffset = runParam.valueCoreOffset + sInnerLoopIdx * constInfo.s2BaseN2Dv;
-        if constexpr (isFd) {
-            runInfo.valueOffset += runInfo.flashDecodeS2Idx * constInfo.sInnerLoopSize * constInfo.n2D;
-        }
-        runInfo.keyOffset = runInfo.valueOffset;
-        if constexpr (hasRope) {
-            runInfo.kRopeOffset = runParam.kRopeNBGOffset + sInnerLoopIdx * constInfo.s2BaseN2DR;
-        }
-    } else {
-        runInfo.valueOffset = runParam.valueCoreOffset + sInnerLoopIdx * constInfo.s2BaseDv;
-        if constexpr (isFd) {
-            runInfo.valueOffset += runInfo.flashDecodeS2Idx * constInfo.sInnerLoopSize * constInfo.dSize;
-        }
-        runInfo.keyOffset = runInfo.valueOffset;
-        if constexpr (hasRope) {
-            runInfo.kRopeOffset = runParam.kRopeNBGOffset + sInnerLoopIdx * constInfo.s2BaseDR;
-        }
-    }
-}
-
-TEMPLATE_INTF
 __aicore__ inline void InitTaskParamByRun(const RunParamStr<isInfer>& runParam, RunInfo<isInfer> &runInfo)
 {
     // runInfo.qRopeOffset = runParam.qRopeNBGOffset;
