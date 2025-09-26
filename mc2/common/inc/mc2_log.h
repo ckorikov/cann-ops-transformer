@@ -90,8 +90,7 @@ inline std::vector<char> CreateErrorMsg(const char *format, ...) {
   va_start(args, format);
   va_list args_copy;
   va_copy(args_copy, args);
-  const size_t len =
-      static_cast<size_t>(vsnprintf(nullptr, 0, format, args_copy));
+  const size_t len = 4095;
   va_end(args_copy);
   std::vector<char> msg(len + 1U, '\0');
   const auto ret = vsnprintf_s(msg.data(), len + 1U, len, format, args);

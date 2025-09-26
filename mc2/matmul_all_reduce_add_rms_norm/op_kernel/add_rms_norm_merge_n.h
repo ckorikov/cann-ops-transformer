@@ -47,12 +47,12 @@ public:
         this->gmBlockSize_ = rowWork_ * numCol_;
 
         // get start index for current core, core parallel
-        gamma_.SetGlobalBuffer((__gm__ T*)gammaGM, numCol_);
-
+        gamma_.SetGlobalBuffer((__gm__ T*)gammaGM, numCol_);        
+        
         // pipe alloc memory to queue, the unit is Bytes
-        pipe->InitBuffer(inQueueX_, 2, ubFactor_ * sizeof(T));
+        pipe->InitBuffer(inQueueX_, DOUBLE_BUFFER_QUEUE, ubFactor_ * sizeof(T));
         pipe->InitBuffer(inQueueGamma_, 1, ubFactor_ * sizeof(T));
-        pipe->InitBuffer(outQueueY_, 2, ubFactor_ * sizeof(T));
+        pipe->InitBuffer(outQueueY_, DOUBLE_BUFFER_QUEUE, ubFactor_ * sizeof(T));
         pipe->InitBuffer(outQueueRstd_, 1, rowFactor_ * sizeof(float));
         pipe->InitBuffer(xFp32Buf_, ubFactor_ * sizeof(float));
         pipe->InitBuffer(sqxBuf_, ubFactor_ * sizeof(float));
@@ -262,11 +262,12 @@ private:
     }
 
 private:
+    constexpr uint32_t DOUBLE_BUFFER_QUEUE = 2;
     // create queues for input, in this case depth is equal to buffer num
     TQue<QuePosition::VECIN, 1> inQueueGamma_;
-    TQue<QuePosition::VECIN, 2> inQueueX_;
+    TQue<QuePosition::VECIN, DOUBLE_BUFFER_QUEUE> inQueueX_;
     TQue<QuePosition::VECOUT, 1> outQueueRstd_;
-    TQue<QuePosition::VECOUT, 2> outQueueY_;
+    TQue<QuePosition::VECOUT, DOUBLE_BUFFER_QUEUE> outQueueY_;
 
     TBuf<TPosition::VECCALC> xFp32Buf_;
     TBuf<TPosition::VECCALC> sqxBuf_;
