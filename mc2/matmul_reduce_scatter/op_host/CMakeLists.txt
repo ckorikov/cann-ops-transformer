@@ -8,10 +8,18 @@
 # ======================================================================================================================
 
 if (BUILD_OPEN_PROJECT)  # custom
-    # target_sources(op_host_aclnnInner PRIVATE
-    #     matmul_reduce_scatter_def.cpp
-    # )
-    # add_mc2_modules_sources(OPTYPE matmul_reduce_scatter matmul_reduce_scatter ACLNNTYPE aclnn aclnn_inner)
-else() # 回黄host
-    add_mc2_modules_sources(OPTYPE matmul_reduce_scatter matmul_reduce_scatter ACLNNTYPE aclnn aclnn_inner) 
+     target_sources(op_host_aclnnInner PRIVATE
+         matmul_reduce_scatter_def.cpp
+     )
+     add_mc2_modules_sources(OPTYPE matmul_reduce_scatter matmul_reduce_scatter ACLNNTYPE aclnn aclnn_inner)
+ else() # 回黄host
+     add_mc2_modules_sources(OPTYPE matmul_reduce_scatter matmul_reduce_scatter ACLNNTYPE aclnn aclnn_inner) 
+ endif()
+
+ #打桩操作
+if (BUILD_OPEN_PROJECT)
+    add_tiling_modules()
+    target_sources(${OPHOST_NAME}_tiling_obj PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/reduce_scatter_formulaic_tiling.cpp
+    )
 endif()
