@@ -27,6 +27,7 @@
 #include "log/log.h"
 #include "securec.h"
 #include "tiling/mc2_tiling_struct.h"
+#include "tiling/tiling_api.h"
 
 template <typename T>
 std::string ConcatString(const T &arg) {

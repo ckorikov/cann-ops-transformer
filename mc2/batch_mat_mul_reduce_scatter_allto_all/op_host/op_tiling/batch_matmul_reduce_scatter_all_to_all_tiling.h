@@ -21,7 +21,6 @@
 #include "tiling/tiling_api.h"
 #include "tiling/mc2_tiling_struct.h"
 #include "../../../3rd/mat_mul_v3/op_host/op_tiling/matmul_v3_tiling.h"
-#include "../../../3rd/mat_mul_v3/op_host/op_tiling/matmul_v3_base_tiling.h"
 #include "mc2_log.h"
 #include "tiling/matmul_formulaic_tiling.h"
 #include "../../../3rd/batch_mat_mul_v3/op_host/op_tiling/batch_mat_mul_v3_tiling.h"
