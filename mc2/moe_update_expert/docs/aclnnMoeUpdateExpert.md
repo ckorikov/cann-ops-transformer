@@ -14,45 +14,35 @@
 
 ## 功能说明
 
-### 算子功能
-1. 为解决负载不均衡场景，完成每个token的topK个专家**逻辑专家号到物理卡号**的映射。
-2. 支持根据阈值对token发送的topK个专家进行剪枝。
+本API支持负载均衡和专家剪枝功能。经过映射后的专家表和mask可传入Moe层进行数据分发和处理。
 
+* 负载均衡：为了解决负载不均衡的场景，该算子可以完成每个token的topK个专家逻辑专家号到物理卡号的映射。计算方法如下所示：
 
-### 计算公式
-#### 1. 负载均衡逻辑（专家号映射）
-对于`ExpertIds`中的第i个值（即第i个token），映射逻辑如下：
-```python
-new_expert_id = eplb_table[table_offset + 1]
-expert_id = expert_ids[i]
-table_offset = expert_id * F
-if (eplb_table[table_offset] == 1):
+  负载均衡对于expert_ids中的第i个值，即第i个token：
+    ```python
     new_expert_id = eplb_table[table_offset + 1]
-else:
-    if (balance_mode == 0):
-        mode_value = ceil(world_size, eplb_table[table_offset])
-        place_idx = local_rank_id / mode_value + 1
+    expert_id = expert_ids[i]
+    table_offset = expert_id * F
+    if (eplb_table[table_offset] == 1):
+        new_expert_id = eplb_table[table_offset + 1]
     else:
-        place_idx = i % place_num
-new_expert_id = eplb_table[table_offset + place_idx]
-```
+        if (balance_mode == 0):
+            mode_value = ceil(world_size, eplb_table[table_offset])
+            place_idx = local_rank_id / mode_value + 1
+        else:
+            place_idx = i % place_num
+    new_expert_id = eplb_table[table_offset + place_idx]
+    ```
 
-#### 2. 专家剪枝逻辑
-将shape为`(BS,)`的`active_mask`广播为shape为`(BS, K)`的`active_mask_tensor`，对不满足条件的专家进行剪枝：
-```python
-active_mask_tensor = broadcast(active_mask, (BS, K))
-for i in range(BS):
-    expert_scales_vec[:] = sum(expert_scales[i, :] * pruning_threshold[:])
-    balanced_active_mask[i, :] = (expert_scales[i, :] < expert_scales_vec[:]) && active_mask_tensor[i, :]
-```
+* 专家剪枝：支持根据阈值对token发送的topK个专家进行剪枝。计算方法如下所示：
 
-
-### 接口配套要求
-该接口必须与`aclnnMoeDistributeDispatchV2`及`aclnnMoeDistributeCombineV2`/`aclnnMoeDistributeCombineAddRmsNorm`接口配套使用，**调用顺序固定为**：  
-`aclnnMoeUpdateExpert` → `aclnnMoeDistributeDispatchV2` → `aclnnMoeDistributeCombineV2`/`aclnnMoeDistributeCombineAddRmsNorm`；
-
-或与`aclnnMoeDistributeDispatchV3`及`aclnnMoeDistributeCombineV3`/`aclnnMoeDistributeCombineAddRmsNormV2`接口配套使用，**调用顺序固定为**：  
-`aclnnMoeUpdateExpert` → `aclnnMoeDistributeDispatchV3` → `aclnnMoeDistributeCombineV3`/`aclnnMoeDistributeCombineAddRmsNormV2`；
+  将shape为(BS,)的active_mask进行broadcast成为shape为(BS,K)的active_mask_tensor，其中BS对应为False的专家会直接被剪枝。对于active_mask_tensor为True的元素，满足条件也将被剪枝。
+    ```python
+    active_mask_tensor = broadcast(active_mask, (BS, K))
+    for i in range(BS):
+        expert_scales_vec[:] = sum(expert_scales[i, :] * pruning_threshold[:])
+        balanced_active_mask[i, :] = (expert_scales[i, :] < expert_scales_vec[:]) && active_mask_tensor[i, :]
+    ```
 
 ## 函数原型
 
@@ -277,8 +267,11 @@ aclnnStatus aclnnMoeUpdateExpert(
 ## 约束说明
 
 1. **接口配套与调用顺序**：  
-    `aclnnMoeUpdateExpert`必须与`aclnnMoeDistributeDispatchV2`及`aclnnMoeDistributeCombineV2`/`aclnnMoeDistributeCombineAddRmsNorm`配套使用，调用顺序固定为：  
-    `aclnnMoeUpdateExpert` → `aclnnMoeDistributeDispatchV2` → `aclnnMoeDistributeCombineV2`/`aclnnMoeDistributeCombineAddRmsNorm`，具体参考[调用示例](#调用示例)。
+    该接口必须与`aclnnMoeDistributeDispatchV2`及`aclnnMoeDistributeCombineV2`/`aclnnMoeDistributeCombineAddRmsNorm`接口配套使用，**调用顺序固定为**：  
+    `aclnnMoeUpdateExpert` → `aclnnMoeDistributeDispatchV2` → `aclnnMoeDistributeCombineV2`/`aclnnMoeDistributeCombineAddRmsNorm`；
+
+    或与`aclnnMoeDistributeDispatchV3`及`aclnnMoeDistributeCombineV3`/`aclnnMoeDistributeCombineAddRmsNormV2`接口配套使用，**调用顺序固定为**：  
+    `aclnnMoeUpdateExpert` → `aclnnMoeDistributeDispatchV3` → `aclnnMoeDistributeCombineV3`/`aclnnMoeDistributeCombineAddRmsNormV2`；具体参考[调用示例](#调用示例)。
 
 2. **参数一致性要求**：  
    调用过程中使用的`worldSize`、`moeExpertNum`参数取值，所有卡需保持一致，网络不同层中也需保持一致，且需与`aclnnMoeDistributeDispatchV2`、`aclnnMoeDistributeCombineV2`/`aclnnMoeDistributeCombineAddRmsNorm`的对应参数一致。
