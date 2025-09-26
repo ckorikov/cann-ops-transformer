@@ -1127,14 +1127,14 @@ public:
         Dim2 pos = in.pos;
 
         float format_size = in.format_size;
-        int ele_num = COPY_BLK_BYTES;
-        int32_t in_width = in.vector_val.s[1] * format_size;
-        uint32_t in_height = in.vector_val.s[0];
-        int32_t width = vec.s[1] * format_size;
-        uint32_t height = vec.s[0];
-        uint32_t posHeight = pos.s[0];
-        int32_t posWidth = pos.s[1] * format_size;
-        uint32_t widthBlock = ceilINT(width, ele_num);
+        int64_t ele_num = COPY_BLK_BYTES;
+        int64_t in_width = in.vector_val.s[1] * format_size;
+        uint64_t in_height = in.vector_val.s[0];
+        int64_t width = vec.s[1] * format_size;
+        uint64_t height = vec.s[0];
+        uint64_t posHeight = pos.s[0];
+        int64_t posWidth = pos.s[1] * format_size;
+        uint64_t widthBlock = ceilINT(width, ele_num);
 
         //ND->ND
         uint16_t blockCount = height;
@@ -1158,14 +1158,14 @@ public:
         Dim2 pos = in.pos;
 
         float format_size = in.format_size;
-        int ele_num = COPY_BLK_BYTES;
-        int32_t in_width = in.vector_val.s[1] * format_size;
-        int32_t width = vec.s[1] * format_size;
-        uint32_t widthBlock = ceilINT(width, ele_num);
-        int32_t posWidth = pos.s[1] * format_size;
-        uint32_t in_height = in.vector_val.s[0];
-        uint32_t height = vec.s[0];
-        uint32_t posHeight = pos.s[0];
+        int64_t ele_num = COPY_BLK_BYTES;
+        int64_t in_width = in.vector_val.s[1] * format_size;
+        int64_t width = vec.s[1] * format_size;
+        uint64_t widthBlock = ceilINT(width, ele_num);
+        int64_t posWidth = pos.s[1] * format_size;
+        uint64_t in_height = in.vector_val.s[0];
+        uint64_t height = vec.s[0];
+        uint64_t posHeight = pos.s[0];
 
         //ND->ND
         int64_t srcOffset = offset + posHeight * vec.s[1] * format_size;
@@ -1224,16 +1224,16 @@ public:
         Dim2 pos = out.pos;
 
         float format_size = out.format_size;
-        int ele_num = COPY_BLK_BYTES;
-        int32_t width = vec.s[1] * format_size;
-        uint32_t height = vec.s[0];
-        int32_t posWidth = pos.s[1] * format_size;
-        uint32_t posHeight = pos.s[0];
-        int32_t in_width = out.vector_val.s[1] * format_size;
-        uint32_t in_height = out.vector_val.s[0];
-        uint32_t nBlocks = ceilINT(width, ele_num);
-        uint32_t mBlocks = ceilINT(height, ele_num);
-        uint32_t t_nBlocks = ceilINT(in_width, ele_num);
+        int64_t ele_num = COPY_BLK_BYTES;
+        int64_t width = vec.s[1] * format_size;
+        uint64_t height = vec.s[0];
+        int64_t posWidth = pos.s[1] * format_size;
+        uint64_t posHeight = pos.s[0];
+        int64_t in_width = out.vector_val.s[1] * format_size;
+        uint64_t in_height = out.vector_val.s[0];
+        uint64_t nBlocks = ceilINT(width, ele_num);
+        uint64_t mBlocks = ceilINT(height, ele_num);
+        uint64_t t_nBlocks = ceilINT(in_width, ele_num);
 
         //ND->ND
         uint16_t blockCount = height;
@@ -1257,17 +1257,17 @@ public:
         LocalTensor<uint8_t> dst = out.get<uint8_t>();
 
         float format_size = in.format_size;
-        int ele_num = COPY_BLK_BYTES;
-        uint32_t in_posHeight = in.pos.s[0];
-        int32_t in_posWidth = in.pos.s[1] * format_size;
-        uint32_t out_posHeight = out.pos.s[0];
-        int32_t out_posWidth = out.pos.s[1] * format_size;
+        int64_t ele_num = COPY_BLK_BYTES;
+        uint64_t in_posHeight = in.pos.s[0];
+        int64_t in_posWidth = in.pos.s[1] * format_size;
+        uint64_t out_posHeight = out.pos.s[0];
+        int64_t out_posWidth = out.pos.s[1] * format_size;
 
-        int in_width = in.vector_val.s[1] * format_size;
-        int out_height = ceilINT_16(out.vector_val.s[0]);
+        int64_t in_width = in.vector_val.s[1] * format_size;
+        int64_t out_height = ceilINT_16(out.vector_val.s[0]);
 
-        int height = ceilINT_16(vec.s[0]);
-        int width = vec.s[1] * format_size;
+        int64_t height = ceilINT_16(vec.s[0]);
+        int64_t width = vec.s[1] * format_size;
 
         int64_t srcOffset = in_posHeight * in_width + in_posWidth;
         int64_t dstOffset = out_posWidth * out_height + out_posHeight * ele_num;
@@ -1296,17 +1296,17 @@ public:
         LocalTensor<uint8_t> dst = out.get<uint8_t>();
 
         float format_size = in.format_size;
-        int ele_num = COPY_BLK_BYTES;
-        int in_height = in.vector_val.s[0];
-        int in_width = in.vector_val.s[1] * format_size;
-        int out_height = out.vector_val.s[0];
-        int out_width = out.vector_val.s[1] * format_size;
-        int height = vec.s[0];
-        int width = vec.s[1] * format_size;
-        uint32_t in_posHeight = in.pos.s[0];
-        int32_t in_posWidth = in.pos.s[1] * format_size;
-        uint32_t out_posHeight = out.pos.s[0];
-        int32_t out_posWidth = out.pos.s[1] * format_size;
+        int64_t ele_num = COPY_BLK_BYTES;
+        int64_t in_height = in.vector_val.s[0];
+        int64_t in_width = in.vector_val.s[1] * format_size;
+        int64_t out_height = out.vector_val.s[0];
+        int64_t out_width = out.vector_val.s[1] * format_size;
+        int64_t height = vec.s[0];
+        int64_t width = vec.s[1] * format_size;
+        uint64_t in_posHeight = in.pos.s[0];
+        int64_t in_posWidth = in.pos.s[1] * format_size;
+        uint64_t out_posHeight = out.pos.s[0];
+        int64_t out_posWidth = out.pos.s[1] * format_size;
 
         // NZ -> NZ 格式
         uint16_t blockCount = width / ele_num;
@@ -1533,14 +1533,14 @@ public:
         LocalTensor<int32_t> srcLocal = src.template Get<int32_t>();
 
         float format_size = dstFormat;
-        uint32_t out_posWidth = dstCart.pos.s[1];
-        uint32_t out_posHeight = dstCart.pos.s[0];
+        uint64_t out_posWidth = dstCart.pos.s[1];
+        uint64_t out_posHeight = dstCart.pos.s[0];
 
-        uint32_t height = vec.s[0];
-        uint32_t height_16 = ceilINT_16(vec.s[0]);
-        uint32_t width = vec.s[1];
+        uint64_t height = vec.s[0];
+        uint64_t height_16 = ceilINT_16(vec.s[0]);
+        uint64_t width = vec.s[1];
 
-        int srcOffset = 0;
+        int64_t srcOffset = 0;
         int64_t dstOffset = out_posWidth * FACTOR_4096 * format_size;
 
         AscendC::FixpipeParamsV220 fixpipeParams;
