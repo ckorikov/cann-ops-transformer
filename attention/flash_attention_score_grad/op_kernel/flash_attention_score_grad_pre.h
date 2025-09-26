@@ -223,7 +223,7 @@ __aicore__ inline void FlashAttentionScoreGradPre<T1, T2, TILING_TYPE, INIT_OUTP
         // malloc tensor filled by 1.0
         auto helpTensor = helpQue.AllocTensor<half>();
         Duplicate<half>(helpTensor, padValue, HELP_LEN / sizeof(half));
-        pipe_barrier(PIPE_V);
+        AscendC::PipeBarrier<PIPE_V>();
 
         int64_t outputAddr = cBlockIdx * TilingData->preTilingData.maskSingleCoreNum;
         int64_t inputAddr = cBlockIdx * TilingData->preTilingData.maskSingleCoreNum / BIT8;
@@ -249,7 +249,7 @@ __aicore__ inline void FlashAttentionScoreGradPre<T1, T2, TILING_TYPE, INIT_OUTP
             uint8_t selectRepeat = (maskUBProcessNum + B16_VECTOR_MASK - 1) / B16_VECTOR_MASK;
             Select(castTensor, inputTensor, helpTensor, (half)0.0, SELMODE::VSEL_TENSOR_SCALAR_MODE, B16_VECTOR_MASK,
                    selectRepeat, repParams);
-            pipe_barrier(PIPE_V);
+            AscendC::PipeBarrier<PIPE_V>();
             inputQue.FreeTensor(inputTensor);
 
             // cast
@@ -427,7 +427,7 @@ public:
             // malloc tensor filled by 1.0
             auto helpTensor = helpQue.AllocTensor<half>();
             Duplicate<half>(helpTensor, padValue, HELP_LEN / sizeof(half));
-            pipe_barrier(PIPE_V);
+            AscendC::PipeBarrier<PIPE_V>();
 
             int64_t outputAddr = cBlockIdx * TilingData->preTilingData.maskSingleCoreNum;
             int64_t inputAddr = cBlockIdx * TilingData->preTilingData.maskSingleCoreNum / BIT8;
@@ -453,7 +453,7 @@ public:
                 uint8_t selectRepeat = (maskUBProcessNum + B16_VECTOR_MASK - 1) / B16_VECTOR_MASK;
                 Select(castTensor, inputTensor, helpTensor, (half)0.0, SELMODE::VSEL_TENSOR_SCALAR_MODE, B16_VECTOR_MASK,
                     selectRepeat, repParams);
-                pipe_barrier(PIPE_V);
+                AscendC::PipeBarrier<PIPE_V>();
                 inputQue.FreeTensor(inputTensor);
 
                 // cast
@@ -696,7 +696,7 @@ public:
             // malloc tensor filled by 1.0
             auto helpTensor = helpQue.AllocTensor<half>();
             Duplicate<half>(helpTensor, padValue, HELP_LEN / sizeof(half));
-            pipe_barrier(PIPE_V);
+            AscendC::PipeBarrier<PIPE_V>();
 
             int64_t outputAddr = cBlockIdx * TilingData->preTilingData.maskSingleCoreNum;
             int64_t inputAddr = cBlockIdx * TilingData->preTilingData.maskSingleCoreNum / BIT8;
@@ -722,7 +722,7 @@ public:
                 uint8_t selectRepeat = (maskUBProcessNum + B16_VECTOR_MASK - 1) / B16_VECTOR_MASK;
                 Select(castTensor, inputTensor, helpTensor, (half)0.0, SELMODE::VSEL_TENSOR_SCALAR_MODE, B16_VECTOR_MASK,
                     selectRepeat, repParams);
-                pipe_barrier(PIPE_V);
+                AscendC::PipeBarrier<PIPE_V>();
                 inputQue.FreeTensor(inputTensor);
 
                 // cast
