@@ -18,6 +18,10 @@
 
 using namespace AscendC;
 
+constexpr uint64_t SINGLE_N_NUM_BLOCK = 192;
+constexpr uint64_t SINGLE_N_BLOCK_SIZE = 1024;
+constexpr uint64_t SINGLE_N_BUFFER_SIZE = (SINGLE_N_NUM_BLOCK - 1) * SINGLE_N_BLOCK_SIZE; // 195584 bytes
+
 template <typename T>
 class KernelAddRmsNormSingleN
 {
@@ -33,7 +37,7 @@ public:
         this->avgFactor_ = (numCol_ != 0) ? (float)1.0 / numCol_ : 0;
         // get start index for current core, core parallel
         gamma_.SetGlobalBuffer((__gm__ T*)gammaGM, numCol_);
-        pipe->InitBuffer(unitBuf_, 195584); // (192 - 1) * 1024 byte
+        pipe->InitBuffer(unitBuf_, SINGLE_N_BUFFER_SIZE); 
     }
 
     __aicore__ inline void Process()

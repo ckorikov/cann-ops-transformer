@@ -22,6 +22,16 @@
 #include "add_rms_norm_merge_n.h"
 #include "add_rms_norm_single_n.h"
 
+constexpr uint32_t ADD_RMS_NORM = 10;
+constexpr uint32_t ADD_RMS_NORM_BF16 = 30;
+constexpr uint32_t ADD_RMS_NORM_SPLIT_D = 11;
+constexpr uint32_t ADD_RMS_NORM_SPLIT_BF16 = 31;
+constexpr uint32_t ADD_RMS_NORM_MERGE_N = 12;
+constexpr uint32_t ADD_RMS_NORM_MERGE_N_BF16 = 32;
+constexpr uint32_t ADD_RMS_NORM_SINGLE_N = 13;
+constexpr uint32_t ADD_RMS_NORM_SINGLE_N_BF16 = 33;
+constexpr uint32_t ADD_RMS_NORM_MULTI_N = 14;
+
 using namespace AscendC;
 class AddRmsNormKernel
 {
@@ -104,23 +114,23 @@ private:
         }
 
         tPipe_->Reset();
-        if (keyTile == 10) {
+        if (keyTile == ADD_RMS_NORM) {
             INVOKE_ARN_OP_IMPL(KernelAddRmsNorm, half);
-        } else if (keyTile == 30) {
+        } else if (keyTile == ADD_RMS_NORM_BF16) {
             INVOKE_ARN_OP_IMPL(KernelAddRmsNorm, bfloat16_t);
-        } else if (keyTile == 11) {
+        } else if (keyTile == ADD_RMS_NORM_SPLIT_D) {
             INVOKE_ARN_OP_IMPL(KernelAddRmsNormSplitD, half);
-        } else if (keyTile == 31) {
+        } else if (keyTile == ADD_RMS_NORM_SPLIT_BF16) {
             INVOKE_ARN_OP_IMPL(KernelAddRmsNormSplitD, bfloat16_t);
-        } else if (keyTile == 12) {
+        } else if (keyTile == ADD_RMS_NORM_MERGE_N) {
             INVOKE_ARN_OP_IMPL(KernelAddRmsNormMergeN, half);
-        } else if (keyTile == 32) {
+        } else if (keyTile == ADD_RMS_NORM_MERGE_N_BF16) {
             INVOKE_ARN_OP_IMPL(KernelAddRmsNormMergeN, bfloat16_t);
-        } else if (keyTile == 13) {
+        } else if (keyTile == ADD_RMS_NORM_SINGLE_N) {
             INVOKE_ARN_OP_IMPL(KernelAddRmsNormSingleN, half);
-        } else if (keyTile == 33) {
+        } else if (keyTile == ADD_RMS_NORM_SINGLE_N_BF16) {
             INVOKE_ARN_OP_IMPL(KernelAddRmsNormSingleN, bfloat16_t);
-        } else if (keyTile == 14) {
+        } else if (keyTile == ADD_RMS_NORM_MULTI_N) {
             INVOKE_ARN_OP_IMPL(KernelAddRmsNormMultiN, half);
         }
     }
