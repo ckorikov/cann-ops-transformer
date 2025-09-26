@@ -117,7 +117,7 @@ if(UT_TEST_ALL OR OP_KERNEL_UT)
     # add opkernel ut common object: transformer_op_kernel_ut_common_obj
     add_library(${OP_KERNEL_MODULE_NAME}_common_obj OBJECT)
     file(GLOB OP_KERNEL_UT_COMMON_SRC ${UT_COMMON_INC}/tiling_context_faker.cpp
-         ${UT_COMMON_INC}/tiling_case_executor.cpp ${PROJECT_SOURCE_DIR}/tools/tests/ut/op_kernel/data_utils.cpp
+         ${UT_COMMON_INC}/tiling_case_executor.cpp ${PROJECT_SOURCE_DIR}/tests/ut/framework_normal/op_kernel/data_utils.cpp
       )
     target_sources(${OP_KERNEL_MODULE_NAME}_common_obj PRIVATE ${OP_KERNEL_UT_COMMON_SRC})
     target_include_directories(
@@ -287,7 +287,7 @@ if(UT_TEST_ALL OR OP_KERNEL_UT)
         set(compileOptions ${compileOptions} ${option})
       endforeach()
       message("compileOptions: ${compileOptions}")
-      set(gen_tiling_head_file ${OPS_TRANSFORMER_DIR}/tools/tests/ut/op_kernel/scripts/gen_tiling_head_file.sh)
+      set(gen_tiling_head_file ${OPS_TRANSFORMER_DIR}/tests/ut/framework_normal/op_kernel/scripts/gen_tiling_head_file.sh)
       set(gen_tiling_so_path ${CMAKE_CURRENT_BINARY_DIR}/lib${opName}_${socVersion}_tiling_tmp.so)
       set(gen_tiling_head_tag ${opName}_${socVersion}_gen_head)
       set(gen_cmd "bash ${gen_tiling_head_file} ${opType} ${opName} ${gen_tiling_so_path} ${CUSTOM_TILING_DATA_KEYS}")
@@ -311,8 +311,8 @@ if(UT_TEST_ALL OR OP_KERNEL_UT)
         )
       target_include_directories(
         ${opName}_${socVersion}_cases_obj
-        PRIVATE ${ASCEND_DIR}/include/base/context_builder ${PROJECT_SOURCE_DIR}/tools/tests/ut/op_kernel
-                ${PROJECT_SOURCE_DIR}/tools/tests/ut/common
+        PRIVATE ${ASCEND_DIR}/include/base/context_builder ${PROJECT_SOURCE_DIR}/tests/ut/framework_normal/op_kernel
+                ${PROJECT_SOURCE_DIR}/tests/ut/framework_normal/common
         )
       target_link_libraries(
         ${opName}_${socVersion}_cases_obj PRIVATE $<BUILD_INTERFACE:intf_llt_pub_asan_cxx17> tikicpulib::${socVersion}

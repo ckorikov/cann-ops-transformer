@@ -32,7 +32,7 @@ public:
             return;
         }
 
-        string opHostSoPath = buildPath + string("/tools/tests/ut/op_host/libophost_transformer_ut.so");
+        string opHostSoPath = buildPath + string("/tests/ut/framework_normal/op_host/libophost_transformer_ut.so");
         gert::OppSoDesc oppSoDesc({ge::AscendString(opHostSoPath.c_str())}, "op_host_so");
         shared_ptr<gert::OpImplSpaceRegistryV2> opImplSpaceRegistryV2 = make_shared<gert::OpImplSpaceRegistryV2>();
         if (opImplSpaceRegistryV2->AddSoToRegistry(oppSoDesc) == ge::GRAPH_FAILED) {

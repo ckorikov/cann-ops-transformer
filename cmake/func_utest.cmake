@@ -333,7 +333,7 @@ function(OpsTest_AddOpTilingShared)
     target_sources(${_Target}
             PRIVATE
                 ${_OpsTestUt_OpTilingSources}
-                ${OPS_ADV_DIR}/tools/framework/stubs/tiling/tiling_templates_registry.cpp
+                ${OPS_ADV_DIR}/tests/ut/framework_special/stubs/tiling/tiling_templates_registry.cpp
     )
     target_include_directories(${_Target}
             PRIVATE
@@ -1047,7 +1047,7 @@ function(OpsTest_AddLaunch)
 
             set(_UTest_Main ${UTest_NamePrefix}_Main_Normal_${_OpBrief})
             add_executable(${_UTest_Main})
-            target_sources(${_UTest_Main} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tools/framework/main.cpp)
+            target_sources(${_UTest_Main} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tests/ut/framework_special/main.cpp)
             target_compile_options(${_UTest_Main} PRIVATE -fPIC)
             target_link_libraries(${_UTest_Main}
                     PRIVATE
@@ -1104,7 +1104,7 @@ function(OpsTest_AddLaunch)
             string(REPLACE "UTest_" "" _OpBrief ${_OpBrief})
             set(_UTest_Main_Aclnn ${UTest_NamePrefix}_Main_Aclnn_${_OpBrief})
             add_executable(${_UTest_Main_Aclnn})
-            target_sources(${_UTest_Main_Aclnn} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tools/framework/main_aclnn.cpp)
+            target_sources(${_UTest_Main_Aclnn} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tests/ut/framework_special/main_aclnn.cpp)
             target_compile_options(${_UTest_Main_Aclnn} PRIVATE -fPIC)
             target_link_libraries(${_UTest_Main_Aclnn}
                     PRIVATE
