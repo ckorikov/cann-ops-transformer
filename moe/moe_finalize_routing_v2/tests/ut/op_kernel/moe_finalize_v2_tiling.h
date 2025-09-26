@@ -12,35 +12,6 @@
 
 #include "kernel_tiling/kernel_tiling.h"
 
-struct MoeFinalizeRoutingV2TilingData {
-    int64_t totalCoreNum;
-    int64_t usedCoreNum;
-    int64_t skip2IsNull;
-    int64_t biasRowNum;
-    int64_t totalRowNum;
-    int64_t H;
-    int64_t normalH;
-    int64_t unnormalH;
-    int64_t hSliceNum;
-    int64_t normalK;
-    int64_t unnormalK;
-    int64_t kSliceNum;
-    int64_t K;
-    int64_t normalCoreHandleNum;
-    int64_t normalCoreLoopNum;
-    int64_t normalCoreHandleNumPerLoop;
-    int64_t normalCoreHandleNumTailLoop;
-    int64_t tailCoreHandleNum;
-    int64_t tailCoreLoopNum;
-    int64_t tailCoreHandleNumPerLoop;
-    int64_t tailCoreHandleNumTailLoop;
-    int64_t tilingKey;
-    int64_t skip1IsNull;
-    int64_t ubSize_;
-    int64_t dropPadMode;
-    int64_t scalesIsNull;
-};
-
 #pragma pack(1)
 
 #pragma pack()
