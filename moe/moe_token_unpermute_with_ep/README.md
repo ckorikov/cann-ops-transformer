@@ -125,7 +125,7 @@ $$
 
 - topK_num <= 512。
 - 不支持paddedMode为`True`。
-- 当rangeOptional为空时，忽略numTopk，执行逻辑回退到[aclnnMoeTokenUnpermute](..\moe_token_unpermute_with_ep\docs\aclnnMoeTokenUnpermute.md)。
+- 当rangeOptional为空时，忽略numTopk，执行逻辑回退到[aclnnMoeTokenUnpermute](../moe_token_unpermute/docs/aclnnMoeTokenUnpermute.md)。
 
 ## 调用说明
 

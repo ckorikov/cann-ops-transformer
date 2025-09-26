@@ -14,7 +14,7 @@
 
 ## 功能说明
 
--   **算子功能**：MoE的routing计算，根据[aclnnMoeGatingTopKSoftmax](aclnnMoeGatingTopKSoftmax.md)的计算结果做routing处理。
+-   **算子功能**：MoE的routing计算，根据[aclnnMoeGatingTopKSoftmax](../moe_gating_top_k_softmax/docs/aclnnMoeGatingTopKSoftmax.md)的计算结果做routing处理。
 -   **计算公式**：
 
     $$

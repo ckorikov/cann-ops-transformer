@@ -14,9 +14,9 @@
 
 ## 功能说明
 
-- **算子功能**：MoE的routing计算，根据[aclnnMoeGatingTopKSoftmaxV2](aclnnMoeGatingTopKSoftmaxV2.md)的计算结果做routing处理。
+- **算子功能**：MoE的routing计算，根据[aclnnMoeGatingTopKSoftmaxV2](../moe_gating_top_k_softmax_v2/docs/aclnnMoeGatingTopKSoftmaxV2.md)的计算结果做routing处理。
 
-  本接口针对[aclnnMoeInitRoutingQuant](aclnnMoeInitRoutingQuant.md)做了如下功能变更，请根据实际情况选择合适的接口：
+  本接口针对[aclnnMoeInitRoutingQuant](../moe_init_routing_quant/docs/aclnnMoeInitRoutingQuant.md)做了如下功能变更，请根据实际情况选择合适的接口：
 
   - 新增drop模式，在该模式下输出内容会根据每个专家的expertCapacity处理，超过expertCapacity不做处理，不足的会补0。
   - 新增dropless模式下expertTokensCountOrCumsumOutOptional可选输出，drop场景下expertTokensBeforeCapacityOutOptional可选输出。

@@ -1,4 +1,4 @@
-# aclnnMoeTokenPermuteWithEp
+# aclnnMoeTokenPermuteWithRoutingMapGrad
 
 ## 产品支持情况
 
@@ -14,38 +14,45 @@
 
 ## 功能说明
 
-算子功能：MoE的permute计算，根据索引indices将tokens和可选probs广播后排序并按照rangeOptional中范围切片。
+算子功能：aclnnMoeTokenPermuteWithRoutingMap的反向传播。
 
 计算公式：
-- paddedMode`false`时
 
-    $$
-    sortedIndicesFirst=argSort(indices)
-    $$
+$$
+permuteTokenId, outIndex= sortedIndices.sort(dim=-1)
+$$
 
-    $$
-    sortedIndicesOut=argSort(sortedIndices)
-    $$
+$$
+capacity = permutedTokenOutputGrad.size(0) / numExperts
+$$
 
-    当rangeOptional[0] <= sortedIndices[i] < rangeOptional[1]时
+- probs不为None：
+  
+  $$
+  probsGradOutOptional = zeros(tokens_num, numExperts)
+  $$
+  
+  - paddedMode为true时
+  
+  $$
+  probsGradOutOptional [sortedIndices[i], i/capacity] = permutedProbsOutputGradOptional[i]
+  $$
+  
+  - paddedMode为false时
+  
+  $$
+  probsGradOutOptional = maskedscatter(probsGradOutOptional,routingMap,permutedProbsOutputGradOptional)
+  $$
+- probs为None：
+  
+  $$
+  tokensGradout= zeros(restoreShape, dtype=permutedTokens.dtype, device=permutedTokens.device)
+  $$
+  
+  $$
+  tokensGradout[permuteTokenId[i]] += permutedTokens[outIndex[i]]
+  $$
 
-    $$
-    permuteTokensOut[sortedIndices[i]-range[0]]=tokens[i//topK]
-    $$
-
-    $$
-    permuteProbsOut[sortedIndices[i]-rangeOptional[0]]=probsOptional[i]
-    $$
-
-  - paddedMode为`true`时
-
-    $$
-    permuteTokensOut[i]=tokens[indices[i]]
-    $$
-
-    $$
-    sortedIndicesOut=indices
-    $$
 
 ## 参数说明
 
@@ -66,82 +73,78 @@
   </tr></thead>
  <tbody>
   <tr>
-   <td>tokens</td>
+   <td>permutedTokenOutputGrad</td>
    <td>输入</td>
-   <td>permute中的输入tokens，公式中的`tokens`。</td>
+   <td>正向输出permutedTokens的梯度。</td>
    <td>BFLOAT16、FLOAT16、FLOAT32</td>
    <td>ND</td>
   </tr>
   <tr>
-   <td>indices</td>
+   <td>permutedProbsOutputGradOptional</td>
    <td>输入</td>
-   <td>输入tokens对应的专家索引，公式中的`indices`。</td>
-   <td>INT32、INT64</td>
+   <td>可选输入，不传则表示不需要计算probsGradOutOptional。</td>
+   <td>INT8、BOOL</td>
    <td>ND</td>
   </tr>
   <tr>
-   <td>probsOptional</td>
+   <td>sortedIndices</td>
    <td>输入</td>
-   <td>可选输入，输入tokens对应的专家概率，公式中的`probsOptional`。</td>
-   <td>BFLOAT16、FLOAT16、FLOAT32</td>
-   <td>ND</td>
-  </tr>
-  <tr>
-   <td>rangeOptional</td>
-   <td>属性</td>
-   <td>ep切分的有效范围。</td>
-   <td>aclIntArray</td>
-   <td>-</td>
-  </tr>
-  <tr>
-   <td>numOutTokens</td>
-   <td>属性</td>
-   <td>有效输出token数，在rangeOptional为空时生效。</td>
-   <td>INT64</td>
-   <td>-</td>
-  </tr>
-  <tr>
-   <td>paddedMode</td>
-   <td>属性</td>
-   <td>为true时表示indices已被填充为代表每个专家选中的token索引。</td>
-   <td>BOOL</td>
-   <td>-</td>
-  </tr>
-  <tr>
-   <td>permuteTokensOut</td>
-   <td>输出</td>
-   <td>indices进行扩展并排序过的tokens，公式中的`permuteTokensOut`。</td>
-   <td>BFLOAT16、FLOAT16、FLOAT32</td>
-   <td>ND</td>
-  </tr>
-  <tr>
-   <td>sortedIndicesOut</td>
-   <td>输出</td>
-   <td>排序后的输出结果</td>
+   <td>非droppad模式要求shape为一个1D的（tokens_num \* topK_num，）。</td>
    <td>INT32</td>
    <td>ND</td>
   </tr>
   <tr>
-   <td>permuteProbsOut</td>
+   <td>routingMap</td>
+   <td>计算输入</td>
+   <td>代表token到expert的映射关系。</td>
+   <td>INT8</td>
+   <td>-</td>
+  </tr>
+  <tr>
+   <td>experts_num</td>
+   <td>属性</td>
+   <td>参与运算的专家个数。</td>
+   <td>INT64</td>
+   <td>-</td>
+  </tr>
+  <tr>
+   <td>tokens_num</td>
+   <td>属性</td>
+   <td>参与运算的token个数。</td>
+   <td>BFLOAT16、FLOAT16、FLOAT32</td>
+   <td>-</td>
+  </tr>
+  <tr>
+   <td>dropAndPad</td>
+   <td>属性</td>
+   <td>true表示开启dropPaddedMode，false表示关闭dropPaddedMode</td>
+   <td>BOOL</td>
+   <td>-</td>
+  </tr>
+  <tr>
+   <td>tokensGradOut</td>
    <td>输出</td>
-   <td>permute之后的输出。</td>
+   <td>输入permutedTokens的梯度。</td>
+   <td>BFLOAT16、FLOAT16、FLOAT32</td>
+   <td>ND</td>
+  </tr>
+  <tr>
+   <td>probsGradOutOptional</td>
+   <td>输出</td>
+   <td>输入probs的梯度，可选输出。</td>
    <td>BFLOAT16、FLOAT16、FLOAT32</td>
    <td>ND</td>
   </tr>
  </tbody></table>
 
 
-
 ## 约束说明
 
-- indices 要求元素个数小于`16777215`，值大于等于`0`小于`16777215`(单点支持int32或int64的最大或最小值，其余值不在范围内排序结果不正确)。
-- topK小于等于`512`。
-- 不支持paddedMode为`True`。
-- 当rangeOptional为空时，忽略probsOptional和permuteTokensOut，执行逻辑回退到[aclnnMoeTokenPermute](aclnnMoeTokenPermute.md)。
+ - 非dropPaddedMode 场景topK_num <= 512
+ - 不支持混合精度输入，即permutedTokenOutputGrad、permutedProbsOutputGradOptional、tokensGradOut、probsGradOutOptional需要保持相同的数据类型
 
 ## 调用说明
 
 | 调用方式  | 样例代码                                  | 说明                                                     |
 | :--------: | :----------------------------------------: | :-------------------------------------------------------: |
-| aclnn接口 | [test_aclnn_moe_token_permute_with_routing_map_grad.cpp](examples/test_aclnn_moe_token_permute_with_routing_map_grad.cpp) | 通过[aclnnMoeTokenPermuteWithRoutingMapGrad](docs/aclnnmoeTokenPermuteWithRoutingMapGrad.md)接口方式调用MoeTokenPermuteWithRoutingMapGrad算子。 |
-
+| aclnn接口 | [test_aclnn_moe_token_permute_with_routing_map_grad.cpp](examples/test_aclnn_moe_token_permute_with_routing_map_grad.cpp) | 通过[aclnnMoeTokenPermuteWithRoutingMap](docs/aclnnMoeTokenPermuteWithRoutingMap.md)接口方式调用MoeTokenPermuteWithRoutingMap算子。 |

@@ -7,7 +7,7 @@
 
 ## 功能说明
 
-- 算子功能：MoE的routing计算，根据[aclnnMoeGatingTopKSoftmaxV2](aclnnMoeGatingTopKSoftmaxV2.md)的计算结果做routing处理，支持不量化和动态量化模式。本接口针对V2接口[aclnnMoeInitRoutingV2](aclnnMoeInitRoutingV2.md)做了如下功能变更，请根据实际情况选择合适的接口：
+- 算子功能：MoE的routing计算，根据[aclnnMoeGatingTopKSoftmaxV2](../../moe_gating_top_k_softmax_v2/docs/aclnnMoeGatingTopKSoftmaxV2.md)的计算结果做routing处理，支持不量化和动态量化模式。本接口针对V2接口[aclnnMoeInitRoutingV2](../../moe_init_routing_v2/docs/aclnnMoeInitRoutingV2.md)做了如下功能变更，请根据实际情况选择合适的接口：
 
     1.增加动态量化功能，支持输出expendX的 int8动态量化输出
 
@@ -78,7 +78,7 @@
 
 -   **参数说明**：
     -   x（aclTensor\*，计算输入）：MOE的输入即token特征输入，要求为一个2D的Tensor，shape为(NUM\_ROWS, H)，H代表每个Token的长度，数据类型支持FLOAT16、BFLOAT16、FLOAT32、INT8，[数据格式](common/数据格式.md)要求为ND。   
-    -   expertIdx （aclTensor\*，计算输入）：[aclnnMoeGatingTopKSoftmaxV2](aclnnMoeGatingTopKSoftmaxV2.md)的输出每一行特征对应的K个处理专家，要求是一个2D的shape (NUM\_ROWS, K)，且里面元素专家id不能超过专家数。数据类型支持INT32，[数据格式](common/数据格式.md)要求为ND。
+    -   expertIdx （aclTensor\*，计算输入）：[aclnnMoeGatingTopKSoftmaxV2](../../moe_gating_top_k_softmax_v2/docs/aclnnMoeGatingTopKSoftmaxV2.md)的输出每一行特征对应的K个处理专家，要求是一个2D的shape (NUM\_ROWS, K)，且里面元素专家id不能超过专家数。数据类型支持INT32，[数据格式](common/数据格式.md)要求为ND。
     -   scaleOptional （aclTensor\*，计算输入）：表示用于计算quant结果的参数，数据类型支持FLOAT32，[数据格式](common/数据格式.md)要求为ND。如果不输入表示计算时不使用scale，且输出expandedScaleOut中的值未定义。
         -   非量化场景下，如果输入则要求为1D的Tensor，shape为(NUM_ROWS,)。
         -   动态quant场景下，如果输入则要求为2D的Tensor，shape为(expertEnd-expertStart, H)。

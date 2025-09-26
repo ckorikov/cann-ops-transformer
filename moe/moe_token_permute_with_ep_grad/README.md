@@ -115,7 +115,7 @@
 
  - top_k <= 512。
  - 不支持paddedMode为`True`。
- - 当rangeOptional为空时，忽略permutedProbsOutputGradOptional和probsGradOut，执行逻辑回退到[aclnnMoeTokenPermuteGrad](aclnnMoeTokenPermuteGrad.md)。
+ - 当rangeOptional为空时，忽略permutedProbsOutputGradOptional和probsGradOut，执行逻辑回退到[aclnnMoeTokenPermuteGrad](../moe_token_permute_grad/docs/aclnnMoeTokenPermuteGrad.md)。
 
 ## 调用说明
 

@@ -137,7 +137,7 @@
 - indices 要求元素个数小于`16777215`，值大于等于`0`小于`16777215`(单点支持int32或int64的最大或最小值，其余值不在范围内排序结果不正确)。
 - topK小于等于`512`。
 - 不支持paddedMode为`True`。
-- 当rangeOptional为空时，忽略probsOptional和permuteTokensOut，执行逻辑回退到[aclnnMoeTokenPermute](aclnnMoeTokenPermute.md)。
+- 当rangeOptional为空时，忽略probsOptional和permuteTokensOut，执行逻辑回退到[aclnnMoeTokenPermute](../moe_token_permute/docs/aclnnMoeTokenPermute.md)。
 
 ## 调用说明
 
