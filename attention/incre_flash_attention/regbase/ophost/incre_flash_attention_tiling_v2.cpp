@@ -192,7 +192,7 @@ ge::graphStatus IFATilingV2::CheckFormat(ge::Format format, const std::string &s
     return ge::GRAPH_SUCCESS;
 }
 
-ge::graphStatus IFATilingV2::CheckInputAntiquantFormat()
+ge::graphStatus IFATilingV2::CheckInputAntiquantFormat() const
 {
     auto antiquantScaleDesc = context_->antiquantScale.desc;
     auto antiquantOffsetDesc = context_->antiquantOffset.desc;
@@ -403,7 +403,7 @@ void IFATilingV2::UpdatePerfMode() {
   }
 }
 
-ge::graphStatus IFATilingV2::CheckInputFormatAndLimits() {
+ge::graphStatus IFATilingV2::CheckInputFormatAndLimits() const {
   auto qFormat = context_->query.desc->GetOriginFormat();
   auto kFormat = context_->key.desc->GetOriginFormat();
   auto vFormat = context_->value.desc->GetOriginFormat();
@@ -469,7 +469,7 @@ ge::graphStatus IFATilingV2::CheckKVHeadNum(const gert::StorageShape *inputShape
     return ge::GRAPH_SUCCESS;
 }
 
-ge::graphStatus IFATilingV2::CheckKVShape() {
+ge::graphStatus IFATilingV2::CheckKVShape() const {
   if (pageAttentionFlag_) {
     return ge::GRAPH_SUCCESS; // page_attention don't check this place
   }
@@ -615,7 +615,7 @@ std::string IFATilingV2::GetShapeStr(const gert::Shape &aShape) const {
   return shapeStr + "]";
 }
 
-ge::graphStatus IFATilingV2::CheckKvCacheValue(uint32_t kDimNum) {
+ge::graphStatus IFATilingV2::CheckKvCacheValue(uint32_t kDimNum) const {
   OP_CHECK_IF(!ShapeEqual(context_->key.shape->GetStorageShape(), context_->value.shape->GetStorageShape()),
             OP_LOGE(context_->opName, "Key shape%s and value shape%s should be same.",
                       GetShapeStr(context_->key.shape->GetStorageShape()).c_str(),
@@ -1315,7 +1315,7 @@ ge::graphStatus IFATilingV2::ProcessQuant2Dtype() const {
   return ge::GRAPH_SUCCESS;
 }
 
-ge::graphStatus IFATilingV2::VerifyQuantScale2() {
+ge::graphStatus IFATilingV2::VerifyQuantScale2() const {
   auto qtScale2 = context_->quantScale2.tensor;
   if (outputType_ == ge::DT_INT8) {
     if (qtScale2->GetShapeSize() == NUM1) {
@@ -1332,7 +1332,7 @@ ge::graphStatus IFATilingV2::VerifyQuantScale2() {
     return ge::GRAPH_SUCCESS;
   }
 
-ge::graphStatus IFATilingV2::ProcessQuant2() {
+ge::graphStatus IFATilingV2::ProcessQuant2() const {
   auto qtOffset2 = context_->quantOffset2.tensor;
   auto qtScale2Desc = context_->quantScale2.desc;
   auto qtOffset2Desc = context_->quantOffset2.desc;
@@ -1678,7 +1678,7 @@ ge::graphStatus IFATilingV2::KeyAndValueAntiQuantParamConsistencyCheck(const ger
                                                                        const gert::Tensor* valueAntiquantTensor,
                                                                        const gert::CompileTimeTensorDesc* keyAntiquantDesc,
                                                                        const gert::CompileTimeTensorDesc* valueAntiquantDesc,
-                                                                       int64_t keyAntiquantMode, int64_t valueAntiquantMode, const std::string sName) {
+                                                                       int64_t keyAntiquantMode, int64_t valueAntiquantMode, const std::string sName) const {
   OP_CHECK_IF((keyAntiquantDesc == nullptr),
              OP_LOGE(context_->opName, "key %s exist, but it's dataType doesn't exist.", sName.c_str()),
              return ge::GRAPH_FAILED);
@@ -2050,7 +2050,7 @@ void IFATilingV2::InitLoadValue(const std::vector<int64_t>& sparseValidArray, in
 }
 
 void IFATilingV2::SetSparseStartIdx(const std::vector<int64_t>& sparseValidArray, int64_t totalSize, int64_t validAivNum,
-                                  uint32_t* sparseStartIdx, int64_t splitFactorSize) {
+                                  uint32_t* sparseStartIdx, int64_t splitFactorSize) const {
   // initLoad: 使用均分策略, 保证后续不会比均分差
   std::vector<int64_t> localSparseStartIdx(MAX_CORE_NUM_REGBASE, totalSize);
   for (int64_t idx = 0; idx < MAX_CORE_NUM_REGBASE; ++idx) {
@@ -2198,9 +2198,7 @@ int64_t IFATilingV2::GetCutBlockNums(int64_t blockSeqLengthKV, int64_t blockSeqL
   return blockNums;
 }
 
-int64_t IFATilingV2::GetCalcBlockNumsOneHead(int64_t outerBlockNums, int64_t innerBlockNums,
-    int64_t actualSeqLength, int64_t actualSeqLengthKV, int64_t preTokensLeftUp,
-    int64_t nextTokensLeftUp) {
+int64_t IFATilingV2::GetCalcBlockNumsOneHead(int64_t outerBlockNums, int64_t innerBlockNums, int64_t preTokensLeftUp, int64_t nextTokensLeftUp) const {
     if (!attenMaskFlag_) {
       return innerBlockNums * outerBlockNums;
     } else {
@@ -2292,8 +2290,7 @@ ge::graphStatus IFATilingV2::PromptFlashAttentionSplitBNSeq() {
     sOuterLoopTimes[bIdx] = (actualSeqLengths + static_cast<int64_t>(sOuterSize_) - 1) / static_cast<int64_t>(sOuterSize_);
     sInnerLoopTimes[bIdx] = (actualSeqLengthsKV + static_cast<int64_t>(sInnerSize_) - 1) / static_cast<int64_t>(sInnerSize_);
 
-    totalBlockNumsOneHead += GetCalcBlockNumsOneHead(sOuterLoopTimes[bIdx], sInnerLoopTimes[bIdx],	
-                                  actualSeqLengths, actualSeqLengthsKV, preTokensLeftUp, nextTokensLeftUp);
+    totalBlockNumsOneHead += GetCalcBlockNumsOneHead(sOuterLoopTimes[bIdx], sInnerLoopTimes[bIdx], preTokensLeftUp, nextTokensLeftUp);
   }
 
   // Amount of computation per core
@@ -2526,7 +2523,7 @@ ge::graphStatus IFATilingV2::FillTiling() {
   return FillTilingBmm() ? ge::GRAPH_SUCCESS : ge::GRAPH_FAILED;
 }
 
-void IFATilingV2::FillTilingBaseParams() {
+void IFATilingV2::FillTilingBaseParams() const {
   tilingData_->baseParams.set_batchSize(batchSize_);
   tilingData_->baseParams.set_seqSize(sMax_);
   tilingData_->baseParams.set_qSeqSize(sOfQuery_);
@@ -2647,7 +2644,7 @@ void IFATilingV2::AdjustPABmm2Tiling() const {
   OP_LOGD(context_->opName, "Page attention is enabled, blockSize is %u, bmm2 baseK is adjusted to %u.", blockSize_, targetBaseK);
 }
 
-bool IFATilingV2::FillTilingBmm() {
+bool IFATilingV2::FillTilingBmm() const {
   auto ascendcPlatform = platform_ascendc::PlatformAscendC(context_->platformInfo);
   matmul_tiling::MatmulApiTiling bmm1(ascendcPlatform);
   matmul_tiling::MatmulApiTiling bmm2(ascendcPlatform);

@@ -32,7 +32,7 @@ using namespace ge;
 using namespace AscendC;
 using std::pair;
 namespace optiling {
-void TilingGetTempCompileInfo(platform_ascendc::PlatformAscendC&, PromptFlashAttentionCompileInfo&);
+void TilingGetTempCompileInfo(platform_ascendc::PlatformAscendC& ascendcPlatform, PromptFlashAttentionCompileInfo& compileInfo);
 
 const int64_t tokenDefault = 2147483647; // 2147483647 for token default value
 const int32_t sparseDefault = 0;
@@ -2136,7 +2136,7 @@ void IFATiling::InitLoadValue(const std::vector<int64_t> &sparseValidArray, int6
 }
 
 void IFATiling::SetSparseStartIdx(const std::vector<int64_t> &sparseValidArray, int64_t totalSize, int64_t validAivNum,
-                                  uint32_t *sparseStartIdx, int64_t splitFactorSize)
+                                  uint32_t *sparseStartIdx, int64_t splitFactorSize) const
 {
     // initLoad: 使用均分策略, 保证后续不会比均分差
     std::vector<int64_t> localSparseStartIdx(MAX_CORE_NUM, totalSize);
@@ -3535,13 +3535,13 @@ ge::graphStatus TilingIncreFlashAttentionAdapter(gert::TilingContext *context, I
         return IfaStartSimpleTiling(ifaTilingNew, ifaContext, ifaTilingData, context);
     } else {
         if (ifaContext.key.desc->GetDataType() == ge::DT_FLOAT16 || ifaContext.key.desc->GetDataType() == ge::DT_BF16) {
-            PromptFlashAttentionCompileInfo tempCompileInfoPtr = {0, 0, 0, 0, 0, 0, 0, 0,
+            PromptFlashAttentionCompileInfo compileInfo = {0, 0, 0, 0, 0, 0, 0, 0,
                 platform_ascendc::SocVersion::ASCEND310P};
-            TilingGetTempCompileInfo(ascendcPlatform, tempCompileInfoPtr);
+            TilingGetTempCompileInfo(ascendcPlatform, compileInfo);
             
             ContextParamsForPFATiling contextParamsForPFATiling;
             auto ret = PFAConvertContext(contextParamsForPFATiling, context);
-            contextParamsForPFATiling.compileInfoPtr = &tempCompileInfoPtr;
+            contextParamsForPFATiling.compileInfoPtr = &compileInfo;
             OP_CHECK_IF(ret == ge::GRAPH_FAILED, OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "fail to convert to PFAParams"),
                 return ge::GRAPH_FAILED);
             uint64_t tilingKey = 7U;

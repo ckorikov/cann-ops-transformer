@@ -78,22 +78,22 @@ class IFATilingV2 {
   ge::graphStatus ProcessAttenMask();
   ge::graphStatus ProcessAttenMaskSparsePFA();
   ge::graphStatus ProcessActualSeqLen();
-  ge::graphStatus ProcessQuant2();
+  ge::graphStatus ProcessQuant2() const;
   ge::graphStatus ProcessDequant1();
   ge::graphStatus ProcessDequant2();
   ge::graphStatus ProcessAntiQuant();
   ge::graphStatus ProcessBlockTable();
   ge::graphStatus ProcessQPaddingSize();
   ge::graphStatus ProcessKVPaddingSize();
-  ge::graphStatus VerifyQuantScale2();
+  ge::graphStatus VerifyQuantScale2() const;
   bool EnableC1V1() const;
   void UpdatePerfMode();
   ge::graphStatus InitInOutMode();
   ge::graphStatus KvShapePostProcess();
   ge::graphStatus CheckKvCache();
-  ge::graphStatus CheckKvCacheValue(uint32_t kDimNum);
-  ge::graphStatus CheckInputAntiquantFormat();
-  ge::graphStatus CheckKVShape();
+  ge::graphStatus CheckKvCacheValue(uint32_t kDimNum) const;
+  ge::graphStatus CheckInputAntiquantFormat() const;
+  ge::graphStatus CheckKVShape() const;
   ge::graphStatus CheckFormat(ge::Format format, const std::string &sName) const;
   ge::graphStatus CheckQKOutShape() const;
   ge::graphStatus CheckLse() const;
@@ -115,12 +115,12 @@ class IFATilingV2 {
                                       const gert::CompileTimeTensorDesc* antiquantScaleDesc, const gert::CompileTimeTensorDesc* antiquantOffsetDesc);
   ge::graphStatus CheckSupportQLeftPadding();
   ge::graphStatus CheckSupportKVLeftPadding();
-  ge::graphStatus CheckInputFormatAndLimits();
+  ge::graphStatus CheckInputFormatAndLimits() const;
   ge::graphStatus KeyAndValueAntiQuantParamConsistencyCheck(const gert::Tensor* keyAntiquantTensor,
                                                             const gert::Tensor* valueAntiquantTensor,
                                                             const gert::CompileTimeTensorDesc* keyAntiquantDesc,
                                                             const gert::CompileTimeTensorDesc* valueAntiquantDesc,
-                                                            int64_t keyAntiquantMode, int64_t valueAntiquantMode, const std::string sName);
+                                                            int64_t keyAntiquantMode, int64_t valueAntiquantMode, const std::string sName) const;
   bool CalcUbBmm();
   bool CalcUbSoftMax();
   bool CalcUbAttenMask();
@@ -152,7 +152,7 @@ class IFATilingV2 {
   void InitLoadValue(const std::vector<int64_t>& sparseValidArray, int64_t totalSize, int64_t validAivNum,
                      const std::vector<int64_t>& sparseStartIdx, std::vector<int64_t>& localValue) const;
   void SetSparseStartIdx(const std::vector<int64_t>& sparseValidArray, int64_t totalSize, int64_t validAivNum,
-                         uint32_t* sparseStartIdx, int64_t splitFactorSize);
+                         uint32_t* sparseStartIdx, int64_t splitFactorSize) const;
 
   bool IsFlashDecode() const;
   void PromptFlashAttentionInitOutputSplit();
@@ -163,8 +163,7 @@ class IFATilingV2 {
                               int64_t& preTokensLeftUp, int64_t& nextTokensLeftUp);
   int64_t GetCutBlockNums(int64_t blockSeqLengthKV, int64_t blockSeqLength,
                             int64_t sInner, int64_t sOuter, int64_t token) const;
-  int64_t GetCalcBlockNumsOneHead(int64_t outerBlockNums, int64_t innerBlockNums, int64_t actualSeqLength,
-                                  int64_t actualSeqLengthKV, int64_t preTokensLeftUp, int64_t nextTokensLeftUp);
+  int64_t GetCalcBlockNumsOneHead(int64_t outerBlockNums, int64_t innerBlockNums, int64_t preTokensLeftUp, int64_t nextTokensLeftUp) const;
   int64_t GetActualInnerBlockNums(int64_t sInnerIndexStart, int64_t sInnerIndexEnd, int64_t innerBlockNums) const;
   void ComputeSplitBNSeq(std::vector<int64_t> sOuterLoopTimes, std::vector<int64_t> sInnerLoopTimes,
     double coreWightTarget);
@@ -183,7 +182,7 @@ class IFATilingV2 {
   uint8_t GenAntiquantModeVal() const;
 
   ge::graphStatus FillTiling();
-  void FillTilingBaseParams();
+  void FillTilingBaseParams() const;
   void FillTilingSplitKV() const;
   void FillTilingCoreParams() const;
   void FillTilingSingleCoreParams();
@@ -192,7 +191,7 @@ class IFATilingV2 {
   void FillTilingSoftmaxFlashTiling();
   void FillTilingTranspose() const;
   void FillTilingOutputParams() const;
-  bool FillTilingBmm();  // may fail
+  bool FillTilingBmm() const;  // may fail
 
  private:
   bool passToOldTiling_ = false;

@@ -244,7 +244,7 @@ private:
     void InitLoadValue(const std::vector<int64_t> &sparseValidArray, int64_t totalSize, int64_t validAivNum,
         const std::vector<int64_t> &sparseStartIdx, std::vector<int64_t> &localValue) const;
     void SetSparseStartIdx(const std::vector<int64_t> &sparseValidArray, int64_t totalSize, int64_t validAivNum,
-        uint32_t *sparseStartIdx, int64_t splitFactorSize);
+        uint32_t *sparseStartIdx, int64_t splitFactorSize) const;
 
     bool IsFlashDecode(uint32_t coreNum, IfaPerfMode perfMode);
     bool CheckCoreOkFlag(uint32_t coreNum,IfaPerfMode perfMode) const;
