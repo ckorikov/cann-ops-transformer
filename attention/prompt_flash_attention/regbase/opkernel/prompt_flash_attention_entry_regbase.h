@@ -828,6 +828,24 @@ inline __aicore__ void prompt_flash_attention_FIAS_regbase(__gm__ uint8_t* query
     TILING_KEY_IS(1002122003221201612);
     TILING_KEY_IS(1003313003221201612);
     TILING_KEY_IS(1004314003221201612);
+    TILING_KEY_IS(1002312000091001612);
+    TILING_KEY_IS(1002312001091001612);
+    TILING_KEY_IS(1002312000191001612);
+    TILING_KEY_IS(1002312001191001612);
+    TILING_KEY_IS(1002312000091101612);
+    TILING_KEY_IS(1002312001091101612);
+    TILING_KEY_IS(1002312000191101612);
+    TILING_KEY_IS(1002312001191101612);
+    TILING_KEY_IS(1002312000291001612);
+    TILING_KEY_IS(1002312001291001612);
+    TILING_KEY_IS(1002312000291101612);
+    TILING_KEY_IS(1002312001291101612);
+    TILING_KEY_IS(1002312000091201612);
+    TILING_KEY_IS(1002312000191201612);
+    TILING_KEY_IS(1002312001091201612);
+    TILING_KEY_IS(1002312001191201612);
+    TILING_KEY_IS(1002312000291201612);
+    TILING_KEY_IS(1002312001291201612);
     #if TILING_KEY_VAR == 1000000000000001612
         // BNSD layout HighPrecision, No mask, No pse, vector split
         INVOKE_PFA_GENERAL_OP_IMPL_V2(PromptFlashAttentionNormalBNS1Preload, PFAType<PFALayout::BNSD, half, uint8_t, half, half,
@@ -4884,6 +4902,132 @@ inline __aicore__ void prompt_flash_attention_FIAS_regbase(__gm__ uint8_t* query
         INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, half, ImplModeEnum::AA_HIGH_PRECISION,
             LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
             DTemplateType::Aligned512, DTemplateType::Aligned512, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, true, false, false, true, true);
+    #elif TILING_KEY_VAR == 1002312000091001612 // PFA_MLA_ROPE_PA
+        // BNSD layout HighPrecision, No mask, No pse, Cube split, 常量化, qkD 256 vD 128
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, half, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, false, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312001091001612 // PFA_MLA_ROPE_PA
+        // BNSD layout HighPrecision, No mask, pse, Cube split, 常量化, qkD 256 vD 128
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, half, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, false, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312000191001612 // PFA_MLA_ROPE_PA
+        // BNSD layout HighPrecision, mask int8 no band, No pse, Cube split, 常量化, qkD 192 vD 128
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, half, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312001191001612 // PFA_MLA_ROPE_PA
+        // BNSD layout HighPrecision, mask int8 no band, pse, Cube split, 常量化, qkD 192 vD 128
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, half, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312000091101612 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, No mask, No pse, Cube split, 常量化, qkD 192 vD 128
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, half, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, false, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312001091101612 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, No mask, pse, Cube split, 常量化, qkD 192 vD 128
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, half, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, false, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312000191101612 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, mask int8 no band, No pse, Cube split, 常量化, qkD 192 vD 128
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, half, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312001191101612 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, mask int8 no band, pse, Cube split, 常量化, qkD 192 vD 128
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, half, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312000291001612 // PFA_MLA_ROPE_PA
+        // BNSD layout HighPrecision, mask int8 band, No pse, Cube split, 常量化, qkD 192 vD 128
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, half, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312001291001612 // PFA_MLA_ROPE_PA
+        // BNSD layout HighPrecision, mask int8 band, Enable pse, Cube split, 常量化, qkD 192 vD 128
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, half, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312000291101612 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, mask int8 band, No pse, Cube split, 常量化, qkD 192 vD 128
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, half, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312001291101612 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, mask int8 band, Enable pse, Cube split, 常量化, qkD 192 vD 128
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, half, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312000091201612 // PFA_MLA_ROPE_PA
+        // TND layout HighPrecision, No mask, No pse, Cube split, qkD 256 vD 128
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, half, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, false, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312000191201612 // PFA_MLA_ROPE_PA
+        // TND layout HighPrecision, mask int8 no band, No pse, Cube split, qkD 256 vD 128
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, half, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312001091201612 // PFA_MLA_ROPE_PA
+        // TND layout HighPrecision, No mask, pse, Cube split, 常量化, qkD 192 vD 128
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, half, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, false, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312001191201612 // PFA_MLA_ROPE_PA
+        // TND layout HighPrecision, mask int8 no band, pse, Cube split, 常量化, qkD 192 vD 128
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, half, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312000291201612 // PFA_MLA_ROPE_PA
+        // TND layout HighPrecision, mask int8 band, No pse, Cube split, 常量化, qkD 192 vD 128
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, half, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312001291201612 // PFA_MLA_ROPE_PA
+        // TND layout HighPrecision, mask int8 band, Enable pse, Cube split, 常量化, qkD 192 vD 128
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, half, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, true, false, true, true, true);
     #endif
 #endif
 #if (ORIG_DTYPE_QUERY == DT_BF16 && ORIG_DTYPE_KEY == DT_BF16 && ORIG_DTYPE_ATTENTION_OUT == DT_BF16)
@@ -5476,6 +5620,24 @@ inline __aicore__ void prompt_flash_attention_FIAS_regbase(__gm__ uint8_t* query
     TILING_KEY_IS(1002122003221211112);
     TILING_KEY_IS(1003313003221211112);
     TILING_KEY_IS(1004314003221211112);
+    TILING_KEY_IS(1002312000091011112);
+    TILING_KEY_IS(1002312001091011112);
+    TILING_KEY_IS(1002312000191011112);
+    TILING_KEY_IS(1002312001191011112);
+    TILING_KEY_IS(1002312000091111112);
+    TILING_KEY_IS(1002312001091111112);
+    TILING_KEY_IS(1002312000191111112);
+    TILING_KEY_IS(1002312001191111112);
+    TILING_KEY_IS(1002312000291011112);
+    TILING_KEY_IS(1002312001291011112);
+    TILING_KEY_IS(1002312000291111112);
+    TILING_KEY_IS(1002312001291111112);
+    TILING_KEY_IS(1002312000091211112);
+    TILING_KEY_IS(1002312001091211112);
+    TILING_KEY_IS(1002312000191211112);
+    TILING_KEY_IS(1002312001191211112);
+    TILING_KEY_IS(1002312000291211112);
+    TILING_KEY_IS(1002312001291211112);
     #if TILING_KEY_VAR == 1001311000001011112
         // BNSD layout HighPrecision, No mask, No pse, Cube split, 常量化, D64, bf16
 		constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
@@ -9547,6 +9709,132 @@ inline __aicore__ void prompt_flash_attention_FIAS_regbase(__gm__ uint8_t* query
         INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, bfloat16_t, ImplModeEnum::AA_HIGH_PRECISION,
             LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
             DTemplateType::Aligned512, DTemplateType::Aligned512, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, true, false, false, true, true);
+    #elif TILING_KEY_VAR == 1002312000091011112 // PFA_MLA_ROPE_PA
+        // BNSD layout HighPrecision, No mask, No pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, bfloat16_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, false, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312001091011112 // PFA_MLA_ROPE_PA
+        // BNSD layout HighPrecision, No mask, Enable pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, bfloat16_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, false, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312000191011112 // PFA_MLA_ROPE_PA
+        // BNSD layout HighPrecision, mask int8 no band, No pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, bfloat16_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312001191011112 // PFA_MLA_ROPE_PA
+        // BNSD layout HighPrecision, mask int8 no band, Enable pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, bfloat16_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312000091111112 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, No mask, No pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, bfloat16_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, false, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312001091111112 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, No mask, Enable pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, bfloat16_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, false, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312000191111112 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, mask int8 no band, No pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, bfloat16_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312001191111112 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, mask int8 no band, Enable pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, bfloat16_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312000291011112 // PFA_MLA_ROPE_PA
+        // BNSD layout HighPrecision, mask int8 band, No pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, bfloat16_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312001291011112 // PFA_MLA_ROPE_PA
+        // BNSD layout HighPrecision, mask int8 band, Enable pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, bfloat16_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312000291111112 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, mask int8 band, No pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, bfloat16_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312001291111112 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, mask int8 band, Enable pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, bfloat16_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312000091211112 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, No mask, No pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, bfloat16_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, false, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312001091211112 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, No mask, Enable pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, bfloat16_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, false, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312000191211112 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, mask int8 no band, No pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, bfloat16_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312001191211112 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, mask int8 no band, Enable pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, bfloat16_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312000291211112 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, mask int8 band, No pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, bfloat16_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312001291211112 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, mask int8 band, Enable pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, bfloat16_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, true, false, true, true, true);
     #endif
 #endif
 
@@ -10140,6 +10428,24 @@ inline __aicore__ void prompt_flash_attention_FIAS_regbase(__gm__ uint8_t* query
     TILING_KEY_IS(1002122003221221612);
     TILING_KEY_IS(1003313003221221612);
     TILING_KEY_IS(1004314003221221612);
+    TILING_KEY_IS(1002312000091021612);
+    TILING_KEY_IS(1002312001091021612);
+    TILING_KEY_IS(1002312000191021612);
+    TILING_KEY_IS(1002312001191021612);
+    TILING_KEY_IS(1002312000091121612);
+    TILING_KEY_IS(1002312001091121612);
+    TILING_KEY_IS(1002312000191121612);
+    TILING_KEY_IS(1002312001191121612);
+    TILING_KEY_IS(1002312000291021612);
+    TILING_KEY_IS(1002312001291021612);
+    TILING_KEY_IS(1002312000291121612);
+    TILING_KEY_IS(1002312001291121612);
+    TILING_KEY_IS(1002312000091221612);
+    TILING_KEY_IS(1002312001091221612);
+    TILING_KEY_IS(1002312000191221612);
+    TILING_KEY_IS(1002312001191221612);
+    TILING_KEY_IS(1002312000291221612);
+    TILING_KEY_IS(1002312001291221612);
     #if TILING_KEY_VAR == 1001311000001021612
         // BNSD layout HighPrecision, No mask, No pse, Cube split, 常量化, D64, bf16
 		constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
@@ -14211,6 +14517,132 @@ inline __aicore__ void prompt_flash_attention_FIAS_regbase(__gm__ uint8_t* query
         INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, int8_t, ImplModeEnum::AA_HIGH_PRECISION,
             LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
             DTemplateType::Aligned512, DTemplateType::Aligned512, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, true, false, false, true, true);
+    #elif TILING_KEY_VAR == 1002312000091021612 // PFA_MLA_ROPE_PA
+        // BNSD layout HighPrecision, No mask, No pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, int8_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, false, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312001091021612 // PFA_MLA_ROPE_PA
+        // BNSD layout HighPrecision, No mask, Enable pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, int8_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, false, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312000191021612 // PFA_MLA_ROPE_PA
+        // BNSD layout HighPrecision, mask int8 no band, No pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, int8_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312001191021612 // PFA_MLA_ROPE_PA
+        // BNSD layout HighPrecision, mask int8 no band, Enable pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, int8_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312000091121612 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, No mask, No pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, int8_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, false, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312001091121612 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, No mask, Enable pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, int8_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, false, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312000191121612 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, mask int8 no band, No pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, int8_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312001191121612 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, mask int8 no band, Enable pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, int8_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312000291021612 // PFA_MLA_ROPE_PA
+        // BNSD layout HighPrecision, mask int8 band, No pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, int8_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312001291021612 // PFA_MLA_ROPE_PA
+        // BNSD layout HighPrecision, mask int8 band, Enable pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, int8_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312000291121612 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, mask int8 band, No pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, int8_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312001291121612 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, mask int8 band, Enable pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, int8_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312000091221612 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, No mask, No pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, int8_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, false, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312001091221612 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, No mask, Enable pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, int8_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, false, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312000191221612 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, mask int8 no band, No pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, int8_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312001191221612 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, mask int8 no band, Enable pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, int8_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312000291221612 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, mask int8 band, No pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, int8_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312001291221612 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, mask int8 band, Enable pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, int8_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, true, false, true, true, true);
     #endif
 #endif
 
@@ -14804,6 +15236,24 @@ inline __aicore__ void prompt_flash_attention_FIAS_regbase(__gm__ uint8_t* query
     TILING_KEY_IS(1002122003221241612);
     TILING_KEY_IS(1003313003221241612);
     TILING_KEY_IS(1004314003221241612);
+    TILING_KEY_IS(1002312000091041612);
+    TILING_KEY_IS(1002312001091041612);
+    TILING_KEY_IS(1002312000191041612);
+    TILING_KEY_IS(1002312001191041612);
+    TILING_KEY_IS(1002312000091141612);
+    TILING_KEY_IS(1002312001091141612);
+    TILING_KEY_IS(1002312000191141612);
+    TILING_KEY_IS(1002312001191141612);
+    TILING_KEY_IS(1002312000291041612);
+    TILING_KEY_IS(1002312001291041612);
+    TILING_KEY_IS(1002312000291141612);
+    TILING_KEY_IS(1002312001291141612);
+    TILING_KEY_IS(1002312000091241612);
+    TILING_KEY_IS(1002312001091241612);
+    TILING_KEY_IS(1002312000191241612);
+    TILING_KEY_IS(1002312001191241612);
+    TILING_KEY_IS(1002312000291241612);
+    TILING_KEY_IS(1002312001291241612);
     #if TILING_KEY_VAR == 1001311000001041612
         // BNSD layout HighPrecision, No mask, No pse, Cube split, 常量化, D64, bf16
 		constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
@@ -18875,6 +19325,132 @@ inline __aicore__ void prompt_flash_attention_FIAS_regbase(__gm__ uint8_t* query
         INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, hifloat8_t, ImplModeEnum::AA_HIGH_PRECISION,
             LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
             DTemplateType::Aligned512, DTemplateType::Aligned512, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, true, false, false, true, true);
+    #elif TILING_KEY_VAR == 1002312000091041612 // PFA_MLA_ROPE_PA
+        // BNSD layout HighPrecision, No mask, No pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, hifloat8_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, false, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312001091041612 // PFA_MLA_ROPE_PA
+        // BNSD layout HighPrecision, No mask, Enable pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, hifloat8_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, false, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312000191041612 // PFA_MLA_ROPE_PA
+        // BNSD layout HighPrecision, mask int8 no band, No pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, hifloat8_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312001191041612 // PFA_MLA_ROPE_PA
+        // BNSD layout HighPrecision, mask int8 no band, Enable pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, hifloat8_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312000091141612 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, No mask, No pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, hifloat8_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, false, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312001091141612 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, No mask, Enable pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, hifloat8_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, false, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312000191141612 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, mask int8 no band, No pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, hifloat8_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312001191141612 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, mask int8 no band, Enable pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, hifloat8_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312000291041612 // PFA_MLA_ROPE_PA
+        // BNSD layout HighPrecision, mask int8 band, No pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, hifloat8_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312001291041612 // PFA_MLA_ROPE_PA
+        // BNSD layout HighPrecision, mask int8 band, Enable pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, hifloat8_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312000291141612 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, mask int8 band, No pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, hifloat8_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312001291141612 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, mask int8 band, Enable pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, hifloat8_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312000091241612 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, No mask, No pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, hifloat8_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, false, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312001091241612 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, No mask, Enable pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, hifloat8_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, false, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312000191241612 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, mask int8 no band, No pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, hifloat8_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312001191241612 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, mask int8 no band, Enable pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, hifloat8_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312000291241612 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, mask int8 band, No pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, hifloat8_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312001291241612 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, mask int8 band, Enable pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, hifloat8_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, true, false, true, true, true);
 	#endif
 #endif
 
@@ -19468,6 +20044,24 @@ inline __aicore__ void prompt_flash_attention_FIAS_regbase(__gm__ uint8_t* query
     TILING_KEY_IS(1002122003221261612);
     TILING_KEY_IS(1003313003221261612);
     TILING_KEY_IS(1004314003221261612);
+    TILING_KEY_IS(1002312000091061612);
+    TILING_KEY_IS(1002312001091061612);
+    TILING_KEY_IS(1002312000191061612);
+    TILING_KEY_IS(1002312001191061612);
+    TILING_KEY_IS(1002312000091161612);
+    TILING_KEY_IS(1002312001091161612);
+    TILING_KEY_IS(1002312000191161612);
+    TILING_KEY_IS(1002312001191161612);
+    TILING_KEY_IS(1002312000291061612);
+    TILING_KEY_IS(1002312001291061612);
+    TILING_KEY_IS(1002312000291161612);
+    TILING_KEY_IS(1002312001291161612);
+    TILING_KEY_IS(1002312000091261612);
+    TILING_KEY_IS(1002312001091261612);
+    TILING_KEY_IS(1002312000191261612);
+    TILING_KEY_IS(1002312001191261612);
+    TILING_KEY_IS(1002312000291261612);
+    TILING_KEY_IS(1002312001291261612);
     #if TILING_KEY_VAR == 1001311000001061612
         // BNSD layout HighPrecision, No mask, No pse, Cube split, 常量化, D64, bf16
 		constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
@@ -22783,762 +23377,888 @@ inline __aicore__ void prompt_flash_attention_FIAS_regbase(__gm__ uint8_t* query
         INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
             LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
             DTemplateType::Aligned512, DTemplateType::Aligned512, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, true, false, false, true, false);
-            #elif TILING_KEY_VAR == 1001311002021061612
-            // BNSD layout HighPrecision, No mask, Enable alibi pse, Cube split, 常量化, D64, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_64, SINNER_CONST_128 * DSIZE_CONST_64) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
-                DTemplateType::Aligned64, DTemplateType::Aligned64, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, false, false, false, true, true);
-        #elif TILING_KEY_VAR == 1001121002021061612
-            // BNSD layout HighPrecision, No mask, Enable alibi pse, Cube split, 常量化, D64, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_64 * SINNER_CONST_256 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_64, SINNER_CONST_256) * DSIZE_CONST_64, SINNER_CONST_256 * DSIZE_CONST_64) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned64, S2TemplateType::Aligned256,
-                DTemplateType::Aligned64, DTemplateType::Aligned64, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, false, false, false, true, true);
-        #elif TILING_KEY_VAR == 1002312002021061612
-            // BNSD layout HighPrecision, No mask, Enable alibi pse, Cube split, 常量化, D128, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_128, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
-                DTemplateType::Aligned128, DTemplateType::Aligned128, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, false, false, false, true, true);
-        #elif TILING_KEY_VAR == 1002122002021061612
-            // BNSD layout HighPrecision, No mask, Enable alibi pse, Cube split, 常量化, D128, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_64 * SINNER_CONST_256 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_64, SINNER_CONST_256) * DSIZE_CONST_128, SINNER_CONST_256 * DSIZE_CONST_128) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned64, S2TemplateType::Aligned256,
-                DTemplateType::Aligned128, DTemplateType::Aligned128, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, false, false, false, true, true);
-        #elif TILING_KEY_VAR == 1003313002021061612
-            // BNSD layout HighPrecision, No mask, Enable alibi pse, Cube split, 常量化, D256, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_256, SINNER_CONST_128 * DSIZE_CONST_256) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
-                DTemplateType::Aligned256, DTemplateType::Aligned256, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, false, false, false, true, true);
-        #elif TILING_KEY_VAR == 1004314002021061612
-            // BNSD layout HighPrecision, No mask, Enable alibi pse, Cube split, 常量化, D512, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * (DSIZE_CONST_512 >> 1), SINNER_CONST_128 * (DSIZE_CONST_512 >> 1)) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
-                DTemplateType::Aligned512, DTemplateType::Aligned512, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, false, false, false, true, true);
-        #elif TILING_KEY_VAR == 1001311002121061612
-            // BNSD layout HighPrecision, mask int8 no band, Enable alibi pse, Cube split, 常量化, D64, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_64, SINNER_CONST_128 * DSIZE_CONST_64) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
-                DTemplateType::Aligned64, DTemplateType::Aligned64, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, true, false, false, true, true);
-        #elif TILING_KEY_VAR == 1001121002121061612
-            // BNSD layout HighPrecision, mask int8 no band, Enable alibi pse, Cube split, 常量化, D64, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_64 * SINNER_CONST_256 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_64, SINNER_CONST_256) * DSIZE_CONST_64, SINNER_CONST_256 * DSIZE_CONST_64) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned64, S2TemplateType::Aligned256,
-                DTemplateType::Aligned64, DTemplateType::Aligned64, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, true, false, false, true, true);
-        #elif TILING_KEY_VAR == 1002312002121061612
-            // BNSD layout HighPrecision, mask int8 no band, Enable alibi pse, Cube split, 常量化, D128, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_128, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
-                DTemplateType::Aligned128, DTemplateType::Aligned128, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, true, false, false, true, true);
-        #elif TILING_KEY_VAR == 1002122002121061612
-            // BNSD layout HighPrecision, mask int8 no band, Enable alibi pse, Cube split, 常量化, D128, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_64 * SINNER_CONST_256 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_64, SINNER_CONST_256) * DSIZE_CONST_128, SINNER_CONST_256 * DSIZE_CONST_128) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned64, S2TemplateType::Aligned256,
-                DTemplateType::Aligned128, DTemplateType::Aligned128, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, true, false, false, true, true);
-        #elif TILING_KEY_VAR == 1003313002121061612
-            // BNSD layout HighPrecision, mask int8 no band, Enable alibi pse, Cube split, 常量化, D256, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_256, SINNER_CONST_128 * DSIZE_CONST_256) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
-                DTemplateType::Aligned256, DTemplateType::Aligned256, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, true, false, false, true, true);
-        #elif TILING_KEY_VAR == 1004314002121061612
-            // BNSD layout HighPrecision, mask int8 no band, Enable alibi pse, Cube split, 常量化, D512, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * (DSIZE_CONST_512 >> 1), SINNER_CONST_128 * (DSIZE_CONST_512 >> 1)) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
-                DTemplateType::Aligned512, DTemplateType::Aligned512, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, true, false, false, true, true);
-        #elif TILING_KEY_VAR == 1001311002021161612
-            // BSH layout HighPrecision, No mask, Enable alibi pse, Cube split, 常量化, D64, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_64, SINNER_CONST_128 * DSIZE_CONST_64) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
-                DTemplateType::Aligned64, DTemplateType::Aligned64, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, false, false, false, true, true);
-        #elif TILING_KEY_VAR == 1001121002021161612
-            // BSH layout HighPrecision, No mask, Enable alibi pse, Cube split, 常量化, D64, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_64 * SINNER_CONST_256 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_64, SINNER_CONST_256) * DSIZE_CONST_64, SINNER_CONST_256 * DSIZE_CONST_64) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned64, S2TemplateType::Aligned256,
-                DTemplateType::Aligned64, DTemplateType::Aligned64, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, false, false, false, true, true);
-        #elif TILING_KEY_VAR == 1002312002021161612
-            // BSH layout HighPrecision, No mask, Enable alibi pse, Cube split, 常量化, D128, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_128, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
-                DTemplateType::Aligned128, DTemplateType::Aligned128, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, false, false, false, true, true);
-        #elif TILING_KEY_VAR == 1002122002021161612
-            // BSH layout HighPrecision, No mask, Enable alibi pse, Cube split, 常量化, D128, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_64 * SINNER_CONST_256 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_64, SINNER_CONST_256) * DSIZE_CONST_128, SINNER_CONST_256 * DSIZE_CONST_128) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned64, S2TemplateType::Aligned256,
-                DTemplateType::Aligned128, DTemplateType::Aligned128, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, false, false, false, true, true);
-        #elif TILING_KEY_VAR == 1003313002021161612
-            // BSH layout HighPrecision, No mask, Enable alibi pse, Cube split, 常量化, D256, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_256, SINNER_CONST_128 * DSIZE_CONST_256) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
-                DTemplateType::Aligned256, DTemplateType::Aligned256, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, false, false, false, true, true);
-        #elif TILING_KEY_VAR == 1004314002021161612
-            // BSH layout HighPrecision, No mask, Enable alibi pse, Cube split, 常量化, D512, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * (DSIZE_CONST_512 >> 1), SINNER_CONST_128 * (DSIZE_CONST_512 >> 1)) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
-                DTemplateType::Aligned512, DTemplateType::Aligned512, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, false, false, false, true, true);
-        #elif TILING_KEY_VAR == 1001311002121161612
-            // BSH layout HighPrecision, mask int8 no band, Enable alibi pse, Cube split, 常量化, D64, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_64, SINNER_CONST_128 * DSIZE_CONST_64) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
-                DTemplateType::Aligned64, DTemplateType::Aligned64, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, true, false, false, true, true);
-        #elif TILING_KEY_VAR == 1001121002121161612
-            // BSH layout HighPrecision, mask int8 no band, Enable alibi pse, Cube split, 常量化, D64, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_64 * SINNER_CONST_256 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_64, SINNER_CONST_256) * DSIZE_CONST_64, SINNER_CONST_256 * DSIZE_CONST_64) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned64, S2TemplateType::Aligned256,
-                DTemplateType::Aligned64, DTemplateType::Aligned64, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, true, false, false, true, true);
-        #elif TILING_KEY_VAR == 1002312002121161612
-            // BSH layout HighPrecision, mask int8 no band, Enable alibi pse, Cube split, 常量化, D128, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_128, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
-                DTemplateType::Aligned128, DTemplateType::Aligned128, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, true, false, false, true, true);
-        #elif TILING_KEY_VAR == 1002122002121161612
-            // BSH layout HighPrecision, mask int8 no band, Enable alibi pse, Cube split, 常量化, D128, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_64 * SINNER_CONST_256 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_64, SINNER_CONST_256) * DSIZE_CONST_128, SINNER_CONST_256 * DSIZE_CONST_128) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned64, S2TemplateType::Aligned256,
-                DTemplateType::Aligned128, DTemplateType::Aligned128, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, true, false, false, true, true);
-        #elif TILING_KEY_VAR == 1003313002121161612
-            // BSH layout HighPrecision, mask int8 no band, Enable alibi pse, Cube split, 常量化, D256, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_256, SINNER_CONST_128 * DSIZE_CONST_256) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
-                DTemplateType::Aligned256, DTemplateType::Aligned256, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, true, false, false, true, true);
-        #elif TILING_KEY_VAR == 1004314002121161612
-            // BSH layout HighPrecision, mask int8 no band, Enable alibi pse, Cube split, 常量化, D512, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * (DSIZE_CONST_512 >> 1), SINNER_CONST_128 * (DSIZE_CONST_512 >> 1)) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
-                DTemplateType::Aligned512, DTemplateType::Aligned512, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, true, false, false, true, true);
-        #elif TILING_KEY_VAR == 1001311002221061612
-            // BNSD layout HighPrecision, mask int8 band, Enable alibi pse, Cube split, 常量化, D64, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_64, SINNER_CONST_128 * DSIZE_CONST_64) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
-                DTemplateType::Aligned64, DTemplateType::Aligned64, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, true, false, false, true, true);
-        #elif TILING_KEY_VAR == 1001121002221061612
-            // BNSD layout HighPrecision, mask int8 band, Enable alibi pse, Cube split, 常量化, D64, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_64 * SINNER_CONST_256 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_64, SINNER_CONST_256) * DSIZE_CONST_64, SINNER_CONST_256 * DSIZE_CONST_64) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned64, S2TemplateType::Aligned256,
-                DTemplateType::Aligned64, DTemplateType::Aligned64, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, true, false, false, true, true);
-        #elif TILING_KEY_VAR == 1002312002221061612
-            // BNSD layout HighPrecision, mask int8 band, Enable alibi pse, Cube split, 常量化, D128, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_128, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
-                DTemplateType::Aligned128, DTemplateType::Aligned128, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, true, false, false, true, true);
-        #elif TILING_KEY_VAR == 1002122002221061612
-            // BNSD layout HighPrecision, mask int8 band, Enable alibi pse, Cube split, 常量化, D128, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_64 * SINNER_CONST_256 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_64, SINNER_CONST_256) * DSIZE_CONST_128, SINNER_CONST_256 * DSIZE_CONST_128) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned64, S2TemplateType::Aligned256,
-                DTemplateType::Aligned128, DTemplateType::Aligned128, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, true, false, false, true, true);
-        #elif TILING_KEY_VAR == 1003313002221061612
-            // BNSD layout HighPrecision, mask int8 band, Enable alibi pse, Cube split, 常量化, D256, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_256, SINNER_CONST_128 * DSIZE_CONST_256) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
-                DTemplateType::Aligned256, DTemplateType::Aligned256, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, true, false, false, true, true);
-        #elif TILING_KEY_VAR == 1004314002221061612
-            // BNSD layout HighPrecision, mask int8 band, Enable alibi pse, Cube split, 常量化, D512, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * (DSIZE_CONST_512 >> 1), SINNER_CONST_128 * (DSIZE_CONST_512 >> 1)) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
-                DTemplateType::Aligned512, DTemplateType::Aligned512, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, true, false, false, true, true);
-        #elif TILING_KEY_VAR == 1001311002221161612
-            // BSH layout HighPrecision, mask int8 band, Enable alibi pse, Cube split, 常量化, D64, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_64, SINNER_CONST_128 * DSIZE_CONST_64) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
-                DTemplateType::Aligned64, DTemplateType::Aligned64, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, true, false, false, true, true);
-        #elif TILING_KEY_VAR == 1001121002221161612
-            // BSH layout HighPrecision, mask int8 band, Enable alibi pse, Cube split, 常量化, D64, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_64 * SINNER_CONST_256 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_64, SINNER_CONST_256) * DSIZE_CONST_64, SINNER_CONST_256 * DSIZE_CONST_64) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned64, S2TemplateType::Aligned256,
-                DTemplateType::Aligned64, DTemplateType::Aligned64, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, true, false, false, true, true);
-        #elif TILING_KEY_VAR == 1002312002221161612
-            // BSH layout HighPrecision, mask int8 band, Enable alibi pse, Cube split, 常量化, D128, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_128, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
-                DTemplateType::Aligned128, DTemplateType::Aligned128, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, true, false, false, true, true);
-        #elif TILING_KEY_VAR == 1002122002221161612
-            // BSH layout HighPrecision, mask int8 band, Enable alibi pse, Cube split, 常量化, D128, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_64 * SINNER_CONST_256 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_64, SINNER_CONST_256) * DSIZE_CONST_128, SINNER_CONST_256 * DSIZE_CONST_128) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned64, S2TemplateType::Aligned256,
-                DTemplateType::Aligned128, DTemplateType::Aligned128, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, true, false, false, true, true);
-        #elif TILING_KEY_VAR == 1003313002221161612
-            // BSH layout HighPrecision, mask int8 band, Enable alibi pse, Cube split, 常量化, D256, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_256, SINNER_CONST_128 * DSIZE_CONST_256) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
-                DTemplateType::Aligned256, DTemplateType::Aligned256, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, true, false, false, true, true);
-        #elif TILING_KEY_VAR == 1004314002221161612
-            // BSH layout HighPrecision, mask int8 band, Enable alibi pse, Cube split, 常量化, D512, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * (DSIZE_CONST_512 >> 1), SINNER_CONST_128 * (DSIZE_CONST_512 >> 1)) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
-                DTemplateType::Aligned512, DTemplateType::Aligned512, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, true, false, false, true, true);
-        #elif TILING_KEY_VAR == 1001311002021261612
-            // TND layout HighPrecision, No mask, Enable alibi pse, Cube split, 常量化, D64, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_64, SINNER_CONST_128 * DSIZE_CONST_64) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
-                DTemplateType::Aligned64, DTemplateType::Aligned64, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, false, false, false, true, true);
-        #elif TILING_KEY_VAR == 1001121002021261612
-            // TND layout HighPrecision, No mask, Enable alibi pse, Cube split, 常量化, D64, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_64 * SINNER_CONST_256 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_64, SINNER_CONST_256) * DSIZE_CONST_64, SINNER_CONST_256 * DSIZE_CONST_64) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned64, S2TemplateType::Aligned256,
-                DTemplateType::Aligned64, DTemplateType::Aligned64, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, false, false, false, true, true);
-        #elif TILING_KEY_VAR == 1002312002021261612
-            // TND layout HighPrecision, No mask, Enable alibi pse, Cube split, 常量化, D128, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_128, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
-                DTemplateType::Aligned128, DTemplateType::Aligned128, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, false, false, false, true, true);
-        #elif TILING_KEY_VAR == 1002122002021261612
-            // TND layout HighPrecision, No mask, Enable alibi pse, Cube split, 常量化, D128, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_64 * SINNER_CONST_256 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_64, SINNER_CONST_256) * DSIZE_CONST_128, SINNER_CONST_256 * DSIZE_CONST_128) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned64, S2TemplateType::Aligned256,
-                DTemplateType::Aligned128, DTemplateType::Aligned128, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, false, false, false, true, true);
-        #elif TILING_KEY_VAR == 1003313002021261612
-            // TND layout HighPrecision, No mask, Enable alibi pse, Cube split, 常量化, D256, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_256, SINNER_CONST_128 * DSIZE_CONST_256) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
-                DTemplateType::Aligned256, DTemplateType::Aligned256, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, false, false, false, true, true);
-        #elif TILING_KEY_VAR == 1004314002021261612
-            // TND layout HighPrecision, No mask, Enable alibi pse, Cube split, 常量化, D512, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * (DSIZE_CONST_512 >> 1), SINNER_CONST_128 * (DSIZE_CONST_512 >> 1)) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
-                DTemplateType::Aligned512, DTemplateType::Aligned512, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, false, false, false, true, true);
-        #elif TILING_KEY_VAR == 1001311002121261612
-            // TND layout HighPrecision, mask int8 no band, Enable alibi pse, Cube split, 常量化, D64, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_64, SINNER_CONST_128 * DSIZE_CONST_64) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
-                DTemplateType::Aligned64, DTemplateType::Aligned64, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, true, false, false, true, true);
-        #elif TILING_KEY_VAR == 1001121002121261612
-            // TND layout HighPrecision, mask int8 no band, Enable alibi pse, Cube split, 常量化, D64, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_64 * SINNER_CONST_256 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_64, SINNER_CONST_256) * DSIZE_CONST_64, SINNER_CONST_256 * DSIZE_CONST_64) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned64, S2TemplateType::Aligned256,
-                DTemplateType::Aligned64, DTemplateType::Aligned64, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, true, false, false, true, true);
-        #elif TILING_KEY_VAR == 1002312002121261612
-            // TND layout HighPrecision, mask int8 no band, Enable alibi pse, Cube split, 常量化, D128, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_128, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
-                DTemplateType::Aligned128, DTemplateType::Aligned128, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, true, false, false, true, true);
-        #elif TILING_KEY_VAR == 1002122002121261612
-            // TND layout HighPrecision, mask int8 no band, Enable alibi pse, Cube split, 常量化, D128, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_64 * SINNER_CONST_256 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_64, SINNER_CONST_256) * DSIZE_CONST_128, SINNER_CONST_256 * DSIZE_CONST_128) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned64, S2TemplateType::Aligned256,
-                DTemplateType::Aligned128, DTemplateType::Aligned128, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, true, false, false, true, true);
-        #elif TILING_KEY_VAR == 1003313002121261612
-            // TND layout HighPrecision, mask int8 no band, Enable alibi pse, Cube split, 常量化, D256, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_256, SINNER_CONST_128 * DSIZE_CONST_256) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
-                DTemplateType::Aligned256, DTemplateType::Aligned256, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, true, false, false, true, true);
-        #elif TILING_KEY_VAR == 1004314002121261612
-            // TND layout HighPrecision, mask int8 no band, Enable alibi pse, Cube split, 常量化, D512, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * (DSIZE_CONST_512 >> 1), SINNER_CONST_128 * (DSIZE_CONST_512 >> 1)) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
-                DTemplateType::Aligned512, DTemplateType::Aligned512, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, true, false, false, true, true);
-        #elif TILING_KEY_VAR == 1001311002221261612
-            // TND layout HighPrecision, mask int8 band, Enable alibi pse, Cube split, 常量化, D64, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_64, SINNER_CONST_128 * DSIZE_CONST_64) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
-                DTemplateType::Aligned64, DTemplateType::Aligned64, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, true, false, false, true, true);
-        #elif TILING_KEY_VAR == 1001121002221261612
-            // TND layout HighPrecision, mask int8 band, Enable alibi pse, Cube split, 常量化, D64, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_64 * SINNER_CONST_256 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_64, SINNER_CONST_256) * DSIZE_CONST_64, SINNER_CONST_256 * DSIZE_CONST_64) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned64, S2TemplateType::Aligned256,
-                DTemplateType::Aligned64, DTemplateType::Aligned64, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, true, false, false, true, true);
-        #elif TILING_KEY_VAR == 1002312002221261612
-            // TND layout HighPrecision, mask int8 band, Enable alibi pse, Cube split, 常量化, D128, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_128, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
-                DTemplateType::Aligned128, DTemplateType::Aligned128, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, true, false, false, true, true);
-        #elif TILING_KEY_VAR == 1002122002221261612
-            // TND layout HighPrecision, mask int8 band, Enable alibi pse, Cube split, 常量化, D128, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_64 * SINNER_CONST_256 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_64, SINNER_CONST_256) * DSIZE_CONST_128, SINNER_CONST_256 * DSIZE_CONST_128) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned64, S2TemplateType::Aligned256,
-                DTemplateType::Aligned128, DTemplateType::Aligned128, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, true, false, false, true, true);
-        #elif TILING_KEY_VAR == 1003313002221261612
-            // TND layout HighPrecision, mask int8 band, Enable alibi pse, Cube split, 常量化, D256, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_256, SINNER_CONST_128 * DSIZE_CONST_256) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
-                DTemplateType::Aligned256, DTemplateType::Aligned256, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, true, false, false, true, true);
-        #elif TILING_KEY_VAR == 1004314002221261612
-            // TND layout HighPrecision, mask int8 band, Enable alibi pse, Cube split, 常量化, D512, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * (DSIZE_CONST_512 >> 1), SINNER_CONST_128 * (DSIZE_CONST_512 >> 1)) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
-                DTemplateType::Aligned512, DTemplateType::Aligned512, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, true, false, false, true, true);
-        #elif TILING_KEY_VAR == 1001311003021061612
-            // BNSD layout HighPrecision, No mask, Enable alibi pse, Cube split, 常量化, D64, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_64, SINNER_CONST_128 * DSIZE_CONST_64) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
-                DTemplateType::Aligned64, DTemplateType::Aligned64, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, false, false, false, true, true);
-        #elif TILING_KEY_VAR == 1001121003021061612
-            // BNSD layout HighPrecision, No mask, Enable alibi pse, Cube split, 常量化, D64, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_64 * SINNER_CONST_256 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_64, SINNER_CONST_256) * DSIZE_CONST_64, SINNER_CONST_256 * DSIZE_CONST_64) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned64, S2TemplateType::Aligned256,
-                DTemplateType::Aligned64, DTemplateType::Aligned64, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, false, false, false, true, true);
-        #elif TILING_KEY_VAR == 1002312003021061612
-            // BNSD layout HighPrecision, No mask, Enable alibi pse, Cube split, 常量化, D128, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_128, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
-                DTemplateType::Aligned128, DTemplateType::Aligned128, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, false, false, false, true, true);
-        #elif TILING_KEY_VAR == 1002122003021061612
-            // BNSD layout HighPrecision, No mask, Enable alibi pse, Cube split, 常量化, D128, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_64 * SINNER_CONST_256 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_64, SINNER_CONST_256) * DSIZE_CONST_128, SINNER_CONST_256 * DSIZE_CONST_128) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned64, S2TemplateType::Aligned256,
-                DTemplateType::Aligned128, DTemplateType::Aligned128, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, false, false, false, true, true);
-        #elif TILING_KEY_VAR == 1003313003021061612
-            // BNSD layout HighPrecision, No mask, Enable alibi pse, Cube split, 常量化, D256, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_256, SINNER_CONST_128 * DSIZE_CONST_256) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
-                DTemplateType::Aligned256, DTemplateType::Aligned256, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, false, false, false, true, true);
-        #elif TILING_KEY_VAR == 1004314003021061612
-            // BNSD layout HighPrecision, No mask, Enable alibi pse, Cube split, 常量化, D512, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * (DSIZE_CONST_512 >> 1), SINNER_CONST_128 * (DSIZE_CONST_512 >> 1)) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
-                DTemplateType::Aligned512, DTemplateType::Aligned512, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, false, false, false, true, true);
-        #elif TILING_KEY_VAR == 1001311003121061612
-            // BNSD layout HighPrecision, mask int8 no band, Enable alibi pse, Cube split, 常量化, D64, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_64, SINNER_CONST_128 * DSIZE_CONST_64) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
-                DTemplateType::Aligned64, DTemplateType::Aligned64, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, true, false, false, true, true);
-        #elif TILING_KEY_VAR == 1001121003121061612
-            // BNSD layout HighPrecision, mask int8 no band, Enable alibi pse, Cube split, 常量化, D64, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_64 * SINNER_CONST_256 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_64, SINNER_CONST_256) * DSIZE_CONST_64, SINNER_CONST_256 * DSIZE_CONST_64) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned64, S2TemplateType::Aligned256,
-                DTemplateType::Aligned64, DTemplateType::Aligned64, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, true, false, false, true, true);
-        #elif TILING_KEY_VAR == 1002312003121061612
-            // BNSD layout HighPrecision, mask int8 no band, Enable alibi pse, Cube split, 常量化, D128, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_128, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
-                DTemplateType::Aligned128, DTemplateType::Aligned128, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, true, false, false, true, true);
-        #elif TILING_KEY_VAR == 1002122003121061612
-            // BNSD layout HighPrecision, mask int8 no band, Enable alibi pse, Cube split, 常量化, D128, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_64 * SINNER_CONST_256 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_64, SINNER_CONST_256) * DSIZE_CONST_128, SINNER_CONST_256 * DSIZE_CONST_128) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned64, S2TemplateType::Aligned256,
-                DTemplateType::Aligned128, DTemplateType::Aligned128, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, true, false, false, true, true);
-        #elif TILING_KEY_VAR == 1003313003121061612
-            // BNSD layout HighPrecision, mask int8 no band, Enable alibi pse, Cube split, 常量化, D256, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_256, SINNER_CONST_128 * DSIZE_CONST_256) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
-                DTemplateType::Aligned256, DTemplateType::Aligned256, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, true, false, false, true, true);
-        #elif TILING_KEY_VAR == 1004314003121061612
-            // BNSD layout HighPrecision, mask int8 no band, Enable alibi pse, Cube split, 常量化, D512, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * (DSIZE_CONST_512 >> 1), SINNER_CONST_128 * (DSIZE_CONST_512 >> 1)) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
-                DTemplateType::Aligned512, DTemplateType::Aligned512, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, true, false, false, true, true);
-        #elif TILING_KEY_VAR == 1001311003021161612
-            // BSH layout HighPrecision, No mask, Enable alibi pse, Cube split, 常量化, D64, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_64, SINNER_CONST_128 * DSIZE_CONST_64) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
-                DTemplateType::Aligned64, DTemplateType::Aligned64, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, false, false, false, true, true);
-        #elif TILING_KEY_VAR == 1001121003021161612
-            // BSH layout HighPrecision, No mask, Enable alibi pse, Cube split, 常量化, D64, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_64 * SINNER_CONST_256 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_64, SINNER_CONST_256) * DSIZE_CONST_64, SINNER_CONST_256 * DSIZE_CONST_64) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned64, S2TemplateType::Aligned256,
-                DTemplateType::Aligned64, DTemplateType::Aligned64, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, false, false, false, true, true);
-        #elif TILING_KEY_VAR == 1002312003021161612
-            // BSH layout HighPrecision, No mask, Enable alibi pse, Cube split, 常量化, D128, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_128, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
-                DTemplateType::Aligned128, DTemplateType::Aligned128, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, false, false, false, true, true);
-        #elif TILING_KEY_VAR == 1002122003021161612
-            // BSH layout HighPrecision, No mask, Enable alibi pse, Cube split, 常量化, D128, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_64 * SINNER_CONST_256 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_64, SINNER_CONST_256) * DSIZE_CONST_128, SINNER_CONST_256 * DSIZE_CONST_128) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned64, S2TemplateType::Aligned256,
-                DTemplateType::Aligned128, DTemplateType::Aligned128, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, false, false, false, true, true);
-        #elif TILING_KEY_VAR == 1003313003021161612
-            // BSH layout HighPrecision, No mask, Enable alibi pse, Cube split, 常量化, D256, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_256, SINNER_CONST_128 * DSIZE_CONST_256) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
-                DTemplateType::Aligned256, DTemplateType::Aligned256, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, false, false, false, true, true);
-        #elif TILING_KEY_VAR == 1004314003021161612
-            // BSH layout HighPrecision, No mask, Enable alibi pse, Cube split, 常量化, D512, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * (DSIZE_CONST_512 >> 1), SINNER_CONST_128 * (DSIZE_CONST_512 >> 1)) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
-                DTemplateType::Aligned512, DTemplateType::Aligned512, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, false, false, false, true, true);
-        #elif TILING_KEY_VAR == 1001311003121161612
-            // BSH layout HighPrecision, mask int8 no band, Enable alibi pse, Cube split, 常量化, D64, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_64, SINNER_CONST_128 * DSIZE_CONST_64) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
-                DTemplateType::Aligned64, DTemplateType::Aligned64, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, true, false, false, true, true);
-        #elif TILING_KEY_VAR == 1001121003121161612
-            // BSH layout HighPrecision, mask int8 no band, Enable alibi pse, Cube split, 常量化, D64, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_64 * SINNER_CONST_256 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_64, SINNER_CONST_256) * DSIZE_CONST_64, SINNER_CONST_256 * DSIZE_CONST_64) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned64, S2TemplateType::Aligned256,
-                DTemplateType::Aligned64, DTemplateType::Aligned64, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, true, false, false, true, true);
-        #elif TILING_KEY_VAR == 1002312003121161612
-            // BSH layout HighPrecision, mask int8 no band, Enable alibi pse, Cube split, 常量化, D128, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_128, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
-                DTemplateType::Aligned128, DTemplateType::Aligned128, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, true, false, false, true, true);
-        #elif TILING_KEY_VAR == 1002122003121161612
-            // BSH layout HighPrecision, mask int8 no band, Enable alibi pse, Cube split, 常量化, D128, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_64 * SINNER_CONST_256 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_64, SINNER_CONST_256) * DSIZE_CONST_128, SINNER_CONST_256 * DSIZE_CONST_128) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned64, S2TemplateType::Aligned256,
-                DTemplateType::Aligned128, DTemplateType::Aligned128, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, true, false, false, true, true);
-        #elif TILING_KEY_VAR == 1003313003121161612
-            // BSH layout HighPrecision, mask int8 no band, Enable alibi pse, Cube split, 常量化, D256, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_256, SINNER_CONST_128 * DSIZE_CONST_256) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
-                DTemplateType::Aligned256, DTemplateType::Aligned256, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, true, false, false, true, true);
-        #elif TILING_KEY_VAR == 1004314003121161612
-            // BSH layout HighPrecision, mask int8 no band, Enable alibi pse, Cube split, 常量化, D512, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * (DSIZE_CONST_512 >> 1), SINNER_CONST_128 * (DSIZE_CONST_512 >> 1)) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
-                DTemplateType::Aligned512, DTemplateType::Aligned512, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, true, false, false, true, true);
-        #elif TILING_KEY_VAR == 1001311003221061612
-            // BNSD layout HighPrecision, mask int8 band, Enable alibi pse, Cube split, 常量化, D64, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_64, SINNER_CONST_128 * DSIZE_CONST_64) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
-                DTemplateType::Aligned64, DTemplateType::Aligned64, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, true, false, false, true, true);
-        #elif TILING_KEY_VAR == 1001121003221061612
-            // BNSD layout HighPrecision, mask int8 band, Enable alibi pse, Cube split, 常量化, D64, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_64 * SINNER_CONST_256 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_64, SINNER_CONST_256) * DSIZE_CONST_64, SINNER_CONST_256 * DSIZE_CONST_64) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned64, S2TemplateType::Aligned256,
-                DTemplateType::Aligned64, DTemplateType::Aligned64, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, true, false, false, true, true);
-        #elif TILING_KEY_VAR == 1002312003221061612
-            // BNSD layout HighPrecision, mask int8 band, Enable alibi pse, Cube split, 常量化, D128, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_128, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
-                DTemplateType::Aligned128, DTemplateType::Aligned128, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, true, false, false, true, true);
-        #elif TILING_KEY_VAR == 1002122003221061612
-            // BNSD layout HighPrecision, mask int8 band, Enable alibi pse, Cube split, 常量化, D128, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_64 * SINNER_CONST_256 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_64, SINNER_CONST_256) * DSIZE_CONST_128, SINNER_CONST_256 * DSIZE_CONST_128) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned64, S2TemplateType::Aligned256,
-                DTemplateType::Aligned128, DTemplateType::Aligned128, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, true, false, false, true, true);
-        #elif TILING_KEY_VAR == 1003313003221061612
-            // BNSD layout HighPrecision, mask int8 band, Enable alibi pse, Cube split, 常量化, D256, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_256, SINNER_CONST_128 * DSIZE_CONST_256) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
-                DTemplateType::Aligned256, DTemplateType::Aligned256, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, true, false, false, true, true);
-        #elif TILING_KEY_VAR == 1004314003221061612
-            // BNSD layout HighPrecision, mask int8 band, Enable alibi pse, Cube split, 常量化, D512, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * (DSIZE_CONST_512 >> 1), SINNER_CONST_128 * (DSIZE_CONST_512 >> 1)) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
-                DTemplateType::Aligned512, DTemplateType::Aligned512, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, true, false, false, true, true);
-        #elif TILING_KEY_VAR == 1001311003221161612
-            // BSH layout HighPrecision, mask int8 band, Enable alibi pse, Cube split, 常量化, D64, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_64, SINNER_CONST_128 * DSIZE_CONST_64) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
-                DTemplateType::Aligned64, DTemplateType::Aligned64, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, true, false, false, true, true);
-        #elif TILING_KEY_VAR == 1001121003221161612
-            // BSH layout HighPrecision, mask int8 band, Enable alibi pse, Cube split, 常量化, D64, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_64 * SINNER_CONST_256 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_64, SINNER_CONST_256) * DSIZE_CONST_64, SINNER_CONST_256 * DSIZE_CONST_64) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned64, S2TemplateType::Aligned256,
-                DTemplateType::Aligned64, DTemplateType::Aligned64, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, true, false, false, true, true);
-        #elif TILING_KEY_VAR == 1002312003221161612
-            // BSH layout HighPrecision, mask int8 band, Enable alibi pse, Cube split, 常量化, D128, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_128, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
-                DTemplateType::Aligned128, DTemplateType::Aligned128, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, true, false, false, true, true);
-        #elif TILING_KEY_VAR == 1002122003221161612
-            // BSH layout HighPrecision, mask int8 band, Enable alibi pse, Cube split, 常量化, D128, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_64 * SINNER_CONST_256 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_64, SINNER_CONST_256) * DSIZE_CONST_128, SINNER_CONST_256 * DSIZE_CONST_128) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned64, S2TemplateType::Aligned256,
-                DTemplateType::Aligned128, DTemplateType::Aligned128, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, true, false, false, true, true);
-        #elif TILING_KEY_VAR == 1003313003221161612
-            // BSH layout HighPrecision, mask int8 band, Enable alibi pse, Cube split, 常量化, D256, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_256, SINNER_CONST_128 * DSIZE_CONST_256) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
-                DTemplateType::Aligned256, DTemplateType::Aligned256, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, true, false, false, true, true);
-        #elif TILING_KEY_VAR == 1004314003221161612
-            // BSH layout HighPrecision, mask int8 band, Enable alibi pse, Cube split, 常量化, D512, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * (DSIZE_CONST_512 >> 1), SINNER_CONST_128 * (DSIZE_CONST_512 >> 1)) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
-                DTemplateType::Aligned512, DTemplateType::Aligned512, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, true, false, false, true, true);
-        #elif TILING_KEY_VAR == 1001311003021261612
-            // TND layout HighPrecision, No mask, Enable alibi pse, Cube split, 常量化, D64, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_64, SINNER_CONST_128 * DSIZE_CONST_64) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
-                DTemplateType::Aligned64, DTemplateType::Aligned64, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, false, false, false, true, true);
-        #elif TILING_KEY_VAR == 1001121003021261612
-            // TND layout HighPrecision, No mask, Enable alibi pse, Cube split, 常量化, D64, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_64 * SINNER_CONST_256 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_64, SINNER_CONST_256) * DSIZE_CONST_64, SINNER_CONST_256 * DSIZE_CONST_64) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned64, S2TemplateType::Aligned256,
-                DTemplateType::Aligned64, DTemplateType::Aligned64, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, false, false, false, true, true);
-        #elif TILING_KEY_VAR == 1002312003021261612
-            // TND layout HighPrecision, No mask, Enable alibi pse, Cube split, 常量化, D128, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_128, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
-                DTemplateType::Aligned128, DTemplateType::Aligned128, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, false, false, false, true, true);
-        #elif TILING_KEY_VAR == 1002122003021261612
-            // TND layout HighPrecision, No mask, Enable alibi pse, Cube split, 常量化, D128, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_64 * SINNER_CONST_256 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_64, SINNER_CONST_256) * DSIZE_CONST_128, SINNER_CONST_256 * DSIZE_CONST_128) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned64, S2TemplateType::Aligned256,
-                DTemplateType::Aligned128, DTemplateType::Aligned128, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, false, false, false, true, true);
-        #elif TILING_KEY_VAR == 1003313003021261612
-            // TND layout HighPrecision, No mask, Enable alibi pse, Cube split, 常量化, D256, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_256, SINNER_CONST_128 * DSIZE_CONST_256) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
-                DTemplateType::Aligned256, DTemplateType::Aligned256, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, false, false, false, true, true);
-        #elif TILING_KEY_VAR == 1004314003021261612
-            // TND layout HighPrecision, No mask, Enable alibi pse, Cube split, 常量化, D512, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * (DSIZE_CONST_512 >> 1), SINNER_CONST_128 * (DSIZE_CONST_512 >> 1)) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
-                DTemplateType::Aligned512, DTemplateType::Aligned512, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, false, false, false, true, true);
-        #elif TILING_KEY_VAR == 1001311003121261612
-            // TND layout HighPrecision, mask int8 no band, Enable alibi pse, Cube split, 常量化, D64, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_64, SINNER_CONST_128 * DSIZE_CONST_64) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
-                DTemplateType::Aligned64, DTemplateType::Aligned64, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, true, false, false, true, true);
-        #elif TILING_KEY_VAR == 1001121003121261612
-            // TND layout HighPrecision, mask int8 no band, Enable alibi pse, Cube split, 常量化, D64, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_64 * SINNER_CONST_256 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_64, SINNER_CONST_256) * DSIZE_CONST_64, SINNER_CONST_256 * DSIZE_CONST_64) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned64, S2TemplateType::Aligned256,
-                DTemplateType::Aligned64, DTemplateType::Aligned64, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, true, false, false, true, true);
-        #elif TILING_KEY_VAR == 1002312003121261612
-            // TND layout HighPrecision, mask int8 no band, Enable alibi pse, Cube split, 常量化, D128, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_128, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
-                DTemplateType::Aligned128, DTemplateType::Aligned128, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, true, false, false, true, true);
-        #elif TILING_KEY_VAR == 1002122003121261612
-            // TND layout HighPrecision, mask int8 no band, Enable alibi pse, Cube split, 常量化, D128, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_64 * SINNER_CONST_256 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_64, SINNER_CONST_256) * DSIZE_CONST_128, SINNER_CONST_256 * DSIZE_CONST_128) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned64, S2TemplateType::Aligned256,
-                DTemplateType::Aligned128, DTemplateType::Aligned128, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, true, false, false, true, true);
-        #elif TILING_KEY_VAR == 1003313003121261612
-            // TND layout HighPrecision, mask int8 no band, Enable alibi pse, Cube split, 常量化, D256, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_256, SINNER_CONST_128 * DSIZE_CONST_256) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
-                DTemplateType::Aligned256, DTemplateType::Aligned256, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, true, false, false, true, true);
-        #elif TILING_KEY_VAR == 1004314003121261612
-            // TND layout HighPrecision, mask int8 no band, Enable alibi pse, Cube split, 常量化, D512, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * (DSIZE_CONST_512 >> 1), SINNER_CONST_128 * (DSIZE_CONST_512 >> 1)) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
-                DTemplateType::Aligned512, DTemplateType::Aligned512, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, true, false, false, true, true);
-        #elif TILING_KEY_VAR == 1001311003221261612
-            // TND layout HighPrecision, mask int8 band, Enable alibi pse, Cube split, 常量化, D64, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_64, SINNER_CONST_128 * DSIZE_CONST_64) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
-                DTemplateType::Aligned64, DTemplateType::Aligned64, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, true, false, false, true, true);
-        #elif TILING_KEY_VAR == 1001121003221261612
-            // TND layout HighPrecision, mask int8 band, Enable alibi pse, Cube split, 常量化, D64, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_64 * SINNER_CONST_256 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_64, SINNER_CONST_256) * DSIZE_CONST_64, SINNER_CONST_256 * DSIZE_CONST_64) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned64, S2TemplateType::Aligned256,
-                DTemplateType::Aligned64, DTemplateType::Aligned64, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, true, false, false, true, true);
-        #elif TILING_KEY_VAR == 1002312003221261612
-            // TND layout HighPrecision, mask int8 band, Enable alibi pse, Cube split, 常量化, D128, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_128, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
-                DTemplateType::Aligned128, DTemplateType::Aligned128, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, true, false, false, true, true);
-        #elif TILING_KEY_VAR == 1002122003221261612
-            // TND layout HighPrecision, mask int8 band, Enable alibi pse, Cube split, 常量化, D128, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_64 * SINNER_CONST_256 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_64, SINNER_CONST_256) * DSIZE_CONST_128, SINNER_CONST_256 * DSIZE_CONST_128) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned64, S2TemplateType::Aligned256,
-                DTemplateType::Aligned128, DTemplateType::Aligned128, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, true, false, false, true, true);
-        #elif TILING_KEY_VAR == 1003313003221261612
-            // TND layout HighPrecision, mask int8 band, Enable alibi pse, Cube split, 常量化, D256, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_256, SINNER_CONST_128 * DSIZE_CONST_256) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
-                DTemplateType::Aligned256, DTemplateType::Aligned256, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, true, false, false, true, true);
-        #elif TILING_KEY_VAR == 1004314003221261612
-            // TND layout HighPrecision, mask int8 band, Enable alibi pse, Cube split, 常量化, D512, bf16
-            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
-            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * (DSIZE_CONST_512 >> 1), SINNER_CONST_128 * (DSIZE_CONST_512 >> 1)) * 2;
-            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
-                LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
-                DTemplateType::Aligned512, DTemplateType::Aligned512, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, true, false, false, true, true);
+    #elif TILING_KEY_VAR == 1001311002021061612
+        // BNSD layout HighPrecision, No mask, Enable alibi pse, Cube split, 常量化, D64, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_64, SINNER_CONST_128 * DSIZE_CONST_64) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned64, DTemplateType::Aligned64, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, false, false, false, true, true);
+    #elif TILING_KEY_VAR == 1001121002021061612
+        // BNSD layout HighPrecision, No mask, Enable alibi pse, Cube split, 常量化, D64, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_64 * SINNER_CONST_256 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_64, SINNER_CONST_256) * DSIZE_CONST_64, SINNER_CONST_256 * DSIZE_CONST_64) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned64, S2TemplateType::Aligned256,
+            DTemplateType::Aligned64, DTemplateType::Aligned64, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, false, false, false, true, true);
+    #elif TILING_KEY_VAR == 1002312002021061612
+        // BNSD layout HighPrecision, No mask, Enable alibi pse, Cube split, 常量化, D128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_128, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned128, DTemplateType::Aligned128, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, false, false, false, true, true);
+    #elif TILING_KEY_VAR == 1002122002021061612
+        // BNSD layout HighPrecision, No mask, Enable alibi pse, Cube split, 常量化, D128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_64 * SINNER_CONST_256 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_64, SINNER_CONST_256) * DSIZE_CONST_128, SINNER_CONST_256 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned64, S2TemplateType::Aligned256,
+            DTemplateType::Aligned128, DTemplateType::Aligned128, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, false, false, false, true, true);
+    #elif TILING_KEY_VAR == 1003313002021061612
+        // BNSD layout HighPrecision, No mask, Enable alibi pse, Cube split, 常量化, D256, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_256, SINNER_CONST_128 * DSIZE_CONST_256) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned256, DTemplateType::Aligned256, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, false, false, false, true, true);
+    #elif TILING_KEY_VAR == 1004314002021061612
+        // BNSD layout HighPrecision, No mask, Enable alibi pse, Cube split, 常量化, D512, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * (DSIZE_CONST_512 >> 1), SINNER_CONST_128 * (DSIZE_CONST_512 >> 1)) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned512, DTemplateType::Aligned512, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, false, false, false, true, true);
+    #elif TILING_KEY_VAR == 1001311002121061612
+        // BNSD layout HighPrecision, mask int8 no band, Enable alibi pse, Cube split, 常量化, D64, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_64, SINNER_CONST_128 * DSIZE_CONST_64) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned64, DTemplateType::Aligned64, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, true, false, false, true, true);
+    #elif TILING_KEY_VAR == 1001121002121061612
+        // BNSD layout HighPrecision, mask int8 no band, Enable alibi pse, Cube split, 常量化, D64, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_64 * SINNER_CONST_256 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_64, SINNER_CONST_256) * DSIZE_CONST_64, SINNER_CONST_256 * DSIZE_CONST_64) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned64, S2TemplateType::Aligned256,
+            DTemplateType::Aligned64, DTemplateType::Aligned64, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, true, false, false, true, true);
+    #elif TILING_KEY_VAR == 1002312002121061612
+        // BNSD layout HighPrecision, mask int8 no band, Enable alibi pse, Cube split, 常量化, D128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_128, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned128, DTemplateType::Aligned128, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, true, false, false, true, true);
+    #elif TILING_KEY_VAR == 1002122002121061612
+        // BNSD layout HighPrecision, mask int8 no band, Enable alibi pse, Cube split, 常量化, D128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_64 * SINNER_CONST_256 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_64, SINNER_CONST_256) * DSIZE_CONST_128, SINNER_CONST_256 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned64, S2TemplateType::Aligned256,
+            DTemplateType::Aligned128, DTemplateType::Aligned128, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, true, false, false, true, true);
+    #elif TILING_KEY_VAR == 1003313002121061612
+        // BNSD layout HighPrecision, mask int8 no band, Enable alibi pse, Cube split, 常量化, D256, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_256, SINNER_CONST_128 * DSIZE_CONST_256) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned256, DTemplateType::Aligned256, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, true, false, false, true, true);
+    #elif TILING_KEY_VAR == 1004314002121061612
+        // BNSD layout HighPrecision, mask int8 no band, Enable alibi pse, Cube split, 常量化, D512, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * (DSIZE_CONST_512 >> 1), SINNER_CONST_128 * (DSIZE_CONST_512 >> 1)) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned512, DTemplateType::Aligned512, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, true, false, false, true, true);
+    #elif TILING_KEY_VAR == 1001311002021161612
+        // BSH layout HighPrecision, No mask, Enable alibi pse, Cube split, 常量化, D64, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_64, SINNER_CONST_128 * DSIZE_CONST_64) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned64, DTemplateType::Aligned64, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, false, false, false, true, true);
+    #elif TILING_KEY_VAR == 1001121002021161612
+        // BSH layout HighPrecision, No mask, Enable alibi pse, Cube split, 常量化, D64, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_64 * SINNER_CONST_256 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_64, SINNER_CONST_256) * DSIZE_CONST_64, SINNER_CONST_256 * DSIZE_CONST_64) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned64, S2TemplateType::Aligned256,
+            DTemplateType::Aligned64, DTemplateType::Aligned64, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, false, false, false, true, true);
+    #elif TILING_KEY_VAR == 1002312002021161612
+        // BSH layout HighPrecision, No mask, Enable alibi pse, Cube split, 常量化, D128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_128, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned128, DTemplateType::Aligned128, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, false, false, false, true, true);
+    #elif TILING_KEY_VAR == 1002122002021161612
+        // BSH layout HighPrecision, No mask, Enable alibi pse, Cube split, 常量化, D128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_64 * SINNER_CONST_256 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_64, SINNER_CONST_256) * DSIZE_CONST_128, SINNER_CONST_256 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned64, S2TemplateType::Aligned256,
+            DTemplateType::Aligned128, DTemplateType::Aligned128, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, false, false, false, true, true);
+    #elif TILING_KEY_VAR == 1003313002021161612
+        // BSH layout HighPrecision, No mask, Enable alibi pse, Cube split, 常量化, D256, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_256, SINNER_CONST_128 * DSIZE_CONST_256) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned256, DTemplateType::Aligned256, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, false, false, false, true, true);
+    #elif TILING_KEY_VAR == 1004314002021161612
+        // BSH layout HighPrecision, No mask, Enable alibi pse, Cube split, 常量化, D512, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * (DSIZE_CONST_512 >> 1), SINNER_CONST_128 * (DSIZE_CONST_512 >> 1)) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned512, DTemplateType::Aligned512, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, false, false, false, true, true);
+    #elif TILING_KEY_VAR == 1001311002121161612
+        // BSH layout HighPrecision, mask int8 no band, Enable alibi pse, Cube split, 常量化, D64, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_64, SINNER_CONST_128 * DSIZE_CONST_64) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned64, DTemplateType::Aligned64, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, true, false, false, true, true);
+    #elif TILING_KEY_VAR == 1001121002121161612
+        // BSH layout HighPrecision, mask int8 no band, Enable alibi pse, Cube split, 常量化, D64, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_64 * SINNER_CONST_256 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_64, SINNER_CONST_256) * DSIZE_CONST_64, SINNER_CONST_256 * DSIZE_CONST_64) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned64, S2TemplateType::Aligned256,
+            DTemplateType::Aligned64, DTemplateType::Aligned64, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, true, false, false, true, true);
+    #elif TILING_KEY_VAR == 1002312002121161612
+        // BSH layout HighPrecision, mask int8 no band, Enable alibi pse, Cube split, 常量化, D128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_128, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned128, DTemplateType::Aligned128, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, true, false, false, true, true);
+    #elif TILING_KEY_VAR == 1002122002121161612
+        // BSH layout HighPrecision, mask int8 no band, Enable alibi pse, Cube split, 常量化, D128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_64 * SINNER_CONST_256 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_64, SINNER_CONST_256) * DSIZE_CONST_128, SINNER_CONST_256 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned64, S2TemplateType::Aligned256,
+            DTemplateType::Aligned128, DTemplateType::Aligned128, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, true, false, false, true, true);
+    #elif TILING_KEY_VAR == 1003313002121161612
+        // BSH layout HighPrecision, mask int8 no band, Enable alibi pse, Cube split, 常量化, D256, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_256, SINNER_CONST_128 * DSIZE_CONST_256) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned256, DTemplateType::Aligned256, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, true, false, false, true, true);
+    #elif TILING_KEY_VAR == 1004314002121161612
+        // BSH layout HighPrecision, mask int8 no band, Enable alibi pse, Cube split, 常量化, D512, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * (DSIZE_CONST_512 >> 1), SINNER_CONST_128 * (DSIZE_CONST_512 >> 1)) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned512, DTemplateType::Aligned512, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, true, false, false, true, true);
+    #elif TILING_KEY_VAR == 1001311002221061612
+        // BNSD layout HighPrecision, mask int8 band, Enable alibi pse, Cube split, 常量化, D64, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_64, SINNER_CONST_128 * DSIZE_CONST_64) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned64, DTemplateType::Aligned64, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, true, false, false, true, true);
+    #elif TILING_KEY_VAR == 1001121002221061612
+        // BNSD layout HighPrecision, mask int8 band, Enable alibi pse, Cube split, 常量化, D64, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_64 * SINNER_CONST_256 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_64, SINNER_CONST_256) * DSIZE_CONST_64, SINNER_CONST_256 * DSIZE_CONST_64) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned64, S2TemplateType::Aligned256,
+            DTemplateType::Aligned64, DTemplateType::Aligned64, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, true, false, false, true, true);
+    #elif TILING_KEY_VAR == 1002312002221061612
+        // BNSD layout HighPrecision, mask int8 band, Enable alibi pse, Cube split, 常量化, D128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_128, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned128, DTemplateType::Aligned128, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, true, false, false, true, true);
+    #elif TILING_KEY_VAR == 1002122002221061612
+        // BNSD layout HighPrecision, mask int8 band, Enable alibi pse, Cube split, 常量化, D128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_64 * SINNER_CONST_256 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_64, SINNER_CONST_256) * DSIZE_CONST_128, SINNER_CONST_256 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned64, S2TemplateType::Aligned256,
+            DTemplateType::Aligned128, DTemplateType::Aligned128, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, true, false, false, true, true);
+    #elif TILING_KEY_VAR == 1003313002221061612
+        // BNSD layout HighPrecision, mask int8 band, Enable alibi pse, Cube split, 常量化, D256, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_256, SINNER_CONST_128 * DSIZE_CONST_256) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned256, DTemplateType::Aligned256, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, true, false, false, true, true);
+    #elif TILING_KEY_VAR == 1004314002221061612
+        // BNSD layout HighPrecision, mask int8 band, Enable alibi pse, Cube split, 常量化, D512, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * (DSIZE_CONST_512 >> 1), SINNER_CONST_128 * (DSIZE_CONST_512 >> 1)) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned512, DTemplateType::Aligned512, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, true, false, false, true, true);
+    #elif TILING_KEY_VAR == 1001311002221161612
+        // BSH layout HighPrecision, mask int8 band, Enable alibi pse, Cube split, 常量化, D64, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_64, SINNER_CONST_128 * DSIZE_CONST_64) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned64, DTemplateType::Aligned64, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, true, false, false, true, true);
+    #elif TILING_KEY_VAR == 1001121002221161612
+        // BSH layout HighPrecision, mask int8 band, Enable alibi pse, Cube split, 常量化, D64, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_64 * SINNER_CONST_256 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_64, SINNER_CONST_256) * DSIZE_CONST_64, SINNER_CONST_256 * DSIZE_CONST_64) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned64, S2TemplateType::Aligned256,
+            DTemplateType::Aligned64, DTemplateType::Aligned64, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, true, false, false, true, true);
+    #elif TILING_KEY_VAR == 1002312002221161612
+        // BSH layout HighPrecision, mask int8 band, Enable alibi pse, Cube split, 常量化, D128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_128, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned128, DTemplateType::Aligned128, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, true, false, false, true, true);
+    #elif TILING_KEY_VAR == 1002122002221161612
+        // BSH layout HighPrecision, mask int8 band, Enable alibi pse, Cube split, 常量化, D128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_64 * SINNER_CONST_256 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_64, SINNER_CONST_256) * DSIZE_CONST_128, SINNER_CONST_256 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned64, S2TemplateType::Aligned256,
+            DTemplateType::Aligned128, DTemplateType::Aligned128, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, true, false, false, true, true);
+    #elif TILING_KEY_VAR == 1003313002221161612
+        // BSH layout HighPrecision, mask int8 band, Enable alibi pse, Cube split, 常量化, D256, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_256, SINNER_CONST_128 * DSIZE_CONST_256) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned256, DTemplateType::Aligned256, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, true, false, false, true, true);
+    #elif TILING_KEY_VAR == 1004314002221161612
+        // BSH layout HighPrecision, mask int8 band, Enable alibi pse, Cube split, 常量化, D512, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * (DSIZE_CONST_512 >> 1), SINNER_CONST_128 * (DSIZE_CONST_512 >> 1)) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned512, DTemplateType::Aligned512, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, true, false, false, true, true);
+    #elif TILING_KEY_VAR == 1001311002021261612
+        // TND layout HighPrecision, No mask, Enable alibi pse, Cube split, 常量化, D64, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_64, SINNER_CONST_128 * DSIZE_CONST_64) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned64, DTemplateType::Aligned64, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, false, false, false, true, true);
+    #elif TILING_KEY_VAR == 1001121002021261612
+        // TND layout HighPrecision, No mask, Enable alibi pse, Cube split, 常量化, D64, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_64 * SINNER_CONST_256 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_64, SINNER_CONST_256) * DSIZE_CONST_64, SINNER_CONST_256 * DSIZE_CONST_64) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned64, S2TemplateType::Aligned256,
+            DTemplateType::Aligned64, DTemplateType::Aligned64, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, false, false, false, true, true);
+    #elif TILING_KEY_VAR == 1002312002021261612
+        // TND layout HighPrecision, No mask, Enable alibi pse, Cube split, 常量化, D128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_128, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned128, DTemplateType::Aligned128, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, false, false, false, true, true);
+    #elif TILING_KEY_VAR == 1002122002021261612
+        // TND layout HighPrecision, No mask, Enable alibi pse, Cube split, 常量化, D128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_64 * SINNER_CONST_256 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_64, SINNER_CONST_256) * DSIZE_CONST_128, SINNER_CONST_256 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned64, S2TemplateType::Aligned256,
+            DTemplateType::Aligned128, DTemplateType::Aligned128, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, false, false, false, true, true);
+    #elif TILING_KEY_VAR == 1003313002021261612
+        // TND layout HighPrecision, No mask, Enable alibi pse, Cube split, 常量化, D256, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_256, SINNER_CONST_128 * DSIZE_CONST_256) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned256, DTemplateType::Aligned256, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, false, false, false, true, true);
+    #elif TILING_KEY_VAR == 1004314002021261612
+        // TND layout HighPrecision, No mask, Enable alibi pse, Cube split, 常量化, D512, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * (DSIZE_CONST_512 >> 1), SINNER_CONST_128 * (DSIZE_CONST_512 >> 1)) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned512, DTemplateType::Aligned512, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, false, false, false, true, true);
+    #elif TILING_KEY_VAR == 1001311002121261612
+        // TND layout HighPrecision, mask int8 no band, Enable alibi pse, Cube split, 常量化, D64, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_64, SINNER_CONST_128 * DSIZE_CONST_64) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned64, DTemplateType::Aligned64, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, true, false, false, true, true);
+    #elif TILING_KEY_VAR == 1001121002121261612
+        // TND layout HighPrecision, mask int8 no band, Enable alibi pse, Cube split, 常量化, D64, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_64 * SINNER_CONST_256 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_64, SINNER_CONST_256) * DSIZE_CONST_64, SINNER_CONST_256 * DSIZE_CONST_64) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned64, S2TemplateType::Aligned256,
+            DTemplateType::Aligned64, DTemplateType::Aligned64, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, true, false, false, true, true);
+    #elif TILING_KEY_VAR == 1002312002121261612
+        // TND layout HighPrecision, mask int8 no band, Enable alibi pse, Cube split, 常量化, D128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_128, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned128, DTemplateType::Aligned128, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, true, false, false, true, true);
+    #elif TILING_KEY_VAR == 1002122002121261612
+        // TND layout HighPrecision, mask int8 no band, Enable alibi pse, Cube split, 常量化, D128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_64 * SINNER_CONST_256 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_64, SINNER_CONST_256) * DSIZE_CONST_128, SINNER_CONST_256 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned64, S2TemplateType::Aligned256,
+            DTemplateType::Aligned128, DTemplateType::Aligned128, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, true, false, false, true, true);
+    #elif TILING_KEY_VAR == 1003313002121261612
+        // TND layout HighPrecision, mask int8 no band, Enable alibi pse, Cube split, 常量化, D256, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_256, SINNER_CONST_128 * DSIZE_CONST_256) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned256, DTemplateType::Aligned256, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, true, false, false, true, true);
+    #elif TILING_KEY_VAR == 1004314002121261612
+        // TND layout HighPrecision, mask int8 no band, Enable alibi pse, Cube split, 常量化, D512, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * (DSIZE_CONST_512 >> 1), SINNER_CONST_128 * (DSIZE_CONST_512 >> 1)) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned512, DTemplateType::Aligned512, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, true, false, false, true, true);
+    #elif TILING_KEY_VAR == 1001311002221261612
+        // TND layout HighPrecision, mask int8 band, Enable alibi pse, Cube split, 常量化, D64, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_64, SINNER_CONST_128 * DSIZE_CONST_64) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned64, DTemplateType::Aligned64, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, true, false, false, true, true);
+    #elif TILING_KEY_VAR == 1001121002221261612
+        // TND layout HighPrecision, mask int8 band, Enable alibi pse, Cube split, 常量化, D64, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_64 * SINNER_CONST_256 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_64, SINNER_CONST_256) * DSIZE_CONST_64, SINNER_CONST_256 * DSIZE_CONST_64) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned64, S2TemplateType::Aligned256,
+            DTemplateType::Aligned64, DTemplateType::Aligned64, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, true, false, false, true, true);
+    #elif TILING_KEY_VAR == 1002312002221261612
+        // TND layout HighPrecision, mask int8 band, Enable alibi pse, Cube split, 常量化, D128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_128, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned128, DTemplateType::Aligned128, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, true, false, false, true, true);
+    #elif TILING_KEY_VAR == 1002122002221261612
+        // TND layout HighPrecision, mask int8 band, Enable alibi pse, Cube split, 常量化, D128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_64 * SINNER_CONST_256 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_64, SINNER_CONST_256) * DSIZE_CONST_128, SINNER_CONST_256 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned64, S2TemplateType::Aligned256,
+            DTemplateType::Aligned128, DTemplateType::Aligned128, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, true, false, false, true, true);
+    #elif TILING_KEY_VAR == 1003313002221261612
+        // TND layout HighPrecision, mask int8 band, Enable alibi pse, Cube split, 常量化, D256, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_256, SINNER_CONST_128 * DSIZE_CONST_256) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned256, DTemplateType::Aligned256, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, true, false, false, true, true);
+    #elif TILING_KEY_VAR == 1004314002221261612
+        // TND layout HighPrecision, mask int8 band, Enable alibi pse, Cube split, 常量化, D512, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * (DSIZE_CONST_512 >> 1), SINNER_CONST_128 * (DSIZE_CONST_512 >> 1)) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned512, DTemplateType::Aligned512, PseTypeEnum::PSE_INNER_MUL_ADD_TYPE, true, false, false, true, true);
+    #elif TILING_KEY_VAR == 1001311003021061612
+        // BNSD layout HighPrecision, No mask, Enable alibi pse, Cube split, 常量化, D64, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_64, SINNER_CONST_128 * DSIZE_CONST_64) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned64, DTemplateType::Aligned64, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, false, false, false, true, true);
+    #elif TILING_KEY_VAR == 1001121003021061612
+        // BNSD layout HighPrecision, No mask, Enable alibi pse, Cube split, 常量化, D64, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_64 * SINNER_CONST_256 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_64, SINNER_CONST_256) * DSIZE_CONST_64, SINNER_CONST_256 * DSIZE_CONST_64) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned64, S2TemplateType::Aligned256,
+            DTemplateType::Aligned64, DTemplateType::Aligned64, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, false, false, false, true, true);
+    #elif TILING_KEY_VAR == 1002312003021061612
+        // BNSD layout HighPrecision, No mask, Enable alibi pse, Cube split, 常量化, D128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_128, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned128, DTemplateType::Aligned128, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, false, false, false, true, true);
+    #elif TILING_KEY_VAR == 1002122003021061612
+        // BNSD layout HighPrecision, No mask, Enable alibi pse, Cube split, 常量化, D128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_64 * SINNER_CONST_256 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_64, SINNER_CONST_256) * DSIZE_CONST_128, SINNER_CONST_256 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned64, S2TemplateType::Aligned256,
+            DTemplateType::Aligned128, DTemplateType::Aligned128, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, false, false, false, true, true);
+    #elif TILING_KEY_VAR == 1003313003021061612
+        // BNSD layout HighPrecision, No mask, Enable alibi pse, Cube split, 常量化, D256, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_256, SINNER_CONST_128 * DSIZE_CONST_256) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned256, DTemplateType::Aligned256, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, false, false, false, true, true);
+    #elif TILING_KEY_VAR == 1004314003021061612
+        // BNSD layout HighPrecision, No mask, Enable alibi pse, Cube split, 常量化, D512, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * (DSIZE_CONST_512 >> 1), SINNER_CONST_128 * (DSIZE_CONST_512 >> 1)) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned512, DTemplateType::Aligned512, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, false, false, false, true, true);
+    #elif TILING_KEY_VAR == 1001311003121061612
+        // BNSD layout HighPrecision, mask int8 no band, Enable alibi pse, Cube split, 常量化, D64, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_64, SINNER_CONST_128 * DSIZE_CONST_64) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned64, DTemplateType::Aligned64, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, true, false, false, true, true);
+    #elif TILING_KEY_VAR == 1001121003121061612
+        // BNSD layout HighPrecision, mask int8 no band, Enable alibi pse, Cube split, 常量化, D64, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_64 * SINNER_CONST_256 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_64, SINNER_CONST_256) * DSIZE_CONST_64, SINNER_CONST_256 * DSIZE_CONST_64) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned64, S2TemplateType::Aligned256,
+            DTemplateType::Aligned64, DTemplateType::Aligned64, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, true, false, false, true, true);
+    #elif TILING_KEY_VAR == 1002312003121061612
+        // BNSD layout HighPrecision, mask int8 no band, Enable alibi pse, Cube split, 常量化, D128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_128, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned128, DTemplateType::Aligned128, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, true, false, false, true, true);
+    #elif TILING_KEY_VAR == 1002122003121061612
+        // BNSD layout HighPrecision, mask int8 no band, Enable alibi pse, Cube split, 常量化, D128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_64 * SINNER_CONST_256 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_64, SINNER_CONST_256) * DSIZE_CONST_128, SINNER_CONST_256 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned64, S2TemplateType::Aligned256,
+            DTemplateType::Aligned128, DTemplateType::Aligned128, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, true, false, false, true, true);
+    #elif TILING_KEY_VAR == 1003313003121061612
+        // BNSD layout HighPrecision, mask int8 no band, Enable alibi pse, Cube split, 常量化, D256, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_256, SINNER_CONST_128 * DSIZE_CONST_256) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned256, DTemplateType::Aligned256, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, true, false, false, true, true);
+    #elif TILING_KEY_VAR == 1004314003121061612
+        // BNSD layout HighPrecision, mask int8 no band, Enable alibi pse, Cube split, 常量化, D512, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * (DSIZE_CONST_512 >> 1), SINNER_CONST_128 * (DSIZE_CONST_512 >> 1)) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned512, DTemplateType::Aligned512, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, true, false, false, true, true);
+    #elif TILING_KEY_VAR == 1001311003021161612
+        // BSH layout HighPrecision, No mask, Enable alibi pse, Cube split, 常量化, D64, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_64, SINNER_CONST_128 * DSIZE_CONST_64) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned64, DTemplateType::Aligned64, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, false, false, false, true, true);
+    #elif TILING_KEY_VAR == 1001121003021161612
+        // BSH layout HighPrecision, No mask, Enable alibi pse, Cube split, 常量化, D64, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_64 * SINNER_CONST_256 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_64, SINNER_CONST_256) * DSIZE_CONST_64, SINNER_CONST_256 * DSIZE_CONST_64) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned64, S2TemplateType::Aligned256,
+            DTemplateType::Aligned64, DTemplateType::Aligned64, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, false, false, false, true, true);
+    #elif TILING_KEY_VAR == 1002312003021161612
+        // BSH layout HighPrecision, No mask, Enable alibi pse, Cube split, 常量化, D128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_128, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned128, DTemplateType::Aligned128, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, false, false, false, true, true);
+    #elif TILING_KEY_VAR == 1002122003021161612
+        // BSH layout HighPrecision, No mask, Enable alibi pse, Cube split, 常量化, D128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_64 * SINNER_CONST_256 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_64, SINNER_CONST_256) * DSIZE_CONST_128, SINNER_CONST_256 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned64, S2TemplateType::Aligned256,
+            DTemplateType::Aligned128, DTemplateType::Aligned128, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, false, false, false, true, true);
+    #elif TILING_KEY_VAR == 1003313003021161612
+        // BSH layout HighPrecision, No mask, Enable alibi pse, Cube split, 常量化, D256, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_256, SINNER_CONST_128 * DSIZE_CONST_256) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned256, DTemplateType::Aligned256, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, false, false, false, true, true);
+    #elif TILING_KEY_VAR == 1004314003021161612
+        // BSH layout HighPrecision, No mask, Enable alibi pse, Cube split, 常量化, D512, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * (DSIZE_CONST_512 >> 1), SINNER_CONST_128 * (DSIZE_CONST_512 >> 1)) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned512, DTemplateType::Aligned512, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, false, false, false, true, true);
+    #elif TILING_KEY_VAR == 1001311003121161612
+        // BSH layout HighPrecision, mask int8 no band, Enable alibi pse, Cube split, 常量化, D64, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_64, SINNER_CONST_128 * DSIZE_CONST_64) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned64, DTemplateType::Aligned64, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, true, false, false, true, true);
+    #elif TILING_KEY_VAR == 1001121003121161612
+        // BSH layout HighPrecision, mask int8 no band, Enable alibi pse, Cube split, 常量化, D64, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_64 * SINNER_CONST_256 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_64, SINNER_CONST_256) * DSIZE_CONST_64, SINNER_CONST_256 * DSIZE_CONST_64) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned64, S2TemplateType::Aligned256,
+            DTemplateType::Aligned64, DTemplateType::Aligned64, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, true, false, false, true, true);
+    #elif TILING_KEY_VAR == 1002312003121161612
+        // BSH layout HighPrecision, mask int8 no band, Enable alibi pse, Cube split, 常量化, D128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_128, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned128, DTemplateType::Aligned128, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, true, false, false, true, true);
+    #elif TILING_KEY_VAR == 1002122003121161612
+        // BSH layout HighPrecision, mask int8 no band, Enable alibi pse, Cube split, 常量化, D128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_64 * SINNER_CONST_256 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_64, SINNER_CONST_256) * DSIZE_CONST_128, SINNER_CONST_256 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned64, S2TemplateType::Aligned256,
+            DTemplateType::Aligned128, DTemplateType::Aligned128, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, true, false, false, true, true);
+    #elif TILING_KEY_VAR == 1003313003121161612
+        // BSH layout HighPrecision, mask int8 no band, Enable alibi pse, Cube split, 常量化, D256, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_256, SINNER_CONST_128 * DSIZE_CONST_256) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned256, DTemplateType::Aligned256, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, true, false, false, true, true);
+    #elif TILING_KEY_VAR == 1004314003121161612
+        // BSH layout HighPrecision, mask int8 no band, Enable alibi pse, Cube split, 常量化, D512, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * (DSIZE_CONST_512 >> 1), SINNER_CONST_128 * (DSIZE_CONST_512 >> 1)) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned512, DTemplateType::Aligned512, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, true, false, false, true, true);
+    #elif TILING_KEY_VAR == 1001311003221061612
+        // BNSD layout HighPrecision, mask int8 band, Enable alibi pse, Cube split, 常量化, D64, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_64, SINNER_CONST_128 * DSIZE_CONST_64) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned64, DTemplateType::Aligned64, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, true, false, false, true, true);
+    #elif TILING_KEY_VAR == 1001121003221061612
+        // BNSD layout HighPrecision, mask int8 band, Enable alibi pse, Cube split, 常量化, D64, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_64 * SINNER_CONST_256 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_64, SINNER_CONST_256) * DSIZE_CONST_64, SINNER_CONST_256 * DSIZE_CONST_64) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned64, S2TemplateType::Aligned256,
+            DTemplateType::Aligned64, DTemplateType::Aligned64, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, true, false, false, true, true);
+    #elif TILING_KEY_VAR == 1002312003221061612
+        // BNSD layout HighPrecision, mask int8 band, Enable alibi pse, Cube split, 常量化, D128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_128, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned128, DTemplateType::Aligned128, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, true, false, false, true, true);
+    #elif TILING_KEY_VAR == 1002122003221061612
+        // BNSD layout HighPrecision, mask int8 band, Enable alibi pse, Cube split, 常量化, D128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_64 * SINNER_CONST_256 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_64, SINNER_CONST_256) * DSIZE_CONST_128, SINNER_CONST_256 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned64, S2TemplateType::Aligned256,
+            DTemplateType::Aligned128, DTemplateType::Aligned128, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, true, false, false, true, true);
+    #elif TILING_KEY_VAR == 1003313003221061612
+        // BNSD layout HighPrecision, mask int8 band, Enable alibi pse, Cube split, 常量化, D256, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_256, SINNER_CONST_128 * DSIZE_CONST_256) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned256, DTemplateType::Aligned256, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, true, false, false, true, true);
+    #elif TILING_KEY_VAR == 1004314003221061612
+        // BNSD layout HighPrecision, mask int8 band, Enable alibi pse, Cube split, 常量化, D512, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * (DSIZE_CONST_512 >> 1), SINNER_CONST_128 * (DSIZE_CONST_512 >> 1)) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned512, DTemplateType::Aligned512, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, true, false, false, true, true);
+    #elif TILING_KEY_VAR == 1001311003221161612
+        // BSH layout HighPrecision, mask int8 band, Enable alibi pse, Cube split, 常量化, D64, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_64, SINNER_CONST_128 * DSIZE_CONST_64) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned64, DTemplateType::Aligned64, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, true, false, false, true, true);
+    #elif TILING_KEY_VAR == 1001121003221161612
+        // BSH layout HighPrecision, mask int8 band, Enable alibi pse, Cube split, 常量化, D64, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_64 * SINNER_CONST_256 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_64, SINNER_CONST_256) * DSIZE_CONST_64, SINNER_CONST_256 * DSIZE_CONST_64) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned64, S2TemplateType::Aligned256,
+            DTemplateType::Aligned64, DTemplateType::Aligned64, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, true, false, false, true, true);
+    #elif TILING_KEY_VAR == 1002312003221161612
+        // BSH layout HighPrecision, mask int8 band, Enable alibi pse, Cube split, 常量化, D128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_128, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned128, DTemplateType::Aligned128, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, true, false, false, true, true);
+    #elif TILING_KEY_VAR == 1002122003221161612
+        // BSH layout HighPrecision, mask int8 band, Enable alibi pse, Cube split, 常量化, D128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_64 * SINNER_CONST_256 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_64, SINNER_CONST_256) * DSIZE_CONST_128, SINNER_CONST_256 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned64, S2TemplateType::Aligned256,
+            DTemplateType::Aligned128, DTemplateType::Aligned128, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, true, false, false, true, true);
+    #elif TILING_KEY_VAR == 1003313003221161612
+        // BSH layout HighPrecision, mask int8 band, Enable alibi pse, Cube split, 常量化, D256, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_256, SINNER_CONST_128 * DSIZE_CONST_256) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned256, DTemplateType::Aligned256, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, true, false, false, true, true);
+    #elif TILING_KEY_VAR == 1004314003221161612
+        // BSH layout HighPrecision, mask int8 band, Enable alibi pse, Cube split, 常量化, D512, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * (DSIZE_CONST_512 >> 1), SINNER_CONST_128 * (DSIZE_CONST_512 >> 1)) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned512, DTemplateType::Aligned512, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, true, false, false, true, true);
+    #elif TILING_KEY_VAR == 1001311003021261612
+        // TND layout HighPrecision, No mask, Enable alibi pse, Cube split, 常量化, D64, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_64, SINNER_CONST_128 * DSIZE_CONST_64) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned64, DTemplateType::Aligned64, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, false, false, false, true, true);
+    #elif TILING_KEY_VAR == 1001121003021261612
+        // TND layout HighPrecision, No mask, Enable alibi pse, Cube split, 常量化, D64, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_64 * SINNER_CONST_256 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_64, SINNER_CONST_256) * DSIZE_CONST_64, SINNER_CONST_256 * DSIZE_CONST_64) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned64, S2TemplateType::Aligned256,
+            DTemplateType::Aligned64, DTemplateType::Aligned64, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, false, false, false, true, true);
+    #elif TILING_KEY_VAR == 1002312003021261612
+        // TND layout HighPrecision, No mask, Enable alibi pse, Cube split, 常量化, D128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_128, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned128, DTemplateType::Aligned128, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, false, false, false, true, true);
+    #elif TILING_KEY_VAR == 1002122003021261612
+        // TND layout HighPrecision, No mask, Enable alibi pse, Cube split, 常量化, D128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_64 * SINNER_CONST_256 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_64, SINNER_CONST_256) * DSIZE_CONST_128, SINNER_CONST_256 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned64, S2TemplateType::Aligned256,
+            DTemplateType::Aligned128, DTemplateType::Aligned128, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, false, false, false, true, true);
+    #elif TILING_KEY_VAR == 1003313003021261612
+        // TND layout HighPrecision, No mask, Enable alibi pse, Cube split, 常量化, D256, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_256, SINNER_CONST_128 * DSIZE_CONST_256) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned256, DTemplateType::Aligned256, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, false, false, false, true, true);
+    #elif TILING_KEY_VAR == 1004314003021261612
+        // TND layout HighPrecision, No mask, Enable alibi pse, Cube split, 常量化, D512, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * (DSIZE_CONST_512 >> 1), SINNER_CONST_128 * (DSIZE_CONST_512 >> 1)) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned512, DTemplateType::Aligned512, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, false, false, false, true, true);
+    #elif TILING_KEY_VAR == 1001311003121261612
+        // TND layout HighPrecision, mask int8 no band, Enable alibi pse, Cube split, 常量化, D64, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_64, SINNER_CONST_128 * DSIZE_CONST_64) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned64, DTemplateType::Aligned64, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, true, false, false, true, true);
+    #elif TILING_KEY_VAR == 1001121003121261612
+        // TND layout HighPrecision, mask int8 no band, Enable alibi pse, Cube split, 常量化, D64, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_64 * SINNER_CONST_256 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_64, SINNER_CONST_256) * DSIZE_CONST_64, SINNER_CONST_256 * DSIZE_CONST_64) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned64, S2TemplateType::Aligned256,
+            DTemplateType::Aligned64, DTemplateType::Aligned64, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, true, false, false, true, true);
+    #elif TILING_KEY_VAR == 1002312003121261612
+        // TND layout HighPrecision, mask int8 no band, Enable alibi pse, Cube split, 常量化, D128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_128, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned128, DTemplateType::Aligned128, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, true, false, false, true, true);
+    #elif TILING_KEY_VAR == 1002122003121261612
+        // TND layout HighPrecision, mask int8 no band, Enable alibi pse, Cube split, 常量化, D128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_64 * SINNER_CONST_256 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_64, SINNER_CONST_256) * DSIZE_CONST_128, SINNER_CONST_256 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned64, S2TemplateType::Aligned256,
+            DTemplateType::Aligned128, DTemplateType::Aligned128, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, true, false, false, true, true);
+    #elif TILING_KEY_VAR == 1003313003121261612
+        // TND layout HighPrecision, mask int8 no band, Enable alibi pse, Cube split, 常量化, D256, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_256, SINNER_CONST_128 * DSIZE_CONST_256) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned256, DTemplateType::Aligned256, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, true, false, false, true, true);
+    #elif TILING_KEY_VAR == 1004314003121261612
+        // TND layout HighPrecision, mask int8 no band, Enable alibi pse, Cube split, 常量化, D512, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * (DSIZE_CONST_512 >> 1), SINNER_CONST_128 * (DSIZE_CONST_512 >> 1)) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned512, DTemplateType::Aligned512, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, true, false, false, true, true);
+    #elif TILING_KEY_VAR == 1001311003221261612
+        // TND layout HighPrecision, mask int8 band, Enable alibi pse, Cube split, 常量化, D64, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_64, SINNER_CONST_128 * DSIZE_CONST_64) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned64, DTemplateType::Aligned64, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, true, false, false, true, true);
+    #elif TILING_KEY_VAR == 1001121003221261612
+        // TND layout HighPrecision, mask int8 band, Enable alibi pse, Cube split, 常量化, D64, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_64 * SINNER_CONST_256 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_64, SINNER_CONST_256) * DSIZE_CONST_64, SINNER_CONST_256 * DSIZE_CONST_64) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned64, S2TemplateType::Aligned256,
+            DTemplateType::Aligned64, DTemplateType::Aligned64, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, true, false, false, true, true);
+    #elif TILING_KEY_VAR == 1002312003221261612
+        // TND layout HighPrecision, mask int8 band, Enable alibi pse, Cube split, 常量化, D128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_128, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned128, DTemplateType::Aligned128, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, true, false, false, true, true);
+    #elif TILING_KEY_VAR == 1002122003221261612
+        // TND layout HighPrecision, mask int8 band, Enable alibi pse, Cube split, 常量化, D128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_64 * SINNER_CONST_256 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_64, SINNER_CONST_256) * DSIZE_CONST_128, SINNER_CONST_256 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned64, S2TemplateType::Aligned256,
+            DTemplateType::Aligned128, DTemplateType::Aligned128, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, true, false, false, true, true);
+    #elif TILING_KEY_VAR == 1003313003221261612
+        // TND layout HighPrecision, mask int8 band, Enable alibi pse, Cube split, 常量化, D256, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_256, SINNER_CONST_128 * DSIZE_CONST_256) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned256, DTemplateType::Aligned256, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, true, false, false, true, true);
+    #elif TILING_KEY_VAR == 1004314003221261612
+        // TND layout HighPrecision, mask int8 band, Enable alibi pse, Cube split, 常量化, D512, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * (DSIZE_CONST_512 >> 1), SINNER_CONST_128 * (DSIZE_CONST_512 >> 1)) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned512, DTemplateType::Aligned512, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, true, false, false, true, true);
+    #elif TILING_KEY_VAR == 1002312000091061612 // PFA_MLA_ROPE_PA
+        // BNSD layout HighPrecision, No mask, No pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, false, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312001091061612 // PFA_MLA_ROPE_PA
+        // BNSD layout HighPrecision, No mask, Enable pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, false, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312000191061612 // PFA_MLA_ROPE_PA
+        // BNSD layout HighPrecision, mask int8 no band, No pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312001191061612 // PFA_MLA_ROPE_PA
+        // BNSD layout HighPrecision, mask int8 no band, Enable pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312000091161612 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, No mask, No pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, false, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312001091161612 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, No mask, Enable pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, false, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312000191161612 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, mask int8 no band, No pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312001191161612 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, mask int8 no band, Enable pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312000291061612 // PFA_MLA_ROPE_PA
+        // BNSD layout HighPrecision, mask int8 band, No pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312001291061612 // PFA_MLA_ROPE_PA
+        // BNSD layout HighPrecision, mask int8 band, Enable pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312000291161612 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, mask int8 band, No pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312001291161612 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, mask int8 band, Enable pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312000091261612 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, No mask, No pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, false, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312001091261612 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, No mask, Enable pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, false, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312000191261612 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, mask int8 no band, No pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312001191261612 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, mask int8 no band, Enable pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312000291261612 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, mask int8 band, No pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312001291261612 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, mask int8 band, Enable pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, true, false, true, true, true);
 	#endif
 #endif
 
@@ -24132,6 +24852,24 @@ inline __aicore__ void prompt_flash_attention_FIAS_regbase(__gm__ uint8_t* query
     TILING_KEY_IS(1002122003221251612);
     TILING_KEY_IS(1003313003221251612);
     TILING_KEY_IS(1004314003221251612);
+    TILING_KEY_IS(1002312000091051612);
+    TILING_KEY_IS(1002312001091051612);
+    TILING_KEY_IS(1002312000191051612);
+    TILING_KEY_IS(1002312001191051612);
+    TILING_KEY_IS(1002312000091151612);
+    TILING_KEY_IS(1002312001091151612);
+    TILING_KEY_IS(1002312000191151612);
+    TILING_KEY_IS(1002312001191151612);
+    TILING_KEY_IS(1002312000291051612);
+    TILING_KEY_IS(1002312001291051612);
+    TILING_KEY_IS(1002312000291151612);
+    TILING_KEY_IS(1002312001291151612);
+    TILING_KEY_IS(1002312000091251612);
+    TILING_KEY_IS(1002312001091251612);
+    TILING_KEY_IS(1002312000191251612);
+    TILING_KEY_IS(1002312001191251612);
+    TILING_KEY_IS(1002312000291251612);
+    TILING_KEY_IS(1002312001291251612);
     #if TILING_KEY_VAR == 1001311000001051612
         // BNSD layout HighPrecision, No mask, No pse, Cube split, 常量化, D64, bf16
 		constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
@@ -28203,6 +28941,132 @@ inline __aicore__ void prompt_flash_attention_FIAS_regbase(__gm__ uint8_t* query
             INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e5m2_t, ImplModeEnum::AA_HIGH_PRECISION,
                 LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
                 DTemplateType::Aligned512, DTemplateType::Aligned512, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, true, false, false, true, true);
+        #elif TILING_KEY_VAR == 1002312000091051612 // PFA_MLA_ROPE_PA
+        // BNSD layout HighPrecision, No mask, No pse, Cube split, 常量化, qkD 192 vD 128, bf16
+            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e5m2_t, ImplModeEnum::AA_HIGH_PRECISION,
+                LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+                DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, false, false, true, true, true);
+        #elif TILING_KEY_VAR == 1002312001091051612 // PFA_MLA_ROPE_PA
+            // BNSD layout HighPrecision, No mask, Enable pse, Cube split, 常量化, qkD 192 vD 128, bf16
+            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e5m2_t, ImplModeEnum::AA_HIGH_PRECISION,
+                LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+                DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, false, false, true, true, true);
+        #elif TILING_KEY_VAR == 1002312000191051612 // PFA_MLA_ROPE_PA
+            // BNSD layout HighPrecision, mask int8 no band, No pse, Cube split, 常量化, qkD 192 vD 128, bf16
+            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e5m2_t, ImplModeEnum::AA_HIGH_PRECISION,
+                LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+                DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, true, false, true, true, true);
+        #elif TILING_KEY_VAR == 1002312001191051612 // PFA_MLA_ROPE_PA
+            // BNSD layout HighPrecision, mask int8 no band, Enable pse, Cube split, 常量化, qkD 192 vD 128, bf16
+            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e5m2_t, ImplModeEnum::AA_HIGH_PRECISION,
+                LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+                DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, true, false, true, true, true);
+        #elif TILING_KEY_VAR == 1002312000091151612 // PFA_MLA_ROPE_PA
+            // BSH layout HighPrecision, No mask, No pse, Cube split, 常量化, qkD 192 vD 128, bf16
+            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e5m2_t, ImplModeEnum::AA_HIGH_PRECISION,
+                LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+                DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, false, false, true, true, true);
+        #elif TILING_KEY_VAR == 1002312001091151612 // PFA_MLA_ROPE_PA
+            // BSH layout HighPrecision, No mask, Enable pse, Cube split, 常量化, qkD 192 vD 128, bf16
+            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e5m2_t, ImplModeEnum::AA_HIGH_PRECISION,
+                LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+                DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, false, false, true, true, true);
+        #elif TILING_KEY_VAR == 1002312000191151612 // PFA_MLA_ROPE_PA
+            // BSH layout HighPrecision, mask int8 no band, No pse, Cube split, 常量化, qkD 192 vD 128, bf16
+            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e5m2_t, ImplModeEnum::AA_HIGH_PRECISION,
+                LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+                DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, true, false, true, true, true);
+        #elif TILING_KEY_VAR == 1002312001191151612 // PFA_MLA_ROPE_PA
+            // BSH layout HighPrecision, mask int8 no band, Enable pse, Cube split, 常量化, qkD 192 vD 128, bf16
+            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e5m2_t, ImplModeEnum::AA_HIGH_PRECISION,
+                LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+                DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, true, false, true, true, true);
+        #elif TILING_KEY_VAR == 1002312000291051612 // PFA_MLA_ROPE_PA
+            // BNSD layout HighPrecision, mask int8 band, No pse, Cube split, 常量化, qkD 192 vD 128, bf16
+            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e5m2_t, ImplModeEnum::AA_HIGH_PRECISION,
+                LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+                DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, true, false, true, true, true);
+        #elif TILING_KEY_VAR == 1002312001291051612 // PFA_MLA_ROPE_PA
+            // BNSD layout HighPrecision, mask int8 band, Enable pse, Cube split, 常量化, qkD 192 vD 128, bf16
+            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e5m2_t, ImplModeEnum::AA_HIGH_PRECISION,
+                LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+                DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, true, false, true, true, true);
+        #elif TILING_KEY_VAR == 1002312000291151612 // PFA_MLA_ROPE_PA
+            // BSH layout HighPrecision, mask int8 band, No pse, Cube split, 常量化, qkD 192 vD 128, bf16
+            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e5m2_t, ImplModeEnum::AA_HIGH_PRECISION,
+                LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+                DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, true, false, true, true, true);
+        #elif TILING_KEY_VAR == 1002312001291151612 // PFA_MLA_ROPE_PA
+            // BSH layout HighPrecision, mask int8 band, Enable pse, Cube split, 常量化, qkD 192 vD 128, bf16
+            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e5m2_t, ImplModeEnum::AA_HIGH_PRECISION,
+                LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+                DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, true, false, true, true, true);
+        #elif TILING_KEY_VAR == 1002312000091251612 // PFA_MLA_ROPE_PA
+            // BSH layout HighPrecision, No mask, No pse, Cube split, 常量化, qkD 192 vD 128, bf16
+            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e5m2_t, ImplModeEnum::AA_HIGH_PRECISION,
+                LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+                DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, false, false, true, true, true);
+        #elif TILING_KEY_VAR == 1002312001091251612 // PFA_MLA_ROPE_PA
+            // BSH layout HighPrecision, No mask, Enable pse, Cube split, 常量化, qkD 192 vD 128, bf16
+            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e5m2_t, ImplModeEnum::AA_HIGH_PRECISION,
+                LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+                DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, false, false, true, true, true);
+        #elif TILING_KEY_VAR == 1002312000191251612 // PFA_MLA_ROPE_PA
+            // BSH layout HighPrecision, mask int8 no band, No pse, Cube split, 常量化, qkD 192 vD 128, bf16
+            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e5m2_t, ImplModeEnum::AA_HIGH_PRECISION,
+                LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+                DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, true, false, true, true, true);
+        #elif TILING_KEY_VAR == 1002312001191251612 // PFA_MLA_ROPE_PA
+            // BSH layout HighPrecision, mask int8 no band, Enable pse, Cube split, 常量化, qkD 192 vD 128, bf16
+            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e5m2_t, ImplModeEnum::AA_HIGH_PRECISION,
+                LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+                DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, true, false, true, true, true);
+        #elif TILING_KEY_VAR == 1002312000291251612 // PFA_MLA_ROPE_PA
+            // BSH layout HighPrecision, mask int8 band, No pse, Cube split, 常量化, qkD 192 vD 128, bf16
+            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e5m2_t, ImplModeEnum::AA_HIGH_PRECISION,
+                LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+                DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, true, false, true, true, true);
+        #elif TILING_KEY_VAR == 1002312001291251612 // PFA_MLA_ROPE_PA
+            // BSH layout HighPrecision, mask int8 band, Enable pse, Cube split, 常量化, qkD 192 vD 128, bf16
+            constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+            constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+            INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, fp8_e5m2_t, ImplModeEnum::AA_HIGH_PRECISION,
+                LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+                DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, true, false, true, true, true);
     #endif
 #endif
 
@@ -28796,6 +29660,24 @@ inline __aicore__ void prompt_flash_attention_FIAS_regbase(__gm__ uint8_t* query
     TILING_KEY_IS(1002122003221221112);
     TILING_KEY_IS(1003313003221221112);
     TILING_KEY_IS(1004314003221221112);
+    TILING_KEY_IS(1002312000091021112);
+    TILING_KEY_IS(1002312001091021112);
+    TILING_KEY_IS(1002312000191021112);
+    TILING_KEY_IS(1002312001191021112);
+    TILING_KEY_IS(1002312000091121112);
+    TILING_KEY_IS(1002312001091121112);
+    TILING_KEY_IS(1002312000191121112);
+    TILING_KEY_IS(1002312001191121112);
+    TILING_KEY_IS(1002312000291021112);
+    TILING_KEY_IS(1002312001291021112);
+    TILING_KEY_IS(1002312000291121112);
+    TILING_KEY_IS(1002312001291121112);
+    TILING_KEY_IS(1002312000091221112);
+    TILING_KEY_IS(1002312001091221112);
+    TILING_KEY_IS(1002312000191221112);
+    TILING_KEY_IS(1002312001191221112);
+    TILING_KEY_IS(1002312000291221112);
+    TILING_KEY_IS(1002312001291221112);
     #if TILING_KEY_VAR == 1001311000001021112
         // BNSD layout HighPrecision, No mask, No pse, Cube split, 常量化, D64, bf16
 		constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
@@ -32867,6 +33749,132 @@ inline __aicore__ void prompt_flash_attention_FIAS_regbase(__gm__ uint8_t* query
         INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, int8_t, ImplModeEnum::AA_HIGH_PRECISION,
             LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
             DTemplateType::Aligned512, DTemplateType::Aligned512, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, true, false, false, true, true);
+    #elif TILING_KEY_VAR == 1002312000091021112 // PFA_MLA_ROPE_PA
+        // BNSD layout HighPrecision, No mask, No pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, int8_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, false, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312001091021112 // PFA_MLA_ROPE_PA
+        // BNSD layout HighPrecision, No mask, Enable pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, int8_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, false, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312000191021112 // PFA_MLA_ROPE_PA
+        // BNSD layout HighPrecision, mask int8 no band, No pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, int8_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312001191021112 // PFA_MLA_ROPE_PA
+        // BNSD layout HighPrecision, mask int8 no band, Enable pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, int8_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312000091121112 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, No mask, No pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, int8_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, false, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312001091121112 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, No mask, Enable pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, int8_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, false, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312000191121112 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, mask int8 no band, No pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, int8_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312001191121112 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, mask int8 no band, Enable pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, int8_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312000291021112 // PFA_MLA_ROPE_PA
+        // BNSD layout HighPrecision, mask int8 band, No pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, int8_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312001291021112 // PFA_MLA_ROPE_PA
+        // BNSD layout HighPrecision, mask int8 band, Enable pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, int8_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312000291121112 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, mask int8 band, No pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, int8_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312001291121112 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, mask int8 band, Enable pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, int8_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312000091221112 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, No mask, No pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, int8_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, false, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312001091221112 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, No mask, Enable pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, int8_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, false, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312000191221112 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, mask int8 no band, No pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, int8_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312001191221112 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, mask int8 no band, Enable pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, int8_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312000291221112 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, mask int8 band, No pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, int8_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312001291221112 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, mask int8 band, Enable pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, int8_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, true, false, true, true, true);
     #endif
 #endif
 
@@ -33460,6 +34468,24 @@ inline __aicore__ void prompt_flash_attention_FIAS_regbase(__gm__ uint8_t* query
     TILING_KEY_IS(1002122003221241112);
     TILING_KEY_IS(1003313003221241112);
     TILING_KEY_IS(1004314003221241112);
+    TILING_KEY_IS(1002312000091041112);
+    TILING_KEY_IS(1002312001091041112);
+    TILING_KEY_IS(1002312000191041112);
+    TILING_KEY_IS(1002312001191041112);
+    TILING_KEY_IS(1002312000091141112);
+    TILING_KEY_IS(1002312001091141112);
+    TILING_KEY_IS(1002312000191141112);
+    TILING_KEY_IS(1002312001191141112);
+    TILING_KEY_IS(1002312000291041112);
+    TILING_KEY_IS(1002312001291041112);
+    TILING_KEY_IS(1002312000291141112);
+    TILING_KEY_IS(1002312001291141112);
+    TILING_KEY_IS(1002312000091241112);
+    TILING_KEY_IS(1002312001091241112);
+    TILING_KEY_IS(1002312000191241112);
+    TILING_KEY_IS(1002312001191241112);
+    TILING_KEY_IS(1002312000291241112);
+    TILING_KEY_IS(1002312001291241112);
     #if TILING_KEY_VAR == 1001311000001041112
         // BNSD layout HighPrecision, No mask, No pse, Cube split, 常量化, D64, bf16
 		constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
@@ -37531,6 +38557,132 @@ inline __aicore__ void prompt_flash_attention_FIAS_regbase(__gm__ uint8_t* query
         INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, hifloat8_t, ImplModeEnum::AA_HIGH_PRECISION,
             LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
             DTemplateType::Aligned512, DTemplateType::Aligned512, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, true, false, false, true, true);
+    #elif TILING_KEY_VAR == 1002312000091041112 // PFA_MLA_ROPE_PA
+        // BNSD layout HighPrecision, No mask, No pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, hifloat8_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, false, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312001091041112 // PFA_MLA_ROPE_PA
+        // BNSD layout HighPrecision, No mask, Enable pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, hifloat8_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, false, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312000191041112 // PFA_MLA_ROPE_PA
+        // BNSD layout HighPrecision, mask int8 no band, No pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, hifloat8_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312001191041112 // PFA_MLA_ROPE_PA
+        // BNSD layout HighPrecision, mask int8 no band, Enable pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, hifloat8_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312000091141112 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, No mask, No pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, hifloat8_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, false, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312001091141112 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, No mask, Enable pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, hifloat8_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, false, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312000191141112 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, mask int8 no band, No pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, hifloat8_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312001191141112 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, mask int8 no band, Enable pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, hifloat8_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312000291041112 // PFA_MLA_ROPE_PA
+        // BNSD layout HighPrecision, mask int8 band, No pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, hifloat8_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312001291041112 // PFA_MLA_ROPE_PA
+        // BNSD layout HighPrecision, mask int8 band, Enable pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, hifloat8_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312000291141112 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, mask int8 band, No pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, hifloat8_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312001291141112 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, mask int8 band, Enable pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, hifloat8_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312000091241112 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, No mask, No pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, hifloat8_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, false, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312001091241112 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, No mask, Enable pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, hifloat8_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, false, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312000191241112 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, mask int8 no band, No pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, hifloat8_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312001191241112 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, mask int8 no band, Enable pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, hifloat8_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312000291241112 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, mask int8 band, No pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, hifloat8_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312001291241112 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, mask int8 band, Enable pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, hifloat8_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, true, false, true, true, true);
 	#endif
 #endif
 
@@ -38124,6 +39276,24 @@ inline __aicore__ void prompt_flash_attention_FIAS_regbase(__gm__ uint8_t* query
     TILING_KEY_IS(1002122003221261112);
     TILING_KEY_IS(1003313003221261112);
     TILING_KEY_IS(1004314003221261112);
+    TILING_KEY_IS(1002312000091061112);
+    TILING_KEY_IS(1002312001091061112);
+    TILING_KEY_IS(1002312000191061112);
+    TILING_KEY_IS(1002312001191061112);
+    TILING_KEY_IS(1002312000091161112);
+    TILING_KEY_IS(1002312001091161112);
+    TILING_KEY_IS(1002312000191161112);
+    TILING_KEY_IS(1002312001191161112);
+    TILING_KEY_IS(1002312000291061112);
+    TILING_KEY_IS(1002312001291061112);
+    TILING_KEY_IS(1002312000291161112);
+    TILING_KEY_IS(1002312001291161112);
+    TILING_KEY_IS(1002312000091261112);
+    TILING_KEY_IS(1002312001091261112);
+    TILING_KEY_IS(1002312000191261112);
+    TILING_KEY_IS(1002312001191261112);
+    TILING_KEY_IS(1002312000291261112);
+    TILING_KEY_IS(1002312001291261112);
     #if TILING_KEY_VAR == 1001311000001061112
         // BNSD layout HighPrecision, No mask, No pse, Cube split, 常量化, D64, bf16
 		constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
@@ -42195,6 +43365,132 @@ inline __aicore__ void prompt_flash_attention_FIAS_regbase(__gm__ uint8_t* query
         INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
             LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
             DTemplateType::Aligned512, DTemplateType::Aligned512, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, true, false, false, true, true);
+    #elif TILING_KEY_VAR == 1002312000091061112 // PFA_MLA_ROPE_PA
+        // BNSD layout HighPrecision, No mask, No pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, false, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312001091061112 // PFA_MLA_ROPE_PA
+        // BNSD layout HighPrecision, No mask, Enable pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, false, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312000191061112 // PFA_MLA_ROPE_PA
+        // BNSD layout HighPrecision, mask int8 no band, No pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312001191061112 // PFA_MLA_ROPE_PA
+        // BNSD layout HighPrecision, mask int8 no band, Enable pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312000091161112 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, No mask, No pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, false, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312001091161112 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, No mask, Enable pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, false, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312000191161112 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, mask int8 no band, No pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312001191161112 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, mask int8 no band, Enable pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312000291061112 // PFA_MLA_ROPE_PA
+        // BNSD layout HighPrecision, mask int8 band, No pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312001291061112 // PFA_MLA_ROPE_PA
+        // BNSD layout HighPrecision, mask int8 band, Enable pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312000291161112 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, mask int8 band, No pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312001291161112 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, mask int8 band, Enable pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312000091261112 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, No mask, No pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, false, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312001091261112 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, No mask, Enable pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, false, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312000191261112 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, mask int8 no band, No pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312001191261112 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, mask int8 no band, Enable pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312000291261112 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, mask int8 band, No pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312001291261112 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, mask int8 band, Enable pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, fp8_e4m3fn_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, true, false, true, true, true);
 	#endif
 #endif
 
@@ -42788,6 +44084,24 @@ inline __aicore__ void prompt_flash_attention_FIAS_regbase(__gm__ uint8_t* query
     TILING_KEY_IS(1002122003221251112);
     TILING_KEY_IS(1003313003221251112);
     TILING_KEY_IS(1004314003221251112);
+    TILING_KEY_IS(1002312000091051112);
+    TILING_KEY_IS(1002312001091051112);
+    TILING_KEY_IS(1002312000191051112);
+    TILING_KEY_IS(1002312001191051112);
+    TILING_KEY_IS(1002312000091151112);
+    TILING_KEY_IS(1002312001091151112);
+    TILING_KEY_IS(1002312000191151112);
+    TILING_KEY_IS(1002312001191151112);
+    TILING_KEY_IS(1002312000291051112);
+    TILING_KEY_IS(1002312001291051112);
+    TILING_KEY_IS(1002312000291151112);
+    TILING_KEY_IS(1002312001291151112);
+    TILING_KEY_IS(1002312000091251112);
+    TILING_KEY_IS(1002312001091251112);
+    TILING_KEY_IS(1002312000191251112);
+    TILING_KEY_IS(1002312001191251112);
+    TILING_KEY_IS(1002312000291251112);
+    TILING_KEY_IS(1002312001291251112);
     #if TILING_KEY_VAR == 1001311000001051112
         // BNSD layout HighPrecision, No mask, No pse, Cube split, 常量化, D64, bf16
 		constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
@@ -46859,6 +48173,132 @@ inline __aicore__ void prompt_flash_attention_FIAS_regbase(__gm__ uint8_t* query
         INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, fp8_e5m2_t, ImplModeEnum::AA_HIGH_PRECISION,
             LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
             DTemplateType::Aligned512, DTemplateType::Aligned512, PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE, true, false, false, true, true);
+    #elif TILING_KEY_VAR == 1002312000091051112 // PFA_MLA_ROPE_PA
+        // BNSD layout HighPrecision, No mask, No pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, fp8_e5m2_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, false, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312001091051112 // PFA_MLA_ROPE_PA
+        // BNSD layout HighPrecision, No mask, Enable pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, fp8_e5m2_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, false, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312000191051112 // PFA_MLA_ROPE_PA
+        // BNSD layout HighPrecision, mask int8 no band, No pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, fp8_e5m2_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312001191051112 // PFA_MLA_ROPE_PA
+        // BNSD layout HighPrecision, mask int8 no band, Enable pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, fp8_e5m2_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312000091151112 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, No mask, No pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, fp8_e5m2_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, false, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312001091151112 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, No mask, Enable pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, fp8_e5m2_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, false, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312000191151112 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, mask int8 no band, No pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, fp8_e5m2_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312001191151112 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, mask int8 no band, Enable pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, fp8_e5m2_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312000291051112 // PFA_MLA_ROPE_PA
+        // BNSD layout HighPrecision, mask int8 band, No pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, fp8_e5m2_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312001291051112 // PFA_MLA_ROPE_PA
+        // BNSD layout HighPrecision, mask int8 band, Enable pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, fp8_e5m2_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312000291151112 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, mask int8 band, No pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, fp8_e5m2_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312001291151112 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, mask int8 band, Enable pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, fp8_e5m2_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312000091251112 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, No mask, No pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, fp8_e5m2_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, false, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312001091251112 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, No mask, Enable pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, fp8_e5m2_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, false, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312000191251112 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, mask int8 no band, No pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, fp8_e5m2_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312001191251112 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, mask int8 no band, Enable pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, fp8_e5m2_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312000291251112 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, mask int8 band, No pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, fp8_e5m2_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, true, false, true, true, true);
+    #elif TILING_KEY_VAR == 1002312001291251112 // PFA_MLA_ROPE_PA
+        // BSH layout HighPrecision, mask int8 band, Enable pse, Cube split, 常量化, qkD 192 vD 128, bf16
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_128 * SINNER_CONST_128 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_128, SINNER_CONST_128) * DSIZE_CONST_192, SINNER_CONST_128 * DSIZE_CONST_128) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, bfloat16_t, float, fp8_e5m2_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_TND, S1TemplateType::Aligned128, S2TemplateType::Aligned128,
+            DTemplateType::Aligned192, DTemplateType::Aligned128, PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, true, false, true, true, true);
     #endif
 #endif
 
