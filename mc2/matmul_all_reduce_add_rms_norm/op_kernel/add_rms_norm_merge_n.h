@@ -18,6 +18,7 @@
 
 using namespace AscendC;
 
+constexpr uint32_t DOUBLE_BUFFER_QUEUE = 2;
 template <typename T>
 class KernelAddRmsNormMergeN
 {
@@ -262,7 +263,6 @@ private:
     }
 
 private:
-    constexpr uint32_t DOUBLE_BUFFER_QUEUE = 2;
     // create queues for input, in this case depth is equal to buffer num
     TQue<QuePosition::VECIN, 1> inQueueGamma_;
     TQue<QuePosition::VECIN, DOUBLE_BUFFER_QUEUE> inQueueX_;
