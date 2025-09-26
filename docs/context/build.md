@@ -10,13 +10,13 @@ build.sh是本项目的构建脚本，默认在项目根目录下，作用是将
    参考[环境准备](./quick_op_invocation.md#环境准备)完成环境变量配置。
    ```bash
    # 默认路径安装，以root用户为例
-   source /usr/local/Ascend/ascend-toolkit/set_env.sh
+   source /usr/local/Ascend/set_env.sh
    ```
 2. **构建命令格式**
 
    以编译算子包命令为例，样式如下，其中`--vendor_name`与`--ops`在该场景为可选项。
    ```bash
-   bash build.sh --pkg --soc=${soc_version} [--vendor_name=${vendor_name}] [--ops=${op1,op2,...}]
+   bash build.sh --pkg --soc=${soc_version} [--vendor_name=${vendor_name}] [--ops=${op_list}]
    ```
    全量参数含义参见[参数说明](#参数说明)，请按实际情况选择合适的参数。
 
@@ -35,9 +35,9 @@ bash build.sh --help
 | -O${n}           | 可选     | 指定编译优化级别，支持O0/O1/O2/O3（如：-O3），${n}为优化级别标识。                                   |
 | -u               | 可选     | 启用单元测试（UT）编译模式，编译所有UT目标。                                                     |
 | --help，-h        | 可选     | 打印脚本使用帮助信息。                                                                  |
-| --ops            | 可选     | 指定要编译的自定义算子，如：apply_rotary_pos_emb,rope_quant_kvcache，多个算子用英文逗号“,”分隔，不可与--ophost、--opapi、--opgraph同时使用。 |
-| --soc            | 可选     | 指定编译目标NPU芯片型号，多个SoC用英文逗号“,”分隔。                                               |
-| --jit            | 可选     | 不编译算子的二进制文件。                                                                 |
+| --ops            | 可选     | 指定待编译的算子，如：apply_rotary_pos_emb,rope_quant_kvcache，多个算子用英文逗号“,”分隔，不可与--ophost、--opapi、--opgraph同时使用。 |
+| --soc            | 可选     | 指定NPU型号，多个soc用英文逗号“,”分隔。                                               |
+| --jit            | 可选     | 配置后，表示不编译算子的二进制文件。                                                                 |
 | --vendor_name    | 可选     | 指定自定义算子包的名称，默认值为custom。                                                      |
 | --debug          | 可选     | 启用调试模式。                                                                      |
 | --cov            | 可选     | 预留参数，开发者暂不需要关注。                                                              |

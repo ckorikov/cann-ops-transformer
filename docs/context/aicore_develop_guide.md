@@ -2,7 +2,7 @@
 
 > 说明：算子开发过程中涉及的基本概念如Tiling、Kernel、Ascend C接口等，详细介绍请参考[《Ascend C算子开发》](https://hiascend.com/document/redirect/CannCommunityOpdevAscendC)。
 
-开发指南以`AddExample`算子开发为例，介绍新算子开发流程以及涉及的交付件，流程图如下，完整样例代码请访问项目`example`目录。
+开发指南以`AddExample`算子开发为例，介绍新算子开发流程以及涉及的交付件，流程图如下，完整样例代码请访问项目`examples`目录。
 
 ```mermaid
 graph LR
@@ -115,7 +115,7 @@ graph LR
 本项目`build.sh`，支持快速创建算子目录。进入项目根目录，执行以下命令：
 
 ```bash
-# 创建指定算子目录，如bash build.sh --genop=example/add_example
+# 创建指定算子目录，如bash build.sh --genop=examples/add_example
 bash build.sh --genop=${op_class}/${op_name}
 ```
 - \$\{op_class\}表示算子类型，如transformer类。
@@ -155,7 +155,7 @@ ${op_name}                              # 替换为实际算子名的小写下�
 
 因NPU中AI Core内部存储空间有限，无法一次性将整个张量数据加载到计算单元中处理，因此需要将输入张量切分为多个小块（Tile），逐块进行计算，这一过程称为Tiling。
 
-用于指导数据切分的算法称为Tiling策略或Tiling算法，其决定了如何将输入数据切分为多个计算快，并指导Kernel如何分配内存、调度计算任务。Tiling与Kernel之间通过`TilingData`结构体进行信息传递。
+用于指导数据切分的算法称为Tiling策略或Tiling算法，其决定了如何将输入数据切分为多个计算块，并指导Kernel如何分配内存、调度计算任务。Tiling与Kernel之间通过`TilingData`结构体进行信息传递。
 
 Tiling流程如下图所示：
 
@@ -291,7 +291,7 @@ graph TD
 
   对于复杂算子，Kernel可能需要根据不同Tiling策略选择不同的执行路径。请根据实际需求设置TilingKey，标识不同的分支策略。
 
-先在\$\{op\_name\}\_tiling\_data.h中定义TilingData结构体，存储Tiling策略数据（如块大小），示例如下，`AddExample`算子完整代码请参考`example/add_example/op_kernel`下[add_example_tiling_data.h](../../example/add_example/op_kernel/add_example_tiling_data.h)。
+先在\$\{op\_name\}\_tiling\_data.h中定义TilingData结构体，存储Tiling策略数据（如块大小），示例如下，`AddExample`算子完整代码请参考`examples/add_example/op_kernel`下[add_example_tiling_data.h](../../examples/add_example/op_kernel/add_example_tiling_data.h)。
 
 ```CPP
 // 定义TilingData结构体
@@ -300,7 +300,7 @@ struct AddExampleTilingData {
      int64_t  tileNum;        // 每个核内部数据切块数量
 };
 ```
-再在\$\{op\_name\}\_tiling.cpp实现关键操作代码，代码如下，`AddExample`算子完整代码请参考`example/add_example/op_host`目录下[add_example_tiling.cpp](../../example/add_example/op_host/add_example_tiling.cpp)。
+再在\$\{op\_name\}\_tiling.cpp实现关键操作代码，代码如下，`AddExample`算子完整代码请参考`examples/add_example/op_host`目录下[add_example_tiling.cpp](../../examples/add_example/op_host/add_example_tiling.cpp)。
 
 ```CPP
 // 设置Kernel使用核数
@@ -333,7 +333,7 @@ if (dataType == ge::DT_FLOAT) {
     return ge::GRAPH_FAILED;
 }
 ```
-注意，TilingKey可通过模板化编程实现，示例代码如下，完整代码请参考`example/add_example/op_kernel`下[add_example_tiling_key.h](../../example/add_example/op_kernel/add_example_tiling_key.h)。
+注意，TilingKey可通过模板化编程实现，示例代码如下，完整代码请参考`examples/add_example/op_kernel`下[add_example_tiling_key.h](../../examples/add_example/op_kernel/add_example_tiling_key.h)。
 
 ```C++
 #define ELEMENTWISE_TPL_SCH_MODE_0 0
@@ -402,7 +402,7 @@ graph LR
 
 ### 代码实现
 
-根据上述步骤编写Kernel入口文件\$\{op\_name\}.cpp ，包含主函数和调度逻辑，示例如下，`AddExample`算子完整代码请参考`example/add_example/op_kernel`下[add_example.cpp](../../example/add_example/op_kernel/add_example.cpp)。
+根据上述步骤编写Kernel入口文件\$\{op\_name\}.cpp ，包含主函数和调度逻辑，示例如下，`AddExample`算子完整代码请参考`examples/add_example/op_kernel`下[add_example.cpp](../../examples/add_example/op_kernel/add_example.cpp)。
 
 ```CPP
 // 1、核函数定义
@@ -426,7 +426,7 @@ __global__ __aicore__ void add_example(GM_ADDR x, GM_ADDR y, GM_ADDR z, GM_ADDR 
     ....
 }
 ```
-在\$\{op\_name\}.h中定义Kernel头文件，包含函数声明、结构定义、逻辑实现等，示例如下，`AddExample`算子完整代码请参考`example/add_example/op_kernel`下[add_example.h](../../example/add_example/op_kernel/add_example.h)。
+在\$\{op\_name\}.h中定义Kernel头文件，包含函数声明、结构定义、逻辑实现等，示例如下，`AddExample`算子完整代码请参考`examples/add_example/op_kernel`下[add_example.h](../../examples/add_example/op_kernel/add_example.h)。
 
 ```C++
 // 2、定义Kernel类
@@ -521,15 +521,9 @@ __aicore__ inline void AddExample<T>::CopyOut(int32_t progress)
 
 以`AddExample`算子为例：
 
-1. 在`example/add_example/op_host`目录新建`config/${soc_version}`文件夹，用于存放配置文件。
+1. 在`examples/add_example/op_host`目录新建`config/${soc_version}`文件夹，用于存放配置文件。
 
-2. 在`${soc_version}`目录新建json文件，命名为`${op_name}_binary.json`，用于描述算子相关信息，包括算子输入、输出、shape、data type、format等信息，完整定义请参考[add_example_binary.json](../../example/add_example/op_host/config/ascend910b/add_example_binary.json)。
-
-3. 在`scripts/kernel/binary_config`目录[ascendc_config.json](../../scripts/kernel/binary_config/ascendc_config.json)中，注册算子的NPU型号和实现模式，示例如下：
-
-    ```json
-    {"name":"AddExample", "compute_units": ["${soc_version}"], "auto_sync":true, "impl_mode" : "high_performance"},
-    ```
+2. 在`${soc_version}`目录新建json文件，命名为`${op_name}_binary.json`，用于描述算子相关信息，包括算子输入、输出、shape、data type、format等信息，完整定义请参考[add_example_binary.json](../../examples/add_example/op_host/config/ascend910b/add_example_binary.json)。
 
 ## 编译部署
 
@@ -541,7 +535,7 @@ __aicore__ inline void AddExample<T>::CopyOut(int32_t progress)
 
 2. **编译自定义算子包。**
 
-    以`AddExample`算子为例，假设开发交付件在`example`目录，完整代码参见[add_example](../../example/add_example)目录。
+    以`AddExample`算子为例，假设开发交付件在`examples`目录，完整代码参见[add_example](../../examples/add_example)目录。
 
     进入项目根目录，执行如下编译命令（命令介绍参见[build参数说明](./build.md)）：
 
@@ -556,7 +550,9 @@ __aicore__ inline void AddExample<T>::CopyOut(int32_t progress)
     Self-extractable archive "cann-ops-transformer-${vendor_name}_linux-${arch}.run" successfully created.
     ```
 
-    若未指定`${vendor_name}`默认使用`custom`作为包名。编译成功后，生成的自定义算子\*\.run包存放于build_out目录。
+    若未指定\$\{vendor\_name\}默认使用custom作为包名。编译成功后，生成的自定义算子\*\.run包存放于build\_out目录。
+    
+    说明：当前自定义算子包\$\{vendor\_name\}和\$\{op\_list\}均为可选，若都不传入编译的是built-in包；若编译所有算子的自定义算子包，需传入\$\{vendor\_name\}。
 
     注意，构建过程文件在`build`目录，关键文件如下：
 
@@ -571,8 +567,7 @@ __aicore__ inline void AddExample<T>::CopyOut(int32_t progress)
     ```bash
     ./cann-ops-transformer-${vendor_name}_linux-${arch}.run
     ```
-    自定义算子包安装在`${ASCEND_HOME_PATH}/latest/opp/vendor`路径中，`${ASCEND_HOME_PATH}`表示CANN软件安装目录，可提前在环境变量中配置。
-    自定义算子包不支持卸载指令。
+    自定义算子包安装在`${ASCEND_HOME_PATH}/latest/opp/vendors`路径中，`${ASCEND_HOME_PATH}`表示CANN软件安装目录，可提前在环境变量中配置。自定义算子包不支持卸载。
     
     自定义算子包的目录结构示例如下：
     ```
@@ -702,7 +697,7 @@ IMPL_OP_INFERSHAPE(AddExample).
     InferDataType(InferDataTypeAddExample);
 ```
 
-完整代码请参考`example/add_example/op_host`目录下[add_example_infershape.cpp](../../example/add_example/op_host/add_example_infershape.cpp)。   
+完整代码请参考`examples/add_example/op_host`目录下[add_example_infershape.cpp](../../examples/add_example/op_host/add_example_infershape.cpp)。   
 
 ### 算子原型配置
 图模式调用需要将算子原型注册到[Graph Engine](https://www.hiascend.com/cann/graph-engine)（简称GE）中，以便GE能够识别该类型算子的输入、输出及属性信息。注册通过`REG_OP`接口完成，开发者需要定义算子的输入、输出张量类型及数量等基本信息。
@@ -717,4 +712,4 @@ REG_OP(AddExample)
     .OP_END_FACTORY_REG(AddExample)
 ```
 
-完整代码请参考`example/add_example/op_graph`目录下[add_example_proto.h](../../example/add_example/op_graph/add_example_proto.h)。
+完整代码请参考`examples/add_example/op_graph`目录下[add_example_proto.h](../../examples/add_example/op_graph/add_example_proto.h)。

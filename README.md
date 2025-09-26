@@ -16,7 +16,7 @@ ops-transformer是[CANN](https://hiascend.com/software/cann) （Compute Architec
 ├── common                         # 项目公共头文件和公共源码
 ├── attention                      # attention类算子
 ├── docs                           # 项目文档介绍
-├── example                        # 使用通用算子开发和调用示例
+├── examples                       # 端到端算子开发和调用示例
 ├── ...
 ├── moe                            # moe类算子
 ├── posembedding                   # posembedding类算子

@@ -19,7 +19,7 @@ aclnn接口调用流程介绍请参考[《应用开发（C&C++）》](https://hi
 
 ### 示例代码
 
-`AddExample`算子以aclnn接口形式调用的示例代码如下（详细代码参见[test_aclnn_add_example.cpp](../../example/add_example/examples/test_aclnn_add_example.cpp)），**仅为参考**，其他算子接口调用过程类似，请替换为实际aclnn接口。调用前，请按照环境安装的提示信息设置环境变量。
+`AddExample`算子以aclnn接口形式调用的示例代码如下（详细代码参见[test_aclnn_add_example.cpp](../../examples/add_example/examples/test_aclnn_add_example.cpp)），**仅为参考**，其他算子接口调用过程类似，请替换为实际aclnn接口。调用前，请按照环境安装的提示信息设置环境变量。
 
 注意：如需调用本项目其他算子，可访问对应算子`examples`目录下的test\_aclnn\_\$\{op\_name\}.cpp，\$\{op\_name\}表示算子名。
 
@@ -232,7 +232,7 @@ int main()
 构图流程介绍请参考[《Ascend Graph开发指南》](https://hiascend.com/document/redirect/CannCommunityAscendGraph)中”构建Graph> 通过算子原型构建Graph“章节。
 ### 示例代码
 
-`AddExample`算子以图方式调用的示例代码如下（详细代码参见[test_geir_add_example.cpp](../../example/add_example/examples/test_geir_add_example.cpp)），**仅为参考**，其他算子的调用过程类似，请替换为实际的算子原型。
+`AddExample`算子以图方式调用的示例代码如下（详细代码参见[test_geir_add_example.cpp](../../examples/add_example/examples/test_geir_add_example.cpp)），**仅为参考**，其他算子的调用过程类似，请替换为实际的算子原型。
 
 如需调用本项目其他算子，可访问对应算子`examples`目录下的test\_geir\_\$\{op\_name\}.cpp，$\{op\_name\}表示算子名。
 

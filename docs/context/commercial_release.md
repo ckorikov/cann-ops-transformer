@@ -11,7 +11,7 @@
 
 1. 前提条件。
 
-    参考《[CANN 软件安装指南](https://www.hiascend.com/document/redirect/CannCommercialInstSoftware)》，按要求完成NPU驱动和固件、`Ascend-cann-${package}_${cann_version}_linux-${arch}.run`软件包的获取和安装。
+    参考《[CANN 软件安装指南](https://www.hiascend.com/document/redirect/CannCommercialInstSoftware)》，按要求完成NPU驱动和固件、`Ascend-cann-toolkit_${cann_version}_linux-${arch}.run`软件包的获取和安装。
 
 2. 安装`cann-opbase_${cann_version}_linux-${arch}.run`包。
 
@@ -26,15 +26,14 @@
 
 ## 安装依赖
 
-   开源项目的源码编译用到的依赖如下，请确保已安装并且满足版本要求。
-
-   - python >= 3.7.0
-   - gcc >= 7.3.0
-   - cmake >= 3.16.0
-   - pigz（可选，安装后可提升打包速度，建议版本 >= 2.4）
-   - dos2unix
-   - Gawk
-   - googletest（仅执行UT时依赖，建议版本 [release-1.11.0](https://github.com/google/googletest/releases/tag/release-1.11.0)）
+开源项目的源码编译用到的依赖如下，请确保已安装并且满足版本要求。
+- python >= 3.7.0
+- gcc >= 7.3.0
+- cmake >= 3.16.0
+- pigz（可选，安装后可提升打包速度，建议版本 >= 2.4）
+- dos2unix
+- Gawk
+- googletest（仅执行UT时依赖，建议版本 [release-1.11.0](https://github.com/google/googletest/releases/tag/release-1.11.0)）
 
 上述依赖包可通过项目根目录下install\_deps.sh安装，命令如下：
 ```bash
