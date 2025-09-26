@@ -512,18 +512,6 @@ while [[ $# -gt 0 ]]; do
     -u|--test)
         ENABLE_TEST=TRUE
         shift
-        if [ -n "$1" ];then
-            _parameter=$1
-            first_char=${_parameter:0:1}
-            if [ "${first_char}" == "-" ];then
-                TEST="all"
-            else
-                TEST="${_parameter}"
-                shift
-            fi
-        else
-            TEST="all"
-        fi
         ;;
     --run_example)
         ENABLE_RUN_EXAMPLE=TRUE
@@ -608,25 +596,21 @@ while [[ $# -gt 0 ]]; do
         shift 2
         ;;
     --ophost_test)
-        TEST="all"
         ENABLE_TEST=TRUE
         OP_HOST=TRUE
         shift
         ;;
     --opapi_test)
-        TEST="all"
         ENABLE_TEST=TRUE
         OP_API=TRUE
         shift
         ;;
     --opgraph_test)
-        TEST="all"
         ENABLE_TEST=TRUE
         OP_GRAPH=TRUE
         shift
         ;;
     --opkernel_test)
-        TEST="all"
         ENABLE_TEST=TRUE
         OP_KERNEL=TRUE
         shift
@@ -710,6 +694,11 @@ if [ -n "${ascend_cmake_dir}" ];then
     CUSTOM_OPTION="${CUSTOM_OPTION} -DASCEND_CMAKE_DIR=${ascend_cmake_dir}"
 fi
 if [[ "$ENABLE_TEST" == "TRUE" ]]; then
+    if [ -z "$ascend_op_name" ]; then
+        TEST="all"
+    else
+        TEST="$ascend_op_name"
+    fi
     CUSTOM_OPTION="${CUSTOM_OPTION} -DENABLE_TEST=TRUE"
 fi
 if [[ "$OP_HOST_UT" == "TRUE" ]]; then
@@ -897,14 +886,18 @@ build_ut() {
   cd "${BUILD_DIR}" && cmake ${CUSTOM_OPTION} ..
 
   local target="$1"
-  if [ "${VERBOSE}" == "true"]; then
+  if [ "${VERBOSE}" == "true" ]; then
     local option="--verbose"
   fi
-  cmake --build . --target ${target} ${JOB_NUM} ${option}
+  if [ $(cmake -LA -N . | grep 'UTEST_FRAMEWORK_OLD:BOOL=' | cut -d'=' -f2) == "TRUE" ]; then
+    cmake --build . --target ${target} ${JOB_NUM} ${option}
+  fi
 
-  cmake --build . --target ${UT_TARGES[@]} -j $CORE_NUMS
-  if [[ "$cov" =~ "TRUE" ]]; then
-    cmake --build . --target generate_ops_cpp_cov -- -j $CORE_NUMS
+  if [ $(cmake -LA -N . | grep 'UTEST_FRAMEWORK_NEW:BOOL=' | cut -d'=' -f2) == "TRUE" ]; then
+    cmake --build . --target ${UT_TARGES[@]} -j $CORE_NUMS
+    if [[ "$cov" =~ "TRUE" ]]; then
+        cmake --build . --target generate_ops_cpp_cov -- -j $CORE_NUMS
+    fi
   fi
 }
 

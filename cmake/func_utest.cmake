@@ -22,7 +22,6 @@ target_compile_options(_OpsTestUt_OpApi_Wno
             $<$<CXX_COMPILER_ID:GNU>:-Wno-format-signedness>
             -Wno-extra
             -Wno-redundant-decls
-            -Werror
 )
 
 # 缓存所有算子 UTest 场景 OpProto 动态库相关信息
@@ -42,7 +41,6 @@ target_compile_options(_OpsTestUt_OpTiling_Wno
             -Wno-shadow
             $<$<CXX_COMPILER_ID:GNU>:-Wno-format-signedness>
             -Wno-extra
-            -Werror
 )
 
 # 缓存当前算子 UTest 场景 OpKernel 目标
@@ -62,7 +60,6 @@ target_compile_options(_OpsTestUt_OpKernel_Wno
             -Wno-extra
             -Wno-float-conversion
             -Wno-parentheses
-            -Werror
 )
 # 缓存当前算子 UTest 场景 UTestCommon 目标
 set(_OpsTestUt_UTestCommonLibrary        "" CACHE INTERNAL "" FORCE)
@@ -74,7 +71,6 @@ add_library(_OpsTestUt_UTestCaseStatic_Wno INTERFACE)
 target_compile_options(_OpsTestUt_UTestCaseStatic_Wno
         INTERFACE
             $<$<CXX_COMPILER_ID:Clang>:-Wno-vla>
-            -Werror
 )
 
 # GTest 版本兼容性保证
@@ -82,7 +78,6 @@ add_library(_OpsTestUt_GTest_Wno INTERFACE)
 target_compile_options(_OpsTestUt_GTest_Wno
         INTERFACE
             -Wno-undef
-            -Werror
 )
 
 ########################################################################################################################
@@ -160,8 +155,7 @@ function(OpsTest_AddOpApiShared)
     )
     target_include_directories(${_Target}
             PRIVATE
-                ${ASCEND_CANN_PACKAGE_PATH}/include/aclnn
-                ${ASCEND_CANN_PACKAGE_PATH}/include/aclnn_kernels
+                ${OPAPI_INCLUDE}
                 ${_OpsTestUt_OpApiPrivateIncludesExt}
     )
     target_compile_options(${_Target}
@@ -181,7 +175,7 @@ function(OpsTest_AddOpApiShared)
                 $<BUILD_INTERFACE:intf_pub_utest>
                 $<BUILD_INTERFACE:_OpsTestUt_OpApi_Wno>
                 -Wl,--no-whole-archive
-                -lopapi
+                PRIVATE $<$<BOOL:${BUILD_WITH_INSTALLED_DEPENDENCY_CANN_PKG}>:$<BUILD_INTERFACE:opapi>>
                 nnopbase
                 profapi
                 ge_common_base
@@ -577,6 +571,8 @@ function(OpsTest_Level1_AddUTestCommonStatic)
                 PUBLIC
                     ${TMP_PUBLIC_INCLUDES_EXT}
                 PRIVATE
+                    ${OPBASE_INC_DIRS}
+                    ${OPS_TRANSFORMER_DIR}/common/include
                     ${ASCEND_CANN_PACKAGE_PATH}/include
                     ${TMP_PRIVATE_INCLUDES_EXT}
         )
@@ -660,6 +656,7 @@ function(OpsTest_Level1_AddUTestCaseStatic)
                 PRIVATE
                     -Wl,--as-needed
                     -Wl,--no-whole-archive
+                    gtest
                     $<BUILD_INTERFACE:intf_pub_utest>
                     $<BUILD_INTERFACE:_OpsTestUt_UTestCaseStatic_Wno>
                     $<$<BOOL:${BUILD_OPEN_PROJECT}>:$<BUILD_INTERFACE:alog_headers>>
@@ -873,9 +870,9 @@ function(op_add_ut_subdirectory OP_UT_LIST OP_UT_DIR_LIST)
         endif()
         get_filename_component(OP_NAME "${OP_DIR}" NAME)
 
-        if (DEFINED TESTS_UT_OPS_TEST AND NOT "${TESTS_UT_OPS_TEST}" STREQUAL "")
-            if (NOT "${TESTS_UT_OPS_TEST}" STREQUAL "all" AND NOT "${TESTS_UT_OPS_TEST}" STREQUAL "ALL")
-                if (NOT ${OP_NAME} IN_LIST TESTS_UT_OPS_TEST)
+        if (DEFINED ASCEND_OP_NAME AND NOT "${ASCEND_OP_NAME}" STREQUAL "")
+            if (NOT "${ASCEND_OP_NAME}" STREQUAL "all" AND NOT "${ASCEND_OP_NAME}" STREQUAL "ALL")
+                if (NOT ${OP_NAME} IN_LIST ASCEND_OP_NAME)
                     continue()
                 endif ()
             endif ()
@@ -1057,7 +1054,7 @@ function(OpsTest_AddLaunch)
                         -Wl,--no-as-needed
                         -Wl,--whole-archive
                         $<BUILD_INTERFACE:intf_pub_utest>
-                        GTest::gtest
+                        gtest
                         $<BUILD_INTERFACE:_OpsTestUt_GTest_Wno>
                         ${_OpsTestUt_UTestCaseLibrary}
                         ${UTest_NamePrefix}_Stubs
@@ -1114,7 +1111,7 @@ function(OpsTest_AddLaunch)
                         -Wl,--no-as-needed
                         -Wl,--whole-archive
                         $<BUILD_INTERFACE:intf_pub_utest>
-                        GTest::gtest
+                        gtest
                         $<BUILD_INTERFACE:_OpsTestUt_GTest_Wno>
                         $<$<BOOL:${BUILD_OPEN_PROJECT}>:$<BUILD_INTERFACE:alog_headers>>
                         ${_OpsTestUt_UTestAclnnCaseLibrary}

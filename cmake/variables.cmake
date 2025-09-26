@@ -84,6 +84,11 @@ if (ENABLE_BUILT_IN)
   set(IMPL_INSTALL_DIR                ops_transformer/built-in/op_impl/ai_core/tbe/impl)
 endif()
 
+if (ENABLE_TEST)
+  set(UTEST_FRAMEWORK_OLD FALSE CACHE BOOL "UTEST_FRAMEWORK_OLD")
+  set(UTEST_FRAMEWORK_NEW FALSE CACHE BOOL "UTEST_FRAMEWORK_NEW")
+endif()
+
 # util path
 set(ASCEND_TENSOR_COMPILER_PATH ${ASCEND_DIR}/compiler)
 set(ASCEND_CCEC_COMPILER_PATH ${ASCEND_TENSOR_COMPILER_PATH}/ccec_compiler/bin)

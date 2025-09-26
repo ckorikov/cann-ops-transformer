@@ -225,14 +225,11 @@ function(add_opapi_modules)
       -DACLNN_LOG_FMT_CHECK
     )
     target_link_libraries(${OPHOST_NAME}_opapi_obj
-      # PUBLIC
-      # $<BUILD_INTERFACE:$<IF:$<BOOL:${BUILD_UT}>, intf_llt_pub_asan_cxx17, intf_pub_cxx17>>
-      PRIVATE
+      PUBLIC
       $<BUILD_INTERFACE:intf_pub>
       -Wl,--whole-archive
       ops_aclnn
       -Wl,--no-whole-archive
-      # -lopapi
       nnopbase
       profapi
       ge_common_base

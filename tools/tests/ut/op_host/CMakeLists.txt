@@ -37,13 +37,19 @@ if(UT_TEST_ALL OR OP_HOST_UT)
       tiling_api
   )
 
-  ## add ophost ut exe:  math_op_host_ut
+  ## add ophost ut exe:  transformer_op_host_ut
   add_executable(${OP_HOST_UT_EXE}
       test_op_host_main.cpp
   )
   target_compile_definitions(${OP_HOST_UT_EXE} PRIVATE LOG_CPP)
   target_compile_options(${OP_HOST_UT_EXE} PUBLIC -fPIE -fno-access-control)
   add_dependencies(${OP_HOST_UT_EXE} ${OPHOST_NAME}_ut)
+  target_include_directories(${OP_HOST_UT_EXE} PRIVATE
+      ${ASCEND_DIR}/pkg_inc
+      )
+  target_link_directories(${OP_HOST_UT_EXE} PRIVATE
+      ${ASCEND_DIR}/${SYSTEM_PREFIX}/lib64
+      )
   target_link_libraries(${OP_HOST_UT_EXE} PRIVATE
       $<BUILD_INTERFACE:intf_llt_pub_asan_cxx17>
       -Wl,--whole-archive
@@ -55,6 +61,7 @@ if(UT_TEST_ALL OR OP_HOST_UT)
       -Wl,--as-needed
       register
       opp_registry
+      graph
       platform
       gtest
   )

@@ -11,7 +11,7 @@ set(_secure_c_url "")
 if(CANN_PKG_SERVER)
   set(_secure_c_url "${CANN_PKG_SERVER}/libs/securec/v1.1.10.tar.gz")
 endif()
-
+include(ExternalProject)
 ExternalProject_Add(secure_c
   URL               ${_secure_c_url}
                     https://gitee.com/openeuler/libboundscheck/repository/archive/v1.1.10.tar.gz

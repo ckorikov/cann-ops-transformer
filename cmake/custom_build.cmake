@@ -58,14 +58,12 @@ if (BUILD_OPEN_PROJECT)
     # op api
     add_library(cust_opapi SHARED)
     # When compiling a specified operator, there is an operator without aclnn src.	
-    if(NOT "${ASCEND_OP_NAME}" STREQUAL "ALL")	
-        add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/cust_opapi_stub.cpp	
-                COMMAND touch ${CMAKE_CURRENT_BINARY_DIR}/cust_opapi_stub.cpp	
-        )
-        target_sources(cust_opapi PRIVATE
-                ${CMAKE_CURRENT_BINARY_DIR}/cust_opapi_stub.cpp
-        )
-    endif()
+    add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/cust_opapi_stub.cpp	
+            COMMAND touch ${CMAKE_CURRENT_BINARY_DIR}/cust_opapi_stub.cpp	
+    )
+    target_sources(cust_opapi PRIVATE
+            ${CMAKE_CURRENT_BINARY_DIR}/cust_opapi_stub.cpp
+    )
     target_compile_options(cust_opapi PRIVATE
             $<$<COMPILE_LANGUAGE:CXX>:-std=gnu++1z>
     )
@@ -168,13 +166,11 @@ if (BUILD_OPEN_PROJECT)
             exe_graph
             platform
             register
-        #     ascendalog
             error_manager
             -Wl,--as-needed
             -Wl,--whole-archive
             tiling_api
             -Wl,--no-whole-archive
-        #     mmpa
             c_sec
     )
     set_target_properties(cust_opmaster PROPERTIES OUTPUT_NAME
@@ -232,17 +228,23 @@ add_subdirectory(common)
 
 
 if (BUILD_OPEN_PROJECT)
-    if (TESTS_UT_OPS_TEST)
-        add_subdirectory(tools/framework)
+    if (ENABLE_TEST)
         set(OP_UT_LIST)
         set(OP_UT_DIR_LIST)
         op_add_ut_subdirectory(OP_UT_LIST OP_UT_DIR_LIST)
         foreach (OP_UT_LIST ${OP_UT_DIR_LIST})
             add_subdirectory(${OP_UT_LIST}/tests)
         endforeach ()
-        add_definitions(-Wno-builtin-macro-redefined)
-        add_subdirectory(tools/tests/ut)
-        OpsTest_AddLaunch()
+
+        if (TESTS_UT_OPS_TEST)
+            add_subdirectory(tools/framework)
+            add_definitions(-Wno-builtin-macro-redefined)
+            OpsTest_AddLaunch()
+        endif()
+
+        if (UT_TEST_ALL OR OP_HOST_UT OR OP_API_UT OR OP_KERNEL_UT OR OP_GRAPH_UT)
+            add_subdirectory(tools/tests/ut)
+        endif()
     endif ()
    if (TESTS_EXAMPLE_OPS_TEST)
        add_subdirectory(examples)
@@ -472,35 +474,25 @@ else()
             SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}
     )
 endif ()
-target_sources(
-    cust_opapi
-    PUBLIC $<$<TARGET_EXISTS:${OPHOST_NAME}_opapi_obj>:$<TARGET_OBJECTS:${OPHOST_NAME}_opapi_obj>>
-    PUBLIC $<$<TARGET_EXISTS:opbuild_gen_aclnn_all>:$<TARGET_OBJECTS:opbuild_gen_aclnn_all>>
-)
 target_link_libraries(
     cust_opapi
+    PUBLIC ${OPHOST_NAME}_opapi_obj
     PRIVATE $<$<BOOL:${BUILD_WITH_INSTALLED_DEPENDENCY_CANN_PKG}>:$<BUILD_INTERFACE:opapi>>
     $<$<TARGET_EXISTS:opsbase>:opsbase>
-)
-target_sources(
-    cust_opmaster
-    PUBLIC $<$<TARGET_EXISTS:${OPHOST_NAME}_tiling_obj>:$<TARGET_OBJECTS:${OPHOST_NAME}_tiling_obj>>
 )
 
 target_link_libraries(
     cust_opmaster
+    PUBLIC ${OPHOST_NAME}_tiling_obj
     PUBLIC $<$<TARGET_EXISTS:${COMMON_NAME}_obj>:$<TARGET_OBJECTS:${COMMON_NAME}_obj>>
-#     PUBLIC ${COMMON_NAME}_OBJ
     PRIVATE $<$<BOOL:${BUILD_WITH_INSTALLED_DEPENDENCY_CANN_PKG}>:$<BUILD_INTERFACE:optiling>>
     $<$<TARGET_EXISTS:opsbase>:opsbase>
 )
-target_sources(
-    cust_proto
-    PUBLIC $<$<TARGET_EXISTS:${OPHOST_NAME}_infer_obj>:$<TARGET_OBJECTS:${OPHOST_NAME}_infer_obj>>
-)
+
 target_link_libraries(
-    cust_proto PRIVATE
-    $<$<TARGET_EXISTS:opsbase>:opsbase>
+    cust_proto 
+    PUBLIC ${OPHOST_NAME}_infer_obj
+    PRIVATE $<$<TARGET_EXISTS:opsbase>:opsbase>
 )
 if (generate_aclnn_headers)
     install(FILES ${generate_aclnn_headers}

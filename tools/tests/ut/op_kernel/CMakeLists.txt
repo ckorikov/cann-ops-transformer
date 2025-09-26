@@ -32,6 +32,9 @@ if(UT_TEST_ALL OR OP_KERNEL_UT)
             -Wl,--no-whole-archive
             tiling_api
             )
+    target_include_directories(${OP_KERNEL_MODULE_NAME}_tiling
+            PRIVATE ${OP_TILING_INCLUDE}
+            )
 
     ## add op kernel ut exe for each socVersion
     foreach (socVersion ${fastOpTestSocVersions})
@@ -43,8 +46,11 @@ if(UT_TEST_ALL OR OP_KERNEL_UT)
             test_op_kernel_main.cpp
             )
         add_dependencies(${OP_KERNEL_UT_EXE}_${socVersion} ${OP_KERNEL_MODULE_NAME}_tiling)
+        target_include_directories(${OP_KERNEL_UT_EXE}_${socVersion} PRIVATE
+            ${ASCEND_DIR}/pkg_inc
+            )
         target_link_libraries(${OP_KERNEL_UT_EXE}_${socVersion} PRIVATE
-                $<BUILD_INTERFACE:intf_llt_pub_asan>
+                $<BUILD_INTERFACE:intf_llt_pub_asan_cxx17>
                 -Wl,--no-as-needed
                     ${OP_KERNEL_MODULE_NAME}_${socVersion}_cases
                 -Wl,--as-needed

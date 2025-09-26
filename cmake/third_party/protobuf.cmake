@@ -11,7 +11,7 @@ set(_protobuf_url "")
 if(CANN_PKG_SERVER)
   set(_protobuf_url "${CANN_PKG_SERVER}/libs/protobuf/v3.13.0.tar.gz")
 endif()
-
+include(ExternalProject)
 ExternalProject_Add(external_protobuf
   URL               ${_protobuf_url}
                     https://github.com/protocolbuffers/protobuf/archive/v3.13.0.tar.gz

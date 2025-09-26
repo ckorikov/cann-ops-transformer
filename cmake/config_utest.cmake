@@ -19,23 +19,6 @@ set(OPS_ADV_UTEST_OPS_TEST_ASCEND_PRODUCT_TYPE ascend910B1)
 # 环境检查
 ########################################################################################################################
 
-find_package(GTest CONFIG)
-if (NOT ${GTest_FOUND})
-    get_filename_component(ASCEND_3RD_LIB_PATH "$ENV{ASCEND_3RD_LIB_PATH}" REALPATH)
-    if (EXISTS "${ASCEND_3RD_LIB_PATH}/cmake/modules")
-        list(APPEND CMAKE_MODULE_PATH ${ASCEND_3RD_LIB_PATH}/cmake/modules)
-    endif ()
-    if (EXISTS "${ASCEND_3RD_LIB_PATH}/gtest/lib/cmake/GTest")
-        list(APPEND CMAKE_PREFIX_PATH ${ASCEND_3RD_LIB_PATH}/gtest/lib/cmake/GTest)
-        find_package(GTest CONFIG REQUIRED)
-    endif ()
-endif ()
-if (NOT ${GTest_FOUND})
-    message(FATAL_ERROR "Can't find any googletest.")
-endif ()
-message(STATUS "Use googletest from ${GTest_DIR}")
-get_target_property(GTEST_GTEST_INC GTest::gtest INTERFACE_INCLUDE_DIRECTORIES)
-
 list(APPEND CMAKE_PREFIX_PATH ${ASCEND_CANN_PACKAGE_PATH}/toolkit/tools/tikicpulib/lib/cmake)
 find_package(tikicpulib REQUIRED)
 
