@@ -10,7 +10,7 @@
 
 
 /*!
- * \file test_allto_all_all_gather_batch_mat_mul.cpp
+ * \file test_aclnn_allto_all_all_gather_batch_mat_mul.cpp
  * \brief
  */
 
@@ -20,7 +20,7 @@
 #include <vector>
 #include "acl/acl.h"
 #include "hccl/hccl.h"
-#include "aclnnop/aclnn_all_to_all_all_gather_batch_matmul.h"
+#include "../op_host/op_api/aclnn_allto_all_all_gather_batch_mat_mul.h"
 
 #define CHECK_RET(cond, return_expr)                                                                                   \
     do {                                                                                                               \

@@ -9,7 +9,7 @@
  */
 
 /*!
- * \file test_batch_mat_mul_reduce_scatter_allto_all.cpp
+ * \file test_aclnn_batch_mat_mul_reduce_scatter_allto_all.cpp
  * \brief
  */
 
@@ -19,7 +19,7 @@
 #include <vector>
 #include "acl/acl.h"
 #include "hccl/hccl.h"
-#include "aclnnop/aclnn_batch_matmul_reduce_scatter_all_to_all.h"
+#include "../op_host/op_api/aclnn_batch_matmul_reduce_scatter_all_to_all.h"
 
 #define CHECK_RET(cond, return_expr)                                                                                   \
     do {                                                                                                               \

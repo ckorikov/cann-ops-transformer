@@ -321,7 +321,7 @@ function build_example()
     cd "${BUILD_PATH}"
     if [[ "${EXAMPLE_MODE}" == "eager" ]]; then
         file=$(find ../ -path "*/${EXAMPLE_NAME}/examples/*" -name test_aclnn_${EXAMPLE_NAME}.cpp)
-        g++ ${file} -I ${INCLUDE_PATH} -I ${ACLNN_INCLUDE_PATH} -I ${EAGER_INCLUDE_OPP_ACLNNOP_PATH} -L ${EAGER_LIBRARY_OPP_PATH} -L ${EAGER_LIBRARY_PATH} -lopapi -lopapi_transformer -lascendcl -lnnopbase -o test_aclnn_${EXAMPLE_NAME}
+        g++ ${file} -I ${INCLUDE_PATH} -I ${ACLNN_INCLUDE_PATH} -I ${EAGER_INCLUDE_OPP_ACLNNOP_PATH} -L ${EAGER_LIBRARY_OPP_PATH} -L ${EAGER_LIBRARY_PATH} -lopapi -lopapi_transformer -lascendcl -lnnopbase -lpthread -lhccl -o test_aclnn_${EXAMPLE_NAME}
         ./test_aclnn_${EXAMPLE_NAME}
     elif [[ "${EXAMPLE_MODE}" == "graph" ]]; then
         file=$(find ../ -path "*/${EXAMPLE_NAME}/examples/*" -name test_geir_${EXAMPLE_NAME}.cpp)
