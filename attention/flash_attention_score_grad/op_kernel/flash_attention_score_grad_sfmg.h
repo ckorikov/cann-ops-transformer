@@ -209,7 +209,7 @@ __aicore__ inline void FlashAttentionScoreGradSfmg<T1, T2, TILING_TYPE, INPUT_LA
 template <typename T1, typename T2, typename TILING_TYPE, const uint32_t INPUT_LAYOUT>
 __aicore__ inline void FlashAttentionScoreGradSfmg<T1, T2, TILING_TYPE, INPUT_LAYOUT>::Process()
 {
-    AscendC::PipeBarrier<PIPE_ALL>(); // 去掉pre和sfmg之间的SyncALL，这里需要增加pipeALL
+    pipe_barrier(PIPE_ALL); // 去掉pre和sfmg之间的SyncALL，这里需要增加pipeALL
 
     uint32_t usedCoreNums = TilingData->preSfmgTilingData.usedCoreNum;
     if (cBlockIdx < usedCoreNums) {
@@ -247,14 +247,14 @@ __aicore__ inline void FlashAttentionScoreGradSfmg<T1, T2, TILING_TYPE, INPUT_LA
             input1Que.DeQue<T1>();
             int64_t calcSize = nBurst * dAlign;
             Cast(sfmgClc1, input1Buf, RoundMode::CAST_NONE, calcSize);
-            AscendC::PipeBarrier<PIPE_V>();
+            pipe_barrier(PIPE_V);
             input1Que.FreeTensor(input1Buf);
 
             // cast 2
             input2Que.EnQue(input2Buf);
             input2Que.DeQue<T1>();
             Cast(sfmgClc2, input2Buf, RoundMode::CAST_NONE, calcSize);
-            AscendC::PipeBarrier<PIPE_V>();
+            pipe_barrier(PIPE_V);
             input2Que.FreeTensor(input2Buf);
 
             // pre copyIn next nBurst
@@ -270,7 +270,7 @@ __aicore__ inline void FlashAttentionScoreGradSfmg<T1, T2, TILING_TYPE, INPUT_LA
             // sfmg
             outputBuf = out1Que.AllocTensor<T2>();
             Duplicate<T2>(outputBuf, 0.0, nBurst * 8);
-            AscendC::PipeBarrier<PIPE_V>();
+            pipe_barrier(PIPE_V);
 
             uint32_t shapeArray[] = {static_cast<uint32_t>(nBurst), static_cast<uint32_t>(dAlign)};
             sfmgClc1.SetShapeInfo(ShapeInfo(2, shapeArray, DataFormat::ND));
@@ -284,7 +284,7 @@ __aicore__ inline void FlashAttentionScoreGradSfmg<T1, T2, TILING_TYPE, INPUT_LA
             } else {
                 SoftmaxGradFront<float, false>(outputBuf, sfmgClc1, sfmgClc2, tempBuf, TilingData->softmaxGradTilingData);
             }
-            AscendC::PipeBarrier<PIPE_V>();
+            pipe_barrier(PIPE_V);
 
             // copyOut
             out1Que.EnQue(outputBuf);

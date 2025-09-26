@@ -61,7 +61,7 @@ __aicore__ inline __attribute__((always_inline)) void CubeOp<TYPE>::Cube2Compute
 
         // load right matrix gm (kx, headDim)-> L1B
         AscendC::LocalTensor<TYPE> *l1_b_buf_tensor = ping_pong_flag_l1_b_ ? &l1_b_pong_tensor : &l1_b_ping_tensor;
-        AscendC::WaitFlag<HardEvent::MTE1_MTE2>(static_cast<int32_t>(ping_pong_flag_l1_b_));
+        wait_flag(PIPE_MTE1, PIPE_MTE2, ping_pong_flag_l1_b_);
         commonNd2NzParams.nValue = n_remain;
         commonNd2NzParams.dValue = headDim;
         commonNd2NzParams.srcDValue = kvHeadNum * headDim;
@@ -69,7 +69,7 @@ __aicore__ inline __attribute__((always_inline)) void CubeOp<TYPE>::Cube2Compute
         commonNd2NzParams.dstNzC0Stride = n_remain_align;
         AscendC::DataCopy(*l1_b_buf_tensor, temp_tensor_bf16[right_offset + n_loop_index * kvHeadNum * 128 * headDim],
                           commonNd2NzParams);
-        AscendC::SetFlag<HardEvent::MTE2_MTE1>(static_cast<int32_t>(ping_pong_flag_l1_b_));
+        set_flag(PIPE_MTE2, PIPE_MTE1, ping_pong_flag_l1_b_);
 
         if (n_loop_index == 0 && isFisrt) {
             AscendC::WaitEvent(VEC2CUBE);
@@ -87,7 +87,7 @@ __aicore__ inline __attribute__((always_inline)) void CubeOp<TYPE>::Cube2Compute
                 skip_num++;
                 is_skip = true;
             }
-            AscendC::WaitFlag<HardEvent::MTE1_MTE2>(static_cast<int32_t>(ping_pong_flag_l1_a_ + 2));
+            wait_flag(PIPE_MTE1, PIPE_MTE2, ping_pong_flag_l1_a_ + 2);
             if (!is_skip) {
                 commonNd2NzParams.dValue = n_remain;
                 commonNd2NzParams.dstNzC0Stride = m_remain_align;
@@ -111,7 +111,7 @@ __aicore__ inline __attribute__((always_inline)) void CubeOp<TYPE>::Cube2Compute
                         commonNd2NzParams);
                 }
             }
-            AscendC::SetFlag<HardEvent::MTE2_MTE1>(static_cast<int32_t>(ping_pong_flag_l1_a_ + 2));
+            set_flag(PIPE_MTE2, PIPE_MTE1, ping_pong_flag_l1_a_ + 2);
             ping_pong_flag_l1_a_ = 1 - ping_pong_flag_l1_a_;
         }
 
@@ -120,18 +120,18 @@ __aicore__ inline __attribute__((always_inline)) void CubeOp<TYPE>::Cube2Compute
         AscendC::LocalTensor<TYPE> *l0_b_buf_tensor = ping_pong_flag_l0_b_ ? &l0_b_pong_tensor : &l0_b_ping_tensor;
         commonLoadData2dParamsTranspose.repeatTimes = headDim / 16;
         commonLoadData2dParamsTranspose.srcStride = n_remain_align / 16;
-        AscendC::WaitFlag<HardEvent::MTE2_MTE1>(static_cast<int32_t>(ping_pong_flag_l1_b_));
-        AscendC::WaitFlag<HardEvent::M_MTE1>(static_cast<int32_t>(ping_pong_flag_l0_b_ + 2 + FLAG_SHIFT));
+        wait_flag(PIPE_MTE2, PIPE_MTE1, ping_pong_flag_l1_b_);
+        wait_flag(PIPE_M, PIPE_MTE1, ping_pong_flag_l0_b_ + 2 + FLAG_SHIFT);
         for (int32_t i = 0; i < n_remain_align / 16; i++) {
             AscendC::LoadData((*l0_b_buf_tensor)[i * headDim * 16], (*l1_b_buf_tensor)[i * 16 * 16],
                               commonLoadData2dParamsTranspose);
         }
-        AscendC::SetFlag<HardEvent::MTE1_M>(static_cast<int32_t>(ping_pong_flag_l0_b_ + 2));
-        AscendC::SetFlag<HardEvent::MTE1_MTE2>(static_cast<int32_t>(ping_pong_flag_l1_b_));
+        set_flag(PIPE_MTE1, PIPE_M, ping_pong_flag_l0_b_ + 2);
+        set_flag(PIPE_MTE1, PIPE_MTE2, ping_pong_flag_l1_b_);
 
         ping_pong_flag_l1_a_ = 0;
         ping_pong_flag_l0_a_ = 0;
-        AscendC::WaitFlag<HardEvent::MTE1_M>(static_cast<int32_t>(ping_pong_flag_l0_b_ + 2));
+        wait_flag(PIPE_MTE1, PIPE_M, ping_pong_flag_l0_b_ + 2);
         // do m_loop times mad with l0B常驻
         for (uint32_t m_loop_index = 0; m_loop_index < m_loop; m_loop_index++) {
             AscendC::LocalTensor<TYPE> *l1_a_buf_tensor = ping_pong_flag_l1_a_ ? &l1_a_pong_tensor : &l1_a_ping_tensor;
@@ -145,8 +145,8 @@ __aicore__ inline __attribute__((always_inline)) void CubeOp<TYPE>::Cube2Compute
             if (n_loop_index == n_loop - 1 && m_loop_index == 0 && upperRight) {
                 is_skip = true;
             }
-            AscendC::WaitFlag<HardEvent::MTE2_MTE1>(static_cast<int32_t>(ping_pong_flag_l1_a_ + 2));
-            AscendC::WaitFlag<HardEvent::M_MTE1>(static_cast<int32_t>(ping_pong_flag_l0_a_ + FLAG_SHIFT));
+            wait_flag(PIPE_MTE2, PIPE_MTE1, ping_pong_flag_l1_a_ + 2);
+            wait_flag(PIPE_M, PIPE_MTE1, ping_pong_flag_l0_a_ + FLAG_SHIFT);
             if (!is_skip) {
                 commonLoadData2dParamsNoTranspose.repeatTimes = n_remain_align / SIZE_16;
                 commonLoadData2dParamsNoTranspose.srcStride = m_remain_align / SIZE_16;
@@ -155,12 +155,12 @@ __aicore__ inline __attribute__((always_inline)) void CubeOp<TYPE>::Cube2Compute
                                       commonLoadData2dParamsNoTranspose);
                 }
             }
-            AscendC::SetFlag<HardEvent::MTE1_M>(static_cast<int32_t>(ping_pong_flag_l0_a_));
-            AscendC::SetFlag<HardEvent::MTE1_MTE2>(static_cast<int32_t>(ping_pong_flag_l1_a_ + 2));
+            set_flag(PIPE_MTE1, PIPE_M, ping_pong_flag_l0_a_);
+            set_flag(PIPE_MTE1, PIPE_MTE2, ping_pong_flag_l1_a_ + 2);
             bool last_k = false;
             last_k = (m_loop_index == 0 && upperRight) ? n_loop_index == n_loop - 2 : n_loop_index == n_loop - 1;
 
-            AscendC::WaitFlag<HardEvent::MTE1_M>(static_cast<int32_t>(ping_pong_flag_l0_a_));
+            wait_flag(PIPE_MTE1, PIPE_M, ping_pong_flag_l0_a_);
             if (!is_skip) {
                 uint16_t m_modify = (m_remain == 1) ? 2 : m_remain;
 
@@ -170,7 +170,7 @@ __aicore__ inline __attribute__((always_inline)) void CubeOp<TYPE>::Cube2Compute
                                                   // unit_flag,
                                                   false, l0_c_init_flag));
             }
-            AscendC::SetFlag<HardEvent::M_MTE1>(static_cast<int32_t>(ping_pong_flag_l0_a_ + FLAG_SHIFT));
+            set_flag(PIPE_M, PIPE_MTE1, ping_pong_flag_l0_a_ + FLAG_SHIFT);
 
             // fixp in n_loop tail block
             if (!is_skip && last_k) {
@@ -187,7 +187,7 @@ __aicore__ inline __attribute__((always_inline)) void CubeOp<TYPE>::Cube2Compute
             ping_pong_flag_l1_a_ = 1 - ping_pong_flag_l1_a_;
             ping_pong_flag_l0_a_ = 1 - ping_pong_flag_l0_a_;
         }
-        AscendC::SetFlag<HardEvent::M_MTE1>(static_cast<int32_t>(ping_pong_flag_l0_b_ + 2 + FLAG_SHIFT));
+        set_flag(PIPE_M, PIPE_MTE1, ping_pong_flag_l0_b_ + 2 + FLAG_SHIFT);
 
         ping_pong_flag_l0_b_ = 1 - ping_pong_flag_l0_b_;
         ping_pong_flag_l1_b_ = 1 - ping_pong_flag_l1_b_;

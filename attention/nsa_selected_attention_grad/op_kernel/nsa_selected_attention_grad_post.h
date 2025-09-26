@@ -353,7 +353,7 @@ __aicore__ inline void NsaSelectedAttentionGradPost<OUT_TYPE, TILING_TYPE, CAST_
             inQueueCommon.FreeTensor(vecIn);
         }
 
-        PipeBarrier<PIPE_V>();
+        pipe_barrier(PIPE_V);
         if (needMuls) {
             if constexpr (!AscendC::IsSameType<OUT_TYPE, float>::value) {
                 Muls(tmpTensor[ubOffset], tmpTensor[ubOffset], (float)tilingData->postTilingData.scaleValue,
@@ -362,12 +362,12 @@ __aicore__ inline void NsaSelectedAttentionGradPost<OUT_TYPE, TILING_TYPE, CAST_
                 Muls(vecOut[ubOffset], vecOut[ubOffset], (float)tilingData->postTilingData.scaleValue, sLen * headDimAlign);
             }
 
-            PipeBarrier<PIPE_V>();
+            pipe_barrier(PIPE_V);
         }
 
         if constexpr (!AscendC::IsSameType<OUT_TYPE, float>::value) {
             Cast(vecOut[ubOffset], tmpTensor[ubOffset], RoundMode::CAST_ROUND, sLen * headDimAlign);
-            PipeBarrier<PIPE_V>();
+            pipe_barrier(PIPE_V);
         }
 
         outQueueCommon.EnQue(vecOut);
@@ -470,7 +470,7 @@ __aicore__ inline void NsaSelectedAttentionGradPost<OUT_TYPE, TILING_TYPE, CAST_
             dataSize1 = i + vPostBaseNum >= vPostBlockTotal ? 0 : dataSize1;
             NZVecClc(dvWorkSpaceGm, dvGm, dataSize1, actual_seq_kvlen_addr, 1, s2, d2, d2Align, false, 1);
         }
-        PipeBarrier<PIPE_ALL>();
+        pipe_barrier(PIPE_ALL);
     }
 }
 
@@ -503,7 +503,7 @@ __aicore__ inline void NsaSelectedAttentionGradPost<OUT_TYPE, TILING_TYPE, CAST_
             DataCopy(dqGm[i], vecOut, (dataSize + 7) / 8 * 8); // dataSize(fp16) align 32B
         } else {
             Muls(vecIn, vecIn, (float)tilingData->postTilingData.scaleValue, dataSize);
-            PipeBarrier<PIPE_V>();
+            pipe_barrier(PIPE_V);
             Cast(vecOut, vecIn, AscendC::RoundMode::CAST_ROUND, dataSize);
             outQueue.EnQue(vecOut);
             outQueue.template DeQue<OUT_TYPE>();
@@ -512,7 +512,7 @@ __aicore__ inline void NsaSelectedAttentionGradPost<OUT_TYPE, TILING_TYPE, CAST_
         inQueue.FreeTensor(vecIn);
         outQueue.FreeTensor(vecOut);
     }
-    PipeBarrier<PIPE_ALL>();
+    pipe_barrier(PIPE_ALL);
     // init k
     uint64_t kBegin = cBlockIdx * kPostBlockFactor * kPostBaseNum;
     uint64_t kEnd = (cBlockIdx + 1) * kPostBlockFactor * kPostBaseNum;
@@ -534,7 +534,7 @@ __aicore__ inline void NsaSelectedAttentionGradPost<OUT_TYPE, TILING_TYPE, CAST_
             DataCopy(dkGm[i], vecOut, (dataSize + 7) / 8 * 8); // dataSize(fp16) align 32B
         } else {
             Muls(vecIn, vecIn, (float)tilingData->postTilingData.scaleValue, dataSize);
-            PipeBarrier<PIPE_V>();
+            pipe_barrier(PIPE_V);
             Cast(vecOut, vecIn, AscendC::RoundMode::CAST_ROUND, dataSize);
             outQueue.EnQue(vecOut);
             outQueue.template DeQue<OUT_TYPE>();
@@ -543,7 +543,7 @@ __aicore__ inline void NsaSelectedAttentionGradPost<OUT_TYPE, TILING_TYPE, CAST_
         inQueue.FreeTensor(vecIn);
         outQueue.FreeTensor(vecOut);
     }
-    PipeBarrier<PIPE_ALL>();
+    pipe_barrier(PIPE_ALL);
 
     // init v
     if constexpr (CAST_DV && !AscendC::IsSameType<OUT_TYPE, float>::value) {
