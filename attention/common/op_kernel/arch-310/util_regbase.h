@@ -55,6 +55,8 @@ enum class S2TemplateType {
     Aligned64 = 64,
     Aligned128 = 128,
     Aligned256 = 256,
+    Aligned512 = 512,
+    Aligned1024 = 1024,
     NotAligned,
 };
 template<bool isInfer = false>

@@ -62,7 +62,7 @@ class IFATilingV2 {
   ge::graphStatus RunBigKernelTiling(IncreFlashAttentionContext& context, IncreFlashAttentionTilingDataV2& tilingData,
                                      bool isWorkspace = false);
   ge::graphStatus IncreFlashAttentionSetTilingData(gert::TilingContext& context,
-                                                   IncreFlashAttentionTilingDataV2& tilingData) const;
+                                                   IncreFlashAttentionTilingDataV2& tilingData);
   static ge::graphStatus ConvertContext(gert::TilingContext& context, IncreFlashAttentionContext& ifaContext);
   bool NeedRollBack() const
   {
@@ -88,6 +88,10 @@ class IFATilingV2 {
   ge::graphStatus VerifyQuantScale2() const;
   bool EnableC1V1() const;
   void UpdatePerfMode();
+  void SetfaRunFlag();
+  void SetIFASparseType();
+  void SetPFASparseType(uint32_t qS);
+  void SetfaRunBaseSize();
   ge::graphStatus InitInOutMode();
   ge::graphStatus KvShapePostProcess();
   ge::graphStatus CheckKvCache();
@@ -155,6 +159,7 @@ class IFATilingV2 {
                          uint32_t* sparseStartIdx, int64_t splitFactorSize) const;
 
   bool IsFlashDecode() const;
+  bool IsFlashDecodefaRun() const;
   void PromptFlashAttentionInitOutputSplit();
   void GetActualSeqLength(int64_t &actualSeqLengths, int64_t &actualSeqLengthsKV, uint32_t bIdx);
   void GetPreNextTokensLeftUp(int64_t actualSeqLength, int64_t actualSeqLengthKV,
@@ -167,9 +172,17 @@ class IFATilingV2 {
   int64_t GetActualInnerBlockNums(int64_t sInnerIndexStart, int64_t sInnerIndexEnd, int64_t innerBlockNums) const;
   void ComputeSplitBNSeq(std::vector<int64_t> sOuterLoopTimes, std::vector<int64_t> sInnerLoopTimes,
     double coreWightTarget);
+  void ComputeSplitNBSeqfaRun(std::vector<int64_t> sOuterLoopTimes, std::vector<int64_t> sInnerLoopTimes,
+    double coreWightTarget, uint32_t& curCore, const size_t tilingElementArrayLen);
+  void SetMultiCoreParamsRegbase(int64_t totalSize, int64_t actualUsedCoreNum);
+  void SetLayoutTypefaRun();
+  void SetAttenMaskCompressMode();
+  void IFATilingDataconvert();
   ge::graphStatus PromptFlashAttentionSplitBNSeq();
+  void FlashAttentionCubeSplitBNSeq();
   ge::graphStatus SplitBN_V0();
   ge::graphStatus SplitBNS();
+  ge::graphStatus SplitBNSfaRun();
 
   bool CheckWorkSpace() const;
   
@@ -197,6 +210,7 @@ class IFATilingV2 {
   bool passToOldTiling_ = false;
   bool isPFAFlag_ = false;
   bool needInit_ = false;
+  bool needInitfaRun_ = false;
   uint32_t numHeads_ = 0;
   uint32_t sparseMode_ = 0;
   int64_t preToken_ = 0;
@@ -319,6 +333,21 @@ class IFATilingV2 {
   uint32_t l2CacheOffFlag_ = 0;
   // softmaxLse
   bool softmaxLseFlag_ = false;
+
+  //伪量化新模板新增
+  bool faRunFlagAntiq_ = false;
+  bool faRunGS_ = false;    //指示是否合轴
+  int8_t isGqa_ = 0;
+  uint8_t faRunAttenMaskShapeType_ = 0;
+  uint8_t faRunSparseType_ = 0;
+  uint32_t paBlockNumSumfaRun_ = 1;
+  uint32_t singleCoreSize_ = 0;
+  int64_t totalSize_ = 0;
+  int64_t totalSizeLse_ = 0;
+  uint8_t isPostQuantPerChnl_ = 0;
+  uint8_t isOutQuantTypeBf16_ = 0;
+  uint8_t pageAttentionKvLayoutTypefaRun_ = 0;
+  FlashAttentionScoreSimplifiedTilingData faRunTilingAdapter;
 };
 
 }  // namespace optiling 

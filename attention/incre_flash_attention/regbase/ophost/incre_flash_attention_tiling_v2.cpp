@@ -49,6 +49,36 @@ static uint32_t increGcd(uint32_t a, uint32_t b)
   return increGcd(b, a % b);
 }
 
+template <typename T>
+static auto CalcTailSizefaRun(T num1, T num2) -> T
+{
+    if (num2 == 0) {
+        return 0;
+    }
+    T mod = num1 % num2;
+    return mod != 0 ? mod : num2;
+}
+
+enum class LayoutTypefaRun : uint8_t {
+    NONE = 0,
+    LAYOUT_BSH = 1,
+    LAYOUT_BSND = 1,
+    LAYOUT_SBH = 2,
+    LAYOUT_BNSD = 3,
+    LAYOUT_TND = 4,
+};
+
+
+enum PfaAttenMaskCompressModefaRun : uint8_t {
+    PFA_NO_COMPRESS_MODE = 0,
+    PFA_LEFT_UP_CAUSAL_MODE,
+    PFA_RIGHT_DOWN_CAUSAL_MODE,
+    PFA_BAND_MODE,
+    PFA_PREFIX_MODE,
+    PFA_RIGHT_DOWN_CAUSAL_BAND_MODE,
+    PFA_BAND_LEFT_UP_CAUSAL_MODE
+};
+
 static const std::unordered_map<ge::DataType, string> g_strDataTypePfa = {
   {ge::DT_FLOAT, "DT_FLOAT"},
   {ge::DT_FLOAT16, "DT_FLOAT16"},
@@ -102,6 +132,19 @@ template <typename... Args>
 constexpr uint64_t IFA_GET_TILINGKEY(Args... templateIds) {
   return RecursiveSum(templateIds...);
 }
+
+enum class IfaSparseEnum : uint8_t {
+    IFA_ALL = 0,
+    IFA_NONE = 1,
+    IFA_ANY = 2,
+    IFA_CAUSAL = 3,
+    IFA_BAND = 4,
+    IFA_PREFIX = 5,
+    IFA_BAND_COMPRESS = 6,
+    IFA_RIGHT_DOWN_CAUSAL = 7,
+    IFA_RIGHT_DOWN_CAUSAL_BAND = 8,
+    IFA_BAND_LEFT_UP_CAUSAL = 9
+};
 
 ge::graphStatus IFATilingV2::GetNpuInfo() {
   OP_CHECK_IF(context_->platformInfo == nullptr,
@@ -593,9 +636,12 @@ ge::graphStatus IFATilingV2::CheckKvCache() {
              return ge::GRAPH_FAILED);
   if (kDimNum == 3U) { // BSH
     pageAttentionKvLayoutType_ = KvCacheLayout::KV_CACHE_BSH;
+    pageAttentionKvLayoutTypefaRun_ = static_cast<uint8_t>(0);
   } else { // BNSD
     pageAttentionKvLayoutType_ = KvCacheLayout::KV_CACHE_BNSD;
+    pageAttentionKvLayoutTypefaRun_ = static_cast<uint8_t>(1);
   }
+  paBlockNumSumfaRun_ = static_cast<int32_t>(kDimNum);
   const std::string inputLayoutStr = context_->layOut;
   OP_CHECK_IF((kDimNum == DIM_BNSD && inputLayout_ != IfaLayout::BNSD),
              OP_LOGE(context_->opName, "When Page Attention is enabled, and KV cache dimensions are 4-dimensional, "
@@ -814,7 +860,78 @@ ge::graphStatus IFATilingV2::ProcessOptionalTensors() {
       (ProcessQPaddingSize() != ge::GRAPH_SUCCESS) || (ProcessKVPaddingSize() != ge::GRAPH_SUCCESS)) {
     return ge::GRAPH_FAILED;
   }
+  SetfaRunFlag();   // 判断是否走伪量化新模板
+  if (!isPFAFlag_ && faRunFlagAntiq_) {
+    preToken_ = SPARSE_MODE_INT_MAX;
+    nextToken_ = SPARSE_MODE_INT_MAX;
+    actualSeqLenQFlag_ = false;
+    actualLenQDims_ = static_cast<uint32_t>(0);
+    qPaddingSizeFlag_ = false;
+    needInit_ = needInitfaRun_;
+    isRowInvalid_ = (innerPrecise_ >> 1) & 1;
+  }
   return ge::GRAPH_SUCCESS;
+}
+
+void IFATilingV2::SetfaRunFlag() {
+  if (antiQuantFlag_) {
+    faRunFlagAntiq_ = false;
+    if(sOfQuery_ == NUM1)   //目前仅Qs=1时支持合轴
+    {
+      faRunGS_ = true;
+      isGqa_ = 1;
+    } else {
+      faRunGS_ = false;
+      isGqa_ = 0;
+    }
+  } else {
+    faRunFlagAntiq_ = false;
+    faRunGS_ = false;
+  }
+  if (faRunFlagAntiq_) {
+    if (!isPFAFlag_) {
+      faRunSparseType_ = static_cast<uint8_t>(IfaSparseEnum::IFA_ALL);
+      if (attenMaskFlag_) {
+        faRunAttenMaskShapeType_ = attenMaskBatch_ > 1 ? 1 : 2; // 2 is shape type
+        attenMaskQSize_ = 1;
+      } else {
+        faRunAttenMaskShapeType_ = 0;
+        attenMaskQSize_ = 0;
+      }
+    } else {
+      SetPFASparseType(sOfQuery_);
+      if (attenMaskFlag_) {
+        faRunAttenMaskShapeType_ = attenMaskBatch_ > 1 ? 1 : 2; // 2 is shape type
+      } else {
+        faRunAttenMaskShapeType_ = 0;
+      }
+    }
+  }
+}
+
+void IFATilingV2::SetPFASparseType(uint32_t qS)
+{
+  if (sparseMode_ == SPARSE_MODE_NO_MASK) {
+      if (preToken_ >= qS && nextToken_ == 0) {
+          faRunSparseType_ = static_cast<uint8_t>(IfaSparseEnum::IFA_CAUSAL);
+      } else if (preToken_ >= qS && !pageAttentionFlag_ && nextToken_ >= sMax_) {
+          faRunSparseType_ = static_cast<uint8_t>(IfaSparseEnum::IFA_ALL);
+      } else {
+          faRunSparseType_ = static_cast<uint8_t>(IfaSparseEnum::IFA_BAND);
+      }
+  } else if (sparseMode_ == SPARSE_MODE_ALL_MASK) {
+      faRunSparseType_ = static_cast<uint8_t>(IfaSparseEnum::IFA_ALL);
+  } else if (sparseMode_ == SPARSE_MODE_LEFT_UP) {
+      faRunSparseType_ = static_cast<uint8_t>(IfaSparseEnum::IFA_CAUSAL);
+  } else if (sparseMode_ == SPARSE_MODE_RIGHT_DOWN) {
+      if (!pageAttentionFlag_ && qS == sMax_) {
+          faRunSparseType_ = static_cast<uint8_t>(IfaSparseEnum::IFA_CAUSAL);
+      } else {
+          faRunSparseType_ = static_cast<uint8_t>(IfaSparseEnum::IFA_BAND);
+      }
+  } else if (sparseMode_ == SPARSE_MODE_BAND) {
+      faRunSparseType_ = static_cast<uint8_t>(IfaSparseEnum::IFA_BAND);
+  }
 }
 
 ge::graphStatus IFATilingV2::ProcessPseShift() {
@@ -1217,6 +1334,9 @@ ge::graphStatus IFATilingV2::ProcessActualSeqLen() {
         needBlockNum_ += (static_cast<uint64_t>(actLen) + blockSize_ - 1U) / blockSize_;
       }
       maxActualseq_ = maxActualseq_ < static_cast<uint32_t>(actLen) ? static_cast<uint32_t>(actLen) : maxActualseq_;
+      if (actLen == 0 && needInitfaRun_ == false) {
+        needInitfaRun_ = true;
+      }
     }
   } else {
     // pa场景必须带actual_seq_lens
@@ -1356,6 +1476,7 @@ ge::graphStatus IFATilingV2::ProcessQuant2() const {
         OP_CHECK_IF(CheckQuant2Shape(qtOffset2->GetStorageShape()) != ge::GRAPH_SUCCESS,
                   OP_LOGE(context_->opName, "Check quantOffset2 shape failed."),
                   return ge::GRAPH_FAILED);
+        isPostQuantPerChnl_ = 1;
         tilingData_->outputParams.set_isPerChnOut(1);
       }
     }
@@ -1930,19 +2051,50 @@ bool IFATilingV2::IsFlashDecode() const {
   return false;
 }
 
-ge::graphStatus IFATilingV2::Split() {
-  if (!isPFAFlag_) {
-    if (IsFlashDecode()) {
-      splitKVFlag_ = true;
-      return SplitBNS();
+bool IFATilingV2::IsFlashDecodefaRun() const {
+    float flashDecodeBNRatio = 0.4F; // 0.4, 经验值
+    //如果不够2个基本块直接不生效FD
+    uint32_t sInnerDouble = sInnerSize_ * 2;
+    //如果s2方向上最长还不超过两个sinnersize，直接就不生效FD
+    if (sMax_ < sInnerDouble) {
+        return false;
     }
+    uint64_t bng = batchSize_ * numKvHeads_ * ((nNumOfQInOneGroup_ + sOuterSize_ - 1) / sOuterSize_);  // 是否添加括号？
+    if ((bng < flashDecodeBNRatio * aicNum_) && (nNumOfQInOneGroup_ == 1)) {
+        OP_LOGD(context_->opName, "Flash decode dplit key/value.");
+        return true;
+    }
+    if ((bng < flashDecodeBNRatio * aicNum_) && (maxActualseq_ >= 2048)) { // 2048, 在flash decode + gqa时的经验值
+        OP_LOGD(context_->opName, "Flash decode And GQA split key/value.");
+        return true;
+    }
+    return false;
+}
+
+ge::graphStatus IFATilingV2::Split() {
+  if (faRunFlagAntiq_) {
+    CalcInnerSize(seqSize_);
+    FlashAttentionCubeSplitBNSeq();
+    if (!isPFAFlag_) {
+      if (IsFlashDecodefaRun()) {
+        splitKVFlag_ = true;
+        return SplitBNSfaRun();
+      }
+    }
+    return ge::GRAPH_SUCCESS;
+  } else {
+    if (!isPFAFlag_) {
+      if (IsFlashDecode()) {
+        splitKVFlag_ = true;
+        return SplitBNS();
+      }
+    }
+    CalcInnerSize(seqSize_);
+    if (isPFAFlag_) {
+      return PromptFlashAttentionSplitBNSeq();
+    }
+    return SplitBN();
   }
-  
-  CalcInnerSize(seqSize_);
-  if (isPFAFlag_) {
-    return PromptFlashAttentionSplitBNSeq();
-  }
-  return SplitBN();
 }
 
 ge::graphStatus IFATilingV2::SplitBN() {
@@ -2112,10 +2264,13 @@ void IFATilingV2::PromptFlashAttentionInitOutputSplit() {
       // requiring that the number of points allocated to each kernel must be even.
       singleCoreSize = ((singleCoreSize + 1) / 2) * 2; // 2 : fill in 0
   }
+  singleCoreSize_ = singleCoreSize;
   tilingData_->outputParams.set_singleCoreSize(singleCoreSize);
+  totalSize_ = totalSize;
   tilingData_->outputParams.set_totalOutputSize(totalSize);
   if (softmaxLseFlag_) {
     int64_t totalLseSize = context_->lseOut.shape->GetStorageShape().GetShapeSize();
+    totalSizeLse_ = totalLseSize;
     uint32_t singleCoreLseSize = (totalLseSize + coreNum_ - 1) / (coreNum_);
     tilingData_->outputParams.set_singleCoreLseSize(singleCoreLseSize);
     tilingData_->outputParams.set_totalLseOutputSize(totalLseSize);
@@ -2137,6 +2292,9 @@ void IFATilingV2::GetActualSeqLength(int64_t &actualSeqLengths, int64_t &actualS
       context_->actualSeqLengthsQ.tensor->GetData<int64_t>()[bIdx];
   } else {
     actualSeqLengths = sOfQuery_;
+    if (faRunFlagAntiq_ && faRunGS_) {
+      actualSeqLengths = sOfQuery_ * nNumOfQInOneGroup_;
+    }
   }
 }
 
@@ -2273,6 +2431,60 @@ void IFATilingV2::ComputeSplitBNSeq(std::vector<int64_t> sOuterLoopTimes, std::v
   coreSposStart_[usedCoreNum_] = 0;
 }
 
+void IFATilingV2::ComputeSplitNBSeqfaRun(std::vector<int64_t> sOuterLoopTimes,
+  std::vector<int64_t> sInnerLoopTimes, double coreWightTarget, uint32_t& curCore, const size_t tilingElementArrayLen) {
+  int64_t SplitNumHeads = numHeads_;
+  if(faRunGS_) {
+    SplitNumHeads = numKvHeads_;
+  }
+  std::vector<int64_t> sparseStartIdx(tilingElementArrayLen, 0L);
+  std::vector<uint32_t> bnStartIdx(tilingElementArrayLen, 0U);
+  std::vector<int64_t> gS1StartIdx(tilingElementArrayLen, 0L);
+  // Temporary algorithm to be optimized
+  int64_t curWight = 0;
+  uint32_t tmpCoreNidEnd = 0; // actual seq为0时不分配核
+  uint32_t tmpCoreSidEnd = 0;
+  uint32_t tmpCoreSposEnd = 0;
+  int64_t actualSeqLengths = 0;
+  int64_t actualSeqLengthsKV = 0;
+  for (uint32_t sIdx = 0; sIdx < batchSize_; sIdx++) {    
+    for (uint32_t headNum = 0; headNum < SplitNumHeads; headNum++) {
+      int64_t preTokensLeftUp = 0;
+      int64_t nextTokensLeftUp = 0;
+      GetPreNextTokensLeftUp(actualSeqLengths, actualSeqLengthsKV, preTokensLeftUp, nextTokensLeftUp);
+      GetActualSeqLength(actualSeqLengths, actualSeqLengthsKV, sIdx);
+      FixParamWithRowInvalid(actualSeqLengths, actualSeqLengthsKV, preTokensLeftUp, nextTokensLeftUp);
+      int64_t outerBlockNums = sOuterLoopTimes[sIdx];
+      int64_t innerBlockNums = sInnerLoopTimes[sIdx];
+      for (uint32_t sOuterIndex = 0; sOuterIndex < outerBlockNums; sOuterIndex++) {
+        int64_t dif = static_cast<int64_t>(coreWightTarget * double(curCore + 1)) - curWight;
+        int64_t sInnerIndexStart = -(preTokensLeftUp > 0 ? (preTokensLeftUp + static_cast<int64_t>(sInnerSize_) - 1) /
+          static_cast<int64_t>(sInnerSize_) : preTokensLeftUp / static_cast<int64_t>(sInnerSize_));
+        int64_t sInnerIndexEnd = nextTokensLeftUp > 0 ? (nextTokensLeftUp + static_cast<int64_t>(sInnerSize_) - 1) /
+          static_cast<int64_t>(sInnerSize_) : nextTokensLeftUp / static_cast<int64_t>(sInnerSize_);
+        int64_t actualInnerBlockNums = GetActualInnerBlockNums(sInnerIndexStart, sInnerIndexEnd, innerBlockNums);
+        if (actualInnerBlockNums - dif > dif && !(tmpCoreNidEnd == 0 && tmpCoreSidEnd == 0 && tmpCoreSposEnd == 0)) {
+          curCore += 1;
+          bnStartIdx[curCore] = sIdx * SplitNumHeads + headNum;
+          gS1StartIdx[curCore] = sOuterIndex;
+        }
+        tmpCoreNidEnd = headNum + 1;
+        tmpCoreSidEnd = sIdx + 1;
+        tmpCoreSposEnd = sOuterIndex + 1;
+
+        curWight += actualInnerBlockNums;
+        preTokensLeftUp -= sOuterSize_;
+        nextTokensLeftUp += sOuterSize_;
+      }
+    }
+  }
+  bnStartIdx[curCore + 1] = batchSize_ * SplitNumHeads;
+  gS1StartIdx[curCore + 1] = tmpCoreSposEnd;
+
+  faRunTilingAdapter.multiCoreParamsRegbase.set_bnStartIdx(bnStartIdx.data());
+  faRunTilingAdapter.multiCoreParamsRegbase.set_sparseStartIdx(gS1StartIdx.data());
+}
+
 ge::graphStatus IFATilingV2::PromptFlashAttentionSplitBNSeq() {
   int64_t totalBlockNumsOneHead = 0; // The calculation amount of all sequences for a single head
   std::vector<int64_t> sOuterLoopTimes(batchSize_, 0U);
@@ -2300,6 +2512,55 @@ ge::graphStatus IFATilingV2::PromptFlashAttentionSplitBNSeq() {
   }
   ComputeSplitBNSeq(sOuterLoopTimes, sInnerLoopTimes, coreWightTarget);
   return ge::GRAPH_SUCCESS;
+}
+
+void IFATilingV2::FlashAttentionCubeSplitBNSeq()   //这里我们只用Cube视角分核
+{
+  //注意：实际上我们生效新模板时，是不带mask的，这里预留了mask的计算功能
+  int64_t SplitNumHeads = numHeads_;
+  if(faRunGS_) {
+    SplitNumHeads = numKvHeads_;
+  }
+  int64_t totalBlockNumsOneHead = 0;
+  std::vector<int64_t> sOuterLoopTimes(batchSize_, 0U);
+  std::vector<int64_t> sInnerLoopTimes(batchSize_, 0U);
+  int64_t multiSmaxsInnerLoopTimes = 0U;
+  for (uint32_t bIdx = 0; bIdx < batchSize_; bIdx++) {
+    int64_t actualSeqLengths = 0;
+    int64_t actualSeqLengthsKV = 0;
+    GetActualSeqLength(actualSeqLengths, actualSeqLengthsKV, bIdx);
+    int64_t preTokensLeftUp = 0;
+    int64_t nextTokensLeftUp = 0;
+    GetPreNextTokensLeftUp(actualSeqLengths, actualSeqLengthsKV, preTokensLeftUp, nextTokensLeftUp);
+    FixParamWithRowInvalid(actualSeqLengths, actualSeqLengthsKV, preTokensLeftUp, nextTokensLeftUp);
+
+    sOuterLoopTimes[bIdx] = (actualSeqLengths + static_cast<int64_t>(sOuterSize_) - 1) / static_cast<int64_t>(sOuterSize_);
+    sInnerLoopTimes[bIdx] = (actualSeqLengthsKV + static_cast<int64_t>(sInnerSize_) - 1) / static_cast<int64_t>(sInnerSize_);
+    multiSmaxsInnerLoopTimes = std::max(multiSmaxsInnerLoopTimes, sInnerLoopTimes[bIdx]);
+
+    totalBlockNumsOneHead += GetCalcBlockNumsOneHead(sOuterLoopTimes[bIdx], sInnerLoopTimes[bIdx],
+      actualSeqLengths, actualSeqLengthsKV, preTokensLeftUp, nextTokensLeftUp);
+  }
+  double coreWightTarget = (double(totalBlockNumsOneHead * SplitNumHeads) / double(aicNum_));
+
+  int64_t s1OuterSize = (sOfQuery_ + sOuterSize_ - 1) / sOuterSize_;
+  faRunTilingAdapter.multiCoreParamsRegbase.set_s1OuterSize(s1OuterSize);
+  const size_t tilingElementArrayLen = (static_cast<size_t>(aicNum_) > 64UL) ? static_cast<size_t>(aicNum_) : 64UL;
+  uint32_t curIndx = 0;
+  ComputeSplitNBSeqfaRun(sOuterLoopTimes, sInnerLoopTimes, coreWightTarget, curIndx, tilingElementArrayLen);
+  int64_t sinnerBlocknum = (sMax_ + sInnerSize_ - 1) / sInnerSize_;
+  SetMultiCoreParamsRegbase((totalBlockNumsOneHead / sinnerBlocknum) * SplitNumHeads, static_cast<int64_t>((curIndx + 1)));
+  if (needInit_) {
+    PromptFlashAttentionInitOutputSplit();
+  }
+}
+
+void IFATilingV2::SetMultiCoreParamsRegbase(int64_t totalSize, int64_t actualUsedCoreNum)
+{
+    faRunTilingAdapter.multiCoreParamsRegbase.set_coreNum(static_cast<int32_t>(actualUsedCoreNum));
+    faRunTilingAdapter.multiCoreParamsRegbase.set_totalSize(totalSize);
+    faRunTilingAdapter.multiCoreParamsRegbase.set_splitFactorSize(CeilDivision(totalSize, actualUsedCoreNum));
+    faRunTilingAdapter.multiCoreParamsRegbase.set_splitFactorTailSize(CalcTailSizefaRun(totalSize, faRunTilingAdapter.multiCoreParamsRegbase.get_splitFactorSize()));
 }
 
 ge::graphStatus IFATilingV2::SplitBN_V0() {
@@ -2349,6 +2610,39 @@ ge::graphStatus IFATilingV2::SplitBNS() {
   return ge::GRAPH_SUCCESS;
 }
 
+ge::graphStatus IFATilingV2::SplitBNSfaRun() {
+  uint64_t bng = batchSize_ * numKvHeads_ * (nNumOfQInOneGroup_ + sOuterSize_ - 1) / sOuterSize_;
+  uint64_t headDimAlign = AlignUp(headDim_, BYTE_BLOCK);
+  uint32_t kvSplitLimit = sInnerSize_ <= 256U ? 256U : sInnerSize_; // 256: 经验值  这里的门限值也需要调整，否则会分的很碎，每个核分到的还不到一个基本块
+  kvSplitPart_ = aicNum_ / bng;
+
+  while(((maxActualseq_ / kvSplitPart_) < kvSplitLimit) && (kvSplitPart_ > 1)) { // 512, 经验值
+    kvSplitPart_--;
+  }
+
+  faRunTilingAdapter.inputParamsRegbase.set_kvSplitPart(kvSplitPart_);
+  faRunTilingAdapter.inputParamsRegbase.set_accumOutSize(batchSize_ * numHeads_ * kvSplitPart_ * headDimAlign);
+  faRunTilingAdapter.inputParamsRegbase.set_logSumExpSize(batchSize_ * numHeads_ * kvSplitPart_ * (BYTE_BLOCK / sizeof(float)));
+  return ge::GRAPH_SUCCESS;
+}
+
+void IFATilingV2::SetfaRunBaseSize()
+{
+  sOuterSize_ = NUM16;
+  if (headDim_ <= NUM64) {
+    sInnerSize_ = NUM1024;
+    if (pseShiftFlag_) {
+      sInnerSize_ = NUM512;
+    }
+  } else if (headDim_ <= NUM128) {
+    sInnerSize_ = NUM512;
+  } else if (headDim_ <= NUM256) {
+    sInnerSize_ = NUM256;
+  } else {
+    sInnerSize_ = NUM128;
+  }
+}
+
 ge::graphStatus IFATilingV2::CalcInnerSize(uint32_t seqSize) {
   /**
    * sInnerSize：s2的切分大小，直接决定了MM的singleN/K和vector的切块大小，但当前切分也并非适用所有case。
@@ -2359,19 +2653,23 @@ ge::graphStatus IFATilingV2::CalcInnerSize(uint32_t seqSize) {
    *                          因此，cube发小块，期望vector尽量被cube的mte2掩盖。sInnerSize=1024
    */
   if (socVersion_ == IfaSocVersion::SOC_ASCEND_910_95 || socVersion_ == IfaSocVersion::SOC_ASCEND_910_55) {
-    sInnerSize_ = NUM256;
-    sOuterSize_ = NUM16;
-    if (headDim_ <= NUM64) {
-      sInnerSize_ = NUM512;
-      if (pseShiftFlag_ || sparseMode_ == SPARSE_MODE_BAND) {
-        sOuterSize_ = NUM8;
+    if (!faRunFlagAntiq_) {
+      sInnerSize_ = NUM256; 
+      sOuterSize_ = NUM16;
+      if (headDim_ <= NUM64) {
+        sInnerSize_ = NUM512;
+        if (pseShiftFlag_ || sparseMode_ == SPARSE_MODE_BAND) {
+          sOuterSize_ = NUM8;
+        }
+      } else if (headDim_ <= NUM128) {
+        sInnerSize_ = NUM256;
+      } else if (headDim_ <= NUM256) {
+        sInnerSize_ = NUM128;
+      } else {
+        sInnerSize_ = NUM64;
       }
-    } else if (headDim_ <= NUM128) {
-      sInnerSize_ = NUM256;
-    } else if (headDim_ <= NUM256) {
-      sInnerSize_ = NUM128;
     } else {
-      sInnerSize_ = NUM64;
+      SetfaRunBaseSize();
     }
   } else {
     sInnerSize_ = MAX_SPLIT_SIZE;  // 8192
@@ -2941,7 +3239,11 @@ ge::graphStatus IFATilingV2::CalcBlockDim() const {
           aicNum = (aivNum + NUM1) / NUM2;          // cube核的数量为vector核的数量按2向上对齐
       }
   }
-
+  if (faRunFlagAntiq_)
+  {
+    aicNum = aicNum_;
+    aivNum = aivNum_;
+  }
   context_->blockDim = ascendcPlatform.CalcTschBlockDim(aivNum, aicNum, aivNum);  // 暂时与当前代码一致
   OP_LOGD(context_->opName, "IFA block dim:%u aivNum:%u aicNum:%u.", context_->blockDim, aivNum, aicNum);
   return ge::GRAPH_SUCCESS;
@@ -3056,17 +3358,156 @@ ge::graphStatus IFATilingV2::RunBigKernelTiling(IncreFlashAttentionContext& cont
       (CalcWorkSpace() != ge::GRAPH_SUCCESS) || (CalcBlockDim() != ge::GRAPH_SUCCESS)) {
     return ge::GRAPH_FAILED;
   }
+  if (tilingData_ != nullptr) {
+    IFATilingDataconvert();
+  }
   return ge::GRAPH_SUCCESS;
 }
 
+void IFATilingV2::SetLayoutTypefaRun()
+{
+    static std::map<IfaLayout, LayoutTypefaRun> layoutStrToLayoutTypeMap = {
+        {IfaLayout::BSH_BSND, LayoutTypefaRun::LAYOUT_BSH},
+        {IfaLayout::TND, LayoutTypefaRun::LAYOUT_TND},
+        {IfaLayout::BSH_BSND, LayoutTypefaRun::LAYOUT_BSND},
+        {IfaLayout::BNSD, LayoutTypefaRun::LAYOUT_BNSD},
+    };
+    auto itr = layoutStrToLayoutTypeMap.find(inputLayout_);
+    if (itr == layoutStrToLayoutTypeMap.end()) {
+        faRunTilingAdapter.inputParamsRegbase.set_layoutType(static_cast<uint8_t>(0));
+    } else {
+        faRunTilingAdapter.inputParamsRegbase.set_layoutType(static_cast<uint8_t>(itr->second));
+    }
+}
+
+void IFATilingV2::SetAttenMaskCompressMode()
+{
+    static std::map<uint32_t, uint8_t> sparseToCompressModeMap = {
+        {SPARSE_MODE_NO_MASK, PfaAttenMaskCompressModefaRun::PFA_NO_COMPRESS_MODE},
+        {SPARSE_MODE_ALL_MASK, PfaAttenMaskCompressModefaRun::PFA_NO_COMPRESS_MODE},
+        {SPARSE_MODE_LEFT_UP, PfaAttenMaskCompressModefaRun::PFA_LEFT_UP_CAUSAL_MODE},
+        {SPARSE_MODE_RIGHT_DOWN, PfaAttenMaskCompressModefaRun::PFA_RIGHT_DOWN_CAUSAL_MODE},
+        {SPARSE_MODE_BAND, PfaAttenMaskCompressModefaRun::PFA_BAND_MODE}
+    };
+    auto itr = sparseToCompressModeMap.find(sparseMode_);
+    if (itr == sparseToCompressModeMap.end()) {
+        faRunTilingAdapter.inputParamsRegbase.set_attenMaskCompressMode(0);
+    } else {
+        faRunTilingAdapter.inputParamsRegbase.set_attenMaskCompressMode(itr->second);
+    }
+}
+
+void IFATilingV2::IFATilingDataconvert() {
+  if (!faRunFlagAntiq_) {
+      return;
+  }
+  SetLayoutTypefaRun();
+  auto &inputParams = faRunTilingAdapter.inputParamsRegbase;
+  inputParams.set_bSize(batchSize_);
+  // 将GS1合轴与不合轴场景下，有不同含义的n2Size、gSize与s1Size参数，转化为各自实际的值
+  // n2:KVN
+  // gSize:原始的QN/KVN
+  // s1:QS
+  // headNumratio:  合轴1   不合轴QN/KVN
+  inputParams.set_n2Size(numKvHeads_);
+  inputParams.set_gSize(nNumOfQInOneGroup_);
+  inputParams.set_s1Size(sOfQuery_);
+  if (faRunGS_) {
+    inputParams.set_headNumRatio(1);
+  } else {
+    inputParams.set_headNumRatio(numHeads_ / numKvHeads_);
+  }
+  inputParams.set_s2Size(sMax_);
+  inputParams.set_alignedS2(0); // 默认值
+  inputParams.set_dSize(headDim_);
+  inputParams.set_dSizeV(headDim_);
+  inputParams.set_dSizeRope(64); // 64 is norml value
+  inputParams.set_scaleValue(scaleValue_);
+  inputParams.set_preTokens(preToken_);
+  inputParams.set_nextTokens(nextToken_);
+  inputParams.set_pseS1Size(pseShiftS0_);
+  inputParams.set_pseS2Size(pseShiftS1_);
+  inputParams.set_pseBSize(pseShiftBatch_);
+  inputParams.set_pseShapeType(0); // 对应训练 PSE_B_N2_G_S1_S2
+  inputParams.set_pseType(0); // 对应训练 PSE_OUTER_MUL_ADD_TYPE
+  inputParams.set_bandIndex(0); // 训练代码中在TND场景生效，用于计算s2方向循环的起始位置
+  inputParams.set_pseEncodeType(0); // 默认值
+  inputParams.set_pseAlibiBaseS1(0); // 默认值
+  inputParams.set_pseAlibiBaseS2(0); // 默认值
+  inputParams.set_attenMaskShapeType(faRunAttenMaskShapeType_);
+  inputParams.set_attenMaskDataType(1); // 默认值
+  SetAttenMaskCompressMode();
+  inputParams.set_implMode(static_cast<uint8_t>(HIGH_PRECISION));
+  inputParams.set_sparseType(faRunSparseType_);
+  inputParams.set_needDropMaskOp(0); // 默认值
+  inputParams.set_keepProb(0); // 默认值
+  inputParams.set_keepProbUint8(0); // 默认值
+  inputParams.set_dropMaskOuter(0); // 默认值
+  inputParams.set_remain(0); // 默认值
+  inputParams.set_attenMaskS2Size(attenMaskSize_);
+  inputParams.set_rsv1(0); // 默认值
+  inputParams.set_s1SparseValidSize(0); // 临时默认值
+  inputParams.set_s2SparseValidSize(0); // 临时默认值
+  inputParams.set_seed(0); // 默认值
+  inputParams.set_offset(0); // 默认值
+  inputParams.set_qStartIdx(0);
+  inputParams.set_kvStartIdx(0);  //暂不支持
+
+  // PFA
+  // 伪量化用到的PA相关的有
+  inputParams.set_blockSize(blockSize_);
+  inputParams.set_blockTableDim2(maxBlockNumPerSeq_);
+  inputParams.set_paLayoutType(pageAttentionKvLayoutTypefaRun_);
+  inputParams.set_paBlockNumSum(paBlockNumSumfaRun_);  // 用不到
+  inputParams.set_prefixSeqInnerSize(0);  // 默认值
+  inputParams.set_attenMaskS1Size(attenMaskQSize_);
+  inputParams.set_isActualSeqLengthsNull(!actualSeqLenQFlag_ ? 1 : 0);
+  inputParams.set_isActualSeqLengthsKVNull(!actualSeqLenFlag_ ? 1 : 0);
+  inputParams.set_actualSeqLengthsSize(actualLenQDims_);
+  inputParams.set_actualSeqLengthsKVSize(actualLenDims_);
+  inputParams.set_deqScaleFlag(0);      // 伪量化模板没用到，默认值
+  inputParams.set_deqScale2Flag(0);     // 伪量化模板没用到，默认值
+
+  inputParams.set_isKvContinuous(batchContinuousFlag_);
+  inputParams.set_fromFused(1);   //伪量化模板没有用到，设置为默认值
+  std::string layout(context_->layOut);
+  inputParams.set_isBSNDOut(layout == "BNSD_BSND");
+  //关于合轴
+  inputParams.set_isGqa(isGqa_);
+  inputParams.set_isSoftMaxLseEnable(softmaxLseFlag_ );
+  inputParams.set_isActualSharedPrefixLenNull(1);
+  inputParams.set_isQHasLeftPadding(qPaddingSizeFlag_ ? 1 : 0);
+  inputParams.set_isKVHasLeftPadding(kvPaddingSizeFlag_ ? 1 : 0);
+  inputParams.set_ropeHeadSize(0);
+  inputParams.set_isRowInvalid(isRowInvalid_);
+  // 伪量化新模板新增 预留
+  // inputParams.set_antiquantPerTensorFlag(static_cast<uint16_t>(antiquantPerTensorFlag_));
+  // inputParams.set_antiquantPerHeadFlag(static_cast<uint16_t>(antiquantPerHeadFlag_));
+  // inputParams.set_antiquantParaSeqSize(antiquantParaSeqSize_);
+
+  auto &initOutputParams = faRunTilingAdapter.initOutputParams;
+  initOutputParams.set_singleCoreSize(singleCoreSize_);
+  initOutputParams.set_totalOutputSize(totalSize_);
+  initOutputParams.set_totalSoftMaxLseOutputSize(totalSizeLse_);
+  initOutputParams.set_needInit(needInit_);   // 暂时先固定为1
+  initOutputParams.set_isOneN(0);  // 伪量化没有用到
+
+  inputParams.set_isPostQuantPerChnl(isPostQuantPerChnl_);  // 伪量化暂不支持后量化，默认值
+  inputParams.set_isPostQuantBF16(isOutQuantTypeBf16_);  //伪量化暂不支持后量化，默认值
+}
+
 ge::graphStatus IFATilingV2::IncreFlashAttentionSetTilingData(gert::TilingContext& context,
-                                                            IncreFlashAttentionTilingDataV2& tilingData) const {
+                                                            IncreFlashAttentionTilingDataV2& tilingData) {
   OP_CHECK_IF(context.GetRawTilingData() == nullptr,
              OPS_REPORT_VECTOR_INNER_ERR(context.GetNodeName(), "RawTilingData got from ge context is null."),
              return GRAPH_FAILED);
-  tilingData.SaveToBuffer(context.GetRawTilingData()->GetData(), context.GetRawTilingData()->GetCapacity());
-  context.GetRawTilingData()->SetDataSize(tilingData.GetDataSize());
-
+  if (faRunFlagAntiq_) {
+    faRunTilingAdapter.SaveToBuffer(context.GetRawTilingData()->GetData(), context.GetRawTilingData()->GetCapacity());
+    context.GetRawTilingData()->SetDataSize(faRunTilingAdapter.GetDataSize());
+  } else {
+    tilingData.SaveToBuffer(context.GetRawTilingData()->GetData(), context.GetRawTilingData()->GetCapacity());
+    context.GetRawTilingData()->SetDataSize(tilingData.GetDataSize());
+  }
   return ge::GRAPH_SUCCESS;
 }
 
