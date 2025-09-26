@@ -9,7 +9,7 @@
  */
 
 /*!
- * \file prompt_flash_attention_tiling.cc
+ * \file prompt_flash_attention_tiling_register.cpp
  * \brief
  */
 #include "err/ops_err.h"

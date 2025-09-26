@@ -56,7 +56,7 @@ using namespace AscendC;
         op.InitQuant(deqScale1, quantScale1, deqScale2, quantScale2, quantOffset2, antiquantScale, antiquantOffset,    \
                      keyAntiquantScale, keyAntiquantOffset, valueAntiquantScale, valueAntiquantOffset, user);          \
         op.Process();                                                                                                  \
-        SyncAll(); /* workspace改为每个核单独使用即可去掉此处同步 */                                  \
+        SyncAll(); /* workspace改为每个核单独使用即可去掉此处同步 */                                                      \
         op.Init(query, key, value, pseShift, attenMask, actualSeqLengths, blocktable, kvPaddingSize, attentionOut,     \
                 softmaxLse, user, &tiling_data->tilingBase, tiling, nullptr);                                          \
         op.Process();                                                                                                  \
@@ -89,7 +89,7 @@ using namespace AscendC;
 #define INVOKE_IFA_NO_KFC_OP_IMPL(templateClass, ...)                                                                  \
     do {                                                                                                               \
         templateClass<IFAType<__VA_ARGS__>> op;                                                                        \
-        COPY_TILING_DATA_ALL(tiling);                                                                    \
+        COPY_TILING_DATA_ALL(tiling);                                                                                  \
         op.Init(query, key, value, pseShift, attenMask, actualSeqLengths, blocktable, kvPaddingSize, attentionOut,     \
                 softmaxLse, user, tiling_data, tiling, &tPipe);                                                        \
         op.InitQuant(deqScale1, quantScale1, deqScale2, quantScale2, quantOffset2, antiquantScale, antiquantOffset,    \
@@ -113,7 +113,7 @@ using namespace AscendC;
 #define INVOKE_IFA_NO_KFC_MLA_OP_IMPL(templateClass, ...)                                                              \
     do {                                                                                                               \
         templateClass<IFAType<__VA_ARGS__>> op;                                                                        \
-        COPY_TILING_DATA_MLA(tiling);                                                                    \
+        COPY_TILING_DATA_MLA(tiling);                                                                                  \
         op.Init(query, key, value, pseShift, attenMask, actualSeqLengthsQ, actualSeqLengths, blocktable, kvPaddingSize,\
             queryRope, keyRope, attentionOut, softmaxLse, user, tiling_data, tiling, &tPipe);                          \
         op.InitQuant(deqScale1, quantScale1, deqScale2, quantScale2, quantOffset2, antiquantScale, antiquantOffset,    \
@@ -126,7 +126,7 @@ using namespace AscendC;
 #define INVOKE_IFA_NO_KFC_MLA_OP_IMPL(templateClass, ...)  do {} while (0)
 #endif
 
-#define COPY_TILING_DATA_ALL(tiling)                                                                        \
+#define COPY_TILING_DATA_ALL(tiling)                                                                                   \
     GET_TILING_DATA_MEMBER(IncreFlashAttentionTilingDataV2, tilingBase, tiling_data_in, tiling);                       \
     const IncreFlashAttentionTilingData *__restrict tiling_data = &tiling_data_in;                                     \
     const TCubeTiling *__restrict bmm1tiling = nullptr;                                                                \
@@ -143,7 +143,7 @@ using namespace AscendC;
 
 
 #define COPY_TILING_DATA_MLA(tiling)                                                                                   \
-    GET_TILING_DATA_WITH_STRUCT(IncreFlashAttentionTilingDataMla, tiling_data_in, tiling);                                         \
+    GET_TILING_DATA_WITH_STRUCT(IncreFlashAttentionTilingDataMla, tiling_data_in, tiling);                             \
     const IncreFlashAttentionTilingDataMla *__restrict tiling_data = &tiling_data_in
 
 
@@ -152,8 +152,8 @@ using namespace AscendC;
     if constexpr (!need_cube) {                                                                                        \
         return;                                                                                                        \
     }                                                                                                                  \
-    GET_TILING_DATA_MEMBER(IncreFlashAttentionTilingDataV2, tilingBase.bmm1TilingData, bmm1TilingDataVar, tiling);                  \
-    GET_TILING_DATA_MEMBER(IncreFlashAttentionTilingDataV2, tilingBase.bmm2TilingData, bmm2TilingDataVar, tiling);                  \
+    GET_TILING_DATA_MEMBER(IncreFlashAttentionTilingDataV2, tilingBase.bmm1TilingData, bmm1TilingDataVar, tiling);     \
+    GET_TILING_DATA_MEMBER(IncreFlashAttentionTilingDataV2, tilingBase.bmm2TilingData, bmm2TilingDataVar, tiling);     \
     const IncreFlashAttentionTilingData *__restrict tiling_data = nullptr;                                             \
     const TCubeTiling *__restrict bmm1tiling = &bmm1TilingDataVar;                                                     \
     const TCubeTiling *__restrict bmm2tiling = &bmm2TilingDataVar
@@ -179,9 +179,9 @@ using namespace AscendC;
 #else
 #if (__CCE_AICORE__ != 310) && (!defined (__DAV_310R6__))
 #define COPY_TILING_DATA(tiling, need_cube)                                                                            \
-    GET_TILING_DATA_MEMBER(IncreFlashAttentionTilingDataV2, tilingBase, tiling_data_in, tiling);                                \
+    GET_TILING_DATA_MEMBER(IncreFlashAttentionTilingDataV2, tilingBase, tiling_data_in, tiling);                       \
     const IncreFlashAttentionTilingData *__restrict tiling_data = &tiling_data_in;                                     \
-    const TCubeTiling *__restrict bmm1tiling = nullptr;                                         \
+    const TCubeTiling *__restrict bmm1tiling = nullptr;                                                                \
     const TCubeTiling *__restrict bmm2tiling = nullptr
 
 #define COPY_TILING_DATA_PREFIX(tiling, need_cube)                                                                     \
@@ -193,44 +193,44 @@ using namespace AscendC;
     const TCubeTiling *__restrict bmm2tilingPrefix = nullptr
 
 #define COPY_TILING_DATA_NO_CUBE(tiling)                                                                               \
-    GET_TILING_DATA_MEMBER(IncreFlashAttentionTilingDataV2, tilingBase, tiling_data_in, tiling);                                \
+    GET_TILING_DATA_MEMBER(IncreFlashAttentionTilingDataV2, tilingBase, tiling_data_in, tiling);                       \
     const IncreFlashAttentionTilingData *__restrict tiling_data = &tiling_data_in
 
 #endif
 #endif
 
 extern "C" __global__ __aicore__ void incre_flash_attention_FIAS(
-    __gm__ uint8_t *query, 
+    __gm__ uint8_t *query,
     __gm__ uint8_t *key,
-    __gm__ uint8_t *value, 
+    __gm__ uint8_t *value,
     __gm__ uint8_t *pseShift,
-    __gm__ uint8_t *attenMask, 
-    __gm__ uint8_t *actualSeqLengthsQ, 
+    __gm__ uint8_t *attenMask,
+    __gm__ uint8_t *actualSeqLengthsQ,
     __gm__ uint8_t *actualSeqLengths,
-    __gm__ uint8_t *deqScale1, 
-    __gm__ uint8_t *quantScale1, 
-    __gm__ uint8_t *deqScale2, 
+    __gm__ uint8_t *deqScale1,
+    __gm__ uint8_t *quantScale1,
+    __gm__ uint8_t *deqScale2,
     __gm__ uint8_t *quantScale2,
-    __gm__ uint8_t *quantOffset2, 
-    __gm__ uint8_t *antiquantScale, 
-    __gm__ uint8_t *antiquantOffset, 
+    __gm__ uint8_t *quantOffset2,
+    __gm__ uint8_t *antiquantScale,
+    __gm__ uint8_t *antiquantOffset,
     __gm__ uint8_t *blocktable,
-    __gm__ uint8_t *queryPaddingSize, 
-    __gm__ uint8_t *kvPaddingSize, 
+    __gm__ uint8_t *queryPaddingSize,
+    __gm__ uint8_t *kvPaddingSize,
     __gm__ uint8_t *keyAntiquantScale,
-    __gm__ uint8_t *keyAntiquantOffset, 
-    __gm__ uint8_t *valueAntiquantScale, 
+    __gm__ uint8_t *keyAntiquantOffset,
+    __gm__ uint8_t *valueAntiquantScale,
     __gm__ uint8_t *valueAntiquantOffset,
-    __gm__ uint8_t *keySharedPrefix, 
-    __gm__ uint8_t *valueSharedPrefix, 
+    __gm__ uint8_t *keySharedPrefix,
+    __gm__ uint8_t *valueSharedPrefix,
     __gm__ uint8_t *actualSharedPrefixLen,
-    __gm__ uint8_t *queryRope, 
-    __gm__ uint8_t *keyRope, 
-    __gm__ uint8_t *keyRopeAntiquantScale, 
+    __gm__ uint8_t *queryRope,
+    __gm__ uint8_t *keyRope,
+    __gm__ uint8_t *keyRopeAntiquantScale,
     __gm__ uint8_t *dequantScaleQuery,
     __gm__ uint8_t *attentionOut,
-    __gm__ uint8_t *softmaxLse, 
-    __gm__ uint8_t *workspace, 
+    __gm__ uint8_t *softmaxLse,
+    __gm__ uint8_t *workspace,
     __gm__ uint8_t *tiling)
 {
 #if (__CCE_AICORE__ == 310) || (defined __DAV_310R6__)

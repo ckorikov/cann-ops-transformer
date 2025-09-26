@@ -644,8 +644,8 @@ __aicore__ inline void IfaMatmulFullQuant<IFAT>::ComputeMm1(const ExtraInfoMla &
 {
     uint32_t mSizeAct = info.gSize * info.s1Size;
     uint32_t mSize = Align(mSizeAct, 16U);
-    uint32_t m1Loops = (mSizeAct + M_SPLIT_SIZE -1) / M_SPLIT_SIZE;
-    uint32_t m1Tail = mSizeAct - (m1Loops-1) * M_SPLIT_SIZE;
+    uint32_t m1Loops = (mSizeAct + M_SPLIT_SIZE - 1) / M_SPLIT_SIZE;
+    uint32_t m1Tail = mSizeAct - (m1Loops - 1) * M_SPLIT_SIZE;
     uint32_t subM1Size = M_SPLIT_SIZE;
     uint32_t subM1SizeAct = M_SPLIT_SIZE;
 
@@ -1017,7 +1017,7 @@ __aicore__ inline void IfaMatmulFullQuant<IFAT>::ComputeMm1(const ExtraInfoMla &
                     cL0BufIter++;
                 }
 #endif
-                if (n == nloops-1) {
+                if (n == nloops - 1) {
                     SetFlag<HardEvent::MTE1_MTE2>(QP_EVENT0 + (ka % 2));
                 }
             }
@@ -1033,8 +1033,8 @@ __aicore__ inline void IfaMatmulFullQuant<IFAT>::ComputeMm2(const ExtraInfoMla &
     
     uint32_t mSize = Align(mSizeAct, 16U);
     uint32_t nSize = BlockAlign<KV_T>(headDim);
-    uint32_t m1Loops = (mSizeAct + M_SPLIT_SIZE -1) / M_SPLIT_SIZE;
-    uint32_t m1Tail = mSizeAct - (m1Loops-1) * M_SPLIT_SIZE;
+    uint32_t m1Loops = (mSizeAct + M_SPLIT_SIZE - 1) / M_SPLIT_SIZE;
+    uint32_t m1Tail = mSizeAct - (m1Loops - 1) * M_SPLIT_SIZE;
     uint32_t subM1Size = M_SPLIT_SIZE;
     uint32_t subM1SizeAct = M_SPLIT_SIZE;
 
@@ -1106,7 +1106,7 @@ __aicore__ inline void IfaMatmulFullQuant<IFAT>::ComputeMm2(const ExtraInfoMla &
             uint32_t subMSize = mSplitSizeL0;
             uint32_t subMSizeAct = mSplitSizeL0;
 
-            uint32_t mx = mLoops -1;
+            uint32_t mx = mLoops - 1;
             for (uint32_t m = 0; m < mLoops; m++) {
                 if (m == mLoops - 1) {
                     subMSizeAct = mTail;
@@ -1164,7 +1164,7 @@ __aicore__ inline void IfaMatmulFullQuant<IFAT>::ComputeMm2(const ExtraInfoMla &
                     mmadParams.k = subKSizeAct;
                     mmadParams.cmatrixInitVal = (k == 0);
                     mmadParams.cmatrixSource = false;
-                    mmadParams.unitFlag = (k == kloops-1) ? 0b11: 0b10;
+                    mmadParams.unitFlag = (k == kloops - 1) ? 0b11: 0b10;
 
                     if ((mmadParams.m / 16) * (mmadParams.n / 16) < 10) {
                         PipeBarrier<PIPE_M>();
@@ -1194,7 +1194,7 @@ __aicore__ inline void IfaMatmulFullQuant<IFAT>::ComputeMm2(const ExtraInfoMla &
 
                 cL0BufIter++;
 
-                if (n== nLoops-1) {
+                if (n== nLoops - 1) {
                     SetFlag<HardEvent::MTE1_MTE2>(QP_EVENT0 + (ka % 2));
                 }
             }

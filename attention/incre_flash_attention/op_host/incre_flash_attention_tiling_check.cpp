@@ -61,12 +61,12 @@ ge::graphStatus IFATiling::CheckBaseInputsNull() const
     OP_CHECK_IF(context_->query.shape == nullptr, OP_LOGE(context_->opName, "Shape of tensor query is nullptr"),
                return ge::GRAPH_FAILED);
     OP_CHECK_IF(context_->query.shape->GetStorageShape().GetShapeSize() == 0,
-               OP_LOGE(context_->opName, "Tensor q is empty cause shapesize is 0."), return ge::GRAPH_FAILED);
+               OP_LOGE(context_->opName, "Tensor query is empty cause shapesize is 0."), return ge::GRAPH_FAILED);
     OP_CHECK_IF(context_->query.desc == nullptr, OP_LOGE(context_->opName, "Desc of tensor query is nullptr"),
                return ge::GRAPH_FAILED);
-    OP_CHECK_IF(context_->key.shape == nullptr, OP_LOGE(context_->opName, "Shape of tensor k is nullptr"),
+    OP_CHECK_IF(context_->key.shape == nullptr, OP_LOGE(context_->opName, "Shape of tensor key is nullptr"),
                return ge::GRAPH_FAILED);
-    OP_CHECK_IF(context_->key.desc == nullptr, OP_LOGE(context_->opName, "Desc of tensor k is nullptr"),
+    OP_CHECK_IF(context_->key.desc == nullptr, OP_LOGE(context_->opName, "Desc of tensor key is nullptr"),
                return ge::GRAPH_FAILED);
     OP_CHECK_IF(context_->value.shape == nullptr, OP_LOGE(context_->opName, "Shape of tensor value is nullptr"),
                return ge::GRAPH_FAILED);
@@ -223,7 +223,7 @@ ge::graphStatus IFATiling::ProcessCheckATBInputWithPage() const
     ge::DataType inputBlockTableType_ = context_->blockTable.desc->GetDataType();
     uint64_t taskNumI64 = static_cast<uint64_t>(numHeads_) * batchSize_;
     OP_CHECK_IF((inputBlockTableType_ != ge::DT_INT32),
-        OP_LOGE(context_->opName, "block_table dtype dtype %d invalid, should be int32", inputKvType_),
+        OP_LOGE(context_->opName, "blockTables dtype %d invalid, should be int32", inputKvType_),
         return ge::GRAPH_FAILED);
     OP_CHECK_IF((blockTablesShape.GetDimNum() != BLOCK_TABLE_DIM_NUM),
         OP_LOGE(context_->opName, "blockTables dim num %lu, invalid, should be %lu",
@@ -269,7 +269,7 @@ ge::graphStatus IFATiling::ProcessCheckATBInput()
 {
     OP_CHECK_IF((numHeads_ <= 0),
         OP_LOGE(context_->opName, "headSize is invalid."),
-        return ge::GRAPH_FAILED); //headsize和headnum
+        return ge::GRAPH_FAILED);
 
     OP_CHECK_IF((numKvHeads_ <= 0 || numKvHeads_ > numHeads_ || numHeads_ % numKvHeads_ != 0),
             OP_LOGE(context_->opName, "kvHead is invalid."),
@@ -542,7 +542,6 @@ ge::graphStatus IFATiling::CheckQKOutShape() const
     if (pageAttentionFlag_) { // page_attention don't check this place
         return ge::GRAPH_SUCCESS;
     }
-    // queryShape (b, 1, h)
     const gert::StorageShape *queryShape = context_->query.shape;
     const gert::StorageShape *keyShape = context_->kCache[0];
     const std::string inputLayoutStr = context_->layOut;
@@ -852,7 +851,7 @@ ge::graphStatus IFATiling::CheckAntiQuantParam(const gert::Tensor *antiquantScal
     }
 
     ge::DataType antiquantScaleType = antiquantScaleDesc->GetDataType();
-    if (antiquantMode_ == DEQUANT_PER_CHANNEL_MODE) { // per-tensor and per-channel
+    if (antiquantMode_ == DEQUANT_PER_CHANNEL_MODE) {
         if (antiquantScaleType != inputQType_) {
             OP_LOGE(context_->opName, "illegal datatype of antiquant scale, it should be same with input qtype");
             return ge::GRAPH_FAILED;
@@ -909,13 +908,13 @@ ge::graphStatus IFATiling::CheckSupportKVLeftPadding()
 ge::graphStatus IFATiling::SharedPrefixCheckBasic()
 {
     OP_CHECK_IF(context_->keySharedPrefix.tensor == nullptr,
-               OP_LOGE(context_->opName, "tensor  of key_shared_prefix is null."), return ge::GRAPH_FAILED);
+               OP_LOGE(context_->opName, "tensor of key_shared_prefix is null."), return ge::GRAPH_FAILED);
     OP_CHECK_IF(context_->keySharedPrefix.desc == nullptr,
-               OP_LOGE(context_->opName, "desc  of key_shared_prefix is null."), return ge::GRAPH_FAILED);
+               OP_LOGE(context_->opName, "desc of key_shared_prefix is null."), return ge::GRAPH_FAILED);
     OP_CHECK_IF(context_->valueSharedPrefix.tensor == nullptr,
                OP_LOGE(context_->opName, "tensor of value_shared_prefix is null."), return ge::GRAPH_FAILED);
     OP_CHECK_IF(context_->valueSharedPrefix.desc == nullptr,
-               OP_LOGE(context_->opName, "desc  of value_shared_prefix is null."), return ge::GRAPH_FAILED);
+               OP_LOGE(context_->opName, "desc of value_shared_prefix is null."), return ge::GRAPH_FAILED);
     OP_CHECK_IF(context_->keySharedPrefix.desc->GetDataType() != inputKvType_,
                OP_LOGE(context_->opName, "type of key_shared_prefix not equal to type of KV"),
                return ge::GRAPH_FAILED);
@@ -1171,16 +1170,16 @@ bool IFATiling::HasZeroSeqBatch() const
 
 bool IFATiling::IsKvZeroBatchSplit(bool needUpdate, uint32_t lastValidBMoreIdx, uint32_t bSize, const std::vector<uint32_t> &s1OuterNum, const std::vector<uint32_t> &s2OuterNum) const
 {
-    if(needUpdate) {
+    if (needUpdate) {
         return false;
     }
-    if((lastValidBMoreIdx <= 0U) || (lastValidBMoreIdx >= bSize)) {
+    if ((lastValidBMoreIdx <= 0U) || (lastValidBMoreIdx >= bSize)) {
         return false;
     }
-    if(s1OuterNum[lastValidBMoreIdx] == 0) {
+    if (s1OuterNum[lastValidBMoreIdx] == 0) {
         return false;
     }
-    if(s2OuterNum[lastValidBMoreIdx] != 0) {
+    if (s2OuterNum[lastValidBMoreIdx] != 0) {
         return false;
     }
     return true;
@@ -1520,7 +1519,7 @@ ge::graphStatus IFATiling::CheckMlaQueryRopeBsndLayout(const gert::Shape &qRopeS
 
 ge::graphStatus IFATiling::CheckMlaQueryRopeBnsdLayout(const gert::Shape &qRopeShape, const gert::Shape &qShape)
 {
-    OP_CHECK_IF ((qRopeShape.GetDim(0) != qShape.GetDim(0)) ||
+    OP_CHECK_IF((qRopeShape.GetDim(0) != qShape.GetDim(0)) ||
                 (qRopeShape.GetDim(1) != qShape.GetDim(1)) ||
                 (qRopeShape.GetDim(2) != qShape.GetDim(2)), // 2: S
         OP_LOGE(context_->opName,
@@ -1731,7 +1730,6 @@ ge::graphStatus IFATiling::CheckMlaKeyRope() const
     return ge::GRAPH_SUCCESS;
 }
 
-// 本函数检查当前支持的MLA特性，泛化后删除
 ge::graphStatus IFATiling::CheckMlaMisc() const
 {
     OP_CHECK_IF(antiQuantFlag_,
@@ -1759,11 +1757,11 @@ ge::graphStatus IFATiling::CheckMlaMisc() const
     }
 
     // Kv NZ blocksize：128
-    OP_CHECK_IF(inputKvLayout_ == IfaLayout::NZ && blockSize_ != 128U, // 128, NZ只支持
+    OP_CHECK_IF(inputKvLayout_ == IfaLayout::NZ && blockSize_ != 128U,
         OP_LOGE(context_->opName, "blockSize(%u), MLA only support {128} when KvCache layout is NZ.", blockSize_),
         return ge::GRAPH_FAILED);
 
-    OP_CHECK_IF(blockSize_ != 16U && blockSize_ != 128U, // 16, 128  只支持
+    OP_CHECK_IF(blockSize_ != 16U && blockSize_ != 128U,
         OP_LOGE(context_->opName, "blockSize(%u), MLA only support {16, 128} when KvCache layout is ND.", blockSize_),
         return ge::GRAPH_FAILED);
 
@@ -1970,7 +1968,7 @@ ge::graphStatus IFATiling::CheckGqaHeadsNum() const
             OP_CHECK_IF(numKvHeads_ != 16U, OP_LOGE(context_->opName,
                 "When numHead = 128, the key/value's heads num should be 16, but now it's %u in IFA GQA with KV NZ.",
                     numKvHeads_), return ge::GRAPH_FAILED);
-            break;    
+            break;
         default:
             OP_LOGE(context_->opName,
                 "Parameters the query's heads num = %u, the key/value's heads num = %u is not expected in IFA GQA with KV NZ."

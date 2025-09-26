@@ -145,9 +145,8 @@ public:
     using ANTIQ_PARAMS_T = typename AscendC::Conditional<ANTIQUANT_PER_TOKEN, T, Q_T>::type;
     // define pse datetype
     using pseShiftType = typename AscendC::Conditional<AscendC::IsSameType<Q_T, int8_t>::value, half, Q_T>::type;
-    // 后接量化的条件需要重新审视
+
     static constexpr bool POST_QUANT = IsSameType<OUT_T, int8_t>::value;
-    // using MM_OUT_T = typename AscendC::Conditional<(ANTIQUANT || QUANT), int32_t, T>::type;
     using MM_OUT_T = typename AscendC::Conditional<ANTIQUANT, half, T>::type;
     using L0C_T = typename AscendC::Conditional<ANTIQUANT, int32_t, T>::type;
 
@@ -185,18 +184,18 @@ protected:
     GlobalTensor<MM_OUT_T> mm2ResGm;
     GlobalTensor<MM_OUT_T> vec2ResGm;
 
-    GlobalTensor<T> accumOutGm; // no
-    GlobalTensor<T> lseSumFdGm; // no
-    GlobalTensor<T> lseMaxFdGm; // no
+    GlobalTensor<T> accumOutGm;
+    GlobalTensor<T> lseSumFdGm;
+    GlobalTensor<T> lseMaxFdGm;
 
     // kv_left_padding
     GlobalTensor<int64_t> kvPaddingSizeGm;
 
     // queue
-    TBuf<> inputBuf1;   // 32K, inque
-    TBuf<> inputBuf2;   // 16K, inque
-    TBuf<> outputBuf1;   // 32K, outque
-    TBuf<> outputBuf2;   // 8K, outque
+    TBuf<> inputBuf1; // 32K, inque
+    TBuf<> inputBuf2; // 16K, inque
+    TBuf<> outputBuf1; // 32K, outque
+    TBuf<> outputBuf2; // 8K, outque
     static constexpr uint64_t SYNC_INPUT_BUF1_FLAG = 2;
     static constexpr uint64_t SYNC_INPUT_BUF2_FLAG = 3;
     static constexpr uint64_t SYNC_OUTPUT_BUF1_FLAG = 4;
@@ -224,18 +223,18 @@ protected:
     TBuf<> tmpBuff3; // 2K
 
     // 常驻tbuf
-    TBuf<> vec2ResBuff;                 // 16k 伪量化场景
-    TBuf<> antiqScaleBuff;            // 4K
-    TBuf<> antiqOffsetBuff;           // 4K
-    TBuf<> qAmaxBuff;   // PRE_LOAD_NUM_DD * (2K + 256B)
-    TBuf<> softmaxResAmaxBuff;        // 2K + 256B
-    TBuf<> qRowSumBuff;               // 2K + 256B
-    TBuf<> softmaxResRowSumBuff;      // 2K + 256B
+    TBuf<> vec2ResBuff; // 16k 伪量化场景
+    TBuf<> antiqScaleBuff; // 4K
+    TBuf<> antiqOffsetBuff; // 4K
+    TBuf<> qAmaxBuff; // PRE_LOAD_NUM_DD * (2K + 256B)
+    TBuf<> softmaxResAmaxBuff; // 2K + 256B
+    TBuf<> qRowSumBuff; // 2K + 256B
+    TBuf<> softmaxResRowSumBuff; // 2K + 256B
     TBuf<> softmaxMaxBuff; // PRE_LOAD_NUM_DD * 2K
     TBuf<> softmaxExpBuff; // PRE_LOAD_NUM_DD * 2K
     TBuf<> softmaxSumBuff; // PRE_LOAD_NUM_DD * 2K
-    TBuf<> softmaxMaxDefaultBuff;     // 2K
-    TBuf<> softmaxSumDefaultBuff;     // 2K
+    TBuf<> softmaxMaxDefaultBuff; // 2K
+    TBuf<> softmaxSumDefaultBuff; // 2K
 
     LocalTensor<T> softmaxMaxUb;
     LocalTensor<T> softmaxSumUb;
@@ -246,7 +245,6 @@ protected:
     // antiquant msd
     LocalTensor<T> aMaxBmm1Ub;
     LocalTensor<T> aMaxBmm2Ub;
-    // LocalTensor<T> softmaxResRowSumUb;
     LocalTensor<T> softmaxScaleResRowSumUb;
     LocalTensor<half> vec2ResUb;
     LocalTensor<T> antiqScaleUb;
@@ -379,7 +377,7 @@ protected:
     uint64_t s2BatchBaseOffset = 0;
 
     // 是否返回lse
-    bool softmaxLseFlag;
+    bool softmaxLseFlag = false;
 
     // attention mask
     bool attenMaskFlag = false;
@@ -456,12 +454,10 @@ protected:
     __aicore__ inline void LoadDataMm2B(LocalTensor<KV_T>& bL0Tensor, LocalTensor<KV_T>& bL1Tensor);
 
     bool curActSeqLenIsZero = false;
-    // PA
-    const uint32_t mmPACallBackDataSize = 64U;
 
     template <typename T> __aicore__ inline T Align(T num, T rnd)
     {
-        return (((rnd) == 0) ? 0 : (((num) + (rnd)-1) / (rnd) * (rnd)));
+        return (((rnd) == 0) ? 0 : (((num) + (rnd) - 1) / (rnd) * (rnd)));
     }
     __aicore__ inline void InitTilingData();
     __aicore__ inline void InitCalcParams();
@@ -509,9 +505,6 @@ protected:
     __aicore__ inline void QueryPreProcessInner(ExtraInfo& info);
 
     __aicore__ inline void FlashDecodeCompute();
-    __aicore__ inline void SetMMOrgShape();
-    __aicore__ inline void SetMM1OrgShape(ExtraInfo& info);
-    __aicore__ inline void SetMM2OrgShape(ExtraInfo& info);
     __aicore__ inline void SysPrefixSetMMOrgShape();
     __aicore__ inline void Bmm1ComputeCommon(const uint32_t bn2Idx, const uint32_t sInnerLoopIdx);
     __aicore__ inline void Bmm2ComputeCommon(const uint32_t bn2Idx, const uint32_t sInnerLoopIdx);
@@ -567,7 +560,6 @@ protected:
     template <typename RT>
     __aicore__ inline void DealInvalidRows(const ExtraInfo &info, LocalTensor<RT> &attenOutUb, uint32_t startRow,
                                            uint32_t dealRowCount, uint32_t columnCount, uint32_t actualColumnCount);
-                                            
     __aicore__ inline void CombineSplitKVRes();
     __aicore__ inline void CopyAccumOutIn(uint32_t splitKVIndex, uint32_t startRow, uint32_t dealRowCount);
     __aicore__ inline void CopyLseIn(uint32_t startRow, uint32_t dealRowCount);
@@ -587,10 +579,6 @@ protected:
     __aicore__ inline void InitAllZeroInt8Output(uint32_t bIdx, uint32_t n2Idx);
     __aicore__ inline uint64_t SeqLenFromTensorList(uint32_t bIdx);
 
-    __aicore__ inline void CopyDataInByQueue1(LocalTensor<T> &dst, const GlobalTensor<T> &src, size_t size);
-    __aicore__ inline void CopyDataInByQueue2(LocalTensor<T> &dst, const GlobalTensor<T> &src, size_t size);
-
-    __aicore__ inline void CopyGmToFixedUb(LocalTensor<T> &dst, const GlobalTensor<T> &src, size_t size);
     __aicore__ inline void CopyFixedUbToGm(const GlobalTensor<T> &dst, const LocalTensor<T> &src, size_t size);
     __aicore__ inline void SoftmaxLseOutput(LocalTensor<T> &lse);
 
@@ -1355,9 +1343,6 @@ IncreFlashAttentionAttenPreloadDD<IFAT>::AntiquantAIterExpand(GlobalTensor<KV_T>
     WaitFlag<AscendC::HardEvent::MTE3_V>(SYNC_OUTPUT_BUF1_FLAG);
     Cast(aResOutUbI8, tmpA2, RoundMode::CAST_ROUND, calcSize);
     PipeBarrier<PIPE_V>();
-    // copyOut Ak
-    // outputQue1.template EnQue(aResOutUbI8);
-    // outputQue1.template DeQue<KV_T>();
     SetFlag<AscendC::HardEvent::V_MTE3>(SYNC_OUTPUT_BUF1_FLAG);
     WaitFlag<AscendC::HardEvent::V_MTE3>(SYNC_OUTPUT_BUF1_FLAG);
     if constexpr (KVINT4) {
@@ -2034,7 +2019,7 @@ __aicore__ inline void IncreFlashAttentionAttenPreloadDD<IFAT>::SoftmaxFlashV2Co
         inMaxTensor = softmaxMaxDefaultUb;
         inSumTensor = softmaxSumDefaultUb;
     } else {
-        uint32_t inIdx = (info.loop -1) % (PRE_LOAD_NUM_DD);
+        uint32_t inIdx = (info.loop - 1) % (PRE_LOAD_NUM_DD);
         inMaxTensor = softmaxMaxUb[inIdx * SOFTMAX_MAX_BUF_SIZE + baseOffset];
         inSumTensor = softmaxSumUb[inIdx * SOFTMAX_SUM_BUF_SIZE + baseOffset];
     }
@@ -2663,12 +2648,6 @@ __aicore__ inline void IncreFlashAttentionAttenPreloadDD<IFAT>::ProcessVec2Inner
     }
 }
 
-template <typename IFAT> __aicore__ inline void IncreFlashAttentionAttenPreloadDD<IFAT>::SetMMOrgShape()
-{
-    // SetMMOrgShape function
-}
-
-
 template <typename IFAT> __aicore__ inline void IncreFlashAttentionAttenPreloadDD<IFAT>::QueryPreProcessL(ExtraInfo& info)
 {
     mSizeVector = info.mSizeV;
@@ -3229,7 +3208,7 @@ __aicore__ inline void IncreFlashAttentionAttenPreloadDD<IFAT>::ComputeMm1(Extra
 
                     MmadParams mmadParams;
                     mmadParams.m = actualBaseM;
-                    if (mmadParams.m == 1) {  //m等于1会默认开GEMV模式，文档上没有写怎么关闭GEMV，所以规避当作矩阵计算
+                    if (mmadParams.m == 1) { //m等于1会默认开GEMV模式，且不可关闭GEMV，所以规避当作矩阵计算
                         mmadParams.m = 16;
                     }
                     mmadParams.n = actualBaseN; // 无效数据不参与计算
@@ -3605,7 +3584,7 @@ __aicore__ inline void IncreFlashAttentionAttenPreloadDD<IFAT>::ComputeMm2(Extra
                     WaitFlag<HardEvent::MTE2_MTE1>(L1V_EVENT0 + (vL1BufIter % 4));
                     kb = vL1BufIter;
                 } else {
-                    kb = vL1BufIter - (kCopyTimes-kCopyIdx-1);
+                    kb = vL1BufIter - (kCopyTimes - kCopyIdx - 1);
                     bL1Tensor = vL1Buffers[(kb % 4) * L1V_BLOCK_SIZE / sizeof(KV_T)];
                 }
                 constexpr uint32_t baseK = 128 / sizeof(KV_T);
@@ -3663,7 +3642,7 @@ __aicore__ inline void IncreFlashAttentionAttenPreloadDD<IFAT>::ComputeMm2(Extra
 
                     MmadParams mmadParams;
                     mmadParams.m = mActCopyRowCount;
-                    if (mmadParams.m == 1) {  //m等于1会默认开GEMV模式，文档上没有写怎么关闭GEMV，所以规避当作矩阵计算
+                    if (mmadParams.m == 1) { //m等于1会默认开GEMV模式，且不可关闭GEMV，所以规避当作矩阵计算
                         mmadParams.m = 16;
                     }
                     mmadParams.n = 128;
@@ -3872,9 +3851,9 @@ __aicore__ inline void IncreFlashAttentionAttenPreloadDD<IFAT>::Process()
     }
 
     if constexpr (FLASH_DECODE) {
+        // 多核同步
         SyncAll();
         if ASCEND_IS_AIV {
-            // 多核同步
             FlashDecodeCompute();
         }
     }
@@ -3884,20 +3863,6 @@ __aicore__ inline void IncreFlashAttentionAttenPreloadDD<IFAT>::Process()
         WaitFlag<AscendC::HardEvent::MTE3_V>(SYNC_OUTPUT_BUF1_FLAG);
         WaitFlag<AscendC::HardEvent::MTE3_V>(SYNC_OUTPUT_BUF2_FLAG);
     }
-}
-
-template <typename IFAT>
-__aicore__ inline void IncreFlashAttentionAttenPreloadDD<IFAT>::CopyDataInByQueue1(LocalTensor<T> &dst,
-                                                                                        const GlobalTensor<T> &src,
-                                                                                        size_t size)
-{
-}
-
-template <typename IFAT>
-__aicore__ inline void IncreFlashAttentionAttenPreloadDD<IFAT>::CopyDataInByQueue2(LocalTensor<T> &dst,
-                                                                                        const GlobalTensor<T> &src,
-                                                                                        size_t size)
-{
 }
 
 template <typename IFAT>
@@ -3916,13 +3881,6 @@ __aicore__ inline void IncreFlashAttentionAttenPreloadDD<IFAT>::CopyFixedUbToGm(
     WaitFlag<AscendC::HardEvent::V_MTE3>(SYNC_OUTPUT_BUF2_FLAG);
     DataCopy(dst, tmp, size);
     SetFlag<AscendC::HardEvent::MTE3_V>(SYNC_OUTPUT_BUF2_FLAG);
-}
-
-template <typename IFAT>
-__aicore__ inline void IncreFlashAttentionAttenPreloadDD<IFAT>::CopyGmToFixedUb(LocalTensor<T> &dst,
-                                                                                     const GlobalTensor<T> &src,
-                                                                                     size_t size)
-{
 }
 
 template <typename IFAT>

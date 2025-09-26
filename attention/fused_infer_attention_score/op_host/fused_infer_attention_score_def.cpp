@@ -9,7 +9,7 @@
  */
 
 /*!
- * \file fused_infer_attention_score.cpp
+ * \file fused_infer_attention_score_def.cpp
  * \brief
  */
 #include <cstdint>

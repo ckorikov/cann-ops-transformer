@@ -9,7 +9,7 @@
  */
 
 /*!
- * \file fused_infer_attention_score_proto.cpp
+ * \file fused_infer_attention_score_infershape.cpp
  * \brief
  */
 #include <graph/utils/type_utils.h>

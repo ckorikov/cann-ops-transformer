@@ -1239,7 +1239,7 @@ __aicore__ inline void NsaSelectAttentionInfer<NSAT>::ComputeMm1(uint32_t loop) 
             WaitFlag<HardEvent::MTE1_M>(L0B_EVENT0 + bL0BufIter % 2);
             MmadParams mmadParams;
             mmadParams.m = msdIterNum * gSize;
-            if (mmadParams.m == 1) {  //m等于1会默认开GEMV模式，文档上没有写怎么关闭GEMV，所以规避当作矩阵计算
+            if (mmadParams.m == 1) { //m等于1会默认开GEMV模式，且不可关闭GEMV，所以规避当作矩阵计算
                 mmadParams.m = 16;
             }
             mmadParams.n = nActCopyRowCountAlign;
@@ -1518,7 +1518,7 @@ __aicore__ inline void NsaSelectAttentionInfer<NSAT>::ComputeMm2(uint32_t loop) 
                 WaitFlag<HardEvent::MTE1_M>(L0B_EVENT0 + bL0BufIter % 2);
                 MmadParams mmadParams;
                 mmadParams.m = msdIterNum * gSize;
-                if (mmadParams.m == 1) {  //m等于1会默认开GEMV模式，文档上没有写怎么关闭GEMV，所以规避当作矩阵计算
+                if (mmadParams.m == 1) { //m等于1会默认开GEMV模式，且不可关闭GEMV，所以规避当作矩阵计算
                     mmadParams.m = 16;
                 }
                 mmadParams.n = 128;

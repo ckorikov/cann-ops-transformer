@@ -157,6 +157,7 @@ constexpr float FLOAT_MAX = FLT_MAX;
 constexpr float FLOAT_EPS = 2.220446049250313e-16;
 
 constexpr uint32_t BUFFER_SIZE_BYTE_32B = 32;
+constexpr uint32_t BUFFER_SIZE_BYTE_64B = 64;
 constexpr uint32_t BUFFER_SIZE_BYTE_256B = 256;
 constexpr uint32_t BUFFER_SIZE_BYTE_512B = 512;
 constexpr uint32_t BUFFER_SIZE_BYTE_1K = 1024;
@@ -165,7 +166,6 @@ constexpr uint32_t BUFFER_SIZE_BYTE_4K = 4096;
 constexpr uint32_t BUFFER_SIZE_BYTE_8K = 8192;
 constexpr uint32_t BUFFER_SIZE_BYTE_16K = 16384;
 constexpr uint32_t BUFFER_SIZE_BYTE_32K = 32768;
-constexpr uint32_t BUFFER_SIZE_BYTE_64B = 64;
 
 constexpr uint32_t MAX_UINT16 = 65535;
 constexpr uint64_t BYTE_BLOCK = 32UL;
@@ -177,7 +177,6 @@ constexpr int32_t VECTOR_SIZE_I = 128;
 constexpr int32_t BLOCK_SIZE_I = 16;
 constexpr uint32_t L0AB_HALF_BUF_SIZE_I = 16384;
 constexpr uint32_t CUBE_MATRIX_SIZE_I = 256;
-constexpr uint32_t LS_PINGPONG_SIZE = 4096;
 constexpr uint32_t STRIDE_UPPER_BOUND = 65535;
 
 constexpr uint32_t L1_UINT8_BLOCK_SIZE = 131072;
@@ -216,7 +215,7 @@ struct TNDFDSplitInfo {
     uint32_t bIdx;
     uint32_t n2Idx;
     uint32_t s1Idx;
-    uint32_t kvSplitNum;  // [B, N2, S1]确定后，kv被切分的份数
+    uint32_t kvSplitNum; // [B, N2, S1]确定后，kv被切分的份数
     uint64_t combineTaskPrefixSum = 0;
 };
 

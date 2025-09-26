@@ -42,7 +42,7 @@ uint64_t PFA_BENCHMARK_TILING_KEY = 1000000000000000000;
 template <typename T> 
 inline auto Align(T num, T rnd) -> T
 {
-    return (((rnd) == 0) ? 0 : (((num) + (rnd)-1) / (rnd) * (rnd)));
+    return (((rnd) == 0) ? 0 : (((num) + (rnd) - 1) / (rnd) * (rnd)));
 }
 
 static int64_t CeilDivision(int64_t num1, int64_t num2)
@@ -176,7 +176,7 @@ bool IFATiling::IsBalanceSplitCore() const {
         return false;
     }
 
-    if (isWorkspace_) {  // tiling下沉不走balance
+    if (isWorkspace_) { // tiling下沉不走balance
         return false;
     }
 
@@ -198,8 +198,7 @@ uint32_t IFATiling::GetTypeSize(ge::DataType dtype) const
     auto it = typeSizeMap.find(dtype);
     if (it != typeSizeMap.end()) {
         return it->second;
-    }
-    else {
+    } else {
         return NUM_BYTES_UNDEF;
     }
 }
@@ -235,7 +234,7 @@ ge::graphStatus IFATiling::SetL2CacheFlag()
     uint64_t l2CacheSize = 0;
     auto ascendcPlatform = platform_ascendc::PlatformAscendC(context_->platformInfo);
     ascendcPlatform.GetCoreMemSize(platform_ascendc::CoreMemType::L2, l2CacheSize);
-    // ×2考虑K、V，1.2为关闭L2Cache的系数
+    // 考虑K、V，1.2为关闭L2Cache的系数
     if (static_cast<double>(kvSize) * kvTypeSize * 2.0f >= l2CacheSize * 1.2) {
         OP_LOGD(context_->opName, "L2 cache off");
         l2CacheOffFlag_ = 1U ;
@@ -289,7 +288,6 @@ ge::graphStatus IFATiling::QKVPreProcess()
     qSeqSize_ = sOfQuery;
 
     if (layout == "TND" || layout == "TND_NTD") {
-        // rope校验
         if (QKVPreProcess4TND(layout) != ge::GRAPH_SUCCESS) {
             return ge::GRAPH_FAILED;
         }
@@ -473,7 +471,7 @@ ge::graphStatus IFATiling::QKVPreProcess4TND(const std::string layout)
 ge::graphStatus IFATiling::InputAttrsPreProcess()
 {
     const uint32_t *innerPrecisePtr = context_->innerPrecise;
-    innerPrecise_ = innerPrecisePtr ? *innerPrecisePtr : IFA_HIGH_PERFORMANCE; // 910B默认高性能
+    innerPrecise_ = innerPrecisePtr ? *innerPrecisePtr : IFA_HIGH_PERFORMANCE; // 默认高性能
     OP_CHECK_IF(((innerPrecise_ != IFA_HIGH_PERFORMANCE) && (innerPrecise_ != IFA_HIGH_PRECISION)),
         OP_LOGE(context_->opName, "precision mode[%u] should be 0 or 1", innerPrecise_),
         return ge::GRAPH_FAILED); // 当前只支持高精度0和高性能1
@@ -1818,17 +1816,17 @@ void IFATiling::GetSeqTilingInfo(const int64_t *actualSeqKv,
         if (actualLenDims_ != 1U) {
             actualSeqLen = static_cast<uint64_t>(actualSeqKv[bIdx]);
         }
-        if (actualSeqInfo.maxActualseqkv <= 0) {    //kv actseq全为0
-            seqTilingInfo.s1OuterNum[bIdx] = 1U;     //kv actseq全为0时，s1不切
-            seqTilingInfo.s2OuterNum[bIdx] = 1U;     //kv actseq全为0时，每个batch s2份数强制为1
+        if (actualSeqInfo.maxActualseqkv <= 0) { //kv actseq全为0
+            seqTilingInfo.s1OuterNum[bIdx] = 1U; //kv actseq全为0时，s1不切
+            seqTilingInfo.s2OuterNum[bIdx] = 1U; //kv actseq全为0时，每个batch s2份数强制为1
         } else {
-            seqTilingInfo.s1OuterNum[bIdx] = (s1 + (souter - 1U)) / souter;                                // s1总共切多少分，即线段个数               
-            seqTilingInfo.s2OuterNum[bIdx] = static_cast<uint32_t>((actualSeqLen + s2BasicSize - 1U) / s2BasicSize);       // 线段长度
+            seqTilingInfo.s1OuterNum[bIdx] = (s1 + (souter - 1U)) / souter; // s1总共切多少分，即线段个数
+            seqTilingInfo.s2OuterNum[bIdx] = static_cast<uint32_t>((actualSeqLen + s2BasicSize - 1U) / s2BasicSize); // 线段长度
         }
 
-        uint32_t bTotalS2Length = seqTilingInfo.s1OuterNum[bIdx] * seqTilingInfo.s2OuterNum[bIdx] * n2Size;         // 线段个数*线段长度*N2=当前batch线段总长度
+        uint32_t bTotalS2Length = seqTilingInfo.s1OuterNum[bIdx] * seqTilingInfo.s2OuterNum[bIdx] * n2Size; // 线段个数*线段长度*N2=当前batch线段总长度
 
-        totalS2Length += bTotalS2Length;                                 // 更新一次总长度
+        totalS2Length += bTotalS2Length; // 更新一次总长度
         OP_LOGI(context_->opName, "s1OuterNum[%u]:%u, s2OuterNum[%u]:%u\n",
             bIdx, seqTilingInfo.s1OuterNum[bIdx], bIdx, seqTilingInfo.s2OuterNum[bIdx]);
         if ((seqTilingInfo.s1OuterNum[bIdx] > 0U) && (seqTilingInfo.s2OuterNum[bIdx] > 0U)) {
@@ -1836,7 +1834,7 @@ void IFATiling::GetSeqTilingInfo(const int64_t *actualSeqKv,
         }
     }
     if (totalS2Length > coreNum_) {
-        seqTilingInfo.avgS2Length = (totalS2Length + coreNum_ - 1U) / coreNum_;   // 平均长度向上取整
+        seqTilingInfo.avgS2Length = (totalS2Length + coreNum_ - 1U) / coreNum_; // 平均长度向上取整
     }
     OP_LOGI(context_->opName, "totalS2Length:%lu, avgS2Length:%lu, coreNum_:%u\n",
         totalS2Length, seqTilingInfo.avgS2Length, coreNum_);
@@ -1862,7 +1860,7 @@ void IFATiling::EndSplitForCurrentCore(const TilingIndexes &tilingIdx,
     tilingInfo.accumS2Length += 1U;
     // 更新当前核的End分核信息
     FillBalancedSplitCoreInfo(tilingIdx, tilingInfo);
-    if (tilingIdx.s2Idx < seqTilingInfo.s2OuterNum[tilingIdx.bIdx] - 1U) {    // 只有切到S2的中间位置，才涉及规约，将currKvSplitPart加1
+    if (tilingIdx.s2Idx < seqTilingInfo.s2OuterNum[tilingIdx.bIdx] - 1U) { // 只有切到S2的中间位置，才涉及规约，将currKvSplitPart加1
         currKvSplitPart += 1U;
         balanceFDCoreStartKVSplitNum[tilingInfo.currCoreIdx] = currKvSplitPart - 1U;
     } else {
@@ -1881,9 +1879,10 @@ void IFATiling::SplitBalancedForEachHead(
     balanceFDCoreStartKVSplitNum[0] = 0U;
 
     for (uint32_t s1OuterIdx = 0U; s1OuterIdx < seqTilingInfo.s1OuterNum[bIdx]; s1OuterIdx++) {
-        uint32_t currKvSplitPart = 1U;           // [B,N2,S1]确定后，S2被切了几份
+        uint32_t currKvSplitPart = 1U; // [B,N2,S1]确定后，S2被切了几份
         for (uint32_t s2Idx = 0U; s2Idx < seqTilingInfo.s2OuterNum[bIdx]; s2Idx++) {
-            uint64_t targetS2Length = static_cast<uint64_t>(tilingInfo.currCoreIdx + 1U) * seqTilingInfo.avgS2Length;         // 计算当前的目标权重
+            // 计算当前的目标权重
+            uint64_t targetS2Length = static_cast<uint64_t>(tilingInfo.currCoreIdx + 1U) * seqTilingInfo.avgS2Length;
             if (tilingInfo.accumS2Length + 1U >= targetS2Length) {
                 EndSplitForCurrentCore(TilingIndexes(bIdx, s1OuterIdx, s2Idx), seqTilingInfo, currKvSplitPart, tilingInfo);
             } else {
@@ -1907,12 +1906,10 @@ ge::graphStatus IFATiling::SplitBalanced()
     CalcInnerSize(seqSize_);
 
     uint32_t s1gBasicSize = FIA_BALANCE_SG_BASIC_SIZE;
-    // coreNum_ = 24;      // 这里确认下核数，是不是按照cube分核的
-
     uint32_t bSize = batchSize_;
     uint32_t gSize = nNumOfQInOneGroup_;
     uint32_t n2Size = numKvHeads_;
-    s1SplitSize_ = s1gBasicSize / gSize;               // QS的切分
+    s1SplitSize_ = s1gBasicSize / gSize; // QS的切分
     uint32_t souter = s1SplitSize_;
 
     // 负载均衡场景G轴不切
@@ -1933,7 +1930,7 @@ ge::graphStatus IFATiling::SplitBalanced()
     BalancedSplitTilingInfo tilingInfo(coreNum_);
     for (uint32_t bIdx = 0U; bIdx < bSize; bIdx++) {
         uint32_t s1 = actualSeqInfo.actualSeqQ[bIdx];
-        int64_t s2 = actualLenDims_== 1U? actualSeqKv[0] : actualSeqKv[bIdx];  // 线段长度
+        int64_t s2 = actualLenDims_== 1U? actualSeqKv[0] : actualSeqKv[bIdx]; // 线段长度
         OP_LOGI(context_->opName, "bIdx:%u, s1:%u, s2:%ld\n", bIdx, s1, s2);
         for (uint32_t nIdx = 0U; nIdx < n2Size; nIdx++) {
             SplitBalancedForEachHead(bIdx, seqTilingInfo, tilingInfo);
@@ -1965,16 +1962,15 @@ ge::graphStatus IFATiling::SplitBalanced()
         kvSplitPart_ = tilingInfo.maxKvSplitPart;
     }
 
-    // 这里后续可以加个check
     return ge::GRAPH_SUCCESS;
 }
 
 ge::graphStatus IFATiling::SplitUnbalanced() {
     if (amlaMode_ == IfaAmlaMode::AMLA_3BUF) {
-        gMax_ = 512U;  // 3buf场景下切512
+        gMax_ = 512U; // 3buf场景下切512
     }
     if (gqaMtpFlag_) {
-        gMax_ = antiQuantFlag_ ? 128U : 256U;  // 伪量化场景下，g切32，非伪量化场景切64
+        gMax_ = antiQuantFlag_ ? 128U : 256U; // 伪量化场景下，g切32，非伪量化场景切64
     }
 
     if (ropeFlag_ || gqaMtpFlag_) {
@@ -2073,12 +2069,11 @@ std::vector<int64_t> IFATiling::InitSparseValidArray(const int64_t *actualLens) 
     }
     return res;
 }
-// code copy from flash_attention_score_tiling
+
 bool IFATiling::BalanceLoad(const std::vector<int64_t> &sparseValidArray, int64_t totalSize, int64_t validAivNum,
                             std::vector<int64_t> &localValue, std::vector<int64_t> &sparseStartIdx) const
 {
-    // to avoid buffer overflow, or maybe sometimes we want to only verify single
-    // core
+    // to avoid buffer overflow, or maybe sometimes we want to only verify single core
     int64_t maxVal = *std::max_element(localValue.begin(), localValue.end());
     int64_t tmpMaxVal = maxVal;
 

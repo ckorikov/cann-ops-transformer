@@ -35,13 +35,13 @@ TILING_DATA_FIELD_DEF(uint32_t, nNumOfQInOneGroup) // G
 TILING_DATA_FIELD_DEF(uint32_t, actualLenQDims)
 TILING_DATA_FIELD_DEF(uint32_t, actualLenDims)
 TILING_DATA_FIELD_DEF(uint32_t, antiquantMode)
-TILING_DATA_FIELD_DEF(uint32_t, attenMaskFlag) // 根据指针判， 待删除
-TILING_DATA_FIELD_DEF(uint32_t, attenMaskSize) //  待删除
+TILING_DATA_FIELD_DEF(uint32_t, attenMaskFlag)
+TILING_DATA_FIELD_DEF(uint32_t, attenMaskSize)
 TILING_DATA_FIELD_DEF(uint32_t, outputLayout) // 输出Layout
 END_TILING_DATA_DEF
 REGISTER_TILING_DATA_CLASS(IncreFlashAttentionBaseParamsMlaOp, IncreFlashAttentionBaseParamsMla)
 
-BEGIN_TILING_DATA_DEF(IncreFlashAttentionCoreParamsMla) // TND 分核相关 26 保证数组8字节对齐
+BEGIN_TILING_DATA_DEF(IncreFlashAttentionCoreParamsMla)
 TILING_DATA_FIELD_DEF_ARR(uint32_t, MAX_AIC_CORE_NUM, coreBEnd);
 TILING_DATA_FIELD_DEF_ARR(uint32_t, MAX_AIC_CORE_NUM, coreSidxEnd);
 TILING_DATA_FIELD_DEF_ARR(uint32_t, MAX_AIC_CORE_NUM, coreS1OuterEnd);
@@ -75,7 +75,7 @@ BEGIN_TILING_DATA_DEF(IncreFlashAttentionTNDSplitCoreParamsMla) // TND flashDeco
 TILING_DATA_FIELD_DEF(uint32_t, tndFDCoreArrLen);
 TILING_DATA_FIELD_DEF(uint32_t, reserve);
 TILING_DATA_FIELD_DEF_ARR(uint32_t, MAX_AIC_CORE_NUM, balanceFDCoreBArr);  // Bidx
-TILING_DATA_FIELD_DEF_ARR(uint32_t, MAX_AIC_CORE_NUM, balanceFDCoreS1Arr); // s1Idx  BS1 考虑和轴，删掉一个数组
+TILING_DATA_FIELD_DEF_ARR(uint32_t, MAX_AIC_CORE_NUM, balanceFDCoreS1Arr); // s1Idx
 TILING_DATA_FIELD_DEF_ARR(uint32_t, MAX_AIC_CORE_NUM, balanceFDCoreKVSplitArr); // 规约任务对应的切分份数
 TILING_DATA_FIELD_DEF_ARR(uint32_t, MAX_AIC_CORE_NUM, balanceFDCoreStartKVSplitNum); // 当前核的第一个块对应的S2外切索引
 END_TILING_DATA_DEF
@@ -92,4 +92,4 @@ END_TILING_DATA_DEF
 
 } // namespace optiling
 
-#endif // AIR_CXX_RUNTIME_V2_OP_IMPL_INCREFLASHATTENTIONSCORE_MLA_NEW_H_
+#endif

@@ -9,7 +9,7 @@
  */
 
 /*!
- * \file prompt_flash_attention.cpp
+ * \file prompt_flash_attention_def.cpp
  * \brief
  */
 #include "register/op_def_registry.h"

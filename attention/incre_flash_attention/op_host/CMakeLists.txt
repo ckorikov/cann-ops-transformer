@@ -14,7 +14,7 @@ if (BUILD_OPEN_PROJECT)
     )
 endif()
 
-if (BUILD_OPS_RTY_KERNEL) # 回黄kernel
+if (BUILD_OPS_RTY_KERNEL)
     add_ops_compile_options(
         OP_NAME IncreFlashAttention
         OPTIONS --cce-auto-sync=off

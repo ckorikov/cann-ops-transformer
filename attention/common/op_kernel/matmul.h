@@ -496,7 +496,7 @@ __aicore__ inline void MatmulKPP(const LocalTensor<A> &aL1Tensor,
         mmadParams.m = param.singleM;
         mmadParams.n = param.singleN;
         mmadParams.k = kSplitSize;
-        if (mmadParams.m == 1) {  //m等于1会默认开GEMV模式，文档上没有写怎么关闭GEMV，所以规避当作矩阵计算
+        if (mmadParams.m == 1) { //m等于1会默认开GEMV模式，且不可关闭GEMV，所以规避当作矩阵计算
             mmadParams.m = FP16_ONE_FRACTAL_ELEMENT;
         }
         mmadParams.cmatrixInitVal = (param.isOutKFisrt == true) && (k == 0);

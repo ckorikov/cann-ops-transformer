@@ -12,8 +12,8 @@
  * \file incre_flash_attention_tiling_base.h
  * \brief
  */
-#ifndef IFA_TILING_BASE_DEFINE_H
-#define IFA_TILING_BASE_DEFINE_H
+#ifndef INCRE_FLASH_ATTENTION_TILING_BASE_H
+#define INCRE_FLASH_ATTENTION_TILING_BASE_H
 
 #include <cstdint>
 #include <string>
@@ -54,10 +54,10 @@ const std::map<ge::DataType, std::string> DATATYPE_TO_STRING_MAP = {
     {ge::DT_STRING, "DT_STRING"},                 // string type
     {ge::DT_VARIANT, "DT_VARIANT"},               // dt_variant type
     {ge::DT_BF16, "DT_BFLOAT16"},                 // dt_bfloat16 type
-    {ge::DT_INT4, "DT_INT4"},                     // dt_variant type
-    {ge::DT_UINT1, "DT_UINT1"},                   // dt_variant type
-    {ge::DT_INT2, "DT_INT2"},                     // dt_variant type
-    {ge::DT_UINT2, "DT_UINT2"}                    // dt_variant type
+    {ge::DT_INT4, "DT_INT4"},
+    {ge::DT_UINT1, "DT_UINT1"},
+    {ge::DT_INT2, "DT_INT2"},
+    {ge::DT_UINT2, "DT_UINT2"}
 };
 
 constexpr uint32_t QUERY_INPUT_INDEX = 0;
@@ -149,7 +149,7 @@ constexpr uint32_t DIM_PER_TOKEN = 3;
 constexpr uint32_t PER_CHANNEL_MODE = 0;
 constexpr uint32_t PER_TOKEN_MODE = 1;
 constexpr uint32_t PER_CHANNEL_TOKEN_MODE = 2;
-constexpr uint32_t DEQUANT_PER_CHANNEL_MODE = 0; // 下面的0~4代表用户输入的数值，与上面的PER_CHANNEL_MODE、PER_TOKEN_MODE含义不同
+constexpr uint32_t DEQUANT_PER_CHANNEL_MODE = 0;
 constexpr uint32_t DEQUANT_PER_TOKEN_MODE = 1;
 constexpr uint32_t DEQUANT_PER_TENSOR_HEAD_MODE = 2;
 constexpr uint32_t DEQUANT_PER_TOKEN_HEAD_MODE = 3;
@@ -199,4 +199,4 @@ constexpr uint32_t NUM1024 = 1024;
 }// namespace optiling
 
 
-#endif // IFA_TILING_BASE_DEFINE_H
+#endif // INCRE_FLASH_ATTENTION_TILING_BASE_H

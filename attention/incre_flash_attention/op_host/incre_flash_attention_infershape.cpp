@@ -9,7 +9,7 @@
  */
 
 /*!
- * \file incre_flash_attention_proto.cpp
+ * \file incre_flash_attention_infershape.cpp
  * \brief
  */
 
@@ -108,9 +108,9 @@ static ge::graphStatus InferDataTypeIncreFlashAttention(gert::InferDataTypeConte
         return ge::GRAPH_FAILED;
     }
     OP_LOGD(context->GetNodeName(), "Enter IncreFlashAttention inferDataType impl.");
-    // default set q's dtype as ifa's output type
+    // default set q's dtype as ifa's output dtype
     ge::DataType outputType = context->GetInputDataType(IFA_QUERY_INDEX);
-    if (context->GetOptionalInputDataType(IFA_QUANT_SCALE2_INDEX) != ge::DT_UNDEFINED) { // 9 is quant_scale2's index
+    if (context->GetOptionalInputDataType(IFA_QUANT_SCALE2_INDEX) != ge::DT_UNDEFINED) {
         outputType = ge::DT_INT8;
     } else if (context->GetInputDataType(IFA_QUERY_INDEX) == ge::DT_INT8) {
         outputType = ge::DT_FLOAT16;

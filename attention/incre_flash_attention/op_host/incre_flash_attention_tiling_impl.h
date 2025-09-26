@@ -409,12 +409,11 @@ private:
 
     // flash config
     uint32_t sInnerLoopTimes_ = 0;
-    uint32_t sInnerSize_ = 0; // flash attention
+    uint32_t sInnerSize_ = 0;
     uint32_t sInnerSizeTail_ = 0;
     uint32_t sInnerSizeAlign_ = 0;
     uint32_t headDimAlign_ = 0;
     uint32_t headDimVAlign_ = 0;
-    // uint32_t sOuterSize_;  // flash decode s2
 
     bool isSplitBPolicy_ = false;
     bool splitKVFlag_ = false;
@@ -496,4 +495,4 @@ ge::graphStatus TilingIncreFlashAttentionAdapter(gert::TilingContext* context, I
 IFA_EXTERN_C ge::graphStatus TilingIncreFlashAttention(gert::TilingContext* context);
 
 } // namespace optiling
-#endif // AIR_CXX_RUNTIME_V2_OP_IMPL_INCREFLASHATTENTIONSCORE_H_
+#endif

@@ -14,7 +14,7 @@ set(fused_infer_attention_score_depends attention/incre_flash_attention attentio
     )
 endif()
 
-if (BUILD_OPS_RTY_KERNEL) # 回黄kernel
+if (BUILD_OPS_RTY_KERNEL)
     add_ops_compile_options(
         OP_NAME FusedInferAttentionScore
         OPTIONS --cce-auto-sync=off

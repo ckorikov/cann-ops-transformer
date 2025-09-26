@@ -176,23 +176,23 @@ protected:
     T deqScale2Val;
 
     // workspace
-    GlobalTensor<KV_T> queryPreProcessResGm;  // 存放Q1, Q2
-    GlobalTensor<MM1_OUT_T> mm1ResGm;   // 存放S
-    GlobalTensor<KV_T> vec1ResGm;      // 存放A1, A2
-    GlobalTensor<MM2_OUT_T> mm2ResGm;   // 存放O
+    GlobalTensor<KV_T> queryPreProcessResGm; // 存放Q1, Q2
+    GlobalTensor<MM1_OUT_T> mm1ResGm; // 存放S
+    GlobalTensor<KV_T> vec1ResGm; // 存放A1, A2
+    GlobalTensor<MM2_OUT_T> mm2ResGm; // 存放O
 
     GlobalTensor<UPDATE_T> vec2ResGm;
 
     GlobalTensor<int32_t> nUpdateGm;
     GlobalTensor<T> softmaxSumGm;
 
-    GlobalTensor<T> accumOutGm; // no
-    GlobalTensor<T> lseSumFdGm; // no
-    GlobalTensor<T> lseMaxFdGm; // no
+    GlobalTensor<T> accumOutGm;
+    GlobalTensor<T> lseSumFdGm;
+    GlobalTensor<T> lseMaxFdGm;
 
     // queue
-    TQue<QuePosition::VECIN, 1> inputQue1;   // 32K, inque
-    TQue<QuePosition::VECIN, 1> inputQue2;   // 16K, inque
+    TQue<QuePosition::VECIN, 1> inputQue1; // 32K, inque
+    TQue<QuePosition::VECIN, 1> inputQue2; // 16K, inque
     TQue<QuePosition::VECOUT, 1> outputQue1; // 32K, outque
     TQue<QuePosition::VECOUT, 1> outputQue2; // 8K, outque
 
@@ -213,8 +213,8 @@ protected:
     TBuf<> pMaxBuff;
     LocalTensor<T> pMaxUb;
 
-    TBuf<> softmaxMaxDefaultBuff;     // 2K
-    TBuf<> softmaxSumDefaultBuff;     // 2K
+    TBuf<> softmaxMaxDefaultBuff; // 2K
+    TBuf<> softmaxSumDefaultBuff; // 2K
 
     LocalTensor<T> nValueUb;
     LocalTensor<T> cofValueUb;
@@ -226,9 +226,9 @@ protected:
     LocalTensor<T> softmaxMaxDefaultUb;
     LocalTensor<T> softmaxSumDefaultUb;
 
-    TBuf<> antiqScaleBuff;            // 4K
-    TBuf<> antiqOffsetBuff;           // 4K
-    TBuf<> qAmaxBuff;   // PRE_LOAD_NUM_MLA * (2K + 256B)
+    TBuf<> antiqScaleBuff; // 4K
+    TBuf<> antiqOffsetBuff; // 4K
+    TBuf<> qAmaxBuff; // PRE_LOAD_NUM_MLA * (2K + 256B)
 
     // antiquant msd
     LocalTensor<T> qAmaxUb;
@@ -246,9 +246,9 @@ protected:
     static constexpr uint64_t SYNC_C2_V2_FLAG = 9;
 
     static constexpr int32_t FP32_MAX_MASK_ELEMENT_NUM = 64;
-    static constexpr uint32_t BLOCK_ELEMENT_NUM = BYTE_BLOCK / sizeof(T);  // 32/4=8
-    static constexpr uint32_t REPEAT_ELEMENT_NUM = REPEAT_BLOCK_BYTE / sizeof(T);  // 256/4=64
-    static constexpr uint32_t BASE_BLOCK_MAX_ELEMENT_NUM = BUFFER_SIZE_BYTE_32K / sizeof(T);  // 32768/4=8096
+    static constexpr uint32_t BLOCK_ELEMENT_NUM = BYTE_BLOCK / sizeof(T); // 32/4=8
+    static constexpr uint32_t REPEAT_ELEMENT_NUM = REPEAT_BLOCK_BYTE / sizeof(T); // 256/4=64
+    static constexpr uint32_t BASE_BLOCK_MAX_ELEMENT_NUM = BUFFER_SIZE_BYTE_32K / sizeof(T); // 32768/4=8096
     static constexpr uint32_t ADDRESS_ALIGN_NUM = 512 / sizeof(KV_T);
     static constexpr uint32_t ADDRESS_ALIGN_NUM_THRESHLOD = 128 / sizeof(KV_T);
 
@@ -293,7 +293,7 @@ protected:
     uint64_t singleProcessSInnerSizeTail = 0U;
     uint32_t usedCoreNum = 0U;
     uint32_t bIdx = 0U;
-    uint32_t s1Idx = 0U;  // for flash-decode
+    uint32_t s1Idx = 0U;
 
     uint32_t mmResUbSize = 0U;
 
@@ -358,7 +358,7 @@ protected:
     uint32_t actualLenDims = 0U;
     uint32_t gMax = 128U;
 
-    uint32_t tndSgBasicSize;  // TND格式，cube M轴的tiling大小
+    uint32_t tndSgBasicSize; // TND格式，cube M轴的tiling大小
     // TND分核信息
     uint32_t bEnd = 0U;
     static constexpr uint32_t n2End = 0U;
@@ -405,7 +405,7 @@ protected:
 
     template <typename T> __aicore__ inline T Align(T num, T rnd)
     {
-        return (((rnd) == 0) ? 0 : (((num) + (rnd)-1) / (rnd) * (rnd)));
+        return (((rnd) == 0) ? 0 : (((num) + (rnd) - 1) / (rnd) * (rnd)));
     }
 
     template <typename T> __aicore__ inline size_t BlockAlign(size_t s)
@@ -1926,7 +1926,7 @@ __aicore__ inline void IncreFlashAttentionAttenPreloadMla<IFAT>::SoftmaxFlashV2C
         inMaxTensor = softmaxMaxDefaultUb;
         inSumTensor = softmaxSumDefaultUb;
     } else {
-        uint32_t inIdx = (info.loop -1) % (PRE_LOAD_NUM_MLA);
+        uint32_t inIdx = (info.loop - 1) % (PRE_LOAD_NUM_MLA);
         inMaxTensor = softmaxMaxUb[inIdx * BUFFER_SIZE_BYTE_2K / sizeof(T) + baseOffset];
         inSumTensor = softmaxSumUb[inIdx * BUFFER_SIZE_BYTE_2K / sizeof(T) + baseOffset];
     }
@@ -2216,15 +2216,6 @@ __aicore__ inline void
 IncreFlashAttentionAttenPreloadMla<IFAT>::Bmm2DataCopyOutNBSDMTiling(LocalTensor<OUT_T> &attenOutUb,
     const TransposeInfo& transInfo)
 {
-    /*
-    attenOutUb: gCount(S1G)*D，gCount是两个vec和M轴切分的结果
-    uint32_t s1StartIdx = info.s1Idx * s1SizeSub + (mSizeVStart + startRow) / info.gSize;
-    uint32_t s1EndIdx = info.s1Idx * s1SizeSub + (mSizeVStart + startRow + dealRowCount - 1) / info.gSize;
-    uint32_t s1Count = s1EndIdx - s1StartIdx + 1;
-    uint32_t gStartIdx = (mSizeVStart + startRow) % gSize;
-    uint32_t gEndIdx = (mSizeVStart + startRow + dealRowCount - 1) % gSize;
-    uint32_t gCount = dealRowCount;
-    */
     uint32_t tSize = batchSize * qSeqSize;
     uint32_t tBase = transInfo.bIdx * qSeqSize;
     if (LAYOUT_T == LAYOUT::TND) {
@@ -3388,9 +3379,9 @@ __aicore__ inline void IncreFlashAttentionAttenPreloadMla<IFAT>::Process()
     }
 
     if constexpr (FLASH_DECODE) {
+        // 多核同步
         SyncAll();
         if ASCEND_IS_AIV {
-            // 多核同步
             FlashDecodeCompute();
         }
     }

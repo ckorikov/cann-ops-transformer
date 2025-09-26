@@ -135,7 +135,7 @@ public:
     using ANTIQ_PARAMS_T = typename AscendC::Conditional<ANTIQUANT_PER_TOKEN, T, Q_T>::type;
     // define pse datetype
     using pseShiftType = typename AscendC::Conditional<AscendC::IsSameType<Q_T, int8_t>::value, half, Q_T>::type;
-    // 后接量化的条件需要重新审视
+
     static constexpr bool POST_QUANT = IsSameType<OUT_T, int8_t>::value;
     using MM_OUT_T = typename AscendC::Conditional<(ANTIQUANT_PRE || QUANT), int32_t, T>::type;
 
@@ -242,15 +242,15 @@ protected:
     GlobalTensor<bfloat16_t> quantScale2Bf16Gm;
     GlobalTensor<bfloat16_t> quantOffset2Bf16Gm;
     // workspace
-    GlobalTensor<Q_T> prefixQueryPreProcessResGm; // no
+    GlobalTensor<Q_T> prefixQueryPreProcessResGm;
     GlobalTensor<KV_T> queryPreProcessResGm;
     GlobalTensor<MM_OUT_T> mm1ResGm;
     GlobalTensor<KV_T> vec1ResGm;
     GlobalTensor<MM_OUT_T> mm2ResGm;
     GlobalTensor<T> vec2ResGm;
-    GlobalTensor<T> accumOutGm; // no
-    GlobalTensor<T> lseSumFdGm; // no
-    GlobalTensor<T> lseMaxFdGm; // no
+    GlobalTensor<T> accumOutGm;
+    GlobalTensor<T> lseSumFdGm;
+    GlobalTensor<T> lseMaxFdGm;
 
     GlobalTensor<uint32_t> bmm1CallBackDataGm;
     GlobalTensor<uint32_t> bmm2CallBackDataGm;
@@ -468,7 +468,6 @@ protected:
     float quantOffset2Value = 0;
     bool isQuantOffset2Exist = false;
     uint64_t perChannelQuantOffset = 0ULL;
-    /////////////////////////////////////////////////////////zzzzzzzzzzzzz
 
     // 记录当前轮的bIdx nIdx s2Idx actualLen
     uint32_t curBIdx = 0;
@@ -493,14 +492,12 @@ protected:
     __aicore__ inline void CopyInMm1BToL1(LocalTensor<KV_T>& bL1Tensor, ExtraInfo& info, uint32_t nCopyIdx, uint32_t nCopyRowCount, uint32_t nActCopyRowCount, uint32_t nActCopyRowCountAlign);
     __aicore__ inline void CopyInMm1BToL1ForPA(LocalTensor<KV_T>& bL1Tensor, uint64_t keyGmBaseOffset, uint32_t copyTotalRowCnt, uint32_t copyStartRowCnt, uint32_t nActCopyRowCount);
     __aicore__ inline void LoadDataMm1A(LocalTensor<KV_T>& aL0Tensor, LocalTensor<KV_T>& aL1Tensor);
-    __aicore__ inline void LoadDataMm1B(LocalTensor<KV_T>& bL0Tensor, LocalTensor<KV_T>& bL1Tensor);
 
     __aicore__ inline void CopyInMm2AToL1(LocalTensor<KV_T>& aL1Tensor, ExtraInfo& info, uint32_t kCopyIdx, uint32_t kCopyRowCount, uint32_t kActCopyRowCount);
     __aicore__ inline void CopyInMm2BToL1(LocalTensor<KV_T>& bL1Tensor, ExtraInfo& info, uint32_t kCopyIdx, uint32_t kCopyRowCount, uint32_t kActCopyRowCount);
     __aicore__ inline void CopyInMm2BToL1ForPA(LocalTensor<KV_T>& bL1Tensor, uint64_t valueGmBaseOffset, uint32_t copyTotalRowCnt, uint32_t copyStartRowCnt, uint32_t kActCopyRowCount);
     __aicore__ inline void LoadDataMm2A(LocalTensor<KV_T> aL0Tensor, LocalTensor<KV_T> aL1Tensor, uint32_t kSize);
     __aicore__ inline void LoadDataMm2B(LocalTensor<KV_T>& bL0Tensor, LocalTensor<KV_T>& bL1Tensor);
-    /////////////////////////////////////////////////////////
 
     bool curActSeqLenIsZero = false;
     // PA
@@ -508,7 +505,7 @@ protected:
 
     template <typename T> __aicore__ inline T Align(T num, T rnd)
     {
-        return (((rnd) == 0) ? 0 : (((num) + (rnd)-1) / (rnd) * (rnd)));
+        return (((rnd) == 0) ? 0 : (((num) + (rnd) - 1) / (rnd) * (rnd)));
     }
     __aicore__ inline void InitTilingData();
     __aicore__ inline void InitBuffers();
@@ -582,7 +579,6 @@ protected:
                                                      uint32_t startRow, uint32_t dealRowCount, uint32_t columnCount,
                                                      uint32_t actualColumnCount);
     __aicore__ inline void ProcessVec1Inner(uint32_t loop);
-    __aicore__ inline void PreProcessVec1(uint32_t sInnerLoopIdx);
     __aicore__ inline void PostProcessVec1();
 
     __aicore__ inline void DealBmm2ResBaseBlock(const uint32_t loop, uint32_t startRow, uint32_t dealRowCount,
@@ -1545,7 +1541,8 @@ __aicore__ inline void IncreFlashAttentionAttenPreload<IFAT>::CopyAntiquantScale
 
 template <typename IFAT>
 __aicore__ inline void IncreFlashAttentionAttenPreload<IFAT>::CopyAntiquantParamsPerTokenHead(
-    GlobalTensor<ANTIQ_PARAMS_T> srcGm, uint64_t offset, uint32_t columnCount) {
+    GlobalTensor<ANTIQ_PARAMS_T> srcGm, uint64_t offset, uint32_t columnCount)
+{
     LocalTensor<ANTIQ_PARAMS_T> dstUb = inputQue1.AllocTensor<ANTIQ_PARAMS_T>();
     DataCopy(dstUb, srcGm[offset], columnCount);
     inputQue1.template EnQue(dstUb);
@@ -2195,7 +2192,7 @@ __aicore__ inline void IncreFlashAttentionAttenPreload<IFAT>::SoftmaxFlashV2Comp
         inMaxTensor = softmaxMaxDefaultUb;
         inSumTensor = softmaxSumDefaultUb;
     } else {
-        uint32_t inIdx = (loop -1) % (PRE_LOAD_NUM);
+        uint32_t inIdx = (loop - 1) % (PRE_LOAD_NUM);
         inMaxTensor = softmaxMaxUb[inIdx][baseOffset];
         inSumTensor = softmaxSumUb[inIdx][baseOffset];
     }
@@ -2599,11 +2596,6 @@ __aicore__ inline void IncreFlashAttentionAttenPreload<IFAT>::DealAntiqBmm1ResBa
         startRow, dealRowCount, columnCount, actualColumnCount);
 }
 
-template <typename IFAT>
-__aicore__ inline void IncreFlashAttentionAttenPreload<IFAT>::PreProcessVec1(uint32_t sInnerLoopIdx)
-{
-}
-
 template <typename IFAT> __aicore__ inline void IncreFlashAttentionAttenPreload<IFAT>::PostProcessVec1()
 {
     if constexpr (ANTIQUANT_PRE && ANTIQUANT_PER_TOKEN) {
@@ -2831,8 +2823,6 @@ IncreFlashAttentionAttenPreload<IFAT>::DealAntiqBmm2ResBaseBlock(uint32_t loop, 
     AntiquantMatmulResCombine(bmm2ResUb, mm2ResGm[srcGmOffset], startRow, dealRowCount, columnCount, actualColumnCount);
 
     uint32_t vec2ComputeSize = dealRowCount * columnCount;
-    
-
     size_t batchBase = 0;
     if constexpr (SHARED_PREFIX_PRE) {
         if (calcSysPrefixFlag) {
@@ -3449,10 +3439,6 @@ __aicore__ inline void IncreFlashAttentionAttenPreload<IFAT>::LoadDataMm1A(Local
 }
 
 template <typename IFAT>
-__aicore__ inline void IncreFlashAttentionAttenPreload<IFAT>::LoadDataMm1B(LocalTensor<KV_T>& bL0Tensor, LocalTensor<KV_T>& bL1Tensor) {
-}
-
-template <typename IFAT>
 __aicore__ inline void IncreFlashAttentionAttenPreload<IFAT>::ComputeMm1(uint32_t loop) {
     ExtraInfo& info = extraInfo[loop % (PRE_LOAD_NUM)];
     gSize = gSizeCube;
@@ -3536,7 +3522,7 @@ __aicore__ inline void IncreFlashAttentionAttenPreload<IFAT>::ComputeMm1(uint32_
 #ifdef L1_LAYOUT_zN
                 loadData2DParamsForB.repeatTimes = actualBaseN / 16;
                 uint32_t loadLoopTimes = headDimAlign / blockElementCnt;
-                for(uint32_t j = 0; j < loadLoopTimes; j++){
+                for(uint32_t j = 0; j < loadLoopTimes; j++) {
                     LoadData(bL0Tensor[j * actualBaseN * blockElementCnt],
                         bL1Tensor[(i * baseN + j * nActCopyRowCountAlign) * blockElementCnt], loadData2DParamsForB);
                 }
@@ -3548,7 +3534,7 @@ __aicore__ inline void IncreFlashAttentionAttenPreload<IFAT>::ComputeMm1(uint32_
                 l0bBufferManager.DeQue();
                 MmadParams mmadParams;
                 mmadParams.m = msdPreIterNum * gSize;
-                if (mmadParams.m == 1) {  //m等于1会默认开GEMV模式，文档上没有写怎么关闭GEMV，所以规避当作矩阵计算
+                if (mmadParams.m == 1) { //m等于1会默认开GEMV模式，且不可关闭GEMV，所以规避当作矩阵计算
                     mmadParams.m = 16;
                 }
                 mmadParams.n = actualBaseN; // 无效数据不参与计算
@@ -3619,7 +3605,7 @@ __aicore__ inline void IncreFlashAttentionAttenPreload<IFAT>::CopyInMm2AToL1(Loc
     uint32_t copyStrideL1 = 16 * kActCopyRowCount;
     uint32_t copyStrideGm = 16 * info.actualSingleProcessSInnerSizeAlign;
     uint32_t copyIterNum = (mmRowCount + 15) / 16;
-    for(int i = 0; i < copyIterNum; i++){
+    for(int i = 0; i < copyIterNum; i++) {
         Nd2NzParams mm1Nd2NzParamsForA;
         mm1Nd2NzParamsForA.ndNum = 1; // ND矩阵的个数
         if(i == copyIterNum - 1) {
@@ -3924,7 +3910,7 @@ __aicore__ inline void IncreFlashAttentionAttenPreload<IFAT>::ComputeMm2(uint32_
                 l0bBufferManager.DeQue();
                 MmadParams mmadParams;
                 mmadParams.m = msdPreIterNum * gSize;
-                if (mmadParams.m == 1) {  //m等于1会默认开GEMV模式，文档上没有写怎么关闭GEMV，所以规避当作矩阵计算
+                if (mmadParams.m == 1) { //m等于1会默认开GEMV模式，且不可关闭GEMV，所以规避当作矩阵计算
                     mmadParams.m = 16;
                 }
                 mmadParams.n = 128;
@@ -3988,8 +3974,9 @@ __aicore__ inline void IncreFlashAttentionAttenPreload<IFAT>::ComputeMm2(uint32_
 #endif
 
 template <typename IFAT>
-__aicore__ inline bool IncreFlashAttentionAttenPreload<IFAT>::IsFinish(uint32_t loop) {
-  return (loop >= bn2s2LoopTimes);
+__aicore__ inline bool IncreFlashAttentionAttenPreload<IFAT>::IsFinish(uint32_t loop)
+{
+    return (loop >= bn2s2LoopTimes);
 }
 
 template <typename IFAT>
@@ -4082,10 +4069,10 @@ __aicore__ inline void IncreFlashAttentionAttenPreload<IFAT>::Process()
     }
     if (flashDecodeFlag) {
         if constexpr (FLASH_DECODE) {
+            // 多核同步
             SyncAll();
 
             if ASCEND_IS_AIV {
-                // 多核同步
                 FlashDecodeCompute();
             }
         }
