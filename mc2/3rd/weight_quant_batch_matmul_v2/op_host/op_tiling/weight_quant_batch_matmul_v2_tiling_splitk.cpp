@@ -171,8 +171,7 @@ ge::graphStatus WeightQuantBatchMatmulV2TilingSplitK::DoOpTiling()
 ge::graphStatus WeightQuantBatchMatmulV2TilingSplitK::InstantiateTilingData()
 {
     if (tilingData_ == nullptr) {
-        tilingData_ = std::unique_ptr<WeightQuantBatchMatmulV2TilingData>(new (std::nothrow)
-                                                                              WeightQuantBatchMatmulV2TilingData());
+        tilingData_ = std::make_unique<WeightQuantBatchMatmulV2TilingData>();
     }
     OP_TILING_CHECK(
         tilingData_ == nullptr, OP_LOGE(opName_, "failed to instantiate tilingData"),
