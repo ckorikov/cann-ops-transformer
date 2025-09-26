@@ -13,7 +13,7 @@
  * \brief
  */
 #include "error_util.h"
-#include "error/ops_error.h"
+#include "mc2_log.h"
 #include "checker.h"
 #include "graph/utils/args_format_desc_utils.h"
 #include "platform/platform_info.h"

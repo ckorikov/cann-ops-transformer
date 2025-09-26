@@ -209,7 +209,8 @@ namespace ops {
                          ConcatString("op[", op_name, "],", err_msg).c_str()); \
   } while (0)
 
-  #define OPS_REPORT_VECTOR_INNER_ERR(opName, ...) OPS_LOG_E(opName, ##__VA_ARGS__)
+#define OPS_REPORT_VECTOR_INNER_ERR(opName, ...) OPS_LOG_E(opName, ##__VA_ARGS__)
+#define OPS_REPORT_CUBE_INNER_ERR(opName, ...) OPS_LOG_E(opName, ##__VA_ARGS__)
 namespace optiling {
 #define VECTOR_INNER_ERR_REPORT_TILING(op_name, err_msg, ...)     \
   do {                                                            \
@@ -239,6 +240,8 @@ namespace optiling {
 #define VECTOR_INFER_SHAPE_INNER_ERR_REPORT(opName, err_msg)
 #define GE_ASSERT_SUCCESS(v, ...)
 #define GE_ASSERT_NOTNULL(v, ...)
+#define OPS_REPORT_VECTOR_INNER_ERR(opName, ...)
+#define OPS_REPORT_CUBE_INNER_ERR(opName, ...)
 namespace optiling {
 #define VECTOR_INNER_ERR_REPORT_TILING(opName, err_msg, ...)
 #define OP_TILING_CHECK(cond, log_func, expr)

@@ -23,7 +23,7 @@
 #include "graph/utils/args_format_desc_utils.h"
 #include "framework/common/taskdown_common.h"
 #include "op_mc2.h"
-#include "error/ops_error.h"
+#include "mc2_log.h"
 #include "platform/platform_info.h"
 #include "register/op_ct_impl_registry.h"
 #include "register/op_ext_gentask_registry.h"
