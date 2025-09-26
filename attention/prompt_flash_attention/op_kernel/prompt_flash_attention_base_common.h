@@ -18,6 +18,8 @@ constexpr int32_t S_DB_SIZE = 8192;
 constexpr int32_t TILE_256 = 256;
 constexpr int32_t TILE_512 = 512;
 
+constexpr int32_t TWO_COMMON = 2;
+
 enum class RowCalcTile {
     TAIL_TILE = 0,
     SPEC_TILE_256,
@@ -707,7 +709,7 @@ struct OnlineSoftmaxStage1<float, float, P_DTYPE, MASK_DTYPE, MaskType::MASK_TYP
         AscendC::DataCopy(
             pGm,
             pUb,
-            AscendC::DataCopyParams(m, nStride * 2 / BlockSize<int8_t>(), 0, 0)
+            AscendC::DataCopyParams(m, nStride * TWO_COMMON / BlockSize<int8_t>(), 0, 0)
         );
         AscendC::SetFlag<AscendC::HardEvent::MTE3_MTE2>((pingpongFlag));
         if (firstNIter) {

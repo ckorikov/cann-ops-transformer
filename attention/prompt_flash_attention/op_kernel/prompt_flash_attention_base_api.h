@@ -42,6 +42,29 @@ constexpr int32_t PP_NN[] = {16,  32,  48,  64,  80,  96,  112, 128,
 constexpr int32_t quantType_3 = 3;
 constexpr int32_t INT8_MAX_127 = 127;
 
+const uint32_t PARITY_CHECK_BASE_KER_BASE_API = 2;
+
+constexpr int32_t ZERO_BASE_API = 0;
+constexpr int32_t ONE_BASE_API = 1;
+constexpr int32_t TWO_BASE_API = 2;
+constexpr int32_t FOUR_BASE_API = 4;
+constexpr int32_t EIGHT_BASE_API = 8;
+constexpr int32_t SIXTEEN_BASE_API = 16;
+constexpr int32_t THIRTY_TWO_BASE_API = 32;
+constexpr int32_t SIXTY_FOUR_BASE_API = 64;
+
+constexpr int32_t HEAD_STRIDE_INVALID_BASE_API = 0;
+constexpr int32_t MASK_TYPE_NO_MASK_BASE_API = 2;
+constexpr int32_t ELEMENT_SIZE_BYTES_BASE_API = 4; 
+constexpr int32_t NO_SUB_BLOCK_BASE_API = 0;
+constexpr int32_t DEFAULT_MASK_TYPE_BASE_API = 0;
+
+constexpr int32_t MAX_WINDOW_BLOCKS_BASE_API = 3;
+constexpr int32_t MASK_OFFSET_NONE_BASE_API = 0; 
+constexpr int32_t MASK_OFFSET_1X_BASE_API = 1; 
+constexpr int32_t MASK_OFFSET_2X_BASE_API = 2; 
+constexpr int32_t MASK_OFFSET_3X_BASE_API = 3; 
+
 struct MNibd {
     int32_t mIbd;
     int32_t nIbd;
@@ -796,7 +819,7 @@ public:
 
     __aicore__ __attribute__((always_inline)) inline void __set_vcg_mask(int32_t len)
     {
-        if (len > 16 || len < 1) {
+        if (len > SIXTEEN_BASE_API || len < ONE_BASE_API) {
             AscendC::SetVectorMask<int8_t>((uint64_t)-1, (uint64_t)-1);
             return;
         }
@@ -2569,15 +2592,19 @@ __aicore__ __attribute__((always_inline)) inline void __set_mask(int32_t len)
     uint64_t mask = 0;
     uint64_t one = 1;
     uint64_t temp = len % FLOAT_VECTOR_SIZE;
-    for (int64_t i = 0; i < temp; i++) {
+    
+    for (int64_t i = 0; i < temp; i++) 
+    {
         mask |= one << i;
     }
-
-    if (len == VECTOR_SIZE || len == 0) {
+    if (len == VECTOR_SIZE || len == 0) 
+    {
        AscendC::SetVectorMask<int8_t>((uint64_t)-1, (uint64_t)-1);
-    } else if (len >= FLOAT_VECTOR_SIZE) {
+    } else if (len >= FLOAT_VECTOR_SIZE) 
+    {
        AscendC::SetVectorMask<int8_t>(mask, (uint64_t)-1);
-    } else {
+    } else 
+    {
        AscendC::SetVectorMask<int8_t>(0x0, mask);
     }
 }
@@ -2891,7 +2918,7 @@ public:
             nextProcess = process + GetBlockNum();
             if (isTriuMask) {
                 uint32_t currIter = process / GetBlockNum();
-                nextProcess = currIter % 2 == 1 ? (currIter + 1) * GetBlockNum() + GetBlockIdx() : (currIter + 2) * GetBlockNum() - 1 - GetBlockIdx();
+                nextProcess = currIter % PARITY_CHECK_BASE_KER_BASE_API == 1 ? (currIter + 1) * GetBlockNum() + GetBlockIdx() : (currIter + PARITY_CHECK_BASE_KER_BASE_API) * GetBlockNum() - 1 - GetBlockIdx();
             }
 
             if (qSeqlen == 0 || kvSeqlen == 0) {
@@ -2997,32 +3024,32 @@ public:
                         qkN = ppNScalar * sBlockStack;
                     }
 		            uint32_t deltaIdx = mIdx - nIdx;
-                    bool skipMask = windowStart > 3 && deltaIdx > 1 && deltaIdx < windowStart - 1;
+                    bool skipMask = windowStart > MAX_WINDOW_BLOCKS_BASE_API && deltaIdx > ONE_BASE_API && deltaIdx < windowStart - ONE_BASE_API;
                     if constexpr (swaCompress) {
                         maskOffset = 0;
-                        if (windowStart <= 3) {    // window < 128*3 最多跨4个基块
+                        if (windowStart <= MAX_WINDOW_BLOCKS_BASE_API) {    // window < 128*3 最多跨4个基块
                             if (mIdx < nIdx) {
                                 maskOffset = ppNScalar; // 偏移128个数, midx=0, nidx=1
                             } else {
                                 maskOffset = deltaIdx * maxSeqlen * ppMScalar;
                             }
                         } else {
-                            if (deltaIdx == 0) {
-                                maskOffset = 0;    // m = n
+                            if (deltaIdx == MASK_OFFSET_NONE_BASE_API) {
+                                maskOffset = MASK_OFFSET_NONE_BASE_API;    // m = n
                             } else if (deltaIdx == windowStart) {
-                                maskOffset = 3 * maxSeqlen * ppMScalar;
-                            } else if (deltaIdx == 1) {
+                                maskOffset = MASK_OFFSET_3X_BASE_API * maxSeqlen * ppMScalar;
+                            } else if (deltaIdx == MASK_OFFSET_1X_BASE_API) {
                                 maskOffset = maxSeqlen * ppMScalar;
-                            } else if (deltaIdx == windowStart - 1) {
-                                maskOffset = 2 * maxSeqlen * ppMScalar;
+                            } else if (deltaIdx == windowStart - MASK_OFFSET_1X_BASE_API) {
+                                maskOffset = MASK_OFFSET_2X_BASE_API * maxSeqlen * ppMScalar;
                             }   // delta idx in [2, window-1) do not move and add mask
                         }
                     }
                     qkRoundN = (qkN + BLOCK_SIZE - 1) / BLOCK_SIZE * BLOCK_SIZE;
                     if (qkN <= VECTOR_SIZE) {
-                        if (subM > 0 && maskType != 0) {
+                        if (subM > NO_SUB_BLOCK_BASE_API && maskType != DEFAULT_MASK_TYPE_BASE_API) {
                             if (alibiCoeffGm != nullptr) {
-                                if (alibiLeftAlign == 0) {
+                                if (alibiLeftAlign == ZERO_BASE_API) {
                                     if (nIdx == nEnd - 1) {
                                         maskOffset = 0;
                                         deltaUint = 0;
@@ -3040,7 +3067,7 @@ public:
                                     }
                                     delta = -baseY * nIdx;
                                 }
-                            } else if (maskType == 2 && alibiCompressOffset > 0) {
+                            } else if (maskType == MASK_TYPE_NO_MASK_BASE_API && alibiCompressOffset > ZERO_BASE_API) {
                                 if (nIdx == nEnd - 1) {
                                     maskOffset = headIdx * alibiCompressOffset * BASE_MASK_SIZE;
                                 } else {
@@ -3056,8 +3083,8 @@ public:
                                         maskGmTensor[maskOffset + subBlockIdx * qkM / 2 * maxSeqlen],
                                         AscendC::DataCopyExtParams(
                                                 subM,                   // nBurst
-                                                qkN * 2,                // lenBurst
-                                                (maxSeqlen - qkN) * 2, // srcGap
+                                                qkN * TWO_BASE_API,                // lenBurst
+                                                (maxSeqlen - qkN) * TWO_BASE_API, // srcGap
                                                 0,                        // dstGap
                                                 0),
                                         AscendC::DataCopyPadExtParams<U_T>(
@@ -3073,8 +3100,8 @@ public:
                                             maskGmTensor[maskOffset + subBlockIdx * qkM / 2 * maxSeqlen],
                                             AscendC::DataCopyExtParams(
                                                     subM,                   // nBurst
-                                                    qkN * 2,                // lenBurst
-                                                    (maxSeqlen - qkN) * 2, // srcGap
+                                                    qkN * TWO_BASE_API,                // lenBurst
+                                                    (maxSeqlen - qkN) * TWO_BASE_API, // srcGap
                                                     0,                        // dstGap
                                                     0),
                                             AscendC::DataCopyPadExtParams<U_T>(
@@ -3152,7 +3179,7 @@ public:
                                     );
                                 }
                                 AscendC::PipeBarrier<PIPE_V>();
-                                if (headStride == 0 && maskType != 2) {
+                                if (headStride == HEAD_STRIDE_INVALID_BASE_API && maskType != MASK_TYPE_NO_MASK_BASE_API) {
                                     if constexpr (!swaCompress) {
                                         AscendC::Muls<float, false>(
                                             maskUbufTensor,
@@ -3196,12 +3223,12 @@ public:
                                 AscendC::WaitFlag<AscendC::HardEvent::V_MTE2>((EVENT_ID7));
                                 AscendC::DataCopyPad(
                                     logUbufFloatTensor,
-                                    logNFloatGmTensor[mIdx * ppMScalar + (uint64_t)subBlockIdx * qkM / 2 ],
+                                    logNFloatGmTensor[mIdx * ppMScalar + (uint64_t)subBlockIdx * qkM / TWO_BASE_API],
                                     AscendC::DataCopyExtParams(
                                              1,                   // nBurst
-                                            subM * 4,                // lenBurst
+                                            subM * ELEMENT_SIZE_BYTES_BASE_API,                // lenBurst
                                             0, // srcGap byte
-                                            (roundSubM - subM) * 4,    // dstGap block
+                                            (roundSubM - subM) * ELEMENT_SIZE_BYTES_BASE_API,    // dstGap block
                                             0),
                                     AscendC::DataCopyPadExtParams<float>(
                                         false,
@@ -3261,9 +3288,9 @@ public:
                                     logNGmTensor[mIdx * ppMScalar + (uint64_t)subBlockIdx * qkM / 2 ],
                                     AscendC::DataCopyExtParams(
                                             1,                   // nBurst
-                                            subM * 2,                // lenBurst
+                                            subM * TWO_BASE_API,                // lenBurst
                                             0, // srcGap byte
-                                            (roundSubM - subM) * 2,    // dstGap block
+                                            (roundSubM - subM) * TWO_BASE_API,    // dstGap block
                                             0),
                                     AscendC::DataCopyPadExtParams<U_T>(
                                         false,
@@ -3389,7 +3416,7 @@ public:
                                         }
                                     }
                                     AscendC::SetFlag<AscendC::HardEvent::V_MTE2>((EVENT_ID1));
-                                } else if (ppNScalar == FLOAT_VECTOR_SIZE && sBlockStack == 2 && nIdx == nEnd - 2) {
+                                } else if (ppNScalar == FLOAT_VECTOR_SIZE && sBlockStack == TWO_BASE_API && nIdx == nEnd - TWO_BASE_API) {
                                     __set_mask(qkN - FLOAT_VECTOR_SIZE);
                                     AscendC::Add<float, false>(
                                         lsUbufTensor[FLOAT_VECTOR_SIZE],
@@ -3461,13 +3488,13 @@ public:
                                     0,
                                     1,
                                     1,
-                                    qkRoundN / 8
+                                    qkRoundN / EIGHT_BASE_API
                                 );
                                 AscendC::PipeBarrier<PIPE_V>();
                                 AscendC::BlockReduceMax<float, false>(
                                     lmUbufTensor,
                                     tvUbufTensor,
-                                    roundSubM * 8 / 64,
+                                    roundSubM * EIGHT_BASE_API / SIXTY_FOUR_BASE_API,
                                     0,
                                     1,
                                     1,
@@ -3666,7 +3693,7 @@ public:
                                 lpUbufTensor.ReinterpretCast<P_T>(),
                                 AscendC::DataCopyParams(
                                     1,                                            // nBurst
-                                    subM * qkRoundN * 2 / BlockSize<int8_t>(), // lenBurst
+                                    subM * qkRoundN * TWO_BASE_API / BlockSize<int8_t>(), // lenBurst
                                     0,                                  // srcGap
                                     0                                   // dstGap
                                 )
@@ -3768,7 +3795,7 @@ public:
                                 uint64_t maskOffsetTail = 0;
                                 if (alibiCoeffGm != nullptr) {
                                     maskOffset = BASE_MASK_SIZE * SOFTMAX_MAX_LENGTH;
-                                    if (alibiLeftAlign == 0) {
+                                    if (alibiLeftAlign == ZERO_BASE_API) {
                                         delta = baseY * (nIdx + 1 - mIdx);
                                     } else {
                                         delta = -baseY * nIdx;
@@ -3881,7 +3908,7 @@ public:
                                         AscendC::SetFlag<AscendC::HardEvent::V_MTE2>((EVENT_ID1));
                                         if (alibiCoeffGm != nullptr) {
                                             AscendC::PipeBarrier<PIPE_V>();
-                                            if (nIdx != nEnd - 2) {
+                                            if (nIdx != nEnd - TWO_BASE_API) {
                                                 if (isSqrt == 1) {
                                                     AscendC::Mul<float, false>(
                                                         maskUbufTensor,
@@ -4022,9 +4049,9 @@ public:
                                             logNFloatGmTensor[mIdx * ppMScalar +  (uint64_t)(subBlockIdx * qkM / 2 + splitIdx * mSlice)],
                                             AscendC::DataCopyExtParams(
                                                     1,                          // nBurst
-                                                    mSplit * 4,                // lenBurst
+                                                    mSplit * ELEMENT_SIZE_BYTES_BASE_API,                // lenBurst
                                                     0,                          // srcGap byte
-                                                    (roundMSplit - mSplit) * 4,   // dstGap block
+                                                    (roundMSplit - mSplit) * ELEMENT_SIZE_BYTES_BASE_API,   // dstGap block
                                                     0),
                                             AscendC::DataCopyPadExtParams<float>(
                                                 false,
@@ -4083,9 +4110,9 @@ public:
                                             logNGmTensor[mIdx * ppMScalar +  (uint64_t)(subBlockIdx * qkM / 2 + splitIdx * mSlice)],
                                             AscendC::DataCopyExtParams(
                                                     1,                          // nBurst
-                                                    mSplit * 2,                // lenBurst
+                                                    mSplit * TWO_BASE_API,                // lenBurst
                                                     0,                          // srcGap byte
-                                                    (roundMSplit - mSplit) * 2,   // dstGap block
+                                                    (roundMSplit - mSplit) * TWO_BASE_API,   // dstGap block
                                                     0),
                                             AscendC::DataCopyPadExtParams<U_T>(
                                                 false,
@@ -4207,7 +4234,7 @@ public:
                                                     );
                                                 }
                                             }
-                                        } else if (nIdx == nEnd - 2) {
+                                        } else if (nIdx == nEnd - TWO_BASE_API) {
                                             if (qkN - ppNScalar < FLOAT_VECTOR_SIZE){
                                                 __set_mask(qkN - ppNScalar);
                                             } else {
@@ -4247,7 +4274,7 @@ public:
                                             8
                                         );
                                          AscendC::PipeBarrier<PIPE_V>();
-                                        __set_mask(32);
+                                        __set_mask(THIRTY_TWO_BASE_API);
                                         AscendC::BlockReduceMax<float, false>(
                                             tvUbufTensor,
                                             tvUbufTensor,
@@ -4258,7 +4285,7 @@ public:
                                             4
                                         );
                                         AscendC::PipeBarrier<PIPE_V>();
-                                        __set_vcg_mask(4);
+                                        __set_vcg_mask(FOUR_BASE_API);
                                         AscendC::BlockReduceMax<float, false>(
                                             lmUbufTensor,
                                             tvUbufTensor,
@@ -4483,12 +4510,12 @@ public:
                                     AscendC::DataCopy(
                                         pGmTensor[((uint64_t)GetBlockIdx() * TMP_SIZE +
                                                     (nIdx - nStart) % vectMod * TMP_SIZE / vectMod +
-                                                    ((uint64_t)subBlockIdx * qkM / 2 + splitIdx * mSlice) *
-                                                        qkRoundN) * 2 / sizeof(P_T)],
+                                                    ((uint64_t)subBlockIdx * qkM / TWO_BASE_API + splitIdx * mSlice) *
+                                                        qkRoundN) * TWO_BASE_API / sizeof(P_T)],
                                         lpUbufTensor.ReinterpretCast<P_T>(),
                                         AscendC::DataCopyParams(
                                             mSplit,                              // nBurst
-                                            qkRoundN * 2 / BlockSize<int8_t>(), // lenBurst
+                                            qkRoundN * TWO_BASE_API / BlockSize<int8_t>(), // lenBurst
                                             0,                                  // srcGap
                                             0                                   // dstGap
                                         )
@@ -4722,13 +4749,13 @@ public:
                             AscendC::SetFlag<AscendC::HardEvent::V_MTE3>((EVENT_ID0));
                             AscendC::WaitFlag<AscendC::HardEvent::V_MTE3>((EVENT_ID0));
                             AscendC::DataCopyPad(
-                                oGmTensor[oOffset + (uint64_t)subBlockIdx * qkM / 2 * strideQo],
+                                oGmTensor[oOffset + (uint64_t)subBlockIdx * qkM / TWO_BASE_API * strideQo],
                                 goUbufTensor.ReinterpretCast<O_T>(),
                                 AscendC::DataCopyExtParams(
                                     subM,                 // nBurst
-                                    __k * 2,               // lenBurst
+                                    __k * TWO_BASE_API,               // lenBurst
                                     0,
-                                    (strideQo - __k) * 2,
+                                    (strideQo - __k) * TWO_BASE_API,
                                     0
                                 )
                             );

@@ -17,6 +17,12 @@
 
 #include "../../pfa_policy_data.h"
 
+constexpr int32_t ZERO_CUBE_RIGHT = 0;
+constexpr int32_t ONE_CUBE_RIGHT = 1;
+constexpr int32_t EIGHT_CUBE_RIGHT = 8;
+constexpr int32_t SIXTEEN_CUBE_RIGHT = 16;
+constexpr int32_t THIRTY_TWO_CUBE_RIGHT = 32;
+
 namespace AscendC {
 namespace Impl {
 namespace Detail {
@@ -40,16 +46,16 @@ public:
     {
         if constexpr (IsSameType<SrcT, int8_t>::value || IsSameType<SrcT, fp8_e5m2_t>::value || 
             IsSameType<SrcT, fp8_e4m3fn_t>::value || IsSameType<SrcT, hifloat8_t>::value) {
-            alignNum_ = 32; // 此处对齐方式需要与matmul中L1到L0A/B逻辑保持一致,matmul中tileHeight参数在转置时按照16对齐,非转置时按照c0size对齐.
+            alignNum_ = THIRTY_TWO_CUBE_RIGHT; // 此处对齐方式需要与matmul中L1到L0A/B逻辑保持一致,matmul中tileHeight参数在转置时按照16对齐,非转置时按照c0size对齐.
         } else if constexpr (IsSameType<SrcT, float>::value) {
-            alignNum_ = 8; // float32类型，32B对齐需要有8个数
+            alignNum_ = EIGHT_CUBE_RIGHT; // float32类型，32B对齐需要有8个数
         } else {
-            alignNum_ = 16; // FP16, BF16
+            alignNum_ = SIXTEEN_CUBE_RIGHT; // FP16, BF16
         }
-        nd2nzParams_.ndNum = 1;
-        nd2nzParams_.srcNdMatrixStride = 0;
-        nd2nzParams_.dstNzNStride = 1;
-        nd2nzParams_.dstNzMatrixStride = 1;
+        nd2nzParams_.ndNum = ONE_CUBE_RIGHT;
+        nd2nzParams_.srcNdMatrixStride = ZERO_CUBE_RIGHT;
+        nd2nzParams_.dstNzNStride = ONE_CUBE_RIGHT;
+        nd2nzParams_.dstNzMatrixStride = ONE_CUBE_RIGHT;
     }
 
     __aicore__ inline void SetSplitCount(int32_t totalRow, int32_t totalCol)
