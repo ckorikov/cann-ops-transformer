@@ -472,9 +472,9 @@ NsaCompressAttentionS1s2Bn2gs1SameAB<layOutType, hasAtten, hasTopkMask, INPUT_T,
     event_t eventIdVToMte2 = static_cast<event_t>(GetTPipePtr()->AllocEventID<HardEvent::V_MTE2>());
     event_t eventIdVToMte3 = static_cast<event_t>(GetTPipePtr()->AllocEventID<HardEvent::V_MTE3>());
 
-    SetFlag<HardEvent::V_MTE2>(eventIdVToMte2);
-    SetFlag<HardEvent::MTE3_V>(eventIdMte3ToV);
-    SetFlag<HardEvent::MTE3_V>(eventIdMte3ToV1);
+    AscendC::SetFlag<HardEvent::V_MTE2>(eventIdVToMte2);
+    AscendC::SetFlag<HardEvent::MTE3_V>(eventIdMte3ToV);
+    AscendC::SetFlag<HardEvent::MTE3_V>(eventIdMte3ToV1);
     // 外循环：[0, s1RealSize]
     // 内循环：[0, Ceil(g, vecMaxG)]
     for (int32_t s1LoopIdx = 0; s1LoopIdx < extraInfo.s1RealSize; ++s1LoopIdx) {
@@ -483,20 +483,20 @@ NsaCompressAttentionS1s2Bn2gs1SameAB<layOutType, hasAtten, hasTopkMask, INPUT_T,
             if (gLoopIdx == extraInfo.vec1LoopCountG - 1) {
                 extraInfo.vec1S1RealSize = this->gSize - gLoopIdx * extraInfo.vec1MaxG;
             }
-            WaitFlag<HardEvent::V_MTE2>(eventIdVToMte2);
+            AscendC::WaitFlag<HardEvent::V_MTE2>(eventIdVToMte2);
             this->GetBmm1Result(extraInfo, mm1ResultLocal, s1LoopIdx, gLoopIdx);
             this->CopyInAttenMask(extraInfo, attenMaskLocal, s1LoopIdx);
 
             //正向Wait
-            SetFlag<HardEvent::MTE2_V>(eventIdMte2ToV);
-            WaitFlag<HardEvent::MTE2_V>(eventIdMte2ToV);
+            AscendC::SetFlag<HardEvent::MTE2_V>(eventIdMte2ToV);
+            AscendC::WaitFlag<HardEvent::MTE2_V>(eventIdMte2ToV);
 
             // scale
             Muls(mm1ResultLocal, mm1ResultLocal, static_cast<T>(this->tilingData->inputParams.scaleValue),
                 extraInfo.vec1S1RealSize * extraInfo.s2RealSizeAlign32);
             AscendC::PipeBarrier<PIPE_V>();
 
-            WaitFlag<HardEvent::MTE3_V>(eventIdMte3ToV);
+            AscendC::WaitFlag<HardEvent::MTE3_V>(eventIdMte3ToV);
             if constexpr (hasAtten == true) {
                 // SelectWithBytesMask
                 AscendC::SelectWithBytesMaskShapeInfo selectShapeInfo;
@@ -507,36 +507,36 @@ NsaCompressAttentionS1s2Bn2gs1SameAB<layOutType, hasAtten, hasTopkMask, INPUT_T,
                 AscendC::PipeBarrier<PIPE_V>();
             }
 
-            WaitFlag<HardEvent::MTE3_V>(eventIdMte3ToV1);
+            AscendC::WaitFlag<HardEvent::MTE3_V>(eventIdMte3ToV1);
             SoftMaxShapeInfo srcShape = {(uint32_t)extraInfo.vec1S1RealSize, (uint32_t)extraInfo.s2RealSizeAlign32, (uint32_t)extraInfo.vec1S1RealSize, (uint32_t)extraInfo.s2RealSize};
             AscendC::SoftMax<T>(softMaxResultLocal, softMaxSumLocal, softMaxMaxLocal, mm1ResultLocal, softmaxTmpLocal, this->softmaxtiling, srcShape);
-            SetFlag<HardEvent::V_MTE2>(eventIdVToMte2);
+            AscendC::SetFlag<HardEvent::V_MTE2>(eventIdVToMte2);
 
             //正向Wait
-            SetFlag<HardEvent::V_MTE3>(eventIdVToMte3);
-            WaitFlag<HardEvent::V_MTE3>(eventIdVToMte3);
+            AscendC::SetFlag<HardEvent::V_MTE3>(eventIdVToMte3);
+            AscendC::WaitFlag<HardEvent::V_MTE3>(eventIdVToMte3);
 
             AscendC::PipeBarrier<PIPE_V>();
             DataCopyPad(this->mm1Res[extraInfo.taskIdMod2][(extraInfo.vecCoreOffset + s1LoopIdx * this->gSize + gLoopIdx * extraInfo.vec1MaxG) * extraInfo.s2RealSize], softMaxResultLocal, {(uint16_t)extraInfo.vec1S1RealSize, (uint32_t)(extraInfo.s2RealSize * sizeof(float)), (uint32_t)(extraInfo.s2RealSizeAlign32 - extraInfo.s2RealSize) / 8, 0, 0});
             DataCopyPad(softmaxSumGm[extraInfo.softmaxMaxOffset + (gLoopIdx * extraInfo.vec1MaxG * extraInfo.s1Size + s1LoopIdx) * 8], softMaxSumLocal, {(uint16_t)extraInfo.vec1S1RealSize, (uint32_t)(8 * sizeof(float)), 0, (uint32_t)((extraInfo.s1Size - 1) * 8 * sizeof(float)), 0});
             DataCopyPad(softmaxMaxGm[extraInfo.softmaxMaxOffset + (gLoopIdx * extraInfo.vec1MaxG * extraInfo.s1Size + s1LoopIdx) * 8], softMaxMaxLocal, {(uint16_t)extraInfo.vec1S1RealSize, (uint32_t)(8 * sizeof(float)), 0, (uint32_t)((extraInfo.s1Size - 1) * 8 * sizeof(float)), 0});
-            SetFlag<HardEvent::MTE3_V>(eventIdMte3ToV1);
+            AscendC::SetFlag<HardEvent::MTE3_V>(eventIdMte3ToV1);
 
             Cast(castTmpLocal, softMaxResultLocal, RoundMode::CAST_RINT, extraInfo.vec1S1RealSize * extraInfo.s2RealSizeAlign32);
             AscendC::PipeBarrier<PIPE_V>();
 
             // bf16 datacopy --> GM
-            SetFlag<HardEvent::V_MTE3>(eventIdVToMte3);
-            WaitFlag<HardEvent::V_MTE3>(eventIdVToMte3);
+            AscendC::SetFlag<HardEvent::V_MTE3>(eventIdVToMte3);
+            AscendC::WaitFlag<HardEvent::V_MTE3>(eventIdVToMte3);
             DataCopy(
                 this->stage1Res[(extraInfo.vecCoreOffset + s1LoopIdx * this->gSize + gLoopIdx * extraInfo.vec1MaxG) * extraInfo.s2RealSizeAlign32],
                 castTmpLocal, extraInfo.vec1S1RealSize * extraInfo.s2RealSizeAlign32);
-            SetFlag<HardEvent::MTE3_V>(eventIdMte3ToV);
+            AscendC::SetFlag<HardEvent::MTE3_V>(eventIdMte3ToV);
         }
     }
-    WaitFlag<HardEvent::V_MTE2>(eventIdVToMte2);
-    WaitFlag<HardEvent::MTE3_V>(eventIdMte3ToV);
-    WaitFlag<HardEvent::MTE3_V>(eventIdMte3ToV1);
+    AscendC::WaitFlag<HardEvent::V_MTE2>(eventIdVToMte2);
+    AscendC::WaitFlag<HardEvent::MTE3_V>(eventIdMte3ToV);
+    AscendC::WaitFlag<HardEvent::MTE3_V>(eventIdMte3ToV1);
 
     GetTPipePtr()->ReleaseEventID<HardEvent::MTE2_V>(eventIdMte2ToV);
     GetTPipePtr()->ReleaseEventID<HardEvent::MTE3_V>(eventIdMte3ToV);
@@ -576,9 +576,9 @@ NsaCompressAttentionS1s2Bn2gs1SameAB<layOutType, hasAtten, hasTopkMask, INPUT_T,
     TransposeTilingCompute(transposeInfoForward, this->vecS1BaseSize * this->gSize, this->s2Length);
     TransposeTilingCompute(transposeInfoBackward, this->s2Aligned64B, this->vecS1BaseSize * this->gSize);
 
-    SetFlag<HardEvent::V_MTE2>(eventIdVToMte2);
-    SetFlag<HardEvent::MTE3_V>(eventIdMte3ToVMask);
-    SetFlag<HardEvent::MTE3_V>(eventIdMte3ToV);
+    AscendC::SetFlag<HardEvent::V_MTE2>(eventIdVToMte2);
+    AscendC::SetFlag<HardEvent::MTE3_V>(eventIdMte3ToVMask);
+    AscendC::SetFlag<HardEvent::MTE3_V>(eventIdMte3ToV);
     // [0, s2] loop 
     for (int64_t loopIdx = 0; loopIdx < this->s2Loop; ++loopIdx) {
         // s2 last loop adapt
@@ -593,7 +593,7 @@ NsaCompressAttentionS1s2Bn2gs1SameAB<layOutType, hasAtten, hasTopkMask, INPUT_T,
         }
 
         // CopyInSoftmaxRes
-        WaitFlag<HardEvent::V_MTE2>(eventIdVToMte2);
+        AscendC::WaitFlag<HardEvent::V_MTE2>(eventIdVToMte2);
         uint64_t s2Offset = isInfo.outerLoop * isInfo.isM * loopIdx;
         if (loopIdx >= 1) {
             s2Offset -= innerLoop - isInfo.isM;
@@ -623,7 +623,7 @@ NsaCompressAttentionS1s2Bn2gs1SameAB<layOutType, hasAtten, hasTopkMask, INPUT_T,
         AscendC::DataCopyPad(softmaxRes, this->mm1Res[extraInfo.taskIdMod2][extraInfo.vecCoreOffset * extraInfo.s2RealSize + s2Offset], params, extParams);
 
         // CopyInTopKMask
-        SetFlag<HardEvent::MTE2_V>(eventIdMte2ToV);
+        AscendC::SetFlag<HardEvent::MTE2_V>(eventIdMte2ToV);
         if constexpr (hasTopkMask == true) {
             uint64_t maskOffset = isInfo.outerLoop * loopIdx;
             uint64_t maskGmOffset = (extraInfo.s1oIdx * this->cubeS1BaseSize + extraInfo.vecCoreOffset / this->gSize)
@@ -647,11 +647,11 @@ NsaCompressAttentionS1s2Bn2gs1SameAB<layOutType, hasAtten, hasTopkMask, INPUT_T,
         }
 
         // CalcImportanceScore
-        SetFlag<HardEvent::MTE2_V>(eventIdMte2ToVMask);
-        WaitFlag<HardEvent::MTE2_V>(eventIdMte2ToV);
+        AscendC::SetFlag<HardEvent::MTE2_V>(eventIdMte2ToVMask);
+        AscendC::WaitFlag<HardEvent::MTE2_V>(eventIdMte2ToV);
         AscendC::ConfusionTranspose<float>(trans, softmaxRes, sharedBuf,
             AscendC::TransposeType::TRANSPOSE_ND2ND_ONLY, transposeInfoForward);
-        pipe_barrier(PIPE_V);
+        AscendC::PipeBarrier<PIPE_V>();
 
         int64_t lineOffset = innerLoop - isInfo.isM;
         if (loopIdx == 0) {
@@ -665,7 +665,7 @@ NsaCompressAttentionS1s2Bn2gs1SameAB<layOutType, hasAtten, hasTopkMask, INPUT_T,
             int64_t dstOffset = (scoreLoop * isInfo.isM + lineOffset ) * vS1MulsGsize;
             uint64_t unalignedLen = (s2Offset + scoreLoop * isInfo.isM + lineOffset - extraInfo.s2RealSize) * vS1MulsGsize;
             Duplicate(trans[dstOffset - unalignedLen], (float)0.0, unalignedLen + vS1MulsGsize);
-            pipe_barrier(PIPE_V);
+            AscendC::PipeBarrier<PIPE_V>();
         }
 
         DataCopyParams dataCopyParamsTrans;
@@ -691,20 +691,20 @@ NsaCompressAttentionS1s2Bn2gs1SameAB<layOutType, hasAtten, hasTopkMask, INPUT_T,
                 trans[transOffset], static_cast<float>(times),
                 static_cast<int32_t>(vS1MulsGsize),
                 scoreLoop - scoreIdx, {1, 1, 8, srcStride});
-            pipe_barrier(PIPE_V);
+            AscendC::PipeBarrier<PIPE_V>();
             Add(scoreRes[scoreIdx * vS1MulsGsize], 
                 scoreRes[scoreIdx * vS1MulsGsize + ubOffset], 
                 scoreRes[scoreIdx * vS1MulsGsize], 
                 static_cast<int32_t>(vS1MulsGsize),
                 scoreLoop - scoreIdx, {1, 1, 1, 8, 8, 8});
-            pipe_barrier(PIPE_V);
+            AscendC::PipeBarrier<PIPE_V>();
         }
 
-        pipe_barrier(PIPE_V);
-        WaitFlag<HardEvent::MTE3_V>(eventIdMte3ToV);
+        AscendC::PipeBarrier<PIPE_V>();
+        AscendC::WaitFlag<HardEvent::MTE3_V>(eventIdMte3ToV);
         AscendC::ConfusionTranspose<float>(transBack, scoreRes, sharedBuf,
             AscendC::TransposeType::TRANSPOSE_ND2ND_ONLY, transposeInfoBackward);
-        SetFlag<HardEvent::V_MTE2>(eventIdVToMte2);
+        AscendC::SetFlag<HardEvent::V_MTE2>(eventIdVToMte2);
         // reduce g [s1g, outerLoop(s2ScoreLoopLen)]
         if (this->gSize > 1) {
             DataCopyParams dataCopyParamsReduce;
@@ -738,8 +738,8 @@ NsaCompressAttentionS1s2Bn2gs1SameAB<layOutType, hasAtten, hasTopkMask, INPUT_T,
             }
             DataCopy(transBack, transBack, dataCopyParamsReduce);
         }
-        WaitFlag<HardEvent::MTE2_V>(eventIdMte2ToVMask);
-        WaitFlag<HardEvent::MTE3_V>(eventIdMte3ToVMask);
+        AscendC::WaitFlag<HardEvent::MTE2_V>(eventIdMte2ToVMask);
+        AscendC::WaitFlag<HardEvent::MTE3_V>(eventIdMte3ToVMask);
         if constexpr (hasTopkMask == true) {
             AscendC::SelectWithBytesMaskShapeInfo selectShapeInfo;
             selectShapeInfo.firstAxis = this->vecS1BaseSize;
@@ -748,8 +748,8 @@ NsaCompressAttentionS1s2Bn2gs1SameAB<layOutType, hasAtten, hasTopkMask, INPUT_T,
             AscendC::SelectWithBytesMask(transBack, transBack, this->positiveFloatScalar,
                                         maskTensor, tmpBuf, selectShapeInfo);
         }
-        SetFlag<HardEvent::V_MTE3>(eventIdVToMte3);
-        WaitFlag<HardEvent::V_MTE3>(eventIdVToMte3);
+        AscendC::SetFlag<HardEvent::V_MTE3>(eventIdVToMte3);
+        AscendC::WaitFlag<HardEvent::V_MTE3>(eventIdVToMte3);
 
         // CopyOutImportanceScore
         uint64_t s2OutOffset = isInfo.outerLoop * loopIdx;
@@ -768,13 +768,13 @@ NsaCompressAttentionS1s2Bn2gs1SameAB<layOutType, hasAtten, hasTopkMask, INPUT_T,
         };
         DataCopyPad(this->impScoreRes[extraInfo.taskIdMod2][(extraInfo.vecCoreOffset / this->gSize) * CeilDiv(extraInfo.s2RealSize, isInfo.isM) + s2OutOffset], transBack, copyOutParams);
 
-        SetFlag<HardEvent::MTE3_V>(eventIdMte3ToV);
-        SetFlag<HardEvent::MTE3_V>(eventIdMte3ToVMask);
+        AscendC::SetFlag<HardEvent::MTE3_V>(eventIdMte3ToV);
+        AscendC::SetFlag<HardEvent::MTE3_V>(eventIdMte3ToVMask);
     }
 
-    WaitFlag<HardEvent::MTE3_V>(eventIdMte3ToV);
-    WaitFlag<HardEvent::V_MTE2>(eventIdVToMte2);
-    WaitFlag<HardEvent::MTE3_V>(eventIdMte3ToVMask);
+    AscendC::WaitFlag<HardEvent::MTE3_V>(eventIdMte3ToV);
+    AscendC::WaitFlag<HardEvent::V_MTE2>(eventIdVToMte2);
+    AscendC::WaitFlag<HardEvent::MTE3_V>(eventIdMte3ToVMask);
 
     GetTPipePtr()->ReleaseEventID<HardEvent::MTE2_V>(eventIdMte2ToV);
     GetTPipePtr()->ReleaseEventID<HardEvent::MTE3_V>(eventIdMte3ToV);
@@ -838,8 +838,8 @@ NsaCompressAttentionS1s2Bn2gs1SameAB<layOutType, hasAtten, hasTopkMask, INPUT_T,
     event_t eventIdVToMte2 = static_cast<event_t>(GetTPipePtr()->AllocEventID<HardEvent::V_MTE2>());
     event_t eventIdVToMte3 = static_cast<event_t>(GetTPipePtr()->AllocEventID<HardEvent::V_MTE3>());
 
-    SetFlag<HardEvent::V_MTE2>(eventIdVToMte2);
-    SetFlag<HardEvent::MTE3_V>(eventIdMte3ToV);
+    AscendC::SetFlag<HardEvent::V_MTE2>(eventIdVToMte2);
+    AscendC::SetFlag<HardEvent::MTE3_V>(eventIdMte3ToV);
 
     AscendC::PipeBarrier<PIPE_ALL>();
     for(uint64_t taskLoop = 0; taskLoop < topkLoopNum; taskLoop++) {
@@ -862,17 +862,17 @@ NsaCompressAttentionS1s2Bn2gs1SameAB<layOutType, hasAtten, hasTopkMask, INPUT_T,
             }
         }
 
-        SetFlag<HardEvent::V_MTE2>(eventIdVToMte2);
-        WaitFlag<HardEvent::V_MTE2>(eventIdVToMte2);
+        AscendC::SetFlag<HardEvent::V_MTE2>(eventIdVToMte2);
+        AscendC::WaitFlag<HardEvent::V_MTE2>(eventIdVToMte2);
         if (S2sizeTopK % 32 == 0){
             DataCopyPad(sorceResultLocal, this->impScoreRes[extraInfo.taskIdMod2][(extraInfo.vecCoreOffset / this->gSize) * CeilDiv(extraInfo.s2RealSize, this->tilingData->importanceScoreParams.isM) + taskLoop * topkBase * S2sizeTopK], copyInParamsV1, padParamsFloatV1);
         } else {
             DataCopyPad(sorceResultLocal, this->impScoreRes[extraInfo.taskIdMod2][(extraInfo.vecCoreOffset / this->gSize) * CeilDiv(extraInfo.s2RealSize, this->tilingData->importanceScoreParams.isM) + taskLoop * topkBase * S2sizeTopK], copyInParamsPad, padParamsFloat);
         }
 
-        SetFlag<HardEvent::MTE2_V>(eventIdMte2ToV);
-        WaitFlag<HardEvent::MTE2_V>(eventIdMte2ToV);
-        WaitFlag<HardEvent::MTE3_V>(eventIdMte3ToV);
+        AscendC::SetFlag<HardEvent::MTE2_V>(eventIdMte2ToV);
+        AscendC::WaitFlag<HardEvent::MTE2_V>(eventIdMte2ToV);
+        AscendC::WaitFlag<HardEvent::MTE3_V>(eventIdMte3ToV);
 
         AscendC::TopK<float, false, false, false, AscendC::TopKMode::TOPK_NORMAL>(
                 topKValueLocal, 
@@ -886,18 +886,18 @@ NsaCompressAttentionS1s2Bn2gs1SameAB<layOutType, hasAtten, hasTopkMask, INPUT_T,
                 topKInfoData, 
                 true);
 
-        SetFlag<HardEvent::V_MTE3>(eventIdVToMte3);
-        WaitFlag<HardEvent::V_MTE3>(eventIdVToMte3);
+        AscendC::SetFlag<HardEvent::V_MTE3>(eventIdVToMte3);
+        AscendC::WaitFlag<HardEvent::V_MTE3>(eventIdVToMte3);
 
         if(k % 8 == 0) {
             DataCopyPad(topkIndicesOutGm[TopkOutCoreOffset + taskLoop * topkBase * k], topKIdexLocal, {(uint16_t)1, (uint32_t)(topkOutNum * k * sizeof(int32_t)), 0, 0, 0});
         } else {
             DataCopyPad(topkIndicesOutGm[TopkOutCoreOffset + taskLoop * topkBase * k], topKIdexLocal, {(uint16_t)topkOutNum, (uint32_t)(k * sizeof(int32_t)), 0, 0, 0});
         }
-        SetFlag<HardEvent::MTE3_V>(eventIdMte3ToV);
+        AscendC::SetFlag<HardEvent::MTE3_V>(eventIdMte3ToV);
     }
-    WaitFlag<HardEvent::V_MTE2>(eventIdVToMte2);
-    WaitFlag<HardEvent::MTE3_V>(eventIdMte3ToV);
+    AscendC::WaitFlag<HardEvent::V_MTE2>(eventIdVToMte2);
+    AscendC::WaitFlag<HardEvent::MTE3_V>(eventIdMte3ToV);
 
     GetTPipePtr()->ReleaseEventID<HardEvent::MTE2_V>(eventIdMte2ToV);
     GetTPipePtr()->ReleaseEventID<HardEvent::MTE3_V>(eventIdMte3ToV);
