@@ -261,52 +261,6 @@ del_empty_dirs_in_latest() {
     return 0
 }
 
-# 通知管理器执行卸载相关操作
-__notify_uninstall_managers() {
-    local install_path="$1" package="$2" version="$3" version_dir="$4" docker_root="$5"
-    local latest_var="${install_path}/${LATEST_DIR}/var"
-
-    if ! notify_latest_manager_remove_softlink "${latest_var}" "${package}" \
-        "${version}" "${version_dir}" "n" "${docker_root}"; then
-        comm_log "ERROR" "${package} notify latest manager remove softlink in multi version uninstall failed! version is ${version}, version_dir is ${version_dir}."
-        return 1
-    fi
-
-    if ! notify_latest_manager_pre_uninstall "${latest_var}" "${package}" \
-        "${version}" "${version_dir}" "n" "${docker_root}"; then
-        comm_log "ERROR" "${package} notify latest manager pre uninstall in multi version uninstall failed! version is ${version}, version_dir is ${version_dir}."
-        return 1
-}
-
-# 清理空目录
-__cleanup_empty_dirs() {
-    local install_path="$1" version_dir="$2" latest_dir="$3" install_type="$4" tmp_filelist_path="$5"
-    local feature_param="$6" running_packages="$7"
-    local total_ret=0 ret
-
-    if [ "${running_packages}" = "" ]; then
-        # 删除latest下空目录
-        del_empty_dirs_in_latest "${install_type}" "${install_path}" "${latest_dir}" "${tmp_filelist_path}" "${feature_param}"
-        ret="$?" && [ $ret -ne 0 ] && total_ret="1"
-    fi
-
-    # 删除版本空目录
-    is_dir_empty "${install_path}/${version_dir}"
-    if [ $? -eq 0 ]; then
-        remove_dir_icp "${install_path}/${version_dir}"
-        ret="$?" && [ $ret -ne 0 ] && total_ret="1"
-    fi
-
-    # 删除latest空目录
-    is_dir_empty "${install_path}/${latest_dir}"
-    if [ $? -eq 0 ]; then
-        remove_dir_icp "${install_path}/${latest_dir}"
-        ret="$?" && [ $ret -ne 0 ] && total_ret="1"
-    fi
-
-    return ${total_ret}
-}
-
 # 多版本卸载流程
 multi_version_uninstall() {
     local install_type="$1"
@@ -328,7 +282,17 @@ multi_version_uninstall() {
     check_param_not_empty "usergroup" "need set usergroup parameter in multi version uninstall!"
     ret="$?" && [ ${ret} -ne 0 ] && return ${ret}
 
-    __notify_uninstall_managers "${install_path}" "${package}" "${version}" "${version_dir}" "${docker_root}"
+    if ! notify_latest_manager_remove_softlink "${install_path}/${LATEST_DIR}/var" "${package}" \
+        "${version}" "${version_dir}" "n" "${docker_root}"; then
+        comm_log "ERROR" "${package} notify latest manager remove softlink in multi version uninstall failed! version is ${version}, version_dir is ${version_dir}."
+        return 1
+    fi
+
+    if ! notify_latest_manager_pre_uninstall "${install_path}/${LATEST_DIR}/var" "${package}" \
+        "${version}" "${version_dir}" "n" "${docker_root}"; then
+        comm_log "ERROR" "${package} notify latest manager pre uninstall in multi version uninstall failed! version is ${version}, version_dir is ${version_dir}."
+        return 1
+    fi
 
     get_tmp_root "tmp_root"
     tmp_filelist_path=$(mktemp "$tmp_root/filelist_XXXXXX" || exit 1)
@@ -360,7 +324,27 @@ multi_version_uninstall() {
     fi
 
     get_running_packages "running_packages" "${install_path}/${LATEST_DIR}"
-    
-    __cleanup_empty_dirs "${install_path}" "${version_dir}" "${LATEST_DIR}" "${install_type}" "${tmp_filelist_path}" "${feature_param}" "${running_packages}"
-    return $?
+    if [ "${running_packages}" = "" ]; then
+        # 删除latest下空目录
+        del_empty_dirs_in_latest "${install_type}" "${install_path}" "${LATEST_DIR}" "${tmp_filelist_path}" "${feature_param}"
+        ret="$?" && [ $ret -ne 0 ] && total_ret="1"
+    fi
+
+    # 删除临时文件tmp_filelist_path
+    eval "${del_tmp_filelist}"
+
+    # 删除版本空目录
+    is_dir_empty "${install_path}/${version_dir}"
+    if [ $? -eq 0 ]; then
+        remove_dir_icp "${install_path}/${version_dir}"
+        ret="$?" && [ $ret -ne 0 ] && total_ret="1"
+    fi
+
+    # 删除latest空目录
+    is_dir_empty "${install_path}/${LATEST_DIR}"
+    if [ $? -eq 0 ]; then
+        remove_dir_icp "${install_path}/${LATEST_DIR}"
+        ret="$?" && [ $ret -ne 0 ] && total_ret="1"
+    fi
+    return ${total_ret}
 }
