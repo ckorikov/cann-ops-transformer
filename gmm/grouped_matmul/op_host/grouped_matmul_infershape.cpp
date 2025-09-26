@@ -1404,7 +1404,7 @@ static graphStatus isDavidQuantGMMByShape(T context) {
     DataType xDtype = xDesc->GetDataType();
     DataType weightDtype = weightDesc->GetDataType();
     if (xDtype == ge::DT_FLOAT4_E1M2 || xDtype == ge::DT_FLOAT4_E2M1 || xDtype == ge::DT_INT4) {
-        return true;
+        return GRAPH_SUCCESS;
     }
     return (GetSizeByDataType(xDtype) == 1 && GetSizeByDataType(weightDtype) == 1) ? GRAPH_SUCCESS : GRAPH_FAILED;
 }
