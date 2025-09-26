@@ -61,10 +61,10 @@ public:
           shape_b(input_shape_b),
           trans_a(*(context->GetAttrs()->GetAttrPointer<bool>(0))),
           trans_b(*(context->GetAttrs()->GetAttrPointer<bool>(1))),
-          shape_bias(context->GetOptionalInputShape(BATCH_MATMUL_FIXPIPE_BIAS_IDX)),
           num_dima(shape_a.GetDimNum()),
           num_dimb(shape_b.GetDimNum()),
-          shape_out(*(context->GetOutputShape(0)))
+          shape_out(*(context->GetOutputShape(0))),
+          shape_bias(context->GetOptionalInputShape(BATCH_MATMUL_FIXPIPE_BIAS_IDX))
     {
         num_dim = std::max(num_dima, num_dimb);
         num_dim_bias = 0;
@@ -81,19 +81,17 @@ public:
 protected:
     bool InferBatch() const;
     bool InferBias();
-
-    size_t num_dim;
-    size_t num_dima;
-    size_t num_dimb;
-    size_t num_dim_bias;
-
     const char* op_name;
     const Shape& shape_a;
     const Shape& shape_b;
     bool trans_a;
     bool trans_b;
+    size_t num_dima;
+    size_t num_dimb;
     Shape& shape_out;
     const Shape* shape_bias;
+    size_t num_dim;
+    size_t num_dim_bias;
 };
 
 static void CopyOutShapeFromInputShape(const Shape& shape_in, Shape& shape_out, int64_t valid_offset)
@@ -231,7 +229,7 @@ bool InferShapeBatchMatMul::InferShape()
             shape_a.GetDim(i) < UNKNOWN_DIM_NUM,
             CUBE_INNER_ERR_REPORT(
                 op_name,
-                "[InferShape] Invalid x1 [%ld] dimension: value %ld is less than the minimum allowed value (-2)", i,
+                "[InferShape] Invalid x1 [%zu] dimension: value %ld is less than the minimum allowed value (-2)", i,
                 shape_a.GetDim(i)),
             return false);
     }
@@ -240,7 +238,7 @@ bool InferShapeBatchMatMul::InferShape()
             shape_b.GetDim(i) < UNKNOWN_DIM_NUM,
             CUBE_INNER_ERR_REPORT(
                 op_name,
-                "[InferShape] Invalid x2 [%ld] dimension: value %ld is less than the minimum allowed value (-2)", i,
+                "[InferShape] Invalid x2 [%zu] dimension: value %ld is less than the minimum allowed value (-2)", i,
                 shape_b.GetDim(i)),
             return false);
     }
@@ -572,7 +570,7 @@ bool InferRangeBias(
         for (size_t i = 0; i < num_dim_out - 2; ++i) {
             OP_CHECK_IF(
                 !GetBatchIntersection(op_name, new_shape_range_out[i], new_shape_range_bias[i], new_shape_range_out[i]),
-                CUBE_INNER_ERR_REPORT(op_name, "[InferShapeRange] Infer bias batch range incorrect at dim[%ld].", i),
+                CUBE_INNER_ERR_REPORT(op_name, "[InferShapeRange] Infer bias batch range incorrect at dim[%zu].", i),
                 return false);
         }
     }
@@ -699,7 +697,7 @@ bool InferShapeRangeBatchMatMul::InferShapeRange()
     for (size_t i = 0; i < num_dim_out - 2; ++i) {
         OP_CHECK_IF(
             !GetBatchIntersection(op_name, new_shape_range_x1[i], new_shape_range_x2[i], new_shape_range_out[i]),
-            CUBE_INNER_ERR_REPORT(op_name, "[InferShapeRange] Infer batch range incorrect at dim[%ld].", i),
+            CUBE_INNER_ERR_REPORT(op_name, "[InferShapeRange] Infer batch range incorrect at dim[%zu].", i),
             return false);
     }
     // 推理m，输出的倒数第2维度

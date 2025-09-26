@@ -114,7 +114,7 @@ public:
         void CutAxisE(CutResult& cutRes, uint64_t maxCutNum, uint64_t minLen, double unbalanceRatio);
         void CutAxisC(uint64_t maxCutNum, uint64_t minLen, double unbalanceRatio);
         void AsignMaxCutNumForBranches(double totalBMMTime, double totalCommTime);
-        virtual bool SetShortTilePositionFlag(double totalBMMTime, double totalCommTime){return false;};
+        virtual bool SetShortTilePositionFlag([[maybe_unused]] double totalBMMTime, [[maybe_unused]] double totalCommTime){return false;};
         void TrimCutResult(CutResult& tmpCut, bool setShortFlag);
 
         // wrapper function

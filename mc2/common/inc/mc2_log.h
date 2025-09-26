@@ -86,7 +86,12 @@ struct ErrorResult {
   }
 };
 
-inline std::vector<char> CreateErrorMsg(const char *format, ...) {
+inline std::vector<char> CreateErrorMsg(const char *format, ...) 
+    __attribute__((format(printf, 1, 2)));
+
+inline std::vector<char> CreateErrorMsg();
+
+inline std::vector<char> CreateErrorMsg(const char *format, ...){
   va_list args;
   va_start(args, format);
   va_list args_copy;
@@ -154,10 +159,10 @@ inline const char *get_cstr(const std::string &str) { return str.c_str(); }
     if (!(exp)) {                                               \
       auto msg = CreateErrorMsg(__VA_ARGS__);                   \
       if (msg.empty()) {                                        \
-        REPORT_INNER_ERROR("E19999", "Assert %S failed", #exp); \
+        REPORT_INNER_ERROR("E19999", "Assert %s failed", #exp); \
         return ge::FAILED;                                      \
       } else {                                                  \
-        REPORT_INNER_ERROR("E19999", "%S", msg.data());         \
+        REPORT_INNER_ERROR("E19999", "%s", msg.data());         \
         return ge::FAILED;                                      \
       }                                                         \
       return ::ErrorResult();                                   \

@@ -234,13 +234,13 @@ static bool CheckSendCntAndRecvCnt(
     OP_TILING_CHECK(
         static_cast<int64_t>(recvSize) != epWorldSize * eOverEp,
         OP_LOGE(
-            A5_INNER_DEBUG, "The length of recvCnts[%lu] should be equal to eOverEp * epworldSize[%ld]", recvSize,
+            A5_INNER_DEBUG, "The length of recvCnts[%zu] should be equal to eOverEp * epworldSize[%ld]", recvSize,
             epWorldSize * eOverEp),
         return false);
     OP_TILING_CHECK(
         static_cast<int64_t>(sendSize) != epWorldSize * eOverEp,
         OP_LOGE(
-            A5_INNER_DEBUG, "The length of sendCnts[%lu] should be equal to eOverEp * epworldSize[%ld]", sendSize,
+            A5_INNER_DEBUG, "The length of sendCnts[%zu] should be equal to eOverEp * epworldSize[%ld]", sendSize,
             epWorldSize * eOverEp),
         return false);
 
@@ -564,24 +564,24 @@ static bool CheckDimValueIsNeedMM(const gert::TilingContext* context, AlltoAllvG
     if (tilingData.commonTilingInfo.get_isNeedMM()) {
         int64_t bs = context->GetOptionalInputShape(MM_X_INDEX)->GetStorageShape().GetDim(0);
         if ((bs <= NUM_ZERO) || (bs >= MAX_SHAPE_SIZE)) {
-            OP_LOGE(A5_INNER_DEBUG, "bs should be in (0, 52428800), but got %lu!", bs);
+            OP_LOGE(A5_INNER_DEBUG, "bs should be in (0, 52428800), but got %ld!", bs);
             return false;
         }
         int64_t h2 = context->GetOptionalInputShape(MM_X_INDEX)->GetStorageShape().GetDim(1);
         if ((h2 <= NUM_ZERO) || (h2 > MAX_SHARED_H_SHAPE_SIZE)) {
-            OP_LOGE(A5_INNER_DEBUG, "h2 should be in (0, 12288], but got %lu!", h2);
+            OP_LOGE(A5_INNER_DEBUG, "h2 should be in (0, 12288], but got %ld!", h2);
             return false;
         }
         int64_t n2 = tilingData.commonTilingInfo.get_isMmWeightTrans() ?
                           context->GetOptionalInputShape(MM_WEIGHT_INDEX)->GetStorageShape().GetDim(0) :
                           context->GetOptionalInputShape(MM_WEIGHT_INDEX)->GetStorageShape().GetDim(1);
         if ((n2 <= NUM_ZERO) || (n2 >= MAX_SHAPE_SIZE)) {
-            OP_LOGE(A5_INNER_DEBUG, "n2 should be in (0, 65536), but got %lu!", n2);
+            OP_LOGE(A5_INNER_DEBUG, "n2 should be in (0, 65536), but got %ld!", n2);
             return false;
         }
         int64_t topK = bsK / bs;
         if ((topK < NUM_TWO) || (topK > NUM_EIGHT)) {
-            OP_LOGE(A5_INNER_DEBUG, "topK should be in [2, 8], but got %lu!", topK);
+            OP_LOGE(A5_INNER_DEBUG, "topK should be in [2, 8], but got %ld!", topK);
             return false;
         }
     }
@@ -629,7 +629,7 @@ static bool CheckDimValue(const gert::TilingContext* context, AlltoAllvGroupedMa
     OP_TILING_CHECK(
         sendSize != eOverEp * tilingData.commonTilingInfo.get_epWorldSize(),
         OP_LOGE(
-            A5_INNER_DEBUG, "sendCounts size[%ld] doesnot equal to expert num[%ld]", sendSize,
+            A5_INNER_DEBUG, "sendCounts size[%zu] doesnot equal to expert num[%ld]", sendSize,
             eOverEp * tilingData.commonTilingInfo.get_epWorldSize()),
         return false);
     const int64_t* sendArray = static_cast<const int64_t*>(sendCountsPtr->GetData());
@@ -646,7 +646,7 @@ static bool CheckDimValue(const gert::TilingContext* context, AlltoAllvGroupedMa
     OP_TILING_CHECK(
         recvSize != eOverEp * tilingData.commonTilingInfo.get_epWorldSize(),
         OP_LOGE(
-            A5_INNER_DEBUG, "recvCounts size[%ld] doesnot equal to expert num[%ld]", recvSize,
+            A5_INNER_DEBUG, "recvCounts size[%zu] doesnot equal to expert num[%ld]", recvSize,
             eOverEp * tilingData.commonTilingInfo.get_epWorldSize()),
         return false);
     const int64_t* recvArray = static_cast<const int64_t*>(recvCountsPtr->GetData());
