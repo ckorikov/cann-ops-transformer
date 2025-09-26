@@ -97,21 +97,21 @@ int main()
     aclTensor* selfX = nullptr;
     void* selfXDeviceAddr = nullptr;
     std::vector<int64_t> selfXShape = {32, 4, 4, 4};
-    std::vector<float> selfXHostData(2048, 1);
+    std::vector<float> selfXHostData(2048, 1); // 2048：创建包含32*4*4*4=2048个元素的向量
     ret = CreateAclTensor(selfXHostData, selfXShape, &selfXDeviceAddr, aclDataType::ACL_FLOAT, &selfX);
     CHECK_RET(ret == ACL_SUCCESS, return ret);
 
     aclTensor* selfY = nullptr;
     void* selfYDeviceAddr = nullptr;
     std::vector<int64_t> selfYShape = {32, 4, 4, 4};
-    std::vector<float> selfYHostData(2048, 1);
+    std::vector<float> selfYHostData(2048, 1); // 2048：创建包含32*4*4*4=2048个元素的向量
     ret = CreateAclTensor(selfYHostData, selfYShape, &selfYDeviceAddr, aclDataType::ACL_FLOAT, &selfY);
     CHECK_RET(ret == ACL_SUCCESS, return ret);
 
     aclTensor* out = nullptr;
     void* outDeviceAddr = nullptr;
     std::vector<int64_t> outShape = {32, 4, 4, 4};
-    std::vector<float> outHostData(2048, 1);
+    std::vector<float> outHostData(2048, 1); // 2048：创建包含32*4*4*4=2048个元素的向量
     ret = CreateAclTensor(outHostData, outShape, &outDeviceAddr, aclDataType::ACL_FLOAT, &out);
     CHECK_RET(ret == ACL_SUCCESS, return ret);
 

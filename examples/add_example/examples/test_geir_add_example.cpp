@@ -167,8 +167,7 @@ int32_t GenOnesData(
 
 int32_t WriteDataToFile(string bin_file, uint64_t data_size, uint8_t *inputData)
 {
-    FILE *fp;
-    fp = fopen(bin_file.c_str(), "w");
+    FILE *fp = fopen(bin_file.c_str(), "w");
     fwrite(inputData, sizeof(uint8_t), data_size, fp);
     fclose(fp);
     return SUCCESS;
