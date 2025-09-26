@@ -8,10 +8,10 @@
 # ======================================================================================================================
 
 if (BUILD_OPEN_PROJECT)  # custom
-    # target_sources(op_host_aclnnInner PRIVATE
-    #     moe_distribute_combine_add_rms_norm_def.cpp
-    # )
-    # add_mc2_modules_sources(OPTYPE moe_distribute_combine_add_rms_norm moe_distribute_combine_add_rms_norm ACLNNTYPE aclnn aclnn_inner)
+    target_sources(op_host_aclnnInner PRIVATE
+        moe_distribute_combine_add_rms_norm_def.cpp
+    )
+    add_mc2_modules_sources(OPTYPE moe_distribute_combine_add_rms_norm moe_distribute_combine_add_rms_norm ACLNNTYPE aclnn aclnn_inner)
 else() # 回黄host
     add_mc2_modules_sources(OPTYPE moe_distribute_combine_add_rms_norm moe_distribute_combine_add_rms_norm ACLNNTYPE aclnn aclnn_inner) 
 endif()

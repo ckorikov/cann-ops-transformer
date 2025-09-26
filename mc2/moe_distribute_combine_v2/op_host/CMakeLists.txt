@@ -8,10 +8,10 @@
 # ======================================================================================================================
 
 if (BUILD_OPEN_PROJECT)  # custom
-    # target_sources(op_host_aclnnInner PRIVATE
-    #     moe_distribute_combine_v2_def.cpp
-    # )
-    # add_mc2_modules_sources(OPTYPE moe_distribute_combine_v2 ACLNNTYPE aclnn_inner)
+    target_sources(op_host_aclnnInner PRIVATE
+        moe_distribute_combine_v2_def.cpp
+    )
+    add_mc2_modules_sources(OPTYPE moe_distribute_combine_v2 ACLNNTYPE aclnn_inner)
 else() # 回黄host
     add_mc2_modules_sources(OPTYPE moe_distribute_combine_v2 ACLNNTYPE aclnn_inner) 
 endif()
