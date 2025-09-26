@@ -34,7 +34,10 @@ std::map<ge::DataType, aclDataType> geDtype2AclDtypeMap = {{ge::DataType::DT_FLO
                                                            {ge::DataType::DT_FLOAT8_E4M3FN, ACL_FLOAT8_E4M3FN},
                                                            {ge::DataType::DT_FLOAT8_E8M0, ACL_FLOAT8_E8M0},
                                                            {ge::DataType::DT_FLOAT8_E5M2, ACL_FLOAT8_E5M2},
-                                                           {ge::DataType::DT_HIFLOAT8, ACL_HIFLOAT8}};
+                                                           {ge::DataType::DT_HIFLOAT8, ACL_HIFLOAT8},
+                                                           {ge::DataType::DT_FLOAT4_E2M1, ACL_FLOAT4_E2M1},
+                                                           {ge::DataType::DT_FLOAT4_E1M2, ACL_FLOAT4_E1M2}
+                                                           };
 }
 
 using namespace ops::adv::tests::utils;

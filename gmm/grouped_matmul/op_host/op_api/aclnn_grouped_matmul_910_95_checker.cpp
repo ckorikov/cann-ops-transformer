@@ -143,11 +143,17 @@ aclnnStatus AclnnGroupedMatmul91095Checker<T>::CheckQuantCasesFormat() const
 }
 
 template <typename T>
-aclnnStatus AclnnGroupedMatmul91095Checker<T>::CheckGroupedMatmulMxfp8Dtype() const
+aclnnStatus AclnnGroupedMatmul91095Checker<T>::CheckGroupedMatmulMxDtype() const
 {
+    if (gmmParams_.biasOptional != nullptr) {
+       DataType biasDtype = GetInputTensor(gmmParams_.biasOptional)->GetDataType();
+       CHECK_COND(biasDtype == DataType::DT_FLOAT, ACLNN_ERR_PARAM_INVALID,
+                  "The %s dtype in mx should be FLOAT32, but actual dtype is %s.", biasName_.c_str(),
+                  op::ToString(biasDtype).GetString());
+    }
     DataType perTokenDtype = GetInputTensor(gmmParams_.perTokenScaleOptional)->GetDataType();
     CHECK_COND(perTokenDtype == DataType::DT_FLOAT8_E8M0, ACLNN_ERR_PARAM_INVALID,
-               "The %s dtype in mxfp8 should be FLOAT8_E8M0, but actual dtype is %s.", perTokenScaleName_.c_str(),
+               "The %s dtype in mx should be FLOAT8_E8M0, but actual dtype is %s.", perTokenScaleName_.c_str(),
                op::ToString(perTokenDtype).GetString());
 
     DataType yDtype = GetInputTensor(gmmParams_.y)->GetDataType();
@@ -202,25 +208,38 @@ quant mode.",
 }
 
 template <typename T>
-aclnnStatus AclnnGroupedMatmul91095Checker<T>::CheckMxFp8TypeMCaseInputShape(const TensorDimInfo &dimInfo,
+aclnnStatus AclnnGroupedMatmul91095Checker<T>::CheckMxBiasInputShape(const TensorDimInfo &dimInfo,
                                                                              size_t index) const
 {
     auto weightNIndex = GetInputTensor(gmmParams_.weight, index)->GetViewShape().GetDimNum() - 1;
-    size_t xDimNum = dimInfo.xDimNum;
-    size_t weightDimNum = dimInfo.weightDimNum;
+    size_t biasDimNum = dimInfo.biasDimNum;
+    int64_t groupNum = dimInfo.groupNum;
+    if (biasDimNum != 0) {
+        CHECK_COND(biasDimNum == MX_BIAS_DIM, ACLNN_ERR_PARAM_INVALID,
+                   "In mx quant mode, the %s dim num should be 2, but actual is [%zu].", biasName_.c_str(), biasDimNum);
+    }  
+    auto weightNDimValue = GetInputTensor(gmmParams_.weight, index)->GetViewShape().GetDim(weightNIndex);
+    if (gmmParams_.biasOptional != nullptr) {
+        auto biasGDimValue = GetInputTensor(gmmParams_.biasOptional, index)->GetViewShape().GetDim(0);
+        auto biasNDimValue = GetInputTensor(gmmParams_.biasOptional, index)->GetViewShape().GetDim(1);
+        CHECK_COND(biasGDimValue == groupNum, ACLNN_ERR_PARAM_INVALID,
+               "The group dim of %s[%ld] and group number[%ld] should be equal.", biasName_.c_str(), biasGDimValue,
+               groupNum);
+        CHECK_COND(biasNDimValue == weightNDimValue, ACLNN_ERR_PARAM_INVALID,
+               "The n dim of %s[%ld] and n dim of %s[%ld] should be equal.", biasName_.c_str(), biasNDimValue,
+               weightName_.c_str(), weightNDimValue);
+    }
+    return ACLNN_SUCCESS;
+}
+
+template <typename T>
+aclnnStatus AclnnGroupedMatmul91095Checker<T>::CheckMxTypeMCaseInputShape(const TensorDimInfo &dimInfo,
+                                                                             size_t index) const
+{
+    auto weightNIndex = GetInputTensor(gmmParams_.weight, index)->GetViewShape().GetDimNum() - 1;
     size_t scaleDimNum = dimInfo.scaleDimNum;
     size_t pertokenScaleDimNum = dimInfo.pertokenScaleDimNum;
     int64_t groupNum = dimInfo.groupNum;
-    // split m, x is (m,k), weight is (e,k,n), scale is (e, ceil(k/64), n, 2), pertoken is (m, ceil(k/64), 2)
-    CHECK_COND(xDimNum == MX_SPLIT_M_SINGLE_X_DIM, ACLNN_ERR_PARAM_INVALID,
-               "In mx quant mode, the %s dim num should be 2 when split m, but actual is [%zu].", xName_.c_str(), xDimNum);
-    CHECK_COND(weightDimNum == MX_SPLIT_M_SINGLE_WEIGHT_DIM, ACLNN_ERR_PARAM_INVALID,
-               "In mx quant mode, the %s dim num should be 3 when split m, but actual is [%zu].", weightName_.c_str(), weightDimNum);
-    CHECK_COND(scaleDimNum == MX_SPLIT_M_SCALE_DIM, ACLNN_ERR_PARAM_INVALID,
-               "In mx quant mode, the %s dim num should be 4 when split m, but actual is [%zu].", scaleName_.c_str(), scaleDimNum);
-    CHECK_COND(pertokenScaleDimNum == MX_SPLIT_M_PER_TOKEN_SCALE_DIM, ACLNN_ERR_PARAM_INVALID,
-               "In mx quant mode, The %s dim num should be 3 when split m, but actual is [%zu].", perTokenScaleName_.c_str(),
-               pertokenScaleDimNum);
     auto xMDimValue = GetInputTensor(gmmParams_.x, index)->GetViewShape().GetDim(0);
     auto xKDimValue = GetInputTensor(gmmParams_.x, index)->GetViewShape().GetDim(1);
     auto pertokenMDimValue = GetInputTensor(gmmParams_.perTokenScaleOptional, index)->GetViewShape().GetDim(0);
@@ -232,6 +251,8 @@ aclnnStatus AclnnGroupedMatmul91095Checker<T>::CheckMxFp8TypeMCaseInputShape(con
     auto scaleGDimValue = GetInputTensor(gmmParams_.scaleOptional, index)->GetViewShape().GetDim(0);
     auto scaleKDimValue = GetInputTensor(gmmParams_.scaleOptional, index)->GetViewShape().GetDim(1);
     auto scaleLastDimValue = GetInputTensor(gmmParams_.scaleOptional, index)->GetViewShape().GetDim(scaleDimNum - 1);
+    CHECK_COND(CheckMxBiasInputShape(dimInfo, index) == ACLNN_SUCCESS, ACLNN_ERR_PARAM_INVALID,
+               "CheckMxBiasInputShape failed.");
     CHECK_COND(xMDimValue == pertokenMDimValue, ACLNN_ERR_PARAM_INVALID,
                "The m dim of %s[%ld] and m dim of %s[%ld] should be equal.", xName_.c_str(), xMDimValue,
                perTokenScaleName_.c_str(), pertokenMDimValue);
@@ -309,7 +330,7 @@ aclnnStatus AclnnGroupedMatmul91095Checker<T>::CheckMxFp8TypeKCaseInputShape(con
 }
 
 template <typename T>
-aclnnStatus AclnnGroupedMatmul91095Checker<T>::CheckGroupedMatmulMxfp8Shape() const
+aclnnStatus AclnnGroupedMatmul91095Checker<T>::CheckGroupedMatmulMxShape() const
 {
     for (size_t i = 0; i < GetInputTensorSize(gmmParams_.x); i++) {
         auto xDimNum = GetInputTensor(gmmParams_.x, i)->GetViewShape().GetDimNum();
@@ -317,10 +338,14 @@ aclnnStatus AclnnGroupedMatmul91095Checker<T>::CheckGroupedMatmulMxfp8Shape() co
         auto scaleDimNum = GetInputTensor(gmmParams_.scaleOptional, i)->GetViewShape().GetDimNum();
         auto pertokenScaleDimNum = GetInputTensor(gmmParams_.perTokenScaleOptional, i)->GetViewShape().GetDimNum();
         auto groupNum = gmmParams_.groupTensorOptional->GetViewShape().GetDim(0);
-        const TensorDimInfo dimInfo = {xDimNum, weightDimNum, scaleDimNum, pertokenScaleDimNum, groupNum};
+        size_t biasDimNum = 0;
+        if (gmmParams_.biasOptional != nullptr) {
+            biasDimNum = GetInputTensor(gmmParams_.biasOptional, i)->GetViewShape().GetDimNum();
+        }
+        const TensorDimInfo dimInfo = {xDimNum, weightDimNum, scaleDimNum, pertokenScaleDimNum, groupNum, biasDimNum};
         if (gmmParams_.groupType == SPLIT_M) {
-            CHECK_COND(CheckMxFp8TypeMCaseInputShape(dimInfo, i) == ACLNN_SUCCESS, ACLNN_ERR_PARAM_INVALID,
-                       "CheckMxFp8TypeMCaseInputShape failed.");
+            CHECK_COND(CheckMxTypeMCaseInputShape(dimInfo, i) == ACLNN_SUCCESS, ACLNN_ERR_PARAM_INVALID,
+                       "CheckMxTypeMCaseInputShape failed.");
         } else {
             CHECK_COND(CheckMxFp8TypeKCaseInputShape(dimInfo, i) == ACLNN_SUCCESS, ACLNN_ERR_PARAM_INVALID,
                        "CheckMxFp8TypeKCaseInputShape failed.");
@@ -348,13 +373,33 @@ bool AclnnGroupedMatmul91095Checker<T>::IsSpecialMXCase(const T *tensorList) con
 }
 
 template <typename T>
+aclnnStatus AclnnGroupedMatmul91095Checker<T>::CheckGroupedMatmulMxScaleTranspose() const
+{
+    bool transposeScale = IsTransposeForMxShape(GetInputTensor(gmmParams_.scaleOptional));
+    bool transposePerTokenScale = IsTransposeForMxShape(GetInputTensor(gmmParams_.perTokenScaleOptional));
+    if (!IsSpecialMXCase(gmmParams_.scaleOptional)) {
+        CHECK_COND(transposeScale == gmmParams_.transposeWeight, ACLNN_ERR_PARAM_INVALID,
+                   "The transposition of %s/%s should be equal, but actual transpositions are %s/%s.",
+                   scaleName_.c_str(), weightName_.c_str(), transposeScale ? "true" : "false",
+                   gmmParams_.transposeWeight ? "true" : "false");
+    }
+    if (!IsSpecialMXCase(gmmParams_.perTokenScaleOptional)) {
+        CHECK_COND(transposePerTokenScale == gmmParams_.transposeX, ACLNN_ERR_PARAM_INVALID,
+                   "The transposition of %s/%s should be equal, but actual transpositions are %s/%s.",
+                   perTokenScaleName_.c_str(), xName_.c_str(), transposePerTokenScale ? "true" : "false",
+                   gmmParams_.transposeX ? "true" : "false");
+    }
+    return ACLNN_SUCCESS;
+}
+
+template <typename T>
 aclnnStatus AclnnGroupedMatmul91095Checker<T>::CheckGroupedMatmulMxfp8() const
 {
     CHECK_COND(gmmParams_.biasOptional == nullptr, ACLNN_ERR_PARAM_INVALID, "mxfp8 does not support bias.");
     CHECK_COND(gmmParams_.perTokenScaleOptional != nullptr, ACLNN_ERR_PARAM_INVALID,
-               "%s should not be nullptr in mxfp8 case.", perTokenScaleName_.c_str());
-    CHECK_COND(CheckGroupedMatmulMxfp8Dtype() == ACLNN_SUCCESS, ACLNN_ERR_PARAM_INVALID,
-               "CheckGroupedMatmulMxfp8Dtype failed");
+               "%s should not be nullptr in mx case.", perTokenScaleName_.c_str());
+    CHECK_COND(CheckGroupedMatmulMxDtype() == ACLNN_SUCCESS, ACLNN_ERR_PARAM_INVALID,
+               "CheckGroupedMatmulMxDtype failed");
     if (gmmParams_.groupType == SPLIT_M) {
         CHECK_COND(!gmmParams_.transposeX, ACLNN_ERR_PARAM_INVALID,
                    "When groupType is 0 (split m), the transposition of X only support false, but actual \
@@ -367,24 +412,59 @@ transpositions are %s/%s.",
                    xName_.c_str(), weightName_.c_str(), gmmParams_.transposeX ? "true" : "false",
                    gmmParams_.transposeWeight ? "true" : "false");
     }
-
+    CHECK_COND(CheckGroupedMatmulMxScaleTranspose() == ACLNN_SUCCESS, ACLNN_ERR_PARAM_INVALID,
+               "CheckGroupedMatmulMxScaleTranspose failed");
     CHECK_COND(CheckGroupedMatmulPerGroupDim() == ACLNN_SUCCESS, ACLNN_ERR_PARAM_INVALID,
                "CheckGroupedMatmulPerGroupDim failed");
-    CHECK_COND(CheckGroupedMatmulMxfp8Shape() == ACLNN_SUCCESS, ACLNN_ERR_PARAM_INVALID,
-               "CheckGroupedMatmulMxfp8Shape failed");
-    bool transposeScale = IsTransposeForMXShape(GetInputTensor(gmmParams_.scaleOptional));
-    bool transposePerTokenScale = IsTransposeForMXShape(GetInputTensor(gmmParams_.perTokenScaleOptional));
-    if (!IsSpecialMXCase(gmmParams_.scaleOptional)) {
-        CHECK_COND(transposeScale == gmmParams_.transposeWeight, ACLNN_ERR_PARAM_INVALID,
-                   "The transposition of %s/%s should be equal, but actual transpositions are %s/%s.",
-                   scaleName_.c_str(), weightName_.c_str(), transposeScale ? "true" : "false",
-                   gmmParams_.transposeWeight ? "true" : "false");
-    }
-    if (!IsSpecialMXCase(gmmParams_.perTokenScaleOptional)) {
-        CHECK_COND(transposePerTokenScale == gmmParams_.transposeX, ACLNN_ERR_PARAM_INVALID,
-                   "The transposition of %s/%s should be equal, but actual transpositions are %s/%s.",
-                   perTokenScaleName_.c_str(), xName_.c_str(), transposePerTokenScale ? "true" : "false",
-                   gmmParams_.transposeX ? "true" : "false");
+    CHECK_COND(CheckGroupedMatmulMxShape() == ACLNN_SUCCESS, ACLNN_ERR_PARAM_INVALID,
+               "CheckGroupedMatmulMxShape failed");
+    return ACLNN_SUCCESS;
+}
+
+template <typename T>
+aclnnStatus AclnnGroupedMatmul91095Checker<T>::CheckGroupedMatmulMxfp4() const
+{
+    CHECK_COND(gmmParams_.perTokenScaleOptional != nullptr, ACLNN_ERR_PARAM_INVALID,
+               "%s should not be nullptr in mx case.", perTokenScaleName_.c_str());
+    CHECK_COND(CheckGroupedMatmulMxDtype() == ACLNN_SUCCESS, ACLNN_ERR_PARAM_INVALID,
+               "CheckGroupedMatmulMxDtype failed");
+    CHECK_COND(!gmmParams_.transposeX, ACLNN_ERR_PARAM_INVALID,
+               "When groupType is 0 (split m), the transposition of %s only support false, but actual \
+tranposition is %s.",
+               xName_.c_str(), gmmParams_.transposeX ? "true" : "false");
+    CHECK_COND(CheckGroupedMatmulMxScaleTranspose() == ACLNN_SUCCESS, ACLNN_ERR_PARAM_INVALID,
+               "CheckGroupedMatmulMxScaleTranspose failed");
+    CHECK_COND(CheckGroupedMatmulPerGroupDim() == ACLNN_SUCCESS, ACLNN_ERR_PARAM_INVALID,
+               "CheckGroupedMatmulPerGroupDim failed");
+    CHECK_COND(CheckGroupedMatmulMxShape() == ACLNN_SUCCESS, ACLNN_ERR_PARAM_INVALID,
+               "CheckGroupedMatmulMxShape failed");
+    CHECK_COND(CheckGroupedMatmulFp4MxDimValue() == ACLNN_SUCCESS, ACLNN_ERR_PARAM_INVALID,
+               "CheckGroupedMatmulFp4MxDimValue failed");
+    return ACLNN_SUCCESS;
+}
+
+template <typename T>
+aclnnStatus AclnnGroupedMatmul91095Checker<T>::CheckGroupedMatmulFp4MxDimValue() const
+{
+    for (size_t i = 0; i < GetInputTensorSize(gmmParams_.x); i++) {
+        auto weightNIndex = GetInputTensor(gmmParams_.weight, i)->GetViewShape().GetDimNum() - 1;
+        auto xKDimValue = GetInputTensor(gmmParams_.x, i)->GetViewShape().GetDim(1);
+        auto weightNDimValue = GetInputTensor(gmmParams_.weight, i)->GetViewShape().GetDim(weightNIndex);
+        //2：检查N是否为偶数
+        auto weightNDimModValue = weightNDimValue % 2;
+        //2：检查K是否为偶数
+        auto xKDimModValue = xKDimValue % 2;
+        bool transposeWeight = gmmParams_.transposeWeight;
+        if (!transposeWeight) {
+            CHECK_COND(weightNDimModValue == 0, ACLNN_ERR_PARAM_INVALID,
+                   "When the weight is not transposed, the dim N value of %s should be even, but actual dim \
+value is %lu",
+                   weightName_.c_str(), weightNDimValue);
+        }
+        CHECK_COND(xKDimModValue == 0, ACLNN_ERR_PARAM_INVALID,
+                   "When the dtypes of x and weight inputs are fp4 , the dim K value of %s should be even, but actual dim \
+value is %lu",
+                   xName_.c_str(), xKDimValue);
     }
     return ACLNN_SUCCESS;
 }
@@ -754,7 +834,7 @@ float8/hifloat8 case, but actual dtype is %s",
 }
 
 template <typename T>
-aclnnStatus AclnnGroupedMatmul91095Checker<T>::CheckFp8Params(DataType &scaleDtype) const
+aclnnStatus AclnnGroupedMatmul91095Checker<T>::CheckFp8Params(const DataType &scaleDtype) const
 {
     if (scaleDtype == DataType::DT_FLOAT8_E8M0) {
         return CheckGroupedMatmulMxfp8();
@@ -766,6 +846,20 @@ aclnnStatus AclnnGroupedMatmul91095Checker<T>::CheckFp8Params(DataType &scaleDty
                 op::ToString(scaleDtype).GetString());
         return ACLNN_ERR_PARAM_INVALID;
     }
+}
+
+template <typename T>
+aclnnStatus AclnnGroupedMatmul91095Checker<T>::CheckFp4Params(const DataType &scaleDtype) const
+{
+    CHECK_COND(gmmParams_.groupType == SPLIT_M, ACLNN_ERR_PARAM_INVALID,
+               "In mxfp4 quant mode, mxfp4 case only supports groupType 0 (split M), but actual groupType is %ld",
+               gmmParams_.groupType);
+    if (scaleDtype == DataType::DT_FLOAT8_E8M0) {
+        return CheckGroupedMatmulMxfp4();
+    }
+    OP_LOGE(ACLNN_ERR_PARAM_INVALID, "Unsupported quant scale dtype %s with float4 case",
+            op::ToString(scaleDtype).GetString());
+    return ACLNN_ERR_PARAM_INVALID;
 }
 
 template <typename T>
@@ -807,6 +901,9 @@ aclnnStatus AclnnGroupedMatmul91095Checker<T>::CheckGroupedMatmul91095() const
         } else if ((xDtype == DataType::DT_FLOAT8_E4M3FN || xDtype == DataType::DT_FLOAT8_E5M2) &&
                    (weightDtype == DataType::DT_FLOAT8_E4M3FN || weightDtype == DataType::DT_FLOAT8_E5M2)) {
             return CheckFp8Params(scaleDtype);
+        } else if ((xDtype == DataType::DT_FLOAT4_E2M1 || xDtype == DataType::DT_FLOAT4_E1M2) &&
+                   (weightDtype == DataType::DT_FLOAT4_E2M1 || weightDtype == DataType::DT_FLOAT4_E1M2)) {
+            return CheckFp4Params(scaleDtype);
         } else {
             OP_LOGE(ACLNN_ERR_PARAM_INVALID, "Quant case with x dtype %s and weight dtype %s is not supported.",
                     op::ToString(xDtype).GetString(), op::ToString(weightDtype).GetString());

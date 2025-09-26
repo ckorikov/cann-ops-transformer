@@ -32,18 +32,22 @@ private:
         size_t scaleDimNum = 0;
         size_t pertokenScaleDimNum = 0;
         int64_t groupNum = 0;
+        size_t biasDimNum = 0;
     };
 
     bool IsQuant(DataType &xDtype, DataType &weightDtype) const;
     aclnnStatus CheckGeneralQuantShape() const;
     aclnnStatus CheckQuantCasesFormat() const;
 
-    aclnnStatus CheckGroupedMatmulMxfp8Dtype() const;
+    aclnnStatus CheckGroupedMatmulMxDtype() const;
     aclnnStatus CheckGroupedMatmulPerGroupDim() const;
-    aclnnStatus CheckGroupedMatmulMxfp8Shape() const;
+    aclnnStatus CheckGroupedMatmulMxShape() const;
+    aclnnStatus CheckGroupedMatmulMxScaleTranspose() const;
     aclnnStatus CheckGroupedMatmulPerTile() const;
     aclnnStatus CheckGroupedMatmulPerTileShape() const;
     aclnnStatus CheckGroupedMatmulMxfp8() const;
+    aclnnStatus CheckGroupedMatmulMxfp4() const;
+    aclnnStatus CheckGroupedMatmulFp4MxDimValue() const;
 
     aclnnStatus CheckNonPerGroupQuantDim() const;
     aclnnStatus CheckNonPerGroupQuantPertokenShape() const;
@@ -51,12 +55,14 @@ private:
     aclnnStatus CheckInt8QuantDtype() const;
     aclnnStatus CheckInt8QuantParams() const;
     aclnnStatus CheckFp8Hif8QuantParams() const;
-    aclnnStatus CheckFp8Params(DataType &scaleDtype) const;
+    aclnnStatus CheckFp8Params(const DataType &scaleDtype) const;
+    aclnnStatus CheckFp4Params(const DataType &scaleDtype) const;
     aclnnStatus CheckNonMxQuantTransposeStatus() const;
     bool CheckTensorListSizeForEachInput() const;
     bool IsSpecialMXCase(const T *tensorList) const;
     aclnnStatus CheckMxFp8TypeKCaseInputShape(const TensorDimInfo &dimInfo, size_t index) const;
-    aclnnStatus CheckMxFp8TypeMCaseInputShape(const TensorDimInfo &dimInfo, size_t index) const;
+    aclnnStatus CheckMxTypeMCaseInputShape(const TensorDimInfo &dimInfo, size_t index) const;
+    aclnnStatus CheckMxBiasInputShape(const TensorDimInfo &dimInfo, size_t index) const;
     bool LastTwoDimValueIsOne(const aclTensor *tensor) const;
     bool IsSpecialperTileScene(int64_t groupNum, int64_t weightNDim, int64_t weightKDim, int64_t xMDim,
                                int64_t perTokenMDim) const;
@@ -68,6 +74,7 @@ private:
     std::string scaleName_ = "scale";
     std::string perTokenScaleName_ = "perTokenScale";
     std::string groupTensorName_ = "groupTensor";
+    std::string biasName_ = "bias";
     std::string yName_ = "y";
     const std::vector<op::DataType> SPECIAL_QUANT_DTYPES = {DataType::DT_FLOAT4_E1M2, DataType::DT_FLOAT4_E2M1,
                                                             DataType::DT_INT4};

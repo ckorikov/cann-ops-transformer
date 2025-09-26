@@ -29,6 +29,7 @@ constexpr size_t SPLIT_K_SINGLE_WEIGHT_DIM = 2UL;
 constexpr size_t MX_SPLIT_M_SINGLE_X_DIM = 2UL;
 constexpr size_t MX_SPLIT_M_SINGLE_WEIGHT_DIM = 3UL;
 constexpr size_t MX_SPLIT_M_SCALE_DIM = 4UL;
+constexpr size_t MX_BIAS_DIM = 2UL;
 constexpr size_t MX_SPLIT_M_PER_TOKEN_SCALE_DIM = 3UL;
 constexpr size_t MX_SPLIT_K_SINGLE_X_DIM = 2UL;
 constexpr size_t MX_SPLIT_K_SINGLE_WEIGHT_DIM = 2UL;
@@ -103,7 +104,9 @@ const std::map<DataType, aclDataType> BIAS_DTYPE {
     {DataType::DT_FLOAT8_E4M3FN, aclDataType::ACL_FLOAT},
     {DataType::DT_FLOAT8_E5M2, aclDataType::ACL_FLOAT},
     {DataType::DT_HIFLOAT8, aclDataType::ACL_FLOAT},
-    {DataType::DT_INT4, aclDataType::ACL_FLOAT16}
+    {DataType::DT_INT4, aclDataType::ACL_FLOAT16},
+    {DataType::DT_FLOAT4_E1M2, aclDataType::ACL_FLOAT},
+    {DataType::DT_FLOAT4_E2M1, aclDataType::ACL_FLOAT}
 };
 
 const std::map<DataType, std::string> DTYPE_STRING{
@@ -121,7 +124,7 @@ const std::initializer_list<op::DataType> DTYPE_SUPPORT_LIST = {DataType::DT_FLO
                                                                 DataType::DT_BF16};
 
 bool IsTransposeLastTwoDims(const aclTensor *tensor);
-bool IsTransposeForMXShape(const aclTensor *tensor);
+bool IsTransposeForMxShape(const aclTensor *tensor);
 void CreateContiguousTensorListForPertoken(const aclTensorList *tensorList, std::vector<aclTensor *> &newTensorList,
                                            aclOpExecutor *executor);
 void CreateContiguousTensorListForMXTypeMScale(const aclTensorList *tensorList, std::vector<aclTensor *> &newTensorList,

@@ -791,6 +791,270 @@ const auto Tc_Gmm_Aclnn_David_Case = ::testing::Values(
                                GenTensor("grouped_list", {2}, ge::DataType::DT_INT64), {64, 128}, 3, -1, false, true,
                                    2, 0, 0, FunctionType::QUANT_PERTOKEN, AclnnGroupedMatmulVersion::V4)),
     AclnnGroupedMatmulCase(
+       "Test_GMMV4_9591_11", true, "",                          /* CaseName,Enable,DebugInfo */
+       OpInfo(ControlInfo(true, false),                        /* RunTiling,RunKernel */
+              ExpectInfo(false,                                 /* ExpectSuccess */
+                            ExpectInfo::kInvalidTilingKey,        /* ExpectTilingKey */
+                            ExpectInfo::kInvalidTilingBlockDim)), /* ExpectTilingBlockDim */
+       AclnnGroupedMatmulParam({GenTensorList("x", {{4096, 128}}, ge::DataType::DT_FLOAT4_E1M2),
+                                GenTensorList("weight", {{1, 128, 7168}}, ge::DataType::DT_FLOAT4_E1M2),
+                                GenTensorList("bias", {{1, 7168}}, ge::DataType::DT_FLOAT),
+                                GenTensorList("scale", {{1, 2, 7168, 2}}, ge::DataType::DT_FLOAT8_E8M0),
+                                GenTensorList("pertoken_scale", {{4096, 2, 2}}, ge::DataType::DT_FLOAT8_E8M0),
+                                GenTensorList("y", {{4096, 7168}}, ge::DataType::DT_BF16)},
+                               GenTensor("grouped_list", {1}, ge::DataType::DT_INT64), {4096}, 3, -1, false, false,
+                                   0, 0, 0, FunctionType::MXFP, AclnnGroupedMatmulVersion::V4)),
+    AclnnGroupedMatmulCase(
+       "Test_GMMV4_9591_12", true, "",                          /* CaseName,Enable,DebugInfo */
+       OpInfo(ControlInfo(true, false),                        /* RunTiling,RunKernel */
+              ExpectInfo(false,                                 /* ExpectSuccess */
+                            ExpectInfo::kInvalidTilingKey,        /* ExpectTilingKey */
+                            ExpectInfo::kInvalidTilingBlockDim)), /* ExpectTilingBlockDim */
+       AclnnGroupedMatmulParam({GenTensorList("x", {{4096, 128}}, ge::DataType::DT_FLOAT4_E1M2),
+                                GenTensorList("weight", {{1, 7168, 128}}, ge::DataType::DT_FLOAT4_E1M2),
+                                GenTensorList("bias", {{1, 7168}}, ge::DataType::DT_FLOAT),
+                                GenTensorList("scale", {{1, 7168, 2, 2}}, ge::DataType::DT_FLOAT8_E8M0),
+                                GenTensorList("pertoken_scale", {{4096, 2, 2}}, ge::DataType::DT_FLOAT8_E8M0),
+                                GenTensorList("y", {{4096, 7168}}, ge::DataType::DT_BF16)},
+                               GenTensor("grouped_list", {1}, ge::DataType::DT_INT64), {4096}, 3, -1, true, false,
+                                   0, 0, 0, FunctionType::MXFP, AclnnGroupedMatmulVersion::V4)),
+    AclnnGroupedMatmulCase(
+       "Test_GMMV4_9591_13", true, "",                          /* CaseName,Enable,DebugInfo */
+       OpInfo(ControlInfo(true, false),                        /* RunTiling,RunKernel */
+              ExpectInfo(false,                                 /* ExpectSuccess */
+                            ExpectInfo::kInvalidTilingKey,        /* ExpectTilingKey */
+                            ExpectInfo::kInvalidTilingBlockDim)), /* ExpectTilingBlockDim */
+       AclnnGroupedMatmulParam({GenTensorList("x", {{4096, 128}}, ge::DataType::DT_FLOAT4_E1M2),
+                                GenTensorList("weight", {{1, 7168, 128}}, ge::DataType::DT_FLOAT4_E1M2),
+                                GenTensorList("scale", {{1, 7168, 2, 2}}, ge::DataType::DT_FLOAT8_E8M0),
+                                GenTensorList("pertoken_scale", {{4096, 2, 2}}, ge::DataType::DT_FLOAT8_E8M0),
+                                GenTensorList("y", {{4096, 7168}}, ge::DataType::DT_BF16)},
+                               GenTensor("grouped_list", {1}, ge::DataType::DT_INT64), {4096}, 3, -1, true, false,
+                                   0, 0, 0, FunctionType::MXFP, AclnnGroupedMatmulVersion::V4)),
+    AclnnGroupedMatmulCase(
+       "Test_GMMV4_9591_14", true, "",                          /* CaseName,Enable,DebugInfo */
+       OpInfo(ControlInfo(true, false),                        /* RunTiling,RunKernel */
+              ExpectInfo(false,                                 /* ExpectSuccess */
+                            ExpectInfo::kInvalidTilingKey,        /* ExpectTilingKey */
+                            ExpectInfo::kInvalidTilingBlockDim)), /* ExpectTilingBlockDim */
+       AclnnGroupedMatmulParam({GenTensorList("x", {{4096, 128}}, ge::DataType::DT_FLOAT4_E1M2),
+                                GenTensorList("weight", {{1, 7168, 128}}, ge::DataType::DT_FLOAT4_E1M2),
+                                GenTensorList("scale", {{1, 7168, 2, 2}}, ge::DataType::DT_FLOAT8_E8M0),
+                                GenTensorList("pertoken_scale", {{4096, 2, 2}}, ge::DataType::DT_FLOAT8_E8M0),
+                                GenTensorList("y", {{4096, 7168}}, ge::DataType::DT_BF16)},
+                               GenTensor("grouped_list", {1}, ge::DataType::DT_INT64), {4096}, 3, -1, true, false,
+                                   0, 1, 0, FunctionType::MXFP, AclnnGroupedMatmulVersion::V4)),
+    AclnnGroupedMatmulCase(
+       "Test_GMMV4_9591_mxfp4_group_type_error", true, "",                          /* CaseName,Enable,DebugInfo */
+       OpInfo(ControlInfo(true, false),                        /* RunTiling,RunKernel */
+              ExpectInfo(false,                                 /* ExpectSuccess */
+                            ExpectInfo::kInvalidTilingKey,        /* ExpectTilingKey */
+                            ExpectInfo::kInvalidTilingBlockDim)), /* ExpectTilingBlockDim */
+       AclnnGroupedMatmulParam({GenTensorList("x", {{4096, 128}}, ge::DataType::DT_FLOAT4_E1M2),
+                                GenTensorList("weight", {{1, 128, 7168}}, ge::DataType::DT_FLOAT4_E1M2),
+                                GenTensorList("bias", {{1, 7168}}, ge::DataType::DT_FLOAT),
+                                GenTensorList("scale", {{1, 2, 7168, 2}}, ge::DataType::DT_FLOAT8_E8M0),
+                                GenTensorList("pertoken_scale", {{4096, 2, 2}}, ge::DataType::DT_FLOAT8_E8M0),
+                                GenTensorList("y", {{4096, 7168}}, ge::DataType::DT_BF16)},
+                               GenTensor("grouped_list", {1}, ge::DataType::DT_INT64), {4096}, 3, -1, false, false,
+                                   2, 0, 0, FunctionType::MXFP, AclnnGroupedMatmulVersion::V4)),
+    AclnnGroupedMatmulCase(
+       "Test_GMMV4_9591_mxfp4_transpose_false_true_error", true, "",                          /* CaseName,Enable,DebugInfo */
+       OpInfo(ControlInfo(true, false),                        /* RunTiling,RunKernel */
+              ExpectInfo(false,                                 /* ExpectSuccess */
+                            ExpectInfo::kInvalidTilingKey,        /* ExpectTilingKey */
+                            ExpectInfo::kInvalidTilingBlockDim)), /* ExpectTilingBlockDim */
+       AclnnGroupedMatmulParam({GenTensorList("x", {{128, 4096}}, ge::DataType::DT_FLOAT4_E1M2),
+                                GenTensorList("weight", {{1, 128, 7168}}, ge::DataType::DT_FLOAT4_E1M2),
+                                GenTensorList("bias", {{1, 7168}}, ge::DataType::DT_FLOAT),
+                                GenTensorList("scale", {{1, 2, 7168, 2}}, ge::DataType::DT_FLOAT8_E8M0),
+                                GenTensorList("pertoken_scale", {{4096, 2, 2}}, ge::DataType::DT_FLOAT8_E8M0),
+                                GenTensorList("y", {{4096, 7168}}, ge::DataType::DT_BF16)},
+                               GenTensor("grouped_list", {1}, ge::DataType::DT_INT64), {4096}, 3, -1, false, true,
+                                   0, 0, 0, FunctionType::MXFP, AclnnGroupedMatmulVersion::V4)),
+    AclnnGroupedMatmulCase(
+       "Test_GMMV4_9591_mxfp4_scale_dtype_error", true, "",                          /* CaseName,Enable,DebugInfo */
+       OpInfo(ControlInfo(true, false),                        /* RunTiling,RunKernel */
+              ExpectInfo(false,                                 /* ExpectSuccess */
+                            ExpectInfo::kInvalidTilingKey,        /* ExpectTilingKey */
+                            ExpectInfo::kInvalidTilingBlockDim)), /* ExpectTilingBlockDim */
+       AclnnGroupedMatmulParam({GenTensorList("x", {{4096, 128}}, ge::DataType::DT_FLOAT4_E1M2),
+                                GenTensorList("weight", {{1, 128, 7168}}, ge::DataType::DT_FLOAT4_E1M2),
+                                GenTensorList("bias", {{1, 7168}}, ge::DataType::DT_FLOAT),
+                                GenTensorList("scale", {{1, 2, 7168, 2}}, ge::DataType::DT_FLOAT),
+                                GenTensorList("pertoken_scale", {{4096, 2, 2}}, ge::DataType::DT_FLOAT8_E8M0),
+                                GenTensorList("y", {{4096, 7168}}, ge::DataType::DT_BF16)},
+                               GenTensor("grouped_list", {1}, ge::DataType::DT_INT64), {4096}, 3, -1, false, false,
+                                   0, 0, 0, FunctionType::MXFP, AclnnGroupedMatmulVersion::V4)),
+    AclnnGroupedMatmulCase(
+       "Test_GMMV4_9591_mxfp4_bias_dtype_error", true, "",                          /* CaseName,Enable,DebugInfo */
+       OpInfo(ControlInfo(true, false),                        /* RunTiling,RunKernel */
+              ExpectInfo(false,                                 /* ExpectSuccess */
+                            ExpectInfo::kInvalidTilingKey,        /* ExpectTilingKey */
+                            ExpectInfo::kInvalidTilingBlockDim)), /* ExpectTilingBlockDim */
+       AclnnGroupedMatmulParam({GenTensorList("x", {{4096, 128}}, ge::DataType::DT_FLOAT4_E1M2),
+                                GenTensorList("weight", {{1, 128, 7168}}, ge::DataType::DT_FLOAT4_E1M2),
+                                GenTensorList("bias", {{1, 7168}}, ge::DataType::DT_FLOAT8_E8M0),
+                                GenTensorList("scale", {{1, 2, 7168, 2}}, ge::DataType::DT_FLOAT8_E8M0),
+                                GenTensorList("pertoken_scale", {{4096, 2, 2}}, ge::DataType::DT_FLOAT8_E8M0),
+                                GenTensorList("y", {{4096, 7168}}, ge::DataType::DT_BF16)},
+                               GenTensor("grouped_list", {1}, ge::DataType::DT_INT64), {4096}, 3, -1, false, false,
+                                   0, 0, 0, FunctionType::MXFP, AclnnGroupedMatmulVersion::V4)),
+    AclnnGroupedMatmulCase(
+       "Test_GMMV4_9591_mxfp4_weight_dtype_error", true, "",                          /* CaseName,Enable,DebugInfo */
+       OpInfo(ControlInfo(true, false),                        /* RunTiling,RunKernel */
+              ExpectInfo(false,                                 /* ExpectSuccess */
+                            ExpectInfo::kInvalidTilingKey,        /* ExpectTilingKey */
+                            ExpectInfo::kInvalidTilingBlockDim)), /* ExpectTilingBlockDim */
+       AclnnGroupedMatmulParam({GenTensorList("x", {{4096, 128}}, ge::DataType::DT_FLOAT4_E1M2),
+                                GenTensorList("weight", {{1, 128, 7168}}, ge::DataType::DT_FLOAT8_E8M0),
+                                GenTensorList("bias", {{1, 7168}}, ge::DataType::DT_FLOAT),
+                                GenTensorList("scale", {{1, 2, 7168, 2}}, ge::DataType::DT_FLOAT8_E8M0),
+                                GenTensorList("pertoken_scale", {{4096, 2, 2}}, ge::DataType::DT_FLOAT8_E8M0),
+                                GenTensorList("y", {{4096, 7168}}, ge::DataType::DT_BF16)},
+                               GenTensor("grouped_list", {1}, ge::DataType::DT_INT64), {4096}, 3, -1, false, false,
+                                   0, 0, 0, FunctionType::MXFP, AclnnGroupedMatmulVersion::V4)),
+    AclnnGroupedMatmulCase(
+       "Test_GMMV4_9591_mxfp4_per_token_scale_dtype_error", true, "",                          /* CaseName,Enable,DebugInfo */
+       OpInfo(ControlInfo(true, false),                        /* RunTiling,RunKernel */
+              ExpectInfo(false,                                 /* ExpectSuccess */
+                            ExpectInfo::kInvalidTilingKey,        /* ExpectTilingKey */
+                            ExpectInfo::kInvalidTilingBlockDim)), /* ExpectTilingBlockDim */
+       AclnnGroupedMatmulParam({GenTensorList("x", {{4096, 128}}, ge::DataType::DT_FLOAT4_E1M2),
+                                GenTensorList("weight", {{1, 128, 7168}}, ge::DataType::DT_FLOAT4_E1M2),
+                                GenTensorList("bias", {{1, 7168}}, ge::DataType::DT_FLOAT),
+                                GenTensorList("scale", {{1, 2, 7168, 2}}, ge::DataType::DT_FLOAT8_E8M0),
+                                GenTensorList("pertoken_scale", {{4096, 2, 2}}, ge::DataType::DT_FLOAT4_E1M2),
+                                GenTensorList("y", {{4096, 7168}}, ge::DataType::DT_BF16)},
+                               GenTensor("grouped_list", {1}, ge::DataType::DT_INT64), {4096}, 3, -1, false, false,
+                                   0, 0, 0, FunctionType::MXFP, AclnnGroupedMatmulVersion::V4)),
+    AclnnGroupedMatmulCase(
+       "Test_GMMV4_9591_mxfp4_output_dtype_error", true, "",                          /* CaseName,Enable,DebugInfo */
+       OpInfo(ControlInfo(true, false),                        /* RunTiling,RunKernel */
+              ExpectInfo(false,                                 /* ExpectSuccess */
+                            ExpectInfo::kInvalidTilingKey,        /* ExpectTilingKey */
+                            ExpectInfo::kInvalidTilingBlockDim)), /* ExpectTilingBlockDim */
+       AclnnGroupedMatmulParam({GenTensorList("x", {{4096, 128}}, ge::DataType::DT_FLOAT4_E1M2),
+                                GenTensorList("weight", {{1, 128, 7168}}, ge::DataType::DT_FLOAT4_E1M2),
+                                GenTensorList("bias", {{1, 7168}}, ge::DataType::DT_FLOAT),
+                                GenTensorList("scale", {{1, 2, 7168, 2}}, ge::DataType::DT_FLOAT8_E8M0),
+                                GenTensorList("pertoken_scale", {{4096, 2, 2}}, ge::DataType::DT_FLOAT8_E8M0),
+                                GenTensorList("y", {{4096, 7168}}, ge::DataType::DT_INT8)},
+                               GenTensor("grouped_list", {1}, ge::DataType::DT_INT64), {4096}, 3, -1, false, false,
+                                   0, 0, 0, FunctionType::MXFP, AclnnGroupedMatmulVersion::V4)),
+    AclnnGroupedMatmulCase(
+       "Test_GMMV4_9591_mxfp4_scale_transpose_error", true, "",                          /* CaseName,Enable,DebugInfo */
+       OpInfo(ControlInfo(true, false),                        /* RunTiling,RunKernel */
+              ExpectInfo(false,                                 /* ExpectSuccess */
+                            ExpectInfo::kInvalidTilingKey,        /* ExpectTilingKey */
+                            ExpectInfo::kInvalidTilingBlockDim)), /* ExpectTilingBlockDim */
+       AclnnGroupedMatmulParam({GenTensorList("x", {{4096, 128}}, ge::DataType::DT_FLOAT4_E1M2),
+                                GenTensorList("weight", {{1, 128, 7168}}, ge::DataType::DT_FLOAT4_E1M2),
+                                GenTensorList("bias", {{1, 7168}}, ge::DataType::DT_FLOAT),
+                                GenTensorList("scale", {{1, 7168, 2, 2}}, ge::DataType::DT_FLOAT8_E8M0),
+                                GenTensorList("pertoken_scale", {{4096, 2, 2}}, ge::DataType::DT_FLOAT8_E8M0),
+                                GenTensorList("y", {{4096, 7168}}, ge::DataType::DT_BF16)},
+                               GenTensor("grouped_list", {1}, ge::DataType::DT_INT64), {4096}, 3, -1, false, false,
+                                   0, 0, 0, FunctionType::MXFP, AclnnGroupedMatmulVersion::V4)),
+    AclnnGroupedMatmulCase(
+       "Test_GMMV4_9591_mxfp4_split_m_weight_dim_error", true, "",                          /* CaseName,Enable,DebugInfo */
+       OpInfo(ControlInfo(true, false),                        /* RunTiling,RunKernel */
+              ExpectInfo(false,                                 /* ExpectSuccess */
+                            ExpectInfo::kInvalidTilingKey,        /* ExpectTilingKey */
+                            ExpectInfo::kInvalidTilingBlockDim)), /* ExpectTilingBlockDim */
+       AclnnGroupedMatmulParam({GenTensorList("x", {{4096, 128}}, ge::DataType::DT_FLOAT4_E1M2),
+                                GenTensorList("weight", {{128, 7168}}, ge::DataType::DT_FLOAT4_E1M2),
+                                GenTensorList("bias", {{1, 7168}}, ge::DataType::DT_FLOAT),
+                                GenTensorList("scale", {{1, 2, 7168, 2}}, ge::DataType::DT_FLOAT8_E8M0),
+                                GenTensorList("pertoken_scale", {{4096, 2, 2}}, ge::DataType::DT_FLOAT8_E8M0),
+                                GenTensorList("y", {{4096, 7168}}, ge::DataType::DT_BF16)},
+                               GenTensor("grouped_list", {1}, ge::DataType::DT_INT64), {4096}, 3, -1, false, false,
+                                   0, 0, 0, FunctionType::MXFP, AclnnGroupedMatmulVersion::V4)),
+    AclnnGroupedMatmulCase(
+       "Test_GMMV4_9591_mxfp4_scale_dim_error", true, "",                          /* CaseName,Enable,DebugInfo */
+       OpInfo(ControlInfo(true, false),                        /* RunTiling,RunKernel */
+              ExpectInfo(false,                                 /* ExpectSuccess */
+                            ExpectInfo::kInvalidTilingKey,        /* ExpectTilingKey */
+                            ExpectInfo::kInvalidTilingBlockDim)), /* ExpectTilingBlockDim */
+       AclnnGroupedMatmulParam({GenTensorList("x", {{4096, 128}}, ge::DataType::DT_FLOAT4_E1M2),
+                                GenTensorList("weight", {{1, 128, 7168}}, ge::DataType::DT_FLOAT4_E1M2),
+                                GenTensorList("bias", {{1, 7168}}, ge::DataType::DT_FLOAT),
+                                GenTensorList("scale", {{1, 2, 7168}}, ge::DataType::DT_FLOAT8_E8M0),
+                                GenTensorList("pertoken_scale", {{4096, 2, 2}}, ge::DataType::DT_FLOAT8_E8M0),
+                                GenTensorList("y", {{4096, 7168}}, ge::DataType::DT_BF16)},
+                               GenTensor("grouped_list", {1}, ge::DataType::DT_INT64), {4096}, 3, -1, false, false,
+                                   0, 0, 0, FunctionType::MXFP, AclnnGroupedMatmulVersion::V4)),
+    AclnnGroupedMatmulCase(
+       "Test_GMMV4_9591_mxfp4_pertoken_dim_error", true, "",                          /* CaseName,Enable,DebugInfo */
+       OpInfo(ControlInfo(true, false),                        /* RunTiling,RunKernel */
+              ExpectInfo(false,                                 /* ExpectSuccess */
+                            ExpectInfo::kInvalidTilingKey,        /* ExpectTilingKey */
+                            ExpectInfo::kInvalidTilingBlockDim)), /* ExpectTilingBlockDim */
+       AclnnGroupedMatmulParam({GenTensorList("x", {{4096, 128}}, ge::DataType::DT_FLOAT4_E1M2),
+                                GenTensorList("weight", {{1, 128, 7168}}, ge::DataType::DT_FLOAT4_E1M2),
+                                GenTensorList("bias", {{1, 7168}}, ge::DataType::DT_FLOAT),
+                                GenTensorList("scale", {{1, 2, 7168, 2}}, ge::DataType::DT_FLOAT8_E8M0),
+                                GenTensorList("pertoken_scale", {{4096, 2}}, ge::DataType::DT_FLOAT8_E8M0),
+                                GenTensorList("y", {{4096, 7168}}, ge::DataType::DT_BF16)},
+                               GenTensor("grouped_list", {1}, ge::DataType::DT_INT64), {4096}, 3, -1, false, false,
+                                   0, 0, 0, FunctionType::MXFP, AclnnGroupedMatmulVersion::V4)),
+    AclnnGroupedMatmulCase(
+       "Test_GMMV4_9591_mxfp4_k_not_equal_error", true, "",                          /* CaseName,Enable,DebugInfo */
+       OpInfo(ControlInfo(true, false),                        /* RunTiling,RunKernel */
+              ExpectInfo(false,                                 /* ExpectSuccess */
+                            ExpectInfo::kInvalidTilingKey,        /* ExpectTilingKey */
+                            ExpectInfo::kInvalidTilingBlockDim)), /* ExpectTilingBlockDim */
+       AclnnGroupedMatmulParam({GenTensorList("x", {{4096, 128}}, ge::DataType::DT_FLOAT4_E1M2),
+                                GenTensorList("weight", {{1, 256, 7168}}, ge::DataType::DT_FLOAT4_E1M2),
+                                GenTensorList("bias", {{1, 7168}}, ge::DataType::DT_FLOAT),
+                                GenTensorList("scale", {{1, 2, 7168, 2}}, ge::DataType::DT_FLOAT8_E8M0),
+                                GenTensorList("pertoken_scale", {{4096, 2, 2}}, ge::DataType::DT_FLOAT8_E8M0),
+                                GenTensorList("y", {{4096, 7168}}, ge::DataType::DT_BF16)},
+                               GenTensor("grouped_list", {1}, ge::DataType::DT_INT64), {4096}, 3, -1, false, false,
+                                   0, 0, 0, FunctionType::MXFP, AclnnGroupedMatmulVersion::V4)),
+    AclnnGroupedMatmulCase(
+       "Test_GMMV4_9591_mxfp4_bias_dim_value_error", true, "",                          /* CaseName,Enable,DebugInfo */
+       OpInfo(ControlInfo(true, false),                        /* RunTiling,RunKernel */
+              ExpectInfo(false,                                 /* ExpectSuccess */
+                            ExpectInfo::kInvalidTilingKey,        /* ExpectTilingKey */
+                            ExpectInfo::kInvalidTilingBlockDim)), /* ExpectTilingBlockDim */
+       AclnnGroupedMatmulParam({GenTensorList("x", {{4096, 128}}, ge::DataType::DT_FLOAT4_E1M2),
+                                GenTensorList("weight", {{128, 7168}}, ge::DataType::DT_FLOAT4_E1M2),
+                                GenTensorList("bias", {{1, 7169}}, ge::DataType::DT_FLOAT),
+                                GenTensorList("scale", {{1, 2, 7168, 2}}, ge::DataType::DT_FLOAT8_E8M0),
+                                GenTensorList("pertoken_scale", {{4096, 2, 2}}, ge::DataType::DT_FLOAT8_E8M0),
+                                GenTensorList("y", {{4096, 7168}}, ge::DataType::DT_BF16)},
+                               GenTensor("grouped_list", {1}, ge::DataType::DT_INT64), {4096}, 3, -1, false, false,
+                                   0, 0, 0, FunctionType::MXFP, AclnnGroupedMatmulVersion::V4)),
+    AclnnGroupedMatmulCase(
+       "Test_GMMV4_9591_mxfp4_scale_dim_value__error", true, "",                          /* CaseName,Enable,DebugInfo */
+       OpInfo(ControlInfo(true, false),                        /* RunTiling,RunKernel */
+              ExpectInfo(false,                                 /* ExpectSuccess */
+                            ExpectInfo::kInvalidTilingKey,        /* ExpectTilingKey */
+                            ExpectInfo::kInvalidTilingBlockDim)), /* ExpectTilingBlockDim */
+       AclnnGroupedMatmulParam({GenTensorList("x", {{4096, 128}}, ge::DataType::DT_FLOAT4_E1M2),
+                                GenTensorList("weight", {{1, 128, 7168}}, ge::DataType::DT_FLOAT4_E1M2),
+                                GenTensorList("bias", {{1, 7168}}, ge::DataType::DT_FLOAT),
+                                GenTensorList("scale", {{1, 1, 7168, 2}}, ge::DataType::DT_FLOAT8_E8M0),
+                                GenTensorList("pertoken_scale", {{4096, 2, 2}}, ge::DataType::DT_FLOAT8_E8M0),
+                                GenTensorList("y", {{4096, 7168}}, ge::DataType::DT_BF16)},
+                               GenTensor("grouped_list", {1}, ge::DataType::DT_INT64), {4096}, 3, -1, false, false,
+                                   0, 0, 0, FunctionType::MXFP, AclnnGroupedMatmulVersion::V4)),
+    AclnnGroupedMatmulCase(
+       "Test_GMMV4_9591_mxfp4_per_token_dim_value__error", true, "",                          /* CaseName,Enable,DebugInfo */
+       OpInfo(ControlInfo(true, false),                        /* RunTiling,RunKernel */
+              ExpectInfo(false,                                 /* ExpectSuccess */
+                            ExpectInfo::kInvalidTilingKey,        /* ExpectTilingKey */
+                            ExpectInfo::kInvalidTilingBlockDim)), /* ExpectTilingBlockDim */
+       AclnnGroupedMatmulParam({GenTensorList("x", {{4096, 128}}, ge::DataType::DT_FLOAT4_E1M2),
+                                GenTensorList("weight", {{1, 128, 7168}}, ge::DataType::DT_FLOAT4_E1M2),
+                                GenTensorList("bias", {{1, 7168}}, ge::DataType::DT_FLOAT),
+                                GenTensorList("scale", {{1, 2, 7168, 2}}, ge::DataType::DT_FLOAT8_E8M0),
+                                GenTensorList("pertoken_scale", {{4095, 2, 2}}, ge::DataType::DT_FLOAT8_E8M0),
+                                GenTensorList("y", {{4096, 7168}}, ge::DataType::DT_BF16)},
+                               GenTensor("grouped_list", {1}, ge::DataType::DT_INT64), {4096}, 3, -1, false, false,
+                                   0, 0, 0, FunctionType::MXFP, AclnnGroupedMatmulVersion::V4)),
+    AclnnGroupedMatmulCase(
        "Test_GMMV4_9591_mxfp8_x_dtype_error", true, "",               /* CaseName,Enable,DebugInfo */
        OpInfo(ControlInfo(true, false),                        /* RunTiling,RunKernel */
               ExpectInfo(false,                                 /* ExpectSuccess */

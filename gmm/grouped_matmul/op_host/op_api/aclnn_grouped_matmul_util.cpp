@@ -32,7 +32,7 @@ bool IsTransposeLastTwoDims(const aclTensor *tensor)
     return false;
 }
 
-bool IsTransposeForMXShape(const aclTensor *tensor)
+bool IsTransposeForMxShape(const aclTensor *tensor)
 {
     auto shape = tensor->GetViewShape();
     if (shape.GetDimNum() < MX_SPLIT_K_PER_TOKEN_SCALE_DIM) {

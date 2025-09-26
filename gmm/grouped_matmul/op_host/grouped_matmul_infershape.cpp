@@ -1394,7 +1394,7 @@ static graphStatus IsDavidWeightQuantGMMByShape(T context)
 }
 
 template<typename T>
-static graphStatus isDavidQuantGMMByShape(T context) {
+static graphStatus IsDavidQuantGMMByShape(T context) {
     auto xDesc = context->GetDynamicInputDesc(GMM_INDEX_IN_X, 0);
     auto weightDesc = context->GetDynamicInputDesc(GMM_INDEX_IN_WEIGHT, 0);
     auto scaleDesc = context->GetDynamicInputDesc(GMM_INDEX_IN_SCALE, 0);
@@ -1415,7 +1415,7 @@ static ge::graphStatus InferShape4GroupedMatmul(gert::InferShapeContext* context
     fe::OptionalInfo optionalInfo;
     auto ret = fe::PlatformInfoManager::Instance().GetPlatformInfoWithOutSocVersion(platformInfo, optionalInfo);
     if (ret == GRAPH_SUCCESS && GmmDavidSupportSoc.count(platformInfo.str_info.short_soc_version) > 0) {
-        if (isDavidQuantGMMByShape(context) == GRAPH_SUCCESS) {
+        if (IsDavidQuantGMMByShape(context) == GRAPH_SUCCESS) {
             OP_CHECK_IF(InferShape4DavidQuantGMM(context) != GRAPH_SUCCESS,
                       OP_LOGE(context->GetNodeName(), "Check params failed"), return GRAPH_FAILED);
             return GRAPH_SUCCESS;
@@ -1682,7 +1682,7 @@ static graphStatus InferDataType4GroupedMatmul(gert::InferDataTypeContext *conte
     fe::OptionalInfo optionalInfo;
     auto ret = fe::PlatformInfoManager::Instance().GetPlatformInfoWithOutSocVersion(platformInfo, optionalInfo);
     if (ret == GRAPH_SUCCESS && GmmDavidSupportSoc.count(platformInfo.str_info.short_soc_version) > 0) {
-        if (isDavidQuantGMMByShape(context) == GRAPH_SUCCESS) {
+        if (IsDavidQuantGMMByShape(context) == GRAPH_SUCCESS) {
             OP_CHECK_IF(InferDtype4DavidQuantGMM(context) != GRAPH_SUCCESS,
                       OP_LOGE(context->GetNodeName(), "InferDtype4DavidQuantGMM failed"), return GRAPH_FAILED);
             return GRAPH_SUCCESS;
