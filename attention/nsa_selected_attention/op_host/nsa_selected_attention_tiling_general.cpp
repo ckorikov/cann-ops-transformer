@@ -289,7 +289,7 @@ ge::graphStatus NsaSelectedAttentionTiling::GetShapeAttrsInfo()
     return ge::GRAPH_SUCCESS;
 }
 
-void NsaSelectedAttentionTiling::Reset(gert::TilingContext *context)
+void NsaSelectedAttentionTiling::Reset([[maybe_unused]] gert::TilingContext *context)
 {
     tilingData.SetDataPtr(context_->GetRawTilingData()->GetData());
 }

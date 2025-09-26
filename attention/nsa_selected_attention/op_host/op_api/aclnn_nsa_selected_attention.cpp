@@ -136,7 +136,7 @@ aclnnStatus InputDtypeCheck(const aclTensor *query, const aclTensor *key, const 
 }
 
 aclnnStatus AnalysisInput(const aclTensor *query, const aclTensor *key, const aclTensor *value, 
-                          const aclTensor *topkIndices, char *inputLayout, NSAShapeInfo &shapeInfo, 
+                          [[maybe_unused]] const aclTensor *topkIndices, char *inputLayout, NSAShapeInfo &shapeInfo, 
                           const aclIntArray *actualSeqQLenOptional = nullptr,
                           const aclIntArray *actualSeqKvLenOptional = nullptr)
 {

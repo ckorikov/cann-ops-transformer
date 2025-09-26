@@ -581,8 +581,10 @@ bool NsaCompressAttentionTilingBase::Analyze3DimLayout(const gert::Shape &queryS
     return true;
 }
 
-bool NsaCompressAttentionTilingBase::Analyze4DimLayout(const gert::Shape &queryShape, const gert::Shape &keyShape, const gert::Shape &valueShape,
-                                                      size_t layoutLen)
+bool NsaCompressAttentionTilingBase::Analyze4DimLayout([[maybe_unused]] const gert::Shape &queryShape,
+                                                       [[maybe_unused]] const gert::Shape &keyShape,
+                                                       [[maybe_unused]] const gert::Shape &valueShape,
+                                                       size_t layoutLen)
 {
     if (layoutLen == 4UL) {
         return false;
@@ -873,7 +875,7 @@ protected:
         s2BasicBlock = alignedS2; // 也是s2最大值
     }
 
-    bool SetBmm1TilingInput(int64_t tmpS1BasicBlock, int64_t tmpS2BasicBlock,
+    bool SetBmm1TilingInput([[maybe_unused]] int64_t tmpS1BasicBlock, [[maybe_unused]] int64_t tmpS2BasicBlock,
                             matmul_tiling::MatmulApiTiling &bmm1) override
     {
         bmm1.SetAType(matmul_tiling::TPosition::GM, matmul_tiling::CubeFormat::ND, bmmDtype, false);
@@ -889,8 +891,8 @@ protected:
         return true;
     }
 
-    bool SetBmm2TilingInput(int64_t tmpS1BasicBlock, int64_t tmpS2BasicBlock, int64_t tmpDBasicBlock,
-                            matmul_tiling::MatmulApiTiling &bmm2) override
+    bool SetBmm2TilingInput([[maybe_unused]] int64_t tmpS1BasicBlock, [[maybe_unused]] int64_t tmpS2BasicBlock,
+                            [[maybe_unused]] int64_t tmpDBasicBlock, matmul_tiling::MatmulApiTiling &bmm2) override
     {
         bmm2.SetAType(matmul_tiling::TPosition::GM, matmul_tiling::CubeFormat::ND, bmmDtype, false);
         bmm2.SetBType(matmul_tiling::TPosition::GM, matmul_tiling::CubeFormat::ND, bmmDtype, false);

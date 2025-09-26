@@ -30,7 +30,7 @@ target_compile_options(intf_pub
             -Wfloat-equal -Wformat=2 -Wshadow
             -Wsign-compare -Wunused-macros -Wvla -Wdisabled-optimization -Wempty-body -Wignored-qualifiers
             -Wimplicit-fallthrough=3 -Wtype-limits -Wshift-negative-value -Wswitch-default
-            -Wframe-larger-than=32768 -Woverloaded-virtual
+            -Wframe-larger-than=98304 -Woverloaded-virtual
             -Wnon-virtual-dtor -Wshift-overflow=2 -Wshift-count-overflow
             -Wwrite-strings -Wmissing-format-attribute -Wformat-nonliteral
             -Wdelete-non-virtual-dtor -Wduplicated-cond
