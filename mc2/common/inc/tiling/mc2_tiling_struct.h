@@ -8,6 +8,12 @@
  * See LICENSE in the root of the software repository for the full text of the License.
  */
 
+// mc2注释
+//
+//
+//
+//
+// mc2注释
 /*!
  * \file mc2_tiling_struct.h
  * \brief
