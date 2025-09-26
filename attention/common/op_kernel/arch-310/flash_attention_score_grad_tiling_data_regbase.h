@@ -50,19 +50,19 @@
      uint64_t get_singleCoreDpseNum() const { return singleCoreDpseNum; }
      uint64_t get_tailCoreDpseNum() const { return tailCoreDpseNum; }
  
-     void set_formerDqNum(uint32_t formerDqNum) { this->formerDqNum = formerDqNum; }
-     void set_formerDkNum(uint32_t formerDkNum) { this->formerDkNum = formerDkNum; }
-     void set_formerDvNum(uint32_t formerDvNum) { this->formerDvNum = formerDvNum; }
-     void set_formerDpseNum(uint32_t formerDpseNum) { this->formerDpseNum = formerDpseNum; }
-     void set_res(uint32_t res) { this->res = res; }
-     void set_singleCoreDqNum(uint64_t singleCoreDqNum) { this->singleCoreDqNum = singleCoreDqNum; }
-     void set_tailCoreDqNum(uint64_t tailCoreDqNum) { this->tailCoreDqNum = tailCoreDqNum; }
-     void set_singleCoreDkNum(uint64_t singleCoreDkNum) { this->singleCoreDkNum = singleCoreDkNum; }
-     void set_tailCoreDkNum(uint64_t tailCoreDkNum) { this->tailCoreDkNum = tailCoreDkNum; }
-     void set_singleCoreDvNum(uint64_t singleCoreDvNum) { this->singleCoreDvNum = singleCoreDvNum; }
-     void set_tailCoreDvNum(uint64_t tailCoreDvNum) { this->tailCoreDvNum = tailCoreDvNum; }
-     void set_singleCoreDpseNum(uint64_t singleCoreDpseNum) { this->singleCoreDpseNum = singleCoreDpseNum; }
-     void set_tailCoreDpseNum(uint64_t tailCoreDpseNum) { this->tailCoreDpseNum = tailCoreDpseNum; }
+     void set_formerDqNum(uint32_t formerDqNumParam) { this->formerDqNum = formerDqNumParam; }
+     void set_formerDkNum(uint32_t formerDkNumParam) { this->formerDkNum = formerDkNumParam; }
+     void set_formerDvNum(uint32_t formerDvNumParam) { this->formerDvNum = formerDvNumParam; }
+     void set_formerDpseNum(uint32_t formerDpseNumParam) { this->formerDpseNum = formerDpseNumParam; }
+     void set_res(uint32_t resParam) { this->res = resParam; }
+     void set_singleCoreDqNum(uint64_t singleCoreDqNumParam) { this->singleCoreDqNum = singleCoreDqNumParam; }
+     void set_tailCoreDqNum(uint64_t tailCoreDqNumParam) { this->tailCoreDqNum = tailCoreDqNumParam; }
+     void set_singleCoreDkNum(uint64_t singleCoreDkNumParam) { this->singleCoreDkNum = singleCoreDkNumParam; }
+     void set_tailCoreDkNum(uint64_t tailCoreDkNumParam) { this->tailCoreDkNum = tailCoreDkNumParam; }
+     void set_singleCoreDvNum(uint64_t singleCoreDvNumParam) { this->singleCoreDvNum = singleCoreDvNumParam; }
+     void set_tailCoreDvNum(uint64_t tailCoreDvNumParam) { this->tailCoreDvNum = tailCoreDvNumParam; }
+     void set_singleCoreDpseNum(uint64_t singleCoreDpseNumParam) { this->singleCoreDpseNum = singleCoreDpseNumParam; }
+     void set_tailCoreDpseNum(uint64_t tailCoreDpseNumParam) { this->tailCoreDpseNum = tailCoreDpseNumParam; }
  };
  
  class FlashAttentionScoreGradS1S2BNGS1S2BaseParamsRegbase {
@@ -128,37 +128,37 @@
      uint32_t get_attenMaskS2Size() const {return attenMaskS2Size;}
      uint8_t get_isSplitByBlockIdx() const {return isSplitByBlockIdx;}
  
-     void set_coreNum(int64_t coreNum) { this->coreNum = coreNum; }
-     void set_b(int64_t b) { this->b = b; }
-     void set_n2(int64_t n2) { this->n2 = n2; }
-     void set_g(int64_t g) { this->g = g; }
-     void set_s1(int64_t s1) { this->s1 = s1; }
-     void set_s2(int64_t s2) { this->s2 = s2; }
-     void set_d(int64_t d) { this->d = d; }
-     void set_d1(int64_t d1) { this->d1 = d1; }
-     void set_scaleValue(float scaleValue) { this->scaleValue = scaleValue; }
-     void set_keepProb(float keepProb) { this->keepProb = keepProb; }
-     void set_keepProbUint8(int64_t keepProbUint8) { this->keepProbUint8 = keepProbUint8; }
-     void set_dropMaskOuter(uint8_t dropMaskOuter) { this->dropMaskOuter = dropMaskOuter; }
-     void set_layout(uint32_t layout) { this->layout = layout; }
-     void set_pseOptional(uint32_t pseOptional) { this->pseOptional = pseOptional; }
-     void set_pseType(uint32_t pseType) { this->pseType = pseType; }
-     void set_pseShapeType(uint32_t pseShapeType) { this->pseShapeType = pseShapeType; }
-     void set_pseLayoutType(uint32_t pseLayoutType) { this->pseLayoutType = pseLayoutType; }
-     void set_pseDtype(uint32_t pseDtype) { this->pseDtype = pseDtype; }
-     void set_qStartIdx(uint32_t qStartIdx) { this->qStartIdx = qStartIdx; }
-     void set_kvStartIdx(uint32_t kvStartIdx) { this->kvStartIdx = kvStartIdx; }
-     void set_attenMaskOptional(uint32_t attenMaskOptional) { this->attenMaskOptional = attenMaskOptional; }
-     void set_attenMaskDtype(uint32_t attenMaskDtype) { this->attenMaskDtype = attenMaskDtype; }
-     void set_attenMaskShapeType(uint32_t attenMaskShapeType) { this->attenMaskShapeType = attenMaskShapeType; }
-     void set_s1Token(int64_t s1Token) { this->s1Token = s1Token; }
-     void set_s2Token(int64_t s2Token) { this->s2Token = s2Token; }
-     void set_sparseMode(uint32_t sparseMode) { this->sparseMode = sparseMode; }
-     void set_seed(int64_t seed) { this->seed = seed; }
-     void set_offset(int64_t offset) { this->offset = offset; }
-     void set_attenMaskCompressMode(uint32_t attenMaskCompressMode) { this->attenMaskCompressMode = attenMaskCompressMode; }
-     void set_attenMaskS2Size(uint32_t attenMaskS2Size) { this->attenMaskS2Size = attenMaskS2Size; }
-     void set_isSplitByBlockIdx(uint8_t isSplitByBlockIdx) { this->isSplitByBlockIdx = isSplitByBlockIdx; }
+     void set_coreNum(int64_t coreNumParam) { this->coreNum = coreNumParam; }
+     void set_b(int64_t bParam) { this->b = bParam; }
+     void set_n2(int64_t n2Param) { this->n2 = n2Param; }
+     void set_g(int64_t gParam) { this->g = gParam; }
+     void set_s1(int64_t s1Param) { this->s1 = s1Param; }
+     void set_s2(int64_t s2Param) { this->s2 = s2Param; }
+     void set_d(int64_t dParam) { this->d = dParam; }
+     void set_d1(int64_t d1Param) { this->d1 = d1Param; }
+     void set_scaleValue(float scaleValueParam) { this->scaleValue = scaleValueParam; }
+     void set_keepProb(float keepProbParam) { this->keepProb = keepProbParam; }
+     void set_keepProbUint8(int64_t keepProbUint8Param) { this->keepProbUint8 = keepProbUint8Param; }
+     void set_dropMaskOuter(uint8_t dropMaskOuterParam) { this->dropMaskOuter = dropMaskOuterParam; }
+     void set_layout(uint32_t layoutParam) { this->layout = layoutParam; }
+     void set_pseOptional(uint32_t pseOptionalParam) { this->pseOptional = pseOptionalParam; }
+     void set_pseType(uint32_t pseTypeParam) { this->pseType = pseTypeParam; }
+     void set_pseShapeType(uint32_t pseShapeTypeParam) { this->pseShapeType = pseShapeTypeParam; }
+     void set_pseLayoutType(uint32_t pseLayoutTypeParam) { this->pseLayoutType = pseLayoutTypeParam; }
+     void set_pseDtype(uint32_t pseDtypeParam) { this->pseDtype = pseDtypeParam; }
+     void set_qStartIdx(uint32_t qStartIdxParam) { this->qStartIdx = qStartIdxParam; }
+     void set_kvStartIdx(uint32_t kvStartIdxParam) { this->kvStartIdx = kvStartIdxParam; }
+     void set_attenMaskOptional(uint32_t attenMaskOptionalParam) { this->attenMaskOptional = attenMaskOptionalParam; }
+     void set_attenMaskDtype(uint32_t attenMaskDtypeParam) { this->attenMaskDtype = attenMaskDtypeParam; }
+     void set_attenMaskShapeType(uint32_t attenMaskShapeTypeParam) { this->attenMaskShapeType = attenMaskShapeTypeParam; }
+     void set_s1Token(int64_t s1TokenParam) { this->s1Token = s1TokenParam; }
+     void set_s2Token(int64_t s2TokenParam) { this->s2Token = s2TokenParam; }
+     void set_sparseMode(uint32_t sparseModeParam) { this->sparseMode = sparseModeParam; }
+     void set_seed(int64_t seedParam) { this->seed = seedParam; }
+     void set_offset(int64_t offsetParam) { this->offset = offsetParam; }
+     void set_attenMaskCompressMode(uint32_t attenMaskCompressModeParam) { this->attenMaskCompressMode = attenMaskCompressModeParam; }
+     void set_attenMaskS2Size(uint32_t attenMaskS2SizeParam) { this->attenMaskS2Size = attenMaskS2SizeParam; }
+     void set_isSplitByBlockIdx(uint8_t isSplitByBlockIdxParam) { this->isSplitByBlockIdx = isSplitByBlockIdxParam; }
  };
  
  class FlashAttentionScoreGradS1S2BNGS1S2SplitCoreParamsRegbase {

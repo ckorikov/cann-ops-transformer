@@ -292,6 +292,12 @@ const aclTensor *InplaceIndexAddWithSorted(const aclTensor * /*self*/, const int
 const aclTensor *GatherV3(const aclTensor *self, int64_t axis, const aclTensor *indices, aclOpExecutor *executor,
                         int batchDims = 0, bool negativeIndexSupport = false)
 {
+    (void)self;
+    (void)axis;
+    (void)indices;
+    (void)executor;
+    (void)batchDims;
+    (void)negativeIndexSupport;
     return nullptr;
 }
 

@@ -690,7 +690,6 @@ bool FlashAttentionScoreConstTiling::AnalyzeLayout()
     dSizeRope = 0; // init dSizeRope
     hasRope = hasQueryRope && hasKeyRope;
     const gert::Shape *queryRopeShape = hasQueryRope ? &queryRope->GetStorageShape() : nullptr;
-    const gert::Shape *keyRopeShape = hasQueryRope ? &keyRope->GetStorageShape() : nullptr;
 
     size_t layoutLen = strlen(inputLayout);
     OP_LOGD(context_, "get input_layout [%s].", inputLayout);
@@ -2384,6 +2383,7 @@ protected:
 
     void SetMultiCoreParamsRegbase(int64_t totalSize, int64_t coreNum) override
     {
+        (void)coreNum;
         int64_t accumS1BlockNum = 0;
         for (int64_t i = 0; i < bSize; ++i) {
             accumS1BlockNum += CeilDivision(actualSeqLenData[i], s1BasicBlock);
@@ -2531,7 +2531,7 @@ protected:
         return true;
     }
 
-    bool SparseNoMaskModeCheck(int64_t maxS1Val, int64_t minS1Val, int64_t maxS2Val, int64_t minS2Val,
+    bool SparseNoMaskModeCheck(int64_t maxS1Val, int64_t maxS2Val, int64_t minS2Val,
                                SparseEnum &sparseType)
     {
         if (nextTokens < 0) {
@@ -2672,7 +2672,7 @@ protected:
                 }
                 int64_t minS1Val = *std::min_element(actualSeqLenData.begin(), actualSeqLenData.begin() + bSize);
                 int64_t minS2Val = *std::min_element(actualSeqLenKvData.begin(), actualSeqLenKvData.begin() + bSize);
-                if (!SparseNoMaskModeCheck(s1Size, minS1Val, s2Size, minS2Val, sparseType)) {
+                if (!SparseNoMaskModeCheck(s1Size, s2Size, minS2Val, sparseType)) {
                     return false;
                 }
             }
@@ -2697,6 +2697,7 @@ protected:
 
     bool InitSparseValidArray(std::vector<int64_t> &sparseValidArray, int64_t bIdx) override
     {
+        (void)bIdx;
         OP_CHECK_IF(sparseValidArray.size() == 0,
                    OPS_REPORT_VECTOR_INNER_ERR(opName, "Sparse valid array size should be larger than 0."),
                    return false);
@@ -2801,6 +2802,7 @@ protected:
     bool SetSparseStartIdx(const std::vector<int64_t> &sparseValidArray, MultiCoreParamsRegbase &multiCoreParamsRegbase,
                            int64_t maxCoreNum) override
     {
+        (void)maxCoreNum;
         // to avoid buffer overflow, or maybe sometimes we want to only verify single core
         int64_t validAivNum = std::min(static_cast<int64_t>(multiCoreParamsRegbase.get_coreNum()),
                                        static_cast<int64_t>(aicNum));

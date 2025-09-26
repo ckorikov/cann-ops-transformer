@@ -238,7 +238,7 @@
  
  class FlashAttentionScoreGradTilingUs1s2Bs2Regbase : public TilingBaseClass {
  public:
-     explicit FlashAttentionScoreGradTilingUs1s2Bs2Regbase(gert::TilingContext *context_) : TilingBaseClass(context_)
+     explicit FlashAttentionScoreGradTilingUs1s2Bs2Regbase(gert::TilingContext *curContext_) : TilingBaseClass(curContext_)
      {
      }
      ~FlashAttentionScoreGradTilingUs1s2Bs2Regbase()
@@ -290,7 +290,7 @@
                                      std::vector<std::pair<uint64_t, uint64_t>> &syncRounds,
                                      std::vector<std::pair<uint64_t, uint64_t>> &syncRoundRanges);
      void CalcleTNDBandDeterPrefix(DeterPrefixData &deterPrefixData,
-                                   int64_t N11, int64_t N12, int64_t &mnMax);
+                                   int64_t N11, int64_t &mnMax);
      void CalcleTNDBandBns2DeterParam(DeterPrefixData &deterPrefixData);
      void SetCoreRoundInfo(TndBandDeterRoundInfo &tndBandDeterRoundInfo, uint64_t round, int64_t batchId);
      std::vector<uint64_t> CalculateSyncRound(std::vector<std::pair<uint64_t, uint64_t>> syncRounds);
@@ -307,7 +307,7 @@
      bool IsValid(int64_t blockIdx);
      void GetOffset(int64_t &currentDqOffset, int64_t &currentDkDvOffset, int64_t blockIdx);
      void JudgeIsNeedDeter(std::array<int64_t, CORE_LIST_NUM>& dqOffset, std::array<int64_t, CORE_LIST_NUM>& dkDvOffset, std::array<int64_t, CORE_LIST_NUM>& dqOffsetpre,
-        std::array<int64_t, CORE_LIST_NUM>& dkDvOffsetpre, int64_t calcNum, bool &noNeedDeter, bool &dqNeedDeterpre, bool &dkDvNeedDeterpre);     bool CheckFuzzyArgsLegal(uint32_t s1Inner, uint32_t s2Inner);
+        std::array<int64_t, CORE_LIST_NUM>& dkDvOffsetpre, int64_t calcNum, bool &noNeedDeter, bool &dqNeedDeterpre, bool &dkDvNeedDeterpre);
      std::tuple<uint32_t, uint32_t, uint32_t> FuzzyForBestSplit();
      virtual ge::graphStatus GetSparseBlockInfo();
      void DoPreTiling();
@@ -380,8 +380,8 @@
  
  class FlashAttentionScoreGradTilingUnpaddedAttensionRegbase : public FlashAttentionScoreGradTilingUs1s2Bs2Regbase {
  public:
-     explicit FlashAttentionScoreGradTilingUnpaddedAttensionRegbase(gert::TilingContext *context_)
-         : FlashAttentionScoreGradTilingUs1s2Bs2Regbase(context_)
+     explicit FlashAttentionScoreGradTilingUnpaddedAttensionRegbase(gert::TilingContext *curContext_)
+         : FlashAttentionScoreGradTilingUs1s2Bs2Regbase(curContext_)
      {
      }
      ~FlashAttentionScoreGradTilingUnpaddedAttensionRegbase()

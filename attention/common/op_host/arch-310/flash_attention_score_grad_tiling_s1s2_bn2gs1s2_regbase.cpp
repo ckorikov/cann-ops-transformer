@@ -1190,7 +1190,7 @@ void FlashAttentionScoreGradTilingUs1s2Bs2Regbase::CalcleCausalDeterParam()
     if (fBaseParams.sparseMode == static_cast<uint32_t>(SparseMode::RIGHT_DOWN_CAUSAL) && m > n) {
         m = n;
     } else if (fBaseParams.sparseMode == static_cast<uint32_t>(SparseMode::NO_MASK) ||
-               fBaseParams.sparseMode == static_cast<uint32_t>(SparseMode::LEFT_UP_CAUSAL) && n > m) {
+               (fBaseParams.sparseMode == static_cast<uint32_t>(SparseMode::LEFT_UP_CAUSAL) && n > m)) {
         n = m;
     } else if (fBaseParams.sparseMode == static_cast<uint32_t>(SparseMode::RIGHT_DOWN_CAUSAL) && m < n) {
         fBaseParams.deterSparseType = static_cast<uint32_t>(DeterSparseType::DETER_BAND);
@@ -1381,7 +1381,7 @@ void FlashAttentionScoreGradTilingUs1s2Bs2Regbase::CalcleActualToken(int64_t bat
 }
 
 void FlashAttentionScoreGradTilingUs1s2Bs2Regbase::CalcleTNDBandDeterPrefix(
-    DeterPrefixData &deterPrefixData, int64_t N11, int64_t N12, int64_t &mnMax)
+    DeterPrefixData &deterPrefixData, int64_t N11, int64_t &mnMax)
 {
     for (int64_t i = 0; i < fBaseParams.b; i++) {
         int64_t m, n, p, q, mNew, nNew;
@@ -1646,7 +1646,7 @@ void FlashAttentionScoreGradTilingUs1s2Bs2Regbase::CalcleTNDBandDeterParam()
     int64_t mnMax = 0;
 
     DeterPrefixData deterPrefixData;
-    CalcleTNDBandDeterPrefix(deterPrefixData, N11, N12, mnMax);
+    CalcleTNDBandDeterPrefix(deterPrefixData, N11, mnMax);
 
     if (N11 > 0) {
         int64_t R0 = deterPrefixData.prefix0.back();
@@ -2155,7 +2155,6 @@ uint64_t FlashAttentionScoreGradTilingUs1s2Bs2Regbase::GetTilingKey() const
             }
         }
     }
-    auto reserved = 0;
     auto splitAxis = fBaseParams.splitAxis;
     if (fBaseParams.hasRope) {
         splitAxis = SplitAxisEnum::BN2GS1S2;
@@ -2163,7 +2162,7 @@ uint64_t FlashAttentionScoreGradTilingUs1s2Bs2Regbase::GetTilingKey() const
     OP_LOGI(context_, "splitAxis[%d], inputDtype[%d], isTnd[%d], dropValue[%d], pseValue[%d], attenMaskCfg[%d], s1TemplateType[%d], s2TemplateType[%d], dTemplateType[%u], isDeterministic[%d], hasTail[%d], dNoEqual[%d], hasRope[%d], outDtype[%d], fp8OpenTscm[%d], isRegbasePlatformValue[%d]",
                     static_cast<int>(splitAxis), static_cast<int>(fBaseParams.inputDtype), isTnd, static_cast<int>(dropValue), static_cast<int>(pseValue), static_cast<int>(attenMaskCfg), 
                     static_cast<int>(fBaseParams.s1TemplateType), static_cast<int>(fBaseParams.s2TemplateType), static_cast<uint32_t>(fBaseParams.dTemplateType),
-                    fBaseParams.deterSparseType, hasTail, dNoEqual, static_cast<int>(fBaseParams.hasRope), static_cast<int>(fBaseParams.outDtype),  static_cast<int>(fBaseParams.fp8OpenTscm), static_cast<int>(isRegbasePlatformValue));
+                    static_cast<int>(fBaseParams.deterSparseType), hasTail, dNoEqual, static_cast<int>(fBaseParams.hasRope), static_cast<int>(fBaseParams.outDtype),  static_cast<int>(fBaseParams.fp8OpenTscm), static_cast<int>(isRegbasePlatformValue));
     
     uint64_t tilingKey = GET_TPL_TILING_KEY(0, static_cast<uint8_t>(splitAxis), static_cast<uint8_t>(fBaseParams.inputDtype), static_cast<uint8_t>(isTnd), static_cast<uint8_t>(dropValue), static_cast<uint8_t>(pseValue),
                                             static_cast<uint8_t>(attenMaskCfg), static_cast<uint16_t>(fBaseParams.s1TemplateType), static_cast<uint16_t>(fBaseParams.s2TemplateType), static_cast<uint16_t>(fBaseParams.dTemplateType), static_cast<uint8_t>(fBaseParams.deterSparseType),
@@ -2575,11 +2574,6 @@ std::tuple<uint32_t, uint32_t, uint32_t> FlashAttentionScoreGradTilingUs1s2Bs2Re
     uint32_t s2Inner = s1s2TemplateSize.second;
     uint32_t dInner = GetDTemplateType();
     return std::tie(s1Inner, s2Inner, dInner);
-}
-
-bool FlashAttentionScoreGradTilingUs1s2Bs2Regbase::CheckFuzzyArgsLegal(uint32_t s1Inner, uint32_t s2Inner)
-{
-    return true;
 }
 
 ge::graphStatus FlashAttentionScoreGradTilingUs1s2Bs2Regbase::PostTiling()
@@ -3051,7 +3045,7 @@ void FlashAttentionScoreGradTilingUs1s2Bs2Regbase::FillBlockInfoLoadBalance(
         CalcleActualToken(i, actualCalcS1Token, actualCalcS2Token);
 
         OP_LOGD("FillBlockInfoLoadBalance",
-                  " b idx = %d: actualS1Len = %d, actualS2Len = %d, actualCalcS1Token = %ld, actualCalcS2Token = %ld",
+                  " b idx = %ld: actualS1Len = %ld, actualS2Len = %ld, actualCalcS1Token = %ld, actualCalcS2Token = %ld",
                   i, actualS1Len, actualS2Len, actualCalcS1Token, actualCalcS2Token);
 
         // unpad 场景下s2Outer是按照最大的s2计算得到的
@@ -3206,7 +3200,7 @@ bool FlashAttentionScoreGradTilingUs1s2Bs2Regbase::CaclePerCoreBlockInfo(
                 OP_LOGD("GetBlockInfoOfBNS4TND", " Not support BN2S2.");
                 return false;
             } else if (currentSum + num > maxBlockNumPerCore) {
-                OP_LOGD("GetBlockInfoOfBNS4TND", " blockIdx = %ld: acturalBlock = %ld", coreIdx, currentSum);
+                OP_LOGD("GetBlockInfoOfBNS4TND", " blockIdx = %ld: acturalBlock = %f", coreIdx, currentSum);
                 int64_t preBatchBlockNum = b == 0 ? 0 : totalBlockInfo[b - 1][1];
                 int64_t preNGBlockNum = n * totalBlockInfo[b][0];
                 int64_t preS2BlockNum = j * actualS1Outer;
@@ -3220,7 +3214,7 @@ bool FlashAttentionScoreGradTilingUs1s2Bs2Regbase::CaclePerCoreBlockInfo(
             }
         }
     }
-    OP_LOGD("GetBlockInfoOfBNS4TND", " blockIdx = %ld: acturalBlock = %ld", coreIdx, currentSum);
+    OP_LOGD("GetBlockInfoOfBNS4TND", " blockIdx = %ld: acturalBlock = %f", coreIdx, currentSum);
 
     blockStarts[0] = 0;
     blockEnds[coreIdx] = totalBlockInfo[fBaseParams.b - 1][1];
@@ -3269,7 +3263,6 @@ ge::graphStatus FlashAttentionScoreGradTilingUs1s2Bs2Regbase::GetSparseUnpadBloc
     int64_t gIdx = 0;
     int64_t gTail = 0;
     int64_t s1oIdx = 0;
-    int64_t s1oTail = 0;
     int64_t s2oIdx = 0;
 
     int64_t blockStarts[CORE_LIST_NUM];
