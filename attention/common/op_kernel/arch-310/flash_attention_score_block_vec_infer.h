@@ -274,7 +274,7 @@ __aicore__ inline void FABlockVecInfer<TEMPLATE_ARGS>::InitPostQuant(ConstInfo<i
         }
         
         if (!constInfo.isPostQuantPerChnl && constInfo.isPostQuantBF16) {
-            if (postQuantOffset != nullptr) {
+            if (postQuantScale != nullptr) {
                 postQuantScaleBf16Gm.SetGlobalBuffer((__gm__ bfloat16_t *)postQuantScale);
                 constInfo.postQuantScaleValue = ToFloat(postQuantScaleBf16Gm.GetValue(0));
             }
@@ -776,8 +776,9 @@ __aicore__ inline void FABlockVecInfer<TEMPLATE_ARGS>::PostQuant(ConstInfo<isInf
         uint64_t perChannelQuantOffset = constInfo.isGqa ?
                                              perChannelQuantGQAOffset :
                                              runInfo.n2oIdx * constInfo.gDv + runInfo.goIdx * constInfo.dSizeV;
-        uint32_t gSplitSize = constInfo.isPostQuantBF16 ? (2048U / (constInfo.dSizeV * sizeof(bfloat16_t))) :
-                                                          (2048U / (constInfo.dSizeV * sizeof(float)));
+        uint32_t gSplitSize = constInfo.isPostQuantBF16 ? (2048U / ((int32_t)dVTemplateType * sizeof(bfloat16_t))) :
+                                                          (2048U / ((int32_t)dVTemplateType * sizeof(float)));
+        gSplitSize = gSplitSize > gRowCount ? gRowCount : gSplitSize;
         uint32_t loopCount = (gRowCount + gSplitSize - 1) / gSplitSize;
         uint32_t tailSplitSize = gRowCount - (loopCount - 1) * gSplitSize;
         for (uint32_t i = 0; i < loopCount; i++) {

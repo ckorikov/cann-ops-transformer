@@ -522,11 +522,11 @@ __aicore__ inline void FlashAttentionKvsameBN2GS1S2<CHILD_SPEC_TEMPLATE_ARGS>::I
             }
         }
 
-        if (postQuantScale != nullptr && !this->constInfo.isPostQuantPerChnl && this->constInfo.isPostQuantBF16) {
-            postQuantScaleBf16Gm.SetGlobalBuffer((__gm__ bfloat16_t *)postQuantScale);
-            this->constInfo.postQuantScaleValue = ToFloat(postQuantScaleBf16Gm.GetValue(0));
-        }
         if (!this->constInfo.isPostQuantPerChnl && this->constInfo.isPostQuantBF16) {
+            if (postQuantScale != nullptr) {
+                postQuantScaleBf16Gm.SetGlobalBuffer((__gm__ bfloat16_t *)postQuantScale);
+                this->constInfo.postQuantScaleValue = ToFloat(postQuantScaleBf16Gm.GetValue(0));
+            }
             if (postQuantOffset != nullptr) {
                 postQuantOffsetBf16Gm.SetGlobalBuffer((__gm__ bfloat16_t *)postQuantOffset);
                 this->constInfo.postQuantOffsetValue = ToFloat(postQuantOffsetBf16Gm.GetValue(0));
