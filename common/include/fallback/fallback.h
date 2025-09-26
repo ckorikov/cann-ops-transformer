@@ -191,7 +191,6 @@ inline aclTensor* ConvertType(const gert::Tensor* ge_tensor) {
   OP_CHECK_IF(aclCreateTensor == nullptr, OP_LOGE("aclnnfallback", "aclCreateTensor nullptr"), return nullptr);
 
   void* device_addr = nullptr;
-  auto tensor_place = ge_tensor->GetPlacement();
   device_addr = const_cast<void*>(ge_tensor->GetAddr());
 
   auto dataType = GetConvertType(ge_tensor);
