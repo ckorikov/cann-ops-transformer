@@ -13,27 +13,35 @@
 ########################################################################################################################
 
 set(_NSA_COMPRESS_GRAD_TilingSourcesExt
-        ${OPS_ADV_DIR}/attention/nsa_compress_grad/op_host/nsa_compress_grad_tiling.cpp
+        ${OPS_TRANSFORMER_DIR}/attention/nsa_compress_grad/op_host/nsa_compress_grad_tiling.cpp
 )
 
 set(_NSA_COMPRESS_GRAD_KernelTilingDataDefH
-        ${OPS_ADV_DIR}/common/inc/tiling/data_copy_transpose_tiling_def.h
+        ${OPS_TRANSFORMER_DIR}/common/include/tiling_base/data_copy_transpose_tiling_def.h
         ${CMAKE_SOURCE_DIR}/attention/nsa_compress_grad/op_host/nsa_compress_grad_tiling.h
 )
 
 set(_NSA_COMPRESS_GRAD_KernelTilingExtInclude
         ${CMAKE_SOURCE_DIR}/attention/nsa_compress_grad/op_host/
+        ${CMAKE_SOURCE_DIR}/attention/nsa_compress_grad/op_host/op_api/
+)
+
+set(_ncai_UTestCommonPrivateIncludeExt
+        ${OPBASE_INC_DIRS}
+        ${OPS_TRANSFORMER_DIR}/common/include
 )
 
 set(_NSA_COMPRESS_GRAD_TargetPrivateLinkLibrariesExt
-        ops_utils_tiling_headers
+        ${UTest_NamePrefix}_OpTiling
+        error_manager
 )
+
 set(_NSA_COMPRESS_GRAD_CompileDefintions
         DTYPE_X=float
 )
-aux_source_directory(${CMAKE_SOURCE_DIR}/attention/nsa_compress_grad/ _NSA_COMPRESS_GRAD_KernelSourcesExt)
+aux_source_directory(${CMAKE_SOURCE_DIR}/attention/nsa_compress_grad/op_kernel _NSA_COMPRESS_GRAD_KernelSourcesExt)
 OpsTest_Level2_AddOp(
-        SUB_SYSTEM                              transformer/attention
+        SUB_SYSTEM                              transformer
         BRIEF                                   NsaCompressGrad
         SNAKE                                   nsa_compress_grad
         KERNEL_TILING_DATA_DEF_H                ${_NSA_COMPRESS_GRAD_KernelTilingDataDefH}
@@ -42,4 +50,5 @@ OpsTest_Level2_AddOp(
         TILING_PRIVATE_INCLUDES_EXT             ${_NSA_COMPRESS_GRAD_KernelTilingExtInclude}
         KERNEL_PRIVATE_COMPILE_DEFINITIONS_EXT  ${_NSA_COMPRESS_GRAD_CompileDefintions}
         UTEST_COMMON_PRIVATE_LINK_LIBRARIES_EXT ${_NSA_COMPRESS_GRAD_TargetPrivateLinkLibrariesExt}
+        UTEST_COMMON_PRIVATE_INCLUDES_EXT       ${_ncai_UTestCommonPrivateIncludeExt}
 )

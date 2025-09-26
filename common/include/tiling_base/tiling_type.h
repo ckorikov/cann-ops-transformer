@@ -102,9 +102,10 @@ constexpr uint64_t RecursiveSum()
     return 0;
 }
 
+constexpr int64_t base10Multiplier = 10;
+
 template <typename T, typename... Args> constexpr uint64_t RecursiveSum(T templateId, Args... templateIds)
 {
-    constexpr int64_t base10Multiplier = 10;
     return static_cast<uint64_t>(templateId) + base10Multiplier * RecursiveSum(templateIds...);
 }
 

@@ -176,7 +176,7 @@ bool NsaCompressAttentionCase::InitOptInputs()
     }
     topkMask = Tensor("topkMask", layoutTopkMask, layoutTopkMaskStr.c_str(), mParam.topkMaskDtype, ge::FORMAT_ND, Tensor::TensorType::OPTIONAL_INPUT);
     if (!mParam.actualSeqQLenTensorData.empty()) {
-        actualSeqQLen = Tensor("actualSeqQLen", {static_cast<int64_t>(mParam.actualSeqQLenTensorData.size())}, "B", 
+        actualSeqQLen = Tensor("actualSeqQLen", {static_cast<int64_t>(mParam.actualSeqQLenTensorData.size())}, "B",
                                ge::DataType::DT_INT64, ge::FORMAT_ND, Tensor::TensorType::OPTIONAL_INPUT);
     } else {
         actualSeqQLen = Tensor("actualSeqQLen", {}, "None", ge::DataType::DT_INT64, ge::FORMAT_ND,
@@ -271,11 +271,11 @@ NsaCompressAttentionCase::NsaCompressAttentionCase(const char *name, bool enable
 NsaCompressAttentionCase::NsaCompressAttentionCase()
 {
 }
-NsaCompressAttentionCase::Param::Param(int64_t pB, int64_t pN2, int64_t pG, int64_t pS1, int64_t pS2, int64_t pD1, int64_t pD2, ge::DataType pDtype, 
-                                       LayoutType pLayoutType, float pScale, int64_t pSparseMode, int64_t pCmpBlkSize, int64_t pCmpStride, 
-                                       int64_t pSelBlkSize, int64_t pSelBlkCnt, AttenMaskShapeType pAttenMaskShapeType, 
+NsaCompressAttentionCase::Param::Param(int64_t pB, int64_t pN2, int64_t pG, int64_t pS1, int64_t pS2, int64_t pD1, int64_t pD2, ge::DataType pDtype,
+                                       LayoutType pLayoutType, float pScale, int64_t pSparseMode, int64_t pCmpBlkSize, int64_t pCmpStride,
+                                       int64_t pSelBlkSize, int64_t pSelBlkCnt, AttenMaskShapeType pAttenMaskShapeType,
                                        TopkMaskShapeType pTopkMaskShapeType, ge::DataType pAttenMaskDtype, ge::DataType pTopkMaskDtype,
-                                       std::vector<int64_t> pActualSeqQLenList, std::vector<int64_t> pActualCmpSeqKvLenList, 
+                                       std::vector<int64_t> pActualSeqQLenList, std::vector<int64_t> pActualCmpSeqKvLenList,
                                        std::vector<int64_t> pActualSelSeqKvLenList)
     : b(pB), n2(pN2), g(pG), s1(pS1), s2(pS2), d1(pD1), d2(pD2), dtype(pDtype), layoutType(pLayoutType), scale(pScale), sparseMode(pSparseMode),
       cmpBlkSize(pCmpBlkSize), cmpStride(pCmpStride), selBlkSize(pSelBlkSize), selBlkCnt(pSelBlkCnt), attenMaskShapeType(pAttenMaskShapeType),
@@ -300,6 +300,6 @@ bool NsaCompressAttentionCase::DoOpTiling(DoTilingParam &tilingParam)
         tilingParam.actSeqSelKVLenTensor->SetData(gert::TensorData{mParam.actualSelSeqKVLenTensorData.data()});
     }
     /* 按优先级 Tiling */
-    tilingParam.ret = optiling::TilingRegistry::GetInstance().DoTilingImpl(tilingParam.ctx, {0});
+    tilingParam.ret = Ops::Transformer::OpTiling::TilingRegistryNew::GetInstance().DoTilingImpl(tilingParam.ctx, {0});
     return true;
 }

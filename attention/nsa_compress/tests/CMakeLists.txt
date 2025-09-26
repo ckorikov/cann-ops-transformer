@@ -12,32 +12,32 @@
 ########################################################################################################################
 
 set(_NSA_OpApiSourcesExt
-        ${OPS_ADV_DIR}/attention/nsa_compress/op_host/nsa_compress.cpp
-        ${OPS_ADV_DIR}/attention/nsa_compress/op_host/op_api/aclnn_nsa_compress.cpp
+        ${OPS_TRANSFORMER_DIR}/attention/nsa_compress/op_host/op_api/nsa_compress.cpp
+        ${OPS_TRANSFORMER_DIR}/attention/nsa_compress/op_host/op_api/aclnn_nsa_compress.cpp
 )
 
 set(_NSA_OpProtoSourcesExt
-        ${OPS_ADV_DIR}/attention/nsa_compress/op_host/nsa_compress_infershape.cpp
+        ${OPS_TRANSFORMER_DIR}/attention/nsa_compress/op_host/nsa_compress_infershape.cpp
 )
 
 set(_NSA_OpTilingSourcesExt)
-file(GLOB _Src1 "${OPS_ADV_DIR}/attention/nsa_compress/op_host/nsa_compress_tiling*.cc")
-file(GLOB _Src2 "${OPS_ADV_DIR}/attention/nsa_compress/op_host/nsa_compress_tiling*.cpp")
+file(GLOB _Src1 "${OPS_TRANSFORMER_DIR}/attention/nsa_compress/op_host/nsa_compress_tiling*.cc")
+file(GLOB _Src2 "${OPS_TRANSFORMER_DIR}/attention/nsa_compress/op_host/nsa_compress_tiling*.cpp")
 list(APPEND _NSA_OpTilingSourcesExt ${_Src1} ${_Src2})
 
 set(_NSA_OpTilingPrivateIncludesExt)
 
 set(_NSA_OpKernelTilingDataDefH
         # 公共
-        ${OPS_ADV_DIR}/common/inc/tiling/data_copy_transpose_tiling_def.h
+        ${OPS_TRANSFORMER_DIR}/common/include/tiling_base/data_copy_transpose_tiling_def.h
         # NSA
-        ${OPS_ADV_DIR}/attention/nsa_compress/op_host/nsa_compress_tiling.h
+        ${OPS_TRANSFORMER_DIR}/attention/nsa_compress/op_host/nsa_compress_tiling.h
 )
 
 set(_NSA_OpKernelSourcesExt)
 
 set(_NSA_OpKernelPrivateIncludesExt
-        ${OPS_ADV_DIR}/src/utils/inc/kernel
+        ${OPS_TRANSFORMER_DIR}/common/include/kernel
 )
 
 set(_NSA_OpKernelPrivateCompileDefinitionsExt
@@ -45,10 +45,12 @@ set(_NSA_OpKernelPrivateCompileDefinitionsExt
         KernelCtrlParam nsa_compress bf16 ORIG_DTYPE_QUERY=DT_BF16    DTYPE_DQ=bfloat16_t KFC_L1_RESERVER_SIZE=0
 )
 set(_NSA_UTestCommonPrivateIncludeExt
-        ${OPS_ADV_DIR}/attention/nsa_compress/op_host
+        ${OPBASE_INC_DIRS}
+        ${OPS_TRANSFORMER_DIR}/common/include
+        ${OPS_TRANSFORMER_DIR}/attention/nsa_compress/op_host
+        ${OPS_TRANSFORMER_DIR}/attention/nsa_compress/op_host/op_api
 )
 set(_NSA_UTestCommonPrivateLinkLibrariesExt
-        ops_utils_tiling_headers        # 用于 FAG 指定模板优先级相关实现
         ${UTest_NamePrefix}_OpTiling    # 用于 FAG 指定模板优先级相关实现
         error_manager                   # 用于 FAG 指定模板优先级相关实现
 )
@@ -66,7 +68,7 @@ list(APPEND _NSA_UTestAclnnSourcesExtForce ${_Src1} ${_Src2})
 set(_NSA_UTestCompileDefinitions)
 
 list(APPEND _NSA_OpKernelSourcesExt
-        ${OPS_ADV_DIR}/attention/nsa_compress/op_kernel/nsa_compress.cpp
+        ${OPS_TRANSFORMER_DIR}/attention/nsa_compress/op_kernel/nsa_compress.cpp
 )
 
 file(GLOB_RECURSE _Src1 "${CMAKE_CURRENT_SOURCE_DIR}/utest/*.cc")
@@ -81,7 +83,7 @@ list(APPEND _NSA_UTestCompileDefinitions)
 
 
 OpsTest_Level2_AddOp(
-        SUB_SYSTEM                                transformer/attention
+        SUB_SYSTEM                                transformer
         BRIEF                                     NSA
         SNAKE                                     nsa_compress
         OPAPI_SOURCES_EXT                         ${_NSA_OpApiSourcesExt}

@@ -12,23 +12,22 @@
 ########################################################################################################################
 
 set(_nsag_TilingSourcesExt
-        ${OPS_ADV_DIR}/src/transformer/attention/nsa_selected_attention_grad/op_host/nsa_selected_attention_grad_tiling_bs1.cpp
-        ${OPS_ADV_DIR}/src/transformer/attention/nsa_selected_attention_grad/op_host/nsa_selected_attention_grad_tiling_bs1_basic.cpp
-        ${OPS_ADV_DIR}/src/transformer/attention/nsa_selected_attention_grad/op_host/nsa_selected_attention_grad_tiling_common.cpp
-        ${OPS_ADV_DIR}/src/transformer/attention/nsa_selected_attention_grad/op_host/nsa_selected_attention_grad_tiling.cpp
+        ${OPS_ADV_DIR}/attention/nsa_selected_attention_grad/op_host/nsa_selected_attention_grad_tiling_bs1.cpp
+        ${OPS_ADV_DIR}/attention/nsa_selected_attention_grad/op_host/nsa_selected_attention_grad_tiling_bs1_basic.cpp
+        ${OPS_ADV_DIR}/attention/nsa_selected_attention_grad/op_host/nsa_selected_attention_grad_tiling_common.cpp
+        ${OPS_ADV_DIR}/attention/nsa_selected_attention_grad/op_host/nsa_selected_attention_grad_tiling.cpp
 )
 
 set(_nsag_KernelTilingDataDefH
-        ${OPS_ADV_DIR}/src/utils/inc/tiling/data_copy_transpose_tiling_def.h
-        ${CMAKE_SOURCE_DIR}/src/transformer/attention/nsa_selected_attention_grad/op_host/nsa_selected_attention_grad_tiling.h
+        ${OPS_TRANSFORMER_DIR}/common/include/tiling_base/data_copy_transpose_tiling_def.h
+        ${CMAKE_SOURCE_DIR}/attention/nsa_selected_attention_grad/op_host/nsa_selected_attention_grad_tiling.h
 )
 
 set(_nsag_TargetPrivateLinkLibrariesExt
-        ops_utils_tiling_headers
         ${UTest_NamePrefix}_OpTiling
         error_manager
 )
-aux_source_directory(${CMAKE_SOURCE_DIR}/src/transformer/attention/nsa_selected_attention_grad/op_kernel _nsag_KernelSourcesExt)
+aux_source_directory(${CMAKE_SOURCE_DIR}/attention/nsa_selected_attention_grad/op_kernel _nsag_KernelSourcesExt)
 
 OpsTest_Level2_AddOp(
         SUB_SYSTEM                              transformer/attention

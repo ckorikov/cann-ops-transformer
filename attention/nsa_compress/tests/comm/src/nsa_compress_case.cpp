@@ -186,6 +186,6 @@ bool NsaCompressCase::DoOpTiling(DoTilingParam &tilingParam)
     if (tilingParam.actSeqLenTensor != nullptr) {
         tilingParam.actSeqLenTensor->SetData(gert::TensorData{mParam.actualSeqLenTensorData.data()});
     }
-    tilingParam.ret = optiling::TilingRegistry::GetInstance().DoTilingImpl(tilingParam.ctx);
+    tilingParam.ret = Ops::Transformer::OpTiling::TilingRegistryNew::GetInstance().DoTilingImpl(tilingParam.ctx);
     return true;
 }
