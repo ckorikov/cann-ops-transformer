@@ -397,7 +397,7 @@ aclnnStatus aclnnMoeDistributeDispatchV2(
       - 对于共享专家，需满足 \(A = Bs * epWorldSize * sharedExpertNum / sharedExpertRankNum\)。
       - 对于MoE专家，当`globalBs`为0时，需满足 \(A >= Bs * epWorldSize * min(localExpertNum, K)\)；当`globalBs`非0时，需满足 \(A >= globalBs * min(localExpertNum, K)\)。
     - **H**：表示hidden size（隐藏层大小）：
-      - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：依commAlg取值，"fullmesh"支持(0, 7168]且为32的整数倍；"hierarchy"支持(0, 10*1024]且为32的整数倍。
+      - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：依commAlg取值，"fullmesh"支持(0, 7168]且为32的整数倍；"hierarchy"并且驱动版本≥25.0.RC1.1时支持(0, 10*1024]且为32的整数倍。
       - <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：取值范围[1024, 8192]。
     - **Bs**：表示batch sequence size（本卡最终输出的token数量）：
       - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：取值范围为 \(0 < Bs ≤ 256\)。

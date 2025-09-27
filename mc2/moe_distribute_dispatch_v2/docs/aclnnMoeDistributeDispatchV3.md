@@ -90,7 +90,7 @@ aclnnStatus aclnnMoeDistributeDispatchV3(
 
 ### 参数说明
 
-<table style="undefined;table-layout: fixed; width: 1576px"> 
+<table style="undefined;table-layout: fixed; width: 1576px">
 <colgroup>
  <col style="width: 170px">
  <col style="width: 170px">
@@ -132,7 +132,7 @@ aclnnStatus aclnnMoeDistributeDispatchV3(
   <tr>
    <td>xActiveMaskOptional</td>
    <td>输入</td>
-   <td>表示token是否参与通信：<br><term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：当前版本不支持，传空指针即可；<br><term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：当输入1D时，shape为 <code>(BS,)</code>；当输入2D时，shape为 <code>(BS, K)</code>数据类型支持BOOL；可选择传入有效数据或传入空指针。当输入为1D时，参数为true表示对应的token参与通信，true必须排到false之前，例：{true, false, true} 为非法输入；当输入为2D时，参数为true表示当前token对应的expert_ids参与通信。若当前token对应的K个BOOL值全为false，表示当前token不会参与通信。默认所有token都会参与通信。当每张卡的BS数量不一致时，所有token必须全部有效。</td>
+   <td>表示token是否参与通信：<br><term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：要求为1D Tensor，shape为\(BS, \)；true需排在false前（例：{true, false, true}非法）。<br><term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：当输入1D时，shape为 <code>(BS,)</code>；当输入2D时，shape为 <code>(BS, K)</code>数据类型支持BOOL；可选择传入有效数据或传入空指针。当输入为1D时，参数为true表示对应的token参与通信，true必须排到false之前，例：{true, false, true} 为非法输入；当输入为2D时，参数为true表示当前token对应的expert_ids参与通信。若当前token对应的K个BOOL值全为false，表示当前token不会参与通信。默认所有token都会参与通信。当每张卡的BS数量不一致时，所有token必须全部有效。</td>
    <td>BOOL</td>
    <td>ND（支持非连续Tensor）</td>
   </tr>
@@ -160,7 +160,7 @@ aclnnStatus aclnnMoeDistributeDispatchV3(
   <tr>
    <td>epWorldSize</td>
    <td>输入</td>
-   <td>EP通信域大小：<br><term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：支持取值16、32、64；<br><term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：取值区间[2, 768]。</td>
+   <td>EP通信域大小：<br><term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：依commAlg取值，"fullmesh"支持16、32、64、128、256；"hierarchy"支持16、32、64。<br><term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：取值区间[2, 768]。</td>
    <td>INT64</td>
    <td>-</td>
   </tr>
@@ -339,7 +339,7 @@ aclnnStatus aclnnMoeDistributeDispatchV3(
 
 第一段接口完成入参校验，出现以下场景时报错：
 
-<table style="undefined;table-layout: fixed; width: 1576px"> 
+<table style="undefined;table-layout: fixed; width: 1576px">
 <colgroup>
  <col style="width: 170px">
  <col style="width: 170px">
@@ -375,7 +375,7 @@ aclnnStatus aclnnMoeDistributeDispatchV3(
 
 ### 参数说明
 
-<table style="undefined;table-layout: fixed; width: 1576px"> 
+<table style="undefined;table-layout: fixed; width: 1576px">
 <colgroup>
  <col style="width: 170px">
  <col style="width: 170px">
@@ -429,7 +429,7 @@ aclnnStatus aclnnMoeDistributeDispatchV3(
 - **参数一致性约束**：
   - 所有卡的`groupEp`、`epWorldSize`、`moeExpertNum`、`groupTp`、`tpWorldSize`、`expertShardType`、`sharedExpertNum`、`sharedExpertRankNum`、`globalBs`、`commAlg`参数及`HCCL_BUFFSIZE`取值需保持一致，且与CombineV3系列算子对应参数一致。
   - 动态缩容后的部署信息通过`elasticInfoOptional`参数传递给算子，无需修改其他参数，缩容参数仅在 tp_world_size 取值为 1 时生效。动态缩容后，MOE专家卡上的本卡部署MOE专家数需与缩容前保持一致。
-  
+
 - **产品特定约束**：
   - <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：该场景下单卡包含双DIE（简称为“晶粒”或“裸片”），因此参数说明中的“本卡”均表示单DIE。
   - 动态缩容功能不支持在TP并行场景下使能。
@@ -438,7 +438,7 @@ aclnnStatus aclnnMoeDistributeDispatchV3(
   | 变量         | 定义与取值范围                                                                 |
   | :----------- | :----------------------------------------------------------------------------- |
   | A            | 表示本卡需要分发的最大token数量，取值范围如下：<ul> <li>不使能动态缩容场景时：<ul> <li>对于共享专家，要满足A = Bs * epWorldSize * sharedExpertNum / sharedExpertRankNum。</li> <li>对于MoE专家，当globalBs为0时，要满足A >= Bs * epWorldSize * min(localExpertNum, K)；当globalBs非0时，要满足A >= globalBs * min(localExpertNum, K)。</li> </ul> </li> <li>使能动态缩容场景时：<ul><li>当globalBs为0时，A >= max(Bs * epWorldSize * sharedExpertNum / sharedExpertRankNum, Bs * epWorldSize * min(localExpertNum, K))；</li> <li>当globalBs非0时，A >= max(Bs * epWorldSize * sharedExpertNum / sharedExpertRankNum, globalBS * min(localExpertNum, K))；</li> </ul> </li> </ul> |
-  | H（hidden size） | 表示hidden size隐藏层大小。<ul><li><term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：取值范围(0, 7168]，且为32的整数倍；</li> <li><term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：取值范围[1024, 8192]。</li></ul> |
+  | H（hidden size） | 表示hidden size隐藏层大小。<ul><li><term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：依commAlg取值，"fullmesh"支持(0, 7168]且为32的整数倍；"hierarchy"并且驱动版本≥25.0.RC1.1时支持(0, 10*1024]且为32的整数倍；</li> <li><term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：取值范围[1024, 8192]。</li></ul> |
   | Bs           | 表示本卡最终输出token数。<ul><li><term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：0 < Bs ≤256；</li><li><term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：0 < Bs ≤512。</li></ul> |
   | topK    | 表示选取topK个专家，取值范围为0 < K ≤16，且<code>0 < K ≤ moeExpertNum+zeroExpertNum+copyExpertNum+constExpertNum</code>。 |
   | serverNum    | 表示服务器节点数，仅支持2、4、8。<br>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件：仅该场景的shape使用了该变量。                                                  |
@@ -470,7 +470,7 @@ aclnnStatus aclnnMoeDistributeDispatchV3(
 
 <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：示例代码如下，仅供参考，调起aclnnMoeDistributeCombineV3和aclnnMoeDistributeDispatchV3接口。
 
-- 文件准备：    
+- 文件准备：
   1.新建dispatchDemo目录，按照下方指导在dispatchDemo下新建aclnnDispatchDemo.cpp，buildCombine.sh文件并参考如下代码修改。
 
   2.安装cann包，并根据下方指导编译运行dispatchDemo。
@@ -615,7 +615,7 @@ aclnnStatus aclnnMoeDistributeDispatchV3(
         void *expandScalesDeviceAddr = nullptr;
         void *residualXDeviceAddr = nullptr;
         void *sharedExpertXDeviceAddr = nullptr;
-        
+
         //动态缩容和零专家场景输入
         void *elasticInfoDeviceAddr = nullptr;
         void *oriXDeviceAddr = nullptr;
@@ -629,7 +629,7 @@ aclnnStatus aclnnMoeDistributeDispatchV3(
         aclTensor *expertIds = nullptr;
         aclTensor *scales = nullptr;
         aclTensor *expertScales = nullptr;
- 
+
         aclTensor *expandX = nullptr;
         aclTensor *dynamicScales = nullptr;
         aclTensor *expandIdx = nullptr;
@@ -646,7 +646,7 @@ aclnnStatus aclnnMoeDistributeDispatchV3(
         aclTensor *constExpertAlpha1 = nullptr;
         aclTensor *constExpertAlpha2 = nullptr;
         aclTensor *constExpertV = nullptr;
-        
+
         aclTensor *xOut = nullptr;
 
         //定义当前场景下各变量维度
@@ -654,7 +654,7 @@ aclnnStatus aclnnMoeDistributeDispatchV3(
         std::vector<int64_t> expertIdsShape{Bs, K};
         std::vector<int64_t> scalesShape{moeExpertNum + 1, H};
         std::vector<int64_t> expertScalesShape{Bs, K};
-        
+
         std::vector<int64_t> expandXShape{TP_WORLD_SIZE * A, H};
         std::vector<int64_t> dynamicScalesShape{TP_WORLD_SIZE * A};
         std::vector<int64_t> expandIdxShape{A * 128};
@@ -714,7 +714,7 @@ aclnnStatus aclnnMoeDistributeDispatchV3(
         std::vector<int32_t> tpRecvCountsHostData(tpRecvCountsShapeSize, 0);
         std::vector<float> expandScalesHostData(expandScalesShapeSize, 0);
         std::vector<int16_t> sharedExpertXHostData(sharedExpertXShapeSize, 1);
-        
+
         int32_t isElastic = 1;
         int32_t rankNumAfterElastic = 4;
         int32_t sharedExpertRankNumAfterElastic = sharedExpertRankNum;
@@ -743,7 +743,7 @@ aclnnStatus aclnnMoeDistributeDispatchV3(
         CHECK_RET(ret == ACL_SUCCESS, return ret);
         ret = CreateAclTensor(expertScalesHostData, expertScalesShape, &expertScalesDeviceAddr, aclDataType::ACL_FLOAT, &expertScales);
         CHECK_RET(ret == ACL_SUCCESS, return ret);
-        
+
         ret = CreateAclTensor(expandXHostData, expandXShape, &expandXDeviceAddr, (quantMode > 0) ? aclDataType::ACL_INT8 : aclDataType::ACL_BF16, &expandX);
         CHECK_RET(ret == ACL_SUCCESS, return ret);
         ret = CreateAclTensor(dynamicScalesHostData, dynamicScalesShape, &dynamicScalesDeviceAddr, aclDataType::ACL_FLOAT, &dynamicScales);
@@ -771,7 +771,7 @@ aclnnStatus aclnnMoeDistributeDispatchV3(
         CHECK_RET(ret == ACL_SUCCESS, return ret);
         ret = CreateAclTensor(constExpertVHostData, constExpertVShape, &constExpertVDeviceAddr, aclDataType::ACL_BF16, &constExpertV);
         CHECK_RET(ret == ACL_SUCCESS, return ret);
-        
+
         ret = CreateAclTensor(xOutHostData, xOutShape, &xOutDeviceAddr, aclDataType::ACL_BF16, &xOut);
         CHECK_RET(ret == ACL_SUCCESS, return ret);
 
@@ -786,12 +786,12 @@ aclnnStatus aclnnMoeDistributeDispatchV3(
         void *combineWorkspaceAddr = nullptr;
         /**************************************** 调用dispatch warm up********************************************/
         // 模拟动态缩容场景，需要先运行一遍正常情况建立通信域；调用第一阶段接口
-        ret = aclnnMoeDistributeDispatchV3GetWorkspaceSize(x, expertIds, (quantMode > 0 ? scales : nullptr), nullptr, 
+        ret = aclnnMoeDistributeDispatchV3GetWorkspaceSize(x, expertIds, (quantMode > 0 ? scales : nullptr), nullptr,
                 expertScales, nullptr, hcomEpName, EP_WORLD_SIZE, args.epRankId, moeExpertNum, hcomTpName, TP_WORLD_SIZE,
                 args.tpRankId, expertShardType, sharedExpertNum,sharedExpertRankNum, quantMode, globalBs,
                 expertTokenNumsType, nullptr, zeroExpertNum, copyExpertNum, constExpertNum, expandX, dynamicScales, expandIdx, expertTokenNums, epRecvCounts,
                 tpRecvCounts, expandScales, &dispatchWorkspaceSize, &dispatchExecutor);
-        
+
         CHECK_RET(ret == ACL_SUCCESS,
             LOG_PRINT("[ERROR] warm up aclnnMoeDistributeDispatchV3GetWorkspaceSize failed. ret = %d \n", ret); return ret);
 
@@ -811,7 +811,7 @@ aclnnStatus aclnnMoeDistributeDispatchV3(
         /**************************************** 调用dispatch ********************************************/
         if (availableRank.find(args.rankId) != availableRank.end()) {
             // 调用第一阶段接口
-        ret = aclnnMoeDistributeDispatchV3GetWorkspaceSize(x, expertIds, (quantMode > 0 ? scales : nullptr), nullptr, 
+        ret = aclnnMoeDistributeDispatchV3GetWorkspaceSize(x, expertIds, (quantMode > 0 ? scales : nullptr), nullptr,
                 expertScales, elasticInfo, hcomEpName, EP_WORLD_SIZE, args.epRankId, moeExpertNum, hcomTpName, TP_WORLD_SIZE,
                 args.tpRankId, expertShardType, sharedExpertNum,sharedExpertRankNum, quantMode, globalBs,
                 expertTokenNumsType, nullptr, zeroExpertNum, copyExpertNum, constExpertNum, expandX, dynamicScales, expandIdx, expertTokenNums, epRecvCounts,
@@ -828,7 +828,7 @@ aclnnStatus aclnnMoeDistributeDispatchV3(
         ret = aclnnMoeDistributeDispatchV3(dispatchWorkspaceAddr, dispatchWorkspaceSize,
                                             dispatchExecutor, args.dispatchStream);
         CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("[ERROR] aclnnMoeDistributeDispatchV3 failed. ret = %d \n", ret);  \
-                return ret);                  
+                return ret);
         ret = aclrtSynchronizeStreamWithTimeout(args.dispatchStream, 10000);
                     CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("[ERROR] dispatch aclrtSynchronizeStreamWithTimeout failed. ret = %d \n", ret);  \
                 return ret);
