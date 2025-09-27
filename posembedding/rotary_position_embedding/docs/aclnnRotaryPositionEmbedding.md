@@ -100,17 +100,17 @@ aclnnStatus aclnnRotaryPositionEmbeddingGetWorkspaceSize(
     const aclTensor *x,
     const aclTensor *cos,
     const aclTensor *sin,
-    int64_t mode,
-    aclTensor *out,
-    uint64_t *workspaceSize,
-    aclOpExecutor **executor)
+    int64_t         mode,
+    aclTensor       *out,
+    uint64_t        *workspaceSize,
+    aclOpExecutor   **executor)
 ```
 ```c++
 aclnnStatus aclnnRotaryPositionEmbedding(
-    void *workspace,
-    uint64_t workspaceSize,
+    void          *workspace,
+    uint64_t      workspaceSize,
     aclOpExecutor *executor,
-    aclrtStream stream)
+    aclrtStream   stream)
 ```
 ## aclnnRotaryPositionEmbeddingGetWorkspaceSize
 
