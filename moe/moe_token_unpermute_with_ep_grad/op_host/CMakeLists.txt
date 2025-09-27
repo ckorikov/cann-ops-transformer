@@ -11,7 +11,7 @@
 # add_modules_sources(HOSTNAME ${OPHOST_NAME} MODE PRIVATE DIR ${CMAKE_CURRENT_SOURCE_DIR})
 
 if (BUILD_OPEN_PROJECT)
-    target_sources(op_host_aclnnInner PRIVATE
+    target_sources(op_host_aclnn PRIVATE
         moe_token_unpermute_with_ep_grad_def.cpp
     )
     if (BUILD_OPS_RTY_KERNEL) # 回黄kernel

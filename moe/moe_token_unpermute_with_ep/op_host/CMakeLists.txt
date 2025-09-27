@@ -8,7 +8,7 @@
 # ======================================================================================================================
 
 if (BUILD_OPEN_PROJECT)
-    target_sources(op_host_aclnnInner PRIVATE
+    target_sources(op_host_aclnn PRIVATE
         moe_token_unpermute_with_ep_def.cpp
     )
 
