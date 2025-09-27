@@ -48,33 +48,24 @@ constexpr uint32_t SET_FLAG_MODE_2 = 2;
 
 using namespace matmul;
 template <class T>
-__aicore__ inline void CopyGmToUbufAlignMc2(__ubuf__ void *dst, __gm__ void *src, uint8_t sid, uint16_t nBurst,
-                                         uint32_t lenBurst, uint8_t leftPaddingNum, uint8_t rightPaddingNum,
-                                         uint32_t srcGap, uint32_t dstGap) {
-    if constexpr (sizeof(T) == 1) {
-        copy_gm_to_ubuf_align_b8(dst, src, sid, nBurst, lenBurst, leftPaddingNum, rightPaddingNum, srcGap, dstGap);
-    } else if constexpr (sizeof(T) == 2) {
-        copy_gm_to_ubuf_align_b16(dst, src, sid, nBurst, lenBurst, leftPaddingNum, rightPaddingNum, srcGap, dstGap);
-    } else if constexpr (sizeof(T) == 4) {
-        copy_gm_to_ubuf_align_b32(dst, src, sid, nBurst, lenBurst, leftPaddingNum, rightPaddingNum, srcGap, dstGap);
-    } else {
-        ASSERT(false);
-    }
+__aicore__ inline void CopyGmToUbufAlignMc2(const LocalTensor<T> &dst, const GlobalTensor<T> &src, uint16_t nBurst,
+                                            uint32_t lenBurst, uint8_t leftPaddingNum, uint8_t rightPaddingNum,
+                                            uint32_t srcGap, uint32_t dstGap)
+{
+    DataCopyExtParams dataCopyExtParams{nBurst, lenBurst, srcGap, dstGap, 0};
+    DataCopyPadExtParams<T> dataCopyPadExtParams{false, leftPaddingNum, rightPaddingNum, static_cast<T>(0)};
+    DataCopyPad(dst, src, dataCopyExtParams, dataCopyPadExtParams);
 }
 
+
 template <typename T>
-__aicore__ inline void CopyUbufToGmAlign(__gm__ void *dst, __ubuf__ void *src, uint8_t sid, uint16_t nBurst,
+__aicore__ inline void CopyUbufToGmAlignMc2(const GlobalTensor<T> &dst, const LocalTensor<T> &src, uint16_t nBurst,
                                          uint32_t lenBurst, uint8_t leftPaddingNum, uint8_t rightPaddingNum,
-                                         uint32_t srcGap, uint32_t dstGap) {
-    if constexpr (sizeof(T) == 1) {
-        copy_ubuf_to_gm_align_b8(dst, src, sid, nBurst, lenBurst, leftPaddingNum, rightPaddingNum, srcGap, dstGap);
-    } else if constexpr (sizeof(T) == 2) {
-        copy_ubuf_to_gm_align_b16(dst, src, sid, nBurst, lenBurst, leftPaddingNum, rightPaddingNum, srcGap, dstGap);
-    } else if constexpr (sizeof(T) == 4) {
-        copy_ubuf_to_gm_align_b32(dst, src, sid, nBurst, lenBurst, leftPaddingNum, rightPaddingNum, srcGap, dstGap);
-    } else {
-        ASSERT(false);
-    }
+                                         uint32_t srcGap, uint32_t dstGap)
+{
+    DataCopyExtParams dataCopyExtParams{nBurst, lenBurst, srcGap, dstGap, 0};
+    DataCopyPadExtParams<T> dataCopyPadExtParams{false, leftPaddingNum, rightPaddingNum, static_cast<T>(0)};
+    DataCopyPad(dst, src, dataCopyExtParams, dataCopyPadExtParams);
 }
 
 // outputOrgWidth should be 512 byte aligned
@@ -84,14 +75,12 @@ __aicore__ inline void CopyPad(const GlobalTensor<T> &outputGlobal, const LocalT
                                const GlobalTensor<T> &inputGlobal, uint32_t nBurst, uint32_t ubDstGap,
                                uint32_t inputWidth, uint32_t outputWidth, uint32_t inputOrgWidth,
                                uint32_t outputOrgWidth, uint8_t pingpongID) {
-    CopyGmToUbufAlignMc2<T>((__ubuf__ void *)tmpUb.GetPhyAddr(), (__gm__ void *)inputGlobal.GetPhyAddr(), 0,
-                         static_cast<uint16_t>(nBurst), inputWidth * sizeof(T), 0, 0,
-                         (inputOrgWidth - inputWidth) * sizeof(T), ubDstGap);
+    CopyGmToUbufAlignMc2<T>(tmpUb, inputGlobal, static_cast<uint16_t>(nBurst), inputWidth * sizeof(T), 0, 0,
+                            (inputOrgWidth - inputWidth) * sizeof(T), ubDstGap);
     SetFlag<HardEvent::MTE2_MTE3>(static_cast<event_t>(pingpongID));
     WaitFlag<HardEvent::MTE2_MTE3>(static_cast<event_t>(pingpongID));
 
-    CopyUbufToGmAlign<T>((__gm__ void *)outputGlobal.GetPhyAddr(), (__ubuf__ void *)tmpUb.GetPhyAddr(), 0,
-                         static_cast<uint16_t>(nBurst), outputWidth * sizeof(T), 0, 0, ubDstGap,
+    CopyUbufToGmAlignMc2<T>(outputGlobal, tmpUb, static_cast<uint16_t>(nBurst), outputWidth * sizeof(T), 0, 0, ubDstGap,
                          (outputOrgWidth - outputWidth) * sizeof(T));
 }
 
@@ -133,24 +122,22 @@ __aicore__ inline void Gm2GmTrans(GM_ADDR output, GM_ADDR aGm, uint32_t row, uin
     int tail = singleVCoreSize % dataSize;
 
     for (int i = 0; i < repeat; i++) {
-        CopyGmToUbufAlignMc2<T>((__ubuf__ void *)tmpUb.GetPhyAddr(),
-                             (__gm__ void *)gmSrc[i * dataSize + curBlock * singleVCoreSize].GetPhyAddr(), 0, 1,
-                             dataSize * sizeof(T), 0, 0, 0, 0);
+        CopyGmToUbufAlignMc2<T>(tmpUb, gmSrc[i * dataSize + curBlock * singleVCoreSize], 1, dataSize * sizeof(T), 0, 0,
+                                0, 0);
         SetFlag<HardEvent::MTE2_MTE3>(0);
         WaitFlag<HardEvent::MTE2_MTE3>(0);
-        CopyUbufToGmAlign<T>((__gm__ void *)gmDst[i * dataSize + curBlock * singleVCoreSize].GetPhyAddr(),
-                             (__ubuf__ void *)tmpUb.GetPhyAddr(), 0, 1, dataSize * sizeof(T), 0, 0, 0, 0);
+        CopyUbufToGmAlignMc2<T>(gmDst[i * dataSize + curBlock * singleVCoreSize], tmpUb, 1, dataSize * sizeof(T), 0, 0,
+                                0, 0);
         SetFlag<HardEvent::MTE3_MTE2>(0);
         WaitFlag<HardEvent::MTE3_MTE2>(0);
     }
     if (tail != 0) {
-        CopyGmToUbufAlignMc2<T>((__ubuf__ void *)tmpUb.GetPhyAddr(),
-                             (__gm__ void *)gmSrc[repeat * dataSize + curBlock * singleVCoreSize].GetPhyAddr(), 0, 1,
-                             tail * sizeof(T), 0, 0, 0, 0);
+        CopyGmToUbufAlignMc2<T>(tmpUb, gmSrc[repeat * dataSize + curBlock * singleVCoreSize], 1, tail * sizeof(T), 0, 0,
+                                0, 0);
         SetFlag<HardEvent::MTE2_MTE3>(0);
         WaitFlag<HardEvent::MTE2_MTE3>(0);
-        CopyUbufToGmAlign<T>((__gm__ void *)gmDst[repeat * dataSize + curBlock * singleVCoreSize].GetPhyAddr(),
-                             (__ubuf__ void *)tmpUb.GetPhyAddr(), 0, 1, tail * sizeof(T), 0, 0, 0, 0);
+        CopyUbufToGmAlignMc2<T>(gmDst[repeat * dataSize + curBlock * singleVCoreSize], tmpUb, 1, tail * sizeof(T), 0, 0,
+                                0, 0);
     }
 }
 
@@ -177,10 +164,10 @@ __aicore__ inline void PreCopyPadNd2Nz(const LocalTensor<T> &tmpUb, const Global
     if (pad_size != 0 && nBurst > pad_size) {
         auto pad_offset = (nBurst - pad_size) * outputWidth;
         uint64_t mask_count = 32 / sizeof(T) * nBurst;
-        set_vector_mask(0, pad_size * outputWidth);
+        SetVectorMask<T>(0UL, static_cast<uint64_t>(pad_size * outputWidth));
         DuplicateIntrinsicsImpl((__ubuf__ T *)tmpUb[pad_offset].GetPhyAddr(), (T)0, 1, 1, 8);
         PipeBarrier<PIPE_V>();
-        set_vector_mask(0, mask_count);
+        SetVectorMask<T>(0UL, mask_count);
     }
 }
 
@@ -213,15 +200,18 @@ __aicore__ inline void CopyPadNd2Nz(const GlobalTensor<T> &outputGlobal, const L
     for (int i = 0; i < split_num; ++i) {
         dstOffset = VCOPY_MAX_REPEAT * mask_count;
         srcOffset = VCOPY_MAX_REPEAT * c0Size;
-        vcopy((__ubuf__ uint16_t *)transUb[i * dstOffset].GetPhyAddr(),
-              (__ubuf__ uint16_t *)tmpUb[i * srcOffset].GetPhyAddr(), (uint8_t)VCOPY_MAX_REPEAT, dstBlkStride,
-              srcBlkStride, dstRepStride, srcRepStride);
+        LocalTensor<uint16_t> dstUb = transUb[i * dstOffset].template ReinterpretCast<uint16_t>();
+        LocalTensor<uint16_t> srcUb = tmpUb[i * srcOffset].template ReinterpretCast<uint16_t>();
+        CopyRepeatParams repeatParams{dstBlkStride, srcBlkStride, dstRepStride, srcRepStride};
+        Copy<uint16_t, false>(dstUb, srcUb, MASK_PLACEHOLDER, (uint8_t)VCOPY_MAX_REPEAT, repeatParams);
     }
     if (tail_num != 0) {
         dstOffset = VCOPY_MAX_REPEAT * mask_count * split_num;
         srcOffset = VCOPY_MAX_REPEAT * c0Size * split_num;
-        vcopy((__ubuf__ uint16_t *)transUb[dstOffset].GetPhyAddr(), (__ubuf__ uint16_t *)tmpUb[srcOffset].GetPhyAddr(),
-              (uint8_t)tail_num, dstBlkStride, srcBlkStride, dstRepStride, srcRepStride);
+        LocalTensor<uint16_t> dstUb = transUb[dstOffset].template ReinterpretCast<uint16_t>();
+        LocalTensor<uint16_t> srcUb = tmpUb[srcOffset].template ReinterpretCast<uint16_t>();
+        CopyRepeatParams repeatParams{dstBlkStride, srcBlkStride, dstRepStride, srcRepStride};
+        Copy<uint16_t, false>(dstUb, srcUb, MASK_PLACEHOLDER, (uint8_t)tail_num, repeatParams);
     }
     // 要在k方向做repeat切分
     SetFlag<HardEvent::V_MTE3>(static_cast<event_t>(pingpongID));
@@ -267,9 +257,9 @@ __aicore__ inline void PrePaddingImplNd2Nz(const GlobalTensor<T> &mmWorkspace, c
     LocalTensor<T> transUbPingPong = transUbPing;
 
     uint32_t gmSrcGap = (ori_width - width) * sizeof(T);
-    set_mask_count();
+    SetMaskCount();
     uint64_t mask_count = c0Size * nBurst;
-    set_vector_mask(0, mask_count);
+    SetVectorMask<T>(0UL, mask_count);
     for (int i = 0; i < nBurstTimes; ++i) {
         if ((i & 1) == 0) {
             pingpongEventId = 0;
@@ -286,8 +276,8 @@ __aicore__ inline void PrePaddingImplNd2Nz(const GlobalTensor<T> &mmWorkspace, c
                      nBurst, gmSrcGap, width, widthAligned, height, 0, pingpongEventId);
         SetFlag<HardEvent::MTE3_MTE2>(static_cast<event_t>(pingpongEventId));
     }
-    set_mask_norm();
-    set_vector_mask((uint64_t)-1, (uint64_t)-1);
+    SetMaskNorm();
+    SetVectorMask<T>((uint64_t)-1, (uint64_t)-1);
     if ((nBurstTimes & 1) == 0) {
         pingpongEventId = 0;
         ubPingPong = tmpUbPing;
@@ -301,14 +291,14 @@ __aicore__ inline void PrePaddingImplNd2Nz(const GlobalTensor<T> &mmWorkspace, c
     WaitFlag<HardEvent::MTE3_MTE2>(0);
     WaitFlag<HardEvent::MTE3_MTE2>(1);
     if (nBurstTail > 0) {
-        set_mask_count();
+        SetMaskCount();
         mask_count = c0Size * nBurstTail;
-        set_vector_mask(0, mask_count);
+        SetVectorMask<T>(0UL, mask_count);
         CopyPadNd2Nz(mmWorkspace[nBurstTimes * nBurst * c0Size], ubPingPong, transUbPingPong,
                      mmGlobal[nBurstTimes * nBurst * width], nBurstTail, gmSrcGap, width, widthAligned, height,
                      pad_size, pingpongEventId);
-        set_mask_norm();
-        set_vector_mask((uint64_t)-1, (uint64_t)-1);
+        SetMaskNorm();
+        SetVectorMask<T>((uint64_t)-1, (uint64_t)-1);
     }
 }
 
@@ -336,11 +326,10 @@ __aicore__ inline void CopyPadNd2Nz(const GlobalTensor<T> &outputGlobal, const L
     uint8_t rightPadding = 0;
     if (outputWidth != inputWidth) {
         rightPadding = outputWidth - inputWidth;
-        set_mov_pad_val(0);
+        SetPadValue((T)0);
     }
-    CopyGmToUbufAlignMc2<T>((__ubuf__ void*)tmpUb.GetPhyAddr(),
-                        (__gm__ void*)inputGlobal.GetPhyAddr(), 0, static_cast<uint16_t>(realDataBurst),
-                        static_cast<uint16_t>(inputWidth * sizeof(T)), 0, rightPadding, gmSrcGap, 0);
+    CopyGmToUbufAlignMc2<T>(tmpUb, inputGlobal, static_cast<uint16_t>(realDataBurst),
+                            static_cast<uint16_t>(inputWidth * sizeof(T)), 0, rightPadding, gmSrcGap, 0);
     SetFlag<HardEvent::MTE2_V>(0);
     WaitFlag<HardEvent::MTE2_V>(0);
     uint64_t mask_count = c0Size * nBurst;
@@ -348,14 +337,14 @@ __aicore__ inline void CopyPadNd2Nz(const GlobalTensor<T> &outputGlobal, const L
         auto pad_offset = (nBurst - pad_size) * outputWidth;
         if constexpr (sizeof(T) == sizeof(int8_t)) {
             mask_count /= 2;
-            set_vector_mask(0, pad_size * outputWidth / 2);
+            SetVectorMask<T>(0UL, static_cast<uint64_t>(pad_size * outputWidth / 2));
             DuplicateIntrinsicsImpl((__ubuf__ uint16_t*)tmpUb[pad_offset].GetPhyAddr(), (uint16_t)0, 1, 1, 8);
         } else {
-            set_vector_mask(0, pad_size * outputWidth);
+            SetVectorMask<T>(0UL, static_cast<uint64_t>(pad_size * outputWidth));
             DuplicateIntrinsicsImpl((__ubuf__ T*)tmpUb[pad_offset].GetPhyAddr(), (T)0, 1, 1, 8);
         }
         PipeBarrier<PIPE_V>();
-        set_vector_mask(0, mask_count);
+        SetVectorMask<T>(0UL, mask_count);
     }
     
     int widthStep = Ceil(inputWidth, c0Size);  // 行方向搬运多少次
@@ -372,15 +361,18 @@ __aicore__ inline void CopyPadNd2Nz(const GlobalTensor<T> &outputGlobal, const L
     for (int i = 0; i < split_num; ++i) {
         dstOffset = VCOPY_MAX_REPEAT * mask_count;
         srcOffset = VCOPY_MAX_REPEAT * c0Size;
-        vcopy((__ubuf__ uint16_t *)transUb[i * dstOffset].GetPhyAddr(),
-              (__ubuf__ uint16_t *)tmpUb[i * srcOffset].GetPhyAddr(), (uint8_t)VCOPY_MAX_REPEAT, dstBlkStride,
-              srcBlkStride, dstRepStride, srcRepStride);
+        LocalTensor<uint16_t> dstUb = transUb[i * dstOffset].template ReinterpretCast<uint16_t>();
+        LocalTensor<uint16_t> srcUb = tmpUb[i * srcOffset].template ReinterpretCast<uint16_t>();
+        CopyRepeatParams repeatParams{dstBlkStride, srcBlkStride, dstRepStride, srcRepStride};
+        Copy<uint16_t, false>(dstUb, srcUb, MASK_PLACEHOLDER, (uint8_t)VCOPY_MAX_REPEAT, repeatParams);
     }
     if (tail_num != 0) {
         dstOffset = VCOPY_MAX_REPEAT * mask_count * split_num;
         srcOffset = VCOPY_MAX_REPEAT * c0Size * split_num;
-        vcopy((__ubuf__ uint16_t *)transUb[dstOffset].GetPhyAddr(), (__ubuf__ uint16_t *)tmpUb[srcOffset].GetPhyAddr(),
-              (uint8_t)tail_num, dstBlkStride, srcBlkStride, dstRepStride, srcRepStride);
+        LocalTensor<uint16_t> dstUb = transUb[dstOffset].template ReinterpretCast<uint16_t>();
+        LocalTensor<uint16_t> srcUb = tmpUb[srcOffset].template ReinterpretCast<uint16_t>();
+        CopyRepeatParams repeatParams{dstBlkStride, srcBlkStride, dstRepStride, srcRepStride};
+        Copy<uint16_t, false>(dstUb, srcUb, MASK_PLACEHOLDER, (uint8_t)tail_num, repeatParams);
     }
     // 要在k方向做repeat切分
     SetFlag<HardEvent::V_MTE3>(0);
@@ -426,9 +418,9 @@ __aicore__ inline void PrePaddingImplNd2Nz(const GlobalTensor<T> &mmWorkspace, c
     SetFlag<HardEvent::MTE3_MTE2>(0);
     uint32_t gmSrcGap = (ori_width - width) * sizeof(T);
 
-    set_mask_count();
+    SetMaskCount();
     uint64_t mask_count = c0Size * nBurst;
-    set_vector_mask(0, mask_count);
+    SetVectorMask<T>(0UL, mask_count);
     for (int i = 0; i < nBurstTimes; ++i) {
         WaitFlag<HardEvent::MTE3_MTE2>(0);
         CopyPadNd2Nz(mmWorkspace[i * nBurst * c0Size], srcUb, transUb, mmGlobal[i * nBurst * ori_width], nBurst,
@@ -436,18 +428,18 @@ __aicore__ inline void PrePaddingImplNd2Nz(const GlobalTensor<T> &mmWorkspace, c
         SetFlag<HardEvent::MTE3_MTE2>(0);
     }
 
-    set_mask_norm();
-    set_vector_mask((uint64_t)-1, (uint64_t)-1);
+    SetMaskNorm();
+    SetVectorMask<T>((uint64_t)-1, (uint64_t)-1);
     WaitFlag<HardEvent::MTE3_MTE2>(0);
     if (nBurstTail > 0) {
-        set_mask_count();
+        SetMaskCount();
         mask_count = c0Size * nBurstTail;
-        set_vector_mask(0, mask_count);
+        SetVectorMask<T>(0UL, mask_count);
         CopyPadNd2Nz(mmWorkspace[nBurstTimes * nBurst * c0Size], srcUb, transUb,
                      mmGlobal[nBurstTimes * nBurst * ori_width], nBurstTail, gmSrcGap, width, widthAligned, height,
                      pad_size);
-        set_mask_norm();
-        set_vector_mask((uint64_t)-1, (uint64_t)-1);
+        SetMaskNorm();
+        SetVectorMask<T>((uint64_t)-1, (uint64_t)-1);
     }
 }
 

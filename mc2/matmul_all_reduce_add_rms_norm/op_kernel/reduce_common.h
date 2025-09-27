@@ -43,14 +43,10 @@ __aicore__ inline void ReduceSumForSmallReduceDimPreRepeat(
     AscendCUtils::SetMask<float>(ELEM_PER_REP_FP32); // set mask = 64
 #if defined(__CCE_AICORE__) && __CCE_AICORE__ == 220
     if ASCEND_IS_AIV {
-        vcadd(
-            (__ubuf__ float*)dstLocal.GetPhyAddr(), (__ubuf__ float*)tmpLocal.GetPhyAddr(), repeat, 1, 1,
-            ELEM_PER_BLK_FP32, false);
+        WholeReduceSum<float, false>(dstLocal, tmpLocal, MASK_PLACEHOLDER, repeat, 1, 1, ELEM_PER_BLK_FP32);
     }
 #else
-    vcadd(
-        (__ubuf__ float*)dstLocal.GetPhyAddr(), (__ubuf__ float*)tmpLocal.GetPhyAddr(), repeat, 1, 1,
-        ELEM_PER_BLK_FP32);
+    WholeReduceSum<float, false>(dstLocal, tmpLocal, MASK_PLACEHOLDER, repeat, 1, 1, ELEM_PER_BLK_FP32);
 #endif
 }
 
@@ -134,12 +130,10 @@ __aicore__ inline void ReduceSumHalfInterval(
     }
 #if defined(__CCE_AICORE__) && __CCE_AICORE__ == 220
     if (g_coreType == AIV) {
-        vcadd((__ubuf__ float*)dst_local.GetPhyAddr(), (__ubuf__ float*)src_local.GetPhyAddr(), 1, 0, 1, 0, false);
+        WholeReduceSum<float, false>(dst_local, src_local, MASK_PLACEHOLDER, 1, 0, 1, 0);
     }
 #else
-    vcadd(
-        (__ubuf__ float*)dst_local.GetPhyAddr(), (__ubuf__ float*)src_local.GetPhyAddr(), 1, 1, 1,
-        DEFAULT_REPEAT_STRIDE);
+    WholeReduceSum<float, false>(dst_local, src_local, MASK_PLACEHOLDER, 1, 1, 1, DEFAULT_REPEAT_STRIDE);
 #endif
     PipeBarrier<PIPE_V>();
 }
@@ -165,16 +159,14 @@ __aicore__ inline float ReduceSumHalfInterval(const LocalTensor<float>& src_loca
     }
 #if defined(__CCE_AICORE__) && __CCE_AICORE__ == 220
     if (g_coreType == AIV) {
-        vcadd((__ubuf__ float*)src_local.GetPhyAddr(), (__ubuf__ float*)src_local.GetPhyAddr(), 1, 0, 1, 0, false);
+        WholeReduceSum<float, false>(src_local, src_local, MASK_PLACEHOLDER, 1, 0, 1, 0);
     }
 #else
-    vcadd(
-        (__ubuf__ float*)src_local.GetPhyAddr(), (__ubuf__ float*)src_local.GetPhyAddr(), 1, 1, 1,
-        DEFAULT_REPEAT_STRIDE);
+    WholeReduceSum<float, false>(src_local, src_local, MASK_PLACEHOLDER, 1, 1, 1, DEFAULT_REPEAT_STRIDE);
 #endif
     event_t event_v_s = static_cast<event_t>(GetTPipePtr()->FetchEventID(HardEvent::V_S));
-    set_flag(PIPE_V, PIPE_S, event_v_s);
-    wait_flag(PIPE_V, PIPE_S, event_v_s);
+    SetFlag<HardEvent::V_S>(event_v_s);
+    WaitFlag<HardEvent::V_S>(event_v_s);
     return src_local.GetValue(0);
 }
 #endif // _REDUCE_COMMON_H_

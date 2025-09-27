@@ -124,23 +124,13 @@ ge::graphStatus QuantMatmulAllReduceTiling::DoQuantTiling()
         OP_LOGD(opName_, "Enable SplitK Tiling.");
         return mmTile.DoTiling();
     } else {
-        OP_LOGI(opName_, "asd 12345");
         GE_ASSERT_GRAPH_SUCCESS(mmTile.DoTiling());
-        OP_LOGI(opName_, "asd asdzxc");
         if (MutableRCSTilingData().get_tailCnt() == 0) {
             return ge::GRAPH_SUCCESS;
         }
-        OP_LOGI(opName_, "asd 00");
         args_.mValue = tailMValue_;
-        OP_LOGI(opName_, "asd 11");
         QuantTilingTransferHelper mmTail(*this, quantMatmulAllReduceTilingData_.tailmatmulTiling);
-        OP_LOGI(opName_, "asd");
         auto res = mmTail.DoTiling();
-        OP_LOGI(opName_, "qwe");
-        OP_LOGI(opName_, "qwe %d.", quantMatmulAllReduceTilingData_.tailmatmulTiling.params.get_batchA());
-        OP_LOGI(opName_, "qwe %d.", quantMatmulAllReduceTilingData_.tailmatmulTiling.matmulTiling.get_usedCoreNum());
-        OP_LOGI(opName_, "qwe %d.", quantMatmulAllReduceTilingData_.tailmatmulTiling.tileL2cacheTiling.get_mTileCntL2());
-        OP_LOGI(opName_, "qew %d.", quantMatmulAllReduceTilingData_.tailmatmulTiling.adaptiveSlidingWin.get_nTailTile());
         return res;
     }
 }
