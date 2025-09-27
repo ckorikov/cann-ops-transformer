@@ -18,7 +18,7 @@
 #include "moe_v2_common.h"
 #include "kernel_operator.h"
 
-constexpr int64_t BUFFER_NUM = 2;
+constexpr int64_t BUFFER_NUM = 1;
 
 namespace MoeInitRoutingV2 {
 using namespace AscendC;
@@ -100,12 +100,13 @@ template <typename T>
 __aicore__ inline void MoeV2GatherOutSimt<T>::CopyOutZero(int64_t progress)
 {
     LocalTensor<int32_t> indicesLocal = expandedRowIdxIndexCopyInQueue.DeQue<int32_t>();
-    if (this->blockIdx == 0) {
+    LocalTensor<T> zeroTensor = inputActivationsCopyInQueue.AllocTensor<T>();
+    if (this->blockIdx == 0 && progress == 0) {
         int32_t curIndex = 0;
         int32_t nextIndex = indicesLocal.GetValue(0);
         int32_t count = nextIndex - curIndex;
         if (count > 0) {
-            InitOutput(expandedXGm[curIndex * cols], count * cols, static_cast<T>(0));
+            InitGmValue(expandedXGm[curIndex * cols], zeroTensor, count * cols, static_cast<T>(0));
         }
     }
     for (int i = 0; i < currentLoopRows; i++) {
@@ -122,9 +123,11 @@ __aicore__ inline void MoeV2GatherOutSimt<T>::CopyOutZero(int64_t progress)
         }
         int32_t count = nextIndex - curIndex;
         if (count > 0) {
-            InitOutput(expandedXGm[curIndex * cols], count * cols, static_cast<T>(0));
+            InitGmValue(expandedXGm[curIndex * cols], zeroTensor, count * cols, static_cast<T>(0));
         }
     }
+    SetWaitFlag<HardEvent::MTE3_MTE2>(HardEvent::MTE3_MTE2);
+    inputActivationsCopyInQueue.FreeTensor(zeroTensor);
     expandedRowIdxIndexCopyInQueue.FreeTensor(indicesLocal);
 }
 

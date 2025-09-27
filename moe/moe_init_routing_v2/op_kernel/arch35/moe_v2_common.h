@@ -160,5 +160,25 @@ __aicore__ inline void ArithProgressionPerf(const LocalTensor<int32_t> &dst, con
         }
     }
 }
+
+template <typename T>
+__aicore__ inline void InitGmValue(GlobalTensor<T> gm, LocalTensor<T> tensor, int64_t count, T value)
+{
+    int64_t ubSize = tensor.GetSize();
+    int64_t loops = Ceil(count, ubSize);
+    int64_t perLoopCount = Ceil(count, loops);
+    int64_t lastLoopCount = count - (loops - 1) * perLoopCount;
+    Duplicate(tensor, value, perLoopCount);
+    auto eventID = static_cast<event_t>(GetTPipePtr()->FetchEventID(HardEvent::V_MTE3));
+    SetFlag<HardEvent::V_MTE3>(eventID);
+    WaitFlag<HardEvent::V_MTE3>(eventID);
+    DataCopyExtParams intriParams{1, static_cast<uint32_t>(perLoopCount * sizeof(T)), 0, 0, 0};
+    for (int64_t loop = 0; loop < loops - 1; loop++) {
+        DataCopyPad(gm[loop * perLoopCount], tensor, intriParams);
+    }
+    intriParams.blockLen = static_cast<uint32_t>(lastLoopCount * sizeof(T));
+    DataCopyPad(gm[(loops - 1) * perLoopCount], tensor, intriParams);
+}
+
 } // namespace MoeInitRoutingV2
 #endif // MOE_V2_COMMON_H
