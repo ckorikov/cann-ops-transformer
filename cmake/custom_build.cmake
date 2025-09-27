@@ -70,7 +70,6 @@ if (BUILD_OPEN_PROJECT)
     target_include_directories(cust_opapi PRIVATE
             $<BUILD_INTERFACE:${ASCEND_CANN_PACKAGE_PATH}/include>
             $<BUILD_INTERFACE:${ASCEND_CANN_PACKAGE_PATH}/include/aclnn>
-            $<BUILD_INTERFACE:${ASCEND_CANN_PACKAGE_PATH}/include/aclnn_kernels>
     )
     target_compile_options(cust_opapi PRIVATE
             -Werror=format

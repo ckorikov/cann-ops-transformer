@@ -132,22 +132,27 @@ set(OPAPI_INCLUDE
   ${OPS_TRANSFORMER_DIR}/mc2/common/inc
   ${OPS_TRANSFORMER_DIR}/mc2/3rd
   ${OPS_TRANSFORMER_DIR}/mc2
-  ${TOP_DIR}/asl/ops/cann/ops/built-in/op_proto/runtime
-  ${TOP_DIR}/ace/comop/inc/external
-  ${TOP_DIR}/ops/ops-nn/matmul/common/op_host/op_api
-  ${TOP_DIR}/asl/ops/cann/ops/utils/inc/log/inner
-  ${TOP_DIR}/asl/ops/cann/ops/utils/inc/error
-  ${TOP_DIR}/ace/comop/inc/external
-  ${TOP_DIR}/ace/npuruntime/inc/external
-  ${TOP_DIR}/ace/npuruntime/inc/nnopbase
-  ${TOP_DIR}/asl/ops/cann/ops/mc2/communication_and_computation
-  ${TOP_DIR}/ace/npuruntime/acl/inc/external/acl/error_codes
-  ${TOP_DIR}/asl/ops/cann/ops/built-in/op_tiling/runtime
-  ${TOP_DIR}/asl/ops/cann/ops/built-in
-  ${TOP_DIR}/ops-base/include/op_common/op_host
-  ${TOP_DIR}/ops-base/include
-  ${TOP_DIR}/asl/ops/cann/ops/built-in/op_fallback
 )
+
+if (NOT BUILD_OPEN_PROJECT)
+  list(APPEND OPAPI_INCLUDE
+    ${TOP_DIR}/asl/ops/cann/ops/built-in/op_proto/runtime
+    ${TOP_DIR}/ace/comop/inc/external
+    ${TOP_DIR}/ops/ops-nn/matmul/common/op_host/op_api
+    ${TOP_DIR}/asl/ops/cann/ops/utils/inc/log/inner
+    ${TOP_DIR}/asl/ops/cann/ops/utils/inc/error
+    ${TOP_DIR}/ace/comop/inc/external
+    ${TOP_DIR}/ace/npuruntime/inc/external
+    ${TOP_DIR}/ace/npuruntime/inc/nnopbase
+    ${TOP_DIR}/asl/ops/cann/ops/mc2/communication_and_computation
+    ${TOP_DIR}/ace/npuruntime/acl/inc/external/acl/error_codes
+    ${TOP_DIR}/asl/ops/cann/ops/built-in/op_tiling/runtime
+    ${TOP_DIR}/asl/ops/cann/ops/built-in
+    ${TOP_DIR}/ops-base/include/op_common/op_host
+    ${TOP_DIR}/ops-base/include
+    ${TOP_DIR}/asl/ops/cann/ops/built-in/op_fallback
+  )
+endif()
 
 set(OP_TILING_INCLUDE
   ${C_SEC_INCLUDE}
@@ -160,7 +165,6 @@ set(OP_TILING_INCLUDE
   ${AICPU_INC_DIRS}
   ${OPS_TRANSFORMER_DIR}
   ${JSON_INCLUDE_DIR}
-  ${OPS_TRANSFORMER_DIR}/common/inc
   ${OPS_TRANSFORMER_DIR}/common/include
   ${OPS_TRANSFORMER_DIR}/common/include/
   ${OPS_TRANSFORMER_DIR}/common/stub/op_tiling
@@ -169,37 +173,42 @@ set(OP_TILING_INCLUDE
   ${OPS_TRANSFORMER_DIR}/mc2/common/inc
   ${OPS_TRANSFORMER_DIR}/mc2/3rd
   ${OPS_TRANSFORMER_DIR}/mc2
-  ${TOP_DIR}/abl/msprof/inc
-  ${METADEF_INC_DIR}/../common/util
-  ${TOP_DIR}/asl/ops/cann/ops/utils/inc
-  ${TOP_DIR}/ace/comop/inc
-  ${TOP_DIR}/ace/comop/hccl/open_source/inc
   ${NNOPBASE_INCLUDE_DIRS}
   ${AICPU_INC_DIRS}
-  ${TOP_DIR}/asl/ops/cann/ops/built-in/op_tiling/cube
-  ${TOP_DIR}/ace/npuruntime/inc/external
-  ${TOP_DIR}/asl/ops/cann/ops/built-in/op_tiling
-  ${TOP_DIR}/asl/ops/cann/ops/built-in/op_api/inc
-  ${TOP_DIR}/asl/ops/cann/ops/built-in/op_proto/runtime
-  ${TOP_DIR}/asl/ops/cann/ops/common/inc
-  ${TOP_DIR}/asl/ops/cann/ops/ops-nn/inner
-  ${TOP_DIR}/asl/ops/cann/ops/matmul
-  ${TOP_DIR}/ace/npuruntime/acl/inc/external/acl/error_codes
-  ${TOP_DIR}/asl/ops/cann/ops/mc2/common/inc
-  ${TOP_DIR}/asl/ops/cann/ops/built-in/op_tiling/runtime
-  ${TOP_DIR}/asl/ops/cann/ops/built-in
-
-  ${TOP_DIR}/asl/ops/cann/ops/mc2/communication_and_computation
-  ${TOP_DIR}/ops-base/include/op_common/op_host
-  ${TOP_DIR}/ops-base/include
-  ${TOP_DIR}/asl/ops/cann/ops/built-in/op_fallback
-
-  ${TOP_DIR}/asl/ops/cann/ops/built-in/op_proto/runtime
-  ${TOP_DIR}/asl/ops/cann/ops/built-in/op_tiling/device/error
-  ${METADEF_DIR}
-  ${RUNTIME_INC_DIR}/runtime/platform/inc
-  ${METADEF_DIR}/inc/external/ge
 )
+
+if (NOT BUILD_OPEN_PROJECT)
+  list(APPEND OP_TILING_INCLUDE
+    ${TOP_DIR}/abl/msprof/inc
+    ${METADEF_INC_DIR}/../common/util
+    ${TOP_DIR}/asl/ops/cann/ops/utils/inc
+    ${TOP_DIR}/ace/comop/inc
+    ${TOP_DIR}/ace/comop/hccl/open_source/inc
+    ${TOP_DIR}/asl/ops/cann/ops/built-in/op_tiling/cube
+    ${TOP_DIR}/ace/npuruntime/inc/external
+    ${TOP_DIR}/asl/ops/cann/ops/built-in/op_tiling
+    ${TOP_DIR}/asl/ops/cann/ops/built-in/op_api/inc
+    ${TOP_DIR}/asl/ops/cann/ops/built-in/op_proto/runtime
+    ${TOP_DIR}/asl/ops/cann/ops/common/inc
+    ${TOP_DIR}/asl/ops/cann/ops/ops-nn/inner
+    ${TOP_DIR}/asl/ops/cann/ops/matmul
+    ${TOP_DIR}/ace/npuruntime/acl/inc/external/acl/error_codes
+    ${TOP_DIR}/asl/ops/cann/ops/mc2/common/inc
+    ${TOP_DIR}/asl/ops/cann/ops/built-in/op_tiling/runtime
+    ${TOP_DIR}/asl/ops/cann/ops/built-in
+
+    ${TOP_DIR}/asl/ops/cann/ops/mc2/communication_and_computation
+    ${TOP_DIR}/ops-base/include/op_common/op_host
+    ${TOP_DIR}/ops-base/include
+    ${TOP_DIR}/asl/ops/cann/ops/built-in/op_fallback
+
+    ${TOP_DIR}/asl/ops/cann/ops/built-in/op_proto/runtime
+    ${TOP_DIR}/asl/ops/cann/ops/built-in/op_tiling/device/error
+    ${METADEF_DIR}
+    ${RUNTIME_INC_DIR}/runtime/platform/inc
+    ${METADEF_DIR}/inc/external/ge
+  )
+endif()
 
 set(OP_PROTO_INCLUDE
   ${C_SEC_INCLUDE}
@@ -216,27 +225,32 @@ set(OP_PROTO_INCLUDE
   ${OPS_TRANSFORMER_DIR}/mc2/common/inc
   ${OPS_TRANSFORMER_DIR}/mc2/3rd
   ${OPS_TRANSFORMER_DIR}/mc2
-  ${TOP_DIR}/abl/msprof/inc
-  ${METADEF_INC_DIR}/../common/util
-  ${TOP_DIR}/ace/comop/inc
-  ${TOP_DIR}/ace/comop/hccl/open_source/inc
-  ${TOP_DIR}/asl/ops/cann/ops/utils/inc
-  ${TOP_DIR}/asl/ops/cann/ops/built-in/op_tiling/cube
-  ${TOP_DIR}/asl/ops/cann/ops/utils/inc/log/inner
-  ${TOP_DIR}/asl/ops/cann/ops/built-in/op_tiling
-  ${TOP_DIR}/ace/npuruntime/inc/external
-  ${TOP_DIR}/asl/ops/cann/ops/common/inc
-  ${TOP_DIR}/asl/ops/cann/ops/built-in/op_proto/runtime
-  ${TOP_DIR}/tmp/host-prefix/src/host-build/atc/opcompiler/ascendc_compiler/api/kernel_tiling
-  ${TOP_DIR}/asl/ops/cann/ops/ops-nn/inner
-  ${TOP_DIR}/asl/ops/cann/ops/matmul
-  ${TOP_DIR}/ace/npuruntime/acl/inc/external/acl/error_codes
-  ${TOP_DIR}/asl/ops/cann/ops/built-in/op_tiling/runtime
-  ${TOP_DIR}/asl/ops/cann/ops/built-in
-  ${TOP_DIR}/ops-base/include/op_common/op_host
-  ${TOP_DIR}/ops-base/include
-  ${TOP_DIR}/asl/ops/cann/ops/built-in/op_fallback
 )
+
+if (NOT BUILD_OPEN_PROJECT)
+  list(APPEND OP_PROTO_INCLUDE
+    ${TOP_DIR}/abl/msprof/inc
+    ${METADEF_INC_DIR}/../common/util
+    ${TOP_DIR}/ace/comop/inc
+    ${TOP_DIR}/ace/comop/hccl/open_source/inc
+    ${TOP_DIR}/asl/ops/cann/ops/utils/inc
+    ${TOP_DIR}/asl/ops/cann/ops/built-in/op_tiling/cube
+    ${TOP_DIR}/asl/ops/cann/ops/utils/inc/log/inner
+    ${TOP_DIR}/asl/ops/cann/ops/built-in/op_tiling
+    ${TOP_DIR}/ace/npuruntime/inc/external
+    ${TOP_DIR}/asl/ops/cann/ops/common/inc
+    ${TOP_DIR}/asl/ops/cann/ops/built-in/op_proto/runtime
+    ${TOP_DIR}/tmp/host-prefix/src/host-build/atc/opcompiler/ascendc_compiler/api/kernel_tiling
+    ${TOP_DIR}/asl/ops/cann/ops/ops-nn/inner
+    ${TOP_DIR}/asl/ops/cann/ops/matmul
+    ${TOP_DIR}/ace/npuruntime/acl/inc/external/acl/error_codes
+    ${TOP_DIR}/asl/ops/cann/ops/built-in/op_tiling/runtime
+    ${TOP_DIR}/asl/ops/cann/ops/built-in
+    ${TOP_DIR}/ops-base/include/op_common/op_host
+    ${TOP_DIR}/ops-base/include
+    ${TOP_DIR}/asl/ops/cann/ops/built-in/op_fallback
+  )
+endif()
 
 set(AICPU_INCLUDE
   ${OPBASE_INC_DIRS}
@@ -254,12 +268,6 @@ set(AICPU_INCLUDE
   ${ACL_EXTERNAL_INC_INCLUDE}
   # todo ops-base replaced later
   ${OPS_TRANSFORMER_DIR}/mc2/3rd
-  ${TOP_DIR}/asl/ops/cann/ops/built-in/aicpu/impl
-  ${TOP_DIR}/asl/ops/cann/ops/built-in/aicpu/impl/utils
-  ${TOP_DIR}/asl/ops/cann/ops/built-in/aicpu/impl/kernels/host/runtime/utils
-  ${TOP_DIR}/asl/ops/cann/ops/built-in/aicpu/impl/kernels/normalized/random
-  ${TOP_DIR}/asl/ops/cann/ops/built-in/aicpu/context/inc
-  ${TOP_DIR}/asl/ops/cann/ops/built-in/aicpu/context/common/*.h
   ${TOP_DIR}/inc/aicpu/cpu_kernels
   ${TOP_DIR}/inc/aicpu/aicpu_schedule/aicpu_sharder
   ${TOP_DIR}/inc/external/aicpu
@@ -268,7 +276,6 @@ set(AICPU_INCLUDE
   ${TOP_DIR}/inc/driver
   ${TOP_DIR}/libc_sec/include
   ${TOP_DIR}/abl/libc_sec/include
-  ${TOP_DIR}/ace/comop/inc
   ${METADEF_INCLUDE}
   ${METADEF_INCLUDE}/inc
   ${METADEF_INCLUDE}/exe_graph
@@ -279,9 +286,21 @@ set(AICPU_INCLUDE
   ${GRAPHENGINE_INCLUDE}/external
   ${CMAKE_CURRENT_SOURCE_DIR}/kernels/device/hashmap
   ${TOP_DIR}/asl/ops/cann/ops/matmul
-  ${TOP_DIR}/ops-base/include
-  ${TOP_DIR}/asl/ops/cann/ops/built-in/op_fallback
 )
+
+if (NOT BUILD_OPEN_PROJECT)
+  list(APPEND AICPU_INCLUDE
+    ${TOP_DIR}/asl/ops/cann/ops/built-in/aicpu/impl
+    ${TOP_DIR}/asl/ops/cann/ops/built-in/aicpu/impl/utils
+    ${TOP_DIR}/asl/ops/cann/ops/built-in/aicpu/impl/kernels/host/runtime/utils
+    ${TOP_DIR}/asl/ops/cann/ops/built-in/aicpu/impl/kernels/normalized/random
+    ${TOP_DIR}/asl/ops/cann/ops/built-in/aicpu/context/inc
+    ${TOP_DIR}/asl/ops/cann/ops/built-in/aicpu/context/common/*.h
+    ${TOP_DIR}/ace/comop/inc
+    ${TOP_DIR}/ops-base/include
+    ${TOP_DIR}/asl/ops/cann/ops/built-in/op_fallback
+  )
+endif()
 
 set(AICPU_DEFINITIONS
   -O2
