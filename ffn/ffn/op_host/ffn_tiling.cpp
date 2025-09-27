@@ -24,7 +24,6 @@
 #include "log/log.h" 
 #include "register/tilingdata_base.h"
 #include "tiling_base/tiling_base.h"
-#include "util/math_util.h" 
 #include "platform/platform_info.h"
 
 using namespace ge;
