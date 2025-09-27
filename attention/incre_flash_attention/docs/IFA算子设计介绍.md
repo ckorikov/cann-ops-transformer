@@ -210,10 +210,10 @@ GenTilingKey()
       modeVal * IFA_TILINGKEYOFFSET + (static_cast<uint64_t>(perfMode_)) * IFA_PERF_MODE_TILINGKEYOFFSET;
   if (antiquantMode_ == PER_TOKEN_MODE || antiquantMode_ == PER_CHANNEL_MODE){
       context_->tilingKey = baseOffset + IFA_GET_TILINGKEY(layoutVal, inputQVal, inputKvVal, outputVal, originVal,
-          (paVal + splitKvVal + antiquantModeVal), 0, kvLayoutInfo.kvLayoutVal, balanceMode);
+          (paVal + splitKvVal + antiquantModeVal), 0, kvLayoutInfo.kvLayoutVal, kvLayoutInfo.amlaMode, balanceMode);
   } else {
       context_->tilingKey = baseOffset + IFA_GET_TILINGKEY(layoutVal, inputQVal, inputKvVal, outputVal, originVal,
-          (paVal + splitKvVal), antiquantMode_, kvLayoutInfo.kvLayoutVal, balanceMode);
+          (paVal + splitKvVal), antiquantMode_, kvLayoutInfo.kvLayoutVal, kvLayoutInfo.amlaMode, balanceMode);
   }
   ...
 }
@@ -234,7 +234,9 @@ GenTilingKey()
 | 5 [bit2] | antiquantModeVal         | 使能PerToken伪量化标记, 1:enable;  0: disable;                 |
 | 6        | antiquantMode_           | 量化模式, 0:无效值 2:K-perChannel-V-perToken                   |
 | 7        | kvLayoutInfo.kvLayoutVal | KV的的shape格式, 仅伪量化MSD DD模板和MLA全量化模板该字段有效,其余模板该字段的值为0, 0:BNSD 1:BSH/BSND 2：NZ |
-| 8...14   |                          | 预留字段, 值为0              |
+| 8        | kvLayoutInfo.amlaMode    | 该字段废弃，取值只能为0 |
+| 9        | balanceMode              | 使能新的负载均衡算法的标志，1:enable;  0: disable; 仅MLA全量化模板可使能 |
+| 10...14   |                         | 预留字段, 值为0              |
 | 15       | perfMode_                | 模板编号, 0: C1_V2 (CV配比1:2) ; 1：全V; 2: C1_V1（CV配比1:1）;3:matmul基础API模板;5:MLA全量化模板 6:伪量化MSD DD模板 |
 | 16       | modeVal                  | 1：IFA TilingKey Base   2：IFA启用SysPrefix功能              |
 
