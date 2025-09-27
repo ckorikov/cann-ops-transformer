@@ -6,7 +6,7 @@
 |产品      | 是否支持 |
 |:----------------------------|:-----------:|
 |<term>昇腾910_95 AI处理器</term>|      ×     |
-|<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>|      ×     |
+|<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>|      √     |
 |<term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>|      √     |
 |<term>Atlas 200I/500 A2 推理产品</term>|      ×     |
 |<term>Atlas 推理系列产品</term>|      ×     |
@@ -157,7 +157,7 @@ aclnnStatus aclnnFusedInferAttentionScoreV4(
             </ul>
             </td>
             <td>FLOAT16、BFLOAT16、INT8、INT4（INT32）</td>
-            <td>ND/NZ</td>
+            <td>ND</td>
             <td>见参数inputLayout</td>
             <td>×</td>
         </tr>
@@ -172,7 +172,7 @@ aclnnStatus aclnnFusedInferAttentionScoreV4(
                 <li>由于tensorlist限制, 非连续场景下B不能大于256。</li>
             </td>
             <td>FLOAT16、BFLOAT16、INT8、INT4（INT32）</td>
-            <td>ND/NZ</td>
+            <td>ND</td>
             <td>见参数inputLayout</td>
             <td>×</td>
         </tr>
@@ -926,7 +926,7 @@ aclnnStatus aclnnFusedInferAttentionScoreV4(
             <td>key、value</td>
             <td>
             支持key、value dtype为FLOAT16/BFLOAT16/INT8。
-            PagedAttention场景下，当query的inputLayout为BNSD、TND时，kv cache排布支持BnBsH（blocknum, blocksize, H）和BnNBsD（blocknum, KV_N, blocksize, D）两种格式，当query的inputLayout为BSH、BSND时，kv cache排布只支持BnBsH一种格式。</td>
+            PagedAttention场景下，当query的inputLayout为BNSD、TND时，kv cache排布支持BnBsH（blocknum, blocksize, H）和BnNBsD（blocknum, KV_N, blocksize, D）两种格式，当query的inputLayout为BSH、BSND时，kv cache排布仅支持BnBsH一种格式。</td>
             <td>PagedAttention场景下，kv cache排布为BnNBsD时性能通常优于kv cache排布为BnBsH时的性能，建议优先选择BnNBsD格式。<br>blocknum不能小于根据actualSeqLengthsKv和blockSize计算的每个batch的block数量之和。且key和value的shape需保证一致。<br>PagedAttention场景下，当输入kv cache排布格式为BnBsH（blocknum, blocksize, H），且 KV_N * D 超过65535时，受硬件指令约束，会被拦截报错。可通过使能GQA（减小 KV_N）或调整kv cache排布格式为BnNBsD（blocknum, KV_N, blocksize, D）解决。</td>
         </tr>
         <tr>
@@ -1237,12 +1237,12 @@ aclnnStatus aclnnFusedInferAttentionScoreV4(
                     </td>
                     <td rowspan="2">
                         <ul>
-                        <li>数据类型只支持FLOAT16</li>
+                        <li>数据类型仅支持FLOAT16</li>
                         </ul>
                     </td>
                     <td rowspan="2">
                         <ul>
-                        <li>数据类型只支持FLOAT16</li>
+                        <li>数据类型仅支持FLOAT16</li>
                         </ul>
                     </td>
                     <td rowspan="2">仅支持传入值为0、1，其他值会执行异常。
@@ -1478,13 +1478,13 @@ aclnnStatus aclnnFusedInferAttentionScoreV4(
         </tr>
         <tr>
             <td>key</td>
-            <td>dtype与query一致；K_N=1，ND或NZ</td>
-            <td>NZ时，输入shape为[blockNum, N, D/16, blockSize, 16]</td>
+            <td>dtype与query一致；K_N=1，支持shape为五维</td>
+            <td>shape为五维时，各维度约束为：[blockNum, N, D/16, blockSize, 16]</td>
         </tr>
         <tr>
             <td>value</td>
-            <td>dtype与query一致；K_N=1，ND或NZ</td>
-            <td>NZ时，输入shape为[blockNum, N, D/16, blockSize, 16]</td>
+            <td>dtype与query一致；K_N=1，支持shape为五维</td>
+            <td>shape为五维时，各维度约束为：[blockNum, N, D/16, blockSize, 16]</td>
         </tr>
         <tr>
             <td>attention</td>
@@ -1498,7 +1498,7 @@ aclnnStatus aclnnFusedInferAttentionScoreV4(
         </tr>
         <tr>
             <td>inputLayout</td>
-            <td>BSH、BSND、BNSD、BNSD_NBSD、BSND_NBSD、BSH_NBSD、TND、TND_NTD，其中NZ输入不支持BNSD、BNSD_NBSD</td>
+            <td>BSH、BSND、BNSD、BNSD_NBSD、BSND_NBSD、BSH_NBSD、TND、TND_NTD，其中key/value shape为五维时，不支持BNSD、BNSD_NBSD</td>
             <td>-</td>
         </tr>
         <tr>
@@ -1515,13 +1515,13 @@ aclnnStatus aclnnFusedInferAttentionScoreV4(
         </tr>
         <tr>
             <td>key</td>
-            <td>INT8，只有NZ</td>
-            <td>NZ时，输入shape为[blockNum, N, D/32, blockSize, 32]</td>
+            <td>INT8，仅支持shape为五维</td>
+            <td>shape为五维时，各维度约束为[blockNum, N, D/32, blockSize, 32]</td>
         </tr>
         <tr>
             <td>value</td>
-            <td>INT8，只有NZ</td>
-            <td>NZ时，输入shape为[blockNum, N, D/32, blockSize, 32]</td>
+            <td>INT8，仅支持shape为五维</td>
+            <td>shape为五维时，各维度约束为[blockNum, N, D/32, blockSize, 32]</td>
         </tr>
         <tr>
             <td>attention</td>
@@ -1535,8 +1535,8 @@ aclnnStatus aclnnFusedInferAttentionScoreV4(
         </tr>
         <tr>
             <td>keyRope</td>
-            <td>BFLOAT16，只有NZ</td>
-            <td>NZ时，输入shape为[blockNum, N, D/16, blockSize, 16]</td>
+            <td>BFLOAT16，仅支持shape为五维</td>
+            <td>shape为五维时，各维度约束为[blockNum, N, D/16, blockSize, 16]</td>
         </tr>
         <tr>
             <td rowspan="2">PagedAttention</td>
@@ -1546,8 +1546,8 @@ aclnnStatus aclnnFusedInferAttentionScoreV4(
         </tr>
         <tr>
             <td>blockSize</td>
-            <td>16、128</td>
-            <td>NZ输入不支持配置16</td>
+            <td>128</td>
+            <td>-</td>
         </tr>
         <tr>
             <td rowspan="2">MLA</td>
@@ -1590,7 +1590,7 @@ aclnnStatus aclnnFusedInferAttentionScoreV4(
         </tbody>
     </table>
 
-- <a id="GQA"></a>GQA/MHA/MQA伪量化场景下KV为NZ格式时的参数约束如下：
+- <a id="GQA"></a>GQA/MHA/MQA伪量化场景下key/value shape为五维时的参数约束如下：
     <table style="undefined;table-layout: fixed; width: 983px"><colgroup>
         <col style="width: 96px">
         <col style="width: 104px">
@@ -1615,12 +1615,12 @@ aclnnStatus aclnnFusedInferAttentionScoreV4(
         </tr>
         <tr>
             <td>key</td>
-            <td>INT8，NZ，K_D=128</td>
+            <td>INT8，仅支持shape为五维，K_D=128</td>
             <td>shape为[blockNum, N, D/32, blockSize, 32]</td>
         </tr>
         <tr>
             <td>value</td>
-            <td>INT8，NZ，V_D=128</td>
+            <td>INT8，仅支持shape为五维，V_D=128</td>
             <td>shape为[blockNum, N, D/32, blockSize, 32]</td>
         </tr>
         <tr>
@@ -1636,7 +1636,7 @@ aclnnStatus aclnnFusedInferAttentionScoreV4(
         <tr>
             <td>innerPrecise</td>
             <td>1</td>
-            <td>只支持高性能模式</td>
+            <td>仅支持高性能模式</td>
         </tr>
         <tr>
             <td colspan="2">Mask</td>
