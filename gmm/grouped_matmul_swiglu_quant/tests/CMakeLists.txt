@@ -13,15 +13,15 @@
 ########################################################################################################################
 
 set(_GmmSwigluQuant_TilingSourcesExt
-        ${OPS_ADV_DIR}/gmm/grouped_matmul_swiglu_quant/op_host/grouped_matmul_swiglu_quant_tiling.cpp
+        ${CMAKE_SOURCE_DIR}/gmm/grouped_matmul_swiglu_quant/op_host/grouped_matmul_swiglu_quant_tiling.cpp
 )
 
 set(_GmmSwigluQuant_KernelTilingDataDefH
-        ${OPS_ADV_DIR}/common/inc/tiling/data_copy_transpose_tiling_def.h
+        ${CMAKE_SOURCE_DIR}/common/inc/tiling/data_copy_transpose_tiling_def.h
         ${CMAKE_SOURCE_DIR}/gmm/grouped_matmul_swiglu_quant/op_host/grouped_matmul_swiglu_quant_tiling.h
 )
 
-aux_source_directory(${CMAKE_SOURCE_DIR}/gmm/grouped_matmul_swiglu_quant/ _GmmSwigluQuant_KernelSourcesExt)
+aux_source_directory(${CMAKE_SOURCE_DIR}/gmm/grouped_matmul_swiglu_quant/op_kernel/ _GmmSwigluQuant_KernelSourcesExt)
 
 set(_GmmSwigluQuant_KernelPrivateCompileDefinitionsExt
         KernelCtrlParam grouped_matmul_swiglu_quant,grouped_matmul_swiglu_quant_FIAS fp32 DTYPE_WEIGHT_SCALE=float DTYPE_X=int8_t DTYPE_WEIGHT=int8_t
