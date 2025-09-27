@@ -7,37 +7,10 @@
  * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
-#ifndef _MOE_TUTEL_COMBINE_GATES_TILING_H_
-#define _MOE_TUTEL_COMBINE_GATES_TILING_H_
+#ifndef UT_MOE_FINALIZE_ROUTING_TILING_H_
+#define UT_MOE_FINALIZE_ROUTING_TILING_H_
 
 #include "kernel_tiling/kernel_tiling.h"
-
-struct MoeFinalizeRoutingTilingData {
-    int64_t totalCoreNum;
-    int64_t usedCoreNum;
-    int64_t skip2IsNull;
-    int64_t biasRowNum;
-    int64_t totalRowNum;
-    int64_t H;
-    int64_t normalH;
-    int64_t unnormalH;
-    int64_t hSliceNum;
-    int64_t normalK;
-    int64_t unnormalK;
-    int64_t kSliceNum;
-    int64_t K;
-    int64_t normalCoreHandleNum;
-    int64_t normalCoreLoopNum;
-    int64_t normalCoreHandleNumPerLoop;
-    int64_t normalCoreHandleNumTailLoop;
-    int64_t tailCoreHandleNum;
-    int64_t tailCoreLoopNum;
-    int64_t tailCoreHandleNumPerLoop;
-    int64_t tailCoreHandleNumTailLoop;
-    int64_t tilingKey;
-    int64_t ubSize_;
-
-};
 
 #pragma pack(1)
 
@@ -76,4 +49,4 @@ struct MoeFinalizeRoutingTilingData {
   (tilingData).unnormalK = tilingDataPointer->unnormalK; \
   (tilingData).kSliceNum = tilingDataPointer->kSliceNum; 
 
-#endif // _MOE_FINALIZE_ROUTING_TILING_H_
+#endif // UT_MOE_FINALIZE_ROUTING_TILING_H_

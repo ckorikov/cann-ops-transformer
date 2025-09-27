@@ -10,12 +10,10 @@
 
 #include <gtest/gtest.h>
 #include <iostream>
-#include "op_proto_test_util.h"
-#include "fusion_ops.h"
-#include "graph/utils/op_desc_utils.h"
-#include "common/utils/ut_op_common.h"
+#include "infershape_context_faker.h"
+#include "base/registry/op_impl_space_registry_v2.h"
 
-class MoeFinalizeRoutingProto : public testing::Test {
+class MoeFinalizeRoutingInfershape : public testing::Test {
 protected:
     static void SetUpTestCase()
     {
@@ -28,149 +26,103 @@ protected:
     }
 };
 
-TEST_F(MoeFinalizeRoutingProto, normal_shape)
+struct MoeFinalizeRoutingInfo {
+    gert::StorageShape &expandedXShape;
+    gert::StorageShape &x1Shape;
+    gert::StorageShape &x2Shape;
+    gert::StorageShape &biasShape;
+    gert::StorageShape &scalesShape;
+    gert::StorageShape &expandedRowIdxShape;
+    gert::StorageShape &expandedExpertIdxShape;
+    std::vector<int64_t> expectOutShape;
+
+    ge::DataType expandedXDtype;
+    ge::DataType x1Dtype;
+    ge::DataType x2Dtype;
+    ge::DataType biasDtype;
+    ge::DataType scalesDtype;
+    ge::DataType expandedRowIdxDtype;
+    ge::DataType expandedExpertIdxDtype;
+    ge::DataType yDtype;
+
+    int64_t dropPadMode = 0;
+};
+
+static std::vector<int64_t> ToVector(const gert::Shape &shape)
 {
-    ge::op::MoeFinalizeRouting op;
-    std::vector<std::pair<int64_t, int64_t>> shape_range = {{1, 1024}};
-    auto expanded_permuted_rows_tensor_desc =
-        create_desc_shape_range({6, 5}, ge::DT_FLOAT, ge::FORMAT_ND, {6, 5}, ge::FORMAT_ND, shape_range);
-    op.UpdateInputDesc("expanded_x", expanded_permuted_rows_tensor_desc);
+    size_t shapeSize = shape.GetDimNum();
+    std::vector<int64_t> shapeVec(shapeSize, 0);
 
-    auto skip1_tensor_desc =
-        create_desc_shape_range({3, 5}, ge::DT_FLOAT, ge::FORMAT_ND, {3, 5}, ge::FORMAT_ND, shape_range);
-    op.UpdateInputDesc("x1", skip1_tensor_desc);
-
-    auto skip2_tensor_desc =
-        create_desc_shape_range({3, 5}, ge::DT_FLOAT, ge::FORMAT_ND, {3, 5}, ge::FORMAT_ND, shape_range);
-    op.UpdateInputDesc("x2", skip2_tensor_desc);
-
-    auto bias_tensor_desc =
-        create_desc_shape_range({6, 5}, ge::DT_FLOAT, ge::FORMAT_ND, {6, 5}, ge::FORMAT_ND, shape_range);
-    op.UpdateInputDesc("bias", bias_tensor_desc);
-
-    auto scales_tensor_desc =
-        create_desc_shape_range({3, 2}, ge::DT_FLOAT, ge::FORMAT_ND, {3, 2}, ge::FORMAT_ND, shape_range);
-    op.UpdateInputDesc("scales", scales_tensor_desc);
-
-    auto expanded_src_to_dst_row_tensor_desc =
-        create_desc_shape_range({6}, ge::DT_INT32, ge::FORMAT_ND, {6}, ge::FORMAT_ND, shape_range);
-    op.UpdateInputDesc("expanded_row_idx", expanded_src_to_dst_row_tensor_desc);
-
-    auto expert_for_source_row_tensor_desc =
-        create_desc_shape_range({3, 2}, ge::DT_INT32, ge::FORMAT_ND, {3, 2}, ge::FORMAT_ND, shape_range);
-    op.UpdateInputDesc("expanded_expert_idx", expert_for_source_row_tensor_desc);
-
-    auto ret = InferShapeTest(op);
-    EXPECT_EQ(ret, ge::GRAPH_SUCCESS);
-
-    auto out_shape = op.GetOutputDescByName("y");
-    std::vector<int64_t> expected_output_shape = {3, 5};
-    EXPECT_EQ(out_shape.GetShape().GetDims(), expected_output_shape);
-}
-
-TEST_F(MoeFinalizeRoutingProto, neg_one_shape)
-{
-    ge::op::MoeFinalizeRouting op;
-    std::vector<std::pair<int64_t, int64_t>> shape_range = {{1, 1024}};
-    auto expanded_permuted_rows_tensor_desc =
-        create_desc_shape_range({6, 5}, ge::DT_FLOAT, ge::FORMAT_ND, {6, 5}, ge::FORMAT_ND, shape_range);
-    op.UpdateInputDesc("expanded_x", expanded_permuted_rows_tensor_desc);
-
-    auto skip1_tensor_desc =
-        create_desc_shape_range({-1, -1}, ge::DT_FLOAT, ge::FORMAT_ND, {-1, -1}, ge::FORMAT_ND, shape_range);
-    op.UpdateInputDesc("x1", skip1_tensor_desc);
-
-    auto skip2_tensor_desc =
-        create_desc_shape_range({3, 5}, ge::DT_FLOAT, ge::FORMAT_ND, {3, 5}, ge::FORMAT_ND, shape_range);
-    op.UpdateInputDesc("x2", skip2_tensor_desc);
-
-    auto bias_tensor_desc =
-        create_desc_shape_range({6, 5}, ge::DT_FLOAT, ge::FORMAT_ND, {6, 5}, ge::FORMAT_ND, shape_range);
-    op.UpdateInputDesc("bias", bias_tensor_desc);
-
-    auto scales_tensor_desc =
-        create_desc_shape_range({3, 2}, ge::DT_FLOAT, ge::FORMAT_ND, {3, 2}, ge::FORMAT_ND, shape_range);
-    op.UpdateInputDesc("scales", scales_tensor_desc);
-
-    auto expanded_src_to_dst_row_tensor_desc =
-        create_desc_shape_range({6}, ge::DT_INT32, ge::FORMAT_ND, {6}, ge::FORMAT_ND, shape_range);
-    op.UpdateInputDesc("expanded_row_idx", expanded_src_to_dst_row_tensor_desc);
-
-    auto expert_for_source_row_tensor_desc =
-        create_desc_shape_range({3, 2}, ge::DT_INT32, ge::FORMAT_ND, {3, 2}, ge::FORMAT_ND, shape_range);
-    op.UpdateInputDesc("expanded_expert_idx", expert_for_source_row_tensor_desc);
-
-    auto ret = InferShapeTest(op);
-    EXPECT_EQ(ret, ge::GRAPH_SUCCESS);
-
-    auto out_shape = op.GetOutputDescByName("y");
-    std::vector<int64_t> expected_output_shape = {-1, -1};
-    EXPECT_EQ(out_shape.GetShape().GetDims(), expected_output_shape);
-}
-
-TEST_F(MoeFinalizeRoutingProto, error_shape)
-{
-    ge::op::MoeFinalizeRouting op;
-    std::vector<std::pair<int64_t, int64_t>> shape_range = {{1, 1024}};
-    auto expanded_permuted_rows_tensor_desc =
-        create_desc_shape_range({6, 5}, ge::DT_FLOAT, ge::FORMAT_ND, {6, 5}, ge::FORMAT_ND, shape_range);
-    op.UpdateInputDesc("expanded_x", expanded_permuted_rows_tensor_desc);
-
-    auto skip1_tensor_desc =
-        create_desc_shape_range({3, 5, 1}, ge::DT_FLOAT, ge::FORMAT_ND, {3, 5, 1}, ge::FORMAT_ND, shape_range);
-    op.UpdateInputDesc("x1", skip1_tensor_desc);
-
-    auto skip2_tensor_desc =
-        create_desc_shape_range({3, 5}, ge::DT_FLOAT, ge::FORMAT_ND, {3, 5}, ge::FORMAT_ND, shape_range);
-    op.UpdateInputDesc("x2", skip2_tensor_desc);
-
-    auto bias_tensor_desc =
-        create_desc_shape_range({6, 5}, ge::DT_FLOAT, ge::FORMAT_ND, {6, 5}, ge::FORMAT_ND, shape_range);
-    op.UpdateInputDesc("bias", bias_tensor_desc);
-
-    auto scales_tensor_desc =
-        create_desc_shape_range({3, 2}, ge::DT_FLOAT, ge::FORMAT_ND, {3, 2}, ge::FORMAT_ND, shape_range);
-    op.UpdateInputDesc("scales", scales_tensor_desc);
-
-    auto expanded_src_to_dst_row_tensor_desc =
-        create_desc_shape_range({6}, ge::DT_INT32, ge::FORMAT_ND, {6}, ge::FORMAT_ND, shape_range);
-    op.UpdateInputDesc("expanded_row_idx", expanded_src_to_dst_row_tensor_desc);
-
-    auto expert_for_source_row_tensor_desc =
-        create_desc_shape_range({3, 2}, ge::DT_INT32, ge::FORMAT_ND, {3, 2}, ge::FORMAT_ND, shape_range);
-    op.UpdateInputDesc("expanded_expert_idx", expert_for_source_row_tensor_desc);
-
-    auto ret = InferShapeTest(op);
-    EXPECT_EQ(ret, ge::GRAPH_FAILED);
-}
-
-TEST_F(MoeFinalizeRoutingProto, dtype_infer)
-{
-    ASSERT_NE(gert::OpImplRegistry::GetInstance().GetOpImpl("MoeFinalizeRouting"), nullptr);
-    auto data_type_func = gert::OpImplRegistry::GetInstance().GetOpImpl("MoeFinalizeRouting")->infer_datatype;
-    if (data_type_func != nullptr) {
-        ge::DataType input_ref = ge::DT_FLOAT;
-        ge::DataType input_ref1 = ge::DT_INT32;
-        ge::DataType output_ref = ge::DT_FLOAT;
-        auto context_holder =
-            gert::InferDataTypeContextFaker()
-                .NodeIoNum(7, 1)
-                .IrInstanceNum({1, 1, 1, 1, 1, 1, 1})
-                .NodeInputTd(0, ge::DT_FLOAT, ge::FORMAT_ND, ge::FORMAT_ND)
-                .NodeInputTd(1, ge::DT_FLOAT, ge::FORMAT_ND, ge::FORMAT_ND)
-                .NodeInputTd(2, ge::DT_FLOAT, ge::FORMAT_ND, ge::FORMAT_ND)
-                .NodeInputTd(3, ge::DT_FLOAT, ge::FORMAT_ND, ge::FORMAT_ND)
-                .NodeInputTd(4, ge::DT_FLOAT, ge::FORMAT_ND, ge::FORMAT_ND)
-                .NodeInputTd(5, ge::DT_FLOAT, ge::FORMAT_ND, ge::FORMAT_ND)
-                .NodeInputTd(6, ge::DT_INT32, ge::FORMAT_ND, ge::FORMAT_ND)
-                .NodeOutputTd(0, ge::DT_INT32, ge::FORMAT_ND, ge::FORMAT_ND)
-                .InputDataTypes({&input_ref, &input_ref, &input_ref, &input_ref, &input_ref, &input_ref1, &input_ref1})
-                .OutputDataTypes({&output_ref})
-                .Build();
-        auto context = context_holder.GetContext<gert::InferDataTypeContext>();
-        EXPECT_EQ(data_type_func(context), ge::GRAPH_SUCCESS);
-        ASSERT_NE(context, nullptr);
-
-        EXPECT_EQ(context->GetOutputDataType(0), output_ref);
+    for (size_t i = 0; i < shapeSize; i++) {
+        shapeVec[i] = shape.GetDim(i);
     }
+    return shapeVec;
+}
+
+static void ExeTestCase(const MoeFinalizeRoutingInfo ioInfo, ge::graphStatus testCaseResult = ge::GRAPH_SUCCESS)
+{
+    /* make infershape context */
+    gert::StorageShape yStorageShape = {};
+    std::vector<gert::StorageShape *> ouputShapes = {&yStorageShape};
+    auto contextHolder = gert::InferShapeContextFaker()
+                             .SetOpType("MoeFinalizeRouting")
+                             .NodeIoNum(7, 1)
+                             .NodeInputTd(0, ioInfo.expandedXDtype, ge::FORMAT_ND, ge::FORMAT_ND)
+                             .NodeInputTd(1, ioInfo.x1Dtype, ge::FORMAT_ND, ge::FORMAT_ND)
+                             .NodeInputTd(2, ioInfo.x2Dtype, ge::FORMAT_ND, ge::FORMAT_ND)
+                             .NodeInputTd(3, ioInfo.biasDtype, ge::FORMAT_ND, ge::FORMAT_ND)
+                             .NodeInputTd(4, ioInfo.scalesDtype, ge::FORMAT_ND, ge::FORMAT_ND)
+                             .NodeInputTd(5, ioInfo.expandedRowIdxDtype, ge::FORMAT_ND, ge::FORMAT_ND)
+                             .NodeInputTd(6, ioInfo.expandedExpertIdxDtype, ge::FORMAT_ND, ge::FORMAT_ND)
+                             .NodeOutputTd(0, ioInfo.yDtype, ge::FORMAT_ND, ge::FORMAT_ND)
+
+                             .InputTensors({(gert::Tensor *)&ioInfo.expandedXShape})
+                             .InputTensors({(gert::Tensor *)&ioInfo.x1Shape})
+                             .InputTensors({(gert::Tensor *)&ioInfo.x2Shape})
+                             .InputTensors({(gert::Tensor *)&ioInfo.biasShape})
+                             .InputTensors({(gert::Tensor *)&ioInfo.scalesShape})
+                             .InputTensors({(gert::Tensor *)&ioInfo.expandedRowIdxShape})
+                             .InputTensors({(gert::Tensor *)&ioInfo.expandedExpertIdxShape})
+
+                             .OutputShapes(ouputShapes)
+                             .Build();
+
+    /* get infershape func */
+    auto spaceRegistry = gert::DefaultOpImplSpaceRegistryV2::GetInstance().GetSpaceRegistry();
+    auto inferShapeFunc = spaceRegistry->GetOpImpl("MoeFinalizeRouting")->infer_shape;
+    ASSERT_NE(inferShapeFunc, nullptr);
+
+    /* do infershape */
+    EXPECT_EQ(inferShapeFunc(contextHolder.GetContext()), testCaseResult);
+    EXPECT_EQ(ToVector(yStorageShape.GetOriginShape()), ioInfo.expectOutShape);
+}
+
+TEST_F(MoeFinalizeRoutingInfershape, moe_finalize_routing_infershape_0)
+{
+    gert::StorageShape expandedXShape = {{16, 16}, {16, 16}};
+    gert::StorageShape x1Shape = {{16, 16}, {16, 16}};
+    gert::StorageShape x2Shape = {{16, 16}, {16, 16}};
+    gert::StorageShape biasShape = {{16, 16}, {16, 16}};
+    gert::StorageShape scalesShape = {{16, 1}, {16, 1}};
+    gert::StorageShape expandedRowIdxShape = {{16}, {16}};
+    gert::StorageShape expandedExpertIdxShape = {{16, 1}, {16, 1}};
+    std::vector<int64_t> expectOutShape = {16, 16}; // scale第0维，expandedX第一维
+    MoeFinalizeRoutingInfo ioInfoT = {expandedXShape,
+                                      x1Shape,
+                                      x2Shape,
+                                      biasShape,
+                                      scalesShape,
+                                      expandedRowIdxShape,
+                                      expandedExpertIdxShape,
+                                      expectOutShape,
+                                      ge::DT_FLOAT,
+                                      ge::DT_FLOAT,
+                                      ge::DT_FLOAT,
+                                      ge::DT_FLOAT,
+                                      ge::DT_FLOAT,
+                                      ge::DT_INT32,
+                                      ge::DT_INT32,
+                                      ge::DT_FLOAT
+                                      };
+    ExeTestCase(ioInfoT, ge::GRAPH_SUCCESS);
 }
