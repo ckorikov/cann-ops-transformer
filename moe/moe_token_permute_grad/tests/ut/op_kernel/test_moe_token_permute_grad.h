@@ -22,21 +22,6 @@
 
 #define __aicore__
 
-struct MoeTokenPermuteGradTilingData {
-  int64_t hidden_size = 0;
-  int64_t top_k = 0;
-  int64_t num_out_tokens = 0;
-  int64_t hidden_splited_length = 0;
-  int64_t hidden_splited_num = 0;
-  int64_t hidden_splited_remain = 0;
-  int64_t tokens_core_length = 0;
-  int64_t tokens_core_remain = 0;
-  int64_t tokens_splited_length = 0;
-  int64_t tokens_splited_num = 0;
-  int64_t tokens_splited_remain = 0;
-  int64_t buffer_num = 0;
-};
-
 inline void InitMoeTokenPermuteGradTilingData(uint8_t* tiling, MoeTokenPermuteGradTilingData* const_data) {
   memcpy(const_data, tiling, sizeof(MoeTokenPermuteGradTilingData));
 }

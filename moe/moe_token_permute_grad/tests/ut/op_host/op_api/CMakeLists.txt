@@ -7,5 +7,7 @@
  # INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  # See LICENSE in the root of the software repository for the full text of the License.
 
-message(STATUS "=== Debug: target_sources add test_aclnn_moe_token_permute_grad")
-add_modules_llt_sources(HOSTNAME ${OPTEST_NAME} MODE PRIVATE DIR ${CMAKE_CURRENT_SOURCE_DIR})
+ # 该算子依赖moe_init_routing_v2，ut需要两个算子一起编译,等后续ut框架支持后开放。
+if(UT_TEST_ALL OR OP_API_UT)
+#  add_modules_ut_sources(UT_NAME ${OP_API_MODULE_NAME} MODE PRIVATE DIR ${CMAKE_CURRENT_SOURCE_DIR})
+endif()
