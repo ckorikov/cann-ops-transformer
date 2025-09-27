@@ -356,15 +356,41 @@ function build_example()
 
     cd "${BUILD_PATH}"
     if [[ "${EXAMPLE_MODE}" == "eager" ]]; then
-        file=$(find ../ -path "*/${EXAMPLE_NAME}/examples/*" -name test_aclnn_${EXAMPLE_NAME}.cpp)
-        g++ ${file} -I ${INCLUDE_PATH} -I ${ACLNN_INCLUDE_PATH} -I ${EAGER_INCLUDE_OPP_ACLNNOP_PATH} -L ${EAGER_LIBRARY_OPP_PATH} -L ${EAGER_LIBRARY_PATH} -lopapi -lopapi_transformer -lascendcl -lnnopbase -lpthread -lhccl -o test_aclnn_${EXAMPLE_NAME}
-        ./test_aclnn_${EXAMPLE_NAME}
+        files=$(find ../ -path "*/${EXAMPLE_NAME}/examples/*" -name test_aclnn_*.cpp)
+        if [ -z "$files" ]; then
+            echo "ERROR: ${EXAMPLE_NAME} do not have eager example"
+            exit 1
+        fi
+        for file in $files; do
+            echo "Start compile and run example file: $file"
+            if [[ "${PKG_MODE}" == "" ]]; then
+                g++ ${file} -I ${INCLUDE_PATH} -I ${ACLNN_INCLUDE_PATH} -I ${EAGER_INCLUDE_OPP_ACLNNOP_PATH} -L ${EAGER_LIBRARY_OPP_PATH} -L ${EAGER_LIBRARY_PATH} -lopapi -lopapi_transformer -lascendcl -lnnopbase -lpthread -lhccl -o test_aclnn_${EXAMPLE_NAME}
+            elif [[ "${PKG_MODE}" == "cust" ]]; then
+    
+                echo "pkg_mode:${PKG_MODE} vendor_name:${VENDOR}"
+                export CUST_LIBRARY_PATH="${ASCEND_OPP_PATH}/vendors/${VENDOR}_transformer/op_api/lib"     # 仅自定义算子需要
+                export CUST_INCLUDE_PATH="${ASCEND_OPP_PATH}/vendors/${VENDOR}_transformer/op_api/include" # 仅自定义算子需要
+                g++ ${file} -I ${INCLUDE_PATH} -I ${CUST_INCLUDE_PATH} -L ${CUST_LIBRARY_PATH} -L ${EAGER_LIBRARY_PATH} -lcust_opapi -lascendcl -lnnopbase -o test_aclnn_${EXAMPLE_NAME} -Wl,-rpath=${CUST_LIBRARY_PATH}
+            else
+                echo "Error: pkg_mode(${PKG_MODE}) must be cust."
+                help_info "run_example"
+                exit 1
+            fi
+            ./test_aclnn_${EXAMPLE_NAME}
+        done
     elif [[ "${EXAMPLE_MODE}" == "graph" ]]; then
-        file=$(find ../ -path "*/${EXAMPLE_NAME}/examples/*" -name test_geir_${EXAMPLE_NAME}.cpp)
-        g++ ${file} -I ${GRAPH_INCLUDE_PATH} -I ${GE_INCLUDE_PATH} -I ${LINUX_INCLUDE_PATH} -I ${INC_INCLUDE_PATH} -L ${GRAPH_LIBRARY_STUB_PATH} -L ${GRAPH_LIBRARY_PATH} -lgraph -lge_runner -lgraph_base -o test_geir_${EXAMPLE_NAME}
-        ./test_geir_${EXAMPLE_NAME}
+        file=$(find ../ -path "*/${EXAMPLE_NAME}/examples/*" -name test_geir_*.cpp)
+        if [ -z "$file" ]; then
+            echo "ERROR: ${EXAMPLE_NAME} do not have graph example"
+            exit 1
+        fi
+        for file in $files; do
+            echo "Start compile and run example file: $file"
+            g++ ${file} -I ${GRAPH_INCLUDE_PATH} -I ${GE_INCLUDE_PATH} -I ${LINUX_INCLUDE_PATH} -I ${INC_INCLUDE_PATH} -L ${GRAPH_LIBRARY_STUB_PATH} -L ${GRAPH_LIBRARY_PATH} -lgraph -lge_runner -lgraph_base -o test_geir_${EXAMPLE_NAME}
+            ./test_geir_${EXAMPLE_NAME}
+        done
     else
-        usage
+        help_info "run_example"
         exit 1
     fi
 }
@@ -617,6 +643,16 @@ while [[ $# -gt 0 ]]; do
         EXAMPLE_NAME="$2"
         EXAMPLE_MODE="$3"
         shift 3
+        if [[ -n "$1" ]]; then
+            PKG_MODE="$1"
+            VENDOR="custom"
+            shift 1
+            if [[ -n "$1" ]]; then
+                VENDOR="$1"
+                VENDOR="${VENDOR#*=}"
+                shift 1
+            fi
+        fi
         ;;
      -e|--example)
         shift
@@ -758,7 +794,6 @@ while [[ $# -gt 0 ]]; do
         ;;
     --genop=*)
         OPTARG=$1
-        log "[DEBUGGING] genop:OPTARG=${OPTARG}"
         process_genop "genop" "${OPTARG#*=}"
         shift
         ;;

@@ -26,7 +26,7 @@ option(UT_TEST_ALL                "Enable all ut"                   OFF)
 
 set(ASCEND_COMPUTE_UNIT           "ascend910b"                    CACHE   STRING   "soc that need to be compiled")
 set(ASCEND_OP_NAME                "ALL"                           CACHE   STRING   "operators that need to be compiled")
-set(VENDOR_NAME                   "customize"                     CACHE   STRING   "vendor name")
+set(VENDOR_NAME                   "custom"                     CACHE   STRING   "vendor name")
 
 if(PROJECT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
   message(STATUS "compile project with library")
@@ -184,7 +184,7 @@ if (BUILD_OPS_RTY_KERNEL)
             cust_opsproto_rt2.0
     )
     install(TARGETS opsproto
-            LIBRARY DESTINATION packages/vendors/${VENDOR_NAME}/op_proto/lib/linux/${CMAKE_SYSTEM_PROCESSOR}
+            LIBRARY DESTINATION packages/vendors/${VENDOR_NAME}_transformer/op_proto/lib/linux/${CMAKE_SYSTEM_PROCESSOR}
     )
 
     add_ops_tiling_keys(
@@ -359,7 +359,7 @@ if (BUILD_OPS_RTY_KERNEL)
     add_dependencies(opsproto ops_transformer_proto_headers)
 
     install(FILES ${generate_proto_headers}
-            DESTINATION packages/vendors/${VENDOR_NAME}/op_proto/inc OPTIONAL
+            DESTINATION packages/vendors/${VENDOR_NAME}_transformer/op_proto/inc OPTIONAL
     )
 
     add_library(ops_transformer_proto_headers INTERFACE)

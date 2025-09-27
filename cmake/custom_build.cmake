@@ -80,6 +80,7 @@ if (BUILD_OPEN_PROJECT)
     target_link_libraries(cust_opapi PRIVATE
             $<BUILD_INTERFACE:intf_pub>
             -Wl,--whole-archive
+            ops_aclnn
             -Wl,--no-whole-archive
         #     -lopapi
             nnopbase
@@ -94,7 +95,7 @@ if (BUILD_OPEN_PROJECT)
     )
     if (NOT ENABLE_BUILT_IN)
         install(TARGETS cust_opapi
-                LIBRARY DESTINATION packages/vendors/${VENDOR_NAME}/op_api/lib
+                LIBRARY DESTINATION packages/vendors/${VENDOR_NAME}_transformer/op_api/lib
         )
     endif()
 
@@ -131,7 +132,7 @@ if (BUILD_OPEN_PROJECT)
     )
     if (NOT ENABLE_BUILT_IN)
         install(TARGETS cust_proto
-                LIBRARY DESTINATION packages/vendors/${VENDOR_NAME}/op_proto/lib/linux/${CMAKE_SYSTEM_PROCESSOR}
+                LIBRARY DESTINATION packages/vendors/${VENDOR_NAME}_transformer/op_proto/lib/linux/${CMAKE_SYSTEM_PROCESSOR}
         )
     endif()
 
@@ -182,7 +183,7 @@ if (BUILD_OPEN_PROJECT)
     )
     if (NOT ENABLE_BUILT_IN)
         install(TARGETS cust_opmaster
-                LIBRARY DESTINATION packages/vendors/${VENDOR_NAME}/op_impl/ai_core/tbe/op_tiling/lib/linux/${CMAKE_SYSTEM_PROCESSOR}
+                LIBRARY DESTINATION packages/vendors/${VENDOR_NAME}_transformer/op_impl/ai_core/tbe/op_tiling/lib/linux/${CMAKE_SYSTEM_PROCESSOR}
         )
     endif()
 
@@ -201,7 +202,7 @@ if (BUILD_OPEN_PROJECT)
 
     if (NOT ENABLE_BUILT_IN)
         install(FILES ${compat_optiling_file}
-                DESTINATION packages/vendors/${VENDOR_NAME}/op_impl/ai_core/tbe/op_tiling
+                DESTINATION packages/vendors/${VENDOR_NAME}_transformer/op_impl/ai_core/tbe/op_tiling
         )
     endif()
 
@@ -402,7 +403,7 @@ if (BUILD_OPEN_PROJECT)
     
     if (NOT ENABLE_BUILT_IN)
         install(FILES ${generate_proto_headers}
-                DESTINATION packages/vendors/${VENDOR_NAME}/op_proto/inc OPTIONAL
+                DESTINATION packages/vendors/${VENDOR_NAME}_transformer/op_proto/inc OPTIONAL
         )
     endif()
 
@@ -463,9 +464,10 @@ else()
             SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}
     )
 endif ()
+target_sources(cust_opapi PRIVATE 
+    $<$<TARGET_EXISTS:${OPHOST_NAME}_opapi_obj>:$<TARGET_OBJECTS:${OPHOST_NAME}_opapi_obj>>)
 target_link_libraries(
     cust_opapi
-    PUBLIC ${OPHOST_NAME}_opapi_obj
     PRIVATE $<$<BOOL:${BUILD_WITH_INSTALLED_DEPENDENCY_CANN_PKG}>:$<BUILD_INTERFACE:opapi>>
     $<$<TARGET_EXISTS:opsbase>:opsbase>
 )
@@ -683,7 +685,7 @@ if (NOT ENABLE_BUILT_IN AND BUILD_OPEN_PROJECT)
             COMMAND mkdir -p ${CMAKE_CURRENT_BINARY_DIR}/scripts
             COMMAND cp -r ${ASCEND_PROJECT_DIR}/scripts/* ${CMAKE_CURRENT_BINARY_DIR}/scripts/
             COMMAND chmod +w ${CMAKE_CURRENT_BINARY_DIR}/scripts/*
-            COMMAND sed -i "s/vendor_name=customize/vendor_name=${VENDOR_NAME}/g" ${CMAKE_CURRENT_BINARY_DIR}/scripts/*
+            COMMAND sed -i "s/vendor_name=customize/vendor_name=${VENDOR_NAME}_transformer/g" ${CMAKE_CURRENT_BINARY_DIR}/scripts/*
     )
 
     install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/scripts/
@@ -702,7 +704,7 @@ if (NOT ENABLE_BUILT_IN AND BUILD_OPEN_PROJECT)
     )
 
     install(FILES ${version_info_file}
-            DESTINATION packages/vendors/${VENDOR_NAME}/
+            DESTINATION packages/vendors/${VENDOR_NAME}_transformer/
     )
 
     if (CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
