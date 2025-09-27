@@ -120,9 +120,9 @@ __aicore__ inline void MoeV2SortOneCore::CopyOut()
     intriParams.blockCount = 1;
     intriParams.blockLen = this->totalLength * sizeof(int32_t);
 #if defined(__CCE_AICORE__) && __CCE_AICORE__ == 200
-    DataCopyCustom(expandDstToSrcRowGm, outLocal[this->sortNum], intriParams.blockCount, intriParams.blockLen);
+    DataCopyCustom<int32_t,true,false>(expandDstToSrcRowGm, outLocal[this->sortNum], intriParams.blockCount, intriParams.blockLen);
     if (this->needCopy) {
-        DataCopyCustom(sortedexpertIdxGm, outLocal[0], intriParams.blockCount, intriParams.blockLen);
+        DataCopyCustom<int32_t,true,false>(sortedexpertIdxGm, outLocal[0], intriParams.blockCount, intriParams.blockLen);
     }
 #else
     DataCopyPad(sortedexpertIdxGm, outLocal[0], intriParams);
@@ -186,9 +186,17 @@ __aicore__ inline void MoeV2SortOneCore::Init(GM_ADDR expertIdx, GM_ADDR expertT
 #if defined(__CCE_AICORE__) && __CCE_AICORE__ == 200
     syncTmpSpaceGm_.SetGlobalBuffer((__gm__ int32_t *)workspace + 2 * this->tileLength, SYNC_LEN);
     buffSize = GetSortLen<float>(this->sortNum) * sizeof(int32_t);
-#endif
     pipe->InitBuffer(tempBuffer, buffSize);
     pipe->InitBuffer(sortedBuffer, buffSize);
+    LocalTensor<int32_t> syncLocal = tempBuffer.Get<int32_t>();
+    Duplicate<int32_t>(syncLocal, 0, SYNC_LEN);
+    SetWaitFlag<HardEvent::V_MTE3>(HardEvent::V_MTE3);
+    DataCopy(syncTmpSpaceGm_, syncLocal, SYNC_LEN);
+    pipe_barrier(PIPE_ALL);
+#else
+    pipe->InitBuffer(tempBuffer, buffSize);
+    pipe->InitBuffer(sortedBuffer, buffSize);
+#endif
 }
 
 __aicore__ inline void MoeV2SortOneCore::Process()
@@ -200,9 +208,6 @@ __aicore__ inline void MoeV2SortOneCore::Process()
     }
 #if defined(__CCE_AICORE__) && __CCE_AICORE__ == 200
     LocalTensor<int32_t> syncLocal = tempBuffer.Get<int32_t>();
-    Duplicate<int32_t>(syncLocal, 0, SYNC_LEN);
-    SetWaitFlag<HardEvent::V_MTE3>(HardEvent::V_MTE3);
-    DataCopy(syncTmpSpaceGm_, syncLocal, SYNC_LEN);
     AscendC::SyncAll(syncTmpSpaceGm_, syncLocal, GetBlockNum());
 #else
     this->SyncAll();

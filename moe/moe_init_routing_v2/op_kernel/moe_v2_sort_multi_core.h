@@ -99,7 +99,7 @@ __aicore__ inline void MoeV2SortMultiCore::ResetIO(GM_ADDR expandedRowIdx, GM_AD
     expertIdxGm.SetGlobalBuffer(reinterpret_cast<__gm__ int32_t *>(workspace) +
                                 Align(this->totalLength, sizeof(int32_t)) + this->blockIdx * sortTotalLength,
                                 this->sortTotalLength);
-
+    this->srcWsIndex = 0;
     this->needInitExpertCore = 0;
 }
 #endif

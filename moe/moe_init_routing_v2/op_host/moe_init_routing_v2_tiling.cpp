@@ -349,6 +349,11 @@ void MoeInitRoutingV2TilingBase::ShowTilingData()
 
 ge::graphStatus MoeInitRoutingV2TilingBase::DoOpTiling()
 {
+    if (is310P) {
+        CHECK_FAIL(context_, (moeInitRoutingTilingData.get_cols() % ONE_BLOCK_BYTE) != 0,
+                   "The Last dim of x should be divisible by 32,but got %ld.",
+                   moeInitRoutingTilingData.get_cols());
+    }
     if (!regBase) {
         // NUM_TWO sort value and indices
         // NUM_FOUR sort need space
