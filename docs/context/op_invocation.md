@@ -108,9 +108,9 @@ int main()
 1. 前提条件。
    请参考本项目[编译执行](./quick_op_invocation.md#编译执行)完成目标算子的编译部署。
 
-2. 创建CMakelist文件。
+2. 创建CMakelists文件。
 
-   在test\_aclnn\_\$\{op\_name\}.cpp同级目录下创建CMakelist文件，以`AddExample`算子为例，示例如下，请根据实际情况自行修改。
+   在test\_aclnn\_\$\{op\_name\}.cpp同级目录下创建CMakelists文件，以`AddExample`算子为例，示例如下，请根据实际情况自行修改。
 
     ```bash
    cmake_minimum_required(VERSION 3.14)
@@ -179,7 +179,7 @@ int main()
        ${ASCEND_PATH}/lib64/libascendcl.so
        ${ASCEND_PATH}/lib64/libnnopbase.so
        ${ASCEND_PATH}/opp/vendors/${TARGET_SUBDIR}/op_api/lib/libcust_opapi.so   # 仅自定义算子需要
-       # ${ASCEND_PATH}/lib64/libopapi_math.so    # 仅内置算子需要
+       # ${ASCEND_PATH}/lib64/libopapi_transformer.so    # 仅内置算子需要
    )
 
    # 安装目标文件到bin目录  

@@ -468,7 +468,7 @@ private:
 
     // 总数据长度
     int64_t blockLength_ = 0;
-    // 每个blocal被划分多少块
+    // 每个block被划分多少块
     int64_t tileNum_ = 0;
     // 每个tile处理数据长度
     uint32_t tileLength_ = 0;

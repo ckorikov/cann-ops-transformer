@@ -60,7 +60,7 @@ git clone https://gitcode.com/cann/${ops_project}.git
 # 默认路径安装，以root用户为例（非root用户，将/usr/local替换为${HOME}）
 source /usr/local/Ascend/ascend-toolkit/set_env.sh
 # 指定路径安装
-# source ${install_path}/ascend-toolkit/set_env.sh
+source ${install_path}/ascend-toolkit/set_env.sh
 ```
 
 ## 编译执行
@@ -88,7 +88,7 @@ source /usr/local/Ascend/ascend-toolkit/set_env.sh
 
 2. **安装自定义算子包。**
     ```bash
-    ./cann-ops-${ops_project}-${vendor_name}-linux.${arch}.run
+    ./cann-ops-transformer-${vendor_name}-linux.${arch}.run
     ```
 
     自定义算子包安装路径为`${ASCEND_HOME_PATH}/opp/vendors`，\$\{ASCEND\_HOME\_PATH\}已通过环境变量配置，表示CANN toolkit包安装路径，一般为\$\{install\_path\}/ascend-toolkit/latest。注意自定义算子包不支持卸载。

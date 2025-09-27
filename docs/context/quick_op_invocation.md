@@ -46,19 +46,39 @@
 
     如需本地运行项目算子，需额外安装此包，否则跳过本操作。
 
-    根据产品型号和环境架构，下载对应`cann-${soc_version}-opp_legacy-${cann_version}-linux-${arch}.run`包，下载链接如下：
+    根据产品型号和环境架构，下载对应`cann-${soc_name}-opp_legacy-${cann_version}-linux-${arch}.run`包，下载链接如下：
 
     - Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件：[legacy x86_64包](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/CANN/community/cann-910b-opp_legacy-8.3.RC1-linux-x86_64.run)、[legacy aarch64包](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/CANN/community/cann-910b-opp_legacy-8.3.RC1-linux-aarch64.run)。
     - Atlas A3 训练系列产品/Atlas A3 推理系列产品：[legacy x86_64包](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/CANN/community/cann-910_93-opp_legacy-8.3.RC1-linux-x86_64.run)、[legacy aarch64包](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/CANN/community/cann-910_93-opp_legacy-8.3.RC1-linux-aarch64.run)。
 
     ```bash
     # 确保安装包具有可执行权限
-    chmod +x cann-${soc_version}-opp_legacy-${cann_version}-linux-${arch}.run
+    chmod +x cann-${soc_name}-opp_legacy-${cann_version}-linux-${arch}.run
     # 安装命令
-    ./cann-${soc_version}-opp_legacy-${cann_version}-linux-${arch}.run --full --install-path=${install_path}
+    ./cann-${soc_name}-opp_legacy-${cann_version}-linux-${arch}.run --full --install-path=${install_path}
     ```
-    - \$\{soc\_version\}：表示NPU型号。
+    - \$\{soc\_name\}：表示NPU型号名称，即\$\{soc\_version\}删除“ascend”后剩余的内容。
+
     - \$\{install\_path\}：表示指定安装路径，需要与toolkit包安装在相同路径，默认安装在`/usr/local/Ascend`目录。
+
+3. **安装社区版CANN ops-math包（可选）**
+
+    如需本地运行项目算子，需额外安装此包，否则跳过本操作。
+
+    根据产品型号和环境架构，下载对应`cann-${soc_name}-ops-math_${cann_version}_linux-${arch}.run`包，下载链接如下：
+
+    - Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件：[ops-math x86_64包](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/CANN/community/cann-910b-ops-math_8.3.RC1_linux-x86_64.run)、[ops-math aarch64包](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/CANN/community/cann-910b-ops-math_8.3.RC1_linux-aarch64.run)。
+    - Atlas A3 训练系列产品/Atlas A3 推理系列产品：[ops-math x86_64包](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/CANN/community/cann-910_93-ops-math_8.3.RC1_linux-x86_64.run)、[ops-math aarch64包](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/CANN/community/cann-910_93-ops-math_8.3.RC1_linux-aarch64.run)。
+
+    ```bash
+    # 确保安装包具有可执行权限
+    chmod +x cann-${soc_name}-ops-math_${cann_version}_linux-${arch}.run
+    # 安装命令
+    ./cann-${soc_name}-ops-math_${cann_version}_linux-${arch}.run --full --install-path=${install_path}
+    ```
+
+    - \$\{soc\_name\}：表示NPU型号名称，即${soc_version}删除“ascend”后剩余的内容。
+    - ${install_path}：表示指定安装路径，需要与toolkit包安装在相同路径，默认安装在`/usr/local/Ascend`目录。
 
 3. **配置环境变量**
 	
@@ -68,7 +88,7 @@
    # 默认路径安装，以root用户为例（非root用户，将/usr/local替换为${HOME}）
    source /usr/local/Ascend/set_env.sh
    # 指定路径安装
-   # source ${install_path}/set_env.sh
+   source ${install_path}/set_env.sh
     ```
 
 4. **下载源码**

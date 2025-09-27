@@ -64,4 +64,4 @@
     ```
    其中Task Duration是当前算子Kernel耗时，Block Dim是当前算子执行核数。
 
-   算子各项流水详细指标可关注`OPPROF_*`下`ArithmeticUtilization`文件，包含了当前各项流水的占比，具体介绍参见[msProf](https://www.hiascend.com/document/redirect/CannCommunityToolMsprof)中”性能数据文件 > msprof op > ArithmeticUtilization（cube及vector类型指令耗时和占比）“章节。
+   算子各项流水详细指标可关注`OPPROF_*`下`ArithmeticUtilization`文件，包含了当前各项流水的占比，具体介绍参见[msProf](https://www.hiascend.com/document/redirect/CannCommunityToolMsprof)中“性能数据文件 > msprof op > ArithmeticUtilization（cube及vector类型指令耗时和占比）”章节。
