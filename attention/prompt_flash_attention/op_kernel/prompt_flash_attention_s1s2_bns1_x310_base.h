@@ -952,8 +952,8 @@ __aicore__ inline void PromptFlashAttentionS1s2Bns1X310Base<PFAT>::CopyND2NZOnTh
     int32_t calcWidth = width / BLOCK_CUBE; // cube block numbers that do not need to be pad zero
     int32_t calcHeightAlign = (height + BLOCK_CUBE - 1) / BLOCK_CUBE;
     if (height % BLOCK_CUBE != 0) {
-        int64_t repeat = calcWidth * calcHeightAlign;
-        create_cbuf_matrix((__cbuf__ void*)dst.GetPhyAddr(), repeat, 0);
+        int32_t repeat = calcWidth * calcHeightAlign;
+        Duplicate<mmOutputType>(dst, static_cast<mmOutputType>(0), repeat);
         PipeBarrier<PIPE_MTE2>();
     }
     // gCol unaligned ,can not use dma copy repeat stride

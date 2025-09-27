@@ -302,7 +302,7 @@ public:
             SET_FLAG(S, V, EVENT_ID0);
             WAIT_FLAG(S, V, EVENT_ID0);
             PIPE_BARRIER(V);
-            vector_dup((__ubuf__ float *)dst_tensor.GetPhyAddr() + rowIdx * BLOCK_SIZE_T, scale, 1, 1, 1, 8, 8);
+            Duplicate<float>(dst_tensor[owIdx * BLOCK_SIZE_T], scale, MASK_PLACEHOLDER, 1, 1, 8);
         }
         PIPE_BARRIER(V);
     }

@@ -33,8 +33,8 @@ __aicore__ inline void  CopyND2NZOnTheFly(
     int32_t calcHeightAlign = (height + BLOCK_CUBE - 1) / BLOCK_CUBE;
     constexpr uint32_t UB_ALIGN_NZ = 32U;
     if (height % BLOCK_CUBE != 0) {
-        int64_t repeat = calcWidth * calcHeightAlign;
-        create_cbuf_matrix((__cbuf__ void*)dst.GetPhyAddr(), repeat, 0);
+        int32_t repeat = calcWidth * calcHeightAlign;
+        Duplicate<Q_T>(dst, static_cast<Q_T>(0), repeat);
         PipeBarrier<PIPE_MTE2>();
     }
     int src_gap = gCol * sizeof(Q_T) / UB_ALIGN_NZ - 1;

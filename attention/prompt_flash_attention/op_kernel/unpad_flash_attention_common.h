@@ -25,6 +25,7 @@
 #include "common_func.h"
 #include "simd.h"
 #include "mma.h"
+using namespace AscendC;
 
 #ifdef __CCE_KT_TEST__
 #define __aicore__
@@ -269,7 +270,7 @@ public:
             SET_FLAG(S, V, EVENT_ID0);
             WAIT_FLAG(S, V, EVENT_ID0);
             PIPE_BARRIER(V);
-            vector_dup((__ubuf__ float *)dst_tensor.GetPhyAddr() + rowIdx * 16, scale, 1, 1, 1, 8, 8);
+            Duplicate<float>(dst_tensor[rowIdx * 16], scale, MASK_PLACEHOLDER, 1, 1, 8);
         }
         PIPE_BARRIER(V);
     }
