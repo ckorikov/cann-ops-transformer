@@ -351,7 +351,6 @@ protected:
     {
         KernelTiling(tilingData->mm1TilingData.baseM, tilingData->mm1TilingData.baseN, n1, true);
         SplitMM1();
-
         SetFlag<HardEvent::MTE3_S>(EVENT_ID7);
         WaitFlag<HardEvent::MTE3_S>(EVENT_ID7);
         SyncAll<true>();

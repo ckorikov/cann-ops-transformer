@@ -217,8 +217,8 @@ private:
             SetFlag<HardEvent::V_S>(EVENT_ID0);
             WaitFlag<HardEvent::V_S>(EVENT_ID0);
             float factor = sum.GetValue(idx);
-            SetFlag<HardEvent::S_V>(EVENT_ID0);
 
+            SetFlag<HardEvent::S_V>(EVENT_ID0);
             WaitFlag<HardEvent::S_V>(EVENT_ID0);
             PipeBarrier<PIPE_V>();
             Duplicate(sqx[idx * SEQ_LENGTH], factor, 64, 4, 1, 8);   // transpose for 64, 4, 8

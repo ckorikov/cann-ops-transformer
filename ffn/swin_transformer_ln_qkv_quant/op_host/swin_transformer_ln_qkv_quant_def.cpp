@@ -90,7 +90,7 @@ public:
             .UnknownShapeFormat(xFormat);
         this->Attr("head_num").Int();
         this->Attr("seq_length").Int();
-        this->Attr("epsilon").Float(0.000001); // epsilon default 0.000001
+        this->Attr("epsilon").Float(0.000001f); // epsilon default 0.000001
         this->Attr("ori_height").Int();
         this->Attr("ori_weight").Int();
         this->Attr("h_win_size").Int();

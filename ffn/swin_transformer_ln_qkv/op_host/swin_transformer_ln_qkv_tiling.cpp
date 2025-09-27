@@ -111,6 +111,7 @@ ge::graphStatus SwinTransformerLnQKVTilingCompute::SwinTransformerLnQKVSetMatmul
     tiling.SetTraverse(MatrixTraverse::FIRSTN);
     int ret = tiling.GetTiling(mmtilingData);    // if ret = -1, gen tiling failed
     if (ret == -1) {
+        OP_LOGW(context, "SwinTransformerLnQKV get tiling fail.");
         return ge::GRAPH_FAILED;
     }
     return ge::GRAPH_SUCCESS;

@@ -124,7 +124,7 @@ ge::graphStatus SAFFNTilingComp::SAFFNTilingTPROLL(const gert::TilingContext* co
 
     tpBlockSize = TRANSPOSE_BLOCK_SIZE;
     tpSpaceW = TRANSPOSE_SPACE_WIDTH;
-    tpSpaceCnt = tpSpaceH = sqrt((batchSize * m * k) / (tpSpaceW * tpBlockSize));
+    tpSpaceCnt = tpSpaceH = static_cast<uint32_t>(sqrt((batchSize * m * k) / (tpSpaceW * tpBlockSize)));
     blockInSpace = tpSpaceH * tpSpaceW;
     tpSpaceSize = blockInSpace * tpBlockSize;
     tpSpaceWTransposed = tpSpaceH;
