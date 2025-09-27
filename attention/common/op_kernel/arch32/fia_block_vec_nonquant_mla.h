@@ -204,7 +204,7 @@ private:
     // attention mask
     uint32_t attenMaskSizeAlign = 0U;
 
-    const FusedInferAttentionScoreTilingData *__restrict tilingData;
+    const FusedInferAttentionScoreTilingData *__restrict tilingData = nullptr;
 };
 
 template <typename FIAT> __aicore__ inline void FiaBlockVecNonQuantMla<FIAT>::InitBuffers(TPipe *pipe)

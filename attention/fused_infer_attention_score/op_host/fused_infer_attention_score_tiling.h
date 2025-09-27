@@ -18,12 +18,8 @@
 #include "../../prompt_flash_attention/op_host/prompt_flash_attention_tiling.h"
 #include "../../incre_flash_attention/op_host/incre_flash_attention_tiling_impl.h"
 #include "register/tilingdata_base.h"
-
-#include "fused_infer_attention_score_tiling_attr_index.h"
 #include "fused_infer_attention_score_tiling_compile_info.h"
-#include "fused_infer_attention_score_tiling_const.h"
-#include "fused_infer_attention_score_tiling_input_index.h"
-#include "fused_infer_attention_score_tiling_output_index.h"
+#include "fused_infer_attention_score_tiling_index.h"
 #include "../regbase/ophost/fused_infer_attention_score_tiling_v2.h"
 
 #ifdef ASCENDC_OP_TEST

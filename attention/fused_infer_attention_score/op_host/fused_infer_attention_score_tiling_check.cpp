@@ -26,11 +26,8 @@
 #include "register/op_def_registry.h"
 #include "fused_infer_attention_score_tiling_v3.h"
 #include "fused_infer_attention_score_tiling_check.h"
-
-#include "fused_infer_attention_score_tiling_attr_index.h"
 #include "fused_infer_attention_score_tiling_compile_info.h"
-#include "fused_infer_attention_score_tiling_input_index.h"
-#include "fused_infer_attention_score_tiling_output_index.h"
+#include "fused_infer_attention_score_tiling_index.h"
 #include "../../incre_flash_attention/op_host/incre_flash_attention_tiling_base.h"
 
 using std::map;

@@ -9,12 +9,12 @@
  */
 
 /*!
- * \file fused_infer_attention_score_tiling_input_index.h
+ * \file fused_infer_attention_score_tiling_index.h
  * \brief
  */
 
-#ifndef FUSED_INFER_ATTENTION_SCORE_TILING_INPUT_INDEX_H
-#define FUSED_INFER_ATTENTION_SCORE_TILING_INPUT_INDEX_H
+#ifndef FUSED_INFER_ATTENTION_SCORE_TILING_INDEX_H
+#define FUSED_INFER_ATTENTION_SCORE_TILING_INDEX_H
 #include "../../prompt_flash_attention/op_host/prompt_flash_attention_tiling.h"
 #include "../../incre_flash_attention/op_host/incre_flash_attention_tiling.h"
 #include "register/tilingdata_base.h"
@@ -52,6 +52,27 @@ constexpr uint32_t DEQUANT_SCALE_QUERY_INDEX = 27;
 constexpr uint32_t LEARNABLE_SINK_INDEX = 28;
 constexpr uint32_t Q_START_IDX_INDEX = 29;
 constexpr uint32_t KV_START_IDX_INDEX = 30;
+
+// Attributes Index
+constexpr uint32_t ATTR_N_INDEX = 0;
+constexpr uint32_t ATTR_SCALE_INDEX = 1;
+constexpr uint32_t ATTR_PRE_TOKEN_INDEX = 2;
+constexpr uint32_t ATTR_NEXT_TOKEN_INDEX = 3;
+constexpr uint32_t ATTR_INPUT_LAYOUT_INDEX = 4;
+constexpr uint32_t ATTR_NUM_KV_HEADS_INDEX = 5;
+constexpr uint32_t ATTR_SPARSE_MODE_INDEX = 6;
+constexpr uint32_t ATTR_INNER_PRECISE_INDEX = 7;
+constexpr uint32_t ATTR_BLOCK_SIZE_INDEX = 8;
+constexpr uint32_t ANTIQUANT_MODE_INDEX = 9;
+constexpr uint32_t SOFTMAX_LSE_FLAG_INDEX = 10;
+constexpr uint32_t KEY_ANTIQUANT_MODE_INDEX = 11;
+constexpr uint32_t VALUE_ANTIQUANT_MODE_INDEX = 12;
+constexpr uint32_t QUERY_QUANT_MODE_INDEX = 13;
+constexpr uint32_t PSE_TYPE_INDEX = 14;
+
+// Output Index
+constexpr uint32_t ATTENTION_OUT_INDEX = 0;
+constexpr uint32_t SOFTMAX_LSE_INDEX = 1;
 } // namespace optiling
 
-#endif // FUSED_INFER_ATTENTION_SCORE_TILING_INPUT_INDEX_H
+#endif // FUSED_INFER_ATTENTION_SCORE_TILING_INDEX_H

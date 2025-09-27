@@ -21,9 +21,7 @@
 #include "log/log.h"
 #include "log/error_code.h"
 #include "err/ops_err.h"
-#include "fused_infer_attention_score_tiling_attr_index.h"
-#include "fused_infer_attention_score_tiling_input_index.h"
-#include "fused_infer_attention_score_tiling_output_index.h"
+#include "fused_infer_attention_score_tiling_index.h"
 #include "fused_infer_attention_score_tiling_info_parser.h"
 
 

@@ -22,50 +22,50 @@ namespace optiling {
 constexpr uint32_t MAX_SPLIT_RATIO = 2;
 
 struct BaseInfo {
-    uint32_t bSize;
-    uint32_t n2Size;
-    uint32_t gSize;
-    uint32_t s1Size = 0;
-    uint32_t s2Size = 0;
+    uint32_t bSize = 0U;
+    uint32_t n2Size = 0U;
+    uint32_t gSize = 0U;
+    uint32_t s1Size = 0U;
+    uint32_t s2Size = 0U;
     bool isAccumSeqS1 = false;
     bool isAccumSeqS2 = false;
     bool slidingFlag = false;
     const int64_t *actualSeqS1Size = nullptr;
     const int64_t *actualSeqS2Size = nullptr;
-    uint32_t actualLenQDims = 0;
-    uint32_t actualLenKvDims = 0;
+    uint32_t actualLenQDims = 0U;
+    uint32_t actualLenKvDims = 0U;
     int64_t preToken = 0;
     int64_t nextToken = 0;
 };
 
 struct InnerSplitParams {
-    uint32_t s1GBaseSize = 1;
-    uint32_t s2BaseSize = 1;
+    uint32_t s1GBaseSize = 1U;
+    uint32_t s2BaseSize = 1U;
 };
 
 struct OuterSplitParams {
-    uint32_t *bN2End;
-    uint32_t *gS1End;
-    uint32_t *s2End;
+    uint32_t *bN2End = nullptr;
+    uint32_t *gS1End = nullptr;
+    uint32_t *s2End = nullptr;
 };
 
 struct FlashDecodeParams {
-    uint32_t *bN2IdxOfFdHead;
-    uint32_t *gS1IdxOfFdHead;
-    uint32_t *s2SplitNumOfFdHead;
-    uint32_t *s2SplitStartIdxOfCore;
-    uint32_t gS1BaseSizeOfFd;
-    uint32_t *gS1SplitNumOfFdHead;
-    uint32_t *gS1LastPartSizeOfFdHead;
-    uint32_t *gS1IdxEndOfFdHead;
-    uint32_t *gS1IdxEndOfFdHeadSplit;
+    uint32_t *bN2IdxOfFdHead = nullptr;
+    uint32_t *gS1IdxOfFdHead = nullptr;
+    uint32_t *s2SplitNumOfFdHead = nullptr;
+    uint32_t *s2SplitStartIdxOfCore = nullptr;
+    uint32_t gS1BaseSizeOfFd = 0U;
+    uint32_t *gS1SplitNumOfFdHead = nullptr;
+    uint32_t *gS1LastPartSizeOfFdHead = nullptr;
+    uint32_t *gS1IdxEndOfFdHead = nullptr;
+    uint32_t *gS1IdxEndOfFdHeadSplit = nullptr;
 };
 
 struct SplitCoreRes {
-    uint32_t numOfFdHead;
-    uint32_t maxS2SplitNum;
-    uint32_t usedCoreNum;
-    uint32_t usedVecNumOfFd;
+    uint32_t numOfFdHead = 0U;
+    uint32_t maxS2SplitNum = 0U;
+    uint32_t usedCoreNum = 0U;
+    uint32_t usedVecNumOfFd = 0U;
 };
 
 struct SplitBatchInfo {
@@ -79,10 +79,10 @@ struct SplitBatchInfo {
     std::vector<uint32_t> batchLastBlockCost;   // batch最后一块的开销
     std::vector<uint32_t> s1GLastBlockCost;     // M轴不满、S2轴满的块的开销
     std::vector<uint32_t> s2LastBlockCost;      // M轴满、S2轴不满的块的开销
-    uint32_t totalBlockNum = 0;
-    uint32_t totalCost = 0;
-    uint32_t normalBlockCost = 0;
-    uint32_t lastValidBIdx = 0;
+    uint32_t totalBlockNum = 0U;
+    uint32_t totalCost = 0U;
+    uint32_t normalBlockCost = 0U;
+    uint32_t lastValidBIdx = 0U;
 
     SplitBatchInfo(uint32_t batchSize) 
     :   s1GBaseNum(batchSize),
@@ -99,18 +99,18 @@ struct SplitBatchInfo {
 };
 
 struct AssignInfo {
-    uint32_t curCoreIdx = 0;
-    uint32_t curCostOnCore = 0;
-    uint32_t curBlockOnCore = 0;
-    uint32_t costLimit = 0;
-    uint32_t unassignedCost = 0;
-    uint32_t bIdx = 0;
-    uint32_t s1GIdx = 0;
-    uint32_t s2Idx = 0;
-    uint32_t batchLeftCost = 0;
-    uint32_t s1GLeftCost = 0;
-    uint32_t batchLeftBlock = 0;
-    uint32_t s1GLeftBlock = 0;
+    uint32_t curCoreIdx = 0U;
+    uint32_t curCostOnCore = 0U;
+    uint32_t curBlockOnCore = 0U;
+    uint32_t costLimit = 0U;
+    uint32_t unassignedCost = 0U;
+    uint32_t bIdx = 0U;
+    uint32_t s1GIdx = 0U;
+    uint32_t s2Idx = 0U;
+    uint32_t batchLeftCost = 0U;
+    uint32_t s1GLeftCost = 0U;
+    uint32_t batchLeftBlock = 0U;
+    uint32_t s1GLeftBlock = 0U;
 };
 
 enum  BlockType {
@@ -214,8 +214,8 @@ void CaclCostTable(BlockCost &typeCost, uint32_t s1NomralSize, uint32_t s2Normal
 
 void CaclAllCost(const BlockCost &typeCost, SplitBatchInfo &splitBatchInfo, uint32_t bIdx)
 {
-    BlockType s1Type;
-    BlockType s2Type;
+    BlockType s1Type = NORMAL_BLOCK;
+    BlockType s2Type = NORMAL_BLOCK;
     splitBatchInfo.batchTotalCost[bIdx] = 0;
     uint32_t tailS1GNum = splitBatchInfo.s1GTailSize[bIdx] != 0 ? 1 : 0;
     uint32_t tailS2Num = splitBatchInfo.s2TailSize[bIdx] != 0 ? 1 : 0;
@@ -279,8 +279,8 @@ bool IsSpaceEnough(uint32_t spaceLimit, uint32_t spaceOccupied, uint32_t spaceTo
 void RecordFDInfo(const BaseInfo &baseInfo, const InnerSplitParams &innerSplitParams, const SplitBatchInfo &splitBatchInfo, 
                 const OuterSplitParams &outerSplitParams, FlashDecodeParams &fDParams, SplitCoreRes &res, uint32_t curCoreIdx, uint32_t currKvSplitPart)
 {
-    uint32_t s1Size;
-    uint32_t s2Size;
+    uint32_t s1Size = 0U;
+    uint32_t s2Size = 0U;
     uint32_t splitBIdx = static_cast<uint32_t>(outerSplitParams.bN2End[curCoreIdx-1U]);
     uint32_t splitS1GIdx = static_cast<uint32_t>(outerSplitParams.gS1End[curCoreIdx-1U]);
     GetSqeSize(baseInfo, s1Size, s2Size, splitBIdx);
@@ -441,8 +441,8 @@ void CalSplitBatchInfo(const BaseInfo &baseInfo, const InnerSplitParams &innerSp
             splitBatchInfo.lastValidBIdx = bIdx;
         }
     }
-    
-    bool isNeedCostBase = splitBatchInfo.totalBlockNum > coreNum;  // 当前基本块数少于等于核数时，分配结果为为一核一块，所以无需计算基本块开销，默认为1
+
+    bool isNeedCostBase = (splitBatchInfo.totalBlockNum > coreNum); // 当前基本块数少于等于核数时，分配结果为为一核一块，所以无需计算基本块开销，默认为1
 
     if (isNeedCostBase) {
         // 计算总基本块数
@@ -557,7 +557,7 @@ void SplitCore(const BaseInfo &baseInfo, const InnerSplitParams &innerSplitParam
     SplitBatchInfo splitBatchInfo(baseInfo.bSize);
     CalSplitBatchInfo(baseInfo, innerSplitParams, splitBatchInfo, coreNum);
 
-    // 2、获取每个核的分配方案    
+    // 2、获取每个核的分配方案
     uint32_t coreUse = 0;
     uint32_t maxCost = 0;
     std::vector<uint32_t> blockNumOnCore(coreNum);
@@ -592,8 +592,8 @@ void SplitCoreOfBand(const BaseInfo &baseInfo, const InnerSplitParams &innerSpli
     // 计算总基本块数
     SplitBatchInfo splitBatchInfo(baseInfo.bSize);
     uint32_t totalBaseNum = 0;
-    uint32_t s1Size;
-    uint32_t s2Size;
+    uint32_t s1Size = 0U;
+    uint32_t s2Size = 0U;
     bool seqZeroFlag = true;
     for (uint32_t bIdx = 0; bIdx < baseInfo.bSize; bIdx++) {
         GetSqeSize(baseInfo, s1Size, s2Size, bIdx);

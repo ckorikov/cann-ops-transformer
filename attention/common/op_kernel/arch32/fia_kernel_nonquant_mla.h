@@ -50,11 +50,6 @@ public:
                                      __gm__ uint8_t *valueAntiquantScale, __gm__ uint8_t *valueAntiquantOffset,
                                      __gm__ uint8_t *keyRopeAntiquantScale, __gm__ uint8_t *workspace);
 
-    __aicore__ inline void InitAntiquant(__gm__ uint8_t *antiquantScale, __gm__ uint8_t *antiquantOffset,
-                                         __gm__ uint8_t *keyAntiquantScale, __gm__ uint8_t *keyAntiquantOffset,
-                                         __gm__ uint8_t *valueAntiquantScale, __gm__ uint8_t *valueAntiquantOffset,
-                                         __gm__ uint8_t *keyRopeAntiquantScale);
-
     __aicore__ inline void Process();
 
     // =================================类型定义区=================================
@@ -114,13 +109,11 @@ protected:
         uint32_t n2Idx = 0U;
         uint64_t s2BasicSizeTail = 0U; // S2方向循环的尾基本块大小
         uint32_t s2LoopTimes = 0U; // S2方向循环的总次数，无论TND还是BXXD都是等于实际次数，不用减1
-        // uint32_t bn2LoopTimes = 0U; // Bn2X的总循环次数
         uint64_t curActualSeqLen = 0ULL;
         bool curActSeqLenIsZero = false;
-        // TND
-        uint64_t actS1Size = 1ULL; // TND场景下当前Batch循环处理的S1轴的大小，非TND场景下不要用这个字段
-        uint32_t tndCoreStartKVSplitPos;
-        bool tndIsS2SplitCore;
+        uint64_t actS1Size = 1ULL;
+        uint32_t tndCoreStartKVSplitPos = 0U;
+        bool tndIsS2SplitCore = false;
 
         uint32_t gS1Idx = 0U;
         uint64_t mBasicSizeTail = 0U; // gS1方向循环的尾基本块大小
@@ -131,12 +124,8 @@ protected:
     const FusedInferAttentionScoreTilingData *__restrict tilingData = nullptr;
     TPipe *pipe = nullptr;
 
-    bool antiqOffsetExistFlag = false;
-
     // for workspace pingpong
     const uint32_t dbWorkspaceRatio = PRELOAD_NUM;
-
-    uint64_t s2BatchBaseOffset = 0;
 
     // offset
     uint64_t tensorACoreOffset = 0ULL;
@@ -157,18 +146,6 @@ protected:
 
     GlobalTensor<OUT_T> attentionOutGm;
     GlobalTensor<int32_t> blockTableGm;
-
-    // antiquant
-    GlobalTensor<ANTIQ_PARAMS_T> keyAntiqOffsetGm;
-    GlobalTensor<ANTIQ_PARAMS_T> keyAntiqScaleGm;
-    GlobalTensor<ANTIQ_PARAMS_T> keyRopeAntiquantScaleGm;
-
-    GlobalTensor<ANTIQ_PARAMS_T> valueAntiqOffsetGm;
-    GlobalTensor<ANTIQ_PARAMS_T> valueAntiqScaleGm;
-
-    // quant
-    GlobalTensor<T> deqScale1Gm;
-    T deqScale2Val;
 
     __gm__ uint8_t *keyPtr = nullptr;
     __gm__ uint8_t *valuePtr = nullptr;
@@ -369,7 +346,7 @@ __aicore__ inline void FiaKernelNonQuantMla<FIAT>::InitOutputSingleCore()
 
 template <typename FIAT>
 __aicore__ inline int64_t FiaKernelNonQuantMla<FIAT>::ClipSInnerToken(int64_t sInnerToken,
-                                                                                         int64_t minValue, int64_t maxValue)
+                                                                    int64_t minValue, int64_t maxValue)
 {
     sInnerToken = sInnerToken > minValue ? sInnerToken : minValue;
     sInnerToken = sInnerToken < maxValue ? sInnerToken : maxValue;
@@ -563,8 +540,6 @@ __aicore__ inline void FiaKernelNonQuantMla<FIAT>::Init(
     }
 
     // workspace 内存排布
-    // |Q--|mm1ResGm(存S)|vec1ResGm(存A1,A2)|mm2ResGm(存O)|vec2ResGm
-    // |Core0_Q1-Core0_Q2-Core1_Q1-Core1_Q2....Core32_Q1-Core32_Q2|Core0_mmRes
     uint64_t offset = 0;
 
     mm1ResGm.SetGlobalBuffer(
@@ -608,14 +583,8 @@ __aicore__ inline void FiaKernelNonQuantMla<FIAT>::Init(
 
     if ASCEND_IS_AIC {
         matmulService.InitParams(constInfo);
-        if constexpr (ANTIQUANT) {
-            matmulService.InitMm1GlobalTensor(queryPreProcessResGm, keyGm, kRopeGm, mm1ResGm);
-            matmulService.InitMm2GlobalTensor(vec1ResGm, valueGm, mm2ResGm, attentionOutGm);
-        } else {
-            matmulService.InitMm1GlobalTensor(queryGm, qRopeGm, keyGm, kRopeGm, mm1ResGm);
-            matmulService.InitMm2GlobalTensor(vec1ResGm, valueGm, mm2ResGm, attentionOutGm);
-        }
-
+        matmulService.InitMm1GlobalTensor(queryGm, qRopeGm, keyGm, kRopeGm, mm1ResGm);
+        matmulService.InitMm2GlobalTensor(vec1ResGm, valueGm, mm2ResGm, attentionOutGm);
         matmulService.InitPageAttentionInfo(blockTableGm, constInfo.kvCacheBlockSize, constInfo.maxBlockNumPerBatch);
     }
     // 要在InitParams之后执行
@@ -648,40 +617,13 @@ __aicore__ inline void FiaKernelNonQuantMla<FIAT>::InitQuant(
     __gm__ uint8_t *keyAntiquantScale, __gm__ uint8_t *keyAntiquantOffset, __gm__ uint8_t *valueAntiquantScale,
     __gm__ uint8_t *valueAntiquantOffset, __gm__ uint8_t *keyRopeAntiquantScale, __gm__ uint8_t *workspace)
 {
-    if constexpr (ANTIQUANT) {
-        InitAntiquant(antiquantScale, antiquantOffset, keyAntiquantScale, keyAntiquantOffset, valueAntiquantScale,
-                      valueAntiquantOffset, keyRopeAntiquantScale);
-    }
-    if constexpr (QUANT) {
-        deqScale1Gm.SetGlobalBuffer((__gm__ T *)deqScale1);
-        deqScale2Val = *(__gm__ T *)deqScale2;
-    }
-}
-
-template <typename FIAT>
-__aicore__ inline void FiaKernelNonQuantMla<FIAT>::InitAntiquant(
-    __gm__ uint8_t *antiquantScale, __gm__ uint8_t *antiquantOffset, __gm__ uint8_t *keyAntiquantScale,
-    __gm__ uint8_t *keyAntiquantOffset, __gm__ uint8_t *valueAntiquantScale, __gm__ uint8_t *valueAntiquantOffset,
-    __gm__ uint8_t *keyRopeAntiquantScale)
-{
-    if ASCEND_IS_AIC {
-        return;
-    }
-    keyRopeAntiquantScaleGm.SetGlobalBuffer((__gm__ ANTIQ_PARAMS_T *)keyRopeAntiquantScale);
-    keyAntiqScaleGm.SetGlobalBuffer((__gm__ ANTIQ_PARAMS_T *)keyAntiquantScale);
-    valueAntiqScaleGm.SetGlobalBuffer((__gm__ ANTIQ_PARAMS_T *)valueAntiquantScale);
-    antiqOffsetExistFlag = (keyAntiquantOffset != nullptr);
-    if (antiqOffsetExistFlag) {
-        keyAntiqOffsetGm.SetGlobalBuffer((__gm__ ANTIQ_PARAMS_T *)keyAntiquantOffset);
-        valueAntiqOffsetGm.SetGlobalBuffer((__gm__ ANTIQ_PARAMS_T *)valueAntiquantOffset);
-    }
 }
 
 template <typename FIAT> __aicore__ inline void FiaKernelNonQuantMla<FIAT>::InitCalcParamsEach()
 {
-    // 这里是编译器优化写法，定义一个局部数组变量coreSidxEnd(存在栈上)，使用copy_data_align64接口
-    // 可以只从ub中拷贝tiling中coreSidxEnd的内容到栈上，而非将整个increFlashAttentionCoreParams
-    // 内容拷贝到栈，减少拷贝时间。
+    // 这里是编译器优化写法
+    // 定义一个局部数组变量coreSidxEnd(存在栈上)，使用copy_data_align64接口拷贝tiling中数组的内容到栈上
+    // 其他非数组的tiling成员在不使用时不需要做Tiling拷贝，从而优化Tiling拷贝耗时
 #ifdef ASCENDC_CPU_DEBUG
     const uint32_t *bN2End = tilingData->outerSplitParams.bN2End;
     const uint32_t *gS1End = tilingData->outerSplitParams.gS1End;
@@ -812,7 +754,7 @@ __aicore__ inline void FiaKernelNonQuantMla<FIAT>::CalcParams(uint32_t loop, uin
     attenMaskCoreOffset = info.bIdx * constInfo.attenMaskSize;
     info.attenMaskOffset = attenMaskCoreOffset + sInnerOffsetDataSize;
 
-    info.s2BatchOffset = s2BatchBaseOffset + sInnerOffsetDataSize;
+    info.s2BatchOffset = sInnerOffsetDataSize;
 }
 
 template <typename FIAT>

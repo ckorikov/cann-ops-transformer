@@ -296,6 +296,8 @@ static bool CheckKVPaddingCrossover(gert::TilingContext* context, ContextParamsF
 }
 
 static ge::graphStatus ConvertContextToParamsPFA(gert::TilingContext* context, ContextParamsForPFATiling& contextKeyParams) {
+    constexpr uint32_t FROM_FUSED_FLAG = 71;
+
     contextKeyParams.opName = context->GetNodeName();
 
     contextKeyParams.isKvContinuous = 1;
@@ -743,6 +745,10 @@ ge::graphStatus TilingFusedInferAttentionScoreV2(gert::TilingContext* context) {
         return TilingIncreFlashAttentionAdapter(context, ifaContext, ifaTilingData);
     } else {
         // PFA tiling process
+        constexpr uint64_t BENCHMARK_TILING_KEY = 1000000000000000000;
+        constexpr int64_t D_ALIGN_32 = 32;
+        constexpr int64_t D_ALIGN_16 = 16;
+
         PromptFlashAttentionTilingData pfaTilingData;
         PromptFlashAttentionTiling pfa_tiling(nullptr);
         ContextParamsForPFATiling contextParamsForPFATiling;

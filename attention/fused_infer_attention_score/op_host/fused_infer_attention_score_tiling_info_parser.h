@@ -82,8 +82,8 @@ public:
 public:
     const gert::TilingContext *context_ = nullptr;
 
-    const char *opName_;
-    fe::PlatFormInfos *platformInfo_;
+    const char *opName_ = nullptr;
+    fe::PlatFormInfos *platformInfo_ = nullptr;
     FIAParaInfo opParamInfo_;
 
     // BaseParams

@@ -530,6 +530,8 @@ static ge::graphStatus CheckParamsPFA(gert::TilingContext &context, ContextParam
 static ge::graphStatus ConvertContextToParamsPFA(gert::TilingContext &context,
     ContextParamsForPFATiling &contextKeyParams)
 {
+    constexpr uint32_t FROM_FUSED_FLAG = 71;
+
     contextKeyParams.opName = context.GetNodeName();
     bool inputOutputIsNullPtr =
         (context.GetInputDesc(QUERY_INDEX) == nullptr) || (context.GetInputDesc(KEY_INDEX) == nullptr) ||
@@ -796,6 +798,10 @@ static ge::graphStatus SetPlatformInfo(gert::TilingContext &context, PromptFlash
 static ge::graphStatus TilingProcess4PFA(gert::TilingContext *context, const uint32_t tempD, const int64_t b,
     const int64_t s, const int64_t n)
 {
+    constexpr uint64_t BENCHMARK_TILING_KEY = 1000000000000000000;
+    constexpr int64_t D_ALIGN_32 = 32;
+    constexpr int64_t D_ALIGN_16 = 16;
+
     PromptFlashAttentionTilingData pfaTilingData;
     PromptFlashAttentionTiling pfa_tiling(nullptr);
     ContextParamsForPFATiling contextParamsForPFATiling;
