@@ -1322,6 +1322,8 @@ void FlashAttentionScoreConstTiling::SetSparseParamsRegbase(int64_t maxCoreNum)
     if (!splitS2) {
         OP_LOGI(context_, "[%s]match not split S2 template, close sparse feature", templateName);
         inputParamsRegbase_->set_sparseType(static_cast<uint8_t>(SparseEnum::ALL));
+        inputParamsRegbase_->set_qStartIdx(0);
+        inputParamsRegbase_->set_kvStartIdx(0);
         return;
     }
 
@@ -1909,28 +1911,31 @@ void FlashAttentionScoreConstTiling::SetOutputDtype() {
 void FlashAttentionScoreConstTiling::SetQKVStartIdx() {
     inputParamsRegbase_->set_qStartIdx(0);
     inputParamsRegbase_->set_kvStartIdx(0);
-    auto qStartIdxTensor = context_->GetOptionalInputTensor(Q_START_IDX_INPUT_INDEX);
-    if (qStartIdxTensor != nullptr) {
-        auto &qStartIdxShape = qStartIdxTensor->GetShape().GetStorageShape();
-        if (qStartIdxShape.GetDimNum() == 1) {
-            const int64_t *value = qStartIdxTensor->GetData<int64_t>();
-            if (value != nullptr) {
-                qStartIdx = value[0];
-                inputParamsRegbase_->set_qStartIdx(qStartIdx);
-                OP_LOGD(context_, "[%s] SetQKVStartIdx qStartIdx:%ld", templateName, qStartIdx);
+    if (inputParamsRegbase_->get_layoutType() == static_cast<uint8_t>(LayoutType::LAYOUT_TND) &&
+        inputParamsRegbase_->get_sparseType() == static_cast<uint8_t>(SparseEnum::BAND_LEFT_UP_CAUSAL)) {
+        auto qStartIdxTensor = context_->GetOptionalInputTensor(Q_START_IDX_INPUT_INDEX);
+        if (qStartIdxTensor != nullptr) {
+            auto &qStartIdxShape = qStartIdxTensor->GetShape().GetStorageShape();
+            if (qStartIdxShape.GetDimNum() == 1) {
+                const int64_t *value = qStartIdxTensor->GetData<int64_t>();
+                if (value != nullptr) {
+                    qStartIdx = value[0];
+                    inputParamsRegbase_->set_qStartIdx(qStartIdx);
+                    OP_LOGD(context_, "[%s] SetQKVStartIdx qStartIdx:%ld", templateName, qStartIdx);
+                }
             }
         }
-    }
 
-    auto kvStartIdxTensor = context_->GetOptionalInputTensor(KV_START_IDX_INPUT_INDEX);
-    if (kvStartIdxTensor != nullptr) {
-        auto &kvStartIdxShape = kvStartIdxTensor->GetShape().GetStorageShape();
-        if (kvStartIdxShape.GetDimNum() == 1) {
-            const int64_t *kvValue = kvStartIdxTensor->GetData<int64_t>();
-            if (kvValue != nullptr) {
-                kvStartIdx = kvValue[0];
-                inputParamsRegbase_->set_kvStartIdx(kvStartIdx);
-                OP_LOGD(context_, "[%s] SetQKVStartIdx kvStartIdx:%ld", templateName, kvStartIdx);
+        auto kvStartIdxTensor = context_->GetOptionalInputTensor(KV_START_IDX_INPUT_INDEX);
+        if (kvStartIdxTensor != nullptr) {
+            auto &kvStartIdxShape = kvStartIdxTensor->GetShape().GetStorageShape();
+            if (kvStartIdxShape.GetDimNum() == 1) {
+                const int64_t *kvValue = kvStartIdxTensor->GetData<int64_t>();
+                if (kvValue != nullptr) {
+                    kvStartIdx = kvValue[0];
+                    inputParamsRegbase_->set_kvStartIdx(kvStartIdx);
+                    OP_LOGD(context_, "[%s] SetQKVStartIdx kvStartIdx:%ld", templateName, kvStartIdx);
+                }
             }
         }
     }
