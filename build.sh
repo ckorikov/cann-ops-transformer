@@ -49,7 +49,10 @@ OP_GRAPH=FALSE
 OP_KERNEL=FALSE
 SOC_ARRAY=()
 ENABLE_UT_EXEC=TRUE
-
+ENABLE_GENOP=FALSE
+ENABLE_GENOP_AICPU=FALSE
+GENOP_TYPE=""
+GENOP_NAME=""
 PR_CHANGED_FILES=""  # PR场景, 修改文件清单, 可用于标识是否PR场景
 
 if [ "${USER_ID}" != "0" ]; then
@@ -72,6 +75,23 @@ function help_info() {
 
     if [[ -n "$specific_help" ]]; then
         case "$specific_help" in
+            package)
+                echo "Package Build Options:"
+                echo $dotted_line
+                echo "    --pkg                  Build run package with kernel bin"
+                echo "    --jit                  Build run package without kernel bin"
+                echo "    --soc=soc_version      Compile for specified Ascend SoC (comma-separated for multiple)"
+                echo "    --vendor_name=name     Specify custom operator package vendor name"
+                echo "    --ops=op1,op2,...      Compile specified operators (comma-separated for multiple)"
+                echo "    -j[n]                  Compile thread nums, default is 8, eg: -j8"
+                echo "    -O[n]                  Compile optimization options, support [O0 O1 O2 O3], eg:-O3"
+                echo "    --debug                Build with debug mode"
+                echo $dotted_line
+                echo "Examples:"
+                echo "    bash build.sh --pkg --soc=ascend910b --vendor_name=customize -j16 -O3"
+                echo "    bash build.sh --pkg --ops=add,sub --debug"
+                return
+                ;;
             test)
                 echo "Test Options:"
                 echo $dotted_line
@@ -164,6 +184,27 @@ function help_info() {
                 echo "    bash build.sh --opgraph_test --noexec --cov"
                 return
                 ;;
+            run_example)
+                echo "Run example Options:"
+                echo $dotted_line
+                echo "    --run_example op_type  mode[eager:graph] [pkg_mode --vendor_name=name]     Compile and execute the test_aclnn_xxx.cpp/test_geir_xxx.cpp"
+                echo $dotted_line
+                echo "Examples:"
+                echo "    bash build.sh --run_example abs eager"
+                echo "    bash build.sh --run_example abs graph"
+                echo "    bash build.sh --run_example abs eager cust"
+                echo "    bash build.sh --run_example abs eager cust --vendor_name=custom"
+                return
+                ;;
+            genop)
+                echo "Gen Op Directory Options:"
+                echo $dotted_line
+                echo "    --genop=op_class/op_name      Create the initial directory for op_name undef op_class"
+                echo $dotted_line
+                echo "Examples:"
+                echo "    bash build.sh --genop=example/add"
+                return
+                ;;
         esac
     fi
     echo "Usage: $0 [options]"
@@ -173,28 +214,13 @@ function help_info() {
     echo $dotted_line
     echo "    -h|--help            Displays help message."
     echo
-    echo "    -n|--op-name         Specifies the compiled operator. If there are multiple values, separate them with semicolons and use quotation marks. The default is all."
-    echo "                         For example: -n \"flash_attention_score\" or -n \"flash_attention_score;flash_attention_score_grad\""
+    echo "    --pkg build run package with kernel bin"
     echo
-    echo "    -c|--compute-unit    Specifies the chip type. If there are multiple values, separate them with semicolons and use quotation marks. The default is ascend910b."
-    echo "                         For example: -c \"ascend910b\" or -c \"ascend910b;ascend310p\""
+    echo "    --ops Compile specified operator, use snake name, like: --ops=add,add_lora, use ',' to separate different operator"
+    echo
+    echo "    --vendor_name Specify the custom operator package vendor name, like: --vendor_name=customize, default to custom"
+    echo
     echo "    --jit                  Build run package without kernel bin"
-    echo
-    echo "-n|--op-name         Specifies the compiled operator. If there are multiple values, separate them with semicolons and use quotation marks. The default is all."
-    echo "                     For example: -n \"flash_attention_score\" or -n \"flash_attention_score;flash_attention_score_grad\""
-    echo
-    echo "    -u|--test            Executes a unit test (UT). If there are multiple values, separate them with semicolons and use quotation marks."
-    echo "                         For example: -t \"flash_attention_score\" or -t \"flash_attention_score;flash_attention_score_grad\" or -t \"all\""
-    echo $dotted_line
-    echo "    The following are all supported arguments:"
-    echo $dotted_line
-    echo "    --ophost             Build ophost_transformer.so"
-    echo
-    echo "    --opapi              Build opapi_transformer.so"
-    echo
-    echo "    --opgraph            Build graph_plugin_transformer.so"
-    echo
-    echo "    --opkernel           Build binary kernel"
     echo
     echo "    --ophost_test        Executes a host unit test (UT). If there are multiple values, separate them with semicolons and use quotation marks."
     echo "                         For example: bash build.sh -ophost_test -n \"distribute_barrier\" -c \"ascend910_93\" or bash build.sh -ophost_test -c \"ascend910_93\" or bash build.sh -ophost_test"
@@ -207,21 +233,31 @@ function help_info() {
     echo
     echo "    --opkernel_test      Executes a kernel unit test (UT). If there are multiple values, separate them with semicolons and use quotation marks."
     echo "                         For example: bash build.sh -opkernel_test -n \"distribute_barrier\" -c \"ascend910_93\" or bash build.sh -opkernel_test -c \"ascend910_93\" or bash build.sh -opkernel_test"
+    echo "    -u|--test            Executes a unit test (UT). If there are multiple values, separate them with semicolons and use quotation marks."
+    echo "                         For example: -t \"flash_attention_score\" or -t \"flash_attention_score;flash_attention_score_grad\" or -t \"all\""
+    echo "    --run_example Compile and execute the test_aclnn_xxx.cpp/test_geir_xxx.cpp"
+    echo $dotted_line
+    echo "    The following are all supported arguments:"
+    echo $dotted_line
+    echo "    --ophost             Build ophost_transformer.so"
     echo
-    echo "    -e|--example         Executes example."
+    echo "    --opapi              Build opapi_transformer.so"
     echo
-    echo "    --tiling_key         Sets the tiling key list for operators. If there are multiple values, separate them with semicolons and use quotation marks. The default is all."
-    echo "                         For example: --tiling_key \"1\" or --tiling_key \"1;2;3;4\""
+    echo "    --opgraph            Build graph_plugin_transformer.so"
     echo
-    echo "    --disable_asan       Disable ASAN (Address Sanitizer), only supported in UTest."
-    echo
-    echo "    --ubsan              Compiles with UndefinedBehaviorSanitizer, only supported in UTest."
-    echo
-    echo "    --cov                Compiles with cov."
+    echo "    --opkernel           Build binary kernel"
     echo
     echo "    --noexec             Only compile ut, do not execute."
     echo
-    echo "    --verbose            Displays more compilation information."
+    echo "    --make_clean         make clean"
+    echo
+    echo "    -v            Displays more compilation information."
+    echo
+    echo "    -j[n] Compile thread nums, default is 8, eg: -j8"
+    echo
+    echo "    --soc Compile binary with specified Ascend SoC, like: --soc=ascend310p,ascend910b, use ',' to separate different SoC"
+    echo
+    echo "    --genop Create the initial directory for op"
     echo
 }
 
@@ -396,6 +432,69 @@ function process_soc_input(){
     local value_part="${input_string#*=}"
     ASCEND_SOC_UNITS="${value_part//,/;}"
 }
+
+function process_genop() {
+    local opt_name=$1
+    local genop_value=$2
+
+    if [[ "$opt_name" == "genop" ]]; then
+      ENABLE_GENOP=TRUE
+    else
+      help_info "genop"
+      exit 1
+    fi
+
+    if [[ "$genop_value" != *"/"* ]] || [[ "$genop_value" == *"/"*"/"* ]]; then
+      help_info "$opt_name"
+      exit 1
+    fi
+
+    GENOP_TYPE=$(echo "$genop_value" | cut -d'/' -f1)
+    GENOP_NAME=$(echo "$genop_value" | cut -d'/' -f2)
+}
+
+function gen_op() {
+  if [[ -z "$GENOP_NAME" ]] || [[ -z "$GENOP_TYPE" ]]; then
+    echo "Error: op_class or op_name is not set."
+    help_info "genop"
+  fi
+
+  echo $dotted_line
+  echo "Start to create the initial directory for ${GENOP_NAME} under ${GENOP_TYPE}"
+
+  if [ ! -d "${GENOP_TYPE}" ]; then
+    mkdir -p "${GENOP_TYPE}"
+    cp examples/CMakeLists.txt "${GENOP_TYPE}/CMakeLists.txt"
+    sed -i '/list(APPEND OP_DIR_LIST ${CMAKE_CURRENT_SOURCE_DIR}\/ffn\/ffn)/a add_subdirectory('"${GENOP_TYPE}"')' CMakeLists.txt
+  fi
+
+  BASE_DIR=${GENOP_TYPE}/${GENOP_NAME}
+  mkdir -p "${BASE_DIR}"
+
+  cp -r examples/add_example/* "${BASE_DIR}/"
+
+  rm -rf "${BASE_DIR}/examples"
+  rm -rf "${BASE_DIR}/op_host/config"
+
+  for file in $(find "${BASE_DIR}" -name "*.h" -o -name "*.cpp"); do
+    head -n 14 "$file" >"${file}.tmp"
+    cat "${file}.tmp" >"$file"
+    rm "${file}.tmp"
+  done
+
+  for file in $(find "${BASE_DIR}" -type f); do
+    sed -i "s/add_example/${GENOP_NAME}/g" "$file"
+  done
+
+  cd ${BASE_DIR}
+  for file in $(find ./ -name "add_example*"); do
+    new_file=$(echo "$file" | sed "s/add_example/${GENOP_NAME}/g")
+    mv "$file" "$new_file"
+  done
+
+  echo "Create the initial directory for ${GENOP_NAME} under ${GENOP_TYPE} success"
+}
+
 
 set_ut_mode() {
   REPOSITORY_NAME="transformer"
@@ -657,6 +756,12 @@ while [[ $# -gt 0 ]]; do
         CMAKE_BUILD_MODE="${CMAKE_BUILD_MODE} ${build_mode}"
         shift
         ;;
+    --genop=*)
+        OPTARG=$1
+        log "[DEBUGGING] genop:OPTARG=${OPTARG}"
+        process_genop "genop" "${OPTARG#*=}"
+        shift
+        ;;
     --make_clean)
         clean
         clean_build_out
@@ -916,6 +1021,10 @@ function build_pkg_for_single_soc() {
         CUSTOM_OPTION="${original_option}"
     fi
 }
+
+if [[ "$ENABLE_GENOP" == "TRUE" ]]; then
+    gen_op
+fi
 
 cd ${BUILD_DIR}
 if [[ "$ENABLE_TEST" == "TRUE" ]]; then

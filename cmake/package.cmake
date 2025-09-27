@@ -165,8 +165,6 @@ function(pack_built_in)
   string(REGEX REPLACE "^.*[Aa]scend" "" soc_version_temp "${COMPUTE_UNIT}")
   # 检查是否成功提取
   if("${soc_version_temp}" STREQUAL "${COMPUTE_UNIT}")
-    # 如果没有找到 "ascend"，使用默认值或报错
-    message(WARNING "Failed to extract soc_version from COMPUTE_UNIT: ${COMPUTE_UNIT}")
     set(soc_version "unknown")
   else()
     set(soc_version "${soc_version_temp}")
