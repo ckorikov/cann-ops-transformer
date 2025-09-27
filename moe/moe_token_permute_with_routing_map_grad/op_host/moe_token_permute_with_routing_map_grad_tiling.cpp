@@ -224,6 +224,7 @@ static inline void TilingToken(MoeTokenUnpermuteParam& param)
 ge::graphStatus SetTilingKey(const gert::TilingContext* context, MoeTokenUnpermuteParam& param)
 {
     param.core.tilingKey = 0;
+    (void)context;
     return ge::GRAPH_SUCCESS;
 }
 
@@ -335,6 +336,7 @@ static inline ge::graphStatus Tiling4MoeTokenPermuteWithRoutingMapGrad(gert::Til
 
 static inline ge::graphStatus TilingPrepareForMoeTokenPermuteWithRoutingMapGrad(gert::TilingParseContext* context)
 {
+    (void)context;
     return ge::GRAPH_SUCCESS;
 }
 

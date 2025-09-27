@@ -173,7 +173,7 @@ ge::graphStatus MoeGatingTopKSoftmaxKFullLoadTiling::DoLibApiTiling()
     } else {
         dataTypeSize = ge::GetSizeByDataType(dtype);
     }
-    uint32_t ubFormerAlign = CeilDiv(ubFormer, static_cast<uint32_t>(ALIGN_NUM)) * static_cast<uint32_t>(ALIGN_NUM);
+    uint32_t ubFormerAlignLocal = CeilDiv(ubFormer, static_cast<uint32_t>(ALIGN_NUM)) * static_cast<uint32_t>(ALIGN_NUM);
     uint32_t kAlign =
         CeilDiv(static_cast<uint32_t>(k), static_cast<uint32_t>(ALIGN_NUM)) * static_cast<uint32_t>(ALIGN_NUM);
     auto softmaxShape = ge::Shape({tilingData.get_ubFormer()});
@@ -191,7 +191,7 @@ ge::graphStatus MoeGatingTopKSoftmaxKFullLoadTiling::DoLibApiTiling()
     auto ascendcPlatform = platform_ascendc::PlatformAscendC(context_->GetPlatformInfo());
 
     TopKTilingFunc(
-        ascendcPlatform, kAlign + ubFormerAlign, 1, kAlign, dataTypeSize, true, TopKMode::TOPK_NORMAL, true,
+        ascendcPlatform, kAlign + ubFormerAlignLocal, 1, kAlign, dataTypeSize, true, TopKMode::TOPK_NORMAL, true,
         tilingData.topkFormerTilingData);
 
     TopKTilingFunc(

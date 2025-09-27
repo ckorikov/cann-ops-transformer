@@ -59,7 +59,7 @@ static inline int64_t calcUbAlignBufferSize(const uint32_t curRowInUb, const uin
            BLOCK_SIZE * static_cast<int64_t>(curRowInUb);
 }
 
-static inline uint32_t calcGatingAlignCol(const uint32_t col, const ge::DataType dtype)
+static inline uint32_t calcGatingAlignCol(const uint32_t col)
 {
     // 对齐成32个数处理
     return CeilDiv(col, static_cast<uint32_t>(ALIGN_NUM)) * static_cast<uint32_t>(ALIGN_NUM);
@@ -124,7 +124,7 @@ bool MoeGatingTopKSoftmaxPerfTiling::IsCapable()
 
 ge::graphStatus MoeGatingTopKSoftmaxPerfTiling::DoOpTiling()
 {
-    gatingAlignCol = calcGatingAlignCol(col, dtype);
+    gatingAlignCol = calcGatingAlignCol(col);
     maxRow = calcMaxRowInUb(ubSize, dtype, k, CeilDiv(row, coreNum), gatingAlignCol);
 
     tilingData.set_row(row);

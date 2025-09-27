@@ -372,7 +372,7 @@ ge::graphStatus MoeTokenPermuteWithEpTilingBase::CheckInputShape()
 
         if (indicesDimNum != probsDimNum) {
             OP_LOGE(
-                context_->GetNodeName(), "The dim number of probs [%ld] should be equal to indices [%lu].", probsDimNum,
+                context_->GetNodeName(), "The dim number of probs [%zu] should be equal to indices [%lu].", probsDimNum,
                 indicesDimNum);
             return ge::GRAPH_FAILED;
         }

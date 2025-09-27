@@ -1518,8 +1518,8 @@ ge::graphStatus GMMTiling::A8W4Tiling(gert::TilingContext* context, const GMMCom
         tilingDataA8W4.hpTilingData.set_szL0C(szL0C);
         auto yDesc = context->GetOutputDesc(Y_INDEX);
         OP_CHECK_NULL_WITH_CONTEXT(context, yDesc);
-        auto yDtype_ = yDesc->GetDataType();
-        if (yDtype_ == ge::DT_FLOAT16) {
+        auto yDtypeLocal = yDesc->GetDataType();
+        if (yDtypeLocal == ge::DT_FLOAT16) {
           tilingDataA8W4.hpTilingData.set_output_type(0);
         } else {
           tilingDataA8W4.hpTilingData.set_output_type(1);

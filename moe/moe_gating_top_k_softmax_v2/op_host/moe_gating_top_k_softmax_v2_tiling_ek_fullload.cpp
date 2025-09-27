@@ -51,7 +51,7 @@ private:
     MoeGatingTopKSoftmaxV2EKFullLoadTilingData tilingData;
     uint32_t calcMaxRowInUb(
         const bool doubleBufferFlag, const uint64_t ubSize, const ge::DataType dtype, const uint32_t k,
-        const uint32_t blockRow, const uint32_t col);
+        const uint32_t blockRow);
     bool isBufferSizeEnough(
         const uint32_t curRowInUb, const uint32_t gatingAlignCol, const uint64_t tmpUbSize, const ge::DataType dtype,
         const uint32_t k);
@@ -64,9 +64,9 @@ bool MoeGatingTopKSoftmaxV2EKFullLoadTiling::IsCapable()
     if (col > MAX_COL_IN_UB) {
         return false;
     }
-    gatingAlignCol = calcGatingAlignCol(col, dtype);
+    gatingAlignCol = calcGatingAlignCol(col);
     doubleBufferFlag = getDoubleBufferFlag(gatingAlignCol, ubSize, dtype, k);
-    maxRow = calcMaxRowInUb(doubleBufferFlag, ubSize, dtype, k, CeilDiv(row, coreNum), gatingAlignCol);
+    maxRow = calcMaxRowInUb(doubleBufferFlag, ubSize, dtype, k, CeilDiv(row, coreNum));
     if (maxRow == 0) {
         return false;
     }
@@ -173,38 +173,38 @@ ge::graphStatus MoeGatingTopKSoftmaxV2EKFullLoadTiling::PostTiling()
 }
 
 bool MoeGatingTopKSoftmaxV2EKFullLoadTiling::getDoubleBufferFlag(
-    const uint32_t gatingAlignCol, const uint64_t ubSize, const ge::DataType dtype, const uint32_t k)
+    const uint32_t gatingAlignColLocal, const uint64_t ubSizeLocal, const ge::DataType dtypeLocal, const uint32_t kLocal)
 {
     // 判断一行的数据是否能搬进一半大小的ub空间
-    return isBufferSizeEnough(1, gatingAlignCol, ubSize / SIZE_2, dtype, k);
+    return isBufferSizeEnough(1, gatingAlignColLocal, ubSizeLocal / SIZE_2, dtypeLocal, kLocal);
 }
 
 bool MoeGatingTopKSoftmaxV2EKFullLoadTiling::isBufferSizeEnough(
-    const uint32_t curRowInUb, const uint32_t gatingAlignCol, const uint64_t tmpUbSize, const ge::DataType dtype,
-    const uint32_t k)
+    const uint32_t curRowInUb, const uint32_t gatingAlignColLocal, const uint64_t tmpUbSize, const ge::DataType dtypeLocal,
+    const uint32_t kLocal)
 {
     auto ascendcPlatform = platform_ascendc::PlatformAscendC(context_->GetPlatformInfo());
     // bf16类型cast成fp32处理
-    int typeSize = ge::GetSizeByDataType(dtype);
-    if (renorm == 0 || dtype == ge::DataType::DT_BF16) {
+    int typeSize = ge::GetSizeByDataType(dtypeLocal);
+    if (renorm == 0 || dtypeLocal == ge::DataType::DT_BF16) {
         // 1.bf16场景gating复用缓存softmax输出结果，按fp32分配内存
-        uint64_t gatingBufferSize = curRowInUb * gatingAlignCol;
+        uint64_t gatingBufferSize = curRowInUb * gatingAlignColLocal;
         gatingBufferSize = gatingBufferSize * FP32_SIZE;
         if (gatingBufferSize > tmpUbSize) {
             return false;
         }
         // 2.计算softmax
-        auto shape = ge::Shape({curRowInUb, gatingAlignCol});
+        auto shape = ge::Shape({curRowInUb, gatingAlignColLocal});
         uint64_t softMaxMaxTmpSize = GetSoftMaxMaxTmpSize(shape, FP32_SIZE, IS_SOFTMAX_REUSE_SOURCE);
 
         // 3.计算topk
-        uint64_t topKUbOutBufferSize = calcUbAlignBufferSize(curRowInUb, k, typeSize);
-        uint64_t topKIndicesBufferSize = calcUbAlignBufferSize(curRowInUb, k, INT32_SIZE);
+        uint64_t topKUbOutBufferSize = calcUbAlignBufferSize(curRowInUb, kLocal, typeSize);
+        uint64_t topKIndicesBufferSize = calcUbAlignBufferSize(curRowInUb, kLocal, INT32_SIZE);
 
         uint32_t maxValue;
         uint32_t minValue;
         GetTopKMaxMinTmpSize(
-            ascendcPlatform, gatingAlignCol, curRowInUb, IS_TOP_K_REUSE_SOURCE, true, TopKMode::TOPK_NORMAL, true,
+            ascendcPlatform, gatingAlignColLocal, curRowInUb, IS_TOP_K_REUSE_SOURCE, true, TopKMode::TOPK_NORMAL, true,
             FP32_SIZE, maxValue, minValue);
 
         maxValue = maxValue > softMaxMaxTmpSize ? maxValue : softMaxMaxTmpSize;
@@ -212,9 +212,9 @@ bool MoeGatingTopKSoftmaxV2EKFullLoadTiling::isBufferSizeEnough(
         uint64_t finishedUbBufferSize = CeilDiv(BOOL_SIZE * curRowInUb, BLOCK_SIZE) * BLOCK_SIZE;
 
         // sourceRowOut用来复用缓存softmax输出，按r*E分配大小
-        uint64_t softmaxOutAlignBufferSize = curRowInUb * gatingAlignCol * INT32_SIZE;
+        uint64_t softmaxOutAlignBufferSize = curRowInUb * gatingAlignColLocal * INT32_SIZE;
 
-        if (gatingAlignCol * INT32_SIZE + gatingBufferSize + topKUbOutBufferSize + topKIndicesBufferSize + maxValue +
+        if (gatingAlignColLocal * INT32_SIZE + gatingBufferSize + topKUbOutBufferSize + topKIndicesBufferSize + maxValue +
                 finishedUbBufferSize + softmaxOutAlignBufferSize >
             tmpUbSize) {
             return false;
@@ -223,34 +223,34 @@ bool MoeGatingTopKSoftmaxV2EKFullLoadTiling::isBufferSizeEnough(
     }
 
     // 1.搬入gating
-    uint64_t gatingAlignBufferSize = curRowInUb * gatingAlignCol;
+    uint64_t gatingAlignBufferSize = curRowInUb * gatingAlignColLocal;
     gatingAlignBufferSize = gatingAlignBufferSize * typeSize;
     if (gatingAlignBufferSize > tmpUbSize) {
         return false;
     }
 
     // 2.执行softmax
-    auto shape = ge::Shape({curRowInUb, gatingAlignCol});
+    auto shape = ge::Shape({curRowInUb, gatingAlignColLocal});
     uint64_t softMaxMaxTmpSize = GetSoftMaxMaxTmpSize(shape, typeSize, IS_SOFTMAX_REUSE_SOURCE);
 
     // 3.计算topk
     uint32_t maxValue;
     uint32_t minValue;
     GetTopKMaxMinTmpSize(
-        ascendcPlatform, gatingAlignCol, curRowInUb, IS_TOP_K_REUSE_SOURCE, true, TopKMode::TOPK_NORMAL, true, typeSize,
+        ascendcPlatform, gatingAlignColLocal, curRowInUb, IS_TOP_K_REUSE_SOURCE, true, TopKMode::TOPK_NORMAL, true, typeSize,
         maxValue, minValue);
 
     maxValue = maxValue > softMaxMaxTmpSize ? maxValue : softMaxMaxTmpSize;
 
-    uint64_t topKOutAlignBufferSize = calcUbAlignBufferSize(curRowInUb, k, typeSize);
-    uint64_t topKIndicesAlignBufferSize = calcUbAlignBufferSize(curRowInUb, k, INT32_SIZE);
+    uint64_t topKOutAlignBufferSize = calcUbAlignBufferSize(curRowInUb, kLocal, typeSize);
+    uint64_t topKIndicesAlignBufferSize = calcUbAlignBufferSize(curRowInUb, kLocal, INT32_SIZE);
 
     uint64_t finishedUbBufferSize = CeilDiv(BOOL_SIZE * curRowInUb, BLOCK_SIZE) * BLOCK_SIZE;
 
     // sourceRowOut用来复用缓存softmax输出，按r*E分配大小
-    uint64_t softmaxOutAlignBufferSize = curRowInUb * gatingAlignCol * INT32_SIZE;
+    uint64_t softmaxOutAlignBufferSize = curRowInUb * gatingAlignColLocal * INT32_SIZE;
 
-    if (gatingAlignCol * INT32_SIZE + gatingAlignBufferSize + topKOutAlignBufferSize + topKIndicesAlignBufferSize +
+    if (gatingAlignColLocal * INT32_SIZE + gatingAlignBufferSize + topKOutAlignBufferSize + topKIndicesAlignBufferSize +
             softmaxOutAlignBufferSize + maxValue + finishedUbBufferSize >
         tmpUbSize) {
         return false;
@@ -259,15 +259,15 @@ bool MoeGatingTopKSoftmaxV2EKFullLoadTiling::isBufferSizeEnough(
 }
 
 uint32_t MoeGatingTopKSoftmaxV2EKFullLoadTiling::calcMaxRowInUb(
-    const bool doubleBufferFlag, const uint64_t ubSize, const ge::DataType dtype, const uint32_t k,
-    const uint32_t blockRow, const uint32_t col)
+    const bool doubleBufferFlagLocal, const uint64_t ubSizeLocal, const ge::DataType dtypeLocal, const uint32_t kLocal,
+    const uint32_t blockRow)
 {
     uint32_t ubOuter = 1;
-    uint64_t tmpUbSize = doubleBufferFlag ? ubSize / 2 : ubSize;
+    uint64_t tmpUbSize = doubleBufferFlagLocal ? ubSizeLocal / 2 : ubSizeLocal;
     uint64_t curRowInUb;
     while (true) {
         curRowInUb = CeilDiv(blockRow, ubOuter);
-        if (isBufferSizeEnough(curRowInUb, gatingAlignCol, tmpUbSize, dtype, k)) {
+        if (isBufferSizeEnough(curRowInUb, gatingAlignCol, tmpUbSize, dtypeLocal, kLocal)) {
             break;
         }
         ubOuter++;

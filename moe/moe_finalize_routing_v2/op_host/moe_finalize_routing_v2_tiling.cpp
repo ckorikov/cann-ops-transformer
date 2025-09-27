@@ -84,6 +84,7 @@ ge::graphStatus TilingForMoeFinalizeRoutingV2(gert::TilingContext* context)
 
 ge::graphStatus TilingPrepareForMoeFinalizeRoutingV2(gert::TilingParseContext* context)
 {
+    (void)context;
     return ge::GRAPH_SUCCESS;
 }
 

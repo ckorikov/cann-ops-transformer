@@ -567,6 +567,7 @@ ge::graphStatus TilingForMoeInitRoutingQuantV2(gert::TilingContext* context)
 
 ge::graphStatus TilingPrepareForMoeInitRoutingQuantV2(gert::TilingParseContext* context)
 {
+    (void)context;
     return ge::GRAPH_SUCCESS;
 }
 

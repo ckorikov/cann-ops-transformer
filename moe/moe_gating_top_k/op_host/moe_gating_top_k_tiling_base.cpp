@@ -27,6 +27,7 @@ static ge::graphStatus TilingForMoeGatingTopK(gert::TilingContext *context)
 
 static ge::graphStatus TilingPrepareForMoeGatingTopK(gert::TilingParseContext *context)
 {
+    (void)context;
     return ge::GRAPH_SUCCESS;
 }
 

@@ -145,7 +145,7 @@ ge::graphStatus MoeGatingTopKSoftmaxV2KFullLoadTiling::DoOpTiling()
 ge::graphStatus MoeGatingTopKSoftmaxV2KFullLoadTiling::DoLibApiTiling()
 {
     int dataTypeSize = FP32_SIZE;
-    uint32_t ubFormerAlign = CeilDiv(ubFormer, ALIGN_NUM) * ALIGN_NUM;
+    uint32_t ubFormerAlignLocal = CeilDiv(ubFormer, ALIGN_NUM) * ALIGN_NUM;
     uint32_t kAlign = CeilDiv(k, ALIGN_NUM) * ALIGN_NUM;
     auto softmaxShape = ge::Shape({tilingData.get_ubFormer()});
     SoftMaxFlashV2TilingFunc(
@@ -160,7 +160,7 @@ ge::graphStatus MoeGatingTopKSoftmaxV2KFullLoadTiling::DoLibApiTiling()
     auto ascendcPlatform = platform_ascendc::PlatformAscendC(context_->GetPlatformInfo());
 
     TopKTilingFunc(
-        ascendcPlatform, kAlign + ubFormerAlign, 1, kAlign, dataTypeSize, true, TopKMode::TOPK_NORMAL, true,
+        ascendcPlatform, kAlign + ubFormerAlignLocal, 1, kAlign, dataTypeSize, true, TopKMode::TOPK_NORMAL, true,
         tilingData.topkFormerTilingData);
 
     TopKTilingFunc(

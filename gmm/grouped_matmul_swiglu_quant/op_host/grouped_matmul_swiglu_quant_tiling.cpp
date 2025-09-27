@@ -45,8 +45,6 @@ struct GMMSwigluCompileInfo {
 
 static int64_t CalMaxRowInUb_A8W4(const gert::TilingContext *context, const uint64_t ubSize, const uint64_t n)
 {
-    const uint64_t FP32_DTYPE_SIZE = 4;
-    const uint64_t INT8_DTYPE_SIZE = 1;
     const uint64_t ALIGNMENT = 8;
     const float WEIGHT_FACTOR = 8.5;
     const uint64_t ALIGNMENT_TERM_FACTOR = 4;
@@ -57,18 +55,18 @@ static int64_t CalMaxRowInUb_A8W4(const gert::TilingContext *context, const uint
     // 表达式：8.5 * row * n + 4 * alignUp(row, 8) + 6n + 64 <= ubSize
 
     // 忽略对齐项的初始估计
-    int64_t maxRowEstimate = (ubSize - CONSTANT_TERM - LINEAR_TERM_FACTOR * n) / (WEIGHT_FACTOR * n);
+    int64_t maxRowEstimate = (ubSize - CONSTANT_TERM - LINEAR_TERM_FACTOR * n) / static_cast<int64_t>(WEIGHT_FACTOR * n);
 
     // 考虑对齐影响
     uint64_t alignedRow = (maxRowEstimate + ALIGNMENT - 1) / ALIGNMENT * ALIGNMENT;
-    uint64_t totalSize = WEIGHT_FACTOR * maxRowEstimate * n + ALIGNMENT_TERM_FACTOR * alignedRow +
+    uint64_t totalSize = static_cast<uint64_t>(WEIGHT_FACTOR * maxRowEstimate * n) + ALIGNMENT_TERM_FACTOR * alignedRow +
                          LINEAR_TERM_FACTOR * n + CONSTANT_TERM;
 
     // 如果超过UB大小，逐步减少row直到满足条件
     while (totalSize > ubSize && maxRowEstimate > 0) {
         maxRowEstimate--;
         alignedRow = (maxRowEstimate + ALIGNMENT - 1) / ALIGNMENT * ALIGNMENT;
-        totalSize = WEIGHT_FACTOR * maxRowEstimate * n + ALIGNMENT_TERM_FACTOR * alignedRow + LINEAR_TERM_FACTOR * n +
+        totalSize = static_cast<uint64_t>(WEIGHT_FACTOR * maxRowEstimate * n) + ALIGNMENT_TERM_FACTOR * alignedRow + LINEAR_TERM_FACTOR * n +
                     CONSTANT_TERM;
     }
 

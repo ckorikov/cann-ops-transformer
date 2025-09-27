@@ -24,12 +24,14 @@ namespace optiling {
 
 static ge::graphStatus TilingMoeGatingTopKSoftmaxV2(gert::TilingContext* context)
 {
+    (void)context;
     // 初始化算子Tiling类
     return TilingRegistry::GetInstance().DoTilingImpl(context);
 }
 
 static ge::graphStatus TilingPrepare4MoeGatingTopKSoftmaxV2(gert::TilingParseContext* context)
 {
+    (void)context;
     return ge::GRAPH_SUCCESS;
 }
 

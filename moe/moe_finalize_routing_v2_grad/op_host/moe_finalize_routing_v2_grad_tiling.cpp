@@ -409,7 +409,7 @@ ge::graphStatus MoeFinalizeRoutingV2GradTiling::CheckParams()
          OP_CHECK_IF(
             (expandedXShape_.GetDimNum() != static_cast<size_t>(expandedXDimNum_)),
             OP_LOGE(
-                nodeName_, "expanded_x dimnum error. dropMode = %ld, got expandedXdim %ld", dropPadMode_,
+                nodeName_, "expanded_x dimnum error. dropMode = %ld, got expandedXdim %zu", dropPadMode_,
                 expandedXShape_.GetDimNum()),
             return ge::GRAPH_FAILED);
          OP_CHECK_IF(
@@ -565,6 +565,7 @@ ge::graphStatus Tiling4MoeFinalizeRoutingV2Grad(gert::TilingContext* context)
 
 static ge::graphStatus TilingPrepare4MoeFinalizeRoutingV2Grad(gert::TilingParseContext* context)
 {
+    (void)context;
     return ge::GRAPH_SUCCESS;
 }
 

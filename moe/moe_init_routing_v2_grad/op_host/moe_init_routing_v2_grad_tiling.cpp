@@ -154,10 +154,10 @@ void MoeInitRoutingV2GradTilingBase::TilingSplitCore()
 
     auto tilingData = &moeInitRoutingV2GradTilingData.MoeV2GradComputeParamsOp;
 
-    int64_t N = moeInitRoutingV2GradTilingData.get_n();
-    int64_t perCoreElements = Ops::Base::CeilDiv(N, aivNum);                 // 单核处理最大token数
-    int64_t needCoreNum = Ops::Base::CeilDiv(N, perCoreElements);            // 实际使用核数
-    int64_t lastCoreElement = N - (needCoreNum - 1) * perCoreElements; // 尾核处理token数
+    int64_t NLocal = moeInitRoutingV2GradTilingData.get_n();
+    int64_t perCoreElements = Ops::Base::CeilDiv(NLocal, aivNum);                 // 单核处理最大token数
+    int64_t needCoreNum = Ops::Base::CeilDiv(NLocal, perCoreElements);            // 实际使用核数
+    int64_t lastCoreElement = NLocal - (needCoreNum - 1) * perCoreElements; // 尾核处理token数
 
     tilingData->set_needCoreNum(needCoreNum);
     tilingData->set_perCoreElements(perCoreElements);
@@ -175,13 +175,13 @@ void MoeInitRoutingV2GradTilingBase::TilingGradCompute()
     int64_t exponentOfBinary = (K >= BOUND_K_FOR_BINARY) ? MAX_EXPONENT_OF_BINARY : std::floor(std::log2(K)) - 1;
     exponentOfBinary = (exponentOfBinary < 0) ? 0 : exponentOfBinary;
     int64_t binaryAddBuffNum =
-        (K >= BOUND_K_FOR_BINARY) ? MAX_BINARY_ADD_BUFFER_CNT : std::pow(2, exponentOfBinary); //  2^exp
+        (K >= BOUND_K_FOR_BINARY) ? MAX_BINARY_ADD_BUFFER_CNT : static_cast<int64_t>(std::pow(2, exponentOfBinary)); //  2^exp
 
     // 根据K大小，选择tmpBuffer数量
     int64_t tmpBuffNum = (K >= BOUND_K_FOR_BINARY) ? binaryAddBuffNum : 1;
 
     // 计算block块大小
-    int64_t coe = notFloat ? 2 : 1; // 2: 如果是bf16/fp16, 需要做cast，所以需要两倍空间
+    int64_t coe = static_cast<int64_t>(notFloat) ? 2 : 1; // 2: 如果是bf16/fp16, 需要做cast，所以需要两倍空间
     int64_t H = moeInitRoutingV2GradTilingData.get_cols();
     int64_t hSize = H * static_cast<int64_t>(typeSize);
     int64_t alignHSize = (hSize + ELEMENT_ALIGN_SIZE - 1) / ELEMENT_ALIGN_SIZE * ELEMENT_ALIGN_SIZE;

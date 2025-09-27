@@ -85,6 +85,7 @@ static inline int64_t ComputeMaxHiddenSize(MoeTokenUnpermuteParam& param, int64_
 
 static inline ge::graphStatus InputParamCheck(const gert::TilingContext* context)
 {
+    (void)context;
     return ge::GRAPH_SUCCESS;
 }
 

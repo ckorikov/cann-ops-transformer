@@ -414,6 +414,7 @@ static inline void SetTilingKey(const gert::TilingContext* context, MoeTokenUnpe
     // 存在probs
     param.core.tilingKey += TILINGKEY_PROBS;
   }
+  (void)context;
 }
 
 static inline void SetTilingData(gert::TilingContext* context, MoeTokenUnpermuteWithRoutingMapParam& param) {

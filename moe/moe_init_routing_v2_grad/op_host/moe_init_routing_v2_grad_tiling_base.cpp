@@ -161,8 +161,8 @@ ge::graphStatus MoeInitRoutingV2GradTilingBaseClass::CheckParamsValidity(
         return ge::GRAPH_FAILED;
     }
 
-    int64_t hiddenSize = (dropPadMode == 0) ? xShape.GetDim(1) : xShape.GetDim(2); // 2: drop/pad 场景，尾轴在第三维
-    if (gradXShape.GetDim(1) != hiddenSize) {
+    int64_t hiddenSizeLocal = (dropPadMode == 0) ? xShape.GetDim(1) : xShape.GetDim(2); // 2: drop/pad 场景，尾轴在第三维
+    if (gradXShape.GetDim(1) != hiddenSizeLocal) {
         OP_LOGE(context_->GetNodeName(), "Tail dim size of input and output should be same.");
         return ge::GRAPH_FAILED;
     }
@@ -253,6 +253,7 @@ ge::graphStatus TilingForMoeInitRoutingV2Grad(gert::TilingContext* context)
 
 ge::graphStatus TilingPrepareForMoeInitRoutingV2Grad(gert::TilingParseContext* context)
 {
+    (void)context;
     return ge::GRAPH_SUCCESS;
 }
 

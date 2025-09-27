@@ -30,6 +30,7 @@ static ge::graphStatus TilingMoeGatingTopKSoftmax(gert::TilingContext* context)
 
 static ge::graphStatus TilingPrepare4MoeGatingTopKSoftmax(gert::TilingParseContext* context)
 {
+    (void)context;
     return ge::GRAPH_SUCCESS;
 }
 

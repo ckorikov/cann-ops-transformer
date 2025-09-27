@@ -76,14 +76,13 @@ private:
     MoeGatingTopKSoftmaxV2PerfTilingData tilingData;
 
     uint32_t calcMaxRowInUb(
-        const int64_t ubSize, const ge::DataType dtype, const uint32_t k, const uint32_t blockRow, const uint32_t col);
+        const int64_t ubSize, const ge::DataType dtype, const uint32_t blockRow);
 
     bool isBufferSizeEnough(
-        const uint32_t curRowInUb, const uint32_t gatingAlignCol, const int64_t tmpUbSize, const ge::DataType dtype,
-        const uint32_t k);
+        const uint32_t curRowInUb, const uint32_t gatingAlignCol, const int64_t tmpUbSize, const ge::DataType dtype);
 
     bool getDoubleBufferFlag(
-        const uint32_t gatingAlignCol, const int64_t ubSize, const ge::DataType dtype, const uint32_t k);
+        const uint32_t gatingAlignCol, const int64_t ubSize, const ge::DataType dtype);
 };
 
 bool MoeGatingTopKSoftmaxV2PerfTiling::IsCapable()
@@ -99,9 +98,9 @@ bool MoeGatingTopKSoftmaxV2PerfTiling::IsCapable()
 
 ge::graphStatus MoeGatingTopKSoftmaxV2PerfTiling::DoOpTiling()
 {
-    gatingAlignCol = calcGatingAlignCol(col, dtype);
-    doubleBufferFlag = getDoubleBufferFlag(gatingAlignCol, ubSize, dtype, k);
-    maxRow = calcMaxRowInUb(ubSize, dtype, k, CeilDiv(row, coreNum), gatingAlignCol);
+    gatingAlignCol = calcGatingAlignCol(col);
+    doubleBufferFlag = getDoubleBufferFlag(gatingAlignCol, ubSize, dtype);
+    maxRow = calcMaxRowInUb(ubSize, dtype, CeilDiv(row, coreNum));
 
     tilingData.set_row(row);
     tilingData.set_col(col);
@@ -166,19 +165,18 @@ ge::graphStatus MoeGatingTopKSoftmaxV2PerfTiling::PostTiling()
 }
 
 bool MoeGatingTopKSoftmaxV2PerfTiling::getDoubleBufferFlag(
-    const uint32_t gatingAlignCol, const int64_t ubSize, const ge::DataType dtype, const uint32_t k)
+    const uint32_t gatingAlignColLocal, const int64_t ubSizeLocal, const ge::DataType dtypeLocal)
 {
     // 判断一行的数据是否能搬进一半大小的ub空间
-    return isBufferSizeEnough(1, gatingAlignCol, ubSize / SIZE_2, dtype, k);
+    return isBufferSizeEnough(1, gatingAlignColLocal, ubSizeLocal / SIZE_2, dtypeLocal);
 }
 
 bool MoeGatingTopKSoftmaxV2PerfTiling::isBufferSizeEnough(
-    const uint32_t curRowInUb, const uint32_t gatingAlignCol, const int64_t tmpUbSize, const ge::DataType dtype,
-    const uint32_t k)
+    const uint32_t curRowInUb, const uint32_t gatingAlignColLocal, const int64_t tmpUbSize, const ge::DataType dtypeLocal)
 {
     // 1.搬入gating
-    int typeSize = ge::GetSizeByDataType(dtype);
-    int64_t gatingAlignBufferSize = curRowInUb * gatingAlignCol * typeSize;
+    int typeSize = ge::GetSizeByDataType(dtypeLocal);
+    int64_t gatingAlignBufferSize = curRowInUb * gatingAlignColLocal * typeSize;
     if (gatingAlignBufferSize > tmpUbSize) {
         return false;
     }
@@ -187,10 +185,10 @@ bool MoeGatingTopKSoftmaxV2PerfTiling::isBufferSizeEnough(
     int64_t finishedUbBufferSize = CeilDiv(BOOL_SIZE * curRowInUb, BLOCK_SIZE) * BLOCK_SIZE;
 
     // sourceRowOut用来复用缓存softmax输出，按r*E分配大小
-    int64_t sourceRowOutAlignBufferSize = curRowInUb * gatingAlignCol * INT32_SIZE;
+    int64_t sourceRowOutAlignBufferSize = curRowInUb * gatingAlignColLocal * INT32_SIZE;
 
     int64_t tempBufferSize = sourceRowOutAlignBufferSize * SIX;
-    if (dtype == ge::DataType::DT_FLOAT) {
+    if (dtypeLocal == ge::DataType::DT_FLOAT) {
         tempBufferSize += sourceRowOutAlignBufferSize;
     }
 
@@ -201,14 +199,14 @@ bool MoeGatingTopKSoftmaxV2PerfTiling::isBufferSizeEnough(
 }
 
 uint32_t MoeGatingTopKSoftmaxV2PerfTiling::calcMaxRowInUb(
-    const int64_t ubSize, const ge::DataType dtype, const uint32_t k, const uint32_t blockRow, const uint32_t col)
+    const int64_t ubSizeLocal, const ge::DataType dtypeLocal, const uint32_t blockRow)
 {
     uint32_t ubOuter = 1;
-    int64_t tmpUbSize = ubSize;
+    int64_t tmpUbSize = ubSizeLocal;
     uint32_t curRowInUb;
     while (true) {
         curRowInUb = CeilDiv(blockRow, ubOuter);
-        if (isBufferSizeEnough(curRowInUb, gatingAlignCol, tmpUbSize, dtype, k)) {
+        if (isBufferSizeEnough(curRowInUb, gatingAlignCol, tmpUbSize, dtypeLocal)) {
             break;
         }
         ubOuter++;

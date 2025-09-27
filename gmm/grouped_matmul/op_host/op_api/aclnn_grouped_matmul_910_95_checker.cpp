@@ -28,6 +28,7 @@ const aclTensor *GetInputTensor(const aclTensorList *input, size_t index = 0)
 
 const aclTensor *GetInputTensor(const aclTensor *input, size_t index = 0)
 {
+    (void)index;
     return input;
 }
 
@@ -38,6 +39,7 @@ size_t GetInputTensorSize(const aclTensorList *input)
 
 size_t GetInputTensorSize(const aclTensor *input)
 {
+    (void)input;
     return 1;
 }
 } // namespace

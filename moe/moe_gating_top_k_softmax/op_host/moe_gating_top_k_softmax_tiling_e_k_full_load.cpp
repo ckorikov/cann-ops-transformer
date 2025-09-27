@@ -51,7 +51,7 @@ static inline int64_t calcUbAlignBufferSize(const uint32_t curRowInUb, const uin
            BLOCK_SIZE * static_cast<int64_t>(curRowInUb);
 }
 
-static inline uint32_t calcGatingAlignCol(const uint32_t col, const ge::DataType dtype)
+static inline uint32_t calcGatingAlignCol(const uint32_t col)
 {
     // 对齐成32个数处理
     return CeilDiv(col, static_cast<uint32_t>(ALIGN_NUM)) * static_cast<uint32_t>(ALIGN_NUM);
@@ -79,7 +79,7 @@ private:
     MoeGatingTopKSoftmaxEKFullLoadTilingData tilingData;
     uint32_t calcMaxRowInUb(
         const bool doubleBufferFlag, const uint64_t ubSize, const ge::DataType dtype, const uint32_t k,
-        const uint32_t blockRow, const uint32_t col);
+        const uint32_t blockRow);
     bool isBufferSizeEnough(
         const uint32_t curRowInUb, const uint32_t gatingAlignCol, const uint64_t tmpUbSize, const ge::DataType dtype,
         const uint32_t k);
@@ -92,9 +92,9 @@ bool MoeGatingTopKSoftmaxEKFullLoadTiling::IsCapable()
     if (col > static_cast<uint32_t>(MAX_COL_IN_UB)) {
         return false;
     }
-    gatingAlignCol = calcGatingAlignCol(col, dtype);
+    gatingAlignCol = calcGatingAlignCol(col);
     doubleBufferFlag = getDoubleBufferFlag(gatingAlignCol, ubSize, dtype, k);
-    maxRow = calcMaxRowInUb(doubleBufferFlag, ubSize, dtype, k, CeilDiv(row, coreNum), gatingAlignCol);
+    maxRow = calcMaxRowInUb(doubleBufferFlag, ubSize, dtype, k, CeilDiv(row, coreNum));
     if (maxRow == 0U) {
         return false;
     }
@@ -197,37 +197,37 @@ ge::graphStatus MoeGatingTopKSoftmaxEKFullLoadTiling::PostTiling()
 }
 
 bool MoeGatingTopKSoftmaxEKFullLoadTiling::getDoubleBufferFlag(
-    const uint32_t gatingAlignCol, const uint64_t ubSize, const ge::DataType dtype, const uint32_t k)
+    const uint32_t gatingAlignColLocal, const uint64_t ubSizeLocal, const ge::DataType dtypeLocal, const uint32_t kLocal)
 {
     // 判断一行的数据是否能搬进一半大小的ub空间
-    return isBufferSizeEnough(1, gatingAlignCol, ubSize / SIZE_2, dtype, k);
+    return isBufferSizeEnough(1, gatingAlignColLocal, ubSizeLocal / SIZE_2, dtypeLocal, kLocal);
 }
 
 bool MoeGatingTopKSoftmaxEKFullLoadTiling::isBufferSizeEnough(
-    const uint32_t curRowInUb, const uint32_t gatingAlignCol, const uint64_t tmpUbSize, const ge::DataType dtype,
-    const uint32_t k)
+    const uint32_t curRowInUb, const uint32_t gatingAlignColLocal, const uint64_t tmpUbSize, const ge::DataType dtypeLocal,
+    const uint32_t kLocal)
 {
     auto ascendcPlatform = platform_ascendc::PlatformAscendC(context_->GetPlatformInfo());
     // bf16类型cast成fp32处理
-    if (dtype == ge::DataType::DT_BF16) {
+    if (dtypeLocal == ge::DataType::DT_BF16) {
         // 1.bf16场景gating复用缓存softmax输出结果，按fp32分配内存
-        uint64_t gatingBufferSize = static_cast<uint64_t>(curRowInUb * gatingAlignCol);
+        uint64_t gatingBufferSize = static_cast<uint64_t>(curRowInUb * gatingAlignColLocal);
         gatingBufferSize = gatingBufferSize * static_cast<uint64_t>(FP32_SIZE);
         if (gatingBufferSize > tmpUbSize) {
             return false;
         }
         // 2.计算softmax
-        auto shape = ge::Shape({curRowInUb, gatingAlignCol});
+        auto shape = ge::Shape({curRowInUb, gatingAlignColLocal});
         uint64_t softMaxMaxTmpSize = GetSoftMaxMaxTmpSize(shape, FP32_SIZE, IS_SOFTMAX_REUSE_SOURCE);
 
         // 3.计算topk
-        uint64_t topKUbOutBufferSize = static_cast<uint64_t>(calcUbAlignBufferSize(curRowInUb, k, FP32_SIZE));
-        uint64_t topKIndicesBufferSize = static_cast<uint64_t>(calcUbAlignBufferSize(curRowInUb, k, INT32_SIZE));
+        uint64_t topKUbOutBufferSize = static_cast<uint64_t>(calcUbAlignBufferSize(curRowInUb, kLocal, FP32_SIZE));
+        uint64_t topKIndicesBufferSize = static_cast<uint64_t>(calcUbAlignBufferSize(curRowInUb, kLocal, INT32_SIZE));
 
         uint32_t maxValue;
         uint32_t minValue;
         GetTopKMaxMinTmpSize(
-            ascendcPlatform, gatingAlignCol, curRowInUb, IS_TOP_K_REUSE_SOURCE, true, TopKMode::TOPK_NORMAL, true,
+            ascendcPlatform, gatingAlignColLocal, curRowInUb, IS_TOP_K_REUSE_SOURCE, true, TopKMode::TOPK_NORMAL, true,
             FP32_SIZE, maxValue, minValue);
 
         maxValue = maxValue > softMaxMaxTmpSize ? maxValue : softMaxMaxTmpSize;
@@ -237,9 +237,9 @@ bool MoeGatingTopKSoftmaxEKFullLoadTiling::isBufferSizeEnough(
 
         // sourceRowOut用来复用缓存softmax输出，按r*E分配大小
         uint64_t sourceRowOutAlignBufferSize =
-            static_cast<uint64_t>(curRowInUb * gatingAlignCol * static_cast<uint32_t>(INT32_SIZE));
+            static_cast<uint64_t>(curRowInUb * gatingAlignColLocal * static_cast<uint32_t>(INT32_SIZE));
 
-        if (static_cast<uint64_t>(gatingAlignCol) * static_cast<uint64_t>(INT32_SIZE) + gatingBufferSize +
+        if (static_cast<uint64_t>(gatingAlignColLocal) * static_cast<uint64_t>(INT32_SIZE) + gatingBufferSize +
                 topKUbOutBufferSize + topKIndicesBufferSize + static_cast<uint64_t>(maxValue) + finishedUbBufferSize +
                 sourceRowOutAlignBufferSize > tmpUbSize) {
             return false;
@@ -248,37 +248,37 @@ bool MoeGatingTopKSoftmaxEKFullLoadTiling::isBufferSizeEnough(
     }
 
     // 1.搬入gating
-    int typeSize = ge::GetSizeByDataType(dtype);
-    uint64_t gatingAlignBufferSize = static_cast<uint64_t>(curRowInUb * gatingAlignCol);
+    int typeSize = ge::GetSizeByDataType(dtypeLocal);
+    uint64_t gatingAlignBufferSize = static_cast<uint64_t>(curRowInUb * gatingAlignColLocal);
     gatingAlignBufferSize = gatingAlignBufferSize * static_cast<uint64_t>(typeSize);
     if (gatingAlignBufferSize > tmpUbSize) {
         return false;
     }
 
     // 2.执行softmax
-    auto shape = ge::Shape({curRowInUb, gatingAlignCol});
+    auto shape = ge::Shape({curRowInUb, gatingAlignColLocal});
     uint64_t softMaxMaxTmpSize = GetSoftMaxMaxTmpSize(shape, typeSize, IS_SOFTMAX_REUSE_SOURCE);
 
     // 3.计算topk
     uint32_t maxValue;
     uint32_t minValue;
     GetTopKMaxMinTmpSize(
-        ascendcPlatform, gatingAlignCol, curRowInUb, IS_TOP_K_REUSE_SOURCE, true, TopKMode::TOPK_NORMAL, true, typeSize,
+        ascendcPlatform, gatingAlignColLocal, curRowInUb, IS_TOP_K_REUSE_SOURCE, true, TopKMode::TOPK_NORMAL, true, typeSize,
         maxValue, minValue);
 
     maxValue = maxValue > softMaxMaxTmpSize ? maxValue : softMaxMaxTmpSize;
 
-    uint64_t topKOutAlignBufferSize = static_cast<uint64_t>(calcUbAlignBufferSize(curRowInUb, k, typeSize));
-    uint64_t topKIndicesAlignBufferSize = static_cast<uint64_t>(calcUbAlignBufferSize(curRowInUb, k, INT32_SIZE));
+    uint64_t topKOutAlignBufferSize = static_cast<uint64_t>(calcUbAlignBufferSize(curRowInUb, kLocal, typeSize));
+    uint64_t topKIndicesAlignBufferSize = static_cast<uint64_t>(calcUbAlignBufferSize(curRowInUb, kLocal, INT32_SIZE));
 
     uint64_t finishedUbBufferSize = static_cast<uint64_t>(
         CeilDiv(static_cast<uint32_t>(BOOL_SIZE) * curRowInUb, static_cast<uint32_t>(BOOL_SIZE)) * BLOCK_SIZE);
 
     // sourceRowOut用来复用缓存softmax输出，按r*E分配大小
     uint64_t sourceRowOutAlignBufferSize =
-        static_cast<uint64_t>(curRowInUb * gatingAlignCol * static_cast<uint32_t>(INT32_SIZE));
+        static_cast<uint64_t>(curRowInUb * gatingAlignColLocal * static_cast<uint32_t>(INT32_SIZE));
 
-    if (static_cast<uint64_t>(gatingAlignCol) * static_cast<uint64_t>(INT32_SIZE) + gatingAlignBufferSize +
+    if (static_cast<uint64_t>(gatingAlignColLocal) * static_cast<uint64_t>(INT32_SIZE) + gatingAlignBufferSize +
             topKOutAlignBufferSize + topKIndicesAlignBufferSize + sourceRowOutAlignBufferSize +
             static_cast<uint64_t>(maxValue) + finishedUbBufferSize > tmpUbSize) {
         return false;
@@ -287,15 +287,15 @@ bool MoeGatingTopKSoftmaxEKFullLoadTiling::isBufferSizeEnough(
 }
 
 uint32_t MoeGatingTopKSoftmaxEKFullLoadTiling::calcMaxRowInUb(
-    const bool doubleBufferFlag, const uint64_t ubSize, const ge::DataType dtype, const uint32_t k,
-    const uint32_t blockRow, const uint32_t col)
+    const bool doubleBufferFlag, const uint64_t ubSizeLocal, const ge::DataType dtypeLocal, const uint32_t kLocal,
+    const uint32_t blockRow)
 {
     uint32_t ubOuter = 1;
-    uint64_t tmpUbSize = doubleBufferFlag ? ubSize / static_cast<uint64_t>(2) : ubSize;
+    uint64_t tmpUbSize = doubleBufferFlag ? ubSizeLocal / static_cast<uint64_t>(2) : ubSizeLocal;
     uint64_t curRowInUb;
     while (true) {
         curRowInUb = CeilDiv(blockRow, ubOuter);
-        if (isBufferSizeEnough(curRowInUb, gatingAlignCol, tmpUbSize, dtype, k)) {
+        if (isBufferSizeEnough(curRowInUb, gatingAlignCol, tmpUbSize, dtypeLocal, kLocal)) {
             break;
         }
         ubOuter++;

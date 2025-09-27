@@ -106,7 +106,7 @@ static bool CheckDtypeValid(const aclTensor *x,
 static inline bool CheckShape(  const aclTensor *x, 
                                 const aclTensor *expertIdx,
                                 const aclTensor *scaleOptional,
-                                const aclTensor *offsetOptional, 
+                                const aclTensor *offsetOptional,
                                 const aclTensor *expandedXOut, 
                                 const aclTensor *expandedRowIdxOut, 
                                 const aclTensor *expertTokensCountOrCumsumOut, 
@@ -209,6 +209,11 @@ static aclnnStatus CheckParams( const aclTensor *x,
     CHECK_RET(CheckShape(x, expertIdx,scaleOptional, offsetOptional, expandedXOut, expandedRowIdxOut, expertTokensCountOrCumsumOut, 
                         expandedScaleOut, expertNum, expertTokensNumType, quantMode, activeExpertRangeOptional), ACLNN_ERR_PARAM_INVALID);
 
+    (void)activeNum;
+    (void)expertCapacity;
+    (void)dropPadMode;
+    (void)expertTokensNumFlag;
+    (void)rowIdxType;
     return ACLNN_SUCCESS;
 }
 

@@ -190,7 +190,7 @@ static ge::graphStatus CheckScaleOffset(gert::InferShapeContext* context, const 
         }
     } else {
         OP_LOGE(
-            context->GetNodeName(), "Invalid %s dim num, current dim num is %ld, should be 1.", tag,
+            context->GetNodeName(), "Invalid %s dim num, current dim num is %zu, should be 1.", tag,
             shape->GetDimNum());
         return ge::GRAPH_FAILED;
     }

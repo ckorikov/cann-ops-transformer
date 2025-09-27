@@ -107,6 +107,8 @@ static inline bool CheckNotNull(
             "when routingMapOptional is nullptr, permutedProbsOutputGradOptional should be nullptr.");
         return false;
     }
+    (void)probsGradOutOptional;
+    (void)tokensGradOut;
     return true;
 }
 
@@ -127,6 +129,7 @@ static inline bool CheckDtypeValid(
         OP_CHECK_DTYPE_NOT_SUPPORT(routingMapOptional, routing_map_dtype_list, return false);
     }
     OP_CHECK_DTYPE_NOT_SUPPORT(sortedIndices, indice_dtype_list, return false);
+    (void)probsGradOutOptional;
     return true;
 }
 
@@ -198,6 +201,7 @@ static aclnnStatus CheckParams(
         CheckShapeValid(permutedTokenOutputGrad, routingMapOptional, permutedProbsOutputGradOptional),
         ACLNN_ERR_PARAM_INVALID);
 
+    (void)dropAndPad;
     return ACLNN_SUCCESS;
 }
 static void ViewDataType(const aclTensor* input, const op::DataType dtype)

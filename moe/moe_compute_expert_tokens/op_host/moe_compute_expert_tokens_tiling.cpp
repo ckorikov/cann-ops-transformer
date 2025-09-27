@@ -442,6 +442,7 @@ ge::graphStatus Tiling4MoeComputeExpertTokens(gert::TilingContext* context)
 
 ge::graphStatus TilingPrepareForMoeComputeExpertTokens(gert::TilingParseContext* context)
 {
+    (void)context;
     return ge::GRAPH_SUCCESS;
 }
 

@@ -54,7 +54,7 @@ public:
         this->Attr("norm_type").AttrType(OPTIONAL).Int(0);
         this->Attr("out_flag").AttrType(OPTIONAL).Bool(false);
         this->Attr("routed_scaling_factor").AttrType(OPTIONAL).Float(1.0);
-        this->Attr("eps").AttrType(OPTIONAL).Float(1e-20);
+        this->Attr("eps").AttrType(OPTIONAL).Float(1e-20f);
         this->AICore().AddConfig("ascend910b");
         this->AICore().AddConfig("ascend910_93");
 

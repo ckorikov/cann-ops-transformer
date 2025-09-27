@@ -223,31 +223,31 @@ ge::graphStatus MoeTokenPermuteWithRoutingMapTilingBase::GetPlatformInfo()
 
     auto compileInfo = reinterpret_cast<const MoeTokenPermuteWithRoutingMapCompileInfo*>(context_->GetCompileInfo());
 
-    uint64_t aivNum; // Vector核数量
+    uint64_t aivNumLocal; // Vector核数量
     auto platformInfo = context_->GetPlatformInfo();
     if (platformInfo == nullptr) {
-        aivNum = compileInfo->aivNum; // Vector核数量
+        aivNumLocal = compileInfo->aivNum; // Vector核数量
         OP_CHECK_IF(
             compileInfo == nullptr, OP_LOGE(context_, "compile info is null"),
             return ge::GRAPH_FAILED);
         aicoreParams_.ubSize = FloorAlign(compileInfo->ubSize, ONE_BLOCK_BYTE);
     } else {
         auto ascendcPlatform = platform_ascendc::PlatformAscendC(platformInfo);
-        aivNum = ascendcPlatform.GetCoreNumAiv();
+        aivNumLocal = ascendcPlatform.GetCoreNumAiv();
         uint64_t ubSizePlatForm;
         ascendcPlatform.GetCoreMemSize(platform_ascendc::CoreMemType::UB, ubSizePlatForm);
         aicoreParams_.ubSize = FloorAlign(ubSizePlatForm, ONE_BLOCK_BYTE);
     }
 
     if (indicesPtr->GetShapeSize() <= SORT32_ALIGN_ELEMENT) {
-        aivNum = 1;
+        aivNumLocal = 1;
     } else {
-        aivNum = compileInfo->aivNum;
+        aivNumLocal = compileInfo->aivNum;
     }
     realCoreNumAiv = compileInfo->aivNum;
-    aicoreParams_.blockDim = aivNum;
+    aicoreParams_.blockDim = aivNumLocal;
 
-    moeTokenPermuteWithRoutingMapTilingData.set_coreNum(aivNum);
+    moeTokenPermuteWithRoutingMapTilingData.set_coreNum(aivNumLocal);
     return ge::GRAPH_SUCCESS;
 }
 
@@ -640,7 +640,7 @@ void MoeTokenPermuteWithRoutingMapTilingBase::Tiling4MaskedSelect()
 
     uint64_t aivUseNum = realCoreNumAiv;    // Vector核数量
     uint64_t ubSize = aicoreParams_.ubSize; // ubSize大小
-    uint64_t totalLength = numTokens * numExperts;
+    uint64_t totalLengthLocal = numTokens * numExperts;
 
     uint64_t formerNum = 0;
     uint64_t formerLength = 0;
@@ -682,6 +682,8 @@ void MoeTokenPermuteWithRoutingMapTilingBase::Tiling4MaskedSelect()
             case ge::DT_UINT8:
                 sizeOfDataType = sizeof(int8_t);
                 break;
+            default:
+                break;
         }
     }
 
@@ -713,7 +715,7 @@ void MoeTokenPermuteWithRoutingMapTilingBase::Tiling4MaskedSelect()
     }
 
     if (tailNum > 0) {
-        tailLength = (totalLength - formerLength * formerNum) / tailNum; // 一定可能整出
+        tailLength = (totalLengthLocal - formerLength * formerNum) / tailNum; // 一定可能整出
         tailTileNum = (tailLength + ubLength - 1) / ubLength;
         tailTileLength = ubLength;
         tailLastTileLength = tailLength % ubLength;

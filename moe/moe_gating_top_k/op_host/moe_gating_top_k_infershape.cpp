@@ -28,14 +28,6 @@ static constexpr int64_t Y_INDEX = 0;
 static constexpr int64_t EXPERT_IDX_INDEX = 1;
 static constexpr int64_t OUT_INDEX = 2;
 
-static bool isSameDim(int64_t dim1, int64_t dim2)
-{
-    if (dim1 == NEG_ONE || dim2 == NEG_ONE) {
-        return true;
-    }
-    return dim1 == dim2;
-}
-
 static ge::graphStatus CheckInputShape(gert::InferShapeContext *context, const gert::Shape *xShape)
 {
     int64_t XRows = xShape->GetDimNum() == 1U ? NEG_ONE : xShape->GetDim(0);

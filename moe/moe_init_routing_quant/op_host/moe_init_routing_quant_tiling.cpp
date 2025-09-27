@@ -35,7 +35,7 @@ const static int64_t SPLIT_K_THRESHOLD = 512;
 
 inline static int64_t CeilLog4(int64_t x)
 {
-    return std::ceil(std::log(x) / std::log(NUM_FOUR));
+    return static_cast<int64_t>(std::ceil(std::log(x) / std::log(NUM_FOUR)));
 }
 
 class MoeInitRoutingQuantTilingBase : public Ops::Transformer::OpTiling::TilingBaseClass
@@ -369,7 +369,7 @@ void MoeInitRoutingQuantTilingBase::Tinlig4VBSOneCoreCompute(QuantVBSComputeTili
 void MoeInitRoutingQuantTilingBase::Tinlig4VBSMultiCoreCompute(QuantVBSComputeTilingData* tilingData)
 {
     int64_t needCoreNum = Ops::Base::CeilDiv(totalLength, sortLoopMaxElement); // 向上取整
-    needCoreNum = std::pow(4, CeilLog4(needCoreNum));                    // 用到多核时，核数最多是4^x
+    needCoreNum = static_cast<int64_t>(std::pow(4, CeilLog4(needCoreNum)));                    // 用到多核时，核数最多是4^x
     needCoreNum = std::min(needCoreNum, aivNum);                         // 不能超过物理核数
 
     int64_t perCoreElements = totalLength / needCoreNum; // 每个核处理的元素数
@@ -672,6 +672,7 @@ static ge::graphStatus TilingForMoeInitRoutingQuant(gert::TilingContext* context
 
 static ge::graphStatus TilingPrepareForMoeInitRoutingQuant(gert::TilingParseContext* context)
 {
+    (void)context;
     return ge::GRAPH_SUCCESS;
 }
 

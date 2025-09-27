@@ -43,7 +43,7 @@ const std::tuple<aclTensor*, aclTensor*, aclTensor*, aclTensor*>  MoeTokenUnperm
                      OP_INPUT(permutedTokens, sortedIndices, routingMapOptional, probsOptional),
                      OP_OUTPUT(unpermutedTokens, outIndex, permuteTokenId, permuteProbs),
                      OP_ATTR(paddedMode, restoreShapeOptional));
-
+    (void)retAicore;
     return std::tie(unpermutedTokens, outIndex, permuteTokenId, permuteProbs);
 }
 

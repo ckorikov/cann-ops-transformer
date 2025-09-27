@@ -130,7 +130,7 @@ private:
     int64_t normType_ = NORM_TYPE_SOFTMAX;
     int64_t outFlag_ = OUT_FLAG_FALSE;
     float routedScalingFactor_ = 1.0;
-    float eps_ = 1e-20;
+    float eps_ = 1e-20f;
 
     int64_t inputDtypeSize_;
     const char *opName_ = "";
@@ -157,13 +157,13 @@ ge::graphStatus MoeGatingTopKTilingBase::CheckInputShape()
                     return ge::GRAPH_FAILED);
         OP_CHECK_IF(
             biasShape_->GetDim(0) != expertCount_,
-            OP_LOGE(context_, "The first dim of bias is: %zu, but should be %lu.", biasShape_->GetDim(0), expertCount_),
+            OP_LOGE(context_, "The first dim of bias is: %lu, but should be %ld.", biasShape_->GetDim(0), expertCount_),
             return ge::GRAPH_FAILED);
     }
     moeGatingTopKTilingData_.set_addBias(addBias_);
 
     OP_CHECK_IF(k_ > expertCount_,
-                OP_LOGE(context_, "k is: %lu, expert num is: %ld, k cannot be greater than expert num.", k_, expertCount_),
+                OP_LOGE(context_, "k is: %ld, expert num is: %ld, k cannot be greater than expert num.", k_, expertCount_),
                 return ge::GRAPH_FAILED);
     return ge::GRAPH_SUCCESS;
 }
@@ -172,7 +172,7 @@ ge::graphStatus MoeGatingTopKTilingBase::CheckAttr()
 {
     OP_CHECK_IF(
         expertCount_ > MAX_EXPERT_COUNT,
-        OP_LOGE(context_, "expert count is: %ld, but should not greater than %zu.", expertCount_, MAX_EXPERT_COUNT),
+        OP_LOGE(context_, "expert count is: %ld, but should not greater than %ld.", expertCount_, MAX_EXPERT_COUNT),
         return ge::GRAPH_FAILED);
 
     OP_CHECK_IF(k_ <= 0, OP_LOGE(context_, "k is: %ld, but should be greater than 0.", k_), return ge::GRAPH_FAILED);
@@ -222,7 +222,7 @@ ge::graphStatus MoeGatingTopKTilingBase::CheckAttr()
     if (groupCount_ != 1 && groupCount_ != expertCount_ && kGroup_ != groupCount_) {
         // 非分组场景下才需要校验对齐后的数量
         OP_CHECK_IF(groupCount_ * groupExpertCountAlign > MAX_EXPERT_COUNT,
-                    OP_LOGE(context_, "group count * group expert count align is: %ld, but should not greater than %zu.",
+                    OP_LOGE(context_, "group count * group expert count align is: %ld, but should not greater than %ld.",
                          groupCount_ * groupExpertCountAlign, MAX_EXPERT_COUNT),
                     return ge::GRAPH_FAILED);
     }
@@ -382,16 +382,16 @@ ge::graphStatus MoeGatingTopKTilingBase::GetPlatformInfo()
 ge::graphStatus MoeGatingTopKTilingBase::CheckOutShape()
 {
     OP_CHECK_IF((yShape_->GetDimNum() != xShape_->GetDimNum()),
-                OP_LOGE(context_, "y out shape num %ld and x shape num %ld not equal, please check.", yShape_->GetDimNum(),
+                OP_LOGE(context_, "y out shape num %zu and x shape num %zu not equal, please check.", yShape_->GetDimNum(),
                      xShape_->GetDimNum()),
                 return ge::GRAPH_FAILED);
     OP_CHECK_IF((expertIdxShape_->GetDimNum() != xShape_->GetDimNum()),
-                OP_LOGE(context_, "expertId out shape num %ld and x shape num %ld not equal, please check.",
+                OP_LOGE(context_, "expertId out shape num %zu and x shape num %zu not equal, please check.",
                      expertIdxShape_->GetDimNum(), xShape_->GetDimNum()),
                 return ge::GRAPH_FAILED);
     if (outShape_ != nullptr) {
         OP_CHECK_IF((outShape_->GetDimNum() != xShape_->GetDimNum()),
-                    OP_LOGE(context_, "norm out shape num %ld and x shape num %ld not equal, please check.",
+                    OP_LOGE(context_, "norm out shape num %zu and x shape num %zu not equal, please check.",
                          outShape_->GetDimNum(), xShape_->GetDimNum()),
                     return ge::GRAPH_FAILED);
     }

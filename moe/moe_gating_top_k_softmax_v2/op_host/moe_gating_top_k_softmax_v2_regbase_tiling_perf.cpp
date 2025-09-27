@@ -60,7 +60,7 @@ private:
     MoeGatingTopKSoftmaxV2PerfRegbaseTilingData tilingData;
 
     uint32_t calcMaxRowInUb(
-        const int64_t ubSize, const ge::DataType dtype, const uint32_t k, const uint32_t blockRow, const uint32_t col);
+        const int64_t ubSize, const uint32_t blockRow);
 
     bool isBufferSizeEnough(const uint32_t curRowInUb, const uint32_t tmpUbSize);
 
@@ -81,9 +81,9 @@ bool MoeGatingTopKSoftmaxV2PerfRegbaseTiling::IsCapable()
 
 ge::graphStatus MoeGatingTopKSoftmaxV2PerfRegbaseTiling::DoOpTiling()
 {
-    gatingAlignCol = calcGatingAlignCol(col, dtype);
+    gatingAlignCol = calcGatingAlignCol(col);
     doubleBufferFlag = getDoubleBufferFlag();
-    maxRow = calcMaxRowInUb(ubSize, dtype, k, CeilDiv(row, coreNum), gatingAlignCol);
+    maxRow = calcMaxRowInUb(ubSize, CeilDiv(row, coreNum));
     maxRow = std::min(maxRow, static_cast<uint32_t>(MAX_ROW / (gatingAlignCol / ALIGN_NUM)));
 
     tilingData.set_row(row);
@@ -206,10 +206,10 @@ bool MoeGatingTopKSoftmaxV2PerfRegbaseTiling::isBufferSizeEnough(const uint32_t 
 }
 
 uint32_t MoeGatingTopKSoftmaxV2PerfRegbaseTiling::calcMaxRowInUb(
-    const int64_t ubSize, const ge::DataType dtype, const uint32_t k, const uint32_t blockRow, const uint32_t col)
+    const int64_t ubSizeLocal, const uint32_t blockRow)
 {
     uint32_t ubOuter = 1;
-    int64_t tmpUbSize = ubSize;
+    int64_t tmpUbSize = ubSizeLocal;
     uint32_t curRowInUb;
     while (true) {
         curRowInUb = CeilDiv(blockRow, ubOuter);

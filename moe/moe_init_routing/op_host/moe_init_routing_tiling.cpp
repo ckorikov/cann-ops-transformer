@@ -691,6 +691,7 @@ static ge::graphStatus TilingForMoeInitRouting(gert::TilingContext* context)
 
 static ge::graphStatus TilingPrepareForMoeInitRounting(gert::TilingParseContext* context)
 {
+    (void)context;
     return ge::GRAPH_SUCCESS;
 }
 

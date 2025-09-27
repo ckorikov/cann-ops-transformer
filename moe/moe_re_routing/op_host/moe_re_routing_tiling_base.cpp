@@ -42,7 +42,7 @@ static std::tuple<int64_t, int64_t> GetShapeTuple(const gert::TilingContext *con
         shapePtr == nullptr, OP_LOGE(context->GetNodeName(), "Shape is nullptr."), return std::make_tuple(0, 0));
     // check shape length is DIM_SIZE_TWO
     OP_CHECK_IF(shapePtr->GetStorageShape().GetDimNum() != DIM_SIZE_TWO,
-        OP_LOGE(context->GetNodeName(), "Shape must be 2D, but get %ld.", shapePtr->GetStorageShape().GetDimNum()),
+        OP_LOGE(context->GetNodeName(), "Shape must be 2D, but get %zu.", shapePtr->GetStorageShape().GetDimNum()),
         return std::make_tuple(0, 0));
     return std::make_tuple(shapePtr->GetStorageShape().GetDim(0), shapePtr->GetStorageShape().GetDim(1));
 }
@@ -67,10 +67,10 @@ ge::graphStatus MoeReRoutingTilingBase::GetPlatformInfo()
         socVersion_ = ascendcPlatform.GetSocVersion();
     }
     OP_CHECK_IF((coreNum_ <= 0),
-        OP_LOGE(context_->GetNodeName(), "GetHardwareInfo Failed, coreNum:%lu", coreNum_),
+        OP_LOGE(context_->GetNodeName(), "GetHardwareInfo Failed, coreNum:%zu", coreNum_),
         return ge::GRAPH_FAILED);
     OP_CHECK_IF(ubSize_ <= 0,
-        OP_LOGE(context_->GetNodeName(), "GetHardwareInfo Failed, ubSize:%lu.", ubSize_),
+        OP_LOGE(context_->GetNodeName(), "GetHardwareInfo Failed, ubSize:%ld.", ubSize_),
         return ge::GRAPH_FAILED);
     return ge::GRAPH_SUCCESS;
 }
@@ -172,7 +172,7 @@ ge::graphStatus MoeReRoutingTilingBase::CheckOutputShape() const
     auto tokenIdxShape = tokenIdxShapePtr->GetStorageShape();
     OP_CHECK_IF(tokenIdxShape.GetDimNum() != 1,
         OP_LOGE(
-            context_->GetNodeName(), "tokenIdxShape shape only support dim 1 actual %ld.", tokenIdxShape.GetDimNum()),
+            context_->GetNodeName(), "tokenIdxShape shape only support dim 1 actual %zu.", tokenIdxShape.GetDimNum()),
         return ge::GRAPH_FAILED);
     OP_CHECK_IF(tokenIdxShape.GetDim(0) != tokenSum_,
         OP_LOGE(context_->GetNodeName(),
@@ -187,7 +187,7 @@ ge::graphStatus MoeReRoutingTilingBase::CheckOutputShape() const
     auto tokenNumShape = tokenNumShapePtr->GetStorageShape();
     OP_CHECK_IF(tokenNumShape.GetDimNum() != 1,
         OP_LOGE(
-            context_->GetNodeName(), "tokenNumShape shape only support dim 1 actual %ld.", tokenNumShape.GetDimNum()),
+            context_->GetNodeName(), "tokenNumShape shape only support dim 1 actual %zu.", tokenNumShape.GetDimNum()),
         return ge::GRAPH_FAILED);
     OP_CHECK_IF(tokenNumShape.GetDim(0) != expertNum_,
         OP_LOGE(context_->GetNodeName(),

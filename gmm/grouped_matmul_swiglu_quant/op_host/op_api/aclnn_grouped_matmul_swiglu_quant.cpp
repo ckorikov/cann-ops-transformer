@@ -296,6 +296,7 @@ static bool CheckInputOutShape_A8W4(const aclTensor *x, const aclTensor *weight,
                 k, K_LIMIT);
         return false;
     }
+    (void)KGroupSize;
     return true;
 }
 
