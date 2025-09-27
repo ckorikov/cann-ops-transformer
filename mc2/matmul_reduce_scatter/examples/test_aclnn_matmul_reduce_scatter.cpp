@@ -9,14 +9,14 @@
  */
 
 /*!
- * \file test_matmul_reduce_scatter.cpp
+ * \file test_aclnn_matmul_reduce_scatter.cpp
  * \brief
  */
 
  #include <thread>
  #include <iostream>
  #include <vector>
- #include "aclnnop/aclnn_matmul_reduce_scatter.h"
+ #include "../op_host/op_api/aclnn_matmul_reduce_scatter.h"
  
  #define CHECK_RET(cond, return_expr) \
      do {                             \
