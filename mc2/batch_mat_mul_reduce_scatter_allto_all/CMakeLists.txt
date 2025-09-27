@@ -18,7 +18,3 @@ foreach(SUB_DIR ${CURRENT_DIRS})
         add_subdirectory(${SUB_DIR})
     endif()
 endforeach()
-
-if(BUILD_OPEN_PROJECT)
-     set(batch_mat_mul_reduce_scatter_allto_all_depends mc2/common mc2/3rd PARENT_SCOPE)
-endif()

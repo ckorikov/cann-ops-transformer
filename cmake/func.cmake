@@ -54,6 +54,7 @@ function(op_add_subdirectory OP_LIST OP_DIR_LIST)
             "${CMAKE_CURRENT_SOURCE_DIR}/posembedding/**/op_host/CMakeLists.txt"
             "${CMAKE_CURRENT_SOURCE_DIR}/moe/**/op_host/CMakeLists.txt"
             "${CMAKE_CURRENT_SOURCE_DIR}/ffn/**/op_host/CMakeLists.txt"
+            "${CMAKE_CURRENT_SOURCE_DIR}/mc2/**/op_host/CMakeLists.txt"
         )
         List(APPEND OP_HOST_CMAKE_FILES ${CANNDEV_OPS_HOST_CMAKE_FILES})
     endif()
@@ -100,58 +101,6 @@ function(op_add_subdirectory OP_LIST OP_DIR_LIST)
     list(SORT _OP_DIR_LIST)
     set(${OP_LIST} ${_OP_LIST} PARENT_SCOPE)
     set(${OP_DIR_LIST} ${_OP_DIR_LIST} PARENT_SCOPE)
-endfunction()
-
-function(mc2_op_add_subdirectory MC2_OP_LIST MC2_OP_DIR_LIST)
-    set(_OP_LIST)
-    set(_OP_DIR_LIST)
-
-    file(GLOB OP_HOST_CMAKE_FILES 
-    "${CMAKE_CURRENT_SOURCE_DIR}/mc2/**/op_host/CMakeLists.txt"
-    "${CMAKE_CURRENT_SOURCE_DIR}/mc2/**/CMakeLists.txt")
-
-    foreach(OP_CMAKE_FILE ${OP_HOST_CMAKE_FILES})
-        if ("${OP_CMAKE_FILE}" MATCHES "op_host")
-            get_filename_component(OP_HOST_DIR "${OP_CMAKE_FILE}" DIRECTORY)
-            get_filename_component(OP_DIR "${OP_HOST_DIR}" DIRECTORY)
-        else()
-            get_filename_component(OP_DIR "${OP_CMAKE_FILE}" DIRECTORY)
-        endif()
-        get_filename_component(OP_NAME "${OP_DIR}" NAME)
-
-        if (NOT BUILD_OPEN_PROJECT)
-            if (EXISTS ${TOP_DIR}/asl/ops/cann/ops/built-in/tbe/impl/ascendc/${OP_NAME})
-                continue()
-            endif ()
-        endif ()
-
-        if (DEFINED ASCEND_OP_NAME AND NOT "${ASCEND_OP_NAME}" STREQUAL "")
-            if (NOT "${ASCEND_OP_NAME}" STREQUAL "all" AND NOT "${ASCEND_OP_NAME}" STREQUAL "ALL")
-                if (NOT ${OP_NAME} IN_LIST ASCEND_OP_NAME)
-                    continue()
-                endif ()
-            endif ()
-        endif ()
-
-        if (ENABLE_TEST)
-            file(READ "${OP_DIR}/tests/CMakeLists.txt" CML_CONTENT)
-            if (CML_CONTENT MATCHES "OpsTest_Level2_AddOp")
-                set(UTEST_FRAMEWORK_OLD TRUE CACHE BOOL "UTEST_FRAMEWORK_OLD" FORCE)
-            else()
-                set(UTEST_FRAMEWORK_NEW TRUE CACHE BOOL "UTEST_FRAMEWORK_NEW" FORCE)
-            endif()
-        endif()
-
-        list(APPEND _OP_LIST ${OP_NAME})
-        list(APPEND _OP_DIR_LIST ${OP_DIR})
-    endforeach()
-
-    list(REMOVE_DUPLICATES _OP_LIST)
-    list(REMOVE_DUPLICATES _OP_DIR_LIST)
-    list(SORT _OP_LIST)
-    list(SORT _OP_DIR_LIST)
-    set(${MC2_OP_LIST} ${_OP_LIST} PARENT_SCOPE)
-    set(${MC2_OP_DIR_LIST} ${_OP_DIR_LIST} PARENT_SCOPE)
 endfunction()
 
 function(op_add_depend_directory)
@@ -387,8 +336,18 @@ function(add_ops_src_copy)
         file(GLOB SRC_FILES ${SRC_COPY_SRC}/*)
     endif()
     list(FILTER SRC_FILES EXCLUDE REGEX "op_host")
-    if (NOT TARGET ${SRC_COPY_TARGET_NAME})
-        set(_BUILD_FLAG ${SRC_COPY_DST}/${SRC_COPY_TARGET_NAME}.done)
+
+    get_filename_component(PARENT_PTH "${SRC_COPY_SRC}" DIRECTORY)
+    get_filename_component(CUR_NAME "${SRC_COPY_SRC}" NAME)
+    get_filename_component(PARENT_NAME "${PARENT_PTH}" NAME)
+
+    set(DOING_TARGET_NAME ${SRC_COPY_TARGET_NAME})
+    if(${CUR_NAME} STREQUAL "common")
+        set(DOING_TARGET_NAME ${PARENT_NAME}_${DOING_TARGET_NAME})
+    endif()
+
+    if (NOT TARGET ${DOING_TARGET_NAME})
+        set(_BUILD_FLAG ${SRC_COPY_DST}/${DOING_TARGET_NAME}.done)
         if (NOT BUILD_OPS_RTY_KERNEL AND BELONG_MC2_OPS)
             add_custom_command(OUTPUT ${_BUILD_FLAG}
                     COMMAND mkdir -p ${SRC_COPY_DST}
@@ -404,17 +363,17 @@ function(add_ops_src_copy)
             )
         endif()
 
-        add_custom_target(${SRC_COPY_TARGET_NAME}
+        add_custom_target(${DOING_TARGET_NAME}
                 DEPENDS ${_BUILD_FLAG}
         )
     endif ()
 
     if (TARGET ${OPS_UTILS_INC_KERNEL_TARGET})
-        add_dependencies(${SRC_COPY_TARGET_NAME} ${OPS_UTILS_INC_KERNEL_TARGET})
+        add_dependencies(${DOING_TARGET_NAME} ${OPS_UTILS_INC_KERNEL_TARGET})
     endif ()
 
     if (DEFINED SRC_COPY_BE_RELIED)
-        add_dependencies(${SRC_COPY_BE_RELIED} ${SRC_COPY_TARGET_NAME})
+        add_dependencies(${SRC_COPY_BE_RELIED} ${DOING_TARGET_NAME})
     endif ()
 
 endfunction()

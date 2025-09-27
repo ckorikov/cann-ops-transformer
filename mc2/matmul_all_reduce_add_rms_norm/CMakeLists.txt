@@ -17,6 +17,3 @@ foreach(SUB_DIR ${CURRENT_DIRS})
         add_subdirectory(${SUB_DIR})
     endif()
 endforeach()
-if (BUILD_OPEN_PROJECT)  # custom
-    set(matmul_all_reduce_add_rms_norm_depends mc2/ PARENT_SCOPE)
-endif()

@@ -12,7 +12,9 @@ if (BUILD_OPEN_PROJECT)  # custom
          matmul_reduce_scatter_def.cpp
      )
      add_mc2_modules_sources(OPTYPE matmul_reduce_scatter matmul_reduce_scatter ACLNNTYPE aclnn aclnn_inner)
- else() # 回黄host
+    set(MC2_OPT ON PARENT_SCOPE)
+    set(matmul_reduce_scatter_depends mc2/common mc2/3rd PARENT_SCOPE)
+else() # 回黄host
      add_mc2_modules_sources(OPTYPE matmul_reduce_scatter matmul_reduce_scatter ACLNNTYPE aclnn aclnn_inner) 
  endif()
 

@@ -12,6 +12,8 @@ if (BUILD_OPEN_PROJECT)  # custom
         grouped_mat_mul_allto_allv_def.cpp
     )
     add_mc2_modules_sources(OPTYPE grouped_mat_mul_allto_allv grouped_mat_mul_allto_allv ACLNNTYPE aclnn aclnn_inner)
+    set(MC2_OPT ON PARENT_SCOPE)
+    set(grouped_mat_mul_allto_allv_depends mc2/common mc2/3rd PARENT_SCOPE)
 else() # 回黄host
     add_mc2_modules_sources(OPTYPE grouped_mat_mul_allto_allv grouped_mat_mul_allto_allv ACLNNTYPE aclnn aclnn_inner) 
 endif()

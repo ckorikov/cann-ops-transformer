@@ -12,6 +12,8 @@ if (BUILD_OPEN_PROJECT)  # custom
     #     inplace_matmul_all_reduce_add_rms_norm_def.cpp
     # )
     # add_mc2_modules_sources(OPTYPE inplace_matmul_all_reduce_add_rms_norm inplace_matmul_all_reduce_add_rms_norm ACLNNTYPE aclnn aclnn_inner)
-else() # 回黄host
+    # set(MC2_OPT ON PARENT_SCOPE)
+    # set(inplace_matmul_all_reduce_add_rms_norm_depends mc2/ PARENT_SCOPE)
+    else() # 回黄host
     add_mc2_modules_sources(OPTYPE inplace_matmul_all_reduce_add_rms_norm inplace_matmul_all_reduce_add_rms_norm ACLNNTYPE aclnn aclnn_inner)
 endif()

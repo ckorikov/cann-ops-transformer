@@ -38,12 +38,6 @@
          target_sources(${OPHOST_NAME}_tiling_obj PRIVATE ${MC2_3RD_SRCS})
      endif()
 
-     file(GLOB MC2_OPAPI_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/matmul_reduce_scatter_v2/op_host/op_api/*.cpp)
-     if(MC2_OPAPI_SRCS)
-         add_opapi_modules()
-         target_sources(${OPHOST_NAME}_opapi_obj PRIVATE ${MC2_OPAPI_SRCS})
-     endif()
-
      #打桩文件
      file(GLOB MC2_DZ 
          ${CMAKE_CURRENT_SOURCE_DIR}/matmul_reduce_scatter_v2/op_host/op_api/aclnn_matmul_reduce_scatter_v2.cpp
@@ -53,6 +47,6 @@
          add_opapi_modules()
          target_sources(${OPHOST_NAME}_opapi_obj PRIVATE ${MC2_DZ})
      endif()
- endif()
+endif()
 
- add_subdirectory(common/op_host)
+add_subdirectory(common/op_host)

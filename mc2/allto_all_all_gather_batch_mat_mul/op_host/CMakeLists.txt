@@ -12,6 +12,8 @@ if (BUILD_OPEN_PROJECT)  # custom
         allto_all_all_gather_batch_mat_mul_def.cpp
     )
     add_mc2_modules_sources(OPTYPE allto_all_all_gather_batch_mat_mul allto_all_all_gather_batch_mat_mul ACLNNTYPE aclnn aclnn_inner)
+    set(MC2_OPT ON PARENT_SCOPE)
+    set(allto_all_all_gather_batch_mat_mul_depends mc2/common mc2/3rd PARENT_SCOPE)
 else() # 回黄host
     add_mc2_modules_sources(OPTYPE allto_all_all_gather_batch_mat_mul allto_all_all_gather_batch_mat_mul ACLNNTYPE aclnn aclnn_inner) 
 endif()

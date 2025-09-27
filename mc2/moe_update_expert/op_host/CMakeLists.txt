@@ -12,6 +12,8 @@ if (BUILD_OPEN_PROJECT)  # custom
         moe_update_expert_def.cpp
     )
     add_mc2_modules_sources(OPTYPE moe_update_expert moe_update_expert ACLNNTYPE aclnn aclnn_inner)
+    set(MC2_OPT ON PARENT_SCOPE)
+    set(moe_update_expert_depends mc2/common mc2/3rd PARENT_SCOPE)
 else() # 回黄host
     add_mc2_modules_sources(OPTYPE moe_update_expert moe_update_expert ACLNNTYPE aclnn aclnn_inner) 
 endif()
