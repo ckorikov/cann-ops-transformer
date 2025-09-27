@@ -289,8 +289,6 @@ static ge::graphStatus TilingPrepare4GroupedMatmulAdd(gert::TilingParseContext* 
     return ge::GRAPH_SUCCESS;
 }
 
-struct GroupedMatmulAddCompileInfo {
-};
 
 IMPL_OP_OPTILING(GroupedMatmulAdd)
     .Tiling(Tiling4GroupedMatmulAdd)

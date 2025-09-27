@@ -23,7 +23,8 @@
 
 namespace optiling {
 constexpr uint16_t MAX_TENSOR_LIST_SIZE = 128;
-
+struct GroupedMatmulAddCompileInfo {
+};
 BEGIN_TILING_DATA_DEF(GmmBaseParams)
 TILING_DATA_FIELD_DEF(int64_t, groupNum);
 TILING_DATA_FIELD_DEF(int64_t, coreNum);

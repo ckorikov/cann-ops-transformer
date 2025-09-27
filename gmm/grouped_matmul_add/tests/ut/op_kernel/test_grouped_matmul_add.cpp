@@ -33,7 +33,7 @@ TEST_F(grouped_matmul_add_test, test_case_bf16)
 {
     system(
         "cp -rf "
-        "../../../../../../../ops/built-in/tests/ut/fast_op_test/grouped_matmul_add/grouped_matmul_add_data ./");
+        "./grouped_matmul_add/grouped_matmul_add_data ./");
     system("chmod -R 755 ./grouped_matmul_add_data/");
     system("cd ./grouped_matmul_add_data/ && python3 gen_data.py 'bf16' '2' '345' '1280' '567'");
     AscendC::SetKernelMode(KernelMode::MIX_MODE);
@@ -105,7 +105,7 @@ TEST_F(grouped_matmul_add_test, test_case_fp16)
 {
     system(
         "cp -rf "
-        "../../../../../../../ops/built-in/tests/ut/fast_op_test/grouped_matmul_add/grouped_matmul_add_data ./");
+        "./grouped_matmul_add/grouped_matmul_add_data ./");
     system("chmod -R 755 ./grouped_matmul_add_data/");
     system("cd ./grouped_matmul_add_data/ && python3 gen_data.py 'fp16' '2' '345' '1280' '567'");
     AscendC::SetKernelMode(KernelMode::MIX_MODE);
