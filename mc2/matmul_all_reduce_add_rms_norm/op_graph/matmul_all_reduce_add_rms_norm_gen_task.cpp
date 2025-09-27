@@ -9,7 +9,7 @@
  */
 
 /*!
- * \file matmul_all_reduce_gen_task.cpp
+ * \file matmul_all_reduce_add_rms_norm_gen_task.cpp
  * \brief
  */
 #include <vector>
@@ -24,13 +24,13 @@
 
 #ifdef BUILD_OPEN_PROJECT
 #include "mc2_gen_task_ops_utils.h"
-#include "matmul_all_reduce_gen_task_utils.h" //in transformer dev
-#include "graph/arg_desc_info.h"
-#include "graph/kernel_launch_info.h"
+#include "matmul_all_reduce_gen_task_ops_utils.h"
+#include "external/graph/arg_desc_info.h"
+#include "external/graph/kernel_launch_info.h"
 #include "register/op_impl_registry.h"
 #include "mc2_log.h"
 #else
-#include "matmul_all_reduce_gen_task_utils.h" //in canndev
+#include "matmul_all_reduce_gen_task_utils.h"
 #include "mc2_gen_task_utils.h"
 #include "register/op_ct_impl_registry.h"
 #endif
@@ -38,36 +38,40 @@
 namespace ops {
 
 #ifdef BUILD_OPEN_PROJECT
-ge::Status MatmulAllReduceCalcParamFunc(gert::ExeResGenerationContext *context)
+ge::Status MatmulAllReduceAddRmsNormCalcParamFunc(gert::ExeResGenerationContext *context)
 {
     const ge::AscendString name = "aicpu kfc server";
     const ge::AscendString reuseKey = "kfc_stream";
     return Mc2GenTaskOpsUtils::CommonKFCMc2CalcParamFunc(context, name, reuseKey);
 }
 
-ge::Status MatmulAllReduceGenTaskFunc(const gert::ExeResGenerationContext *context,
-                                      std::vector<std::vector<uint8_t>> &tasks)
+ge::Status MatmulAllReduceAddRmsNormGenTaskFunc(const gert::ExeResGenerationContext *context,
+                                                std::vector<std::vector<uint8_t>> &tasks)
 {
     return MatmulAllReduceGenTaskOpsUtils::MatmulAllReduceGenTaskCallback(context, tasks);
 }
 
 // new ver
-IMPL_OP(MatmulAllReduce).CalcOpParam(MatmulAllReduceCalcParamFunc).GenerateTask(MatmulAllReduceGenTaskFunc);
+IMPL_OP(MatmulAllReduceAddRmsNorm)
+    .CalcOpParam(MatmulAllReduceAddRmsNormCalcParamFunc)
+    .GenerateTask(MatmulAllReduceAddRmsNormGenTaskFunc);
 #else // mc2 gen task utils
-ge::Status MatmulAllReduceCalcParamFunc(gert::ExeResGenerationContext *context)
+ge::Status MatmulAllReduceAddRmsNormCalcParamFunc(gert::ExeResGenerationContext *context)
 {
     const ge::AscendString name = "aicpu kfc server";
     const ge::AscendString reuseKey = "kfc_stream";
     return Mc2GenTaskUtils::CommonKFCMc2CalcParamFunc(context, name, reuseKey);
 }
 
-ge::Status MatmulAllReduceGenTaskFunc(const gert::ExeResGenerationContext *context,
-                                      std::vector<std::vector<uint8_t>> &tasks)
+ge::Status MatmulAllReduceAddRmsNormGenTaskFunc(const gert::ExeResGenerationContext *context,
+                                                std::vector<std::vector<uint8_t>> &tasks)
 {
     return Mc2GenTaskUtils::CommonKFCMc2GenTask(context, tasks,
                                                 MatmulAllReduceGenTaskUtils::MatmulAllReduceGenTaskCallback);
 }
 
-IMPL_OP_CT(MatmulAllReduce).CalcOpParam(MatmulAllReduceCalcParamFunc).GenerateTask(MatmulAllReduceGenTaskFunc);
+IMPL_OP_CT(MatmulAllReduceAddRmsNorm)
+    .CalcOpParam(MatmulAllReduceAddRmsNormCalcParamFunc)
+    .GenerateTask(MatmulAllReduceAddRmsNormGenTaskFunc);
 #endif
 } // namespace ops

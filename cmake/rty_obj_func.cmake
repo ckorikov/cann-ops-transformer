@@ -114,6 +114,70 @@ function(add_opapi_modules)
   endif()
 endfunction()
 
+# 添加gentask object
+function(add_opmaster_ct_gentask_modules)
+  message(STATUS "add_opmaster_ct_gentask_modules start")
+  if (NOT TARGET ${OPHOST_NAME}_opmaster_ct_gentask_obj)
+    add_library(${OPHOST_NAME}_opmaster_ct_gentask_obj OBJECT)
+    set(BUILD_UT OFF CACHE BOOL "No UT Compilation" FORCE)
+
+    #如果protobuf还没生成的话，要生成.h
+    if(NOT TARGET ops_proto_gen)
+      set(_op_proto_utils_protolist
+      "${TOP_DIR}/metadef/proto/task.proto"
+      "${TOP_DIR}/metadef/proto/ge_ir.proto"
+      )
+      protobuf_generate(ops_proto_gen _proto_cc _proto_h ${_op_proto_utils_protolist} TARGET)
+      message("task.pb.h generate location: ${_proto_h}")
+    endif()
+    add_dependencies(${OPHOST_NAME}_opmaster_ct_gentask_obj ops_proto_gen)
+
+    list(GET _proto_h 0 first_proto_header)
+    get_filename_component(proto_gen_dir "${first_proto_header}" DIRECTORY)
+    get_filename_component(task_pb_dir "${proto_gen_dir}" DIRECTORY)
+
+    target_include_directories(${OPHOST_NAME}_opmaster_ct_gentask_obj
+      PRIVATE ${OP_TILING_INCLUDE}
+      ${task_pb_dir}
+    )
+    target_compile_definitions(${OPHOST_NAME}_opmaster_ct_gentask_obj
+      PRIVATE
+      OP_TILING_LIB
+    )
+    target_compile_options(${OPHOST_NAME}_opmaster_ct_gentask_obj
+      PRIVATE
+      $<$<NOT:$<BOOL:${BUILD_UT}>>:-DDISABLE_COMPILE_V1>
+      -Dgoogle=ascend_private
+      -fvisibility=hidden
+      -fno-strict-aliasing
+    )
+    set(_op_master_ct_gen_task_link_libs
+      -Wl,--no-as-needed
+        graph
+        graph_base
+        exe_graph
+        platform
+        register
+        alog
+        error_manager
+        ops_utils_tiling
+      -Wl,--as-needed
+        c_sec
+        json
+        platform
+        mmpa
+        ascend_protobuf
+    )
+    target_link_libraries(${OPHOST_NAME}_opmaster_ct_gentask_obj
+      PRIVATE
+      $<BUILD_INTERFACE:intf_pub_cxx17>
+      $<$<BOOL:${BUILD_OPEN_PROJECT}>:$<BUILD_INTERFACE:alog_headers>>
+      $<$<NOT:$<BOOL:${BUILD_OPEN_PROJECT}>>:$<BUILD_INTERFACE:slog_headers>>
+      ${_op_master_ct_gen_task_link_libs}
+    )
+  endif()
+endfunction()
+
 # useage: add_modules_sources(OPTYPE ACLNNTYPE)
 # 添加aicpu kernel object
 function(add_aicpu_kernel_modules)
@@ -296,6 +360,31 @@ macro(add_mc2_modules_sources)
   if (AICPU_SRCS)
     add_aicpu_kernel_modules()
     target_sources(${OPHOST_NAME}_aicpu_obj PRIVATE ${AICPU_SRCS})
+  endif()
+
+  file(GLOB GENTASK_SRCS
+      #${SOURCE_DIR}/../op_graph/*_gen_task*.cpp #各个算子的gen task 文件
+      ${SOURCE_DIR}/../op_graph/distribute_barrier_gen_task.cpp #barrier示例
+      ${SOURCE_DIR}/../op_graph/moe_distribute_dispatch_gen_task.cpp
+      ${SOURCE_DIR}/../op_graph/moe_distribute_dispatch_v2_gen_task.cpp
+      ${SOURCE_DIR}/../op_graph/moe_distribute_combine_gen_task.cpp
+      ${SOURCE_DIR}/../op_graph/moe_distribute_combine_v2_gen_task.cpp
+      ${SOURCE_DIR}/../op_graph/moe_distribute_combine_add_rms_norm_gen_task.cpp
+      ${SOURCE_DIR}/../op_graph/allto_all_all_gather_batch_mat_mul_gen_task.cpp
+      ${SOURCE_DIR}/../op_graph/bmm_reduce_scatter_all_to_all_gen_task.cpp
+
+      ${SOURCE_DIR}/../op_graph/all_gather_matmul_gen_task.cpp
+      ${SOURCE_DIR}/../op_graph/matmul_reduce_scatter_gen_task.cpp
+      ${SOURCE_DIR}/../op_graph/allto_allv_grouped_mat_mul_gen_task_training.cpp
+      ${SOURCE_DIR}/../op_graph/grouped_mat_mul_allto_allv_gen_task_training.cpp
+      ${SOURCE_DIR}/../op_graph/matmul_all_reduce_gen_task.cpp
+      ${SOURCE_DIR}/../op_graph/matmul_all_reduce_add_rms_norm_gen_task.cpp
+      ${SOURCE_DIR}/../op_graph/inplace_matmul_all_reduce_add_rms_norm_gen_task.cpp
+      #${OPS_TRANSFORMER_DIR}/mc2/common/src/mc2_gen_task_ops_utils.cpp
+  )
+  if(GENTASK_SRCS)
+    add_opmaster_ct_gentask_modules()
+    target_sources(${OPHOST_NAME}_opmaster_ct_gentask_obj PRIVATE ${GENTASK_SRCS})
   endif()
 
   if (MODULE_OPTYPE)

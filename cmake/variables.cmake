@@ -193,6 +193,12 @@ set(OP_TILING_INCLUDE
   ${TOP_DIR}/ops-base/include/op_common/op_host
   ${TOP_DIR}/ops-base/include
   ${TOP_DIR}/asl/ops/cann/ops/built-in/op_fallback
+
+  ${TOP_DIR}/asl/ops/cann/ops/built-in/op_proto/runtime
+  ${TOP_DIR}/asl/ops/cann/ops/built-in/op_tiling/device/error
+  ${METADEF_DIR}
+  ${RUNTIME_INC_DIR}/runtime/platform/inc
+  ${METADEF_DIR}/inc/external/ge
 )
 
 set(OP_PROTO_INCLUDE

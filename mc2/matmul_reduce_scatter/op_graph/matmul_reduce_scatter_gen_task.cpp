@@ -12,23 +12,60 @@
  * \file matmul_reduce_scatter_gen_task.cpp
  * \brief
  */
-#include "register/op_ct_impl_registry.h"
+#include <vector>
+#include <map>
+#include <set>
+#include <string>
+
+
+#include "runtime/rt_model.h"
+#include "runtime/kernel.h"
+#include "op_mc2.h"
+#include "platform/platform_info.h"
+
+#ifdef BUILD_OPEN_PROJECT
+#include "mc2_gen_task_ops_utils.h"
+#include "graph/arg_desc_info.h"
+#include "graph/kernel_launch_info.h"
+#include "register/op_impl_registry.h"
+#include "mc2_log.h"
+#else
 #include "mc2_gen_task_utils.h"
+#include "register/op_ct_impl_registry.h"
+#endif
 
 namespace ops {
-static ge::Status MatmulReduceScatterGenTaskCallback(const gert::ExeResGenerationContext *context,
-                                                     std::vector<domi::TaskDef> &tasks) {
-  return Mc2GenTaskUtils::Mc2GenTaskCallBack910A2(context, tasks);
-}
-
-static ge::Status MatmulReduceScatterCalcOpParam(gert::ExeResGenerationContext *context) {
-  return Mc2GenTaskUtils::CommonKFCMc2CalcParamFunc(context, "aicpu kfc server", "kfc_stream");
+#ifdef BUILD_OPEN_PROJECT
+static ge::Status MatmulReduceScatterCalcOpParam(gert::ExeResGenerationContext *context)
+{
+    return Mc2GenTaskOpsUtils::CommonKFCMc2CalcParamFunc(context, "aicpu kfc server", "kfc_stream");
 }
 
 static ge::Status MatmulReduceScatterGenTask(const gert::ExeResGenerationContext *context,
-                                             std::vector<std::vector<uint8_t>> &tasks) {
-  return Mc2GenTaskUtils::CommonKFCMc2GenTask(context, tasks, MatmulReduceScatterGenTaskCallback);
+                                             std::vector<std::vector<uint8_t>> &tasks)
+{
+    return Mc2GenTaskOpsUtils::CommonKFCMc2GenTask(context, tasks);
+}
+
+IMPL_OP(MatmulReduceScatter).CalcOpParam(MatmulReduceScatterCalcOpParam).GenerateTask(MatmulReduceScatterGenTask);
+#else // mc2 gen task utils
+static ge::Status MatmulReduceScatterGenTaskCallback(const gert::ExeResGenerationContext *context,
+                                                     std::vector<domi::TaskDef> &tasks)
+{
+    return Mc2GenTaskUtils::Mc2GenTaskCallBack910A2(context, tasks);
+}
+
+static ge::Status MatmulReduceScatterCalcOpParam(gert::ExeResGenerationContext *context)
+{
+    return Mc2GenTaskUtils::CommonKFCMc2CalcParamFunc(context, "aicpu kfc server", "kfc_stream");
+}
+
+static ge::Status MatmulReduceScatterGenTask(const gert::ExeResGenerationContext *context,
+                                             std::vector<std::vector<uint8_t>> &tasks)
+{
+    return Mc2GenTaskUtils::CommonKFCMc2GenTask(context, tasks, MatmulReduceScatterGenTaskCallback);
 }
 
 IMPL_OP_CT(MatmulReduceScatter).CalcOpParam(MatmulReduceScatterCalcOpParam).GenerateTask(MatmulReduceScatterGenTask);
+#endif
 } // namespace ops

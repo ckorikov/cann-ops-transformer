@@ -9,7 +9,7 @@
  */
 
 /*!
- * \file moe_distribute_combine_gen_task.cpp
+ * \file moe_distribute_combine_v2_gen_task.cpp
  * \brief
  */
 #include <vector>
@@ -55,14 +55,14 @@ static bool IsPlatform910B(const char *nodeName)
 }
 
 #ifdef BUILD_OPEN_PROJECT
-ge::Status MoeDistributeCombineCalcParamFunc(gert::ExeResGenerationContext *context)
+ge::Status MoeDistributeCombineV2CalcParamFunc(gert::ExeResGenerationContext *context)
 {
     const ge::AscendString name = "aicpu kfc server";
     const ge::AscendString reuseKey = "kfc_stream";
     return Mc2GenTaskOpsUtils::CommonKFCMc2CalcParamFunc(context, name, reuseKey);
 }
 
-ge::Status MoeDistributeCombineGenTaskFunc(const gert::ExeResGenerationContext *context,
+ge::Status MoeDistributeCombineV2GenTaskFunc(const gert::ExeResGenerationContext *context,
                                             std::vector<std::vector<uint8_t>> &tasks)
 {
     const char *nodeName = context->GetNodeName();
@@ -74,18 +74,18 @@ ge::Status MoeDistributeCombineGenTaskFunc(const gert::ExeResGenerationContext *
 }
 
 // new ver
-IMPL_OP(MoeDistributeCombine)
-    .CalcOpParam(MoeDistributeCombineCalcParamFunc)
-    .GenerateTask(MoeDistributeCombineGenTaskFunc);
+IMPL_OP(MoeDistributeCombineV2)
+    .CalcOpParam(MoeDistributeCombineV2CalcParamFunc)
+    .GenerateTask(MoeDistributeCombineV2GenTaskFunc);
 #else // mc2 gen task utils
-ge::Status MoeDistributeCombineCalcParamFunc(gert::ExeResGenerationContext *context)
+ge::Status MoeDistributeCombineV2CalcParamFunc(gert::ExeResGenerationContext *context)
 {
     const ge::AscendString name = "aicpu kfc server";
     const ge::AscendString reuseKey = "kfc_stream";
     return Mc2GenTaskUtils::CommonKFCMc2CalcParamFunc(context, name, reuseKey);
 }
 
-ge::Status MoeDistributeCombineGenTaskFunc(const gert::ExeResGenerationContext *context,
+ge::Status MoeDistributeCombineV2GenTaskFunc(const gert::ExeResGenerationContext *context,
                                             std::vector<std::vector<uint8_t>> &tasks)
 {
     const char *nodeName = context->GetNodeName();
@@ -95,8 +95,8 @@ ge::Status MoeDistributeCombineGenTaskFunc(const gert::ExeResGenerationContext *
     return Mc2GenTaskUtils::CommonKFCMc2GenTask(context, tasks, Mc2GenTaskMoe::Mc2MoeGenTaskCallbackV2);
 }
 
-IMPL_OP_CT(MoeDistributeCombine)
-    .CalcOpParam(MoeDistributeCombineCalcParamFunc)
-    .GenerateTask(MoeDistributeCombineGenTaskFunc);
+IMPL_OP_CT(MoeDistributeCombineV2)
+    .CalcOpParam(MoeDistributeCombineV2CalcParamFunc)
+    .GenerateTask(MoeDistributeCombineV2GenTaskFunc);
 #endif
 } // namespace ops

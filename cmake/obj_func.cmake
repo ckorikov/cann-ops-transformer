@@ -167,6 +167,22 @@ macro(add_mc2_modules_sources)
     )
   endif()
 
+  file(GLOB GENTASK_SRCS
+      #${SOURCE_DIR}/../op_graph/*_gen_task*.cpp #各个算子的gen task 文件
+      #${SOURCE_DIR}/../op_graph/distribute_barrier_gen_task.cpp #barrier示例
+      #${SOURCE_DIR}/../op_graph/moe_distribute_dispatch_gen_task.cpp
+      #${SOURCE_DIR}/../op_graph/moe_distribute_dispatch_v2_gen_task.cpp
+      #${SOURCE_DIR}/../op_graph/moe_distribute_combine_gen_task.cpp
+      #${SOURCE_DIR}/../op_graph/moe_distribute_combine_v2_gen_task.cpp
+      #${SOURCE_DIR}/../op_graph/moe_distribute_combine_add_rms_norm_gen_task.cpp
+      #${SOURCE_DIR}/../op_graph/allto_all_all_gather_batch_mat_mul_gen_task.cpp
+      #${SOURCE_DIR}/../op_graph/bmm_reduce_scatter_all_to_all_gen_task.cpp
+  )
+  if(GENTASK_SRCS)
+    add_opmaster_ct_gentask_modules()
+    target_sources(${OPHOST_NAME}_opmaster_ct_gentask_obj PRIVATE ${GENTASK_SRCS})
+  endif()
+
   file(GLOB AICPU_SRCS ${MODULE_DIR}/*_aicpu*.cpp)
   if (AICPU_SRCS)
     add_aicpu_kernel_modules()
