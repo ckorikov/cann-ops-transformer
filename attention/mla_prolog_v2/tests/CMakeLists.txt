@@ -20,18 +20,17 @@ set(_mla_prolog_v2_TilingSourcesExt
 )
 
 set(_mla_prolog_v2_KernelTilingDataDefH
-        ${OPS_TRANSFORMER_DIR}/common/tiling_base/data_copy_transpose_tiling_def.h
+        ${OPS_TRANSFORMER_DIR}/common/include/tiling_base/data_copy_transpose_tiling_def.h
         ${CMAKE_SOURCE_DIR}/attention/mla_prolog/op_host/mla_prolog_tiling.h
 )
 
 set(_mla_prolog_v2_TargetPrivateLinkLibrariesExt
-        ops_utils_tiling_headers
         ${UTest_NamePrefix}_OpTiling
         error_manager
 )
 
 
-aux_source_directory(${CMAKE_SOURCE_DIR}/attention/mla_prolog_v2 _mla_prolog_v2_KernelSourcesExt)
+aux_source_directory(${CMAKE_SOURCE_DIR}/attention/mla_prolog_v2/op_kernel _mla_prolog_v2_KernelSourcesExt)
 
 OpsTest_Level2_AddOp(
         SUB_SYSTEM                              transformer
@@ -39,7 +38,7 @@ OpsTest_Level2_AddOp(
         SNAKE                                   mla_prolog_v2
         KERNEL_TILING_DATA_DEF_H                ${_mla_prolog_v2_KernelTilingDataDefH}
         KERNEL_SOURCES_EXT                      ${_mla_prolog_v2_KernelSourcesExt}
-        KERNEL_PRIVATE_INCLUDES_EXT             ${OPS_ADV_DIR}/src/utils/inc/kernel
+        KERNEL_PRIVATE_INCLUDES_EXT             ${OPS_ADV_DIR}/common/include/kernel
         TILING_SOURCES_EXT                      ${_mla_prolog_v2_TilingSourcesExt}
         TILING_PRIVATE_INCLUDES_EXT             ${CMAKE_SOURCE_DIR}/src/transformer/attention/mla_prolog/op_host/
         UTEST_COMMON_PRIVATE_LINK_LIBRARIES_EXT ${_mla_prolog_v2_TargetPrivateLinkLibrariesExt}

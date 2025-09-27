@@ -212,7 +212,7 @@ bool MlaPrologV2Case::DoOpTiling(DoTilingParam &tilingParam)
     if (priority == Case::kTilingTemplatePriority_Invalid) {
         return false;
     }
-    tilingParam.ret = optiling::TilingRegistry::GetInstance().DoTilingImpl(tilingParam.ctx, {priority});
+    tilingParam.ret = Ops::Transformer::OpTiling::TilingRegistryNew::GetInstance().DoTilingImpl(tilingParam.ctx, {priority});
     return true;
 }
 
