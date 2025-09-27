@@ -89,6 +89,11 @@ constexpr uint32_t MLA_VD_SIZE = 128; // typical scene for PFA MLA, can be delet
 static const int64_t GM_ALIGN = 512;
 static const int64_t SLOPE_N_DIM_NUM = 1L;
 
+constexpr int64_t PSE_TYPE_2_TILING_V2 = 2;
+constexpr int64_t PSE_TYPE_3_TILING_V2 = 3;
+constexpr uint32_t QUERY_SHAPE_DIM_D_128_TILING_V2 = 128;
+constexpr int32_t ROPE_DIMENSION_SIZE_TILING_V2 = 64; 
+
 template <typename T>
 static auto AlignUp(T num1, T num2) -> T
 {
@@ -1262,7 +1267,7 @@ bool PromptFlashAttentionTilingV2::CheckRope(ContextParamsForPFATiling& contextK
         return false);
     enableIFA = false;
     enablePFAMerge = false;
-    if (queryShapeInfo.d == 128) {
+    if (queryShapeInfo.d == QUERY_SHAPE_DIM_D_128_TILING_V2) {
         enablePFARope = true;
     } else {
         enableIFAMLA = true;
@@ -3106,7 +3111,7 @@ ge::graphStatus PromptFlashAttentionTilingV2::SetAttributeInfo(ContextParamsForP
             return ge::GRAPH_FAILED);
         faTilingAdapter.inputParamsRegbase.set_pseType(pseType);
     }
-    if (pseType == 2 || pseType == 3) {
+    if (pseType == PSE_TYPE_2_TILING_V2 || pseType == PSE_TYPE_3_TILING_V2) {
         enableAlibiPse = true;
         enablePseShift = false;
     }
@@ -3287,10 +3292,10 @@ ge::graphStatus PromptFlashAttentionTilingV2::CheckSingleAttribute(ContextParams
         if (!CheckAlibiPseShiftTypeAndShape(contextKeyParams, queryShapeInfo.n)){
             return ge::GRAPH_FAILED;
         }
-        if (pseType == 2) {
-            usePseShift = 2;
-        } else if (pseType == 3) {
-            usePseShift = 3;
+        if (pseType == PSE_TYPE_2_TILING_V2) {
+            usePseShift = static_cast<uint32_t>(PSE_TYPE_2_TILING_V2);
+        } else if (pseType == PSE_TYPE_3_TILING_V2) {
+            usePseShift = static_cast<uint32_t>(PSE_TYPE_3_TILING_V2);
         }
     }
     // innerPrecise check
@@ -3549,7 +3554,7 @@ void PromptFlashAttentionTilingV2::PFATilingDataconvert(PromptFlashAttentionTili
     inputParams.set_alignedS2(0); // 默认值
     inputParams.set_dSize(tilingData.promptAttentionBaseParams.get_headSize());
     inputParams.set_dSizeV(tilingData.promptAttentionBaseParams.get_vHeadSize());
-    inputParams.set_dSizeRope(64);
+    inputParams.set_dSizeRope(ROPE_DIMENSION_SIZE_TILING_V2);
     inputParams.set_scaleValue(tilingData.promptAttentionBaseParams.get_scaleValue());
     inputParams.set_preTokens(tilingData.promptAttentionBaseParams.get_preTokens());
     inputParams.set_nextTokens(tilingData.promptAttentionBaseParams.get_nextTokens());

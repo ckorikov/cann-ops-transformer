@@ -22,6 +22,8 @@ constexpr int32_t TWO_PRECISION = 2;
 constexpr int32_t FOUR_PRECISION = 4;
 constexpr int32_t FIVE_PRECISION = 5;
 constexpr int32_t EIGHT_PRECISION = 8;
+constexpr int32_t THIRTY_TWO_PRECISION = 32;
+constexpr int32_t SIXTY_FOUR_PRECISION = 64;
 
 constexpr int32_t MASK_TYPE_ALIBI_COMPRESS_PRECISION = 2;
 constexpr int32_t ALIBI_LEFT_ALIGN_DISABLE_PRECISION = 0;
@@ -32,6 +34,9 @@ constexpr int32_t SBLOCK_STACK_DOUBLE_PRECISION = 2;
 constexpr uint32_t PINGPONG_FLAG_M_MTE1_OFFSET_TWO_PRECISION = 2;
 constexpr uint32_t PINGPONG_FLAG_M_MTE1_OFFSET_FOUR_PRECISION = 4;
 constexpr uint32_t PINGPONG_FLAG_M_MTE1_OFFSET_FIVE_PRECISION = 5;
+
+constexpr int32_t MAX_ALLOWED_LENGTH_PRECISION = 16;  
+constexpr int32_t MIN_ALLOWED_LENGTH_PRECISION = 1; 
 
 template <typename TILING_TYPE, typename IN_DATA_TYPE, const bool IS_BF16 = true, typename...Args>
 struct PFAHighPrecisionMLAType {
@@ -265,7 +270,7 @@ public:
                             qkRoundK = (qkK + BLOCK_SIZE - 1) / BLOCK_SIZE * BLOCK_SIZE;
                             uint64_t qQffsetk = qOffset + BLOCK_QK * kIdx;
                             uint64_t kQffsetk = kOffset + BLOCK_QK * kIdx;
-                            AscendC::WaitFlag<AscendC::HardEvent::MTE1_MTE2>((pingpongFlag + 5));
+                            AscendC::WaitFlag<AscendC::HardEvent::MTE1_MTE2>((pingpongFlag + PINGPONG_FLAG_M_MTE1_OFFSET_FIVE_PRECISION));
                             if (qkM == 1) {
                                 AscendC::DataCopy(l1qBufAddrTensor[offset],
                                                 qGmTensor[qQffsetk],
@@ -693,13 +698,16 @@ public:
 
     __aicore__ __attribute__((always_inline)) inline void __set_vcg_mask(int32_t len)
     {
-        if (len > 16 || len < 1) {
+        if (len > MAX_ALLOWED_LENGTH_PRECISION || len < MIN_ALLOWED_LENGTH_PRECISION) 
+        {
             AscendC::SetVectorMask<int8_t>((uint64_t)-1, (uint64_t)-1);
             return;
         }
+
         uint64_t subMask = ((uint64_t) 1 << len) - 1;
         uint64_t maskValue = (subMask << 48) + (subMask << 32) + (subMask << 16) + subMask +
                              (subMask << 56) + (subMask << 40) + (subMask << 24) + (subMask << 8);
+                             
         AscendC::SetVectorMask<int8_t>(maskValue, maskValue);
     }
 
@@ -919,7 +927,7 @@ public:
                                     );
                                 }
                                 AscendC::PipeBarrier<PIPE_V>();
-                                if (headStride == 0 && maskType != 2) {
+                                if (headStride == ZERO_PRECISION && maskType != MASK_TYPE_ALIBI_COMPRESS_PRECISION) {
                                     AscendC::Muls<float, false>(
                                         maskUbufTensor,
                                         maskUbufTensor,
@@ -1070,7 +1078,7 @@ public:
                                 AscendC::BlockReduceMax<float, false>(
                                     lmUbufTensor,
                                     tvUbufTensor,
-                                    roundSubM * 8 / 64,
+                                    roundSubM * EIGHT_PRECISION / SIXTY_FOUR_PRECISION,
                                     0,
                                     1,
                                     1,
@@ -1374,7 +1382,7 @@ public:
                                 uint64_t maskOffsetTail = 0;
                                 if (alibiCoeffGm != nullptr) {
                                     maskOffset = BASE_MASK_SIZE * SOFTMAX_MAX_LENGTH;
-                                    if (alibiLeftAlign == 0) {
+                                    if (alibiLeftAlign == ALIBI_LEFT_ALIGN_DISABLE_PRECISION) {
                                         delta = baseY * (nIdx + 1 - mIdx);
                                     } else {
                                         delta = -baseY * nIdx;
@@ -1386,11 +1394,11 @@ public:
                                                                             (SOFTMAX_MAX_LENGTH - qkRoundN) / BLOCK_SIZE,
                                                                             0)
                                     );
-                                } else if (maskType == 2 && alibiCompressOffset > 0) {
+                                } else if (maskType == MASK_TYPE_ALIBI_COMPRESS_PRECISION && alibiCompressOffset > ALIBI_COMPRESS_OFFSET_DISABLE_PRECISION) {
                                     deltaUint = mIdx * ppMScalar - nIdx * ppNScalar;
                                     maskOffset = BASE_MASK_SIZE * deltaUint + headIdx * alibiCompressOffset * BASE_MASK_SIZE;
                                     maskOffsetTail = maskOffset - BASE_MASK_SIZE * ppNScalar;
-                                    if (nIdx == nEnd - 2) {
+                                    if (nIdx == nEnd - TWO_PRECISION) {
                                         maskOffsetTail = headIdx * alibiCompressOffset * BASE_MASK_SIZE;
                                     }
                                     AscendC::DataCopy(mask16UbufTensor,
@@ -1408,7 +1416,7 @@ public:
                                                                             8)
                                     );
                                 } else {
-                                    AscendC::DataCopyPad(mask16UbufTensor, maskGmTensor[maskOffset + (subBlockIdx * qkM / 2 + splitIdx * mSlice) * maxSeqlen], AscendC::DataCopyExtParams(mSplit, qkN * 2, (maxSeqlen - qkN) * 2, 0, 0),
+                                    AscendC::DataCopyPad(mask16UbufTensor, maskGmTensor[maskOffset + (subBlockIdx * qkM / TWO_PRECISION + splitIdx * mSlice) * maxSeqlen], AscendC::DataCopyExtParams(mSplit, qkN * TWO_PRECISION, (maxSeqlen - qkN) * TWO_PRECISION, 0, 0),
                                                         AscendC::DataCopyPadExtParams<IN_DATA_TYPE>(false, 0, 0, 0));
                                 }
                                 AscendC::SetFlag<AscendC::HardEvent::MTE2_V>((EVENT_ID1));
@@ -1431,7 +1439,7 @@ public:
                                         AscendC::SetFlag<AscendC::HardEvent::V_MTE2>((EVENT_ID1));
                                         if (alibiCoeffGm != nullptr) {
                                             AscendC::PipeBarrier<PIPE_V>();
-                                            if (nIdx != nEnd - 2) {
+                                            if (nIdx != nEnd - TWO_PRECISION) {
                                                 if (isSqrt == 1) {
                                                     AscendC::Mul<float, false>(
                                                         maskUbufTensor,
@@ -1585,7 +1593,7 @@ public:
                                                 (mSplit * qkRoundN + FLOAT_VECTOR_SIZE - 1) / FLOAT_VECTOR_SIZE,
                                                 AscendC::BinaryRepeatParams(1, 1, 1, 8, 8, 8)
                                             );
-                                        } else if (nIdx == nEnd - 2) {
+                                        } else if (nIdx == nEnd - TWO_PRECISION) {
                                             if (qkN - ppNScalar < FLOAT_VECTOR_SIZE){
                                                 __set_mask(qkN - ppNScalar);
                                             } else {
@@ -1625,7 +1633,7 @@ public:
                                             8
                                         );
                                         AscendC::PipeBarrier<PIPE_V>();
-                                        __set_mask(32);
+                                        __set_mask(THIRTY_TWO_PRECISION);
                                         AscendC::BlockReduceMax<float, false>(
                                              tvUbufTensor,
                                             tvUbufTensor,
@@ -1636,7 +1644,7 @@ public:
                                             4
                                         );
                                         AscendC::PipeBarrier<PIPE_V>();
-                                        __set_vcg_mask(4);
+                                        __set_vcg_mask(FOUR_PRECISION);
                                         AscendC::BlockReduceMax<float, false>(
                                             lmUbufTensor,
                                             tvUbufTensor,
@@ -2105,12 +2113,12 @@ public:
                                 // ********************* move O to GM ************************
                                 AscendC::SetFlag<AscendC::HardEvent::V_MTE3>((EVENT_ID1));
                                 AscendC::WaitFlag<AscendC::HardEvent::V_MTE3>((EVENT_ID1));
-                                AscendC::DataCopyPad(oGmTensor[oOffsetk + (uint64_t)subBlockIdx * qkM / 2 * strideQo],
+                                AscendC::DataCopyPad(oGmTensor[oOffsetk + (uint64_t)subBlockIdx * qkM / TWO_PRECISION * strideQo],
                                                     goUbufTensor.ReinterpretCast<IN_DATA_TYPE>(),
                                                     AscendC::DataCopyExtParams(subM,
-                                                                            qkK * 2,
+                                                                            qkK * TWO_PRECISION,
                                                                             0,
-                                                                            (strideQo - qkK) * 2,
+                                                                            (strideQo - qkK) * TWO_PRECISION,
                                                                             0)
                                 );
                                 AscendC::SetFlag<AscendC::HardEvent::MTE3_MTE2>((EVENT_ID2));

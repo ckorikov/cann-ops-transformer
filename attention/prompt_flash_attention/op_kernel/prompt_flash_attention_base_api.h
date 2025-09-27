@@ -65,6 +65,9 @@ constexpr int32_t MASK_OFFSET_1X_BASE_API = 1;
 constexpr int32_t MASK_OFFSET_2X_BASE_API = 2; 
 constexpr int32_t MASK_OFFSET_3X_BASE_API = 3; 
 
+constexpr int32_t MAX_ALLOWED_LENGTH_BASE_API = 16;  
+constexpr int32_t MIN_ALLOWED_LENGTH_BASE_API = 1; 
+
 struct MNibd {
     int32_t mIbd;
     int32_t nIbd;
@@ -2611,7 +2614,7 @@ __aicore__ __attribute__((always_inline)) inline void __set_mask(int32_t len)
 
 __aicore__ __attribute__((always_inline)) inline void __set_vcg_mask(int32_t len)
 {
-    if (len > 16 || len < 1) {
+    if (len > MAX_ALLOWED_LENGTH_BASE_API || len < MIN_ALLOWED_LENGTH_BASE_API) {
        AscendC::SetVectorMask<int8_t>((uint64_t)-1, (uint64_t)-1);
         return;
     }

@@ -19,6 +19,7 @@
 #include "hardware.h"
 #include "mem.h"
 
+constexpr int32_t ONE_NO_MASK = 1;
 constexpr int32_t TWO_NO_MASK = 2;
 constexpr uint32_t PINGPONG_FLAG_M_MTE1_OFFSET_ONE_NO_MASK = 1;
 constexpr uint32_t PINGPONG_FLAG_M_MTE1_OFFSET_TWO_NO_MASK = 2;
@@ -192,7 +193,7 @@ public:
             nextProcess = process + GetBlockNum();
             if (isTriuMask) {
                 uint32_t currIter = process / GetBlockNum();
-                nextProcess = currIter % 2 == 1 ? (currIter + 1) * GetBlockNum() + GetBlockIdx() : (currIter + 2) * GetBlockNum() - 1 - GetBlockIdx();
+                nextProcess = currIter % TWO_NO_MASK == ONE_NO_MASK ? (currIter + ONE_NO_MASK) * GetBlockNum() + GetBlockIdx() : (currIter + TWO_NO_MASK) * GetBlockNum() - ONE_NO_MASK - GetBlockIdx();
             }
             if (qSeqlen == 0 || kvSeqlen == 0) {
                 continue;
@@ -285,7 +286,7 @@ public:
                             qkRoundN = (qkN + BLOCK_SIZE - 1) / BLOCK_SIZE * BLOCK_SIZE;
                         }
                         bool lastSplit = splitIdx == sBlockStack - 1 || nIdx + splitIdx == nEnd - 1;
-                        AscendC::WaitFlag<AscendC::HardEvent::MTE1_MTE2>(pingpongFlag + 2 * kvPingpongFlag);
+                        AscendC::WaitFlag<AscendC::HardEvent::MTE1_MTE2>(pingpongFlag + TWO_NO_MASK * kvPingpongFlag);
                         if (strideKv < STRIDE_LIMIT) {
                             AscendC::DataCopy(l1kBufAddrTensor[kvPingpongOffset + offset],
                                             kGmTensor[kOffset],
@@ -347,7 +348,7 @@ public:
                                         AscendC::MmadParams(qkM, qkN, __k, 0, false, 1));
                         }
                         AscendC::SetFlag<AscendC::HardEvent::M_MTE1>(pingpongFlag);
-                        AscendC::SetFlag<AscendC::HardEvent::M_MTE1>(pingpongFlag + 2);
+                        AscendC::SetFlag<AscendC::HardEvent::M_MTE1>(pingpongFlag + PINGPONG_FLAG_M_MTE1_OFFSET_TWO_NO_MASK);
                         AscendC::SetFlag<AscendC::HardEvent::M_FIX>(pingpongFlag);
                         AscendC::WaitFlag<AscendC::HardEvent::M_FIX>(pingpongFlag);
                         // copy S to gm
@@ -422,7 +423,7 @@ public:
                                                                 0,                                              // srcGap
                                                                 0));
                         } else {
-                            if (svRoundN * 2 / sizeof(QKV_DT) < STRIDE_LIMIT) {
+                            if (svRoundN * TWO_NO_MASK / sizeof(QKV_DT) < STRIDE_LIMIT) {
                                 AscendC::DataCopy(l1pBufAddrTensor[l1Offset],
                                                 pGmTensor[((uint64_t)GetBlockIdx() * TMP_SIZE +
                                                             (nIdx - launchDelay) % vectMod * TMP_SIZE / vectMod) *
@@ -431,7 +432,7 @@ public:
                                                                         qkM, // nValue
                                                                         __k, // dValue
                                                                         0,           // srcNdMatrixStride, unused
-                                                                        svRoundN * 2 / sizeof(QKV_DT),        // srcDValue
+                                                                        svRoundN * TWO_NO_MASK / sizeof(QKV_DT),        // srcDValue
                                                                         qkRoundM,   // dstNzC0Stride
                                                                         1,           // dstNzNStride
                                                                         0));         // dstNzMatrixStride, unused
@@ -452,8 +453,8 @@ public:
                                 }
                             }
                         }
-                        AscendC::SetFlag<AscendC::HardEvent::MTE2_MTE1>(l1PingpongFlag + 4);
-                        AscendC::WaitFlag<AscendC::HardEvent::MTE2_MTE1>(l1PingpongFlag + 4);
+                        AscendC::SetFlag<AscendC::HardEvent::MTE2_MTE1>(l1PingpongFlag + PINGPONG_FLAG_M_MTE1_OFFSET_FOUR_NO_MASK);
+                        AscendC::WaitFlag<AscendC::HardEvent::MTE2_MTE1>(l1PingpongFlag + PINGPONG_FLAG_M_MTE1_OFFSET_FOUR_NO_MASK);
                         uint32_t dSplitLoop = (d + 127) / 128;
                         for (uint32_t l0KSplitIdx = 0; l0KSplitIdx < dSplitLoop; l0KSplitIdx++) {
                             uint32_t l0PingpongFlag = l0KSplitIdx % 2;
@@ -504,7 +505,7 @@ public:
                             }
                             AscendC::PipeBarrier<PIPE_M>();
                             AscendC::SetFlag<AscendC::HardEvent::M_MTE1>(l0PingpongFlag);
-                            AscendC::SetFlag<AscendC::HardEvent::M_MTE1>(l0PingpongFlag + 2);
+                            AscendC::SetFlag<AscendC::HardEvent::M_MTE1>(l0PingpongFlag + PINGPONG_FLAG_M_MTE1_OFFSET_TWO_NO_MASK);
                         }
                     }
                     AscendC::SetFlag<AscendC::HardEvent::M_FIX>(l0cPingpongFlag);
@@ -887,9 +888,9 @@ public:
                             goUbufTensor.ReinterpretCast<O_DTYPE>(),
                             AscendC::DataCopyExtParams(
                                 subM,
-                                __k * 2,
+                                __k * TWO_NO_MASK,
                                 0,
-                                (strideQo - __k) * 2,
+                                (strideQo - __k) * TWO_NO_MASK,
                                 0)
                         );
                         AscendC::SetFlag<AscendC::HardEvent::MTE3_MTE2>(EVENT_ID2);
