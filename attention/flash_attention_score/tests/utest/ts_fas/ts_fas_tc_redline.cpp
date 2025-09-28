@@ -14,6 +14,16 @@
  */
 
 #include "ts_fas.h"
+#include <utility>
+#include <tikicpulib.h>
+#include <graph/utils/type_utils.h>
+#include <register/op_impl_registry.h>
+#include "tests/utils/log.h"
+#include "tests/utils/platform.h"
+#include "tiling/fa/tiling_data.h"
+#include "tiling/fa/tiling_stub.h"
+#define __NPU_HOST__
+#include "../../../op_kernel/flash_attention_score.cpp"
 
 class Ts_Fas_Ascend910B2_Redline_FullCore : public Ts_Fas_WithParam_Ascend910B2 {};
 
@@ -29,7 +39,7 @@ TEST_F(Ts_Fas_Ascend910B2, Tc_Fas_Redline_FullCore_SpecCase_001)
                "",                                                  /* DebugInfo */
                OpInfoWithSocversion(ControlInfo(true, false),                     /* RunTiling, RunKernel */
                       ExpectInfoWithSocversion(true,                              /* ExpectSuccess */
-                                 10000000001022430943UL,            /* ExpectTilingKey */
+                                 5440824368UL,            /* ExpectTilingKey */
                                  ExpectInfoWithSocversion::kFullTilingBlockDim)), /* ExpectTilingBlockDim */
                FaParam(3, 40, 1, 2048, 2048, 128,                   /* B, N2, G, S1, S2, D */
                        ge::DataType::DT_FLOAT16, LayoutType::TND,   /* Dtype, Layout */
@@ -58,7 +68,7 @@ TEST_F(Ts_Fas_Ascend910B2, Tc_Fas_Redline_Pse_001)
                "",                                                  /* DebugInfo */
                OpInfoWithSocversion(ControlInfo(true, false),                     /* RunTiling, RunKernel */
                       ExpectInfoWithSocversion(false,                             /* ExpectSuccess */
-                                 10000000011022430943UL,            /* ExpectTilingKey */
+                                 14030758960UL,            /* ExpectTilingKey */
                                  ExpectInfoWithSocversion::kFullTilingBlockDim)), /* ExpectTilingBlockDim */
                FaParam(3, 40, 1, 2048, 2048, 128,                   /* B, N2, G, S1, S2, D */
                        ge::DataType::DT_FLOAT16, LayoutType::TND,   /* Dtype, Layout */
@@ -86,7 +96,7 @@ TEST_F(Ts_Fas_Ascend910B2, Tc_Fas_Redline_Pse_002)
                "",                                                  /* DebugInfo */
                OpInfoWithSocversion(ControlInfo(true, false),                     /* RunTiling, RunKernel */
                       ExpectInfoWithSocversion(false,                             /* ExpectSuccess */
-                                 10000000011022430943UL,            /* ExpectTilingKey */
+                                 14030758960UL,            /* ExpectTilingKey */
                                  ExpectInfoWithSocversion::kFullTilingBlockDim)), /* ExpectTilingBlockDim */
                FaParam(3, 40, 1, 2048, 2048, 128,                   /* B, N2, G, S1, S2, D */
                        ge::DataType::DT_FLOAT16, LayoutType::TND,   /* Dtype, Layout */
@@ -114,7 +124,7 @@ TEST_F(Ts_Fas_Ascend910B2, Tc_Fas_Redline_Pse_003)
                "",                                                  /* DebugInfo */
                OpInfoWithSocversion(ControlInfo(true, false),                     /* RunTiling, RunKernel */
                       ExpectInfoWithSocversion(true,                              /* ExpectSuccess */
-                                 10000000011022430943UL,            /* ExpectTilingKey */
+                                 14030758960UL,            /* ExpectTilingKey */
                                  ExpectInfoWithSocversion::kFullTilingBlockDim)), /* ExpectTilingBlockDim */
                FaParam(3, 40, 1, 2048, 2048, 128,                   /* B, N2, G, S1, S2, D */
                        ge::DataType::DT_FLOAT16, LayoutType::TND,   /* Dtype, Layout */
@@ -143,7 +153,7 @@ TEST_F(Ts_Fas_Ascend910B2, Tc_Fas_Redline_Pse_004)
                "",                                                  /* DebugInfo */
                OpInfoWithSocversion(ControlInfo(true, false),                     /* RunTiling, RunKernel */
                       ExpectInfoWithSocversion(false,                             /* ExpectSuccess */
-                                 10000000001022430943UL,            /* ExpectTilingKey */
+                                 5440824368UL,            /* ExpectTilingKey */
                                  ExpectInfoWithSocversion::kFullTilingBlockDim)), /* ExpectTilingBlockDim */
                FaParam(3, 40, 1, 2048, 2048, 128,                   /* B, N2, G, S1, S2, D */
                        ge::DataType::DT_FLOAT16, LayoutType::TND,   /* Dtype, Layout */
@@ -171,7 +181,7 @@ TEST_F(Ts_Fas_Ascend910B2, Tc_Fas_Redline_Pse_005)
                "",                                                  /* DebugInfo */
                OpInfoWithSocversion(ControlInfo(true, false),                     /* RunTiling, RunKernel */
                       ExpectInfoWithSocversion(false,                             /* ExpectSuccess */
-                                 10000001111221320943UL,            /* ExpectTilingKey */
+                                 33365189680UL,            /* ExpectTilingKey */
                                  ExpectInfoWithSocversion::kFullTilingBlockDim)), /* ExpectTilingBlockDim */
                FaParam(234, 1, 227, 25283, 2133, 32,                /* B, N2, G, S1, S2, D */
                        ge::DataType::DT_BF16, LayoutType::BNSD,     /* Dtype, Layout */
@@ -197,7 +207,7 @@ TEST_F(Ts_Fas_Ascend910B2, Tc_Fas_Redline_Pse_006)
                "",                                                  /* DebugInfo */
                OpInfoWithSocversion(ControlInfo(true, false),                     /* RunTiling, RunKernel */
                       ExpectInfoWithSocversion(false,                             /* ExpectSuccess */
-                                 10000001111221320943UL,            /* ExpectTilingKey */
+                                 33365189680UL,            /* ExpectTilingKey */
                                  ExpectInfoWithSocversion::kFullTilingBlockDim)), /* ExpectTilingBlockDim */
                FaParam(2, 5, 1, 2048, 768, 64,                      /* B, N2, G, S1, S2, D */
                        ge::DataType::DT_BF16, LayoutType::BNSD,     /* Dtype, Layout */
@@ -220,7 +230,7 @@ const auto Tc_Fas_Redline_FullCore_Case = ::testing::Values(
             "",                                                  /* DebugInfo */
             OpInfoWithSocversion(ControlInfo(true, false),                     /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                              /* ExpectSuccess */
-                              10000001111221320943UL,            /* ExpectTilingKey */
+                              33365189680UL,            /* ExpectTilingKey */
                               ExpectInfoWithSocversion::kFullTilingBlockDim)), /* ExpectTilingBlockDim */
             FaParam(234, 1, 227, 25283, 2133, 32,                /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_BF16, LayoutType::BNSD,     /* Dtype, Layout */
@@ -237,7 +247,7 @@ const auto Tc_Fas_Redline_FullCore_Case = ::testing::Values(
             "",                                                  /* DebugInfo */
             OpInfoWithSocversion(ControlInfo(true, false),                     /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                              /* ExpectSuccess */
-                              10000001010220230943UL,            /* ExpectTilingKey */
+                              22618596400UL,            /* ExpectTilingKey */
                               ExpectInfoWithSocversion::kFullTilingBlockDim)), /* ExpectTilingBlockDim */
             FaParam(1, 10, 1, 4096, 4096, 128,                   /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::SBH,   /* Dtype, Layout */
@@ -254,7 +264,7 @@ const auto Tc_Fas_Redline_FullCore_Case = ::testing::Values(
             "",                                                  /* DebugInfo */
             OpInfoWithSocversion(ControlInfo(true, false),                     /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                              /* ExpectSuccess */
-                              10000001110220230943UL,            /* ExpectTilingKey */
+                              31208530992UL,            /* ExpectTilingKey */
                               ExpectInfoWithSocversion::kFullTilingBlockDim)), /* ExpectTilingBlockDim */
             FaParam(2, 8, 1, 2048, 2048, 128,                    /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::SBH,   /* Dtype, Layout */
@@ -271,7 +281,7 @@ const auto Tc_Fas_Redline_FullCore_Case = ::testing::Values(
             "",                                                  /* DebugInfo */
             OpInfoWithSocversion(ControlInfo(true, false),                     /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                              /* ExpectSuccess */
-                              10000001111220130943UL,            /* ExpectTilingKey */
+                              33354966064UL,            /* ExpectTilingKey */
                               ExpectInfoWithSocversion::kFullTilingBlockDim)), /* ExpectTilingBlockDim */
             FaParam(1, 10, 1, 2304, 2304, 128,                   /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::BSND,  /* Dtype, Layout */
@@ -288,7 +298,7 @@ const auto Tc_Fas_Redline_FullCore_Case = ::testing::Values(
             "",                                                  /* DebugInfo */
             OpInfoWithSocversion(ControlInfo(true, false),                     /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                              /* ExpectSuccess */
-                              10000001010220230943UL,            /* ExpectTilingKey */
+                              22618596400UL,            /* ExpectTilingKey */
                               ExpectInfoWithSocversion::kFullTilingBlockDim)), /* ExpectTilingBlockDim */
             FaParam(1, 16, 1, 4096, 4096, 128,                   /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::SBH,   /* Dtype, Layout */
@@ -305,7 +315,7 @@ const auto Tc_Fas_Redline_FullCore_Case = ::testing::Values(
             "",                                                  /* DebugInfo */
             OpInfoWithSocversion(ControlInfo(true, false),                     /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                              /* ExpectSuccess */
-                              10000001010220230943UL,            /* ExpectTilingKey */
+                              22618596400UL,            /* ExpectTilingKey */
                               ExpectInfoWithSocversion::kFullTilingBlockDim)), /* ExpectTilingBlockDim */
             FaParam(1, 16, 1, 4096, 4096, 128,                   /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::SBH,   /* Dtype, Layout */
@@ -322,7 +332,7 @@ const auto Tc_Fas_Redline_FullCore_Case = ::testing::Values(
             "",                                                  /* DebugInfo */
             OpInfoWithSocversion(ControlInfo(true, false),                     /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                              /* ExpectSuccess */
-                              10000000010220230943UL,            /* ExpectTilingKey */
+                              5438727216UL,            /* ExpectTilingKey */
                               ExpectInfoWithSocversion::kFullTilingBlockDim)), /* ExpectTilingBlockDim */
             FaParam(1, 4, 1, 4096, 4096, 256,                    /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::SBH,   /* Dtype, Layout */
@@ -339,7 +349,7 @@ const auto Tc_Fas_Redline_FullCore_Case = ::testing::Values(
             "",                                                  /* DebugInfo */
             OpInfoWithSocversion(ControlInfo(true, false),                     /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                              /* ExpectSuccess */
-                              10000001002201130953UL,            /* ExpectTilingKey */
+                              9741034800UL,            /* ExpectTilingKey */
                               ExpectInfoWithSocversion::kFullTilingBlockDim)), /* ExpectTilingBlockDim */
             FaParam(210, 2, 38, 30063, 85, 65,                   /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::BSND,  /* Dtype, Layout */
@@ -356,7 +366,7 @@ const auto Tc_Fas_Redline_FullCore_Case = ::testing::Values(
             "",                                                  /* DebugInfo */
             OpInfoWithSocversion(ControlInfo(true, false),                     /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                              /* ExpectSuccess */
-                              10000010102200230953UL,            /* ExpectTilingKey */
+                              22618596656UL,            /* ExpectTilingKey */
                               ExpectInfoWithSocversion::kFullTilingBlockDim)), /* ExpectTilingBlockDim */
             FaParam(24, 10, 1, 1024, 1024, 128,                  /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::SBH,   /* Dtype, Layout */
@@ -376,7 +386,7 @@ const auto Tc_Fas_Redline_FullCore_Case = ::testing::Values(
             "",                                                  /* DebugInfo */
             OpInfoWithSocversion(ControlInfo(true, false),                     /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                              /* ExpectSuccess */
-                              10000010102200230953UL,            /* ExpectTilingKey */
+                              22618596656UL,            /* ExpectTilingKey */
                               ExpectInfoWithSocversion::kFullTilingBlockDim)), /* ExpectTilingBlockDim */
             FaParam(33, 10, 1, 1024, 1024, 128,                  /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::SBH,   /* Dtype, Layout */
@@ -399,7 +409,7 @@ const auto Tc_Fas_Redline_FullCore_Case = ::testing::Values(
             "",                                                  /* DebugInfo */
             OpInfoWithSocversion(ControlInfo(true, false),                     /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                              /* ExpectSuccess */
-                              10000000102200130953UL,            /* ExpectTilingKey */
+                              5437678896UL,            /* ExpectTilingKey */
                               ExpectInfoWithSocversion::kFullTilingBlockDim)), /* ExpectTilingBlockDim */
             FaParam(128, 5, 1, 256, 256, 128,                    /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::BSH,   /* Dtype, Layout */
@@ -416,7 +426,7 @@ const auto Tc_Fas_Redline_FullCore_Case = ::testing::Values(
             "",                                                  /* DebugInfo */
             OpInfoWithSocversion(ControlInfo(true, false),                     /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                              /* ExpectSuccess */
-                              10000000002210130953UL,            /* ExpectTilingKey */
+                              1159488816UL,            /* ExpectTilingKey */
                               ExpectInfoWithSocversion::kFullTilingBlockDim)), /* ExpectTilingBlockDim */
             FaParam(128, 5, 1, 1024, 512, 64,                    /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::BSH,   /* Dtype, Layout */
@@ -433,7 +443,7 @@ const auto Tc_Fas_Redline_FullCore_Case = ::testing::Values(
             "",                                                  /* DebugInfo */
             OpInfoWithSocversion(ControlInfo(true, false),                     /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                              /* ExpectSuccess */
-                              10000000001022430943UL,            /* ExpectTilingKey */
+                              5440824368UL,            /* ExpectTilingKey */
                               ExpectInfoWithSocversion::kFullTilingBlockDim)), /* ExpectTilingBlockDim */
             FaParam(3, 40, 1, 2048, 2048, 128,                   /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::TND,   /* Dtype, Layout */
@@ -453,7 +463,7 @@ const auto Tc_Fas_Redline_FullCore_Case = ::testing::Values(
             "",                                                  /* DebugInfo */
             OpInfoWithSocversion(ControlInfo(true, false),                     /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                              /* ExpectSuccess */
-                              10000000001122430943UL,            /* ExpectTilingKey */
+                              7588308016UL,            /* ExpectTilingKey */
                               ExpectInfoWithSocversion::kFullTilingBlockDim)), /* ExpectTilingBlockDim */
             FaParam(3, 40, 1, 2048, 2048, 128,                   /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::TND,   /* Dtype, Layout */
@@ -473,7 +483,7 @@ const auto Tc_Fas_Redline_FullCore_Case = ::testing::Values(
             "",                                                  /* DebugInfo */
             OpInfoWithSocversion(ControlInfo(true, false),                     /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                              /* ExpectSuccess */
-                              10000000001022430943UL,            /* ExpectTilingKey */
+                              5440824368UL,            /* ExpectTilingKey */
                               ExpectInfoWithSocversion::kFullTilingBlockDim)), /* ExpectTilingBlockDim */
             FaParam(3, 40, 1, 2048, 2048, 128,                   /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::TND,   /* Dtype, Layout */
@@ -493,7 +503,7 @@ const auto Tc_Fas_Redline_FullCore_Case = ::testing::Values(
             "",                                                  /* DebugInfo */
             OpInfoWithSocversion(ControlInfo(true, false),                     /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                              /* ExpectSuccess */
-                              10000000001022430943UL,            /* ExpectTilingKey */
+                              5440824368UL,            /* ExpectTilingKey */
                               ExpectInfoWithSocversion::kFullTilingBlockDim)), /* ExpectTilingBlockDim */
             FaParam(3, 40, 1, 2048, 2048, 128,                   /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::TND,   /* Dtype, Layout */
@@ -513,7 +523,7 @@ const auto Tc_Fas_Redline_FullCore_Case = ::testing::Values(
             "",                                                  /* DebugInfo */
             OpInfoWithSocversion(ControlInfo(true, false),                     /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                              /* ExpectSuccess */
-                              10000000001022430943UL,            /* ExpectTilingKey */
+                              5440824368UL,            /* ExpectTilingKey */
                               ExpectInfoWithSocversion::kFullTilingBlockDim)), /* ExpectTilingBlockDim */
             FaParam(3, 40, 1, 2048, 2048, 128,                   /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::TND,   /* Dtype, Layout */
@@ -533,7 +543,7 @@ const auto Tc_Fas_Redline_FullCore_Case = ::testing::Values(
             "",                                                  /* DebugInfo */
             OpInfoWithSocversion(ControlInfo(true, false),                     /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                              /* ExpectSuccess */
-                              10000000001022430943UL,            /* ExpectTilingKey */
+                              5440824368UL,            /* ExpectTilingKey */
                               ExpectInfoWithSocversion::kFullTilingBlockDim)), /* ExpectTilingBlockDim */
             FaParam(3, 40, 1, 2048, 2048, 128,                   /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::TND,   /* Dtype, Layout */
@@ -553,7 +563,7 @@ const auto Tc_Fas_Redline_FullCore_Case = ::testing::Values(
             "",                                                  /* DebugInfo */
             OpInfoWithSocversion(ControlInfo(true, false),                     /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                              /* ExpectSuccess */
-                              10000000001022430943UL,            /* ExpectTilingKey */
+                              5440824368UL,            /* ExpectTilingKey */
                               ExpectInfoWithSocversion::kFullTilingBlockDim)), /* ExpectTilingBlockDim */
             FaParam(3, 40, 1, 2048, 2048, 128,                   /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::TND,   /* Dtype, Layout */
@@ -573,7 +583,7 @@ const auto Tc_Fas_Redline_FullCore_Case = ::testing::Values(
             "",                                                  /* DebugInfo */
             OpInfoWithSocversion(ControlInfo(true, false),                     /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                              /* ExpectSuccess */
-                              10000000001022430943UL,            /* ExpectTilingKey */
+                              5440824368UL,            /* ExpectTilingKey */
                               ExpectInfoWithSocversion::kFullTilingBlockDim)), /* ExpectTilingBlockDim */
             FaParam(3, 40, 1, 2048, 2048, 128,                   /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::TND,   /* Dtype, Layout */
@@ -593,7 +603,7 @@ const auto Tc_Fas_Redline_FullCore_Case = ::testing::Values(
             "",                                                  /* DebugInfo */
             OpInfoWithSocversion(ControlInfo(true, false),                     /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                              /* ExpectSuccess */
-                              10000000001022430943UL,            /* ExpectTilingKey */
+                              5440824368UL,            /* ExpectTilingKey */
                               ExpectInfoWithSocversion::kFullTilingBlockDim)), /* ExpectTilingBlockDim */
             FaParam(3, 40, 1, 2048, 2048, 128,                   /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::TND,   /* Dtype, Layout */
@@ -613,7 +623,7 @@ const auto Tc_Fas_Redline_FullCore_Case = ::testing::Values(
             "",                                                  /* DebugInfo */
             OpInfoWithSocversion(ControlInfo(true, false),                     /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                              /* ExpectSuccess */
-                              10000000001022430943UL,            /* ExpectTilingKey */
+                              5440824368UL,            /* ExpectTilingKey */
                               ExpectInfoWithSocversion::kFullTilingBlockDim)), /* ExpectTilingBlockDim */
             FaParam(3, 40, 1, 2048, 2048, 128,                   /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::TND,   /* Dtype, Layout */
@@ -633,7 +643,7 @@ const auto Tc_Fas_Redline_FullCore_Case = ::testing::Values(
             "",                                                  /* DebugInfo */
             OpInfoWithSocversion(ControlInfo(true, false),                     /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                              /* ExpectSuccess */
-                              10000000001022430943UL,            /* ExpectTilingKey */
+                              5440824368UL,            /* ExpectTilingKey */
                               ExpectInfoWithSocversion::kFullTilingBlockDim)), /* ExpectTilingBlockDim */
             FaParam(3, 40, 1, 1600, 2048, 128,                   /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::TND,   /* Dtype, Layout */
@@ -653,7 +663,7 @@ const auto Tc_Fas_Redline_FullCore_Case = ::testing::Values(
             "",                                                  /* DebugInfo */
             OpInfoWithSocversion(ControlInfo(true, false),                     /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(false,                             /* ExpectSuccess */
-                              10000000001022430943UL,            /* ExpectTilingKey */
+                              5440824368UL,            /* ExpectTilingKey */
                               ExpectInfoWithSocversion::kFullTilingBlockDim)), /* ExpectTilingBlockDim */
             FaParam(3, 40, 1, 1600, 2048, 128,                   /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::TND,   /* Dtype, Layout */
@@ -673,7 +683,7 @@ const auto Tc_Fas_Redline_FullCore_Case = ::testing::Values(
             "",                                                  /* DebugInfo */
             OpInfoWithSocversion(ControlInfo(true, false),                     /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(false,                             /* ExpectSuccess */
-                              10000000001022430943UL,            /* ExpectTilingKey */
+                              5440824368UL,            /* ExpectTilingKey */
                               ExpectInfoWithSocversion::kFullTilingBlockDim)), /* ExpectTilingBlockDim */
             FaParam(3, 40, 1, 1600, 2048, 128,                   /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::TND,   /* Dtype, Layout */
@@ -693,7 +703,7 @@ const auto Tc_Fas_Redline_FullCore_Case = ::testing::Values(
             "",                                                  /* DebugInfo */
             OpInfoWithSocversion(ControlInfo(true, false),                     /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                              /* ExpectSuccess */
-                              10000000001022430943UL,            /* ExpectTilingKey */
+                              5440824368UL,            /* ExpectTilingKey */
                               ExpectInfoWithSocversion::kFullTilingBlockDim)), /* ExpectTilingBlockDim */
             FaParam(3, 40, 1, 2048, 2048, 128,                   /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::TND,   /* Dtype, Layout */
@@ -713,7 +723,7 @@ const auto Tc_Fas_Redline_FullCore_Case = ::testing::Values(
             "",                                                  /* DebugInfo */
             OpInfoWithSocversion(ControlInfo(true, false),                     /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(false,                             /* ExpectSuccess */
-                              10000000001022430943UL,            /* ExpectTilingKey */
+                              5440824368UL,            /* ExpectTilingKey */
                               ExpectInfoWithSocversion::kFullTilingBlockDim)), /* ExpectTilingBlockDim */
             FaParam(3, 40, 1, 2048, 2048, 128,                   /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::TND,   /* Dtype, Layout */
@@ -733,7 +743,7 @@ const auto Tc_Fas_Redline_FullCore_Case = ::testing::Values(
             "",                                                  /* DebugInfo */
             OpInfoWithSocversion(ControlInfo(true, false),                     /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                              /* ExpectSuccess */
-                              10000000011022430943UL,            /* ExpectTilingKey */
+                              14030758960UL,            /* ExpectTilingKey */
                               ExpectInfoWithSocversion::kFullTilingBlockDim)), /* ExpectTilingBlockDim */
             FaParam(3, 40, 1, 2048, 2048, 128,                   /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::TND,   /* Dtype, Layout */
@@ -755,7 +765,7 @@ const auto Tc_Fas_Redline_FullCore_Case = ::testing::Values(
             "",                                                  /* DebugInfo */
             OpInfoWithSocversion(ControlInfo(true, false),                     /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                              /* ExpectSuccess */
-                              10000001110220130943UL,            /* ExpectTilingKey */
+                              31207482416UL,            /* ExpectTilingKey */
                               ExpectInfoWithSocversion::kFullTilingBlockDim)), /* ExpectTilingBlockDim */
             FaParam(3, 40, 1, 2048, 2048, 128,                   /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::BSND,  /* Dtype, Layout */
@@ -777,7 +787,7 @@ const auto Tc_Fas_Redline_FullCore_Case = ::testing::Values(
             "",                                                 /* DebugInfo */
             OpInfoWithSocversion(ControlInfo(true, false),                    /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                             /* ExpectSuccess */
-                              10000000011021130099UL,           /* ExpectTilingKey */
+                              13994034784UL,           /* ExpectTilingKey */
                               2)),                              /* ExpectTilingBlockDim */
             FaParam(3, 1, 1, 16, 16, 128,                       /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::BSND, /* Dtype, Layout */
@@ -799,7 +809,7 @@ const auto Tc_Fas_Redline_FullCore_Case = ::testing::Values(
             "",                                                  /* DebugInfo */
             OpInfoWithSocversion(ControlInfo(true, false),                     /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                              /* ExpectSuccess */
-                              10000001102200130953UL,            /* ExpectTilingKey */
+                              14027613488UL,            /* ExpectTilingKey */
                               ExpectInfoWithSocversion::kFullTilingBlockDim)), /* ExpectTilingBlockDim */
             FaParam(3, 40, 1, 256, 256, 128,                     /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::BSND,  /* Dtype, Layout */
@@ -821,7 +831,7 @@ const auto Tc_Fas_Redline_FullCore_Case = ::testing::Values(
             "",                                                  /* DebugInfo */
             OpInfoWithSocversion(ControlInfo(true, false),                     /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                              /* ExpectSuccess */
-                              10000001102200130953UL,            /* ExpectTilingKey */
+                              14027613488UL,            /* ExpectTilingKey */
                               ExpectInfoWithSocversion::kFullTilingBlockDim)), /* ExpectTilingBlockDim */
             FaParam(3, 40, 1, 256, 256, 128,                     /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::BSND,  /* Dtype, Layout */
@@ -843,7 +853,7 @@ const auto Tc_Fas_Redline_FullCore_Case = ::testing::Values(
             "",                                                  /* DebugInfo */
             OpInfoWithSocversion(ControlInfo(true, false),                     /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(false,                             /* ExpectSuccess */
-                              10000001102200130953UL,            /* ExpectTilingKey */
+                              14027613488UL,            /* ExpectTilingKey */
                               ExpectInfoWithSocversion::kFullTilingBlockDim)), /* ExpectTilingBlockDim */
             FaParam(3, 40, 1, 256, 256, 128,                     /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::BSND,  /* Dtype, Layout */
@@ -865,7 +875,7 @@ const auto Tc_Fas_Redline_FullCore_Case = ::testing::Values(
             "",                                                  /* DebugInfo */
             OpInfoWithSocversion(ControlInfo(true, false),                     /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(false,                             /* ExpectSuccess */
-                              10000001102200130953UL,            /* ExpectTilingKey */
+                              14027613488UL,            /* ExpectTilingKey */
                               ExpectInfoWithSocversion::kFullTilingBlockDim)), /* ExpectTilingBlockDim */
             FaParam(3, 40, 1, 256, 257, 128,                     /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::BSND,  /* Dtype, Layout */
@@ -887,7 +897,7 @@ const auto Tc_Fas_Redline_FullCore_Case = ::testing::Values(
             "",                                                  /* DebugInfo */
             OpInfoWithSocversion(ControlInfo(true, false),                     /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(false,                             /* ExpectSuccess */
-                              10000000011022430943UL,            /* ExpectTilingKey */
+                              14030758960UL,            /* ExpectTilingKey */
                               ExpectInfoWithSocversion::kFullTilingBlockDim)), /* ExpectTilingBlockDim */
             FaParam(3, 40, 1, 2048, 4096, 128,                   /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::TND,   /* Dtype, Layout */
@@ -909,7 +919,7 @@ const auto Tc_Fas_Redline_FullCore_Case = ::testing::Values(
             "",                                                  /* DebugInfo */
             OpInfoWithSocversion(ControlInfo(true, false),                     /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                              /* ExpectSuccess */
-                              10000001102200130953UL,            /* ExpectTilingKey */
+                              14027613488UL,            /* ExpectTilingKey */
                               ExpectInfoWithSocversion::kFullTilingBlockDim)), /* ExpectTilingBlockDim */
             FaParam(3, 40, 1, 256, 256, 128,                     /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::BSND,  /* Dtype, Layout */
@@ -931,7 +941,7 @@ const auto Tc_Fas_Redline_FullCore_Case = ::testing::Values(
             "",                                                  /* DebugInfo */
             OpInfoWithSocversion(ControlInfo(true, false),                     /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                              /* ExpectSuccess */
-                              10000001102200130953UL,            /* ExpectTilingKey */
+                              14027613488UL,            /* ExpectTilingKey */
                               ExpectInfoWithSocversion::kFullTilingBlockDim)), /* ExpectTilingBlockDim */
             FaParam(3, 40, 1, 256, 256, 128,                     /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::BSND,  /* Dtype, Layout */
@@ -953,7 +963,7 @@ const auto Tc_Fas_Redline_FullCore_Case = ::testing::Values(
             "",                                                  /* DebugInfo */
             OpInfoWithSocversion(ControlInfo(true, false),                     /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                              /* ExpectSuccess */
-                              10000000011022430943UL,            /* ExpectTilingKey */
+                              14030758960UL,            /* ExpectTilingKey */
                               ExpectInfoWithSocversion::kFullTilingBlockDim)), /* ExpectTilingBlockDim */
             FaParam(3, 40, 1, 2048, 2048, 128,                   /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::TND,   /* Dtype, Layout */
@@ -975,7 +985,7 @@ const auto Tc_Fas_Redline_FullCore_Case = ::testing::Values(
             "",                                                  /* DebugInfo */
             OpInfoWithSocversion(ControlInfo(true, false),                     /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(false,                             /* ExpectSuccess */
-                              10000001110220130943UL,            /* ExpectTilingKey */
+                              31207482416UL,            /* ExpectTilingKey */
                               ExpectInfoWithSocversion::kFullTilingBlockDim)), /* ExpectTilingBlockDim */
             FaParam(3, 40, 1, 2048, 2048, 128,                   /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::BSND,  /* Dtype, Layout */
@@ -997,7 +1007,7 @@ const auto Tc_Fas_Redline_FullCore_Case = ::testing::Values(
             "",                                                  /* DebugInfo */
             OpInfoWithSocversion(ControlInfo(true, false),                     /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(false,                             /* ExpectSuccess */
-                              10000001102200130953UL,            /* ExpectTilingKey */
+                              14027613488UL,            /* ExpectTilingKey */
                               ExpectInfoWithSocversion::kFullTilingBlockDim)), /* ExpectTilingBlockDim */
             FaParam(1, 1, 1, 128, 1025, 128,                     /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::BSND,  /* Dtype, Layout */
@@ -1019,7 +1029,7 @@ const auto Tc_Fas_Redline_FullCore_Case = ::testing::Values(
             "",                                                  /* DebugInfo */
             OpInfoWithSocversion(ControlInfo(true, false),                     /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(false,                              /* ExpectSuccess */
-                              10000001102200130953UL,            /* ExpectTilingKey */
+                              14027613488UL,            /* ExpectTilingKey */
                               ExpectInfoWithSocversion::kFullTilingBlockDim)),  /* ExpectTilingBlockDim */
             FaParam(1, 1, 1, 128, 1025, 129,                    /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::BSND,  /* Dtype, Layout */
@@ -1041,7 +1051,7 @@ const auto Tc_Fas_Redline_FullCore_Case = ::testing::Values(
             "",                                                  /* DebugInfo */
             OpInfoWithSocversion(ControlInfo(true, false),                     /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                             /* ExpectSuccess */
-                              10000001110221130943UL,            /* ExpectTilingKey */
+                              31215871024UL,            /* ExpectTilingKey */
                               9)),                               /* ExpectTilingBlockDim */
             FaParam(1, 1, 1, 1025, 1025, 128,                     /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::BSND,  /* Dtype, Layout */
@@ -1063,7 +1073,7 @@ const auto Tc_Fas_Redline_FullCore_Case = ::testing::Values(
             "",                                                  /* DebugInfo */
             OpInfoWithSocversion(ControlInfo(true, false),                     /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                             /* ExpectSuccess */
-                              10000000110221130993UL,            /* ExpectTilingKey */
+                              14036002352UL,            /* ExpectTilingKey */
                               5)),                               /* ExpectTilingBlockDim */
             FaParam(1, 1, 1, 1025, 1025, 160,                     /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::BSND,  /* Dtype, Layout */
@@ -1101,7 +1111,7 @@ const auto Tc_Fas_Redline_SpecCore_Case = ::testing::Values(
             "",                                                 /* DebugInfo */
             OpInfoWithSocversion(ControlInfo(true, false),                    /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                             /* ExpectSuccess */
-                              10000000000021330099UL,           /* ExpectTilingKey */
+                              1111230048UL,           /* ExpectTilingKey */
                               1)),                              /* ExpectTilingBlockDim */
             FaParam(2, 1, 1, 128, 128, 128,                     /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::BNSD, /* Dtype, Layout */
@@ -1118,7 +1128,7 @@ const auto Tc_Fas_Redline_SpecCore_Case = ::testing::Values(
             "",                                                /* DebugInfo */
             OpInfoWithSocversion(ControlInfo(true, false),                   /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                            /* ExpectSuccess */
-                              10000000011121130099UL,          /* ExpectTilingKey */
+                              16141518432UL,          /* ExpectTilingKey */
                               1)),                             /* ExpectTilingBlockDim */
             FaParam(2, 2, 1, 256, 80, 64,                      /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::BSH, /* Dtype, Layout */
@@ -1133,9 +1143,9 @@ const auto Tc_Fas_Redline_SpecCore_Case = ::testing::Values(
             ),
     FasCase("Fas_Redline_SpecCore_Case_f16_run_kernel)", true,  /* CaseName, Enable */
             "",                                                 /* DebugInfo */
-            OpInfoWithSocversion(ControlInfo(true, true),                     /* RunTiling, RunKernel */
+            OpInfoWithSocversion(ControlInfo(true, false),                     /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                             /* ExpectSuccess */
-                              10000000011121332099UL,           /* ExpectTilingKey */
+                              16143746656UL,           /* ExpectTilingKey */
                               1)),                              /* ExpectTilingBlockDim */
             FaParam(2, 2, 1, 256, 80, 64,                       /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::BNSD, /* Dtype, Layout */
@@ -1150,9 +1160,9 @@ const auto Tc_Fas_Redline_SpecCore_Case = ::testing::Values(
             ),
     FasCase("Fas_Redline_SpecCore_Case_bf16_run_kernel)", true, /* CaseName, Enable */
             "",                                                 /* DebugInfo */
-            OpInfoWithSocversion(ControlInfo(true, true),                     /* RunTiling, RunKernel */
+            OpInfoWithSocversion(ControlInfo(true, false),                     /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                             /* ExpectSuccess */
-                              10000000011121322099UL,           /* ExpectTilingKey */
+                              16143484512UL,           /* ExpectTilingKey */
                               1)),                              /* ExpectTilingBlockDim */
             FaParam(2, 2, 1, 256, 80, 64,                       /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_BF16, LayoutType::BNSD,    /* Dtype, Layout */
@@ -1169,7 +1179,7 @@ const auto Tc_Fas_Redline_SpecCore_Case = ::testing::Values(
             "",                                                 /* DebugInfo */
             OpInfoWithSocversion(ControlInfo(true, false),                    /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                             /* ExpectSuccess */
-                              10000000001021330099UL,           /* ExpectTilingKey */
+                              5406197344UL,           /* ExpectTilingKey */
                               1)),                              /* ExpectTilingBlockDim */
             FaParam(2, 1, 1, 128, 128, 128,                     /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::BNSD, /* Dtype, Layout */
@@ -1186,7 +1196,7 @@ const auto Tc_Fas_Redline_SpecCore_Case = ::testing::Values(
             "",                                                /* DebugInfo */
             OpInfoWithSocversion(ControlInfo(true, false),                   /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                            /* ExpectSuccess */
-                              10000000010220230943UL,          /* ExpectTilingKey */
+                              5438727216UL,          /* ExpectTilingKey */
                               16)),                            /* ExpectTilingBlockDim */
             FaParam(1, 2, 1, 2048, 2048, 128,                  /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::SBH, /* Dtype, Layout */
@@ -1203,7 +1213,7 @@ const auto Tc_Fas_Redline_SpecCore_Case = ::testing::Values(
             "",                                                /* DebugInfo */
             OpInfoWithSocversion(ControlInfo(true, false),                   /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                            /* ExpectSuccess */
-                              10000001010220230943UL,          /* ExpectTilingKey */
+                              22618596400UL,          /* ExpectTilingKey */
                               16)),                            /* ExpectTilingBlockDim */
             FaParam(1, 2, 1, 2048, 2048, 128,                  /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::SBH, /* Dtype, Layout */
@@ -1223,7 +1233,7 @@ const auto Tc_Fas_Redline_SpecCore_Case = ::testing::Values(
             "",                                                 /* DebugInfo */
             OpInfoWithSocversion(ControlInfo(true, false),                    /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                             /* ExpectSuccess */
-                              10000000111220130993UL,           /* ExpectTilingKey */
+                              16175097392UL,           /* ExpectTilingKey */
                               16)),                             /* ExpectTilingBlockDim */
             FaParam(4, 4, 1, 128, 1024, 125,                    /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::BSND, /* Dtype, Layout */
@@ -1240,7 +1250,7 @@ const auto Tc_Fas_Redline_SpecCore_Case = ::testing::Values(
             "",                                                 /* DebugInfo */
             OpInfoWithSocversion(ControlInfo(true, false),                    /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                             /* ExpectSuccess */
-                              10000000111220130993UL,           /* ExpectTilingKey */
+                              16175097392UL,           /* ExpectTilingKey */
                               16)),                             /* ExpectTilingBlockDim */
             FaParam(4, 4, 1, 128, 1024, 125,                    /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::BSND, /* Dtype, Layout */
@@ -1257,7 +1267,7 @@ const auto Tc_Fas_Redline_SpecCore_Case = ::testing::Values(
             "",                                                 /* DebugInfo */
             OpInfoWithSocversion(ControlInfo(true, false),                    /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                             /* ExpectSuccess */
-                              10000000111220130993UL,           /* ExpectTilingKey */
+                              16175097392UL,           /* ExpectTilingKey */
                               16)),                             /* ExpectTilingBlockDim */
             FaParam(4, 4, 1, 128, 1024, 125,                    /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::BSND, /* Dtype, Layout */
@@ -1277,7 +1287,7 @@ const auto Tc_Fas_Redline_SpecCore_Case = ::testing::Values(
             "",                                                 /* DebugInfo */
             OpInfoWithSocversion(ControlInfo(true, false),                    /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                             /* ExpectSuccess */
-                              10000000111220130993UL,           /* ExpectTilingKey */
+                              16175097392UL,           /* ExpectTilingKey */
                               16)),                             /* ExpectTilingBlockDim */
             FaParam(4, 4, 1, 128, 1024, 125,                    /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::BSND, /* Dtype, Layout */
@@ -1297,7 +1307,7 @@ const auto Tc_Fas_Redline_SpecCore_Case = ::testing::Values(
             "",                                                 /* DebugInfo */
             OpInfoWithSocversion(ControlInfo(true, false),                    /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                             /* ExpectSuccess */
-                              10000000111220130993UL,           /* ExpectTilingKey */
+                              16175097392UL,           /* ExpectTilingKey */
                               1)),                              /* ExpectTilingBlockDim */
             FaParam(1, 1, 1, 64, 1024, 125,                     /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::BSND, /* Dtype, Layout */
@@ -1317,7 +1327,7 @@ const auto Tc_Fas_Redline_SpecCore_Case = ::testing::Values(
             "",                                                 /* DebugInfo */
             OpInfoWithSocversion(ControlInfo(true, false),                    /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                             /* ExpectSuccess */
-                              10000000110221130993UL,           /* ExpectTilingKey */
+                              14036002352UL,           /* ExpectTilingKey */
                               1)),                              /* ExpectTilingBlockDim */
             FaParam(1, 1, 1, 64, 1023, 125,                     /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::BSND, /* Dtype, Layout */
@@ -1337,7 +1347,7 @@ const auto Tc_Fas_Redline_SpecCore_Case = ::testing::Values(
             "",                                                 /* DebugInfo */
             OpInfoWithSocversion(ControlInfo(true, false),                    /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                             /* ExpectSuccess */
-                              10000000110221130993UL,           /* ExpectTilingKey */
+                              14036002352UL,           /* ExpectTilingKey */
                               1)),                              /* ExpectTilingBlockDim */
             FaParam(1, 1, 1, 64, 1023, 125,                     /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::BSND, /* Dtype, Layout */
@@ -1357,7 +1367,7 @@ const auto Tc_Fas_Redline_SpecCore_Case = ::testing::Values(
             "",                                                /* DebugInfo */
             OpInfoWithSocversion(ControlInfo(true, false),                   /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                            /* ExpectSuccess */
-                              10000001000220230943UL,          /* ExpectTilingKey */
+                              18323629104UL,          /* ExpectTilingKey */
                               16)),                            /* ExpectTilingBlockDim */
             FaParam(1, 2, 1, 2048, 2048, 128,                  /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::SBH, /* Dtype, Layout */
@@ -1374,7 +1384,7 @@ const auto Tc_Fas_Redline_SpecCore_Case = ::testing::Values(
             "",                                                /* DebugInfo */
             OpInfoWithSocversion(ControlInfo(true, false),                   /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                            /* ExpectSuccess */
-                              10000000102200230953UL,          /* ExpectTilingKey */
+                              5438727472UL,          /* ExpectTilingKey */
                               16)),                            /* ExpectTilingBlockDim */
             FaParam(1, 2, 1, 2048, 1024, 128,                  /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::SBH, /* Dtype, Layout */
@@ -1391,7 +1401,7 @@ const auto Tc_Fas_Redline_SpecCore_Case = ::testing::Values(
             "",                                                /* DebugInfo */
             OpInfoWithSocversion(ControlInfo(true, false),                   /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                            /* ExpectSuccess */
-                              10000000010220230943UL,          /* ExpectTilingKey */
+                              5438727216UL,          /* ExpectTilingKey */
                               16)),                            /* ExpectTilingBlockDim */
             FaParam(1, 2, 1, 2048, 2048, 128,                  /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::SBH, /* Dtype, Layout */
@@ -1408,7 +1418,7 @@ const auto Tc_Fas_Redline_SpecCore_Case = ::testing::Values(
             "",                                                /* DebugInfo */
             OpInfoWithSocversion(ControlInfo(true, false),                   /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                            /* ExpectSuccess */
-                              10000000010220230943UL,          /* ExpectTilingKey */
+                              5438727216UL,          /* ExpectTilingKey */
                               16)),                            /* ExpectTilingBlockDim */
             FaParam(1, 2, 1, 2048, 2048, 128,                  /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::SBH, /* Dtype, Layout */
@@ -1425,7 +1435,7 @@ const auto Tc_Fas_Redline_SpecCore_Case = ::testing::Values(
             "",                                                /* DebugInfo */
             OpInfoWithSocversion(ControlInfo(true, false),                   /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                            /* ExpectSuccess */
-                              10000001010220230943UL,          /* ExpectTilingKey */
+                              22618596400UL,          /* ExpectTilingKey */
                               16)),                            /* ExpectTilingBlockDim */
             FaParam(1, 2, 1, 2048, 2048, 128,                  /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::SBH, /* Dtype, Layout */
@@ -1440,9 +1450,11 @@ const auto Tc_Fas_Redline_SpecCore_Case = ::testing::Values(
             ),
     FasCase("Fas_Redline_SpecCore_Case_018", true,             /* CaseName, Enable */
             "",                                                /* DebugInfo */
+            [](FAS_KERNEL_PARAM_){
+              ::flash_attention_score<0, 3, 4, 9, 2, 3, 2, 0, 0, 2, 2, 0, 1, 0, 0, 0, 0, 0, 0, 0>(FAS_INPUT_PARAMS);},
             OpInfoWithSocversion(ControlInfo(true, true),                   /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                            /* ExpectSuccess */
-                              10000000010220232943UL,          /* ExpectTilingKey */
+                              5438858288UL,          /* ExpectTilingKey */
                               16)),                            /* ExpectTilingBlockDim */
             FaParam(1, 2, 1, 2048, 2048, 128,                  /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::SBH, /* Dtype, Layout */
@@ -1459,7 +1471,7 @@ const auto Tc_Fas_Redline_SpecCore_Case = ::testing::Values(
             "",                                                /* DebugInfo */
             OpInfoWithSocversion(ControlInfo(true, false),                   /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                            /* ExpectSuccess */
-                              10000000010220232943UL,          /* ExpectTilingKey */
+                              5438858288UL,          /* ExpectTilingKey */
                               16)),                            /* ExpectTilingBlockDim */
             FaParam(1, 2, 1, 2048, 2048, 128,                  /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::SBH, /* Dtype, Layout */
@@ -1476,7 +1488,7 @@ const auto Tc_Fas_Redline_SpecCore_Case = ::testing::Values(
             "",                                                /* DebugInfo */
             OpInfoWithSocversion(ControlInfo(true, false),                   /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                            /* ExpectSuccess */
-                              10000000010220230943UL,          /* ExpectTilingKey */
+                              5438727216UL,          /* ExpectTilingKey */
                               16)),                            /* ExpectTilingBlockDim */
             FaParam(1, 2, 1, 2048, 2048, 128,                  /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::SBH, /* Dtype, Layout */
@@ -1493,7 +1505,7 @@ const auto Tc_Fas_Redline_SpecCore_Case = ::testing::Values(
             "",                                                /* DebugInfo */
             OpInfoWithSocversion(ControlInfo(true, false),                   /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                            /* ExpectSuccess */
-                              10000000010220230943UL,          /* ExpectTilingKey */
+                              5438727216UL,          /* ExpectTilingKey */
                               16)),                            /* ExpectTilingBlockDim */
             FaParam(1, 2, 1, 2048, 2048, 128,                  /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::SBH, /* Dtype, Layout */
@@ -1510,7 +1522,7 @@ const auto Tc_Fas_Redline_SpecCore_Case = ::testing::Values(
             "",                                                /* DebugInfo */
             OpInfoWithSocversion(ControlInfo(true, false),                   /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                            /* ExpectSuccess */
-                              10000000010220230943UL,          /* ExpectTilingKey */
+                              5438727216UL,          /* ExpectTilingKey */
                               16)),                            /* ExpectTilingBlockDim */
             FaParam(1, 2, 1, 2048, 2048, 128,                  /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::SBH, /* Dtype, Layout */
@@ -1527,7 +1539,7 @@ const auto Tc_Fas_Redline_SpecCore_Case = ::testing::Values(
             "",                                                /* DebugInfo */
             OpInfoWithSocversion(ControlInfo(true, false),                   /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                            /* ExpectSuccess */
-                              10000000010220230943UL,          /* ExpectTilingKey */
+                              5438727216UL,          /* ExpectTilingKey */
                               16)),                            /* ExpectTilingBlockDim */
             FaParam(1, 2, 1, 2048, 2048, 128,                  /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::SBH, /* Dtype, Layout */
@@ -1544,7 +1556,7 @@ const auto Tc_Fas_Redline_SpecCore_Case = ::testing::Values(
             "",                                                /* DebugInfo */
             OpInfoWithSocversion(ControlInfo(true, false),                   /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                            /* ExpectSuccess */
-                              10000000010220230943UL,          /* ExpectTilingKey */
+                              5438727216UL,          /* ExpectTilingKey */
                               16)),                            /* ExpectTilingBlockDim */
             FaParam(1, 2, 1, 2048, 2048, 128,                  /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::SBH, /* Dtype, Layout */
@@ -1561,7 +1573,7 @@ const auto Tc_Fas_Redline_SpecCore_Case = ::testing::Values(
             "",                                                /* DebugInfo */
             OpInfoWithSocversion(ControlInfo(true, false),                   /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                            /* ExpectSuccess */
-                              10000000010220230943UL,          /* ExpectTilingKey */
+                              5438727216UL,          /* ExpectTilingKey */
                               16)),                            /* ExpectTilingBlockDim */
             FaParam(1, 2, 1, 2048, 2048, 128,                  /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::SBH, /* Dtype, Layout */
@@ -1578,7 +1590,7 @@ const auto Tc_Fas_Redline_SpecCore_Case = ::testing::Values(
             "",                                                /* DebugInfo */
             OpInfoWithSocversion(ControlInfo(true, false),                   /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                            /* ExpectSuccess */
-                              10000000010220232943UL,          /* ExpectTilingKey */
+                              5438858288UL,          /* ExpectTilingKey */
                               16)),                            /* ExpectTilingBlockDim */
             FaParam(1, 2, 1, 2048, 2048, 128,                  /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::SBH, /* Dtype, Layout */
@@ -1595,7 +1607,7 @@ const auto Tc_Fas_Redline_SpecCore_Case = ::testing::Values(
             "",                                                /* DebugInfo */
             OpInfoWithSocversion(ControlInfo(true, false),                   /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                            /* ExpectSuccess */
-                              10000000010220232943UL,          /* ExpectTilingKey */
+                              5438858288UL,          /* ExpectTilingKey */
                               16)),                            /* ExpectTilingBlockDim */
             FaParam(1, 2, 1, 2048, 2048, 128,                  /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::SBH, /* Dtype, Layout */
@@ -1612,7 +1624,7 @@ const auto Tc_Fas_Redline_SpecCore_Case = ::testing::Values(
             "",                                                /* DebugInfo */
             OpInfoWithSocversion(ControlInfo(true, false),                   /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                            /* ExpectSuccess */
-                              10000001010220230943UL,          /* ExpectTilingKey */
+                              22618596400UL,          /* ExpectTilingKey */
                               16)),                            /* ExpectTilingBlockDim */
             FaParam(1, 2, 1, 2048, 2048, 128,                  /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::SBH, /* Dtype, Layout */
@@ -1629,7 +1641,7 @@ const auto Tc_Fas_Redline_SpecCore_Case = ::testing::Values(
             "",                                                  /* DebugInfo */
             OpInfoWithSocversion(ControlInfo(true, false),                     /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                              /* ExpectSuccess */
-                              10000000001022430943UL,            /* ExpectTilingKey */
+                              5440824368UL,            /* ExpectTilingKey */
                               ExpectInfoWithSocversion::kFullTilingBlockDim)), /* ExpectTilingBlockDim */
             FaParam(3, 40, 1, 2048, 2048, 128,                   /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::TND,   /* Dtype, Layout */
@@ -1649,7 +1661,7 @@ const auto Tc_Fas_Redline_SpecCore_Case = ::testing::Values(
             "",                                                  /* DebugInfo */
             OpInfoWithSocversion(ControlInfo(true, false),                     /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                              /* ExpectSuccess */
-                              10000000102200132953UL,            /* ExpectTilingKey */
+                              5437809968UL,            /* ExpectTilingKey */
                               ExpectInfoWithSocversion::kFullTilingBlockDim)), /* ExpectTilingBlockDim */
             FaParam(3, 14, 1, 968, 512, 128,                     /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::BSND,  /* Dtype, Layout */
@@ -1667,7 +1679,7 @@ const auto Tc_Fas_Redline_SpecCore_Case = ::testing::Values(
             "",                                              /* DebugInfo */
             OpInfoWithSocversion(ControlInfo(true, false),                 /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                          /* ExpectSuccess */
-                              10000000010220212943UL,        /* ExpectTilingKey */
+                              5438334000UL,        /* ExpectTilingKey */
                               16)),                          /* ExpectTilingBlockDim */
             FaParam(1, 2, 1, 2048, 2048, 128,                /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT, LayoutType::SBH, /* Dtype, Layout */
@@ -1684,7 +1696,7 @@ const auto Tc_Fas_Redline_SpecCore_Case = ::testing::Values(
             "",                                              /* DebugInfo */
             OpInfoWithSocversion(ControlInfo(true, false),                 /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                          /* ExpectSuccess */
-                              10000000010220212943UL,        /* ExpectTilingKey */
+                              5438334000UL,        /* ExpectTilingKey */
                               16)),                          /* ExpectTilingBlockDim */
             FaParam(1, 2, 1, 2048, 2048, 128,                /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT, LayoutType::SBH, /* Dtype, Layout */
@@ -1701,7 +1713,7 @@ const auto Tc_Fas_Redline_SpecCore_Case = ::testing::Values(
             "",                                              /* DebugInfo */
             OpInfoWithSocversion(ControlInfo(true, false),                 /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                          /* ExpectSuccess */
-                              10000000010220210943UL,        /* ExpectTilingKey */
+                              5438202928UL,        /* ExpectTilingKey */
                               16)),                          /* ExpectTilingBlockDim */
             FaParam(1, 2, 1, 2048, 2048, 128,                /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT, LayoutType::SBH, /* Dtype, Layout */
@@ -1718,7 +1730,7 @@ const auto Tc_Fas_Redline_SpecCore_Case = ::testing::Values(
             "",                                                  /* DebugInfo */
             OpInfoWithSocversion(ControlInfo(true, false),                     /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                              /* ExpectSuccess */
-                              10000000001022410943UL,            /* ExpectTilingKey */
+                              5440300080UL,            /* ExpectTilingKey */
                               ExpectInfoWithSocversion::kFullTilingBlockDim)), /* ExpectTilingBlockDim */
             FaParam(3, 40, 1, 2048, 2048, 128,                   /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT, LayoutType::TND,     /* Dtype, Layout */
@@ -1738,7 +1750,7 @@ const auto Tc_Fas_Redline_SpecCore_Case = ::testing::Values(
             "",                                                  /* DebugInfo */
             OpInfoWithSocversion(ControlInfo(true, false),                     /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                              /* ExpectSuccess */
-                              10000000102200112953UL,            /* ExpectTilingKey */
+                              5437285680UL,            /* ExpectTilingKey */
                               ExpectInfoWithSocversion::kFullTilingBlockDim)), /* ExpectTilingBlockDim */
             FaParam(3, 14, 1, 968, 512, 128,                     /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT, LayoutType::BSND,    /* Dtype, Layout */
@@ -1758,7 +1770,7 @@ const auto Tc_Fas_Redline_SpecCore_Case = ::testing::Values(
             "",                                                  /* DebugInfo */
             OpInfoWithSocversion(ControlInfo(true, false),                     /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                              /* ExpectSuccess */
-                              10000000010220130943UL,            /* ExpectTilingKey */
+                              5437678640UL,            /* ExpectTilingKey */
                               ExpectInfoWithSocversion::kFullTilingBlockDim)), /* ExpectTilingBlockDim */
             FaParam(2, 2, 1, 2048, 2048, 64,                     /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::BSH,   /* Dtype, Layout */
@@ -1773,9 +1785,11 @@ const auto Tc_Fas_Redline_SpecCore_Case = ::testing::Values(
             ),
     FasCase("Fas_Redline_SpecCore_Case_037", true,           /* CaseName, Enable */
             "",                                              /* DebugInfo */
+            [](FAS_KERNEL_PARAM_){
+              ::flash_attention_score<0, 3, 4, 9, 0, 1, 4, 0, 0, 2, 2, 0, 1, 0, 0, 0, 0, 0, 0, 0>(FAS_INPUT_PARAMS);},
             OpInfoWithSocversion(ControlInfo(true, true),                  /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                          /* ExpectSuccess */
-                              10000000001022410943UL,        /* ExpectTilingKey */
+                              5440300080UL,        /* ExpectTilingKey */
                               5)),                           /* ExpectTilingBlockDim */
             FaParam(1, 1, 1, 1, 1026, 16,                    /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT, LayoutType::TND, /* Dtype, Layout */
@@ -1793,9 +1807,11 @@ const auto Tc_Fas_Redline_SpecCore_Case = ::testing::Values(
             ),
     FasCase("Fas_Redline_SpecCore_Case_038", true,           /* CaseName, Enable */
             "",                                              /* DebugInfo */
+            [](FAS_KERNEL_PARAM_){
+              ::flash_attention_score<0, 9, 9, 0, 0, 1, 1, 0, 0, 1, 2, 0, 1, 0, 0, 0, 0, 0, 0, 0>(FAS_INPUT_PARAMS);},
             OpInfoWithSocversion(ControlInfo(true, true),                  /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                          /* ExpectSuccess */
-                              10000000001021110099UL,        /* ExpectTilingKey */
+                              5403575904UL,        /* ExpectTilingKey */
                               1)),                           /* ExpectTilingBlockDim */
             FaParam(1, 1, 1, 16, 16, 16,                     /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT, LayoutType::BSH, /* Dtype, Layout */
@@ -1813,9 +1829,11 @@ const auto Tc_Fas_Redline_SpecCore_Case = ::testing::Values(
             ),
     FasCase("Fas_Redline_SpecCore_Case_039", true,           /* CaseName, Enable */
             "",                                              /* DebugInfo */
+            [](FAS_KERNEL_PARAM_){
+              ::flash_attention_score<0, 3, 4, 9, 0, 1, 1, 1, 0, 2, 2, 0, 1, 0, 0, 0, 0, 0, 0, 0>(FAS_INPUT_PARAMS);},
             OpInfoWithSocversion(ControlInfo(true, true),                  /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                          /* ExpectSuccess */
-                              10000000010221110943UL,        /* ExpectTilingKey */
+                              5445542960UL,        /* ExpectTilingKey */
                               1)),                           /* ExpectTilingBlockDim */
             FaParam(1, 1, 1, 1, 1025, 16,                    /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT, LayoutType::BSH, /* Dtype, Layout */
@@ -1850,9 +1868,9 @@ const auto Tc_Fas_Redline_SpecCore_Case = ::testing::Values(
             ),
     FasCase("Fas_Redline_SpecCore_Case_bf16_run_kernel_unpad)", /* CaseName */
             true, "",                                           /* Enable, DebugInfo */
-            OpInfoWithSocversion(ControlInfo(true, true),                     /* RunTiling, RunKernel */
+            OpInfoWithSocversion(ControlInfo(true, false),                     /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                             /* ExpectSuccess */
-                              10000000001022430943UL,           /* ExpectTilingKey */
+                              5440824368UL,           /* ExpectTilingKey */
                               1)),                              /* ExpectTilingBlockDim */
             FaParam(1, 1, 1, 2048, 2048, 32,                    /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::TND,  /* Dtype, Layout */
@@ -1870,9 +1888,9 @@ const auto Tc_Fas_Redline_SpecCore_Case = ::testing::Values(
             ),
     FasCase("Fas_Redline_SpecCore_Case_run_kernel_s1s2", true,   /* CaseName, Enable */
             "",                                                  /* DebugInfo */
-            OpInfoWithSocversion(ControlInfo(true, true),                      /* RunTiling, RunKernel */
+            OpInfoWithSocversion(ControlInfo(true, false),                      /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                              /* ExpectSuccess */
-                              10000000011221212943UL,            /* ExpectTilingKey */
+                              7594206256UL,            /* ExpectTilingKey */
                               ExpectInfoWithSocversion::kFullTilingBlockDim)), /* ExpectTilingBlockDim */
             FaParam(1, 1, 1, 256, 1025, 32,                      /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT, LayoutType::SBH,     /* Dtype, Layout */
@@ -1890,9 +1908,9 @@ const auto Tc_Fas_Redline_SpecCore_Case = ::testing::Values(
             ),
     FasCase("Fas_Redline_SpecCore_Case_run_kernel_s1s2", true,   /* CaseName, Enable */
             "",                                                  /* DebugInfo */
-            OpInfoWithSocversion(ControlInfo(true, true),                      /* RunTiling, RunKernel */
+            OpInfoWithSocversion(ControlInfo(true, false),                      /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                              /* ExpectSuccess */
-                              10000000011221212943UL,            /* ExpectTilingKey */
+                              7594206256UL,            /* ExpectTilingKey */
                               ExpectInfoWithSocversion::kFullTilingBlockDim)), /* ExpectTilingBlockDim */
             FaParam(1, 1, 1, 256, 1025, 32,                      /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT, LayoutType::SBH,     /* Dtype, Layout */
@@ -1907,9 +1925,11 @@ const auto Tc_Fas_Redline_SpecCore_Case = ::testing::Values(
             ),
     FasCase("Fas_Redline_SpecCore_Case_run_kernel_B_unAlign",  /* CaseName */
             true, "",                                          /* Enable , DebugInfo */
+            [](FAS_KERNEL_PARAM_){
+              ::flash_attention_score<0, 9, 9, 0, 0, 3, 1, 0, 0, 1, 2, 1, 1, 0, 0, 0, 0, 0, 0, 0>(FAS_INPUT_PARAMS);},
             OpInfoWithSocversion(ControlInfo(true, true),                    /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                            /* ExpectSuccess */
-                              10000000001121130099UL,          /* ExpectTilingKey */
+                              7551583840UL,          /* ExpectTilingKey */
                               13)),                            /* ExpectTilingBlockDim */
             FaParam(49, 1, 1, 16, 16, 15,                      /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::BSH, /* Dtype, Layout */
@@ -1924,9 +1944,11 @@ const auto Tc_Fas_Redline_SpecCore_Case = ::testing::Values(
             ),
     FasCase("Fas_Redline_SpecCore_Case_run_kernel_b_d_unAlign", true, /* CaseName, Enable */
             "",                                                       /* DebugInfo */
+            [](FAS_KERNEL_PARAM_){
+              ::flash_attention_score<0, 9, 9, 0, 0, 1, 1, 0, 0, 1, 2, 0, 1, 0, 0, 0, 0, 0, 0, 0>(FAS_INPUT_PARAMS);},
             OpInfoWithSocversion(ControlInfo(true, true),                           /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                                   /* ExpectSuccess */
-                              10000000001021110099UL,                 /* ExpectTilingKey */
+                              5403575904UL,                 /* ExpectTilingKey */
                               1)),                                    /* ExpectTilingBlockDim */
             FaParam(1, 1, 1, 16, 16, 5,                               /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT, LayoutType::BSH,          /* Dtype, Layout */
@@ -1946,7 +1968,7 @@ const auto Tc_Fas_Redline_SpecCore_Case = ::testing::Values(
             "",                                              /* DebugInfo */
             OpInfoWithSocversion(ControlInfo(true, false),                  /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                          /* ExpectSuccess */
-                              10000000001002243993UL,        /* ExpectTilingKey */
+                              9735792176UL,        /* ExpectTilingKey */
                               ExpectInfoWithSocversion::kFullTilingBlockDim)),         /* ExpectTilingBlockDim */
             FaParam(1, 2, 1, 5121, 5121, 16,                    /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::TND, /* Dtype, Layout */
@@ -1966,9 +1988,9 @@ const auto Tc_Fas_Redline_SpecCore_Case = ::testing::Values(
             ),
     FasCase("Fas_Redline_SpecCore_Case_run_kernel_tnd_fp16_nz", true,           /* CaseName, Enable */
             "",                                              /* DebugInfo */
-            OpInfoWithSocversion(ControlInfo(true, true),                  /* RunTiling, RunKernel */
+            OpInfoWithSocversion(ControlInfo(true, false),                  /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                          /* ExpectSuccess */
-                              10000000010022430943UL,        /* ExpectTilingKey */
+                              9735791664UL,        /* ExpectTilingKey */
                               5)),                           /* ExpectTilingBlockDim */
             FaParam(1, 1, 1, 1, 64, 16,                    /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::TND, /* Dtype, Layout */
@@ -1988,9 +2010,9 @@ const auto Tc_Fas_Redline_SpecCore_Case = ::testing::Values(
             ),
     FasCase("Fas_Redline_SpecCore_Case_run_kernel_tnd_kv0", true,           /* CaseName, Enable */
             "",                                              /* DebugInfo */
-            OpInfoWithSocversion(ControlInfo(true, true),                  /* RunTiling, RunKernel */
+            OpInfoWithSocversion(ControlInfo(true, false),                  /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                          /* ExpectSuccess */
-                              10000000010022430943UL,        /* ExpectTilingKey */
+                              9735791664UL,        /* ExpectTilingKey */
                               5)),                           /* ExpectTilingBlockDim */
             FaParam(2, 1, 1, 1, 64, 16,                    /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::TND, /* Dtype, Layout */
@@ -2010,9 +2032,9 @@ const auto Tc_Fas_Redline_SpecCore_Case = ::testing::Values(
             ),
     FasCase("Fas_Redline_SpecCore_Case_run_kernel_tnd_basicBlock1", true,           /* CaseName, Enable */
             "",                                              /* DebugInfo */
-            OpInfoWithSocversion(ControlInfo(true, true),                  /* RunTiling, RunKernel */
+            OpInfoWithSocversion(ControlInfo(true, false),                  /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                          /* ExpectSuccess */
-                              10000000000022410943UL,        /* ExpectTilingKey */
+                              1145332784UL,        /* ExpectTilingKey */
                               ExpectInfoWithSocversion::kInvalidTilingBlockDim)),    /* ExpectTilingBlockDim */
             FaParam(2, 1, 1, 1, 64, 72,                    /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT, LayoutType::TND, /* Dtype, Layout */
@@ -2032,9 +2054,9 @@ const auto Tc_Fas_Redline_SpecCore_Case = ::testing::Values(
             ),
     FasCase("Fas_Redline_SpecCore_Case_run_kernel_tnd_basicBlock2", true,           /* CaseName, Enable */
             "",                                              /* DebugInfo */
-            OpInfoWithSocversion(ControlInfo(true, true),                  /* RunTiling, RunKernel */
+            OpInfoWithSocversion(ControlInfo(true, false),                  /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                          /* ExpectSuccess */
-                              10000000000022412943UL,        /* ExpectTilingKey */
+                              1145463856UL,        /* ExpectTilingKey */
                               ExpectInfoWithSocversion::kInvalidTilingBlockDim)),                           /* ExpectTilingBlockDim */
             FaParam(2, 1, 1, 1, 64, 72,                    /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT, LayoutType::TND, /* Dtype, Layout */
@@ -2054,9 +2076,9 @@ const auto Tc_Fas_Redline_SpecCore_Case = ::testing::Values(
             ),
     FasCase("Fas_Redline_SpecCore_Case_run_kernel_B_ScalarConst_case01", true, /* CaseName, Enable */
             "",                                                     /* DebugInfo */
-            OpInfoWithSocversion(ControlInfo(true, true),                         /* RunTiling, RunKernel */
+            OpInfoWithSocversion(ControlInfo(true, false),                         /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                                 /* ExpectSuccess */
-                              10000061100021120099UL,               /* ExpectTilingKey */
+                              72706315257440UL,               /* ExpectTilingKey */
                               1)),                                  /* ExpectTilingBlockDim */
             FaParam(2, 16, 1, 4, 4, 88,                             /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_BF16, LayoutType::BSH,         /* Dtype, Layout */
@@ -2071,9 +2093,9 @@ const auto Tc_Fas_Redline_SpecCore_Case = ::testing::Values(
             ),
     FasCase("Fas_Redline_SpecCore_Case_run_kernel_B_ScalarConst_case02", true, /* CaseName, Enable */
             "",                                                     /* DebugInfo */
-            OpInfoWithSocversion(ControlInfo(true, true),                         /* RunTiling, RunKernel */
+            OpInfoWithSocversion(ControlInfo(true, false),                         /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                                 /* ExpectSuccess */
-                              10000054400021120099UL,               /* ExpectTilingKey */
+                              44531329795680UL,               /* ExpectTilingKey */
                               2)),                                  /* ExpectTilingBlockDim */
             FaParam(4, 16, 1, 64, 64, 72,                           /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_BF16, LayoutType::BSH,         /* Dtype, Layout */
@@ -2088,9 +2110,9 @@ const auto Tc_Fas_Redline_SpecCore_Case = ::testing::Values(
             ),
     FasCase("Fas_Redline_SpecCore_Case_run_kernel_B_ScalarConst_case03", true, /* CaseName, Enable */
             "",                                                     /* DebugInfo */
-            OpInfoWithSocversion(ControlInfo(true, true),                         /* RunTiling, RunKernel */
+            OpInfoWithSocversion(ControlInfo(true, false),                         /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                                 /* ExpectSuccess */
-                              10000052200021120099UL,               /* ExpectTilingKey */
+                              39858405377632UL,               /* ExpectTilingKey */
                               4)),                                  /* ExpectTilingBlockDim */
             FaParam(8, 16, 1, 30, 30, 72,                           /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_BF16, LayoutType::BSH,         /* Dtype, Layout */
@@ -2105,9 +2127,9 @@ const auto Tc_Fas_Redline_SpecCore_Case = ::testing::Values(
             ),
     FasCase("Fas_Redline_SpecCore_Case_run_kernel_S1_ScalarConst_case01", true, /* CaseName, Enable */
             "",                                                     /* DebugInfo */
-            OpInfoWithSocversion(ControlInfo(true, true),                         /* RunTiling, RunKernel */
+            OpInfoWithSocversion(ControlInfo(true, false),                         /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                                 /* ExpectSuccess */
-                              10058800002201120953UL,               /* ExpectTilingKey */
+                              53877220599088UL,               /* ExpectTilingKey */
                               16)),                                  /* ExpectTilingBlockDim */
             FaParam(8, 4, 1, 234, 234, 72,                          /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_BF16, LayoutType::BSH,         /* Dtype, Layout */
@@ -2122,9 +2144,9 @@ const auto Tc_Fas_Redline_SpecCore_Case = ::testing::Values(
             ),
     FasCase("Fas_Redline_SpecCore_Case_run_kernel_S1_ScalarConst_case02", true, /* CaseName, Enable */
             "",                                                     /* DebugInfo */
-            OpInfoWithSocversion(ControlInfo(true, true),                         /* RunTiling, RunKernel */
+            OpInfoWithSocversion(ControlInfo(true, false),                         /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                                 /* ExpectSuccess */
-                              10068800002200120953UL,               /* ExpectTilingKey */
+                              89061584299312UL,               /* ExpectTilingKey */
                               8)),                                  /* ExpectTilingBlockDim */
             FaParam(2, 4, 1, 256, 256, 88,                          /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_BF16, LayoutType::BSH,         /* Dtype, Layout */
@@ -2139,9 +2161,9 @@ const auto Tc_Fas_Redline_SpecCore_Case = ::testing::Values(
             ),
     FasCase("Fas_Redline_SpecCore_Case_run_kernel_S1_ScalarConst_case03", true, /* CaseName, Enable */
             "",                                                     /* DebugInfo */
-            OpInfoWithSocversion(ControlInfo(true, true),                         /* RunTiling, RunKernel */
+            OpInfoWithSocversion(ControlInfo(true, false),                         /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                                 /* ExpectSuccess */
-                              10068800002201220953UL,               /* ExpectTilingKey */
+                              89061593736496UL,               /* ExpectTilingKey */
                               12)),                                 /* ExpectTilingBlockDim */
             FaParam(2, 4, 1, 348, 348, 88,                          /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_BF16, LayoutType::SBH,         /* Dtype, Layout */
@@ -2170,9 +2192,9 @@ const auto Tc_Fas_Redline_SpecCore_Case_Single = ::testing::Values(
 
     FasCase("Fas_Redline_SpecCore_Case_run_kernel_sameAB_invalid_line", true,  /* CaseName, Enable */
             "",                                                   /* DebugInfo */
-            OpInfoWithSocversion(ControlInfo(true, true),                       /* RunTiling, RunKernel */
+            OpInfoWithSocversion(ControlInfo(true, false),                       /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                               /* ExpectSuccess */
-                              10000000111221232993UL,             /* ExpectTilingKey */
+                              16184665648UL,             /* ExpectTilingKey */
                               ExpectInfoWithSocversion::kFullTilingBlockDim)),  /* ExpectTilingBlockDim */
             FaParam(1, 1, 1, 1025, 1025, 129,                     /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::SBH,    /* Dtype, Layout */
@@ -2187,9 +2209,11 @@ const auto Tc_Fas_Redline_SpecCore_Case_Single = ::testing::Values(
     ),
     FasCase("Fas_Redline_SpecCore_Case_run_kernel_tnd_fp32", true,           /* CaseName, Enable */
                 "",                                              /* DebugInfo */
+                [](FAS_KERNEL_PARAM_){
+                  ::flash_attention_score<0, 3, 4, 9, 0, 1, 4, 0, 0, 2, 2, 0, 0, 1, 0, 0, 0, 0, 0, 0>(FAS_INPUT_PARAMS);},
                 OpInfoWithSocversion(ControlInfo(true, true),                  /* RunTiling, RunKernel */
                     ExpectInfoWithSocversion(true,                          /* ExpectSuccess */
-                                10000000010022410943UL,        /* ExpectTilingKey */
+                                9735267376UL,        /* ExpectTilingKey */
                                 5)),                           /* ExpectTilingBlockDim */
                 FaParam(1, 1, 1, 1, 1026, 16,                    /* B, N2, G, S1, S2, D */
                         ge::DataType::DT_FLOAT, LayoutType::TND, /* Dtype, Layout */
@@ -2209,9 +2233,9 @@ const auto Tc_Fas_Redline_SpecCore_Case_Single = ::testing::Values(
     ),
     FasCase("Fas_Redline_SpecCore_Case_run_kernel_s1s2_fp32_pse", true, /* CaseName, Enable */
             "",                                                /* DebugInfo */
-            OpInfoWithSocversion(ControlInfo(true, true),                    /* RunTiling, RunKernel */
+            OpInfoWithSocversion(ControlInfo(true, false),                    /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                            /* ExpectSuccess */
-                              10000000101221210943UL,          /* ExpectTilingKey */
+                              11889042480UL,          /* ExpectTilingKey */
                               ExpectInfoWithSocversion::kFullTilingBlockDim)),                             /* ExpectTilingBlockDim */
             FaParam(1, 1, 1, 130, 1025, 32,                    /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT, LayoutType::SBH,   /* Dtype, Layout */
@@ -2226,9 +2250,9 @@ const auto Tc_Fas_Redline_SpecCore_Case_Single = ::testing::Values(
             ),
     FasCase("Fas_Redline_SpecCore_Case_run_kernel_s1s2_fp16_pse", true, /* CaseName, Enable */
             "",                                                /* DebugInfo */
-            OpInfoWithSocversion(ControlInfo(true, true),                    /* RunTiling, RunKernel */
+            OpInfoWithSocversion(ControlInfo(true, false),                    /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                            /* ExpectSuccess */
-                              10000000101221230993UL,          /* ExpectTilingKey */
+                              11889567280UL,          /* ExpectTilingKey */
                               ExpectInfoWithSocversion::kFullTilingBlockDim)),                             /* ExpectTilingBlockDim */
             FaParam(1, 1, 1, 80, 1025, 1,                    /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::SBH,   /* Dtype, Layout */
@@ -2243,9 +2267,9 @@ const auto Tc_Fas_Redline_SpecCore_Case_Single = ::testing::Values(
             ),
     FasCase("Fas_Redline_SpecCore_Case_run_kernel_s1s2_fp16", true, /* CaseName, Enable */
             "",                                                /* DebugInfo */
-            OpInfoWithSocversion(ControlInfo(true, true),                    /* RunTiling, RunKernel */
+            OpInfoWithSocversion(ControlInfo(true, false),                    /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                            /* ExpectSuccess */
-                              10000000001221230993UL,          /* ExpectTilingKey */
+                              3299632688UL,          /* ExpectTilingKey */
                               ExpectInfoWithSocversion::kFullTilingBlockDim)),                             /* ExpectTilingBlockDim */
             FaParam(1, 1, 1, 80, 1025, 1,                    /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::SBH,   /* Dtype, Layout */
@@ -2260,9 +2284,11 @@ const auto Tc_Fas_Redline_SpecCore_Case_Single = ::testing::Values(
             ),
     FasCase("Fas_Redline_SpecCore_Case_run_kernel_sameAB_prefix", true, /* CaseName, Enable */
             "",                                                         /* DebugInfo */
+            [](FAS_KERNEL_PARAM_){
+              ::flash_attention_score<0, 3, 9, 9, 0, 3, 3, 0, 0, 2, 2, 0, 1, 0, 0, 0, 0, 0, 0, 0>(FAS_INPUT_PARAMS);},
             OpInfoWithSocversion(ControlInfo(true, true),                             /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                                     /* ExpectSuccess */
-                              10000000010220330993UL,                   /* ExpectTilingKey */
+                              5439776304UL,                   /* ExpectTilingKey */
                               2)),                                      /* ExpectTilingBlockDim */
             FaParam(1, 1, 1, 257, 1088, 129,                           /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::BNSD,         /* Dtype, Layout */
@@ -2280,9 +2306,11 @@ const auto Tc_Fas_Redline_SpecCore_Case_Single = ::testing::Values(
             ),
     FasCase("Fas_Redline_SpecCore_Case_run_kernel_sameAB_normal", true, /* CaseName, Enable */
             "",                                                         /* DebugInfo */
+            [](FAS_KERNEL_PARAM_){
+              ::flash_attention_score<0, 3, 9, 9, 0, 2, 1, 1, 0, 2, 2, 0, 1, 0, 0, 0, 0, 0, 0, 0>(FAS_INPUT_PARAMS);},
             OpInfoWithSocversion(ControlInfo(true, true),                             /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                                     /* ExpectSuccess */
-                              10000000010221120993UL,                   /* ExpectTilingKey */
+                              5445805616UL,                   /* ExpectTilingKey */
                               2)),                                      /* ExpectTilingBlockDim */
             FaParam(1, 1, 1, 257, 513, 129,                           /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_BF16, LayoutType::BSH,             /* Dtype, Layout */
@@ -2297,9 +2325,9 @@ const auto Tc_Fas_Redline_SpecCore_Case_Single = ::testing::Values(
             ),
     FasCase("Fas_Redline_SpecCore_Case_run_kernel_sameAB_causal", true, /* CaseName, Enable */
             "",                                                         /* DebugInfo */
-            OpInfoWithSocversion(ControlInfo(true, true),                             /* RunTiling, RunKernel */
+            OpInfoWithSocversion(ControlInfo(true, false),                             /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                                     /* ExpectSuccess */
-                              10000000111221230993UL,                   /* ExpectTilingKey */
+                              16184534576UL,                   /* ExpectTilingKey */
                               ExpectInfoWithSocversion::kFullTilingBlockDim)),        /* ExpectTilingBlockDim */
             FaParam(1, 1, 1, 257, 1025, 129,                           /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::SBH,          /* Dtype, Layout */
@@ -2314,9 +2342,9 @@ const auto Tc_Fas_Redline_SpecCore_Case_Single = ::testing::Values(
             ),
     FasCase("Fas_Redline_SpecCore_Case_run_kernel_sameAB_matmul_policy", true, /* CaseName, Enable */
             "",                                                                /* DebugInfo */
-            OpInfoWithSocversion(ControlInfo(true, true),                                    /* RunTiling, RunKernel */
+            OpInfoWithSocversion(ControlInfo(true, false),                                    /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                                            /* ExpectSuccess */
-                              10000001000220320993UL,                          /* ExpectTilingKey */
+                              69864023600UL,                          /* ExpectTilingKey */
                               1)),                                             /* ExpectTilingBlockDim */
             FaParam(1, 1, 1, 256, 1152, 192,                                   /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_BF16, LayoutType::BNSD,                   /* Dtype, Layout */
@@ -2331,9 +2359,9 @@ const auto Tc_Fas_Redline_SpecCore_Case_Single = ::testing::Values(
             ),
     FasCase("Fas_Redline_SpecCore_Case_run_kernel_s1s2_d_unAlign", /* CaseName*/
             true, "",                                              /* Enable, DebugInfo */
-            OpInfoWithSocversion(ControlInfo(true, true),                        /* RunTiling, RunKernel */
+            OpInfoWithSocversion(ControlInfo(true, false),                        /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                                /* ExpectSuccess */
-                              10000000011221212943UL,              /* ExpectTilingKey */
+                              7594206256UL,              /* ExpectTilingKey */
                               ExpectInfoWithSocversion::kFullTilingBlockDim)),   /* ExpectTilingBlockDim */
             FaParam(1, 1, 1, 256, 1025, 72,                        /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT, LayoutType::SBH,       /* Dtype, Layout */
@@ -2350,7 +2378,7 @@ const auto Tc_Fas_Redline_SpecCore_Case_Single = ::testing::Values(
             "",                                                  /* DebugInfo */
             OpInfoWithSocversion(ControlInfo(true, false),                      /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                              /* ExpectSuccess */
-                              10000000112200230953UL,            /* ExpectTilingKey */
+                              7586211120UL,            /* ExpectTilingKey */
                               ExpectInfoWithSocversion::kFullTilingBlockDim)), /* ExpectTilingBlockDim */
             FaParam(1, 1, 1, 256, 129, 32,                       /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::SBH,   /* Dtype, Layout */
@@ -2367,7 +2395,7 @@ const auto Tc_Fas_Redline_SpecCore_Case_Single = ::testing::Values(
             "",                                                      /* DebugInfo */
             OpInfoWithSocversion(ControlInfo(true, false),                          /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                                  /* ExpectSuccess */
-                              10000000112201230953UL,                /* ExpectTilingKey */
+                              7594599728UL,                /* ExpectTilingKey */
                               ExpectInfoWithSocversion::kFullTilingBlockDim)),     /* ExpectTilingBlockDim */
             FaParam(1, 1, 1, 256, 257, 15,                           /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::SBH,       /* Dtype, Layout */
@@ -2382,9 +2410,11 @@ const auto Tc_Fas_Redline_SpecCore_Case_Single = ::testing::Values(
             ),
     FasCase("Fas_Redline_SpecCore_Case_run_kernel_vector_s2_64_compute", true,     /* CaseName, Enable */
             "",                                                  /* DebugInfo */
+            [](FAS_KERNEL_PARAM_){
+              ::flash_attention_score<0, 3, 5, 9, 0, 1, 1, 0, 0, 2, 2, 1, 1, 1, 0, 0, 0, 0, 0, 0>(FAS_INPUT_PARAMS);},
             OpInfoWithSocversion(ControlInfo(true, true),                      /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                              /* ExpectSuccess */
-                              10000001112200110953UL,            /* ExpectTilingKey */
+                              16174572848UL,            /* ExpectTilingKey */
                               1)), /* ExpectTilingBlockDim */
             FaParam(1, 1, 1, 15, 512, 128,                       /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT, LayoutType::BSH,   /* Dtype, Layout */
@@ -2401,7 +2431,7 @@ const auto Tc_Fas_Redline_SpecCore_Case_Single = ::testing::Values(
             "",                                                  /* DebugInfo */
             OpInfoWithSocversion(ControlInfo(true, false),                      /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                              /* ExpectSuccess */
-                              10000001012201130953UL,            /* ExpectTilingKey */
+                              11888518448UL,            /* ExpectTilingKey */
                               24)), /* ExpectTilingBlockDim */
             FaParam(1, 1, 1, 15, 391, 128,                       /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::BSH,   /* Dtype, Layout */
@@ -2416,9 +2446,11 @@ const auto Tc_Fas_Redline_SpecCore_Case_Single = ::testing::Values(
     ),
     FasCase("Fas_Redline_SpecCore_Case_run_kernel_vector_s2_64_compute_align", true,     /* CaseName, Enable */
             "",                                                  /* DebugInfo */
+            [](FAS_KERNEL_PARAM_){
+              ::flash_attention_score<0, 3, 5, 9, 0, 3, 1, 0, 0, 2, 2, 1, 0, 1, 0, 0, 0, 0, 0, 0>(FAS_INPUT_PARAMS);},
             OpInfoWithSocversion(ControlInfo(true, true),                      /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                              /* ExpectSuccess */
-                              10000001012200130953UL,            /* ExpectTilingKey */
+                              11880129840UL,            /* ExpectTilingKey */
                               1)), /* ExpectTilingBlockDim */
             FaParam(1, 1, 1, 15, 512, 128,                       /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::BSH,   /* Dtype, Layout */
@@ -2433,9 +2465,11 @@ const auto Tc_Fas_Redline_SpecCore_Case_Single = ::testing::Values(
     ),
     FasCase("Fas_Redline_SpecCore_Case_run_kernel_band_and_pse", true,     /* CaseName, Enable */
             "",                                                  /* DebugInfo */
+            [](FAS_KERNEL_PARAM_){
+              ::flash_attention_score<0, 3, 4, 9, 0, 3, 3, 1, 0, 2, 2, 0, 1, 1, 0, 0, 0, 0, 0, 0>(FAS_INPUT_PARAMS);},
             OpInfoWithSocversion(ControlInfo(true, true),                      /* RunTiling, RunKernel */
                    ExpectInfoWithSocversion(true,                              /* ExpectSuccess */
-                              10000000110221330943UL,            /* ExpectTilingKey */
+                              14038098992UL,            /* ExpectTilingKey */
                               2)), /* ExpectTilingBlockDim */
             FaParam(1, 1, 1, 256, 1025, 128,                       /* B, N2, G, S1, S2, D */
                     ge::DataType::DT_FLOAT16, LayoutType::BNSD,    /* Dtype, Layout */

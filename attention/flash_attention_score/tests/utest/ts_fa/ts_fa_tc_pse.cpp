@@ -27,11 +27,11 @@ const auto Tc_Fa_Pse_Case = ::testing::Values(
 
     FaCase("Fa_Pse_Tc_000", true,                                  /* CaseName, Enable */
            "",                                                     /* DebugInfo */
-           OpInfoWithSocversion(ControlInfo(true, true),                         /* RunTiling, RunKernel */
+           OpInfoWithSocversion(ControlInfo(true, false),                         /* RunTiling, RunKernel */
                   ExpectInfoWithSocversion(true,                                 /* ExpectSuccess */
                              ExpectInfoWithSocversion::kInvalidTilingKey,        /* ExpectTilingKey */
                              ExpectInfoWithSocversion::kInvalidTilingBlockDim)), /* ExpectTilingBlockDim */
-           OpInfoWithSocversion(ControlInfo(true, true),                         /* RunTiling, RunKernel */
+           OpInfoWithSocversion(ControlInfo(true, false),                         /* RunTiling, RunKernel */
                   ExpectInfoWithSocversion(true,                                 /* ExpectSuccess */
                              ExpectInfoWithSocversion::kInvalidTilingKey,        /* ExpectTilingKey */
                              ExpectInfoWithSocversion::kInvalidTilingBlockDim)), /* ExpectTilingBlockDim */
@@ -53,11 +53,11 @@ const auto Tc_Fa_Pse_Case = ::testing::Values(
            ),
     FaCase("Fa_Pse_Tc_001", true,                                  /* CaseName, Enable */
            "",                                                     /* DebugInfo */
-           OpInfoWithSocversion(ControlInfo(true, true),                         /* RunTiling, RunKernel */
+           OpInfoWithSocversion(ControlInfo(true, false),                         /* RunTiling, RunKernel */
                   ExpectInfoWithSocversion(true,                                 /* ExpectSuccess */
                              ExpectInfoWithSocversion::kInvalidTilingKey,        /* ExpectTilingKey */
                              ExpectInfoWithSocversion::kInvalidTilingBlockDim)), /* ExpectTilingBlockDim */
-           OpInfoWithSocversion(ControlInfo(true, true),                         /* RunTiling, RunKernel */
+           OpInfoWithSocversion(ControlInfo(true, false),                         /* RunTiling, RunKernel */
                   ExpectInfoWithSocversion(true,                                 /* ExpectSuccess */
                              ExpectInfoWithSocversion::kInvalidTilingKey,        /* ExpectTilingKey */
                              ExpectInfoWithSocversion::kInvalidTilingBlockDim)), /* ExpectTilingBlockDim */
