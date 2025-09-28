@@ -12,16 +12,15 @@
 #include <array>
 #include <float.h>
 #include "gtest/gtest.h"
-#include "fusedop\rotary_position_embedding\op_host\op_api\aclnn_rotary_position_embedding.h"
-
+#include "../../../../op_host/op_api/aclnn_rotary_position_embedding.h"
+#include "opdev/platform.h"
 #include "op_api_ut_common/tensor_desc.h"
 #include "op_api_ut_common/scalar_desc.h"
 #include "op_api_ut_common/op_api_ut.h"
 
 using namespace std;
 
-class l2_rotary_position_embedding_test : public testing::Test
-{
+class l2_rotary_position_embedding_test : public testing::Test {
 protected:
     static void SetUpTestCase()
     {
@@ -44,7 +43,7 @@ TEST_F(l2_rotary_position_embedding_test, Ascend910B2_rotary_position_embedding_
     auto out = TensorDesc({8, 1, 1, 64}, ACL_FLOAT, ACL_FORMAT_ND);
     auto ut = OP_API_UT(aclnnRotaryPositionEmbedding, INPUT(x, cos, sin, mode), OUTPUT(out));
     uint64_t workspaceSize = 0;
-    aclOpExecutor* executor = nullptr;
+    aclOpExecutor *executor = nullptr;
     aclnnStatus getWorkspaceResult = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspaceSize, executor);
     EXPECT_EQ(getWorkspaceResult, ACLNN_SUCCESS);
 
