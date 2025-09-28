@@ -138,9 +138,6 @@ if (BUILD_OPEN_PROJECT)
 
     # op tiling
     add_library(cust_opmaster SHARED)
-    target_sources(cust_opmaster PRIVATE
-            ${CMAKE_CURRENT_SOURCE_DIR}/common/src/fallback_comm.cpp
-    )
     target_include_directories(cust_opmaster PRIVATE
             ${CMAKE_CURRENT_SOURCE_DIR}/mc2/common/inc
             $<$<BOOL:${BUILD_OPEN_PROJECT}>:$<BUILD_INTERFACE:${ASCEND_CANN_PACKAGE_PATH}/include/experiment>>
@@ -475,6 +472,7 @@ target_link_libraries(
 target_link_libraries(
     cust_opmaster
     PUBLIC ${OPHOST_NAME}_tiling_obj
+    PUBLIC $<$<TARGET_EXISTS:${OPHOST_NAME}_opmaster_ct_gentask_obj>:$<TARGET_OBJECTS:${OPHOST_NAME}_opmaster_ct_gentask_obj>>
     PUBLIC $<$<TARGET_EXISTS:${COMMON_NAME}_obj>:$<TARGET_OBJECTS:${COMMON_NAME}_obj>>
     PRIVATE $<$<BOOL:${BUILD_WITH_INSTALLED_DEPENDENCY_CANN_PKG}>:$<BUILD_INTERFACE:optiling>>
     $<$<TARGET_EXISTS:opsbase>:opsbase>

@@ -50,7 +50,8 @@ if (BUILD_OPEN_PROJECT)
 
     add_library(${COMMON_NAME}_obj OBJECT)
 
-    file(GLOB CPP_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/tiling_base/*.cpp")
+    file(GLOB CPP_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/tiling_base/*.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
 
     target_sources(${COMMON_NAME}_obj PRIVATE ${CPP_SOURCES})
 
@@ -60,6 +61,8 @@ if (BUILD_OPEN_PROJECT)
       ${TILINGAPI_INC_DIRS}
       ${METADEF_INCLUDE_DIRS}
       ${OPS_TRANSFORMER_DIR}/common/include
+      ${ASCEND_CANN_PACKAGE_PATH}/include/experiment/runtime
+      ${ASCEND_CANN_PACKAGE_PATH}/include/experiment/msprof
     )
 
     target_link_libraries(${COMMON_NAME}_obj
