@@ -4331,8 +4331,10 @@ ge::graphStatus PromptFlashAttentionTiling::RunBigKernelTilingWithParams(Context
     }
 
     uint32_t actualSharedPrefixLen = 0U;
-    if ((isKVHasPrefix) && (contextKeyParams.actualSharedPrefixLen != nullptr) &&
-        (contextKeyParams.actualSharedPrefixLen->GetStorageShape().GetShapeSize() > 0) && (contextKeyParams.fromTilingSink == 0U)) {
+    bool tilingsink = contextKeyParams.actualSharedPrefixLen != nullptr && contextKeyParams.actualSharedPrefixLen->GetData<int64_t>() == nullptr;
+    if ((isKVHasPrefix) && contextKeyParams.actualSharedPrefixLen != nullptr &&
+        (contextKeyParams.actualSharedPrefixLen->GetStorageShape().GetShapeSize() > 0) && (contextKeyParams.fromTilingSink == 0U)
+        && !tilingsink) {
         uint32_t prefixDimNum = contextKeyParams.actualSharedPrefixLen->GetStorageShape().GetDimNum();
         OP_CHECK_IF((prefixDimNum != 1),
                     OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName, "actualSharedPrefixLen dim num(%u) should be 1!", prefixDimNum),

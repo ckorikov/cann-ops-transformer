@@ -196,7 +196,7 @@ protected:
     __aicore__ inline void InitOutputSingleCore();
     // ================================Process functions================================
     __aicore__ inline void ProcessBalance();
-    __aicore__ inline void PreloadPipeline(uint32_t loop, uint64_t s2Start, uint64_t s2LoopIdx,
+    __aicore__ inline void PreloadPipeline(uint32_t loop, 
                                            AttentionCommon::RunInfo extraInfo[FIA_PRELOAD_TASK_CACHE_SIZE]);
     // ================================Offset Calc=====================================
     __aicore__ inline void GetActualSeqLen(uint32_t bIdx, uint32_t s1Idx = 0);
@@ -913,16 +913,16 @@ template <typename FIAT> __aicore__ inline void FiaKernelNonQuantMla<FIAT>::Proc
                 (tempLoopInfo.curActualSeqLen + constInfo.s2BaseSize - 1) / constInfo.s2BaseSize; // S2切分份数
             bool isEnd = (bN2LoopIdx == constInfo.bN2End) && (gS1LoopIdx == constInfo.gS1End);
             tempLoopInfo.tndCoreStartKVSplitPos = globalLoopStart ? constInfo.coreStartKVSplitPos : 0;
-            uint32_t extraLoop = isEnd ? 2 : 0;
             uint32_t curS2Start = 0;
             UpdateInner(constInfo.s2Start, tempLoopInfo.s2LoopTimes, curS2Start, s2SplitNum,
                         gS1LoopIdx, gS1LoopIdx == constInfo.gS1Start, isEnd);
             // 当前s2是否被切，决定了输出是否要写到attenOut上
             tempLoopInfo.tndIsS2SplitCore =
                 ((constInfo.s2Start == curS2Start) && (tempLoopInfo.s2LoopTimes == s2SplitNum)) ? false : true;
-            for (int s2LoopIdx = constInfo.s2Start; s2LoopIdx < (tempLoopInfo.s2LoopTimes + extraLoop); s2LoopIdx++) {
+            for (int s2LoopIdx = constInfo.s2Start; s2LoopIdx < tempLoopInfo.s2LoopTimes; s2LoopIdx++) {
+                CalcParams(gloop, constInfo.s2Start, s2LoopIdx, extraInfo[gloop % FIA_PRELOAD_TASK_CACHE_SIZE]); // 创建本轮任务
                 // PreloadPipeline loop初始值要求为 PRELOAD_NUM
-                PreloadPipeline(gloop, constInfo.s2Start, s2LoopIdx, extraInfo);
+                PreloadPipeline(gloop, extraInfo);
                 ++gloop;
             }
             globalLoopStart = false;
@@ -930,6 +930,12 @@ template <typename FIAT> __aicore__ inline void FiaKernelNonQuantMla<FIAT>::Proc
         }
         constInfo.gS1Start = 0;
     }
+
+    for (int i = 0; i < 2; ++i) {  // 2: extra loop
+        PreloadPipeline(gloop, extraInfo);
+        ++gloop;
+    }
+
     if ASCEND_IS_AIV {
         CrossCoreWaitFlag(constInfo.syncC2V1);
     }
@@ -937,14 +943,12 @@ template <typename FIAT> __aicore__ inline void FiaKernelNonQuantMla<FIAT>::Proc
 
 template <typename FIAT>
 __aicore__ inline void
-FiaKernelNonQuantMla<FIAT>::PreloadPipeline(uint32_t loop, uint64_t s2Start, uint64_t s2LoopIdx,
+FiaKernelNonQuantMla<FIAT>::PreloadPipeline(uint32_t loop,
                                                                AttentionCommon::RunInfo extraInfo[FIA_PRELOAD_TASK_CACHE_SIZE])
 {
     AttentionCommon::RunInfo &extraInfo0 = extraInfo[loop % FIA_PRELOAD_TASK_CACHE_SIZE];       // 本轮任务
     AttentionCommon::RunInfo &extraInfo2 = extraInfo[(loop + 2) % FIA_PRELOAD_TASK_CACHE_SIZE]; // 上一轮任务
     AttentionCommon::RunInfo &extraInfo1 = extraInfo[(loop + 1) % FIA_PRELOAD_TASK_CACHE_SIZE]; // 上两轮任务
-
-    CalcParams(loop, s2Start, s2LoopIdx, extraInfo0);
 
     if (extraInfo0.isValid) {
         if ASCEND_IS_AIC {

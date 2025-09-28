@@ -487,10 +487,6 @@ void ReconSplitPlan(const BaseInfo &baseInfo, const InnerSplitParams &innerSplit
         while (blockNumOnCore[coreIdx] >= assignInfo.curBlockOnCore + assignInfo.batchLeftBlock) {
             assignInfo.curBlockOnCore += assignInfo.batchLeftBlock;
             if (assignInfo.bIdx == splitBatchInfo.lastValidBIdx) {  // 所有负载全部分配完
-                // 最后一个核的结束位置，即为最后一个基本块的索引
-                outerSplitParams.bN2End[coreIdx] = splitBatchInfo.lastValidBIdx;
-                outerSplitParams.gS1End[coreIdx] = splitBatchInfo.s1GBaseNum[splitBatchInfo.lastValidBIdx] - 1;
-                outerSplitParams.s2End[coreIdx] = splitBatchInfo.s2BaseNum[splitBatchInfo.lastValidBIdx] - 1;
                 // 如果最后一个核存在头归约，则根据上一个核的结束位置，定位归约数据的索引
                 if (currKvSplitPart > 1) {
                     RecordFDInfo(baseInfo, innerSplitParams, splitBatchInfo, outerSplitParams, fDParams, res, coreIdx, currKvSplitPart);
@@ -557,19 +553,33 @@ void SplitCore(const BaseInfo &baseInfo, const InnerSplitParams &innerSplitParam
     SplitBatchInfo splitBatchInfo(baseInfo.bSize);
     CalSplitBatchInfo(baseInfo, innerSplitParams, splitBatchInfo, coreNum);
 
-    // 2、获取每个核的分配方案
-    uint32_t coreUse = 0;
-    uint32_t maxCost = 0;
+    // 2、获取每个核的分配方案  
     std::vector<uint32_t> blockNumOnCore(coreNum);
     uint32_t maxCore = std::min(coreNum, splitBatchInfo.totalBlockNum);
-    GetBlockNumOnCore(splitBatchInfo, maxCore, blockNumOnCore, coreUse, maxCost);
+    uint32_t minCore = static_cast<uint32_t>(std::sqrt(static_cast<float>(splitBatchInfo.totalBlockNum) + 0.25) + 0.5);
+    minCore = std::min(minCore, maxCore);
+    uint32_t coreUse = 0;
+    uint32_t minMaxCost = splitBatchInfo.totalCost;
+    
+    uint32_t tmpMaxCost = 0;
+    uint32_t tmpCoreUse = 0;
+    std::vector<uint32_t> tmpBlockNumOnCore(coreNum);
+
+    for (uint32_t i = minCore; i <= maxCore; i++) {
+        GetBlockNumOnCore(splitBatchInfo, i, tmpBlockNumOnCore, tmpCoreUse, tmpMaxCost);
+        if (minMaxCost > tmpMaxCost) {
+            minMaxCost = tmpMaxCost;
+            coreUse = tmpCoreUse;
+            blockNumOnCore.assign(tmpBlockNumOnCore.begin(), tmpBlockNumOnCore.end());
+        }
+    }
 
     res.usedCoreNum = coreUse;
     // 3、根据每个核的分配数量重建分核方案，获取切分点、记录归约信息等
     ReconSplitPlan(baseInfo, innerSplitParams, splitBatchInfo, blockNumOnCore, outerSplitParams, fDParams, res);
     
     // 4、刷新每个核各轴结束位置，结束位置为开区间
-    for (uint32_t i = 0; i < coreUse; i++) {
+    for (uint32_t i = 0; i < coreUse - 1; i++) {
         uint32_t s1GCarry = 0U;
         uint32_t bN2Carry = 0U;
         uint32_t curBEnd = outerSplitParams.bN2End[i] / baseInfo.n2Size;
@@ -586,6 +596,10 @@ void SplitCore(const BaseInfo &baseInfo, const InnerSplitParams &innerSplitParam
         }
         outerSplitParams.bN2End[i] += bN2Carry;
     }
+
+    outerSplitParams.bN2End[coreUse - 1] = baseInfo.bSize * baseInfo.n2Size;    
+    outerSplitParams.s2End[coreUse - 1] = 0U;    
+    outerSplitParams.gS1End[coreUse - 1] = 0U;    
 }
 
 void SplitCoreOfBand(const BaseInfo &baseInfo, const InnerSplitParams &innerSplitParams, uint32_t coreNum, OuterSplitParams outerSplitParams, FlashDecodeParams fDParams, SplitCoreRes &res) {

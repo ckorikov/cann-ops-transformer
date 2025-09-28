@@ -396,7 +396,7 @@ ge::graphStatus FiaTilingCheck::CheckActualSeqLensKv() const
 
 ge::graphStatus FiaTilingCheck::CheckActualSeqLensLimit()
 {
-    if (!fiaInfo_.slidingFlag) {
+    if (!fiaInfo_.slidingFlag || fiaInfo_.isMaxWorkspace) {
         return ge::GRAPH_SUCCESS;
     }
     OP_CHECK_IF(s2Size_ > KVS_LIMIT,
