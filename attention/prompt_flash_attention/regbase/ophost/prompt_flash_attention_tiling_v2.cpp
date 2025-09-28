@@ -687,9 +687,8 @@ bool PromptFlashAttentionTilingV2::CheckPostQuantShape(const ContextParamsForPFA
         ((static_cast<uint64_t>(quantScale2ShapeSize) != 1U) && 
          (static_cast<uint64_t>(quantScale2ShapeSize) != quantScale2ShapeSizePerChannel)),
         OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName,
-            "post quant scale2/offset2 dimension multiply result only support 1 and H(%lu), now is (%ld)."
-            "Maybe the shape size of scale2/offset2 do not match multiply of qN(%u) and vD(%u)."
-            "or D is not 32 Byte aligned, which post quant per-channel do not support.", quantScale2ShapeSizePerChannel, quantScale2ShapeSize, queryShapeInfo.n, valueShapeInfo.d),
+            "post quant scale2/offset2 dimension multiply result only support 1 and qN * vD(%u * %u = %lu), now is (%ld).",
+             queryShapeInfo.n, valueShapeInfo.d, quantScale2ShapeSizePerChannel, quantScale2ShapeSize),
         return false);
     return true;
 }
@@ -3329,8 +3328,13 @@ bool PromptFlashAttentionTilingV2::CheckAlibiPseCrossover(ContextParamsForPFATil
         OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName, "When pseType = 2/3, left padding is not supported!"),
         return false);
     
-    OP_CHECK_IF((enableIFAMLA || enablePFARope || enablePFAMLA),
-        OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName, "When pseType = 2/3, rope is not supported!"),
+    OP_CHECK_IF((enableIFAMLA || enablePFARope),
+        OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName, "When pseType = 2/3, rope is not supported, pseType = %ld", pseType),
+        return false);
+
+    OP_CHECK_IF((enablePFAMLA),
+        OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName, 
+        "When pseType = 2/3, query, key and value D should be the same, input query's D ane key's D = 192, but value'D = 128."),
         return false);
 
     return true;
