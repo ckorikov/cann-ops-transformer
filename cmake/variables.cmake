@@ -45,25 +45,6 @@ if(NOT DEFINED ASCEND_PYTHON_EXECUTABLE)
   set(ASCEND_PYTHON_EXECUTABLE python3 CACHE STRING "")
 endif()
 
-# install path
-if(ENABLE_CUSTOM)
-  # custom package install path
-  set(ACLNN_INC_INSTALL_DIR           packages/vendors/${VENDOR_NAME}_transformer/op_api/include)
-  set(ACLNN_LIB_INSTALL_DIR           packages/vendors/${VENDOR_NAME}_transformer/op_api/lib)
-  set(OPS_INFO_INSTALL_DIR            packages/vendors/${VENDOR_NAME}_transformer/op_impl/ai_core/tbe/config)
-  set(IMPL_INSTALL_DIR                packages/vendors/${VENDOR_NAME}_transformer/op_impl/ai_core/tbe/${VENDOR_NAME}_impl/ascendc)
-  set(IMPL_DYNAMIC_INSTALL_DIR        packages/vendors/${VENDOR_NAME}_transformer/op_impl/ai_core/tbe/${VENDOR_NAME}_impl/dynamic)
-  set(BIN_KERNEL_INSTALL_DIR          packages/vendors/${VENDOR_NAME}_transformer/op_impl/ai_core/tbe/kernel)
-  set(BIN_KERNEL_CONFIG_INSTALL_DIR   packages/vendors/${VENDOR_NAME}_transformer/op_impl/ai_core/tbe/kernel/config)
-  set(OPTILING_INSTALL_DIR            packages/vendors/${VENDOR_NAME}_transformer/op_impl/ai_core/tbe/op_tiling/)
-  set(OPTILING_LIB_INSTALL_DIR        packages/vendors/${VENDOR_NAME}_transformer/op_impl/ai_core/tbe/op_tiling/lib/linux/${CMAKE_SYSTEM_PROCESSOR})
-  set(OPPROTO_INC_INSTALL_DIR         packages/vendors/${VENDOR_NAME}_transformer/op_proto/inc)
-  set(OPPROTO_LIB_INSTALL_DIR         packages/vendors/${VENDOR_NAME}_transformer/op_proto/lib/linux/${CMAKE_SYSTEM_PROCESSOR})
-  set(VERSION_INFO_INSTALL_DIR        packages/vendors/${VENDOR_NAME}_transformer/)
-else()
-  # built-in package install path
-endif()
-
 if (ENABLE_BUILT_IN)
   set(ACLNN_INC_INSTALL_DIR           ops_transformer/built-in/op_impl/ai_core/tbe/op_api/include/aclnnop)
   set(ACLNN_INC_LEVEL2_INSTALL_DIR    ops_transformer/built-in/op_impl/ai_core/tbe/op_api/include/aclnnop/level2)

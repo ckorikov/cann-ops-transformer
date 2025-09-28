@@ -79,16 +79,16 @@ if (BUILD_OPEN_PROJECT)
 
         include(cmake/custom_build.cmake)
         message(STATUS "End building custom package.")
+        include(cmake/opbuild.cmake)
+        merge_graph_headers(
+            TARGET merge_ops_proto ALL
+            OUT_DIR ${ASCEND_GRAPH_CONF_DST}
+        )
+        if (ENABLE_OPS_HOST)
+            gen_aclnn_with_opdef()
+        endif()
         if (ENABLE_BUILT_IN)
             message(STATUS "Start building built-in package.")
-            include(cmake/opbuild.cmake)
-            merge_graph_headers(
-                TARGET merge_ops_proto ALL
-                OUT_DIR ${ASCEND_GRAPH_CONF_DST}
-            )
-            if (ENABLE_OPS_HOST)
-                gen_aclnn_with_opdef()
-            endif()
             include(cmake/symbol.cmake)
             gen_norm_symbol()
             include(cmake/package.cmake)

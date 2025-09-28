@@ -107,13 +107,11 @@ function(gen_aclnn_with_opdef)
     opbuild_out_srcs opbuild_out_headers)
 
   # 将头文件安装到packages/vendors/vendor_name/op_api/include
-  if(ENABLE_BUILT_IN)
-    install(
-      FILES ${opbuild_out_headers}
-      DESTINATION ${ACLNN_INC_INSTALL_DIR} OPTIONAL
-    )
-    install(FILES ${opbuild_out_headers} DESTINATION ${ACLNN_INC_LEVEL2_INSTALL_DIR} OPTIONAL)
-  endif()
+  install(
+    FILES ${opbuild_out_headers}
+    DESTINATION ${ACLNN_INC_INSTALL_DIR} OPTIONAL
+  )
+  install(FILES ${opbuild_out_headers} DESTINATION ${ACLNN_INC_LEVEL2_INSTALL_DIR} OPTIONAL)
 
   # ascendc_impl_gen depends opbuild_custom_gen_aclnn_all, for opbuild will generate .ini
   set(dependency_list)
