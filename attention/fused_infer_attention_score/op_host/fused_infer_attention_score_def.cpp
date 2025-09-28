@@ -503,6 +503,11 @@ public:
             .DataTypeList({ge::DT_FLOAT})
             .FormatList({ge::FORMAT_ND})
             .AutoContiguous();
+        this->Input("learnable_sink")
+            .ParamType(OPTIONAL)
+            .DataTypeList({ge::DT_BF16})
+            .FormatList({ge::FORMAT_ND})
+            .AutoContiguous();
         this->Input("q_start_idx")
             .ParamType(OPTIONAL)
             .ValueDepend(OPTIONAL)
@@ -513,11 +518,6 @@ public:
             .ParamType(OPTIONAL)
             .ValueDepend(OPTIONAL)
             .DataTypeList({ge::DT_INT64})
-            .FormatList({ge::FORMAT_ND})
-            .AutoContiguous();
-        this->Input("learnable_sink")
-            .ParamType(OPTIONAL)
-            .DataTypeList({ge::DT_BF16})
             .FormatList({ge::FORMAT_ND})
             .AutoContiguous();
         this->Output("attention_out")
@@ -1388,6 +1388,11 @@ public:
         aicore_config_95.Input("dequant_scale_query")
             .ParamType(OPTIONAL)
             .DataTypeList({ge::DT_FLOAT})
+            .FormatList({ge::FORMAT_ND})
+            .AutoContiguous();
+        aicore_config_95.Input("learnable_sink")
+            .ParamType(OPTIONAL)
+            .DataTypeList({ge::DT_BF16})
             .FormatList({ge::FORMAT_ND})
             .AutoContiguous();
         aicore_config_95.Input("q_start_idx")
