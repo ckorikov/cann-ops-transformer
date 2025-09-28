@@ -80,6 +80,9 @@ constexpr uint32_t CV_RATIO = 2;
 constexpr uint64_t SYNC_MODE = 4;
 constexpr uint64_t MM2_RES_INTRA_EVENT[2] = {7, 8}; // mm2ResIntraEvent
 constexpr uint64_t MM1_RES_INTRA_EVENT[2] = {9, 10}; //mm1ResIntraEvent
+constexpr uint64_t KB_TO_BYTES = 1024;
+constexpr uint64_t L0C_SIZE = 256;
+constexpr uint64_t BASE_SIZE_128 = 128;
 enum class SparseModeEnum {
     ALL = 0,
     NONE = 1,

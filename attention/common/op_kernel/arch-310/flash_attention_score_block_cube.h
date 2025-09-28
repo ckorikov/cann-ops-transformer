@@ -87,6 +87,14 @@ struct L0BBuffSel {
         BuffersPolicySingleBuffer<BufferType::L0B>,
         BuffersPolicyDB<BufferType::L0B>>;
 };
+/* ============确定L0C的类型============= */
+template <typename INPUT_T, uint32_t s1BaseSize, uint32_t s2BaseSize, uint32_t dVBaseSize>
+struct L0CBuffSel {
+    using Type = std::conditional_t<
+        (s1BaseSize == BASE_SIZE_128 && s2BaseSize == BASE_SIZE_128 && dVBaseSize == BASE_SIZE_128),
+        BuffersPolicy4buff<BufferType::L0C>,
+        BuffersPolicyDB<BufferType::L0C>>;
+};
 
 TEMPLATES_DEF
 class FABlockCube {
@@ -95,6 +103,7 @@ public:
     static constexpr uint32_t s1BaseSize = (uint32_t)s1TemplateType;
     static constexpr uint32_t s2BaseSize = (uint32_t)s2TemplateType;
     static constexpr uint32_t dBaseSize = (uint32_t)dTemplateType;
+    static constexpr uint32_t dVBaseSize = (uint32_t)dVTemplateType;
     static constexpr bool isFp8 = IsSameType<INPUT_T, fp8_e5m2_t>::value ||
                                 IsSameType<INPUT_T, fp8_e4m3fn_t>::value ||
                                 IsSameType<INPUT_T, hifloat8_t>::value;
@@ -182,7 +191,8 @@ private:
     using L0BType = typename L0BBuffSel<INPUT_T, s2BaseSize, dBaseSize>::Type;
     L0BType mmL0BBuffers;
     // L0C
-    BuffersPolicyDB<BufferType::L0C> mmL0CBuffers;
+    using L0CType = typename L0CBuffSel<INPUT_T, s1BaseSize, s2BaseSize, dVBaseSize>::Type;
+    L0CType mmL0CBuffers;
 };
 
 TEMPLATES_DEF_NO_DEFAULT
@@ -282,7 +292,12 @@ __aicore__ inline void FABlockCube<TEMPLATE_ARGS>::InitLocalBuffer() {
         mmL0ABuffers.Init(l0aBufferManager, 32 * 1024);
         mmL0BBuffers.Init(l0bBufferManager, 32 * 1024);
     }
-    mmL0CBuffers.Init(l0cBufferManager, 128 * 1024);
+
+    if constexpr (s1BaseSize == BASE_SIZE_128 && s2BaseSize == BASE_SIZE_128 && dVBaseSize == BASE_SIZE_128) {
+        mmL0CBuffers.Init(l0cBufferManager, (L0C_SIZE / NUM_4) * KB_TO_BYTES);
+    } else {
+        mmL0CBuffers.Init(l0cBufferManager, (L0C_SIZE / NUM_2) * KB_TO_BYTES);
+    }
 }
 
 TEMPLATES_DEF_NO_DEFAULT
