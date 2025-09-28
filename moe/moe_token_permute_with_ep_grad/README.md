@@ -1,4 +1,4 @@
-# aclnnMoeTokenPermuteWithEpGrad
+# MoeTokenPermuteWithEpGrad
 
 ## 产品支持情况
 

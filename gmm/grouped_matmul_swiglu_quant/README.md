@@ -1,4 +1,4 @@
-# aclnnGroupedMatmulSwigluQuant
+# GroupedMatmulSwigluQuant
 
 ## 产品支持情况
 

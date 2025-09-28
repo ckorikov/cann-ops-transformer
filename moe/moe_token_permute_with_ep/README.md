@@ -1,4 +1,4 @@
-# aclnnMoeTokenPermuteWithEp
+# MoeTokenPermuteWithEp
 
 ## 产品支持情况
 

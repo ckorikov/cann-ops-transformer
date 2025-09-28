@@ -1,4 +1,4 @@
-# GroupedMatmulV5
+# GroupedMatmul
 
 ## 产品支持情况
 

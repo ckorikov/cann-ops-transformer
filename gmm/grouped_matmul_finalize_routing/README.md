@@ -1,4 +1,4 @@
-# GroupedMatmulFinalizeRouting简介
+# GroupedMatmulFinalizeRouting
 
 ##  产品支持情况
 

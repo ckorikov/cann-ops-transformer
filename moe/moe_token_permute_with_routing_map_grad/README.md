@@ -1,4 +1,4 @@
-# aclnnMoeTokenPermuteWithRoutingMapGrad
+# MoeTokenPermuteWithRoutingMapGrad
 
 ## 产品支持情况
 
