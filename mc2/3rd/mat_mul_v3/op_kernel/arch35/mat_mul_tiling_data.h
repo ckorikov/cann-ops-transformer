@@ -42,6 +42,7 @@ struct MatMulV3TilingData {
     uint32_t mTailMain = 0;
     uint32_t nTailMain = 0;
     uint32_t isHf32 = 0;
+    uint32_t aswWindowLen = 0;
 };
 #pragma pack(pop)
 
@@ -95,9 +96,10 @@ struct MatMulV3BasicTilingData {
     uint32_t nBaseTailSplitCnt = 1;
     uint32_t mTailMain = 1;
     uint32_t nTailMain = 1;
-    uint32_t isHf32 = 0;
-    uint32_t l1BufferNum = 0;
-    uint32_t l0cDB = 1; // 默认不开db为1
+    uint8_t isHf32 = 0;
+    uint8_t l1BufferNum = 0;
+    uint8_t l0cDB = 1; // 默认不开db为1
+    uint8_t ubDB = 1; //ub默认不开db为1
 };
 #pragma pack(pop)
 

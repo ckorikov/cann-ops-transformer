@@ -1,6 +1,6 @@
 /**
- * This program is free software, you can redistribute it and/or modify.
- * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+ * This program is free software, you can redistribute it and/or modify.
+ * Copyright (c) 2025 Huawei Technologies Co., Ltd.
  * This file is a part of the CANN Open Software.
  * Licensed under CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
@@ -15,7 +15,7 @@
  */
 
 #include "matmul_v3_stream_k_tiling.h"
-#include "./matmul_tiling_registry.h"
+#include "matmul_tiling_registry.h"
 #include "matmul_v3_tiling_strategy.h"
 #include "common/op_host/math_util.h"
 
@@ -197,7 +197,7 @@ ge::graphStatus MatMulV3StreamKTiling::DoOpTiling()
         runInfo_.tailInfo.kCnt = MathUtil::CeilDivision(args_.kValue, skSingleCoreK);
     }
     MatMulV3TilingHelper::CalL1Tiling(compileInfo_, args_, runInfo_);
-    // depthB1 is less than depthA1
+    // depthb1 is less than deptha1
     if (runInfo_.baseM == runInfo_.baseN && runInfo_.depthB1 == runInfo_.depthA1 * NUM_TWO) {
         runInfo_.depthA1 = runInfo_.depthA1 * NUM_TWO;
         runInfo_.depthB1 = runInfo_.depthB1 / NUM_TWO;

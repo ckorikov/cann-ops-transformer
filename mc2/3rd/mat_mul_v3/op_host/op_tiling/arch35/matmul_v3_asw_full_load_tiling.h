@@ -28,10 +28,10 @@ public:
 
     ~MatMulV3AswFullLoadTiling() override {};
     bool CheckBL1FullLoadDefault(bool &isKFullLoad, uint64_t kAlignedValue, uint64_t nAlignedValue) const;
-    bool CheckBL1FullLoad91095(bool &isKFullLoad, uint64_t kAlignedValue, uint64_t nAlignedValue) const;
+    bool CheckBL1FullLoad91095(bool &isKFullLoad, uint64_t kAlignedValue, uint64_t nAlignedValue);
     void AdjustTiling91095Basic(uint64_t biasBatchDimAll);
 
-protected: 
+protected:
     ge::graphStatus DoOpTiling() override;
 
     uint64_t GetTilingKey() const override;
@@ -44,9 +44,10 @@ private:
     bool CheckABL1FullLoad() const;
     void DoABL1FullLoad();
     void CalcTailBasicBlockBL1Full();
-    bool CheckBL1FullLoad(bool &isKFullLoad) const;
+    bool CheckBL1FullLoad(bool &isKFullLoad);
     bool CheckAL1FullLoad(bool &isKFullLoad) const;
     void AdjustTilingDefault(uint64_t biasBatchDimAll);
+    void AdjustTilingCommon(uint64_t aBatchDimAll);
     bool ABL1FullLoadExtraCond(uint64_t al1SingleCoreSize, uint64_t bl1SingleCoreSize) const;
     uint64_t GetStepSmallK(bool isBL1FullLoad) const;
 

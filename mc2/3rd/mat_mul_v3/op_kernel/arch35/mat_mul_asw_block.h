@@ -1,6 +1,6 @@
 /**
- * This program is free software, you can redistribute it and/or modify.
- * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+ * This program is free software, you can redistribute it and/or modify.
+ * Copyright (c) 2025 Huawei Technologies Co., Ltd.
  * This file is a part of the CANN Open Software.
  * Licensed under CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
@@ -97,9 +97,6 @@ public:
     AswBlockOffset offset_;
     AswBlockArgs params_;
     const MatMulV3TilingData *matmulTilingData_;
-
-private:
-    const uint64_t WINDOW_LEN = 4UL;
 };
 
 template <class A_TYPE, class B_TYPE>
@@ -139,7 +136,8 @@ __aicore__ inline void MatmulAswBlock::Init(const void *tilingData)
     LoadBalanceInit<A_TYPE, B_TYPE>();
     params_.round = (params_.totalCnt + matmulTilingData_->tCubeTiling.usedCoreNum - 1UL) /
                     matmulTilingData_->tCubeTiling.usedCoreNum;
-    params_.mainWindow = AscendC::Std::min(WINDOW_LEN, params_.mCnt);         // 主划窗m方向的块个数
+    params_.mainWindow =
+        AscendC::Std::min(static_cast<uint64_t>(matmulTilingData_->aswWindowLen), params_.mCnt); // 主划窗m方向的块个数
     params_.mainRow = params_.mCnt / params_.mainWindow - 1UL;                // 主划窗数量
     params_.tailWindow = params_.mCnt - params_.mainRow * params_.mainWindow; // 尾划窗m方向的块个数
 

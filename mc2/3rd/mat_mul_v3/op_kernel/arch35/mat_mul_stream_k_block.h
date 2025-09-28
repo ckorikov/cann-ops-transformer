@@ -75,9 +75,6 @@ public:
 public:
     StreamKAivArgs aivParams_;
     StreamKAicArgs aicParams_;
-
-private:
-    const uint64_t WINDOW_LEN = 4;
 };
 
 template <class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE>
@@ -98,7 +95,7 @@ __aicore__ inline void MatmulStreamKBlock::Init(const void *tilingData)
 
     aicParams_.kBaseTail =
         matmulTilingData_->tCubeTiling.Ka - (matmulTilingData_->kTailCnt - 1) * aicParams_.blockBaseK;
-    // SK场景配置为2，把单次串行的vec计算优化成pingpong2次计算，优化VEC和MTE3一半的耗时;
+    // SK场景配置为2，把单次串行的vec计算优化成pingpang2次计算，优化VEC和MTE3一半的耗时;
     // DPSK场景减小tilesize来降低带宽，避免抢占AIC带宽
     aivParams_.aivMte2Num = params_.round >= NUM_TWO ? BLOCK_SIZE : NUM_TWO;
 }
@@ -149,7 +146,7 @@ __aicore__ inline void MatmulStreamKBlock::UpdateBlockParams(uint64_t roundIdx)
     } else {
         aicParams_.alignSingleCoreN = params_.singleCoreN;
     }
-    
+
 if ASCEND_IS_AIC {
     // DP使用原始k
     if (roundIdx != params_.round - 1) {
@@ -247,7 +244,7 @@ __aicore__ inline void MatmulStreamKBlock::UpdateAivParams(uint64_t index, uint6
             matmulTilingData_->tCubeTiling.N;
     uint64_t singleCnt = MMV3DivCeil(aivParams_.copyGm2UbMBurstOri, aivParams_.copyGm2UbMBurst);
     if (params_.round == 1 &&
-        // 纯sk场景一次搬运超过16K才使用pingpong优化，否则不使用pingpong优化
+        // 纯sk场景一次搬运超过16K才使用pingpang优化，否则不使用pingpang优化
         aivParams_.copyGm2UbMBurstOri * aicParams_.alignSingleCoreN * matmulTilingData_->kTailCnt * DATA_SIZE_FP32 <
             BLOCK_SIZE * BANK_SIZE * DATA_SIZE_FP32) {
         singleCnt = 1;

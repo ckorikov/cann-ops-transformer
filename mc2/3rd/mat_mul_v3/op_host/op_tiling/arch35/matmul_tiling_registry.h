@@ -155,7 +155,7 @@ public:
     }
 
 private:
-    std::map<platform_ascendc::SocVersion, std::map<std::string, std::shared_ptr<MMTilingCases>>> registryMap_; // key is socVersion
+    std::map<platform_ascendc::SocVersion, std::map<std::string, std::shared_ptr<MMTilingCases>>> registryMap_; // key is socversion
     const std::map<int32_t, MMTilingClassCase> emptyTilingCase_{};
 };
 

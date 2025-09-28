@@ -30,6 +30,7 @@
 #include "include/matmul/kernel/kernel_matmul_streamk.h"
 #include "arch35/mat_mul_pingpong_basic_act.h"
 #include "arch35/mat_mul_streamk_basic_act.h"
+#include "arch35/mat_mul_fixpipe_opti_basic_act.h"
 
 using namespace Act;
 using namespace Act::Gemm;
@@ -87,36 +88,44 @@ extern "C" __global__ __aicore__ void mat_mul_v3(GM_ADDR aGM, GM_ADDR bGM, GM_AD
     KERNEL_TASK_TYPE_DEFAULT(KERNEL_TYPE_AIC_ONLY);
     if (TILING_KEY_IS(10001900009000090000UL)) {
         GET_TILING_DATA_WITH_STRUCT(MatMulV3BasicTilingData, tilingData, tilingGM);
-        MatMulActKernel<DTYPE_X1, DTYPE_X2, DTYPE_Y, DTYPE_BIAS, layout::RowMajor, layout::RowMajor, layout::RowMajor>(
+        MatmulV3Advanced::MatMulActKernel<
+            DTYPE_X1, DTYPE_X2, DTYPE_Y, DTYPE_BIAS, layout::RowMajor, layout::RowMajor, layout::RowMajor>(
             aGM, bGM, biasGM, cGM, nullptr, tilingData);
     } else if (TILING_KEY_IS(10001900009000090001UL)) {
         GET_TILING_DATA_WITH_STRUCT(MatMulV3BasicTilingData, tilingData, tilingGM);
-        MatMulActKernel<DTYPE_X1, DTYPE_X2, DTYPE_Y, DTYPE_BIAS, layout::ColumnMajor, layout::RowMajor, layout::RowMajor>(
+        MatmulV3Advanced::MatMulActKernel<
+            DTYPE_X1, DTYPE_X2, DTYPE_Y, DTYPE_BIAS, layout::ColumnMajor, layout::RowMajor, layout::RowMajor>(
             aGM, bGM, biasGM, cGM, nullptr, tilingData);
     } else if (TILING_KEY_IS(10001900009000090002UL)) {
         GET_TILING_DATA_WITH_STRUCT(MatMulV3BasicTilingData, tilingData, tilingGM);
-        MatMulActKernel<DTYPE_X1, DTYPE_X2, DTYPE_Y, DTYPE_BIAS, layout::RowMajor, layout::ColumnMajor, layout::RowMajor>(
+        MatmulV3Advanced::MatMulActKernel<
+            DTYPE_X1, DTYPE_X2, DTYPE_Y, DTYPE_BIAS, layout::RowMajor, layout::ColumnMajor, layout::RowMajor>(
             aGM, bGM, biasGM, cGM, nullptr, tilingData);
     } else if (TILING_KEY_IS(10001900009000090003UL)) {
         GET_TILING_DATA_WITH_STRUCT(MatMulV3BasicTilingData, tilingData, tilingGM);
-        MatMulActKernel<DTYPE_X1, DTYPE_X2, DTYPE_Y, DTYPE_BIAS, layout::ColumnMajor, layout::ColumnMajor, layout::RowMajor>(
+        MatmulV3Advanced::MatMulActKernel<
+            DTYPE_X1, DTYPE_X2, DTYPE_Y, DTYPE_BIAS, layout::ColumnMajor, layout::ColumnMajor, layout::RowMajor>(
             aGM, bGM, biasGM, cGM, nullptr, tilingData);
     } else if (TILING_KEY_IS(10001900009002090000UL)) {
         GET_TILING_DATA_WITH_STRUCT(MatMulV3BasicTilingData, tilingData, tilingGM);
-        MatMulActKernel<DTYPE_X1, DTYPE_X2, DTYPE_Y, DTYPE_BIAS, layout::RowMajor, layout::RowMajor, layout::RowMajor, B_FULL_LOAD_MODE>(
-            aGM, bGM, biasGM, cGM, nullptr, tilingData);
+        MatmulV3Advanced::MatMulActKernel<
+            DTYPE_X1, DTYPE_X2, DTYPE_Y, DTYPE_BIAS, layout::RowMajor, layout::RowMajor, layout::RowMajor,
+            B_FULL_LOAD_MODE>(aGM, bGM, biasGM, cGM, nullptr, tilingData);
     } else if (TILING_KEY_IS(10001900009002090001UL)) {
         GET_TILING_DATA_WITH_STRUCT(MatMulV3BasicTilingData, tilingData, tilingGM);
-        MatMulActKernel<DTYPE_X1, DTYPE_X2, DTYPE_Y, DTYPE_BIAS, layout::ColumnMajor, layout::RowMajor, layout::RowMajor, B_FULL_LOAD_MODE>(
-            aGM, bGM, biasGM, cGM, nullptr, tilingData);
+        MatmulV3Advanced::MatMulActKernel<
+            DTYPE_X1, DTYPE_X2, DTYPE_Y, DTYPE_BIAS, layout::ColumnMajor, layout::RowMajor, layout::RowMajor,
+            B_FULL_LOAD_MODE>(aGM, bGM, biasGM, cGM, nullptr, tilingData);
     } else if (TILING_KEY_IS(10001900009002090002UL)) {
         GET_TILING_DATA_WITH_STRUCT(MatMulV3BasicTilingData, tilingData, tilingGM);
-        MatMulActKernel<DTYPE_X1, DTYPE_X2, DTYPE_Y, DTYPE_BIAS, layout::RowMajor, layout::ColumnMajor, layout::RowMajor, B_FULL_LOAD_MODE>(
-            aGM, bGM, biasGM, cGM, nullptr, tilingData);
+        MatmulV3Advanced::MatMulActKernel<
+            DTYPE_X1, DTYPE_X2, DTYPE_Y, DTYPE_BIAS, layout::RowMajor, layout::ColumnMajor, layout::RowMajor,
+            B_FULL_LOAD_MODE>(aGM, bGM, biasGM, cGM, nullptr, tilingData);
     } else if (TILING_KEY_IS(10001900009002090003UL)) {
         GET_TILING_DATA_WITH_STRUCT(MatMulV3BasicTilingData, tilingData, tilingGM);
-        MatMulActKernel<DTYPE_X1, DTYPE_X2, DTYPE_Y, DTYPE_BIAS, layout::ColumnMajor, layout::ColumnMajor, layout::RowMajor, B_FULL_LOAD_MODE>(
-            aGM, bGM, biasGM, cGM, nullptr, tilingData);
+        MatmulV3Advanced::MatMulActKernel<
+            DTYPE_X1, DTYPE_X2, DTYPE_Y, DTYPE_BIAS, layout::ColumnMajor, layout::ColumnMajor, layout::RowMajor,
+            B_FULL_LOAD_MODE>(aGM, bGM, biasGM, cGM, nullptr, tilingData);
     } else if (TILING_KEY_IS(10001900009000290000UL)) {
         KERNEL_TASK_TYPE(10001900009000290000UL, KERNEL_TYPE_MIX_AIC_1_2);
         GET_TILING_DATA_WITH_STRUCT(MatMulV3BasicTilingData, tilingData, tilingGM);
@@ -285,6 +294,66 @@ extern "C" __global__ __aicore__ void mat_mul_v3(GM_ADDR aGM, GM_ADDR bGM, GM_AD
         KERNEL_TASK_TYPE(10000901009000090003UL, KERNEL_TYPE_MIX_AIC_1_2);
         MMV3_IMPL_CLASS_TRANS(tilingData, tilingGM, true, true, workspaceGM, MatmulV3Advanced::MatmulFixpipeOptiKernel,
             MatmulV3Advanced::MatmulAswBlock, MM_CFG_NO_PRELOAD);
+    } else if (TILING_KEY_IS(10001901009002090000UL)) {
+        GET_TILING_DATA_WITH_STRUCT(MatMulV3BasicTilingData, tilingData, tilingGM);
+        KERNEL_TASK_TYPE(10001901009002090000UL, KERNEL_TYPE_MIX_AIC_1_2);
+        MatmulV3Advanced::MatMulFixpipeOptiActKernel<DTYPE_X1, DTYPE_X2, DTYPE_Y, DTYPE_BIAS, layout::RowMajor,
+        layout::RowMajor, layout::RowMajor, B_FULL_LOAD_MODE>(aGM, bGM, biasGM, cGM, workspaceGM, tilingData);
+    } else if (TILING_KEY_IS(10001901009002090001UL)) {
+        GET_TILING_DATA_WITH_STRUCT(MatMulV3BasicTilingData, tilingData, tilingGM);
+        KERNEL_TASK_TYPE(10001901009002090001UL, KERNEL_TYPE_MIX_AIC_1_2);
+        MatmulV3Advanced::MatMulFixpipeOptiActKernel<DTYPE_X1, DTYPE_X2, DTYPE_Y, DTYPE_BIAS, layout::ColumnMajor,
+        layout::RowMajor, layout::RowMajor, B_FULL_LOAD_MODE>(aGM, bGM, biasGM, cGM, workspaceGM, tilingData);
+    } else if (TILING_KEY_IS(10001901009002090002UL)) {
+        GET_TILING_DATA_WITH_STRUCT(MatMulV3BasicTilingData, tilingData, tilingGM);
+        KERNEL_TASK_TYPE(10001901009002090002UL, KERNEL_TYPE_MIX_AIC_1_2);
+        MatmulV3Advanced::MatMulFixpipeOptiActKernel<DTYPE_X1, DTYPE_X2, DTYPE_Y, DTYPE_BIAS, layout::RowMajor,
+        layout::ColumnMajor, layout::RowMajor, B_FULL_LOAD_MODE>(aGM, bGM, biasGM, cGM, workspaceGM, tilingData);
+    } else if (TILING_KEY_IS(10001901009002090003UL)) {
+        GET_TILING_DATA_WITH_STRUCT(MatMulV3BasicTilingData, tilingData, tilingGM);
+        KERNEL_TASK_TYPE(10001901009002090003UL, KERNEL_TYPE_MIX_AIC_1_2);
+        MatmulV3Advanced::MatMulFixpipeOptiActKernel<DTYPE_X1, DTYPE_X2, DTYPE_Y, DTYPE_BIAS, layout::ColumnMajor,
+        layout::ColumnMajor, layout::RowMajor, B_FULL_LOAD_MODE>(aGM, bGM, biasGM, cGM, workspaceGM, tilingData);
+    } else if (TILING_KEY_IS(10001901009000090000UL)) {
+        GET_TILING_DATA_WITH_STRUCT(MatMulV3BasicTilingData, tilingData, tilingGM);
+        KERNEL_TASK_TYPE(10001901009000090000UL, KERNEL_TYPE_MIX_AIC_1_2);
+        MatmulV3Advanced::MatMulFixpipeOptiActKernel<DTYPE_X1, DTYPE_X2, DTYPE_Y, DTYPE_BIAS, layout::RowMajor,
+        layout::RowMajor, layout::RowMajor>(aGM, bGM, biasGM, cGM, workspaceGM, tilingData);
+    } else if (TILING_KEY_IS(10001901009000090001UL)) {
+        GET_TILING_DATA_WITH_STRUCT(MatMulV3BasicTilingData, tilingData, tilingGM);
+        KERNEL_TASK_TYPE(10001901009000090001UL, KERNEL_TYPE_MIX_AIC_1_2);
+        MatmulV3Advanced::MatMulFixpipeOptiActKernel<DTYPE_X1, DTYPE_X2, DTYPE_Y, DTYPE_BIAS, layout::ColumnMajor,
+        layout::RowMajor, layout::RowMajor>(aGM, bGM, biasGM, cGM, workspaceGM, tilingData);
+    } else if (TILING_KEY_IS(10001901009000090002UL)) {
+        GET_TILING_DATA_WITH_STRUCT(MatMulV3BasicTilingData, tilingData, tilingGM);
+        KERNEL_TASK_TYPE(10001901009000090002UL, KERNEL_TYPE_MIX_AIC_1_2);
+        MatmulV3Advanced::MatMulFixpipeOptiActKernel<DTYPE_X1, DTYPE_X2, DTYPE_Y, DTYPE_BIAS, layout::RowMajor,
+        layout::ColumnMajor, layout::RowMajor>(aGM, bGM, biasGM, cGM, workspaceGM, tilingData);
+    } else if (TILING_KEY_IS(10001901009000090003UL)) {
+        GET_TILING_DATA_WITH_STRUCT(MatMulV3BasicTilingData, tilingData, tilingGM);
+        KERNEL_TASK_TYPE(10001901009000090003UL, KERNEL_TYPE_MIX_AIC_1_2);
+        MatmulV3Advanced::MatMulFixpipeOptiActKernel<DTYPE_X1, DTYPE_X2, DTYPE_Y, DTYPE_BIAS, layout::ColumnMajor,
+        layout::ColumnMajor, layout::RowMajor>(aGM, bGM, biasGM, cGM, workspaceGM, tilingData);
+    } else if (TILING_KEY_IS(10001902009000090000UL)) {
+        GET_TILING_DATA_WITH_STRUCT(MatMulV3BasicTilingData, tilingData, tilingGM);
+        KERNEL_TASK_TYPE(10001902009000090000UL, KERNEL_TYPE_MIX_AIC_1_2);
+        MatmulV3Advanced::MatMulFixpipeOptiActKernel<DTYPE_X1, DTYPE_X2, DTYPE_Y, DTYPE_BIAS, layout::RowMajor,
+        layout::RowMajor, layout::RowMajor>(aGM, bGM, biasGM, cGM, workspaceGM, tilingData);
+    } else if (TILING_KEY_IS(10001902009000090001UL)) {
+        GET_TILING_DATA_WITH_STRUCT(MatMulV3BasicTilingData, tilingData, tilingGM);
+        KERNEL_TASK_TYPE(10001902009000090001UL, KERNEL_TYPE_MIX_AIC_1_2);
+        MatmulV3Advanced::MatMulFixpipeOptiActKernel<DTYPE_X1, DTYPE_X2, DTYPE_Y, DTYPE_BIAS, layout::ColumnMajor,
+        layout::RowMajor, layout::RowMajor>(aGM, bGM, biasGM, cGM, workspaceGM, tilingData);
+    } else if (TILING_KEY_IS(10001902009000090002UL)) {
+        GET_TILING_DATA_WITH_STRUCT(MatMulV3BasicTilingData, tilingData, tilingGM);
+        KERNEL_TASK_TYPE(10001902009000090002UL, KERNEL_TYPE_MIX_AIC_1_2);
+        MatmulV3Advanced::MatMulFixpipeOptiActKernel<DTYPE_X1, DTYPE_X2, DTYPE_Y, DTYPE_BIAS, layout::RowMajor,
+        layout::ColumnMajor, layout::RowMajor>(aGM, bGM, biasGM, cGM, workspaceGM, tilingData);
+    } else if (TILING_KEY_IS(10001902009000090003UL)) {
+        GET_TILING_DATA_WITH_STRUCT(MatMulV3BasicTilingData, tilingData, tilingGM);
+        KERNEL_TASK_TYPE(10001902009000090003UL, KERNEL_TYPE_MIX_AIC_1_2);
+        MatmulV3Advanced::MatMulFixpipeOptiActKernel<DTYPE_X1, DTYPE_X2, DTYPE_Y, DTYPE_BIAS, layout::ColumnMajor,
+        layout::ColumnMajor, layout::RowMajor>(aGM, bGM, biasGM, cGM, workspaceGM, tilingData);
     } else if (TILING_KEY_IS(10000901009000490000UL)) {
         KERNEL_TASK_TYPE(10000901009000490000UL, KERNEL_TYPE_MIX_AIC_1_2);
         MMV3_IMPL_CLASS_TRANS(tilingData, tilingGM, false, false, workspaceGM, MatmulV3Advanced::MatmulFixpipeOptiKernel,
@@ -317,6 +386,26 @@ extern "C" __global__ __aicore__ void mat_mul_v3(GM_ADDR aGM, GM_ADDR bGM, GM_AD
         KERNEL_TASK_TYPE(10000902009000090003UL, KERNEL_TYPE_MIX_AIC_1_2);
         MMV3_IMPL_CLASS_TRANS(tilingData, tilingGM, true, true, workspaceGM, MatmulV3Advanced::MatmulFixpipeOptiDualDstKernel,
             MatmulV3Advanced::MatmulAswBlock, MM_CFG_NO_PRELOAD);
+    } else if (TILING_KEY_IS(10001902009002090000UL)) { // Fixpipe B全载fp32场景切换act kernel
+        GET_TILING_DATA_WITH_STRUCT(MatMulV3BasicTilingData, tilingData, tilingGM);
+        KERNEL_TASK_TYPE(10001902009002090000UL, KERNEL_TYPE_MIX_AIC_1_2);
+        MatmulV3Advanced::MatMulFixpipeOptiActKernel<DTYPE_X1, DTYPE_X2, DTYPE_Y, DTYPE_BIAS, layout::RowMajor,
+        layout::RowMajor, layout::RowMajor, B_FULL_LOAD_MODE>(aGM, bGM, biasGM, cGM, workspaceGM, tilingData);
+    } else if (TILING_KEY_IS(10001902009002090001UL)) {
+        GET_TILING_DATA_WITH_STRUCT(MatMulV3BasicTilingData, tilingData, tilingGM);
+        KERNEL_TASK_TYPE(10001902009002090001UL, KERNEL_TYPE_MIX_AIC_1_2);
+        MatmulV3Advanced::MatMulFixpipeOptiActKernel<DTYPE_X1, DTYPE_X2, DTYPE_Y, DTYPE_BIAS, layout::ColumnMajor,
+        layout::RowMajor, layout::RowMajor, B_FULL_LOAD_MODE>(aGM, bGM, biasGM, cGM, workspaceGM, tilingData);
+    } else if (TILING_KEY_IS(10001902009002090002UL)) {
+        GET_TILING_DATA_WITH_STRUCT(MatMulV3BasicTilingData, tilingData, tilingGM);
+        KERNEL_TASK_TYPE(10001902009002090002UL, KERNEL_TYPE_MIX_AIC_1_2);
+        MatmulV3Advanced::MatMulFixpipeOptiActKernel<DTYPE_X1, DTYPE_X2, DTYPE_Y, DTYPE_BIAS, layout::RowMajor,
+        layout::ColumnMajor, layout::RowMajor, B_FULL_LOAD_MODE>(aGM, bGM, biasGM, cGM, workspaceGM, tilingData);
+    } else if (TILING_KEY_IS(10001902009002090003UL)) {
+        GET_TILING_DATA_WITH_STRUCT(MatMulV3BasicTilingData, tilingData, tilingGM);
+        KERNEL_TASK_TYPE(10001902009002090003UL, KERNEL_TYPE_MIX_AIC_1_2);
+        MatmulV3Advanced::MatMulFixpipeOptiActKernel<DTYPE_X1, DTYPE_X2, DTYPE_Y, DTYPE_BIAS, layout::ColumnMajor,
+        layout::ColumnMajor, layout::RowMajor, B_FULL_LOAD_MODE>(aGM, bGM, biasGM, cGM, workspaceGM, tilingData);
     } else if (TILING_KEY_IS(10000902009000490000UL)) {
         KERNEL_TASK_TYPE(10000902009000490000UL, KERNEL_TYPE_MIX_AIC_1_2);
         MMV3_IMPL_CLASS_TRANS(tilingData, tilingGM, false, false, workspaceGM, MatmulV3Advanced::MatmulFixpipeOptiDualDstKernel,

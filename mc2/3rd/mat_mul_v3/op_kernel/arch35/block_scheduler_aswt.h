@@ -60,9 +60,10 @@ public:
     int64_t baseM_{0};
     int64_t baseN_{0};
     int64_t baseK_{0};
-    int64_t isHf32_{0};
-    int64_t l1BuferNum_{0};
-    int32_t l0cDB_{1};
+    uint8_t isHf32_{0};
+    uint8_t l1BuferNum_{0};
+    uint8_t l0cDB_{1};
+    uint8_t ubDB_{1};
     int64_t mL1NormCnt_{0};
     int64_t mL1TailSplitCnt_{1};
     int64_t mL1TailMain_{0};
@@ -74,6 +75,7 @@ public:
 
     static constexpr uint64_t WINDOW_LEN = 4UL;
     using BlockShape = Shape<int64_t, int64_t, int64_t, int64_t>;
+    using BlockL1L0Shape = Shape<int64_t, int64_t, int64_t, int64_t, int64_t, int64_t>;
     using BlockCoord = Coord<int64_t, int64_t, int64_t, int64_t>;
     using ProblemShape = ProblemShape_;
 
@@ -100,6 +102,7 @@ public:
         isHf32_ = params.tilingData->isHf32;
         l1BuferNum_ = params.tilingData->l1BufferNum;
         l0cDB_ = params.tilingData->l0cDB;
+        ubDB_ = params.tilingData->ubDB;
         mTileNum_ = CeilDiv(shape.m, params.tilingData->mL1);
         nTileNum_ = CeilDiv(shape.n, params.tilingData->nL1);
         kTileNum_ = CeilDiv(k_, params.tilingData->kL1);
@@ -137,19 +140,24 @@ public:
         return tileNum_ * batch_;
     }
 
-    __aicore__ inline int64_t Gethf32Flag()
+    __aicore__ inline bool Gethf32Flag()
     {
-        return isHf32_;
+        return isHf32_ > 0;
     }
 
-    __aicore__ inline int64_t GetL1BuferNum_()
+    __aicore__ inline uint64_t GetL1BuferNum_()
     {
-        return l1BuferNum_;
+        return static_cast<uint64_t>(l1BuferNum_);
     }
 
-    __aicore__ inline int64_t GetL0cDB()
+    __aicore__ inline bool GetL0cDB()
     {
-        return l0cDB_;
+        return l0cDB_ > 1;
+    }
+
+    __aicore__ inline bool GetUbDB()
+    {
+        return ubDB_ > 1;
     }
 
     __aicore__ inline Shape<int64_t, int64_t, int64_t, int64_t> GetTileL1Shape() {
@@ -197,6 +205,36 @@ public:
         splitBlkM = AscendC::Std::min(blkM - mSplitOffset_, splitBlkM);
         splitBlkN = AscendC::Std::min(blkN - nSplitOffset_, splitBlkN);
         return {splitBlkM, splitBlkN, k_, batch_};
+    }
+
+    __aicore__ inline BlockL1L0Shape GetBlockShape(int64_t tileIdx, int64_t mOffset, int64_t nOffset)
+    {
+        UpdateMNTileIdx(tileIdx);
+        int64_t blkM = mL1_;
+        int64_t blkN = nL1_;
+        if (nTileIdx_ >= nL1NormCnt_) {
+            blkN = nTileIdx_ == (nTileNum_ - 1) ? nL1TailLast_ : nL1TailMain_;
+        }
+        if (mTileIdx_ >= mL1NormCnt_) {
+            blkM = mTileIdx_ == (mTileNum_ - 1) ? mL1TailLast_ : mL1TailMain_;
+        }
+        if (tileIdx / blockNum_ != (perCoreBlockNum_ - 1) || tailCnt_ == 1) {
+            // mL1, nL1, k, batch, mL0, nL0
+            return {blkM, blkN, k_, batch_, blkM, AscendC::Std::min(AscendC::Std::min(baseN_, blkN), blkN - nOffset)};
+        }
+        int64_t splitBlkM = CeilDiv(blkM, mTailCnt_);
+        int64_t splitBlkN = CeilDiv(blkN, nTailCnt_);
+        int64_t mSplitIdx = (blockIdx_ % tailCnt_) % mTailCnt_;
+        int64_t nSplitIdx = (blockIdx_ % tailCnt_) / mTailCnt_;
+        mSplitOffset_ = mSplitIdx * splitBlkM;
+        nSplitOffset_ = nSplitIdx * splitBlkN;
+        if (mSplitOffset_ >= blkM || nSplitOffset_ >= blkN) {
+            return {0, 0, k_, batch_, 0, 0};
+        }
+        splitBlkM = AscendC::Std::min(blkM - mSplitOffset_, splitBlkM);
+        splitBlkN = AscendC::Std::min(blkN - nSplitOffset_, splitBlkN);
+        return {splitBlkM, splitBlkN, k_, batch_, splitBlkM,
+                AscendC::Std::min(AscendC::Std::min(baseN_, splitBlkN), splitBlkN - nOffset)};
     }
 
     __aicore__ inline BlockCoord GetBlockCoord(int tileIdx)

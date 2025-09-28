@@ -1,6 +1,6 @@
 /**
- * This program is free software, you can redistribute it and/or modify.
- * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+ * This program is free software, you can redistribute it and/or modify.
+ * Copyright (c) 2025 Huawei Technologies Co., Ltd.
  * This file is a part of the CANN Open Software.
  * Licensed under CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
@@ -356,7 +356,7 @@ void WeightQuantBatchMatmulV2TilingAS::EnlargeBaseK(uint64_t l0aMaxBaseK)
                                                             std::vector<uint64_t>{128UL, 64UL} :
                                                             std::vector<uint64_t>{256UL, 128UL, 64UL};
     tilingData_->matmulTiling.set_baseK(L0_BASE_K_LIST.back()); // 初始化赋值
-    if (matmulInfoPtr_->transB ||
+    if ((matmulInfoPtr_->transB && matmulInfoPtr_->antiQuantType != QuantType::PER_TENSOR) ||
         (weightMxFp4Flag_ && nzSceneFlag_)) { // 小N，非转置场景不做优化，非主要性能场景，避免tilingkey膨胀
         for (size_t listId = 0; listId < L0_BASE_K_LIST.size(); listId++) {
             if (std::min(l0bMaxBaseK, l0aMaxBaseK) >= L0_BASE_K_LIST[listId]) {

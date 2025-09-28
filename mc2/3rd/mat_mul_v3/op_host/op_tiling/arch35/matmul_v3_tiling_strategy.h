@@ -25,14 +25,15 @@
 namespace optiling {
 namespace matmul_v3_advanced {
 namespace strategy {
-constexpr int32_t STREAM_K = 0;
-constexpr int32_t FULL_LOAD_BASE = 2;
-constexpr int32_t BASIC_ASWT = 1;
+constexpr int32_t BASIC_STREAM_K = 0;
+constexpr int32_t STREAM_K = 1;
+constexpr int32_t BASIC_ASWT = 2;
+constexpr int32_t FULL_LOAD_BASE = 3;
 constexpr int32_t BASE = 999;
 
 const static std::map<platform_ascendc::SocVersion, std::vector<int32_t>> MatMulV3PrioritiesMap = {
     { platform_ascendc::SocVersion::ASCEND910_95,
-    { strategy::STREAM_K, strategy::BASIC_ASWT, strategy::FULL_LOAD_BASE} },
+    { strategy::BASIC_STREAM_K, strategy::STREAM_K, strategy::BASIC_ASWT, strategy::FULL_LOAD_BASE} },
 };
 
 inline std::vector<int32_t> GetMatMulV3Priorities(platform_ascendc::SocVersion socVersion)

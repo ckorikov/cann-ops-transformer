@@ -1,6 +1,6 @@
 /**
- * This program is free software, you can redistribute it and/or modify.
- * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+ * This program is free software, you can redistribute it and/or modify.
+ * Copyright (c) 2025 Huawei Technologies Co., Ltd.
  * This file is a part of the CANN Open Software.
  * Licensed under CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
@@ -278,7 +278,7 @@ protected:
                            DequantBmm::Align(mOffset, K0_INT8) * DequantBmm::Align(k_, BMM_BLOCK_NUM);
             } else {
                 // k1, m1, m0, k0
-                offsetA_ = batchAOffset * DequantBmm::Align(m_, BMM_BLOCK_NUM) * DequantBmm::Align(k_, K0_INT8) + 
+                offsetA_ = batchAOffset * DequantBmm::Align(m_, BMM_BLOCK_NUM) * DequantBmm::Align(k_, K0_INT8) +
                            DequantBmm::Align(mOffset, BMM_BLOCK_NUM) * K0_INT8;
             }
         }

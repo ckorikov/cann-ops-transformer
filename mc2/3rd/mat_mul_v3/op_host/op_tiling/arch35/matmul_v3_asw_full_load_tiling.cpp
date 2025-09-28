@@ -8,7 +8,6 @@
  * See LICENSE in the root of the software repository for the full text of the License.
  */
 
-
 /* !
  * \file matmul_v3_asw_full_load_tiling.cc
  * \brief
@@ -45,23 +44,18 @@ const static std::map<platform_ascendc::SocVersion, ABL1FullLoadExtraCondFunc> A
     {platform_ascendc::SocVersion::ASCEND910_95, ABL1FullLoadExtraCond91095},
 };
 
-using CheckBL1FullLoadFunc = bool (MatMulV3AswFullLoadTiling::*)(bool &, uint64_t, uint64_t) const;
+using CheckBL1FullLoadFunc = bool (MatMulV3AswFullLoadTiling::*)(bool&, uint64_t, uint64_t);
 const static std::map<platform_ascendc::SocVersion, CheckBL1FullLoadFunc> CheckBL1FullLoadMap = {
     {platform_ascendc::SocVersion::ASCEND910_95, &MatMulV3AswFullLoadTiling::CheckBL1FullLoad91095},
 };
 
-using AdjustTilingFunc = void (MatMulV3AswFullLoadTiling::*)(uint64_t);
-const static std::map<platform_ascendc::SocVersion, AdjustTilingFunc> AdjustTilingFuncMap = {
-    {platform_ascendc::SocVersion::ASCEND910_95, &MatMulV3AswFullLoadTiling::AdjustTiling91095Basic},
-};
-
 // ------------------------------ GetStepSmallK -------------------------------------------//
-uint64_t GetStepSmallKDefault(const MatMulV3Args & /* args */, const MatMulV3RunInfo &runInfo, bool isBL1FullLoad)
+uint64_t GetStepSmallKDefault(const MatMulV3Args& /* args */, const MatMulV3RunInfo& runInfo, bool isBL1FullLoad)
 {
     return isBL1FullLoad ? runInfo.stepKa : runInfo.stepKb;
 }
 
-uint64_t GetStepSmallK91095(const MatMulV3Args &args, const MatMulV3RunInfo &runInfo, bool isBL1FullLoad)
+uint64_t GetStepSmallK91095(const MatMulV3Args& args, const MatMulV3RunInfo& runInfo, bool isBL1FullLoad)
 {
     uint64_t stepBigK = runInfo.stepKa;
     uint64_t stepSmallK = runInfo.stepKb;
@@ -81,9 +75,10 @@ uint64_t GetStepSmallK91095(const MatMulV3Args &args, const MatMulV3RunInfo &run
     static const double SMALL_TAIL = 0.25;
     bool isSmallTail = static_cast<double>(stepBigK % stepSmallK) / stepSmallK <= SMALL_TAIL;
     isSmallTail = (isSmallTail && !isTrans) || runInfo.baseK * dtypeSize >= BASIC_BLOCK_SIZE_256;
-    // A/B全载场景，要求单核K除以baseK大于8，使stepKb/stepKa增大，搬运量变为64K，减少mte2耗时。
-    if ((inputType == ge::DT_FLOAT && !args.isHf32) || (inputFormat == ge::FORMAT_ND && 
-    (runInfo.singleCoreK / runInfo.baseK) < (BASIC_BLOCK_SIZE_16 / NUM_TWO) && !isBL1FullLoad)) {
+    // A/B全载场景，要求单核K除以basek大于8，使stepKb/stepKa增大，搬运量变为64K，减少mte2耗时。
+    if ((inputType == ge::DT_FLOAT && !args.isHf32) ||
+        ((runInfo.singleCoreK / runInfo.baseK) < (BASIC_BLOCK_SIZE_16 / NUM_TWO) &&
+         !isBL1FullLoad)) {
         stepSmallK = 1UL;
     } else if (isSmallTail) {
         stepSmallK = 2UL;
@@ -91,19 +86,19 @@ uint64_t GetStepSmallK91095(const MatMulV3Args &args, const MatMulV3RunInfo &run
     return stepSmallK;
 }
 
-using GetStepSmallKFunc = uint64_t (*)(const MatMulV3Args &, const MatMulV3RunInfo &, bool);
+using GetStepSmallKFunc = uint64_t (*)(const MatMulV3Args&, const MatMulV3RunInfo&, bool);
 
 const static std::map<platform_ascendc::SocVersion, GetStepSmallKFunc> GetStepSmallKFuncMap = {
     {platform_ascendc::SocVersion::ASCEND910_95, GetStepSmallK91095},
 };
 
-void resetLoadBalance(MatMulV3RunInfo &runInfo_)
+void ResetLoadBalance(MatMulV3RunInfo& runInfo)
 {
     // 全载模板需重置负载均衡计算
-    runInfo_.mBaseTailSplitCnt = 1UL;
-    runInfo_.nBaseTailSplitCnt = 1UL;
-    runInfo_.tailInfo.mTailMain = 0UL;
-    runInfo_.tailInfo.nTailMain = 0UL;
+    runInfo.mBaseTailSplitCnt = 1UL;
+    runInfo.nBaseTailSplitCnt = 1UL;
+    runInfo.tailInfo.mTailMain = 0UL;
+    runInfo.tailInfo.nTailMain = 0UL;
 }
 } // namespace
 
@@ -153,7 +148,7 @@ bool MatMulV3AswFullLoadTiling::CheckABL1FullLoad() const
 void MatMulV3AswFullLoadTiling::DoABL1FullLoad()
 {
     OP_LOGI(args_.opName, "MatMulV3 tiling enable state is DoABL1FullLoad.");
-    resetLoadBalance(runInfo_);
+    ResetLoadBalance(runInfo_);
     runInfo_.singleCoreM = std::min(runInfo_.singleCoreM, args_.mValue);
     runInfo_.singleCoreN = std::min(runInfo_.singleCoreN, args_.nValue);
     return;
@@ -167,7 +162,7 @@ uint64_t MatMulV3AswFullLoadTiling::GetStepSmallK(bool isBL1FullLoad) const
     return iter(args_, runInfo_, isBL1FullLoad);
 }
 
-bool MatMulV3AswFullLoadTiling::CheckAL1FullLoad(bool &isKFullLoad) const
+bool MatMulV3AswFullLoadTiling::CheckAL1FullLoad(bool& isKFullLoad) const
 {
     if (args_.nValue < CACHELINE) {
         return false;
@@ -197,7 +192,6 @@ void MatMulV3AswFullLoadTiling::CalcTailBasicBlockBL1Full()
     uint64_t tailCnt = mCnt <= compileInfo_.aicNum ? 0UL : mCnt % compileInfo_.aicNum;
     runInfo_.tailInfo.mCnt = 1UL;
     runInfo_.tailInfo.nCnt = 1UL;
-
     if (tailCnt == 0UL) {
         return;
     }
@@ -208,9 +202,9 @@ void MatMulV3AswFullLoadTiling::CalcTailBasicBlockBL1Full()
 
 void MatMulV3AswFullLoadTiling::DoAL1FullLoad(bool isKFullLoad, uint64_t bBatchDimAll, uint64_t biasBatchDimAll)
 {
-    resetLoadBalance(runInfo_);
+    ResetLoadBalance(runInfo_);
     if (isKFullLoad) {
-        OP_LOGD(args_.opName, "AL1 is full loaded with m split in multi cores");
+        OP_LOGD(args_.opName, "AL1 is full loaded with m splited in multi cores");
         runInfo_.singleCoreM = std::min(runInfo_.singleCoreM, args_.mValue);
         return;
     }
@@ -248,9 +242,13 @@ void MatMulV3AswFullLoadTiling::DoAL1FullLoad(bool isKFullLoad, uint64_t bBatchD
     return;
 }
 
-bool MatMulV3AswFullLoadTiling::CheckBL1FullLoadDefault(bool &isKFullLoad, uint64_t kAlignedValue,
-                                                        uint64_t nAlignedValue) const
+bool MatMulV3AswFullLoadTiling::CheckBL1FullLoadDefault(
+    bool& isKFullLoad, uint64_t kAlignedValue, uint64_t nAlignedValue) const
 {
+    // NZ以及其他平台走高级api, 若不随路就返回
+    if (l0C2Out_ != MatMulV3L0C2Out::ON_THE_FLY) {
+        return false;
+    }
     uint64_t bl1Size = kAlignedValue * nAlignedValue * args_.bDtypeSize;
     bool isKbFullLoad = isSingleRound_ && args_.nValue < args_.mValue && runInfo_.baseN < args_.nValue;
     if (bl1Size > (compileInfo_.l1Size - biasSize_) / NUM_TWO ||
@@ -261,11 +259,12 @@ bool MatMulV3AswFullLoadTiling::CheckBL1FullLoadDefault(bool &isKFullLoad, uint6
     return true;
 }
 
-bool MatMulV3AswFullLoadTiling::CheckBL1FullLoad91095(bool &isKFullLoad, uint64_t kAlignedValue,
-                                                      uint64_t nAlignedValue) const
+bool MatMulV3AswFullLoadTiling::CheckBL1FullLoad91095(
+    bool& isKFullLoad, uint64_t kAlignedValue, uint64_t nAlignedValue)
 {
-    if (args_.bFormat == ge::FORMAT_FRACTAL_NZ) {
-        return CheckBL1FullLoadDefault(isKFullLoad, kAlignedValue, nAlignedValue);
+    if (l0C2Out_ != MatMulV3L0C2Out::ON_THE_FLY) {
+        apiLevel_ = MatMulV3ApiLevel::BASIC_LEVEL;
+        aswtModel_ = MatMulV3Model::BASIC;
     }
     uint64_t bl1Size = kAlignedValue * nAlignedValue * args_.bDtypeSize;
     // 单核上只有一轮，走basic api模板， 头开销较小，无需走全载模板
@@ -291,10 +290,12 @@ bool MatMulV3AswFullLoadTiling::CheckBL1FullLoad91095(bool &isKFullLoad, uint64_
         return false;
     }
     isKFullLoad = false;
+    apiLevel_ = MatMulV3ApiLevel::BASIC_LEVEL;
+    aswtModel_ = MatMulV3Model::BASIC;
     return true;
 }
 
-bool MatMulV3AswFullLoadTiling::CheckBL1FullLoad(bool &isKFullLoad) const
+bool MatMulV3AswFullLoadTiling::CheckBL1FullLoad(bool& isKFullLoad)
 {
     if (args_.mValue < CACHELINE) {
         return false;
@@ -305,9 +306,10 @@ bool MatMulV3AswFullLoadTiling::CheckBL1FullLoad(bool &isKFullLoad) const
         kAlignedValue = ops::CeilAlign(args_.kValue, BLOCK_BYTE_SIZE / args_.bDtypeSize);
         nAlignedValue = ops::CeilAlign(args_.nValue, BASIC_BLOCK_SIZE_16);
     }
-    auto iter = (CheckBL1FullLoadMap.find(compileInfo_.socVersion) == CheckBL1FullLoadMap.end())
-                ? CheckBL1FullLoadDefault(isKFullLoad, kAlignedValue, nAlignedValue)
-                : (this->*CheckBL1FullLoadMap.at(compileInfo_.socVersion))(isKFullLoad, kAlignedValue, nAlignedValue);
+    auto iter = (CheckBL1FullLoadMap.find(compileInfo_.socVersion) == CheckBL1FullLoadMap.end() ||
+                 args_.bFormat == ge::FORMAT_FRACTAL_NZ) ?
+                    CheckBL1FullLoadDefault(isKFullLoad, kAlignedValue, nAlignedValue) :
+                    (this->*CheckBL1FullLoadMap.at(compileInfo_.socVersion))(isKFullLoad, kAlignedValue, nAlignedValue);
     return iter;
 }
 
@@ -327,65 +329,31 @@ void MatMulV3AswFullLoadTiling::AdjustTiling91095Basic(uint64_t biasBatchDimAll)
     while (loadSize > compileInfo_.l1Size) {
         // 第一轮有限调整stepK为2， 进一步的调整baseM
         runInfo_.baseM = (runInfo_.stepKa == std::min(runInfo_.stepKb, 2UL)) ? runInfo_.baseM >> 1 : runInfo_.baseM;
-        runInfo_.stepKa = std::min(runInfo_.stepKb, 2UL); // 最小为2保证baseK * 2 * aDtype = 256B
+        runInfo_.stepKa = std::min(runInfo_.stepKb, 2UL); // 最小为2保证baseK * 2 * adtype = 256B
         runInfo_.depthA1 = DB_SIZE * runInfo_.stepKa;
         runInfo_.baseM = ops::CeilAlign(runInfo_.baseM, BASIC_BLOCK_SIZE_16);
-        loadSize -= runInfo_.depthA1 * runInfo_.baseM * runInfo_.baseK * args_.aDtypeSize;
+        loadSize = runInfo_.depthA1 * runInfo_.baseM * runInfo_.baseK * args_.aDtypeSize + baseBiasSize + bL1Size;
     }
     uint64_t dtypeSize = GetSizeByDataType(ge::DT_FLOAT);
     runInfo_.singleCoreN = args_.nValue;
     runInfo_.singleCoreM = runInfo_.baseM;
-    runInfo_.dbL0C = runInfo_.baseM * runInfo_.baseN * dtypeSize * DB_SIZE <= compileInfo_.l0CSize ? DB_SIZE : 1UL;
-
     // 内轴*dtype是256 * 2的整数倍表明tiling减半不影响MTE2搬运效率
     if (!args_.isATrans || (runInfo_.baseM * args_.aDtypeSize) % (BASIC_BLOCK_SIZE_256 * NUM_TWO) == 0) {
-            runInfo_.baseM = runInfo_.baseM * runInfo_.baseN * dtypeSize * DB_SIZE <= compileInfo_.l0CSize ? 
+            runInfo_.baseM = runInfo_.baseM * runInfo_.baseN * dtypeSize * DB_SIZE <= compileInfo_.l0CSize ?
                                 runInfo_.baseM : ops::CeilAlign(runInfo_.baseM >> 1, BASIC_BLOCK_SIZE_16);
-    }  
+    }
     uint64_t aL14Buffer = static_cast<uint64_t>(runInfo_.baseK) *  runInfo_.stepKa * runInfo_.baseM * \
                             args_.aDtypeSize * BASIC_L1_BUFFER_NUM;
-    runInfo_.l1BufferNum = aL14Buffer + bL1Size + baseBiasSize > compileInfo_.l1Size ? 
+    runInfo_.l1BufferNum = aL14Buffer + bL1Size + baseBiasSize > compileInfo_.l1Size ?
                             DB_SIZE : BASIC_L1_BUFFER_NUM;
     runInfo_.singleCoreM = runInfo_.baseM;
     runInfo_.dbL0C = runInfo_.baseM * runInfo_.baseN * dtypeSize * DB_SIZE <= compileInfo_.l0CSize ? DB_SIZE : 1UL;
-    apiLevel_ = MatMulV3ApiLevel::BASIC_LEVEL;
-    aswtModel_ = MatMulV3Model::BASIC;
+    runInfo_.mixInfo.ubDB = runInfo_.baseM * runInfo_.baseN * dtypeSize <= compileInfo_.ubSize ? DB_SIZE : 1UL;
 }
 
-void MatMulV3AswFullLoadTiling::AdjustTilingDefault(uint64_t biasBatchDimAll)
+void MatMulV3AswFullLoadTiling::AdjustTilingCommon(uint64_t aBatchDimAll)
 {
-    uint64_t loadSize = static_cast<uint64_t>(runInfo_.baseK) *	
-        (runInfo_.depthA1 * runInfo_.baseM + runInfo_.depthB1 * runInfo_.baseN) * args_.aDtypeSize;	
-    uint64_t baseBiasSize = args_.hasBias ? runInfo_.baseN * GetSizeByDataType(args_.biasType) * biasBatchDimAll : 0;
-    loadSize += baseBiasSize;	
-    // Check L1 load size	
-    while (loadSize > compileInfo_.l1Size) {	
-        // 第一轮有限调整stepK为2， 进一步的调整baseM
-        runInfo_.baseM = (runInfo_.stepKa == std::min(runInfo_.stepKb, 2UL)) ? runInfo_.baseM >> 1 : runInfo_.baseM;
-        runInfo_.stepKa = std::min(runInfo_.stepKb, 2UL); // 最小为2保证baseK * 2 * aDtype = 256B
-        runInfo_.depthA1 = DB_SIZE * runInfo_.stepKa;
-        runInfo_.baseM = ops::CeilAlign(runInfo_.baseM, BASIC_BLOCK_SIZE_16);	
-        loadSize -= runInfo_.depthA1 * runInfo_.baseM * runInfo_.baseK * args_.aDtypeSize;	
-    }	
-
-    runInfo_.singleCoreN = args_.nValue;	
-    runInfo_.singleCoreM = runInfo_.baseM;	
-    uint64_t dtypeSize = GetSizeByDataType(ge::DT_FLOAT);
-    runInfo_.dbL0C = runInfo_.baseM * runInfo_.baseN * dtypeSize * DB_SIZE <= compileInfo_.l0CSize ? DB_SIZE : 1UL;	
-    runInfo_.tailInfo.mCnt *= runInfo_.tailInfo.nCnt;	
-    runInfo_.tailInfo.nCnt = 1UL;
-}
-
-void MatMulV3AswFullLoadTiling::DoBL1FullLoad(bool isKFullLoad, uint64_t aBatchDimAll, uint64_t biasBatchDimAll)
-{
-    OP_LOGI(args_.opName, "MatMulV3 tiling enable state is DoBL1FullLoad.");
-    resetLoadBalance(runInfo_);
-    if (isKFullLoad) {
-        OP_LOGD(args_.opName, "BL1 is full loaded with n split in multi cores.");
-        runInfo_.singleCoreN = std::min(runInfo_.singleCoreN, args_.nValue);
-        return;
-    }
-    // fine tune tiling baseN
+    // fine tune tiling basen
     uint64_t nAlignedValue = ops::CeilAlign(args_.nValue, BASIC_BLOCK_SIZE_16);
     uint64_t bl0Size = nAlignedValue * runInfo_.baseK * args_.bDtypeSize * DB_SIZE;
     runInfo_.baseN = bl0Size <= compileInfo_.l0BSize ? nAlignedValue : std::min(nAlignedValue, runInfo_.baseN);
@@ -399,12 +367,52 @@ void MatMulV3AswFullLoadTiling::DoBL1FullLoad(bool isKFullLoad, uint64_t aBatchD
     }
     runInfo_.depthA1 = DB_SIZE * runInfo_.stepKa;
     runInfo_.depthB1 = runInfo_.stepN * runInfo_.stepKb;
-    if (AdjustTilingFuncMap.find(compileInfo_.socVersion) != AdjustTilingFuncMap.end()) {
-        (this->*AdjustTilingFuncMap.at(compileInfo_.socVersion))(biasBatchDimAll);
+}
+
+void MatMulV3AswFullLoadTiling::AdjustTilingDefault(uint64_t biasBatchDimAll)
+{
+    uint64_t bL1Size = runInfo_.baseK * runInfo_.depthB1 * runInfo_.baseN * args_.bDtypeSize;
+    uint64_t baseBiasSize = args_.hasBias ? runInfo_.baseN * GetSizeByDataType(args_.biasType) * biasBatchDimAll : 0;
+    uint64_t aL1Size = runInfo_.baseK * runInfo_.depthA1 * runInfo_.baseM * args_.aDtypeSize;
+    uint64_t loadSize = aL1Size + bL1Size + baseBiasSize;
+    // Check L1 load size
+    while (loadSize > compileInfo_.l1Size) {
+        // 第一轮有限调整stepK为2， 进一步的调整baseM
+        runInfo_.baseM = (runInfo_.stepKa == std::min(runInfo_.stepKb, 2UL)) ? runInfo_.baseM >> 1 : runInfo_.baseM;
+        runInfo_.stepKa = std::min(runInfo_.stepKb, 2UL); // 最小为2保证baseK * 2 * adtype = 256B
+        runInfo_.depthA1 = DB_SIZE * runInfo_.stepKa;
+        runInfo_.baseM = ops::CeilAlign(runInfo_.baseM, BASIC_BLOCK_SIZE_16);
+        loadSize = runInfo_.depthA1 * runInfo_.baseM * runInfo_.baseK * args_.aDtypeSize + baseBiasSize + bL1Size;
+    }
+
+    runInfo_.singleCoreN = args_.nValue;
+    runInfo_.singleCoreM = runInfo_.baseM;
+    uint64_t dtypeSize = GetSizeByDataType(ge::DT_FLOAT);
+    runInfo_.dbL0C = runInfo_.baseM * runInfo_.baseN * dtypeSize * DB_SIZE <= compileInfo_.l0CSize ? DB_SIZE : 1UL;
+    runInfo_.tailInfo.mCnt *= runInfo_.tailInfo.nCnt;
+    runInfo_.tailInfo.nCnt = 1UL;
+}
+
+void MatMulV3AswFullLoadTiling::DoBL1FullLoad(bool isKFullLoad, uint64_t aBatchDimAll, uint64_t biasBatchDimAll)
+{
+    // 负载均衡屏蔽全载模板
+    ResetLoadBalance(runInfo_);
+    OP_LOGI(args_.opName, "MatMulV3 tiling enable state is DoBL1FullLoad.");
+    if (isKFullLoad) {
+        OP_LOGD(args_.opName, "BL1 is full loaded with n splited in multi cores.");
+        runInfo_.singleCoreN = std::min(runInfo_.singleCoreN, args_.nValue);
+        fullLoad_ = MatMulV3FullLoad::B_FULL_LOAD;
+        return;
+    }
+    if (apiLevel_ == MatMulV3ApiLevel::BASIC_LEVEL) {
+        AdjustTilingCommon(aBatchDimAll);
+        AdjustTiling91095Basic(biasBatchDimAll);
         CalcTailBasicBlockBL1Full();
     } else {
+        AdjustTilingCommon(aBatchDimAll);
         AdjustTilingDefault(biasBatchDimAll);
     }
+    fullLoad_ = MatMulV3FullLoad::B_FULL_LOAD;
     return;
 }
 
@@ -412,22 +420,19 @@ ge::graphStatus MatMulV3AswFullLoadTiling::DoOpTiling()
 {
     MatMulV3AswTiling::DoOpTiling();
     l0C2Out_ = MatMulV3TilingHelper::GetL0C2Out(compileInfo_, args_, runInfo_);
-    if (l0C2Out_ != MatMulV3L0C2Out::ON_THE_FLY) {
-        return ge::GRAPH_SUCCESS;
-    }
     FullLoadPre();
     bool isKFullLoad = false;
-    if (CheckABL1FullLoad()) {
+    if (l0C2Out_ == MatMulV3L0C2Out::ON_THE_FLY && CheckABL1FullLoad()) {
         DoABL1FullLoad();
         fullLoad_ = MatMulV3FullLoad::AB_FULL_LOAD;
         aswtModel_ = MatMulV3Model::BASIC;
-    } else if (CheckAL1FullLoad(isKFullLoad)) {
+    } else if (l0C2Out_ == MatMulV3L0C2Out::ON_THE_FLY && CheckAL1FullLoad(isKFullLoad)) {
         DoAL1FullLoad(isKFullLoad);
         fullLoad_ = MatMulV3FullLoad::A_FULL_LOAD;
     } else if (CheckBL1FullLoad(isKFullLoad)) {
         DoBL1FullLoad(isKFullLoad);
-        fullLoad_ = MatMulV3FullLoad::B_FULL_LOAD;
     }
+    // 将非全载模板但fixpipe优化以及BL1全载的场景均设置高级api
     return ge::GRAPH_SUCCESS;
 }
 
@@ -435,8 +440,8 @@ uint64_t MatMulV3AswFullLoadTiling::GetTilingKey() const
 {
     return MatMulV3TilingKey()
         .SetTrans(args_.isATrans, args_.isBTrans)
-        .SetModel(aswtModel_)
         .SetFullLoad(fullLoad_)
+        .SetModel(aswtModel_)
         .SetL0C2Out(l0C2Out_)
         .SetApiLevel(apiLevel_)
         .GetTilingKey();

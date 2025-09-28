@@ -1,6 +1,6 @@
 /**
- * This program is free software, you can redistribute it and/or modify.
- * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+ * This program is free software, you can redistribute it and/or modify.
+ * Copyright (c) 2025 Huawei Technologies Co., Ltd.
  * This file is a part of the CANN Open Software.
  * Licensed under CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
@@ -15,19 +15,19 @@
 
  #ifndef QBMM_PERBLOCK_API_PARAM_UTILS_H
  #define QBMM_PERBLOCK_API_PARAM_UTILS_H
- 
+
  #include "qbmm_asw_block.h"
  #include "../quant_batch_matmul_v3_base.h"
- 
+
  #define MATMUL_PERBLOCK_CLASS_TEM_PARAMS                                                                            \
      template <class aType, class bType, class scaleType, class biasType, class ptScaleType, class cType,            \
                CubeFormat aFormat, CubeFormat bFormat, CubeFormat cFormat, bool aTrans, bool bTrans, class l0cDtype, \
                class blockType>
- 
+
  #define MATMUL_PERBLOCK_FUNC_PARAMS                                                                             \
      aType, bType, scaleType, biasType, ptScaleType, cType, aFormat, bFormat, cFormat, aTrans, bTrans, l0cDtype, \
          blockType
- 
+
  namespace QuantBatchMatmulV3 {
  MATMUL_PERBLOCK_CLASS_TEM_PARAMS
  class MatMulCommonParam {
@@ -46,7 +46,7 @@
                                               const bool &isTailAL1);
      __aicore__ inline void LoadData2dParamsB(LoadData2DParamsV2 &loadData2dParams, const uint64_t &kOffset,
                                               const bool &isTailBL1);
- 
+
  protected:
      blockType *block_;
      const TCubeTiling *matmulTiling_;
@@ -59,7 +59,7 @@
      uint64_t kA1Tail_;
      uint64_t kB1Tail_;
  };
- 
+
  MATMUL_PERBLOCK_CLASS_TEM_PARAMS
  __aicore__ inline void MatMulCommonParam<MATMUL_PERBLOCK_FUNC_PARAMS>::Init(blockType &block,
                                                                              const TCubeTiling &tilingData)
@@ -85,7 +85,7 @@
      kB1Tail_ = matmulTiling_->Kb % kB1_ == 0 ? kB1_ : matmulTiling_->Kb % kB1_;
      kA1Tail_ = matmulTiling_->Ka % kA1_ == 0 ? kA1_ : matmulTiling_->Ka % kA1_;
  }
- 
+
  MATMUL_PERBLOCK_CLASS_TEM_PARAMS
  __aicore__ inline uint64_t MatMulCommonParam<MATMUL_PERBLOCK_FUNC_PARAMS>::CalcAGMOffsetInnerLoop(
      const uint64_t &mOffset, const uint64_t &kOffset)
@@ -98,7 +98,7 @@
      }
      return offsetA;
  }
- 
+
  MATMUL_PERBLOCK_CLASS_TEM_PARAMS
  __aicore__ inline uint64_t MatMulCommonParam<MATMUL_PERBLOCK_FUNC_PARAMS>::CalcBGMOffsetInnerLoop(
      const uint64_t &nOffset, const uint64_t &kOffset)
@@ -111,7 +111,7 @@
      }
      return offsetB;
  }
- 
+
  MATMUL_PERBLOCK_CLASS_TEM_PARAMS
  __aicore__ inline void MatMulCommonParam<MATMUL_PERBLOCK_FUNC_PARAMS>::CalNd2NzParamA(AscendC::Nd2NzParams &nd2nzParam,
                                                                                        const bool &isTailAL1)
@@ -133,7 +133,7 @@
          nd2nzParam.dstNzC0Stride = DequantBmm::Align(block_->params_.singleCoreM, static_cast<uint64_t>(k0_FLOAT16));
      }
  }
- 
+
  MATMUL_PERBLOCK_CLASS_TEM_PARAMS
  __aicore__ inline void MatMulCommonParam<MATMUL_PERBLOCK_FUNC_PARAMS>::CalNd2NzParamB(AscendC::Nd2NzParams &nd2nzParam,
                                                                                        const bool &isTailBL1)
@@ -155,7 +155,7 @@
          nd2nzParam.dstNzC0Stride = DequantBmm::Align(currentK, static_cast<uint64_t>(DATA_BLOCK));  // 对齐到32
      }
  }
- 
+
  MATMUL_PERBLOCK_CLASS_TEM_PARAMS
  __aicore__ inline uint32_t MatMulCommonParam<MATMUL_PERBLOCK_FUNC_PARAMS>::CalcAL1Offset(const uint64_t &mAL1Offset,
                                                                                           const uint64_t &kAL1Offset,
@@ -172,7 +172,7 @@
          return DequantBmm::Align(kAL1Offset, kA1C0_) * mAL1 + mAL1Offset * kA1C0_;
      }
  }
- 
+
  MATMUL_PERBLOCK_CLASS_TEM_PARAMS
  __aicore__ inline uint32_t MatMulCommonParam<MATMUL_PERBLOCK_FUNC_PARAMS>::CalcBL1Offset(const uint64_t &nBL1Offset,
                                                                                           const uint64_t &kBL1Offset,
@@ -189,7 +189,7 @@
          return DequantBmm::Align(nBL1Offset, nB1C0_) * kBL1 + kBL1Offset * nB1C0_;
      }
  }
- 
+
  MATMUL_PERBLOCK_CLASS_TEM_PARAMS
  __aicore__ inline void MatMulCommonParam<MATMUL_PERBLOCK_FUNC_PARAMS>::LoadData2dParamsA(
      LoadData2DParamsV2 &loadData2dParams, const uint64_t &kOffset, const bool &isTailAL1)
@@ -214,7 +214,7 @@
          loadData2dParams.dstStride = DequantBmm::CeilDiv(currM, static_cast<uint64_t>(k0_FLOAT16));
      }
  }
- 
+
  MATMUL_PERBLOCK_CLASS_TEM_PARAMS
  __aicore__ inline void MatMulCommonParam<MATMUL_PERBLOCK_FUNC_PARAMS>::LoadData2dParamsB(
      LoadData2DParamsV2 &loadData2dParams, const uint64_t &kOffset, const bool &isTailBL1)
@@ -240,4 +240,3 @@
  }
  }  // namespace QuantBatchMatmulV3
  #endif  // QBMM_PERBLOCK_API_PARAM_UTILS_H
- 

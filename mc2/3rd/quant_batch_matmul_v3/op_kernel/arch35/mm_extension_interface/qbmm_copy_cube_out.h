@@ -1,6 +1,6 @@
 /**
- * This program is free software, you can redistribute it and/or modify.
- * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+ * This program is free software, you can redistribute it and/or modify.
+ * Copyright (c) 2025 Huawei Technologies Co., Ltd.
  * This file is a part of the CANN Open Software.
  * Licensed under CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
@@ -25,17 +25,17 @@ namespace AscendC {
         using FixpipeAdaptor =
             AscendC::Impl::Detail::FixpipeParamsUtil<A_TYPE, C_TYPE, MM_CFG,
                 AscendC::Impl::Detail::MatmulFeatureTrait<MM_CFG>::GetFixpipeParamsType()>;
-    
+
         MATMUL_USE_MODULE(Context);
         MATMUL_USE_MODULE(MatmulQuantProcessor);
         MATMUL_USE_MODULE(MatmulShapeInfo);
         MATMUL_USE_MODULE(MatmulShapeTiling);
         MATMUL_USE_MODULE(MatmulUserDefineInfo);
         MATMUL_USE_MODULE(MatmulSubBlockInfo);
-    
+
     public:
         __aicore__ inline QBmmCustomCopyCubeOut() = default;
-    
+
         template <bool enSequentialWrite = false, typename ScheduleContext = int>
         __aicore__ inline void Copy(const GlobalTensor<DstT>& gm, const LocalTensor<SrcT>& co1Local, int32_t curRow,
                                     int32_t curCol, int32_t baseHeight, int32_t baseWidth, int32_t baseBlockHeight,
@@ -51,7 +51,7 @@ namespace AscendC {
             CopyOutImpl<enSequentialWrite, const GlobalTensor<DstT>, false>(gm, co1Local, curRow, curCol, baseHeight,
                 baseWidth, baseBlockHeight, baseBlockWidth);
         }
-    
+
         template <bool enSequentialWrite = false, typename ScheduleContext = int>
         __aicore__ inline void Copy(const LocalTensor<DstT>& co2Local, const LocalTensor<SrcT>& co1Local, int32_t curRow,
                                     int32_t curCol, int32_t baseHeight, int32_t baseWidth, int32_t baseBlockHeight,
@@ -63,7 +63,7 @@ namespace AscendC {
             CopyOutImpl<enSequentialWrite>(co2Local, co1Local, curRow, curCol, baseHeight, baseWidth, baseBlockHeight,
                 baseBlockWidth);
         }
-    
+
     private:
         template <bool enSequentialWrite, class T, bool IS_INTRA_BLOCK = false>
         __aicore__ inline void CopyOutImpl(const T& dst, const LocalTensor<SrcT>& co1Local, int32_t curRow,
@@ -81,7 +81,7 @@ namespace AscendC {
                 ASCENDC_ASSERT(false, {KERNEL_LOG(KERNEL_ERROR, "Copy: unsupport Matmul format type.");});
             }
         }
-    
+
         template <bool enSequentialWrite, class T, bool IS_INTRA_BLOCK = false>
         __aicore__ inline void CopyOutNZ2ND(const T& dst, const LocalTensor<SrcT>& co1Local, int32_t curRow, int32_t curCol,
                                             int32_t baseHeight, int32_t baseWidth, int32_t baseBlockHeight,
@@ -98,13 +98,13 @@ namespace AscendC {
             if constexpr (FIXPIPE_MODE == McgShfMode::DUAL_DST_SPLIT_N && PhyPosIsUB(C_TYPE::pos)) {
                 stride = stride >> 1;
             }
-    
+
             FixpipeAdaptor fixpipe(baseWidth, baseHeight, baseBlockWidth, baseBlockHeight,
                                    MATMUL_MODULE(MatmulShapeTiling)->GetTiling().GetBaseM(), stride);
             SetFixpipeParams(fixpipe);
             CopyTensor(dst[dstOffset], co1Local, fixpipe, curCol, baseWidth);
         }
-    
+
         __aicore__ inline int64_t GetDstOffset(int32_t curRow, int32_t curCol, int32_t baseHeight, int32_t stride)
         {
             int64_t dstOffset = 0;
@@ -124,9 +124,9 @@ namespace AscendC {
                     static_cast<int64_t>(curRow * MATMUL_MODULE(MatmulShapeTiling)->GetTiling().GetBaseM() * stride) +
                     static_cast<int64_t>(curCol * MATMUL_MODULE(MatmulShapeTiling)->GetTiling().GetBaseN());
             }
-            return dstOffset;    
+            return dstOffset;
         }
-    
+
         __aicore__ inline void SetFixpipeParams(FixpipeAdaptor& fixpipe) {
             if constexpr (PhyPosIsUB(C_TYPE::pos) &&
                 AscendC::Impl::Detail::MatmulFeatureTrait<MM_CFG>::IsSupportL0CToUB()) {
@@ -138,7 +138,7 @@ namespace AscendC {
                 }
             }
         }
-    
+
         template <class T>
         __aicore__ inline void CopyTensor(const T& dst, const LocalTensor<SrcT>& co1Local,
             FixpipeAdaptor& fixpipe, const int32_t curN = 0, const int32_t baseUseN = 0)
@@ -159,7 +159,7 @@ namespace AscendC {
                 fixpipe.template FixpipeOut<T>(dst, co1Local);
             }
         }
-    
+
         template <bool IS_INTRA_BLOCK = false>
         __aicore__ inline uint32_t GetOrgWidth()
         {
@@ -173,7 +173,7 @@ namespace AscendC {
             }
             return dimN;
         }
-    
+
         template <bool IS_INTRA_BLOCK = false>
         __aicore__ inline uint32_t GetOrgKc()
         {
@@ -183,7 +183,7 @@ namespace AscendC {
                 return MATMUL_MODULE(MatmulShapeInfo)->template GetOrgKc<IS_INTRA_BLOCK>();
             }
         }
-    
+
         template <bool IS_INTRA_BLOCK = false>
         __aicore__ inline uint32_t GetOrgM()
         {
@@ -199,7 +199,7 @@ namespace AscendC {
                 return MATMUL_MODULE(MatmulShapeInfo)->template GetOrgM<IS_INTRA_BLOCK>();
             }
         }
-    
+
         template <bool IS_INTRA_BLOCK = false>
         __aicore__ inline uint32_t GetOrgN()
         {
@@ -217,6 +217,6 @@ namespace AscendC {
             }
         }
     };
-    
+
     }  // namespace AscendC
 #endif  // QBMM_COPY_CUBE_OUT_H

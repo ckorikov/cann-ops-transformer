@@ -20,9 +20,11 @@
 #include "include/epilogue/block_epilogue_empty.h"
 #include "include/matmul/block/block_mmad_builder.h"
 #include "include/matmul/kernel/kernel_matmul_without_que.h"
+namespace MatmulV3Advanced {
 using namespace Act;
 using namespace Act::Gemm;
-template <class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE, class A_LAYOUT, class B_LAYOUT, class C_LAYOUT, uint64_t FULL_LOAD_MODE = 0>
+template <class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE, class A_LAYOUT,
+          class B_LAYOUT, class C_LAYOUT, uint64_t FULL_LOAD_MODE = 0>
 __aicore__ inline void MatMulActKernel(GM_ADDR aGM, GM_ADDR bGM, GM_ADDR biasGM,
     GM_ADDR cGM, GM_ADDR workspaceGM, const MatMulV3BasicTilingData& tilingData, int64_t batch = 0)
 {
@@ -44,9 +46,10 @@ __aicore__ inline void MatMulActKernel(GM_ADDR aGM, GM_ADDR bGM, GM_ADDR biasGM,
     using BlockScheduler = BuiltInAswtScheduler<FULL_LOAD_MODE>;
 
     // 定义MMAD类型
+    using DispatchPolicy = MatmulMultiBlockWithOutQue<AscendC::Shape<_0, _0, _0, _0>, FULL_LOAD_MODE>;
     using BlockMmad = Block::BlockMmadBuilder<
-            AType, LayoutA, BType, LayoutB, OutType, LayoutC, BiasType, LayoutC,
-            L1TileShape, L0TileShape, BlockScheduler, MatmulMultiBlockWithOutQue<>>;
+        AType, LayoutA, BType, LayoutB, OutType, LayoutC, BiasType, LayoutC, L1TileShape, L0TileShape, BlockScheduler,
+        DispatchPolicy>;
 
     // 定义Fusion类型
     using FusionOp = Block::DefaultFusion<OutType, OutType>;
@@ -62,12 +65,12 @@ __aicore__ inline void MatMulActKernel(GM_ADDR aGM, GM_ADDR bGM, GM_ADDR biasGM,
     using Params = typename MatmulKernel::Params;
     Params params = {
         {tilingData.m, tilingData.n, tilingData.k, batch}, // shape
-        {aGM, bGM, cGM, biasGM}, // gm addr
-        {}, // epilogue args
-        {&tilingData}
-    };
+        {aGM, bGM, cGM, biasGM},                           // gm addr
+        {},                                                // epilogue args
+        {&tilingData}};
     AscendC::TPipe tPipe;
     MatmulKernel mm;
     mm(params);
+}
 }
 #endif

@@ -106,7 +106,7 @@ protected:
             tiling.tilingDataSize = sizeof(MatMulV3BasicTilingData);
         } else if (CheckIterBatchBasicApi(tiling.tilingKey)) {
             getTilingRet = GetTilingData(iterbatchTilingBasicData);
-            tiling.tilingData = reinterpret_cast<void *>(&iterbatchTilingBasicData);
+            tiling.tilingData = static_cast<void *>(&iterbatchTilingBasicData);
             tiling.tilingDataSize = sizeof(BatchMatMulV3IterBatchBasicTilingData);
         } else if (batchInfo_ == nullptr) {
             getTilingRet = GetTilingData(tilingData);
@@ -114,7 +114,7 @@ protected:
             tiling.tilingDataSize = sizeof(MatMulV3TilingData);
         } else if (CheckBasicApiTilingKey(tiling.tilingKey)) {
             GetTilingData(batchBasicTilingData);
-            tiling.tilingData = reinterpret_cast<void *>(&batchBasicTilingData);
+            tiling.tilingData = static_cast<void *>(&batchBasicTilingData);
             tiling.tilingDataSize = sizeof(BatchMatMulV3BasicTilingData);
         } else {
             getTilingRet = GetTilingData(batchTilingData);
@@ -143,7 +143,7 @@ protected:
         return ge::GRAPH_SUCCESS;
     };
 
-    ge::graphStatus SetTilingData(const TilingResult& tiling)
+    ge::graphStatus SetTilingData(const TilingResult& tiling) const
     {
         if ((strcmp(context_->GetNodeType(), "MatMulV3") == 0) && (tiling.tilingDataSize <= TILINGDATA_OFFSET) &&
             (!CheckBasicApiTilingKey(tiling.tilingKey)) && (!CheckIterBatchBasicApi(tiling.tilingKey))) {
@@ -213,7 +213,7 @@ protected:
                 return factor;
             }
         }
-        return 1;
+        return 1UL;
     }
 
     virtual ge::graphStatus GetTilingData(MatMulV3TilingData &tilingData) const
@@ -234,6 +234,7 @@ protected:
         tilingData.tCubeTiling.stepKb = runInfo_.stepKb;
         tilingData.tCubeTiling.iterateOrder = runInfo_.iterateOrder;
         tilingData.tCubeTiling.dbL0C = runInfo_.dbL0C;
+        tilingData.tCubeTiling.BatchNum = runInfo_.bmmRunInfo.iterBatch;
         tilingData.mTailCnt = runInfo_.tailInfo.mCnt;
         tilingData.nTailCnt = runInfo_.tailInfo.nCnt;
         tilingData.kTailCnt = runInfo_.tailInfo.kCnt;
@@ -242,7 +243,7 @@ protected:
         tilingData.mTailMain = runInfo_.tailInfo.mTailMain;
         tilingData.nTailMain = runInfo_.tailInfo.nTailMain;
         tilingData.isHf32 = args_.isHf32;
-        tilingData.tCubeTiling.BatchNum = runInfo_.bmmRunInfo.iterBatch;
+        tilingData.aswWindowLen = GetAswWindowLen();
         return ret;
     };
 
@@ -288,14 +289,16 @@ protected:
         int32_t STEPKA_THERSHOLD = 4;
         stepKa = std::min(STEPKA_THERSHOLD, stepKa);
         tilingData.kL1 = runInfo_.baseK * static_cast<uint32_t>(stepKa);
+        tilingData.skSingleCoreK = runInfo_.singleCoreK;
         tilingData.baseM = runInfo_.baseM;
         tilingData.baseN = runInfo_.baseN;
         tilingData.baseK = runInfo_.baseK;
         tilingData.mTailCnt = runInfo_.tailInfo.mCnt;
         tilingData.nTailCnt = runInfo_.tailInfo.nCnt;
-        tilingData.isHf32 = args_.isHf32;
-        tilingData.l1BufferNum = runInfo_.l1BufferNum;
-        tilingData.l0cDB = static_cast<int32_t>(runInfo_.dbL0C);
+        tilingData.isHf32 = static_cast<uint8_t>(args_.isHf32);
+        tilingData.l1BufferNum = static_cast<uint8_t>(runInfo_.l1BufferNum);
+        tilingData.l0cDB = static_cast<uint8_t>(runInfo_.dbL0C);
+        tilingData.ubDB = static_cast<uint8_t>(runInfo_.mixInfo.ubDB);
         tilingData.mBaseTailSplitCnt = runInfo_.mBaseTailSplitCnt;
         tilingData.nBaseTailSplitCnt = runInfo_.nBaseTailSplitCnt;
         tilingData.mTailMain = runInfo_.tailInfo.mTailMain;

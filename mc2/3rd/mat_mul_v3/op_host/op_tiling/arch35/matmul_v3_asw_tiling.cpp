@@ -21,7 +21,6 @@ using Ops::Transformer::MathUtil;
 namespace optiling {
 namespace matmul_v3_advanced {
 using namespace strategy;
-constexpr uint64_t WINDOW_LEN = 4;
 
 MM_REGISTER_TILING_TEMPLATE(MatMulV3, MatMulV3AswTiling, ASCEND910_95, BASE);
 
@@ -33,7 +32,6 @@ void MatMulV3AswTiling::CalcTailBasicBlock()
     uint64_t tailCnt = mnCnt <= compileInfo_.aicNum ? 0UL : mnCnt % compileInfo_.aicNum;
     runInfo_.tailInfo.mCnt = 1UL;
     runInfo_.tailInfo.nCnt = 1UL;
-
     if (tailCnt != 0UL) {
         while ((runInfo_.tailInfo.mCnt + 1UL) * runInfo_.tailInfo.nCnt * tailCnt <= compileInfo_.aicNum) {
             runInfo_.tailInfo.mCnt += 1UL;
@@ -62,10 +60,11 @@ void MatMulV3AswTiling::GetOuterAxisTailCnt(const bool nLoadBalance, uint64_t& b
     uint64_t yCnt = MathUtil::CeilDivision(y, baseY);
     uint64_t xTail = x % baseX;
 
+    uint64_t aswWindowLen = GetAswWindowLen();
     uint64_t totalWindows = MathUtil::CeilDivision(xCnt * yCnt, aicNum);
     uint64_t mainWindows = MathUtil::CeilDivision((xCnt - 1UL) * yCnt + yCnt % aicNum, aicNum);
     // 未做负载均衡的轴是核数的倍数且做负载均衡的轴是窗口的因子或轴的倍数，说明部分核只做主块
-    if (yCnt % aicNum == 0UL && (xCnt % WINDOW_LEN == 0UL || WINDOW_LEN % xCnt == 0UL)) {
+    if (yCnt % aicNum == 0UL && (xCnt % aswWindowLen == 0UL || aswWindowLen % xCnt == 0UL)) {
         mainWindows = totalWindows;
     }
     uint64_t tailWindows = totalWindows - mainWindows;

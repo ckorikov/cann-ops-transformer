@@ -1,6 +1,6 @@
 /**
- * This program is free software, you can redistribute it and/or modify.
- * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+ * This program is free software, you can redistribute it and/or modify.
+ * Copyright (c) 2025 Huawei Technologies Co., Ltd.
  * This file is a part of the CANN Open Software.
  * Licensed under CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
@@ -24,12 +24,14 @@
     ((defined(DT_FLOAT16) && ORIG_DTYPE_X == DT_FLOAT16))
 #define A16
 #endif
-#if defined(ORIG_DTYPE_WEIGHT) && (defined(DT_INT4) && ORIG_DTYPE_WEIGHT == DT_INT4)
-#define S4
-#endif
 #if defined(ORIG_DTYPE_WEIGHT) && defined(DT_INT32) && ORIG_DTYPE_WEIGHT == DT_INT32
 #undef DTYPE_WEIGHT
 #define DTYPE_WEIGHT AscendC::int4b_t
+#undef ORIG_DTYPE_WEIGHT
+#define ORIG_DTYPE_WEIGHT DT_INT4
+#endif
+#if defined(ORIG_DTYPE_WEIGHT) && (defined(DT_INT4) && ORIG_DTYPE_WEIGHT == DT_INT4)
+#define S4
 #endif
 
 #if defined(A16) && defined(S4)
@@ -530,7 +532,8 @@ extern "C" __global__ __aicore__ void weight_quant_batch_matmul_v2(
 #endif
 #endif
 #if defined(ORIG_DTYPE_X) && defined(DT_BF16) && ORIG_DTYPE_X == DT_BF16
-using DTYPE_BIAS = float
+#undef DTYPE_BIAS
+#define DTYPE_BIAS float
 #if (defined(MICROSCALING))
 #if (defined(FORMAT_WEIGHT) && (FORMAT_WEIGHT == FORMAT_FRACTAL_NZ))
     if (TILING_KEY_IS(2000020003000004141UL)) {

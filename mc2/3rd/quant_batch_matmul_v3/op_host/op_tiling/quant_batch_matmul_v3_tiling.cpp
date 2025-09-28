@@ -1,6 +1,6 @@
 /**
- * This program is free software, you can redistribute it and/or modify.
- * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+ * This program is free software, you can redistribute it and/or modify.
+ * Copyright (c) 2025 Huawei Technologies Co., Ltd.
  * This file is a part of the CANN Open Software.
  * Licensed under CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
@@ -14,27 +14,31 @@
  */
 
 #include "quant_batch_matmul_v3_tiling.h"
-#include "op_cache_tiling.h"
+#include "ops_legacy/op_tiling/op_cache_tiling.h"
 #include <map>
 #include <numeric>
 
 #include "tiling_base/tiling_templates_registry.h"
 #include "tiling_base/tiling_type.h"
-#include "cube_tiling_runtime.h"
 #include "graph/utils/type_utils.h"
-#include "op_log.h"
+#include "log/log.h"
 #include "register/op_impl_registry.h"
 #include "arch35/adaptive_sliding_window_tiling.h"
+#include "mc2_log.h"
+#include "platform/platform_infos_def.h"
+#include "../../op_kernel/quant_batch_matmul_v3_tiling_key.h"
 
 using AscendC::BLOCK_CUBE;    // uint32_t 16
 using AscendC::ONE_BLK_SIZE;  // uint32_t 32
+using Ops::Transformer::OpTiling::TilingRegistry;
+using ge::float32_t;
 
 namespace {
 constexpr uint64_t INT_REDUCE_FACTOR = 32;
 constexpr size_t LAST_FIRST_DIM_INDEX = 1;
 constexpr size_t LAST_SECOND_DIM_INDEX = 2;
 constexpr size_t BIAS_THREE_DIM = 3;
-constexpr uint32_t WORKSPACE_LIMIT = 50 * 1024 * 1024; // workspaca limit 50M
+constexpr uint32_t WORKSPACE_LIMIT = 50U * 1024U * 1024U; // workspaca limit 50M
 constexpr int32_t BANK_LEN = 512;
 constexpr int64_t LAST_AXIS_LIMIT = 65535;
 
@@ -78,37 +82,6 @@ static T CalcTailSize(T num1, T num2)
         return num2;
     }
 }
-
-// 对{K,N}满足以下组合可走增量优化模板，后续应撤销白名单
-const std::vector<std::pair<uint64_t, uint64_t>> WHITE_LIST_X2_KN {
-    {11264, 6912}, {11264, 1664}, {1408, 11264}, {6912, 11264},
-    {8192, 2560}, {2048, 8192}, {5504, 8192}, {8192, 11008}
-};
-
-// DSV3 QBMM perchannel 白名单
-const std::set<std::tuple<uint64_t, uint64_t, uint64_t>> WHITE_LIST_PERCHANNEL{
-    {32,  7168, 4096}, {64,  7168, 4096}, {96,  7168, 4096}, {128, 7168, 4096},
-    {8,  7168, 16384}, {12, 7168, 16384}, {16, 7168, 16384}
-};
-
-bool IsInQbmmPerchannelWhiteListDSV3(optiling::QuantBatchMatmulInfo &inputParams, uint64_t aicNum, bool supportL0c2Out)
-{
-    bool is910B2or910C = supportL0c2Out && (aicNum == 24);
-    bool isNotMatch = inputParams.transA || inputParams.transB || inputParams.hasBias || inputParams.isPertoken
-        || (inputParams.aFormat != ge::FORMAT_ND) || (inputParams.bFormat != ge::FORMAT_FRACTAL_NZ)
-        || (inputParams.cDtype != ge::DT_BF16) || (inputParams.batchC != 1);
-    std::tuple<uint64_t, uint64_t, uint64_t> shape{inputParams.mSize, inputParams.nSize, inputParams.kSize};
-    return is910B2or910C && (!isNotMatch) && (WHITE_LIST_PERCHANNEL.find(shape) != WHITE_LIST_PERCHANNEL.end());
-}
-
-// DSV3 QBMM pertoken whitelist. 
-const std::set<std::tuple<uint64_t, uint64_t, uint64_t>> WHITE_LIST_PERTOKEN_DSV3{
-    {128, 7168, 4096}, {192, 7168, 4096}, {256, 7168, 4096}, {384, 7168, 4096},
-    {288, 7168, 2048}, {432, 7168, 2048}, {576, 7168, 2048}, {288, 4096, 7168},
-    {432, 4096, 7168}, {768, 2304, 7168}, {576, 7168, 1024}, {1152, 7168, 1024},
-    {576, 2048, 7168}, {864, 2048, 7168}, {320, 5120, 1280}, {320, 1280, 5120},
-    {320, 1536, 5120}, {384, 5120, 1280}, {384, 1280, 5120}, {384, 1536, 5120},
-    {288, 5120, 1280}, {288, 1280, 5120}, {288, 1536, 5120}};
 
 std::string DType2Str(const ge::DataType dataType)
 {
@@ -165,36 +138,36 @@ ge::graphStatus QuantBatchMatmulV3Tiling::GetShapeAttrsInfo()
 bool QuantBatchMatmulV3Tiling::CheckDtypeOnOnlyL0c2ub() const
 {
     OP_TILING_CHECK(
-        inputParams_.aDtype != DT_INT8 || inputParams_.bDtype != DT_INT8,
+        inputParams_.aDtype != ge::DT_INT8 || inputParams_.bDtype != ge::DT_INT8,
         CUBE_INNER_ERR_REPORT(inputParams_.opName, "Input x1 and x2 dtype should be INT8, actual dtype are %s and %s.",
                               DType2Str(inputParams_.aDtype).c_str(), DType2Str(inputParams_.bDtype).c_str()),
         return false);
     OP_TILING_CHECK(
-        inputParams_.scaleDtype != DT_UINT64 && inputParams_.scaleDtype != DT_INT64,
+        inputParams_.scaleDtype != ge::DT_UINT64 && inputParams_.scaleDtype != ge::DT_INT64,
         CUBE_INNER_ERR_REPORT(inputParams_.opName, "Scale dtype should be UINT64 or INT64, actual dtype is %s.",
                               DType2Str(inputParams_.scaleDtype).c_str()),
         return false);
     OP_TILING_CHECK(
-        inputParams_.cDtype != DT_INT8 && inputParams_.cDtype != DT_FLOAT16,
+        inputParams_.cDtype != ge::DT_INT8 && inputParams_.cDtype != ge::DT_FLOAT16,
         CUBE_INNER_ERR_REPORT(inputParams_.opName, "Output dtype should be INT8 or FLOAT16, actual dtype is %s.",
                               DType2Str(inputParams_.cDtype).c_str()),
         return false);
-    OP_TILING_CHECK(context_->GetOptionalInputDesc(BIAS_INDEX) != nullptr && inputParams_.biasDtype != DT_INT32,
+    OP_TILING_CHECK(context_->GetOptionalInputDesc(BIAS_INDEX) != nullptr && inputParams_.biasDtype != ge::DT_INT32,
                     CUBE_INNER_ERR_REPORT(inputParams_.opName, "Bias dtype should be INT32, actual dtype is %s.",
                                           DType2Str(inputParams_.biasDtype).c_str()),
                     return false);
     auto x1Desc = context_->GetInputDesc(X1_INDEX);
     auto x1Format = static_cast<ge::Format>(ge::GetPrimaryFormat(x1Desc->GetStorageFormat()));
-    OP_TILING_CHECK(x1Format != Format::FORMAT_ND,
+    OP_TILING_CHECK(x1Format != ge::Format::FORMAT_ND,
                     CUBE_INNER_ERR_REPORT(inputParams_.opName, "Input x1 format should be ND, actual format is %s",
-                                          TypeUtils::FormatToSerialString(x1Format).c_str()),
+                                          ge::TypeUtils::FormatToSerialString(x1Format).c_str()),
                     return false);
     auto x2Desc = context_->GetInputDesc(X2_INDEX);
     auto x2Format = static_cast<ge::Format>(ge::GetPrimaryFormat(x2Desc->GetStorageFormat()));
-    OP_TILING_CHECK(x2Format != Format::FORMAT_FRACTAL_NZ,
+    OP_TILING_CHECK(x2Format != ge::Format::FORMAT_FRACTAL_NZ,
                     CUBE_INNER_ERR_REPORT(inputParams_.opName, "Input x2 format should be FRACTAL_NZ , \
     actual format is %s",
-                                          TypeUtils::FormatToSerialString(x2Format).c_str()),
+                                          ge::TypeUtils::FormatToSerialString(x2Format).c_str()),
                     return false);
     OP_TILING_CHECK(context_->GetOptionalInputDesc(PERTOKEN_SCALE_INDEX) != nullptr &&
                         context_->GetOptionalInputShape(PERTOKEN_SCALE_INDEX) != nullptr,
@@ -206,27 +179,27 @@ bool QuantBatchMatmulV3Tiling::CheckDtypeOnOnlyL0c2outForSupportedList() const
 {
     // x1 x2 scale bias y 合法dtype
     OP_TILING_CHECK(
-        !(inputParams_.aDtype == DT_INT8 || inputParams_.aDtype == DT_INT4) ||
-            !(inputParams_.bDtype == DT_INT8 || inputParams_.bDtype == DT_INT4),
+        !(inputParams_.aDtype == ge::DT_INT8 || inputParams_.aDtype == ge::DT_INT4) ||
+            !(inputParams_.bDtype == ge::DT_INT8 || inputParams_.bDtype == ge::DT_INT4),
         CUBE_INNER_ERR_REPORT(inputParams_.opName, "Input dtype should be INT8 or DT_INT4, actual dtype are %s and %s",
                               DType2Str(inputParams_.aDtype).c_str(),
                               DType2Str(inputParams_.bDtype).c_str()),
         return false);
-    OP_TILING_CHECK(!(inputParams_.scaleDtype == DT_UINT64 || inputParams_.scaleDtype == DT_BF16 ||
-                      inputParams_.scaleDtype == DT_INT64 || inputParams_.scaleDtype == DT_FLOAT),
+    OP_TILING_CHECK(!(inputParams_.scaleDtype == ge::DT_UINT64 || inputParams_.scaleDtype == ge::DT_BF16 ||
+                      inputParams_.scaleDtype == ge::DT_INT64 || inputParams_.scaleDtype == ge::DT_FLOAT),
                     CUBE_INNER_ERR_REPORT(inputParams_.opName,
                                           "Input scale dtype should be UINT64, BF16, INT64 or FLOAT, actual dtype is %s",
                                           DType2Str(inputParams_.scaleDtype).c_str()),
                     return false);
     OP_TILING_CHECK(context_->GetOptionalInputDesc(BIAS_INDEX) != nullptr &&
-                        !(inputParams_.biasDtype == DT_INT32 || inputParams_.biasDtype == DT_BF16 ||
-                          inputParams_.biasDtype == DT_FLOAT16 || inputParams_.biasDtype == DT_FLOAT),
+                        !(inputParams_.biasDtype == ge::DT_INT32 || inputParams_.biasDtype == ge::DT_BF16 ||
+                          inputParams_.biasDtype == ge::DT_FLOAT16 || inputParams_.biasDtype == ge::DT_FLOAT),
                     CUBE_INNER_ERR_REPORT(inputParams_.opName,
                                           "Input bias dtype should be INT32, BF16, FLOAT16 or FLOAT, actual dtype is %s",
                                           DType2Str(inputParams_.biasDtype).c_str()),
                     return false);
-    OP_TILING_CHECK(!(inputParams_.cDtype == DT_INT8 || inputParams_.cDtype == DT_FLOAT16 ||
-                      inputParams_.cDtype == DT_BF16 || inputParams_.cDtype == DT_INT32),
+    OP_TILING_CHECK(!(inputParams_.cDtype == ge::DT_INT8 || inputParams_.cDtype == ge::DT_FLOAT16 ||
+                      inputParams_.cDtype == ge::DT_BF16 || inputParams_.cDtype == ge::DT_INT32),
                     CUBE_INNER_ERR_REPORT(inputParams_.opName,
                                           "Output dtype should be INT8, FLOAT16, BF16 or INT32, actual dtype is %s",
                                           DType2Str(inputParams_.cDtype).c_str()),
@@ -237,9 +210,9 @@ bool QuantBatchMatmulV3Tiling::CheckDtypeOnOnlyL0c2outForSupportedList() const
 bool QuantBatchMatmulV3Tiling::CheckDtypeOnOnlyL0c2outForA4W4() const
 {
     // int4
-    if (inputParams_.aDtype == DT_INT4) {
+    if (inputParams_.aDtype == ge::DT_INT4) {
         OP_TILING_CHECK(
-            inputParams_.cDtype != DT_FLOAT16 && inputParams_.cDtype != DT_BF16,
+            inputParams_.cDtype != ge::DT_FLOAT16 && inputParams_.cDtype != ge::DT_BF16,
             CUBE_INNER_ERR_REPORT(inputParams_.opName,
                                   "When input dtype is int4, output dtype should be FLOAT16 or BF16, actual dtype is %s.",
                                   DType2Str(inputParams_.cDtype).c_str()),
@@ -247,21 +220,21 @@ bool QuantBatchMatmulV3Tiling::CheckDtypeOnOnlyL0c2outForA4W4() const
         // a4w4场景，x1必须为ND
         auto x1Desc = context_->GetInputDesc(X1_INDEX);
         auto x1Format = static_cast<ge::Format>(ge::GetPrimaryFormat(x1Desc->GetStorageFormat()));
-        OP_TILING_CHECK(x1Format != Format::FORMAT_ND,
+        OP_TILING_CHECK(x1Format != ge::Format::FORMAT_ND,
                         CUBE_INNER_ERR_REPORT(inputParams_.opName, "Input x1 format should be ND, actual format is %s.",
-                                              TypeUtils::FormatToSerialString(x1Format).c_str()),
+                                              ge::TypeUtils::FormatToSerialString(x1Format).c_str()),
                         return false);
         if (context_->GetOptionalInputDesc(PERTOKEN_SCALE_INDEX) == nullptr ||
             context_->GetOptionalInputShape(PERTOKEN_SCALE_INDEX) == nullptr) {
             OP_TILING_CHECK(
-                inputParams_.scaleDtype != DT_UINT64 && inputParams_.scaleDtype != DT_INT64,
+                inputParams_.scaleDtype != ge::DT_UINT64 && inputParams_.scaleDtype != ge::DT_INT64,
                 CUBE_INNER_ERR_REPORT(inputParams_.opName,
                                     "When input dtype is int4 without pertoken scale, scale dtype should be \
         UINT64 or INT64, actual dtype is %s.",
                                     DType2Str(inputParams_.scaleDtype).c_str()),
                 return false);
             OP_TILING_CHECK(
-                context_->GetOptionalInputDesc(BIAS_INDEX) != nullptr && inputParams_.biasDtype != DT_INT32,
+                context_->GetOptionalInputDesc(BIAS_INDEX) != nullptr && inputParams_.biasDtype != ge::DT_INT32,
                 CUBE_INNER_ERR_REPORT(inputParams_.opName,
                                     "When input dtype is int4 without pertoken scale, bias dtype \
         should be INT32, actual dtype is %s.",
@@ -280,8 +253,8 @@ bool QuantBatchMatmulV3Tiling::CheckDtypeOnOnlyL0c2outForPertoken() const
         context_->GetOptionalInputShape(PERTOKEN_SCALE_INDEX) != nullptr) {
         // 当bias为FLOAT16,并且有pertoken时，y必须是FLOAT16
         OP_TILING_CHECK(
-            context_->GetOptionalInputDesc(BIAS_INDEX) != nullptr && inputParams_.biasDtype == DT_FLOAT16 &&
-                inputParams_.cDtype != DT_FLOAT16,
+            context_->GetOptionalInputDesc(BIAS_INDEX) != nullptr && inputParams_.biasDtype == ge::DT_FLOAT16 &&
+                inputParams_.cDtype != ge::DT_FLOAT16,
             CUBE_INNER_ERR_REPORT(
                 inputParams_.opName,
                 "When bias dtype is FLOAT16 with pertokenScale, output dtype should be FLOAT16, actual dtype is %s.",
@@ -289,7 +262,7 @@ bool QuantBatchMatmulV3Tiling::CheckDtypeOnOnlyL0c2outForPertoken() const
             return false);
         // 有pertoken时，y必须是FLOAT16/BF16
         OP_TILING_CHECK(
-            !(inputParams_.cDtype == DT_FLOAT16 || inputParams_.cDtype == DT_BF16),
+            !(inputParams_.cDtype == ge::DT_FLOAT16 || inputParams_.cDtype == ge::DT_BF16),
             CUBE_INNER_ERR_REPORT(
                 inputParams_.opName,
                 "When pertokenScale is not null, output dtype should be FLOAT16 or BF16, actual dtype is %s.",
@@ -297,7 +270,7 @@ bool QuantBatchMatmulV3Tiling::CheckDtypeOnOnlyL0c2outForPertoken() const
             return false);
         // 当y为FLOAT16,并且有pertoken时，scale必须是FLOAT
         OP_TILING_CHECK(
-            inputParams_.cDtype == DT_FLOAT16 && inputParams_.scaleDtype != DT_FLOAT,
+            inputParams_.cDtype == ge::DT_FLOAT16 && inputParams_.scaleDtype != ge::DT_FLOAT,
             CUBE_INNER_ERR_REPORT(
                 inputParams_.opName,
                 "When output dtype is FLOAT16 with pertokenScale, scale dtype should be FLOAT, actual dtype is %s.",
@@ -306,13 +279,13 @@ bool QuantBatchMatmulV3Tiling::CheckDtypeOnOnlyL0c2outForPertoken() const
     } else {
         // 当无pertoken时，bias不能是FLOAT16
         OP_TILING_CHECK(
-            context_->GetOptionalInputDesc(BIAS_INDEX) != nullptr && inputParams_.biasDtype == DT_FLOAT16,
+            context_->GetOptionalInputDesc(BIAS_INDEX) != nullptr && inputParams_.biasDtype == ge::DT_FLOAT16,
             CUBE_INNER_ERR_REPORT(inputParams_.opName, "When pertokenScale is null, bias dtype can not be FLOAT16."),
             return false);
         // 当bias为FLOAT,并且无pertoken时，y必须是BF16
         OP_TILING_CHECK(
-            context_->GetOptionalInputDesc(BIAS_INDEX) != nullptr && inputParams_.biasDtype == DT_FLOAT &&
-                inputParams_.cDtype != DT_BF16,
+            context_->GetOptionalInputDesc(BIAS_INDEX) != nullptr && inputParams_.biasDtype == ge::DT_FLOAT &&
+                inputParams_.cDtype != ge::DT_BF16,
             CUBE_INNER_ERR_REPORT(
                 inputParams_.opName,
                 "When bias dtype is FLOAT without pertokenScale, output dtype should be BF16, actual dtype is %s.",
@@ -320,7 +293,7 @@ bool QuantBatchMatmulV3Tiling::CheckDtypeOnOnlyL0c2outForPertoken() const
             return false);
         // 当y为INT8或FLOAT16,并且无pertoken时，scale不能为FLOAT
         OP_TILING_CHECK(
-            (inputParams_.cDtype == DT_INT8 || inputParams_.cDtype == DT_FLOAT16) &&
+            (inputParams_.cDtype == ge::DT_INT8 || inputParams_.cDtype == ge::DT_FLOAT16) &&
                 inputParams_.scaleDtype == ge::DT_FLOAT,
             CUBE_INNER_ERR_REPORT(
                 inputParams_.opName,
@@ -335,18 +308,18 @@ bool QuantBatchMatmulV3Tiling::CheckDtypeOnOnlyL0c2outForX1NZ() const
     // 当y为int8时，x1必须为ND
     auto x1Desc = context_->GetInputDesc(X1_INDEX);
     auto x1Format = static_cast<ge::Format>(ge::GetPrimaryFormat(x1Desc->GetStorageFormat()));
-    OP_TILING_CHECK(inputParams_.cDtype == DT_INT8 && x1Format != Format::FORMAT_ND,
+    OP_TILING_CHECK(inputParams_.cDtype == ge::DT_INT8 && x1Format != ge::Format::FORMAT_ND,
                     CUBE_INNER_ERR_REPORT(inputParams_.opName,
                                           "When out dtype is INT8, X1 format should be ND, actual format is %s.",
-                                          TypeUtils::FormatToSerialString(x1Format).c_str()),
+                                          ge::TypeUtils::FormatToSerialString(x1Format).c_str()),
                     return false);
     // 当x2为ND时，x1必须为ND
     auto x2Desc = context_->GetInputDesc(X2_INDEX);
     auto x2Format = static_cast<ge::Format>(ge::GetPrimaryFormat(x2Desc->GetStorageFormat()));
     OP_TILING_CHECK(
-        x2Format == Format::FORMAT_ND && x1Format != Format::FORMAT_ND,
+        x2Format == ge::Format::FORMAT_ND && x1Format != ge::Format::FORMAT_ND,
         CUBE_INNER_ERR_REPORT(inputParams_.opName, "When X2 format is ND, X1 format should be ND, actual format is %s.",
-                              TypeUtils::FormatToSerialString(x1Format).c_str()),
+                              ge::TypeUtils::FormatToSerialString(x1Format).c_str()),
         return false);
     return true;
 }
@@ -355,8 +328,8 @@ bool QuantBatchMatmulV3Tiling::CheckDtypeOnOnlyL0c2outForUnclassified() const
 {
     // dtype 约束条件
     // 当bias为BF16时，y必须为BF16
-    OP_TILING_CHECK(context_->GetOptionalInputDesc(BIAS_INDEX) != nullptr && inputParams_.biasDtype == DT_BF16 &&
-                        inputParams_.cDtype != DT_BF16,
+    OP_TILING_CHECK(context_->GetOptionalInputDesc(BIAS_INDEX) != nullptr && inputParams_.biasDtype == ge::DT_BF16 &&
+                        inputParams_.cDtype != ge::DT_BF16,
                     CUBE_INNER_ERR_REPORT(inputParams_.opName,
                                           "When bias dtype is BF16, output dtype should be BF16, actual dtype is %s.",
                                           DType2Str(inputParams_.cDtype).c_str()),
@@ -364,37 +337,37 @@ bool QuantBatchMatmulV3Tiling::CheckDtypeOnOnlyL0c2outForUnclassified() const
 
     // 当scale为BF16时，y必须为BF16或INT32
     OP_TILING_CHECK(
-        inputParams_.scaleDtype == DT_BF16 && !(inputParams_.cDtype == DT_BF16 || inputParams_.cDtype == DT_INT32),
+        inputParams_.scaleDtype == ge::DT_BF16 && !(inputParams_.cDtype == ge::DT_BF16 || inputParams_.cDtype == ge::DT_INT32),
         CUBE_INNER_ERR_REPORT(inputParams_.opName,
                               "When scale dtype is BF16, output dtype should be BF16 or INT32, actual dtype is %s.",
                               DType2Str(inputParams_.cDtype).c_str()),
         return false);
     // 当y为BF16时，scale必须为BF16或FLOAT
     OP_TILING_CHECK(
-        inputParams_.cDtype == DT_BF16 && !(inputParams_.scaleDtype == DT_BF16 || inputParams_.scaleDtype == DT_FLOAT),
+        inputParams_.cDtype == ge::DT_BF16 && !(inputParams_.scaleDtype == ge::DT_BF16 || inputParams_.scaleDtype == ge::DT_FLOAT),
         CUBE_INNER_ERR_REPORT(inputParams_.opName,
                               "When out dtype is BF16, scale dtype should be BF16 or FLOAT, actual dtype is %s.",
                               DType2Str(inputParams_.scaleDtype).c_str()),
         return false);
     // 当y为INT8时，scale必须为INT64或UINT64
     OP_TILING_CHECK(
-        inputParams_.cDtype == DT_INT8 &&
-            !(inputParams_.scaleDtype == DT_UINT64 || inputParams_.scaleDtype == DT_INT64),
+        inputParams_.cDtype == ge::DT_INT8 &&
+            !(inputParams_.scaleDtype == ge::DT_UINT64 || inputParams_.scaleDtype == ge::DT_INT64),
         CUBE_INNER_ERR_REPORT(inputParams_.opName,
                               "When out dtype is INT8, scale dtype should be UINT64 or INT64, actual dtype is %s.",
                               DType2Str(inputParams_.scaleDtype).c_str()),
         return false);
 
     // 当y为INT32时，bias必须为INT32
-    OP_TILING_CHECK(inputParams_.cDtype == DT_INT32 && context_->GetOptionalInputDesc(BIAS_INDEX) != nullptr &&
-                        inputParams_.biasDtype != DT_INT32,
+    OP_TILING_CHECK(inputParams_.cDtype == ge::DT_INT32 && context_->GetOptionalInputDesc(BIAS_INDEX) != nullptr &&
+                        inputParams_.biasDtype != ge::DT_INT32,
                     CUBE_INNER_ERR_REPORT(inputParams_.opName,
                                           "When out dtype is INT32, bias dtype should be INT32, actual dtype is %s.",
                                           DType2Str(inputParams_.biasDtype).c_str()),
                     return false);
     // 当y为INT32时，scale必须为FLOAT或BF16
     OP_TILING_CHECK(
-        inputParams_.cDtype == DT_INT32 && !(inputParams_.scaleDtype == DT_FLOAT || inputParams_.scaleDtype == DT_BF16),
+        inputParams_.cDtype == ge::DT_INT32 && !(inputParams_.scaleDtype == ge::DT_FLOAT || inputParams_.scaleDtype == ge::DT_BF16),
         CUBE_INNER_ERR_REPORT(inputParams_.opName,
                               "When out dtype is INT32, scale dtype should be FLOAT or BF16, actual dtype is %s.",
                               DType2Str(inputParams_.scaleDtype).c_str()),
@@ -409,7 +382,7 @@ bool QuantBatchMatmulV3Tiling::CheckDtypeOnOnlyL0c2out() const
         return false;
     }
     // 对A4W4场景/非A4W4场景进行校验
-    if (inputParams_.aDtype == DT_INT4) {
+    if (inputParams_.aDtype == ge::DT_INT4) {
         if (!CheckDtypeOnOnlyL0c2outForA4W4()) {
             return false;
         }
@@ -522,9 +495,9 @@ bool QuantBatchMatmulV3Tiling::CheckShape(const std::vector<gert::Shape *> &mand
     auto x2Shape = *mandtoryShape[1]; // using index 1 to get x2Shape
     auto scaleShape = *mandtoryShape[2]; // using index 2 to get scaleShape
 
-    OP_TILING_CHECK(scaleShape.GetDimNum() != 1,
+    OP_TILING_CHECK(scaleShape.GetDimNum() != 1 && scaleShape.GetDimNum() != 2,
                     CUBE_INNER_ERR_REPORT(inputParams_.opName,
-                                          "Only support for scale dimension equals to 1, but actually it is %zu.",
+                                          "Only support for scale dimension equals to 1 and 2, but actually it is %zu.",
                                           scaleShape.GetDimNum()), return false);
 
     if (!CheckShapeInRangeForOptionalInputs(biasShape, pertokenShape)){
@@ -550,9 +523,7 @@ bool QuantBatchMatmulV3Tiling::CheckDtype() const
 
     if (!compileInfo_.supportL0c2Out && !CheckDtypeOnOnlyL0c2ub()) {
         return false;
-    } else if (compileInfo_.supportL0c2Out &&
-               !compileInfo_.supportL12BtBf16 &&
-               !CheckDtypeOnOnlyL0c2out()) {
+    } else if (compileInfo_.supportL0c2Out && !compileInfo_.supportL12BtBf16 && !CheckDtypeOnOnlyL0c2out()) {
         return false;
     }
     return true;
@@ -592,14 +563,28 @@ but atcual %zu dimension of %s is %ld.",
     return true;
 }
 
+void QuantBatchMatmulV3Tiling::SetQuantBatchMatmulRunParas(QuantBatchMatmulRunParas& runParams, const optiling::QuantBatchMatmulInfo& inputParams) {
+    runParams.mSize = inputParams.mSize;
+    runParams.kSize = inputParams.kSize;
+    runParams.nSize = inputParams.nSize;
+    runParams.transA = inputParams.transA;
+    runParams.transB = inputParams.transB;
+    runParams.hasBias = inputParams.hasBias;
+    runParams.isPertoken = inputParams.isPertoken;
+    runParams.aFormat = inputParams.aFormat;
+    runParams.bFormat = inputParams.bFormat;
+    runParams.aDtype = inputParams.aDtype;
+    runParams.bDtype = inputParams.bDtype;
+    runParams.cDtype = inputParams.cDtype;
+    runParams.batchC = inputParams.batchC;
+}
+
 void QuantBatchMatmulV3Tiling::ProcessMSmall()
 {
-    // mix增量优化模板：只优化量化MM的白名单增量用例，不支持batch。后续泛化功能性能。
-    std::pair<uint64_t, uint64_t> dimPair{inputParams_.kSize, inputParams_.nSize};
-    auto it = std::find(WHITE_LIST_X2_KN.begin(), WHITE_LIST_X2_KN.end(), dimPair);
-    bool isInWhiteList = it != WHITE_LIST_X2_KN.end();
-    bool isAllMix = isInWhiteList && isUbQuant_ && inputParams_.batchC == 1;
-
+    QuantBatchMatmulRunParas runParams_;
+    SetQuantBatchMatmulRunParas(runParams_, inputParams_);
+    bool isAllMix = CheckSupportConditionQbmm(QbmmType::KN, runParams_, aicoreParams_.aicNum, compileInfo_.supportL0c2Out) && 
+                    isUbQuant_ && inputParams_.batchC == 1;
     uint64_t baseM = static_cast<uint64_t>(tbeTiling_.m_l0) * BLOCK_CUBE;
     uint64_t baseN = static_cast<uint64_t>(tbeTiling_.n_l0) * BLOCK_CUBE;
     uint64_t needWorkspace =
@@ -609,26 +594,14 @@ void QuantBatchMatmulV3Tiling::ProcessMSmall()
     bool isPertoken = (needWorkspace < WORKSPACE_LIMIT) && inputParams_.isPertoken;
     bool isDecode = inputParams_.mSize <= baseM;
     isBf16Opt_ = isDecode && (isAllMix || isPertoken);
-    isBf16Opt_ = isBf16Opt_ || IsInQbmmPerchannelWhiteListDSV3(inputParams_, aicoreParams_.aicNum, compileInfo_.supportL0c2Out);
-    isBf16Opt_ = isBf16Opt_ || (IsInQbmmPertokenWhiteListDSV3(inputParams_, aicoreParams_.aicNum) && isPertoken);
+    isBf16Opt_ = isBf16Opt_ || CheckSupportConditionQbmm(QbmmType::Perchannel, runParams_, aicoreParams_.aicNum, compileInfo_.supportL0c2Out);
+    isBf16Opt_ = isBf16Opt_ || (CheckSupportConditionQbmm(QbmmType::Pertoken, runParams_, aicoreParams_.aicNum, compileInfo_.supportL0c2Out) && isPertoken);
     isBf16Opt_ = isBf16Opt_ && !isTilingOut_;   // isTilingOut_表示MC2场景，不走opt模板
     if (isBf16Opt_ && inputParams_.isPertoken) {
         // cv并行，每次base块
         tbeTiling_.m_al1 = 1;
         tbeTiling_.n_bl1 = 1;
     }
-}
-
-bool QuantBatchMatmulV3Tiling::IsInQbmmPertokenWhiteListDSV3(const optiling::QuantBatchMatmulInfo& inputParams,
-                                                             uint64_t aicNum) const
-{
-    constexpr uint64_t validCoreNum = 24;
-    bool is910B2or910C = compileInfo_.supportL0c2Out && (aicNum == validCoreNum);
-    bool isNotMatch = inputParams.transA || inputParams.transB || inputParams.hasBias
-        || !inputParams.isPertoken || (inputParams.aFormat != ge::FORMAT_ND)
-        || (inputParams.bFormat != ge::FORMAT_FRACTAL_NZ) || (inputParams.batchC != 1);
-    std::tuple<uint64_t, uint64_t, uint64_t> shape {inputParams.mSize, inputParams.nSize, inputParams.kSize};
-    return is910B2or910C && (!isNotMatch) && (WHITE_LIST_PERTOKEN_DSV3.find(shape) != WHITE_LIST_PERTOKEN_DSV3.end());
 }
 
 void QuantBatchMatmulV3Tiling::UpdateSmallMTbeTiling()
@@ -640,7 +613,9 @@ void QuantBatchMatmulV3Tiling::UpdateSmallMTbeTiling()
                       inputParams_.aFormat != ge::FORMAT_ND || inputParams_.bFormat != ge::FORMAT_FRACTAL_NZ ||
                       inputParams_.aDtype != ge::DT_INT8 || inputParams_.bDtype != ge::DT_INT8 ||
                       inputParams_.cDtype != ge::DT_BF16 || inputParams_.batchC != 1 || !inputParams_.isPertoken;
-    if (!is910B2or910C || (isNotMatch && !IsInQbmmPerchannelWhiteListDSV3(inputParams_, aicoreParams_.aicNum, compileInfo_.supportL0c2Out))) {
+    QuantBatchMatmulRunParas runParams_;
+    SetQuantBatchMatmulRunParas(runParams_, inputParams_);
+    if (!is910B2or910C || (isNotMatch && !CheckSupportConditionQbmm(QbmmType::Perchannel, runParams_, aicoreParams_.aicNum, compileInfo_.supportL0c2Out))) {
         return;
     }
 
@@ -909,14 +884,14 @@ ge::graphStatus QuantBatchMatmulV3Tiling::DoLibApiTiling()
  */
 uint64_t QuantBatchMatmulV3Tiling::GetTilingKey(bool isBasicTiling) const
 {
-    // 新增特性应往后添加,相同特性应在同bit位
-    if (inputParams_.cDtype == ge::DT_BF16) {
-        return RecursiveSum(inputParams_.transB, inputParams_.transA, isBasicTiling,
-                            isBf16Opt_, inputParams_.isPertoken, false);
-    } else {
-        return RecursiveSum(inputParams_.transB, inputParams_.transA, isBasicTiling,
-                            isBf16Opt_, inputParams_.isPertoken, NeedAtomiClean());
+    uint64_t trans =
+        (static_cast<uint64_t>(inputParams_.transA) << 1) | static_cast<uint64_t>(inputParams_.transB);
+    uint64_t kernelTemplateType = (static_cast<uint64_t>(isBf16Opt_) << 1) | static_cast<uint64_t>(isBasicTiling);
+    uint64_t optionAttrs = 0;
+    if (inputParams_.cDtype != ge::DT_BF16) {
+        optionAttrs = NeedAtomiClean();
     }
+    return GET_TPL_TILING_KEY(trans, kernelTemplateType, static_cast<uint64_t>(inputParams_.isPertoken), optionAttrs);
 }
 
 uint64_t QuantBatchMatmulV3Tiling::GetTilingKey() const
@@ -929,7 +904,7 @@ ge::graphStatus QuantBatchMatmulV3Tiling::GetWorkspaceSize()
     workspaceSize_ = inputParams_.libApiWorkSpaceSize;
     if (isUbQuant_) {
         auto ret = GetUbDequantExtreSpace();
-        OP_TILING_CHECK(!ret, CUBE_CALL_ERR_REPORT(inputParams_.opName, "GetUbDequantExtreSpace is failed"),
+        OP_TILING_CHECK(!ret, CUBE_INNER_ERR_REPORT(inputParams_.opName, "GetUbDequantExtreSpace is failed"),
                         return ge::GRAPH_FAILED);
         workspaceSize_ += inputParams_.bf16ExtreWorkSpaceSize;
     }
@@ -1210,7 +1185,6 @@ void QuantBatchMatmulV3Tiling::PrintTilingData()
        << " usedUBSize: " << tiling.get_shareUbSize() << " batchM: " << tiling.get_batchM()
        << " batchN: " << tiling.get_batchN() << " singleBatchM: " << tiling.get_singleBatchM()
        << " singleBatchN: " << tiling.get_singleBatchN();
-    OP_LOG_FULL(DLOG_DEBUG, inputParams_.opName, "api tiling: %s", ss.str().c_str());
 }
 
 void QuantBatchMatmulV3Tiling::PrintTbeTiling()
@@ -1246,7 +1220,6 @@ void QuantBatchMatmulV3Tiling::PrintTbeTiling()
        << " al1_full_load: " << tiling.al1_full_load << " bl1_full_load: " << tiling.bl1_full_load
        << " hf32_flag: " << tiling.hf32_flag << " zero_flag: " << tiling.zero_flag
        << " datatype_bf16: " << tiling.datatype_bf16 << " deq_scale_var: " << tiling.deq_scale_var;
-    OP_LOG_FULL(DLOG_DEBUG, inputParams_.opName, "tbe tiling: %s", ss.str().c_str());
 }
 
 void QuantBatchMatmulV3Tiling::PrintTilingParams() const
@@ -1264,7 +1237,7 @@ void QuantBatchMatmulV3Tiling::PrintTilingParams() const
         << " needUbBuffer: " << params.get_needUbBuffer() << " realSingleCoreM: " << params.get_realSingleCoreM()
         << " realSingleCoreN: " << params.get_realSingleCoreN() << " biasDtype: " << params.get_biasDtype()
         << " ubSize: " << params.get_ubSize();
-    OP_LOG_FULL(DLOG_DEBUG, inputParams_.opName, "QuantBatchMatmulV3Params params: %s", ss.str().c_str());
+    OPS_LOG_D(inputParams_.opName, "QuantBatchMatmulV3Params params: %s", ss.str().c_str());
 }
 
 void QuantBatchMatmulV3Tiling::SpiltSingleCore(int32_t &singleCoreM, int32_t &singleCoreN)
@@ -1478,13 +1451,13 @@ REGISTER_TILING_TEMPLATE("QuantBatchMatmulV3", AdaptiveSlidingWindowTiling, 2);
 static ge::graphStatus QuantBatchMatmulV3TilingFunc(gert::TilingContext *context)
 {
     OP_LOGE_IF(context == nullptr, ge::GRAPH_FAILED, "QuantBatchMatmulV3", "TilingContext is null!");
-    auto compileInfoPtr = reinterpret_cast<optiling::QuantBatchMatmulV3CompileInfo*>(const_cast<void*>(context->GetCompileInfo()));
+    auto compileInfoPtr = context->GetCompileInfo<QuantBatchMatmulV3CompileInfo>();
     if (compileInfoPtr->supportL12BtBf16) {
-        vector<int32_t> registerList = {2};
+        std::vector<int32_t> registerList = {2};
         OP_LOGD("NO_OP_NAME", "Adaptive sliding window tiling process.");
         return TilingRegistry::GetInstance().DoTilingImpl(context, registerList);
     } else {
-        vector<int32_t> registerList = {0, 1};
+        std::vector<int32_t> registerList = {0, 1};
         return TilingRegistry::GetInstance().DoTilingImpl(context, registerList);
     }
 }
@@ -1517,7 +1490,7 @@ static ge::graphStatus TilingParseForQuantBatchMatmulV3(gert::TilingParseContext
     if(!TilingPrepareForOpCache(context)){
         return ge::GRAPH_FAILED;
     }
-    
+
     return ge::GRAPH_SUCCESS;
 }
 

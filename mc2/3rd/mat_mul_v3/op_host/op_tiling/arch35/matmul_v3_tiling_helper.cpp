@@ -62,9 +62,9 @@ void CalL1TilingDefault(const MatmulV3CompileInfo &compileInfo, const MatMulV3Ar
     uint64_t depthBSize = runInfo.depthB1 * runInfo.baseN * runInfo.baseK * args.bDtypeSize;
     if (depthASize + depthBSize > totalL1Size - reserveBTSize) {
         if (runInfo.baseM <= runInfo.baseN) {
-            runInfo.depthA1 = std::max(runInfo.depthA1 / NUM_TWO, 1UL);  // 2: adjust depth for l1 buffer
+            runInfo.depthA1 = std::max(runInfo.depthA1 / NUM_TWO, 1UL);  // 2: adjust deptch for l1 buffer
         } else {
-            runInfo.depthB1 = std::max(runInfo.depthB1 / NUM_TWO, 1UL);  // 2: adjust depth for l1 buffer
+            runInfo.depthB1 = std::max(runInfo.depthB1 / NUM_TWO, 1UL);  // 2: adjust deptch for l1 buffer
         }
     }
     runInfo.stepKa = std::max(runInfo.depthA1 / DB_SIZE, 1UL);
@@ -139,13 +139,14 @@ MatMulV3L0C2Out GetL0C2OutDefault(const MatmulV3CompileInfo & /* compileInfo */,
 MatMulV3L0C2Out GetL0C2Out91095(const MatmulV3CompileInfo &compileInfo, const MatMulV3Args &args,
                                 const MatMulV3RunInfo &runInfo)
 {
-    bool isValidMKN = args.kValue <= BASIC_BLOCK_SIZE_256 && args.mValue >= BASIC_BLOCK_SIZE_256 &&
-                      args.nValue >= BASIC_BLOCK_SIZE_256;
+    bool isValidMKN = args.kValue <= BASIC_BLOCK_SIZE_256 && args.mValue >= BASIC_BLOCK_SIZE_256;
     uint64_t mCnt = MathUtil::CeilDivision(args.mValue, runInfo.singleCoreM);
     uint64_t nCnt = MathUtil::CeilDivision(args.nValue, runInfo.singleCoreN);
     // make sure the fixpipe stream is large enough to be bound
     bool isMultiRound = mCnt * nCnt >= NUM_TWO * compileInfo.aicNum;
-    bool isUnalignedN = args.nValue * args.bDtypeSize % 128UL != 0;  // 128: SMALL_SHAPE_LOWER_THRES
+    uint64_t cDtypeSize = ge::GetSizeByDataType(args.cType);
+    // 128: SMALL_SHAPE_LOWER_THRES
+    bool isUnalignedN = args.nValue * cDtypeSize % 128UL != 0 && args.nValue * cDtypeSize > BASIC_BLOCK_SIZE_256;
     bool fixpipeBound = isValidMKN && isMultiRound && isUnalignedN;
     if (!fixpipeBound) {
         return MatMulV3L0C2Out::ON_THE_FLY;
@@ -175,11 +176,11 @@ bool CheckIfDoubleAswt91095(const MatMulV3Args &args, const uint64_t batchC)
     if (batchC * args.mValue * args.nValue * args.aDtypeSize < halfL2Size) {  // check matC exceed half L2
         return false;
     }
-    if ((args.mValue * args.nValue / (args.mValue + args.nValue)) > cubeBoundRatio) {  // check if cube bound or streamK
+    if ((args.mValue * args.nValue / (args.mValue + args.nValue)) > cubeBoundRatio) {  // check if cube bound or streamk
         return false;
     }
     if (args.kValue > (args.mValue >> 1) ||
-        args.kValue > (args.nValue >> 1)) {  // check if matA or matB occupies most of L2
+        args.kValue > (args.nValue >> 1)) {  // check if matA or matb occupies most of L2
         return false;
     }
     return true;

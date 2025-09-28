@@ -1,6 +1,6 @@
 /**
- * This program is free software, you can redistribute it and/or modify.
- * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+ * This program is free software, you can redistribute it and/or modify.
+ * Copyright (c) 2025 Huawei Technologies Co., Ltd.
  * This file is a part of the CANN Open Software.
  * Licensed under CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
@@ -12,7 +12,7 @@
  * \brief
  */
 
-#include "ops_legacy/op_tiling/op_cache_tiling.h"
+#include "op_cache_tiling.h"
 
 namespace optiling {
 bool TilingPrepareForOpCache(gert::TilingContext* /*context*/)
@@ -32,4 +32,15 @@ bool GenTiling(
     return true;
 }
 
+bool CheckSupportConditionQbmm(QbmmType /*type*/, QuantBatchMatmulRunParas& /*inputParams*/, uint64_t /*aicNum*/, bool /*supportL0c2Out*/)
+{
+    return true;
+}
+
+bool GenWqbmmTiling(
+    const std::string& /*op_type*/, const WeightQuantBatchMatmulCacheTilingParas& /*compile_params*/,
+    WeightQuantBatchMatmulCacheTilingData& /*cacheTiling*/)
+{
+    return true;
+}
 } // namespace optiling

@@ -124,7 +124,7 @@ private:
                 static_cast<int64_t>(curRow * MATMUL_MODULE(MatmulShapeTiling)->GetTiling().GetBaseM() * stride) +
                 static_cast<int64_t>(curCol * MATMUL_MODULE(MatmulShapeTiling)->GetTiling().GetBaseN());
         }
-        return dstOffset;    
+        return dstOffset;
     }
 
     __aicore__ inline void SetFixpipeParams(FixpipeAdaptor& fixpipe) {

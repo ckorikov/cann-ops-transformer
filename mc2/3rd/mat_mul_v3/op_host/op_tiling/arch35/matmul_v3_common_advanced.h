@@ -100,6 +100,10 @@ struct MatMulV3TailInfo {
     uint64_t nTailMain = 0UL;
 };
 
+struct MatMulV3MixInfo {
+    uint64_t ubDB = 1UL;
+};
+
 struct MatMulV3RunInfo {
     uint64_t usedCoreNum = 1UL;
     uint64_t singleCoreM = 1UL;
@@ -123,6 +127,7 @@ struct MatMulV3RunInfo {
     uint64_t nBaseTailSplitCnt = 1UL;
     MatMulV3TailInfo tailInfo;
     BatchMatMulV3RunInfo bmmRunInfo;
+    MatMulV3MixInfo mixInfo;
 };
 }
 }
