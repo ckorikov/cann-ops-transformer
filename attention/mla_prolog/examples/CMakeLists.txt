@@ -7,99 +7,114 @@
 # See LICENSE in the root of the software repository for the full text of the License.
 # ======================================================================================================================
 
-add_executable(test_mla_prolog_nq_bsh
-        test_mla_prolog_nq_bsh.cpp
+add_executable(test_aclnn_mla_prolog_nq_bsh
+        test_aclnn_mla_prolog_nq_bsh.cpp
 )
 add_execute_example(
-        TARGET_NAME test_mla_prolog_nq_bsh
+        TARGET_NAME test_aclnn_mla_prolog_nq_bsh
         SCRIPT ${CMAKE_CURRENT_SOURCE_DIR}/run_mla_prolog_case.sh
         TEST_CASE mla_prolog_nq_bsh_case
         ACLNN_FUNC "aclnnMlaProlog"
 )
 
-add_executable(test_mla_prolog_nq_tnd
-        test_mla_prolog_nq_tnd.cpp
+add_executable(test_aclnn_mla_prolog
+        test_aclnn_mla_prolog.cpp
 )
 add_execute_example(
-        TARGET_NAME test_mla_prolog_nq_tnd
+        TARGET_NAME test_aclnn_mla_prolog
+        SCRIPT ${CMAKE_CURRENT_SOURCE_DIR}/run_mla_prolog_case.sh
+        TEST_CASE mla_prolog_nq_bsh_case
+        ACLNN_FUNC "aclnnMlaProlog"
+)
+
+add_executable(test_aclnn_mla_prolog_nq_tnd
+        test_aclnn_mla_prolog_nq_tnd.cpp
+)
+add_execute_example(
+        TARGET_NAME test_aclnn_mla_prolog_nq_tnd
         SCRIPT ${CMAKE_CURRENT_SOURCE_DIR}/run_mla_prolog_case.sh
         TEST_CASE mla_prolog_nq_tnd_case
         ACLNN_FUNC "aclnnMlaProlog"
 )
 
-add_executable(test_mla_prolog_pqkvnq_bsh
-        test_mla_prolog_pqkvnq_bsh.cpp
+add_executable(test_aclnn_mla_prolog_pqkvnq_bsh
+        test_aclnn_mla_prolog_pqkvnq_bsh.cpp
 )
 add_execute_example(
-        TARGET_NAME test_mla_prolog_pqkvnq_bsh
+        TARGET_NAME test_aclnn_mla_prolog_pqkvnq_bsh
         SCRIPT ${CMAKE_CURRENT_SOURCE_DIR}/run_mla_prolog_case.sh
         TEST_CASE mla_prolog_pqkvnq_bsh_case
         ACLNN_FUNC "aclnnMlaProlog"
 )
 
-add_executable(test_mla_prolog_pqkvnq_tnd
-        test_mla_prolog_pqkvnq_tnd.cpp
+add_executable(test_aclnn_mla_prolog_pqkvnq_tnd
+        test_aclnn_mla_prolog_pqkvnq_tnd.cpp
 )
 add_execute_example(
-        TARGET_NAME test_mla_prolog_pqkvnq_tnd
+        TARGET_NAME test_aclnn_mla_prolog_pqkvnq_tnd
         SCRIPT ${CMAKE_CURRENT_SOURCE_DIR}/run_mla_prolog_case.sh
         TEST_CASE mla_prolog_pqkvnq_tnd_case
         ACLNN_FUNC "aclnnMlaProlog"
 )
 
-add_executable(test_mla_prolog_pqkvq_bsh
-        test_mla_prolog_pqkvq_bsh.cpp
+add_executable(test_aclnn_mla_prolog_pqkvq_bsh
+        test_aclnn_mla_prolog_pqkvq_bsh.cpp
 )
 add_execute_example(
-        TARGET_NAME test_mla_prolog_pqkvq_bsh
+        TARGET_NAME test_aclnn_mla_prolog_pqkvq_bsh
         SCRIPT ${CMAKE_CURRENT_SOURCE_DIR}/run_mla_prolog_case.sh
         TEST_CASE mla_prolog_pqkvq_bsh_case
         ACLNN_FUNC "aclnnMlaProlog"
 )
 
-add_executable(test_mla_prolog_pqkvq_tnd
-        test_mla_prolog_pqkvq_tnd.cpp
+add_executable(test_aclnn_mla_prolog_pqkvq_tnd
+        test_aclnn_mla_prolog_pqkvq_tnd.cpp
 )
 add_execute_example(
-        TARGET_NAME test_mla_prolog_pqkvq_tnd
+        TARGET_NAME test_aclnn_mla_prolog_pqkvq_tnd
         SCRIPT ${CMAKE_CURRENT_SOURCE_DIR}/run_mla_prolog_case.sh
         TEST_CASE mla_prolog_pqkvq_tnd_case
         ACLNN_FUNC "aclnnMlaProlog"
 )
 
-install(TARGETS test_mla_prolog_nq_bsh
-        test_mla_prolog_nq_tnd
-        test_mla_prolog_pqkvnq_bsh
-        test_mla_prolog_pqkvnq_tnd
-        test_mla_prolog_pqkvq_bsh
-        test_mla_prolog_pqkvq_tnd
+install(TARGETS test_aclnn_mla_prolog_nq_bsh
+        test_aclnn_mla_prolog
+        test_aclnn_mla_prolog_nq_tnd
+        test_aclnn_mla_prolog_pqkvnq_bsh
+        test_aclnn_mla_prolog_pqkvnq_tnd
+        test_aclnn_mla_prolog_pqkvq_bsh
+        test_aclnn_mla_prolog_pqkvq_tnd
         LIBRARY DESTINATION lib
         ARCHIVE DESTINATION lib
         RUNTIME DESTINATION bin
         OPTIONAL
 )
 
-target_link_libraries(test_mla_prolog_nq_bsh PRIVATE
+target_link_libraries(test_aclnn_mla_prolog_nq_bsh PRIVATE
     -lc_sec
 )
 
-target_link_libraries(test_mla_prolog_nq_tnd PRIVATE
+target_link_libraries(test_aclnn_mla_prolog PRIVATE
     -lc_sec
 )
 
-target_link_libraries(test_mla_prolog_pqkvnq_bsh PRIVATE
+target_link_libraries(test_aclnn_mla_prolog_nq_tnd PRIVATE
     -lc_sec
 )
 
-target_link_libraries(test_mla_prolog_pqkvnq_tnd PRIVATE
+target_link_libraries(test_aclnn_mla_prolog_pqkvnq_bsh PRIVATE
     -lc_sec
 )
 
-target_link_libraries(test_mla_prolog_pqkvq_bsh PRIVATE
+target_link_libraries(test_aclnn_mla_prolog_pqkvnq_tnd PRIVATE
     -lc_sec
 )
 
-target_link_libraries(test_mla_prolog_pqkvq_tnd PRIVATE
+target_link_libraries(test_aclnn_mla_prolog_pqkvq_bsh PRIVATE
+    -lc_sec
+)
+
+target_link_libraries(test_aclnn_mla_prolog_pqkvq_tnd PRIVATE
     -lc_sec
 )
 

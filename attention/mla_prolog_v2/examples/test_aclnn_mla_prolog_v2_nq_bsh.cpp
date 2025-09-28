@@ -1,21 +1,23 @@
 /**
- * This program is free software, you can redistribute it and/or modify.
- * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
  * This file is a part of the CANN Open Software.
  * Licensed under CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
- * See LICENSE in the root of the software repository for the full text of the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License. 
  */
+
 /*!
- * \file test_mla_prolog_pqkvnq_tnd.cpp
+ * \file test_mla_prolog_v2_nq_bsh.cpp
  * \brief
  */
 
 #include <iostream>
 #include <vector>
+#include <cstdint>
 #include "acl/acl.h"
-#include "aclnnop/aclnn_mla_prolog.h"
+#include "aclnnop/aclnn_mla_prolog_v2_weight_nz.h"
 
 #define CHECK_RET(cond, return_expr) \
   do {                               \
@@ -112,22 +114,20 @@ int main() {
     // check根据自己的需要处理
     CHECK_RET(ret == 0, LOG_PRINT("Init acl failed. ERROR: %d\n", ret); return ret);
     // 2. 构造输入与输出，需要根据API的接口定义构造
-    std::vector<int64_t> tokenXShape = {8, 7168};               // B*,S,He
+    std::vector<int64_t> tokenXShape = {8, 1, 7168};            // B,S,He
     std::vector<int64_t> weightDqShape = {7168, 1536};          // He,Hcq
     std::vector<int64_t> weightUqQrShape = {1536, 6144};        // Hcq,N*(D+Dr)
     std::vector<int64_t> weightUkShape = {32, 128, 512};        // N,D,Hckv
     std::vector<int64_t> weightDkvKrShape = {7168, 576};        // He,Hckv+Dr
     std::vector<int64_t> rmsnormGammaCqShape = {1536};          // Hcq
     std::vector<int64_t> rmsnormGammaCkvShape = {512};          // Hckv
-    std::vector<int64_t> ropeSinShape = {8, 64};                // B*S,Dr
-    std::vector<int64_t> ropeCosShape = {8, 64};                // B*S,Dr
-    std::vector<int64_t> cacheIndexShape = {8};                 // B*S
+    std::vector<int64_t> ropeSinShape = {8, 1, 64};             // B,S,Dr
+    std::vector<int64_t> ropeCosShape = {8, 1, 64};             // B,S,Dr
+    std::vector<int64_t> cacheIndexShape = {8, 1};              // B,S
     std::vector<int64_t> kvCacheShape = {16, 128, 1, 512};      // BolckNum,BlockSize,Nkv,Hckv
     std::vector<int64_t> krCacheShape = {16, 128, 1, 64};       // BolckNum,BlockSize,Nkv,Dr
-    std::vector<int64_t> dequantScaleWUqQrShape = {1, 6144};    // 1,N*(D+Dr)
-    std::vector<int64_t> smoothScalesCqShape = {1, 1536};       // 1, Hcq
-    std::vector<int64_t> queryShape = {8, 32, 512};             // B*S,N,Hckv
-    std::vector<int64_t> queryRopeShape = {8, 32, 64};          // B*S,N,Dr
+    std::vector<int64_t> queryShape = {8, 1, 32, 512};          // B,S,N,Hckv
+    std::vector<int64_t> queryRopeShape = {8, 1, 32, 64};       // B,S,N,Dr
     double rmsnormEpsilonCq = 1e-5;
     double rmsnormEpsilonCkv = 1e-5;
     char cacheMode[] = "PA_BSND";
@@ -144,8 +144,6 @@ int main() {
     void* cacheIndexDeviceAddr = nullptr;
     void* kvCacheDeviceAddr = nullptr;
     void* krCacheDeviceAddr = nullptr;
-    void* dequantScaleWUqQrDeviceAddr = nullptr;
-    void* smoothScalesCqDeviceAddr = nullptr;
     void* queryDeviceAddr = nullptr;
     void* queryRopeDeviceAddr = nullptr;
 
@@ -161,8 +159,6 @@ int main() {
     void* cacheIndexHostAddr = nullptr;
     void* kvCacheHostAddr = nullptr;
     void* krCacheHostAddr = nullptr;
-    void* dequantScaleWUqQrHostAddr = nullptr;
-    void* smoothScalesCqHostAddr = nullptr;
     void* queryHostAddr = nullptr;
     void* queryRopeHostAddr = nullptr;
 
@@ -178,8 +174,6 @@ int main() {
     aclTensor* cacheIndex = nullptr;
     aclTensor* kvCache = nullptr;
     aclTensor* krCache = nullptr;
-    aclTensor* dequantScaleWUqQr = nullptr;
-    aclTensor* smoothScalesCq = nullptr;
     aclTensor* query = nullptr;
     aclTensor* queryRope = nullptr;
 
@@ -188,7 +182,7 @@ int main() {
     constexpr size_t EXAMPLE_BFLOAT16_SIZE = sizeof(int16_t);
     ret = TransToNZShape(weightDqShape, EXAMPLE_BFLOAT16_SIZE);
     CHECK_RET(ret == 0, LOG_PRINT("trans NZ shape failed.\n"); return ret);
-    ret = TransToNZShape(weightUqQrShape, EXAMPLE_INT8_SIZE);
+    ret = TransToNZShape(weightUqQrShape, EXAMPLE_BFLOAT16_SIZE);
     CHECK_RET(ret == 0, LOG_PRINT("trans NZ shape failed.\n"); return ret);
     ret = TransToNZShape(weightDkvKrShape, EXAMPLE_BFLOAT16_SIZE);
     CHECK_RET(ret == 0, LOG_PRINT("trans NZ shape failed.\n"); return ret);
@@ -200,7 +194,7 @@ int main() {
     ret = CreateAclTensorNZ(weightDqShape, &weightDqDeviceAddr, &weightDqHostAddr, aclDataType::ACL_BF16, &weightDq);
     CHECK_RET(ret == ACL_SUCCESS, return ret);
     // 创建weightUqQr aclTensor
-    ret = CreateAclTensorNZ(weightUqQrShape, &weightUqQrDeviceAddr, &weightUqQrHostAddr, aclDataType::ACL_INT8, &weightUqQr);
+    ret = CreateAclTensorNZ(weightUqQrShape, &weightUqQrDeviceAddr, &weightUqQrHostAddr, aclDataType::ACL_BF16, &weightUqQr);
     CHECK_RET(ret == ACL_SUCCESS, return ret);
     // 创建weightUk aclTensor
     ret = CreateAclTensorND(weightUkShape, &weightUkDeviceAddr, &weightUkHostAddr, aclDataType::ACL_BF16, &weightUk);
@@ -229,12 +223,6 @@ int main() {
     // 创建krCache aclTensor
     ret = CreateAclTensorND(krCacheShape, &krCacheDeviceAddr, &krCacheHostAddr, aclDataType::ACL_BF16, &krCache);
     CHECK_RET(ret == ACL_SUCCESS, return ret);
-    // 创建dequantScaleWUqQr aclTensor
-    ret = CreateAclTensorND(dequantScaleWUqQrShape, &dequantScaleWUqQrDeviceAddr, &dequantScaleWUqQrHostAddr, aclDataType::ACL_FLOAT, &dequantScaleWUqQr);
-    CHECK_RET(ret == ACL_SUCCESS, return ret);
-    // 创建smoothScalesCq aclTensor
-    ret = CreateAclTensorND(smoothScalesCqShape, &smoothScalesCqDeviceAddr, &smoothScalesCqHostAddr, aclDataType::ACL_FLOAT, &smoothScalesCq);
-    CHECK_RET(ret == ACL_SUCCESS, return ret);
     // 创建query aclTensor
     ret = CreateAclTensorND(queryShape, &queryDeviceAddr, &queryHostAddr, aclDataType::ACL_BF16, &query);
     CHECK_RET(ret == ACL_SUCCESS, return ret);
@@ -245,18 +233,18 @@ int main() {
     // 3. 调用CANN算子库API，需要修改为具体的API
     uint64_t workspaceSize = 0;
     aclOpExecutor* executor = nullptr;
-    // 调用aclnnMlaProlog第一段接口
-    ret = aclnnMlaPrologGetWorkspaceSize(tokenX, weightDq, weightUqQr, weightUk, weightDkvKr, rmsnormGammaCq, rmsnormGammaCkv, ropeSin, ropeCos, cacheIndex, kvCache, krCache, nullptr, nullptr, dequantScaleWUqQr, nullptr, nullptr, nullptr, smoothScalesCq, rmsnormEpsilonCq, rmsnormEpsilonCkv, cacheMode, query, queryRope, &workspaceSize, &executor);
-    CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclnnMlaPrologGetWorkspaceSize failed. ERROR: %d\n", ret); return ret);
+    // 调用aclnnMlaPrologV2WeightNz第一段接口
+    ret = aclnnMlaPrologV2WeightNzGetWorkspaceSize(tokenX, weightDq, weightUqQr, weightUk, weightDkvKr, rmsnormGammaCq, rmsnormGammaCkv, ropeSin, ropeCos, cacheIndex, kvCache, krCache, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, rmsnormEpsilonCq, rmsnormEpsilonCkv, cacheMode, query, queryRope, nullptr, &workspaceSize, &executor);
+    CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclnnMlaPrologV2WeightNzGetWorkspaceSize failed. ERROR: %d\n", ret); return ret);
     // 根据第一段接口计算出的workspaceSize申请device内存
     void* workspaceAddr = nullptr;
     if (workspaceSize > static_cast<uint64_t>(0)) {
         ret = aclrtMalloc(&workspaceAddr, workspaceSize, ACL_MEM_MALLOC_HUGE_FIRST);
         CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("allocate workspace failed. ERROR: %d\n", ret); return ret;);
     }
-    // 调用aclnnMlaProlog第二段接口
-    ret = aclnnMlaProlog(workspaceAddr, workspaceSize, executor, stream);
-    CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclnnMlaProlog failed. ERROR: %d\n", ret); return ret);
+    // 调用aclnnMlaPrologV2WeightNz第二段接口
+    ret = aclnnMlaPrologV2WeightNz(workspaceAddr, workspaceSize, executor, stream);
+    CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclnnMlaPrologV2WeightNz failed. ERROR: %d\n", ret); return ret);
 
     // 4. 固定写法，同步等待任务执行结束
     ret = aclrtSynchronizeStream(stream);
@@ -268,7 +256,9 @@ int main() {
     ret = aclrtMemcpy(resultData.data(), resultData.size() * sizeof(resultData[0]), queryDeviceAddr, size * sizeof(float),
                       ACL_MEMCPY_DEVICE_TO_HOST);
     CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("copy result from device to host failed. ERROR: %d\n", ret); return ret);
-
+    for (int64_t i = 0; i < size; i++) {
+      LOG_PRINT("result[%ld] is: %f\n", i, resultData[i]);
+    }
     // 6. 释放aclTensor和aclScalar，需要根据具体API的接口定义修改
     aclDestroyTensor(tokenX);
     aclDestroyTensor(weightDq);
@@ -282,8 +272,6 @@ int main() {
     aclDestroyTensor(cacheIndex);
     aclDestroyTensor(kvCache);
     aclDestroyTensor(krCache);
-    aclDestroyTensor(dequantScaleWUqQr);
-    aclDestroyTensor(smoothScalesCq);
     aclDestroyTensor(query);
     aclDestroyTensor(queryRope);
 
@@ -300,8 +288,6 @@ int main() {
     aclrtFree(cacheIndexDeviceAddr);
     aclrtFree(kvCacheDeviceAddr);
     aclrtFree(krCacheDeviceAddr);
-    aclrtFree(dequantScaleWUqQrDeviceAddr);
-    aclrtFree(smoothScalesCqDeviceAddr);
     aclrtFree(queryDeviceAddr);
     aclrtFree(queryRopeDeviceAddr);
 
@@ -318,8 +304,6 @@ int main() {
     aclrtFree(cacheIndexHostAddr);
     aclrtFree(kvCacheHostAddr);
     aclrtFree(krCacheHostAddr);
-    aclrtFree(dequantScaleWUqQrHostAddr);
-    aclrtFree(smoothScalesCqHostAddr);
     aclrtFree(queryHostAddr);
     aclrtFree(queryRopeHostAddr);
 

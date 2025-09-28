@@ -1,6 +1,6 @@
 /**
  * This program is free software, you can redistribute it and/or modify.
- * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+ * Copyright (c) 2025 Huawei Technologies Co., Ltd.|Hisilicon Technologies Co., Ltd.
  * This file is a part of the CANN Open Software.
  * Licensed under CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
@@ -9,7 +9,7 @@
  */
 
 /*!
- * \file test_mla_prolog_v2_nq_tnd.cpp
+ * \file test_mla_prolog_v2_fqkvnq_bsh.cpp
  * \brief
  */
 
@@ -29,7 +29,7 @@
 #define LOG_PRINT(message, ...)      \
   do {                               \
     printf(message, ##__VA_ARGS__);  \
-  } while (0)
+  } while (0) 
 
 int64_t GetShapeSize(const std::vector<int64_t>& shape) {
     int64_t shape_size = 1;
@@ -126,8 +126,13 @@ int main() {
     std::vector<int64_t> cacheIndexShape = {8};                 // B*S
     std::vector<int64_t> kvCacheShape = {16, 128, 1, 512};      // BolckNum,BlockSize,Nkv,Hckv
     std::vector<int64_t> krCacheShape = {16, 128, 1, 64};       // BolckNum,BlockSize,Nkv,Dr
-    std::vector<int64_t> queryShape = {8, 32, 512};             // B*S,N,Hckv
-    std::vector<int64_t> queryRopeShape = {8, 32, 64};          // B*S,N,Dr
+    std::vector<int64_t> dequantScaleXShape = {8, 1};           // B*S, 1
+    std::vector<int64_t> dequantScaleWDqShape = {1, 1536};      // 1, Hcq
+    std::vector<int64_t> dequantScaleWUqQrShape = {1, 6144};    // 1, N*(D+Dr)
+    std::vector<int64_t> dequantScaleWDkvKrShape = {1, 576};    // 1, Hckv+Dr
+    std::vector<int64_t> smoothScalesCqShape = {1, 1536};       // 1, Hcq
+    std::vector<int64_t> queryShape = {8, 32, 512};          // B*S,N,Hckv
+    std::vector<int64_t> queryRopeShape = {8, 32, 64};       // B*S,N,Dr
     double rmsnormEpsilonCq = 1e-5;
     double rmsnormEpsilonCkv = 1e-5;
     char cacheMode[] = "PA_BSND";
@@ -144,6 +149,11 @@ int main() {
     void* cacheIndexDeviceAddr = nullptr;
     void* kvCacheDeviceAddr = nullptr;
     void* krCacheDeviceAddr = nullptr;
+    void* dequantScaleXDeviceAddr = nullptr;
+    void* dequantScaleWDqDeviceAddr = nullptr;
+    void* dequantScaleWUqQrDeviceAddr = nullptr;
+    void* dequantScaleWDkvKrDeviceAddr = nullptr;
+    void* smoothScalesCqDeviceAddr = nullptr;
     void* queryDeviceAddr = nullptr;
     void* queryRopeDeviceAddr = nullptr;
 
@@ -159,6 +169,11 @@ int main() {
     void* cacheIndexHostAddr = nullptr;
     void* kvCacheHostAddr = nullptr;
     void* krCacheHostAddr = nullptr;
+    void* dequantScaleXHostAddr = nullptr;
+    void* dequantScaleWDqHostAddr = nullptr;
+    void* dequantScaleWUqQrHostAddr = nullptr;
+    void* dequantScaleWDkvKrHostAddr = nullptr;
+    void* smoothScalesCqHostAddr = nullptr;
     void* queryHostAddr = nullptr;
     void* queryRopeHostAddr = nullptr;
 
@@ -174,45 +189,50 @@ int main() {
     aclTensor* cacheIndex = nullptr;
     aclTensor* kvCache = nullptr;
     aclTensor* krCache = nullptr;
+    aclTensor* dequantScaleX = nullptr;
+    aclTensor* dequantScaleWDq = nullptr;
+    aclTensor* dequantScaleWUqQr = nullptr;
+    aclTensor* dequantScaleWDkvKr = nullptr;
+    aclTensor* smoothScalesCq = nullptr;
     aclTensor* query = nullptr;
     aclTensor* queryRope = nullptr;
 
     // 转换三个NZ格式变量的shape
     constexpr size_t EXAMPLE_INT8_SIZE = sizeof(int8_t);
     constexpr size_t EXAMPLE_BFLOAT16_SIZE = sizeof(int16_t);
-    ret = TransToNZShape(weightDqShape, EXAMPLE_BFLOAT16_SIZE);
+    ret = TransToNZShape(weightDqShape, EXAMPLE_INT8_SIZE);
     CHECK_RET(ret == 0, LOG_PRINT("trans NZ shape failed.\n"); return ret);
-    ret = TransToNZShape(weightUqQrShape, EXAMPLE_BFLOAT16_SIZE);
+    ret = TransToNZShape(weightUqQrShape, EXAMPLE_INT8_SIZE);
     CHECK_RET(ret == 0, LOG_PRINT("trans NZ shape failed.\n"); return ret);
-    ret = TransToNZShape(weightDkvKrShape, EXAMPLE_BFLOAT16_SIZE);
+    ret = TransToNZShape(weightDkvKrShape, EXAMPLE_INT8_SIZE);
     CHECK_RET(ret == 0, LOG_PRINT("trans NZ shape failed.\n"); return ret);
 
     // 创建tokenX aclTensor
-    ret = CreateAclTensorND(tokenXShape, &tokenXDeviceAddr, &tokenXHostAddr, aclDataType::ACL_BF16, &tokenX);
+    ret = CreateAclTensorND(tokenXShape, &tokenXDeviceAddr, &tokenXHostAddr, aclDataType::ACL_INT8, &tokenX);
     CHECK_RET(ret == ACL_SUCCESS, return ret);
     // 创建weightDq aclTensor
-    ret = CreateAclTensorNZ(weightDqShape, &weightDqDeviceAddr, &weightDqHostAddr, aclDataType::ACL_BF16, &weightDq);
+    ret = CreateAclTensorNZ(weightDqShape, &weightDqDeviceAddr, &weightDqHostAddr, aclDataType::ACL_INT8, &weightDq);
     CHECK_RET(ret == ACL_SUCCESS, return ret);
     // 创建weightUqQr aclTensor
-    ret = CreateAclTensorNZ(weightUqQrShape, &weightUqQrDeviceAddr, &weightUqQrHostAddr, aclDataType::ACL_BF16, &weightUqQr);
+    ret = CreateAclTensorNZ(weightUqQrShape, &weightUqQrDeviceAddr, &weightUqQrHostAddr, aclDataType::ACL_INT8, &weightUqQr);
     CHECK_RET(ret == ACL_SUCCESS, return ret);
     // 创建weightUk aclTensor
     ret = CreateAclTensorND(weightUkShape, &weightUkDeviceAddr, &weightUkHostAddr, aclDataType::ACL_BF16, &weightUk);
     CHECK_RET(ret == ACL_SUCCESS, return ret);
     // 创建weightDkvKr aclTensor
-    ret = CreateAclTensorNZ(weightDkvKrShape, &weightDkvKrDeviceAddr, &weightDkvKrHostAddr, aclDataType::ACL_BF16, &weightDkvKr);
-    CHECK_RET(ret == ACL_SUCCESS, return ret);
-    // 创建ropeSin aclTensor
-    ret = CreateAclTensorND(ropeSinShape, &ropeSinDeviceAddr, &ropeSinHostAddr, aclDataType::ACL_BF16, &ropeSin);
-    CHECK_RET(ret == ACL_SUCCESS, return ret);
-    // 创建ropeCos aclTensor
-    ret = CreateAclTensorND(ropeCosShape, &ropeCosDeviceAddr, &ropeCosHostAddr, aclDataType::ACL_BF16, &ropeCos);
+    ret = CreateAclTensorNZ(weightDkvKrShape, &weightDkvKrDeviceAddr, &weightDkvKrHostAddr, aclDataType::ACL_INT8, &weightDkvKr);
     CHECK_RET(ret == ACL_SUCCESS, return ret);
     // 创建rmsnormGammaCq aclTensor
     ret = CreateAclTensorND(rmsnormGammaCqShape, &rmsnormGammaCqDeviceAddr, &rmsnormGammaCqHostAddr, aclDataType::ACL_BF16, &rmsnormGammaCq);
     CHECK_RET(ret == ACL_SUCCESS, return ret);
     // 创建rmsnormGammaCkv aclTensor
     ret = CreateAclTensorND(rmsnormGammaCkvShape, &rmsnormGammaCkvDeviceAddr, &rmsnormGammaCkvHostAddr, aclDataType::ACL_BF16, &rmsnormGammaCkv);
+    CHECK_RET(ret == ACL_SUCCESS, return ret);
+    // 创建ropeSin aclTensor
+    ret = CreateAclTensorND(ropeSinShape, &ropeSinDeviceAddr, &ropeSinHostAddr, aclDataType::ACL_BF16, &ropeSin);
+    CHECK_RET(ret == ACL_SUCCESS, return ret);
+    // 创建ropeCos aclTensor
+    ret = CreateAclTensorND(ropeCosShape, &ropeCosDeviceAddr, &ropeCosHostAddr, aclDataType::ACL_BF16, &ropeCos);
     CHECK_RET(ret == ACL_SUCCESS, return ret);
     // 创建cacheIndex aclTensor
     ret = CreateAclTensorND(cacheIndexShape, &cacheIndexDeviceAddr, &cacheIndexHostAddr, aclDataType::ACL_INT64, &cacheIndex);
@@ -222,6 +242,21 @@ int main() {
     CHECK_RET(ret == ACL_SUCCESS, return ret);
     // 创建krCache aclTensor
     ret = CreateAclTensorND(krCacheShape, &krCacheDeviceAddr, &krCacheHostAddr, aclDataType::ACL_BF16, &krCache);
+    CHECK_RET(ret == ACL_SUCCESS, return ret);
+    // 创建dequantScaleX aclTensor
+    ret = CreateAclTensorND(dequantScaleXShape, &dequantScaleXDeviceAddr, &dequantScaleXHostAddr, aclDataType::ACL_FLOAT, &dequantScaleX);
+    CHECK_RET(ret == ACL_SUCCESS, return ret);
+    // 创建dequantScaleWDq aclTensor
+    ret = CreateAclTensorND(dequantScaleWDqShape, &dequantScaleWDqDeviceAddr, &dequantScaleWDqHostAddr, aclDataType::ACL_FLOAT, &dequantScaleWDq);
+    CHECK_RET(ret == ACL_SUCCESS, return ret);
+    // 创建dequantScaleWUqQr aclTensor
+    ret = CreateAclTensorND(dequantScaleWUqQrShape, &dequantScaleWUqQrDeviceAddr, &dequantScaleWUqQrHostAddr, aclDataType::ACL_FLOAT, &dequantScaleWUqQr);
+    CHECK_RET(ret == ACL_SUCCESS, return ret);
+    // 创建dequantScaleWDkvKr aclTensor
+    ret = CreateAclTensorND(dequantScaleWDkvKrShape, &dequantScaleWDkvKrDeviceAddr, &dequantScaleWDkvKrHostAddr, aclDataType::ACL_FLOAT, &dequantScaleWDkvKr);
+    CHECK_RET(ret == ACL_SUCCESS, return ret);
+    // 创建smoothScalesCq aclTensor
+    ret = CreateAclTensorND(smoothScalesCqShape, &smoothScalesCqDeviceAddr, &smoothScalesCqHostAddr, aclDataType::ACL_FLOAT, &smoothScalesCq);
     CHECK_RET(ret == ACL_SUCCESS, return ret);
     // 创建query aclTensor
     ret = CreateAclTensorND(queryShape, &queryDeviceAddr, &queryHostAddr, aclDataType::ACL_BF16, &query);
@@ -234,7 +269,9 @@ int main() {
     uint64_t workspaceSize = 0;
     aclOpExecutor* executor = nullptr;
     // 调用aclnnMlaPrologV2WeightNz第一段接口
-    ret = aclnnMlaPrologV2WeightNzGetWorkspaceSize(tokenX, weightDq, weightUqQr, weightUk, weightDkvKr, rmsnormGammaCq, rmsnormGammaCkv, ropeSin, ropeCos, cacheIndex, kvCache, krCache, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, rmsnormEpsilonCq, rmsnormEpsilonCkv, cacheMode, query, queryRope, nullptr, &workspaceSize, &executor);
+    ret = aclnnMlaPrologV2WeightNzGetWorkspaceSize(tokenX, weightDq, weightUqQr, weightUk, weightDkvKr, rmsnormGammaCq, rmsnormGammaCkv, ropeSin, ropeCos, cacheIndex, kvCache, krCache,
+      dequantScaleX, dequantScaleWDq, dequantScaleWUqQr, dequantScaleWDkvKr, nullptr, nullptr, smoothScalesCq, rmsnormEpsilonCq, rmsnormEpsilonCkv, cacheMode,
+      query, queryRope, nullptr, &workspaceSize, &executor);
     CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclnnMlaPrologV2WeightNzGetWorkspaceSize failed. ERROR: %d\n", ret); return ret);
     // 根据第一段接口计算出的workspaceSize申请device内存
     void* workspaceAddr = nullptr;
@@ -256,7 +293,9 @@ int main() {
     ret = aclrtMemcpy(resultData.data(), resultData.size() * sizeof(resultData[0]), queryDeviceAddr, size * sizeof(float),
                       ACL_MEMCPY_DEVICE_TO_HOST);
     CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("copy result from device to host failed. ERROR: %d\n", ret); return ret);
-
+    for (int64_t i = 0; i < size; i++) {
+      LOG_PRINT("result[%ld] is: %f\n", i, resultData[i]);
+    }
     // 6. 释放aclTensor和aclScalar，需要根据具体API的接口定义修改
     aclDestroyTensor(tokenX);
     aclDestroyTensor(weightDq);
@@ -270,6 +309,11 @@ int main() {
     aclDestroyTensor(cacheIndex);
     aclDestroyTensor(kvCache);
     aclDestroyTensor(krCache);
+    aclDestroyTensor(dequantScaleX);
+    aclDestroyTensor(dequantScaleWDq);
+    aclDestroyTensor(dequantScaleWUqQr);
+    aclDestroyTensor(dequantScaleWDkvKr);
+    aclDestroyTensor(smoothScalesCq);
     aclDestroyTensor(query);
     aclDestroyTensor(queryRope);
 
@@ -286,6 +330,11 @@ int main() {
     aclrtFree(cacheIndexDeviceAddr);
     aclrtFree(kvCacheDeviceAddr);
     aclrtFree(krCacheDeviceAddr);
+    aclrtFree(dequantScaleXDeviceAddr);
+    aclrtFree(dequantScaleWDqDeviceAddr);
+    aclrtFree(dequantScaleWUqQrDeviceAddr);
+    aclrtFree(dequantScaleWDkvKrDeviceAddr);
+    aclrtFree(smoothScalesCqDeviceAddr);
     aclrtFree(queryDeviceAddr);
     aclrtFree(queryRopeDeviceAddr);
 
@@ -302,6 +351,11 @@ int main() {
     aclrtFree(cacheIndexHostAddr);
     aclrtFree(kvCacheHostAddr);
     aclrtFree(krCacheHostAddr);
+    aclrtFree(dequantScaleXHostAddr);
+    aclrtFree(dequantScaleWDqHostAddr);
+    aclrtFree(dequantScaleWUqQrHostAddr);
+    aclrtFree(dequantScaleWDkvKrHostAddr);
+    aclrtFree(smoothScalesCqHostAddr);
     aclrtFree(queryHostAddr);
     aclrtFree(queryRopeHostAddr);
 
