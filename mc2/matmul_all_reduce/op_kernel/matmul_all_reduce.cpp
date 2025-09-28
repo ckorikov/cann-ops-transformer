@@ -398,16 +398,16 @@ extern "C" __global__ __aicore__ void matmul_all_reduce(
         KERNEL_TASK_TYPE(17, KERNEL_TYPE_MIX_AIC_1_1);
         INVOKE_MC2_QUANT_910_OP_IMPL(
             BmmDequantPertoken, Mc2CoreType::ON_VECTOR, REG_MM_OBJ, true, float, DTYPE_Y, false, true);
-    } else if (TILING_KEY_IS(3)) {
+    } else if (TILING_KEY_IS(11)) {
         INVOKE_QUANT_BMM_DEQUANT_FP16_IMPL_COMM_INT8(MatmulAllReduceQuantFP16CommInt8, false, true);
-    } else if (TILING_KEY_IS(2)) {
+    } else if (TILING_KEY_IS(10)) {
         INVOKE_QUANT_BMM_DEQUANT_FP16_IMPL_COMM_INT8(MatmulAllReduceQuantFP16CommInt8, false, false);
-    } else if (TILING_KEY_IS(18)) { // pertoken 适配 int8 通信
+    } else if (TILING_KEY_IS(26)) { // pertoken 适配 int8 通信
         BmmDequantPertoken<DTYPE_X1, DTYPE_X2, FORMAT_X1, FORMAT_X2, float, DTYPE_Y, false, false, true> opTile;
         BmmDequantPertoken<DTYPE_X1, DTYPE_X2, FORMAT_X1, FORMAT_X2, float, DTYPE_Y, false, false, true> opTail;
         INVOKE_QUANT_BATCH_MATMUL_DEQUANT_PERTOKEN_COMM_INT8_IMPL(
             MatmulAllReduceQuantPertokenInt8, float, opTile, opTail, false, false);
-    } else if (TILING_KEY_IS(19)) { // pertoken 适配 int8 通信
+    } else if (TILING_KEY_IS(27)) { // pertoken 适配 int8 通信
         BmmDequantPertoken<DTYPE_X1, DTYPE_X2, FORMAT_X1, FORMAT_X2, float, DTYPE_Y, false, true, true> opTile;
         BmmDequantPertoken<DTYPE_X1, DTYPE_X2, FORMAT_X1, FORMAT_X2, float, DTYPE_Y, false, true, true> opTail;
         INVOKE_QUANT_BATCH_MATMUL_DEQUANT_PERTOKEN_COMM_INT8_IMPL(
@@ -427,26 +427,26 @@ extern "C" __global__ __aicore__ void matmul_all_reduce(
     } else if (TILING_KEY_IS(17)) {
         INVOKE_MC2_QUANT_910_OP_IMPL(
             BmmDequantPertoken, Mc2CoreType::ON_VECTOR, REG_MM_OBJ, true, DTYPE_Y, DTYPE_Y, false, true);
-    } else if (TILING_KEY_IS(2)) {
-        KERNEL_TASK_TYPE(2, KERNEL_TYPE_MIX_AIC_1_2);
+    } else if (TILING_KEY_IS(10)) {
+        KERNEL_TASK_TYPE(10, KERNEL_TYPE_MIX_AIC_1_2);
         BmmDequantBf16<DTYPE_X1, DTYPE_X2, FORMAT_X1, FORMAT_X2, DTYPE_Y, DTYPE_Y, false, false, true> opTile;
         BmmDequantBf16<DTYPE_X1, DTYPE_X2, FORMAT_X1, FORMAT_X2, DTYPE_Y, DTYPE_Y, false, false, true> opTail;
         INVOKE_QUANT_BATCH_MATMUL_DEQUANT_BF16_IMPL_COMM_INT8(
             MatmulAllReduceQuantBF16CommInt8, opTile, opTail, false, false);
-    } else if (TILING_KEY_IS(3)) {
-        KERNEL_TASK_TYPE(3, KERNEL_TYPE_MIX_AIC_1_2);
+    } else if (TILING_KEY_IS(11)) {
+        KERNEL_TASK_TYPE(11, KERNEL_TYPE_MIX_AIC_1_2);
         BmmDequantBf16<DTYPE_X1, DTYPE_X2, FORMAT_X1, FORMAT_X2, DTYPE_Y, DTYPE_Y, false, true, true> opTile;
         BmmDequantBf16<DTYPE_X1, DTYPE_X2, FORMAT_X1, FORMAT_X2, DTYPE_Y, DTYPE_Y, false, true, true> opTail;
         INVOKE_QUANT_BATCH_MATMUL_DEQUANT_BF16_IMPL_COMM_INT8(
             MatmulAllReduceQuantBF16CommInt8, opTile, opTail, false, true);
-    } else if (TILING_KEY_IS(18)) {
-        KERNEL_TASK_TYPE(18, KERNEL_TYPE_MIX_AIC_1_2);
+    } else if (TILING_KEY_IS(26)) {
+        KERNEL_TASK_TYPE(26, KERNEL_TYPE_MIX_AIC_1_2);
         BmmDequantPertoken<DTYPE_X1, DTYPE_X2, FORMAT_X1, FORMAT_X2, DTYPE_Y, DTYPE_Y, false, false, true> opTile;
         BmmDequantPertoken<DTYPE_X1, DTYPE_X2, FORMAT_X1, FORMAT_X2, DTYPE_Y, DTYPE_Y, false, false, true> opTail;
         INVOKE_QUANT_BATCH_MATMUL_DEQUANT_PERTOKEN_COMM_INT8_IMPL(
             MatmulAllReduceQuantPertokenInt8, DTYPE_Y, opTile, opTail, false, false);
-    } else if (TILING_KEY_IS(19)) {
-        KERNEL_TASK_TYPE(19, KERNEL_TYPE_MIX_AIC_1_2);
+    } else if (TILING_KEY_IS(27)) {
+        KERNEL_TASK_TYPE(27, KERNEL_TYPE_MIX_AIC_1_2);
         BmmDequantPertoken<DTYPE_X1, DTYPE_X2, FORMAT_X1, FORMAT_X2, DTYPE_Y, DTYPE_Y, false, true, true> opTile;
         BmmDequantPertoken<DTYPE_X1, DTYPE_X2, FORMAT_X1, FORMAT_X2, DTYPE_Y, DTYPE_Y, false, true, true> opTail;
         INVOKE_QUANT_BATCH_MATMUL_DEQUANT_PERTOKEN_COMM_INT8_IMPL(
