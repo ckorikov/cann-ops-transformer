@@ -86,36 +86,42 @@ int main() {
   auto ret = Init(deviceId, &stream);
   CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("Init acl failed. ERROR: %d\n", ret); return ret);
 
-  // 2. 构造输入与输出，需要根据API的接口定义构造
-  std::vector<int64_t> inputShape = {320, 1, 1280};
-  std::vector<int64_t> cosShape = {320, 1, 1, 128};
-  std::vector<int64_t> sinShape = {320, 1, 1, 128};
-  std::vector<int64_t> kcacheShape = {320, 1280, 1, 128};
-  std::vector<int64_t> vcacheShape = {320, 1280, 1, 128};
-  std::vector<int64_t> indicesShape = {320};
-  std::vector<int64_t> kscaleShape = {128};
-  std::vector<int64_t> vscaleShape = {128};
-  std::vector<int64_t> koffsetShape = {128};
-  std::vector<int64_t> voffsetShape = {128};
+// 2. 构造输入与输出，需要根据API的接口定义构造
+  int64_t shapeB = 1;
+  int64_t shapeS = 1;
+  int64_t shapeNq = 2;
+  int64_t shapeNkv = 1;
+  int64_t shapeD = 32;
+  int64_t shapeH = shapeD * (shapeNq + shapeNkv + shapeNkv);
+  std::vector<int64_t> inputShape = {shapeB, shapeS, shapeH};
+  std::vector<int64_t> cosShape = {shapeB, shapeS, 1, shapeD};
+  std::vector<int64_t> sinShape = {shapeB, shapeS, 1, shapeD};
+  std::vector<int64_t> kcacheShape = {shapeB, shapeH, 1, shapeD};
+  std::vector<int64_t> vcacheShape = {shapeB, shapeH, 1, shapeD};
+  std::vector<int64_t> indicesShape = {shapeB};
+  std::vector<int64_t> kscaleShape = {shapeD};
+  std::vector<int64_t> vscaleShape = {shapeD};
+  std::vector<int64_t> koffsetShape = {shapeD};
+  std::vector<int64_t> voffsetShape = {shapeD};
 
-  std::vector<int64_t> weightShape = {1280};
-  std::vector<int64_t> activationShape = {1280};
-  std::vector<int64_t> biasShape = {8192};
+  std::vector<int64_t> weightShape = {shapeH};
+  std::vector<int64_t> activationShape = {shapeB};
+  std::vector<int64_t> biasShape = {shapeH};
 
-  std::vector<int16_t> inputHostData(320*1280, 1);
-  std::vector<int16_t> cosHostData(320*128, 1);
-  std::vector<int16_t> sinHostData(320*128, 1);
-  std::vector<int8_t> kcacheHostData(320*1280*128, 6);
-  std::vector<int8_t> vcacheHostData(320*1280*128, 6);
-  std::vector<int32_t> indicesHostData(320, 0);
-  std::vector<int32_t> kscaleHostData(128, 2);
-  std::vector<int32_t> vscaleHostData(128, 2);
-  std::vector<int32_t> koffsetHostData(128, 2);
-  std::vector<int32_t> voffsetHostData(128, 2);
+  std::vector<int16_t> inputHostData(shapeB * shapeS * shapeH, 1);
+  std::vector<int16_t> cosHostData(shapeB * shapeS * shapeD, 1);
+  std::vector<int16_t> sinHostData(shapeB * shapeS * shapeD, 1);
+  std::vector<int8_t> kcacheHostData(shapeB * shapeH * shapeD, 6);
+  std::vector<int8_t> vcacheHostData(shapeB * shapeH * shapeD, 6);
+  std::vector<int32_t> indicesHostData(shapeB, 0);
+  std::vector<int32_t> kscaleHostData(shapeD, 2);
+  std::vector<int32_t> vscaleHostData(shapeD, 2);
+  std::vector<int32_t> koffsetHostData(shapeD, 2);
+  std::vector<int32_t> voffsetHostData(shapeD, 2);
 
-  std::vector<int32_t> weightHostData(1280, 2);
-  std::vector<int32_t> activationHostData(1280, 2);
-  std::vector<int32_t> biasHostData(8192, 2);
+  std::vector<int32_t> weightHostData(shapeH, 2);
+  std::vector<int32_t> activationHostData(shapeB, 2);
+  std::vector<int32_t> biasHostData(shapeH, 2);
 
   void* inputDeviceAddr = nullptr;
   void* cosDeviceAddr = nullptr;
@@ -174,17 +180,17 @@ int main() {
   ret = CreateAclTensor(biasHostData, biasShape, &biasDeviceAddr, aclDataType::ACL_FLOAT, &bias);
   CHECK_RET(ret == ACL_SUCCESS, return ret);
 
+  std::vector<int64_t> qShape = {shapeB, shapeS, shapeNq, shapeD};
+  std::vector<int16_t> qHostData(shapeB * shapeS * shapeNq * shapeD, 9);
+  aclTensor *q = nullptr;
+  void *qDeviceAddr = nullptr;
 
-  std::vector<int64_t> qShape = {320,1,8,128};
-  std::vector<int16_t> qHostData(320*8*128, 9);
-  aclTensor* q = nullptr;
-  void* qDeviceAddr = nullptr;
-  std::vector<int64_t> kShape = {320,1,1,128};
-  std::vector<int16_t> kHostData(320*128, 10);
-  aclTensor* k = nullptr;
-  void* kDeviceAddr = nullptr;
-  std::vector<int64_t> vShape = {320,1,1, 128};
-  std::vector<int16_t> vHostData(320*128, 10);
+  std::vector<int64_t> kShape = {shapeB, shapeS, shapeNkv, shapeD};
+  std::vector<int16_t> kHostData(shapeB * shapeS * shapeNkv * shapeD, 10);
+  aclTensor *k = nullptr;
+  void *kDeviceAddr = nullptr;
+  std::vector<int64_t> vShape = {shapeB, shapeS, shapeNkv, shapeD};
+  std::vector<int16_t> vHostData(shapeB * shapeS * shapeNkv * shapeD, 10);
   aclTensor* v = nullptr;
   void* vDeviceAddr = nullptr;
 
@@ -195,7 +201,7 @@ int main() {
   ret = CreateAclTensor(vHostData, vShape, &vDeviceAddr, aclDataType::ACL_FLOAT16, &v);
   CHECK_RET(ret == ACL_SUCCESS, return ret);
 
-  std::vector<int64_t> splitData = {1024, 128, 128};
+  std::vector<int64_t> splitData = {shapeNq * shapeD, shapeNkv * shapeD, shapeNkv * shapeD};
   aclIntArray *sizeSplits = aclCreateIntArray(splitData.data(), splitData.size());
 
   // 3. 调用CANN算子库API，需要修改为具体的API
