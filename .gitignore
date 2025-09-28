@@ -24,6 +24,7 @@ cmake-build-*
 build/
 build_out/
 output/
+third_party/
 
 # binary files
 *.so

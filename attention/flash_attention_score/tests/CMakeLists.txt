@@ -48,10 +48,8 @@ set(_FA_OpTilingPrivateIncludesExt
 
 file(GLOB _FAG_OpKernelTilingDataDefH_def "${OPS_TRANSFORMER_DIR}/attention/flash_attention_score_grad/op_host/flash_attention_score_grad_tiling*_def.h")
 set(_FA_OpKernelTilingDataDefH
-        # 公共
-        ${OPS_TRANSFORMER_DIR}/common/include/tiling_base/data_copy_transpose_tiling_def.h
         # FAS
-        ${OPS_TRANSFORMER_DIR}/attention/flash_attention_score/op_host/flash_attention_score_tiling.h
+        ${OPS_TRANSFORMER_DIR}/attention/flash_attention_score/op_kernel/flash_attention_score_tiling.h
         # FAG
         ${OPS_TRANSFORMER_DIR}/attention/flash_attention_score_grad/op_host/flash_attention_score_grad_tiling.h
         ${OPS_TRANSFORMER_DIR}/attention/flash_attention_score_grad/op_host/flash_attention_score_grad_tiling_common.h

@@ -27,6 +27,12 @@ FasCase::FasCase(const char *name, bool enable, const char *dbgInfo, OpInfoWithS
 {
 }
 
+FasCase::FasCase(const char *name, bool enable, const char *dbgInfo, const std::function<void(FAS_INPUT_DTYPE)>& templatekeyKernelFunc,
+        OpInfoWithSocversion forward, FaParam param)
+    : FaCase(name, enable, dbgInfo, templatekeyKernelFunc, std::move(forward), OpInfoWithSocversion(), std::move(param), kTilingTemplatePriority_Invalid)
+{
+}
+
 bool FasCase::Run()
 {
     if (!mEnable) {

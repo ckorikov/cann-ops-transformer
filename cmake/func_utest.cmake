@@ -433,7 +433,7 @@ function(OpsTest_Level1_AddOpKernelStatic)
     )
     set(_Target ${UTest_NamePrefix}_${TMP_BRIEF}_OpTilingDataDef)
     add_library(${_Target} INTERFACE)
-    target_include_directories(${_Target} INTERFACE ${_OpsTest_GenDirInc})
+    target_include_directories(${_Target} INTERFACE ${_OpsTest_GenDirInc} ${OPS_ADV_UTILS_KERNEL_INC})
 
     # 编译变量处理
     set(_TargetPrefix  ${UTest_NamePrefix}_${TMP_BRIEF}_OpKernel)
@@ -725,6 +725,7 @@ function(OpsTest_Level1_AddUTestAclnnCaseStatic)
                 PRIVATE
                     -Wl,--as-needed
                     -Wl,--no-whole-archive
+                    gtest
                     $<BUILD_INTERFACE:intf_pub_utest>
                     $<BUILD_INTERFACE:_OpsTestUt_UTestCaseStatic_Wno>
                     $<$<BOOL:${BUILD_OPEN_PROJECT}>:$<BUILD_INTERFACE:alog_headers>>

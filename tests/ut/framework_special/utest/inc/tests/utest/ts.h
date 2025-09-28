@@ -37,7 +37,6 @@ using OpInfo = ops::adv::tests::utils::OpInfo;
 using ControlInfo = ops::adv::tests::utils::ControlInfo;
 using ExpectInfo = ops::adv::tests::utils::ExpectInfo;
 using Platform = ops::adv::tests::utils::Platform;
-using SocVersion = Platform::SocVersion;
 
 /**
  * 基础 TestSuite
@@ -46,7 +45,7 @@ template <class C> class Ts : public testing::Test {
 protected:
     C *case_ = nullptr;
     Platform *platform_ = nullptr;
-    SocVersion socVersion_ = SocVersion::Ascend910B2;
+    Platform::SocVersion socVersion_ = Platform::SocVersion::Ascend910B2;
 
 protected:
     void SetUp() override
@@ -66,7 +65,7 @@ protected:
         delete case_;
         case_ = nullptr;
         platform_ = nullptr;
-        socVersion_ = SocVersion::Ascend910B2;
+        socVersion_ = Platform::SocVersion::Ascend910B2;
         ASSERT_TRUE(ops::adv::tests::utils::ChkLogErrCnt());
     }
 
@@ -80,7 +79,7 @@ template <class C> class Ts_Ascend910B1 : public Ts<C> {
 protected:
     void SetUp() override
     {
-        Ts<C>::socVersion_ = SocVersion::Ascend910B1;
+        Ts<C>::socVersion_ = Platform::SocVersion::Ascend910B1;
         Ts<C>::SetUp();
     }
 };
@@ -89,7 +88,7 @@ template <class C> class Ts_Ascend910B2 : public Ts<C> {
 protected:
     void SetUp() override
     {
-        Ts<C>::socVersion_ = SocVersion::Ascend910B2;
+        Ts<C>::socVersion_ = Platform::SocVersion::Ascend910B2;
         Ts<C>::SetUp();
     }
 };
@@ -98,7 +97,7 @@ template <class C> class Ts_Ascend910B3 : public Ts<C> {
 protected:
     void SetUp() override
     {
-        Ts<C>::socVersion_ = SocVersion::Ascend910B3;
+        Ts<C>::socVersion_ = Platform::SocVersion::Ascend910B3;
         Ts<C>::SetUp();
     }
 };
@@ -107,7 +106,7 @@ template <class C> class Ts_Ascend310P3 : public Ts<C> {
 protected:
     void SetUp() override
     {
-        Ts<C>::socVersion_ = SocVersion::Ascend310P3;
+        Ts<C>::socVersion_ = Platform::SocVersion::Ascend310P3;
         Ts<C>::SetUp();
     }
 };
@@ -116,7 +115,7 @@ template <class C> class Ts_Ascend910_9591 : public Ts<C> {
 protected:
     void SetUp() override
     {
-        Ts<C>::socVersion_ = SocVersion::Ascend910_9591;
+        Ts<C>::socVersion_ = Platform::SocVersion::Ascend910_9591;
         Ts<C>::SetUp();
     }
 };
@@ -140,7 +139,7 @@ template <class C> class Ts_WithParam_Ascend910B1 : public Ts_WithParam<C> {
 protected:
     void SetUp() override
     {
-        Ts_WithParam<C>::socVersion_ = SocVersion::Ascend910B1;
+        Ts_WithParam<C>::socVersion_ = Platform::SocVersion::Ascend910B1;
         Ts_WithParam<C>::SetUp();
     }
 };
@@ -149,7 +148,7 @@ template <class C> class Ts_WithParam_Ascend910B2 : public Ts_WithParam<C> {
 protected:
     void SetUp() override
     {
-        Ts_WithParam<C>::socVersion_ = SocVersion::Ascend910B2;
+        Ts_WithParam<C>::socVersion_ = Platform::SocVersion::Ascend910B2;
         Ts_WithParam<C>::SetUp();
     }
 };
@@ -158,7 +157,7 @@ template <class C> class Ts_WithParam_Ascend910B3 : public Ts_WithParam<C> {
 protected:
     void SetUp() override
     {
-        Ts_WithParam<C>::socVersion_ = SocVersion::Ascend910B3;
+        Ts_WithParam<C>::socVersion_ = Platform::SocVersion::Ascend910B3;
         Ts_WithParam<C>::SetUp();
     }
 };
@@ -168,7 +167,7 @@ template <class C> class Ts_WithParam_Ascend310P3 : public Ts_WithParam<C> {
 protected:
     void SetUp() override
     {
-        Ts_WithParam<C>::socVersion_ = SocVersion::Ascend310P3;
+        Ts_WithParam<C>::socVersion_ = Platform::SocVersion::Ascend310P3;
         Ts_WithParam<C>::SetUp();
     }
 };
@@ -177,7 +176,7 @@ template <class C> class Ts_WithParam_Ascend910_9591 : public Ts_WithParam<C> {
     protected:
         void SetUp() override
         {
-            Ts_WithParam<C>::socVersion_ = SocVersion::Ascend910_9591;
+            Ts_WithParam<C>::socVersion_ = Platform::SocVersion::Ascend910_9591;
             Ts_WithParam<C>::SetUp();
         }
     };

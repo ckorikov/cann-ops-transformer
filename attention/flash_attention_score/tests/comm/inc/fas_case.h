@@ -21,7 +21,9 @@ class FasCase : public ops::adv::tests::fa::FaCase {
 public:
     FasCase();
     FasCase(const char *name, bool enable, const char *dbgInfo, OpInfoWithSocversion forward, FaParam param);
-
+    FasCase(const char *name, bool enable, const char *dbgInfo,
+            const std::function<void(FAS_INPUT_DTYPE)>& templatekeyKernelFunc,
+            OpInfoWithSocversion forward, FaParam param);
     bool Run() override;
 };
 

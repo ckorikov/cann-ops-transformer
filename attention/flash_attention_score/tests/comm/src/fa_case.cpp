@@ -21,17 +21,14 @@
 #include "tests/utils/log.h"
 #include "tests/utils/platform.h"
 #include "tiling/fa/tiling_data.h"
+#include "tiling/fa/tiling_stub.h"
 #include "tiling_base/tiling_templates_registry.h"
+#include "../../../op_kernel/flash_attention_score.cpp"
 
 /**
  * 以下函数声明需要保持与 CMakeList.txt 中调用 OpsTest_Level2_AddOp 函数时 KERNEL_PRIVATE_COMPILE_DEFINITIONS_EXT
  * 参数所控制的 Kernel 入口一致.
  */
-#ifdef TESTS_UT_OPS_TEST_FAS
-extern "C" __global__ __aicore__ void flash_attention_score_fp16 FAS_KERNEL_PARAM;
-extern "C" __global__ __aicore__ void flash_attention_score_fp32 FAS_KERNEL_PARAM;
-extern "C" __global__ __aicore__ void flash_attention_score_bf16 FAS_KERNEL_PARAM;
-#endif
 #ifdef TESTS_UT_OPS_TEST_FAG
 extern "C" __global__ __aicore__ void flash_attention_score_grad_fp16 FAG_KERNEL_PARAM;
 extern "C" __global__ __aicore__ void flash_attention_score_grad_fp32 FAG_KERNEL_PARAM;
@@ -109,6 +106,38 @@ ASCENDC_EXTERN_C ge::graphStatus FlashAttentionScoreGradTilingFuncStub(gert::Til
 
 using namespace ops::adv::tests::fa;
 using TensorIntf = ops::adv::tests::utils::TensorIntf;
+
+bool RunTemplateFlashAttention(std::function<void(FAS_INPUT_DTYPE)> func,
+                       uint64_t tilingKey, int64_t blockDim, std::vector<TensorIntf *> &inputs,
+                       std::vector<TensorIntf *> &outputs, uint8_t *workspace, uint8_t *tilingData)
+{
+    // Kernel 运行
+    ICPU_SET_TILING_KEY(tilingKey);
+    ICPU_RUN_KF(func, blockDim,
+                inputs[0]->GetDevData(),  // query
+                inputs[1]->GetDevData(),  // key
+                inputs[2]->GetDevData(),  // value
+                inputs[3]->GetDevData(),  // pse
+                inputs[4]->GetDevData(),  // dropMask
+                inputs[5]->GetDevData(),  // paddingMask
+                inputs[6]->GetDevData(),  // attenMask
+                inputs[7]->GetDevData(),  // prefix
+                inputs[8]->GetDevData(),  // actSeqQLens
+                inputs[9]->GetDevData(),  // actSeqKVLens
+                inputs[10]->GetDevData(), // qStartIdx
+                inputs[11]->GetDevData(), // kvStartIdx
+                inputs[12]->GetDevData(), // deqScaleQ
+                inputs[13]->GetDevData(), // deqScaleK
+                inputs[14]->GetDevData(), // deqScaleV
+                inputs[15]->GetDevData(), // queryRope
+                inputs[16]->GetDevData(), // keyRope
+                outputs[0]->GetDevData(), // softmaxMax
+                outputs[1]->GetDevData(), // softmaxSum
+                outputs[2]->GetDevData(), // softmaxRes
+                outputs[3]->GetDevData(), // attenRes
+                workspace, tilingData);
+    return true;
+}
 
 bool RunFlashAttention(void *func, uint64_t tilingKey, int64_t blockDim, std::vector<TensorIntf *> &inputs,
                        std::vector<TensorIntf *> &outputs, uint8_t *workspace, uint8_t *tilingData)
@@ -198,14 +227,29 @@ FaCase::FaCase(const char *name, bool enable, const char *dbgInfo, OpInfoWithSoc
     mFasOriginTilingFuncName = "TilingFlashAttentionScore";
     mFagOriginTilingFuncName = "TilingFlashAttentionGradScore";
 
-#ifdef TESTS_UT_OPS_TEST_FAS
-    mFasKernelFunc = (void *)flash_attention_score_bf16;
+#ifdef TESTS_UT_OPS_TEST_FAG
+    mFagKernelFunc = (void *)flash_attention_score_grad_bf16;
     if (mParam.dtype == ge::DataType::DT_FLOAT16) {
-        mFasKernelFunc = (void *)flash_attention_score_fp16;
+        mFagKernelFunc = (void *)flash_attention_score_grad_fp16;
     } else if (mParam.dtype == ge::DataType::DT_FLOAT) {
-        mFasKernelFunc = (void *)flash_attention_score_fp32;
+        mFagKernelFunc = (void *)flash_attention_score_grad_fp32;
     }
 #endif
+}
+
+FaCase::FaCase(const char *name, bool enable, const char *dbgInfo, const std::function<void(FAS_INPUT_DTYPE)>& templatekeyKernelFunc,
+        OpInfoWithSocversion forward, OpInfoWithSocversion reverse, FaParam param, int32_t tilingTemplatePriority)
+    : CaseWithSocversion(name, enable, dbgInfo, tilingTemplatePriority), mForward(std::move(forward)), mReverse(std::move(reverse)),
+      mParam(std::move(param))
+{
+    mForward.mName = "FlashAttentionScore";
+    mReverse.mName = "FlashAttentionScoreGrad";
+
+    mFasOriginTilingFuncName = "TilingFlashAttentionScore";
+    mFagOriginTilingFuncName = "TilingFlashAttentionGradScore";
+
+    mFasKernelTemplateFunc = templatekeyKernelFunc;
+
 #ifdef TESTS_UT_OPS_TEST_FAG
     mFagKernelFunc = (void *)flash_attention_score_grad_bf16;
     if (mParam.dtype == ge::DataType::DT_FLOAT16) {
@@ -284,7 +328,11 @@ bool FaCase::InitOpInfoCtx()
                                        {"pse_type", mParam.pseType}});
     rst = rst && mForwardCtx.SetTilingDataMaxSize(2456); /* 2456 FlashAttentionScore 最大 TilingData 大小 */
     rst = rst && mForwardCtx.SetKernelRunCbf(RunFlashAttention);
-    rst = rst && mForwardCtx.SetKernelMainFunc((void *)mFasKernelFunc);
+    rst = rst && mForwardCtx.SetKernelMainFunc((void *)nullptr);
+    if (mFasKernelTemplateFunc) {
+        rst = rst && mForwardCtx.SetKernelRunTemplateCbf(RunTemplateFlashAttention);
+        rst = rst && mForwardCtx.SetKernelTemplateMainFunc(mFasKernelTemplateFunc);
+    }
     rst = rst && mForward.SetContext(&mForwardCtx);
     rst = rst && mReverseCtx.SetOpName(mReverse.mName.c_str());
     rst = rst && mReverseCtx.SetDeterministic(mReverse.mCtr.mDeterministic);

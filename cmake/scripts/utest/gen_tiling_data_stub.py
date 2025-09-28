@@ -42,6 +42,91 @@ def check_if_new_tiling_file_path_existed(ori_file: Path) -> Path:
     new_path = target_dir / new_file.name
     return new_path, True
 
+def process_class_fields(fields_str, class_name):
+    result = []
+    seen = set()
+    arr_pattern = re.compile(
+        r'^\s*'
+        r'(?P<type>(?:[\w:<>]+\s+)*[\w:<>* &]+?)\s+'   # 类型（含修饰符/指针/引用）
+        r'(?P<name>\w+)\s*'                            # 变量名
+        r'\[(?P<len>\d+)\]'                            # 数组长度
+        r'(?:\s*=\s*\{\s*[^\}]*\s*})?'                 # 可选初始化，支持 {} 或 {0, ...}
+        r'\s*;\s*'                                     # 以 ; 结尾
+        r'(?:[ \t]*(?://[^\n]*)?)?$',                  # 行尾可有 // 注释
+        re.MULTILINE
+    )
+    var_pattern = re.compile(
+        r'^\s*(?P<type>[\w:<>]+)\s+(?P<name>\w+)\s*(?:=\s*[^;]*)?;',
+        re.MULTILINE
+    )
+    # 逐行处理，保持顺序
+    for line in fields_str.splitlines():
+        # 跳空行或纯注释行
+        if not line.strip() or line.strip().startswith('//'):
+            continue
+
+        m = arr_pattern.match(line)
+        if m:
+            t, n, ln = m.group('type'), m.group('name'), m.group('len')
+            result.append(('array', t, n, ln))
+            seen.add(n)
+            continue
+
+        m = var_pattern.match(line)
+        if m:
+            t, n = m.group('type'), m.group('name')
+            if n not in seen:
+                result.append(('normal', t, n))
+                seen.add(n)
+            continue
+    return result
+
+
+def find_classes(content):
+    out = []
+    class_re = re.compile(r'\bclass\s+(\w+)\s*{')
+    for m in class_re.finditer(content):
+        class_name = m.group(1)
+        start = m.end()
+        idx = start
+        braces = 1
+        while idx < len(content):
+            c = content[idx]
+            if c == '{':
+                braces += 1
+            elif c == '}':
+                braces -= 1
+                if braces == 0:
+                    out.append((class_name, content[start:idx].strip()))
+                    break
+            idx += 1
+    return out
+
+def convert_template_tilingkey(ori_file: Path):
+    with open(ori_file, 'r') as f:
+        content = f.read()
+
+    classes = find_classes(content)
+    output = []
+    for class_name, fields_str in classes:
+        fields = process_class_fields(fields_str, class_name)
+        output.append(f"BEGIN_TILING_DATA_DEF({class_name})")
+        for entry in fields:
+            if entry[0] == 'normal':
+                _, field_type, field_name = entry
+                if field_type in ['uint32_t', 'int32_t', 'uint8_t', 'uint16_t', 'float', 'uint64_t', 'int64_t', 'double']:
+                    output.append(f"TILING_DATA_FIELD_DEF({field_type}, {field_name});")
+                else:
+                    output.append(f"TILING_DATA_FIELD_DEF_STRUCT({field_type}, {field_name});")
+            elif entry[0] == 'array':
+                _, field_type, field_name, field_len = entry
+                output.append(f"TILING_DATA_FIELD_DEF_ARR({field_type}, {field_len}, {field_name});")
+        output.append("END_TILING_DATA_DEF;")
+        output.append(f"REGISTER_TILING_DATA_CLASS({class_name}Op, {class_name})\n")
+    result_code = '\n'.join(output)
+
+    return result_code
+
 
 def process_fields(fields_str, struct_name):
     field_pattern = re.compile(r"(\w+)\s+(\w+)(?:\s*=\d+)?;")
@@ -105,7 +190,7 @@ class Process:
         return bgn_src
 
     @classmethod
-    def _get_tiling_source(cls, ori_file: Path) -> str:
+    def _get_tiling_source(cls, ori_file: Path, isTemplateTilingKey: bool = False) -> str:
         """
         获取 TilingData 定义源码
 
@@ -119,13 +204,17 @@ class Process:
              "#include <kernel_tiling/kernel_tiling.h>\n"
              "\n")
         pattern = re.compile(r'[(](.*)[)]', re.S)
-        ori_file, existed_flag = check_if_new_tiling_file_path_existed(ori_file)
-        if existed_flag:
-            lines = convert_to_old_tiling_struct_style(ori_file)
+        if isTemplateTilingKey:
+            lines = convert_template_tilingkey(ori_file)
             lines = lines.splitlines()
-        else:
-            with open(ori_file, 'r') as fd:
-                lines = fd.readlines()
+        else: 
+            ori_file, existed_flag = check_if_new_tiling_file_path_existed(ori_file)
+            if existed_flag:
+                lines = convert_to_old_tiling_struct_style(ori_file)
+                lines = lines.splitlines()
+            else:
+                with open(ori_file, 'r') as fd:
+                    lines = fd.readlines()
         for line in lines:
                 line = line.strip()
                 struct_src = ""
@@ -186,14 +275,24 @@ class Process:
              "Init{struct_name}(tiling_arg, &tiling_data)\n"
              "\n").format(struct_name=struct_name)
         return rst_source
+    
+    @classmethod
+    def _get_tiling_whole(cls, ori_file: Path, isTemplateTilingKey: bool = False) -> str:
+        with open(ori_file, 'r') as f:
+            content = f.read()
+        return content
 
     @classmethod
     def _gen_tiling_h(cls, ori_file: Path, gen_dir: Path):
         gen_file = Path(gen_dir, "_gen_" + ori_file.name)
+        flag = "op_kernel" in [part for part in ori_file.parts]
         if not gen_file.exists():
-            bgn_src = cls._get_begin_source(ori_file=ori_file, gen_file=gen_file)
-            def_src = cls._get_tiling_source(ori_file=ori_file)
-            source = bgn_src + def_src
+            if not flag:
+                bgn_src = cls._get_begin_source(ori_file=ori_file, gen_file=gen_file)
+                def_src = cls._get_tiling_source(ori_file=ori_file, isTemplateTilingKey=flag)
+                source = bgn_src + def_src
+            else:
+                source = "\n"
             cls._write_file(file=gen_file, src=source)
             logging.info("Generate TilingDefFile:  %s", gen_file)
         return gen_file
@@ -263,20 +362,13 @@ class Process:
             bgn_src = cls._get_begin_source(ori_file=stub_file, gen_file=stub_file)
             def_src = ""
             def_src += "#include \"{}\"\n".format(data_file.name)
-            def_src += "#include <kernel_operator.h>\n"
-            def_src += "#include <securec.h>\n"
             def_src += \
                 ("\n"
                  "#undef GET_TILING_DATA_WITH_STRUCT\n"
                  "#define GET_TILING_DATA_WITH_STRUCT(tiling_struct, tiling_data, tiling_arg) \\\n"
                  "tiling_struct tiling_data;                                                  \\\n"
                  "(void)memcpy_s(&tiling_data, sizeof(tiling_struct), tiling_arg, sizeof(tiling_struct));\n"
-                 "\n"
-                 "#undef max\n"
-                 "#define max std::max\n"
-                 "\n"
-                 "#undef min\n"
-                 "#define min std::min\n")
+                 "\n")
             def_src += \
                 ("\n"
                  "#undef GET_TILING_DATA_MEMBER\n"
