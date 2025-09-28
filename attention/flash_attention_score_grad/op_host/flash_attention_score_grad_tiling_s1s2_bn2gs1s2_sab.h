@@ -17,7 +17,9 @@
 
 #include "flash_attention_score_grad_tiling_common.h"
 #include "tiling_base/tiling_base.h"
-#include "flash_attention_score_grad_tiling_s1s2_bn2gs1s2_sab_def.h"
+
+
+using namespace Ops::Transformer::OpTiling;
 
 namespace optiling {
 
@@ -119,12 +121,12 @@ struct SameAbFuzzyBaseInfoParams { // 频繁使用的基础参数
     TilingDataType mode;
 };
 
-class FlashAttentionScoreGradTilingS1s2Bn2gs1s2SameAb : public Ops::Transformer::OpTiling::TilingBaseClass {
+class FlashAttentionScoreGradTilingS1s2Bn2gs1s2SameAb : public TilingBaseClass {
 public:
-    explicit FlashAttentionScoreGradTilingS1s2Bn2gs1s2SameAb(gert::TilingContext *context) : Ops::Transformer::OpTiling::TilingBaseClass(context)
+    explicit FlashAttentionScoreGradTilingS1s2Bn2gs1s2SameAb(gert::TilingContext *context) : TilingBaseClass(context)
     {
     }
-    FlashAttentionScoreGradTilingDataS1s2Bn2gs1s2SameAb tilingData;
+    FlashAttentionScoreGradTilingDataS1s2Bn2gs1s2SameAb *tilingData = context_->GetTilingData<FlashAttentionScoreGradTilingDataS1s2Bn2gs1s2SameAb>();
 
 protected:
     bool IsCapable() override;
@@ -137,7 +139,7 @@ protected:
     ge::graphStatus PostTiling() override;
 
     ge::graphStatus DoSplit();
-    void SetMatmulTilingBufferInfo(TCubeTiling &mmTiling);
+    void SetMatmulTilingBufferInfo(AscendC::tiling::TCubeTiling* mmTiling);
     ge::graphStatus DoPreTiling();
     ge::graphStatus DoPostTiling();
     void DetermineMode();

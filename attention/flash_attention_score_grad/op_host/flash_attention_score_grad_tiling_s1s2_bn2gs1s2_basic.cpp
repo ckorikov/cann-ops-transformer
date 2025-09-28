@@ -17,6 +17,8 @@
 #include "tiling_base/data_copy_transpose_tiling.h"
 #include "tiling_base/tiling_templates_registry.h"
 #include "tiling_base/tiling_type.h"
+#include "../op_kernel/flash_attention_score_grad_tiling.h"
+#include "../op_kernel/flash_attention_score_grad_template_tiling_key.h"
 
 using namespace ge;
 using namespace AscendC;
@@ -233,25 +235,25 @@ ge::graphStatus FlashAttentionScoreGraTilingMla::DoOpTiling()
     int64_t sfmgSize = fBaseParams.t1 * fBaseParams.n1 * 8;
     uint32_t vectorCoreNum = compileInfoPtr->aivNum;
 
-    tilingData.mlaTensorTilingData.set_coreNum(vectorCoreNum);
-    tilingData.mlaTensorTilingData.set_scaleValue(fBaseParams.scaleValue);
-    tilingData.mlaTensorTilingData.set_b(fBaseParams.b);
-    tilingData.mlaTensorTilingData.set_t1(fBaseParams.t1);
-    tilingData.mlaTensorTilingData.set_t2(fBaseParams.t2);
-    tilingData.mlaTensorTilingData.set_n2(fBaseParams.n2);
-    tilingData.mlaTensorTilingData.set_g(fBaseParams.g);
-    tilingData.mlaTensorTilingData.set_d(fBaseParams.d);
-    tilingData.mlaTensorTilingData.set_qSize(qSize);
-    tilingData.mlaTensorTilingData.set_kvSize(kvSize);
-    tilingData.mlaTensorTilingData.set_sfmgSize(sfmgSize);
-    tilingData.mlaTensorTilingData.set_sparseMode(fBaseParams.sparseMode);
+    tilingData->mlaTensorTilingData.set_coreNum(vectorCoreNum);
+    tilingData->mlaTensorTilingData.set_scaleValue(fBaseParams.scaleValue);
+    tilingData->mlaTensorTilingData.set_b(fBaseParams.b);
+    tilingData->mlaTensorTilingData.set_t1(fBaseParams.t1);
+    tilingData->mlaTensorTilingData.set_t2(fBaseParams.t2);
+    tilingData->mlaTensorTilingData.set_n2(fBaseParams.n2);
+    tilingData->mlaTensorTilingData.set_g(fBaseParams.g);
+    tilingData->mlaTensorTilingData.set_d(fBaseParams.d);
+    tilingData->mlaTensorTilingData.set_qSize(qSize);
+    tilingData->mlaTensorTilingData.set_kvSize(kvSize);
+    tilingData->mlaTensorTilingData.set_sfmgSize(sfmgSize);
+    tilingData->mlaTensorTilingData.set_sparseMode(fBaseParams.sparseMode);
     bool tndSoftmaxIn = context_->GetAttrs()->GetAttrNum() > static_cast<size_t>(TND_SOFTMAX_IN) ?
                             *(context_->GetAttrs()->GetAttrPointer<bool>(TND_SOFTMAX_IN)) :
                             false;
     if (tndSoftmaxIn) {
-        tilingData.mlaTensorTilingData.set_tndSoftmaxIn(1);
+        tilingData->mlaTensorTilingData.set_tndSoftmaxIn(1);
     } else {
-        tilingData.mlaTensorTilingData.set_tndSoftmaxIn(0);
+        tilingData->mlaTensorTilingData.set_tndSoftmaxIn(0);
     }
     return ge::GRAPH_SUCCESS;
 }
@@ -261,10 +263,10 @@ ge::graphStatus FlashAttentionScoreGraTilingMla::DoLibApiTiling()
     constexpr uint32_t tmpBufferSize = 33 * 1024;
     constexpr uint32_t s1VecSize = 64;
     constexpr uint32_t s2VecSize = 128;
-    int64_t d = tilingData.mlaTensorTilingData.get_d();
+    int64_t d = tilingData->mlaTensorTilingData.get_d();
     auto softmaxShape = ge::Shape({s1VecSize, s2VecSize});
     AscendC::SoftMaxTilingFunc(softmaxShape, sizeof(float), tmpBufferSize,
-                               tilingData.mlaTensorTilingData.softmaxTilingData);
+                               tilingData->mlaTensorTilingData.softmaxTilingData);
 
     // softmaxGrad tiling
     constexpr uint32_t inputBufferLen = 24 * 1024;
@@ -276,7 +278,7 @@ ge::graphStatus FlashAttentionScoreGraTilingMla::DoLibApiTiling()
     int64_t singleLoopNBurstNum = inputBufferLen / sizeof(float) / d;
     auto softmaxGradShape = ge::Shape({singleLoopNBurstNum, d});
     AscendC::SoftMaxGradTilingFunc(softmaxGradShape, sizeof(float), tempBufferLen,
-                                   tilingData.mlaTensorTilingData.softmaxGradTilingData, true);
+                                   tilingData->mlaTensorTilingData.softmaxGradTilingData, true);
 
     return ge::GRAPH_SUCCESS;
 }
@@ -286,9 +288,9 @@ uint64_t FlashAttentionScoreGraTilingMla::GetTilingKey() const
     uint64_t tilingKey = 0;
     auto queryType = fBaseParams.queryType;
     if (queryType == ge::DT_FLOAT16) {
-        tilingKey = 11011000000123456789UL;
+        tilingKey = GET_TPL_TILING_KEY(9,9,9,0,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0);
     } else if (queryType == ge::DT_BF16) {
-        tilingKey = 11011000000123456788UL;
+        tilingKey = GET_TPL_TILING_KEY(9,9,9,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0);
     }
     OP_LOGI(context_, "FAGTiling MLA DoTiling success, tilingkey is %lu.", tilingKey);
     return tilingKey;
@@ -307,28 +309,28 @@ ge::graphStatus FlashAttentionScoreGraTilingMla::GetWorkspaceSize()
     size_t workspaceOffset = WORKSPACE_RSV_BYTE;
 
     // matmal3 q
-    tilingData.mlaTensorTilingData.set_dqWorkSpaceOffset(workspaceOffset);
+    tilingData->mlaTensorTilingData.set_dqWorkSpaceOffset(workspaceOffset);
     workspaceOffset =
-        (workspaceOffset + tilingData.mlaTensorTilingData.get_qSize() * sizeof(float) + GM_ALIGN) / GM_ALIGN * GM_ALIGN;
+        (workspaceOffset + tilingData->mlaTensorTilingData.get_qSize() * sizeof(float) + GM_ALIGN) / GM_ALIGN * GM_ALIGN;
     // matmal3 k
-    tilingData.mlaTensorTilingData.set_dkWorkSpaceOffset(workspaceOffset);
-    workspaceOffset = (workspaceOffset + tilingData.mlaTensorTilingData.get_kvSize() * sizeof(float) + GM_ALIGN) /
+    tilingData->mlaTensorTilingData.set_dkWorkSpaceOffset(workspaceOffset);
+    workspaceOffset = (workspaceOffset + tilingData->mlaTensorTilingData.get_kvSize() * sizeof(float) + GM_ALIGN) /
                       GM_ALIGN * GM_ALIGN;
     // matmal3 v
-    tilingData.mlaTensorTilingData.set_dvWorkSpaceOffset(workspaceOffset);
-    workspaceOffset = (workspaceOffset + tilingData.mlaTensorTilingData.get_kvSize() * sizeof(float) + GM_ALIGN) /
+    tilingData->mlaTensorTilingData.set_dvWorkSpaceOffset(workspaceOffset);
+    workspaceOffset = (workspaceOffset + tilingData->mlaTensorTilingData.get_kvSize() * sizeof(float) + GM_ALIGN) /
                       GM_ALIGN * GM_ALIGN;
     // sfmg workspace
-    tilingData.mlaTensorTilingData.set_sfmgWorkspaceOffset(workspaceOffset);
-    workspaceOffset = (workspaceOffset + tilingData.mlaTensorTilingData.get_sfmgSize() * sizeof(float) + GM_ALIGN) /
+    tilingData->mlaTensorTilingData.set_sfmgWorkspaceOffset(workspaceOffset);
+    workspaceOffset = (workspaceOffset + tilingData->mlaTensorTilingData.get_sfmgSize() * sizeof(float) + GM_ALIGN) /
                       GM_ALIGN * GM_ALIGN;
 
     // matmal1/matmal2 workspace size
-    tilingData.mlaTensorTilingData.set_mm1WorkspaceOffset(workspaceOffset);
+    tilingData->mlaTensorTilingData.set_mm1WorkspaceOffset(workspaceOffset);
     workspaceOffset =
         (workspaceOffset + cubeCoreNum * matmulSize * sizeof(float) * DB_NUM + GM_ALIGN) / GM_ALIGN * GM_ALIGN;
 
-    tilingData.mlaTensorTilingData.set_mm2WorkspaceOffset(workspaceOffset);
+    tilingData->mlaTensorTilingData.set_mm2WorkspaceOffset(workspaceOffset);
     workspaceOffset =
         (workspaceOffset + cubeCoreNum * matmulSize * sizeof(float) * DB_NUM + GM_ALIGN) / GM_ALIGN * GM_ALIGN;
 
@@ -347,9 +349,6 @@ ge::graphStatus FlashAttentionScoreGraTilingMla::PostTiling()
     uint32_t cubeCoreNum = compileInfoPtr->aicNum;
     context_->SetBlockDim(cubeCoreNum);
 
-    // set tilingData
-    tilingData.SaveToBuffer(context_->GetRawTilingData()->GetData(), context_->GetRawTilingData()->GetCapacity());
-    context_->GetRawTilingData()->SetDataSize(tilingData.mlaTensorTilingData.GetDataSize());
     return ge::GRAPH_SUCCESS;
 }
 

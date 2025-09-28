@@ -17,7 +17,6 @@
 
 #include "tiling_base/tiling_base.h"
 #include "tiling_base/tiling_type.h"
-#include "flash_attention_score_grad_tiling_s1s2_bn2gs1s2_basic_def.h"
 #include "flash_attention_score_grad_tiling_common.h"
 
 namespace optiling {
@@ -76,10 +75,11 @@ struct MultiHeadLatentAttentionGradCompileInfo {
 
 class FlashAttentionScoreGraTilingMla : public Ops::Transformer::OpTiling::TilingBaseClass {
 public:
-    explicit FlashAttentionScoreGraTilingMla(gert::TilingContext *context) : Ops::Transformer::OpTiling::TilingBaseClass(context)
+    explicit FlashAttentionScoreGraTilingMla(gert::TilingContext *context) : TilingBaseClass(context)
     {
+        
     }
-    FlashAttentionGradMlaTilingData tilingData;
+    FlashAttentionGradMlaTilingData *tilingData = context_->GetTilingData<FlashAttentionGradMlaTilingData>();
 
 protected:
     bool IsCapable() override;

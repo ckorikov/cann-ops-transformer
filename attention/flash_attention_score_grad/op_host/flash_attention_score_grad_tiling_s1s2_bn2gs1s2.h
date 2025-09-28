@@ -17,7 +17,8 @@
 
 #include "flash_attention_score_grad_tiling_common.h"
 #include "tiling_base/tiling_base.h"
-#include "flash_attention_score_grad_tiling_s1s2_bn2gs1s2_def.h"
+
+using namespace Ops::Transformer::OpTiling;
 
 namespace optiling {
 
@@ -128,12 +129,12 @@ struct FuzzyBaseInfoParams { // 频繁使用的基础参数
     TilingDataType mode;
 };
 
-class FlashAttentionScoreGradTilingS1s2Bn2gs1s2 : public Ops::Transformer::OpTiling::TilingBaseClass {
+class FlashAttentionScoreGradTilingS1s2Bn2gs1s2 : public TilingBaseClass {
 public:
-    explicit FlashAttentionScoreGradTilingS1s2Bn2gs1s2(gert::TilingContext *context) : Ops::Transformer::OpTiling::TilingBaseClass(context)
+    explicit FlashAttentionScoreGradTilingS1s2Bn2gs1s2(gert::TilingContext *context) : TilingBaseClass(context)
     {
     }
-    FlashAttentionScoreGradTilingDataS1s2Bn2gs1s2 tilingData;
+    FlashAttentionScoreGradTilingDataS1s2Bn2gs1s2 *tilingData = context_->GetTilingData<FlashAttentionScoreGradTilingDataS1s2Bn2gs1s2>();
 
 protected:
     bool IsCapable() override;
@@ -149,7 +150,7 @@ protected:
     ge::graphStatus DoSparse();
     bool CheckFuzzyArgsLegal(uint32_t s1Inner, uint32_t s2Inner);
     std::tuple<uint32_t, uint32_t, uint32_t> FuzzyForBestSplit();
-    void SetMatmulTilingBufferInfo(TCubeTiling &mmTiling);
+    void SetMatmulTilingBufferInfo(AscendC::tiling::TCubeTiling* mmTiling);
     ge::graphStatus GetSparseBlockInfo();
     ge::graphStatus DoPreTiling();
     ge::graphStatus DoPostTiling();

@@ -18,6 +18,7 @@
 
 #include "kernel_operator.h"
 #include "util.h"
+#include "flash_attention_score_grad_tiling.h"
 
 using AscendC::CopyRepeatParams;
 using AscendC::DataCopyExtParams;

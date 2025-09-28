@@ -15,6 +15,8 @@
 
 #include "flash_attention_score_grad_tiling_s1s2_bn2.h"
 #include "tiling_base/tiling_templates_registry.h"
+#include "../op_kernel/flash_attention_score_grad_tiling.h"
+#include "../op_kernel/flash_attention_score_grad_template_tiling_key.h"
 
 namespace optiling {
 
@@ -99,7 +101,7 @@ bool FlashAttentionScoreGradTilingS1s2Bn2::IsCapable()
         return false;
     }
 
-    if (td_.opInfo.get_S1() >= 1024 || td_.opInfo.get_S2() >= 1024) {
+    if (td_->opInfo.get_S1() >= 1024 || td_->opInfo.get_S2() >= 1024) {
         OP_LOGI(context_, "maxS1 or maxS2 is less than 1024, FlashAttentionScoreGradTilingS1s2Bn2 not support.");
         return false;
     }
@@ -119,25 +121,25 @@ bool FlashAttentionScoreGradTilingS1s2Bn2::IsCapable()
     }
 
     // G>1且BN2不能开满50%核的时候，需要借G轴开核
-    if (td_.opInfo.get_G() > 1 &&
-        td_.opInfo.get_B() * td_.opInfo.get_N2() * 2 <= static_cast<int64_t>(aicoreParams_.blockDim)) {
+    if (td_->opInfo.get_G() > 1 &&
+        td_->opInfo.get_B() * td_->opInfo.get_N2() * 2 <= static_cast<int64_t>(aicoreParams_.blockDim)) {
         OP_LOGI(context_, "G is larger than 1 and BN2 is less than coreNum, S1s2Bn2 cannot enable full core.");
         return false;
     }
 
     // S1或S2大于768且BN2不能开满核的时候，需要借S1或S2轴开核
-    if (td_.opInfo.get_B() * td_.opInfo.get_N2() < static_cast<int64_t>(aicoreParams_.blockDim) &&
-        (td_.opInfo.get_S1() > SAMEAB_MIN_S_THRESHOLD || td_.opInfo.get_S2() > SAMEAB_MIN_S_THRESHOLD)) {
+    if (td_->opInfo.get_B() * td_->opInfo.get_N2() < static_cast<int64_t>(aicoreParams_.blockDim) &&
+        (td_->opInfo.get_S1() > SAMEAB_MIN_S_THRESHOLD || td_->opInfo.get_S2() > SAMEAB_MIN_S_THRESHOLD)) {
         OP_LOGI(context_, "BN2 is less than coreNum, S1s2Bn2 cannot enable full core.");
         return false;
     }
 
-    float keep_prob = td_.opInfo.get_keepProb();
+    float keep_prob = td_->opInfo.get_keepProb();
     float epsilon = 1e-10f;
     auto pseShape = context_->GetOptionalInputShape(PSE_SHIFT);
-    if ((td_.opInfo.get_D() == L1_CUSTOM_D_128) && (td_.opInfo.get_B() >= B_1) && (td_.opInfo.get_B() <= B_6) &&
-        (td_.opInfo.get_G() >= G_4) && (tmpData_.t1 == tmpData_.t2) &&
-        (td_.opInfo.get_sparseMode() == SPARSE_MODE_3 || td_.opInfo.get_sparseMode() == 0) &&
+    if ((td_->opInfo.get_D() == L1_CUSTOM_D_128) && (td_->opInfo.get_B() >= B_1) && (td_->opInfo.get_B() <= B_6) &&
+        (td_->opInfo.get_G() >= G_4) && (tmpData_.t1 == tmpData_.t2) &&
+        (td_->opInfo.get_sparseMode() == SPARSE_MODE_3 || td_->opInfo.get_sparseMode() == 0) &&
         (1.0f - keep_prob < epsilon) && (pseShape == nullptr)) {
         return false;
     }
@@ -175,7 +177,7 @@ bool FlashAttentionScoreGradTilingDeterministic::IsCapable()
         return true;
     }
 
-    if (td_.opInfo.get_S1() >= 1024 || td_.opInfo.get_S2() >= 1024) {
+    if (td_->opInfo.get_S1() >= 1024 || td_->opInfo.get_S2() >= 1024) {
         OP_LOGI(context_, "maxS1 or maxS2 is less than 1024, FlashAttentionScoreGradTilingS1s2Bn2 not support.");
         return false;
     }
@@ -225,9 +227,10 @@ uint64_t FlashAttentionScoreGradTilingS1s2Bn2::GetTilingKey() const
     auto mm345NZOut = tmpData_.isMM345NZOut ? OptionEnum::ENABLE : OptionEnum::DISABLE;
     auto l1Custom = tmpData_.isL1CustomEnable ? OptionEnum::ENABLE : OptionEnum::DISABLE;
     tilingKey =
-        GET_TILINGKEY(AxisEnum::S2, AxisEnum::S1, AxisEnum::N2, inDtype, layout, SparseEnum::ALL, mmConfig, mmOutFormat,
-                      tmpData_.pse_cfg, tmpData_.atten_mask_cfg, tmpData_.drop_out_cfg, mm345NZOut, l1Custom);
-
+        GET_TPL_TILING_KEY(static_cast<uint8_t>(AxisEnum::S2), static_cast<uint8_t>(AxisEnum::S1), static_cast<uint8_t>(AxisEnum::N2), 0, static_cast<uint8_t>(inDtype),
+            static_cast<uint8_t>(layout), static_cast<uint8_t>(SparseEnum::ALL), static_cast<uint8_t>(mmConfig), static_cast<uint8_t>(mmOutFormat),
+            static_cast<uint8_t>(mm345NZOut), static_cast<uint8_t>(tmpData_.drop_out_cfg), static_cast<uint8_t>(tmpData_.pse_cfg),
+            static_cast<uint8_t>(tmpData_.atten_mask_cfg), static_cast<uint8_t>(l1Custom), 0, 0, 0, 0, static_cast<uint8_t>(context_->GetDeterministic() == 1), 0);
     OP_LOGI(context_, "FAGTiling S1s2Bn2 DoTiling success, tilingkey is %lu.", tilingKey);
     return tilingKey;
 }
@@ -302,16 +305,16 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2::SetMaskShapeType(const ger
                                                                        const uint32_t maskShapeDims)
 {
     if (maskShapeDims == DIM_2) {
-        td_.opInfo.set_maskShapeType(ATTEN_MASK_SHAPE_TYPE_SS);
+        td_->opInfo.set_maskShapeType(ATTEN_MASK_SHAPE_TYPE_SS);
     } else if (maskShapeDims == DIM_4) {
         auto dim0 = storageShape.GetDim(DIM_0);
         auto dim1 = storageShape.GetDim(DIM_1);
-        if ((dim0 == td_.opInfo.get_B()) && (dim1 == td_.opInfo.get_N2() * td_.opInfo.get_G())) {
-            td_.opInfo.set_maskShapeType(ATTEN_MASK_SHAPE_TYPE_BNSS);
-        } else if ((dim0 == td_.opInfo.get_B()) && (dim1 == 1)) {
-            td_.opInfo.set_maskShapeType(ATTEN_MASK_SHAPE_TYPE_B1SS);
+        if ((dim0 == td_->opInfo.get_B()) && (dim1 == td_->opInfo.get_N2() * td_->opInfo.get_G())) {
+            td_->opInfo.set_maskShapeType(ATTEN_MASK_SHAPE_TYPE_BNSS);
+        } else if ((dim0 == td_->opInfo.get_B()) && (dim1 == 1)) {
+            td_->opInfo.set_maskShapeType(ATTEN_MASK_SHAPE_TYPE_B1SS);
         } else if ((dim0 == 1) && (dim1 == 1)) {
-            td_.opInfo.set_maskShapeType(ATTEN_MASK_SHAPE_TYPE_SS);
+            td_->opInfo.set_maskShapeType(ATTEN_MASK_SHAPE_TYPE_SS);
         } else {
             OP_LOGE(context_, "FlashAttentionScoreGradTilingS1s2Bn2 not support attenMaskShape dim0: %ld, dim1: %ld",
                       dim0, dim1);
@@ -330,12 +333,12 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2::GetAttenMaskInfo()
     /*
     Get attenmask input info
     */
-    td_.opInfo.set_existAttenMask(0);
+    td_->opInfo.set_existAttenMask(0);
     attenMaskCompressMode = NO_COMPRESS_MODE;
     auto attenMaskShape = context_->GetOptionalInputShape(ATTEN_MASK);
     if (attenMaskShape != nullptr && attenMaskShape->GetStorageShape().GetDimNum() != 0) {
         // attenMask support [S1,S2](0) + [B,1,S1,S2](1) + [B,N1,S1,S2](2)
-        td_.opInfo.set_existAttenMask(1);
+        td_->opInfo.set_existAttenMask(1);
         tmpData_.atten_mask_cfg = AttenMaskConfig::EXIST_ATTEN_MASK;
         auto storageShape = attenMaskShape->GetStorageShape();
         auto maskShapeDims = storageShape.GetDimNum();
@@ -363,9 +366,9 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2::GetAttenMaskInfo()
         if (attenMaskDesc != nullptr) {
             auto attenMaskDtype = attenMaskDesc->GetDataType();
             if (attenMaskDtype == tmpData_.queryType) {
-                td_.opInfo.set_maskDataType(ATTEN_MASK_TYPE_SAME);
+                td_->opInfo.set_maskDataType(ATTEN_MASK_TYPE_SAME);
             } else if (attenMaskDtype == ge::DT_BOOL || attenMaskDtype == ge::DT_UINT8) {
-                td_.opInfo.set_maskDataType(ATTEN_MASK_TYPE_U8_BOOL);
+                td_->opInfo.set_maskDataType(ATTEN_MASK_TYPE_U8_BOOL);
             } else {
                 OP_LOGE(context_, "FlashAttentionScoreGradTilingS1s2Bn2 not support attenMaskDtype: %d",
                           attenMaskDtype);
@@ -373,15 +376,15 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2::GetAttenMaskInfo()
             }
         }
     }
-    td_.opInfo.set_attenMaskS2Size(attenMaskS2Size);
-    td_.opInfo.set_attenMaskCompressMode(attenMaskCompressMode);
+    td_->opInfo.set_attenMaskS2Size(attenMaskS2Size);
+    td_->opInfo.set_attenMaskCompressMode(attenMaskCompressMode);
     return ge::GRAPH_SUCCESS;
 }
 
 void FlashAttentionScoreGradTilingS1s2Bn2::SetQKVStartIdx()
 {
-    td_.opInfo.set_qStartIdx(0);
-    td_.opInfo.set_kvStartIdx(0);
+    td_->opInfo.set_qStartIdx(0);
+    td_->opInfo.set_kvStartIdx(0);
     auto qStartIdxTensor = context_->GetOptionalInputTensor(Q_START_IDX);
     if (qStartIdxTensor == nullptr) {
         OP_LOGW(context_, "[%s]qStartIdxTensor is null pointer", templateNameBn2);
@@ -420,8 +423,8 @@ void FlashAttentionScoreGradTilingS1s2Bn2::SetQKVStartIdx()
     }
     tmpData_.kvStartIdx = kvValue[0];
 
-    td_.opInfo.set_qStartIdx(tmpData_.qStartIdx);
-    td_.opInfo.set_kvStartIdx(tmpData_.kvStartIdx);
+    td_->opInfo.set_qStartIdx(tmpData_.qStartIdx);
+    td_->opInfo.set_kvStartIdx(tmpData_.kvStartIdx);
 }
 
 ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2::ProcessNormalPse()
@@ -438,39 +441,39 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2::ProcessNormalPse()
     auto dim2 = storageShape.GetDim(DIM_2);
     auto dim3 = storageShape.GetDim(DIM_3);
     // [B N S1 S2](0)  [B N 1 S2](1)  [1 N S1 S2](2)shape判断
-    int64_t shapeN1 = td_.opInfo.get_N2() * td_.opInfo.get_G();
-    bool isBNS = (dim0 == td_.opInfo.get_B()) && (dim1 == shapeN1) && (dim3 == td_.opInfo.get_S2());
-    bool isBNSS = isBNS && (dim2 == td_.opInfo.get_S1());
+    int64_t shapeN1 = td_->opInfo.get_N2() * td_->opInfo.get_G();
+    bool isBNS = (dim0 == td_->opInfo.get_B()) && (dim1 == shapeN1) && (dim3 == td_->opInfo.get_S2());
+    bool isBNSS = isBNS && (dim2 == td_->opInfo.get_S1());
     bool isBN1S = isBNS && (dim2 == 1);
-    bool is1NSS = (dim0 == 1) && (dim1 == shapeN1) && (dim2 == td_.opInfo.get_S1()) && (dim3 == td_.opInfo.get_S2());
+    bool is1NSS = (dim0 == 1) && (dim1 == shapeN1) && (dim2 == td_->opInfo.get_S1()) && (dim3 == td_->opInfo.get_S2());
     // [B N H S2](4)  [1 N H S2](5) shape判断
-    bool isNHS = (dim1 == shapeN1) && (dim2 == PSE_ALIBI_S1_SIZE) && (dim3 == td_.opInfo.get_S2());
+    bool isNHS = (dim1 == shapeN1) && (dim2 == PSE_ALIBI_S1_SIZE) && (dim3 == td_->opInfo.get_S2());
     // alibi条件1: S1 = S2 且 S1 >= 1024
     // alibi条件2: 下三角
-    bool alibiCondi1 = (td_.opInfo.get_S1() == td_.opInfo.get_S2()) && (td_.opInfo.get_S1() >= PSE_ALIBI_S1_SIZE);
+    bool alibiCondi1 = (td_->opInfo.get_S1() == td_->opInfo.get_S2()) && (td_->opInfo.get_S1() >= PSE_ALIBI_S1_SIZE);
     bool alibiCondi2 =
-        (td_.opInfo.get_preTokens() >= int32_t(td_.opInfo.get_S1())) && (td_.opInfo.get_nextTokens() == 0);
-    bool isAlibiBNHS = isNHS && (dim0 == td_.opInfo.get_B()) && alibiCondi1 && alibiCondi2;
+        (td_->opInfo.get_preTokens() >= int32_t(td_->opInfo.get_S1())) && (td_->opInfo.get_nextTokens() == 0);
+    bool isAlibiBNHS = isNHS && (dim0 == td_->opInfo.get_B()) && alibiCondi1 && alibiCondi2;
     bool isAlibi1NHS = isNHS && (dim0 == 1) && alibiCondi1 && alibiCondi2;
-    bool isUnpad = td_.opInfo.get_layout() == static_cast<uint32_t>(InputLayout::TND);
+    bool isUnpad = td_->opInfo.get_layout() == static_cast<uint32_t>(InputLayout::TND);
     // 设置shape类型
     if (isUnpad && isNHS && (dim0 == 1) && alibiCondi2) {
-        td_.opInfo.set_pseShapeType(PSE_SHAPE_TYPE_1NHS);
-    } else if (isUnpad && isNHS && (dim0 == td_.opInfo.get_B()) && alibiCondi2) {
-        td_.opInfo.set_pseShapeType(PSE_SHAPE_TYPE_BNHS);
+        td_->opInfo.set_pseShapeType(PSE_SHAPE_TYPE_1NHS);
+    } else if (isUnpad && isNHS && (dim0 == td_->opInfo.get_B()) && alibiCondi2) {
+        td_->opInfo.set_pseShapeType(PSE_SHAPE_TYPE_BNHS);
     } else if (is1NSS && !isUnpad) {
-        td_.opInfo.set_pseShapeType(PSE_SHAPE_TYPE_1NSS);
+        td_->opInfo.set_pseShapeType(PSE_SHAPE_TYPE_1NSS);
     } else if (isBN1S && !isUnpad) {
-        td_.opInfo.set_pseShapeType(PSE_SHAPE_TYPE_BN1S);
+        td_->opInfo.set_pseShapeType(PSE_SHAPE_TYPE_BN1S);
     } else if (isBNSS && !isUnpad) {
-        td_.opInfo.set_pseShapeType(PSE_SHAPE_TYPE_BNSS);
+        td_->opInfo.set_pseShapeType(PSE_SHAPE_TYPE_BNSS);
     } else if (isAlibi1NHS) {
-        td_.opInfo.set_pseShapeType(PSE_SHAPE_TYPE_1NHS);
+        td_->opInfo.set_pseShapeType(PSE_SHAPE_TYPE_1NHS);
     } else if (isAlibiBNHS) {
-        td_.opInfo.set_pseShapeType(PSE_SHAPE_TYPE_BNHS);
+        td_->opInfo.set_pseShapeType(PSE_SHAPE_TYPE_BNHS);
     } else {
         OP_LOGE(context_, "The shape of pse[%ld,%ld,%ld,%ld] is invalid or tocken[%ld,%ld] not casual", dim0, dim1,
-                  dim2, dim3, td_.opInfo.get_preTokens(), td_.opInfo.get_nextTokens());
+                  dim2, dim3, td_->opInfo.get_preTokens(), td_->opInfo.get_nextTokens());
         return ge::GRAPH_FAILED;
     }
     return ge::GRAPH_SUCCESS;
@@ -503,7 +506,7 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2::GetPseInfo()
         tmpData_.pse_cfg = PseConfig::EXIST_PSE;
         auto storageShape = pseShape->GetStorageShape();
         auto pseShapeDims = storageShape.GetDimNum();
-        bool isUnpad = td_.opInfo.get_layout() == static_cast<uint32_t>(InputLayout::TND);
+        bool isUnpad = td_->opInfo.get_layout() == static_cast<uint32_t>(InputLayout::TND);
         if (tmpData_.pseType == PSE_OUTER_MUL_ADD_TYPE || tmpData_.pseType == PSE_OUTER_ADD_MUL_TYPE) {
             OP_CHECK_IF(pse->GetDataType() != context_->GetInputDesc(QUERY)->GetDataType(),
                        OP_LOGE(context_,
@@ -524,7 +527,7 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2::GetPseInfo()
                                                        "FAG invalid pse shape %ld, should be same with n1 %ld", dim0,
                                                        tmpData_.n2 * tmpData_.g),
                            return ge::GRAPH_FAILED);
-                td_.opInfo.set_pseShapeType(PSE_1_N2_G_SLOPE);
+                td_->opInfo.set_pseShapeType(PSE_1_N2_G_SLOPE);
             } else if (pseShapeDims == PSE_DIM_NUM_2) {
                 auto dim0 = pseShape->GetStorageShape().GetDim(DIM_0);
                 auto dim1 = pseShape->GetStorageShape().GetDim(DIM_1);
@@ -533,20 +536,20 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2::GetPseInfo()
                                context_, "FAG invalid pse shape {%ld, %ld} should be same with b n1 {%ld, %ld}", dim0,
                                dim1, tmpData_.b, tmpData_.n2 * tmpData_.g),
                            return ge::GRAPH_FAILED);
-                td_.opInfo.set_pseShapeType(PSE_B_N2_G_SLOPE);
+                td_->opInfo.set_pseShapeType(PSE_B_N2_G_SLOPE);
             } else {
                 OP_LOGE(context_, "pse inner mode, unsupported pse shape");
                 return ge::GRAPH_FAILED;
             }
         } else if (pseShapeDims == PSE_DIM_NUM_1 && isUnpad) {
             auto dim0 = storageShape.GetDim(DIM_0);
-            int64_t shapeN1 = td_.opInfo.get_N2() * td_.opInfo.get_G();
+            int64_t shapeN1 = td_->opInfo.get_N2() * td_->opInfo.get_G();
             bool isUnpadBN1S = isUnpad && (dim0 == tmpData_.t2 * shapeN1);
             bool isUnpadBNSS = isUnpad && (dim0 == tmpData_.sumS1S2Product * shapeN1);
             if (isUnpadBN1S) {
-                td_.opInfo.set_pseShapeType(PSE_SHAPE_TYPE_BN1S);
+                td_->opInfo.set_pseShapeType(PSE_SHAPE_TYPE_BN1S);
             } else if (isUnpadBNSS) {
-                td_.opInfo.set_pseShapeType(PSE_SHAPE_TYPE_BNSS);
+                td_->opInfo.set_pseShapeType(PSE_SHAPE_TYPE_BNSS);
             } else {
                 OP_LOGE(context_, "pse outer mode, tnd, unsupported pse shape");
                 return ge::GRAPH_FAILED;
@@ -560,20 +563,20 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2::GetPseInfo()
 
 bool FlashAttentionScoreGradTilingS1s2Bn2::SparseTokenProcess()
 {
-    int32_t preTokens = td_.opInfo.get_preTokens();
-    int32_t nextTokens = td_.opInfo.get_nextTokens();
+    int32_t preTokens = td_->opInfo.get_preTokens();
+    int32_t nextTokens = td_->opInfo.get_nextTokens();
     OP_LOGD(context_, "preTokens: %d, nextTokens: %d, sparseMode: %d.", preTokens, nextTokens, sparseMode);
 
     if (sparseMode == NO_MASK) {
-        if (int32_t(td_.opInfo.get_S1()) <= preTokens && nextTokens == 0) { // 原causal 场景
-            td_.opInfo.set_isSparse(1);
-        } else if (int32_t(td_.opInfo.get_S1()) > preTokens ||
-                   int32_t(td_.opInfo.get_S2()) > nextTokens) { // 原band场景
-            td_.opInfo.set_isSparse(1);
+        if (int32_t(td_->opInfo.get_S1()) <= preTokens && nextTokens == 0) { // 原causal 场景
+            td_->opInfo.set_isSparse(1);
+        } else if (int32_t(td_->opInfo.get_S1()) > preTokens ||
+                   int32_t(td_->opInfo.get_S2()) > nextTokens) { // 原band场景
+            td_->opInfo.set_isSparse(1);
         } else {
             OP_LOGI(context_,
                       "FAG S1s2Bn2 sparseMode[%d] with s1[%ld] s2[%ld] preToken[%d] nextToken[%d] is not support!",
-                      sparseMode, td_.opInfo.get_S1(), td_.opInfo.get_S2(), preTokens, nextTokens);
+                      sparseMode, td_->opInfo.get_S1(), td_->opInfo.get_S2(), preTokens, nextTokens);
         }
         return false;
     }
@@ -586,12 +589,12 @@ bool FlashAttentionScoreGradTilingS1s2Bn2::SparseTokenProcess()
 
     if (sparseMode == BAND) {
         // BAND模式tokens以右下角为基准
-        if ((int32_t(td_.opInfo.get_S2()) <= preTokens && int32_t(td_.opInfo.get_S1()) <= nextTokens) ||
+        if ((int32_t(td_->opInfo.get_S2()) <= preTokens && int32_t(td_->opInfo.get_S1()) <= nextTokens) ||
             (preTokens + nextTokens) < 0) {
             OP_LOGW(context_,
                       "FAG S1s2Bn2 sparseMode is band, but preToken[%d] or nextToken[%d] is invalid "
                       "with s1[%ld] s2[%ld]!",
-                      preTokens, nextTokens, td_.opInfo.get_S1(), td_.opInfo.get_S2());
+                      preTokens, nextTokens, td_->opInfo.get_S1(), td_->opInfo.get_S2());
             return false;
         }
     }
@@ -611,7 +614,7 @@ bool FlashAttentionScoreGradTilingS1s2Bn2::ProcessPrefix()
     }
 
     auto &prefixShape = prefixNTensor->GetShape().GetStorageShape();
-    if (prefixShape.GetDimNum() != 1 || prefixShape.GetDim(0) != td_.opInfo.get_B()) {
+    if (prefixShape.GetDimNum() != 1 || prefixShape.GetDim(0) != td_->opInfo.get_B()) {
         OP_LOGW(context_, "FAG S1s2Bn2 sparseMode is prefix, but prefixshape size[%zu] or value is invalid!",
                   prefixShape.GetDimNum());
         return false;
@@ -627,7 +630,7 @@ bool FlashAttentionScoreGradTilingS1s2Bn2::ProcessPrefix()
         tmpData_.prefixN.push_back(value[i]);
     }
 
-    if (tmpData_.prefixN.size() != static_cast<uint64_t>(td_.opInfo.get_B())) {
+    if (tmpData_.prefixN.size() != static_cast<uint64_t>(td_->opInfo.get_B())) {
         OP_LOGW(context_, "FAG S1s2Bn2 sparseMode is prefix, but prefixN value is invalid!");
         return false;
     }
@@ -637,8 +640,8 @@ bool FlashAttentionScoreGradTilingS1s2Bn2::ProcessPrefix()
 
 ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2::SetSparseParams()
 {
-    td_.opInfo.set_isSparse(0);
-    td_.opInfo.set_sparseMode(sparseMode);
+    td_->opInfo.set_isSparse(0);
+    td_->opInfo.set_sparseMode(sparseMode);
     auto attenMaskShape = context_->GetOptionalInputShape(ATTEN_MASK);
     auto attenMaskDesc = context_->GetOptionalInputDesc(ATTEN_MASK);
     if (sparseMode == ALL_MASK || attenMaskShape == nullptr || attenMaskDesc == nullptr) {
@@ -663,11 +666,11 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2::SetSparseParams()
         return ge::GRAPH_FAILED;
     }
 
-    td_.opInfo.set_isSparse(1);
+    td_->opInfo.set_isSparse(1);
 
     if (sparseMode == LEFT_UP_CAUSAL || sparseMode == RIGHT_DOWN_CAUSAL) {
-        td_.opInfo.set_preTokens(INT32_MAX);
-        td_.opInfo.set_nextTokens(0);
+        td_->opInfo.set_preTokens(INT32_MAX);
+        td_->opInfo.set_nextTokens(0);
     }
     return ge::GRAPH_SUCCESS;
 }
@@ -677,26 +680,26 @@ void FlashAttentionScoreGradTilingS1s2Bn2::SetBandIdx()
     if (sparseMode == RIGHT_DOWN_CASUAL_BAND) {
         for (int i = tmpData_.b - 1; i >= 0; i--) {
             if (tmpData_.actualSeqQlen[i] != 0) {
-                td_.opInfo.set_bandIdx(i);
+                td_->opInfo.set_bandIdx(i);
                 return;
             }
         }
     } else if (sparseMode == BAND_LEFT_UP_CASUAL) {
         for (int64_t i = 0; i < tmpData_.b; i++) {
             if (tmpData_.actualSeqQlen[i] != 0) {
-                td_.opInfo.set_bandIdx(i);
+                td_->opInfo.set_bandIdx(i);
                 return;
             }
         }
     }
     // 添加保护
-    td_.opInfo.set_bandIdx(0);
+    td_->opInfo.set_bandIdx(0);
 }
 
 bool FlashAttentionScoreGradTilingS1s2Bn2::IsModuleOneShape()
 {
-    gert::Shape inputShape5d = {td_.opInfo.get_B(), td_.opInfo.get_N2() * td_.opInfo.get_G(), td_.opInfo.get_S1(),
-                                td_.opInfo.get_S2(), td_.opInfo.get_D()};
+    gert::Shape inputShape5d = {td_->opInfo.get_B(), td_->opInfo.get_N2() * td_->opInfo.get_G(), td_->opInfo.get_S1(),
+                                td_->opInfo.get_S2(), td_->opInfo.get_D()};
     return !(std::find(MODULE1_TEMPLATE_SUPPORTED_SHAPE.begin(), MODULE1_TEMPLATE_SUPPORTED_SHAPE.end(),
                        inputShape5d) == MODULE1_TEMPLATE_SUPPORTED_SHAPE.end());
 }
@@ -705,10 +708,10 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2::CheckOutOfTokens(const int
 {
     int32_t negPretMax = sparseMode == NO_MASK ? s2 : s1;
     int32_t negNexttMax = sparseMode == NO_MASK ? s1 : s2;
-    if (-td_.opInfo.get_preTokens() > negPretMax || -td_.opInfo.get_nextTokens() > negNexttMax ||
-        (int64_t(td_.opInfo.get_preTokens()) + int64_t(td_.opInfo.get_nextTokens())) < 0) {
+    if (-td_->opInfo.get_preTokens() > negPretMax || -td_->opInfo.get_nextTokens() > negNexttMax ||
+        (int64_t(td_->opInfo.get_preTokens()) + int64_t(td_->opInfo.get_nextTokens())) < 0) {
         OP_LOGE(context_, "FAG S1s2Bn2 with s1[%ld] s2[%ld] preToken[%ld] nextToken[%ld] is not support!", s1, s2,
-                  td_.opInfo.get_preTokens(), td_.opInfo.get_nextTokens());
+                  td_->opInfo.get_preTokens(), td_->opInfo.get_nextTokens());
         return ge::GRAPH_FAILED;
     }
     return ge::GRAPH_SUCCESS;
@@ -724,7 +727,7 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2::CheckTokens()
 
     int64_t realS1 = tmpData_.s1;
     int64_t realS2 = tmpData_.s2;
-    if (td_.opInfo.get_layout() == static_cast<uint32_t>(InputLayout::TND)) {
+    if (td_->opInfo.get_layout() == static_cast<uint32_t>(InputLayout::TND)) {
         if (sparseMode == NO_MASK || sparseMode == BAND) {
             for (int64_t i = 0; i < tmpData_.b; i++) {
                 realS1 = tmpData_.actualSeqQlen[i];
@@ -737,8 +740,8 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2::CheckTokens()
             return ge::GRAPH_SUCCESS;
         }
 
-        realS1 = tmpData_.actualSeqQlen[td_.opInfo.get_bandIdx()];
-        realS2 = tmpData_.actualSeqKvlen[td_.opInfo.get_bandIdx()];
+        realS1 = tmpData_.actualSeqQlen[td_->opInfo.get_bandIdx()];
+        realS2 = tmpData_.actualSeqKvlen[td_->opInfo.get_bandIdx()];
     }
     return CheckOutOfTokens(realS1, realS2);
 }
@@ -766,12 +769,12 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2::GetShapeAttrsInfo()
     DecideBranch();
 
     // setTilingData
-    td_.opInfo.set_scaleValue(*context_->GetAttrs()->GetAttrPointer<float>(SCALE_VALUE));
-    td_.opInfo.set_keepProb(*context_->GetAttrs()->GetAttrPointer<float>(KEEP_PROB));
-    OP_CHECK_IF((td_.opInfo.get_keepProb() <= 0 || td_.opInfo.get_keepProb() > 1),
+    td_->opInfo.set_scaleValue(*context_->GetAttrs()->GetAttrPointer<float>(SCALE_VALUE));
+    td_->opInfo.set_keepProb(*context_->GetAttrs()->GetAttrPointer<float>(KEEP_PROB));
+    OP_CHECK_IF((td_->opInfo.get_keepProb() <= 0 || td_->opInfo.get_keepProb() > 1),
                OP_LOGE(context_, "keepProb is illegal."), return ge::GRAPH_FAILED);
 
-    if (td_.opInfo.get_keepProb() < 1) {
+    if (td_->opInfo.get_keepProb() < 1) {
         tmpData_.drop_out_cfg = DropOutConfig::EXIST_DROP_OUT;
         status = ProcessDropInfo();
         if (status != ge::GRAPH_SUCCESS) {
@@ -791,33 +794,33 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2::GetShapeAttrsInfo()
         }
     }
 
-    if ((td_.opInfo.get_layout() != static_cast<uint32_t>(InputLayout::TND)) &&
+    if ((td_->opInfo.get_layout() != static_cast<uint32_t>(InputLayout::TND)) &&
         (sparseMode == RIGHT_DOWN_CASUAL_BAND || sparseMode == BAND_LEFT_UP_CASUAL)) {
-        OP_LOGE(context_, " layout %u not support sparsemode %d", td_.opInfo.get_layout(), sparseMode);
+        OP_LOGE(context_, " layout %u not support sparsemode %d", td_->opInfo.get_layout(), sparseMode);
         return ge::GRAPH_FAILED;
     }
 
     auto pse = context_->GetOptionalInputDesc(PSE_SHIFT);
-    if (td_.opInfo.get_layout() == static_cast<uint32_t>(InputLayout::TND)) {
-        tnd2bsh = (td_.opInfo.get_B() * td_.opInfo.get_S1() == tmpData_.t1) &&
-                  (td_.opInfo.get_B() * td_.opInfo.get_S2() == tmpData_.t2) &&
-                  (td_.opInfo.get_S1() == td_.opInfo.get_S2());
+    if (td_->opInfo.get_layout() == static_cast<uint32_t>(InputLayout::TND)) {
+        tnd2bsh = (td_->opInfo.get_B() * td_->opInfo.get_S1() == tmpData_.t1) &&
+                  (td_->opInfo.get_B() * td_->opInfo.get_S2() == tmpData_.t2) &&
+                  (td_->opInfo.get_S1() == td_->opInfo.get_S2());
         if (context_->GetDeterministic() != 1 && pse == nullptr && tnd2bsh &&
             !(sparseMode == RIGHT_DOWN_CASUAL_BAND || sparseMode == BAND_LEFT_UP_CASUAL)) {
             tmpData_.layout = static_cast<uint32_t>(InputLayout::BSH);
-            td_.opInfo.set_layout(static_cast<uint32_t>(InputLayout::BSH));
+            td_->opInfo.set_layout(static_cast<uint32_t>(InputLayout::BSH));
         }
         OP_LOGI(context_, "bn2 template enable tnd to bsh.");
     }
 
-    td_.opInfo.set_preTokens(*context_->GetAttrs()->GetAttrPointer<int>(PRE_TOKENS));
-    td_.opInfo.set_nextTokens(*context_->GetAttrs()->GetAttrPointer<int>(NEXT_TOKENS));
+    td_->opInfo.set_preTokens(*context_->GetAttrs()->GetAttrPointer<int>(PRE_TOKENS));
+    td_->opInfo.set_nextTokens(*context_->GetAttrs()->GetAttrPointer<int>(NEXT_TOKENS));
     if (attrs->GetAttrNum() > static_cast<size_t>(PSETYPE)) {
         tmpData_.pseType = *(context_->GetAttrs()->GetAttrPointer<int64_t>(PSETYPE)); // 8
         OP_CHECK_IF((tmpData_.pseType < 0 || tmpData_.pseType >= PSE_INVALID_TYPE),
                    OP_LOGE(context_, "pseType is invalid."), return ge::GRAPH_FAILED);
     }
-    td_.opInfo.set_pseType(tmpData_.pseType);
+    td_->opInfo.set_pseType(tmpData_.pseType);
 
     SetBandIdx();
     status = CheckTokens();
@@ -835,12 +838,12 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2::GetShapeAttrsInfo()
         return status;
     }
 
-    if ((td_.opInfo.get_isSparse() == 0) && IsModuleOneShape() && context_->GetDeterministic() != 1) {
+    if ((td_->opInfo.get_isSparse() == 0) && IsModuleOneShape() && context_->GetDeterministic() != 1) {
         OP_LOGD(context_, "Sparse disable. FlashAttentionScoreGradTilingS1s2Bn2 not support this case");
         return ge::GRAPH_PARAM_INVALID;
     }
 
-    OP_LOGD(context_, "FAG S1s2Bn2 sparse %s.", td_.opInfo.get_isSparse() == 0 ? "disable" : "enable");
+    OP_LOGD(context_, "FAG S1s2Bn2 sparse %s.", td_->opInfo.get_isSparse() == 0 ? "disable" : "enable");
 
     status = GetPseInfo();
     if (status != ge::GRAPH_SUCCESS) {
@@ -851,49 +854,49 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2::GetShapeAttrsInfo()
         (tmpData_.queryType != ge::DT_FLOAT) && (tmpData_.queryType != ge::DT_FLOAT16) &&
         (tmpData_.layout != static_cast<uint32_t>(InputLayout::TND)) && (tmpData_.pse_cfg != PseConfig::EXIST_PSE) &&
         (tmpData_.atten_mask_cfg != AttenMaskConfig::EXIST_ATTEN_MASK) &&
-        (tmpData_.drop_out_cfg != DropOutConfig::EXIST_DROP_OUT) && (td_.opInfo.get_D() <= L1_CUSTOM_D_128) &&
-        (td_.opInfo.get_D() >= L1_CUSTOM_D_72) && (td_.opInfo.get_isSparse() == 0) &&
-        (td_.opInfo.get_sparseMode() == NO_MASK) && (td_.opInfo.get_S1() > L1_CUSTOM_S_256) &&
-        (td_.opInfo.get_S2() > L1_CUSTOM_S_256); // sparseMode=0
+        (tmpData_.drop_out_cfg != DropOutConfig::EXIST_DROP_OUT) && (td_->opInfo.get_D() <= L1_CUSTOM_D_128) &&
+        (td_->opInfo.get_D() >= L1_CUSTOM_D_72) && (td_->opInfo.get_isSparse() == 0) &&
+        (td_->opInfo.get_sparseMode() == NO_MASK) && (td_->opInfo.get_S1() > L1_CUSTOM_S_256) &&
+        (td_->opInfo.get_S2() > L1_CUSTOM_S_256); // sparseMode=0
 
-    int64_t dAlign = AlignData(td_.opInfo.get_D(), FP16_BLOCK_NUMS);
+    int64_t dAlign = AlignData(td_->opInfo.get_D(), FP16_BLOCK_NUMS);
     if (tmpData_.isL1CustomEnable) {
-        if (td_.opInfo.get_D() == L1_CUSTOM_D_72) {
-            tmpData_.l1CustomSingleN = AlignData(td_.opInfo.get_S2(), BASE_LEN_128);
+        if (td_->opInfo.get_D() == L1_CUSTOM_D_72) {
+            tmpData_.l1CustomSingleN = AlignData(td_->opInfo.get_S2(), BASE_LEN_128);
             tmpData_.l1CustomSingleM =
                 (L1_MAX_SIZE - L1_CUSTOM_DS_SIZE - tmpData_.l1CustomSingleN * dAlign * L1_CUSTOM_NUM_4) /
                 (L1_CUSTOM_NUM_8 * dAlign);
             tmpData_.l1CustomSingleM = tmpData_.l1CustomSingleM / BASE_LEN_64 * BASE_LEN_64;
-            int64_t l1CustomSingleMTmp = AlignData(td_.opInfo.get_S1(), BASE_LEN_64);
+            int64_t l1CustomSingleMTmp = AlignData(td_->opInfo.get_S1(), BASE_LEN_64);
             tmpData_.l1CustomSingleM =
                 (tmpData_.l1CustomSingleM > l1CustomSingleMTmp) ? l1CustomSingleMTmp : tmpData_.l1CustomSingleM;
-        } else if (td_.opInfo.get_D() == L1_CUSTOM_D_88) {
-            tmpData_.l1CustomSingleN = AlignData(td_.opInfo.get_S2(), BASE_LEN_128);
+        } else if (td_->opInfo.get_D() == L1_CUSTOM_D_88) {
+            tmpData_.l1CustomSingleN = AlignData(td_->opInfo.get_S2(), BASE_LEN_128);
             tmpData_.l1CustomSingleM =
                 (L1_MAX_SIZE - L1_CUSTOM_DS_SIZE - tmpData_.l1CustomSingleN * dAlign * L1_CUSTOM_NUM_4) /
                 (L1_CUSTOM_NUM_8 * dAlign);
             tmpData_.l1CustomSingleM = tmpData_.l1CustomSingleM / BASE_LEN_64 * BASE_LEN_64;
-            int64_t l1CustomSingleMTmp = AlignData(td_.opInfo.get_S1(), BASE_LEN_64);
+            int64_t l1CustomSingleMTmp = AlignData(td_->opInfo.get_S1(), BASE_LEN_64);
             tmpData_.l1CustomSingleM =
                 (tmpData_.l1CustomSingleM > l1CustomSingleMTmp) ? l1CustomSingleMTmp : tmpData_.l1CustomSingleM;
-        } else if (td_.opInfo.get_D() == L1_CUSTOM_D_128 && td_.opInfo.get_S1() > L1_CUSTOM_S_500 &&
-                   td_.opInfo.get_S2() > L1_CUSTOM_S_500) {
-            if (td_.opInfo.get_S2() >= L1_CUSTOM_D128_S2MAX) {
+        } else if (td_->opInfo.get_D() == L1_CUSTOM_D_128 && td_->opInfo.get_S1() > L1_CUSTOM_S_500 &&
+                   td_->opInfo.get_S2() > L1_CUSTOM_S_500) {
+            if (td_->opInfo.get_S2() >= L1_CUSTOM_D128_S2MAX) {
                 tmpData_.l1CustomSingleN = L1_CUSTOM_D128_S2MAX;
                 tmpData_.l1CustomSingleM =
                     (L1_MAX_SIZE - L1_CUSTOM_DS_SIZE - tmpData_.l1CustomSingleN * dAlign * L1_CUSTOM_NUM_4) /
                     (L1_CUSTOM_NUM_8 * dAlign);
                 tmpData_.l1CustomSingleM = tmpData_.l1CustomSingleM / BASE_LEN_128 * BASE_LEN_128;
-                int64_t l1CustomSingleMTmp = AlignData(td_.opInfo.get_S1(), BASE_LEN_128);
+                int64_t l1CustomSingleMTmp = AlignData(td_->opInfo.get_S1(), BASE_LEN_128);
                 tmpData_.l1CustomSingleM =
                     (tmpData_.l1CustomSingleM > l1CustomSingleMTmp) ? l1CustomSingleMTmp : tmpData_.l1CustomSingleM;
             } else {
-                tmpData_.l1CustomSingleN = AlignData(td_.opInfo.get_S2(), BASE_LEN_128);
+                tmpData_.l1CustomSingleN = AlignData(td_->opInfo.get_S2(), BASE_LEN_128);
                 tmpData_.l1CustomSingleM =
                     (L1_MAX_SIZE - L1_CUSTOM_DS_SIZE - tmpData_.l1CustomSingleN * dAlign * L1_CUSTOM_NUM_4) /
                     (L1_CUSTOM_NUM_8 * dAlign);
                 tmpData_.l1CustomSingleM = tmpData_.l1CustomSingleM / BASE_LEN_128 * BASE_LEN_128;
-                int64_t l1CustomSingleMTmp = AlignData(td_.opInfo.get_S1(), BASE_LEN_128);
+                int64_t l1CustomSingleMTmp = AlignData(td_->opInfo.get_S1(), BASE_LEN_128);
                 tmpData_.l1CustomSingleM =
                     (tmpData_.l1CustomSingleM > l1CustomSingleMTmp) ? l1CustomSingleMTmp : tmpData_.l1CustomSingleM;
             }
@@ -917,13 +920,13 @@ void FlashAttentionScoreGradTilingS1s2Bn2::NMDStrategy()
     }
 
     // D>64时，调整S2满配比及mm基本块
-    if (td_.opInfo.get_D() > BASE_LEN_64) {
-        if (td_.opInfo.get_S2() < S_LEN_512) {
+    if (td_->opInfo.get_D() > BASE_LEN_64) {
+        if (td_->opInfo.get_S2() < S_LEN_512) {
             // 减少S1方向循环次数，调大mm基本块
-            baseMmm = std::min(BASE_LEN_256, AlignData(static_cast<uint32_t>(td_.opInfo.get_S1()), FRACTAL_NUM));
-            baseNmm = std::min(BASE_LEN_128, AlignData(static_cast<uint32_t>(td_.opInfo.get_S2()), FRACTAL_NUM));
+            baseMmm = std::min(BASE_LEN_256, AlignData(static_cast<uint32_t>(td_->opInfo.get_S1()), FRACTAL_NUM));
+            baseNmm = std::min(BASE_LEN_128, AlignData(static_cast<uint32_t>(td_->opInfo.get_S2()), FRACTAL_NUM));
             needSetFixSplit = true;
-        } else if (td_.opInfo.get_S2() > S_LEN_512 && td_.opInfo.get_S2() < S_LEN_1024 &&
+        } else if (td_->opInfo.get_S2() > S_LEN_512 && td_->opInfo.get_S2() < S_LEN_1024 &&
                    l2CacheSize > B4_L2_CACHESIZE) { // 特殊场景，受L2限制，不使能这个优化
             mmRatio = MM_RATIO_8;                   // S2方向满配比，减少S2方向数据重复搬运
         }
@@ -931,11 +934,11 @@ void FlashAttentionScoreGradTilingS1s2Bn2::NMDStrategy()
 
     // 优先S2方向配比，S2方向不够时，S1方向配比，但保证S1和S2方向的配比不超过MM_RATIO
     s1Ratio = 1;
-    s2Ratio = CeilCommon(td_.opInfo.get_S2(), baseNmm);
+    s2Ratio = CeilCommon(td_->opInfo.get_S2(), baseNmm);
     s2Ratio = s2Ratio > mmRatio ? mmRatio : s2Ratio;
     s1Ratio = mmRatio / s2Ratio;
     // 根据实际S1长度调整配比
-    s1Ratio = s1Ratio * baseMmm > td_.opInfo.get_S1() ? CeilCommon(td_.opInfo.get_S1(), baseMmm) : s1Ratio;
+    s1Ratio = s1Ratio * baseMmm > td_->opInfo.get_S1() ? CeilCommon(td_->opInfo.get_S1(), baseMmm) : s1Ratio;
 
     // 强行保护s1Ratio、s2Ratio
     s1Ratio = s1Ratio > 0 ? s1Ratio : 1;
@@ -1029,9 +1032,9 @@ void FlashAttentionScoreGradTilingS1s2Bn2::DecideBaseMND()
     baseNmm = BASE_LEN_128;
     tensorSize = baseM * baseN;
     mmRatio = MM_RATIO_4;
-    dimD = td_.opInfo.get_D();
-    dimS2 = td_.opInfo.get_S2();
-    dimS1 = td_.opInfo.get_S1();
+    dimD = td_->opInfo.get_D();
+    dimS2 = td_->opInfo.get_S2();
+    dimS1 = td_->opInfo.get_S1();
 
     VectorBaseMNSplit();
 
@@ -1073,7 +1076,7 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2::CheckAttenMaskShape()
     // check atten_mask shape when enable atten_mask_compress
     if (attenMaskCompressMode == NO_COMPRESS_MODE) {
         bool invalid =
-            td_.opInfo.get_existAttenMask() != 0 && (attenMaskS1Size != tmpData_.s1 || attenMaskS2Size != tmpData_.s2);
+            td_->opInfo.get_existAttenMask() != 0 && (attenMaskS1Size != tmpData_.s1 || attenMaskS2Size != tmpData_.s2);
         if (invalid) {
             OP_LOGE(context_, "atten mask shape [%ld,%ld] is invalid.", attenMaskS1Size, attenMaskS2Size);
             return ge::GRAPH_FAILED;
@@ -1141,54 +1144,54 @@ int64_t FlashAttentionScoreGradTilingS1s2Bn2::GetSplitArrayMinMaxSum(std::vector
 
 ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2::DoBlockTiling()
 {
-    int64_t nNums = td_.opInfo.get_B() * td_.opInfo.get_N2();
+    int64_t nNums = td_->opInfo.get_B() * td_->opInfo.get_N2();
     int64_t formerCoreProcessNNums = CeilCommon(nNums, aicoreParams_.blockDim);
     int64_t remainCoreNum = formerCoreProcessNNums * aicoreParams_.blockDim - nNums;
-    td_.opInfo.set_usedCoreNum(aicoreParams_.blockDim);
+    td_->opInfo.set_usedCoreNum(aicoreParams_.blockDim);
     int64_t sameAbBlockDim = 0;
     if (tmpData_.isL1CustomEnable) {
         sameAbBlockDim = aicoreParams_.aicNum;
         formerCoreProcessNNums = CeilCommon(nNums, sameAbBlockDim);
         remainCoreNum = formerCoreProcessNNums * sameAbBlockDim - nNums;
-        td_.opInfo.set_usedCoreNum(sameAbBlockDim);
+        td_->opInfo.set_usedCoreNum(sameAbBlockDim);
     }
 
-    td_.opInfo.set_castUsedCoreNum(aicoreParams_.blockDim); // for pre & post process
+    td_->opInfo.set_castUsedCoreNum(aicoreParams_.blockDim); // for pre & post process
     if (nNums < static_cast<int64_t>(aicoreParams_.blockDim)) {
-        if (td_.opInfo.get_layout() == static_cast<uint32_t>(InputLayout::TND)) {
+        if (td_->opInfo.get_layout() == static_cast<uint32_t>(InputLayout::TND)) {
             // 需要给出真实使用的core数，用于bN2idxStarts，bN2idxEnds的检索
             if (tmpData_.isL1CustomEnable) {
                 if (nNums < sameAbBlockDim) {
-                    td_.opInfo.set_usedCoreNum(nNums);
+                    td_->opInfo.set_usedCoreNum(nNums);
                 }
             } else {
-                td_.opInfo.set_usedCoreNum(nNums);
+                td_->opInfo.set_usedCoreNum(nNums);
             }
-            td_.opInfo.set_castUsedCoreNum(nNums);
+            td_->opInfo.set_castUsedCoreNum(nNums);
         } else {
             // 非TND
-            int64_t minS = std::min(td_.opInfo.get_S1(), td_.opInfo.get_S2());
-            if (nNums * minS * td_.opInfo.get_D() / aicoreParams_.blockDim * tmpData_.dataTypeSize < 8 * 1024) {
+            int64_t minS = std::min(td_->opInfo.get_S1(), td_->opInfo.get_S2());
+            if (nNums * minS * td_->opInfo.get_D() / aicoreParams_.blockDim * tmpData_.dataTypeSize < 8 * 1024) {
                 // 后处理ub利用率严重不足时，减少核启动
                 if (tmpData_.isL1CustomEnable) {
                     if (nNums < sameAbBlockDim) {
-                        td_.opInfo.set_usedCoreNum(nNums);
+                        td_->opInfo.set_usedCoreNum(nNums);
                     }
                 } else {
-                    td_.opInfo.set_usedCoreNum(nNums);
+                    td_->opInfo.set_usedCoreNum(nNums);
                 }
-                td_.opInfo.set_castUsedCoreNum(nNums);
+                td_->opInfo.set_castUsedCoreNum(nNums);
                 needAdjustBlockDim = true;
             }
         }
     }
 
-    td_.opInfo.set_formerCoreNum((tmpData_.isL1CustomEnable ? sameAbBlockDim : aicoreParams_.blockDim) - remainCoreNum);
-    td_.opInfo.set_formerCoreProcessNNum(formerCoreProcessNNums);
-    td_.opInfo.set_remainCoreProcessNNum(static_cast<uint32_t>(formerCoreProcessNNums - 1));
+    td_->opInfo.set_formerCoreNum((tmpData_.isL1CustomEnable ? sameAbBlockDim : aicoreParams_.blockDim) - remainCoreNum);
+    td_->opInfo.set_formerCoreProcessNNum(formerCoreProcessNNums);
+    td_->opInfo.set_remainCoreProcessNNum(static_cast<uint32_t>(formerCoreProcessNNums - 1));
 
     // 确定性计算下的TND对应的分核策略
-    if (td_.opInfo.get_layout() == static_cast<uint32_t>(InputLayout::TND)) {
+    if (td_->opInfo.get_layout() == static_cast<uint32_t>(InputLayout::TND)) {
         if (nNums <= static_cast<int64_t>(tmpData_.isL1CustomEnable ? sameAbBlockDim : aicoreParams_.blockDim)) {
             for (int64_t i = 0; i < nNums; i++) {
                 tmpData_.bN2idxStarts[i] = i;
@@ -1243,17 +1246,17 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2::DoBlockTiling()
                 }
             }
         }
-        td_.tndSplitCoreParams.set_bN2idxStarts(tmpData_.bN2idxStarts);
-        td_.tndSplitCoreParams.set_bN2idxEnds(tmpData_.bN2idxEnds);
+        td_->tndSplitCoreParams.set_bN2idxStarts(tmpData_.bN2idxStarts);
+        td_->tndSplitCoreParams.set_bN2idxEnds(tmpData_.bN2idxEnds);
     }
 
     // debugInfo
     OP_LOGD(context_->GetNodeName(), "FlashAttentionScoreGradTilingS1s2Bn2 splite B*N2 usedCoreNum: %u.",
-              td_.opInfo.get_usedCoreNum());
-    for (uint32_t i = 0; i < td_.opInfo.get_usedCoreNum(); i++) {
+              td_->opInfo.get_usedCoreNum());
+    for (uint32_t i = 0; i < td_->opInfo.get_usedCoreNum(); i++) {
         OP_LOGD(context_->GetNodeName(),
                   "FlashAttentionScoreGradTilingS1s2Bn2 splite B*N2 CoreIdx: %u begin: %ld end: %ld.", i,
-                  td_.tndSplitCoreParams.get_bN2idxStarts()[i], td_.tndSplitCoreParams.get_bN2idxEnds()[i]);
+                  td_->tndSplitCoreParams.get_bN2idxStarts()[i], td_->tndSplitCoreParams.get_bN2idxEnds()[i]);
     }
 
     return ge::GRAPH_SUCCESS;
@@ -1268,19 +1271,19 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2::DoOpTiling()
 
     // 确定主kernel-UBLength
     auto inputBufferLen = tensorSize * B32;
-    td_.opInfo.set_inputBufferLen(inputBufferLen);
-    td_.opInfo.set_helpBufferLen(inputBufferLen);
+    td_->opInfo.set_inputBufferLen(inputBufferLen);
+    td_->opInfo.set_helpBufferLen(inputBufferLen);
 
     // setTilingData
-    td_.splitCoreParams.set_SFTBaseM(sftBaseM);
-    td_.splitCoreParams.set_SFTSingleM(sftSingleM);
-    td_.splitCoreParams.set_dInner(baseD);
-    td_.splitCoreParams.set_baseM(baseM);
-    td_.splitCoreParams.set_baseN(baseN);
-    td_.splitCoreParams.set_singleM(singleM);
-    td_.splitCoreParams.set_singleN(singleN);
-    td_.splitCoreParams.set_s1OuterOuter(CeilCommon(td_.opInfo.get_S1(), singleM));
-    td_.splitCoreParams.set_s2OuterOuter(CeilCommon(td_.opInfo.get_S2(), singleN));
+    td_->splitCoreParams.set_SFTBaseM(sftBaseM);
+    td_->splitCoreParams.set_SFTSingleM(sftSingleM);
+    td_->splitCoreParams.set_dInner(baseD);
+    td_->splitCoreParams.set_baseM(baseM);
+    td_->splitCoreParams.set_baseN(baseN);
+    td_->splitCoreParams.set_singleM(singleM);
+    td_->splitCoreParams.set_singleN(singleN);
+    td_->splitCoreParams.set_s1OuterOuter(CeilCommon(td_->opInfo.get_S1(), singleM));
+    td_->splitCoreParams.set_s2OuterOuter(CeilCommon(td_->opInfo.get_S2(), singleN));
 
     auto status = DoBlockTiling();
     if (status != ge::GRAPH_SUCCESS) {
@@ -1306,8 +1309,8 @@ void FlashAttentionScoreGradTilingS1s2Bn2::PrintShapeInfo()
 {
     OP_LOGI(context_,
               "FAG S1s2Bn2 with shape b[%ld] n2[%ld] g[%ld] s1[%ld] s2[%ld] d[%ld] preToken[%ld] nextToken[%ld]!",
-              td_.opInfo.get_B(), td_.opInfo.get_N2(), td_.opInfo.get_G(), td_.opInfo.get_S1(), td_.opInfo.get_S2(),
-              td_.opInfo.get_D(), td_.opInfo.get_preTokens(), td_.opInfo.get_nextTokens());
+              td_->opInfo.get_B(), td_->opInfo.get_N2(), td_->opInfo.get_G(), td_->opInfo.get_S1(), td_->opInfo.get_S2(),
+              td_->opInfo.get_D(), td_->opInfo.get_preTokens(), td_->opInfo.get_nextTokens());
 }
 
 ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2::DoLibApiTiling()
@@ -1315,13 +1318,13 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2::DoLibApiTiling()
     // calc for simpleSoftMax which dstShape is as same as srcShape
     auto simpleSoftMaxShape = ge::Shape({baseM, baseN});
     auto helpLenA = tensorSize * tmpData_.dataTypeSize; // UB内数据类型
-    AscendC::SoftMaxTilingFunc(simpleSoftMaxShape, sizeof(float), helpLenA, td_.softmaxTilingData);
+    AscendC::SoftMaxTilingFunc(simpleSoftMaxShape, sizeof(float), helpLenA, td_->softmaxTilingData);
 
     // calc for softmaxGrad
     // calcByFp32 is [sftBaseM, 8], calcByFP16 is [sftBaseM, 16]
     auto softmaxGradShape = ge::Shape({sftBaseM, BLOCK / tmpData_.dataTypeSize});
     auto helpLenB = 2 * tensorSize * tmpData_.dataTypeSize; // UB内数据类型 64KB
-    AscendC::SoftMaxGradTilingFunc(softmaxGradShape, tmpData_.dataTypeSize, helpLenB, td_.softmaxGradTilingData, true);
+    AscendC::SoftMaxGradTilingFunc(softmaxGradShape, tmpData_.dataTypeSize, helpLenB, td_->softmaxGradTilingData, true);
 
     // calc BMM
     auto status = SetBmm1TilingData(baseMmm, baseNmm, aicoreParams_.l1Size);
@@ -1345,26 +1348,26 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2::DoLibApiTiling()
 ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2::DoCastTiling()
 {
     // query
-    int64_t dAlign = (td_.opInfo.get_D() + 15) / 16 * 16;
-    int64_t allNumQuery = td_.opInfo.get_B() * td_.opInfo.get_N2() * td_.opInfo.get_G() * td_.opInfo.get_S1() * dAlign;
+    int64_t dAlign = (td_->opInfo.get_D() + 15) / 16 * 16;
+    int64_t allNumQuery = td_->opInfo.get_B() * td_->opInfo.get_N2() * td_->opInfo.get_G() * td_->opInfo.get_S1() * dAlign;
     // TND时候要按照真实的query的num数计算
-    if (td_.opInfo.get_layout() == static_cast<uint32_t>(InputLayout::TND)) {
-        allNumQuery = tmpData_.t1 * td_.opInfo.get_N2() * td_.opInfo.get_G() * td_.opInfo.get_D();
+    if (td_->opInfo.get_layout() == static_cast<uint32_t>(InputLayout::TND)) {
+        allNumQuery = tmpData_.t1 * td_->opInfo.get_N2() * td_->opInfo.get_G() * td_->opInfo.get_D();
     }
 
     // K V
-    int64_t allNumKv = td_.opInfo.get_B() * td_.opInfo.get_N2() * td_.opInfo.get_S2() * dAlign;
+    int64_t allNumKv = td_->opInfo.get_B() * td_->opInfo.get_N2() * td_->opInfo.get_S2() * dAlign;
     // TND时候要按照真实的k，v的num数计算
-    if (td_.opInfo.get_layout() == static_cast<uint32_t>(InputLayout::TND)) {
-        allNumKv = tmpData_.t2 * td_.opInfo.get_N2() * 1 * td_.opInfo.get_D();
+    if (td_->opInfo.get_layout() == static_cast<uint32_t>(InputLayout::TND)) {
+        allNumKv = tmpData_.t2 * td_->opInfo.get_N2() * 1 * td_->opInfo.get_D();
     }
     uint32_t typeSize = tmpData_.queryType == ge::DT_FLOAT ? B32 : B16;
-    uint32_t usedCoreNum = td_.opInfo.get_castUsedCoreNum();
+    uint32_t usedCoreNum = td_->opInfo.get_castUsedCoreNum();
     constexpr uint32_t postNzCoexNode = 10;
     constexpr uint32_t blockSize = 32;
     constexpr uint32_t postNzReservedN = 1;
     tmpData_.isMM345NZOut =
-        tmpData_.queryType != ge::DT_FLOAT && td_.opInfo.get_layout() != static_cast<uint32_t>(InputLayout::TND) &&
+        tmpData_.queryType != ge::DT_FLOAT && td_->opInfo.get_layout() != static_cast<uint32_t>(InputLayout::TND) &&
         (tmpData_.d == 72 || tmpData_.d == 80 || tmpData_.d == 88 || tmpData_.d == 96); // mm345NZ出 72, 80, 88, 96
     uint32_t postUbBaseSize = 0;
     uint32_t qPostBaseNum = 0;
@@ -1378,13 +1381,13 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2::DoCastTiling()
         postUbBaseSize = (aicoreParams_.ubSize - 2 * nzReservedSize) / curPostCoexNode /
                          BUFFER_NUM / // 开DB预留2份nzReservedSize
                          BASE_LEN_256 * BASE_LEN_256;
-        qPostBaseNum = postUbBaseSize / typeSize / dAlign * td_.opInfo.get_D();
+        qPostBaseNum = postUbBaseSize / typeSize / dAlign * td_->opInfo.get_D();
     }
 
     OP_CHECK_IF(qPostBaseNum == 0, OP_LOGE(context_, "qPostBaseNum is 0."), return ge::GRAPH_FAILED);
     OP_CHECK_IF(usedCoreNum == 0, OP_LOGE(context_, "castUsedCoreNum is 0."),
                return ge::GRAPH_FAILED);
-    int64_t qPostBlockTotal = allNumQuery / dAlign * td_.opInfo.get_D();
+    int64_t qPostBlockTotal = allNumQuery / dAlign * td_->opInfo.get_D();
     int64_t qSizeAlign = (qPostBlockTotal + BASE_LEN_256 - 1) / GM_ALIGN * GM_ALIGN * typeSize;
     int64_t qPostTailNumTmp = qPostBlockTotal % qPostBaseNum;
     int64_t qPostTailNum = qPostTailNumTmp == 0 ? qPostBaseNum : qPostTailNumTmp;
@@ -1394,7 +1397,7 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2::DoCastTiling()
     int64_t kvPostBaseNum = qPostBaseNum;
     OP_CHECK_IF(kvPostBaseNum == 0, OP_LOGE(context_, "kvPostBaseNum is 0."),
                return ge::GRAPH_FAILED);
-    int64_t kvPostBlockTotal = allNumKv / dAlign * td_.opInfo.get_D();
+    int64_t kvPostBlockTotal = allNumKv / dAlign * td_->opInfo.get_D();
     int64_t kvSizeAlign = (kvPostBlockTotal + GM_ALIGN - 1) / GM_ALIGN * GM_ALIGN * typeSize;
     int64_t kvPostTailNumTmp = kvPostBlockTotal % kvPostBaseNum;
     int64_t kvPostTailNum = kvPostTailNumTmp == 0 ? kvPostBaseNum : kvPostTailNumTmp;
@@ -1412,33 +1415,33 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2::DoCastTiling()
     }
     postMaxDataSize = vecQueUbSize / totalDtypeSize;
 
-    td_.postTilingData.set_coreNum(usedCoreNum);
-    td_.postTilingData.set_scaleValue(td_.opInfo.get_scaleValue());
-    td_.postTilingData.set_postUbBaseSize(postUbBaseSize);
-    td_.postTilingData.set_postMaxDataSize(postMaxDataSize);
-    td_.postTilingData.set_qPostBlockFactor(qPostBlockFactor);
-    td_.postTilingData.set_qPostBlockTotal(qPostBlockTotal);
-    td_.postTilingData.set_qPostBaseNum(qPostBaseNum);
-    td_.postTilingData.set_qPostTailNum(qPostTailNum);
-    td_.postTilingData.set_qSizeAlign(qSizeAlign);
+    td_->postTilingData.set_coreNum(usedCoreNum);
+    td_->postTilingData.set_scaleValue(td_->opInfo.get_scaleValue());
+    td_->postTilingData.set_postUbBaseSize(postUbBaseSize);
+    td_->postTilingData.set_postMaxDataSize(postMaxDataSize);
+    td_->postTilingData.set_qPostBlockFactor(qPostBlockFactor);
+    td_->postTilingData.set_qPostBlockTotal(qPostBlockTotal);
+    td_->postTilingData.set_qPostBaseNum(qPostBaseNum);
+    td_->postTilingData.set_qPostTailNum(qPostTailNum);
+    td_->postTilingData.set_qSizeAlign(qSizeAlign);
 
-    td_.postTilingData.set_kvPostBlockFactor(kvPostBlockFactor);
-    td_.postTilingData.set_kvPostBlockTotal(kvPostBlockTotal);
-    td_.postTilingData.set_kvPostBaseNum(kvPostBaseNum);
-    td_.postTilingData.set_kvPostTailNum(kvPostTailNum);
-    td_.postTilingData.set_kvSizeAlign(kvSizeAlign);
-    td_.postTilingData.set_nzReservedSize(nzReservedSize);
+    td_->postTilingData.set_kvPostBlockFactor(kvPostBlockFactor);
+    td_->postTilingData.set_kvPostBlockTotal(kvPostBlockTotal);
+    td_->postTilingData.set_kvPostBaseNum(kvPostBaseNum);
+    td_->postTilingData.set_kvPostTailNum(kvPostTailNum);
+    td_->postTilingData.set_kvSizeAlign(kvSizeAlign);
+    td_->postTilingData.set_nzReservedSize(nzReservedSize);
 
-    td_.opInfo.set_dqWorkspaceLen((allNumQuery * B32 + GM_ALIGN - 1) / GM_ALIGN * GM_ALIGN);
-    td_.opInfo.set_dkWorkspaceLen((allNumKv * B32 + GM_ALIGN - 1) / GM_ALIGN * GM_ALIGN);
-    td_.opInfo.set_dvWorkspaceLen((allNumKv * B32 + GM_ALIGN - 1) / GM_ALIGN * GM_ALIGN);
+    td_->opInfo.set_dqWorkspaceLen((allNumQuery * B32 + GM_ALIGN - 1) / GM_ALIGN * GM_ALIGN);
+    td_->opInfo.set_dkWorkspaceLen((allNumKv * B32 + GM_ALIGN - 1) / GM_ALIGN * GM_ALIGN);
+    td_->opInfo.set_dvWorkspaceLen((allNumKv * B32 + GM_ALIGN - 1) / GM_ALIGN * GM_ALIGN);
 
-    td_.postTilingData.set_b(td_.opInfo.get_B());
-    td_.postTilingData.set_n2(td_.opInfo.get_N2());
-    td_.postTilingData.set_g(td_.opInfo.get_G());
-    td_.postTilingData.set_s1(td_.opInfo.get_S1());
-    td_.postTilingData.set_s2(td_.opInfo.get_S2());
-    td_.postTilingData.set_d(td_.opInfo.get_D());
+    td_->postTilingData.set_b(td_->opInfo.get_B());
+    td_->postTilingData.set_n2(td_->opInfo.get_N2());
+    td_->postTilingData.set_g(td_->opInfo.get_G());
+    td_->postTilingData.set_s1(td_->opInfo.get_S1());
+    td_->postTilingData.set_s2(td_->opInfo.get_S2());
+    td_->postTilingData.set_d(td_->opInfo.get_D());
 
     return ge::GRAPH_SUCCESS;
 }
@@ -1452,12 +1455,12 @@ void FlashAttentionScoreGradTilingS1s2Bn2::DoPreTiling()
     uint32_t inputBufferLen = 4 * 1024;
     int64_t singleUBProcessNum = castBufferLen / NUMBER_2;
 
-    tmpData_.dropMaskSize = static_cast<int64_t>(td_.opInfo.get_B()) * td_.opInfo.get_N2() * td_.opInfo.get_G() *
-                            td_.opInfo.get_S1() * td_.opInfo.get_S2();
-    if (td_.opInfo.get_layout() == static_cast<uint32_t>(InputLayout::TND)) {
-        tmpData_.dropMaskSize = tmpData_.sumS1S2Product * td_.opInfo.get_N2() * td_.opInfo.get_G();
+    tmpData_.dropMaskSize = static_cast<int64_t>(td_->opInfo.get_B()) * td_->opInfo.get_N2() * td_->opInfo.get_G() *
+                            td_->opInfo.get_S1() * td_->opInfo.get_S2();
+    if (td_->opInfo.get_layout() == static_cast<uint32_t>(InputLayout::TND)) {
+        tmpData_.dropMaskSize = tmpData_.sumS1S2Product * td_->opInfo.get_N2() * td_->opInfo.get_G();
     }
-    uint32_t usedCoreNum = td_.opInfo.get_castUsedCoreNum();
+    uint32_t usedCoreNum = td_->opInfo.get_castUsedCoreNum();
 
     int64_t maskSize = AlignTo(tmpData_.dropMaskSize, static_cast<int64_t>(BOOL_BLOCK_NUMS));
     int64_t singleCoreNum =
@@ -1474,30 +1477,30 @@ void FlashAttentionScoreGradTilingS1s2Bn2::DoPreTiling()
         static_cast<uint32_t>(singleCoreNum - (singleCoreUBLoop - 1) * singleUBProcessNum);
     uint32_t tailCoreUBLastLoopNum = static_cast<uint32_t>(tailCoreNum - (tailCoreUBLoop - 1) * singleUBProcessNum);
 
-    td_.preTilingData.set_maskCoreNum(maskUsedCoreNum);
-    td_.preTilingData.set_castBufferLen(castBufferLen);
-    td_.preTilingData.set_outputBufferLen(outputBufferLen);
-    td_.preTilingData.set_inputBufferLen(inputBufferLen);
-    td_.preTilingData.set_singleUBProcessNum(static_cast<uint32_t>(singleUBProcessNum));
-    td_.preTilingData.set_maskSingleCoreNum(singleCoreNum); // size == num
-    td_.preTilingData.set_maskSingleCoreLoop(singleCoreUBLoop);
-    td_.preTilingData.set_maskLastLoopNum(singleCoreUBLastLoopNum);
-    td_.preTilingData.set_maskTailCoreLoop(tailCoreUBLoop);
-    td_.preTilingData.set_maskTailCoreLastLoopNum(tailCoreUBLastLoopNum);
+    td_->preTilingData.set_maskCoreNum(maskUsedCoreNum);
+    td_->preTilingData.set_castBufferLen(castBufferLen);
+    td_->preTilingData.set_outputBufferLen(outputBufferLen);
+    td_->preTilingData.set_inputBufferLen(inputBufferLen);
+    td_->preTilingData.set_singleUBProcessNum(static_cast<uint32_t>(singleUBProcessNum));
+    td_->preTilingData.set_maskSingleCoreNum(singleCoreNum); // size == num
+    td_->preTilingData.set_maskSingleCoreLoop(singleCoreUBLoop);
+    td_->preTilingData.set_maskLastLoopNum(singleCoreUBLastLoopNum);
+    td_->preTilingData.set_maskTailCoreLoop(tailCoreUBLoop);
+    td_->preTilingData.set_maskTailCoreLastLoopNum(tailCoreUBLastLoopNum);
 
-    td_.preTilingData.set_qPreBlockFactor(0);
-    td_.preTilingData.set_qPreBlockTotal(0);
-    td_.preTilingData.set_qPreBlockTail(0);
-    td_.preTilingData.set_kvPreBlockFactor(0);
-    td_.preTilingData.set_kvPreBlockTotal(0);
-    td_.preTilingData.set_kvPreBlockTail(0);
-    td_.preTilingData.set_maskPreBlockTotal(0);
+    td_->preTilingData.set_qPreBlockFactor(0);
+    td_->preTilingData.set_qPreBlockTotal(0);
+    td_->preTilingData.set_qPreBlockTail(0);
+    td_->preTilingData.set_kvPreBlockFactor(0);
+    td_->preTilingData.set_kvPreBlockTotal(0);
+    td_->preTilingData.set_kvPreBlockTail(0);
+    td_->preTilingData.set_maskPreBlockTotal(0);
 
     int64_t dropoutWorkspaceLen = 0;
     uint32_t dropoutIsDivisibleBy8 = 1;
     // TND layout对应的每个B下面的S2分别对baseN进行求余，判断是否可以整除
-    if (td_.opInfo.get_layout() == static_cast<uint32_t>(InputLayout::TND)) {
-        if (td_.opInfo.get_keepProb() < 1) {
+    if (td_->opInfo.get_layout() == static_cast<uint32_t>(InputLayout::TND)) {
+        if (td_->opInfo.get_keepProb() < 1) {
             for (int64_t i = 0; i < tmpData_.b; i++) {
                 if (tmpData_.actualSeqKvlen[i] % baseN != 0) {
                     dropoutIsDivisibleBy8 = 0;
@@ -1506,31 +1509,31 @@ void FlashAttentionScoreGradTilingS1s2Bn2::DoPreTiling()
             }
             if (dropoutIsDivisibleBy8 == 0) {
                 dropoutWorkspaceLen = static_cast<int64_t>(tmpData_.sumS1S2Product);
-                dropoutWorkspaceLen *= static_cast<int64_t>(td_.opInfo.get_N2());
-                dropoutWorkspaceLen *= static_cast<int64_t>(td_.opInfo.get_G());
+                dropoutWorkspaceLen *= static_cast<int64_t>(td_->opInfo.get_N2());
+                dropoutWorkspaceLen *= static_cast<int64_t>(td_->opInfo.get_G());
                 dropoutWorkspaceLen = (dropoutWorkspaceLen + BLOCK - 1) / BLOCK * BLOCK;
                 dropoutWorkspaceLen = (dropoutWorkspaceLen + GM_ALIGN - 1) / GM_ALIGN * GM_ALIGN;
             }
         }
-    } else if (td_.opInfo.get_keepProb() < 1 && td_.opInfo.get_S2() % baseN != 0) {
+    } else if (td_->opInfo.get_keepProb() < 1 && td_->opInfo.get_S2() % baseN != 0) {
         dropoutIsDivisibleBy8 = 0;
-        dropoutWorkspaceLen = td_.opInfo.get_B();
-        dropoutWorkspaceLen *= td_.opInfo.get_N2();
-        dropoutWorkspaceLen *= td_.opInfo.get_G();
-        dropoutWorkspaceLen *= td_.opInfo.get_S1();
-        dropoutWorkspaceLen *= td_.opInfo.get_S2();
+        dropoutWorkspaceLen = td_->opInfo.get_B();
+        dropoutWorkspaceLen *= td_->opInfo.get_N2();
+        dropoutWorkspaceLen *= td_->opInfo.get_G();
+        dropoutWorkspaceLen *= td_->opInfo.get_S1();
+        dropoutWorkspaceLen *= td_->opInfo.get_S2();
         dropoutWorkspaceLen = (dropoutWorkspaceLen + BLOCK - 1) / BLOCK * BLOCK;
         dropoutWorkspaceLen = (dropoutWorkspaceLen + GM_ALIGN - 1) / GM_ALIGN * GM_ALIGN;
     }
-    td_.opInfo.set_dropoutWorkspaceLen(dropoutWorkspaceLen);
-    td_.preTilingData.set_dropoutIsDivisibleBy8(dropoutIsDivisibleBy8);
-    td_.preTilingData.set_dropBeginAddr(0);
+    td_->opInfo.set_dropoutWorkspaceLen(dropoutWorkspaceLen);
+    td_->preTilingData.set_dropoutIsDivisibleBy8(dropoutIsDivisibleBy8);
+    td_->preTilingData.set_dropBeginAddr(0);
 }
 
 ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2::GetWorkspaceSize()
 {
     int64_t currentUseCoreNum =
-        tmpData_.isL1CustomEnable ? (td_.opInfo.get_usedCoreNum() * 2) : td_.opInfo.get_usedCoreNum();
+        tmpData_.isL1CustomEnable ? (td_->opInfo.get_usedCoreNum() * 2) : td_->opInfo.get_usedCoreNum();
     int64_t launchBlockDims = needAdjustBlockDim ? currentUseCoreNum : aicoreParams_.blockDim;
     // Tiling传递的内存大小、起始地址，统一为字节数，单位为B
     auto blockdim = CalcTschBlockDim(launchBlockDims, aicoreParams_.aicNum, aicoreParams_.blockDim);
@@ -1543,7 +1546,7 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2::GetWorkspaceSize()
     // 系统预留
     int64_t sysLen = WORKSPACE_BASE_CAL;
     // dropout output
-    int64_t dropoutWorkspaceLen = td_.opInfo.get_dropoutWorkspaceLen();
+    int64_t dropoutWorkspaceLen = td_->opInfo.get_dropoutWorkspaceLen();
 
     // bmm1/bmm2 output
     int64_t mm1WorkspaceLen = singleM * singleN * tmpData_.dataTypeSize;
@@ -1560,11 +1563,11 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2::GetWorkspaceSize()
     int64_t mm3InputWorkspaceLen = space + space;
 
     // dqCast
-    int64_t dqWorkspaceLen = td_.opInfo.get_dqWorkspaceLen();
+    int64_t dqWorkspaceLen = td_->opInfo.get_dqWorkspaceLen();
     // dkCast
-    int64_t dkWorkspaceLen = td_.opInfo.get_dkWorkspaceLen();
+    int64_t dkWorkspaceLen = td_->opInfo.get_dkWorkspaceLen();
     // dvCast
-    int64_t dvWorkspaceLen = td_.opInfo.get_dvWorkspaceLen();
+    int64_t dvWorkspaceLen = td_->opInfo.get_dvWorkspaceLen();
 
     // set global workspace
     // 内存顺序排布
@@ -1572,11 +1575,11 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2::GetWorkspaceSize()
     workspaces[0] = sysLen;
     workspaces[0] += dropoutWorkspaceLen;
     workspaces[0] += (mm1WorkspaceLen + mm2WorkspaceLen) * currentUseCoreNum;
-    workspaces[0] += (mm4InputWorkspaceLen + mm3InputWorkspaceLen) * td_.opInfo.get_usedCoreNum();
+    workspaces[0] += (mm4InputWorkspaceLen + mm3InputWorkspaceLen) * td_->opInfo.get_usedCoreNum();
     workspaces[0] += dqWorkspaceLen + dkWorkspaceLen + dvWorkspaceLen;
     if (tmpData_.pseType == PSE_INNER_MUL_ADD_TYPE || tmpData_.pseType == PSE_INNER_MUL_ADD_SQRT_TYPE) {
         tmpData_.pseAlibiBaseS2 = PSE_ALIBI_S2_LIMIT_SIZE;
-        int64_t s2Tail = td_.opInfo.get_S2() % PSE_ALIBI_S2_LIMIT_SIZE;
+        int64_t s2Tail = td_->opInfo.get_S2() % PSE_ALIBI_S2_LIMIT_SIZE;
         if (s2Tail != 0) {
             tmpData_.pseAlibiBaseS1 =
                 std::min(static_cast<int64_t>(BASE_LEN_128), UB_BASIC_LIMIT_SIZE / AlignUp(s2Tail, FRACTAL_NUM));
@@ -1586,51 +1589,38 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2::GetWorkspaceSize()
         }
         tmpData_.pseAlibiBaseS1 = std::max(tmpData_.pseAlibiBaseS1, UB_BASIC_LIMIT_SIZE / BASE_LEN_128);
         int64_t pseAlibiBytes =
-            AlignUp(tmpData_.pseAlibiBaseS2 * tmpData_.pseAlibiBaseS1 * 2, GM_ALIGN) * td_.opInfo.get_usedCoreNum();
+            AlignUp(tmpData_.pseAlibiBaseS2 * tmpData_.pseAlibiBaseS1 * 2, GM_ALIGN) * td_->opInfo.get_usedCoreNum();
         workspaces[0] += pseAlibiBytes;
 
-        td_.opInfo.set_pseAlibiBaseS1(tmpData_.pseAlibiBaseS1);
-        td_.opInfo.set_pseAlibiBaseS2(tmpData_.pseAlibiBaseS2);
+        td_->opInfo.set_pseAlibiBaseS1(tmpData_.pseAlibiBaseS1);
+        td_->opInfo.set_pseAlibiBaseS2(tmpData_.pseAlibiBaseS2);
     }
 
     // setTilingData
-    td_.opInfo.set_mm1WorkspaceLen(mm1WorkspaceLen);
-    td_.opInfo.set_mm2WorkspaceLen(mm2WorkspaceLen);
-    td_.opInfo.set_mm4InputWorkspaceLen(mm4InputWorkspaceLen);
-    td_.opInfo.set_mm3InputWorkspaceLen(mm3InputWorkspaceLen);
+    td_->opInfo.set_mm1WorkspaceLen(mm1WorkspaceLen);
+    td_->opInfo.set_mm2WorkspaceLen(mm2WorkspaceLen);
+    td_->opInfo.set_mm4InputWorkspaceLen(mm4InputWorkspaceLen);
+    td_->opInfo.set_mm3InputWorkspaceLen(mm3InputWorkspaceLen);
 
     int64_t workspaceOffsets =
-        td_.opInfo.get_dropoutWorkspaceLen() +
-        (td_.opInfo.get_mm1WorkspaceLen() + td_.opInfo.get_mm2WorkspaceLen()) * currentUseCoreNum;
+        td_->opInfo.get_dropoutWorkspaceLen() +
+        (td_->opInfo.get_mm1WorkspaceLen() + td_->opInfo.get_mm2WorkspaceLen()) * currentUseCoreNum;
     workspaceOffsets +=
-        (td_.opInfo.get_mm4InputWorkspaceLen() + td_.opInfo.get_mm3InputWorkspaceLen()) * td_.opInfo.get_usedCoreNum();
+        (td_->opInfo.get_mm4InputWorkspaceLen() + td_->opInfo.get_mm3InputWorkspaceLen()) * td_->opInfo.get_usedCoreNum();
 
-    td_.postTilingData.set_dqWorkSpaceOffset(workspaceOffsets);
+    td_->postTilingData.set_dqWorkSpaceOffset(workspaceOffsets);
 
-    workspaceOffsets = workspaceOffsets + td_.opInfo.get_dqWorkspaceLen();
-    td_.postTilingData.set_dkWorkSpaceOffset(workspaceOffsets);
+    workspaceOffsets = workspaceOffsets + td_->opInfo.get_dqWorkspaceLen();
+    td_->postTilingData.set_dkWorkSpaceOffset(workspaceOffsets);
 
-    workspaceOffsets = workspaceOffsets + td_.opInfo.get_dkWorkspaceLen();
-    td_.postTilingData.set_dvWorkSpaceOffset(workspaceOffsets);
+    workspaceOffsets = workspaceOffsets + td_->opInfo.get_dkWorkspaceLen();
+    td_->postTilingData.set_dvWorkSpaceOffset(workspaceOffsets);
 
     return ge::GRAPH_SUCCESS;
 }
 
 ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2::PostTiling()
 {
-    // 判断如果GetDataSize > GetCapacity的异常情况,其中确定性计算下终止流程，非确定性计算流入下一个模板判断
-    OP_CHECK_IF((td_.GetDataSize() > context_->GetRawTilingData()->GetCapacity()) && (context_->GetDeterministic() == 1),
-               OP_LOGE(context_, "The size of TilingDataSize[%zu] is larger than the size of MaxDataCapacity[%zu].",
-                         td_.GetDataSize(), context_->GetRawTilingData()->GetCapacity()),
-               return ge::GRAPH_FAILED);
-    OP_CHECK_IF((td_.GetDataSize() > context_->GetRawTilingData()->GetCapacity()) && (context_->GetDeterministic() != 1),
-               OP_LOGW(context_, "The size of TilingDataSize[%zu] is larger than the size of MaxDataCapacity[%zu].",
-                         td_.GetDataSize(), context_->GetRawTilingData()->GetCapacity()),
-               return ge::GRAPH_PARAM_INVALID);
-
-    td_.SaveToBuffer(context_->GetRawTilingData()->GetData(), context_->GetRawTilingData()->GetCapacity());
-    context_->GetRawTilingData()->SetDataSize(td_.GetDataSize());
-
     return ge::GRAPH_SUCCESS;
 }
 
@@ -1638,20 +1628,20 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2::GetLayoutInfo()
 {
     const char *inputLayout = context_->GetAttrs()->GetAttrPointer<char>(INPUT_LAYOUT);
     if (strcmp(inputLayout, BSH_STR) == 0) {
-        td_.opInfo.set_layout(static_cast<uint32_t>(InputLayout::BSH));
+        td_->opInfo.set_layout(static_cast<uint32_t>(InputLayout::BSH));
     } else if (strcmp(inputLayout, SBH_STR) == 0) {
-        td_.opInfo.set_layout(static_cast<uint32_t>(InputLayout::SBH));
+        td_->opInfo.set_layout(static_cast<uint32_t>(InputLayout::SBH));
     } else if (strcmp(inputLayout, BNSD_STR) == 0) {
-        td_.opInfo.set_layout(static_cast<uint32_t>(InputLayout::BNSD));
+        td_->opInfo.set_layout(static_cast<uint32_t>(InputLayout::BNSD));
     } else if (strcmp(inputLayout, BSND_STR) == 0) {
-        td_.opInfo.set_layout(static_cast<uint32_t>(InputLayout::BSND));
+        td_->opInfo.set_layout(static_cast<uint32_t>(InputLayout::BSND));
     } else if (strcmp(inputLayout, TND_STR) == 0) {
-        td_.opInfo.set_layout(static_cast<uint32_t>(InputLayout::TND));
+        td_->opInfo.set_layout(static_cast<uint32_t>(InputLayout::TND));
     } else {
         OP_LOGW(context_, "FlashAttentionScoreGradTilingS1s2Bn2 unsupported layout");
         return ge::GRAPH_PARAM_INVALID;
     }
-    tmpData_.layout = td_.opInfo.get_layout();
+    tmpData_.layout = td_->opInfo.get_layout();
     return ge::GRAPH_SUCCESS;
 }
 
@@ -1664,55 +1654,55 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2::SetBaseInfo(const gert::Sh
     const char *inputLayout = context_->GetAttrs()->GetAttrPointer<char>(INPUT_LAYOUT);
     OP_CHECK_IF(static_cast<size_t>(dimSize) != strlen(inputLayout),
                OP_LOGW(context_, "layout dims is not inputLayout's length."), return ge::GRAPH_PARAM_INVALID);
-    if (td_.opInfo.get_layout() == static_cast<uint32_t>(InputLayout::BNSD)) {
-        td_.opInfo.set_B(queryShape.GetDim(DIM_0));
+    if (td_->opInfo.get_layout() == static_cast<uint32_t>(InputLayout::BNSD)) {
+        td_->opInfo.set_B(queryShape.GetDim(DIM_0));
         OP_CHECK_IF(keyShape.GetDim(DIM_1) == 0, OP_LOGW(context_, "dim 1 of key is 0."),
                    return ge::GRAPH_PARAM_INVALID);
-        td_.opInfo.set_G(queryShape.GetDim(DIM_1) / keyShape.GetDim(DIM_1));
-        OP_CHECK_IF(td_.opInfo.get_G() == 0, OP_LOGW(context_, "g is 0"), return ge::GRAPH_PARAM_INVALID);
-        td_.opInfo.set_N2(keyShape.GetDim(DIM_1));
-        td_.opInfo.set_S1(queryShape.GetDim(DIM_2));
-        td_.opInfo.set_S2(keyShape.GetDim(DIM_2));
-        td_.opInfo.set_D(queryShape.GetDim(DIM_3));
-    } else if (td_.opInfo.get_layout() == static_cast<uint32_t>(InputLayout::BSND)) {
+        td_->opInfo.set_G(queryShape.GetDim(DIM_1) / keyShape.GetDim(DIM_1));
+        OP_CHECK_IF(td_->opInfo.get_G() == 0, OP_LOGW(context_, "g is 0"), return ge::GRAPH_PARAM_INVALID);
+        td_->opInfo.set_N2(keyShape.GetDim(DIM_1));
+        td_->opInfo.set_S1(queryShape.GetDim(DIM_2));
+        td_->opInfo.set_S2(keyShape.GetDim(DIM_2));
+        td_->opInfo.set_D(queryShape.GetDim(DIM_3));
+    } else if (td_->opInfo.get_layout() == static_cast<uint32_t>(InputLayout::BSND)) {
         OP_CHECK_IF((queryShape.GetDimNum() != DIMS_FOUR || keyShape.GetDimNum() != DIMS_FOUR),
                    OP_LOGW(context_, "the dim of query or key is not 4."), return ge::GRAPH_PARAM_INVALID);
-        td_.opInfo.set_B(queryShape.GetDim(DIM_0));
+        td_->opInfo.set_B(queryShape.GetDim(DIM_0));
         OP_CHECK_IF(keyShape.GetDim(DIM_2) == 0, OP_LOGW(context_, "dim 2 of key is 0."),
                    return ge::GRAPH_PARAM_INVALID);
-        td_.opInfo.set_G(queryShape.GetDim(DIM_2) / keyShape.GetDim(DIM_2));
-        OP_CHECK_IF(td_.opInfo.get_G() == 0, OP_LOGW(context_, "g is 0"), return ge::GRAPH_PARAM_INVALID);
-        td_.opInfo.set_N2(keyShape.GetDim(DIM_2));
-        td_.opInfo.set_S1(queryShape.GetDim(DIM_1));
-        td_.opInfo.set_S2(keyShape.GetDim(DIM_1));
-        td_.opInfo.set_D(queryShape.GetDim(DIM_3));
-    } else if (td_.opInfo.get_layout() == static_cast<uint32_t>(InputLayout::BSH)) {
+        td_->opInfo.set_G(queryShape.GetDim(DIM_2) / keyShape.GetDim(DIM_2));
+        OP_CHECK_IF(td_->opInfo.get_G() == 0, OP_LOGW(context_, "g is 0"), return ge::GRAPH_PARAM_INVALID);
+        td_->opInfo.set_N2(keyShape.GetDim(DIM_2));
+        td_->opInfo.set_S1(queryShape.GetDim(DIM_1));
+        td_->opInfo.set_S2(keyShape.GetDim(DIM_1));
+        td_->opInfo.set_D(queryShape.GetDim(DIM_3));
+    } else if (td_->opInfo.get_layout() == static_cast<uint32_t>(InputLayout::BSH)) {
         OP_CHECK_IF((queryShape.GetDimNum() != DIMS_THREE || keyShape.GetDimNum() != DIMS_THREE),
                    OP_LOGW(context_, "the dim of query or key is not 3."), return ge::GRAPH_PARAM_INVALID);
         int64_t tempDimD = queryShape.GetDim(DIM_2) / dimN1;
         OP_CHECK_IF(tempDimD == 0, OP_LOGW(context_, "tempDimD is 0."), return ge::GRAPH_PARAM_INVALID);
         int64_t dimN2 = keyShape.GetDim(DIM_2) / tempDimD;
         OP_CHECK_IF(dimN2 == 0, OP_LOGW(context_, "dimN2 is 0."), return ge::GRAPH_PARAM_INVALID);
-        td_.opInfo.set_B(queryShape.GetDim(DIM_0));
-        td_.opInfo.set_G(dimN1 / dimN2);
-        OP_CHECK_IF(td_.opInfo.get_G() == 0, OP_LOGW(context_, "g is 0"), return ge::GRAPH_PARAM_INVALID);
-        td_.opInfo.set_N2(dimN2);
-        td_.opInfo.set_S1(queryShape.GetDim(DIM_1));
-        td_.opInfo.set_S2(keyShape.GetDim(DIM_1));
-        td_.opInfo.set_D(tempDimD);
-    } else if (td_.opInfo.get_layout() == static_cast<uint32_t>(InputLayout::SBH)) {
+        td_->opInfo.set_B(queryShape.GetDim(DIM_0));
+        td_->opInfo.set_G(dimN1 / dimN2);
+        OP_CHECK_IF(td_->opInfo.get_G() == 0, OP_LOGW(context_, "g is 0"), return ge::GRAPH_PARAM_INVALID);
+        td_->opInfo.set_N2(dimN2);
+        td_->opInfo.set_S1(queryShape.GetDim(DIM_1));
+        td_->opInfo.set_S2(keyShape.GetDim(DIM_1));
+        td_->opInfo.set_D(tempDimD);
+    } else if (td_->opInfo.get_layout() == static_cast<uint32_t>(InputLayout::SBH)) {
         int64_t tempDimD = queryShape.GetDim(DIM_2) / dimN1;
         OP_CHECK_IF(tempDimD == 0, OP_LOGW(context_, "tempDimD is 0."), return ge::GRAPH_PARAM_INVALID);
         int64_t dimN2 = keyShape.GetDim(DIM_2) / tempDimD;
         OP_CHECK_IF(dimN2 == 0, OP_LOGW(context_, "dimN2 is 0."), return ge::GRAPH_PARAM_INVALID);
-        td_.opInfo.set_B(queryShape.GetDim(DIM_1));
-        td_.opInfo.set_G(dimN1 / dimN2);
-        OP_CHECK_IF(td_.opInfo.get_G() == 0, OP_LOGW(context_, "g is 0"), return ge::GRAPH_PARAM_INVALID);
-        td_.opInfo.set_N2(dimN2);
-        td_.opInfo.set_S1(queryShape.GetDim(DIM_0));
-        td_.opInfo.set_S2(keyShape.GetDim(DIM_0));
-        td_.opInfo.set_D(tempDimD);
-    } else if (td_.opInfo.get_layout() == static_cast<uint32_t>(InputLayout::TND)) {
+        td_->opInfo.set_B(queryShape.GetDim(DIM_1));
+        td_->opInfo.set_G(dimN1 / dimN2);
+        OP_CHECK_IF(td_->opInfo.get_G() == 0, OP_LOGW(context_, "g is 0"), return ge::GRAPH_PARAM_INVALID);
+        td_->opInfo.set_N2(dimN2);
+        td_->opInfo.set_S1(queryShape.GetDim(DIM_0));
+        td_->opInfo.set_S2(keyShape.GetDim(DIM_0));
+        td_->opInfo.set_D(tempDimD);
+    } else if (td_->opInfo.get_layout() == static_cast<uint32_t>(InputLayout::TND)) {
         auto actualSeqQlenTensor = context_->GetOptionalInputTensor(ACTUAL_SEQ_Q_LEN);
         auto actualSeqKvlenTensor = context_->GetOptionalInputTensor(ACTUAL_SEQ_KV_LEN);
         OP_CHECK_IF((actualSeqQlenTensor == nullptr || actualSeqKvlenTensor == nullptr),
@@ -1763,33 +1753,33 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2::SetBaseInfo(const gert::Sh
             }
         }
         auto realBSize = seqQShapeSize - tailZeroCount;
-        td_.opInfo.set_B(realBSize);
+        td_->opInfo.set_B(realBSize);
 
         // query [t1, n1, d]   kv [t2, n2, d]   dy [t1, n1, d]
         OP_CHECK_IF(keyShape.GetDim(DIM_1) == 0, OP_LOGW(context_, "dim 1 of key is 0."),
                    return ge::GRAPH_PARAM_INVALID);
-        td_.opInfo.set_G(queryShape.GetDim(DIM_1) / keyShape.GetDim(DIM_1));
-        OP_CHECK_IF(td_.opInfo.get_G() == 0, OP_LOGW(context_, "g is 0"), return ge::GRAPH_PARAM_INVALID);
-        td_.opInfo.set_N2(keyShape.GetDim(DIM_1));
-        td_.opInfo.set_S1(*std::max_element(tmpData_.actualSeqQlen.begin(), tmpData_.actualSeqQlen.end()));
-        td_.opInfo.set_S2(*std::max_element(tmpData_.actualSeqKvlen.begin(), tmpData_.actualSeqKvlen.end()));
-        td_.opInfo.set_D(queryShape.GetDim(DIM_2));
+        td_->opInfo.set_G(queryShape.GetDim(DIM_1) / keyShape.GetDim(DIM_1));
+        OP_CHECK_IF(td_->opInfo.get_G() == 0, OP_LOGW(context_, "g is 0"), return ge::GRAPH_PARAM_INVALID);
+        td_->opInfo.set_N2(keyShape.GetDim(DIM_1));
+        td_->opInfo.set_S1(*std::max_element(tmpData_.actualSeqQlen.begin(), tmpData_.actualSeqQlen.end()));
+        td_->opInfo.set_S2(*std::max_element(tmpData_.actualSeqKvlen.begin(), tmpData_.actualSeqKvlen.end()));
+        td_->opInfo.set_D(queryShape.GetDim(DIM_2));
     } else {
         OP_LOGW(context_, "inputLayout is invalid");
         return ge::GRAPH_PARAM_INVALID;
     }
-    td_.opInfo.set_unpadEmptyInput(static_cast<uint32_t>(tndEmptyTensorFlag));
-    tmpData_.b = td_.opInfo.get_B();
-    tmpData_.n2 = td_.opInfo.get_N2();
-    tmpData_.g = td_.opInfo.get_G();
-    tmpData_.d = td_.opInfo.get_D();
-    tmpData_.s1 = td_.opInfo.get_S1();
-    tmpData_.s2 = td_.opInfo.get_S2();
+    td_->opInfo.set_unpadEmptyInput(static_cast<uint32_t>(tndEmptyTensorFlag));
+    tmpData_.b = td_->opInfo.get_B();
+    tmpData_.n2 = td_->opInfo.get_N2();
+    tmpData_.g = td_->opInfo.get_G();
+    tmpData_.d = td_->opInfo.get_D();
+    tmpData_.s1 = td_->opInfo.get_S1();
+    tmpData_.s2 = td_->opInfo.get_S2();
 
     auto ret = CheckDtypeValid(context_);
     OP_CHECK_IF(ret != ge::GRAPH_SUCCESS, OP_LOGW(context_, "dtype is invalid."), return ret);
 
-    return td_.opInfo.get_layout() == static_cast<uint32_t>(InputLayout::TND) ?
+    return td_->opInfo.get_layout() == static_cast<uint32_t>(InputLayout::TND) ?
                CheckTndShapeValid(context_, tmpData_.t1, dimN1, tmpData_.d) :
                CheckShapeValid(context_, tmpData_.b, dimN1, tmpData_.s1, tmpData_.d);
 }
@@ -1827,7 +1817,7 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2::ProcessDropInfo()
     auto dropMask = context_->GetOptionalInputDesc(DROP_MASK);
     OP_CHECK_IF(dropMask == nullptr,
                OP_LOGE(context_, "FAG keepProb [%f], dropMask can not be nullptr",
-                                           td_.opInfo.get_keepProb()),
+                                           td_->opInfo.get_keepProb()),
                return ge::GRAPH_FAILED);
     auto dropMaskType = dropMask->GetDataType();
     OP_CHECK_IF(dropMaskType != ge::DT_UINT8,
@@ -1838,7 +1828,7 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2::ProcessDropInfo()
     auto dropMaskShape = context_->GetOptionalInputShape(DROP_MASK);
     OP_CHECK_IF(dropMaskShape == nullptr,
                OP_LOGE(context_, "FAG keepProb [%f], dropMaskShape can not be nullptr",
-                                           td_.opInfo.get_keepProb()),
+                                           td_->opInfo.get_keepProb()),
                return ge::GRAPH_FAILED);
     int64_t dropMaskDim = dropMaskShape->GetStorageShape().GetDimNum();
     int64_t dropMaskShapeSize = 1;
@@ -1878,21 +1868,21 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2::SetBmm1TilingData(uint32_t
     BNSD:
     m = S1, k = D, n = S2
     */
-    uint32_t layout = td_.opInfo.get_layout();
+    uint32_t layout = td_->opInfo.get_layout();
     bool isBsh = layout == static_cast<uint32_t>(InputLayout::BSH);
     bool isSbh = layout == static_cast<uint32_t>(InputLayout::SBH);
     bool isBsnd = layout == static_cast<uint32_t>(InputLayout::BSND);
     bool isTnd = layout == static_cast<uint32_t>(InputLayout::TND);
 
-    int64_t ka = td_.opInfo.get_D();
-    int64_t kb = td_.opInfo.get_D();
-    int64_t n = td_.opInfo.get_S2();
+    int64_t ka = td_->opInfo.get_D();
+    int64_t kb = td_->opInfo.get_D();
+    int64_t n = td_->opInfo.get_S2();
     if (isBsh || isBsnd || isTnd) {
-        ka = td_.opInfo.get_G() * td_.opInfo.get_N2() * td_.opInfo.get_D();
-        kb = td_.opInfo.get_N2() * td_.opInfo.get_D();
+        ka = td_->opInfo.get_G() * td_->opInfo.get_N2() * td_->opInfo.get_D();
+        kb = td_->opInfo.get_N2() * td_->opInfo.get_D();
     } else if (isSbh) {
-        ka = td_.opInfo.get_B() * td_.opInfo.get_G() * td_.opInfo.get_N2() * td_.opInfo.get_D();
-        kb = td_.opInfo.get_B() * td_.opInfo.get_N2() * td_.opInfo.get_D();
+        ka = td_->opInfo.get_B() * td_->opInfo.get_G() * td_->opInfo.get_N2() * td_->opInfo.get_D();
+        kb = td_->opInfo.get_B() * td_->opInfo.get_N2() * td_->opInfo.get_D();
     }
 
     auto inputType = matmul_tiling::DataType::DT_FLOAT16;
@@ -1912,7 +1902,7 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2::SetBmm1TilingData(uint32_t
     mm1.SetAType(matmul_tiling::TPosition::GM, matmul_tiling::CubeFormat::ND, inputType, false);
     mm1.SetBType(matmul_tiling::TPosition::GM, matmul_tiling::CubeFormat::ND, inputType, true);
     mm1.SetCType(matmul_tiling::TPosition::VECCALC, matmul_tiling::CubeFormat::ND, outputType);
-    mm1.SetShape(singleM, singleN, td_.opInfo.get_D());
+    mm1.SetShape(singleM, singleN, td_->opInfo.get_D());
     mm1.SetOrgShape(singleM, n, ka, kb);
     mm1.SetBias(false);
     mm1.SetBufferSpace(l1SizeRemain, aicoreParams_.l0cSize);
@@ -1921,13 +1911,13 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2::SetBmm1TilingData(uint32_t
         mm1.SetFixSplit(128, 128, -1);
     }
 
-    OP_CHECK_IF((mm1.GetTiling(td_.mm1TilingData) != 0),
+    OP_CHECK_IF((mm1.GetTiling(td_->mm1TilingData) != 0),
                OP_LOGW(context_, "FlashAttentionScoreGradTilingS1s2Bn2 mm1 GetTiling Failed."),
                return ge::GRAPH_PARAM_INVALID);
-    td_.mm1TilingData.set_shareMode(0);
-    td_.mm1TilingData.set_shareL1Size(l1SizeRemain);
-    td_.mm1TilingData.set_shareL0CSize(aicoreParams_.l0cSize);
-    td_.mm1TilingData.set_iterateOrder(1);
+    td_->mm1TilingData.shareMode = 0;
+    td_->mm1TilingData.shareL1Size = l1SizeRemain;
+    td_->mm1TilingData.shareL0CSize = aicoreParams_.l0cSize;
+    td_->mm1TilingData.iterateOrder = 1;
 
     return ge::GRAPH_SUCCESS;
 }
@@ -1952,22 +1942,22 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2::SetBmm31TilingData(uint32_
     BNSD
     m = S1, k = S2, n = D
     */
-    uint32_t layout = td_.opInfo.get_layout();
+    uint32_t layout = td_->opInfo.get_layout();
     bool isBsh = layout == static_cast<uint32_t>(InputLayout::BSH);
     bool isSbh = layout == static_cast<uint32_t>(InputLayout::SBH);
     bool isBsnd = layout == static_cast<uint32_t>(InputLayout::BSND);
     bool isTnd = layout == static_cast<uint32_t>(InputLayout::TND);
 
-    int64_t ka = td_.opInfo.get_S2();
-    int64_t kb = td_.opInfo.get_S2();
-    int64_t m = td_.opInfo.get_S1();
-    int64_t n = td_.opInfo.get_D();
+    int64_t ka = td_->opInfo.get_S2();
+    int64_t kb = td_->opInfo.get_S2();
+    int64_t m = td_->opInfo.get_S1();
+    int64_t n = td_->opInfo.get_D();
     if (isBsh || isBsnd || isTnd) {
         // not support different N
-        n = td_.opInfo.get_D() * td_.opInfo.get_N2();
+        n = td_->opInfo.get_D() * td_->opInfo.get_N2();
     } else if (isSbh) {
         // not support differnet N
-        n = td_.opInfo.get_D() * td_.opInfo.get_N2() * td_.opInfo.get_B();
+        n = td_->opInfo.get_D() * td_->opInfo.get_N2() * td_->opInfo.get_B();
     }
 
     auto inputAType = matmul_tiling::DataType::DT_FLOAT16;
@@ -1992,20 +1982,20 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2::SetBmm31TilingData(uint32_
     mm31.SetAType(matmul_tiling::TPosition::GM, matmul_tiling::CubeFormat::ND, inputAType, false);
     mm31.SetBType(matmul_tiling::TPosition::GM, matmul_tiling::CubeFormat::ND, inputBType, false);
     mm31.SetCType(matmul_tiling::TPosition::GM, matmul_tiling::CubeFormat::ND, outputType);
-    mm31.SetShape(singleM, td_.opInfo.get_D(), singleN);
+    mm31.SetShape(singleM, td_->opInfo.get_D(), singleN);
     mm31.SetOrgShape(m, n, ka, kb);
     mm31.SetBias(false);
     if (tmpData_.isL1CustomEnable) {
         mm31.SetFixSplit(128, -1, -1);
     }
     mm31.SetBufferSpace(l1SizeRemain, aicoreParams_.l0cSize);
-    OP_CHECK_IF((mm31.GetTiling(td_.mm31TilingData) != 0),
+    OP_CHECK_IF((mm31.GetTiling(td_->mm31TilingData) != 0),
                OP_LOGW(context_, "FlashAttentionScoreGradTilingS1s2Bn2 mm31 GetTiling Failed."),
                return ge::GRAPH_PARAM_INVALID);
-    td_.mm31TilingData.set_shareMode(0);
-    td_.mm31TilingData.set_shareL1Size(l1SizeRemain);
-    td_.mm31TilingData.set_shareL0CSize(aicoreParams_.l0cSize);
-    td_.mm31TilingData.set_iterateOrder(0);
+    td_->mm31TilingData.shareMode = 0;
+    td_->mm31TilingData.shareL1Size = l1SizeRemain;
+    td_->mm31TilingData.shareL0CSize = aicoreParams_.l0cSize;
+    td_->mm31TilingData.iterateOrder = 0;
 
     return ge::GRAPH_SUCCESS;
 }
@@ -2032,22 +2022,22 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2::SetBmm4TilingData(uint32_t
     m = S2, n = D, k = S1
     */
 
-    uint32_t layout = td_.opInfo.get_layout();
+    uint32_t layout = td_->opInfo.get_layout();
     bool isBsh = layout == static_cast<uint32_t>(InputLayout::BSH);
     bool isSbh = layout == static_cast<uint32_t>(InputLayout::SBH);
     bool isBsnd = layout == static_cast<uint32_t>(InputLayout::BSND);
     bool isTnd = layout == static_cast<uint32_t>(InputLayout::TND);
 
-    int64_t ka = td_.opInfo.get_S1();
-    int64_t kb = td_.opInfo.get_S1();
-    int64_t m = td_.opInfo.get_S2();
-    int64_t n = td_.opInfo.get_D();
+    int64_t ka = td_->opInfo.get_S1();
+    int64_t kb = td_->opInfo.get_S1();
+    int64_t m = td_->opInfo.get_S2();
+    int64_t n = td_->opInfo.get_D();
     if (isBsh || isBsnd || isTnd) {
         // not support different N
-        n = td_.opInfo.get_D() * td_.opInfo.get_N2() * td_.opInfo.get_G();
+        n = td_->opInfo.get_D() * td_->opInfo.get_N2() * td_->opInfo.get_G();
     } else if (isSbh) {
         // not support differnet N
-        n = td_.opInfo.get_D() * td_.opInfo.get_N2() * td_.opInfo.get_G() * td_.opInfo.get_B();
+        n = td_->opInfo.get_D() * td_->opInfo.get_N2() * td_->opInfo.get_G() * td_->opInfo.get_B();
     }
 
     auto inputAType = matmul_tiling::DataType::DT_FLOAT16;
@@ -2072,11 +2062,11 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2::SetBmm4TilingData(uint32_t
     mm4.SetAType(matmul_tiling::TPosition::GM, matmul_tiling::CubeFormat::ND, inputAType, true);
     mm4.SetBType(matmul_tiling::TPosition::GM, matmul_tiling::CubeFormat::ND, inputBType, false);
     mm4.SetCType(matmul_tiling::TPosition::GM, matmul_tiling::CubeFormat::ND, outputType);
-    mm4.SetShape(singleN, td_.opInfo.get_D(), singleM);
+    mm4.SetShape(singleN, td_->opInfo.get_D(), singleM);
     mm4.SetOrgShape(m, n, ka, kb);
     mm4.SetBias(false);
 
-    int64_t dAlign = (td_.opInfo.get_D() + FP16_BLOCK_NUMS - 1) / FP16_BLOCK_NUMS * FP16_BLOCK_NUMS;
+    int64_t dAlign = (td_->opInfo.get_D() + FP16_BLOCK_NUMS - 1) / FP16_BLOCK_NUMS * FP16_BLOCK_NUMS;
     int64_t minBaseN = std::min(BASE_LEN_128, static_cast<uint32_t>(dAlign));
     if (tmpData_.isMM345NZOut) {
         minBaseN = std::min(BASE_LEN_256, static_cast<uint32_t>(dAlign));
@@ -2084,7 +2074,7 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2::SetBmm4TilingData(uint32_t
     }
 
     if (needSetFixSplit) {
-        int64_t s2Align = (td_.opInfo.get_S2() + FRACTAL_NUM - 1) / FRACTAL_NUM * FRACTAL_NUM;
+        int64_t s2Align = (td_->opInfo.get_S2() + FRACTAL_NUM - 1) / FRACTAL_NUM * FRACTAL_NUM;
         int64_t minBaseM = std::min(BASE_LEN_256, static_cast<uint32_t>(s2Align));
         mm4.SetFixSplit(minBaseM, minBaseN, -1);
     }
@@ -2093,13 +2083,13 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2::SetBmm4TilingData(uint32_t
     }
 
     mm4.SetBufferSpace(l1SizeRemain, aicoreParams_.l0cSize);
-    OP_CHECK_IF((mm4.GetTiling(td_.mm4TilingData) != 0),
+    OP_CHECK_IF((mm4.GetTiling(td_->mm4TilingData) != 0),
                OP_LOGW(context_, "FlashAttentionScoreGradTilingS1s2Bn2 mm4 GetTiling Failed."),
                return ge::GRAPH_PARAM_INVALID);
-    td_.mm4TilingData.set_shareMode(0);
-    td_.mm4TilingData.set_shareL1Size(l1SizeRemain);
-    td_.mm4TilingData.set_shareL0CSize(aicoreParams_.l0cSize);
-    td_.mm4TilingData.set_iterateOrder(0);
+    td_->mm4TilingData.shareMode = 0;
+    td_->mm4TilingData.shareL1Size = l1SizeRemain;
+    td_->mm4TilingData.shareL0CSize = aicoreParams_.l0cSize;
+    td_->mm4TilingData.iterateOrder = 0;
 
     return ge::GRAPH_SUCCESS;
 }

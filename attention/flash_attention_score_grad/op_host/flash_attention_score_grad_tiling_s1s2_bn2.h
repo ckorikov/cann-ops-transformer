@@ -18,7 +18,7 @@
 #include "flash_attention_score_grad_tiling_common.h"
 #include "tiling_base/tiling_base.h"
 #include "tiling_base/tiling_type.h"
-#include "flash_attention_score_grad_tiling_s1s2_bn2_def.h"
+
 
 namespace optiling {
 
@@ -66,7 +66,7 @@ public:
     {
     }
 
-    FlashAttentionScoreGradTilingDataS1s2Bn2 td_;
+    FlashAttentionScoreGradTilingDataS1s2Bn2 *td_ = context_->GetTilingData<FlashAttentionScoreGradTilingDataS1s2Bn2>();
 
 protected:
     bool IsCapable() override;

@@ -16,6 +16,8 @@
 #include "flash_attention_score_grad_tiling_s1s2_bn2gs1s2.h"
 #include "tiling_base/tiling_type.h"
 #include "tiling_base/tiling_templates_registry.h"
+#include "../op_kernel/flash_attention_score_grad_tiling.h"
+#include "../op_kernel/flash_attention_score_grad_template_tiling_key.h"
 
 namespace optiling {
 
@@ -142,10 +144,12 @@ uint64_t FlashAttentionScoreGradTilingS1s2Bn2gs1s2::GetTilingKey() const
     auto mm2IsNZOut = fBaseParams.mm2IsNZOut ? OptionEnum::ENABLE : OptionEnum::DISABLE;
     auto tndS1Pingpong = fBaseParams.isTndS1PingPong ? OptionEnum::ENABLE : OptionEnum::DISABLE;
     auto hasRope = fBaseParams.rope_d ? OptionEnum::ENABLE : OptionEnum::DISABLE;
-    // tilingKey的12,13位为SameAB模板的标识占位
-    uint64_t tilingKey = GET_TILINGKEY(AxisEnum::S2, AxisEnum::S1, AxisEnum::S2, dtypeValue, inputLayout,
-                                       SparseEnum::ALL, dropValue, pseValue, attenMaskCfg, mm1IsNZOut, mm2IsNZOut,
-                                       OptionEnum::DISABLE, OptionEnum::DISABLE, tndS1Pingpong, hasRope);
+    
+    uint64_t tilingKey = GET_TPL_TILING_KEY(static_cast<uint8_t>(AxisEnum::S2), static_cast<uint8_t>(AxisEnum::S1), static_cast<uint8_t>(AxisEnum::S2),0,
+            static_cast<uint8_t>(dtypeValue), static_cast<uint8_t>(inputLayout), static_cast<uint8_t>(SparseEnum::ALL),
+            0, static_cast<uint8_t>(mm1IsNZOut), static_cast<uint8_t>(mm2IsNZOut), static_cast<uint8_t>(dropValue), static_cast<uint8_t>(pseValue),
+            static_cast<uint8_t>(attenMaskCfg), 0, 0, 
+            0,0, 0, 0, static_cast<uint8_t>(hasRope));
     OP_LOGI(context_, "FAGTiling S1s2Bn2gs1s2 DoTiling success, tiling is %lu.", tilingKey);
     return tilingKey;
 }
@@ -157,8 +161,7 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2gs1s2::GetPlatformInfo()
 
     auto platformInfoPtr = context_->GetPlatformInfo();
     if (platformInfoPtr == nullptr) {
-        auto compileInfoPtr = reinterpret_cast<const Ops::Transformer::OpTiling::FlashAttentionScoreGradCompileInfo *>(
-            context_->GetCompileInfo());
+        auto compileInfoPtr = reinterpret_cast<const FlashAttentionScoreGradCompileInfo *>(context_->GetCompileInfo());
         OP_CHECK_IF(compileInfoPtr == nullptr, OP_LOGE(context_, "compile_info is null"),
                    return ge::GRAPH_FAILED);
 
@@ -193,8 +196,8 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2gs1s2::GetPlatformInfo()
 
 void FlashAttentionScoreGradTilingS1s2Bn2gs1s2::SetQKVStartIdx()
 {
-    tilingData.s1s2BNGS1S2BaseParams.set_qStartIdx(0);
-    tilingData.s1s2BNGS1S2BaseParams.set_kvStartIdx(0);
+    tilingData->s1s2BNGS1S2BaseParams.set_qStartIdx(0);
+    tilingData->s1s2BNGS1S2BaseParams.set_kvStartIdx(0);
     auto qStartIdxTensor = context_->GetOptionalInputTensor(Q_START_IDX);
     if (qStartIdxTensor == nullptr) {
         OP_LOGW(context_, "[%s]qStartIdxTensor is null pointer", templateNameS1S2);
@@ -233,8 +236,8 @@ void FlashAttentionScoreGradTilingS1s2Bn2gs1s2::SetQKVStartIdx()
     }
     fBaseParams.kvStartIdx = kvValue[0];
 
-    tilingData.s1s2BNGS1S2BaseParams.set_qStartIdx(fBaseParams.qStartIdx);
-    tilingData.s1s2BNGS1S2BaseParams.set_kvStartIdx(fBaseParams.kvStartIdx);
+    tilingData->s1s2BNGS1S2BaseParams.set_qStartIdx(fBaseParams.qStartIdx);
+    tilingData->s1s2BNGS1S2BaseParams.set_kvStartIdx(fBaseParams.kvStartIdx);
 }
 
 
@@ -1264,9 +1267,9 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2gs1s2::DoLibApiTiling()
         mm1.SetFixSplit(-1, -1, -1);
     }
 
-    OP_CHECK_IF(mm1.GetTiling(tilingData.mm1TilingData) != 0,
+    OP_CHECK_IF(mm1.GetTiling(tilingData->mm1TilingData) != 0,
                OP_LOGE(context_, "matmul1 tilingData get fail."), return ge::GRAPH_FAILED);
-    SetMatmulTilingBufferInfo(tilingData.mm1TilingData);
+    SetMatmulTilingBufferInfo(&tilingData->mm1TilingData);
 
     // format left[B, N2, G, S1, S2] right[B, N2, G, S1, D] result[B, N2, G, S2, D]
     // matmal3/5
@@ -1297,9 +1300,9 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2gs1s2::DoLibApiTiling()
         mm2.SetFixSplit(-1, -1, -1);
     }
 
-    OP_CHECK_IF(mm2.GetTiling(tilingData.mm2TilingData) != 0,
+    OP_CHECK_IF(mm2.GetTiling(tilingData->mm2TilingData) != 0,
                OP_LOGE(context_, "matmul2 tilingData get fail."), return ge::GRAPH_FAILED);
-    SetMatmulTilingBufferInfo(tilingData.mm2TilingData);
+    SetMatmulTilingBufferInfo(&tilingData->mm2TilingData);
 
     // format left[B, N2, G, S1, S2] right[B, N2, 1, S2, D] result[B, N2, G, S1, D]
     // matmal4
@@ -1325,9 +1328,9 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2gs1s2::DoLibApiTiling()
     } else {
         mm3.SetFixSplit(-1, -1, -1);
     }
-    OP_CHECK_IF(mm3.GetTiling(tilingData.mm3TilingData) != 0,
+    OP_CHECK_IF(mm3.GetTiling(tilingData->mm3TilingData) != 0,
                OP_LOGE(context_, "matmul3 tilingData get fail."), return ge::GRAPH_FAILED);
-    SetMatmulTilingBufferInfo(tilingData.mm3TilingData);
+    SetMatmulTilingBufferInfo(&tilingData->mm3TilingData);
 
     uint32_t cvS2Inner = fBaseParams.s2Inner * fBaseParams.s2CvRatio;
     uint32_t s2VSize = cvS2Inner > 256 ? 256 : cvS2Inner;
@@ -1336,9 +1339,9 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2gs1s2::DoLibApiTiling()
 
     auto softmaxShape = ge::Shape({s1VecSize, s2VSize});
     AscendC::SoftMaxTilingFunc(softmaxShape, fBaseParams.calTypeSize, fBaseParams.tmpBufferSize,
-                               tilingData.softmaxTilingData);
+                               tilingData->softmaxTilingData);
     AscendC::SoftMaxGradTilingFunc(softmaxShape, fBaseParams.calTypeSize, fBaseParams.tmpBufferSize,
-                                   tilingData.softmaxGradTilingData, true);
+                                   tilingData->softmaxGradTilingData, true);
     if (fBaseParams.isTndS1PingPong) {
         uint32_t dAlignTmp = fBaseParams.sfmgdInner;
         uint32_t s1VecSize1 = SFMG_DB_CLC1_UBSIZE / FP32_BYTES / dAlignTmp;
@@ -1352,20 +1355,20 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2gs1s2::DoLibApiTiling()
 
         auto softmaxShape1 = ge::Shape({s1VecSize1, dAlignTmp});
         AscendC::SoftMaxGradTilingFunc(softmaxShape1, fBaseParams.calTypeSize, fBaseParams.tmpBufferSize,
-                                       tilingData.softmaxGradTilingData, true);
+                                       tilingData->softmaxGradTilingData, true);
     } else {
         AscendC::SoftMaxGradTilingFunc(softmaxShape, fBaseParams.calTypeSize, fBaseParams.tmpBufferSize,
-                                       tilingData.softmaxGradTilingData, true);
+                                       tilingData->softmaxGradTilingData, true);
     }
 
     return ge::GRAPH_SUCCESS;
 }
 
-void FlashAttentionScoreGradTilingS1s2Bn2gs1s2::SetMatmulTilingBufferInfo(TCubeTiling &mmTiling)
+void FlashAttentionScoreGradTilingS1s2Bn2gs1s2::SetMatmulTilingBufferInfo(AscendC::tiling::TCubeTiling* mmTiling)
 {
-    mmTiling.set_shareMode(0);
-    mmTiling.set_shareL1Size(fBaseParams.l1Size);
-    mmTiling.set_shareL0CSize(fBaseParams.l0cSize);
+    mmTiling->shareMode = 0;
+    mmTiling->shareL1Size = fBaseParams.l1Size;
+    mmTiling->shareL0CSize = fBaseParams.l0cSize;
 }
 
 ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2gs1s2::GetWorkspaceSize()
@@ -1451,7 +1454,7 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2gs1s2::GetWorkspaceSize()
 ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2gs1s2::PostTiling()
 {
     SaveToTilingData();
-    auto blockdim = CalcTschBlockDim(tilingData.s1s2BNGS1S2SplitCoreParams.get_blockOuter(), fBaseParams.aicNum,
+    auto blockdim = CalcTschBlockDim(tilingData->s1s2BNGS1S2SplitCoreParams.get_blockOuter(), fBaseParams.aicNum,
                                      fBaseParams.coreNum);
     OP_CHECK_IF(blockdim == 0,
                OP_LOGE(context_, "blockdim is 0, aicNum is %ld, aivNum is %ld.", fBaseParams.aicNum,
@@ -1459,71 +1462,68 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2gs1s2::PostTiling()
                return ge::GRAPH_FAILED);
     context_->SetBlockDim(blockdim);
 
-    tilingData.SaveToBuffer(context_->GetRawTilingData()->GetData(), context_->GetRawTilingData()->GetCapacity());
-    context_->GetRawTilingData()->SetDataSize(tilingData.GetDataSize());
-
     return ge::GRAPH_SUCCESS;
 }
 
 ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2gs1s2::SaveToTilingData()
 {
-    tilingData.s1s2BNGS1S2BaseParams.set_coreNum(fBaseParams.coreNum);
+    tilingData->s1s2BNGS1S2BaseParams.set_coreNum(fBaseParams.coreNum);
 
     // set tilingdata baseinfo
-    tilingData.s1s2BNGS1S2BaseParams.set_b(fBaseParams.b);
-    tilingData.s1s2BNGS1S2BaseParams.set_n2(fBaseParams.n2);
-    tilingData.s1s2BNGS1S2BaseParams.set_g(fBaseParams.g);
-    tilingData.s1s2BNGS1S2BaseParams.set_s1(fBaseParams.s1);
-    tilingData.s1s2BNGS1S2BaseParams.set_d(fBaseParams.d);
-    tilingData.s1s2BNGS1S2BaseParams.set_rope_d(fBaseParams.rope_d);
-    tilingData.s1s2BNGS1S2BaseParams.set_value_d(fBaseParams.value_d);
-    tilingData.s1s2BNGS1S2BaseParams.set_s2(fBaseParams.s2);
+    tilingData->s1s2BNGS1S2BaseParams.set_b(fBaseParams.b);
+    tilingData->s1s2BNGS1S2BaseParams.set_n2(fBaseParams.n2);
+    tilingData->s1s2BNGS1S2BaseParams.set_g(fBaseParams.g);
+    tilingData->s1s2BNGS1S2BaseParams.set_s1(fBaseParams.s1);
+    tilingData->s1s2BNGS1S2BaseParams.set_d(fBaseParams.d);
+    tilingData->s1s2BNGS1S2BaseParams.set_rope_d(fBaseParams.rope_d);
+    tilingData->s1s2BNGS1S2BaseParams.set_value_d(fBaseParams.value_d);
+    tilingData->s1s2BNGS1S2BaseParams.set_s2(fBaseParams.s2);
 
-    tilingData.s1s2BNGS1S2BaseParams.set_pseOptional(fBaseParams.pseOptional);
-    tilingData.s1s2BNGS1S2BaseParams.set_pseType(fBaseParams.pseType);
-    tilingData.s1s2BNGS1S2BaseParams.set_pseShapeType(fBaseParams.pseShapeType);
-    tilingData.s1s2BNGS1S2BaseParams.set_pseDtype(fBaseParams.pseDtype);
-    tilingData.s1s2BNGS1S2BaseParams.set_attenMaskOptional(fBaseParams.attenMaskOptional);
-    tilingData.s1s2BNGS1S2BaseParams.set_attenMaskShapeType(fBaseParams.attenMaskShapeType);
-    tilingData.s1s2BNGS1S2BaseParams.set_attenMaskDtype(fBaseParams.attenMaskDtype);
-    tilingData.s1s2BNGS1S2BaseParams.set_scaleValue(fBaseParams.scaleValue);
-    tilingData.s1s2BNGS1S2BaseParams.set_keepProb(fBaseParams.keepProb);
+    tilingData->s1s2BNGS1S2BaseParams.set_pseOptional(fBaseParams.pseOptional);
+    tilingData->s1s2BNGS1S2BaseParams.set_pseType(fBaseParams.pseType);
+    tilingData->s1s2BNGS1S2BaseParams.set_pseShapeType(fBaseParams.pseShapeType);
+    tilingData->s1s2BNGS1S2BaseParams.set_pseDtype(fBaseParams.pseDtype);
+    tilingData->s1s2BNGS1S2BaseParams.set_attenMaskOptional(fBaseParams.attenMaskOptional);
+    tilingData->s1s2BNGS1S2BaseParams.set_attenMaskShapeType(fBaseParams.attenMaskShapeType);
+    tilingData->s1s2BNGS1S2BaseParams.set_attenMaskDtype(fBaseParams.attenMaskDtype);
+    tilingData->s1s2BNGS1S2BaseParams.set_scaleValue(fBaseParams.scaleValue);
+    tilingData->s1s2BNGS1S2BaseParams.set_keepProb(fBaseParams.keepProb);
 
-    // fBaseParams.s1Token int64_t类型   tilingData.s1s2BNGS1S2BaseParams.s1Token  int32_t类型 防止溢出
-    tilingData.s1s2BNGS1S2BaseParams.set_s1Token(fBaseParams.s1Token > INT32_MAX ? INT32_MAX : fBaseParams.s1Token);
-    tilingData.s1s2BNGS1S2BaseParams.set_s2Token(fBaseParams.s2Token > INT32_MAX ? INT32_MAX : fBaseParams.s2Token);
+    // fBaseParams.s1Token int64_t类型   tilingData->s1s2BNGS1S2BaseParams.s1Token  int32_t类型 防止溢出
+    tilingData->s1s2BNGS1S2BaseParams.set_s1Token(fBaseParams.s1Token > INT32_MAX ? INT32_MAX : fBaseParams.s1Token);
+    tilingData->s1s2BNGS1S2BaseParams.set_s2Token(fBaseParams.s2Token > INT32_MAX ? INT32_MAX : fBaseParams.s2Token);
 
-    tilingData.s1s2BNGS1S2BaseParams.set_sparseMode(fBaseParams.sparseMode);
-    tilingData.s1s2BNGS1S2BaseParams.set_isSparse(fBaseParams.isSparse);
-    tilingData.s1s2BNGS1S2BaseParams.set_attenMaskS2Size(fBaseParams.attenMaskS2Size);
-    tilingData.s1s2BNGS1S2BaseParams.set_attenMaskCompressMode(fBaseParams.attenMaskCompressMode);
+    tilingData->s1s2BNGS1S2BaseParams.set_sparseMode(fBaseParams.sparseMode);
+    tilingData->s1s2BNGS1S2BaseParams.set_isSparse(fBaseParams.isSparse);
+    tilingData->s1s2BNGS1S2BaseParams.set_attenMaskS2Size(fBaseParams.attenMaskS2Size);
+    tilingData->s1s2BNGS1S2BaseParams.set_attenMaskCompressMode(fBaseParams.attenMaskCompressMode);
 
     // s1/s2 split
-    tilingData.s1s2BNGS1S2SplitCoreParams.set_s1CvRatio(fBaseParams.s1CvRatio);
-    tilingData.s1s2BNGS1S2SplitCoreParams.set_s1Outer(fBaseParams.s1Outer);
-    tilingData.s1s2BNGS1S2SplitCoreParams.set_s1Inner(fBaseParams.s1Inner);
-    tilingData.s1s2BNGS1S2SplitCoreParams.set_s1CvInner(fBaseParams.s1CvInner);
-    tilingData.s1s2BNGS1S2SplitCoreParams.set_s1Tail(fBaseParams.s1Tail);
-    tilingData.s1s2BNGS1S2SplitCoreParams.set_s1CvTail(fBaseParams.s1CvTail);
-    tilingData.s1s2BNGS1S2SplitCoreParams.set_s2Outer(fBaseParams.s2Outer);
-    tilingData.s1s2BNGS1S2SplitCoreParams.set_s2CvRatio(fBaseParams.s2CvRatio);
-    tilingData.s1s2BNGS1S2SplitCoreParams.set_s2Inner(fBaseParams.s2Inner);
-    tilingData.s1s2BNGS1S2SplitCoreParams.set_s2Tail(fBaseParams.s2Tail);
-    tilingData.s1s2BNGS1S2SplitCoreParams.set_sfmgdOuter(fBaseParams.sfmgdOuter);
-    tilingData.s1s2BNGS1S2SplitCoreParams.set_sfmgdFactor(fBaseParams.sfmgdInner);
-    tilingData.s1s2BNGS1S2SplitCoreParams.set_sfmgdTail(fBaseParams.sfmgdTail);
+    tilingData->s1s2BNGS1S2SplitCoreParams.set_s1CvRatio(fBaseParams.s1CvRatio);
+    tilingData->s1s2BNGS1S2SplitCoreParams.set_s1Outer(fBaseParams.s1Outer);
+    tilingData->s1s2BNGS1S2SplitCoreParams.set_s1Inner(fBaseParams.s1Inner);
+    tilingData->s1s2BNGS1S2SplitCoreParams.set_s1CvInner(fBaseParams.s1CvInner);
+    tilingData->s1s2BNGS1S2SplitCoreParams.set_s1Tail(fBaseParams.s1Tail);
+    tilingData->s1s2BNGS1S2SplitCoreParams.set_s1CvTail(fBaseParams.s1CvTail);
+    tilingData->s1s2BNGS1S2SplitCoreParams.set_s2Outer(fBaseParams.s2Outer);
+    tilingData->s1s2BNGS1S2SplitCoreParams.set_s2CvRatio(fBaseParams.s2CvRatio);
+    tilingData->s1s2BNGS1S2SplitCoreParams.set_s2Inner(fBaseParams.s2Inner);
+    tilingData->s1s2BNGS1S2SplitCoreParams.set_s2Tail(fBaseParams.s2Tail);
+    tilingData->s1s2BNGS1S2SplitCoreParams.set_sfmgdOuter(fBaseParams.sfmgdOuter);
+    tilingData->s1s2BNGS1S2SplitCoreParams.set_sfmgdFactor(fBaseParams.sfmgdInner);
+    tilingData->s1s2BNGS1S2SplitCoreParams.set_sfmgdTail(fBaseParams.sfmgdTail);
 
-    tilingData.s1s2BNGS1S2SplitCoreParams.set_baseMN(fBaseParams.baseMN);
-    tilingData.s1s2BNGS1S2SplitCoreParams.set_bandIdx(fBaseParams.bandIdx);
-    tilingData.s1s2BNGS1S2BlockNumList.set_blockStarts(fBaseParams.blockStarts);
-    tilingData.s1s2BNGS1S2BlockNumList.set_blockEnds(fBaseParams.blockEnds);
-    tilingData.s1s2BNGS1S2SplitCoreParams.set_blockOuter(fBaseParams.blockOuter);
+    tilingData->s1s2BNGS1S2SplitCoreParams.set_baseMN(fBaseParams.baseMN);
+    tilingData->s1s2BNGS1S2SplitCoreParams.set_bandIdx(fBaseParams.bandIdx);
+    tilingData->s1s2BNGS1S2BlockNumList.set_blockStarts(fBaseParams.blockStarts);
+    tilingData->s1s2BNGS1S2BlockNumList.set_blockEnds(fBaseParams.blockEnds);
+    tilingData->s1s2BNGS1S2SplitCoreParams.set_blockOuter(fBaseParams.blockOuter);
 
-    tilingData.s1s2BNGS1S2BaseParams.set_tndSoftmaxIn(fBaseParams.tndSoftmaxIn);
+    tilingData->s1s2BNGS1S2BaseParams.set_tndSoftmaxIn(fBaseParams.tndSoftmaxIn);
 
     if (fBaseParams.pseType == PSE_INNER_MUL_ADD_TYPE || fBaseParams.pseType == PSE_INNER_MUL_ADD_SQRT_TYPE) {
-        tilingData.s1s2BNGS1S2BaseParams.set_pseAlibiBaseS1(fBaseParams.pseAlibiBaseS1);
-        tilingData.s1s2BNGS1S2BaseParams.set_pseAlibiBaseS2(fBaseParams.pseAlibiBaseS2);
+        tilingData->s1s2BNGS1S2BaseParams.set_pseAlibiBaseS1(fBaseParams.pseAlibiBaseS1);
+        tilingData->s1s2BNGS1S2BaseParams.set_pseAlibiBaseS2(fBaseParams.pseAlibiBaseS2);
     }
     return ge::GRAPH_SUCCESS;
 }
@@ -2298,16 +2298,16 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2gs1s2::DoPreTiling()
     int64_t singleCoreUBLastLoopNum = static_cast<int64_t>(singleCoreNum - (singleCoreUBLoop - 1) * singleUBProcessNum);
     int64_t tailCoreUBLastLoopNum = static_cast<int64_t>(tailCoreNum - (tailCoreUBLoop - 1) * singleUBProcessNum);
 
-    tilingData.preTilingData.set_maskCoreNum(maskUsedCoreNum);
-    tilingData.preTilingData.set_castBufferLen(castBufferLen);
-    tilingData.preTilingData.set_outputBufferLen(outputBufferLen);
-    tilingData.preTilingData.set_inputBufferLen(inputBufferLen);
-    tilingData.preTilingData.set_singleUBProcessNum(static_cast<int64_t>(singleUBProcessNum));
-    tilingData.preTilingData.set_maskSingleCoreNum(singleCoreNum); // size == num
-    tilingData.preTilingData.set_maskSingleCoreLoop(singleCoreUBLoop);
-    tilingData.preTilingData.set_maskLastLoopNum(singleCoreUBLastLoopNum);
-    tilingData.preTilingData.set_maskTailCoreLoop(tailCoreUBLoop);
-    tilingData.preTilingData.set_maskTailCoreLastLoopNum(tailCoreUBLastLoopNum);
+    tilingData->preTilingData.set_maskCoreNum(maskUsedCoreNum);
+    tilingData->preTilingData.set_castBufferLen(castBufferLen);
+    tilingData->preTilingData.set_outputBufferLen(outputBufferLen);
+    tilingData->preTilingData.set_inputBufferLen(inputBufferLen);
+    tilingData->preTilingData.set_singleUBProcessNum(static_cast<int64_t>(singleUBProcessNum));
+    tilingData->preTilingData.set_maskSingleCoreNum(singleCoreNum); // size == num
+    tilingData->preTilingData.set_maskSingleCoreLoop(singleCoreUBLoop);
+    tilingData->preTilingData.set_maskLastLoopNum(singleCoreUBLastLoopNum);
+    tilingData->preTilingData.set_maskTailCoreLoop(tailCoreUBLoop);
+    tilingData->preTilingData.set_maskTailCoreLastLoopNum(tailCoreUBLastLoopNum);
 
     OP_CHECK_IF(maskUsedCoreNum == 0, OP_LOGE(context_, "divisor maskUsedCoreNumis 0."),
                return ge::GRAPH_FAILED);
@@ -2326,9 +2326,9 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2gs1s2::DoPreTiling()
         int64_t kvPreTailNumTmp = fBaseParams.kvSizeAlign % kvPreBlockFactor;
         int64_t kvPreTailNum = kvPreTailNumTmp == 0 ? kvPreBlockFactor : kvPreTailNumTmp;
 
-        tilingData.preTilingData.set_kvPreBlockFactor(kvPreBlockFactor);
-        tilingData.preTilingData.set_kvPreBlockTotal(kvPreBlockTotal);
-        tilingData.preTilingData.set_kvPreBlockTail(kvPreTailNum);
+        tilingData->preTilingData.set_kvPreBlockFactor(kvPreBlockFactor);
+        tilingData->preTilingData.set_kvPreBlockTotal(kvPreBlockTotal);
+        tilingData->preTilingData.set_kvPreBlockTail(kvPreTailNum);
     }
 
     if (fBaseParams.rope_d != 0) {
@@ -2349,12 +2349,12 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2gs1s2::DoPreTiling()
         int64_t kRopePreBlockTotal = (fBaseParams.kRopeSizeAlign + kRopePreBlockFactor - 1) / kRopePreBlockFactor;
         int64_t kRopePreTailNumTmp = fBaseParams.kRopeSizeAlign % kRopePreBlockFactor;
         int64_t kRopePreTailNum = kRopePreTailNumTmp == 0 ? kRopePreBlockFactor : kRopePreTailNumTmp;
-        tilingData.preTilingData.set_qRopePreBlockFactor(qRopePreBlockFactor);
-        tilingData.preTilingData.set_qRopePreBlockTotal(qRopePreBlockTotal);
-        tilingData.preTilingData.set_qRopePreBlockTail(qRopePreTailNum);
-        tilingData.preTilingData.set_kRopePreBlockFactor(kRopePreBlockFactor);
-        tilingData.preTilingData.set_kRopePreBlockTotal(kRopePreBlockTotal);
-        tilingData.preTilingData.set_kRopePreBlockTail(kRopePreTailNum);
+        tilingData->preTilingData.set_qRopePreBlockFactor(qRopePreBlockFactor);
+        tilingData->preTilingData.set_qRopePreBlockTotal(qRopePreBlockTotal);
+        tilingData->preTilingData.set_qRopePreBlockTail(qRopePreTailNum);
+        tilingData->preTilingData.set_kRopePreBlockFactor(kRopePreBlockFactor);
+        tilingData->preTilingData.set_kRopePreBlockTotal(kRopePreBlockTotal);
+        tilingData->preTilingData.set_kRopePreBlockTail(kRopePreTailNum);
     }
 
     int64_t vPreBlockFactor = (fBaseParams.vSizeAlign + maskUsedCoreNum - 1) / maskUsedCoreNum;
@@ -2364,16 +2364,16 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2gs1s2::DoPreTiling()
     int64_t vPreTailNumTmp = fBaseParams.vSizeAlign % vPreBlockFactor;
     int64_t vPreTailNum = vPreTailNumTmp == 0 ? vPreBlockFactor : vPreTailNumTmp;
 
-    tilingData.preTilingData.set_vPreBlockFactor(vPreBlockFactor);
-    tilingData.preTilingData.set_vPreBlockTotal(vPreBlockTotal);
-    tilingData.preTilingData.set_vPreBlockTail(vPreTailNum);
+    tilingData->preTilingData.set_vPreBlockFactor(vPreBlockFactor);
+    tilingData->preTilingData.set_vPreBlockTotal(vPreBlockTotal);
+    tilingData->preTilingData.set_vPreBlockTail(vPreTailNum);
 
     int64_t maskPreBlockTotal = (fBaseParams.dropMaskSize);
-    tilingData.preTilingData.set_qPreBlockFactor(qPreBlockFactor);
-    tilingData.preTilingData.set_qPreBlockTotal(qPreBlockTotal);
-    tilingData.preTilingData.set_qPreBlockTail(qPreTailNum);
-    tilingData.preTilingData.set_dropoutIsDivisibleBy8(fBaseParams.dropoutIsDivisibleBy8);
-    tilingData.preTilingData.set_maskPreBlockTotal(maskPreBlockTotal);
+    tilingData->preTilingData.set_qPreBlockFactor(qPreBlockFactor);
+    tilingData->preTilingData.set_qPreBlockTotal(qPreBlockTotal);
+    tilingData->preTilingData.set_qPreBlockTail(qPreTailNum);
+    tilingData->preTilingData.set_dropoutIsDivisibleBy8(fBaseParams.dropoutIsDivisibleBy8);
+    tilingData->preTilingData.set_maskPreBlockTotal(maskPreBlockTotal);
 
     int64_t dropBeginAddr = SYNC_GLOBAL_WORKSPACE_SIZE;
     dropBeginAddr =
@@ -2390,7 +2390,7 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2gs1s2::DoPreTiling()
     }
     dropBeginAddr =
         (dropBeginAddr + (fBaseParams.vSize) * sizeof(float) + ADDR_ALIGN_SIZE) / ADDR_ALIGN_SIZE * ADDR_ALIGN_SIZE;
-    tilingData.preTilingData.set_dropBeginAddr(dropBeginAddr);
+    tilingData->preTilingData.set_dropBeginAddr(dropBeginAddr);
     return ge::GRAPH_SUCCESS;
 }
 
@@ -2427,11 +2427,11 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2gs1s2::DoPostTiling()
         int64_t kvPostBlockOuterTotal = (kvPostBlockTotal + kvPostBaseNum - 1) / kvPostBaseNum;
         int64_t kvPostBlockFactor = (kvPostBlockOuterTotal + fBaseParams.blockOuter - 1) / fBaseParams.blockOuter;
 
-        tilingData.postTilingData.set_kvPostBlockFactor(kvPostBlockFactor);
-        tilingData.postTilingData.set_kvPostBlockTotal(kvPostBlockTotal);
-        tilingData.postTilingData.set_kvPostBaseNum(kvPostBaseNum);
-        tilingData.postTilingData.set_kvPostTailNum(kvPostTailNum);
-        tilingData.postTilingData.set_kvSizeAlign(fBaseParams.kvSizeAlign);
+        tilingData->postTilingData.set_kvPostBlockFactor(kvPostBlockFactor);
+        tilingData->postTilingData.set_kvPostBlockTotal(kvPostBlockTotal);
+        tilingData->postTilingData.set_kvPostBaseNum(kvPostBaseNum);
+        tilingData->postTilingData.set_kvPostTailNum(kvPostTailNum);
+        tilingData->postTilingData.set_kvSizeAlign(fBaseParams.kvSizeAlign);
     }
 
     if (fBaseParams.rope_d != 0) {
@@ -2458,16 +2458,16 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2gs1s2::DoPostTiling()
         int64_t kRopePostBlockOuterTotal = (kRopePostBlockTotal + kRopePostBaseNum - 1) / kRopePostBaseNum;
         int64_t kRopePostBlockFactor = (kRopePostBlockOuterTotal + fBaseParams.blockOuter - 1) / fBaseParams.blockOuter;
 
-        tilingData.postTilingData.set_qRopePostBlockFactor(qRopePostBlockFactor);
-        tilingData.postTilingData.set_qRopePostBlockTotal(qRopePostBlockTotal);
-        tilingData.postTilingData.set_qRopePostBaseNum(qRopePostBaseNum);
-        tilingData.postTilingData.set_qRopePostTailNum(qRopePostTailNum);
-        tilingData.postTilingData.set_qRopeSizeAlign(fBaseParams.qRopeSizeAlign);
-        tilingData.postTilingData.set_kRopePostBlockFactor(kRopePostBlockFactor);
-        tilingData.postTilingData.set_kRopePostBlockTotal(kRopePostBlockTotal);
-        tilingData.postTilingData.set_kRopePostBaseNum(kRopePostBaseNum);
-        tilingData.postTilingData.set_kRopePostTailNum(kRopePostTailNum);
-        tilingData.postTilingData.set_kRopeSizeAlign(fBaseParams.kRopeSizeAlign);
+        tilingData->postTilingData.set_qRopePostBlockFactor(qRopePostBlockFactor);
+        tilingData->postTilingData.set_qRopePostBlockTotal(qRopePostBlockTotal);
+        tilingData->postTilingData.set_qRopePostBaseNum(qRopePostBaseNum);
+        tilingData->postTilingData.set_qRopePostTailNum(qRopePostTailNum);
+        tilingData->postTilingData.set_qRopeSizeAlign(fBaseParams.qRopeSizeAlign);
+        tilingData->postTilingData.set_kRopePostBlockFactor(kRopePostBlockFactor);
+        tilingData->postTilingData.set_kRopePostBlockTotal(kRopePostBlockTotal);
+        tilingData->postTilingData.set_kRopePostBaseNum(kRopePostBaseNum);
+        tilingData->postTilingData.set_kRopePostTailNum(kRopePostTailNum);
+        tilingData->postTilingData.set_kRopeSizeAlign(fBaseParams.kRopeSizeAlign);
     }
 
     {
@@ -2480,51 +2480,50 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2gs1s2::DoPostTiling()
         int64_t vPostBlockOuterTotal = (vPostBlockTotal + vPostBaseNum - 1) / vPostBaseNum;
         int64_t vPostBlockFactor = (vPostBlockOuterTotal + fBaseParams.blockOuter - 1) / fBaseParams.blockOuter;
 
-        tilingData.postTilingData.set_vPostBlockFactor(vPostBlockFactor);
-        tilingData.postTilingData.set_vPostBlockTotal(vPostBlockTotal);
-        tilingData.postTilingData.set_vPostBaseNum(vPostBaseNum);
-        tilingData.postTilingData.set_vPostTailNum(vPostTailNum);
-        tilingData.postTilingData.set_vSizeAlign(fBaseParams.vSizeAlign);
+        tilingData->postTilingData.set_vPostBlockFactor(vPostBlockFactor);
+        tilingData->postTilingData.set_vPostBlockTotal(vPostBlockTotal);
+        tilingData->postTilingData.set_vPostBaseNum(vPostBaseNum);
+        tilingData->postTilingData.set_vPostTailNum(vPostTailNum);
+        tilingData->postTilingData.set_vSizeAlign(fBaseParams.vSizeAlign);
     }
 
-    tilingData.postTilingData.set_scaleValue(fBaseParams.scaleValue);
-    tilingData.postTilingData.set_coreNum(fBaseParams.coreNum);
-    tilingData.postTilingData.set_postUbBaseSize(postUbBaseSize);
-    tilingData.postTilingData.set_nzReservedSize(nzReservedSize);
-    tilingData.postTilingData.set_qPostBlockFactor(qPostBlockFactor);
-    tilingData.postTilingData.set_qPostBlockTotal(qPostBlockTotal);
-    tilingData.postTilingData.set_qPostBaseNum(qPostBaseNum);
-    tilingData.postTilingData.set_qPostTailNum(qPostTailNum);
-    tilingData.postTilingData.set_qSizeAlign(fBaseParams.qSizeAlign);
+    tilingData->postTilingData.set_scaleValue(fBaseParams.scaleValue);
+    tilingData->postTilingData.set_coreNum(fBaseParams.coreNum);
+    tilingData->postTilingData.set_postUbBaseSize(postUbBaseSize);
+    tilingData->postTilingData.set_nzReservedSize(nzReservedSize);
+    tilingData->postTilingData.set_qPostBlockFactor(qPostBlockFactor);
+    tilingData->postTilingData.set_qPostBlockTotal(qPostBlockTotal);
+    tilingData->postTilingData.set_qPostBaseNum(qPostBaseNum);
+    tilingData->postTilingData.set_qPostTailNum(qPostTailNum);
+    tilingData->postTilingData.set_qSizeAlign(fBaseParams.qSizeAlign);
 
     int64_t workspaceOffsets = MUL_CORE_SYNC_BUFFER;
-    tilingData.postTilingData.set_dqWorkSpaceOffset(workspaceOffsets);
+    tilingData->postTilingData.set_dqWorkSpaceOffset(workspaceOffsets);
 
     workspaceOffsets = (workspaceOffsets + fBaseParams.qSizeAlign * sizeof(float) + GM_ALIGN) / GM_ALIGN * GM_ALIGN;
     if (fBaseParams.rope_d != 0) {
-        tilingData.postTilingData.set_dqRopeWorkSpaceOffset(workspaceOffsets);
+        tilingData->postTilingData.set_dqRopeWorkSpaceOffset(workspaceOffsets);
         workspaceOffsets =
             (workspaceOffsets + fBaseParams.qRopeSizeAlign * sizeof(float) + GM_ALIGN) / GM_ALIGN * GM_ALIGN;
     }
-    tilingData.postTilingData.set_dkWorkSpaceOffset(workspaceOffsets);
+    tilingData->postTilingData.set_dkWorkSpaceOffset(workspaceOffsets);
 
     workspaceOffsets = (workspaceOffsets + fBaseParams.kvSizeAlign * sizeof(float) + GM_ALIGN) / GM_ALIGN * GM_ALIGN;
     if (fBaseParams.rope_d != 0) {
-        tilingData.postTilingData.set_dkRopeWorkSpaceOffset(workspaceOffsets);
+        tilingData->postTilingData.set_dkRopeWorkSpaceOffset(workspaceOffsets);
         workspaceOffsets =
             (workspaceOffsets + fBaseParams.kRopeSizeAlign * sizeof(float) + GM_ALIGN) / GM_ALIGN * GM_ALIGN;
     }
-    tilingData.postTilingData.set_dvWorkSpaceOffset(workspaceOffsets);
+    tilingData->postTilingData.set_dvWorkSpaceOffset(workspaceOffsets);
 
-    tilingData.postTilingData.set_b(fBaseParams.b);
-    tilingData.postTilingData.set_n2(fBaseParams.n2);
-    tilingData.postTilingData.set_g(fBaseParams.g);
-    tilingData.postTilingData.set_s1(fBaseParams.s1);
-    tilingData.postTilingData.set_s2(fBaseParams.s2);
-    tilingData.postTilingData.set_d(fBaseParams.d);
-    tilingData.postTilingData.set_value_d(fBaseParams.value_d);
-    tilingData.postTilingData.set_rope_d(fBaseParams.rope_d);
-
+    tilingData->postTilingData.set_b(fBaseParams.b);
+    tilingData->postTilingData.set_n2(fBaseParams.n2);
+    tilingData->postTilingData.set_g(fBaseParams.g);
+    tilingData->postTilingData.set_s1(fBaseParams.s1);
+    tilingData->postTilingData.set_s2(fBaseParams.s2);
+    tilingData->postTilingData.set_d(fBaseParams.d);
+    tilingData->postTilingData.set_value_d(fBaseParams.value_d);
+    tilingData->postTilingData.set_rope_d(fBaseParams.rope_d);
     return ge::GRAPH_SUCCESS;
 }
 
@@ -2543,10 +2542,8 @@ void FlashAttentionScoreGradTilingS1s2Bn2gs1s2::DetermineMode()
 }
 
 
-REGISTER_TILING_TEMPLATE_WITH_SOCVERSION(
-    FlashAttentionScoreGrad, FlashAttentionScoreGradTilingS1s2Bn2gs1s2,
-    std::vector<int32_t>({static_cast<int32_t>(platform_ascendc::SocVersion::ASCEND910B),
-                          static_cast<int32_t>(platform_ascendc::SocVersion::ASCEND910_93)}),
-    16000);
-
+REGISTER_TILING_TEMPLATE_WITH_SOCVERSION(FlashAttentionScoreGrad, FlashAttentionScoreGradTilingS1s2Bn2gs1s2,
+                                         std::vector<int32_t>({(int32_t)platform_ascendc::SocVersion::ASCEND910B,
+                                                               (int32_t)platform_ascendc::SocVersion::ASCEND910_93}),
+                                         16000);
 } // namespace optiling

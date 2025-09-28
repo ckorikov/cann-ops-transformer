@@ -18,6 +18,7 @@
 
 #include "kernel_operator.h"
 #include "kernel_tiling/kernel_tiling.h"
+#include "flash_attention_score_grad_tiling.h"
 
 using AscendC::InitOutput;
 

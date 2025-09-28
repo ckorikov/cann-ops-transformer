@@ -14,10 +14,12 @@
  */
 
 #include "flash_attention_score_grad_tiling_common.h"
-#include "tiling_base/tiling_base.h"
+#include <register/tilingdata_base.h>
+#include <tiling/tiling_api.h>
 #include "tiling_base/tiling_type.h"
 #include "tiling_base/tiling_templates_registry.h"
-#include "flash_attention_score_grad_tiling_bngs1s2_b_def.h"
+#include "../op_kernel/flash_attention_score_grad_tiling.h"
+#include "../op_kernel/flash_attention_score_grad_template_tiling_key.h"
 
 using namespace ge;
 using namespace AscendC;
@@ -114,7 +116,7 @@ struct TempParamsUngs1s2Bb {
 
 class FlashAttentionScoreGradUbngs1s2BbTiling : public TilingBaseClass {
 public:
-    FlashAttentionScoreGradUbngs1s2BbTilingData td_;
+    FlashAttentionScoreGradUbngs1s2BbTilingData *td_ = context_->GetTilingData<FlashAttentionScoreGradUbngs1s2BbTilingData>();
     TempParamsUngs1s2Bb basicParams;
 
     explicit FlashAttentionScoreGradUbngs1s2BbTiling(gert::TilingContext *context) : TilingBaseClass(context){};
@@ -151,10 +153,10 @@ public:
 
         if (basicParams.layout == static_cast<uint32_t>(InputLayout::SBH) &&
             basicParams.b * basicParams.n * basicParams.d > static_cast<int64_t>(MAX_STRIDE_LIMIT)) {
-            // SBH: BND > 65535
-            tilingKey = GET_TILINGKEY(AxisEnum::NONE, AxisEnum::NONE, AxisEnum::B, dtype,
-                                basicParams.layout, SparseEnum::NONE, MatmulConfig::NORMAL_CONFIG, mmPreIsNZOut,
-                                mmNextIsNZOut, s1TemplateType, s2TemplateType, dTemplateType);
+            tilingKey = GET_TPL_TILING_KEY(static_cast<uint8_t>(AxisEnum::NONE), static_cast<uint8_t>(AxisEnum::NONE), static_cast<uint8_t>(AxisEnum::B), 0, static_cast<uint8_t>(dtype),
+                static_cast<uint8_t>(basicParams.layout), static_cast<uint8_t>(SparseEnum::NONE), static_cast<uint8_t>(MatmulConfig::NORMAL_CONFIG), static_cast<uint8_t>(mmPreIsNZOut),
+                static_cast<uint8_t>(mmNextIsNZOut), static_cast<uint8_t>(0), static_cast<uint8_t>(0),
+                0, 0, 0, static_cast<uint8_t>(s1TemplateType), static_cast<uint8_t>(s2TemplateType), static_cast<uint8_t>(dTemplateType), static_cast<uint8_t>(context_->GetDeterministic() == 1), 0);
             return tilingKey;
         } else {
             // SBH: BND <= 65535
@@ -194,15 +196,17 @@ public:
                     s2TemplateType = STemplateType::Aligned16;
                 }
             }
-            tilingKey = GET_TILINGKEY(AxisEnum::NONE, AxisEnum::NONE, AxisEnum::B, dtype,
-                                basicParams.layout, SparseEnum::NONE, unique, mmPreIsNZOut,
-                                mmNextIsNZOut, s1TemplateType, s2TemplateType, dTemplateType);
+            tilingKey = GET_TPL_TILING_KEY(static_cast<uint8_t>(AxisEnum::NONE), static_cast<uint8_t>(AxisEnum::NONE), static_cast<uint8_t>(AxisEnum::B), 0, static_cast<uint8_t>(dtype),
+                static_cast<uint8_t>(basicParams.layout), static_cast<uint8_t>(SparseEnum::NONE), static_cast<uint8_t>(unique), static_cast<uint8_t>(mmPreIsNZOut),
+                static_cast<uint8_t>(mmNextIsNZOut), static_cast<uint8_t>(0), static_cast<uint8_t>(0),
+                0, 0, 0, static_cast<uint8_t>(s1TemplateType), static_cast<uint8_t>(s2TemplateType), static_cast<uint8_t>(dTemplateType), static_cast<uint8_t>(context_->GetDeterministic() == 1), 0);
             return tilingKey;
         }
     }
 
     bool IsCapable() override
     {
+        std::cout << "enter B template check condition " << std::endl;
         const char *tndSoftmaxIn = context_->GetAttrs()->GetAttrNum() > static_cast<size_t>(TND_SOFTMAX_IN) ? context_->GetAttrs()->GetAttrPointer<char>(TND_SOFTMAX_IN) : "";
         if (strcmp(tndSoftmaxIn, "") != 0) {
             return false;
@@ -225,7 +229,7 @@ public:
         }
 
         auto bestBasicBlockNum = BEST_BASIC_BLOCK_NUM;
-        if (td_.opInfo.get_sQ() >= 4 ? true : false) {
+        if (td_->opInfo.get_sQ() >= 4 ? true : false) {
             bestBasicBlockNum = BEST_BASIC_BLOCK_NUM / 4 * 3;
         }
 
@@ -239,8 +243,8 @@ public:
             return false;
         }
 
-        if ((td_.opInfo.get_n() * td_.opInfo.get_g() * Align(td_.opInfo.get_sQ(), FP16_BLOCK_ELES) *
-             Align(td_.opInfo.get_sKV(), FP16_BLOCK_ELES)) <= bestBasicBlockNum) {
+        if ((td_->opInfo.get_n() * td_->opInfo.get_g() * Align(td_->opInfo.get_sQ(), FP16_BLOCK_ELES) *
+             Align(td_->opInfo.get_sKV(), FP16_BLOCK_ELES)) <= bestBasicBlockNum) {
             OP_LOGD(context_, "Ubngs1s2Bb isCapable check true.");
             return true;
         }
@@ -303,20 +307,20 @@ public:
         }
         auto attenMaskShape = context_->GetOptionalInputShape(ATTEN_MASK);
         if (attenMaskShape != nullptr && attenMaskShape->GetStorageShape().GetDimNum() != 0) {
-            td_.opInfo.set_hasAttenMask(1);
+            td_->opInfo.set_hasAttenMask(1);
             auto storageShape = attenMaskShape->GetStorageShape();
             auto maskShapeDims = storageShape.GetDimNum();
             if (maskShapeDims == ATTEN_MASK_TYPE_11SS_DIM_NUM) {
-                td_.opInfo.set_attenMaskShapeType(ATTEN_MASK_SHAPE_TYPE_SS);
+                td_->opInfo.set_attenMaskShapeType(ATTEN_MASK_SHAPE_TYPE_SS);
             } else if (maskShapeDims == DIM_COUNT_NUM_4) {
                 auto dim0 = storageShape.GetDim(DIM_0);
                 auto dim1 = storageShape.GetDim(DIM_1);
                 if (dim0 == 1 && dim1 == 1) {
-                    td_.opInfo.set_attenMaskShapeType(ATTEN_MASK_SHAPE_TYPE_SS);
-                } else if (dim0 == td_.opInfo.get_b() && dim1 == 1) {
-                    td_.opInfo.set_attenMaskShapeType(ATTEN_MASK_SHAPE_TYPE_B1SS);
-                } else if (dim0 == td_.opInfo.get_b() && dim1 == td_.opInfo.get_n() * td_.opInfo.get_g()) {
-                    td_.opInfo.set_attenMaskShapeType(ATTEN_MASK_SHAPE_TYPE_BNSS);
+                    td_->opInfo.set_attenMaskShapeType(ATTEN_MASK_SHAPE_TYPE_SS);
+                } else if (dim0 == td_->opInfo.get_b() && dim1 == 1) {
+                    td_->opInfo.set_attenMaskShapeType(ATTEN_MASK_SHAPE_TYPE_B1SS);
+                } else if (dim0 == td_->opInfo.get_b() && dim1 == td_->opInfo.get_n() * td_->opInfo.get_g()) {
+                    td_->opInfo.set_attenMaskShapeType(ATTEN_MASK_SHAPE_TYPE_BNSS);
                 } else {
                     OP_LOGW(context_, "unsupport attenmask shape type.");
                     return ge::GRAPH_PARAM_INVALID;
@@ -340,8 +344,8 @@ public:
                 return ge::GRAPH_PARAM_INVALID;
             }
         }
-        td_.opInfo.set_attenMaskS2Size(basicParams.attenMaskS2Size);
-        td_.opInfo.set_attenMaskCompressMode(basicParams.attenMaskCompressMode);
+        td_->opInfo.set_attenMaskS2Size(basicParams.attenMaskS2Size);
+        td_->opInfo.set_attenMaskCompressMode(basicParams.attenMaskCompressMode);
         OP_LOGD(context_, "Ungs1s2Bb set attenmask tiling info success.");
         return ge::GRAPH_SUCCESS;
     }
@@ -349,10 +353,10 @@ public:
     ge::graphStatus SetDataTypeInfo()
     {
         /* 3. 获取data type信息 */
-        td_.opInfo.set_inputDType(static_cast<uint32_t>(context_->GetInputDesc(QUERY)->GetDataType()));
-        basicParams.dataType = td_.opInfo.get_inputDType();
+        td_->opInfo.set_inputDType(static_cast<uint32_t>(context_->GetInputDesc(QUERY)->GetDataType()));
+        basicParams.dataType = td_->opInfo.get_inputDType();
         int64_t inputDTypeSize =
-            static_cast<int64_t>(GetSizeByDataType(static_cast<ge::DataType>(td_.opInfo.get_inputDType())));
+            static_cast<int64_t>(GetSizeByDataType(static_cast<ge::DataType>(td_->opInfo.get_inputDType())));
         if (inputDTypeSize >= ge::kDataTypeSizeBitOffset) {
             return ge::GRAPH_PARAM_INVALID;
         }
@@ -361,49 +365,49 @@ public:
         // bf16 场景下使用fp32(4 bytes)来进行vector的数据计算。
         uint32_t vecCalcDTypeSize = FP32_BYTES_NUM;
 
-        td_.opInfo.set_vecCalcDTypeSize(vecCalcDTypeSize);
-        td_.opInfo.set_inputDTypeSize(inputDTypeSize);
-        int64_t sKVAlignSize = Align(td_.opInfo.get_sKV() * inputDTypeSize, BLOCK_BYTE);
-        td_.opInfo.set_sKVAlignSize(sKVAlignSize);
+        td_->opInfo.set_vecCalcDTypeSize(vecCalcDTypeSize);
+        td_->opInfo.set_inputDTypeSize(inputDTypeSize);
+        int64_t sKVAlignSize = Align(td_->opInfo.get_sKV() * inputDTypeSize, BLOCK_BYTE);
+        td_->opInfo.set_sKVAlignSize(sKVAlignSize);
         CHECK_ZERO(inputDTypeSize);
-        td_.opInfo.set_sKVAlign(sKVAlignSize / inputDTypeSize);
-        td_.opInfo.set_sKVAlignByte(Align(td_.opInfo.get_sKV(), BLOCK_BYTE));
-        td_.opInfo.set_originalDAlign(Align(td_.opInfo.get_d() * inputDTypeSize, BLOCK_BYTE) / inputDTypeSize);
+        td_->opInfo.set_sKVAlign(sKVAlignSize / inputDTypeSize);
+        td_->opInfo.set_sKVAlignByte(Align(td_->opInfo.get_sKV(), BLOCK_BYTE));
+        td_->opInfo.set_originalDAlign(Align(td_->opInfo.get_d() * inputDTypeSize, BLOCK_BYTE) / inputDTypeSize);
         return ge::GRAPH_SUCCESS;
     }
 
     ge::graphStatus SetBaseAttrsInfo()
     {
         /* 1. 获取属性信息 */
-        td_.opInfo.set_scaleValue(*context_->GetAttrs()->GetAttrPointer<float>(SCALE_VALUE));
-        td_.opInfo.set_keepProb(*context_->GetAttrs()->GetAttrPointer<float>(KEEP_PROB));
-        OP_CHECK_IF((td_.opInfo.get_keepProb() <= 0 || td_.opInfo.get_keepProb() > 1),
+        td_->opInfo.set_scaleValue(*context_->GetAttrs()->GetAttrPointer<float>(SCALE_VALUE));
+        td_->opInfo.set_keepProb(*context_->GetAttrs()->GetAttrPointer<float>(KEEP_PROB));
+        OP_CHECK_IF((td_->opInfo.get_keepProb() <= 0 || td_->opInfo.get_keepProb() > 1),
                     OP_LOGW(context_, "keepProb is illegal."),
                     return ge::GRAPH_PARAM_INVALID);
-        td_.opInfo.set_preTokens(*context_->GetAttrs()->GetAttrPointer<int64_t>(PRE_TOKENS));
-        td_.opInfo.set_nextTokens(*context_->GetAttrs()->GetAttrPointer<int64_t>(NEXT_TOKENS));
-        td_.opInfo.set_headNum(*context_->GetAttrs()->GetAttrPointer<uint32_t>(HEAD_NUM));
-        OP_CHECK_IF(td_.opInfo.get_headNum() == 0,
+        td_->opInfo.set_preTokens(*context_->GetAttrs()->GetAttrPointer<int64_t>(PRE_TOKENS));
+        td_->opInfo.set_nextTokens(*context_->GetAttrs()->GetAttrPointer<int64_t>(NEXT_TOKENS));
+        td_->opInfo.set_headNum(*context_->GetAttrs()->GetAttrPointer<uint32_t>(HEAD_NUM));
+        OP_CHECK_IF(td_->opInfo.get_headNum() == 0,
                    OP_LOGW(context_, "headNum is 0."),
                    return ge::GRAPH_PARAM_INVALID);
         const char *inputLayout = context_->GetAttrs()->GetAttrPointer<char>(INPUT_LAYOUT);
         if (strcmp(inputLayout, BSH_STR) == 0) {
-            td_.opInfo.set_inputLayout(static_cast<uint32_t>(InputLayout::BSH));
+            td_->opInfo.set_inputLayout(static_cast<uint32_t>(InputLayout::BSH));
         } else if (strcmp(inputLayout, SBH_STR) == 0) {
-            td_.opInfo.set_inputLayout(static_cast<uint32_t>(InputLayout::SBH));
+            td_->opInfo.set_inputLayout(static_cast<uint32_t>(InputLayout::SBH));
         } else if (strcmp(inputLayout, BNSD_STR) == 0) {
-            td_.opInfo.set_inputLayout(static_cast<uint32_t>(InputLayout::BNSD));
+            td_->opInfo.set_inputLayout(static_cast<uint32_t>(InputLayout::BNSD));
         } else if (strcmp(inputLayout, BSND_STR) == 0) {
-            td_.opInfo.set_inputLayout(static_cast<uint32_t>(InputLayout::BSND));
+            td_->opInfo.set_inputLayout(static_cast<uint32_t>(InputLayout::BSND));
         } else {
             OP_LOGW(context_, "INPUT_LAYOUT %s is not valid.",
                                         inputLayout);
             return ge::GRAPH_PARAM_INVALID;
         }
-        td_.opInfo.set_precisionMode(HIGH_PRECISION);
+        td_->opInfo.set_precisionMode(HIGH_PRECISION);
 
-        basicParams.precisionMode = td_.opInfo.get_precisionMode();
-        basicParams.layout = td_.opInfo.get_inputLayout();
+        basicParams.precisionMode = td_->opInfo.get_precisionMode();
+        basicParams.layout = td_->opInfo.get_inputLayout();
         OP_LOGD(context_, "Ungs1s2Bb get input layout success.");
         return ge::GRAPH_SUCCESS;
     }
@@ -416,55 +420,55 @@ public:
                     return ge::GRAPH_FAILED);
         const gert::Shape &queryShape = context_->GetInputShape(QUERY)->GetStorageShape();
         const gert::Shape &keyShape = context_->GetInputShape(KEY)->GetStorageShape();
-        if (td_.opInfo.get_inputLayout() == static_cast<uint32_t>(InputLayout::BNSD) ||
-            td_.opInfo.get_inputLayout() == static_cast<uint32_t>(InputLayout::BSND)) {
+        if (td_->opInfo.get_inputLayout() == static_cast<uint32_t>(InputLayout::BNSD) ||
+            td_->opInfo.get_inputLayout() == static_cast<uint32_t>(InputLayout::BSND)) {
             OP_CHECK_IF((queryShape.GetDimNum() != BNSD_DIM_NUM || keyShape.GetDimNum() != BNSD_DIM_NUM),
                       OP_LOGW(context_, "Shape size is not = 4[%zu, %zu].",
                       queryShape.GetDimNum(), keyShape.GetDimNum()),
                       return ge::GRAPH_PARAM_INVALID);
             OP_LOGD(context_, "Ungs1s2Bb get input dim success.");
-            size_t layoutIdx = static_cast<size_t>(td_.opInfo.get_inputLayout());
-            td_.opInfo.set_b(queryShape.GetDim(LAYOUT_TO_AXIS[layoutIdx][B]));
-            td_.opInfo.set_sQ(queryShape.GetDim(LAYOUT_TO_AXIS[layoutIdx][S]));
-            td_.opInfo.set_sKV(keyShape.GetDim(LAYOUT_TO_AXIS[layoutIdx][S]));
-            td_.opInfo.set_d(queryShape.GetDim(LAYOUT_TO_AXIS[layoutIdx][AXIS4_D]));
-            td_.opInfo.set_hQ(queryShape.GetDim(LAYOUT_TO_AXIS[layoutIdx][AXIS4_N]) * td_.opInfo.get_d());
-            td_.opInfo.set_hKV(keyShape.GetDim(LAYOUT_TO_AXIS[layoutIdx][AXIS4_N]) * td_.opInfo.get_d());
+            size_t layoutIdx = static_cast<size_t>(td_->opInfo.get_inputLayout());
+            td_->opInfo.set_b(queryShape.GetDim(LAYOUT_TO_AXIS[layoutIdx][B]));
+            td_->opInfo.set_sQ(queryShape.GetDim(LAYOUT_TO_AXIS[layoutIdx][S]));
+            td_->opInfo.set_sKV(keyShape.GetDim(LAYOUT_TO_AXIS[layoutIdx][S]));
+            td_->opInfo.set_d(queryShape.GetDim(LAYOUT_TO_AXIS[layoutIdx][AXIS4_D]));
+            td_->opInfo.set_hQ(queryShape.GetDim(LAYOUT_TO_AXIS[layoutIdx][AXIS4_N]) * td_->opInfo.get_d());
+            td_->opInfo.set_hKV(keyShape.GetDim(LAYOUT_TO_AXIS[layoutIdx][AXIS4_N]) * td_->opInfo.get_d());
 
-            CHECK_ZERO(td_.opInfo.get_hKV());
-            td_.opInfo.set_g(td_.opInfo.get_hQ() / td_.opInfo.get_hKV());
-            CHECK_ZERO(td_.opInfo.get_g());
-            td_.opInfo.set_n(td_.opInfo.get_headNum() / td_.opInfo.get_g());
+            CHECK_ZERO(td_->opInfo.get_hKV());
+            td_->opInfo.set_g(td_->opInfo.get_hQ() / td_->opInfo.get_hKV());
+            CHECK_ZERO(td_->opInfo.get_g());
+            td_->opInfo.set_n(td_->opInfo.get_headNum() / td_->opInfo.get_g());
         } else {
             OP_CHECK_IF((queryShape.GetDimNum() != BSH_SBH_DIM_NUM || keyShape.GetDimNum() != BSH_SBH_DIM_NUM),
                       OP_LOGW(context_, "Shape size is not = 3[%zu, %zu].",
                       queryShape.GetDimNum(), keyShape.GetDimNum()),
                       return ge::GRAPH_PARAM_INVALID);
-            size_t layoutIdx = static_cast<size_t>(td_.opInfo.get_inputLayout());
-            td_.opInfo.set_b(queryShape.GetDim(LAYOUT_TO_AXIS[layoutIdx][B]));
-            td_.opInfo.set_sQ(queryShape.GetDim(LAYOUT_TO_AXIS[layoutIdx][S]));
-            td_.opInfo.set_sKV(keyShape.GetDim(LAYOUT_TO_AXIS[layoutIdx][S]));
-            td_.opInfo.set_hQ(queryShape.GetDim(LAYOUT_TO_AXIS[layoutIdx][H]));
-            td_.opInfo.set_hKV(keyShape.GetDim(LAYOUT_TO_AXIS[layoutIdx][H]));
+            size_t layoutIdx = static_cast<size_t>(td_->opInfo.get_inputLayout());
+            td_->opInfo.set_b(queryShape.GetDim(LAYOUT_TO_AXIS[layoutIdx][B]));
+            td_->opInfo.set_sQ(queryShape.GetDim(LAYOUT_TO_AXIS[layoutIdx][S]));
+            td_->opInfo.set_sKV(keyShape.GetDim(LAYOUT_TO_AXIS[layoutIdx][S]));
+            td_->opInfo.set_hQ(queryShape.GetDim(LAYOUT_TO_AXIS[layoutIdx][H]));
+            td_->opInfo.set_hKV(keyShape.GetDim(LAYOUT_TO_AXIS[layoutIdx][H]));
 
-            CHECK_ZERO(td_.opInfo.get_hKV());
-            td_.opInfo.set_g(td_.opInfo.get_hQ() / td_.opInfo.get_hKV());
-            CHECK_ZERO(td_.opInfo.get_g());
-            td_.opInfo.set_n(td_.opInfo.get_headNum() / td_.opInfo.get_g());
-            CHECK_ZERO(td_.opInfo.get_n());
-            td_.opInfo.set_d(td_.opInfo.get_hKV() / td_.opInfo.get_n());
+            CHECK_ZERO(td_->opInfo.get_hKV());
+            td_->opInfo.set_g(td_->opInfo.get_hQ() / td_->opInfo.get_hKV());
+            CHECK_ZERO(td_->opInfo.get_g());
+            td_->opInfo.set_n(td_->opInfo.get_headNum() / td_->opInfo.get_g());
+            CHECK_ZERO(td_->opInfo.get_n());
+            td_->opInfo.set_d(td_->opInfo.get_hKV() / td_->opInfo.get_n());
         }
-        basicParams.b = td_.opInfo.get_b();
-        basicParams.n = td_.opInfo.get_n() * td_.opInfo.get_g();
-        basicParams.sQ = td_.opInfo.get_sQ();
-        basicParams.d = td_.opInfo.get_d();
+        basicParams.b = td_->opInfo.get_b();
+        basicParams.n = td_->opInfo.get_n() * td_->opInfo.get_g();
+        basicParams.sQ = td_->opInfo.get_sQ();
+        basicParams.d = td_->opInfo.get_d();
 
         auto ret = CheckDtypeValid(context_);
         OP_CHECK_IF(ret != ge::GRAPH_SUCCESS,
                    OP_LOGW(context_, "dtype is invalid."),
                    return ret);
 
-        return CheckShapeValid(context_, basicParams.b, basicParams.n, td_.opInfo.get_sQ(), basicParams.d);
+        return CheckShapeValid(context_, basicParams.b, basicParams.n, td_->opInfo.get_sQ(), basicParams.d);
     }
 
     ge::graphStatus GetShapeAttrsInfo() override
@@ -512,12 +516,12 @@ public:
         /*
         Get pse input info
         */
-        td_.opInfo.set_existPse(0);
+        td_->opInfo.set_existPse(0);
         auto pseShape = context_->GetOptionalInputShape(PSE_SHIFT);
         if (pseShape != nullptr && pseShape->GetStorageShape().GetDimNum() != 0) {
             // pse support [B N S1 S2](0) + [B N 1 S2](1) + [1 N S1 S2](2)
             // 4.1 模板不涉及alibi，收益不大
-            td_.opInfo.set_existPse(1);
+            td_->opInfo.set_existPse(1);
             auto storageShape = pseShape->GetStorageShape();
             auto pseShapeDims = storageShape.GetDimNum();
             if (pseShapeDims == DIM_4) {
@@ -525,21 +529,21 @@ public:
                 auto dim1 = storageShape.GetDim(DIM_1);
                 auto dim2 = storageShape.GetDim(DIM_2);
                 auto dim3 = storageShape.GetDim(DIM_3);
-                td_.opInfo.set_pseSq(dim2);
+                td_->opInfo.set_pseSq(dim2);
                 // [B N S1 S2](0)  [B N 1 S2](1)  [1 N S1 S2](2)shape判断
-                uint32_t shapeN1 = td_.opInfo.get_n() * td_.opInfo.get_g();
-                bool isBNS = (dim0 == td_.opInfo.get_b()) && (dim1 == shapeN1) && (dim3 == td_.opInfo.get_sKV());
-                bool isBNSS = isBNS && (dim2 == td_.opInfo.get_sQ());
+                uint32_t shapeN1 = td_->opInfo.get_n() * td_->opInfo.get_g();
+                bool isBNS = (dim0 == td_->opInfo.get_b()) && (dim1 == shapeN1) && (dim3 == td_->opInfo.get_sKV());
+                bool isBNSS = isBNS && (dim2 == td_->opInfo.get_sQ());
                 bool isBN1S = isBNS && (dim2 == 1);
                 bool is1NSS =
-                    (dim0 == 1) && (dim1 == shapeN1) && (dim2 == td_.opInfo.get_sQ()) && (dim3 == td_.opInfo.get_sKV());
+                    (dim0 == 1) && (dim1 == shapeN1) && (dim2 == td_->opInfo.get_sQ()) && (dim3 == td_->opInfo.get_sKV());
                 // 设置shape类型
                 if (is1NSS) {
-                    td_.opInfo.set_pseShapeType(PSE_SHAPE_TYPE_1NSS);
+                    td_->opInfo.set_pseShapeType(PSE_SHAPE_TYPE_1NSS);
                 } else if (isBN1S) {
-                    td_.opInfo.set_pseShapeType(PSE_SHAPE_TYPE_BN1S);
+                    td_->opInfo.set_pseShapeType(PSE_SHAPE_TYPE_BN1S);
                 } else if (isBNSS) {
-                    td_.opInfo.set_pseShapeType(PSE_SHAPE_TYPE_BNSS);
+                    td_->opInfo.set_pseShapeType(PSE_SHAPE_TYPE_BNSS);
                 } else {
                     OP_LOGW(context_,
                               "Ungs1s2Bb not support pseShape [%ld, %ld, %ld, %ld]", dim0, dim1, dim2, dim3);
@@ -557,22 +561,22 @@ public:
     uint32_t GetApiTmpBufferSize(int64_t bIn, int64_t sQ, int64_t sKVAlign)
     {
         // softmax和dropout对应的vector计算的shape是一样的
-        auto shape = ge::Shape({bIn * td_.opInfo.get_n() * td_.opInfo.get_g() * sQ, sKVAlign});
+        auto shape = ge::Shape({bIn * td_->opInfo.get_n() * td_->opInfo.get_g() * sQ, sKVAlign});
 
-        uint32_t softmaxTmpSize = GetSoftMaxMinTmpSize(shape, td_.opInfo.get_vecCalcDTypeSize(), true);
-        uint32_t dropoutTmpSize = GetDropOutMinTmpSize(shape, td_.opInfo.get_vecCalcDTypeSize(), true);
+        uint32_t softmaxTmpSize = GetSoftMaxMinTmpSize(shape, td_->opInfo.get_vecCalcDTypeSize(), true);
+        uint32_t dropoutTmpSize = GetDropOutMinTmpSize(shape, td_->opInfo.get_vecCalcDTypeSize(), true);
 
         return std::max(softmaxTmpSize, dropoutTmpSize);
     }
 
     bool CheckArgsLegal(int64_t bIn)
     {
-        int64_t sQ = td_.opInfo.get_sQ();
-        int64_t sKVAlign = td_.opInfo.get_sKVAlign();
+        int64_t sQ = td_->opInfo.get_sQ();
+        int64_t sKVAlign = td_->opInfo.get_sKVAlign();
         // s大于等于4性能才有收益，此处先判断mmPreIsNZOut是否为true
         // mmPreIsNZOut若为ture，需要扩大部分UB，缩小部分UB
         auto bestBasicBlockSize = BEST_BASIC_BLOCK_SIZE;
-        if (td_.opInfo.get_sQ() >= 4 ? true : false) {
+        if (td_->opInfo.get_sQ() >= 4 ? true : false) {
             bestBasicBlockSize = BEST_BASIC_BLOCK_SIZE / 4 * 3;
         }
         // 计算vecIn1和vecIn2的d轴需要限制，如果d轴大于128，这里仍然使用128计算，并做切分，否则
@@ -588,17 +592,17 @@ public:
         int64_t dropoutQueSize = bestBasicBlockSize / 4;
         int64_t maxSumQueSize = bestBasicBlockSize;
         // bmm的TensorA + TensorB < 512KB (L1_Size)
-        int64_t inputDTypeSize = td_.opInfo.get_inputDTypeSize();
+        int64_t inputDTypeSize = td_->opInfo.get_inputDTypeSize();
         CHECK_ZERO_FALSE(inputDTypeSize);
-        int64_t sQAlign4Input = Align(td_.opInfo.get_sQ() * inputDTypeSize, BLOCK_BYTE) / inputDTypeSize;
-        int64_t sKVAlign4Input = td_.opInfo.get_sKVAlign();
-        int64_t origDAlign4Input = td_.opInfo.get_originalDAlign();
-        int64_t baseByteSize = td_.singleCoreParams.get_bCvInner() * td_.opInfo.get_n() * inputDTypeSize;
+        int64_t sQAlign4Input = Align(td_->opInfo.get_sQ() * inputDTypeSize, BLOCK_BYTE) / inputDTypeSize;
+        int64_t sKVAlign4Input = td_->opInfo.get_sKVAlign();
+        int64_t origDAlign4Input = td_->opInfo.get_originalDAlign();
+        int64_t baseByteSize = td_->singleCoreParams.get_bCvInner() * td_->opInfo.get_n() * inputDTypeSize;
 
         // qDx(B, N2, G, S1_Align, D_Align)   kV(B, N2, 1, S2_Align, D_Align)   s1s2(B, N2, G, S2_Align, S2_Align)
-        int64_t qDxByteSize = baseByteSize * td_.opInfo.get_g() * sQAlign4Input * origDAlign4Input;
-        int64_t kVByteSize = baseByteSize * td_.opInfo.get_g() * sKVAlign4Input * origDAlign4Input;
-        int64_t s1s2ByteSize = baseByteSize * td_.opInfo.get_g() * sQAlign4Input * sKVAlign4Input;
+        int64_t qDxByteSize = baseByteSize * td_->opInfo.get_g() * sQAlign4Input * origDAlign4Input;
+        int64_t kVByteSize = baseByteSize * td_->opInfo.get_g() * sKVAlign4Input * origDAlign4Input;
+        int64_t s1s2ByteSize = baseByteSize * td_->opInfo.get_g() * sQAlign4Input * sKVAlign4Input;
         std::array<int64_t, CHECKNUM_FOR_L1_SIZE> numbers = {qDxByteSize, kVByteSize, s1s2ByteSize};
         std::sort(numbers.begin(), numbers.end());
         int64_t largest = numbers[2];
@@ -612,14 +616,14 @@ public:
         }
 
         // s大于等于4性能才有收益
-        basicParams.mmPreIsNZOut = td_.opInfo.get_sQ() >= 4 ? true : false;
+        basicParams.mmPreIsNZOut = td_->opInfo.get_sQ() >= 4 ? true : false;
         // 如果是nz，对于s2每一个分形需要多8个数据
         if (basicParams.mmPreIsNZOut) {
-            vecClc1Size += bIn * td_.opInfo.get_n() * td_.opInfo.get_g()
+            vecClc1Size += bIn * td_->opInfo.get_n() * td_->opInfo.get_g()
                            * sKVAlign / C0_SIZE * VEC_REPEAT * sizeof(float);
         }
-        td_.singleCoreParams.set_innerTmpBufSize(vecClc1Size);
-        td_.singleCoreParams.set_vecQueIn1Size(vecInQue1Size);
+        td_->singleCoreParams.set_innerTmpBufSize(vecClc1Size);
+        td_->singleCoreParams.set_vecQueIn1Size(vecInQue1Size);
         int64_t queBufferSizeUb =
             vecInQue1Size * 2 + vecClc1Size * 2 + softmaxGradQueSize + maxSumQueSize + dropoutQueSize;
         // softmaxGrad，softmax，dropout计算所需要的tmpSize
@@ -630,7 +634,7 @@ public:
 
         int64_t ubSizeRemain = static_cast<int64_t>(aicoreParams_.ubSize) - usedBufferSize;
         if (ubSizeRemain >= 0) {
-            td_.splitCoreParams.set_apiClcQueueSize(ubSizeRemain + API_RSDV_BUFFER_SIZE);
+            td_->splitCoreParams.set_apiClcQueueSize(ubSizeRemain + API_RSDV_BUFFER_SIZE);
             return true;
         }
         return false;
@@ -639,7 +643,7 @@ public:
     void DoPreTiling()
     {
         uint32_t dropoutIsDivisibleBy8 = 1;
-        if (td_.opInfo.get_keepProb() < 1.0 && context_->GetOptionalInputShape(DROP_MASK) != nullptr &&
+        if (td_->opInfo.get_keepProb() < 1.0 && context_->GetOptionalInputShape(DROP_MASK) != nullptr &&
             context_->GetOptionalInputShape(DROP_MASK)->GetStorageShape().GetDimNum() != 0) {
             // 120KB FP16Tensor, 60KB U8Tensor, 8KB MaskTensor, 512B HelpTensor which less than UB(192KB).
             // singleUBProcessNum: UB最大处理FP16数据大小，需保证能被128整除.
@@ -648,12 +652,12 @@ public:
             uint32_t inputBufferLen = 4 * 1024;
             int64_t singleUBProcessNum = static_cast<int64_t>(castBufferLen) / 2LL;
 
-            int64_t dropMaskSize = static_cast<int64_t>(td_.opInfo.get_b()) * td_.opInfo.get_n() * td_.opInfo.get_g() *
-                                   td_.opInfo.get_sQ() * td_.opInfo.get_sKV();
+            int64_t dropMaskSize = static_cast<int64_t>(td_->opInfo.get_b()) * td_->opInfo.get_n() * td_->opInfo.get_g() *
+                                   td_->opInfo.get_sQ() * td_->opInfo.get_sKV();
 
             int64_t maskSize = AlignTo(dropMaskSize, static_cast<int64_t>(BOOL_BLOCK_NUMS));
             int64_t singleCoreNum =
-                AlignTo(CeilCommon(maskSize, static_cast<int64_t>(td_.splitCoreParams.get_usedCoreNum())),
+                AlignTo(CeilCommon(maskSize, static_cast<int64_t>(td_->splitCoreParams.get_usedCoreNum())),
                         static_cast<int64_t>(BOOL_BLOCK_NUMS));
             uint32_t maskUsedCoreNum = static_cast<uint32_t>(CeilCommon(maskSize, singleCoreNum));
 
@@ -668,38 +672,38 @@ public:
             uint32_t tailCoreUBLastLoopNum =
                 static_cast<uint32_t>(tailCoreNum) - (tailCoreUBLoop - 1U) * static_cast<uint32_t>(singleUBProcessNum);
 
-            if (td_.opInfo.get_sKV() % DROPOUT4BIT_LEN != 0) {
+            if (td_->opInfo.get_sKV() % DROPOUT4BIT_LEN != 0) {
                 dropoutIsDivisibleBy8 = 0U;
             }
 
-            td_.preTilingData.set_maskCoreNum(maskUsedCoreNum);
-            td_.preTilingData.set_castBufferLen(castBufferLen);
-            td_.preTilingData.set_outputBufferLen(outputBufferLen);
-            td_.preTilingData.set_inputBufferLen(inputBufferLen);
-            td_.preTilingData.set_singleUBProcessNum(static_cast<uint32_t>(singleUBProcessNum));
-            td_.preTilingData.set_maskSingleCoreNum(singleCoreNum); // size == num
-            td_.preTilingData.set_maskSingleCoreLoop(singleCoreUBLoop);
-            td_.preTilingData.set_maskLastLoopNum(singleCoreUBLastLoopNum);
-            td_.preTilingData.set_maskTailCoreLoop(tailCoreUBLoop);
-            td_.preTilingData.set_maskTailCoreLastLoopNum(tailCoreUBLastLoopNum);
+            td_->preTilingData.set_maskCoreNum(maskUsedCoreNum);
+            td_->preTilingData.set_castBufferLen(castBufferLen);
+            td_->preTilingData.set_outputBufferLen(outputBufferLen);
+            td_->preTilingData.set_inputBufferLen(inputBufferLen);
+            td_->preTilingData.set_singleUBProcessNum(static_cast<uint32_t>(singleUBProcessNum));
+            td_->preTilingData.set_maskSingleCoreNum(singleCoreNum); // size == num
+            td_->preTilingData.set_maskSingleCoreLoop(singleCoreUBLoop);
+            td_->preTilingData.set_maskLastLoopNum(singleCoreUBLastLoopNum);
+            td_->preTilingData.set_maskTailCoreLoop(tailCoreUBLoop);
+            td_->preTilingData.set_maskTailCoreLastLoopNum(tailCoreUBLastLoopNum);
 
-            td_.preTilingData.set_qPreBlockFactor(0);
-            td_.preTilingData.set_qPreBlockTotal(0);
-            td_.preTilingData.set_qPreBlockTail(0);
-            td_.preTilingData.set_kvPreBlockFactor(0);
-            td_.preTilingData.set_kvPreBlockTotal(0);
-            td_.preTilingData.set_kvPreBlockTail(0);
-            td_.preTilingData.set_maskPreBlockTotal(0);
-            td_.preTilingData.set_dropoutIsDivisibleBy8(dropoutIsDivisibleBy8);
+            td_->preTilingData.set_qPreBlockFactor(0);
+            td_->preTilingData.set_qPreBlockTotal(0);
+            td_->preTilingData.set_qPreBlockTail(0);
+            td_->preTilingData.set_kvPreBlockFactor(0);
+            td_->preTilingData.set_kvPreBlockTotal(0);
+            td_->preTilingData.set_kvPreBlockTail(0);
+            td_->preTilingData.set_maskPreBlockTotal(0);
+            td_->preTilingData.set_dropoutIsDivisibleBy8(dropoutIsDivisibleBy8);
             int64_t dropBeginAddr = SYNC_LEN / sizeof(uint8_t);
-            td_.preTilingData.set_dropBeginAddr(dropBeginAddr);
+            td_->preTilingData.set_dropBeginAddr(dropBeginAddr);
 
             int64_t dropoutWorkspaceLen = CeilCommon(dropMaskSize, BLOCK_BYTE) * BLOCK_BYTE;
-            td_.opInfo.set_dropoutWorkspaceLen(dropoutWorkspaceLen);
+            td_->opInfo.set_dropoutWorkspaceLen(dropoutWorkspaceLen);
             return;
         }
-        td_.opInfo.set_dropoutWorkspaceLen(0);
-        td_.preTilingData.set_dropoutIsDivisibleBy8(dropoutIsDivisibleBy8);
+        td_->opInfo.set_dropoutWorkspaceLen(0);
+        td_->preTilingData.set_dropoutIsDivisibleBy8(dropoutIsDivisibleBy8);
     }
 
     ge::graphStatus DoOpTiling() override
@@ -733,8 +737,8 @@ public:
     {
         if (basicParams.attenMaskCompressMode == NO_COMPRESS_MODE) {
             bool invalid =
-                td_.opInfo.get_hasAttenMask() != 0 && (basicParams.attenMaskS1Size * basicParams.attenMaskS2Size <
-                                                       td_.opInfo.get_sQ() * td_.opInfo.get_sKV());
+                td_->opInfo.get_hasAttenMask() != 0 && (basicParams.attenMaskS1Size * basicParams.attenMaskS2Size <
+                                                       td_->opInfo.get_sQ() * td_->opInfo.get_sKV());
             OP_CHECK_IF(invalid,
                       OP_LOGW(context_, "atten mask shape [%ld,%ld] is invalid.", basicParams.attenMaskS1Size,
                                 basicParams.attenMaskS2Size),
@@ -743,7 +747,7 @@ public:
             OP_CHECK_IF((basicParams.attenMaskS1Size != basicParams.attenMaskS2Size),
                       OP_LOGW(context_, "atten mask shape is not square."),
                       return ge::GRAPH_PARAM_INVALID);
-            OP_CHECK_IF((basicParams.attenMaskS2Size < std::max(td_.opInfo.get_sQ(), td_.opInfo.get_sKV()) * MULT_BASE),
+            OP_CHECK_IF((basicParams.attenMaskS2Size < std::max(td_->opInfo.get_sQ(), td_->opInfo.get_sKV()) * MULT_BASE),
                       OP_LOGW(context_, "atten mask shape is small, try setting it to [2048, 2048]."),
                       return ge::GRAPH_PARAM_INVALID);
         }
@@ -760,35 +764,35 @@ public:
     {
         auto bestBasicBlockSize = BEST_BASIC_BLOCK_SIZE;
         auto bestBasicBlockNum = BEST_BASIC_BLOCK_NUM;
-        if (td_.opInfo.get_sQ() >= 4 ? true : false) {
+        if (td_->opInfo.get_sQ() >= 4 ? true : false) {
             bestBasicBlockSize = BEST_BASIC_BLOCK_SIZE / 4 * 3;
             bestBasicBlockNum = BEST_BASIC_BLOCK_NUM / 4 * 3;
         }
         int64_t nGSqSkvAlign =
-            td_.opInfo.get_n() * td_.opInfo.get_g() * td_.opInfo.get_sQ() * td_.opInfo.get_sKVAlign();
+            td_->opInfo.get_n() * td_->opInfo.get_g() * td_->opInfo.get_sQ() * td_->opInfo.get_sKVAlign();
         CHECK_ZERO(nGSqSkvAlign);
-        CHECK_ZERO(td_.opInfo.get_vecCalcDTypeSize());
-        int64_t bIn = bestBasicBlockSize / (nGSqSkvAlign * td_.opInfo.get_vecCalcDTypeSize());
-        int64_t b = td_.opInfo.get_b();
+        CHECK_ZERO(td_->opInfo.get_vecCalcDTypeSize());
+        int64_t bIn = bestBasicBlockSize / (nGSqSkvAlign * td_->opInfo.get_vecCalcDTypeSize());
+        int64_t b = td_->opInfo.get_b();
         if (bIn > b) {
             bIn = b;
         }
-        td_.singleCoreParams.set_bIn(bIn);
+        td_->singleCoreParams.set_bIn(bIn);
         int64_t cvRatio = CV_RATIO;
         int64_t bCvRatioInner = bIn * cvRatio;
         if (bCvRatioInner > b) {
             bCvRatioInner = bIn;
             cvRatio = 1;
         }
-        td_.singleCoreParams.set_bCvInner(bCvRatioInner);
-        td_.singleCoreParams.set_bCvRatio(cvRatio);
+        td_->singleCoreParams.set_bCvInner(bCvRatioInner);
+        td_->singleCoreParams.set_bCvRatio(cvRatio);
 
         bool ret = CheckArgsLegal(bIn);
         OP_CHECK_IF(!ret,
                    OP_LOGW(context_, "check args fail."),
                    return ge::GRAPH_PARAM_INVALID);
-        int64_t inputDTypeSize = td_.opInfo.get_inputDTypeSize();
-        int64_t bInNGSq = bIn * td_.opInfo.get_n() * td_.opInfo.get_g() * td_.opInfo.get_sQ();
+        int64_t inputDTypeSize = td_->opInfo.get_inputDTypeSize();
+        int64_t bInNGSq = bIn * td_->opInfo.get_n() * td_->opInfo.get_g() * td_->opInfo.get_sQ();
         CHECK_ZERO(bInNGSq);
         int64_t dMaxAlign = Align(bestBasicBlockNum / bInNGSq, FP16_BLOCK_ELES);
 
@@ -797,45 +801,45 @@ public:
         if (dMaxAlign > FP16_BLOCK_ELES) {
             clcDInner = static_cast<uint32_t>(dMaxAlign - FP16_BLOCK_ELES);
         }
-        int64_t dSize = (td_.opInfo.get_d() / clcDInner) + ((td_.opInfo.get_d() % clcDInner == 0) ? 0 : 1);
-        int64_t dInnerTail = td_.opInfo.get_d() - (dSize - 1) * clcDInner;
+        int64_t dSize = (td_->opInfo.get_d() / clcDInner) + ((td_->opInfo.get_d() % clcDInner == 0) ? 0 : 1);
+        int64_t dInnerTail = td_->opInfo.get_d() - (dSize - 1) * clcDInner;
         CHECK_ZERO(inputDTypeSize);
         int64_t dInnerTailAlign = Align(dInnerTail * inputDTypeSize, BLOCK_BYTE) / inputDTypeSize;
 
-        td_.singleCoreParams.set_clcDInner(clcDInner);
-        td_.singleCoreParams.set_dSize(dSize);
-        td_.singleCoreParams.set_dInnerTail(dInnerTail);
-        td_.singleCoreParams.set_dInnerTailAlign(dInnerTailAlign);
+        td_->singleCoreParams.set_clcDInner(clcDInner);
+        td_->singleCoreParams.set_dSize(dSize);
+        td_->singleCoreParams.set_dInnerTail(dInnerTail);
+        td_->singleCoreParams.set_dInnerTailAlign(dInnerTailAlign);
 
-        int64_t bOut = CeilCommon(td_.opInfo.get_b(), bCvRatioInner);
-        td_.splitCoreParams.set_bOut(bOut);
+        int64_t bOut = CeilCommon(td_->opInfo.get_b(), bCvRatioInner);
+        td_->splitCoreParams.set_bOut(bOut);
 
-        td_.singleCoreParams.set_singleCoreBatchRange(
-            CeilCommon(td_.splitCoreParams.get_bOut(), aicoreParams_.blockDim));
-        td_.splitCoreParams.set_usedCoreNum(
-            CeilCommon(td_.splitCoreParams.get_bOut(), td_.singleCoreParams.get_singleCoreBatchRange()));
+        td_->singleCoreParams.set_singleCoreBatchRange(
+            CeilCommon(td_->splitCoreParams.get_bOut(), aicoreParams_.blockDim));
+        td_->splitCoreParams.set_usedCoreNum(
+            CeilCommon(td_->splitCoreParams.get_bOut(), td_->singleCoreParams.get_singleCoreBatchRange()));
 
         return ge::GRAPH_SUCCESS;
     }
 
     ge::graphStatus DoInCoreTiling()
     {
-        td_.singleCoreParams.set_subRange(CeilCommon(td_.opInfo.get_sQ(), PER_SUB_RANGE));
-        td_.singleCoreParams.set_subMask(SINGLE_VEC_INST_DATASIZE / td_.opInfo.get_vecCalcDTypeSize());
-        td_.singleCoreParams.set_subMaskTail((td_.opInfo.get_sQ() % PER_SUB_RANGE) *
-                                             (BLOCK_BYTE / td_.opInfo.get_vecCalcDTypeSize()));
-        td_.singleCoreParams.set_sKVAlignBlockNum(td_.opInfo.get_sKVAlign() * FP32_BYTES_NUM / BLOCK_BYTE);
+        td_->singleCoreParams.set_subRange(CeilCommon(td_->opInfo.get_sQ(), PER_SUB_RANGE));
+        td_->singleCoreParams.set_subMask(SINGLE_VEC_INST_DATASIZE / td_->opInfo.get_vecCalcDTypeSize());
+        td_->singleCoreParams.set_subMaskTail((td_->opInfo.get_sQ() % PER_SUB_RANGE) *
+                                             (BLOCK_BYTE / td_->opInfo.get_vecCalcDTypeSize()));
+        td_->singleCoreParams.set_sKVAlignBlockNum(td_->opInfo.get_sKVAlign() * FP32_BYTES_NUM / BLOCK_BYTE);
 
-        int64_t rightPadding = td_.opInfo.get_sKVAlign() - td_.opInfo.get_sKV();
+        int64_t rightPadding = td_->opInfo.get_sKVAlign() - td_->opInfo.get_sKV();
         int64_t dstStride = 0;
 
         // kernel是按f32计算，如果rightpadding大于8，padding超过32B，会有问题，因此需要额外处理
-        if (td_.opInfo.get_sKVAlign() - td_.opInfo.get_sKV() >= FP32_BLOCK_ELES) {
+        if (td_->opInfo.get_sKVAlign() - td_->opInfo.get_sKV() >= FP32_BLOCK_ELES) {
             dstStride = 1;
-            rightPadding = td_.opInfo.get_sKVAlign() - td_.opInfo.get_sKV() - FP32_BLOCK_ELES;
+            rightPadding = td_->opInfo.get_sKVAlign() - td_->opInfo.get_sKV() - FP32_BLOCK_ELES;
         }
-        td_.singleCoreParams.set_dstStride(dstStride);
-        td_.singleCoreParams.set_rightPadding(rightPadding);
+        td_->singleCoreParams.set_dstStride(dstStride);
+        td_->singleCoreParams.set_rightPadding(rightPadding);
 
         return ge::GRAPH_SUCCESS;
     }
@@ -843,18 +847,18 @@ public:
     ge::graphStatus DoMulsTiling()
     {
         OP_LOGD(context_, "Do muls tiling begin.");
-        int64_t dAlign = (td_.opInfo.get_d() + 15) / 16 * 16;
+        int64_t dAlign = (td_->opInfo.get_d() + 15) / 16 * 16;
         int64_t allNumQuery =
-            td_.opInfo.get_b() * td_.opInfo.get_n() * td_.opInfo.get_g() * td_.opInfo.get_sQ() * dAlign;
-        int64_t allNumKv = td_.opInfo.get_b() * td_.opInfo.get_n() * td_.opInfo.get_sKV() * dAlign;
+            td_->opInfo.get_b() * td_->opInfo.get_n() * td_->opInfo.get_g() * td_->opInfo.get_sQ() * dAlign;
+        int64_t allNumKv = td_->opInfo.get_b() * td_->opInfo.get_n() * td_->opInfo.get_sKV() * dAlign;
 
-        uint32_t usedCoreNum = td_.splitCoreParams.get_usedCoreNum();
+        uint32_t usedCoreNum = td_->splitCoreParams.get_usedCoreNum();
         if (usedCoreNum == 0U) {
             return ge::GRAPH_PARAM_INVALID;
         }
 
-        basicParams.mmNextIsNZOut = (td_.opInfo.get_sQ() >= NZ_S_MIN
-                              && td_.opInfo.get_inputLayout() == static_cast<uint32_t>(InputLayout::BNSD))
+        basicParams.mmNextIsNZOut = (td_->opInfo.get_sQ() >= NZ_S_MIN
+                              && td_->opInfo.get_inputLayout() == static_cast<uint32_t>(InputLayout::BNSD))
                               ? true : false;
         uint32_t postUbBaseSize = 0;
         uint32_t qPostBaseNum = 0;
@@ -867,12 +871,12 @@ public:
             nzReservedSize = static_cast<uint32_t>(dAlign / C0_SIZE) * BLOCK_SIZE * POST_NZ_RESERVED_N;
             postUbBaseSize = (aicoreParams_.ubSize - 2 * nzReservedSize) / curPostCoexNode / BUFFER_NUM /  // 开DB预留2份nzReservedSize
                                  BASE_LEN_256 * BASE_LEN_256;
-            qPostBaseNum = postUbBaseSize / FP16_BYTES_NUM / dAlign * td_.opInfo.get_d();
+            qPostBaseNum = postUbBaseSize / FP16_BYTES_NUM / dAlign * td_->opInfo.get_d();
         }
         OP_CHECK_IF(qPostBaseNum == 0,
                    OP_LOGW(context_, "qPostBaseNum is 0."),
                    return ge::GRAPH_PARAM_INVALID);
-        int64_t qPostBlockTotal = allNumQuery / dAlign * td_.opInfo.get_d();
+        int64_t qPostBlockTotal = allNumQuery / dAlign * td_->opInfo.get_d();
         int64_t qSizeAlign = (qPostBlockTotal + static_cast<int64_t>(BASE_LEN_256) - 1LL) /
                              static_cast<int64_t>(WORKSPACE_ALIGN_SIZE) * static_cast<int64_t>(WORKSPACE_ALIGN_SIZE) *
                              FP16_BYTES_NUM;
@@ -887,7 +891,7 @@ public:
         OP_CHECK_IF(kvPostBaseNum == 0,
                    OP_LOGW(context_, "kvPostBaseNum is 0."),
                    return ge::GRAPH_PARAM_INVALID);
-        int64_t kvPostBlockTotal = allNumKv / dAlign * td_.opInfo.get_d();;
+        int64_t kvPostBlockTotal = allNumKv / dAlign * td_->opInfo.get_d();;
         int64_t kvSizeAlign = (kvPostBlockTotal + static_cast<int64_t>(WORKSPACE_ALIGN_SIZE) - 1) /
                               static_cast<int64_t>(WORKSPACE_ALIGN_SIZE) * static_cast<int64_t>(WORKSPACE_ALIGN_SIZE) *
                               FP16_BYTES_NUM;
@@ -897,50 +901,50 @@ public:
         int64_t kvPostBlockFactor =
             (kvPostBlockOuterTotal + static_cast<int64_t>(usedCoreNum) - 1) / static_cast<int64_t>(usedCoreNum);
 
-        td_.postTilingData.set_coreNum(usedCoreNum);
-        td_.postTilingData.set_scaleValue(td_.opInfo.get_scaleValue());
-        td_.postTilingData.set_postUbBaseSize(postUbBaseSize);
-        td_.postTilingData.set_qPostBlockFactor(qPostBlockFactor);
-        td_.postTilingData.set_qPostBlockTotal(qPostBlockTotal);
-        td_.postTilingData.set_qPostBaseNum(qPostBaseNum);
-        td_.postTilingData.set_qPostTailNum(qPostTailNum);
-        td_.postTilingData.set_qSizeAlign(qSizeAlign);
+        td_->postTilingData.set_coreNum(usedCoreNum);
+        td_->postTilingData.set_scaleValue(td_->opInfo.get_scaleValue());
+        td_->postTilingData.set_postUbBaseSize(postUbBaseSize);
+        td_->postTilingData.set_qPostBlockFactor(qPostBlockFactor);
+        td_->postTilingData.set_qPostBlockTotal(qPostBlockTotal);
+        td_->postTilingData.set_qPostBaseNum(qPostBaseNum);
+        td_->postTilingData.set_qPostTailNum(qPostTailNum);
+        td_->postTilingData.set_qSizeAlign(qSizeAlign);
 
-        td_.postTilingData.set_kvPostBlockFactor(kvPostBlockFactor);
-        td_.postTilingData.set_kvPostBlockTotal(kvPostBlockTotal);
-        td_.postTilingData.set_kvPostBaseNum(kvPostBaseNum);
-        td_.postTilingData.set_kvPostTailNum(kvPostTailNum);
-        td_.postTilingData.set_kvSizeAlign(kvSizeAlign);
-        td_.postTilingData.set_nzReservedSize(nzReservedSize);
+        td_->postTilingData.set_kvPostBlockFactor(kvPostBlockFactor);
+        td_->postTilingData.set_kvPostBlockTotal(kvPostBlockTotal);
+        td_->postTilingData.set_kvPostBaseNum(kvPostBaseNum);
+        td_->postTilingData.set_kvPostTailNum(kvPostTailNum);
+        td_->postTilingData.set_kvSizeAlign(kvSizeAlign);
+        td_->postTilingData.set_nzReservedSize(nzReservedSize);
 
-        td_.postTilingData.set_b(td_.opInfo.get_b());
-        td_.postTilingData.set_n2(td_.opInfo.get_n());
-        td_.postTilingData.set_g(td_.opInfo.get_g());
-        td_.postTilingData.set_s1(td_.opInfo.get_sQ());
-        td_.postTilingData.set_s2(td_.opInfo.get_sKV());
-        td_.postTilingData.set_d(td_.opInfo.get_d());
+        td_->postTilingData.set_b(td_->opInfo.get_b());
+        td_->postTilingData.set_n2(td_->opInfo.get_n());
+        td_->postTilingData.set_g(td_->opInfo.get_g());
+        td_->postTilingData.set_s1(td_->opInfo.get_sQ());
+        td_->postTilingData.set_s2(td_->opInfo.get_sKV());
+        td_->postTilingData.set_d(td_->opInfo.get_d());
 
-        int64_t allNumDropGm = td_.opInfo.get_b() * td_.opInfo.get_n() * td_.opInfo.get_g() * td_.opInfo.get_sQ() *
-                               td_.opInfo.get_sKVAlign();
-        int64_t allNumMulGm = td_.opInfo.get_b() * td_.opInfo.get_n() * td_.opInfo.get_g() * td_.opInfo.get_sQ() *
-                              td_.opInfo.get_sKVAlign();
+        int64_t allNumDropGm = td_->opInfo.get_b() * td_->opInfo.get_n() * td_->opInfo.get_g() * td_->opInfo.get_sQ() *
+                               td_->opInfo.get_sKVAlign();
+        int64_t allNumMulGm = td_->opInfo.get_b() * td_->opInfo.get_n() * td_->opInfo.get_g() * td_->opInfo.get_sQ() *
+                              td_->opInfo.get_sKVAlign();
 
         // CV并行实现，需要申请双倍的bmm345的输入空间
-        td_.opInfo.set_dropGmWorkspaceLen(2 * CeilCommon(allNumDropGm * FP16_BYTES_NUM, WORKSPACE_ALIGN_SIZE) *
+        td_->opInfo.set_dropGmWorkspaceLen(2 * CeilCommon(allNumDropGm * FP16_BYTES_NUM, WORKSPACE_ALIGN_SIZE) *
                                           WORKSPACE_ALIGN_SIZE);
-        td_.opInfo.set_mulGmWorkspaceLen(2 * CeilCommon(allNumMulGm * FP16_BYTES_NUM, WORKSPACE_ALIGN_SIZE) *
+        td_->opInfo.set_mulGmWorkspaceLen(2 * CeilCommon(allNumMulGm * FP16_BYTES_NUM, WORKSPACE_ALIGN_SIZE) *
                                          WORKSPACE_ALIGN_SIZE);
 
-        td_.opInfo.set_dqWorkspaceLen(CeilCommon(allNumQuery * FP32_BYTES_NUM, WORKSPACE_ALIGN_SIZE) *
+        td_->opInfo.set_dqWorkspaceLen(CeilCommon(allNumQuery * FP32_BYTES_NUM, WORKSPACE_ALIGN_SIZE) *
                                       WORKSPACE_ALIGN_SIZE);
-        td_.opInfo.set_dkWorkspaceLen(CeilCommon(allNumKv * FP32_BYTES_NUM, WORKSPACE_ALIGN_SIZE) *
+        td_->opInfo.set_dkWorkspaceLen(CeilCommon(allNumKv * FP32_BYTES_NUM, WORKSPACE_ALIGN_SIZE) *
                                       WORKSPACE_ALIGN_SIZE);
 
         return ge::GRAPH_SUCCESS;
     }
 
     ge::graphStatus SetMm1AndMm2Tiling(matmul_tiling::MatmulApiTiling &mm1AndMm2, int64_t bIn,
-                                       TCubeTiling &mm1AndMm2Tiling)
+                                       AscendC::tiling::TCubeTiling* mm1AndMm2Tiling)
     {
         mm1AndMm2.SetAType(matmul_tiling::TPosition::GM, matmul_tiling::CubeFormat::ND,
                            matmul_tiling::DataType::DT_FLOAT16, false);
@@ -948,22 +952,22 @@ public:
                            matmul_tiling::DataType::DT_FLOAT16, true);
         mm1AndMm2.SetCType(matmul_tiling::TPosition::VECCALC, matmul_tiling::CubeFormat::ND,
                            matmul_tiling::DataType::DT_FLOAT16);
-        mm1AndMm2.SetShape(td_.opInfo.get_sQ(), td_.opInfo.get_sKV(), td_.opInfo.get_d());
-        mm1AndMm2.SetOrgShape(td_.opInfo.get_sQ(), td_.opInfo.get_sKV(), td_.opInfo.get_d());
-        mm1AndMm2.SetALayout(td_.opInfo.get_b(), td_.opInfo.get_sQ(), td_.opInfo.get_n(), td_.opInfo.get_g(),
-                             td_.opInfo.get_d());
-        mm1AndMm2.SetBLayout(td_.opInfo.get_b(), td_.opInfo.get_sKV(), td_.opInfo.get_n(), 1, td_.opInfo.get_d());
-        mm1AndMm2.SetCLayout(td_.opInfo.get_b(), td_.opInfo.get_sQ(), td_.opInfo.get_n(), td_.opInfo.get_g(),
-                             td_.opInfo.get_sKV());
+        mm1AndMm2.SetShape(td_->opInfo.get_sQ(), td_->opInfo.get_sKV(), td_->opInfo.get_d());
+        mm1AndMm2.SetOrgShape(td_->opInfo.get_sQ(), td_->opInfo.get_sKV(), td_->opInfo.get_d());
+        mm1AndMm2.SetALayout(td_->opInfo.get_b(), td_->opInfo.get_sQ(), td_->opInfo.get_n(), td_->opInfo.get_g(),
+                             td_->opInfo.get_d());
+        mm1AndMm2.SetBLayout(td_->opInfo.get_b(), td_->opInfo.get_sKV(), td_->opInfo.get_n(), 1, td_->opInfo.get_d());
+        mm1AndMm2.SetCLayout(td_->opInfo.get_b(), td_->opInfo.get_sQ(), td_->opInfo.get_n(), td_->opInfo.get_g(),
+                             td_->opInfo.get_sKV());
 
-        uint32_t layout = td_.opInfo.get_inputLayout();
+        uint32_t layout = td_->opInfo.get_inputLayout();
         if (layout == static_cast<uint32_t>(InputLayout::BSH) || layout == static_cast<uint32_t>(InputLayout::BSND)) {
-            mm1AndMm2.SetBatchNum(td_.opInfo.get_n() * td_.opInfo.get_g());
+            mm1AndMm2.SetBatchNum(td_->opInfo.get_n() * td_->opInfo.get_g());
         } else {
             // SBH BNSD
-            mm1AndMm2.SetBatchNum(bIn * td_.singleCoreParams.get_bCvRatio() * td_.opInfo.get_n() * td_.opInfo.get_g());
+            mm1AndMm2.SetBatchNum(bIn * td_->singleCoreParams.get_bCvRatio() * td_->opInfo.get_n() * td_->opInfo.get_g());
         }
-        if (mm1AndMm2.GetTiling(mm1AndMm2Tiling) != 0) {
+        if (mm1AndMm2.GetTiling(*mm1AndMm2Tiling) != 0) {
             return ge::GRAPH_PARAM_INVALID;
         }
 
@@ -971,29 +975,29 @@ public:
     }
 
     ge::graphStatus SetMm31Tiling(matmul_tiling::MatmulApiTiling &mm31, int64_t bIn,
-                                  TCubeTiling &mm31Tiling)
+                                  AscendC::tiling::TCubeTiling* mm31Tiling)
     {
         mm31.SetAType(matmul_tiling::TPosition::GM, matmul_tiling::CubeFormat::ND, matmul_tiling::DataType::DT_FLOAT16,
                       false);
         mm31.SetBType(matmul_tiling::TPosition::GM, matmul_tiling::CubeFormat::ND, matmul_tiling::DataType::DT_FLOAT16,
                       false);
         mm31.SetCType(matmul_tiling::TPosition::GM, matmul_tiling::CubeFormat::ND, matmul_tiling::DataType::DT_FLOAT16);
-        mm31.SetShape(td_.opInfo.get_sQ(), td_.opInfo.get_d(), td_.opInfo.get_sKV());
-        mm31.SetOrgShape(td_.opInfo.get_sQ(), td_.opInfo.get_d(), td_.opInfo.get_sKV());
-        mm31.SetALayout(td_.opInfo.get_b(), td_.opInfo.get_sQ(), td_.opInfo.get_n(), td_.opInfo.get_g(),
-                        td_.opInfo.get_sKV());
-        mm31.SetBLayout(td_.opInfo.get_b(), td_.opInfo.get_sKV(), td_.opInfo.get_n(), 1, td_.opInfo.get_d());
-        mm31.SetCLayout(td_.opInfo.get_b(), td_.opInfo.get_sQ(), td_.opInfo.get_n(), td_.opInfo.get_g(),
-                        td_.opInfo.get_d());
+        mm31.SetShape(td_->opInfo.get_sQ(), td_->opInfo.get_d(), td_->opInfo.get_sKV());
+        mm31.SetOrgShape(td_->opInfo.get_sQ(), td_->opInfo.get_d(), td_->opInfo.get_sKV());
+        mm31.SetALayout(td_->opInfo.get_b(), td_->opInfo.get_sQ(), td_->opInfo.get_n(), td_->opInfo.get_g(),
+                        td_->opInfo.get_sKV());
+        mm31.SetBLayout(td_->opInfo.get_b(), td_->opInfo.get_sKV(), td_->opInfo.get_n(), 1, td_->opInfo.get_d());
+        mm31.SetCLayout(td_->opInfo.get_b(), td_->opInfo.get_sQ(), td_->opInfo.get_n(), td_->opInfo.get_g(),
+                        td_->opInfo.get_d());
 
-        uint32_t layout = td_.opInfo.get_inputLayout();
+        uint32_t layout = td_->opInfo.get_inputLayout();
         if (layout == static_cast<uint32_t>(InputLayout::BSH) || layout == static_cast<uint32_t>(InputLayout::BSND)) {
-            mm31.SetBatchNum(td_.opInfo.get_n() * td_.opInfo.get_g());
+            mm31.SetBatchNum(td_->opInfo.get_n() * td_->opInfo.get_g());
         } else {
             // SBH BNSD
-            mm31.SetBatchNum(bIn * td_.singleCoreParams.get_bCvRatio() * td_.opInfo.get_n() * td_.opInfo.get_g());
+            mm31.SetBatchNum(bIn * td_->singleCoreParams.get_bCvRatio() * td_->opInfo.get_n() * td_->opInfo.get_g());
         }
-        if (mm31.GetTiling(mm31Tiling) != 0) {
+        if (mm31.GetTiling(*mm31Tiling) != 0) {
             return ge::GRAPH_PARAM_INVALID;
         }
 
@@ -1001,7 +1005,7 @@ public:
     }
 
     ge::graphStatus SetMm32AndMm4Tiling(matmul_tiling::MatmulApiTiling &mm32AndMm4, int64_t bIn,
-                                        TCubeTiling &mm32AndMm4Tiling)
+                                        AscendC::tiling::TCubeTiling* mm32AndMm4Tiling)
     {
         mm32AndMm4.SetAType(matmul_tiling::TPosition::GM, matmul_tiling::CubeFormat::ND,
                             matmul_tiling::DataType::DT_FLOAT16, true);
@@ -1009,22 +1013,22 @@ public:
                             matmul_tiling::DataType::DT_FLOAT16, false);
         mm32AndMm4.SetCType(matmul_tiling::TPosition::GM, matmul_tiling::CubeFormat::ND,
                             matmul_tiling::DataType::DT_FLOAT16);
-        mm32AndMm4.SetShape(td_.opInfo.get_sKV(), td_.opInfo.get_d(), td_.opInfo.get_sQ());
-        mm32AndMm4.SetOrgShape(td_.opInfo.get_sKV(), td_.opInfo.get_d(), td_.opInfo.get_sQ());
-        mm32AndMm4.SetALayout(td_.opInfo.get_b(), td_.opInfo.get_sKV(), td_.opInfo.get_n(), td_.opInfo.get_g(),
-                              td_.opInfo.get_sQ());
-        mm32AndMm4.SetBLayout(td_.opInfo.get_b(), td_.opInfo.get_sQ(), td_.opInfo.get_n(), td_.opInfo.get_g(),
-                              td_.opInfo.get_d());
-        mm32AndMm4.SetCLayout(td_.opInfo.get_b(), td_.opInfo.get_sKV(), td_.opInfo.get_n(), 1, td_.opInfo.get_d());
+        mm32AndMm4.SetShape(td_->opInfo.get_sKV(), td_->opInfo.get_d(), td_->opInfo.get_sQ());
+        mm32AndMm4.SetOrgShape(td_->opInfo.get_sKV(), td_->opInfo.get_d(), td_->opInfo.get_sQ());
+        mm32AndMm4.SetALayout(td_->opInfo.get_b(), td_->opInfo.get_sKV(), td_->opInfo.get_n(), td_->opInfo.get_g(),
+                              td_->opInfo.get_sQ());
+        mm32AndMm4.SetBLayout(td_->opInfo.get_b(), td_->opInfo.get_sQ(), td_->opInfo.get_n(), td_->opInfo.get_g(),
+                              td_->opInfo.get_d());
+        mm32AndMm4.SetCLayout(td_->opInfo.get_b(), td_->opInfo.get_sKV(), td_->opInfo.get_n(), 1, td_->opInfo.get_d());
 
-        uint32_t layout = td_.opInfo.get_inputLayout();
+        uint32_t layout = td_->opInfo.get_inputLayout();
         if (layout == static_cast<uint32_t>(InputLayout::BSH) || layout == static_cast<uint32_t>(InputLayout::BSND)) {
-            mm32AndMm4.SetBatchNum(td_.opInfo.get_n() * td_.opInfo.get_g());
+            mm32AndMm4.SetBatchNum(td_->opInfo.get_n() * td_->opInfo.get_g());
         } else {
             // SBH BNSD
-            mm32AndMm4.SetBatchNum(bIn * td_.singleCoreParams.get_bCvRatio() * td_.opInfo.get_n() * td_.opInfo.get_g());
+            mm32AndMm4.SetBatchNum(bIn * td_->singleCoreParams.get_bCvRatio() * td_->opInfo.get_n() * td_->opInfo.get_g());
         }
-        if (mm32AndMm4.GetTiling(mm32AndMm4Tiling) != 0) {
+        if (mm32AndMm4.GetTiling(*mm32AndMm4Tiling) != 0) {
             return ge::GRAPH_PARAM_INVALID;
         }
         return ge::GRAPH_SUCCESS;
@@ -1036,7 +1040,7 @@ public:
         // mm tiling
         OP_LOGD("FAG_SPLIT_B", "DoLibApiTiling begin.");
         matmul_tiling::MatmulApiTiling mm1AndMm2;
-        ge::graphStatus ret = SetMm1AndMm2Tiling(mm1AndMm2, td_.singleCoreParams.get_bIn(), td_.mm1AndMm2TilingData);
+        ge::graphStatus ret = SetMm1AndMm2Tiling(mm1AndMm2, td_->singleCoreParams.get_bIn(), &td_->mm1AndMm2TilingData);
         // 如果mm参数设置失败，则流入到下一个模板
         OP_CHECK_IF(ret != ge::GRAPH_SUCCESS,
                   OP_LOGW(context_,
@@ -1044,14 +1048,14 @@ public:
                   return ret);
 
         matmul_tiling::MatmulApiTiling mm31;
-        ret = SetMm31Tiling(mm31, td_.singleCoreParams.get_bIn(), td_.mm31TilingData);
+        ret = SetMm31Tiling(mm31, td_->singleCoreParams.get_bIn(), &td_->mm31TilingData);
         OP_CHECK_IF(ret != ge::GRAPH_SUCCESS,
                   OP_LOGW(context_,
                             "Failed to set tiling parameters of mm31."),
                   return ret);
 
         matmul_tiling::MatmulApiTiling mm32AndMm4;
-        ret = SetMm32AndMm4Tiling(mm32AndMm4, td_.singleCoreParams.get_bIn(), td_.mm32AndMm4TilingData);
+        ret = SetMm32AndMm4Tiling(mm32AndMm4, td_->singleCoreParams.get_bIn(), &td_->mm32AndMm4TilingData);
         OP_CHECK_IF(ret != ge::GRAPH_SUCCESS,
                   OP_LOGW(context_,
                             "Failed to set tiling parameters of mm32 and mm41."),
@@ -1059,16 +1063,16 @@ public:
 
         // vector tiling
         auto softmaxShape =
-            Shape({td_.singleCoreParams.get_bIn() * td_.opInfo.get_g() * td_.opInfo.get_n() * td_.opInfo.get_sQ(),
-                   td_.opInfo.get_sKVAlign()});
-        uint32_t softmaxComputeSize = td_.splitCoreParams.get_apiClcQueueSize();
-        SoftMaxTilingFunc(softmaxShape, sizeof(float), softmaxComputeSize, td_.softmaxTilingData);
+            Shape({td_->singleCoreParams.get_bIn() * td_->opInfo.get_g() * td_->opInfo.get_n() * td_->opInfo.get_sQ(),
+                   td_->opInfo.get_sKVAlign()});
+        uint32_t softmaxComputeSize = td_->splitCoreParams.get_apiClcQueueSize();
+        SoftMaxTilingFunc(softmaxShape, sizeof(float), softmaxComputeSize, td_->softmaxTilingData);
         auto softmaxGradShape =
-            Shape({td_.singleCoreParams.get_bIn() * td_.opInfo.get_n() * td_.opInfo.get_g() * td_.opInfo.get_sQ(),
-                   td_.singleCoreParams.get_clcDInner()});
-        int64_t softmaxGradComputeSize = td_.splitCoreParams.get_apiClcQueueSize();
-        SoftMaxGradTilingFunc(softmaxGradShape, td_.opInfo.get_vecCalcDTypeSize(), softmaxGradComputeSize,
-                              td_.softmaxGradTilingData, true);
+            Shape({td_->singleCoreParams.get_bIn() * td_->opInfo.get_n() * td_->opInfo.get_g() * td_->opInfo.get_sQ(),
+                   td_->singleCoreParams.get_clcDInner()});
+        int64_t softmaxGradComputeSize = td_->splitCoreParams.get_apiClcQueueSize();
+        SoftMaxGradTilingFunc(softmaxGradShape, td_->opInfo.get_vecCalcDTypeSize(), softmaxGradComputeSize,
+                              td_->softmaxGradTilingData, true);
         return ge::GRAPH_SUCCESS;
     }
 
@@ -1078,31 +1082,31 @@ public:
         /* atttention mask可能需要额外的workspace */
         uint32_t sysLen = WORK_SPACE_BASE_CAL;
         uint32_t syncLen = SYNC_LEN;
-        int64_t mm1WorkspaceLen = td_.singleCoreParams.get_bIn() * td_.singleCoreParams.get_bCvRatio() *
-                                  td_.opInfo.get_n() * td_.opInfo.get_g() * td_.opInfo.get_sQ() *
-                                  td_.opInfo.get_sKVAlign() * td_.opInfo.get_vecCalcDTypeSize() *
-                                  td_.splitCoreParams.get_usedCoreNum();
+        int64_t mm1WorkspaceLen = td_->singleCoreParams.get_bIn() * td_->singleCoreParams.get_bCvRatio() *
+                                  td_->opInfo.get_n() * td_->opInfo.get_g() * td_->opInfo.get_sQ() *
+                                  td_->opInfo.get_sKVAlign() * td_->opInfo.get_vecCalcDTypeSize() *
+                                  td_->splitCoreParams.get_usedCoreNum();
         int64_t mm2WorkspaceLen = mm1WorkspaceLen;
-        int64_t dqWorkspaceLen = td_.opInfo.get_dqWorkspaceLen();
-        int64_t dkWorkspaceLen = td_.opInfo.get_dkWorkspaceLen();
-        int64_t dropOutWorkspaceLen = td_.opInfo.get_dropoutWorkspaceLen();
-        int64_t dropGmWorkspaceLen = td_.opInfo.get_dropGmWorkspaceLen();
-        int64_t mulGmWorkspaceLen = td_.opInfo.get_mulGmWorkspaceLen();
+        int64_t dqWorkspaceLen = td_->opInfo.get_dqWorkspaceLen();
+        int64_t dkWorkspaceLen = td_->opInfo.get_dkWorkspaceLen();
+        int64_t dropOutWorkspaceLen = td_->opInfo.get_dropoutWorkspaceLen();
+        int64_t dropGmWorkspaceLen = td_->opInfo.get_dropGmWorkspaceLen();
+        int64_t mulGmWorkspaceLen = td_->opInfo.get_mulGmWorkspaceLen();
 
         int64_t workspaceOffsets = static_cast<int64_t>(syncLen) + dropOutWorkspaceLen + mm1WorkspaceLen + mm2WorkspaceLen;
-        td_.postTilingData.set_dqWorkSpaceOffset(workspaceOffsets);
+        td_->postTilingData.set_dqWorkSpaceOffset(workspaceOffsets);
 
-        workspaceOffsets = workspaceOffsets + td_.opInfo.get_dqWorkspaceLen();
-        td_.postTilingData.set_dkWorkSpaceOffset(workspaceOffsets);
+        workspaceOffsets = workspaceOffsets + td_->opInfo.get_dqWorkspaceLen();
+        td_->postTilingData.set_dkWorkSpaceOffset(workspaceOffsets);
 
-        workspaceOffsets = workspaceOffsets + td_.opInfo.get_dkWorkspaceLen();
-        td_.postTilingData.set_dvWorkSpaceOffset(workspaceOffsets);
+        workspaceOffsets = workspaceOffsets + td_->opInfo.get_dkWorkspaceLen();
+        td_->postTilingData.set_dvWorkSpaceOffset(workspaceOffsets);
 
         workspaceSize_ = sysLen + syncLen + dropOutWorkspaceLen + mm1WorkspaceLen + mm2WorkspaceLen + dqWorkspaceLen +
                          dkWorkspaceLen + dropGmWorkspaceLen + mulGmWorkspaceLen;
-        td_.opInfo.set_syncLen(syncLen);
-        td_.opInfo.set_mm1WorkspaceLen(mm1WorkspaceLen);
-        td_.opInfo.set_mm2WorkspaceLen(mm2WorkspaceLen);
+        td_->opInfo.set_syncLen(syncLen);
+        td_->opInfo.set_mm1WorkspaceLen(mm1WorkspaceLen);
+        td_->opInfo.set_mm2WorkspaceLen(mm2WorkspaceLen);
         return ge::GRAPH_SUCCESS;
     }
 
@@ -1110,7 +1114,7 @@ public:
     ge::graphStatus PostTiling() override
     {
         auto blockdim =
-            CalcTschBlockDim(td_.splitCoreParams.get_usedCoreNum(), aicoreParams_.aicNum, aicoreParams_.blockDim);
+            CalcTschBlockDim(td_->splitCoreParams.get_usedCoreNum(), aicoreParams_.aicNum, aicoreParams_.blockDim);
         OP_CHECK_IF(blockdim == 0,
                    OP_LOGW(context_,
                    "blockdim is 0, aicNum is %lu, aivNum is %lu.", aicoreParams_.aicNum,
@@ -1121,23 +1125,13 @@ public:
         size_t *workspaces = context_->GetWorkspaceSizes(1);
         workspaces[0] = workspaceSize_;
 
-        // 判断如果GetDataSize > GetCapacity的异常情况，流入下一个模板判断
-        OP_CHECK_IF(td_.GetDataSize() > context_->GetRawTilingData()->GetCapacity(),
-                  OP_LOGW(context_,
-                            "The size of TilingDataSize[%zu] is larger than the size of MaxDataCapacity[%zu].",
-                            td_.GetDataSize(), context_->GetRawTilingData()->GetCapacity()),
-                  return ge::GRAPH_PARAM_INVALID);
-
-        td_.SaveToBuffer(context_->GetRawTilingData()->GetData(), context_->GetRawTilingData()->GetCapacity());
-        context_->GetRawTilingData()->SetDataSize(td_.GetDataSize());
         return ge::GRAPH_SUCCESS;
     }
 };
 
-REGISTER_TILING_TEMPLATE_WITH_SOCVERSION(
-    FlashAttentionScoreGrad, FlashAttentionScoreGradUbngs1s2BbTiling,
-    std::vector<int32_t>({static_cast<int32_t>(platform_ascendc::SocVersion::ASCEND910B),
-                          static_cast<int32_t>(platform_ascendc::SocVersion::ASCEND910_93)}),
-    10000);
+REGISTER_TILING_TEMPLATE_WITH_SOCVERSION(FlashAttentionScoreGrad, FlashAttentionScoreGradUbngs1s2BbTiling,
+                                         std::vector<int32_t>({(int32_t)platform_ascendc::SocVersion::ASCEND910B,
+                                                               (int32_t)platform_ascendc::SocVersion::ASCEND910_93}),
+                                         10000);
 
 } // namespace optiling

@@ -13,7 +13,7 @@
  * \brief
  */
 
-#include "flash_attention_score_grad_tiling.h"
+#include "../op_kernel/flash_attention_score_grad_tiling.h"
 #include <register/op_impl_registry.h>
 #include "log/log.h"
 #include "tiling_base/data_copy_transpose_tiling.h"
@@ -132,8 +132,6 @@ public:
         context->SetBlockDim(CalculateTschBlockDim(sliceNum, aicNum, aivNum));
         size_t *workspaces = context->GetWorkspaceSizes(1);
         workspaces[0] = WORKSPACE_SIZE;
-        tilingData.SaveToBuffer(context->GetRawTilingData()->GetData(), context->GetRawTilingData()->GetCapacity());
-        context->GetRawTilingData()->SetDataSize(tilingData.GetDataSize());
         return ge::GRAPH_SUCCESS;
     }
 
