@@ -248,6 +248,7 @@ __aicore__ inline void MoeV2ExpertTokenOutSimt::Process()
     }
 
     if (this->expertCumsum_ && this->blockIdx_ == this->needCoreNum_ - 1) {
+        SetWaitFlag<HardEvent::V_S>(HardEvent::V_S);
         int32_t expertId = lastExpertIdCunsumAddr_[0];
         int32_t cunsumNum = lastExpertIdCunsumAddr_[1];
         int32_t count = expertNum_ - expertId;
