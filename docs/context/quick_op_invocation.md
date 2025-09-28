@@ -161,7 +161,7 @@
 2. **安装ops-transformer包**
 
     ```bash
-    ./cann-${soc_name}-ops-math_${cann_version}_linux-${arch}.run --full --install-path=${install_path}
+    ./cann-${soc_name}-ops-transformer_${cann_version}_linux-${arch}.run --full --install-path=${install_path}
     ```
 
     \$\{install\_path\}：表示指定安装路径，需要与toolkit包安装在相同路径，默认安装在`/usr/local/Ascend`目录。
