@@ -428,13 +428,12 @@ __aicore__ inline void MoeDistributeCombineAddRmsNorm<TemplateMC2TypeFunc>::Init
     epWorldSizeOriginal_ = tilingData->moeDistributeCombineV2Info.epWorldSize;
     epRankId_ = tilingData->moeDistributeCombineV2Info.epRankId;
     epRankIdOriginal_ = tilingData->moeDistributeCombineV2Info.epRankId;
+    epWorldSize_ = tilingData->moeDistributeCombineV2Info.epWorldSize;
+    moeExpertPerRankNum_ = tilingData->moeDistributeCombineV2Info.moeExpertPerRankNum;
     uint32_t sharedExpertRankNum = tilingData->moeDistributeCombineV2Info.sharedExpertRankNum;
 
     if (hasElasticInfoFlag_) {
         InitElasticInfo(sharedExpertRankNum);
-    } else {
-        epWorldSize_ = tilingData->moeDistributeCombineV2Info.epWorldSize;
-        moeExpertPerRankNum_ = tilingData->moeDistributeCombineV2Info.moeExpertPerRankNum;
     }
     sharedExpertNum_ = tilingData->moeDistributeCombineV2Info.sharedExpertNum;
     moeSendNum_ = epWorldSize_ * moeExpertPerRankNum_;
@@ -652,7 +651,7 @@ __aicore__ inline void MoeDistributeCombineAddRmsNorm<TemplateMC2TypeFunc>::Mask
     LocalTensor<uint8_t> maskTensor = expertScalesBuf_.Get<uint8_t>();
     LocalTensor<half> maskCalcTensor = tokenBuf_.Get<half>();
     LocalTensor<half> maskCalcSelectedTensor = rowTmpFloatBuf_.Get<half>();
-    maskStrideTensor_ = expertScalesBuf_.Get<bool>();
+    maskStrideTensor_ = tokenBuf_.Get<bool>();
     LocalTensor<half> tempTensor = rowTmpFloatBuf_.Get<half>();
     LocalTensor<int32_t> bsIndexTensor = rowTmpFloatBuf_.Get<int32_t>();
     LocalTensor<uint32_t> maskTensorInt32 = expertScalesBuf_.Get<uint32_t>();
@@ -714,7 +713,7 @@ __aicore__ inline void MoeDistributeCombineAddRmsNorm<TemplateMC2TypeFunc>::Allt
         maxSizeRowTmpFloatBuf = activeMaskAlignHalfSize > hFloatAlign32Size_ ? activeMaskAlignHalfSize : hFloatAlign32Size_;
     }
     tpipe_->InitBuffer(expertScalesBuf_, axisBS_ * axisK_ * sizeof(float));  // BS * K * 4 = 32K
-    tpipe_->InitBuffer(tokenBuf_, hFloatAlign32Size_);                     // 28K 用于搬入输入token
+    tpipe_->InitBuffer(tokenBuf_, maxSizeRowTmpFloatBuf);                     // 28K 用于搬入输入token
     tpipe_->InitBuffer(rowTmpFloatBuf_, maxSizeRowTmpFloatBuf);  // 28K 用于存储cast之后的fp32 token数据
     tpipe_->InitBuffer(sumFloatBuf_, hFloatAlign32Size_);                // 28K add
     tpipe_->InitBuffer(moeSumQueue_, BUFFER_NUM, hExpandXAlign32Size_);  // 28K 搬入
