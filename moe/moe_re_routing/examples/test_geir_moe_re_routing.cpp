@@ -27,7 +27,7 @@
 
 #include "experiment_ops.h"
 #include "nn_other.h"
-#include "../../op_graph/moe_re_routing_proto.h"
+#include "../op_graph/moe_re_routing_proto.h"
 
 #define FAILED -1
 #define SUCCESS 0
