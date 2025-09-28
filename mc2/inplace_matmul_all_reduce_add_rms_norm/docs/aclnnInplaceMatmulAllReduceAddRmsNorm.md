@@ -39,12 +39,34 @@
 
 每个算子分为两段式接口，必须先调用“aclnnInplaceMatmulAllReduceAddRmsNormGetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnInplaceMatmulAllReduceAddRmsNorm”接口执行计算。
 
-* `aclnnStatus aclnnInplaceMatmulAllReduceAddRmsNormGetWorkspaceSize(const aclTensor *x1, const aclTensor *x2, const aclTensor *bias, const aclTensor *residual, const aclTensor *gamma, double epsilon, const char* group, const char *reduceOp, int64_t commTurn, int64_t streamMode, const aclTensor *normOut, uint64_t *workspaceSize, aclOpExecutor **executor)`
-* `aclnnStatus aclnnInplaceMatmulAllReduceAddRmsNorm(void *workspace, uint64_t workspaceSize, aclOpExecutor *executor, const aclrtStream stream)`
+```cpp
+aclnnStatus aclnnInplaceMatmulAllReduceAddRmsNormGetWorkspaceSize(
+    const aclTensor *x1, 
+    const aclTensor *x2, 
+    const aclTensor *bias, 
+    const aclTensor *residual, 
+    const aclTensor *gamma, 
+    double epsilon, 
+    const char* group, 
+    const char *reduceOp, 
+    int64_t commTurn, 
+    int64_t streamMode, 
+    const aclTensor *normOut, 
+    uint64_t *workspaceSize, 
+    aclOpExecutor **executor)
+```
+
+```cpp
+aclnnStatus aclnnInplaceMatmulAllReduceAddRmsNorm(
+    void *workspace, 
+    uint64_t workspaceSize, 
+    aclOpExecutor *executor, 
+    const aclrtStream stream)
+```
 
 ## aclnnInplaceMatmulAllReduceAddRmsNormGetWorkspaceSize
 
-- **参数说明：**。
+- **参数说明：**
     <table style="undefined;table-layout: fixed; width: 1567px"><colgroup>
       <col style="width: 170px">
       <col style="width: 120px">
@@ -285,8 +307,10 @@
 - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：一个模型中的通算融合MC2算子，仅支持相同通信域。
 
 ## 调用示例
+
 示例代码如下，仅供参考，具体编译和执行过程请参考编译与运行样例。
 
+- <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：
 ```Cpp
 #include <iostream>
 #include <vector>
@@ -485,6 +509,7 @@ int launchOneThreadMatmulAllReduceAddRmsNorm(Args &args) {
 }
 
 int main(int argc, char *argv[]) {
+    // 本样例基于Atlas A2实现，必须在Atlas A2上运行
     int ret;
     int32_t devices[ndev];
     for (int i = 0; i < ndev; i++) {

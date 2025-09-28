@@ -289,7 +289,7 @@ $$
 
 ## 约束说明
 
-- aclnnMoeDistributeDispatchV2接口与aclnnMoeDistributeCombineAddRmsNorm接口必须配套使用，具体参考[调用示例](#调用示例)。
+- aclnnMoeDistributeDispatchV2接口与aclnnMoeDistributeCombineAddRmsNorm接口必须配套使用，具体参考调用示例。
 
 - 调用接口过程中使用的groupEp、epWorldSize、moeExpertNum、groupTp、tpWorldSize、expertShardType、sharedExpertNum、sharedExpertRankNum、globalBs参数取值所有卡需保持一致，网络中不同层中也需保持一致，且和aclnnMoeDistributeDispatchV2对应参数也保持一致。
 
@@ -307,7 +307,7 @@ $$
         - 对于MoE专家卡，localExpertNum = moeExpertNum / (epWorldSize - sharedExpertRankNum)，localExpertNum > 1时，不支持TP域通信。
   
 - HCCL_BUFFSIZE：
-    调用本接口前需检查HCCL_BUFFSIZE环境变量取值是否合理，该环境变量表示单个通信域占用内存大小，单位MB，不配置时默认为200MB。要求 >= 2且满足1024 ^ 2 * (HCCL_BUFFSIZE - 2) / 2 >= (BS * 2 * (H + 128) * (epWorldSize * localExpertNum + K + 1)，localExpertNum需使用MoE专家卡的本卡专家数。
+    调用本接口前需检查HCCL_BUFFSIZE环境变量取值是否合理，该环境变量表示单个通信域占用内存大小，单位MB，不配置时默认为200MB。要求 >= 2且满足1024 ^ 2 * (HCCL_BUFFSIZE - 2) / 2 >= (BS * 2 * (H + 128) * (epWorldSize * localExpertNum + K + 1))，localExpertNum需使用MoE专家卡的本卡专家数。
 
 - 通信域使用约束：
     - 一个模型中的aclnnMoeDistributeCombineAddRmsNorm和aclnnMoeDistributeDispatchV2仅支持相同EP通信域，且该通信域中不允许有其他算子。
@@ -318,5 +318,3 @@ $$
 | 调用方式  | 样例代码                                  | 说明                                                     |
 | :--------: | :----------------------------------------: | :-------------------------------------------------------: |
 | aclnn接口 | [test_aclnn_moe_distribute_combine_add_rms_norm.cpp](./examples/test_aclnn_moe_distribute_combine_add_rms_norm.cpp) | 通过[aclnnMoeDistributeCombineAddRmsNorm](./docs/aclnnMoeDistributeCombineAddRmsNorm.md)接口方式调用moe_distribute_combine_add_rms_norm算子。 |
-
-

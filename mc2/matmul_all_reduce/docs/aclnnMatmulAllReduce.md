@@ -26,8 +26,27 @@
 
 每个算子分为两段式接口，必须先调用“aclnnMatmulAllReduceGetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnMatmulAllReduce”接口执行计算。
 
-* `aclnnStatus aclnnMatmulAllReduceGetWorkspaceSize(const aclTensor *x1, const aclTensor *x2, const aclTensor *bias, const char* group, const char *reduceOp, int64_t commTurn, int64_t streamMode, const aclTensor *output, uint64_t *workspaceSize, aclOpExecutor **executor)`
-* `aclnnStatus aclnnMatmulAllReduce(void *workspace, uint64_t workspaceSize, aclOpExecutor *executor, const aclrtStream stream)`
+```cpp
+aclnnStatus aclnnMatmulAllReduceGetWorkspaceSize(
+    const aclTensor *x1, 
+    const aclTensor *x2, 
+    const aclTensor *bias, 
+    const char* group, 
+    const char *reduceOp, 
+    int64_t commTurn, 
+    int64_t streamMode, 
+    const aclTensor *output, 
+    uint64_t *workspaceSize, 
+    aclOpExecutor **executor)
+```
+
+```cpp
+aclnnStatus aclnnMatmulAllReduce(
+    void *workspace, 
+    uint64_t workspaceSize, 
+    aclOpExecutor *executor, 
+    const aclrtStream stream)
+```
 
 ## aclnnMatmulAllReduceGetWorkspaceSize
 
@@ -626,6 +645,7 @@
 
     int main(int argc, char *argv[])
     {
+        // 本样例基于Atlas A2实现，必须在Atlas A2上运行
         GetOption(argc, argv);
         int ret = aclInit(nullptr);
         CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("[ERROR] aclInit failed. ret = %d \n", ret); return ret);

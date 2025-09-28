@@ -29,8 +29,28 @@
 
 每个算子分为两段式接口，必须先调用“aclnnAllGatherMatmulGetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnAllGatherMatmul”接口执行计算。
 
-*  `aclnnStatus aclnnAllGatherMatmulGetWorkspaceSize(const aclTensor *x1, const aclTensor *x2, const aclTensor *bias, const char *group, int64_t gatherIndex, int64_t commTurn, int64_t streamMode, const aclTensor *output, const aclTensor *gatherOut, uint64_t *workspaceSize, aclOpExecutor **executor)`
-*  `aclnnStatus aclnnAllGatherMatmul(void *workspace, uint64_t workspaceSize, aclOpExecutor *executor, aclrtStream stream)`
+```cpp
+aclnnStatus aclnnAllGatherMatmulGetWorkspaceSize(
+    const aclTensor *x1, 
+    const aclTensor *x2, 
+    const aclTensor *bias, 
+    const char *group, 
+    int64_t gatherIndex, 
+    int64_t commTurn, 
+    int64_t streamMode, 
+    const aclTensor *output, 
+    const aclTensor *gatherOut, 
+    uint64_t *workspaceSize, 
+    aclOpExecutor **executor)
+```
+
+```cpp
+aclnnStatus aclnnAllGatherMatmul(
+    void *workspace, 
+    uint64_t workspaceSize, 
+    aclOpExecutor *executor, 
+    aclrtStream stream)
+```
 
 ## aclnnAllGatherMatmulGetWorkspaceSize
 
@@ -240,7 +260,7 @@
     </tbody></table>
 -   **返回值：**
 
-    返回aclnnStatus状态码。
+    返回aclnnStatus状态码，具体参见aclnn返回码。。
 
 ## 约束说明
 
@@ -257,7 +277,7 @@
 
 ## 调用示例
 
-示例代码如下，仅供参考。
+示例代码如下，仅供参考，具体编译和执行过程请参考编译与运行样例。
 
 - <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：
     ```Cpp

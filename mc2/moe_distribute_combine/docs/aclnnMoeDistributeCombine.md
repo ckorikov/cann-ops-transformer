@@ -413,49 +413,9 @@ aclnnStatus aclnnMoeDistributeCombine(
 
 ## 调用示例
 
-- <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：示例代码请参考aclnnMoeDistributeCombineV2接口调用过程，仅供参考，请根据实际情况配置；
-- <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>昇腾910_95 AI处理器</term>：示例代码如下，调起combine和dispatch算子，仅供参考，请根据实际情况配置。
+示例代码如下，仅供参考，具体编译和执行过程请参考编译与运行样例。
 
-- 文件准备：    
-  1.新建combineDemo目录，按照下方指导在combineDemo下新建aclnnCombineDemo.cpp，buildCombine.sh，rank_table_m2.json文件并修改。
-  2.将combineDemo项目拷贝到两台服务器中，并根据机器的device ip配置rank_table_m2.json文件内容。注意两机rank_table_m2.json文件保持一致。
-  3.安装cann包，并根据下方指导编译运行combineDemo。
-
-- 关于rankTable:
-  开发者可以通过ranktable文件配置参与集合通信的NPU资源信息，详细配置请参考[《集合通信用户指南》](https://hiascend.com/document/redirect/CannCommercialHcclUg)中“通信功能开发>集群信息配置>ranktable文件配置资源信息”。
-
-  使用`cat /etc/hccn.conf` 或者`for i in seq 0 7; do echo "===================> dev$i, NPU$((i+1))"; hccn_tool -i $i -ip -g; done`查询机器的device ip。然后参考集合通信文档填写json文件。
-
-  注意：device_id范围是[0, 8)，且可自由选择几张卡； rank_id依次增加。以两机16卡为例，两机器的device ip都是0~7，其中一机器rank_id为0~7，则另一台机器的rank_id为8~15。
-
--  编译脚本
-    ```bash
-    #!/bin/bash
-    cann_path="/path/to/cann_env" # 更改cann包环境的路径
-    g++ "aclnnCombineDemo.cpp" -o combineDemo -I"$cann_path/latest/include/" -I"$cann_path/latest/include/aclnnop/" \
-                        -L="$cann_path/latest/lib64/" -lascendcl -lnnopbase -lopapi -lop_common -lpthread -lhccl
-    ```
-- 编译与运行：
-
-    ```bash
-    # source cann环境
-    source /path/to/cann_env/latest/bin/setenv.bash
-
-    # 编译aclnnCombineDemo.cpp
-    bash buildCombine.sh
-
-    # 运行前需设置两个环境变量
-    ## FIRST_RANK_ID说明：以两机16卡为例，其中一机器设置为0，另一机器设置为8
-    ## 如export FIRST_RANK_ID=0
-    export RANK_TABLE_FILE=/home/path/to/rank_table_m2.json
-    export FIRST_RANK_ID=<设备的起始rank_id>
-
-    # 两机同时运行
-    ./combineDemo
-    ```
-
-- 示例代码如下，仅供参考
-  - <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：
+- <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：
     ```Cpp
     #include <thread>
     #include <iostream>

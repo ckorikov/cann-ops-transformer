@@ -427,9 +427,9 @@ aclnnStatus aclnnMoeDistributeDispatchV2(
 
 ## 调用示例
 
-以<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>单机为例，调起MoeDistributeCombineV2和MoeDistributeDispatchV2算子。
+示例代码如下，仅供参考，具体编译和执行过程请参考编译与运行样例。
 
-- 示例代码如下，仅供参考
+- <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：
     ```Cpp
     #include <thread>
     #include <iostream>
