@@ -177,4 +177,4 @@ $$
 
 | 调用方式  | 样例代码                                  | 说明                                                     |
 | :--------: | :----------------------------------------: | :-------------------------------------------------------: |
-| aclnn接口 | [test_allto_all_all_gather_batch_mat_mul.cpp](./examples/test_allto_all_all_gather_batch_mat_mul.cpp) | 通过[aclnnAlltoAllAllGatherBatchMatMul](./docs/aclnnAlltoAllAllGatherBatchMatMul.md)接口方式调用allto_all_all_gather_batch_mat_mul算子。 |
+| aclnn接口 | [test_aclnn_allto_all_all_gather_batch_mat_mul.cpp](./examples/test_aclnn_allto_all_all_gather_batch_mat_mul.cpp) | 通过[aclnnAlltoAllAllGatherBatchMatMul](./docs/aclnnAlltoAllAllGatherBatchMatMul.md)接口方式调用allto_all_all_gather_batch_mat_mul算子。 |

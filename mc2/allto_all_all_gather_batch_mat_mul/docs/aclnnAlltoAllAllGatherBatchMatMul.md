@@ -284,7 +284,7 @@ aclnnStatus aclnnAlltoAllAllGatherBatchMatMul(
 
 ## 调用示例
 
-示例代码如下，仅供参考，具体编译和执行过程请参考编译与运行样例。
+示例代码如下，仅供参考。
 
 ```Cpp
 #include <thread>
@@ -293,7 +293,7 @@ aclnnStatus aclnnAlltoAllAllGatherBatchMatMul(
 #include <vector>
 #include "acl/acl.h"
 #include "hccl/hccl.h"
-#include "aclnnop/aclnn_all_to_all_all_gather_batch_matmul.h"
+#include "../op_host/op_api/aclnn_all_to_all_all_gather_batch_matmul.h"
 
 #define CHECK_RET(cond, return_expr) \
     do {                             \
@@ -504,6 +504,7 @@ int LaunchOneThreadAlltoAllAllGatherBmm(Args &args)
 
 int main(int argc, char *argv[])
 {
+    // 本样例基于Atlas A3实现，必须在Atlas A3上运行
     int ret = aclInit(nullptr);
     CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("[ERROR] aclInit failed. ret = %d \n", ret); return ret);
     aclrtStream stream[DEV_NUM];

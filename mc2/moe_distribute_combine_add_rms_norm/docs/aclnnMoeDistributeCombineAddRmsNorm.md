@@ -432,7 +432,7 @@ aclnnStatus aclnnMoeDistributeCombineAddRmsNorm(
 
 ## 约束说明
 
-1. `aclnnMoeDistributeDispatchV2`接口与`aclnnMoeDistributeCombineAddRmsNorm`接口必须配套使用，具体参考[调用示例](#调用示例)。
+1. `aclnnMoeDistributeDispatchV2`接口与`aclnnMoeDistributeCombineAddRmsNorm`接口必须配套使用，具体参考调用示例。
 
 2. 调用接口过程中使用的`groupEp`、`epWorldSize`、`moeExpertNum`、`groupTp`、`tpWorldSize`、`expertShardType`、`sharedExpertNum`、`sharedExpertRankNum`、`globalBs`参数取值所有卡需保持一致，网络中不同层中也需保持一致，且和`aclnnMoeDistributeDispatchV2`对应参数也保持一致。
 
@@ -460,30 +460,6 @@ aclnnStatus aclnnMoeDistributeCombineAddRmsNorm(
 
 以<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>为例，调起MoeDistributeDispatchV2和MoeDistributeCombineAddRmsNorm算子。
 
-- 文件准备：    
-  1.新建combineAddRmsNormDemo目录，按照下方指导在combineAddRmsNormDemo下新建aclnnCombineAddRmsNormDemo.cpp，buildCombineAddRmsNorm.sh，文件并修改。
-  2.将combineAddRmsNormDemo项目拷贝到服务器中。
-  3.安装cann包，并根据下方指导编译运行combineAddRmsNormDemo。
-
--  编译脚本
-    ```bash
-    #!/bin/bash
-    cann_path="/path/to/cann_env" # 更改cann包环境的路径
-    g++ "aclnnCombineAddRmsNormDemo.cpp" -o combineAddRmsNormDemo -I"$cann_path/latest/include/" -I"$cann_path/latest/include/aclnnop/" \
-        -L="$cann_path/latest/lib64/" -lascendcl -lnnopbase -lopapi -lop_common -lpthread -lhccl
-    ```
-- 编译与运行：
-
-    ```bash
-    # source cann环境
-    source /path/to/cann_env/latest/bin/setenv.bash
-
-    # 编译aclnnCombineAddRmsNormDemo.cpp
-    bash buildCombineAddRmsNorm.sh
-
-    ./combineAddRmsNormDemo
-    ```
-
 - 示例代码如下，仅供参考
     ```Cpp
     #include <thread>
@@ -492,8 +468,8 @@ aclnnStatus aclnnMoeDistributeCombineAddRmsNorm(
     #include <vector>
     #include "acl/acl.h"
     #include "hccl/hccl.h"
-    #include "aclnnop/aclnn_moe_distribute_dispatch_v2.h"
-    #include "aclnnop/aclnn_moe_distribute_combine_add_rms_norm.h"
+    #include "../../moe_distribute_dispatch_v2/op_host/op_api/aclnn_moe_distribute_dispatch_v2.h"
+    #include "../op_host/op_api/aclnn_moe_distribute_combine_add_rms_norm.h"
 
     #define CHECK_RET(cond, return_expr) \
         do {                             \
@@ -906,6 +882,7 @@ aclnnStatus aclnnMoeDistributeCombineAddRmsNorm(
 
     int main(int argc, char *argv[])
     {
+        // 本样例基于Atlas A3实现，必须在Atlas A3上运行
         int ret = aclInit(nullptr);
         CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("[ERROR] aclInit failed, ret = %d\n", ret); return ret);
 

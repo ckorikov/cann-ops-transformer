@@ -281,6 +281,6 @@
 
 | 调用方式  | 样例代码                                  | 说明                                                     |
 | :--------: | :----------------------------------------: | :-------------------------------------------------------: |
-| aclnn接口 | [test_moe_distribute_combine.cpp](./examples/test_moe_distribute_combine.cpp) | 通过[aclnnMoeDistributeCombine](./docs/aclnnMoeDistributeCombine.md)接口方式调用moe_distribute_combine算子。 |
+| aclnn接口 | [test_aclnn_moe_distribute_combine.cpp](./examples/test_aclnn_moe_distribute_combine.cpp) | 通过[aclnnMoeDistributeCombine](./docs/aclnnMoeDistributeCombine.md)接口方式调用moe_distribute_combine算子。 |
 
 

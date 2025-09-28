@@ -177,30 +177,6 @@ aclnnStatus aclnnDistributeBarrier(
 
 ## 调用示例
 
-- 文件准备：    
-  1.新建barrierDemo目录，按照下方指导在barrierDemo下新建aclnnBarrierDemo.cpp，buildBarrier.sh文件并按照如下代码修改。
-
-  2.安装cann包，并根据下方指导编译运行barrierDemo。
-
--  编译脚本
-    ```bash
-    #!/bin/bash
-    cann_path="/path/to/cann_env" # 更改cann包环境的路径
-    g++ "aclnnBarrierDemo.cpp" -o barrierDemo -I"$cann_path/latest/include/" -I"$cann_path/latest/include/aclnnop/" \
-                        -L="$cann_path/latest/lib64/" -lascendcl -lnnopbase -lopapi -lop_common -lpthread -lhccl
-    ```
-- 编译与运行：
-
-    ```bash
-    # source cann环境
-    source /path/to/cann_env/latest/bin/setenv.bash
-
-    # 编译aclnnBarrierDemo.cpp
-    bash buildBarrier.sh
-
-    ./barrierDemo
-    ```
-
 - 示例代码如下，仅供参考
     ```Cpp
     #include <thread>
@@ -209,9 +185,9 @@ aclnnStatus aclnnDistributeBarrier(
     #include <vector>
     #include "acl/acl.h"
     #include "hccl/hccl.h"
-    #include "aclnnop/aclnn_moe_distribute_dispatch_v2.h"
-    #include "aclnnop/aclnn_distribute_barrier.h"
-    #include "aclnnop/aclnn_moe_distribute_combine_v2.h"
+    #include "../../moe_distribute_dispatch_v2/op_host/op_api/aclnn_moe_distribute_dispatch_v2.h"
+    #include "../op_host/op_api/aclnn_distribute_barrier.h"
+    #include "../../moe_distribute_combine_v2/op_host/op_api/aclnn_moe_distribute_combine_v2.h"
     
     #define CHECK_RET(cond, return_expr) \
         do {                             \
@@ -574,6 +550,7 @@ aclnnStatus aclnnDistributeBarrier(
     
     int main(int argc, char *argv[])
     {
+        // 本样例基于Atlas A3实现，必须在Atlas A3上运行
         int ret = aclInit(nullptr);
         CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("[ERROR] aclrtInit failed, ret = %d\n", ret); return ret);
     

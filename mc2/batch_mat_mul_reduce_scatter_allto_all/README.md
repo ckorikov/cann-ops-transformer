@@ -149,4 +149,4 @@ $$
 
 | 调用方式  | 样例代码                                  | 说明                                                     |
 | :--------: | :----------------------------------------: | :-------------------------------------------------------: |
-| aclnn接口 | [test_batch_mat_mul_reduce_scatter_allto_all.cpp](./examples/test_batch_mat_mul_reduce_scatter_allto_all.cpp) | 通过[aclnnBatchMatMulReduceScatterAlltoAll](./docs/aclnnBatchMatMulReduceScatterAlltoAll.md)接口方式调用batch_mat_mul_reduce_scatter_allto_all算子。 |
+| aclnn接口 | [test_aclnn_batch_mat_mul_reduce_scatter_allto_all.cpp](./examples/test_aclnn_batch_mat_mul_reduce_scatter_allto_all.cpp) | 通过[aclnnBatchMatMulReduceScatterAlltoAll](./docs/aclnnBatchMatMulReduceScatterAlltoAll.md)接口方式调用batch_mat_mul_reduce_scatter_allto_all算子。 |

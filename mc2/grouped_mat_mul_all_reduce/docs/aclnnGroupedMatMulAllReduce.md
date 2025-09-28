@@ -834,6 +834,7 @@ int InitParams(int argc, char** argv) {
 
 int main(int argc, char *argv[])
 {
+    // 本样例基于Atlas A3实现，必须在Atlas A3上运行
     // usage: ./main 2 1 0,1
     int ret = 0;
     CHECK_RET(InitParams(argc, argv) == 0, LOG_PRINT("init params failed.\n"); return 0);

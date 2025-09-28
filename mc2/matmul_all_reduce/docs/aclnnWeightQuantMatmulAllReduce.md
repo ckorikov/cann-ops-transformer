@@ -8,7 +8,7 @@
 
 ## 功能说明
 
-- **算子功能**：对入参x2进行伪量化计算后，完成Matmul和AllReduce计算。支持pertensor、perchannel、pergroup[量化方式](common/量化介绍.md)。
+- **算子功能**：对入参x2进行伪量化计算后，完成Matmul和AllReduce计算。支持pertensor、perchannel、pergroup量化方式。
 
 - **计算公式**：
 
@@ -18,7 +18,7 @@
 
 ## 函数原型
 
-每个算子分为[两段式接口](common/两段式接口.md)，必须先调用“aclnnWeightQuantMatmulAllReduceGetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnWeightQuantMatmulAllReduce”接口执行计算。
+每个算子分为两段式接口，必须先调用“aclnnWeightQuantMatmulAllReduceGetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnWeightQuantMatmulAllReduce”接口执行计算。
 
 * `aclnnStatus aclnnWeightQuantMatmulAllReduceGetWorkspaceSize(const aclTensor *x1, const aclTensor *x2, const aclTensor *bias, const aclTensor *antiquantScale,  const aclTensor *antiquantOffset,  const aclTensor *x3, const char* group, const char *reduceOp, int64_t commTurn, int64_t streamMode, int64_t antiquantGroupSize, const aclTensor *output, uint64_t *workspaceSize, aclOpExecutor **executor)`
 * `aclnnStatus aclnnWeightQuantMatmulAllReduce(void *workspace, uint64_t workspaceSize, aclOpExecutor *executor, const aclrtStream stream)`
@@ -202,7 +202,7 @@
     </table>
 
     - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：
-      - 输入x2的数据类型支持INT8、INT4，[数据格式](common/数据格式.md)支持ND（当前版本仅支持二维输入）和FRACTAL_NZ格式（当前版本仅支持四维输入）。当x2的[数据格式](common/数据格式.md)为FRACTAL_NZ时，配合[aclnnCalculateMatmulWeightSizeV2](aclnnCalculateMatmulWeightSizeV2.md)和[aclnnTransMatmulWeight](aclnnTransMatmulWeight.md)完成输入ND到NZ的转换，[非连续的tensor](common/非连续的Tensor.md)仅支持transpose场景。
+      - 输入x2的数据类型支持INT8、INT4，数据格式支持ND（当前版本仅支持二维输入）和FRACTAL_NZ格式（当前版本仅支持四维输入）。当x2的数据格式为FRACTAL_NZ时，配合aclnnCalculateMatmulWeightSizeV2和aclnnTransMatmulWeight完成输入ND到NZ的转换，非连续的tensor仅支持transpose场景。
       - 输入bias的数据类型与x1保持一致。
       - 输入x3的数据类型支持BFLOAT16、FLOAT16。
       - 输出output的数据类型支持BFLOAT16、FLOAT16。
@@ -281,7 +281,7 @@
     </tbody></table>
 - **返回值：**
 
-    返回aclnnStatus状态码，具体参见[aclnn返回码](common/aclnn返回码.md)。
+    返回aclnnStatus状态码，具体参见aclnn返回码。
 
 ## 约束说明
 
@@ -301,7 +301,7 @@
 
 ## 调用示例
 
-示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](common/编译与运行样例.md)。
+示例代码如下，仅供参考，具体编译和执行过程请参考编译与运行样例。
 
 - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：
     ```Cpp
@@ -309,7 +309,7 @@
     #include <vector>
     #include <thread>
     #include <string.h>
-    #include "aclnnop/aclnn_weight_quant_matmul_all_reduce.h"
+    #include "../op_host/op_api/aclnn_weight_quant_matmul_all_reduce.h"
 
     int ndev = 8;
 
@@ -553,7 +553,7 @@
     #include <vector>
     #include <string.h>
     #include <getopt.h>
-    #include "aclnnop/aclnn_weight_quant_matmul_all_reduce.h"
+    #include "../op_host/op_api/aclnn_weight_quant_matmul_all_reduce.h"
 
     #define CHECK_RET(cond, return_expr) \
         do {                             \

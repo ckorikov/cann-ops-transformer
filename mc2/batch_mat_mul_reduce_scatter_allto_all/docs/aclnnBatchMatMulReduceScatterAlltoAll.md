@@ -264,7 +264,7 @@ aclnnStatus aclnnBatchMatMulReduceScatterAlltoAll(
 #include <vector>
 #include "acl/acl.h"
 #include "hccl/hccl.h"
-#include "aclnnop/aclnn_batch_matmul_reduce_scatter_all_to_all.h"
+#include "../op_host/op_api/aclnn_batch_matmul_reduce_scatter_all_to_all.h"
 
 #define CHECK_RET(cond, return_expr) \
     do {                             \
@@ -449,6 +449,7 @@ int LaunchOneThreadBatchMMRSAlltoAll(Args &args)
 
 int main(int argc, char *argv[])
 {
+    // 本样例基于Atlas A3实现，必须在Atlas A3上运行
     int ret = aclInit(nullptr);
     CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("[ERROR] aclInit failed. ret = %d \n", ret); return ret);
     aclrtStream stream[DEV_NUM];

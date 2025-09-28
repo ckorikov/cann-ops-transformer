@@ -16,7 +16,7 @@
 ## 功能说明
 
 - **算子功能**：对量化后的入参x1、x2进行MatMul计算后，接着进行Dequant计算，接着与x3进行Add操作，最后做AllReduce计算。
-    支持pertensor、perchannel[量化方式](common/量化介绍.md)。
+    支持pertensor、perchannel量化方式。
 - **计算公式**：
 
   $$
@@ -25,7 +25,7 @@
 
 ## 函数原型
 
-每个算子分为[两段式接口](common/两段式接口.md)，必须先调用“aclnnQuantMatmulAllReduceGetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnQuantMatmulAllReduce”接口执行计算。
+每个算子分为两段式接口，必须先调用“aclnnQuantMatmulAllReduceGetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnQuantMatmulAllReduce”接口执行计算。
 
 * `aclnnStatus aclnnQuantMatmulAllReduceGetWorkspaceSize(const aclTensor *x1, const aclTensor *x2, const aclTensor *bias,  const aclTensor *x3,  const aclTensor *dequantScale, const char* group, const char *reduceOp, int64_t commTurn, int64_t streamMode, const aclTensor *output, uint64_t *workspaceSize, aclOpExecutor **executor);`
 * `aclnnStatus aclnnQuantMatmulAllReduce(void *workspace, uint64_t workspaceSize, aclOpExecutor *executor, const aclrtStream stream);`
@@ -179,8 +179,8 @@
       </tbody>
     </table>
 
-    - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：x2输入的[数据格式](common/数据格式.md)支持ND（当前版本仅支持二维输入）和FRACTAL_NZ格式（当前版本仅支持四维输入）。当x2的[数据格式](common/数据格式.md)为FRACTAL_NZ时，配合[aclnnCalculateMatmulWeightSizeV2](aclnnCalculateMatmulWeightSizeV2.md)和[aclnnTransMatmulWeight](aclnnTransMatmulWeight.md)完成[数据格式](common/数据格式.md)ND到[数据格式](common/数据格式.md)NZ的转换，[非连续的tensor](common/非连续的Tensor.md)仅支持transpose场景。
-    - <term>昇腾910_95 AI处理器</term>：x2输入的[数据格式](common/数据格式.md)仅支持ND（当前版本仅支持二维输入）。
+    - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：x2输入的数据格式支持ND（当前版本仅支持二维输入）和FRACTAL_NZ格式（当前版本仅支持四维输入）。当x2的数据格式为FRACTAL_NZ时，配合aclnnCalculateMatmulWeightSizeV2和aclnnTransMatmulWeight完成数据格式ND到数据格式NZ的转换，非连续的tensor仅支持transpose场景。
+    - <term>昇腾910_95 AI处理器</term>：x2输入的数据格式仅支持ND（当前版本仅支持二维输入）。
 
 - **返回值：**
     第一段接口完成入参校验，出现以下场景时报错：
@@ -251,7 +251,7 @@
     </tbody></table>
 - **返回值：**
 
-    返回aclnnStatus状态码，具体参见[aclnn返回码](common/aclnn返回码.md)。
+    返回aclnnStatus状态码，具体参见aclnn返回码。
 
 ## 约束说明
 
@@ -268,7 +268,7 @@
 - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：一个模型中的通算融合MC2算子，仅支持相同通信域。
 
 ## 调用示例
-示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](common/编译与运行样例.md)。
+示例代码如下，仅供参考，具体编译和执行过程请参考编译与运行样例。
 
 - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：
     ```Cpp
@@ -276,7 +276,7 @@
     #include <vector>
     #include <thread>
     #include "aclnnop/aclnn_trans_matmul_weight.h"
-    #include "aclnnop/aclnn_quant_matmul_all_reduce.h"
+    #include "../op_host/op_api/aclnn_quant_matmul_all_reduce.h"
 
     int ndev = 8;
 
@@ -559,7 +559,7 @@
     #include <vector>
     #include <getopt.h>
     #include "aclnnop/aclnn_trans_matmul_weight.h"
-    #include "aclnnop/aclnn_quant_matmul_all_reduce.h"
+    #include "../op_host/op_api/aclnn_quant_matmul_all_reduce.h"
     
     #define ACL_CHECK(ret)                                                                                     \
         do {                                                                                                   \

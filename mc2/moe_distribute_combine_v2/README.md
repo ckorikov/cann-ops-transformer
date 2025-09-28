@@ -303,5 +303,5 @@ $$
 
 | 调用方式  | 样例代码                                  | 说明                                                     |
 | :--------: | :----------------------------------------: | :-------------------------------------------------------: |
-| aclnn接口 | [test_moe_distribute_combine_v2.cpp](./examples/test_moe_distribute_combine_v2.cpp) | 通过[aclnnMoeDistributeCombineV2](./docs/aclnnMoeDistributeCombineV2.md)接口方式调用moe_distribute_combine_v2算子。 |
+| aclnn接口 | [test_aclnn_moe_distribute_combine_v2.cpp](./examples/test_aclnn_moe_distribute_combine_v2.cpp) | 通过[aclnnMoeDistributeCombineV2](./docs/aclnnMoeDistributeCombineV2.md)接口方式调用moe_distribute_combine_v2算子。 |
 

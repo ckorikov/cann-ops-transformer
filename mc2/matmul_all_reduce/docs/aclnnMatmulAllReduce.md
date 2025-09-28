@@ -24,7 +24,7 @@
 
 ## 函数原型
 
-每个算子分为[两段式接口](common/两段式接口.md)，必须先调用“aclnnMatmulAllReduceGetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnMatmulAllReduce”接口执行计算。
+每个算子分为两段式接口，必须先调用“aclnnMatmulAllReduceGetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnMatmulAllReduce”接口执行计算。
 
 * `aclnnStatus aclnnMatmulAllReduceGetWorkspaceSize(const aclTensor *x1, const aclTensor *x2, const aclTensor *bias, const char* group, const char *reduceOp, int64_t commTurn, int64_t streamMode, const aclTensor *output, uint64_t *workspaceSize, aclOpExecutor **executor)`
 * `aclnnStatus aclnnMatmulAllReduce(void *workspace, uint64_t workspaceSize, aclOpExecutor *executor, const aclrtStream stream)`
@@ -226,7 +226,7 @@
     </tbody></table>
 - **返回值：**
 
-    返回aclnnStatus状态码，具体参见[aclnn返回码](common/aclnn返回码.md)。
+    返回aclnnStatus状态码，具体参见aclnn返回码。
 
 ## 约束说明
 
@@ -242,14 +242,14 @@
 
 ## 调用示例
 
-示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](common/编译与运行样例.md)。
+示例代码如下，仅供参考，具体编译和执行过程请参考编译与运行样例。
 
 - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：
     ```Cpp
     #include <iostream>
     #include <vector>
     #include <thread>
-    #include "aclnnop/aclnn_matmul_all_reduce.h"
+    #include "../op_host/op_api/aclnn_matmul_all_reduce.h"
 
     int ndev = 8;
 
@@ -448,7 +448,7 @@
     #include <iostream>
     #include <vector>
     #include <getopt.h>
-    #include "aclnnop/aclnn_matmul_all_reduce.h"
+    #include "../op_host/op_api/aclnn_matmul_all_reduce.h"
 
     #define CHECK_RET(cond, return_expr) \
         do {                             \

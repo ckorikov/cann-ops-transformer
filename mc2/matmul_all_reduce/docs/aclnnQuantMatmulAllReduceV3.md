@@ -15,7 +15,7 @@
 
 ## 功能说明
 
-- **算子功能**：对量化后的入参x1、x2进行MatMul、Dequant和pertoken计算，接着与x3进行Add操作，再对输出进行perchannel量化，然后进行AllToAll通信，对第一次通讯结果进行reduceSum计算，接着进行AllGather通信，最后对第二次通信结果进行Dequant，得到最终输出。支持pertensor、perchannel、pertoken[量化方式](common/量化介绍.md)。
+- **算子功能**：对量化后的入参x1、x2进行MatMul、Dequant和pertoken计算，接着与x3进行Add操作，再对输出进行perchannel量化，然后进行AllToAll通信，对第一次通讯结果进行reduceSum计算，接着进行AllGather通信，最后对第二次通信结果进行Dequant，得到最终输出。支持pertensor、perchannel、pertoken量化方式。
 - **计算公式**：
 
   $$
@@ -36,7 +36,7 @@
 
 ## 函数原型
 
-每个算子分为[两段式接口](common/两段式接口.md)，必须先调用“aclnnQuantMatmulAllReduceV3GetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnQuantMatmulAllReduceV3”接口执行计算。
+每个算子分为两段式接口，必须先调用“aclnnQuantMatmulAllReduceV3GetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnQuantMatmulAllReduceV3”接口执行计算。
 
 * `aclnnStatus aclnnQuantMatmulAllReduceV3GetWorkspaceSize(const aclTensor *x1, const aclTensor *x2, const aclTensor *biasOptional, const aclTensor *x3Optional, const aclTensor *dequantScale, const aclTensor *pertokenScaleOptional, const aclTensor *commQuantScale1Optional, const aclTensor *commQuantScale2Optional, const char* group, const char *reduceOp, int64_t commTurn, int64_t streamMode, const aclTensor *output, uint64_t *workspaceSize, aclOpExecutor **executor)`
 * `aclnnStatus aclnnQuantMatmulAllReduceV3(void *workspace, uint64_t workspaceSize, aclOpExecutor *executor, aclrtStream stream)`
@@ -219,15 +219,15 @@
       </tbody>
     </table>
 
-    - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：输入x2的[数据格式](common/数据格式.md)支持ND和FRACTAL_NZ格式。
+    - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：输入x2的数据格式支持ND和FRACTAL_NZ格式。
     输入的shape规则如下：
-        - 当x2的[数据格式](common/数据格式.md)为FRACTAL_NZ时，当前版本仅支持四维输入，配合[aclnnCalculateMatmulWeightSizeV2](aclnnCalculateMatmulWeightSizeV2.md)和[aclnnTransMatmulWeight](aclnnTransMatmulWeight.md)完成输入ND到NZ的转换，[非连续的tensor](common/非连续的Tensor.md)仅支持transpose场景。
-        - 当x2的[数据格式](common/数据格式.md)为ND时，当前版本仅支持二维输入。
-    - <term>昇腾910_95 AI处理器</term>：输入x2的[数据格式](common/数据格式.md)仅支持ND格式（当前版本仅支持二维输入）。
+        - 当x2的数据格式为FRACTAL_NZ时，当前版本仅支持四维输入，配合aclnnCalculateMatmulWeightSizeV2和aclnnTransMatmulWeight完成输入ND到NZ的转换，非连续的tensor仅支持transpose场景。
+        - 当x2的数据格式为ND时，当前版本仅支持二维输入。
+    - <term>昇腾910_95 AI处理器</term>：输入x2的数据格式仅支持ND格式（当前版本仅支持二维输入）。
 
 -   **返回值：**
 
-    返回aclnnStatus状态码，具体参见[aclnn返回码](common/aclnn返回码.md)。
+    返回aclnnStatus状态码，具体参见aclnn返回码。
     第一段接口完成入参校验，出现以下场景时报错：
     <table style="undefined;table-layout: fixed; width: 1030px"><colgroup>
     <col style="width: 250px">
@@ -296,7 +296,7 @@
     </tbody></table>
 -   **返回值：**
 
-    返回aclnnStatus状态码，具体参见[aclnn返回码](common/aclnn返回码.md)。
+    返回aclnnStatus状态码，具体参见aclnn返回码。
 
 ## 约束说明
 
@@ -316,7 +316,7 @@
 - int8低bit通信仅在通信bound的情况下存在性能收益，计算bound的情况不建议使能int8低bit通信，即不建议输入commQuantScale1和commQuantScale2。
 
 ## 调用示例
-示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](common/编译与运行样例.md)。
+示例代码如下，仅供参考，具体编译和执行过程请参考编译与运行样例。
 
 - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：
     ```Cpp
@@ -324,7 +324,7 @@
     #include <vector>
     #include <thread>
     #include "aclnnop/aclnn_trans_matmul_weight.h"
-    #include "aclnnop/aclnn_quant_matmul_all_reduce_v3.h"
+    #include "../op_host/op_api/aclnn_quant_matmul_all_reduce_v3.h"
     
     int ndev = 8;
     
@@ -651,7 +651,7 @@
     #include <vector>
     #include <getopt.h>
     #include "aclnnop/aclnn_trans_matmul_weight.h"
-    #include "aclnnop/aclnn_quant_matmul_all_reduce_v3.h"
+    #include "../op_host/op_api/aclnn_quant_matmul_all_reduce_v3.h"
 
     #define ACL_CHECK(ret)                                                                                     \
         do {                                                                                                   \
