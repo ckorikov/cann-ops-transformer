@@ -270,7 +270,6 @@ FlashAttentionScoreInfer<CHILD_SPEC_TEMPLATE_ARGS>::InitUniqueConstInfo(const In
     if constexpr (isFd) {
         this->constInfo.splitKVNum = inputParamsRegbase.kvSplitPart;
         this->constInfo.sInnerLoopSize = CeilDivision(this->constInfo.s2Size, this->constInfo.splitKVNum);
-        this->constInfo.actualCombineLoopSize = CeilDivision(this->constInfo.s2Size, this->constInfo.sInnerLoopSize);
     }
 
     if constexpr (POST_QUANT) {
@@ -642,6 +641,7 @@ __aicore__ inline void FlashAttentionScoreInfer<CHILD_SPEC_TEMPLATE_ARGS>::Flash
         return;
     }
     uint64_t attenOutOffset = (uint64_t)bIdx * this->constInfo.n2GDv + n2Idx * this->constInfo.gDv;
+    this->constInfo.actualCombineLoopSize = (actualSeqLen + this->constInfo.sInnerLoopSize - 1) / this->constInfo.sInnerLoopSize;
     CombineSplitKVRes(attenOutOffset, bIdx, n2Idx);
 }
 
