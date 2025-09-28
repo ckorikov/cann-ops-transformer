@@ -25,6 +25,8 @@
 #include "service_scatter_cache.h"
 #include "service_dequant.h"
 #include "service_dynamic_quant_qn_mul_qr.h"
+#include "mla_prolog_tiling_data.h"
+#include "mla_prolog_template_tiling_key.h"
 
 namespace MlaProlog {
 template <typename T>
@@ -36,8 +38,8 @@ __aicore__ inline T Align(T num, T rnd)
 template <typename MLAPT>
 class MlaPrologVecS1CubS2 {
 public:
-    __aicore__ inline MlaPrologVecS1CubS2(TPipe* pipe, const MlaPrologTilingData* __restrict tilingData,
-                                          const MlaPrologBaseParams* __restrict baseParams)
+    __aicore__ inline MlaPrologVecS1CubS2(TPipe* pipe, const optiling::MlaPrologTilingData* __restrict tilingData,
+                                          const optiling::MlaPrologBaseParams* __restrict baseParams)
         : pipe_(pipe), tilingData_(tilingData), baseParams_(baseParams) {}
 
     __aicore__ inline void Init(__gm__ uint8_t *tokenX, __gm__ uint8_t *weightDq, __gm__ uint8_t *weightUqQr,
@@ -125,8 +127,8 @@ public:
 
 private:
     TPipe* pipe_;
-    const MlaPrologTilingData* __restrict tilingData_;
-    const MlaPrologBaseParams* __restrict baseParams_;
+    const optiling::MlaPrologTilingData* __restrict tilingData_;
+    const optiling::MlaPrologBaseParams* __restrict baseParams_;
     uint32_t blockIdx_ = 0U;
     uint32_t cubeBlockIdx_ = 0U; // AIV上使用AIC的blockIdx
     int64_t vectorRow_ = 1;
