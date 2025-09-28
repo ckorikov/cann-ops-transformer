@@ -46,6 +46,8 @@ TILING_DATA_FIELD_DEF(int64_t, totalUbSize); // ub空间总大小
 END_TILING_DATA_DEF;
 
 REGISTER_TILING_DATA_CLASS(MoeTokenUnpermuteWithRoutingMapGrad, MoeTokenUnpermuteWithRoutingMapGradTilingData)
+
+struct MoeTokenUnpermuteWithRoutingMapGradCompileInfo {};
 } // namespace optiling
 
 #endif // OPS_BUILD_IN_OP_TILING_RUNTIME_MOE_TOKEN_UNPERMUTE_WITH_ROUTING_MAP_GRAD_TILING_H

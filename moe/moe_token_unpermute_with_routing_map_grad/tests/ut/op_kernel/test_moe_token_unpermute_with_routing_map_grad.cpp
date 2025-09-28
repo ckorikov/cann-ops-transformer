@@ -8,23 +8,18 @@
  * See LICENSE in the root of the software repository for the full text of the License.
  */
 
-/*!
- * \file moe_token_unpermute_with_routing_map_grad.cpp
- * \brief
- */
 #include <array>
 #include <vector>
 #include <iostream>
 #include <string>
 #include <cstdint>
 #include "gtest/gtest.h"
-#include "tikicpulib.h"
 #include "test_moe_token_unpermute_with_routing_map_grad.h"
-#include "../../../../../built-in/tests//ut//fast_op_test/data_utils.h"
-
+#ifdef __CCE_KT_TEST__
 #include <cstdint>
-
-using namespace std;
+#include "tikicpulib.h"
+#include "data_utils.h"
+#endif
 
 extern "C" __global__ __aicore__ void moe_token_unpermute_with_routing_map_grad(
     GM_ADDR unpermuted_tokens_grad, GM_ADDR out_index, GM_ADDR permute_token_id, GM_ADDR routing_map,
@@ -36,11 +31,11 @@ class moe_token_unpermute_with_routing_map_grad_test : public testing::Test
 protected:
     static void SetUpTestCase()
     {
-        cout << "moe_token_unpermute_with_routing_map_grad_test SetUp\n" << endl;
+        std::cout << "moe_token_unpermute_with_routing_map_grad_test SetUp\n" << std::endl;
     }
     static void TearDownTestCase()
     {
-        cout << "moe_token_unpermute_with_routing_map_grad_test TearDown\n" << endl;
+        std::cout << "moe_token_unpermute_with_routing_map_grad_test TearDown\n" << std::endl;
     }
 };
 
@@ -74,7 +69,7 @@ TEST_F(moe_token_unpermute_with_routing_map_grad_test, test_bf16_prob_not_none)
     uint32_t blockDim = 48;
 
     char* path_ = get_current_dir_name();
-    string path(path_);
+    std::string path(path_);
 
     MoeTokenUnpermuteWithRoutingMapGradTilingData* tilingDatafromBin =
         reinterpret_cast<MoeTokenUnpermuteWithRoutingMapGradTilingData*>(tiling);
@@ -127,7 +122,7 @@ TEST_F(moe_token_unpermute_with_routing_map_grad_test, test_bf16_prob_none_pad_f
     uint32_t blockDim = 48;
 
     char* path_ = get_current_dir_name();
-    string path(path_);
+    std::string path(path_);
 
     MoeTokenUnpermuteWithRoutingMapGradTilingData* tilingDatafromBin =
         reinterpret_cast<MoeTokenUnpermuteWithRoutingMapGradTilingData*>(tiling);
@@ -180,7 +175,7 @@ TEST_F(moe_token_unpermute_with_routing_map_grad_test, test_bf16_prob_none_pad_t
     uint32_t blockDim = 48;
 
     char* path_ = get_current_dir_name();
-    string path(path_);
+    std::string path(path_);
 
     MoeTokenUnpermuteWithRoutingMapGradTilingData* tilingDatafromBin =
         reinterpret_cast<MoeTokenUnpermuteWithRoutingMapGradTilingData*>(tiling);
