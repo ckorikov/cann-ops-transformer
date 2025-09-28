@@ -2,17 +2,21 @@
 
 图1 训练计算流程图
 
-![流程图](../../../docs/inner/fig/FlashAttentionScoreGrad.png)
+![流程图](./fig/FlashAttentionScoreGrad.png)
 
 按照flashAttention反向计算流程实现，整体计算流程如下：
+
 1. 重计算p，$p = SimpledSoftmax(Mask(Matmul(query, key^T) + pse) * scale)$，本步骤重计算了fa流程中的softmax结果p，计算结果保存的ub中。
 2. 计算dp，$dp = Dropout(Matmul(dy, value^T))$，该计算包含matmul计算和dropout计算，matmul计算中，左矩阵为dy，右矩阵为转置后的value。
 3. 计算ds，$ds = p * Sub(dp, FlashSoftmaxGrad(dy, attention\_in))$，本计算中，FlashSoftmaxGrad计算的入参为dy、正向输出attention\_in，该结果与dp做减操作，最终的结果与p相乘得到结果ds。
 4. 计算dq，$dq = Matmul(ds, key) * scale$，本计算将ds结果与key做matmul计算，并将结果与scale相乘得到结果dq。
 5. 计算dk，$dk = Matmul(ds^T, query) * scale$，本计算将转置后的ds结果与query做matmul计算，并将结果与scale相乘得到结果dk。
 6. 计算dv，$dv = Matmul(DropOut(p)^T, dy)$；本计算p的结果做drop计算，转置后与dy做matmul计算。
+
 ## 2 每个计算阶段的入口
+
 以sameAB模板为例
+
 1. 得到每个核处理的任务块数后，调用函数：`Process`
 2. Cube1阶段，流程中1，计算入口：`ComputeMM1`
 3. Vector1阶段，流程中2-3，计算入口：`ComputeVec`
@@ -34,9 +38,9 @@ Tiling操作的目的是为了找到一种更高效的NPU执行方式，原始�
 Bmm((S1_c_i,D)x(D,S2_c_i)) => 128*1024  // 输出结果128*1024，放到workspace上 
 // V侧 vector计算
 for S1_c_i/S1_v_i=128/8:
-	copy_gm_to_ub(S1_v_i*S2_v_i)  // 从bmm的workspace上拷入bmm结果数据
-	vector(S1_v_i,S2_v_i)         // 进行vector计算
-	copy_ub_to_gm(S1_v_i*S2_v_i)  // vector计算结束，得到最终输出数据，拷贝到GM上
+  copy_gm_to_ub(S1_v_i*S2_v_i)  // 从bmm的workspace上拷入bmm结果数据
+  vector(S1_v_i,S2_v_i)         // 进行vector计算
+  copy_ub_to_gm(S1_v_i*S2_v_i)  // vector计算结束，得到最终输出数据，拷贝到GM上
 
 // 由于cube侧计算数据比vector侧大，因此，ub内需要再次进行Vector Tiling，从而产生了S1方向的配比：S1_c_i/S1_v_i
 ```
@@ -50,43 +54,33 @@ for S1_c_i/S1_v_i=128/8:
 ###  4.1 V侧流水
 
 V侧流水设计需要考虑Vector内部的搬运及计算过程，实施的优化手段主要是double buffer。
-以下面的流水任务示意图为例，Vec的功能被拆分成2个流水任务：subA、subB，每个任务专注于完成单一功能；需要处理的数据被切分成2片，使用ping-pong表示两个数据处理任务，每个任务需要依次搬运DataCopy与计算Clc操作。任务间的箭头表达数据间的依赖关系，比如subA处理完DataCopy之后，subB才能对Clc进行处理。
+以下面的流水任务示意图为例，Vec的功能被拆分成2个流水任务：subA、subB，每个任务专注于完成单一功能；需要处理的数据被切分成2片，使用ping-pong表示两个数据处理任务，每个任务需要依次搬运DataCopy与计算Clc（Clc表示vector计算）操作。任务间的箭头表达数据间的依赖关系，比如subA处理完DataCopy之后，subB才能对Clc进行处理。
 从图上可以看出，不进行流水设计时，搬运与计算任务之间是串行执行的，会出现断流现象，即第一次DataCopy完成之后的搬运流水就一直处于空闲状态，直到第一次搬入的数据计算完成并搬出之后搬运流水才会继续工作，进行第二次DataCopy（Vector计算和搬出流水也存在同样问题）。通常这种情况下，性能是极差的。
 
-![设计图1](../../../docs/inner/fig/设计图1.png)
+![设计图1](./fig/设计图1.png)
 
 将上图的流水任务做ping-pong流水间的double buffer处理后，流水任务运行起来的示意图如下，从运行图中可以看出，对于同一片数据，搬运DataCopy与计算Clc之间的处理具有依赖关系，需要串行处理；不同的数据切片，同一时间点，可以有多个任务在并行处理，由此达到任务并行、提升性能的目的。
 
-![设计图2](../../../docs/inner/fig/设计图2.png)
-
-实现伪码如下：
-
-```python
-def Vec():
-    subA(ping) # 表示计算ping小块
-    subA(pong) # 表示计算pong小块
-    subB(ping) # 表示计算ping小块
-    subB(pong) # 表示计算pong小块
-```
+![设计图2](./fig/设计图2.png)
 
 其中ping、pong两块计算数据所占用的内存资源均相互独立。
-​FAG融合算子V侧计算过程较多，情况也比较复杂，通常简单的double buffer是无法覆盖所有情况的，因此会出现不同的计算流水排布。不同的计算流水适用于不同类的shape特征，以达到在该类特征下最好的流水设计。
+FAG融合算子V侧计算过程较多，情况也比较复杂，通常简单的double buffer是无法覆盖所有情况的，因此会出现不同的计算流水排布。不同的计算流水适用于不同类的shape特征，以达到在该类特征下最好的流水设计。
 
 ### 4.2 CV流水
 
-融合算子通常包含了Vector计算和Cube计算，对于FAG算子，V侧的计算是依赖C侧的计算结果的，如果只关注V侧流水，不关注C侧，则C侧与V侧很有可能是串行流水的效果，不能达到并行计算的目的，无法使得融合算子性能达到最优，从而有了CV流水设计。此外，CV流水在不同算子情况下，表现的现象也是不一致的，FAG的Cube双发机制可实现两种场景下的流水优化：
+融合算子通常包含了Vector计算和Cube计算，对于FA算子，V侧的计算是依赖C侧的计算结果的，如果只关注V侧流水，不关注C侧，则C侧与V侧很有可能是串行流水的效果，不能达到并行计算的目的，无法使得融合算子性能达到最优，从而有了CV流水设计。此外，CV流水在不同算子情况下，表现的现象也是不一致的，FA/FAG的Cube双发机制，又称为CV间preload流水，可实现两种场景下的流水优化：
 
 - C侧总耗时 > V侧总耗时
 
   该场景流水特征下，Vector计算节点少，计算速度快，在<term>Atlas A2 训练系列产品</term> C:V=1:2的情况下，Cube的搬运时长足以掩盖Vector的计算时长，因此只要关注Cube的MTE2耗时即可，最终达成MTE2 bound。在Cube双发机制下，提前发射两块Cube计算，Cube1、Cube2计算可以衔接，使得Cube利用率最高，达成Cube bound。
 
-![设计图3](../../../docs/inner/fig/设计图3.png)
+![设计图3](./fig/设计图3.png)
 
 - C侧总耗时 < V侧总耗时
 
   该场景流水特征下，Vector计算节点多，Vector计算是瓶颈，C侧的搬运不足以掩盖V侧的流水，因此需要进行CV流水排布，尽量达到CV并行的效果，最通用的优化手段是C侧提前发射。
 
-![设计图4](../../../docs/inner/fig/设计图4.png)
+![设计图4](./fig/设计图4.png)
 
 C侧连续发射两块Cube计算，这样可以保证V侧计算完上一轮时，可以立马启动当前轮的计算，而不用等待Cube1的数据。这样可以使V侧一直在工作，达成Vector bound。
 
@@ -125,6 +119,7 @@ FAG（FlashAttentionScoreGrad，简称FAG）融合算子的多模板设计思路
   </tr>
 </thead>
 <tbody>
+
 
   <tr>
     <td>B模板</td>
@@ -176,6 +171,107 @@ N1 * G * alignedS1 * alignedS2 <= bestBasicBlockNum。 </td>
     - 特化模板是覆盖特定场景的极致性能，主要根据某些适用于特定场景的特殊手段进行的优化，不适合进行泛化。
 
   例如，根据特殊场景空tensor特化而出的empty_input模板，基于角色的cube核管理（RCM）优化方案设计的确定性计算模板等。
+
 - **根据不同计算流水进行模板特化**
 
   为了充分发挥硬件优势，通常融合算子都需要进行流水设计，以提高融合算子性能，不同的流水设计对代码的架构影响非常大，为了提升代码的可维可测可读性，需要根据不同的计算流水进行模板特化，达到特定场景的极致性能。
+
+### 5.1 多模板详细设计
+
+- **基本概念：**
+
+  **CV基本块:** 表示Cube或者Vector单次计算的数据量大小，用来描述一次完整的Cube和Vector交互的数据量，通常也等价于**核间基本块**。在910B芯片上由于Cube和Vector之间通信有一定开销，所以CV基本块设置的比较大，一般合适的数据量大小是512*1024（单位Bytes）。又由于Cube和Vector的核内Buffer有限，所以核间基本块可能要通过**多次核内计算**完成。
+
+  **核内基本块：**
+
+  如果CV基本块过大，Cube和Vector核内会将CV基本块进一步的切分，切分成适合核内L0A、L0B、L0C、UB等大小的基本块，这个就叫**核内基本块**；对于Cube侧，核内基本块一般在32KB（单位Bytes)，这样可以让L0A、L0B的DoubleBuffer能力展开，同时算力和带宽也能尽可能用满；在Vector侧一般基本块大小是32KB（单位Bytes）。
+
+  **xxx.i:** 表示经过切分后，CV基本块中的某根轴的大小, 一般基本块都是2维的，xxx.i 表示其中一个维度的大小。xxx可以是B、N2、G、S1、S2;
+  例如，S1 = 512, S2 = 1024， S1.i = 64, S2.i = 128, 表示把[S1, S2]切分成大小是[64, 128]的基本块，S1轴的基本块大小是64，S2轴的基本块大小是128。
+
+  **xxx.o**: 表示经过基本块切分后某根轴的分数，xxx可以是B、N2、G、S1、S2;
+
+  例如，S1 = 512, S2 = 1024， S1.i = 64, S2.i = 128, 表示把[S1, S2]切分成大小是[64, 128]的基本块，S1.o = 512 / 64 = 8, S2.o = 1024 / 128 = 8 ，一共切分成8 * 8个基本块。
+
+  - FAG算子的模板划分如下，以下模板，序号越大，模板的优先级越高，序号1的模板是泛化模板(支持所有shape)：
+
+    > 1. 核间切分B、N2、G、S1轴，核内切分S1轴、S2轴模板：
+    >
+    >    tiling代码文件：ops-transformer-dev/attention/flash_attention_score_grad/op_host/flash_attention_score_grad_tiling_s1s2_bn2gs1s2.cpp
+    >
+    >    tiling代码类：FlashAttentionScoreGradTilingS1s2Bn2gs1s2
+    >
+    >    kernel代码：ops-transformer-dev/attention/flash_attention_score_grad/op_kernel/flash_attention_score_grad_s1s2_bn2gs1s2.h
+    >
+    >    条件：支持所有shape，其他模板如果不支持，就会走到这个模板
+    >    依据：这个模板按照最通用的做法，可以支持所有的Shape。但是由于核内一次只能处理S1 * S2的大小，当S1和S2都比较小的时候，会有频繁的CV交互开销，性能较差。当S1和S2都比较小的时候会路由到下面的这些模板。
+    >
+    > 
+    >
+    > 2. 核间切分B、N2轴，核内切分G、S1、S2，该模板是通过单纯的分核改变来优化S1、S2都比较小且(B * N2比较大或者G = 1)场景下的性能
+    >
+    >    tiling代码文件：ops-transformer-dev/attention/flash_attention_score_grad/op_host/flash_attention_score_grad_tiling_s1s2_bn2.cpp
+    >
+    >    tiling代码类：FlashAttentionScoreGradTilingS1s2Bn2
+    >
+    >    kernel代码：ops-transformer-dev/attention/flash_attention_score_grad/op_kernel/flash_attention_score_grad_s1s2_bn2.h
+    >
+    >    条件：(S1 < 1024) && (S2 < 1024)  && (B * N2 * 2 > CoreNum || G == 1)
+    >
+    >    依据：S1和S2都比较小，且B和N2比较大的时候，这时候把B和N2用于分核，核内不切分N2.i，循环N2.i次进行Cube和Vector计算。
+    >
+    > 
+    >
+    > 3. 核间切分B、N2.o轴，核内切分N2.i、G、S1、S2轴, 改模板是为了优化G * S1 * S2都比较小的场景时的性能，把N2轴切分到核内，并且在核内也切分N2.i轴，用于加速Vector计算。相比于模板2, 模板3会更复杂一些，模板3在核内计算中也切分了N2.i轴，让每次的计算量更大。
+    >
+    >    tiling代码文件：ops-transformer-dev/attention/flash_attention_score_grad/op_host/flash_attention_score_grad_tiling_ngs1s2_bn.cpp
+    >
+    >    tiling代码类：FlashAttentionScoreGradUngs1s2BbnTiling
+    >
+    >    kernel代码：FlashAttentionScoreGradUngs1s2Bbn
+    >
+    >    条件：G * S1 * S2 <= 32KB && G = 1 && S2 < 1536
+    >
+    >    依据：当G * S1 * S2小于32KB时，可以通过把N2轴切分一部分到核内，让CV基本块更大，同时在Vector核内，把N2.i的也进行切分，让单次Vector的计算量更大，提升Vector利用率。
+    >
+    > 
+    >
+    > 4. 核间切分B轴，核内计算B.i 、N2、 G、S1、S2轴，该模板是为了优化N2 * G * S1 * S2比较小时的性能
+    >
+    >    tiling代码文件：ops-transformer-dev/attention/flash_attention_score_grad/op_host/flash_attention_score_grad_tiling_bngs1s2_b.cpp
+    >
+    >    tiling代码类：FlashAttentionScoreGradUbngs1s2BbTiling
+    >
+    >    kernel代码：FlashAttentionScoreGradUngs1s2Bbn
+    >
+    >    条件：N2 * G * S1 * S2 <= 64 * 128
+    >
+    >    依据：如果希望单纯的把B.i放入CV基本块中，那么内层轴N2 * G * S1 * S2就需要足够小，一般是根据这个只小于64KB的话，Bmm1和Bmm2的数据量一般不会超过L1的一半，那么B轴切分时有意义的，否则单个Matmul就把L1用满，多个Matmul之间的数据搬入没有办法和计算并行。
+
+## 
+
+## 6 编程视角
+
+### 6.1 AscendC高阶API
+
+当前AscendC高阶API提供了两种编程模式，第一种是以Vector为主核，Cube为从核的视角，Vector0和Vector1会独立发起Matmul的任务，两者没有关联性。
+
+第二种是以Cube为主核，Vector为从核，这时会由V0统一发起Matmul任务，这个任务的结果由V0和V1共同处理，一般是V0、V1各处理一半。当前如果某个模板的结尾是"_sab"，说明这个模板是一个以Cube为主核的模板。例如：
+
+```c++
+ops-transformer-dev/attention/flash_attention_score/op_kernel/flash_attention_score_s1s2_bn2gs1_sab.h
+    
+ops-transformer-dev/attention/flash_attention_score_grad/op_kernel/flash_attention_score_grad_s1s2_bn2gs1s2_sab.h 
+```
+
+以Cube为主核对于FlashAttention来说由于V0、V1的Matmul任务可以复用左矩阵，且输出的部分结果可以在L0C累加，减少了对于带宽的依赖诉求，大部分场景性能会更优。
+
+### 6.2 AscendC低阶API
+
+当前还存在一些没有使用AscendC高阶API的模板，例如：
+
+```c++
+ops-transformer-dev/attention/flash_attention_score_grad/op_kernel/flash_attention_score_grad_s1s2_bn2gs1s2_basic.h
+```
+
+这个模板更加彻底的使用了以Cube为主核，Vector为从核，这时Matmul的任务都已经完全从Cube侧发起，通过同步通知Vector侧。

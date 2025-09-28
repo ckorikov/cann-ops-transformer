@@ -2,7 +2,7 @@
 
 图1 训练计算流程图
 
-![流程图](../../../docs/inner/fig/FlashAttentionScore.png)
+![流程图](./fig/FlashAttentionScore.png)
 
 按照flashAttention正向计算流程实现，整体计算流程如下：
 
@@ -60,7 +60,7 @@ V侧流水设计需要考虑Vector内部的搬运及计算过程，实施的优�
 以下面的流水任务示意图为例，Vec使用ping-pong表示两个数据处理任务，每个任务需要依次搬运DataCopy与计算Clc操作。任务间存在数据的依赖关系，比如处理完DataCopy之后，才能对Clc进行处理。
 将图的流水任务做ping-pong流水间的double buffer处理后，从运行图中可以看出，对于同一片数据，搬运DataCopy与计算Clc之间，串行处理；不同的数据切片，同一时间点，可以有多个任务在并行处理，由此达到任务并行、提升性能的目的。
 
-![设计图2](../../../docs/inner/fig/设计图2.png)
+![设计图2](./fig/设计图2.png)
 
 
 
@@ -69,7 +69,7 @@ V侧流水设计需要考虑Vector内部的搬运及计算过程，实施的优�
 
 ### 4.2 CV流水
 
-融合算子通常包含了Vector计算和Cube计算，对于FA算子，V侧的计算是依赖C侧的计算结果的，如果只关注V侧流水，不关注C侧，则C侧与V侧很有可能是串行流水的效果，不能达到并行计算的目的，无法使得融合算子性能达到最优，从而有了CV流水设计。此外，CV流水在不同算子情况下，表现的现象也是不一致的，FA的Cube双发机制可实现流水优化：
+融合算子通常包含了Vector计算和Cube计算，对于FA算子，V侧的计算是依赖C侧的计算结果的，如果只关注V侧流水，不关注C侧，则C侧与V侧很有可能是串行流水的效果，不能达到并行计算的目的，无法使得融合算子性能达到最优，从而有了CV流水设计。此外，CV流水在不同算子情况下，表现的现象也是不一致的，FA的Cube双发机制(又称为CV间preload流水)可实现流水优化：
 
   该场景流水特征下，Vector计算节点少，计算速度快，在<term>Atlas A2 训练系列产品</term> C:V=1:2的情况下，Cube的搬运时长足以掩盖Vector的计算时长，因此只要关注Cube的MTE2耗时即可，最终达成MTE2 bound。在Cube双发机制下，提前发射两块Cube计算，Cube1、Cube2计算可以衔接，使得Cube利用率最高，达成Cube bound。
 
@@ -164,3 +164,95 @@ FA（FlashAttentionScore，简称FA）融合算子的多模板设计思路主要
 - **根据不同计算流水进行模板特化**
 
   为了充分发挥硬件优势，通常融合算子都需要进行流水设计，以提高融合算子性能，不同的流水设计对代码的架构影响非常大，为了提升代码的可维可测可读性，需要根据不同的计算流水进行模板特化，达到特定场景的极致性能。
+
+### 5.1 多模板详细设计
+
+- **基本概念：**
+
+  **CV基本块:** 表示Cube或者Vector单次计算的数据量大小，用来描述一次完整的Cube和Vector交互的数据量，通常也等价于**核间基本块**。在910B芯片上由于Cube和Vector之间通信有一定开销，所以CV基本块设置的比较大，一般合适的数据量大小是512*1024（单位Bytes）。又由于Cube和Vector的核内Buffer有限，所以核间基本块可能要通过**多次核内计算**完成。
+
+  **核内基本块：**
+
+  如果CV基本块过大，Cube和Vector核内会将CV基本块进一步的切分，切分成适合核内L0A、L0B、L0C、UB等大小的基本块，这个就叫**核内基本块**；对于Cube侧，核内基本块一般在32KB（单位Bytes)，这样可以让L0A、L0B的DoubleBuffer能力展开，同时算力和带宽也能尽可能用满；在Vector侧一般基本块大小是32KB（单位Bytes）。
+
+  **xxx.i:** 表示经过切分后，CV基本块中的某根轴的大小, 一般基本块都是2维的，xxx.i 表示其中一个维度的大小。xxx可以是B、N2、G、S1、S2;
+  例如，S1 = 512, S2 = 1024， S1.i = 64, S2.i = 128, 表示把[S1, S2]切分成大小是[64, 128]的基本块，S1轴的基本块大小是64，S2轴的基本块大小是128。
+
+  **xxx.o**: 表示经过基本块切分后某根轴的分数，xxx可以是B、N2、G、S1、S2;
+
+  例如，S1 = 512, S2 = 1024， S1.i = 64, S2.i = 128, 表示把[S1, S2]切分成大小是[64, 128]的基本块，S1.o = 512 / 64 = 8, S2.o = 1024 / 128 = 8 ，一共切分成8 * 8个基本块。
+  - FA算子根据切分轴不同，划分成以下几类模板，对于以下FA模板，目前都不会把S2轴切分到多核：
+    > 1. 核间切分B、N2、G、S1轴，核内切分S1轴、S2轴模板，该模板是最通用模板，支持所有输入（TND除外）：
+    >
+    >    tiling代码文件：ops-transformer-dev/attention/flash_attention_score/op_host/flash_attention_score_tiling_general.cpp
+    >
+    >    tiling代码类：FlashAttentionScoreTilingS1s2Bn2gs1
+    >
+    >    kernel代码：ops-transformer-dev/attention/flash_attention_score/op_kernel/flash_attention_score_s1s2_bn2gs1.h
+    >
+    >    条件：S2 > 1024;
+    >    依据: 由于Vector侧FlashSoftmax计算的shape是[S1, S2]，且FlashSoftmax操作需要S2切分的大小尽可能大，所以通常在FlashAttention中设定S2轴的基本块为1024。又由于FlashSoftmax当S2轴切分时会存在刷新流程，不断更新Softmax的结果，所以当S2大于1024时，计算流中会多一些Softmax的更新流程，这一点有别于其他模板。
+    >    CV基本块选择:
+    >    S1.i: 默认64，当按64切分时，如果B * N2 * G * S1.o超vector核数时，S1.i设置为128，这样做的目的是为了在S1比较小的时候，优先把核数用满，多核用满的性能较高
+    >    S2.i: 1024
+    >
+    > 
+    >
+    > 2. 核间切分B、N2、G、S1轴，核内切分S1轴模板
+    >
+    >    tiling代码文件： ops-transformer-dev/attention/flash_attention_score/op_host/flash_attention_score_tiling_general.cpp
+    >
+    >    tiling代码类：FlashAttentionScoreTilingS1Bn2gs1
+    >
+    >    kernel代码：ops-transformer-dev/attention/flash_attention_score/op_kernel/flash_attention_score_s1_bn2gs1.h
+    >
+    >    条件：(128 < S2 <= 1024) ||  (N2 * G * (align(S1,16) + align(S2,16)) * align(D,16) * sizeof(INPUT_T)>= 512KB) || (N2 * G * (align(S1,16) + align(D,16)) * align(S2,16) * sizeof(INPUT_T))
+    >
+    >    依据: 当S2 < 1024时，由于S2不切分，所以不需要更新FlashSoftmax的结果，流程上更精简，不用上面第1点描述的那个泛化模板，由于S2 > 128时，切B模板不会带来性能提升，所以默认走这个模板。同时，在S2 <= 128时，如果不带Batch轴的matmul1或者matmul2的输入已经占满了整个L1，那么也不会走切B模板。切B模板的意思是，把batch轴做切分，核间基本块的大小是B.i * N2 * G * S1 * D (query的D) 或者B.i * N2 * G * S2 * D (key/value的D) 或者B.i * N2 * G * S1 * S2（softmax结果，即为P)；如果切B满足切分的要求，那么至少B.i 大于等于2，那么B.i内层的这些轴的乘积需要小于L1的大小。上面条件里面的判断就是基于此，Q * K和P * V中任何一个矩阵乘法的输入大于了L1的Size，那么走切B模板就没有收益。
+    >
+    >    CV基本块选择: 
+    >
+    >    S1.i: 会依据S2的大小，动态调整，尽可能的让S1 * S2的数据量大一些，目的是减少通信次数和通信开销。
+    >
+    >    S2不切分，S2的基本块大小 = S2
+    >
+    > 
+    >
+    > 3. 核间切分B轴，核内Cube侧不切分S1、S2把B.i, N2, G作为循环轴开循环处理batch matmul，Vector核内会把B.i * N2 * G * S1综合切分，找到最合适的核内基本块。
+    >
+    >    tiling代码文件：ops-transformer-dev/attention/flash_attention_score/op_host/flash_attention_score_tiling_general.cpp
+    >
+    >    tiling代码类：FlashAttentionScoreTilingB
+    >
+    >    kernel代码：ops-transformer-dev/attention/flash_attention_score/op_kernel/flash_attention_score_bn2gs1s2_b.h
+    >
+    >    条件：无法走到上述两个模板的其他shape
+    >    依据：当S1、S2、D都比较小的时候，CV的基本块较小，我们将B.i, N2, G也纳入到CV基本块中，一次CV交互的数据量更大，提升执行性能。
+
+## 6 编程视角
+
+### 6.1 AscendC高阶API
+
+当前AscendC高阶API提供了两种编程模式，第一种是以Vector为主核，Cube为从核的视角，Vector0和Vector1会独立发起Matmul的任务，两者没有关联性。
+
+第二种是以Cube为主核，Vector为从核，这时会由V0统一发起Matmul任务，这个任务的结果由V0和V1共同处理，一般是V0、V1各处理一半。当前如果某个模板的结尾是"_sab"，说明这个模板是一个以Cube为主核的模板。例如：
+
+```c++
+ops-transformer-dev/attention/flash_attention_score/op_kernel/flash_attention_score_s1s2_bn2gs1_sab.h
+    
+ops-transformer-dev/attention/flash_attention_score_grad/op_kernel/flash_attention_score_grad_s1s2_bn2gs1s2_sab.h 
+```
+
+以Cube为主核对于FlashAttention来说由于V0、V1的Matmul任务可以复用左矩阵，且输出的部分结果可以在L0C累加，减少了对于带宽的依赖诉求，大部分场景性能会更优。
+
+
+
+### 6.2 AscendC低阶API
+
+当前还存在一些没有使用AscendC高阶API的模板，例如：
+
+```c++
+ops-transformer-dev/attention/flash_attention_score_grad/op_kernel/flash_attention_score_grad_s1s2_bn2gs1s2_basic.h
+```
+
+这个模板更加彻底的使用了以Cube为主核，Vector为从核，这时Matmul的任务都已经完全从Cube侧发起，通过同步通知Vector侧。
