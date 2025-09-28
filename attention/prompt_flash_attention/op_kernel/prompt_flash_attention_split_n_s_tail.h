@@ -174,9 +174,9 @@ __aicore__ inline void PromptFlashAttentionSplitNSTail<T, U, FORMAT, O, M>::Bmm1
         this->ElewiseCompute(mmResUb, computeSize, 0);
     }
 
-    PipeBarrier<PIPE_V>(); //  Vector pipeline    synchronization
+    PipeBarrier<PIPE_V>();
 
-    uint32_t alignSInner = (this->unalignSInner + this->typeByteNum -1) / this->typeByteNum * this->typeByteNum;
+    uint32_t alignSInner = (this->unalignSInner + this->typeByteNum - 1) / this->typeByteNum * this->typeByteNum;
     SoftMaxShapeInfo shapeInfo = {this->singleProcessSOuterSize, alignSInner,
                                   this->singleProcessSOuterSize, this->unalignSInner};
     if (this->IsSoftmaxBasic()
@@ -220,7 +220,7 @@ __aicore__ inline void PromptFlashAttentionSplitNSTail<T, U, FORMAT, O, M>::Bmm1
     uint32_t computeSize = this->singleProcessSInnerSizeNow * this->singleProcessSOuterSize;
 
     Muls(mmResUb, mmResUb, static_cast<mmOutputType>(this->tilingData->promptAttentionBaseParams.scaleValue), computeSize);
-    PipeBarrier<PIPE_V>(); // Vector  pipeline synchronization
+    PipeBarrier<PIPE_V>();
 
     this->PseShiftProcess(sInnerLoopIdx, computeSize, mmResUb);
 
@@ -235,7 +235,7 @@ __aicore__ inline void PromptFlashAttentionSplitNSTail<T, U, FORMAT, O, M>::Bmm1
         this->ElewiseCompute(mmResUb, computeSize, 0);
     }
 
-    PipeBarrier<PIPE_V>(); //  Vector pipeline     synchronization
+    PipeBarrier<PIPE_V>();
 
     SoftMaxShapeInfo shapeInfo = {this->singleProcessSOuterSize, this->singleProcessSInnerSize,
                                   this->singleProcessSOuterSize, this->singleProcessSInnerSize};
@@ -355,7 +355,7 @@ __aicore__ inline void PromptFlashAttentionSplitNSTail<T, U, FORMAT, O, M>::Comp
             this->maskCopyInCol = this->singleProcessSInnerSize;
             this->pseShiftCopyInCol = this->singleProcessSInnerSize;
         }
-        bool isLast = sInnerLoopIdx == endIndex-1;
+        bool isLast = sInnerLoopIdx == endIndex - 1;
 
         if (sInnerLoopIdx == startIndex) {
             Bmm1ResDoVecBmm2ComputeFirst(mmResUb, softmaxMaxUb, softmaxSumUb, isLast, eventID, sInnerLoopIdx);

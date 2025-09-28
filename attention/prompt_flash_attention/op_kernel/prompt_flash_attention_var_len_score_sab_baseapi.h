@@ -353,7 +353,7 @@ __aicore__ inline void PromptFlashAttentionVarLenScoreSameABBaseApi<TILING_TYPE,
         int64_t s2SparseValidSize = this->tilingData->PFAcoreParams.s2SparseValidSize - actualS1Len + actualS2Len;
         this->s2StartIdx = Max(this->s1oIdx * this->cubeS1BaseSize - s1SparseValidSize, 0);
         this->s2EndIdx = Min((this->s1oIdx + 1) * this->cubeS1BaseSize + s2SparseValidSize, actualS2Len);
-        // s1baseSize行都无效时，需要将startIdx设置为0，,endIdx设置为S2realSize
+        // s1baseSize行都无效时，需要将startIdx设置为0，endIdx设置为S2realSize
         if (this->s2EndIdx - this->s2StartIdx <= 0) {
             this->s2StartIdx = 0;
             this->s2EndIdx = actualS2Len;
@@ -372,7 +372,7 @@ __aicore__ inline void PromptFlashAttentionVarLenScoreSameABBaseApi<TILING_TYPE,
         this->s2EndIdx = Min((this->s1oIdx + 1) * this->cubeS1BaseSize + actualS2Len -
                                  Max(actualS1Len - this->tilingData->PFAinputParams.nextTokens, 0),
                              actualS2Len);
-        // s1baseSize行都无效时，需要将startIdx设置为0，,endIdx设置为S2realSize
+        // s1baseSize行都无效时，需要将startIdx设置为0，endIdx设置为S2realSize
         if (this->s2EndIdx - this->s2StartIdx <= 0) {
             this->s2StartIdx = 0;
             this->s2EndIdx = actualS2Len;
@@ -457,7 +457,7 @@ __aicore__ inline void PromptFlashAttentionVarLenScoreSameABBaseApi<TILING_TYPE,
                 this->softmaxPingPongCnt++;
                 this->SetExtraInfo(extraInfo[taskId % 3], taskId, s2LoopCount, s2LoopLimit, multiCoreInnerIdx);
             } else {
-                this->CloneExtraInfo(extraInfo[taskId % 3], extraInfo[(taskId-1) % 3], taskId, s2LoopCount);
+                this->CloneExtraInfo(extraInfo[taskId % 3], extraInfo[(taskId - 1) % 3], taskId, s2LoopCount);
             }
 
             if ASCEND_IS_AIV {
@@ -498,7 +498,6 @@ __aicore__ inline void PromptFlashAttentionVarLenScoreSameABBaseApi<TILING_TYPE,
         }
     }
     if (taskId >= 1) {
-        // 对应extraInfo[(i+2)%3]
         this->softMaxCheckRes = SOFTMAX_CHECK_RES_DEFAULT_VALUE;
         if ASCEND_IS_AIV {
             CrossCoreWaitFlag(Base::SYNC_C1_V1_FLAG);
@@ -522,7 +521,6 @@ __aicore__ inline void PromptFlashAttentionVarLenScoreSameABBaseApi<TILING_TYPE,
     taskId++;
     if ASCEND_IS_AIV {
         if (taskId >= 2) {
-            // 对应extraInfo[(i+1)%3]
             CrossCoreWaitFlag(Base::SYNC_C2_V2_FLAG);
             this->ProcessVec2(extraInfo[(taskId + 1) % 3]);
         }
