@@ -27,6 +27,13 @@ set(src_files
   ${CMAKE_CURRENT_SOURCE_DIR}/tiling_sink_kernel.cpp
 )
 
+foreach(f ${src_files})
+  if(NOT EXISTS ${f})
+    message(WARNING "File not found: ${f}")
+    return()
+  endif()
+endforeach()
+
 add_library(opmaster SHARED
   ${src_files}
 )

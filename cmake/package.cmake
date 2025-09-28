@@ -151,20 +151,27 @@ function(pack_built_in)
 
   message(STATUS "current compute_unit is: ${compute_unit}")
   ExternalProject_Get_Property(tiling_sink_task BINARY_DIR)
-  install(FILES
-      ${BINARY_DIR}/Ascend310P-v${SYS_VERSION}-libopmaster.so
-      DESTINATION ops_transformer/built-in/op_impl/ai_core/tbe/op_master_device/lib/)
+  set(310P_OPMASTER_SO ${BINARY_DIR}/Ascend310P-v${SYS_VERSION}-libopmaster.so)
+  
+  if(EXISTS ${310P_OPMASTER_SO})
+    install(FILES
+        310P_OPMASTER_SO
+        DESTINATION ops_transformer/built-in/op_impl/ai_core/tbe/op_master_device/lib/)
+  endif()
 
-  install(FILES
-      ${BINARY_DIR}/Ascend-v${SYS_VERSION}-libopmaster.so
-      DESTINATION ops_transformer/built-in/op_impl/ai_core/tbe/op_master_device/lib/)
+  set(OTHER_OPMASTER_SO ${BINARY_DIR}/Ascend-v${SYS_VERSION}-libopmaster.so)
+  if(EXISTS ${OTHER_OPMASTER_SO})
+    install(FILES
+        OTHER_OPMASTER_SO
+        DESTINATION ops_transformer/built-in/op_impl/ai_core/tbe/op_master_device/lib/)
+  endif()
 
   # ============= CPack =============
   set(CPACK_PACKAGE_NAME "${PROJECT_NAME}")
   set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
-  string(REGEX REPLACE "^.*[Aa]scend" "" soc_version_temp "${COMPUTE_UNIT}")
+  string(REGEX REPLACE "^.*[Aa]scend" "" soc_version_temp "${ASCEND_COMPUTE_UNIT}")
   # 检查是否成功提取
-  if("${soc_version_temp}" STREQUAL "${COMPUTE_UNIT}")
+  if("${soc_version_temp}" STREQUAL "${ASCEND_COMPUTE_UNIT}")
     set(soc_version "unknown")
   else()
     set(soc_version "${soc_version_temp}")
