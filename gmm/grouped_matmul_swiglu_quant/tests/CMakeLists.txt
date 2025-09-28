@@ -17,7 +17,6 @@ set(_GmmSwigluQuant_TilingSourcesExt
 )
 
 set(_GmmSwigluQuant_KernelTilingDataDefH
-        ${CMAKE_SOURCE_DIR}/common/inc/tiling/data_copy_transpose_tiling_def.h
         ${CMAKE_SOURCE_DIR}/gmm/grouped_matmul_swiglu_quant/op_host/grouped_matmul_swiglu_quant_tiling.h
 )
 
