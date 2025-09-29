@@ -36,7 +36,7 @@ public:
         __gm__ uint8_t *postQuantScale, __gm__ uint8_t *postQuantOffset,
         __gm__ uint8_t *prefix, __gm__ uint8_t *attenMask, __gm__ uint8_t *dropMask,
         __gm__ uint8_t *queryPaddingSize, __gm__ uint8_t *kvPaddingSize, __gm__ uint8_t *softmaxMax,
-        __gm__ uint8_t *softmaxSum, __gm__ uint8_t *&workspace,
+        __gm__ uint8_t *softmaxSum, __gm__ uint8_t *&workspace, uint64_t singleCoreOffset, uint32_t aicIdx,
         ConstInfo<isInfer, hasRope> &constInfo);
     /* =====================GM变量==================== */
     GlobalTensor<uint8_t> dropMaskGm;
@@ -74,7 +74,7 @@ __aicore__ inline void FABlockVecTrain<TEMPLATE_ARGS>::InitGlobalBuffer(
     __gm__ uint8_t *postQuantScale, __gm__ uint8_t *postQuantOffset,
     __gm__ uint8_t *prefix, __gm__ uint8_t *attenMask, __gm__ uint8_t *dropMask, 
     __gm__ uint8_t *queryPaddingSize, __gm__ uint8_t *kvPaddingSize, __gm__ uint8_t *softmaxMax,
-    __gm__ uint8_t *softmaxSum, __gm__ uint8_t *&workspace,
+    __gm__ uint8_t *softmaxSum, __gm__ uint8_t *&workspace, uint64_t singleCoreOffset, uint32_t aicIdx,
     ConstInfo<isInfer, hasRope> &constInfo)
 {
     BaseClass::InitCommonGlobalBuffer(pse, deqScaleQ, deqScaleK, deqScaleV, prefix, attenMask, workspace, constInfo);

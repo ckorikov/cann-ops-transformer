@@ -222,6 +222,7 @@ __aicore__ inline void FlashAttentionScoreKernelBase<ChildClass, CubeBlockType, 
         }
     }
 
+    uint64_t singleCoreOffset = 0;
     if constexpr (!bmm2Write2Ub) {
         int64_t bmm2ResBlock = this->sharedParams.dSizeV;
         if constexpr (splitD) {
@@ -234,6 +235,7 @@ __aicore__ inline void FlashAttentionScoreKernelBase<ChildClass, CubeBlockType, 
         int64_t totalOffset = this->aicIdx * 3 * mm2Offset;
         if constexpr (splitD) {
             totalOffset = this->aicIdx * 3 * (mm2Offset + vec2Offset);
+            singleCoreOffset = mm2Offset + vec2Offset;
         }
         // SameB模式下V0和V1调用IterateAll的时候填写的地址相同
         this->bmm2ResGm[0].SetGlobalBuffer((__gm__ T *)(workspace + totalOffset));
@@ -242,7 +244,7 @@ __aicore__ inline void FlashAttentionScoreKernelBase<ChildClass, CubeBlockType, 
         workspace += (totalOffset + mm2Offset * 3);
     }
     vecBlock.InitGlobalBuffer(pse, deqScaleQ, deqScaleK, deqScaleV, postQuantScale, postQuantOffset,
-        prefix, attenMask, dropMask, queryPaddingSize, kvPaddingSize, softmaxMax, softmaxSum, workspace, constInfo);
+        prefix, attenMask, dropMask, queryPaddingSize, kvPaddingSize, softmaxMax, softmaxSum, workspace, singleCoreOffset, this->aicIdx, constInfo);
     cubeBlock.InitCubeInput(key, value, &sharedParams, &attenMaskInfo);
 }
 
