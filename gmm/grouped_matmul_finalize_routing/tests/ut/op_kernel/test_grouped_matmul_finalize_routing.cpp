@@ -53,8 +53,9 @@ TEST_F(grouped_matmul_finalize_routing_test, test_grouped_matmul_finalize_routin
 {
     system(
         "cp -rf "
-        "../../../../../../../ops/built-in/tests/ut/fast_op_test/grouped_matmul_finalize_routing/"
+        "../../../../../gmm/grouped_matmul_finalize_routing/tests/ut/op_kernel/"
         "grouped_matmul_finalize_routing_data ./");
+
     system("chmod -R 755 ./grouped_matmul_finalize_routing_data/");
     system("cd ./grouped_matmul_finalize_routing_data/ && rm -rf ./*bin && python3 gen_data.py 1");
 
@@ -71,7 +72,7 @@ TEST_F(grouped_matmul_finalize_routing_test, test_grouped_matmul_finalize_routin
     size_t shape_pertoken_scale = m * 1 * sizeof(float);
     size_t shape_group_list = 8 * sizeof(int64_t);
     size_t shape_share_input = m * n * sizeof(uint16_t);  // bf16
-    size_t shape_logit = k * 1 * sizeof(float);
+    size_t shape_logit = m * 1 * sizeof(float);
     size_t shape_row_index = m * 1 * sizeof(int64_t);
 
     size_t shape_y = m * n * sizeof(float);
@@ -207,7 +208,7 @@ TEST_F(grouped_matmul_finalize_routing_test, test_grouped_matmul_finalize_routin
 {
     system(
         "cp -rf "
-        "../../../../../../../ops/built-in/tests/ut/fast_op_test/grouped_matmul_finalize_routing/"
+        "../../../../../gmm/grouped_matmul_finalize_routing/tests/ut/op_kernel/"
         "grouped_matmul_finalize_routing_data ./");
     system("chmod -R 755 ./grouped_matmul_finalize_routing_data/");
     system("cd ./grouped_matmul_finalize_routing_data/ && rm -rf ./*bin && python3 gen_data.py 0");
@@ -350,7 +351,7 @@ TEST_F(grouped_matmul_finalize_routing_test, test_grouped_matmul_finalize_routin
 {
     system(
         "cp -rf "
-        "../../../../../../../ops/built-in/tests/ut/fast_op_test/grouped_matmul_finalize_routing/"
+        "../../../../../gmm/grouped_matmul_finalize_routing/tests/ut/op_kernel/"
         "grouped_matmul_finalize_routing_data ./");
     system("chmod -R 755 ./grouped_matmul_finalize_routing_data/");
     system("cd ./grouped_matmul_finalize_routing_data/ && rm -rf ./*bin && python3 gen_data.py 1");
@@ -504,7 +505,7 @@ TEST_F(grouped_matmul_finalize_routing_test, test_grouped_matmul_finalize_routin
 {
     system(
         "cp -rf "
-        "../../../../../../../ops/built-in/tests/ut/fast_op_test/grouped_matmul_finalize_routing/"
+        "../../../../../gmm/grouped_matmul_finalize_routing/tests/ut/op_kernel/"
         "grouped_matmul_finalize_routing_data ./");
     system("chmod -R 755 ./grouped_matmul_finalize_routing_data/");
     system("cd ./grouped_matmul_finalize_routing_data/ && rm -rf ./*bin && python3 w4a8_gen_data.py");
@@ -664,7 +665,7 @@ TEST_F(grouped_matmul_finalize_routing_test, test_grouped_matmul_finalize_routin
 {
     system(
         "cp -rf "
-        "../../../../../../../ops/built-in/tests/ut/fast_op_test/grouped_matmul_finalize_routing/"
+        "../../../../../gmm/grouped_matmul_finalize_routing/tests/ut/op_kernel/"
         "grouped_matmul_finalize_routing_data ./");
     system("chmod -R 755 ./grouped_matmul_finalize_routing_data/");
     system("cd ./grouped_matmul_finalize_routing_data/ && rm -rf ./*bin && python3 w4a8_gen_data.py");

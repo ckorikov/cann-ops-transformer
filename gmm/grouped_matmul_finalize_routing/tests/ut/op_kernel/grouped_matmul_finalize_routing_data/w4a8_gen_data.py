@@ -27,18 +27,17 @@ def generate_data(groupNum, batch, topK, m, k, n):
     bias = torch.zeros((topK, n), dtype=torch.float32)
     scale_np = np.random.normal(0, 0.01, (topK, 1, n)).astype(np.float32)
     perGroupScale = np.ones([topK, k // quantGroupSize, n]).astype(np.float32)
-    scaleUint32 = (scale_np * perGroupScale).astype(np.float16).astype(np.flaot32)
+    scaleUint32 = (scale_np * perGroupScale).astype(np.float16).astype(np.float32)
 
     scaleUint32.dtype = np.uint32
     scaleUint64 = np.zeros((topK, k // quantGroupSize, n * 2), dtype=np.uint32)
     scaleUint64[..., ::2] = scaleUint32
     scaleUint64.dtype = np.int64
     scale = torch.from_numpy(scaleUint64)
-    offset = torch.randint(-5, 5, (topK, k // quantGroupSize, n)).astype(np.float32)
+    offset = torch.randint(-5, 5, (topK, k // quantGroupSize, n)).to(np.float32)
     groupList = torch.zeros((topK,), dtype=torch.int64).fill_(batch)
     perTokenScale = torch.zeros((m, 1), dtype=torch.float32).uniform_()
     perTokenScale_new = perTokenScale.reshape(m)
-
 
     shareInputOffset = batch // 2
     logits_ori = np.random.normal(0, 0.1, [batch, topK]).astype(np.float32)
