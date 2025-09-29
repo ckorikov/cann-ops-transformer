@@ -119,7 +119,7 @@ private:
     int64_t normType_ = NORM_TYPE_SOFTMAX;
     int64_t outFlag_ = OUT_FLAG_FALSE;
     float routedScalingFactor_ = 1.0;
-    float eps_ = 1e-20;
+    float eps_ = 1e-20f;
 
     int64_t inputDtypeSize_;
     const char *opName_ = "";
