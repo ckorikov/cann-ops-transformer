@@ -16,6 +16,7 @@
 #include <thread>
 #include <iostream>
 #include <string>
+#include <cstring>
 #include <vector>
 #include "acl/acl.h"
 #include "hccl/hccl.h"
@@ -390,6 +391,7 @@ int LaunchOneProcessDispatchAndCombine(Args &args)
 
 int main(int argc, char *argv[])
 {
+    CHECK_RET(strcmp(SOC_VERSION, "ascend910_93") == 0, LOG_PRINT("[INFO] This example is implemented based on Atlas A3 and must be run on Atlas A3 \n"); return -1);
     // 本样例基于Atlas A3实现，必须在Atlas A3上运行
     int ret = aclInit(nullptr);
     CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("[ERROR] aclrtInit failed, ret = %d\n", ret); return ret);
