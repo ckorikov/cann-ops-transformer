@@ -22,9 +22,8 @@
    bash install_deps.sh
    ```
 
-2. **安装驱动与固件（可选）**
-
-   如需本地运行项目算子，请参见《[CANN 软件安装指南](https://www.hiascend.com/document/redirect/CannCommunityInstSoftware)》，按要求完成NPU驱动和固件软件包安装；否则可跳过本操作。
+2. **安装驱动与固件（运行态依赖）**
+   运行算子时必须安装驱动与固件，若仅编译算子，可跳过本操作，安装指导详见《[CANN 软件安装指南](https://www.hiascend.com/document/redirect/CannCommunityInstSoftware)》
 
 ## 环境准备
 
@@ -42,9 +41,9 @@
     - \$\{arch\}：表示CPU架构，如aarch64、x86_64。
     - \$\{install\_path\}：表示指定安装路径，默认安装在`/usr/local/Ascend`目录。
 
-2. **安装社区版CANN legacy包（可选）**
+2. **安装社区版CANN legacy包（运行态依赖）**
 
-    如需本地运行项目算子，需额外安装此包，否则跳过本操作。
+    运行算子时必须安装本包，若仅编译算子，可跳过本操作。
 
     根据产品型号和环境架构，下载对应`cann-${soc_name}-opp_legacy-${cann_version}-linux-${arch}.run`包，下载链接如下：
 
