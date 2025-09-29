@@ -35,7 +35,7 @@ c. AIC和AIV之间处理的数据量要符合其对应的算力，避免AIC或AI
 
 MlaProlog算子有多个Matmul运算：
 
-1、MatmulCq:将BS合轴，做为M轴，HeadSizeCq为N轴，HeadSizeX为K轴，核间对HeadSizeCq按照cube核数进行切分，每个核分配一定的子块
+1、MatmulCq：将BS合轴，做为M轴，HeadSizeCq为N轴，HeadSizeX为K轴，核间对HeadSizeCq按照cube核数进行切分，每个核分配一定的子块
 
 2、MatmulCkvKr：将BS合轴，做为M轴，HeadSizeCkvKr为N轴，HeadSizeX为K轴，核间对HeadSizeCkvKr进行切分，分为64块
 
@@ -208,7 +208,7 @@ $$
 $$
 c_{norm}^{KV} = RmsNorm(c^{KV}) \tag{8}
 $$
-RmsNorm的计算参考公式3-4.
+RmsNorm的计算参考公式（3）-（4）。
 
 ### PostQuant/Dequant
 - 基本概念
