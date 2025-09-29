@@ -97,6 +97,7 @@ static inline bool CheckShape(  const aclTensor *x,
                                 int64_t quantMode,
                                 const aclIntArray *activeExpertRangeOptional) {
     
+    (void)offsetOptional;
     int64_t expertRangeNum = (*activeExpertRangeOptional)[1] - (*activeExpertRangeOptional)[0];
     OP_CHECK_WRONG_DIMENSION(x, MOE_DIM_2, return false);
     OP_CHECK_WRONG_DIMENSION(expertIdx, MOE_DIM_2, return false);
@@ -158,6 +159,7 @@ static inline bool CheckShape(  const aclTensor *x,
                  return false);
     }
 
+    (void)offsetOptional;
     return true;
 }
 
