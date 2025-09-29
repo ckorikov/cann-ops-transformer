@@ -540,9 +540,9 @@ extern "C" __global__ __aicore__ void matmul_all_reduce(
         WeightQuantEmptyTensorKernel(biasGM, cGM, workspaceGM, &tilingData, &hcclServer);
     }
 #elif (ORIG_DTYPE_X1 != DT_INT8 && ORIG_DTYPE_X2 != DT_INT8 && FORMAT_X2 != FORMAT_ND) // 310p归一化weightNZ非量化
-    if (TILING_KEY_IS(10000000000000002000UL)) {
+    if (TILING_KEY_IS(2000UL)) {
         INVOKE_UNQUANT_BMM_OP_IMPL_310(MatmulAllReduceUnquant310);
-    } else if (TILING_KEY_IS(10000000000000002001UL)) {
+    } else if (TILING_KEY_IS(67536UL)) {
         INVOKE_UNQUANT_BMM_OP_IMPL_310(MatmulAllReduceUnquant310);
     } else if (TILING_KEY_IS(2100000UL)) {
         // k==0 伪量化NZ
