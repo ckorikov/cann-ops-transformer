@@ -8,17 +8,16 @@
  * See LICENSE in the root of the software repository for the full text of the License.
  */
 
-#include <array>
-#include <vector>
-#include <iostream>
-#include <string>
-#include <cstdint>
-#include "gtest/gtest.h"
-#include "tikicpulib.h"
+ #include <array>
+ #include <vector>
+ #include <iostream>
+ #include <string>
+ #include <cstdint>
+ #include "gtest/gtest.h"
+ #include "tikicpulib.h"
+ #include "data_utils.h"
+ #include "tiling_case_executor.h"
 #include "moe_gating_top_k_softmax_tiling.h"
-#include "data_utils.h"
-
-#include <cstdint>
 
 using namespace std;
 
