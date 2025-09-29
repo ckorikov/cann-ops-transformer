@@ -29,7 +29,7 @@
 | ffn         | [swin_transformer_ln_qkv_quant](../../ffn/swin_transformer_ln_qkv_quant/README.md) | Swin Transformer 网络模型 完成 Q、K、V 的计算 |
 | gmm         | [grouped_matmul](../../gmm/grouped_matmul/README.md) | 实现分组矩阵乘计算。 |
 | gmm         | [grouped_matmul_add](../../gmm/grouped_matmul_add/README.md) | 实现分组矩阵乘计算，每组矩阵乘的维度大小可以不同。 |
-| gmm         | [grouped_matmul_finalize_routing](../../gmm/grouped_matmul_finalize_routing/README.md) | roupedMatmul和MoeFinalizeRouting的融合算子，GroupedMatmul计算后的输出按照索引做combine动作 |
+| gmm         | [grouped_matmul_finalize_routing](../../gmm/grouped_matmul_finalize_routing/README.md) | GroupedMatmul和MoeFinalizeRouting的融合算子，GroupedMatmul计算后的输出按照索引做combine动作 |
 | gmm         | [grouped_matmul_swiglu_quant](../../gmm/grouped_matmul_swiglu_quant/README.md) | 融合GroupedMatmul 、dquant、swiglu和quant |
 | gmm         | [quant_grouped_matmul_inplace_add](../../gmm/quant_grouped_matmul_inplace_add/README.md) | 实现分组矩阵乘计算和加法计算 |
 | mc2         | 3rd |   |
