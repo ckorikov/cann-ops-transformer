@@ -81,7 +81,7 @@ TEST_F(moe_init_routing_quant_test, test_case_0) {
 
   system(
       "cp -r "
-      "../../../../../../../ops/built-in/tests/ut/fast_op_test/moe_init_routing_quant/moe_init_routing_quant_data ./");
+      "./moe_init_routing_quant_data ./");
   system("chmod -R 755 ./moe_init_routing_quant_data/");
   system("cd ./moe_init_routing_quant_data/ && rm -rf ./*bin");
   system("cd ./moe_init_routing_quant_data/ && python3 gen_data.py 8 2 5120 8 0 0 float32");
@@ -144,7 +144,7 @@ TEST_F(moe_init_routing_quant_test, test_case_1) {
 
   system(
       "cp -r "
-      "../../../../../../../ops/built-in/tests/ut/fast_op_test/moe_init_routing_quant/moe_init_routing_quant_data ./");
+      "./moe_init_routing_quant_data ./");
   system("chmod -R 755 ./moe_init_routing_quant_data/");
   system("cd ./moe_init_routing_quant_data/ && rm -rf ./*bin");
   system("cd ./moe_init_routing_quant_data/ && python3 gen_data.py 8 2 5120 8 0 0 float32");
@@ -207,7 +207,7 @@ TEST_F(moe_init_routing_quant_test, test_case_2) {
 
   system(
       "cp -r "
-      "../../../../../../../ops/built-in/tests/ut/fast_op_test/moe_init_routing_quant/moe_init_routing_quant_data ./");
+      "./moe_init_routing_quant_data ./");
   system("chmod -R 755 ./moe_init_routing_quant_data/");
   system("cd ./moe_init_routing_quant_data/ && rm -rf ./*bin");
   system("cd ./moe_init_routing_quant_data/ && python3 gen_data.py 8 2 5120 8 0 0 float32");
@@ -270,7 +270,7 @@ TEST_F(moe_init_routing_quant_test, test_case_3) {
 
   system(
       "cp -r "
-      "../../../../../../../ops/built-in/tests/ut/fast_op_test/moe_init_routing_quant/moe_init_routing_quant_data ./");
+      "./moe_init_routing_quant_data ./");
   system("chmod -R 755 ./moe_init_routing_quant_data/");
   system("cd ./moe_init_routing_quant_data/ && rm -rf ./*bin");
   system("cd ./moe_init_routing_quant_data/ && python3 gen_data.py 8 2 5120 8 0 0 float32");

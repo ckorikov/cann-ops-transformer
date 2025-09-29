@@ -15,7 +15,7 @@
 #include <cstdint>
 #include "gtest/gtest.h"
 #include "tikicpulib.h"
-#include "test_moe_token_permute.h"
+#include "moe_token_permute_tiling.h"
 #include "data_utils.h"
 
 #include <cstdint>
