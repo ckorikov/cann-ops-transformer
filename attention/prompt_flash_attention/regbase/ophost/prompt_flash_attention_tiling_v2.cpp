@@ -3334,7 +3334,7 @@ bool PromptFlashAttentionTilingV2::CheckAlibiPseCrossover(ContextParamsForPFATil
 
     OP_CHECK_IF((enablePFAMLA),
         OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName, 
-        "When pseType = 2/3, query, key and value D should be the same, input query's D ane key's D = 192, but value'D = 128."),
+        "When pseType = 2/3, query, key and value D should be the same, input query's D ane key's D = 192, but value's D = 128."),
         return false);
 
     return true;
