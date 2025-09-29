@@ -73,19 +73,19 @@ aclnnStatus aclnnNsaSelectedAttentionInferGetWorkspaceSize(
     const aclTensor		*topkIndices, 
     const aclTensor		*attenMaskOptional,
     const aclTensor		*blockTableOptional,
-    const aclIntArray 	*actualQSeqLenOptional,
+    const aclIntArray *actualQSeqLenOptional,
     const aclIntArray	*actualKvSeqLenOptional,
-    char 			    *layoutOptional,
-    int64_t 		     numHeads,
-    int64_t 		     numKeyValueHeads,
-    int64_t 		     selectBlockSize,
-    int64_t              selectBlockCount,
-    int64_t              pageBlockSize,
-    double               scaleValue,
-    int64_t              sparseMode,
-    aclTensor           *output,
-    uint64_t            *workspaceSize,
-    aclOpExecutor      **executor)
+    char 			        *layoutOptional,
+    int64_t 		       numHeads,
+    int64_t 		       numKeyValueHeads,
+    int64_t 		       selectBlockSize,
+    int64_t            selectBlockCount,
+    int64_t            pageBlockSize,
+    double             scaleValue,
+    int64_t            sparseMode,
+    aclTensor         *output,
+    uint64_t          *workspaceSize,
+    aclOpExecutor    **executor)
 ```
 
 ```c++

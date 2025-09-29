@@ -146,19 +146,19 @@ aclnnStatus aclnnRotaryPositionEmbeddingGradGetWorkspaceSize(
     const aclTensor *cos,
     const aclTensor *sin,
     const aclTensor *xOptional,
-    int64_t mode,
+    int64_t          mode,
     const aclTensor *dxOut,
     const aclTensor *dcosOut,
     const aclTensor *dsinOut,
     uint64_t        *workspaceSize,
-    aclOpExecutor   **executor)
+    aclOpExecutor  **executor)
 ```
 ```c++
 aclnnStatus aclnnRotaryPositionEmbeddingGrad(
     void          *workspace,
-    uint64_t      workspaceSize,
+    uint64_t       workspaceSize,
     aclOpExecutor *executor,
-    aclrtStream   stream)
+    aclrtStream    stream)
 ```
 ## aclnnRotaryPositionEmbeddingGradGetWorkspaceSize
 

@@ -38,8 +38,31 @@
 
 每个算子分为两段式接口，必须先调用“aclnnQuantMatmulAllReduceV3GetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnQuantMatmulAllReduceV3”接口执行计算。
 
-* `aclnnStatus aclnnQuantMatmulAllReduceV3GetWorkspaceSize(const aclTensor *x1, const aclTensor *x2, const aclTensor *biasOptional, const aclTensor *x3Optional, const aclTensor *dequantScale, const aclTensor *pertokenScaleOptional, const aclTensor *commQuantScale1Optional, const aclTensor *commQuantScale2Optional, const char* group, const char *reduceOp, int64_t commTurn, int64_t streamMode, const aclTensor *output, uint64_t *workspaceSize, aclOpExecutor **executor)`
-* `aclnnStatus aclnnQuantMatmulAllReduceV3(void *workspace, uint64_t workspaceSize, aclOpExecutor *executor, aclrtStream stream)`
+```cpp
+aclnnStatus aclnnQuantMatmulAllReduceV3GetWorkspaceSize(
+    const aclTensor *x1, 
+    const aclTensor *x2, 
+    const aclTensor *biasOptional, 
+    const aclTensor *x3Optional, 
+    const aclTensor *dequantScale, 
+    const aclTensor *pertokenScaleOptional, 
+    const aclTensor *commQuantScale1Optional, 
+    const aclTensor *commQuantScale2Optional, 
+    const char      *group, 
+    const char      *reduceOp, 
+    int64_t          commTurn, 
+    int64_t          streamMode, 
+    const aclTensor *output, 
+    uint64_t        *workspaceSize, 
+    aclOpExecutor  **executor)
+```
+```cpp
+aclnnStatus aclnnQuantMatmulAllReduceV3(
+    void          *workspace, 
+    uint64_t       workspaceSize, 
+    aclOpExecutor *executor, 
+    aclrtStream    stream)
+```
 
 ## aclnnQuantMatmulAllReduceV3GetWorkspaceSize
 

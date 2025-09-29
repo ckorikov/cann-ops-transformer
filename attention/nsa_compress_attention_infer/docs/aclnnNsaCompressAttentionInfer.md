@@ -60,7 +60,7 @@
 
 每个算子分为[两段式接口](../../../docs/context/两段式接口.md)，必须先调用“aclnnNsaCompressAttentionInferGetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnNsaCompressAttentionInfer”接口执行计算。
 
-```c++
+```cpp
 aclnnStatus aclnnNsaCompressAttentionInferGetWorkspaceSize(
     const aclTensor    *query,
     const aclTensor    *key,
@@ -88,7 +88,7 @@ aclnnStatus aclnnNsaCompressAttentionInferGetWorkspaceSize(
 )
 ```
 
-```c++
+```cpp
 aclnnStatus aclnnNsaCompressAttentionInfer(
     void          *workspace,
     uint64_t       workspaceSize,

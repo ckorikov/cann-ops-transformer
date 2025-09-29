@@ -27,8 +27,28 @@
 
 每个算子分为两段式接口，必须先调用“aclnnQuantMatmulAllReduceGetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnQuantMatmulAllReduce”接口执行计算。
 
-* `aclnnStatus aclnnQuantMatmulAllReduceGetWorkspaceSize(const aclTensor *x1, const aclTensor *x2, const aclTensor *bias,  const aclTensor *x3,  const aclTensor *dequantScale, const char* group, const char *reduceOp, int64_t commTurn, int64_t streamMode, const aclTensor *output, uint64_t *workspaceSize, aclOpExecutor **executor);`
-* `aclnnStatus aclnnQuantMatmulAllReduce(void *workspace, uint64_t workspaceSize, aclOpExecutor *executor, const aclrtStream stream);`
+```cpp
+aclnnStatus aclnnQuantMatmulAllReduceGetWorkspaceSize(
+    const aclTensor *x1, 
+    const aclTensor *x2, 
+    const aclTensor *bias,  
+    const aclTensor *x3,  
+    const aclTensor *dequantScale, 
+    const char      *group, 
+    const char      *reduceOp, 
+    int64_t          commTurn, 
+    int64_t          streamMode, 
+    const aclTensor *output, 
+    uint64_t        *workspaceSize, 
+    aclOpExecutor  **executor)
+```
+```cpp
+aclnnStatus aclnnQuantMatmulAllReduce(
+    void              *workspace, 
+    uint64_t           workspaceSize, 
+    aclOpExecutor     *executor, 
+    const aclrtStream  stream)
+```
 
 ## aclnnQuantMatmulAllReduceGetWorkspaceSize
 

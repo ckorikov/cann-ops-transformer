@@ -24,6 +24,7 @@
 
 ## 函数原型
 
+<<<<<<< HEAD
 每个算子分为两段式接口，必须先调用“aclnnMatmulAllReduceGetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnMatmulAllReduce”接口执行计算。
 
 ```cpp
@@ -46,6 +47,29 @@ aclnnStatus aclnnMatmulAllReduce(
     uint64_t workspaceSize, 
     aclOpExecutor *executor, 
     const aclrtStream stream)
+=======
+每个算子分为[两段式接口](common/两段式接口.md)，必须先调用“aclnnMatmulAllReduceGetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnMatmulAllReduce”接口执行计算。
+
+```cpp
+aclnnStatus aclnnMatmulAllReduceGetWorkspaceSize(
+    const aclTensor  *x1, 
+    const aclTensor  *x2, 
+    const aclTensor  *bias, 
+    const char       *group, 
+    const char       *reduceOp, 
+    int64_t           commTurn, 
+    int64_t           streamMode, 
+    const aclTensor  *output, 
+    uint64_t         *workspaceSize, 
+    aclOpExecutor   **executor)
+```
+```cpp
+aclnnStatus aclnnMatmulAllReduce(
+    void               *workspace, 
+    uint64_t            workspaceSize, 
+    aclOpExecutor      *executor, 
+    const aclrtStream   stream)
+>>>>>>> ac831a29... list
 ```
 
 ## aclnnMatmulAllReduceGetWorkspaceSize

@@ -39,8 +39,31 @@
 
 - 每个算子分为两段式接口，必须先调用“aclnnQuantMatmulAllReduceAddRmsNormGetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnQuantMatmulAllReduceAddRmsNorm”接口执行计算。
 
-  * `aclnnStatus aclnnQuantMatmulAllReduceAddRmsNormGetWorkspaceSize(const aclTensor *x1, const aclTensor *x2, const aclTensor *bias, const aclTensor *dequantScale, const aclTensor *residual, const aclTensor *gamma, double epsilon, const char* group, const char *reduceOp, int64_t commTurn, int64_t streamMode, const aclTensor *y, const aclTensor *normOut, uint64_t *workspaceSize, aclOpExecutor **executor)`
-  * `aclnnStatus aclnnQuantMatmulAllReduceAddRmsNorm(void *workspace, uint64_t workspaceSize, aclOpExecutor *executor, const aclrtStream stream)`
+```cpp
+aclnnStatus aclnnQuantMatmulAllReduceAddRmsNormGetWorkspaceSize(
+    const aclTensor *x1, 
+    const aclTensor *x2, 
+    const aclTensor *bias, 
+    const aclTensor *dequantScale, 
+    const aclTensor *residual, 
+    const aclTensor *gamma, 
+    double           epsilon, 
+    const char      *group, 
+    const char      *reduceOp, 
+    int64_t          commTurn, 
+    int64_t          streamMode, 
+    const aclTensor *y, 
+    const aclTensor *normOut, 
+    uint64_t        *workspaceSize, 
+    aclOpExecutor  **executor)
+```
+```cpp
+aclnnStatus aclnnQuantMatmulAllReduceAddRmsNorm(
+    void             *workspace, 
+    uint64_t          workspaceSize, 
+    aclOpExecutor    *executor, 
+    const aclrtStream stream)
+```
 
 ## aclnnQuantMatmulAllReduceAddRmsNormGetWorkspaceSize
 

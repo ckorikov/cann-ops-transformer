@@ -20,11 +20,33 @@
 
 每个算子分为[两段式接口](common/两段式接口.md)，必须先调用“aclnnGroupedMatmulFinalizeRoutingGetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnGroupedMatmulFinalizeRouting”接口执行计算。
 ```cpp
-aclnnStatus aclnnGroupedMatmulFinalizeRoutingGetWorkspaceSize(const aclTensor *x, aclTensor *w, const aclTensor *scaleOptional, const aclTensor* biasOptional, const aclTensor *pertokenScaleOptional, const aclTensor *groupListOptional, const aclTensor *sharedInputOptional, const aclTensor* logitOptional, const aclTensor *rowIndexOptional, int64_t dtype, float sharedInputWeight, int64_t sharedInputOffset, bool transposeX, bool transposeW, int64_t groupListType, aclTensor *y, uint64_t *workspaceSize, aclOpExecutor **executor)
+    aclnnStatus aclnnGroupedMatmulFinalizeRoutingGetWorkspaceSize(
+    const aclTensor *x, 
+    aclTensor       *w, 
+    const aclTensor *scaleOptional, 
+    const aclTensor *biasOptional, 
+    const aclTensor *pertokenScaleOptional, 
+    const aclTensor *groupListOptional, 
+    const aclTensor *sharedInputOptional, 
+    const aclTensor *logitOptional, 
+    const aclTensor *rowIndexOptional, 
+    int64_t          dtype, 
+    float            sharedInputWeight, 
+    int64_t          sharedInputOffset, 
+    bool             transposeX, 
+    bool             transposeW, 
+    int64_t          groupListType, 
+    aclTensor       *y, 
+    uint64_t        *workspaceSize, 
+    aclOpExecutor  **executor)
 ```
 
 ```cpp
-aclnnStatus aclnnGroupedMatmulFinalizeRouting(void* workspace, uint64_t workspaceSize, aclOpExecutor* executor, aclrtStream stream)
+aclnnStatus aclnnGroupedMatmulFinalizeRouting(
+    void*          workspace, 
+    uint64_t       workspaceSize, 
+    aclOpExecutor *executor, 
+    aclrtStream    stream)
 ```
 
 ## aclnnGroupedMatmulFinalizeRoutingGetWorkspaceSize

@@ -25,34 +25,34 @@
 aclnnStatus aclnnGroupedMatmulFinalizeRoutingWeightNzV2GetWorkspaceSize(
     const aclTensor *x,
     aclTensor *w,
-    const aclTensor *scaleOptional,
-    const aclTensor *biasOptional,
-    const aclTensor *offsetOptional,
-    const aclTensor *antiquantScaleOptional,
-    const aclTensor *antiquantOffsetOptional,
-    const aclTensor *pertokenScaleOptional,
-    const aclTensor *groupListOptional,
-    const aclTensor *sharedInputOptional,
-    const aclTensor *logitOptional,
-    const aclTensor *rowIndexOptional,
-    int64_t dtype,
-    float sharedInputWeight,
-    int64_t sharedInputOffset,
-    bool transposeX,
-    bool transposeW,
-    int64_t groupListType,
+    const aclTensor   *scaleOptional,
+    const aclTensor   *biasOptional,
+    const aclTensor   *offsetOptional,
+    const aclTensor   *antiquantScaleOptional,
+    const aclTensor   *antiquantOffsetOptional,
+    const aclTensor   *pertokenScaleOptional,
+    const aclTensor   *groupListOptional,
+    const aclTensor   *sharedInputOptional,
+    const aclTensor   *logitOptional,
+    const aclTensor   *rowIndexOptional,
+    int64_t            dtype,
+    float              sharedInputWeight,
+    int64_t            sharedInputOffset,
+    bool               transposeX,
+    bool               transposeW,
+    int64_t            groupListType,
     const aclIntArray *tuningConfigOptional,
-    aclTensor *y,
-    uint64_t *workspaceSize,
-    aclOpExecutor **executor)
+    aclTensor         *y,
+    uint64_t          *workspaceSize,
+    aclOpExecutor    **executor)
 ```
 
 ```cpp
 aclnnStatus aclnnGroupedMatmulFinalizeRoutingWeightNzV2(
-    void* workspace,
-    uint64_t workspaceSize,
-    aclOpExecutor* executor,
-    aclrtStream stream)
+    void*          workspace,
+    uint64_t       workspaceSize,
+    aclOpExecutor *executor,
+    aclrtStream    stream)
 ```
 
 ## aclnnGroupedMatmulFinalizeRoutingWeightNzV2GetWorkspaceSize

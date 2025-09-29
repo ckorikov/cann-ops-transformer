@@ -25,7 +25,7 @@ GroupedMatmul和MoeFinalizeRouting的融合算子，GroupedMatmul计算后的输
 ```cpp
 aclnnStatus aclnnGroupedMatmulFinalizeRoutingV2GetWorkspaceSize(
     const aclTensor *x,
-    aclTensor *w,
+    aclTensor       *w,
     const aclTensor *scaleOptional,
     const aclTensor *biasOptional,
     const aclTensor *offsetOptional,
@@ -36,22 +36,23 @@ aclnnStatus aclnnGroupedMatmulFinalizeRoutingV2GetWorkspaceSize(
     const aclTensor *sharedInputOptional,
     const aclTensor *logitOptional,
     const aclTensor *rowIndexOptional,
-    int64_t dtype, float sharedInputWeight,
-    int64_t sharedInputOffset,
-    bool transposeX,
-    bool transposeW,
-    int64_t groupListType,
-    aclTensor *y,
-    uint64_t *workspaceSize,
-    aclOpExecutor **executor)
+    int64_t          dtype, 
+    float            sharedInputWeight,
+    int64_t          sharedInputOffset,
+    bool             transposeX,
+    bool             transposeW,
+    int64_t          groupListType,
+    aclTensor       *y,
+    uint64_t        *workspaceSize,
+    aclOpExecutor  **executor)
 ```
 
 ```cpp
 aclnnStatus aclnnGroupedMatmulFinalizeRoutingV2(
-    void* workspace,
-    uint64_t workspaceSize,
-    aclOpExecutor* executor,
-    aclrtStream stream)
+    void*          workspace,
+    uint64_t       workspaceSize,
+    aclOpExecutor *executor,
+    aclrtStream    stream)
 ```
 
 
