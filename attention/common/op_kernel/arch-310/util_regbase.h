@@ -263,7 +263,6 @@ struct RunInfo<false> {
     int64_t attentionOutStride; \
     uint32_t aivIdx; \
     uint8_t layoutType; \
-    uint8_t enableKVPrefetch; \
     uint8_t subBlockIdx;\
     bool softMaxCheckRes; \
     float keepProb; \

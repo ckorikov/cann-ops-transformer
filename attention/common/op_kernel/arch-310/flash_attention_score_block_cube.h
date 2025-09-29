@@ -27,24 +27,6 @@ using namespace AscendC::Impl::Detail;
 using namespace regbaseutil;
 using namespace fa_base_matmul;
 namespace BaseApi {
-template<bool hasRope = false>
-struct KVPrefetchArgs;
-
-template<>
-struct KVPrefetchArgs<true> {
-    int64_t nextOffset = 0;
-    int64_t nextRopeOffset = 0;
-    uint32_t nextMOrN;
-    bool isLast;
-};
-
-template<>
-struct KVPrefetchArgs<false> {
-    int64_t nextOffset = 0;
-    uint32_t nextMOrN;
-    bool isLast;
-};
-
 /* ============确定Query的L1类型============= */
 template <typename INPUT_T, uint32_t dBaseSize>
 struct QL1BuffSel {
@@ -125,8 +107,7 @@ public:
     __aicore__ inline void InitCubeInput(__gm__ uint8_t *key, __gm__ uint8_t *value,
         CVSharedParams<isInfer, isPa> *sharedParams, AttenMaskInfo *attenMaskInfo);
 
-    __aicore__ inline void IterateBmm1(LocalTensor<T> outputTensor, RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo, 
-        KVPrefetchArgs<hasRope> &prefetchArgs);
+    __aicore__ inline void IterateBmm1(LocalTensor<T> outputTensor, RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo);
 
     __aicore__ inline void IterateBmm2(mm2ResPos outputTensor, BuffersPolicy3buff<BufferType::L1, false> &inputBuf, 
         RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo);
@@ -138,18 +119,13 @@ private:
     __aicore__ inline GlobalTensor<INPUT_T> GetKeyGm(RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo);
     __aicore__ inline GlobalTensor<INPUT_T> GetValueGm(RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo);
 
-    __aicore__ inline void IterateBmm1Nd(LocalTensor<T> outputTensor, RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo, 
-        KVPrefetchArgs<hasRope> &prefetchArgs);
-    __aicore__ inline void IterateBmm1NdL0Split(LocalTensor<T> outputTensor, RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo, 
-        KVPrefetchArgs<hasRope> &prefetchArgs);
+    __aicore__ inline void IterateBmm1Nd(LocalTensor<T> outputTensor, RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo);
+    __aicore__ inline void IterateBmm1NdL0Split(LocalTensor<T> outputTensor, RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo);
     __aicore__ inline void IterateBmm1NdL1SplitK(LocalTensor<T> outputTensor, 
-        RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo, 
-        KVPrefetchArgs<hasRope> &prefetchArgs);
+        RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo);
 
-    __aicore__ inline void IterateBmm1DnSplitK(LocalTensor<T> outputTensor, RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo, 
-        KVPrefetchArgs<hasRope> &prefetchArgs);
-    __aicore__ inline void IterateBmm1Dn(LocalTensor<T> outputTensor, RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo, 
-        KVPrefetchArgs<hasRope> &prefetchArgs);
+    __aicore__ inline void IterateBmm1DnSplitK(LocalTensor<T> outputTensor, RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo);
+    __aicore__ inline void IterateBmm1Dn(LocalTensor<T> outputTensor, RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo);
 
 
     // --------------------Bmm2--------------------------
@@ -302,31 +278,30 @@ __aicore__ inline void FABlockCube<TEMPLATE_ARGS>::InitLocalBuffer() {
 
 TEMPLATES_DEF_NO_DEFAULT
 __aicore__ inline void FABlockCube<TEMPLATE_ARGS>::IterateBmm1(
-    LocalTensor<T> outputTensor, RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo, 
-    KVPrefetchArgs<hasRope> &prefetchArgs)
+    LocalTensor<T> outputTensor, RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo)
 {
     if constexpr (isFp8) {
         if constexpr (dBaseSize > 256) {
-            IterateBmm1NdL0Split(outputTensor, runInfo, constInfo, prefetchArgs);
+            IterateBmm1NdL0Split(outputTensor, runInfo, constInfo);
         } else {
-            IterateBmm1Nd(outputTensor, runInfo, constInfo, prefetchArgs);
+            IterateBmm1Nd(outputTensor, runInfo, constInfo);
         }
     } else {
         if constexpr (dBaseSize > 256 || IsSameType<INPUT_T, float>::value) {
-            IterateBmm1NdL1SplitK(outputTensor, runInfo, constInfo, prefetchArgs);
+            IterateBmm1NdL1SplitK(outputTensor, runInfo, constInfo);
         } else {
             if constexpr (useDn) {
                 // D > 256 不支持Dn
                 if constexpr (dBaseSize > 128){
-                    IterateBmm1DnSplitK(outputTensor, runInfo, constInfo, prefetchArgs);
+                    IterateBmm1DnSplitK(outputTensor, runInfo, constInfo);
                 } else {
-                    IterateBmm1Dn(outputTensor, runInfo, constInfo, prefetchArgs);
+                    IterateBmm1Dn(outputTensor, runInfo, constInfo);
                 }
             } else {
                 if constexpr (dBaseSize > 128) {
-                    IterateBmm1NdL0Split(outputTensor, runInfo, constInfo, prefetchArgs);
+                    IterateBmm1NdL0Split(outputTensor, runInfo, constInfo);
                 } else {
-                    IterateBmm1Nd(outputTensor, runInfo, constInfo, prefetchArgs);
+                    IterateBmm1Nd(outputTensor, runInfo, constInfo);
                 }
             }
         }
@@ -611,8 +586,7 @@ FABlockCube<TEMPLATE_ARGS>::GetValueGm(RunInfo<isInfer> &runInfo,
 /* 针对S1Base=128, S2Base = 128, D > 128场景，L1全载，左矩阵驻留 + L0切D + L0Db*/
 TEMPLATES_DEF_NO_DEFAULT
 __aicore__ inline void FABlockCube<TEMPLATE_ARGS>::IterateBmm1NdL0Split(LocalTensor<T> outputTensor, 
-    RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo, 
-    KVPrefetchArgs<hasRope> &prefetchArgs)
+    RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo)
 {
     Buffer<BufferType::L1> mm1A;
     Buffer<BufferType::L1> mm1B;
@@ -648,123 +622,61 @@ __aicore__ inline void FABlockCube<TEMPLATE_ARGS>::IterateBmm1NdL0Split(LocalTen
         mm1A.Set<HardEvent::MTE2_MTE1>(); // 通知 // 是否可以省略
     }
     // 加载当前轮的右矩阵到L1
-    if ((runInfo.taskId == 0 && constInfo.enableKVPrefetch) || !constInfo.enableKVPrefetch) {
-        mm1B = l1KBuffers.Get();
-        mm1B.Wait<HardEvent::MTE1_MTE2>(); // 占用
-        LocalTensor<INPUT_T> mm1BTensor = mm1B.GetTensor<INPUT_T>();
-        if constexpr (isPa) {
-            Position startPos;
-            startPos.bIdx = runInfo.boIdx;
-            startPos.n2Idx = runInfo.n2oIdx;
-            startPos.s2Offset = runInfo.s2LoopCount * s2BaseSize;
-            startPos.dIdx = 0;
-            PAShape shape;
-            shape.blockSize = kvCacheBlockSize;
-            shape.headNum = constInfo.n2Size;
-            shape.headDim = constInfo.dSize;
-            shape.actHeadDim = constInfo.dSize;
-            shape.maxblockNumPerBatch = maxBlockNumPerBatch;
-            shape.copyRowNum = runInfo.s2RealSize;
-            if constexpr (isFp8) {
-                shape.copyRowNumAlign = (runInfo.s2RealSize + 31) >> 5 << 5;
-            } else {
-                shape.copyRowNumAlign = (runInfo.s2RealSize + 15) >> 4 << 4;
-            }
-            GlobalTensor<INPUT_T> mm1BGmTensor = this->keyGm;
-            if constexpr (hasRope) {
-                PAShape ropeShape = shape;
-                ropeShape.headDim = constInfo.dSizeRope;
-                ropeShape.actHeadDim = constInfo.dSizeRope;
-                uint32_t dstNzC0Stride = shape.copyRowNumAlign;
-                LocalTensor<INPUT_T> mm1BRopeTensor = mm1BTensor[dstNzC0Stride * constInfo.dSize];
-                GlobalTensor<INPUT_T> mm1BRopeGmTensor = this->keyRopeGm;
-                GmCopyInToL1HasRopePA<INPUT_T>(mm1BTensor, mm1BRopeTensor, mm1BGmTensor, mm1BRopeGmTensor, blockTableGm, kvLayout, shape, ropeShape, startPos);
-            } else {
-                GmCopyInToL1PA<INPUT_T>(mm1BTensor, mm1BGmTensor, blockTableGm, kvLayout, shape, startPos);
-            }
+    mm1B = l1KBuffers.Get();
+    mm1B.Wait<HardEvent::MTE1_MTE2>(); // 占用
+    LocalTensor<INPUT_T> mm1BTensor = mm1B.GetTensor<INPUT_T>();
+    if constexpr (isPa) {
+        Position startPos;
+        startPos.bIdx = runInfo.boIdx;
+        startPos.n2Idx = runInfo.n2oIdx;
+        startPos.s2Offset = runInfo.s2LoopCount * s2BaseSize;
+        startPos.dIdx = 0;
+        PAShape shape;
+        shape.blockSize = kvCacheBlockSize;
+        shape.headNum = constInfo.n2Size;
+        shape.headDim = constInfo.dSize;
+        shape.actHeadDim = constInfo.dSize;
+        shape.maxblockNumPerBatch = maxBlockNumPerBatch;
+        shape.copyRowNum = runInfo.s2RealSize;
+        if constexpr (isFp8) {
+            shape.copyRowNumAlign = (runInfo.s2RealSize + 31) >> 5 << 5;
         } else {
-            Nd2NzParams Gm2L1Nd2NzParams;
-            Gm2L1Nd2NzParams.ndNum = 1; // ND矩阵的个数
-            Gm2L1Nd2NzParams.nValue = runInfo.s2RealSize; // 单个ND矩阵的实际行数，单位为元素个数
-            Gm2L1Nd2NzParams.dValue = constInfo.dSize; // 单个ND矩阵的实际列数，单位为元素个数
-            Gm2L1Nd2NzParams.srcNdMatrixStride = 0; // 相邻ND矩阵起始地址之间的偏移， 单位为元素个数
-            Gm2L1Nd2NzParams.srcDValue = constInfo.mm1Kb; // 同一个ND矩阵中相邻行起始地址之间的偏移， 单位为元素个数
-            if constexpr (isFp8) {
-                Gm2L1Nd2NzParams.dstNzC0Stride = (Gm2L1Nd2NzParams.nValue + 31) >> 5 << 5; // fp8场景在L1上M方向32对齐，防止loadL12L0出现地址越界
-            } else {
-                Gm2L1Nd2NzParams.dstNzC0Stride = (Gm2L1Nd2NzParams.nValue + 15) >> 4 << 4; // 转换为NZ矩阵后，相邻Block起始地址之间的偏移, 单位为Block个数;
-            }
-            Gm2L1Nd2NzParams.dstNzNStride = 1; // 转换为NZ矩阵后，ND之间相邻两行在NZ矩阵中起始地址之间的偏移， 单位为Block个数
-            Gm2L1Nd2NzParams.dstNzMatrixStride = 0; // 两个NZ矩阵，起始地址之间的偏移， 单位为元素数量
-            DataCopy(mm1BTensor, GetKeyGm(runInfo, constInfo)[runInfo.keyOffset], Gm2L1Nd2NzParams);
-            if constexpr (hasRope) {
-                Gm2L1Nd2NzParams.dValue = constInfo.dSizeRope;
-                Gm2L1Nd2NzParams.srcDValue = constInfo.mm1RopeKb;
-                DataCopy(mm1BTensor[Gm2L1Nd2NzParams.dstNzC0Stride * constInfo.dSize], this->keyRopeGm[runInfo.kRopeOffset], Gm2L1Nd2NzParams);
-            }
+            shape.copyRowNumAlign = (runInfo.s2RealSize + 15) >> 4 << 4;
         }
-        mm1B.Set<HardEvent::MTE2_MTE1>(); // 通知
+        GlobalTensor<INPUT_T> mm1BGmTensor = this->keyGm;
+        if constexpr (hasRope) {
+            PAShape ropeShape = shape;
+            ropeShape.headDim = constInfo.dSizeRope;
+            ropeShape.actHeadDim = constInfo.dSizeRope;
+            uint32_t dstNzC0Stride = shape.copyRowNumAlign;
+            LocalTensor<INPUT_T> mm1BRopeTensor = mm1BTensor[dstNzC0Stride * constInfo.dSize];
+            GlobalTensor<INPUT_T> mm1BRopeGmTensor = this->keyRopeGm;
+            GmCopyInToL1HasRopePA<INPUT_T>(mm1BTensor, mm1BRopeTensor, mm1BGmTensor, mm1BRopeGmTensor, blockTableGm, kvLayout, shape, ropeShape, startPos);
+        } else {
+            GmCopyInToL1PA<INPUT_T>(mm1BTensor, mm1BGmTensor, blockTableGm, kvLayout, shape, startPos);
+        }
     } else {
-        mm1B = l1KBuffers.GetPre();
-    }
-    // 预加载下一轮
-    if (constInfo.enableKVPrefetch && !prefetchArgs.isLast) {
-        Buffer<BufferType::L1> mm1BNext = l1KBuffers.Get();
-        mm1BNext.Wait<HardEvent::MTE1_MTE2>(); // 占用L1B
-        LocalTensor<INPUT_T> mm1BNextTensor = mm1BNext.GetTensor<INPUT_T>();
-        if constexpr (isPa) {
-            Position startPos;
-            startPos.bIdx = runInfo.boIdx;
-            startPos.n2Idx = runInfo.n2oIdx;
-            startPos.s2Offset = runInfo.s2LoopCount * s2BaseSize;
-            startPos.dIdx = 0;
-            PAShape shape;
-            shape.blockSize = kvCacheBlockSize;
-            shape.headNum = constInfo.n2Size;
-            shape.headDim = constInfo.dSize;
-            shape.actHeadDim = constInfo.dSize;
-            shape.maxblockNumPerBatch = maxBlockNumPerBatch;
-            shape.copyRowNum = prefetchArgs.nextMOrN;
-            if constexpr (isFp8) {
-                shape.copyRowNumAlign = (prefetchArgs.nextMOrN + 31) >> 5 << 5;
-            } else {
-                shape.copyRowNumAlign = (prefetchArgs.nextMOrN + 15) >> 4 << 4;
-            }
-            GlobalTensor<INPUT_T> mm1BNextGmTensor = GetKeyGm(runInfo, constInfo)[prefetchArgs.nextOffset];
-            if constexpr (hasRope) {
-                PAShape ropeShape = shape;
-                ropeShape.headDim = constInfo.dSizeRope;
-                ropeShape.actHeadDim = constInfo.dSizeRope;
-                uint32_t dstNzC0Stride = shape.copyRowNumAlign;
-                LocalTensor<INPUT_T> mm1BNextRopeTensor = mm1BNextTensor[dstNzC0Stride * constInfo.dSize];
-                GlobalTensor<INPUT_T> mm1BRopeGmTensor = this->keyRopeGm[prefetchArgs.nextRopeOffset];
-                GmCopyInToL1HasRopePA<INPUT_T>(mm1BNextTensor, mm1BNextRopeTensor, mm1BNextGmTensor, mm1BRopeGmTensor, blockTableGm, kvLayout, shape, ropeShape, startPos);
-            } else {
-                GmCopyInToL1PA<INPUT_T>(mm1BNextTensor, mm1BNextGmTensor, blockTableGm, kvLayout, shape, startPos);
-            }
+        Nd2NzParams Gm2L1Nd2NzParams;
+        Gm2L1Nd2NzParams.ndNum = 1; // ND矩阵的个数
+        Gm2L1Nd2NzParams.nValue = runInfo.s2RealSize; // 单个ND矩阵的实际行数，单位为元素个数
+        Gm2L1Nd2NzParams.dValue = constInfo.dSize; // 单个ND矩阵的实际列数，单位为元素个数
+        Gm2L1Nd2NzParams.srcNdMatrixStride = 0; // 相邻ND矩阵起始地址之间的偏移， 单位为元素个数
+        Gm2L1Nd2NzParams.srcDValue = constInfo.mm1Kb; // 同一个ND矩阵中相邻行起始地址之间的偏移， 单位为元素个数
+        if constexpr (isFp8) {
+            Gm2L1Nd2NzParams.dstNzC0Stride = (Gm2L1Nd2NzParams.nValue + 31) >> 5 << 5; // fp8场景在L1上M方向32对齐，防止loadL12L0出现地址越界
         } else {
-            Nd2NzParams Gm2L1Nd2NzParams;
-            Gm2L1Nd2NzParams.ndNum = 1; // ND矩阵的个数
-            Gm2L1Nd2NzParams.nValue = prefetchArgs.nextMOrN; // 单个ND矩阵的实际行数, 单位为元素个数
-            Gm2L1Nd2NzParams.dValue = constInfo.dSize; // 单个ND矩阵的实际列数(vD), 单位为元素个数
-            Gm2L1Nd2NzParams.srcNdMatrixStride = 0; // 相邻ND矩阵起始地址之间的偏移, 单位为元素个数
-            Gm2L1Nd2NzParams.srcDValue = constInfo.mm1Kb; // 同一个ND矩阵中相邻行起始地址之间的偏移, 单位为元素个数
-            if constexpr (isFp8) {
-                Gm2L1Nd2NzParams.dstNzC0Stride = (Gm2L1Nd2NzParams.nValue + 31) >> 5 << 5; // fp8场景在L1上M方向32对齐，防止loadL12L0出现地址越界
-            } else {
-                Gm2L1Nd2NzParams.dstNzC0Stride = (Gm2L1Nd2NzParams.nValue + 15) >> 4 << 4; // 转换为NZ矩阵后，相邻Block起始地址之间的偏移, 单位为Block个数;
-            }
-            Gm2L1Nd2NzParams.dstNzNStride = 1; // 转换为NZ矩阵后，ND中之前相邻两行在NZ矩阵中起始地址之间的偏移, 单位为Block个数
-            Gm2L1Nd2NzParams.dstNzMatrixStride = 0; // 两个NZ矩阵，起始地址之间的偏移, 单位为元素数量
-            DataCopy(mm1BNextTensor, GetKeyGm(runInfo, constInfo)[prefetchArgs.nextOffset], Gm2L1Nd2NzParams);
-            if constexpr (hasRope) {
-                Gm2L1Nd2NzParams.dValue = constInfo.dSizeRope;
-                Gm2L1Nd2NzParams.srcDValue = constInfo.mm1RopeKb;
-                DataCopy(mm1BNextTensor[Gm2L1Nd2NzParams.dstNzC0Stride * constInfo.dSize], this->keyRopeGm[prefetchArgs.nextRopeOffset], Gm2L1Nd2NzParams);
-            }
+            Gm2L1Nd2NzParams.dstNzC0Stride = (Gm2L1Nd2NzParams.nValue + 15) >> 4 << 4; // 转换为NZ矩阵后，相邻Block起始地址之间的偏移, 单位为Block个数;
         }
-        mm1BNext.Set<HardEvent::MTE2_MTE1>(); // 通知
+        Gm2L1Nd2NzParams.dstNzNStride = 1; // 转换为NZ矩阵后，ND之间相邻两行在NZ矩阵中起始地址之间的偏移， 单位为Block个数
+        Gm2L1Nd2NzParams.dstNzMatrixStride = 0; // 两个NZ矩阵，起始地址之间的偏移， 单位为元素数量
+        DataCopy(mm1BTensor, GetKeyGm(runInfo, constInfo)[runInfo.keyOffset], Gm2L1Nd2NzParams);
+        if constexpr (hasRope) {
+            Gm2L1Nd2NzParams.dValue = constInfo.dSizeRope;
+            Gm2L1Nd2NzParams.srcDValue = constInfo.mm1RopeKb;
+            DataCopy(mm1BTensor[Gm2L1Nd2NzParams.dstNzC0Stride * constInfo.dSize], this->keyRopeGm[runInfo.kRopeOffset], Gm2L1Nd2NzParams);
+        }
     }
+    mm1B.Set<HardEvent::MTE2_MTE1>(); // 通知
     mm1A.Wait<HardEvent::MTE2_MTE1>(); // 等待L1A
     mm1B.Wait<HardEvent::MTE2_MTE1>(); // 等待L1B
 
@@ -825,8 +737,7 @@ __aicore__ inline void FABlockCube<TEMPLATE_ARGS>::IterateBmm1NdL0Split(LocalTen
 /* 针对useDn=true, S1Base=128, S2Base = 128, 128 < D <= 256场景，L1全载，左矩阵驻留 + L0切D + L0Db*/
 TEMPLATES_DEF_NO_DEFAULT
 __aicore__ inline void FABlockCube<TEMPLATE_ARGS>::IterateBmm1DnSplitK(LocalTensor<T> outputTensor,
-    RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo,
-    KVPrefetchArgs<hasRope> &prefetchArgs)
+    RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo)
 {
     Buffer<BufferType::L1> mm1A;
     Buffer<BufferType::L1> mm1B;
@@ -854,79 +765,38 @@ __aicore__ inline void FABlockCube<TEMPLATE_ARGS>::IterateBmm1DnSplitK(LocalTens
     }
 
     // 加载当前轮的左矩阵到L1
-    if ((runInfo.taskId == 0 && constInfo.enableKVPrefetch) || !constInfo.enableKVPrefetch) {
-        mm1A = l1KBuffers.Get();
-        mm1A.Wait<HardEvent::MTE1_MTE2>(); // 占用
-        LocalTensor<INPUT_T> mm1ATensor = mm1A.GetTensor<INPUT_T>();
-        if constexpr (isPa) {
-            Position startPos;
-            startPos.bIdx = runInfo.boIdx;
-            startPos.n2Idx = runInfo.n2oIdx;
-            startPos.s2Offset = runInfo.s2LoopCount * s2BaseSize;
-            startPos.dIdx = 0;
-            PAShape shape;
-            shape.blockSize = kvCacheBlockSize;
-            shape.headNum = constInfo.n2Size;
-            shape.headDim = constInfo.dSize;
-            shape.actHeadDim = constInfo.dSize;
-            shape.maxblockNumPerBatch = maxBlockNumPerBatch;
-            shape.copyRowNum = runInfo.s2RealSize;
-            shape.copyRowNumAlign = (runInfo.s2RealSize + 15) >> 4 << 4;
-            GlobalTensor<INPUT_T> mm1AGmTensor = GetKeyGm(runInfo, constInfo);
-            GmCopyInToL1PA<INPUT_T>(mm1ATensor, mm1AGmTensor, blockTableGm, kvLayout, shape, startPos);
-        } else {
-            Nd2NzParams Gm2L1Nd2NzParams;
-            Gm2L1Nd2NzParams.ndNum = 1; // ND矩阵的个数
-            Gm2L1Nd2NzParams.nValue = runInfo.s2RealSize; // 单个ND矩阵的实际行数，单位为元素个数
-            Gm2L1Nd2NzParams.dValue = constInfo.dSize; // 单个ND矩阵的实际列数，单位为元素个数
-            Gm2L1Nd2NzParams.srcNdMatrixStride = 0; // 相邻ND矩阵起始地址之间的偏移， 单位为元素个数
-            Gm2L1Nd2NzParams.srcDValue = constInfo.mm1Kb; // 同一个ND矩阵中相邻行起始地址之间的偏移， 单位为元素个数
-            Gm2L1Nd2NzParams.dstNzC0Stride = (Gm2L1Nd2NzParams.nValue + 15) >> 4 << 4; // 转换为NZ矩阵后，相邻Block起始地址之间的偏移， 单位为Block个数
-            Gm2L1Nd2NzParams.dstNzNStride = 1; // 转换为NZ矩阵后，ND之间相邻两行在NZ矩阵中起始地址之间的偏移， 单位为Block个数
-            Gm2L1Nd2NzParams.dstNzMatrixStride = 0; // 两个NZ矩阵，起始地址之间的偏移， 单位为元素数量
-            DataCopy(mm1ATensor, GetKeyGm(runInfo, constInfo)[runInfo.keyOffset], Gm2L1Nd2NzParams);
-        }
-        mm1A.Set<HardEvent::MTE2_MTE1>(); // 通知
+    mm1A = l1KBuffers.Get();
+    mm1A.Wait<HardEvent::MTE1_MTE2>(); // 占用
+    LocalTensor<INPUT_T> mm1ATensor = mm1A.GetTensor<INPUT_T>();
+    if constexpr (isPa) {
+        Position startPos;
+        startPos.bIdx = runInfo.boIdx;
+        startPos.n2Idx = runInfo.n2oIdx;
+        startPos.s2Offset = runInfo.s2LoopCount * s2BaseSize;
+        startPos.dIdx = 0;
+        PAShape shape;
+        shape.blockSize = kvCacheBlockSize;
+        shape.headNum = constInfo.n2Size;
+        shape.headDim = constInfo.dSize;
+        shape.actHeadDim = constInfo.dSize;
+        shape.maxblockNumPerBatch = maxBlockNumPerBatch;
+        shape.copyRowNum = runInfo.s2RealSize;
+        shape.copyRowNumAlign = (runInfo.s2RealSize + 15) >> 4 << 4;
+        GlobalTensor<INPUT_T> mm1AGmTensor = GetKeyGm(runInfo, constInfo);
+        GmCopyInToL1PA<INPUT_T>(mm1ATensor, mm1AGmTensor, blockTableGm, kvLayout, shape, startPos);
     } else {
-        mm1A = l1KBuffers.GetPre();
+        Nd2NzParams Gm2L1Nd2NzParams;
+        Gm2L1Nd2NzParams.ndNum = 1; // ND矩阵的个数
+        Gm2L1Nd2NzParams.nValue = runInfo.s2RealSize; // 单个ND矩阵的实际行数，单位为元素个数
+        Gm2L1Nd2NzParams.dValue = constInfo.dSize; // 单个ND矩阵的实际列数，单位为元素个数
+        Gm2L1Nd2NzParams.srcNdMatrixStride = 0; // 相邻ND矩阵起始地址之间的偏移， 单位为元素个数
+        Gm2L1Nd2NzParams.srcDValue = constInfo.mm1Kb; // 同一个ND矩阵中相邻行起始地址之间的偏移， 单位为元素个数
+        Gm2L1Nd2NzParams.dstNzC0Stride = (Gm2L1Nd2NzParams.nValue + 15) >> 4 << 4; // 转换为NZ矩阵后，相邻Block起始地址之间的偏移， 单位为Block个数
+        Gm2L1Nd2NzParams.dstNzNStride = 1; // 转换为NZ矩阵后，ND之间相邻两行在NZ矩阵中起始地址之间的偏移， 单位为Block个数
+        Gm2L1Nd2NzParams.dstNzMatrixStride = 0; // 两个NZ矩阵，起始地址之间的偏移， 单位为元素数量
+        DataCopy(mm1ATensor, GetKeyGm(runInfo, constInfo)[runInfo.keyOffset], Gm2L1Nd2NzParams);
     }
-
-    // 预加载下一轮
-    if (constInfo.enableKVPrefetch && !prefetchArgs.isLast) {
-        Buffer<BufferType::L1> mm1ANext = l1KBuffers.Get();
-        mm1ANext.Wait<HardEvent::MTE1_MTE2>(); // 占用L1B
-        LocalTensor<INPUT_T> mm1ANextTensor = mm1ANext.GetTensor<INPUT_T>();
-        if constexpr (isPa) {
-            Position startPos;
-            startPos.bIdx = runInfo.boIdx;
-            startPos.n2Idx = runInfo.n2oIdx;
-            startPos.s2Offset = runInfo.s2LoopCount * s2BaseSize;
-            startPos.dIdx = 0;
-            PAShape shape;
-            shape.blockSize = kvCacheBlockSize;
-            shape.headNum = constInfo.n2Size;
-            shape.headDim = constInfo.dSize;
-            shape.actHeadDim = constInfo.dSize;
-            shape.maxblockNumPerBatch = maxBlockNumPerBatch;
-            shape.copyRowNum = prefetchArgs.nextMOrN;
-            shape.copyRowNumAlign = (prefetchArgs.nextMOrN + 15) >> 4 << 4;
-            GlobalTensor<INPUT_T> mm1ANextGmTensor = GetKeyGm(runInfo, constInfo)[prefetchArgs.nextOffset];
-            GmCopyInToL1PA<INPUT_T>(mm1ANextTensor, mm1ANextGmTensor, blockTableGm, kvLayout, shape, startPos);
-        } else {
-            Nd2NzParams Gm2L1Nd2NzParams;
-            Gm2L1Nd2NzParams.ndNum = 1; // ND矩阵的个数
-            Gm2L1Nd2NzParams.nValue = prefetchArgs.nextMOrN; // 单个ND矩阵的实际行数, 单位为元素个数
-            Gm2L1Nd2NzParams.dValue = constInfo.dSize; // 单个ND矩阵的实际列数(vD), 单位为元素个数
-            Gm2L1Nd2NzParams.srcNdMatrixStride = 0; // 相邻ND矩阵起始地址之间的偏移, 单位为元素个数
-            Gm2L1Nd2NzParams.srcDValue = constInfo.mm1Kb; // 同一个ND矩阵中相邻行起始地址之间的偏移, 单位为元素个数
-            Gm2L1Nd2NzParams.dstNzC0Stride = (Gm2L1Nd2NzParams.nValue + 15) >> 4 << 4; // 转换为NZ矩阵后，相邻Block起始地址之间的偏移, 单位为Block个数;
-            Gm2L1Nd2NzParams.dstNzNStride = 1; // 转换为NZ矩阵后，ND中之前相邻两行在NZ矩阵中起始地址之间的偏移, 单位为Block个数
-            Gm2L1Nd2NzParams.dstNzMatrixStride = 0; // 两个NZ矩阵，起始地址之间的偏移, 单位为元素数量
-            DataCopy(mm1ANextTensor, GetKeyGm(runInfo, constInfo)[prefetchArgs.nextOffset], Gm2L1Nd2NzParams);
-        }
-        mm1ANext.Set<HardEvent::MTE2_MTE1>(); // 通知
-    }
-
+    mm1A.Set<HardEvent::MTE2_MTE1>(); // 通知
     mm1A.Wait<HardEvent::MTE2_MTE1>(); // 等待L1A
     mm1B.Wait<HardEvent::MTE2_MTE1>(); // 等待L1B
 
@@ -973,8 +843,7 @@ __aicore__ inline void FABlockCube<TEMPLATE_ARGS>::IterateBmm1DnSplitK(LocalTens
 
 TEMPLATES_DEF_NO_DEFAULT
 __aicore__ inline void FABlockCube<TEMPLATE_ARGS>::IterateBmm1Nd(
-    LocalTensor<T> outputTensor, RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo, 
-    KVPrefetchArgs<hasRope> &prefetchArgs)
+    LocalTensor<T> outputTensor, RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo)
 {
     // 计算key的offset
     Buffer<BufferType::L1> mm1A;
@@ -1007,94 +876,46 @@ __aicore__ inline void FABlockCube<TEMPLATE_ARGS>::IterateBmm1Nd(
     }
 
     // 加载当前轮的右矩阵到L1
-    if ((runInfo.taskId == 0 && constInfo.enableKVPrefetch) || !constInfo.enableKVPrefetch) {
-        mm1B = l1KBuffers.Get();
-        mm1B.Wait<HardEvent::MTE1_MTE2>(); // 占用L1B
-        LocalTensor<INPUT_T> mm1BTensor = mm1B.GetTensor<INPUT_T>();
-        if constexpr (isPa) {
-            Position startPos;
-            startPos.bIdx = runInfo.boIdx;
-            startPos.n2Idx = runInfo.n2oIdx;
-            startPos.s2Offset = runInfo.s2LoopCount * s2BaseSize;
-            startPos.dIdx = 0;
-            PAShape shape;
-            shape.blockSize = kvCacheBlockSize;
-            shape.headNum = constInfo.n2Size;
-            shape.headDim = constInfo.dSize;
-            shape.actHeadDim = constInfo.dSize;
-            shape.maxblockNumPerBatch = maxBlockNumPerBatch;
-            shape.copyRowNum = runInfo.s2RealSize;
-            if constexpr (isFp8) {
-                shape.copyRowNumAlign = (runInfo.s2RealSize + 31) >> 5 << 5;
-            } else {
-                shape.copyRowNumAlign = (runInfo.s2RealSize + 15) >> 4 << 4;
-            }
-            GlobalTensor<INPUT_T> mm1BGmTensor = GetKeyGm(runInfo, constInfo);
-            GmCopyInToL1PA<INPUT_T>(mm1BTensor, mm1BGmTensor, blockTableGm, kvLayout, shape, startPos);
+    mm1B = l1KBuffers.Get();
+    mm1B.Wait<HardEvent::MTE1_MTE2>(); // 占用L1B
+    LocalTensor<INPUT_T> mm1BTensor = mm1B.GetTensor<INPUT_T>();
+    if constexpr (isPa) {
+        Position startPos;
+        startPos.bIdx = runInfo.boIdx;
+        startPos.n2Idx = runInfo.n2oIdx;
+        startPos.s2Offset = runInfo.s2LoopCount * s2BaseSize;
+        startPos.dIdx = 0;
+        PAShape shape;
+        shape.blockSize = kvCacheBlockSize;
+        shape.headNum = constInfo.n2Size;
+        shape.headDim = constInfo.dSize;
+        shape.actHeadDim = constInfo.dSize;
+        shape.maxblockNumPerBatch = maxBlockNumPerBatch;
+        shape.copyRowNum = runInfo.s2RealSize;
+        if constexpr (isFp8) {
+            shape.copyRowNumAlign = (runInfo.s2RealSize + 31) >> 5 << 5;
         } else {
-            Nd2NzParams Gm2L1Nd2NzParams;
-            Gm2L1Nd2NzParams.ndNum = 1; // ND矩阵的个数
-            Gm2L1Nd2NzParams.nValue = runInfo.s2RealSize; // 单个ND矩阵的实际行数, 单位为元素个数
-            Gm2L1Nd2NzParams.dValue = constInfo.dSize; // 单个ND矩阵的实际列数(vD), 单位为元素个数
-            Gm2L1Nd2NzParams.srcNdMatrixStride = 0; // 相邻ND矩阵起始地址之间的偏移, 单位为元素个数
-            Gm2L1Nd2NzParams.srcDValue = constInfo.mm1Kb; // 同一个ND矩阵中相邻行起始地址之间的偏移, 单位为元素个数
-            if constexpr (isFp8) {
-                Gm2L1Nd2NzParams.dstNzC0Stride = (Gm2L1Nd2NzParams.nValue + 31) >> 5 << 5; // fp8场景在L1上M方向32对齐，防止loadL12L0出现地址越界
-            } else {
-                Gm2L1Nd2NzParams.dstNzC0Stride = (Gm2L1Nd2NzParams.nValue + 15) >> 4 << 4; // 转换为NZ矩阵后，相邻Block起始地址之间的偏移, 单位为Block个数;
-            }
-            Gm2L1Nd2NzParams.dstNzNStride = 1; // 转换为NZ矩阵后，ND中之前相邻两行在NZ矩阵中起始地址之间的偏移, 单位为Block个数
-            Gm2L1Nd2NzParams.dstNzMatrixStride = 0; // 两个NZ矩阵，起始地址之间的偏移, 单位为元素数量
-            DataCopy(mm1BTensor, GetKeyGm(runInfo, constInfo)[runInfo.keyOffset], Gm2L1Nd2NzParams);
+            shape.copyRowNumAlign = (runInfo.s2RealSize + 15) >> 4 << 4;
         }
-        mm1B.Set<HardEvent::MTE2_MTE1>(); // 通知
+        GlobalTensor<INPUT_T> mm1BGmTensor = GetKeyGm(runInfo, constInfo);
+        GmCopyInToL1PA<INPUT_T>(mm1BTensor, mm1BGmTensor, blockTableGm, kvLayout, shape, startPos);
     } else {
-        mm1B = l1KBuffers.GetPre();
-    }
-
-    // 预加载下一轮
-    if (constInfo.enableKVPrefetch && !prefetchArgs.isLast) {
-        Buffer<BufferType::L1> mm1BNext = l1KBuffers.Get();
-        mm1BNext.Wait<HardEvent::MTE1_MTE2>(); // 占用L1B
-        LocalTensor<INPUT_T> mm1BNextTensor = mm1BNext.GetTensor<INPUT_T>();
-        if constexpr (isPa) {
-            Position startPos;
-            startPos.bIdx = runInfo.boIdx;
-            startPos.n2Idx = runInfo.n2oIdx;
-            startPos.s2Offset = runInfo.s2LoopCount * s2BaseSize;
-            startPos.dIdx = 0;
-            PAShape shape;
-            shape.blockSize = kvCacheBlockSize;
-            shape.headNum = constInfo.n2Size;
-            shape.headDim = constInfo.dSize;
-            shape.actHeadDim = constInfo.dSize;
-            shape.maxblockNumPerBatch = maxBlockNumPerBatch;
-            shape.copyRowNum = prefetchArgs.nextMOrN;
-            if constexpr (isFp8) {
-                shape.copyRowNumAlign = (prefetchArgs.nextMOrN + 31) >> 5 << 5;
-            } else {
-                shape.copyRowNumAlign = (prefetchArgs.nextMOrN + 15) >> 4 << 4;
-            }
-            GlobalTensor<INPUT_T> mm1BNextGmTensor = GetKeyGm(runInfo, constInfo)[prefetchArgs.nextOffset];
-            GmCopyInToL1PA<INPUT_T>(mm1BNextTensor, mm1BNextGmTensor, blockTableGm, kvLayout, shape, startPos);
+        Nd2NzParams Gm2L1Nd2NzParams;
+        Gm2L1Nd2NzParams.ndNum = 1; // ND矩阵的个数
+        Gm2L1Nd2NzParams.nValue = runInfo.s2RealSize; // 单个ND矩阵的实际行数, 单位为元素个数
+        Gm2L1Nd2NzParams.dValue = constInfo.dSize; // 单个ND矩阵的实际列数(vD), 单位为元素个数
+        Gm2L1Nd2NzParams.srcNdMatrixStride = 0; // 相邻ND矩阵起始地址之间的偏移, 单位为元素个数
+        Gm2L1Nd2NzParams.srcDValue = constInfo.mm1Kb; // 同一个ND矩阵中相邻行起始地址之间的偏移, 单位为元素个数
+        if constexpr (isFp8) {
+            Gm2L1Nd2NzParams.dstNzC0Stride = (Gm2L1Nd2NzParams.nValue + 31) >> 5 << 5; // fp8场景在L1上M方向32对齐，防止loadL12L0出现地址越界
         } else {
-            Nd2NzParams Gm2L1Nd2NzParams;
-            Gm2L1Nd2NzParams.ndNum = 1; // ND矩阵的个数
-            Gm2L1Nd2NzParams.nValue = prefetchArgs.nextMOrN; // 单个ND矩阵的实际行数, 单位为元素个数
-            Gm2L1Nd2NzParams.dValue = constInfo.dSize; // 单个ND矩阵的实际列数(vD), 单位为元素个数
-            Gm2L1Nd2NzParams.srcNdMatrixStride = 0; // 相邻ND矩阵起始地址之间的偏移, 单位为元素个数
-            Gm2L1Nd2NzParams.srcDValue = constInfo.mm1Kb; // 同一个ND矩阵中相邻行起始地址之间的偏移, 单位为元素个数
-            if constexpr (isFp8) {
-                Gm2L1Nd2NzParams.dstNzC0Stride = (Gm2L1Nd2NzParams.nValue + 31) >> 5 << 5; // fp8场景在L1上M方向32对齐，防止loadL12L0出现地址越界
-            } else {
-                Gm2L1Nd2NzParams.dstNzC0Stride = (Gm2L1Nd2NzParams.nValue + 15) >> 4 << 4; // 转换为NZ矩阵后，相邻Block起始地址之间的偏移, 单位为Block个数;
-            }
-            Gm2L1Nd2NzParams.dstNzNStride = 1; // 转换为NZ矩阵后，ND中之前相邻两行在NZ矩阵中起始地址之间的偏移, 单位为Block个数
-            Gm2L1Nd2NzParams.dstNzMatrixStride = 0; // 两个NZ矩阵，起始地址之间的偏移, 单位为元素数量
-            DataCopy(mm1BNextTensor, GetKeyGm(runInfo, constInfo)[prefetchArgs.nextOffset], Gm2L1Nd2NzParams);
+            Gm2L1Nd2NzParams.dstNzC0Stride = (Gm2L1Nd2NzParams.nValue + 15) >> 4 << 4; // 转换为NZ矩阵后，相邻Block起始地址之间的偏移, 单位为Block个数;
         }
-        mm1BNext.Set<HardEvent::MTE2_MTE1>(); // 通知
+        Gm2L1Nd2NzParams.dstNzNStride = 1; // 转换为NZ矩阵后，ND中之前相邻两行在NZ矩阵中起始地址之间的偏移, 单位为Block个数
+        Gm2L1Nd2NzParams.dstNzMatrixStride = 0; // 两个NZ矩阵，起始地址之间的偏移, 单位为元素数量
+        DataCopy(mm1BTensor, GetKeyGm(runInfo, constInfo)[runInfo.keyOffset], Gm2L1Nd2NzParams);
     }
+    mm1B.Set<HardEvent::MTE2_MTE1>(); // 通知
     mm1A.Wait<HardEvent::MTE2_MTE1>(); // 等待L1A
     mm1B.Wait<HardEvent::MTE2_MTE1>(); // 等待L1B
 
@@ -1139,8 +960,7 @@ __aicore__ inline void FABlockCube<TEMPLATE_ARGS>::IterateBmm1Nd(
 /* 针对S1Base=128, S2Base = 128, D > 256场景，L1层面切K，且左矩阵单Buffer+驻留，右矩阵每次重新搬运。*/
 TEMPLATES_DEF_NO_DEFAULT
 __aicore__ inline void FABlockCube<TEMPLATE_ARGS>::IterateBmm1NdL1SplitK(LocalTensor<T> outputTensor, 
-    RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo, 
-    KVPrefetchArgs<hasRope> &prefetchArgs) 
+    RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo) 
 {
     constexpr uint32_t baseK = l1BaseD;
     uint32_t kLoops = (constInfo.dSize + baseK - 1) / baseK; // 尾块处理
@@ -1260,8 +1080,7 @@ __aicore__ inline void FABlockCube<TEMPLATE_ARGS>::IterateBmm1NdL1SplitK(LocalTe
 
 TEMPLATES_DEF_NO_DEFAULT
 __aicore__ inline void FABlockCube<TEMPLATE_ARGS>::IterateBmm1Dn(
-    LocalTensor<T> outputTensor, RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo, 
-    KVPrefetchArgs<hasRope> &prefetchArgs)
+    LocalTensor<T> outputTensor, RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo)
 {
     Buffer<BufferType::L1> mm1A;
     Buffer<BufferType::L1> mm1B;
@@ -1289,79 +1108,38 @@ __aicore__ inline void FABlockCube<TEMPLATE_ARGS>::IterateBmm1Dn(
     }
     // 加载当前轮的左矩阵到L1
     // 计算key的offset
-    if ((runInfo.taskId == 0 && constInfo.enableKVPrefetch) || !constInfo.enableKVPrefetch) {
-        mm1A = l1KBuffers.Get();
-        mm1A.Wait<HardEvent::MTE1_MTE2>(); // 占用L1B
-        LocalTensor<INPUT_T> mm1ATensor = mm1A.GetTensor<INPUT_T>();
-        if constexpr (isPa) {
-            Position startPos;
-            startPos.bIdx = runInfo.boIdx;
-            startPos.n2Idx = runInfo.n2oIdx;
-            startPos.s2Offset = runInfo.s2LoopCount * s2BaseSize;
-            startPos.dIdx = 0;
-            PAShape shape;
-            shape.blockSize = kvCacheBlockSize;
-            shape.headNum = constInfo.n2Size;
-            shape.headDim = constInfo.dSize;
-            shape.actHeadDim = constInfo.dSize;
-            shape.maxblockNumPerBatch = maxBlockNumPerBatch;
-            shape.copyRowNum = runInfo.s2RealSize;
-            shape.copyRowNumAlign = (runInfo.s2RealSize + 15) >> 4 << 4;
-            GlobalTensor<INPUT_T> mm1AGmTensor = GetKeyGm(runInfo, constInfo);
-            GmCopyInToL1PA<INPUT_T>(mm1ATensor, mm1AGmTensor, blockTableGm, kvLayout, shape, startPos);
-        } else {
-            Nd2NzParams Gm2L1Nd2NzParams;
-            Gm2L1Nd2NzParams.ndNum = 1; // ND矩阵的个数
-            Gm2L1Nd2NzParams.nValue = runInfo.s2RealSize; // 单个ND矩阵的实际行数, 单位为元素个数
-            Gm2L1Nd2NzParams.dValue = constInfo.dSize; // 单个ND矩阵的实际列数(vD), 单位为元素个数
-            Gm2L1Nd2NzParams.srcNdMatrixStride = 0; // 相邻ND矩阵起始地址之间的偏移, 单位为元素个数
-            Gm2L1Nd2NzParams.srcDValue = constInfo.mm1Kb; // 同一个ND矩阵中相邻行起始地址之间的偏移, 单位为元素个数
-            Gm2L1Nd2NzParams.dstNzC0Stride = (Gm2L1Nd2NzParams.nValue + 15) >> 4 << 4; // 转换为NZ矩阵后，相邻Block起始地址之间的偏移, 单位为Block个数;
-            Gm2L1Nd2NzParams.dstNzNStride = 1; // 转换为NZ矩阵后，ND中之前相邻两行在NZ矩阵中起始地址之间的偏移, 单位为Block个数
-            Gm2L1Nd2NzParams.dstNzMatrixStride = 0; // 两个NZ矩阵，起始地址之间的偏移, 单位为元素数量
-            DataCopy(mm1ATensor, GetKeyGm(runInfo, constInfo)[runInfo.keyOffset], Gm2L1Nd2NzParams);
-        }
-        mm1A.Set<HardEvent::MTE2_MTE1>(); // 通知
+    mm1A = l1KBuffers.Get();
+    mm1A.Wait<HardEvent::MTE1_MTE2>(); // 占用L1B
+    LocalTensor<INPUT_T> mm1ATensor = mm1A.GetTensor<INPUT_T>();
+    if constexpr (isPa) {
+        Position startPos;
+        startPos.bIdx = runInfo.boIdx;
+        startPos.n2Idx = runInfo.n2oIdx;
+        startPos.s2Offset = runInfo.s2LoopCount * s2BaseSize;
+        startPos.dIdx = 0;
+        PAShape shape;
+        shape.blockSize = kvCacheBlockSize;
+        shape.headNum = constInfo.n2Size;
+        shape.headDim = constInfo.dSize;
+        shape.actHeadDim = constInfo.dSize;
+        shape.maxblockNumPerBatch = maxBlockNumPerBatch;
+        shape.copyRowNum = runInfo.s2RealSize;
+        shape.copyRowNumAlign = (runInfo.s2RealSize + 15) >> 4 << 4;
+        GlobalTensor<INPUT_T> mm1AGmTensor = GetKeyGm(runInfo, constInfo);
+        GmCopyInToL1PA<INPUT_T>(mm1ATensor, mm1AGmTensor, blockTableGm, kvLayout, shape, startPos);
     } else {
-        mm1A = l1KBuffers.GetPre();
+        Nd2NzParams Gm2L1Nd2NzParams;
+        Gm2L1Nd2NzParams.ndNum = 1; // ND矩阵的个数
+        Gm2L1Nd2NzParams.nValue = runInfo.s2RealSize; // 单个ND矩阵的实际行数, 单位为元素个数
+        Gm2L1Nd2NzParams.dValue = constInfo.dSize; // 单个ND矩阵的实际列数(vD), 单位为元素个数
+        Gm2L1Nd2NzParams.srcNdMatrixStride = 0; // 相邻ND矩阵起始地址之间的偏移, 单位为元素个数
+        Gm2L1Nd2NzParams.srcDValue = constInfo.mm1Kb; // 同一个ND矩阵中相邻行起始地址之间的偏移, 单位为元素个数
+        Gm2L1Nd2NzParams.dstNzC0Stride = (Gm2L1Nd2NzParams.nValue + 15) >> 4 << 4; // 转换为NZ矩阵后，相邻Block起始地址之间的偏移, 单位为Block个数;
+        Gm2L1Nd2NzParams.dstNzNStride = 1; // 转换为NZ矩阵后，ND中之前相邻两行在NZ矩阵中起始地址之间的偏移, 单位为Block个数
+        Gm2L1Nd2NzParams.dstNzMatrixStride = 0; // 两个NZ矩阵，起始地址之间的偏移, 单位为元素数量
+        DataCopy(mm1ATensor, GetKeyGm(runInfo, constInfo)[runInfo.keyOffset], Gm2L1Nd2NzParams);
     }
-
-    // 预加载下一轮
-    if (constInfo.enableKVPrefetch && !prefetchArgs.isLast) {
-        Buffer<BufferType::L1> mm1ANext = l1KBuffers.Get();
-        mm1ANext.Wait<HardEvent::MTE1_MTE2>(); // 占用L1B
-        LocalTensor<INPUT_T> mm1ANextTensor = mm1ANext.GetTensor<INPUT_T>();
-        if constexpr (isPa) {
-            Position startPos;
-            startPos.bIdx = runInfo.boIdx;
-            startPos.n2Idx = runInfo.n2oIdx;
-            startPos.s2Offset = runInfo.s2LoopCount * s2BaseSize;
-            startPos.dIdx = 0;
-            PAShape shape;
-            shape.blockSize = kvCacheBlockSize;
-            shape.headNum = constInfo.n2Size;
-            shape.headDim = constInfo.dSize;
-            shape.actHeadDim = constInfo.dSize;
-            shape.maxblockNumPerBatch = maxBlockNumPerBatch;
-            shape.copyRowNum = prefetchArgs.nextMOrN;
-            shape.copyRowNumAlign = (prefetchArgs.nextMOrN + 15) >> 4 << 4;
-            uint32_t dstNzC0Stride = (shape.copyRowNum + 15) >> 4 << 4;
-            GlobalTensor<INPUT_T> mm1ANextGmTensor = GetKeyGm(runInfo, constInfo)[prefetchArgs.nextOffset];
-            GmCopyInToL1PA<INPUT_T>(mm1ANextTensor, mm1ANextGmTensor, blockTableGm, kvLayout, shape, startPos);
-        } else {
-            Nd2NzParams Gm2L1Nd2NzParams;
-            Gm2L1Nd2NzParams.ndNum = 1; // ND矩阵的个数
-            Gm2L1Nd2NzParams.nValue = prefetchArgs.nextMOrN; // 单个ND矩阵的实际行数, 单位为元素个数
-            Gm2L1Nd2NzParams.dValue = constInfo.dSize; // 单个ND矩阵的实际列数(vD), 单位为元素个数
-            Gm2L1Nd2NzParams.srcNdMatrixStride = 0; // 相邻ND矩阵起始地址之间的偏移, 单位为元素个数
-            Gm2L1Nd2NzParams.srcDValue = constInfo.mm1Kb; // 同一个ND矩阵中相邻行起始地址之间的偏移, 单位为元素个数
-            Gm2L1Nd2NzParams.dstNzC0Stride = (Gm2L1Nd2NzParams.nValue + 15) >> 4 << 4; // 转换为NZ矩阵后，相邻Block起始地址之间的偏移, 单位为Block个数;
-            Gm2L1Nd2NzParams.dstNzNStride = 1; // 转换为NZ矩阵后，ND中之前相邻两行在NZ矩阵中起始地址之间的偏移, 单位为Block个数
-            Gm2L1Nd2NzParams.dstNzMatrixStride = 0; // 两个NZ矩阵，起始地址之间的偏移, 单位为元素数量
-            DataCopy(mm1ANextTensor, GetKeyGm(runInfo, constInfo)[prefetchArgs.nextOffset], Gm2L1Nd2NzParams);
-        }
-        mm1ANext.Set<HardEvent::MTE2_MTE1>(); // 通知
-    }
+    mm1A.Set<HardEvent::MTE2_MTE1>(); // 通知
     mm1A.Wait<HardEvent::MTE2_MTE1>(); // 等待L1K
     mm1B.Wait<HardEvent::MTE2_MTE1>(); // 等待L1Q
 
@@ -1419,8 +1197,7 @@ public:
     __aicore__ inline void InitCubeInput(__gm__ uint8_t *key, __gm__ uint8_t *value,
         CVSharedParams<isInfer, isPa> *sharedParams, AttenMaskInfo *attenMaskInfo) {}
 
-    __aicore__ inline void IterateBmm1(LocalTensor<T> outputTensor, RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo, 
-        KVPrefetchArgs<hasRope> &prefetchArgs) {}
+    __aicore__ inline void IterateBmm1(LocalTensor<T> outputTensor, RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo) {}
     __aicore__ inline void IterateBmm2(LocalTensor<T> outputTensor, RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo,
         BuffersPolicy3buff<BufferType::L1> &inputBuf) {}
 };

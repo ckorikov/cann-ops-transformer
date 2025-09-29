@@ -120,19 +120,13 @@ __aicore__ inline void FlashAttentionScoreKernelTrain<CubeBlockType, VecBlockTyp
                 }
             }
         }
-        this->prefetchArgs.isLast = (multiCoreInnerIdx == multiCoreInnerLimit - 4);
         for (int64_t s2LoopCount = 0; s2LoopCount <= s2LoopLimit; s2LoopCount++) {
             if (notLastThreeLoop) {
                 RunInfo<isInfer> &runInfo1 = runInfo[taskId & 3];
                 this->SetRunInfo(runInfo1, runParam, taskId, s2LoopCount, s2LoopLimit,
                                  multiCoreInnerIdx);
                 if ASCEND_IS_AIC {
-                    this->prefetchArgs.isLast = this->prefetchArgs.isLast && (s2LoopCount == s2LoopLimit);
-                    if (this->constInfo.enableKVPrefetch) {
-                        this->SetPrefetchRightArgs(runInfo1);
-                    }
-                    this->cubeBlock.IterateBmm1(this->bmm1ResBuf[runInfo1.taskIdMod2].template Get<T>(), runInfo1, this->constInfo, 
-                        this->prefetchArgs);
+                    this->cubeBlock.IterateBmm1(this->bmm1ResBuf[runInfo1.taskIdMod2].template Get<T>(), runInfo1, this->constInfo);
                     CrossCoreSetFlag<SYNC_MODE, PIPE_FIX>(BaseClass::SYNC_C1_V1_FLAG[runInfo1.taskIdMod2]); // fixpip将结果搬运到UB后，设置SYNC_C1_V1_FLAG
                     CrossCoreSetFlag<SYNC_MODE, PIPE_FIX>(16 + BaseClass::SYNC_C1_V1_FLAG[runInfo1.taskIdMod2]); // fixpip将结果搬运到UB后，设置SYNC_C1_V1_FLAG
                 }

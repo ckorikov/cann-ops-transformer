@@ -112,11 +112,6 @@ protected:
     __aicore__ inline void SetRunInfo(RunInfo<isInfer> &runInfo, RunParamStr<isInfer>& runParam, int64_t taskId, int64_t s2LoopCount,
                                       int64_t s2LoopLimit, int64_t multiCoreInnerIdx);
     __aicore__ inline void ComputeAxisIdxByBnAndGs1(int64_t bnIndx, int64_t gS1Index, int64_t &multiCoreInnerIdx, RunParamStr<isInfer>& runParam);
-    __aicore__ inline int64_t ComputeNextKeyOffset(RunInfo<isInfer> &runInfo, int64_t nextOffset);
-    __aicore__ inline int64_t ComputeNextKeyRopeOffset(RunInfo<isInfer> &runInfo, int64_t nextRopeOffset);
-    __aicore__ inline uint64_t ComputeNextBatchMorN(RunInfo<isInfer> &runInfo);
-    __aicore__ inline uint64_t ComputeNextMorN(RunInfo<isInfer> &runInfo);
-    __aicore__ inline int64_t ComputeNextRopeOffset(RunInfo<isInfer> &runInfo, int64_t nextRopeOffset);
     __aicore__ inline void ComputeBmm1Tail(RunInfo<isInfer> &runInfo, RunParamStr<isInfer>& runParam);
 
     __aicore__ inline bool SoftmaxInvalidLineCheck(LocalTensor<T> &maxUb, uint32_t negativeIntScalar, 
@@ -283,9 +278,6 @@ protected:
 
     // keyOffset记录，value总是可以使用上一次key的offset
     int64_t keyRopeOffset[3];
-    // 下一次的key的offset，在预取的场景下可以避免重复计算
-    int64_t nextKeyOffset = 0;
-    int64_t nextKeyRopeOffset = 0;
     // 用来判断s2是否可以复用上一次的B和N2的index
     int64_t lastBIdx = -1;
     int64_t lastN2Idx = -1;
@@ -299,7 +291,6 @@ protected:
     bool softMaxCheckRes = true;
     T negativeFloatScalar;
     T positiveFloatScalar;
-    bool enableKVPrefetch = true;
     
     static constexpr bool splitD = (uint16_t) dVTemplateType > (uint16_t)DTemplateType::Aligned256;
     static constexpr bool mm2LeftFromUB = true;
@@ -819,9 +810,6 @@ __aicore__ inline void FlashAttentionKvsameBN2GS1S2<CHILD_SPEC_TEMPLATE_ARGS>::C
         this->attenMaskInfo.attenMaskShapeType = inputParamsRegbase.attenMaskShapeType;
         this->attenMaskInfo.attenMaskS2Size = inputParamsRegbase.attenMaskS2Size;
         this->attenMaskInfo.bandIndex = inputParamsRegbase.bandIndex;
-        if (attenMaskInfo.preTokens < constInfo.s1Size) {
-            enableKVPrefetch = false;
-        }
     }
 
     constInfo.isRowInvalid = inputParamsRegbase.isRowInvalid;
@@ -852,11 +840,6 @@ __aicore__ inline void FlashAttentionKvsameBN2GS1S2<CHILD_SPEC_TEMPLATE_ARGS>::C
 
     // lse output
     constInfo.isSoftmaxLseEnable = inputParamsRegbase.isSoftMaxLseEnable;
-
-    if ((!constInfo.isActualLenDimsNull) || (!constInfo.isActualLenDimsKVNull) || constInfo.isQHasLeftPadding || \
-        constInfo.isKVHasLeftPadding || (constInfo.isKvContinuous == 0)) {
-        enableKVPrefetch = false;
-    }
 }
 
 CHILD_SPEC_TEMPLATE
@@ -909,9 +892,6 @@ CHILD_SPEC_TEMPLATE
 __aicore__ inline int64_t FlashAttentionKvsameBN2GS1S2<CHILD_SPEC_TEMPLATE_ARGS>::GetKeyRopeOffset(
     RunInfo<isInfer> &runInfo) 
 {
-    if (enableKVPrefetch && runInfo.taskId != 0) {
-        return nextKeyRopeOffset;
-    }
     // 计算gm上的offset
     int64_t bOffsetRope = 0;
     int64_t n2OffsetRope = 0;
@@ -941,8 +921,7 @@ __aicore__ inline int64_t FlashAttentionKvsameBN2GS1S2<CHILD_SPEC_TEMPLATE_ARGS>
                 runInfo.s2LoopCount * constInfo.s2BaseDR;
         }
     }
-    nextKeyRopeOffset = bOffsetRope + n2OffsetRope + s2OffsetRope;
-    return nextKeyRopeOffset;
+    return bOffsetRope + n2OffsetRope + s2OffsetRope;
 }
 
 CHILD_SPEC_TEMPLATE
@@ -1454,144 +1433,6 @@ __aicore__ inline void FlashAttentionKvsameBN2GS1S2<CHILD_SPEC_TEMPLATE_ARGS>::C
 }
 
 CHILD_SPEC_TEMPLATE
-__aicore__ inline uint64_t FlashAttentionKvsameBN2GS1S2<CHILD_SPEC_TEMPLATE_ARGS>::ComputeNextBatchMorN(
-    RunInfo<isInfer>& runInfo) {
-    int64_t s2NextStartIdx = 0;
-    int64_t s2NextEndIdx = 0;
-    if (this->tilingData->inputParamsRegbase.sparseType == static_cast<uint8_t>(SparseModeEnum::CAUSAL)) {
-        s2NextStartIdx = 0;
-        s2NextEndIdx = Min(s1BaseSize, s2BaseSize);
-    } else if (this->tilingData->inputParamsRegbase.sparseType == static_cast<uint8_t>(SparseModeEnum::BAND)){
-        s2NextStartIdx = Max(0 - this->tilingData->inputParamsRegbase.s1SparseValidSize, 0);
-        s2NextEndIdx = Min(s1BaseSize + this->tilingData->inputParamsRegbase.s2SparseValidSize, 
-                            s2BaseSize);
-    } else {
-        s2NextStartIdx = 0;
-        s2NextEndIdx = s2BaseSize;
-    }
-    return s2NextEndIdx - s2NextStartIdx;
-}
-
-CHILD_SPEC_TEMPLATE
-__aicore__ inline uint64_t FlashAttentionKvsameBN2GS1S2<CHILD_SPEC_TEMPLATE_ARGS>::ComputeNextMorN(
-    RunInfo<isInfer> &runInfo) {
-    uint64_t nextMOrN;
-    if (runInfo.s2LoopLimit > 0 && (runInfo.s2LoopCount != runInfo.s2LoopLimit - 1)) {
-        if constexpr (hasAtten) {
-            if (unlikely(runInfo.s2LoopCount == runInfo.s2LoopLimit && runInfo.s1oIdx == constInfo.s1OuterSize - 1)) {
-                nextMOrN = ComputeNextBatchMorN(runInfo);
-            } else {
-                nextMOrN = s2BaseSize;
-            }
-        } else {
-            nextMOrN = s2BaseSize;
-        }
-    } else if (runInfo.s2LoopLimit == 0) {
-        nextMOrN = Min(s2BaseSize, constInfo.s2Size);
-    } else {
-        nextMOrN = (runInfo.s2EndIdx - runInfo.s2StartIdx) % s2BaseSize;
-    }
-    if (nextMOrN == 0) {
-        nextMOrN = s2BaseSize;
-    }
-    return nextMOrN;
-}
-
-
-CHILD_SPEC_TEMPLATE
-__aicore__ inline int64_t FlashAttentionKvsameBN2GS1S2<CHILD_SPEC_TEMPLATE_ARGS>::ComputeNextKeyOffset(
-    RunInfo<isInfer> &runInfo, int64_t nextOffset) 
-{
-    if (runInfo.s2LoopCount == runInfo.s2LoopLimit) {
-        int64_t boIdxNext = runInfo.boIdx;
-        int64_t n2oIdxNext = runInfo.n2oIdx;
-        uint32_t endloop = (runInfo.actualS1Size + constInfo.s1BaseSize - 1) / constInfo.s1BaseSize - 1;
-        n2oIdxNext = ((runInfo.s1oIdx) == endloop) ? runInfo.n2oIdx + 1 : runInfo.n2oIdx;
-        if ((n2oIdxNext * constInfo.gSize) == constInfo.n2G) {
-            boIdxNext++;
-            n2oIdxNext = 0;
-        }
-        n2oIdxNext /= constInfo.headNumRatio;
-
-        if (constInfo.layoutType == (uint8_t)LayOutTypeEnum::LAYOUT_BSH) {
-            // BSH/BSND
-            nextOffset = boIdxNext * constInfo.n2S2D + n2oIdxNext * constInfo.dSize +
-                runInfo.s2StartIdx * (constInfo.n2D / constInfo.headNumRatio);
-        } else if (constInfo.layoutType == (uint8_t)LayOutTypeEnum::LAYOUT_BNSD) {
-            // BNSD
-            nextOffset = boIdxNext * constInfo.n2S2D + n2oIdxNext * constInfo.s2D +
-                runInfo.s2StartIdx * constInfo.dSize; 
-        } else if (layout == LayOutTypeEnum::LAYOUT_TND) {
-            if (boIdxNext == 0) {
-                nextKeyOffset = n2oIdxNext * constInfo.dSize +
-                    runInfo.s2StartIdx * constInfo.n2D; 
-            } else {
-                nextKeyOffset = actualSeqKvlenAddr[boIdxNext - 1] * constInfo.n2D / constInfo.headNumRatio + 
-                    n2oIdxNext * constInfo.dSize +
-                    runInfo.s2StartIdx * constInfo.n2D / constInfo.headNumRatio; 
-            }
-        }
-    } else {
-        if (constInfo.layoutType == (uint8_t)LayOutTypeEnum::LAYOUT_BSH) {
-            // BSH/BSND
-            // S2预取，算起始地址偏移时，s2LoopCount 需要 +1
-            nextOffset = runInfo.boIdx * constInfo.n2S2D + (runInfo.s2LoopCount + 1) * constInfo.s2BaseN2D;
-        } else if (constInfo.layoutType == (uint8_t)LayOutTypeEnum::LAYOUT_BNSD) {
-            // BNSD
-            // S2预取，算起始地址偏移时，s2LoopCount 需要 +1
-            nextOffset = runInfo.boIdx * constInfo.n2S2D + (runInfo.s2LoopCount + 1) * constInfo.s2BaseD;
-        } else if (layout == LayOutTypeEnum::LAYOUT_TND) {
-            // BSH/BSND
-            // S2预取，算起始地址偏移时，s2LoopCount 需要 +1
-            nextOffset = runInfo.boIdx * constInfo.n2S2D + (runInfo.s2LoopCount + 1) * constInfo.s2BaseN2D;
-        }
-    }
-    return nextOffset;
-}
-
-CHILD_SPEC_TEMPLATE
-__aicore__ inline int64_t FlashAttentionKvsameBN2GS1S2<CHILD_SPEC_TEMPLATE_ARGS>::ComputeNextKeyRopeOffset(
-    RunInfo<isInfer> &runInfo, int64_t nextRopeOffset)
-{
-    if (runInfo.s2LoopCount == runInfo.s2LoopLimit) {
-        int64_t boIdxNext = runInfo.boIdx;
-        int64_t n2oIdxNext = runInfo.n2oIdx;
-        uint32_t endloop = (runInfo.actualS1Size + constInfo.s1BaseSize - 1) / constInfo.s1BaseSize - 1;
-        n2oIdxNext = ((runInfo.s1oIdx) == endloop) ?  runInfo.n2oIdx + 1 : runInfo.n2oIdx;
-        if ((n2oIdxNext * constInfo.gSize) == constInfo.n2G) {
-            boIdxNext++;
-            n2oIdxNext = 0;
-        }
-        n2oIdxNext /= constInfo.headNumRatio;
-        if (constInfo.layoutType == (uint8_t)LayOutTypeEnum::LAYOUT_BSH) {
-            // BSH/BSND
-            nextRopeOffset = boIdxNext * constInfo.n2S2DR+ n2oIdxNext * constInfo.dSizeRope +
-                runInfo.s2StartIdx * constInfo.n2DR;
-        } else if (constInfo.layoutType == (uint8_t)LayOutTypeEnum::LAYOUT_SBH) {
-            // SBH/SBND
-            nextRopeOffset = boIdxNext * constInfo.n2DR + n2oIdxNext * constInfo.dSizeRope +
-                runInfo.s2StartIdx * constInfo.bN2DR; 
-        } else if (constInfo.layoutType == (uint8_t)LayOutTypeEnum::LAYOUT_BNSD) {
-                // BNSD
-            nextRopeOffset = boIdxNext * constInfo.n2S2DR + n2oIdxNext * constInfo.s2DR +
-                runInfo.s2StartIdx * constInfo.dSizeRope; 
-        }
-    } else {
-        if (constInfo.layoutType == (uint8_t)LayOutTypeEnum::LAYOUT_BSH) {
-            // BSH/BSND
-            nextRopeOffset += constInfo.s2BaseN2DR;
-        } else if (constInfo.layoutType == (uint8_t)LayOutTypeEnum::LAYOUT_SBH) {
-            // SBH/SBND
-            nextRopeOffset += constInfo.s2BaseBN2DR;
-        } else if (constInfo.layoutType == (uint8_t)LayOutTypeEnum::LAYOUT_BNSD) {
-            // BNSD
-            nextRopeOffset += constInfo.s2BaseDR;
-        }
-    }
-    return nextRopeOffset;
-}
-
-CHILD_SPEC_TEMPLATE
 __aicore__ inline void FlashAttentionKvsameBN2GS1S2<CHILD_SPEC_TEMPLATE_ARGS>::IterateBmm1(
     RunInfo<isInfer> &runInfo, RunParamStr<isInfer>& runParam, bool isLast)
 {
@@ -1636,124 +1477,60 @@ __aicore__ inline void FlashAttentionKvsameBN2GS1S2<CHILD_SPEC_TEMPLATE_ARGS>::I
         mm1A.Set<HardEvent::MTE2_MTE1>(); // 通知 // 是否可以省略
     }
     // 加载当前轮的右矩阵到L1
-    if ((runInfo.taskId == 0 && enableKVPrefetch) || !enableKVPrefetch) {
-        mm1B = mm12Bmm2AL1Buffers.Get();
-        mm1B.Wait<HardEvent::MTE1_MTE2>(); // 占用
-        LocalTensor<INPUT_T> mm1BTensor = mm1B.GetTensor<INPUT_T>();
-        if constexpr (isPa) {
-            Position startPos;
-            startPos.bIdx = runInfo.boIdx;
-            startPos.n2Idx = runInfo.n2oIdx;
-            startPos.s2Offset = runInfo.s2LoopCount * s2BaseSize;
-            startPos.dIdx = 0; 
-            PAShape shape;
-            shape.blockSize = kvCacheBlockSize;
-            shape.headNum = kvHeadNum;
-            shape.headDim = headDim;
-            shape.actHeadDim = headDim;
-            shape.maxblockNumPerBatch = maxBlockNumPerBatch;
-            shape.copyRowNum = runInfo.s2RealSize;
-            shape.copyRowNumAlign = (runInfo.s2RealSize + 15) >> 4 << 4;
-            PAShape ropeShape = shape;
-            ropeShape.headDim = headDimRope;
-            ropeShape.actHeadDim = headDimRope;
-            uint32_t dstNzC0Stride = (runInfo.s2RealSize + 15) >> 4 << 4;
-            LocalTensor<INPUT_T> mm1BRopeTensor = mm1BTensor[dstNzC0Stride * constInfo.dSize];
-            GlobalTensor<INPUT_T> mm1BNopeGmTensor = this->keyGm;
-            GlobalTensor<INPUT_T> mm1BRopeGmTensor = this->keyRopeGm;
-            GmCopyInToL1HasRopePA<INPUT_T>(mm1BTensor, mm1BRopeTensor, mm1BNopeGmTensor, mm1BRopeGmTensor, blockTableGm, kvLayout, shape, ropeShape, startPos);
-        } else {
+    mm1B = mm12Bmm2AL1Buffers.Get();
+    mm1B.Wait<HardEvent::MTE1_MTE2>(); // 占用
+    LocalTensor<INPUT_T> mm1BTensor = mm1B.GetTensor<INPUT_T>();
+    if constexpr (isPa) {
+        Position startPos;
+        startPos.bIdx = runInfo.boIdx;
+        startPos.n2Idx = runInfo.n2oIdx;
+        startPos.s2Offset = runInfo.s2LoopCount * s2BaseSize;
+        startPos.dIdx = 0; 
+        PAShape shape;
+        shape.blockSize = kvCacheBlockSize;
+        shape.headNum = kvHeadNum;
+        shape.headDim = headDim;
+        shape.actHeadDim = headDim;
+        shape.maxblockNumPerBatch = maxBlockNumPerBatch;
+        shape.copyRowNum = runInfo.s2RealSize;
+        shape.copyRowNumAlign = (runInfo.s2RealSize + 15) >> 4 << 4;
+        PAShape ropeShape = shape;
+        ropeShape.headDim = headDimRope;
+        ropeShape.actHeadDim = headDimRope;
+        uint32_t dstNzC0Stride = (runInfo.s2RealSize + 15) >> 4 << 4;
+        LocalTensor<INPUT_T> mm1BRopeTensor = mm1BTensor[dstNzC0Stride * constInfo.dSize];
+        GlobalTensor<INPUT_T> mm1BNopeGmTensor = this->keyGm;
+        GlobalTensor<INPUT_T> mm1BRopeGmTensor = this->keyRopeGm;
+        GmCopyInToL1HasRopePA<INPUT_T>(mm1BTensor, mm1BRopeTensor, mm1BNopeGmTensor, mm1BRopeGmTensor, blockTableGm, kvLayout, shape, ropeShape, startPos);
+    } else {
+        Nd2NzParams Gm2L1Nd2NzParams;
+        Gm2L1Nd2NzParams.ndNum = 1; // ND矩阵的个数
+        Gm2L1Nd2NzParams.nValue = runInfo.s2RealSize; // 单个ND矩阵的实际行数，单位为元素个数
+        Gm2L1Nd2NzParams.dValue = constInfo.dSize; // 单个ND矩阵的实际列数，单位为元素个数
+        Gm2L1Nd2NzParams.srcNdMatrixStride = 0; // 相邻ND矩阵起始地址之间的偏移， 单位为元素个数
+        Gm2L1Nd2NzParams.srcDValue = constInfo.mm1Kb; // 同一个ND矩阵中相邻行起始地址之间的偏移， 单位为元素个数
+        Gm2L1Nd2NzParams.dstNzC0Stride = (Gm2L1Nd2NzParams.nValue + 15) >> 4 << 4; // 转换为NZ矩阵后，相邻Block起始地址之间的偏移， 单位为Block个数
+        Gm2L1Nd2NzParams.dstNzNStride = 1; // 转换为NZ矩阵后，ND之间相邻两行在NZ矩阵中起始地址之间的偏移， 单位为Block个数
+        Gm2L1Nd2NzParams.dstNzMatrixStride = 0; // 两个NZ矩阵，起始地址之间的偏移， 单位为元素数量
+        DataCopy(mm1BTensor, this->keyGm[runInfo.keyOffset], Gm2L1Nd2NzParams);
+
+            // 拷贝 Krope
+        if constexpr (hasRope) {
+            keyRopeOffset[runInfo.taskIdMod3] = GetKeyRopeOffset(runInfo);
             Nd2NzParams Gm2L1Nd2NzParams;
             Gm2L1Nd2NzParams.ndNum = 1; // ND矩阵的个数
             Gm2L1Nd2NzParams.nValue = runInfo.s2RealSize; // 单个ND矩阵的实际行数，单位为元素个数
-            Gm2L1Nd2NzParams.dValue = constInfo.dSize; // 单个ND矩阵的实际列数，单位为元素个数
+            Gm2L1Nd2NzParams.dValue = constInfo.dSizeRope; // 单个ND矩阵的实际列数，单位为元素个数
             Gm2L1Nd2NzParams.srcNdMatrixStride = 0; // 相邻ND矩阵起始地址之间的偏移， 单位为元素个数
-            Gm2L1Nd2NzParams.srcDValue = constInfo.mm1Kb; // 同一个ND矩阵中相邻行起始地址之间的偏移， 单位为元素个数
+            Gm2L1Nd2NzParams.srcDValue = constInfo.mm1RopeKb; // 同一个ND矩阵中相邻行起始地址之间的偏移， 单位为元素个数
             Gm2L1Nd2NzParams.dstNzC0Stride = (Gm2L1Nd2NzParams.nValue + 15) >> 4 << 4; // 转换为NZ矩阵后，相邻Block起始地址之间的偏移， 单位为Block个数
             Gm2L1Nd2NzParams.dstNzNStride = 1; // 转换为NZ矩阵后，ND之间相邻两行在NZ矩阵中起始地址之间的偏移， 单位为Block个数
             Gm2L1Nd2NzParams.dstNzMatrixStride = 0; // 两个NZ矩阵，起始地址之间的偏移， 单位为元素数量
-            DataCopy(mm1BTensor, this->keyGm[runInfo.keyOffset], Gm2L1Nd2NzParams);
-
-             // 拷贝 Krope
-            if constexpr (hasRope) {
-                keyRopeOffset[runInfo.taskIdMod3] = GetKeyRopeOffset(runInfo);
-                Nd2NzParams Gm2L1Nd2NzParams;
-                Gm2L1Nd2NzParams.ndNum = 1; // ND矩阵的个数
-                Gm2L1Nd2NzParams.nValue = runInfo.s2RealSize; // 单个ND矩阵的实际行数，单位为元素个数
-                Gm2L1Nd2NzParams.dValue = constInfo.dSizeRope; // 单个ND矩阵的实际列数，单位为元素个数
-                Gm2L1Nd2NzParams.srcNdMatrixStride = 0; // 相邻ND矩阵起始地址之间的偏移， 单位为元素个数
-                Gm2L1Nd2NzParams.srcDValue = constInfo.mm1RopeKb; // 同一个ND矩阵中相邻行起始地址之间的偏移， 单位为元素个数
-                Gm2L1Nd2NzParams.dstNzC0Stride = (Gm2L1Nd2NzParams.nValue + 15) >> 4 << 4; // 转换为NZ矩阵后，相邻Block起始地址之间的偏移， 单位为Block个数
-                Gm2L1Nd2NzParams.dstNzNStride = 1; // 转换为NZ矩阵后，ND之间相邻两行在NZ矩阵中起始地址之间的偏移， 单位为Block个数
-                Gm2L1Nd2NzParams.dstNzMatrixStride = 0; // 两个NZ矩阵，起始地址之间的偏移， 单位为元素数量
-                DataCopy(mm1BTensor[Gm2L1Nd2NzParams.dstNzC0Stride * constInfo.dSize], this->keyRopeGm[keyRopeOffset[runInfo.taskIdMod3]], Gm2L1Nd2NzParams);
-            }
+            DataCopy(mm1BTensor[Gm2L1Nd2NzParams.dstNzC0Stride * constInfo.dSize], this->keyRopeGm[keyRopeOffset[runInfo.taskIdMod3]], Gm2L1Nd2NzParams);
         }
-
-        mm1B.Set<HardEvent::MTE2_MTE1>(); // 通知
-    } else {
-        mm1B = mm12Bmm2AL1Buffers.GetPre();
     }
-    // 预加载下一轮
-    if (enableKVPrefetch && !isLast) {
-        fa_base_matmul::Buffer<fa_base_matmul::BufferType::L1> mm1BNext = mm12Bmm2AL1Buffers.Get();
-        mm1BNext.Wait<HardEvent::MTE1_MTE2>(); // 占用
-        LocalTensor<INPUT_T> mm1BNextTensor = mm1BNext.GetTensor<INPUT_T>();
-        nextKeyOffset = ComputeNextKeyOffset(runInfo, nextKeyOffset);
-        uint64_t nextNSize = ComputeNextMorN(runInfo);
 
-        if constexpr (isPa) {
-            Position startPos;
-            startPos.bIdx = runInfo.boIdx;
-            startPos.n2Idx = runInfo.n2oIdx;
-            startPos.s2Offset = runInfo.s2LoopCount * s2BaseSize;
-            startPos.dIdx = 0;
-            PAShape shape;
-            shape.blockSize = kvCacheBlockSize;
-            shape.headNum = kvHeadNum;
-            shape.headDim = headDim;
-            shape.actHeadDim = headDim;
-            shape.maxblockNumPerBatch = maxBlockNumPerBatch;
-            shape.copyRowNum = nextNSize;
-            shape.copyRowNumAlign = (nextNSize + 15) >> 4 << 4;
-            PAShape ropeShape = shape;
-            ropeShape.headDim = headDimRope;
-            ropeShape.actHeadDim = headDimRope;
-            nextKeyRopeOffset = ComputeNextKeyRopeOffset(runInfo, nextKeyRopeOffset);
-            uint32_t dstNzC0Stride = (nextNSize + 15) >> 4 << 4;
-            LocalTensor<INPUT_T> mm1BNextRopeTensor = mm1BNextTensor[dstNzC0Stride * constInfo.dSize];
-            GlobalTensor<INPUT_T> keyNopeGmTensor = this->keyGm[nextKeyOffset];
-            GlobalTensor<INPUT_T> keyRopeGmTensor = this->keyRopeGm[nextKeyRopeOffset];
-            GmCopyInToL1HasRopePA<INPUT_T>(mm1BNextTensor, mm1BNextRopeTensor, keyNopeGmTensor, keyRopeGmTensor, blockTableGm, kvLayout, shape, ropeShape, startPos);
-        } else {
-            Nd2NzParams Gm2L1Nd2NzParams;
-            Gm2L1Nd2NzParams.ndNum = 1; // ND矩阵的个数
-            Gm2L1Nd2NzParams.nValue = nextNSize; // 单个ND矩阵的实际行数，单位为元素个数
-            Gm2L1Nd2NzParams.dValue = constInfo.dSize; // 单个ND矩阵的实际列数，单位为元素个数
-            Gm2L1Nd2NzParams.srcNdMatrixStride = 0; // 相邻ND矩阵起始地址之间的偏移， 单位为元素个数
-            Gm2L1Nd2NzParams.srcDValue = constInfo.mm1Kb; // 同一个ND矩阵中相邻行起始地址之间的偏移， 单位为元素个数
-            Gm2L1Nd2NzParams.dstNzC0Stride = (Gm2L1Nd2NzParams.nValue + 15) >> 4 << 4; // 转换为NZ矩阵后，相邻Block起始地址之间的偏移， 单位为Block个数
-            Gm2L1Nd2NzParams.dstNzNStride = 1; // 转换为NZ矩阵后，ND之间相邻两行在NZ矩阵中起始地址之间的偏移， 单位为Block个数
-            Gm2L1Nd2NzParams.dstNzMatrixStride = 0; // 两个NZ矩阵，起始地址之间的偏移， 单位为元素数量
-            DataCopy(mm1BNextTensor, this->keyGm[nextKeyOffset], Gm2L1Nd2NzParams);
-
-            // 拷贝 next K rope
-            if (hasRope) {
-                nextKeyRopeOffset = ComputeNextKeyRopeOffset(runInfo, nextKeyRopeOffset);
-                Gm2L1Nd2NzParams.ndNum = 1; // ND矩阵的个数
-                Gm2L1Nd2NzParams.nValue = nextNSize; // 单个ND矩阵的实际行数，单位为元素个数
-                Gm2L1Nd2NzParams.dValue = constInfo.dSizeRope; // 单个ND矩阵的实际列数，单位为元素个数
-                Gm2L1Nd2NzParams.srcNdMatrixStride = 0; // 相邻ND矩阵起始地址之间的偏移， 单位为元素个数
-                Gm2L1Nd2NzParams.srcDValue = constInfo.mm1RopeKb; // 同一个ND矩阵中相邻行起始地址之间的偏移， 单位为元素个数
-                Gm2L1Nd2NzParams.dstNzC0Stride = (Gm2L1Nd2NzParams.nValue + 15) >> 4 << 4; // 转换为NZ矩阵后，相邻Block起始地址之间的偏移， 单位为Block个数
-                Gm2L1Nd2NzParams.dstNzNStride = 1; // 转换为NZ矩阵后，ND之间相邻两行在NZ矩阵中起始地址之间的偏移， 单位为Block个数
-                Gm2L1Nd2NzParams.dstNzMatrixStride = 0; // 两个NZ矩阵，起始地址之间的偏移， 单位为元素数量
-                DataCopy(mm1BNextTensor[Gm2L1Nd2NzParams.dstNzC0Stride * constInfo.dSize], this->keyRopeGm[nextKeyRopeOffset], Gm2L1Nd2NzParams);
-            }
-        }
-
-        mm1BNext.Set<HardEvent::MTE2_MTE1>(); // 通知
-    }
+    mm1B.Set<HardEvent::MTE2_MTE1>(); // 通知
     mm1A.Wait<HardEvent::MTE2_MTE1>(); // 等待L1A
     mm1B.Wait<HardEvent::MTE2_MTE1>(); // 等待L1B
 

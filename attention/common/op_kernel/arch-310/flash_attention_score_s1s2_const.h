@@ -335,12 +335,6 @@ public:
     __aicore__ inline void GetValueOffset(RunInfo<isInfer> &runInfo, int64_t &currentValueOffset);
     __aicore__ inline void Bmm1SetTensorA(RunInfo<isInfer> &runInfo, RunParamStr<isInfer> &runParam);
     __aicore__ inline void Bmm1SetTensorB(RunInfo<isInfer> &runInfo, RunParamStr<isInfer> &runParam);
-    /* Bmm1右矩阵预取的参数设置 */
-    __aicore__ inline void SetTndPrefetchRightArgs(RunInfo<isInfer> &runInfo, FAFlagData &flag, bool isLast);
-    __aicore__ inline uint64_t ComputeNextBatchMorN(RunInfo<isInfer> &runInfo);
-    __aicore__ inline void SetS1Base64PrefetchRightArgs(RunInfo<isInfer> &runInfo, FAFlagData &flag);
-    __aicore__ inline void SetPrefetchRightArgs(RunInfo<isInfer> &runInfo, FAFlagData &flag, bool isLast);
-    /* 左矩阵的预取，存在一定的收益，目前暂时不开启。 1 10 4096 77的case可以提升300cycle, 1 16 7680 16的case可以提升400cycle */
     __aicore__ inline void IterateBmm1(RunInfo<isInfer> &runInfo, RunParamStr<isInfer> &runParam, FAFlagDataWhole<hasRope> &flag, bool isLast);
     __aicore__ inline void IterateBmm1WithRope(RunInfo<isInfer> &runInfo, RunParamStr<isInfer> &runParam, FAFlagDataWhole<hasRope> &flag, bool isLast);
     __aicore__ inline void WaitBmm1Result();
@@ -349,8 +343,6 @@ public:
     __aicore__ inline void SetRunInfo(RunInfo<isInfer> &runInfo, RunParamStr<isInfer> &runParam, int64_t taskId, int64_t s2LoopCount,
                                       int64_t s2LoopLimit, int64_t multiCoreInnerIdx);
     __aicore__ inline void ComputeAxisIdx(int64_t multiCoreInnerIdx, RunParamStr<isInfer> &runParam);
-    __aicore__ inline int64_t ComputeNextOffset(RunInfo<isInfer> &runInfo, int64_t nextOffset);
-    __aicore__ inline int64_t ComputeNextRopeOffset(RunInfo<isInfer> &runInfo, int64_t nextRopeOffset);
     __aicore__ inline void ComputeBmm1Tail(RunInfo<isInfer> &runInfo, RunParamStr<isInfer> &runParam);
     __aicore__ inline bool SoftmaxInvalidLineCheck(LocalTensor<T> &maxUb, uint32_t negativeIntScalar,
                                                    SoftMaxShapeInfo &softmaxShapeInfo);
@@ -459,13 +451,9 @@ public:
     int64_t keyRopeOffset[3];
     FAFlagData keyFlag[3] = {};
     // MlaFAFlagData keyRopeFlag[3] = {};
-    // 下一次的key的offset，在预取的场景下可以避免重复计算。
-    int64_t nextKeyOffset = 0;
-    int64_t nextKeyRopeOffset = 0;
     // Bmm2阶段subblock在Gm上的偏移
     int64_t bmm2SubBlockOffset = 0;
     int64_t vec2SubBlockOffset = 0;
-    bool enableKVPrefetch = true;
     bool softMaxCheckRes = true;
 
     // Unpack参数
@@ -856,10 +844,6 @@ __aicore__ inline void FlashAttentionScoreS1s2Const<S1S2_TEMPLATE_ARGS>::Compute
         }
     }
 
-    if constexpr ((s1BaseSize == 64 && s2BaseSize == 256) || splitD || isFp8) {
-        enableKVPrefetch = false;
-    }
-
     if constexpr (hasPse == true) {
         this->pseInfo.pseLayoutType = inputParamsRegbase.pseShapeType;
         this->pseInfo.pseType = inputParamsRegbase.pseType;
@@ -892,14 +876,6 @@ __aicore__ inline void FlashAttentionScoreS1s2Const<S1S2_TEMPLATE_ARGS>::Compute
         this->attenMaskInfo.attenMaskS2Size = inputParamsRegbase.attenMaskS2Size;
         this->attenMaskInfo.prefixNAddr = prefixNAddr;
         this->attenMaskInfo.bandIndex = inputParamsRegbase.bandIndex;
-        if (attenMaskInfo.preTokens < constInfo.s1Size) {
-            enableKVPrefetch = false;
-        }
-        if constexpr (layout == LayOutTypeEnum::LAYOUT_TND) {
-            if (this->tilingData->inputParamsRegbase.sparseType == static_cast<uint8_t>(SparseModeEnum::PREFIX)) {
-                enableKVPrefetch = false;
-            }
-        }
     }
 
     // if hasRope, kfc-message is larger than 8 bytes, should call mm's func in order
@@ -1064,296 +1040,6 @@ __aicore__ inline void FlashAttentionScoreS1s2Const<S1S2_TEMPLATE_ARGS>::Compute
 }
 
 S1S2_TEMPLATE
-__aicore__ inline int64_t FlashAttentionScoreS1s2Const<S1S2_TEMPLATE_ARGS>::ComputeNextOffset(
-    RunInfo<isInfer> &runInfo, int64_t nextOffset)
-{
-    if (runInfo.s2LoopCount == runInfo.s2LoopLimit) {
-        int64_t multiCoreInnerIdxNext = runInfo.multiCoreInnerIdx + 1;
-        int64_t boIdxNext = runInfo.boIdx;
-        int64_t n2oIdxNext = runInfo.n2oIdx;
-        if constexpr (isInfer) {
-            uint32_t endS1Loop = CeilDivision(runInfo.actualS1Size, (int64_t)s1BaseSize) - 1;
-            int64_t gIdxNext = runInfo.n2oIdx * constInfo.gSize + runInfo.goIdx;
-            if (runInfo.s1oIdx == endS1Loop) {
-                gIdxNext++;
-                if (runInfo.goIdx == constInfo.gSize - 1) {
-                    n2oIdxNext++;
-                }
-            }
-            if (gIdxNext == constInfo.n2G) {
-                boIdxNext++;
-                n2oIdxNext = 0;
-            }
-        } else {
-            boIdxNext = multiCoreInnerIdxNext / constInfo.n2GS1o;
-            n2oIdxNext = multiCoreInnerIdxNext % constInfo.n2GS1o / constInfo.gS1o;
-        }
-
-        if (constInfo.layoutType == (uint8_t)LayOutTypeEnum::LAYOUT_BSH) {
-            // BSH/BSND
-            nextOffset = boIdxNext * constInfo.n2S2D + n2oIdxNext * constInfo.dSize +
-                runInfo.s2StartIdx * constInfo.n2D;
-        } else if (constInfo.layoutType == (uint8_t)LayOutTypeEnum::LAYOUT_SBH) {
-            // SBH/SBND
-            nextOffset = boIdxNext * constInfo.n2D + n2oIdxNext * constInfo.dSize +
-                runInfo.s2StartIdx * constInfo.bN2D;
-        } else if (constInfo.layoutType == (uint8_t)LayOutTypeEnum::LAYOUT_BNSD) {
-            // BNSD
-            nextOffset = boIdxNext * constInfo.n2S2D + n2oIdxNext * constInfo.s2D +
-                runInfo.s2StartIdx * constInfo.dSize;
-        } else if (layout == LayOutTypeEnum::LAYOUT_TND) {
-            // TND
-            if constexpr (isInfer) {
-                if (boIdxNext == 0) {
-                    nextKeyOffset = n2oIdxNext * constInfo.dSize + runInfo.s2StartIdx * constInfo.n2D;
-                } else {
-                    nextKeyOffset = actualSeqKvlenAddr[boIdxNext - 1] * constInfo.n2D +
-                        n2oIdxNext * constInfo.dSize + runInfo.s2StartIdx * constInfo.n2D;
-                }
-            }
-        }
-    } else {
-        if (constInfo.layoutType == (uint8_t)LayOutTypeEnum::LAYOUT_BSH) {
-            // BSH/BSND
-            nextOffset += constInfo.s2BaseN2D;
-        } else if (constInfo.layoutType == (uint8_t)LayOutTypeEnum::LAYOUT_SBH) {
-            // SBH/SBND
-            nextOffset += constInfo.s2BaseBN2D;
-        } else if (constInfo.layoutType == (uint8_t)LayOutTypeEnum::LAYOUT_BNSD) {
-            // BNSD
-            nextOffset += constInfo.s2BaseD;
-        } else if (layout == LayOutTypeEnum::LAYOUT_TND) {
-            nextOffset += constInfo.s2BaseN2D;
-        }
-    }
-    return nextOffset;
-}
-
-S1S2_TEMPLATE
-__aicore__ inline int64_t FlashAttentionScoreS1s2Const<S1S2_TEMPLATE_ARGS>::ComputeNextRopeOffset(
-    RunInfo<isInfer> &runInfo, int64_t nextRopeOffset)
-{
-    if (runInfo.s2LoopCount == runInfo.s2LoopLimit) {
-        int64_t multiCoreInnerIdxNext = runInfo.multiCoreInnerIdx + 1;
-        int64_t boIdxNext = runInfo.boIdx;
-        int64_t n2oIdxNext = runInfo.n2oIdx;
-        if constexpr (isInfer) {
-            uint32_t endS1Loop = CeilDivision(runInfo.actualS1Size, (int64_t)s1BaseSize) - 1;
-            int64_t gIdxNext = runInfo.n2oIdx * constInfo.gSize + runInfo.goIdx;
-            if (runInfo.s1oIdx == endS1Loop) {
-                gIdxNext++;
-                if (runInfo.goIdx == constInfo.gSize - 1) {
-                    n2oIdxNext++;
-                }
-            }
-            if (gIdxNext == constInfo.n2G) {
-                boIdxNext++;
-                n2oIdxNext = 0;
-            }
-        } else {
-            boIdxNext = multiCoreInnerIdxNext / constInfo.n2GS1o;
-            n2oIdxNext = multiCoreInnerIdxNext % constInfo.n2GS1o / constInfo.gS1o;
-        }
-        if (constInfo.layoutType == (uint8_t)LayOutTypeEnum::LAYOUT_BSH) {
-            // BSH/BSND
-            nextRopeOffset = boIdxNext * constInfo.n2S2DR + n2oIdxNext * constInfo.dSizeRope +
-                runInfo.s2StartIdx * constInfo.n2DR;
-        } else if (constInfo.layoutType == (uint8_t)LayOutTypeEnum::LAYOUT_SBH) {
-            // SBH/SBND
-            nextRopeOffset = boIdxNext * constInfo.n2DR + n2oIdxNext * constInfo.dSizeRope +
-                runInfo.s2StartIdx * constInfo.bN2DR;
-        } else if (constInfo.layoutType == (uint8_t)LayOutTypeEnum::LAYOUT_BNSD) {
-            // BNSD
-            nextRopeOffset = boIdxNext * constInfo.n2S2DR + n2oIdxNext * constInfo.s2DR +
-                runInfo.s2StartIdx * constInfo.dSizeRope;
-        } else if (layout == LayOutTypeEnum::LAYOUT_TND) {
-            // TND
-            if constexpr (isInfer) {
-                if (boIdxNext == 0) {
-                    nextRopeOffset = n2oIdxNext * constInfo.dSizeRope +
-                        runInfo.s2StartIdx * constInfo.n2DR;
-                } else {
-                    nextRopeOffset = actualSeqKvlenAddr[boIdxNext - 1] * constInfo.n2DR +
-                        n2oIdxNext * constInfo.dSizeRope + runInfo.s2StartIdx * constInfo.n2DR;
-                }
-            }
-        }
-    } else {
-        if (constInfo.layoutType == (uint8_t)LayOutTypeEnum::LAYOUT_BSH) {
-            // BSH/BSND
-            nextRopeOffset += constInfo.s2BaseN2DR;
-        } else if (constInfo.layoutType == (uint8_t)LayOutTypeEnum::LAYOUT_SBH) {
-            // SBH/SBND
-            nextRopeOffset += constInfo.s2BaseBN2DR;
-        } else if (constInfo.layoutType == (uint8_t)LayOutTypeEnum::LAYOUT_BNSD) {
-            // BNSD
-            nextRopeOffset += constInfo.s2BaseDR;
-        } else if (layout == LayOutTypeEnum::LAYOUT_TND) {
-            // TND
-            nextRopeOffset += constInfo.s2BaseN2DR;
-        }
-    }
-    return nextRopeOffset;
-}
-
-S1S2_TEMPLATE
-__aicore__ inline void FlashAttentionScoreS1s2Const<S1S2_TEMPLATE_ARGS>::SetTndPrefetchRightArgs(
-    RunInfo<isInfer> &runInfo, FAFlagData &flag, bool isLast)
-{
-    if (runInfo.s2LoopCount == runInfo.s2LoopLimit) {
-        int64_t boIdxNext = runInfo.boIdx;
-        int64_t n2oIdxNext = runInfo.n2oIdx;
-        uint32_t endS1Loop = CeilDiv(runInfo.actualS1Size, s1BaseSize) - 1;
-        if (runInfo.s1oIdx == endS1Loop) {
-            if (runInfo.goIdx == constInfo.gSize - 1) {
-                n2oIdxNext++;
-                if (n2oIdxNext == constInfo.n2Size) {
-                    boIdxNext++;
-                    n2oIdxNext = 0;
-                }
-            }
-        }
-        int64_t bSize = this->tilingData->inputParamsRegbase.bSize;
-        if (boIdxNext == bSize) {
-            return; // 最后一个batch的最后一次s2，预取应该不使能
-        }
-        int64_t nextActualS2Len = runInfo.actualS2Size;
-        // 找到下一个有效的batch
-        if (boIdxNext != runInfo.boIdx) {
-            int64_t nextActualS1Len;
-            for (; boIdxNext < bSize; boIdxNext++) {
-                GetSeqQlenKvlenByBoidx(boIdxNext, nextActualS1Len, nextActualS2Len);
-                if (nextActualS1Len != 0 && nextActualS2Len != 0) {
-                    break;
-                }
-            }
-        }
-
-        if (nextActualS2Len >= s2BaseSize) {
-            flag.nextMOrN = s2BaseSize;
-        } else {
-            flag.nextMOrN = nextActualS2Len % s2BaseSize;
-            if (flag.nextMOrN == 0) {
-                flag.nextMOrN = s2BaseSize;
-            }
-        }
-        if (boIdxNext == 0) {
-            nextKeyOffset = n2oIdxNext * constInfo.dSize + runInfo.s2StartIdx * constInfo.n2D;
-            if constexpr (hasRope) {
-                nextKeyRopeOffset = n2oIdxNext * constInfo.dSizeRope + runInfo.s2StartIdx * constInfo.n2DR;
-            }
-        } else {
-            // runInfo.s2StartIdx是为了推理保留，训练应该不需要，推理左padding场景下，需要获取下一个batch的左padding值
-            int32_t nextTotalActualS2Len = actualSeqKvlenAddr[boIdxNext - 1];
-            nextKeyOffset = nextTotalActualS2Len * constInfo.n2D + n2oIdxNext * constInfo.dSize +
-                            runInfo.s2StartIdx * constInfo.n2D;
-            if constexpr (hasRope) {
-                nextKeyRopeOffset = nextTotalActualS2Len * constInfo.n2DR + n2oIdxNext * constInfo.dSizeRope +
-                                    runInfo.s2StartIdx * constInfo.n2DR;
-            }
-        }
-    } else {
-        if (runInfo.s2LoopCount < runInfo.s2LoopLimit - 1) {
-            flag.nextMOrN = s2BaseSize;
-        } else {
-            flag.nextMOrN = (runInfo.s2EndIdx - runInfo.s2StartIdx) % s2BaseSize;
-            if (flag.nextMOrN == 0) {
-                flag.nextMOrN = s2BaseSize;
-            }
-        }
-        nextKeyOffset += constInfo.s2BaseN2D;
-        if constexpr (hasRope) {
-            nextKeyRopeOffset += constInfo.s2BaseN2DR;
-        }
-    }
-}
-
-S1S2_TEMPLATE
-__aicore__ inline uint64_t FlashAttentionScoreS1s2Const<S1S2_TEMPLATE_ARGS>::ComputeNextBatchMorN(
-    RunInfo<isInfer> &runInfo) {
-    int64_t s2NextStartIdx = 0;
-    int64_t s2NextEndIdx = 0;
-    if (this->tilingData->inputParamsRegbase.sparseType == static_cast<uint8_t>(SparseModeEnum::CAUSAL)) {
-        s2NextStartIdx = 0;
-        s2NextEndIdx = Min(s1BaseSize, s2BaseSize);
-    } else if (this->tilingData->inputParamsRegbase.sparseType == static_cast<uint8_t>(SparseModeEnum::BAND)) {
-        s2NextStartIdx = Max(0 - this->tilingData->inputParamsRegbase.s1SparseValidSize, 0);
-        s2NextEndIdx = Min(s1BaseSize + this->tilingData->inputParamsRegbase.s2SparseValidSize,
-                            s2BaseSize);
-    } else if (this->tilingData->inputParamsRegbase.sparseType == static_cast<uint8_t>(SparseModeEnum::PREFIX)) {
-        s2NextStartIdx = 0;
-        if (unlikely(runInfo.boIdx >= this->tilingData->inputParamsRegbase.bSize - 1)) {
-            s2NextEndIdx = 0;
-        } else {
-            s2NextEndIdx = Max(s1BaseSize - constInfo.s1Size + constInfo.s2Size,
-                               ((__gm__ int64_t *)this->prefixNAddr)[runInfo.boIdx + 1]);
-            s2NextEndIdx = CeilDiv(s2NextEndIdx, s2BaseSize) * s2BaseSize;
-            s2NextEndIdx = Min(s2NextEndIdx, s2BaseSize);
-        }
-    } else {
-        s2NextStartIdx = 0;
-        s2NextEndIdx = s2BaseSize;
-    }
-    return s2NextEndIdx - s2NextStartIdx;
-}
-
-S1S2_TEMPLATE
-__aicore__ inline void FlashAttentionScoreS1s2Const<S1S2_TEMPLATE_ARGS>::SetS1Base64PrefetchRightArgs(
-    RunInfo<isInfer> &runInfo, FAFlagData &flag) {
-    if (runInfo.s2LoopLimit > 0 && (runInfo.s2LoopCount != runInfo.s2LoopLimit - 1)) {
-        if constexpr (hasAtten) {
-            if (unlikely(runInfo.s2LoopCount == runInfo.s2LoopLimit && runInfo.s1oIdx == constInfo.s1OuterSize - 1)) {
-                flag.nextMOrN = ComputeNextBatchMorN(runInfo);
-            } else {
-                flag.nextMOrN = s2BaseSize;
-            }
-        } else {
-            flag.nextMOrN = s2BaseSize;
-        }
-    } else if (runInfo.s2LoopLimit == 0) {
-        flag.nextMOrN = Min(s2BaseSize, constInfo.s2Size);
-    } else {
-        flag.nextMOrN = (runInfo.s2EndIdx - runInfo.s2StartIdx) % s2BaseSize;
-    }
-    if (flag.nextMOrN == 0) {
-        flag.nextMOrN = s2BaseSize;
-    }
-}
-
-S1S2_TEMPLATE
-__aicore__ inline void FlashAttentionScoreS1s2Const<S1S2_TEMPLATE_ARGS>::SetPrefetchRightArgs(
-    RunInfo<isInfer> &runInfo, FAFlagData &flag, bool isLast) {
-    if constexpr (!isInfer && layout == LayOutTypeEnum::LAYOUT_TND) {
-        SetTndPrefetchRightArgs(runInfo, flag, isLast);
-    } else {
-        if constexpr (s1BaseSize == 128) {
-            if (runInfo.s2LoopLimit > 0 && (runInfo.s2LoopCount != runInfo.s2LoopLimit - 1)) {
-                // 这种情况一定不是尾块
-                flag.nextMOrN = s2BaseSize;
-            } else {
-                flag.nextMOrN = (runInfo.s2EndIdx - runInfo.s2StartIdx) % s2BaseSize;
-                if (flag.nextMOrN == 0) {
-                    flag.nextMOrN = s2BaseSize;
-                }
-            }
-        } else {
-            SetS1Base64PrefetchRightArgs(runInfo, flag);
-        }
-
-        nextKeyOffset = ComputeNextOffset(runInfo, nextKeyOffset);
-        if constexpr (hasRope) {
-            nextKeyRopeOffset = ComputeNextRopeOffset(runInfo, nextKeyRopeOffset);
-        }
-    }
-    // 预取
-    flag.copyCurrent = (runInfo.taskId == 0);
-    flag.offsetSign = nextKeyOffset > runInfo.keyOffset ? 1 : 0;
-    flag.curNextAddrOffset = flag.offsetSign ? (uint64_t)(nextKeyOffset - runInfo.keyOffset) :
-                             (uint64_t)(runInfo.keyOffset - nextKeyOffset);
-    flag.copyNext = !isLast && !((flag.curNextAddrOffset == 0) && useDn);
-}
-
-S1S2_TEMPLATE
 __aicore__ inline void FlashAttentionScoreS1s2Const<S1S2_TEMPLATE_ARGS>::IterateBmm1(
     RunInfo<isInfer> &runInfo, RunParamStr<isInfer> &runParam, FAFlagDataWhole<hasRope> &flag, bool isLast)
 {
@@ -1368,12 +1054,8 @@ __aicore__ inline void FlashAttentionScoreS1s2Const<S1S2_TEMPLATE_ARGS>::Iterate
 
     this->Bmm1SetTensorA(runInfo, runParam);
     this->Bmm1SetTensorB(runInfo, runParam);
-    if (enableKVPrefetch) {
-        SetPrefetchRightArgs(runInfo, flag.baseFlag, isLast);
-    } else {
-        flag.baseFlag.copyCurrent = 1;
-        flag.baseFlag.copyNext = 0;
-    }
+    flag.baseFlag.copyCurrent = 1;
+    flag.baseFlag.copyNext = 0;
 
     if constexpr (useDn) {
         flag.baseFlag.leftBufIdx = runInfo.taskIdMod2; // 0/1
@@ -1403,16 +1085,8 @@ __aicore__ inline void FlashAttentionScoreS1s2Const<S1S2_TEMPLATE_ARGS>::Iterate
     mlaFlag.qRopeAddr = (uint64_t)this->queryRopeGm[queryRopeOffset].GetPhyAddr();
     mlaFlag.kRopeAddr = (uint64_t)this->keyRopeGm[keyRopeOffset[runInfo.taskIdMod3]].GetPhyAddr();
 
-    if (enableKVPrefetch) {
-        SetPrefetchRightArgs(runInfo, mlaFlag.baseFlag, isLast);
-        mlaFlag.ropeOffset = mlaFlag.baseFlag.offsetSign ?
-            (uint64_t)(nextKeyRopeOffset - keyRopeOffset[runInfo.taskIdMod3]) :
-            (uint64_t)(keyRopeOffset[runInfo.taskIdMod3] - nextKeyRopeOffset);
-    } else {
-        mlaFlag.baseFlag.copyCurrent = 1;
-        mlaFlag.baseFlag.copyNext = 0;
-    }
-
+    mlaFlag.baseFlag.copyCurrent = 1;
+    mlaFlag.baseFlag.copyNext = 0;
     mlaFlag.baseFlag.leftBufIdx = runInfo.multiCoreIdxMod2;
     mlaFlag.baseFlag.rightBufIdx = 2 + runInfo.taskIdMod2; // 0/1
     this->bmm1.SetSelfDefineData(mlaFlag);
@@ -1546,47 +1220,37 @@ S1S2_TEMPLATE
 __aicore__ inline void FlashAttentionScoreS1s2Const<S1S2_TEMPLATE_ARGS>::GetKeyOffset(
     RunInfo<isInfer> &runInfo)
 {
-    if (enableKVPrefetch && runInfo.taskId != 0) {
-        runInfo.keyOffset = nextKeyOffset;
-        if constexpr (!isInfer) {
-            runInfo.valueOffset = runInfo.keyOffset;
-        }
-    } else {
-        if constexpr (isInfer) {
-            nextKeyOffset = runInfo.keyOffset;
-        } else {
-            // 计算gm上的offset
-            int64_t bOffset = 0;
-            int64_t n2Offset = 0;
-            int64_t s2Offset = 0;
+    if constexpr (!isInfer) {
+        // 计算gm上的offset
+        int64_t bOffset = 0;
+        int64_t n2Offset = 0;
+        int64_t s2Offset = 0;
 
-            if constexpr (layout == LayOutTypeEnum::LAYOUT_TND) {
-                // (BS)ND
-                bOffset = runInfo.s2SizeAcc * constInfo.n2D;
+        if constexpr (layout == LayOutTypeEnum::LAYOUT_TND) {
+            // (BS)ND
+            bOffset = runInfo.s2SizeAcc * constInfo.n2D;
+            s2Offset = runInfo.s2StartIdx * constInfo.n2D + runInfo.s2LoopCount * constInfo.s2BaseN2D;
+            n2Offset = runInfo.n2oIdx * constInfo.dSize;
+        } else {
+            if (constInfo.layoutType == (uint8_t)LayOutTypeEnum::LAYOUT_BSH) {
+                // BSH/BSND
+                bOffset = runInfo.boIdx * constInfo.n2S2D;
                 s2Offset = runInfo.s2StartIdx * constInfo.n2D + runInfo.s2LoopCount * constInfo.s2BaseN2D;
                 n2Offset = runInfo.n2oIdx * constInfo.dSize;
-            } else {
-                if (constInfo.layoutType == (uint8_t)LayOutTypeEnum::LAYOUT_BSH) {
-                    // BSH/BSND
-                    bOffset = runInfo.boIdx * constInfo.n2S2D;
-                    s2Offset = runInfo.s2StartIdx * constInfo.n2D + runInfo.s2LoopCount * constInfo.s2BaseN2D;
-                    n2Offset = runInfo.n2oIdx * constInfo.dSize;
-                } else if (constInfo.layoutType == (uint8_t)LayOutTypeEnum::LAYOUT_SBH) {
-                    // SBH/SBND
-                    s2Offset = runInfo.s2StartIdx * constInfo.bN2D + runInfo.s2LoopCount * constInfo.s2BaseBN2D;
-                    bOffset = runInfo.boIdx * constInfo.n2D;
-                    n2Offset = runInfo.n2oIdx * constInfo.dSize;
-                } else if (constInfo.layoutType == (uint8_t)LayOutTypeEnum::LAYOUT_BNSD) {
-                    // BNSD
-                    bOffset = runInfo.boIdx * constInfo.n2S2D;
-                    n2Offset = runInfo.n2oIdx * constInfo.s2D;
-                    s2Offset = runInfo.s2StartIdx * constInfo.dSize + runInfo.s2LoopCount * constInfo.s2BaseD;
-                }
+            } else if (constInfo.layoutType == (uint8_t)LayOutTypeEnum::LAYOUT_SBH) {
+                // SBH/SBND
+                s2Offset = runInfo.s2StartIdx * constInfo.bN2D + runInfo.s2LoopCount * constInfo.s2BaseBN2D;
+                bOffset = runInfo.boIdx * constInfo.n2D;
+                n2Offset = runInfo.n2oIdx * constInfo.dSize;
+            } else if (constInfo.layoutType == (uint8_t)LayOutTypeEnum::LAYOUT_BNSD) {
+                // BNSD
+                bOffset = runInfo.boIdx * constInfo.n2S2D;
+                n2Offset = runInfo.n2oIdx * constInfo.s2D;
+                s2Offset = runInfo.s2StartIdx * constInfo.dSize + runInfo.s2LoopCount * constInfo.s2BaseD;
             }
-            runInfo.keyOffset = bOffset + n2Offset + s2Offset;
-            runInfo.valueOffset = runInfo.keyOffset;
-            nextKeyOffset = runInfo.keyOffset;
         }
+        runInfo.keyOffset = bOffset + n2Offset + s2Offset;
+        runInfo.valueOffset = runInfo.keyOffset;
     }
 }
 
@@ -1594,13 +1258,8 @@ S1S2_TEMPLATE
 __aicore__ inline int64_t FlashAttentionScoreS1s2Const<S1S2_TEMPLATE_ARGS>::GetKeyRopeOffset(
     RunInfo<isInfer> &runInfo)
 {
-    if (enableKVPrefetch && runInfo.taskId != 0) {
-        return nextKeyRopeOffset;
-    }
-    
     if constexpr (isInfer) {
-        nextKeyRopeOffset = runInfo.kRopeOffset;
-        return nextKeyRopeOffset;
+        return runInfo.kRopeOffset;
     } else {
         // 计算gm上的offset
         int64_t bOffsetRope = 0;
@@ -1631,8 +1290,7 @@ __aicore__ inline int64_t FlashAttentionScoreS1s2Const<S1S2_TEMPLATE_ARGS>::GetK
                     runInfo.s2LoopCount * constInfo.s2BaseDR;
             }
         }
-        nextKeyRopeOffset = bOffsetRope + n2OffsetRope + s2OffsetRope;
-        return nextKeyRopeOffset;
+        return bOffsetRope + n2OffsetRope + s2OffsetRope;
     }
 }
 

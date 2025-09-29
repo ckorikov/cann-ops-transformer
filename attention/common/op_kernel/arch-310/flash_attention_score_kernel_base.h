@@ -75,16 +75,9 @@ public:
     __aicore__ inline void GetQueryOffset(RunParamStr<isInfer> &runParam);
     __aicore__ inline void GetKeyOffset(RunInfo<isInfer> &runInfo);
     __aicore__ inline void GetKeyRopeOffset(RunInfo<isInfer> &runInfo);
-    /* Bmm1右矩阵预取的参数设置 */
-    __aicore__ inline void SetTndPrefetchRightArgs(RunInfo<isInfer> &runInfo);
-    __aicore__ inline void SetPrefetchRightArgs(RunInfo<isInfer> &runInfo);
-    __aicore__ inline uint64_t ComputeNextBatchMorN(RunInfo<isInfer> &runInfo);
-    __aicore__ inline void SetS1Base64PrefetchRightArgs(RunInfo<isInfer> &runInfo);
     __aicore__ inline void SetRunInfo(RunInfo<isInfer> &runInfo, RunParamStr<isInfer> &runParam, int64_t taskId, int64_t s2LoopCount,
                                       int64_t s2LoopLimit, int64_t multiCoreInnerIdx);
     __aicore__ inline void ComputeAxisIdx(int64_t multiCoreInnerIdx, RunParamStr<isInfer> &runParam);
-    __aicore__ inline int64_t ComputeNextOffset(RunInfo<isInfer> &runInfo, int64_t nextOffset);
-    __aicore__ inline int64_t ComputeNextRopeOffset(RunInfo<isInfer> &runInfo, int64_t nextRopeOffset);
     __aicore__ inline void ComputeBmm1Tail(RunInfo<isInfer> &runInfo, RunParamStr<isInfer> &runParam);
     __aicore__ inline void GetSeqQlenKvlenByBoidx(int64_t boIdx, int64_t &actualSeqQlen, int64_t &actualSeqKvLen);
 
@@ -130,8 +123,6 @@ public:
     AttenMaskInfo attenMaskInfo;
     PseInfo pseInfo;
     /* 其他正向独有的一些信息 */
-    // 下一次的key的offset，在预取的场景下可以避免重复计算。
-    KVPrefetchArgs<hasRope> prefetchArgs;
     // Unpack参数
     uint64_t s1OuterSizeAcc;
     uint64_t s1SizeAcc;
@@ -444,21 +435,6 @@ __aicore__ inline void FlashAttentionScoreKernelBase<ChildClass, CubeBlockType, 
             }
         }
     }
-    if ASCEND_IS_AIC {
-        if constexpr ((s1BaseSize == 64 && s2BaseSize == 256) || splitD || isFp8) {
-            constInfo.enableKVPrefetch = false;
-        }
-        if constexpr (hasAtten) {
-            if (sharedParams.preTokens < constInfo.s1Size) {
-                constInfo.enableKVPrefetch = false;
-            }
-        }
-        if constexpr (layout == LayOutTypeEnum::LAYOUT_TND) {
-            if (sharedParams.sparseType == static_cast<uint8_t>(SparseModeEnum::PREFIX)) {
-                constInfo.enableKVPrefetch = false;
-            }
-        }
-    }
 
     if ASCEND_IS_AIV {
         auto &inputParamsRegbase = this->tilingData->inputParamsRegbase;
@@ -710,203 +686,41 @@ __aicore__ inline void FlashAttentionScoreKernelBase<ChildClass, CubeBlockType, 
 }
 
 template <typename ChildClass, typename CubeBlockType, typename VecBlockType>
-__aicore__ inline void FlashAttentionScoreKernelBase<ChildClass, CubeBlockType, VecBlockType>::SetTndPrefetchRightArgs(
-    RunInfo<isInfer> &runInfo)
-{
-    if (runInfo.s2LoopCount == runInfo.s2LoopLimit) {
-        int64_t boIdxNext = runInfo.boIdx;
-        int64_t n2oIdxNext = runInfo.n2oIdx;
-        uint32_t endS1Loop = CeilDiv(runInfo.actualS1Size, s1BaseSize) - 1;
-        if (runInfo.s1oIdx == endS1Loop) {
-            if (runInfo.goIdx == constInfo.gSize - 1) {
-                n2oIdxNext++;
-                if (n2oIdxNext == constInfo.n2Size) {
-                    boIdxNext++;
-                    n2oIdxNext = 0;
-                }
-            }
-        }
-        int64_t bSize = this->sharedParams.bSize;
-        if (boIdxNext == bSize) {
-            return; // 最后一个batch的最后一次s2，预取应该不使能
-        }
-        int64_t nextActualS2Len = runInfo.actualS2Size;
-        // 找到下一个有效的batch
-        if (boIdxNext != runInfo.boIdx) {
-            int64_t nextActualS1Len;
-            for (; boIdxNext < bSize; boIdxNext++) {
-                GetSeqQlenKvlenByBoidx(boIdxNext, nextActualS1Len, nextActualS2Len);
-                if (nextActualS1Len != 0 && nextActualS2Len != 0) {
-                    break;
-                }
-            }
-        }
-
-        if (nextActualS2Len >= s2BaseSize) {
-            prefetchArgs.nextMOrN = s2BaseSize;
-        } else {
-            prefetchArgs.nextMOrN = nextActualS2Len % s2BaseSize;
-            if (prefetchArgs.nextMOrN == 0) {
-                prefetchArgs.nextMOrN = s2BaseSize;
-            }
-        }
-        if (boIdxNext == 0) {
-            prefetchArgs.nextOffset = n2oIdxNext * constInfo.dSize + runInfo.s2StartIdx * constInfo.n2D;
-            if constexpr (hasRope) {
-                prefetchArgs.nextRopeOffset = n2oIdxNext * constInfo.dSizeRope + runInfo.s2StartIdx * constInfo.n2DR;
-            }
-        } else {
-            // runInfo.s2StartIdx是为了推理保留，训练应该不需要，推理左padding场景下，需要获取下一个batch的左padding值
-            int32_t nextTotalActualS2Len = actualSeqKvlenAddr[boIdxNext - 1];
-            prefetchArgs.nextOffset = nextTotalActualS2Len * constInfo.n2D + n2oIdxNext * constInfo.dSize +
-                            runInfo.s2StartIdx * constInfo.n2D;
-            if constexpr (hasRope) {
-                prefetchArgs.nextRopeOffset = nextTotalActualS2Len * constInfo.n2DR + n2oIdxNext * constInfo.dSizeRope +
-                                    runInfo.s2StartIdx * constInfo.n2DR;
-            }
-        }
-    } else {
-        if (runInfo.s2LoopCount < runInfo.s2LoopLimit - 1) {
-            prefetchArgs.nextMOrN = s2BaseSize;
-        } else {
-            prefetchArgs.nextMOrN = (runInfo.s2EndIdx - runInfo.s2StartIdx) % s2BaseSize;
-            if (prefetchArgs.nextMOrN == 0) {
-                prefetchArgs.nextMOrN = s2BaseSize;
-            }
-        }
-        prefetchArgs.nextOffset += constInfo.s2BaseN2D;
-        if constexpr (hasRope) {
-            prefetchArgs.nextRopeOffset += constInfo.s2BaseN2DR;
-        }
-    }
-}
-
-template <typename ChildClass, typename CubeBlockType, typename VecBlockType>
-__aicore__ inline void FlashAttentionScoreKernelBase<ChildClass, CubeBlockType, VecBlockType>::SetPrefetchRightArgs(
-    RunInfo<isInfer> &runInfo) {
-    if constexpr (!isInfer && layout == LayOutTypeEnum::LAYOUT_TND) {
-        SetTndPrefetchRightArgs(runInfo);
-    } else {
-        if constexpr (s1BaseSize == 128) {
-            if (runInfo.s2LoopLimit > 0 && (runInfo.s2LoopCount != runInfo.s2LoopLimit - 1)) {
-                // 这种情况一定不是尾块
-                prefetchArgs.nextMOrN = s2BaseSize;
-            } else {
-                prefetchArgs.nextMOrN = (runInfo.s2EndIdx - runInfo.s2StartIdx) % s2BaseSize;
-                if (prefetchArgs.nextMOrN == 0) {
-                    prefetchArgs.nextMOrN = s2BaseSize;
-                }
-            }
-        } else {
-            SetS1Base64PrefetchRightArgs(runInfo);
-        }
-
-        prefetchArgs.nextOffset = ComputeNextOffset(runInfo, prefetchArgs.nextOffset);
-        if constexpr (hasRope) {
-            prefetchArgs.nextRopeOffset = ComputeNextRopeOffset(runInfo, prefetchArgs.nextRopeOffset);
-        }
-    }
-}
-
-template <typename ChildClass, typename CubeBlockType, typename VecBlockType>
-__aicore__ inline uint64_t FlashAttentionScoreKernelBase<ChildClass, CubeBlockType, VecBlockType>::ComputeNextBatchMorN(
-    RunInfo<isInfer> &runInfo) {
-    int64_t s2NextStartIdx = 0;
-    int64_t s2NextEndIdx = 0;
-    if (this->sharedParams.sparseType == static_cast<uint8_t>(SparseModeEnum::CAUSAL)) {
-        s2NextStartIdx = 0;
-        s2NextEndIdx = Min(s1BaseSize, s2BaseSize);
-    } else if (this->sharedParams.sparseType == static_cast<uint8_t>(SparseModeEnum::BAND)) {
-        s2NextStartIdx = Max(0 - this->sharedParams.s1SparseValidSize, 0);
-        s2NextEndIdx = Min(s1BaseSize + this->sharedParams.s2SparseValidSize,
-                            s2BaseSize);
-    } else if (this->sharedParams.sparseType == static_cast<uint8_t>(SparseModeEnum::PREFIX)) {
-        // TODO: 暂时删除Prefix场景的预取，保证CubeBlock的纯粹性
-        s2NextStartIdx = 0;
-        if (unlikely(runInfo.boIdx >= this->sharedParams.bSize - 1)) {
-            s2NextEndIdx = 0;
-        } else {
-            s2NextEndIdx = Max(s1BaseSize - constInfo.s1Size + constInfo.s2Size,
-                               ((__gm__ int64_t *)attenMaskInfo.prefixNAddr)[runInfo.boIdx + 1]);
-            s2NextEndIdx = CeilDiv(s2NextEndIdx, s2BaseSize) * s2BaseSize;
-            s2NextEndIdx = Min(s2NextEndIdx, s2BaseSize);
-        }
-    } else {
-        s2NextStartIdx = 0;
-        s2NextEndIdx = s2BaseSize;
-    }
-    return s2NextEndIdx - s2NextStartIdx;
-}
-
-template <typename ChildClass, typename CubeBlockType, typename VecBlockType>
-__aicore__ inline void FlashAttentionScoreKernelBase<ChildClass, CubeBlockType, VecBlockType>::SetS1Base64PrefetchRightArgs(
-    RunInfo<isInfer> &runInfo) {
-    if (runInfo.s2LoopLimit > 0 && (runInfo.s2LoopCount != runInfo.s2LoopLimit - 1)) {
-        if constexpr (hasAtten) {
-            if (unlikely(runInfo.s2LoopCount == runInfo.s2LoopLimit && runInfo.s1oIdx == constInfo.s1OuterSize - 1)) {
-                prefetchArgs.nextMOrN = ComputeNextBatchMorN(runInfo);
-            } else {
-                prefetchArgs.nextMOrN = s2BaseSize;
-            }
-        } else {
-            prefetchArgs.nextMOrN = s2BaseSize;
-        }
-    } else if (runInfo.s2LoopLimit == 0) {
-        prefetchArgs.nextMOrN = Min(s2BaseSize, constInfo.s2Size);
-    } else {
-        prefetchArgs.nextMOrN = (runInfo.s2EndIdx - runInfo.s2StartIdx) % s2BaseSize;
-    }
-    if (prefetchArgs.nextMOrN == 0) {
-        prefetchArgs.nextMOrN = s2BaseSize;
-    }
-}
-
-template <typename ChildClass, typename CubeBlockType, typename VecBlockType>
 __aicore__ inline void FlashAttentionScoreKernelBase<ChildClass, CubeBlockType, VecBlockType>::GetKeyOffset(
     RunInfo<isInfer> &runInfo)
 {
     if ASCEND_IS_AIC {
-        if (constInfo.enableKVPrefetch && runInfo.taskId != 0) {
-            runInfo.keyOffset = prefetchArgs.nextOffset;
-            if constexpr (!isInfer) {
-                runInfo.valueOffset = runInfo.keyOffset;
-            }
-        } else {
-            if constexpr (isInfer) {
-                prefetchArgs.nextOffset = runInfo.keyOffset;
-            } else {
-                // 计算gm上的offset
-                int64_t bOffset = 0;
-                int64_t n2Offset = 0;
-                int64_t s2Offset = 0;
+        if constexpr (!isInfer) {
+            // 计算gm上的offset
+            int64_t bOffset = 0;
+            int64_t n2Offset = 0;
+            int64_t s2Offset = 0;
 
-                if constexpr (layout == LayOutTypeEnum::LAYOUT_TND) {
-                    // (BS)ND
-                    bOffset = runInfo.s2SizeAcc * constInfo.n2D;
+            if constexpr (layout == LayOutTypeEnum::LAYOUT_TND) {
+                // (BS)ND
+                bOffset = runInfo.s2SizeAcc * constInfo.n2D;
+                s2Offset = runInfo.s2StartIdx * constInfo.n2D + runInfo.s2LoopCount * constInfo.s2BaseN2D;
+                n2Offset = runInfo.n2oIdx * constInfo.dSize;
+            } else {
+                if (constInfo.layoutType == (uint8_t)LayOutTypeEnum::LAYOUT_BSH) {
+                    // BSH/BSND
+                    bOffset = runInfo.boIdx * constInfo.n2S2D;
                     s2Offset = runInfo.s2StartIdx * constInfo.n2D + runInfo.s2LoopCount * constInfo.s2BaseN2D;
                     n2Offset = runInfo.n2oIdx * constInfo.dSize;
-                } else {
-                    if (constInfo.layoutType == (uint8_t)LayOutTypeEnum::LAYOUT_BSH) {
-                        // BSH/BSND
-                        bOffset = runInfo.boIdx * constInfo.n2S2D;
-                        s2Offset = runInfo.s2StartIdx * constInfo.n2D + runInfo.s2LoopCount * constInfo.s2BaseN2D;
-                        n2Offset = runInfo.n2oIdx * constInfo.dSize;
-                    } else if (constInfo.layoutType == (uint8_t)LayOutTypeEnum::LAYOUT_SBH) {
-                        // SBH/SBND
-                        s2Offset = runInfo.s2StartIdx * constInfo.bN2D + runInfo.s2LoopCount * constInfo.s2BaseBN2D;
-                        bOffset = runInfo.boIdx * constInfo.n2D;
-                        n2Offset = runInfo.n2oIdx * constInfo.dSize;
-                    } else if (constInfo.layoutType == (uint8_t)LayOutTypeEnum::LAYOUT_BNSD) {
-                        // BNSD
-                        bOffset = runInfo.boIdx * constInfo.n2S2D;
-                        n2Offset = runInfo.n2oIdx * constInfo.s2D;
-                        s2Offset = runInfo.s2StartIdx * constInfo.dSize + runInfo.s2LoopCount * constInfo.s2BaseD;
-                    }
+                } else if (constInfo.layoutType == (uint8_t)LayOutTypeEnum::LAYOUT_SBH) {
+                    // SBH/SBND
+                    s2Offset = runInfo.s2StartIdx * constInfo.bN2D + runInfo.s2LoopCount * constInfo.s2BaseBN2D;
+                    bOffset = runInfo.boIdx * constInfo.n2D;
+                    n2Offset = runInfo.n2oIdx * constInfo.dSize;
+                } else if (constInfo.layoutType == (uint8_t)LayOutTypeEnum::LAYOUT_BNSD) {
+                    // BNSD
+                    bOffset = runInfo.boIdx * constInfo.n2S2D;
+                    n2Offset = runInfo.n2oIdx * constInfo.s2D;
+                    s2Offset = runInfo.s2StartIdx * constInfo.dSize + runInfo.s2LoopCount * constInfo.s2BaseD;
                 }
-                runInfo.keyOffset = bOffset + n2Offset + s2Offset;
-                runInfo.valueOffset = runInfo.keyOffset;
-                prefetchArgs.nextOffset = runInfo.keyOffset;
             }
+            runInfo.keyOffset = bOffset + n2Offset + s2Offset;
+            runInfo.valueOffset = runInfo.keyOffset;
         }
     }
 }
@@ -916,13 +730,7 @@ __aicore__ inline void FlashAttentionScoreKernelBase<ChildClass, CubeBlockType, 
     RunInfo<isInfer> &runInfo)
 {
     if ASCEND_IS_AIC {
-        if (constInfo.enableKVPrefetch && runInfo.taskId != 0) {
-            runInfo.kRopeOffset = prefetchArgs.nextRopeOffset;
-        }
-
-        if constexpr (isInfer) {
-            prefetchArgs.nextRopeOffset = runInfo.kRopeOffset;
-        } else {
+        if constexpr (!isInfer) {
             // 计算gm上的offset
             int64_t bOffsetRope = 0;
             int64_t n2OffsetRope = 0;
@@ -953,142 +761,8 @@ __aicore__ inline void FlashAttentionScoreKernelBase<ChildClass, CubeBlockType, 
                 }
             }
             runInfo.kRopeOffset = bOffsetRope + n2OffsetRope + s2OffsetRope;
-            prefetchArgs.nextRopeOffset = runInfo.kRopeOffset;
         }
     }
-}
-
-template <typename ChildClass, typename CubeBlockType, typename VecBlockType>
-__aicore__ inline int64_t FlashAttentionScoreKernelBase<ChildClass, CubeBlockType, VecBlockType>::ComputeNextOffset(
-    RunInfo<isInfer> &runInfo, int64_t nextOffset)
-{
-    if (runInfo.s2LoopCount == runInfo.s2LoopLimit) {
-        int64_t multiCoreInnerIdxNext = runInfo.multiCoreInnerIdx + 1;
-        int64_t boIdxNext = runInfo.boIdx;
-        int64_t n2oIdxNext = runInfo.n2oIdx;
-        if constexpr (isInfer) {
-            uint32_t endS1Loop = CeilDivision(runInfo.actualS1Size, (int64_t)s1BaseSize) - 1;
-            int64_t gIdxNext = runInfo.n2oIdx * constInfo.gSize + runInfo.goIdx;
-            if (runInfo.s1oIdx == endS1Loop) {
-                gIdxNext++;
-                if (runInfo.goIdx == constInfo.gSize - 1) {
-                    n2oIdxNext++;
-                }
-            }
-            if (gIdxNext == constInfo.n2G) {
-                boIdxNext++;
-                n2oIdxNext = 0;
-            }
-        } else {
-            boIdxNext = multiCoreInnerIdxNext / constInfo.n2GS1o;
-            n2oIdxNext = multiCoreInnerIdxNext % constInfo.n2GS1o / constInfo.gS1o;
-        }
-
-        if (constInfo.layoutType == (uint8_t)LayOutTypeEnum::LAYOUT_BSH) {
-            // BSH/BSND
-            nextOffset = boIdxNext * constInfo.n2S2D + n2oIdxNext * constInfo.dSize +
-                runInfo.s2StartIdx * constInfo.n2D;
-        } else if (constInfo.layoutType == (uint8_t)LayOutTypeEnum::LAYOUT_SBH) {
-            // SBH/SBND
-            nextOffset = boIdxNext * constInfo.n2D + n2oIdxNext * constInfo.dSize +
-                runInfo.s2StartIdx * constInfo.bN2D;
-        } else if (constInfo.layoutType == (uint8_t)LayOutTypeEnum::LAYOUT_BNSD) {
-            // BNSD
-            nextOffset = boIdxNext * constInfo.n2S2D + n2oIdxNext * constInfo.s2D +
-                runInfo.s2StartIdx * constInfo.dSize;
-        } else if (layout == LayOutTypeEnum::LAYOUT_TND) {
-            // TND
-            if constexpr (isInfer) {
-                if (boIdxNext == 0) {
-                    prefetchArgs.nextOffset = n2oIdxNext * constInfo.dSize + runInfo.s2StartIdx * constInfo.n2D;
-                } else {
-                    prefetchArgs.nextOffset = actualSeqKvlenAddr[boIdxNext - 1] * constInfo.n2D +
-                        n2oIdxNext * constInfo.dSize + runInfo.s2StartIdx * constInfo.n2D;
-                }
-            }
-        }
-    } else {
-        if (constInfo.layoutType == (uint8_t)LayOutTypeEnum::LAYOUT_BSH) {
-            // BSH/BSND
-            nextOffset += constInfo.s2BaseN2D;
-        } else if (constInfo.layoutType == (uint8_t)LayOutTypeEnum::LAYOUT_SBH) {
-            // SBH/SBND
-            nextOffset += constInfo.s2BaseBN2D;
-        } else if (constInfo.layoutType == (uint8_t)LayOutTypeEnum::LAYOUT_BNSD) {
-            // BNSD
-            nextOffset += constInfo.s2BaseD;
-        } else if (layout == LayOutTypeEnum::LAYOUT_TND) {
-            nextOffset += constInfo.s2BaseN2D;
-        }
-    }
-    return nextOffset;
-}
-
-template <typename ChildClass, typename CubeBlockType, typename VecBlockType>
-__aicore__ inline int64_t FlashAttentionScoreKernelBase<ChildClass, CubeBlockType, VecBlockType>::ComputeNextRopeOffset(
-    RunInfo<isInfer> &runInfo, int64_t nextRopeOffset)
-{
-    if (runInfo.s2LoopCount == runInfo.s2LoopLimit) {
-        int64_t multiCoreInnerIdxNext = runInfo.multiCoreInnerIdx + 1;
-        int64_t boIdxNext = runInfo.boIdx;
-        int64_t n2oIdxNext = runInfo.n2oIdx;
-        if constexpr (isInfer) {
-            uint32_t endS1Loop = CeilDivision(runInfo.actualS1Size, (int64_t)s1BaseSize) - 1;
-            int64_t gIdxNext = runInfo.n2oIdx * constInfo.gSize + runInfo.goIdx;
-            if (runInfo.s1oIdx == endS1Loop) {
-                gIdxNext++;
-                if (runInfo.goIdx == constInfo.gSize - 1) {
-                    n2oIdxNext++;
-                }
-            }
-            if (gIdxNext == constInfo.n2G) {
-                boIdxNext++;
-                n2oIdxNext = 0;
-            }
-        } else {
-            boIdxNext = multiCoreInnerIdxNext / constInfo.n2GS1o;
-            n2oIdxNext = multiCoreInnerIdxNext % constInfo.n2GS1o / constInfo.gS1o;
-        }
-        if (constInfo.layoutType == (uint8_t)LayOutTypeEnum::LAYOUT_BSH) {
-            // BSH/BSND
-            nextRopeOffset = boIdxNext * constInfo.n2S2DR + n2oIdxNext * constInfo.dSizeRope +
-                runInfo.s2StartIdx * constInfo.n2DR;
-        } else if (constInfo.layoutType == (uint8_t)LayOutTypeEnum::LAYOUT_SBH) {
-            // SBH/SBND
-            nextRopeOffset = boIdxNext * constInfo.n2DR + n2oIdxNext * constInfo.dSizeRope +
-                runInfo.s2StartIdx * constInfo.bN2DR;
-        } else if (constInfo.layoutType == (uint8_t)LayOutTypeEnum::LAYOUT_BNSD) {
-            // BNSD
-            nextRopeOffset = boIdxNext * constInfo.n2S2DR + n2oIdxNext * constInfo.s2DR +
-                runInfo.s2StartIdx * constInfo.dSizeRope;
-        } else if (layout == LayOutTypeEnum::LAYOUT_TND) {
-            // TND
-            if constexpr (isInfer) {
-                if (boIdxNext == 0) {
-                    nextRopeOffset = n2oIdxNext * constInfo.dSizeRope +
-                        runInfo.s2StartIdx * constInfo.n2DR;
-                } else {
-                    nextRopeOffset = actualSeqKvlenAddr[boIdxNext - 1] * constInfo.n2DR +
-                        n2oIdxNext * constInfo.dSizeRope + runInfo.s2StartIdx * constInfo.n2DR;
-                }
-            }
-        }
-    } else {
-        if (constInfo.layoutType == (uint8_t)LayOutTypeEnum::LAYOUT_BSH) {
-            // BSH/BSND
-            nextRopeOffset += constInfo.s2BaseN2DR;
-        } else if (constInfo.layoutType == (uint8_t)LayOutTypeEnum::LAYOUT_SBH) {
-            // SBH/SBND
-            nextRopeOffset += constInfo.s2BaseBN2DR;
-        } else if (constInfo.layoutType == (uint8_t)LayOutTypeEnum::LAYOUT_BNSD) {
-            // BNSD
-            nextRopeOffset += constInfo.s2BaseDR;
-        } else if (layout == LayOutTypeEnum::LAYOUT_TND) {
-            // TND
-            nextRopeOffset += constInfo.s2BaseN2DR;
-        }
-    }
-    return nextRopeOffset;
 }
 }
 #endif // FLASH_ATTENTION_SCORE_KERNEL_BASE_H_

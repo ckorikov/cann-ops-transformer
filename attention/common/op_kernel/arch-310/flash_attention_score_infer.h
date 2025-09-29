@@ -300,12 +300,6 @@ FlashAttentionScoreInfer<CHILD_SPEC_TEMPLATE_ARGS>::InitUniqueConstInfo(const In
         this->constInfo.attentionOutStride =
             (this->constInfo.n2GDv - this->constInfo.dSizeV) * sizeof(OUTPUT_T);
     }
-
-    if ((!this->constInfo.isActualLenDimsNull) || (!this->constInfo.isActualLenDimsKVNull) ||
-        this->constInfo.isQHasLeftPadding || this->constInfo.isKVHasLeftPadding ||
-        (this->constInfo.isKvContinuous == 0)) {
-        this->enableKVPrefetch = false;
-    }
 }
 
 CHILD_SPEC_TEMPLATE

@@ -126,15 +126,9 @@ __aicore__ inline void GetSingleCoreParam(RunParamStr<isInfer>& runParam,
     runParam.actualS2Size = actualS2Size;
     GetSparseParam<TEMPLATE_INTF_ARGS>(constInfo, attenMaskInfo, runParam);
 
-    if (constInfo.isKvContinuous == 1) {
-        runParam.actualS1Size = 
-            (runParam.actualS1Size > runParam.actualS2Size + runParam.preTokensPerBatch) ?
-            runParam.actualS2Size + runParam.preTokensPerBatch : runParam.actualS1Size;
-    } else {
-        runParam.actualS1Size = ((int64_t)runParam.actualS1Size >
-            runParam.s2InCurrentBatch + (int64_t)runParam.preTokensPerBatch) ?
-            runParam.s2InCurrentBatch + runParam.preTokensPerBatch : runParam.actualS1Size;
-    }
+    runParam.actualS1Size = 
+        (runParam.actualS1Size > runParam.actualS2Size + runParam.preTokensPerBatch) ?
+        runParam.actualS2Size + runParam.preTokensPerBatch : runParam.actualS1Size;
 
     // 计算S1的尾块大小，非对齐
     runParam.actualS1Size = (runParam.nextTokensPerBatch >= 0) ? runParam.actualS1Size :
