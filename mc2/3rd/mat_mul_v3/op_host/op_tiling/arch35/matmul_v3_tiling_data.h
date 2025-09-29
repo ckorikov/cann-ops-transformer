@@ -19,6 +19,6 @@
 #include "register/tilingdata_base.h"
 #include "tiling/tiling_api.h"
 
-#include "mat_mul_v3/op_kernel/arch35/mat_mul_tiling_data.h"
+#include "../../../op_kernel/arch35/mat_mul_tiling_data.h"
 
 #endif // __OP_HOST_MATMUL_V3_TILING_DATA_H__

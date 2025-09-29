@@ -182,7 +182,8 @@ void ExecuteTestCase(const gert::TilingContextPara& tilingContextPara,
                      ge::graphStatus                expectResult,
                      uint64_t                       expectTilingKey, 
                      const string&                  expectTilingData,
-                     const std::vector<size_t>&     expectWorkspaces)
+                     const std::vector<size_t>&     expectWorkspaces,
+                     uint64_t                       tilingDataReservedLen)
 {
     DO_TILING(tilingContextPara);
 
@@ -207,7 +208,9 @@ void ExecuteTestCase(const gert::TilingContextPara& tilingContextPara,
 
     // check tiling data
     auto rawTilingData = tilingContext->GetRawTilingData();
-    auto tilingDataResult = to_string<int64_t>(rawTilingData->GetData(), rawTilingData->GetDataSize());
+    auto tilingDataReservedSize = tilingDataReservedLen * sizeof(uint64_t);
+    auto tilingDataResult = to_string<int64_t>(rawTilingData->GetData() + tilingDataReservedSize,
+                                               rawTilingData->GetDataSize() - tilingDataReservedSize);
     EXPECT_EQ(tilingDataResult, expectTilingData);
 }
 

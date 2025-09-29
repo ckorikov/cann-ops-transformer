@@ -126,6 +126,8 @@ if(UT_TEST_ALL OR OP_KERNEL_UT)
     target_include_directories(
       ${OP_KERNEL_MODULE_NAME}_common_obj PRIVATE ${JSON_INCLUDE_DIR} ${GTEST_INCLUDE}
                                                   ${ASCEND_DIR}/include/base/context_builder ${ASCEND_DIR}/pkg_inc
+                                                  ${ASCEND_DIR}/include/experiment
+                                                  ${ASCEND_DIR}/include/experiment/metadef/common/util
       )
     target_link_libraries(
       ${OP_KERNEL_MODULE_NAME}_common_obj PRIVATE $<BUILD_INTERFACE:intf_llt_pub_asan_cxx17> json gtest c_sec
@@ -263,6 +265,7 @@ if(UT_TEST_ALL OR OP_KERNEL_UT)
         ${opName}_${socVersion}_tiling_tmp
         PRIVATE ${ASCEND_DIR}/include/op_common/atvoss ${ASCEND_DIR}/include/op_common
                 ${ASCEND_DIR}/include/op_common/op_host ${PROJECT_SOURCE_DIR}/common/include
+                ${ASCEND_DIR}/include/experiment ${ASCEND_DIR}/include/experiment/metadef/common/util
         )
       target_compile_definitions(${opName}_${socVersion}_tiling_tmp PRIVATE LOG_CPP _GLIBCXX_USE_CXX11_ABI=0)
       target_link_libraries(
