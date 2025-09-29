@@ -73,9 +73,9 @@ ge::graphStatus CommonParamCheck(
     }
     return ge::GRAPH_SUCCESS;
 }
-ge::graphStatus InferShapeAllGatherMatmulCommon(gert::InferShapeContext* context)
+
+ge::graphStatus AllGatherMatmulInferYShape(gert::InferShapeContext* context, CommParas& commParas)
 {
-    CommParas commParas;
     OP_LOGE_IF(
         CommonParamCheck(context, AG_IS_TRANS_A, AG_IS_TRANS_B, commParas) != GRAPH_SUCCESS, GRAPH_FAILED,
         context->GetNodeName(), "CommonParamCheck excute failed.");
@@ -94,7 +94,13 @@ ge::graphStatus InferShapeAllGatherMatmulCommon(gert::InferShapeContext* context
     yShape->SetDimNum(SUPPORT_DIM_SIZE);
     yShape->SetDim(0, commParas.dimM * commParas.rankSize);
     yShape->SetDim(1, commParas.dimN);
-    const bool* isGatherOut = context->GetAttrs()->GetAttrPointer<bool>(GATHER_OUT);
+    return ge::GRAPH_SUCCESS;
+}
+
+ge::graphStatus AllGatherMatmulInferGatherOutShape(gert::InferShapeContext* context, const CommParas& commParas,
+                                                   const size_t gatherIndex)
+{
+    const bool* isGatherOut = context->GetAttrs()->GetAttrPointer<bool>(gatherIndex);
     OPS_CHECK_NULL_WITH_CONTEXT(context, isGatherOut);
     gert::Shape* gatherOutShape = context->GetOutputShape(1);
     OPS_CHECK_NULL_WITH_CONTEXT(context, gatherOutShape);
@@ -106,6 +112,20 @@ ge::graphStatus InferShapeAllGatherMatmulCommon(gert::InferShapeContext* context
         gatherOutShape->SetDimNum(1);
         gatherOutShape->SetDim(0, 0);
     }
+    return GRAPH_SUCCESS;
+}
+
+ge::graphStatus AllGatherMatmulCommonInferShape(gert::InferShapeContext* context, const size_t gatherIndex)
+{
+    CommParas commParas;
+    OP_LOGE_IF(
+        AllGatherMatmulInferYShape(context, commParas) != GRAPH_SUCCESS, GRAPH_FAILED,
+        context->GetNodeName(), "InferShapeAllGatherMatmul inferYshape excute failed.");
+    
+    OP_LOGE_IF(
+        AllGatherMatmulInferGatherOutShape(context, commParas, gatherIndex) != GRAPH_SUCCESS, GRAPH_FAILED,
+        context->GetNodeName(), "InferShapeAllGatherMatmul inferYshape excute failed.");
+
     return GRAPH_SUCCESS;
 }
 
