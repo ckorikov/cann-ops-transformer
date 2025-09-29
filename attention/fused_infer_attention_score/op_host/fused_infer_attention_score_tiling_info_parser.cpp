@@ -358,6 +358,12 @@ ge::graphStatus FiaInfoParser::GetQTSize()
     return ge::GRAPH_SUCCESS;
 }
 
+ge::graphStatus FiaInfoParser::GetKTSize()
+{
+    kTSize_ = (keyShape_->HasT()) ? static_cast<uint32_t>(keyShape_->GetT()) : 0;
+    return ge::GRAPH_SUCCESS;
+}
+
 ge::graphStatus FiaInfoParser::GetQkHeadDim()
 {
     // 获取qkHeadDim基准值
@@ -443,12 +449,38 @@ ge::graphStatus FiaInfoParser::GetKvLayout()
     return ge::GRAPH_SUCCESS;
 }
 
+ge::graphStatus FiaInfoParser::GetMaxActualSeq(const gert::Tensor *actualSeqLensTensor,
+    FiaLayout layout, int64_t &maxActualSeqLen)
+{
+    maxActualSeqLen = 0;
+    const int64_t *actualLenData = actualSeqLensTensor->GetData<int64_t>();
+    if (actualLenData != nullptr) {
+        uint32_t loop = std::min(static_cast<uint32_t>(actualSeqLensTensor->GetShapeSize()), bSize_);
+        for (uint32_t i = 0; i < loop; i++) {
+            int64_t tmpS = 0;
+            if (layout == FiaLayout::TND || layout == FiaLayout::NTD) {
+                tmpS = (i == 0U) ? actualLenData[0] : (actualLenData[i] - actualLenData[i - 1U]);
+            } else {
+                tmpS = actualLenData[i];
+            }
+            maxActualSeqLen = std::max(maxActualSeqLen, tmpS);
+        }
+    }
+    return ge::GRAPH_SUCCESS;
+}
+
+ge::graphStatus FiaInfoParser::GetS2SizeFromActualSeqLens()
+{
+    if (opParamInfo_.actualSeqLengths.tensor == nullptr) {
+        return ge::GRAPH_SUCCESS;
+    }
+    return GetMaxActualSeq(opParamInfo_.actualSeqLengths.tensor, kvLayout_, s2Size_);
+}
+
 ge::graphStatus FiaInfoParser::GetS2SizeForBatchContinuous()
 {
-    if ((kvLayout_ == FiaLayout::TND) || (kvLayout_ == FiaLayout::NTD)) { // PFA场景下需要增补
-        OP_LOGE(opName_, "%s's layout is %s, it is unsupported.", KEY_NAME.c_str(),
-            LayoutToSerialString(kvLayout_).c_str());
-        return ge::GRAPH_FAILED;
+    if ((kvLayout_ == FiaLayout::TND) || (kvLayout_ == FiaLayout::NTD)) {
+        return GetS2SizeFromActualSeqLens();
     } else { // BSH/BSND/BNSD
         if (keyShape_->CheckHasS(__func__) != ge::GRAPH_SUCCESS) {
             return ge::GRAPH_FAILED;
@@ -461,10 +493,8 @@ ge::graphStatus FiaInfoParser::GetS2SizeForBatchContinuous()
 
 ge::graphStatus FiaInfoParser::GetS2SizeForTensorList()
 {
-    if ((kvLayout_ == FiaLayout::TND) || (kvLayout_ == FiaLayout::NTD)) { // PFA场景下需要增补
-        OP_LOGE(opName_, "%s's layout is %s, it is unsupported.", KEY_NAME.c_str(),
-            LayoutToSerialString(kvLayout_).c_str());
-        return ge::GRAPH_FAILED;
+    if ((kvLayout_ == FiaLayout::TND) || (kvLayout_ == FiaLayout::NTD)) {
+        return GetS2SizeFromActualSeqLens();
     } else { // BSH/BSND/BNSD
         if (keyShape_->CheckHasS(__func__) != ge::GRAPH_SUCCESS) {
             return ge::GRAPH_FAILED;
@@ -601,7 +631,10 @@ ge::graphStatus FiaInfoParser::GetQueryAndOutLayout()
         {"BNSD_NBSD",   {FiaLayout::BNSD,    FiaLayout::NBSD}},
         {"TND_NTD",     {FiaLayout::TND,     FiaLayout::NTD }},
         {"NTD_TND",     {FiaLayout::NTD,     FiaLayout::TND }},
-        {"BNSD_BSND",   {FiaLayout::BNSD,    FiaLayout::BSND}}
+        {"BNSD_BSND",   {FiaLayout::BNSD,    FiaLayout::BSND}},
+        {"BSND_BNSD",   {FiaLayout::BSND,    FiaLayout::BNSD}},
+        {"BSH_BNSD",    {FiaLayout::BSH,     FiaLayout::BNSD}},
+        {"NTD",         {FiaLayout::NTD,     FiaLayout::NTD}}
     };
 
     std::string layout(opParamInfo_.layOut);
@@ -669,14 +702,21 @@ ge::graphStatus FiaInfoParser::GetAttenMaskInfo()
 {
     auto *maskTensor = opParamInfo_.attenMask.tensor;
     attenMaskFlag_ = (maskTensor != nullptr) && (maskTensor->GetStorageShape().GetShapeSize() != 0);
-    // CHECK: 需要进一步梳理attenMaskSize计算逻辑
+    // only bss & b1ss & bs need to calc attenMaskSize_ , attenMaskSize_ is uesed to calc batch offset
     if (attenMaskFlag_) {
-        if (qLayout_ == FiaLayout::TND) {
-            attenMaskSize_ = 0U;
-        } else if (ropeMode_ != RopeMode::NO_ROPE && s1Size_ > 1U) {
-            attenMaskSize_ = 0U;
+        if (maskTensor->GetStorageShape().GetDimNum() == 2U && s1Size_ == 1U && maskTensor->GetStorageShape().GetDim(0) != 1U) { // for bs situation
+            attenMaskSize_ = maskTensor->GetStorageShape().GetDim(maskTensor->GetStorageShape().GetDimNum() - 1); // batch offset = s2
+        } else if ((maskTensor->GetStorageShape().GetDimNum() == 3U || maskTensor->GetStorageShape().GetDimNum() == 4U) &&
+            maskTensor->GetStorageShape().GetDim(0) == bSize_ && bSize_ != 1) { // for bs & bss situation
+            attenMaskSize_ = maskTensor->GetStorageShape().GetDim(maskTensor->GetStorageShape().GetDimNum() - 1) *
+                maskTensor->GetStorageShape().GetDim(maskTensor->GetStorageShape().GetDimNum() - 2); // batch offset = s1*s2
         } else {
-            attenMaskSize_ = maskTensor->GetStorageShape().GetDim(maskTensor->GetStorageShape().GetDimNum() - 1);
+            attenMaskSize_ = 0U;
+        }
+        if (*opParamInfo_.sparseMode == 0U || *opParamInfo_.sparseMode == 1U) {
+            attenMaskStride_ = maskTensor->GetStorageShape().GetDim(maskTensor->GetStorageShape().GetDimNum() - 1);
+        } else {
+            attenMaskStride_ = 2048U; // compress mask
         }
     }
     return ge::GRAPH_SUCCESS;
@@ -695,6 +735,9 @@ ge::graphStatus FiaInfoParser::GetActualSeqInfo()
     if (opParamInfo_.actualSeqLengths.tensor != nullptr && opParamInfo_.actualSeqLengths.tensor->GetData<int64_t>() != nullptr) {
         const int64_t *actualLenData = opParamInfo_.actualSeqLengths.tensor->GetData<int64_t>();
         actualLenDims_ = opParamInfo_.actualSeqLengths.tensor->GetShapeSize();
+        if ((qLayout_ == FiaLayout::TND) || (qLayout_ == FiaLayout::NTD)) {
+            isAccumQSeq_ = true;
+        }
         OP_LOGD(opName_, "data of actual_seq_lengths is not nullptr");
         uint32_t loop = ((actualLenDims_ == 1) && (kvListSeqLens_.size() == 1)) ? 1 : bSize_;
         loop = std::min(loop, actualLenDims_);
@@ -712,6 +755,9 @@ ge::graphStatus FiaInfoParser::GetActualSeqInfo()
     if (opParamInfo_.actualSeqLengthsQ.tensor != nullptr && opParamInfo_.actualSeqLengthsQ.tensor->GetData<int64_t>() != nullptr) {
         const int64_t *actualLenQData = opParamInfo_.actualSeqLengthsQ.tensor->GetData<int64_t>();
         actualLenQDims_ = opParamInfo_.actualSeqLengthsQ.tensor->GetShapeSize();
+        if ((kvLayout_ == FiaLayout::TND) || (kvLayout_ == FiaLayout::NTD)) {
+            isAccumKVSeq_ = true;
+        }
         OP_LOGD(opName_, "data of actual_seq_lengthsQ is not nullptr");
         uint32_t loop = std::min(bSize_, actualLenQDims_);
         for (uint32_t i = 0; i < loop; i++) {
@@ -726,11 +772,18 @@ ge::graphStatus FiaInfoParser::GetActualSeqInfo()
 
 ge::graphStatus FiaInfoParser::GetPreNextToken()
 {
-    if (!(*opParamInfo_.sparseMode == 4)) { // 4:band mode
-        return ge::GRAPH_SUCCESS;
+    int32_t sparseMode = (*opParamInfo_.sparseMode);
+    if (sparseMode == SPARSE_MODE_ALL_MASK) {
+        preToken_ = SPARSE_MODE_INT_MAX;
+        nextToken_ = SPARSE_MODE_INT_MAX;
+    } else if (sparseMode == SPARSE_MODE_LEFT_UP || sparseMode == SPARSE_MODE_RIGHT_DOWN) {
+        nextToken_ = 0;
+        preToken_ = SPARSE_MODE_INT_MAX;
+    } else {
+        preToken_ = opParamInfo_.preToken == nullptr ? 0 : *opParamInfo_.preToken;
+        nextToken_ = opParamInfo_.nextToken == nullptr ? 0 : *opParamInfo_.nextToken;
     }
-    preToken_ = opParamInfo_.preToken == nullptr ? 0 : *opParamInfo_.preToken;
-    nextToken_ = opParamInfo_.nextToken == nullptr ? 0 : *opParamInfo_.nextToken;
+
     if (preToken_ > SPARSE_MODE_INT_MAX) {
         preToken_ = SPARSE_MODE_INT_MAX;
     } else if (preToken_ < -(SPARSE_MODE_INT_MAX)) {
@@ -740,6 +793,18 @@ ge::graphStatus FiaInfoParser::GetPreNextToken()
         nextToken_ = SPARSE_MODE_INT_MAX;
     } else if (nextToken_ < -(SPARSE_MODE_INT_MAX)) {
         nextToken_ = -(SPARSE_MODE_INT_MAX);
+    }
+    return ge::GRAPH_SUCCESS;
+}
+
+ge::graphStatus FiaInfoParser::GetOldIfaGqaFlag()
+{
+    std::string layout = opParamInfo_.layOut;
+    bool isOldIfaGqaLayout = (layout == "BSH") || (layout == "BNSD") || (layout == "BSND");
+    if (isOldIfaGqaLayout && ropeMode_ != RopeMode::ROPE_SPLIT && s1Size_ == 1) {
+        isOldIfaGqaFlag_ = true;
+    } else {
+        isOldIfaGqaFlag_ = false;
     }
     return ge::GRAPH_SUCCESS;
 }
@@ -797,8 +862,12 @@ void FiaInfoParser::GenerateInfo(FiaTilingInfo &fiaInfo)
     fiaInfo.isSameActualseq = isSameActualseq_;
     fiaInfo.kvListSeqLens = kvListSeqLens_;
 
+    fiaInfo.isAccumQSeq = isAccumQSeq_;
+    fiaInfo.isAccumKVSeq = isAccumKVSeq_;
+
     fiaInfo.attenMaskFlag = attenMaskFlag_;
     fiaInfo.attenMaskSize = attenMaskSize_;
+    fiaInfo.attenMaskStride = attenMaskStride_;
     fiaInfo.sparseMode = *opParamInfo_.sparseMode;
     fiaInfo.batchContinuousFlag = (kvStorageMode_ == KvStorageMode::BATCH_CONTINUOUS);
     fiaInfo.kvPaddingSizeFlag = kvPaddingSizeFlag_;
@@ -807,7 +876,9 @@ void FiaInfoParser::GenerateInfo(FiaTilingInfo &fiaInfo)
     fiaInfo.needInit = needInit_;
     fiaInfo.preToken = preToken_;
     fiaInfo.nextToken = nextToken_;
-    fiaInfo.slidingFlag = (*opParamInfo_.sparseMode == 4); // 4:band mode
+    fiaInfo.isOldIfaGqaFlag = isOldIfaGqaFlag_;
+    // 4: only mla noquant & band mode suppport slidingFlag
+    fiaInfo.slidingFlag = (*opParamInfo_.sparseMode == 4) && (ropeMode_ == RopeMode::ROPE_SPLIT) && (qkHeadDim_ == 512U);
 
     fiaInfo.qLayout = qLayout_;
     fiaInfo.kvLayout = kvLayout_;
@@ -829,6 +900,7 @@ void FiaInfoParser::GenerateAxisInfo(FiaTilingInfo &fiaInfo)
     fiaInfo.vHeadDim = vHeadDim_;
     fiaInfo.ropeHeadDim = ropeHeadDim_;
     fiaInfo.qTSize = qTSize_;
+    fiaInfo.kTSize = kTSize_;
 }
 
 void FiaInfoParser::GenerateDtypeInfo(FiaTilingInfo &fiaInfo)
@@ -881,6 +953,7 @@ ge::graphStatus FiaInfoParser::ParseAxisInfo()
     if (ge::GRAPH_SUCCESS != GetGSize() ||
         ge::GRAPH_SUCCESS != GetBatchSize() ||
         ge::GRAPH_SUCCESS != GetQTSize() ||
+        ge::GRAPH_SUCCESS != GetKTSize() ||
         ge::GRAPH_SUCCESS != GetS1Size() ||
         ge::GRAPH_SUCCESS != GetQkHeadDim() ||
         ge::GRAPH_SUCCESS != GetS2Size() ||
@@ -897,7 +970,8 @@ ge::graphStatus FiaInfoParser::ParseFeatureInfo()
         ge::GRAPH_SUCCESS != GetAttenMaskInfo() ||
         ge::GRAPH_SUCCESS != GetPaddingSizeFlag() ||
         ge::GRAPH_SUCCESS != GetActualSeqInfo() ||
-        ge::GRAPH_SUCCESS != GetPreNextToken()) {
+        ge::GRAPH_SUCCESS != GetPreNextToken() ||
+        ge::GRAPH_SUCCESS != GetOldIfaGqaFlag()) {
         return ge::GRAPH_FAILED;
     }
     return ge::GRAPH_SUCCESS;

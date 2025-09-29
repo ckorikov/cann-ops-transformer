@@ -12,7 +12,6 @@
  * \file fused_infer_attention_score.cpp
  * \brief
  */
-
 #include "kernel_operator.h"
 #include "kernel_operator_list_tensor_intf.h"
 // ifa must include before pfa
@@ -42,7 +41,7 @@ extern "C" __global__ __aicore__ void fused_infer_attention_score(__gm__ uint8_t
                                                              __gm__ uint8_t* attentionOut, __gm__ uint8_t* softmaxLse, __gm__ uint8_t* workspace,
                                                              __gm__ uint8_t* tiling) {
   // judge ifa or pfa or fia by range of tilingKey
-  if(TILING_KEY_VAR >= PFA_FlAG_TILING) { // 10^18
+  if (TILING_KEY_VAR >= PFA_FlAG_TILING) { // 10^18
 #if (__CCE_AICORE__ == 310) || (defined __DAV_310R6__)
       prompt_flash_attention_FIAS(query, key, value, pse_shift, attenMask, actualSeqLengths, 
                                   actualSeqLengthsKV, deq_scale1, quant_scale1,

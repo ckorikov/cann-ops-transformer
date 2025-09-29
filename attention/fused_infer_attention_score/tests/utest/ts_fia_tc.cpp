@@ -23,8 +23,8 @@ TEST_F(Ts_Fia_Ascend910B1, case_001)
     cs.mParam.d = 128;
     cs.mParam.layout = "BNSD";
     cs.mParam.numHeads = 20;
-    cs.mOpInfo.mExp.mTilingKey = 11000000000100000; // expected tiling key
-    cs.mOpInfo.mExp.mTilingBlockDim = 24;           // expected block dim
+    cs.mOpInfo.mExp.mTilingKey = 103000000000000000; // expected tiling key
+    cs.mOpInfo.mExp.mTilingBlockDim = 20;           // expected block dim
     cs.mOpInfo.mCtr.mRunTiling = true;
     cs.mOpInfo.mCtr.mRunKernel = false;
     ASSERT_TRUE(cs.Init());
@@ -2873,6 +2873,8 @@ TEST_F(Ts_Fia_Ascend910B1, case_ifa_exception_ds_pa_000017)
     cs.mParam.kvDataType = ge::DT_FLOAT16;
     cs.mParam.blockSize = 16;
     cs.mParam.sparse_mode = 3;
+    cs.mOpInfo.mExp.mTilingKey = 103000000000000000; // expected tiling key
+    cs.mOpInfo.mExp.mTilingBlockDim = 20;           // expected block dim
 
     ASSERT_TRUE(cs.Init());
     cs.query = Tensor("query", {64, 4, 128, 512}, "BSND", ge::DT_FLOAT16, ge::FORMAT_ND);
@@ -4363,6 +4365,8 @@ TEST_F(Ts_Fia_Ascend910B1, ifa_exception_ds_pa_000073)
     
     cs.mParam.actualSeqLength = {1,1,1,2};
     cs.mParam.actualSeqLengthKV = {16,16,16,640};
+    cs.mOpInfo.mExp.mTilingKey = 103000000000000000; // expected tiling key
+    cs.mOpInfo.mExp.mTilingBlockDim = 20;           // expected block dim
 
     ASSERT_TRUE(cs.Init());
     cs.attentionOut = Tensor("attentionOut", {2,16,512}, "TND", ge::DT_BF16, ge::FORMAT_ND);

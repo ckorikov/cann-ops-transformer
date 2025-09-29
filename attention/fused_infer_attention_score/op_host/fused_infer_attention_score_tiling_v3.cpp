@@ -17,6 +17,7 @@
 #include "fused_infer_attention_score_tiling_check.h"
 #include "fused_infer_attention_score_tiling_info_parser.h"
 #include "../../common/op_host/arch32/fia_tiling_nonquant_mla.h"
+#include "../../common/op_host/arch32/fia_tiling_nonquant.h"
 #include "../../common/op_host/fia_tiling_templates_registry.h"
 
 using namespace AscendC;
@@ -62,6 +63,186 @@ REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_105000000010300002, FusedInf
 REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_105000000000200002, FusedInferAttentionScoreTilingData)
 REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_105000000000300002, FusedInferAttentionScoreTilingData)
 
+// Gqa NoQuant PA dtype: Q=FP16 KV=FP16 OUT=FP16
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000000200000, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000000300000, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000000600000, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000000700000, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000010200000, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000010300000, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000010600000, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000010700000, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000020200000, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000020300000, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000020600000, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000020700000, FusedInferAttentionScoreTilingData)
+ 
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000000200001, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000000300001, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000000600001, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000000700001, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000010200001, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000010300001, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000010600001, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000010700001, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000020200001, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000020300001, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000020600001, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000020700001, FusedInferAttentionScoreTilingData)
+ 
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000000200005, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000000300005, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000000600005, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000000700005, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000010200005, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000010300005, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000010600005, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000010700005, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000020200005, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000020300005, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000020600005, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000020700005, FusedInferAttentionScoreTilingData)
+ 
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000000200003, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000000300003, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000000600003, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000000700003, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000010200003, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000010300003, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000010600003, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000010700003, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000020200003, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000020300003, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000020600003, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000020700003, FusedInferAttentionScoreTilingData)
+
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000000000000, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000010000001, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000030000003, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000050000005, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000000100000, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000010100001, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000030100003, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000050100005, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000000400000, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000010400001, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000030400003, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000050400005, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000000500000, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000010500001, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000030500003, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000050500005, FusedInferAttentionScoreTilingData)
+
+// Gqa NoQuant  With Perf
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000100200000, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000100300000, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000100600000, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000100700000, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000110200000, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000110300000, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000110600000, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000110700000, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000120200000, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000120300000, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000120600000, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000120700000, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000100200001, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000100300001, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000100600001, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000100700001, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000110200001, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000110300001, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000110600001, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000110700001, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000120200001, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000120300001, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000120600001, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000120700001, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000100000000, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000110000001, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000100100000, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000110100001, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000100400000, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000110400001, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000100500000, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000110500001, FusedInferAttentionScoreTilingData)
+
+// Gqa NoQuant PA dtype: Q=BF16 KV=BF16 OUT=BF16
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000000222220, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000000322220, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000000622220, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000000722220, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000010222220, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000010322220, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000010622220, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000010722220, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000020222220, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000020322220, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000020622220, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000020722220, FusedInferAttentionScoreTilingData)
+ 
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000000222221, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000000322221, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000000622221, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000000722221, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000010222221, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000010322221, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000010622221, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000010722221, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000020222221, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000020322221, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000020622221, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000020722221, FusedInferAttentionScoreTilingData)
+ 
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000000222225, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000000322225, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000000622225, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000000722225, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000010222225, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000010322225, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000010622225, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000010722225, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000020222225, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000020322225, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000020622225, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000020722225, FusedInferAttentionScoreTilingData)
+ 
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000000222223, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000000322223, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000000622223, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000000722223, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000010222223, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000010322223, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000010622223, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000010722223, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000020222223, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000020322223, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000020622223, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000020722223, FusedInferAttentionScoreTilingData)
+
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000000022220, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000010022221, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000030022223, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000050022225, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000000122220, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000010122221, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000030122223, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000050122225, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000000422220, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000010422221, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000030422223, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000050422225, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000000522220, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000010522221, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000030522223, FusedInferAttentionScoreTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000050522225, FusedInferAttentionScoreTilingData)
+
+constexpr size_t DIM_NZ = 5;
+constexpr uint32_t NZ_D1_IDX = 2;
+constexpr uint32_t NZ_D0_IDX = 4;
+constexpr uint32_t TND_NTD_D_IDX = 2;
+
+
 FIA_EXTERN_C ge::graphStatus TilingFusedInferAttentionScoreV3(gert::TilingContext *context)
 {
     FiaTilingInfo fiaInfo;
@@ -78,40 +259,272 @@ FIA_EXTERN_C ge::graphStatus TilingFusedInferAttentionScoreV3(gert::TilingContex
     return FiaTilingRegistry::GetInstance().DoTilingImpl(context, &fiaInfo);
 }
 
-bool RouteToFia(gert::TilingContext *context, IncreFlashAttentionContext &ifaContext)
+bool GetPaValueD(gert::TilingContext *context, int64_t &valueD)
 {
-    if ((context == nullptr) || (ifaContext.query.desc == nullptr) || (ifaContext.key.desc == nullptr)) {
+    auto attrs = context->GetAttrs();
+    int64_t numHeads = static_cast<int64_t>(*attrs->GetAttrPointer<uint32_t>(ATTR_N_INDEX));
+    int64_t numKvHeads = static_cast<int64_t>(*attrs->GetAttrPointer<uint32_t>(ATTR_NUM_KV_HEADS_INDEX));
+    if (numKvHeads == 0) {
+        numKvHeads = numHeads;
+    }
+    auto vStorageShape = context->GetInputShape(VALUE_INDEX)->GetStorageShape();
+    if (vStorageShape.GetDimNum() == DIM_BSH) {
+        valueD = vStorageShape.GetDim(BSH_H_IDX) / numKvHeads; // BnBsH
+    } else if (vStorageShape.GetDimNum() == DIM_BNSD_OR_BSND) {
+        valueD = vStorageShape.GetDim(BNSD_D_IDX); // BnNBsD
+    } else if (vStorageShape.GetDimNum() == DIM_NZ) {
+        valueD = vStorageShape.GetDim(NZ_D1_IDX) * vStorageShape.GetDim(NZ_D0_IDX); // NZ: BnND1BsD0
+    } else {
+        return false;
+    }
+    return true;
+}
+
+bool GetValueD(gert::TilingContext *context, int64_t &valueD)
+{
+    auto vShape = context->GetInputShape(VALUE_INDEX);
+    if (vShape == nullptr) {
+        return false;
+    }
+    auto vStorageShape = vShape->GetStorageShape();
+
+    bool isPageAttention = context->GetOptionalInputShape(BLOCK_TABLE_INDEX) != nullptr;
+    if (isPageAttention) {
+        return GetPaValueD(context, valueD);
+    }
+
+    auto attrs = context->GetAttrs();
+    int64_t numHeads = static_cast<int64_t>(*attrs->GetAttrPointer<uint32_t>(ATTR_N_INDEX));
+    int64_t numKvHeads = static_cast<int64_t>(*attrs->GetAttrPointer<uint32_t>(ATTR_NUM_KV_HEADS_INDEX));
+    if (numKvHeads == 0) {
+        numKvHeads = numHeads;
+    }
+    const std::string inputLayoutStr = std::string(context->GetAttrs()->GetAttrPointer<char>(ATTR_INPUT_LAYOUT_INDEX));
+    if (inputLayoutStr == "BNSD_BSND" ||
+        inputLayoutStr == "BSND_BNSD" ||
+        inputLayoutStr == "BNSD_NBSD" ||
+        inputLayoutStr == "BSND_NBSD" ||
+        inputLayoutStr == "BNSD" ||
+        inputLayoutStr == "BSND") {
+        valueD = vStorageShape.GetDim(BNSD_D_IDX);
+    } else if (inputLayoutStr == "BSH" ||
+        inputLayoutStr == "BSH_NBSD" ||
+        inputLayoutStr == "BSH_BNSD") {
+        valueD = vStorageShape.GetDim(BSH_H_IDX) / numKvHeads;
+    } else if (inputLayoutStr == "TND" ||
+        inputLayoutStr == "NTD" ||
+        inputLayoutStr == "TND_NTD" ||
+        inputLayoutStr == "NTD_TND") {
+        valueD = vStorageShape.GetDim(TND_NTD_D_IDX);
+    } else {
         return false;
     }
 
+    return true;
+}
+
+bool GetQkvD(gert::TilingContext *context, int64_t &queryD, int64_t &queryRopeD, int64_t &valueD)
+{
+    auto qShape = context->GetInputShape(QUERY_INDEX);
+    auto qRopeShape = context->GetOptionalInputShape(QUERY_ROPE_INDEX);
+    if (qShape == nullptr) {
+        return false;
+    }
+    auto qStorageShape = qShape->GetStorageShape();
+    
+    auto attrs = context->GetAttrs();
+    if (attrs == nullptr) {
+        return false;
+    }
+
+    int64_t numHeads = static_cast<int64_t>(*attrs->GetAttrPointer<uint32_t>(ATTR_N_INDEX));
+    const std::string inputLayoutStr = std::string(context->GetAttrs()->GetAttrPointer<char>(ATTR_INPUT_LAYOUT_INDEX));
+    if (inputLayoutStr == "BNSD_BSND" ||
+        inputLayoutStr == "BSND_BNSD" ||
+        inputLayoutStr == "BNSD_NBSD" ||
+        inputLayoutStr == "BSND_NBSD" ||
+        inputLayoutStr == "BNSD" ||
+        inputLayoutStr == "BSND") {
+        queryD = qStorageShape.GetDim(BNSD_D_IDX);
+        if (qRopeShape != nullptr) {
+            queryRopeD = qRopeShape->GetStorageShape().GetDim(BNSD_D_IDX);
+        }
+    } else if (inputLayoutStr == "BSH" ||
+        inputLayoutStr == "BSH_NBSD" ||
+        inputLayoutStr == "BSH_BNSD") {
+        queryD = qStorageShape.GetDim(BSH_H_IDX) / numHeads;
+        if (qRopeShape != nullptr) {
+            queryRopeD = qRopeShape->GetStorageShape().GetDim(BSH_H_IDX) / numHeads;
+        }
+    } else if (inputLayoutStr == "TND" ||
+        inputLayoutStr == "NTD" ||
+        inputLayoutStr == "TND_NTD" ||
+        inputLayoutStr == "NTD_TND") {
+        queryD = qStorageShape.GetDim(TND_NTD_D_IDX);
+        if (qRopeShape != nullptr) {
+            queryRopeD = qRopeShape->GetStorageShape().GetDim(TND_NTD_D_IDX);
+        }
+    } else {
+        return false;
+    }
+
+    return GetValueD(context, valueD);
+}
+
+bool CheckGqaDSupport(gert::TilingContext *context)
+{
+    int64_t queryD = 0;
+    int64_t queryRopeD = 0;
+    int64_t valueD = 0;
+    if (GetQkvD(context, queryD, queryRopeD, valueD) != true) {
+        return false;
+    }
+
+    // D的组合(128+0,128)(64+0,64)(128+64,128)(192+0,128)
+    if ((queryD  == 128 && queryRopeD  == 0 && valueD == 128) || // 128: gqa qkvD
+        (queryD  == 64 && queryRopeD  == 0 && valueD == 64) || // 64: gqa qkvD
+        (queryD  == 128 && queryRopeD  == 64 && valueD == 128) || // 128: gqa qkvD, 64: mla ropeD
+        (queryD  == 192 && queryRopeD  == 0 && valueD == 128)) { // 192: gqa qkD, 128: gqa valueD
+        return true;
+    }
+
+    return false;
+}
+
+bool CheckGqaInputLayoutSupport(gert::TilingContext *context)
+{
+    const std::string inputLayoutStr = std::string(context->GetAttrs()->GetAttrPointer<char>(ATTR_INPUT_LAYOUT_INDEX));
+    if (inputLayoutStr == "BNSD_BSND" ||
+        inputLayoutStr == "BSND_BNSD" ||
+        inputLayoutStr == "BNSD" ||
+        inputLayoutStr == "BSND" ||
+        inputLayoutStr == "BSH_BNSD" ||
+        inputLayoutStr == "BSH" ||
+        inputLayoutStr == "TND" ||
+        inputLayoutStr == "NTD" ||
+        inputLayoutStr == "NTD_TND") {
+        return true;
+    }
+
+    return false;
+}
+
+bool CheckGqaFeatureSupport(gert::TilingContext *context)
+{
+    auto pseShift = context->GetOptionalInputTensor(PSE_SHIFT_INDEX);
+    auto queryPaddingSize = context->GetOptionalInputTensor(QUERY_PADDING_SIZE_INDEX);
+    auto kvPaddingSize = context->GetOptionalInputTensor(KV_PADDING_SIZE_INDEX);
+    auto keySharedPrefix = context->GetOptionalInputTensor(KEY_SHARED_PREFIX_INDEX);
+    auto valueSharedPrefix = context->GetOptionalInputTensor(VALUE_SHARED_PREFIX_INDEX);
+    auto actualSharedPrefixLen = context->GetOptionalInputTensor(ACTUAL_SHARED_PREFIX_LEN_INDEX);
+    auto quantScale2 = context->GetOptionalInputTensor(QUANT_SCALE2_INDEX);
+    auto quantOffset2 = context->GetOptionalInputTensor(QUANT_OFFSET2_INDEX);
+    if (pseShift != nullptr ||
+        queryPaddingSize != nullptr ||
+        kvPaddingSize != nullptr ||
+        keySharedPrefix != nullptr ||
+        valueSharedPrefix != nullptr ||
+        actualSharedPrefixLen != nullptr ||
+        quantScale2 != nullptr ||
+        quantOffset2 != nullptr) {
+        return false;
+    }
+
+    return true;
+}
+
+bool CheckGqaConstrain(gert::TilingContext *context)
+{
+    // if (CheckGqaInputLayoutSupport(context) &&
+    //     CheckGqaDSupport(context) &&
+    //     CheckGqaFeatureSupport(context)) {
+    //     return true;
+    // }
+
+    return false;
+}
+
+
+bool CheckMlaInputLayoutSupport(gert::TilingContext *context)
+{
+    const std::string inputLayoutStr = std::string(context->GetAttrs()->GetAttrPointer<char>(ATTR_INPUT_LAYOUT_INDEX));
+    if (inputLayoutStr == "BSH" ||
+        inputLayoutStr == "BNSD" ||
+        inputLayoutStr == "BSND" ||
+        inputLayoutStr == "BNSD_NBSD" ||
+        inputLayoutStr == "BSND_NBSD" ||
+        inputLayoutStr == "BSH_NBSD" ||
+        inputLayoutStr == "TND" ||
+        inputLayoutStr == "TND_NTD") {
+        return true;
+    }
+
+    return false;
+}
+
+bool CheckMlaDSupport(gert::TilingContext *context)
+{
+    int64_t queryD = 0;
+    int64_t queryRopeD = 0;
+    int64_t valueD = 0;
+    if (GetQkvD(context, queryD, queryRopeD, valueD) != true) {
+        return false;
+    }
+
+    if ((queryD  == 512 && queryRopeD  == 64 && valueD == 512)) { // 512: mla qkvD, 64: mla ropeD
+        return true;
+    }
+
+    return false;
+}
+
+bool CheckMlaConstrain(gert::TilingContext *context)
+{
+    if (CheckMlaInputLayoutSupport(context) &&
+        CheckMlaDSupport(context)) {
+        return true;
+    }
+
+    return false;
+}
+
+bool RouteToFia(gert::TilingContext *context)
+{
+    if ((context == nullptr) || context->GetAttrs() == nullptr ||
+        (context->GetInputDesc(QUERY_INDEX) == nullptr) ||
+        (context->GetInputDesc(KEY_INDEX) == nullptr)) {
+        return false;
+    }
     auto platformInfoPtr = context->GetPlatformInfo();
     auto ascendcPlatform = platform_ascendc::PlatformAscendC(platformInfoPtr);
     if (ascendcPlatform.GetSocVersion() == platform_ascendc::SocVersion::ASCEND310P) {
         return false;
     }
 
-    ge::DataType qDataType = ifaContext.query.desc->GetDataType();
-    ge::DataType kDataType = ifaContext.key.desc->GetDataType();
-    bool isMla = (ifaContext.keyRope.tensor != nullptr && ifaContext.queryRope.tensor != nullptr);
-    if (isMla) {
+    ge::DataType qDataType = context->GetInputDesc(QUERY_INDEX)->GetDataType();
+    ge::DataType kDataType = context->GetInputDesc(KEY_INDEX)->GetDataType();
+    bool isRopeSplit = (context->GetOptionalInputTensor(QUERY_ROPE_INDEX) != nullptr &&
+        context->GetOptionalInputTensor(KEY_ROPE_INDEX) != nullptr);
+    if (isRopeSplit) {
         // MLA非量化
         if ((qDataType == ge::DT_FLOAT16 || qDataType == ge::DT_BF16) && (qDataType == kDataType)) {
-            return true;
-        }
-        // MLA BF16伪量化
-        if ((qDataType == ge::DT_BF16) && (kDataType == ge::DT_INT8)) {
+            if (CheckGqaConstrain(context)) {
+                OP_LOGI(context->GetNodeName(), "FIA RopeSplit GQA No quant.");
+                return true;
+            }
+            if (CheckMlaConstrain(context)) {
+                OP_LOGI(context->GetNodeName(), "FIA RopeSplit MLA No quant.");
+                return true;
+            }
             return false;
         }
-        // MLA FP16伪量化
-        if ((qDataType == ge::DT_FLOAT16) && (kDataType == ge::DT_INT8)) {
-            return false;
-        }
-        // MLA全量化
-        if ((qDataType == ge::DT_INT8) && (kDataType == ge::DT_INT8)) {
-            return false;
+    } else {
+        // GQA非量化
+        if ((qDataType == ge::DT_FLOAT16 || qDataType == ge::DT_BF16) && (qDataType == kDataType)) {
+            OP_LOGI(context->GetNodeName(), "FIA GQA No quant.");
+            return CheckGqaConstrain(context);
         }
     }
     return false;
 }
-
 } // namespace optiling

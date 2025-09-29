@@ -138,6 +138,13 @@ void FiaTilingCheck::LogErrorDimNumSupport(const std::vector<T> &expectNumberLis
 }
 
 template <typename T>
+void FiaTilingCheck::LogErrorShapeNumSupport(const std::vector<T> &expectNumberList,
+    const T &actualValue, const std::string &name) const
+{
+    LogErrorNumberSupport(expectNumberList, actualValue, name, "shape num");
+}
+
+template <typename T>
 void FiaTilingCheck::LogErrorAttrValueSupport(const std::vector<T> &expectNumberList,
     const T &actualValue, const std::string &name) const
 {
@@ -154,6 +161,38 @@ ge::graphStatus FiaTilingCheck::CheckDimNumSupport(const gert::StorageShape *sha
     if (std::find(expectDimNumList.begin(), expectDimNumList.end(),
         shape->GetStorageShape().GetDimNum()) == expectDimNumList.end()) {
         LogErrorDimNumSupport(expectDimNumList, shape->GetStorageShape().GetDimNum(), name);
+        return ge::GRAPH_FAILED;
+    }
+
+    return ge::GRAPH_SUCCESS;
+}
+
+ge::graphStatus FiaTilingCheck::CheckDimNumSupport(const gert::Tensor *tensor,
+    const std::vector<size_t> &expectDimNumList, const std::string &name) const
+{
+    if (tensor == nullptr) {
+        return ge::GRAPH_SUCCESS;
+    }
+
+    if (std::find(expectDimNumList.begin(), expectDimNumList.end(),
+        tensor->GetStorageShape().GetDimNum()) == expectDimNumList.end()) {
+        LogErrorDimNumSupport(expectDimNumList, tensor->GetStorageShape().GetDimNum(), name);
+        return ge::GRAPH_FAILED;
+    }
+
+    return ge::GRAPH_SUCCESS;
+}
+
+ge::graphStatus FiaTilingCheck::CheckShapeSupport(const gert::Tensor *tensor,
+    const std::vector<int64_t> &expectShapeList, const std::string &name) const
+{
+    if (tensor == nullptr) {
+        return ge::GRAPH_SUCCESS;
+    }
+
+    if (std::find(expectShapeList.begin(), expectShapeList.end(),
+        tensor->GetShapeSize()) == expectShapeList.end()) {
+        LogErrorShapeNumSupport(expectShapeList, tensor->GetShapeSize(), name);
         return ge::GRAPH_FAILED;
     }
 
@@ -332,6 +371,16 @@ ge::graphStatus FiaTilingCheck::CheckSingleParaBlockTable() const
 
 ge::graphStatus FiaTilingCheck::CheckSingleParaQueryPaddingSize() const
 {
+    const std::vector<int64_t> querypaddingsizeShapeNumList = {SHAPE_NUM_ONE};
+    if (ge::GRAPH_SUCCESS != CheckShapeSupport(opParamInfo_.queryPaddingSize.tensor, querypaddingsizeShapeNumList, QUERY_PADDING_SIZE_NAME)) {
+        return ge::GRAPH_FAILED;
+    }
+
+    const std::vector<size_t> querypaddingsizeDimNumList = {DIM_NUM_ONE};
+    if (ge::GRAPH_SUCCESS != CheckDimNumSupport(opParamInfo_.queryPaddingSize.tensor, querypaddingsizeDimNumList, QUERY_PADDING_SIZE_NAME)) {
+        return ge::GRAPH_FAILED;
+    }
+
     return ge::GRAPH_SUCCESS;
 }
 
@@ -340,6 +389,12 @@ ge::graphStatus FiaTilingCheck::CheckSingleParaKvPaddingSize() const
     if (ge::GRAPH_SUCCESS != CheckFormatSupport(opParamInfo_.kvPaddingSize.desc, KV_PADDING_SIZE_NAME)) {
         return ge::GRAPH_FAILED;
     }
+
+    const std::vector<size_t> kvpaddingsizeDimNumList = {DIM_NUM_ONE};
+    if (ge::GRAPH_SUCCESS != CheckDimNumSupport(opParamInfo_.kvPaddingSize.tensor, kvpaddingsizeDimNumList, KV_PADDING_SIZE_NAME)) {
+        return ge::GRAPH_FAILED;
+    }
+
     return ge::GRAPH_SUCCESS;
 }
 
@@ -394,11 +449,6 @@ ge::graphStatus FiaTilingCheck::CheckSingleParaValueSharedPrefix() const
         ge::GRAPH_SUCCESS != CheckFormatSupport(opParamInfo_.valueSharedPrefix.desc, VALUE_SHARED_PREFIX_NAME)) {
         return ge::GRAPH_FAILED;
     }
-    return ge::GRAPH_SUCCESS;
-}
-
-ge::graphStatus FiaTilingCheck::CheckSingleParaActualSharedPrefixLen() const
-{
     return ge::GRAPH_SUCCESS;
 }
 
@@ -487,12 +537,12 @@ ge::graphStatus FiaTilingCheck::CheckSingleParaKvHeadNums() const
 ge::graphStatus FiaTilingCheck::CheckSingleParaLayout() const
 {
     const std::vector<std::string> inputLayoutList = {
-        "BSH", "BSND", "BNSD", "TND", "BSH_NBSD", "BSND_NBSD", "BNSD_NBSD", "TND_NTD", "NTD_TND"
+        "BSH", "BSND", "BNSD", "TND", "NTD", "BSH_NBSD", "BSND_NBSD", "BNSD_NBSD", "TND_NTD", "NTD_TND", "BSH_BNSD", "BSND_BNSD", "BNSD_BSND"
     };
     std::string inputLayout = opParamInfo_.layOut;
     if (std::find(inputLayoutList.begin(), inputLayoutList.end(), inputLayout) == inputLayoutList.end()) {
         OP_LOGE(opName_,
-            "input layout only supports BSH, BSND, BNSD, TND, BSH_NBSD, BSND_NBSD, BNSD_NBSD, TND_NTD, NTD_TND, but got %s",
+            "input layout only supports BSH, BSND, BNSD, TND, NTD, BSH_NBSD, BSND_NBSD, BNSD_NBSD, TND_NTD, NTD_TND, BSH_BNSD, BSND_BNSD, BNSD_BSND, but got %s",
             inputLayout.c_str());
         return ge::GRAPH_FAILED;
     }
@@ -610,7 +660,6 @@ ge::graphStatus FiaTilingCheck::CheckSinglePara() const
         ge::GRAPH_SUCCESS != CheckSingleParaValueAntiquantOffset() ||
         ge::GRAPH_SUCCESS != CheckSingleParaKeySharedPrefix() ||
         ge::GRAPH_SUCCESS != CheckSingleParaValueSharedPrefix() ||
-        ge::GRAPH_SUCCESS != CheckSingleParaActualSharedPrefixLen() ||
         ge::GRAPH_SUCCESS != CheckSingleParaQueryRope() ||
         ge::GRAPH_SUCCESS != CheckSingleParaKeyRope() ||
         ge::GRAPH_SUCCESS != CheckSingleParaKeyRopeAntiquantScale() ||

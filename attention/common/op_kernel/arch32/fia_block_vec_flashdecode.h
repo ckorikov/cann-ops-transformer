@@ -22,10 +22,12 @@
 #include "lib/matrix/matmul/tiling.h"
 #include "../fia_public_define.h"
 #include "../vector_common.h"
+#include "../memory_copy.h"
 
 using namespace AttentionCommon;
 struct TaskInfo {
     uint32_t bIdx;
+    uint32_t n2Idx;
     uint32_t gS1Idx;
     uint32_t actualCombineLoopSize;
 };
@@ -40,7 +42,8 @@ public:
     static constexpr FIA_LAYOUT LAYOUT_T = FIAT::layout; 
 
     __aicore__ inline void InitGlobalTensor(GlobalTensor<T> lseMaxFdGm, GlobalTensor<T> lseSumFdGm, GlobalTensor<T> accumOutGm, 
-            GlobalTensor<OUT_T> attentionOutGm, GlobalTensor<uint64_t> actualSeqLengthsGmQ);
+         GlobalTensor<OUT_T> attentionOutGm, GlobalTensor<uint64_t> actualSeqLengthsGmQ, GlobalTensor<uint64_t> actualSeqLengthsGm);
+    __aicore__ inline void InitSoftmaxLseGm(GlobalTensor<float> softmaxLseGm);
     __aicore__ inline void InitParams(const AttentionCommon::ConstInfo &constInfo);
     __aicore__ inline void InitDecodeParams();
     __aicore__ inline void InitBuffers(TPipe *pipe);
@@ -53,11 +56,15 @@ protected:
     __aicore__ inline void CopyLseIn(uint32_t startRow, uint32_t dealRowCount, uint64_t baseOffset, uint32_t cntM);
     __aicore__ inline void ComputeScaleValue(LocalTensor<T> &lseExp, uint32_t startRow, uint32_t dealRowCount,
                                              uint32_t cntM);
-     __aicore__ inline void Bmm2DataCopyOut(uint64_t attenOutOffset, LocalTensor<OUT_T> &attenOutUb, uint32_t startRow,
+    __aicore__ inline void Bmm2DataCopyOutTrans(LocalTensor<OUT_T> &attenOutUb, uint32_t startRow,
+                                                 uint32_t dealRowCount, uint32_t columnCount);
+    __aicore__ inline void Bmm2DataCopyOut(uint64_t attenOutOffset, LocalTensor<OUT_T> &attenOutUb, uint32_t startRow,
                                            uint32_t dealRowCount, uint32_t columnCount, uint32_t actualColumnCount);
     __aicore__ inline void ReduceFinalRes(LocalTensor<T> &reduceOut, LocalTensor<T> &mm2Res, LocalTensor<T> &lseLocal, 
                                           uint32_t cntKV, uint32_t dealRowCount);
-    __aicore__ inline void CopyFinalResOut(LocalTensor<T> &accumOutLocal, uint32_t startRow, uint32_t dealRowCount, uint64_t attenOutOffset);
+    __aicore__ inline void CopyFinalResOut(LocalTensor<T> &accumOutLocal, uint32_t startRow, uint32_t dealRowCount);
+    __aicore__ inline void CalaPreNextTokens();
+ 
 private:
 // =================================常量区=================================
     static constexpr uint64_t SYNC_LSE_SUM_BUF1_FLAG = 6;
@@ -66,17 +73,31 @@ private:
     static constexpr uint64_t SYNC_LSE_MAX_BUF2_FLAG = 9;
     static constexpr uint64_t SYNC_MM2RES_BUF1_FLAG = 10;
     static constexpr uint64_t SYNC_MM2RES_BUF2_FLAG = 11;
-    static constexpr uint64_t SYNC_FDOUTPUT_BUF_FLAG = 12;
+    static constexpr uint64_t SYNC_FDOUTPUT_BUF_FLAG = 6;
+    static constexpr uint64_t SYNC_LSEOUTPUT_BUF_FLAG = 7;
 
     static constexpr uint32_t BLOCK_ELEMENT_NUM = fa_base_vector::BYTE_BLOCK / sizeof(T); // 32/4=8
-    
+
 protected:
-    GlobalTensor<T> lseSumFdGm;       
+    GlobalTensor<T> lseSumFdGm;
     GlobalTensor<T> lseMaxFdGm;
     GlobalTensor<T> accumOutGm;
     GlobalTensor<OUT_T> attentionOutGm;
+    GlobalTensor<float> softmaxLseGm;
     GlobalTensor<uint64_t> actualSeqLengthsGmQ;
-
+    GlobalTensor<uint64_t> actualSeqLengthsGm;
+    // =======================获取实际Act_S，用于行无效处理===========================
+    static constexpr bool PAGE_ATTENTION = FIAT::pageAttention;
+    static constexpr ActualSeqLensMode Q_MODE = GetQActSeqMode<LAYOUT_T>();
+    static constexpr ActualSeqLensMode KV_MODE = GetKvActSeqMode<LAYOUT_T, PAGE_ATTENTION>();
+    ActualSeqLensParser<Q_MODE> qActSeqLensParser;
+    ActualSeqLensParser<KV_MODE> kvActSeqLensParser;
+    uint64_t actSeqLensKv = 0;
+    uint64_t actSeqLensQ = 0;
+    
+    int64_t preTokensPerBatch = 0;
+    int64_t nextTokensPerBatch = 0;
+    static constexpr uint32_t negativeIntScalar = NEGATIVE_MIN_VAULE_FP32;
     // ================================类成员变量====================================
     // aic、aiv核信息
     uint32_t blockIdx = 0U;
@@ -96,6 +117,7 @@ private:
 
     TBuf<> fdLseMaxUbBuf; // 64B: 16*4
     TBuf<> fdLseSumUbBuf; // 64B: 16*4
+    TBuf<> fdLseUbBuf; // 64B: 16*4
 };
 
 template <typename FIAT> __aicore__ inline 
@@ -103,13 +125,24 @@ void FiaBlockVecFlashDecode<FIAT>::InitGlobalTensor(GlobalTensor<T> lseMaxFdGm,
                                                         GlobalTensor<T> lseSumFdGm, 
                                                         GlobalTensor<T> accumOutGm,
                                                         GlobalTensor<OUT_T> attentionOutGm,
-                                                        GlobalTensor<uint64_t> actualSeqLengthsGmQ)
+                                                        GlobalTensor<uint64_t> actualSeqLengthsGmQ,
+                                                        GlobalTensor<uint64_t> actualSeqLengthsGm)
 {
    this->lseMaxFdGm = lseMaxFdGm;
    this->lseSumFdGm = lseSumFdGm;
    this->accumOutGm = accumOutGm;
    this->attentionOutGm = attentionOutGm;
    this->actualSeqLengthsGmQ = actualSeqLengthsGmQ;
+   this->actualSeqLengthsGm = actualSeqLengthsGm;
+
+   qActSeqLensParser.Init(this->actualSeqLengthsGmQ, constInfo.actualLenQDims, constInfo.qSeqSize);
+   kvActSeqLensParser.Init(this->actualSeqLengthsGm, constInfo.actualLenDims, constInfo.kvSeqSize);
+}
+
+template <typename FIAT> __aicore__ inline 
+void FiaBlockVecFlashDecode<FIAT>::InitSoftmaxLseGm(GlobalTensor<float> softmaxLseGm)
+{
+   this->softmaxLseGm = softmaxLseGm;
 }
 
 template <typename FIAT> __aicore__ inline 
@@ -141,6 +174,7 @@ void FiaBlockVecFlashDecode<FIAT>::InitBuffers(TPipe *pipe)
         pipe->InitBuffer(fdOutputBuf, AttentionCommon::ConstInfo::BUFFER_SIZE_BYTE_16K);
         pipe->InitBuffer(fdLseMaxUbBuf, AttentionCommon::ConstInfo::BUFFER_SIZE_BYTE_256B);
         pipe->InitBuffer(fdLseSumUbBuf, AttentionCommon::ConstInfo::BUFFER_SIZE_BYTE_256B);
+        pipe->InitBuffer(fdLseUbBuf, AttentionCommon::ConstInfo::BUFFER_SIZE_BYTE_256B);
     }
 }
 
@@ -154,6 +188,7 @@ void FiaBlockVecFlashDecode<FIAT>::AllocEventID()
     SetFlag<AscendC::HardEvent::V_MTE2>(SYNC_MM2RES_BUF1_FLAG);
     SetFlag<AscendC::HardEvent::V_MTE2>(SYNC_MM2RES_BUF2_FLAG);
     SetFlag<AscendC::HardEvent::MTE3_V>(SYNC_FDOUTPUT_BUF_FLAG);
+    SetFlag<AscendC::HardEvent::MTE3_V>(SYNC_LSEOUTPUT_BUF_FLAG);
 }
 
 template <typename FIAT> __aicore__ inline 
@@ -166,6 +201,7 @@ void FiaBlockVecFlashDecode<FIAT>::FreeEventID()
     WaitFlag<AscendC::HardEvent::V_MTE2>(SYNC_MM2RES_BUF1_FLAG);
     WaitFlag<AscendC::HardEvent::V_MTE2>(SYNC_MM2RES_BUF2_FLAG);
     WaitFlag<AscendC::HardEvent::MTE3_V>(SYNC_FDOUTPUT_BUF_FLAG);
+    WaitFlag<AscendC::HardEvent::MTE3_V>(SYNC_LSEOUTPUT_BUF_FLAG);
 }
 
 template <typename FIAT> __aicore__ inline 
@@ -249,10 +285,66 @@ FiaBlockVecFlashDecode<FIAT>::ComputeScaleValue(LocalTensor<T> &lseExp,
     fa_base_vector::MatDivsVec(lseExp, lseExp, lseSumUb, taskInfo.actualCombineLoopSize, dealRowCountAlign, dealRowCountAlign);
     AscendC::PipeBarrier<PIPE_V>();
 
-    SetFlag<AscendC::HardEvent::V_MTE2>(SYNC_LSE_SUM_BUF1_FLAG + cntM % 2);
-    SetFlag<AscendC::HardEvent::V_MTE2>(SYNC_LSE_MAX_BUF1_FLAG + cntM % 2);
 }
 
+template <typename FIAT>
+__aicore__ inline void FiaBlockVecFlashDecode<FIAT>::Bmm2DataCopyOutTrans(LocalTensor<OUT_T> &attenOutUb, uint32_t startRow,
+                                                                      uint32_t dealRowCount, uint32_t columnCount)
+{
+    FaUbTensor<OUT_T, GetOutUbFormat<LAYOUT_T>()> ubTensor{
+        .tensor = attenOutUb,
+        .rowCount = dealRowCount,
+        .colCount = columnCount,
+    };
+    GmCoord gmCoord{.bIdx = taskInfo.bIdx,
+                    .n2Idx = taskInfo.n2Idx,
+                    .gS1Idx = taskInfo.gS1Idx + startRow,
+                    .dIdx = 0,
+                    .gS1DealSize = dealRowCount,
+                    .dDealSize = (uint32_t)constInfo.headDim};
+
+    if (constInfo.outputLayout == FIA_LAYOUT::BSH) {
+        constexpr GmFormat OUT_FORMAT = GmFormat::BSNGD;
+        FaGmTensor<OUT_T, OUT_FORMAT> outGmTensor;
+        outGmTensor.gmTensor = attentionOutGm;
+        outGmTensor.offsetCalculator.Init(constInfo.batchSize, constInfo.kvHeadNum, constInfo.gSize, constInfo.qSeqSize,
+                                          constInfo.headDim, actualSeqLengthsGmQ, constInfo.actualLenQDims);
+        CopyAttenOutUbToGm<OUT_T, OUT_FORMAT, GetOutUbFormat<LAYOUT_T>()> copyAttenOutUbToGm;
+        copyAttenOutUbToGm(outGmTensor, ubTensor, gmCoord);
+    } else if (constInfo.outputLayout == FIA_LAYOUT::BNSD) {
+        constexpr GmFormat OUT_FORMAT = GmFormat::BNGSD;
+        FaGmTensor<OUT_T, OUT_FORMAT> outGmTensor;
+        outGmTensor.gmTensor = attentionOutGm;
+        outGmTensor.offsetCalculator.Init(constInfo.batchSize, constInfo.kvHeadNum, constInfo.gSize, constInfo.qSeqSize,
+                                          constInfo.headDim, actualSeqLengthsGmQ, constInfo.actualLenQDims);
+        CopyAttenOutUbToGm<OUT_T, OUT_FORMAT, GetOutUbFormat<LAYOUT_T>()> copyAttenOutUbToGm;
+        copyAttenOutUbToGm(outGmTensor, ubTensor, gmCoord);
+    } else if (constInfo.outputLayout == FIA_LAYOUT::NBSD) {
+        constexpr GmFormat OUT_FORMAT = GmFormat::NGBSD;
+        FaGmTensor<OUT_T, OUT_FORMAT> outGmTensor;
+        outGmTensor.gmTensor = attentionOutGm;
+        outGmTensor.offsetCalculator.Init(constInfo.batchSize, constInfo.kvHeadNum, constInfo.gSize, constInfo.qSeqSize,
+                                          constInfo.headDim, actualSeqLengthsGmQ, constInfo.actualLenQDims);
+        CopyAttenOutUbToGm<OUT_T, OUT_FORMAT, GetOutUbFormat<LAYOUT_T>()> copyAttenOutUbToGm;
+        copyAttenOutUbToGm(outGmTensor, ubTensor, gmCoord);
+    } else if (constInfo.outputLayout == FIA_LAYOUT::TND) {
+        constexpr GmFormat OUT_FORMAT = GmFormat::TNGD;
+        FaGmTensor<OUT_T, OUT_FORMAT> outGmTensor;
+        outGmTensor.gmTensor = attentionOutGm;
+        outGmTensor.offsetCalculator.Init(constInfo.kvHeadNum, constInfo.gSize, constInfo.headDim, actualSeqLengthsGmQ,
+                                          constInfo.actualLenQDims);
+        CopyAttenOutUbToGm<OUT_T, OUT_FORMAT, GetOutUbFormat<LAYOUT_T>()> copyAttenOutUbToGm;
+        copyAttenOutUbToGm(outGmTensor, ubTensor, gmCoord);
+    } else if (constInfo.outputLayout == FIA_LAYOUT::NTD) {
+        constexpr GmFormat OUT_FORMAT = GmFormat::NGTD;
+        FaGmTensor<OUT_T, OUT_FORMAT> outGmTensor;
+        outGmTensor.gmTensor = attentionOutGm;
+        outGmTensor.offsetCalculator.Init(constInfo.kvHeadNum, constInfo.gSize, constInfo.headDim, actualSeqLengthsGmQ,
+                                          constInfo.actualLenQDims);
+        CopyAttenOutUbToGm<OUT_T, OUT_FORMAT, GetOutUbFormat<LAYOUT_T>()> copyAttenOutUbToGm;
+        copyAttenOutUbToGm(outGmTensor, ubTensor, gmCoord);
+    }
+}
 
 template <typename FIAT>__aicore__ inline 
 void FiaBlockVecFlashDecode<FIAT>::Bmm2DataCopyOut(uint64_t attenOutOffset, LocalTensor<OUT_T> &attenOutUb,
@@ -291,8 +383,7 @@ void FiaBlockVecFlashDecode<FIAT>::ReduceFinalRes(LocalTensor<T> &reduceOut,
 template <typename FIAT> __aicore__ inline 
 void FiaBlockVecFlashDecode<FIAT>::CopyFinalResOut(LocalTensor<T> &accumOutLocal, 
                                                        uint32_t startRow,
-                                                       uint32_t dealRowCount, 
-                                                       uint64_t attenOutOffset)
+                                                       uint32_t dealRowCount)
 {
     LocalTensor<OUT_T> tmpBmm2ResCastTensor = fdOutputBuf.Get<OUT_T>();
     WaitFlag<AscendC::HardEvent::MTE3_V>(SYNC_FDOUTPUT_BUF_FLAG);
@@ -306,29 +397,48 @@ void FiaBlockVecFlashDecode<FIAT>::CopyFinalResOut(LocalTensor<T> &accumOutLocal
 
     SetFlag<AscendC::HardEvent::V_MTE3>(SYNC_FDOUTPUT_BUF_FLAG);
     WaitFlag<AscendC::HardEvent::V_MTE3>(SYNC_FDOUTPUT_BUF_FLAG);
-    if (constInfo.outputLayout == FIA_LAYOUT::NBSD || constInfo.outputLayout == FIA_LAYOUT::NTD) {
-        FusedTransposeInfo transInfo;
-        transInfo.n2Idx = 0; 
-        transInfo.bIdx = taskInfo.bIdx;
-        auto gS1StartIdx = taskInfo.gS1Idx + startRow;
-        auto gS1EndIdx = gS1StartIdx + dealRowCount - 1;
-        GetGS1Idx<LAYOUT_T>(gS1StartIdx, transInfo.gStartIdx, transInfo.s1StartIdx, constInfo);
-        GetGS1Idx<LAYOUT_T>(gS1EndIdx, transInfo.gEndIdx, transInfo.s1EndIdx, constInfo);
-        if constexpr (LAYOUT_T == FIA_LAYOUT::BNSD) {
-            transInfo.gCount = transInfo.gEndIdx - transInfo.gStartIdx + 1;
-            fa_base_vector::Bmm2DataCopyOutNBSDGTiling(tmpBmm2ResCastTensor, transInfo, constInfo, attentionOutGm);
-        } else {
-            transInfo.s1Count = transInfo.s1EndIdx - transInfo.s1StartIdx + 1;
-            transInfo.gCount = dealRowCount;
-            fa_base_vector::Bmm2DataCopyOutNBSDMTiling<LAYOUT_T, OUT_T>(tmpBmm2ResCastTensor, transInfo, constInfo,
-                                                                        actualSeqLengthsGmQ, attentionOutGm);
-        }
-    } else {
-        Bmm2DataCopyOut(attenOutOffset, tmpBmm2ResCastTensor, startRow, dealRowCount, constInfo.headDimAlign, constInfo.headDim);
-    }
+    // if (constInfo.outputLayout == FIA_LAYOUT::NBSD || constInfo.outputLayout == FIA_LAYOUT::NTD) {
+    //     FusedTransposeInfo transInfo;
+    //     transInfo.n2Idx = 0; 
+    //     transInfo.bIdx = taskInfo.bIdx;
+    //     auto gS1StartIdx = taskInfo.gS1Idx + startRow;
+    //     auto gS1EndIdx = gS1StartIdx + dealRowCount - 1;
+    //     GetGS1Idx<LAYOUT_T>(gS1StartIdx, transInfo.gStartIdx, transInfo.s1StartIdx, constInfo);
+    //     GetGS1Idx<LAYOUT_T>(gS1EndIdx, transInfo.gEndIdx, transInfo.s1EndIdx, constInfo);
+    //     if constexpr (LAYOUT_T == FIA_LAYOUT::BNSD) {
+    //         transInfo.gCount = transInfo.gEndIdx - transInfo.gStartIdx + 1;
+    //         fa_base_vector::Bmm2DataCopyOutNBSDGTiling(tmpBmm2ResCastTensor, transInfo, constInfo, attentionOutGm);
+    //     } else {
+    //         transInfo.s1Count = transInfo.s1EndIdx - transInfo.s1StartIdx + 1;
+    //         transInfo.gCount = dealRowCount;
+    //         fa_base_vector::Bmm2DataCopyOutNBSDMTiling<LAYOUT_T, OUT_T>(tmpBmm2ResCastTensor, transInfo, constInfo,
+    //                                                                     actualSeqLengthsGmQ, attentionOutGm);
+    //     }
+    // } else {
+    //     Bmm2DataCopyOut(attenOutOffset, tmpBmm2ResCastTensor, startRow, dealRowCount, constInfo.headDimAlign, constInfo.headDim);
+    // }
+    Bmm2DataCopyOutTrans(tmpBmm2ResCastTensor, startRow, dealRowCount, constInfo.headDimAlign);
     SetFlag<AscendC::HardEvent::MTE3_V>(SYNC_FDOUTPUT_BUF_FLAG);
 }
 
+template <typename FIAT> __aicore__ inline void
+FiaBlockVecFlashDecode<FIAT>::CalaPreNextTokens()
+{
+    actSeqLensQ = qActSeqLensParser.GetActualSeqLength(taskInfo.bIdx);
+    actSeqLensKv = kvActSeqLensParser.GetActualSeqLength(taskInfo.bIdx);
+    
+    if (constInfo.sparseMode == fa_base_vector::BAND) {
+        preTokensPerBatch = constInfo.preToken;
+        nextTokensPerBatch =
+            static_cast<int32_t>(actSeqLensKv) - static_cast<int32_t>(actSeqLensQ) + constInfo.nextToken;
+    } else if ((constInfo.sparseMode == fa_base_vector::DEFAULT_MASK) && constInfo.attenMaskFlag) {
+        nextTokensPerBatch = constInfo.nextToken;
+        preTokensPerBatch = 
+            static_cast<int32_t>(actSeqLensKv) - static_cast<int32_t>(actSeqLensQ) + constInfo.preToken;
+    } else {
+        nextTokensPerBatch = static_cast<int32_t>(actSeqLensKv) - static_cast<int32_t>(actSeqLensQ);
+    }
+}
 
 template <typename FIAT> __aicore__ inline void
 FiaBlockVecFlashDecode<FIAT>::FlashDecode(FDparams &fd)
@@ -348,7 +458,8 @@ FiaBlockVecFlashDecode<FIAT>::FlashDecode(FDparams &fd)
 
     for (uint32_t fdTaskId = fdTaskPrevEnd; fdTaskId <= fdTaskEnd; fdTaskId++) {
         tmpFdS1gOuterMEnd = (fdTaskId == fdTaskEnd) ? fdS1gOuterMEnd : (fd.gS1SplitNumOfFdHead[fdTaskId] - 1);
-        taskInfo.bIdx = fd.bN2IdxOfFdHead[fdTaskId];
+        taskInfo.bIdx = fd.bN2IdxOfFdHead[fdTaskId] / constInfo.kvHeadNum;
+        taskInfo.n2Idx = fd.bN2IdxOfFdHead[fdTaskId] % constInfo.kvHeadNum;
         taskInfo.gS1Idx = fd.gS1IdxOfFdHead[fdTaskId] * constInfo.mBaseSize;
         taskInfo.actualCombineLoopSize = fd.s2SplitNumOfFdHead[fdTaskId]; // 当前规约任务kv方向有几份
 
@@ -359,25 +470,7 @@ FiaBlockVecFlashDecode<FIAT>::FlashDecode(FDparams &fd)
             combineTaskPrefixSum += fd.s2SplitNumOfFdHead[i];
         }
 
-        uint64_t curAttenOutOffset = 0;
-
-        if constexpr (LAYOUT_T == FIA_LAYOUT::BNSD) {
-            curAttenOutOffset =
-                taskInfo.bIdx * constInfo.qHeadNum * constInfo.qSeqSize * constInfo.headDim + 
-                    taskInfo.gS1Idx * constInfo.headDim;
-        } else {
-            uint64_t actualSeqQPrefixSum;
-            if constexpr (LAYOUT_T == FIA_LAYOUT::TND) {
-                actualSeqQPrefixSum =
-                    (taskInfo.bIdx <= 0) ? 0 : actualSeqLengthsGmQ.GetValue(taskInfo.bIdx - 1);
-            } else { // BSND
-                actualSeqQPrefixSum = (taskInfo.bIdx <= 0) ? 0 : taskInfo.bIdx * constInfo.qSeqSize;
-            }
-            uint64_t batchOutOffset = actualSeqQPrefixSum * constInfo.qHeadNum * constInfo.headDim;
-            curAttenOutOffset = batchOutOffset + taskInfo.gS1Idx * constInfo.headDim;
-        }
-
-        uint64_t taskOffset = combineTaskPrefixSum * constInfo.kvHeadNum * constInfo.mBaseSize;
+        uint64_t taskOffset = combineTaskPrefixSum * constInfo.mBaseSize;
 
         for (uint32_t fdS1gOuterMIdx = tmpFdS1gOuterMStart; fdS1gOuterMIdx <= tmpFdS1gOuterMEnd;
              fdS1gOuterMIdx++) { // 左闭右闭
@@ -402,6 +495,53 @@ FiaBlockVecFlashDecode<FIAT>::FlashDecode(FDparams &fd)
 
             ComputeScaleValue(lseExp, startRow, actualGSplitSize, reduceMLoop);
 
+            //****************************************************************************************************** */
+            if (constInfo.softmaxLseFlag) {
+                // 新增 计算规约后的max和sum
+                LocalTensor<T> lseMaxUb = fdLseMaxUbBuf.Get<T>();
+                LocalTensor<T> lseSumUb = fdLseSumUbBuf.Get<T>();
+                // 新增 最终LSE的计算lse = log(sum) + max
+
+                WaitFlag<HardEvent::MTE3_V>(SYNC_LSEOUTPUT_BUF_FLAG);
+                LocalTensor<T> lseftMaxLseUb = fdLseUbBuf.Get<T>();
+                fa_base_vector::ComputeSoftMaxLse(lseftMaxLseUb, lseSumUb, lseMaxUb, actualGSplitSize);
+                // 判断是否行无效
+                CalaPreNextTokens();
+                bool isInValidRowsFlag = fa_base_vector::IsExistInvalidRows(nextTokensPerBatch, preTokensPerBatch, constInfo.sparseMode,
+                                          constInfo.attenMaskFlag, constInfo.isRowInvalid);
+                if (isInValidRowsFlag) {
+                    SoftMaxShapeInfo softmaxShapeInfo{
+                    static_cast<uint32_t>(actualGSplitSize), static_cast<uint32_t>(FP32_BLOCK_ELEMENT_NUM),
+                    static_cast<uint32_t>(actualGSplitSize), static_cast<uint32_t>(FP32_BLOCK_ELEMENT_NUM)};
+                    AdjustSoftMaxRes<T, T>(lseftMaxLseUb, lseMaxUb, negativeIntScalar, (T)3e+99, softmaxShapeInfo);
+                }
+                SetFlag<HardEvent::V_MTE3>(SYNC_LSEOUTPUT_BUF_FLAG);
+                WaitFlag<HardEvent::V_MTE3>(SYNC_LSEOUTPUT_BUF_FLAG);
+                uint32_t mOffset = taskInfo.gS1Idx + startRow;
+                if (LAYOUT_T == FIA_LAYOUT::TND) {
+                    uint32_t prefixBS1 = taskInfo.bIdx == 0U ? 0U : actualSeqLengthsGmQ.GetValue(taskInfo.bIdx - 1);
+                    uint64_t bN2Offset = prefixBS1 * constInfo.qHeadNum + taskInfo.n2Idx * constInfo.gSize;
+                    DataCopySoftmaxLseTND(softmaxLseGm, lseftMaxLseUb, bN2Offset, mOffset, actualGSplitSize, constInfo);
+                } else if (LAYOUT_T == FIA_LAYOUT::NTD) {
+                    uint32_t prefixBS1 = taskInfo.bIdx == 0U ? 0U : actualSeqLengthsGmQ.GetValue(taskInfo.bIdx - 1);
+                    uint32_t s1Size = taskInfo.bIdx == 0U ? 
+                            actualSeqLengthsGmQ.GetValue(0U) : actualSeqLengthsGmQ.GetValue(taskInfo.bIdx) - actualSeqLengthsGmQ.GetValue(taskInfo.bIdx - 1U);
+                    uint64_t bN2Offset = prefixBS1 * constInfo.qHeadNum + taskInfo.n2Idx * constInfo.gSize;
+                    DataCopySoftmaxLseNTD(softmaxLseGm, lseftMaxLseUb, bN2Offset, mOffset, actualGSplitSize, constInfo, s1Size);
+                } else if (LAYOUT_T == FIA_LAYOUT::BSND || LAYOUT_T == FIA_LAYOUT::BSH) {
+                    uint64_t bN2Offset = taskInfo.bIdx * constInfo.qHeadNum * constInfo.qSeqSize + taskInfo.n2Idx * constInfo.gSize * constInfo.qSeqSize;
+                    DataCopySoftmaxLseBSND(softmaxLseGm, lseftMaxLseUb, bN2Offset, mOffset, actualGSplitSize, constInfo);
+                } else { // BNSD
+                    uint64_t bN2Offset = taskInfo.bIdx * constInfo.qHeadNum * constInfo.qSeqSize + taskInfo.n2Idx * constInfo.gSize * constInfo.qSeqSize;
+                    DataCopySoftmaxLseBNSD(softmaxLseGm, lseftMaxLseUb, bN2Offset, mOffset, actualGSplitSize, constInfo);
+                }
+                SetFlag<HardEvent::MTE3_V>(SYNC_LSEOUTPUT_BUF_FLAG);
+            }
+
+            SetFlag<AscendC::HardEvent::V_MTE2>(SYNC_LSE_SUM_BUF1_FLAG + reduceMLoop % 2);
+            SetFlag<AscendC::HardEvent::V_MTE2>(SYNC_LSE_MAX_BUF1_FLAG + reduceMLoop % 2);
+            //****************************************************************************************************** */
+
             for (uint32_t i = 0; i < taskInfo.actualCombineLoopSize; i++) {
                 mm2Res = reduceGlobaLoop % 2 == 0 ? fdMm2ResBuf1.Get<T>() : fdMm2ResBuf2.Get<T>();
                 if (i >= constInfo.preLoadNum) {
@@ -415,7 +555,7 @@ FiaBlockVecFlashDecode<FIAT>::FlashDecode(FDparams &fd)
                 SetFlag<AscendC::HardEvent::V_MTE2>(SYNC_MM2RES_BUF1_FLAG + reduceGlobaLoop % 2);
                 reduceGlobaLoop += 1;
             }
-            CopyFinalResOut(reduceOut, startRow, actualGSplitSize, curAttenOutOffset);
+            CopyFinalResOut(reduceOut, startRow, actualGSplitSize);
             reduceMLoop += 1;
         }
         tmpFdS1gOuterMStart = 0;

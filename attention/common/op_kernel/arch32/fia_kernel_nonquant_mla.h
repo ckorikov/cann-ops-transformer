@@ -23,6 +23,8 @@
 #include "lib/matrix/matmul/tiling.h"
 #include "../fia_public_define.h"
 #include "../vector_common.h"
+#include "../memory_copy.h"
+#include "kernel_common.h"
 #include "fia_block_vec_nonquant_mla.h"
 #include "fia_block_cube_nonquant_mla.h"
 #include "fia_block_vec_flashdecode.h"
@@ -101,6 +103,7 @@ public:
     static constexpr uint32_t msdIterNum = 2U;
     static constexpr int64_t fdPrefetchLen = 2;
 
+    static constexpr bool POST_QUANT = IsSameType<OUT_T, int8_t>::value;
 protected:
     // 由于S2循环前，RunInfo还没有赋值，使用Bngs1Param临时存放B、N、S1轴相关的信息；同时减少重复计算
     struct TempLoopInfo {
@@ -132,9 +135,6 @@ protected:
     uint64_t tensorBCoreOffset = 0ULL;
     uint64_t tensorARopeCoreOffset = 0ULL;
     uint64_t tensorBRopeCoreOffset = 0ULL;
-    uint64_t tensorBOffset = 0ULL;
-    uint64_t attenOutOffset = 0ULL;
-    uint64_t attenMaskOffset = 0ULL;
     uint64_t attenMaskCoreOffset = 0ULL;
 
     // ================================Global Buffer区=================================
@@ -201,25 +201,18 @@ protected:
     // ================================Offset Calc=====================================
     __aicore__ inline void GetActualSeqLen(uint32_t bIdx, uint32_t s1Idx = 0);
     __aicore__ inline void UpdateInnerLoopCond();
-    __aicore__ inline void DealActSeqLenIsZero(uint32_t bIdx, uint32_t n2Idx);
     __aicore__ inline void CalcParams(uint32_t loop, uint64_t s2Start, uint32_t s2LoopIdx, AttentionCommon::RunInfo &info);
     __aicore__ inline void GetAxisEndIdx(uint32_t bN2End, uint32_t s1GEnd, uint32_t s2End);
-    __aicore__ inline uint64_t GetBalanceActualSeqLengths(GlobalTensor<uint64_t> &actualSeqLengths, uint32_t bIdx);
-    __aicore__ inline uint32_t GetActualSeqLenKV(uint32_t bIdx);
     __aicore__ inline uint64_t GetTNDBatchOffset(int bIdx);
     __aicore__ inline void GetBN2Idx(uint32_t bN2Idx, uint32_t &bIdx, uint32_t &n2Idx);
     __aicore__ inline void UpdateInner(uint32_t &s2Start, uint32_t &s2End, uint32_t &curS2Start, uint32_t &curS2End,
                                        uint32_t s1Idx, bool isStart, bool isEnd);
     __aicore__ inline void UpdateInnerNum(uint32_t &s2End, uint32_t actS1Size, uint32_t actS2Size, uint32_t s1Idx);
     __aicore__ inline void GetPreNextTokensLeftUp();
-    __aicore__ inline int64_t ClipSInnerToken(int64_t sInnerToken, int64_t minValue, int64_t maxValue);
     // ================================Mm1==============================================
     __aicore__ inline void ComputeMm1(const AttentionCommon::RunInfo &info);
     // ================================Mm2==============================================
     __aicore__ inline void ComputeMm2(const AttentionCommon::RunInfo &info);
-
-    __aicore__ inline void InitAllZeroOutput(uint32_t bIdx, uint32_t n2Idx);
-    __aicore__ inline uint64_t SeqLenFromTensorList(uint32_t bIdx);
     __aicore__ inline void FlashDecode();
 };
 
@@ -277,57 +270,14 @@ FiaKernelNonQuantMla<FIAT>::InitActualSeqLen(__gm__ uint8_t *actualSeqLengthsQ,
 {
     constInfo.actualLenQDims = tilingData->baseParams.actualSeqS1Dims;
     constInfo.actualLenDims = tilingData->baseParams.actualSeqS2Dims;
+    constInfo.accumQSeqFlag = tilingData->baseParams.accumQSeqFlag;
+    constInfo.accumKVSeqFlag = tilingData->baseParams.accumKVSeqFlag;
+
     if (constInfo.actualLenDims != 0) {
         actualSeqLengthsGm.SetGlobalBuffer((__gm__ uint64_t *)actualSeqLengths, constInfo.actualLenDims);
     }
     if (constInfo.actualLenQDims != 0) {
         actualSeqLengthsGmQ.SetGlobalBuffer((__gm__ uint64_t *)actualSeqLengthsQ, constInfo.actualLenQDims);
-    }
-}
-
-template <typename FIAT>
-__aicore__ inline void FiaKernelNonQuantMla<FIAT>::InitAllZeroOutput(uint32_t bIdx, uint32_t n2Idx)
-{
-    if (constInfo.outputLayout == FIA_LAYOUT::TND) {
-        uint32_t tSize = actualSeqLengthsGmQ.GetValue(constInfo.batchSize - 1);
-        uint32_t tBase = bIdx == 0 ? 0 : actualSeqLengthsGmQ.GetValue(bIdx - 1);
-        uint32_t s1Count = tempLoopInfo.actS1Size;
-
-        for (int s1Idx = 0; s1Idx < s1Count; s1Idx++) {
-            uint64_t attenOutOffset = (tBase + s1Idx) * kvHeadNum * constInfo.gSize * headDim + // T轴、s1轴偏移
-                                      n2Idx * constInfo.gSize * headDim;                        // N2轴偏移
-            matmul::InitOutput<OUT_T>(attentionOutGm[attenOutOffset], constInfo.gSize * headDim, 0);
-        }
-    } else if (constInfo.outputLayout == FIA_LAYOUT::NTD) {
-        uint32_t tSize = actualSeqLengthsGmQ.GetValue(constInfo.batchSize - 1);
-        uint32_t tBase = bIdx == 0 ? 0 : actualSeqLengthsGmQ.GetValue(bIdx - 1);
-        uint32_t s1Count = tempLoopInfo.actS1Size;
-
-        for (int gIdx = 0; gIdx < constInfo.gSize; gIdx++) {
-            uint64_t attenOutOffset = n2Idx * constInfo.gSize * tSize * headDim +
-                                      gIdx * tSize * headDim + // N2轴偏移，G轴偏移
-                                      tBase * headDim;
-            matmul::InitOutput<OUT_T>(attentionOutGm[attenOutOffset], s1Count * headDim, 0);
-        }
-    } else if (constInfo.outputLayout == FIA_LAYOUT::BNSD) {
-        uint64_t attenOutOffset = bIdx * kvHeadNum * constInfo.gSize * constInfo.qSeqSize * headDim + // B轴偏移
-                                  n2Idx * constInfo.gSize * constInfo.qSeqSize * headDim;             // N2轴偏移
-        matmul::InitOutput<OUT_T>(attentionOutGm[attenOutOffset], constInfo.gSize * constInfo.qSeqSize * headDim, 0);
-    } else if (constInfo.outputLayout == FIA_LAYOUT::BSND || constInfo.outputLayout == FIA_LAYOUT::BSH) {
-        for (int s1Idx = 0; s1Idx < constInfo.qSeqSize; s1Idx++) {
-            uint64_t attenOutOffset = bIdx * constInfo.qSeqSize * kvHeadNum * constInfo.gSize * headDim +
-                                      s1Idx * kvHeadNum * constInfo.gSize * headDim + // B轴、S1轴偏移
-                                      n2Idx * constInfo.gSize * headDim;              // N2轴偏移
-            matmul::InitOutput<OUT_T>(attentionOutGm[attenOutOffset], constInfo.gSize * headDim, 0);
-        }
-    } else if (constInfo.outputLayout == FIA_LAYOUT::NBSD) {
-        for (int gIdx = 0; gIdx < constInfo.gSize; gIdx++) {
-            uint64_t attenOutOffset =
-                n2Idx * constInfo.gSize * constInfo.batchSize * constInfo.qSeqSize * headDim + // N2轴偏移
-                gIdx * constInfo.batchSize * constInfo.qSeqSize * headDim +
-                bIdx * constInfo.qSeqSize * headDim; // G轴、B轴偏移
-            matmul::InitOutput<OUT_T>(attentionOutGm[attenOutOffset], constInfo.qSeqSize * headDim, 0);
-        }
     }
 }
 
@@ -345,34 +295,10 @@ __aicore__ inline void FiaKernelNonQuantMla<FIAT>::InitOutputSingleCore()
 }
 
 template <typename FIAT>
-__aicore__ inline int64_t FiaKernelNonQuantMla<FIAT>::ClipSInnerToken(int64_t sInnerToken,
-                                                                    int64_t minValue, int64_t maxValue)
-{
-    sInnerToken = sInnerToken > minValue ? sInnerToken : minValue;
-    sInnerToken = sInnerToken < maxValue ? sInnerToken : maxValue;
-    return sInnerToken;
-}
-
-template <typename FIAT>
 __aicore__ inline void FiaKernelNonQuantMla<FIAT>::GetActualSeqLen(uint32_t bIdx, uint32_t s1Idx)
 {
-    tempLoopInfo.curActualSeqLen = GetActualSeqLenKV(bIdx);
-    tempLoopInfo.actS1Size = GetBalanceActualSeqLengths(actualSeqLengthsGmQ, bIdx);
-}
-
-template <typename FIAT>
-__aicore__ inline uint32_t FiaKernelNonQuantMla<FIAT>::GetActualSeqLenKV(uint32_t bIdx)
-{
-    if (constInfo.actualLenDims == 0) {
-        if (!batchContinuous) {
-            return SeqLenFromTensorList(bIdx);
-        }
-        return constInfo.kvSeqSize;
-    } else if (constInfo.actualLenDims == 1) {
-        return actualSeqLengthsGm.GetValue(0);
-    } else {
-        return actualSeqLengthsGm.GetValue(bIdx);
-    }
+    tempLoopInfo.curActualSeqLen = fa_base_kernel::GetActualKVSeqLength<LAYOUT_T>(actualSeqLengthsGm, bIdx, constInfo, keyPtr);
+    tempLoopInfo.actS1Size = fa_base_kernel::GetActualQSeqLength(actualSeqLengthsGmQ, bIdx, constInfo);
 }
 
 template <typename FIAT>
@@ -444,14 +370,6 @@ __aicore__ inline void FiaKernelNonQuantMla<FIAT>::UpdateInnerNum(uint32_t &s2En
     s2End = (s2LastToken + constInfo.s2BaseSize - 1) / constInfo.s2BaseSize;
 }
 
-template <typename FIAT>
-__aicore__ inline void FiaKernelNonQuantMla<FIAT>::DealActSeqLenIsZero(uint32_t bIdx, uint32_t n2Idx)
-{
-    if ASCEND_IS_AIV {
-        InitAllZeroOutput(bIdx, n2Idx);
-    }
-}
-
 template <typename FIAT> __aicore__ inline void FiaKernelNonQuantMla<FIAT>::UpdateInnerLoopCond()
 {
     if ((tempLoopInfo.curActualSeqLen == 0) || (tempLoopInfo.actS1Size == 0)) {
@@ -466,21 +384,6 @@ template <typename FIAT> __aicore__ inline void FiaKernelNonQuantMla<FIAT>::Upda
     tempLoopInfo.mBasicSizeTail =
         (tempLoopInfo.mBasicSizeTail == 0) ? constInfo.mBaseSize : tempLoopInfo.mBasicSizeTail;
     tempLoopInfo.s2LoopTimes = 0;
-}
-
-template <typename FIAT>
-__aicore__ inline uint64_t FiaKernelNonQuantMla<FIAT>::SeqLenFromTensorList(uint32_t bIndex)
-{
-    uint64_t dimInfo[4]; // this mem is used to set shapeinfo, BSH(3) or BNSD(4)
-    AscendC::TensorDesc<__gm__ uint8_t> keyTensorDesc;
-    ListTensorDesc keyListTensorDesc((__gm__ void *)keyPtr);
-    keyTensorDesc.SetShapeAddr(&dimInfo[0]);
-    keyListTensorDesc.GetDesc(keyTensorDesc, bIndex);
-    if constexpr (LAYOUT_T == FIA_LAYOUT::BSH || LAYOUT_T == FIA_LAYOUT::BSND) {
-        return keyTensorDesc.GetShape(1); // BSH, idx of s is 1
-    } else {
-        return keyTensorDesc.GetShape(2); // BNSD, idx of s is 2
-    }
 }
 
 template <typename FIAT>
@@ -572,7 +475,8 @@ __aicore__ inline void FiaKernelNonQuantMla<FIAT>::Init(
     if ASCEND_IS_AIV {
         if constexpr (FLASH_DECODE) {
             fdService.InitParams(constInfo);
-            fdService.InitGlobalTensor(lseMaxFdGm, lseSumFdGm, accumOutGm, attentionOutGm, actualSeqLengthsGmQ);
+            fdService.InitGlobalTensor(lseMaxFdGm, lseSumFdGm, accumOutGm, attentionOutGm, 
+                                       actualSeqLengthsGmQ, actualSeqLengthsGm);
         }
         vectorService.InitParams(constInfo, tilingData);
         vectorService.InitMm2ResInt32GmGlobalTensor(mm2ResInt32Gm);
@@ -653,10 +557,11 @@ template <typename FIAT> __aicore__ inline void FiaKernelNonQuantMla<FIAT>::Init
 
 template <typename FIAT>
 __aicore__ inline void FiaKernelNonQuantMla<FIAT>::CalcParams(uint32_t loop, uint64_t s2Start,
-                                                                                 uint32_t s2LoopIdx, AttentionCommon::RunInfo &info)
+    uint32_t s2LoopIdx, AttentionCommon::RunInfo &info)
 {
     info.loop = loop;
     info.bIdx = tempLoopInfo.bIdx;
+    info.n2Idx = tempLoopInfo.n2Idx;
     info.gS1Idx = tempLoopInfo.gS1Idx;
     info.s2Idx = s2LoopIdx;
     info.curSInnerLoopTimes = tempLoopInfo.s2LoopTimes;
@@ -713,7 +618,7 @@ __aicore__ inline void FiaKernelNonQuantMla<FIAT>::CalcParams(uint32_t loop, uin
             tensorBRopeCoreOffset = info.bIdx * kvHeadNum * constInfo.kvSeqSize * headDimRope +
                                     info.n2Idx * constInfo.kvSeqSize * headDimRope;
             if (!batchContinuous) {
-                uint64_t seqSize = SeqLenFromTensorList(info.bIdx);
+                uint64_t seqSize = fa_base_kernel::SeqLenFromTensorList<LAYOUT_T>(keyPtr, info.bIdx);
                 tensorBCoreOffset = info.n2Idx * seqSize * headDim;
                 tensorBRopeCoreOffset = info.n2Idx * seqSize * headDimRope;
             }
@@ -724,10 +629,12 @@ __aicore__ inline void FiaKernelNonQuantMla<FIAT>::CalcParams(uint32_t loop, uin
             } else {
                 actualSeqQPrefixSum = (info.bIdx <= 0) ? 0 : info.bIdx * constInfo.qSeqSize;
             }
-            info.tndBIdxOffset = actualSeqQPrefixSum * constInfo.qHeadNum * headDim;
-            uint64_t tndBIdxRopeOffset = actualSeqQPrefixSum * constInfo.qHeadNum * headDimRope;
-            tensorACoreOffset = info.tndBIdxOffset + info.gS1Idx * headDim;
-            tensorARopeCoreOffset = tndBIdxRopeOffset + info.gS1Idx * headDimRope;
+            tensorACoreOffset = actualSeqQPrefixSum * constInfo.qHeadNum * headDim +
+                                info.gS1Idx * constInfo.kvHeadNum * headDim +
+                                info.n2Idx * headDim;
+            tensorARopeCoreOffset = actualSeqQPrefixSum * constInfo.qHeadNum * headDimRope +
+                                    info.gS1Idx * constInfo.kvHeadNum * headDimRope +
+                                    info.n2Idx * headDimRope;
             tensorBCoreOffset = info.bIdx * constInfo.kvSeqSize * kvHeadNum * headDim + info.n2Idx * headDim;
             tensorBRopeCoreOffset =
                 info.bIdx * constInfo.kvSeqSize * kvHeadNum * headDimRope + info.n2Idx * headDimRope;
@@ -901,7 +808,34 @@ template <typename FIAT> __aicore__ inline void FiaKernelNonQuantMla<FIAT>::Proc
         UpdateInnerLoopCond();
 
         if (tempLoopInfo.curActSeqLenIsZero) {
-            DealActSeqLenIsZero(tempLoopInfo.bIdx, tempLoopInfo.n2Idx);
+            if constexpr (POST_QUANT) { // out int8
+
+            } else {
+                if (constInfo.outputLayout == FIA_LAYOUT::BSND || constInfo.outputLayout == FIA_LAYOUT::BSH) {
+                    OffsetCalculator<GmFormat::BSNGD> offsetCalculator;
+                    offsetCalculator.Init(constInfo.batchSize, constInfo.kvHeadNum, constInfo.gSize, constInfo.qSeqSize, constInfo.headDim, 
+                                          actualSeqLengthsGmQ, constInfo.actualLenQDims);
+                    DealActSeqLenIsZero<GmFormat::BSNGD, OUT_T>(tempLoopInfo.bIdx, tempLoopInfo.n2Idx, offsetCalculator, attentionOutGm);
+                } else if (constInfo.outputLayout == FIA_LAYOUT::BNSD) {
+                    OffsetCalculator<GmFormat::BNGSD> offsetCalculator;
+                    offsetCalculator.Init(constInfo.batchSize, constInfo.kvHeadNum, constInfo.gSize, constInfo.qSeqSize, constInfo.headDim, 
+                                          actualSeqLengthsGmQ, constInfo.actualLenQDims);
+                    DealActSeqLenIsZero<GmFormat::BNGSD, OUT_T>(tempLoopInfo.bIdx, tempLoopInfo.n2Idx, offsetCalculator, attentionOutGm);
+                } else if (constInfo.outputLayout == FIA_LAYOUT::NBSD) {
+                    OffsetCalculator<GmFormat::NGBSD> offsetCalculator;
+                    offsetCalculator.Init(constInfo.batchSize, constInfo.kvHeadNum, constInfo.gSize, constInfo.qSeqSize, constInfo.headDim, 
+                                          actualSeqLengthsGmQ, constInfo.actualLenQDims);
+                    DealActSeqLenIsZero<GmFormat::NGBSD, OUT_T>(tempLoopInfo.bIdx, tempLoopInfo.n2Idx, offsetCalculator, attentionOutGm);
+                } else if (constInfo.outputLayout == FIA_LAYOUT::TND) {
+                    OffsetCalculator<GmFormat::TNGD> offsetCalculator;
+                    offsetCalculator.Init(constInfo.kvHeadNum, constInfo.gSize, constInfo.headDim, actualSeqLengthsGmQ, constInfo.actualLenQDims);
+                    DealActSeqLenIsZero<GmFormat::TNGD, OUT_T>(tempLoopInfo.bIdx, tempLoopInfo.n2Idx, offsetCalculator, attentionOutGm);
+                } else if (constInfo.outputLayout == FIA_LAYOUT::NTD) {
+                    OffsetCalculator<GmFormat::NGTD> offsetCalculator;
+                    offsetCalculator.Init(constInfo.kvHeadNum, constInfo.gSize, constInfo.headDim, actualSeqLengthsGmQ, constInfo.actualLenQDims);
+                    DealActSeqLenIsZero<GmFormat::NGTD, OUT_T>(tempLoopInfo.bIdx, tempLoopInfo.n2Idx, offsetCalculator, attentionOutGm);
+                }
+            }
             continue;
         }
         int gS1SplitNum = (tempLoopInfo.actS1Size * constInfo.gSize + constInfo.mBaseSize - 1) / constInfo.mBaseSize;
@@ -972,30 +906,6 @@ FiaKernelNonQuantMla<FIAT>::PreloadPipeline(uint32_t loop,
 }
 
 template <typename FIAT>
-__aicore__ inline uint64_t
-FiaKernelNonQuantMla<FIAT>::GetBalanceActualSeqLengths(GlobalTensor<uint64_t> &actualSeqLengths,
-                                                                          uint32_t bIdx)
-{
-    if constexpr (LAYOUT_T == FIA_LAYOUT::TND) {
-        if (bIdx > 0) {
-            return actualSeqLengths.GetValue(bIdx) - actualSeqLengths.GetValue(bIdx - 1);
-        } else if (bIdx == 0) {
-            return actualSeqLengths.GetValue(0);
-        } else {
-            return 0;
-        }
-    } else {
-        if (constInfo.actualLenQDims == 0) {
-            return constInfo.qSeqSize;
-        } else if (constInfo.actualLenQDims == 1) {
-            return actualSeqLengths.GetValue(0);
-        } else {
-            return actualSeqLengths.GetValue(bIdx);
-        }
-    }
-}
-
-template <typename FIAT>
 __aicore__ inline void FiaKernelNonQuantMla<FIAT>::GetAxisEndIdx(uint32_t bN2End, uint32_t s1GEnd,
                                                                                     uint32_t s2End)
 {
@@ -1010,8 +920,9 @@ __aicore__ inline void FiaKernelNonQuantMla<FIAT>::GetAxisEndIdx(uint32_t bN2End
     }
 
     uint32_t bEnd = constInfo.bN2End / kvHeadNum;
-    uint32_t actualSeqQ = GetBalanceActualSeqLengths(actualSeqLengthsGmQ, bEnd);
-    uint32_t actualSeqKV = GetActualSeqLenKV(bEnd);
+    uint32_t actualSeqQ = fa_base_kernel::GetActualQSeqLength(actualSeqLengthsGmQ, bEnd, constInfo);
+    uint32_t actualSeqKV = fa_base_kernel::GetActualKVSeqLength<LAYOUT_T>(actualSeqLengthsGm, bEnd, constInfo, keyPtr);
+
     uint32_t s2BaseNum = 0;
     if (s1GEnd > 0) {
         constInfo.gS1End = s1GEnd - 1;  

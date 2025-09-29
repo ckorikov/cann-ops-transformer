@@ -273,19 +273,14 @@ void FiaTilingNonQuantMla::Split()
     baseInfo.nextToken = fiaInfo_->nextToken;
     baseInfo.slidingFlag = fiaInfo_->slidingFlag;
 
-    if (fiaInfo_->inputLayout == TilingKeyLayout::TND) {
-        baseInfo.isAccumSeqS1 = true;
-    } else {
-        baseInfo.s1Size = fiaInfo_->s1Size;
-        baseInfo.s2Size = fiaInfo_->s2Size;
-    }
     if (fiaInfo_->opParamInfo.actualSeqLengthsQ.tensor != nullptr) {
         baseInfo.actualSeqS1Size = fiaInfo_->opParamInfo.actualSeqLengthsQ.tensor->GetData<int64_t>();
+        baseInfo.isAccumSeqS1 = fiaInfo_->isAccumQSeq;
     }
     if (fiaInfo_->opParamInfo.actualSeqLengths.tensor != nullptr) {
         baseInfo.actualSeqS2Size = fiaInfo_->opParamInfo.actualSeqLengths.tensor->GetData<int64_t>();
+        baseInfo.isAccumSeqS2 = fiaInfo_->isAccumKVSeq;
     }
-    baseInfo.isAccumSeqS2 = false;
 
     InnerSplitParams innerSplitParams;
     innerSplitParams.s1GBaseSize = mBaseSize_;
@@ -346,6 +341,8 @@ void FiaTilingNonQuantMla::FillTilingBaseParams()
     tilingData_.baseParams.set_gSize(fiaInfo_->n1Size / fiaInfo_->n2Size);
     tilingData_.baseParams.set_actualSeqS1Dims(fiaInfo_->actualLenQDims);
     tilingData_.baseParams.set_actualSeqS2Dims(fiaInfo_->actualLenDims);
+    tilingData_.baseParams.set_accumQSeqFlag(fiaInfo_->isAccumQSeq ? 1 : 0);
+    tilingData_.baseParams.set_accumKVSeqFlag(fiaInfo_->isAccumKVSeq ? 1 : 0);
     tilingData_.baseParams.set_outputLayout(static_cast<uint32_t>(fiaInfo_->outputLayout));
     tilingData_.baseParams.set_slidingFlag(fiaInfo_->slidingFlag);
     tilingData_.baseParams.set_needInit(fiaInfo_->needInit);
@@ -495,5 +492,5 @@ ge::graphStatus FiaTilingNonQuantMla::DoOpTiling()
 // 2. 十位表示gqa、mla、泛化，即: x0x-mla, x1x-gpa, x2x-泛化
 // 3. 个位代表特化模板到泛化模板的优先级排序
 REGISTER_TILING_TEMPLATE_FIA(FusedInferAttentionScore, FiaTilingNonQuantMla,
-    std::vector<int32_t>({static_cast<int32_t>(platform_ascendc::SocVersion::ASCEND910B)}), 1);
+    std::vector<int32_t>({static_cast<int32_t>(platform_ascendc::SocVersion::ASCEND910B)}), 29);
 } // namespace optiling

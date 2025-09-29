@@ -8,6 +8,7 @@ set(ATTENTION_SRC ${CMAKE_CURRENT_SOURCE_DIR}/../../../attention)
 set(src_files
   ${ATTENTION_SRC}/common/op_host/fia_tiling_info.cpp
   ${ATTENTION_SRC}/common/op_host/arch32/fia_tiling_nonquant_mla.cpp
+  ${ATTENTION_SRC}/common/op_host/arch32/fia_tiling_nonquant.cpp
   ${ATTENTION_SRC}/common/op_host/fia_tiling_shape.cpp
   ${ATTENTION_SRC}/fused_infer_attention_score/op_host/fused_infer_attention_score_tiling.cpp
   ${ATTENTION_SRC}/fused_infer_attention_score/op_host/fused_infer_attention_score_tiling_check.cpp

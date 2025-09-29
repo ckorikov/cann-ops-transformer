@@ -912,9 +912,6 @@ static ge::graphStatus TilingProcess4IFA(gert::TilingContext *context)
         return ret;
     }
 
-    if (RouteToFia(context, ifaContext)) {
-        return TilingFusedInferAttentionScoreV3(context);
-    }
     return TilingIncreFlashAttentionAdapter(context, ifaContext, ifaTilingData);
 }
 
@@ -1407,6 +1404,10 @@ ge::graphStatus TilingFusedInferAttentionScore(gert::TilingContext *context)
         return ge::GRAPH_FAILED;
     }
 
+    if (RouteToFia(context)) {
+        return TilingFusedInferAttentionScoreV3(context);
+    }
+    
     OP_CHECK_IF(CheckQKV(*context) != ge::GRAPH_SUCCESS,
         OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "check query/key/value failed"), return ge::GRAPH_FAILED);
 
