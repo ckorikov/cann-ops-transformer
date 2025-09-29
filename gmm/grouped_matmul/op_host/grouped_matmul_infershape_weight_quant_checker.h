@@ -33,13 +33,14 @@ private:
     ge::graphStatus CheckShapeForXAndWeight(const gert::InferShapeContext *context, const GMMAttrs &gmmAttrs) const;
     ge::graphStatus CheckShapeForTensorList(const gert::InferShapeContext *context, size_t gmm_index,
                                         const std::string &tensorType) const;
-    ge::graphStatus CheckFormatValid(const gert::InferShapeContext *context) const;
     ge::graphStatus CheckScenarioValidForShape(const gert::InferShapeContext *context, const GMMAttrs &gmmAttrs) const;
     ge::graphStatus CheckShapeValid(const gert::InferShapeContext *context, const GMMAttrs &gmmAttrs);
     ge::graphStatus CheckShapeForWeightQuantParam(const gert::InferShapeContext *context) const;
     ge::graphStatus CheckShapeForGrouplist(const gert::InferShapeContext *context, const gert::Shape *groupListShape) const;
     ge::graphStatus UpdateShapeY(gert::InferShapeContext *context, size_t idxY, std::vector<int64_t> &yDims) const;
     ge::graphStatus CheckGroupSize(const gert::InferShapeContext *context, const GMMAttrs &gmmAttrs) const;
+    bool IsA16MxFp4NZ(const ge::DataType &xDtype, const ge::DataType &weightDtype) const;
+    bool IsMxA8W4NZ(const ge::DataType &xDtype, const ge::DataType &weightDtype) const;
 
 private:
     int64_t groupNum_; //当前含义为M分组数g

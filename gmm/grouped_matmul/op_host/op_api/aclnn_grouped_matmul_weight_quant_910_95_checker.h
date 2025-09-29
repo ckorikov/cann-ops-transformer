@@ -27,15 +27,19 @@ private:
                                      const DataType &weightDtype) const;
     aclnnStatus CheckTensorListShape(const aclTensorList *tensorList, const std::string &tensorType) const;
 
-    aclnnStatus CheckWeightFormatAndShape(const DataType &weightDtype) const;
-    aclnnStatus CheckTransposeStatus(const DataType &weightDtype) const;
-    aclnnStatus CheckNKValue() const;
+    aclnnStatus CheckWeightFormatAndShape(const DataType &xDtype, const DataType &weightDtype) const;
+    aclnnStatus CheckTransposeStatus(const DataType &xDtype, const DataType &weightDtype) const;
+    aclnnStatus CheckNKValue(const DataType &xDtype, const DataType &weightDtype) const;
 
-    aclnnStatus CheckBiasDtype(const DataType &xDtype) const;
+    aclnnStatus CheckBiasDtype(const DataType &xDtype, const DataType &weightDtype) const;
     aclnnStatus CheckAntiQuantDtype(const DataType &xDtype, const DataType &weightDtype) const;
-    aclnnStatus CheckAntiQuantShape() const;
-    aclnnStatus CheckUnsupportApi(const DataType &weightDtype) const;
-    aclnnStatus CheckGroupSize() const;
+    aclnnStatus CheckAntiQuantShape(const DataType &xDtype, const DataType &weightDtype) const;
+    aclnnStatus CheckUnsupportApi(const DataType &xDtype, const DataType &weightDtype) const;
+    aclnnStatus CheckGroupSize(const DataType &xDtype, const DataType &weightDtype) const;
+    bool IsA16MxFp4NZ(const DataType &xDtype, const DataType &weightDtype) const;
+    bool IsMxA8W4NZ(const DataType &xDtype, const DataType &weightDtype) const;
+    bool IsA16W8ND(const DataType &xDtype, const DataType &weightDtype) const;
+    bool IsA16F8ND(const DataType &xDtype, const DataType &weightDtype) const;
 
 private:
     GroupedMatmulParams gmmParams_;

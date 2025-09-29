@@ -56,7 +56,8 @@ namespace {
 
   static constexpr size_t SEPARATED_WEIGHT_DIM = 2UL;
   static constexpr int64_t END_ACT_TYPE_ENUM = 6L;
-  static constexpr size_t ALIGN_NZ_INT4_N = 64UL;
+  static constexpr size_t ALIGN_NZ_4BIT_N = 64UL;
+  static constexpr size_t ALIGN_NZ_4BIT_K = 64UL;
   static constexpr size_t ALIGN_NZ_INT8_N = 32UL;
   static constexpr size_t ALIGN_NZ_K = 16UL;
 
@@ -182,7 +183,7 @@ static aclnnStatus CheckFormat(const aclTensor *tensor, const std::string& tenso
              tensorType.c_str(), idx, op::ToString(tensorFormat).GetString());
   if (isWeightTensor) {  // 310P weight need to be NZ
       CHECK_COND(!op::IsPrivateFormat(tensorFormat) || tensorFormat == Format::FORMAT_FRACTAL_NZ ||
-                     tensorFormat == Format::FORMAT_FRACTAL_NZ_C0_16,
+                     tensorFormat == Format::FORMAT_FRACTAL_NZ_C0_16 || tensorFormat == Format::FORMAT_FRACTAL_NZ_C0_32,
                  ACLNN_ERR_PARAM_INVALID, "Format of %s[%lu] %s is invalid.", tensorType.c_str(), idx,
                  op::ToString(tensorFormat).GetString());
   } else {
@@ -1489,6 +1490,38 @@ static aclnnStatus DataContiguousAndTransFormat(const aclTensor *tensor, const a
   return ACLNN_SUCCESS;
 }
 
+static aclnnStatus TransWeightToNzCheckAlign(gmm::GroupedMatmulParams &gmmParams, const aclTensor *weight,
+                                             const DataType xDtype)
+{
+  size_t viewDimNum = weight->GetViewShape().GetDimNum();
+  uint64_t k = gmmParams.transposeWeight ? weight->GetViewShape().GetDim(viewDimNum - 1) :
+                                           weight->GetViewShape().GetDim(viewDimNum - gmm::LAST_SECOND_DIM_INDEX);
+  uint64_t n = gmmParams.transposeWeight ? weight->GetViewShape().GetDim(viewDimNum - gmm::LAST_SECOND_DIM_INDEX) :
+                                           weight->GetViewShape().GetDim(viewDimNum - 1);
+  bool k_align = false;
+  bool n_align = false;
+  if (weight->GetDataType() == DataType::DT_INT8) {
+    k_align = gmmParams.transposeWeight ? k % ALIGN_NZ_INT8_N == 0 : k % ALIGN_NZ_K == 0;
+    n_align = gmmParams.transposeWeight ? n % ALIGN_NZ_K == 0 : n % ALIGN_NZ_INT8_N == 0;
+  } else if (weight->GetDataType() == DataType::DT_BF16 || weight->GetDataType() == DataType::DT_FLOAT16) {
+    k_align = k % ALIGN_NZ_K == 0;
+    n_align = n % ALIGN_NZ_K == 0;
+  } else if (weight->GetDataType() == DataType::DT_INT4) {
+    k_align = gmmParams.transposeWeight ? k % ALIGN_NZ_4BIT_N == 0 : k % ALIGN_NZ_K == 0;
+    n_align = gmmParams.transposeWeight ? n % ALIGN_NZ_K == 0 : n % ALIGN_NZ_4BIT_N == 0;
+  } else if (weight->GetDataType() == DataType::DT_FLOAT4_E2M1 &&
+             (xDtype == DataType::DT_FLOAT16 || xDtype == DataType::DT_BF16 || xDtype == DataType::DT_FLOAT8_E4M3FN)) {
+    k_align = k % ALIGN_NZ_4BIT_K == 0;
+    n_align = n % ALIGN_NZ_4BIT_N == 0;
+  }
+  CHECK_COND(k_align == true && n_align == true, ACLNN_ERR_PARAM_INVALID,
+             "When weight(%s) format is FRACTAL_NZ, weight'shape(k[%lu], n[%lu]) should be divisible by the "
+             "following shape: INT8:[16, 32],BF16/FP16[16, 16],INT4[16, 64],FP4[64,64]). If the weight is transposed,"
+             "the k/n need to be reversed.",
+             op::ToString(weight->GetDataType()).GetString(), k, n);
+  return ACLNN_SUCCESS;
+}
+
 static aclnnStatus TransWeightToNz(gmm::GroupedMatmulParams &gmmParams, aclOpExecutor *executor) {
   bool is310p = GetCurrentPlatformInfo().GetSocVersion() == SocVersion::ASCEND310P;
   if (is310p) {
@@ -1519,32 +1552,12 @@ static aclnnStatus TransWeightToNz(gmm::GroupedMatmulParams &gmmParams, aclOpExe
     size_t wLength = weights->Size();
     for (size_t i(0); i < wLength; ++i) {
       const aclTensor* weight = (*weights)[i];
-      if (weight->GetStorageFormat() != op::Format::FORMAT_FRACTAL_NZ) {
+      if (weight->GetStorageFormat() != op::Format::FORMAT_FRACTAL_NZ &&
+          weight->GetStorageFormat() != op::Format::FORMAT_FRACTAL_NZ_C0_16 &&
+          weight->GetStorageFormat() != op::Format::FORMAT_FRACTAL_NZ_C0_32) {
         break;
       }
-      size_t viewDimNum = weight->GetViewShape().GetDimNum();
-      uint64_t k = gmmParams.transposeWeight ? weight->GetViewShape().GetDim(viewDimNum - 1)
-                             : weight->GetViewShape().GetDim(viewDimNum - gmm::LAST_SECOND_DIM_INDEX);
-      uint64_t n = gmmParams.transposeWeight ? weight->GetViewShape().GetDim(viewDimNum - gmm::LAST_SECOND_DIM_INDEX)
-                             : weight->GetViewShape().GetDim(viewDimNum - 1);
-      bool k_align = false;
-      bool n_align = false;
-      if (weight->GetDataType() == DataType::DT_INT8) {
-          k_align = gmmParams.transposeWeight ? k % ALIGN_NZ_INT8_N == 0 : k % ALIGN_NZ_K == 0;
-          n_align = gmmParams.transposeWeight ? n % ALIGN_NZ_K == 0 : n % ALIGN_NZ_INT8_N == 0;
-      } else if (weight->GetDataType() == DataType::DT_BF16 || weight->GetDataType() == DataType::DT_FLOAT16 ||
-                 (weight->GetDataType() == DataType::DT_FLOAT4_E2M1 &&
-                  (xDtype == DataType::DT_FLOAT16 || xDtype == DataType::DT_BF16))) {
-          k_align = k % ALIGN_NZ_K == 0;
-          n_align = n % ALIGN_NZ_K == 0;
-      } else if (weight->GetDataType() == DataType::DT_INT4) {
-          k_align = gmmParams.transposeWeight ? k % ALIGN_NZ_INT4_N == 0 : k % ALIGN_NZ_K == 0;
-          n_align = gmmParams.transposeWeight ? n % ALIGN_NZ_K == 0 : n % ALIGN_NZ_INT4_N == 0;
-      }
-      CHECK_COND(k_align == true && n_align == true, ACLNN_ERR_PARAM_INVALID,
-                 "When weight(%s) format is FRACTAL_NZ, weight'shape(k[%lu], n[%lu]) should be divisible by the "
-                 "following shape: INT8:[16, 32],BF16/FP16[16, 16],INT4[16, 64]). If the weight is transposed,"
-                 "the k/n need to be reversed.", op::ToString(weight->GetDataType()).GetString(), k, n);
+      TransWeightToNzCheckAlign(gmmParams, weight, xDtype);
       continue;
     }
   }
@@ -1571,12 +1584,22 @@ static void SetAntiQuantParamsTensorEmpty91095(gmm::GroupedMatmulParams &params,
     DataType weightDtype = (*params.weight)[0]->GetDataType();
     if (GetCurrentPlatformInfo().GetSocVersion() == SocVersion::ASCEND910_95 &&
         IsWeightQuant(params.xDtype, weightDtype)) {
-        aclTensorList *emptyBiasList = nullptr;
-        CreateEmptyTensor(ToAclDataType(params.xDtype), params.biasOptional, emptyBiasList, executor);
+        // MxA8W4 的bias和antiquantoffset的dtype要和ydtype一致
+        if (params.xDtype == ge::DataType::DT_FLOAT8_E4M3FN) {
+            DataType yDtype = (*params.y)[0]->GetDataType();
+            aclTensorList *emptyBiasList = nullptr;
+            CreateEmptyTensor(ToAclDataType(yDtype), params.biasOptional, emptyBiasList, executor);
+            aclTensorList *emptyAntiquantOffsetList = nullptr;
+            CreateEmptyTensor(ToAclDataType(yDtype), params.antiquantOffsetOptional, emptyAntiquantOffsetList,
+                              executor);
+        } else {
+            aclTensorList *emptyBiasList = nullptr;
+            CreateEmptyTensor(ToAclDataType(params.xDtype), params.biasOptional, emptyBiasList, executor);
 
-        aclTensorList *emptyAntiquantOffsetList = nullptr;
-        CreateEmptyTensor(ToAclDataType(params.xDtype), params.antiquantOffsetOptional, emptyAntiquantOffsetList,
-                          executor);
+            aclTensorList *emptyAntiquantOffsetList = nullptr;
+            CreateEmptyTensor(ToAclDataType(params.xDtype), params.antiquantOffsetOptional, emptyAntiquantOffsetList,
+                              executor);
+        }
     }
 }
 
@@ -1653,15 +1676,19 @@ static void SetTransposedTensorListContiguous(gmm::GroupedMatmulParams &params, 
       if (isPerTileQuantMode) {
         gmm::CreateContiguousTensorList(params.perTokenScaleOptional, perTokenScaleTensorList, executorPtr);
       } else {
-        gmm::CreateContiguousTensorListForPertoken(params.perTokenScaleOptional, perTokenScaleTensorList, executorPtr);
-      }
+        gmm::CreateContiguousTensorListForPertoken(params.perTokenScaleOptional, perTokenScaleTensorList, executorPtr);}
       params.perTokenScaleOptional = executorPtr->AllocTensorList(perTokenScaleTensorList.data(), perTokenScaleTensorList.size());
     }
   }
   if (params.transposeWeight) {
     std::vector<aclTensor *> weightTensorList;
+    auto nZShape = (*params.weight)[0]->GetStorageShape();
     gmm::CreateContiguousTensorList(params.weight, weightTensorList, executorPtr);
     params.weight = executorPtr->AllocTensorList(weightTensorList.data(), weightTensorList.size());
+    if (IsWeightQuant(params.xDtype, weightDtype) &&
+        GetCurrentPlatformInfo().GetSocVersion() == SocVersion::ASCEND910_95 &&
+        params.apiVersion == gmm::GMMApiVersion::WeightNz) {
+      (*params.weight)[0]->SetStorageShape(nZShape);}
     if (params.scaleOptional != nullptr) {
       std::vector<aclTensor *> scaleTensorList;
       if ((*params.scaleOptional)[0]->GetDataType() == DataType::DT_FLOAT8_E8M0) {
@@ -1669,9 +1696,15 @@ static void SetTransposedTensorListContiguous(gmm::GroupedMatmulParams &params, 
         params.scaleOptional = executorPtr->AllocTensorList(scaleTensorList.data(), scaleTensorList.size());
       } else if (isPerTileQuantMode) {
         gmm::CreateContiguousTensorList(params.scaleOptional, scaleTensorList, executorPtr);
-        params.scaleOptional = executorPtr->AllocTensorList(scaleTensorList.data(), scaleTensorList.size());
-      }
+        params.scaleOptional = executorPtr->AllocTensorList(scaleTensorList.data(), scaleTensorList.size());}
     }
+    // 伪量化场景antiquantscale为3维时，需要手动转置为正确shape
+    if ((*params.antiquantScaleOptional)[0]->GetViewShape().GetDimNum() == 3 &&
+        GetCurrentPlatformInfo().GetSocVersion() == SocVersion::ASCEND910_95 &&
+        params.apiVersion == gmm::GMMApiVersion::WeightNz) {
+      std::vector<aclTensor *> antiSTensorList;
+      gmm::CreateContiguousTensorList(params.antiquantScaleOptional, antiSTensorList, executorPtr);
+      params.antiquantScaleOptional = executorPtr->AllocTensorList(antiSTensorList.data(), antiSTensorList.size());}
   }
 }
 
@@ -1682,9 +1715,9 @@ static aclnnStatus ParamsDataContiguous(gmm::GroupedMatmulParams &params, aclOpE
   DataType weightDtype = (*params.weight)[0]->GetDataType();
   if (!(GetCurrentPlatformInfo().GetSocVersion() == SocVersion::ASCEND910_95 &&
         params.apiVersion == gmm::GMMApiVersion::WeightNz && weightDtype == ge::DT_FLOAT4_E2M1 &&
-        (xDtype == ge::DT_FLOAT16 || xDtype == ge::DT_BF16))) {
-      CHECK_COND(DataContiguous(params.weight, executorPtr) == ACLNN_SUCCESS, ACLNN_ERR_PARAM_INVALID,
-                 "Contiguous weight failed.");  // make w contiguous
+        (xDtype == ge::DT_FLOAT16 || xDtype == ge::DT_BF16 || xDtype == ge::DT_FLOAT8_E4M3FN))) {
+    CHECK_COND(DataContiguous(params.weight, executorPtr) == ACLNN_SUCCESS, ACLNN_ERR_PARAM_INVALID,
+               "Contiguous weight failed."); // make w contiguous
   }
   CHECK_COND(DataContiguous(params.biasOptional, executorPtr) == ACLNN_SUCCESS, ACLNN_ERR_PARAM_INVALID,
              "Contiguous biasOptional failed.");
@@ -1720,6 +1753,13 @@ static aclnnStatus CheckWeightQuantGMMWeightNz(DataType x1Dtype, DataType weight
             yDtype == DataType::DT_FLOAT16 || yDtype == DataType::DT_BF16, ACLNN_ERR_PARAM_INVALID,
             "The dtypes of x[%s]-weight[%s]-y[%s] do not match with required dtype.The x-weight-y of the antiquant"
             "case[A16mxFp4] only supports the following combinations: Fp16-Fp4_e2m1-Fp16,BF16-Fp4_e2m1-BF16",
+            op::ToString(x1Dtype).GetString(), op::ToString(weightDtype).GetString(), op::ToString(yDtype).GetString());
+        return ACLNN_SUCCESS;
+    } else if (x1Dtype == DataType::DT_FLOAT8_E4M3FN && weightDtype == DataType::DT_FLOAT4_E2M1) {
+        CHECK_COND(
+            yDtype == DataType::DT_BF16 || yDtype == DataType::DT_FLOAT16, ACLNN_ERR_PARAM_INVALID,
+            "The dtypes of x[%s]-weight[%s]-y[%s] do not match with required dtype.The x-weight-y of the antiquant"
+            "case[A16mxFp4] only supports the following combinations: Fp8_e4m3fn-Fp4_e2m1-BF16/Fp16",
             op::ToString(x1Dtype).GetString(), op::ToString(weightDtype).GetString(), op::ToString(yDtype).GetString());
         return ACLNN_SUCCESS;
     }
@@ -1789,12 +1829,13 @@ static const aclTensor *SetTensorToNZFormat(const aclTensor *input, op::Shape &s
     return formatTensor;
 }
 
-static aclnnStatus SetStorageShape(gmm::GroupedMatmulParams &params, op::Shape wqbmmNzShape) {
+static aclnnStatus SetStorageShape(gmm::GroupedMatmulParams &params, op::Shape wqbmmNzShape)
+{
     DataType xDtype = (*params.x)[0]->GetDataType();
     DataType weightDtype = (*params.weight)[0]->GetDataType();
     if (GetCurrentPlatformInfo().GetSocVersion() == SocVersion::ASCEND910_95 &&
         params.apiVersion == gmm::GMMApiVersion::WeightNz && weightDtype == ge::DT_FLOAT4_E2M1 &&
-        (xDtype == ge::DT_FLOAT16 || xDtype == ge::DT_BF16)) {
+        (xDtype == ge::DT_FLOAT16 || xDtype == ge::DT_BF16 || xDtype == ge::DT_FLOAT8_E4M3FN)) {
         (*params.weight)[0]->SetStorageShape(wqbmmNzShape);
     }
     return ACLNN_SUCCESS;
@@ -1809,7 +1850,7 @@ static aclnnStatus GetGMMResultByL0Api(gmm::GroupedMatmulParams &params, uint64_
     "GMM: Cannot find bias dtype match with xDtype[%s]", op::ToString(params.xDtype).GetString());
   }
   SetAntiQuantParamsTensorEmpty91095(params, executorPtr);
-  SetParamsTensorEmpty(params, executorPtr);  // create empty tensorLists
+  SetParamsTensorEmpty(params, executorPtr); // create empty tensorLists
   SetTransposedTensorListContiguous(params, executorPtr);
   CHECK_COND(ParamsDataContiguous(params, executorPtr) == ACLNN_SUCCESS, ACLNN_ERR_PARAM_INVALID,
              "ParamsDataContiguous failed.");
