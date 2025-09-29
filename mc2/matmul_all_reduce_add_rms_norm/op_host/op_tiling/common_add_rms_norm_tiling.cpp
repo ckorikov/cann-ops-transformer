@@ -151,7 +151,7 @@ ge::graphStatus CheckAddRmsNormInputShape(
         VECTOR_INNER_ERR_REPORT_TILING(
             context->GetNodeName(),
             "Expect n of residual and gamma from arn to be same, but got"
-            " reisudal_n:[%lu], gamma_n:[%lu].",
+            " reisudal_n:[%ld], gamma_n:[%ld].",
             x2Shape->GetStorageShape().GetDim(2), gammaShape->GetStorageShape().GetDim(0)),
         return ge::GRAPH_FAILED);
     // residual和y，normOut的shape
@@ -302,3 +302,7 @@ ge::graphStatus CommonAddResNormTiling::Tiling4AddRmsNorm(
     return ge::GRAPH_SUCCESS;
 }
 } // namespace optiling
+<<<<<<< HEAD
+=======
+
+>>>>>>> bda43df0 (0929编译告警清理)
