@@ -20,6 +20,10 @@ ge::graphStatus TilingMoeTokenUnpermute(gert::TilingContext* context);
 
 ge::graphStatus TilingMoeTokenUnpermute(gert::TilingContext* context)
 {
+    // 设置workspace
+    size_t sysWorkspaceSize = 16 * 1024 * 1024;
+    size_t* currentWorkspace = context->GetWorkspaceSizes(1);
+    currentWorkspace[0] = sysWorkspaceSize;
     return TilingCompute(context, -1);
 }
 
@@ -309,9 +313,6 @@ static ge::graphStatus TilingPrepareForMoeTokenUnpermute(gert::TilingParseContex
     (void)context;
     return ge::GRAPH_SUCCESS;
 }
-
-struct MoeTokenUnpermuteCompileInfo {
-};
 
 IMPL_OP_OPTILING(MoeTokenUnpermute)
     .Tiling(TilingMoeTokenUnpermute)
