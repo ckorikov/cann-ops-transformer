@@ -482,7 +482,7 @@ ge::graphStatus WeightQuantMatmulAllReduceTilingA5::CheckInput()
             VECTOR_INNER_ERR_REPORT_TILING(
                 context_->GetNodeName(),
                 "In the per-group scenario,"
-                "antiquantGroupSize should be in range=[32, min(%ld, INT_MAX)], Actual=%ld.",
+                "antiquantGroupSize should be in range=[32, min(%lu, INT_MAX)], Actual=%ld.",
                 (kValue - 1), groupSize),
             return ge::GRAPH_FAILED);
     }

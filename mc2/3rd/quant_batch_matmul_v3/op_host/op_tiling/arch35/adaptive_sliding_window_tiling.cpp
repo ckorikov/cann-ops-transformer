@@ -602,7 +602,7 @@ void AdaptiveSlidingWindowTiling::CalStepKs()
 }
 
 void AdaptiveSlidingWindowTiling::CalScaleFactors(uint64_t baseASize, uint64_t baseBSize, uint64_t baseScaleASize,
-                                                  uint64_t baseScaleBSize, uint64_t leftL1Size)
+                                                  uint64_t baseScaleBSize, [[maybe_unused]] uint64_t leftL1Size)
 {
     uint64_t biasDtypeSize = ge::GetSizeByDataType(inputParams_.biasDtype);
     uint64_t baseBiasSize = inputParams_.hasBias ? basicTiling_.baseN * biasDtypeSize : 0;

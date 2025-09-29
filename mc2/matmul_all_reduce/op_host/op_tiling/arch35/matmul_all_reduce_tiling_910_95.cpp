@@ -12,8 +12,6 @@
  * \file matmul_all_reduce_tiling_910_95.cc
  * \brief
  */
-#ifndef MATMUL_ALL_REDUCE_TILING_910_95_CC
-#define MATMUL_ALL_REDUCE_TILING_910_95_CC
 #include "matmul_all_reduce_tiling_910_95.h"
 #include "op_mc2.h"
 
@@ -287,7 +285,7 @@ ge::graphStatus MatmulAllReduceTilingA5::CheckInput()
         OP_TILING_CHECK(
             !mc2tiling::CheckDataTypeVaild(static_cast<ge::DataType>(*mmrCtxInfo_.yDtypePtr), DTYPE_SUPPORT_LIST_Y),
             VECTOR_INNER_ERR_REPORT_TILING(
-                context_->GetNodeName(), "yDtype only support fp16, bf16 and float, actually is %lu",
+                context_->GetNodeName(), "yDtype only support fp16, bf16 and float, actually is %ld",
                 *mmrCtxInfo_.yDtypePtr),
             return ge::GRAPH_FAILED);
     }
@@ -307,4 +305,3 @@ MatmulAllReduceTilingA5::MatmulAllReduceTilingA5(
 {}
 
 } // namespace optiling
-#endif // MATMUL_ALL_REDUCE_TILING_910_95_CC

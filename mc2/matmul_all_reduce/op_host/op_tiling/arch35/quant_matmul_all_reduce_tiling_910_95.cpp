@@ -284,7 +284,7 @@ ge::graphStatus QuantMatmulAllReduceTilingA5::CheckAxisSize()
         (x2FirstDim > static_cast<uint64_t>(INT32_MAX)) || (x2LastDim > static_cast<uint64_t>(UINT16_MAX)),
         VECTOR_INNER_ERR_REPORT_TILING(
             context_->GetNodeName(), "The size of x2 first-axis=%lu exceeds the upper limit=%d or last-axis=%lu"
-            " exceeds the upper limit=%u.", x2FirstDim, INT32_MAX, x2LastDim, UINT16_MAX),
+            " exceeds the upper limit=%d.", x2FirstDim, INT32_MAX, x2LastDim, UINT16_MAX),
         return ge::GRAPH_FAILED);
 
     return CheckQuantEmptyTensor();
@@ -481,7 +481,7 @@ ge::graphStatus QuantMatmulAllReduceTilingA5::CheckQuantGroupSize()
             CUBE_INNER_ERR_REPORT(
                 opName_,
                 "groupSizeM, groupSizeN and groupSizeK should be 128 in perblock scene,"
-                " but actual is [groupSizeM = %ld, groupSizeN = %ld, groupSizeK = %ld]",
+                " but actual is [groupSizeM = %lu, groupSizeN = %lu, groupSizeK = %lu]",
                 groupSizeM, groupSizeN, groupSizeK),
             return ge::GRAPH_FAILED);
     } else if ((scenario_ == AllReduceScenario::MXFP4) || (scenario_ == AllReduceScenario::MXFP8)) {
@@ -490,7 +490,7 @@ ge::graphStatus QuantMatmulAllReduceTilingA5::CheckQuantGroupSize()
             CUBE_INNER_ERR_REPORT(
                 opName_,
                 "groupSizeM, groupSizeN and groupSizeK should be surported in mxfp scene,"
-                " but actual is [groupSizeM = %ld, groupSizeN = %ld, groupSizeK = %ld]",
+                " but actual is [groupSizeM = %lu, groupSizeN = %lu, groupSizeK = %lu]",
                 groupSizeM, groupSizeN, groupSizeK),
             return ge::GRAPH_FAILED);
     }
@@ -573,7 +573,7 @@ ge::graphStatus QuantMatmulAllReduceTilingA5::CheckInput()
         OP_TILING_CHECK(
             !mc2tiling::CheckDataTypeVaild(static_cast<ge::DataType>(*mmrCtxInfo_.yDtypePtr), DTYPE_SUPPORT_LIST_Y),
             VECTOR_INNER_ERR_REPORT_TILING(
-                context_->GetNodeName(), "yDtype only support fp16, bf16 and float, actually is %lu",
+                context_->GetNodeName(), "yDtype only support fp16, bf16 and float, actually is %ld",
                 *mmrCtxInfo_.yDtypePtr),
             return ge::GRAPH_FAILED);
     }
