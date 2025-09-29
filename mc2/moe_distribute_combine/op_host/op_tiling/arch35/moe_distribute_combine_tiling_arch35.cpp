@@ -260,20 +260,20 @@ static bool CheckAttrs(const gert::TilingContext *context, MoeDistributeCombineT
     // 校验ep能均分共享
     OP_TILING_CHECK((sharedExpertRankNum != 0) && (epWorldSize % sharedExpertRankNum != 0),
                     OP_LOGE(nodeName,
-                            "epWorldSize should be divisible by sharedExpertRankNum, but got epWorldSize=%d, "
-                            "sharedExpertRankNum=%d.",
+                            "epWorldSize should be divisible by sharedExpertRankNum, but got epWorldSize=%u, "
+                            "sharedExpertRankNum=%u.",
                             epWorldSize, sharedExpertRankNum),
                     return false);
     // 校验moe专家数量能否均分给多机
     OP_TILING_CHECK(moeExpertNum % (epWorldSize - sharedExpertRankNum) != 0,
                     OP_LOGE(nodeName,
                             "moeExpertNum should be divisible by (epWorldSize - sharedExpertRankNum), "
-                            "but got moeExpertNum=%d, epWorldSize=%d, sharedExpertRankNum=%d.",
+                            "but got moeExpertNum=%u, epWorldSize=%u, sharedExpertRankNum=%u.",
                             moeExpertNum, epWorldSize, sharedExpertRankNum),
                     return false);
     localMoeExpertNum = moeExpertNum / (epWorldSize - sharedExpertRankNum);
     OP_TILING_CHECK(localMoeExpertNum <= 0,
-                    OP_LOGE(nodeName, "localMoeExpertNum is invalid, localMoeExpertNum = %d", localMoeExpertNum),
+                    OP_LOGE(nodeName, "localMoeExpertNum is invalid, localMoeExpertNum = %u", localMoeExpertNum),
                     return false);
     // tpWorldSize 当前仅支持1
     OP_TILING_CHECK(

@@ -345,7 +345,7 @@ static ge::graphStatus CheckAttrs(const gert::TilingContext *context, const char
         OP_LOGE(nodeName, "The moeExpertNum should be divisible by (epWorldSize - sharedExpertRankNum), "
         "but got moeExpertNum=%u, epWorldSize=%u, sharedExpertRankNum=%u.", moeExpertNum, epWorldSize, sharedExpertRankNum),
         return ge::GRAPH_FAILED);
-    OP_TILING_CHECK(localMoeExpertNum <= 0, OP_LOGE(nodeName, "The localMoeExpertNum is invalid, localMoeExpertNum=%d",
+    OP_TILING_CHECK(localMoeExpertNum <= 0, OP_LOGE(nodeName, "The localMoeExpertNum is invalid, localMoeExpertNum=%u",
         localMoeExpertNum), return ge::GRAPH_FAILED);
     // tpWorldSize 当前仅支持1
     OP_TILING_CHECK(tpWorldSize != 1, 
@@ -429,7 +429,7 @@ inline ge::graphStatus CheckAndSetScalesInfo(gert::TilingContext *context, const
             // realMode 1 or 9
             OP_TILING_CHECK((quantMode == static_cast<uint32_t>(RealModeA5::STATIC_SCALES)) 
                 && (scalesDim0 != h) && (scalesDim0 != STATIC_SCALE_DIM_0),
-                OP_LOGE(nodeName, "The expected scalesDim0 is %u or %ld in static quant, but got %ld", 
+                OP_LOGE(nodeName, "The expected scalesDim0 is %u or %lu in static quant, but got %ld", 
                 h, STATIC_SCALE_DIM_0, scalesDim0), return ge::GRAPH_FAILED);
             OP_TILING_CHECK((quantMode == static_cast<uint32_t>(RealModeA5::HIF8_SCALES)) && (scalesDim0 != HIF8_SCALE_DIM_0),
                 OP_LOGE(nodeName, "The expected scalesDim0 is 1 when expandX datatype is hif8 in static quant, but got %ld", 
@@ -490,14 +490,14 @@ inline ge::graphStatus CheckDynamicScalesShape(const gert::TilingContext *contex
             const uint64_t dynamicScalesDim1 = static_cast<uint64_t>(dynamicScalesStorageShape->GetStorageShape().GetDim(1));
             OP_TILING_CHECK((quantMode == static_cast<uint32_t>(QuantModeA5::MX_QUANT)) 
                 && (dynamicScalesDim1 != ops::CeilDiv(h, MX_BLOCK_SIZE)),
-                OP_LOGE(nodeName, "dynamicScales's dim1 should be equal to %lu when quantMode=%u, but got %ld.",
+                OP_LOGE(nodeName, "dynamicScales's dim1 should be equal to %lu when quantMode=%u, but got %lu.",
                 ops::CeilDiv(h, MX_BLOCK_SIZE), quantMode, dynamicScalesDim1), return ge::GRAPH_FAILED);
             OP_TILING_CHECK((quantMode == static_cast<uint32_t>(QuantModeA5::MX_QUANT)) && (dynamicScalesDim1 % 2 != 0), 
-                OP_LOGE(nodeName, "dynamicScales's dim1 should be even when quantMode=%u, but got %ld.",
+                OP_LOGE(nodeName, "dynamicScales's dim1 should be even when quantMode=%u, but got %lu.",
                 quantMode, dynamicScalesDim1), return ge::GRAPH_FAILED);
             OP_TILING_CHECK((dynamicScalesDim1 != ops::CeilDiv(h, PERTILE_BLOCK_SIZE)) && 
                 (quantMode == static_cast<uint32_t>(QuantModeA5::PERGROUP_DYNAMIC_QUANT)), 
-                OP_LOGE(nodeName, "dynamicScales's dim1 should be equal to %lu when quantMode=%u, but got %ld.",
+                OP_LOGE(nodeName, "dynamicScales's dim1 should be equal to %lu when quantMode=%u, but got %lu.",
                 ops::CeilDiv(h, PERTILE_BLOCK_SIZE), quantMode, dynamicScalesDim1), return ge::GRAPH_FAILED);
         }
     }

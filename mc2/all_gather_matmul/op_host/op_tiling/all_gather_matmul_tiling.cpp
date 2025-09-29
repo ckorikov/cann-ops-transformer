@@ -576,7 +576,7 @@ static ge::graphStatus AllGatherMatmulTilingFunc(gert::TilingContext *context) {
 }
 
 struct AllGatherMatmulCompileInfo {};
-static ge::graphStatus TilingParseForAllGatherMatmul(gert::TilingParseContext *context) { return ge::GRAPH_SUCCESS; }
+static ge::graphStatus TilingParseForAllGatherMatmul([[maybe_unused]] gert::TilingParseContext *context) { return ge::GRAPH_SUCCESS; }
 
 IMPL_OP_OPTILING(AllGatherMatmul)
     .Tiling(AllGatherMatmulTilingFunc)
