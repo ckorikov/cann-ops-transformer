@@ -9,14 +9,14 @@
  */
 
 /*!
- * \file test_aclnn_flash_attention_score_grad.cpp
+ * \file test_aclnn_flash_attention_score.cpp
  * \brief
  */
 
 #include <iostream>
 #include <vector>
 #include "acl/acl.h"
-#include "aclnnop/aclnn_flash_attention_score_grad.h"
+#include "aclnnop/aclnn_flash_attention_score.h"
 
 #define CHECK_RET(cond, return_expr) \
   do {                               \
@@ -49,12 +49,16 @@ void PrintOutResult(std::vector<int64_t> &shape, void** deviceAddr) {
   }
 }
 
-int Init(int32_t deviceId, aclrtStream* stream) {
+int Init(int32_t deviceId, aclrtContext* context, aclrtStream* stream) {
   // 固定写法，AscendCL初始化
   auto ret = aclInit(nullptr);
   CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclInit failed. ERROR: %d\n", ret); return ret);
   ret = aclrtSetDevice(deviceId);
   CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclrtSetDevice failed. ERROR: %d\n", ret); return ret);
+  ret = aclrtCreateContext(context, deviceId);
+  CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclrtCreateContext failed. ERROR: %d\n", ret); return ret);
+  ret = aclrtSetCurrentContext(*context);
+  CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclrtSetCurrentContext failed. ERROR: %d\n", ret); return ret);
   ret = aclrtCreateStream(stream);
   CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclrtCreateStream failed. ERROR: %d\n", ret); return ret);
   return 0;
@@ -84,67 +88,51 @@ int CreateAclTensor(const std::vector<T>& hostData, const std::vector<int64_t>& 
 }
 
 int main() {
-  // 1. （固定写法）device/stream初始化，参考AscendCL对外接口列表
+  // 1. （固定写法）device/context/stream初始化，参考AscendCL对外接口列表
   // 根据自己的实际device填写deviceId
   int32_t deviceId = 0;
+  aclrtContext context;
   aclrtStream stream;
-  auto ret = Init(deviceId, &stream);
+  auto ret = Init(deviceId, &context, &stream);
   CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("Init acl failed. ERROR: %d\n", ret); return ret);
 
   // 2. 构造输入与输出，需要根据API的接口自定义构造
   std::vector<int64_t> qShape = {256, 1, 128};
   std::vector<int64_t> kShape = {256, 1, 128};
   std::vector<int64_t> vShape = {256, 1, 128};
-  std::vector<int64_t> dxShape = {256, 1, 128};
   std::vector<int64_t> attenmaskShape = {256, 256};
-  std::vector<int64_t> softmaxMaxShape = {1, 1, 256, 8};
-  std::vector<int64_t> softmaxSumShape = {1, 1, 256, 8};
-  std::vector<int64_t> attentionInShape = {256, 1, 128};
 
-  std::vector<int64_t> dqShape = {256, 1, 128};
-  std::vector<int64_t> dkShape = {256, 1, 128};
-  std::vector<int64_t> dvShape = {256, 1, 128};
+  std::vector<int64_t> attentionOutShape = {256, 1, 128};
+  std::vector<int64_t> softmaxMaxShape = {256, 1, 8};
+  std::vector<int64_t> softmaxSumShape = {256, 1, 8};
 
   void* qDeviceAddr = nullptr;
   void* kDeviceAddr = nullptr;
   void* vDeviceAddr = nullptr;
-  void* dxDeviceAddr = nullptr;
   void* attenmaskDeviceAddr = nullptr;
+  void* attentionOutDeviceAddr = nullptr;
   void* softmaxMaxDeviceAddr = nullptr;
   void* softmaxSumDeviceAddr = nullptr;
-  void* attentionInDeviceAddr = nullptr;
-  void* dqDeviceAddr = nullptr;
-  void* dkDeviceAddr = nullptr;
-  void* dvDeviceAddr = nullptr;
 
   aclTensor* q = nullptr;
   aclTensor* k = nullptr;
   aclTensor* v = nullptr;
-  aclTensor* dx = nullptr;
   aclTensor* pse = nullptr;
   aclTensor* dropMask = nullptr;
   aclTensor* padding = nullptr;
   aclTensor* attenmask = nullptr;
+  aclTensor* attentionOut = nullptr;
   aclTensor* softmaxMax = nullptr;
   aclTensor* softmaxSum = nullptr;
-  aclTensor* softmaxIn = nullptr;
-  aclTensor* attentionIn = nullptr;
-  aclTensor* dq = nullptr;
-  aclTensor* dk = nullptr;
-  aclTensor* dv = nullptr;
-  aclTensor* dpse = nullptr;
+  aclTensor* softmaxOut = nullptr;
 
   std::vector<float> qHostData(32768, 1);
   std::vector<float> kHostData(32768, 1);
   std::vector<float> vHostData(32768, 1);
-  std::vector<float> dxHostData(32768, 1);
   std::vector<uint8_t> attenmaskHostData(65536, 0);
+  std::vector<float> attentionOutHostData(32768, 0);
   std::vector<float> softmaxMaxHostData(2048, 3.0);
   std::vector<float> softmaxSumHostData(2048, 3.0);
-  std::vector<float> attentionInHostData(32768, 1);
-  std::vector<float> dqHostData(32768, 0);
-  std::vector<float> dkHostData(32768, 0);
-  std::vector<float> dvHostData(32768, 0);
 
   ret = CreateAclTensor(qHostData, qShape, &qDeviceAddr, aclDataType::ACL_FLOAT16, &q);
   CHECK_RET(ret == ACL_SUCCESS, return ret);
@@ -152,29 +140,21 @@ int main() {
   CHECK_RET(ret == ACL_SUCCESS, return ret);
   ret = CreateAclTensor(vHostData, vShape, &vDeviceAddr, aclDataType::ACL_FLOAT16, &v);
   CHECK_RET(ret == ACL_SUCCESS, return ret);
-  ret = CreateAclTensor(dxHostData, dxShape, &dxDeviceAddr, aclDataType::ACL_FLOAT16, &dx);
-  CHECK_RET(ret == ACL_SUCCESS, return ret);
   ret = CreateAclTensor(attenmaskHostData, attenmaskShape, &attenmaskDeviceAddr, aclDataType::ACL_UINT8, &attenmask);
+  CHECK_RET(ret == ACL_SUCCESS, return ret);
+  ret = CreateAclTensor(attentionOutHostData, attentionOutShape, &attentionOutDeviceAddr, aclDataType::ACL_FLOAT16, &attentionOut);
   CHECK_RET(ret == ACL_SUCCESS, return ret);
   ret = CreateAclTensor(softmaxMaxHostData, softmaxMaxShape, &softmaxMaxDeviceAddr, aclDataType::ACL_FLOAT, &softmaxMax);
   CHECK_RET(ret == ACL_SUCCESS, return ret);
   ret = CreateAclTensor(softmaxSumHostData, softmaxSumShape, &softmaxSumDeviceAddr, aclDataType::ACL_FLOAT, &softmaxSum);
   CHECK_RET(ret == ACL_SUCCESS, return ret);
-  ret = CreateAclTensor(attentionInHostData, attentionInShape, &attentionInDeviceAddr, aclDataType::ACL_FLOAT16, &attentionIn);
-  CHECK_RET(ret == ACL_SUCCESS, return ret);
-  ret = CreateAclTensor(dqHostData, dqShape, &dqDeviceAddr, aclDataType::ACL_FLOAT16, &dq);
-  CHECK_RET(ret == ACL_SUCCESS, return ret);
-  ret = CreateAclTensor(dkHostData, dkShape, &dkDeviceAddr, aclDataType::ACL_FLOAT16, &dk);
-  CHECK_RET(ret == ACL_SUCCESS, return ret);
-  ret = CreateAclTensor(dvHostData, dvShape, &dvDeviceAddr, aclDataType::ACL_FLOAT16, &dv);
-  CHECK_RET(ret == ACL_SUCCESS, return ret);
 
   std::vector<int64_t> prefixOp = {0};
   aclIntArray *prefix = aclCreateIntArray(prefixOp.data(), 1);
-  std::vector<int64_t> qStartIdxOp = {0};
-  std::vector<int64_t> kvStartIdxOp = {0};
-  aclIntArray *qStartIdx = aclCreateIntArray(qStartIdxOp.data(), 1);
-  aclIntArray *kvStartIdx = aclCreateIntArray(kvStartIdxOp.data(), 1);
+  std::vector<int64_t>  acSeqQLenOp = {256};
+  std::vector<int64_t>  acSeqKvLenOp = {256};
+  aclIntArray* acSeqQLen = aclCreateIntArray(acSeqQLenOp.data(), acSeqQLenOp.size());
+  aclIntArray* acSeqKvLen = aclCreateIntArray(acSeqKvLenOp.data(), acSeqKvLenOp.size());
   double scaleValue = 0.088388;
   double keepProb = 1;
   int64_t preTokens = 65536;
@@ -182,19 +162,21 @@ int main() {
   int64_t headNum = 1;
   int64_t innerPrecise = 0;
   int64_t sparseMod = 0;
-  int64_t pseType = 1;
-  char layOut[5] = {'S', 'B', 'H', 0};
+
+  char layOut[5] = {'T', 'N', 'D', 0};
+  char softmaxOutLayout[] = "same_as_input";
 
   // 3. 调用CANN算子库API，需要修改为具体的Api名称
   uint64_t workspaceSize = 0;
   aclOpExecutor* executor;
 
-  // 调用aclnnFlashAttentionScoreGradV2第一段接口
-  ret = aclnnFlashAttentionScoreGradV2GetWorkspaceSize(q, k, v, dx, pse, dropMask, padding,
-            attenmask, softmaxMax, softmaxSum, softmaxIn, attentionIn, prefix, qStartIdx, kvStartIdx,
-            scaleValue, keepProb, preTokens, nextTokens, headNum, layOut, innerPrecise, sparseMod, pseType,
-            dq, dk, dv, dpse, &workspaceSize, &executor);
-  CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclnnFlashAttentionScoreGradV2GetWorkspaceSize failed. ERROR: %d\n", ret); return ret);
+  // 调用aclnnFlashAttentionVarLenScoreV4第一段接口
+  ret = aclnnFlashAttentionVarLenScoreV4GetWorkspaceSize(
+            q, k, v, pse, dropMask, padding, attenmask, prefix, acSeqQLen, acSeqKvLen,
+            scaleValue, keepProb, preTokens, nextTokens, headNum, layOut, innerPrecise,
+            sparseMod, softmaxOutLayout, softmaxMax, softmaxSum, softmaxOut, attentionOut, &workspaceSize, &executor);
+  CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclnnFlashAttentionVarLenScoreV4GetWorkspaceSize failed. ERROR: %d\n", ret);
+            return ret);
 
   // 根据第一段接口计算出的workspaceSize申请device内存
   void* workspaceAddr = nullptr;
@@ -203,48 +185,41 @@ int main() {
     CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("allocate workspace failed. ERROR: %d\n", ret); return ret);
   }
 
-  // 调用aclnnFlashAttentionScoreGradV2第二段接口
-  ret = aclnnFlashAttentionScoreGradV2(workspaceAddr, workspaceSize, executor, stream);
-  CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclnnFlashAttentionScoreGradV2 failed. ERROR: %d\n", ret); return ret);
+  // 调用aclnnFlashAttentionVarLenScoreV4第二段接口
+  ret = aclnnFlashAttentionVarLenScoreV4(workspaceAddr, workspaceSize, executor, stream);
+  CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclnnFlashAttentionVarLenScoreV4 failed. ERROR: %d\n", ret); return ret);
 
   // 4. （固定写法）同步等待任务执行结束
   ret = aclrtSynchronizeStream(stream);
   CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclrtSynchronizeStream failed. ERROR: %d\n", ret); return ret);
 
   // 5. 获取输出的值，将device侧内存上的结果拷贝至host侧，需要根据具体API的接口定义修改
-  PrintOutResult(dqShape, &dqDeviceAddr);
-  PrintOutResult(dkShape, &dkDeviceAddr);
-  PrintOutResult(dvShape, &dvDeviceAddr);
+  PrintOutResult(attentionOutShape, &attentionOutDeviceAddr);
+  PrintOutResult(softmaxMaxShape, &softmaxMaxDeviceAddr);
+  PrintOutResult(softmaxSumShape, &softmaxSumDeviceAddr);
 
   // 6. 释放aclTensor和aclScalar，需要根据具体API的接口定义修改
   aclDestroyTensor(q);
   aclDestroyTensor(k);
   aclDestroyTensor(v);
-  aclDestroyTensor(dx);
   aclDestroyTensor(attenmask);
+  aclDestroyTensor(attentionOut);
   aclDestroyTensor(softmaxMax);
   aclDestroyTensor(softmaxSum);
-  aclDestroyTensor(attentionIn);
-  aclDestroyTensor(dq);
-  aclDestroyTensor(dk);
-  aclDestroyTensor(dv);
 
   // 7. 释放device资源
   aclrtFree(qDeviceAddr);
   aclrtFree(kDeviceAddr);
   aclrtFree(vDeviceAddr);
-  aclrtFree(dxDeviceAddr);
   aclrtFree(attenmaskDeviceAddr);
+  aclrtFree(attentionOutDeviceAddr);
   aclrtFree(softmaxMaxDeviceAddr);
   aclrtFree(softmaxSumDeviceAddr);
-  aclrtFree(attentionInDeviceAddr);
-  aclrtFree(dqDeviceAddr);
-  aclrtFree(dkDeviceAddr);
-  aclrtFree(dvDeviceAddr);
   if (workspaceSize > 0) {
     aclrtFree(workspaceAddr);
   }
   aclrtDestroyStream(stream);
+  aclrtDestroyContext(context);
   aclrtResetDevice(deviceId);
   aclFinalize();
 
