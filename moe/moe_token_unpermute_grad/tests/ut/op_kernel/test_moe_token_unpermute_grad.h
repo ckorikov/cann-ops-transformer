@@ -26,26 +26,6 @@
 
 #define __aicore__
 
-struct MoeTokenUnpermuteGradTilingData {
-    int64_t tokensNum = 0;
-    int64_t topK = 0;
-    int64_t hiddenSize = 0;
-    int64_t numOutTokens = 0;
-    int64_t formerCoreNum = 0;
-    int64_t tailCoreNum = 0;
-    int64_t tokenNumEachCore = 0;
-    int64_t tokenNumTailCore = 0;
-    int64_t rowIdMapEachCore = 0;
-    int64_t rowIdMapTailCore = 0;
-    int64_t hiddenSizeAlign = 0;
-    int64_t hiddenSizeLoopTimes = 0;
-    int64_t hiddenSizeTail = 0;
-    int64_t inputReserveNum = 0;
-    int64_t indicesReserveNum = 0;
-    int64_t indicesReserveNumAlign = 0;
-    int64_t totalUbSize = 0;
-};
-
 inline void InitMoeTokenUnpermuteGradTilingData(uint8_t* tiling, MoeTokenUnpermuteGradTilingData* const_data)
 {
     memcpy(const_data, tiling, sizeof(MoeTokenUnpermuteGradTilingData));

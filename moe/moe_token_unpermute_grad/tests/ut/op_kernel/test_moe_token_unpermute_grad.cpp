@@ -20,7 +20,6 @@
 #include "gtest/gtest.h"
 #include "tikicpulib.h"
 #include "test_moe_token_unpermute_grad.h"
-#include "../../../../../built-in/tests//ut//fast_op_test/data_utils.h"
 
 #include <cstdint>
 

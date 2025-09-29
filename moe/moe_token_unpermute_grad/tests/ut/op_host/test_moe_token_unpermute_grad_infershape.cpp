@@ -13,349 +13,41 @@
  * \brief
  */
 
-#include <iostream>
 #include <gtest/gtest.h>
-#include "common/utils/ut_op_common.h"
+#include <iostream>
+#include "infershape_context_faker.h"
+#include "infershape_case_executor.h"
+#include "base/registry/op_impl_space_registry_v2.h"
 
-class MoeTokenUnpermuteGrad : public testing::Test
-{
-protected:
-    static void SetUpTestCase()
-    {
-        std::cout << "MoeTokenUnpermuteGrad Proto Test SetUp" << std::endl;
-    }
+class MoeTokenUnpermuteGradInferShape : public testing::Test {
+ protected:
+  static void SetUpTestCase() {
+    std::cout << "MoeTokenUnpermuteGradInferShape SetUp" << std::endl;
+  }
 
-    static void TearDownTestCase()
-    {
-        std::cout << "MoeTokenUnpermuteGrad Proto Test TearDown" << std::endl;
-    }
+  static void TearDownTestCase() {
+    std::cout << "MoeTokenUnpermuteGradInferShape TearDown" << std::endl;
+  }
 };
 
-TEST_F(MoeTokenUnpermuteGrad, MoeTokenUnpermuteGrad_infershape_case_0)
+
+TEST_F(MoeTokenUnpermuteGradInferShape, MoeTokenUnpermuteGrad_infershape_case_0)
 {
-    gert::StorageShape permuted_tokens_shape = {{30, 64}, {30, 64}};
-    gert::StorageShape unpermuted_output_d_shape = {{10, 64}, {10, 64}};
-    gert::StorageShape sorted_indices_shape = {
-        {
-            30,
-        },
-        {
-            30,
-        }};
-    gert::StorageShape probs_shape = {{10, 3}, {10, 3}};
-    // output
-    gert::StorageShape permuted_tokens_grad_shape = {{30, 64}, {30, 64}};
-    gert::StorageShape probs_grad_shape = {{10, 3}, {10, 3}};
-
-    auto holder =
-        gert::InferShapeContextFaker()
-            .SetOpType("MoeTokenUnpermuteGrad")
-            .NodeIoNum(4, 2)
-            .IrInstanceNum({1, 1, 1, 1})
-            .InputShapes({&permuted_tokens_shape, &unpermuted_output_d_shape, &sorted_indices_shape, &probs_shape})
-            .OutputShapes({&permuted_tokens_grad_shape, &probs_grad_shape})
-            .NodeInputTd(0, ge::DT_BF16, ge::FORMAT_ND, ge::FORMAT_ND)
-            .NodeInputTd(1, ge::DT_BF16, ge::FORMAT_ND, ge::FORMAT_ND)
-            .NodeInputTd(2, ge::DT_INT32, ge::FORMAT_ND, ge::FORMAT_ND)
-            .NodeInputTd(3, ge::DT_BF16, ge::FORMAT_ND, ge::FORMAT_ND)
-            .NodeOutputTd(0, ge::DT_BF16, ge::FORMAT_ND, ge::FORMAT_ND)
-            .NodeOutputTd(1, ge::DT_BF16, ge::FORMAT_ND, ge::FORMAT_ND)
-            .NodeAttrs({{"padded_mode", ge::AnyValue::CreateFrom<bool>(false)}})
-            .Build();
-
-    gert::InferShapeContext* context = holder.GetContext<gert::InferShapeContext>();
-    auto infer_shape_func = gert::OpImplRegistry::GetInstance().GetOpImpl("MoeTokenUnpermuteGrad")->infer_shape;
-    ge::graphStatus ret = infer_shape_func(context);
-    EXPECT_EQ(ret, ge::GRAPH_SUCCESS);
-
-    std::vector<int64_t> expectedPermutedTokensGradShape = {30, 64};
-    std::vector<int64_t> expectedProbsGradShape = {10, 3};
-    auto permutedTokensGradShape = context->GetOutputShape(0);
-    auto probsGradShape = context->GetOutputShape(1);
-    EXPECT_EQ(ops::ToVector(*permutedTokensGradShape), expectedPermutedTokensGradShape);
-    EXPECT_EQ(ops::ToVector(*probsGradShape), expectedProbsGradShape);
-}
-
-TEST_F(MoeTokenUnpermuteGrad, MoeTokenUnpermuteGrad_infershape_case_1)
-{
-    gert::StorageShape permuted_tokens_shape = {{30, 64}, {30, 64}};
-    gert::StorageShape unpermuted_output_d_shape = {{10, 64}, {10, 64}};
-    gert::StorageShape sorted_indices_shape = {
-        {
-            30,
-        },
-        {
-            30,
-        }};
-    gert::StorageShape probs_shape = {{10, 3}, {10, 3}};
-    // output
-    gert::StorageShape permuted_tokens_grad_shape = {{30, 64}, {30, 64}};
-    gert::StorageShape probs_grad_shape = {{10, 3}, {10, 3}};
-
-    auto holder =
-        gert::InferShapeContextFaker()
-            .SetOpType("MoeTokenUnpermuteGrad")
-            .NodeIoNum(4, 2)
-            .IrInstanceNum({1, 1, 1, 1})
-            .InputShapes({&permuted_tokens_shape, &unpermuted_output_d_shape, &sorted_indices_shape, &probs_shape})
-            .OutputShapes({&permuted_tokens_grad_shape, &probs_grad_shape})
-            .NodeInputTd(0, ge::DT_BF16, ge::FORMAT_ND, ge::FORMAT_ND)
-            .NodeInputTd(1, ge::DT_BF16, ge::FORMAT_ND, ge::FORMAT_ND)
-            .NodeInputTd(2, ge::DT_INT32, ge::FORMAT_ND, ge::FORMAT_ND)
-            .NodeInputTd(3, ge::DT_FLOAT, ge::FORMAT_ND, ge::FORMAT_ND)
-            .NodeOutputTd(0, ge::DT_BF16, ge::FORMAT_ND, ge::FORMAT_ND)
-            .NodeOutputTd(1, ge::DT_FLOAT, ge::FORMAT_ND, ge::FORMAT_ND)
-            .NodeAttrs({{"padded_mode", ge::AnyValue::CreateFrom<bool>(false)}})
-            .Build();
-
-    gert::InferShapeContext* context = holder.GetContext<gert::InferShapeContext>();
-    auto infer_shape_func = gert::OpImplRegistry::GetInstance().GetOpImpl("MoeTokenUnpermuteGrad")->infer_shape;
-    ge::graphStatus ret = infer_shape_func(context);
-    EXPECT_EQ(ret, ge::GRAPH_SUCCESS);
-
-    std::vector<int64_t> expectedPermutedTokensGradShape = {30, 64};
-    std::vector<int64_t> expectedProbsGradShape = {10, 3};
-    auto permutedTokensGradShape = context->GetOutputShape(0);
-    auto probsGradShape = context->GetOutputShape(1);
-    EXPECT_EQ(ops::ToVector(*permutedTokensGradShape), expectedPermutedTokensGradShape);
-    EXPECT_EQ(ops::ToVector(*probsGradShape), expectedProbsGradShape);
-}
-
-TEST_F(MoeTokenUnpermuteGrad, MoeTokenUnpermuteGrad_inferdtype_bf16_case_0)
-{
-    ASSERT_NE(gert::OpImplRegistry::GetInstance().GetOpImpl("MoeTokenUnpermuteGrad"), nullptr);
-    auto data_type_func = gert::OpImplRegistry::GetInstance().GetOpImpl("MoeTokenUnpermuteGrad")->infer_datatype;
-
-    if (data_type_func != nullptr) {
-        ge::DataType input_ref = ge::DT_BF16;
-        ge::DataType input_indices_ref = ge::DT_INT32;
-        ge::DataType output_ref = ge::DT_BF16;
-        auto context_holder = gert::InferDataTypeContextFaker()
-                                  .IrInputNum(4)
-                                  .NodeIoNum(4, 2)
-                                  .NodeInputTd(0, ge::DT_BF16, ge::FORMAT_ND, ge::FORMAT_ND)
-                                  .NodeInputTd(1, ge::DT_BF16, ge::FORMAT_ND, ge::FORMAT_ND)
-                                  .NodeInputTd(2, ge::DT_INT32, ge::FORMAT_ND, ge::FORMAT_ND)
-                                  .NodeInputTd(3, ge::DT_BF16, ge::FORMAT_ND, ge::FORMAT_ND)
-                                  .NodeOutputTd(0, ge::DT_BF16, ge::FORMAT_ND, ge::FORMAT_ND)
-                                  .NodeOutputTd(1, ge::DT_BF16, ge::FORMAT_ND, ge::FORMAT_ND)
-                                  .InputDataTypes({&input_ref, &input_ref, &input_indices_ref, &input_ref})
-                                  .OutputDataTypes({&output_ref, &output_ref})
-                                  .Build();
-        auto context = context_holder.GetContext<gert::InferDataTypeContext>();
-        EXPECT_EQ(data_type_func(context), ge::GRAPH_SUCCESS);
-        ASSERT_NE(context, nullptr);
-
-        EXPECT_EQ(context->GetInputDataType(0), input_ref);
-        EXPECT_EQ(context->GetInputDataType(1), input_ref);
-        EXPECT_EQ(context->GetInputDataType(2), input_indices_ref);
-        EXPECT_EQ(context->GetInputDataType(3), input_ref);
-        EXPECT_EQ(context->GetOutputDataType(0), output_ref);
-        EXPECT_EQ(context->GetOutputDataType(1), output_ref);
+    gert::InfershapeContextPara infershapeContextPara("MoeTokenUnpermuteGrad",
+    {
+        {{{30, 64}, {30, 64}}, ge::DT_BF16, ge::FORMAT_ND},
+        {{{10, 64}, {10, 64}}, ge::DT_BF16, ge::FORMAT_ND},
+        {{{30,}, {30,}}, ge::DT_INT32, ge::FORMAT_ND},
+        {{{10, 3}, {10, 3}}, ge::DT_FLOAT, ge::FORMAT_ND}
+    },
+    {
+        {{{}, {}}, ge::DT_BF16, ge::FORMAT_ND},
+        {{{}, {}}, ge::DT_FLOAT, ge::FORMAT_ND}
+    },
+    {
+        {"padded_mode", Ops::Transformer::AnyValue::CreateFrom<bool>(false)},
     }
-}
-
-TEST_F(MoeTokenUnpermuteGrad, MoeTokenUnpermuteGrad_inferdtype_bf16_case_1)
-{
-    ASSERT_NE(gert::OpImplRegistry::GetInstance().GetOpImpl("MoeTokenUnpermuteGrad"), nullptr);
-    auto data_type_func = gert::OpImplRegistry::GetInstance().GetOpImpl("MoeTokenUnpermuteGrad")->infer_datatype;
-
-    if (data_type_func != nullptr) {
-        ge::DataType input_ref = ge::DT_BF16;
-        ge::DataType input_ref_prob = ge::DT_FLOAT;
-        ge::DataType input_indices_ref = ge::DT_INT32;
-        ge::DataType output_ref = ge::DT_BF16;
-        ge::DataType output_ref_prob = ge::DT_FLOAT;
-        auto context_holder = gert::InferDataTypeContextFaker()
-                                  .IrInputNum(4)
-                                  .NodeIoNum(4, 2)
-                                  .NodeInputTd(0, ge::DT_BF16, ge::FORMAT_ND, ge::FORMAT_ND)
-                                  .NodeInputTd(1, ge::DT_BF16, ge::FORMAT_ND, ge::FORMAT_ND)
-                                  .NodeInputTd(2, ge::DT_INT32, ge::FORMAT_ND, ge::FORMAT_ND)
-                                  .NodeInputTd(3, ge::DT_FLOAT, ge::FORMAT_ND, ge::FORMAT_ND)
-                                  .NodeOutputTd(0, ge::DT_BF16, ge::FORMAT_ND, ge::FORMAT_ND)
-                                  .NodeOutputTd(1, ge::DT_FLOAT, ge::FORMAT_ND, ge::FORMAT_ND)
-                                  .InputDataTypes({&input_ref, &input_ref, &input_indices_ref, &input_ref_prob})
-                                  .OutputDataTypes({&output_ref, &output_ref_prob})
-                                  .Build();
-        auto context = context_holder.GetContext<gert::InferDataTypeContext>();
-        EXPECT_EQ(data_type_func(context), ge::GRAPH_SUCCESS);
-        ASSERT_NE(context, nullptr);
-
-        EXPECT_EQ(context->GetInputDataType(0), input_ref);
-        EXPECT_EQ(context->GetInputDataType(1), input_ref);
-        EXPECT_EQ(context->GetInputDataType(2), input_indices_ref);
-        EXPECT_EQ(context->GetInputDataType(3), input_ref_prob);
-        EXPECT_EQ(context->GetOutputDataType(0), output_ref);
-        EXPECT_EQ(context->GetOutputDataType(1), output_ref_prob);
-    }
-}
-
-TEST_F(MoeTokenUnpermuteGrad, MoeTokenUnpermuteGrad_infershape_prob_not_none_split_h_case_0)
-{
-    gert::StorageShape permuted_tokens_shape = {{30, 8192}, {30, 8192}};
-    gert::StorageShape unpermuted_output_d_shape = {{10, 8192}, {10, 8192}};
-    gert::StorageShape sorted_indices_shape = {
-        {
-            30,
-        },
-        {
-            30,
-        }};
-    gert::StorageShape probs_shape = {{10, 3}, {10, 3}};
-    // output
-    gert::StorageShape permuted_tokens_grad_shape = {{30, 8192}, {30, 8192}};
-    gert::StorageShape probs_grad_shape = {{10, 3}, {10, 3}};
-
-    auto holder =
-        gert::InferShapeContextFaker()
-            .SetOpType("MoeTokenUnpermuteGrad")
-            .NodeIoNum(4, 2)
-            .IrInstanceNum({1, 1, 1, 1})
-            .InputShapes({&permuted_tokens_shape, &unpermuted_output_d_shape, &sorted_indices_shape, &probs_shape})
-            .OutputShapes({&permuted_tokens_grad_shape, &probs_grad_shape})
-            .NodeInputTd(0, ge::DT_BF16, ge::FORMAT_ND, ge::FORMAT_ND)
-            .NodeInputTd(1, ge::DT_BF16, ge::FORMAT_ND, ge::FORMAT_ND)
-            .NodeInputTd(2, ge::DT_INT32, ge::FORMAT_ND, ge::FORMAT_ND)
-            .NodeInputTd(3, ge::DT_BF16, ge::FORMAT_ND, ge::FORMAT_ND)
-            .NodeOutputTd(0, ge::DT_BF16, ge::FORMAT_ND, ge::FORMAT_ND)
-            .NodeOutputTd(1, ge::DT_BF16, ge::FORMAT_ND, ge::FORMAT_ND)
-            .NodeAttrs({{"padded_mode", ge::AnyValue::CreateFrom<bool>(false)}})
-            .Build();
-
-    gert::InferShapeContext* context = holder.GetContext<gert::InferShapeContext>();
-    auto infer_shape_func = gert::OpImplRegistry::GetInstance().GetOpImpl("MoeTokenUnpermuteGrad")->infer_shape;
-    ge::graphStatus ret = infer_shape_func(context);
-    EXPECT_EQ(ret, ge::GRAPH_SUCCESS);
-
-    std::vector<int64_t> expectedPermutedTokensGradShape = {30, 8192};
-    std::vector<int64_t> expectedProbsGradShape = {10, 3};
-    auto permutedTokensGradShape = context->GetOutputShape(0);
-    auto probsGradShape = context->GetOutputShape(1);
-    EXPECT_EQ(ops::ToVector(*permutedTokensGradShape), expectedPermutedTokensGradShape);
-    EXPECT_EQ(ops::ToVector(*probsGradShape), expectedProbsGradShape);
-}
-
-TEST_F(MoeTokenUnpermuteGrad, MoeTokenUnpermuteGrad_inferdtype_fp16_case_0)
-{
-    ASSERT_NE(gert::OpImplRegistry::GetInstance().GetOpImpl("MoeTokenUnpermuteGrad"), nullptr);
-    auto data_type_func = gert::OpImplRegistry::GetInstance().GetOpImpl("MoeTokenUnpermuteGrad")->infer_datatype;
-
-    if (data_type_func != nullptr) {
-        ge::DataType input_ref = ge::DT_FLOAT16;
-        ge::DataType input_indices_ref = ge::DT_INT32;
-        ge::DataType output_ref = ge::DT_FLOAT16;
-        auto context_holder = gert::InferDataTypeContextFaker()
-                                  .IrInputNum(4)
-                                  .NodeIoNum(4, 2)
-                                  .NodeInputTd(0, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND)
-                                  .NodeInputTd(1, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND)
-                                  .NodeInputTd(2, ge::DT_INT32, ge::FORMAT_ND, ge::FORMAT_ND)
-                                  .NodeInputTd(3, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND)
-                                  .NodeOutputTd(0, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND)
-                                  .NodeOutputTd(1, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND)
-                                  .InputDataTypes({&input_ref, &input_ref, &input_indices_ref, &input_ref})
-                                  .OutputDataTypes({&output_ref, &output_ref})
-                                  .Build();
-        auto context = context_holder.GetContext<gert::InferDataTypeContext>();
-        EXPECT_EQ(data_type_func(context), ge::GRAPH_SUCCESS);
-        ASSERT_NE(context, nullptr);
-
-        EXPECT_EQ(context->GetInputDataType(0), input_ref);
-        EXPECT_EQ(context->GetInputDataType(1), input_ref);
-        EXPECT_EQ(context->GetInputDataType(2), input_indices_ref);
-        EXPECT_EQ(context->GetInputDataType(3), input_ref);
-        EXPECT_EQ(context->GetOutputDataType(0), output_ref);
-        EXPECT_EQ(context->GetOutputDataType(1), output_ref);
-    }
-}
-
-TEST_F(MoeTokenUnpermuteGrad, MoeTokenUnpermuteGrad_infershape_prob_not_none_split_h_fp16_case_0)
-{
-    gert::StorageShape permuted_tokens_shape = {{30, 8192}, {30, 8192}};
-    gert::StorageShape unpermuted_output_d_shape = {{10, 8192}, {10, 8192}};
-    gert::StorageShape sorted_indices_shape = {
-        {
-            30,
-        },
-        {
-            30,
-        }};
-    gert::StorageShape probs_shape = {{10, 3}, {10, 3}};
-    // output
-    gert::StorageShape permuted_tokens_grad_shape = {{30, 8192}, {30, 8192}};
-    gert::StorageShape probs_grad_shape = {{10, 3}, {10, 3}};
-
-    auto holder =
-        gert::InferShapeContextFaker()
-            .SetOpType("MoeTokenUnpermuteGrad")
-            .NodeIoNum(4, 2)
-            .IrInstanceNum({1, 1, 1, 1})
-            .InputShapes({&permuted_tokens_shape, &unpermuted_output_d_shape, &sorted_indices_shape, &probs_shape})
-            .OutputShapes({&permuted_tokens_grad_shape, &probs_grad_shape})
-            .NodeInputTd(0, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND)
-            .NodeInputTd(1, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND)
-            .NodeInputTd(2, ge::DT_INT32, ge::FORMAT_ND, ge::FORMAT_ND)
-            .NodeInputTd(3, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND)
-            .NodeOutputTd(0, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND)
-            .NodeOutputTd(1, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND)
-            .NodeAttrs({{"padded_mode", ge::AnyValue::CreateFrom<bool>(false)}})
-            .Build();
-
-    gert::InferShapeContext* context = holder.GetContext<gert::InferShapeContext>();
-    auto infer_shape_func = gert::OpImplRegistry::GetInstance().GetOpImpl("MoeTokenUnpermuteGrad")->infer_shape;
-    ge::graphStatus ret = infer_shape_func(context);
-    EXPECT_EQ(ret, ge::GRAPH_SUCCESS);
-
-    std::vector<int64_t> expectedPermutedTokensGradShape = {30, 8192};
-    std::vector<int64_t> expectedProbsGradShape = {10, 3};
-    auto permutedTokensGradShape = context->GetOutputShape(0);
-    auto probsGradShape = context->GetOutputShape(1);
-    EXPECT_EQ(ops::ToVector(*permutedTokensGradShape), expectedPermutedTokensGradShape);
-    EXPECT_EQ(ops::ToVector(*probsGradShape), expectedProbsGradShape);
-}
-
-TEST_F(MoeTokenUnpermuteGrad, MoeTokenUnpermuteGrad_infershape_prob_not_none_split_h_fp16_case_1)
-{
-    gert::StorageShape permuted_tokens_shape = {{30, 8192}, {30, 8192}};
-    gert::StorageShape unpermuted_output_d_shape = {{10, 8192}, {10, 8192}};
-    gert::StorageShape sorted_indices_shape = {
-        {
-            30,
-        },
-        {
-            30,
-        }};
-    gert::StorageShape probs_shape = {{10, 3}, {10, 3}};
-    // output
-    gert::StorageShape permuted_tokens_grad_shape = {{30, 8192}, {30, 8192}};
-    gert::StorageShape probs_grad_shape = {{10, 3}, {10, 3}};
-
-    auto holder =
-        gert::InferShapeContextFaker()
-            .SetOpType("MoeTokenUnpermuteGrad")
-            .NodeIoNum(4, 2)
-            .IrInstanceNum({1, 1, 1, 1})
-            .InputShapes({&permuted_tokens_shape, &unpermuted_output_d_shape, &sorted_indices_shape, &probs_shape})
-            .OutputShapes({&permuted_tokens_grad_shape, &probs_grad_shape})
-            .NodeInputTd(0, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND)
-            .NodeInputTd(1, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND)
-            .NodeInputTd(2, ge::DT_INT32, ge::FORMAT_ND, ge::FORMAT_ND)
-            .NodeInputTd(3, ge::DT_FLOAT, ge::FORMAT_ND, ge::FORMAT_ND)
-            .NodeOutputTd(0, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND)
-            .NodeOutputTd(1, ge::DT_FLOAT, ge::FORMAT_ND, ge::FORMAT_ND)
-            .NodeAttrs({{"padded_mode", ge::AnyValue::CreateFrom<bool>(false)}})
-            .Build();
-
-    gert::InferShapeContext* context = holder.GetContext<gert::InferShapeContext>();
-    auto infer_shape_func = gert::OpImplRegistry::GetInstance().GetOpImpl("MoeTokenUnpermuteGrad")->infer_shape;
-    ge::graphStatus ret = infer_shape_func(context);
-    EXPECT_EQ(ret, ge::GRAPH_SUCCESS);
-
-    std::vector<int64_t> expectedPermutedTokensGradShape = {30, 8192};
-    std::vector<int64_t> expectedProbsGradShape = {10, 3};
-    auto permutedTokensGradShape = context->GetOutputShape(0);
-    auto probsGradShape = context->GetOutputShape(1);
-    EXPECT_EQ(ops::ToVector(*permutedTokensGradShape), expectedPermutedTokensGradShape);
-    EXPECT_EQ(ops::ToVector(*probsGradShape), expectedProbsGradShape);
+    );
+    std::vector<std::vector<int64_t>> expectOutputShape = {{30, 64}, {10, 3}};
+    ExecuteTestCase(infershapeContextPara, ge::GRAPH_SUCCESS, expectOutputShape);
 }
