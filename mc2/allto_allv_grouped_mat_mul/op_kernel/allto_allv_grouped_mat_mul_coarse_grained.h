@@ -19,12 +19,7 @@
 #include "kernel_operator_intf.h"
 #include "allto_allv_gmm.h"
 #include "lib/matmul_intf.h"
-#if defined(__DAV_C310__)
-#include "kernel_tiling/kernel_tiling.h"
-constexpr uint32_t MAX_EP_RANK_SIZE = 64U;
-#else
 #include "allto_allv_grouped_mat_mul_tiling.h"
-#endif
 namespace AscendC {
 using namespace ALLTO_ALLV_GMM;
 
@@ -34,20 +29,11 @@ class AlltoAllvGmmCoarseGrained
 public:
     __aicore__ inline AlltoAllvGmmCoarseGrained()
     {}
-#if defined(__DAV_C310__)
-    __aicore__ inline void Init(
-        GM_ADDR gmmxGM, GM_ADDR gmmweightGM, GM_ADDR sendCountsTensorOptionalGM, GM_ADDR recvCountsTensorOptionalGM,
-        GM_ADDR mmxOptionalGM, GM_ADDR mmweightOptionalGM, GM_ADDR gmmyGM, GM_ADDR mmyOptionalGM,
-        GM_ADDR permuteOutOptionalGM, GM_ADDR workspaceGM, GM_ADDR contextGM,
-        AlltoAllvGroupedMatMulTilingDataA5* tilingData, __gm__ void* hcclInitTiling, __gm__ void* alltoAllvCcTiling,
-        TPipe* tPipe);
-#else
     __aicore__ inline void Init(
         GM_ADDR gmmxGM, GM_ADDR gmmweightGM, GM_ADDR sendCountsTensorOptionalGM, GM_ADDR recvCountsTensorOptionalGM,
         GM_ADDR mmxOptionalGM, GM_ADDR mmweightOptionalGM, GM_ADDR gmmyGM, GM_ADDR mmyOptionalGM,
         GM_ADDR permuteOutOptionalGM, GM_ADDR workspaceGM, GM_ADDR contextGM, const AlltoAllvGmmTilingData* tilingData,
         __gm__ void* hcclInitTiling, __gm__ void* alltoAllvCcTiling, TPipe* tPipe);
-#endif
     __aicore__ inline void Process();
 
 private:
@@ -73,11 +59,7 @@ private:
     GM_ADDR gmmyGM_ = nullptr;
     GM_ADDR mmyGM_ = nullptr;
     GM_ADDR permuteOutGM_ = nullptr;
-#if defined(__DAV_C310__)
-    const AlltoAllvGroupedMatMulTilingDataA5* tilingData_ = nullptr;
-#else
     const AlltoAllvGmmTilingData* tilingData_ = nullptr;
-#endif
     uint32_t rankId_ = 0U;             // 当前卡ID
     uint32_t rankDim_ = 8U;            // 通信域内卡的数量
     uint32_t expertNumInOneRank_ = 0U; // 单卡上面的专家个数
@@ -102,22 +84,13 @@ private:
     typename gmmType::MT gmm_;
     typename mmType::MT mm_;
 };
-#if defined(__DAV_C310__)
-template <typename DataType, bool IsNeedMM, bool IsTranGmmW, bool IsTranMmW>
-__aicore__ inline void AlltoAllvGmmCoarseGrained<DataType, IsNeedMM, IsTranGmmW, IsTranMmW>::Init(
-    GM_ADDR gmmxGM, GM_ADDR gmmweightGM, GM_ADDR sendCountsTensorOptionalGM, GM_ADDR recvCountsTensorOptionalGM,
-    GM_ADDR mmxOptionalGM, GM_ADDR mmweightOptionalGM, GM_ADDR gmmyGM, GM_ADDR mmyOptionalGM,
-    GM_ADDR permuteOutOptionalGM, GM_ADDR workspaceGM, GM_ADDR contextGM,
-    AlltoAllvGroupedMatMulTilingDataA5* tilingData, __gm__ void* hcclInitTiling, __gm__ void* alltoAllvCcTiling,
-    TPipe* tPipe)
-#else
+
 template <typename DataType, bool IsNeedMM, bool IsTranGmmW, bool IsTranMmW>
 __aicore__ inline void AlltoAllvGmmCoarseGrained<DataType, IsNeedMM, IsTranGmmW, IsTranMmW>::Init(
     GM_ADDR gmmxGM, GM_ADDR gmmweightGM, GM_ADDR sendCountsTensorOptionalGM, GM_ADDR recvCountsTensorOptionalGM,
     GM_ADDR mmxOptionalGM, GM_ADDR mmweightOptionalGM, GM_ADDR gmmyGM, GM_ADDR mmyOptionalGM,
     GM_ADDR permuteOutOptionalGM, GM_ADDR workspaceGM, GM_ADDR contextGM, const AlltoAllvGmmTilingData* tilingData,
     __gm__ void* hcclInitTiling, __gm__ void* alltoAllvCcTiling, TPipe* tPipe)
-#endif
 {
     gmmxGM_ = gmmxGM;
     gmmwGM_ = gmmweightGM;
@@ -130,15 +103,8 @@ __aicore__ inline void AlltoAllvGmmCoarseGrained<DataType, IsNeedMM, IsTranGmmW,
     tilingData_ = tilingData;
     permuteOutGM_ = tilingData_->commonTilingInfo.isPermuteOut ? permuteOutOptionalGM : workspaceGM;
 
-#if defined(__DAV_C310__)
-    auto contextGM0 = GetHcclContext<HCCL_GROUP_ID_0>();
-    hccl_.Init(contextGM0);
-    (void)hcclInitTiling;
-    (void)alltoAllvCcTiling;
-#else
     hccl_.Init(contextGM, hcclInitTiling);
     hccl_.SetCcTiling(alltoAllvCcTiling);
-#endif
     rankId_ = hccl_.GetRankId();
     rankDim_ = hccl_.GetRankDim();
 

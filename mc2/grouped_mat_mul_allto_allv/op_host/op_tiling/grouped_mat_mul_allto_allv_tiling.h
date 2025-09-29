@@ -12,16 +12,16 @@
  * \file grouped_mat_mul_allto_allv_tiling_A3.h
  * \brief
  */
-#ifndef MC2_GROUPED_MATMUL_ALLTO_ALLV_TILING_A3_H
-#define MC2_GROUPED_MATMUL_ALLTO_ALLV_TILING_A3_H
+#ifndef MC2_GROUPED_MATMUL_ALLTO_ALLV_TILING_STRUCT_H
+#define MC2_GROUPED_MATMUL_ALLTO_ALLV_TILING_STRUCT_H
 
 #include "grouped_mat_mul_allto_allv_tiling_base.h"
 
 namespace optiling {
-class GmmAlltoAllvTilingA3 : public GmmAlltoAllvTilingBase
+class GmmAlltoAllvTilingStruct : public GmmAlltoAllvTilingBase
 {
 public:
-    explicit GmmAlltoAllvTilingA3(gert::TilingContext* context) : GmmAlltoAllvTilingBase(context){};
+    explicit GmmAlltoAllvTilingStruct(gert::TilingContext* context) : GmmAlltoAllvTilingBase(context){};
 
 protected:
     ge::graphStatus DoOpTiling() override;

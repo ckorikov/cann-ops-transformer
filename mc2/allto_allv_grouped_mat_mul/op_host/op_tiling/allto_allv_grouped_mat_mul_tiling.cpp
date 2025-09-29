@@ -13,21 +13,19 @@
  * \brief
  */
 
+#include "allto_allv_grouped_mat_mul_tiling.h"
 #include <string>
 #include <numeric>
+#include <climits>
+#include "tiling/matmul_formulaic_tiling.h"
+#include "tiling/hccl_formulaic_tiling.h"
 #include "mc2_hcom_topo_info.h"
 #include "mc2_log.h"
 #include "graph/utils/type_utils.h"
 #include "register/op_def_registry.h"
-#include "tiling/matmul_formulaic_tiling.h"
-#include "tiling/hccl_formulaic_tiling.h"
 #include "tiling/mc2_tiling_utils.h"
 #include "../../op_kernel/allto_allv_grouped_mat_mul_tiling.h"
 #include "allto_allv_grouped_mat_mul_tiling_base.h"
-#include "allto_allv_grouped_mat_mul_tiling_A3.h"
-// 后续开源至gitcode需要使用__DAV_C310__的宏隔离
-#include "arch35/allto_allv_grouped_mat_mul_tiling_A5.h"
-#include <climits>
 #include "register/op_impl_registry.h"
 #include "tiling_base/tiling_templates_registry.h"
 #include "context_util.h"
@@ -91,6 +89,12 @@ constexpr int32_t MAX_BASE_K = 128;
 constexpr uint64_t COMM_TILE = 8; // 每卡数据分配几次计算
 
 const char* A_INNER_DEBUG = "AlltoAllvGroupedMatMul Tiling";
+
+#if defined(__DAV_C310__)
+        const std::vector<int64_t> EP_WORLD_SIZE_OPTIONAL{2, 4, 8, 16, 32, 64};
+#else
+        const std::vector<int64_t> EP_WORLD_SIZE_OPTIONAL{8, 16, 32, 64};
+#endif
 
 static inline uint32_t SixteenAlign(uint32_t a, bool up = false)
 {
@@ -510,21 +514,22 @@ ge::graphStatus AlltoAllvGmmTiling::CheckAttrsShapeSize(const gert::TilingContex
         return ge::GRAPH_FAILED;
     }
     uint64_t epWorldSize = tilingData->commonTilingInfo.epWorldSize;
-    if (epWorldSize != NUM_EIGHT && epWorldSize != NUM_SIXTEEN && epWorldSize != NUM_THIRTYTWO &&
-        epWorldSize != NUM_SIXTYFOUR) {
-        OP_LOGE(A_INNER_DEBUG, "epWorldSize error, valid=[8/16/32/64], but got %lu!.", epWorldSize);
-        return ge::GRAPH_FAILED;
+    std::string epWorldSizeNum;
+    for (size_t i =0; i<EP_WORLD_SIZE_OPTIONAL.size(); i++) {
+        epWorldSizeNum +=(EP_WORLD_SIZE_OPTIONAL[i] + " ");
     }
+    OP_TILING_CHECK(
+        std::find(EP_WORLD_SIZE_OPTIONAL.begin(), EP_WORLD_SIZE_OPTIONAL.end(), epWorldSize) == EP_WORLD_SIZE_OPTIONAL.end(),
+        OP_LOGE(A_INNER_DEBUG, "epWorldSize[%lu] should be %s!", epWorldSize, epWorldSizeNum.c_str()), return ge::GRAPH_FAILED);
+
     // 对sendCounts和recvCounts校验
     auto attrs = context->GetAttrs();
     OP_TILING_CHECK(attrs == nullptr, OP_LOGE(A_INNER_DEBUG, "GetAttrs returned null."), return ge::GRAPH_FAILED);
-
     auto sendCountsPtr = attrs->GetAttrPointer<gert::ContinuousVector>(ATTR_SEND_COUNTS_INDEX);
     auto recvCountsPtr = attrs->GetAttrPointer<gert::ContinuousVector>(ATTR_RECV_COUNTS_INDEX);
     OP_TILING_CHECK(
         (sendCountsPtr == nullptr) || (recvCountsPtr == nullptr),
         OP_LOGE(A_INNER_DEBUG, "sendCountsPtr or recvCountsPtr is null."), return ge::GRAPH_FAILED);
-
     uint64_t sendCountsSize = sendCountsPtr->GetSize();
     uint64_t recvCountsSize = recvCountsPtr->GetSize();
     OP_TILING_CHECK(
@@ -533,13 +538,11 @@ ge::graphStatus AlltoAllvGmmTiling::CheckAttrsShapeSize(const gert::TilingContex
             A_INNER_DEBUG, "The size of sendCounts(e*ep) %lu should be equal to recvCounts(e*ep) %lu !", sendCountsSize,
             recvCountsSize),
         return ge::GRAPH_FAILED);
-
     if (E_ep * epWorldSize != sendCountsSize) {
         OP_LOGE(
             A_INNER_DEBUG,
             "The first dim of gmmWeight(e, H1, N1) %lu  multi epWorldSize %lu shoubl be equal to the size of "
-            "sendCounts(e*ep) %lu!",
-            E_ep, epWorldSize, sendCountsSize);
+            "sendCounts(e*ep) %lu!", E_ep, epWorldSize, sendCountsSize);
         return ge::GRAPH_FAILED;
     }
     if ((E_ep * epWorldSize <= NUM_ZERO) || (E_ep * epWorldSize > MAX_EXPERT_NUM)) {
@@ -548,7 +551,6 @@ ge::graphStatus AlltoAllvGmmTiling::CheckAttrsShapeSize(const gert::TilingContex
             E_ep * epWorldSize);
         return ge::GRAPH_FAILED;
     }
-
     return ge::GRAPH_SUCCESS;
 }
 
@@ -993,7 +995,7 @@ ge::graphStatus AlltoAllvGmmTiling::SetMMTiling(const gert::TilingContext* conte
     platform_ascendc::PlatformAscendC ascendcPlatform(platformInfo);
     static const PlatFormMemSize PLATFORM_SIZE(ascendcPlatform);
 
-    matmul_tiling::MatmulApiTiling mm;
+    matmul_tiling::MatmulApiTiling mm(ascendcPlatform);
     mm.SetAType(matmul_tiling::TPosition::GM, matmul_tiling::CubeFormat::ND, params.matmulDtype, false);
     mm.SetBType(matmul_tiling::TPosition::GM, matmul_tiling::CubeFormat::ND, params.matmulDtype, false);
     mm.SetCType(matmul_tiling::TPosition::GM, matmul_tiling::CubeFormat::ND_ALIGN, params.matmulDtype);
@@ -1024,20 +1026,20 @@ static ge::graphStatus AlltoAllvGmmTilingFuncA3(gert::TilingContext* context)
     return tiling.RunFusionKernelTiling(context);
 }
 
-bool AlltoAllvGmmTilingA3::IsCapable()
+bool AlltoAllvGmmTilingStruct::IsCapable()
 {
     return true;
 }
 
-ge::graphStatus AlltoAllvGmmTilingA3::DoOpTiling()
+ge::graphStatus AlltoAllvGmmTilingStruct::DoOpTiling()
 {
     return AlltoAllvGmmTilingFuncA3(context_);
 }
 
-uint64_t AlltoAllvGmmTilingA3::GetTilingKey() const
+uint64_t AlltoAllvGmmTilingStruct::GetTilingKey() const
 {
     const uint64_t tilingKey = context_->GetTilingKey();
-    OP_LOGD(A_INNER_DEBUG, "AlltoAllvGmmTilingA5 get tiling key %lu", tilingKey);
+    OP_LOGD(A_INNER_DEBUG, "AlltoAllvGmmTiling get tiling key %lu", tilingKey);
     return tilingKey;
 }
 
@@ -1049,6 +1051,7 @@ ge::graphStatus AlltoAllvGmmTilingBase::GetPlatformInfo()
         return ge::GRAPH_FAILED);
     auto ascendcPlatform = platform_ascendc::PlatformAscendC(platformInfo);
     socVersion_ = ascendcPlatform.GetSocVersion();
+
     return ge::GRAPH_SUCCESS;
 }
 
@@ -1074,8 +1077,7 @@ ge::graphStatus AlltoAllvGmmTilingBase::PostTiling()
 }
 
 // 后续开源至gitcode需要使用__DAV_C310__的宏隔离
-REGISTER_TILING_TEMPLATE("AlltoAllvGroupedMatMul", AlltoAllvGmmTilingA5, 0);
-REGISTER_TILING_TEMPLATE("AlltoAllvGroupedMatMul", AlltoAllvGmmTilingA3, 1);
+REGISTER_TILING_TEMPLATE("AlltoAllvGroupedMatMul", AlltoAllvGmmTilingStruct, 0);
 
 static ge::graphStatus AlltoAllvGmmTilingFunc(gert::TilingContext* context)
 {

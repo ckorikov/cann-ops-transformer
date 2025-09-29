@@ -33,83 +33,15 @@ extern "C" __global__ __aicore__ void allto_allv_grouped_mat_mul(
 {
     KERNEL_TASK_TYPE_DEFAULT(KERNEL_TYPE_MIX_AIC_1_2);
 
-#if defined(__DAV_C310__)
-    GET_TILING_DATA_WITH_STRUCT(AlltoAllvGroupedMatMulTilingDataA5, tilingData, tilingGM);
-    __gm__ void* hcclInitTiling = nullptr;
-    __gm__ void* alltoAllvCcTiling = nullptr;
-#else
     REGISTER_TILING_DEFAULT(AlltoAllvGmmTilingData);
     auto tiling = (__gm__ AlltoAllvGmmTilingData*)tilingGM;
     __gm__ void* hcclInitTiling = (__gm__ void*)(&(tiling->hcclInitTiling));
     __gm__ void* alltoAllvCcTiling = (__gm__ void*)(&(tiling->alltoAllvCcTiling));
     GET_TILING_DATA(tilingData, tilingGM);
-#endif
 
     TPipe pipe;
     GM_ADDR contextGM = GetHcclContext<HCCL_GROUP_ID_0>();
-#if defined(__DAV_C310__)
-    if (TILING_KEY_IS(1000000000000000000)) {
-        // BF16 + no mm + no gmmweight trans + no mmweight trans
-        AlltoAllvGmmCoarseGrained<bfloat16_t, false, false, false> op;
-        INVOKE_ALLTOALLV_GROUPED_MATMUL_OP_IMPL();
-        return;
-    } else if (TILING_KEY_IS(1000000000000000010)) {
-        // BF16 + no mm + gmmweight trans + no mmweight trans
-        AlltoAllvGmmCoarseGrained<bfloat16_t, false, true, false> op;
-        INVOKE_ALLTOALLV_GROUPED_MATMUL_OP_IMPL();
-        return;
-    } else if (TILING_KEY_IS(1000000000000000100)) {
-        // BF16 + mm + no gmmweight trans + no mmweight trans
-        AlltoAllvGmmCoarseGrained<bfloat16_t, true, false, false> op;
-        INVOKE_ALLTOALLV_GROUPED_MATMUL_OP_IMPL();
-        return;
-    } else if (TILING_KEY_IS(1000000000000000101)) {
-        // BF16 + mm + no gmmweight trans + mmweight trans
-        AlltoAllvGmmCoarseGrained<bfloat16_t, true, false, true> op;
-        INVOKE_ALLTOALLV_GROUPED_MATMUL_OP_IMPL();
-        return;
-    } else if (TILING_KEY_IS(1000000000000000110)) {
-        // BF16 + mm + gmmweight trans + no mmweight trans
-        AlltoAllvGmmCoarseGrained<bfloat16_t, true, true, false> op;
-        INVOKE_ALLTOALLV_GROUPED_MATMUL_OP_IMPL();
-        return;
-    } else if (TILING_KEY_IS(1000000000000000111)) {
-        // BF16 + mm + gmmweight trans + mmweight trans
-        AlltoAllvGmmCoarseGrained<bfloat16_t, true, true, true> op;
-        INVOKE_ALLTOALLV_GROUPED_MATMUL_OP_IMPL();
-        return;
-    } else if (TILING_KEY_IS(1000000000000001000)) {
-        // FP16 + no mm + no gmmweight trans + no mmweight trans
-        AlltoAllvGmmCoarseGrained<half, false, false, false> op;
-        INVOKE_ALLTOALLV_GROUPED_MATMUL_OP_IMPL();
-        return;
-    } else if (TILING_KEY_IS(1000000000000001010)) {
-        // FP16 + no mm + gmmweight trans + no mmweight trans
-        AlltoAllvGmmCoarseGrained<half, false, true, false> op;
-        INVOKE_ALLTOALLV_GROUPED_MATMUL_OP_IMPL();
-        return;
-    } else if (TILING_KEY_IS(1000000000000001100)) {
-        // FP16 + mm + no gmmweight trans + no mmweight trans
-        AlltoAllvGmmCoarseGrained<half, true, false, false> op;
-        INVOKE_ALLTOALLV_GROUPED_MATMUL_OP_IMPL();
-        return;
-    } else if (TILING_KEY_IS(1000000000000001101)) {
-        // FP16 + mm + no gmmweight trans + mmweight trans
-        AlltoAllvGmmCoarseGrained<half, true, false, true> op;
-        INVOKE_ALLTOALLV_GROUPED_MATMUL_OP_IMPL();
-        return;
-    } else if (TILING_KEY_IS(1000000000000001110)) {
-        // FP16 + mm + gmmweight trans + no mmweight trans
-        AlltoAllvGmmCoarseGrained<half, true, true, false> op;
-        INVOKE_ALLTOALLV_GROUPED_MATMUL_OP_IMPL();
-        return;
-    } else if (TILING_KEY_IS(1000000000000001111)) {
-        // FP16 + mm + gmmweight trans + mmweight trans
-        AlltoAllvGmmCoarseGrained<half, true, true, true> op;
-        INVOKE_ALLTOALLV_GROUPED_MATMUL_OP_IMPL();
-        return;
-    }
-#else
+
     if (TILING_KEY_IS(0)) {
         // BF16 + no mm + no gmmweight trans + no mmweight trans
         AlltoAllvGmmCoarseGrained<bfloat16_t, false, false, false> op;
@@ -171,6 +103,5 @@ extern "C" __global__ __aicore__ void allto_allv_grouped_mat_mul(
         INVOKE_ALLTOALLV_GROUPED_MATMUL_OP_IMPL();
         return;
     }
-#endif
     return;
 }

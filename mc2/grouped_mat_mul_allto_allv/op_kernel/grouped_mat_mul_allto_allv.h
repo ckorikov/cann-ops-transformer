@@ -19,11 +19,7 @@
 #include "kernel_operator_intf.h"
 #include "lib/matmul_intf.h"
 #include "../allto_allv_grouped_mat_mul/allto_allv_gmm.h"
-#if defined(__DAV_C310__)
-#include "kernel_tiling/kernel_tiling.h"
-#else
 #include "grouped_mat_mul_allto_allv_tiling.h"
-#endif
 
 namespace AscendC {
 using namespace ALLTO_ALLV_GMM;
@@ -33,18 +29,11 @@ class GroupedMatmulAlltoAllv
 public:
     __aicore__ inline GroupedMatmulAlltoAllv()
     {}
-#if defined(__DAV_C310__)
-    __aicore__ inline void Init(
-        GM_ADDR gmmxGM, GM_ADDR gmmweightGM, GM_ADDR sendCountsTensorGM, GM_ADDR recvCountsTensorGM, GM_ADDR mmGM,
-        GM_ADDR mmweightGM, GM_ADDR yGM, GM_ADDR mmyGM, GM_ADDR workspaceGM, GM_ADDR contextGM,
-        GroupedMatMulAlltoAllvTilingDataA5* tilingData, TPipe* tPipe);
-#else
     __aicore__ inline void Init(
         GM_ADDR gmmxGM, GM_ADDR gmmweightGM, GM_ADDR sendCountsTensorGM, GM_ADDR recvCountsTensorGM, GM_ADDR mmGM,
         GM_ADDR mmweightGM, GM_ADDR yGM, GM_ADDR mmyGM, GM_ADDR workspaceGM, GM_ADDR contextGM,
         const GroupedMatMulAlltoAllvTilingData* tilingData, __gm__ void* hcclInitTiling, __gm__ void* alltoAllvCcTiling,
         TPipe* tPipe);
-#endif
     __aicore__ inline void Process();
     using X_T = typename GMMATAV::xType;
     static constexpr bool NEED_MM = GMMATAV::isOptionalMm;
@@ -74,11 +63,7 @@ private:
     GM_ADDR allGatherOutGM_;
     GM_ADDR gmmOutGM_;
     GM_ADDR workspaceGM_;
-#if defined(__DAV_C310__)
-    const GroupedMatMulAlltoAllvTilingDataA5* tilingData_ = nullptr;
-#else
     const GroupedMatMulAlltoAllvTilingData* tilingData_ = nullptr;
-#endif
     TCubeTiling matmulTiling_;
     TCubeTiling sharedMatmulTiling_;
 
@@ -120,20 +105,12 @@ private:
     typename gmmType::MT gmm;
     typename sharedmmType::MT sharedmm;
 };
-#if defined(__DAV_C310__)
-template <typename GMMATAV>
-__aicore__ inline void GroupedMatmulAlltoAllv<GMMATAV>::Init(
-    GM_ADDR gmmxGM, GM_ADDR gmmweightGM, GM_ADDR sendCountsTensorGM, GM_ADDR recvCountsTensorGM, GM_ADDR mmGM,
-    GM_ADDR mmweightGM, GM_ADDR yGM, GM_ADDR mmyGM, GM_ADDR workspaceGM, GM_ADDR contextGM,
-    GroupedMatMulAlltoAllvTilingDataA5* tilingData, TPipe* tPipe)
-#else
 template <typename GMMATAV>
 __aicore__ inline void GroupedMatmulAlltoAllv<GMMATAV>::Init(
     GM_ADDR gmmxGM, GM_ADDR gmmweightGM, GM_ADDR sendCountsTensorGM, GM_ADDR recvCountsTensorGM, GM_ADDR mmGM,
     GM_ADDR mmweightGM, GM_ADDR yGM, GM_ADDR mmyGM, GM_ADDR workspaceGM, GM_ADDR contextGM,
     const GroupedMatMulAlltoAllvTilingData* tilingData, __gm__ void* hcclInitTiling, __gm__ void* alltoAllvCcTiling,
     TPipe* tPipe)
-#endif
 {
     gmmxGM_ = gmmxGM;
     gmmweightGM_ = gmmweightGM;
@@ -151,13 +128,8 @@ __aicore__ inline void GroupedMatmulAlltoAllv<GMMATAV>::Init(
     axisA_ = tilingData_->commonTilingInfo.A;
     axisN1_ = tilingData_->commonTilingInfo.N1;
 
-#if defined(__DAV_C310__)
-    auto contextGM0 = GetHcclContext<HCCL_GROUP_ID_0>();
-    hccl_.Init(contextGM0);
-#else
     hccl_.Init(contextGM, hcclInitTiling);
     hccl_.SetCcTiling(alltoAllvCcTiling);
-#endif
     rankId_ = hccl_.GetRankId();
     rankDim_ = hccl_.GetRankDim();
 
