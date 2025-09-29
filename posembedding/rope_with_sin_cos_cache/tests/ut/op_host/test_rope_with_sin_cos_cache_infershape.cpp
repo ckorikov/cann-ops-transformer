@@ -8,9 +8,11 @@
  * See LICENSE in the root of the software repository for the full text of the License.
  */
 
-#include <iostream>
 #include <gtest/gtest.h>
-#include "common/utils/ut_op_common.h"
+#include <iostream>
+#include "infershape_context_faker.h"
+#include "infershape_case_executor.h"
+#include "base/registry/op_impl_space_registry_v2.h"
 
 class RopeWithSinCosCache : public testing::Test
 {
@@ -28,129 +30,93 @@ protected:
 
 TEST_F(RopeWithSinCosCache, rope_with_sin_cos_cache_bf16_true)
 {
-    gert::StorageShape positionShape = {{48}, {48}};
-    gert::StorageShape queryShape = {{48, 256}, {48, 256}};
-    gert::StorageShape keyShape = {{48, 512}, {48, 512}};
-    gert::StorageShape cosSinCacheShape = {{48, 128}, {48, 128}};
-    vector<int64_t> mropeParams{0, 0, 0};
-
-    auto holder = gert::InferShapeContextFaker()
-                      .SetOpType("RopeWithSinCosCache")
-                      .NodeIoNum(4, 2)
-                      .IrInstanceNum({1, 1, 1, 1})
-                      .InputShapes({&positionShape, &queryShape, &keyShape, &cosSinCacheShape})
-                      .OutputShapes({&queryShape, &keyShape})
-                      .NodeInputTd(0, ge::DT_INT64, ge::FORMAT_ND, ge::FORMAT_ND)
-                      .NodeInputTd(1, ge::DT_BF16, ge::FORMAT_ND, ge::FORMAT_ND)
-                      .NodeInputTd(2, ge::DT_BF16, ge::FORMAT_ND, ge::FORMAT_ND)
-                      .NodeInputTd(3, ge::DT_BF16, ge::FORMAT_ND, ge::FORMAT_ND)
-                      .NodeOutputTd(0, ge::DT_BF16, ge::FORMAT_ND, ge::FORMAT_ND)
-                      .NodeOutputTd(1, ge::DT_BF16, ge::FORMAT_ND, ge::FORMAT_ND)
-                      .NodeAttrs(
-                          {{"numQHeads", ge::AnyValue::CreateFrom<int64_t>(2)},
-                           {"numKHeads", ge::AnyValue::CreateFrom<int64_t>(4)},
-                           {"headSize", ge::AnyValue::CreateFrom<int64_t>(128)},
-                           {"mropeSection", ge::AnyValue::CreateFrom<vector<int64_t>>(mropeParams)},
-                           {"qstride", ge::AnyValue::CreateFrom<int64_t>(256)},
-                           {"kstride", ge::AnyValue::CreateFrom<int64_t>(512)},
-                           {"isNeoxStyle", ge::AnyValue::CreateFrom<int64_t>(1)}})
-                      .Build();
-
-    gert::InferShapeContext* context = holder.GetContext<gert::InferShapeContext>();
-    auto infer_shape_func = gert::OpImplRegistry::GetInstance().GetOpImpl("RopeWithSinCosCache")->infer_shape;
-    ge::graphStatus ret = infer_shape_func(context);
-    EXPECT_EQ(ret, ge::GRAPH_SUCCESS);
-
-    std::vector<int64_t> expectedQueryOutputShape = {48, 256};
-    std::vector<int64_t> expectedKeyOutputShape = {48, 512};
-    auto queryOutShape = context->GetOutputShape(0);
-    auto keyOutShape = context->GetOutputShape(1);
-    EXPECT_EQ(ops::ToVector(*queryOutShape), expectedQueryOutputShape);
-    EXPECT_EQ(ops::ToVector(*keyOutShape), expectedKeyOutputShape);
+    std::vector<int64_t> mropeParams{0, 0, 0};
+    gert::InfershapeContextPara infershapeContextPara(
+        "RopeWithSinCosCache",
+        {
+            // input info
+            {{{48}, {48}}, ge::DT_INT64, ge::FORMAT_ND},
+            {{{48, 256}, {48, 256}}, ge::DT_BF16, ge::FORMAT_ND},
+            {{{48, 512}, {48, 512}}, ge::DT_BF16, ge::FORMAT_ND},
+            {{{48, 128}, {48, 128}}, ge::DT_BF16, ge::FORMAT_ND},
+        },
+        {
+            // output info
+            {{{}, {}}, ge::DT_BF16, ge::FORMAT_ND},
+            {{{}, {}}, ge::DT_BF16, ge::FORMAT_ND},
+        },
+        {
+            // attr
+            {"numQHeads", Ops::Transformer::AnyValue::CreateFrom<int64_t>(2)},
+            {"numKHeads", Ops::Transformer::AnyValue::CreateFrom<int64_t>(4)},
+            {"headSize", Ops::Transformer::AnyValue::CreateFrom<int64_t>(128)},
+            {"mropeSection", Ops::Transformer::AnyValue::CreateFrom<std::vector<int64_t>>(mropeParams)},
+            {"qstride", Ops::Transformer::AnyValue::CreateFrom<int64_t>(256)},
+            {"kstride", Ops::Transformer::AnyValue::CreateFrom<int64_t>(512)},
+            {"isNeoxStyle", Ops::Transformer::AnyValue::CreateFrom<int64_t>(1)},
+        });
+    std::vector<std::vector<int64_t>> expectOutputShape = {{48, 256}, {48, 512}};
+    ExecuteTestCase(infershapeContextPara, ge::GRAPH_SUCCESS, expectOutputShape);
 }
 
 TEST_F(RopeWithSinCosCache, rope_with_sin_cos_cache_fp16_true)
 {
-    gert::StorageShape positionShape = {{48}, {48}};
-    gert::StorageShape queryShape = {{48, 256}, {48, 256}};
-    gert::StorageShape keyShape = {{48, 512}, {48, 512}};
-    gert::StorageShape cosSinCacheShape = {{48, 128}, {48, 128}};
-    vector<int64_t> mropeParams{0, 0, 0};
-
-    auto holder = gert::InferShapeContextFaker()
-                      .SetOpType("RopeWithSinCosCache")
-                      .NodeIoNum(4, 2)
-                      .IrInstanceNum({1, 1, 1, 1})
-                      .InputShapes({&positionShape, &queryShape, &keyShape, &cosSinCacheShape})
-                      .OutputShapes({&queryShape, &keyShape})
-                      .NodeInputTd(0, ge::DT_INT64, ge::FORMAT_ND, ge::FORMAT_ND)
-                      .NodeInputTd(1, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND)
-                      .NodeInputTd(2, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND)
-                      .NodeInputTd(3, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND)
-                      .NodeOutputTd(0, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND)
-                      .NodeOutputTd(1, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND)
-                      .NodeAttrs(
-                          {{"numQHeads", ge::AnyValue::CreateFrom<int64_t>(2)},
-                           {"numKHeads", ge::AnyValue::CreateFrom<int64_t>(4)},
-                           {"headSize", ge::AnyValue::CreateFrom<int64_t>(128)},
-                           {"mropeSection", ge::AnyValue::CreateFrom<vector<int64_t>>(mropeParams)},
-                           {"qstride", ge::AnyValue::CreateFrom<int64_t>(256)},
-                           {"kstride", ge::AnyValue::CreateFrom<int64_t>(512)},
-                           {"isNeoxStyle", ge::AnyValue::CreateFrom<int64_t>(1)}})
-                      .Build();
-
-    gert::InferShapeContext* context = holder.GetContext<gert::InferShapeContext>();
-    auto infer_shape_func = gert::OpImplRegistry::GetInstance().GetOpImpl("RopeWithSinCosCache")->infer_shape;
-    ge::graphStatus ret = infer_shape_func(context);
-    EXPECT_EQ(ret, ge::GRAPH_SUCCESS);
-
-    std::vector<int64_t> expectedQueryOutputShape = {48, 256};
-    std::vector<int64_t> expectedKeyOutputShape = {48, 512};
-    auto queryOutShape = context->GetOutputShape(0);
-    auto keyOutShape = context->GetOutputShape(1);
-    EXPECT_EQ(ops::ToVector(*queryOutShape), expectedQueryOutputShape);
-    EXPECT_EQ(ops::ToVector(*keyOutShape), expectedKeyOutputShape);
+    std::vector<int64_t> mropeParams{0, 0, 0};
+    gert::InfershapeContextPara infershapeContextPara(
+        "RopeWithSinCosCache",
+        {
+            // input info
+            {{{48}, {48}}, ge::DT_INT64, ge::FORMAT_ND},
+            {{{48, 256}, {48, 256}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+            {{{48, 512}, {48, 512}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+            {{{48, 128}, {48, 128}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+        },
+        {
+            // output info
+            {{{}, {}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+            {{{}, {}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+        },
+        {
+            // attr
+            {"numQHeads", Ops::Transformer::AnyValue::CreateFrom<int64_t>(2)},
+            {"numKHeads", Ops::Transformer::AnyValue::CreateFrom<int64_t>(4)},
+            {"headSize", Ops::Transformer::AnyValue::CreateFrom<int64_t>(128)},
+            {"mropeSection", Ops::Transformer::AnyValue::CreateFrom<std::vector<int64_t>>(mropeParams)},
+            {"qstride", Ops::Transformer::AnyValue::CreateFrom<int64_t>(256)},
+            {"kstride", Ops::Transformer::AnyValue::CreateFrom<int64_t>(512)},
+            {"isNeoxStyle", Ops::Transformer::AnyValue::CreateFrom<int64_t>(1)},
+        });
+    std::vector<std::vector<int64_t>> expectOutputShape = {{48, 256}, {48, 512}};
+    ExecuteTestCase(infershapeContextPara, ge::GRAPH_SUCCESS, expectOutputShape);
 }
 
 TEST_F(RopeWithSinCosCache, rope_with_sin_cos_cache_fp32_true)
 {
-    gert::StorageShape positionShape = {{48}, {48}};
-    gert::StorageShape queryShape = {{48, 256}, {48, 256}};
-    gert::StorageShape keyShape = {{48, 512}, {48, 512}};
-    gert::StorageShape cosSinCacheShape = {{48, 128}, {48, 128}};
-    vector<int64_t> mropeParams{0, 0, 0};
-
-    auto holder = gert::InferShapeContextFaker()
-                      .SetOpType("RopeWithSinCosCache")
-                      .NodeIoNum(4, 2)
-                      .IrInstanceNum({1, 1, 1, 1})
-                      .InputShapes({&positionShape, &queryShape, &keyShape, &cosSinCacheShape})
-                      .OutputShapes({&queryShape, &keyShape})
-                      .NodeInputTd(0, ge::DT_INT64, ge::FORMAT_ND, ge::FORMAT_ND)
-                      .NodeInputTd(1, ge::DT_FLOAT, ge::FORMAT_ND, ge::FORMAT_ND)
-                      .NodeInputTd(2, ge::DT_FLOAT, ge::FORMAT_ND, ge::FORMAT_ND)
-                      .NodeInputTd(3, ge::DT_FLOAT, ge::FORMAT_ND, ge::FORMAT_ND)
-                      .NodeOutputTd(0, ge::DT_FLOAT, ge::FORMAT_ND, ge::FORMAT_ND)
-                      .NodeOutputTd(1, ge::DT_FLOAT, ge::FORMAT_ND, ge::FORMAT_ND)
-                      .NodeAttrs(
-                          {{"numQHeads", ge::AnyValue::CreateFrom<int64_t>(2)},
-                           {"numKHeads", ge::AnyValue::CreateFrom<int64_t>(4)},
-                           {"headSize", ge::AnyValue::CreateFrom<int64_t>(128)},
-                           {"mropeSection", ge::AnyValue::CreateFrom<vector<int64_t>>(mropeParams)},
-                           {"qstride", ge::AnyValue::CreateFrom<int64_t>(256)},
-                           {"kstride", ge::AnyValue::CreateFrom<int64_t>(512)},
-                           {"isNeoxStyle", ge::AnyValue::CreateFrom<int64_t>(1)}})
-                      .Build();
-
-    gert::InferShapeContext* context = holder.GetContext<gert::InferShapeContext>();
-    auto infer_shape_func = gert::OpImplRegistry::GetInstance().GetOpImpl("RopeWithSinCosCache")->infer_shape;
-    ge::graphStatus ret = infer_shape_func(context);
-    EXPECT_EQ(ret, ge::GRAPH_SUCCESS);
-
-    std::vector<int64_t> expectedQueryOutputShape = {48, 256};
-    std::vector<int64_t> expectedKeyOutputShape = {48, 512};
-    auto queryOutShape = context->GetOutputShape(0);
-    auto keyOutShape = context->GetOutputShape(1);
-    EXPECT_EQ(ops::ToVector(*queryOutShape), expectedQueryOutputShape);
-    EXPECT_EQ(ops::ToVector(*keyOutShape), expectedKeyOutputShape);
+    std::vector<int64_t> mropeParams{0, 0, 0};
+    gert::InfershapeContextPara infershapeContextPara(
+        "RopeWithSinCosCache",
+        {
+            // input info
+            {{{48}, {48}}, ge::DT_INT64, ge::FORMAT_ND},
+            {{{48, 256}, {48, 256}}, ge::DT_FLOAT, ge::FORMAT_ND},
+            {{{48, 512}, {48, 512}}, ge::DT_FLOAT, ge::FORMAT_ND},
+            {{{48, 128}, {48, 128}}, ge::DT_FLOAT, ge::FORMAT_ND},
+        },
+        {
+            // output info
+            {{{}, {}}, ge::DT_FLOAT, ge::FORMAT_ND},
+            {{{}, {}}, ge::DT_FLOAT, ge::FORMAT_ND},
+        },
+        {
+            // attr
+            {"numQHeads", Ops::Transformer::AnyValue::CreateFrom<int64_t>(2)},
+            {"numKHeads", Ops::Transformer::AnyValue::CreateFrom<int64_t>(4)},
+            {"headSize", Ops::Transformer::AnyValue::CreateFrom<int64_t>(128)},
+            {"mropeSection", Ops::Transformer::AnyValue::CreateFrom<std::vector<int64_t>>(mropeParams)},
+            {"qstride", Ops::Transformer::AnyValue::CreateFrom<int64_t>(256)},
+            {"kstride", Ops::Transformer::AnyValue::CreateFrom<int64_t>(512)},
+            {"isNeoxStyle", Ops::Transformer::AnyValue::CreateFrom<int64_t>(1)},
+        });
+    std::vector<std::vector<int64_t>> expectOutputShape = {{48, 256}, {48, 512}};
+    ExecuteTestCase(infershapeContextPara, ge::GRAPH_SUCCESS, expectOutputShape);
 }

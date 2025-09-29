@@ -33,7 +33,7 @@ TEST_F(rope_with_sin_cos_cache_test, test_case_bf16)
 {
     system(
         "cp -rf "
-        "../../../../../../../ops/fusedop/rope_with_sin_cos_cache/tests/ut/op_kernel/rope_with_sin_cos_cache_data "
+        "./rope_with_sin_cos_cache_data "
         "./");
     system("chmod -R 755 ./rope_with_sin_cos_cache_data/");
     system("cd ./rope_with_sin_cos_cache_data/ && python3 gen_data.py '48' '2' '4' '128' '128' 'bf16' ");
@@ -113,7 +113,7 @@ TEST_F(rope_with_sin_cos_cache_test, test_case_fp32)
 {
     system(
         "cp -rf "
-        "../../../../../../../ops/built-in/tests/ut/fast_op_test/rope_with_sin_cos_cache/rope_with_sin_cos_cache_data "
+        "../rope_with_sin_cos_cache_data "
         "./");
     system("chmod -R 755 ./rope_with_sin_cos_cache_data/");
     system("cd ./rope_with_sin_cos_cache_data/ && python3 gen_data.py '48' '2' '4' '128' '128' 'bf16' ");
@@ -193,7 +193,7 @@ TEST_F(rope_with_sin_cos_cache_test, test_case_fp16)
 {
     system(
         "cp -rf "
-        "../../../../../../../ops/built-in/tests/ut/fast_op_test/rope_with_sin_cos_cache/rope_with_sin_cos_cache_data "
+        "../rope_with_sin_cos_cache_data "
         "./");
     system("chmod -R 755 ./rope_with_sin_cos_cache_data/");
     system("cd ./rope_with_sin_cos_cache_data/ && python3 gen_data.py '48' '2' '4' '128' '128' 'bf16' ");
@@ -273,7 +273,7 @@ TEST_F(rope_with_sin_cos_cache_test, test_case_fp32_2)
 {
     system(
         "cp -rf "
-        "../../../../../../../ops/built-in/tests/ut/fast_op_test/rope_with_sin_cos_cache/rope_with_sin_cos_cache_data "
+        "../rope_with_sin_cos_cache_data "
         "./");
     system("chmod -R 755 ./rope_with_sin_cos_cache_data/");
     system("cd ./rope_with_sin_cos_cache_data/ && python3 gen_data.py '48' '2' '4' '128' '128' 'fp32' ");
