@@ -183,7 +183,8 @@ class IFATilingV2 {
   ge::graphStatus SplitBN_V0();
   ge::graphStatus SplitBNS();
   ge::graphStatus SplitBNSfaRun();
-
+  ge::graphStatus CheckActualSeqLens();
+  int64_t GetMaxSeqLength(const gert::Tensor* actualSeqLength);
   bool CheckWorkSpace() const;
   
   bool GetMatmulType(ge::DataType getype, matmul_tiling::DataType *mmType) const;

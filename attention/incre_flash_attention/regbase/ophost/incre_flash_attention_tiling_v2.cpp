@@ -270,6 +270,14 @@ ge::graphStatus IFATilingV2::CheckInputAntiquantFormat() const
     return ge::GRAPH_SUCCESS;
 }
 
+int64_t IFATilingV2::GetMaxSeqLength(const gert::Tensor* actualSeqLength) {
+  int64_t max = actualSeqLength->GetData<int64_t>()[0];
+  for (int i = 1; i < actualSeqLength->GetShapeSize(); ++i) {
+      max = std::max(max, actualSeqLength->GetData<int64_t>()[i] - actualSeqLength->GetData<int64_t>()[i - 1]);
+  }
+  return max;
+}
+
 ge::graphStatus IFATilingV2::ProcessBaseTensors() {
   OP_CHECK_IF(context_->query.shape == nullptr,
              OP_LOGE(context_->opName, "Shape of tensor query is null."), return ge::GRAPH_FAILED);
@@ -365,8 +373,19 @@ ge::graphStatus IFATilingV2::ProcessBaseTensors() {
     nOfQuery = context_->query.shape->GetStorageShape().GetDim(NUM1);
     sOfQuery_ = context_->query.shape->GetStorageShape().GetDim(NUM2); // 2 : Q_S
     headDim_ = context_->query.shape->GetStorageShape().GetDim(NUM3);
+  } else if (layout == "TND") {
+    inputLayout_ = IfaLayout::TND;
+    if (CheckActualSeqLens() != ge::GRAPH_SUCCESS) {
+      return ge::GRAPH_FAILED;
+    }
+    nOfQuery = context_->query.shape->GetStorageShape().GetDim(NUM1);
+    sOfQuery_ = GetMaxSeqLength(context_->actualSeqLengthsQ.tensor);
+    headDim_ = context_->query.shape->GetStorageShape().GetDim(NUM2);
+    if (!pageAttentionFlag_) {
+      batchContinuousFlag_ = true;
+    }
   } else {
-    OP_LOGE(context_->opName, "Only support inputLayout(BSH, BNSD, BSND, BNSD_BSND), actually is %s.", layout.c_str());
+    OP_LOGE(context_->opName, "Only support inputLayout(BSH, BNSD, BSND, BNSD_BSND, TND), actually is %s.", layout.c_str());
     return ge::GRAPH_FAILED;
   }
 
@@ -498,7 +517,7 @@ ge::graphStatus IFATilingV2::CheckKVHeadNum(const gert::StorageShape *inputShape
     if (layOutStr == "BSH") {
         auto H = inputShape->GetStorageShape().GetDim(NUM2);
         tmpNumHeads = H / headDim_;
-    } else if (layOutStr == "BNSD" || layOutStr == "BNSD_BSND") {
+    } else if (layOutStr == "BNSD" || layOutStr == "BNSD_BSND" || layOutStr == "TND") {
         tmpNumHeads = inputShape->GetStorageShape().GetDim(NUM1);
     } else if (layOutStr == "BSND") {
         tmpNumHeads = inputShape->GetStorageShape().GetDim(NUM2);
@@ -518,6 +537,10 @@ ge::graphStatus IFATilingV2::CheckKVShape() const {
   }
   auto batchOfQuery = context_->query.shape->GetStorageShape().GetDim(NUM0);
   auto batchOfKey = context_->key.shape->GetStorageShape().GetDim(NUM0);
+  if (inputLayout_ == IfaLayout::TND) {
+    batchOfQuery = context_->actualSeqLengthsQ.tensor->GetShapeSize();
+    batchOfKey = context_->actualSeqLengths.tensor->GetShapeSize();
+  }
   /* kv continuous */
   if (batchOfQuery == batchOfKey) {
     return ge::GRAPH_SUCCESS;
@@ -541,6 +564,10 @@ ge::graphStatus IFATilingV2::CheckKVShape() const {
         OP_LOGE(context_->opName, "IFA check input param failed, the dimension of tensor in tensorList should be 4, key:%lu, value:%lu.",
         keyTensorInList->GetStorageShape().GetDimNum(), valueTensorInList->GetStorageShape().GetDimNum()),
         return ge::GRAPH_FAILED);
+    }
+    if (layOutStr == "TND") {
+      OP_LOGE(context_->opName, "TND not support TensorInList!");
+        return ge::GRAPH_FAILED;
     }
     OP_CHECK_IF(keyTensorInList->GetStorageShape().GetDim(NUM0) != NUM1,
       OP_LOGE(context_->opName, "IFA check input param failed, the batch of tensor in tensorList should be 1, now batch is:%ld, list index:%ld.",
@@ -575,6 +602,13 @@ ge::graphStatus IFATilingV2::CheckQKOutShape() const
       OP_LOGE(context_->opName, "When inputLayout is BSH, the 3rd dimOfQ/numHeads not equal the 3rd dimOfK/numKvHeads, dimOfQ/numHeads:%ld, dimOfK/numKvHeads:%ld.",
       queryShape->GetStorageShape().GetDim(NUM2) / numHeads_, keyShape->GetStorageShape().GetDim(NUM2) / numHeads_),
       return ge::GRAPH_FAILED);
+  } else if (inputLayoutStr == "TND") {
+    OP_CHECK_IF((dimOfQ != DIM_TND) || (dimOfK != DIM_TND) || (dimOfOut != DIM_TND),
+      OP_LOGE(context_->opName, "When inputLayout is TND, the dimension should be 3, dimOfQ:%lu, dimOfK:%lu, dimOfOut:%lu.", dimOfQ, dimOfK, dimOfOut),
+      return ge::GRAPH_FAILED);
+    OP_CHECK_IF(queryShape->GetStorageShape().GetDim(NUM1) != numHeads_ || keyShape->GetStorageShape().GetDim(NUM1) != numKvHeads_,
+      OP_LOGE(context_->opName, "When inputLayout is TND, the headDims in queryShape[%ld] is not equal to the headDims in keyShape[%ld].",
+      queryShape->GetStorageShape().GetDim(NUM1), keyShape->GetStorageShape().GetDim(NUM1)),return ge::GRAPH_FAILED);
   } else {
     OP_CHECK_IF((dimOfQ != DIM_BNSD_OR_BSND) || (dimOfK != DIM_BNSD_OR_BSND) || (dimOfOut != DIM_BNSD_OR_BSND),
       OP_LOGE(context_->opName, "When inputLayout is BNSD/BSND, the dimension should be 4, dimOfQ:%lu, dimOfK:%lu, dimOfOut:%lu.", dimOfQ, dimOfK, dimOfOut),
@@ -604,16 +638,28 @@ ge::graphStatus IFATilingV2::CheckLse() const
                        DataTypeToSerialString(lseOutType_).c_str()),
              return ge::GRAPH_FAILED);
 
-  OP_CHECK_IF(lseShape->GetStorageShape().GetDimNum() != 4,
-    OP_LOGE(context_->opName, "SoftmaxLse shape dim(%zu) should be 4!", lseShape->GetStorageShape().GetDimNum()),
-      return ge::GRAPH_FAILED);
-  OP_CHECK_IF(((lseShape->GetStorageShape().GetDim(NUM0) != queryShape->GetStorageShape().GetDim(NUM0)) ||
-            (lseShape->GetStorageShape().GetDim(NUM1) != numHeads_) || (lseShape->GetStorageShape().GetDim(NUM2) != sOfQuery_) ||
-            (lseShape->GetStorageShape().GetDim(NUM3) != NUM1)), OP_LOGE(context_->opName, "SoftmaxLse shape[%ld, %ld, %ld, %ld] does not match BNS1[%ld, %u, %u, 1]!",
-                      lseShape->GetStorageShape().GetDim(NUM0), lseShape->GetStorageShape().GetDim(NUM1),
-                      lseShape->GetStorageShape().GetDim(NUM2), lseShape->GetStorageShape().GetDim(NUM3),
-                      queryShape->GetStorageShape().GetDim(NUM0), numHeads_, sOfQuery_),
-                      return ge::GRAPH_FAILED);
+  if (inputLayout_ == IfaLayout::TND) {
+    OP_CHECK_IF(lseShape->GetStorageShape().GetDimNum() != 3,
+      OP_LOGE(context_->opName, "TND SoftmaxLse shape dim(%zu) should be 3!", lseShape->GetStorageShape().GetDimNum()),
+        return ge::GRAPH_FAILED);
+    OP_CHECK_IF(((lseShape->GetStorageShape().GetDim(NUM0) != queryShape->GetStorageShape().GetDim(NUM0)) ||
+              (lseShape->GetStorageShape().GetDim(NUM1) != numHeads_) || (lseShape->GetStorageShape().GetDim(NUM2) != 1)),
+              OP_LOGE(context_->opName, "SoftmaxLse shape[%ld, %ld, %ld] does not match TN1[%u, %u, 1]!",
+                        lseShape->GetStorageShape().GetDim(NUM0), lseShape->GetStorageShape().GetDim(NUM1),
+                        lseShape->GetStorageShape().GetDim(NUM2), queryShape->GetStorageShape().GetDim(NUM0), numHeads_),
+                        return ge::GRAPH_FAILED);
+  } else {
+    OP_CHECK_IF(lseShape->GetStorageShape().GetDimNum() != 4,
+      OP_LOGE(context_->opName, "SoftmaxLse shape dim(%zu) should be 4!", lseShape->GetStorageShape().GetDimNum()),
+        return ge::GRAPH_FAILED);
+    OP_CHECK_IF(((lseShape->GetStorageShape().GetDim(NUM0) != queryShape->GetStorageShape().GetDim(NUM0)) ||
+              (lseShape->GetStorageShape().GetDim(NUM1) != numHeads_) || (lseShape->GetStorageShape().GetDim(NUM2) != sOfQuery_) ||
+              (lseShape->GetStorageShape().GetDim(NUM3) != NUM1)), OP_LOGE(context_->opName, "SoftmaxLse shape[%ld, %ld, %ld, %ld] does not match BNS1[%ld, %u, %u, 1]!",
+                        lseShape->GetStorageShape().GetDim(NUM0), lseShape->GetStorageShape().GetDim(NUM1),
+                        lseShape->GetStorageShape().GetDim(NUM2), lseShape->GetStorageShape().GetDim(NUM3),
+                        queryShape->GetStorageShape().GetDim(NUM0), numHeads_, sOfQuery_),
+                        return ge::GRAPH_FAILED);
+  }
   return ge::GRAPH_SUCCESS;
 }
 
@@ -643,9 +689,9 @@ ge::graphStatus IFATilingV2::CheckKvCache() {
   }
   paBlockNumSumfaRun_ = static_cast<int32_t>(kDimNum);
   const std::string inputLayoutStr = context_->layOut;
-  OP_CHECK_IF((kDimNum == DIM_BNSD && inputLayout_ != IfaLayout::BNSD),
+  OP_CHECK_IF((kDimNum == DIM_BNSD && inputLayout_ != IfaLayout::BNSD && inputLayout_ != IfaLayout::TND),
              OP_LOGE(context_->opName, "When Page Attention is enabled, and KV cache dimensions are 4-dimensional, "
-                                         "inputlayout must be BNSD or BNSD_BSND"),
+                                         "inputlayout must be BNSD or BNSD_BSND or TND"),
              return ge::GRAPH_FAILED);
   if (CheckKvCacheValue(kDimNum) != ge::GRAPH_SUCCESS) {
     return ge::GRAPH_FAILED;
@@ -740,6 +786,8 @@ ge::graphStatus IFATilingV2::KvShapePostProcess() {
     uint32_t seqSize;
     if (inputLayout_ == IfaLayout::BSH_BSND) {
       seqSize = keyShape->GetStorageShape().GetDim(NUM1);
+    } else if (inputLayout_ == IfaLayout::TND) {
+      seqSize = GetMaxSeqLength(context_->actualSeqLengths.tensor);
     } else {
       seqSize = keyShape->GetStorageShape().GetDim(NUM2);  // 2, dim of S
     }
@@ -864,8 +912,10 @@ ge::graphStatus IFATilingV2::ProcessOptionalTensors() {
   if (!isPFAFlag_ && faRunFlagAntiq_) {
     preToken_ = SPARSE_MODE_INT_MAX;
     nextToken_ = SPARSE_MODE_INT_MAX;
-    actualSeqLenQFlag_ = false;
-    actualLenQDims_ = static_cast<uint32_t>(0);
+    if (inputLayout_ != IfaLayout::TND) {
+      actualSeqLenQFlag_ = false;
+      actualLenQDims_ = static_cast<uint32_t>(0);
+    }
     qPaddingSizeFlag_ = false;
     needInit_ = needInitfaRun_;
     isRowInvalid_ = (innerPrecise_ >> 1) & 1;
@@ -940,6 +990,10 @@ ge::graphStatus IFATilingV2::ProcessPseShift() {
   if (pseShiftInput == nullptr) {
     return ge::GRAPH_SUCCESS;
   }
+  
+  OP_CHECK_IF(inputLayout_ == IfaLayout::TND, OP_LOGE(context_->opName,
+             "TND not support pse."), return ge::GRAPH_FAILED);
+
   OP_CHECK_IF(context_->pseShift.desc == nullptr, OP_LOGE(context_->opName,
              "Desc of pseShift tensor is null."), return ge::GRAPH_FAILED);
   
@@ -1263,25 +1317,64 @@ ge::graphStatus IFATilingV2::ProcessAttenMask() {
   return ge::GRAPH_SUCCESS;
 }
 
+ge::graphStatus IFATilingV2::CheckActualSeqLens()
+{
+    // Q的actual_seq要求非空
+    if (context_->actualSeqLengthsQ.tensor == nullptr) {
+        OP_LOGE(context_->opName, "TND the query's actual sequence lengths should not be null!");
+        return ge::GRAPH_FAILED;
+    }
+    actualLenQDims_ = static_cast<uint32_t>(context_->actualSeqLengthsQ.tensor->GetShapeSize());
+    if (actualLenQDims_ == 0U) {
+        OP_LOGE(context_->opName, "TND actualLenQDims_ is 0!");
+        return ge::GRAPH_FAILED;
+    }
+
+    // KV的actual_seq要求非空
+    if (context_->actualSeqLengths.tensor == nullptr) {
+        OP_LOGE(context_->opName, "TND the key/value's actual sequence lengths should not be null!");
+        return ge::GRAPH_FAILED;
+    }
+    actualLenDims_ = context_->actualSeqLengths.tensor->GetShapeSize();
+    if (actualLenDims_ == 0U) {
+        OP_LOGE(context_->opName, "TND actualLenDims_ is 0!");
+        return ge::GRAPH_FAILED;
+    }
+
+    return ge::GRAPH_SUCCESS;
+}
+
 ge::graphStatus IFATilingV2::ProcessActualSeqLen() {
-  if (isPFAFlag_ && context_->actualSeqLengthsQ.tensor != nullptr) {
-    const gert::Tensor* actSeqLen = context_->actualSeqLengthsQ.tensor;
-    actualLenQDims_ = actSeqLen->GetShapeSize();
-    actualSeqLenQFlag_ = (actualLenQDims_ != 0 && actSeqLen->GetData<int64_t>() != nullptr);
-    if (actualSeqLenQFlag_) {
-    OP_CHECK_IF(actualLenQDims_ != NUM1 && actualLenQDims_ < batchSize_,
-      OP_LOGE(context_->opName, "ActualSeqLengths size[%d] of query should be greater than or equal to query batch[%u] or equal to 1.",
-      actualLenQDims_, batchSize_),
-      return ge::GRAPH_FAILED);
-    uint32_t actSeqLengthSize = std::min(actualLenQDims_, batchSize_);
-    int64_t castSOfQuery_ = static_cast<int64_t>(sOfQuery_);
-    for (uint32_t i = 0; i < actSeqLengthSize; ++i) {
-      int64_t actSeqTmp = actSeqLen->GetData<int64_t>()[i];
-      OP_CHECK_IF(actSeqTmp < 0 || actSeqTmp > sOfQuery_, OP_LOGE(context_->opName,
-        "ActualSeqLengthsQ[%u](%ld) must be in range[0, %u]!", i, actSeqTmp, sOfQuery_),
+  if (inputLayout_ == IfaLayout::TND) {
+    if (isWorkspace_) {
+      actualSeqLenFlag_ = true;
+      maxActualseq_ = sMax_;
+      return ge::GRAPH_SUCCESS;
+    }
+
+    actualSeqLenFlag_ = true;
+    actualSeqLenQFlag_ = true;
+    maxActualseq_ = sMax_;
+  } else {
+    if (isPFAFlag_ && context_->actualSeqLengthsQ.tensor != nullptr) {
+      const gert::Tensor* actSeqLen = context_->actualSeqLengthsQ.tensor;
+      actualLenQDims_ = actSeqLen->GetShapeSize();
+      actualSeqLenQFlag_ = (actualLenQDims_ != 0 && actSeqLen->GetData<int64_t>() != nullptr);
+      if (actualSeqLenQFlag_) {
+      OP_CHECK_IF(actualLenQDims_ != NUM1 && actualLenQDims_ < batchSize_,
+        OP_LOGE(context_->opName, "ActualSeqLengths size[%d] of query should be greater than or equal to query batch[%u] or equal to 1.",
+        actualLenQDims_, batchSize_),
         return ge::GRAPH_FAILED);
-    if (actSeqTmp != castSOfQuery_) {
-        needInit_ = true;
+      uint32_t actSeqLengthSize = std::min(actualLenQDims_, batchSize_);
+      int64_t castSOfQuery_ = static_cast<int64_t>(sOfQuery_);
+      for (uint32_t i = 0; i < actSeqLengthSize; ++i) {
+        int64_t actSeqTmp = actSeqLen->GetData<int64_t>()[i];
+        OP_CHECK_IF(actSeqTmp < 0 || actSeqTmp > sOfQuery_, OP_LOGE(context_->opName,
+          "ActualSeqLengthsQ[%u](%ld) must be in range[0, %u]!", i, actSeqTmp, sOfQuery_),
+          return ge::GRAPH_FAILED);
+      if (actSeqTmp != castSOfQuery_) {
+          needInit_ = true;
+          }
         }
       }
     }
@@ -1321,6 +1414,9 @@ ge::graphStatus IFATilingV2::ProcessActualSeqLen() {
     uint32_t loop = ((actualLenDims_ == NUM1) && (kvListSeqLens_.size() == NUM1)) ? 1 : batchSize_;
     for (uint32_t i = 0; i < loop; i++) {
       int64_t actLen = (actualLenDims_ == NUM1) ? actualLenData[0] : actualLenData[i];
+      if (inputLayout_ == IfaLayout::TND && i > 0 && !pageAttentionFlag_) {
+        actLen -= actualLenData[i - 1];
+      }
       OP_CHECK_IF(actLen < 0,  //actulSeqLengths必须大于0
                OP_LOGE(context_->opName, "ActualSeqLengthsKv must be greater than or equal to 0."),
                return ge::GRAPH_FAILED);
@@ -1983,10 +2079,10 @@ ge::graphStatus IFATilingV2::ProcessQPaddingSize() {
 }
 
 ge::graphStatus IFATilingV2::CheckSupportQLeftPadding() {
-  if (!batchContinuousFlag_ || !actualSeqLenQFlag_ || pageAttentionFlag_) {
+  if (!batchContinuousFlag_ || !actualSeqLenQFlag_ || pageAttentionFlag_ || inputLayout_ == IfaLayout::TND) {
     OP_LOGD(context_->opName,
       "QueryLeftPadding illegal condition:  \
-      paged attention scene: %d, not isBatchContinues: %d, actualSeqLen not exist: %d.",
+      paged attention scene: %d, not isBatchContinues: %d, actualSeqLen not exist: %d, input layout TND.",
       pageAttentionFlag_, !batchContinuousFlag_, !actualSeqLenQFlag_);
     return ge::GRAPH_SUCCESS;
   }
@@ -2021,10 +2117,10 @@ ge::graphStatus IFATilingV2::ProcessKVPaddingSize() {
 }
 
 ge::graphStatus IFATilingV2::CheckSupportKVLeftPadding() {
-  if (!batchContinuousFlag_ || !actualSeqLenFlag_ || pageAttentionFlag_) {
+  if (!batchContinuousFlag_ || !actualSeqLenFlag_ || pageAttentionFlag_ || inputLayout_ == IfaLayout::TND) {
     OP_LOGD(context_->opName,
       "KVLeftPadding illegal condition:  \
-      paged attention scene: %d, not isBatchContinues: %d, actualSeqLen not exist: %d.",
+      paged attention scene: %d, not isBatchContinues: %d, actualSeqLen not exist: %d, input layout TND.",
       pageAttentionFlag_, !batchContinuousFlag_, !actualSeqLenFlag_);
     return ge::GRAPH_SUCCESS;
   }
@@ -2278,22 +2374,34 @@ void IFATilingV2::PromptFlashAttentionInitOutputSplit() {
 }
 
 void IFATilingV2::GetActualSeqLength(int64_t &actualSeqLengths, int64_t &actualSeqLengthsKV, uint32_t bIdx) {
-  if (actualSeqLenFlag_  && actualLenDims_ > 0 && context_->actualSeqLengths.tensor->GetData<int64_t>() != nullptr) { // kvLengths
-    actualSeqLengthsKV = actualLenDims_ == NUM1 ? context_->actualSeqLengths.tensor->GetData<int64_t>()[0] :
-      context_->actualSeqLengths.tensor->GetData<int64_t>()[bIdx];
-  } else {
-    actualSeqLengthsKV = kvListSeqLens_.size() == NUM1 ? kvListSeqLens_[0] : kvListSeqLens_[bIdx];
-  }
-  if (actualSeqLengthsKV < seqSize_) {
-    needInit_ = true;
-  }
-  if (actualSeqLenQFlag_) { // qLengths
-    actualSeqLengths = actualLenQDims_ == NUM1 ? context_->actualSeqLengthsQ.tensor->GetData<int64_t>()[0] :
-      context_->actualSeqLengthsQ.tensor->GetData<int64_t>()[bIdx];
-  } else {
-    actualSeqLengths = sOfQuery_;
+  if (inputLayout_ == IfaLayout::TND) {
+    actualSeqLengths = bIdx == 0 ? context_->actualSeqLengthsQ.tensor->GetData<int64_t>()[0] :
+      context_->actualSeqLengthsQ.tensor->GetData<int64_t>()[bIdx] - context_->actualSeqLengthsQ.tensor->GetData<int64_t>()[bIdx - 1];
     if (faRunFlagAntiq_ && faRunGS_) {
-      actualSeqLengths = sOfQuery_ * nNumOfQInOneGroup_;
+      actualSeqLengths *= nNumOfQInOneGroup_;
+    }
+    actualSeqLengthsKV = context_->actualSeqLengths.tensor->GetData<int64_t>()[bIdx];
+    if (!pageAttentionFlag_ && bIdx > 0) {
+      actualSeqLengthsKV -= context_->actualSeqLengths.tensor->GetData<int64_t>()[bIdx - 1];
+    }
+  } else {
+    if (actualSeqLenFlag_  && actualLenDims_ > 0 && context_->actualSeqLengths.tensor->GetData<int64_t>() != nullptr) { // kvLengths
+      actualSeqLengthsKV = actualLenDims_ == NUM1 ? context_->actualSeqLengths.tensor->GetData<int64_t>()[0] :
+        context_->actualSeqLengths.tensor->GetData<int64_t>()[bIdx];
+    } else {
+      actualSeqLengthsKV = kvListSeqLens_.size() == NUM1 ? kvListSeqLens_[0] : kvListSeqLens_[bIdx];
+    }
+    if (actualSeqLengthsKV < seqSize_) {
+      needInit_ = true;
+    }
+    if (actualSeqLenQFlag_) { // qLengths
+      actualSeqLengths = actualLenQDims_ == NUM1 ? context_->actualSeqLengthsQ.tensor->GetData<int64_t>()[0] :
+        context_->actualSeqLengthsQ.tensor->GetData<int64_t>()[bIdx];
+    } else {
+      actualSeqLengths = sOfQuery_;
+      if (faRunFlagAntiq_ && faRunGS_) {
+        actualSeqLengths = sOfQuery_ * nNumOfQInOneGroup_;
+      }
     }
   }
 }
@@ -3121,6 +3229,8 @@ ge::graphStatus IFATilingV2::GenTilingKey() {
 
   if (inputLayout_ == IfaLayout::BSH_BSND){
     layoutVal = NUM1;
+  } else if (inputLayout_ == IfaLayout::BSH_BSND) {
+    layoutVal = NUM2;
   } else {
     layoutVal = NUM0;
   }

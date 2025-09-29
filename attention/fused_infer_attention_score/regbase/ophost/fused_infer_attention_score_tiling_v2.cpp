@@ -461,21 +461,6 @@ static ge::graphStatus ConvertContextToParamsIFA(gert::TilingContext& context,
   OP_CHECK_IF((ifaContext.query.shape == nullptr) || (ifaContext.key.shape == nullptr),
                   OPS_REPORT_VECTOR_INNER_ERR(context.GetNodeName(), "shape of query of shape of key is null."),
                   return ge::GRAPH_FAILED);
-  auto batchOfQuery = ifaContext.query.shape->GetStorageShape().GetDim(0);
-  auto batchOfKey = ifaContext.key.shape->GetStorageShape().GetDim(0);
-  if (batchOfQuery != batchOfKey) {
-    ifaContext.kCache.resize(batchOfQuery);
-    ifaContext.vCache.resize(batchOfQuery);
-    for (int64_t size = 0; size < batchOfQuery; ++size) {
-      ifaContext.kCache[size] = const_cast<gert::StorageShape *>(context.GetDynamicInputShape(KEY_INDEX, size));
-      ifaContext.vCache[size] = const_cast<gert::StorageShape *>(context.GetDynamicInputShape(VALUE_INDEX, size));
-    }
-  } else {
-    ifaContext.kCache.resize(1);
-    ifaContext.vCache.resize(1);
-    ifaContext.kCache[0] = const_cast<gert::StorageShape *>(context.GetDynamicInputShape(KEY_INDEX, 0));
-    ifaContext.vCache[0] = const_cast<gert::StorageShape *>(context.GetDynamicInputShape(VALUE_INDEX, 0));
-  }
 
   ifaContext.value.desc = context.GetInputDesc(VALUE_INDEX);
   ifaContext.value.shape = context.GetInputShape(VALUE_INDEX);
@@ -532,6 +517,30 @@ static ge::graphStatus ConvertContextToParamsIFA(gert::TilingContext& context,
   ifaContext.softmaxLseFlag = attrs->GetAttrPointer<bool>(SOFTMAX_LSE_FLAG_INDEX);
   ifaContext.keyAntiquantMode = attrs->GetAttrPointer<int64_t>(KEY_ANTIQUANT_MODE_INDEX);
   ifaContext.valueAntiquantMode = attrs->GetAttrPointer<int64_t>(VALUE_ANTIQUANT_MODE_INDEX);
+
+  auto batchOfQuery = ifaContext.query.shape->GetStorageShape().GetDim(0);
+  auto batchOfKey = ifaContext.key.shape->GetStorageShape().GetDim(0);
+  std::string layoutStr(ifaContext.layOut);
+  if (layoutStr == "TND") {
+    OP_CHECK_IF((ifaContext.actualSeqLengthsQ.tensor == nullptr || ifaContext.actualSeqLengths.tensor == nullptr),
+                OPS_REPORT_VECTOR_INNER_ERR(context.GetNodeName(), "TND actualSeqLengths is null."),
+                return ge::GRAPH_FAILED);
+    batchOfQuery = ifaContext.actualSeqLengthsQ.tensor->GetSize();
+    batchOfKey = ifaContext.actualSeqLengths.tensor->GetSize();
+  }
+  if (batchOfQuery != batchOfKey) {
+    ifaContext.kCache.resize(batchOfQuery);
+    ifaContext.vCache.resize(batchOfQuery);
+    for (int64_t size = 0; size < batchOfQuery; ++size) {
+      ifaContext.kCache[size] = const_cast<gert::StorageShape *>(context.GetDynamicInputShape(KEY_INDEX, size));
+      ifaContext.vCache[size] = const_cast<gert::StorageShape *>(context.GetDynamicInputShape(VALUE_INDEX, size));
+    }
+  } else {
+    ifaContext.kCache.resize(1);
+    ifaContext.vCache.resize(1);
+    ifaContext.kCache[0] = const_cast<gert::StorageShape *>(context.GetDynamicInputShape(KEY_INDEX, 0));
+    ifaContext.vCache[0] = const_cast<gert::StorageShape *>(context.GetDynamicInputShape(VALUE_INDEX, 0));
+  }
 
   OP_CHECK_IF(context.GetWorkspaceSizes(1) == nullptr,
                   OPS_REPORT_VECTOR_INNER_ERR(context.GetNodeName(), "workSpaceSize got from ge is nullptr"),

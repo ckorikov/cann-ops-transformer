@@ -741,9 +741,11 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
     auto &initParams = this->tilingData->initOutputParams;
     if (coreNum != 0 && constInfo.aivIdx < coreNum) {
         int64_t singleCoreLseSize = initParams.totalSoftMaxLseOutputSize / coreNum;
-        uint32_t tailSize = initParams.totalSoftMaxLseOutputSize - constInfo.aivIdx * singleCoreLseSize;
-        uint32_t singleInitLseSize = tailSize < singleCoreLseSize ? tailSize : singleCoreLseSize;
-        InitOutput<float>(softmaxLseGm[constInfo.aivIdx * singleCoreLseSize], singleInitLseSize, 3e+99);
+        if (constInfo.aivIdx == coreNum - 1) {
+            singleCoreLseSize += initParams.totalSoftMaxLseOutputSize % coreNum;
+        }
+        InitOutput<float>(softmaxLseGm[constInfo.aivIdx * (initParams.totalSoftMaxLseOutputSize / coreNum)],
+            singleCoreLseSize, 3e+99);
     }
 }
 
@@ -845,12 +847,7 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
     }
     int64_t multiCoreInnerIdx = 1;
     for (uint32_t bnIdx = bnStartIdx; bnIdx < bnEndIdx; bnIdx++) {
-        bool lastBN;
-        if constexpr (layout == LayOutTypeEnum::LAYOUT_TND) {
-            lastBN = IsLastBN(bnIdx, bnEndIdx);
-        } else {
-            lastBN = (bnIdx == bnEndIdx - 1);
-        }
+        bool lastBN = (bnIdx == bnEndIdx - 1);
         if constexpr (!isFd) {
             runParam.boIdx = bnIdx / (this->constInfo.n2Size * this->constInfo.headNumRatio);
             runParam.n2oIdx = (bnIdx / this->constInfo.headNumRatio) % this->constInfo.n2Size;
@@ -882,11 +879,7 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
             if ((s1NoNeedCalc || s2NoNeedCalc) && !lastLoopThisCore) {
                 continue;
             }
-            if constexpr (layout == LayOutTypeEnum::LAYOUT_TND) {
-                if (runParam.boIdx > 0 && actualSeqQlenAddr[runParam.boIdx] - actualSeqQlenAddr[runParam.boIdx - 1] == 0) {
-                    continue;
-                }
-            }
+
             s2LoopLimit = runParam.s2LoopEndIdx - 1;
             if (lastLoopThisCore) {
                 isLastBmm1 = true;
@@ -1102,9 +1095,9 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
     taskParam.copySplitS = kvInputSize / sizeof(KV_T) / dTemplateAlign64;
     taskParam.isPertensor = antiquantPerTensorFlag;
     taskParam.isPerHead = antiquantPerHeadFlag;
-    taskParam.kvCacheBlockSize = kvCacheBlockSize;
-    taskParam.maxBlockNumPerSeq = maxBlockNumPerBatch;
-    taskParam.paKvShapeType = paKvShapeType;
+    taskParam.kvCacheBlockSize = constInfo.blockSize;
+    taskParam.maxBlockNumPerSeq = constInfo.blockTableDim2;
+    taskParam.paKvShapeType = constInfo.paLayoutType;
     taskParam.isExistOffset = antiqOffsetExistFlag;
     taskParam.singleSInnerSize = constInfo.s2BaseSize;
     taskParam.sInnerLoopSize = constInfo.sInnerLoopSize;
@@ -1125,7 +1118,7 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
         CrossCoreSetFlag<SYNC_MODE, PIPE_MTE3>(VC_L1_EVENT[subTaskId % 2]);  // 2 is double buffer 
         return;
     }
-    uint32_t curSequence = constInfo.s2BaseSize * runInfo.s2LoopCount + runInfo.kvLeftPaddingSize;
+    uint32_t curSequence = constInfo.s2BaseSize * runInfo.s2LoopCount + runInfo.kvLeftPaddingSize + constInfo.subBlockIdx * (runInfo.s2RealSize >> 1);
 
     taskParam.kvGmOffset = runInfo.keyOffset + constInfo.subBlockIdx * (runInfo.s2RealSize / 2) * taskParam.kvStep;  // 2 is Vec num
 
@@ -1173,7 +1166,7 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
         CrossCoreSetFlag<SYNC_MODE, PIPE_MTE3>(VC_L1_EVENT[subTaskId % 2]);  // 2 is double buffer
         return;
     }
-    uint32_t curSequence = constInfo.s2BaseSize * runInfo.s2LoopCount + runInfo.kvLeftPaddingSize;
+    uint32_t curSequence = constInfo.s2BaseSize * runInfo.s2LoopCount + runInfo.kvLeftPaddingSize + constInfo.subBlockIdx * (runInfo.s2RealSize >> 1);
 
     taskParam.kvGmOffset = runInfo.valueOffset + constInfo.subBlockIdx * (runInfo.s2RealSize / 2) * taskParam.kvStep;  // 2 is Vec num
     
