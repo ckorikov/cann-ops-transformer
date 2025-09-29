@@ -85,6 +85,7 @@ public:
 
 protected:
     __aicore__ inline void GetExtremeValue(T &negativeScalar, T &positiveScalar);
+    __aicore__ inline void MlaInitOutput(__gm__ uint8_t *attentionOut, __gm__ uint8_t *softmaxLse);
     __aicore__ inline void InitInput(__gm__ uint8_t *query, __gm__ uint8_t *key, __gm__ uint8_t *value, __gm__ uint8_t *pse,
                                     __gm__ uint8_t *attenMask, __gm__ uint8_t *actualSeqLengths, __gm__ uint8_t *actualSeqLengthsKv,
                                     __gm__ uint8_t *blockTable, __gm__ uint8_t *postQuantScale, __gm__ uint8_t *postQuantOffset,
@@ -351,16 +352,39 @@ __aicore__ inline void FlashAttentionKvsameBN2GS1S2<CHILD_SPEC_TEMPLATE_ARGS>::I
     __gm__ uint8_t *softmaxLse, __gm__ uint8_t *attentionOut, __gm__ uint8_t *workspace,
     const FlashAttentionScoreSimplifiedTilingData *__restrict tiling, TPipe *tPipe)
 {
+    this->tilingData = tiling;
+    this->blockIdx = GetBlockIdx();
+    if ASCEND_IS_AIV {
+        this->aicIdx = this->blockIdx >> 1;
+        this->aivIdx = this->blockIdx;
+    }
+    if ASCEND_IS_AIC {
+        this->aicIdx = this->blockIdx;
+    }
+    
+    this->MlaInitOutput(attentionOut, softmaxLse);
     this->InitInput(query, key, value, pse, attenMask, actualSeqLengths, actualSeqLengthsKv, blockTable, postQuantScale, postQuantOffset, queryRope, keyRope, softmaxLse, attentionOut, workspace, tiling, tPipe);
     this->ComputeConstexpr();
     this->InitBuffer();
 
     mte2ToV[0] = GetTPipePtr()->AllocEventID<HardEvent::MTE2_V>();
+}
+
+CHILD_SPEC_TEMPLATE
+__aicore__ inline void FlashAttentionKvsameBN2GS1S2<CHILD_SPEC_TEMPLATE_ARGS>::MlaInitOutput(__gm__ uint8_t *attentionOut, __gm__ uint8_t *softmaxLse)
+{
+    this->attentionOutGm.SetGlobalBuffer((__gm__ OUTPUT_T *)attentionOut);
+    if constexpr (POST_QUANT) {
+        this->attentionOutInitGm.SetGlobalBuffer((__gm__ half *)attentionOut);
+    }
+    if (this->tilingData->inputParamsRegbase.isSoftMaxLseEnable) {
+        softmaxLseGm.SetGlobalBuffer((__gm__ float*)softmaxLse);
+    }
 
     if ASCEND_IS_AIV {
         if (this->tilingData->initOutputParams.needInit == 1) {
             InitOutputSingleCore();
-            if (constInfo.isSoftmaxLseEnable) {
+            if (this->tilingData->inputParamsRegbase.isSoftMaxLseEnable) {
                 InitLseOutputSingleCore();
             }
         }
@@ -420,15 +444,6 @@ __aicore__ inline void FlashAttentionKvsameBN2GS1S2<CHILD_SPEC_TEMPLATE_ARGS>::I
     __gm__ uint8_t *softmaxLse, __gm__ uint8_t *attentionOut, __gm__ uint8_t *workspace,
     const FlashAttentionScoreSimplifiedTilingData *__restrict tiling, TPipe *tPipe)
 {
-    this->blockIdx = GetBlockIdx();
-    if ASCEND_IS_AIV {
-        this->aicIdx = this->blockIdx >> 1;
-        this->aivIdx = this->blockIdx;
-    }
-    if ASCEND_IS_AIC {
-        this->aicIdx = this->blockIdx;
-    }
-
     constInfo.subBlockIdx = get_subblockid();
     this->pipe = tPipe;
     this->tilingData = tiling;
@@ -471,14 +486,7 @@ __aicore__ inline void FlashAttentionKvsameBN2GS1S2<CHILD_SPEC_TEMPLATE_ARGS>::I
         this->queryRopeGm.SetGlobalBuffer((__gm__ INPUT_T *)queryRope);
         this->keyRopeGm.SetGlobalBuffer((__gm__ INPUT_T *)keyRope);
     }
-    if (this->tilingData->inputParamsRegbase.isSoftMaxLseEnable) {
-        softmaxLseGm.SetGlobalBuffer((__gm__ float*)softmaxLse);
-    }
 
-    this->attentionOutGm.SetGlobalBuffer((__gm__ OUTPUT_T *)attentionOut);
-    if constexpr (POST_QUANT) {
-        this->attentionOutInitGm.SetGlobalBuffer((__gm__ half *)attentionOut);
-    }
     this->dBasicBlock = Align64Func_((uint16_t)this->tilingData->inputParamsRegbase.dSizeV);
     if constexpr (isFd) {
         auto &inputParamsRegbase = this->tilingData->inputParamsRegbase;
