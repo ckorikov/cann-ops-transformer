@@ -16,7 +16,7 @@
 #define __OP_HOST_BATCH_MAT_MUL_V3_TILING_H__
 #include "register/tilingdata_base.h"
 #include "tiling/tiling_api.h"
-#include "mat_mul_v3/op_host/op_tiling/matmul_v3_tiling.h"
+#include "../../../mat_mul_v3/op_host/op_tiling/matmul_v3_tiling.h"
 
 // ！！！！！！！！！ATTENTION ！！！！！！！！！！！！
 // 当前canndev仓mc2编译时用的是原canndev仓结构体

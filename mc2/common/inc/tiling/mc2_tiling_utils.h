@@ -27,6 +27,7 @@
 #include "tiling/platform/platform_ascendc.h"
 #include "tiling/tiling_api.h"
 #include "tiling_base/tiling_type.h"
+#include "../../../3rd/mat_mul_v3/op_host/op_tiling/arch35/matmul_v3_base_tiling_advanced.h"
 
 namespace mc2tiling {
 constexpr uint32_t COMM_MESH = 0b1U;

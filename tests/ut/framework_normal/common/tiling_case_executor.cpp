@@ -217,13 +217,11 @@ void ExecuteTestCase(const gert::TilingContextPara& tilingContextPara,
     ASSERT_EQ(tilingKeyResult, expectTilingKey);
 
     // check tiling data
-    if (expectTilingData != "") {
-        auto rawTilingData = tilingContext->GetRawTilingData();
-        auto tilingDataReservedSize = tilingDataReservedLen * sizeof(uint64_t);
-        auto tilingDataResult = to_string<int64_t>(rawTilingData->GetData() + tilingDataReservedSize,
-                                                   rawTilingData->GetDataSize() - tilingDataReservedSize);
-        EXPECT_EQ(tilingDataResult, expectTilingData);
-    }
+    auto rawTilingData = tilingContext->GetRawTilingData();
+    auto tilingDataReservedSize = tilingDataReservedLen * sizeof(uint64_t);
+    auto tilingDataResult = to_string<int64_t>(rawTilingData->GetData() + tilingDataReservedSize,
+                                               rawTilingData->GetDataSize() - tilingDataReservedSize);
+    EXPECT_EQ(tilingDataResult, expectTilingData);
 }
 
 bool ExecuteTiling(const gert::TilingContextPara& tilingContextPara, TilingInfo& tilingInfo)
