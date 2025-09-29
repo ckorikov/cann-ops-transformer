@@ -778,6 +778,7 @@ while [[ $# -gt 0 ]]; do
         ;;
     --noexec)
         ENABLE_UT_EXEC=FALSE
+        shift
         ;;
     -j)
         INPUT_JOB_NUM=$2
