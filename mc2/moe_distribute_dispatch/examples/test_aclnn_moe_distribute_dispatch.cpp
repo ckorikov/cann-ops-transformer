@@ -16,6 +16,7 @@
 #include <thread>
 #include <iostream>
 #include <string>
+#include <cstring>
 #include <vector>
 #include "acl/acl.h"
 #include "hccl/hccl.h"
