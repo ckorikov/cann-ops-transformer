@@ -51,8 +51,12 @@
   #endif
 
   #if defined(ORIG_DTYPE_X) && defined(ORIG_DTYPE_WEIGHT) && ORIG_DTYPE_X != ORIG_DTYPE_WEIGHT
-    #if ORIG_DTYPE_X != DT_FLOAT8_E5M2 && ORIG_DTYPE_X != DT_FLOAT8_E4M3FN && \
-          ORIG_DTYPE_X != DT_FLOAT4_E2M1 && ORIG_DTYPE_X != DT_FLOAT4_E1M2
+    #if ((ORIG_DTYPE_X == DT_FLOAT16 || ORIG_DTYPE_X == DT_BF16) &&                                                  \
+         (ORIG_DTYPE_WEIGHT == DT_FLOAT8_E5M2 || ORIG_DTYPE_WEIGHT == DT_FLOAT8_E4M3FN ||                            \
+          ORIG_DTYPE_WEIGHT == DT_HIFLOAT8 || ORIG_DTYPE_WEIGHT == DT_INT8 || ORIG_DTYPE_WEIGHT == DT_FLOAT4_E2M1 || \
+          ORIG_DTYPE_WEIGHT == DT_FLOAT4_E1M2 || ORIG_DTYPE_WEIGHT == DT_FLOAT)) ||                                  \
+        (ORIG_DTYPE_X == DT_INT8 && ORIG_DTYPE_WEIGHT == DT_INT4) ||                                                 \
+        (ORIG_DTYPE_X == DT_FLOAT8_E4M3FN && (ORIG_DTYPE_WEIGHT == DT_FLOAT4_E2M1 || ORIG_DTYPE_WEIGHT == DT_FLOAT))
       #define V310_GMM_ANTI_QUANT
     #endif
   #endif

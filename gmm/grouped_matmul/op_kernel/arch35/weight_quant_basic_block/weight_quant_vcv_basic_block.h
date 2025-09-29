@@ -31,12 +31,14 @@ using AscendC::TPipe;
 using AscendC::TPosition;
 
 namespace WeightQuantBatchMatmulV2::Arch35 {
-#define GMM_WQ_VCV_BASIC_BLOCK_TEMPLATE_PARAM                                                                     \
-    template <typename xType, typename wType, typename antiQuantScaleType, typename scaleType, typename biasType, \
-              typename yType, const WqmmConfig &wqmmConfig, const VecAntiQuantConfig &vecConfig>
+#define GMM_WQ_VCV_BASIC_BLOCK_TEMPLATE_PARAM                                                              \
+    template <typename xType, typename wType, typename antiQuantScaleType, typename scaleType,             \
+              typename perTokenScaleType, typename biasType, typename yType, const WqmmConfig &wqmmConfig, \
+              const VecAntiQuantConfig &vecConfig>
 
-#define GMM_WQ_VCV_BASIC_BLOCK_CLASS \
-    WeightQuantVcvMatmulBasicBlock<xType, wType, antiQuantScaleType, scaleType, biasType, yType, wqmmConfig, vecConfig>
+#define GMM_WQ_VCV_BASIC_BLOCK_CLASS                                                                                \
+    WeightQuantVcvMatmulBasicBlock<xType, wType, antiQuantScaleType, scaleType, perTokenScaleType, biasType, yType, \
+                                   wqmmConfig, vecConfig>
 
 GMM_WQ_VCV_BASIC_BLOCK_TEMPLATE_PARAM
 class WeightQuantVcvMatmulBasicBlock : public WeightQuantVcvMatmulBasicBlockBaseClass {
@@ -46,8 +48,9 @@ public:
                                 const TCubeTiling *__restrict matmulTiling, TPipe *tPipe);
     __aicore__ inline void UpdateGlobalAddr(__gm__ xType *x, __gm__ wType *weight,
                                             __gm__ antiQuantScaleType *antiquantScale, __gm__ xType *antiquantOffset,
-                                            __gm__ scaleType *scale, __gm__ float *perTokenScale, __gm__ biasType *bias,
-                                            __gm__ yType *y, const bool hasBias, const bool weightL2Cacheable);
+                                            __gm__ scaleType *scale, __gm__ perTokenScaleType *perTokenScale,
+                                            __gm__ biasType *bias, __gm__ yType *y, const bool hasBias,
+                                            const bool weightL2Cacheable);
     __aicore__ inline void ComputeBasicBlock(const BasicBlockOffsetParam &curOffsetParam,
                                              const BasicBlockOffsetParam &lastOffsetParam);
     __aicore__ inline void PrefetchA(uint64_t aPrefetchSize, uint64_t xSizeLimit);
@@ -100,7 +103,9 @@ protected:
                               MatmulType<TPosition::VECIN, CubeFormat::ND_ALIGN, int32_t>,
                               MatmulType<TPosition::TSCM, CubeFormat::ND, int32_t>, CFG_MDL,
                               matmul::MatmulCallBackFunc<nullptr, nullptr, nullptr>, WQBmmCustomPolicy>;
-    WeightQuantBatchMatmulV2CubeCompute<xType, int32_t, int32_t, wqmmConfig, MMImpl> cubeCompute_;
+    WeightQuantBatchMatmulV2CubeCompute<xType, int32_t, antiQuantScaleType, perTokenScaleType, int32_t, wqmmConfig,
+                                        MMImpl>
+        cubeCompute_;
 
     uint64_t cvLoopIdx_ = 0;
     uint64_t weightS8L1DbOffset_ = 0;
@@ -137,11 +142,11 @@ __aicore__ inline void GMM_WQ_VCV_BASIC_BLOCK_CLASS::Init(bool hasBias, uint64_t
 GMM_WQ_VCV_BASIC_BLOCK_TEMPLATE_PARAM
 __aicore__ inline void GMM_WQ_VCV_BASIC_BLOCK_CLASS::UpdateGlobalAddr(
     __gm__ xType *x, __gm__ wType *weight, __gm__ antiQuantScaleType *antiquantScale, __gm__ xType *antiquantOffset,
-    __gm__ scaleType *scale, __gm__ float *perTokenScale, __gm__ biasType *bias, __gm__ yType *y, const bool hasBias,
-    const bool weightL2Cacheable)
+    __gm__ scaleType *scale, __gm__ perTokenScaleType *perTokenScale, __gm__ biasType *bias, __gm__ yType *y,
+    const bool hasBias, const bool weightL2Cacheable)
 {
     if ASCEND_IS_AIC {
-        cubeCompute_.UpdateGlobalAddr(x, nullptr, nullptr, nullptr, hasBias);
+        cubeCompute_.UpdateGlobalAddr(x, nullptr, nullptr, nullptr, nullptr, nullptr, hasBias);
     } else {
         vecCompute_.UpdateGlobalAddr(weight, antiquantScale, nullptr, perTokenScale, scale, bias, weightL2Cacheable);
     }

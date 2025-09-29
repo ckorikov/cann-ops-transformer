@@ -23,6 +23,7 @@ using AscendC::CrossCoreSetFlag;
 using AscendC::CrossCoreWaitFlag;
 using AscendC::DataCopyExtParams;
 using AscendC::DataCopyPadExtParams;
+using AscendC::fp8_e8m0_t;
 using AscendC::GetUserWorkspace;
 using AscendC::GlobalTensor;
 using AscendC::int4b_t;
@@ -31,7 +32,10 @@ using AscendC::LocalTensor;
 using AscendC::ONE_BLK_SIZE;
 using AscendC::TPosition;
 using AscendC::VECTOR_REG_WIDTH;
+using matmul::MatmulCallBackFunc;
+using matmul::MatmulImpl;
 using matmul::MatmulType;
+using matmul::MatmulTypeWithScale;
 
 #define SHORT_MIX_LOG(format, ...)
 
@@ -49,13 +53,26 @@ static constexpr int32_t QUADRUPLE_BUFFER_NUM = 4;
 static constexpr int32_t DOUBLE_BUFFER_NUM = 2;
 static constexpr int32_t SINGLE_BUFFER_NUM = 1;
 static constexpr int64_t L1_SIZE = 512;
+static constexpr int64_t L1_SIZE_BYTE = L1_SIZE * 1024;
+static constexpr int64_t L1_HALF_SIZE = L1_SIZE / 2;
+static constexpr int64_t L1_SIZE_WITH_QUANTSCALE = 504;
+static constexpr int64_t L1_SIZE_WITH_QUANTSCALE_BYTE = L1_SIZE_WITH_QUANTSCALE * 1024;
+static constexpr int64_t BIAS_L1_SIZE = 4;
+static constexpr int64_t MX_SCALE_L1_SIZE = 20;
 static constexpr uint64_t A_L1_MAX_SIZE_WITH_BIAS_QUANT = 240UL * 1024UL;
+
+// 控制参数定义
+static constexpr int32_t BASIC_BLOCK_PROCESS_NUM = 2;
+static constexpr uint64_t SCALE_COPY_GROUP_SIZE = 2;
+static constexpr int32_t SCALE_COPY_DEFAULT_STRIDE = 0;
+static constexpr int32_t SCALE_COPY_DEFAULT_N_STRIDE = 1;
 
 // 参数约束定义
 static constexpr uint64_t MX_GROUPSIZE = 32;
 static constexpr uint64_t VEC_MAX_ELEM_B16 = VECTOR_REG_WIDTH / sizeof(half);
 static constexpr uint32_t FP32_BLOCK_SIZE = 8;
 static constexpr int32_t C0_SIZE_B8 = 32;
+static constexpr uint32_t SCALE_FACTOR_B_BIT = 8;
 
 // 同步定义
 static constexpr uint64_t SYNC_AIV_AIC_FLAG = 8;
@@ -141,13 +158,19 @@ __aicore__ constexpr uint32_t GetKBUnit()
     if constexpr (IsSameType<T, int4b_t>::value) {
         return 2048;  // 2048个int4是1kb
     }
-    if constexpr (IsSameType<T, int8_t>::value) {
-        return 1024;  // 1024个int8是1kb
+    if constexpr (IsSameType<T, int8_t>::value || IsSameType<T, fp8_e4m3fn_t>::value) {
+        return 1024;  // 1024个B8是1kb
     }
     if constexpr (IsSameType<T, float>::value) {
         return 256;  // 256个float是1kb
     }
     return 512;  // 512个half是1kb
+}
+
+template <typename xType, QuantType antiQuantType>
+__aicore__ constexpr bool IsMxA8W4()
+{
+    return antiQuantType == QuantType::MX && IsSameType<xType, fp8_e4m3fn_t>::value;
 }
 
 template <TPosition POSITION, CubeFormat FORMAT, typename TYPE, bool ISTRANS = false,

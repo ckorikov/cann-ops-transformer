@@ -37,28 +37,7 @@ bool GroupedWeightQuantBatchMatmulTiling::AnalyzeAttr(const gert::TilingContext 
     OP_CHECK_IF(compileInfoPtr == nullptr, OP_LOGE(context->GetNodeName(), "compileInfoPtr is nullptr."), return false);
     coreNum_ = compileInfoPtr->aicNum;
 
-    auto xDesc = context->GetDynamicInputDesc(X_IDX, 0);
-    OP_CHECK_IF(xDesc == nullptr, OP_LOGE(context->GetNodeName(), "xDesc is nullptr."), return false);
-    xDType_ = xDesc->GetDataType();
-
-    auto wDesc = context->GetDynamicInputDesc(WEIGHT_IDX, 0);
-    OP_CHECK_IF(wDesc == nullptr, OP_LOGE(context->GetNodeName(), "wDesc is nullptr."), return false);
-    weightDtype_ = wDesc->GetDataType();
-    auto wFormat = static_cast<ge::Format>(ge::GetPrimaryFormat(wDesc->GetStorageFormat()));
-    if(wFormat == ge::FORMAT_FRACTAL_NZ_C0_16 || wFormat == ge::FORMAT_FRACTAL_NZ_C0_32){
-        wFormat = ge::FORMAT_FRACTAL_NZ;
-    }
-    weightNzFlag_ = wFormat == ge::FORMAT_FRACTAL_NZ;
-
-    auto biasPtr = context->GetDynamicInputTensor(BIAS_IDX, 0);
-    hasBias_ = !(biasPtr == nullptr || biasPtr->GetStorageShape().GetShapeSize() == 0);
-
-    auto antiquantScaleDesc = context->GetDynamicInputDesc(ANTIQUANT_SCALE_IDX, 0);
-    OP_CHECK_IF(antiquantScaleDesc == nullptr, OP_LOGE(context->GetNodeName(), "antiquantScaleDesc is nullptr."), return false);
-
-    auto antiquantOffsetTensor = context->GetDynamicInputTensor(ANTIQUANT_OFFSET_IDX, 0);
-    hasAntiquantOffset_ =
-        !(antiquantOffsetTensor == nullptr || antiquantOffsetTensor->GetStorageShape().GetShapeSize() == 0);
+    OP_CHECK_IF(!AnalyzeInput(context), OP_LOGE(context->GetNodeName(), "Invalid Input param"), return false);
 
     auto attr = context->GetAttrs();
     OP_CHECK_IF(attr == nullptr, OP_LOGE(context->GetNodeName(), "attr is nullptr."), return false);
@@ -77,17 +56,48 @@ bool GroupedWeightQuantBatchMatmulTiling::AnalyzeAttr(const gert::TilingContext 
     // 2: when x is multi-tensor, y is single-tensor; 3: when x is single-tensor, y is single-tensor
     isSingleY_ = (splitItem_ == 2 || splitItem_ == 3);
 
-    OP_CHECK_IF(!CheckAttr(context), OP_LOGE(context->GetNodeName(), "Invalid attr param"),
-               return false);
+    OP_CHECK_IF(!CheckAttr(context), OP_LOGE(context->GetNodeName(), "Invalid attr param"), return false);
     OP_CHECK_IF(!SetShapeListSplitMSingleXSingleWeightSingleY(context),
-               OP_LOGE(context->GetNodeName(), "Unable to get shape list"), return false);
-    OP_CHECK_IF(!SetAntiquantGroupSize(context),
-               OP_LOGE(context->GetNodeName(), "Unable to get antiquant groupSize"), return false);
-    if(weightDtype_ == ge::DT_FLOAT){
+                OP_LOGE(context->GetNodeName(), "Unable to get shape list"), return false);
+    OP_CHECK_IF(!SetAntiquantGroupSize(context), OP_LOGE(context->GetNodeName(), "Unable to get antiquant groupSize"),
+                return false);
+    if (weightDtype_ == ge::DT_FLOAT) {
         weightDtype_ = ge::DT_FLOAT4_E2M1;
-        nSize_ = static_cast<uint64_t>(8) * nSize_; //一个float32表示8个fp4,设置为正确shape
+        if (!transB_) {
+            nSize_ = static_cast<uint64_t>(8) * nSize_;  // 一个float32表示8个fp4,设置为正确shape
+        }
     }
     PrintInputParam(context);
+    return true;
+}
+
+bool GroupedWeightQuantBatchMatmulTiling::AnalyzeInput(const gert::TilingContext *context)
+{
+    auto xDesc = context->GetDynamicInputDesc(X_IDX, 0);
+    OP_CHECK_IF(xDesc == nullptr, OP_LOGE(context->GetNodeName(), "xDesc is nullptr."), return false);
+    xDType_ = xDesc->GetDataType();
+
+    auto wDesc = context->GetDynamicInputDesc(WEIGHT_IDX, 0);
+    OP_CHECK_IF(wDesc == nullptr, OP_LOGE(context->GetNodeName(), "wDesc is nullptr."), return false);
+    weightDtype_ = wDesc->GetDataType();
+    auto wFormat = static_cast<ge::Format>(ge::GetPrimaryFormat(wDesc->GetStorageFormat()));
+    if (wFormat == ge::FORMAT_FRACTAL_NZ_C0_16 || wFormat == ge::FORMAT_FRACTAL_NZ_C0_32) {
+        wFormat = ge::FORMAT_FRACTAL_NZ;
+    }
+    weightNzFlag_ = wFormat == ge::FORMAT_FRACTAL_NZ;
+
+    auto biasShape = context->GetDynamicInputShape(BIAS_IDX, 0);
+    hasBias_ = !(biasShape == nullptr || biasShape->GetStorageShape().GetShapeSize() == 0);
+
+    auto antiquantScaleDesc = context->GetDynamicInputDesc(ANTIQUANT_SCALE_IDX, 0);
+    OP_CHECK_IF(antiquantScaleDesc == nullptr, OP_LOGE(context->GetNodeName(), "antiquantScaleDesc is nullptr."),
+                return false);
+    antiquantScaleDtype_ = antiquantScaleDesc->GetDataType();
+
+    auto antiquantOffsetShape = context->GetDynamicInputShape(ANTIQUANT_OFFSET_IDX, 0);
+    hasAntiquantOffset_ =
+        !(antiquantOffsetShape == nullptr || antiquantOffsetShape->GetStorageShape().GetShapeSize() == 0);
+
     return true;
 }
 
@@ -179,6 +189,10 @@ void GroupedWeightQuantBatchMatmulTiling::SetMatMulTiling()
         tilingData_.mmTilingData.set_baseK(BASIC_BLOCK_BASE_K * 2);
         // A8W4场景在UB中处理bias，mm api默认无bias
         tilingData_.mmTilingData.set_isBias(0);
+    } else if (xDType_ == ge::DT_FLOAT8_E4M3FN && weightDtype_ == ge::DT_FLOAT4_E2M1 &&
+               antiquantScaleDtype_ == ge::DT_FLOAT8_E8M0) {
+        // MxA8W4场景配置mxTypePara
+        tilingData_.mmTilingData.set_mxTypePara((SCALE_FACTOR_MIN << SCALE_FACTOR_B_BIT) + SCALE_FACTOR_MIN);
     } else if (hasBias_) {
         tilingData_.mmTilingData.set_baseM(BASIC_BLOCK_BASE_M_WITH_BIAS);
         tilingData_.mmTilingData.set_singleCoreM(BASIC_BLOCK_BASE_M_WITH_BIAS);
@@ -197,8 +211,7 @@ void GroupedWeightQuantBatchMatmulTiling::SetTilingKey(gert::TilingContext *cont
 
     tilingKeyConfig_.transposeSituation = (static_cast<uint8_t>(transA_) << 1) | static_cast<uint8_t>(transB_);
 
-    auto antiquantScaleDesc = context->GetDynamicInputDesc(ANTIQUANT_SCALE_IDX, 0);
-    if (antiquantScaleDesc->GetDataType() == ge::DT_FLOAT8_E8M0) {
+    if (antiquantScaleDtype_ == ge::DT_FLOAT8_E8M0) {
         tilingKeyConfig_.antiquantType = static_cast<uint8_t>(QuantType::MX);
     } else {
         tilingKeyConfig_.antiquantType = static_cast<uint8_t>(QuantType::PER_CHANNEL);
@@ -231,28 +244,42 @@ bool GroupedWeightQuantBatchMatmulTiling::SetCustomParam(gert::TilingContext *co
 
 bool GroupedWeightQuantBatchMatmulTiling::CheckAttr(const gert::TilingContext *context) const
 {
-    OP_CHECK_IF(
-        coreNum_ <= 0,
-        OP_LOGE(context->GetNodeName(), "Invalid coreNum[%u], expect greater than 0", coreNum_),
-        return false);
+    OP_CHECK_IF(coreNum_ <= 0, OP_LOGE(context->GetNodeName(), "Invalid coreNum[%u], expect greater than 0", coreNum_),
+                return false);
     OP_CHECK_IF(groupType_ != GroupType::SPLIT_M || !(isSingleX_ && isSingleWeight_ && isSingleY_),
-               OP_LOGE(context->GetNodeName(),
-                                           "Only support groupType 0 (split-m mode), single-single-single mode, actual "
-                                           "groupType: %d, singleX: %s, singleW: %s, singleY: %s",
-                                           static_cast<int8_t>(groupType_), isSingleX_ ? "true" : "false",
-                                           isSingleWeight_ ? "true" : "false", isSingleY_ ? "true" : "false"),
-               return false);
-    OP_CHECK_IF(weightNzFlag_ && transB_,
-               OP_LOGE(context->GetNodeName(),
-                                           "transposed weight is unsupported when weight format is FRACTAL_NZ"),
-               return false);
-    OP_CHECK_IF(!weightNzFlag_ && !transB_,
-               OP_LOGE(context->GetNodeName(),
-                                           "untransposed weight is unsupported when weight format is ND"),
-               return false);
-    OP_CHECK_IF(xDType_ == ge::DT_INT8 && weightDtype_ == ge::DT_INT4 && hasAntiquantOffset_,
-               OP_LOGE(context->GetNodeName(), "antiquantOffset is unsupported for A8W4"),
-               return false);
+                OP_LOGE(context->GetNodeName(),
+                        "Only support groupType 0 (split-m mode), single-single-single mode, actual "
+                        "groupType: %d, singleX: %s, singleW: %s, singleY: %s",
+                        static_cast<int8_t>(groupType_), isSingleX_ ? "true" : "false",
+                        isSingleWeight_ ? "true" : "false", isSingleY_ ? "true" : "false"),
+                return false);
+
+    OP_CHECK_IF(transA_, OP_LOGE(context->GetNodeName(), "Transposed A is not supported. "),
+                return false);
+
+    if (ge::GetSizeByDataType(xDType_) == B16_DATA_SIZE && ge::GetSizeByDataType(weightDtype_) == B8_DATA_SIZE) {
+        OP_CHECK_IF(!(!weightNzFlag_ && transB_),
+                    OP_LOGE(context->GetNodeName(), "A16W8 and A16F8 only support transposed weight with format ND. "),
+                    return false);
+    } else if (ge::GetSizeByDataType(xDType_) == B16_DATA_SIZE &&
+               (weightDtype_ == ge::DT_FLOAT4_E2M1 || weightDtype_ == ge::DT_FLOAT) &&
+               antiquantScaleDtype_ == ge::DT_FLOAT8_E8M0) {
+        OP_CHECK_IF(!(weightNzFlag_ && !transB_),
+                    OP_LOGE(context->GetNodeName(), "A16MxF4 only supports untransposed weight with format FRACTAL_NZ"),
+                    return false);
+    } else if (xDType_ == ge::DT_INT8 && weightDtype_ == ge::DT_INT4) {
+        OP_CHECK_IF(!(weightNzFlag_ && !transB_),
+                    OP_LOGE(context->GetNodeName(), "S8S4 only supports untransposed weight with format FRACTAL_NZ"),
+                    return false);
+        OP_CHECK_IF(hasAntiquantOffset_, OP_LOGE(context->GetNodeName(), "antiquantOffset is unsupported for S8S4"),
+                    return false);
+    } else if (xDType_ == ge::DT_FLOAT8_E4M3FN &&
+               (weightDtype_ == ge::DT_FLOAT4_E2M1 || weightDtype_ == ge::DT_FLOAT) &&
+               antiquantScaleDtype_ == ge::DT_FLOAT8_E8M0) {
+        OP_CHECK_IF(!(weightNzFlag_ && transB_),
+                    OP_LOGE(context->GetNodeName(), "MxA8W4 only supports transposed weight with format FRACTAL_NZ"),
+                    return false);
+    }
     return true;
 }
 

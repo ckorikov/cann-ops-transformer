@@ -43,6 +43,12 @@ constexpr uint32_t STEP_K_4 = 4;
 constexpr uint32_t DEPTH_8 = 8;
 constexpr uint32_t BUFFER_NUM_2 = 2;
 
+constexpr uint32_t SCALE_FACTOR_MIN = 1;
+constexpr uint32_t SCALE_FACTOR_B_BIT = 8;
+
+constexpr int32_t B16_DATA_SIZE = 2;
+constexpr int32_t B8_DATA_SIZE = 1;
+
 struct TailBlockResplitParam {
     uint32_t mainBlockSize = 0;
     uint64_t mainBlockCount = 0;
@@ -224,6 +230,7 @@ public:
 
 protected:
     bool AnalyzeAttr(const gert::TilingContext *context);
+    bool AnalyzeInput(const gert::TilingContext *context);
     bool CalcResplitTiling(const gert::TilingContext *context);
     void SetBaseTiling();
     void SetMatMulTiling();
@@ -267,6 +274,7 @@ private:
 
     ge::DataType xDType_ = ge::DT_UNDEFINED;
     ge::DataType weightDtype_ = ge::DT_UNDEFINED;
+    ge::DataType antiquantScaleDtype_ = ge::DT_UNDEFINED;
 
     TailBlockResplitParam resplitParam_;
     TilingKeyConfigure tilingKeyConfig_;

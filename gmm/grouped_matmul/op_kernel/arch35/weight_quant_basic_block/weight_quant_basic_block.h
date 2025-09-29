@@ -24,6 +24,7 @@
 #include "weight_quant_cube_compute.h"
 #include "weight_quant_vec_compute.h"
 
+using AscendC::Conditional;
 using AscendC::GetSubBlockIdx;
 using AscendC::IsSameType;
 using AscendC::LocalTensor;
@@ -33,12 +34,14 @@ using AscendC::TPosition;
 
 namespace WeightQuantBatchMatmulV2::Arch35 {
 
-#define GMM_WQ_BASIC_BLOCK_TEMPLATE_PARAM                                                                         \
-    template <typename xType, typename wType, typename antiQuantScaleType, typename scaleType, typename biasType, \
-              typename yType, const WqmmConfig &wqmmConfig, const VecAntiQuantConfig &vecConfig>
+#define GMM_WQ_BASIC_BLOCK_TEMPLATE_PARAM                                                                  \
+    template <typename xType, typename wType, typename antiQuantScaleType, typename scaleType,             \
+              typename perTokenScaleType, typename biasType, typename yType, const WqmmConfig &wqmmConfig, \
+              const VecAntiQuantConfig &vecConfig>
 
-#define GMM_WQ_BASIC_BLOCK_CLASS \
-    WeightQuantMatmulBasicBlock<xType, wType, antiQuantScaleType, scaleType, biasType, yType, wqmmConfig, vecConfig>
+#define GMM_WQ_BASIC_BLOCK_CLASS                                                                                 \
+    WeightQuantMatmulBasicBlock<xType, wType, antiQuantScaleType, scaleType, perTokenScaleType, biasType, yType, \
+                                wqmmConfig, vecConfig>
 
 GMM_WQ_BASIC_BLOCK_TEMPLATE_PARAM
 class WeightQuantMatmulBasicBlock : public WeightQuantMatmulBasicBlockBaseClass {
@@ -48,8 +51,9 @@ public:
                                 const TCubeTiling *__restrict matmulTiling, TPipe *tPipe);
     __aicore__ inline void UpdateGlobalAddr(__gm__ xType *x, __gm__ wType *weight,
                                             __gm__ antiQuantScaleType *antiquantScale, __gm__ xType *antiquantOffset,
-                                            __gm__ scaleType *scale, __gm__ float *perTokenScale, __gm__ biasType *bias,
-                                            __gm__ yType *y, const bool hasBias, const bool weightL2Cacheable);
+                                            __gm__ scaleType *scale, __gm__ perTokenScaleType *perTokenScale,
+                                            __gm__ biasType *bias, __gm__ yType *y, const bool hasBias,
+                                            const bool weightL2Cacheable);
     __aicore__ inline void ComputeBasicBlock(const BasicBlockOffsetParam &offsetParam,
                                              const BasicBlockOffsetParam &lastOffsetParam);
     __aicore__ inline void PrefetchA(uint64_t aPrefetchSize, uint64_t xSizeLimit);
@@ -61,20 +65,35 @@ protected:
     __aicore__ inline void SetAicToAiv();
     __aicore__ inline void WaitAicToAiv();
     __aicore__ inline void ComputeBasicBlockAivNdNkNzKn(const BasicBlockOffsetParam &offsetParam);
-    __aicore__ inline void ComputeBasicBlockAivNdKn(const BasicBlockOffsetParam &offsetParam);
+    __aicore__ inline void ComputeBasicBlockAivNdKnNzNk(const BasicBlockOffsetParam &offsetParam);
     __aicore__ inline void ComputeBasicBlockAic(const BasicBlockOffsetParam &offsetParam);
 
     BasicBlockLibVectorAntiQuantCompute<xType, wType, antiQuantScaleType, yType, wqmmConfig, vecConfig> vectorCompute_;
-    using MMImpl = MatmulImpl<MatmulL1GmType<TPosition::TSCM, CubeFormat::NZ, xType, wqmmConfig.aTrans>,
-                              MatmulL1GmType<TPosition::TSCM, CubeFormat::NZ, xType, wqmmConfig.bTrans>,
-                              MatmulType<TPosition::GM, CubeFormat::ND, yType>,
-                              MatmulType<TPosition::TSCM, CubeFormat::ND, biasType>, CFG_MDL>;
-    WeightQuantBatchMatmulV2CubeCompute<xType, biasType, yType, wqmmConfig, MMImpl> cubeCompute_;
+
+    using aType = typename Conditional<
+        IsMxA8W4<xType, wqmmConfig.antiQuantType>(),
+        MatmulTypeWithScale<TPosition::TSCM, TPosition::TSCM, CubeFormat::NZ, xType, wqmmConfig.aTrans>,
+        MatmulL1GmType<TPosition::TSCM, CubeFormat::NZ, xType, wqmmConfig.aTrans>>::type;
+    using bType = typename Conditional<
+        IsMxA8W4<xType, wqmmConfig.antiQuantType>(),
+        MatmulTypeWithScale<TPosition::TSCM, TPosition::TSCM, CubeFormat::NZ, xType, wqmmConfig.bTrans>,
+        MatmulL1GmType<TPosition::TSCM, CubeFormat::NZ, xType, wqmmConfig.bTrans>>::type;
+    using cType = MatmulType<TPosition::GM, CubeFormat::ND, yType>;
+    using biasMatmulType = MatmulType<TPosition::TSCM, CubeFormat::ND, biasType>;
+
+    using MMImpl = typename Conditional<
+        IsMxA8W4<xType, wqmmConfig.antiQuantType>(),
+        MatmulImpl<aType, bType, cType, biasMatmulType, CFG_MDL, MatmulCallBackFunc<nullptr, nullptr, nullptr>,
+                   AscendC::Impl::Detail::MatmulWithScalePolicy>,
+        MatmulImpl<aType, bType, cType, biasMatmulType, CFG_MDL>>::type;
+    WeightQuantBatchMatmulV2CubeCompute<xType, biasType, antiQuantScaleType, perTokenScaleType, yType, wqmmConfig,
+                                        MMImpl>
+        cubeCompute_;
 
     uint64_t cvLoopIdx_ = 0;
 
-    LocalTensor<xType> weightF16L1_;
-    uint64_t weightF16L1DbOffset_;
+    LocalTensor<xType> weightL1_;
+    uint64_t weightL1DbOffset_;
 };
 
 GMM_WQ_BASIC_BLOCK_TEMPLATE_PARAM
@@ -84,13 +103,16 @@ __aicore__ inline void GMM_WQ_BASIC_BLOCK_CLASS::Init(bool hasBias, uint64_t ant
     TBuf<TPosition::TSCM> l1Tbuf;
     uint64_t weightL1Space = matmulTiling->baseN * matmulTiling->stepKb * matmulTiling->baseK;  // weight单块大小
     if constexpr (IsSameType<yType, int8_t>::value) {
-        tPipe->InitBuffer(l1Tbuf, 504 * 1024);  // 除去quantScale, 共使用504KB
-        weightF16L1DbOffset_ = 504 * GetKBUnit<half>() - weightL1Space;
+        tPipe->InitBuffer(l1Tbuf, L1_SIZE_WITH_QUANTSCALE_BYTE);  // 除去quantScale, 共使用504KB
+        weightL1DbOffset_ = L1_SIZE_WITH_QUANTSCALE * GetKBUnit<half>() - weightL1Space;
+    } else if constexpr (IsMxA8W4<xType, wqmmConfig.antiQuantType>()) {
+        tPipe->InitBuffer(l1Tbuf, L1_SIZE_BYTE);
+        weightL1DbOffset_ = L1_SIZE * GetKBUnit<int8_t>() - weightL1Space;
     } else {
-        tPipe->InitBuffer(l1Tbuf, 512 * 1024);
-        weightF16L1DbOffset_ = 512 * GetKBUnit<half>() - weightL1Space;
+        tPipe->InitBuffer(l1Tbuf, L1_SIZE_BYTE);
+        weightL1DbOffset_ = L1_SIZE * GetKBUnit<half>() - weightL1Space;
     }
-    weightF16L1_ = l1Tbuf.Get<xType>();
+    weightL1_ = l1Tbuf.Get<xType>();
     if ASCEND_IS_AIC {
         cubeCompute_.Init(l1Tbuf, weightL1Space, aPrefetchSize, matmulTiling, tPipe);
     } else {
@@ -99,15 +121,13 @@ __aicore__ inline void GMM_WQ_BASIC_BLOCK_CLASS::Init(bool hasBias, uint64_t ant
 }
 
 GMM_WQ_BASIC_BLOCK_TEMPLATE_PARAM
-__aicore__ inline void GMM_WQ_BASIC_BLOCK_CLASS::UpdateGlobalAddr(__gm__ xType *x, __gm__ wType *weight,
-                                                                  __gm__ antiQuantScaleType *antiquantScale,
-                                                                  __gm__ xType *antiquantOffset,
-                                                                  __gm__ scaleType *scale, __gm__ float *perTokenScale,
-                                                                  __gm__ biasType *bias, __gm__ yType *y,
-                                                                  const bool hasBias, const bool weightL2Cacheable)
+__aicore__ inline void GMM_WQ_BASIC_BLOCK_CLASS::UpdateGlobalAddr(
+    __gm__ xType *x, __gm__ wType *weight, __gm__ antiQuantScaleType *antiquantScale, __gm__ xType *antiquantOffset,
+    __gm__ scaleType *scale, __gm__ perTokenScaleType *perTokenScale, __gm__ biasType *bias, __gm__ yType *y,
+    const bool hasBias, const bool weightL2Cacheable)
 {
     if ASCEND_IS_AIC {
-        cubeCompute_.UpdateGlobalAddr(x, y, bias, scale, hasBias);
+        cubeCompute_.UpdateGlobalAddr(x, y, bias, antiquantScale, scale, perTokenScale, hasBias);
     } else {
         vectorCompute_.UpdateGlobalAddr(weight, antiquantScale, antiquantOffset, nullptr, nullptr, nullptr,
                                         weightL2Cacheable);
@@ -162,8 +182,8 @@ __aicore__ inline void GMM_WQ_BASIC_BLOCK_CLASS::ComputeBasicBlockAivNdNkNzKn(co
             if (cvLoopIdx_ > 1) {
                 WaitAicToAiv();
             }
-            vectorCompute_.WeightAntiQuantCompute(
-                ubConsumeConfig, weightF16L1_[(cvLoopIdx_ & 1) * weightF16L1DbOffset_], l1ConsumeConfig);
+            vectorCompute_.WeightAntiQuantCompute(ubConsumeConfig, weightL1_[(cvLoopIdx_ & 1) * weightL1DbOffset_],
+                                                  l1ConsumeConfig);
             SetAivToAic();
         }
         vectorCompute_.SetVToMTE2();
@@ -173,9 +193,10 @@ __aicore__ inline void GMM_WQ_BASIC_BLOCK_CLASS::ComputeBasicBlockAivNdNkNzKn(co
 /*
  * 该函数作用为根据转置属性，L1上shape大小以及vecconfig确定vec核的实际搬运量
  * ND TransB = False 两个vec核的mte2搬运量为 (curVecCoreMte2RealK, curVecCoreMte2RealN)
+ * NZ TransB = True 两个vec核的mte2搬运量为 (CeilDiv(curVecCoreMte2RealK, C0), CeilDiv(curVecCoreMte2RealN, 16), 16, C0)
  */
 GMM_WQ_BASIC_BLOCK_TEMPLATE_PARAM
-__aicore__ inline void GMM_WQ_BASIC_BLOCK_CLASS::ComputeBasicBlockAivNdKn(const BasicBlockOffsetParam &offsetParam)
+__aicore__ inline void GMM_WQ_BASIC_BLOCK_CLASS::ComputeBasicBlockAivNdKnNzNk(const BasicBlockOffsetParam &offsetParam)
 {
 // nd-kn场景下，搬运消费比为1:1
 #if defined(__DAV_310R6__)
@@ -214,7 +235,7 @@ __aicore__ inline void GMM_WQ_BASIC_BLOCK_CLASS::ComputeBasicBlockAivNdKn(const 
             WaitAicToAiv();
         }
         ubConsumeConfig.l1RequireVfComputeRealK = mte2RealK;
-        vectorCompute_.WeightAntiQuantCompute(ubConsumeConfig, weightF16L1_[(cvLoopIdx_ & 1) * weightF16L1DbOffset_],
+        vectorCompute_.WeightAntiQuantCompute(ubConsumeConfig, weightL1_[(cvLoopIdx_ & 1) * weightL1DbOffset_],
                                               l1ConsumeConfig);
         SetAivToAic();
         vectorCompute_.SetVToMTE2();
@@ -230,9 +251,13 @@ __aicore__ inline void GMM_WQ_BASIC_BLOCK_CLASS::ComputeBasicBlockAic(const Basi
                                     ? offsetParam.kSize - kbL1Offset
                                     : offsetParam.kbL1Size;
         cubeCompute_.WaitMTE1ToMTE2(cvLoopIdx_);
+        if constexpr (IsMxA8W4<xType, wqmmConfig.antiQuantType>()) {
+            // 当前仅支持scale单倍载入
+            cubeCompute_.CopyMxScaleGmToL1(offsetParam, kbL1Offset, cvLoopIdx_);
+        }
         cubeCompute_.CopyAAndBiasGmToL1(offsetParam, kbL1Offset, kbL1RealSize, offsetParam.nL1Size, cvLoopIdx_);
         WaitAivToAic();
-        cubeCompute_.LaunchMatmul(weightF16L1_[(cvLoopIdx_ & 1) * weightF16L1DbOffset_], kbL1Offset, kbL1RealSize,
+        cubeCompute_.LaunchMatmul(weightL1_[(cvLoopIdx_ & 1) * weightL1DbOffset_], kbL1Offset, kbL1RealSize,
                                   offsetParam, cvLoopIdx_);  // mte1 mmad fixp流水
         cubeCompute_.SetMTE1ToMTE2(cvLoopIdx_);
         SetAicToAiv();
@@ -246,8 +271,9 @@ __aicore__ inline void GMM_WQ_BASIC_BLOCK_CLASS::ComputeBasicBlock(const BasicBl
                                                                    const BasicBlockOffsetParam &lastOffsetParam)
 {
     if ASCEND_IS_AIV {
-        if constexpr (wqmmConfig.weightFormat != CubeFormat::NZ && !wqmmConfig.bTrans) {
-            ComputeBasicBlockAivNdKn(offsetParam);
+        if constexpr ((wqmmConfig.weightFormat != CubeFormat::NZ && !wqmmConfig.bTrans) ||
+                      (wqmmConfig.weightFormat == CubeFormat::NZ && wqmmConfig.bTrans)) {
+            ComputeBasicBlockAivNdKnNzNk(offsetParam);
         } else {
             ComputeBasicBlockAivNdNkNzKn(offsetParam);
         }

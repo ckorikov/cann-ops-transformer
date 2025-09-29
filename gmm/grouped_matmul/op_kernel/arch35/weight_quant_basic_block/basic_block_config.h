@@ -36,6 +36,7 @@ struct WqmmConfig {
 
 static constexpr WqmmConfig S8S4_NZKN_G = {false, false, QuantType::PER_GROUP, false, QuantType::NONE, CubeFormat::NZ};
 static constexpr WqmmConfig A16MXF4_NZKN = {false, false, QuantType::MX, false, QuantType::NONE, CubeFormat::NZ};
+static constexpr WqmmConfig MXA8W4_NZNK = {false, true, QuantType::MX, false, QuantType::NONE, CubeFormat::NZ};
 
 struct BasicBlockControlParam {
     uint64_t processId;
@@ -60,6 +61,10 @@ struct BasicBlockOffsetParam {
     uint64_t kSize;
     uint64_t nSize;
     uint64_t kAlign;
+    uint64_t nAlign;
+
+    int8_t scaleAFactor;
+    int8_t scaleBFactor;
 
     GM_ADDR yGmAddr;
 };
@@ -182,12 +187,31 @@ __aicore__ constexpr UbBufferInfo GetMxFp4NzBufferInfo()
             .antiQuantScaleMaskBufferSize = 0};
 }
 
+template <const VecAntiQuantConfig &vecConfig>
+__aicore__ constexpr UbBufferInfo GetMxA8W4NzBufferInfo()
+{
+    return {.ubWeightOutputHighBitBufferNum = QUADRUPLE_BUFFER_NUM,
+            .weightInputLowbitUbTotalSize = 64 * GetKBUnit<int8_t>(),  // 64KB
+            .highBitDataUbTotalSize = 64 * GetKBUnit<int8_t>(),        // 64KB
+            .antiQuantScaleUbTotalSize = 0,
+            .antiQuantScaleAfterCastUbTotalSize = 0,
+            .antiQuantOffsetUbTotalSize = 0,
+            .weightInputLowBitUbSingleBufferSize = 64 * GetKBUnit<int8_t>() / vecConfig.ubMte2BufferNum,
+            .antiQuantScaleUbSingleBufferSize = 0,
+            .antiQuantScaleAfterCastUbSingleBufferSize = 0,
+            .antiQuantOffsetUbSingleBufferSize = 0,
+            .highBitDataUbSingleBufferSize = 64 * GetKBUnit<int8_t>() / QUADRUPLE_BUFFER_NUM,
+            .antiQuantScaleMaskBufferSize = 0};
+}
+
 template <typename xType, const WqmmConfig &wqmmConfig, const VecAntiQuantConfig &vecConfig>
 __aicore__ constexpr UbBufferInfo GetBufferConfig()
 {
     if constexpr (wqmmConfig.antiQuantType == QuantType::MX) {
         if constexpr (wqmmConfig.weightFormat != CubeFormat::NZ) {
             return GetMxFp4NdBufferInfo<vecConfig>();
+        } else if constexpr (IsSameType<xType, fp8_e4m3fn_t>::value) {
+            return GetMxA8W4NzBufferInfo<vecConfig>();
         } else {
             return GetMxFp4NzBufferInfo<vecConfig>();
         }
@@ -216,12 +240,16 @@ __aicore__ constexpr VfConfig GetVfConfig()
         return {.vfNStandardLen = 64, .vfKStandardLen = 256};
     } else if constexpr (wqmmConfig.weightFormat != CubeFormat::NZ && !wqmmConfig.bTrans) {
         return {.vfNStandardLen = 256, .vfKStandardLen = 64};
-    } else {
-        // NZ transB=False
-        if constexpr (wqmmConfig.antiQuantType == QuantType::MX) {
+    } else if constexpr (wqmmConfig.antiQuantType == QuantType::MX) {
+        if constexpr (IsSameType<xType, fp8_e4m3fn_t>::value) {
+            return {.vfNStandardLen = 256, .vfKStandardLen = 64};
+        } else {
             return {.vfNStandardLen = 32 * GetKBUnit<half>() / vecConfig.ubMte2InnerSize,
                     .vfKStandardLen = vecConfig.ubMte2InnerSize};
-        } else if constexpr (IsSameType<xType, int8_t>::value) {
+        }
+    } else {
+        // NZ transB=False
+        if constexpr (IsSameType<xType, int8_t>::value) {
             return {.vfNStandardLen = 64, .vfKStandardLen = 512};
         } else {
             return {.vfNStandardLen = 64, .vfKStandardLen = 256};

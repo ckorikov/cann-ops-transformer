@@ -34,6 +34,7 @@
 #include "arch35/weight_quant_basic_block/weight_quant_vcv_basic_block.h"
 using WeightQuantBatchMatmulV2::Arch35::QuantType;
 using WeightQuantBatchMatmulV2::Arch35::A16MXF4_NZKN;
+using WeightQuantBatchMatmulV2::Arch35::MXA8W4_NZNK;
 using WeightQuantBatchMatmulV2::Arch35::S8S4_NZKN_G;
 using WeightQuantBatchMatmulV2::Arch35::WeightQuantMatmulBasicBlock;
 using WeightQuantBatchMatmulV2::Arch35::WeightQuantVcvMatmulBasicBlock;
@@ -379,8 +380,19 @@ namespace {
     do {                                                                                                         \
         GET_TILING_DATA_MEMBER(GMMWeightQuantTilingData, gmmWeightQuantParam, gmmBaseParams_, tiling);           \
         GET_TILING_DATA_MEMBER(GMMWeightQuantTilingData, mmTilingData, mmTilingData_, tiling);                   \
-        templateClass<DTYPE_X, DTYPE_WEIGHT, DTYPE_ANTIQUANT_SCALE, DTYPE_SCALE, DTYPE_BIAS, DTYPE_Y,            \
-                      WeightQuantMatmulBasicBlock, __VA_ARGS__> op;                                              \
+        templateClass<DTYPE_X, DTYPE_WEIGHT, DTYPE_ANTIQUANT_SCALE, DTYPE_SCALE, float,                          \
+                      DTYPE_BIAS, DTYPE_Y, WeightQuantMatmulBasicBlock, __VA_ARGS__> op;                         \
+        op.Init(x, weight, scale, antiquantScale, antiquantOffset, bias, groupList, perTokenScale, y, &gmmBaseParams_, \
+                &mmTilingData_, tiling, &tPipe);                                                                       \
+        op.Process();                                                                                                  \
+    } while (0)
+
+#define INVOKE_GMM_WEIGHT_QUANT_MXA8W4_CONTROLLER_OP_IMPL(templateClass, ...)                                    \
+    do {                                                                                                         \
+        GET_TILING_DATA_MEMBER(GMMWeightQuantTilingData, gmmWeightQuantParam, gmmBaseParams_, tiling);           \
+        GET_TILING_DATA_MEMBER(GMMWeightQuantTilingData, mmTilingData, mmTilingData_, tiling);                   \
+        templateClass<DTYPE_X, DTYPE_WEIGHT, DTYPE_ANTIQUANT_SCALE, DTYPE_SCALE, DTYPE_PER_TOKEN_SCALE,          \
+                      DTYPE_BIAS, DTYPE_Y, WeightQuantMatmulBasicBlock, __VA_ARGS__> op;                         \
         op.Init(x, weight, scale, antiquantScale, antiquantOffset, bias, groupList, perTokenScale, y, &gmmBaseParams_, \
                 &mmTilingData_, tiling, &tPipe);                                                                       \
         op.Process();                                                                                                  \
@@ -390,8 +402,8 @@ namespace {
     do {                                                                                                               \
         GET_TILING_DATA_MEMBER(GMMWeightQuantTilingData, gmmWeightQuantParam, gmmBaseParams_, tiling);                 \
         GET_TILING_DATA_MEMBER(GMMWeightQuantTilingData, mmTilingData, mmTilingData_, tiling);                         \
-        templateClass<DTYPE_X, DTYPE_WEIGHT, DTYPE_ANTIQUANT_SCALE, DTYPE_SCALE, DTYPE_BIAS, DTYPE_Y,                  \
-                      WeightQuantVcvMatmulBasicBlock, __VA_ARGS__> op;                                                 \
+        templateClass<DTYPE_X, DTYPE_WEIGHT, DTYPE_ANTIQUANT_SCALE, DTYPE_SCALE, DTYPE_PER_TOKEN_SCALE,                \
+                      DTYPE_BIAS, DTYPE_Y, WeightQuantVcvMatmulBasicBlock, __VA_ARGS__> op;                            \
         op.Init(x, weight, scale, antiquantScale, antiquantOffset, bias, groupList, perTokenScale, y, &gmmBaseParams_, \
                 &mmTilingData_, tiling, &tPipe);                                                                       \
         op.Process();                                                                                                  \
@@ -520,6 +532,11 @@ extern "C" __global__ __aicore__ void grouped_matmul(GM_ADDR x, GM_ADDR weight, 
         if (TILING_KEY_IS(2000020004000002001UL)) {
             INVOKE_GMM_WEIGHT_QUANT_VCV_CONTROLLER_OP_IMPL(GMMWeightQuantResplitController, S8S4_NZKN_G,
                                                            VEC_ANTIQUANT_CONFIG_4);
+        }
+    #elif ORIG_DTYPE_X == DT_FLOAT8_E4M3FN
+        if (TILING_KEY_IS(2000020003000014001UL)) {
+            INVOKE_GMM_WEIGHT_QUANT_MXA8W4_CONTROLLER_OP_IMPL(GMMWeightQuantResplitController, MXA8W4_NZNK,
+                                                              VEC_ANTIQUANT_CONFIG_3);
         }
     #elif ORIG_DTYPE_ANTIQUANT_SCALE == DT_FLOAT8_E8M0
         if (TILING_KEY_IS(2000020003000004001UL)) {

@@ -60,6 +60,16 @@ struct Fp4NzParams {
     __local_mem__ xType *weightHighBitPhyAddr;
 };
 
+template <typename xType, typename wType>
+struct MxA8W4NzParams {
+    uint64_t loopKNum;
+    uint64_t innerLoopNum;
+    uint64_t loopKDstStride;
+    uint64_t innerDstStride;
+    __local_mem__ wType *weightLowBitPhyAddr;
+    __local_mem__ xType *weightHighBitPhyAddr;
+};
+
 static constexpr MicroAPI::CastTrait CAST_BF16_TO_FP16_TRAIT = {MicroAPI::RegLayout::ZERO, MicroAPI::SatMode::NO_SAT,
                                                                 MicroAPI::MaskMergeMode::ZEROING,
                                                                 AscendC::RoundMode::CAST_RINT};
@@ -67,6 +77,9 @@ static constexpr MicroAPI::CastTrait CAST_BF16_TO_FP16_TRAIT = {MicroAPI::RegLay
 static constexpr MicroAPI::CastTrait CAST_FP4_TO_BF16_TRAIT = {MicroAPI::RegLayout::ZERO, MicroAPI::SatMode::UNKNOWN,
                                                                MicroAPI::MaskMergeMode::ZEROING,
                                                                AscendC::RoundMode::UNKNOWN};
+static constexpr uint32_t E2M1_SHIFT_RIGHT_SIZE = 0x2;
+static constexpr uint32_t SHIFT_LEFT_SIZE = 0x4;
+static constexpr uint32_t E2M1_AND_MASK = 0x9C;
 
 template <typename xType>
 __aicore__ inline void MxScaleVf(RegTensor<uint8_t> &antiQuantScaleE8m0Vreg0,
@@ -308,6 +321,44 @@ __aicore__ inline void AntiQuantFp4NzKnVf(Fp4NzParams<xType, wType> &fp4NzParams
                 MicroAPI::DataCopy<xType, MicroAPI::StoreDist::DIST_NORM_B16>(
                     fp4NzParams.weightHighBitPhyAddr, weightF16Vreg, weightHighBitPhyAddrReg, maskAll);
             }
+        }
+    }
+}
+
+template <typename xType, typename wType, uint64_t ubMte2InnerSize>
+__aicore__ inline void AntiQuantMxA8W4NzNkVf(MxA8W4NzParams<xType, wType> &mxA8W4NzParams)
+{
+    MicroAPI::RegTensor<int8_t> wShrReg, wShlReg, wAndReg, wLoad, wShl, wShr0, wShr1, wSel, wAnd;
+    MicroAPI::MaskReg preg = MicroAPI::CreateMask<uint8_t, AscendC::MicroAPI::MaskPattern::ALL>();
+    MicroAPI::MaskReg pregVsel = MicroAPI::CreateMask<uint16_t, AscendC::MicroAPI::MaskPattern::ALL>();
+
+    MicroAPI::Duplicate<int8_t, AscendC::MicroAPI::MaskMergeMode::ZEROING>(wShrReg, E2M1_SHIFT_RIGHT_SIZE, preg);
+    MicroAPI::Duplicate<int8_t, AscendC::MicroAPI::MaskMergeMode::ZEROING>(wShlReg, SHIFT_LEFT_SIZE, preg);
+    MicroAPI::Duplicate<int8_t, AscendC::MicroAPI::MaskMergeMode::ZEROING>(wAndReg, E2M1_AND_MASK, preg);
+
+    for (uint16_t loopKIdx = 0; loopKIdx < mxA8W4NzParams.loopKNum; ++loopKIdx) {
+        for (uint16_t innerLoopIdx = 0; innerLoopIdx < mxA8W4NzParams.innerLoopNum; ++innerLoopIdx) {
+            // DIST_US_B8 表示搬运模式如下，Vn中一个数字4bit(0.5Byte)：
+            // Vn 0 1 2 3 4 5 6 7
+            // Vd 0 1 0 1 2 3 2 3 4 5 4 5 6 7 6 7
+            // 4bit物理地址位移 = 逻辑索引 >> 1
+            MicroAPI::AddrReg aregWeightB8In = MicroAPI::CreateAddrReg<uint8_t>(
+                loopKIdx, (C0_SIZE_B8 * ubMte2InnerSize) >> 1, innerLoopIdx, VECTOR_REG_WIDTH >> 1);
+            MicroAPI::DataCopy<uint8_t, MicroAPI::LoadDist::DIST_US_B8>(
+                (MicroAPI::RegTensor<uint8_t> &)wLoad, (__local_mem__ uint8_t *&)mxA8W4NzParams.weightLowBitPhyAddr,
+                aregWeightB8In);
+
+            MicroAPI::ShiftRight(wShr0, wLoad, wShrReg, preg);
+            MicroAPI::ShiftLeft(wShl, wLoad, wShlReg, preg);
+            MicroAPI::ShiftRight(wShr1, wShl, wShrReg, preg);
+            MicroAPI::Select(wSel, wShr1, wShr0, pregVsel);
+            MicroAPI::And(wAnd, wSel, wAndReg, preg);
+
+            MicroAPI::AddrReg aregWeightB8Out = MicroAPI::CreateAddrReg<uint8_t>(
+                loopKIdx, mxA8W4NzParams.loopKDstStride, innerLoopIdx, mxA8W4NzParams.innerDstStride);
+            MicroAPI::DataCopy<uint8_t, MicroAPI::StoreDist::DIST_NORM_B8>(
+                (__local_mem__ uint8_t *&)mxA8W4NzParams.weightHighBitPhyAddr, (MicroAPI::RegTensor<uint8_t> &)wAnd,
+                aregWeightB8Out, preg);
         }
     }
 }

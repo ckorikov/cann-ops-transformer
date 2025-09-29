@@ -889,7 +889,7 @@ const auto Tc_Gmm_Tiling_Case_David = ::testing::Values(
                ExpectInfo(true, 2000020003000004001,
                           ExpectInfo::kFullTilingBlockDim)), /* ExpectSuccess, ExpectTilingKey, ExpectTilingBlockDim */
         Param({GenTensorList("x", {{256, 1024}}, ge::DataType::DT_BF16),
-               GenTensorList("weight", {{4, 1276, 64, 16, 16}}, ge::DataType::DT_FLOAT4_E2M1,
+               GenTensorList("weight", {{4, 1280, 64, 16, 16}}, ge::DataType::DT_FLOAT4_E2M1,
                              ge::FORMAT_FRACTAL_NZ),  // (N1, K1, K0, N0)
                GenTensorList("bias", {{0}}, ge::DataType::DT_FLOAT),
                GenTensorList("scale", {{}}, ge::DataType::DT_FLOAT),
@@ -902,6 +902,30 @@ const auto Tc_Gmm_Tiling_Case_David = ::testing::Values(
               2,                                                                        // splitItem
               -1,                                                                       // dType
               false,                                                                    // transposeWeight
+              false,                                                                    // transposeX
+              0,                                                                        // groupType
+              1,                                                                        // groupListType
+              0),                                                                       // actType
+        0),
+    GroupedMatmulCase(
+        "GroupedWeightQuantBatchMatmul_Case12", true, "", /* CaseName, Enable, DebugInfo */
+        OpInfo(ControlInfo(true, false),
+               ExpectInfo(true, 2000020003000014001,
+                          ExpectInfo::kFullTilingBlockDim)), /* ExpectSuccess, ExpectTilingKey, ExpectTilingBlockDim */
+        Param({GenTensorList("x", {{256, 1024}}, ge::DataType::DT_FLOAT8_E4M3FN),
+               GenTensorList("weight", {{4, 32, 20, 16, 32}}, ge::DataType::DT_FLOAT4_E2M1,
+                             ge::FORMAT_FRACTAL_NZ),  // (K1, N1, N0, K0)
+               GenTensorList("bias", {{0}}, ge::DataType::DT_BF16),
+               GenTensorList("scale", {{}}, ge::DataType::DT_FLOAT),
+               GenTensorList("offset", {{}}, ge::DataType::DT_FLOAT),
+               GenTensorList("antiquant_scale", {{4, 320, 32}}, ge::DataType::DT_FLOAT8_E8M0),
+               GenTensorList("antiquant_offset", {{0}}, ge::DataType::DT_BF16),
+               GenTensorList("y", {{256, 320}}, ge::DataType::DT_BF16)},
+              GenTensor("per_token_scale", {256, 32}, ge::DataType::DT_FLOAT8_E8M0),
+              GenTensor("grouped_list", {4}, ge::DataType::DT_INT64), {64, 64, 0, 64},  // groupListData
+              2,                                                                        // splitItem
+              -1,                                                                       // dType
+              true,                                                                     // transposeWeight
               false,                                                                    // transposeX
               0,                                                                        // groupType
               1,                                                                        // groupListType
