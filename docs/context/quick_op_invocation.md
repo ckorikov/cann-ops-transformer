@@ -114,8 +114,8 @@
     
     ```bash
     bash build.sh --pkg --soc=${soc_version} [--vendor_name=${vendor_name}] [--ops=${op_list}]
-    # 以InterleaveRope算子编译为例
-    # bash build.sh --pkg --soc=ascend910b --ops=interleave_rope
+    # 以FlashAttentionScore算子编译为例
+    # bash build.sh --pkg --soc=ascend910b --ops=flash_attention_score
     ```
     - --soc：\$\{soc\_version\}表示NPU型号。Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件使用"ascend910b"（默认），Atlas A3 训练系列产品/Atlas A3 推理系列产品使用"ascend910_93"。
     - --vendor_name（可选）：\$\{vendor\_name\}表示构建的自定义算子包名，默认名为custom。
@@ -176,40 +176,41 @@
     - 完成ops-transformer包安装后，执行命令如下：
         ```bash
         bash build.sh --run_example ${op} ${mode}
-        # 以InterleaveRope算子example执行为例
-        # bash build.sh --run_example interleave_rope eager
+        # 以FlashAttentionScore算子example执行为例
+        # bash build.sh --run_example flash_attention_score eager
         ```
         
-        - \$\{op\}：表示待执行算子（参见[算子列表](./op_list.md)），算子名小写下划线形式，如interleave_rope。            
+        - \$\{op\}：表示待执行算子（参见[算子列表](./op_list.md)），算子名小写下划线形式，如flash_attention_score。            
         - \$\{mode\}：表示算子执行模式，目前支持eager（aclnn调用）、graph（图模式调用）。
         
     - 完成自定义算子包安装后，执行命令如下：
         ```bash
         bash build.sh --run_example ${op} ${mode} ${pkg_mode} [--vendor_name=${vendor_name}]
-        # 以InterleaveRope算子example执行为例
-        # bash build.sh --run_example interleave_rope eager cust --vendor_name=custom
+        # 以FlashAttentionScore算子example执行为例
+        # bash build.sh --run_example flash_attention_score eager cust --vendor_name=custom
         ```
 
-        - \$\{op\}：表示待执行算子，算子名小写下划线形式，如interleave_rope。
+        - \$\{op\}：表示待执行算子，算子名小写下划线形式，如flash_attention_score。
         - \$\{mode\}：表示执行模式，目前支持eager（aclnn调用）、graph（图模式调用）。
         - \$\{pkg_mode\}：表示包模式，目前仅支持cust，即自定义算子包。         
         - \$\{vendor\_name\}（可选）：与构建的自定义算子包设置一致，默认名为custom。
 
         说明：\$\{mode\}为graph时，不指定\$\{pkg_mode\}和\$\{vendor\_name\}
 
-         执行算子样例后会打印执行结果，以InterleaveRope算子为例，结果如下：
+         执行算子样例后会打印执行结果，以FlashAttentionScore算子为例，结果如下：
     
         ```
-        result[0] is: 0.000000
-        result[1] is: 0.000000
-        result[2] is: 0.000000
-        result[3] is: 0.000000
-        result[4] is: 0.000000
+        mean result[0] is: 256.000000
+        mean result[1] is: 256.000000
+        mean result[2] is: 256.000000
+        mean result[3] is: 256.000000
+        mean result[4] is: 256.000000
+        mean result[4] is: 256.000000
         ...
-        result[65532] is: 0.000000
-        result[65533] is: 0.000000
-        result[65534] is: 0.000000
-        result[65535] is: 0.000000
+        mean result[65532] is: 256.000000
+        mean result[65533] is: 256.000000
+        mean result[65534] is: 256.000000
+        mean result[65535] is: 256.000000
         ```
 - **执行算子UT**
 
@@ -219,7 +220,7 @@
   # 安装根目录下test相关requirements.txt依赖
   pip3 install -r tests/requirements.txt
   # 方式1: 编译并执行指定算子和对应功能的UT测试用例（选其一）
-  bash build.sh -u --[opapi|ophost|opkernel] --ops=interleave_rope
+  bash build.sh -u --[opapi|ophost|opkernel] --ops=flash_attention_score
   # 方式2: 编译并执行所有的UT测试用例
   # bash build.sh -u
   # 方式3: 编译所有的UT测试用例但不执行
