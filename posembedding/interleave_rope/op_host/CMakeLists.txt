@@ -9,4 +9,9 @@
 # ----------------------------------------------------------------------------
 
 message(STATUS "=== Debug: start ops.posembedding.interleave_rope.op_host.CMakeLists.txt ")
+if (BUILD_OPEN_PROJECT)
+    target_sources(op_host_aclnnInner PRIVATE
+        interleave_rope_def.cpp
+    )
+endif()
 add_modules_sources(OPTYPE interleave_rope ACLNNTYPE aclnn_inner)
