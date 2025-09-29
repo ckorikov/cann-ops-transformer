@@ -19,6 +19,7 @@
 #define FIA_ENABLE_MLA
 #include "../../incre_flash_attention/op_kernel/incre_flash_attention.cpp"
 #include "../../prompt_flash_attention/op_kernel/prompt_flash_attention.cpp"
+#include "fused_infer_attention_score_tilingkey.h"
 
 #if (__CCE_AICORE__ == 310) || (defined __DAV_310R6__)
 #else //__CCE_AICORE__ > 200
