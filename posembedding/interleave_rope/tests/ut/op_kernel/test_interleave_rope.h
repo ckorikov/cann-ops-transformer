@@ -24,28 +24,6 @@
 
 #pragma pack(1)
 
-struct InterleaveRopeTilingData {
-    int64_t blockDim = 16;
-    int64_t splitAxis = 4;
-    int64_t batchSize = 4;
-    int64_t numHead = 64;
-    int64_t seqLength = 32;
-    int64_t hiddenDim = 1;
-    int64_t batchsPerBlock = 1;
-    int64_t batchsLastBlock = 1;
-    int64_t batchLoops = 1;
-    int64_t batchPerLoop = 1;
-    int64_t batchLastLoop = 1;
-    int64_t hiddenDimCountPerBlock = 1;
-    int64_t hiddenDimCountLastBlock = 1;
-    int64_t hiddenDimLoopsPerBlock = 1;
-    int64_t hiddenDimCountPerLoopPerBlock = 1;
-    int64_t hiddenDimCountLastLoopPerBlock = 1;
-    int64_t hiddenDimLoopsLastBlock = 1;
-    int64_t hiddenDimCountPerLoopLastBlock = 1;
-    int64_t hiddenDimCountLastLoopLastBlock = 1;
-};
-
 #pragma pack()
 
 #define CONVERT_TILING_DATA(tilingStruct, tilingDataPointer, tilingPointer) \

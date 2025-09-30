@@ -15,18 +15,14 @@
 
 #include <array>
 #include <vector>
-#include "gtest/gtest.h"
-#include "moe_gating_top_k_tiling.h"
-
-#ifdef __CCE_KT_TEST__
-#include "tikicpulib.h"
-#include "data_utils.h"
-#include "string.h"
 #include <iostream>
 #include <string>
-#endif
-
 #include <cstdint>
+#include "gtest/gtest.h"
+#include "tikicpulib.h"
+#include "data_utils.h"
+#include "tiling_case_executor.h"
+#include "moe_gating_top_k_tiling.h"
 
 using namespace std;
 

@@ -16,21 +16,21 @@ foreach(SUB_DIR ${CURRENT_SOURCE_DIRS})
     endif()
 endforeach()
 
-# 需要将Tiling依赖的文件添加到CMakeLists.txt中
-set(cube_common_tiling_files
-    ${CANN_ROOT}/ops/built-in/op_tiling/cube_tiling_runtime.cc
+if (UT_TEST_ALL OR OP_KERNEL_UT)
+    # 需要将Tiling依赖的文件添加到CMakeLists.txt中
+    # set(elewise_common_tiling_files
+    #         ${CANN_ROOT}/ops/built-in/op_tiling/runtime/elewise_tiling.cc
+    #         )
+    # 算子自己的tiling文件路径
+    set(moe_gating_top_k_tiling_files
+        ${CMAKE_CURRENT_SOURCE_DIR}/../../../op_host/moe_gating_top_k_tiling.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/../../../op_host/moe_gating_top_k_tiling_arch35.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/../../../op_host/moe_gating_top_k_tiling_base.cpp
     )
-# 算子自己的tiling文件路径
-set(moe_gating_top_k_tiling_files
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../../op_host/moe_gating_top_k_tiling.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../../op_host/moe_gating_top_k_tiling_arch35.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../../op_host/moe_gating_top_k_tiling_base.cpp
-    )
-# 使用AddOpTestCase
-# param1：算子名称，以kernel方式命名
-# param2：soc版本，多个以分号分隔，例如："ascend910_9599;AscendB1"
-# param3：自定义编译选项，一般填写测试的一种典型数据类型组合，不需要则传入空字符串，例如："-DDTYPE_X=float"，多个使用空格分隔，例如："-DDTYPE_X=float -DDTYPE_Y=float"
-# param4：该算子依赖的所有tiling源码文件
-if (UT_TEST_ALL OR FAST_OP_UT)
-    #AddOpTestCase(moe_gating_top_k "ascend910B1" "-DDTYPE_X=float" "${moe_gating_top_k_tiling_files}")
+    # 使用AddOpTestCase
+    # param1：算子名称，以kernel方式命名
+    # param2：soc版本，多个以分号分隔，例如："ascend910_9599;AscendB1"
+    # param3：自定义编译选项，一般填写测试的一种典型数据类型组合，不需要则传入空字符串，例如："-DDTYPE_X=float"，多个使用空格分隔，例如："-DDTYPE_X=float -DDTYPE_Y=float"
+    # param4：该算子依赖的所有tiling源码文件
+    AddOpTestCase(moe_gating_top_k "ascend910B1" "-DDTYPE_X=float" "${moe_gating_top_k_tiling_files}")
 endif()
