@@ -136,11 +136,13 @@ static aclnnStatus CheckShapeSameLengthTensorList(const aclTensorList *tensorLis
   uint64_t groupNum = tensorList1->Size();
   for (uint64_t i = 0; i < groupNum; i++) {
     int64_t dimValue1 = (*tensorList1)[i]->GetViewShape().GetDim(dimIds[0]);
-    // tensorType[2] indicates whether to verify innerAxisDimId of tensorList1;if so, check if it's less than or equal to 65535.
-    if (tensorType[2] == "true" && innerAxisDimId > -1) {
-      int64_t innerAxisValue = (*tensorList1)[i]->GetViewShape().GetDim(innerAxisDimId);
-      CHECK_COND(innerAxisValue <= MAX_INNER_AXIS, ACLNN_ERR_PARAM_INVALID, "Dim %lu value of %s[%lu] should less or equal to 65535, but now is %ld.",
-                 dimIds[0], tensorType[0].c_str(), i, innerAxisValue);
+    if (GetCurrentPlatformInfo().GetSocVersion() != SocVersion::ASCEND910_95) {
+      // tensorType[2] indicates whether to verify innerAxisDimId of tensorList1;if so, check if it's less than or equal to 65535.
+      if (tensorType[2] == "true" && innerAxisDimId > -1) {
+        int64_t innerAxisValue = (*tensorList1)[i]->GetViewShape().GetDim(innerAxisDimId);
+        CHECK_COND(innerAxisValue <= MAX_INNER_AXIS, ACLNN_ERR_PARAM_INVALID, "Dim %lu value of %s[%lu] should less or equal to 65535, but now is %ld.",
+                   dimIds[0], tensorType[0].c_str(), i, innerAxisValue);
+      }
     }
     int64_t dimValue2 = (*tensorList2)[i]->GetViewShape().GetDim(dimIds[1]);
     CHECK_COND(dimValue1 == dimValue2, ACLNN_ERR_PARAM_INVALID,
@@ -159,12 +161,14 @@ static aclnnStatus CheckShapeDiffLengthTensorList(const aclTensorList *longTenso
   // match those in a tensor list of a single tensor.
   // Specified axis is not a split axis.
   int64_t dimValueSingle = (*singleTensorList)[0]->GetViewShape().GetDim(dimIds[1]);
-  // tensorType[2] indicates whether to verify innerAxisdimId of tensorList1; if so, check if it's less than or equal to 65535.
-  if (tensorType[2] == "true" && innerAxisdimId > -1) {
+  if (GetCurrentPlatformInfo().GetSocVersion() != SocVersion::ASCEND910_95) {
+    // tensorType[2] indicates whether to verify innerAxisdimId of tensorList1; if so, check if it's less than or equal to 65535 excluded 910_95.
+    if (tensorType[2] == "true" && innerAxisdimId > -1) {
       int64_t dimValue = (*singleTensorList)[0]->GetViewShape().GetDim(innerAxisdimId);
       CHECK_COND(dimValue <= MAX_INNER_AXIS, ACLNN_ERR_PARAM_INVALID, "Dim %ld value of %s[0] should less or equal to 65535, but now is %ld.",
                  innerAxisdimId, tensorType[1].c_str(), dimValue);
     }
+  }
   uint64_t groupNum = longTensorList->Size();
   for (uint64_t i = 0; i < groupNum; i++) {
     int64_t dimValueLong = (*longTensorList)[i]->GetViewShape().GetDim(dimIds[0]);
