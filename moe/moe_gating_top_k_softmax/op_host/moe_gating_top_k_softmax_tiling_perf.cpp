@@ -109,10 +109,10 @@ private:
     MoeGatingTopKSoftmaxPerfTilingData tilingData;
 
     uint32_t calcMaxRowInUb(
-        const int64_t ubSize, const ge::DataType dtype, const uint32_t k, const uint32_t blockRow, const uint32_t col);
+        const int64_t ubSize_, const uint32_t k_, const uint32_t blockRow);
 
     bool isBufferSizeEnough(
-        const uint32_t curRowInUb, const uint32_t gatingAlignCol, const int64_t tmpUbSize, const uint32_t k);
+        const uint32_t curRowInUb, const uint32_t gatingAlignCol_, const int64_t tmpUbSize, const uint32_t k_);
 };
 
 bool MoeGatingTopKSoftmaxPerfTiling::IsCapable()
@@ -126,7 +126,7 @@ bool MoeGatingTopKSoftmaxPerfTiling::IsCapable()
 ge::graphStatus MoeGatingTopKSoftmaxPerfTiling::DoOpTiling()
 {
     gatingAlignCol = calcGatingAlignCol(col, dtype);
-    maxRow = calcMaxRowInUb(ubSize, dtype, k, CeilDiv(row, coreNum), gatingAlignCol);
+    maxRow = calcMaxRowInUb(ubSize, k, CeilDiv(row, coreNum));
 
     tilingData.set_row(row);
     tilingData.set_col(col);
@@ -215,10 +215,10 @@ ge::graphStatus MoeGatingTopKSoftmaxPerfTiling::PostTiling()
 }
 
 bool MoeGatingTopKSoftmaxPerfTiling::isBufferSizeEnough(
-    const uint32_t curRowInUb, const uint32_t gatingAlignCol, const int64_t tmpUbSize, const uint32_t k)
+    const uint32_t curRowInUb, const uint32_t gatingAlignCol_, const int64_t tmpUbSize, const uint32_t k_)
 {
     // 输出row_idx使用的内存
-    int64_t rowIdxOutBufferSize = calcUbAlignBufferSize(curRowInUb, k, INT32_SIZE);
+    int64_t rowIdxOutBufferSize = calcUbAlignBufferSize(curRowInUb, k_, INT32_SIZE);
 
     // 输入finished使用的内存，因为启用了double buffer，因此共计使用两块
     int64_t finishedBufferSize =
@@ -227,7 +227,7 @@ bool MoeGatingTopKSoftmaxPerfTiling::isBufferSizeEnough(
 
     // 通用内存，大小为r*E，元素大小取可能的最大值，即32位
     // 共计使用六块：Double Buffer输入x使用两块，输出y及expert_idx使用两块，通用缓存使用两块
-    int64_t generalBufferSize = static_cast<int64_t>(curRowInUb * gatingAlignCol * static_cast<uint32_t>(INT32_SIZE));
+    int64_t generalBufferSize = static_cast<int64_t>(curRowInUb * gatingAlignCol_ * static_cast<uint32_t>(INT32_SIZE));
 
     // 判断内存是否越界
     if (rowIdxOutBufferSize + BUFFER_SIZE + finishedBufferSize * TWO + generalBufferSize * SIX > tmpUbSize) {
@@ -237,14 +237,14 @@ bool MoeGatingTopKSoftmaxPerfTiling::isBufferSizeEnough(
 }
 
 uint32_t MoeGatingTopKSoftmaxPerfTiling::calcMaxRowInUb(
-    const int64_t ubSize, const ge::DataType dtype, const uint32_t k, const uint32_t blockRow, const uint32_t col)
+    const int64_t ubSize_, const uint32_t k_, const uint32_t blockRow)
 {
     uint32_t ubOuter = 1;
-    int64_t tmpUbSize = ubSize;
+    int64_t tmpUbSize = ubSize_;
     uint32_t curRowInUb;
     while (true) {
         curRowInUb = CeilDiv(blockRow, ubOuter);
-        if (isBufferSizeEnough(curRowInUb, gatingAlignCol, tmpUbSize, k)) {
+        if (isBufferSizeEnough(curRowInUb, gatingAlignCol, tmpUbSize, k_)) {
             break;
         }
         ubOuter++;
