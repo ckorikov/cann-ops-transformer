@@ -127,14 +127,14 @@ __aicore__ inline void MatmulAllReduceUnquant310<aType, bType, biasType, cType>:
     using biasMatmulType = MatmulType<AscendC::TPosition::GM, CubeFormat::ND, biasType>;
     if (tilingData_->param.isTransposeB == 0) {
         using bMatmulType = MatmulType<AscendC::TPosition::GM, CubeFormat::NZ, bType, false>;
-        if (TILING_KEY_IS(2000UL)) {
+        if (TILING_KEY_IS(10000000000000002000UL)) {
             MatmulBaseUnAlignedKernel<
                 aMatmulType, bMatmulType, cMatmulType, biasMatmulType, MatmulBaseBlock, MM_CFG_VEC_ND2NZ>
                 mmop;
             MATMUL_ALL_REDUCE_TEMPLATE(
                 mmop, tileCnt, tPipe_, aGM_, bGM_, cGM_, biasGM_, workspaceGM_, mm_tiling, hcclServer_, shift, aOffset,
                 cOffset);
-        } else if (TILING_KEY_IS(67536UL)) {
+        } else if (TILING_KEY_IS(10000000000000002001UL)) {
             MatmulBaseKernel<aMatmulType, bMatmulType, cMatmulType, biasMatmulType, MatmulBaseBlock, MM_CFG_VEC_ND2NZ>
                 mmop;
             MATMUL_ALL_REDUCE_TEMPLATE(
@@ -143,14 +143,14 @@ __aicore__ inline void MatmulAllReduceUnquant310<aType, bType, biasType, cType>:
         }
     } else {
         using bMatmulType = MatmulType<AscendC::TPosition::GM, CubeFormat::NZ, bType, true>;
-        if (TILING_KEY_IS(2000UL)) {
+        if (TILING_KEY_IS(10000000000000002000UL)) {
             MatmulBaseUnAlignedKernel<
                 aMatmulType, bMatmulType, cMatmulType, biasMatmulType, MatmulBaseBlock, MM_CFG_VEC_ND2NZ>
                 mmop;
             MATMUL_ALL_REDUCE_TEMPLATE(
                 mmop, tileCnt, tPipe_, aGM_, bGM_, cGM_, biasGM_, workspaceGM_, mm_tiling, hcclServer_, shift, aOffset,
                 cOffset);
-        } else if (TILING_KEY_IS(67536UL)) {
+        } else if (TILING_KEY_IS(10000000000000002001UL)) {
             MatmulBaseKernel<aMatmulType, bMatmulType, cMatmulType, biasMatmulType, MatmulBaseBlock, MM_CFG_VEC_ND2NZ>
                 mmop;
             MATMUL_ALL_REDUCE_TEMPLATE(

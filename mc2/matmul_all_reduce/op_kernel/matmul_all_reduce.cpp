@@ -501,9 +501,9 @@ extern "C" __global__ __aicore__ void matmul_all_reduce(
     if (TILING_KEY_IS(10000000000000001100UL)) {
         KERNEL_TASK_TYPE(10000000000000001100UL, KERNEL_TYPE_MIX_AIC_1_0);
         INVOKE_MC2_910_OP_IMPL(MatmulBaseKernel, Mc2CoreType::ON_CUBE);
-    } else if (TILING_KEY_IS(65536UL)) {
+    } else if (TILING_KEY_IS(10000000000000000001UL)) {
         INVOKE_MC2_910_OP_IMPL(MatmulBaseKernel, Mc2CoreType::ON_CUBE_AND_VECTOR);
-    } else if (TILING_KEY_IS(0UL)) {
+    } else if (TILING_KEY_IS(10000000000000000000UL)) {
         INVOKE_MC2_910_OP_IMPL(MatmulBaseUnAlignedKernel, Mc2CoreType::ON_CUBE_AND_VECTOR);
     } else if (TILING_KEY_IS(10000000000000000009UL)) {
         KERNEL_TASK_TYPE(10000000000000000009UL, KERNEL_TYPE_MIX_AIV_1_0);
@@ -540,9 +540,9 @@ extern "C" __global__ __aicore__ void matmul_all_reduce(
         WeightQuantEmptyTensorKernel(biasGM, cGM, workspaceGM, &tilingData, &hcclServer);
     }
 #elif (ORIG_DTYPE_X1 != DT_INT8 && ORIG_DTYPE_X2 != DT_INT8 && FORMAT_X2 != FORMAT_ND) // 310p归一化weightNZ非量化
-    if (TILING_KEY_IS(2000UL)) {
+    if (TILING_KEY_IS(10000000000000002000UL)) {
         INVOKE_UNQUANT_BMM_OP_IMPL_310(MatmulAllReduceUnquant310);
-    } else if (TILING_KEY_IS(67536UL)) {
+    } else if (TILING_KEY_IS(10000000000000002001UL)) {
         INVOKE_UNQUANT_BMM_OP_IMPL_310(MatmulAllReduceUnquant310);
     } else if (TILING_KEY_IS(2100000UL)) {
         // k==0 伪量化NZ

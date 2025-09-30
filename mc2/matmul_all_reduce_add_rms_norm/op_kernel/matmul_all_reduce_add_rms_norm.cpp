@@ -95,9 +95,9 @@ extern "C" __global__ __aicore__ void matmul_all_reduce_add_rms_norm(
     }
 #else
     // 910非量化
-    if (TILING_KEY_IS(10000000000000001100UL) || TILING_KEY_IS(65536UL)) {
+    if (TILING_KEY_IS(10000000000000001100UL) || TILING_KEY_IS(10000000000000000001UL)) {
         INVOKE_MC2_ARN_910_OP_IMPL(MatmulBaseKernel);
-    } else if (TILING_KEY_IS(0UL)) {
+    } else if (TILING_KEY_IS(10000000000000000000UL)) {
         INVOKE_MC2_ARN_910_OP_IMPL(MatmulBaseUnAlignedKernel);
     }
 #endif
