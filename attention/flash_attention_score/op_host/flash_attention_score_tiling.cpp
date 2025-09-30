@@ -95,7 +95,7 @@ void FlashAttentionScoreEmptyInputTiling::GetTilingKeyAttentionScore4EmptyInput(
 }
 
 void FlashAttentionScoreEmptyInputTiling::FlashAttentionScoreSetEmptyInputTilingData(
-    gert::TilingContext *context, FlashAttentionScoreTilingData &faTilingData)
+    gert::TilingContext *context, [[maybe_unused]] FlashAttentionScoreTilingData &faTilingData)
 {
     OP_CHECK_IF(context->GetRawTilingData() == nullptr,
         OP_LOGE(context, "FlashAttentionScoreSetEmptyInputTilingData occurs nullptr!"),
