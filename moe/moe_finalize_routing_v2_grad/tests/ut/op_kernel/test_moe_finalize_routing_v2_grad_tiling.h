@@ -15,22 +15,7 @@
 
 #define __aicore__
 
-struct MoeFinalizeRoutingV2GradTilingData {
-    int64_t initOutNeedCoreNum = 0;
-    int64_t initOutEachCoreBatchNum = 0;
-    int64_t initOutModCoreNum = 0;
-    int64_t computeNeedCoreNum = 0;
-    int64_t computeEachCoreBatchNum = 0;
-    int64_t computeModCoreNum = 0;
-    int64_t dropPadMode = 0;
-    int64_t topK = 0;
-    int64_t hidden = 0;
-    int64_t expandedXDim0 = 0;
-    int64_t hiddenPrePart = 0;
-    int64_t hiddenInnerLoops = 0;
-    int64_t hiddenLastPart = 0;
-    int64_t tilingKey = 0;
-};
+
 
 #define DT_FLOAT float
 #define DT_FLOAT16 half
