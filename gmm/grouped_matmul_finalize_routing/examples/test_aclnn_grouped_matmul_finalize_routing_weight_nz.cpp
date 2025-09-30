@@ -25,14 +25,6 @@
         }                            \
     } while (0)
 
-#define CHECK_FREE_RET(cond, return_expr) \
-    do {                                  \
-        if (!(cond)) {                    \
-            Finalize(deviceId, stream);   \
-            return_expr;                  \
-        }                                 \
-    } while (0)
-
 #define LOG_PRINT(message, ...)         \
     do {                                \
         printf(message, ##__VA_ARGS__); \
@@ -88,15 +80,10 @@ int CreateAclTensorWeight(const std::vector<T> &hostData, const std::vector<int6
                       aclDataType dataType, aclTensor **tensor)
 {
     auto size = static_cast<uint64_t>(GetShapeSize(shape));
-
-    const aclIntArray *mat2Size = aclCreateIntArray(shape.data(), shape.size());
-    auto ret = aclnnCalculateMatmulWeightSizeV2(mat2Size, dataType, &size);
-    CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclnnCalculateMatmulWeightSizeV2 failed. ERROR: %d\n", ret);
-              return ret);
     size *= sizeof(T);
 
     // 调用aclrtMalloc申请device侧内存
-    ret = aclrtMalloc(deviceAddr, size, ACL_MEM_MALLOC_HUGE_FIRST);
+    auto ret = aclrtMalloc(deviceAddr, size, ACL_MEM_MALLOC_HUGE_FIRST);
     CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclrtMalloc failed. ERROR: %d\n", ret); return ret);
     // 调用aclrtMemcpy将host侧数据拷贝到device侧内存上
     ret = aclrtMemcpy(*deviceAddr, size, hostData.data(), size, ACL_MEMCPY_HOST_TO_DEVICE);

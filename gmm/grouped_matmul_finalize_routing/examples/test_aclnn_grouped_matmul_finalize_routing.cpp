@@ -88,15 +88,9 @@ int CreateAclTensorWeight(const std::vector<T> &hostData, const std::vector<int6
                       aclDataType dataType, aclTensor **tensor)
 {
     auto size = static_cast<uint64_t>(GetShapeSize(shape));
-
-    const aclIntArray *mat2Size = aclCreateIntArray(shape.data(), shape.size());
-    auto ret = aclnnCalculateMatmulWeightSizeV2(mat2Size, dataType, &size);
-    CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclnnCalculateMatmulWeightSizeV2 failed. ERROR: %d\n", ret);
-              return ret);
     size *= sizeof(T);
-
     // 调用aclrtMalloc申请device侧内存
-    ret = aclrtMalloc(deviceAddr, size, ACL_MEM_MALLOC_HUGE_FIRST);
+    auto ret = aclrtMalloc(deviceAddr, size, ACL_MEM_MALLOC_HUGE_FIRST);
     CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclrtMalloc failed. ERROR: %d\n", ret); return ret);
     // 调用aclrtMemcpy将host侧数据拷贝到device侧内存上
     ret = aclrtMemcpy(*deviceAddr, size, hostData.data(), size, ACL_MEMCPY_HOST_TO_DEVICE);
@@ -118,6 +112,8 @@ int CreateAclTensorWeight(const std::vector<T> &hostData, const std::vector<int6
 }
 
   int main() {
+    // 1. （固定写法）device/stream初始化，参考AscendCL对外接口列表
+    // 根据自己的实际device填写deviceId
     int32_t deviceId = 0;
     aclrtStream stream;
     auto ret = Init(deviceId, &stream);

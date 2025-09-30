@@ -34,7 +34,7 @@ def generate_data(groupNum, batch, topK, m, k, n):
     scaleUint64[..., ::2] = scaleUint32
     scaleUint64.dtype = np.int64
     scale = torch.from_numpy(scaleUint64)
-    offset = torch.randint(-5, 5, (topK, k // quantGroupSize, n)).to(np.float32)
+    offset = torch.randint(-5, 5, (topK, k // quantGroupSize, n)).to(torch.float32)
     groupList = torch.zeros((topK,), dtype=torch.int64).fill_(batch)
     perTokenScale = torch.zeros((m, 1), dtype=torch.float32).uniform_()
     perTokenScale_new = perTokenScale.reshape(m)
