@@ -1,6 +1,6 @@
 /**
- * This program is free software, you can redistribute it and/or modify.
- * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+ * This program is free software, you can redistribute it and/or modify.
+ * Copyright (c) 2025 Huawei Technologies Co., Ltd.
  * This file is a part of the CANN Open Software.
  * Licensed under CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
@@ -22,31 +22,10 @@
 
 #define DT_BF16 bfloat16_t
 #define ORIG_DTYPE_START DT_BF16
+
 #define __CCE_UT_TEST__
 
 #define __aicore__
-
-struct MoeTokenUnpermuteWithEpGradTilingData {
-    int64_t tokensNum = 0;
-    int64_t topK = 0;
-    int64_t hiddenSize = 0;
-    int64_t numOutTokens = 0;
-    int64_t formerCoreNum = 0;
-    int64_t tailCoreNum = 0;
-    int64_t tokenNumEachCore = 0;
-    int64_t tokenNumTailCore = 0;
-    int64_t rowIdMapEachCore = 0;
-    int64_t rowIdMapTailCore = 0;
-    int64_t hiddenSizeAlign = 0;
-    int64_t hiddenSizeLoopTimes = 0;
-    int64_t hiddenSizeTail = 0;
-    int64_t inputReserveNum = 0;
-    int64_t indicesReserveNum = 0;
-    int64_t indicesReserveNumAlign = 0;
-    int64_t totalUbSize = 0;
-    int64_t start = 0;
-    int64_t end = 0;
-};
 
 inline void InitMoeTokenUnpermuteWithEpGradTilingData(
     uint8_t* tiling, MoeTokenUnpermuteWithEpGradTilingData* const_data)

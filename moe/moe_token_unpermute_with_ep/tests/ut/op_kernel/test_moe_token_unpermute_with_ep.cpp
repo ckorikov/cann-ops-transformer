@@ -1,6 +1,6 @@
 /**
- * This program is free software, you can redistribute it and/or modify.
- * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+ * This program is free software, you can redistribute it and/or modify.
+ * Copyright (c) 2025 Huawei Technologies Co., Ltd.
  * This file is a part of the CANN Open Software.
  * Licensed under CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
@@ -18,11 +18,13 @@
 #include <string>
 #include <cstdint>
 #include "gtest/gtest.h"
-#include "tikicpulib.h"
 #include "test_moe_token_unpermute_with_ep.h"
-#include "../../../../../built-in/tests//ut//fast_op_test/data_utils.h"
 
+#ifdef __CCE_KT_TEST__
 #include <cstdint>
+#include "tikicpulib.h"
+#include "data_utils.h"
+#endif
 
 using namespace std;
 

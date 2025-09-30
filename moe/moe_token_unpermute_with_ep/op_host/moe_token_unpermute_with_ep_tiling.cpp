@@ -384,7 +384,8 @@ ge::graphStatus UnpermuteWithEpTilingCompute(gert::TilingContext* context, const
     SetTilingKey(context, isUnpermute, param);
     SetTilingData(context, param);
     DebugPrint(context, param);
-
+    size_t *workSpaces = context->GetWorkspaceSizes(1);
+    workSpaces[0] = 16*1024*1024;
     return context->SetTilingKey(param.core.tilingKey);
 }
 

@@ -1,6 +1,6 @@
 /**
- * This program is free software, you can redistribute it and/or modify.
- * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+ * This program is free software, you can redistribute it and/or modify.
+ * Copyright (c) 2025 Huawei Technologies Co., Ltd.
  * This file is a part of the CANN Open Software.
  * Licensed under CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
@@ -25,24 +25,6 @@
 #define __CCE_UT_TEST__
 
 #define __aicore__
-
-struct MoeTokenUnpermuteWithEpTilingData {
-    int64_t hidden_size = 0;
-    int64_t permuted_probs_grad_length = 0;
-    int64_t top_k = 0;
-    int64_t start = 0;
-    int64_t end = 0;
-    int64_t num_out_tokens = 0;
-    int64_t hidden_splited_length = 0;
-    int64_t hidden_splited_num = 0;
-    int64_t hidden_splited_remain = 0;
-    int64_t tokens_core_length = 0;
-    int64_t tokens_core_remain = 0;
-    int64_t tokens_splited_length = 0;
-    int64_t tokens_splited_num = 0;
-    int64_t tokens_splited_remain = 0;
-    int64_t buffer_num = 0;
-};
 
 inline void InitMoeTokenUnpermuteWithEpTilingData(uint8_t* tiling, MoeTokenUnpermuteWithEpTilingData* const_data)
 {
