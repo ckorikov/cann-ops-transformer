@@ -10,10 +10,9 @@
 
 #include <gtest/gtest.h>
 #include <iostream>
-#include "op_proto_test_util.h"
-#include "fusion_ops.h"
-#include "graph/utils/op_desc_utils.h"
-#include "common/utils/ut_op_common.h"
+#include "infershape_context_faker.h"
+#include "infershape_case_executor.h"
+#include "base/registry/op_impl_space_registry_v2.h"
 
 class MoeComputeExpertTokensProto : public testing::Test
 {
@@ -29,17 +28,21 @@ protected:
     }
 };
 
-TEST_F(MoeComputeExpertTokensProto, normal_shape_1)
+TEST_F(MoeComputeExpertTokensProto, moe_init_routing_infer_shape_0)
 {
-    ge::op::MoeComputeExpertTokens op;
-    std::vector<std::pair<int64_t, int64_t>> shape_range = {{2, 64}};
-    auto tensor_desc = create_desc_shape_range({-2}, ge::DT_INT32, ge::FORMAT_ND, {32}, ge::FORMAT_ND, shape_range);
-    op.UpdateInputDesc("sorted_experts", tensor_desc);
-    op.SetAttr("num_experts", 6);
-    Runtime2TestParam param{{"num_experts"}};
-    auto ret = InferShapeTest(op, param);
-    EXPECT_EQ(ret, ge::GRAPH_SUCCESS);
-    auto output_desc = op.GetOutputDesc("total_rows_before_expert");
-    std::vector<int64_t> expected_output_shape = {6};
-    EXPECT_EQ(output_desc.GetShape().GetDims(), expected_output_shape);
+    gert::InfershapeContextPara infershapeContextPara(
+        "MoeComputeExpertTokens",
+        {
+            {{{100}, {100}}, ge::DT_INT32, ge::FORMAT_ND},
+        },
+        {
+            {{{}, {}}, ge::DT_INT32, ge::FORMAT_ND},
+        },
+        {
+            {"num_experts", Ops::Transformer::AnyValue::CreateFrom<int64_t>(98)},
+        });
+    std::vector<std::vector<int64_t>> expectOutputShape = {
+        {98},
+    };
+    ExecuteTestCase(infershapeContextPara, ge::GRAPH_SUCCESS, expectOutputShape);
 }

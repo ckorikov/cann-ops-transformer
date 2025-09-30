@@ -37,7 +37,7 @@ TEST_F(moe_compute_expert_tokens_test, test_case_int32_s)
 {
     system(
         "cp -rf "
-        "../../../../../../../ops/transformer/moe_compute_expert_tokens/tests/ut/op_kernel/moe_expert_data "
+        "moe_expert_data "
         "./");
     system("chmod -R 755 ./moe_expert_data/");
     system("cd ./moe_expert_data/ && python3 gen_data.py 381 1");
@@ -80,7 +80,7 @@ TEST_F(moe_compute_expert_tokens_test, test_case_int32m)
 {
     system(
         "cp -rf "
-        "../../../../../../../ops/transformer/moe_compute_expert_tokens/tests/ut/op_kernel/moe_expert_data "
+        "moe_expert_data "
         "./");
     system("chmod -R 755 ./moe_expert_data/");
     system("cd ./moe_expert_data/ && python3 gen_data.py  77 100");
@@ -123,7 +123,7 @@ TEST_F(moe_compute_expert_tokens_test, test_case_int32_l)
 {
     system(
         "cp -rf "
-        "../../../../../../../ops/transformer/moe_compute_expert_tokens/tests/ut/op_kernel/moe_expert_data "
+        "moe_expert_data "
         "./");
     system("chmod -R 755 ./moe_expert_data/");
     system("cd ./moe_expert_data/ && python3 gen_data.py  97601 8193");

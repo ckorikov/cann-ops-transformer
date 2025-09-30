@@ -7,7 +7,6 @@
 # See LICENSE in the root of the software repository for the full text of the License.
 # ======================================================================================================================
 
-
 message(STATUS "=== Debug: start ops.transformer.moe_init_routing.tests.CMakeLists.txt ")
 file(GLOB CURRENT_DIRS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/*)
 message(STATUS "=== Debug: CURRENT_DIRS =${CURRENT_DIRS} ")
