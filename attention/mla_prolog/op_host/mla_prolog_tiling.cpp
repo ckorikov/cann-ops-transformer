@@ -174,7 +174,6 @@ uint32_t MlaPrologTiling::CalcSingleCoreN(uint32_t n, uint32_t coreNum, uint32_t
 // mm1.baseK = 256
 ge::graphStatus MlaPrologTiling::FillMatmul1Tiling()
 {
-    uint32_t M = stepBatchSize_;
     auto dataType = context_->weightDq.desc->GetDataType();
     singlecoreHeadSizeCq_ =
         CalcSingleCoreN(baseShapeInfo_.hcqSize, aicNum_, BLOCK_SIZE / DTYPE_TO_SIZE.at(dataType));
@@ -193,7 +192,6 @@ ge::graphStatus MlaPrologTiling::FillMatmul2Tiling()
     if (scenarioInfo_.emptyTensorMode_ == EMPTY_TENSOR_MODE::EMPTY_CACHE) {
         return ge::GRAPH_SUCCESS;
     }
-    uint32_t M = stepBatchSize_;
     // 9是经验值
     if (aicNum_ >= 9U) {
         uint32_t baseN = 64U;
@@ -216,7 +214,6 @@ ge::graphStatus MlaPrologTiling::FillMatmul2Tiling()
 // mm3.baseK = 256 //
 ge::graphStatus MlaPrologTiling::FillMatmul3Tiling()
 {
-    uint32_t M = stepBatchSize_;
     auto dataType = context_->weightUqQr.desc->GetDataType();
     auto oriM = baseShapeInfo_.nSize * (baseShapeInfo_.dSize + baseShapeInfo_.drSize);
     if (enableGroupComputeOpt_) {
@@ -243,7 +240,6 @@ ge::graphStatus MlaPrologTiling::FillMatmul3Tiling()
 // mm4.Kstride = dimHeadSizeQc + dimHeadRope
 ge::graphStatus MlaPrologTiling::FillMatmul4Tiling()
 {
-    uint32_t M = stepBatchSize_;
     singlecoreNumHeadSize_ = CeilDiv(baseShapeInfo_.nSize, aicNum_);
     mm4BlockNum_ = CeilDiv(baseShapeInfo_.nSize, singlecoreNumHeadSize_);
     return ge::GRAPH_SUCCESS;
