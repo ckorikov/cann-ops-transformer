@@ -347,7 +347,7 @@
   <tr>
     <td class="tg-9wq8" rowspan="6">aclnn接口</td>
     <td class="tg-0pky">
-    <a href="./examples//test_mla_prolog_nq_bsh.cpp">MlaProlog非量化（BSH）接口测试用例代码
+    <a href="./examples//test_aclnn_mla_prolog_nq_bsh.cpp">MlaProlog非量化（BSH）接口测试用例代码
     </a>
     </td>
     <td class="tg-lboi" rowspan="6">
