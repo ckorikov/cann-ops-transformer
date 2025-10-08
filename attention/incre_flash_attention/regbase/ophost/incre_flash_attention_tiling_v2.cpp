@@ -381,6 +381,7 @@ ge::graphStatus IFATilingV2::ProcessBaseTensors() {
     nOfQuery = context_->query.shape->GetStorageShape().GetDim(NUM1);
     sOfQuery_ = GetMaxSeqLength(context_->actualSeqLengthsQ.tensor);
     headDim_ = context_->query.shape->GetStorageShape().GetDim(NUM2);
+    batchSize_ = actualLenQDims_;
     if (!pageAttentionFlag_) {
       batchContinuousFlag_ = true;
     }
@@ -1342,6 +1343,11 @@ ge::graphStatus IFATilingV2::CheckActualSeqLens()
     actualLenDims_ = context_->actualSeqLengths.tensor->GetShapeSize();
     if (actualLenDims_ == 0U) {
         OP_LOGE(context_->opName, "TND actualLenDims_ is 0!");
+        return ge::GRAPH_FAILED;
+    }
+    if (actualLenQDims_ != actualLenDims_) {
+        OP_LOGE(context_->opName, "When layout is TND, the length of actualSequenceLengthQ (%u) and actualSequenceLengthKV (%u) must be equal",
+          actualLenQDims_, actualLenDims_);
         return ge::GRAPH_FAILED;
     }
 
@@ -3235,7 +3241,7 @@ ge::graphStatus IFATilingV2::GenTilingKey() {
 
   if (inputLayout_ == IfaLayout::BSH_BSND){
     layoutVal = NUM1;
-  } else if (inputLayout_ == IfaLayout::BSH_BSND) {
+  } else if (inputLayout_ == IfaLayout::TND) {
     layoutVal = NUM2;
   } else {
     layoutVal = NUM0;
@@ -3360,7 +3366,7 @@ uint64_t IFATilingV2::GenTilingKeyfaRun() {
 
   if (inputLayout_ == IfaLayout::BSH_BSND){
     layoutVal = NUM1;
-  } else if (inputLayout_ == IfaLayout::BSH_BSND) {
+  } else if (inputLayout_ == IfaLayout::TND) {
     layoutVal = NUM2;
   } else {
     layoutVal = NUM0;
