@@ -304,17 +304,7 @@ ge::graphStatus FiaTilingCheck::CheckAttrValueByMap(std::map<std::string, std::p
 
 ge::graphStatus FiaTilingCheck::CheckParaExistenceMlaNoquant() const
 {
-    std::map<std::string, const void *> mlaNoquantParamExistMap;
-    if (fiaInfo_.slidingFlag || qkHeadDim_ == 128U) {
-        mlaNoquantParamExistMap = {};
-    } else {
-        mlaNoquantParamExistMap = {
-            // paParamMap
-            {ACTUAL_SEQ_KV_LEN_NAME, opParamInfo_.actualSeqLengths.tensor},
-            {BLOCK_TABLE_NAME, opParamInfo_.blockTable.tensor},
-        }; 
-    }
-
+    std::map<std::string, const void *> mlaNoquantParamExistMap = {};
     std::map<std::string, const void *> mlaNoquantParamNotExistMap = {
         // antiquantParam
         {ANTIQUANT_SCALE_NAME, opParamInfo_.antiquantScale.tensor},

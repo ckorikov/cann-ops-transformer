@@ -294,6 +294,7 @@ public:
     // Others Flag
     bool batchContinuousFlag = true;
     bool kvPaddingSizeFlag = false;
+    bool qPaddingSizeFlag = false;
     bool softmaxLseFlag = false;
     bool quantFlag = false;
     bool isMaxWorkspace = false;

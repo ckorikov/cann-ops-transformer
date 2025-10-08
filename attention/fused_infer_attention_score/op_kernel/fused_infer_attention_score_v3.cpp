@@ -30,13 +30,18 @@ using namespace AscendC;
 
 #define INVOKE_FIA_NO_KFC_MLA_OP_IMPL(templateClass, ...)                                                              \
     do {                                                                                                               \
-        templateClass<FIAType<__VA_ARGS__>> op;                                                                        \
+        using CubeBlockType = FiaBlockCubeNonQuantMla<FIAType<__VA_ARGS__>>;                                              \
+        using VecBlockType = FiaBlockVecNonQuantMla<FIAType<__VA_ARGS__>>;                                     \
+        using FdBlockType = FiaBlockVecFlashDecode<FIAType<__VA_ARGS__>>;                                                  \
+        templateClass<FIAType<__VA_ARGS__>, CubeBlockType, VecBlockType, FdBlockType> op;                              \
         FIA_COPY_TILING_DATA(FusedInferAttentionScoreTilingData, tiling);                                              \
-        op.Init(query, key, value, pseShift, attenMask, actualSeqLengthsQ, actualSeqLengths, blockTable, kvPaddingSize,\
-            queryRope, keyRope, attentionOut, softmaxLse, user, tiling_data, tiling, &tPipe);                          \
-        op.InitQuant(deqScale1, quantScale1, deqScale2, quantScale2, quantOffset2, antiquantScale, antiquantOffset,    \
-                     keyAntiquantScale, keyAntiquantOffset, valueAntiquantScale, valueAntiquantOffset,                 \
-                     keyRopeAntiquantScale, user);                                                                     \
+        op.Init(query, key, value, pseShift, attenMask, actualSeqLengthsQ, actualSeqLengths,                           \
+            deqScale1, quantScale1, deqScale2, quantScale2, quantOffset2, antiquantScale, antiquantOffset,             \
+            blockTable, queryPaddingSize, kvPaddingSize,                                                               \
+            keyAntiquantScale, keyAntiquantOffset, valueAntiquantScale, valueAntiquantOffset,                          \
+            keySharedPrefix, valueSharedPrefix, actualSharedPrefixLen,                                                 \
+            queryRope, keyRope, keyRopeAntiquantScale,                                                                 \
+            attentionOut, softmaxLse, user, tiling_data, tiling, &tPipe);                                              \
         op.Process();                                                                                                  \
     } while (0)
 
@@ -85,23 +90,36 @@ extern "C" __global__ __aicore__ void fused_infer_attention(
 
 #if (ORIG_DTYPE_QUERY == DT_FLOAT16) && (ORIG_DTYPE_ATTENTION_OUT == DT_FLOAT16) && (ORIG_DTYPE_KEY == DT_FLOAT16)
     // fp16 7buf_nz
+   // fp16 7buf_nz
+    TILING_KEY_IS(QF16_KVF16_OUTF16_BNSD_KVNZ_PAGEDCACHE_MLA_TILING);
+    TILING_KEY_IS(QF16_KVF16_OUTF16_BNSD_KVNZ_PAGEDCACHE_FLASHDECODING_MLA_TILING);
     TILING_KEY_IS(QF16_KVF16_OUTF16_BSH_KVNZ_PAGEDCACHE_MLA_TILING);
     TILING_KEY_IS(QF16_KVF16_OUTF16_BSH_KVNZ_PAGEDCACHE_FLASHDECODING_MLA_TILING);
     TILING_KEY_IS(QF16_KVF16_OUTF16_TND_KVNZ_PAGEDCACHE_MLA_TILING);
     TILING_KEY_IS(QF16_KVF16_OUTF16_TND_KVNZ_PAGEDCACHE_FLASHDECODING_MLA_TILING);
     // fp16 7buf_nd
-    TILING_KEY_IS(QF16_KVF16_OUTF16_BNSD_KVBSH_PAGEDCACHE_MLA_TILING);
-    TILING_KEY_IS(QF16_KVF16_OUTF16_BNSD_KVBSH_PAGEDCACHE_FLASHDECODING_MLA_TILING);
     TILING_KEY_IS(QF16_KVF16_OUTF16_BNSD_KVBNSD_PAGEDCACHE_MLA_TILING);
     TILING_KEY_IS(QF16_KVF16_OUTF16_BNSD_KVBNSD_PAGEDCACHE_FLASHDECODING_MLA_TILING);
-    TILING_KEY_IS(QF16_KVF16_OUTF16_BSH_KVBSH_MLA_TILING);
-    TILING_KEY_IS(QF16_KVF16_OUTF16_BSH_KVBSH_FLASHDECODING_MLA_TILING);
+    TILING_KEY_IS(QF16_KVF16_OUTF16_BSH_KVBNSD_PAGEDCACHE_MLA_TILING);
+    TILING_KEY_IS(QF16_KVF16_OUTF16_BSH_KVBNSD_PAGEDCACHE_FLASHDECODING_MLA_TILING);
+    TILING_KEY_IS(QF16_KVF16_OUTF16_TND_KVBNSD_PAGEDCACHE_MLA_TILING);
+    TILING_KEY_IS(QF16_KVF16_OUTF16_TND_KVBNSD_PAGEDCACHE_FLASHDECODING_MLA_TILING);
+    // Mla PA bf16 kv_BSH_BSND
+    TILING_KEY_IS(QF16_KVF16_OUTF16_BNSD_KVBSH_PAGEDCACHE_MLA_TILING);
+    TILING_KEY_IS(QF16_KVF16_OUTF16_BNSD_KVBSH_PAGEDCACHE_FLASHDECODING_MLA_TILING);
     TILING_KEY_IS(QF16_KVF16_OUTF16_BSH_KVBSH_PAGEDCACHE_MLA_TILING);
     TILING_KEY_IS(QF16_KVF16_OUTF16_BSH_KVBSH_PAGEDCACHE_FLASHDECODING_MLA_TILING);
     TILING_KEY_IS(QF16_KVF16_OUTF16_TND_KVBSH_PAGEDCACHE_MLA_TILING);
     TILING_KEY_IS(QF16_KVF16_OUTF16_TND_KVBSH_PAGEDCACHE_FLASHDECODING_MLA_TILING);
-    TILING_KEY_IS(QF16_KVF16_OUTF16_TND_KVBNSD_PAGEDCACHE_MLA_TILING);
-    TILING_KEY_IS(QF16_KVF16_OUTF16_TND_KVBNSD_PAGEDCACHE_FLASHDECODING_MLA_TILING);
+    // Mla NoPA bf16 kv_BNSD
+    TILING_KEY_IS(QF16_KVF16_OUTF16_BNSD_KVBNSD_MLA_TILING);
+    TILING_KEY_IS(QF16_KVF16_OUTF16_BNSD_KVBNSD_FLASHDECODING_MLA_TILING);
+    // Mla NoPA bf16 kv_BSH_BSND
+    TILING_KEY_IS(QF16_KVF16_OUTF16_BSH_KVBSH_MLA_TILING);
+    TILING_KEY_IS(QF16_KVF16_OUTF16_BSH_KVBSH_FLASHDECODING_MLA_TILING);
+    // Mla NoPA bf16 kv_TND
+    TILING_KEY_IS(QF16_KVF16_OUTF16_TND_KVTND_MLA_TILING);
+    TILING_KEY_IS(QF16_KVF16_OUTF16_TND_KVTND_FLASHDECODING_MLA_TILING);
      // Gqa NoQuant PA
     TILING_KEY_IS(103000000000200000);
     TILING_KEY_IS(103000000000300000);
@@ -208,57 +226,84 @@ extern "C" __global__ __aicore__ void fused_infer_attention(
     TILING_KEY_IS(103000000110400001);
     TILING_KEY_IS(103000000100500000);
     TILING_KEY_IS(103000000110500001);
-// fp16 7buf_nz
-#if TILING_KEY_VAR == QF16_KVF16_OUTF16_BSH_KVNZ_PAGEDCACHE_MLA_TILING // 7buf
-    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, half, half, half, half, true, false,
-                                  FIA_LAYOUT::BSH, false, false, FIA_LAYOUT::NZ);
+// Mla PA fp16 kv_NZ
+#if TILING_KEY_VAR == QF16_KVF16_OUTF16_BNSD_KVNZ_PAGEDCACHE_MLA_TILING   // 7buf
+    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, half, half, half,
+                                  half, true, false, FIA_LAYOUT::BNSD, false, false, FIA_LAYOUT::NZ);
+#elif TILING_KEY_VAR == QF16_KVF16_OUTF16_BNSD_KVNZ_PAGEDCACHE_FLASHDECODING_MLA_TILING // 7buf
+    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, half, half, half,
+                                  half, true, true, FIA_LAYOUT::BNSD, false, false, FIA_LAYOUT::NZ);
+#elif TILING_KEY_VAR == QF16_KVF16_OUTF16_BSH_KVNZ_PAGEDCACHE_MLA_TILING // 7buf
+    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, half, half, half,
+                                  half, true, false, FIA_LAYOUT::BSH, false, false, FIA_LAYOUT::NZ);
 #elif TILING_KEY_VAR == QF16_KVF16_OUTF16_BSH_KVNZ_PAGEDCACHE_FLASHDECODING_MLA_TILING // 7buf
-    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, half, half, half, half, true, true,
-                                  FIA_LAYOUT::BSH, false, false, FIA_LAYOUT::NZ);
+    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, half, half, half,
+                                  half, true, true, FIA_LAYOUT::BSH, false, false, FIA_LAYOUT::NZ);
 #elif TILING_KEY_VAR == QF16_KVF16_OUTF16_TND_KVNZ_PAGEDCACHE_MLA_TILING // 7buf
-    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, half, half, half, half, true, false,
-                                  FIA_LAYOUT::TND, false, false, FIA_LAYOUT::NZ);
+    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, half, half, half,
+                                  half, true, false, FIA_LAYOUT::TND, false, false, FIA_LAYOUT::NZ);
 #elif TILING_KEY_VAR == QF16_KVF16_OUTF16_TND_KVNZ_PAGEDCACHE_FLASHDECODING_MLA_TILING // 7buf
-    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, half, half, half, half, true, true,
-                                  FIA_LAYOUT::TND, false, false, FIA_LAYOUT::NZ);
-// fp16 7buf_nd
-#elif TILING_KEY_VAR == QF16_KVF16_OUTF16_BNSD_KVBSH_PAGEDCACHE_MLA_TILING // 7buf
-    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, half, half, half, half, true, false,
-                                  FIA_LAYOUT::BNSD, false, false, FIA_LAYOUT::BSH);
-#elif TILING_KEY_VAR == QF16_KVF16_OUTF16_BNSD_KVBSH_PAGEDCACHE_FLASHDECODING_MLA_TILING // 7buf
-    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, half, half, half, half, true, true,
-                                  FIA_LAYOUT::BNSD, false, false, FIA_LAYOUT::BSH);
+    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, half, half, half,
+                                  half, true, true, FIA_LAYOUT::TND, false, false, FIA_LAYOUT::NZ);
+// Mla PA fp16 kv_BNSD
 #elif TILING_KEY_VAR == QF16_KVF16_OUTF16_BNSD_KVBNSD_PAGEDCACHE_MLA_TILING // 7buf
-    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, half, half, half, half, true, false,
-                                  FIA_LAYOUT::BNSD, false, false, FIA_LAYOUT::BNSD);
+    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, half, half, half,
+                                  half, true, false, FIA_LAYOUT::BNSD, false, false, FIA_LAYOUT::BNSD);
 #elif TILING_KEY_VAR == QF16_KVF16_OUTF16_BNSD_KVBNSD_PAGEDCACHE_FLASHDECODING_MLA_TILING // 7buf
-    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, half, half, half, half, true, true,
-                                  FIA_LAYOUT::BNSD, false, false, FIA_LAYOUT::BNSD);
-#elif TILING_KEY_VAR == QF16_KVF16_OUTF16_BSH_KVBSH_MLA_TILING // 7buf
-    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, half, half, half, half, false, false,
-                                  FIA_LAYOUT::BSH, false, false, FIA_LAYOUT::BSH);
-#elif TILING_KEY_VAR == QF16_KVF16_OUTF16_BSH_KVBSH_FLASHDECODING_MLA_TILING // 7buf
-    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, half, half, half, half, false, true,
-                                  FIA_LAYOUT::BSH, false, false, FIA_LAYOUT::BSH);
-#elif TILING_KEY_VAR == QF16_KVF16_OUTF16_BSH_KVBSH_PAGEDCACHE_MLA_TILING // 7buf
-    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, half, half, half, half, true, false,
-                                  FIA_LAYOUT::BSH, false, false, FIA_LAYOUT::BSH);
-#elif TILING_KEY_VAR == QF16_KVF16_OUTF16_BSH_KVBSH_PAGEDCACHE_FLASHDECODING_MLA_TILING // 7buf
-    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, half, half, half, half, true, true,
-                                  FIA_LAYOUT::BSH, false, false, FIA_LAYOUT::BSH);
-#elif TILING_KEY_VAR == QF16_KVF16_OUTF16_TND_KVBSH_PAGEDCACHE_MLA_TILING // 7buf
-    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, half, half, half, half, true, false,
-                                  FIA_LAYOUT::TND, false, false, FIA_LAYOUT::BSH);
-#elif TILING_KEY_VAR == QF16_KVF16_OUTF16_TND_KVBSH_PAGEDCACHE_FLASHDECODING_MLA_TILING // 7buf
-    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, half, half, half, half, true, true,
-                                  FIA_LAYOUT::TND, false, false, FIA_LAYOUT::BSH);
+    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, half, half, half,
+                                  half, true, true, FIA_LAYOUT::BNSD, false, false, FIA_LAYOUT::BNSD);
+#elif TILING_KEY_VAR == QF16_KVF16_OUTF16_BSH_KVBNSD_PAGEDCACHE_MLA_TILING // 7buf
+    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, half, half, half,
+                                  half, true, false, FIA_LAYOUT::BSH, false, false, FIA_LAYOUT::BNSD);
+#elif TILING_KEY_VAR == QF16_KVF16_OUTF16_BSH_KVBNSD_PAGEDCACHE_FLASHDECODING_MLA_TILING // 7buf
+    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, half, half, half,
+                                  half, true, true, FIA_LAYOUT::BSH, false, false, FIA_LAYOUT::BNSD);
 #elif TILING_KEY_VAR == QF16_KVF16_OUTF16_TND_KVBNSD_PAGEDCACHE_MLA_TILING // 7buf
-    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, half, half, half, half, true, false,
-                                  FIA_LAYOUT::TND, false, false, FIA_LAYOUT::BNSD);
+    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, half, half, half,
+                                  half, true, false, FIA_LAYOUT::TND, false, false, FIA_LAYOUT::BNSD);
 #elif TILING_KEY_VAR == QF16_KVF16_OUTF16_TND_KVBNSD_PAGEDCACHE_FLASHDECODING_MLA_TILING // 7buf
-    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, half, half, half, half, true, true,
-                                  FIA_LAYOUT::TND, false, false, FIA_LAYOUT::BNSD);
-
+    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, half, half, half,
+                                  half, true, true, FIA_LAYOUT::TND, false, false, FIA_LAYOUT::BNSD);
+// Mla PA fp16 kv_BSH_BSND
+#elif TILING_KEY_VAR == QF16_KVF16_OUTF16_BNSD_KVBSH_PAGEDCACHE_MLA_TILING // 7buf
+    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, half, half, half,
+                                  half, true, false, FIA_LAYOUT::BNSD, false, false, FIA_LAYOUT::BSH);
+#elif TILING_KEY_VAR == QF16_KVF16_OUTF16_BNSD_KVBSH_PAGEDCACHE_FLASHDECODING_MLA_TILING // 7buf
+    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, half, half, half,
+                                  half, true, true, FIA_LAYOUT::BNSD, false, false, FIA_LAYOUT::BSH);
+#elif TILING_KEY_VAR == QF16_KVF16_OUTF16_BSH_KVBSH_PAGEDCACHE_MLA_TILING // 7buf
+    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, half, half, half,
+                                  half, true, false, FIA_LAYOUT::BSH, false, false, FIA_LAYOUT::BSH);
+#elif TILING_KEY_VAR == QF16_KVF16_OUTF16_BSH_KVBSH_PAGEDCACHE_FLASHDECODING_MLA_TILING // 7buf
+    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, half, half, half,
+                                  half, true, true, FIA_LAYOUT::BSH, false, false, FIA_LAYOUT::BSH);
+#elif TILING_KEY_VAR == QF16_KVF16_OUTF16_TND_KVBSH_PAGEDCACHE_MLA_TILING // 7buf
+    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, half, half, half,
+                                  half, true, false, FIA_LAYOUT::TND, false, false, FIA_LAYOUT::BSH);
+#elif TILING_KEY_VAR == QF16_KVF16_OUTF16_TND_KVBSH_PAGEDCACHE_FLASHDECODING_MLA_TILING // 7buf
+    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, half, half, half,
+                                  half, true, true, FIA_LAYOUT::TND, false, false, FIA_LAYOUT::BSH);
+// Mla NoPA fp16 kv_BNSD
+#elif TILING_KEY_VAR == QF16_KVF16_OUTF16_BNSD_KVBNSD_MLA_TILING // 7buf
+    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, half, half, half,
+                                  half, false, false, FIA_LAYOUT::BNSD, false, false, FIA_LAYOUT::BNSD);
+#elif TILING_KEY_VAR == QF16_KVF16_OUTF16_BNSD_KVBNSD_FLASHDECODING_MLA_TILING // 7buf
+    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, half, half, half,
+                                  half, false, true, FIA_LAYOUT::BNSD, false, false, FIA_LAYOUT::BNSD);
+// Mla NoPA fp16 kv_BSH_BSND
+#elif TILING_KEY_VAR == QF16_KVF16_OUTF16_BSH_KVBSH_MLA_TILING // 7buf
+    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, half, half, half,
+                                  half, false, false, FIA_LAYOUT::BSH, false, false, FIA_LAYOUT::BSH);
+#elif TILING_KEY_VAR == QF16_KVF16_OUTF16_BSH_KVBSH_FLASHDECODING_MLA_TILING // 7buf
+    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, half, half, half,
+                                  half, false, true, FIA_LAYOUT::BSH, false, false, FIA_LAYOUT::BSH);
+// Mla NoPA fp16 kv_TND
+#elif TILING_KEY_VAR == QF16_KVF16_OUTF16_TND_KVTND_MLA_TILING // 7buf
+    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, half, half, half,
+                                  half, false, false, FIA_LAYOUT::TND, false, false, FIA_LAYOUT::TND);
+#elif TILING_KEY_VAR == QF16_KVF16_OUTF16_TND_KVTND_FLASHDECODING_MLA_TILING // 7buf
+    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, half, half, half,
+                                  half, false, true, FIA_LAYOUT::TND, false, false, FIA_LAYOUT::TND);
 // Gqa NoQuant PA Non Perf
 #elif TILING_KEY_VAR == 103000000000200000
 	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, true, false, FIA_LAYOUT::BNSD, false, false,
@@ -556,24 +601,36 @@ extern "C" __global__ __aicore__ void fused_infer_attention(
 #endif
 
 #if (ORIG_DTYPE_QUERY == DT_BF16) && (ORIG_DTYPE_ATTENTION_OUT == DT_BF16) && (ORIG_DTYPE_KEY == DT_BF16)
-    // bfl6 7buf_nz
+   // bfl6 7buf_nz
+    TILING_KEY_IS(QBF16_KVBF16_OUTBF16_BNSD_KVNZ_PAGEDCACHE_MLA_TILING);
+    TILING_KEY_IS(QBF16_KVBF16_OUTBF16_BNSD_KVNZ_PAGEDCACHE_FLASHDECODING_MLA_TILING);
     TILING_KEY_IS(QBF16_KVBF16_OUTBF16_BSH_KVNZ_PAGEDCACHE_MLA_TILING);
     TILING_KEY_IS(QBF16_KVBF16_OUTBF16_BSH_KVNZ_PAGEDCACHE_FLASHDECODING_MLA_TILING);
     TILING_KEY_IS(QBF16_KVBF16_OUTBF16_TND_KVNZ_PAGEDCACHE_MLA_TILING);
     TILING_KEY_IS(QBF16_KVBF16_OUTBF16_TND_KVNZ_PAGEDCACHE_FLASHDECODING_MLA_TILING);
     // 7buf_nd
-    TILING_KEY_IS(QBF16_KVBF16_OUTBF16_BNSD_KVBSH_PAGEDCACHE_MLA_TILING);
-    TILING_KEY_IS(QBF16_KVBF16_OUTBF16_BNSD_KVBSH_PAGEDCACHE_FLASHDECODING_MLA_TILING);
     TILING_KEY_IS(QBF16_KVBF16_OUTBF16_BNSD_KVBNSD_PAGEDCACHE_MLA_TILING);
     TILING_KEY_IS(QBF16_KVBF16_OUTBF16_BNSD_KVBNSD_PAGEDCACHE_FLASHDECODING_MLA_TILING);
-    TILING_KEY_IS(QBF16_KVBF16_OUTBF16_BSH_KVBSH_MLA_TILING);
-    TILING_KEY_IS(QBF16_KVBF16_OUTBF16_BSH_KVBSH_FLASHDECODING_MLA_TILING);
+    TILING_KEY_IS(QBF16_KVBF16_OUTBF16_BSH_KVBNSD_PAGEDCACHE_MLA_TILING);
+    TILING_KEY_IS(QBF16_KVBF16_OUTBF16_BSH_KVBNSD_PAGEDCACHE_FLASHDECODING_MLA_TILING);
+    TILING_KEY_IS(QBF16_KVBF16_OUTBF16_TND_KVBNSD_PAGEDCACHE_MLA_TILING);
+    TILING_KEY_IS(QBF16_KVBF16_OUTBF16_TND_KVBNSD_PAGEDCACHE_FLASHDECODING_MLA_TILING);
+    // Mla PA bf16 kv_BSH_BSND
+    TILING_KEY_IS(QBF16_KVBF16_OUTBF16_BNSD_KVBSH_PAGEDCACHE_MLA_TILING);
+    TILING_KEY_IS(QBF16_KVBF16_OUTBF16_BNSD_KVBSH_PAGEDCACHE_FLASHDECODING_MLA_TILING);
     TILING_KEY_IS(QBF16_KVBF16_OUTBF16_BSH_KVBSH_PAGEDCACHE_MLA_TILING);
     TILING_KEY_IS(QBF16_KVBF16_OUTBF16_BSH_KVBSH_PAGEDCACHE_FLASHDECODING_MLA_TILING);
     TILING_KEY_IS(QBF16_KVBF16_OUTBF16_TND_KVBSH_PAGEDCACHE_MLA_TILING);
     TILING_KEY_IS(QBF16_KVBF16_OUTBF16_TND_KVBSH_PAGEDCACHE_FLASHDECODING_MLA_TILING);
-    TILING_KEY_IS(QBF16_KVBF16_OUTBF16_TND_KVBNSD_PAGEDCACHE_MLA_TILING);
-    TILING_KEY_IS(QBF16_KVBF16_OUTBF16_TND_KVBNSD_PAGEDCACHE_FLASHDECODING_MLA_TILING);
+    // Mla NoPA bf16 kv_BNSD
+    TILING_KEY_IS(QBF16_KVBF16_OUTBF16_BNSD_KVBNSD_MLA_TILING);
+    TILING_KEY_IS(QBF16_KVBF16_OUTBF16_BNSD_KVBNSD_FLASHDECODING_MLA_TILING);
+    // Mla NoPA bf16 kv_BSH_BSND
+    TILING_KEY_IS(QBF16_KVBF16_OUTBF16_BSH_KVBSH_MLA_TILING);
+    TILING_KEY_IS(QBF16_KVBF16_OUTBF16_BSH_KVBSH_FLASHDECODING_MLA_TILING);
+    // Mla NoPA bf16 kv_TND
+    TILING_KEY_IS(QBF16_KVBF16_OUTBF16_TND_KVTND_MLA_TILING);
+    TILING_KEY_IS(QBF16_KVBF16_OUTBF16_TND_KVTND_FLASHDECODING_MLA_TILING);
 
      // Gqa NoQuant PA
     TILING_KEY_IS(103000000000222220);
@@ -648,8 +705,14 @@ extern "C" __global__ __aicore__ void fused_infer_attention(
     TILING_KEY_IS(103000000050522223);
     TILING_KEY_IS(103000000050022225);
     TILING_KEY_IS(103000000050122225);
-// bf16 7buf_nz
-#if TILING_KEY_VAR == QBF16_KVBF16_OUTBF16_BSH_KVNZ_PAGEDCACHE_MLA_TILING // 7buf
+// Mla PA bf16 kv_NZ
+#if TILING_KEY_VAR == QBF16_KVBF16_OUTBF16_BNSD_KVNZ_PAGEDCACHE_MLA_TILING   // 7buf
+    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, bfloat16_t, bfloat16_t, bfloat16_t,
+                                  bfloat16_t, true, false, FIA_LAYOUT::BNSD, false, false, FIA_LAYOUT::NZ);
+#elif TILING_KEY_VAR == QBF16_KVBF16_OUTBF16_BNSD_KVNZ_PAGEDCACHE_FLASHDECODING_MLA_TILING // 7buf
+    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, bfloat16_t, bfloat16_t, bfloat16_t,
+                                  bfloat16_t, true, true, FIA_LAYOUT::BNSD, false, false, FIA_LAYOUT::NZ);
+#elif TILING_KEY_VAR == QBF16_KVBF16_OUTBF16_BSH_KVNZ_PAGEDCACHE_MLA_TILING // 7buf
     INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, bfloat16_t, bfloat16_t, bfloat16_t,
                                   bfloat16_t, true, false, FIA_LAYOUT::BSH, false, false, FIA_LAYOUT::NZ);
 #elif TILING_KEY_VAR == QBF16_KVBF16_OUTBF16_BSH_KVNZ_PAGEDCACHE_FLASHDECODING_MLA_TILING // 7buf
@@ -661,26 +724,32 @@ extern "C" __global__ __aicore__ void fused_infer_attention(
 #elif TILING_KEY_VAR == QBF16_KVBF16_OUTBF16_TND_KVNZ_PAGEDCACHE_FLASHDECODING_MLA_TILING // 7buf
     INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, bfloat16_t, bfloat16_t, bfloat16_t,
                                   bfloat16_t, true, true, FIA_LAYOUT::TND, false, false, FIA_LAYOUT::NZ);
-// #ifdef ND_7BUFFER
-// 7buf_nd
-#elif TILING_KEY_VAR == QBF16_KVBF16_OUTBF16_BNSD_KVBSH_PAGEDCACHE_MLA_TILING // 7buf
-    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, bfloat16_t, bfloat16_t, bfloat16_t,
-                                  bfloat16_t, true, false, FIA_LAYOUT::BNSD, false, false, FIA_LAYOUT::BSH);
-#elif TILING_KEY_VAR == QBF16_KVBF16_OUTBF16_BNSD_KVBSH_PAGEDCACHE_FLASHDECODING_MLA_TILING // 7buf
-    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, bfloat16_t, bfloat16_t, bfloat16_t,
-                                  bfloat16_t, true, true, FIA_LAYOUT::BNSD, false, false, FIA_LAYOUT::BSH);
+// Mla PA bf16 kv_BNSD
 #elif TILING_KEY_VAR == QBF16_KVBF16_OUTBF16_BNSD_KVBNSD_PAGEDCACHE_MLA_TILING // 7buf
     INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, bfloat16_t, bfloat16_t, bfloat16_t,
                                   bfloat16_t, true, false, FIA_LAYOUT::BNSD, false, false, FIA_LAYOUT::BNSD);
 #elif TILING_KEY_VAR == QBF16_KVBF16_OUTBF16_BNSD_KVBNSD_PAGEDCACHE_FLASHDECODING_MLA_TILING // 7buf
     INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, bfloat16_t, bfloat16_t, bfloat16_t,
                                   bfloat16_t, true, true, FIA_LAYOUT::BNSD, false, false, FIA_LAYOUT::BNSD);
-#elif TILING_KEY_VAR == QBF16_KVBF16_OUTBF16_BSH_KVBSH_MLA_TILING // 7buf
+#elif TILING_KEY_VAR == QBF16_KVBF16_OUTBF16_BSH_KVBNSD_PAGEDCACHE_MLA_TILING // 7buf
     INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, bfloat16_t, bfloat16_t, bfloat16_t,
-                                  bfloat16_t, false, false, FIA_LAYOUT::BSH, false, false, FIA_LAYOUT::BSH);
-#elif TILING_KEY_VAR == QBF16_KVBF16_OUTBF16_BSH_KVBSH_FLASHDECODING_MLA_TILING // 7buf
+                                  bfloat16_t, true, false, FIA_LAYOUT::BSH, false, false, FIA_LAYOUT::BNSD);
+#elif TILING_KEY_VAR == QBF16_KVBF16_OUTBF16_BSH_KVBNSD_PAGEDCACHE_FLASHDECODING_MLA_TILING // 7buf
     INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, bfloat16_t, bfloat16_t, bfloat16_t,
-                                   bfloat16_t, false, true, FIA_LAYOUT::BSH, false, false, FIA_LAYOUT::BSH);
+                                  bfloat16_t, true, true, FIA_LAYOUT::BSH, false, false, FIA_LAYOUT::BNSD);
+#elif TILING_KEY_VAR == QBF16_KVBF16_OUTBF16_TND_KVBNSD_PAGEDCACHE_MLA_TILING // 7buf
+    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, bfloat16_t, bfloat16_t, bfloat16_t,
+                                  bfloat16_t, true, false, FIA_LAYOUT::TND, false, false, FIA_LAYOUT::BNSD);
+#elif TILING_KEY_VAR == QBF16_KVBF16_OUTBF16_TND_KVBNSD_PAGEDCACHE_FLASHDECODING_MLA_TILING // 7buf
+    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, bfloat16_t, bfloat16_t, bfloat16_t,
+                                  bfloat16_t, true, true, FIA_LAYOUT::TND, false, false, FIA_LAYOUT::BNSD);
+// Mla PA bf16 kv_BSH_BSND
+#elif TILING_KEY_VAR == QBF16_KVBF16_OUTBF16_BNSD_KVBSH_PAGEDCACHE_MLA_TILING // 7buf
+    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, bfloat16_t, bfloat16_t, bfloat16_t,
+                                  bfloat16_t, true, false, FIA_LAYOUT::BNSD, false, false, FIA_LAYOUT::BSH);
+#elif TILING_KEY_VAR == QBF16_KVBF16_OUTBF16_BNSD_KVBSH_PAGEDCACHE_FLASHDECODING_MLA_TILING // 7buf
+    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, bfloat16_t, bfloat16_t, bfloat16_t,
+                                  bfloat16_t, true, true, FIA_LAYOUT::BNSD, false, false, FIA_LAYOUT::BSH);
 #elif TILING_KEY_VAR == QBF16_KVBF16_OUTBF16_BSH_KVBSH_PAGEDCACHE_MLA_TILING // 7buf
     INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, bfloat16_t, bfloat16_t, bfloat16_t,
                                   bfloat16_t, true, false, FIA_LAYOUT::BSH, false, false, FIA_LAYOUT::BSH);
@@ -693,12 +762,27 @@ extern "C" __global__ __aicore__ void fused_infer_attention(
 #elif TILING_KEY_VAR == QBF16_KVBF16_OUTBF16_TND_KVBSH_PAGEDCACHE_FLASHDECODING_MLA_TILING // 7buf
     INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, bfloat16_t, bfloat16_t, bfloat16_t,
                                   bfloat16_t, true, true, FIA_LAYOUT::TND, false, false, FIA_LAYOUT::BSH);
-#elif TILING_KEY_VAR == QBF16_KVBF16_OUTBF16_TND_KVBNSD_PAGEDCACHE_MLA_TILING // 7buf
+// Mla NoPA bf16 kv_BNSD
+#elif TILING_KEY_VAR == QBF16_KVBF16_OUTBF16_BNSD_KVBNSD_MLA_TILING // 7buf
     INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, bfloat16_t, bfloat16_t, bfloat16_t,
-                                  bfloat16_t, true, false, FIA_LAYOUT::TND, false, false, FIA_LAYOUT::BNSD);
-#elif TILING_KEY_VAR == QBF16_KVBF16_OUTBF16_TND_KVBNSD_PAGEDCACHE_FLASHDECODING_MLA_TILING // 7buf
+                                  bfloat16_t, false, false, FIA_LAYOUT::BNSD, false, false, FIA_LAYOUT::BNSD);
+#elif TILING_KEY_VAR == QBF16_KVBF16_OUTBF16_BNSD_KVBNSD_FLASHDECODING_MLA_TILING // 7buf
     INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, bfloat16_t, bfloat16_t, bfloat16_t,
-                                  bfloat16_t, true, true, FIA_LAYOUT::TND, false, false, FIA_LAYOUT::BNSD);
+                                   bfloat16_t, false, true, FIA_LAYOUT::BNSD, false, false, FIA_LAYOUT::BNSD);
+// Mla NoPA bf16 kv_BSH_BSND
+#elif TILING_KEY_VAR == QBF16_KVBF16_OUTBF16_BSH_KVBSH_MLA_TILING // 7buf
+    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, bfloat16_t, bfloat16_t, bfloat16_t,
+                                  bfloat16_t, false, false, FIA_LAYOUT::BSH, false, false, FIA_LAYOUT::BSH);
+#elif TILING_KEY_VAR == QBF16_KVBF16_OUTBF16_BSH_KVBSH_FLASHDECODING_MLA_TILING // 7buf
+    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, bfloat16_t, bfloat16_t, bfloat16_t,
+                                   bfloat16_t, false, true, FIA_LAYOUT::BSH, false, false, FIA_LAYOUT::BSH);
+// Mla NoPA bf16 kv_TND
+#elif TILING_KEY_VAR == QBF16_KVBF16_OUTBF16_TND_KVTND_MLA_TILING // 7buf
+    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, bfloat16_t, bfloat16_t, bfloat16_t,
+                                  bfloat16_t, false, false, FIA_LAYOUT::TND, false, false, FIA_LAYOUT::TND);
+#elif TILING_KEY_VAR == QBF16_KVBF16_OUTBF16_TND_KVTND_FLASHDECODING_MLA_TILING // 7buf
+    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, bfloat16_t, bfloat16_t, bfloat16_t,
+                                   bfloat16_t, false, true, FIA_LAYOUT::TND, false, false, FIA_LAYOUT::TND);
 
 // Gqa NoQuant PA
 #elif TILING_KEY_VAR == 103000000000222220 

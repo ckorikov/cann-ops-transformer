@@ -579,20 +579,6 @@ TEST_F(Ts_Fia_Ascend910B1, case_CheckActualSeqLengthsExistence_mla_051)
     ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
 }
 
-
-TEST_F(Ts_Fia_Ascend910B1, case_CheckBlockTableExistence_mla_052)
-{
-    FiaCase cs;
-    cs.mParam.mode = CaseMode::MLA_NOQUANT;
-    cs.mParam.storageMode = CaseKvStorageMode::BATCH_CONTINUOUS;
-
-    ASSERT_TRUE(cs.Init());
-    cs.blocktable = Tensor();
-    cs.mOpInfo.mExp.mSuccess = false;
-    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
-}
-
-
 TEST_F(Ts_Fia_Ascend910B1, case_CheckantiquantScaleExistence_mla_053)
 {
     FiaCase cs;
@@ -945,18 +931,6 @@ TEST_F(Ts_Fia_Ascend910B1, case_CheckActualSeqLensQData_mla_006)
     ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
 }
 
-TEST_F(Ts_Fia_Ascend910B1, case_GetActualSeqLenSize_mla_008)
-{
-    FiaCase cs;
-    cs.mParam.mode = CaseMode::MLA_NOQUANT;
-    cs.mParam.storageMode = CaseKvStorageMode::PAGE_ATTENTION;
-    ASSERT_TRUE(cs.Init());
-
-    cs.actualSeqLengths = Tensor("actualSeqLengths", {0}, "TND", ge::DT_FLOAT16, ge::FORMAT_ND);
-    cs.mOpInfo.mExp.mSuccess = false;
-    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
-}
-
 TEST_F(Ts_Fia_Ascend910B1, case_CheckActualSeqLens_mla_009)
 {
     FiaCase cs;
@@ -1252,19 +1226,6 @@ TEST_F(Ts_Fia_Ascend910B1, case_CheckKVShapeForPageAttention_mla_041)
     ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
 }
 
-TEST_F(Ts_Fia_Ascend910B1, case_CheckAttentionMask_mla_044)
-{
-    FiaCase cs;
-    cs.mParam.mode = CaseMode::MLA_NOQUANT;
-    cs.mParam.storageMode = CaseKvStorageMode::PAGE_ATTENTION;
-    cs.mParam.sparse_mode = 1;
-    ASSERT_TRUE(cs.Init());
-
-    cs.attenMask = Tensor("attenMask", {}, "B", ge::DT_INT8, ge::FORMAT_ND);
-    cs.mOpInfo.mExp.mSuccess = false;
-    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
-}
-
 TEST_F(Ts_Fia_Ascend910B1, case_CheckAttentionMask_mla_045)
 {
     FiaCase cs;
@@ -1376,96 +1337,6 @@ TEST_F(Ts_Fia_Ascend910B1, case_CheckFeatureMlaNoQuantShape_mla_053)
     ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
 }
 
-TEST_F(Ts_Fia_Ascend910B1, case_CheckFeatureMlaNoQuantShape_mla_055)
-{
-    FiaCase cs;
-    cs.mParam.mode = CaseMode::MLA_NOQUANT;
-    cs.mParam.storageMode = CaseKvStorageMode::PAGE_ATTENTION;
-    cs.mParam.blockSize = 64;
-    ASSERT_TRUE(cs.Init());
-
-    cs.mOpInfo.mExp.mSuccess = false;
-    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
-}
-
-TEST_F(Ts_Fia_Ascend910B1, case_CheckFeatureMlaNoQuantLayout_mla_058)
-{
-    FiaCase cs;
-    cs.mParam.mode = CaseMode::MLA_NOQUANT;
-    cs.mParam.storageMode = CaseKvStorageMode::PAGE_ATTENTION;
-    cs.mParam.b = 32;
-    cs.mParam.n = 32;
-    cs.mParam.s = 256;
-    cs.mParam.d = 512;
-    cs.mParam.layout = "BNSD";
-    cs.mParam.numHeads = 32;
-
-    ASSERT_TRUE(cs.Init());
-    cs.key = TensorList("key", {64, 1, 32, 128, 16}, "BSH", ge::DT_FLOAT16, ge::FORMAT_ND);
-    cs.value = TensorList("value", {64, 1, 32, 128, 16}, "BSH", ge::DT_FLOAT16, ge::FORMAT_ND);
-    cs.queryRope = Tensor("queryRope", {32, 32, 1, 64}, "BSH", ge::DT_FLOAT16, ge::FORMAT_ND);
-    cs.keyRope = Tensor("keyRope", {64, 1, 4, 128, 16}, "BSH", ge::DT_FLOAT16, ge::FORMAT_ND);
-
-    cs.mOpInfo.mExp.mSuccess = false;
-    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
-}
-
-TEST_F(Ts_Fia_Ascend910B1, case_CheckFeatureMlaNoquantMask_mla_064)
-{
-    FiaCase cs;
-    cs.mParam.mode = CaseMode::MLA_NOQUANT;
-    cs.mParam.storageMode = CaseKvStorageMode::PAGE_ATTENTION;
-    cs.mParam.t = 3;
-    cs.mParam.n = 32;
-    cs.mParam.d = 512;
-    cs.mParam.b = 3;
-    cs.mParam.s = 128;
-    cs.mParam.layout = "TND";
-    cs.mParam.blockSize = 128;
-    cs.mParam.numHeads = 32;
-    cs.mParam.sparse_mode = 0;
-    cs.mParam.actualSeqLength = {3, 3, 3};
-    cs.mParam.actualSeqLengthKV = {1, 1, 1};
-    ASSERT_TRUE(cs.Init());
-
-    cs.queryRope = Tensor("queryRope", {3, 32, 64}, "TND", ge::DT_FLOAT16, ge::FORMAT_ND);
-    cs.query = Tensor("query", {3, 32, 512}, "TND", ge::DT_FLOAT16, ge::FORMAT_ND);
-    cs.key = TensorList("key", {3, 128, 512}, "TND", ge::DT_FLOAT16, ge::FORMAT_ND);
-    cs.value = TensorList("value", {3, 128, 512}, "TND", ge::DT_FLOAT16, ge::FORMAT_ND);
-    cs.attentionOut = Tensor("attentionOut", {3, 32, 512}, "TND", ge::DT_FLOAT16, ge::FORMAT_ND);
-    cs.keyRope = Tensor("keyRope", {3, 128, 64}, "TND", ge::DT_FLOAT16, ge::FORMAT_ND);
-    cs.blocktable = Tensor("blockTable", {3, 7}, "TND", ge::DT_INT32, ge::FORMAT_ND);
-    cs.actualSeqLengths = Tensor("actualSeqLengths", {3}, "B", ge::DT_FLOAT16, ge::FORMAT_ND);
-    cs.attenMask = Tensor("attenMask", {3, 896}, "BNSD", ge::DT_INT8, ge::FORMAT_ND);
-    cs.mOpInfo.mExp.mSuccess = false;
-    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
-}
-
-TEST_F(Ts_Fia_Ascend910B1, case_CheckFeatureMlaNoquantMask_mla_066)
-{
-    FiaCase cs;
-    cs.mParam.mode = CaseMode::MLA_NOQUANT;
-    cs.mParam.storageMode = CaseKvStorageMode::PAGE_ATTENTION;
-    cs.mParam.n = 32;
-    cs.mParam.d = 512;
-    cs.mParam.b = 3;
-    cs.mParam.s = 128;
-    cs.mParam.layout = "BNSD";
-    cs.mParam.blockSize = 128;
-    cs.mParam.numHeads = 32;
-    ASSERT_TRUE(cs.Init());
-
-    cs.queryRope = Tensor("queryRope", {3, 32, 2, 64}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
-    cs.query = Tensor("query", {3, 32, 2, 512}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
-    cs.key = TensorList("key", {3, 1, 128, 512}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
-    cs.value = TensorList("value", {3, 1, 128, 512}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
-    cs.attentionOut = Tensor("attentionOut", {3, 32, 2, 512}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
-    cs.keyRope = Tensor("keyRope", {3, 1, 128, 64}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
-    cs.attenMask = Tensor("attenMask", {2, 384}, "BNSD", ge::DT_INT8, ge::FORMAT_ND);
-    cs.mOpInfo.mExp.mSuccess = false;
-    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
-}
-
 TEST_F(Ts_Fia_Ascend910B1, case_CheckFeatureMlaNoquantMask_mla_068)
 {
     FiaCase cs;
@@ -1497,18 +1368,6 @@ TEST_F(Ts_Fia_Ascend910B1, case_CheckFeatureMlaNoquantUnsupported_mla_073)
     cs.mParam.mode = CaseMode::MLA_NOQUANT;
     cs.mParam.storageMode = CaseKvStorageMode::PAGE_ATTENTION;
     cs.mParam.outDataType = ge::DataType::DT_INT8;
-    ASSERT_TRUE(cs.Init());
-
-    cs.mOpInfo.mExp.mSuccess = false;
-    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
-}
-
-TEST_F(Ts_Fia_Ascend910B1, case_CheckFeatureMlaNoquantUnsupported_mla_075)
-{
-    FiaCase cs;
-    cs.mParam.mode = CaseMode::MLA_NOQUANT;
-    cs.mParam.storageMode = CaseKvStorageMode::PAGE_ATTENTION;
-    cs.mParam.innerPrecise = 3;
     ASSERT_TRUE(cs.Init());
 
     cs.mOpInfo.mExp.mSuccess = false;
@@ -1625,17 +1484,6 @@ TEST_F(Ts_Fia_Ascend910B1, case_CheckFeatureMlaNoQuantLayout_mla_080)
     cs.attentionOut = Tensor("attentionOut", {3, 32, 1, 512}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
     cs.keyRope = Tensor("keyRope", {3, 1, 128, 64}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
 
-    cs.mOpInfo.mExp.mSuccess = false;
-    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
-}
-
-TEST_F(Ts_Fia_Ascend910B1, case_CheckFeatureMlaNoQuantShape_mla_081)
-{
-    FiaCase cs;
-    cs.mParam.mode = CaseMode::MLA_NOQUANT;
-    cs.mParam.storageMode = CaseKvStorageMode::PAGE_ATTENTION;
-    cs.mParam.b = 65537;
-    ASSERT_TRUE(cs.Init());
     cs.mOpInfo.mExp.mSuccess = false;
     ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
 }
@@ -1857,21 +1705,6 @@ TEST_F(Ts_Fia_Ascend910B1, case_QKVPreProcess_mla_038)
     ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
 }
 
-
-TEST_F(Ts_Fia_Ascend910B1, case_InputAttrsPreProcess_mla_039)
-{
-    FiaCase cs;
-    cs.mParam.mode = CaseMode::MLA_NOQUANT;
-    cs.mParam.storageMode = CaseKvStorageMode::PAGE_ATTENTION;
-    cs.mParam.layout = "BNSD";
-    cs.mParam.innerPrecise = 2;
-    ASSERT_TRUE(cs.Init());
-
-    cs.mOpInfo.mExp.mSuccess = false;
-    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
-}
-
-
 TEST_F(Ts_Fia_Ascend910B1, case_InputAttrsPreProcess_mla_042)
 {
     FiaCase cs;
@@ -1895,19 +1728,6 @@ TEST_F(Ts_Fia_Ascend910B1, case_ProcessPageAttentionFlag_mla_043)
     ASSERT_TRUE(cs.Init());
 
     cs.key = TensorList("key", {3, 128}, "TND", cs.mParam.kDataType, ge::FORMAT_ND);
-    cs.mOpInfo.mExp.mSuccess = false;
-    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
-}
-
-
-TEST_F(Ts_Fia_Ascend910B1, case_ProcessPageAttentionFlag_mla_044)
-{
-    FiaCase cs;
-    cs.mParam.mode = CaseMode::MLA_NOQUANT;
-    cs.mParam.storageMode = CaseKvStorageMode::PAGE_ATTENTION;
-    cs.mParam.layout = "BSND";
-    ASSERT_TRUE(cs.Init());
-
     cs.mOpInfo.mExp.mSuccess = false;
     ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
 }

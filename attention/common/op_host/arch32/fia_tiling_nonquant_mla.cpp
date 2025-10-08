@@ -21,7 +21,7 @@
 #include "err/ops_err.h"
 #include "fia_tiling_nonquant_mla.h"
 #include "../fia_tiling_templates_registry.h"
-#include "../split_core.h"
+#include "../split_core_v1.h"
 
 using namespace ge;
 using namespace AscendC;
@@ -108,7 +108,7 @@ void FiaTilingNonQuantMla::GenTilingKey()
     uint8_t kvLayoutVal = 0;
 
     const std::map<TilingKeyLayout, uint8_t> kvLayoutMap = {
-        {TilingKeyLayout::BNSD, 0U}, {TilingKeyLayout::BSH_BSND, 1U}, {TilingKeyLayout::NZ, 2U}
+        {TilingKeyLayout::BNSD, 0U}, {TilingKeyLayout::BSH_BSND, 1U}, {TilingKeyLayout::NZ, 2U}, {TilingKeyLayout::TND, 3U}
     };
 
     const std::map<TilingKeyLayout, uint8_t> qLayoutMap = {
@@ -308,11 +308,7 @@ void FiaTilingNonQuantMla::Split()
     res.numOfFdHead = 0U;
     res.maxS2SplitNum = 1U;
     res.usedCoreNum = aicNum_;
-    if (fiaInfo_->slidingFlag) {
-        SplitCoreOfBand(baseInfo, innerSplitParams, aicNum_, outerSplitParams, fDParams, res); // band暂时延用优化前的分核
-    } else {
-        SplitCore(baseInfo, innerSplitParams, aicNum_, outerSplitParams, fDParams, res);
-    }
+    SplitCore(baseInfo, innerSplitParams, aicNum_, outerSplitParams, fDParams, res);
     if (res.numOfFdHead > aicNum_ || res.usedCoreNum > aicNum_ || res.maxS2SplitNum > aicNum_ + 1U) {
         OP_LOGE(fiaInfo_->opName, "used_core_num: %u, num_of_fd_head: %u, max_s2_split_num: %u, aic_num: %u", 
             res.usedCoreNum, res.numOfFdHead, res.maxS2SplitNum, aicNum_);
@@ -337,14 +333,17 @@ void FiaTilingNonQuantMla::FillTilingBaseParams()
     tilingData_.baseParams.set_bSize(fiaInfo_->bSize);
     tilingData_.baseParams.set_s2Size(fiaInfo_->s2Size);
     tilingData_.baseParams.set_s1Size(fiaInfo_->s1Size);
+    tilingData_.baseParams.set_n2Size(fiaInfo_->n2Size);
+    tilingData_.baseParams.set_headDim(fiaInfo_->vHeadDim);
+    tilingData_.baseParams.set_headDimRope(fiaInfo_->ropeHeadDim);
     tilingData_.baseParams.set_scaleValue(fiaInfo_->scaleValue);
     tilingData_.baseParams.set_gSize(fiaInfo_->n1Size / fiaInfo_->n2Size);
+    tilingData_.baseParams.set_batchContinuous((fiaInfo_->kvStorageMode == KvStorageMode::TENSOR_LIST) ? 0 : 1);
     tilingData_.baseParams.set_actualSeqS1Dims(fiaInfo_->actualLenQDims);
     tilingData_.baseParams.set_actualSeqS2Dims(fiaInfo_->actualLenDims);
     tilingData_.baseParams.set_accumQSeqFlag(fiaInfo_->isAccumQSeq ? 1 : 0);
     tilingData_.baseParams.set_accumKVSeqFlag(fiaInfo_->isAccumKVSeq ? 1 : 0);
     tilingData_.baseParams.set_outputLayout(static_cast<uint32_t>(fiaInfo_->outputLayout));
-    tilingData_.baseParams.set_slidingFlag(fiaInfo_->slidingFlag);
     tilingData_.baseParams.set_needInit(fiaInfo_->needInit);
     tilingData_.baseParams.set_usedCoreNum(usedCoreNum_);
 }
@@ -359,8 +358,13 @@ void FiaTilingNonQuantMla::FillTilingMaskParams()
 {
     tilingData_.maskParams.set_attenMaskFlag(fiaInfo_->attenMaskFlag ? 1 : 0);
     tilingData_.maskParams.set_attenMaskSize(fiaInfo_->attenMaskSize);
+    tilingData_.maskParams.set_attenMaskStride(fiaInfo_->attenMaskStride);
+    tilingData_.maskParams.set_sparseMode(fiaInfo_->sparseMode);
     tilingData_.maskParams.set_preToken(fiaInfo_->preToken);
     tilingData_.maskParams.set_nextToken(fiaInfo_->nextToken);
+    tilingData_.baseParams.set_slidingFlag(fiaInfo_->slidingFlag);
+    uint32_t isRowInvalid = static_cast<uint32_t>(fiaInfo_->innerPrecise) >> 1;
+    tilingData_.maskParams.set_isRowInvalid(isRowInvalid);
 }
 
 void FiaTilingNonQuantMla::FillTilingWorkspaceParams()

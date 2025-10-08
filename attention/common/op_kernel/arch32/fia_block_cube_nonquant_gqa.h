@@ -804,11 +804,17 @@ __aicore__ inline uint32_t FiaBlockCubeNonQuantGqa<FIAT, Config>::CopyPToL1(
     auto dstL1 = this->kpL1Tensor[pingpong];
     if constexpr (Format == CubeFormat::NZ) {
         auto srcGm = this->vec1ResGm[info.loop % CFG::PRELOAD_NUM][gmStride * subKStart + GetC0Num<KV_T>() * subMStart];
-        DataCopyGmNZToL1(dstL1, srcGm, subMSize, 0, gmStride, subKSize);
+        uint32_t blockElementCnt = 32 / sizeof(T);
+        DataCopyParams intriParams;
+        intriParams.blockCount = subKSize / blockElementCnt;
+        intriParams.blockLen = subMSize;
+        intriParams.dstStride = 0;
+        intriParams.srcStride = gmStride;
+        DataCopy(dstL1, srcGm, intriParams);
     } else {
         auto srcGm = this->vec1ResGm[info.loop % CFG::PRELOAD_NUM][gmStride * subMStart + subKStart];
         auto subMSizeAlign = Align(subMSize, (uint32_t)BLOCK_CUBE);
-        DataCopyGmNDToL1(dstL1, srcGm, subMSize, subMSizeAlign, subKSize, gmStride);
+        CopySingleMatrixNDToNZ(dstL1, srcGm, subMSize, subKSize, gmStride, subMSizeAlign);
     }
 
 #if DEBUG_MATMUL_GQA

@@ -34,9 +34,6 @@ constexpr uint32_t REPEATE_STRIDE_UP_BOUND = 256;
 constexpr int64_t HALF_NUM = 2;
 constexpr int64_t STRIDE_LENGTH = 8;
 constexpr int64_t MAX_VALID_LENGTH = 1024;
-constexpr uint32_t NEGATIVE_MIN_VAULE_FP32 = 0xFF7FFFFF;
-constexpr uint32_t NEGATIVE_MIN_VAULE_FP16 = 0xC77FE000;
- 
 enum SparseMode : uint8_t {
     DEFAULT_MASK = 0,
     ALL_MASK,
@@ -789,6 +786,7 @@ struct MaskInfo {
     LAYOUT_Q layout;
     MaskDataType attenMaskType;
     SparseMode sparseMode;
+    uint32_t maskValue;
 };
 
 __aicore__ inline uint64_t ComputeAttenMaskOffsetNoCompress(MaskInfo &info, uint32_t s1StartIdx)
@@ -992,13 +990,6 @@ __aicore__ inline void AttentionmaskCompute(LocalTensor<T> &dstUb, LocalTensor<T
     uint32_t dealRowCount = info.gs1dealNum;
     uint32_t columnCount = Align(info.s2dealNum, 32U);
     uint32_t attenMaskSizeAlign = Align(info.s2dealNum, 32U);
-    
-    uint32_t minScalarInt = NEGATIVE_MIN_VAULE_FP32;
-    T minSaclar = *((T *)&minScalarInt);
-    if (std::is_same<T, half>::value) {
-        minScalarInt = NEGATIVE_MIN_VAULE_FP16;
-        minSaclar = *((T *)&minScalarInt);
-    }
     if (info.attenMaskType != MASK_FP16) {
         // int8 & uint8 is ok
         SelectWithBytesMaskShapeInfo selectWithBytesMaskShapeInfo;
@@ -1008,12 +999,178 @@ __aicore__ inline void AttentionmaskCompute(LocalTensor<T> &dstUb, LocalTensor<T
         attenMaskUb.SetSize(dealRowCount * attenMaskSizeAlign); // Select接口要求mask size与参数匹配
         srcUb.SetSize(dealRowCount * columnCount);            // Select接口要求src size与参数匹配
         if (isPre) {
-            SelectWithBytesMask(dstUb, minSaclar, srcUb, attenMaskUb, tmpBuf, selectWithBytesMaskShapeInfo);
+            SelectWithBytesMask(dstUb, *((T *)&info.maskValue), srcUb, attenMaskUb, tmpBuf, selectWithBytesMaskShapeInfo);
         } else {
-            SelectWithBytesMask(dstUb, srcUb, minSaclar, attenMaskUb, tmpBuf, selectWithBytesMaskShapeInfo);
+            SelectWithBytesMask(dstUb, srcUb, *((T *)&info.maskValue), attenMaskUb, tmpBuf, selectWithBytesMaskShapeInfo);
         }
         srcUb.SetSize(AttentionCommon::ConstInfo::BUFFER_SIZE_BYTE_32K / sizeof(T)); // mmResUb Size复原,mask不用复原,与原来一致
     }
 }
+
+enum class UbInputFormat
+{
+    GS1 = 0,
+    S1G = 1
+};
+
+struct InvalidRowParams {
+    uint64_t actS1Size;
+    uint64_t gSize;
+    uint32_t gS1Idx;
+    uint32_t dealRowCount;
+    uint32_t columnCount;
+    int64_t preTokensPerBatch;
+    int64_t nextTokensPerBatch;
+};
+
+template <FIA_LAYOUT LAYOUT_T>
+__aicore__ inline constexpr UbInputFormat GeInputUbFormat() 
+{
+    static_assert((LAYOUT_T == FIA_LAYOUT::BSH) ||
+                  (LAYOUT_T == FIA_LAYOUT::BNSD) ||
+                  (LAYOUT_T == FIA_LAYOUT::TND) ||
+                  (LAYOUT_T == FIA_LAYOUT::NTD) ||
+                  (LAYOUT_T == FIA_LAYOUT::BSND) ,
+                  "Get Query GmFormat fail, LAYOUT_T is incorrect");
+    if constexpr (LAYOUT_T == FIA_LAYOUT::BSH || LAYOUT_T == FIA_LAYOUT::TND || LAYOUT_T == FIA_LAYOUT::BSND) {
+        return UbInputFormat::S1G;
+    } else if constexpr (LAYOUT_T == FIA_LAYOUT::BNSD || LAYOUT_T == FIA_LAYOUT::NTD) {
+        return UbInputFormat::GS1;
+    }
+}
+
+template <typename T, UbInputFormat UB_INPUTFORMAT> 
+class InvalidRows 
+{
+public:
+    __aicore__ inline void operator()(LocalTensor<T> &attenOutUb, InvalidRowParams &params)
+    {
+        if (params.preTokensPerBatch < 0) { // 下方存在行无效
+            DealInvalidRowsBelow(attenOutUb, params);
+        }
+
+        if (params.nextTokensPerBatch < 0) {  // 上方存在行无效
+            pipe_barrier(PIPE_V);
+            DealInvalidRowsAbove(attenOutUb, params);
+        }
+    }
+private:
+    __aicore__ inline void DealInvalidRowsAbove(LocalTensor<T> &attenOutUb, InvalidRowParams &params);
+    __aicore__ inline void DealInvalidRowsBelow(LocalTensor<T> &attenOutUb, InvalidRowParams &params);
+};
+
+template <typename T, UbInputFormat UB_INPUTFORMAT> 
+__aicore__ inline void InvalidRows<T, UB_INPUTFORMAT>::DealInvalidRowsBelow(LocalTensor<T> &attenOutUb,
+                                      InvalidRowParams &params)
+{   
+    if constexpr (UB_INPUTFORMAT == UbInputFormat::GS1) {
+        int32_t s1BottomPos = params.actS1Size + params.preTokensPerBatch - 1;
+        int32_t s1End = (params.gS1Idx + params.dealRowCount - 1) % params.actS1Size;
+
+        for (int32_t s1RealEnd = params.dealRowCount - 1; s1RealEnd > 0;) {
+            if (s1End > s1BottomPos) {
+                int32_t s1Num = s1End - s1BottomPos;
+                if (s1RealEnd - s1Num < 0) {
+                    s1Num = s1RealEnd + 1;
+                }
+                int32_t s1RealStart = s1RealEnd - s1Num + 1;
+                Duplicate(attenOutUb[s1RealStart * params.columnCount], static_cast<T>(FLOAT_ZERO), params.columnCount * s1Num);
+                pipe_barrier(PIPE_V);
+            }
+            s1RealEnd -= s1End + 1;
+            s1End = params.actS1Size - 1;
+        }
+    } else if constexpr (UB_INPUTFORMAT == UbInputFormat::S1G) {
+        int32_t s1BottomTok = params.actS1Size + params.preTokensPerBatch;
+        uint32_t s1 = params.gS1Idx / params.gSize;
+        uint32_t gIdx = params.gS1Idx % params.gSize;
+        
+        uint8_t s1Stride = params.dealRowCount / params.gSize;
+
+        for (uint32_t i = 0; i < params.dealRowCount;) {
+            while (s1 + s1Stride > s1BottomTok && s1 < s1BottomTok) {
+                if (s1 == s1BottomTok) {
+                    break;
+                }
+                s1++;
+                i += params.gSize;
+            }
+
+            if (s1 >= s1BottomTok && s1 < params.actS1Size)
+            {
+                uint32_t gNum = params.gSize - gIdx;
+                if (i + gNum > params.dealRowCount) {
+                    gNum = params.dealRowCount - i;
+                }
+                Duplicate(attenOutUb[i * params.columnCount], static_cast<T>(FLOAT_ZERO), params.columnCount * gNum);
+                pipe_barrier(PIPE_V);
+                i += gNum;
+                s1++;
+                gIdx = 0;
+                continue;
+            }
+            break;
+        }
+    }
+}
+
+template <typename T, UbInputFormat UB_INPUTFORMAT> 
+__aicore__ inline void InvalidRows<T, UB_INPUTFORMAT>::DealInvalidRowsAbove(LocalTensor<T> &attenOutUb,
+                                      InvalidRowParams &params)
+{
+    uint32_t s1Tok = -params.nextTokensPerBatch;    
+    if constexpr (UB_INPUTFORMAT == UbInputFormat::GS1) {
+        uint32_t s1 = params.gS1Idx  % params.actS1Size;
+        for (uint32_t i = 0; i < params.dealRowCount;) {            
+            if (s1 < s1Tok) {
+                uint32_t s1Num = s1Tok - s1;
+                if (i + s1Num > params.dealRowCount) {
+                    s1Num = params.dealRowCount - i;
+                }
+                Duplicate(attenOutUb[i * params.columnCount], static_cast<T>(FLOAT_ZERO), params.columnCount * s1Num);
+                pipe_barrier(PIPE_V);
+            }
+            i += params.actS1Size - s1;
+            s1 = 0;
+        }
+    } else if constexpr (UB_INPUTFORMAT == UbInputFormat::S1G) {
+        uint32_t s1 = params.gS1Idx / params.gSize;
+        uint32_t gIdx = params.gS1Idx % params.gSize;
+        for (uint32_t i = 0; i < params.dealRowCount;) {
+            if (s1 < s1Tok) {
+                uint32_t gNum = params.gSize - gIdx;
+                if (i + gNum > params.dealRowCount) {
+                    gNum = params.dealRowCount - i;
+                }
+                Duplicate(attenOutUb[i * params.columnCount], static_cast<T>(FLOAT_ZERO), params.columnCount * gNum);
+                pipe_barrier(PIPE_V);
+                i += gNum;
+                s1++;
+                gIdx = 0;
+                continue;
+            }
+            break;
+        }
+    }
+}
+
+template <typename OUT_T, typename SOFTMAX_T, const bool SOFTMAX_WITH_BRC> 
+__aicore__ inline void InvalidMaskRows(uint32_t softmaxOutOffset, uint32_t dealRowCount, uint32_t columnCount,
+    LocalTensor<SOFTMAX_T> &softmaxMaxUb, uint32_t softmaxMinSaclar, LocalTensor<OUT_T> &bmm2ResUb)
+{
+    SoftMaxShapeInfo softmaxShapeInfo{
+    static_cast<uint32_t>(dealRowCount), static_cast<uint32_t>(columnCount),
+    static_cast<uint32_t>(dealRowCount), static_cast<uint32_t>(columnCount)};
+
+    pipe_barrier(PIPE_V);
+    if constexpr (SOFTMAX_WITH_BRC) {
+        AdjustSoftMaxRes<OUT_T, SOFTMAX_T>(bmm2ResUb, softmaxMaxUb[softmaxOutOffset], softmaxMinSaclar,
+                                               (OUT_T)FLOAT_ZERO, softmaxShapeInfo);
+    } else {
+        AdjustSoftMaxRes<OUT_T, SOFTMAX_T, false, 1>(bmm2ResUb, softmaxMaxUb[softmaxOutOffset], softmaxMinSaclar,
+                                                         (OUT_T)FLOAT_ZERO, softmaxShapeInfo);
+    }
+}
+
 } // namespace fa_base_vector
 #endif

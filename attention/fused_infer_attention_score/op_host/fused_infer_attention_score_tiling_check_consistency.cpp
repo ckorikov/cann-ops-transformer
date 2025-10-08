@@ -394,28 +394,6 @@ ge::graphStatus FiaTilingCheck::CheckActualSeqLensKv() const
     return ge::GRAPH_SUCCESS;
 }
 
-ge::graphStatus FiaTilingCheck::CheckActualSeqLensLimit()
-{
-    if (!fiaInfo_.slidingFlag || fiaInfo_.isMaxWorkspace) {
-        return ge::GRAPH_SUCCESS;
-    }
-    OP_CHECK_IF(s2Size_ > KVS_LIMIT,
-        OP_LOGE(opName_,
-            "When sliding attention is enabled, length of KV(%ld) should not be greater than %u.",
-            s2Size_, KVS_LIMIT),
-        return ge::GRAPH_FAILED);
-    for (uint32_t i = 0; i < bSize_; i++) {
-        uint32_t qS = qSize.size() == 1 ? qSize[0] : qSize[i];
-        uint32_t kvS = kvSize.size() == 1 ? kvSize[0] : kvSize[i];
-        if (qS > kvS) {
-            OP_LOGE(opName_,
-                "When sliding attention is enabled, length of Q(%u) should not be greater than KV(%u).", qS, kvS);
-            return ge::GRAPH_FAILED;
-        }
-    }
-    return ge::GRAPH_SUCCESS;
-}
-
 ge::graphStatus FiaTilingCheck::CheckPseShift()
 {
     if (opParamInfo_.pseShift.tensor == nullptr || opParamInfo_.pseShift.desc == nullptr) {
@@ -651,7 +629,6 @@ ge::graphStatus FiaTilingCheck::CheckMultiParaConsistency()
     SetFiaShapeCompare();
     if (ge::GRAPH_SUCCESS != CheckActualSeqLensQ() ||
         ge::GRAPH_SUCCESS != CheckActualSeqLensKv() ||
-        ge::GRAPH_SUCCESS != CheckActualSeqLensLimit() ||
         ge::GRAPH_SUCCESS != CheckBlockTable() ||
         ge::GRAPH_SUCCESS != CheckQAndQRope() ||
         ge::GRAPH_SUCCESS != CheckKV() ||

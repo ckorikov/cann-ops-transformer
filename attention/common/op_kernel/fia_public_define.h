@@ -181,7 +181,6 @@ struct ConstInfo {
     bool attenMaskFlag = false;
     uint64_t attenMaskSize = 0ULL;
     uint32_t attenMaskStride = 0ULL;
-    bool slidingFlag = false;
     bool needInit = false;
     bool isRowInvalid = false;  // 是否使能行无效
     int64_t preToken = 0;

@@ -505,22 +505,11 @@ ge::graphStatus FiaTilingCheck::CheckSingleParaNumHeads() const
 
 ge::graphStatus FiaTilingCheck::CheckSingleParaPreToken() const
 {
-    if (fiaInfo_.slidingFlag) {
-        OP_CHECK_IF(fiaInfo_.preToken < 1 || fiaInfo_.preToken > PRETOKEN_LIMIT_2K, OP_LOGE(opName_,
-            "When sliding attention is enabled, preToken(%ld) should should be in range[1, %u]",
-            fiaInfo_.preToken, PRETOKEN_LIMIT_2K),
-            return ge::GRAPH_FAILED);
-    }
     return ge::GRAPH_SUCCESS;
 }
 
 ge::graphStatus FiaTilingCheck::CheckSingleParaNextToken() const
 {
-    if (fiaInfo_.slidingFlag) {
-        OP_CHECK_IF(fiaInfo_.nextToken != 0, OP_LOGE(opName_,
-            "When sliding attention is enabled, nextToken(%ld) should be 0!", fiaInfo_.nextToken),
-            return ge::GRAPH_FAILED);
-    }
     return ge::GRAPH_SUCCESS;
 }
 

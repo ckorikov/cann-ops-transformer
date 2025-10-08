@@ -724,8 +724,8 @@ ge::graphStatus FiaInfoParser::GetAttenMaskInfo()
 
 ge::graphStatus FiaInfoParser::GetPaddingSizeFlag()
 {
-    auto *paddingSizeTensor = opParamInfo_.kvPaddingSize.tensor;
-    kvPaddingSizeFlag_ = (paddingSizeTensor != nullptr) && (paddingSizeTensor->GetStorageShape().GetShapeSize() != 0);
+    qPaddingSizeFlag_ = (opParamInfo_.queryPaddingSize.tensor != nullptr);
+    kvPaddingSizeFlag_ = (opParamInfo_.kvPaddingSize.tensor != nullptr);
     return ge::GRAPH_SUCCESS;
 }
 
@@ -801,7 +801,7 @@ ge::graphStatus FiaInfoParser::GetOldIfaGqaFlag()
 {
     std::string layout = opParamInfo_.layOut;
     bool isOldIfaGqaLayout = (layout == "BSH") || (layout == "BNSD") || (layout == "BSND");
-    if (isOldIfaGqaLayout && ropeMode_ != RopeMode::ROPE_SPLIT && s1Size_ == 1) {
+    if (isOldIfaGqaLayout && ropeMode_ != RopeMode::ROPE_SPLIT && s1Size_ == 1U) {
         isOldIfaGqaFlag_ = true;
     } else {
         isOldIfaGqaFlag_ = false;
@@ -830,6 +830,43 @@ TilingKeyLayout FiaInfoParser::MapStringToLayout(FiaLayout &layoutString) const
     return TilingKeyLayout::BSH_BSND;
 }
 
+void FiaInfoParser::GenerateFeatureInfo(FiaTilingInfo &fiaInfo)
+{
+    // pa
+    fiaInfo.pageAttentionFlag = (kvStorageMode_ == KvStorageMode::PAGE_ATTENTION);
+    fiaInfo.blockSize = blockSize_;
+    fiaInfo.blockTypeSize =  sizeof(float);
+ 
+    // inner precise
+    fiaInfo.innerPrecise = *opParamInfo_.innerPrecise;
+    fiaInfo.isOldIfaGqaFlag = isOldIfaGqaFlag_;
+ 
+    // atten mask
+    fiaInfo.attenMaskFlag = attenMaskFlag_;
+    fiaInfo.attenMaskSize = attenMaskSize_;
+    fiaInfo.attenMaskStride = attenMaskStride_;
+    fiaInfo.sparseMode = *opParamInfo_.sparseMode;
+    // 4: only mla noquant & band mode suppport slidingFlag
+    fiaInfo.slidingFlag = (*opParamInfo_.sparseMode == 4) && (ropeMode_ == RopeMode::ROPE_SPLIT) && (qkHeadDim_ == 512U);
+    fiaInfo.qPaddingSizeFlag = qPaddingSizeFlag_;
+    fiaInfo.kvPaddingSizeFlag = kvPaddingSizeFlag_;
+    fiaInfo.pseShiftFlag = pseShiftFlag_;
+    fiaInfo.softmaxLseFlag = *opParamInfo_.softmaxLseFlag;
+    fiaInfo.isMaxWorkspace = isMaxWorkspace_;
+    fiaInfo.preToken = preToken_;
+    fiaInfo.nextToken = nextToken_;
+}
+ 
+void FiaInfoParser::GenerateLayoutInfo(FiaTilingInfo &fiaInfo)
+{
+    fiaInfo.qLayout = qLayout_;
+    fiaInfo.kvLayout = kvLayout_;
+    fiaInfo.outLayout = outLayout_;
+    fiaInfo.inputKvLayout = MapStringToLayout(kvLayout_);
+    fiaInfo.inputLayout = MapStringToLayout(qLayout_);
+    fiaInfo.outputLayout = MapStringToLayout(outLayout_);
+}
+
 void FiaInfoParser::GenerateInfo(FiaTilingInfo &fiaInfo)
 {
     fiaInfo.opName = opName_;
@@ -839,6 +876,7 @@ void FiaInfoParser::GenerateInfo(FiaTilingInfo &fiaInfo)
     GenerateAxisInfo(fiaInfo);
     GenerateDtypeInfo(fiaInfo);
     fiaInfo.kvStorageMode = kvStorageMode_;
+    fiaInfo.batchContinuousFlag = (kvStorageMode_ == KvStorageMode::BATCH_CONTINUOUS);
     fiaInfo.ropeMode = ropeMode_;
     fiaInfo.l2CacheSize = l2CacheSize_;
 
@@ -848,10 +886,7 @@ void FiaInfoParser::GenerateInfo(FiaTilingInfo &fiaInfo)
     fiaInfo.l2CacheOffFlag = false;
     fiaInfo.totalBlockNum = kCache_[0]->GetStorageShape().GetDim(0);
     fiaInfo.scaleValue = *opParamInfo_.scaleValue;
-    fiaInfo.innerPrecise = *opParamInfo_.innerPrecise;
-    fiaInfo.pageAttentionFlag = (kvStorageMode_ == KvStorageMode::PAGE_ATTENTION);
-    fiaInfo.blockSize = blockSize_;
-    fiaInfo.blockTypeSize = sizeof(float);
+    fiaInfo.needInit = needInit_;
     fiaInfo.maxBlockNumPerBatch = maxBlockNumPerBatch_;
 
     fiaInfo.actualLenQDims = actualLenQDims_;
@@ -865,27 +900,8 @@ void FiaInfoParser::GenerateInfo(FiaTilingInfo &fiaInfo)
     fiaInfo.isAccumQSeq = isAccumQSeq_;
     fiaInfo.isAccumKVSeq = isAccumKVSeq_;
 
-    fiaInfo.attenMaskFlag = attenMaskFlag_;
-    fiaInfo.attenMaskSize = attenMaskSize_;
-    fiaInfo.attenMaskStride = attenMaskStride_;
-    fiaInfo.sparseMode = *opParamInfo_.sparseMode;
-    fiaInfo.batchContinuousFlag = (kvStorageMode_ == KvStorageMode::BATCH_CONTINUOUS);
-    fiaInfo.kvPaddingSizeFlag = kvPaddingSizeFlag_;
-    fiaInfo.softmaxLseFlag = *opParamInfo_.softmaxLseFlag;
-    fiaInfo.isMaxWorkspace = isMaxWorkspace_;
-    fiaInfo.needInit = needInit_;
-    fiaInfo.preToken = preToken_;
-    fiaInfo.nextToken = nextToken_;
-    fiaInfo.isOldIfaGqaFlag = isOldIfaGqaFlag_;
-    // 4: only mla noquant & band mode suppport slidingFlag
-    fiaInfo.slidingFlag = (*opParamInfo_.sparseMode == 4) && (ropeMode_ == RopeMode::ROPE_SPLIT) && (qkHeadDim_ == 512U);
-
-    fiaInfo.qLayout = qLayout_;
-    fiaInfo.kvLayout = kvLayout_;
-    fiaInfo.outLayout = outLayout_;
-    fiaInfo.inputKvLayout = MapStringToLayout(kvLayout_);
-    fiaInfo.inputLayout = MapStringToLayout(qLayout_);
-    fiaInfo.outputLayout = MapStringToLayout(outLayout_);
+    GenerateFeatureInfo(fiaInfo);
+    GenerateLayoutInfo(fiaInfo);
 }
 
 void FiaInfoParser::GenerateAxisInfo(FiaTilingInfo &fiaInfo)

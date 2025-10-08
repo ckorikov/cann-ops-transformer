@@ -79,6 +79,8 @@ public:
     TilingKeyLayout MapStringToLayout(FiaLayout &layoutString) const;
     void GenerateAxisInfo(FiaTilingInfo &fiaInfo);
     void GenerateDtypeInfo(FiaTilingInfo &fiaInfo);
+    void GenerateFeatureInfo(FiaTilingInfo &fiaInfo);
+    void GenerateLayoutInfo(FiaTilingInfo &fiaInfo);
     void GenerateInfo(FiaTilingInfo &fiaInfo);
     ge::graphStatus ParseAxisInfo();
     ge::graphStatus ParseFeatureInfo();
@@ -137,6 +139,8 @@ public:
     uint32_t attenMaskSize_ = 0;
     uint32_t attenMaskStride_ = 0;
     bool kvPaddingSizeFlag_ = false;
+    bool qPaddingSizeFlag_ = false;
+    bool pseShiftFlag_ = false;
     int64_t maxActualseq_ = 0;
     bool isMaxWorkspace_ = false;
     bool isOldIfaGqaFlag_ = false;

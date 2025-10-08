@@ -29,8 +29,9 @@ using namespace AscendC;
 namespace optiling {
 ge::graphStatus FiaTilingCheck::CheckFeatureMlaNoQuantShape() const
 {
-    constexpr uint32_t MAX_B_SIZE = 65536U;
-    constexpr uint32_t MAX_QT_BYTE = 1024U * 1024U;
+    if (vHeadDim_ != 512U) {
+        return ge::GRAPH_SUCCESS;
+    }
 
     OP_CHECK_IF(opParamInfo_.keyRope.tensor->GetStorageShape().GetShapeSize() == 0,
         OP_LOGE(opName_, "In %s situation, %s tensor should not be empty",
@@ -42,86 +43,41 @@ ge::graphStatus FiaTilingCheck::CheckFeatureMlaNoQuantShape() const
             RopeModeToSerialString(ropeMode_).c_str(), KEY_NAME.c_str()),
         return ge::GRAPH_FAILED);
 
-    OP_CHECK_IF(bSize_ > MAX_B_SIZE,
-        OP_LOGE(opName_, "batch size(%u) cannot be greater than %u.", bSize_, MAX_B_SIZE),
-        return ge::GRAPH_FAILED);
-
     OP_CHECK_IF(qkHeadDim_ != 512U && qkHeadDim_ != 128U,
         OP_LOGE(opName_, "In %s situation, rope exsists, the query/key's head dim only support 128 and 512, but got %u",
             QuantModeToSerialString(quantMode_).c_str(), qkHeadDim_),
         return ge::GRAPH_FAILED);
 
-    if (qkHeadDim_ == 512U) {
-        OP_CHECK_IF(n2Size_ != 1,
-            OP_LOGE(opName_, "In %s situation, rope exsists and query/key head dim = %u, %s should be 1, but got %u",
-                QuantModeToSerialString(quantMode_).c_str(), qkHeadDim_,
-                KV_HEADS_NUM_NAME.c_str(), n2Size_), return ge::GRAPH_FAILED);
+    OP_CHECK_IF(n2Size_ != 1,
+        OP_LOGE(opName_, "In %s situation, rope exsists and query/key head dim = %u, %s should be 1, but got %u",
+            QuantModeToSerialString(quantMode_).c_str(), qkHeadDim_,
+            KV_HEADS_NUM_NAME.c_str(), n2Size_), return ge::GRAPH_FAILED);
 
-        if (fiaInfo_.slidingFlag) {
-            std::vector<uint32_t> gSizeSupportList = {128};
-            OP_CHECK_IF(std::find(gSizeSupportList.begin(), gSizeSupportList.end(), gSize_) == gSizeSupportList.end(),
-                OP_LOGE(opName_, "In %s situation, rope exsists and query/key head dim = %u, and sliding attention is enabled, group num should be in 128, but got %u",
-                    QuantModeToSerialString(quantMode_).c_str(), qkHeadDim_, gSize_), return ge::GRAPH_FAILED);
-        } else {
-            std::vector<uint32_t> gSizeSupportList = {1, 2, 4, 8, 16, 32, 64, 128};
-            OP_CHECK_IF(std::find(gSizeSupportList.begin(), gSizeSupportList.end(), gSize_) == gSizeSupportList.end(),
-                OP_LOGE(opName_, "In %s situation, rope exsists and query/key head dim = %u, group num should be in 1, 2, 4, 8, 16, 32, 64, 128, but got %u",
-                    QuantModeToSerialString(quantMode_).c_str(), qkHeadDim_, gSize_), return ge::GRAPH_FAILED);
-        }
+    std::vector<uint32_t> gSizeSupportList = {1, 2, 4, 8, 16, 32, 64, 128};
+    OP_CHECK_IF(std::find(gSizeSupportList.begin(), gSizeSupportList.end(), gSize_) == gSizeSupportList.end(),
+        OP_LOGE(opName_, "In %s situation, rope exsists and query/key head dim = %u, group num should be in 1, 2, 4, 8, 16, 32, 64, 128, but got %u",
+            QuantModeToSerialString(quantMode_).c_str(), qkHeadDim_, gSize_), return ge::GRAPH_FAILED);
 
-        OP_CHECK_IF(qkHeadDim_ != vHeadDim_,
-            OP_LOGE(opName_, "In %s situation, rope exsists, the query/key's head dim(%u) should be equal to the value's head dim(%u)",
-                QuantModeToSerialString(quantMode_).c_str(), qkHeadDim_, vHeadDim_), return ge::GRAPH_FAILED);
+    OP_CHECK_IF(qkHeadDim_ != vHeadDim_,
+        OP_LOGE(opName_, "In %s situation, rope exsists, the query/key's head dim(%u) should be equal to the value's head dim(%u)",
+            QuantModeToSerialString(quantMode_).c_str(), qkHeadDim_, vHeadDim_), return ge::GRAPH_FAILED);
 
-        OP_CHECK_IF(ropeHeadDim_ != 64,
-            OP_LOGE(opName_, "In %s situation, rope exsists and query/key head dim = %u, the rope's head dim should be 64, but got %u",
-                QuantModeToSerialString(quantMode_).c_str(), qkHeadDim_, ropeHeadDim_), return ge::GRAPH_FAILED);
-
-        OP_CHECK_IF(qTSize_ > MAX_QT_BYTE / GetTypeSize(inputQType_),
-            OP_LOGE(opName_, "In %s situation, rope exsists and query/key head dim = %u, query T should be smaller than %u / sizeof(query_dtype) = %u, but got %u",
-                QuantModeToSerialString(quantMode_).c_str(), qkHeadDim_, MAX_QT_BYTE,
-                MAX_QT_BYTE / GetTypeSize(inputQType_), qTSize_), return ge::GRAPH_FAILED);
-    }
-
+    OP_CHECK_IF(ropeHeadDim_ != 64,
+        OP_LOGE(opName_, "In %s situation, rope exsists and query/key head dim = %u, the rope's head dim should be 64, but got %u",
+            QuantModeToSerialString(quantMode_).c_str(), qkHeadDim_, ropeHeadDim_), return ge::GRAPH_FAILED);
     return ge::GRAPH_SUCCESS;
 }
 
 ge::graphStatus FiaTilingCheck::CheckFeatureMlaNoQuantLayout() const
 {
     std::string layout = opParamInfo_.layOut;
-    if(qkHeadDim_ == 512U) {
-        if (fiaInfo_.slidingFlag) {
-            const std::vector<std::string> layoutSupportList = {"BSND"};
-            OP_CHECK_IF(std::find(layoutSupportList.begin(), layoutSupportList.end(), layout) == layoutSupportList.end(),
-                OP_LOGE(opName_, "In %s situation, rope exsists and query/key head dim = %u, layout only supports BSND, but got %s",
-                    QuantModeToSerialString(quantMode_).c_str(), qkHeadDim_, layout.c_str()),
-                return ge::GRAPH_FAILED);
-        } else {
-            const std::vector<std::string> layoutSupportList = {
-                "BSH", "BSND", "BNSD", "TND", "BSH_NBSD", "BSND_NBSD", "BNSD_NBSD", "TND_NTD"
-            };
-            OP_CHECK_IF(std::find(layoutSupportList.begin(), layoutSupportList.end(), layout) == layoutSupportList.end(),
-                OP_LOGE(opName_, "In %s situation, rope exsists and query/key head dim = %u, layout only supports BSH, BSND, BNSD, TND, BSH_NBSD, BSND_NBSD, BNSD_NBSD, TND_NTD, but got %s",
-                    QuantModeToSerialString(quantMode_).c_str(), qkHeadDim_, layout.c_str()),
-                return ge::GRAPH_FAILED);
-        }
-
-        const std::vector<std::string> layoutSupportListNz = {
-            "BSH", "BSND", "TND", "BSH_NBSD", "BSND_NBSD", "TND_NTD"
-        };
-        OP_CHECK_IF(kvLayout_ == FiaLayout::NZ &&
-            std::find(layoutSupportListNz.begin(), layoutSupportListNz.end(), layout) == layoutSupportListNz.end(),
-            OP_LOGE(opName_, "In %s situation, rope exsists and query/key head dim = %u, when key/value's layout NZ, layout only supports BSH, BSND, TND, BSH_NBSD, BSND_NBSD, TND_NTD, but got %s",
-                QuantModeToSerialString(quantMode_).c_str(), qkHeadDim_, layout.c_str()),
-            return ge::GRAPH_FAILED);
-
-        OP_CHECK_IF(kvLayout_ == FiaLayout::BnNBsD && (qLayout_ != FiaLayout::BNSD && qLayout_ != FiaLayout::TND),
-            OP_LOGE(opName_, "In %s situation, rope exsists and query/key head dim = %u, the key/value's layout is BnNBsD, %s layout must be BNSD or TND in page attention scene, but got %s",
-                QuantModeToSerialString(quantMode_).c_str(), qkHeadDim_, QUERY_NAME.c_str(), LayoutToSerialString(qLayout_).c_str()),
-            return ge::GRAPH_FAILED);
-    } else if (qkHeadDim_ == 128U) {
-        return CheckFeatureGqaNoQuantLayout();
-    }
+    const std::vector<std::string> layoutSupportList = {
+        "BSH", "BSND", "BNSD", "TND", "BSH_NBSD", "BSND_NBSD", "BNSD_NBSD", "TND_NTD"
+    };
+    OP_CHECK_IF(std::find(layoutSupportList.begin(), layoutSupportList.end(), layout) == layoutSupportList.end(),
+        OP_LOGE(opName_, "In %s situation, rope exsists and query/key head dim = %u, layout only supports BSH, BSND, BNSD, TND, BSH_NBSD, BSND_NBSD, BNSD_NBSD, TND_NTD, but got %s",
+            QuantModeToSerialString(quantMode_).c_str(), qkHeadDim_, layout.c_str()),
+        return ge::GRAPH_FAILED);
     return ge::GRAPH_SUCCESS;
 }
 
@@ -148,7 +104,6 @@ ge::graphStatus FiaTilingCheck::CheckFeatureMlaNoQuantDtype() const
     if (CheckFeatureNoQuantDtype() != ge::GRAPH_SUCCESS) {
         return ge::GRAPH_FAILED;
     }
-
     OP_CHECK_IF((opParamInfo_.queryRope.desc->GetDataType() != opParamInfo_.query.desc->GetDataType()),
         OP_LOGE(opName_, "%s(%s) and %s(%s) must have same dType",
             QUERY_ROPE_NAME.c_str(), FusedDataTypeToSerialString(opParamInfo_.queryRope.desc->GetDataType()).c_str(),
@@ -163,110 +118,72 @@ ge::graphStatus FiaTilingCheck::CheckFeatureMlaNoQuantDtype() const
     return ge::GRAPH_SUCCESS;
 }
 
-ge::graphStatus FiaTilingCheck::CheckFeatureMlaNoquantBlockSize() const
+ge::graphStatus FiaTilingCheck::CheckFeatureNoquantBlockSize() const
 {
-    if (kvLayout_ == FiaLayout::NZ) {
-        OP_CHECK_IF(kvStorageMode_ == KvStorageMode::PAGE_ATTENTION && blockSize_ != 128,
-            OP_LOGE(opName_, "In %s situation, rope exsists and query/key head dim = %u and the key/value's layout is NZ, %s should be 128, but got %d",
-                QuantModeToSerialString(quantMode_).c_str(), qkHeadDim_,
-                BLOCK_SIZE_NAME.c_str(), blockSize_),
-            return ge::GRAPH_FAILED);
-    } else {
-        if (fiaInfo_.slidingFlag) {
-            OP_CHECK_IF(kvStorageMode_ == KvStorageMode::PAGE_ATTENTION && blockSize_ != 64 && blockSize_ != 128,
-                OP_LOGE(opName_, "In %s situation, rope exsists and query/key head dim = %u and the key/value's layout is ND, "
-                    "and sliding attention is enabled, %s should be 64 or 128, but got %d",
-                    QuantModeToSerialString(quantMode_).c_str(), qkHeadDim_,
-                    BLOCK_SIZE_NAME.c_str(), blockSize_),
-                return ge::GRAPH_FAILED);
-        } else {
-            OP_CHECK_IF(kvStorageMode_ == KvStorageMode::PAGE_ATTENTION && blockSize_ != 16 && blockSize_ != 128,
-                OP_LOGE(opName_, "In %s situation, rope exsists and query/key head dim = %u and the key/value's layout is ND, %s should be 16 or 128, but got %d",
-                    QuantModeToSerialString(quantMode_).c_str(), qkHeadDim_,
-                    BLOCK_SIZE_NAME.c_str(), blockSize_),
-                return ge::GRAPH_FAILED);
-        }
+    constexpr int32_t BLOCK_SIZE_ALIGN_SIZE = 16;
+    constexpr int32_t BLOCK_SIZE_MAX_SIZE = 1024;
+    if (blockSize_ % BLOCK_SIZE_ALIGN_SIZE != 0) {
+        OP_LOGE(opName_, "In %s situation, %s should aligned to 16, but got %d.",
+            QuantModeToSerialString(quantMode_).c_str(), BLOCK_SIZE_NAME.c_str(), blockSize_);
+            return ge::GRAPH_FAILED;
+    }
+
+    if (blockSize_ > BLOCK_SIZE_MAX_SIZE) {
+        OP_LOGE(opName_, "In %s situation, %s should less equal than 1024, but got %d.",
+            QuantModeToSerialString(quantMode_).c_str(), BLOCK_SIZE_NAME.c_str(), blockSize_);
+            return ge::GRAPH_FAILED;
+    }
+
+    if (kvStorageMode_ == KvStorageMode::PAGE_ATTENTION && blockSize_ == 0) {
+        OP_LOGE(opName_, "In %s and storage mode is page attention, %s should not be 0",
+            QuantModeToSerialString(quantMode_).c_str(), BLOCK_SIZE_NAME.c_str());
+            return ge::GRAPH_FAILED;
     }
     return ge::GRAPH_SUCCESS;
 }
 
 ge::graphStatus FiaTilingCheck::CheckFeatureMlaNoquantPa() const
 {
-    constexpr uint32_t COPYND2NZ_SRC_STRIDE_LIMITATION = 65535;
-
-    if (fiaInfo_.slidingFlag && kvStorageMode_ != KvStorageMode::PAGE_ATTENTION) {
+    if (kvStorageMode_ != KvStorageMode::PAGE_ATTENTION) {
         return ge::GRAPH_SUCCESS;
     }
-
-    if (qkHeadDim_ == 512U) {
-        if (kvStorageMode_ != KvStorageMode::PAGE_ATTENTION) {
-            OP_LOGE(opName_, "In %s situation, rope exsists and query/key head dim = %u and sparse mode is not 4, the key/value's storage mode only supports page attention",
-                QuantModeToSerialString(quantMode_).c_str(), qkHeadDim_);
-            return ge::GRAPH_FAILED;
-        }
-        if (kvLayout_ == FiaLayout::NZ && fiaInfo_.slidingFlag) {
-            OP_LOGE(opName_, "In %s situation, rope exsists and query/key head dim = %u and sliding attention is enabled, only supports "
-                "key/value's layout is ND, but now is NZ",
-                QuantModeToSerialString(quantMode_).c_str(), qkHeadDim_);
-            return ge::GRAPH_FAILED;
-        }
-
-        if (CheckFeatureMlaNoquantBlockSize() != ge::GRAPH_SUCCESS) {
-            return ge::GRAPH_FAILED;
-        }
-
-        // gm到l1，copynd2nz的srcDValue最大支持65535
-        if (qLayout_ == FiaLayout::BSH || qLayout_ == FiaLayout::BSND) {
-            constexpr uint32_t COPYND2NZ_SRC_STRIDE_LIMITATION = 65535;
-            OP_CHECK_IF(n2Size_ * qkHeadDim_ > COPYND2NZ_SRC_STRIDE_LIMITATION,
-                OP_LOGE(opName_,
-                    "In %s situation, rope exsists and query/key head dim = %u, when input kvcache layout is BSH, the N * D of kvcache is %u, exceeds the maximum limit (%u) of the datacopy instruction.",
-                    QuantModeToSerialString(quantMode_).c_str(), qkHeadDim_,
-                    n2Size_ * qkHeadDim_, COPYND2NZ_SRC_STRIDE_LIMITATION),
-                return ge::GRAPH_FAILED);
-        }
-    } else if (qkHeadDim_ == 128U) {
-        return CheckFeatureGqaNoquantPa();
-    }
-    return ge::GRAPH_SUCCESS;
+    return CheckFeatureNoquantBlockSize();
 }
 
 ge::graphStatus FiaTilingCheck::CheckFeatureMlaNoquantMask() const
 {
     if(vHeadDim_ == 512U) {
-        if (qLayout_ == FiaLayout::TND) {
-            OP_CHECK_IF(fiaInfo_.sparseMode != 3 && fiaInfo_.sparseMode != 0,
-                OP_LOGE(opName_, "In %s situation, rope exsists and query/key head dim = %u, when %s layout is %s, %s must be 0 or 3, but got %d.",
-                    QuantModeToSerialString(quantMode_).c_str(), qkHeadDim_, 
-                    QUERY_NAME.c_str(), LayoutToSerialString(qLayout_).c_str(), SPARSE_MODE_NAME.c_str(), fiaInfo_.sparseMode),
-                return ge::GRAPH_FAILED);
-        } else {
-            if (s1Size_ > 1U) {
-                OP_CHECK_IF(fiaInfo_.sparseMode != 3 && fiaInfo_.sparseMode != 4, // 3 : rightDown, 4 : band
-                    OP_LOGE(opName_, "In %s situation, rope exsists and query/key head dim = %u, when %s layout is not TND and Q_S(%u) > 1, supports %s = 3 or 4, but got %d.",
-                        QuantModeToSerialString(quantMode_).c_str(), qkHeadDim_, 
-                        QUERY_NAME.c_str(), s1Size_, SPARSE_MODE_NAME.c_str(), fiaInfo_.sparseMode),
-                    return ge::GRAPH_FAILED);
-            } else {
-                OP_CHECK_IF(fiaInfo_.sparseMode != 0 && fiaInfo_.sparseMode != 4,
-                    OP_LOGE(opName_,
-                        "In %s situation, rope exsists and query/key head dim = %u, when %s layout is not TND and Q_S = %u, supports %s = 0 or 4, but got %d.",
-                        QuantModeToSerialString(quantMode_).c_str(), qkHeadDim_, 
-                        QUERY_NAME.c_str(), s1Size_, SPARSE_MODE_NAME.c_str(), fiaInfo_.sparseMode),
-                    return ge::GRAPH_FAILED);
+        int32_t sparseMode = *opParamInfo_.sparseMode;
+        if (sparseMode != SPARSE_MODE_NO_MASK && sparseMode != SPARSE_MODE_RIGHT_DOWN && sparseMode != SPARSE_MODE_BAND) {
+            OP_LOGE(opName_,
+                "In %s situation, rope exsists and query/key head dim = %u, %s is not supported, only support 0/3/4",
+                QuantModeToSerialString(quantMode_).c_str(), qkHeadDim_,
+                SPARSE_MODE_NAME.c_str());
+            return ge::GRAPH_FAILED;
+        }
+
+        if (!attenMaskFlag_) {
+            if (sparseMode == SPARSE_MODE_NO_MASK) {
+                return ge::GRAPH_SUCCESS;
+            }
+            if (sparseMode == SPARSE_MODE_RIGHT_DOWN || sparseMode == SPARSE_MODE_BAND) {
+                OP_LOGE(opName_,
+                    "In %s situation, rope exsists and query/key head dim = %u, when %s = 3/4, %s should not be null.",
+                    QuantModeToSerialString(quantMode_).c_str(), qkHeadDim_,
+                    SPARSE_MODE_NAME.c_str(), ATTEN_MASK_NAME.c_str());
+                return ge::GRAPH_FAILED;
             }
         }
 
-        OP_CHECK_IF(fiaInfo_.sparseMode == 0 && attenMaskFlag_,
-            OP_LOGE(opName_, "In %s situation, rope exsists and query/key head dim = %u, when %s = %d, %s must not exist.",
-                QuantModeToSerialString(quantMode_).c_str(), qkHeadDim_, 
-                SPARSE_MODE_NAME.c_str(), fiaInfo_.sparseMode, ATTEN_MASK_NAME.c_str()),
-            return ge::GRAPH_FAILED);  
-        OP_CHECK_IF(fiaInfo_.sparseMode == 3 && (!attenMaskFlag_),
-            OP_LOGE(opName_, "In %s situation, rope exsists and query/key head dim = %u, when %s = %d, %s must exist.",
-                QuantModeToSerialString(quantMode_).c_str(), qkHeadDim_, 
-                SPARSE_MODE_NAME.c_str(), fiaInfo_.sparseMode, ATTEN_MASK_NAME.c_str()),
-            return ge::GRAPH_FAILED);
+        size_t maskDimNum = opParamInfo_.attenMask.tensor->GetStorageShape().GetDimNum();
+        size_t maskDim0 = opParamInfo_.attenMask.tensor->GetStorageShape().GetDim(0);
+        if (sparseMode == static_cast<int32_t>(SPARSE_MODE_NO_MASK) &&
+            maskDimNum == DIM_NUM_TWO && s1Size_ == 1U && maskDim0 == static_cast<size_t>(bSize_)) {
+            OP_CHECK_IF(qLayout_ == FiaLayout::TND || qLayout_ == FiaLayout::NTD,
+                    OP_LOGE(opName_, "In %s situation, rope exsists and query/key head dim = %u, when %s layout is TND/NTD, %s layout BS2 is not supported.",
+                        QuantModeToSerialString(quantMode_).c_str(), qkHeadDim_, QUERY_NAME.c_str(), ATTEN_MASK_NAME.c_str()),
+                return ge::GRAPH_FAILED);
+        }
     } else if (vHeadDim_ == 128U) {
         return CheckFeatureGqaNoquantMask();
     }
@@ -283,49 +200,42 @@ ge::graphStatus FiaTilingCheck::CheckFeatureMlaNoquantLse() const
     return ge::GRAPH_SUCCESS;
 }
 
-ge::graphStatus FiaTilingCheck::CheckFeatureMlaNoquantUnsupported() const
+ge::graphStatus FiaTilingCheck::CheckFeatureNoquantUnsupported() const
 {
+    OP_CHECK_IF(fiaInfo_.outputType == ge::DT_INT8,
+        OP_LOGE(opName_, "In %s situation, postquant is not supported.", QuantModeToSerialString(quantMode_).c_str()),
+        return ge::GRAPH_FAILED);
+ 
     OP_CHECK_IF(fiaInfo_.pseShiftFlag,
-        OP_LOGE(opName_, "In %s situation, rope exsists and query/key head dim = %u, %s is not supported.",
-            QuantModeToSerialString(quantMode_).c_str(), qkHeadDim_, PSE_SHIFT_NAME.c_str()),
+        OP_LOGE(opName_, "In %s situation, pseshift is not supported.", QuantModeToSerialString(quantMode_).c_str()),
+        return ge::GRAPH_FAILED);
+ 
+    OP_CHECK_IF(fiaInfo_.qPaddingSizeFlag || fiaInfo_.kvPaddingSizeFlag,
+        OP_LOGE(opName_, "In %s situation, left padding is not supported.", QuantModeToSerialString(quantMode_).c_str()),
         return ge::GRAPH_FAILED);
 
     OP_CHECK_IF(fiaInfo_.sysPrefixFlag,
-        OP_LOGE(opName_, "In %s situation, rope exsists and query/key head dim = %u, shared prefix is not supported.",
-            QuantModeToSerialString(quantMode_).c_str(), qkHeadDim_),
-        return ge::GRAPH_FAILED);
+        OP_LOGE(opName_, "In %s situation, sys prifix is not supported.", QuantModeToSerialString(quantMode_).c_str()),
+        return ge::GRAPH_FAILED); 
+ 
+    return ge::GRAPH_SUCCESS;
+}
 
+ge::graphStatus FiaTilingCheck::CheckFeatureMlaNoquantUnsupported() const
+{
     if(vHeadDim_ == 512U) {
+        if (CheckFeatureNoquantUnsupported() != ge::GRAPH_SUCCESS) {
+            return ge::GRAPH_FAILED;
+        }
         OP_CHECK_IF(fiaInfo_.softmaxLseFlag,
             OP_LOGE(opName_, "In %s situation, rope exsists and query/key head dim = %u, %s output is not supported.",
                 QuantModeToSerialString(quantMode_).c_str(), qkHeadDim_, SOFTMAX_LSE_NAME.c_str()),
             return ge::GRAPH_FAILED);
-    }
-    OP_CHECK_IF(fiaInfo_.outputType == ge::DT_INT8,
-        OP_LOGE(opName_, "In %s situation, rope exsists and query/key head dim = %u, post_quant is not supported.",
-            QuantModeToSerialString(quantMode_).c_str(), qkHeadDim_),
-        return ge::GRAPH_FAILED);
-
-    OP_CHECK_IF(fiaInfo_.kvPaddingSizeFlag,
-        OP_LOGE(opName_, "In %s situation, rope exsists and query/key head dim = %u, %s is not supported.",
-            QuantModeToSerialString(quantMode_).c_str(), qkHeadDim_, KV_PADDING_SIZE_NAME.c_str()),
-        return ge::GRAPH_FAILED);
-    
-    OP_CHECK_IF(vHeadDim_ == 512U && (fiaInfo_.innerPrecise != INNER_PRECISE_HIGH_PRECISION) &&
-        (fiaInfo_.innerPrecise != INNER_PRECISE_HIGH_PERFORMANCE),
-        OP_LOGE(opName_, "In %s situation, rope exsists and query/key head dim = %u, %s(%d) should be 0 or 1",
-            QuantModeToSerialString(quantMode_).c_str(), qkHeadDim_, INNER_PRECISE_NAME.c_str(), fiaInfo_.innerPrecise),
-        return ge::GRAPH_FAILED);
-
-    if (kvStorageMode_ == KvStorageMode::TENSOR_LIST) {
-        const std::vector<std::string> layoutSupportList = {
-            "BSH", "BSND", "BNSD", "BSND_BNSD",
-        };
-        std::string layout = opParamInfo_.layOut;
-        OP_CHECK_IF((std::find(layoutSupportList.begin(), layoutSupportList.end(), layout) == layoutSupportList.end()) && ropeMode_ != RopeMode::NO_ROPE,
-            OP_LOGE(opName_, "In %s situation, rope exsists and query/key head dim = %u, tensor list is not supported.",
-            QuantModeToSerialString(quantMode_).c_str(), qkHeadDim_),
-        return ge::GRAPH_FAILED);
+        if (kvStorageMode_ == KvStorageMode::TENSOR_LIST) {
+            OP_LOGE(opName_, "In %s situation, rope exsists and query/key head dim = %u, the key/value's storage mode not support tensor list",
+                QuantModeToSerialString(quantMode_).c_str(), qkHeadDim_);
+            return ge::GRAPH_FAILED;
+        }
     }
     return ge::GRAPH_SUCCESS;
 }
@@ -373,21 +283,9 @@ ge::graphStatus FiaTilingCheck::CheckFeatureMla() const
 
 ge::graphStatus FiaTilingCheck::CheckFeatureGqaNoquantUnsupported() const
 {
-    OP_CHECK_IF(fiaInfo_.outputType == ge::DT_INT8,
-        OP_LOGE(opName_, "In %s situation, postquant is not supported.", QuantModeToSerialString(quantMode_).c_str()),
-        return ge::GRAPH_FAILED);
-
-    OP_CHECK_IF(opParamInfo_.pseShift.tensor != nullptr,
-        OP_LOGE(opName_, "In %s situation, pseshift is not supported in GQA.", QuantModeToSerialString(quantMode_).c_str()),
-        return ge::GRAPH_FAILED);
-
-    OP_CHECK_IF(opParamInfo_.kvPaddingSize.tensor != nullptr || opParamInfo_.queryPaddingSize.tensor != nullptr,
-        OP_LOGE(opName_, "In %s situation, left padding is not supported in GQA.", QuantModeToSerialString(quantMode_).c_str()),
-        return ge::GRAPH_FAILED);
-    
-    OP_CHECK_IF(fiaInfo_.sysPrefixFlag,
-        OP_LOGE(opName_, "In %s situation, sys prifix is not supported in GQA.", QuantModeToSerialString(quantMode_).c_str()),
-        return ge::GRAPH_FAILED);
+    if (CheckFeatureNoquantUnsupported() != ge::GRAPH_SUCCESS) {
+        return ge::GRAPH_FAILED;
+    }
 
     if (kvStorageMode_ == KvStorageMode::TENSOR_LIST) {
         const std::vector<std::string> layoutSupportList = {
@@ -404,29 +302,10 @@ ge::graphStatus FiaTilingCheck::CheckFeatureGqaNoquantUnsupported() const
 
 ge::graphStatus FiaTilingCheck::CheckFeatureGqaNoquantPa() const
 {
-    constexpr int32_t BLOCK_SIZE_ALIGN_SIZE = 16;
-    constexpr int32_t BLOCK_SIZE_MAX_SIZE = 1024;
-
-    if (kvStorageMode_ == KvStorageMode::PAGE_ATTENTION) {
-        if (kvLayout_ != FiaLayout::BnBsH && kvLayout_ != FiaLayout::BnNBsD && kvLayout_ != FiaLayout::NZ) {
-            OP_LOGE(opName_, "In %s situation, key and value's layout should be BnBsH, BnNBsD or NZ, but got %s.",
-                QuantModeToSerialString(quantMode_).c_str(), LayoutToSerialString(kvLayout_).c_str());
-            return ge::GRAPH_FAILED;
-        }
-
-        if (blockSize_ % BLOCK_SIZE_ALIGN_SIZE != 0) {
-            OP_LOGE(opName_, "In %s situation, %s should aligned to 16, but got %d.",
-                QuantModeToSerialString(quantMode_).c_str(), BLOCK_SIZE_NAME.c_str(), blockSize_);
-                return ge::GRAPH_FAILED;
-        }
-
-        if (blockSize_ > BLOCK_SIZE_MAX_SIZE) {
-            OP_LOGE(opName_, "In %s situation, %s should less equal than 1024, but got %d.",
-                QuantModeToSerialString(quantMode_).c_str(), BLOCK_SIZE_NAME.c_str(), blockSize_);
-                return ge::GRAPH_FAILED;
-        }
+    if (kvStorageMode_ != KvStorageMode::PAGE_ATTENTION) {
+        return ge::GRAPH_SUCCESS;
     }
-    return ge::GRAPH_SUCCESS;
+    return CheckFeatureNoquantBlockSize();
 }
 
 ge::graphStatus FiaTilingCheck::CheckFeatureGqaNoquantMask() const
@@ -608,10 +487,6 @@ ge::graphStatus FiaTilingCheck::CheckFeatureActualSeqLensExistence() const
                 return ge::GRAPH_FAILED);
         }
     } else {
-        OP_CHECK_IF(!fiaInfo_.slidingFlag && vHeadDim_ == 512U && opParamInfo_.actualSeqLengthsQ.tensor != nullptr,
-            OP_LOGE(opName_, "when %s's layout is %s, %s should be null.",
-                QUERY_NAME.c_str(), LayoutToSerialString(qLayout_).c_str(), ACTUAL_SEQ_Q_LEN_NAME.c_str()),
-            return ge::GRAPH_FAILED);
         if (kvStorageMode_ == KvStorageMode::PAGE_ATTENTION) {
             OP_CHECK_IF(opParamInfo_.actualSeqLengths.tensor == nullptr,
                 OP_LOGE(opName_, "In page attention scene, %s should not be null.", ACTUAL_SEQ_KV_LEN_NAME.c_str()),
@@ -663,20 +538,11 @@ ge::graphStatus FiaTilingCheck::CheckFeatureActualSeqLensQData()
         return ge::GRAPH_FAILED;
     }
 
-    constexpr int64_t ACTUAL_SEQ_Q_LEN_MAX = 16;
     uint32_t loop = std::min(actualSeqLengthsQSize_, bSize_);
     for (uint32_t i = 0; i < loop; i++) {
         int64_t tmpS1 = 0;
         if (qLayout_ == FiaLayout::TND || qLayout_ == FiaLayout::NTD) {
             tmpS1 = (i == 0U) ? actualSeq[0] : (actualSeq[i] - actualSeq[i - 1U]);
-            if (ropeMode_ == RopeMode::ROPE_SPLIT && vHeadDim_ == 512U) { 
-                if ((tmpS1 < 0) || (tmpS1 > ACTUAL_SEQ_Q_LEN_MAX)) {
-                    OP_LOGE(opName_,
-                        "%s(%u) computed is %ld, it should be in range [0, %ld].",
-                        ACTUAL_SEQ_Q_LEN_NAME.c_str(), i, tmpS1, ACTUAL_SEQ_Q_LEN_MAX);
-                    return ge::GRAPH_FAILED;
-                }
-            }
         } else {
             tmpS1 = actualSeq[i];
         }

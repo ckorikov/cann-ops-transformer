@@ -30,6 +30,9 @@ struct BaseInfo {
     const int64_t *actualSeqS2Size = nullptr;
     uint32_t actualLenQDims = 0;
     uint32_t actualLenKvDims = 0;
+    int64_t preToken = 0;
+    int64_t nextToken = 0;
+    bool slidingFlag = false;
 };
 
 struct InnerSplitParams {
@@ -80,7 +83,7 @@ static void SplitCore(const BaseInfo &baseInfo, const InnerSplitParams &innerSpl
                     s1Size = baseInfo.actualSeqS1Size[bIdx] - baseInfo.actualSeqS1Size[bIdx - 1];
                 } else {
                     s1Size = baseInfo.actualSeqS1Size[bIdx];
-                } 
+                }
             }
         }
         if (baseInfo.actualSeqS2Size != nullptr) {
@@ -126,11 +129,15 @@ static void SplitCore(const BaseInfo &baseInfo, const InnerSplitParams &innerSpl
         uint32_t s1Size = baseInfo.s1Size;
         uint32_t s2Size = baseInfo.s2Size;
         if (baseInfo.actualSeqS1Size != nullptr) {
-            if (baseInfo.isAccumSeqS1 && bIdx > 0) {
-                s1Size = baseInfo.actualSeqS1Size[bIdx] - baseInfo.actualSeqS1Size[bIdx - 1];
+            if (baseInfo.actualLenQDims == 1) {
+                s1Size = baseInfo.actualSeqS1Size[0];
             } else {
-                s1Size = baseInfo.actualSeqS1Size[bIdx];
-            } 
+                if (baseInfo.isAccumSeqS1 && bIdx > 0) {
+                    s1Size = baseInfo.actualSeqS1Size[bIdx] - baseInfo.actualSeqS1Size[bIdx - 1];
+                } else {
+                    s1Size = baseInfo.actualSeqS1Size[bIdx];
+                }
+            }
         }
         if (baseInfo.actualSeqS2Size != nullptr) {
             if (baseInfo.isAccumSeqS2 && bIdx > 0) {

@@ -284,7 +284,6 @@ FiaBlockVecFlashDecode<FIAT>::ComputeScaleValue(LocalTensor<T> &lseExp,
 
     fa_base_vector::MatDivsVec(lseExp, lseExp, lseSumUb, taskInfo.actualCombineLoopSize, dealRowCountAlign, dealRowCountAlign);
     AscendC::PipeBarrier<PIPE_V>();
-
 }
 
 template <typename FIAT>
@@ -397,26 +396,6 @@ void FiaBlockVecFlashDecode<FIAT>::CopyFinalResOut(LocalTensor<T> &accumOutLocal
 
     SetFlag<AscendC::HardEvent::V_MTE3>(SYNC_FDOUTPUT_BUF_FLAG);
     WaitFlag<AscendC::HardEvent::V_MTE3>(SYNC_FDOUTPUT_BUF_FLAG);
-    // if (constInfo.outputLayout == FIA_LAYOUT::NBSD || constInfo.outputLayout == FIA_LAYOUT::NTD) {
-    //     FusedTransposeInfo transInfo;
-    //     transInfo.n2Idx = 0; 
-    //     transInfo.bIdx = taskInfo.bIdx;
-    //     auto gS1StartIdx = taskInfo.gS1Idx + startRow;
-    //     auto gS1EndIdx = gS1StartIdx + dealRowCount - 1;
-    //     GetGS1Idx<LAYOUT_T>(gS1StartIdx, transInfo.gStartIdx, transInfo.s1StartIdx, constInfo);
-    //     GetGS1Idx<LAYOUT_T>(gS1EndIdx, transInfo.gEndIdx, transInfo.s1EndIdx, constInfo);
-    //     if constexpr (LAYOUT_T == FIA_LAYOUT::BNSD) {
-    //         transInfo.gCount = transInfo.gEndIdx - transInfo.gStartIdx + 1;
-    //         fa_base_vector::Bmm2DataCopyOutNBSDGTiling(tmpBmm2ResCastTensor, transInfo, constInfo, attentionOutGm);
-    //     } else {
-    //         transInfo.s1Count = transInfo.s1EndIdx - transInfo.s1StartIdx + 1;
-    //         transInfo.gCount = dealRowCount;
-    //         fa_base_vector::Bmm2DataCopyOutNBSDMTiling<LAYOUT_T, OUT_T>(tmpBmm2ResCastTensor, transInfo, constInfo,
-    //                                                                     actualSeqLengthsGmQ, attentionOutGm);
-    //     }
-    // } else {
-    //     Bmm2DataCopyOut(attenOutOffset, tmpBmm2ResCastTensor, startRow, dealRowCount, constInfo.headDimAlign, constInfo.headDim);
-    // }
     Bmm2DataCopyOutTrans(tmpBmm2ResCastTensor, startRow, dealRowCount, constInfo.headDimAlign);
     SetFlag<AscendC::HardEvent::MTE3_V>(SYNC_FDOUTPUT_BUF_FLAG);
 }
