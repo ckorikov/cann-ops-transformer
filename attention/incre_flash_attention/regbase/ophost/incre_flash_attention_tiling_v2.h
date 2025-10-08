@@ -192,6 +192,7 @@ class IFATilingV2 {
   ge::graphStatus CalcWorkSpace();
   ge::graphStatus CalcBlockDim() const;
   ge::graphStatus GenTilingKey();
+  uint64_t GenTilingKeyfaRun();
   uint8_t GenHeadDimProfileVal() const;
   uint8_t GenAntiquantModeVal() const;
 
@@ -312,6 +313,7 @@ class IFATilingV2 {
 
   bool isSplitBPolicy_ = false;
   bool splitKVFlag_ = false;
+  bool splitKVFlagLocal_ = false;
 
   IfaPerfMode perfMode_ = IfaPerfMode::NORMAL;
   TilingInOutMode inOutMode_ = TilingInOutMode::FP16_FP16;

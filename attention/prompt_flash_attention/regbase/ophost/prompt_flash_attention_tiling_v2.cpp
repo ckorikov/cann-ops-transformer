@@ -3624,6 +3624,9 @@ void PromptFlashAttentionTilingV2::PFATilingDataconvert(PromptFlashAttentionTili
 
     inputParams.set_isPostQuantPerChnl(tilingData.promptAttentionBaseParams.get_isQuant2Perchannel());
     inputParams.set_isPostQuantBF16(tilingData.promptAttentionBaseParams.get_isQuant2BF16());
+    inputParams.set_antiquantPerTensorFlag(0);
+    inputParams.set_antiquantPerHeadFlag(0);
+    inputParams.set_antiquantParaSeqSize(1);
 }
 
 ge::graphStatus PromptFlashAttentionTilingV2::PromptFlashAttentionSetTilingData(gert::TilingContext* context,

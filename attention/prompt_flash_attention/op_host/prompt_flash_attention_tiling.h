@@ -470,6 +470,9 @@ BEGIN_TILING_DATA_DEF(InputParamsRegbase)
     TILING_DATA_FIELD_DEF(uint8_t, isRowInvalid);
     TILING_DATA_FIELD_DEF(uint8_t, isPostQuantPerChnl);
     TILING_DATA_FIELD_DEF(uint8_t, isPostQuantBF16);
+    TILING_DATA_FIELD_DEF(uint16_t, antiquantPerTensorFlag);
+    TILING_DATA_FIELD_DEF(uint16_t, antiquantPerHeadFlag);
+    TILING_DATA_FIELD_DEF(uint32_t, antiquantParaSeqSize);
 END_TILING_DATA_DEF;
 REGISTER_TILING_DATA_CLASS(InputParamsRegbaseOp, InputParamsRegbase)
 
@@ -509,6 +512,7 @@ BEGIN_TILING_DATA_DEF(FlashAttentionScoreSimplifiedTilingData)
     TILING_DATA_FIELD_DEF_STRUCT(InitOutputParams, initOutputParams);
 END_TILING_DATA_DEF;
 REGISTER_TILING_DATA_CLASS(PromptFlashAttention_1000000000000000090, FlashAttentionScoreSimplifiedTilingData)
+REGISTER_TILING_DATA_CLASS(PromptFlashAttention_10000000000000090, FlashAttentionScoreSimplifiedTilingData)
 
 class BufferNum {
 public:

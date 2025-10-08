@@ -22,6 +22,7 @@
 
 namespace optiling {
 REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_1000000000000000090, FlashAttentionScoreSimplifiedTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_10000000000000090, FlashAttentionScoreSimplifiedTilingData)
 ge::graphStatus TilingFusedInferAttentionScoreV2(gert::TilingContext *context);
 } // namespace optiling
 #endif  // AIR_CXX_RUNTIME_V2_OP_IMPL_FUSEDINFERATTENTIONSCORE_V2_H_

@@ -452,7 +452,7 @@ bool IFATilingV2::EnableC1V1() const {
   if(socVersion_ == IfaSocVersion::SOC_ASCEND_910_55) {
     return true;
   }
-  if (splitKVFlag_) {
+  if (splitKVFlagLocal_) {
     return false;
   }
   // 2:IFA中核数不超过vector总核数一半，可以按1:1启动cube和vector
@@ -924,10 +924,14 @@ ge::graphStatus IFATilingV2::ProcessOptionalTensors() {
 }
 
 void IFATilingV2::SetfaRunFlag() {
-  if (antiQuantFlag_) {
+  uint64_t tilingkey = GenTilingKeyfaRun();
+  if ((tilingkey == 10000000023000501) || (tilingkey == 10000000011000300) || (tilingkey == 10000000021000500)) {
     faRunFlagAntiq_ = false;
-    if(sOfQuery_ == NUM1)   //目前仅Qs=1时支持合轴
-    {
+    return;
+  }
+  if (antiQuantFlag_) {
+    faRunFlagAntiq_ = true;
+    if(sOfQuery_ == NUM1) {
       faRunGS_ = true;
       isGqa_ = 1;
     } else {
@@ -942,7 +946,7 @@ void IFATilingV2::SetfaRunFlag() {
     if (!isPFAFlag_) {
       faRunSparseType_ = static_cast<uint8_t>(IfaSparseEnum::IFA_ALL);
       if (attenMaskFlag_) {
-        faRunAttenMaskShapeType_ = attenMaskBatch_ > 1 ? 1 : 2; // 2 is shape type
+        faRunAttenMaskShapeType_ = 1; // 1 is shape type
         attenMaskQSize_ = 1;
       } else {
         faRunAttenMaskShapeType_ = 0;
@@ -2149,9 +2153,11 @@ bool IFATilingV2::IsFlashDecode() const {
 
 bool IFATilingV2::IsFlashDecodefaRun() const {
     float flashDecodeBNRatio = 0.4F; // 0.4, 经验值
-    //如果不够2个基本块直接不生效FD
+    if ((maxActualseq_ >= 32768) && (pageAttentionFlag_ == true)) {
+      return false;
+    }
     uint32_t sInnerDouble = sInnerSize_ * 2;
-    //如果s2方向上最长还不超过两个sinnersize，直接就不生效FD
+    // 如果s2方向上最长还不超过两个sinnersize，不生效FD
     if (sMax_ < sInnerDouble) {
         return false;
     }
@@ -3327,6 +3333,108 @@ ge::graphStatus IFATilingV2::GenTilingKey() {
   return ge::GRAPH_SUCCESS;
 }
 
+uint64_t IFATilingV2::GenTilingKeyfaRun() {
+  uint8_t layoutVal = 0;
+  uint8_t inputQVal = 0;
+  uint8_t inputKvVal = 0;
+  uint8_t outputVal = 0;
+  uint8_t originVal = 0;
+  if (!isPFAFlag_) {
+    if (IsFlashDecode()) {
+      splitKVFlagLocal_ = true;
+    }
+  }
+  uint8_t splitKvVal = (splitKVFlagLocal_ == true) ? 1 : 0;
+  uint8_t paVal = pageAttentionFlag_ == true ? 1 * 2 : 0;
+  uint8_t antiquantModeVal = GenAntiquantModeVal();
+  uint8_t attenMaskVal = attenMaskFlag_ == true ? 1 : 0;
+  uint8_t pseShiftVal = pseShiftFlag_ == true ? 1 * 2 : 0;
+  uint8_t attenMaskBandVal = (sparseMode_ == SPARSE_MODE_BAND && headDim_ <= NUM64 && pseShiftFlag_ == false) ?
+                              static_cast<uint8_t>(1U * 4U) : 0U; // d64非pse且band模式下需减小基本块大小，额外增加tilingkey
+  uint8_t headDimProfileVal = GenHeadDimProfileVal();
+
+  // page attention 新模板上线后删除这里的特殊处理
+  if (pageAttentionFlag_ && sMax_ == NUM0) {
+    paVal = NUM0;
+  }
+
+  if (inputLayout_ == IfaLayout::BSH_BSND){
+    layoutVal = NUM1;
+  } else if (inputLayout_ == IfaLayout::BSH_BSND) {
+    layoutVal = NUM2;
+  } else {
+    layoutVal = NUM0;
+  }
+
+  switch (inputQType_) {
+    case ge::DT_FLOAT16:
+      inputQVal = NUM0;
+      break;
+    case ge::DT_BF16:
+      inputQVal = NUM2;
+      break;
+    case ge::DT_INT8:
+      inputQVal = NUM3;
+      break;
+    default :
+      OP_LOGE(context_->opName, "Not support inputQType[%s].", DataTypeToSerialString(inputQType_).c_str());
+  }
+  switch (inputKvType_) {
+    case ge::DT_FLOAT16:
+      inputKvVal = NUM0;
+      break;
+    case ge::DT_BF16:
+      inputKvVal = NUM2;
+      break;
+    case ge::DT_INT8:
+      inputKvVal = NUM3;
+      break;
+      case ge::DT_INT4:
+        inputKvVal = NUM4;
+        break;
+      case ge::DT_HIFLOAT8:
+        inputKvVal = NUM5;
+        break;
+      case ge::DT_FLOAT8_E5M2:
+        inputKvVal = NUM6;
+        break;
+      case ge::DT_FLOAT8_E4M3FN:
+        inputKvVal = NUM7;
+        break;
+      case ge::DT_FLOAT4_E2M1:
+        inputKvVal = NUM8;
+        break;
+      case ge::DT_FLOAT4_E1M2:
+        inputKvVal = NUM9;
+        break;
+    default :
+      OP_LOGE(context_->opName, "Not support inputKvType[%s].", DataTypeToSerialString(inputKvType_).c_str());
+  }
+  switch (outputType_) {
+    case ge::DT_FLOAT16:
+      outputVal = NUM0;
+      break;
+    case ge::DT_BF16:
+      outputVal = NUM2;
+      break;
+    case ge::DT_INT8:
+      outputVal = NUM3;
+      break;
+    default :
+      OP_LOGE(context_->opName, "Not support outputType[%s].", DataTypeToSerialString(outputType_).c_str());
+  }
+
+  originVal = inputQVal;
+  uint64_t baseOffset = IFA_TILINGKEYOFFSET;
+  if (socVersion_ != IfaSocVersion::SOC_ASCEND_910_95 && socVersion_ != IfaSocVersion::SOC_ASCEND_910_55) {
+    baseOffset += (static_cast<uint64_t>(perfMode_)) * IFA_PERF_MODE_TILINGKEYOFFSET;
+  }
+  uint64_t tilingKey = baseOffset + IFA_GET_TILINGKEY(layoutVal, inputQVal, inputKvVal, outputVal, originVal,
+    (paVal + splitKvVal), (pseShiftVal + attenMaskVal + attenMaskBandVal), headDimProfileVal, antiquantModeVal);
+
+  return tilingKey;
+}
+
 ge::graphStatus IFATilingV2::CalcBlockDim() const {
   auto ascendcPlatform = platform_ascendc::PlatformAscendC(context_->platformInfo);
   auto aicNum = aicNum_;
@@ -3589,10 +3697,9 @@ void IFATilingV2::IFATilingDataconvert() {
   inputParams.set_isKVHasLeftPadding(kvPaddingSizeFlag_ ? 1 : 0);
   inputParams.set_ropeHeadSize(0);
   inputParams.set_isRowInvalid(isRowInvalid_);
-  // 伪量化新模板新增 预留
-  // inputParams.set_antiquantPerTensorFlag(static_cast<uint16_t>(antiquantPerTensorFlag_));
-  // inputParams.set_antiquantPerHeadFlag(static_cast<uint16_t>(antiquantPerHeadFlag_));
-  // inputParams.set_antiquantParaSeqSize(antiquantParaSeqSize_);
+  inputParams.set_antiquantPerTensorFlag(antiquantPerTensorFlag_);
+  inputParams.set_antiquantPerHeadFlag(antiquantPerHeadFlag_);
+  inputParams.set_antiquantParaSeqSize(antiquantParaSeqSize_);
 
   auto &initOutputParams = faRunTilingAdapter.initOutputParams;
   initOutputParams.set_singleCoreSize(singleCoreSize_);

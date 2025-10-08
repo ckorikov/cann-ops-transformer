@@ -60,7 +60,7 @@ using matmul::MatmulType;
 using namespace optiling;
 
 namespace BaseApi {
-__aicore__ constexpr uint16_t Align64FuncAntiquant(uint16_t data) {
+__aicore__ constexpr uint16_t Align64FuncAntiquantup(uint16_t data) {
     return (data + ADD_NUM_63) >> SHIFT_NUM_6 << SHIFT_NUM_6;
 }
 
@@ -112,11 +112,11 @@ protected:
     static constexpr uint32_t s2BaseSize = (uint32_t)s2TemplateType;
     static constexpr uint32_t vec1ScmBlockTrue = s1BaseSize * (16 / 2);
     static constexpr uint32_t vec1Srcstride = (s1BaseSize >> 1) + 1;
-    static constexpr uint32_t dTemplateAlign64 = Align64FuncAntiquant((uint16_t)dVTemplateType);
+    static constexpr uint32_t dTemplateAlign64 = Align64FuncAntiquantup((uint16_t)dVTemplateType);
     static constexpr bool hasPse = pseMode != PseTypeEnum::PSE_NONE_TYPE;
     static constexpr bool hasPseOuter = (pseMode == PseTypeEnum::PSE_OUTER_ADD_MUL_TYPE) ||
         (pseMode == PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE);
-    static constexpr bool containAllOptionalInput = hasPse && hasAtten && hasDrop;
+    static constexpr bool containAllOptionalInput = hasPse && hasAtten;
     /*相关内存大小信息*/
     static constexpr uint32_t dBaseSize = (uint32_t)dTemplateType;
     static constexpr uint32_t dBaseSizediv4 = dBaseSize / 4;
@@ -146,10 +146,6 @@ protected:
     __gm__ uint8_t *currentValue;
     __gm__ uint8_t *blocktablePtr;
     GlobalTensor<int32_t> blockTableGm;
-    uint32_t kvCacheBlockSize = 0;
-    uint32_t maxBlockNumPerBatch = 0;
-    KVLAYOUT kvLayout;
-    uint32_t paKvShapeType = 0;
     bool isBeforeHalf;
     
     bool antiqOffsetExistFlag;
@@ -285,6 +281,7 @@ protected:
     __aicore__ inline void CopyLseIn(uint32_t bIdx, uint32_t n2Idx, uint32_t startRow, uint32_t dealRowCount);
     __aicore__ inline void CopyFinalResOut(uint64_t attenOutOffset, LocalTensor<T> &accumOutLocal, uint32_t startRow, uint32_t dealRowCount);
     __aicore__ inline void CopyAccumOutIn(uint32_t bIdx, uint32_t n2Idx, uint32_t splitKVIndex, uint32_t startRow, uint32_t dealRowCount);
+    __aicore__ inline void GetKvByTensorList(RunInfo<isInfer>& runInfo, GlobalTensor<KV_T>& keyValueGm, GlobalTensor<KV_T>& tempKeyValueGm);
     __aicore__ inline void ReduceFinalRes(uint32_t bIdx, uint32_t n2Idx, LocalTensor<T> &dst, LocalTensor<T> &lseLocal, uint32_t startRow, uint32_t dealRowCount);
     __aicore__ inline void ReduceFDDataCopyOut(uint64_t attenOutOffset, LocalTensor<OUTPUT_T> &attenOutUb, uint32_t startRow,
         uint32_t dealRowCount, uint32_t columnCount, uint32_t actualColumnCount);
@@ -363,6 +360,11 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
     constInfo.n2GS1Dv = constInfo.n2GS1D;
     constInfo.layoutType = inputParamsRegbase.layoutType;
     if ASCEND_IS_AIV {
+        if constexpr (ANTIQUANT) {
+            antiqSeqSize = inputParamsRegbase.antiquantParaSeqSize;
+            antiquantPerTensorFlag = inputParamsRegbase.antiquantPerTensorFlag;
+            antiquantPerHeadFlag = inputParamsRegbase.antiquantPerHeadFlag;
+        }
         UbToL1Event = static_cast<event_t>(GetTPipePtr()->FetchEventID(HardEvent::V_MTE3));
     }
     if constexpr (hasRope) {
@@ -572,9 +574,6 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
     if constexpr (isPa) {
         blocktablePtr = blockTable;
         this->blockTableGm.SetGlobalBuffer((__gm__ int32_t *)blockTable);
-        this->kvCacheBlockSize = this->tilingData->inputParamsRegbase.blockSize;
-        this->maxBlockNumPerBatch = this->tilingData->inputParamsRegbase.blockTableDim2;
-        this->kvLayout = this->tilingData->inputParamsRegbase.paLayoutType == 3 ? KVLAYOUT::BBH : KVLAYOUT::BNBD;
     }
     if (constInfo.isQHasLeftPadding) {
         constInfo.queryRightPaddingSize = ((__gm__ int64_t *)queryPaddingSize)[0];
@@ -745,7 +744,7 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
             singleCoreLseSize += initParams.totalSoftMaxLseOutputSize % coreNum;
         }
         InitOutput<float>(softmaxLseGm[constInfo.aivIdx * (initParams.totalSoftMaxLseOutputSize / coreNum)],
-            singleCoreLseSize, 3e+99);
+            singleCoreLseSize, 3e+99);  // 3e+99: set the value of invalid batch to inf
     }
 }
 
@@ -847,7 +846,12 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
     }
     int64_t multiCoreInnerIdx = 1;
     for (uint32_t bnIdx = bnStartIdx; bnIdx < bnEndIdx; bnIdx++) {
-        bool lastBN = (bnIdx == bnEndIdx - 1);
+        bool lastBN;
+        if constexpr (layout == LayOutTypeEnum::LAYOUT_TND) {
+            lastBN = IsLastBN(bnIdx, bnEndIdx);
+        } else {
+            lastBN = (bnIdx == bnEndIdx - 1);
+        }
         if constexpr (!isFd) {
             runParam.boIdx = bnIdx / (this->constInfo.n2Size * this->constInfo.headNumRatio);
             runParam.n2oIdx = (bnIdx / this->constInfo.headNumRatio) % this->constInfo.n2Size;
@@ -936,6 +940,10 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
 CHILD_SPEC_TEMPLATE_ANTI
 __aicore__ inline bool FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_ARGS_ANTI>::IsLastBN(uint32_t bnStartIdx, uint32_t bnEndIdx)
 {
+    // TND n2Size > 1时，可能存在 /n2Size计算后，boIdx == boStart情况，actualSeqQlen和自己比较。
+    if (constInfo.n2Size > 1) {
+        return bnStartIdx == bnEndIdx - 1;
+    }
     if (bnStartIdx != bnEndIdx - 1) {
         for (uint32_t bnIdx = bnStartIdx + 1; bnIdx < bnEndIdx; bnIdx++) {
             uint32_t boIdx = bnIdx / constInfo.n2Size;
@@ -1105,22 +1113,44 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
 }
 
 CHILD_SPEC_TEMPLATE_ANTI
+__aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_ARGS_ANTI>::GetKvByTensorList(RunInfo<isInfer>& runInfo,
+    GlobalTensor<KV_T>& keyValueGm, GlobalTensor<KV_T>& tempKeyValueGm)
+{
+    if (constInfo.isKvContinuous != 0) {
+        return;
+    }
+    ListTensorDesc keyValueListTensorDesc((__gm__ void*)keyValueGm.GetPhyAddr());
+    __gm__ uint8_t* tempKeyValueGmPtr =
+        (__gm__ uint8_t*)keyValueListTensorDesc.GetDataPtr<__gm__ uint8_t>(runInfo.boIdx);
+    tempKeyValueGm.SetGlobalBuffer((__gm__ KV_T*)tempKeyValueGmPtr);
+}
+
+CHILD_SPEC_TEMPLATE_ANTI
 __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_ARGS_ANTI>::AntiquantKey(RunInfo<isInfer> &runInfo, 
     int64_t &subTaskId, bool &first, RunParamStr<isInfer> &runParam)
 {
     Buffer<BufferType::L1> outBufAntiKey = this->kvAntiquantRes.Get();
+    GlobalTensor<KV_T> tempKeyGm = this->keyGm;
+    GetKvByTensorList(runInfo, this->keyGm, tempKeyGm);
     if(isBeforeHalf) {
-        taskParam.copyTotalS = runInfo.s2RealSize / 2;  // 2 is Vecnum 
+        taskParam.copyTotalS = Align64FuncAntiquant(runInfo.s2RealSize / 2);  // 2 is Vecnum 
     } else {
-        taskParam.copyTotalS = runInfo.s2RealSize - (runInfo.s2RealSize / 2);  // 2 is Vecnum 
+        taskParam.copyTotalS = runInfo.s2RealSize - (Align64FuncAntiquant(runInfo.s2RealSize / 2));  // 2 is Vecnum 
     }
     if (taskParam.copyTotalS == 0) {
+        CrossCoreWaitFlag<SYNC_MODE, PIPE_MTE3>(CV_L1_EVENT[subTaskId % 2]);
         CrossCoreSetFlag<SYNC_MODE, PIPE_MTE3>(VC_L1_EVENT[subTaskId % 2]);  // 2 is double buffer 
         return;
     }
-    uint32_t curSequence = constInfo.s2BaseSize * runInfo.s2LoopCount + runInfo.kvLeftPaddingSize + constInfo.subBlockIdx * (runInfo.s2RealSize >> 1);
+    uint32_t curSequence = constInfo.s2BaseSize * runInfo.s2LoopCount + runInfo.kvLeftPaddingSize +
+        constInfo.subBlockIdx * Align64FuncAntiquant(runInfo.s2RealSize / 2);
+    taskParam.flashDecodeS2Idx = runInfo.flashDecodeS2Idx;
+    if constexpr(isFd) {
+        curSequence += constInfo.s2BaseSize * taskParam.flashDecodeS2Idx;
+    }
 
-    taskParam.kvGmOffset = runInfo.keyOffset + constInfo.subBlockIdx * (runInfo.s2RealSize / 2) * taskParam.kvStep;  // 2 is Vec num
+    taskParam.kvGmOffset = runInfo.keyOffset + constInfo.subBlockIdx *
+        Align64FuncAntiquant(runInfo.s2RealSize / 2) * taskParam.kvStep;  // 2 is Vec num
 
     taskParam.s2BatchOffset = curSequence;
     taskParam.kvPaddingBeginOffset = runInfo.kvLeftPaddingSize;
@@ -1146,8 +1176,7 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
     taskParam.bIdx = runInfo.boIdx;
     taskParam.n2Idx = runInfo.n2oIdx;
     taskParam.s2Idx = runInfo.s2LoopCount;
-    taskParam.flashDecodeS2Idx = runInfo.flashDecodeS2Idx;
-    keyAntiquantProcessor.ProcessBaseAPI(outBufAntiKey, this->keyGm, keyAntiqScaleGm,
+    keyAntiquantProcessor.ProcessBaseAPI(outBufAntiKey, tempKeyGm, keyAntiqScaleGm,
                               keyAntiquantOffsetGm, blockTableGm, kvInputQue, kvOutputQue, keyAntiqScaleInputQue,
                               keyAntiqOffsetInputQue, kvAntiqMxScaleRes, taskParam, subTaskId, isBeforeHalf, runInfo.s2RealSize);
 }
@@ -1157,18 +1186,26 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
     int64_t &subTaskId, bool &first, RunParamStr<isInfer> &runParam)
 {
     Buffer<BufferType::L1> outBufAntiValue = this->kvAntiquantRes.Get();
+    GlobalTensor<KV_T> tempValueGm = this->valueGm;
+    GetKvByTensorList(runInfo, this->valueGm, tempValueGm);
     if(isBeforeHalf) {
-        taskParam.copyTotalS = runInfo.s2RealSize / 2;  // 2 is Vec num
+        taskParam.copyTotalS = Align64FuncAntiquant(runInfo.s2RealSize / 2);  // 2 is Vec num
     } else {
-        taskParam.copyTotalS = runInfo.s2RealSize - (runInfo.s2RealSize / 2);  // 2 is Vec num
+        taskParam.copyTotalS = runInfo.s2RealSize - (Align64FuncAntiquant(runInfo.s2RealSize / 2));  // 2 is Vec num
     }
     if (taskParam.copyTotalS == 0) {
+        CrossCoreWaitFlag<SYNC_MODE, PIPE_MTE3>(CV_L1_EVENT[subTaskId % 2]);
         CrossCoreSetFlag<SYNC_MODE, PIPE_MTE3>(VC_L1_EVENT[subTaskId % 2]);  // 2 is double buffer
         return;
     }
-    uint32_t curSequence = constInfo.s2BaseSize * runInfo.s2LoopCount + runInfo.kvLeftPaddingSize + constInfo.subBlockIdx * (runInfo.s2RealSize >> 1);
-
-    taskParam.kvGmOffset = runInfo.valueOffset + constInfo.subBlockIdx * (runInfo.s2RealSize / 2) * taskParam.kvStep;  // 2 is Vec num
+    uint32_t curSequence = constInfo.s2BaseSize * runInfo.s2LoopCount + runInfo.kvLeftPaddingSize +
+        constInfo.subBlockIdx * Align64FuncAntiquant(runInfo.s2RealSize / 2);
+    taskParam.flashDecodeS2Idx = runInfo.flashDecodeS2Idx;
+    if constexpr(isFd) {
+        curSequence += constInfo.s2BaseSize * taskParam.flashDecodeS2Idx;
+    }
+    taskParam.kvGmOffset = runInfo.valueOffset + constInfo.subBlockIdx *
+        Align64FuncAntiquant(runInfo.s2RealSize / 2) * taskParam.kvStep;  // 2 is Vec num
     
     taskParam.s2BatchOffset = curSequence;
     taskParam.kvPaddingBeginOffset = runInfo.kvLeftPaddingSize;
@@ -1191,8 +1228,7 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
     taskParam.bIdx = runInfo.boIdx;
     taskParam.n2Idx = runInfo.n2oIdx;
     taskParam.s2Idx = runInfo.s2LoopCount;
-    taskParam.flashDecodeS2Idx = runInfo.flashDecodeS2Idx;
-    valueAntiquantProcessor.ProcessBaseAPI(outBufAntiValue, valueGm,
+    valueAntiquantProcessor.ProcessBaseAPI(outBufAntiValue, tempValueGm,
                                 valueAntiqScaleGm, valueAntiquantOffsetGm, blockTableGm, kvInputQue, kvOutputQue, valueAntiqScaleInputQue,
                                 valueAntiqOffsetInputQue, kvAntiqMxScaleRes, taskParam, subTaskId, isBeforeHalf, runInfo.s2RealSize);
 }
@@ -1248,7 +1284,6 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
     LocalTensor<uint8_t> dropMaskUb;
     LocalTensor<T> inputTensorVec = this->bmm1ResBuf[runInfo.taskIdMod2].template Get<T>();
     auto stage1CastTensor = this->stage1OutQue[0].template AllocTensor<Q_T>();
-    //这一坨代码段接近3k
     if (unlikely(runInfo.s2LoopCount == runInfo.s2LoopStartIdx)) {
         if (runInfo.s2RealSize == 128) {  // 128 is s2RealSize
             ProcessVec1Vf<T, Q_T, OUTPUT_T, false, s1BaseSize, s2BaseSize, EQ_128, hasAtten, pseMode, false>(
@@ -1342,8 +1377,6 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
 
     SetFlag<HardEvent::V_MTE3>(this->UbToL1Event);
     WaitFlag<HardEvent::V_MTE3>(this->UbToL1Event);
-
-    uint32_t vec1ScmBlockTrue = s1BaseSize * (16 / sizeof(Q_T));
 
     if (likely(runInfo.halfS1RealSize != 0)) {
         DataCopy(mm2AL1Tensor[constInfo.subBlockIdx * vec1ScmBlockTrue], stage1CastTensor, 
@@ -1594,12 +1627,12 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
     attenOut = vec2ResUb;
 
     DataCopyExtParams dataCopyParams;
-    dataCopyParams.blockCount = runInfo.firstHalfS1RealSize;
+    dataCopyParams.blockCount = runInfo.halfS1RealSize;
     dataCopyParams.blockLen = constInfo.dSizeV * sizeof(T);
     dataCopyParams.srcStride = (dSizeAligned64 - constInfo.dSizeV) / (BYTE_BLOCK_ANTIQUANT / sizeof(T));
     dataCopyParams.dstStride = 0;
 
-    uint32_t mStart = constInfo.subBlockIdx * runInfo.halfS1RealSize;
+    uint32_t mStart = constInfo.subBlockIdx * runInfo.firstHalfS1RealSize;
     size_t base = (runInfo.boIdx * constInfo.n2Size * constInfo.gSize * constInfo.dSizeV +
                   runInfo.n2oIdx * constInfo.gSize * constInfo.dSizeV) * constInfo.splitKVNum + mStart * constInfo.dSizeV;
     DataCopyPad(this->accumOutGm[base + runInfo.flashDecodeS2Idx * constInfo.gSize * constInfo.dSizeV],
@@ -1613,7 +1646,7 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
     Buffer<BufferType::L1> mm1A;
     Buffer<BufferType::L1> mm1B = this->kvAntiquantRes.Get();
     LocalTensor<T> outputTensor = this->bmm1ResBuf[runInfo.taskIdMod2].template Get<T>();
-    if (unlikely(runInfo.s2LoopCount == 0)) {
+    if (unlikely(runInfo.s2LoopCount == runInfo.s2LoopStartIdx)) {
         mm1A = mm1AL1Buffers.Get();
         mm1A.Wait<HardEvent::MTE1_MTE2>(); // 占用
         LocalTensor<Q_T> mm1ATensor = mm1A.GetTensor<Q_T>();
@@ -1650,7 +1683,7 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
         mmL0ABuffers, mmL0BBuffers,
         mm1ResL0C.GetTensor<T>(),
         param);
-    if (unlikely(runInfo.s2LoopCount == runParam.s2LoopEndIdx - 1)) {
+    if (unlikely(runInfo.s2LoopCount == runInfo.s2LoopLimit)) {
         mm1A.Set<HardEvent::MTE1_MTE2>();
     }
 
@@ -1716,7 +1749,7 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
     CrossCoreWaitFlag<SYNC_MODE, PIPE_FIX>(16 + VC_MM2RES_EVENT[runInfo.taskIdMod2]); // 16 is Vec num
 
     FixpipeParamsC310<CO2Layout::ROW_MAJOR> fixpipeParams; // L0C->UB
-    fixpipeParams.nSize = constInfo.dSizeV; // L0C上的bmm1结果矩阵N方向的size大小；同mmadParams.n；8个元素（32B)对齐
+    fixpipeParams.nSize = (constInfo.dSizeV +7) >> 3 << 3;
     fixpipeParams.mSize = s1BaseSize; // 有效数据不足16行，只需输出部分行即可;L0C上的bmm1结果矩阵M方向的size大小必须是偶数
     fixpipeParams.srcStride = ((fixpipeParams.mSize + 15) / 16) * 16; // L0C上matmul结果相邻连续数据片断间隔（前面一个数据块的头与后面数据块的头的间隔），单位为16 *sizeof(T) 15 is align
     fixpipeParams.dstStride = ((uint32_t)dVTemplateType + 15) >> 4 << 4; // mmResUb上两行之间的间隔，单位：element。 // 128：根据比对dump文件得到，ND方案(S1 * S2)时脏数据用mask剔除 15 >> 4 << 4 is align
@@ -1819,6 +1852,7 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
         return;
     }
     uint64_t attenOutOffset = (uint64_t)bIdx * constInfo.n2GDv + n2Idx * constInfo.gDv;
+    constInfo.actualCombineLoopSize = (actualSeqLen + constInfo.sInnerLoopSize - 1) / constInfo.sInnerLoopSize;
     CombineSplitKVRes(attenOutOffset, bIdx, n2Idx);
 }
 
