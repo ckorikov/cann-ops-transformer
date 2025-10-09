@@ -65,7 +65,7 @@ $QK^T$矩阵在attenMask为True的位置会被遮蔽，效果如下：
   attenMaskOptional应传入矩阵示意如下：
   ![原理图](../figures/attenmask矩阵.png)
   
-- sparseModeOptional为6时，代表prefix压缩场景，即prefix场景时，attenMask为优化后的压缩下三角+矩形的矩阵（3072*2048）：其中上半部分[2048，2048]的下三角矩阵，下半部分为[1024,2048]的矩形矩阵，矩形矩阵左半部分全0，右半部分全1，attenMaskOptional应传入矩阵示意如下。该场景下忽略preTokensOptional、nextTokensOptional取值。
+- sparseModeOptional为6时，代表prefix压缩场景，即prefix场景时，attenMask为优化后的压缩下三角+矩形的矩阵（3072*2048）：其中上半部分[2048，2048]的下三角矩阵，下半部分为[1024,2048]的矩形矩阵，矩形矩阵左半部分全0，右半部分全1，attenMaskOptional应传入矩阵示意如下。该场景下忽略preTokensOptional、nextTokensOptional取值，Masked $QK^T$矩阵参考sparse_mode=5的场景。
   ![原理图](../figures/sparsemode为6遮挡矩阵.png)
   
 - sparseModeOptional为7时，表示varlen且为长序列外切场景（即长序列在模型脚本中进行多卡切query的sequence length）；用户需要确保外切前为使用sparseModeOptional 3的场景；当前mode下用户需要设置preTokensOptional和nextTokensOptional（起点为右下顶点），且需要保证参数正确，否则会存在精度问题。
