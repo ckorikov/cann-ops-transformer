@@ -50,8 +50,15 @@ constexpr uint8_t SHARE_RANK_NUM_IDX = 2U;
 constexpr uint8_t MOE_NUM_IDX = 3U;
 constexpr uint32_t DIM_NUM = 2;
 constexpr size_t MASK_CALC_NEED_WORKSPACE = 10UL * 1024UL;
-using namespace MoeDistributeV2Base;
-constexpr uint32_t BLOCK_NUM = ALIGNED_LEN / UB_ALIGN;  // blockReduceMax中，最多支持连续256字节数据参与计算
+constexpr uint32_t FLAG_AFTER_WAIT = 10;
+
+template<AscendC::HardEvent event>
+__aicore__ inline void SyncFunc()
+{
+    int32_t eventID = static_cast<int32_t>(GetTPipePtr()->FetchEventID(event));
+    AscendC::SetFlag<event>(eventID);
+    AscendC::WaitFlag<event>(eventID);
+}
 
 #define TemplateMC2TypeClass typename ExpandXType, typename XType, typename ExpandIdxType, bool IsNeedReduceScatter, bool IsInt8Quant
 #define TemplateMC2TypeFunc ExpandXType, XType, ExpandIdxType, IsNeedReduceScatter, IsInt8Quant
@@ -1265,6 +1272,15 @@ __aicore__ inline void MoeDistributeCombineV2<TemplateMC2TypeFunc>::Process()
         SetWaitTpStatusAndDisPatch();
         AlltoAllBuffInitAndMaskCal();
         LocalWindowCopy();
+
+        DataCopyParams dataCopyParams{1U, sizeof(uint32_t), 0U, 0U};
+        datastateLocalTensor_ = expertScalesBuf_.Get<uint32_t>();
+        datastateLocalTensor_.SetValue(0, FLAG_AFTER_WAIT);
+        selfDataStatusTensor_.SetGlobalBuffer(
+            (__gm__ uint32_t*)(statusDataSpaceGm_ + STATE_WIN_OFFSET + coreIdx_ * WIN_ADDR_ALIGN + sizeof(uint32_t)));
+        SyncFunc<AscendC::HardEvent::S_MTE3>();
+        DataCopyPad(selfDataStatusTensor_, datastateLocalTensor_, dataCopyParams);
+        PipeBarrier<PIPE_MTE3>();
     }
 }
 

@@ -50,7 +50,16 @@ constexpr uint8_t EP_WORLD_SIZE_IDX = 1;
 constexpr uint8_t SHARE_RANK_NUM_IDX = 2;
 constexpr uint8_t MOE_NUM_IDX = 3;
 constexpr int32_t  BITS_PER_BYTE = 8;
-constexpr uint32_t MAX_UB_SIZE = 170U * 1024U;
+constexpr int32_t  MAX_UB_SIZE = 192 * 1024;
+constexpr uint32_t FLAG_AFTER_WAIT = 10;
+
+template<AscendC::HardEvent event>
+__aicore__ inline void SyncFunc()
+{
+    int32_t eventID = static_cast<int32_t>(GetTPipePtr()->FetchEventID(event));
+    AscendC::SetFlag<event>(eventID);
+    AscendC::WaitFlag<event>(eventID);
+}
 
 #define TemplateMC2TypeClass typename XType, typename ExpandXOutType, bool StaticQuant, bool DynamicQuant, bool IsSmoothScaleExist, bool IsNeedAllgather
 #define TemplateMC2TypeFunc XType, ExpandXOutType, StaticQuant, DynamicQuant, IsSmoothScaleExist, IsNeedAllgather
@@ -1227,9 +1236,11 @@ __aicore__ inline void MoeDistributeDispatchV2<TemplateMC2TypeFunc>::GetCumSum(L
 template <TemplateMC2TypeClass>
 __aicore__ inline void MoeDistributeDispatchV2<TemplateMC2TypeFunc>::LocalWindowCopy()
 {
-    DataCopyParams dataStateParams{1U, sizeof(uint32_t), 0U, 0U};
-    dataStateLocalTensor_ = gatherMaskOutBuf_.Get<uint32_t>();
-    dataStateLocalTensor_.SetValue(0, FLAG_AFTER_WAIT);
+    DataCopyParams dataCopyParams{1U, sizeof(uint32_t), 0U, 0U};
+    datastateLocalTensor_ = gatherMaskOutBuf_.Get<uint32_t>();
+    datastateLocalTensor_.SetValue(0, FLAG_AFTER_WAIT);
+    selfDataStatusTensor_.SetGlobalBuffer(
+        (__gm__ uint32_t*)(statusDataSpaceGm_ + STATE_WIN_OFFSET + aivId_ * WIN_ADDR_ALIGN + sizeof(uint32_t)));
     SyncFunc<AscendC::HardEvent::S_MTE3>();
     DataCopyPad(selfDataStatusGMTensor_[1], dataStateLocalTensor_, dataStateParams);
     LocalTensor<int32_t> outCountLocal;
