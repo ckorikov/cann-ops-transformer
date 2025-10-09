@@ -8,12 +8,11 @@
  * See LICENSE in the root of the software repository for the full text of the License.
  */
 
-#include <gtest/gtest.h> // NOLINT
+#include <gtest/gtest.h>
 #include <iostream>
-#include "op_proto_test_util.h" // NOLINT
-#include "fusion_ops.h"
-#include "graph/utils/op_desc_utils.h"
-#include "common/utils/ut_op_common.h"
+#include "infershape_context_faker.h"
+#include "infershape_case_executor.h"
+#include "base/registry/op_impl_space_registry_v2.h"
 
 class DequantRopeQuantKvcache : public testing::Test
 {
@@ -29,50 +28,62 @@ protected:
     }
 };
 
-TEST_F(DequantRopeQuantKvcache, DequantRopeQuantKvcache_infershape_case_0)
-{
-    ge::op::DequantRopeQuantKvcache op;
-    op.UpdateInputDesc("x", create_desc({4, 1, 1280}, ge::DT_FLOAT16));
-    op.UpdateInputDesc("cos", create_desc({4, 1, 1, 128}, ge::DT_FLOAT16));
-    op.UpdateInputDesc("sin", create_desc({4, 1, 1, 128}, ge::DT_FLOAT16));
-    op.UpdateInputDesc("scale_k", create_desc({128}, ge::DT_FLOAT));
-    op.UpdateInputDesc("scale_v", create_desc({128}, ge::DT_INT32));
-    op.UpdateInputDesc("k_cache", create_desc({4, 2048, 1, 128}, ge::DT_INT8));
-    op.UpdateInputDesc("v_cache", create_desc({4, 2048, 1, 128}, ge::DT_INT8));
-    op.UpdateInputDesc("indices", create_desc({4}, ge::DT_INT32));
-
-    std::vector<int64_t> size_splits;
-    size_splits.push_back(1024);
-    size_splits.push_back(128);
-    size_splits.push_back(128);
-    op.SetAttr("size_splits", (size_splits));
-    op.SetAttr("quant_mode", "static");
-    op.SetAttr("layout", "BSND");
-    op.SetAttr("kv_output", false);
-    Runtime2TestParam param{{"size_splits", "quant_mode", "layout", "kv_output"}};
-    EXPECT_EQ(InferShapeTest(op, param), ge::GRAPH_SUCCESS);
+TEST_F(DequantRopeQuantKvcache, DequantRopeQuantKvcache_infershape_case_0) {
+  gert::InfershapeContextPara infershapeContextPara("DequantRopeQuantKvcache",
+                                            {
+                                              {{{4, 1, 1280}, {4, 1, 1280}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+                                              {{{4, 1, 1, 128}, {4, 1, 1, 128}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+                                              {{{4, 1, 1, 128}, {4, 1, 1, 128}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+                                              {{{4, 2048, 1, 128}, {4, 2048, 1, 128}}, ge::DT_INT8, ge::FORMAT_ND},
+                                              {{{4, 2048, 1, 128}, {4, 2048, 1, 128}}, ge::DT_INT8, ge::FORMAT_ND},
+                                              {{{4}, {4}}, ge::DT_INT32, ge::FORMAT_ND},
+                                              {{{128}, {128}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                              {{{128}, {128}}, ge::DT_INT32, ge::FORMAT_ND}
+                                            },
+                                            {
+                                              {{{}, {}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+                                              {{{}, {}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+                                              {{{}, {}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+                                              {{{}, {}}, ge::DT_INT8, ge::FORMAT_ND},
+                                              {{{}, {}}, ge::DT_INT8, ge::FORMAT_ND}
+                                            },
+                                            {
+                                              {"size_splits",Ops::Transformer::AnyValue::CreateFrom<std::vector<int64_t>>({1024, 128, 128})},
+                                              {"quant_mode",Ops::Transformer::AnyValue::CreateFrom<std::string>("static")},
+                                              {"layout",Ops::Transformer::AnyValue::CreateFrom<std::string>("BSND")},
+                                              {"kv_output",Ops::Transformer::AnyValue::CreateFrom<bool>(false)}
+                                            }
+                                          );
+    std::vector<std::vector<int64_t>> expectOutputShape = {{-1, -1}};
+    ExecuteTestCase(infershapeContextPara, ge::GRAPH_SUCCESS, expectOutputShape);
 }
 
-TEST_F(DequantRopeQuantKvcache, DequantRopeQuantKvcache_infershape_case_1)
-{
-    ge::op::DequantRopeQuantKvcache op;
-    op.UpdateInputDesc("x", create_desc({4, 1280}, ge::DT_FLOAT16));
-    op.UpdateInputDesc("cos", create_desc({4, 128}, ge::DT_FLOAT16));
-    op.UpdateInputDesc("sin", create_desc({4, 128}, ge::DT_FLOAT16));
-    op.UpdateInputDesc("scale_k", create_desc({128}, ge::DT_FLOAT));
-    op.UpdateInputDesc("scale_v", create_desc({128}, ge::DT_INT32));
-    op.UpdateInputDesc("k_cache", create_desc({4, 2048, 1, 128}, ge::DT_INT8));
-    op.UpdateInputDesc("v_cache", create_desc({4, 2048, 1, 128}, ge::DT_INT8));
-    op.UpdateInputDesc("indices", create_desc({4}, ge::DT_INT32));
-
-    std::vector<int64_t> size_splits;
-    size_splits.push_back(1024);
-    size_splits.push_back(128);
-    size_splits.push_back(128);
-    op.SetAttr("size_splits", (size_splits));
-    op.SetAttr("quant_mode", "static");
-    op.SetAttr("layout", "BSND");
-    op.SetAttr("kv_output", true);
-    Runtime2TestParam param{{"size_splits", "quant_mode", "layout", "kv_output"}};
-    EXPECT_EQ(InferShapeTest(op, param), ge::GRAPH_SUCCESS);
+TEST_F(DequantRopeQuantKvcache, DequantRopeQuantKvcache_infershape_case_1) {
+  gert::InfershapeContextPara infershapeContextPara("DequantRopeQuantKvcache",
+                                            {
+                                              {{{4, 1280}, {4, 1280}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+                                              {{{4, 128}, {4, 128}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+                                              {{{4, 128}, {4, 128}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+                                              {{{4, 2048, 1, 128}, {4, 2048, 1, 128}}, ge::DT_INT8, ge::FORMAT_ND},
+                                              {{{4, 2048, 1, 128}, {4, 2048, 1, 128}}, ge::DT_INT8, ge::FORMAT_ND},
+                                              {{{4}, {4}}, ge::DT_INT32, ge::FORMAT_ND},
+                                              {{{128}, {128}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                              {{{128}, {128}}, ge::DT_INT32, ge::FORMAT_ND}
+                                            },
+                                            {
+                                              {{{}, {}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+                                              {{{}, {}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+                                              {{{}, {}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+                                              {{{}, {}}, ge::DT_INT8, ge::FORMAT_ND},
+                                              {{{}, {}}, ge::DT_INT8, ge::FORMAT_ND}
+                                            },
+                                            {
+                                              {"size_splits",Ops::Transformer::AnyValue::CreateFrom<std::vector<int64_t>>({1024, 128, 128})},
+                                              {"quant_mode",Ops::Transformer::AnyValue::CreateFrom<std::string>("static")},
+                                              {"layout",Ops::Transformer::AnyValue::CreateFrom<std::string>("BSND")},
+                                              {"kv_output",Ops::Transformer::AnyValue::CreateFrom<bool>(true)}
+                                            }
+                                          );
+    std::vector<std::vector<int64_t>> expectOutputShape = {{-1, -1}};
+    ExecuteTestCase(infershapeContextPara, ge::GRAPH_SUCCESS, expectOutputShape);
 }
