@@ -66,7 +66,7 @@ REG_OP(MoeGatingTopK)
     .ATTR(norm_type, Int, 0)
     .ATTR(out_flag, Bool, false)
     .ATTR(routed_scaling_factor, Float, 1.0)
-    .ATTR(eps, Float, 1e-20)
+    .ATTR(eps, Float, 1e-20f)
     .OP_END_FACTORY_REG(MoeGatingTopK)
 
 } // namespace ge
