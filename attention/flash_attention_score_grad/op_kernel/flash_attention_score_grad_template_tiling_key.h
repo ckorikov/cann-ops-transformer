@@ -66,9 +66,7 @@ ASCENDC_TPL_ARGS_DECL(
     //          2：BFLOAT16
     //          3：FLOAT16_PRECISION
     ASCENDC_TPL_UINT_DECL(DataType, ASCENDC_TPL_2_BW, ASCENDC_TPL_UI_LIST, 0, 1, 2, 3),
-    // todo  这玩意有没有None啊？
     // bit: 15-16 Layout
-    //          0: NONE
     //          0: BSH
     //          1: SBH
     //          2: BNSD
@@ -141,12 +139,13 @@ ASCENDC_TPL_ARGS_DECL(
     //          7：ALIGNED_112
     //          8：ALIGNED_128
     ASCENDC_TPL_UINT_DECL(S2TemplateType, ASCENDC_TPL_4_BW, ASCENDC_TPL_UI_LIST, 0, 1, 2, 3, 4, 5, 6, 7, 8),
-    // todo 这里说的是对不上？
-    // bit: 38-41 S2TemplateType
-    //          0：D_TEMPLATE_UNKNOW
-    //          5：ALIGNED_80
-    //          6：ALIGNED_96
-    //          8：ALIGNED_128
+    // bit: 38-41 DTemplateType
+    //          0: NonAligned
+    //          1: Aligned64
+    //          3: NonAligned72
+    //          4: NonAligned88
+    //          5: Aligned128
+    //          6: Aligned192
     ASCENDC_TPL_UINT_DECL(DTemplateType, ASCENDC_TPL_4_BW, ASCENDC_TPL_UI_LIST, 0, 1, 3, 4, 5, 6, 8),
     // bit: 42 IsDeterministic
     //          0: NON_DETERMINISTIC

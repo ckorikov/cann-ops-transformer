@@ -3242,7 +3242,7 @@ public:
     }
 };
 
-// todo 增加set get reset
+
 class SplitNSingleCoreParams {
 public:
     int64_t nIn = 0;

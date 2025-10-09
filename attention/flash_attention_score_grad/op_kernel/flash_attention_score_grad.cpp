@@ -541,14 +541,6 @@ __global__ __aicore__ void flash_attention_score_grad(
     }
 
 #else
-    
-    // AscendC::PRINTF("\n\n Kernel tilingkey info is UB0: [%d], UB1: [%d], Block: [%d], DataType: [%d], Layout: [%d], Sparce: [%d]\n MatmulConfig: [%d], MM12IsNzOut: [%d], MM345IsNzOut: [%d]\n HasDrop: [%d], HasPse: [%d], HasRope: [%d], HassAtten: [%d], EnableL1Reuse: [%d]\n TNDS1PingPong: [%d], S1Template: [%d], S2Template: [%d], DTemplate: [%d]\n IsDeterministc: [%d]\n", 
-    //                 UB0, UB1, Block, IsSameAB, DataType,  Layout,  Sparse,  MatmulCfg,  Mm12IsNZOut,
-    //                  Mm345IsNZOut, HasDropOut, HasPse, HasAttenMask,  EnableL1Reuse,  TNDS1Pingpong,  S1TemplateType,
-    //                  S2TemplateType, DTemplateType, IsDeterministic, HasRope);
-    
-    // AscendC::PRINTF("Tiling key var is %lu\n", TILING_KEY_VAR);
-
     KERNEL_TASK_TYPE_DEFAULT(KERNEL_TYPE_MIX_AIC_1_2);
     TPipe pipeIn;
     AscendC::SetMaskNorm();
