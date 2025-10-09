@@ -14,14 +14,15 @@
 
 ## 功能说明
 
-算子功能：当存在TP域通信时，先进行ReduceScatterV通信，再进行AlltoAllV通信，最后将接收的数据整合（乘权重再相加）；当不存在TP域通信时，进行AlltoAllV通信，最后将接收的数据整合（乘权重再相加）。
+- 算子功能：当存在TP域通信时，先进行ReduceScatterV通信，再进行AlltoAllV通信，最后将接收的数据整合（乘权重再相加）；当不存在TP域通信时，进行AlltoAllV通信，最后将接收的数据整合（乘权重再相加）。
+- 计算公式：
 $$
 rsOut = ReduceScatterV(expandX)\\
 ataOut = AllToAllV(rsOut)\\
 xOut = Sum(expertScales * ataOut + expertScales * sharedExpertX)
 $$
 
-注意该接口必须与`aclnnMoeDistributeDispatchV2`配套使用，相当于按`MoeDistributeDispatchV2`算子收集数据的路径原路返还。
+>注意该接口必须与`aclnnMoeDistributeDispatchV2`配套使用，相当于按`MoeDistributeDispatchV2`算子收集数据的路径原路返还。
 
 相较于`aclnnMoeDistributeCombine`接口，该接口变更如下：
 - 输入了更详细的token信息辅助`aclnnMoeDistributeCombineV2`高效地进行全卡同步，因此原接口中shape为`(Bs * K,)`的`expandIdx`入参替换为shape为`(A * 128,)`的`assistInfoForCombine`参数；
@@ -48,32 +49,32 @@ aclnnStatus aclnnMoeDistributeCombineV2GetWorkspaceSize(
     const aclTensor* groupListOptional,
     const aclTensor* expandScalesOptional,
     const aclTensor* sharedExpertXOptional,
-    const char* groupEp,
-    int64_t epWorldSize,
-    int64_t epRankId,
-    int64_t moeExpertNum,
-    const char* groupTp,
-    int64_t tpWorldSize,
-    int64_t tpRankId,
-    int64_t expertShardType,
-    int64_t sharedExpertNum,
-    int64_t sharedExpertRankNum,
-    int64_t globalBs,
-    int64_t outDtype,
-    int64_t commQuantMode,
-    int64_t groupListType,
-    const char* commAlg,
-    aclTensor* xOut,
-    uint64_t* workspaceSize,
-    aclOpExecutor** executor)
+    const char*      groupEp,
+    int64_t          epWorldSize,
+    int64_t          epRankId,
+    int64_t          moeExpertNum,
+    const char*      groupTp,
+    int64_t          tpWorldSize,
+    int64_t          tpRankId,
+    int64_t          expertShardType,
+    int64_t          sharedExpertNum,
+    int64_t          sharedExpertRankNum,
+    int64_t          globalBs,
+    int64_t          outDtype,
+    int64_t          commQuantMode,
+    int64_t          groupListType,
+    const char*      commAlg,
+    aclTensor*       xOut,
+    uint64_t*        workspaceSize,
+    aclOpExecutor**  executor)
 ```
 
 ```cpp
 aclnnStatus aclnnMoeDistributeCombineV2(
-    void *workspace,
-    uint64_t workspaceSize,
-    aclOpExecutor *executor,
-    aclrtStream stream)
+    void            *workspace,
+    uint64_t        workspaceSize,
+    aclOpExecutor   *executor,
+    aclrtStream     stream)
 ```
 
 ## aclnnMoeDistributeCombineV2GetWorkspaceSize
@@ -396,7 +397,7 @@ aclnnStatus aclnnMoeDistributeCombineV2(
 
 ## 约束说明
 
-1. `aclnnMoeDistributeDispatchV2`接口与`aclnnMoeDistributeCombineV2`接口必须配套使用，具体参考调用示例。
+1. `aclnnMoeDistributeDispatchV2`接口与`aclnnMoeDistributeCombineV2`接口必须配套使用，具体参考[调用示例](#调用示例)。
 
 2. 在不同产品型号、不同通信算法或不同版本中，`aclnnMoeDistributeDispatchV2`的Tensor输出`assistInfoForCombineOut`、`epRecvCounts`、`tpRecvCounts`、`expandScales`中的元素值可能不同，使用时直接将上述Tensor传给`aclnnMoeDistributeCombineV2`对应参数即可，模型其他业务逻辑不应对其存在依赖。
 
@@ -439,9 +440,33 @@ aclnnStatus aclnnMoeDistributeCombineV2(
 
 ## 调用示例
 
-示例代码如下，仅供参考，具体编译和执行过程请参考编译与运行样例。
+以<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>为例，调起MoeDistributeCombineV2和MoeDistributeDispatchV2算子。
 
-- <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：
+- 文件准备：
+  1.新建combineDemo目录，按照下方指导在combineDemo下新建aclnnCombineDemo.cpp，buildCombine.sh，文件并参考如下代码修改。
+
+  2.安装cann包，并根据下方指导编译运行combineDemo。
+
+-  编译脚本
+    ```bash
+    #!/bin/bash
+    cann_path="/path/to/cann_env" # 更改cann包环境的路径
+    g++ "aclnnCombineDemo.cpp" -o combineDemo -I"$cann_path/latest/include/" -I"$cann_path/latest/include/aclnnop/" \
+                        -L="$cann_path/latest/lib64/" -lascendcl -lnnopbase -lopapi -lop_common -lpthread -lhccl
+    ```
+- 编译与运行：
+
+    ```bash
+    # source cann环境
+    source /path/to/cann_env/latest/bin/setenv.bash
+
+    # 编译aclnnCombineDemo.cpp
+    bash buildCombine.sh
+
+    ./combineDemo
+    ```
+
+- 示例代码如下，仅供参考
     ```Cpp
     #include <thread>
     #include <iostream>
@@ -449,8 +474,8 @@ aclnnStatus aclnnMoeDistributeCombineV2(
     #include <vector>
     #include "acl/acl.h"
     #include "hccl/hccl.h"
-    #include "../../moe_distribute_dispatch_v2/op_host/op_api/aclnn_moe_distribute_dispatch_v2.h"
-    #include "../op_host/op_api/aclnn_moe_distribute_combine_v2.h"
+    #include "aclnnop/aclnn_moe_distribute_dispatch_v2.h"
+    #include "aclnnop/aclnn_moe_distribute_combine_v2.h"
 
     #define CHECK_RET(cond, return_expr) \
         do {                             \
@@ -780,7 +805,6 @@ aclnnStatus aclnnMoeDistributeCombineV2(
 
     int main(int argc, char *argv[])
     {
-        // 本样例基于Atlas A3实现，必须在Atlas A3上运行
         int ret = aclInit(nullptr);
         CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("[ERROR] aclrtInit failed, ret = %d\n", ret); return ret);
 

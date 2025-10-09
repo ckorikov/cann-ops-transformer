@@ -1,4 +1,4 @@
-# FlashAttentionScore
+# aclnnFlashAttentionScore
 
 ## 产品支持情况
 
@@ -42,26 +42,26 @@ aclnnStatus aclnnFlashAttentionScoreGetWorkspaceSize(
   const aclTensor   *paddingMaskOptional, 
   const aclTensor   *attenMaskOptional, 
   const aclIntArray *prefixOptional, 
-  double             scaleValue, 
-  double             keepProb, 
-  int64_t            preTokens, 
-  int64_t            nextTokens, 
-  int64_t            headNum, 
-  char              *inputLayout, 
-  int64_t            innerPrecise, 
-  int64_t            sparseMode, 
+  double scaleValue, 
+  double keepProb, 
+  int64_t preTokens, 
+  int64_t nextTokens, 
+  int64_t headNum, 
+  char *inputLayout, 
+  int64_t innerPrecise, 
+  int64_t sparseMode, 
   const aclTensor   *softmaxMaxOut, 
   const aclTensor   *softmaxSumOut, 
   const aclTensor   *softmaxOutOut, 
   const aclTensor   *attentionOutOut, 
   uint64_t          *workspaceSize, 
-  aclOpExecutor    **executor)
+  aclOpExecutor     **executor)
 ```
 ```c++
 aclnnStatus aclnnFlashAttentionScore(
-  void             *workspace, 
+  void              *workspace, 
   uint64_t          workspaceSize, 
-  aclOpExecutor    *executor, 
+  aclOpExecutor     *executor, 
   const aclrtStream stream)
 ```
 

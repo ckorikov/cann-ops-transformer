@@ -22,19 +22,19 @@
 
 ```cpp
 aclnnStatus aclnnDistributeBarrierGetWorkspaceSize(
-    aclTensor* xRef, 
-    const char* group, 
-    int64_t worldSize, 
-    uint64_t* workspaceSize, 
+    aclTensor*      xRef, 
+    const char*     group, 
+    int64_t         worldSize, 
+    uint64_t*       workspaceSize, 
     aclOpExecutor** executor)
 ```
 
 ```cpp
 aclnnStatus aclnnDistributeBarrier(
-    void *workspace, 
-    uint64_t workspaceSize, 
-    aclOpExecutor *executor, 
-    aclrtStream stream)
+    void            *workspace, 
+    uint64_t        workspaceSize, 
+    aclOpExecutor   *executor, 
+    aclrtStream     stream)
 ```
 
 ## aclnnDistributeBarrierGetWorkspaceSize

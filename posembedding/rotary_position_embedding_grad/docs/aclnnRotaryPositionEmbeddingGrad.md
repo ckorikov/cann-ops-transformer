@@ -13,8 +13,8 @@
 | <term>Atlas 200/300/500 推理产品</term>                      |    ×    |
 
 ## 功能说明
--  **算子功能**：执行单路旋转位置编码[aclnnRotaryPositionEmbedding](../../rotary_position_embedding/docs/aclnnRotaryPositionEmbedding.md)的反向计算。
--  **计算公式**：
+-  算子功能：执行单路旋转位置编码[aclnnRotaryPositionEmbedding](../../rotary_position_embedding/docs/aclnnRotaryPositionEmbedding.md)的反向计算。
+-  计算公式：
   
     取旋转位置编码的正向计算中，boardcast的轴列表为`dims`，则计算公式可表达如下：
 
@@ -77,7 +77,6 @@
     $$
     dsin = sum(dy * stack((-x2, x1), dim=-1).reshape(dy.shape), dims)
     $$
-    - <term>昇腾910_95 AI处理器</term>：
     
     （3）quarter模式（mode等于2）：
     $$
@@ -146,19 +145,19 @@ aclnnStatus aclnnRotaryPositionEmbeddingGradGetWorkspaceSize(
     const aclTensor *cos,
     const aclTensor *sin,
     const aclTensor *xOptional,
-    int64_t          mode,
+    int64_t mode,
     const aclTensor *dxOut,
     const aclTensor *dcosOut,
     const aclTensor *dsinOut,
     uint64_t        *workspaceSize,
-    aclOpExecutor  **executor)
+    aclOpExecutor   **executor)
 ```
 ```c++
 aclnnStatus aclnnRotaryPositionEmbeddingGrad(
     void          *workspace,
-    uint64_t       workspaceSize,
+    uint64_t      workspaceSize,
     aclOpExecutor *executor,
-    aclrtStream    stream)
+    aclrtStream   stream)
 ```
 ## aclnnRotaryPositionEmbeddingGradGetWorkspaceSize
 
@@ -376,7 +375,6 @@ aclnnStatus aclnnRotaryPositionEmbeddingGrad(
 
   返回aclnnStatus状态码，具体参见[aclnn返回码](../../../docs/context/aclnn返回码.md)。
 ## 约束说明
-  - <term>昇腾910_95 AI处理器</term>：
     
     用(B, S, N, D)表示四维输入dy的shape，在该表示下，各参数的shape约束可以描述如下：
     - 输入张量dy、cos、sin、xOptional及输出张量dxOut、dcosOut、dsinOut的D维度大小必须相同，且小于等于1024。对于half、interleave和interleave-half模式，D必须能被2整除，对于quarter模式，D必须能被4整除。

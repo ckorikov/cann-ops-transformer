@@ -1,4 +1,4 @@
-# FlashAttentionVarLenScoreV2
+# aclnnFlashAttentionVarLenScoreV2
 
 ## 产品支持情况
 
@@ -17,12 +17,12 @@
 
 ## 功能说明
 
-- 算子功能：训练场景下，使用FlashAttention算法实现self-attention（自注意力）的计算。**跟[FlashAttentionScoreV2](./aclnnFlashAttentionScoreV2.md)的区别是该接口支持可变长S的计算，即可以一次传入多个长度不相等的sequence。使用此接口时，query，key和value使用TND的格式传入数据，其中T意为total number，表示其所有sequence的length总和，同时使用actualSeqQLenOptional与actualSeqKvLenOptional输入传入每个sequence依次的累积长度以区分不同sequence。每个sequence单独计算其注意力结果**。
+- 算子功能：训练场景下，使用FlashAttention算法实现self-attention（自注意力）的计算。**跟[aclnnFlashAttentionScoreV2](./aclnnFlashAttentionScoreV2.md)的区别是该接口支持可变长S的计算，即可以一次传入多个长度不相等的sequence。使用此接口时，query，key和value使用TND的格式传入数据，其中T意为total number，表示其所有sequence的length总和，同时使用actualSeqQLenOptional与actualSeqKvLenOptional输入传入每个sequence依次的累积长度以区分不同sequence。每个sequence单独计算其注意力结果**。
 - 计算公式：
 
    注意力的正向计算公式如下：
 
-   - psetype=1时，与[FlashAttentionVarLenScore](./aclnnFlashAttentionVarLenScore.md)计算公式相同。
+   - psetype=1时，与[aclnnFlashAttentionVarLenScore](./aclnnFlashAttentionVarLenScore.md)计算公式相同。
 
    - psetype=其他取值时，公式如下：
      $$

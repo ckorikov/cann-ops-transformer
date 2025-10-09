@@ -34,30 +34,30 @@
 
 ```cpp
 aclnnStatus aclnnGroupedMatMulAlltoAllvGetWorkspaceSize(
-    const aclTensor* gmmX,
-    const aclTensor* gmmWeight,
-    const aclTensor* sendCountsTensorOptional,
-    const aclTensor* recvCountsTensorOptional,
-    const aclTensor* mmXOptional,
-    const aclTensor* mmWeightOptional,
-    const char* group,
-    int64_t epWorldSize,
+    const aclTensor*   gmmX,
+    const aclTensor*   gmmWeight,
+    const aclTensor*   sendCountsTensorOptional,
+    const aclTensor*   recvCountsTensorOptional,
+    const aclTensor*   mmXOptional,            
+    const aclTensor*   mmWeightOptional,
+    const char*        group,
+    int64_t            epWorldSize,
     const aclIntArray* sendCounts,
     const aclIntArray* recvCounts,
-    bool transGmmWeight,
-    bool transMmWeight,
-    aclTensor* y,
-    aclTensor* mmYOptional,
-    uint64_t* workspaceSize,
-    aclOpExecutor** executor)
+    bool               transGmmWeight,
+    bool               transMmWeight,
+    aclTensor*         y,
+    aclTensor*         mmYOptional,
+    uint64_t*          workspaceSize,
+    aclOpExecutor**       executor)
 ```
 
 ```cpp
 aclnnStatus aclnnGroupedMatMulAlltoAllv(
-    void* workspace,
-    uint64_t workspaceSize,
-    aclOpExecutor* executor,
-    aclrtStream stream)
+    void*           workspace,
+    uint64_t        workspaceSize,
+    aclOpExecutor*  executor,
+    aclrtStream     stream)
 ```
 
 ## aclnnGroupedMatMulAlltoAllvGetWorkspaceSize

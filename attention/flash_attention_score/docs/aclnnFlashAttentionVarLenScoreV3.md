@@ -1,4 +1,4 @@
-# FlashAttentionVarLenScoreV3
+# aclnnFlashAttentionVarLenScoreV3
 
 ## 产品支持情况
 
@@ -17,7 +17,7 @@
 
 ## 功能说明
 
-- 算子功能：训练场景下，使用FlashAttention算法实现self-attention（自注意力）的计算。跟[FlashAttentionVarLenScoreV2](./aclnnFlashAttentionVarLenScoreV2.md)的区别是该接口支持query/key多输入，即query、queryRope、key和keyRope作为输入。非多输入场景使用[FlashAttentionVarLenScoreV2](./aclnnFlashAttentionVarLenScoreV2.md)或其他接口。
+- 算子功能：训练场景下，使用FlashAttention算法实现self-attention（自注意力）的计算。跟[aclnnFlashAttentionVarLenScoreV2](./aclnnFlashAttentionVarLenScoreV2.md)的区别是该接口支持query/key多输入，即query、queryRope、key和keyRope作为输入。非多输入场景使用[aclnnFlashAttentionVarLenScoreV2](./aclnnFlashAttentionVarLenScoreV2.md)或其他接口。
 - 计算公式：
 
    注意力的正向计算公式如下：

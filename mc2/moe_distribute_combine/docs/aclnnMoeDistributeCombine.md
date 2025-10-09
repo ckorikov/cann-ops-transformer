@@ -16,7 +16,7 @@
 
 算子功能：当存在TP域通信时，先进行ReduceScatterV通信，再进行AlltoAllV通信，最后将接收的数据整合（乘权重再相加）；当不存在TP域通信时，进行AlltoAllV通信，最后将接收的数据整合（乘权重再相加）。
 
-注意该接口必须与`aclnnMoeDistributeDispatch`配套使用，相当于按`MoeDistributeDispatch`算子收集数据的路径原路返还。
+>注意该接口必须与`aclnnMoeDistributeDispatch`配套使用，相当于按`MoeDistributeDispatch`算子收集数据的路径原路返还。
 
 ## 函数原型
 
@@ -35,31 +35,31 @@ aclnnStatus aclnnMoeDistributeCombineGetWorkspaceSize(
     const aclTensor* weightScale,
     const aclTensor* groupList,
     const aclTensor* expandScales,
-    const char* groupEp,
-    int64_t epWorldSize,
-    int64_t epRankId,
-    int64_t moeExpertNum,
-    const char* groupTp,
-    int64_t tpWorldSize,
-    int64_t tpRankId,
-    int64_t expertShardType,
-    int64_t sharedExpertNum,
-    int64_t sharedExpertRankNum,
-    int64_t globalBs,
-    int64_t outDtype,
-    int64_t commQuantMode,
-    int64_t groupListType,
-    aclTensor* x,
-    uint64_t* workspaceSize,
-    aclOpExecutor** executor)
+    const char*      groupEp,
+    int64_t          epWorldSize,
+    int64_t          epRankId,
+    int64_t          moeExpertNum,
+    const char*      groupTp,
+    int64_t          tpWorldSize,
+    int64_t          tpRankId,
+    int64_t          expertShardType,
+    int64_t          sharedExpertNum,
+    int64_t          sharedExpertRankNum,
+    int64_t          globalBs,
+    int64_t          outDtype,
+    int64_t          commQuantMode,
+    int64_t          groupListType,
+    aclTensor*       x,
+    uint64_t*        workspaceSize,
+    aclOpExecutor**  executor)
 ```
 
 ```cpp
 aclnnStatus aclnnMoeDistributeCombine(
-    void *workspace,
-    uint64_t workspaceSize,
-    aclOpExecutor *executor,
-    aclrtStream stream)
+    void            *workspace,
+    uint64_t        workspaceSize,
+    aclOpExecutor   *executor,
+    aclrtStream     stream)
 ```
 
 ## aclnnMoeDistributeCombineGetWorkspaceSize

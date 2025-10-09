@@ -45,47 +45,22 @@ aclnnStatus aclnnMatmulAllReduceAddRmsNormGetWorkspaceSize(
     const aclTensor *bias, 
     const aclTensor *residual, 
     const aclTensor *gamma, 
-    double epsilon, 
-    const char* group, 
-    const char *reduceOp, 
-    int64_t commTurn, 
-    int64_t streamMode, 
-    const aclTensor *y, 
-    const aclTensor *normOut, 
-    uint64_t *workspaceSize, 
-    aclOpExecutor **executor)
-```
-
-```cpp
-<<<<<<< HEAD
-aclnnStatus aclnnMatmulAllReduceAddRmsNorm(
-    void *workspace, 
-    uint64_t workspaceSize, 
-    aclOpExecutor *executor, 
-=======
-aclnnStatus aclnnMatmulAllReduceAddRmsNormGetWorkspaceSize(
-    const aclTensor *x1,
-    const aclTensor *x2, 
-    const aclTensor *bias, 
-    const aclTensor *residual, 
-    const aclTensor *gamma, 
-    double           epsilon, 
-    const char      *group, 
+    double          epsilon, 
+    const char*     group, 
     const char      *reduceOp, 
-    int64_t          commTurn, 
-    int64_t          streamMode, 
+    int64_t         commTurn, 
+    int64_t         streamMode, 
     const aclTensor *y, 
     const aclTensor *normOut, 
     uint64_t        *workspaceSize, 
-    aclOpExecutor  **executor)
+    aclOpExecutor   **executor)
 ```
+
 ```cpp
 aclnnStatus aclnnMatmulAllReduceAddRmsNorm(
-    void             *workspace, 
-    uint64_t          workspaceSize, 
-    aclOpExecutor    *executor, 
->>>>>>> ac831a29... list
-    const aclrtStream stream)
+    void            *workspace, 
+    uint64_t        workspaceSize, 
+    aclOpExecutor   *executor, ）
 ```
 
 ## aclnnMatmulAllReduceAddRmsNormGetWorkspaceSize

@@ -14,9 +14,9 @@
 
 ## 功能说明
 
-算子功能：完成AllToAll、AllGather集合通信与BatchMatMul计算融合、并行。
+- **算子功能**：完成AllToAll、AllGather集合通信与BatchMatMul计算融合、并行。
 
-计算公式：
+- **计算公式**：
 计算逻辑如下，其中y1、y2、y3为输出
 $$
 x1 = AllToAll(x)
@@ -40,25 +40,25 @@ aclnnStatus aclnnAlltoAllAllGatherBatchMatMulGetWorkspaceSize(
     const aclTensor* x,
     const aclTensor* weight,
     const aclTensor* biasOptional,
-    const char* groupEp,
-    const char* groupTp,
-    int64_t epWorldSize,
-    int64_t tpWorldSize,
-    int64_t xShardType,
-    int64_t actType,
-    aclTensor* y1Out,
-    aclTensor* y2OutOptional,
-    aclTensor* y3OutOptional,
-    uint64_t* workspaceSize,
-    aclOpExecutor** executor)
+    const char*      groupEp,
+    const char*      groupTp,
+    int64_t          epWorldSize,
+    int64_t          tpWorldSize,
+    int64_t          xShardType,
+    int64_t          actType,
+    aclTensor*       y1Out,
+    aclTensor*       y2OutOptional,
+    aclTensor*       y3OutOptional,
+    uint64_t*        workspaceSize,
+    aclOpExecutor**  executor)
 ```
 
 ```cpp
 aclnnStatus aclnnAlltoAllAllGatherBatchMatMul(
-    void* workspace,
-    uint64_t workspaceSize,
-    aclOpExecutor* executor,
-    aclrtStream stream)
+    void*           workspace,
+    uint64_t        workspaceSize,
+    aclOpExecutor*  executor,
+    aclrtStream     stream)
 ```
 
 ## aclnnAlltoAllAllGatherBatchMatMulGetWorkspaceSize

@@ -14,10 +14,9 @@
 
 ## 功能说明
 
-### 算子功能
-当存在TP域通信时，先进行ReduceScatterV通信，再进行AlltoAllV通信，最后将接收的数据整合（乘权重再相加）；当不存在TP域通信时，进行AlltoAllV通信，最后将接收的数据整合（乘权重再相加），之后完成Add + RmsNorm融合。
+- 接口功能：当存在TP域通信时，先进行ReduceScatterV通信，再进行AlltoAllV通信，最后将接收的数据整合（乘权重再相加）；当不存在TP域通信时，进行AlltoAllV通信，最后将接收的数据整合（乘权重再相加），之后完成Add + RmsNorm融合。
 
-### 计算公式
+- 计算公式：
 $$
 rsOut = ReduceScatterV(expandX)\\
 ataOut = AllToAllV(rsOut)\\
@@ -26,7 +25,7 @@ x = combineOut + residualX\\
 y = \frac{x}{RMS(x)} * gamma,\quad\text{where}\ RMS(x) = \sqrt{\frac{1}{H}\sum_{i=1}^{H}x_{i}^{2}+normEps}
 $$
 
-注意该接口必须与`aclnnMoeDistributeDispatchV2`配套使用，相当于按`MoeDistributeDispatchV2`算子收集数据的路径原路返还。
+> 注意该接口必须与`aclnnMoeDistributeDispatchV2`配套使用，相当于按`MoeDistributeDispatchV2`算子收集数据的路径原路返还。
 
 ## 函数原型
 
@@ -48,35 +47,35 @@ aclnnStatus aclnnMoeDistributeCombineAddRmsNormGetWorkspaceSize(
     const aclTensor* groupListOptional,
     const aclTensor* expandScalesOptional,
     const aclTensor* sharedExpertXOptional,
-    const char* groupEp,
-    int64_t epWorldSize,
-    int64_t epRankId,
-    int64_t moeExpertNum,
-    const char* groupTp,
-    int64_t tpWorldSize,
-    int64_t tpRankId,
-    int64_t expertShardType,
-    int64_t sharedExpertNum,
-    int64_t sharedExpertRankNum,
-    int64_t globalBs,
-    int64_t outDtype,
-    int64_t commQuantMode,
-    int64_t groupListType,
-    const char* commAlg,
-    float normEps,
-    aclTensor* yOut,
-    aclTensor* rstdOut,
-    aclTensor* xOut,
-    uint64_t* workspaceSize,
-    aclOpExecutor** executor)
+    const char*      groupEp,
+    int64_t          epWorldSize,
+    int64_t          epRankId,
+    int64_t          moeExpertNum,
+    const char*      groupTp,
+    int64_t          tpWorldSize,
+    int64_t          tpRankId,
+    int64_t          expertShardType,
+    int64_t          sharedExpertNum,
+    int64_t          sharedExpertRankNum,
+    int64_t          globalBs,
+    int64_t          outDtype,
+    int64_t          commQuantMode,
+    int64_t          groupListType,
+    const char*      commAlg,
+    float            normEps,
+    aclTensor*       yOut,
+    aclTensor*       rstdOut,
+    aclTensor*       xOut,
+    uint64_t*        workspaceSize,
+    aclOpExecutor**  executor)
 ```
 
 ```cpp
 aclnnStatus aclnnMoeDistributeCombineAddRmsNorm(
-    void *workspace,
-    uint64_t workspaceSize,
-    aclOpExecutor *executor,
-    aclrtStream stream)
+    void            *workspace,
+    uint64_t        workspaceSize,
+    aclOpExecutor   *executor,
+    aclrtStream     stream)
 ```
 
 ## aclnnMoeDistributeCombineAddRmsNormGetWorkspaceSize

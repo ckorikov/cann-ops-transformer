@@ -14,9 +14,9 @@
 
 ## 功能说明
 
-算子功能：BatchMatMulReduceScatterAllToAll是通算融合算子，实现BatchMatMul计算与ReduceScatter、AllToAll集合通信并行的算子。
+- **算子功能**：BatchMatMulReduceScatterAllToAll是通算融合算子，实现BatchMatMul计算与ReduceScatter、AllToAll集合通信并行的算子。
 
-计算公式：大体计算流程为：BatchMatMul计算-->转置（yShardType等于0时需要）-->ReduceScatter集合通信-->Add-->AllToAll集合通信。计算逻辑如下，其中y为输出
+- **计算公式**：大体计算流程为：BatchMatMul计算-->转置（yShardType等于0时需要）-->ReduceScatter集合通信-->Add-->AllToAll集合通信。计算逻辑如下，其中y为输出
 $$
 temp1 = BatchMatMul(x，weight)
 $$
@@ -39,22 +39,22 @@ aclnnStatus aclnnBatchMatMulReduceScatterAlltoAllGetWorkspaceSize(
     const aclTensor* x,
     const aclTensor* weight,
     const aclTensor* biasOptional,
-    const char* groupEp,
-    const char* groupTp,
-    int64_t epWorldSize,
-    int64_t tpWorldSize,
-    int64_t yShardType,
-    aclTensor* out,
-    uint64_t* workspaceSize,
-    aclOpExecutor** executor)
+    const char*      groupEp,
+    const char*      groupTp,
+    int64_t          epWorldSize,
+    int64_t          tpWorldSize,
+    int64_t          yShardType,
+    aclTensor*       out,
+    uint64_t*        workspaceSize,
+    aclOpExecutor**  executor)
 ```
 
 ```cpp
 aclnnStatus aclnnBatchMatMulReduceScatterAlltoAll(
-    void* workspace,
-    uint64_t workspaceSize,
-    aclOpExecutor* executor,
-    aclrtStream stream)
+    void*           workspace,
+    uint64_t        workspaceSize,
+    aclOpExecutor*  executor,
+    aclrtStream     stream)
 ```
 
 ## aclnnBatchMatMulReduceScatterAlltoAllGetWorkspaceSize

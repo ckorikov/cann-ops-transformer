@@ -1,4 +1,4 @@
-# FlashAttentionScoreV2
+# aclnnFlashAttentionScoreV2
 
 ## 产品支持情况
 
@@ -17,16 +17,16 @@
 
 ## 功能说明
 
-- 算子功能：训练场景下，使用FlashAttention算法实现self-attention（自注意力）的计算。**该接口相较于[FlashAttentionScore](./aclnnFlashAttentionScore.md)接口，新增psetype参数**：
+- 算子功能：训练场景下，使用FlashAttention算法实现self-attention（自注意力）的计算。**该接口相较于[aclnnFlashAttentionScore](./aclnnFlashAttentionScore.md)接口，新增psetype参数**：
 
-  -   psetype=1时，与[FlashAttentionScore](./aclnnFlashAttentionScore.md)实现相同。
+  -   psetype=1时，与[aclnnFlashAttentionScore](./aclnnFlashAttentionScore.md)实现相同。
   -   psetype=其他取值时，需要先mul再add。
 
 - 计算公式：
 
    注意力的正向计算公式如下：
 
-   - psetype=1时，与[FlashAttentionScore](./aclnnFlashAttentionScore.md)计算公式相同。
+   - psetype=1时，与[aclnnFlashAttentionScore](./aclnnFlashAttentionScore.md)计算公式相同。
 
    - psetype=其他取值时，公式如下：
      $$

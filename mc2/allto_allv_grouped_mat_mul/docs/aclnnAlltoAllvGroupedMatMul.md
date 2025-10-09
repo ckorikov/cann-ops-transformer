@@ -14,9 +14,9 @@
 
 ## 功能说明
 
-算子功能：完成路由专家AlltoAllv、Permute、GroupedMatMul融合并实现与共享专家MatMul并行融合，**先通信后计算**。
+- **算子功能**：完成路由专家AlltoAllv、Permute、GroupedMatMul融合并实现与共享专家MatMul并行融合，**先通信后计算**。
 
-计算公式：
+- **计算公式**：
 - 路由专家：
   $$
   ataOut = AlltoAllv(gmmX) \\

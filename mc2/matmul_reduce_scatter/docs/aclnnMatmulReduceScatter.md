@@ -32,21 +32,21 @@ aclnnStatus aclnnMatmulReduceScatterGetWorkspaceSize(
     const aclTensor* x1,
     const aclTensor* x2,
     const aclTensor* bias,
-    const char* group,
-    const char* reduceOp,
-    int64_t commTurn,
-    int64_t streamMode,
+    const char*      group,
+    const char*      reduceOp,
+    int64_t          commTurn,
+    int64_t          streamMode,
     const aclTensor* output,
-    uint64_t* workspaceSize,
-    aclOpExecutor** executor)
+    uint64_t*        workspaceSize,
+    aclOpExecutor**  executor)
 ```
 
 ```cpp
 aclnnStatus aclnnMatmulReduceScatter(
-    void* workspace,
-    uint64_t workspaceSize,
-    aclOpExecutor* executor,
-    aclrtStream stream)
+    void*           workspace,
+    uint64_t        workspaceSize,
+    aclOpExecutor*  executor,
+    aclrtStream     stream)
 ```
 
 ## aclnnMatmulReduceScatterGetWorkspaceSize

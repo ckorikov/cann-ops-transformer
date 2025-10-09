@@ -1,4 +1,4 @@
-# FlashAttentionScoreGrad
+# aclnnFlashAttentionScoreGrad
 
 ## 产品支持情况
 |产品      | 是否支持 |
@@ -16,7 +16,7 @@
 
 ## 功能说明
 
--   算子功能：训练场景下计算注意力的反向输出，即[FlashAttentionScore](../../flash_attention_score/docs/aclnnFlashAttentionScore.md)的反向计算。
+-   算子功能：训练场景下计算注意力的反向输出，即[aclnnFlashAttentionScore](../../flash_attention_score/docs/aclnnFlashAttentionScore.md)的反向计算。
 -   计算公式：
 
     已知注意力的正向计算公式为：

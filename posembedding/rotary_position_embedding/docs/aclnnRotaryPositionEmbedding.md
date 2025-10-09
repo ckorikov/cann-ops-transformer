@@ -13,8 +13,8 @@
 | <term>Atlas 200/300/500 推理产品</term>                      |    ×     |
 
 ## 功能说明
--  **算子功能**：执行单路旋转位置编码计算。
--  **计算公式**：
+-  算子功能：执行单路旋转位置编码计算。
+-  计算公式：
 
     - <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>、<term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：
 
@@ -49,7 +49,6 @@
     y = x * cos + x\_rotate * sin
     $$
 
-    - <term>昇腾910_95 AI处理器</term>：
     
     （3）quarter模式（mode等于2）：
     $$
@@ -93,24 +92,24 @@
     $$  
 
 ## 函数原型
-每个算子分为[两段式接口](../../../docs/context/两段式接口.md)，必须先调用“aclnnRotaryPositionEmbeddingGetWorkspaceSize”接口获取入参并根据流程计算所需workspace大小，再调用“aclnnRotaryPositionEmbedding”接口执行计算。
+每个算子分为两段式接口，必须先调用“aclnnRotaryPositionEmbeddingGetWorkspaceSize”接口获取入参并根据流程计算所需workspace大小，再调用“aclnnRotaryPositionEmbedding”接口执行计算。
 
 ```c++
 aclnnStatus aclnnRotaryPositionEmbeddingGetWorkspaceSize(
     const aclTensor *x,
     const aclTensor *cos,
     const aclTensor *sin,
-    int64_t          mode,
+    int64_t         mode,
     aclTensor       *out,
     uint64_t        *workspaceSize,
-    aclOpExecutor  **executor)
+    aclOpExecutor   **executor)
 ```
 ```c++
 aclnnStatus aclnnRotaryPositionEmbedding(
     void          *workspace,
-    uint64_t       workspaceSize,
+    uint64_t      workspaceSize,
     aclOpExecutor *executor,
-    aclrtStream    stream)
+    aclrtStream   stream)
 ```
 ## aclnnRotaryPositionEmbeddingGetWorkspaceSize
 
@@ -299,7 +298,6 @@ aclnnStatus aclnnRotaryPositionEmbedding(
   返回aclnnStatus状态码，具体参见[aclnn返回码](../../../docs/context/aclnn返回码.md)。
 
 ## 约束说明
-  - <term>昇腾910_95 AI处理器</term>：
 
     用(B, S, N, D)表示四维输入x的shape，在该表示下，各参数的shape约束可以描述如下：
     - 输入张量x、cos、sin及输出张量y的D维度大小必须相同，且小于等于1024。对于half、interleave和interleave-half模式，D必须能被2整除，对于quarter模式，D必须能被4整除。
@@ -359,7 +357,11 @@ int64_t GetShapeSize(const std::vector<int64_t>& shape) {
 }
 
 int Init(int32_t deviceId, aclrtStream* stream) {
+<<<<<<< HEAD
+    // 固定写法，AscendCL初始化
+=======
     // 固定写法，资源初始化
+>>>>>>> b09f372 (aclnn资料)
     auto ret = aclInit(nullptr);
     CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclInit failed. ERROR: %d\n", ret); return ret);
     ret = aclrtSetDevice(deviceId);
@@ -394,7 +396,11 @@ int CreateAclTensor(const std::vector<T>& hostData, const std::vector<int64_t>& 
 }
 
 int main() {
+<<<<<<< HEAD
+    // 1. 固定写法，device/stream初始化, 参考AscendCL对外接口列表
+=======
     // 1. 固定写法，device/stream初始化, 参考acl API手册
+>>>>>>> b09f372 (aclnn资料)
     // 根据自己的实际device填写deviceId
     int32_t deviceId = 0;
     aclrtStream stream;
