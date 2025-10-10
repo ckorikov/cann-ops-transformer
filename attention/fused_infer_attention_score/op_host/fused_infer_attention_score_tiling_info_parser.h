@@ -143,7 +143,6 @@ public:
     bool pseShiftFlag_ = false;
     int64_t maxActualseq_ = 0;
     bool isMaxWorkspace_ = false;
-    bool isOldIfaGqaFlag_ = false;
 
     bool isAccumQSeq_ = false;
     bool isAccumKVSeq_ = false;

@@ -67,7 +67,6 @@ protected:
     static constexpr bool FLASH_DECODE = FIAT::flashDecode;
     static constexpr FIA_LAYOUT LAYOUT_T = FIAT::layout;
     static constexpr FIA_LAYOUT KV_LAYOUT_T = FIAT::kvLayout;
-    static constexpr bool FIA_HIGH_PERFORMANCE = (FIAT::calcMode == PerformanceMode::HighPerformance);
     static constexpr ActualSeqLensMode Q_MODE = GetQActSeqMode<LAYOUT_T>();
     static constexpr ActualSeqLensMode KV_MODE = GetKvActSeqMode<LAYOUT_T, PAGE_ATTENTION>();
     static constexpr bool QUANT = (IsSameType<Q_T, KV_T>::value && IsSameType<KV_T, int8_t>::value);
@@ -78,9 +77,8 @@ protected:
     using Q_ROPE_T = typename AscendC::Conditional<ANTIQUANT, Q_T, ORIGIN_T>::type;
     using K_ROPE_T = typename AscendC::Conditional<ANTIQUANT, KV_T, ORIGIN_T>::type;    
 
-    using MM_OUT_T_CAL = typename AscendC::Conditional<FIA_HIGH_PERFORMANCE, Q_T, T>::type;
-    using UPDATE_T = typename AscendC::Conditional<QUANT || ANTIQUANT, half, MM_OUT_T_CAL>::type;
-    using TMP_T = typename AscendC::Conditional<ANTIQUANT, half, MM_OUT_T_CAL>::type;
+    using UPDATE_T = typename AscendC::Conditional<QUANT || ANTIQUANT, half, T>::type;
+    using TMP_T = typename AscendC::Conditional<ANTIQUANT, half, T>::type;
     using MM1_OUT_T = typename AscendC::Conditional<QUANT, int32_t, TMP_T>::type;
     using MM2_OUT_T = typename AscendC::Conditional<QUANT, half, TMP_T>::type;
     using PSE_T = typename AscendC::Conditional<IsSameType<Q_T, int8_t>::value, half, Q_T>::type;
@@ -191,6 +189,8 @@ protected:
     // ================================Tool============================================
     __aicore__ inline uint32_t GetBIdx(uint32_t bN2Idx);
     __aicore__ inline uint32_t GetN2Idx(uint32_t bN2Idx);
+    __aicore__ inline void GetSafeActToken(int64_t actSeqLensQ, int64_t actSeqLensKv, int64_t &safePreToken,
+                                           int64_t &safeNextToken);
     // ================================Process functions================================
     __aicore__ inline void FlashAttention();
     __aicore__ inline void CalcParams(uint64_t loop, uint32_t bN2Cur, uint32_t gS1Cur, uint32_t s2Cur, RunInfo &info);
@@ -234,7 +234,6 @@ __aicore__ inline void FiaKernelNonQuant<FIAT>::InitTilingData()
     constInfo.isRowInvalid = (tilingData->maskParams.isRowInvalid != 0);
 
     constInfo.softmaxLseFlag = tilingData->baseParams.softmaxLseFlag;
-    constInfo.isOldIfaGqaFlag = tilingData->baseParams.isOldIfaGqaFlag;
 
     constInfo.maxBlockNumPerBatch = tilingData->pageAttenParams.maxBlockNumPerBatch;
     constInfo.kvCacheBlockSize = tilingData->pageAttenParams.blockSize;
@@ -282,9 +281,6 @@ __aicore__ inline void FiaKernelNonQuant<FIAT>::InitOutputSingleCore()
 
         if (constInfo.softmaxLseFlag) {
             float lseInitValue = INFINITY;
-            if (constInfo.isOldIfaGqaFlag) {
-                lseInitValue = -INFINITY;
-            }
             uint64_t totalLseSize = tSize * constInfo.qHeadNum;
             uint64_t singleCoreLseSize = (totalLseSize + (2 * usedCoreNum) - 1) / (2 * usedCoreNum); // 2 means c:v = 1:2;
             uint64_t tailLseSize = totalLseSize - tmpBlockIdx * singleCoreLseSize;
@@ -519,6 +515,23 @@ __aicore__ inline void FiaKernelNonQuant<FIAT>::CalcAccumOffset(RunInfo &info)
 }
 
 template <typename FIAT>
+__aicore__ inline void FiaKernelNonQuant<FIAT>::GetSafeActToken(int64_t actSeqLensQ, int64_t actSeqLensKv,
+                                                           int64_t &safePreToken, int64_t &safeNextToken) 
+{
+    if (constInfo.sparseMode == fa_base_vector::DEFAULT_MASK) {
+        safePreToken = max(-actSeqLensKv, safePreToken);
+        safePreToken = min(safePreToken, actSeqLensQ);
+        safeNextToken = max(-actSeqLensQ, safeNextToken);
+        safeNextToken = min(safeNextToken, actSeqLensKv);
+    } else if (constInfo.sparseMode == fa_base_vector::BAND) {
+        safePreToken = max(-actSeqLensQ, safePreToken);
+        safePreToken = min(safePreToken, actSeqLensKv);
+        safeNextToken = max(-actSeqLensKv, safeNextToken);
+        safeNextToken = min(safeNextToken, actSeqLensQ);
+    }
+}
+
+template <typename FIAT>
 __aicore__ inline void FiaKernelNonQuant<FIAT>::CalcParams(uint64_t loop, uint32_t bN2Cur, uint32_t gS1Cur, uint32_t s2Cur,
                                                       RunInfo &info)
 {
@@ -554,16 +567,20 @@ __aicore__ inline void FiaKernelNonQuant<FIAT>::CalcParams(uint64_t loop, uint32
         }
     }
 
+    int64_t safePreToken = constInfo.preToken;
+    int64_t safeNextToken = constInfo.nextToken;
+    GetSafeActToken(info.actS1Size, info.actS2Size, safePreToken, safeNextToken);
     if (constInfo.sparseMode == fa_base_vector::BAND) {
-        info.preTokensPerBatch = constInfo.preToken;
+        info.preTokensPerBatch = safePreToken;
         info.nextTokensPerBatch =
-            static_cast<int32_t>(info.actS2Size) - static_cast<int32_t>(info.actS1Size) + constInfo.nextToken;
+            static_cast<int32_t>(info.actS2Size) - static_cast<int32_t>(info.actS1Size) + safeNextToken;
     } else if ((constInfo.sparseMode == fa_base_vector::DEFAULT_MASK) && constInfo.attenMaskFlag) {
-        info.nextTokensPerBatch = constInfo.nextToken;
+        info.nextTokensPerBatch = safeNextToken;
         info.preTokensPerBatch = 
-            static_cast<int32_t>(info.actS2Size) - static_cast<int32_t>(info.actS1Size) + constInfo.preToken;
+            static_cast<int32_t>(info.actS2Size) - static_cast<int32_t>(info.actS1Size) + safePreToken;
     } else {
         info.nextTokensPerBatch = static_cast<int32_t>(info.actS2Size) - static_cast<int32_t>(info.actS1Size);
+        info.preTokensPerBatch = 0;
     }
 
     // 情况1: loop不等于0时, 第一个S2 inner循环就是第一个S2 outer循环, 即s2Cur=0
@@ -852,15 +869,20 @@ __aicore__ inline void FiaKernelNonQuant<FIAT>::CalcCurS2StartEnd(uint32_t bN2Cu
     }
 
     uint32_t s2Start = bN2Cur == constInfo.bN2Start ? constInfo.s2Start : 0;
-    int64_t preTokenLeftUp = (constInfo.sparseMode != 4) ? constInfo.preToken :
-        (static_cast<int64_t>(actSeqLensQ) - static_cast<int64_t>(actSeqLensKv) + constInfo.preToken);
+    int64_t safePreToken = constInfo.preToken;
+    int64_t safeNextToken = constInfo.nextToken;
+    GetSafeActToken(actSeqLensQ, actSeqLensKv, safePreToken, safeNextToken);
+
+    int64_t preTokenLeftUp = (constInfo.sparseMode != fa_base_vector::BAND) ? safePreToken :
+        (static_cast<int64_t>(actSeqLensQ) - static_cast<int64_t>(actSeqLensKv) + safePreToken);
     int64_t nextTokenLeftUp;
-    if (constInfo.sparseMode == 0 || constInfo.sparseMode == 1 || constInfo.sparseMode == 2) {
-        nextTokenLeftUp = constInfo.nextToken;
-    } else if (constInfo.sparseMode == 3) {
+    if (constInfo.sparseMode == fa_base_vector::DEFAULT_MASK || constInfo.sparseMode == fa_base_vector::ALL_MASK 
+        || constInfo.sparseMode == fa_base_vector::LEFT_UP_CAUSAL) {
+        nextTokenLeftUp = safeNextToken;
+    } else if (constInfo.sparseMode == fa_base_vector::RIGHT_DOWN_CAUSAL) {
         nextTokenLeftUp = static_cast<int64_t>(actSeqLensKv) - static_cast<int64_t>(actSeqLensQ);
     } else {
-        nextTokenLeftUp = static_cast<int64_t>(actSeqLensKv) - static_cast<int64_t>(actSeqLensQ) + constInfo.nextToken;
+        nextTokenLeftUp = static_cast<int64_t>(actSeqLensKv) - static_cast<int64_t>(actSeqLensQ) + safeNextToken;
     }
 
     uint32_t gs1Idx = gS1Cur * constInfo.mBaseSize;

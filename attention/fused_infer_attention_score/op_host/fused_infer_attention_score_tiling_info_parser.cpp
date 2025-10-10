@@ -797,18 +797,6 @@ ge::graphStatus FiaInfoParser::GetPreNextToken()
     return ge::GRAPH_SUCCESS;
 }
 
-ge::graphStatus FiaInfoParser::GetOldIfaGqaFlag()
-{
-    std::string layout = opParamInfo_.layOut;
-    bool isOldIfaGqaLayout = (layout == "BSH") || (layout == "BNSD") || (layout == "BSND");
-    if (isOldIfaGqaLayout && ropeMode_ != RopeMode::ROPE_SPLIT && s1Size_ == 1U) {
-        isOldIfaGqaFlag_ = true;
-    } else {
-        isOldIfaGqaFlag_ = false;
-    }
-    return ge::GRAPH_SUCCESS;
-}
-
 TilingKeyLayout FiaInfoParser::MapStringToLayout(FiaLayout &layoutString) const
 {
     const std::map<FiaLayout, TilingKeyLayout> layoutMap = {
@@ -839,7 +827,6 @@ void FiaInfoParser::GenerateFeatureInfo(FiaTilingInfo &fiaInfo)
  
     // inner precise
     fiaInfo.innerPrecise = *opParamInfo_.innerPrecise;
-    fiaInfo.isOldIfaGqaFlag = isOldIfaGqaFlag_;
  
     // atten mask
     fiaInfo.attenMaskFlag = attenMaskFlag_;
@@ -986,8 +973,7 @@ ge::graphStatus FiaInfoParser::ParseFeatureInfo()
         ge::GRAPH_SUCCESS != GetAttenMaskInfo() ||
         ge::GRAPH_SUCCESS != GetPaddingSizeFlag() ||
         ge::GRAPH_SUCCESS != GetActualSeqInfo() ||
-        ge::GRAPH_SUCCESS != GetPreNextToken() ||
-        ge::GRAPH_SUCCESS != GetOldIfaGqaFlag()) {
+        ge::GRAPH_SUCCESS != GetPreNextToken()) {
         return ge::GRAPH_FAILED;
     }
     return ge::GRAPH_SUCCESS;

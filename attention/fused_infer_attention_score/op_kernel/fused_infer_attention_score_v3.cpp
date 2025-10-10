@@ -191,41 +191,6 @@ extern "C" __global__ __aicore__ void fused_infer_attention(
     TILING_KEY_IS(103000000030500003);
     TILING_KEY_IS(103000000050500005);
 
-    // Gqa NoQuant PA Perf
-    TILING_KEY_IS(103000000100200000);
-    TILING_KEY_IS(103000000100300000);
-    TILING_KEY_IS(103000000100600000);
-    TILING_KEY_IS(103000000100700000);
-    TILING_KEY_IS(103000000110200000);
-    TILING_KEY_IS(103000000110300000);
-    TILING_KEY_IS(103000000110600000);
-    TILING_KEY_IS(103000000110700000);
-    TILING_KEY_IS(103000000120200000);
-    TILING_KEY_IS(103000000120300000);
-    TILING_KEY_IS(103000000120600000);
-    TILING_KEY_IS(103000000120700000);
-    TILING_KEY_IS(103000000100200001);
-    TILING_KEY_IS(103000000100300001);
-    TILING_KEY_IS(103000000100600001);
-    TILING_KEY_IS(103000000100700001);
-    TILING_KEY_IS(103000000110200001);
-    TILING_KEY_IS(103000000110300001);
-    TILING_KEY_IS(103000000110600001);
-    TILING_KEY_IS(103000000110700001);
-    TILING_KEY_IS(103000000120200001);
-    TILING_KEY_IS(103000000120300001);
-    TILING_KEY_IS(103000000120600001);
-    TILING_KEY_IS(103000000120700001);
-	
-    // Gqa NoQuant Non PA Perf
-    TILING_KEY_IS(103000000100000000);
-    TILING_KEY_IS(103000000110000001);
-    TILING_KEY_IS(103000000100100000);
-    TILING_KEY_IS(103000000110100001);
-    TILING_KEY_IS(103000000100400000);
-    TILING_KEY_IS(103000000110400001);
-    TILING_KEY_IS(103000000100500000);
-    TILING_KEY_IS(103000000110500001);
 // Mla PA fp16 kv_NZ
 #if TILING_KEY_VAR == QF16_KVF16_OUTF16_BNSD_KVNZ_PAGEDCACHE_MLA_TILING   // 7buf
     INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, half, half, half,
@@ -307,295 +272,197 @@ extern "C" __global__ __aicore__ void fused_infer_attention(
 // Gqa NoQuant PA Non Perf
 #elif TILING_KEY_VAR == 103000000000200000
 	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, true, false, FIA_LAYOUT::BNSD, false, false,
-                                   FIA_LAYOUT::BNSD, false, PerformanceMode::HighPrecision);
+                                   FIA_LAYOUT::BNSD, false);
 #elif TILING_KEY_VAR == 103000000000300000
 	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, true, true, FIA_LAYOUT::BNSD, false, false,
-                                    FIA_LAYOUT::BNSD, false, PerformanceMode::HighPrecision);
+                                    FIA_LAYOUT::BNSD, false);
 #elif TILING_KEY_VAR == 103000000000600000
 	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, true, false, FIA_LAYOUT::BNSD, false, false,
-                                    FIA_LAYOUT::BNSD, true, PerformanceMode::HighPrecision);
+                                    FIA_LAYOUT::BNSD, true);
 #elif TILING_KEY_VAR == 103000000000700000
 	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, true, true, FIA_LAYOUT::BNSD, false, false,
-                                    FIA_LAYOUT::BNSD, true, PerformanceMode::HighPrecision);
+                                    FIA_LAYOUT::BNSD, true);
 #elif TILING_KEY_VAR == 103000000010200000
 	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, true, false, FIA_LAYOUT::BNSD, false, false,
-                                    FIA_LAYOUT::BSH, false, PerformanceMode::HighPrecision);
+                                    FIA_LAYOUT::BSH, false);
 #elif TILING_KEY_VAR == 103000000010300000
 	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, true, true, FIA_LAYOUT::BNSD, false, false,
-                                    FIA_LAYOUT::BSH, false, PerformanceMode::HighPrecision);
+                                    FIA_LAYOUT::BSH, false);
 #elif TILING_KEY_VAR == 103000000010600000
 	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, true, false, FIA_LAYOUT::BNSD, false, false,
-                                    FIA_LAYOUT::BSH, true, PerformanceMode::HighPrecision);
+                                    FIA_LAYOUT::BSH, true);
 #elif TILING_KEY_VAR == 103000000010700000
 	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, true, true, FIA_LAYOUT::BNSD, false, false,
-                                    FIA_LAYOUT::BSH, true, PerformanceMode::HighPrecision);
+                                    FIA_LAYOUT::BSH, true);
 #elif TILING_KEY_VAR == 103000000020200000
 	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, true, false, FIA_LAYOUT::BNSD, false, false,
-                                    FIA_LAYOUT::NZ, false, PerformanceMode::HighPrecision);
+                                    FIA_LAYOUT::NZ, false);
 #elif TILING_KEY_VAR == 103000000020300000
 	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, true, true, FIA_LAYOUT::BNSD, false, false,
-                                    FIA_LAYOUT::NZ, false, PerformanceMode::HighPrecision);
+                                    FIA_LAYOUT::NZ, false);
 #elif TILING_KEY_VAR == 103000000020600000
 	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, true, false, FIA_LAYOUT::BNSD, false, false,
-                                    FIA_LAYOUT::NZ, true, PerformanceMode::HighPrecision);
+                                    FIA_LAYOUT::NZ, true);
 #elif TILING_KEY_VAR == 103000000020700000
 	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, true, true, FIA_LAYOUT::BNSD, false, false,
-                                    FIA_LAYOUT::NZ, true, PerformanceMode::HighPrecision);
+                                    FIA_LAYOUT::NZ, true);
 #elif TILING_KEY_VAR == 103000000000200001
 	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, true, false, FIA_LAYOUT::BSH, false, false,
-                                   FIA_LAYOUT::BNSD, false, PerformanceMode::HighPrecision);
+                                   FIA_LAYOUT::BNSD, false);
 #elif TILING_KEY_VAR == 103000000000300001
 	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, true, true, FIA_LAYOUT::BSH, false, false,
-                                    FIA_LAYOUT::BNSD, false, PerformanceMode::HighPrecision);
+                                    FIA_LAYOUT::BNSD, false);
 #elif TILING_KEY_VAR == 103000000000600001
 	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, true, false, FIA_LAYOUT::BSH, false, false,
-                                    FIA_LAYOUT::BNSD, true, PerformanceMode::HighPrecision);
+                                    FIA_LAYOUT::BNSD, true);
 #elif TILING_KEY_VAR == 103000000000700001
 	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, true, true, FIA_LAYOUT::BSH, false, false,
-                                    FIA_LAYOUT::BNSD, true, PerformanceMode::HighPrecision);
+                                    FIA_LAYOUT::BNSD, true);
 #elif TILING_KEY_VAR == 103000000010200001
 	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, true, false, FIA_LAYOUT::BSH, false, false,
-                                    FIA_LAYOUT::BSH, false, PerformanceMode::HighPrecision);
+                                    FIA_LAYOUT::BSH, false);
 #elif TILING_KEY_VAR == 103000000010300001
 	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, true, true, FIA_LAYOUT::BSH, false, false,
-                                    FIA_LAYOUT::BSH, false, PerformanceMode::HighPrecision);
+                                    FIA_LAYOUT::BSH, false);
 #elif TILING_KEY_VAR == 103000000010600001
 	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, true, false, FIA_LAYOUT::BSH, false, false,
-                                    FIA_LAYOUT::BSH, true, PerformanceMode::HighPrecision);
+                                    FIA_LAYOUT::BSH, true);
 #elif TILING_KEY_VAR == 103000000010700001
 	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, true, true, FIA_LAYOUT::BSH, false, false,
-                                    FIA_LAYOUT::BSH, true, PerformanceMode::HighPrecision);
+                                    FIA_LAYOUT::BSH, true);
 #elif TILING_KEY_VAR == 103000000020200001
 	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, true, false, FIA_LAYOUT::BSH, false, false,
-                                    FIA_LAYOUT::NZ, false, PerformanceMode::HighPrecision);
+                                    FIA_LAYOUT::NZ, false);
 #elif TILING_KEY_VAR == 103000000020300001
 	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, true, true, FIA_LAYOUT::BSH, false, false,
-                                    FIA_LAYOUT::NZ, false, PerformanceMode::HighPrecision);
+                                    FIA_LAYOUT::NZ, false);
 #elif TILING_KEY_VAR == 103000000020600001
 	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, true, false, FIA_LAYOUT::BSH, false, false,
-                                    FIA_LAYOUT::NZ, true, PerformanceMode::HighPrecision);
+                                    FIA_LAYOUT::NZ, true);
 #elif TILING_KEY_VAR == 103000000020700001
 	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, true, true, FIA_LAYOUT::BSH, false, false,
-                                    FIA_LAYOUT::NZ, true, PerformanceMode::HighPrecision);
+                                    FIA_LAYOUT::NZ, true);
 #elif TILING_KEY_VAR == 103000000000200003
 	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, true, false, FIA_LAYOUT::TND, false, false,
-                                   FIA_LAYOUT::BNSD, false, PerformanceMode::HighPrecision);
+                                   FIA_LAYOUT::BNSD, false);
 #elif TILING_KEY_VAR == 103000000000300003
 	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, true, true, FIA_LAYOUT::TND, false, false,
-                                    FIA_LAYOUT::BNSD, false, PerformanceMode::HighPrecision);
+                                    FIA_LAYOUT::BNSD, false);
 #elif TILING_KEY_VAR == 103000000000600003
 	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, true, false, FIA_LAYOUT::TND, false, false,
-                                    FIA_LAYOUT::BNSD, true, PerformanceMode::HighPrecision);
+                                    FIA_LAYOUT::BNSD, true);
 #elif TILING_KEY_VAR == 103000000000700003
 	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, true, true, FIA_LAYOUT::TND, false, false,
-                                    FIA_LAYOUT::BNSD, true, PerformanceMode::HighPrecision);
+                                    FIA_LAYOUT::BNSD, true);
 #elif TILING_KEY_VAR == 103000000010200003
 	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, true, false, FIA_LAYOUT::TND, false, false,
-                                    FIA_LAYOUT::BSH, false, PerformanceMode::HighPrecision);
+                                    FIA_LAYOUT::BSH, false);
 #elif TILING_KEY_VAR == 103000000010300003
 	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, true, true, FIA_LAYOUT::TND, false, false,
-                                    FIA_LAYOUT::BSH, false, PerformanceMode::HighPrecision);
+                                    FIA_LAYOUT::BSH, false);
 #elif TILING_KEY_VAR == 103000000010600003
 	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, true, false, FIA_LAYOUT::TND, false, false,
-                                    FIA_LAYOUT::BSH, true, PerformanceMode::HighPrecision);
+                                    FIA_LAYOUT::BSH, true);
 #elif TILING_KEY_VAR == 103000000010700003
 	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, true, true, FIA_LAYOUT::TND, false, false,
-                                    FIA_LAYOUT::BSH, true, PerformanceMode::HighPrecision);
+                                    FIA_LAYOUT::BSH, true);
 #elif TILING_KEY_VAR == 103000000020200003
 	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, true, false, FIA_LAYOUT::TND, false, false,
-                                    FIA_LAYOUT::NZ, false, PerformanceMode::HighPrecision);
+                                    FIA_LAYOUT::NZ, false);
 #elif TILING_KEY_VAR == 103000000020300003
 	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, true, true, FIA_LAYOUT::TND, false, false,
-                                    FIA_LAYOUT::NZ, false, PerformanceMode::HighPrecision);
+                                    FIA_LAYOUT::NZ, false);
 #elif TILING_KEY_VAR == 103000000020600003
 	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, true, false, FIA_LAYOUT::TND, false, false,
-                                    FIA_LAYOUT::NZ, true, PerformanceMode::HighPrecision);
+                                    FIA_LAYOUT::NZ, true);
 #elif TILING_KEY_VAR == 103000000020700003
 	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, true, true, FIA_LAYOUT::TND, false, false,
-                                    FIA_LAYOUT::NZ, true, PerformanceMode::HighPrecision);
+                                    FIA_LAYOUT::NZ, true);
 #elif TILING_KEY_VAR == 103000000000200005
 	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, true, false, FIA_LAYOUT::NTD, false, false,
-                                   FIA_LAYOUT::BNSD, false, PerformanceMode::HighPrecision);
+                                   FIA_LAYOUT::BNSD, false);
 #elif TILING_KEY_VAR == 103000000000300005
 	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, true, true, FIA_LAYOUT::NTD, false, false,
-                                    FIA_LAYOUT::BNSD, false, PerformanceMode::HighPrecision);
+                                    FIA_LAYOUT::BNSD, false);
 #elif TILING_KEY_VAR == 103000000000600005
 	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, true, false, FIA_LAYOUT::NTD, false, false,
-                                    FIA_LAYOUT::BNSD, true, PerformanceMode::HighPrecision);
+                                    FIA_LAYOUT::BNSD, true);
 #elif TILING_KEY_VAR == 103000000000700005
 	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, true, true, FIA_LAYOUT::NTD, false, false,
-                                    FIA_LAYOUT::BNSD, true, PerformanceMode::HighPrecision);
+                                    FIA_LAYOUT::BNSD, true);
 #elif TILING_KEY_VAR == 103000000010200005
 	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, true, false, FIA_LAYOUT::NTD, false, false,
-                                    FIA_LAYOUT::BSH, false, PerformanceMode::HighPrecision);
+                                    FIA_LAYOUT::BSH, false);
 #elif TILING_KEY_VAR == 103000000010300005
 	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, true, true, FIA_LAYOUT::NTD, false, false,
-                                    FIA_LAYOUT::BSH, false, PerformanceMode::HighPrecision);
+                                    FIA_LAYOUT::BSH, false);
 #elif TILING_KEY_VAR == 103000000010600005
 	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, true, false, FIA_LAYOUT::NTD, false, false,
-                                    FIA_LAYOUT::BSH, true, PerformanceMode::HighPrecision);
+                                    FIA_LAYOUT::BSH, true);
 #elif TILING_KEY_VAR == 103000000010700005
 	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, true, true, FIA_LAYOUT::NTD, false, false,
-                                    FIA_LAYOUT::BSH, true, PerformanceMode::HighPrecision);
+                                    FIA_LAYOUT::BSH, true);
 #elif TILING_KEY_VAR == 103000000020200005
 	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, true, false, FIA_LAYOUT::NTD, false, false,
-                                    FIA_LAYOUT::NZ, false, PerformanceMode::HighPrecision);
+                                    FIA_LAYOUT::NZ, false);
 #elif TILING_KEY_VAR == 103000000020300005
 	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, true, true, FIA_LAYOUT::NTD, false, false,
-                                    FIA_LAYOUT::NZ, false, PerformanceMode::HighPrecision);
+                                    FIA_LAYOUT::NZ, false);
 #elif TILING_KEY_VAR == 103000000020600005
 	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, true, false, FIA_LAYOUT::NTD, false, false,
-                                    FIA_LAYOUT::NZ, true, PerformanceMode::HighPrecision);
+                                    FIA_LAYOUT::NZ, true);
 #elif TILING_KEY_VAR == 103000000020700005
 	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, true, true, FIA_LAYOUT::NTD, false, false,
-                                    FIA_LAYOUT::NZ, true, PerformanceMode::HighPrecision);
+                                    FIA_LAYOUT::NZ, true);
 // Gqa NoQuant Non PA Non Perf
 #elif TILING_KEY_VAR == 103000000000000000
 	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, false, false, FIA_LAYOUT::BNSD, false, false,
-                                    FIA_LAYOUT::BNSD, false, PerformanceMode::HighPrecision);
+                                    FIA_LAYOUT::BNSD, false);
 #elif TILING_KEY_VAR == 103000000010000001
 	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, false, false, FIA_LAYOUT::BSH, false, false,
-                                    FIA_LAYOUT::BSH, false, PerformanceMode::HighPrecision);
+                                    FIA_LAYOUT::BSH, false);
 #elif TILING_KEY_VAR == 103000000030000003
 	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, false, false, FIA_LAYOUT::TND, false, false,
-                                    FIA_LAYOUT::TND, false, PerformanceMode::HighPrecision);
+                                    FIA_LAYOUT::TND, false);
 #elif TILING_KEY_VAR == 103000000050000005
 	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, false, false, FIA_LAYOUT::NTD, false, false,
-                                    FIA_LAYOUT::NTD, false, PerformanceMode::HighPrecision);
+                                    FIA_LAYOUT::NTD, false);
 #elif TILING_KEY_VAR == 103000000000100000
 	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, false, true, FIA_LAYOUT::BNSD, false, false,
-                                    FIA_LAYOUT::BNSD, false, PerformanceMode::HighPrecision);
+                                    FIA_LAYOUT::BNSD, false);
 #elif TILING_KEY_VAR == 103000000010100001
 	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, false, true, FIA_LAYOUT::BSH, false, false,
-                                    FIA_LAYOUT::BSH, false, PerformanceMode::HighPrecision);
+                                    FIA_LAYOUT::BSH, false);
 #elif TILING_KEY_VAR == 103000000030100003
 	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, false, true, FIA_LAYOUT::TND, false, false,
-                                    FIA_LAYOUT::TND, false, PerformanceMode::HighPrecision);
+                                    FIA_LAYOUT::TND, false);
 #elif TILING_KEY_VAR == 103000000050100005
 	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, false, true, FIA_LAYOUT::NTD, false, false,
-                                    FIA_LAYOUT::NTD, false, PerformanceMode::HighPrecision);
+                                    FIA_LAYOUT::NTD, false);
 #elif TILING_KEY_VAR == 103000000000400000
 	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, false, false, FIA_LAYOUT::BNSD, false, false,
-                                    FIA_LAYOUT::BNSD, true, PerformanceMode::HighPrecision);
+                                    FIA_LAYOUT::BNSD, true);
 #elif TILING_KEY_VAR == 103000000010400001
 	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, false, false, FIA_LAYOUT::BSH, false, false,
-                                    FIA_LAYOUT::BSH, true, PerformanceMode::HighPrecision);
+                                    FIA_LAYOUT::BSH, true);
 #elif TILING_KEY_VAR == 103000000030400003
 	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, false, false, FIA_LAYOUT::TND, false, false,
-                                    FIA_LAYOUT::TND, true, PerformanceMode::HighPrecision);
+                                    FIA_LAYOUT::TND, true);
 #elif TILING_KEY_VAR == 103000000050400005
 	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, false, false, FIA_LAYOUT::NTD, false, false,
-                                    FIA_LAYOUT::NTD, true, PerformanceMode::HighPrecision);
+                                    FIA_LAYOUT::NTD, true);
 #elif TILING_KEY_VAR == 103000000000500000
 	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, false, true, FIA_LAYOUT::BNSD, false, false,
-                                    FIA_LAYOUT::BNSD, true, PerformanceMode::HighPrecision);
+                                    FIA_LAYOUT::BNSD, true);
 #elif TILING_KEY_VAR == 103000000010500001
 	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, false, true, FIA_LAYOUT::BSH, false, false,
-                                    FIA_LAYOUT::BSH, true, PerformanceMode::HighPrecision);
+                                    FIA_LAYOUT::BSH, true);
 #elif TILING_KEY_VAR == 103000000030500003
 	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, false, true, FIA_LAYOUT::TND, false, false,
-                                    FIA_LAYOUT::TND, true, PerformanceMode::HighPrecision);
+                                    FIA_LAYOUT::TND, true);
 #elif TILING_KEY_VAR == 103000000050500005
 	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, false, true, FIA_LAYOUT::NTD, false, false,
-                                    FIA_LAYOUT::NTD, true, PerformanceMode::HighPrecision);
-// Gqa NoQuant PA Perf
-#elif TILING_KEY_VAR == 103000000100200000
-	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, true, false, FIA_LAYOUT::BNSD, false, false,
-                                   FIA_LAYOUT::BNSD, false, PerformanceMode::HighPerformance);
-#elif TILING_KEY_VAR == 103000000100300000
-	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, true, true, FIA_LAYOUT::BNSD, false, false,
-                                    FIA_LAYOUT::BNSD, false, PerformanceMode::HighPerformance);
-#elif TILING_KEY_VAR == 103000000100600000
-	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, true, false, FIA_LAYOUT::BNSD, false, false,
-                                    FIA_LAYOUT::BNSD, true, PerformanceMode::HighPerformance);
-#elif TILING_KEY_VAR == 103000000100700000
-	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, true, true, FIA_LAYOUT::BNSD, false, false,
-                                    FIA_LAYOUT::BNSD, true, PerformanceMode::HighPerformance);
-#elif TILING_KEY_VAR == 103000000110200000
-	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, true, false, FIA_LAYOUT::BNSD, false, false,
-                                    FIA_LAYOUT::BSH, false, PerformanceMode::HighPerformance);
-#elif TILING_KEY_VAR == 103000000110300000
-	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, true, true, FIA_LAYOUT::BNSD, false, false,
-                                    FIA_LAYOUT::BSH, false, PerformanceMode::HighPerformance);
-#elif TILING_KEY_VAR == 103000000110600000
-	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, true, false, FIA_LAYOUT::BNSD, false, false,
-                                    FIA_LAYOUT::BSH, true, PerformanceMode::HighPerformance);
-#elif TILING_KEY_VAR == 103000000110700000
-	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, true, true, FIA_LAYOUT::BNSD, false, false,
-                                    FIA_LAYOUT::BSH, true, PerformanceMode::HighPerformance);
-#elif TILING_KEY_VAR == 103000000120200000
-	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, true, false, FIA_LAYOUT::BNSD, false, false,
-                                    FIA_LAYOUT::NZ, false, PerformanceMode::HighPerformance);
-#elif TILING_KEY_VAR == 103000000120300000
-	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, true, true, FIA_LAYOUT::BNSD, false, false,
-                                    FIA_LAYOUT::NZ, false, PerformanceMode::HighPerformance);
-#elif TILING_KEY_VAR == 103000000120600000
-	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, true, false, FIA_LAYOUT::BNSD, false, false,
-                                    FIA_LAYOUT::NZ, true, PerformanceMode::HighPerformance);
-#elif TILING_KEY_VAR == 103000000120700000
-	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, true, true, FIA_LAYOUT::BNSD, false, false,
-                                    FIA_LAYOUT::NZ, true, PerformanceMode::HighPerformance);
-#elif TILING_KEY_VAR == 103000000100200001
-	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, true, false, FIA_LAYOUT::BSH, false, false,
-                                   FIA_LAYOUT::BNSD, false, PerformanceMode::HighPerformance);
-#elif TILING_KEY_VAR == 103000000100300001
-	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, true, true, FIA_LAYOUT::BSH, false, false,
-                                    FIA_LAYOUT::BNSD, false, PerformanceMode::HighPerformance);
-#elif TILING_KEY_VAR == 103000000100600001
-	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, true, false, FIA_LAYOUT::BSH, false, false,
-                                    FIA_LAYOUT::BNSD, true, PerformanceMode::HighPerformance);
-#elif TILING_KEY_VAR == 103000000100700001
-	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, true, true, FIA_LAYOUT::BSH, false, false,
-                                    FIA_LAYOUT::BNSD, true, PerformanceMode::HighPerformance);
-#elif TILING_KEY_VAR == 103000000110200001
-	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, true, false, FIA_LAYOUT::BSH, false, false,
-                                    FIA_LAYOUT::BSH, false, PerformanceMode::HighPerformance);
-#elif TILING_KEY_VAR == 103000000110300001
-	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, true, true, FIA_LAYOUT::BSH, false, false,
-                                    FIA_LAYOUT::BSH, false, PerformanceMode::HighPerformance);
-#elif TILING_KEY_VAR == 103000000110600001
-	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, true, false, FIA_LAYOUT::BSH, false, false,
-                                    FIA_LAYOUT::BSH, true, PerformanceMode::HighPerformance);
-#elif TILING_KEY_VAR == 103000000110700001
-	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, true, true, FIA_LAYOUT::BSH, false, false,
-                                    FIA_LAYOUT::BSH, true, PerformanceMode::HighPerformance);
-#elif TILING_KEY_VAR == 103000000120200001
-	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, true, false, FIA_LAYOUT::BSH, false, false,
-                                    FIA_LAYOUT::NZ, false, PerformanceMode::HighPerformance);
-#elif TILING_KEY_VAR == 103000000120300001
-	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, true, true, FIA_LAYOUT::BSH, false, false,
-                                    FIA_LAYOUT::NZ, false, PerformanceMode::HighPerformance);
-#elif TILING_KEY_VAR == 103000000120600001
-	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, true, false, FIA_LAYOUT::BSH, false, false,
-                                    FIA_LAYOUT::NZ, true, PerformanceMode::HighPerformance);
-#elif TILING_KEY_VAR == 103000000120700001
-	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, true, true, FIA_LAYOUT::BSH, false, false,
-                                    FIA_LAYOUT::NZ, true, PerformanceMode::HighPerformance);
-// Gqa NoQuant Non PA Prof								
-#elif TILING_KEY_VAR == 103000000100000000
-	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, false, false, FIA_LAYOUT::BNSD, false, false,
-                                    FIA_LAYOUT::BNSD, false, PerformanceMode::HighPerformance);
-#elif TILING_KEY_VAR == 103000000110000001
-	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, false, false, FIA_LAYOUT::BSH, false, false,
-                                    FIA_LAYOUT::BSH, false, PerformanceMode::HighPerformance);
-#elif TILING_KEY_VAR == 103000000100100000
-	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, false, true, FIA_LAYOUT::BNSD, false, false,
-                                    FIA_LAYOUT::BNSD, false, PerformanceMode::HighPerformance);
-#elif TILING_KEY_VAR == 103000000110100001
-	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, false, true, FIA_LAYOUT::BSH, false, false,
-                                    FIA_LAYOUT::BSH, false, PerformanceMode::HighPerformance);
-#elif TILING_KEY_VAR == 103000000100400000
-	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, false, false, FIA_LAYOUT::BNSD, false, false,
-                                    FIA_LAYOUT::BNSD, true, PerformanceMode::HighPerformance);
-#elif TILING_KEY_VAR == 103000000110400001
-	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, false, false, FIA_LAYOUT::BSH, false, false,
-                                    FIA_LAYOUT::BSH, true, PerformanceMode::HighPerformance);
-#elif TILING_KEY_VAR == 103000000100500000
-	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, false, true, FIA_LAYOUT::BNSD, false, false,
-                                    FIA_LAYOUT::BNSD, true, PerformanceMode::HighPerformance);
-#elif TILING_KEY_VAR == 103000000110500001
-	INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, false, true, FIA_LAYOUT::BSH, false, false,
-                                    FIA_LAYOUT::BSH, true, PerformanceMode::HighPerformance);
+                                    FIA_LAYOUT::NTD, true);
 
 #endif
 #endif

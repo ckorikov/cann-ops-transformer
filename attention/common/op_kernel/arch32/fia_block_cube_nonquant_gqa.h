@@ -184,9 +184,7 @@ class FiaBlockCubeNonQuantGqa {
 
     static constexpr bool ANTIQUANT = !IsSameType<Q_T, KV_T>::value;
     static constexpr bool QUANT = (IsSameType<Q_T, KV_T>::value && IsSameType<KV_T, int8_t>::value);
-    static constexpr bool FIA_HIGH_PERFORMANCE = (FIAT::calcMode == PerformanceMode::HighPerformance);
-    using MM_OUT_T_CAL = typename AscendC::Conditional<FIA_HIGH_PERFORMANCE, Q_T, T>::type;
-    using MM_OUT_T = typename AscendC::Conditional<(ANTIQUANT || QUANT), int32_t, MM_OUT_T_CAL>::type;
+    using MM_OUT_T = typename AscendC::Conditional<(ANTIQUANT || QUANT), int32_t, T>::type;
 
     static constexpr FIA_LAYOUT LAYOUT_T = FIAT::layout;
     static constexpr FIA_LAYOUT KV_LAYOUT_T = FIAT::kvLayout;
@@ -968,10 +966,6 @@ __aicore__ inline void FiaBlockCubeNonQuantGqa<FIAT, Config>::FixpipeCToGM(
     fixParams.ndNum = 1;
     if constexpr (CFG::ENABLE_UNIFLAG) {
         fixParams.unitFlag = 3;
-    }
-
-    if constexpr (FIA_HIGH_PERFORMANCE) {
-        fixParams.quantPre = QuantMode_t::F322F16;
     }
 
     auto cL0Tensor = this->cL0Tensor[cL0BufId];

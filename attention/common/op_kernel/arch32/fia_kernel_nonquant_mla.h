@@ -275,9 +275,6 @@ __aicore__ inline void FiaKernelNonQuantMla<FIAT, CubeBlockType, VecBlockType, F
 
         if (constInfo.softmaxLseFlag) {
             float lseInitValue = INFINITY;
-            if (constInfo.isOldIfaGqaFlag) {
-                lseInitValue = -INFINITY;
-            }
             uint64_t totalLseSize = tSize * constInfo.qHeadNum;
             uint64_t singleCoreLseSize = (totalLseSize + (2 * usedCoreNum) - 1) / (2 * usedCoreNum); // 2 means c:v = 1:2;
             uint64_t tailLseSize = totalLseSize - tmpBlockIdx * singleCoreLseSize;

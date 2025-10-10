@@ -62,9 +62,7 @@ public:
     using pseShiftType = typename AscendC::Conditional<AscendC::IsSameType<Q_T, int8_t>::value, half, Q_T>::type;
     // 后接量化的条件需要重新审视
     static constexpr bool POST_QUANT = IsSameType<OUT_T, int8_t>::value;
-    static constexpr bool FIA_HIGH_PERFORMANCE = (FIAT::calcMode == PerformanceMode::HighPerformance);
-    using MM_OUT_T_CAL = typename AscendC::Conditional<FIA_HIGH_PERFORMANCE, Q_T, T>::type;
-    using MM_OUT_T = typename AscendC::Conditional<(ANTIQUANT || QUANT), int32_t, MM_OUT_T_CAL>::type;
+    using MM_OUT_T = typename AscendC::Conditional<(ANTIQUANT || QUANT), int32_t, T>::type;
     __aicore__ inline FiaBlockCubeNonQuant(){};
     __aicore__ inline void InitParams(const ConstInfo &constInfo);
     __aicore__ inline void Init(

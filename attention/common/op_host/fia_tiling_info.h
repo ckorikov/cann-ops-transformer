@@ -300,7 +300,6 @@ public:
     bool isMaxWorkspace = false;
     bool needInit = false;
     bool slidingFlag = false;
-    bool isOldIfaGqaFlag = false;
 
     // DType
     FiaTilingInOutMode inOutMode = FiaTilingInOutMode::FP16_FP16;

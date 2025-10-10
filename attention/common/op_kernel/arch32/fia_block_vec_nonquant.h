@@ -42,14 +42,13 @@ public:
     static constexpr FIA_LAYOUT LAYOUT_T = FIAT::layout;
     static constexpr FIA_LAYOUT KV_LAYOUT_T = FIAT::kvLayout;
     static constexpr bool SOFTMAX_WITH_BRC = FIAT::softmaxWithBrc;
-    static constexpr bool FIA_HIGH_PERFORMANCE = (FIAT::calcMode == PerformanceMode::HighPerformance);
 
-    using UPDATE_T = typename AscendC::Conditional<FIA_HIGH_PERFORMANCE, Q_T, T>::type;
+    using UPDATE_T = T;
     using TMP_T = T;
-    using COMPUTE_T =  typename AscendC::Conditional<FIA_HIGH_PERFORMANCE, Q_T, T>::type;
-    using SOFTMAX_TYPE =  typename AscendC::Conditional<FIA_HIGH_PERFORMANCE, Q_T, T>::type;
-    using MM1_OUT_T = typename AscendC::Conditional<FIA_HIGH_PERFORMANCE, Q_T, T>::type;
-    using MM2_OUT_T = typename AscendC::Conditional<FIA_HIGH_PERFORMANCE, Q_T, T>::type;
+    using COMPUTE_T =  T;
+    using SOFTMAX_TYPE =  T;
+    using MM1_OUT_T = T;
+    using MM2_OUT_T = T;
 
     __aicore__ inline FiaBlockVecNonQuant(){};
     // =================================设置参数=================================
@@ -108,10 +107,6 @@ public:
                                                uint32_t actualColumnCount);
     __aicore__ inline void DealInvalidRows(const RunInfo &info, LocalTensor<MM2_OUT_T> &attenOutUb, uint32_t wsMStart,
                                            uint32_t dealRowCount, uint32_t columnCount, uint32_t actualColumnCount);
-    __aicore__ inline void DealInvalidRowsBelow(const RunInfo &info, LocalTensor<MM2_OUT_T> &attenOutUb,
-                                                uint32_t wsMStart, uint32_t dealRowCount, uint32_t columnCount);
-    __aicore__ inline void DealInvalidRowsOn(const RunInfo &info, LocalTensor<MM2_OUT_T> &attenOutUb,
-                                             uint32_t wsMStart, uint32_t dealRowCount, uint32_t columnCount);
 protected:
     GlobalTensor<MM1_OUT_T> mm1ResGm;
     GlobalTensor<KV_T> vec1ResGm;
@@ -202,9 +197,6 @@ __aicore__ inline void FiaBlockVecNonQuant<FIAT>::Init(
         actualSeqLengthsGm.SetGlobalBuffer((__gm__ uint64_t *)actualSeqLengths, constInfo.actualLenDims);
     }
     this->actualSequenceLengthsQ = actualSeqLengthsQ;
-    if constexpr (FIA_HIGH_PERFORMANCE) {
-        this->negativeIntScalar = NEGATIVE_MIN_VAULE_FP16;
-    }
 
 }
 
@@ -359,14 +351,8 @@ template <typename FIAT> __aicore__ inline void FiaBlockVecNonQuant<FIAT>::Proce
                 }
             }
 
-            LocalTensor<T> tmpLseResCastTensor = outputQue2.AllocTensor<T>();
-            if constexpr (FIA_HIGH_PERFORMANCE) {
-                LocalTensor<T> tmpLseTensor = tmpBuff1.GetWithOffset<T>(LSE_TMP_BUFFER_SIZE, LSE_TMP_BUFFER_SIZE * 3);
-                Cast(tmpLseTensor, totalLseUb, AscendC::RoundMode::CAST_ROUND, mSplitInfo.vecDealM * brcbNum);
-                DataCopy(tmpLseResCastTensor, tmpLseTensor, mSplitInfo.vecDealM * brcbNum);
-            } else {
-                DataCopy(tmpLseResCastTensor, totalLseUb, mSplitInfo.vecDealM * brcbNum);
-            }
+            LocalTensor<T> tmpLseResCastTensor = outputQue2.AllocTensor<T>();           
+            DataCopy(tmpLseResCastTensor, totalLseUb, mSplitInfo.vecDealM * brcbNum);
             outputQue2.EnQue(tmpLseResCastTensor);
             outputQue2.DeQue<T>();
             uint32_t mOffset = info.gS1Idx + mSplitInfo.nBufferStartM + mSplitInfo.vecStartM;
@@ -409,16 +395,12 @@ __aicore__ inline void FiaBlockVecNonQuant<FIAT>::DealBmm1ResBaseBlock(
     LocalTensor<uint8_t> softmaxTmpUb = tmpBuff1.Get<uint8_t>();
     SoftmaxFlashV2Compute(info, mmResUb, softmaxTmpUb, startRow, dealRowCount, columnCount, actualColumnCount);
     pipe_barrier(PIPE_V);
-    if constexpr (!FIA_HIGH_PERFORMANCE) {
-        LocalTensor<KV_T> vec1ResUb = outputQue1.AllocTensor<KV_T>();
-        Cast(vec1ResUb, mmResUb, AscendC::RoundMode::CAST_ROUND, computeSize);
-        outputQue1.EnQue(vec1ResUb);
-        outputQue1.DeQue<KV_T>();
-        DataCopy(vec1ResGm[inOutGmOffset], vec1ResUb, computeSize);
-        outputQue1.FreeTensor(vec1ResUb);
-    } else {
-        DataCopy(vec1ResGm[inOutGmOffset], mmResUb, computeSize);
-    }
+    LocalTensor<KV_T> vec1ResUb = outputQue1.AllocTensor<KV_T>();
+    Cast(vec1ResUb, mmResUb, AscendC::RoundMode::CAST_ROUND, computeSize);
+    outputQue1.EnQue(vec1ResUb);
+    outputQue1.DeQue<KV_T>();
+    DataCopy(vec1ResGm[inOutGmOffset], vec1ResUb, computeSize);
+    outputQue1.FreeTensor(vec1ResUb);   
     
     inputQue1.FreeTensor(mmResUb);
 }
@@ -649,22 +631,13 @@ __aicore__ inline void FiaBlockVecNonQuant<FIAT>::Bmm2FDDataCopyOut(const RunInf
     uint64_t offset = info.accumTmpOutNum * constInfo.mBaseSize * constInfo.headDim +              // taskoffset
                       info.tndCoreStartKVSplitPos * constInfo.mBaseSize * constInfo.headDim + // 份数offset
                       wsMStart * actualColumnCount;                                             // m轴offset
-    LocalTensor<T> tmpmm2;
-    if constexpr (FIA_HIGH_PERFORMANCE) {
-        LocalTensor<T> tmpmm2 = tmpBuff1.Get<T>();
-        Cast(tmpmm2, tmp, AscendC::RoundMode::CAST_ROUND, columnCount * dealRowCount);        
-    }
     GlobalTensor<T> dst = accumOutGm[offset];
     DataCopyExtParams dataCopyParams;
     dataCopyParams.blockCount = dealRowCount;
     dataCopyParams.blockLen = actualColumnCount * sizeof(T);
     dataCopyParams.srcStride = (columnCount - actualColumnCount) / (fa_base_vector::BYTE_BLOCK / sizeof(T));
-    dataCopyParams.dstStride = 0;
-    if constexpr (FIA_HIGH_PERFORMANCE) {
-        DataCopyPad(dst, tmpmm2, dataCopyParams);
-    } else {
-        DataCopyPad(dst, tmp, dataCopyParams);
-    }
+    dataCopyParams.dstStride = 0;      
+    DataCopyPad(dst, tmp, dataCopyParams);
     outputQue1.FreeTensor(tmp);
 }
 
@@ -672,33 +645,22 @@ template <typename FIAT>
 __aicore__ inline void FiaBlockVecNonQuant<FIAT>::DealInvalidMaskRows(const RunInfo &info, LocalTensor<MM2_OUT_T> &bmm2ResUb,
     uint32_t wsMStart, uint32_t startRow, uint32_t dealRowCount, uint32_t columnCount, uint32_t actualColumnCount)
 {
-    if (!constInfo.isRowInvalid) {
+    if (!constInfo.isRowInvalid || !constInfo.attenMaskFlag) {
         return;
     }
-
     if (constInfo.sparseMode != fa_base_vector::DEFAULT_MASK && constInfo.sparseMode != fa_base_vector::ALL_MASK) {
         return;
     }
     uint32_t baseOffset = mSplitInfo.nBufferStartM / 2 + startRow;
     if constexpr (SOFTMAX_WITH_BRC) {
-        baseOffset = baseOffset * (fa_base_vector::BYTE_BLOCK / sizeof(COMPUTE_T));
+        baseOffset = baseOffset * (fa_base_vector::BYTE_BLOCK / sizeof(T));
     }
 
     uint32_t outIdx = info.loop % (constInfo.preLoadNum);
-    uint32_t softmaxOutOffset = outIdx * SOFTMAX_TMP_BUFFER_SIZE / sizeof(COMPUTE_T) + baseOffset;
+    uint32_t softmaxOutOffset = outIdx * SOFTMAX_TMP_BUFFER_SIZE / sizeof(T) + baseOffset;
 
-    SoftMaxShapeInfo softmaxShapeInfo{
-    static_cast<uint32_t>(dealRowCount), static_cast<uint32_t>(columnCount),
-    static_cast<uint32_t>(dealRowCount), static_cast<uint32_t>(columnCount)};
-
-    pipe_barrier(PIPE_V);
-    if constexpr (SOFTMAX_WITH_BRC) {
-        AdjustSoftMaxRes<MM2_OUT_T, COMPUTE_T>(bmm2ResUb, softmaxMaxUb[softmaxOutOffset], negativeIntScalar,
-                                               (MM2_OUT_T)0.0, softmaxShapeInfo);
-    } else {
-        AdjustSoftMaxRes<MM2_OUT_T, COMPUTE_T, false, 1>(bmm2ResUb, softmaxMaxUb[softmaxOutOffset], negativeIntScalar,
-                                                         (MM2_OUT_T)0.0, softmaxShapeInfo);
-    }
+    fa_base_vector::InvalidMaskRows<MM2_OUT_T, T, SOFTMAX_WITH_BRC>(softmaxOutOffset, dealRowCount, columnCount,
+        softmaxMaxUb, negativeIntScalar, bmm2ResUb);
 }
 
 template <typename FIAT>
@@ -709,21 +671,16 @@ __aicore__ inline void FiaBlockVecNonQuant<FIAT>::Bmm2CastAndCopyOut(const RunIn
     DealInvalidRows(info, bmm2ResUb, wsMStart, dealRowCount, columnCount, actualColumnCount);
     DealInvalidMaskRows(info, bmm2ResUb, wsMStart, startRow, dealRowCount, columnCount, actualColumnCount);
     pipe_barrier(PIPE_V);
-    if constexpr(!FIA_HIGH_PERFORMANCE) {
-        LocalTensor<OUT_T> tmpBmm2ResCastTensor = outputQue1.AllocTensor<OUT_T>();
-        if constexpr (IsSameType<OUT_T, bfloat16_t>::value) { // bf16 采取四舍六入五成双模式
-            Cast(tmpBmm2ResCastTensor, bmm2ResUb, AscendC::RoundMode::CAST_RINT, dealRowCount * columnCount);
-        } else {
-            Cast(tmpBmm2ResCastTensor, bmm2ResUb, AscendC::RoundMode::CAST_ROUND, dealRowCount * columnCount);
-        }
-        outputQue1.EnQue(tmpBmm2ResCastTensor);
-        outputQue1.DeQue<OUT_T>();
-        Bmm2DataCopyOutTrans(info, tmpBmm2ResCastTensor, wsMStart, dealRowCount, columnCount, actualColumnCount);
-        outputQue1.FreeTensor(tmpBmm2ResCastTensor);
+    LocalTensor<OUT_T> tmpBmm2ResCastTensor = outputQue1.AllocTensor<OUT_T>();
+    if constexpr (IsSameType<OUT_T, bfloat16_t>::value) { // bf16 采取四舍六入五成双模式
+        Cast(tmpBmm2ResCastTensor, bmm2ResUb, AscendC::RoundMode::CAST_RINT, dealRowCount * columnCount);
     } else {
-        Bmm2DataCopyOutTrans(info, bmm2ResUb, wsMStart, dealRowCount, columnCount, actualColumnCount);
+        Cast(tmpBmm2ResCastTensor, bmm2ResUb, AscendC::RoundMode::CAST_ROUND, dealRowCount * columnCount);
     }
-
+    outputQue1.EnQue(tmpBmm2ResCastTensor);
+    outputQue1.DeQue<OUT_T>();
+    Bmm2DataCopyOutTrans(info, tmpBmm2ResCastTensor, wsMStart, dealRowCount, columnCount, actualColumnCount);
+    outputQue1.FreeTensor(tmpBmm2ResCastTensor);
 }
 
 template <typename FIAT>
@@ -806,38 +763,18 @@ __aicore__ inline void FiaBlockVecNonQuant<FIAT>::ComputeLogSumExpAndCopyToGm(co
                        info.tndCoreStartKVSplitPos * constInfo.mBaseSize + // 份数offset
                        mSplitInfo.nBufferStartM + mSplitInfo.vecStartM) *
                       fa_base_vector::FP32_BLOCK_ELEMENT_NUM; // m轴offset
-    LocalTensor<T> softmaxSumTmp, softmaxMaxTmp;
-    if constexpr (FIA_HIGH_PERFORMANCE) {        
-        softmaxSumTmp = tmpBuff1.Get<T>(size * sizeof(T));
-        softmaxMaxTmp  = tmpBuff1.GetWithOffset<T>(size * sizeof(T), size * sizeof(T));
-        Cast(softmaxSumTmp, softmaxSumUb[baseOffset], AscendC::RoundMode::CAST_ROUND, size);
-        Cast(softmaxMaxTmp, softmaxSumUb[baseOffset], AscendC::RoundMode::CAST_ROUND, size);
-    }
-    if constexpr (SOFTMAX_WITH_BRC) {        
-        if constexpr (FIA_HIGH_PERFORMANCE) {
-            DataCopy(lseSumFdGm[offset], softmaxSumTmp, size);
-            DataCopy(lseMaxFdGm[offset], softmaxMaxTmp, size);
-        } else {            
-            DataCopy(lseSumFdGm[offset], softmaxSumUb[baseOffset], size);
-            DataCopy(lseMaxFdGm[offset], softmaxMaxUb[baseOffset], size);
-        }        
+    if constexpr (SOFTMAX_WITH_BRC) {              
+        DataCopy(lseSumFdGm[offset], softmaxSumUb[baseOffset], size);
+        DataCopy(lseMaxFdGm[offset], softmaxMaxUb[baseOffset], size);       
     } else {
-        LocalTensor<T> tmp = outputQue2.AllocTensor<T>();
-        if constexpr (FIA_HIGH_PERFORMANCE) {
-            Brcb(tmp, softmaxSumTmp, (mSplitInfo.vecDealM + 7) / 8, {1, 8});
-        } else {
-            Brcb(tmp, softmaxSumUb[baseOffset], (mSplitInfo.vecDealM + 7) / 8, {1, 8});
-        }
+        LocalTensor<T> tmp = outputQue2.AllocTensor<T>();   
+        Brcb(tmp, softmaxSumUb[baseOffset], (mSplitInfo.vecDealM + 7) / 8, {1, 8});
         outputQue2.EnQue(tmp);
         outputQue2.DeQue<T>();
         DataCopy(lseSumFdGm[offset], tmp, size);
         outputQue2.FreeTensor(tmp);
-        tmp = outputQue2.AllocTensor<T>();
-        if constexpr (FIA_HIGH_PERFORMANCE) {
-            Brcb(tmp, softmaxMaxTmp, (mSplitInfo.vecDealM + 7) / 8, {1, 8});
-        } else {
-            Brcb(tmp, softmaxMaxUb[baseOffset], (mSplitInfo.vecDealM + 7) / 8, {1, 8});
-        }
+        tmp = outputQue2.AllocTensor<T>(); 
+        Brcb(tmp, softmaxMaxUb[baseOffset], (mSplitInfo.vecDealM + 7) / 8, {1, 8});
         outputQue2.EnQue(tmp);
         outputQue2.DeQue<T>();
         DataCopy(lseMaxFdGm[offset], tmp, size);
@@ -853,120 +790,23 @@ __aicore__ inline void FiaBlockVecNonQuant<FIAT>::DealInvalidRows(const RunInfo 
     if (!constInfo.attenMaskFlag) {
         return;
     }
+
     if (constInfo.sparseMode == fa_base_vector::ALL_MASK || constInfo.sparseMode == fa_base_vector::LEFT_UP_CAUSAL) {
         return;
     }
 
-    if (info.preTokensPerBatch < 0) { // 下方存在行无效
-        DealInvalidRowsBelow(info, attenOutUb, wsMStart, dealRowCount, columnCount);
-    }
+    fa_base_vector::InvalidRowParams params {
+        .actS1Size = info.actS1Size,
+        .gSize = constInfo.gSize,
+        .gS1Idx = info.gS1Idx + wsMStart,
+        .dealRowCount = dealRowCount,
+        .columnCount = columnCount,
+        .preTokensPerBatch = info.preTokensPerBatch,
+        .nextTokensPerBatch = info.nextTokensPerBatch,
+    };
 
-    if (info.nextTokensPerBatch < 0) { // 上方存在行无效
-        pipe_barrier(PIPE_V);
-        DealInvalidRowsOn(info, attenOutUb, wsMStart, dealRowCount, columnCount);
-    }
-}
-
-template <typename FIAT>
-__aicore__ inline void FiaBlockVecNonQuant<FIAT>::DealInvalidRowsOn(const RunInfo &info, LocalTensor<MM2_OUT_T> &attenOutUb,
-                                                           uint32_t wsMStart, uint32_t dealRowCount, uint32_t columnCount)
-{
-    uint32_t s1Tok = -info.nextTokensPerBatch;
-    if constexpr (LAYOUT_T == FIA_LAYOUT::BNSD || LAYOUT_T == FIA_LAYOUT::NTD) {
-        uint32_t s1 = (info.gS1Idx + wsMStart) % info.actS1Size;
-        for (uint32_t i = 0; i < dealRowCount;) {            
-            if (s1 < s1Tok) {
-                uint32_t s1Num = s1Tok - s1;
-                if (i + s1Num > dealRowCount) {
-                    s1Num = dealRowCount - i;
-                }
-                Duplicate(attenOutUb[i * columnCount], static_cast<MM2_OUT_T>(FLOAT_ZERO), columnCount * s1Num);
-                pipe_barrier(PIPE_V);
-            }
-            i += info.actS1Size - s1;
-            s1 = 0;
-        }
-        return;
-    }
-
-    // BSH and TND
-    if constexpr (LAYOUT_T == FIA_LAYOUT::BSH || LAYOUT_T == FIA_LAYOUT::TND || LAYOUT_T == FIA_LAYOUT::BSND) {
-        uint32_t s1 = (info.gS1Idx + wsMStart) / constInfo.gSize;
-        uint32_t gIdx = (info.gS1Idx + wsMStart) % constInfo.gSize;
-        for (uint32_t i = 0; i < dealRowCount;) {
-            if (s1 < s1Tok) {
-                uint32_t gNum = constInfo.gSize - gIdx;
-                if (i + gNum > dealRowCount) {
-                    gNum = dealRowCount - i;
-                }
-                Duplicate(attenOutUb[i * columnCount], static_cast<MM2_OUT_T>(FLOAT_ZERO), columnCount * gNum);
-                pipe_barrier(PIPE_V);
-                i += gNum;
-                s1++;
-                gIdx = 0;
-                continue;
-            }
-            break;
-        }
-    }
-}
-
-template <typename FIAT>
-__aicore__ inline void FiaBlockVecNonQuant<FIAT>::DealInvalidRowsBelow(const RunInfo &info, LocalTensor<MM2_OUT_T> &attenOutUb,
-                                                           uint32_t wsMStart, uint32_t dealRowCount, uint32_t columnCount)
-{
-    if constexpr (LAYOUT_T == FIA_LAYOUT::BNSD || LAYOUT_T == FIA_LAYOUT::NTD) {
-        int32_t s1BottomPos = info.actS1Size + info.preTokensPerBatch - 1;
-        int32_t s1End = (info.gS1Idx + wsMStart + dealRowCount - 1) % info.actS1Size;
-
-        for (int32_t s1RealEnd = dealRowCount - 1; s1RealEnd > 0;) {
-            if (s1End > s1BottomPos) {
-                int32_t s1Num = s1End - s1BottomPos;
-                if (s1RealEnd - s1Num < 0) {
-                    s1Num = s1RealEnd + 1;
-                }
-                int32_t s1RealStart = s1RealEnd - s1Num + 1;
-                Duplicate(attenOutUb[s1RealStart * columnCount], static_cast<MM2_OUT_T>(FLOAT_ZERO), columnCount * s1Num);
-                pipe_barrier(PIPE_V);
-            }
-            s1RealEnd -= s1End + 1;
-            s1End = info.actS1Size - 1;
-        }
-        return;
-    }
-
-    if constexpr (LAYOUT_T == FIA_LAYOUT::BSH || LAYOUT_T == FIA_LAYOUT::TND || LAYOUT_T == FIA_LAYOUT::BSND) {
-    	int32_t s1BottomTok = info.actS1Size + info.preTokensPerBatch;
-        uint32_t s1 = (info.gS1Idx + wsMStart) / constInfo.gSize;
-        uint32_t gIdx = (info.gS1Idx + wsMStart) % constInfo.gSize;
-        
-        uint8_t s1Stride = dealRowCount / constInfo.gSize;
-
-        for (uint32_t i = 0; i < dealRowCount;) {
-            while (s1 + s1Stride > s1BottomTok && s1 < s1BottomTok) {
-                if (s1 == s1BottomTok) {
-                    break;
-                }
-                s1++;
-                i += constInfo.gSize;
-            }
-
-            if (s1 >= s1BottomTok && s1 < info.actS1Size)
-            {
-                uint32_t gNum = constInfo.gSize - gIdx;
-                if (i + gNum > dealRowCount) {
-                    gNum = dealRowCount - i;
-                }
-                Duplicate(attenOutUb[i * columnCount], static_cast<MM2_OUT_T>(FLOAT_ZERO), columnCount * gNum);
-                pipe_barrier(PIPE_V);
-                i += gNum;
-                s1++;
-                gIdx = 0;
-                continue;
-            }
-            break;
-        }
-    }
+    fa_base_vector::InvalidRows<T, fa_base_vector::GeInputUbFormat<LAYOUT_T>()> invalidRows;
+    invalidRows(attenOutUb, params);
 }
 
 

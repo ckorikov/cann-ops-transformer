@@ -157,40 +157,6 @@ REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000010500001, FusedInf
 REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000030500003, FusedInferAttentionScoreTilingData)
 REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000050500005, FusedInferAttentionScoreTilingData)
 
-// Gqa NoQuant  With Perf
-REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000100200000, FusedInferAttentionScoreTilingData)
-REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000100300000, FusedInferAttentionScoreTilingData)
-REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000100600000, FusedInferAttentionScoreTilingData)
-REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000100700000, FusedInferAttentionScoreTilingData)
-REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000110200000, FusedInferAttentionScoreTilingData)
-REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000110300000, FusedInferAttentionScoreTilingData)
-REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000110600000, FusedInferAttentionScoreTilingData)
-REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000110700000, FusedInferAttentionScoreTilingData)
-REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000120200000, FusedInferAttentionScoreTilingData)
-REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000120300000, FusedInferAttentionScoreTilingData)
-REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000120600000, FusedInferAttentionScoreTilingData)
-REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000120700000, FusedInferAttentionScoreTilingData)
-REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000100200001, FusedInferAttentionScoreTilingData)
-REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000100300001, FusedInferAttentionScoreTilingData)
-REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000100600001, FusedInferAttentionScoreTilingData)
-REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000100700001, FusedInferAttentionScoreTilingData)
-REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000110200001, FusedInferAttentionScoreTilingData)
-REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000110300001, FusedInferAttentionScoreTilingData)
-REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000110600001, FusedInferAttentionScoreTilingData)
-REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000110700001, FusedInferAttentionScoreTilingData)
-REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000120200001, FusedInferAttentionScoreTilingData)
-REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000120300001, FusedInferAttentionScoreTilingData)
-REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000120600001, FusedInferAttentionScoreTilingData)
-REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000120700001, FusedInferAttentionScoreTilingData)
-REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000100000000, FusedInferAttentionScoreTilingData)
-REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000110000001, FusedInferAttentionScoreTilingData)
-REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000100100000, FusedInferAttentionScoreTilingData)
-REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000110100001, FusedInferAttentionScoreTilingData)
-REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000100400000, FusedInferAttentionScoreTilingData)
-REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000110400001, FusedInferAttentionScoreTilingData)
-REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000100500000, FusedInferAttentionScoreTilingData)
-REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000110500001, FusedInferAttentionScoreTilingData)
-
 // Gqa NoQuant PA dtype: Q=BF16 KV=BF16 OUT=BF16
 REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000000222220, FusedInferAttentionScoreTilingData)
 REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000000322220, FusedInferAttentionScoreTilingData)
@@ -443,6 +409,7 @@ bool CheckGqaFeatureSupport(gert::TilingContext *context)
     auto actualSharedPrefixLen = context->GetOptionalInputTensor(ACTUAL_SHARED_PREFIX_LEN_INDEX);
     auto quantScale2 = context->GetOptionalInputTensor(QUANT_SCALE2_INDEX);
     auto quantOffset2 = context->GetOptionalInputTensor(QUANT_OFFSET2_INDEX);
+    auto learnableSink = context->GetOptionalInputTensor(LEARNABLE_SINK_INDEX);
     if (pseShift != nullptr ||
         queryPaddingSize != nullptr ||
         kvPaddingSize != nullptr ||
@@ -450,7 +417,8 @@ bool CheckGqaFeatureSupport(gert::TilingContext *context)
         valueSharedPrefix != nullptr ||
         actualSharedPrefixLen != nullptr ||
         quantScale2 != nullptr ||
-        quantOffset2 != nullptr) {
+        quantOffset2 != nullptr ||
+        learnableSink != nullptr) {
         return false;
     }
 
@@ -459,11 +427,11 @@ bool CheckGqaFeatureSupport(gert::TilingContext *context)
 
 bool CheckGqaConstrain(gert::TilingContext *context)
 {
-    // if (CheckGqaInputLayoutSupport(context) &&
-    //     CheckGqaDSupport(context) &&
-    //     CheckGqaFeatureSupport(context)) {
-    //     return true;
-    // }
+    if (CheckGqaInputLayoutSupport(context) &&
+        CheckGqaDSupport(context) &&
+        CheckGqaFeatureSupport(context)) {
+        return true;
+    }
 
     return false;
 }
