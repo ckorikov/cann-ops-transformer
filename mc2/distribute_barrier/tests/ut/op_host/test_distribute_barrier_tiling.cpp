@@ -29,16 +29,14 @@ protected:
 TEST_F(DistributeBarrierTiling, distribute_barrier_test_tiling)
 {
     struct DistributeBarrierCompileInfo {} compileInfo;
-    uint64_t coreNum = 20;
-    uint64_t ubSize = 196608;
     gert::TilingContextPara tilingContextPara("DistributeBarrier",
         {{{{3, 4}, {3, 4}}, ge::DT_FLOAT16, ge::FORMAT_ND},},
         {{{{3, 4}, {3, 4}}, ge::DT_FLOAT16, ge::FORMAT_ND},},
         {{"group", Ops::Transformer::AnyValue::CreateFrom<std::string>("group")},
          {"world_size", Ops::Transformer::AnyValue::CreateFrom<int64_t>(16)}},
-        &compileInfo, "Ascend910_93", coreNum, ubSize);
+        &compileInfo);
     uint64_t expectTilingKey = 10000UL;
-    std::string expectTilingData = "8 16 20 196352 0 ";
+    std::string expectTilingData = "8 16 64 262144 0 ";
     std::vector<size_t> expectWorkspaces = {16777216};
     uint64_t mc2TilingDataReservedLen = 42;
     ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey, expectTilingData, expectWorkspaces,
@@ -48,27 +46,23 @@ TEST_F(DistributeBarrierTiling, distribute_barrier_test_tiling)
 TEST_F(DistributeBarrierTiling, distribute_barrier_test_tiling_world_size_1)
 {
     struct DistributeBarrierCompileInfo {} compileInfo;
-    uint64_t coreNum = 20;
-    uint64_t ubSize = 196608;
     gert::TilingContextPara tilingContextPara("DistributeBarrier",
         {{{{3, 4}, {3, 4}}, ge::DT_FLOAT16, ge::FORMAT_ND},},
         {{{{3, 4}, {3, 4}}, ge::DT_FLOAT16, ge::FORMAT_ND},},
         {{"group", Ops::Transformer::AnyValue::CreateFrom<std::string>("group")},
          {"world_size", Ops::Transformer::AnyValue::CreateFrom<int64_t>(1)}},
-        &compileInfo, "Ascend910_93", coreNum, ubSize);
+        &compileInfo);
     ExecuteTestCase(tilingContextPara);
 }
 
 TEST_F(DistributeBarrierTiling, distribute_barrier_test_tiling_world_size_385)
 {
     struct DistributeBarrierCompileInfo {} compileInfo;
-    uint64_t coreNum = 20;
-    uint64_t ubSize = 196608;
     gert::TilingContextPara tilingContextPara("DistributeBarrier",
         {{{{3, 4}, {3, 4}}, ge::DT_FLOAT16, ge::FORMAT_ND},},
         {{{{3, 4}, {3, 4}}, ge::DT_FLOAT16, ge::FORMAT_ND},},
         {{"group", Ops::Transformer::AnyValue::CreateFrom<std::string>("group")},
          {"world_size", Ops::Transformer::AnyValue::CreateFrom<int64_t>(385)}},
-        &compileInfo, "Ascend910_93", coreNum, ubSize);
+        &compileInfo);
     ExecuteTestCase(tilingContextPara);
 }
