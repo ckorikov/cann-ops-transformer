@@ -16,6 +16,10 @@
   </tr></thead>
 <tbody>
   <tr>
+    <td>昇腾910_95 AI处理器</td>
+    <td style="text-align: center;">×</td>
+  </tr>
+  <tr>
     <td>Atlas A3 训练系列产品/Atlas A3 推理系列产品</td>
     <td style="text-align: center;">×</td>
   </tr>
@@ -25,6 +29,18 @@
   </tr>
   <tr>
     <td>Atlas 200I/500 A2 推理产品</td>
+    <td style="text-align: center;">×</td>
+  </tr>
+  <tr>
+    <td>Atlas 推理系列加速卡产品</td>
+    <td style="text-align: center;">×</td>
+  </tr>
+  <tr>
+    <td>Atlas 训练系列产品</td>
+    <td style="text-align: center;">×</td>
+  </tr>
+  <tr>
+    <td>Atlas 200I/300/500 推理产品</td>
     <td style="text-align: center;">×</td>
   </tr>
 </tbody>
@@ -98,11 +114,10 @@
 </tbody>
 </table>
 
-- Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件：数据类型支持FLOAT16。
 
 
 ## 约束说明
 
-- 当前不支持用户直接调用
+  当前不支持用户直接调用
 
 
