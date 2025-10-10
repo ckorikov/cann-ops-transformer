@@ -9,7 +9,7 @@
  */
 
 /*!
- * \file moe_finalize_routing_v2_tiling_apt.h
+ * \file moe_finalize_routing_v2_tiling_arch35.h
  * \brief
  */
 
