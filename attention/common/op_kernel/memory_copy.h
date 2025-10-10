@@ -19,9 +19,9 @@
 #define MEMMORY_COPY_H
 #include "fia_public_define.h"
 
+constexpr uint32_t HALF_SIZE_DIVISOR = 2;
 // ----------------------------------------------GmLayout--------------------------------
-enum class GmFormat
-{
+enum class GmFormat {
     BSNGD = 0,
     BNGSD = 1,
     NGBSD = 2,
@@ -33,7 +33,14 @@ enum class GmFormat
     NTD = 8,
     PA_BnBsND = 9,
     PA_BnNBsD = 10,
-    PA_NZ = 11
+    PA_NZ = 11,
+    NGD = 12, // post_quant
+    ND = 13, //antiquant no PA
+    BS2 = 14,
+    BNS2 = 15,
+    PA_BnBs = 16, //antiquant PA
+    PA_BnNBs = 17,
+    BN2GS1S2 = 18 //PSE_GmFormat
 };
 
 template <GmFormat FORMAT>
@@ -234,6 +241,117 @@ struct GmLayout<GmFormat::PA_NZ> {
     }
 };
 
+// post_quant
+template <>
+struct GmLayout<GmFormat::NGD> {
+    AscendC::Shape<uint32_t, uint32_t, uint32_t> shape;
+    AscendC::Stride<uint64_t, uint64_t, uint64_t> stride;
+
+    __aicore__ inline GmLayout() = default;
+    __aicore__ inline void MakeLayout(uint32_t n, uint32_t g, uint32_t d) {
+        shape = AscendC::MakeShape(n, g, d);
+        uint64_t dStride = 1;
+        uint64_t gStride = dStride * d;
+        uint64_t nStride = gStride * g;
+        stride = AscendC::MakeStride(nStride, gStride, dStride);
+    }
+};
+
+//antiquant
+template <>
+struct GmLayout<GmFormat::ND> {
+    AscendC::Shape<uint32_t, uint32_t> shape;
+    AscendC::Stride<uint64_t, uint64_t> stride;
+
+    __aicore__ inline GmLayout() = default;
+    __aicore__ inline void MakeLayout(uint32_t n, uint32_t d) {
+        shape = AscendC::MakeShape(n, d);
+
+        uint64_t dStride = 1;
+        uint64_t nStride = dStride * d; //headDim
+        stride = AscendC::MakeStride(nStride, dStride);
+    }
+};
+template <>
+struct GmLayout<GmFormat::BS2> {
+    AscendC::Shape<uint32_t, uint32_t> shape;
+    AscendC::Stride<uint64_t, uint64_t> stride;
+
+    __aicore__ inline GmLayout() = default;
+    __aicore__ inline void MakeLayout(uint32_t b, uint32_t s) {
+        shape = AscendC::MakeShape(b, s);
+
+        uint64_t sStride = 1;
+        uint64_t bStride = sStride * s;
+
+        stride = AscendC::MakeStride(bStride, sStride);
+    }
+};
+template <>
+struct GmLayout<GmFormat::BNS2> {
+    AscendC::Shape<uint32_t, uint32_t, uint32_t> shape;
+    AscendC::Stride<uint64_t, uint64_t, uint64_t> stride;
+
+    __aicore__ inline GmLayout() = default;
+    __aicore__ inline void MakeLayout(uint32_t b, uint32_t n, uint32_t s) {
+        shape = AscendC::MakeShape(b, n, s);
+
+        uint64_t sStride = 1;
+        uint64_t nStride = sStride * s;
+        uint64_t bStride = nStride * n;
+        
+        stride = AscendC::MakeStride(bStride, nStride, sStride);
+    }
+};
+template <>
+struct GmLayout<GmFormat::PA_BnBs> { 
+    AscendC::Shape<uint32_t> shape;
+    AscendC::Stride<uint64_t, uint64_t> stride;
+
+    __aicore__ inline GmLayout() = default;
+    __aicore__ inline void MakeLayout(uint32_t blockSize) {
+        shape = AscendC::MakeShape(blockSize);
+
+        uint64_t bsStride = 1;
+        uint64_t bnStride = bsStride * blockSize;
+        stride = AscendC::MakeStride(bnStride, bsStride);
+    }
+};
+template <>
+struct GmLayout<GmFormat::PA_BnNBs> {
+    AscendC::Shape<uint32_t, uint32_t> shape;
+    AscendC::Stride<uint64_t, uint64_t, uint64_t> stride;
+
+    __aicore__ inline GmLayout() = default;
+    __aicore__ inline void MakeLayout(uint32_t n, uint32_t blockSize) {
+        shape = AscendC::MakeShape(n, blockSize);
+
+        uint64_t bsStride = 1;
+        uint64_t nStride = bsStride * blockSize;
+        uint64_t bnStride = nStride * n; //blockSize * kvHeadNum
+        stride = AscendC::MakeStride(bnStride, nStride, bsStride);
+    }
+};
+
+//PSE_GmLayout
+template <>
+struct GmLayout<GmFormat::BN2GS1S2> {
+    AscendC::Shape<uint32_t, uint32_t, uint32_t, uint32_t, uint32_t> shape;
+    AscendC::Stride<uint64_t, uint64_t, uint64_t, uint64_t, uint64_t> stride;
+
+    __aicore__ inline GmLayout() = default;
+    __aicore__ inline void MakeLayout(uint32_t b, uint32_t n, uint32_t g, uint32_t s1, uint32_t s2)
+    {
+        shape = AscendC::MakeShape(b, n, g, s1, s2);
+        uint64_t s2Stride = 1;
+        uint64_t s1Stride = s2Stride * s2;
+        uint64_t gStride = s1Stride * s1;
+        uint64_t nStride = gStride * g;
+        uint64_t bStride = nStride * n;
+        stride = AscendC::MakeStride(bStride, nStride, gStride, s1Stride, s2Stride);
+    }
+};
+
 // ----------------------------------------------ActualSeqLensParser--------------------------------
 enum class ActualSeqLensMode
 {
@@ -364,6 +482,13 @@ enum class FormatCategory
     GM_KV_TND = 3,
     GM_KV_PA_BNBD = 4,
     GM_KV_PA_NZ = 5,
+    GM_POST_QUANT_NGD = 6, // post_quant
+    GM_ANTIQ_ND = 7, //antiquant no PA
+    GM_ANTIQ_BS = 8,
+    GM_ANTIQ_BNS = 9,
+    GM_ANTIQ_BnBs = 10, //antiquant PA
+    GM_ANTIQ_BnNBs = 11,
+    GM_PSE_BN2GS1S2 = 12 //PSE
 };
 
 template <GmFormat FORMAT>
@@ -427,6 +552,40 @@ struct GmLayoutParams<GmFormat::PA_BnNBsD> {
 template <>
 struct GmLayoutParams<GmFormat::PA_NZ> {
     static constexpr FormatCategory CATEGORY = FormatCategory::GM_KV_PA_NZ;
+};
+
+// post_quant
+template <>
+struct GmLayoutParams<GmFormat::NGD> {
+    static constexpr FormatCategory CATEGORY = FormatCategory::GM_POST_QUANT_NGD;
+};
+
+//antiquant
+template <>
+struct GmLayoutParams<GmFormat::ND> {
+    static constexpr FormatCategory CATEGORY = FormatCategory::GM_ANTIQ_ND;
+};
+template <>
+struct GmLayoutParams<GmFormat::BS2> {
+    static constexpr FormatCategory CATEGORY = FormatCategory::GM_ANTIQ_BS;
+};
+template <>
+struct GmLayoutParams<GmFormat::BNS2> {
+    static constexpr FormatCategory CATEGORY = FormatCategory::GM_ANTIQ_BNS;
+};
+template <>
+struct GmLayoutParams<GmFormat::PA_BnBs> {
+    static constexpr FormatCategory CATEGORY = FormatCategory::GM_ANTIQ_BnBs;
+};
+template <>
+struct GmLayoutParams<GmFormat::PA_BnNBs> {
+    static constexpr FormatCategory CATEGORY = FormatCategory::GM_ANTIQ_BnNBs;
+};
+
+//pse
+template <>
+struct GmLayoutParams<GmFormat::BN2GS1S2> {
+    static constexpr FormatCategory CATEGORY = FormatCategory::GM_PSE_BN2GS1S2;
 };
 
 // ----------------------------------------------OffsetCalculator--------------------------------
@@ -834,6 +993,358 @@ struct OffsetCalculatorImpl<FORMAT, FormatCategory::GM_KV_PA_NZ> {
     }
 };
 
+// post_quant
+template <GmFormat FORMAT>
+struct OffsetCalculatorImpl<FORMAT, FormatCategory::GM_POST_QUANT_NGD> {
+    GmLayout<FORMAT> gmLayout;
+
+    __aicore__ inline OffsetCalculatorImpl() = default;
+
+    __aicore__ inline void Init(uint32_t n2, uint32_t g, uint32_t d)
+    {
+        gmLayout.MakeLayout(n2, g, d);
+    }
+
+    __aicore__ inline uint64_t GetOffset(uint32_t n2Idx, uint32_t gIdx, uint32_t dIdx)
+    {
+        uint64_t offset = n2Idx * GetStrideN2() + gIdx * GetStrideG() + dIdx * GetStrideD();
+        return offset;
+    }
+
+    // Get Stride
+    __aicore__ inline uint64_t GetStrideN2()
+    {
+        return AscendC::Std::get<0>(gmLayout.stride);
+    }
+
+    __aicore__ inline uint64_t GetStrideG()
+    {
+        return AscendC::Std::get<1>(gmLayout.stride);
+    }
+
+    __aicore__ inline uint64_t GetStrideD()
+    {
+        return AscendC::Std::get<2>(gmLayout.stride);
+    }
+
+    // Get Dim
+    __aicore__ inline uint32_t GetDimN2()
+    {
+        return AscendC::Std::get<0>(gmLayout.shape);
+    }
+
+    __aicore__ inline uint32_t GetDimG()
+    {
+        return AscendC::Std::get<1>(gmLayout.shape);
+    }
+
+    __aicore__ inline uint32_t GetDimD()
+    {
+        return AscendC::Std::get<2>(gmLayout.shape);
+    }
+};
+
+//antiquant
+template <GmFormat FORMAT>
+struct OffsetCalculatorImpl<FORMAT, FormatCategory::GM_ANTIQ_ND> {
+    GmLayout<FORMAT> gmLayout;
+
+    __aicore__ inline OffsetCalculatorImpl() = default;
+
+    __aicore__ inline void Init(uint32_t n2, uint32_t d)
+    {
+        gmLayout.MakeLayout(n2, d);
+    }
+
+    __aicore__ inline uint64_t GetOffset(uint32_t bIdx, uint32_t n2Idx, uint32_t s2Idx, uint32_t dIdx)
+    {
+        uint64_t offset = n2Idx * GetStrideN2() + dIdx * GetStrideD();
+        return offset;
+    }
+
+    // Get Stride
+    __aicore__ inline uint64_t GetStrideN2()
+    {
+        return AscendC::Std::get<0>(gmLayout.stride);
+    }
+
+    __aicore__ inline uint64_t GetStrideD()
+    {
+        return AscendC::Std::get<1>(gmLayout.stride);
+    }
+
+    // Get Dim
+    __aicore__ inline uint32_t GetDimN2()
+    {
+        return AscendC::Std::get<0>(gmLayout.shape);
+    }
+
+    __aicore__ inline uint32_t GetDimD()
+    {
+        return AscendC::Std::get<1>(gmLayout.shape);
+    }
+};
+
+template <GmFormat FORMAT>
+struct OffsetCalculatorImpl<FORMAT, FormatCategory::GM_ANTIQ_BS> {
+    GmLayout<FORMAT> gmLayout;
+
+    __aicore__ inline OffsetCalculatorImpl() = default;
+
+    __aicore__ inline void Init(uint32_t b, uint32_t s2)
+    {
+        gmLayout.MakeLayout(b, s2);
+    }
+
+    __aicore__ inline uint64_t GetOffset(uint32_t bIdx, uint32_t n2Idx, uint32_t s2Idx, uint32_t dIdx)
+    {
+        uint64_t offset = bIdx * GetStrideB() + s2Idx * GetStrideS2();
+        return offset;
+    }
+
+    // Get Stride
+    __aicore__ inline uint64_t GetStrideB()
+    {
+        return AscendC::Std::get<0>(gmLayout.stride);
+    }
+
+    __aicore__ inline uint64_t GetStrideS2()
+    {
+        return AscendC::Std::get<1>(gmLayout.stride);
+    }
+
+    // Get Dim
+    __aicore__ inline uint32_t GetDimB()
+    {
+        return AscendC::Std::get<0>(gmLayout.shape);
+    }
+
+    __aicore__ inline uint32_t GetDimS2()
+    {
+        return AscendC::Std::get<1>(gmLayout.shape);
+    }
+};
+
+template <GmFormat FORMAT>
+struct OffsetCalculatorImpl<FORMAT, FormatCategory::GM_ANTIQ_BNS> {
+    GmLayout<FORMAT> gmLayout;
+
+    __aicore__ inline OffsetCalculatorImpl() = default;
+
+    __aicore__ inline void Init(uint32_t b, uint32_t n2, uint32_t s2)
+    {
+        gmLayout.MakeLayout(b, n2, s2);
+    }
+
+    __aicore__ inline uint64_t GetOffset(uint32_t bIdx, uint32_t n2Idx, uint32_t s2Idx, uint32_t dIdx)
+    {
+        uint64_t offset = bIdx * GetStrideB() + n2Idx * GetStrideN2() + s2Idx * GetStrideS2();
+        return offset;
+    }
+
+    // Get Stride
+    __aicore__ inline uint64_t GetStrideB()
+    {
+        return AscendC::Std::get<0>(gmLayout.stride);
+    }
+
+    __aicore__ inline uint64_t GetStrideN2()
+    {
+        return AscendC::Std::get<1>(gmLayout.stride);
+    }
+
+    __aicore__ inline uint64_t GetStrideS2()
+    {
+        return AscendC::Std::get<2>(gmLayout.stride);
+    }
+
+    // Get Dim
+    __aicore__ inline uint32_t GetDimB()
+    {
+        return AscendC::Std::get<0>(gmLayout.shape);
+    }
+
+    __aicore__ inline uint32_t GetDimN2()
+    {
+        return AscendC::Std::get<1>(gmLayout.shape);
+    }
+
+    __aicore__ inline uint32_t GetDimS2()
+    {
+        return AscendC::Std::get<2>(gmLayout.shape);
+    }
+};
+
+template <GmFormat FORMAT>
+struct OffsetCalculatorImpl<FORMAT, FormatCategory::GM_ANTIQ_BnBs> {
+    GmLayout<FORMAT> gmLayout;
+    BlockTableParser blockTableParser;
+
+    __aicore__ inline OffsetCalculatorImpl() = default;
+
+    __aicore__ inline void Init(uint32_t blockSize, 
+                                GlobalTensor<int32_t> blockTableGm, uint32_t maxblockNumPerBatch)
+    {
+        blockTableParser.Init(blockTableGm, maxblockNumPerBatch);
+        gmLayout.MakeLayout(blockSize);
+    }
+
+    __aicore__ inline uint64_t GetOffset(uint32_t bIdx, uint32_t nIdx, uint32_t sIdx)
+    {
+        uint64_t blockIdxInBatch = sIdx / GetStrideBlockSize(); // 获取block table上的索引
+        uint64_t bsIdx = sIdx % GetStrideBlockSize();           // 获取在单个块上超出的行数
+        int32_t blockIdx = blockTableParser.GetBlockIdx(bIdx, blockIdxInBatch);
+        uint64_t offset =
+            blockIdx * GetStrideBlockNum() + bsIdx * GetStrideBlockSize();
+
+        return offset;
+    }
+
+    // Get Stride
+
+    __aicore__ inline uint64_t GetStrideBlockNum()
+    {
+        return AscendC::Std::get<0>(gmLayout.stride);
+    }
+
+    __aicore__ inline uint64_t GetStrideBlockSize()
+    {
+        return AscendC::Std::get<1>(gmLayout.stride);
+    }
+
+    // Get Dim
+    __aicore__ inline uint32_t GetDimBlockSize()
+    {
+        return AscendC::Std::get<0>(gmLayout.shape);
+    }
+};
+
+template <GmFormat FORMAT>
+struct OffsetCalculatorImpl<FORMAT, FormatCategory::GM_ANTIQ_BnNBs> {
+    GmLayout<FORMAT> gmLayout;
+    BlockTableParser blockTableParser;
+
+    __aicore__ inline OffsetCalculatorImpl() = default;
+
+    __aicore__ inline void Init(uint32_t n, uint32_t blockSize, 
+                                GlobalTensor<int32_t> blockTableGm, uint32_t maxblockNumPerBatch)
+    {
+        blockTableParser.Init(blockTableGm, maxblockNumPerBatch);
+        gmLayout.MakeLayout(n, blockSize);
+    }
+
+    __aicore__ inline uint64_t GetOffset(uint32_t bIdx, uint32_t nIdx, uint32_t sIdx)
+    {
+        uint64_t blockIdxInBatch = sIdx / GetStrideBlockSize(); // 获取block table上的索引
+        uint64_t bsIdx = sIdx % GetStrideBlockSize();           // 获取在单个块上超出的行数
+        int32_t blockIdx = blockTableParser.GetBlockIdx(bIdx, blockIdxInBatch);
+        uint64_t offset =
+            blockIdx * GetStrideBlockNum() + nIdx * GetStrideN() + bsIdx * GetStrideBlockSize();
+
+        return offset;
+    }
+
+    // Get Stride
+
+    __aicore__ inline uint64_t GetStrideBlockNum()
+    {
+        return AscendC::Std::get<0>(gmLayout.stride);
+    }
+
+    __aicore__ inline uint64_t GetStrideN()
+    {
+        return AscendC::Std::get<1>(gmLayout.stride);
+    }
+
+    __aicore__ inline uint64_t GetStrideBlockSize()
+    {
+        return AscendC::Std::get<2>(gmLayout.stride);
+    }
+
+    // Get Dim
+    __aicore__ inline uint32_t GetDimN()
+    {
+        return AscendC::Std::get<0>(gmLayout.shape);
+    }
+
+    __aicore__ inline uint32_t GetDimBlockSize()
+    {
+        return AscendC::Std::get<1>(gmLayout.shape);
+    }
+};
+
+//PSE
+template <GmFormat FORMAT>
+struct OffsetCalculatorImpl<FORMAT, FormatCategory::GM_PSE_BN2GS1S2> {
+    GmLayout<FORMAT> gmLayout;
+
+    __aicore__ inline OffsetCalculatorImpl() = default;
+
+    __aicore__ inline void Init(uint32_t b, uint32_t n2, uint32_t g, uint32_t s1, uint32_t s2)
+    {
+        gmLayout.MakeLayout(b, n2, g, s1, s2);
+    }
+
+    __aicore__ inline uint64_t GetOffset(uint32_t bIdx, uint32_t n2Idx, uint32_t gIdx, uint32_t s1Idx, uint32_t s2Idx)
+    {
+        uint64_t offset = bIdx * GetStrideB() + n2Idx * GetStrideN2() + gIdx * GetStrideG() + s1Idx * GetStrideS1() +
+                          s2Idx * GetStrideS2();
+        return offset;
+    }
+
+    // Get Stride
+    __aicore__ inline uint64_t GetStrideB()
+    {
+        return AscendC::Std::get<0>(gmLayout.stride);
+    }
+
+    __aicore__ inline uint64_t GetStrideN2()
+    {
+        return AscendC::Std::get<1>(gmLayout.stride);
+    }
+
+    __aicore__ inline uint64_t GetStrideG()
+    {
+        return AscendC::Std::get<2>(gmLayout.stride);
+    }
+
+    __aicore__ inline uint64_t GetStrideS1()
+    {
+        return AscendC::Std::get<3>(gmLayout.stride);
+    }
+
+    __aicore__ inline uint64_t GetStrideS2()
+    {
+        return AscendC::Std::get<4>(gmLayout.stride);
+    }
+
+    // Get Dim
+    __aicore__ inline uint32_t GetDimB()
+    {
+        return AscendC::Std::get<0>(gmLayout.shape);
+    }
+
+    __aicore__ inline uint32_t GetDimN2()
+    {
+        return AscendC::Std::get<1>(gmLayout.shape);
+    }
+
+    __aicore__ inline uint32_t GetDimG()
+    {
+        return AscendC::Std::get<2>(gmLayout.shape);
+    }
+
+    __aicore__ inline uint32_t GetDimS1()
+    {
+        return AscendC::Std::get<3>(gmLayout.shape);
+    }
+
+    __aicore__ inline uint32_t GetDimS2()
+    {
+        return AscendC::Std::get<4>(gmLayout.shape);
+    }
+};
+
 template <GmFormat FORMAT>
 struct OffsetCalculator : public OffsetCalculatorImpl<FORMAT, GmLayoutParams<FORMAT>::CATEGORY> {
 };
@@ -873,8 +1384,8 @@ __aicore__ inline void CopySingleMatrixNDToNZ(LocalTensor<T> l1Tensor, const Glo
     nd2nzPara.ndNum = 1;
     nd2nzPara.nValue = nValue; //nd矩阵的行数
     if constexpr (IsSameType<T, int4b_t>::value) {
-        nd2nzPara.dValue = dValue / 2;
-        nd2nzPara.srcDValue = srcDValue / 2;
+        nd2nzPara.dValue = dValue / HALF_SIZE_DIVISOR;
+        nd2nzPara.srcDValue = srcDValue / HALF_SIZE_DIVISOR;
     } else {
         nd2nzPara.dValue = dValue; //nd矩阵的列数
         nd2nzPara.srcDValue = srcDValue; //同一nd矩阵相邻行起始地址间的偏移
@@ -1030,7 +1541,7 @@ enum class UbFormat
     S1G = 1
 };
 
-template <typename OUT_T, UbFormat UB_FORMAT>
+template <typename OUT_T>
 struct FaUbTensor {
     LocalTensor<OUT_T> tensor;
     uint32_t rowCount;
@@ -1042,7 +1553,7 @@ class CopyAttenOutUbToGm
 {
 public:
     __aicore__ inline void operator()(FaGmTensor<OUT_T, GM_FORMAT> &dstTensor,
-                                      FaUbTensor<OUT_T, UB_FORMAT> &srcTensor,
+                                      FaUbTensor<OUT_T> &srcTensor,
                                       GmCoord &gmCoord)
     {
         if constexpr (UB_FORMAT == UbFormat::GS1) {
@@ -1324,6 +1835,577 @@ __aicore__ inline constexpr UbFormat GetOutUbFormat() {
     } else if constexpr (LAYOUT_T == FIA_LAYOUT::BNSD || LAYOUT_T == FIA_LAYOUT::NTD) {
         return UbFormat::GS1;
     }
+}
+
+// post_quant
+// ----------------------------------------------CopyPostQuantGmToUB--------------------------------
+struct PostQuantCoord {
+    uint32_t n2Idx;
+    uint32_t gIdx;
+    uint32_t dIdx;
+    uint32_t gDealSize;
+};
+
+// GM->UB
+template <typename T>
+__aicore__ inline void CopySingleMatrixNDToND(LocalTensor<T> ubTensor, const GlobalTensor<T> gmTensor, 
+                                            uint32_t blockCount, uint32_t blockLen, uint32_t srcStride, uint32_t dstStride, uint32_t rightPadding)
+{
+    if (rightPadding != 0) {
+        DataCopyExtParams dataCopyParams;
+        dataCopyParams.blockCount = static_cast<uint16_t>(blockCount); // 外部传入
+        dataCopyParams.blockLen = blockLen;
+        dataCopyParams.srcStride = srcStride;
+        dataCopyParams.dstStride = dstStride; // 外部传入
+
+        DataCopyPadExtParams<T> dataCopyPadParams;
+        dataCopyPadParams.isPad = true;
+        dataCopyPadParams.leftPadding = 0;
+        dataCopyPadParams.rightPadding = rightPadding;
+        dataCopyPadParams.paddingValue = 0;
+        DataCopyPad(ubTensor, gmTensor, dataCopyParams, dataCopyPadParams);
+    } else {
+        DataCopyParams repeatParams;
+        repeatParams.blockCount = static_cast<uint16_t>(blockCount);
+        repeatParams.blockLen = blockLen / 32UL;
+        repeatParams.srcStride = srcStride / 32UL;
+        repeatParams.dstStride = dstStride;
+        DataCopy(ubTensor, gmTensor, repeatParams);
+    }
+}
+
+template <typename POST_QUANT_T, GmFormat GM_FORMAT>
+class CopyPostQuantGmToUB {
+public:
+    __aicore__ inline void operator()(FaUbTensor<POST_QUANT_T> &dstTensor, 
+                                      FaGmTensor<POST_QUANT_T, GM_FORMAT> &srcTensor, PostQuantCoord &gmCoord)
+    {
+        ProcessPerCh(dstTensor, srcTensor, gmCoord);
+    }
+
+private:
+    __aicore__ inline void ProcessPerCh(FaUbTensor<POST_QUANT_T> &dstTensor,
+                                        FaGmTensor<POST_QUANT_T, GM_FORMAT> &srcTensor, PostQuantCoord &gmCoord)
+    {
+        OffsetCalculator<GM_FORMAT> &offsetCalculator = srcTensor.offsetCalculator;
+        uint64_t offset = offsetCalculator.GetOffset(gmCoord.n2Idx, gmCoord.gIdx, gmCoord.dIdx);
+        uint64_t actualColumnCount = offsetCalculator.GetDimD();
+        uint32_t elementNum = fa_base_vector::BYTE_BLOCK / sizeof(POST_QUANT_T);
+
+        uint32_t blockCount = gmCoord.gDealSize;
+        uint32_t blockLen = actualColumnCount * sizeof(POST_QUANT_T);
+        uint32_t srcStride = 0;
+        uint32_t dstStride = (dstTensor.colCount - actualColumnCount) / elementNum;
+        uint32_t rightPadding = (dstTensor.colCount - actualColumnCount) % elementNum;
+        CopySingleMatrixNDToND(dstTensor.tensor, srcTensor.gmTensor[offset], blockCount, blockLen, srcStride, dstStride, rightPadding);
+    }
+};
+
+//antiquant
+// ----------------------------------------------CopyAntiquantGmToUb--------------------------------
+struct AntiqGmCoord { 
+    uint32_t bIdx = 0;
+    uint32_t n2Idx = 0;
+    uint32_t s2Idx = 0;
+
+    uint32_t s2DealSize = 0; //actualSingleProcessSInnerSize //实际s2长度
+};
+
+template <typename T, GmFormat GM_FORMAT>
+class CopyAntiquantGmToUb {
+public:
+    __aicore__ inline void operator()(FaUbTensor<T> &dstTensor, FaGmTensor<T, GM_FORMAT> &srcTensor,
+                                      AntiqGmCoord &antiqGmCoord)
+    {
+        //per tensor场景在接口外部直接getvalue
+        //per channel / per token
+        if constexpr ((GM_FORMAT == GmFormat::ND) || (GM_FORMAT == GmFormat::BS2) || (GM_FORMAT == GmFormat::BNS2)) {
+            ProcessAntiqPerChannelOrPerToken(dstTensor, srcTensor, antiqGmCoord);
+        }
+        //per token + PA
+        else if constexpr ((GM_FORMAT == GmFormat::PA_BnBs) || (GM_FORMAT == GmFormat::PA_BnNBs)) { 
+            ProcessAntiqPA(dstTensor, srcTensor, antiqGmCoord);
+        }
+    }
+
+private:
+    __aicore__ inline void ProcessAntiqPerChannelOrPerToken(FaUbTensor<T> &dstTensor,
+                                                            FaGmTensor<T, GM_FORMAT> &srcTensor, AntiqGmCoord &antiqGmCoord)
+    {
+        OffsetCalculator<GM_FORMAT> &offsetCalculator = srcTensor.offsetCalculator;
+        uint64_t offset = offsetCalculator.GetOffset(antiqGmCoord.bIdx, antiqGmCoord.n2Idx, antiqGmCoord.s2Idx, 0);
+        uint32_t blockLen = 0;
+        uint32_t dstStride = 0;
+        uint32_t rightPadding = 0;
+        uint32_t elementNum = fa_base_vector::BYTE_BLOCK / sizeof(T);
+        if constexpr (GM_FORMAT == GmFormat::ND) {
+            blockLen = offsetCalculator.GetDimD() * sizeof(T);
+            dstStride = (dstTensor.colCount - offsetCalculator.GetDimD()) / elementNum;
+            rightPadding = (dstTensor.colCount - offsetCalculator.GetDimD()) % elementNum;
+        }
+        else if constexpr (GM_FORMAT == GmFormat::BS2 || GM_FORMAT == GmFormat::BNS2) {
+            blockLen = antiqGmCoord.s2DealSize * sizeof(T);
+            dstStride = (dstTensor.colCount - antiqGmCoord.s2DealSize) / elementNum;
+            rightPadding = (dstTensor.colCount - antiqGmCoord.s2DealSize) % elementNum;
+        }
+        CopySingleMatrixNDToND(dstTensor.tensor, srcTensor.gmTensor[offset], 1, blockLen, 0, dstStride, rightPadding);
+    }
+
+    __aicore__ inline void ProcessAntiqPA(FaUbTensor<T> &dstTensor, FaGmTensor<T, GM_FORMAT> &srcTensor, AntiqGmCoord &antiqGmCoord)
+    {
+        OffsetCalculator<GM_FORMAT> &offsetCalculator = srcTensor.offsetCalculator;
+
+        uint64_t dstOffset = 0;
+        uint32_t copyFinishElmeCnt = 0;
+        uint32_t curS2Idx = antiqGmCoord.s2Idx;
+        uint32_t elementNum = fa_base_vector::BYTE_BLOCK / sizeof(T); //每个块的元素数量
+
+        while (copyFinishElmeCnt < antiqGmCoord.s2DealSize) {
+            uint32_t copyElemCnt = offsetCalculator.GetDimBlockSize() - curS2Idx % offsetCalculator.GetDimBlockSize(); //一次只能处理一个block
+            if (copyFinishElmeCnt + copyElemCnt > antiqGmCoord.s2DealSize) {
+                copyElemCnt = antiqGmCoord.s2DealSize - copyFinishElmeCnt; //一个block未拷满
+            }
+
+            uint32_t rightPadding = elementNum - copyElemCnt % elementNum; //copyInPadParams.rightPadding = copyElemCntAilgin - copyElemCntAilgin
+
+            uint64_t srcOffset = offsetCalculator.GetOffset(antiqGmCoord.bIdx, antiqGmCoord.n2Idx, curS2Idx);
+            CopySingleMatrixNDToND(dstTensor.tensor[dstOffset], srcTensor.gmTensor[srcOffset], 1, copyElemCnt * sizeof(T), 0, 0, rightPadding);
+
+            dstOffset += copyElemCnt;
+            copyFinishElmeCnt += copyElemCnt;
+            curS2Idx += copyElemCnt;
+        }
+    }
+};
+// ----------------------------------------------CopyQueryGmToUb--------------------------------
+
+template <typename T, GmFormat GM_FORMAT>
+class  CopyQueryGmToUb
+{
+public:
+    __aicore__ inline void operator()(FaUbTensor<T> &dstTensor, FaGmTensor<T, GM_FORMAT> &srcTensor, GmCoord &gmCoord)
+    {
+        if constexpr ((GM_FORMAT == GmFormat::BSNGD) || (GM_FORMAT == GmFormat::TNGD)) {
+            ProcessS1G(dstTensor, srcTensor, gmCoord);
+        } else if constexpr (GM_FORMAT == GmFormat::BNGSD) {
+            OffsetCalculator<GM_FORMAT> &offsetCalculator = srcTensor.offsetCalculator;
+            if(offsetCalculator.actualSeqLensQParser.GetActualLenDims() != 0) {
+                ProcessGS1(dstTensor, srcTensor, gmCoord);
+            } else {
+                ProcessContinuous(dstTensor, srcTensor, gmCoord);
+            }
+        } else if constexpr (GM_FORMAT == GmFormat::NGTD) {
+            ProcessGS1(dstTensor, srcTensor, gmCoord);
+        }
+    }
+private:
+    __aicore__ inline void ProcessGS1(FaUbTensor<T> &dstTensor, FaGmTensor<T, GM_FORMAT> &srcTensor, GmCoord &gmCoord)
+    {
+        OffsetCalculator<GM_FORMAT> &offsetCalculator = srcTensor.offsetCalculator;
+        uint64_t s1Size = 0;
+        if constexpr (GmLayoutParams<GM_FORMAT>::CATEGORY == FormatCategory::GM_Q_OUT_TND) {
+            s1Size = offsetCalculator.actualSeqLensQParser.GetActualSeqLength(gmCoord.bIdx);
+        } else {
+            if (offsetCalculator.actualSeqLensQParser.GetActualLenDims() != 0) {
+                s1Size = offsetCalculator.actualSeqLensQParser.GetActualSeqLength(gmCoord.bIdx);
+            } else {
+                s1Size = offsetCalculator.GetDimS1();
+            }
+        }
+        uint32_t gIdxStart = gmCoord.gS1Idx / s1Size;
+        uint32_t s1IdxStart = gmCoord.gS1Idx % s1Size;
+        uint32_t gIdxEnd = (gmCoord.gS1Idx + gmCoord.gS1DealSize) / s1Size;
+        uint32_t s1IdxEnd = (gmCoord.gS1Idx + gmCoord.gS1DealSize) % s1Size;
+
+        uint64_t queryGmbaseOffset = offsetCalculator.GetOffset(gmCoord.bIdx, gmCoord.n2Idx, gIdxStart, 0, gmCoord.dIdx);
+
+        // 处理 首行
+        uint32_t headS1 = 0;
+        if (gIdxStart == gIdxEnd) {
+            headS1 = s1IdxEnd - s1IdxStart;
+        } else {
+            headS1 = s1Size - s1IdxStart;
+        }
+
+        uint32_t elementNum = fa_base_vector::BYTE_BLOCK / sizeof(T); //每个块的元素数量
+        uint32_t blockLen = gmCoord.dDealSize * sizeof(T);
+        uint32_t srcStride = (offsetCalculator.GetStrideS1() - gmCoord.dDealSize) * sizeof(T);
+        uint32_t dstStride = (dstTensor.colCount - gmCoord.dDealSize) / elementNum;
+        uint32_t rightPadding = (dstTensor.colCount - gmCoord.dDealSize) % elementNum;
+
+        CopySingleMatrixNDToND(dstTensor.tensor,
+            srcTensor.gmTensor[queryGmbaseOffset + s1IdxStart * offsetCalculator.GetDimD()],
+            headS1, blockLen, srcStride, dstStride, rightPadding);
+
+        if (gIdxEnd - gIdxStart >= 1) {
+            // 处理中间块
+            uint64_t gmOffset = queryGmbaseOffset + offsetCalculator.GetStrideG();
+            uint32_t ubOffset = headS1 * dstTensor.colCount;
+            // 
+            for (uint32_t i = gIdxStart + 1; i < gIdxEnd; i++) {
+                CopySingleMatrixNDToND(dstTensor.tensor[ubOffset], srcTensor.gmTensor[gmOffset],
+                    s1Size, blockLen, srcStride, dstStride, rightPadding);
+                gmOffset += offsetCalculator.GetStrideG();
+                ubOffset += s1Size * dstTensor.colCount;
+            }
+
+            // 处理尾块
+            if (s1IdxEnd > 0) {
+                CopySingleMatrixNDToND(dstTensor.tensor[ubOffset], srcTensor.gmTensor[gmOffset],
+                    s1IdxEnd, blockLen, srcStride, dstStride, rightPadding);
+            }
+        }
+    }
+
+    __aicore__ inline void ProcessContinuous(FaUbTensor<T> &dstTensor,
+                                             FaGmTensor<T, GM_FORMAT> &srcTensor, GmCoord &gmCoord)
+    {
+        // B*N2*GS1*D
+        OffsetCalculator<GM_FORMAT> &offsetCalculator = srcTensor.offsetCalculator;
+        uint32_t gIdxStart = gmCoord.gS1Idx / offsetCalculator.GetDimS1();
+        uint32_t s1IdxStart = gmCoord.gS1Idx % offsetCalculator.GetDimS1();
+
+        uint64_t offset = offsetCalculator.GetOffset(gmCoord.bIdx, gmCoord.n2Idx, gIdxStart, s1IdxStart, gmCoord.dIdx);
+        uint32_t elementNum = fa_base_vector::BYTE_BLOCK / sizeof(T); //每个块的元素数量
+        uint32_t blockCount = gmCoord.gS1DealSize;
+        uint32_t blockLen = gmCoord.dDealSize * sizeof(T);
+        uint32_t srcStride = (offsetCalculator.GetStrideS1() - gmCoord.dDealSize) * sizeof(T);
+        uint32_t dstStride = (dstTensor.colCount - gmCoord.dDealSize) / elementNum;
+        uint32_t rightPadding = (dstTensor.colCount - gmCoord.dDealSize) % elementNum;
+        CopySingleMatrixNDToND(dstTensor.tensor, srcTensor.gmTensor[offset],
+            blockCount, blockLen, srcStride, dstStride, rightPadding);
+    }
+    
+    __aicore__ inline void ProcessS1G(FaUbTensor<T> &dstTensor, FaGmTensor<T, GM_FORMAT> &srcTensor, GmCoord &gmCoord)
+    {
+        OffsetCalculator<GM_FORMAT> &offsetCalculator = dstTensor.offsetCalculator;
+        uint32_t s1IdxStart = gmCoord.gS1Idx / offsetCalculator.GetDimG();
+        uint32_t gIdxStart = gmCoord.gS1Idx % offsetCalculator.GetDimG();
+        uint32_t s1IdxEnd = (gmCoord.gS1Idx + gmCoord.gS1DealSize) / offsetCalculator.GetDimG();
+        uint32_t gIdxEnd = (gmCoord.gS1Idx + gmCoord.gS1DealSize) % offsetCalculator.GetDimG();
+
+        uint64_t queryGmbaseOffset = offsetCalculator.GetOffset(gmCoord.bIdx, gmCoord.n2Idx, 0, s1IdxStart, gmCoord.dIdx);
+        // 处理第一个g
+        uint32_t headSize = 0;
+        if (s1IdxStart == s1IdxEnd) {
+            headSize = gIdxEnd - gIdxStart;
+        } else {
+            headSize = offsetCalculator.GetDimG() - gIdxStart;
+        }
+        uint32_t elementNum = fa_base_vector::BYTE_BLOCK / sizeof(T); //每个块的元素数量
+        uint32_t blockLen = gmCoord.dDealSize * sizeof(T);
+        uint32_t srcStride = (offsetCalculator.GetStrideG() - gmCoord.dDealSize) * sizeof(T);
+        uint32_t dstStride = (dstTensor.colCount - gmCoord.dDealSize) / elementNum;
+        uint32_t rightPadding = (dstTensor.colCount - gmCoord.dDealSize) % elementNum;
+        
+        CopySingleMatrixNDToND(dstTensor.tensor,
+            srcTensor.gmTensor[queryGmbaseOffset + gIdxStart * offsetCalculator.GetDimD()],
+            headSize, blockLen, srcStride, dstStride, rightPadding);
+
+        if (s1IdxEnd - s1IdxStart >= 1) {
+            uint64_t gmOffset = queryGmbaseOffset + offsetCalculator.GetStrideS1();
+            uint32_t ubOffset = headSize * dstTensor.colCount;
+            // 处理中间块
+            for (uint32_t i = s1IdxStart + 1; i < s1IdxEnd; i++) {
+                uint32_t blockCount = offsetCalculator.GetDimG();
+                CopySingleMatrixNDToND(dstTensor.tensor[ubOffset], srcTensor.gmTensor[gmOffset],
+                    blockCount, blockLen, srcStride, dstStride, rightPadding);
+                gmOffset += offsetCalculator.GetStrideS1();
+                ubOffset += offsetCalculator.GetDimG() * dstTensor.colCount;
+            }
+
+            // 处理尾块
+            if (gIdxEnd > 0) {
+                CopySingleMatrixNDToND(dstTensor.tensor[ubOffset], srcTensor.gmTensor[gmOffset],
+                    gIdxEnd, blockLen, srcStride, dstStride, rightPadding);
+            }
+        }
+    }
+};
+
+// ----------------------------------------------CopyKvGmToUb--------------------------------
+template <typename KV_T, GmFormat GM_FORMAT>
+class  CopyKvGmToUb
+{
+public:
+    __aicore__ inline void operator()(FaUbTensor<KV_T> &dstTensor,
+                                      FaGmTensor<KV_T, GM_FORMAT> &srcTensor, GmCoord &gmCoord)
+    {
+        if constexpr (GM_FORMAT == GmFormat::BNSD || GM_FORMAT == GmFormat::BSND ||
+                      GM_FORMAT == GmFormat::NTD || GM_FORMAT == GmFormat::TND) {
+            ProcessContinuousOrTensorlist(dstTensor, srcTensor, gmCoord);
+        } else if constexpr (GM_FORMAT == GmFormat::PA_BnBsND || GM_FORMAT == GmFormat::PA_BnNBsD ||
+                             GM_FORMAT == GmFormat::PA_NZ) {
+            ProcessPageAttention(dstTensor, srcTensor, gmCoord);
+        }
+    }
+private:
+    __aicore__ inline void ProcessContinuousOrTensorlist(FaUbTensor<KV_T> &dstTensor,
+                                                         FaGmTensor<KV_T, GM_FORMAT> &srcTensor, GmKvCoord &gmCoord)
+    {
+        OffsetCalculator<GM_FORMAT> &offsetCalculator = srcTensor.offsetCalculator;
+        uint64_t offset = offsetCalculator.GetOffset(gmCoord.bIdx, gmCoord.n2Idx, gmCoord.s2Idx, gmCoord.dIdx);
+        uint32_t elementNum = fa_base_vector::BYTE_BLOCK;
+        uint32_t blockLen = gmCoord.dDealSize;
+        uint32_t srcStride = (offsetCalculator.GetStrideS2() - gmCoord.dDealSize);
+        if constexpr (IsSameType<KV_T, int4b_t>::value) {
+            elementNum = elementNum * HALF_SIZE_DIVISOR;
+            blockLen = blockLen / HALF_SIZE_DIVISOR;
+            srcStride = srcStride / HALF_SIZE_DIVISOR;
+        } else {
+            elementNum = elementNum / sizeof(KV_T);
+            blockLen = blockLen * sizeof(KV_T); // 列数，单位byte
+            srcStride = srcStride * sizeof(KV_T);
+        }
+
+        uint32_t blockCount = gmCoord.s2DealSize; // 行数
+        uint32_t dstStride = (dstTensor.colCount - gmCoord.dDealSize) / elementNum;
+        uint32_t rightPadding = (dstTensor.colCount - gmCoord.dDealSize) % elementNum;
+        
+        CopySingleMatrixNDToND(dstTensor.tensor, srcTensor.gmTensor[offset], blockCount, blockLen, srcStride, dstStride, rightPadding);
+    }
+
+    __aicore__ inline void ProcessPageAttention(FaUbTensor<KV_T> &dstTensor,
+                                                FaGmTensor<KV_T, GM_FORMAT> &srcTensor, GmKvCoord &gmCoord)
+    {
+        OffsetCalculator<GM_FORMAT> &offsetCalculator = srcTensor.offsetCalculator;
+        uint32_t curS2Idx = gmCoord.s2Idx;
+        uint32_t copyFinishRowCnt = 0;
+        uint32_t blockElementCnt = fa_base_vector::BYTE_BLOCK / sizeof(KV_T); 
+        if constexpr (IsSameType<KV_T, int4b_t>::value) { // FP4（E2M1\E1M2）
+            blockElementCnt = 64; // fp4时32B可以存64个元素
+        }
+
+        if constexpr (GM_FORMAT == GmFormat::PA_NZ) {
+            while (copyFinishRowCnt < gmCoord.s2DealSize) {
+                // 获取需要拷贝的行数
+                uint32_t copyRowCnt = offsetCalculator.GetBlockSize() - curS2Idx % offsetCalculator.GetBlockSize();
+                if (copyFinishRowCnt + copyRowCnt > gmCoord.s2DealSize) {
+                    copyRowCnt = gmCoord.s2DealSize - copyFinishRowCnt;  //block table中当前batch表项的尾块，一个block未拷满
+                }
+
+                // 计算offset
+                uint64_t gmOffset = offsetCalculator.GetOffset(gmCoord.bIdx, gmCoord.n2Idx, curS2Idx, gmCoord.dIdx);
+                uint64_t l1Offset = copyFinishRowCnt * blockElementCnt;
+
+                // 拷贝数据
+                //DataCopy
+                DataCopyParams repeatParams;
+                repeatParams.blockCount = gmCoord.dDealSize / blockElementCnt; //D可切出多少个32B
+                repeatParams.blockLen = copyRowCnt; //单位32B
+                repeatParams.srcStride = offsetCalculator.GetBlockSize() - copyRowCnt; //单位32B
+                repeatParams.dstStride = dstTensor.rowCount - copyRowCnt; //单位32B
+                DataCopy(dstTensor.tensor[l1Offset], srcTensor.gmTensor[gmOffset], repeatParams);
+
+                // 更新完成拷贝的行数和s2Idx
+                copyFinishRowCnt += copyRowCnt;
+                curS2Idx += copyRowCnt;
+            }
+        } else { // BBH BNBD
+            uint32_t blockLen =  gmCoord.dDealSize * sizeof(KV_T); //单位B
+            uint32_t srcStride = (offsetCalculator.GetStrideBlockSize() - gmCoord.dDealSize) * sizeof(KV_T); //单位B
+
+            if constexpr (IsSameType<KV_T, int4b_t>::value) { // FP4（E2M1\E1M2）
+                blockLen = gmCoord.dDealSize / HALF_SIZE_DIVISOR;
+                srcStride = (offsetCalculator.GetStrideBlockSize() - gmCoord.dDealSize) / HALF_SIZE_DIVISOR;
+            }
+
+            while (copyFinishRowCnt < gmCoord.s2DealSize) {
+                // 获取需要拷贝的行数
+                uint32_t copyRowCnt = offsetCalculator.GetBlockSize() - curS2Idx % offsetCalculator.GetBlockSize();
+                if (copyFinishRowCnt + copyRowCnt > gmCoord.s2DealSize) {
+                    copyRowCnt = gmCoord.s2DealSize - copyFinishRowCnt;  //block table中当前batch表项的尾块，一个block未拷满
+                }
+
+                // 计算offset
+                uint64_t gmOffset = offsetCalculator.GetOffset(gmCoord.bIdx, gmCoord.n2Idx, curS2Idx, gmCoord.dIdx);
+                uint64_t l1Offset = copyFinishRowCnt * blockElementCnt;
+
+                uint32_t blockCount = copyRowCnt; 
+                
+                uint32_t dstStride = (dstTensor.rowCount - gmCoord.dDealSize) / blockElementCnt; //单位32B
+                uint32_t rightPadding = blockElementCnt - gmCoord.dDealSize % blockElementCnt; 
+
+                //DataCopyPad
+                CopySingleMatrixNDToND(dstTensor.tensor[l1Offset], srcTensor.gmTensor[gmOffset], blockCount, blockLen, srcStride, dstStride, rightPadding);
+
+                // 更新完成拷贝的行数和s2Idx
+                copyFinishRowCnt += copyRowCnt;
+                curS2Idx += copyRowCnt;
+            }
+        }
+    }
+};
+
+// ---------------------------------------------CopyPSEGmToUb--------------------------------------
+struct GmPseCoord {
+    uint32_t bIdx;
+    uint32_t n2Idx;
+    uint32_t gS1Idx;
+    uint32_t s2Idx;
+    uint32_t gS1DealSize;
+    uint32_t s2DealSize;
+};
+
+// 对齐暂不考虑TND
+template <typename PSE_T, GmFormat GM_FORMAT, UbFormat UB_FORMAT>
+class CopyPSEGmToUb {
+public:
+    __aicore__ inline void operator()(FaUbTensor<PSE_T> &dstTensor, FaGmTensor<PSE_T, GM_FORMAT> &srcTensor,
+                                      GmPseCoord &gmPseCoord)
+    {
+        uint32_t elementNum = fa_base_vector::BYTE_BLOCK / sizeof(PSE_T);
+        uint32_t blockLen = gmPseCoord.s2DealSize * sizeof(PSE_T);
+        uint32_t dstStride = (dstTensor.colCount - gmPseCoord.s2DealSize) / elementNum;
+        uint32_t rightPadding = (dstTensor.colCount - gmPseCoord.s2DealSize) % elementNum;
+        if constexpr (UB_FORMAT == UbFormat::GS1) {
+            // 连续，单次拷贝
+            OffsetCalculator<GM_FORMAT> &offsetCalculator = srcTensor.offsetCalculator;
+            uint32_t gIdxStart = gmPseCoord.gS1Idx / offsetCalculator.GetDimS1();
+            uint32_t s1IdxStart = gmPseCoord.gS1Idx % offsetCalculator.GetDimS1();
+            uint64_t offset =
+                offsetCalculator.GetOffset(gmPseCoord.bIdx, gmPseCoord.n2Idx, gIdxStart, s1IdxStart, gmPseCoord.s2Idx);
+            // 统一的接口
+            uint32_t blockCount = gmPseCoord.gS1DealSize;
+            uint32_t srcStride = (offsetCalculator.GetStrideS1() - gmPseCoord.s2DealSize) * sizeof(PSE_T);
+            CopySingleMatrixNDToND(dstTensor.tensor, srcTensor.gmTensor[offset], blockCount, blockLen, srcStride,
+                                   dstStride, rightPadding);
+        } else if constexpr (UB_FORMAT == UbFormat::S1G) {
+            // 不连续，需要分3次拷贝
+            OffsetCalculator<GM_FORMAT> &offsetCalculator = dstTensor.offsetCalculator;
+            uint32_t s1IdxStart = gmPseCoord.gS1Idx / offsetCalculator.GetDimG();
+            uint32_t gIdxStart = gmPseCoord.gS1Idx % offsetCalculator.GetDimG();
+            uint32_t s1IdxEnd = (gmPseCoord.gS1Idx + gmPseCoord.gS1DealSize) / offsetCalculator.GetDimG();
+            uint32_t gIdxEnd = (gmPseCoord.gS1Idx + gmPseCoord.gS1DealSize) % offsetCalculator.GetDimG();
+            uint64_t gmOffset = offsetCalculator.GetOffset(gmPseCoord.bIdx, gmPseCoord.n2Idx, gIdxStart, s1IdxStart,
+                                                         gmPseCoord.s2Idx); // GM上为GS1
+
+            // 处理第一个S
+            uint32_t headSize = 0;
+            if (s1IdxStart == s1IdxEnd) {
+                headSize = gIdxEnd - gIdxStart;
+            } else {
+                headSize = offsetCalculator.GetDimG() - gIdxStart;
+            }
+
+            uint32_t srcStride = (offsetCalculator.GetStrideG() - gmPseCoord.s2DealSize) * sizeof(PSE_T);
+            CopySingleMatrixNDToND(dstTensor.tensor, srcTensor.gmTensor[gmOffset], headSize, blockLen, srcStride,
+                                   dstStride, rightPadding);
+            if (s1IdxEnd - s1IdxStart >= 1) {
+                uint64_t ubOffset = ((uint64_t)headSize) * ((uint64_t)srcTensor.colCount);
+                // 处理中间块
+                for (uint32_t i = s1IdxStart + 1; i < s1IdxEnd; i++) {
+                    gmOffset = offsetCalculator.GetOffset(gmPseCoord.bIdx, gmPseCoord.n2Idx, 0, i, gmPseCoord.s2Idx); // GM上为GS1
+                    CopySingleMatrixNDToND(dstTensor.tensor[ubOffset], srcTensor.gmTensor[gmOffset], offsetCalculator.GetDimG(),
+                                           blockLen, srcStride, dstStride, rightPadding);
+                    ubOffset += offsetCalculator.GetDimG() * dstTensor.colCount;
+                }
+
+                // 处理尾块
+                if (gIdxEnd > 0) {
+                    gmOffset = offsetCalculator.GetOffset(gmPseCoord.bIdx, gmPseCoord.n2Idx, 0, s1IdxEnd, gmPseCoord.s2Idx);
+                    CopySingleMatrixNDToND(dstTensor.tensor[ubOffset], srcTensor.gmTensor[gmOffset], gIdxEnd,
+                                           blockLen, srcStride, dstStride, rightPadding);
+                }
+            }
+        }
+    }
+};
+
+// --------------CopyAttentionMask----------------------------------------------------------------
+enum SparseMode : uint8_t {
+    DEFAULT_MASK = 0,
+    ALL_MASK,
+    LEFT_UP_CAUSAL,
+    RIGHT_DOWN_CAUSAL,
+    BAND,
+};
+
+struct MaskCopyInfo {
+    uint32_t gs1dealNum;
+    uint32_t s1Size;
+    uint32_t s2StartIdx;
+    uint32_t s2dealNum;
+    uint32_t s2Size;
+    int64_t preToken = 0;
+    int64_t nextToken = 0;
+    uint32_t batchIdx;
+    uint32_t batchOffset;
+    uint32_t attenMaskStride;
+    SparseMode sparseMode;
+    uint32_t s1StartIdx;
+    uint32_t s1EndIdx;
+    bool isPre = false;
+};
+
+__aicore__ inline uint64_t ComputeAttenMaskOffsetNoCompress(MaskCopyInfo &info)
+{
+    uint64_t bOffset = info.batchIdx * info.batchOffset;
+    uint64_t s1Offset = info.s1StartIdx % info.s1Size * info.attenMaskStride;
+    uint64_t s2Offset = info.s2StartIdx;
+    return bOffset + s1Offset + s2Offset;
+}
+
+__aicore__ inline uint64_t ComputeAttenMaskOffsetCompress(MaskCopyInfo &info)
+{
+    int64_t nextToken = 0; // sparse2 本身原点就是左上角
+    if (info.sparseMode == RIGHT_DOWN_CAUSAL) {
+        nextToken = static_cast<int64_t>(info.s2Size) - static_cast<int64_t>(info.s1Size); // 统一以左上角为原点计算token
+    } else if (info.sparseMode == BAND) { // 4
+        nextToken = info.nextToken + static_cast<int64_t>(info.s2Size) - static_cast<int64_t>(info.s1Size);
+    }
+
+    uint64_t offset = 0;
+    int64_t delta = nextToken + info.s1StartIdx - info.s2StartIdx;
+    uint32_t attenMaskSizeAlign = Align(info.s2dealNum, 32U);
+    if (delta < 0) {
+        offset = (-delta) < static_cast<int64_t>(info.gs1dealNum) ? (-delta) : info.gs1dealNum; // min (-delta, s1Size)
+    } else {
+        offset = (delta < static_cast<int64_t>(attenMaskSizeAlign) ? delta : attenMaskSizeAlign) * info.attenMaskStride; // min(delta, s2inner)
+    }
+    return offset;
+}
+
+__aicore__ inline uint64_t ComputeAttenMaskOffsetCompressPre(MaskCopyInfo &info)
+{
+    int64_t preToken = info.preToken + static_cast<int64_t>(info.s1Size) - static_cast<int64_t>(info.s2Size); // 统一以左上角为原点计算token
+    int64_t delta = -preToken + static_cast<int64_t>(info.s1StartIdx) - static_cast<int64_t>(info.s2StartIdx) - 1;
+    uint64_t offset = 0;
+    uint32_t attenMaskSizeAlign = Align(info.s2dealNum, 32U);
+    if (delta < 0) {
+        offset = (-delta) < static_cast<int64_t>(info.gs1dealNum) ? (-delta) : info.gs1dealNum; // min (-delta, s1Size)
+    } else {
+        offset = (delta < static_cast<int64_t>(attenMaskSizeAlign) ? delta : attenMaskSizeAlign) * info.attenMaskStride; // min(delta, s2inner)
+    }
+    return offset;
+}
+
+__aicore__ inline uint64_t ComputeAttenMaskOffset(MaskCopyInfo &info)
+{
+    if (info.isPre) {
+        return ComputeAttenMaskOffsetCompressPre(info);
+    } else {
+        if (info.sparseMode == DEFAULT_MASK || info.sparseMode == ALL_MASK) {
+            return ComputeAttenMaskOffsetNoCompress(info);
+        } else {
+            return ComputeAttenMaskOffsetCompress(info);
+        }
+    }
+}
+
+template <typename T>
+__aicore__ inline void CopyAttentionMask(FaUbTensor<T> &attenMaskUb, GlobalTensor<T> &srcGmAddr, MaskCopyInfo &info)
+{
+    uint64_t maskOffset = ComputeAttenMaskOffset(info);
+
+    DataCopyExtParams dataCopyParams;
+    dataCopyParams.blockCount = info.s1EndIdx - info.s1StartIdx;
+    dataCopyParams.blockLen = info.s2dealNum;
+    dataCopyParams.srcStride = info.attenMaskStride - info.s2dealNum;
+    dataCopyParams.dstStride = 0;
+    DataCopyPadExtParams<bool> padParams{true, 0, static_cast<uint8_t>(attenMaskUb.colCount - info.s2dealNum), 0};
+
+    DataCopyPad(attenMaskUb.tensor, srcGmAddr[maskOffset], dataCopyParams, padParams);
 }
 
 // ----------------------------------------------Copy LSE UB To Gm--------------------------------

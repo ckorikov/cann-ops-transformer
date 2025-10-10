@@ -290,7 +290,7 @@ template <typename FIAT>
 __aicore__ inline void FiaBlockVecFlashDecode<FIAT>::Bmm2DataCopyOutTrans(LocalTensor<OUT_T> &attenOutUb, uint32_t startRow,
                                                                       uint32_t dealRowCount, uint32_t columnCount)
 {
-    FaUbTensor<OUT_T, GetOutUbFormat<LAYOUT_T>()> ubTensor{
+    FaUbTensor<OUT_T> ubTensor {
         .tensor = attenOutUb,
         .rowCount = dealRowCount,
         .colCount = columnCount,

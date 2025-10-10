@@ -732,7 +732,7 @@ FiaBlockVecNonQuant<FIAT>::Bmm2DataCopyOutTrans(const RunInfo &info, LocalTensor
                                                            uint32_t wsMStart, uint32_t dealRowCount,
                                                            uint32_t columnCount, uint32_t actualColumnCount)
 {
-    FaUbTensor<OUT_T, GetOutUbFormat<LAYOUT_T>()> ubTensor {
+    FaUbTensor<OUT_T> ubTensor {
         .tensor = attenOutUb,
         .rowCount = dealRowCount,
         .colCount = columnCount,

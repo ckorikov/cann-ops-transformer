@@ -22,6 +22,7 @@ constexpr uint32_t UNITFLAG_DISABLE = 0;
 constexpr uint32_t UNITFLAG_ENABLE = 2;
 constexpr uint32_t UNITFLAG_EN_OUTER_LAST = 3;
 static constexpr uint32_t FP16_ONE_FRACTAL_ELEMENT = 16; // 一个分形512B,16*16个fp16
+static constexpr uint32_t INT4_ONE_FRACTAL_ELEMENT = 64; // 一个分形512B,16*64个fp16
 static constexpr uint32_t ONE_FRACTAL_H_ELEMENT = 16; //  一个分形512B,height方向为16个element
 static constexpr uint32_t ONE_FRACTAL_W_BYTE = 32; //  一个分形512B,weight方向为32B
 static constexpr uint32_t LOAD3D_L1W_SIZE = 16;
@@ -513,6 +514,91 @@ __aicore__ inline void MatmulKPP(const LocalTensor<A> &aL1Tensor,
         }
     #endif
         l0aBuffer.Set<HardEvent::M_MTE1>(); // matmul完成后，通知mte1可以开始搬运新数据到L0A
+    }
+}
+template <typename T, ABLayout AL>
+__aicore__ inline void LoadDataToL0A(LocalTensor<T>& aL0Tensor, const LocalTensor<T>& aL1Tensor,
+                                    uint32_t rowSize, uint32_t kSplitSize, uint32_t mSplitSize)
+{
+    uint32_t blockElementCnt = ONE_FRACTAL_W_BYTE / sizeof(T);
+    if constexpr (IsSameType<T, int4b_t>::value) {
+        blockElementCnt = INT4_ONE_FRACTAL_ELEMENT;
+    }
+    if constexpr (AL == ABLayout::MK) {
+        LoadData2DParams loadData2DParams;
+        loadData2DParams.startIndex = 0; // 分型矩阵ID，表明搬运起始位置为源操作数中第0个分型
+        loadData2DParams.srcStride = 1; // 相邻迭代间，源操作数前一个分型和后一个分型起始地址的间隔（单位512B）
+        loadData2DParams.dstGap = kSplitSize / blockElementCnt - 1; // 相邻迭代间，目的操作数前一个分型的结束地址和后一个分型起始地址的间隔（单位512B）
+        loadData2DParams.repeatTimes = mSplitSize / ONE_FRACTAL_H_ELEMENT; // 迭代次数，每个迭代可以处理512B数据
+        loadData2DParams.ifTranspose = false;
+        uint32_t loopTimes = kSplitSize / blockElementCnt;
+        uint64_t l1Offset = rowSize * blockElementCnt;
+        uint64_t l0Offset = ONE_FRACTAL_H_ELEMENT * blockElementCnt;
+        for(uint32_t loop = 0; loop < loopTimes; loop++) {
+            LoadData(aL0Tensor[loop * l0Offset], aL1Tensor[loop * l1Offset], loadData2DParams);
+        }
+    } else if constexpr (AL == ABLayout::KM) {
+        LoadData2dTransposeParams loadData2dTransposeParams;
+        loadData2dTransposeParams.startIndex = 0;
+        loadData2dTransposeParams.srcStride = 1;
+        loadData2dTransposeParams.dstFracGap = (kSplitSize + blockElementCnt -1) / blockElementCnt;
+        loadData2dTransposeParams.dstGap = mSplitSize / ONE_FRACTAL_H_ELEMENT - 1;
+        if(rowSize == kSplitSize) {
+            loadData2dTransposeParams.repeatTimes = (kSplitSize + blockElementCnt - 1) / blockElementCnt;
+            uint32_t loopTimes = mSplitSize / blockElementCnt;
+            uint64_t l1Offset = rowSize * blockElementCnt;
+            uint64_t l0Offset = kSplitSize * blockElementCnt;
+            for(uint32_t loop = 0; loop < loopTimes; loop++) {
+                LoadDataWithTranspose(aL0Tensor[loop * l0Offset], aL1Tensor[loop * l1Offset], loadData2dTransposeParams);
+            } 
+        } else {
+            loadData2dTransposeParams.repeatTimes = ((kSplitSize + blockElementCnt - 1) / blockElementCnt) * (mSplitSize / blockElementCnt);
+            LoadDataWithTranspose(aL0Tensor, aL1Tensor, loadData2dTransposeParams);
+        }
+    }
+}
+
+template <typename T, ABLayout BL>
+__aicore__ inline void LoadDataToL0B(LocalTensor<T>& bL0Tensor, const LocalTensor<T>& bL1Tensor,
+                                     uint32_t rowSize, uint32_t kSplitSize, uint32_t nSplitSize)
+{
+    uint32_t blockElementCnt = ONE_FRACTAL_W_BYTE / sizeof(T);
+    if constexpr (IsSameType<T, int4b_t>::value) {
+        blockElementCnt = INT4_ONE_FRACTAL_ELEMENT;
+    }
+    if constexpr (BL == ABLayout::KN) {
+        LoadData2dTransposeParams loadData2dTransposeParams;
+
+        loadData2dTransposeParams.startIndex = 0;
+        loadData2dTransposeParams.srcStride = 1;
+        loadData2dTransposeParams.dstFracGap = 0;
+        loadData2dTransposeParams.dstGap = nSplitSize / ONE_FRACTAL_H_ELEMENT - 1;
+        loadData2dTransposeParams.repeatTimes = (kSplitSize + blockElementCnt - 1) / blockElementCnt;
+
+        uint32_t loopTimes = nSplitSize / blockElementCnt;
+        uint64_t l1Offset = rowSize * blockElementCnt;
+        uint64_t l0Offset = blockElementCnt * blockElementCnt;
+        for(uint32_t loop = 0; loop < loopTimes; loop++) {
+            LoadDataWithTranspose(bL0Tensor[loop * l0Offset], bL1Tensor[loop * l1Offset], loadData2dTransposeParams);
+        }
+    } else if constexpr (BL == ABLayout::NK) {
+        LoadData2DParams loadData2DParams;
+        loadData2DParams.startIndex = 0; // 分型矩阵ID，表明搬运起始位置为源操作数中第0个分型
+        loadData2DParams.srcStride = 1; // 相邻迭代间，源操作数前一个分型和后一个分型起始地址的间隔（单位512B）
+        loadData2DParams.dstGap = 0; // 相邻迭代间，目的操作数前一个分型的结束地址和后一个分型起始地址的间隔（单位512B）
+        loadData2DParams.ifTranspose = false;
+        if(rowSize == kSplitSize) {
+            loadData2DParams.repeatTimes = ((nSplitSize + ONE_FRACTAL_H_ELEMENT - 1) / ONE_FRACTAL_H_ELEMENT) * (kSplitSize / blockElementCnt);// 迭代次数，每个迭代可以处理512B数据
+            LoadData(bL0Tensor, bL1Tensor, loadData2DParams);
+        } else {
+            loadData2DParams.repeatTimes = (nSplitSize + ONE_FRACTAL_H_ELEMENT - 1) / ONE_FRACTAL_H_ELEMENT;// 迭代次数，每个迭代可以处理512B数据
+            uint32_t loopTimes = kSplitSize / blockElementCnt;
+            uint64_t l1Offset = nSplitSize * blockElementCnt;
+            uint64_t l0Offset = rowSize * blockElementCnt;
+            for (uint32_t loop = 0; loop < loopTimes; loop++) {
+                LoadData(bL0Tensor[loop * l0Offset], bL1Tensor[loop * l1Offset], loadData2DParams);
+            }
+        }
     }
 }
 }
