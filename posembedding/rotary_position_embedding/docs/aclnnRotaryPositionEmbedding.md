@@ -318,6 +318,8 @@ aclnnStatus aclnnRotaryPositionEmbedding(
     - half模式：
       - B，N < 1000;
       - 当x为BNSD时，cos、sin支持11SD、B1SD、BNSD
+        - 当（D/2）% (32/inputDtypeSize) == 0时，需满足B * N <= S * 8
+        - 当（D/2）% (32/inputDtypeSize) != 0时，需满足B * N * 2 <= (S + coreNum -1) / coreNum 或者 D >= 80
       - 当x为BSND时，cos、sin支持1S1D、BS1D、BSND
       - 当x为SBND时，cos、sin支持S11D、SB1D、SBND
     - interleave模式：
@@ -357,11 +359,7 @@ int64_t GetShapeSize(const std::vector<int64_t>& shape) {
 }
 
 int Init(int32_t deviceId, aclrtStream* stream) {
-<<<<<<< HEAD
-    // 固定写法，AscendCL初始化
-=======
     // 固定写法，资源初始化
->>>>>>> b09f372 (aclnn资料)
     auto ret = aclInit(nullptr);
     CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclInit failed. ERROR: %d\n", ret); return ret);
     ret = aclrtSetDevice(deviceId);
@@ -396,11 +394,7 @@ int CreateAclTensor(const std::vector<T>& hostData, const std::vector<int64_t>& 
 }
 
 int main() {
-<<<<<<< HEAD
-    // 1. 固定写法，device/stream初始化, 参考AscendCL对外接口列表
-=======
     // 1. 固定写法，device/stream初始化, 参考acl API手册
->>>>>>> b09f372 (aclnn资料)
     // 根据自己的实际device填写deviceId
     int32_t deviceId = 0;
     aclrtStream stream;
