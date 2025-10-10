@@ -9,51 +9,46 @@
  */
 
 #include <gtest/gtest.h>
-#include "exe_graph/runtime/storage_format.h"
-#include "exe_graph/runtime/storage_shape.h"
-#include "register/op_impl_registry.h"
-#include "register/op_impl_registry_base.h"
-#include "kernel_run_context_facker.h"
-#include "log/log.h"
+#include <iostream>
+#include "infershape_context_faker.h"
+#include "base/registry/op_impl_space_registry_v2.h"
 
-class DistributeBarrierRuntimeProtoTest : public testing::Test {
+class DistributeBarrierInfershape : public testing::Test
+{
+protected:
+    static void SetUpTestCase()
+    {
+        std::cout << "DistributeBarrierInfershape SetUp" << std::endl;
+    }
+
+    static void TearDownTestCase()
+    {
+        std::cout << "DistributeBarrierInfershape TearDown" << std::endl;
+    }
 };
 
-namespace
-{
-    bool Comp(const gert::Shape *x, const gert::Shape y) {
-        for (int i = 0; i < x->GetDimNum(); i++) {
-            std::cout << x->GetDim(i) << " " << y.GetDim(i) << std::endl;
-            if (x->GetDim(i) != y.GetDim(i)) {
-                return false;
-            }
-        }
-        return true;
-    }
-} // namespace
+TEST_F(DistributeBarrierInfershape, infer_shape_0) {
+    gert::StorageShape xStorageShape = {{32, 7168}, {32, 7168}};
+    gert::StorageShape yStorageShape = {{32, 7168}, {32, 7168}};
 
-// infer shape with bias, success
-TEST_F(DistributeBarrierRuntimeProtoTest, infer_shape_0) {
-    gert::StorageShape x_ref = {{32, 7168}, {32, 7168}};
+    /* make infershape context */
+    std::vector<gert::Tensor*> inputTensors = {(gert::Tensor *)&xStorageShape};
+    std::vector<gert::StorageShape*> ouputShapes = {&yStorageShape};
+    auto contextHolder = gert::InferShapeContextFaker()
+        .SetOpType("DistributeBarrier")
+        .NodeIoNum(1, 1)
+        .NodeInputTd(0, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND)
+        .NodeOutputTd(0, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND)
+        .InputTensors(inputTensors)
+        .OutputShapes(ouputShapes)
+        .Attr("group", AscendString("group"))
+        .Attr("world_size", int64_t(288))
+        .Build();
 
-    gert::StorageShape output = {{32, 7168}, {32, 7168}};
+    /* get infershape func */
+    auto spaceRegistry = gert::DefaultOpImplSpaceRegistryV2::GetInstance().GetSpaceRegistry();
+    auto inferShapeFunc = spaceRegistry->GetOpImpl("DistributeBarrier")->infer_shape;
 
-    std::string opType("DistributeBarrier");
-    std::string group("group");
-    int64_t world_size = 288;
-    auto holder = gert::InferShapeContextFaker()
-                        .NodeIoNum(1, 1)
-                        .SetOpType(opType)
-                        .IrInstanceNum({1})
-                        .InputShapes({&x_ref})
-                        .OutputShapes({&output})
-                        .NodeAttrs({{"group", ge::AnyValue::CreateFrom<std::string>(group)},
-                                    {"world_size", ge::AnyValue::CreateFrom<int64_t>(world_size)}})
-                        .NodeInputTd(0, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND)
-                        .NodeOutputTd(0, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND)
-                        .Build();
-
-    auto context = holder.GetContext<gert::InferShapeContext>();
-    auto inferShapeFunc = gert::OpImplRegistry::GetInstance().GetOpImpl(opType.c_str())->infer_shape;
-    ASSERT_EQ(inferShapeFunc(context), ge::GRAPH_SUCCESS);
+    /* do infershape */
+    ASSERT_EQ(inferShapeFunc(contextHolder.GetContext()), ge::GRAPH_SUCCESS);
 }
