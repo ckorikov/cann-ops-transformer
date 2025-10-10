@@ -221,4 +221,4 @@
 
 | 调用方式      | 调用样例                 | 说明                                                         |
 |--------------|-------------------------|--------------------------------------------------------------|
-| aclnn调用 | [test_aclnn_grouped_matmul](examples/test_grouped_matmul_v5.cpp) | 通过接口方式调用[GroupedMatmul](docs/GroupedMatmulV5.md)算子。 |
+| aclnn调用 | [test_aclnn_grouped_matmul](examples/test_aclnn_grouped_matmul.cpp) | 通过接口方式调用[GroupedMatmul](docs/GroupedMatmul.md)算子。 |

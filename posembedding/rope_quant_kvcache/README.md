@@ -152,8 +152,4 @@
 
 - cos、sin的shape与k相同。
 
-## 调用说明
 
-| 调用方式   | 样例代码           | 说明                                         |
-| ---------------- | --------------------------- | --------------------------------------------------- |
-| 图模式 | [test_geir_rope_quant_kvcache](examples/test_geir_rope_quant_kvcache.cpp)  | 通过[算子IR](op_graph/rope_quant_kvcache_proto.h)构图方式调用RopeQuantKvcache算子。 |

@@ -149,10 +149,3 @@
   - S（Seq-Length）：取值范围为1\~128K。同时需要满足S_kv >= selectedBlockSize * selectedBlockCount，且S_kv长度为selectedBlockSize的整数倍。
   - D（Head-Dim）：D_qk=192，D_v=128。
 
-
-
-## 调用说明
-
-| 调用方式           | 调用样例                                                                                    | 说明                                                                                                  |
-|----------------|-----------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------|
-| aclnn调用 | [test_aclnn_nsa_selected_attention](./examples/test_aclnn_nsa_selected_attention.cpp) | 通过[aclnnNsaSelectedAttention](./docs/aclnnNsaSelectedAttention.md)接口方式调用NsaSelectedAttention算子。             |

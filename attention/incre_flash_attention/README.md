@@ -186,5 +186,5 @@
 
 | 调用方式  | 样例代码                                                     | 说明                                                         |
 | --------- | ------------------------------------------------------------ | ------------------------------------------------------------ |
-| aclnn接口 | [test_aclnn_IncreFlashAttentionV4](./docs/aclnnIncreFlashAttentionV4.md#调用示例) | 通过[aclnnIncreFlashAttentionV4](./op_host/op_api/aclnn_incre_flash_attention_v4.cpp)调用IncreFlashAttentionV4算子。 |
+| aclnn接口 | [test_aclnn_IncreFlashAttentionV4](./examples/test_aclnn_incre_flash_attention.cpp) | 通过[aclnnIncreFlashAttentionV4](./docs/aclnnIncreFlashAttentionV4.md)调用IncreFlashAttentionV4算子。 |
 

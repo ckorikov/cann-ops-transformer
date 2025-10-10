@@ -203,4 +203,4 @@
 
 | 调用方式  | 样例代码                                                     | 说明                                                         |
 | --------- | ------------------------------------------------------------ | ------------------------------------------------------------ |
-| aclnn接口 | [test_aclnn_PromptFlashAttentionV3](context/PromptFlashAttentionV3.md#调用示例) | 通过[aclnnPromptFlashAttentionV3](../op_host/aclnn_prompt_flash_attention_v3.cpp)调用PromptFlashAttentionV3算子 |
+| aclnn接口 | [test_aclnn_PromptFlashAttentionV3](./examples/test_aclnn_prompt_flash_attention.cpp) | 通过[aclnnPromptFlashAttentionV3](./docs/aclnnPromptFlashAttentionV3.md)调用PromptFlashAttentionV3算子 |

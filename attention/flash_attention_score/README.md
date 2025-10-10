@@ -171,4 +171,3 @@
 | 调用方式           | 调用样例                                                                                    | 说明                                                                                                  |
 |----------------|-----------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------|
 | aclnn调用 | [test_aclnn_flash_attention_score](./examples/test_aclnn_flash_attention_score.cpp) | 非TND场景，通过[aclnnFlashAttentionScore](./docs/aclnnFlashAttentionScoreV2.md)接口方式调用FlashAttention算子。             |
-| aclnn调用  | [test_aclnn_flash_attention_varlen_score](./examples/test_aclnn_flash_attention_varlen_score.cpp) | TND场景，通过[aclnnFlashAttentionVarLenScore](./docs/aclnnFlashAttentionVarLenScoreV4.md)接口方式调用FlashAttention算子。 |

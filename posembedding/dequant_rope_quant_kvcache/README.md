@@ -238,8 +238,3 @@
 - x的尾轴小于等于4096，且按64对齐
 - 输入x不为int32时，x、cos、sin与输出qOut、kOut、vOut的数据类型保持一致，此时activationScaleOptional，weightScaleOptional、biasOptional不生效；x为int32时，cos、sin与输出qOut、kOut、vOut的数据类型保持一致，此时weightScaleOptional必选，activationScaleOptional、biasOptional可选（biasOptional不需要与其他输入类型一致）。
 
-## 调用说明
-
-| 调用方式   | 样例代码           | 说明                                         |
-| ---------------- | --------------------------- | --------------------------------------------------- |
-| aclnn接口  | [test_aclnn_dequant_rope_quant_kvcache](examples/test_aclnn_dequant_rope_quant_kvcache.cpp) | 通过[aclnnDequantRopeQuantKvcache](docs/aclnnDequantRopeQuantKvcache.md)接口方式调用DequantRopeQuantKvcache算子。 |

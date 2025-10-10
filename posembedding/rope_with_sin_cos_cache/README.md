@@ -254,4 +254,4 @@
 
 | 调用方式   | 样例代码           | 说明                                         |
 | ---------------- | --------------------------- | --------------------------------------------------- |
-| aclnn接口  | [test_aclnn_rope_with_sin_cos_cache](examples/test_aclnn_rope_with_sin_cos_cache.cpp) | 通过[aclnnRopeWithSinCosCache](docs/aclnnMoeGatingTopK.md)接口方式调用RopeWithSinCosCache算子。 |
+| aclnn接口  | [test_aclnn_rope_with_sin_cos_cache](examples/test_aclnn_rope_with_sin_cos_cache.cpp) | 通过[aclnnRopeWithSinCosCache](docs/aclnnRopeWithSinCosCache.md)接口方式调用RopeWithSinCosCache算子。 |

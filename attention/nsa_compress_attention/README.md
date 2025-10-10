@@ -188,9 +188,3 @@ NsaCompressAttention输入query、key、value的数据排布格式支持从多�
 - 设G = N1 / N2，G需要满足以下约束：G < 128 && 128 % G == 0
 - attenMask和topkMask的使用需符合论文描述
 
-
-## 调用说明
-
-| 调用方式           | 调用样例                                                                                    | 说明                                                                                                  |
-|----------------|-----------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------|
-| aclnn调用 | [test_aclnn_nsa_compress_attention](./examples/test_aclnn_nsa_compress_attention.cpp) | 通过[aclnnNsaCompressAttention](./docs/aclnnNsaCompressAttention.md)接口方式调用NsaCompressAttention算子。             |

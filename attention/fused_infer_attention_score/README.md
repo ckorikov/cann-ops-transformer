@@ -202,4 +202,4 @@
 
 | 调用方式  | 样例代码                                                     | 说明                                                         |
 | --------- | ------------------------------------------------------------ | ------------------------------------------------------------ |
-| aclnn接口 | [test_aclnn_FusedInferAttentionScoreV4](docs/FusedInferAttentionScoreV4.md#调用示例) | 通过[aclnnFusedInferAttentionScoreV4](op_host/op_api/aclnn_fused_infer_attention_score_v4.cpp)调用PromptFlashAttentionV3算子 |
+| aclnn接口 | [test_aclnn_FusedInferAttentionScoreV4](./examples/test_aclnn_fused_infer_attention_score.cpp) | 通过[aclnnFusedInferAttentionScoreV4](./docs/aclnnFusedInferAttentionScoreV4.md)调用PromptFlashAttentionV3算子 |

@@ -107,4 +107,4 @@
 
 | 调用方式      | 调用样例                 | 说明                                                         |
 |--------------|-------------------------|--------------------------------------------------------------|
-| aclnn调用 | [test_aclnn_grouped_matmul_swiglu_quant](examples/test_grouped_matmul_swiglu_quant.cpp) | 通过接口方式调用[GroupedMatmulSwigluQuant](docs/aclnnGroupedMatmulSwigluQuant.md)算子。 |
+| aclnn调用 | [test_aclnn_grouped_matmul_swiglu_quant](examples/test_aclnn_grouped_matmul_swiglu_quant.cpp) | 通过接口方式调用[GroupedMatmulSwigluQuant](docs/aclnnGroupedMatmulSwigluQuant.md)算子。 |

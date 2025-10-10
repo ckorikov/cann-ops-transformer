@@ -91,8 +91,3 @@
   * cos、sin 的 N 维度必须等于 1。
   * x、cos、sin、y 都不支持非连续的 Tensor。
 
-## 调用说明
-
-| 调用方式   | 样例代码           | 说明                                         |
-| ---------------- | --------------------------- | --------------------------------------------------- |
-| 图模式 | [test_geir_interleave_rope](examples/test_geir_interleave_rope.cpp)  | 通过[算子IR](op_graph/interleave_rope_proto.h)构图方式调用InterleaveRope算子。         |

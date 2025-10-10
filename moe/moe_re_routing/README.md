@@ -124,8 +124,3 @@
 - 输入值域限制
   - expert_token_num_type，即输出expert_token_num的模式。0为cumsum模式，1为count模式，默认值为1。当前只支持为1。
   - idx_type，即输出permute_token_idx的索引类型。0为gather索引，1为scatter索引，默认值为0。当前只支持为0。
-
-## 调用说明
-| 调用方式   | 样例代码           | 说明                                         |
-| ---------------- | --------------------------- | --------------------------------------------------- |
-| 图模式 | [test_geir_moe_re_routing.cpp](examples/test_geir_moe_re_routing.cpp)  | 通过[算子IR](op_graph/moe_re_routing_proto.h)构图方式调用MoeReRouting算子。         |
