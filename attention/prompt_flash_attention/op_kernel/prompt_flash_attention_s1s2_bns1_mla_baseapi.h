@@ -1548,8 +1548,34 @@ MlaS1s2Bn2gs1SameABBaseApi<TILING_TYPE, implMode, layOutType, hasAtten, INPUT_T,
             }
         }
     }
-    if (this->tilingData->PFAinputParams.isSoftMaxLseEnable &&
-        loopIdx == extraInfo.realSplitN - 1 && extraInfo.s2LoopCount == extraInfo.s2LoopLimit) {
+    if (loopIdx == extraInfo.realSplitN - 1 && extraInfo.s2LoopCount == extraInfo.s2LoopLimit) {
+        if (unlikely(hasSink)) {
+            LocalTensor<T> sinkSoftmaxTemp = this->commonTBuf.template Get<T>();
+            if (likely(!this->notSplitG)) {
+                int64_t n1Offset = extraInfo.n2oIdx * this->tilingData->PFAinputParams.gSize + extraInfo.goIdx;
+                Duplicate<float>(this->sinkUb, ToFloat(this->sinkGm.GetValue(n1Offset)), extraInfo.s1RealSize);
+                PipeBarrier<PIPE_V>();
+            } else {
+                int64_t n1Offset;
+                for (int64_t loop = extraInfo.gBaseSize - 1; loop >= 0; --loop) {
+                    n1Offset = extraInfo.n2oIdx * this->tilingData->PFAinputParams.gSize + loop;
+                    Duplicate(this->sinkUb, ToFloat(this->sinkGm.GetValue(n1Offset)), extraInfo.s1RealSize * (loop + 1));
+                    PipeBarrier<PIPE_V>();
+                }
+            }
+            auto size = extraInfo.s1RealSize * extraInfo.gBaseSize;
+            LocalTensor<T> maxUb = this->softmaxMaxBuf[extraInfo.multiCoreInnerIdxMod2].template Get<T>();
+            LocalTensor<T> sumUb = this->softmaxSumBuf[extraInfo.multiCoreInnerIdxMod2].template Get<T>();
+            Sub(sinkSoftmaxTemp, this->sinkUb, maxUb, size);
+            PipeBarrier<PIPE_V>();
+            Exp(sinkSoftmaxTemp, sinkSoftmaxTemp, size);
+            PipeBarrier<PIPE_V>();
+            Add(sumUb, sumUb, sinkSoftmaxTemp, size);
+            PipeBarrier<PIPE_V>();
+        }
+        if (!this->tilingData->PFAinputParams.isSoftMaxLseEnable) {
+            return;
+        }
         extraInfo.softmaxLseOffset =
             (extraInfo.s1SizeAcc * this->n2G +
              extraInfo.n2oIdx * this->tilingData->PFAinputParams.gSize +
@@ -1558,7 +1584,6 @@ MlaS1s2Bn2gs1SameABBaseApi<TILING_TYPE, implMode, layOutType, hasAtten, INPUT_T,
         LocalTensor<T> lseTensor = this->softmaxLseTmpUb[this->vecS1BaseSize * ONE_BLK_SIZE / sizeof(T)];
         LocalTensor<T> maxTensor = this->softmaxMaxBuf[extraInfo.multiCoreInnerIdxMod2].template Get<T>();
         LocalTensor<T> sumTensor = this->softmaxSumBuf[extraInfo.multiCoreInnerIdxMod2].template Get<T>();
-        PipeBarrier<PIPE_V>();
         Log(lseTensor, sumTensor, extraInfo.s1RealSize);
         PipeBarrier<PIPE_V>();
         Add(lseTensor, lseTensor, maxTensor, extraInfo.s1RealSize);
@@ -1776,32 +1801,6 @@ MlaS1s2Bn2gs1SameABBaseApi<TILING_TYPE, implMode, layOutType, hasAtten, INPUT_T,
     PipeBarrier<PIPE_V>();
     if (this->softmaxReduceSize == 1) {
         LocalTensor<T> softmaxTemp = this->commonTBuf.template Get<T>();
-        if (unlikely(hasSink)) {
-            if (likely(!this->notSplitG)) {
-                int64_t n1Offset = extraInfo.n2oIdx * this->tilingData->PFAinputParams.gSize + extraInfo.goIdx;
-                Duplicate<float>(this->sinkUb, ToFloat(this->sinkGm.GetValue(n1Offset)), extraInfo.vec2S1RealSize);
-                PipeBarrier<PIPE_V>();
-            } else {
-                int64_t n1Offset;
-                for (int64_t loop = extraInfo.gBaseSize - 1; loop >= 0; --loop) {
-                    n1Offset = extraInfo.n2oIdx * this->tilingData->PFAinputParams.gSize + loop;
-                    Duplicate(this->sinkUb, ToFloat(this->sinkGm.GetValue(n1Offset)), extraInfo.s1RealSize * (loop + 1));
-                    PipeBarrier<PIPE_V>();
-                }
-                this->sinkN1Offset = n1Offset;
-                this->sinkS1Size = extraInfo.vec2S1RealSize;
-            }
-            auto offset = s1oIdx * extraInfo.vec2S1BaseSize * extraInfo.gBaseSize;
-            auto size = extraInfo.vec2S1RealSize * extraInfo.gBaseSize;
-            LocalTensor<T> maxUb = this->softmaxMaxBuf[extraInfo.multiCoreInnerIdxMod2].template Get<T>();
-            Sub(softmaxTemp, this->sinkUb, maxUb[offset], size);
-            PipeBarrier<PIPE_V>();
-            Exp(softmaxTemp, softmaxTemp, size);
-            PipeBarrier<PIPE_V>();
-            Add(sumUb[offset], sumUb[offset], softmaxTemp, size);
-            PipeBarrier<PIPE_V>();
-        }
-
         Brcb(softmaxTemp, sumUb, (extraInfo.s1RealSize * extraInfo.gBaseSize + 7) / 8, {1, 8});
         PipeBarrier<PIPE_V>();
         for (int i = 0; i < loop; ++i) {
