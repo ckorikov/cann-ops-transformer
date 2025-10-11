@@ -2159,9 +2159,6 @@ bool IFATilingV2::IsFlashDecode() const {
 
 bool IFATilingV2::IsFlashDecodefaRun() const {
     float flashDecodeBNRatio = 0.4F; // 0.4, 经验值
-    if ((maxActualseq_ >= 32768) && (pageAttentionFlag_ == true)) {
-      return false;
-    }
     uint32_t sInnerDouble = sInnerSize_ * 2;
     // 如果s2方向上最长还不超过两个sinnersize，不生效FD
     if (sMax_ < sInnerDouble) {
@@ -2567,12 +2564,12 @@ void IFATilingV2::ComputeSplitNBSeqfaRun(std::vector<int64_t> sOuterLoopTimes,
   uint32_t tmpCoreSposEnd = 0;
   int64_t actualSeqLengths = 0;
   int64_t actualSeqLengthsKV = 0;
-  for (uint32_t sIdx = 0; sIdx < batchSize_; sIdx++) {    
+  for (uint32_t sIdx = 0; sIdx < batchSize_; sIdx++) {   
+    GetActualSeqLength(actualSeqLengths, actualSeqLengthsKV, sIdx); 
     for (uint32_t headNum = 0; headNum < SplitNumHeads; headNum++) {
       int64_t preTokensLeftUp = 0;
       int64_t nextTokensLeftUp = 0;
       GetPreNextTokensLeftUp(actualSeqLengths, actualSeqLengthsKV, preTokensLeftUp, nextTokensLeftUp);
-      GetActualSeqLength(actualSeqLengths, actualSeqLengthsKV, sIdx);
       FixParamWithRowInvalid(actualSeqLengths, actualSeqLengthsKV, preTokensLeftUp, nextTokensLeftUp);
       int64_t outerBlockNums = sOuterLoopTimes[sIdx];
       int64_t innerBlockNums = sInnerLoopTimes[sIdx];

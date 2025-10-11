@@ -1146,7 +1146,7 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
         constInfo.subBlockIdx * Align64FuncAntiquant(runInfo.s2RealSize / 2);
     taskParam.flashDecodeS2Idx = runInfo.flashDecodeS2Idx;
     if constexpr(isFd) {
-        curSequence += constInfo.s2BaseSize * taskParam.flashDecodeS2Idx;
+        curSequence += taskParam.flashDecodeS2Idx * taskParam.sInnerLoopSize;
     }
 
     taskParam.kvGmOffset = runInfo.keyOffset + constInfo.subBlockIdx *
@@ -1202,7 +1202,7 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
         constInfo.subBlockIdx * Align64FuncAntiquant(runInfo.s2RealSize / 2);
     taskParam.flashDecodeS2Idx = runInfo.flashDecodeS2Idx;
     if constexpr(isFd) {
-        curSequence += constInfo.s2BaseSize * taskParam.flashDecodeS2Idx;
+        curSequence += taskParam.flashDecodeS2Idx * taskParam.sInnerLoopSize;
     }
     taskParam.kvGmOffset = runInfo.valueOffset + constInfo.subBlockIdx *
         Align64FuncAntiquant(runInfo.s2RealSize / 2) * taskParam.kvStep;  // 2 is Vec num
