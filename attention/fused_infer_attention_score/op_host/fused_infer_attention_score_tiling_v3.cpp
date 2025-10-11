@@ -427,11 +427,11 @@ bool CheckGqaFeatureSupport(gert::TilingContext *context)
 
 bool CheckGqaConstrain(gert::TilingContext *context)
 {
-    if (CheckGqaInputLayoutSupport(context) &&
-        CheckGqaDSupport(context) &&
-        CheckGqaFeatureSupport(context)) {
-        return true;
-    }
+    // if (CheckGqaInputLayoutSupport(context) &&
+    //     CheckGqaDSupport(context) &&
+    //     CheckGqaFeatureSupport(context)) {
+    //     return true;
+    // }
 
     return false;
 }
