@@ -9,6 +9,10 @@
  # ----------------------------------------------------------------------------
  if(BUILD_OPEN_PROJECT)
    file(GLOB OPTILING_SRCS src/*.cpp)
+   if(UT_TEST_ALL OR OP_HOST_UT)
+    list(FILTER OPTILING_SRCS EXCLUDE REGEX "src/mc2_hcom_topo_info\\.cpp")
+    list(APPEND OPTILING_SRCS ${UT_COMMON_INC}/mock_mc2_hcom_topo_info.cpp)
+   endif()
    if(OPTILING_SRCS)
      add_tiling_modules()
      target_sources(${OPHOST_NAME}_tiling_obj PRIVATE ${OPTILING_SRCS})
