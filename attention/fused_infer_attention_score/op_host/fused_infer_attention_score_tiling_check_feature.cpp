@@ -29,55 +29,61 @@ using namespace AscendC;
 namespace optiling {
 ge::graphStatus FiaTilingCheck::CheckFeatureMlaNoQuantShape() const
 {
-    if (vHeadDim_ != 512U) {
-        return ge::GRAPH_SUCCESS;
-    }
-
-    OP_CHECK_IF(opParamInfo_.keyRope.tensor->GetStorageShape().GetShapeSize() == 0,
-        OP_LOGE(opName_, "In %s situation, %s tensor should not be empty",
-            RopeModeToSerialString(ropeMode_).c_str(), KEY_ROPE_NAME.c_str()),
-        return ge::GRAPH_FAILED);
-
-    OP_CHECK_IF(opParamInfo_.key.shape->GetStorageShape().GetShapeSize() == 0,
-        OP_LOGE(opName_, "In %s situation, %s tensor should not be empty",
-            RopeModeToSerialString(ropeMode_).c_str(), KEY_NAME.c_str()),
-        return ge::GRAPH_FAILED);
-
     OP_CHECK_IF(qkHeadDim_ != 512U && qkHeadDim_ != 128U,
         OP_LOGE(opName_, "In %s situation, rope exsists, the query/key's head dim only support 128 and 512, but got %u",
             QuantModeToSerialString(quantMode_).c_str(), qkHeadDim_),
         return ge::GRAPH_FAILED);
 
-    OP_CHECK_IF(n2Size_ != 1,
-        OP_LOGE(opName_, "In %s situation, rope exsists and query/key head dim = %u, %s should be 1, but got %u",
-            QuantModeToSerialString(quantMode_).c_str(), qkHeadDim_,
-            KV_HEADS_NUM_NAME.c_str(), n2Size_), return ge::GRAPH_FAILED);
+    if (vHeadDim_ == 512U) {
+        OP_CHECK_IF(opParamInfo_.keyRope.tensor->GetStorageShape().GetShapeSize() == 0,
+            OP_LOGE(opName_, "In %s situation, %s tensor should not be empty",
+                RopeModeToSerialString(ropeMode_).c_str(), KEY_ROPE_NAME.c_str()),
+            return ge::GRAPH_FAILED);
 
-    std::vector<uint32_t> gSizeSupportList = {1, 2, 4, 8, 16, 32, 64, 128};
-    OP_CHECK_IF(std::find(gSizeSupportList.begin(), gSizeSupportList.end(), gSize_) == gSizeSupportList.end(),
-        OP_LOGE(opName_, "In %s situation, rope exsists and query/key head dim = %u, group num should be in 1, 2, 4, 8, 16, 32, 64, 128, but got %u",
-            QuantModeToSerialString(quantMode_).c_str(), qkHeadDim_, gSize_), return ge::GRAPH_FAILED);
+        OP_CHECK_IF(opParamInfo_.key.shape->GetStorageShape().GetShapeSize() == 0,
+            OP_LOGE(opName_, "In %s situation, %s tensor should not be empty",
+                RopeModeToSerialString(ropeMode_).c_str(), KEY_NAME.c_str()),
+            return ge::GRAPH_FAILED);
 
-    OP_CHECK_IF(qkHeadDim_ != vHeadDim_,
-        OP_LOGE(opName_, "In %s situation, rope exsists, the query/key's head dim(%u) should be equal to the value's head dim(%u)",
-            QuantModeToSerialString(quantMode_).c_str(), qkHeadDim_, vHeadDim_), return ge::GRAPH_FAILED);
+        OP_CHECK_IF(n2Size_ != 1,
+            OP_LOGE(opName_, "In %s situation, rope exsists and query/key head dim = %u, %s should be 1, but got %u",
+                QuantModeToSerialString(quantMode_).c_str(), qkHeadDim_,
+                KV_HEADS_NUM_NAME.c_str(), n2Size_), return ge::GRAPH_FAILED);
 
-    OP_CHECK_IF(ropeHeadDim_ != 64,
-        OP_LOGE(opName_, "In %s situation, rope exsists and query/key head dim = %u, the rope's head dim should be 64, but got %u",
-            QuantModeToSerialString(quantMode_).c_str(), qkHeadDim_, ropeHeadDim_), return ge::GRAPH_FAILED);
+        std::vector<uint32_t> gSizeSupportList = {1, 2, 4, 8, 16, 32, 64, 128};
+        OP_CHECK_IF(std::find(gSizeSupportList.begin(), gSizeSupportList.end(), gSize_) == gSizeSupportList.end(),
+            OP_LOGE(opName_, "In %s situation, rope exsists and query/key head dim = %u, group num should be in 1, 2, 4, 8, 16, 32, 64, 128, but got %u",
+                QuantModeToSerialString(quantMode_).c_str(), qkHeadDim_, gSize_), return ge::GRAPH_FAILED);
+
+        OP_CHECK_IF(qkHeadDim_ != vHeadDim_,
+            OP_LOGE(opName_, "In %s situation, rope exsists, the query/key's head dim(%u) should be equal to the value's head dim(%u)",
+                QuantModeToSerialString(quantMode_).c_str(), qkHeadDim_, vHeadDim_), return ge::GRAPH_FAILED);
+
+        OP_CHECK_IF(ropeHeadDim_ != 64,
+            OP_LOGE(opName_, "In %s situation, rope exsists and query/key head dim = %u, the rope's head dim should be 64, but got %u",
+                QuantModeToSerialString(quantMode_).c_str(), qkHeadDim_, ropeHeadDim_), return ge::GRAPH_FAILED);
+    } else if (vHeadDim_ == 128U) {
+        return CheckFeatureGqaNoQuantShape();
+    }
+
     return ge::GRAPH_SUCCESS;
 }
 
 ge::graphStatus FiaTilingCheck::CheckFeatureMlaNoQuantLayout() const
 {
-    std::string layout = opParamInfo_.layOut;
-    const std::vector<std::string> layoutSupportList = {
-        "BSH", "BSND", "BNSD", "TND", "BSH_NBSD", "BSND_NBSD", "BNSD_NBSD", "TND_NTD"
-    };
-    OP_CHECK_IF(std::find(layoutSupportList.begin(), layoutSupportList.end(), layout) == layoutSupportList.end(),
-        OP_LOGE(opName_, "In %s situation, rope exsists and query/key head dim = %u, layout only supports BSH, BSND, BNSD, TND, BSH_NBSD, BSND_NBSD, BNSD_NBSD, TND_NTD, but got %s",
-            QuantModeToSerialString(quantMode_).c_str(), qkHeadDim_, layout.c_str()),
-        return ge::GRAPH_FAILED);
+    if (vHeadDim_ == 512U) {
+        std::string layout = opParamInfo_.layOut;
+        const std::vector<std::string> layoutSupportList = {
+            "BSH", "BSND", "BNSD", "TND", "BSH_NBSD", "BSND_NBSD", "BNSD_NBSD", "TND_NTD"
+        };
+        OP_CHECK_IF(std::find(layoutSupportList.begin(), layoutSupportList.end(), layout) == layoutSupportList.end(),
+            OP_LOGE(opName_, "In %s situation, rope exsists and query/key head dim = %u, layout only supports BSH, BSND, BNSD, TND, BSH_NBSD, BSND_NBSD, BNSD_NBSD, TND_NTD, but got %s",
+                QuantModeToSerialString(quantMode_).c_str(), qkHeadDim_, layout.c_str()),
+            return ge::GRAPH_FAILED);
+    } else if (vHeadDim_ == 128U) {
+        return CheckFeatureGqaNoQuantLayout();
+    }
+
     return ge::GRAPH_SUCCESS;
 }
 
@@ -223,7 +229,7 @@ ge::graphStatus FiaTilingCheck::CheckFeatureNoquantUnsupported() const
 
 ge::graphStatus FiaTilingCheck::CheckFeatureMlaNoquantUnsupported() const
 {
-    if(vHeadDim_ == 512U) {
+    if (vHeadDim_ == 512U) {
         if (CheckFeatureNoquantUnsupported() != ge::GRAPH_SUCCESS) {
             return ge::GRAPH_FAILED;
         }
@@ -236,7 +242,10 @@ ge::graphStatus FiaTilingCheck::CheckFeatureMlaNoquantUnsupported() const
                 QuantModeToSerialString(quantMode_).c_str(), qkHeadDim_);
             return ge::GRAPH_FAILED;
         }
+    } else if (vHeadDim_ == 128U) {
+        return CheckFeatureGqaNoquantUnsupported();
     }
+
     return ge::GRAPH_SUCCESS;
 }
 
@@ -344,11 +353,11 @@ ge::graphStatus FiaTilingCheck::CheckFeatureGqaNoQuantDtype() const
 ge::graphStatus FiaTilingCheck::CheckFeatureGqaNoQuantLayout() const
 {
     const std::vector<std::string> layoutSupportList = {
-        "BSH", "BSND", "BNSD", "TND", "NTD", "BSH_BNSD", "BSND_BNSD", "BNSD_BSND", "TND_NTD", "NTD_TND",
+        "BSH", "BSND", "BNSD", "TND", "NTD", "BSH_BNSD", "BSND_BNSD", "BNSD_BSND", "NTD_TND",
     };
     std::string layout = opParamInfo_.layOut;
     OP_CHECK_IF(std::find(layoutSupportList.begin(), layoutSupportList.end(), layout) == layoutSupportList.end(),
-        OP_LOGE(opName_, "In %s situation, layout only supports BSH, BSND, BNSD, TND, NTD, BSH_BNSD, BSND_BNSD, BNSD_BSND, TND_NTD and NTD_TND, but got %s",
+        OP_LOGE(opName_, "In %s situation, layout only supports BSH, BSND, BNSD, TND, NTD, BSH_BNSD, BSND_BNSD, BNSD_BSND and NTD_TND, but got %s",
             QuantModeToSerialString(quantMode_).c_str(), layout.c_str()),
         return ge::GRAPH_FAILED);
 
