@@ -78,6 +78,9 @@ BEGIN_TILING_DATA_DEF(SwinTransformerLnQkvQuantTilingData)
 END_TILING_DATA_DEF;
 
 REGISTER_TILING_DATA_CLASS(SwinTransformerLnQkvQuant, SwinTransformerLnQkvQuantTilingData)
+struct SwinTransformerLnQkvQuantCompileInfo {
+    uint32_t coreNum = 0;
+};
 }
 
 #endif   // SWIN_TRANSFORMER_LN_QKV_QUANT_TILING_H_

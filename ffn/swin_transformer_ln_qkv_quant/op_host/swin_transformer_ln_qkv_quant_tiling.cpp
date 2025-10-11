@@ -26,9 +26,6 @@ using namespace std;
 using namespace ge;
 using namespace matmul_tiling;
 namespace optiling {
-struct SwinTransformerLnQkvQuantCompileInfo {
-    uint32_t coreNum = 0;
-};
 constexpr static uint32_t USE_CORE_THRESHOLD = 8;
 constexpr static uint32_t BUFFER_NUM = 2;
 constexpr static uint32_t BLOCK_UINT_16 = 16;
