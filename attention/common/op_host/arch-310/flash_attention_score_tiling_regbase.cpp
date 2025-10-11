@@ -348,7 +348,7 @@ protected:
     // 7、保存Tiling数据，// 由于这个类中不保存TilingData，子类中需要调用这个类的PostTiling并额外设置RawTilingData的DataSize
     ge::graphStatus PostTiling() override;
 
-    void GetActualSeqLenData(int64_t inputIdx, std::array<int64_t, MAX_VAR_LEN_SEQ_LEN> &res, int64_t &actualLen) const;
+    bool GetActualSeqLenData(int64_t inputIdx, std::array<int64_t, MAX_VAR_LEN_SEQ_LEN> &res, int64_t &actualLen) const;
 
     // 关于TilingData的校验需要在子类中实现
     virtual ge::graphStatus CheckContext();
@@ -713,32 +713,38 @@ bool FlashAttentionScoreConstTiling::AnalyzeLayout()
     return true;
 }
 
-void FlashAttentionScoreConstTiling::GetActualSeqLenData(
+bool FlashAttentionScoreConstTiling::GetActualSeqLenData(
     int64_t inputIdx, std::array<int64_t, MAX_VAR_LEN_SEQ_LEN> &res, int64_t &actualLen) const
 {
     auto actualSeqLenTensor = context_->GetOptionalInputTensor(inputIdx);
     if (actualSeqLenTensor == nullptr) {
         OP_LOGW(context_, "[%s]actualSeqLenTensor is null pointer", templateName);
-        return;
+        return true;
     }
     auto &actualSeqLenShape = actualSeqLenTensor->GetShape().GetStorageShape();
     if (actualSeqLenShape.GetDimNum() != 1) {
         OP_LOGW(context_, "[%s]actualSeqLenShape is invalid %lu %ld", templateName, actualSeqLenShape.GetDimNum(),
                   actualSeqLenShape.GetDim(0));
-        return;
+        return true;
     }
     /* Get Data from tensor. */
     const int64_t *value = actualSeqLenTensor->GetData<int64_t>();
     if (value == nullptr) {
         OP_LOGW(context_, "[%s]actualSeqLenTensor data is null pointer", templateName);
-        return;
+        return true;
+    }
+    int64_t seqLen = actualSeqLenShape.GetDim(0);
+    if (seqLen > MAX_VAR_LEN_SEQ_LEN) {
+        OPS_REPORT_VECTOR_INNER_ERR(opName, "Seq len is more than 4096, not support.");
+        return false;
     }
     res[0] = value[0];
     actualLen++;
-    for (auto i = 1; i < actualSeqLenShape.GetDim(0); ++i) {
+    for (auto i = 1; i < seqLen; ++i) {
         res[i] = value[i] - value[i - 1];
         actualLen++;
     }
+    return true;
 }
 
 bool FlashAttentionScoreConstTiling::AnalyzeTndLayout(const gert::Shape &queryShape, const gert::Shape &keyShape,
@@ -750,8 +756,14 @@ bool FlashAttentionScoreConstTiling::AnalyzeTndLayout(const gert::Shape &querySh
     int64_t t2Size = keyShape.GetDim(0);
     std::fill(actualSeqLenData.begin(), actualSeqLenData.end(), 0);
     std::fill(actualSeqLenKvData.begin(), actualSeqLenKvData.end(), 0);
-    GetActualSeqLenData(ACTUAL_SEQ_LENGTH_INPUT_INDEX, actualSeqLenData, actualSeqQLen);
-    GetActualSeqLenData(ACTUAL_SEQ_LENGTH_KV_INPUT_INDEX, actualSeqLenKvData, actualSeqKVLen);
+    if (!GetActualSeqLenData(ACTUAL_SEQ_LENGTH_INPUT_INDEX, actualSeqLenData, actualSeqQLen)) {
+        OP_LOGE(opName, "Get actual_seq_qlen failed.");
+        return false;
+    }
+    if (!GetActualSeqLenData(ACTUAL_SEQ_LENGTH_KV_INPUT_INDEX, actualSeqLenKvData, actualSeqKVLen)) {
+        OP_LOGE(opName, "Get actual_seq_kvlen failed.");
+        return false;
+    }
     OP_CHECK_IF(actualSeqQLen != actualSeqKVLen,
                 OPS_REPORT_VECTOR_INNER_ERR(opName, "VarLen scene, q is not equal kv."), return false);
     bSize = actualSeqQLen;
