@@ -51,6 +51,7 @@ constexpr uint64_t DOUBLE_BUFFER = 2;
 constexpr uint64_t FP32_DIVIDE_FP16 = 2;
 constexpr uint64_t FP16_EXTRA = 2;
 constexpr uint64_t FP32_EXTRA = 1;
+constexpr uint64_t MAX_BN = 1000;
 
 // other
 constexpr uint64_t EXTRA_FP16_BF16_BUFFER_NUM = 8;
@@ -247,7 +248,7 @@ ge::graphStatus RopeCheckInputShape(
     size_t cosShapeSize = cosShape->GetStorageShape().GetDimNum();
     size_t sinShapeSize = sinShape->GetStorageShape().GetDimNum();
     OP_CHECK_IF(
-        xShapeSize != INPUT_DIM_NUM && cosShapeSize != INPUT_DIM_NUM && sinShapeSize != INPUT_DIM_NUM,
+        xShapeSize != INPUT_DIM_NUM || cosShapeSize != INPUT_DIM_NUM || sinShapeSize != INPUT_DIM_NUM,
         OP_LOGE(context->GetNodeName(), "Inconsistent dimensions of input shape."),
         return ge::GRAPH_FAILED);
     for (size_t i = 0; i < xShapeSize; ++i) {
@@ -264,6 +265,26 @@ ge::graphStatus RopeCheckInputShape(
         (xHeadDim != cosHeadDim) && (xHeadDim != sinHeadDim),
         OP_LOGE(context->GetNodeName(), "The last dim of inputs x, cos, sin is inconsistent."),
         return ge::GRAPH_FAILED);
+    return ge::GRAPH_SUCCESS;
+}
+
+ge::graphStatus RopeCheckOptInputShape(gert::TilingContext* context)
+{
+    auto xOptionalInput = context->GetOptionalInputDesc(INPUT_X_IDX);
+    auto xOptionalShape = context->GetOptionalInputShape(INPUT_X_IDX);
+    if (xOptionalInput != nullptr && xOptionalShape != nullptr) {
+        auto dyShape = context->GetInputShape(INPUT_GRAD_IDX);
+        auto dyStorageShape = dyShape->GetStorageShape();
+        auto xOptionalStorageShape = xOptionalShape->GetStorageShape();
+        OP_CHECK_IF(
+            xOptionalStorageShape.GetDimNum() != INPUT_DIM_NUM ||
+            xOptionalStorageShape.GetDim(INPUT_DIM_0) != dyStorageShape.GetDim(INPUT_DIM_0) ||
+            xOptionalStorageShape.GetDim(INPUT_DIM_1) != dyStorageShape.GetDim(INPUT_DIM_1) ||
+            xOptionalStorageShape.GetDim(INPUT_DIM_2) != dyStorageShape.GetDim(INPUT_DIM_2) ||
+            xOptionalStorageShape.GetDim(INPUT_DIM_3) != dyStorageShape.GetDim(INPUT_DIM_3),
+            OP_LOGE(context->GetNodeName(), "The shape of xOptional should be same with dy."),
+            return ge::GRAPH_FAILED);
+    }
     return ge::GRAPH_SUCCESS;
 }
 
@@ -358,6 +379,10 @@ ge::graphStatus TilingLayoutSplit(
         OP_LOGE(context->GetNodeName(), "The shape of the input x, cos and sin is not supported.");
         return ge::GRAPH_FAILED;
     }
+    if (tiling.ropeInterleavedGradParams.get_batchSize() * tiling.ropeInterleavedGradParams.get_numHeads() >= MAX_BN) {
+        OP_LOGE(context->GetNodeName(), "B * N should smaller than 1000.");
+        return ge::GRAPH_FAILED;
+    }
     if (context->GetInputShape(INPUT_X_IDX) != nullptr) {
         tilingKey += TILING_KEY_NEEDBACKWARD;
     } else {
@@ -375,6 +400,10 @@ ge::graphStatus RopeInterLeavedGradTlingClass::DoOpTiling()
     OP_CHECK_IF(
         RopeCheckInputShape(context_, xShape, cosShape, sinShape) != ge::GRAPH_SUCCESS,
         OP_LOGE(context_->GetNodeName(), "RopeCheckInputShape fail."), return ge::GRAPH_FAILED);
+    
+    OP_CHECK_IF(
+        RopeCheckOptInputShape(context_) != ge::GRAPH_SUCCESS,
+        OP_LOGE(context_->GetNodeName(), "RopeCheckOptInputShape fail."), return ge::GRAPH_FAILED);
 
     tilingKey = BASE_TILING_KEY;
     auto dataDtype = context_->GetInputDesc(INPUT_GRAD_IDX)->GetDataType();

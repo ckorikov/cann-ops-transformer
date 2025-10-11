@@ -171,6 +171,19 @@ static ge::graphStatus RopeHalfGradShapeDimCheck(const gert::TilingContext* cont
         OP_LOGE(context->GetNodeName(), "dimension D is not a multiple of 2, do not support.");
         return ge::GRAPH_FAILED;
     }
+    auto xOptionalInput = context->GetOptionalInputDesc(INDEX_X);
+    auto xOptionalShape = context->GetOptionalInputShape(INDEX_X);
+    if (xOptionalInput != nullptr && xOptionalShape != nullptr) {
+        auto xOptionalStorageShape = xOptionalShape->GetStorageShape();
+        OP_CHECK_IF(
+            xOptionalStorageShape.GetDimNum() != DIM_FOUR ||
+            xOptionalStorageShape.GetDim(DIM_ZERO) != xShape.GetDim(DIM_ZERO) ||
+            xOptionalStorageShape.GetDim(DIM_ONE) != xShape.GetDim(DIM_ONE) ||
+            xOptionalStorageShape.GetDim(DIM_TWO) != xShape.GetDim(DIM_TWO) ||
+            xOptionalStorageShape.GetDim(DIM_THREE) != xShape.GetDim(DIM_THREE),
+            OP_LOGE(context->GetNodeName(), "The shape of xOptional should be same with dy."),
+            return ge::GRAPH_FAILED);
+    }
 
     return ge::GRAPH_SUCCESS;
 }
