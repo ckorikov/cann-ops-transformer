@@ -455,7 +455,7 @@ build_lib() {
 
   for lib in "${BUILD_LIBS[@]}"; do
     echo "Building target ${lib}"
-    cmake --build . --target ${lib} -j $THREAD_NUM
+    cmake --build . --target ${lib} ${JOB_NUM}
   done
 
   echo $dotted_line
@@ -582,6 +582,7 @@ for arg in "$@"; do
         # 检查 --help 前面的命令
         for prev_arg in "$@"; do
             case "$prev_arg" in
+            --pkg) SHOW_HELP="package" ;;
             --opkernel) SHOW_HELP="opkernel" ;;
             -u|--test) SHOW_HELP="test" ;;
             --ophost) SHOW_HELP="ophost" ;;
@@ -590,6 +591,8 @@ for arg in "$@"; do
             --ophost_test) SHOW_HELP="ophost_test" ;;
             --opapi_test) SHOW_HELP="opapi_test" ;;
             --opgraph_test) SHOW_HELP="opgraph_test" ;;
+            --run_example) SHOW_HELP="run_example" ;;
+            --genop) SHOW_HELP="genop" ;;
             esac
         done
       help_info "$SHOW_HELP"
@@ -1068,11 +1071,11 @@ function build_pkg_for_single_soc() {
     local single_soc_option="$1"
     local original_option="${CUSTOM_OPTION}"
     if [[ "$ENABLE_BUILT_JIT" == "TRUE" ]]; then
-        CUSTOM_OPTION="${CUSTOM_OPTION}  -DENABLE_OPS_HOST=ON -DENABLE_BUILT_IN=ON -DENABLE_OPS_KERNEL=OFF"
+        CUSTOM_OPTION="${CUSTOM_OPTION}  -DENABLE_BUILT_IN=ON -DENABLE_OPS_HOST=ON -DENABLE_OPS_KERNEL=OFF"
         cmake_config ${single_soc_option}
         build_package
         CUSTOM_OPTION="${original_option}"
-    elif [[ "$ENABLE_BUILT_IN" == "TRUE" ]]; then   
+    elif [[ "$ENABLE_BUILT_IN" == "TRUE" ]]; then
         CUSTOM_OPTION="${CUSTOM_OPTION}  -DENABLE_BUILT_IN=ON -DENABLE_OPS_HOST=ON -DENABLE_OPS_KERNEL=ON"
         cmake_config ${single_soc_option}
         build_package
@@ -1095,7 +1098,12 @@ elif [[ "$ENABLE_OPKERNEL" == "TRUE" ]]; then
     build_kernel
 elif [[ "$ENABLE_BUILT_CUSTOM" == "TRUE" ]]; then      # --ops, --vendor 新命令新使用
     set_compute_unit_option
-    CUSTOM_OPTION="${CUSTOM_OPTION}  -DENABLE_OPS_HOST=ON -DENABLE_OPS_KERNEL=ON -DENABLE_BUILT_IN=OFF"
+    if [[ "$ENABLE_BUILT_JIT" == "TRUE" ]]; then
+        ops_kernel_value="OFF"
+    else
+        ops_kernel_value="ON"
+    fi
+    CUSTOM_OPTION="${CUSTOM_OPTION}  -DENABLE_BUILT_IN=OFF -DENABLE_OPS_HOST=ON -DENABLE_OPS_KERNEL=${ops_kernel_value}"
     if [[ "$ENABLE_BUILD_PKG" == "TRUE" ]]; then      # --pkg 新命令新使用
         cmake_config " -DENABLE_BUILD_PKG=ON"
     else
