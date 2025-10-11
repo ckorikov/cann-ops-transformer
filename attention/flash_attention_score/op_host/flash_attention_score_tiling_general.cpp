@@ -373,7 +373,7 @@ protected:
 
     void Reset();
 
-    void GetActualSeqLenData(int64_t inputIdx, std::array<int64_t, MAX_VAR_LEN_SEQ_LEN> &res, int64_t &actualLen) const;
+    void GetActualSeqLenData(int64_t inputIdx, std::array<int64_t, MAX_VAR_LEN_SEQ_LEN> &res, int64_t &actualLen, int64_t &actualBatch) const;
 
     virtual int64_t GetNRatio();
 
@@ -391,6 +391,10 @@ protected:
     virtual bool AnalyzeDtype();
     bool AnalyzeAttrs();
     bool AnalyzeLayout();
+    bool CouldConvertTND2BSH(std::array<int64_t, MAX_VAR_LEN_SEQ_LEN> &resQ, std::array<int64_t, MAX_VAR_LEN_SEQ_LEN> &resKV,
+                                            const uint32_t &firstValidIndex, const uint32_t &lastValidIndex, const int64_t &actualQBatch, const int64_t &actualKVBatch, 
+                                            int64_t &s1Max, int64_t &s2Max, int64_t &t1Size, int64_t &t2Size) const;
+    
     bool Analyze3DimLayout(const gert::Shape &queryShape, const gert::Shape *queryRopeShape,
                            const gert::Shape &keyShape, const gert::Shape &valueShape, size_t layoutLen);
     bool Analyze4DimLayout(const gert::Shape &queryShape, const gert::Shape &keyShape, const gert::Shape &valueShape, size_t layoutLen);
@@ -1101,8 +1105,38 @@ bool FlashAttentionScoreTilingBase::AnalyzeLayout()
     return true;
 }
 
+bool FlashAttentionScoreTilingBase::CouldConvertTND2BSH(std::array<int64_t, MAX_VAR_LEN_SEQ_LEN> &resQ,
+                                                        std::array<int64_t, MAX_VAR_LEN_SEQ_LEN> &resKV,
+                                                        const uint32_t &firstValidIndex, const uint32_t &lastValidIndex,
+                                                        const int64_t &actualQBatch, const int64_t &actualKVBatch, int64_t &s1Max,
+                                                        int64_t &s2Max, int64_t &t1Size, int64_t &t2Size) const
+{
+    auto pseShape = context_->GetOptionalInputShape(PSE_INPUT_INDEX);
+    if (!(pseShape == nullptr || pseShape->GetStorageShape().GetDimNum() == 0)) {
+        return false; 
+    }
+    if (sparseMode == RIGHT_DOWN_CAUSAL_BAND || sparseMode == BAND_LEFT_UP_CAUSAL) {
+        return false;
+    }
+    if (actualQBatch != actualKVBatch) {
+        return false;
+    }
+    if (s1Max * actualQBatch != t1Size || s2Max * actualKVBatch != t2Size) {
+        return false;
+    }
+    for (uint32_t i = firstValidIndex; i <= lastValidIndex; i++) {
+        if (resQ[i] == 0 && resKV[i] == 0) {
+            continue;
+        }
+        if ((resKV[i] == 0) || (resQ[i] == 0)) {
+            return false;
+        }
+    }
+    return true;
+}
+
 void FlashAttentionScoreTilingBase::GetActualSeqLenData(int64_t inputIdx, std::array<int64_t, MAX_VAR_LEN_SEQ_LEN> &res,
-                                                        int64_t &actualLen) const
+                                                        int64_t &actualLen, int64_t &actualBatch) const
 {
     auto actualSeqLenTensor = context_->GetOptionalInputTensor(inputIdx);
     if (actualSeqLenTensor == nullptr) {
@@ -1122,10 +1156,18 @@ void FlashAttentionScoreTilingBase::GetActualSeqLenData(int64_t inputIdx, std::a
         return;
     }
     res[0] = value[0];
+    if (value[0] != 0) {
+        actualBatch++;
+    }
     actualLen++;
     for (int64_t i = 1; i < actualSeqLenShape.GetDim(0); ++i) {
         auto qLen = value[i] - value[i - 1];
-        res[i] = qLen < 0 ? 0 : qLen;
+        if (qLen <= 0) {
+            res[i] = 0;
+        } else {
+            res[i] = qLen;
+            actualBatch++;
+        }
         actualLen++;
     }
 }
@@ -1167,11 +1209,13 @@ bool FlashAttentionScoreTilingBase::Analyze3DimLayout(const gert::Shape &querySh
             int64_t actualSeqKVLen = 0;
             int64_t t1Size = queryShape.GetDim(0);
             int64_t t2Size = keyShape.GetDim(0);
+            int64_t actualQBatch = 0;
+            int64_t actualKVBatch = 0;
             realT1Size = t1Size;
             std::fill(actualSeqLenData.begin(), actualSeqLenData.end(), 0);
             std::fill(actualSeqLenKvData.begin(), actualSeqLenKvData.end(), 0);
-            GetActualSeqLenData(ACTUAL_SEQ_LENGTH_INPUT_INDEX, actualSeqLenData, actualSeqQLen);
-            GetActualSeqLenData(ACTUAL_SEQ_LENGTH_KV_INPUT_INDEX, actualSeqLenKvData, actualSeqKVLen);
+            GetActualSeqLenData(ACTUAL_SEQ_LENGTH_INPUT_INDEX, actualSeqLenData, actualSeqQLen,actualQBatch);
+            GetActualSeqLenData(ACTUAL_SEQ_LENGTH_KV_INPUT_INDEX, actualSeqLenKvData, actualSeqKVLen,actualKVBatch);
             OP_CHECK_IF(actualSeqQLen != actualSeqKVLen,
                        OP_LOGE(opName, "VarLen scene, q is not equal kv."), return false);
             bSize = actualSeqQLen;
@@ -1198,52 +1242,72 @@ bool FlashAttentionScoreTilingBase::Analyze3DimLayout(const gert::Shape &querySh
                     break;
                 }
             }
-            if (sparseMode == RIGHT_DOWN_CAUSAL_BAND) {
-                bandIndex = lastValidIndex;
-                tilingData->inputParams.set_bandIndex(lastValidIndex);
-            }
-            if (sparseMode == BAND_LEFT_UP_CAUSAL) {
-                bandIndex = firstValidIndex;
-                tilingData->inputParams.set_bandIndex(firstValidIndex);
-            }
             maxS1Val = *std::max_element(actualSeqLenData.begin(), actualSeqLenData.end());
             maxS2Val = *std::max_element(actualSeqLenKvData.begin(), actualSeqLenKvData.end());
-            s1Size = maxS1Val;
-            s2Size = maxS2Val;
-            OP_CHECK_IF(n1Size != queryShape.GetDim(1),
-                       OP_LOGE(opName, "head_num is [%ld], but got query dim1 [%ld].", n1Size,
-                                                   queryShape.GetDim(1)),
-                       return false);
-            n2Size = keyShape.GetDim(1);
-            OP_CHECK_IF(n2Size == 0, OP_LOGE(opName, "N2 is zero."), return false);
-            gSize = queryShape.GetDim(1) / n2Size;
-            dSize = queryShape.GetDim(2);
-            dRopeSize = queryRopeShape ? queryRopeShape->GetDim(2) : 0;
-            d2Size = valueShape.GetDim(2);
-            h1 = n1Size * dSize;
-            h2 = n2Size * dSize;
-            h3 = n2Size * d2Size;
-            s1StrideSize = gSize * n2Size * dSize;
-            s2StrideSize = n2Size * dSize;
-            vs2StrideSize = n2Size * d2Size;
-            tilingData->inputParams.set_layoutType(LAYOUT_TND);
-            tilingKeyLayout = LayoutType::LAYOUT_TND;
-            int32_t count512to1024 = 0;
-            int64_t seqQTotal = 0;
-            for (int64_t i  = 0; i < bSize; i++) {
-                if (actualSeqLenKvData[i] >= NUM_512 && actualSeqLenKvData[i] < NUM_1024) {
-                    count512to1024++;
+            bool couldConvert = CouldConvertTND2BSH(actualSeqLenData, actualSeqLenKvData,firstValidIndex,lastValidIndex,actualQBatch,actualKVBatch,maxS1Val,maxS2Val,t1Size,t2Size);
+            if (couldConvert && queryShape.GetDim(2) == 128) {
+                bSize = actualQBatch;
+                s1Size = maxS1Val;
+                s2Size = maxS2Val;
+                s1StrideSize = queryShape.GetDim(1) * queryShape.GetDim(2);
+                s2StrideSize = keyShape.GetDim(1) * keyShape.GetDim(2);
+                vs2StrideSize = valueShape.GetDim(1) * valueShape.GetDim(2);
+                h1 = s1StrideSize;
+                h2 = s2StrideSize;
+                h3 = vs2StrideSize;
+                tilingData->inputParams.set_layoutType(LAYOUT_BSH);
+                tilingKeyLayout = LayoutType::LAYOUT_BSH;
+            } else {
+                s1Size = maxS1Val;
+                s2Size = maxS2Val;
+
+                if (sparseMode == static_cast<int64_t>(RIGHT_DOWN_CAUSAL_BAND)) {
+                    bandIndex = static_cast<int64_t>(lastValidIndex);
+                    tilingData->inputParams.set_bandIndex(lastValidIndex);
                 }
-                seqQTotal += actualSeqLenData[i];
-            }
-            if (seqQTotal > SORA_TND_CASE_T1 && s2Size < NUM_1024 && sparseMode != PREFIX_COMPRESS) {
-                if (count512to1024 * 2 >= bSize) { // 512-1024 超过一半使用256
-                    s1BasicBlockBest = TND_S1_BASICBLOCK_256;
-                } else {
-                    s1BasicBlockBest = TND_S1_BASICBLOCK_512;
+                if (sparseMode == BAND_LEFT_UP_CAUSAL) {
+                    bandIndex = firstValidIndex;
+                    tilingData->inputParams.set_bandIndex(firstValidIndex);
                 }
-                if (bSize >= NUM_5) {
-                    s1BasicBlockBest = TND_S1_BASICBLOCK_256;
+                maxS1Val = *std::max_element(actualSeqLenData.begin(), actualSeqLenData.end());
+                maxS2Val = *std::max_element(actualSeqLenKvData.begin(), actualSeqLenKvData.end());
+                s1Size = maxS1Val;
+                s2Size = maxS2Val;
+                OP_CHECK_IF(n1Size != queryShape.GetDim(1),
+                        OP_LOGE(opName, "head_num is [%ld], but got query dim1 [%ld].", n1Size,
+                                                    queryShape.GetDim(1)),
+                        return false);
+                n2Size = keyShape.GetDim(1);
+                OP_CHECK_IF(n2Size == 0, OP_LOGE(opName, "N2 is zero."), return false);
+                gSize = queryShape.GetDim(1) / n2Size;
+                dSize = queryShape.GetDim(2);
+                dRopeSize = queryRopeShape ? queryRopeShape->GetDim(2) : 0;
+                d2Size = valueShape.GetDim(2);
+                h1 = n1Size * dSize;
+                h2 = n2Size * dSize;
+                h3 = n2Size * d2Size;
+                s1StrideSize = gSize * n2Size * dSize;
+                s2StrideSize = n2Size * dSize;
+                vs2StrideSize = n2Size * d2Size;
+                tilingData->inputParams.set_layoutType(LAYOUT_TND);
+                tilingKeyLayout = LayoutType::LAYOUT_TND;
+                int32_t count512to1024 = 0;
+                int64_t seqQTotal = 0;
+                for (int64_t i  = 0; i < bSize; i++) {
+                    if (actualSeqLenKvData[i] >= NUM_512 && actualSeqLenKvData[i] < NUM_1024) {
+                        count512to1024++;
+                    }
+                    seqQTotal += actualSeqLenData[i];
+                }
+                if (seqQTotal > SORA_TND_CASE_T1 && s2Size < NUM_1024 && sparseMode != PREFIX_COMPRESS) {
+                    if (count512to1024 * 2 >= bSize) { // 512-1024 超过一半使用256
+                        s1BasicBlockBest = TND_S1_BASICBLOCK_256;
+                    } else {
+                        s1BasicBlockBest = TND_S1_BASICBLOCK_512;
+                    }
+                    if (bSize >= NUM_5) {
+                        s1BasicBlockBest = TND_S1_BASICBLOCK_256;
+                    }
                 }
             }
         } else {
