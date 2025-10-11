@@ -211,9 +211,17 @@ __aicore__ inline void MergeBandModeMask(LocalTensor<uint8_t> &maskPre, LocalTen
 {
     uint64_t maskPreUb = maskPre.GetPhyAddr();
     uint64_t maskNextUb = maskNext.GetPhyAddr();
-    uint16_t rowNumEachLoop = regBytes / static_cast<uint16_t>(s2BaseSize);
+    uint16_t rowNumEachLoop;
+    uint64_t rowNumTimesEachLoop;
+    if (s2BaseSize > regBytes) {
+        rowNumEachLoop = 1;
+        rowNumTimesEachLoop = static_cast<uint16_t>(s2BaseSize) / regBytes;
+    } else {
+        rowNumEachLoop = regBytes / static_cast<uint16_t>(s2BaseSize);
+        rowNumTimesEachLoop = 1;
+    }
     uint16_t halfS1RealSizeLoop = static_cast<uint16_t>(halfS1RealSize) + 1;
-    uint16_t loopCount = halfS1RealSizeLoop / rowNumEachLoop;
+    uint16_t loopCount = (halfS1RealSizeLoop / rowNumEachLoop) * rowNumTimesEachLoop;
 
     __VEC_SCOPE__
     {
@@ -241,9 +249,17 @@ __aicore__ inline void MergePrefixModeMask(LocalTensor<uint8_t> &maskPre, LocalT
 {
     uint64_t maskPreUb = maskPre.GetPhyAddr();
     uint64_t maskNextUb = maskNext.GetPhyAddr();
-    uint16_t rowNumEachLoop = regBytes / static_cast<uint16_t>(s2BaseSize);
+    uint16_t rowNumEachLoop;
+    uint64_t rowNumTimesEachLoop;
+    if (s2BaseSize > regBytes) {
+        rowNumEachLoop = 1;
+        rowNumTimesEachLoop = static_cast<uint16_t>(s2BaseSize) / regBytes;
+    } else {
+        rowNumEachLoop = regBytes / static_cast<uint16_t>(s2BaseSize);
+        rowNumTimesEachLoop = 1;
+    }
     uint16_t halfS1RealSizeLoop = static_cast<uint16_t>(halfS1RealSize) + 1;
-    uint16_t loopCount = halfS1RealSizeLoop / rowNumEachLoop;
+    uint16_t loopCount = (halfS1RealSizeLoop / rowNumEachLoop) * rowNumTimesEachLoop;
 
     __VEC_SCOPE__
     {
