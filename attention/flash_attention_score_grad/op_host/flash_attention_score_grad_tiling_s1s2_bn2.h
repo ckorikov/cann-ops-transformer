@@ -64,6 +64,7 @@ class FlashAttentionScoreGradTilingS1s2Bn2 : public Ops::Transformer::OpTiling::
 public:
     explicit FlashAttentionScoreGradTilingS1s2Bn2(gert::TilingContext *context) : Ops::Transformer::OpTiling::TilingBaseClass(context)
     {
+        td_->reset();
     }
 
     FlashAttentionScoreGradTilingDataS1s2Bn2 *td_ = context_->GetTilingData<FlashAttentionScoreGradTilingDataS1s2Bn2>();

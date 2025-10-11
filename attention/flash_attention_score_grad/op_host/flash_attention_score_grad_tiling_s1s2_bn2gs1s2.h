@@ -133,6 +133,7 @@ class FlashAttentionScoreGradTilingS1s2Bn2gs1s2 : public TilingBaseClass {
 public:
     explicit FlashAttentionScoreGradTilingS1s2Bn2gs1s2(gert::TilingContext *context) : TilingBaseClass(context)
     {
+        tilingData->reset();
     }
     FlashAttentionScoreGradTilingDataS1s2Bn2gs1s2 *tilingData = context_->GetTilingData<FlashAttentionScoreGradTilingDataS1s2Bn2gs1s2>();
 

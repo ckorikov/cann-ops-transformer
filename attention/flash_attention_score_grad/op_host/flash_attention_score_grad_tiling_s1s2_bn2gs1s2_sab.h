@@ -125,6 +125,7 @@ class FlashAttentionScoreGradTilingS1s2Bn2gs1s2SameAb : public TilingBaseClass {
 public:
     explicit FlashAttentionScoreGradTilingS1s2Bn2gs1s2SameAb(gert::TilingContext *context) : TilingBaseClass(context)
     {
+        tilingData->reset();
     }
     FlashAttentionScoreGradTilingDataS1s2Bn2gs1s2SameAb *tilingData = context_->GetTilingData<FlashAttentionScoreGradTilingDataS1s2Bn2gs1s2SameAb>();
 

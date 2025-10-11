@@ -4554,6 +4554,15 @@ public:
     BlockNumListParams s1s2BNGS1S2BlockNumList;
     PreParams preTilingData;
     PostParams postTilingData;
+
+    void reset()
+    {
+        s1s2BNGS1S2BaseParams.reset();
+        s1s2BNGS1S2SplitCoreParams.reset();
+        s1s2BNGS1S2BlockNumList.reset();
+        preTilingData.reset();
+        postTilingData.reset();
+    }
 };
 
 class FlashAttentionScoreGradTilingDataS1s2Bn2 {
@@ -4568,6 +4577,15 @@ public:
     TCubeTiling mm4TilingData;
     SoftMaxTiling softmaxTilingData;
     SoftMaxTiling softmaxGradTilingData;
+
+    void reset()
+    {
+        opInfo.reset();
+        splitCoreParams.reset();
+        preTilingData.reset();
+        postTilingData.reset();
+        tndSplitCoreParams.reset();
+    }
 };
 
 class FlashAttentionScoreGradTilingDataUngs1s2Bbn {
@@ -4582,6 +4600,15 @@ public:
     TCubeTiling mm32AndMm4TilingData;
     SoftMaxTiling softmaxTilingData;
     SoftMaxTiling softmaxGradTilingData;
+
+    void reset()
+    {
+        opInfo.reset();
+        splitCoreParams.reset();
+        singleCoreParams.reset();
+        preTilingData.reset();
+        postTilingData.reset();
+    }
 };
 
 class FlashAttentionScoreGradUbngs1s2BbTilingData {
@@ -4596,8 +4623,12 @@ public:
     TCubeTiling mm32AndMm4TilingData;
     SoftMaxTiling softmaxTilingData;
     SoftMaxTiling softmaxGradTilingData;
+
     void reset()
     {
+        opInfo.reset();
+        splitCoreParams.reset();
+        singleCoreParams.reset();
         preTilingData.reset();
         postTilingData.reset();
     }

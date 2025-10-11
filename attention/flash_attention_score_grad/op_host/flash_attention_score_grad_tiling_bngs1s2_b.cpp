@@ -119,7 +119,10 @@ public:
     FlashAttentionScoreGradUbngs1s2BbTilingData *td_ = context_->GetTilingData<FlashAttentionScoreGradUbngs1s2BbTilingData>();
     TempParamsUngs1s2Bb basicParams;
 
-    explicit FlashAttentionScoreGradUbngs1s2BbTiling(gert::TilingContext *context) : TilingBaseClass(context){};
+    explicit FlashAttentionScoreGradUbngs1s2BbTiling(gert::TilingContext *context) : TilingBaseClass(context)
+    {
+        td_->reset();
+    };
 
     ~FlashAttentionScoreGradUbngs1s2BbTiling() override = default;
 
@@ -156,7 +159,7 @@ public:
             tilingKey = GET_TPL_TILING_KEY(static_cast<uint8_t>(AxisEnum::NONE), static_cast<uint8_t>(AxisEnum::NONE), static_cast<uint8_t>(AxisEnum::B), 0, static_cast<uint8_t>(dtype),
                 static_cast<uint8_t>(basicParams.layout), static_cast<uint8_t>(SparseEnum::NONE), static_cast<uint8_t>(MatmulConfig::NORMAL_CONFIG), static_cast<uint8_t>(mmPreIsNZOut),
                 static_cast<uint8_t>(mmNextIsNZOut), static_cast<uint8_t>(0), static_cast<uint8_t>(0),
-                0, 0, 0, static_cast<uint8_t>(s1TemplateType), static_cast<uint8_t>(s2TemplateType), static_cast<uint8_t>(dTemplateType), static_cast<uint8_t>(context_->GetDeterministic() == 1), 0);
+                0, 0, 0, static_cast<uint8_t>(s1TemplateType), static_cast<uint8_t>(s2TemplateType), static_cast<uint8_t>(dTemplateType), 0, 0);
             return tilingKey;
         } else {
             // SBH: BND <= 65535
@@ -199,7 +202,7 @@ public:
             tilingKey = GET_TPL_TILING_KEY(static_cast<uint8_t>(AxisEnum::NONE), static_cast<uint8_t>(AxisEnum::NONE), static_cast<uint8_t>(AxisEnum::B), 0, static_cast<uint8_t>(dtype),
                 static_cast<uint8_t>(basicParams.layout), static_cast<uint8_t>(SparseEnum::NONE), static_cast<uint8_t>(unique), static_cast<uint8_t>(mmPreIsNZOut),
                 static_cast<uint8_t>(mmNextIsNZOut), static_cast<uint8_t>(0), static_cast<uint8_t>(0),
-                0, 0, 0, static_cast<uint8_t>(s1TemplateType), static_cast<uint8_t>(s2TemplateType), static_cast<uint8_t>(dTemplateType), static_cast<uint8_t>(context_->GetDeterministic() == 1), 0);
+                0, 0, 0, static_cast<uint8_t>(s1TemplateType), static_cast<uint8_t>(s2TemplateType), static_cast<uint8_t>(dTemplateType), 0, 0);
             return tilingKey;
         }
     }
