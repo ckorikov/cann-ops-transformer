@@ -27,9 +27,10 @@
 #include "opdev/op_executor.h"
 #include "opdev/op_log.h"
 #include "opdev/platform.h"
-#include "matmul_util.h"
 #include "hccl_util.h"
+#include "common/op_host/op_api/matmul_util.h"
 
+using namespace Ops::Transformer;
 using namespace op;
 
 #ifdef __cplusplus
