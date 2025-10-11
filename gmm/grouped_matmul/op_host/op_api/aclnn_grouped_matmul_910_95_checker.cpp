@@ -219,7 +219,7 @@ aclnnStatus AclnnGroupedMatmul91095Checker<T>::CheckMxBiasInputShape(const Tenso
     if (biasDimNum != 0) {
         CHECK_COND(biasDimNum == MX_BIAS_DIM, ACLNN_ERR_PARAM_INVALID,
                    "In mx quant mode, the %s dim num should be 2, but actual is [%zu].", biasName_.c_str(), biasDimNum);
-    }  
+    }
     auto weightNDimValue = GetInputTensor(gmmParams_.weight, index)->GetViewShape().GetDim(weightNIndex);
     if (gmmParams_.biasOptional != nullptr) {
         auto biasGDimValue = GetInputTensor(gmmParams_.biasOptional, index)->GetViewShape().GetDim(0);
@@ -358,7 +358,7 @@ aclnnStatus AclnnGroupedMatmul91095Checker<T>::CheckGroupedMatmulMxShape() const
 
 template <typename T>
 bool AclnnGroupedMatmul91095Checker<T>::IsSpecialMXCase(const T *tensorList) const
-{   
+{
     // 已校验mx场景scale的shape大于或等于3维度，不存在越界取值问题
     // mx特殊场景 (m,k,2) -> shape(1,1,2), stride(2,2,1); (k,m,2) -> shape(1,1,2), stride(2,2,1), 无法通过stride识别转置
     for (size_t i = 0; i < GetInputTensorSize(tensorList); i++) {
@@ -801,12 +801,12 @@ aclnnStatus AclnnGroupedMatmul91095Checker<T>::CheckFp8Hif8QuantParams() const
     DataType scaleDtype = GetInputTensor(gmmParams_.scaleOptional)->GetDataType();
     if (scaleDtype == DataType::DT_UINT64 || scaleDtype == DataType::DT_INT64) {
         CHECK_COND(gmmParams_.groupType == SPLIT_M, ACLNN_ERR_PARAM_INVALID,
-                   "When %s dtype is uint64 or int64, float8/hifloat8 only supports groupType 0 (split M).",
-                   perTokenScaleName_.c_str());
+                   "In float8/hifloat8 case, when the %s dtype is uint64 or int64, only groupType 0 (split M) is supported.",
+                   scaleName_.c_str());
     } else {
         CHECK_COND(gmmParams_.groupType != SPLIT_N, ACLNN_ERR_PARAM_INVALID,
-                   "When %s dtype is float32, float8/hifloat8 only supports groupType 0 (split M) and \
-groupType 2 (split K).",
+                   "In float8/hifloat8 case, when the %s dtype is float32, only groupType 0 \
+(split M) and  groupType 2 (split K) are supported.",
                    scaleName_.c_str());
     }
 
