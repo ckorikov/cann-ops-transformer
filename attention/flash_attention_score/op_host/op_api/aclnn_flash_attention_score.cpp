@@ -399,6 +399,11 @@ static aclnnStatus InputDtypeCheck(const aclTensor *query, const aclTensor *key,
                 op::ToString(DataType(vDtype)).GetString());
         return ACLNN_ERR_PARAM_INVALID;
     }
+    if (!(qDtype == op::DataType::DT_FLOAT || qDtype == op::DataType::DT_FLOAT16 || qDtype == op::DataType::DT_BF16)) {
+        OP_LOGE(ACLNN_ERR_PARAM_INVALID, "The data type of query/key/value is [%s], should be fp16, bf16 or fp32.",
+                op::ToString(DataType(qDtype)).GetString());
+        return ACLNN_ERR_PARAM_INVALID;
+    }
     if (pseType == PSE_INNER_MUL_ADD || pseType == PSE_INNER_MUL_ADD_SQRT) {
         // Inner pse alibi, dtype must be fp32
         if (realShiftOptional == nullptr) {
@@ -878,6 +883,7 @@ aclnnStatus aclnnFlashAttentionVarLenScoreGetWorkspaceSize(
         uniqueExecutor.ReleaseTo(executor);
         return ACLNN_ERR_PARAM_INVALID;
     }
+    CHECK_RET(InputDtypeCheck(query, key, value, realShiftOptional, PSE_TYPE_V1) == ACLNN_SUCCESS, ACLNN_ERR_PARAM_INVALID);
     FaShapeInfo shapeInfo;
     CHECK_RET(AnalysisInput(query, key, value, inputLayout, headNum, shapeInfo, actualSeqQLenOptional,
                             actualSeqKvLenOptional) == ACLNN_SUCCESS, ACLNN_ERR_PARAM_INVALID);
@@ -1216,6 +1222,7 @@ aclnnStatus aclnnFlashAttentionVarLenScoreV4GetWorkspaceSize(
         uniqueExecutor.ReleaseTo(executor);
         return ACLNN_ERR_PARAM_INVALID;
     }
+    CHECK_RET(InputDtypeCheck(query, key, value, realShiftOptional, PSE_TYPE_V1) == ACLNN_SUCCESS, ACLNN_ERR_PARAM_INVALID);
     FaShapeInfo shapeInfo;
     CHECK_RET(AnalysisInput(query, key, value, inputLayout, headNum, shapeInfo, actualSeqQLenOptional,
                             actualSeqKvLenOptional) == ACLNN_SUCCESS, ACLNN_ERR_PARAM_INVALID);

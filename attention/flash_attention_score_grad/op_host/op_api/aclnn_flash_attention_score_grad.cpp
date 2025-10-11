@@ -1015,11 +1015,34 @@ static aclnnStatus TransposeOutputTensor(std::array<const aclTensor *, l0op::MAX
     return ACLNN_SUCCESS;
 }
 
+static aclnnStatus InputDtypeCheck(const aclTensor *query, const aclTensor *key, const aclTensor *value, const aclTensor *dy)
+{
+    auto vDtype = value->GetDataType();
+    auto kDtype = key->GetDataType();
+    auto qDtype = query->GetDataType();
+    auto dyDtype = dy->GetDataType();
+    if (qDtype != kDtype || kDtype != vDtype || vDtype != dyDtype) {
+        OP_LOGE(ACLNN_ERR_PARAM_INVALID, "The data type of query[%s], key[%s], value[%s], dy[%s] are not equal.",
+                op::ToString(DataType(qDtype)).GetString(), op::ToString(DataType(kDtype)).GetString(),
+                op::ToString(DataType(vDtype)).GetString(), op::ToString(DataType(dyDtype)).GetString());
+        return ACLNN_ERR_PARAM_INVALID;
+    }
+    if (!(qDtype == op::DataType::DT_FLOAT || qDtype == op::DataType::DT_FLOAT16 || qDtype == op::DataType::DT_BF16)) {
+        OP_LOGE(ACLNN_ERR_PARAM_INVALID, "The data type of query/key/value is [%s], should be fp16, bf16 or fp32.",
+                op::ToString(DataType(qDtype)).GetString());
+        return ACLNN_ERR_PARAM_INVALID;
+    }
+    return ACLNN_SUCCESS;
+}
+
 static aclnnStatus PreFlashAttentionScoreGrad(const aclTensor **query, const aclTensor **key, const aclTensor **value,
                                               const aclTensor **dy, const aclTensor **attentionInOptional,
                                               FagInShapeInfo fagShape, FagShapeArray &fagShapeArray,
                                               aclOpExecutor *executor)
 {
+    // 输入dtype异常拦截校验
+    CHECK_RET(InputDtypeCheck(*query, *key, *value, *dy) == ACLNN_SUCCESS, ACLNN_ERR_PARAM_INVALID);
+
     // 获取reshape array, SBH特殊场景下，需要提前获取调用FAG前反向reshape成SBH时所需的reshape array
     GetInputAndOutputReshapeArray(*query, *key, fagShape, fagShapeArray, executor);
     GetInputAndOutputBackwordReshapeArrayForSBH(*query, *key, fagShape, fagShapeArray, executor);
