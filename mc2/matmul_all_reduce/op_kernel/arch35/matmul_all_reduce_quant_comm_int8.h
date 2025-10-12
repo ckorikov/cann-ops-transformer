@@ -201,19 +201,19 @@ __aicore__ inline void MatmulAllReduceQuantCommInt8<XType, WType, YType, MmType,
 
         if (numReN != 0U) { // 余数下发
             (void)hccl_.SetReduceDataTypeAbility(
-                HcclReduceOp::HCCL_REDUCE_SUM, AscendC::HCCL_DATA_TYPE_INT8,
-                AscendC::HCCL_DATA_TYPE_INT8); // allgather 发送数据类型为int8，接收数据类型为int8
-            allGatherHandleId_[nowAllGatherIdx] = hccl_.AllGather<false>(
-                allGatherSendGM_[nowAllGatherIdx], allGatherRecvGM_[nowAllGatherIdx], SendCountCheck(nowAllGatherIdx),
-                AscendC::HCCL_DATA_TYPE_INT8, 0);
-            nowAllGatherIdx++;
-            (void)hccl_.SetReduceDataTypeAbility(
                 HcclReduceOp::HCCL_REDUCE_SUM, AscendC::HCCL_DATA_TYPE_FP32,
                 AscendC::HCCL_DATA_TYPE_INT8); // reduceScatter 发送数据类型为int8，接收数据类型为fp32
             reduceScatterHandleId_[nowReduceScatterIdx] = hccl_.ReduceScatter<false>(
                 reduceScatterSendGM_[nowReduceScatterIdx], ReduceScatterRecvGM_[nowReduceScatterIdx],
                 SendCountCheck(nowReduceScatterIdx), AscendC::HCCL_DATA_TYPE_INT8, HcclReduceOp::HCCL_REDUCE_SUM, 0, 1);
             nowReduceScatterIdx++;
+            (void)hccl_.SetReduceDataTypeAbility(
+                HcclReduceOp::HCCL_REDUCE_SUM, AscendC::HCCL_DATA_TYPE_INT8,
+                AscendC::HCCL_DATA_TYPE_INT8); // allgather 发送数据类型为int8，接收数据类型为int8
+            allGatherHandleId_[nowAllGatherIdx] = hccl_.AllGather<false>(
+                allGatherSendGM_[nowAllGatherIdx], allGatherRecvGM_[nowAllGatherIdx], SendCountCheck(nowAllGatherIdx),
+                AscendC::HCCL_DATA_TYPE_INT8, 0);
+            nowAllGatherIdx++;
         }
     }
 }

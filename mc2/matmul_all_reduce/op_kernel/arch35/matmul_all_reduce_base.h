@@ -118,9 +118,14 @@ protected:
     __aicore__ inline void HcclFinalize()
     {
         if (notifyFlag_) {
-            hccl_.Wait(tileInfo_.hcclHandleId);
+            for (uint32_t i = 0; i < paramInTiling_->tileCnt; ++i) {
+                hccl_.Wait(tileInfo_.hcclHandleId);
+            }
+
             if (tailFlag_) {
-                hccl_.Wait(tailInfo_.hcclHandleId);
+                for (uint32_t i = 0; i < paramInTiling_->tailCnt; ++i) {
+                    hccl_.Wait(tailInfo_.hcclHandleId);
+                }
             }
         }
 
