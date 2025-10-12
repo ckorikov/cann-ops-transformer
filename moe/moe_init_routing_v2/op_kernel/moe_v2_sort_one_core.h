@@ -170,12 +170,20 @@ __aicore__ inline void MoeV2SortOneCore::Init(GM_ADDR expertIdx, GM_ADDR expertT
         if (this->expertTokensCountOrCumsumFlag > 0) {
             expertTokensCountOrCumsumGm.SetGlobalBuffer((__gm__ int32_t *)expertTokensCountOrCumsum,
                                                         Align(this->expertNum, sizeof(int32_t)));
+#if defined(__CCE_AICORE__) && __CCE_AICORE__ == 200
+            InitGlobalMemory(expertTokensCountOrCumsumGm, Align(this->expertNum, sizeof(int32_t)), 0);
+#else
             InitGlobalMemory(expertTokensCountOrCumsumGm, this->expertNum, 0);
+#endif
         }
         if (this->expertTokensBeforeCapacityFlag == 1) {
             expertTokensBeforeCapacityGm.SetGlobalBuffer((__gm__ int32_t *)expertTokensBeforeCapacity,
                                                          Align(this->expertNum, sizeof(int32_t)));
+#if defined(__CCE_AICORE__) && __CCE_AICORE__ == 200
+            InitGlobalMemory(expertTokensBeforeCapacityGm, Align(this->expertNum, sizeof(int32_t)), 0);
+#else
             InitGlobalMemory(expertTokensBeforeCapacityGm, this->expertNum, 0);
+#endif
         }
     }
     // key and value
