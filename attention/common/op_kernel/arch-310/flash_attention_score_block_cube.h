@@ -73,7 +73,7 @@ struct L0BBuffSel {
 template <typename INPUT_T, uint32_t s1BaseSize, uint32_t s2BaseSize, uint32_t dVBaseSize>
 struct L0CBuffSel {
     using Type = std::conditional_t<
-        (s1BaseSize * s2BaseSize * FLOAT_BYTES <= (L0C_SIZE * KB_TO_BYTES) / NUM_4 && s1BaseSize * dVBaseSize * FLOAT_BYTES <= (L0C_SIZE * KB_TO_BYTES) / NUM_4),
+        (s1BaseSize == BASE_SIZE_128 && s2BaseSize == BASE_SIZE_128 && dVBaseSize == BASE_SIZE_128),
         BuffersPolicy4buff<BufferType::L0C>,
         BuffersPolicyDB<BufferType::L0C>>;
 };
@@ -269,7 +269,7 @@ __aicore__ inline void FABlockCube<TEMPLATE_ARGS>::InitLocalBuffer() {
         mmL0BBuffers.Init(l0bBufferManager, 32 * 1024);
     }
 
-    if constexpr (s1BaseSize * s2BaseSize * FLOAT_BYTES <= (L0C_SIZE * KB_TO_BYTES) / NUM_4 && s1BaseSize * dVBaseSize * FLOAT_BYTES <= (L0C_SIZE * KB_TO_BYTES) / NUM_4) {
+    if constexpr (s1BaseSize == BASE_SIZE_128 && s2BaseSize == BASE_SIZE_128 && dVBaseSize == BASE_SIZE_128) {
         mmL0CBuffers.Init(l0cBufferManager, (L0C_SIZE / NUM_4) * KB_TO_BYTES);
     } else {
         mmL0CBuffers.Init(l0cBufferManager, (L0C_SIZE / NUM_2) * KB_TO_BYTES);
