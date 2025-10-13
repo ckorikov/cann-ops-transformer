@@ -43,25 +43,25 @@ protected:
 TEST_F(RotaryPositionEmbeddingTiling, RotaryPositionEmbedding_fp16_001)
 {
     optiling::RotaryPositionEmbeddingCompileInfo compileInfo = {};
-    gert::TilingContextPara tilingContextPara(
-        "RotaryPositionEmbedding",
-        {
-            // input info
-            {{{1, 64, 2, 64}, {1, 64, 2, 64}}, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {{{1, 64, 1, 64}, {1, 64, 1, 64}}, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {{{1, 64, 1, 64}, {1, 64, 1, 64}}, ge::DT_FLOAT16, ge::FORMAT_ND},
-        },
-        {
-            // output info
-            {{{1, 64, 2, 64}, {1, 64, 2, 64}}, ge::DT_FLOAT16, ge::FORMAT_ND},
-        },
-        {
-            // attr
-            {"mode", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)},
-        },
-        &compileInfo);
-    uint64_t expectTilingKey = 20020;
-    string expectTilingData = "1 0 64 64 2 1 1 64 1 0 1 0 0 1 0 1 2 2 0 ";
+    gert::TilingContextPara tilingContextPara("RotaryPositionEmbedding",
+                                              {
+                                                  // input info
+                                                  {{{1, 64, 2, 64}, {1, 64, 2, 64}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+                                                  {{{1, 64, 1, 64}, {1, 64, 1, 64}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+                                                  {{{1, 64, 1, 64}, {1, 64, 1, 64}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+                                              },
+                                              {
+                                                  // output info
+                                                  {{{1, 64, 2, 64}, {1, 64, 2, 64}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+                                              },
+                                              {
+                                                  // attr
+                                                  {"mode", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)},
+                                              },
+                                              &compileInfo);
+    uint64_t expectTilingKey = 1032;
+    string expectTilingData = "3 8192 1 2 64 32 32 64 1 64 84 5376 5376 64 1 0 1 128 64 8192 4096 64 64 0 1 0 1 128 64 "
+                              "64 64 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ";
     std::vector<size_t> expectWorkspaces = {16 * 1024 * 1024};
     ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey, expectTilingData, expectWorkspaces);
 }
@@ -69,25 +69,25 @@ TEST_F(RotaryPositionEmbeddingTiling, RotaryPositionEmbedding_fp16_001)
 TEST_F(RotaryPositionEmbeddingTiling, RotaryPositionEmbedding_bf16_001)
 {
     optiling::RotaryPositionEmbeddingCompileInfo compileInfo = {};
-    gert::TilingContextPara tilingContextPara(
-        "RotaryPositionEmbedding",
-        {
-            // input info
-            {{{1, 64, 2, 64}, {1, 64, 2, 64}}, ge::DT_BF16, ge::FORMAT_ND},
-            {{{1, 64, 1, 64}, {1, 64, 1, 64}}, ge::DT_BF16, ge::FORMAT_ND},
-            {{{1, 64, 1, 64}, {1, 64, 1, 64}}, ge::DT_BF16, ge::FORMAT_ND},
-        },
-        {
-            // output info
-            {{{1, 64, 2, 64}, {1, 64, 2, 64}}, ge::DT_BF16, ge::FORMAT_ND},
-        },
-        {
-            // attr
-            {"mode", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)},
-        },
-        &compileInfo);
-    uint64_t expectTilingKey = 20020;
-    string expectTilingData = "1 0 64 64 2 1 1 64 1 0 1 0 0 1 0 1 2 2 0 ";
+    gert::TilingContextPara tilingContextPara("RotaryPositionEmbedding",
+                                              {
+                                                  // input info
+                                                  {{{1, 64, 2, 64}, {1, 64, 2, 64}}, ge::DT_BF16, ge::FORMAT_ND},
+                                                  {{{1, 64, 1, 64}, {1, 64, 1, 64}}, ge::DT_BF16, ge::FORMAT_ND},
+                                                  {{{1, 64, 1, 64}, {1, 64, 1, 64}}, ge::DT_BF16, ge::FORMAT_ND},
+                                              },
+                                              {
+                                                  // output info
+                                                  {{{1, 64, 2, 64}, {1, 64, 2, 64}}, ge::DT_BF16, ge::FORMAT_ND},
+                                              },
+                                              {
+                                                  // attr
+                                                  {"mode", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)},
+                                              },
+                                              &compileInfo);
+    uint64_t expectTilingKey = 1033;
+    string expectTilingData = "3 8192 1 2 64 32 32 64 1 64 84 5376 5376 64 1 0 1 128 64 8192 4096 64 64 0 1 0 1 128 64 "
+                              "64 64 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ";
     std::vector<size_t> expectWorkspaces = {16 * 1024 * 1024};
     ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey, expectTilingData, expectWorkspaces);
 }
@@ -95,25 +95,25 @@ TEST_F(RotaryPositionEmbeddingTiling, RotaryPositionEmbedding_bf16_001)
 TEST_F(RotaryPositionEmbeddingTiling, RotaryPositionEmbedding_fp32_001)
 {
     optiling::RotaryPositionEmbeddingCompileInfo compileInfo = {};
-    gert::TilingContextPara tilingContextPara(
-        "RotaryPositionEmbedding",
-        {
-            // input info
-            {{{1, 64, 2, 64}, {1, 64, 2, 64}}, ge::DT_FLOAT, ge::FORMAT_ND},
-            {{{1, 64, 1, 64}, {1, 64, 1, 64}}, ge::DT_FLOAT, ge::FORMAT_ND},
-            {{{1, 64, 1, 64}, {1, 64, 1, 64}}, ge::DT_FLOAT, ge::FORMAT_ND},
-        },
-        {
-            // output info
-            {{{1, 64, 2, 64}, {1, 64, 2, 64}}, ge::DT_FLOAT, ge::FORMAT_ND},
-        },
-        {
-            // attr
-            {"mode", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)},
-        },
-        &compileInfo);
-    uint64_t expectTilingKey = 20020;
-    string expectTilingData = "1 0 64 64 2 1 1 64 1 0 1 0 0 1 0 1 2 2 0 ";
+    gert::TilingContextPara tilingContextPara("RotaryPositionEmbedding",
+                                              {
+                                                  // input info
+                                                  {{{1, 64, 2, 64}, {1, 64, 2, 64}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                  {{{1, 64, 1, 64}, {1, 64, 1, 64}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                  {{{1, 64, 1, 64}, {1, 64, 1, 64}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                              },
+                                              {
+                                                  // output info
+                                                  {{{1, 64, 2, 64}, {1, 64, 2, 64}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                              },
+                                              {
+                                                  // attr
+                                                  {"mode", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)},
+                                              },
+                                              &compileInfo);
+    uint64_t expectTilingKey = 1031;
+    string expectTilingData = "3 8192 1 2 64 32 32 64 1 64 126 8064 8064 64 1 0 1 128 64 8192 4096 64 64 0 1 0 1 128 "
+                              "64 64 64 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ";
     std::vector<size_t> expectWorkspaces = {16 * 1024 * 1024};
     ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey, expectTilingData, expectWorkspaces);
 }

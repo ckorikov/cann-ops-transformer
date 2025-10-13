@@ -87,7 +87,7 @@ int main() {
     std::vector<int64_t> cosShape = {1, 1, 1, 128};
     std::vector<int64_t> sinShape = {1, 1, 1, 128};
     int64_t layout = 1;
-    char *rotaryMode = "half";
+    char rotaryMode[] = "half";
 
     void* queryDeviceAddr = nullptr;
     void* keyDeviceAddr = nullptr;

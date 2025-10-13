@@ -16,8 +16,7 @@
 
 using namespace std;
 
-class ApplyRotaryPosEmbTiling : public testing::Test
-{
+class ApplyRotaryPosEmbTiling : public testing::Test {
 protected:
     static void SetUpTestCase()
     {
@@ -30,74 +29,83 @@ protected:
     }
 };
 
-TEST_F(ApplyRotaryPosEmbTiling, test_tiling_fp16_001) {
+TEST_F(ApplyRotaryPosEmbTiling, test_tiling_fp16_001)
+{
     optiling::ApplyRotaryPosEmbCompileInfo compileInfo = {};
     gert::TilingContextPara tilingContextPara("ApplyRotaryPosEmb",
-                                            { // input info
-                                                {{{24, 1, 11, 128}, {24, 1, 11, 128}}, ge::DT_FLOAT16, ge::FORMAT_ND},
-                                                {{{24, 1, 1, 128}, {24, 1, 1, 128}}, ge::DT_FLOAT16, ge::FORMAT_ND},
-                                                {{{24, 1, 1, 128}, {24, 1, 1, 128}}, ge::DT_FLOAT16, ge::FORMAT_ND},
-                                                {{{24, 1, 1, 128}, {24, 1, 1, 128}}, ge::DT_FLOAT16, ge::FORMAT_ND},
-                                            }, 
-                                            { // output info
-                                                {{{24, 1, 11, 128}, {24, 1, 11, 128}}, ge::DT_FLOAT16, ge::FORMAT_ND},
-                                                {{{24, 1, 1, 128}, {24, 1, 1, 128}}, ge::DT_FLOAT16, ge::FORMAT_ND},
-                                            }, 
-                                            { // attr
-                                                {"layout",Ops::Transformer::AnyValue::CreateFrom<int64_t>(1)},
-                                                {"rotary_mode",Ops::Transformer::AnyValue::CreateFrom<string>("half")}
-                                            },
-                                            &compileInfo);
-  uint64_t expectTilingKey = 20030;
-  string expectTilingData = "24 24 1 128 11 1 128 2 24 1 1 1 1 12 12 1 ";
-  std::vector<size_t> expectWorkspaces = {16*1024*1024};
-  ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey, expectTilingData, expectWorkspaces);
+                                              {
+                                                  // input info
+                                                  {{{24, 1, 11, 128}, {24, 1, 11, 128}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+                                                  {{{24, 1, 1, 128}, {24, 1, 1, 128}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+                                                  {{{24, 1, 1, 128}, {24, 1, 1, 128}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+                                                  {{{24, 1, 1, 128}, {24, 1, 1, 128}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+                                              },
+                                              {
+                                                  // output info
+                                                  {{{24, 1, 11, 128}, {24, 1, 11, 128}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+                                                  {{{24, 1, 1, 128}, {24, 1, 1, 128}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+                                              },
+                                              {// attr
+                                               {"layout", Ops::Transformer::AnyValue::CreateFrom<int64_t>(1)},
+                                               {"rotary_mode", Ops::Transformer::AnyValue::CreateFrom<string>("half")}},
+                                              &compileInfo);
+    uint64_t expectTilingKey = 1;
+    string expectTilingData =
+        "24 128 64 0 0 0 0 0 0 0 3072 3072 256 256 0 0 0 0 0 1408 128 128 1408 128 128 12 1536 1 8 4 0 0 128 ";
+    std::vector<size_t> expectWorkspaces = {16 * 1024 * 1024};
+    ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey, expectTilingData, expectWorkspaces);
 }
 
-TEST_F(ApplyRotaryPosEmbTiling, test_tiling_bf16_001) {
+TEST_F(ApplyRotaryPosEmbTiling, test_tiling_bf16_001)
+{
     optiling::ApplyRotaryPosEmbCompileInfo compileInfo = {};
     gert::TilingContextPara tilingContextPara("ApplyRotaryPosEmb",
-                                            { // input info
-                                                {{{24, 1, 11, 128}, {24, 1, 11, 128}}, ge::DT_BF16, ge::FORMAT_ND},
-                                                {{{24, 1, 1, 128}, {24, 1, 1, 128}}, ge::DT_BF16, ge::FORMAT_ND},
-                                                {{{24, 1, 1, 128}, {24, 1, 1, 128}}, ge::DT_BF16, ge::FORMAT_ND},
-                                                {{{24, 1, 1, 128}, {24, 1, 1, 128}}, ge::DT_BF16, ge::FORMAT_ND},
-                                            }, 
-                                            { // output info
-                                                {{{24, 1, 11, 128}, {24, 1, 11, 128}}, ge::DT_BF16, ge::FORMAT_ND},
-                                                {{{24, 1, 1, 128}, {24, 1, 1, 128}}, ge::DT_BF16, ge::FORMAT_ND},
-                                            }, 
-                                            { // attr
-                                                {"layout",Ops::Transformer::AnyValue::CreateFrom<int64_t>(1)},
-                                                {"rotary_mode",Ops::Transformer::AnyValue::CreateFrom<string>("half")}
-                                            },
-                                            &compileInfo);
-  uint64_t expectTilingKey = 20030;
-  string expectTilingData = "24 24 1 128 11 1 128 2 24 1 1 1 1 12 12 1 ";
-  std::vector<size_t> expectWorkspaces = {16*1024*1024};
-  ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey, expectTilingData, expectWorkspaces);
+                                              {
+                                                  // input info
+                                                  {{{24, 1, 11, 128}, {24, 1, 11, 128}}, ge::DT_BF16, ge::FORMAT_ND},
+                                                  {{{24, 1, 1, 128}, {24, 1, 1, 128}}, ge::DT_BF16, ge::FORMAT_ND},
+                                                  {{{24, 1, 1, 128}, {24, 1, 1, 128}}, ge::DT_BF16, ge::FORMAT_ND},
+                                                  {{{24, 1, 1, 128}, {24, 1, 1, 128}}, ge::DT_BF16, ge::FORMAT_ND},
+                                              },
+                                              {
+                                                  // output info
+                                                  {{{24, 1, 11, 128}, {24, 1, 11, 128}}, ge::DT_BF16, ge::FORMAT_ND},
+                                                  {{{24, 1, 1, 128}, {24, 1, 1, 128}}, ge::DT_BF16, ge::FORMAT_ND},
+                                              },
+                                              {// attr
+                                               {"layout", Ops::Transformer::AnyValue::CreateFrom<int64_t>(1)},
+                                               {"rotary_mode", Ops::Transformer::AnyValue::CreateFrom<string>("half")}},
+                                              &compileInfo);
+    uint64_t expectTilingKey = 1;
+    string expectTilingData =
+        "24 128 64 0 0 0 0 0 0 0 6144 6144 256 512 0 0 0 0 0 1408 128 128 1408 128 128 12 1536 2 16 8 0 0 64 ";
+    std::vector<size_t> expectWorkspaces = {16 * 1024 * 1024};
+    ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey, expectTilingData, expectWorkspaces);
 }
 
-TEST_F(ApplyRotaryPosEmbTiling, test_tiling_fp32_001) {
+TEST_F(ApplyRotaryPosEmbTiling, test_tiling_fp32_001)
+{
     optiling::ApplyRotaryPosEmbCompileInfo compileInfo = {};
     gert::TilingContextPara tilingContextPara("ApplyRotaryPosEmb",
-                                            { // input info
-                                                {{{24, 1, 11, 128}, {24, 1, 11, 128}}, ge::DT_FLOAT, ge::FORMAT_ND},
-                                                {{{24, 1, 1, 128}, {24, 1, 1, 128}}, ge::DT_FLOAT, ge::FORMAT_ND},
-                                                {{{24, 1, 1, 128}, {24, 1, 1, 128}}, ge::DT_FLOAT, ge::FORMAT_ND},
-                                                {{{24, 1, 1, 128}, {24, 1, 1, 128}}, ge::DT_FLOAT, ge::FORMAT_ND},
-                                            }, 
-                                            { // output info
-                                                {{{24, 1, 11, 128}, {24, 1, 11, 128}}, ge::DT_FLOAT, ge::FORMAT_ND},
-                                                {{{24, 1, 1, 128}, {24, 1, 1, 128}}, ge::DT_FLOAT, ge::FORMAT_ND},
-                                            }, 
-                                            { // attr
-                                                {"layout",Ops::Transformer::AnyValue::CreateFrom<int64_t>(1)},
-                                                {"rotary_mode",Ops::Transformer::AnyValue::CreateFrom<string>("half")}
-                                            },
-                                            &compileInfo);
-  uint64_t expectTilingKey = 20030;
-  string expectTilingData = "24 24 1 128 11 1 128 2 24 1 1 1 1 12 12 1 ";
-  std::vector<size_t> expectWorkspaces = {16*1024*1024};
-  ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey, expectTilingData, expectWorkspaces);
+                                              {
+                                                  // input info
+                                                  {{{24, 1, 11, 128}, {24, 1, 11, 128}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                  {{{24, 1, 1, 128}, {24, 1, 1, 128}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                  {{{24, 1, 1, 128}, {24, 1, 1, 128}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                  {{{24, 1, 1, 128}, {24, 1, 1, 128}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                              },
+                                              {
+                                                  // output info
+                                                  {{{24, 1, 11, 128}, {24, 1, 11, 128}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                  {{{24, 1, 1, 128}, {24, 1, 1, 128}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                              },
+                                              {// attr
+                                               {"layout", Ops::Transformer::AnyValue::CreateFrom<int64_t>(1)},
+                                               {"rotary_mode", Ops::Transformer::AnyValue::CreateFrom<string>("half")}},
+                                              &compileInfo);
+    uint64_t expectTilingKey = 1;
+    string expectTilingData =
+        "24 128 64 0 0 0 0 0 0 0 6144 6144 512 512 0 0 0 0 0 1408 128 128 1408 128 128 12 1536 2 16 8 0 0 64 ";
+    std::vector<size_t> expectWorkspaces = {16 * 1024 * 1024};
+    ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey, expectTilingData, expectWorkspaces);
 }

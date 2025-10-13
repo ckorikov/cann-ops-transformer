@@ -170,7 +170,7 @@ int main()
     CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("copy result from device to host failed. ERROR: %d\n", ret); return ret);
 
     for (int64_t i = 0; i < size; i++) {
-        LOG_PRINT("result[%ld] is: %hhu\n", i, resultData[i]);
+        LOG_PRINT("result[%ld] is: %f\n", i, resultData[i]);
     }
 
     auto size1 = GetShapeSize(keyShape);
@@ -180,7 +180,7 @@ int main()
     CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("copy result from device to host failed. ERROR: %d\n", ret); return ret);
 
     for (int64_t i = 0; i < size; i++) {
-        LOG_PRINT("result[%ld] is: %hhu\n", i, resultData[i]);
+        LOG_PRINT("result[%ld] is: %f\n", i, resultData[i]);
     }
 
     // 6. 释放aclTensor和aclScalar，需要根据具体API的接口定义修改
