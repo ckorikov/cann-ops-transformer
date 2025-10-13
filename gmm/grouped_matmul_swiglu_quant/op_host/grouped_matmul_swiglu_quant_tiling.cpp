@@ -149,7 +149,7 @@ ASCENDC_EXTERN_C graphStatus TilingGMMSwigluQuant(gert::TilingContext *context)
     } else if (wScaleTensor->GetStorageShape().GetDimNum() == PERGROUP_WSCALE_DIM_LIMIT) { // perGroup
         quantGroupNum = wScaleTensor->GetStorageShape().GetDim(1);
     }
-    auto groupListTensor = context->GetInputTensor(GROUPLIST_INDEX);
+    auto groupListTensor = context->GetDynamicInputTensor(GROUPLIST_INDEX, 0);
     OP_CHECK_NULL_WITH_CONTEXT(context, groupListTensor);
     const int64_t groupNum = groupListTensor->GetStorageShape().GetDim(0);
     GMMSwigluQuantTilingData tilingData;

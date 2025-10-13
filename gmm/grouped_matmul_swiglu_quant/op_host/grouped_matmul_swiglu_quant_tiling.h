@@ -56,7 +56,7 @@ namespace GroupedMatmulSwigluQuantTiling {
 constexpr uint32_t X_INDEX = 0;
 constexpr uint32_t WEIGHT_INDEX = 1;
 constexpr uint32_t WEIGHT_SCALE_INDEX = 2;
-constexpr uint32_t GROUPLIST_INDEX = 4;
+constexpr uint32_t GROUPLIST_INDEX = 5;
 constexpr uint32_t BATCH_MODE_SCHEDULE = 1;
 constexpr uint32_t DIM_0 = 0;
 constexpr uint32_t DIM_1 = 1;
