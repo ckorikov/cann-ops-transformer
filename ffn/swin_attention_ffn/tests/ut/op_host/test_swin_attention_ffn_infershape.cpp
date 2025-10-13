@@ -9,12 +9,10 @@
  */
 #include <gtest/gtest.h>
 #include <iostream>
-#include "op_proto_test_util.h"
-#include "matrix_calculation_ops.h"
-#include "common/utils/ut_op_common.h"
-#include "array_ops.h"
-#include "util/util.h"
 
+#include "infershape_context_faker.h"
+#include "infershape_case_executor.h"
+#include "base/registry/op_impl_space_registry_v2.h"
 class swin_attention_ffn : public testing::Test {
 protected:
     static void SetUpTestCase() {
@@ -26,21 +24,22 @@ protected:
     }
 };
 
-TEST_F(swin_attention_ffn, swin_attention_ffn_test_1) {
-    ge::op::SwinAttentionFFN op;
-    
-    // update op input
-    op.UpdateInputDesc("x1", create_desc({4096, 64, 128}, ge::DT_FLOAT16));
-    op.UpdateInputDesc("x2", create_desc({128, 128}, ge::DT_FLOAT16));
-    op.UpdateInputDesc("bias", create_desc({128}, ge::DT_FLOAT16));
-    op.UpdateInputDesc("x3", create_desc({4096, 64, 128}, ge::DT_FLOAT16));
-    op.SetAttr("shifts", {4, 4});
-
-    // call InferShapeAndType function
-    auto ret = op.InferShapeAndType();
-
-    auto y_shape_output_desc = op.GetOutputDescByName("y");
-
-    Runtime2TestParam param{{"shifts"}};
-    EXPECT_EQ(InferShapeTest(op, param), ge::GRAPH_SUCCESS);
+TEST_F(swin_attention_ffn, swin_attention_ffn_test_1)
+{
+    gert::InfershapeContextPara infershapeContextPara(
+    "SwinAttentionFFN",
+    { // input info
+        {{{4096, 64, 128}, {4096, 64, 128}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+        {{{128, 128}, {128, 128}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+        {{{128}, {128}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+        {{{4096, 64, 128}, {4096, 64, 128}}, ge::DT_FLOAT16, ge::FORMAT_ND}
+    }, 
+    { // output info
+        {{{}, {}}, ge::DT_FLOAT16, ge::FORMAT_ND}
+    }, 
+    { // attr
+        {"shifts",Ops::Transformer::AnyValue::CreateFrom<std::vector<int64_t>>({4, 4})}
+    });
+    std::vector<std::vector<int64_t>> expectOutputShape = {{4096, 64, 128},}; // 预期输出shape
+    ExecuteTestCase(infershapeContextPara, ge::GRAPH_SUCCESS, expectOutputShape); // 框架中已提供该接口
 }

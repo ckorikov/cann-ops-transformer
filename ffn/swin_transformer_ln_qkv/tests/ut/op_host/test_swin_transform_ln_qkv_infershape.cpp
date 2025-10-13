@@ -9,12 +9,9 @@
  */
 #include <gtest/gtest.h>
 #include <iostream>
-#include "op_proto_test_util.h"
-#include "matrix_calculation_ops.h"
-#include "common/utils/ut_op_common.h"
-#include "array_ops.h"
-#include "util/util.h"
-
+#include "infershape_context_faker.h"
+#include "infershape_case_executor.h"
+#include "base/registry/op_impl_space_registry_v2.h"
 class SwinTransformerLnQKV : public testing::Test {
  protected:
   static void SetUpTestCase() {
@@ -26,22 +23,26 @@ class SwinTransformerLnQKV : public testing::Test {
   }
 };
 
-TEST_F(SwinTransformerLnQKV, swin_transformer_ln_qkv_test_1) {
-ge::op::SwinTransformerLnQKV op;
-op.UpdateInputDesc("query", create_desc({2, 2048, 64}, ge::DT_FLOAT16));
-op.UpdateInputDesc("key", create_desc({2, 2048, 64}, ge::DT_FLOAT16));
-
-op.SetAttr("epsilon", float(0.001));
-op.SetAttr("head_dim", 4);
-op.SetAttr("head_num", 4);
-op.SetAttr("seq_length", 8);
-op.SetAttr("shifts", 0);
-
-int64_t ret = op.InferShapeAndType();
-
-auto attention_output_shape_output_desc = op.GetOutputDescByName("query_output");
-
-Runtime2TestParam param{
-{"epsilon", "head_dim", "head_num", "seq_length", "shifts"}};
-EXPECT_EQ(InferShapeTest(op, param), ge::GRAPH_SUCCESS);
+TEST_F(SwinTransformerLnQKV, swin_transformer_ln_qkv_test_1)
+{
+    gert::InfershapeContextPara infershapeContextPara("SwinTransformerLnQKV",
+    { // input info
+        {{{2, 2048, 64}, {2, 2048, 64}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+        {{{2, 2048, 64}, {2, 2048, 64}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+    }, 
+    { // output info
+        {{{}, {}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+        {{{}, {}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+        {{{}, {}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+    }, 
+    { // attr
+        {"epsilon",Ops::Transformer::AnyValue::CreateFrom<float>(0.001)},
+        {"head_dim",Ops::Transformer::AnyValue::CreateFrom<int64_t>(4)},
+        {"head_num",Ops::Transformer::AnyValue::CreateFrom<int64_t>(4)},
+        {"seq_length",Ops::Transformer::AnyValue::CreateFrom<int64_t>(8)},
+        {"shifts",Ops::Transformer::AnyValue::CreateFrom<std::vector<int64_t>>({0})},
+    }
+    );
+    std::vector<std::vector<int64_t>> expectOutputShape = {{8192, 4, 64, 32},}; // 预期输出shape
+    ExecuteTestCase(infershapeContextPara, ge::GRAPH_SUCCESS, expectOutputShape); // 框架中已提供该接口
 }
