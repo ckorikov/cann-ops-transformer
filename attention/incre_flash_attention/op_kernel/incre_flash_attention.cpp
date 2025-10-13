@@ -16,8 +16,13 @@
 #include "kernel_operator.h"
 #include "incre_flash_attention_tilingkey.h"
 #if (__CCE_AICORE__ == 310) || (defined __DAV_310R6__)
+#ifdef NOT_DYNAMIC_COMPILE
 #include "../regbase/opkernel/incre_flash_attention_entry_regbase.h"
 #include "../../prompt_flash_attention/regbase/opkernel/prompt_flash_attention_entry_regbase.h"
+#else
+#include "./regbase/opkernel/incre_flash_attention_entry_regbase.h"
+#include "../prompt_flash_attention/regbase/opkernel/prompt_flash_attention_entry_regbase.h"
+#endif
 #else
 #include "incre_flash_attention_allvec_new.h"
 #include "incre_flash_attention_cube_310P_kvquant.h"

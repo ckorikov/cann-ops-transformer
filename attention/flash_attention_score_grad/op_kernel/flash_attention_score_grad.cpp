@@ -22,10 +22,17 @@
 #include "kernel_operator.h"
 using namespace AscendC;
 #if __CCE_AICORE__ == 310
+#ifdef NOT_DYNAMIC_COMPILE
 #include "../../common/op_kernel/arch-310/flash_attention_score_grad_entry_regbase.h"
 #include "../../common/op_kernel/arch-310/flash_attention_score_grad_template_tiling_key.h"
 #include "../../common/op_kernel/arch-310/flash_attention_score_grad_tiling_data_regbase.h"
 #include "../../common/op_kernel/arch-310/flash_attention_score_grad_empty_tensor_regbase.h"
+#else
+#include "../common/arch-310/flash_attention_score_grad_entry_regbase.h"
+#include "../common/arch-310/flash_attention_score_grad_template_tiling_key.h"
+#include "../common/arch-310/flash_attention_score_grad_tiling_data_regbase.h"
+#include "../common/arch-310/flash_attention_score_grad_empty_tensor_regbase.h"
+#endif
 #else
 #include "flash_attention_score_grad_tiling.h"
 #include "flash_attention_score_grad_template_tiling_key.h"

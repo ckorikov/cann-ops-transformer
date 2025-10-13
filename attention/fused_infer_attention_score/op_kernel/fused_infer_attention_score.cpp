@@ -16,8 +16,13 @@
 #include "kernel_operator_list_tensor_intf.h"
 // ifa must include before pfa
 #define FIA_ENABLE_MLA
+#ifdef NOT_DYNAMIC_COMPILE
 #include "../../incre_flash_attention/op_kernel/incre_flash_attention.cpp"
 #include "../../prompt_flash_attention/op_kernel/prompt_flash_attention.cpp"
+#else
+#include "../incre_flash_attention/incre_flash_attention.cpp"
+#include "../prompt_flash_attention/prompt_flash_attention.cpp"
+#endif
 #include "fused_infer_attention_score_tilingkey.h"
 
 #if (__CCE_AICORE__ == 310) || (defined __DAV_310R6__)

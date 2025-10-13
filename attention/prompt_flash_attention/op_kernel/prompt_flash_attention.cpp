@@ -16,7 +16,11 @@
 #include "kernel_operator.h"
 #include "prompt_flash_attention_tilingkey.h"
 #if (__CCE_AICORE__ == 310 || (defined __DAV_310R6__))
+#ifdef NOT_DYNAMIC_COMPILE
 #include "../regbase/opkernel/prompt_flash_attention_entry_regbase.h"
+#else
+#include "./regbase/opkernel/prompt_flash_attention_entry_regbase.h"
+#endif
 #elif (__CCE_AICORE__ > 200)
 #include "prompt_flash_attention_base.h"
 #include "prompt_flash_attention_split_n_s_no_tail.h"

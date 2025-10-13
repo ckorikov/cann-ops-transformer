@@ -34,10 +34,17 @@
 #include "flash_attention_score_tiling.h"
 
 #else
+#ifdef NOT_DYNAMIC_COMPILE
 #include "../../common/op_kernel/arch-310/flash_attention_score_empty_tensor_regbase.h"
 #include "../../common/op_kernel/arch-310/flash_attention_score_template_tiling_key.h"
 #include "../../common/op_kernel/arch-310/flash_attention_score_tiling_regbase.h"
 #include "../../common/op_kernel/arch-310/flash_attention_score_entry_regbase.h"
+#else
+#include "../common/arch-310/flash_attention_score_empty_tensor_regbase.h"
+#include "../common/arch-310/flash_attention_score_template_tiling_key.h"
+#include "../common/arch-310/flash_attention_score_tiling_regbase.h"
+#include "../common/arch-310/flash_attention_score_entry_regbase.h"
+#endif
 using namespace optiling;
 #endif
 
