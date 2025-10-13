@@ -27,7 +27,6 @@
 #include "ifa_public_define.h"
 #include "gm_to_l1_iterator.h"
 #include "gm_to_ub_iterator.h"
-#include "l0c_to_l1_iterator.h"
 #include "l0c_to_ub_iterator.h"
 #include "l1_to_bt_iterator.h"
 #include "l1_to_fb_iterator.h"
