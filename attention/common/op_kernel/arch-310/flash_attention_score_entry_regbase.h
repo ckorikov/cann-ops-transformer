@@ -80,6 +80,9 @@ inline __aicore__ void flash_attention_score_regbase(__gm__ uint8_t *query, __gm
     __gm__ uint8_t *workspace, __gm__ uint8_t *tiling)
 {
 #if __CCE_AICORE__ == 310
+    if constexpr(dvTemplateType > dTemplateType || (dTemplateType != 192 && hasRope == 1)) {
+        return;
+    }
     constexpr LayOutTypeEnum layoutTypeEnum = (layout == 0) ? LayOutTypeEnum::None : LayOutTypeEnum::LAYOUT_TND;
     KERNEL_TASK_TYPE_DEFAULT(KERNEL_TYPE_MIX_AIC_1_2);
     #if (ORIG_DTYPE_QUERY == DT_FLOAT)
