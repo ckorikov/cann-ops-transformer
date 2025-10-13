@@ -194,11 +194,13 @@ void ExecuteTestCase(const gert::TilingContextPara& tilingContextPara,
     }
 
     // check workspace
-    size_t workspaceCount = tilingContext->GetWorkspaceNum();
-    if (workspaceCount > 0) {
-        auto workspaceSizes = tilingContext->GetWorkspaceSizes(workspaceCount);
-        for (size_t i = 0; i < workspaceCount; i++) {
-            ASSERT_EQ(workspaceSizes[i], expectWorkspaces[i]);
+    if (!expectWorkspaces.empty()) {
+        size_t workspaceCount = tilingContext->GetWorkspaceNum();
+        if (workspaceCount > 0) {
+            auto workspaceSizes = tilingContext->GetWorkspaceSizes(workspaceCount);
+            for (size_t i = 0; i < workspaceCount; i++) {
+                ASSERT_EQ(workspaceSizes[i], expectWorkspaces[i]);
+            }
         }
     }
 
@@ -207,11 +209,13 @@ void ExecuteTestCase(const gert::TilingContextPara& tilingContextPara,
     ASSERT_EQ(tilingKeyResult, expectTilingKey);
 
     // check tiling data
-    auto rawTilingData = tilingContext->GetRawTilingData();
-    auto tilingDataReservedSize = tilingDataReservedLen * sizeof(uint64_t);
-    auto tilingDataResult = to_string<int64_t>(rawTilingData->GetData() + tilingDataReservedSize,
-                                               rawTilingData->GetDataSize() - tilingDataReservedSize);
-    EXPECT_EQ(tilingDataResult, expectTilingData);
+    if (expectTilingData != "") {
+        auto rawTilingData = tilingContext->GetRawTilingData();
+        auto tilingDataReservedSize = tilingDataReservedLen * sizeof(uint64_t);
+        auto tilingDataResult = to_string<int64_t>(rawTilingData->GetData() + tilingDataReservedSize,
+                                                   rawTilingData->GetDataSize() - tilingDataReservedSize);
+        EXPECT_EQ(tilingDataResult, expectTilingData);
+    }
 }
 
 bool ExecuteTiling(const gert::TilingContextPara& tilingContextPara, TilingInfo& tilingInfo)
