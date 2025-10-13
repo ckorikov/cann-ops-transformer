@@ -415,7 +415,7 @@ TEMPLATES_DEF_NO_DEFAULT
 __aicore__ inline void FABlockCube<TEMPLATE_ARGS>::IterateBmm2(
     mm2ResPos outputTensor, BuffersPolicy3buff<BufferType::L1, false> &inputBuf, RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo)
 {
-    if constexpr (IsSameType<INPUT_T, float>::value || (uint32_t)dVTemplateType > 256) {
+    if constexpr (IsSameType<INPUT_T, float>::value || (uint32_t)dVTemplateType > 256 || (uint32_t)dTemplateType > 256) {
         IterateBmm2L1SplitN(outputTensor, inputBuf, runInfo, constInfo);
     } else {
         Buffer<BufferType::L1, false> mm2A = inputBuf.Get();
