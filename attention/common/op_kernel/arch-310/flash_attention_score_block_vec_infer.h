@@ -755,7 +755,7 @@ __aicore__ inline void FABlockVecInfer<TEMPLATE_ARGS>::PostQuantPerChnl(
     copyInParams.blockCount = gSplitSize;
     copyInParams.blockLen = constInfo.dSizeV * sizeof(POSTQUANT_PARAMS_T);
     copyInParams.srcStride = 0;
-    copyInParams.dstStride = ((int64_t)dVTemplateType - constInfo.dSizeV) / 8; // 8 for align factor
+    copyInParams.dstStride = ((int64_t)dVTemplateType - constInfo.dSizeV) / (32 / sizeof(POSTQUANT_PARAMS_T));  // 32: datablock size
 
     LocalTensor<POSTQUANT_PARAMS_T> postQuantScaleUb =
         this->postQuantScaleQue.template AllocTensor<POSTQUANT_PARAMS_T>();
@@ -789,7 +789,7 @@ __aicore__ inline void FABlockVecInfer<TEMPLATE_ARGS>::PostQuant(ConstInfo<isInf
     uint32_t s1RowCount = constInfo.isGqa ? 1U : runInfo.vec2S1RealSize; // s1=1, gS合轴, bn2分核
     uint32_t gRowCount = constInfo.isGqa ? runInfo.vec2S1RealSize : 1U;  // s1>1, bn1分核
     if (constInfo.isPostQuantPerChnl) {
-        uint64_t perChannelQuantGQAOffset = runInfo.n2oIdx * constInfo.gDv + vec2S1Idx * constInfo.dSizeV +
+        uint64_t perChannelQuantGQAOffset = runInfo.n2oIdx * constInfo.gDv + runInfo.vec2S1BaseSize * vec2S1Idx * constInfo.dSizeV +
                                             constInfo.subBlockIdx * runInfo.firstHalfS1RealSize * constInfo.dSizeV;
         uint64_t perChannelQuantOffset = constInfo.isGqa ?
                                              perChannelQuantGQAOffset :
