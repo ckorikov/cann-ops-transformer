@@ -393,8 +393,8 @@ aclnnStatus aclnnRotaryPositionEmbeddingGrad(
     - 输入张量cos、sin和输出张量dcosOut、dsinOut的shape必须完全相同，且cos和sin的shape必须完全相同。
     - half模式：
       - B，N < 1000；当需要计算dsin、dcos时，B * N <= 1024
-      - 当dy为BNSD时，cos、sin支持11SD、B1SD、BNSD
-      - 当dy为BSND时，cos、sin支持1S1D、BS1D、BSND
+      - 当dy为BNSD时，cos、sin支持11SD、B1SD、BNSD；当cos、sin为B1SD时需满足B < S
+      - 当dy为BSND时，cos、sin支持1S1D、BS1D、BSND；当cos、sin为BS1D时需满足B < S
       - 当dy为SBND时，cos、sin支持S11D、SB1D、SBND
     - interleave模式：
       - B * N < 1000
