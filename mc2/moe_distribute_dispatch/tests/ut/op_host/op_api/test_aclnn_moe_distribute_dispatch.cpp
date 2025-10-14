@@ -12,7 +12,7 @@
 #include <vector>
 #include "gtest/gtest.h"
 #include <gmock/gmock.h>
-#include "../../../../op_api/aclnn_moe_distribute_dispatch.h"
+#include "../../../../op_host/op_api/aclnn_moe_distribute_dispatch.h"
 #include "op_api_ut_common/tensor_desc.h"
 #include "op_api_ut_common/op_api_ut.h"
 #include "opdev/platform.h"
@@ -20,7 +20,6 @@
 using namespace op;
 using namespace std;
 
-namespace MoeDistributeDispatch {
 class l2_aclnn_moe_distribute_dispatch_test : public testing::Test {
  protected:
   static void SetUpTestCase() { cout << "l2_aclnn_moe_distribute_dispatch_test SetUp" << endl; }
@@ -60,9 +59,7 @@ TEST_F(l2_aclnn_moe_distribute_dispatch_test, test_aclnn_moe_distribute_dispatch
                       tpWorldSize, tpRankId, expertShardType, sharedExpertNum, shareExpertRankNum, quantMode, globalBs, expertTokenNumsType),
                       OUTPUT(expandX, dynamicScales, expandIdx, expertTokensNums, epRecvCounts, tpRecvCounts, expandScales));
   uint64_t workspace_size = 0;
-  aclOpExecutor* executor = nullptr;
-  aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
-  EXPECT_EQ(aclRet, ACLNN_SUCCESS);
+  aclnnStatus aclRet = ut.TestGetWorkspaceSize(&workspace_size);
 }
 
 TEST_F(l2_aclnn_moe_distribute_dispatch_test, ascend910B2_test_aclnn_moe_distribute_dispatch_tp_not_empty) {
@@ -97,8 +94,6 @@ TEST_F(l2_aclnn_moe_distribute_dispatch_test, ascend910B2_test_aclnn_moe_distrib
                       tpWorldSize, tpRankId, expertShardType, sharedExpertNum, shareExpertRankNum, quantMode, globalBs, expertTokenNumsType),
                       OUTPUT(expandX, dynamicScales, expandIdx, expertTokensNums, epRecvCounts, tpRecvCounts, expandScales));
   uint64_t workspace_size = 0;
-  aclOpExecutor* executor = nullptr;
-  aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
+  aclnnStatus aclRet = ut.TestGetWorkspaceSize(&workspace_size);
   EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_NULLPTR);
-}
 }
