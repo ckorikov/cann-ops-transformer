@@ -26,11 +26,11 @@ static constexpr MicroAPI::CastTrait castTraitP1 = {MicroAPI::RegLayout::ZERO, M
                                                     MicroAPI::MaskMergeMode::ZEROING, RoundMode::CAST_HYBRID};
 
 // with offset
-template <typename T, typename OUTPUT_T, uint16_t srcD, typename POSTQUANT_PARAMS_T>
+template <typename T, typename OUTPUT_T, typename POSTQUANT_PARAMS_T>
 __aicore__ inline void PostQuantPerChnlVF(const LocalTensor<OUTPUT_T> &dstTensor, const LocalTensor<T> &srcTensor,
                                       const LocalTensor<POSTQUANT_PARAMS_T> &scaleTensor,
                                       const LocalTensor<POSTQUANT_PARAMS_T> &offsetTensor, const uint16_t gRowCount,
-                                      const uint16_t s1RowCount, const uint32_t dSizeV)
+                                      const uint16_t s1RowCount, const uint32_t dSizeV, const uint16_t srcD)
 {
     __ubuf__ OUTPUT_T *dstUb = (__ubuf__ OUTPUT_T *)dstTensor.GetPhyAddr();
     __ubuf__ T *srcUb = (__ubuf__ T *)srcTensor.GetPhyAddr();
@@ -133,10 +133,10 @@ __aicore__ inline void PostQuantPerChnlVF(const LocalTensor<OUTPUT_T> &dstTensor
 }
 
 // without offset
-template <typename T, typename OUTPUT_T, uint16_t srcD, typename POSTQUANT_PARAMS_T>
+template <typename T, typename OUTPUT_T, typename POSTQUANT_PARAMS_T>
 __aicore__ inline void PostQuantPerChnlVF(const LocalTensor<OUTPUT_T> &dstTensor, const LocalTensor<T> &srcTensor,
                                       const LocalTensor<POSTQUANT_PARAMS_T> &scaleTensor, const uint16_t gRowCount,
-                                      const uint16_t s1RowCount, const uint32_t dSizeV)
+                                      const uint16_t s1RowCount, const uint32_t dSizeV, const uint16_t srcD)
 {
     __ubuf__ OUTPUT_T *dstUb = (__ubuf__ OUTPUT_T *)dstTensor.GetPhyAddr();
     __ubuf__ T *srcUb = (__ubuf__ T *)srcTensor.GetPhyAddr();
@@ -223,10 +223,10 @@ __aicore__ inline void PostQuantPerChnlVF(const LocalTensor<OUTPUT_T> &dstTensor
     }
 }
 
-template <typename T, typename OUTPUT_T, uint16_t srcD, bool hasOffset>
+template <typename T, typename OUTPUT_T, bool hasOffset>
 __aicore__ inline void PostQuantPerTensorVF(const LocalTensor<OUTPUT_T> &dstTensor, const LocalTensor<T> &srcTensor,
                                         const float postQuantScaleValue, const float postQuantOffsetValue,
-                                        const uint16_t dealRowCount, const uint32_t dSizeV)
+                                        const uint16_t dealRowCount, const uint32_t dSizeV, const uint16_t srcD)
 {
     __ubuf__ OUTPUT_T *dstUb = (__ubuf__ OUTPUT_T *)dstTensor.GetPhyAddr();
     __ubuf__ float *srcUb = (__ubuf__ T *)srcTensor.GetPhyAddr();

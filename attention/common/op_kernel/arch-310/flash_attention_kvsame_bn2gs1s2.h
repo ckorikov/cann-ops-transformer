@@ -2046,10 +2046,10 @@ __aicore__ inline void FlashAttentionKvsameBN2GS1S2<CHILD_SPEC_TEMPLATE_ARGS>::P
         DataCopyPad(postQuantOffsetUb, postQuantOffsetGm[perChannelQuantOffset], copyInParams, copyInPadParams);
         this->postQuantOffsetQue.template EnQue(postQuantOffsetUb);
         this->postQuantOffsetQue.template DeQue<POSTQUANT_PARAMS_T>();
-        PostQuantPerChnlVF<T, OUTPUT_T, Align64Func((uint16_t)dVTemplateType), POSTQUANT_PARAMS_T>(attenOut[splitOffset], vec2ResUb[splitOffset], postQuantScaleUb, postQuantOffsetUb, gSplitSize, s1RowCount, this->constInfo.dSizeV);
+        PostQuantPerChnlVF<T, OUTPUT_T, POSTQUANT_PARAMS_T>(attenOut[splitOffset], vec2ResUb[splitOffset], postQuantScaleUb, postQuantOffsetUb, gSplitSize, s1RowCount, this->constInfo.dSizeV, (uint16_t)dVTemplateType);
         this->postQuantOffsetQue.FreeTensor(postQuantOffsetUb);
     } else {
-        PostQuantPerChnlVF<T, OUTPUT_T, Align64Func((uint16_t)dVTemplateType), POSTQUANT_PARAMS_T>(attenOut[splitOffset], vec2ResUb[splitOffset], postQuantScaleUb, gSplitSize, s1RowCount, this->constInfo.dSizeV);
+        PostQuantPerChnlVF<T, OUTPUT_T, POSTQUANT_PARAMS_T>(attenOut[splitOffset], vec2ResUb[splitOffset], postQuantScaleUb, gSplitSize, s1RowCount, this->constInfo.dSizeV, (uint16_t)dVTemplateType);
     }
     this->postQuantScaleQue.FreeTensor(postQuantScaleUb);
 
@@ -2060,7 +2060,7 @@ template <typename VEC2_RES_T>
 __aicore__ inline void FlashAttentionKvsameBN2GS1S2<CHILD_SPEC_TEMPLATE_ARGS>::PostQuant(RunInfo<isInfer> &runInfo, LocalTensor<OUTPUT_T> &attenOut, LocalTensor<VEC2_RES_T> &vec2ResUb, int64_t vec2S1Idx)
 {
     if (this->constInfo.isPostQuantPerChnl) {
-        uint64_t perChannelQuantOffset = runInfo.n2oIdx * this->constInfo.gDv  + vec2S1Idx * this->constInfo.dSizeV;
+        uint64_t perChannelQuantOffset = runInfo.n2oIdx * this->constInfo.gDv  + vec2S1Idx * runInfo.vec2S1BaseSize * this->constInfo.dSizeV;
         uint32_t quantSplitOffset;
         for (uint32_t startRow = 0; startRow < runInfo.vec2S1RealSize; startRow++) {
             uint32_t splitOffset = startRow * this->constInfo.dSizeV;     
@@ -2076,7 +2076,7 @@ __aicore__ inline void FlashAttentionKvsameBN2GS1S2<CHILD_SPEC_TEMPLATE_ARGS>::P
             }
         }
     } else {     
-        PostQuantPerTensorVF<T, OUTPUT_T, Align64Func((uint16_t)dVTemplateType), true>(attenOut, vec2ResUb, this->constInfo.postQuantScaleValue, this->constInfo.postQuantOffsetValue, runInfo.vec2S1RealSize, this->constInfo.dSizeV);
+        PostQuantPerTensorVF<T, OUTPUT_T, true>(attenOut, vec2ResUb, this->constInfo.postQuantScaleValue, this->constInfo.postQuantOffsetValue, runInfo.vec2S1RealSize, this->constInfo.dSizeV, (uint16_t)dVTemplateType);
     }
 }
 
@@ -2090,7 +2090,7 @@ __aicore__ inline void FlashAttentionKvsameBN2GS1S2<CHILD_SPEC_TEMPLATE_ARGS>::F
             PostQuantPerChnl(attenOut, accumOutLocal, perChannelQuantOffset, dealRowCount, 1U, 0U, postQuantScaleGm, postQuantOffsetGm); // q_s = 1
         }
     } else {
-        PostQuantPerTensorVF<T, OUTPUT_T, Align64Func((uint16_t)dVTemplateType), true>(attenOut, accumOutLocal, this->constInfo.postQuantScaleValue, this->constInfo.postQuantOffsetValue, dealRowCount, 1U, this->constInfo.dSizeV);
+        PostQuantPerTensorVF<T, OUTPUT_T, true>(attenOut, accumOutLocal, this->constInfo.postQuantScaleValue, this->constInfo.postQuantOffsetValue, dealRowCount, 1U, this->constInfo.dSizeV, (uint16_t)dVTemplateType);
     }
 }
 
