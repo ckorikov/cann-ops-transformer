@@ -14,7 +14,6 @@
 #include "tiling_context_faker.h"
 #include "tiling_case_executor.h"
 
-namespace AllGatherMatmulUT {
 
 class AllGatherMatmulTiling : public testing::Test {
 protected:
@@ -51,7 +50,7 @@ TEST_F(AllGatherMatmulTiling, all_gather_matmul_test_tiling_float16_1) {
         &compileInfo
     );
 
-    uint64_t expectTilingKey = 110UL;
+    uint64_t expectTilingKey = 111UL;
     ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey);
 }
 
@@ -79,7 +78,7 @@ TEST_F(AllGatherMatmulTiling, all_gather_matmul_test_tiling_float16_2) {
         &compileInfo
     );
 
-    uint64_t expectTilingKey = 110UL;
+    uint64_t expectTilingKey = 111UL;
     ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey);
 }
 
@@ -107,7 +106,7 @@ TEST_F(AllGatherMatmulTiling, all_gather_matmul_test_tiling_float16_3) {
         &compileInfo
     );
 
-    uint64_t expectTilingKey = 110UL;
+    uint64_t expectTilingKey = 111UL;
     ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey);
 }
 
@@ -193,8 +192,6 @@ TEST_F(AllGatherMatmulTiling, all_gather_matmul_test_tiling_n_0) {
         &compileInfo
     );
 
-    uint64_t expectTilingKey = 110UL;
+    uint64_t expectTilingKey = 111UL;
     ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey);
 }
-
-} // AllGatherMatmulUT
