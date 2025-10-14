@@ -86,7 +86,7 @@ aclnnStatus aclnnMatmulReduceScatter(
   <tr>
    <td>bias</td>
    <td>输入</td>
-   <td>Device侧的aclTensor，即计算公式中的bias，支持传入空指针。当前版本仅支持一维输入，且暂不支持bias输入为非0的场景。</td>
+   <td>Device侧的aclTensor，即计算公式中的bias，支持传入空指针。当前版本仅支持一维输入。<br><term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：暂不支持bias输入为非0的场景。<br><term>昇腾910_95 AI处理器</term>：支持bias输入为非0的场景。</td>
    <td>FLOAT16、BFLOAT16</td>
    <td>ND</td>
   </tr>
