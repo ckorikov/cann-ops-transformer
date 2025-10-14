@@ -208,7 +208,6 @@ extern "C" __global__ __aicore__ void matmul_all_reduce(
         INVOKE_MC2_WEIGHT_QUANT_KERNEL(true, QuantType::PER_TENSOR, true, false);
     }
 #endif
-
     if (TILING_KEY_IS(2000030004000012100UL)) {
         INVOKE_MC2_WEIGHT_QUANT_ADAPTIVE_SPLIT_KERNEL(
             true, false, QuantType::PER_CHANNEL, DTYPE_BIAS, VEC_ANTIQUANT_CONFIG_0);
@@ -453,47 +452,47 @@ extern "C" __global__ __aicore__ void matmul_all_reduce(
             MatmulAllReduceQuantPertokenInt8, DTYPE_Y, opTile, opTail, false, true);
     }
 #elif defined(MC2_WEIGHT_QUANT)
-    if (TILING_KEY_IS(310100UL)) {
+    if (TILING_KEY_IS(18446744073709551615)) {   // 310100
         INVOKE_MC2_WEIGHT_QUANT_910_OP_IMPL(false, QuantType::PER_TENSOR, false);
-    } else if (TILING_KEY_IS(311100UL)) {
+    } else if (TILING_KEY_IS(365056114230017)) { // 311100
         INVOKE_MC2_WEIGHT_QUANT_910_OP_IMPL(false, QuantType::PER_TENSOR, true);
-    } else if (TILING_KEY_IS(310110UL)) {
+    } else if (TILING_KEY_IS(365056651100929)) { // 310110
         INVOKE_MC2_WEIGHT_QUANT_910_OP_IMPL(true, QuantType::PER_TENSOR, false);
-    } else if (TILING_KEY_IS(311110UL)) {
+    } else if (TILING_KEY_IS(365331529007873)) { // 311110
         INVOKE_MC2_WEIGHT_QUANT_910_OP_IMPL(true, QuantType::PER_TENSOR, true);
 #if (FORMAT_X2 == FORMAT_FRACTAL_NZ)
-    } else if (TILING_KEY_IS(810200UL)) {
+    } else if (TILING_KEY_IS(365057993605889)) { // 810200
 #else
-    } else if (TILING_KEY_IS(310200UL)) {
+    } else if (TILING_KEY_IS(365057187971841)) { // 310200
 #endif
         INVOKE_MC2_WEIGHT_QUANT_910_OP_IMPL(false, QuantType::PER_CHANNEL, false);
 #if (FORMAT_X2 == FORMAT_FRACTAL_NZ)
-    } else if (TILING_KEY_IS(811200UL)) {
+    } else if (TILING_KEY_IS(365332871512833)) { // 811200
 #else
-    } else if (TILING_KEY_IS(311200UL)) {
+    } else if (TILING_KEY_IS(365332065878785)) { // 311200
 #endif
         INVOKE_MC2_WEIGHT_QUANT_910_OP_IMPL(false, QuantType::PER_CHANNEL, true);
 #if (FORMAT_X2 == FORMAT_FRACTAL_NZ)
-    } else if (TILING_KEY_IS(810210UL)) {
+    } else if (TILING_KEY_IS(365057725170433)) { // 810210
 #else
-    } else if (TILING_KEY_IS(310210UL)) {
+    } else if (TILING_KEY_IS(365057724842753)) { // 310210
 #endif
         INVOKE_MC2_WEIGHT_QUANT_910_OP_IMPL(true, QuantType::PER_CHANNEL, false);
 #if (FORMAT_X2 == FORMAT_FRACTAL_NZ)
-    } else if (TILING_KEY_IS(811210UL)) {
+    } else if (TILING_KEY_IS(365332603077377)) { // 811210
 #else
-    } else if (TILING_KEY_IS(311210UL)) {
+    } else if (TILING_KEY_IS(365332602749697)) { // 311210
 #endif
         INVOKE_MC2_WEIGHT_QUANT_910_OP_IMPL(true, QuantType::PER_CHANNEL, true);
-    } else if (TILING_KEY_IS(310300UL)) {
+    } else if (TILING_KEY_IS(365058261713665)) { // 310300
         INVOKE_MC2_WEIGHT_QUANT_910_OP_IMPL(false, QuantType::PER_GROUP, false);
-    } else if (TILING_KEY_IS(310310UL)) {
+    } else if (TILING_KEY_IS(365058798584577)) { // 310310
         INVOKE_MC2_WEIGHT_QUANT_910_OP_IMPL(true, QuantType::PER_GROUP, false);
-    } else if (TILING_KEY_IS(311300UL)) {
+    } else if (TILING_KEY_IS(365333139620609)) { // 311300
         INVOKE_MC2_WEIGHT_QUANT_910_OP_IMPL(false, QuantType::PER_GROUP, true);
-    } else if (TILING_KEY_IS(311310UL)) {
+    } else if (TILING_KEY_IS(365333676491521)) { // 311310UL
         INVOKE_MC2_WEIGHT_QUANT_910_OP_IMPL(true, QuantType::PER_GROUP, true);
-    } else if (TILING_KEY_IS(10000000000000000008UL)) {
+    } else if (TILING_KEY_IS(10000000000000000008UL)) { // 空kernel模板
         KERNEL_TASK_TYPE(10000000000000000008UL, KERNEL_TYPE_MIX_AIV_1_0);
         INVOKE_MC2_EMPTY_TENSOR_OP_IMPL();
     }
@@ -519,23 +518,23 @@ extern "C" __global__ __aicore__ void matmul_all_reduce(
     }
 #elif (ORIG_DTYPE_X1 == DT_FLOAT16 && ORIG_DTYPE_X2 == DT_INT8 && FORMAT_X2 != FORMAT_ND) // 归一化310p weightNZ伪量化
     // transA, transB, antiQuantType, hasAntiQuantOffset
-    if (TILING_KEY_IS(80010)) {
+    if (TILING_KEY_IS(13195213800193)) { // 80010
         INVOKE_WEIGHT_QUANT_BMM_OP_IMPL_310(MatmulAllReduceWeightQuant310, false, true, QuantType::PER_TENSOR, false);
-    } else if (TILING_KEY_IS(80011)) {
+    } else if (TILING_KEY_IS(13195482235649)) {   // 80011
         INVOKE_WEIGHT_QUANT_BMM_OP_IMPL_310(MatmulAllReduceWeightQuant310, true, true, QuantType::PER_TENSOR, false);
-    } else if (TILING_KEY_IS(80020)) {
+    } else if (TILING_KEY_IS(13196287542017)) {   // 80020
         INVOKE_WEIGHT_QUANT_BMM_OP_IMPL_310(MatmulAllReduceWeightQuant310, false, true, QuantType::PER_CHANNEL, false);
-    } else if (TILING_KEY_IS(80021)) {
+    } else if (TILING_KEY_IS(13196555977473)) {   // 80021
         INVOKE_WEIGHT_QUANT_BMM_OP_IMPL_310(MatmulAllReduceWeightQuant310, true, true, QuantType::PER_CHANNEL, false);
-    } else if (TILING_KEY_IS(80110)) {
+    } else if (TILING_KEY_IS(13470091707137)) {   // 80110
         INVOKE_WEIGHT_QUANT_BMM_OP_IMPL_310(MatmulAllReduceWeightQuant310, false, true, QuantType::PER_TENSOR, true);
-    } else if (TILING_KEY_IS(80111)) {
+    } else if (TILING_KEY_IS(13470360142593)) {   // 80111
         INVOKE_WEIGHT_QUANT_BMM_OP_IMPL_310(MatmulAllReduceWeightQuant310, true, true, QuantType::PER_TENSOR, true);
-    } else if (TILING_KEY_IS(80120)) {
+    } else if (TILING_KEY_IS(13471165448961)) {   // 80120
         INVOKE_WEIGHT_QUANT_BMM_OP_IMPL_310(MatmulAllReduceWeightQuant310, false, true, QuantType::PER_CHANNEL, true);
-    } else if (TILING_KEY_IS(80121)) {
+    } else if (TILING_KEY_IS(13471433884417)) {   // 80121
         INVOKE_WEIGHT_QUANT_BMM_OP_IMPL_310(MatmulAllReduceWeightQuant310, true, true, QuantType::PER_CHANNEL, true);
-    } else if (TILING_KEY_IS(2100000UL)) {
+    } else if (TILING_KEY_IS(2100000UL)) { // 空kernel
         GET_TILING_DATA_WITH_STRUCT(WeightQuantMatmulAllReduceNzTilingData, tilingData, tilingGM);
         WeightQuantEmptyTensorKernel(biasGM, cGM, workspaceGM, &tilingData, &hcclServer);
     }

@@ -53,14 +53,14 @@ TILING_DATA_FIELD_DEF_STRUCT(WeightQuantBatchMatmulV2NzTilingData, tilematmulTil
 TILING_DATA_FIELD_DEF_STRUCT(WeightQuantBatchMatmulV2NzTilingData, tailmatmulTiling);
 END_TILING_DATA_DEF;
 
-REGISTER_TILING_DATA_CLASS(MatmulAllReduce_80010, WeightQuantMatmulAllReduceNzTilingData);
-REGISTER_TILING_DATA_CLASS(MatmulAllReduce_80011, WeightQuantMatmulAllReduceNzTilingData);
-REGISTER_TILING_DATA_CLASS(MatmulAllReduce_80020, WeightQuantMatmulAllReduceNzTilingData);
-REGISTER_TILING_DATA_CLASS(MatmulAllReduce_80021, WeightQuantMatmulAllReduceNzTilingData);
-REGISTER_TILING_DATA_CLASS(MatmulAllReduce_80110, WeightQuantMatmulAllReduceNzTilingData);
-REGISTER_TILING_DATA_CLASS(MatmulAllReduce_80111, WeightQuantMatmulAllReduceNzTilingData);
-REGISTER_TILING_DATA_CLASS(MatmulAllReduce_80120, WeightQuantMatmulAllReduceNzTilingData);
-REGISTER_TILING_DATA_CLASS(MatmulAllReduce_80121, WeightQuantMatmulAllReduceNzTilingData);
+REGISTER_TILING_DATA_CLASS(MatmulAllReduce_13195213800193, WeightQuantMatmulAllReduceNzTilingData);
+REGISTER_TILING_DATA_CLASS(MatmulAllReduce_13195482235649, WeightQuantMatmulAllReduceNzTilingData);
+REGISTER_TILING_DATA_CLASS(MatmulAllReduce_13196287542017, WeightQuantMatmulAllReduceNzTilingData);
+REGISTER_TILING_DATA_CLASS(MatmulAllReduce_13196555977473, WeightQuantMatmulAllReduceNzTilingData);
+REGISTER_TILING_DATA_CLASS(MatmulAllReduce_13470091707137, WeightQuantMatmulAllReduceNzTilingData);
+REGISTER_TILING_DATA_CLASS(MatmulAllReduce_13470360142593, WeightQuantMatmulAllReduceNzTilingData);
+REGISTER_TILING_DATA_CLASS(MatmulAllReduce_13471165448961, WeightQuantMatmulAllReduceNzTilingData);
+REGISTER_TILING_DATA_CLASS(MatmulAllReduce_13471433884417, WeightQuantMatmulAllReduceNzTilingData);
 
 using AntiQuantType = QuantType;
 
@@ -236,7 +236,7 @@ protected:
     bool CheckA16W4Shape(const uint64_t kValue, const uint64_t nValue);
     bool CheckPlatformInfo() const;
     bool CheckMXScenarioScaleShape(
-        const uint64_t dimZeroValue, const uint64_t kValue, 
+        const uint64_t dimZeroValue, const uint64_t kValue,
         const gert::StorageShape* scaleShape, const bool isPertoken, const bool isMXfp4) const;
     AllReduceScenario GetAllReduceScenario(
         const ge::DataType aType, const ge::DataType bType, const gert::StorageShape* dequantScale,
