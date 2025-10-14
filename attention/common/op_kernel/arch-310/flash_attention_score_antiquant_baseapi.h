@@ -250,7 +250,6 @@ protected:
     __aicore__ inline void setConstAntiTaskParam();
     __aicore__ inline void InitOutputSingleCore();
     __aicore__ inline void InitLseOutputSingleCore();
-    __aicore__ inline bool IsLastBN(uint32_t bnStartIdx, uint32_t bnEndIdx);
     __aicore__ inline void ComputeAxisIdxByBnAndGs1(int64_t bnIndx, int64_t gS1Index, RunParamStr<isInfer>& runParam);
     __aicore__ inline void SetRunInfo(RunInfo<isInfer> &runInfo, RunParamStr<isInfer>& runParam, int64_t taskId, int64_t s2LoopCount,
         int64_t s2LoopLimit, int64_t multiCoreInnerIdx);
@@ -846,12 +845,7 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
     }
     int64_t multiCoreInnerIdx = 1;
     for (uint32_t bnIdx = bnStartIdx; bnIdx < bnEndIdx; bnIdx++) {
-        bool lastBN;
-        if constexpr (layout == LayOutTypeEnum::LAYOUT_TND) {
-            lastBN = IsLastBN(bnIdx, bnEndIdx);
-        } else {
-            lastBN = (bnIdx == bnEndIdx - 1);
-        }
+        bool lastBN = (bnIdx == bnEndIdx - 1);
         if constexpr (!isFd) {
             runParam.boIdx = bnIdx / (this->constInfo.n2Size * this->constInfo.headNumRatio);
             runParam.n2oIdx = (bnIdx / this->constInfo.headNumRatio) % this->constInfo.n2Size;
@@ -872,25 +866,45 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
             }
             runParam.s1LoopTimes = 1;
         }
-        for (int64_t gS1Index = gS1StartIdx; gS1Index <runParam.s1LoopTimes; gS1Index++) {
-            s2LoopLimit = 0;
-            runParam.s2LoopStartIdx = 0;
-            this->ComputeAxisIdxByBnAndGs1(bnIdx, gS1Index, runParam);
-            bool s1NoNeedCalc = ComputeParamS1<CHILD_SPEC_TEMPLATE_ARGS, useDn>(runParam, this->constInfo,
-                gS1Index, this->actualSeqQlenAddr, this->pseInfo);
-            bool s2NoNeedCalc = ComputeS2LoopInfo<CHILD_SPEC_TEMPLATE_ARGS, useDn>(runParam, this->constInfo);
-            bool lastLoopThisCore = lastBN && (gS1Index == runParam.s1LoopTimes - 1);
-            if ((s1NoNeedCalc || s2NoNeedCalc) && !lastLoopThisCore) {
-                continue;
+        int64_t tempGS1End = lastBN ? (runParam.s1LoopTimes + 2) : runParam.s1LoopTimes;
+        for (int64_t gS1Index = gS1StartIdx; gS1Index < tempGS1End; ++gS1Index) {
+            bool notLastTwoLoop = true;
+            bool notLast = true;
+
+            if (lastBN) {
+                int32_t extraGS1 = gS1Index - runParam.s1LoopTimes;
+                switch (extraGS1) {
+                    case -1:
+                        isLastBmm1 = true;
+                        break;
+                    case 0:
+                        notLastTwoLoop = false;
+                        break;
+                    case 1:
+                        notLast = false;
+                        notLastTwoLoop = false;
+                        break;
+                    default:
+                        break;
+                }
+            }
+            if (notLastTwoLoop) {
+                this->ComputeAxisIdxByBnAndGs1(bnIdx, gS1Index, runParam);
+                bool s1NoNeedCalc = ComputeParamS1<CHILD_SPEC_TEMPLATE_ARGS, useDn>(runParam, this->constInfo,
+                    gS1Index, this->actualSeqQlenAddr, this->pseInfo);
+                bool s2NoNeedCalc = ComputeS2LoopInfo<CHILD_SPEC_TEMPLATE_ARGS, useDn>(runParam, this->constInfo);
+                // s1和s2有任意一个不需要算, 则continue, 如果是当前核最后一次循环，则补充计算taskIdx+2的部分
+                if (s1NoNeedCalc || s2NoNeedCalc) {
+                    continue;
+                }
+                s2LoopLimit = runParam.s2LoopEndIdx - 1;
+            } else {
+                runParam.s2LoopStartIdx = 0;
+                s2LoopLimit = 0;
             }
 
-            s2LoopLimit = runParam.s2LoopEndIdx - 1;
-            if (lastLoopThisCore) {
-                isLastBmm1 = true;
-                s2LoopLimit += 2; // 2 is Preload Num
-            }
             for (int64_t s2LoopCount = runParam.s2LoopStartIdx; s2LoopCount <= s2LoopLimit; s2LoopCount++) {
-                if (s2LoopCount < runParam.s2LoopEndIdx) {
+                if (notLastTwoLoop) {
                     RunInfo<isInfer> &runInfo1 = runInfo[taskId & 3];  // 3 is mod 4
                     this->SetRunInfo(runInfo1, runParam, taskId, s2LoopCount, runParam.s2LoopEndIdx - 1, multiCoreInnerIdx);
                     if ASCEND_IS_AIV {
@@ -903,7 +917,7 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
                         subTaskId++;
                     }
                 }
-                if (taskId >= 1 && (s2LoopCount < runParam.s2LoopEndIdx + 1)) {
+                if (taskId >= 1 && notLast) {
                     RunInfo<isInfer> &runInfo2 = runInfo[(taskId - 1) & 3];  // 3 is mod 4
                     if ASCEND_IS_AIV {
                         ProcessVec1(runInfo2);
@@ -916,7 +930,7 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
                         subTaskId++;
                     }
                 }
-                if (taskId >= 2 && (s2LoopCount < runParam.s2LoopEndIdx + 2)) {  // Later Than mm1 is 2 
+                if (taskId >= 2) {  // Later Than mm1 is 2 
                     if ASCEND_IS_AIV {
                         RunInfo<isInfer> &runInfo3 = runInfo[(taskId - 2) & 3]; // 3 is mod 4
                         ProcessVec2(runInfo3);
@@ -935,27 +949,6 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
             FlashDecodeCompute();
         }
     }
-}
-
-CHILD_SPEC_TEMPLATE_ANTI
-__aicore__ inline bool FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_ARGS_ANTI>::IsLastBN(uint32_t bnStartIdx, uint32_t bnEndIdx)
-{
-    // TND n2Size > 1时，可能存在 /n2Size计算后，boIdx == boStart情况，actualSeqQlen和自己比较。
-    if (constInfo.n2Size > 1) {
-        return bnStartIdx == bnEndIdx - 1;
-    }
-    if (bnStartIdx != bnEndIdx - 1) {
-        for (uint32_t bnIdx = bnStartIdx + 1; bnIdx < bnEndIdx; bnIdx++) {
-            uint32_t boIdx = bnIdx / constInfo.n2Size;
-            uint32_t boStart = bnStartIdx / constInfo.n2Size;
-            if (actualSeqQlenAddr[boIdx] != actualSeqQlenAddr[boStart]) {
-                if (!isPa && (actualSeqKvlenAddr[boIdx] == actualSeqKvlenAddr[boIdx - 1]))
-                    continue;
-                return false;
-            }
-        }
-    }
-    return true;
 }
 
 CHILD_SPEC_TEMPLATE_ANTI
