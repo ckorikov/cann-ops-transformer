@@ -523,9 +523,9 @@ public:
     PromptFlashAttentionTiling(fe::PlatFormInfos* platFormInfo): ascendcPlatform(platFormInfo) {}
     ge::graphStatus RunBigKernelTilingWithParams(ContextParamsForPFATiling& contextKeyParams,
                                                 uint64_t& tilingKey, uint32_t& blockDimToBeSet,
-                                                PromptFlashAttentionTilingData& tilingData);
+                                                PromptFlashAttentionTilingData* tilingData);
     ge::graphStatus PromptFlashAttentionSetTilingData(gert::TilingContext* context,
-                                                    PromptFlashAttentionTilingData& tilingData);
+                                                    PromptFlashAttentionTilingData* tilingData);
     bool CheckNonEmptyShapeExceptions(ContextParamsForPFATiling& contextKeyParams, const gert::StorageShape* shape,
                                       const std::string &sName);
     bool fromPFA_ = true;
@@ -534,45 +534,45 @@ public:
 protected:
     ge::graphStatus ConvertContextToPFAParams(gert::TilingContext* context, ContextParamsForPFATiling& contextKeyParams);
     ge::graphStatus TilingGetTilingKeyAttentionAscendC(uint64_t& tilingKey, ContextParamsForPFATiling& contextKeyParams,
-                                                       bool useNewTiling, PromptFlashAttentionTilingData& tilingData);
-    void PromptFlashAttentionSplitNS(ContextParamsForPFATiling& contextKeyParams, PromptFlashAttentionTilingData& tilingData, uint32_t curCoreNum, std::vector<int64_t>& actualSeqLengths);
-    void PromptFlashAttentionSplitNSNew(ContextParamsForPFATiling& contextKeyParams, PromptFlashAttentionTilingData& tilingData, uint32_t curCoreNum, std::vector<int64_t>& actualSeqLengths,
+                                                       bool useNewTiling, PromptFlashAttentionTilingData* tilingData);
+    void PromptFlashAttentionSplitNS(ContextParamsForPFATiling& contextKeyParams, PromptFlashAttentionTilingData* tilingData, uint32_t curCoreNum, std::vector<int64_t>& actualSeqLengths);
+    void PromptFlashAttentionSplitNSNew(ContextParamsForPFATiling& contextKeyParams, PromptFlashAttentionTilingData* tilingData, uint32_t curCoreNum, std::vector<int64_t>& actualSeqLengths,
                                                     std::vector<int64_t>& actualSeqLengthsKV, int64_t actualSharedPrefixLen, bool useBalanceTiling);
-    void GetPreNextTokensLeftUp(PromptFlashAttentionTilingData& tilingData, uint32_t actualSeqLength, uint32_t actualSeqLengthKV, int64_t& preTokensLeftUp, int64_t& nextTokensLeftUp);
-    void SetSplitCoreMode(PromptFlashAttentionTilingData& tilingData, uint32_t sOuterFactor);
-    void PromptFlashAttentionSplitSeqOneN(PromptFlashAttentionTilingData& tilingData, uint32_t curCoreNum, bool isVectorCore);
-    bool EnableMTE2BmmPipe(PromptFlashAttentionTilingData& tilingData, matmul_tiling::MatmulApiTiling& bmm,
+    void GetPreNextTokensLeftUp(PromptFlashAttentionTilingData* tilingData, uint32_t actualSeqLength, uint32_t actualSeqLengthKV, int64_t& preTokensLeftUp, int64_t& nextTokensLeftUp);
+    void SetSplitCoreMode(PromptFlashAttentionTilingData* tilingData, uint32_t sOuterFactor);
+    void PromptFlashAttentionSplitSeqOneN(PromptFlashAttentionTilingData* tilingData, uint32_t curCoreNum, bool isVectorCore);
+    bool EnableMTE2BmmPipe(PromptFlashAttentionTilingData* tilingData, matmul_tiling::MatmulApiTiling& bmm,
                            TCubeTiling& bmmTilingData, uint32_t sOuterFactor, uint32_t sInnerFactor);
     void EnableBmmDoubleBuffer(TCubeTiling& bmmTilingData);
     void PromptFlashAttention310PSetBmm1(matmul_tiling::MatmulApiTiling& bmm1);
     void PromptFlashAttention310PSetBmm2(matmul_tiling::MatmulApiTiling& bmm2);
-    bool PromptFlashAttentionCheckBmm1(PromptFlashAttentionTilingData& tilingData, TCubeTiling& bmm1TilingData,
+    bool PromptFlashAttentionCheckBmm1(PromptFlashAttentionTilingData* tilingData, TCubeTiling& bmm1TilingData,
                                        int64_t l1SizeRemain, int64_t l0CSize,
                                        uint32_t sOuterFactor, uint32_t sInnerFactor,
                                        bool allGM = false, bool autoBaseMNK = false);
-    bool PromptFlashAttentionCheckBmm2(PromptFlashAttentionTilingData& tilingData, TCubeTiling& bmm1TilingData,
+    bool PromptFlashAttentionCheckBmm2(PromptFlashAttentionTilingData* tilingData, TCubeTiling& bmm1TilingData,
                                        int64_t l1SizeRemain, int64_t l0CSize,
                                        uint32_t sOuterFactor, uint32_t sInnerFactor,
                                        uint32_t dSplitFactor, bool allGM = false, bool autoBaseMNK = false);
-    void PromptFlashAttentionSetTensorSize(PromptFlashAttentionTilingData& tilingData,
+    void PromptFlashAttentionSetTensorSize(PromptFlashAttentionTilingData* tilingData,
                         PromptAttentionSingleCoreTensorSize& tensorSize, uint32_t sOuterFactor, uint32_t sInnerFactor);
-    bool PromptFlashAttentionCheckArgsLegal(PromptFlashAttentionTilingData& tilingData, int64_t ubSize, int64_t l1Size,
+    bool PromptFlashAttentionCheckArgsLegal(PromptFlashAttentionTilingData* tilingData, int64_t ubSize, int64_t l1Size,
                                             int64_t l0CSize, uint32_t typeByteSize, uint32_t& sOuterFactor,
                                             uint32_t sInnerFactor, bool& updateDiv, uint32_t maskTypeSize, uint32_t dSplitFactor);
-    ge::graphStatus AdjustBasicBlock(PromptFlashAttentionTilingData& tilingData, uint32_t& sOuterFactor);
-    ge::graphStatus PromptFlashAttentionApiTiling(PromptFlashAttentionTilingData& tilingData, uint32_t typeSize,
+    ge::graphStatus AdjustBasicBlock(PromptFlashAttentionTilingData* tilingData, uint32_t& sOuterFactor);
+    ge::graphStatus PromptFlashAttentionApiTiling(PromptFlashAttentionTilingData* tilingData, uint32_t typeSize,
                                                   uint32_t sOuterFactor, uint32_t softmaxSInnerFactor, uint32_t softmaxSOuterFactor);
     ge::graphStatus GetRectangleFactor(uint32_t seqSplit, std::queue<uint32_t>& sQueue, int32_t threshold = 16);
     ge::graphStatus SetInputLayout(const char* layout);
     bool GetApiTmpSize(const uint32_t sOuterFactor, const uint32_t sInnerFactor,
                         const uint32_t typeByteSize);
-    uint32_t CalculateL1SizeUsed(PromptFlashAttentionTilingData& tilingData, const uint32_t typeByteSize);
+    uint32_t CalculateL1SizeUsed(PromptFlashAttentionTilingData* tilingData, const uint32_t typeByteSize);
     bool CheckInputDimAndHeadNum(ContextParamsForPFATiling& contextKeyParams, uint32_t nQAttr, uint32_t nKVAttr);
     bool SetTilingHeadNumRatio(ContextParamsForPFATiling& contextKeyParams, const int32_t* numQueryHeads,
-                               const int32_t* numKeyValueHeads, PromptFlashAttentionTilingData& tilingData);
-    void PromptFlashAttentionInitOutputSplit(uint64_t totalSize, PromptFlashAttentionTilingData &tilingData,
+                               const int32_t* numKeyValueHeads, PromptFlashAttentionTilingData* tilingData);
+    void PromptFlashAttentionInitOutputSplit(uint64_t totalSize, PromptFlashAttentionTilingData* tilingData,
                                              uint32_t curCoreNum);
-    void PromptFlashAttentionInitSoftmaxLseOutputSplit(uint64_t totalSize, PromptFlashAttentionTilingData &tilingData);
+    void PromptFlashAttentionInitSoftmaxLseOutputSplit(uint64_t totalSize, PromptFlashAttentionTilingData* tilingData);
     void Align(uint32_t &num);
     ge::graphStatus GetBasicShape(uint32_t &b, uint32_t &s, uint32_t &h, uint32_t &seqInnerSize,
                                 const gert::StorageShape *queryShape, const gert::StorageShape *keyShape, const uint32_t n);
@@ -581,11 +581,11 @@ protected:
                                       size_t actualLenDims, size_t actualLenDimsKV);
     ge::graphStatus GetBasicShape910B(uint32_t &b, uint32_t &s, uint32_t &h, uint32_t &seqInnerSize,
                                       const gert::StorageShape *queryShape, const gert::StorageShape *keyShape, const uint32_t n);
-    size_t GetPFAWorkSpaceSize(PromptFlashAttentionTilingData& tilingData);
+    size_t GetPFAWorkSpaceSize(PromptFlashAttentionTilingData* tilingData);
     void GetMatMulType(matmul_tiling::DataType &mmInputType, matmul_tiling::DataType &mmOutputType);
     ge::graphStatus CheckKeyValueParamsConsistency(const ContextParamsForPFATiling& contextKeyParams);
     bool CheckActualSeqLength(ContextParamsForPFATiling& contextKeyParams, uint32_t b, uint32_t sQ, uint32_t sKV,
-                              const gert::Tensor* actualSeqLenQ, const gert::Tensor* actualSeqLenKV, InputLayout inLayout, PromptFlashAttentionTilingData& tilingData);
+                              const gert::Tensor* actualSeqLenQ, const gert::Tensor* actualSeqLenKV, InputLayout inLayout, PromptFlashAttentionTilingData* tilingData);
     bool CheckPseShiftTypeAndShape(ContextParamsForPFATiling& contextKeyParams, const gert::StorageShape *pseShiftShape,
                                    uint32_t b, uint32_t n, uint32_t s1, uint32_t s2);
     ge::graphStatus processPageAttentionInputFlag(ContextParamsForPFATiling& contextKeyParams);
@@ -607,45 +607,45 @@ protected:
                                    int32_t b, int32_t n, int32_t h, int32_t headNumRatio);
     bool CheckAttenMaskShape(ContextParamsForPFATiling& contextKeyParams, const int32_t* sparseMode, const gert::StorageShape* attenMaskShape,
                              uint32_t sQ, uint32_t sK, uint32_t batchSize);
-    bool CheckPAAntiquantSupportScenarios(ContextParamsForPFATiling& contextKeyParams, PromptFlashAttentionTilingData& tilingData);
+    bool CheckPAAntiquantSupportScenarios(ContextParamsForPFATiling& contextKeyParams, PromptFlashAttentionTilingData* tilingData);
     bool CheckPerchannelAntiquantParamsShape(ContextParamsForPFATiling& contextKeyParams, const gert::StorageShape* antiquantScaleShape, const gert::StorageShape* antiquantOffsetShape, 
                                              const uint32_t n, const uint32_t d, const uint32_t h, uint32_t paramFirstDim);
     bool CheckPerchannelBSNDParamsShape(ContextParamsForPFATiling& contextKeyParams, const gert::StorageShape* antiquantScaleShape, const gert::StorageShape* antiquantOffsetShape, 
                                         const uint32_t n, const uint32_t d, uint32_t paramFirstDim);
     bool CheckAntiquantParamsShape(ContextParamsForPFATiling& contextKeyParams, const gert::StorageShape* antiquantScaleShape,
                                    const gert::StorageShape* antiquantOffsetShape, const uint32_t n, const uint32_t d, const uint32_t h,
-                                   PromptFlashAttentionTilingData& tilingData);
+                                   PromptFlashAttentionTilingData* tilingData);
     ge::graphStatus CheckPostQuantParams(const ContextParamsForPFATiling& contextKeyParams, uint32_t h, uint32_t n) const;
-    ge::graphStatus PromptFlashAttentionCVDiffSetTensorSize(PromptFlashAttentionTilingData& tilingData,
+    ge::graphStatus PromptFlashAttentionCVDiffSetTensorSize(PromptFlashAttentionTilingData* tilingData,
         PromptAttentionSingleCoreTensorSize& tensorSize, uint32_t sOuterFactor,
         uint32_t sInnerFactor, uint32_t softmaxSOuterFactor);
-    bool PromptFlashAttentionComputeCVDiffParams(PromptFlashAttentionTilingData& tilingData,
+    bool PromptFlashAttentionComputeCVDiffParams(PromptFlashAttentionTilingData* tilingData,
         int64_t ubSize, int64_t l1Size, int64_t l0CSize, uint32_t typeByteSize,
         uint32_t& sOuterFactor, uint32_t &sInnerFactor, uint32_t maskTypeSize, uint32_t &softmaxSOuterFactor);
-    bool FindOptimalTilingBasicBLock(PromptFlashAttentionTilingData& tilingData,
+    bool FindOptimalTilingBasicBLock(PromptFlashAttentionTilingData* tilingData,
         uint32_t& sOuterFactor, uint32_t &sInnerFactor, uint32_t &softmaxSOuterFactor,
         int64_t ubSize, uint32_t typeByteSize, uint32_t maskTypeSize);
-    bool FindOptimalTilingSouter(PromptFlashAttentionTilingData& tilingData,
+    bool FindOptimalTilingSouter(PromptFlashAttentionTilingData* tilingData,
         uint32_t& sOuterFactor, uint32_t &sInnerFactor, uint32_t &softmaxSOuterFactor,
         int64_t ubSize, uint32_t typeByteSize, uint32_t maskTypeSize);
     void InferTilingMod(const ContextParamsForPFATiling& contextKeyParams, const std::vector<int64_t>& actualSeqLengths, const std::vector<int64_t>& actualSeqLengthsKV,
         uint32_t actualSeqArrayLen, uint32_t hDivN, uint32_t seqInnerSize, int32_t sparseModeVal);
     ge::graphStatus AdjustCVTiling(uint32_t hDivN, uint32_t n, int64_t middle_actualSeqLengths,
         int64_t ubSize, int64_t l1Size, int64_t l0CSize, uint32_t maskElemSize,
-        uint32_t& sOuterFactor, uint32_t& sInnerFactor, PromptFlashAttentionTilingData& tilingData);
+        uint32_t& sOuterFactor, uint32_t& sInnerFactor, PromptFlashAttentionTilingData* tilingData);
     ge::graphStatus AdjustCVTilingCVDiff(int64_t ubSize, int64_t l1Size, int64_t l0CSize,
         uint32_t maskElemSize, uint32_t& sOuterFactor, uint32_t& sInnerFactor, uint32_t& softmaxSOuterFactor,
-        PromptFlashAttentionTilingData& tilingData);
+        PromptFlashAttentionTilingData* tilingData);
     bool CheckSparseModeRightDown(ContextParamsForPFATiling& contextKeyParams, const std::vector<int64_t>& actualSeqLengths,
                                   const std::vector<int64_t>& actualSeqLengthsKV, size_t lenDims);
     ge::graphStatus GetAndCheckEmptyQueryShape(ContextParamsForPFATiling& contextKeyParams, const gert::StorageShape *queryShape) const;
     void UpdateTilingKeyFlag(ContextParamsForPFATiling& contextKeyParams, uint64_t& tilingKey);
-    int64_t PromptFlashAttentionSetMsdUbSize(PromptFlashAttentionTilingData& tilingData, PromptAttentionSingleCoreTensorSize& tensorSize, int32_t sInnerFactorTmp) const;
-    ge::graphStatus CheckIOType(ContextParamsForPFATiling& contextKeyParams, PromptFlashAttentionTilingData& tilingData, int32_t& outputDataTypeSize);
+    int64_t PromptFlashAttentionSetMsdUbSize(PromptFlashAttentionTilingData* tilingData, PromptAttentionSingleCoreTensorSize& tensorSize, int32_t sInnerFactorTmp) const;
+    ge::graphStatus CheckIOType(ContextParamsForPFATiling& contextKeyParams, PromptFlashAttentionTilingData* tilingData, int32_t& outputDataTypeSize);
     ge::graphStatus CheckD(ContextParamsForPFATiling& contextKeyParams);
     ge::graphStatus CheckDimNums(ContextParamsForPFATiling& contextKeyParams);
-    ge::graphStatus CheckMaskType(ContextParamsForPFATiling& contextKeyParams, PromptFlashAttentionTilingData& tilingData, uint32_t& maskElemSize);
-    void SetMaskSize(const gert::StorageShape* attenMaskShape, PromptFlashAttentionTilingData& tilingData);
+    ge::graphStatus CheckMaskType(ContextParamsForPFATiling& contextKeyParams, PromptFlashAttentionTilingData* tilingData, uint32_t& maskElemSize);
+    void SetMaskSize(const gert::StorageShape* attenMaskShape, PromptFlashAttentionTilingData* tilingData);
     ge::graphStatus CheckShape(ContextParamsForPFATiling& contextKeyParams, const gert::StorageShape* queryShape, const gert::StorageShape* keyShape,
                                const gert::StorageShape* valueShape, const gert::StorageShape* outShape, const gert::StorageShape* pseShiftShape,
                                const gert::StorageShape* attenMaskShape);
