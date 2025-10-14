@@ -543,7 +543,6 @@ __aicore__ inline void ComputeOffsetForAntiquant(const RunParamStr<isInfer>& run
 TEMPLATE_INTF
 __aicore__ inline void InitTaskParamByRun(const RunParamStr<isInfer>& runParam, RunInfo<isInfer> &runInfo)
 {
-    // runInfo.qRopeOffset = runParam.qRopeNBGOffset;
     runInfo.keyOffset = runParam.keyOffset;
     runInfo.boIdx = runParam.boIdx;
     runInfo.preTokensPerBatch = runParam.preTokensPerBatch;
@@ -553,6 +552,7 @@ __aicore__ inline void InitTaskParamByRun(const RunParamStr<isInfer>& runParam, 
     runInfo.actualS1Size = runParam.actualS1Size;
     runInfo.actualS2Size = runParam.actualS2Size;
     runInfo.softmaxLseOffset = runParam.softmaxLseOffset;
+    runInfo.s2InCurrentBatch = runParam.s2InCurrentBatch;
     runInfo.queryLeftPaddingSize = runParam.queryLeftPaddingSize;
     runInfo.kvLeftPaddingSize = runParam.kvLeftPaddingSize;
     if constexpr (hasRope && (dTemplateType == DTemplateType::Aligned576)) { // IFA MLA

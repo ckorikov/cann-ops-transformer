@@ -103,6 +103,12 @@ enum class ImplModeEnum {
 };
 
 namespace BaseApi {
+struct CubeCoordInfo {
+    uint32_t curBIdx;
+    uint32_t s1Coord;
+    uint32_t s2Coord;
+};
+
 template <typename INPUT_T>
 __aicore__ constexpr bool IsFp8OnlyWithAttenMask(
     regbaseutil::PseTypeEnum pseMode, bool hasAtten, bool hasDrop) {

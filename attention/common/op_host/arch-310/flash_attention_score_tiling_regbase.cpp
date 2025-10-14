@@ -2165,7 +2165,7 @@ protected:
             hasDropOut, hasRope, static_cast<uint8_t>(outDtype), static_cast<uint8_t>(regbase));
 
         // Const 128
-        return GET_TPL_TILING_KEY(0, static_cast<uint8_t>(implMode), static_cast<uint8_t>(LayoutEnum::BSND),
+        return GET_TPL_TILING_KEY(0, static_cast<uint8_t>(implMode), static_cast<uint8_t>(tilingKeyLayout),
             static_cast<uint16_t>(s1TemplateType), static_cast<uint16_t>(s2TemplateType),
             static_cast<uint16_t>(dTemplateType), static_cast<uint16_t>(dVTemplateType), pseMode, hasAttenMask,
             hasDropOut, hasRope, static_cast<uint8_t>(outDtype), static_cast<uint8_t>(regbase));
@@ -2380,7 +2380,7 @@ protected:
             static_cast<uint8_t>(regbase));
 
         // Const 128
-        return GET_TPL_TILING_KEY(0, static_cast<uint8_t>(implMode), static_cast<uint8_t>(LayoutEnum::TND),
+        return GET_TPL_TILING_KEY(0, static_cast<uint8_t>(implMode), static_cast<uint8_t>(tilingKeyLayout),
             static_cast<uint16_t>(s1TemplateType), static_cast<uint16_t>(s2TemplateType),
             static_cast<uint16_t>(dTemplateType), static_cast<uint16_t>(dVTemplateType), pseMode, hasAttenMask,
             hasDropOut, hasRope, 0, static_cast<uint8_t>(regbase));

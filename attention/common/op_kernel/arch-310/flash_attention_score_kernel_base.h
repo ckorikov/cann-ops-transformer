@@ -72,9 +72,6 @@ public:
     __aicore__ inline void InitLocalBuffer();
     __aicore__ inline void InitMMResBuf();
     __aicore__ inline void ComputeConstexpr();
-    __aicore__ inline void GetQueryOffset(RunParamStr<isInfer> &runParam);
-    __aicore__ inline void GetKeyOffset(RunInfo<isInfer> &runInfo);
-    __aicore__ inline void GetKeyRopeOffset(RunInfo<isInfer> &runInfo);
     __aicore__ inline void SetRunInfo(RunInfo<isInfer> &runInfo, RunParamStr<isInfer> &runParam, int64_t taskId, int64_t s2LoopCount,
                                       int64_t s2LoopLimit, int64_t multiCoreInnerIdx);
     __aicore__ inline void ComputeAxisIdx(int64_t multiCoreInnerIdx, RunParamStr<isInfer> &runParam);
@@ -245,7 +242,7 @@ __aicore__ inline void FlashAttentionScoreKernelBase<ChildClass, CubeBlockType, 
     }
     vecBlock.InitGlobalBuffer(pse, deqScaleQ, deqScaleK, deqScaleV, postQuantScale, postQuantOffset,
         prefix, attenMask, dropMask, queryPaddingSize, kvPaddingSize, softmaxMax, softmaxSum, workspace, singleCoreOffset, this->aicIdx, constInfo);
-    cubeBlock.InitCubeInput(key, value, &sharedParams, &attenMaskInfo);
+    cubeBlock.InitCubeInput(key, value, &sharedParams, &attenMaskInfo, actualSeqQlenAddr, actualSeqKvlenAddr);
 }
 
 template <typename ChildClass, typename CubeBlockType, typename VecBlockType>
@@ -579,14 +576,8 @@ __aicore__ inline void FlashAttentionScoreKernelBase<ChildClass, CubeBlockType, 
     runInfo.actualS1Size = runParam.actualS1Size;
     runInfo.actualS2Size = runParam.actualS2Size;
     runInfo.attentionOutOffset = runParam.attentionOutOffset;
-    runInfo.queryOffset = runParam.tensorQOffset;
-    runInfo.qRopeOffset = runParam.qRopeNBGOffset;
     this->ComputeBmm1Tail(runInfo, runParam);
     GetDerived()->InitUniqueRunInfo(runParam, runInfo);
-    GetKeyOffset(runInfo);
-    if constexpr (hasRope) {
-        GetKeyRopeOffset(runInfo);
-    }
 }
 
 template <typename ChildClass, typename CubeBlockType, typename VecBlockType>
@@ -613,156 +604,6 @@ __aicore__ inline void FlashAttentionScoreKernelBase<ChildClass, CubeBlockType, 
         if (runInfo.s2StartIdx + (runInfo.s2LoopCount + 1) * runInfo.s2RealSize > runInfo.s2EndIdx) {
             runInfo.s2RealSize = runInfo.s2EndIdx - runInfo.s2LoopCount * runInfo.s2RealSize - runInfo.s2StartIdx;
             runInfo.s2AlignedSize = Align(runInfo.s2RealSize);
-        }
-    }
-}
-
-template <typename ChildClass, typename CubeBlockType, typename VecBlockType>
-__aicore__ inline void FlashAttentionScoreKernelBase<ChildClass, CubeBlockType, VecBlockType>::GetQueryOffset(
-    RunParamStr<isInfer> &runParam)
-{
-    // 计算gm上的offset
-    int64_t bOffset = 0;
-    // s1需要考虑inner轴的影响
-    int64_t s1Offset = 0;
-
-    int64_t n2Offset = 0;
-    int64_t gOffset = 0;
-    int64_t bOffsetOut = 0;
-    int64_t s1OffsetOut = 0;
-    int64_t n2OffsetOut = 0;
-    int64_t gOffsetOut = 0;
-    int64_t subBlockS1Offset = 0;
-    if constexpr (layout == LayOutTypeEnum::LAYOUT_TND) {
-        // (BS)ND
-        bOffset = this->s1SizeAcc * constInfo.n2GD;
-        s1Offset = runParam.s1oIdx * constInfo.s1BaseN2GD;
-        n2Offset = runParam.n2oIdx * constInfo.gD;
-        gOffset = runParam.goIdx * constInfo.dSize;
-        bOffsetOut = this->s1SizeAcc * constInfo.n2GDv;
-        s1OffsetOut = runParam.s1oIdx * constInfo.s1BaseN2GDv;
-        n2OffsetOut = runParam.n2oIdx * constInfo.gDv;
-        gOffsetOut = runParam.goIdx * constInfo.dSizeV;
-        subBlockS1Offset = constInfo.subBlockIdx * runParam.firstHalfS1RealSize * constInfo.n2GDv;
-    } else {
-        if (constInfo.layoutType == (uint8_t)LayOutTypeEnum::LAYOUT_BSH) {
-            // BSH/BSNGD
-            bOffset = runParam.boIdx * constInfo.n2GS1D;
-            s1Offset = runParam.s1oIdx * constInfo.s1BaseN2GD;
-            n2Offset = runParam.n2oIdx * constInfo.gD;
-            gOffset = runParam.goIdx * constInfo.dSize;
-            bOffsetOut = runParam.boIdx * constInfo.n2GS1Dv;
-            s1OffsetOut = runParam.s1oIdx * constInfo.s1BaseN2GDv;
-            n2OffsetOut = runParam.n2oIdx * constInfo.gDv;
-            gOffsetOut = runParam.goIdx * constInfo.dSizeV;
-            subBlockS1Offset = constInfo.subBlockIdx * runParam.firstHalfS1RealSize * constInfo.n2GDv;
-        } else if (constInfo.layoutType == (uint8_t)LayOutTypeEnum::LAYOUT_SBH) {
-            // SBH/SBNGD
-            s1Offset = runParam.s1oIdx * constInfo.s1BaseBN2GD;
-            bOffset = runParam.boIdx * constInfo.n2GD;
-            n2Offset = runParam.n2oIdx * constInfo.gD;
-            gOffset = runParam.goIdx * constInfo.dSize;
-            s1OffsetOut = runParam.s1oIdx * constInfo.s1BaseBN2GDv;
-            bOffsetOut = runParam.boIdx * constInfo.n2GDv;
-            n2OffsetOut = runParam.n2oIdx * constInfo.gDv;
-            gOffsetOut = runParam.goIdx * constInfo.dSizeV;
-            subBlockS1Offset = constInfo.subBlockIdx * runParam.firstHalfS1RealSize * constInfo.bN2GDv;
-        } else if (constInfo.layoutType == (uint8_t)LayOutTypeEnum::LAYOUT_BNSD) {
-            // bnsd
-            bOffset = runParam.boIdx * constInfo.n2GS1D;
-            n2Offset = runParam.n2oIdx * constInfo.gS1D;
-            gOffset = runParam.goIdx * constInfo.s1D;
-            s1Offset = runParam.s1oIdx * constInfo.s1BaseD;
-            bOffsetOut = runParam.boIdx * constInfo.n2GS1Dv;
-            n2OffsetOut = runParam.n2oIdx * constInfo.gS1Dv;
-            gOffsetOut = runParam.goIdx * constInfo.s1Dv;
-            s1OffsetOut = runParam.s1oIdx * constInfo.s1BaseDv;
-            subBlockS1Offset = constInfo.subBlockIdx * runParam.firstHalfS1RealSize * constInfo.dSizeV;
-        }
-    }
-    if ASCEND_IS_AIC {
-        runParam.tensorQOffset = bOffset + n2Offset + gOffset + s1Offset;
-    } else {
-        runParam.attentionOutOffset = bOffsetOut + n2OffsetOut + gOffsetOut + s1OffsetOut + subBlockS1Offset;
-    }
-}
-
-template <typename ChildClass, typename CubeBlockType, typename VecBlockType>
-__aicore__ inline void FlashAttentionScoreKernelBase<ChildClass, CubeBlockType, VecBlockType>::GetKeyOffset(
-    RunInfo<isInfer> &runInfo)
-{
-    if ASCEND_IS_AIC {
-        if constexpr (!isInfer) {
-            // 计算gm上的offset
-            int64_t bOffset = 0;
-            int64_t n2Offset = 0;
-            int64_t s2Offset = 0;
-
-            if constexpr (layout == LayOutTypeEnum::LAYOUT_TND) {
-                // (BS)ND
-                bOffset = runInfo.s2SizeAcc * constInfo.n2D;
-                s2Offset = runInfo.s2StartIdx * constInfo.n2D + runInfo.s2LoopCount * constInfo.s2BaseN2D;
-                n2Offset = runInfo.n2oIdx * constInfo.dSize;
-            } else {
-                if (constInfo.layoutType == (uint8_t)LayOutTypeEnum::LAYOUT_BSH) {
-                    // BSH/BSND
-                    bOffset = runInfo.boIdx * constInfo.n2S2D;
-                    s2Offset = runInfo.s2StartIdx * constInfo.n2D + runInfo.s2LoopCount * constInfo.s2BaseN2D;
-                    n2Offset = runInfo.n2oIdx * constInfo.dSize;
-                } else if (constInfo.layoutType == (uint8_t)LayOutTypeEnum::LAYOUT_SBH) {
-                    // SBH/SBND
-                    s2Offset = runInfo.s2StartIdx * constInfo.bN2D + runInfo.s2LoopCount * constInfo.s2BaseBN2D;
-                    bOffset = runInfo.boIdx * constInfo.n2D;
-                    n2Offset = runInfo.n2oIdx * constInfo.dSize;
-                } else if (constInfo.layoutType == (uint8_t)LayOutTypeEnum::LAYOUT_BNSD) {
-                    // BNSD
-                    bOffset = runInfo.boIdx * constInfo.n2S2D;
-                    n2Offset = runInfo.n2oIdx * constInfo.s2D;
-                    s2Offset = runInfo.s2StartIdx * constInfo.dSize + runInfo.s2LoopCount * constInfo.s2BaseD;
-                }
-            }
-            runInfo.keyOffset = bOffset + n2Offset + s2Offset;
-            runInfo.valueOffset = runInfo.keyOffset;
-        }
-    }
-}
-
-template <typename ChildClass, typename CubeBlockType, typename VecBlockType>
-__aicore__ inline void FlashAttentionScoreKernelBase<ChildClass, CubeBlockType, VecBlockType>::GetKeyRopeOffset(
-    RunInfo<isInfer> &runInfo)
-{
-    if ASCEND_IS_AIC {
-        if constexpr (!isInfer) {
-            // 计算gm上的offset
-            int64_t bOffsetRope = 0;
-            int64_t n2OffsetRope = 0;
-            int64_t s2OffsetRope = 0;
-
-            if constexpr (layout == LayOutTypeEnum::LAYOUT_TND) {
-                // (BS)ND
-                bOffsetRope = runInfo.s2SizeAcc * constInfo.n2DR;
-                s2OffsetRope = runInfo.s2StartIdx * constInfo.n2DR + runInfo.s2LoopCount * constInfo.s2BaseN2DR;
-                n2OffsetRope = runInfo.n2oIdx * constInfo.dSizeRope;
-            } else {
-                if (constInfo.layoutType == (uint8_t)LayOutTypeEnum::LAYOUT_BSH) {
-                    // BSH/BSND
-                    bOffsetRope = runInfo.boIdx * constInfo.n2S2DR;
-                    s2OffsetRope = runInfo.s2StartIdx * constInfo.n2DR + runInfo.s2LoopCount * constInfo.s2BaseN2DR;
-                    n2OffsetRope = runInfo.n2oIdx * constInfo.dSizeRope;
-                } else if (constInfo.layoutType == (uint8_t)LayOutTypeEnum::LAYOUT_SBH) {
-                    // SBH/SBND
-                    s2OffsetRope = runInfo.s2StartIdx * constInfo.bN2DR + runInfo.s2LoopCount * constInfo.s2BaseBN2DR;
-                    bOffsetRope = runInfo.boIdx * constInfo.n2DR;
-                    n2OffsetRope = runInfo.n2oIdx * constInfo.dSizeRope;
-                } else if (constInfo.layoutType == (uint8_t)LayOutTypeEnum::LAYOUT_BNSD) {
-                    // BNSD
-                    bOffsetRope = runInfo.boIdx * constInfo.n2S2DR;
-                    n2OffsetRope = runInfo.n2oIdx * constInfo.s2DR;
-                    s2OffsetRope = runInfo.s2StartIdx * constInfo.dSizeRope +
-                        runInfo.s2LoopCount * constInfo.s2BaseDR;
-                }
-            }
-            runInfo.kRopeOffset = bOffsetRope + n2OffsetRope + s2OffsetRope;
         }
     }
 }

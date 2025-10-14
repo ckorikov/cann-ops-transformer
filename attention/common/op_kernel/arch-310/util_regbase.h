@@ -69,7 +69,7 @@ struct RunParamStr;
     int64_t goIdx; \
     int32_t s2LoopStartIdx;        /* S2方向的循环控制信息 souter层确定 */ \
     int32_t s2LoopEndIdx;          /* S2方向的循环控制信息 souter层确定 */ \
-    int64_t s2LineStartIdx;        /* S2方向按行的起始位置 */ \
+    int64_t s2LineStartIdx = 0;    /* S2方向按行的起始位置 */ \
     int64_t s2LineEndIdx;          /* S2方向按行的结束位置 */ \
     /* cube视角的sOuter，在SAMEAB场景中cubeSOuterSize为两倍的 halfS1RealSize souter层确定 */ \
     uint32_t s1RealSize; \
@@ -188,6 +188,9 @@ struct RunInfo<true> {
 
     // FD相关
     int64_t flashDecodeS2Idx;
+
+    // tensorlist相关
+    int64_t s2InCurrentBatch;
 };
 
 template<>

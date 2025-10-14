@@ -177,4 +177,29 @@ __aicore__ inline void GmCopyInToL1PA(LocalTensor<L1Type>& l1Tensor, GlobalTenso
         curS2Idx += copyRowCnt;
     }
 }
+
+template<typename INPUT_T>
+__aicore__ inline void CopyToL1Nd2Nz(const LocalTensor<INPUT_T> &l1Tensor, const GlobalTensor<INPUT_T> &gmTensor,
+    uint32_t nValue, uint32_t dValue, uint32_t srcDValue)
+{
+    Nd2NzParams gm2L1Nd2NzParams;
+    gm2L1Nd2NzParams.ndNum = 1; // ND矩阵的个数
+    gm2L1Nd2NzParams.nValue = nValue; // 单个ND矩阵的实际行数，单位为元素个数
+    gm2L1Nd2NzParams.dValue = dValue; // 单个ND矩阵的实际列数，单位为元素个数
+    gm2L1Nd2NzParams.srcNdMatrixStride = 0; // 相邻ND矩阵起始地址之间的偏移， 单位为元素个数
+    gm2L1Nd2NzParams.srcDValue = srcDValue; // 同一个ND矩阵中相邻行起始地址之间的偏移， 单位为元素个数
+#if (__CCE_AICORE__ == 310) || (defined __DAV_310R6__)
+    if constexpr (IsSameType<INPUT_T, fp8_e5m2_t>::value || IsSameType<INPUT_T, fp8_e4m3fn_t>::value ||
+        IsSameType<INPUT_T, hifloat8_t>::value) {
+        gm2L1Nd2NzParams.dstNzC0Stride = (nValue + 31) >> 5 << 5;
+    } else {
+        gm2L1Nd2NzParams.dstNzC0Stride = (nValue + 15) >> 4 << 4;
+    }
+#else
+    gm2L1Nd2NzParams.dstNzC0Stride = (nValue + 15) >> 4 << 4; // NZ矩阵相邻Block起始地址之间的偏移， 单位为Block个数
+#endif
+    gm2L1Nd2NzParams.dstNzNStride = 1; // 转换为NZ矩阵后，ND之间相邻两行在NZ矩阵中起始地址之间的偏移， 单位为Block个数
+    gm2L1Nd2NzParams.dstNzMatrixStride = 0; // 两个NZ矩阵，起始地址之间的偏移， 单位为元素数量
+    DataCopy(l1Tensor, gmTensor, gm2L1Nd2NzParams);
+}
 #endif

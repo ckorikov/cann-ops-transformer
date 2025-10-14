@@ -230,10 +230,6 @@ __aicore__ inline void FlashAttentionScoreKernelInfer<CubeBlockType, VecBlockTyp
                         RunInfo<isInfer> &runInfo2 = runInfo[(taskId + 2) & 3];
                         CrossCoreWaitFlag<SYNC_MODE, PIPE_MTE1>(BaseClass::SYNC_V1_C2_FLAG[runInfo2.taskIdMod3]);
                         CrossCoreWaitFlag<SYNC_MODE, PIPE_MTE1>(16 + BaseClass::SYNC_V1_C2_FLAG[runInfo2.taskIdMod3]);
-                        // if (unlikely(this->constInfo.dSize != this->constInfo.dSizeV)) {
-                        //     GetValueOffset(runInfo2);
-                        // }
-                        // TODO支持GM出
                         if constexpr (BaseClass::bmm2Write2Ub) {
                             this->cubeBlock.IterateBmm2(this->bmm2ResBuf[runInfo2.taskIdMod2].template Get<T>(), this->l1PBuffers, runInfo2, this->constInfo);
                         } else {
