@@ -14,7 +14,7 @@
  */
 #include <iostream>
 #include <gtest/gtest.h>
-#include "infershape_context_faker.h"
+#include "infer_shape_context_faker.h"
 #include "base/registry/op_impl_space_registry_v2.h"
 
 class MoeTokenUnpermuteWithEpGradInferShape : public testing::Test

@@ -8,13 +8,13 @@
  * See LICENSE in the root of the software repository for the full text of the License.
  */
 
-#ifndef OPS_TRANSFORMER_DEV_TESTS_UT_COMMON_INFERSHAPE_CASE_EXECUTOR_H
-#define OPS_TRANSFORMER_DEV_TESTS_UT_COMMON_INFERSHAPE_CASE_EXECUTOR_H
+#ifndef OPS_TRANSFORMER_DEV_TESTS_UT_COMMON_INFER_SHAPE_CASE_EXECUTOR_H
+#define OPS_TRANSFORMER_DEV_TESTS_UT_COMMON_INFER_SHAPE_CASE_EXECUTOR_H
 
-#include "infershape_context_faker.h"
+#include "infer_shape_context_faker.h"
 
 void ExecuteTestCase(gert::InfershapeContextPara&             infershapeContextPara, 
                      ge::graphStatus                          expectResult = ge::GRAPH_FAILED,
                      const std::vector<std::vector<int64_t>>& expectOutputShape = {});
 
-#endif // OPS_TRANSFORMER_DEV_TESTS_UT_COMMON_INFERSHAPE_CASE_EXECUTOR_H
+#endif // OPS_TRANSFORMER_DEV_TESTS_UT_COMMON_INFER_SHAPE_CASE_EXECUTOR_H

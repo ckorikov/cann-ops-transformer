@@ -10,8 +10,8 @@
 
 #include <gtest/gtest.h>
 #include <iostream>
-#include "infershape_context_faker.h"
-#include "infershape_case_executor.h"
+#include "infer_shape_context_faker.h"
+#include "infer_shape_case_executor.h"
 
 class MoeReRouting : public testing::Test
 {

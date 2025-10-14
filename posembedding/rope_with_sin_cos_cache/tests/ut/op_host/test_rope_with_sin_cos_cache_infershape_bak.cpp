@@ -8,11 +8,11 @@
  * See LICENSE in the root of the software repository for the full text of the License.
  */
 
- #include <gtest/gtest.h>
- #include <iostream>
- #include "infershape_context_faker.h"
- #include "base/registry/op_impl_space_registry_v2.h"
- #include <vector>
+#include <gtest/gtest.h>
+#include <iostream>
+#include <vector>
+#include "infer_shape_context_faker.h"
+#include "base/registry/op_impl_space_registry_v2.h"
 
 class RopeWithSinCosCache : public testing::Test
 {
