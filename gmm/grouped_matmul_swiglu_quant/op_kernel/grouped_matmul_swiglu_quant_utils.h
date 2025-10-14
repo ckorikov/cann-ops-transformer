@@ -102,7 +102,7 @@ constexpr static MatmulApiStaticTiling GetMMTiling(const MatmulApiStaticTiling &
 }
 
 template <class AT_, class BT_, class CT_>
-struct MMImplType {
+struct MMImplTypeStatic {
     using AT = AT_;
     using BT = BT_;
     using CT = CT_;
@@ -111,6 +111,22 @@ struct MMImplType {
     static constexpr MatmulConfig cfg = GetMMCFG();
     static constexpr MatmulApiStaticTiling mdl = GetMMTiling(GetMatmulApiTiling<AT, BT, CT, BiasT>(cfg));
     using MT = matmul::MatmulImpl<AT, BT, CT, BiasT, mdl>;
+};
+
+constexpr auto GetMmCFG() {
+    auto CFG = CFG_MDL;
+    return CFG;
+}
+constexpr MatmulConfig A8W4_CFG_MDL = GetMmCFG();
+
+template <class AT_, class BT_, class CT_>
+struct MMImplType {
+    using AT = AT_;
+    using BT = BT_;
+    using CT = CT_;
+    // bias未被使用但高阶模板参数需要传入
+    using BiasT = MatmulType<AscendC::TPosition::GM, CubeFormat::ND, int32_t>;
+    using MT = matmul::MatmulImpl<AT, BT, CT, BiasT, A8W4_CFG_MDL>;
 };
 
 struct MNConfig {

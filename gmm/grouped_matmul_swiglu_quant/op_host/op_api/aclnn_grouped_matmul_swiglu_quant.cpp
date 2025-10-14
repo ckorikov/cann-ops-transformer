@@ -357,6 +357,7 @@ static void UnpackInt32ToInt4(const aclTensor *&tensorS32, const std::string &te
     auto viewShapeDim = tensorShape.GetDimNum();
     tensorShape[viewShapeDim - 1] = tensorShape[viewShapeDim - 1] * INT4_PER_INT32;
     tensorS4->SetViewShape(tensorShape);
+    tensorS4->SetStorageShape(tensorShape);
     tensorS4->SetDataType(DataType::DT_INT4);
     OP_LOGD("Unpack %s from int32 to int4 finished.", tensorType.c_str());
 }
@@ -496,8 +497,8 @@ aclnnStatus aclnnGroupedMatmulSwigluQuantWeightNZGetWorkspaceSize(const aclTenso
     auto viewShape = weight->GetViewShape();
     aclTensor *weightNZ = const_cast<aclTensor *>(weight);
     CHECK_COND((storgeShape.GetDimNum() == WEIGHT_NZ_DIM_LIMIT), ACLNN_ERR_PARAM_INVALID,
-               "aclnnGroupedMatmulSwigluQuantWeightNZ, The dimnum of storageShape for second input (weight) \
-             must be 5. \n But StorageShape got %s , and dimNum is %lu.",
+               "aclnnGroupedMatmulSwigluQuantWeightNZ, The dimnum of storageShape for second input (weight)"
+               "must be 5. \n But StorageShape got %s , and dimNum is %lu.",
                op::ToString(storgeShape).GetString(), storgeShape.GetDimNum());
     // weight的StorageFormat无条件视为NZ
     weightNZ->SetStorageFormat(op::Format::FORMAT_FRACTAL_NZ);

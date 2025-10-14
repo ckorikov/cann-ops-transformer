@@ -160,11 +160,26 @@ ASCENDC_EXTERN_C graphStatus TilingGMMSwigluQuant(gert::TilingContext *context)
         row = CalMaxRowInUb(context, compileInfoPtr->ubSize_, n);
     }
 
+    uint32_t baseM = compileInfoPtr->baseM_;
+    uint32_t baseK = 256; // 256： 初始化baseK
+    uint32_t baseN = compileInfoPtr->baseN_;
+    if (isA8W4MSD) {
+        uint32_t avgTokens = m / groupNum;
+        if (avgTokens < A8W4_TOKEN_THRESHOLD) {
+            baseM = A8W4_DECODE_BASEM;
+            baseK = A8W4_DECODE_BASEK;
+            baseN = A8W4_DECODE_BASEN;
+        }
+    }
+    OP_LOGI(context->GetNodeName(), "GMMSWIGLUQUANT_TILING: baseM is %u, baseK is %u, baseN is %u.", baseM, baseK, baseN);
+
     tilingData.gmmSwigluBaseParams.set_groupNum(groupNum);
     tilingData.gmmSwigluBaseParams.set_coreNum(compileInfoPtr->aicNum_);
     tilingData.gmmSwigluBaseParams.set_K(k);
     tilingData.gmmSwigluBaseParams.set_N(n);
     tilingData.gmmSwigluBaseParams.set_M(m);
+    tilingData.gmmSwigluBaseParams.set_baseM(baseM);
+    tilingData.gmmSwigluBaseParams.set_baseN(baseN);
     tilingData.gmmSwiglu.set_maxProcessRowNum(row);
     tilingData.gmmSwiglu.set_groupListLen(groupNum);
     tilingData.gmmSwiglu.set_tokenLen(n);
@@ -187,16 +202,26 @@ ASCENDC_EXTERN_C graphStatus TilingGMMSwigluQuant(gert::TilingContext *context)
 
     MatmulApiTiling tiling(ascendcPlatform);
     tiling.SetAType(TPosition::GM, CubeFormat::ND, matmul_tiling::DataType::DT_INT4);
-    tiling.SetBType(TPosition::GM, CubeFormat::ND, matmul_tiling::DataType::DT_INT4);
+    tiling.SetBType(TPosition::GM, CubeFormat::NZ, matmul_tiling::DataType::DT_INT4);
     tiling.SetCType(TPosition::GM, CubeFormat::ND, matmul_tiling::DataType::DT_FLOAT16);
     tiling.SetBias(false);
-    tiling.SetShape(compileInfoPtr->baseM_, compileInfoPtr->baseN_, k);
+    tiling.SetShape(baseM, baseN, k);
+    tiling.SetFixSplit(baseM, baseN, baseK);
     tiling.SetOrgShape(m, n, k);
     tiling.SetBufferSpace(-1, -1, -1);
     OP_CHECK_IF(
         tiling.GetTiling(tilingData.mmTilingData) == -1,
         OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "grouped_matmul_swiglu_quant_tiling, get tiling failed"),
         return GRAPH_FAILED);
+    if (isA8W4MSD) {
+        tilingData.mmTilingData.set_dbL0B(baseN == A8W4_DECODE_BASEN ? 1 : DOUBLE_BUFFER); // baseN为512时不开L0B的db
+        tilingData.mmTilingData.set_stepKa(NUM_FOUR);
+        tilingData.mmTilingData.set_stepKb(NUM_FOUR);
+        tilingData.mmTilingData.set_depthA1(NUM_EIGHT);
+        tilingData.mmTilingData.set_depthB1(NUM_EIGHT);
+        tilingData.mmTilingData.set_stepM(1);
+        tilingData.mmTilingData.set_stepN(1);
+    }
     auto workspaceSizes = context->GetWorkspaceSizes(1);
     int64_t usrWorkspaceLimut = USER_WORKSPACE_LIMIT;
     int64_t mLimit = 0;
