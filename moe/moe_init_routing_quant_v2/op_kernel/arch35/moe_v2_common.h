@@ -19,15 +19,6 @@
 
 #ifdef __DAV_C310__
 #define THREAD_NUM 2048
-#define ParallelEXE(threadNums, simt_func, ...)                                                             \
-    cce::parallel_for(cce::dim3{static_cast<uint32_t>(threadNums)}, [=, *this]() LAUNCH_BOUND(THREAD_NUM) { \
-        simt_func(__VA_ARGS__);                                                                             \
-    })
-
-#define ParallelDim2EXE(threadXNums, threadYNums, simt_func, ...)                          \
-    cce::parallel_for(                                                                     \
-        cce::dim3{static_cast<uint32_t>(threadXNums), static_cast<uint32_t>(threadYNums)}, \
-        [=, *this]() LAUNCH_BOUND(THREAD_NUM) { simt_func(__VA_ARGS__); })
 #endif
 
 namespace MoeInitRoutingQuantV2 {
