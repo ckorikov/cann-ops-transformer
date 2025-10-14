@@ -27,8 +27,8 @@ TILING_DATA_FIELD_DEF_STRUCT(MatmulTilingData, tilematmulTiling);
 TILING_DATA_FIELD_DEF_STRUCT(MatmulTilingData, tailmatmulTiling);
 END_TILING_DATA_DEF;
 
-REGISTER_TILING_DATA_CLASS(MatmulAllReduce_10000000000000002000, UnQuantMatmulAllReduceTilingData);
-REGISTER_TILING_DATA_CLASS(MatmulAllReduce_10000000000000002001, UnQuantMatmulAllReduceTilingData);
+REGISTER_TILING_DATA_CLASS(MatmulAllReduce_2000, UnQuantMatmulAllReduceTilingData);
+REGISTER_TILING_DATA_CLASS(MatmulAllReduce_67536, UnQuantMatmulAllReduceTilingData);
 
 class UnQuantMatmulAllReduceTiling310 : public MatmulAllReduceTilingBase
 {

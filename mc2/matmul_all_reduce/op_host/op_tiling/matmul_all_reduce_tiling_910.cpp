@@ -57,7 +57,7 @@ uint64_t MatmulAllReduceTiling910::GetTilingKey() const
     }
 
     const uint64_t tilingKeyInCtx = context_->GetTilingKey();
-    if (tilingKeyInCtx == MM_ALINGNED_TILING_KEY && !enableBiasConvert_ &&
+    if (tilingKeyInCtx == MM_ALINGNED_TILING_KEY_A2 && !enableBiasConvert_ &&
         !matmulAllReduce910TilingData_.param.get_isAdd()) {
         OP_LOGI(opName_, "Get tiling key %lu for cube only case.", CUBE_ONLY_KEY);
         return CUBE_ONLY_KEY;
