@@ -14,8 +14,8 @@
  */
 
 #include "fused_infer_attention_score_tiling.h"
-#include "../../incre_flash_attention/op_host/incre_flash_attention_tiling.h"
-#include "../../prompt_flash_attention/op_host/prompt_flash_attention_tiling.h"
+#include "../../incre_flash_attention/op_kernel/incre_flash_attention_tiling.h"
+#include "../../prompt_flash_attention/op_kernel/prompt_flash_attention_tiling_data.h"
 #include "log/log.h"
 #include "log/error_code.h"
 #include "err/ops_err.h"
@@ -792,7 +792,7 @@ static ge::graphStatus TilingProcess4PFA(gert::TilingContext *context, const uin
     constexpr int64_t D_ALIGN_32 = 32;
     constexpr int64_t D_ALIGN_16 = 16;
 
-    PromptFlashAttentionTilingData pfaTilingData;
+    PromptFlashAttentionTilingData* pfaTilingData;
     PromptFlashAttentionTiling pfa_tiling(nullptr);
     ContextParamsForPFATiling contextParamsForPFATiling;
     PromptFlashAttentionCompileInfo tempCompileInfoPtr = {0, 0, 0, 0, 0, 0, 0, 0,
@@ -894,18 +894,18 @@ static bool IsUsingIFA(gert::TilingContext &context, const uint32_t tempD, const
 static ge::graphStatus TilingProcess4IFA(gert::TilingContext *context)
 {
     // IFA tiling path
-    IncreFlashAttentionTilingDataV2 ifaTilingData;
-    IncreFlashAttentionContext ifaContext {};
-    auto ret = ConvertContextToParamsIFA(*context, ifaContext);
-    if (ret != ge::GRAPH_SUCCESS) {
-        OP_LOGE(context->GetNodeName(), "Error occored while convert tilingContext to ifa context");
-        return ret;
-    }
+    // IncreFlashAttentionTilingDataV2 ifaTilingData;
+    // IncreFlashAttentionContext ifaContext {};
+    // auto ret = ConvertContextToParamsIFA(*context, ifaContext);
+    // if (ret != ge::GRAPH_SUCCESS) {
+    //     OP_LOGE(context->GetNodeName(), "Error occored while convert tilingContext to ifa context");
+    //     return ret;
+    // }
 
-    if (RouteToFia(context, ifaContext)) {
-        return TilingFusedInferAttentionScoreV3(context);
-    }
-    return TilingIncreFlashAttentionAdapter(context, ifaContext, ifaTilingData);
+    // if (RouteToFia(context, ifaContext)) {
+    //     return TilingFusedInferAttentionScoreV3(context);
+    // }
+    // return TilingIncreFlashAttentionAdapter(context, ifaContext, ifaTilingData);
 }
 
 static ge::graphStatus CheckQKV(gert::TilingContext &context)
