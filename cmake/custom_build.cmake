@@ -27,6 +27,8 @@ if (BUILD_OPEN_PROJECT)
 
     find_package(alog MODULE)
 
+    find_package(unified_dlog MODULE)
+
     if(NOT ${alog_FOUND})
         add_definitions(-DALOG_NOT_FOUND)
     endif()
@@ -166,6 +168,8 @@ if (BUILD_OPEN_PROJECT)
             platform
             register
             error_manager
+            ascendalog
+            unified_dlog
             -Wl,--as-needed
             -Wl,--whole-archive
             tiling_api

@@ -63,6 +63,7 @@ if (BUILD_OPEN_PROJECT)
       ${OPS_TRANSFORMER_DIR}/common/include
       ${ASCEND_CANN_PACKAGE_PATH}/include/experiment/runtime
       ${ASCEND_CANN_PACKAGE_PATH}/include/experiment/msprof
+      ${ASCEND_CANN_PACKAGE_PATH}/include/op_common
     )
 
     target_link_libraries(${COMMON_NAME}_obj

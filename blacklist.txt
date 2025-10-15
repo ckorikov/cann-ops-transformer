@@ -134,6 +134,9 @@ attention/flash_attention_score_grad/regbase/op_kernel/matmul_modules/copy_cube_
 commom/inc/fallback_comm.h
 commom/inc/fallback.h
 commom/src/fallback_comm.cpp
+commom/inc/fallback_comm_2stages.h
+commom/inc/fallback_2stages.h
+commom/src/fallback_comm_2stages.cpp
 commom/inc/kernel/regbase/attenmask.h
 commom/inc/kernel/regbase/dropmask.h
 commom/inc/kernel/regbase/pse.h
