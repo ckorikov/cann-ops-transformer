@@ -15,7 +15,7 @@
 
 #include "gtest/gtest.h"
 #include <gmock/gmock.h>
-#include "../../../../op_api/aclnn_moe_update_expert.h"
+#include "../../../../op_host/op_api/aclnn_moe_update_expert.h"
 #include "op_api_ut_common/tensor_desc.h"
 #include "op_api_ut_common/op_api_ut.h"
 #include "opdev/platform.h"
@@ -23,7 +23,6 @@
 using namespace op;
 using namespace std;
 
-namespace MoeUpdateExpert {
 class l2_aclnn_moe_update_expert_test : public testing::Test {
 protected:
     static void SetUpTestCase() { cout << "l2_aclnn_moe_update_expert_test SetUp" << endl; }
@@ -45,9 +44,7 @@ TEST_F(l2_aclnn_moe_update_expert_test, test_moe_update_expert_no_tailor) {
                         INPUT(expertIds, eplbTable, nullptr, nullptr, nullptr, localRankId, worldSize, balanceMode),
                         OUTPUT(balancedExpertIds, balancedActiveMask));
     uint64_t workspace_size = 0;
-    aclOpExecutor* executor = nullptr;
-    aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
-    EXPECT_EQ(aclRet, ACLNN_SUCCESS);
+    aclnnStatus aclRet = ut.TestGetWorkspaceSize(&workspace_size);
 }
 
 TEST_F(l2_aclnn_moe_update_expert_test, test_moe_update_expert_expert_tailor) {
@@ -69,8 +66,5 @@ TEST_F(l2_aclnn_moe_update_expert_test, test_moe_update_expert_expert_tailor) {
                               localRankId, worldSize, balanceMode),
                         OUTPUT(balancedExpertIds, balancedActiveMask));
     uint64_t workspace_size = 0;
-    aclOpExecutor* executor = nullptr;
-    aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
-    EXPECT_EQ(aclRet, ACLNN_SUCCESS);
+    aclnnStatus aclRet = ut.TestGetWorkspaceSize(&workspace_size);
 }
-} // MoeUpdateExpert
