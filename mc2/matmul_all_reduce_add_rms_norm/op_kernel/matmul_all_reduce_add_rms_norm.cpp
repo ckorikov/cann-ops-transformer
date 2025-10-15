@@ -68,9 +68,9 @@ extern "C" __global__ __aicore__ void matmul_all_reduce_add_rms_norm(
             BmmDequantBf16, Mc2CoreType::ON_VECTOR, REG_MM_OBJ_FOR_ARN, DTYPE_Y, DTYPE_Y, false, true, true);
     }
 #elif defined(MC2_WEIGHT_QUANT)
-    if (TILING_KEY_IS(18446744073709551615)) {
+    if (TILING_KEY_IS(365056114230017)) {
         INVOKE_MC2_ARN_WEIGHT_QUANT_910_OP_IMPL(false, QuantType::PER_TENSOR, false);
-    } else if (TILING_KEY_IS(365056114230017)) {
+    } else if (TILING_KEY_IS(365330992136961)) {
         INVOKE_MC2_ARN_WEIGHT_QUANT_910_OP_IMPL(false, QuantType::PER_TENSOR, true);
     } else if (TILING_KEY_IS(365056651100929)) {
         INVOKE_MC2_ARN_WEIGHT_QUANT_910_OP_IMPL(true, QuantType::PER_TENSOR, false);

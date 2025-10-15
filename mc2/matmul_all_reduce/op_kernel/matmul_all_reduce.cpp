@@ -452,9 +452,9 @@ extern "C" __global__ __aicore__ void matmul_all_reduce(
             MatmulAllReduceQuantPertokenInt8, DTYPE_Y, opTile, opTail, false, true);
     }
 #elif defined(MC2_WEIGHT_QUANT)
-    if (TILING_KEY_IS(18446744073709551615)) {   // 310100
+    if (TILING_KEY_IS(365056114230017)) {   // 310100
         INVOKE_MC2_WEIGHT_QUANT_910_OP_IMPL(false, QuantType::PER_TENSOR, false);
-    } else if (TILING_KEY_IS(365056114230017)) { // 311100
+    } else if (TILING_KEY_IS(365330992136961)) { // 311100
         INVOKE_MC2_WEIGHT_QUANT_910_OP_IMPL(false, QuantType::PER_TENSOR, true);
     } else if (TILING_KEY_IS(365056651100929)) { // 310110
         INVOKE_MC2_WEIGHT_QUANT_910_OP_IMPL(true, QuantType::PER_TENSOR, false);
