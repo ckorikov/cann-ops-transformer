@@ -248,7 +248,7 @@ const auto Tc_GroupedMatmul_Kernel_Case = ::testing::Values(
     GroupedMatmulCase( /* quant int8*/
         "GroupedMatmul_Case39", true, "", /* CaseName, Enable, DebugInfo */
         OpInfo(ControlInfo(true, true),
-                ExpectInfo(true, 17,
+                ExpectInfo(true, 8,
                             ExpectInfo::kFullTilingBlockDim)), /* ExpectSuccess, ExpectTilingKey, ExpectTilingBlockDim */
         Param({GenTensorList("x", {{64,256}}, ge::DataType::DT_INT8),
                 GenTensorList("weight", {{1,1,16,16,64}}, ge::DataType::DT_INT4, ge::FORMAT_FRACTAL_NZ),
