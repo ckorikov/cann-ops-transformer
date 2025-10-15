@@ -22,7 +22,6 @@
 #include "lib/matmul_intf.h"
 #include "lib/matrix/matmul/tiling.h"
 #include "ifa_public_define.h"
-#include "ifa_service_matmul_kv_nd_s8.h"
 #include "ifa_service_matmul_full_quant.h"
 
 using namespace matmul;
@@ -380,9 +379,8 @@ protected:
     LAYOUT outputLayout;
     // 记录当前轮的bIdx nIdx s2Idx actualLen
     uint32_t bn2IdxInCurCore = 0;
-    using MatmulServiceTypeS8 = IfaMatmulKvNdS8<IFAT>;
     using MatmulServiceFullQuant = IfaMatmulFullQuant<IFAT>;
-    using MatmulServiceQuant = typename AscendC::Conditional<QUANT, MatmulServiceFullQuant, MatmulServiceTypeS8>::type;
+    using MatmulServiceQuant = MatmulServiceFullQuant;
 
     using MatmulServiceType = MatmulServiceQuant;
     MatmulServiceType matmulService;
