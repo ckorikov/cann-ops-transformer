@@ -1141,6 +1141,24 @@ bool PromptFlashAttentionTilingV2::CheckMaskShapeCrossSparse(ContextParamsForPFA
     return true;
 }
 
+bool PromptFlashAttentionTilingV2::CheckPFAMerge(ContextParamsForPFATiling& contextKeyParams,
+    PFAShapeInfo& queryShapeInfo) {
+    if ((queryShapeInfo.s <= 1U) || (queryShapeInfo.s > pfaMergeQsLimit)) {
+        return false;
+    }
+
+    const int32_t nQ = *contextKeyParams.headsNumber;
+    const int32_t nKV = *contextKeyParams.numKeyValueHeads;
+    if ((nKV > 0) && (static_cast<uint32_t>(nQ / nKV) > pfaMergeGLimit)) {
+        return false;
+    }
+
+    if (enableMask || enablePseShift || enablePA || enableAlibiPse) {
+        return false;
+    }
+    return true;
+}
+
 bool PromptFlashAttentionTilingV2::CheckIO(ContextParamsForPFATiling& contextKeyParams,
     PFAShapeInfo& queryShapeInfo, PFAShapeInfo& valueShapeInfo) {
     const gert::StorageShape* queryShape = contextKeyParams.queryInputShape;
@@ -1164,10 +1182,8 @@ bool PromptFlashAttentionTilingV2::CheckIO(ContextParamsForPFATiling& contextKey
         return false);
     if (queryShapeInfo.s == 1 && !enableAlibiPse){
         enableIFA = true;
-    } else if ((queryShapeInfo.s <= pfaMergeQsLimit) && !enableMask &&!enablePseShift && !enablePA) {
-         // ByteMLPerf性能优化，临时支持合轴
-        enablePFAMerge = true;
     }
+    enablePFAMerge = CheckPFAMerge(contextKeyParams, queryShapeInfo);
     // check value shape
     if (enablePA) { // only get shape
         int64_t b = 0;
@@ -3677,7 +3693,11 @@ ge::graphStatus PromptFlashAttentionTilingV2::RunBigKernelTilingWithParams(Conte
     }
     // 同IFA合轴实现
     if (enablePFAMerge) {
-        gSize = (*contextKeyParams.headsNumber) / (*contextKeyParams.numKeyValueHeads);
+        if (*contextKeyParams.numKeyValueHeads > 0) {
+            gSize = (*contextKeyParams.headsNumber) / (*contextKeyParams.numKeyValueHeads);
+        } else {
+            gSize = 1U;
+        }
         tilingData.promptAttentionBaseParams.set_headNumRatio(1);
         tilingData.promptAttentionBaseParams.set_gOfMla(gSize);
     }

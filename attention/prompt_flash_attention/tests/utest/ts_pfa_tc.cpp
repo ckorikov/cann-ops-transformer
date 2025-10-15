@@ -1538,7 +1538,6 @@ TEST_F(Ts_Pfa_Ascend910_9591, case_invalid_hd)
     ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
 }
 
-
 TEST_F(Ts_Pfa_Ascend910_9591, case_atten_mask_2)
 {
     PfaCase cs;
@@ -1569,6 +1568,63 @@ TEST_F(Ts_Pfa_Ascend910_9591, case_BN_greater_than_core_number)
     ASSERT_TRUE(cs.Init());
     ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
 }
+
+TEST_F(Ts_Pfa_Ascend910_9591, case_pfa_merge_1)
+{
+    PfaCase cs;
+    cs.mParam.b = 1;
+    cs.mParam.n = 40;
+    cs.mParam.s = 2;
+    cs.mParam.d = 128;
+    cs.mParam.layout = "BNSD";
+    cs.mParam.outDataType = ge::DT_INT8;
+    cs.mParam.attenMaskType = AttenMaskShapeType::B_N_1_S;
+    cs.mParam.quantType = QuantShapeType::POST_1;
+    cs.mParam.numHeads = 40;
+    cs.mParam.kvNumHeads = 40;
+    cs.mOpInfo.mExp.mSuccess = false;
+    ASSERT_TRUE(cs.Init());
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
+TEST_F(Ts_Pfa_Ascend910_9591, case_pfa_merge_2)
+{
+    PfaCase cs;
+    cs.mParam.b = 1;
+    cs.mParam.n = 20;
+    cs.mParam.s = 2;
+    cs.mParam.d = 16;
+    cs.mParam.layout = "BNSD";
+    cs.mParam.numHeads = 20;
+    cs.mParam.kvNumHeads = 2;
+    cs.mParam.scaleValue = 1.0f;
+    cs.mParam.actualSeqLength = {2};
+    ASSERT_TRUE(cs.Init());
+    cs.query = Tensor("query", {1, 20, 2, 16}, "BNSD", cs.mParam.qDataType, ge::FORMAT_ND);
+    cs.key = Tensor("key", {1, 2, 2, 16}, "BNSD", cs.mParam.kvDataType, ge::FORMAT_ND);
+    cs.value = Tensor("value", {1, 2, 2, 16}, "BNSD", cs.mParam.kvDataType, ge::FORMAT_ND);
+    cs.attentionOut = Tensor("attentionOut", {1, 20, 2, 16}, "BNSD", cs.mParam.outDataType, ge::FORMAT_ND);
+    cs.mOpInfo.mExp.mSuccess = true;
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
+TEST_F(Ts_Pfa_Ascend910_9591, case_pfa_merge_3)
+{
+    PfaCase cs;
+    cs.mParam.b = 1;
+    cs.mParam.n = 40;
+    cs.mParam.s = 2;
+    cs.mParam.d = 32; // 32: D: [32, 128)对齐范围的临界值
+    cs.mParam.layout = "BNSD";
+    cs.mParam.numHeads = 40;
+    cs.mParam.kvNumHeads = 40;
+    cs.mParam.scaleValue = 1.0f;
+    cs.mOpInfo.mExp.mSuccess = true;
+    ASSERT_TRUE(cs.Init());
+    cs.query = Tensor("query", {cs.mParam.b, cs.mParam.n, cs.mParam.s, cs.mParam.d}, "BNSD", cs.mParam.qDataType, ge::FORMAT_ND);
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
 TEST_F(Ts_Pfa_Ascend910_9591, case_quant_1)
 {
     PfaCase cs;
