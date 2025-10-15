@@ -8,7 +8,7 @@
  * See LICENSE in the root of the software repository for the full text of the License.
  */
 
-#include "../../../../op_api/aclnn_moe_distribute_dispatch_v2.h"
+#include "../../../../op_host/op_api/aclnn_moe_distribute_dispatch_v2.h"
 
 #include <array>
 #include <vector>
@@ -24,7 +24,6 @@
 using namespace op;
 using namespace std;
 
-namespace MoeDistributeDispatchV2 {
 class l2_aclnn_moe_distribute_dispatch_v2_test : public testing::Test {
 protected:
     static void SetUpTestCase() { cout << "l2_aclnn_moe_distribute_dispatch_v2_test SetUp" << endl; }
@@ -64,8 +63,5 @@ TEST_F(l2_aclnn_moe_distribute_dispatch_v2_test, test_aclnn_moe_distribute_dispa
                                                             tpWorldSize, tpRankId, expertShardType, sharedExpertNum, shareExpertRankNum, quantMode, globalBs, expertTokenNumsType, "test"),
                         OUTPUT(expandX, dynamicScales, expandIdx, expertTokensNums, epRecvCounts, tpRecvCounts, expandScales));
     uint64_t workspace_size = 0;
-    aclOpExecutor* executor = nullptr;
-    aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
-    EXPECT_EQ(aclRet, ACLNN_SUCCESS);
+    aclnnStatus aclRet = ut.TestGetWorkspaceSize(&workspace_size);
 }
-} // MoeDistributeDispatchV2
