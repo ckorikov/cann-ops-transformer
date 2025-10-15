@@ -15,8 +15,8 @@
 #include <cmath>
 #include <graph/utils/type_utils.h>
 #include "tiling/tiling_api.h"
-#include "posembedding/rotary_position_embedding_grad/arch35/rotary_position_embedding_grad_dag.h"
-#include "posembedding/rotary_position_embedding_grad/arch35/rotary_position_embedding_grad_tiling_key.h"
+#include "posembedding/rotary_position_embedding_grad/op_kernel/arch35/rotary_position_embedding_grad_dag.h"
+#include "posembedding/rotary_position_embedding_grad/op_kernel/arch35/rotary_position_embedding_grad_tiling_key.h"
 #include "rotary_position_embedding_grad_tiling.h"
 
 namespace {

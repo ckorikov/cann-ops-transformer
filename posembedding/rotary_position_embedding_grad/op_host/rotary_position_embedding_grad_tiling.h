@@ -21,7 +21,7 @@
 #include "tiling/tiling_api.h"
 #include "tiling_base/tiling_base.h"
 #include "tiling_base/tiling_util.h"
-#include "posembedding/rotary_position_embedding_grad/arch35/rotary_position_embedding_grad_tiling_data.h"
+#include "posembedding/rotary_position_embedding_grad/op_kernel/arch35/rotary_position_embedding_grad_tiling_data.h"
 #include "platform/platform_info.h"
 #include "atvoss/reduce/reduce_tiling.h"
 #include "util/math_util.h"
