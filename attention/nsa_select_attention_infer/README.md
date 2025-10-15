@@ -2,15 +2,11 @@
 
 # 产品支持情况
 
-<table style="table-layout: fixed; width: 750px; border-collapse: collapse;">
-  <colgroup>
-    <col style="width: 600px;">
-    <col style="width: 150px;">
-  </colgroup>
+<table style="table-layout: fixed; border-collapse: collapse;">
   <thead>
     <tr>
       <!-- 表头单元格完全居中 -->
-      <th style="border: 1px solid #ccc; text-align: center; font-weight: bold;">产品</th>
+      <th style="border: 1px solid #ccc; font-weight: bold;">产品</th>
       <th style="border: 1px solid #ccc; text-align: center; font-weight: bold;">是否支持</th>
     </tr>
   </thead>
@@ -137,3 +133,32 @@
   - 仅支持paged attention。
   - 仅支持selectBlockSize取值为16的整数倍，最大支持到128。
   - selectBlockCount上限满足selectBlockCount * selectBlockSize <= MaxKvSeqlen，MaxKvSeqlen = Max(actualSelKvSeqLenOptional)。
+# 调用说明
+
+<div style="overflow-x: auto;">
+    <table style="undefined;table-layout: fixed; width: 1030px">
+  	<colgroup>
+        <col style="width: 250px">
+        <col style="width: 130px">
+        <col style="width: 650px">
+    </colgroup>
+    <thead>
+      <tr>
+        <th>调用方式</th>
+        <th>样例代码</th>
+        <th>说明</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>aclnn接口</td>
+        <td>
+            <a href="./examples/test_nsa_select_attention_infer.cpp">test_aclnn_nsa_select_attention_infer</a>
+        </td>
+        <td>
+            通过<a href="./docs/aclnnNsaSelectedAttentionInfer.md">aclnnNsaSelectedAttentionInfer</a>接口方式调用NsaSelectedAttentionInfer算子。
+		 </td>
+      </tr>
+  </tboby>
+</table>
+</div>
