@@ -234,16 +234,19 @@ ASCENDC_EXTERN_C graphStatus TilingGMMSwigluQuant(gert::TilingContext *context)
                 OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "mLimit is %ld must over then 0.", mLimit),
                 return GRAPH_FAILED);
     tilingData.gmmSwigluBaseParams.set_mLimit(mLimit);
-    int workSpaceMTemp = (mLimit * DOUBLE_WORKSPACE_SPLIT > m ? m : mLimit * DOUBLE_WORKSPACE_SPLIT);
-    tilingData.gmmSwigluBaseParams.set_workSpaceOffset1(workSpaceMTemp * k * sizeof(int8_t));
-    tilingData.gmmSwigluBaseParams.set_workSpaceOffset2(DOUBLE_ROW * workSpaceMTemp * n * sizeof(half));
     if (isA8W4MSD) {
+        int workSpaceMTemp = mLimit * DOUBLE_WORKSPACE_SPLIT;
+        tilingData.gmmSwigluBaseParams.set_workSpaceOffset1(workSpaceMTemp * k * sizeof(int8_t));
+        tilingData.gmmSwigluBaseParams.set_workSpaceOffset2(2 * workSpaceMTemp * n * sizeof(half));
         workspaceSizes[0] =
             SYS_WORKSPACE_SIZE +                    // 系统预留16MB
             (workSpaceMTemp * k * sizeof(int8_t)) + // 第一阶段 预处理左矩阵 (mLimit, K) * int8 * 2(double WorkSpace)
             (DOUBLE_ROW * workSpaceMTemp * n *
              sizeof(half)); // 第二阶段 矩阵乘结果 (2 * mLimit, N) * fp16 * 2(double WorkSpace)
     } else {
+        int workSpaceMTemp = (mLimit * DOUBLE_WORKSPACE_SPLIT > m ? m : mLimit * DOUBLE_WORKSPACE_SPLIT);
+        tilingData.gmmSwigluBaseParams.set_workSpaceOffset1(0);
+        tilingData.gmmSwigluBaseParams.set_workSpaceOffset2(0);
         workspaceSizes[0] = SYS_WORKSPACE_SIZE + (workSpaceMTemp * n * sizeof(int32_t));
     }
     bool isSplitWorkSpace = m > mLimit * DOUBLE_WORKSPACE_SPLIT;
