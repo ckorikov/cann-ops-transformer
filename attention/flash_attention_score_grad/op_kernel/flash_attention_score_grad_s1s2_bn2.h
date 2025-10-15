@@ -44,6 +44,7 @@ constexpr uint8_t TSCM_K_PONG = 5;
 constexpr uint8_t TSCM_TEMP = 6;
 constexpr uint32_t MMAD_BASE_SIZE = 128;
 constexpr uint32_t C0_SIZE = 16;
+constexpr uint32_t FP32_ALIGN_NUM = 8;
 
 constexpr MatmulConfig L1_MM_CFG = GetNormalConfig(false, false, false, BatchMode::BATCH_LESS_THAN_L1, true, IterateOrder::UNDEF, ScheduleType::INNER_PRODUCT, false);
 
@@ -959,7 +960,7 @@ FlashAttentionScoreGradS1s2Bn2<T1, T2, MM_CFG, MM_OUT_FORMAT, PSE_CFG, ATTEN_MAS
         srcStrideN1 = dimN2 * dimG * dimD;
         srcStrideN2 = dimN2 * dimD;
     }
-    dimDAlign = (dimD + dataCopyBlockNum - 1) / dataCopyBlockNum * dataCopyBlockNum;
+    dimDAlign = (dimD + C0_SIZE - 1) / C0_SIZE * C0_SIZE;
     attenMaskDimS2 = tilingData->opInfo.attenMaskS2Size;
 
     actual_seq_qlen_addr = actual_seq_qlen;
@@ -4344,40 +4345,44 @@ __aicore__ inline void FlashAttentionScoreGradS1s2Bn2<T1, T2, MM_CFG, MM_OUT_FOR
 
     uint32_t inBlockLen = dimD * sizeof(float);
     uint32_t outBlockLen = dimD * sizeof(T1);
-
-    uint32_t srcStride = 0;
-    uint32_t dstStride = 0;
+    uint32_t postDimDAlign = (dimD + FP32_ALIGN_NUM - 1) / FP32_ALIGN_NUM * FP32_ALIGN_NUM;
+    uint32_t inSrcStride = 0;
+    uint32_t inDstStride = dimDAlign == postDimDAlign ? 0 : 1;
+    
+    uint32_t outSrcStride = 0;
+    uint32_t outDstStride = 0;
     uint64_t dataSize = procS * dimDAlign;
     uint16_t blockCount = procS;
     uint8_t rightPadding = 0;
     bool isPad = false;
 
     if constexpr (LAYOUT == BSNGD){
-        srcStride = (dimN2 * G * dimD - dimD) * sizeof(float);
-        dstStride = (dimN2 * G * dimD - dimD) * sizeof(T1);
-        rightPadding = dimDAlign - dimD;
+        inSrcStride = (dimN2 * G * dimD - dimD) * sizeof(float);
+        outDstStride = (dimN2 * G * dimD - dimD) * sizeof(T1);
+        rightPadding = postDimDAlign - dimD;
         isPad = rightPadding != 0;
     }else if constexpr (LAYOUT == SBNGD) {
-        srcStride = (dimB * dimN2 * G * dimD - dimD) * sizeof(float);
-        dstStride = (dimB * dimN2 * G * dimD - dimD) * sizeof(T1);
-        rightPadding = dimDAlign - dimD;
+        inSrcStride = (dimB * dimN2 * G * dimD - dimD) * sizeof(float);
+        outDstStride = (dimB * dimN2 * G * dimD - dimD) * sizeof(T1);
+        rightPadding = postDimDAlign - dimD;
         isPad = rightPadding != 0;
     }else if constexpr (LAYOUT == BNGSD){
-        srcStride = 0;
-        dstStride = 0;
+        inSrcStride = 0;
+        outDstStride = 0;
         inBlockLen = procS * dimD * sizeof(float);
         outBlockLen = procS * dimD * sizeof(T1);
         blockCount = 1;
     }
 
     DataCopyPadExtParams<float> padExtParams{ isPad, 0, rightPadding, 0 };
-    DataCopyExtParams extParams{ blockCount, inBlockLen, srcStride, 0, 0 };
+    DataCopyExtParams extParams{ blockCount, inBlockLen, inSrcStride, inDstStride, 0 };
     DataCopyPad(postInBuf, workspaceGm[gmOffset], extParams, padExtParams);
 
     AscendC::SetFlag<HardEvent::MTE2_V>(static_cast<int32_t>(vWaitMte2));
     AscendC::WaitFlag<HardEvent::MTE2_V>(static_cast<int32_t>(vWaitMte2));
 
     if constexpr (AscendC::IsSameType<T1, float>::value) {
+        outSrcStride = dimDAlign == postDimDAlign ? 0 : 1;
         if(needMuls){
             Muls(postOutBuf, postInBuf, postScaleValue, dataSize);
         }
@@ -4392,7 +4397,7 @@ __aicore__ inline void FlashAttentionScoreGradS1s2Bn2<T1, T2, MM_CFG, MM_OUT_FOR
     AscendC::SetFlag<HardEvent::V_MTE3>(static_cast<int32_t>(mte3WaitV));
     AscendC::WaitFlag<HardEvent::V_MTE3>(static_cast<int32_t>(mte3WaitV));
 
-    DataCopyExtParams outExtParams{ blockCount, outBlockLen, 0, dstStride, 0 };
+    DataCopyExtParams outExtParams{ blockCount, outBlockLen, outSrcStride, outDstStride, 0 };
     DataCopyPad(outGm[gmOffset], postOutBuf, outExtParams);
 }
 
