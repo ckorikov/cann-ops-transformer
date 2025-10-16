@@ -157,7 +157,7 @@ protected:
     void DoBatchFusion(uint64_t fusedDimValue);
     bool CheckShapeInRangeForMandtoryInputs(size_t x1ShapeLen, size_t x2ShapeLen) const;
     void SetTransAttr(QuantBatchMatmulV3Trans &trans) const;
-    bool SetPlatformInfoForTiling();
+    virtual bool SetPlatformInfoForTiling();
 
     template<typename T>
     inline bool CheckNumberIsValid(const T &num, const std::string &opName, const std::string &description) const {
