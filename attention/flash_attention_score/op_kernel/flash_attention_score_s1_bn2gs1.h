@@ -1220,6 +1220,7 @@ FlashAttentionScoreS1Bn2gs1<FA_S1BN2GS1_FUNCTION_PARAMS_TEMPLATE>::ProcessVec1(S
             }
         }
         this->GetBmm1Result(extraInfo, actualUseTensor, loopIdx);
+        AscendC::PipeBarrier<PIPE_V>();
         AscendC::SetFlag<HardEvent::MTE2_V>(eventIdMte2ToV);
         AscendC::WaitFlag<HardEvent::MTE2_V>(eventIdMte2ToV);
         if (this->tilingData->inputParams.pseType != (uint32_t)PseTypeEnum::PSE_OUTER_ADD_MUL_TYPE) {
