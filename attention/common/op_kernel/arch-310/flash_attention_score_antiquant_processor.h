@@ -25,8 +25,9 @@ using namespace fa_base_matmul;
 using matmul::MatmulType;
 using namespace optiling;
 namespace BaseApi {
-__aicore__ constexpr uint16_t Align64FuncAntiquant(uint16_t data) {
-    return (data) >> SHIFT_NUM_6 << SHIFT_NUM_6; //  + ADD_NUM_63
+__aicore__ constexpr uint16_t GetRealDealSize(uint16_t realSize) {
+    uint16_t dealSize = ((realSize >> 1) + 31) >> 5 << 5;      // 31 & 5 is Alighup 32
+    return (dealSize > realSize) ? realSize : dealSize;
 }
 struct AntiquantTaskParamBaseAPI {
     uint32_t batchSize;
@@ -199,7 +200,7 @@ __aicore__ inline void AntiquantProcessorBaseAPI<ANTIQUANT_TEMPLATE_ARGS, ANTIQU
     uint64_t scaleOffset = 0;
     scaleOffset = taskParam.bIdx * taskParam.kvHeadNum * taskParam.seqSize * grpNum +
                   taskParam.n2Idx * taskParam.seqSize * grpNum + taskParam.s2Idx * taskParam.singleSInnerSize * grpNum +
-                  taskParam.kvPaddingBeginOffset * grpNum + subBlockIdx * Align64FuncAntiquant(s2RealSize / 2) * grpNum;
+                  taskParam.kvPaddingBeginOffset * grpNum + subBlockIdx * GetRealDealSize(s2RealSize) * grpNum;
     if constexpr (FLASH_DECODE) {
         scaleOffset += taskParam.flashDecodeS2Idx * taskParam.sInnerLoopSize * grpNum;
     }
@@ -229,10 +230,10 @@ __aicore__ inline void AntiquantProcessorBaseAPI<ANTIQUANT_TEMPLATE_ARGS, ANTIQU
     uint64_t scaleOffset = 0;
     if (taskParam.isPerHead) {
         scaleOffset = taskParam.bIdx * taskParam.kvHeadNum * taskParam.seqSize + taskParam.n2Idx * taskParam.seqSize +
-                      taskParam.s2Idx * taskParam.singleSInnerSize + taskParam.kvPaddingBeginOffset + subBlockIdx * Align64FuncAntiquant(s2RealSize / 2);
+                      taskParam.s2Idx * taskParam.singleSInnerSize + taskParam.kvPaddingBeginOffset + subBlockIdx * GetRealDealSize(s2RealSize);
     } else {
         scaleOffset = taskParam.bIdx * taskParam.antiqSeqSize + taskParam.s2Idx * taskParam.singleSInnerSize +
-                      taskParam.kvPaddingBeginOffset + subBlockIdx * Align64FuncAntiquant(s2RealSize / 2);
+                      taskParam.kvPaddingBeginOffset + subBlockIdx * GetRealDealSize(s2RealSize);
     }
     if constexpr (FLASH_DECODE) {
         scaleOffset += taskParam.flashDecodeS2Idx * taskParam.sInnerLoopSize;
@@ -517,7 +518,7 @@ __aicore__ inline void AntiquantProcessorBaseAPI<ANTIQUANT_TEMPLATE_ARGS, ANTIQU
     } else {
         subBlockIdx = 1;
     }
-    uint64_t outOffset = subBlockIdx * Align64FuncAntiquant(s2RealSize / 2) * 16 + copyLoopIdx * taskParam.copySplitS * 16;
+    uint64_t outOffset = subBlockIdx * GetRealDealSize(s2RealSize) * 16 + copyLoopIdx * taskParam.copySplitS * 16;
 
     struct DataCopyParams dataCopyParams;
     dataCopyParams.blockCount = taskParam.headDimAlignBlock / elementTypeSize;

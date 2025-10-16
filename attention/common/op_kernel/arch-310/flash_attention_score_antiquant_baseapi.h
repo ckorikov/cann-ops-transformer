@@ -137,7 +137,7 @@ protected:
     uint32_t antiqSeqSize = 0;
     bool antiquantPerTensorFlag = true;
     bool antiquantPerHeadFlag = false;
-    static constexpr uint32_t BUFFER_SIZE_BYTE_4K_ANTIQUANT = 4096;
+    static constexpr uint32_t BUFFER_SIZE_BYTE_5K_ANTIQUANT = 5120;  // 5K deal the tail
     AntiquantTaskParamBaseAPI taskParam;
 
     TPipe *pipe;
@@ -698,12 +698,12 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
 {
     this->pipe->InitBuffer(kvInputQue, 3, kvInputSize); // 3 buffer
     this->pipe->InitBuffer(kvOutputQue, 2, kvOutSize);  // 2 buffer
-    this->pipe->InitBuffer(keyAntiqScaleInputQue, 1, 2048); // 2048 is 2 * 1024
-    this->pipe->InitBuffer(keyAntiqOffsetInputQue, 1, 2048); // 2048 is 2 * 1024
-    this->pipe->InitBuffer(valueAntiqScaleInputQue, 1, 2048); // 2048 is 2 * 1024
-    this->pipe->InitBuffer(valueAntiqOffsetInputQue, 1, 2048); // 2048 is 2 * 1024
+    this->pipe->InitBuffer(keyAntiqScaleInputQue, 1, 3072); // 3072 is 3 * 1024, deal the tail
+    this->pipe->InitBuffer(keyAntiqOffsetInputQue, 1, 3072); // 3072 is 3 * 1024, deal the tail
+    this->pipe->InitBuffer(valueAntiqScaleInputQue, 1, 3072); // 3072 is 3 * 1024, deal the tail
+    this->pipe->InitBuffer(valueAntiqOffsetInputQue, 1, 3072); // 3072 is 3 * 1024, deal the tail
     if constexpr (KVFP4) {
-        this->pipe->InitBuffer(kvAntiqMxScaleRes, BUFFER_SIZE_BYTE_4K_ANTIQUANT);
+        this->pipe->InitBuffer(kvAntiqMxScaleRes, BUFFER_SIZE_BYTE_5K_ANTIQUANT);
     }
 }
 
@@ -1126,9 +1126,9 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
     GlobalTensor<KV_T> tempKeyGm = this->keyGm;
     GetKvByTensorList(runInfo, this->keyGm, tempKeyGm);
     if(isBeforeHalf) {
-        taskParam.copyTotalS = Align64FuncAntiquant(runInfo.s2RealSize / 2);  // 2 is Vecnum 
+        taskParam.copyTotalS = GetRealDealSize(runInfo.s2RealSize);  // 2 is Vecnum 
     } else {
-        taskParam.copyTotalS = runInfo.s2RealSize - (Align64FuncAntiquant(runInfo.s2RealSize / 2));  // 2 is Vecnum 
+        taskParam.copyTotalS = runInfo.s2RealSize - (GetRealDealSize(runInfo.s2RealSize));  // 2 is Vecnum 
     }
     if (taskParam.copyTotalS == 0) {
         CrossCoreWaitFlag<SYNC_MODE, PIPE_MTE3>(CV_L1_EVENT[subTaskId % 2]);
@@ -1136,14 +1136,14 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
         return;
     }
     uint32_t curSequence = constInfo.s2BaseSize * runInfo.s2LoopCount + runInfo.kvLeftPaddingSize +
-        constInfo.subBlockIdx * Align64FuncAntiquant(runInfo.s2RealSize / 2);
+        constInfo.subBlockIdx * GetRealDealSize(runInfo.s2RealSize);
     taskParam.flashDecodeS2Idx = runInfo.flashDecodeS2Idx;
     if constexpr(isFd) {
         curSequence += taskParam.flashDecodeS2Idx * taskParam.sInnerLoopSize;
     }
 
     taskParam.kvGmOffset = runInfo.keyOffset + constInfo.subBlockIdx *
-        Align64FuncAntiquant(runInfo.s2RealSize / 2) * taskParam.kvStep;  // 2 is Vec num
+        GetRealDealSize(runInfo.s2RealSize) * taskParam.kvStep;  // 2 is Vec num
 
     taskParam.s2BatchOffset = curSequence;
     taskParam.kvPaddingBeginOffset = runInfo.kvLeftPaddingSize;
@@ -1182,9 +1182,9 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
     GlobalTensor<KV_T> tempValueGm = this->valueGm;
     GetKvByTensorList(runInfo, this->valueGm, tempValueGm);
     if(isBeforeHalf) {
-        taskParam.copyTotalS = Align64FuncAntiquant(runInfo.s2RealSize / 2);  // 2 is Vec num
+        taskParam.copyTotalS = GetRealDealSize(runInfo.s2RealSize);  // 2 is Vec num
     } else {
-        taskParam.copyTotalS = runInfo.s2RealSize - (Align64FuncAntiquant(runInfo.s2RealSize / 2));  // 2 is Vec num
+        taskParam.copyTotalS = runInfo.s2RealSize - (GetRealDealSize(runInfo.s2RealSize));  // 2 is Vec num
     }
     if (taskParam.copyTotalS == 0) {
         CrossCoreWaitFlag<SYNC_MODE, PIPE_MTE3>(CV_L1_EVENT[subTaskId % 2]);
@@ -1192,13 +1192,13 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
         return;
     }
     uint32_t curSequence = constInfo.s2BaseSize * runInfo.s2LoopCount + runInfo.kvLeftPaddingSize +
-        constInfo.subBlockIdx * Align64FuncAntiquant(runInfo.s2RealSize / 2);
+        constInfo.subBlockIdx * GetRealDealSize(runInfo.s2RealSize);
     taskParam.flashDecodeS2Idx = runInfo.flashDecodeS2Idx;
     if constexpr(isFd) {
         curSequence += taskParam.flashDecodeS2Idx * taskParam.sInnerLoopSize;
     }
     taskParam.kvGmOffset = runInfo.valueOffset + constInfo.subBlockIdx *
-        Align64FuncAntiquant(runInfo.s2RealSize / 2) * taskParam.kvStep;  // 2 is Vec num
+        GetRealDealSize(runInfo.s2RealSize) * taskParam.kvStep;  // 2 is Vec num
     
     taskParam.s2BatchOffset = curSequence;
     taskParam.kvPaddingBeginOffset = runInfo.kvLeftPaddingSize;
