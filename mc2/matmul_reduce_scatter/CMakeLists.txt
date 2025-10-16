@@ -12,7 +12,7 @@ file(GLOB SUBDIRECTORIES LIST_DIRECTORIES true RELATIVE ${CMAKE_CURRENT_SOURCE_D
 # 遍历子目录
 foreach(SUBDIR ${SUBDIRECTORIES})
   # 检查子目录中是否存在 CMakeLists.txt
-  if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${SUBDIR}/CMakeLists.txt AND NOT ${SUB_DIR} STREQUAL "tests")
+  if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${SUBDIR}/CMakeLists.txt)
     add_subdirectory(${SUBDIR})
   endif()
 endforeach()
