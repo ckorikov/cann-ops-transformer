@@ -461,13 +461,13 @@ extern "C" __global__ __aicore__ void matmul_all_reduce(
     } else if (TILING_KEY_IS(365331529007873)) { // 311110
         INVOKE_MC2_WEIGHT_QUANT_910_OP_IMPL(true, QuantType::PER_TENSOR, true);
 #if (FORMAT_X2 == FORMAT_FRACTAL_NZ)
-    } else if (TILING_KEY_IS(365057993605889)) { // 810200
+    } else if (TILING_KEY_IS(365057188299521)) { // 810200
 #else
     } else if (TILING_KEY_IS(365057187971841)) { // 310200
 #endif
         INVOKE_MC2_WEIGHT_QUANT_910_OP_IMPL(false, QuantType::PER_CHANNEL, false);
 #if (FORMAT_X2 == FORMAT_FRACTAL_NZ)
-    } else if (TILING_KEY_IS(365332871512833)) { // 811200
+    } else if (TILING_KEY_IS(365332066206465)) { // 811200
 #else
     } else if (TILING_KEY_IS(365332065878785)) { // 311200
 #endif
