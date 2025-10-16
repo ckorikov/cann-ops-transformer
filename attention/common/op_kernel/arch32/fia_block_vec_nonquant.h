@@ -110,7 +110,7 @@ public:
     __aicore__ inline void Vec1SinkCompute(const RunInfo &info, LocalTensor<COMPUTE_T> &tmpSinkResUb,
                                             LocalTensor<COMPUTE_T> &tmpSinkResUbBrcb, uint32_t idx,
                                             uint32_t wsMStart, uint32_t dealRowCount);
-    __aicore__ inline void Vec1SinkSoftmaxProc(LocalTensor<COMPUTE_T> &tmpSinkResUbBrcb,
+    __aicore__ inline void Vec1SinkSoftmaxProc(const RunInfo &info, LocalTensor<COMPUTE_T> &tmpSinkResUbBrcb,
                                             uint32_t offset, uint32_t dealRowCountBrcb);
     __aicore__ inline void Vec1GetSinkValue(const RunInfo &info, LocalTensor<COMPUTE_T> &tmpSinkResUb,
                                             uint32_t wsMStart, uint32_t dealRowCount);
@@ -865,7 +865,7 @@ __aicore__ inline void FiaBlockVecNonQuant<FIAT>::Vec1GetSinkValue(const RunInfo
 }
 
 template <typename FIAT>
-__aicore__ inline void FiaBlockVecNonQuant<FIAT>::Vec1SinkSoftmaxProc(LocalTensor<COMPUTE_T> &tmpSinkResUbBrcb,
+__aicore__ inline void FiaBlockVecNonQuant<FIAT>::Vec1SinkSoftmaxProc(const RunInfo &info, LocalTensor<COMPUTE_T> &tmpSinkResUbBrcb,
     uint32_t offset, uint32_t dealRowCountBrcb)
 {
     pipe_barrier(PIPE_V);
@@ -919,9 +919,9 @@ __aicore__ inline void FiaBlockVecNonQuant<FIAT>::Vec1SinkCompute(const RunInfo 
     if constexpr (SOFTMAX_WITH_BRC) {
         Brcb(tmpSinkResUbBrcb, tmpSinkResUb, (dealRowCount + this->brcbNum - 1) / this->brcbNum, {1, this->brcbNum});
         uint32_t dealRowCountBrcb = dealRowCount * this->brcbNum;
-        Vec1SinkSoftmaxProc(tmpSinkResUbBrcb, offset, dealRowCountBrcb);
+        Vec1SinkSoftmaxProc(info, tmpSinkResUbBrcb, offset, dealRowCountBrcb);
     } else {
-        Vec1SinkSoftmaxProc(tmpSinkResUb, offset, dealRowCount);
+        Vec1SinkSoftmaxProc(info, tmpSinkResUb, offset, dealRowCount);
     }
 }
 
