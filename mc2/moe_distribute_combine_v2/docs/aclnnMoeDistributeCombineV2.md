@@ -482,7 +482,10 @@ aclnnStatus aclnnMoeDistributeCombineV2(
     #include "hccl/hccl.h"
     #include "../../moe_distribute_dispatch_v2/op_host/op_api/aclnn_moe_distribute_dispatch_v2.h"
     #include "../op_host/op_api/aclnn_moe_distribute_combine_v2.h"
+<<<<<<< HEAD
     #include <unistd.h>
+=======
+>>>>>>> e7791434 (mc2文档格式问题修改)
 
     #define CHECK_RET(cond, return_expr) \
         do {                             \
