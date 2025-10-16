@@ -1146,7 +1146,11 @@ public:
                 if constexpr (LAYOUT == TND) {
                     scrOffsetBase += curS * n2 * curG * dAlign;
                     dstOffsetBase += curS * n2 * curG * d;
-                    curS = ((__gm__ int64_t *)seqS)[bIdx] - ((__gm__ int64_t *)seqS)[bIdx - 1];
+                    if (bIdx < b) {
+                        curS = ((__gm__ int64_t *)seqS)[bIdx] - ((__gm__ int64_t *)seqS)[bIdx - 1];
+                    } else {
+                        curS = 0;
+                    }
                 }
             } else {
                 sIdx = 0;

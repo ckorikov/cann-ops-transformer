@@ -380,6 +380,11 @@ public:
             }
         }
 
+        AscendC::PipeBarrier<PIPE_V>();
+        event_t eventIDVToMTE3 = static_cast<event_t>(GetTPipePtr()->FetchEventID(HardEvent::MTE3_V));
+        SetFlag<HardEvent::MTE3_V>(eventIDVToMTE3);
+        WaitFlag<HardEvent::MTE3_V>(eventIDVToMTE3);
+
         if constexpr (HAS_ROPE == ENABLE) {
             if (g_coreType == AIV && cBlockIdx < TilingData->preTilingData.qRopePreBlockTotal) {
                 if constexpr (INIT_OUTPUT) {
@@ -388,12 +393,20 @@ public:
             }
         }
 
+        AscendC::PipeBarrier<PIPE_V>();
+        SetFlag<HardEvent::MTE3_V>(eventIDVToMTE3);
+        WaitFlag<HardEvent::MTE3_V>(eventIDVToMTE3);
+
         if (g_coreType == AIV && cBlockIdx < TilingData->preTilingData.kvPreBlockTotal) {
             if constexpr (INIT_OUTPUT) {
                 InitOutput<float>(dkWorkSpaceGm[dkvOffset], initdkSize, 0);
 
             }
         }
+
+        AscendC::PipeBarrier<PIPE_V>();
+        SetFlag<HardEvent::MTE3_V>(eventIDVToMTE3);
+        WaitFlag<HardEvent::MTE3_V>(eventIDVToMTE3);
 
         if constexpr (HAS_ROPE == ENABLE) {
             if (g_coreType == AIV && cBlockIdx < TilingData->preTilingData.kRopePreBlockTotal) {
@@ -402,6 +415,10 @@ public:
                 }
             }
         }
+
+        AscendC::PipeBarrier<PIPE_V>();
+        SetFlag<HardEvent::MTE3_V>(eventIDVToMTE3);
+        WaitFlag<HardEvent::MTE3_V>(eventIDVToMTE3);
 
         if (g_coreType == AIV && cBlockIdx < TilingData->preTilingData.vPreBlockTotal) {
             if constexpr (INIT_OUTPUT) {
@@ -649,6 +666,11 @@ public:
             }
         }
 
+        AscendC::PipeBarrier<PIPE_V>();
+        event_t eventIDVToMTE3 = static_cast<event_t>(GetTPipePtr()->FetchEventID(HardEvent::MTE3_V));
+        SetFlag<HardEvent::MTE3_V>(eventIDVToMTE3);
+        WaitFlag<HardEvent::MTE3_V>(eventIDVToMTE3);
+
         if constexpr (HAS_ROPE == ENABLE) {
             if (g_coreType == AIV && cBlockIdx < TilingData->preTilingData.qRopePreBlockTotal) {
                 if constexpr (INIT_OUTPUT) {
@@ -657,12 +679,20 @@ public:
             }
         }
 
+        AscendC::PipeBarrier<PIPE_V>();
+        SetFlag<HardEvent::MTE3_V>(eventIDVToMTE3);
+        WaitFlag<HardEvent::MTE3_V>(eventIDVToMTE3);
+
         if (g_coreType == AIV && cBlockIdx < TilingData->preTilingData.kvPreBlockTotal) {
             if constexpr (INIT_OUTPUT) {
                 InitOutput<float>(dkWorkSpaceGm[dkvOffset], initdkSize, 0);
 
             }
         }
+
+        AscendC::PipeBarrier<PIPE_V>();
+        SetFlag<HardEvent::MTE3_V>(eventIDVToMTE3);
+        WaitFlag<HardEvent::MTE3_V>(eventIDVToMTE3);
 
         if constexpr (HAS_ROPE == ENABLE) {
             if (g_coreType == AIV && cBlockIdx < TilingData->preTilingData.kRopePreBlockTotal) {
@@ -671,6 +701,10 @@ public:
                 }
             }
         }
+
+        AscendC::PipeBarrier<PIPE_V>();
+        SetFlag<HardEvent::MTE3_V>(eventIDVToMTE3);
+        WaitFlag<HardEvent::MTE3_V>(eventIDVToMTE3);
 
         if (g_coreType == AIV && cBlockIdx < TilingData->preTilingData.vPreBlockTotal) {
             if constexpr (INIT_OUTPUT) {
