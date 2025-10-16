@@ -16,7 +16,7 @@
 #define ROTARY_POSITION_EMBEDDING_ABA_AND_BA_H
 
 #include "op_kernel/math_util.h"
-#include "../../apply_rotary_pos_emb/op_kernel/arch35/apply_rotary_pos_emb_common.h"
+#include "../../apply_rotary_pos_emb/arch35/apply_rotary_pos_emb_common.h"
 
 namespace RotaryPositionEmbedding {
 using namespace AscendC;

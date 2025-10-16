@@ -19,7 +19,7 @@
 #include "../../inc/platform.h"
 #include "../../inc/kernel_utils.h"
 #include "../../inc/load_store_utils.h"
-#include "../../apply_rotary_pos_emb/op_kernel/arch35/apply_rotary_pos_emb_common.h"
+#include "../../apply_rotary_pos_emb/arch35/apply_rotary_pos_emb_common.h"
 
 namespace RotaryPositionEmbedding {
 using namespace AscendC;

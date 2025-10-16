@@ -17,7 +17,7 @@
 
 #include "kernel_operator.h"
 #include "../../inc/load_store_utils.h"
-#include "../../apply_rotary_pos_emb/op_kernel/arch35/apply_rotary_pos_emb_common.h"
+#include "../../apply_rotary_pos_emb/arch35/apply_rotary_pos_emb_common.h"
 
 using namespace AscendC;
 
