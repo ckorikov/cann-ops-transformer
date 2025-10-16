@@ -1,8 +1,5 @@
 # BatchMatMulReduceScatterAlltoAll
 
-> 注意：
-> 本文档仅仅是算子功能的简介，不支持用户直接调用，因为当前不支持kernel直调，等后续支持再完善文档!!!!!!
-
 ## 产品支持情况
 
 | 产品                                                         | 是否支持 |
@@ -128,7 +125,7 @@ $$
   - y：(E, C, H/tp)
 
 - 按C轴进行ReduceScatter场景，即yShardType为1场景：
-  - x: (E/ep, ep*tp*C/tp, M/tp)
+  - x: (E/ep, ep*tp\*C/tp, M/tp)
   - weight：(E/ep, M/tp, H)
   - biasOptional：非空指针情况下，三维时为(E/ep, 1, H)，两维时为(E/ep, H)
   - y：(E, C/tp, H)
