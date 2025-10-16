@@ -70,6 +70,7 @@ if (BUILD_OPEN_PROJECT)
       PRIVATE
       $<BUILD_INTERFACE:intf_pub_cxx17>
       tiling_api
+      dlog
     )
 else()
     add_library(${COMMON_NAME}_obj OBJECT)
