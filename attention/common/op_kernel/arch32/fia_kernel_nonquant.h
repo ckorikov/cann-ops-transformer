@@ -50,7 +50,7 @@ public:
          __gm__ uint8_t *keyAntiquantScale, __gm__ uint8_t *keyAntiquantOffset, __gm__ uint8_t *valueAntiquantScale,
          __gm__ uint8_t *valueAntiquantOffset, __gm__ uint8_t *keySharedPrefix, __gm__ uint8_t *valueSharedPrefix,
          __gm__ uint8_t *actualSharedPrefixLen, __gm__ uint8_t *queryRope, __gm__ uint8_t *keyRope,
-         __gm__ uint8_t *keyRopeAntiquantScale, __gm__ uint8_t *attentionOut, __gm__ uint8_t *softmaxLse,
+         __gm__ uint8_t *keyRopeAntiquantScale, __gm__ uint8_t *learnableSink, __gm__ uint8_t *attentionOut, __gm__ uint8_t *softmaxLse,
          __gm__ uint8_t *workspace, const FusedInferAttentionScoreTilingData *__restrict tiling,
          __gm__ uint8_t *gmTiling, TPipe *tPipe, bool isPrefix = false);
     __aicore__ inline void Process();
@@ -366,7 +366,7 @@ __aicore__ inline void FiaKernelNonQuant<FIAT>::Init(
     __gm__ uint8_t *keyAntiquantScale, __gm__ uint8_t *keyAntiquantOffset, __gm__ uint8_t *valueAntiquantScale,
     __gm__ uint8_t *valueAntiquantOffset, __gm__ uint8_t *keySharedPrefix, __gm__ uint8_t *valueSharedPrefix,
     __gm__ uint8_t *actualSharedPrefixLen, __gm__ uint8_t *queryRope, __gm__ uint8_t *keyRope,
-    __gm__ uint8_t *keyRopeAntiquantScale, __gm__ uint8_t *attentionOut, __gm__ uint8_t *softmaxLse,
+    __gm__ uint8_t *keyRopeAntiquantScale, __gm__ uint8_t *learnableSink, __gm__ uint8_t *attentionOut, __gm__ uint8_t *softmaxLse,
     __gm__ uint8_t *workspace, const FusedInferAttentionScoreTilingData *__restrict tiling,
     __gm__ uint8_t *gmTiling, TPipe *tPipe, bool isPrefix)
 {
@@ -430,7 +430,7 @@ __aicore__ inline void FiaKernelNonQuant<FIAT>::Init(
             blockTable, queryPaddingSize, kvPaddingSize,
             keyAntiquantScale, keyAntiquantOffset, valueAntiquantScale, valueAntiquantOffset,
             keySharedPrefix, valueSharedPrefix, actualSharedPrefixLen,
-            queryRope, keyRope, keyRopeAntiquantScale,
+            queryRope, keyRope, keyRopeAntiquantScale, learnableSink,
             attentionOut, softmaxLse);
         vectorService.InitVec1GlobalTensor(vec1ResGm, mm1ResGm);
         vectorService.InitVec2GlobalTensor(vec2ResGm, mm2ResGm);

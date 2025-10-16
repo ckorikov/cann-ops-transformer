@@ -63,6 +63,7 @@ const std::string QUERY_PADDING_SIZE_NAME = "query_padding_size";
 const std::string SOFTMAX_LSE_NAME = "softmax_lse";
 const std::string VALUE_SHARED_PREFIX_NAME = "value_shared_prefix";
 const std::string ACTUAL_SHARED_PREFIX_LEN_NAME = "actual_shared_prefix_len";
+const std::string LEARNABLE_SINK_NAME = "learnable_sink";
 
 constexpr int32_t SPARSE_MODE_NO_MASK = 0;
 constexpr int32_t SPARSE_MODE_ALL_MASK = 1;
@@ -197,6 +198,7 @@ struct FIAParaInfo {
     FIAOptionalParaInfo keyRope = {nullptr, nullptr};
     FIAOptionalParaInfo keyRopeAntiquantScale = {nullptr, nullptr};
     FIAOptionalParaInfo dequantScaleQuery = {nullptr, nullptr};
+    FIAOptionalParaInfo learnableSink = {nullptr, nullptr};
 
     FIARequiredParaInfo attenOut = {nullptr, nullptr};
     FIARequiredParaInfo lseOut = {nullptr, nullptr};
@@ -300,7 +302,7 @@ public:
     bool isMaxWorkspace = false;
     bool needInit = false;
     bool slidingFlag = false;
-
+    bool learnableSinkFlag = false;
     // DType
     FiaTilingInOutMode inOutMode = FiaTilingInOutMode::FP16_FP16;
     ge::DataType inputQType = ge::DT_FLOAT16;

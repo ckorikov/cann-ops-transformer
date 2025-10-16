@@ -40,6 +40,7 @@ constexpr size_t DIM_NUM_TWO = 2;
 constexpr size_t DIM_NUM_THREE = 3;
 constexpr size_t DIM_NUM_FOUR = 4;
 
+constexpr size_t HEAD_DIM_512 = 512;
 constexpr size_t SHAPE_NUM_ONE = 1;
 
 std::string RopeModeToSerialString(const RopeMode &ropeMode);
@@ -202,6 +203,7 @@ private:
     ge::graphStatus CheckFeatureMlaNoquantPa() const;
     ge::graphStatus CheckFeatureMlaNoquantMask() const;
     ge::graphStatus CheckFeatureNoquantUnsupported() const;
+    ge::graphStatus CheckFeatureMlaSink() const;
     ge::graphStatus CheckFeatureMlaNoquantUnsupported() const;
     ge::graphStatus CheckFeatureMlaNoquant() const;
     ge::graphStatus CheckFeatureMlaAntiquant() const;
@@ -209,6 +211,7 @@ private:
     ge::graphStatus CheckFeatureGqaNoquantUnsupported() const;
     ge::graphStatus CheckFeatureGqaNoquantPa() const;
     ge::graphStatus CheckFeatureGqaNoquantMask() const;
+    ge::graphStatus CheckFeatureGqaNoquantSink() const;
     ge::graphStatus CheckFeatureGqaNoQuantDtype() const;
     ge::graphStatus CheckFeatureGqaNoQuantLayout() const;
     ge::graphStatus CheckFeatureGqaNoQuantShape() const;

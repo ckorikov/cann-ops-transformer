@@ -59,7 +59,7 @@ using namespace AscendC;
             blockTable, queryPaddingSize, kvPaddingSize,                                                               \
             keyAntiquantScale, keyAntiquantOffset, valueAntiquantScale, valueAntiquantOffset,                          \
             keySharedPrefix, valueSharedPrefix, actualSharedPrefixLen,                                                 \
-            queryRope, keyRope, keyRopeAntiquantScale,                                                                 \
+            queryRope, keyRope, keyRopeAntiquantScale, learnableSink,                                                  \
             attentionOut, softmaxLse, user, tiling_data, tiling, &tPipe);                                              \
         op.Process();                                                                                                  \
     } while (0)
@@ -77,8 +77,8 @@ extern "C" __global__ __aicore__ void fused_infer_attention(
     __gm__ uint8_t *keyAntiquantScale, __gm__ uint8_t *keyAntiquantOffset, __gm__ uint8_t *valueAntiquantScale,
     __gm__ uint8_t *valueAntiquantOffset, __gm__ uint8_t *keySharedPrefix, __gm__ uint8_t *valueSharedPrefix,
     __gm__ uint8_t *actualSharedPrefixLen, __gm__ uint8_t *queryRope, __gm__ uint8_t *keyRope,
-    __gm__ uint8_t *keyRopeAntiquantScale, __gm__ uint8_t *attentionOut, __gm__ uint8_t *softmaxLse,
-    __gm__ uint8_t *workspace, __gm__ uint8_t *tiling)
+    __gm__ uint8_t *keyRopeAntiquantScale, __gm__ uint8_t *learnableSink, __gm__ uint8_t *attentionOut,
+    __gm__ uint8_t *softmaxLse, __gm__ uint8_t *workspace, __gm__ uint8_t *tiling)
 {
 #if (__CCE_AICORE__ == 310) || (defined __DAV_310R6__)
 

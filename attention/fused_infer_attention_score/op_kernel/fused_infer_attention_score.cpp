@@ -71,7 +71,7 @@ extern "C" __global__ __aicore__ void fused_infer_attention_score(__gm__ uint8_t
                           quant_offset2, antiquantScale, antiquantOffset, blocktable, queryPaddingSize, kvPaddingSize,
                           keyAntiquantScale, keyAntiquantOffset, valueAntiquantScale, valueAntiquantOffset,
                           keySharedPrefix, valueSharedPrefix, actualSharedPrefixLen, queryRope, keyRope, keyRopeAntiquantScale,
-                          attentionOut, softmaxLse, workspace, tiling);
+                          learnableSink, attentionOut, softmaxLse, workspace, tiling);
 #endif
   } else {
 

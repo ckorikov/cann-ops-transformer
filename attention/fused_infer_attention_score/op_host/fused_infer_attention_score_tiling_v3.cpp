@@ -409,7 +409,6 @@ bool CheckGqaFeatureSupport(gert::TilingContext *context)
     auto actualSharedPrefixLen = context->GetOptionalInputTensor(ACTUAL_SHARED_PREFIX_LEN_INDEX);
     auto quantScale2 = context->GetOptionalInputTensor(QUANT_SCALE2_INDEX);
     auto quantOffset2 = context->GetOptionalInputTensor(QUANT_OFFSET2_INDEX);
-    auto learnableSink = context->GetOptionalInputTensor(LEARNABLE_SINK_INDEX);
     if (pseShift != nullptr ||
         queryPaddingSize != nullptr ||
         kvPaddingSize != nullptr ||
@@ -417,8 +416,7 @@ bool CheckGqaFeatureSupport(gert::TilingContext *context)
         valueSharedPrefix != nullptr ||
         actualSharedPrefixLen != nullptr ||
         quantScale2 != nullptr ||
-        quantOffset2 != nullptr ||
-        learnableSink != nullptr) {
+        quantOffset2 != nullptr) {
         return false;
     }
 

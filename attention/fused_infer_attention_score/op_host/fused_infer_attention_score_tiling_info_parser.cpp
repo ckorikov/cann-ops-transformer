@@ -205,6 +205,8 @@ void FiaInfoParser::GetOptionalInputParaInfo()
     GetOptionalInputParaRopeInfo();
     opParamInfo_.dequantScaleQuery.tensor = context_->GetOptionalInputTensor(DEQUANT_SCALE_QUERY_INDEX);
     opParamInfo_.dequantScaleQuery.desc = context_->GetOptionalInputDesc(DEQUANT_SCALE_QUERY_INDEX);
+    opParamInfo_.learnableSink.tensor = context_->GetOptionalInputTensor(LEARNABLE_SINK_INDEX);
+    opParamInfo_.learnableSink.desc = context_->GetOptionalInputDesc(LEARNABLE_SINK_INDEX);
 }
 
 void FiaInfoParser::GetOptionalInputParaPostQuantInfo()
@@ -842,6 +844,7 @@ void FiaInfoParser::GenerateFeatureInfo(FiaTilingInfo &fiaInfo)
     fiaInfo.isMaxWorkspace = isMaxWorkspace_;
     fiaInfo.preToken = preToken_;
     fiaInfo.nextToken = nextToken_;
+    fiaInfo.learnableSinkFlag = (opParamInfo_.learnableSink.tensor != nullptr);
 }
  
 void FiaInfoParser::GenerateLayoutInfo(FiaTilingInfo &fiaInfo)

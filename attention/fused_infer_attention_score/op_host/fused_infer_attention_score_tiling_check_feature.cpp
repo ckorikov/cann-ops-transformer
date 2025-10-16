@@ -206,6 +206,17 @@ ge::graphStatus FiaTilingCheck::CheckFeatureMlaNoquantLse() const
     return ge::GRAPH_SUCCESS;
 }
 
+ge::graphStatus FiaTilingCheck::CheckFeatureMlaSink() const
+{
+    // sink功能不支持MLA vD=512的场景
+    OP_CHECK_IF((fiaInfo_.learnableSinkFlag == true) && (vHeadDim_ == HEAD_DIM_512),
+        OP_LOGE(opName_, "In %s situation, rope exsists and value head dim is %u, %s is not supported.",
+        QuantModeToSerialString(quantMode_).c_str(), vHeadDim_, LEARNABLE_SINK_NAME.c_str()),
+        return ge::GRAPH_FAILED);
+
+    return ge::GRAPH_SUCCESS;
+}
+
 ge::graphStatus FiaTilingCheck::CheckFeatureNoquantUnsupported() const
 {
     OP_CHECK_IF(fiaInfo_.outputType == ge::DT_INT8,
@@ -261,7 +272,8 @@ ge::graphStatus FiaTilingCheck::CheckFeatureMlaNoquant() const
         ge::GRAPH_SUCCESS != CheckFeatureMlaNoQuantDtype() ||
         ge::GRAPH_SUCCESS != CheckFeatureMlaNoquantLse() ||
         ge::GRAPH_SUCCESS != CheckFeatureMlaNoQuantLayout() ||
-        ge::GRAPH_SUCCESS != CheckFeatureMlaNoQuantShape()) {
+        ge::GRAPH_SUCCESS != CheckFeatureMlaNoQuantShape() ||
+        ge::GRAPH_SUCCESS != CheckFeatureMlaSink()) {
         return ge::GRAPH_FAILED;
     }
     return ge::GRAPH_SUCCESS;
@@ -342,6 +354,25 @@ ge::graphStatus FiaTilingCheck::CheckFeatureGqaNoquantMask() const
                     QuantModeToSerialString(quantMode_).c_str(), QUERY_NAME.c_str(), ATTEN_MASK_NAME.c_str()),
             return ge::GRAPH_FAILED);
     }
+    return ge::GRAPH_SUCCESS;
+}
+
+ge::graphStatus FiaTilingCheck::CheckFeatureGqaNoquantSink() const
+{
+    if (fiaInfo_.learnableSinkFlag == false) {
+        return ge::GRAPH_SUCCESS;
+    }
+
+    const std::vector<size_t> sinkDimNumList = {DIM_NUM_ONE};
+    if (ge::GRAPH_SUCCESS != CheckDimNumSupport(opParamInfo_.learnableSink.tensor, sinkDimNumList, LEARNABLE_SINK_NAME)) {
+        return ge::GRAPH_FAILED;
+    }
+
+    uint32_t sinkDim = opParamInfo_.learnableSink.tensor->GetStorageShape().GetDim(0);
+    OP_CHECK_IF(sinkDim != fiaInfo_.n1Size,
+        OP_LOGE(opName_, "learnable_sink enable, sink shape(%u) must be same equal queryN(%u)!", sinkDim, fiaInfo_.n1Size),
+        return ge::GRAPH_FAILED);
+
     return ge::GRAPH_SUCCESS;
 }
 
@@ -445,7 +476,8 @@ ge::graphStatus FiaTilingCheck::CheckFeatureGqaNoquant() const
         ge::GRAPH_SUCCESS != CheckFeatureGqaNoquantMask() ||
         ge::GRAPH_SUCCESS != CheckFeatureGqaNoQuantDtype() ||
         ge::GRAPH_SUCCESS != CheckFeatureGqaNoQuantLayout() ||
-        ge::GRAPH_SUCCESS != CheckFeatureGqaNoQuantShape()) {
+        ge::GRAPH_SUCCESS != CheckFeatureGqaNoQuantShape() ||
+        ge::GRAPH_SUCCESS != CheckFeatureGqaNoquantSink()) {
         return ge::GRAPH_FAILED;
     }
     return ge::GRAPH_SUCCESS;

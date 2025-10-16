@@ -62,7 +62,7 @@ public:
         __gm__ uint8_t *keyAntiquantScale, __gm__ uint8_t *keyAntiquantOffset, __gm__ uint8_t *valueAntiquantScale,
         __gm__ uint8_t *valueAntiquantOffset, __gm__ uint8_t *keySharedPrefix, __gm__ uint8_t *valueSharedPrefix,
         __gm__ uint8_t *actualSharedPrefixLen, __gm__ uint8_t *queryRope, __gm__ uint8_t *keyRope,
-        __gm__ uint8_t *keyRopeAntiquantScale, __gm__ uint8_t *attentionOut, __gm__ uint8_t *softmaxLse);
+        __gm__ uint8_t *keyRopeAntiquantScale, __gm__ uint8_t *learnableSink, __gm__ uint8_t *attentionOut, __gm__ uint8_t *softmaxLse);
     __aicore__ inline void InitVec1GlobalTensor(GlobalTensor<KV_T> vec1ResGm, GlobalTensor<MM1_OUT_T> mm1ResGm);
     __aicore__ inline void InitVec2GlobalTensor(GlobalTensor<UPDATE_T> vec2ResGm, GlobalTensor<MM2_OUT_T> mm2ResGm);
     __aicore__ inline void InitFlashDecodeGlobalTensor(GlobalTensor<T> accumOutGm, GlobalTensor<T> lseMaxFdGm,
@@ -107,6 +107,13 @@ public:
                                                uint32_t actualColumnCount);
     __aicore__ inline void DealInvalidRows(const RunInfo &info, LocalTensor<MM2_OUT_T> &attenOutUb, uint32_t wsMStart,
                                            uint32_t dealRowCount, uint32_t columnCount, uint32_t actualColumnCount);
+    __aicore__ inline void Vec1SinkCompute(const RunInfo &info, LocalTensor<COMPUTE_T> &tmpSinkResUb,
+                                            LocalTensor<COMPUTE_T> &tmpSinkResUbBrcb, uint32_t idx,
+                                            uint32_t wsMStart, uint32_t dealRowCount);
+    __aicore__ inline void Vec1SinkSoftmaxProc(LocalTensor<COMPUTE_T> &tmpSinkResUbBrcb,
+                                            uint32_t offset, uint32_t dealRowCountBrcb);
+    __aicore__ inline void Vec1GetSinkValue(const RunInfo &info, LocalTensor<COMPUTE_T> &tmpSinkResUb,
+                                            uint32_t wsMStart, uint32_t dealRowCount);
 protected:
     GlobalTensor<MM1_OUT_T> mm1ResGm;
     GlobalTensor<KV_T> vec1ResGm;
@@ -122,6 +129,7 @@ protected:
     GlobalTensor<bool> attenMaskBoolGm;
     GlobalTensor<uint64_t> actualSeqLengthsGmQ; // 需确认后续是否会用到
     GlobalTensor<uint64_t> actualSeqLengthsGm; // 需确认后续是否会用到
+    GlobalTensor<bfloat16_t> sinkGm;
 
     __gm__ uint8_t *actualSequenceLengthsQ = nullptr;
 
@@ -140,6 +148,7 @@ protected:
     MSplitInfo mSplitInfo = {};
     uint32_t negativeIntScalar = NEGATIVE_MIN_VAULE_FP32;
     uint16_t brcbNum = (fa_base_vector::BYTE_BLOCK / sizeof(COMPUTE_T));
+    bool learnableSinkFlag = false;
 
     // ================================Local Buffer区====================================
     // in queue
@@ -183,7 +192,7 @@ __aicore__ inline void FiaBlockVecNonQuant<FIAT>::Init(
         __gm__ uint8_t *keyAntiquantScale, __gm__ uint8_t *keyAntiquantOffset, __gm__ uint8_t *valueAntiquantScale,
         __gm__ uint8_t *valueAntiquantOffset, __gm__ uint8_t *keySharedPrefix, __gm__ uint8_t *valueSharedPrefix,
         __gm__ uint8_t *actualSharedPrefixLen, __gm__ uint8_t *queryRope, __gm__ uint8_t *keyRope,
-        __gm__ uint8_t *keyRopeAntiquantScale, __gm__ uint8_t *attentionOut, __gm__ uint8_t *softmaxLse)
+        __gm__ uint8_t *keyRopeAntiquantScale, __gm__ uint8_t *learnableSink, __gm__ uint8_t *attentionOut, __gm__ uint8_t *softmaxLse)
 {
     attentionOutGm.SetGlobalBuffer((__gm__ OUT_T *)attentionOut);
     if (constInfo.softmaxLseFlag) {
@@ -197,7 +206,10 @@ __aicore__ inline void FiaBlockVecNonQuant<FIAT>::Init(
         actualSeqLengthsGm.SetGlobalBuffer((__gm__ uint64_t *)actualSeqLengths, constInfo.actualLenDims);
     }
     this->actualSequenceLengthsQ = actualSeqLengthsQ;
-
+    if (learnableSink != nullptr) {
+        learnableSinkFlag = true;
+        sinkGm.SetGlobalBuffer((__gm__ bfloat16_t *)learnableSink);
+    }
 }
 
 template <typename FIAT>
@@ -311,6 +323,12 @@ template <typename FIAT> __aicore__ inline void FiaBlockVecNonQuant<FIAT>::Proce
 
     if (info.isLastS2Loop) {
         uint32_t outIdx = info.loop % (constInfo.preLoadNum);
+        if (unlikely(learnableSinkFlag)) {
+            LocalTensor<COMPUTE_T> tmpSinkResUb = tmpBuff1.GetWithOffset<COMPUTE_T>(SOFTMAX_TMP_BUFFER_SIZE, 0);
+            LocalTensor<COMPUTE_T> tmpSinkResUbBrcb = tmpBuff1.GetWithOffset<COMPUTE_T>(SOFTMAX_TMP_BUFFER_SIZE, SOFTMAX_TMP_BUFFER_SIZE);
+            Vec1SinkCompute(info, tmpSinkResUb, tmpSinkResUbBrcb, outIdx, mSplitInfo.nBufferStartM + mSplitInfo.vecStartM, mSplitInfo.vecDealM);
+        }
+
         auto sumTensor = softmaxSumUb[outIdx * SOFTMAX_TMP_BUFFER_SIZE / sizeof(COMPUTE_T)];
         auto maxTensor = softmaxMaxUb[outIdx * SOFTMAX_TMP_BUFFER_SIZE / sizeof(COMPUTE_T)];
         if (info.tndIsS2SplitCore) {
@@ -809,6 +827,103 @@ __aicore__ inline void FiaBlockVecNonQuant<FIAT>::DealInvalidRows(const RunInfo 
     invalidRows(attenOutUb, params);
 }
 
+template <typename FIAT>
+__aicore__ inline void FiaBlockVecNonQuant<FIAT>::Vec1GetSinkValue(const RunInfo &info, LocalTensor<COMPUTE_T> &tmpSinkResUb,
+    uint32_t wsMStart, uint32_t dealRowCount)
+{
+    constexpr GmFormat Q_FORMAT = GetQueryGmFormat<LAYOUT_T>();
+    int64_t gIdx = 0;
+    int64_t n1Offset = 0;
+    int64_t s1Idx = 0;
+    int64_t s1BottomTok = info.actS1Size + info.preTokensPerBatch;
+    int64_t s1Tok = -info.nextTokensPerBatch;
+    const COMPUTE_T minValue = *((COMPUTE_T *)&negativeIntScalar);
+
+    for (int64_t loop = 0; loop < dealRowCount; ++loop) {
+        if constexpr ((Q_FORMAT == GmFormat::BSNGD) || (Q_FORMAT == GmFormat::TNGD)) { //内存按照S1G排布
+            gIdx = (info.gS1Idx + wsMStart + loop) % constInfo.gSize;
+            n1Offset = info.n2Idx * constInfo.gSize + gIdx;
+            s1Idx = (info.gS1Idx + wsMStart + loop) / constInfo.gSize;
+        } else if constexpr ((Q_FORMAT == GmFormat::BNGSD) || (Q_FORMAT == GmFormat::NGTD)) { //内存按照GS1排布
+            gIdx = (info.gS1Idx + wsMStart + loop) / info.actS1Size;
+            n1Offset = info.n2Idx * constInfo.gSize + gIdx;
+            s1Idx = (info.gS1Idx + wsMStart + loop) % info.actS1Size;
+        }
+        tmpSinkResUb.SetValue(loop, ToFloat(this->sinkGm.GetValue(n1Offset)));
+
+        if (unlikely(info.preTokensPerBatch < 0)) { // 下方存在行无效
+            if (s1Idx >= s1BottomTok && s1Idx < info.actS1Size) {
+                tmpSinkResUb.SetValue(loop, minValue);
+            }
+        }
+        if (unlikely(info.nextTokensPerBatch < 0)) { // 上方存在行无效
+            if (s1Idx < s1Tok) {
+                tmpSinkResUb.SetValue(loop, minValue);
+            }
+        }
+    }
+}
+
+template <typename FIAT>
+__aicore__ inline void FiaBlockVecNonQuant<FIAT>::Vec1SinkSoftmaxProc(LocalTensor<COMPUTE_T> &tmpSinkResUbBrcb,
+    uint32_t offset, uint32_t dealRowCountBrcb)
+{
+    pipe_barrier(PIPE_V);
+    Sub(tmpSinkResUbBrcb, tmpSinkResUbBrcb, softmaxMaxUb[offset], dealRowCountBrcb);
+    pipe_barrier(PIPE_V);
+    Exp(tmpSinkResUbBrcb, tmpSinkResUbBrcb, dealRowCountBrcb);
+    if (info.tndIsS2SplitCore) {
+        SoftMaxShapeInfo softmaxShapeInfo{
+            static_cast<uint32_t>(dealRowCountBrcb), static_cast<uint32_t>(brcbNum),
+            static_cast<uint32_t>(dealRowCountBrcb), static_cast<uint32_t>(brcbNum)};
+        pipe_barrier(PIPE_V);
+        if constexpr (SOFTMAX_WITH_BRC) {
+            AdjustSoftMaxRes<COMPUTE_T, COMPUTE_T>(tmpSinkResUbBrcb, softmaxMaxUb[offset], negativeIntScalar, 
+                (COMPUTE_T)0.0, softmaxShapeInfo);
+        } else {
+            AdjustSoftMaxRes<COMPUTE_T, COMPUTE_T, false, 1>(tmpSinkResUbBrcb, softmaxMaxUb[offset], negativeIntScalar, 
+                (COMPUTE_T)0.0, softmaxShapeInfo);
+        }
+    }
+    pipe_barrier(PIPE_V);
+    Add(softmaxSumUb[offset], softmaxSumUb[offset], tmpSinkResUbBrcb, dealRowCountBrcb);
+    pipe_barrier(PIPE_V);
+}
+
+template <typename FIAT>
+__aicore__ inline void FiaBlockVecNonQuant<FIAT>::Vec1SinkCompute(const RunInfo &info, LocalTensor<COMPUTE_T> &tmpSinkResUb,
+    LocalTensor<COMPUTE_T> &tmpSinkResUbBrcb, uint32_t idx, uint32_t wsMStart, uint32_t dealRowCount)
+{
+    bool sinkProcFlag = true;
+    bool fdS2RealLastLoopFlag = info.actS2Size == (info.s2Idx * constInfo.s2BaseSize + info.actualSingleProcessSInnerSize);
+    bool isInvalidRows = fa_base_vector::IsExistInvalidRows(info.nextTokensPerBatch, info.preTokensPerBatch, 
+        constInfo.sparseMode, constInfo.attenMaskFlag, constInfo.isRowInvalid);
+    bool fdInvalidRowS2TailFlag = (isInvalidRows && constInfo.tailS2Split);
+
+    if constexpr (FLASH_DECODE) {
+        if (info.tndIsS2SplitCore) {
+            if (fdS2RealLastLoopFlag || fdInvalidRowS2TailFlag) {
+                sinkProcFlag = true;
+            } else {
+                sinkProcFlag = false;
+            }
+        }
+    }
+    if (unlikely(sinkProcFlag == false)) {
+        return;
+    }
+
+    Vec1GetSinkValue(info, tmpSinkResUb, wsMStart, dealRowCount);
+
+    uint32_t offset = idx * SOFTMAX_TMP_BUFFER_SIZE / sizeof(COMPUTE_T) + mSplitInfo.nBufferStartM / 2;
+    if constexpr (SOFTMAX_WITH_BRC) {
+        Brcb(tmpSinkResUbBrcb, tmpSinkResUb, (dealRowCount + this->brcbNum - 1) / this->brcbNum, {1, this->brcbNum});
+        uint32_t dealRowCountBrcb = dealRowCount * this->brcbNum;
+        Vec1SinkSoftmaxProc(tmpSinkResUbBrcb, offset, dealRowCountBrcb);
+    } else {
+        Vec1SinkSoftmaxProc(tmpSinkResUb, offset, dealRowCount);
+    }
+}
 
 template <typename FIAT> __aicore__ inline void FiaBlockVecNonQuant<FIAT>::ComputeVec1(const RunInfo &info)
 {
