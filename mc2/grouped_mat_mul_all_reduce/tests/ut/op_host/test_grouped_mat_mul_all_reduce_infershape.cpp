@@ -14,7 +14,8 @@
  */
 #include <gtest/gtest.h>
 #include <iostream>
-#include "infershape_context_faker.h"
+#include "infer_shape_context_faker.h"
+#include "infer_datatype_context_faker.h"
 #include "base/registry/op_impl_space_registry_v2.h"
 namespace {
 class GroupedMatMulAllReduceInfershape : public testing::Test {
@@ -552,5 +553,80 @@ TEST_F(GroupedMatMulAllReduceInfershape, infer_shape_for_zero_k) {
     ASSERT_EQ(infer_shape_func(context), ge::GRAPH_SUCCESS);
     auto output = context->GetOutputShape(0);
     ASSERT_EQ(Shape2String(*output), "[32, 128]");
+}
+
+TEST_F(GroupedMatMulAllReduceInfershape, infer_dtype) {
+    ge::DataType x1_dtype = ge::DT_FLOAT16;
+    ge::DataType x2_dtype = ge::DT_FLOAT16;
+    ge::DataType y_dtype = ge::DT_UNDEFINED;
+
+    auto contextHolder = gert::InferDataTypeContextFaker()
+                        .SetOpType("GroupedMatMulAllReduce")
+                        .NodeIoNum(2, 1)
+                        .IrInstanceNum({1, 1}, {1})
+                        .NodeInputTd(0, x1_dtype, ge::FORMAT_ND, ge::FORMAT_ND)
+                        .NodeInputTd(1, x2_dtype, ge::FORMAT_ND, ge::FORMAT_ND)
+                        .NodeOutputTd(0, y_dtype, ge::FORMAT_ND, ge::FORMAT_ND)
+                        .NodeAttrs({{"splitItem", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)},
+                                    {"group", Ops::Transformer::AnyValue::CreateFrom<std::string>("group")},
+                                    {"reduceOp", Ops::Transformer::AnyValue::CreateFrom<std::string>("sum")},
+                                    {"commTurn", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)}})
+                        .InputDataTypes({&x1_dtype, &x2_dtype})
+                        .OutputDataTypes({&y_dtype})
+                        .Build();
+
+    auto spaceRegistry = gert::DefaultOpImplSpaceRegistryV2::GetInstance().GetSpaceRegistry();
+    auto inferDtypeFunc = spaceRegistry->GetOpImpl("GroupedMatMulAllReduce")->infer_datatype;
+
+    ASSERT_EQ(inferDtypeFunc(contextHolder.GetContext<gert::InferDataTypeContext>()), ge::GRAPH_SUCCESS);
+    EXPECT_EQ(contextHolder.GetContext<gert::InferDataTypeContext>()->GetOutputDataType(0), ge::DT_FLOAT16);
+}
+
+TEST_F(GroupedMatMulAllReduceInfershape, infer_dtype_test_runtime_2) {
+    ge::DataType x_dtype_0 = ge::DT_FLOAT16;
+    ge::DataType x_dtype_1 = ge::DT_FLOAT16;
+    ge::DataType x_dtype_2 = ge::DT_FLOAT16;
+    ge::DataType x_dtype_3 = ge::DT_FLOAT16;
+    ge::DataType weight_dtype_0 = ge::DT_FLOAT16;
+    ge::DataType weight_dtype_1 = ge::DT_FLOAT16;
+    ge::DataType weight_dtype_2 = ge::DT_FLOAT16;
+    ge::DataType weight_dtype_3 = ge::DT_FLOAT16;
+    ge::DataType y_dtype = ge::DT_UNDEFINED;
+    std::vector<void*> input_dtype_ref(8);
+    input_dtype_ref[0] = &x_dtype_0;
+    input_dtype_ref[1] = &x_dtype_1;
+    input_dtype_ref[2] = &x_dtype_2;
+    input_dtype_ref[3] = &x_dtype_3;
+    input_dtype_ref[4] = &weight_dtype_0;
+    input_dtype_ref[5] = &weight_dtype_1;
+    input_dtype_ref[6] = &weight_dtype_2;
+    input_dtype_ref[7] = &weight_dtype_3;
+
+    auto contextHolder = gert::InferDataTypeContextFaker()
+                        .SetOpType("GroupedMatMulAllReduce")
+                        .NodeIoNum(2, 1)
+                        .IrInstanceNum({1, 1}, {1})
+                        .NodeInputTd(0, x_dtype_0, ge::FORMAT_ND, ge::FORMAT_ND)
+                        .NodeInputTd(1, x_dtype_1, ge::FORMAT_ND, ge::FORMAT_ND)
+                        .NodeInputTd(2, x_dtype_2, ge::FORMAT_ND, ge::FORMAT_ND)
+                        .NodeInputTd(3, x_dtype_3, ge::FORMAT_ND, ge::FORMAT_ND)
+                        .NodeInputTd(4, weight_dtype_0, ge::FORMAT_ND, ge::FORMAT_ND)
+                        .NodeInputTd(5, weight_dtype_1, ge::FORMAT_ND, ge::FORMAT_ND)
+                        .NodeInputTd(6, weight_dtype_2, ge::FORMAT_ND, ge::FORMAT_ND)
+                        .NodeInputTd(7, weight_dtype_3, ge::FORMAT_ND, ge::FORMAT_ND)
+                        .NodeOutputTd(0, y_dtype, ge::FORMAT_ND, ge::FORMAT_ND)
+                        .NodeAttrs({{"splitItem", Ops::Transformer::AnyValue::CreateFrom<int64_t>(2)},
+                                    {"group", Ops::Transformer::AnyValue::CreateFrom<std::string>("group")},
+                                    {"reduceOp", Ops::Transformer::AnyValue::CreateFrom<std::string>("sum")},
+                                    {"commTurn", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)}})
+                        .InputDataTypes(input_dtype_ref)
+                        .OutputDataTypes({&y_dtype})
+                        .Build();
+
+    auto spaceRegistry = gert::DefaultOpImplSpaceRegistryV2::GetInstance().GetSpaceRegistry();
+    auto inferDtypeFunc = spaceRegistry->GetOpImpl("GroupedMatMulAllReduce")->infer_datatype;
+
+    ASSERT_EQ(inferDtypeFunc(contextHolder.GetContext<gert::InferDataTypeContext>()), ge::GRAPH_SUCCESS);
+    EXPECT_EQ(contextHolder.GetContext<gert::InferDataTypeContext>()->GetOutputDataType(0), ge::DT_FLOAT16);
 }
 }
