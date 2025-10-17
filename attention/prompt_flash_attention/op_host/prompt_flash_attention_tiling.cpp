@@ -215,6 +215,9 @@ uint8_t g_cvdiffBase = 0;       //第9位
 uint8_t g_cvdiffMla = 0;        //第10位
 uint8_t g_kvT = 0;              // 第11位
 uint8_t g_templateVersion = 0;  //第18位
+uint8_t g_kvlayoutT = 0;
+uint8_t g_flashDecode = 0;
+uint8_t g_templateMode = 0;
 
 inline int32_t ConvertValueToIndexMM(int32_t val, int32_t idxBound)
 {
@@ -3982,7 +3985,7 @@ ge::graphStatus PromptFlashAttentionTiling::RunBigKernelTilingWithParams(Context
         if(CheckBaseApiRequiredInput(contextKeyParams) != ge::GRAPH_SUCCESS) {
             return ge::GRAPH_FAILED;
         }
-        SetbaseApiTilingData(contextKeyParams, actualSeqLengths, actualSeqLengthsKV);
+        SetBaseApiTilingData(contextKeyParams, actualSeqLengths, actualSeqLengthsKV);
         if(CheckBaseApiOptionalInput(contextKeyParams) != ge::GRAPH_SUCCESS) {
             return ge::GRAPH_FAILED;
         }
@@ -6756,10 +6759,9 @@ PFA_EXTERN_C ge::graphStatus TilingPromptFlashAttention(gert::TilingContext* con
 
     ret = flashTiling.RunBigKernelTilingWithParams(contextParamsForPFATiling, tilingKey, blockDimToBeSet, tilingData);
     g_templateVersion += 1;
-    tilingKey = GET_TPL_TILING_KEY(static_cast<int>(g_tail), static_cast<int>(g_newTiling), static_cast<int>(g_qT),static_cast<int>(g_precisionMode),
-                                            static_cast<int>(g_outT), static_cast<int>(g_layoutT), static_cast<int>(g_mmType), static_cast<int>(g_pageAttention),
-                                            static_cast<int>(g_enablePrefix), static_cast<int>(g_msdMode), static_cast<int>(g_cvdiffBase), static_cast<int>(g_cvdiffMla), static_cast<int>(g_kvT),
-                                            static_cast<int>(g_templateVersion));
+    tilingKey = GET_TPL_TILING_KEY(static_cast<int>(g_qT), static_cast<int>(g_kvT), static_cast<int>(g_outT), static_cast<int>(g_pageAttention), static_cast<int>(g_layoutT),
+                                   static_cast<int>(g_kvlayoutT), static_cast<int>(g_flashDecode), static_cast<int>(g_enablePrefix), static_cast<int>(g_msdMode), static_cast<int>(g_tail), static_cast<int>(g_newTiling), static_cast<int>(g_precisionMode),
+                                   static_cast<int>(g_mmType), static_cast<int>(g_cvdiffBase), static_cast<int>(g_cvdiffMla), static_cast<int>(g_templateVersion), static_cast<int>(g_templateMode));
     context->SetTilingKey(tilingKey);
     context->SetBlockDim(blockDimToBeSet);
     flashTiling.PromptFlashAttentionSetTilingData(context, tilingData);
