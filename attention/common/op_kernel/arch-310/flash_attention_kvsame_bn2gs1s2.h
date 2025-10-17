@@ -36,7 +36,6 @@
 #include "infer_flash_attention_kvcache.h"
 #include "infer_flash_attention_sparse.h"
 #include "kernel_operator_list_tensor_intf.h"
-#include "matmul_modules/fa_policy_selector.h"
 
 using namespace AscendC;
 using namespace optiling;

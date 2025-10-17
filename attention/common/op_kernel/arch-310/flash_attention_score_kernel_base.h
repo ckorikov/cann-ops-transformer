@@ -18,6 +18,7 @@
 #include "flash_attention_score_block_cube.h"
 #include "flash_attention_score_block_vec_train.h"
 #include "flash_attention_score_block_vec_infer.h"
+#include "flash_attention_score_common_regbase.h"
 #include "kernel_operator.h"
 #include "attenmask.h"
 
@@ -37,12 +38,6 @@ using namespace AscendC::Impl::Detail;
 using namespace regbaseutil;
 
 namespace BaseApi {
-static constexpr uint32_t FA_BYTE_BLOCK = 32;
-
-__aicore__ constexpr uint16_t Align64Func(uint16_t data) {
-    return (data + ADD_NUM_63) >> SHIFT_NUM_6 << SHIFT_NUM_6;
-}
-
 template <typename ChildClass, typename CubeBlockType, typename VecBlockType>
 class FlashAttentionScoreKernelBase {
 public:

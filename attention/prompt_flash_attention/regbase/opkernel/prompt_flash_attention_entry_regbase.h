@@ -21,10 +21,8 @@
 #include "prompt_flash_attention_dummy.h"
 namespace optiling {};
 
-#include "../../../common/op_kernel/arch-310/flash_attention_score_infer.h"
 #include "../../../common/op_kernel/arch-310/flash_attention_score_kernel_infer.h"
 #include "../../../common/op_kernel/arch-310/flash_attention_kvsame_bn2gs1s2.h"
-#include "../../../common/op_kernel/arch-310//matmul_modules/fa_flag_data.h"
 
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 

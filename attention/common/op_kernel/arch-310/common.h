@@ -130,12 +130,6 @@ constexpr uint8_t DETER_DENSE = 2;
 constexpr uint8_t DETER_CAUSAL = 3;
 constexpr uint8_t DETER_BAND = 4;
 
-// shape type
-constexpr uint32_t attenMaskBN2GS1S2 = 0;
-constexpr uint32_t attenMaskBS1S2 = 1;
-constexpr uint32_t attenMaskS1S2 = 2;
-constexpr uint32_t attenMaskTT = 99;
-
 // pse shape type same as tiling
 constexpr uint32_t PSE_SHAPE_TYPE_BNSS = 0;
 constexpr uint32_t PSE_SHAPE_TYPE_BN1S = 1;

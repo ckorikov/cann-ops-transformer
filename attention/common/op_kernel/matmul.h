@@ -15,7 +15,7 @@
 #ifndef MATMUL_H
 #define MATMUL_H
 #include "buffers_policy.h"
-
+using namespace AscendC;
 namespace fa_base_matmul {
 
 constexpr uint32_t UNITFLAG_DISABLE = 0;

@@ -17,6 +17,7 @@
 #define ATTENMASK_H
 
 #include "util_regbase.h"
+#include "flash_attention_score_common_regbase.h"
 
 using namespace AscendC;
 using namespace AscendC::MicroAPI;

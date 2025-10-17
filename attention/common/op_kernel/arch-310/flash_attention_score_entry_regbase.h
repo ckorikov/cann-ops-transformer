@@ -16,11 +16,9 @@
 #ifndef FLASH_ATTENTION_SCORE_ENTRY_310_H_
 #define FLASH_ATTENTION_SCORE_ENTRY_310_H_
 #include "flash_attention_score_drop_mask_adapter_regbase.h"
-#include "flash_attention_score_train.h"
 #include "flash_attention_score_kernel_train.h"
 #include "flash_attention_score_block_cube.h"
 #include "flash_attention_score_block_vec_train.h"
-#include "matmul_modules/fa_flag_data.h"
 
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 
