@@ -601,8 +601,8 @@ NsaCompressAttentionS1s2Bn2gs1SameAB<layOutType, hasAtten, hasTopkMask, INPUT_T,
         if (isInfo.isN == 1) {
             s2Offset += 1;
         }
-        uint32_t softmaxSrcBlockLen = this->s2Length;
-        uint32_t softmaxSrcStride = extraInfo.s2RealSize - this->s2Length;
+        uint32_t softmaxSrcBlockLen = this->s2Length <= extraInfo.s2RealSize ? this->s2Length : extraInfo.s2RealSize;
+        uint32_t softmaxSrcStride = extraInfo.s2RealSize - softmaxSrcBlockLen;
         uint32_t softmaxDstStride = 0;
         if (loopIdx == this->s2Loop - 1) {
             softmaxSrcBlockLen = extraInfo.s2RealSize - s2Offset;
@@ -707,6 +707,7 @@ NsaCompressAttentionS1s2Bn2gs1SameAB<layOutType, hasAtten, hasTopkMask, INPUT_T,
         AscendC::SetFlag<HardEvent::V_MTE2>(eventIdVToMte2);
         // reduce g [s1g, outerLoop(s2ScoreLoopLen)]
         if (this->gSize > 1) {
+            AscendC::PipeBarrier<PIPE_V>();
             DataCopyParams dataCopyParamsReduce;
             dataCopyParamsReduce.blockCount = this->vecS1BaseSize;
             dataCopyParamsReduce.blockLen = s2Aligned64B * sizeof(float) / BLOCK_SIZE;
