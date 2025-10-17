@@ -713,16 +713,16 @@ __global__ __aicore__ void prompt_flash_attention_FIAS(__gm__ uint8_t* query, __
     }    
 }
 
-template<uint8_t TAIL_MODE, uint8_t NEW_TILING_MODE, uint8_t QUERY_T, uint8_t PRECISION_MODE, uint8_t OUT_T,
-    uint8_t LAYOUT_T, uint8_t MM_TYPE_TMP, uint8_t PAGE_ATTENTION, uint8_t ENABLE_PREFIX, uint8_t MSD_MODE, uint8_t CVDIFF_BASE_FLAG,
-    uint8_t CVDIFF_MLA_FLAG, uint8_t KV_T, uint8_t TEMPLATE_VERSION>
-__global__ __aicore__ void prompt_flash_attention(__gm__ uint8_t* query, __gm__ uint8_t* key, __gm__ uint8_t* value,
-                                                             __gm__ uint8_t* pseShift, __gm__ uint8_t* attenMask,
-                                                             __gm__ uint8_t* actualSeqLengths, __gm__ uint8_t* actualSeqLengthsKV,
-                                                             __gm__ uint8_t* deq_scale1, __gm__ uint8_t* quant_scale1,
-                                                             __gm__ uint8_t* deq_scale2, __gm__ uint8_t* quant_scale2,
-                                                             __gm__ uint8_t* quant_offset2, __gm__ uint8_t* attentionOut,
-                                                             __gm__ uint8_t* workspace, __gm__ uint8_t* tiling)
+template<uint8_t Q_T, uint8_t KV_T, uint8_t OUT_T, uint8_t PAGE_ATTENTIOND, uint8_t LAYOUT_T, uint16_t KV_LAYOUT_T, uint16_t FLASH_DECODE, uint8_t ENABLE_PREFIX,
+            uint8_t M_Q_QUANTMODE_P_MSD_MODE_I_ANTIQUANTMODE, uint8_t M_OUTLAYOUT_P_TAIL_MODE_I_ORIGIN_T, uint8_t M_K_QUANTMODE_P_NEWTILINGFLAH_I_AMLA, uint8_t M_V_QUANTMODE_P_PRECISION_MODE_I_BALANCE,
+            uint8_t M_FIAFLAG_P_MMTYPETMP_I_MODEVAL, uint8_t P_CVDIFF_BASE_FLAG, uint8_t P_CVDIFF_MLA_FLAG, uint8_t P_TEMPLATE_VERSION, uint8_t TEMPLATE_MODE>
+global aicore void prompt_flash_attention(__gm__ uint8_t* query, __gm__ uint8_t* key, __gm__ uint8_t* value,
+                                            __gm__ uint8_t* pseShift, __gm__ uint8_t* attenMask,
+                                            __gm__ uint8_t* actualSeqLengths, __gm__ uint8_t* actualSeqLengthsKV,
+                                            __gm__ uint8_t* deq_scale1, __gm__ uint8_t* quant_scale1,
+                                            __gm__ uint8_t* deq_scale2, __gm__ uint8_t* quant_scale2,
+                                            __gm__ uint8_t* quant_offset2, __gm__ uint8_t* attentionOut,
+                                            __gm__ uint8_t* workspace, __gm__ uint8_t* tiling)
 {
      prompt_flash_attention_FIAS<TAIL_MODE, NEW_TILING_MODE, QUERY_T, PRECISION_MODE, OUT_T,
                             LAYOUT_T, MM_TYPE_TMP, PAGE_ATTENTION, ENABLE_PREFIX, MSD_MODE, CVDIFF_BASE_FLAG,
