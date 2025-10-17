@@ -18,6 +18,8 @@
 
 #include "util_regbase.h"
 
+using namespace AscendC;
+using namespace AscendC::MicroAPI;
 namespace regbaseutil {
 enum class AttenMaskCompressMode {
     NO_COMPRESS_MODE = 0,
@@ -225,20 +227,20 @@ __aicore__ inline void MergeBandModeMask(LocalTensor<uint8_t> &maskPre, LocalTen
 
     __VEC_SCOPE__
     {
-        vector_u32 vreg_pre;
-        vector_u32 vreg_next;
-        vector_u32 vreg_xor;
-        vector_u32 vreg_not;
-        vector_u32 vreg_or;
-        vector_bool preg_all = pge_b32(PAT_ALL);
-        vbr(vreg_xor, 0x1010101);
+        RegTensor<uint32_t> vreg_pre;
+        RegTensor<uint32_t> vreg_next;
+        RegTensor<uint32_t> vreg_xor;
+        RegTensor<uint32_t> vreg_not;
+        RegTensor<uint32_t> vreg_or;
+        MaskReg preg_all = CreateMask<uint32_t, MaskPattern::ALL>();
+        Duplicate(vreg_xor, 0x1010101);
 
         for (uint16_t i = 0; i < loopCount; ++i) {
-            vlds(vreg_pre, (__ubuf__ uint32_t*&)maskPreUb, i * 64, NORM);
-            vlds(vreg_next, (__ubuf__ uint32_t*&)maskNextUb, i * 64, NORM);
-            vxor(vreg_not, vreg_pre, vreg_xor, preg_all);
-            vor(vreg_or, vreg_not, vreg_next, preg_all);
-            vsts(vreg_or, (__ubuf__ uint32_t*&)maskNextUb, i * 64, NORM_B32, preg_all);
+            DataCopy(vreg_pre, (__ubuf__ uint32_t*&)maskPreUb + i * 64);
+            DataCopy(vreg_next, (__ubuf__ uint32_t*&)maskNextUb + i * 64);
+            Xor(vreg_not, vreg_pre, vreg_xor, preg_all);
+            Or(vreg_or, vreg_not, vreg_next, preg_all);
+            DataCopy((__ubuf__ uint32_t*&)maskNextUb + i * 64, vreg_or, preg_all);
         }
     }
 }
@@ -263,16 +265,16 @@ __aicore__ inline void MergePrefixModeMask(LocalTensor<uint8_t> &maskPre, LocalT
 
     __VEC_SCOPE__
     {
-        vector_u32 vreg_pre;
-        vector_u32 vreg_next;
-        vector_u32 vreg_and;
-        vector_bool preg_all = pge_b32(PAT_ALL);
+        RegTensor<uint32_t> vreg_pre;
+        RegTensor<uint32_t> vreg_next;
+        RegTensor<uint32_t> vreg_and;
+        MaskReg preg_all = CreateMask<uint32_t, MaskPattern::ALL>();
 
         for (uint16_t i = 0; i < loopCount; ++i) {
-            vlds(vreg_pre, (__ubuf__ uint32_t*&)maskPreUb, i * 64, NORM);
-            vlds(vreg_next, (__ubuf__ uint32_t*&)maskNextUb, i * 64, NORM);
-            vand(vreg_and, vreg_pre, vreg_next, preg_all);
-            vsts(vreg_and, (__ubuf__ uint32_t*&)maskNextUb, i * 64, NORM_B32, preg_all);
+            DataCopy(vreg_pre, (__ubuf__ uint32_t*&)maskPreUb + i * 64);
+            DataCopy(vreg_next, (__ubuf__ uint32_t*&)maskNextUb + i * 64);
+            And(vreg_and, vreg_pre, vreg_next, preg_all);
+            DataCopy((__ubuf__ uint32_t*&)maskNextUb + i * 64, vreg_and, preg_all);
         }
     }
 }

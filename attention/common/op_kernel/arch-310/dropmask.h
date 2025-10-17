@@ -133,8 +133,8 @@ __aicore__ inline void GenMaskByIndexVec(const LocalTensor<uint8_t> &dstLocal, c
 
     __VEC_SCOPE__
     {
-        MaskReg pg = pge_b32(PAT_ALL);
-        MaskReg preg = pge_b8(PAT_ALL);
+        MaskReg pg = CreateMask<uint32_t, MaskPattern::ALL>();
+        MaskReg preg = CreateMask<uint8_t, MaskPattern::ALL>();
         MaskReg pd;
         MaskReg pm_0, pm_1, pm_2, pm_3;
         RegTensor<uint32_t> ctr_3, ctr_2, ctr_1, ctr_0, key_1, key_0;

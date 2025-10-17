@@ -153,7 +153,7 @@ __aicore__ inline void FABlockVecTrain<TEMPLATE_ARGS>::InitCubeVecSharedParams(
             for (int i = 0; i < sizeof(CVSharedParams<isInfer, isPa>) / sizeof(uint32_t); ++i, ++tempTilingSSbuf, ++tempTiling) {
                 *tempTilingSSbuf = *tempTiling;
             }
-            set_intra_block(PIPE_S, 15);
+            CrossCoreSetFlag<SYNC_MODE, PIPE_S>(15);
         }
     }
 }
