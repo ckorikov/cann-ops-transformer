@@ -1,11 +1,19 @@
-#include <float.h>
+/**
+ * This program is free software, you can redistribute it and/or modify.
+ * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+ * This file is a part of the CANN Open Software.
+ * Licensed under CANN Open Software License Agreement Version 2.0 (the "License").
+ * Please refer to the License for details. You may not use this file except in compliance with the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
+ */
+#include "../../../../op_host/op_api/aclnn_allto_allv_grouped_mat_mul.h"
 
 #include <array>
 #include <vector>
 
-#include "gtest/gtest.h"
 #include <gmock/gmock.h>
-#include "op_host/op_api/aclnn_allto_allv_grouped_mat_mul.h"
+#include "gtest/gtest.h"
 
 #include "op_api_ut_common/tensor_desc.h"
 #include "op_api_ut_common/op_api_ut.h"
@@ -14,6 +22,7 @@
 using namespace op;
 using namespace std;
 
+namespace AlltoAllvGroupedMatMulUT {
 class l2_allto_allv_grouped_mat_mul_test : public testing::Test {
  protected:
   static void SetUpTestCase() { cout << "l2_allto_allv_grouped_mat_mul_test SetUp" << endl; }
@@ -191,3 +200,4 @@ TEST_F(l2_allto_allv_grouped_mat_mul_test, test_permuteOutFlag_invalid) {
 	uint64_t workspace_size = 0;
 	aclnnStatus aclRet = ut.TestGetWorkspaceSize(&workspace_size);
 }
+} // allto_allv_grouped_mat_mul_ut

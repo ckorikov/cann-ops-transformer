@@ -1,25 +1,24 @@
+/**
+ * This program is free software, you can redistribute it and/or modify.
+ * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+ * This file is a part of the CANN Open Software.
+ * Licensed under CANN Open Software License Agreement Version 2.0 (the "License").
+ * Please refer to the License for details. You may not use this file except in compliance with the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
+ */
+
+#include "../../../op_host/op_tiling/allto_allv_grouped_mat_mul_tiling.h"
+
 #include <iostream>
-#include <map>
-#include <vector>
-#include <string>
-#include <unordered_map>
-
 #include <gtest/gtest.h>
-#include "op_log.h"
 
-#include "kernel_run_context_facker.h"
+#include "tiling_context_faker.h"
+#include "tiling_case_executor.h"
 
-#include "fusion_ops.h"
-#include "op_tiling/op_tiling_util.h"
-#include "common/utils/ut_op_util.h"
-#include "common_unittest.h"
-#include "exe_graph/runtime/storage_format.h"
-#include "exe_graph/runtime/storage_shape.h"
-#include "mock/hcom_topo_info.h"
-#include "test_cube_util.h"
+using namespace std;
 
-namespace
-{
+namespace AlltoAllvGroupedMatMulUT {
 struct TestParam {
     string test_name{};
     std::vector<std::pair<string, string>> tiling_params_str_pair{};
@@ -57,237 +56,8 @@ struct TilingParams {
                                      128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128};
 };
 
-struct TilingShapes {
-    gert::StorageShape gmm_x_shape;
-    gert::StorageShape gmm_weight_shape;
-    gert::StorageShape send_counts_shape;
-    gert::StorageShape recv_counts_shape;
-    gert::StorageShape mm_x_shape;
-    gert::StorageShape mm_weight_shape;
-
-    gert::StorageShape gmm_y_shape;
-    gert::StorageShape mm_y_shape;
-    gert::StorageShape permute_out_shape;
-};
-
-struct TilingDTypes {
-    std::vector<ge::DataType> dtypes{ge::DT_FLOAT16, ge::DT_FLOAT16, ge::DT_INT64,   ge::DT_INT64,  ge::DT_FLOAT16,
-                                     ge::DT_FLOAT16, ge::DT_FLOAT16, ge::DT_FLOAT16, ge::DT_FLOAT16};
-};
-
-class AlltoAllvGroupedMatMulTilingTest : public testing::TestWithParam<TestParam>
-{
-protected:
-    static void SetUpTestCase()
-    {
-        setenv("ASCEND_SLOG_PRINT_TO_STDOUT", "1", 1);
-        std::cout << "AlltoAllvGroupedMatMulTilingTest SetUp" << std::endl;
-    }
-
-    static void TearDownTestCase()
-    {
-        std::cout << "AlltoAllvGroupedMatMulTilingTest TearDown" << std::endl;
-    }
-
-    void InitTilingParams(const TestParam& test_param)
-    {
-        this->tiling_params = TilingParams{};
-        this->InitTilingStrParams(test_param.tiling_params_str_pair);
-        this->InitTilingVecParams(test_param.tiling_params_vec_pair);
-    }
-
-    void InitTilingStrParams(const std::vector<std::pair<string, string>>& tiling_params_pair)
-    {
-        auto& tiling_params = this->tiling_params;
-        auto& tiling_params_str_handlers = AlltoAllvGroupedMatMulTilingTest::tiling_params_str_handlers;
-        for (auto& kv : tiling_params_pair) {
-            if (tiling_params_str_handlers.count(kv.first) != 0) {
-                tiling_params_str_handlers[kv.first](tiling_params, kv.second);
-            }
-        }
-    }
-
-    void InitTilingVecParams(const std::vector<std::pair<string, std::vector<int64_t>>>& tiling_params_pair)
-    {
-        auto& tiling_params = this->tiling_params;
-        auto& tiling_params_vec_handlers = AlltoAllvGroupedMatMulTilingTest::tiling_params_vec_handlers;
-        for (auto& kv : tiling_params_pair) {
-            if (tiling_params_vec_handlers.count(kv.first) != 0) {
-                tiling_params_vec_handlers[kv.first](tiling_params, kv.second);
-            }
-        }
-    }
-
-    void InitTilingShape()
-    {
-        auto& tiling_params = this->tiling_params;
-        auto& BSK = tiling_params.BSK;
-        auto& BS = tiling_params.BS;
-        auto& K = tiling_params.K;
-        auto& H1 = tiling_params.H1;
-        auto& H2 = tiling_params.H2;
-        auto& A = tiling_params.A;
-        auto& N1 = tiling_params.N1;
-        auto& N2 = tiling_params.N2;
-        auto& ep_world_size = tiling_params.ep_world_size;
-        auto& e = tiling_params.e;
-        auto& gmm_weight_dim1 = tiling_params.gmm_weight_dim1;
-        auto& gmm_y_dim1 = tiling_params.gmm_y_dim1;
-        auto& mm_weight_dim0 = tiling_params.mm_weight_dim0;
-
-        auto& tiling_shapes = this->tiling_shapes;
-        tiling_shapes.gmm_x_shape = {{BSK, H1}, {BSK, H1}};
-        tiling_shapes.gmm_weight_shape = {{e, gmm_weight_dim1, N1}, {e, gmm_weight_dim1, N1}};
-        tiling_shapes.send_counts_shape = {{e * ep_world_size}, {e * ep_world_size}};
-        tiling_shapes.recv_counts_shape = {{e * ep_world_size}, {e * ep_world_size}};
-        tiling_shapes.mm_x_shape = {{BS, H2}, {BS, H2}};
-        tiling_shapes.mm_weight_shape = {{mm_weight_dim0, N2}, {mm_weight_dim0, N2}};
-
-        tiling_shapes.gmm_y_shape = {{A, gmm_y_dim1}, {A, gmm_y_dim1}};
-        tiling_shapes.mm_y_shape = {{BS, N2}, {BS, N2}};
-        tiling_shapes.permute_out_shape = {{A, H1}, {A, H1}};
-    }
-
-    void InitTilingDTypes(const std::vector<std::pair<size_t, ge::DataType>>& tiling_dTypes_pair)
-    {
-        auto& tiling_dtypes = this->tiling_dtypes;
-        tiling_dtypes = TilingDTypes{};
-        for (auto& kv : tiling_dTypes_pair) {
-            if (kv.first >= 0 && kv.first < tiling_dtypes.dtypes.size()) {
-                tiling_dtypes.dtypes[kv.first] = kv.second;
-            }
-        }
-    }
-
-    void InitHolder(void* tilingData, gert::ContinuousVector* workspace, const TestParam& test_param)
-    {
-        auto& compile_info_string = AlltoAllvGroupedMatMulTilingTest::compile_info_string;
-        auto& platform_info = this->platform_info;
-        auto& compile_info = this->compile_info;
-
-        platform_info.Init();
-        this->kernel_faker =
-            gert::KernelRunContextFaker()
-                .KernelIONum(5, 4)  // 这里5 4 对吗？ 啥意思？
-                .Inputs({const_cast<char*>(compile_info_string.c_str()), reinterpret_cast<void*>(&platform_info)})
-                .Outputs({&compile_info});
-        this->kernel_holder = this->kernel_faker.Build();
-
-        this->InitTilingParams(test_param);
-        auto& tiling_params = this->tiling_params;
-        auto& group = tiling_params.group;
-        auto& ep_world_size = tiling_params.ep_world_size;
-        auto& send_counts = tiling_params.send_counts;
-        auto& recv_counts = tiling_params.recv_counts;
-        auto& trans_gmm_weight = tiling_params.trans_gmm_weight;
-        auto& trans_mm_weight = tiling_params.trans_mm_weight;
-        auto& permute_out_flag = tiling_params.permute_out_flag;
-        auto& is_Need_MM = tiling_params.is_Need_MM;
-
-        this->InitTilingShape();
-        auto& tiling_shapes = this->tiling_shapes;
-        auto& gmm_x_shape = tiling_shapes.gmm_x_shape;
-        auto& gmm_weight_shape = tiling_shapes.gmm_weight_shape;
-        auto& send_counts_shape = tiling_shapes.send_counts_shape;
-        auto& recv_counts_shape = tiling_shapes.recv_counts_shape;
-        auto& mm_x_shape = tiling_shapes.mm_x_shape;
-        auto& mm_weight_shape = tiling_shapes.mm_weight_shape;
-
-        auto& gmm_y_shape = tiling_shapes.gmm_y_shape;
-        auto& mm_y_shape = tiling_shapes.mm_y_shape;
-        auto& permute_out_shape = tiling_shapes.permute_out_shape;
-
-        auto mm_x = &mm_x_shape;
-        auto mm_weight = &mm_weight_shape;
-        auto mm_y = &mm_y_shape;
-        if (is_Need_MM == false) {
-            mm_x = nullptr;
-            mm_weight = nullptr;
-            mm_y = nullptr;
-        }
-
-        this->InitTilingDTypes(test_param.tiling_dTypes_pair);
-        auto& tiling_dtypes = this->tiling_dtypes;
-
-        auto input_num = this->input_num;
-        auto output_num = this->output_num;
-
-        std::string op_type("AlltoAllvGroupedMatMul");
-
-        this->tiling_faker =
-            gert::TilingContextFaker()
-                .NodeIoNum(input_num, output_num)
-                .IrInstanceNum({1, 1, 1, 1, 1, 1})
-                .InputShapes({&gmm_x_shape, &gmm_weight_shape, nullptr, nullptr, mm_x, mm_weight})
-                .OutputShapes({&gmm_y_shape, mm_y, &permute_out_shape})
-                .NodeAttrs({{"group", ge::AnyValue::CreateFrom<std::string>(group)},
-                            {"ep_world_size", ge::AnyValue::CreateFrom<int64_t>(ep_world_size)},
-                            {"send_counts", ge::AnyValue::CreateFrom<vector<int64_t>>(send_counts)},
-                            {"recv_counts", ge::AnyValue::CreateFrom<vector<int64_t>>(recv_counts)},
-                            {"trans_gmm_weight", ge::AnyValue::CreateFrom<bool>(trans_gmm_weight)},
-                            {"trans_mm_weight", ge::AnyValue::CreateFrom<bool>(trans_mm_weight)},
-                            {"permute_out_flag", ge::AnyValue::CreateFrom<bool>(permute_out_flag)}})
-                .CompileInfo(&compile_info)
-                .PlatformInfo(reinterpret_cast<char*>(&platform_info))
-                .TilingData(tilingData)
-                .Workspace(workspace)
-                .SetOpType(op_type);
-        for (int64_t i = 0; i < input_num; ++i) {
-            this->tiling_faker =
-                this->tiling_faker.NodeInputTd(i, tiling_dtypes.dtypes[i], ge::FORMAT_ND, ge::FORMAT_ND);
-        }
-        for (int64_t i = 0; i < output_num; ++i) {
-            this->tiling_faker =
-                this->tiling_faker.NodeOutputTd(i, tiling_dtypes.dtypes[input_num + i], ge::FORMAT_ND, ge::FORMAT_ND);
-        }
-        this->tiling_holder = this->tiling_faker.Build();
-    }
-
-public:
-    int64_t input_num{6};
-    int64_t output_num{3};
-    TilingParams tiling_params;
-    TilingShapes tiling_shapes;
-    TilingDTypes tiling_dtypes;
-    struct AllGatherMatmulCompileInfo {
-    } compile_info;
-    fe::PlatFormInfos platform_info;
-    gert::KernelRunContextFaker kernel_faker{};
-    gert::KernelRunContextHolder kernel_holder{};
-    gert::TilingContextFaker tiling_faker{};
-    gert::KernelRunContextHolder tiling_holder{};
-    static string compile_info_string;
-    static std::unordered_map<string, std::function<void(TilingParams& tiling_params, const string& value_str)>>
-        tiling_params_str_handlers;
-    static std::unordered_map<string,
-                              std::function<void(TilingParams& tiling_params, const std::vector<int64_t> value_vec)>>
-        tiling_params_vec_handlers;
-    std::vector<int64_t> send_counts{128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128,
-                                     128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128};
-    std::vector<int64_t> recv_counts{128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128,
-                                     128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128};
-};
-
-string AlltoAllvGroupedMatMulTilingTest::compile_info_string = R"({
-    "hardware_info": {
-        "BT_SIZE": 1024,
-        "load3d_constraints": "0",
-        "Intrinsic_fix_pipe_l0c2out": true,
-        "Intrinsic_data_move_l12ub": false,
-        "Intrinsic_data_move_l0c2ub": false,
-        "Intrinsic_data_move_out2l1_nd2nz": true,
-        "UB_SIZE": 196608,
-        "L2_SIZE": 33554432,
-        "L1_SIZE": 524288,
-        "L0A_SIZE": 65536,
-        "L0B_SIZE": 65536,
-        "L0C_SIZE": 131072,
-        "CORE_NUM": 20
-    }
-})";
-
 std::unordered_map<string, std::function<void(TilingParams& tiling_params, const string& value_str)>>
-    AlltoAllvGroupedMatMulTilingTest::tiling_params_str_handlers = {
+    tiling_params_str_handlers = {
         {"BSK", [](TilingParams& tiling_params, const string& value_str) { tiling_params.BSK = std::stoi(value_str); }},
         {"BS", [](TilingParams& tiling_params, const string& value_str) { tiling_params.BS = std::stoi(value_str); }},
         {"K", [](TilingParams& tiling_params, const string& value_str) { tiling_params.K = std::stoi(value_str); }},
@@ -318,50 +88,179 @@ std::unordered_map<string, std::function<void(TilingParams& tiling_params, const
         };
 
 std::unordered_map<string, std::function<void(TilingParams& tiling_params, const std::vector<int64_t> value_vec)>>
-    AlltoAllvGroupedMatMulTilingTest::tiling_params_vec_handlers = {
+    tiling_params_vec_handlers = {
         {"send_counts", [](TilingParams& tiling_params,
                            const std::vector<int64_t> value_vec) { tiling_params.send_counts = value_vec; }},
         {"recv_counts", [](TilingParams& tiling_params, const std::vector<int64_t> value_vec) {
              tiling_params.recv_counts = value_vec;
          }}};
 
-TEST_P(AlltoAllvGroupedMatMulTilingTest, shape_size)
+bool has_any_target_key(
+    const std::vector<std::pair<std::string, std::string>>& params,
+    const std::vector<std::string>& targets
+) {
+    return std::any_of(
+        params.begin(),
+        params.end(),
+        [&targets](const auto& p) {
+            return std::find(targets.begin(), targets.end(), p.first) != targets.end();
+        }
+    );
+}
+
+// 提取：初始化 tiling_params
+void InitializeTilingParams(
+    const TestParam& test_param,
+    TilingParams& tiling_params
+) {
+    for (auto& kv : test_param.tiling_params_str_pair) {
+        if (tiling_params_str_handlers.count(kv.first) != 0) {
+            tiling_params_str_handlers[kv.first](tiling_params, kv.second);
+        }
+    }
+
+    for (auto& kv : test_param.tiling_params_vec_pair) {
+        if (tiling_params_vec_handlers.count(kv.first) != 0) {
+            tiling_params_vec_handlers[kv.first](tiling_params, kv.second);
+        }
+    }
+}
+
+std::unique_ptr<gert::TilingContextPara::TensorDescription> CreateTensorShape(
+    gert::StorageShape shape,
+    ge::DataType dtype,
+    ge::Format format
+) {
+    return std::unique_ptr<gert::TilingContextPara::TensorDescription>(
+        new gert::TilingContextPara::TensorDescription(
+            shape,  // 这里用大括号构造
+            dtype,
+            format
+        )
+    );
+}
+
+std::vector<gert::TilingContextPara::TensorDescription> CreateInputTensors(
+    const TilingParams& tiling_params,
+    const std::unique_ptr<gert::TilingContextPara::TensorDescription>& mm_x_shape,
+    const std::unique_ptr<gert::TilingContextPara::TensorDescription>& mm_weight_shape
+) {
+    return {
+        {{{tiling_params.BSK, tiling_params.H1}, {tiling_params.BSK, tiling_params.H1}},
+         ge::DT_FLOAT16, ge::FORMAT_ND},
+        {{{tiling_params.e, tiling_params.gmm_weight_dim1, tiling_params.N1}, {tiling_params.e, tiling_params.gmm_weight_dim1, tiling_params.N1}},
+         ge::DT_FLOAT16, ge::FORMAT_ND},
+        {{}, ge::DT_FLOAT16, ge::FORMAT_ND}, // placeholder
+        {{}, ge::DT_FLOAT16, ge::FORMAT_ND}, // placeholder
+        *mm_x_shape,
+        *mm_weight_shape, 
+    };
+}
+
+std::vector<gert::TilingContextPara::TensorDescription> CreateOutputTensors(
+    const TilingParams& tiling_params,
+    const std::unique_ptr<gert::TilingContextPara::TensorDescription>& mm_y_shape
+) {
+    return {
+        {{{tiling_params.A, tiling_params.gmm_y_dim1}, {tiling_params.A, tiling_params.gmm_y_dim1}},
+         ge::DT_FLOAT16, ge::FORMAT_ND},
+        *mm_y_shape,
+        {{{tiling_params.A, tiling_params.H1}, {tiling_params.A, tiling_params.H1}},
+         ge::DT_FLOAT16, ge::FORMAT_ND},
+    };
+}
+
+std::vector<std::pair<std::string, Ops::Transformer::AnyValue>> CreateAttrs(
+    const TestParam& test_param,
+    const TilingParams& tiling_params
+) {
+    return {
+        {"group", Ops::Transformer::AnyValue::CreateFrom<std::string>(tiling_params.group)},
+        {"ep_world_size", Ops::Transformer::AnyValue::CreateFrom<int64_t>(tiling_params.ep_world_size)},
+        {"send_counts", Ops::Transformer::AnyValue::CreateFrom<vector<int64_t>>(tiling_params.send_counts)},
+        {"recv_counts", Ops::Transformer::AnyValue::CreateFrom<vector<int64_t>>(tiling_params.recv_counts)},
+        {"trans_gmm_weight", Ops::Transformer::AnyValue::CreateFrom<bool>(false)},
+        {"trans_mm_weight", Ops::Transformer::AnyValue::CreateFrom<bool>(false)},
+        {"permute_out_flag", Ops::Transformer::AnyValue::CreateFrom<bool>(tiling_params.permute_out_flag)}
+    };
+}
+
+class AlltoAllvGroupedMatMulTiling : public testing::TestWithParam<TestParam>
+{
+protected:
+    static void SetUpTestCase()
+    {
+        std::cout << "AlltoAllvGroupedMatMulTiling Test SetUp" << std::endl;
+    }
+
+    static void TearDownTestCase()
+    {
+        std::cout << "AlltoAllvGroupedMatMulTiling Test TearDown" << std::endl;
+    }
+
+public:
+    std::vector<int64_t> send_counts{128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128,
+                                     128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128};
+    std::vector<int64_t> recv_counts{128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128,
+                                     128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128};
+};
+
+TEST_P(AlltoAllvGroupedMatMulTiling, shape_size)
 {
     auto test_param = GetParam();
-    std::string op_type("AlltoAllvGroupedMatMul");
-    ASSERT_NE(gert::OpImplRegistry::GetInstance().GetOpImpl(op_type.c_str()), nullptr);
-    auto tiling_func = gert::OpImplRegistry::GetInstance().GetOpImpl(op_type.c_str())->tiling;
-    auto tiling_parse_func = gert::OpImplRegistry::GetInstance().GetOpImpl(op_type.c_str())->tiling_parse;
 
-    string compile_info_string = AlltoAllvGroupedMatMulTilingTest::compile_info_string;
-    map<string, string> soc_infos;
-    map<string, string> aicore_spec;
-    map<string, string> intrinsics;
-    map<string, string> version = {{"Short_SoC_version", "Ascend910_93"}};
-    GetPlatFormInfos(compile_info_string.c_str(), soc_infos, aicore_spec, intrinsics);
+    struct AlltoAllvGroupedMatMulCompileInfo {};
+    AlltoAllvGroupedMatMulCompileInfo compileInfo;
 
-    auto tilingData = gert::TilingData::CreateCap(8192);
-    ASSERT_NE(tilingData, nullptr);
-    auto workspace_holer = gert::ContinuousVector::Create<size_t>(8192);
-    auto workspace = reinterpret_cast<gert::ContinuousVector*>(workspace_holer.get());
+    std::string socVersion = "Ascend910_93";
+    uint64_t coreNum = 20;
+    uint64_t ubSize = 196608;
+    uint64_t tilingDataSize = 8192;
 
-    InitHolder(tilingData.get(), workspace, test_param);
+    TilingParams tiling_params;
+    InitializeTilingParams(test_param, tiling_params);
 
-    auto& holder = this->tiling_holder;
+    std::vector<std::string> targets = {"BS", "H2", "mm_weight_dim0", "N2"};
 
-    gert::TilingContext* tiling_context = holder.GetContext<gert::TilingContext>();
-    ASSERT_NE(tiling_context->GetPlatformInfo(), nullptr);
-    holder.GetContext<gert::TilingContext>()->GetPlatformInfo()->SetPlatformRes("SoCInfo", soc_infos);
-    holder.GetContext<gert::TilingContext>()->GetPlatformInfo()->SetPlatformRes("AICoreSpec", aicore_spec);
-    holder.GetContext<gert::TilingContext>()->GetPlatformInfo()->SetPlatformRes("version", version);
-    holder.GetContext<gert::TilingContext>()->GetPlatformInfo()->SetCoreNumByCoreType("AICore");
-    holder.GetContext<gert::TilingContext>()->GetPlatformInfo()->SetPlatformRes("AICoreintrinsicDtypeMap", intrinsics);
+    auto mm_x_shape = CreateTensorShape({{tiling_params.BS, tiling_params.H2}, {tiling_params.BS, tiling_params.H2}}, 
+                                        ge::DT_FLOAT16, ge::FORMAT_ND);
+    auto mm_weight_shape = CreateTensorShape({{tiling_params.mm_weight_dim0, tiling_params.N2}, 
+                                              {tiling_params.mm_weight_dim0, tiling_params.N2}}, 
+                                              ge::DT_FLOAT16, ge::FORMAT_ND);
+    auto mm_y_shape = CreateTensorShape({{tiling_params.BS, tiling_params.N2}, {tiling_params.BS, tiling_params.N2}},
+                                         ge::DT_FLOAT16, ge::FORMAT_ND);
 
-    ge::HcomTopoInfo::TopoInfo topoInfo;
-    topoInfo.rank_size = tiling_params.ep_world_size;
-    topoInfo.topo_level_descs[0].comm_sets = 0b1U;
-    ge::HcomTopoInfo::Instance().SetGroupTopoInfo(tiling_params.group.c_str(), topoInfo);
-    EXPECT_EQ(tiling_func(tiling_context), test_param.status);
+    if (!(has_any_target_key(test_param.tiling_params_str_pair, targets) || tiling_params.is_Need_MM == false)) {
+        mm_x_shape->shape_ = {};
+        mm_weight_shape->shape_ = {};
+        mm_y_shape->shape_ = {};
+    }
+
+    gert::TilingContextPara tilingContextPara(
+        "AlltoAllvGroupedMatMul",
+        CreateInputTensors(tiling_params, mm_x_shape, mm_weight_shape),
+        CreateOutputTensors(tiling_params, mm_y_shape),
+        {
+            {"group", Ops::Transformer::AnyValue::CreateFrom<std::string>(tiling_params.group)},
+            {"ep_world_size", Ops::Transformer::AnyValue::CreateFrom<int64_t>(tiling_params.ep_world_size)},
+            {"send_counts", Ops::Transformer::AnyValue::CreateFrom<vector<int64_t>>(tiling_params.send_counts)},
+            {"recv_counts", Ops::Transformer::AnyValue::CreateFrom<vector<int64_t>>(tiling_params.recv_counts)},
+            {"trans_gmm_weight", Ops::Transformer::AnyValue::CreateFrom<bool>(false)},
+            {"trans_mm_weight", Ops::Transformer::AnyValue::CreateFrom<bool>(false)},
+            {"permute_out_flag", Ops::Transformer::AnyValue::CreateFrom<bool>(tiling_params.permute_out_flag)}
+        },
+        &compileInfo, socVersion, coreNum, ubSize, tilingDataSize
+    );
+
+    if (test_param.status == ge::GRAPH_FAILED) {
+        ExecuteTestCase(tilingContextPara);
+    } else {
+        uint64_t expectTilingKey = 1000UL;
+        if (test_param.test_name == "Test_no_MM") {
+            expectTilingKey = 1100UL;
+        }
+        ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey);
+    }
 }
 
 static TestParam test_params[] = {
@@ -412,971 +311,404 @@ static TestParam test_params[] = {
      {},
      ge::GRAPH_FAILED},
     {"Test_no_MM", {{"permute_out_flag", "true"}, {"is_Need_MM", "false"}}, {}, {}, ge::GRAPH_SUCCESS}
-    };
+};
 
-INSTANTIATE_TEST_SUITE_P(AlltoAllvGroupedMatMulTilingTest, AlltoAllvGroupedMatMulTilingTest,
+
+INSTANTIATE_TEST_SUITE_P(AlltoAllvGroupedMatMul, AlltoAllvGroupedMatMulTiling,
                          testing::ValuesIn(test_params),
-                         [](const testing::TestParamInfo<AlltoAllvGroupedMatMulTilingTest::ParamType>& info) {
+                         [](const testing::TestParamInfo<AlltoAllvGroupedMatMulTiling::ParamType>& info) {
                              return info.param.test_name;
                          });
 
-TEST_F(AlltoAllvGroupedMatMulTilingTest, allto_allv_grouped_matmul_tiling_test_H_4)
+TEST_F(AlltoAllvGroupedMatMulTiling, allto_allv_grouped_matmul_tiling_test_H_4)
 {
-    std::string op_type("AlltoAllvGroupedMatMul");
-    ASSERT_NE(gert::OpImplRegistry::GetInstance().GetOpImpl(op_type.c_str()), nullptr);
-    auto tiling_func = gert::OpImplRegistry::GetInstance().GetOpImpl(op_type.c_str())->tiling;
-    auto tiling_parse_func = gert::OpImplRegistry::GetInstance().GetOpImpl(op_type.c_str())->tiling_parse;
-
-    string compile_info_string = R"({
-                                        "hardware_info": {
-                                            "BT_SIZE": 1024,
-                                            "load3d_constraints": "0",
-                                            "Intrinsic_fix_pipe_l0c2out": true,
-                                            "Intrinsic_data_move_l12ub": false,
-                                            "Intrinsic_data_move_l0c2ub": false,
-                                            "Intrinsic_data_move_out2l1_nd2nz": true,
-                                            "UB_SIZE": 196608,
-                                            "L2_SIZE": 33554432,
-                                            "L1_SIZE": 524288,
-                                            "L0A_SIZE": 65536,
-                                            "L0B_SIZE": 65536,
-                                            "L0C_SIZE": 131072,
-                                            "CORE_NUM": 20
-                                        }
-                                    })";
-    map<string, string> soc_infos;
-    map<string, string> aicore_spec;
-    map<string, string> intrinsics;
-    GetPlatFormInfos(compile_info_string.c_str(), soc_infos, aicore_spec, intrinsics);
-
-    // platform info
-    fe::PlatFormInfos platform_info;
-    platform_info.Init();
-    // compile info
-    struct AlltoAllvGroupedMatMulCompileInfo {
-    } compile_info;
-
-    // tilingParseFunc simulate
-    auto kernel_holder =
-        gert::KernelRunContextFaker()
-            .KernelIONum(5, 4)
-            .Inputs({const_cast<char*>(compile_info_string.c_str()), reinterpret_cast<void*>(&platform_info)})
-            .Outputs({&compile_info})
-            .Build();
-
-    auto param = gert::TilingData::CreateCap(8192);
-    ASSERT_NE(param, nullptr);
-    auto workspace_size_holer = gert::ContinuousVector::Create<size_t>(8192);
-    auto ws_size = reinterpret_cast<gert::ContinuousVector*>(workspace_size_holer.get());
-    gert::StorageShape gmmX_shape = {{4096, 7168}, {4096, 7168}};
-    gert::StorageShape gmmWeight_shape = {{4, 7168, 4096}, {4, 7168, 4096}};
-    gert::StorageShape gmmY_shape = {{4096, 4096}, {4096, 4096}};
-    gert::StorageShape permuteOut_shape = {{4096, 7169}, {4096, 7169}};
-    std::string group("group");
-
-    auto holder = gert::TilingContextFaker()
-                      .NodeIoNum(6, 3)
-                      .IrInstanceNum({1, 1, 1, 1, 1, 1})
-                      .InputShapes({&gmmX_shape, &gmmWeight_shape, nullptr, nullptr, nullptr, nullptr})
-                      .OutputShapes({&gmmY_shape, nullptr, &permuteOut_shape})
-                      .NodeAttrs({{"group", ge::AnyValue::CreateFrom<std::string>(group)},
-                                  {"ep_world_size", ge::AnyValue::CreateFrom<int64_t>(8)},
-                                  {"send_counts", ge::AnyValue::CreateFrom<vector<int64_t>>(send_counts)},
-                                  {"recv_counts", ge::AnyValue::CreateFrom<vector<int64_t>>(recv_counts)},
-                                  {"trans_gmm_weight", ge::AnyValue::CreateFrom<bool>(false)},
-                                  {"trans_mm_weight", ge::AnyValue::CreateFrom<bool>(false)},
-                                  {"permute_out_flag", ge::AnyValue::CreateFrom<bool>(true)}})
-                      .CompileInfo(&compile_info)
-                      .PlatformInfo(reinterpret_cast<char*>(&platform_info))
-                      .TilingData(param.get())
-                      .Workspace(ws_size)
-                      .Build();
-
-    gert::TilingContext* tiling_context = holder.GetContext<gert::TilingContext>();
-    ASSERT_NE(tiling_context->GetPlatformInfo(), nullptr);
-    holder.GetContext<gert::TilingContext>()->GetPlatformInfo()->SetPlatformRes("SoCInfo", soc_infos);
-    holder.GetContext<gert::TilingContext>()->GetPlatformInfo()->SetPlatformRes("AICoreSpec", aicore_spec);
-    holder.GetContext<gert::TilingContext>()->GetPlatformInfo()->SetCoreNumByCoreType("AICore");
-    holder.GetContext<gert::TilingContext>()->GetPlatformInfo()->SetPlatformRes("AICoreintrinsicDtypeMap", intrinsics);
-
-    ge::HcomTopoInfo::TopoInfo topoInfo;
-    topoInfo.rank_size = 8;
-    topoInfo.topo_level_descs[0].comm_sets = 0b1U;
-    ge::HcomTopoInfo::Instance().SetGroupTopoInfo(group.c_str(), topoInfo);
-    EXPECT_EQ(tiling_func(tiling_context), ge::GRAPH_FAILED);
+    struct AlltoAllvGroupedMatMulCompileInfo {};
+    AlltoAllvGroupedMatMulCompileInfo compileInfo;
+    std::string socVersion = "Ascend910_93";
+    uint64_t coreNum = 20;
+    uint64_t ubSize = 196608;
+    uint64_t tilingDataSize = 8192;
+    gert::TilingContextPara tilingContextPara("AlltoAllvGroupedMatMul",
+    {
+        {{{4096, 7168}, {4096, 7168}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+        {{{4, 7168, 4096}, {4, 7168, 4096}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+        {{}, ge::DT_INT32, ge::FORMAT_ND},
+        {{}, ge::DT_INT32, ge::FORMAT_ND},
+        {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
+        {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
+        
+    },
+    {
+        {{{4096, 4096}, {4096, 4096}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+        {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
+        {{{4096, 7169}, {4096, 7169}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+    },
+    {
+        {"group", Ops::Transformer::AnyValue::CreateFrom<std::string>("group")},
+        {"ep_world_size", Ops::Transformer::AnyValue::CreateFrom<int64_t>(8)},
+        {"send_counts", Ops::Transformer::AnyValue::CreateFrom<vector<int64_t>>(send_counts)},
+        {"recv_counts", Ops::Transformer::AnyValue::CreateFrom<vector<int64_t>>(recv_counts)},
+        {"trans_gmm_weight", Ops::Transformer::AnyValue::CreateFrom<bool>(false)},
+        {"trans_mm_weight", Ops::Transformer::AnyValue::CreateFrom<bool>(false)},
+        {"permute_out_flag", Ops::Transformer::AnyValue::CreateFrom<bool>(true)},
+    },
+    &compileInfo, socVersion, coreNum, ubSize, tilingDataSize);
+    ExecuteTestCase(tilingContextPara);
 }
 
-TEST_F(AlltoAllvGroupedMatMulTilingTest, allto_allv_grouped_matmul_tiling_test_A_1)
+TEST_F(AlltoAllvGroupedMatMulTiling, allto_allv_grouped_matmul_tiling_test_A_1)
 {
-    std::string op_type("AlltoAllvGroupedMatMul");
-    ASSERT_NE(gert::OpImplRegistry::GetInstance().GetOpImpl(op_type.c_str()), nullptr);
-    auto tiling_func = gert::OpImplRegistry::GetInstance().GetOpImpl(op_type.c_str())->tiling;
-    auto tiling_parse_func = gert::OpImplRegistry::GetInstance().GetOpImpl(op_type.c_str())->tiling_parse;
-
-    string compile_info_string = R"({
-                                        "hardware_info": {
-                                            "BT_SIZE": 1024,
-                                            "load3d_constraints": "0",
-                                            "Intrinsic_fix_pipe_l0c2out": true,
-                                            "Intrinsic_data_move_l12ub": false,
-                                            "Intrinsic_data_move_l0c2ub": false,
-                                            "Intrinsic_data_move_out2l1_nd2nz": true,
-                                            "UB_SIZE": 196608,
-                                            "L2_SIZE": 33554432,
-                                            "L1_SIZE": 524288,
-                                            "L0A_SIZE": 65536,
-                                            "L0B_SIZE": 65536,
-                                            "L0C_SIZE": 131072,
-                                            "CORE_NUM": 20
-                                        }
-                                    })";
-    map<string, string> soc_infos;
-    map<string, string> aicore_spec;
-    map<string, string> intrinsics;
-    GetPlatFormInfos(compile_info_string.c_str(), soc_infos, aicore_spec, intrinsics);
-
-    // platform info
-    fe::PlatFormInfos platform_info;
-    platform_info.Init();
-    // compile info
-    struct AlltoAllvGroupedMatMulCompileInfo {
-    } compile_info;
-
-    // tilingParseFunc simulate
-    auto kernel_holder =
-        gert::KernelRunContextFaker()
-            .KernelIONum(5, 4)
-            .Inputs({const_cast<char*>(compile_info_string.c_str()), reinterpret_cast<void*>(&platform_info)})
-            .Outputs({&compile_info})
-            .Build();
-
-    auto param = gert::TilingData::CreateCap(8192);
-    ASSERT_NE(param, nullptr);
-    auto workspace_size_holer = gert::ContinuousVector::Create<size_t>(8192);
-    auto ws_size = reinterpret_cast<gert::ContinuousVector*>(workspace_size_holer.get());
-    gert::StorageShape gmmX_shape = {{4096, 7168}, {4096, 7168}};
-    gert::StorageShape gmmWeight_shape = {{4, 7168, 4096}, {4, 7168, 4096}};
-    gert::StorageShape gmmY_shape = {{4096, 4096}, {4096, 4096}};
-    gert::StorageShape permuteOut_shape = {{4097, 7168}, {4097, 7168}};
-    std::string group("group");
-
-    auto holder = gert::TilingContextFaker()
-                      .NodeIoNum(6, 3)
-                      .IrInstanceNum({1, 1, 1, 1, 1, 1})
-                      .InputShapes({&gmmX_shape, &gmmWeight_shape, nullptr, nullptr, nullptr, nullptr})
-                      .OutputShapes({&gmmY_shape, nullptr, &permuteOut_shape})
-                      .NodeAttrs({{"group", ge::AnyValue::CreateFrom<std::string>(group)},
-                                  {"ep_world_size", ge::AnyValue::CreateFrom<int64_t>(8)},
-                                  {"send_counts", ge::AnyValue::CreateFrom<vector<int64_t>>(send_counts)},
-                                  {"recv_counts", ge::AnyValue::CreateFrom<vector<int64_t>>(recv_counts)},
-                                  {"trans_gmm_weight", ge::AnyValue::CreateFrom<bool>(false)},
-                                  {"trans_mm_weight", ge::AnyValue::CreateFrom<bool>(false)},
-                                  {"permute_out_flag", ge::AnyValue::CreateFrom<bool>(true)}})
-                      .CompileInfo(&compile_info)
-                      .PlatformInfo(reinterpret_cast<char*>(&platform_info))
-                      .TilingData(param.get())
-                      .Workspace(ws_size)
-                      .Build();
-
-    gert::TilingContext* tiling_context = holder.GetContext<gert::TilingContext>();
-    ASSERT_NE(tiling_context->GetPlatformInfo(), nullptr);
-    holder.GetContext<gert::TilingContext>()->GetPlatformInfo()->SetPlatformRes("SoCInfo", soc_infos);
-    holder.GetContext<gert::TilingContext>()->GetPlatformInfo()->SetPlatformRes("AICoreSpec", aicore_spec);
-    holder.GetContext<gert::TilingContext>()->GetPlatformInfo()->SetCoreNumByCoreType("AICore");
-    holder.GetContext<gert::TilingContext>()->GetPlatformInfo()->SetPlatformRes("AICoreintrinsicDtypeMap", intrinsics);
-
-    ge::HcomTopoInfo::TopoInfo topoInfo;
-    topoInfo.rank_size = 8;
-    topoInfo.topo_level_descs[0].comm_sets = 0b1U;
-    ge::HcomTopoInfo::Instance().SetGroupTopoInfo(group.c_str(), topoInfo);
-    EXPECT_EQ(tiling_func(tiling_context), ge::GRAPH_FAILED);
+    struct AlltoAllvGroupedMatMulCompileInfo {};
+    AlltoAllvGroupedMatMulCompileInfo compileInfo;
+    std::string socVersion = "Ascend910_93";
+    uint64_t coreNum = 20;
+    uint64_t ubSize = 196608;
+    uint64_t tilingDataSize = 8192;
+    gert::TilingContextPara tilingContextPara("AlltoAllvGroupedMatMul",
+    {
+        {{{4096, 7168}, {4096, 7168}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+        {{{4, 7168, 4096}, {4, 7168, 4096}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+        {{}, ge::DT_INT32, ge::FORMAT_ND},
+        {{}, ge::DT_INT32, ge::FORMAT_ND},
+        {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
+        {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
+        
+    },
+    {
+        {{{4096, 4096}, {4096, 4096}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+        {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
+        {{{4097, 7168}, {4097, 7168}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+    },
+    {
+        {"group", Ops::Transformer::AnyValue::CreateFrom<std::string>("group")},
+        {"ep_world_size", Ops::Transformer::AnyValue::CreateFrom<int64_t>(8)},
+        {"send_counts", Ops::Transformer::AnyValue::CreateFrom<vector<int64_t>>(send_counts)},
+        {"recv_counts", Ops::Transformer::AnyValue::CreateFrom<vector<int64_t>>(recv_counts)},
+        {"trans_gmm_weight", Ops::Transformer::AnyValue::CreateFrom<bool>(false)},
+        {"trans_mm_weight", Ops::Transformer::AnyValue::CreateFrom<bool>(false)},
+        {"permute_out_flag", Ops::Transformer::AnyValue::CreateFrom<bool>(true)},
+    },
+    &compileInfo, socVersion, coreNum, ubSize, tilingDataSize);
+    ExecuteTestCase(tilingContextPara);
 }
 
-TEST_F(AlltoAllvGroupedMatMulTilingTest, allto_allv_grouped_matmul_tiling_test_BS_1)
+TEST_F(AlltoAllvGroupedMatMulTiling, allto_allv_grouped_matmul_tiling_test_BS_1)
 {
-    std::string op_type("AlltoAllvGroupedMatMul");
-    ASSERT_NE(gert::OpImplRegistry::GetInstance().GetOpImpl(op_type.c_str()), nullptr);
-    auto tiling_func = gert::OpImplRegistry::GetInstance().GetOpImpl(op_type.c_str())->tiling;
-    auto tiling_parse_func = gert::OpImplRegistry::GetInstance().GetOpImpl(op_type.c_str())->tiling_parse;
-
-    string compile_info_string = R"({
-                                        "hardware_info": {
-                                            "BT_SIZE": 1024,
-                                            "load3d_constraints": "0",
-                                            "Intrinsic_fix_pipe_l0c2out": true,
-                                            "Intrinsic_data_move_l12ub": false,
-                                            "Intrinsic_data_move_l0c2ub": false,
-                                            "Intrinsic_data_move_out2l1_nd2nz": true,
-                                            "UB_SIZE": 196608,
-                                            "L2_SIZE": 33554432,
-                                            "L1_SIZE": 524288,
-                                            "L0A_SIZE": 65536,
-                                            "L0B_SIZE": 65536,
-                                            "L0C_SIZE": 131072,
-                                            "CORE_NUM": 20
-                                        }
-                                    })";
-    map<string, string> soc_infos;
-    map<string, string> aicore_spec;
-    map<string, string> intrinsics;
-    GetPlatFormInfos(compile_info_string.c_str(), soc_infos, aicore_spec, intrinsics);
-
-    // platform info
-    fe::PlatFormInfos platform_info;
-    platform_info.Init();
-    // compile info
-    struct AlltoAllvGroupedMatMulCompileInfo {
-    } compile_info;
-
-    // tilingParseFunc simulate
-    auto kernel_holder =
-        gert::KernelRunContextFaker()
-            .KernelIONum(5, 4)
-            .Inputs({const_cast<char*>(compile_info_string.c_str()), reinterpret_cast<void*>(&platform_info)})
-            .Outputs({&compile_info})
-            .Build();
-
-    auto param = gert::TilingData::CreateCap(8192);
-    ASSERT_NE(param, nullptr);
-    auto workspace_size_holer = gert::ContinuousVector::Create<size_t>(8192);
-    auto ws_size = reinterpret_cast<gert::ContinuousVector*>(workspace_size_holer.get());
-    gert::StorageShape gmmX_shape = {{4096, 7168}, {4096, 7168}};
-    gert::StorageShape gmmWeight_shape = {{4, 7168, 4096}, {4, 7168, 4096}};
-    gert::StorageShape mmX_shape = {{2048, 7168}, {2048, 7168}};
-    gert::StorageShape mmWeight_shape = {{7168, 64}, {7168, 64}};
-    gert::StorageShape gmmY_shape = {{4096, 4096}, {4096, 4096}};
-    gert::StorageShape mmY_shape = {{2047, 64}, {2047, 64}};
-    std::string group("group");
-
-    auto holder = gert::TilingContextFaker()
-                      .NodeIoNum(6, 3)
-                      .IrInstanceNum({1, 1, 1, 1, 1, 1})
-                      .InputShapes({&gmmX_shape, &gmmWeight_shape, nullptr, nullptr, &mmX_shape, &mmWeight_shape})
-                      .OutputShapes({&gmmY_shape, &mmY_shape, nullptr})
-                      .NodeAttrs({{"group", ge::AnyValue::CreateFrom<std::string>(group)},
-                                  {"ep_world_size", ge::AnyValue::CreateFrom<int64_t>(8)},
-                                  {"send_counts", ge::AnyValue::CreateFrom<vector<int64_t>>(send_counts)},
-                                  {"recv_counts", ge::AnyValue::CreateFrom<vector<int64_t>>(recv_counts)},
-                                  {"trans_gmm_weight", ge::AnyValue::CreateFrom<bool>(false)},
-                                  {"trans_mm_weight", ge::AnyValue::CreateFrom<bool>(false)},
-                                  {"permute_out_flag", ge::AnyValue::CreateFrom<bool>(false)}})
-                      .CompileInfo(&compile_info)
-                      .PlatformInfo(reinterpret_cast<char*>(&platform_info))
-                      .TilingData(param.get())
-                      .Workspace(ws_size)
-                      .Build();
-
-    gert::TilingContext* tiling_context = holder.GetContext<gert::TilingContext>();
-    ASSERT_NE(tiling_context->GetPlatformInfo(), nullptr);
-    holder.GetContext<gert::TilingContext>()->GetPlatformInfo()->SetPlatformRes("SoCInfo", soc_infos);
-    holder.GetContext<gert::TilingContext>()->GetPlatformInfo()->SetPlatformRes("AICoreSpec", aicore_spec);
-    holder.GetContext<gert::TilingContext>()->GetPlatformInfo()->SetCoreNumByCoreType("AICore");
-    holder.GetContext<gert::TilingContext>()->GetPlatformInfo()->SetPlatformRes("AICoreintrinsicDtypeMap", intrinsics);
-
-    ge::HcomTopoInfo::TopoInfo topoInfo;
-    topoInfo.rank_size = 8;
-    topoInfo.topo_level_descs[0].comm_sets = 0b1U;
-    ge::HcomTopoInfo::Instance().SetGroupTopoInfo(group.c_str(), topoInfo);
-    // workspaces nullptr return failed
-    EXPECT_EQ(tiling_func(tiling_context), ge::GRAPH_FAILED);
+    struct AlltoAllvGroupedMatMulCompileInfo {};
+    AlltoAllvGroupedMatMulCompileInfo compileInfo;
+    std::string socVersion = "Ascend910_93";
+    uint64_t coreNum = 20;
+    uint64_t ubSize = 196608;
+    uint64_t tilingDataSize = 8192;
+    gert::TilingContextPara tilingContextPara("AlltoAllvGroupedMatMul",
+    {
+        {{{4096, 7168}, {4096, 7168}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+        {{{4, 7168, 4096}, {4, 7168, 4096}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+        {{}, ge::DT_INT32, ge::FORMAT_ND},
+        {{}, ge::DT_INT32, ge::FORMAT_ND},
+        {{{2048, 7168}, {2048, 7168}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+        {{{7168, 64}, {7168, 64}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+    },
+    {
+        {{{4096, 4096}, {4096, 4096}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+        {{{2047, 64}, {2047, 64}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+        {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
+    },    
+    {
+        {"group", Ops::Transformer::AnyValue::CreateFrom<std::string>("group")},
+        {"ep_world_size", Ops::Transformer::AnyValue::CreateFrom<int64_t>(8)},
+        {"send_counts", Ops::Transformer::AnyValue::CreateFrom<vector<int64_t>>(send_counts)},
+        {"recv_counts", Ops::Transformer::AnyValue::CreateFrom<vector<int64_t>>(recv_counts)},
+        {"trans_gmm_weight", Ops::Transformer::AnyValue::CreateFrom<bool>(false)},
+        {"trans_mm_weight", Ops::Transformer::AnyValue::CreateFrom<bool>(false)},
+        {"permute_out_flag", Ops::Transformer::AnyValue::CreateFrom<bool>(true)},
+    },
+    &compileInfo, socVersion, coreNum, ubSize, tilingDataSize);
+    ExecuteTestCase(tilingContextPara);
 }
 
-TEST_F(AlltoAllvGroupedMatMulTilingTest, allto_allv_grouped_matmul_tiling_test_dim_1)
+TEST_F(AlltoAllvGroupedMatMulTiling, allto_allv_grouped_matmul_tiling_test_dim_1)
 {
-    std::string op_type("AlltoAllvGroupedMatMul");
-    ASSERT_NE(gert::OpImplRegistry::GetInstance().GetOpImpl(op_type.c_str()), nullptr);
-    auto tiling_func = gert::OpImplRegistry::GetInstance().GetOpImpl(op_type.c_str())->tiling;
-    auto tiling_parse_func = gert::OpImplRegistry::GetInstance().GetOpImpl(op_type.c_str())->tiling_parse;
-
-    string compile_info_string = R"({
-                                        "hardware_info": {
-                                            "BT_SIZE": 1024,
-                                            "load3d_constraints": "0",
-                                            "Intrinsic_fix_pipe_l0c2out": true,
-                                            "Intrinsic_data_move_l12ub": false,
-                                            "Intrinsic_data_move_l0c2ub": false,
-                                            "Intrinsic_data_move_out2l1_nd2nz": true,
-                                            "UB_SIZE": 196608,
-                                            "L2_SIZE": 33554432,
-                                            "L1_SIZE": 524288,
-                                            "L0A_SIZE": 65536,
-                                            "L0B_SIZE": 65536,
-                                            "L0C_SIZE": 131072,
-                                            "CORE_NUM": 20
-                                        }
-                                    })";
-    map<string, string> soc_infos;
-    map<string, string> aicore_spec;
-    map<string, string> intrinsics;
-    GetPlatFormInfos(compile_info_string.c_str(), soc_infos, aicore_spec, intrinsics);
-
-    // platform info
-    fe::PlatFormInfos platform_info;
-    platform_info.Init();
-    // compile info
-    struct AlltoAllvGroupedMatMulCompileInfo {
-    } compile_info;
-
-    // tilingParseFunc simulate
-    auto kernel_holder =
-        gert::KernelRunContextFaker()
-            .KernelIONum(5, 4)
-            .Inputs({const_cast<char*>(compile_info_string.c_str()), reinterpret_cast<void*>(&platform_info)})
-            .Outputs({&compile_info})
-            .Build();
-
-    auto param = gert::TilingData::CreateCap(8192);
-    ASSERT_NE(param, nullptr);
-    auto workspace_size_holer = gert::ContinuousVector::Create<size_t>(8192);
-    auto ws_size = reinterpret_cast<gert::ContinuousVector*>(workspace_size_holer.get());
-    gert::StorageShape gmmX_shape = {{2, 4096, 7168}, {2, 4096, 7168}};
-    gert::StorageShape gmmWeight_shape = {{4, 7168, 4096}, {4, 7168, 4096}};
-    gert::StorageShape gmmY_shape = {{4096, 4096}, {4096, 4096}};
-    std::string group("group");
-
-    auto holder = gert::TilingContextFaker()
-                      .NodeIoNum(6, 3)
-                      .IrInstanceNum({1, 1, 1, 1, 1, 1})
-                      .InputShapes({&gmmX_shape, &gmmWeight_shape, nullptr, nullptr, nullptr, nullptr})
-                      .OutputShapes({&gmmY_shape, nullptr, nullptr})
-                      .NodeAttrs({{"group", ge::AnyValue::CreateFrom<std::string>(group)},
-                                  {"ep_world_size", ge::AnyValue::CreateFrom<int64_t>(8)},
-                                  {"send_counts", ge::AnyValue::CreateFrom<vector<int64_t>>(send_counts)},
-                                  {"recv_counts", ge::AnyValue::CreateFrom<vector<int64_t>>(recv_counts)},
-                                  {"trans_gmm_weight", ge::AnyValue::CreateFrom<bool>(false)},
-                                  {"trans_mm_weight", ge::AnyValue::CreateFrom<bool>(false)},
-                                  {"permute_out_flag", ge::AnyValue::CreateFrom<bool>(false)}})
-                      .CompileInfo(&compile_info)
-                      .PlatformInfo(reinterpret_cast<char*>(&platform_info))
-                      .TilingData(param.get())
-                      .Workspace(ws_size)
-                      .Build();
-
-    gert::TilingContext* tiling_context = holder.GetContext<gert::TilingContext>();
-    ASSERT_NE(tiling_context->GetPlatformInfo(), nullptr);
-    holder.GetContext<gert::TilingContext>()->GetPlatformInfo()->SetPlatformRes("SoCInfo", soc_infos);
-    holder.GetContext<gert::TilingContext>()->GetPlatformInfo()->SetPlatformRes("AICoreSpec", aicore_spec);
-    holder.GetContext<gert::TilingContext>()->GetPlatformInfo()->SetCoreNumByCoreType("AICore");
-    holder.GetContext<gert::TilingContext>()->GetPlatformInfo()->SetPlatformRes("AICoreintrinsicDtypeMap", intrinsics);
-
-    ge::HcomTopoInfo::TopoInfo topoInfo;
-    topoInfo.rank_size = 8;
-    topoInfo.topo_level_descs[0].comm_sets = 0b1U;
-    ge::HcomTopoInfo::Instance().SetGroupTopoInfo(group.c_str(), topoInfo);
-    // workspaces nullptr return failed
-    EXPECT_EQ(tiling_func(tiling_context), ge::GRAPH_FAILED);
+    struct AlltoAllvGroupedMatMulCompileInfo {};
+    AlltoAllvGroupedMatMulCompileInfo compileInfo;
+    std::string socVersion = "Ascend910_93";
+    uint64_t coreNum = 20;
+    uint64_t ubSize = 196608;
+    uint64_t tilingDataSize = 8192;
+    gert::TilingContextPara tilingContextPara("AlltoAllvGroupedMatMul",
+    {
+        {{{2, 4096, 7168}, {2, 4096, 7168}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+        {{{4, 7168, 4096}, {4, 7168, 4096}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+        {{}, ge::DT_INT32, ge::FORMAT_ND},
+        {{}, ge::DT_INT32, ge::FORMAT_ND},
+        {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
+        {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
+        
+    },
+    {
+        {{{4096, 4096}, {4096, 4096}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+        {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
+        {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
+    },    
+    {
+        {"group", Ops::Transformer::AnyValue::CreateFrom<std::string>("group")},
+        {"ep_world_size", Ops::Transformer::AnyValue::CreateFrom<int64_t>(8)},
+        {"send_counts", Ops::Transformer::AnyValue::CreateFrom<vector<int64_t>>(send_counts)},
+        {"recv_counts", Ops::Transformer::AnyValue::CreateFrom<vector<int64_t>>(recv_counts)},
+        {"trans_gmm_weight", Ops::Transformer::AnyValue::CreateFrom<bool>(false)},
+        {"trans_mm_weight", Ops::Transformer::AnyValue::CreateFrom<bool>(false)},
+        {"permute_out_flag", Ops::Transformer::AnyValue::CreateFrom<bool>(true)},
+    },
+    &compileInfo, socVersion, coreNum, ubSize, tilingDataSize);
+    ExecuteTestCase(tilingContextPara);
 }
 
-TEST_F(AlltoAllvGroupedMatMulTilingTest, allto_allv_grouped_matmul_tiling_test_dim_2)
+TEST_F(AlltoAllvGroupedMatMulTiling, allto_allv_grouped_matmul_tiling_test_dim_2)
 {
-    std::string op_type("AlltoAllvGroupedMatMul");
-    ASSERT_NE(gert::OpImplRegistry::GetInstance().GetOpImpl(op_type.c_str()), nullptr);
-    auto tiling_func = gert::OpImplRegistry::GetInstance().GetOpImpl(op_type.c_str())->tiling;
-    auto tiling_parse_func = gert::OpImplRegistry::GetInstance().GetOpImpl(op_type.c_str())->tiling_parse;
-
-    string compile_info_string = R"({
-                                        "hardware_info": {
-                                            "BT_SIZE": 1024,
-                                            "load3d_constraints": "0",
-                                            "Intrinsic_fix_pipe_l0c2out": true,
-                                            "Intrinsic_data_move_l12ub": false,
-                                            "Intrinsic_data_move_l0c2ub": false,
-                                            "Intrinsic_data_move_out2l1_nd2nz": true,
-                                            "UB_SIZE": 196608,
-                                            "L2_SIZE": 33554432,
-                                            "L1_SIZE": 524288,
-                                            "L0A_SIZE": 65536,
-                                            "L0B_SIZE": 65536,
-                                            "L0C_SIZE": 131072,
-                                            "CORE_NUM": 20
-                                        }
-                                    })";
-    map<string, string> soc_infos;
-    map<string, string> aicore_spec;
-    map<string, string> intrinsics;
-    GetPlatFormInfos(compile_info_string.c_str(), soc_infos, aicore_spec, intrinsics);
-
-    // platform info
-    fe::PlatFormInfos platform_info;
-    platform_info.Init();
-    // compile info
-    struct AlltoAllvGroupedMatMulCompileInfo {
-    } compile_info;
-
-    // tilingParseFunc simulate
-    auto kernel_holder =
-        gert::KernelRunContextFaker()
-            .KernelIONum(5, 4)
-            .Inputs({const_cast<char*>(compile_info_string.c_str()), reinterpret_cast<void*>(&platform_info)})
-            .Outputs({&compile_info})
-            .Build();
-
-    auto param = gert::TilingData::CreateCap(8192);
-    ASSERT_NE(param, nullptr);
-    auto workspace_size_holer = gert::ContinuousVector::Create<size_t>(8192);
-    auto ws_size = reinterpret_cast<gert::ContinuousVector*>(workspace_size_holer.get());
-    gert::StorageShape gmmX_shape = {{4096, 7168}, {4096, 7168}};
-    gert::StorageShape gmmWeight_shape = {{7168, 4096}, {7168, 4096}};
-    gert::StorageShape gmmY_shape = {{4096, 4096}, {4096, 4096}};
-    std::string group("group");
-
-    auto holder = gert::TilingContextFaker()
-                      .NodeIoNum(6, 3)
-                      .IrInstanceNum({1, 1, 1, 1, 1, 1})
-                      .InputShapes({&gmmX_shape, &gmmWeight_shape, nullptr, nullptr, nullptr, nullptr})
-                      .OutputShapes({&gmmY_shape, nullptr, nullptr})
-                      .NodeAttrs({{"group", ge::AnyValue::CreateFrom<std::string>(group)},
-                                  {"ep_world_size", ge::AnyValue::CreateFrom<int64_t>(8)},
-                                  {"send_counts", ge::AnyValue::CreateFrom<vector<int64_t>>(send_counts)},
-                                  {"recv_counts", ge::AnyValue::CreateFrom<vector<int64_t>>(recv_counts)},
-                                  {"trans_gmm_weight", ge::AnyValue::CreateFrom<bool>(false)},
-                                  {"trans_mm_weight", ge::AnyValue::CreateFrom<bool>(false)},
-                                  {"permute_out_flag", ge::AnyValue::CreateFrom<bool>(false)}})
-                      .CompileInfo(&compile_info)
-                      .PlatformInfo(reinterpret_cast<char*>(&platform_info))
-                      .TilingData(param.get())
-                      .Workspace(ws_size)
-                      .Build();
-
-    gert::TilingContext* tiling_context = holder.GetContext<gert::TilingContext>();
-    ASSERT_NE(tiling_context->GetPlatformInfo(), nullptr);
-    holder.GetContext<gert::TilingContext>()->GetPlatformInfo()->SetPlatformRes("SoCInfo", soc_infos);
-    holder.GetContext<gert::TilingContext>()->GetPlatformInfo()->SetPlatformRes("AICoreSpec", aicore_spec);
-    holder.GetContext<gert::TilingContext>()->GetPlatformInfo()->SetCoreNumByCoreType("AICore");
-    holder.GetContext<gert::TilingContext>()->GetPlatformInfo()->SetPlatformRes("AICoreintrinsicDtypeMap", intrinsics);
-
-    ge::HcomTopoInfo::TopoInfo topoInfo;
-    topoInfo.rank_size = 8;
-    topoInfo.topo_level_descs[0].comm_sets = 0b1U;
-    ge::HcomTopoInfo::Instance().SetGroupTopoInfo(group.c_str(), topoInfo);
-    // workspaces nullptr return failed
-    EXPECT_EQ(tiling_func(tiling_context), ge::GRAPH_FAILED);
+    struct AlltoAllvGroupedMatMulCompileInfo {};
+    AlltoAllvGroupedMatMulCompileInfo compileInfo;
+    std::string socVersion = "Ascend910_93";
+    uint64_t coreNum = 20;
+    uint64_t ubSize = 196608;
+    uint64_t tilingDataSize = 8192;
+    gert::TilingContextPara tilingContextPara("AlltoAllvGroupedMatMul",
+    {
+        {{{4096, 7168}, {4096, 7168}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+        {{{7168, 4096}, {7168, 4096}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+        {{}, ge::DT_INT32, ge::FORMAT_ND},
+        {{}, ge::DT_INT32, ge::FORMAT_ND},
+        {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
+        {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
+        
+    },
+    {
+        {{{4096, 4096}, {4096, 4096}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+        {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
+        {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
+    },    
+    {
+        {"group", Ops::Transformer::AnyValue::CreateFrom<std::string>("group")},
+        {"ep_world_size", Ops::Transformer::AnyValue::CreateFrom<int64_t>(8)},
+        {"send_counts", Ops::Transformer::AnyValue::CreateFrom<vector<int64_t>>(send_counts)},
+        {"recv_counts", Ops::Transformer::AnyValue::CreateFrom<vector<int64_t>>(recv_counts)},
+        {"trans_gmm_weight", Ops::Transformer::AnyValue::CreateFrom<bool>(false)},
+        {"trans_mm_weight", Ops::Transformer::AnyValue::CreateFrom<bool>(false)},
+        {"permute_out_flag", Ops::Transformer::AnyValue::CreateFrom<bool>(true)},
+    },
+    &compileInfo, socVersion, coreNum, ubSize, tilingDataSize);
+    ExecuteTestCase(tilingContextPara);
 }
 
-TEST_F(AlltoAllvGroupedMatMulTilingTest, allto_allv_grouped_matmul_tiling_test_dim_3)
+TEST_F(AlltoAllvGroupedMatMulTiling, allto_allv_grouped_matmul_tiling_test_dim_3)
 {
-    std::string op_type("AlltoAllvGroupedMatMul");
-    ASSERT_NE(gert::OpImplRegistry::GetInstance().GetOpImpl(op_type.c_str()), nullptr);
-    auto tiling_func = gert::OpImplRegistry::GetInstance().GetOpImpl(op_type.c_str())->tiling;
-    auto tiling_parse_func = gert::OpImplRegistry::GetInstance().GetOpImpl(op_type.c_str())->tiling_parse;
-
-    string compile_info_string = R"({
-                                        "hardware_info": {
-                                            "BT_SIZE": 1024,
-                                            "load3d_constraints": "0",
-                                            "Intrinsic_fix_pipe_l0c2out": true,
-                                            "Intrinsic_data_move_l12ub": false,
-                                            "Intrinsic_data_move_l0c2ub": false,
-                                            "Intrinsic_data_move_out2l1_nd2nz": true,
-                                            "UB_SIZE": 196608,
-                                            "L2_SIZE": 33554432,
-                                            "L1_SIZE": 524288,
-                                            "L0A_SIZE": 65536,
-                                            "L0B_SIZE": 65536,
-                                            "L0C_SIZE": 131072,
-                                            "CORE_NUM": 20
-                                        }
-                                    })";
-    map<string, string> soc_infos;
-    map<string, string> aicore_spec;
-    map<string, string> intrinsics;
-    GetPlatFormInfos(compile_info_string.c_str(), soc_infos, aicore_spec, intrinsics);
-
-    // platform info
-    fe::PlatFormInfos platform_info;
-    platform_info.Init();
-    // compile info
-    struct AlltoAllvGroupedMatMulCompileInfo {
-    } compile_info;
-
-    // tilingParseFunc simulate
-    auto kernel_holder =
-        gert::KernelRunContextFaker()
-            .KernelIONum(5, 4)
-            .Inputs({const_cast<char*>(compile_info_string.c_str()), reinterpret_cast<void*>(&platform_info)})
-            .Outputs({&compile_info})
-            .Build();
-
-    auto param = gert::TilingData::CreateCap(8192);
-    ASSERT_NE(param, nullptr);
-    auto workspace_size_holer = gert::ContinuousVector::Create<size_t>(8192);
-    auto ws_size = reinterpret_cast<gert::ContinuousVector*>(workspace_size_holer.get());
-    gert::StorageShape gmmX_shape = {{4096, 7168}, {4096, 7168}};
-    gert::StorageShape gmmWeight_shape = {{4, 7168, 4096}, {4, 7168, 4096}};
-    gert::StorageShape gmmY_shape = {{2, 4096, 4096}, {2, 4096, 4096}};
-    std::string group("group");
-
-    auto holder = gert::TilingContextFaker()
-                      .NodeIoNum(6, 3)
-                      .IrInstanceNum({1, 1, 1, 1, 1, 1})
-                      .InputShapes({&gmmX_shape, &gmmWeight_shape, nullptr, nullptr, nullptr, nullptr})
-                      .OutputShapes({&gmmY_shape, nullptr, nullptr})
-                      .NodeAttrs({{"group", ge::AnyValue::CreateFrom<std::string>(group)},
-                                  {"ep_world_size", ge::AnyValue::CreateFrom<int64_t>(8)},
-                                  {"send_counts", ge::AnyValue::CreateFrom<vector<int64_t>>(send_counts)},
-                                  {"recv_counts", ge::AnyValue::CreateFrom<vector<int64_t>>(recv_counts)},
-                                  {"trans_gmm_weight", ge::AnyValue::CreateFrom<bool>(false)},
-                                  {"trans_mm_weight", ge::AnyValue::CreateFrom<bool>(false)},
-                                  {"permute_out_flag", ge::AnyValue::CreateFrom<bool>(false)}})
-                      .CompileInfo(&compile_info)
-                      .PlatformInfo(reinterpret_cast<char*>(&platform_info))
-                      .TilingData(param.get())
-                      .Workspace(ws_size)
-                      .Build();
-
-    gert::TilingContext* tiling_context = holder.GetContext<gert::TilingContext>();
-    ASSERT_NE(tiling_context->GetPlatformInfo(), nullptr);
-    holder.GetContext<gert::TilingContext>()->GetPlatformInfo()->SetPlatformRes("SoCInfo", soc_infos);
-    holder.GetContext<gert::TilingContext>()->GetPlatformInfo()->SetPlatformRes("AICoreSpec", aicore_spec);
-    holder.GetContext<gert::TilingContext>()->GetPlatformInfo()->SetCoreNumByCoreType("AICore");
-    holder.GetContext<gert::TilingContext>()->GetPlatformInfo()->SetPlatformRes("AICoreintrinsicDtypeMap", intrinsics);
-
-    ge::HcomTopoInfo::TopoInfo topoInfo;
-    topoInfo.rank_size = 8;
-    topoInfo.topo_level_descs[0].comm_sets = 0b1U;
-    ge::HcomTopoInfo::Instance().SetGroupTopoInfo(group.c_str(), topoInfo);
-    // workspaces nullptr return failed
-    EXPECT_EQ(tiling_func(tiling_context), ge::GRAPH_FAILED);
+    struct AlltoAllvGroupedMatMulCompileInfo {};
+    AlltoAllvGroupedMatMulCompileInfo compileInfo;
+    std::string socVersion = "Ascend910_93";
+    uint64_t coreNum = 20;
+    uint64_t ubSize = 196608;
+    uint64_t tilingDataSize = 8192;
+    gert::TilingContextPara tilingContextPara("AlltoAllvGroupedMatMul",
+    {
+        {{{4096, 7168}, {4096, 7168}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+        {{{4, 7168, 4096}, {4, 7168, 4096}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+        {{}, ge::DT_INT32, ge::FORMAT_ND},
+        {{}, ge::DT_INT32, ge::FORMAT_ND},
+        {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
+        {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
+        
+    },
+    {
+        {{{4096, 4096}, {4096, 4096}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+        {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
+        {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
+    },
+    {
+        {"group", Ops::Transformer::AnyValue::CreateFrom<std::string>("group")},
+        {"ep_world_size", Ops::Transformer::AnyValue::CreateFrom<int64_t>(8)},
+        {"send_counts", Ops::Transformer::AnyValue::CreateFrom<vector<int64_t>>(send_counts)},
+        {"recv_counts", Ops::Transformer::AnyValue::CreateFrom<vector<int64_t>>(recv_counts)},
+        {"trans_gmm_weight", Ops::Transformer::AnyValue::CreateFrom<bool>(false)},
+        {"trans_mm_weight", Ops::Transformer::AnyValue::CreateFrom<bool>(false)},
+        {"permute_out_flag", Ops::Transformer::AnyValue::CreateFrom<bool>(true)},
+    },
+    &compileInfo, socVersion, coreNum, ubSize, tilingDataSize);
+    ExecuteTestCase(tilingContextPara);
 }
 
-TEST_F(AlltoAllvGroupedMatMulTilingTest, allto_allv_grouped_matmul_tiling_test_dim_5)
+TEST_F(AlltoAllvGroupedMatMulTiling, allto_allv_grouped_matmul_tiling_test_dim_5)
 {
-    std::string op_type("AlltoAllvGroupedMatMul");
-    ASSERT_NE(gert::OpImplRegistry::GetInstance().GetOpImpl(op_type.c_str()), nullptr);
-    auto tiling_func = gert::OpImplRegistry::GetInstance().GetOpImpl(op_type.c_str())->tiling;
-    auto tiling_parse_func = gert::OpImplRegistry::GetInstance().GetOpImpl(op_type.c_str())->tiling_parse;
-
-    string compile_info_string = R"({
-                                        "hardware_info": {
-                                            "BT_SIZE": 1024,
-                                            "load3d_constraints": "0",
-                                            "Intrinsic_fix_pipe_l0c2out": true,
-                                            "Intrinsic_data_move_l12ub": false,
-                                            "Intrinsic_data_move_l0c2ub": false,
-                                            "Intrinsic_data_move_out2l1_nd2nz": true,
-                                            "UB_SIZE": 196608,
-                                            "L2_SIZE": 33554432,
-                                            "L1_SIZE": 524288,
-                                            "L0A_SIZE": 65536,
-                                            "L0B_SIZE": 65536,
-                                            "L0C_SIZE": 131072,
-                                            "CORE_NUM": 20
-                                        }
-                                    })";
-    map<string, string> soc_infos;
-    map<string, string> aicore_spec;
-    map<string, string> intrinsics;
-    GetPlatFormInfos(compile_info_string.c_str(), soc_infos, aicore_spec, intrinsics);
-
-    // platform info
-    fe::PlatFormInfos platform_info;
-    platform_info.Init();
-    // compile info
-    struct AlltoAllvGroupedMatMulCompileInfo {
-    } compile_info;
-
-    // tilingParseFunc simulate
-    auto kernel_holder =
-        gert::KernelRunContextFaker()
-            .KernelIONum(5, 4)
-            .Inputs({const_cast<char*>(compile_info_string.c_str()), reinterpret_cast<void*>(&platform_info)})
-            .Outputs({&compile_info})
-            .Build();
-
-    auto param = gert::TilingData::CreateCap(8192);
-    ASSERT_NE(param, nullptr);
-    auto workspace_size_holer = gert::ContinuousVector::Create<size_t>(8192);
-    auto ws_size = reinterpret_cast<gert::ContinuousVector*>(workspace_size_holer.get());
-    gert::StorageShape gmmX_shape = {{4096, 7168}, {4096, 7168}};
-    gert::StorageShape gmmWeight_shape = {{4, 7168, 4096}, {4, 7168, 4096}};
-    gert::StorageShape mmX_shape = {{2, 2048, 7168}, {2, 2048, 7168}};
-    gert::StorageShape mmWeight_shape = {{7168, 64}, {7168, 64}};
-    gert::StorageShape gmmY_shape = {{4096, 4096}, {4096, 4096}};
-    gert::StorageShape mmY_shape = {{2047, 64}, {2047, 64}};
-    std::string group("group");
-
-    auto holder = gert::TilingContextFaker()
-                      .NodeIoNum(6, 3)
-                      .IrInstanceNum({1, 1, 1, 1, 1, 1})
-                      .InputShapes({&gmmX_shape, &gmmWeight_shape, nullptr, nullptr, &mmX_shape, &mmWeight_shape})
-                      .OutputShapes({&gmmY_shape, &mmY_shape, nullptr})
-                      .NodeAttrs({{"group", ge::AnyValue::CreateFrom<std::string>(group)},
-                                  {"ep_world_size", ge::AnyValue::CreateFrom<int64_t>(8)},
-                                  {"send_counts", ge::AnyValue::CreateFrom<vector<int64_t>>(send_counts)},
-                                  {"recv_counts", ge::AnyValue::CreateFrom<vector<int64_t>>(recv_counts)},
-                                  {"trans_gmm_weight", ge::AnyValue::CreateFrom<bool>(false)},
-                                  {"trans_mm_weight", ge::AnyValue::CreateFrom<bool>(false)},
-                                  {"permute_out_flag", ge::AnyValue::CreateFrom<bool>(false)}})
-                      .CompileInfo(&compile_info)
-                      .PlatformInfo(reinterpret_cast<char*>(&platform_info))
-                      .TilingData(param.get())
-                      .Workspace(ws_size)
-                      .Build();
-
-    gert::TilingContext* tiling_context = holder.GetContext<gert::TilingContext>();
-    ASSERT_NE(tiling_context->GetPlatformInfo(), nullptr);
-    holder.GetContext<gert::TilingContext>()->GetPlatformInfo()->SetPlatformRes("SoCInfo", soc_infos);
-    holder.GetContext<gert::TilingContext>()->GetPlatformInfo()->SetPlatformRes("AICoreSpec", aicore_spec);
-    holder.GetContext<gert::TilingContext>()->GetPlatformInfo()->SetCoreNumByCoreType("AICore");
-    holder.GetContext<gert::TilingContext>()->GetPlatformInfo()->SetPlatformRes("AICoreintrinsicDtypeMap", intrinsics);
-
-    ge::HcomTopoInfo::TopoInfo topoInfo;
-    topoInfo.rank_size = 8;
-    topoInfo.topo_level_descs[0].comm_sets = 0b1U;
-    ge::HcomTopoInfo::Instance().SetGroupTopoInfo(group.c_str(), topoInfo);
-    // workspaces nullptr return failed
-    EXPECT_EQ(tiling_func(tiling_context), ge::GRAPH_FAILED);
+    struct AlltoAllvGroupedMatMulCompileInfo {};
+    AlltoAllvGroupedMatMulCompileInfo compileInfo;
+    std::string socVersion = "Ascend910_93";
+    uint64_t coreNum = 20;
+    uint64_t ubSize = 196608;
+    uint64_t tilingDataSize = 8192;
+    gert::TilingContextPara tilingContextPara("AlltoAllvGroupedMatMul",
+    {
+        {{{4096, 7168}, {4096, 7168}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+        {{{4, 7168, 4096}, {4, 7168, 4096}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+        {{}, ge::DT_INT32, ge::FORMAT_ND},
+        {{}, ge::DT_INT32, ge::FORMAT_ND},
+        {{{2, 2048, 7168}, {2, 2048, 7168}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+        {{{7168, 64}, {7168, 64}}, ge::DT_FLOAT16, ge::FORMAT_ND},  
+    },
+    {
+        {{{4096, 4096}, {4096, 4096}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+        {{{2047, 64}, {2047, 64}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+        {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
+    },
+    {
+        {"group", Ops::Transformer::AnyValue::CreateFrom<std::string>("group")},
+        {"ep_world_size", Ops::Transformer::AnyValue::CreateFrom<int64_t>(8)},
+        {"send_counts", Ops::Transformer::AnyValue::CreateFrom<vector<int64_t>>(send_counts)},
+        {"recv_counts", Ops::Transformer::AnyValue::CreateFrom<vector<int64_t>>(recv_counts)},
+        {"trans_gmm_weight", Ops::Transformer::AnyValue::CreateFrom<bool>(false)},
+        {"trans_mm_weight", Ops::Transformer::AnyValue::CreateFrom<bool>(false)},
+        {"permute_out_flag", Ops::Transformer::AnyValue::CreateFrom<bool>(true)},
+    },
+    &compileInfo, socVersion, coreNum, ubSize, tilingDataSize);
+    ExecuteTestCase(tilingContextPara);
 }
 
-TEST_F(AlltoAllvGroupedMatMulTilingTest, allto_allv_grouped_matmul_tiling_test_dim_6)
+TEST_F(AlltoAllvGroupedMatMulTiling, allto_allv_grouped_matmul_tiling_test_dim_6)
 {
-    std::string op_type("AlltoAllvGroupedMatMul");
-    ASSERT_NE(gert::OpImplRegistry::GetInstance().GetOpImpl(op_type.c_str()), nullptr);
-    auto tiling_func = gert::OpImplRegistry::GetInstance().GetOpImpl(op_type.c_str())->tiling;
-    auto tiling_parse_func = gert::OpImplRegistry::GetInstance().GetOpImpl(op_type.c_str())->tiling_parse;
-
-    string compile_info_string = R"({
-                                        "hardware_info": {
-                                            "BT_SIZE": 1024,
-                                            "load3d_constraints": "0",
-                                            "Intrinsic_fix_pipe_l0c2out": true,
-                                            "Intrinsic_data_move_l12ub": false,
-                                            "Intrinsic_data_move_l0c2ub": false,
-                                            "Intrinsic_data_move_out2l1_nd2nz": true,
-                                            "UB_SIZE": 196608,
-                                            "L2_SIZE": 33554432,
-                                            "L1_SIZE": 524288,
-                                            "L0A_SIZE": 65536,
-                                            "L0B_SIZE": 65536,
-                                            "L0C_SIZE": 131072,
-                                            "CORE_NUM": 20
-                                        }
-                                    })";
-    map<string, string> soc_infos;
-    map<string, string> aicore_spec;
-    map<string, string> intrinsics;
-    GetPlatFormInfos(compile_info_string.c_str(), soc_infos, aicore_spec, intrinsics);
-
-    // platform info
-    fe::PlatFormInfos platform_info;
-    platform_info.Init();
-    // compile info
-    struct AlltoAllvGroupedMatMulCompileInfo {
-    } compile_info;
-
-    // tilingParseFunc simulate
-    auto kernel_holder =
-        gert::KernelRunContextFaker()
-            .KernelIONum(5, 4)
-            .Inputs({const_cast<char*>(compile_info_string.c_str()), reinterpret_cast<void*>(&platform_info)})
-            .Outputs({&compile_info})
-            .Build();
-
-    auto param = gert::TilingData::CreateCap(8192);
-    ASSERT_NE(param, nullptr);
-    auto workspace_size_holer = gert::ContinuousVector::Create<size_t>(8192);
-    auto ws_size = reinterpret_cast<gert::ContinuousVector*>(workspace_size_holer.get());
-    gert::StorageShape gmmX_shape = {{4096, 7168}, {4096, 7168}};
-    gert::StorageShape gmmWeight_shape = {{4, 7168, 4096}, {4, 7168, 4096}};
-    gert::StorageShape mmX_shape = {{2048, 7168}, {2048, 7168}};
-    gert::StorageShape mmWeight_shape = {{2, 7168, 64}, {2, 7168, 64}};
-    gert::StorageShape gmmY_shape = {{4096, 4096}, {4096, 4096}};
-    gert::StorageShape mmY_shape = {{2047, 64}, {2047, 64}};
-    std::string group("group");
-
-    auto holder = gert::TilingContextFaker()
-                      .NodeIoNum(6, 3)
-                      .IrInstanceNum({1, 1, 1, 1, 1, 1})
-                      .InputShapes({&gmmX_shape, &gmmWeight_shape, nullptr, nullptr, &mmX_shape, &mmWeight_shape})
-                      .OutputShapes({&gmmY_shape, &mmY_shape, nullptr})
-                      .NodeAttrs({{"group", ge::AnyValue::CreateFrom<std::string>(group)},
-                                  {"ep_world_size", ge::AnyValue::CreateFrom<int64_t>(8)},
-                                  {"send_counts", ge::AnyValue::CreateFrom<vector<int64_t>>(send_counts)},
-                                  {"recv_counts", ge::AnyValue::CreateFrom<vector<int64_t>>(recv_counts)},
-                                  {"trans_gmm_weight", ge::AnyValue::CreateFrom<bool>(false)},
-                                  {"trans_mm_weight", ge::AnyValue::CreateFrom<bool>(false)},
-                                  {"permute_out_flag", ge::AnyValue::CreateFrom<bool>(false)}})
-                      .CompileInfo(&compile_info)
-                      .PlatformInfo(reinterpret_cast<char*>(&platform_info))
-                      .TilingData(param.get())
-                      .Workspace(ws_size)
-                      .Build();
-
-    gert::TilingContext* tiling_context = holder.GetContext<gert::TilingContext>();
-    ASSERT_NE(tiling_context->GetPlatformInfo(), nullptr);
-    holder.GetContext<gert::TilingContext>()->GetPlatformInfo()->SetPlatformRes("SoCInfo", soc_infos);
-    holder.GetContext<gert::TilingContext>()->GetPlatformInfo()->SetPlatformRes("AICoreSpec", aicore_spec);
-    holder.GetContext<gert::TilingContext>()->GetPlatformInfo()->SetCoreNumByCoreType("AICore");
-    holder.GetContext<gert::TilingContext>()->GetPlatformInfo()->SetPlatformRes("AICoreintrinsicDtypeMap", intrinsics);
-
-    ge::HcomTopoInfo::TopoInfo topoInfo;
-    topoInfo.rank_size = 8;
-    topoInfo.topo_level_descs[0].comm_sets = 0b1U;
-    ge::HcomTopoInfo::Instance().SetGroupTopoInfo(group.c_str(), topoInfo);
-    // workspaces nullptr return failed
-    EXPECT_EQ(tiling_func(tiling_context), ge::GRAPH_FAILED);
+    struct AlltoAllvGroupedMatMulCompileInfo {};
+    AlltoAllvGroupedMatMulCompileInfo compileInfo;
+    std::string socVersion = "Ascend910_93";
+    uint64_t coreNum = 20;
+    uint64_t ubSize = 196608;
+    uint64_t tilingDataSize = 8192;
+    gert::TilingContextPara tilingContextPara("AlltoAllvGroupedMatMul",
+    {
+        {{{4096, 7168}, {4096, 7168}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+        {{{4, 7168, 4096}, {4, 7168, 4096}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+        {{}, ge::DT_INT32, ge::FORMAT_ND},
+        {{}, ge::DT_INT32, ge::FORMAT_ND},
+        {{{2048, 7168}, {2048, 7168}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+        {{{2, 7168, 64}, {2, 7168, 64}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+    },
+    {
+        {{{4096, 4096}, {4096, 4096}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+        {{{2047, 64}, {2047, 64}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+        {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
+    },
+    {
+        {"group", Ops::Transformer::AnyValue::CreateFrom<std::string>("group")},
+        {"ep_world_size", Ops::Transformer::AnyValue::CreateFrom<int64_t>(8)},
+        {"send_counts", Ops::Transformer::AnyValue::CreateFrom<vector<int64_t>>(send_counts)},
+        {"recv_counts", Ops::Transformer::AnyValue::CreateFrom<vector<int64_t>>(recv_counts)},
+        {"trans_gmm_weight", Ops::Transformer::AnyValue::CreateFrom<bool>(false)},
+        {"trans_mm_weight", Ops::Transformer::AnyValue::CreateFrom<bool>(false)},
+        {"permute_out_flag", Ops::Transformer::AnyValue::CreateFrom<bool>(true)},
+    },
+    &compileInfo, socVersion, coreNum, ubSize, tilingDataSize);
+    ExecuteTestCase(tilingContextPara);
 }
 
-TEST_F(AlltoAllvGroupedMatMulTilingTest, allto_allv_grouped_matmul_tiling_test_dim_7)
+TEST_F(AlltoAllvGroupedMatMulTiling, allto_allv_grouped_matmul_tiling_test_dim_7)
 {
-    std::string op_type("AlltoAllvGroupedMatMul");
-    ASSERT_NE(gert::OpImplRegistry::GetInstance().GetOpImpl(op_type.c_str()), nullptr);
-    auto tiling_func = gert::OpImplRegistry::GetInstance().GetOpImpl(op_type.c_str())->tiling;
-    auto tiling_parse_func = gert::OpImplRegistry::GetInstance().GetOpImpl(op_type.c_str())->tiling_parse;
-
-    string compile_info_string = R"({
-                                        "hardware_info": {
-                                            "BT_SIZE": 1024,
-                                            "load3d_constraints": "0",
-                                            "Intrinsic_fix_pipe_l0c2out": true,
-                                            "Intrinsic_data_move_l12ub": false,
-                                            "Intrinsic_data_move_l0c2ub": false,
-                                            "Intrinsic_data_move_out2l1_nd2nz": true,
-                                            "UB_SIZE": 196608,
-                                            "L2_SIZE": 33554432,
-                                            "L1_SIZE": 524288,
-                                            "L0A_SIZE": 65536,
-                                            "L0B_SIZE": 65536,
-                                            "L0C_SIZE": 131072,
-                                            "CORE_NUM": 20
-                                        }
-                                    })";
-    map<string, string> soc_infos;
-    map<string, string> aicore_spec;
-    map<string, string> intrinsics;
-    GetPlatFormInfos(compile_info_string.c_str(), soc_infos, aicore_spec, intrinsics);
-
-    // platform info
-    fe::PlatFormInfos platform_info;
-    platform_info.Init();
-    // compile info
-    struct AlltoAllvGroupedMatMulCompileInfo {
-    } compile_info;
-
-    // tilingParseFunc simulate
-    auto kernel_holder =
-        gert::KernelRunContextFaker()
-            .KernelIONum(5, 4)
-            .Inputs({const_cast<char*>(compile_info_string.c_str()), reinterpret_cast<void*>(&platform_info)})
-            .Outputs({&compile_info})
-            .Build();
-
-    auto param = gert::TilingData::CreateCap(8192);
-    ASSERT_NE(param, nullptr);
-    auto workspace_size_holer = gert::ContinuousVector::Create<size_t>(8192);
-    auto ws_size = reinterpret_cast<gert::ContinuousVector*>(workspace_size_holer.get());
-    gert::StorageShape gmmX_shape = {{4096, 7168}, {4096, 7168}};
-    gert::StorageShape gmmWeight_shape = {{4, 7168, 4096}, {4, 7168, 4096}};
-    gert::StorageShape mmX_shape = {{2048, 7168}, {2048, 7168}};
-    gert::StorageShape mmWeight_shape = {{7168, 64}, {7168, 64}};
-    gert::StorageShape gmmY_shape = {{4096, 4096}, {4096, 4096}};
-    gert::StorageShape mmY_shape = {{2, 2047, 64}, {2, 2047, 64}};
-    std::string group("group");
-
-    auto holder = gert::TilingContextFaker()
-                      .NodeIoNum(6, 3)
-                      .IrInstanceNum({1, 1, 1, 1, 1, 1})
-                      .InputShapes({&gmmX_shape, &gmmWeight_shape, nullptr, nullptr, &mmX_shape, &mmWeight_shape})
-                      .OutputShapes({&gmmY_shape, &mmY_shape, nullptr})
-                      .NodeAttrs({{"group", ge::AnyValue::CreateFrom<std::string>(group)},
-                                  {"ep_world_size", ge::AnyValue::CreateFrom<int64_t>(8)},
-                                  {"send_counts", ge::AnyValue::CreateFrom<vector<int64_t>>(send_counts)},
-                                  {"recv_counts", ge::AnyValue::CreateFrom<vector<int64_t>>(recv_counts)},
-                                  {"trans_gmm_weight", ge::AnyValue::CreateFrom<bool>(false)},
-                                  {"trans_mm_weight", ge::AnyValue::CreateFrom<bool>(false)},
-                                  {"permute_out_flag", ge::AnyValue::CreateFrom<bool>(false)}})
-                      .CompileInfo(&compile_info)
-                      .PlatformInfo(reinterpret_cast<char*>(&platform_info))
-                      .TilingData(param.get())
-                      .Workspace(ws_size)
-                      .Build();
-
-    gert::TilingContext* tiling_context = holder.GetContext<gert::TilingContext>();
-    ASSERT_NE(tiling_context->GetPlatformInfo(), nullptr);
-    holder.GetContext<gert::TilingContext>()->GetPlatformInfo()->SetPlatformRes("SoCInfo", soc_infos);
-    holder.GetContext<gert::TilingContext>()->GetPlatformInfo()->SetPlatformRes("AICoreSpec", aicore_spec);
-    holder.GetContext<gert::TilingContext>()->GetPlatformInfo()->SetCoreNumByCoreType("AICore");
-    holder.GetContext<gert::TilingContext>()->GetPlatformInfo()->SetPlatformRes("AICoreintrinsicDtypeMap", intrinsics);
-
-    ge::HcomTopoInfo::TopoInfo topoInfo;
-    topoInfo.rank_size = 8;
-    topoInfo.topo_level_descs[0].comm_sets = 0b1U;
-    ge::HcomTopoInfo::Instance().SetGroupTopoInfo(group.c_str(), topoInfo);
-    // workspaces nullptr return failed
-    EXPECT_EQ(tiling_func(tiling_context), ge::GRAPH_FAILED);
+    struct AlltoAllvGroupedMatMulCompileInfo {};
+    AlltoAllvGroupedMatMulCompileInfo compileInfo;
+    std::string socVersion = "Ascend910_93";
+    uint64_t coreNum = 20;
+    uint64_t ubSize = 196608;
+    uint64_t tilingDataSize = 8192;
+    gert::TilingContextPara tilingContextPara("AlltoAllvGroupedMatMul",
+    {
+        {{{4096, 7168}, {4096, 7168}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+        {{{4, 7168, 4096}, {4, 7168, 4096}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+        {{}, ge::DT_INT32, ge::FORMAT_ND},
+        {{}, ge::DT_INT32, ge::FORMAT_ND},
+        {{{2048, 7168}, {2048, 7168}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+        {{{2, 7168, 64}, {2, 7168, 64}}, ge::DT_FLOAT16, ge::FORMAT_ND},     
+    },
+    {
+        {{{4096, 4096}, {4096, 4096}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+        {{{2047, 64}, {2047, 64}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+        {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
+    },
+    {
+        {"group", Ops::Transformer::AnyValue::CreateFrom<std::string>("group")},
+        {"ep_world_size", Ops::Transformer::AnyValue::CreateFrom<int64_t>(8)},
+        {"send_counts", Ops::Transformer::AnyValue::CreateFrom<vector<int64_t>>(send_counts)},
+        {"recv_counts", Ops::Transformer::AnyValue::CreateFrom<vector<int64_t>>(recv_counts)},
+        {"trans_gmm_weight", Ops::Transformer::AnyValue::CreateFrom<bool>(false)},
+        {"trans_mm_weight", Ops::Transformer::AnyValue::CreateFrom<bool>(false)},
+        {"permute_out_flag", Ops::Transformer::AnyValue::CreateFrom<bool>(true)},
+    },
+    &compileInfo, socVersion, coreNum, ubSize, tilingDataSize);
+    ExecuteTestCase(tilingContextPara);
 }
 
-TEST_F(AlltoAllvGroupedMatMulTilingTest, allto_allv_grouped_matmul_tiling_test_dim_10)
+TEST_F(AlltoAllvGroupedMatMulTiling, allto_allv_grouped_matmul_tiling_test_dim_10)
 {
-    std::string op_type("AlltoAllvGroupedMatMul");
-    ASSERT_NE(gert::OpImplRegistry::GetInstance().GetOpImpl(op_type.c_str()), nullptr);
-    auto tiling_func = gert::OpImplRegistry::GetInstance().GetOpImpl(op_type.c_str())->tiling;
-    auto tiling_parse_func = gert::OpImplRegistry::GetInstance().GetOpImpl(op_type.c_str())->tiling_parse;
-
-    string compile_info_string = R"({
-                                        "hardware_info": {
-                                            "BT_SIZE": 1024,
-                                            "load3d_constraints": "0",
-                                            "Intrinsic_fix_pipe_l0c2out": true,
-                                            "Intrinsic_data_move_l12ub": false,
-                                            "Intrinsic_data_move_l0c2ub": false,
-                                            "Intrinsic_data_move_out2l1_nd2nz": true,
-                                            "UB_SIZE": 196608,
-                                            "L2_SIZE": 33554432,
-                                            "L1_SIZE": 524288,
-                                            "L0A_SIZE": 65536,
-                                            "L0B_SIZE": 65536,
-                                            "L0C_SIZE": 131072,
-                                            "CORE_NUM": 20
-                                        }
-                                    })";
-    map<string, string> soc_infos;
-    map<string, string> aicore_spec;
-    map<string, string> intrinsics;
-    GetPlatFormInfos(compile_info_string.c_str(), soc_infos, aicore_spec, intrinsics);
-
-    // platform info
-    fe::PlatFormInfos platform_info;
-    platform_info.Init();
-    // compile info
-    struct AlltoAllvGroupedMatMulCompileInfo {
-    } compile_info;
-
-    // tilingParseFunc simulate
-    auto kernel_holder =
-        gert::KernelRunContextFaker()
-            .KernelIONum(5, 4)
-            .Inputs({const_cast<char*>(compile_info_string.c_str()), reinterpret_cast<void*>(&platform_info)})
-            .Outputs({&compile_info})
-            .Build();
-
-    auto param = gert::TilingData::CreateCap(8192);
-    ASSERT_NE(param, nullptr);
-    auto workspace_size_holer = gert::ContinuousVector::Create<size_t>(8192);
-    auto ws_size = reinterpret_cast<gert::ContinuousVector*>(workspace_size_holer.get());
-    gert::StorageShape gmmX_shape = {{4096, 7168}, {4096, 7168}};
-    gert::StorageShape gmmWeight_shape = {{4, 7168, 4096}, {4, 7168, 4096}};
-    gert::StorageShape gmmY_shape = {{4096, 4096}, {4096, 4096}};
-    gert::StorageShape permuteOut_shape = {{4096}, {4096}};
-    std::string group("group");
-
-    auto holder = gert::TilingContextFaker()
-                      .NodeIoNum(6, 3)
-                      .IrInstanceNum({1, 1, 1, 1, 1, 1})
-                      .InputShapes({&gmmX_shape, &gmmWeight_shape, nullptr, nullptr, nullptr, nullptr})
-                      .OutputShapes({&gmmY_shape, nullptr, &permuteOut_shape})
-                      .NodeAttrs({{"group", ge::AnyValue::CreateFrom<std::string>(group)},
-                                  {"ep_world_size", ge::AnyValue::CreateFrom<int64_t>(8)},
-                                  {"send_counts", ge::AnyValue::CreateFrom<vector<int64_t>>(send_counts)},
-                                  {"recv_counts", ge::AnyValue::CreateFrom<vector<int64_t>>(recv_counts)},
-                                  {"trans_gmm_weight", ge::AnyValue::CreateFrom<bool>(false)},
-                                  {"trans_mm_weight", ge::AnyValue::CreateFrom<bool>(false)},
-                                  {"permute_out_flag", ge::AnyValue::CreateFrom<bool>(true)}})
-                      .CompileInfo(&compile_info)
-                      .PlatformInfo(reinterpret_cast<char*>(&platform_info))
-                      .TilingData(param.get())
-                      .Workspace(ws_size)
-                      .Build();
-
-    gert::TilingContext* tiling_context = holder.GetContext<gert::TilingContext>();
-    ASSERT_NE(tiling_context->GetPlatformInfo(), nullptr);
-    holder.GetContext<gert::TilingContext>()->GetPlatformInfo()->SetPlatformRes("SoCInfo", soc_infos);
-    holder.GetContext<gert::TilingContext>()->GetPlatformInfo()->SetPlatformRes("AICoreSpec", aicore_spec);
-    holder.GetContext<gert::TilingContext>()->GetPlatformInfo()->SetCoreNumByCoreType("AICore");
-    holder.GetContext<gert::TilingContext>()->GetPlatformInfo()->SetPlatformRes("AICoreintrinsicDtypeMap", intrinsics);
-
-    ge::HcomTopoInfo::TopoInfo topoInfo;
-    topoInfo.rank_size = 8;
-    topoInfo.topo_level_descs[0].comm_sets = 0b1U;
-    ge::HcomTopoInfo::Instance().SetGroupTopoInfo(group.c_str(), topoInfo);
-    // workspaces nullptr return failed
-    EXPECT_EQ(tiling_func(tiling_context), ge::GRAPH_FAILED);
+    struct AlltoAllvGroupedMatMulCompileInfo {};
+    AlltoAllvGroupedMatMulCompileInfo compileInfo;
+    std::string socVersion = "Ascend910_93";
+    uint64_t coreNum = 20;
+    uint64_t ubSize = 196608;
+    uint64_t tilingDataSize = 8192;
+    gert::TilingContextPara tilingContextPara("AlltoAllvGroupedMatMul",
+    {
+        {{{4096, 7168}, {4096, 7168}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+        {{{4, 7168, 4096}, {4, 7168, 4096}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+        {{}, ge::DT_INT32, ge::FORMAT_ND},
+        {{}, ge::DT_INT32, ge::FORMAT_ND},
+        {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
+        {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
+        
+    },
+    {
+        {{{4096, 4096}, {4096, 4096}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+        {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
+        {{{4096}, {4096}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+    },
+    {
+        {"group", Ops::Transformer::AnyValue::CreateFrom<std::string>("group")},
+        {"ep_world_size", Ops::Transformer::AnyValue::CreateFrom<int64_t>(8)},
+        {"send_counts", Ops::Transformer::AnyValue::CreateFrom<vector<int64_t>>(send_counts)},
+        {"recv_counts", Ops::Transformer::AnyValue::CreateFrom<vector<int64_t>>(recv_counts)},
+        {"trans_gmm_weight", Ops::Transformer::AnyValue::CreateFrom<bool>(false)},
+        {"trans_mm_weight", Ops::Transformer::AnyValue::CreateFrom<bool>(false)},
+        {"permute_out_flag", Ops::Transformer::AnyValue::CreateFrom<bool>(true)},
+    },
+    &compileInfo, socVersion, coreNum, ubSize, tilingDataSize);
+    ExecuteTestCase(tilingContextPara);
 }
 
-TEST_F(AlltoAllvGroupedMatMulTilingTest, allto_allv_grouped_matmul_tiling_test_transMmWeight_1)
+TEST_F(AlltoAllvGroupedMatMulTiling, allto_allv_grouped_matmul_tiling_test_transMmWeight_1)
 {
-    std::string op_type("AlltoAllvGroupedMatMul");
-    ASSERT_NE(gert::OpImplRegistry::GetInstance().GetOpImpl(op_type.c_str()), nullptr);
-    auto tiling_func = gert::OpImplRegistry::GetInstance().GetOpImpl(op_type.c_str())->tiling;
-    auto tiling_parse_func = gert::OpImplRegistry::GetInstance().GetOpImpl(op_type.c_str())->tiling_parse;
-
-    string compile_info_string = R"({
-                                        "hardware_info": {
-                                            "BT_SIZE": 1024,
-                                            "load3d_constraints": "0",
-                                            "Intrinsic_fix_pipe_l0c2out": true,
-                                            "Intrinsic_data_move_l12ub": false,
-                                            "Intrinsic_data_move_l0c2ub": false,
-                                            "Intrinsic_data_move_out2l1_nd2nz": true,
-                                            "UB_SIZE": 196608,
-                                            "L2_SIZE": 33554432,
-                                            "L1_SIZE": 524288,
-                                            "L0A_SIZE": 65536,
-                                            "L0B_SIZE": 65536,
-                                            "L0C_SIZE": 131072,
-                                            "CORE_NUM": 20
-                                        }
-                                    })";
-    map<string, string> soc_infos;
-    map<string, string> aicore_spec;
-    map<string, string> intrinsics;
-    GetPlatFormInfos(compile_info_string.c_str(), soc_infos, aicore_spec, intrinsics);
-
-    // platform info
-    fe::PlatFormInfos platform_info;
-    platform_info.Init();
-    // compile info
-    struct AlltoAllvGroupedMatMulCompileInfo {
-    } compile_info;
-
-    // tilingParseFunc simulate
-    auto kernel_holder =
-        gert::KernelRunContextFaker()
-            .KernelIONum(5, 4)
-            .Inputs({const_cast<char*>(compile_info_string.c_str()), reinterpret_cast<void*>(&platform_info)})
-            .Outputs({&compile_info})
-            .Build();
-
-    auto param = gert::TilingData::CreateCap(8192);
-    ASSERT_NE(param, nullptr);
-    auto workspace_size_holer = gert::ContinuousVector::Create<size_t>(8192);
-    auto ws_size = reinterpret_cast<gert::ContinuousVector*>(workspace_size_holer.get());
-    gert::StorageShape gmmX_shape = {{4096, 7168}, {4096, 7168}};
-    gert::StorageShape gmmWeight_shape = {{4, 7168, 4096}, {4, 7168, 4096}};
-    gert::StorageShape gmmY_shape = {{4096, 4096}, {4096, 4096}};
-    std::string group("group");
-
-    auto holder = gert::TilingContextFaker()
-                      .NodeIoNum(6, 3)
-                      .IrInstanceNum({1, 1, 1, 1, 1, 1})
-                      .InputShapes({&gmmX_shape, &gmmWeight_shape, nullptr, nullptr, nullptr, nullptr})
-                      .OutputShapes({&gmmY_shape, nullptr, nullptr})
-                      .NodeAttrs({{"group", ge::AnyValue::CreateFrom<std::string>(group)},
-                                  {"ep_world_size", ge::AnyValue::CreateFrom<int64_t>(8)},
-                                  {"send_counts", ge::AnyValue::CreateFrom<vector<int64_t>>(send_counts)},
-                                  {"recv_counts", ge::AnyValue::CreateFrom<vector<int64_t>>(recv_counts)},
-                                  {"trans_gmm_weight", ge::AnyValue::CreateFrom<bool>(false)},
-                                  {"trans_mm_weight", ge::AnyValue::CreateFrom<bool>(true)},
-                                  {"permute_out_flag", ge::AnyValue::CreateFrom<bool>(false)}})
-                      .CompileInfo(&compile_info)
-                      .PlatformInfo(reinterpret_cast<char*>(&platform_info))
-                      .TilingData(param.get())
-                      .Workspace(ws_size)
-                      .Build();
-
-    gert::TilingContext* tiling_context = holder.GetContext<gert::TilingContext>();
-    ASSERT_NE(tiling_context->GetPlatformInfo(), nullptr);
-    holder.GetContext<gert::TilingContext>()->GetPlatformInfo()->SetPlatformRes("SoCInfo", soc_infos);
-    holder.GetContext<gert::TilingContext>()->GetPlatformInfo()->SetPlatformRes("AICoreSpec", aicore_spec);
-    holder.GetContext<gert::TilingContext>()->GetPlatformInfo()->SetCoreNumByCoreType("AICore");
-    holder.GetContext<gert::TilingContext>()->GetPlatformInfo()->SetPlatformRes("AICoreintrinsicDtypeMap", intrinsics);
-
-    ge::HcomTopoInfo::TopoInfo topoInfo;
-    topoInfo.rank_size = 8;
-    topoInfo.topo_level_descs[0].comm_sets = 0b1U;
-    ge::HcomTopoInfo::Instance().SetGroupTopoInfo(group.c_str(), topoInfo);
-    // workspaces nullptr return failed
-    EXPECT_EQ(tiling_func(tiling_context), ge::GRAPH_FAILED);
+    struct AlltoAllvGroupedMatMulCompileInfo {};
+    AlltoAllvGroupedMatMulCompileInfo compileInfo;
+    std::string socVersion = "Ascend910_93";
+    uint64_t coreNum = 20;
+    uint64_t ubSize = 196608;
+    uint64_t tilingDataSize = 8192;
+    gert::TilingContextPara tilingContextPara("AlltoAllvGroupedMatMul",
+    {
+        {{{4096, 7168}, {4096, 7168}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+        {{{4, 7168, 4096}, {4, 7168, 4096}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+        {{}, ge::DT_INT32, ge::FORMAT_ND},
+        {{}, ge::DT_INT32, ge::FORMAT_ND},
+        {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
+        {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
+        
+    },
+    {
+        {{{4096, 4096}, {4096, 4096}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+        {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
+        {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
+    },
+    {
+        {"group", Ops::Transformer::AnyValue::CreateFrom<std::string>("group")},
+        {"ep_world_size", Ops::Transformer::AnyValue::CreateFrom<int64_t>(8)},
+        {"send_counts", Ops::Transformer::AnyValue::CreateFrom<vector<int64_t>>(send_counts)},
+        {"recv_counts", Ops::Transformer::AnyValue::CreateFrom<vector<int64_t>>(recv_counts)},
+        {"trans_gmm_weight", Ops::Transformer::AnyValue::CreateFrom<bool>(false)},
+        {"trans_mm_weight", Ops::Transformer::AnyValue::CreateFrom<bool>(false)},
+        {"permute_out_flag", Ops::Transformer::AnyValue::CreateFrom<bool>(true)},
+    },
+    &compileInfo, socVersion, coreNum, ubSize, tilingDataSize);
+    ExecuteTestCase(tilingContextPara);
 }
-
-}  // namespace
+} // allto_allv_grouped_mat_mul_ut

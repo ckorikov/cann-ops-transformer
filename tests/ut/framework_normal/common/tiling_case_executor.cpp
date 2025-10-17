@@ -27,14 +27,22 @@
                                  tilingContextPara.inputTensorDesc_[index].dtype_,                                     \
                                  tilingContextPara.inputTensorDesc_[index].format_,                                    \
                                  tilingContextPara.inputTensorDesc_[index].format_);                                   \
-        inputTensors.push_back((gert::Tensor *)&tilingContextPara.inputTensorDesc_[index].shape_);                     \
+        if (tilingContextPara.inputTensorDesc_[index].shape_.GetStorageShape().GetDimNum() == 0){                      \
+            inputTensors.push_back(nullptr);                                                                           \
+        } else {                                                                                                       \
+            inputTensors.push_back((gert::Tensor *)&tilingContextPara.inputTensorDesc_[index].shape_);                 \
+        }                                                                                                              \
     }                                                                                                                  \
     for (size_t index = 0; index < outputNum; index++) {                                                               \
         contextFaker.NodeOutputTd(index,                                                                               \
                                   tilingContextPara.outputTensorDesc_[index].dtype_,                                   \
                                   tilingContextPara.outputTensorDesc_[index].format_,                                  \
                                   tilingContextPara.outputTensorDesc_[index].format_);                                 \
-        outputTensors.push_back((gert::Tensor *)&tilingContextPara.outputTensorDesc_[index].shape_);                   \
+        if (tilingContextPara.outputTensorDesc_[index].shape_.GetStorageShape().GetDimNum() == 0){                     \
+            outputTensors.push_back(nullptr);                                                                          \
+        } else {                                                                                                       \
+            outputTensors.push_back((gert::Tensor *)&tilingContextPara.outputTensorDesc_[index].shape_);               \
+        }                                                                                                              \
     }                                                                                                                  \
     contextFaker.InputTensors(inputTensors).OutputTensors(outputTensors);                                              \
     for (auto& attrInfo : tilingContextPara.attrs_) {                                                                  \
