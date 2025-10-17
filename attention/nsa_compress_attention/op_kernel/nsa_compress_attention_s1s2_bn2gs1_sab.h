@@ -677,6 +677,7 @@ NsaCompressAttentionS1s2Bn2gs1SameAB<layOutType, hasAtten, hasTopkMask, INPUT_T,
 
         int ubOffset = scoreLoop * vS1MulsGsize;
         uint8_t srcStride = isInfo.isM * vS1MulsGsize * sizeof(float) / BLOCK_SIZE;
+        AscendC::WaitFlag<HardEvent::MTE3_V>(eventIdMte3ToV);
         for (int i = 1; i < innerLoop; ++i) {
             int times = this->timesArray[i];
             int scoreIdx = 0;
@@ -701,7 +702,6 @@ NsaCompressAttentionS1s2Bn2gs1SameAB<layOutType, hasAtten, hasTopkMask, INPUT_T,
         }
 
         AscendC::PipeBarrier<PIPE_V>();
-        AscendC::WaitFlag<HardEvent::MTE3_V>(eventIdMte3ToV);
         AscendC::ConfusionTranspose<float>(transBack, scoreRes, sharedBuf,
             AscendC::TransposeType::TRANSPOSE_ND2ND_ONLY, transposeInfoBackward);
         AscendC::SetFlag<HardEvent::V_MTE2>(eventIdVToMte2);
