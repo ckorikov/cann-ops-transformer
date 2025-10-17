@@ -260,20 +260,20 @@ __global__ __aicore__ void prompt_flash_attention_FIAS(__gm__ uint8_t* query, __
                 && (KV_T == 0) && (TEMPLATE_VERSION == 1)){
                 if constexpr ((TAIL_MODE == 0) && (NEW_TILING_MODE == 0)){
                     if (maskByteNum == FLOAT16BYTENUM) {
-                    INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionSplitNSNoTail, Q_DTYPE, half, CubeFormat::ND, OUT_DTYPE);
+                    // INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionSplitNSNoTail, Q_DTYPE, half, CubeFormat::ND, OUT_DTYPE);
                     }
                     else {
-                    INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionSplitNSNoTail, Q_DTYPE, bool, CubeFormat::ND, OUT_DTYPE);
+                    // INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionSplitNSNoTail, Q_DTYPE, bool, CubeFormat::ND, OUT_DTYPE);
                     }
 >>>>>>> 7434196 (tiling key)
                 }
                 else if ((TAIL_MODE == 1) && (NEW_TILING_MODE == 0)){
                     // split NS with tail
                     if (maskByteNum == FLOAT16BYTENUM) {
-                    INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionSplitNSTail, Q_DTYPE, half, CubeFormat::ND, OUT_DTYPE);
+                    // INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionSplitNSTail, Q_DTYPE, half, CubeFormat::ND, OUT_DTYPE);
                     }
                     else {
-                    INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionSplitNSTail, Q_DTYPE, bool, CubeFormat::ND, OUT_DTYPE);
+                    // INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionSplitNSTail, Q_DTYPE, bool, CubeFormat::ND, OUT_DTYPE);
                     }
                 }
                 else if ((TAIL_MODE == 0) && (NEW_TILING_MODE == 1)){
@@ -546,11 +546,11 @@ __global__ __aicore__ void prompt_flash_attention_FIAS(__gm__ uint8_t* query, __
             if constexpr ((TEMPLATE_VERSION == 1) && (NEW_TILING_MODE == 0) && (TAIL_MODE == 0) && (QUERY_T == 1) && (OUT_T == 0) && (LAYOUT_T == 0) && (MM_TYPE_TMP == 0) && (PAGE_ATTENTION == 0) 
             && (CVDIFF_BASE_FLAG == 0)  && (CVDIFF_MLA_FLAG == 0)){
                 // split NS no tail
-                INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionSplitNSNoTail, bfloat16_t, bool, CubeFormat::ND, bfloat16_t);
+                // INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionSplitNSNoTail, bfloat16_t, bool, CubeFormat::ND, bfloat16_t);
             }
             else if ((TEMPLATE_VERSION == 1) && (NEW_TILING_MODE == 0) && (TAIL_MODE == 1) && (QUERY_T == 1) && (OUT_T == 0) && (LAYOUT_T == 0) && (MM_TYPE_TMP == 0) && (PAGE_ATTENTION == 0) 
             && (CVDIFF_BASE_FLAG == 0)  && (CVDIFF_MLA_FLAG == 0)){
-                INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionSplitNSTail, bfloat16_t, bool, CubeFormat::ND, bfloat16_t);
+                // INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionSplitNSTail, bfloat16_t, bool, CubeFormat::ND, bfloat16_t);
             }
             else if ((TEMPLATE_VERSION == 1) && (NEW_TILING_MODE == 1) && (TAIL_MODE == 0) && (QUERY_T == 1) && (OUT_T == 0) && (LAYOUT_T == 0) && (MM_TYPE_TMP == 0) && (PAGE_ATTENTION == 0) 
             && (CVDIFF_BASE_FLAG == 0)  && (CVDIFF_MLA_FLAG == 0)){
@@ -721,10 +721,10 @@ __global__ __aicore__ void prompt_flash_attention_FIAS(__gm__ uint8_t* query, __
                 && (LAYOUT_T == 0) && (MM_TYPE_TMP == 0) && (PAGE_ATTENTION == 0 || PAGE_ATTENTION == 1) && (ENABLE_PREFIX == 0 || ENABLE_PREFIX == 1)   
                 && (MSD_MODE == 0) && (CVDIFF_BASE_FLAG == 0) && (CVDIFF_MLA_FLAG == 0) && (KV_T == 0) && (TEMPLATE_VERSION == 1)){
             if constexpr ((PRECISION_MODE == 0) && (NEW_TILING_MODE == 0) && (TAIL_MODE == 0) && (PAGE_ATTENTION == 0) && (ENABLE_PREFIX == 0)){
-                INVOKE_PFA_INT8_OP_IMPL(PromptFlashAttentionSplitNSNoTail, Q_DTYPE, bool, CubeFormat::ND, OUT_DTYPE);
+                // INVOKE_PFA_INT8_OP_IMPL(PromptFlashAttentionSplitNSNoTail, Q_DTYPE, bool, CubeFormat::ND, OUT_DTYPE);
             }
             else if ((PRECISION_MODE == 0) && (NEW_TILING_MODE == 0) && (TAIL_MODE == 1) && (PAGE_ATTENTION == 0) && (ENABLE_PREFIX == 0)){
-                INVOKE_PFA_INT8_OP_IMPL(PromptFlashAttentionSplitNSTail, Q_DTYPE, bool, CubeFormat::ND, OUT_DTYPE);
+                // INVOKE_PFA_INT8_OP_IMPL(PromptFlashAttentionSplitNSTail, Q_DTYPE, bool, CubeFormat::ND, OUT_DTYPE);
             }
             else if ((PRECISION_MODE == 0) && (NEW_TILING_MODE == 1) && (TAIL_MODE == 0) && (PAGE_ATTENTION == 0) && (ENABLE_PREFIX == 0)){
                 INVOKE_PFA_INT8_OP_IMPL(PromptFlashAttentionBNSTillingNSNoTail, Q_DTYPE, bool, CubeFormat::ND, OUT_DTYPE);
@@ -756,10 +756,10 @@ __global__ __aicore__ void prompt_flash_attention_FIAS(__gm__ uint8_t* query, __
                 && (LAYOUT_T == 0) && (MM_TYPE_TMP == 0) && (PAGE_ATTENTION == 0 || PAGE_ATTENTION == 1) && (ENABLE_PREFIX == 0 || ENABLE_PREFIX == 1)   
                 && (MSD_MODE == 0) && (CVDIFF_BASE_FLAG == 0) && (CVDIFF_MLA_FLAG == 0) && (KV_T == 0) && (TEMPLATE_VERSION == 1)){
             if constexpr ((PRECISION_MODE == 0) && (NEW_TILING_MODE == 0) && (TAIL_MODE == 0) && (PAGE_ATTENTION == 0) && (ENABLE_PREFIX == 0)){
-                INVOKE_PFA_INT8_OP_IMPL(PromptFlashAttentionSplitNSNoTail, int8_t, bool, CubeFormat::ND, half);
+                // INVOKE_PFA_INT8_OP_IMPL(PromptFlashAttentionSplitNSNoTail, int8_t, bool, CubeFormat::ND, half);
             }
             else if ((PRECISION_MODE == 0) && (NEW_TILING_MODE == 0) && (TAIL_MODE == 1) && (PAGE_ATTENTION == 0) && (ENABLE_PREFIX == 0)){
-                INVOKE_PFA_INT8_OP_IMPL(PromptFlashAttentionSplitNSTail, int8_t, bool, CubeFormat::ND, half);
+                // INVOKE_PFA_INT8_OP_IMPL(PromptFlashAttentionSplitNSTail, int8_t, bool, CubeFormat::ND, half);
             }
             else if ((PRECISION_MODE == 0) && (NEW_TILING_MODE == 1) && (TAIL_MODE == 0) && (PAGE_ATTENTION == 0) && (ENABLE_PREFIX == 0)){
                 INVOKE_PFA_INT8_OP_IMPL(PromptFlashAttentionBNSTillingNSNoTail, int8_t, bool, CubeFormat::ND, half);

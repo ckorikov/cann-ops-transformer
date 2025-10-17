@@ -283,69 +283,6 @@ __global__ __aicore__ void incre_flash_attention_FIAS(
     constexpr LAYOUT LAYOUT_TYPE = LAYOUT::BSH;
     constexpr LAYOUT KV_LAYOUT_TYPE = LAYOUT::BSH;
     constexpr AMLAMODE AMLA_TYPE = AMLAMODE::NORMAL;
-
-    constexpr bool PAGE_TYPE = false;
-    if constexpr (Q_T == 0) {
-        using Q_TYPE = half;
-    } else if (Q_T == 2) {
-        using Q_TYPE = bfloat16_t;
-    } else if (Q_T == 3) {
-        using Q_TYPE = int8_t;
-    }
-
-    if constexpr (KV_T == 0) {
-        using KV_TYPE = half;
-    } else if (KV_T == 2) {
-        using KV_TYPE = bfloat16_t;
-    } else if (KV_T == 3) {
-        using KV_TYPE = int8_t;
-    } else if (KV_T == 4) {
-        using KV_TYPE = int4b_t;
-    }
-
-    if constexpr (OUT_T == 0) {
-        using OUT_TYPE = half;
-    } else if (OUT_T == 2) {
-        using OUT_TYPE = bfloat16_t;
-    } else if (OUT_T == 3) {
-        using OUT_TYPE = int8_t;
-    }
-
-    if constexpr (ORIGIN_T == 0) {
-        using ORIGIN_TYPE = half;
-    } else if (ORIGIN_T == 2) {
-        using ORIGIN_TYPE = bfloat16_t;
-    } else if (OUT_T == 3) {
-        using OUT_TYPE = int8_t;
-    }
-
-    if constexpr (LAYOUT_T == 0) {
-        constexpr LAYOUT LAYOUT_TYPE = LAYOUT::BNSD;
-    } else if (LAYOUT_T == 1) {
-        constexpr LAYOUT LAYOUT_TYPE = LAYOUT::BSH;
-    } else if (LAYOUT_T == 2) {
-        constexpr LAYOUT LAYOUT_TYPE = LAYOUT::TND;
-    }
-
-    if constexpr (KV_LAYOUT_T == 0) {
-        constexpr LAYOUT KV_LAYOUT_TYPE = LAYOUT::BNSD;
-    } else if (KV_LAYOUT_T == 1) {
-        constexpr LAYOUT KV_LAYOUT_TYPE = LAYOUT::BSH;
-    } else if (KV_LAYOUT_T == 2) {
-        constexpr LAYOUT KV_LAYOUT_TYPE = LAYOUT::NZ;
-    }
-
-    if constexpr (AMLA == 0) {
-        constexpr AMLAMODE AMLA_TYPE = AMLAMODE::NORMAL;
-    } else if (AMLA == 1) {
-        constexpr AMLAMODE AMLA_TYPE = AMLAMODE::AMLA;
-    }
-
-    if constexpr (PAGE_ATTENTION == 0) {
-        constexpr bool PAGE_TYPE = false;
-    } else if (PAGE_ATTENTION == 1) {
-        constexpr bool PAGE_TYPE = true;
-    }
     /*
     获取Op可用WorkSpace空间
     **/
