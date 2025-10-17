@@ -83,9 +83,8 @@ public:
         msgSndWorkArea->sendCnt = curTurn;
         msgSndWorkArea->valid = AC_MSG_VALID_MASK;
         AscendC::Barrier();
-        dcci(
-            reinterpret_cast<__gm__ int64_t*>(msgSndWorkArea), cache_line_t::SINGLE_CACHE_LINE,
-            dcci_dst_t::CACHELINE_OUT);
+        AscendC::DataCacheCleanAndInvalid<int64_t, AscendC::CacheLine::SINGLE_CACHE_LINE,
+            AscendC::DcciDst::CACHELINE_OUT>(msgSndWorkArea);
     }
 
     __aicore__ inline void TurnWait(uint32_t totalTurn)
@@ -95,9 +94,8 @@ public:
         }
         while (true) {
             AscendC::Barrier();
-            dcci(
-                reinterpret_cast<__gm__ int64_t*>(msgRcvRspArea), cache_line_t::SINGLE_CACHE_LINE,
-                dcci_dst_t::CACHELINE_OUT);
+            AscendC::DataCacheCleanAndInvalid<int64_t, AscendC::CacheLine::SINGLE_CACHE_LINE,
+                AscendC::DcciDst::CACHELINE_OUT>(msgRcvRspArea);
             if (msgRcvRspArea->rcvCnt >= totalTurn) {
                 break;
             }
@@ -106,9 +104,8 @@ public:
         msgRcvRspArea->rcvCnt = 0;
         msgRcvRspArea->valid = ~AC_MSG_VALID_MASK;
         AscendC::Barrier();
-        dcci(
-            reinterpret_cast<__gm__ int64_t*>(msgRcvRspArea), cache_line_t::SINGLE_CACHE_LINE,
-            dcci_dst_t::CACHELINE_OUT);
+        AscendC::DataCacheCleanAndInvalid<int64_t, AscendC::CacheLine::SINGLE_CACHE_LINE,
+            AscendC::DcciDst::CACHELINE_OUT>(msgRcvRspArea);
     }
 };
 #endif // __CCE_AICORE__ == 220
