@@ -233,42 +233,6 @@ if (NOT BUILD_OPEN_PROJECT)
   )
 endif()
 
-set(AICPU_INCLUDE
-  ${OPBASE_INC_DIRS}
-  ${AICPU_INC_DIRS}
-  ${OPS_INCLUDE}
-  ${C_SEC_INCLUDE}
-  ${RUNTIME_INCLUDE}
-  ${NNOPBASE_INCLUDE}
-  ${METADEF_DIR}
-  ${METADEF_DIR}/inc
-  ${METADEF_DIR}/inc/external
-  ${METADEF_DIR}/external
-  ${ACL_EXTERNAL_INCLUDE}
-  ${HCCL_EXTERNAL_INCLUDE}
-  ${ACL_EXTERNAL_INC_INCLUDE}
-  # todo ops-base replaced later
-  ${OPS_TRANSFORMER_DIR}/mc2/3rd
-  ${TOP_DIR}/inc/aicpu/cpu_kernels
-  ${TOP_DIR}/inc/aicpu/aicpu_schedule/aicpu_sharder
-  ${TOP_DIR}/inc/external/aicpu
-  ${TOP_DIR}/open_source/eigen
-  ${TOP_DIR}/inc
-  ${TOP_DIR}/inc/driver
-  ${TOP_DIR}/libc_sec/include
-  ${TOP_DIR}/abl/libc_sec/include
-  ${METADEF_INCLUDE}
-  ${METADEF_INCLUDE}/inc
-  ${METADEF_INCLUDE}/exe_graph
-  ${METADEF_INCLUDE}/external
-  ${METADEF_DIR}/inc/external/exe_graph
-  ${METADEF_DIR}/inc/external/graph
-  ${GRAPHENGINE_INCLUDE}
-  ${GRAPHENGINE_INCLUDE}/external
-  ${CMAKE_CURRENT_SOURCE_DIR}/kernels/device/hashmap
-  ${TOP_DIR}/asl/ops/cann/ops/matmul
-)
-
 if (NOT BUILD_OPEN_PROJECT)
   list(APPEND AICPU_INCLUDE
     ${TOP_DIR}/asl/ops/cann/ops/built-in/aicpu/impl
@@ -283,9 +247,19 @@ if (NOT BUILD_OPEN_PROJECT)
   )
 endif()
 
+set(AICPU_INCLUDE
+  ${OPBASE_INC_DIRS}
+  ${AICPU_INC_DIRS}
+  ${C_SEC_INCLUDE}
+  ${NNOPBASE_INCLUDE_DIRS}
+  ${HCCL_EXTERNAL_INCLUDE}
+  ${OPS_CV_DIR}/common/inc/common
+  ${METADEF_INCLUDE_DIRS}
+)
+
 set(AICPU_DEFINITIONS
   -O2
-  -std=c++14
+  -std=c++17
   -fstack-protector-all
   -fvisibility-inlines-hidden
   -fvisibility=hidden
@@ -299,22 +273,6 @@ set(AICPU_DEFINITIONS
   -DEigen=ascend_Eigen
   -fno-common
   -fPIC
-)
-
-set(AICPU_LINK
-  -Wl,--whole-archive
-  # todo ops-base
-  cpu_kernels_context_static
-  -Wl,--no-whole-archive
-  ascend_protobuf_static
-  -Wl,--no-as-needed
-  $<IF:$<STREQUAL:${x86_aarch64_host},x86_or_aarch64_on_host>,alog,slog>
-  c_sec
-  -ldl
-  $<$<STREQUAL:${PRODUCT_SIDE},host>:ascend_hal_stub>
-  $<$<STREQUAL:${PRODUCT_SIDE},device>:ascend_hal>
-  -Wl,--as-needed
-  $<$<STREQUAL:${PRODUCT_SIDE},device>:malblas_static>
 )
 
 if(EXISTS ${TOP_DIR}/build/product/onetrack/sys_version/sys_version.conf)

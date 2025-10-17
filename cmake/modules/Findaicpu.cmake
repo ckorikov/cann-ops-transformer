@@ -14,25 +14,29 @@ if(aicpu_FOUND)
 endif()
 
 include(FindPackageHandleStandardArgs)
-set(MSPROF_HEAD_SEARCH_PATHS
-  ${ASCEND_DIR}/${SYSTEM_PREFIX}/include/experiment/msprof/
-  ${TOP_DIR}/abl/msprof/inc            # compile with ci
-)
 
-find_path(MSPROF_INC_DIR
-  NAMES toolchain/prof_api.h
-  PATHS ${MSPROF_HEAD_SEARCH_PATHS}
-)
+if(BUILD_WITH_INSTALLED_DEPENDENCY_CANN_PKG)
+  set(AICPU_INC_DIRS
+    ${ASCEND_DIR}/${SYSTEM_PREFIX}/include/experiment
+    ${ASCEND_DIR}/${SYSTEM_PREFIX}/include/experiment/msprof
+    ${ASCEND_DIR}/${SYSTEM_PREFIX}/include/aicpu_common/context
+    ${ASCEND_DIR}/${SYSTEM_PREFIX}/include/aicpu_common/context/common
+    ${ASCEND_DIR}/${SYSTEM_PREFIX}/include/aicpu_common/context/cpu_proto
+    ${ASCEND_DIR}/${SYSTEM_PREFIX}/include/aicpu_common/context/utils
+    ${ASCEND_DIR}/${SYSTEM_PREFIX}/include/experiment/datagw/aicpu/common
+  )
+else()
+  set(AICPU_INC_DIRS
+    ${TOP_DIR}/abl/msprof/inc
+    ${TOP_DIR}/ace/comop/inc
+    ${TOP_DIR}/inc/aicpu/cpu_kernels
+    ${TOP_DIR}/inc/external/aicpu
+    ${TOP_DIR}/asl/ops/cann/ops/built-in/aicpu/context/inc
+    ${TOP_DIR}/asl/ops/cann/ops/built-in/aicpu/impl/utils
+    ${TOP_DIR}/asl/ops/cann/ops/built-in/aicpu/impl
+    ${TOP_DIR}/ops-base/include/aicpu_common/context/common
+    ${TOP_DIR}/open_source/eigen
+  )
+endif()
 
-set(CCE_HEAD_SEARCH_PATHS
-  ${ASCEND_DIR}/${SYSTEM_PREFIX}/include/experiment/
-  ${TOP_DIR}/ace/comop/inc            # compile with ci
-)
-
-find_path(CCE_INC_DIR
-  NAMES cce/aicpu_engine_struct.h
-  PATHS ${CCE_HEAD_SEARCH_PATHS}
-)
-
-message(STATUS "Found aicpu include:${MSPROF_INC_DIR}, ${CCE_INC_DIR}")
-set(AICPU_INC_DIRS ${MSPROF_INC_DIR} ${CCE_INC_DIR})
+message(STATUS "Using AICPU include dirs: ${AICPU_INC_DIRS}")

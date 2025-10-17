@@ -211,6 +211,70 @@ function(gen_cust_proto_symbol)
   )
 endfunction()
 
+function(gen_cust_aicpu_json_symbol)
+  get_property(ALL_AICPU_JSON_FILES GLOBAL PROPERTY AICPU_JSON_FILES)
+  if(NOT ALL_AICPU_JSON_FILES)
+    message(STATUS "No aicpu json files to merge, skipping.")
+    return()
+  endif()
+
+  set(MERGED_JSON ${CMAKE_BINARY_DIR}/cust_aicpu_kernel.json)
+  add_custom_command(
+    OUTPUT ${MERGED_JSON}
+    COMMAND bash ${CMAKE_SOURCE_DIR}/scripts/util/merge_aicpu_info_json.sh ${CMAKE_SOURCE_DIR} ${MERGED_JSON} ${ALL_AICPU_JSON_FILES}
+    DEPENDS ${ALL_AICPU_JSON_FILES}
+    COMMENT "Merging Json files into ${MERGED_JSON}"
+    VERBATIM
+  )
+  add_custom_target(merge_aicpu_json ALL DEPENDS ${MERGED_JSON})
+  install(
+    FILES ${MERGED_JSON}
+    DESTINATION packages/vendors/${VENDOR_NAME}_transformer/op_impl/cpu/config
+    OPTIONAL
+  )
+endfunction()
+
+function(gen_cust_aicpu_kernel_symbol)
+  if(NOT AICPU_CUST_OBJ_TARGETS)
+    message(STATUS "No aicpu cust obj targets found, skipping.")
+    return()
+  endif()
+
+  set(ARM_CXX_COMPILER ${ASCEND_DIR}/toolkit/toolchain/hcc/bin/aarch64-target-linux-gnu-g++)
+  set(ARM_SO_OUTPUT ${CMAKE_BINARY_DIR}/libcust_aicpu_kernels.so)
+
+  set(ALL_OBJECTS "")
+  foreach(tgt IN LISTS AICPU_CUST_OBJ_TARGETS)
+    list(APPEND ALL_OBJECTS $<TARGET_OBJECTS:${tgt}>)
+  endforeach()
+
+  message(STATUS "Linking cust_aicpu_kernels with ARM toolchain: ${ARM_CXX_COMPILER}")
+  message(STATUS "Objects: ${ALL_OBJECTS}")
+  message(STATUS "Output: ${ARM_SO_OUTPUT}")
+
+  add_custom_command(
+    OUTPUT ${ARM_SO_OUTPUT}
+    COMMAND ${ARM_CXX_COMPILER} -shared ${ALL_OBJECTS}
+      -Wl,--whole-archive
+      ${ASCEND_DIR}/ops_base/lib64/libaicpu_context.a
+      ${ASCEND_DIR}/ops_base/lib64/libbase_ascend_protobuf.a
+      -Wl,--no-whole-archive
+      -Wl,-Bsymbolic
+      -Wl,--exclude-libs=libbase_ascend_protobuf.a
+      -s
+      -o ${ARM_SO_OUTPUT}
+    DEPENDS ${AICPU_CUST_OBJ_TARGETS}
+    COMMENT "Linking cust_aicpu_kernels.so using ARM toolchain"
+  )
+  add_custom_target(cust_aicpu_kernels ALL DEPENDS ${ARM_SO_OUTPUT})
+
+  install(
+    FILES ${ARM_SO_OUTPUT}
+    DESTINATION packages/vendors/${VENDOR_NAME}_transformer/op_impl/cpu/aicpu_kernel/impl
+    OPTIONAL
+  )
+endfunction()
+
 function(gen_norm_symbol)
   gen_common_symbol()
 
@@ -232,4 +296,8 @@ function(gen_cust_symbol)
   gen_cust_optiling_symbol()
 
   gen_cust_proto_symbol()
+
+  gen_cust_aicpu_json_symbol()
+
+  gen_cust_aicpu_kernel_symbol()
 endfunction()
