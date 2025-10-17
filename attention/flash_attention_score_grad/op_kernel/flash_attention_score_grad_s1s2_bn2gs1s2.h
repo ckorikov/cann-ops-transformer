@@ -2779,14 +2779,14 @@ template <typename T1, typename T2, const uint32_t IS_ATTEN_MASK, const uint32_t
 __aicore__ inline void FlashAttentionScoreGradS1s2Bn2gs1s2<T1, T2, IS_ATTEN_MASK, IS_PSE, IS_DROP, MM_OUT_FORMAT,
                                                            INPUT_LAYOUT, MM2_OUT_FORMAT, TND_S1_PP, HAS_ROPE>::LocalReleaseEventID(EvenvIdList &eventIdList)
 {
-    GetTPipePtr()->ReleaseEventID<HardEvent::MTE3_MTE2>(eventIdList.structVWaitMte2Ping);
-    GetTPipePtr()->ReleaseEventID<HardEvent::MTE3_MTE2>(eventIdList.structVWaitMte2Pong);
+    GetTPipePtr()->ReleaseEventID<HardEvent::MTE2_V>(eventIdList.structVWaitMte2Ping);
+    GetTPipePtr()->ReleaseEventID<HardEvent::MTE2_V>(eventIdList.structVWaitMte2Pong);
     GetTPipePtr()->ReleaseEventID<HardEvent::MTE3_MTE2>(eventIdList.structMte2WaitMte3Ping);
     GetTPipePtr()->ReleaseEventID<HardEvent::MTE3_MTE2>(eventIdList.structMte2WaitMte3Pong);
-    GetTPipePtr()->ReleaseEventID<HardEvent::MTE3_MTE2>(eventIdList.structMte3WaitVPing);
-    GetTPipePtr()->ReleaseEventID<HardEvent::MTE3_MTE2>(eventIdList.structMte3WaitVPong);
-    GetTPipePtr()->ReleaseEventID<HardEvent::MTE3_MTE2>(eventIdList.structMte2WaitVPing);
-    GetTPipePtr()->ReleaseEventID<HardEvent::MTE3_MTE2>(eventIdList.structMte2WaitVPong);
+    GetTPipePtr()->ReleaseEventID<HardEvent::V_MTE3>(eventIdList.structMte3WaitVPing);
+    GetTPipePtr()->ReleaseEventID<HardEvent::V_MTE3>(eventIdList.structMte3WaitVPong);
+    GetTPipePtr()->ReleaseEventID<HardEvent::V_MTE2>(eventIdList.structMte2WaitVPing);
+    GetTPipePtr()->ReleaseEventID<HardEvent::V_MTE2>(eventIdList.structMte2WaitVPong);
 }
 
 template <typename T1, typename T2, const uint32_t IS_ATTEN_MASK, const uint32_t IS_PSE, const uint32_t IS_DROP,
