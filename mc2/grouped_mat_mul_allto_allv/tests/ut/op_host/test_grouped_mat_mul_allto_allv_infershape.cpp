@@ -141,6 +141,7 @@ TEST_P(GroupedMatMulAlltoAllvInfershape, inferdatatype_test)
 
     auto contextHolder = gert::InferDataTypeContextFaker()
                 .NodeIoNum(input_num, output_num)
+                .IrInstanceNum({1, 1, 1, 1, 1, 1})
                 .InputDataTypes(input_dtypes_ptrs)
                 .OutputDataTypes(output_dtypes_ptrs)
                 .NodeAttrs({
@@ -178,12 +179,12 @@ TEST_P(GroupedMatMulAlltoAllvInfershape, infershape_test)
     gert::InfershapeContextPara infershapeContextPara(
         "GroupedMatMulAlltoAllv",
         {   
-            {{{tiling_params.A, tiling_params.H1}, {}}, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {{{tiling_params.e, tiling_params.gmm_weight_dim1, tiling_params.N1}, {}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+            {{{tiling_params.A, tiling_params.H1}, {tiling_params.A, tiling_params.H1}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+            {{{tiling_params.e, tiling_params.gmm_weight_dim1, tiling_params.N1}, {tiling_params.e, tiling_params.gmm_weight_dim1, tiling_params.N1}}, ge::DT_FLOAT16, ge::FORMAT_ND},
             {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
             {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {{{tiling_params.BS, tiling_params.H2}, {}}, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {{{tiling_params.mm_weight_dim0, tiling_params.N2}, {}}, ge::DT_FLOAT16, ge::FORMAT_ND}, 
+            {{{tiling_params.BS, tiling_params.H2}, {tiling_params.BS, tiling_params.H2}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+            {{{tiling_params.mm_weight_dim0, tiling_params.N2}, {tiling_params.mm_weight_dim0, tiling_params.N2}}, ge::DT_FLOAT16, ge::FORMAT_ND}, 
         },
         {
             {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
@@ -198,7 +199,7 @@ TEST_P(GroupedMatMulAlltoAllvInfershape, infershape_test)
             {"trans_mm_weight", Ops::Transformer::AnyValue::CreateFrom<bool>(tiling_params.trans_mm_weight)}
         });
  
-    std::vector<std::vector<int64_t>> expectOutputShape = {{4096, 4096}};
+    std::vector<std::vector<int64_t>> expectOutputShape = {{1, 1}};
     ExecuteTestCase(infershapeContextPara, ge::GRAPH_SUCCESS, expectOutputShape); 
 }
 
