@@ -44,7 +44,6 @@ struct Param {
     static const bool transpose = transpose_;
 };
 
-
 template <typename T>
 __aicore__ inline void DataCopyPad2D(const LocalTensor<T> dst, const GlobalTensor<T> src,
                                      const DataCopy2DDimParams& dimParams) {
@@ -86,13 +85,18 @@ private:
     __aicore__ inline void InitOutputWithZeros(uint64_t offset, uint64_t size);
     __aicore__ inline void MMCompute(uint32_t groupIdx, MNConfig& mnConfig);
     __aicore__ inline void VectorCompute(uint32_t groupIdx, MNConfig& mnConfig);
-    __aicore__ inline void ComputeDequantAndActivate(MNConfig& mnConfig, const VectorAtomicParams& vecAParams);
+    __aicore__ inline void ComputeDequantAndActivate(MNConfig& mnConfig, const VectorAtomicParams& vecAParams,
+                                                     const VectorOffsetParams& coreOffsetM);
     __aicore__ inline void ComputeDequantProcess(uint32_t computeSize);
     __aicore__ inline void DataCopyScale(uint32_t curBaseN, uint32_t alignBaseN, uint64_t scaleOffset);
     __aicore__ inline void DataCopyBias(uint32_t curBaseN, uint32_t alignBaseN, uint64_t scaleOffset);
-    __aicore__ inline void DataCopyPerTokenScaleAndBrcb(MNConfig& mnConfig, uint32_t curBaseM, uint32_t alignBaseN,
-                                                        uint32_t offsetM);
+    __aicore__ inline void PerTokenScaleBrcb(MNConfig& mnConfig, uint32_t curBaseM, uint32_t alignBaseN,
+                                             uint32_t offsetM, const VectorOffsetParams& coreOffsetM);
+    __aicore__ inline void DataCopyPerTokenScale(MNConfig& mnConfig, uint32_t curBaseM, uint32_t offsetM);
     __aicore__ inline void VectorAtomicProcess(const VectorAtomicParams& vecAParams);
+    __aicore__ inline void GetOffset(VectorOffsetParams& offset, uint32_t curCubeSingleM);
+    __aicore__ inline void DataCopyMMOut(uint64_t mmOutOffset, uint32_t curVecBaseM, uint32_t curVecBaseN, uint32_t offsetM);
+
 private:
     MT& mm;
     GlobalTensor<int8_t> xGm;
@@ -158,7 +162,6 @@ __aicore__ inline void QuantGroupMatmul<P>::Init(const MMInitParams& initParams,
     InitUbBuffer();
 }
 
-
 template <class P>
 __aicore__ inline void QuantGroupMatmul<P>::InitUbBuffer()
 {
@@ -171,9 +174,11 @@ __aicore__ inline void QuantGroupMatmul<P>::InitUbBuffer()
     if (P::combine && tiling->scatterAdd) {
         // 2: pertoken scale和logits般到一块buffer上
         uint32_t perTokenScalebufferNum = (hasPertokenScale != 0) ? 2 : 1;
-        pipe->InitBuffer(perTokenScaleInQueue, BUFFER_NUM, Ceil(tiling->vBaseM * sizeof(float) * perTokenScalebufferNum, 32) * 32);
+        pipe->InitBuffer(perTokenScaleInQueue, BUFFER_NUM,
+                         Ceil(tiling->matmulTiling.baseM / uint32_t(2) * sizeof(float) * perTokenScalebufferNum, 32) * 32);
     } else {
-        pipe->InitBuffer(perTokenScaleInQueue, BUFFER_NUM, Ceil(tiling->vBaseM * sizeof(float), 32) * 32);
+        pipe->InitBuffer(perTokenScaleInQueue, BUFFER_NUM,
+                         Ceil(tiling->matmulTiling.baseM / uint32_t(2) * sizeof(float), 32) * 32);
     }
     pipe->InitBuffer(vecInQueue, BUFFER_NUM, tiling->ubCalSize * sizeof(cT::T));
     pipe->InitBuffer(vecOutQueue, BUFFER_NUM, tiling->ubCalSize * sizeof(DTYPE_OUT));
@@ -277,10 +282,10 @@ __aicore__ inline void QuantGroupMatmul<P>::Process()
         mnConfig.blockDimM = Ceil(mnConfig.m, mnConfig.singleM);
         uint32_t curCount = preCount + mnConfig.blockDimN * mnConfig.blockDimM;
         uint32_t curBlock = coreIdx >= preCount ? coreIdx : coreIdx + tiling->coreNum;
+        uint32_t thresholdMDimN = thresholdBlockNum * mnConfig.blockDimN;
 
         while (curBlock < curCount) {
-            mnConfig.mIdx = (curBlock - preCount) / mnConfig.blockDimN;
-            mnConfig.nIdx = (curBlock - preCount) % mnConfig.blockDimN;
+            MNBlockIdxCompute(mnConfig, curBlock, preCount, thresholdMDimN);
             MMCompute(groupIdx, mnConfig);
             VectorCompute(groupIdx, mnConfig);
             curBlock += tiling->coreNum;
@@ -356,6 +361,22 @@ __aicore__ inline void QuantGroupMatmul<P>::VectorAtomicProcess(const VectorAtom
 }
 
 template <class P>
+__aicore__ inline void QuantGroupMatmul<P>::GetOffset(VectorOffsetParams& offset, uint32_t curCubeSingleM)
+{
+    offset.singleCoreM = curCubeSingleM / uint32_t(2);
+    if (subBlockIdx == 0) {
+        offset.perTokenOffsetM = 0;
+        offset.offsetMStart = 0;
+        offset.offsetMEnd = offset.singleCoreM;
+    } else {
+        offset.perTokenOffsetM = offset.singleCoreM;
+        offset.offsetMStart = offset.singleCoreM;
+        offset.offsetMEnd = curCubeSingleM;
+        offset.singleCoreM = curCubeSingleM - offset.singleCoreM;
+    }
+}
+
+template <class P>
 __aicore__ inline void QuantGroupMatmul<P>::VectorCompute(uint32_t groupIdx, MNConfig& mnConfig)
 {
     if ASCEND_IS_AIC {
@@ -372,7 +393,7 @@ __aicore__ inline void QuantGroupMatmul<P>::VectorCompute(uint32_t groupIdx, MNC
     uint32_t curVecBaseN = mnConfig.baseN;
     uint64_t scaleOffset = groupIdx * tiling->n + mnConfig.nIdx * mnConfig.singleN;
     uint32_t taskRation = GetTaskRation();
-    for (uint32_t offsetN = 0, vecCount = 0; offsetN < curCubeSingleN; offsetN += mnConfig.baseN) {
+    for (uint32_t offsetN = 0; offsetN < curCubeSingleN; offsetN += mnConfig.baseN) {
         if (unlikely(offsetN + mnConfig.baseN >= curCubeSingleN)) {
             curVecBaseN = curCubeSingleN - offsetN;
         }
@@ -383,24 +404,22 @@ __aicore__ inline void QuantGroupMatmul<P>::VectorCompute(uint32_t groupIdx, MNC
             DataCopyBias(curVecBaseN, alignBaseN, scaleOffset + offsetN);
         }
         uint64_t mmOutOffset = mnConfig.workSpaceOffset + offsetN * mnConfig.baseM;
+        VectorOffsetParams coreOffsetM;
+        GetOffset(coreOffsetM, curCubeSingleM); // 计算偏移
+        DataCopyPerTokenScale(mnConfig, coreOffsetM.singleCoreM, coreOffsetM.perTokenOffsetM);
+        perTokenScaleInUb = perTokenScaleInQueue.DeQue<float>();
         CrossCoreWaitFlag(SYNC_AIC_TO_AIV);
-        for (uint32_t offsetM = 0; offsetM < curCubeSingleM; offsetM += vecBaseM, vecCount++) {
-            if (taskRation != 0 && vecCount % taskRation != subBlockIdx) {
-                continue;
+        for (uint32_t offsetM = coreOffsetM.offsetMStart; offsetM < coreOffsetM.offsetMEnd; offsetM += vecBaseM) {
+            if (unlikely(offsetM + vecBaseM >= coreOffsetM.offsetMEnd)) {
+                curVecBaseM = coreOffsetM.offsetMEnd - offsetM;
             }
-            if (unlikely(offsetM + vecBaseM >= curCubeSingleM)) {
-                curVecBaseM = curCubeSingleM - offsetM;
-            }
-            // 使用AscendDequant接口做perchannel反量化
-            LocalTensor<cT::T> mmOutLocal = vecInQueue.AllocTensor<cT::T>();
-            DataCopy2DDimParams dimParams{curVecBaseM, curVecBaseN, curVecBaseN};
-            DataCopyPad2D(mmOutLocal, mmOutGm[mmOutOffset + offsetM * curVecBaseN], dimParams);
-            vecInQueue.EnQue(mmOutLocal);
+            DataCopyMMOut(mmOutOffset, curVecBaseM, curVecBaseN, offsetM);
             VectorAtomicParams vecAParams{curVecBaseM, curVecBaseN, alignBaseN, offsetM, mGlobalOffset,
                 mnConfig.nIdx * mnConfig.singleN + offsetN, outOffset + offsetM * tiling->n + offsetN};
-            ComputeDequantAndActivate(mnConfig, vecAParams);
+            ComputeDequantAndActivate(mnConfig, vecAParams, coreOffsetM);
             VectorAtomicProcess(vecAParams);
         }
+        perTokenScaleInQueue.FreeTensor(perTokenScaleInUb);
         if constexpr (std::is_same_v<typename P::SCALE_TYPE, float>) {
             scaleInQueue.FreeTensor(scaleInUb);
         }
@@ -424,9 +443,10 @@ __aicore__ inline void QuantGroupMatmul<P>::ComputeDequantProcess(uint32_t compu
 }
 
 template <class P>
-__aicore__ inline void QuantGroupMatmul<P>::ComputeDequantAndActivate(MNConfig& mnConfig, const VectorAtomicParams& vecAParams)
+__aicore__ inline void QuantGroupMatmul<P>::ComputeDequantAndActivate(MNConfig& mnConfig, const VectorAtomicParams& vecAParams,
+                                                                      const VectorOffsetParams& coreOffsetM)
 {
-    DataCopyPerTokenScaleAndBrcb(mnConfig, vecAParams.curVecBaseM, vecAParams.alignBaseN, vecAParams.offsetM);
+    PerTokenScaleBrcb(mnConfig, vecAParams.curVecBaseM, vecAParams.alignBaseN, vecAParams.offsetM, coreOffsetM);
     LocalTensor<int32_t> mmOutInUb = vecInQueue.DeQue<cT::T>();
 
     LocalTensor<float> scaleBuf;
@@ -435,7 +455,7 @@ __aicore__ inline void QuantGroupMatmul<P>::ComputeDequantAndActivate(MNConfig& 
     } else {
         scaleBuf = scaleInUb;
     }
-
+    
     AscendDequant(dequantMiddleResult, mmOutInUb, scaleBuf, sharedTmpLocal,
                   {vecAParams.curVecBaseM, vecAParams.alignBaseN, vecAParams.curVecBaseN});
     PipeBarrier<PIPE_V>();
@@ -461,6 +481,16 @@ __aicore__ inline void QuantGroupMatmul<P>::ComputeDequantAndActivate(MNConfig& 
     Mul(mulsResultLocal, dequantMiddleResult, pertokenBrcbLocal, computeSize);
     PipeBarrier<PIPE_V>();
     ComputeDequantProcess(computeSize);
+}
+
+template <class P>
+__aicore__ inline void QuantGroupMatmul<P>::DataCopyMMOut(uint64_t mmOutOffset, uint32_t curVecBaseM,
+                                                          uint32_t curVecBaseN, uint32_t offsetM)
+{
+    LocalTensor<cT::T> mmOutLocal = vecInQueue.AllocTensor<cT::T>();
+    DataCopy2DDimParams dimParams{curVecBaseM, curVecBaseN, curVecBaseN};
+    DataCopyPad2D(mmOutLocal, mmOutGm[mmOutOffset + offsetM * curVecBaseN], dimParams);
+    vecInQueue.EnQue(mmOutLocal);
 }
 
 template <class P>
@@ -501,49 +531,50 @@ __aicore__ inline void QuantGroupMatmul<P>::DataCopyBias(uint32_t curBaseN, uint
 }
 
 template <class P>
-__aicore__ inline void QuantGroupMatmul<P>::DataCopyPerTokenScaleAndBrcb(MNConfig& mnConfig,
-        uint32_t curBaseM, uint32_t alignBaseN, uint32_t offsetM)
+__aicore__ inline void QuantGroupMatmul<P>::PerTokenScaleBrcb(MNConfig& mnConfig, uint32_t curBaseM,
+        uint32_t alignBaseN, uint32_t offsetM, const VectorOffsetParams& coreOffsetM)
 {
-    uint64_t vecBaseMOffset = mnConfig.offsetM + mnConfig.mIdx * mnConfig.singleM + offsetM;
-    uint32_t alignBaseM = (hasPertokenScale != 0) ? (Ceil(curBaseM, uint32_t(8)) * 8) : 0;  //  8: num int32_t in 32B ub block
-    DataCopyPadExtParams<float> padParams;
-    DataCopyExtParams perTokenScaleParams{1, static_cast<uint32_t>(curBaseM * sizeof(float)), 0, 0, 0};
-    LocalTensor<float> perTokenScaleLocal = perTokenScaleInQueue.AllocTensor<float>();
-    if (hasPertokenScale != 0) {
-        // GM拷贝per token scale
-        DataCopyPad(perTokenScaleLocal, perTokenScaleGm[vecBaseMOffset], perTokenScaleParams, padParams);
-    }
-
-    if (P::combine && tiling->scatterAdd) {
-        DataCopyPad(perTokenScaleLocal[alignBaseM], logitsGm[vecBaseMOffset], perTokenScaleParams, padParams);
-    }
-    perTokenScaleInQueue.EnQue(perTokenScaleLocal);
-
-    perTokenScaleInUb = perTokenScaleInQueue.DeQue<float>();
-    auto scaleTmp = perTokenScaleInUb;
-
-    if (P::combine && tiling->scatterAdd) {
-        if (hasPertokenScale) {
-            Mul(dequantMiddleResult, perTokenScaleInUb, perTokenScaleInUb[alignBaseM], curBaseM);
-            scaleTmp = dequantMiddleResult;
-        } else {
-            scaleTmp = perTokenScaleInUb[alignBaseM];
-        }
-        PipeBarrier<PIPE_V>();
-    }
-
+    uint32_t alignBaseM = (hasPertokenScale != 0) ? (Ceil(coreOffsetM.singleCoreM, uint32_t(8)) * 8) : 0;
     const uint32_t broadCastDst[BROADCAST_DIM] = {curBaseM, alignBaseN};
     const uint32_t broadCastSrc[BROADCAST_DIM] = {curBaseM, 1};
-    BroadCast<float, BROADCAST_DIM, 1>(pertokenBrcbLocal, scaleTmp, broadCastDst, broadCastSrc, sharedTmpLocal);
+    BroadCast<float, BROADCAST_DIM, 1>(pertokenBrcbLocal, perTokenScaleInUb[offsetM - coreOffsetM.offsetMStart + alignBaseM],
+                                       broadCastDst, broadCastSrc, sharedTmpLocal);
 
     if (hasBias) {
-        BroadCast<float, BROADCAST_DIM, 1>(biasCalcLocal, perTokenScaleLocal[alignBaseM], broadCastDst, broadCastSrc, sharedTmpLocal);
+        BroadCast<float, BROADCAST_DIM, 1>(biasCalcLocal, perTokenScaleInUb[offsetM - coreOffsetM.offsetMStart], broadCastDst,
+                                           broadCastSrc, sharedTmpLocal);
         for (int i = 0; i < curBaseM; i++) {
             Mul(biasCalcLocal[alignBaseN * i], biasCalcLocal[alignBaseN * i], mulsResultLocal, alignBaseN);
         }
     }
+}
 
-    perTokenScaleInQueue.FreeTensor(perTokenScaleInUb);
+template <class P>
+__aicore__ inline void QuantGroupMatmul<P>::DataCopyPerTokenScale(MNConfig& mnConfig, uint32_t curBaseM, uint32_t offsetM)
+{
+    uint64_t vecBaseMOffset = mnConfig.offsetM + mnConfig.mIdx * mnConfig.singleM + offsetM;
+    uint32_t alignBaseM = (hasPertokenScale != 0) ? (Ceil(curBaseM, uint32_t(8)) * 8) : 0;
+
+    DataCopyPadExtParams<float> padParams;
+    DataCopyExtParams perTokenScaleParams{1, static_cast<uint32_t>(curBaseM * sizeof(float)), 0, 0, 0};
+
+    LocalTensor<float> perTokenScaleLocal = perTokenScaleInQueue.AllocTensor<float>();
+    if (hasPertokenScale != 0) {
+        // GM拷贝per token scale
+        DataCopyPad(perTokenScaleLocal[alignBaseM], perTokenScaleGm[vecBaseMOffset], perTokenScaleParams, padParams);
+    }
+    if (P::combine && tiling->scatterAdd) {
+        DataCopyPad(perTokenScaleLocal, logitsGm[vecBaseMOffset], perTokenScaleParams, padParams);
+    }
+    perTokenScaleInQueue.EnQue(perTokenScaleLocal);
+    perTokenScaleInUb = perTokenScaleInQueue.DeQue<float>();
+    if (P::combine && tiling->scatterAdd) {
+        if (hasPertokenScale) {
+            Mul(perTokenScaleInUb[alignBaseM], perTokenScaleInUb, perTokenScaleInUb[alignBaseM], curBaseM);
+        }
+        PipeBarrier<PIPE_V>();
+    }
+    perTokenScaleInQueue.EnQue(perTokenScaleInUb);
 }
 }  // namespace GroupedMatmulFinalizeRouting
 #endif

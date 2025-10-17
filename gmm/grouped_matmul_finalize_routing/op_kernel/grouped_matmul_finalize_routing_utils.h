@@ -16,6 +16,12 @@
 #ifndef __GROUPED_MATMUL_FINALIZE_ROUTING_KERNEL_UTILS_H_
 #define __GROUPED_MATMUL_FINALIZE_ROUTING_KERNEL_UTILS_H_
 
+constexpr uint32_t thresholdBlockNum = 8;   // 8 is obtained by tests, indicating the threshold of basic block numbers
+                                            // in both directions when assigning data blocks to cube cores when using
+                                            // diagnal strategy
+constexpr uint32_t thresholdDimM = 5;       // 5 is obtained by tests, indicating the threshold for distinguishing
+                                            // strategies for large/small shapes
+
 namespace GroupedMatmulFinalizeRouting {
 constexpr uint64_t SYNC_AIV_TO_AIC = 3;
 constexpr uint64_t SYNC_AIC_TO_AIV = 5;
@@ -73,6 +79,67 @@ struct VectorAtomicParams {
     uint64_t yGmOffset0;
     uint64_t yGmOffset1;
 };
+
+struct VectorOffsetParams{
+    uint32_t singleCoreM;
+    uint32_t perTokenOffsetM;
+    uint32_t offsetMStart;
+    uint32_t offsetMEnd;
+};
+
+template <typename T>
+__aicore__ inline T GreatestCommonDivisor(T a, T b)
+{
+    T c = a;
+    if (a < b) {
+        a = b;
+        b = c;
+    }
+    while (b != 0) {
+        c = a;
+        a = b;
+        b = c % b;
+    }
+    return a;
+}
+
+template <typename T>
+__aicore__ inline T LeastCommonMultiple(T a, T b)
+{
+    return a * b / GreatestCommonDivisor(a, b);
+}
+
+template <typename T>
+__aicore__ inline T AlignDown(T a, T base)
+{
+    if (unlikely(base == 0)) {
+        return a;
+    }
+    return a / base * base;
+}
+
+__aicore__ inline void MNBlockIdxCompute(MNConfig& mnConfig, const uint32_t curBlock, const uint32_t count,
+                                         const uint32_t thresholdMDimN)
+{
+    if (mnConfig.blockDimM <= thresholdDimM || thresholdDimM == 1) {
+        mnConfig.mIdx = (curBlock - count) / mnConfig.blockDimN;
+        mnConfig.nIdx = (curBlock - count) % mnConfig.blockDimN;
+    } else {
+        uint32_t relativeBlock = curBlock - count;
+        uint32_t curThresholdM = relativeBlock >= AlignDown(mnConfig.blockDimM * mnConfig.blockDimN, thresholdMDimN) ?
+                                     mnConfig.blockDimM % thresholdBlockNum : thresholdBlockNum;
+        uint32_t curThresholdMThresholdN = curThresholdM * thresholdBlockNum;
+        uint32_t curThresholdN =
+            relativeBlock % thresholdMDimN >= AlignDown(curThresholdM * mnConfig.blockDimN, curThresholdMThresholdN) ?
+                mnConfig.blockDimN % thresholdBlockNum : thresholdBlockNum;
+
+        uint32_t localRelativeBlock = relativeBlock % thresholdMDimN % curThresholdMThresholdN;
+        mnConfig.mIdx = localRelativeBlock % curThresholdM + relativeBlock / thresholdMDimN * thresholdBlockNum;
+        mnConfig.nIdx = (localRelativeBlock + localRelativeBlock / LeastCommonMultiple(curThresholdM, curThresholdN)) %
+                            curThresholdN +
+                        relativeBlock % thresholdMDimN / curThresholdMThresholdN * thresholdBlockNum;
+    }
+}
 
 } // namespace GroupedMatmulFinalizeRouting
 #endif
