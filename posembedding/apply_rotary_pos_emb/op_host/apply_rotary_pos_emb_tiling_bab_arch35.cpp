@@ -46,9 +46,11 @@ protected:
 
     bool IsCapable() override
     {
+        if (socVersion_ != platform_ascendc::SocVersion::ASCEND910_95) {
+            return false;
+        }
         // BSND format, 1s1d模版，后续可扩展支持所有bab类型的boardcast
-        if ((socVersion_ == platform_ascendc::SocVersion::ASCEND910_95) && (layout_ == ApplyRotaryPosEmbLayout::BSND) &&
-            (cosb_ == 1)) {
+        if ((layout_ == ApplyRotaryPosEmbLayout::BSND) && (cosb_ == 1)) {
             return true;
         }
         return false;

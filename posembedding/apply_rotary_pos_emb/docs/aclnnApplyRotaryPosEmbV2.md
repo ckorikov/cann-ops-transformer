@@ -202,7 +202,7 @@ aclnnStatus aclnnApplyRotaryPosEmbV2(
       </td>
       <td>BFLOAT16、FLOAT16、FLOAT</td>
       <td>ND</td>
-      <td>4</td>
+      <td>layout=4时，维度为3，其他layout场景下为4</td>
       <td>√</td>
     </tr>
     <tr>
@@ -225,7 +225,7 @@ aclnnStatus aclnnApplyRotaryPosEmbV2(
       </td>
       <td>BFLOAT16、FLOAT16、FLOAT</td>
       <td>ND</td>
-      <td>4</td>
+      <td>layout=4时，维度为3，其他layout场景下为4</td>
       <td>√</td>
     </tr>
     <tr>
@@ -252,7 +252,7 @@ aclnnStatus aclnnApplyRotaryPosEmbV2(
       </td>
       <td>BFLOAT16、FLOAT16、FLOAT</td>
       <td>ND</td>
-      <td>4</td>
+      <td>layout=4时，维度为3，其他layout场景下为4</td>
       <td>√</td>
     </tr>
     <tr>
@@ -279,7 +279,7 @@ aclnnStatus aclnnApplyRotaryPosEmbV2(
       </td>
       <td>BFLOAT16、FLOAT16、FLOAT</td>
       <td>ND</td>
-      <td>4</td>
+      <td>layout=4时，维度为3，其他layout场景下为4</td>
       <td>√</td>
     </tr>
     <tr>
@@ -288,8 +288,8 @@ aclnnStatus aclnnApplyRotaryPosEmbV2(
       <td>表示输入Tensor的布局格式。</td>
       <td>
         <ul>
-          <li>取值范围：1-BSND、2-SBND、3-BNSD。</li>
-          <li><term>Atlas 推理系列产品</term>、<term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：只支持1，代表格式为BSND的4维Tensor。</li>
+          <li>取值范围：1-BSND、2-SBND、3-BNSD、4-TND。</li>
+          <li><term>Atlas 推理系列产品</term>、<term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：支持1-BSND的4维Tensor、4-TND的3维Tensor）。</li>
           <li><term>昇腾910_95 AI处理器</term>：支持1-BSND、2-SBND、3-BNSD的4维Tensor。</li>
         </ul>
       </td>
@@ -410,9 +410,10 @@ aclnnStatus aclnnApplyRotaryPosEmbV2(
 ## 约束说明
 
   - <term>Atlas 推理系列产品</term>、<term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：
-    - queryRef、keyRef、cos、sin输入shape的前2维（B、S）和最后一维（D）必须相等。
+    - layout为1时，queryRef、keyRef、cos、sin输入shape的前2维（B、S）必须相等；layout为4时，第1维（T）必须相等。
+    - queryRef、keyRef、cos、sin输入shape的最后一维（D）必须相等。
     - 输入张量queryRef、keyRef、cos、sin的dtype必须相同。
-    - 输入queryRef的shape用（q_b, q_s, q_n, q_d）表示，keyRef shape用（q_b, q_s, k_n, q_d）表示，cos和sin shape用（q_b, q_s, 1, q_d）表示。其中，b表示batch_size，s表示seq_length，n表示head_num，d表示head_dim。
+    - layout为1时，输入queryRef的shape用（q_b, q_s, q_n, q_d）表示，keyRef shape用（q_b, q_s, k_n, q_d）表示，cos和sin shape用（q_b, q_s, 1, q_d）表示。其中，b表示batch_size，s表示seq_length，n表示head_num，d表示head_dim。layout为4时，输入queryRef的shape用（q_t, q_n, q_d）表示，keyRef shape用（q_t, k_n, q_d）表示，cos和sin shape用（q_t, 1, q_d）表示。其中，t表示b和s合轴，n表示head_num，d表示head_dim
 
       - 当输入是BFLOAT16时，cast表示为1，castSize为4，DtypeSize为2
       - 当输入是FLOAT16或FLOAT32时，cast表示为0，castSize = DtypeSize（FLOAT16时为2，FLOAT32时为4）

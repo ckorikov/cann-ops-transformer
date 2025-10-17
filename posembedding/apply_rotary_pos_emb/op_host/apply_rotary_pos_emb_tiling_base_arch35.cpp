@@ -246,6 +246,12 @@ void ApplyRotaryPosEmbRegbaseTilingBaseClass::ConvertRotaryMode()
 
 ge::graphStatus ApplyRotaryPosEmbRegbaseTilingBaseClass::GetShapeAttrsInfo()
 {
+    auto platformInfo = context_->GetPlatformInfo();
+    OP_CHECK_NULL_WITH_CONTEXT(context_, platformInfo);
+    auto ascendcPlatform = platform_ascendc::PlatformAscendC(platformInfo);
+    if (ascendcPlatform.GetSocVersion() != platform_ascendc::SocVersion::ASCEND910_95) {
+        return ge::GRAPH_SUCCESS;
+    }
     const gert::RuntimeAttrs *attrs = context_->GetAttrs();
     OP_CHECK_NULL_WITH_CONTEXT(context_, attrs);
     const int64_t *layout = attrs->GetAttrPointer<int64_t>(0);
