@@ -434,7 +434,7 @@ __aicore__ inline void FlashAttentionKvsameBN2GS1S2<CHILD_SPEC_TEMPLATE_ARGS>::I
     __gm__ uint8_t *softmaxLse, __gm__ uint8_t *attentionOut, __gm__ uint8_t *workspace,
     const FlashAttentionScoreSimplifiedTilingData *__restrict tiling, TPipe *tPipe)
 {
-    constInfo.subBlockIdx = get_subblockid();
+    constInfo.subBlockIdx = GetSubBlockIdx();
     this->pipe = tPipe;
     this->tilingData = tiling;
 
