@@ -13,6 +13,7 @@
  * \brief
  */
 #include "grouped_matmul_finalize_routing_base_tiling.h"
+#include "tiling/platform/platform_ascendc.h"
 #include "util/math_util.h"
 #include "err/ops_err.h"
 
@@ -23,6 +24,8 @@ constexpr uint32_t BEST_BASE_K = 128;
 constexpr uint32_t BEST_BASE_N = 256;
 constexpr uint32_t BEST_VBASE_M = 16;
 constexpr uint32_t BEST_VBASE_BIG_M = 32;
+constexpr uint32_t DETER_WORK_SPACE_SIZE = 96 * 1024 * 1024; // Deterministic worksize is 96M or 64M
+constexpr uint32_t DETER_WORK_SPACE_LOWER_SIZE = 64 * 1024 * 1024;
 
 
 constexpr uint64_t RPC_WORKSIZE = 20;
@@ -45,7 +48,7 @@ constexpr uint64_t SCALE_INPUT_INDEX = 2;
 constexpr uint32_t UBCALSIZE = 16 * 256;  // for vector compute
 constexpr uint32_t MAX_K_A8W4_MSD = 18432;  // k is limited by pre process, a line of X should be able to put in UB
 constexpr uint32_t A8W4_UBRESTBYTES = 9 * 32 * 256;  // for vector compute
-constexpr uint32_t A8W8_UBRESTBYTES = 125952;  // for vector compute
+constexpr uint32_t A8W8_UBRESTBYTES = 101376;  // for vector compute
 constexpr uint32_t EIGHT = 8;
 constexpr uint32_t AVG_M_THREHOLD = 128;
 constexpr uint32_t AVG_M_BIG_THREHOLD = 256;
@@ -319,6 +322,20 @@ ge::graphStatus GroupedMatmulFinalizeRoutingBaseTiling::W8A8TilingProcess()
     return ge::GRAPH_SUCCESS;
 }
 
+void GroupedMatmulFinalizeRoutingBaseTiling::DeterministicTilingProcess()
+{
+    if (context_->GetDeterministic() == 0) {
+        deterministicFlag_ = 0;
+        return;
+    }
+    deterministicFlag_ = 1;
+    auto ascendcPlatform = platform_ascendc::PlatformAscendC(context_->GetPlatformInfo());
+    uint64_t l2_size;
+    ascendcPlatform.GetCoreMemSize(platform_ascendc::CoreMemType::L2, l2_size);
+    deterWorkspaceSize_ = l2_size > DETER_WORK_SPACE_SIZE ? DETER_WORK_SPACE_SIZE : DETER_WORK_SPACE_LOWER_SIZE;
+    workspaceSize_ += deterWorkspaceSize_;
+}
+
 void GroupedMatmulFinalizeRoutingBaseTiling::FillTilingData()
 {
     tilingData_.matmulTiling.set_dbL0C(1);
@@ -347,6 +364,8 @@ void GroupedMatmulFinalizeRoutingBaseTiling::FillTilingData()
     tilingData_.set_withOffset(withOffset_);
     tilingData_.set_hasPertokenScale(hasPertokenScale_);
     tilingData_.set_hasBias(hasBias_);
+    tilingData_.set_deterministicFlag(deterministicFlag_);
+    tilingData_.set_deterWorkspaceSize(deterWorkspaceSize_);
 
     PrintTilingData();
 }
@@ -370,6 +389,8 @@ void GroupedMatmulFinalizeRoutingBaseTiling::PrintTilingData()
     OP_LOGD(context_->GetNodeName(), "ubRestBytes: [%u]", tilingData_.get_ubRestBytes());
     OP_LOGD(context_->GetNodeName(), "hasPertokenScale: [%u]", tilingData_.get_hasPertokenScale());
     OP_LOGD(context_->GetNodeName(), "hasBias: [%u]", tilingData_.get_hasBias());
+    OP_LOGD(context_->GetNodeName(), "deterministicFlag: [%u]", tilingData_.get_deterministicFlag());
+    OP_LOGD(context_->GetNodeName(), "deterWorkspaceSize: [%u]", tilingData_.get_deterWorkspaceSize());
 }
 
 ge::graphStatus GroupedMatmulFinalizeRoutingBaseTiling::DoOpTiling()
@@ -392,6 +413,7 @@ ge::graphStatus GroupedMatmulFinalizeRoutingBaseTiling::DoOpTiling()
         W8A8TilingProcess();
     }
 
+    DeterministicTilingProcess();
     FillTilingData();
 
     return ge::GRAPH_SUCCESS;

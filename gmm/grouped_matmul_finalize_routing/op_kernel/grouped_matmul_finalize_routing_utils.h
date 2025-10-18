@@ -25,6 +25,7 @@ constexpr uint32_t thresholdDimM = 5;       // 5 is obtained by tests, indicatin
 namespace GroupedMatmulFinalizeRouting {
 constexpr uint64_t SYNC_AIV_TO_AIC = 3;
 constexpr uint64_t SYNC_AIC_TO_AIV = 5;
+constexpr uint32_t DETER_UB_SIZE = 12 * 1024;
 
 struct MNConfig {
     uint32_t m = 0;
@@ -38,6 +39,16 @@ struct MNConfig {
     uint32_t singleN = 0;
     uint32_t offsetM = 0;
     uint64_t workSpaceOffset = 0;
+    uint64_t curBlockM = 0;
+};
+
+struct SyncConfig {
+    uint64_t curM = 0;      // M of valid data in the sliding window
+    uint64_t curGroup = 0;  // Current group in sliding window
+    uint64_t curGroupM = 0; // The last line of curGroup
+    uint64_t lowBoundM = 0; // Lower bound of sliding window
+    uint64_t windowSize = 0;      // Maximum num of rows in deterministic workspace
+    uint64_t baseN = 0;     // Finalize Routing BaseN
 };
 
 template<class AT_, class BT_, class CT_, class BiasT_, const auto& MM_CFG = CFG_MDL>
@@ -119,9 +130,9 @@ __aicore__ inline T AlignDown(T a, T base)
 }
 
 __aicore__ inline void MNBlockIdxCompute(MNConfig& mnConfig, const uint32_t curBlock, const uint32_t count,
-                                         const uint32_t thresholdMDimN)
+                                         const uint32_t thresholdMDimN, const uint32_t deterministicFlag)
 {
-    if (mnConfig.blockDimM <= thresholdDimM || thresholdDimM == 1) {
+    if (mnConfig.blockDimM <= thresholdDimM || thresholdDimM == 1 || deterministicFlag == 1) {
         mnConfig.mIdx = (curBlock - count) / mnConfig.blockDimN;
         mnConfig.nIdx = (curBlock - count) % mnConfig.blockDimN;
     } else {

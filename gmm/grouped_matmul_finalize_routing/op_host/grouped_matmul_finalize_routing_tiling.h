@@ -56,6 +56,8 @@ BEGIN_TILING_DATA_DEF(GroupMatmulFRTilingData)
   TILING_DATA_FIELD_DEF(uint32_t, withOffset);
   TILING_DATA_FIELD_DEF(uint32_t, hasPertokenScale);
   TILING_DATA_FIELD_DEF(uint32_t, hasBias);
+  TILING_DATA_FIELD_DEF(uint32_t, deterministicFlag);
+  TILING_DATA_FIELD_DEF(uint32_t, deterWorkspaceSize);
 END_TILING_DATA_DEF;
 
 REGISTER_TILING_DATA_CLASS(GroupedMatmulFinalizeRouting, GroupMatmulFRTilingData)

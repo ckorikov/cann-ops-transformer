@@ -53,6 +53,7 @@ protected:
 
     ge::graphStatus W4A8TilingProcess();
     ge::graphStatus W8A8TilingProcess();
+    void DeterministicTilingProcess();
     void FillTilingData();
     void PrintTilingData();
 protected:
@@ -80,6 +81,8 @@ private:
     int64_t tuningConfig_;
     uint32_t hasPertokenScale_;
     uint32_t hasBias_;
+    uint32_t deterministicFlag_;
+    uint32_t deterWorkspaceSize_;
 protected:
     matmul_tiling::MultiCoreMatmulTiling mm_;
 };
