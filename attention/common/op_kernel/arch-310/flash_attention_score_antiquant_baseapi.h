@@ -1130,11 +1130,6 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
     } else {
         taskParam.copyTotalS = runInfo.s2RealSize - (GetRealDealSize(runInfo.s2RealSize));  // 2 is Vecnum 
     }
-    if (taskParam.copyTotalS == 0) {
-        CrossCoreWaitFlag<SYNC_MODE, PIPE_MTE3>(CV_L1_EVENT[subTaskId % 2]);
-        CrossCoreSetFlag<SYNC_MODE, PIPE_MTE3>(VC_L1_EVENT[subTaskId % 2]);  // 2 is double buffer 
-        return;
-    }
     uint32_t curSequence = constInfo.s2BaseSize * runInfo.s2LoopCount + runInfo.kvLeftPaddingSize +
         constInfo.subBlockIdx * GetRealDealSize(runInfo.s2RealSize);
     taskParam.flashDecodeS2Idx = runInfo.flashDecodeS2Idx;
@@ -1185,11 +1180,6 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
         taskParam.copyTotalS = GetRealDealSize(runInfo.s2RealSize);  // 2 is Vec num
     } else {
         taskParam.copyTotalS = runInfo.s2RealSize - (GetRealDealSize(runInfo.s2RealSize));  // 2 is Vec num
-    }
-    if (taskParam.copyTotalS == 0) {
-        CrossCoreWaitFlag<SYNC_MODE, PIPE_MTE3>(CV_L1_EVENT[subTaskId % 2]);
-        CrossCoreSetFlag<SYNC_MODE, PIPE_MTE3>(VC_L1_EVENT[subTaskId % 2]);  // 2 is double buffer
-        return;
     }
     uint32_t curSequence = constInfo.s2BaseSize * runInfo.s2LoopCount + runInfo.kvLeftPaddingSize +
         constInfo.subBlockIdx * GetRealDealSize(runInfo.s2RealSize);

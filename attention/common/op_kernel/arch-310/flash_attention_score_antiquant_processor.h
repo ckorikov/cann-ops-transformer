@@ -143,26 +143,41 @@ __aicore__ inline void AntiquantProcessorBaseAPI<ANTIQUANT_TEMPLATE_ARGS, ANTIQU
 {
     if (taskParam.isLoadAntiqParam) {
         if constexpr (KVFP4) {
-            LoadAntiquantParamsPerTokenGroup(antiqScaleGm, antiqScaleInputQue, kvAntiqMxScaleRes, taskParam, isBeforeHalf, s2RealSize);
+            if (likely(taskParam.copyTotalS > 0)) {
+                LoadAntiquantParamsPerTokenGroup(antiqScaleGm, antiqScaleInputQue, kvAntiqMxScaleRes,
+                    taskParam, isBeforeHalf, s2RealSize);
+            }
         } else if constexpr (ANTIQUANT_PER_TOKEN) {
-            LoadAntiquantParamsPerToken(antiqScaleGm, antiqOffsetGm, blockTableGm, antiqScaleInputQue,
-                                        antiqOffsetInputQue, taskParam, isBeforeHalf, s2RealSize);
+            if (likely(taskParam.copyTotalS > 0)) {
+                LoadAntiquantParamsPerToken(antiqScaleGm, antiqOffsetGm, blockTableGm, antiqScaleInputQue,
+                                            antiqOffsetInputQue, taskParam, isBeforeHalf, s2RealSize);
+            }
         } else {
             LoadAntiquantParamsPerChannel(antiqScaleGm, antiqOffsetGm, antiqScaleInputQue, antiqOffsetInputQue,
                                           taskParam);
         }
     }
+    if (unlikely(taskParam.copyTotalS <= 0)) {
+        CrossCoreWaitFlag<SYNC_MODE, PIPE_MTE3>(CV_L1_EVENT[taskId % 2]);
+        CrossCoreSetFlag<SYNC_MODE, PIPE_MTE3>(VC_L1_EVENT[taskId % 2]);
+        if (taskParam.isFreeAntiqParam) {
+            if constexpr (!KVFP4 && !ANTIQUANT_PER_TOKEN) {
+                FreeAntiquantParams(antiqScaleInputQue, antiqOffsetInputQue, taskParam);
+            }
+        }
+        return;
+    }
     uint32_t loopCnt = (taskParam.copyTotalS + taskParam.copySplitS - 1) / taskParam.copySplitS;
     uint32_t tailCopyS = taskParam.copyTotalS - (loopCnt - 1) * taskParam.copySplitS;
     LocalTensor<Q_T> scmTensor = outBufAntiRes.GetTensor<Q_T>();
-    CrossCoreWaitFlag<4, PIPE_MTE3>(CV_L1_EVENT[taskId % 2]);
+    CrossCoreWaitFlag<SYNC_MODE, PIPE_MTE3>(CV_L1_EVENT[taskId % 2]);
     for (uint32_t i = 0, actCopyS = taskParam.copySplitS; i < loopCnt; i++) {
         if (i + 1 == loopCnt) {
             actCopyS = tailCopyS;
         }
         AntiquantBaseAPI(i, kvInputQue, kvOutputQue, scmTensor, kvGm, blockTableGm, actCopyS, taskParam, taskId, isBeforeHalf, s2RealSize);
     }
-    CrossCoreSetFlag<4, PIPE_MTE3>(VC_L1_EVENT[taskId % 2]);
+    CrossCoreSetFlag<SYNC_MODE, PIPE_MTE3>(VC_L1_EVENT[taskId % 2]);
     if (taskParam.isFreeAntiqParam) {
         if constexpr (KVFP4) {
         } else {
