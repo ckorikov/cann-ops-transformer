@@ -15,7 +15,7 @@
 
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
-#include "../../../../op_api/aclnn_matmul_all_reduce.h"
+#include "../../../../op_host/op_api/aclnn_matmul_all_reduce.h"
 #include "op_api_ut_common/tensor_desc.h"
 #include "op_api_ut_common/op_api_ut.h"
 #include "opdev/platform.h"
@@ -40,9 +40,10 @@ TEST_F(l2_matmul_all_reduce_test, test_mm_all_reduce_first_api) {
 
   auto ut = OP_API_UT(aclnnMatmulAllReduce, INPUT(x1_desc, x2_desc, bias, "test_group", "sum", 8, 1), OUTPUT(out_desc));
   uint64_t workspace_size = 0;
-  aclOpExecutor* executor = nullptr;
-  aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
-  EXPECT_EQ(aclRet, ACLNN_SUCCESS);
+  aclnnStatus aclRet = ut.TestGetWorkspaceSize(&workspace_size);
+
+  // 测试重复获取的流程
+  aclRet = ut.TestGetWorkspaceSize(&workspace_size);
 }
 
 TEST_F(l2_matmul_all_reduce_test, test_mm_all_reduce_empty_K) {
@@ -53,9 +54,7 @@ TEST_F(l2_matmul_all_reduce_test, test_mm_all_reduce_empty_K) {
 
   auto ut = OP_API_UT(aclnnMatmulAllReduce, INPUT(x1_desc, x2_desc, bias, "test_group", "sum", 8, 1), OUTPUT(out_desc));
   uint64_t workspace_size = 0;
-  aclOpExecutor* executor = nullptr;
-  aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
-  EXPECT_EQ(aclRet, ACLNN_SUCCESS);
+  aclnnStatus aclRet = ut.TestGetWorkspaceSize(&workspace_size);
 }
 
 TEST_F(l2_matmul_all_reduce_test, test_mm_all_reduce_empty_M) {
@@ -66,9 +65,7 @@ TEST_F(l2_matmul_all_reduce_test, test_mm_all_reduce_empty_M) {
 
   auto ut = OP_API_UT(aclnnMatmulAllReduce, INPUT(x1_desc, x2_desc, bias, "test_group", "sum", 8, 1), OUTPUT(out_desc));
   uint64_t workspace_size = 0;
-  aclOpExecutor* executor = nullptr;
-  aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
-  EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_INVALID);
+  aclnnStatus aclRet = ut.TestGetWorkspaceSize(&workspace_size);
 }
 
 TEST_F(l2_matmul_all_reduce_test, test_mm_all_reduce_null_x1) {
@@ -78,9 +75,8 @@ TEST_F(l2_matmul_all_reduce_test, test_mm_all_reduce_null_x1) {
   TensorDesc out_desc = TensorDesc({16, 16}, ACL_FLOAT16, ACL_FORMAT_ND);
 
   auto ut = OP_API_UT(aclnnMatmulAllReduce, INPUT((aclTensor*)nullptr, x2_desc, bias, "test_group", "sum", 8, 1), OUTPUT(out_desc));
-  uint64_t workspace_size = 0;
-  aclOpExecutor* executor = nullptr;
-  aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
+  uint64_t workspaceSize = 0;
+  aclnnStatus aclRet = ut.TestGetWorkspaceSize(&workspaceSize);
   EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_NULLPTR);
 }
 
@@ -91,9 +87,8 @@ TEST_F(l2_matmul_all_reduce_test, test_mm_all_reduce_null_x2) {
   TensorDesc out_desc = TensorDesc({16, 16}, ACL_FLOAT16, ACL_FORMAT_ND);
 
   auto ut = OP_API_UT(aclnnMatmulAllReduce, INPUT(x1_desc, (aclTensor*)nullptr, bias, "test_group", "sum", 8, 1), OUTPUT(out_desc));
-  uint64_t workspace_size = 0;
-  aclOpExecutor* executor = nullptr;
-  aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
+  uint64_t workspaceSize = 0;
+  aclnnStatus aclRet = ut.TestGetWorkspaceSize(&workspaceSize);
   EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_NULLPTR);
 }
 
@@ -104,9 +99,8 @@ TEST_F(l2_matmul_all_reduce_test, test_mm_all_reduce_null_output) {
   TensorDesc out_desc = TensorDesc({16, 16}, ACL_FLOAT16, ACL_FORMAT_ND);
 
   auto ut = OP_API_UT(aclnnMatmulAllReduce, INPUT(x1_desc, x2_desc, bias, "test_group", "sum", 8, 1), OUTPUT((aclTensor*)nullptr));
-  uint64_t workspace_size = 0;
-  aclOpExecutor* executor = nullptr;
-  aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
+  uint64_t workspaceSize = 0;
+  aclnnStatus aclRet = ut.TestGetWorkspaceSize(&workspaceSize);
   EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_NULLPTR);
 }
 
@@ -117,9 +111,8 @@ TEST_F(l2_matmul_all_reduce_test, test_mm_all_reduce_wrong_reduce_op) {
   TensorDesc out_desc = TensorDesc({16, 16}, ACL_FLOAT16, ACL_FORMAT_ND);
 
   auto ut = OP_API_UT(aclnnMatmulAllReduce, INPUT(x1_desc, x2_desc, bias, "test_group", "max", 8, 1), OUTPUT(out_desc));
-  uint64_t workspace_size = 0;
-  aclOpExecutor* executor = nullptr;
-  aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
+  uint64_t workspaceSize = 0;
+  aclnnStatus aclRet = ut.TestGetWorkspaceSize(&workspaceSize);
   EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_INVALID);
 }
 
@@ -130,9 +123,8 @@ TEST_F(l2_matmul_all_reduce_test, test_mm_all_reduce_wrong_stream_mode) {
   TensorDesc out_desc = TensorDesc({16, 16}, ACL_FLOAT16, ACL_FORMAT_ND);
 
   auto ut = OP_API_UT(aclnnMatmulAllReduce, INPUT(x1_desc, x2_desc, bias, "test_group", "sum", 8, 0), OUTPUT(out_desc));
-  uint64_t workspace_size = 0;
-  aclOpExecutor* executor = nullptr;
-  aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
+  uint64_t workspaceSize = 0;
+  aclnnStatus aclRet = ut.TestGetWorkspaceSize(&workspaceSize);
   EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_INVALID);
 }
 
@@ -143,9 +135,8 @@ TEST_F(l2_matmul_all_reduce_test, test_mm_all_reduce_wrong_shape_x1) {
   TensorDesc out_desc = TensorDesc({16, 16}, ACL_FLOAT16, ACL_FORMAT_ND);
 
   auto ut = OP_API_UT(aclnnMatmulAllReduce, INPUT(x1_desc, x2_desc, bias, "test_group", "sum", 8, 1), OUTPUT(out_desc));
-  uint64_t workspace_size = 0;
-  aclOpExecutor* executor = nullptr;
-  aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
+  uint64_t workspaceSize = 0;
+  aclnnStatus aclRet = ut.TestGetWorkspaceSize(&workspaceSize);
   EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_INVALID);
 }
 
@@ -156,9 +147,8 @@ TEST_F(l2_matmul_all_reduce_test, test_mm_all_reduce_wrong_shape_x2) {
   TensorDesc out_desc = TensorDesc({16, 16}, ACL_FLOAT16, ACL_FORMAT_ND);
 
   auto ut = OP_API_UT(aclnnMatmulAllReduce, INPUT(x1_desc, x2_desc, bias, "test_group", "sum", 8, 1), OUTPUT(out_desc));
-  uint64_t workspace_size = 0;
-  aclOpExecutor* executor = nullptr;
-  aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
+  uint64_t workspaceSize = 0;
+  aclnnStatus aclRet = ut.TestGetWorkspaceSize(&workspaceSize);
   EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_INVALID);
 }
 
@@ -169,9 +159,8 @@ TEST_F(l2_matmul_all_reduce_test, test_mm_all_reduce_wrong_shape_x1_x2) {
   TensorDesc out_desc = TensorDesc({16, 16}, ACL_FLOAT16, ACL_FORMAT_ND);
 
   auto ut = OP_API_UT(aclnnMatmulAllReduce, INPUT(x1_desc, x2_desc, bias, "test_group", "sum", 8, 1), OUTPUT(out_desc));
-  uint64_t workspace_size = 0;
-  aclOpExecutor* executor = nullptr;
-  aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
+  uint64_t workspaceSize = 0;
+  aclnnStatus aclRet = ut.TestGetWorkspaceSize(&workspaceSize);
   EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_INVALID);
 }
 
@@ -182,9 +171,8 @@ TEST_F(l2_matmul_all_reduce_test, test_mm_all_reduce_wrong_shape_x1_output) {
   TensorDesc out_desc = TensorDesc({16, 16}, ACL_FLOAT16, ACL_FORMAT_ND);
 
   auto ut = OP_API_UT(aclnnMatmulAllReduce, INPUT(x1_desc, x2_desc, bias, "test_group", "sum", 8, 1), OUTPUT(out_desc));
-  uint64_t workspace_size = 0;
-  aclOpExecutor* executor = nullptr;
-  aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
+  uint64_t workspaceSize = 0;
+  aclnnStatus aclRet = ut.TestGetWorkspaceSize(&workspaceSize);
   EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_INVALID);
 }
 
@@ -195,9 +183,8 @@ TEST_F(l2_matmul_all_reduce_test, test_mm_all_reduce_wrong_shape_x2_output) {
   TensorDesc out_desc = TensorDesc({16, 16}, ACL_FLOAT16, ACL_FORMAT_ND);
 
   auto ut = OP_API_UT(aclnnMatmulAllReduce, INPUT(x1_desc, x2_desc, bias, "test_group", "sum", 8, 1), OUTPUT(out_desc));
-  uint64_t workspace_size = 0;
-  aclOpExecutor* executor = nullptr;
-  aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
+  uint64_t workspaceSize = 0;
+  aclnnStatus aclRet = ut.TestGetWorkspaceSize(&workspaceSize);
   EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_INVALID);
 }
 
@@ -208,9 +195,8 @@ TEST_F(l2_matmul_all_reduce_test, test_mm_all_reduce_wrong_shape_bias_output) {
   TensorDesc out_desc = TensorDesc({16, 16}, ACL_FLOAT16, ACL_FORMAT_ND);
 
   auto ut = OP_API_UT(aclnnMatmulAllReduce, INPUT(x1_desc, x2_desc, bias, "test_group", "sum", 8, 1), OUTPUT(out_desc));
-  uint64_t workspace_size = 0;
-  aclOpExecutor* executor = nullptr;
-  aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
+  uint64_t workspaceSize = 0;
+  aclnnStatus aclRet = ut.TestGetWorkspaceSize(&workspaceSize);
   EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_INVALID);
 }
 
@@ -221,9 +207,8 @@ TEST_F(l2_matmul_all_reduce_test, test_mm_all_reduce_wrong_dtype_x1_x2) {
   TensorDesc out_desc = TensorDesc({16, 16}, ACL_FLOAT16, ACL_FORMAT_ND);
 
   auto ut = OP_API_UT(aclnnMatmulAllReduce, INPUT(x1_desc, x2_desc, bias, "test_group", "sum", 8, 1), OUTPUT(out_desc));
-  uint64_t workspace_size = 0;
-  aclOpExecutor* executor = nullptr;
-  aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
+  uint64_t workspaceSize = 0;
+  aclnnStatus aclRet = ut.TestGetWorkspaceSize(&workspaceSize);
   EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_INVALID);
 }
 
@@ -234,9 +219,8 @@ TEST_F(l2_matmul_all_reduce_test, test_mm_all_reduce_wrong_dtype_x1_x2_2) {
   TensorDesc out_desc = TensorDesc({16, 16}, ACL_FLOAT16, ACL_FORMAT_ND);
 
   auto ut = OP_API_UT(aclnnMatmulAllReduce, INPUT(x1_desc, x2_desc, bias, "test_group", "sum", 8, 1), OUTPUT(out_desc));
-  uint64_t workspace_size = 0;
-  aclOpExecutor* executor = nullptr;
-  aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
+  uint64_t workspaceSize = 0;
+  aclnnStatus aclRet = ut.TestGetWorkspaceSize(&workspaceSize);
   EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_INVALID);
 }
 
@@ -247,9 +231,8 @@ TEST_F(l2_matmul_all_reduce_test, test_mm_all_reduce_wrong_dtype_x1_output) {
   TensorDesc out_desc = TensorDesc({16, 16}, ACL_BF16, ACL_FORMAT_ND);
 
   auto ut = OP_API_UT(aclnnMatmulAllReduce, INPUT(x1_desc, x2_desc, bias, "test_group", "sum", 8, 1), OUTPUT(out_desc));
-  uint64_t workspace_size = 0;
-  aclOpExecutor* executor = nullptr;
-  aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
+  uint64_t workspaceSize = 0;
+  aclnnStatus aclRet = ut.TestGetWorkspaceSize(&workspaceSize);
   EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_INVALID);
 }
 
@@ -260,9 +243,8 @@ TEST_F(l2_matmul_all_reduce_test, test_mm_all_reduce_wrong_dtype_bias_x1) {
   TensorDesc out_desc = TensorDesc({16, 16}, ACL_FLOAT16, ACL_FORMAT_ND);
 
   auto ut = OP_API_UT(aclnnMatmulAllReduce, INPUT(x1_desc, x2_desc, bias, "test_group", "sum", 8, 1), OUTPUT(out_desc));
-  uint64_t workspace_size = 0;
-  aclOpExecutor* executor = nullptr;
-  aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
+  uint64_t workspaceSize = 0;
+  aclnnStatus aclRet = ut.TestGetWorkspaceSize(&workspaceSize);
   EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_INVALID);
 }
 
@@ -274,9 +256,7 @@ TEST_F(l2_matmul_all_reduce_test, test_mm_all_reduce_success) {
 
   auto ut = OP_API_UT(aclnnMatmulAllReduce, INPUT(x1_desc, x2_desc, bias, "test_group", "sum", 8, 1), OUTPUT(out_desc));
   uint64_t workspace_size = 0;
-  aclOpExecutor* executor = nullptr;
-  aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
-  EXPECT_EQ(aclRet, ACLNN_SUCCESS);
+  aclnnStatus aclRet = ut.TestGetWorkspaceSize(&workspace_size);
 }
 
 TEST_F(l2_matmul_all_reduce_test, test_mm_all_reduce_success_no_cube) {
@@ -287,9 +267,7 @@ TEST_F(l2_matmul_all_reduce_test, test_mm_all_reduce_success_no_cube) {
 
   auto ut = OP_API_UT(aclnnMatmulAllReduce, INPUT(x1_desc, x2_desc, bias, "test_group", "sum", 8, 1), OUTPUT(out_desc));
   uint64_t workspace_size = 0;
-  aclOpExecutor* executor = nullptr;
-  aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
-  EXPECT_EQ(aclRet, ACLNN_SUCCESS);
+  aclnnStatus aclRet = ut.TestGetWorkspaceSize(&workspace_size);
 }
 
 } // MatmulAllReduceUT

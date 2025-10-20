@@ -14,6 +14,7 @@
 #include "tiling_context_faker.h"
 #include "tiling_case_executor.h"
 
+namespace AllGatherMatmulUT {
 
 class AllGatherMatmulTiling : public testing::Test {
 protected:
@@ -195,3 +196,5 @@ TEST_F(AllGatherMatmulTiling, all_gather_matmul_test_tiling_n_0) {
     uint64_t expectTilingKey = 111UL;
     ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey);
 }
+
+} // AllGatherMatmulUT
