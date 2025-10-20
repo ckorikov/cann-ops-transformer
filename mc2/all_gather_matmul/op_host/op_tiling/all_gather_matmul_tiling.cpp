@@ -257,8 +257,8 @@ static ge::graphStatus SetMatmulTilingAllGatherMatmul(gert::TilingContext* conte
     bool isBias = true;
     auto ascendcPlatform = platform_ascendc::PlatformAscendC(context->GetPlatformInfo());
     auto coreNum = ascendcPlatform.GetCoreNumAic();
-    auto aType = context->GetInputTensor(0)->GetDataType();
-    auto bType = context->GetInputTensor(1)->GetDataType();
+    auto aType = context->GetInputDesc(0)->GetDataType();
+    auto bType = context->GetInputDesc(1)->GetDataType();
     auto cType = aType;
     const gert::StorageShape* matrix_bias = context->GetOptionalInputShape(2);
     if (matrix_bias == nullptr) {
@@ -266,7 +266,7 @@ static ge::graphStatus SetMatmulTilingAllGatherMatmul(gert::TilingContext* conte
         biasType = cType;
     }
     else {
-        biasType = context->GetInputTensor(2)->GetDataType(); // 2 is index
+        biasType = context->GetInputDesc(2)->GetDataType(); // 2 is index
     }
 
     const gert::StorageShape* aShape = context->GetInputShape(0);
