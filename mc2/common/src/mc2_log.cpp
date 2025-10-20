@@ -49,6 +49,10 @@ void PrintMMV3TilingData(const std::string &opName,
   OP_LOGD(opName, " mTailCnt %d", tiling.get_mTailCnt());
   OP_LOGD(opName, " nTailCnt %d", tiling.get_nTailCnt());
   OP_LOGD(opName, " kTailCnt %d", tiling.get_kTailCnt());
+  OP_LOGD(opName, " mBaseTailSplitCnt %d", tiling.get_mBaseTailSplitCnt());
+  OP_LOGD(opName, " nBaseTailSplitCnt %d", tiling.get_nBaseTailSplitCnt());
+  OP_LOGD(opName, " mTailMain %d", tiling.get_mTailMain());
+  OP_LOGD(opName, " nTailMain %d", tiling.get_nTailMain());
   OP_LOGD(opName, " isHf32 %d", tiling.get_isHf32());
 }
 
@@ -169,4 +173,5 @@ void PrintTileL2TilingData(const std::string &opName,
   OP_LOGD(opName, " tileL2Tiling.enableL2Tile %u",
           tileL2Tiling.get_enableL2Tile());
 }
+
 }  // namespace Mc2Log

@@ -54,6 +54,7 @@ void PrintRCSTilingData(const std::string &opName,
 void PrintMc2MsgData(const std::string &opName, optiling::Mc2Msg &msg);
 void PrintTileL2TilingData(const std::string &opName,
                            optiling::TileL2Tiling &tileL2Tiling);
+void PrintMMV3TilingData(const std::string &opName, optiling::MC2MatmulV3TilingData &tiling);
 }  // namespace Mc2Log
 
 struct ErrorResult {
@@ -106,7 +107,7 @@ inline std::vector<char> CreateErrorMsg(const char *format, ...){
 
 inline std::vector<char> CreateErrorMsg() { return {}; }
 
-inline const char *get_cstr(const std::string &str) { return str.c_str(); }
+inline const char *ConvertStringToCstr(const std::string &str) { return str.c_str(); }
 
 #if !defined(__ANDROID__) && !defined(ANDROID)
 #define OPS_ERR_IF(COND, LOG_FUNC, EXPR) \
@@ -143,7 +144,7 @@ inline const char *get_cstr(const std::string &str) { return str.c_str(); }
   do {                                                            \
     D_OP_LOGE(op_name, err_msg, ##__VA_ARGS__);                   \
     REPORT_INNER_ERR_MSG("E69999", "op[%s], " err_msg,            \
-                         get_cstr(Ops::Base::GetOpInfo(op_name)), \
+                         ConvertStringToCstr(Ops::Base::GetOpInfo(op_name)), \
                          ##__VA_ARGS__);                          \
   } while (0)
 #define OP_LOGI_IF_RETURN(condition, returnValue, opName, fmt, ...)                                             \
@@ -209,7 +210,7 @@ namespace ops {
 
 #define VECTOR_INFER_SHAPE_INNER_ERR_REPORT(op_name, err_msg)                  \
   do {                                                                         \
-    OP_LOGE_WITHOUT_REPORT(op_name, "%s", get_cstr(err_msg));                  \
+    OP_LOGE_WITHOUT_REPORT(op_name, "%s", ConvertStringToCstr(err_msg));                  \
     std::string errorStr = "E89999";                                           \
     REPORT_INNER_ERR_MSG(errorStr.c_str(), "%s",                               \
                          ConcatString("op[", op_name, "],", err_msg).c_str()); \
@@ -222,7 +223,7 @@ namespace optiling {
   do {                                                            \
     OP_LOGE_WITHOUT_REPORT(op_name, err_msg, ##__VA_ARGS__);      \
     REPORT_INNER_ERR_MSG("E89999", "op[%s], " err_msg,            \
-                         get_cstr(Ops::Base::GetOpInfo(op_name)), \
+                         ConvertStringToCstr(Ops::Base::GetOpInfo(op_name)), \
                          ##__VA_ARGS__);                          \
   } while (0)
 #define OP_TILING_CHECK(cond, log_func, expr) \

@@ -568,15 +568,7 @@ ge::graphStatus QuantMatmulAllReduceTilingA5::CheckInput()
     OP_TILING_CHECK(
         CheckQuantGroupSize() != ge::GRAPH_SUCCESS,
         VECTOR_INNER_ERR_REPORT_TILING(context_->GetNodeName(), "Check groupSize failed."), return ge::GRAPH_FAILED);
-    // 仅支持3种类型
-    if (mmrCtxInfo_.yDtypePtr != nullptr) {
-        OP_TILING_CHECK(
-            !mc2tiling::CheckDataTypeVaild(static_cast<ge::DataType>(*mmrCtxInfo_.yDtypePtr), DTYPE_SUPPORT_LIST_Y),
-            VECTOR_INNER_ERR_REPORT_TILING(
-                context_->GetNodeName(), "yDtype only support fp16, bf16 and float, actually is %ld",
-                *mmrCtxInfo_.yDtypePtr),
-            return ge::GRAPH_FAILED);
-    }
+
     return CheckAxisSize();
 }
 

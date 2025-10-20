@@ -641,6 +641,22 @@ uint64_t MatmulAllReduceTilingBase::GetBatchValue() const
 
 ge::graphStatus MatmulAllReduceTilingBase::CheckInput()
 {
+    // 全量化mxfp&fp8hif8支持3种输出
+    std::initializer_list<ge::DataType> DTYPE_SUPPORT_LIST_Y;
+    if ((scenario_ == AllReduceScenario::MXFP8) || (scenario_ == AllReduceScenario::MXFP4) ||
+        (scenario_ == AllReduceScenario::FP8HIF8)) {
+        DTYPE_SUPPORT_LIST_Y = {ge::DataType::DT_FLOAT16, ge::DataType::DT_BF16, ge::DataType::DT_FLOAT};
+    } else {
+        DTYPE_SUPPORT_LIST_Y = {ge::DataType::DT_FLOAT16, ge::DataType::DT_BF16};
+    }
+
+    OP_TILING_CHECK(std::find(DTYPE_SUPPORT_LIST_Y.begin(), DTYPE_SUPPORT_LIST_Y.end(),
+        static_cast<ge::DataType>(mmrCtxInfo_.y->GetDataType())) == DTYPE_SUPPORT_LIST_Y.end(),
+        VECTOR_INNER_ERR_REPORT_TILING(
+            context_->GetNodeName(), "yDtype only support fp16, bf16 or float(in mxfp4/mxfp8/fp8hif8), "
+            "but actually got is %ld", mmrCtxInfo_.y->GetDataType()),
+        return ge::GRAPH_FAILED);
+
     // x1 shape 为2-3维
     size_t x1DimNum = mmrCtxInfo_.x1_shape->GetStorageShape().GetDimNum();
     OP_TILING_CHECK(

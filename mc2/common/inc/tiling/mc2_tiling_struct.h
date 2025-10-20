@@ -199,6 +199,10 @@ BEGIN_TILING_DATA_DEF(MC2MatmulV3TilingData)
   TILING_DATA_FIELD_DEF(uint32_t, mTailCnt);
   TILING_DATA_FIELD_DEF(uint32_t, nTailCnt);
   TILING_DATA_FIELD_DEF(uint32_t, kTailCnt);
+  TILING_DATA_FIELD_DEF(uint32_t, mBaseTailSplitCnt);
+  TILING_DATA_FIELD_DEF(uint32_t, nBaseTailSplitCnt);
+  TILING_DATA_FIELD_DEF(uint32_t, mTailMain);
+  TILING_DATA_FIELD_DEF(uint32_t, nTailMain);
   TILING_DATA_FIELD_DEF(uint32_t, isHf32);
 END_TILING_DATA_DEF;
 REGISTER_TILING_DATA_CLASS(MC2MatmulV3TilingDataOp, MC2MatmulV3TilingData);

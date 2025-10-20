@@ -74,13 +74,11 @@ uint64_t MatmulAllReduceTilingA5::GetTilingKey() const
         return EMPTY_TENSOR_KEY;
     }
 
-    auto tilingKey = context_->GetTilingKey();
-    if ((tilingKey == MM_ALINGNED_TILING_KEY) || (tilingKey == MM_TRANSB_TILING_KEY)) {
-        if (!enableBiasConvert_ && !matmulAllReduce910TilingData_.param.get_isAdd()) {
-            tilingKey = CUBE_ONLY_KEY;
-        } else {
-            tilingKey = MM_ALINGNED_TILING_KEY;
-        }
+    uint64_t tilingKey = 0;
+    if (!matmulAllReduce910TilingData_.param.get_isAdd()) {
+        tilingKey = CUBE_ONLY_KEY;
+    } else {
+        tilingKey = MM_ALINGNED_TILING_KEY;
     }
     // 为了不影响A2，910_95的tilingKey额外增加1）10^18
     tilingKey += mc2tiling::MC2_TILINGKEY_OFFSET;
@@ -90,28 +88,15 @@ uint64_t MatmulAllReduceTilingA5::GetTilingKey() const
 
 void MatmulAllReduceTilingA5::PrintExtendMatmulTiling(bool isTail)
 {
-    auto& tiling = matmulAllReduce910TilingData_.tilematmulTiling;
+    auto& tiling = matmulAllReduce910TilingData_.mC2Mmv3TailTilingData;
     if (isTail) {
-        tiling = matmulAllReduce910TilingData_.tailmatmulTiling;
+        tiling = matmulAllReduce910TilingData_.mC2Mmv3TailTilingData;
     }
 
-    OP_LOGD(opName_, "TileL2cacheTiling.mTileCntL2=%u.", tiling.tileL2cacheTiling.get_mTileCntL2());
-    OP_LOGD(opName_, "TileL2cacheTiling.nTileCntL2=%u.", tiling.tileL2cacheTiling.get_nTileCntL2());
-    OP_LOGD(opName_, "TileL2cacheTiling.mTileBlock=%u.", tiling.tileL2cacheTiling.get_mTileBlock());
-    OP_LOGD(opName_, "TileL2cacheTiling.nTileBlock=%u.", tiling.tileL2cacheTiling.get_nTileBlock());
-    OP_LOGD(opName_, "TileL2cacheTiling.calOrder=%u.", tiling.tileL2cacheTiling.get_calOrder());
-
-    OP_LOGD(opName_, "MatmulRunInfo.transA=%u.", tiling.matmulRunInfo.get_transA());
-    OP_LOGD(opName_, "MatmulRunInfo.transB=%u.", tiling.matmulRunInfo.get_transB());
-    OP_LOGD(opName_, "MatmulRunInfo.nd2nzA=%u.", tiling.matmulRunInfo.get_nd2nzA());
-    OP_LOGD(opName_, "MatmulRunInfo.nd2nzB=%u.", tiling.matmulRunInfo.get_nd2nzB());
-    OP_LOGD(opName_, "MatmulRunInfo.isHf32=%u.", tiling.matmulRunInfo.get_isHf32());
-
-    OP_LOGD(opName_, "L2cacheUseInfo.l2CacheFlag=%u.", tiling.l2cacheUseInfo.get_l2CacheFlag());
-    OP_LOGD(opName_, "Tiling.baseAN=%u.", tiling.get_baseAN());
-    OP_LOGD(opName_, "Tiling.baseAD=%u.", tiling.get_baseAD());
-    OP_LOGD(opName_, "Tiling.baseBN=%u.", tiling.get_baseBN());
-    OP_LOGD(opName_, "Tiling.baseBD=%u.", tiling.get_baseBD());
+    OP_LOGD(opName_, "Matmul tiling mTailCnt=%u", tiling.get_mTailCnt());
+    OP_LOGD(opName_, "Matmul tiling nTailCnt=%u", tiling.get_nTailCnt());
+    OP_LOGD(opName_, "Matmul tiling kTailCnt=%u", tiling.get_kTailCnt());
+    OP_LOGD(opName_, "Matmul tiling isHf32=%u", tiling.get_isHf32());
 }
 
 ge::graphStatus MatmulAllReduceTilingA5::GetWorkspaceSize()
@@ -145,20 +130,50 @@ ge::graphStatus MatmulAllReduceTilingA5::PostTiling()
 
 ge::graphStatus MatmulAllReduceTilingA5::Do910Tiling()
 {
-    args_.mValue = tileMValue_;
-    TilingTransferHelperA5 mmTile(*this, matmulAllReduce910TilingData_.tilematmulTiling);
-    if (args_.enableSplitK) {
-        OP_LOGD(opName_, "Enable SplitK Tiling.");
-        return mmTile.DoTiling();
-    } else {
-        GE_ASSERT_GRAPH_SUCCESS(mmTile.DoTiling());
-        if (MutableRCSTilingData().get_tailCnt() == 0) {
-            return ge::GRAPH_SUCCESS;
-        }
-        args_.mValue = tailMValue_;
-        TilingTransferHelperA5 mmTail(*this, matmulAllReduce910TilingData_.tailmatmulTiling);
-        return mmTail.DoTiling();
+    OP_LOGD(opName_, "Start to excute DoMatmulV3Tiling!");
+    // 获取芯片平台信息
+    auto platformInfo = context_->GetPlatformInfo();
+    OP_TILING_CHECK(platformInfo == nullptr, VECTOR_INNER_ERR_REPORT_TILING(opName_, "get platform info failed"),
+                    return ge::GRAPH_FAILED);
+    // 获取compileInfo
+    OP_TILING_CHECK(matmul_v3_advanced::InitCompileInfo(platformInfo, &compileInfo_) != ge::GRAPH_SUCCESS,
+                    VECTOR_INNER_ERR_REPORT_TILING(opName_, "init compile info failed"), return ge::GRAPH_FAILED);
+
+    // 根据芯片型号获取策略模板
+    std::vector<int32_t> priorities;
+    OP_TILING_CHECK(mc2tiling::GetMatmulV3PriorityPolicy(socVersion_, priorities, opName_) != ge::GRAPH_SUCCESS,
+                    VECTOR_INNER_ERR_REPORT_TILING(opName_, "get mmv3 priority policy failed"),
+                    return ge::GRAPH_FAILED);
+    MMRegisterCfg registerCfg {"MatMulV3", socVersion_, priorities};
+    mc2tiling::UpdateMatmulV3Args(mmV3Args_, args_, opName_);
+
+    // 获取tileTiling
+    mmV3Args_.mValue = tileMValue_;
+    OP_LOGD(opName_, "Do MatmulV3 tile tiling!");
+    Mc2MatmulHelper::Mc2MatmulTilingCfg tileTilingCfg(reinterpret_cast<const void*>(&compileInfo_),
+                                                      reinterpret_cast<const void*>(&mmV3Args_));
+    GE_ASSERT_GRAPH_SUCCESS(DoMatmulV3Tiling(tileTilingCfg, registerCfg, MutableMC2MmV3TileTilingData()));
+    if (tailMValue_ != 0UL) {
+        mmV3Args_.mValue = tailMValue_;
+        OP_LOGD(opName_, "Do MatmulV3 tail tiling!");
+        Mc2MatmulHelper::Mc2MatmulTilingCfg tailTilingCfg(reinterpret_cast<const void*>(&compileInfo_),
+                                                          reinterpret_cast<const void*>(&mmV3Args_));
+        GE_ASSERT_GRAPH_SUCCESS(DoMatmulV3Tiling(tileTilingCfg, registerCfg, MutableMC2MmV3TailTilingData()));
     }
+    return ge::GRAPH_SUCCESS;
+}
+
+ge::graphStatus MatmulAllReduceTilingA5::DoMatmulV3Tiling(Mc2MatmulHelper::Mc2MatmulTilingCfg& tilingCfg,
+    MMRegisterCfg& registerCfg, MC2MatmulV3TilingData& tilingData)
+{
+    tilingCfg.SetRankDim(args_.rankDim);
+    tilingCfg.SetMatMulV3TilingData(tilingData);
+    if (MMTilingRegistry::GetInstance().DoTilingImpl(context_, tilingCfg, registerCfg) != ge::GRAPH_SUCCESS) {
+        OP_LOGE(opName_, "Failed to do MatmulV3Tiling.");
+        return ge::GRAPH_FAILED;
+    }
+
+    return ge::GRAPH_SUCCESS;
 }
 
 Mc2Msg& MatmulAllReduceTilingA5::MutableMc2MsgData()
@@ -169,16 +184,6 @@ Mc2Msg& MatmulAllReduceTilingA5::MutableMc2MsgData()
 RCSTiling& MatmulAllReduceTilingA5::MutableRCSTilingData()
 {
     return matmulAllReduce910TilingData_.param;
-}
-
-TCubeTiling& MatmulAllReduceTilingA5::MutableTCubeTileTilingData()
-{
-    return matmulAllReduce910TilingData_.tilematmulTiling.matmulTiling;
-}
-
-TCubeTiling& MatmulAllReduceTilingA5::MutableTCubeTailTilingData()
-{
-    return matmulAllReduce910TilingData_.tailmatmulTiling.matmulTiling;
 }
 
 ge::graphStatus MatmulAllReduceTilingA5::CheckAxisSize()
@@ -278,16 +283,6 @@ ge::graphStatus MatmulAllReduceTilingA5::CheckInput()
                     i, outputDimValue, x3DimValue),
                 return ge::GRAPH_FAILED);
         }
-    }
-
-    // 仅支持3种类型
-    if (mmrCtxInfo_.yDtypePtr != nullptr) {
-        OP_TILING_CHECK(
-            !mc2tiling::CheckDataTypeVaild(static_cast<ge::DataType>(*mmrCtxInfo_.yDtypePtr), DTYPE_SUPPORT_LIST_Y),
-            VECTOR_INNER_ERR_REPORT_TILING(
-                context_->GetNodeName(), "yDtype only support fp16, bf16 and float, actually is %ld",
-                *mmrCtxInfo_.yDtypePtr),
-            return ge::GRAPH_FAILED);
     }
 
     return CheckAxisSize();

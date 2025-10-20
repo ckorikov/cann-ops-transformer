@@ -80,9 +80,6 @@ constexpr uint64_t MM_ALINGNED_TILING_KEY_A2 = 65536UL;
 constexpr uint64_t TILING_KEY_BASE_VALUE = 10000000000000000000UL;
 constexpr uint64_t MM_TRANSB_TILING_KEY = 10000000000000002001UL;
 
-const std::initializer_list<ge::DataType> DTYPE_SUPPORT_LIST_Y = {
-    ge::DataType::DT_FLOAT16, ge::DataType::DT_BF16, ge::DataType::DT_FLOAT};
-
 struct L2TilePara {
     uint32_t mTile;
     uint32_t nTile;

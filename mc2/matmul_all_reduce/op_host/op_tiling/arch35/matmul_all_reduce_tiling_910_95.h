@@ -17,17 +17,25 @@
 
 #include "../matmul_all_reduce_tiling.h"
 #include "mat_mul_v3/op_host/op_tiling/matmul_v3_base_tiling.h"
+#include "mat_mul_v3/op_host/op_tiling/arch35/matmul_v3_compile_info_advanced.h"
+#include "mat_mul_v3/op_host/op_tiling/matmul_v3_compile_info.h"
+#include "mat_mul_v3/op_host/op_tiling/arch35/matmul_v3_common_advanced.h"
+#include "mat_mul_v3/op_host/op_tiling/arch35/matmul_tiling_registry.h"
+#include "mat_mul_v3/op_host/op_tiling/arch35/matmul_v3_tiling_strategy.h"
+#include "mc2_matmul_tiling_cfg.h"
 
 namespace optiling {
+using namespace matmul_v3_advanced;
+
 BEGIN_TILING_DATA_DEF(MatmulAllReduce910TilingDataA5)
-TILING_DATA_FIELD_DEF(uint32_t, version);
-TILING_DATA_FIELD_DEF(uint32_t, hcommCnt);
-TILING_DATA_FIELD_DEF_STRUCT(MC2ServerCfg, serverCfg);
-TILING_DATA_FIELD_DEF_STRUCT(MC2HcommCfg, hcommCfg);
-TILING_DATA_FIELD_DEF_STRUCT(Mc2Msg, msg);
-TILING_DATA_FIELD_DEF_STRUCT(RCSTiling, param);
-TILING_DATA_FIELD_DEF_STRUCT(MatmulTilingData, tilematmulTiling);
-TILING_DATA_FIELD_DEF_STRUCT(MatmulTilingData, tailmatmulTiling);
+    TILING_DATA_FIELD_DEF(uint32_t, version);
+    TILING_DATA_FIELD_DEF(uint32_t, hcommCnt);
+    TILING_DATA_FIELD_DEF_STRUCT(MC2ServerCfg, serverCfg);
+    TILING_DATA_FIELD_DEF_STRUCT(MC2HcommCfg, hcommCfg);
+    TILING_DATA_FIELD_DEF_STRUCT(Mc2Msg, msg);
+    TILING_DATA_FIELD_DEF_STRUCT(RCSTiling, param);
+    TILING_DATA_FIELD_DEF_STRUCT(MC2MatmulV3TilingData, mC2Mmv3TileTilingData);
+    TILING_DATA_FIELD_DEF_STRUCT(MC2MatmulV3TilingData, mC2Mmv3TailTilingData);
 END_TILING_DATA_DEF;
 REGISTER_TILING_DATA_CLASS(MatmulAllReduce_11000000000000000001, MatmulAllReduce910TilingDataA5);
 REGISTER_TILING_DATA_CLASS(MatmulAllReduce_11000000000000001100, MatmulAllReduce910TilingDataA5);
@@ -35,14 +43,14 @@ REGISTER_TILING_DATA_CLASS(MatmulAllReduce_11000000000000000009, MatmulAllReduce
 
 class MatmulAllReduceTilingA5 : public MatmulAllReduceTilingBase
 {
-    friend class TilingTransferHelperA5;
-
 public:
     explicit MatmulAllReduceTilingA5(gert::TilingContext* context);
     MatmulAllReduceTilingA5(gert::TilingContext* context, MMRCtxInfo* mmrCtxInfo, MatmulAllReduce910TilingDataA5* out);
     ~MatmulAllReduceTilingA5() override = default;
 
 protected:
+    ge::graphStatus DoMatmulV3Tiling(Mc2MatmulHelper::Mc2MatmulTilingCfg &tilingCfg, MMRegisterCfg &registerCfg,
+                                     MC2MatmulV3TilingData &tilingData);
     bool IsCapable() override;
 
     ge::graphStatus DoOpTiling() override;
@@ -59,9 +67,25 @@ protected:
 
     RCSTiling& MutableRCSTilingData() override;
 
-    TCubeTiling& MutableTCubeTileTilingData() override;
+    TCubeTiling &MutableTCubeTileTilingData() override
+    {
+        return matmulAllReduce910TilingData_.mC2Mmv3TileTilingData.matmulTiling;
+    }
 
-    TCubeTiling& MutableTCubeTailTilingData() override;
+    TCubeTiling &MutableTCubeTailTilingData() override
+    {
+        return matmulAllReduce910TilingData_.mC2Mmv3TailTilingData.matmulTiling;
+    }
+
+    inline MC2MatmulV3TilingData &MutableMC2MmV3TileTilingData()
+    {
+        return matmulAllReduce910TilingData_.mC2Mmv3TileTilingData;
+    }
+
+    inline MC2MatmulV3TilingData &MutableMC2MmV3TailTilingData()
+    {
+        return matmulAllReduce910TilingData_.mC2Mmv3TailTilingData;
+    }
 
     void PrintExtendMatmulTiling(bool isTail) override;
     void DoEmptyTensorTiling() override;
@@ -74,42 +98,9 @@ private:
     MatmulAllReduce910TilingDataA5 matmulAllReduce910TilingDataSelf_;
     MatmulAllReduce910TilingDataA5& matmulAllReduce910TilingData_;
     uint64_t myWorkSpaceSize_{0U};
+    MatMulV3Args mmV3Args_;
+    MatmulV3CompileInfo compileInfo_;
 };
 
-class TilingTransferHelperA5 : public matmul_v3::MatmulV3BaseTiling
-{
-public:
-    TilingTransferHelperA5(MatmulAllReduceTilingA5& matmulAllReduceTiling910, MatmulTilingData& data)
-        : MatmulV3BaseTiling(matmulAllReduceTiling910.context_, &data), tilingProcesser_(matmulAllReduceTiling910)
-    {}
-
-    ge::graphStatus GetShapeAttrsInfo() override
-    {
-        auto&& tilingArgs = tilingProcesser_.args_;
-        args_.opName = tilingProcesser_.opName_;
-        args_.isATrans = tilingArgs.isATrans;
-        args_.isBTrans = tilingArgs.isBTrans;
-        args_.hasBias = tilingArgs.isBias;
-        args_.aType = tilingArgs.geAType;
-        args_.bType = tilingArgs.geBType;
-        args_.cType = tilingArgs.geCType;
-        args_.biasType = tilingArgs.isBias ? tilingArgs.geBiasType : ge::DT_INT32;
-        args_.aFormat = ge::FORMAT_ND;
-        args_.outFormat = ge::FORMAT_ND;
-        args_.mValue = tilingArgs.mValue;
-        args_.kValue = tilingArgs.kValue;
-        args_.nValue = tilingArgs.nValue;
-        return ge::GRAPH_SUCCESS;
-    }
-    ge::graphStatus PostTiling() override
-    {
-        tilingProcesser_.myWorkSpaceSize_ = std::max(tilingProcesser_.myWorkSpaceSize_, workspaceSize_);
-        OP_LOGI(tilingProcesser_.opName_, "Set mm workspace size=%lu to mc2", tilingProcesser_.myWorkSpaceSize_);
-        return ge::GRAPH_SUCCESS;
-    }
-
-private:
-    MatmulAllReduceTilingA5& tilingProcesser_;
-};
 } // namespace optiling
 #endif // MATMUL_ALL_REDUCE_TILING_910_95_H

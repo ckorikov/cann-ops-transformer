@@ -36,7 +36,7 @@ public:
         biasFlag_ =
             (((WeightQuantMatmulAllReduceA5Fp8TilingData*)tilingData)->tileMmASTiling.matmulTiling.isBias != 0U);
 #else
-        biasFlag_ = (((MatmulAllReduce910TilingDataA5*)tilingData)->tilematmulTiling.matmulTiling.isBias != 0U);
+        biasFlag_ = (((MatmulAllReduce910TilingDataA5*)tilingData)->mC2Mmv3TileTilingData.matmulTiling.isBias != 0U);
 #endif
     }
 
