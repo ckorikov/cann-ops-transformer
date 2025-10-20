@@ -19,13 +19,13 @@
     - 情形1：对量化后的入参x1、x2进行matmul计算后，接着进行dequant计算，接着与x3进行add操作，最后做all_reduce计算。
 
   $$
-  output= allReduce(dequantScale*(x1_{int8}@x2_{int8} + bias_{int32}) + x3)
+  output= AllReduce(dequantScale*(x1_{int8}@x2_{int8} + bias_{int32}) + x3)
   $$
 
     - 情形2：对量化后的入参x1、x2进行mm计算后，接着进行dequant和pertoken计算，接着与x3进行add操作，最后做all_reduce计算。
 
   $$
-  output= allReduce(dequantScale * pertokenScaleOptional * (x1_{int8}@x2_{int8} + biasOptional_{int32}) + x3Optional)
+  output= AllReduce(dequantScale * pertokenScaleOptional * (x1_{int8}@x2_{int8} + biasOptional_{int32}) + x3Optional)
   $$
 
 ## 函数原型
@@ -84,7 +84,7 @@ aclnnStatus aclnnQuantMatmulAllReduceV2(
         <tr>
           <td>x1</td>
           <td>输入</td>
-          <td>Device侧的aclTensor，MatMul计算的左矩阵，即计算公式中的x1。</td>
+          <td>device侧的aclTensor，MatMul计算的左矩阵，即计算公式中的x1。</td>
           <td><li>当前版本仅支持二维或者三维输入。</li><li>支持不转置场景。</li></td>
           <td>INT8</td>
           <td>ND</td>
@@ -94,8 +94,8 @@ aclnnStatus aclnnQuantMatmulAllReduceV2(
         <tr>
           <td>x2</td>
           <td>输入</td>
-          <td>Device侧的aclTensor，MatMul计算的右矩阵，即计算公式中的x2。</td>
-          <td><li>当前版本仅支持两维输入。</li><li>支持转置/不转置场景。</li></td>
+          <td>device侧的aclTensor，MatMul计算的右矩阵，即计算公式中的x2。</td>
+          <td><li>当前版本仅支持二维输入。</li><li>支持转置/不转置场景。</li></td>
           <td>INT8</td>
           <td>ND</td>
           <td>2</td>
@@ -104,7 +104,7 @@ aclnnStatus aclnnQuantMatmulAllReduceV2(
         <tr>
           <td>biasOptional</td>
           <td>输入</td>
-          <td>Device侧的aclTensor，即计算公式中的biasOptional。</td>
+          <td>device侧的aclTensor，即计算公式中的biasOptional。</td>
           <td>当前版本仅支持一维输入。</td>
           <td>INT32</td>
           <td>ND</td>
@@ -114,7 +114,7 @@ aclnnStatus aclnnQuantMatmulAllReduceV2(
         <tr>
           <td>x3Optional</td>
           <td>输入</td>
-          <td>Device侧的aclTensor，MatMul计算后的add计算，即计算公式中的x3Optional。</td>
+          <td>device侧的aclTensor，MatMul计算后的add计算，即计算公式中的x3Optional。</td>
           <td>shape与MatMul计算后的shape一致。</td>
           <td>FLOAT16、BFLOAT16</td>
           <td>ND</td>
@@ -124,8 +124,8 @@ aclnnStatus aclnnQuantMatmulAllReduceV2(
         <tr>
           <td>dequantScale</td>
           <td>输入</td>
-          <td>Device侧的aclTensor，MatMul计算后的去量化系数，即计算公式中的dequantScale。</td>
-          <td><li>shape在pertensor场景为(1)，PerChannel场景为(n)/(1, n)</li><li>输出为BFLOAT16时，直接将BFLOAT16类型的dequantScale传入本接口。</li><li>输出为FLOAT16时，如果pertokenScale不为空，可直接将FLOAT32类型的dequantScale传入本接口，如果pertokenScale为空，则需提前调用TransQuantParamV2算子的aclnn接口来将dequantScale转成INT64/UINT64数据类型。</li></td>
+          <td>device侧的aclTensor，MatMul计算后的去量化系数，即计算公式中的dequantScale。</td>
+          <td><li>shape在pertensor场景为(1)，PerChannel场景为(n)/(1, n)</li><li>输出为BFLOAT16时，直接将BFLOAT16类型的dequantScale传入本接口。</li><li>输出为FLOAT16时，如果pertokenScaleOptional不为空，可直接将FLOAT32类型的dequantScale传入本接口，如果pertokenScaleOptional为空，则需提前调用TransQuantParamV2算子的aclnn接口来将dequantScale转成INT64/UINT64数据类型。</li></td>
           <td>INT64、UINT64、FLOAT32、BFLOAT16</td>
           <td>ND</td>
           <td>2</td>
@@ -134,7 +134,7 @@ aclnnStatus aclnnQuantMatmulAllReduceV2(
         <tr>
           <td>pertokenScaleOptional</td>
           <td>输入</td>
-          <td>Device侧的aclTensor，MatMul计算后的pertoken去量化系数，即计算公式中的pertokenScaleOptional。</td>
+          <td>device侧的aclTensor，MatMul计算后的pertoken去量化系数，即计算公式中的pertokenScaleOptional。</td>
           <td>x1为(b, s, k)时，shape为(b*s)；x1为(m, k)时shape为(m)。</td>
           <td>FLOAT32</td>
           <td>ND</td>
@@ -184,7 +184,7 @@ aclnnStatus aclnnQuantMatmulAllReduceV2(
         <tr>
           <td>output</td>
           <td>输出</td>
-          <td>Device侧的aclTensor，MatMul计算与AllReduce通信的结果，即计算公式中的output。</td>
+          <td>device侧的aclTensor，MatMul计算与AllReduce通信的结果，即计算公式中的output。</td>
           <td>output的维数与x1一致。</td>
           <td>FLOAT16、BFLOAT16</td>
           <td>ND</td>
@@ -194,7 +194,7 @@ aclnnStatus aclnnQuantMatmulAllReduceV2(
         <tr>
           <td>workspaceSize</td>
           <td>输出</td>
-          <td>返回需要在Device侧申请的workspace大小。</td>
+          <td>返回需要在device侧申请的workspace大小。</td>
           <td>-</td>
           <td>-</td>
           <td>-</td>
@@ -240,13 +240,13 @@ aclnnStatus aclnnQuantMatmulAllReduceV2(
     <tr>
         <td rowspan="3">ACLNN_ERR_PARAM_INVALID</td>
         <td rowspan="3">161002</td>
-        <td>x1、x2、bias、dequantScale、pertokenScaleOptional、x3或output的数据类型不在支持的范围之内。</td>
+        <td>x1、x2、biasOptional、dequantScale、pertokenScaleOptional、x3Optional或output的数据类型不在支持的范围之内。</td>
     </tr>
     <tr>
         <td>streamMode不在合法范围内。</td>
     </tr>
     <tr>
-        <td>x1、x2、bias、dequantScale、pertokenScaleOptional、x3或output的shape不符合约束要求。</td>
+        <td>x1、x2、biasOptional、dequantScale、pertokenScaleOptional、x3Optional或output的shape不符合约束要求。</td>
     </tr>
     </tbody>
     </table>
@@ -267,12 +267,12 @@ aclnnStatus aclnnQuantMatmulAllReduceV2(
     <tr>
         <td>workspace</td>
         <td>输入</td>
-        <td>在Device侧申请的workspace内存地址。</td>
+        <td>在device侧申请的workspace内存地址。</td>
     </tr>
     <tr>
         <td>workspaceSize</td>
         <td>输入</td>
-        <td>在Device侧申请的workspace大小，由第一段接口aclnnQuantMatmulAllReduceV2GetWorkspaceSize获取。</td>
+        <td>在device侧申请的workspace大小，由第一段接口aclnnQuantMatmulAllReduceV2GetWorkspaceSize获取。</td>
     </tr>
     <tr>
         <td>executor</td>
@@ -282,7 +282,7 @@ aclnnStatus aclnnQuantMatmulAllReduceV2(
     <tr>
         <td>stream</td>
         <td>输入</td>
-        <td>指定执行任务的Stream。</td>
+        <td>指定执行任务的stream。</td>
     </tr>
     </tbody></table>
 - **返回值：**
@@ -298,7 +298,7 @@ aclnnStatus aclnnQuantMatmulAllReduceV2(
 - 当输入x1的shape为(b, s, k)时，输出output的shape为(b, s, n)，当输入x1的shape为(m, k)时，输出output的shape为(m, n)。
 - 传入的x1、x2、dequantScale或者output不为空指针。
 - x1和x2、dequantScale、output、bias（非空场景）、x3（非空场景）的数据类型和数据格式需要在支持的范围之内。
-- 若输出output类型为FLOAT16，当pertokenScale为空时，dequantScale的类型为INT64、UINT64；当pertokenScale不为空时，dequantScale的类型为FLOAT32。
+- 若输出output类型为FLOAT16，当pertokenScaleOptional为空时，dequantScale的类型为INT64、UINT64；当pertokenScaleOptional不为空时，dequantScale的类型为FLOAT32。
 - 若输出output类型为BFLOAT16，dequantScale的类型为BFLOAT16。
 - x1的shape为(b, s, k)时，pertokenScaleOptional的shape为(b*s)，x1的shape为(m, k)时，pertokenScaleOptional的shape为(m)。
 - 仅支持hccs链路all mesh组网。

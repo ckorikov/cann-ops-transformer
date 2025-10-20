@@ -82,14 +82,14 @@ $$
   <tr>
    <td>epWorldSize</td>
    <td>输入</td>
-   <td>ep通信域size，支持2、4、8、16、32。</td>
+   <td>EP通信域size，支持2、4、8、16、32。</td>
    <td>INT64</td>
    <td>ND</td>
   </tr>
   <tr>
    <td>tpWorldSize</td>
    <td>输入</td>
-   <td>tp通信域size，支持2、4、8、16、32。</td>
+   <td>TP通信域size，支持2、4、8、16、32。</td>
    <td>INT64</td>
    <td>ND</td>
   </tr>

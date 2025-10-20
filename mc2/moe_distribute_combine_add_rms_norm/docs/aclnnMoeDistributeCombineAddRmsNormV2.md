@@ -8,7 +8,7 @@
 | <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term> |    ×     |
 ## 功能说明
 
-- 算子功能：当存在TP域通信时，先进行ReduceScatterV通信，再进行AlltoAllV通信，最后将接收的数据整合（乘权重再相加）；当不存在TP域通信时，进行AlltoAllV通信，最后将接收的数据整合（乘权重再相加），之后完成Add + RmsNorm融合。算子支持动态缩容场景，支持在创建通信域后，出现故障卡，将故障卡从通信域剔除，算子可以正常执行，无需重新编译；支持特殊专家场景。
+- 算子功能：当存在TP域通信时，先进行ReduceScatterV通信，再进行AllToAllV通信，最后将接收的数据整合（乘权重再相加）；当不存在TP域通信时，进行AllToAllV通信，最后将接收的数据整合（乘权重再相加），之后完成Add + RmsNorm融合。算子支持动态缩容场景，支持在创建通信域后，出现故障卡，将故障卡从通信域剔除，算子可以正常执行，无需重新编译；支持特殊专家场景。
 
 - 计算公式：
 $$
@@ -454,7 +454,7 @@ aclnnStatus aclnnMoeDistributeCombineAddRmsNormV2(
   <tr>
    <td>ACLNN_ERR_INNER_TILING_ERROR</td>
    <td>561002</td>
-   <td>1. 输入和输出的shape不在支持的范围内；<br>2. 参数的取值不在支持的范围。</td>
+   <td>1. 输入和输出的shape不在支持的范围内；<br>2. 参数的取值不在支持的范围内。</td>
   </tr>
  </tbody>
 </table>
@@ -532,7 +532,7 @@ aclnnStatus aclnnMoeDistributeCombineAddRmsNormV2(
         - 对于MoE专家卡，localExpertNum = moeExpertNum / (epWorldSize - sharedExpertRankNum)，localExpertNum > 1时，不支持TP域通信。
   
 - HCCL_BUFFSIZE：
-    调用本接口前需检查HCCL_BUFFSIZE环境变量取值是否合理，该环境变量表示单个通信域占用内存大小，单位MB，不配置时默认为200MB。要求 >= 2且满足1024 ^ 2 * (HCCL_BUFFSIZE - 2) / 2 >= (BS * 2 * (H + 128) * (epWorldSize * localExpertNum + K + 1)，localExpertNum表示MoE专家卡的本卡专家数。
+    调用本接口前需检查HCCL_BUFFSIZE环境变量取值是否合理，该环境变量表示单个通信域占用内存大小，单位MB，不配置时默认为200MB。要求 >= 2且满足1024 ^ 2 * (HCCL_BUFFSIZE - 2) / 2 >= BS * 2 * (H + 128) * (epWorldSize * localExpertNum + K + 1)，localExpertNum表示MoE专家卡的本卡专家数。
 
 - 通信域使用约束：
     - 一个模型中的aclnnMoeDistributeCombineAddRmsNormV2和aclnnMoeDistributeDispatchV3仅支持相同EP通信域，且该通信域中不允许有其他算子。

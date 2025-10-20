@@ -119,7 +119,7 @@ aclnnStatus aclnnMoeDistributeDispatchV2(
   <tr>
    <td>xActiveMaskOptional</td>
    <td>输入</td>
-   <td>表示token是否参与通信，Device侧的aclTensor；可传有效数据或空指针，默认所有token参与通信；各卡BS不一致时所有token需有效；支持非连续的Tensor。</td>
+   <td>表示token是否参与通信，Device侧的aclTensor；可传有效数据或空指针，默认所有token参与通信；各卡Bs不一致时所有token需有效；支持非连续的Tensor。</td>
    <td>BOOL</td>
    <td>ND</td>
   </tr>
@@ -296,7 +296,7 @@ aclnnStatus aclnnMoeDistributeDispatchV2(
 
 - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：
     - commAlg为"hierarchy"或HCCL_INTRA_PCIE_ENABLE=1且HCCL_INTRA_ROCE_ENABLE=0时，scalesOptional 需传nullptr。
-    - xActiveMaskOptional 要求为1D Tensor，shape为(BS, )；true需排在false前（例：{true, false, true}非法）。
+    - xActiveMaskOptional 要求为1D Tensor，shape为(Bs, )；true需排在false前（例：{true, false, true}非法）。
     - expertScalesOptional 要求为2D Tensor，shape为(Bs, K)。
     - epWorldSize 依commAlg取值，"fullmesh"支持16、32、64、128、256；"hierarchy"支持16、32、64。
     - moeExpertNum 取值范围(0, 512]，还需满足moeExpertNum / (epWorldSize - sharedExpertRankNum) <= 24。
@@ -308,7 +308,7 @@ aclnnStatus aclnnMoeDistributeDispatchV2(
     - expandScalesOut 要求为1D Tensor，shape为(A,)。
 
 - <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：
-    - xActiveMaskOptional 要求为1D或2D Tensor（1D时shape为(BS, )，2D时shape为(BS, K)）；1D时true需排在false前，2D时token对应K个值全为false则不参与通信。
+    - xActiveMaskOptional 要求为1D或2D Tensor（1D时shape为(Bs, )，2D时shape为(Bs, K)）；1D时true需排在false前，2D时token对应K个值全为false则不参与通信。
     - expertScalesOptional 当前版本不支持，传空指针即可。
     - epWorldSize 取值范围[2, 768]。
     - moeExpertNum 取值范围(0, 1024]。
@@ -356,7 +356,7 @@ aclnnStatus aclnnMoeDistributeDispatchV2(
   <tr>
    <td>ACLNN_ERR_INNER_TILING_ERROR</td>
    <td>561002</td>
-   <td>1. 输入和输出的shape不在支持的范围内；<br>2. 参数的取值不在支持的范围。</td>
+   <td>1. 输入和输出的shape不在支持的范围内；<br>2. 参数的取值不在支持的范围内。</td>
   </tr>
  </tbody>
 </table>

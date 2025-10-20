@@ -86,7 +86,7 @@ aclnnStatus aclnnWeightQuantMatmulAllReduce(
           <td>x2</td>
           <td>输入</td>
           <td>Device侧的aclTensor，MatMul计算的右矩阵，即计算公式中的x2。</td>
-          <td><li>当前版本仅支持两维输入。</li><li>支持转置/不转置场景。</li></td>
+          <td><li>当前版本仅支持二维输入。</li><li>支持转置/不转置场景。</li></td>
           <td>-</td>
           <td>ND</td>
           <td>2</td>
@@ -299,7 +299,7 @@ aclnnStatus aclnnWeightQuantMatmulAllReduce(
     <tr>
         <td>stream</td>
         <td>输入</td>
-        <td>指定执行任务的Stream。</td>
+        <td>指定执行任务的stream。</td>
     </tr>
     </tbody></table>
 - **返回值：**

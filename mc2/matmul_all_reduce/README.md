@@ -69,22 +69,22 @@
       $$
       output = allReduce((x1@x2 + biasOptional) * x2Scale + x3Optional)
       $$
-    - x1，x2为INT8，x1ScaleOptional为FLOAT32，x2Scale为FLOAT32/BFLOAT16，可选biasOptional为INT32, out为FOAT16/BFLOAT16：
+    - x1，x2为INT8，x1ScaleOptional为FLOAT32，x2Scale为FLOAT32/BFLOAT16，可选biasOptional为INT32, out为FLOAT16/BFLOAT16：
 
       $$
       output = allReduce((x1@x2 + biasOptional) * x2Scale * x1ScaleOptional + x3Optional)
       $$
-    - x1，x2为FLOAT4_E2M1/FLOAT4_E1M2/FLOAT8_E4M3FN/FLOAT8_E5M2，x1ScaleOptional为FLOAT8_E8M0，x2Scale为FLOAT8_E8M0，可选biasOptional为FLOAT32, out为FOAT16/BFLOAT16/FLOAT32：
+    - x1，x2为FLOAT4_E2M1/FLOAT4_E1M2/FLOAT8_E4M3FN/FLOAT8_E5M2，x1ScaleOptional为FLOAT8_E8M0，x2Scale为FLOAT8_E8M0，可选biasOptional为FLOAT32, out为FLOAT16/BFLOAT16/FLOAT32：
 
       $$
       output = allReduce((x1* x1ScaleOptional)@(x2* x2Scale) + biasOptional + x3Optional)
       $$
-    - x1，x2为FLOAT8_E4M3FN/FLOAT8_E5M2/HIFLOAT8，x1ScaleOptional为FLOAT32，x2Scale为FLOAT32，可选bias为FLOAT32, out为FOAT16/BFLOAT16/FLOAT32：
+    - x1，x2为FLOAT8_E4M3FN/FLOAT8_E5M2/HIFLOAT8，x1ScaleOptional为FLOAT32，x2Scale为FLOAT32，可选bias为FLOAT32, out为FLOAT16/BFLOAT16/FLOAT32：
 
       $$
       output = allReduce((x1@x2 + biasOptional) * x2Scale * x1ScaleOptional + x3Optional)
       $$
-    - x1，x2为FLOAT8_E4M3FN/FLOAT8_E5M2/HIFLOAT8，x1ScaleOptional为FLOAT32，x2Scale为FLOAT32，无biasOptional。当x1为(a0, a1)，x2为(b0, b1)时x1ScaleOptional为(ceildiv(a0，128), ceildiv(a1，128))x2Scale为(ceildiv(b0，128), ceildiv(b1，128)), out为FOAT16/BFLOAT16/FLOAT32:
+    - x1，x2为FLOAT8_E4M3FN/FLOAT8_E5M2/HIFLOAT8，x1ScaleOptional为FLOAT32，x2Scale为FLOAT32，无biasOptional。当x1为(a0, a1)，x2为(b0, b1)时x1ScaleOptional为(ceildiv(a0，128), ceildiv(a1，128))x2Scale为(ceildiv(b0，128), ceildiv(b1，128)), out为FLOAT16/BFLOAT16/FLOAT32:
 
       $$
       output_{pq} = allReduce(\sum_{0}^{\left \lfloor \frac{k}{128} \right \rfloor} (x1_{pr}@x2_{rq}*(x1ScaleOptional_{pr}*x2Scale_{rq})) + x3)
@@ -164,7 +164,7 @@
     <tr>
       <td>pertoken_scale</td>
       <td>可选输入</td>
-      <td>MatMul计算后的pertoken去量化系数,即公式中的输入pertoken_scale。</td>
+      <td>MatMul计算后的pertoken去量化系数，即公式中的输入pertoken_scale。</td>
       <td>FLOAT、BFLOAT16、FLOAT8_E8M0</td>
       <td>ND</td>
     </tr>

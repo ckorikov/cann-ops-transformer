@@ -9,7 +9,7 @@
 
 ## 功能说明
 
-- 算子功能：当存在TP域通信时，先进行ReduceScatterV通信，再进行AlltoAllV通信，最后将接收的数据整合（乘权重再相加）；当不存在TP域通信时，进行AlltoAllV通信，最后将接收的数据整合（乘权重再相加）。
+- 算子功能：当存在TP域通信时，先进行ReduceScatterV通信，再进行AllToAllV通信，最后将接收的数据整合（乘权重再相加）；当不存在TP域通信时，进行AllToAllV通信，最后将接收的数据整合（乘权重再相加）。
 - 计算公式：
 $$
 rsOut = ReduceScatterV(expandX)\\
@@ -151,7 +151,7 @@ aclnnStatus aclnnMoeDistributeCombineV3(
   <tr>
    <td>xActiveMaskOptional</td>
    <td>输入</td>
-   <td>标识token是否参与通信,，Device侧的aclTensor：<br><term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：要求为1D Tensor，shape为\(BS, \)；true需排在false前（例：{true, false, true}非法）。<br><term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：要求是一个1D或者2D Tensor。当输入为1D时，shape为<code>(Bs, )</code>; 当输入为2D时，shape为<code>(Bs, K)</code>；可选择传入有效数据或传入空指针。当输入为1D时，参数为true表示对应的token参与通信，true必须排到false之前，例：{true, false, true} 为非法输入；当输入为2D时，参数为true表示当前token对应的expert_ids参与通信。若当前token对应的K个BOOL值全为false，表示当前token不会参与通信。默认所有token都会参与通信。当每张卡的Bs数量不一致时，所有token必须全部有效。</td>
+   <td>标识token是否参与通信,，Device侧的aclTensor：<br><term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：要求为1D Tensor，shape为(BS, )；true需排在false前（例：{true, false, true}非法）。<br><term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：要求是一个1D或者2D Tensor。当输入为1D时，shape为<code>(Bs, )</code>; 当输入为2D时，shape为<code>(Bs, K)</code>；可选择传入有效数据或传入空指针。当输入为1D时，参数为true表示对应的token参与通信，true必须排到false之前，例：{true, false, true} 为非法输入；当输入为2D时，参数为true表示当前token对应的expert_ids参与通信。若当前token对应的K个BOOL值全为false，表示当前token不会参与通信。默认所有token都会参与通信。当每张卡的Bs数量不一致时，所有token必须全部有效。</td>
    <td>BOOL</td>
    <td>ND（支持非连续Tensor）</td>
   </tr>
@@ -314,7 +314,7 @@ aclnnStatus aclnnMoeDistributeCombineV3(
   <tr>
    <td>commQuantMode</td>
    <td>输入</td>
-   <td>通信量化类型:取值范围0或者2，0表示通信时不进行量化，2表示通信时进行int8量化<br><term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：2仅当commAlg配置为"hierarchy"或HCCL_INTRA_PCIE_ENABLE为1且HCCL_INTRA_ROCE_ENABLE为0且驱动版本不低于25.0.RC1.1时支持。
+   <td>通信量化类型：取值范围0或者2，0表示通信时不进行量化，2表示通信时进行int8量化<br><term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：2仅当commAlg配置为"hierarchy"或HCCL_INTRA_PCIE_ENABLE为1且HCCL_INTRA_ROCE_ENABLE为0且驱动版本不低于25.0.RC1.1时支持。
    <br><term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：int8量化当且仅当tpWorldSize < 2时可使能。</td>
    <td>INT64</td>
    <td>-</td>
@@ -409,7 +409,7 @@ aclnnStatus aclnnMoeDistributeCombineV3(
   <tr>
    <td>ACLNN_ERR_INNER_TILING_ERROR</td>
    <td>561002</td>
-   <td>输入和输出的shape不在支持的范围内；<br>参数的取值不在支持的范围。</td>
+   <td>输入和输出的shape不在支持的范围内；<br>参数的取值不在支持的范围内。</td>
   </tr>
  </tbody>
 </table>
@@ -480,11 +480,11 @@ aclnnStatus aclnnMoeDistributeCombineV3(
 - **Shape变量约束**：
   | 变量         | 定义与取值范围                                                                 |
   | :----------- | :----------------------------------------------------------------------------- |
-  | A            | 本卡需分发的最大token数,取值范围如下: <ul><li>不使能动态缩容场景时：<ul><li>对于共享专家，要满足<code>A = Bs * epWorldSize \* sharedExpertNum / sharedExpertRankNum</code>。</li><li>对于MoE专家，当globalBs为0时，要满足<code>A >= Bs * epWorldSize * min(localExpertNum, K)</code>；当globalBs非0时，要满足<code>A >= globalBs * min(localExpertNum, K)</code>。</li></ul></li><li>使能动态缩容场景时：<ul><li>当globalBs为0时，<code>A >= max(Bs * epWorldSize \* sharedExpertNum / sharedExpertRankNum, Bs * epWorldSize * min(localExpertNum, K))</code>；</li><li>当globalBs非0时，<code>A >= max(Bs * epWorldSize \* sharedExpertNum / sharedExpertRankNum, globalBs * min(localExpertNum, K))</code>；</li></ul></li><ul>
+  | A            | 本卡需分发的最大token数，取值范围如下: <ul><li>不使能动态缩容场景时：<ul><li>对于共享专家，要满足<code>A = Bs * epWorldSize \* sharedExpertNum / sharedExpertRankNum</code>。</li><li>对于MoE专家，当globalBs为0时，要满足<code>A >= Bs * epWorldSize * min(localExpertNum, K)</code>；当globalBs非0时，要满足<code>A >= globalBs * min(localExpertNum, K)</code>。</li></ul></li><li>使能动态缩容场景时：<ul><li>当globalBs为0时，<code>A >= max(Bs * epWorldSize \* sharedExpertNum / sharedExpertRankNum, Bs * epWorldSize * min(localExpertNum, K))</code>；</li><li>当globalBs非0时，<code>A >= max(Bs * epWorldSize \* sharedExpertNum / sharedExpertRankNum, globalBs * min(localExpertNum, K))</code>；</li></ul></li><ul>
   | H            |表示hidden size隐藏层大小:<ul><li> <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：依commAlg取值，"fullmesh"支持(0, 7168]且为32的整数倍；"hierarchy"并且驱动版本≥25.0.RC1.1时支持(0, 10*1024]且为32的整数倍；</li><li><term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：[1024, 8192]。 |
   | Bs           | 本卡最终输出token数:<ul><li> <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：0 < Bs ≤256；</li><li><term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：0 < Bs ≤512。 |
   | K            |表示选取topK个专家:<br> 0 < K ≤16，且0 < K ≤ <code>moeExpertNum+zeroExpertNum+copyExpertNum+constExpertNum</code>。 |
-  | serverNum    | 服务器节点数:<br>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件：仅该场景的shape使用了该变量,仅支持2、4、8。
+  | serverNum    | 服务器节点数:<br>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件：仅该场景的shape使用了该变量，仅支持2、4、8。
   | localExpertNum | 本卡专家数。<ul><li>对于共享专家卡，localExpertNum = 1；</li><li>对于MoE专家卡，localExpertNum = <code>moeExpertNum/(epWorldSize-sharedExpertRankNum)</code>，localExpertNum > 1时不支持TP通信。 |
 
 - **环境变量约束**：

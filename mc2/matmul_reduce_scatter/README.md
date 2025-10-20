@@ -15,7 +15,7 @@
 
 计算公式：
 $$
-output=reducescatter(x1@x2+bias)
+output=reduce_scatter_base(x1@x2+bias)
 $$
 
 
