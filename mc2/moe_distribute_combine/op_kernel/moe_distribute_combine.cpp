@@ -30,7 +30,7 @@ using namespace AscendC;
 extern "C" __global__ __aicore__ void moe_distribute_combine(GM_ADDR expandX, GM_ADDR expertIds, GM_ADDR expandIdx,
                                                              GM_ADDR epSendCount, GM_ADDR scales, GM_ADDR tpSendCount,
                                                              GM_ADDR xActiveMask, GM_ADDR activationScale, GM_ADDR weightScale,
-                                                             GM_ADDR groupList, GM_ADDR expandScales, GM_ADDR XOut, 
+                                                             GM_ADDR groupList, GM_ADDR expandScales, GM_ADDR XOut,
                                                              GM_ADDR workspaceGM, GM_ADDR tilingGM)
 
 {
@@ -50,7 +50,7 @@ extern "C" __global__ __aicore__ void moe_distribute_combine(GM_ADDR expandX, GM
     op.Init(expandX, expertIds, expandIdx, epSendCount, tpSendCount, scales, nullptr, XOut, workspaceGM, &pipe, &tilingData);
     op.Process();
   }
-#else   
+#else
   if (TILING_KEY_IS(1100)) { // tp=2
     GET_TILING_DATA_WITH_STRUCT(MoeDistributeCombineTilingData, tilingData, tilingGM);
     MoeDistributeCombine<DTYPE_EXPAND_X, int32_t, true, false> op;
@@ -75,7 +75,8 @@ extern "C" __global__ __aicore__ void moe_distribute_combine(GM_ADDR expandX, GM
   if (TILING_KEY_IS(2000)) {
     GET_TILING_DATA_WITH_STRUCT(MoeDistributeCombineA2TilingData, tilingData, tilingGM);
     MoeDistributeCombineA2<DTYPE_EXPAND_X, int32_t> op;
-    op.Init(expandX, expertIds, expandIdx, epSendCount, scales, xActiveMask, XOut, workspaceGM, &pipe, &tilingData);
+    op.Init(expandX, expertIds, expandIdx, epSendCount, scales, xActiveMask,
+      nullptr, nullptr, nullptr, nullptr, XOut, workspaceGM, &pipe, &tilingData);
     op.Process();
   }
   if (TILING_KEY_IS(3000)) {
