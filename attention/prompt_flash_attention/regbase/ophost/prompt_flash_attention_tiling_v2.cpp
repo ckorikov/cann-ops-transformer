@@ -208,6 +208,13 @@ void PromptFlashAttentionTilingV2::PromptFlashAttentionInitOutputSplit(int64_t t
     initParams->set_totalOutputSize(totalSize);
 }
 
+bool PromptFlashAttentionTilingV2::CheckEmptyTensor(ContextParamsForPFATiling& contextKeyParams)
+{
+    return (contextKeyParams.keyInputShape->GetStorageShape().GetShapeSize() == 0) ||
+        (contextKeyParams.valueInputShape->GetStorageShape().GetShapeSize() == 0) ||
+        (contextKeyParams.outputShape->GetStorageShape().GetShapeSize() == 0) || (contextKeyParams.emptyTensor == 1U);
+}
+
 void PromptFlashAttentionTilingV2::SetEmptyTensor(ContextParamsForPFATiling& contextKeyParams, uint64_t& tilingKey,
     uint32_t& blockDimToBeSet, PromptFlashAttentionTilingData& tilingData) {
     tilingKey = EMPTY_KV_TILING_KEY;
@@ -3524,16 +3531,24 @@ void PromptFlashAttentionTilingV2::SetLayoutType()
     }
 }
 
-void PromptFlashAttentionTilingV2::SetQKVStartIdx(ContextParamsForPFATiling& contextKeyParams) {
+ge::graphStatus PromptFlashAttentionTilingV2::SetQKVStartIdx(ContextParamsForPFATiling& contextKeyParams) {
     auto &inputParams = faTilingAdapter.inputParamsRegbase;
     inputParams.set_qStartIdx(0);
     inputParams.set_kvStartIdx(0);
+    if (!enableAlibiPse) {
+        return ge::GRAPH_SUCCESS;
+    }
+    int64_t qStartIdx = 0;
+    int64_t kvStartIdx = 0;
     auto qStartIdxTensor = contextKeyParams.qStartIdx;
     if (qStartIdxTensor != nullptr) {
-        if (qStartIdxTensor->GetShapeSize() == 1) {
+        if (qStartIdxTensor->GetShapeSize() >= 1) {
             const int64_t *value = qStartIdxTensor->GetData<int64_t>();
             if (value != nullptr) {
-                int64_t qStartIdx = value[0];
+                qStartIdx = value[0];
+                OP_CHECK_IF(qStartIdx > INT32_MAX || qStartIdx < INT32_MIN, OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName,
+                    "qStartIdx should >= %d and <= %d, but qStartIdx = %ld.", INT32_MIN, INT32_MAX, qStartIdx),
+                    return ge::GRAPH_FAILED);
                 inputParams.set_qStartIdx(qStartIdx);
             }
         }
@@ -3541,14 +3556,22 @@ void PromptFlashAttentionTilingV2::SetQKVStartIdx(ContextParamsForPFATiling& con
 
     auto kvStartIdxTensor = contextKeyParams.kvStartIdx;
     if (kvStartIdxTensor != nullptr) {
-        if (kvStartIdxTensor->GetShapeSize() == 1) {
+        if (kvStartIdxTensor->GetShapeSize() >= 1) {
             const int64_t *kvValue = kvStartIdxTensor->GetData<int64_t>();
             if (kvValue != nullptr) {
-                int64_t kvStartIdx = kvValue[0];
+                kvStartIdx = kvValue[0];
+                OP_CHECK_IF(kvStartIdx > INT32_MAX || kvStartIdx < INT32_MIN, OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName,
+                    "kvStartIdx should >= %d and <= %d, but kvStartIdx = %ld.", INT32_MIN, INT32_MAX, kvStartIdx),
+                    return ge::GRAPH_FAILED);
                 inputParams.set_kvStartIdx(kvStartIdx);
             }
         }
     }
+    // 当kvStartIdx - qStartIdx超出范围后，由于编译器不支持大数值类型转换，kernel侧int_64转float类型时可能发生截断。
+    OP_CHECK_IF(kvStartIdx - qStartIdx > INT32_MAX || kvStartIdx - qStartIdx < INT32_MIN, OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName,
+        "kvStartIdx - qStartIdx should >= %d and <= %d, but qStartIdx = %ld, kvStartIdx = %ld.", INT32_MIN, INT32_MAX, qStartIdx, kvStartIdx),
+        return ge::GRAPH_FAILED);
+    return ge::GRAPH_SUCCESS;
 }
 
 void PromptFlashAttentionTilingV2::PFATilingDataconvert(PromptFlashAttentionTilingData& tilingData) {
@@ -3675,9 +3698,7 @@ ge::graphStatus PromptFlashAttentionTilingV2::RunBigKernelTilingWithParams(Conte
     // tensor ptr is empty or tensor is invalid
     if (CheckTensorInvalid(contextKeyParams) != ge::GRAPH_SUCCESS) {
         return ge::GRAPH_FAILED;
-    } else if ((contextKeyParams.keyInputShape->GetStorageShape().GetShapeSize() == 0) ||
-        (contextKeyParams.valueInputShape->GetStorageShape().GetShapeSize() == 0) ||
-        (contextKeyParams.outputShape->GetStorageShape().GetShapeSize() == 0) || (contextKeyParams.emptyTensor == 1)) {
+    } else if (CheckEmptyTensor(contextKeyParams)) {
         SetEmptyTensor(contextKeyParams, tilingKey, blockDimToBeSet, tilingData);
         return ge::GRAPH_SUCCESS;
     }
@@ -3749,7 +3770,9 @@ ge::graphStatus PromptFlashAttentionTilingV2::RunBigKernelTilingWithParams(Conte
     }
 
     PFATilingDataconvert(tilingData);
-    SetQKVStartIdx(contextKeyParams);
+    if (SetQKVStartIdx(contextKeyParams) != ge::GRAPH_SUCCESS) {
+        return ge::GRAPH_FAILED;
+    }
 #endif
     return ge::GRAPH_SUCCESS;
 }

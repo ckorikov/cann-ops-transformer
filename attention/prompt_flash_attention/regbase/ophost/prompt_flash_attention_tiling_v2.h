@@ -44,6 +44,7 @@ public:
 #ifndef ASCEND_OPTILING_UT
 protected:
     void PromptFlashAttentionInitOutputSplit(int64_t totalSize, PromptFlashAttentionTilingData &tilingData);
+    bool CheckEmptyTensor(ContextParamsForPFATiling& contextKeyParams);
     void SetEmptyTensor(ContextParamsForPFATiling& contextKeyParams, uint64_t& tilingKey, uint32_t& blockDimToBeSet,
         PromptFlashAttentionTilingData& tilingData);
     bool CheckIODataType(ContextParamsForPFATiling& contextKeyParams);
@@ -186,7 +187,7 @@ protected:
     bool IsFlashDecode(ContextParamsForPFATiling& contextKeyParams, uint64_t bng);
     ge::graphStatus SplitBNS(PromptFlashAttentionTilingData& tilingData, uint64_t bng);
     bool CheckAlibiPseShiftTypeAndShape(ContextParamsForPFATiling& contextKeyParams, uint32_t n);
-    void SetQKVStartIdx(ContextParamsForPFATiling& contextKeyParams);
+    ge::graphStatus SetQKVStartIdx(ContextParamsForPFATiling& contextKeyParams);
     bool CheckAlibiPseCrossover(ContextParamsForPFATiling& contextKeyParams);
 protected:
     ContextParamsForPFATiling* contextKeyParamsPtr = nullptr;
