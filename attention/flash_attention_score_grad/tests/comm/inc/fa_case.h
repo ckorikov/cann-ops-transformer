@@ -16,12 +16,22 @@
 #pragma once
 
 #include <vector>
+#include <functional>
+#include <utility>
+#include <tikicpulib.h>
+#include <graph/utils/type_utils.h>
+#include <exe_graph/runtime/tiling_context.h>
+#include <register/op_impl_registry.h>
 #include "tests/utils/case_with_socversion.h"
 #include "tests/utils/op_info_with_socversion.h"
 #include "tests/utils/context.h"
+#include "tests/utils/context_with_template_tilingkey.h"
+#include "tests/utils/log.h"
+#include "tests/utils/platform.h"
+#include "tiling/fa/tiling_data.h"
+#include "tiling/fa/tiling_stub.h"
 #include "fa_param.h"
-#include <exe_graph/runtime/tiling_context.h>
-#include <register/op_impl_registry.h>
+#define __NPU_HOST__
 
 /**
  * 以下参数宏声明要与 FA/FAG Kernel 入口函数保持一致.
@@ -34,7 +44,6 @@
      uint8_t * softmaxMax, uint8_t * softmaxSum, uint8_t * softmaxOut, uint8_t * attentionOut, uint8_t * workspace,    \
      uint8_t * tiling)
 
-
 #define FAG_KERNEL_PARAM                                                                                               \
     (uint8_t * query, uint8_t * key, uint8_t * value, uint8_t * dy, uint8_t * pse_shift, uint8_t * drop_mask,          \
      uint8_t * padding_mask, uint8_t * atten_mask, uint8_t * softmax_max, uint8_t * softmax_sum, uint8_t * softmax_in, \
@@ -45,6 +54,27 @@
      uint8_t * dq, uint8_t * dk, uint8_t * dv, uint8_t * dpse, uint8_t * dqRope, uint8_t * dkRope,                     \
      uint8_t * workspace, uint8_t * tiling_data)
 
+#define FAG_KERNEL_PARAM_                                                                                              \
+     uint8_t * query, uint8_t * key, uint8_t * value, uint8_t * dy, uint8_t * pse_shift, uint8_t * drop_mask,          \
+     uint8_t * padding_mask, uint8_t * atten_mask, uint8_t * softmax_max, uint8_t * softmax_sum, uint8_t * softmax_in, \
+     uint8_t * attention_in, uint8_t * prefix, uint8_t * actual_seq_qlen, uint8_t * actual_seq_kvlen,                  \
+     uint8_t * q_start_idx, uint8_t * kv_start_idx,                                                                    \
+     uint8_t * deqScaleQ, uint8_t * deqScaleK, uint8_t * deqScaleV, uint8_t * deqScaleDy, uint8_t * deqScaleO,         \
+     uint8_t * queryRope, uint8_t * keyRope,                                                                           \
+     uint8_t * dq, uint8_t * dk, uint8_t * dv, uint8_t * dpse, uint8_t * dqRope, uint8_t * dkRope,                     \
+     uint8_t * workspace, uint8_t * tiling_data
+
+#define FAG_INPUT_DTYPE                                                                                               \
+    uint8_t *, uint8_t *, uint8_t *, uint8_t *, uint8_t *, uint8_t *, uint8_t *, uint8_t *, uint8_t *, uint8_t *,     \
+    uint8_t *, uint8_t *, uint8_t *, uint8_t *, uint8_t *, uint8_t *, uint8_t *, uint8_t *, uint8_t *, uint8_t *,     \
+    uint8_t *, uint8_t *, uint8_t *, uint8_t *, uint8_t *, uint8_t *, uint8_t *, uint8_t *, uint8_t *, uint8_t *,     \
+    uint8_t *, uint8_t *
+
+#define FAG_INPUT_PARAMS                                                                                               \
+     query, key, value, dy, pse_shift, drop_mask, padding_mask, atten_mask, softmax_max, softmax_sum, softmax_in,      \
+     attention_in, prefix, actual_seq_qlen, actual_seq_kvlen, q_start_idx, kv_start_idx, deqScaleQ, deqScaleK,         \
+     deqScaleV, deqScaleDy, deqScaleO, queryRope, keyRope, dq, dk, dv, dpse, dqRope, dkRope, workspace, tiling_data
+
 namespace ops::adv::tests::fa {
 
 /**
@@ -54,6 +84,7 @@ class FaCase : public ops::adv::tests::utils::CaseWithSocversion {
 public:
     using OpInfoWithSocversion = ops::adv::tests::utils::OpInfoWithSocversion;
     using Context = ops::adv::tests::utils::Context;
+    using ContextWithTemplateTilingKey = ops::adv::tests::utils::ContextWithTemplateTilingKey<FAG_INPUT_DTYPE>;
     using FaParam = ops::adv::tests::fa::FaParam;
 
     typedef void(*FasKernelFunc) FAS_KERNEL_PARAM;
@@ -82,7 +113,7 @@ public:
     OpInfoWithSocversion mForward;
     OpInfoWithSocversion mReverse;
     Context mForwardCtx;
-    Context mReverseCtx;
+    ContextWithTemplateTilingKey mReverseCtx;
 
     /* 输入/输出 参数 */
     FaParam mParam;
@@ -95,6 +126,10 @@ public:
     FaCase();
     FaCase(const char *name, bool enable, const char *dbgInfo, OpInfoWithSocversion forward, OpInfoWithSocversion reverse, FaParam param,
            int32_t tilingTemplatePriority = kTilingTemplatePriority_Invalid);
+    FaCase(const char *name, bool enable, const char *dbgInfo,
+           const std::function<void(FAG_INPUT_DTYPE)>& templatekeyKernelFunc,
+           OpInfoWithSocversion forward, OpInfoWithSocversion reverse, FaParam param,
+           int32_t tilingTemplatePriority = kTilingTemplatePriority_Invalid);
 
     bool Run() override;
     bool DoOpTiling(DoTilingParam &tilingParam);
@@ -106,6 +141,7 @@ protected:
     std::string mFagOriginTilingFuncName;
     void *mFasKernelFunc = nullptr;
     void *mFagKernelFunc = nullptr;
+    std::function<void(FAG_INPUT_DTYPE)> mFagKernelTemplateFunc;
 
 protected:
     bool InitParam() override;

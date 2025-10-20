@@ -14,10 +14,6 @@
 
 # FA/FAG 算子的 Kernel 均包含较多的 TilingKey, 在编译态、执行态均区分是否只执行FA/FAG, 以便提高编译执行效率;
 # Host 侧各 Target 暂不区分 FA/FAG 以便于用例实现.
-set(_TESTS_UT_OPS_TEST_FAG OFF)  # 对应 flash_attention_score_grad 算子
-if ("flash_attention_score_grad" IN_LIST TESTS_UT_OPS_TEST)
-    set(_TESTS_UT_OPS_TEST_FAG ON)
-endif ()
 
 set(_FA_OpApiSourcesExt
         # FAS
@@ -53,8 +49,7 @@ set(_FA_OpKernelTilingDataDefH
         # FAS
         ${OPS_TRANSFORMER_DIR}/attention/flash_attention_score/op_kernel/flash_attention_score_tiling.h
         # FAG
-        ${OPS_TRANSFORMER_DIR}/attention/flash_attention_score_grad/op_host/flash_attention_score_grad_tiling.h
-        ${OPS_TRANSFORMER_DIR}/attention/flash_attention_score_grad/op_host/flash_attention_score_grad_tiling_common.h
+        ${OPS_TRANSFORMER_DIR}/attention/flash_attention_score_grad/op_kernel/flash_attention_score_grad_tiling.h
         ${_FAG_OpKernelTilingDataDefH_def}
 )
 
@@ -95,21 +90,19 @@ list(APPEND _FA_UTestAclnnSourcesExtForce ${_Src1} ${_Src2})
 
 set(_FA_UTestCompileDefinitions)
 
-if (_TESTS_UT_OPS_TEST_FAG)
-    list(APPEND _FA_OpKernelSourcesExt
-            ${OPS_TRANSFORMER_DIR}/attention/flash_attention_score_grad/op_kernel/flash_attention_score_grad.cpp
-    )
+list(APPEND _FA_OpKernelSourcesExt
+        ${OPS_TRANSFORMER_DIR}/attention/flash_attention_score_grad/op_kernel/flash_attention_score_grad.cpp
+)
 
-    file(GLOB_RECURSE _Src1 "${CMAKE_CURRENT_SOURCE_DIR}/utest/ts_fag/*.cc")
-    file(GLOB_RECURSE _Src2 "${CMAKE_CURRENT_SOURCE_DIR}/utest/ts_fag/*.cpp")
-    list(APPEND _FA_UTestSourcesExtForce ${_Src1} ${_Src2})
+file(GLOB_RECURSE _Src1 "${CMAKE_CURRENT_SOURCE_DIR}/utest/ts_fag/*.cc")
+file(GLOB_RECURSE _Src2 "${CMAKE_CURRENT_SOURCE_DIR}/utest/ts_fag/*.cpp")
+list(APPEND _FA_UTestSourcesExtForce ${_Src1} ${_Src2})
 
-    file(GLOB_RECURSE _Src1 "${CMAKE_CURRENT_SOURCE_DIR}/utest_aclnn/ts_fag/*.cc")
-    file(GLOB_RECURSE _Src2 "${CMAKE_CURRENT_SOURCE_DIR}/utest_aclnn/ts_fag/*.cpp")
-    list(APPEND _FA_UTestAclnnSourcesExtForce ${_Src1} ${_Src2})
+file(GLOB_RECURSE _Src1 "${CMAKE_CURRENT_SOURCE_DIR}/utest_aclnn/ts_fag/*.cc")
+file(GLOB_RECURSE _Src2 "${CMAKE_CURRENT_SOURCE_DIR}/utest_aclnn/ts_fag/*.cpp")
+list(APPEND _FA_UTestAclnnSourcesExtForce ${_Src1} ${_Src2})
 
-    list(APPEND _FA_UTestCompileDefinitions TESTS_UT_OPS_TEST_FAG)
-endif ()
+list(APPEND _FA_UTestCompileDefinitions TESTS_UT_OPS_TEST_FAG)
 
 OpsTest_Level2_AddOp(
         SUB_SYSTEM                                transformer

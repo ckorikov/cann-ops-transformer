@@ -74,9 +74,7 @@ class FaCase : public ops::adv::tests::utils::CaseWithSocversion {
 public:
     using OpInfoWithSocversion = ops::adv::tests::utils::OpInfoWithSocversion;
     using Context = ops::adv::tests::utils::Context;
-    using ContextWithTemplateTilingKey = ops::adv::tests::utils::ContextWithTemplateTilingKey<uint8_t *, uint8_t *, uint8_t *,
-            uint8_t *, uint8_t *, uint8_t *, uint8_t *, uint8_t *, uint8_t *, uint8_t *, uint8_t *, uint8_t *, uint8_t *,
-            uint8_t *, uint8_t *, uint8_t *, uint8_t *, uint8_t *, uint8_t *, uint8_t *, uint8_t *, uint8_t *, uint8_t *>;
+    using ContextWithTemplateTilingKey = ops::adv::tests::utils::ContextWithTemplateTilingKey<FAS_INPUT_DTYPE>;
     using FaParam = ops::adv::tests::fa::FaParam;
 
     typedef void(*FasKernelFunc) FAS_KERNEL_PARAM;
