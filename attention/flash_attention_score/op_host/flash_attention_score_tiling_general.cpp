@@ -43,6 +43,7 @@ static const size_t ACTUAL_SEQ_LENGTH_INPUT_INDEX = 8UL;
 static const size_t ACTUAL_SEQ_LENGTH_KV_INPUT_INDEX = 9UL;
 static const size_t Q_START_IDX_INPUT_INDEX = 10UL;
 static const size_t KV_START_IDX_INPUT_INDEX = 11UL;
+static const size_t QUERY_ROPE_INPUT_INDEX = 15UL;
 static const size_t ATTEN_OUT_INDEX = 3UL;
 static const size_t ATTENTION_MASK_DIM_NUM_4 = 4UL;
 static const size_t ATTENTION_MASK_DIM_NUM_2 = 2UL;
@@ -1112,6 +1113,10 @@ bool FlashAttentionScoreTilingBase::CouldConvertTND2BSH(std::array<int64_t, MAX_
                                                         int64_t &s2Max, int64_t &t1Size, int64_t &t2Size) const
 {
     auto pseShape = context_->GetOptionalInputShape(PSE_INPUT_INDEX);
+    auto queryRopeShape = context_->GetOptionalInputShape(QUERY_ROPE_INPUT_INDEX);
+    if (queryRopeShape != nullptr) {
+        return false;
+    }
     if (!(pseShape == nullptr || pseShape->GetStorageShape().GetDimNum() == 0)) {
         return false; 
     }

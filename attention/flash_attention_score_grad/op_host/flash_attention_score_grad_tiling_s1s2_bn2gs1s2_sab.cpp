@@ -114,6 +114,10 @@ bool FlashAttentionScoreGradTilingS1s2Bn2gs1s2SameAb::IsCapable()
         return false;
     }
 
+    if (context_->GetDeterministic() == 1 && context_->GetOptionalInputShape(QUERY_ROPE) != nullptr) {
+        return false;
+    }
+
     if (fBaseParams.layoutType == INPUT_FORMAT_TND) {
         if (isTndSABHit(context_)) {
             float keep_prob = fBaseParams.keepProb;
