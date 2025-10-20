@@ -30,7 +30,6 @@
 #include "../../incre_flash_attention/op_kernel/incre_flash_attention_tiling.h"
 #include "../../prompt_flash_attention/op_host/prompt_flash_attention_tiling_compile_info.h"
 
-
 using namespace ge;
 using namespace AscendC;
 using std::pair;
@@ -3120,7 +3119,13 @@ ge::graphStatus IFATiling::GenTilingKey() const
     if (ropeFlag_ && quantFlag_) {
         originVal = outputVal; // 此处应该获取ROPE的类型，需要修改
     }
-
+    if((modeVal == 1 && perfMode_ == IfaPerfMode::BMM_ALL_BY_VEC) ||
+       (modeVal == 1 && perfMode_ == IfaPerfMode::NORMAL) ||
+       (modeVal == 1 && perfMode_ == IfaPerfMode::C1_V1) ||
+       (modeVal == 2) ||
+       (modeVal == 1 && perfMode_ == IfaPerfMode::CUBE_VIEW_MM)){
+            kvLayoutInfo.kvLayoutVal = 1U;
+       }
     context_->tilingKey = GET_TPL_TILING_KEY(static_cast<uint8_t>(inputQVal),
             static_cast<uint8_t>(inputKvVal), static_cast<uint8_t>(outputVal), static_cast<uint8_t>(originVal),
             static_cast<uint8_t>(paVal), static_cast<uint8_t>(splitKvVal),
@@ -3419,25 +3424,10 @@ template <typename T>
 ge::graphStatus IfaStartSimpleTiling(T& tilingType, IncreFlashAttentionContext &ifaContext,
                                      IncreFlashAttentionTilingDataV2* ifaTilingData, gert::TilingContext *context)
 {
+    tilingType.geContext_ = context;
     if (tilingType.RunBigKernelTiling(ifaContext, ifaTilingData) == ge::SUCCESS) {
         context->SetTilingKey(ifaContext.tilingKey);
         context->SetBlockDim(ifaContext.blockDim);
-        // tilingType.IncreFlashAttentionSetTilingData(*context, ifaTilingData);
-        return ge::GRAPH_SUCCESS;
-    }
-    return ge::GRAPH_FAILED;
-}
-
-template <typename T>
-ge::graphStatus IfaStartSimpleTilingV2(T& tilingType, IncreFlashAttentionContext &ifaContext,
-                                     IncreFlashAttentionTilingDataV2& ifaTilingData, gert::TilingContext *context)
-{
-    tilingType.ifaTilingAtbData = context.GetTilingData<IncreFlashAttentionTilingAtbDataV2>();
-    tilingType.tilingDataMla_ = context.GetTilingData<IncreFlashAttentionTilingDataMla>();
-    if (tilingType.RunBigKernelTiling(ifaContext, ifaTilingData) == ge::SUCCESS) {
-        context->SetTilingKey(ifaContext.tilingKey);
-        context->SetBlockDim(ifaContext.blockDim);
-        // tilingType.IncreFlashAttentionSetTilingData(*context, ifaTilingData);
         return ge::GRAPH_SUCCESS;
     }
     return ge::GRAPH_FAILED;
