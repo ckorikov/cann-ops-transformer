@@ -187,19 +187,19 @@ __aicore__ inline void MoeindexCopySpiltDOp<T, probsT, ifNumOutTokens>::CopyOutP
         auto indicesValue = indicesLocal.GetValue(offset);
         if constexpr (ifNumOutTokens == true) {
             if ((indicesValue >= start) && (indicesValue < start + numOutTokens)) {
-                set_flag(PIPE_MTE3, PIPE_S, probsMte3ToS);
-                wait_flag(PIPE_MTE3, PIPE_S, probsMte3ToS);
+                SetFlag<HardEvent::MTE3_S>(probsMte3ToS);
+                WaitFlag<HardEvent::MTE3_S>(probsMte3ToS);
                 probsTmpLocal.SetValue(0, probsLocal.GetValue(offset));
-                set_flag(PIPE_S, PIPE_MTE3, probsSToMte3);
-                wait_flag(PIPE_S, PIPE_MTE3, probsSToMte3);
+                SetFlag<HardEvent::S_MTE3>(probsSToMte3);
+                WaitFlag<HardEvent::S_MTE3>(probsSToMte3);
                 DataCopyPad(dstProbsGm[indicesValue - start], probsTmpLocal, dataCopyExtParams);
             }
         } else {
-            set_flag(PIPE_MTE3, PIPE_S, probsMte3ToS);
-            wait_flag(PIPE_MTE3, PIPE_S, probsMte3ToS);
+            SetFlag<HardEvent::MTE3_S>(probsMte3ToS);
+            WaitFlag<HardEvent::MTE3_S>(probsMte3ToS);
             probsTmpLocal.SetValue(0, probsLocal.GetValue(offset));
-            set_flag(PIPE_S, PIPE_MTE3, probsSToMte3);
-            wait_flag(PIPE_S, PIPE_MTE3, probsSToMte3);
+            SetFlag<HardEvent::S_MTE3>(probsSToMte3);
+            WaitFlag<HardEvent::S_MTE3>(probsSToMte3);
             DataCopyPad(dstProbsGm[indicesValue], probsTmpLocal, dataCopyExtParams);
         }
         offset++;
@@ -312,7 +312,7 @@ __aicore__ inline void MoeindexCopySpiltDOp<T, probsT, ifNumOutTokens>::Process(
         for (int64_t outLoop = 0; outLoop < CoreLoop - 1; outLoop++) {
             CopyInIndices(outLoop, indicesCopyParams);
             CopyInProbs(outLoop, probsCopyParams);
-            pipe_barrier(PIPE_MTE2);
+            PipeBarrier<PIPE_MTE2>();
             for (int64_t innerLoop = 0; innerLoop < onceIndicesTokenNums; innerLoop++) {
                 CopyInAndOut(offset, innerLoop);
                 CopyOutProbs(innerLoop, probsCopyOutParams);
@@ -320,12 +320,12 @@ __aicore__ inline void MoeindexCopySpiltDOp<T, probsT, ifNumOutTokens>::Process(
             }
             copyProbsInQueue.FreeTensor(probsLocal);
             indicesQueue.FreeTensor(indicesLocal);
-            set_flag(PIPE_S, PIPE_MTE2, indicesSToMte2);
-            wait_flag(PIPE_S, PIPE_MTE2, indicesSToMte2);
+            SetFlag<HardEvent::S_MTE2>(indicesSToMte2);
+            WaitFlag<HardEvent::S_MTE2>(indicesSToMte2);
         }
         CopyInIndices(CoreLoop - 1, indicesCopyLastParams);
         CopyInProbs(CoreLoop - 1, probsCopyLastParams);
-        pipe_barrier(PIPE_MTE2);
+        PipeBarrier<PIPE_MTE2>();
 
         for (int64_t innerLoop = 0; innerLoop < CoreLastTokenNums; innerLoop++) {
             CopyInAndOut(offset, innerLoop);

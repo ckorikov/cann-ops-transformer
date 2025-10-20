@@ -200,7 +200,7 @@ __aicore__ inline void MoeV2SortOneCore::Init(GM_ADDR expertIdx, GM_ADDR expertT
     Duplicate<int32_t>(syncLocal, 0, SYNC_LEN);
     SetWaitFlag<HardEvent::V_MTE3>(HardEvent::V_MTE3);
     DataCopy(syncTmpSpaceGm_, syncLocal, SYNC_LEN);
-    pipe_barrier(PIPE_ALL);
+    PipeBarrier<PIPE_ALL>();
 #else
     pipe->InitBuffer(tempBuffer, buffSize);
     pipe->InitBuffer(sortedBuffer, buffSize);
