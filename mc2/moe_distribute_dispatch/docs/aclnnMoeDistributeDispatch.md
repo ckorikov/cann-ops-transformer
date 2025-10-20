@@ -356,7 +356,7 @@ aclnnStatus aclnnMoeDistributeDispatch(
 
 - aclnnMoeDistributeDispatch接口与aclnnMoeDistributeCombine接口必须配套使用，具体参考调用示例。
 
-- 在不同产品型号、不同通信算法或不同版本中，aclnnMoeDistributeDispatch的Tensor输出expandIdx、epRecvCounts、tpRecvCounts、expandScales中的的元素值可能不同，使用时直接将上述Tensor传给aclnnMoeDistributeCombine对应参数即可，模型其他业务逻辑不应对其存在依赖。
+- 在不同产品型号、不同通信算法或不同版本中，aclnnMoeDistributeDispatch的Tensor输出expandIdx、epRecvCounts、tpRecvCounts、expandScales中的元素值可能不同，使用时直接将上述Tensor传给aclnnMoeDistributeCombine对应参数即可，模型其他业务逻辑不应对其存在依赖。
 
 - 调用接口过程中使用的groupEp、epWorldSize、moeExpertNum、groupTp、tpWorldSize、expertShardType、sharedExpertNum、sharedExpertRankNum、globalBs参数取值所有卡需保持一致，网络中不同层中也需保持一致，且和aclnnMoeDistributeCombine对应参数也保持一致。
 
@@ -395,7 +395,7 @@ aclnnStatus aclnnMoeDistributeDispatch(
 - quantMode相关约束：
     - quantMode取值为0时，表示非量化场景，expandX的数据类型支持FLOAT16、BFLOAT16、FLOAT8_E4M3FN、FLOAT8_E5M2、HIFLOAT8。
         - expandX的数据类型为FLOAT16、BFLOAT16时，输入scales必须传入空指针。
-        - expandX的数据类型为FLOAT8_E4M3FN、FLOAT8_E5M2、HIFLOAT8时，输入scales必须传入有效数据,且输入scales的shape第1维必须等于BS。
+        - expandX的数据类型为FLOAT8_E4M3FN、FLOAT8_E5M2、HIFLOAT8时，输入scales必须传入有效数据，且输入scales的shape第1维必须等于BS。
     - quantMode取值为1时，表示静态量化场景，expandX的数据类型支持INT8、HIFLOAT8。
         - expandX的数据类型为INT8时，输入scales为量化系数时，shape为 (1, )；输入scales为每个专家共享的平滑权重时，shape为 (H，)。输入scales为融了每个专家的平滑权重的量化系数时，若有共享专家卡，其shape为 (sharedExpertNum + moeExpertNum, H)，若无共享专家卡，其shape为 (moeExpertNum, H)。
         - expandX的数据类型为HIFLOAT8时，scales的shape必须为 (1, )。
