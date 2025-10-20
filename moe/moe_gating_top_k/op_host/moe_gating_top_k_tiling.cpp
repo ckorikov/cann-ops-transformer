@@ -139,9 +139,9 @@ private:
 
 ge::graphStatus MoeGatingTopKTilingBase::CheckInputShape()
 {
-    size_t xDimNnum = xShape_->GetDimNum();
-    OP_CHECK_IF(xDimNnum != X_INPUT_DIMS,
-                OP_LOGE(context_, "The dim number of x is: %zu, but should be %zu.", xDimNnum, X_INPUT_DIMS),
+    size_t xDimNum = xShape_->GetDimNum();
+    OP_CHECK_IF(xDimNum != X_INPUT_DIMS,
+                OP_LOGE(context_, "The dim number of x is: %zu, but should be %zu.", xDimNum, X_INPUT_DIMS),
                 return ge::GRAPH_FAILED);
 
     // 通过输入获取rows 和 expertCount
@@ -151,9 +151,9 @@ ge::graphStatus MoeGatingTopKTilingBase::CheckInputShape()
     moeGatingTopKTilingData_.set_expertCount(expertCount_);
     if (biasShape_ != nullptr) {
         addBias_ = 1;
-        size_t biasDimNnum = biasShape_->GetDimNum();
-        OP_CHECK_IF(biasDimNnum != BIAS_INPUT_DIMS,
-                    OP_LOGE(context_, "The dim number of bias is: %zu, but should be %zu.", biasDimNnum, BIAS_INPUT_DIMS),
+        size_t biasDimNum = biasShape_->GetDimNum();
+        OP_CHECK_IF(biasDimNum != BIAS_INPUT_DIMS,
+                    OP_LOGE(context_, "The dim number of bias is: %zu, but should be %zu.", biasDimNum, BIAS_INPUT_DIMS),
                     return ge::GRAPH_FAILED);
         OP_CHECK_IF(
             biasShape_->GetDim(0) != expertCount_,

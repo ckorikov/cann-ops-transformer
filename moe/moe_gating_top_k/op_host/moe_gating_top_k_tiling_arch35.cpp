@@ -9,7 +9,7 @@
  */
 
 /* !
- * \file moe_gating_top_k_tiling_ar35.cpp
+ * \file moe_gating_top_k_tiling_arch35.cpp
  * \brief
  */
 
@@ -129,9 +129,9 @@ private:
 
 ge::graphStatus MoeGatingTopKTilingRegbase::CheckInputShape()
 {
-    size_t xDimNnum = xShape_->GetDimNum();
-    OP_CHECK_IF(xDimNnum != X_INPUT_DIMS,
-                OP_LOGE(context_, "The number of x dim is: %zu, but should be %zu.", xDimNnum, X_INPUT_DIMS),
+    size_t xDimNum = xShape_->GetDimNum();
+    OP_CHECK_IF(xDimNum != X_INPUT_DIMS,
+                OP_LOGE(context_, "The number of x dim is: %zu, but should be %zu.", xDimNum, X_INPUT_DIMS),
                 return ge::GRAPH_FAILED);
 
     // 通过输入获取rows 和 expertCount
@@ -146,9 +146,9 @@ ge::graphStatus MoeGatingTopKTilingRegbase::CheckInputShape()
 
     if (biasShape_ != nullptr) {
         addBias_ = 1;
-        size_t biasDimNnum = biasShape_->GetDimNum();
-        OP_CHECK_IF(biasDimNnum != BIAS_INPUT_DIMS,
-                    OP_LOGE(context_, "The number of bias dim is: %zu, but should be %zu.", biasDimNnum, BIAS_INPUT_DIMS),
+        size_t biasDimNum = biasShape_->GetDimNum();
+        OP_CHECK_IF(biasDimNum != BIAS_INPUT_DIMS,
+                    OP_LOGE(context_, "The number of bias dim is: %zu, but should be %zu.", biasDimNum, BIAS_INPUT_DIMS),
                     return ge::GRAPH_FAILED);
         OP_CHECK_IF(biasShape_->GetDim(0) != expertCount_,
                     OP_LOGE(context_, "The first dim of bias is: %ld, but should be expert num: %ld.",
