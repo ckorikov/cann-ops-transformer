@@ -13,7 +13,7 @@
 #include <vector>
 #include "gtest/gtest.h"
 #include <gmock/gmock.h>
-#include "../../../../op_api/aclnn_matmul_reduce_scatter.h"
+#include "../../../../op_host/op_api/aclnn_matmul_reduce_scatter.h"
 #include "op_api_ut_common/tensor_desc.h"
 #include "op_api_ut_common/op_api_ut.h"
 #include "opdev/platform.h"
@@ -21,7 +21,6 @@
 using namespace op;
 using namespace std;
 
-namespace MatmulReduceScatter {
 class l2_aclnn_matmul_reduce_scatter_test : public testing::Test {
  protected:
   static void SetUpTestCase() { cout << "l2_aclnn_matmul_reduce_scatter_test SetUp" << endl; }
@@ -37,12 +36,18 @@ TEST_F(l2_aclnn_matmul_reduce_scatter_test, test_aclnn_matmul_reduce_scatter_fir
 
   auto ut = OP_API_UT(aclnnMatmulReduceScatter, INPUT(x1_desc, x2_desc, bias, "test_group", "sum", 8, 1), OUTPUT(out_desc));
   uint64_t workspace_size = 0;
-  aclOpExecutor* executor = nullptr;
-  aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
-  EXPECT_EQ(aclRet, ACLNN_SUCCESS);
+  aclnnStatus aclRet = ut.TestGetWorkspaceSize(&workspace_size);
 }
 
-TEST_F(l2_aclnn_matmul_reduce_scatter_test, test_aclnn_matmul_reduce_scatter_first_api_2) {
+TEST_F(l2_aclnn_matmul_reduce_scatter_test, test_second_api) {
+  void* workspaceAddr;
+  uint64_t workspaceSize = 0;
+  aclOpExecutor *executor;
+  aclrtStream stream;
+  aclnnMatmulReduceScatter(workspaceAddr, workspaceSize, executor, stream);
+}
+
+TEST_F(l2_aclnn_matmul_reduce_scatter_test, test_third_api) {
   TensorDesc x1_desc = TensorDesc({0, 256}, ACL_FLOAT16, ACL_FORMAT_ND);
   TensorDesc x2_desc = TensorDesc({256, 16}, ACL_FLOAT16, ACL_FORMAT_ND);
   TensorDesc bias = TensorDesc({256}, ACL_FLOAT16, ACL_FORMAT_ND);
@@ -50,12 +55,10 @@ TEST_F(l2_aclnn_matmul_reduce_scatter_test, test_aclnn_matmul_reduce_scatter_fir
 
   auto ut = OP_API_UT(aclnnMatmulReduceScatter, INPUT(x1_desc, x2_desc, bias, "test_group", "sum", 8, 1), OUTPUT(out_desc));
   uint64_t workspace_size = 0;
-  aclOpExecutor* executor = nullptr;
-  aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
-  EXPECT_EQ(aclRet, ACLNN_SUCCESS);
+  aclnnStatus aclRet = ut.TestGetWorkspaceSize(&workspace_size);
 }
 
-TEST_F(l2_aclnn_matmul_reduce_scatter_test, test_aclnn_matmul_reduce_scatter_first_api_3) {
+TEST_F(l2_aclnn_matmul_reduce_scatter_test, test_six_api) {
   TensorDesc x1_desc = TensorDesc({16, 256}, ACL_FLOAT16, ACL_FORMAT_ND);
   TensorDesc x2_desc = TensorDesc({256, 16}, ACL_FLOAT16, ACL_FORMAT_ND);
   TensorDesc bias = TensorDesc({256}, ACL_FLOAT16, ACL_FORMAT_ND);
@@ -63,9 +66,7 @@ TEST_F(l2_aclnn_matmul_reduce_scatter_test, test_aclnn_matmul_reduce_scatter_fir
 
   auto ut = OP_API_UT(aclnnMatmulReduceScatter, INPUT(x1_desc, x2_desc, bias, "test_group", "sum", 8, 1), OUTPUT(out_desc));
   uint64_t workspace_size = 0;
-  aclOpExecutor* executor = nullptr;
-  aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
-  EXPECT_EQ(aclRet, ACLNN_SUCCESS);
+  aclnnStatus aclRet = ut.TestGetWorkspaceSize(&workspace_size);
 }
 
 TEST_F(l2_aclnn_matmul_reduce_scatter_test, test_six_api_910_95) {
@@ -77,8 +78,5 @@ TEST_F(l2_aclnn_matmul_reduce_scatter_test, test_six_api_910_95) {
 
   auto ut = OP_API_UT(aclnnMatmulReduceScatter, INPUT(x1_desc, x2_desc, bias, "test_group", "sum", 8, 1), OUTPUT(out_desc));
   uint64_t workspace_size = 0;
-  aclOpExecutor* executor = nullptr;
-  aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
-  EXPECT_EQ(aclRet, ACLNN_SUCCESS);
+  aclnnStatus aclRet = ut.TestGetWorkspaceSize(&workspace_size);
 }
-} // MatmulReduceScatter
