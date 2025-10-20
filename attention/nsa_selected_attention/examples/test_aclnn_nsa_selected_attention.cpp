@@ -9,7 +9,7 @@
  */
 
 /*!
- * \file test_nsa_selected_attention.cpp
+ * \file test_aclnn_nsa_selected_attention.cpp
  * \brief
  */
 
@@ -22,17 +22,16 @@
 #include "acl/acl.h"
 #include "aclnnop/aclnn_nsa_selected_attention.h"
 
-
-#define CHECK_RET(cond, return_expr)                                                                                   \
-    do {                                                                                                               \
-        if (!(cond)) {                                                                                                 \
-            return_expr;                                                                                               \
-        }                                                                                                              \
+#define CHECK_RET(cond, return_expr)                   \
+    do {                                               \
+        if (!(cond)) {                                 \
+            return_expr;                               \
+        }                                              \
     } while (0)
 
-#define LOG_PRINT(message, ...)                                                                                        \
-    do {                                                                                                               \
-        printf(message, ##__VA_ARGS__);                                                                                \
+#define LOG_PRINT(message, ...)                        \
+    do {                                               \
+        printf(message, ##__VA_ARGS__);                \
     } while (0)
 
 int64_t GetShapeSize(const std::vector<int64_t> &shape)
@@ -44,17 +43,18 @@ int64_t GetShapeSize(const std::vector<int64_t> &shape)
     return shapeSize;
 }
 
-template <typename T> void SaveOutResult(std::string &fileName, std::vector<int64_t> &shape, void **deviceAddr)
+template <typename T> void CopyOutResult(int64_t outIndex, std::vector<int64_t> &shape, void **deviceAddr)
 {
     auto size = GetShapeSize(shape);
     std::vector<T> resultData(size, 0);
     auto ret = aclrtMemcpy(resultData.data(), resultData.size() * sizeof(resultData[0]), *deviceAddr,
                            size * sizeof(resultData[0]), ACL_MEMCPY_DEVICE_TO_HOST);
     CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("copy result from device to host failed. ERROR: %d\n", ret); return);
-    std::ofstream file(fileName, std::ios::binary);
-    // 保存文件
-    file.write(static_cast<char *>((void *)resultData.data()), size * sizeof(T));
-    file.close();
+    if(outIndex == 2) {
+        for (int64_t i = 0; i < size; i++) {
+            LOG_PRINT("attention out result is: %f\n", i, resultData[i]);
+        }
+    }
 }
 
 int Init(int32_t deviceId, aclrtContext *context, aclrtStream *stream)
@@ -66,34 +66,14 @@ int Init(int32_t deviceId, aclrtContext *context, aclrtStream *stream)
     CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclrtSetDevice failed. ERROR: %d\n", ret); aclFinalize(); return ret);
     ret = aclrtCreateContext(context, deviceId);
     CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclrtCreateContext failed. ERROR: %d\n", ret); aclrtResetDevice(deviceId);
-                                  aclFinalize(); return ret);
+        aclFinalize(); return ret);
     ret = aclrtSetCurrentContext(*context);
     CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclrtSetCurrentContext failed. ERROR: %d\n", ret);
-                                  aclrtDestroyContext(context); aclrtResetDevice(deviceId); aclFinalize(); return ret);
+        aclrtDestroyContext(context); aclrtResetDevice(deviceId); aclFinalize(); return ret);
     ret = aclrtCreateStream(stream);
     CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclrtCreateStream failed. ERROR: %d\n", ret);
-                                  aclrtDestroyContext(context); aclrtResetDevice(deviceId); aclFinalize(); return ret);
+        aclrtDestroyContext(context); aclrtResetDevice(deviceId); aclFinalize(); return ret);
     return 0;
-}
-
-int ReadBinFileNNop(std::string &filePath, void *buffer, size_t bufferSize)
-{
-    struct stat sBuf;
-    int fileStatus = stat(filePath.data(), &sBuf);
-    CHECK_RET(fileStatus == ACL_SUCCESS, LOG_PRINT("Failed to get file %s\n", filePath.c_str()); return -1);
-
-    std::ifstream file;
-    file.open(filePath, std::ios::binary);
-    CHECK_RET(file.is_open(), LOG_PRINT("Open file failed.\n"); return -1);
-
-    file.seekg(0, file.end);
-    uint64_t binFileBufferLen = file.tellg();
-    CHECK_RET(binFileBufferLen > 0, std::cout << "File size is 0.\n"; file.close(); return -1);
-
-    file.seekg(0, file.beg);
-    file.read(static_cast<char *>(buffer), binFileBufferLen);
-    file.close();
-    return ACL_SUCCESS;
 }
 
 template <typename T>
@@ -112,41 +92,6 @@ int CreateAclTensor(const std::vector<T> &hostData, const std::vector<int64_t> &
     // 计算连续tensor的strides
     std::vector<int64_t> strides(shape.size(), 1);
     for (int64_t i = static_cast<int64_t>(shape.size()) - 2; i >= 0; i--) {
-        strides[i] = shape[i + 1] * strides[i + 1];
-    }
-
-    // 调用aclCreateTensor接口创建aclTensor
-    *tensor = aclCreateTensor(shape.data(), shape.size(), dataType, strides.data(), 0, aclFormat::ACL_FORMAT_ND,
-                              shape.data(), shape.size(), *deviceAddr);
-    return 0;
-}
-
-int CreateAclTensor(std::string &filePath, const std::vector<int64_t> &shape, int typeSize, void **deviceAddr,
-                    aclDataType dataType, aclTensor **tensor)
-{
-    auto size = GetShapeSize(shape) * typeSize;
-    // 调用aclrtMalloc申请device侧内存
-    auto ret = aclrtMalloc(deviceAddr, size, ACL_MEM_MALLOC_HUGE_FIRST);
-    CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclrtMalloc failed. ERROR: %d\n", ret); return ret);
-
-    // 调用aclrtMallocHost申请host侧内存
-    void *binBufferHost = nullptr;
-    ret = aclrtMallocHost(&binBufferHost, size);
-    CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclrtMallocHost failed. ERROR: %d\n", ret); return ret);
-
-    // 读取文件
-    ret = ReadBinFileNNop(filePath, binBufferHost, size);
-    CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("ReadBinFileNNop failed. ERROR: %d\n", ret);
-                                  (void)aclrtFreeHost(binBufferHost); return ret);
-
-    // 调用aclrtMemcpy将host侧数据拷贝到device侧内存上
-    ret = aclrtMemcpy(*deviceAddr, size, binBufferHost, size, ACL_MEMCPY_HOST_TO_DEVICE);
-    (void)aclrtFreeHost(binBufferHost);
-    CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclrtMemcpy failed. ERROR: %d\n", ret); return ret);
-
-    // 计算连续tensor的strides
-    std::vector<int64_t> strides(shape.size(), 1);
-    for (int64_t i = shape.size() - 2; i >= 0; i--) {
         strides[i] = shape[i + 1] * strides[i + 1];
     }
 
@@ -204,16 +149,16 @@ void FreeResource(aclTensor *q, aclTensor *k, aclTensor *v, aclTensor *attention
         aclrtFree(workspaceAddr);
     }
     if (stream != nullptr) {
-        aclrtDestroyStream(*stream);
+        aclrtDestroyStream(stream);
     }
     if (context != nullptr) {
-        aclrtDestroyContext(*context);
+        aclrtDestroyContext(context);
     }
     aclrtResetDevice(deviceId);
     aclFinalize();
 }
 
-int main(int argc, char **argv)
+int main()
 {
     // 1. （固定写法）device/context/stream初始化，参考AscendCL对外接口列表
     // 根据自己的实际device填写deviceId
@@ -270,50 +215,41 @@ int main(int argc, char **argv)
     aclIntArray *actualSeqQLenOptional = aclCreateIntArray(actualSeqQLenVec.data(), actualSeqQLenVec.size());
     aclIntArray *actualSeqKvLenOptional = aclCreateIntArray(actualSeqKvLenVec.data(), actualSeqKvLenVec.size());
 
+    std::vector<aclFloat16> qHostData(GetShapeSize(qShape), 1);
+    std::vector<aclFloat16> kHostData(GetShapeSize(kShape), 1);
+    std::vector<aclFloat16> vHostData(GetShapeSize(vShape), 1);
+    std::vector<int32_t> topkIndicesHostData(GetShapeSize(topKIndicesShape), 2);
     std::vector<float> attentionOutHostData(GetShapeSize(attentionOutShape), 0.0);
     std::vector<float> softmaxMaxHostData(GetShapeSize(softmaxMaxShape), 0.0);
     std::vector<float> softmaxSumHostData(GetShapeSize(softmaxSumShape), 0.0);
     uint64_t workspaceSize = 0;
     void *workspaceAddr = nullptr;
 
-    if (argv == nullptr || argv[0] == nullptr) {
-        LOG_PRINT("Environment error, Argv=%p, Argv[0]=%p", argv, argv == nullptr ? nullptr : argv[0]);
-        return 0;
-    }
-    std::string exeFile(argv[0]);
-    std::string currentPath = std::string(exeFile.substr(0, exeFile.rfind('/')) + "/");
-    std::string qFilePath = currentPath + "query.bin";
-    ret = CreateAclTensor(qFilePath, qShape, sizeof(uint16_t), &qDeviceAddr, aclDataType::ACL_FLOAT16, &q);
+    // 创建acl Tensor
+    ret = CreateAclTensor(qHostData, qShape, &qDeviceAddr, aclDataType::ACL_FLOAT16, &q);
     CHECK_RET(ret == ACL_SUCCESS,
               FreeResource(q, k, v, attentionOut, softmaxMax, softmaxSum, qDeviceAddr, kDeviceAddr, vDeviceAddr,
                   attentionOutDeviceAddr, softmaxMaxDeviceAddr, softmaxSumDeviceAddr, workspaceSize, workspaceAddr,
                   deviceId, &context, &stream);
               return ret);
-
-    std::string kFilePath = currentPath + "key.bin";
-    ret = CreateAclTensor(kFilePath, kShape, sizeof(uint16_t), &kDeviceAddr, aclDataType::ACL_FLOAT16, &k);
+    ret = CreateAclTensor(kHostData, kShape, &kDeviceAddr, aclDataType::ACL_FLOAT16, &k);
     CHECK_RET(ret == ACL_SUCCESS,
               FreeResource(q, k, v, attentionOut, softmaxMax, softmaxSum, qDeviceAddr, kDeviceAddr, vDeviceAddr,
                   attentionOutDeviceAddr, softmaxMaxDeviceAddr, softmaxSumDeviceAddr, workspaceSize, workspaceAddr,
                   deviceId, &context, &stream);
               return ret);
-
-    std::string vFilePath = currentPath + "value.bin";
-    ret = CreateAclTensor(vFilePath, vShape, sizeof(uint16_t), &vDeviceAddr, aclDataType::ACL_FLOAT16, &v);
+    ret = CreateAclTensor(vHostData, vShape, &vDeviceAddr, aclDataType::ACL_FLOAT16, &v);
     CHECK_RET(ret == ACL_SUCCESS,
               FreeResource(q, k, v, attentionOut, softmaxMax, softmaxSum, qDeviceAddr, kDeviceAddr, vDeviceAddr,
                   attentionOutDeviceAddr, softmaxMaxDeviceAddr, softmaxSumDeviceAddr, workspaceSize, workspaceAddr,
                   deviceId, &context, &stream);
               return ret);
-    
-    std::string topKIndicesFilePath = currentPath + "topk_indices.bin";
-    ret = CreateAclTensor(topKIndicesFilePath, topKIndicesShape, sizeof(int32_t), &topKIndicesDeviceAddr, aclDataType::ACL_INT32, &topKIndices);
+    ret = CreateAclTensor(topkIndicesHostData, topKIndicesShape, &topKIndicesDeviceAddr, aclDataType::ACL_INT32, &topKIndices);
     CHECK_RET(ret == ACL_SUCCESS,
               FreeResource(q, k, v, attentionOut, softmaxMax, softmaxSum, qDeviceAddr, kDeviceAddr, vDeviceAddr,
                   attentionOutDeviceAddr, softmaxMaxDeviceAddr, softmaxSumDeviceAddr, workspaceSize, workspaceAddr,
                   deviceId, &context, &stream);
               return ret);
-
     ret = CreateAclTensor(attentionOutHostData, attentionOutShape, &attentionOutDeviceAddr, aclDataType::ACL_FLOAT16,
                           &attentionOut);
     CHECK_RET(ret == ACL_SUCCESS,
@@ -321,7 +257,6 @@ int main(int argc, char **argv)
                   attentionOutDeviceAddr, softmaxMaxDeviceAddr, softmaxSumDeviceAddr, workspaceSize, workspaceAddr,
                   deviceId, &context, &stream);
               return ret);
-
     ret = CreateAclTensor(softmaxMaxHostData, softmaxMaxShape, &softmaxMaxDeviceAddr, aclDataType::ACL_FLOAT,
                           &softmaxMax);
     CHECK_RET(ret == ACL_SUCCESS,
@@ -378,14 +313,9 @@ int main(int argc, char **argv)
               return ret);
 
     // 5. 获取输出的值，将device侧内存上的结果拷贝至host侧，需要根据具体API的接口定义修改
-    std::string attentionOutFileName = "attentionOut.bin";
-    SaveOutResult<short>(attentionOutFileName, attentionOutShape, &attentionOutDeviceAddr);
-
-    std::string softmaxMaxFileName = "softmaxMax.bin";
-    SaveOutResult<float>(softmaxMaxFileName, softmaxMaxShape, &softmaxMaxDeviceAddr);
-
-    std::string softmaxSumFileName = "softmaxSum.bin";
-    SaveOutResult<float>(softmaxSumFileName, softmaxSumShape, &softmaxSumDeviceAddr);
+    CopyOutResult<float>(0, softmaxMaxShape, &softmaxMaxDeviceAddr);
+    CopyOutResult<float>(1, softmaxSumShape, &softmaxSumDeviceAddr);
+    CopyOutResult<aclFloat16>(2, attentionOutShape, &attentionOutDeviceAddr);
 
     // 6. 释放aclTensor和aclScalar，需要根据具体API的接口定义修改; 释放device资源
     FreeResource(q, k, v, attentionOut, softmaxMax, softmaxSum, qDeviceAddr, kDeviceAddr, vDeviceAddr,
