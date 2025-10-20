@@ -24,6 +24,8 @@ target_compile_options(_OpsTestUt_OpApi_Wno
             -Wno-redundant-decls
 )
 
+add_definitions(-DNOT_DYNAMIC_COMPILE)
+
 # 缓存所有算子 UTest 场景 OpProto 动态库相关信息
 set(_OpsTestUt_OpProtoSources            "" CACHE INTERNAL "" FORCE)  # Sources
 set(_OpsTestUt_OpProtoPrivateIncludesExt "" CACHE INTERNAL "" FORCE)  # PrivateIncludesExt
