@@ -549,7 +549,7 @@ ge::graphStatus NsaSelectedAttentionGradTiling::SetBaseInfo(const gert::Shape &q
         tmpData.t2 = keyShape.GetDim(DIM_0);
         uint64_t tailZeroCount = 0;
         for (auto i = seqQShapeSize - 1; i >= 1; --i) {
-            if (tmpData.actualSeqQlen[i] == 0) {
+            if (tmpData.actualSeqQlen[i] <= 0) {
                 ++tailZeroCount;
             } else {
                 break;

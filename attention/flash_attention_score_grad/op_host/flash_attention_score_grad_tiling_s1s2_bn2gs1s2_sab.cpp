@@ -783,7 +783,7 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2gs1s2SameAb::GetBaseShapeInf
 
         uint64_t tailZeroCount = 0;
         for (auto i = seqQShapeSize - 1; i >= 1; --i) {
-            if (fBaseParams.actualSeqQlen[i] == 0 && fBaseParams.actualSeqKvlen[i] == 0) {
+            if (fBaseParams.actualSeqQlen[i] <= 0 && fBaseParams.actualSeqKvlen[i] <= 0) {
                 ++tailZeroCount;
             } else {
                 break;

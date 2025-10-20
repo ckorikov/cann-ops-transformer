@@ -132,8 +132,16 @@ ge::graphStatus FlashAttentionScoreGraTilingMla::SetBaseInfo()
         }
     }
 
+    uint64_t tailZeroCount = 0;
+    for (auto i = seqQShapeSize - 1; i >= 1; --i) {
+        if (fBaseParams.actualSeqQlen[i] > 0 && fBaseParams.actualSeqKvlen[i] > 0) {
+            break;   
+        }
+        ++tailZeroCount;
+    }
+
     // base shape
-    fBaseParams.b = seqQShapeSize;
+    fBaseParams.b = seqQShapeSize - tailZeroCount;
     fBaseParams.queryType = static_cast<uint32_t>(context_->GetInputDesc(QUERY)->GetDataType());
     fBaseParams.t1 = queryShape->GetStorageShape().GetDim(0);
     fBaseParams.t2 = keyShape->GetStorageShape().GetDim(0);
