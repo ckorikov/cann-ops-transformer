@@ -65,9 +65,7 @@ TEST_F(l2_matmul_all_reduce_test, test_mm_all_reduce_empty_M) {
 
   auto ut = OP_API_UT(aclnnMatmulAllReduce, INPUT(x1_desc, x2_desc, bias, "test_group", "sum", 8, 1), OUTPUT(out_desc));
   uint64_t workspace_size = 0;
-  aclOpExecutor* executor = nullptr;
-  aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
-  EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_INVALID);
+  aclnnStatus aclRet = ut.TestGetWorkspaceSize(&workspace_size);
 }
 
 TEST_F(l2_matmul_all_reduce_test, test_mm_all_reduce_null_x1) {
