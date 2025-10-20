@@ -335,7 +335,7 @@ __aicore__ inline void FlashAttentionScoreGradUs1s2Bbn2gs1s2StaticRegbase<FAG_FU
     // init current core tilingInfo
     vBlockIdx = GetBlockIdx();
     cBlockIdx = vBlockIdx / CV_CORE_RATIO;
-    vSubBlockIdx = get_subblockid();
+    vSubBlockIdx = GetSubBlockIdx();
     tilingData = ordTilingData;
     pipe = pipeIn;
 
@@ -2974,7 +2974,7 @@ __aicore__ inline void FlashAttentionScoreGradUs1s2Bbn2gs1s2StaticRegbase<FAG_FU
             AscendC::DataCopyPad(dqWorkSpaceGm[dqOffset[cIx]],
                                  dqDeterBuf[(cIx - eachLoopStart) * constInfo.deterConstInfo.dqEachVectorSize],
                                  dataCopyPadParams);
-            pipe_barrier(PIPE_MTE3);
+            PipeBarrier<PIPE_MTE3>();
         }
         deterInOutQue.FreeTensor(dqDeterBuf);
     }
@@ -3079,7 +3079,7 @@ FlashAttentionScoreGradUs1s2Bbn2gs1s2StaticRegbase<FAG_FUNCTION_PARAMS_TEMPLATE>
             AscendC::DataCopyPad(dvWorkSpaceGm[dvOffset[cIx]],
                                  dvDeterBuf[(cIx - eachLoopStart) * constInfo.deterConstInfo.dkvEachVectorSize],
                                  dataCopyDvPadParams);
-            pipe_barrier(PIPE_MTE3);
+            PipeBarrier<PIPE_MTE3>();
         }
         if (loopIdx < loopTimes - 1) {
             SetFlag<HardEvent::MTE3_MTE2>(constInfo.deterConstInfo.eventIDMte3ToMte2);
@@ -3168,7 +3168,7 @@ __aicore__ inline void FlashAttentionScoreGradUs1s2Bbn2gs1s2StaticRegbase<FAG_FU
             AscendC::DataCopyPad(dqWorkSpaceGm[dqOffset[cIx]],
                                  dqDeterBuf[(cIx - eachLoopStart) * constInfo.deterConstInfo.dqEachVectorSize],
                                  dataCopyPadParams);
-            pipe_barrier(PIPE_MTE3);
+            PipeBarrier<PIPE_MTE3>();
         }
         deterInOutQue.FreeTensor(dqDeterBuf);
     }
@@ -3229,7 +3229,7 @@ __aicore__ inline void FlashAttentionScoreGradUs1s2Bbn2gs1s2StaticRegbase<FAG_FU
             AscendC::DataCopyPad(dvWorkSpaceGm[dvOffset[cIx]],
                                  dvDeterBuf[(cIx - eachLoopStart) * constInfo.deterConstInfo.dkvEachVectorSize],
                                  dataCopyDvPadParams);
-            pipe_barrier(PIPE_MTE3);
+            PipeBarrier<PIPE_MTE3>();
         }
         if (loopIdx < loopTimes - 1) {
             SetFlag<HardEvent::MTE3_MTE2>(constInfo.deterConstInfo.eventIDMte3ToMte2);

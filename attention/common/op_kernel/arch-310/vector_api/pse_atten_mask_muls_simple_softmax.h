@@ -95,7 +95,7 @@ __aicore__ inline void CopyInMaxSum(FagConstInfo &constInfo, FagRunInfo &runInfo
             ((runInfo.commonRunInfo.n2oIdx * constInfo.commonConstInfo.gSize + runInfo.commonRunInfo.goIdx) *
                 actualS1Len +
              runInfo.commonRunInfo.s1oIdx * VECTOR_BASEM * CV_CORE_RATIO +
-             runInfo.commonRunInfo.firstHalfS1RealSize * get_subblockid()) *
+             runInfo.commonRunInfo.firstHalfS1RealSize * GetSubBlockIdx()) *
             MAX_SUM_REDUCE_AXIS_SIZE / sizeof(T2);
     } else {
         // todo: 展开乘减少scalar
@@ -104,7 +104,7 @@ __aicore__ inline void CopyInMaxSum(FagConstInfo &constInfo, FagRunInfo &runInfo
                            runInfo.commonRunInfo.goIdx) *
                               constInfo.commonConstInfo.s1Size +
                           runInfo.commonRunInfo.s1oIdx * VECTOR_BASEM * CV_CORE_RATIO +
-                          runInfo.commonRunInfo.firstHalfS1RealSize * get_subblockid()) *
+                          runInfo.commonRunInfo.firstHalfS1RealSize * GetSubBlockIdx()) *
                          MAX_SUM_REDUCE_AXIS_SIZE / sizeof(T2);
     }
     LocalTensor<T2> maxSumTensor = maxSumInQue.AllocTensor<T2>();

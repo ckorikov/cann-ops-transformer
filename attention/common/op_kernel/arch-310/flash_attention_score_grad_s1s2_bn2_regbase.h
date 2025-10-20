@@ -250,7 +250,7 @@ __aicore__ inline void FlashAttentionScoreGradUs1s2Bbn2StaticRegbase<FAG_BN2_FUN
     // init current core tilingInfo
     vBlockIdx = GetBlockIdx();
     cBlockIdx = vBlockIdx / CV_CORE_RATIO;
-    vSubBlockIdx = get_subblockid();
+    vSubBlockIdx = GetSubBlockIdx();
     tilingData = ordTilingData;
     pipe = pipeIn;
 

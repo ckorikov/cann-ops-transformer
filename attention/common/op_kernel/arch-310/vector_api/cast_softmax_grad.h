@@ -39,13 +39,13 @@ __aicore__ inline void CopyInSoftmaxGrad(FagConstInfo &constInfo, FagRunInfo &ru
         n2Offset = runInfo.commonRunInfo.n2oIdx * constInfo.commonConstInfo.gS1Dv;
         gOffset = runInfo.commonRunInfo.goIdx * constInfo.commonConstInfo.s1Dv;
         s1Offset = runInfo.commonRunInfo.s1oIdx * VECTOR_BASEM * CV_CORE_RATIO * constInfo.commonConstInfo.dSizeV +
-                   runInfo.commonRunInfo.firstHalfS1RealSize * get_subblockid() * constInfo.commonConstInfo.dSizeV +
+                   runInfo.commonRunInfo.firstHalfS1RealSize * GetSubBlockIdx() * constInfo.commonConstInfo.dSizeV +
                    loopIdx * loopSize * constInfo.commonConstInfo.dSizeV;
         transpose_stride = 0;
         transpose_stride_for_fp8 = 0;
     } else if (constInfo.commonConstInfo.layoutType == SBNGD) {
         s1Offset = runInfo.commonRunInfo.s1oIdx * VECTOR_BASEM * CV_CORE_RATIO * constInfo.commonConstInfo.bN2GDv +
-                   runInfo.commonRunInfo.firstHalfS1RealSize * get_subblockid() * constInfo.commonConstInfo.bN2GDv +
+                   runInfo.commonRunInfo.firstHalfS1RealSize * GetSubBlockIdx() * constInfo.commonConstInfo.bN2GDv +
                    loopIdx * loopSize * constInfo.commonConstInfo.bN2GDv;
         bOffset = runInfo.commonRunInfo.boIdx * constInfo.commonConstInfo.n2GDv;
         n2Offset = runInfo.commonRunInfo.n2oIdx * constInfo.commonConstInfo.gDv;
@@ -55,7 +55,7 @@ __aicore__ inline void CopyInSoftmaxGrad(FagConstInfo &constInfo, FagRunInfo &ru
     } else if (constInfo.commonConstInfo.layoutType == BSNGD) {
         bOffset = runInfo.commonRunInfo.boIdx * constInfo.commonConstInfo.n2GS1Dv;
         s1Offset = runInfo.commonRunInfo.s1oIdx * VECTOR_BASEM * CV_CORE_RATIO * constInfo.commonConstInfo.n2GDv +
-                   runInfo.commonRunInfo.firstHalfS1RealSize * get_subblockid() * constInfo.commonConstInfo.n2GDv +
+                   runInfo.commonRunInfo.firstHalfS1RealSize * GetSubBlockIdx() * constInfo.commonConstInfo.n2GDv +
                    loopIdx * loopSize * constInfo.commonConstInfo.n2GDv;
         n2Offset = runInfo.commonRunInfo.n2oIdx * constInfo.commonConstInfo.gDv;
         gOffset = runInfo.commonRunInfo.goIdx * constInfo.commonConstInfo.dSizeV;
@@ -74,7 +74,7 @@ __aicore__ inline void CopyInSoftmaxGrad(FagConstInfo &constInfo, FagRunInfo &ru
                 actualS1Len * constInfo.n2Size * constInfo.commonConstInfo.gSize * constInfo.commonConstInfo.dSizeV;
         }
         s1Offset = runInfo.commonRunInfo.s1oIdx * VECTOR_BASEM * CV_CORE_RATIO * constInfo.commonConstInfo.n2GDv +
-                   runInfo.commonRunInfo.firstHalfS1RealSize * get_subblockid() * constInfo.commonConstInfo.n2GDv +
+                   runInfo.commonRunInfo.firstHalfS1RealSize * GetSubBlockIdx() * constInfo.commonConstInfo.n2GDv +
                    loopIdx * loopSize * constInfo.commonConstInfo.n2GDv;
         gOffset = runInfo.commonRunInfo.goIdx * constInfo.commonConstInfo.dSizeV;
         n2Offset = runInfo.commonRunInfo.n2oIdx * constInfo.commonConstInfo.gDv;

@@ -213,7 +213,7 @@ inline __aicore__ void RegbaseFAG(__gm__ uint8_t *query, __gm__ uint8_t *key, __
                                 __gm__ uint8_t *dkRope, __gm__ uint8_t *workspace, __gm__ uint8_t *tiling_data)
 {
     TPipe pipeIn;
-    set_mask_norm();
+    SetMaskNorm();
     SetSysWorkspace(workspace);
     __gm__ uint8_t *user = GetUserWorkspace(workspace);
 
