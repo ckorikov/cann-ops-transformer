@@ -16,7 +16,7 @@
 
 算子功能：当存在TP域通信时，先进行ReduceScatterV通信，再进行AlltoAllV通信，最后将接收的数据整合（乘权重再相加）；当不存在TP域通信时，进行AlltoAllV通信，最后将接收的数据整合（乘权重再相加）。
 
->注意该接口必须与`aclnnMoeDistributeDispatch`配套使用，相当于按`MoeDistributeDispatch`算子收集数据的路径原路返还。
+>注意该接口必须与`aclnnMoeDistributeDispatch`配套使用，相当于按`MoeDistributeDispatch`算子收集数据的路径原路返回。
 
 ## 函数原型
 
@@ -353,7 +353,7 @@ aclnnStatus aclnnMoeDistributeCombine(
   <tr>
    <td>ACLNN_ERR_INNER_TILING_ERROR</td>
    <td>561002</td>
-   <td>1. 输入和输出的shape不在支持的范围内；<br>2. 参数的取值不在支持的范围。</td>
+   <td>1. 输入和输出的shape不在支持的范围内；<br>2. 参数的取值不在支持的范围内。</td>
   </tr>
  </tbody>
 </table>
@@ -394,7 +394,7 @@ aclnnStatus aclnnMoeDistributeCombine(
   <tr>
    <td>stream</td>
    <td>输入</td>
-   <td>指定执行任务的Stream。</td>
+   <td>指定执行任务的stream。</td>
   </tr>
  </tbody>
 </table>

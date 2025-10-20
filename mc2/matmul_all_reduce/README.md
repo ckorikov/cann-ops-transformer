@@ -74,22 +74,22 @@
       $$
       output = allReduce((x1@x2 + biasOptional) * x2Scale + x3Optional)
       $$
-    - x1，x2为INT8，x1ScaleOptional为FLOAT32，x2Scale为FLOAT32/BFLOAT16，可选biasOptional为INT32, out为FOAT16/BFLOAT16：
+    - x1，x2为INT8，x1ScaleOptional为FLOAT32，x2Scale为FLOAT32/BFLOAT16，可选biasOptional为INT32, out为FLOAT16/BFLOAT16：
 
       $$
       output = allReduce((x1@x2 + biasOptional) * x2Scale * x1ScaleOptional + x3Optional)
       $$
-    - x1，x2为FLOAT4_E2M1/FLOAT4_E1M2/FLOAT8_E4M3FN/FLOAT8_E5M2，x1ScaleOptional为FLOAT8_E8M0，x2Scale为FLOAT8_E8M0，可选biasOptional为FLOAT32, out为FOAT16/BFLOAT16/FLOAT32：
+    - x1，x2为FLOAT4_E2M1/FLOAT4_E1M2/FLOAT8_E4M3FN/FLOAT8_E5M2，x1ScaleOptional为FLOAT8_E8M0，x2Scale为FLOAT8_E8M0，可选biasOptional为FLOAT32, out为FLOAT16/BFLOAT16/FLOAT32：
 
       $$
       output = allReduce((x1* x1ScaleOptional)@(x2* x2Scale) + biasOptional + x3Optional)
       $$
-    - x1，x2为FLOAT8_E4M3FN/FLOAT8_E5M2/HIFLOAT8，x1ScaleOptional为FLOAT32，x2Scale为FLOAT32，可选bias为FLOAT32, out为FOAT16/BFLOAT16/FLOAT32：
+    - x1，x2为FLOAT8_E4M3FN/FLOAT8_E5M2/HIFLOAT8，x1ScaleOptional为FLOAT32，x2Scale为FLOAT32，可选bias为FLOAT32, out为FLOAT16/BFLOAT16/FLOAT32：
 
       $$
       output = allReduce((x1@x2 + biasOptional) * x2Scale * x1ScaleOptional + x3Optional)
       $$
-    - x1，x2为FLOAT8_E4M3FN/FLOAT8_E5M2/HIFLOAT8，x1ScaleOptional为FLOAT32，x2Scale为FLOAT32，无biasOptional。当x1为(a0, a1)，x2为(b0, b1)时x1ScaleOptional为(ceildiv(a0，128), ceildiv(a1，128))x2Scale为(ceildiv(b0，128), ceildiv(b1，128)), out为FOAT16/BFLOAT16/FLOAT32:
+    - x1，x2为FLOAT8_E4M3FN/FLOAT8_E5M2/HIFLOAT8，x1ScaleOptional为FLOAT32，x2Scale为FLOAT32，无biasOptional。当x1为(a0, a1)，x2为(b0, b1)时x1ScaleOptional为(ceildiv(a0，128), ceildiv(a1，128))x2Scale为(ceildiv(b0，128), ceildiv(b1，128)), out为FLOAT16/BFLOAT16/FLOAT32:
 
       $$
       output_{pq} = allReduce(\sum_{0}^{\left \lfloor \frac{k}{128} \right \rfloor} (x1_{pr}@x2_{rq}*(x1ScaleOptional_{pr}*x2Scale_{rq})) + x3)
@@ -169,7 +169,7 @@
     <tr>
       <td>pertoken_scale</td>
       <td>可选输入</td>
-      <td>MatMul计算后的pertoken去量化系数,即公式中的输入pertoken_scale。</td>
+      <td>MatMul计算后的pertoken去量化系数，即公式中的输入pertoken_scale。</td>
       <td>FLOAT、BFLOAT16、FLOAT8_E8M0</td>
       <td>ND</td>
     </tr>
@@ -259,7 +259,7 @@
 * 输入x2的数据格式：
     * <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：支持ND（当前版本仅支持二维输入）和FRACTAL_NZ格式（当前版本仅支持四维输入）。
     * <term>昇腾910_95 AI处理器</term>：支持ND格式。
-    * 当x2的数据格式为为FRACTAL_NZ时，配合aclnnCalculateMatmulWeightSizeV2和aclnnTransMatmulWeight到数据格式NZ的转换，非连续Tensor仅支持transpose场景。当x2的数据格式为ND时，当前版本仅支持二维输入。
+    * 当x2的数据格式为FRACTAL_NZ时，配合aclnnCalculateMatmulWeightSizeV2和aclnnTransMatmulWeight到数据格式NZ的转换，非连续Tensor仅支持transpose场景。当x2的数据格式为ND时，当前版本仅支持二维输入。
 * 传入的x1、x2、antiquantScale或者output不为空指针。
 * 当输入x1的shape为(b, s, k)时，x3（非空场景）与输出output的shape为(b, s, n)，pertoken_scale的shape为(b*s)；当输入x1的shape为(m, k)时，x3（非空场景）与输出output的shape为(m, n)，pertoken_scale的shape为(m)。
 * 输入comm_quant_scale_1和comm_quant_scale_2可选，可为空，当x2为(k, n)时, shape可为(n)或者(1,n)。

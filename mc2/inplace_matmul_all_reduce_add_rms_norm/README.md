@@ -201,7 +201,7 @@
 * dequantScale的shape在per-tensor场景为(1)，per-channel场景为(n)/(1, n)。
 * 输出y和normOut的维度和数据类型同residual。bias若非空，shape大小与normOut最后一维相等。
 * x2的数据类型需为int8或者int4，x1、bias、residual、gamma、y、normOut计算输入的数据类型要一致。
-* antiquantGroupSize在不支持per_group场景时，传入0，在支持per_group场景时，传入值的范围为[32, min(k-1,INT_MAX)]，且为32的倍数。k取值范围与mm接口保持一致。。
+* antiquantGroupSize在不支持per_group场景时，传入0，在支持per_group场景时，传入值的范围为[32, min(k-1,INT_MAX)]，且为32的倍数。k取值范围与mm接口保持一致。
 * 支持(b*s)、n为0的空tensor，不支持k为0的空tensor。
 * 只支持x2矩阵转置/不转置，x1矩阵支持不转置场景。
 * 属性reduceOp当前版本仅支持输入"sum"。

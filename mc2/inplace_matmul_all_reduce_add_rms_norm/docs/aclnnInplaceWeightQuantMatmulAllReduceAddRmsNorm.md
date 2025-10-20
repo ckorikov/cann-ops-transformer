@@ -166,7 +166,7 @@ aclnnStatus aclnnInplaceWeightQuantMatmulAllReduceAddRmsNorm(
           <td>输入</td>
           <td>Host侧的双精度，用于防止除0错误，即计算公式中的epsilon。</td>
           <td>epsilon取值满足取值范围(0,1)。</td>
-          <td>Double</td>
+          <td>double</td>
           <td>-</td>
           <td>-</td>
           <td>-</td>
@@ -176,7 +176,7 @@ aclnnStatus aclnnInplaceWeightQuantMatmulAllReduceAddRmsNorm(
           <td>输入</td>
           <td>Host侧标识通信域的字符串，通信域名称。</td>
           <td>通过Hccl提供的接口“extern HcclResult HcclGetCommName(HcclComm comm, char* commName);”获取，其中commName即为group。</td>
-          <td>String</td>
+          <td>string</td>
           <td>-</td>
           <td>-</td>
           <td>-</td>
@@ -186,7 +186,7 @@ aclnnStatus aclnnInplaceWeightQuantMatmulAllReduceAddRmsNorm(
           <td>输入</td>
           <td>Host侧标识操作类型的字符串，reduce操作类型。</td>
           <td>当前仅支持输入"sum"。</td>
-          <td>String</td>
+          <td>string</td>
           <td>-</td>
           <td>-</td>
           <td>-</td>

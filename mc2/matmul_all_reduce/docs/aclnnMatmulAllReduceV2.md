@@ -11,7 +11,7 @@
 | <term>Atlas 训练系列产品</term>                              |    ×     |
 | <term>Atlas 200/300/500 推理产品</term>                      |    ×     |
 
-**说明：** 使用该接口时，请确保驱动固件包和CANN包都为配套的8.0.RC2版本或者配套的更高版本，否则将会引发报错，比如BUS ERROR等。
+**说明：** 使用该接口时，请确保驱动固件包和CANN包都为配套的8.0.RC2版本或者配套的更高版本，否则将会引发报错，比如Bus Error等。
 
 ## 功能说明
 
@@ -264,7 +264,7 @@ aclnnStatus aclnnMatmulAllReduceV2(
 - b*s、m、k、n的值均不得超过2147483647(INT32_MAX)。
 - 当输入x1的shape为(b, s, k)时，输出output的shape为(b, s, n)；当输入x1的shape为(m, k)时，输出output的shape为(m, n)。
 - x1、x2、bias计算输入的数据类型要和output计算输出的数据类型一致，传入的x1、x2、x3或者output不为空指针。
-- 仅支持hccs链路all mesh组网。
+- 仅支持HCCS链路all mesh组网。
     - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：支持1、2、4、8卡。
     - <term>昇腾910_95 AI处理器</term>：支持1、2、4、8、16、32、64卡。
 - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：一个模型中的通算融合MC2算子，仅支持相同通信域。

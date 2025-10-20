@@ -12,7 +12,7 @@
 | <term>Atlas 训练系列产品</term>                              |    ×     |
 | <term>Atlas 200/300/500 推理产品</term>                      |    ×     |
 
-**说明：** 使用该接口时，请确保驱动固件包和CANN包都为配套的8.0.RC2版本或者配套的更高版本，否则将会引发报错，比如BUS ERROR等。
+**说明：** 使用该接口时，请确保驱动固件包和CANN包都为配套的8.0.RC2版本或者配套的更高版本，否则将会引发报错，比如Bus Error等。
 
 ## 功能说明
 
@@ -20,7 +20,7 @@
 
 计算公式：
 $$
-output=reducescatter(x1@x2+bias)
+output=reduce_scatter(x1@x2+bias)
 $$
 
 ## 函数原型
@@ -135,7 +135,7 @@ aclnnStatus aclnnMatmulReduceScatter(
   <tr>
    <td>executor</td>
    <td>输出</td>
-   <td>返回op执行器，包含了算子的计算流程。</td>
+   <td>返回Op执行器，包含了算子的计算流程。</td>
    <td>aclOpExecutor*</td>
    <td>ND</td>
   </tr>

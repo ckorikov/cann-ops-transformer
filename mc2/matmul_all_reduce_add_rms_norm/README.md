@@ -110,7 +110,7 @@
     <tr>
       <td>antiquant_scale</td>
       <td>可选输入</td>
-      <td>公式中的输入antiquantScale。</td>
+      <td>公式中的输入antiquant_scale。</td>
       <td>FLOAT16、BFLOAT16</td>
       <td>ND</td>
     </tr>
@@ -124,7 +124,7 @@
     <tr>
       <td>dequant_scale</td>
       <td>可选输入</td>
-      <td>mm计算后的全量化系数，公式中的输入dequantScale。</td>
+      <td>mm计算后的全量化系数，公式中的输入dequant_scale。</td>
       <td>FLOAT16、BFLOAT16、UINT64、INT64</td>
       <td>ND</td>
     </tr>
@@ -138,7 +138,7 @@
     <tr>
       <td>norm_out</td>
       <td>输出</td>
-      <td><li>公式中的输出normOut。</li><li>mm + all_reduce + add + rms_norm的结果。</li></td>
+      <td><li>公式中的输出norm_out。</li><li>mm + all_reduce + add + rms_norm的结果。</li></td>
       <td>FLOAT16、BFLOAT16</td>
       <td>ND</td>
     </tr>

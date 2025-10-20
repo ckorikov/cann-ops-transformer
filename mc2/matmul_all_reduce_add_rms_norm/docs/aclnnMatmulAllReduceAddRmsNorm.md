@@ -60,7 +60,7 @@ aclnnStatus aclnnMatmulAllReduceAddRmsNormGetWorkspaceSize(
 aclnnStatus aclnnMatmulAllReduceAddRmsNorm(
     void            *workspace, 
     uint64_t        workspaceSize, 
-    aclOpExecutor   *executor, ）
+    aclOpExecutor   *executor)
 ```
 
 ## aclnnMatmulAllReduceAddRmsNormGetWorkspaceSize
@@ -315,7 +315,7 @@ aclnnStatus aclnnMatmulAllReduceAddRmsNorm(
 - 输出y和normOut的shape和数据类型同residual，其shape为(b, s, n)。
 - x1、x2、bias、residual、gamma、y、normOut计算输入的数据类型要一致。
 - 只支持x2矩阵转置/不转置，x1矩阵支持不转置场景。
-- 支持1、2、4、8卡，并且仅支持hccs链路all mesh组网。
+- 支持1、2、4、8卡，并且仅支持HCCS链路all mesh组网。
 - 支持(b*s)、n为0的空tensor，不支持k为0的空tensor。
 - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：一个模型中的通算融合MC2算子，仅支持相同通信域。
 

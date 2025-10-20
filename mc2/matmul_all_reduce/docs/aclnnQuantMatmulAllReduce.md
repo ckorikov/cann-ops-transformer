@@ -16,11 +16,11 @@
 ## 功能说明
 
 - **算子功能**：对量化后的入参x1、x2进行MatMul计算后，接着进行Dequant计算，接着与x3进行Add操作，最后做AllReduce计算。
-    支持pertensor、perchannel量化方式。
+    支持per tensor、per channel量化方式。
 - **计算公式**：
 
   $$
-  output= allReduce(dequantScale*(x1_{int8}@x2_{int8} + bias_{int32}) + x3)
+  output= AllReduce(dequantScale*(x1_{int8}@x2_{int8} + bias_{int32}) + x3)
   $$
 
 ## 函数原型
@@ -120,7 +120,7 @@ aclnnStatus aclnnQuantMatmulAllReduce(
           <td>dequantScale</td>
           <td>输入</td>
           <td>Device侧的aclTensor，MatMul计算后的去量化系数，即计算公式中的dequantScale。</td>
-          <td>shape在pertensor场景为(1)，perchannel场景为(n)/(1, n)</td>
+          <td>shape在per tensor场景为(1)，per channel场景为(n)/(1, n)</td>
           <td>INT64、UINT64、BFLOAT16</td>
           <td>ND</td>
           <td>2</td>
@@ -268,7 +268,7 @@ aclnnStatus aclnnQuantMatmulAllReduce(
     <tr>
         <td>stream</td>
         <td>输入</td>
-        <td>指定执行任务的Stream。</td>
+        <td>指定执行任务的stream。</td>
     </tr>
     </tbody></table>
 - **返回值：**

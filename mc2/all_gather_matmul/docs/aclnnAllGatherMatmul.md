@@ -255,7 +255,7 @@ aclnnStatus aclnnAllGatherMatmul(
     <tr>
         <td>stream</td>
         <td>输入</td>
-        <td>指定执行任务的Stream。</td>
+        <td>指定执行任务的stream。</td>
     </tr>
     </tbody></table>
 -   **返回值：**
@@ -270,9 +270,9 @@ aclnnStatus aclnnAllGatherMatmul(
     - m不为空，k不为空，n为空；
     - m为空，k不为空，n为空。
 - 输出为2维，其shape为(m*rank_size, n), rank_size为卡数。
-- <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：支持2、4、8卡，并且仅支持hccs链路all mesh组网。
-- <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：支持2、4、8、16、32卡，并且仅支持hccs链路double ring组网。
-- <term>昇腾910_95 AI处理器</term>：支持2、4、8、16、32、64卡，并且仅支持hccs链路all mesh组网。
+- <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：支持2、4、8卡，并且仅支持HCCS链路all mesh组网。
+- <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：支持2、4、8、16、32卡，并且仅支持HCCS链路double ring组网。
+- <term>昇腾910_95 AI处理器</term>：支持2、4、8、16、32、64卡，并且仅支持HCCS链路all mesh组网。
 - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：一个模型中的通算融合MC2算子，仅支持相同通信域。
 
 ## 调用示例

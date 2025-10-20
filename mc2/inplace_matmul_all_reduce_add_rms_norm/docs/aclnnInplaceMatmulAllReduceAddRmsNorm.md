@@ -19,7 +19,7 @@
 - **计算公式**：
 
     $$
-    mm\_out = allReduce(x1 @ x2 + bias)
+    mm\_out = all_reduce(x1 @ x2 + bias)
     $$
 
     $$
@@ -103,7 +103,7 @@ aclnnStatus aclnnInplaceMatmulAllReduceAddRmsNorm(
           <td>x2</td>
           <td>输入</td>
           <td>Device侧的aclTensor，MatMul计算的右矩阵，即计算公式中的x2。</td>
-          <td><li>支持空Tensor。</li><li>与x1的数据类型保持一致。</li><li>当前版本仅支持两维输入，支持转置/不转置场景。</li><li>支持最后两轴转置情况下的非连续的tensor</li></td>
+          <td><li>支持空Tensor。</li><li>与x1的数据类型保持一致。</li><li>当前版本仅支持二维输入，支持转置/不转置场景。</li><li>支持最后两轴转置情况下的非连续的tensor</li></td>
           <td>FLOAT16、BFLOAT16</td>
           <td>ND</td>
           <td>2</td>
@@ -144,7 +144,7 @@ aclnnStatus aclnnInplaceMatmulAllReduceAddRmsNorm(
           <td>输入</td>
           <td>Host侧的双精度，用于防止除0错误，即计算公式中的epsilon。</td>
           <td>epsilon取值满足取值范围(0,1)。</td>
-          <td>Double</td>
+          <td>double</td>
           <td>-</td>
           <td>-</td>
           <td>-</td>
@@ -154,7 +154,7 @@ aclnnStatus aclnnInplaceMatmulAllReduceAddRmsNorm(
           <td>输入</td>
           <td>Host侧标识通信域的字符串，通信域名称。</td>
           <td>通过Hccl提供的接口“extern HcclResult HcclGetCommName(HcclComm comm, char* commName);”获取，其中commName即为group。</td>
-          <td>String</td>
+          <td>string</td>
           <td>-</td>
           <td>-</td>
           <td>-</td>
@@ -164,7 +164,7 @@ aclnnStatus aclnnInplaceMatmulAllReduceAddRmsNorm(
           <td>输入</td>
           <td>Host侧标识操作类型的字符串，reduce操作类型。</td>
           <td>当前仅支持输入"sum"。</td>
-          <td>String</td>
+          <td>string</td>
           <td>-</td>
           <td>-</td>
           <td>-</td>
@@ -286,7 +286,7 @@ aclnnStatus aclnnInplaceMatmulAllReduceAddRmsNorm(
     <tr>
         <td>stream</td>
         <td>输入</td>
-        <td>指定执行任务的Stream。</td>
+        <td>指定执行任务的stream。</td>
     </tr>
     </tbody></table>
 - **返回值：**
