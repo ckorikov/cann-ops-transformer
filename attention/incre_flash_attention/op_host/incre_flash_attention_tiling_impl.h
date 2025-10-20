@@ -60,6 +60,7 @@ public:
     bool IsBalanceSplitCore() const;
     IncreFlashAttentionTilingAtbDataV2* ifaTilingAtbData;
     IncreFlashAttentionTilingDataMla* tilingDataMla_;
+    gert::TilingContext *geContext_ = nullptr;
 private:
     ge::graphStatus GetNpuInfo();
     ge::graphStatus PreProcess();
