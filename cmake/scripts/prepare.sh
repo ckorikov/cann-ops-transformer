@@ -85,6 +85,10 @@ while [[ $# -gt 0 ]]; do
         ENABLE_CCACHE="$2"
         shift 2
         ;;
+    --cann_3rd_lib_path)
+        CANN_3RD_LIB_PATH="$(realpath $2)"
+        shift 2
+        ;;
     *)
         break
         ;;
@@ -133,7 +137,8 @@ function build() {
         -DENABLE_CCACHE=${ENABLE_CCACHE} \
         -DBUILD_OPS_RTY_KERNEL=${BUILD_OPS_RTY_KERNEL} \
         -DENABLE_BUILT_IN=${ENABLE_BUILT_IN} \
-        -DOP_DEBUG_CONFIG=${OP_DEBUG_CONFIG}
+        -DOP_DEBUG_CONFIG=${OP_DEBUG_CONFIG} \
+        -DCANN_3RD_LIB_PATH=${CANN_3RD_LIB_PATH}
 
     make ${JOB_NUM} prepare_build
 }

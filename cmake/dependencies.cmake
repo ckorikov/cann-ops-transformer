@@ -54,7 +54,6 @@ message(STATUS "compile option:${CMAKE_CXX_FLAGS}")
 
 find_package(dlog MODULE REQUIRED)
 find_package(securec MODULE)
-find_package(json MODULE)
 find_package(OPBASE MODULE REQUIRED)
 find_package(platform MODULE REQUIRED)
 find_package(metadef MODULE REQUIRED)

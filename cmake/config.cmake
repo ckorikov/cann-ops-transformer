@@ -240,6 +240,7 @@ if (BUILD_OPEN_PROJECT)
                 --build_ops_rty_kernel ${BUILD_OPS_RTY_KERNEL}
                 --enable_built_in ${ENABLE_BUILT_IN}
                 --enable_ccache ${ENABLE_CCACHE}
+                --cann_3rd_lib_path ${CANN_3RD_LIB_PATH}
                 RESULT_VARIABLE result
                 OUTPUT_STRIP_TRAILING_WHITESPACE
                 OUTPUT_VARIABLE PREPARE_BUILD_OUTPUT_VARIABLE)

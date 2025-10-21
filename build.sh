@@ -63,7 +63,7 @@ else
     DEFAULT_TOOLKIT_INSTALL_DIR="/usr/local/Ascend/ascend-toolkit/latest"
     DEFAULT_INSTALL_DIR="/usr/local/Ascend/latest"
 fi
-
+CANN_3RD_LIB_PATH="${CURRENT_DIR}/third_party"
 CUSTOM_OPTION="-DBUILD_OPEN_PROJECT=ON"
 
 dotted_line="---------------------------------------------------------------------------------------------------------------------"
@@ -87,6 +87,8 @@ function help_info() {
                 echo "    -j[n]                  Compile thread nums, default is 8, eg: -j8"
                 echo "    -O[n]                  Compile optimization options, support [O0 O1 O2 O3], eg:-O3"
                 echo "    --debug                Build with debug mode"
+                echo "    --cann_3rd_lib_path=<PATH>"
+                echo "                           Set ascend third_party package install path, default ./third_party"
                 echo $dotted_line
                 echo "Examples:"
                 echo "    bash build.sh --pkg --soc=ascend910b --vendor_name=customize -j16 -O3"
@@ -844,6 +846,11 @@ while [[ $# -gt 0 ]]; do
         clean_build_out
         shift
         ;;
+    --cann_3rd_lib_path=*)
+        OPTARG=$1
+        CANN_3RD_LIB_PATH="$(realpath ${OPTARG#*=})"
+        shift
+        ;;
     *)
         help_info
         exit 1
@@ -976,6 +983,7 @@ fi
 if [ -n "${CMAKE_BUILD_MODE}"] && [ "${CMAKE_BUILD_MODE}" != "" ];then
     CUSTOM_OPTION="${CUSTOM_OPTION} -DCMAKE_BUILD_MODE=${CMAKE_BUILD_MODE}"
 fi
+CUSTOM_OPTION="${CUSTOM_OPTION} -DCANN_3RD_LIB_PATH=${CANN_3RD_LIB_PATH}"
 
 if [ -n "${ascend_package_path}" ];then
     ASCEND_CANN_PACKAGE_PATH=${ascend_package_path}
@@ -1151,7 +1159,6 @@ else
         build_kernel
     elif [ "${BUILD}" == "package" ];then
         CUSTOM_OPTION="${CUSTOM_OPTION}  -DENABLE_BUILT_IN=ON -DENABLE_OPS_HOST=ON -DENABLE_OPS_KERNEL=ON"
-        cmake_config
         build_package
     elif [[ "$ENABLE_RUN_EXAMPLE" == "TRUE" ]];then
         build_example

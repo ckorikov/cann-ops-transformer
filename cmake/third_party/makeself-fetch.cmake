@@ -9,7 +9,7 @@
 # ----------------------------------------------------------------------------
 
 set(MAKESELF_NAME "makeself")
-set(MAKESELF_PATH "${CMAKE_BINARY_DIR}/${MAKESELF_NAME}")
+set(MAKESELF_PATH ${CANN_3RD_LIB_PATH}/makeself)
 
 # 默认配置的makeself还是不存在则下载
 if (NOT EXISTS "${MAKESELF_PATH}/makeself-header.sh" OR NOT EXISTS "${MAKESELF_PATH}/makeself.sh")
