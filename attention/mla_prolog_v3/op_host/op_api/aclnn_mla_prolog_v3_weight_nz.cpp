@@ -17,9 +17,9 @@
 #include "opdev/tensor_view_utils.h"
 #include "opdev/op_def.h"
 #include "opdev/op_log.h"
-#include "opdev/shape_utils.h"
 #include "opdev/common_types.h"
 #include "opdev/data_type_utils.h"
+#include "opdev/shape_utils.h"
 #include "opdev/format_utils.h"
 
 using namespace op;
@@ -37,7 +37,7 @@ extern aclnnStatus aclnnInnerMlaPrologV3GetWorkspaceSize(
     const aclTensor *dequantScaleWDqOptional, const aclTensor *dequantScaleWUqQrOptional, const aclTensor *dequantScaleWDkvKrOptional,
     const aclTensor *quantScaleCkvOptional, const aclTensor *quantScaleCkrOptional, const aclTensor *smoothScalesCqOptional,
     const aclTensor *actualSeqLenOptional, double rmsnormEpsilonCq, double rmsnormEpsilonCkv, char *cacheModeOptional,
-    int64_t queryNormFlag, int64_t weightQuantMode, int64_t kvCacheQuantMode, int64_t queryQuantMode, int64_t ckvkrRepoMode,
+    bool queryNormFlag, int64_t weightQuantMode, int64_t kvCacheQuantMode, int64_t queryQuantMode, int64_t ckvkrRepoMode,
     int64_t quantScaleRepoMode, int64_t tileSize, double kNopeClipAlpha, double qcQrScale, double kcScale, const aclTensor *queryOut,
     const aclTensor *queryRopeOut, const aclTensor *dequantScaleQNopeOut, const aclTensor *queryNormOut, const aclTensor *dequantScaleQNormOut,
     uint64_t *workspaceSize, aclOpExecutor **executor);
@@ -93,7 +93,7 @@ aclnnStatus aclnnMlaPrologV3WeightNzGetWorkspaceSize(
     double rmsnormEpsilonCq,
     double rmsnormEpsilonCkv,
     char *cacheModeOptional,
-    int64_t queryNormFlag,
+    bool queryNormFlag,
     int64_t weightQuantMode,
     int64_t kvCacheQuantMode,
     int64_t queryQuantMode,

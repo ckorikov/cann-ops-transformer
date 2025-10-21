@@ -315,8 +315,8 @@ ge::graphStatus MlaPrologTiling::FillTiling()
     baseParams_->epsilonCkv = epsilonCkv_;
     baseParams_->qcQrScale = qcQrScale_;
     baseParams_->kcScale = kcScale_;
-    baseParams_->isQcQrScaleEnable = std::abs(qcQrScale_ - 1.0f) >= std::numeric_limits<float>::epsilon() ? 1 : 0;
-    baseParams_->isKcScaleEnable = std::abs(kcScale_ - 1.0f) >= std::numeric_limits<float>::epsilon() ? 1 : 0;
+    baseParams_->isQcQrScaleEnable = static_cast<uint16_t>(std::abs(qcQrScale_ - 1.0f) >= std::numeric_limits<float>::epsilon());
+    baseParams_->isKcScaleEnable = static_cast<uint16_t>(std::abs(kcScale_ - 1.0f) >= std::numeric_limits<float>::epsilon());
 
     return ge::GRAPH_SUCCESS;
 }

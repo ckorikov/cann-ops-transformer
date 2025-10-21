@@ -8,7 +8,7 @@
  * See LICENSE in the root of the software repository for the full text of the License.
  */
  
- /**
+/**
 * @brief
 * Implement the pre-calculation of Multi-Head Latent Attention.
 
@@ -24,9 +24,9 @@
 * @li rmsnorm_gamma_ckv: A matrix tensor. The gamma factor for the rmsnorm of key. The type support float16 and bfloat16.
 * @li rope_sin: A matrix tensor. The position encoding sin information of each token. The type support float16 and bfloat16.
 * @li rope_cos: A matrix tensor. The position encoding cos information of each token. The type support float16 and bfloat16.
-* @li cache_index: A matrix tensor. The index of the cache in each batch. The type support int64.
 * @li kv_cache: A matrix tensor, representing the cache of kv matrix. The type support float16 and bfloat16 and int8.
 * @li kr_cache: A matrix tensor, representing the cache of kv postion embedding matrix. The type support float16 and bfloat16 and int8.
+* @li cache_index: A matrix tensor. The index of the cache in each batch. The type support int64.
 * @li dequant_scale_x: A matrix tensor. This parameter is used for dequantization after downsampling when tokenX is of the int8 type. The quantization mode of tokenX is per-token.
 * The type support float32.
 * @li dequant_scale_w_dq: A matrix tensor. This parameter is used for dequantization after downsampling when tokenX is of the int8 type. The quantization mode is per-channel.
@@ -40,12 +40,24 @@
 * @li quant_scale_ckr: A matrix tensor. This parameter is used for quantizing the RoPEKr output. It is aclTensor on the device side.
 * The type support float32.
 * @li smooth_scales_cq: A matrix tensor. Smoothquant parameter required for dynamic quantization of RmsNormDq output.
+* The type support float32.
+* @li actual_seq_len: A matrix tensor. Currently reserved. The type support int32.
 
 * @par Attributes:
 * @li rmsnorm_epsilon_cq: An optional float32. The epsilon factor for the rmsnorm of query. Default: 1e-5.
 * @li rmsnorm_epsilon_ckv: An optional float32. The epsilon factor for the rmsnorm of key. Default: 1e-5.
 * @li cache_mode: An optional int. The mode of kvcache. The type support PA_NZ and PA_BSND. Default: PA_BSND.
 * PA stands for page attention. This means kv_cache and kr_cache are stored in the page attention format, and updated by the order of BSND or NZ.
+* @li query_norm_flag: An optional bool. Currently reserved. Default: false.
+* @li weight_quant_mode: An optional int. Currently reserved. Default: 0.
+* @li kv_cache_quant_mode: An optional int. Currently reserved. Default: 0.
+* @li query_quant_mode: An optional int. Currently reserved. Default: 0.
+* @li ckvkr_repo_mode: An optional int. Currently reserved. Default: 0.
+* @li quant_scale_repo_mode: An optional int. Currently reserved. Default: 0.
+* @li tile_size: An optional int. Currently reserved. Default: 128.
+* @li k_nope_clip_alpha: An optional float32. Currently reserved. Default: 1.0.
+* @li qc_qr_scale: An optional float32. The correction scale of query. Default: 1.0.
+* @li kc_scale: An optional float32. The correction scale of key. Default: 1.0.
 
 * @par Outputs:
 * @li query: A matrix tensor, representing the query for Multi-Head Latent Attention. The type support float16 and bfloat16 and int8.
@@ -53,6 +65,8 @@
 * @li kv_cache: A matrix tensor, representing the updated kv cache. This parameter uses the same memory of kv_cache. The type support float16 and bfloat16 and int8.
 * @li kr_cache: A matrix tensor, representing the updated kr cache. This parameter uses the same memory of kr_cache. The type support float16 and bfloat16 and int8.
 * @li dequant_scale_q_nope: A matrix tensor, representing the dequant weights for query if query is quantilized. The type support float32.
+* @li query_norm: A matrix tensor, currently reserved. The type support bfloat16 and int8.
+* @li dequant_scale_q_norm: A matrix tensor, currently reserved. The type support float32.
 
 *
 */
@@ -87,12 +101,12 @@ REG_OP(MlaPrologV3)
 .ATTR(rmsnorm_epsilon_cq, Float, 1e-05)
 .ATTR(rmsnorm_epsilon_ckv, Float, 1e-05)
 .ATTR(cache_mode, String, "PA_BSND")
-.ATTR(query_norm_flag, Int, 0)
+.ATTR(query_norm_flag, Bool, false)
 .ATTR(weight_quant_mode, Int, 0)
 .ATTR(kv_cache_quant_mode, Int, 0)
 .ATTR(query_quant_mode, Int, 0)
-.ATTR(ckvkr_repo_mode, Int, 1)
-.ATTR(quant_scale_repo_mode, Int, 1)
+.ATTR(ckvkr_repo_mode, Int, 0)
+.ATTR(quant_scale_repo_mode, Int, 0)
 .ATTR(tile_size, Int, 128)
 .ATTR(k_nope_clip_alpha, Float, 1.0)
 .ATTR(qc_qr_scale, Float, 1.0)

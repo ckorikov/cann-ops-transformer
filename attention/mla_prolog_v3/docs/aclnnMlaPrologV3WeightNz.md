@@ -104,7 +104,7 @@ aclnnStatus aclnnMlaPrologV3WeightNzGetWorkspaceSize(
   double          rmsnormEpsilonCq, 
   double          rmsnormEpsilonCkv, 
   char            *cacheModeOptional, 
-  int64_t         queryNormFlag,
+  bool            queryNormFlag,
   int64_t         weightQuantMode,
   int64_t         kvQuantMode,
   int64_t         queryQuantMode,
@@ -159,7 +159,7 @@ aclnnStatus aclnnMlaPrologV3WeightNz(
   | rmsnormEpsilonCq           | 输入      | 计算$c^Q$的RmsNorm公式中的$\epsilon$参数，Host侧参数。        | - 用户未特意指定时，建议传入1e-05 - 仅支持double类型 | double         | -          | - |-   |
   | rmsnormEpsilonCkv          | 输入      | 计算$c^{KV}$的RmsNorm公式中的$\epsilon$参数，Host侧参数。   | - 用户未特意指定时，建议传入1e-05 - 仅支持double类型   | double         | -          | -  |-   |
   | cacheModeOptional          | 输入      | 示kvCache的模式，Host侧参数。| - 用户未特意指定时，建议传入"PA_BSND" - 仅支持char*类型 - 可选值为"PA_BSND"、"PA_NZ" | char*          | -          | - |-   |
-  | queryNormFlag     | 输入      |   预留接口，传入0即可  | --| int  | -- | --    |-   |
+  | queryNormFlag     | 输入      |   预留接口，传入false即可  | --| bool  | -- | --    |-   |
   | weightQuantMode     | 输入      |   预留接口，传入0即可  | --| int  | -- | --    |-   |
   | kvQuantMode     | 输入      |   预留接口，传入0即可  | --| int  | -- | --    |-   |
   | queryQuantMode     | 输入      |   预留接口，传入0即可  | --| int  | -- | --    |-   |
@@ -821,13 +821,13 @@ aclnnStatus aclnnMlaPrologV3WeightNz(
       aclTensor* dequantScaleWDkvKr = nullptr;
       aclTensor* quantScaleCkv = nullptr;
       aclTensor* smoothScaleCq = nullptr;
-      int queryNormFlag = 0;
-      int weightQuantMode = 0;
-      int kvQuantMode = 0;
-      int queryQuantMode = 0;
-      int ckvkrRepoMode = 0;
-      int quantScaleRepoMode = 0;
-      int tileSize = 0;
+      bool queryNormFlag = false;
+      int64_t weightQuantMode = 0;
+      int64_t kvQuantMode = 0;
+      int64_t queryQuantMode = 0;
+      int64_t ckvkrRepoMode = 0;
+      int64_t quantScaleRepoMode = 0;
+      int64_t tileSize = 0;
       double kNopeClipAlpha = 1.0f;
       double qcQrScale = 1.0f;
       double kcScale = 1.0f;

@@ -58,17 +58,15 @@ ge::graphStatus GetMlaPrologShapeDim(const gert::InferShapeContext* context, Mla
     return GRAPH_SUCCESS;
 }
 
-#define V3_FUNCTIONAL_OUTPUT_NUM 7
-
 ge::graphStatus SetMlaPrologShapeDim(const MlaProlgoProtoShapeParam &shapeParam, gert::InferShapeContext* context)
 {
     auto queryShape = context->GetOutputShape(QUERY_INDEX);                 // query: (B, S, N, Hckv) | (T, N, Hckv)
     OP_CHECK_NULL_WITH_CONTEXT(context, queryShape);
     auto queryRopeShape = context->GetOutputShape(QUERY_ROPE_INDEX);        // queryRope: (B, S, N, Dr) | (T, N, Dr)
     OP_CHECK_NULL_WITH_CONTEXT(context, queryRopeShape);
-    auto kvCacheOutShape = context->GetOutputShape(KV_CACHE_OUT_INDEX);
+    auto kvCacheOutShape = context->GetOutputShape(KV_CACHE_OUT_INDEX);     // kvCacheOut: (B, Nkv, Skv, Hckv)
     OP_CHECK_NULL_WITH_CONTEXT(context, kvCacheOutShape);
-    auto krCacheOutShape = context->GetOutputShape(KR_CACHE_OUT_INDEX);
+    auto krCacheOutShape = context->GetOutputShape(KR_CACHE_OUT_INDEX);     // krCacheOut: (B, Nkv, Skv, Dr)
     OP_CHECK_NULL_WITH_CONTEXT(context, krCacheOutShape);
 
     // Set output shape

@@ -60,7 +60,7 @@ struct MlaPrologV3FallBackParam : MlaPrologFallBackParam {
     const gert::Tensor *dequantScaleQNope = nullptr;
     const gert::Tensor *queryNormOptional = nullptr;
     const gert::Tensor *dequantScaleQNormOptional = nullptr;
-    int queryNormFlag = 0;
+    bool queryNormFlag = false;
     int weightQuantMode = 0;
     int kvCacheQuantMode = 0;
     int queryQuantMode = 0;

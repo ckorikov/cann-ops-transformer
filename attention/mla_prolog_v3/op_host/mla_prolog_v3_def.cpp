@@ -13,7 +13,7 @@
 namespace ops {
 class MlaPrologV3 : public OpDef {
 public:
-    MlaPrologV3(const char *name) : OpDef(name)
+    explicit MlaPrologV3(const char *name) : OpDef(name)
     {
         this->Input("token_x")
             .ParamType(REQUIRED)
@@ -146,13 +146,13 @@ public:
         this->Attr("rmsnorm_epsilon_cq").AttrType(OPTIONAL).Float(1e-05f);
         this->Attr("rmsnorm_epsilon_ckv").AttrType(OPTIONAL).Float(1e-05f);
         this->Attr("cache_mode").AttrType(OPTIONAL).String("BNSD");
-        this->Attr("query_norm_flag").AttrType(OPTIONAL).Int(0);
+        this->Attr("query_norm_flag").AttrType(OPTIONAL).Bool(false);
         this->Attr("weight_quant_mode").AttrType(OPTIONAL).Int(0);
         this->Attr("kv_cache_quant_mode").AttrType(OPTIONAL).Int(0);
         this->Attr("query_quant_mode").AttrType(OPTIONAL).Int(0);
-        this->Attr("ckvkr_repo_mode").AttrType(OPTIONAL).Int(1);
-        this->Attr("quant_scale_repo_mode").AttrType(OPTIONAL).Int(1);
-        this->Attr("tile_size").AttrType(OPTIONAL).Int(128);
+        this->Attr("ckvkr_repo_mode").AttrType(OPTIONAL).Int(0);
+        this->Attr("quant_scale_repo_mode").AttrType(OPTIONAL).Int(0);
+        this->Attr("tile_size").AttrType(OPTIONAL).Int(128); // tile_size default 128
         this->Attr("k_nope_clip_alpha").AttrType(OPTIONAL).Float(1.0f);
         this->Attr("qc_qr_scale").AttrType(OPTIONAL).Float(1.0f);
         this->Attr("kc_scale").AttrType(OPTIONAL).Float(1.0f);

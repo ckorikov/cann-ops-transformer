@@ -9,7 +9,7 @@
  */
 
 /*!
- * \file test_mla_prolog_v3_nq_bsh.cpp
+ * \file test_aclnn_mla_prolog_v3.cpp
  * \brief
  */
 
@@ -202,13 +202,13 @@
       aclTensor* dequantScaleWDkvKr = nullptr;
       aclTensor* quantScaleCkv = nullptr;
       aclTensor* smoothScaleCq = nullptr;
-      int queryNormFlag = 0;
-      int weightQuantMode = 0;
-      int kvQuantMode = 0;
-      int queryQuantMode = 0;
-      int ckvkrRepoMode = 0;
-      int quantScaleRepoMode = 0;
-      int tileSize = 128;
+      bool queryNormFlag = false;
+      int64_t weightQuantMode = 0;
+      int64_t kvQuantMode = 0;
+      int64_t queryQuantMode = 0;
+      int64_t ckvkrRepoMode = 0;
+      int64_t quantScaleRepoMode = 0;
+      int64_t tileSize = 128;
       double kNopeClipAlpha = 1.0f;
       double qcQrScale = 1.0f;
       double kcScale = 1.0f;
