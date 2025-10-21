@@ -95,12 +95,6 @@ static int32_t baseM_ = 0;
 static int32_t baseN_ = 0;
 static int32_t baseK_ = 0;
 
-#if defined(__DAV_C310__)
-        const std::vector<int64_t> EP_WORLD_SIZE_OPTIONAL{2, 4, 8, 16, 32, 64};
-#else
-        const std::vector<int64_t> EP_WORLD_SIZE_OPTIONAL{8, 16, 32, 64};
-#endif
-
 static uint64_t GMMGetSizePlatForm(
     const platform_ascendc::CoreMemType memType, platform_ascendc::PlatformAscendC ascendcPlatform)
 {
@@ -300,7 +294,7 @@ static bool CheckSendCntAndRecvCnt(
 static bool CheckDimValue(
     GroupedMatMulAlltoAllvTilingData* tilingData, const gert::StorageShape* gmmX, const gert::StorageShape* gmmWeight,
     const gert::StorageShape* mmX, const gert::StorageShape* mmWeight, const gert::StorageShape* y,
-    const gert::StorageShape* mmY, const gert::RuntimeAttrs* attrs)
+    const gert::StorageShape* mmY, const gert::RuntimeAttrs* attrs, gert::TilingContext* context)
 {
     (void)mmY; // Unused
     auto recvCountsPtr = attrs->GetAttrPointer<gert::ContinuousVector>(ATTR_RECV_COUNTS_INDEX);
@@ -340,13 +334,20 @@ static bool CheckDimValue(
     OP_TILING_CHECK(
         !CheckSendCntAndRecvCnt(attrs, BsK, A, H, E_ep, epWorldSize),
         OP_LOGE(C_INNER_DEBUG, "CheckSendCntAndRecvCnt failed!"), return false);
-
+    std::vector<int64_t> epWorldSizeOptional;
+    auto platformInfo = context->GetPlatformInfo();
+    platform_ascendc::PlatformAscendC ascendcPlatform(platformInfo);
+    if (ascendcPlatform.GetSocVersion() == platform_ascendc::SocVersion::ASCEND910_95) {
+        epWorldSizeOptional = {2, 4, 8, 16, 32, 64}; //A5限制epWorldSize为{2，4，8，16，32，64}
+    } else {
+        epWorldSizeOptional = {8, 16, 32, 64}; //A3限制epWorldSize为{8，16，32，64}
+    }
     std::string epWorldSizeNum;
-    for (size_t i =0; i<EP_WORLD_SIZE_OPTIONAL.size(); i++) {
-        epWorldSizeNum +=(EP_WORLD_SIZE_OPTIONAL[i] + " ");
+    for (size_t i = 0; i < epWorldSizeOptional.size(); i++) {
+        epWorldSizeNum += (std::to_string(epWorldSizeOptional[i]) + " ");
     }
     OP_TILING_CHECK(
-        std::find(EP_WORLD_SIZE_OPTIONAL.begin(), EP_WORLD_SIZE_OPTIONAL.end(), epWorldSize) == EP_WORLD_SIZE_OPTIONAL.end(),
+        std::find(epWorldSizeOptional.begin(), epWorldSizeOptional.end(), epWorldSize) == epWorldSizeOptional.end(),
         OP_LOGE(C_INNER_DEBUG, "epWorldSize[%ld] should be %s!", epWorldSize, epWorldSizeNum.c_str()), return false);
 
     tilingData->commonTilingInfo.BsK = static_cast<uint64_t>(BsK);
@@ -529,7 +530,7 @@ static bool CheckInputAndOutput(gert::TilingContext* context, GroupedMatMulAllto
     OP_TILING_CHECK(
         !CheckDimValue(
             tilingData, gmmXStorageShape, gmmWeightStorageShape, mmXStorageShape, mmWeightStorageShape,
-            outputYStorageShape, outputMmYStorageShape, attrs),
+            outputYStorageShape, outputMmYStorageShape, attrs, context),
         OP_LOGE(C_INNER_DEBUG, "CheckDimValue failed!"), return false);
 
     return true;

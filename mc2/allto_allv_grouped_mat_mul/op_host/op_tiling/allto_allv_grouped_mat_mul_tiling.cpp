@@ -90,12 +90,6 @@ constexpr uint64_t COMM_TILE = 8; // 每卡数据分配几次计算
 
 const char* A_INNER_DEBUG = "AlltoAllvGroupedMatMul Tiling";
 
-#if defined(__DAV_C310__)
-        const std::vector<int64_t> EP_WORLD_SIZE_OPTIONAL{2, 4, 8, 16, 32, 64};
-#else
-        const std::vector<int64_t> EP_WORLD_SIZE_OPTIONAL{8, 16, 32, 64};
-#endif
-
 static inline uint32_t SixteenAlign(uint32_t a, bool up = false)
 {
     if (up) {
@@ -514,33 +508,37 @@ ge::graphStatus AlltoAllvGmmTiling::CheckAttrsShapeSize(const gert::TilingContex
         return ge::GRAPH_FAILED;
     }
     uint64_t epWorldSize = tilingData->commonTilingInfo.epWorldSize;
+    auto platformInfo = context->GetPlatformInfo();
+    platform_ascendc::PlatformAscendC ascendcPlatform(platformInfo);
+    std::vector<int64_t> epWorldSizeOptional;
     std::string epWorldSizeNum;
-    for (size_t i =0; i<EP_WORLD_SIZE_OPTIONAL.size(); i++) {
-        epWorldSizeNum +=(EP_WORLD_SIZE_OPTIONAL[i] + " ");
+    if (ascendcPlatform.GetSocVersion() == platform_ascendc::SocVersion::ASCEND910_95) {
+        epWorldSizeOptional = {2, 4, 8, 16, 32, 64}; //A5限制epWorldSize为{2，4，8，16，32，64}
+    } else {
+        epWorldSizeOptional = {8, 16, 32, 64}; //A3限制epWorldSize为{8，16，32，64}
+    }
+    for (size_t i = 0; i < epWorldSizeOptional.size(); i++) {
+        epWorldSizeNum += (std::to_string(epWorldSizeOptional[i]) + " ");
     }
     OP_TILING_CHECK(
-        std::find(EP_WORLD_SIZE_OPTIONAL.begin(), EP_WORLD_SIZE_OPTIONAL.end(), epWorldSize) == EP_WORLD_SIZE_OPTIONAL.end(),
+        std::find(epWorldSizeOptional.begin(), epWorldSizeOptional.end(), epWorldSize) == epWorldSizeOptional.end(),
         OP_LOGE(A_INNER_DEBUG, "epWorldSize[%lu] should be %s!", epWorldSize, epWorldSizeNum.c_str()), return ge::GRAPH_FAILED);
-
     // 对sendCounts和recvCounts校验
     auto attrs = context->GetAttrs();
     OP_TILING_CHECK(attrs == nullptr, OP_LOGE(A_INNER_DEBUG, "GetAttrs returned null."), return ge::GRAPH_FAILED);
     auto sendCountsPtr = attrs->GetAttrPointer<gert::ContinuousVector>(ATTR_SEND_COUNTS_INDEX);
     auto recvCountsPtr = attrs->GetAttrPointer<gert::ContinuousVector>(ATTR_RECV_COUNTS_INDEX);
-    OP_TILING_CHECK(
-        (sendCountsPtr == nullptr) || (recvCountsPtr == nullptr),
+    OP_TILING_CHECK((sendCountsPtr == nullptr) || (recvCountsPtr == nullptr),
         OP_LOGE(A_INNER_DEBUG, "sendCountsPtr or recvCountsPtr is null."), return ge::GRAPH_FAILED);
     uint64_t sendCountsSize = sendCountsPtr->GetSize();
     uint64_t recvCountsSize = recvCountsPtr->GetSize();
-    OP_TILING_CHECK(
-        sendCountsSize != recvCountsSize,
+    OP_TILING_CHECK(sendCountsSize != recvCountsSize,
         OP_LOGE(
             A_INNER_DEBUG, "The size of sendCounts(e*ep) %lu should be equal to recvCounts(e*ep) %lu !", sendCountsSize,
             recvCountsSize),
         return ge::GRAPH_FAILED);
     if (E_ep * epWorldSize != sendCountsSize) {
-        OP_LOGE(
-            A_INNER_DEBUG,
+        OP_LOGE(A_INNER_DEBUG,
             "The first dim of gmmWeight(e, H1, N1) %lu  multi epWorldSize %lu shoubl be equal to the size of "
             "sendCounts(e*ep) %lu!", E_ep, epWorldSize, sendCountsSize);
         return ge::GRAPH_FAILED;
