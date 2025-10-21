@@ -27,47 +27,6 @@ using namespace AscendC;
 
 constexpr uint32_t BUFFER_NUM_BSD = 1;
 constexpr uint32_t MM_BASE_BLOCK_OFFSET = 32768; // baseM * baseN = 128 * 256
-constexpr uint32_t UB_ALIGN_LEN = 32;
-
-template <typename T>
-__aicore__ inline void DataCopyPad2DA8W4(const LocalTensor<T> &dst, const GlobalTensor<T> &src,
-                                         const DataCopy2DDimParams& copyDimParams) {
-    DataCopyExtParams datacopyParams;
-    datacopyParams.blockCount = copyDimParams.dim1;
-    datacopyParams.blockLen = copyDimParams.dim0 * sizeof(T);
-    datacopyParams.srcStride = (copyDimParams.srcDim0 - copyDimParams.dim0) * sizeof(T);
-    // 32: int32 -> float16, 为防止跨行数据进入同一32B block，提前每行按偶数block对齐
-    datacopyParams.dstStride = Ceil(copyDimParams.dim0 * sizeof(T), 32) % 2;
-
-    DataCopyPadExtParams<T> padParams{true, 0, 0, 0};
-    DataCopyPad(dst, src, datacopyParams, padParams);
-}
-
-template <typename T>
-__aicore__ inline void DataCopyPad2DA8W4ND(const LocalTensor<T> &dst, const GlobalTensor<T> &src,
-                                           const DataCopy2DDimParams& copyDimParams) {
-    DataCopyExtParams params;
-    params.blockCount = copyDimParams.dim1;
-    params.blockLen = copyDimParams.dim0 * sizeof(T);
-    params.srcStride = (copyDimParams.srcDim0 - copyDimParams.dim0) * sizeof(T);
-    params.dstStride = 0;
-
-    DataCopyPadExtParams<T> padParams{true, 0, 0, 0};
-    DataCopyPad(dst, src, params, padParams);
-    return;
-}
-
-template <typename T>
-__aicore__ inline void DataCopyPad2DA8W4(const GlobalTensor<T> &dst, const LocalTensor<T> &src,
-                                         const DataCopy2DDimParams& copyDimParams, uint32_t dstDim0) {
-    DataCopyExtParams params;
-    params.blockCount = copyDimParams.dim1;
-    params.blockLen = copyDimParams.dim0 * sizeof(T);
-    // 32: ub访问粒度为32B
-    params.srcStride = (copyDimParams.srcDim0 - copyDimParams.dim0) * sizeof(T) / 32;
-    params.dstStride = (dstDim0 - copyDimParams.dim0) * sizeof(T);
-    DataCopyPad(dst, src, params);
-}
 
 template <class mmType>
 class GMMA8W4MSDCompute {

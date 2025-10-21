@@ -64,6 +64,13 @@ constexpr uint32_t ONE_BLK_SIZE = 32;
 constexpr uint32_t ROW_INDEX_FACTOR = 10;
 constexpr uint32_t SCALE_FACTOR = 100;
 
+constexpr uint32_t A8W4_L1OPT_MAX_K = 2048;
+constexpr uint32_t A8W4_L1OPT_SMALLM_BASE_M = 96;
+constexpr uint32_t A8W4_L1OPT_SMALLM_BASE_N = 128;
+constexpr uint32_t A8W4_L1OPT_BIGM_BASE_M = 128;
+constexpr uint32_t A8W4_L1OPT_BIGM_BASE_N = 128;
+constexpr uint32_t A8W4_L1OPT_BASE_K = 512;
+
 static ge::graphStatus GetInputDims(const gert::Shape &storageShape, ge::Format format, int64_t (&dims)[TWO_BATCH_DIM])
 {
     const size_t dimNum = storageShape.GetDimNum();
@@ -151,8 +158,10 @@ ge::graphStatus GroupedMatmulFinalizeRoutingBaseTiling::ParseAttr()
     if (tuningConfigPtr != nullptr && tuningConfigPtr->GetSize() > 0) {
         tuningConfig_ = (reinterpret_cast<const int64_t *>(tuningConfigPtr->GetData()))[0];
         tuningConfig_ = (tuningConfig_ > 0) ? tuningConfig_ : 0;
+        useL1OptKernel_ = (tuningConfigPtr->GetSize() > 1 && k_ <= A8W4_L1OPT_MAX_K) ? true : false;
     } else {
         tuningConfig_ = 0;
+        useL1OptKernel_ = false;
     }
 
     return ge::GRAPH_SUCCESS;
@@ -200,7 +209,7 @@ ge::graphStatus GroupedMatmulFinalizeRoutingBaseTiling::ParseInputAndAttr()
     return ge::GRAPH_SUCCESS;
 }
 
-ge::graphStatus GroupedMatmulFinalizeRoutingBaseTiling::W4A8TilingProcess()
+ge::graphStatus GroupedMatmulFinalizeRoutingBaseTiling::W4A8BaseTilingProcess()
 {
     uint32_t singleN = 256;
     uint32_t singleM = 128;
@@ -260,6 +269,73 @@ ge::graphStatus GroupedMatmulFinalizeRoutingBaseTiling::W4A8TilingProcess()
     tilingKey_ = 11000000000000000011UL;
 
     workspaceSize_ = userWorkspaceSize + systemWorkspaceSize;
+    return ge::GRAPH_SUCCESS;
+}
+
+ge::graphStatus GroupedMatmulFinalizeRoutingBaseTiling::W4A8L1OptTilingProcess()
+{
+    uint32_t singleN = 1024;
+    uint32_t singleM = 128;
+    size_t userWorkspaceSize = (CV_PARALL_NUM * blockDim_ * singleN * singleM * sizeof(int32_t) * EIGHT) + m_ * sizeof(float);
+    size_t systemWorkspaceSize = RPC_WORKSIZE * MB_SIZE;
+
+    auto wFormat0 = static_cast<ge::Format>(ge::GetPrimaryFormat(context_->GetInputDesc(0)->GetStorageFormat()));
+    bool wNZ = (wFormat0 == ge::FORMAT_FRACTAL_NZ);
+
+    quantGroupNum_ = context_->GetOptionalInputShape(SCALE_INPUT_INDEX)->GetStorageShape()[1];
+    ubRestBytes_ = A8W4_UBRESTBYTES;
+
+    uint32_t avg_m = (tuningConfig_ != 0) ? tuningConfig_  : ((groupNum_ != 0) ? (m_ / groupNum_) : 1);
+    OP_LOGD(context_->GetNodeName(), "GroupedMatmulFinalizeRoutingBaseTiling tuningConfig is %ld, avg_m is %u",
+            tuningConfig_, avg_m);
+    uint32_t baseM = avg_m < AVG_M_THREHOLD ? A8W4_L1OPT_SMALLM_BASE_M : A8W4_L1OPT_BIGM_BASE_M;
+    uint32_t baseN = avg_m < AVG_M_THREHOLD ? A8W4_L1OPT_SMALLM_BASE_N : A8W4_L1OPT_BIGM_BASE_N;
+
+    if (baseN > n_) {
+        baseN = Ops::Base::CeilAlign(n_, uint64_t(ONE_BLK_SIZE));
+    }
+
+    if (baseN == 0) {
+        OP_LOGE(context_->GetNodeName(), "GroupedMatmulFinalizeRoutingBaseTiling: baseN is 0! Tling Failed!");
+        return ge::GRAPH_FAILED;
+    }
+
+    vBaseM_ = UBCALSIZE / baseN;
+    mm_.SetAType(matmul_tiling::TPosition::TSCM, matmul_tiling::CubeFormat::NZ, matmul_tiling::DataType::DT_INT4, false);
+    if (wNZ) {
+        mm_.SetBType(matmul_tiling::TPosition::GM, matmul_tiling::CubeFormat::NZ, matmul_tiling::DataType::DT_INT4, false);
+    } else {
+        mm_.SetBType(matmul_tiling::TPosition::GM, matmul_tiling::CubeFormat::ND, matmul_tiling::DataType::DT_INT4, false);
+    }
+    mm_.SetCType(matmul_tiling::TPosition::GM, matmul_tiling::CubeFormat::ND, matmul_tiling::DataType::DT_FLOAT16);
+    mm_.SetBias(false);
+    mm_.SetOrgShape(baseM, n_, k_);
+    mm_.SetShape(baseM, n_, k_);
+    mm_.SetSingleShape(baseM, singleN, k_);
+    mm_.SetFixSplit(baseM, baseN, A8W4_L1OPT_BASE_K);
+    if (mm_.GetTiling(tilingData_.matmulTiling) == -1){
+        OP_LOGE(context_->GetNodeName(), "GroupedMatmulFinalizeRoutingBaseTiling Get Tiling Failed!"
+             "m, n, k: %lu, %lu, %lu", m_, n_, k_);
+        return ge::GRAPH_FAILED;
+    }
+
+    OP_LOGD(context_->GetNodeName(), "GMM_tiling: baseM is %d, baseK is %d, baseN is %d.",
+        baseM, A8W4_L1OPT_BASE_K, baseN);
+
+    // key 11···UL for A8W4
+    tilingKey_ = 11000000000000000111UL;
+
+    workspaceSize_ = userWorkspaceSize + systemWorkspaceSize;
+    return ge::GRAPH_SUCCESS;
+}
+
+ge::graphStatus GroupedMatmulFinalizeRoutingBaseTiling::W4A8TilingProcess()
+{
+    if (useL1OptKernel_) {
+        W4A8L1OptTilingProcess();
+    } else {
+        W4A8BaseTilingProcess();
+    }
 
     return ge::GRAPH_SUCCESS;
 }
@@ -324,7 +400,7 @@ ge::graphStatus GroupedMatmulFinalizeRoutingBaseTiling::W8A8TilingProcess()
 
 void GroupedMatmulFinalizeRoutingBaseTiling::DeterministicTilingProcess()
 {
-    if (context_->GetDeterministic() == 0) {
+    if (context_->GetDeterministic() == 0 || useL1OptKernel_) {
         deterministicFlag_ = 0;
         return;
     }
@@ -366,8 +442,17 @@ void GroupedMatmulFinalizeRoutingBaseTiling::FillTilingData()
     tilingData_.set_hasBias(hasBias_);
     tilingData_.set_deterministicFlag(deterministicFlag_);
     tilingData_.set_deterWorkspaceSize(deterWorkspaceSize_);
+}
 
-    PrintTilingData();
+void GroupedMatmulFinalizeRoutingBaseTiling::FillTilingDataL1Opt()
+{
+    tilingData_.matmulTiling.set_dbL0C(2); // double buffer dbL0C 2
+    tilingData_.matmulTiling.set_stepKa(1);
+    tilingData_.matmulTiling.set_stepKb(4);  // 4: L1中右矩阵单次搬运基于baseK的4倍数据
+    tilingData_.matmulTiling.set_depthA1(1);
+    tilingData_.matmulTiling.set_depthB1(8);  // 8: stepKb的两倍，开启double buffer
+    tilingData_.matmulTiling.set_stepM(1);
+    tilingData_.matmulTiling.set_stepN(1);
 }
 
 void GroupedMatmulFinalizeRoutingBaseTiling::PrintTilingData()
@@ -414,7 +499,12 @@ ge::graphStatus GroupedMatmulFinalizeRoutingBaseTiling::DoOpTiling()
     }
 
     DeterministicTilingProcess();
+
     FillTilingData();
+    if (inputXDesc->GetDataType() == ge::DT_INT8 && inputWDesc->GetDataType() == ge::DT_INT4 && useL1OptKernel_) {
+        FillTilingDataL1Opt();
+    }
+    PrintTilingData();    
 
     return ge::GRAPH_SUCCESS;
 }

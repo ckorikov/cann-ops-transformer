@@ -51,10 +51,13 @@ protected:
     ge::graphStatus ParseInputAndAttr();
     ge::graphStatus ParseAttr();
 
+    ge::graphStatus W4A8BaseTilingProcess();
+    ge::graphStatus W4A8L1OptTilingProcess();
     ge::graphStatus W4A8TilingProcess();
     ge::graphStatus W8A8TilingProcess();
     void DeterministicTilingProcess();
     void FillTilingData();
+    void FillTilingDataL1Opt();
     void PrintTilingData();
 protected:
 
@@ -83,6 +86,7 @@ private:
     uint32_t hasBias_;
     uint32_t deterministicFlag_;
     uint32_t deterWorkspaceSize_;
+    bool useL1OptKernel_;    
 protected:
     matmul_tiling::MultiCoreMatmulTiling mm_;
 };

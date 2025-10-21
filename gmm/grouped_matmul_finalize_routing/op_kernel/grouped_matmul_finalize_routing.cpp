@@ -15,6 +15,7 @@
 #include "grouped_matmul_finalize_routing.h"
 #include "grouped_matmul_finalize_routing_antiquant_a8w4_msd_pre.h"
 #include "grouped_matmul_finalize_routing_antiquant_a8w4_msd.h"
+#include "grouped_matmul_finalize_routing_antiquant_a8w4_msd_l1_opt.h"
 
 namespace GroupedMatmulFinalizeRouting {
     constexpr MatmulConfig A8W4_GMM_CFG_MDL = GetNormalConfig();
@@ -109,6 +110,31 @@ extern "C" __global__ __aicore__ void grouped_matmul_finalize_routing(GM_ADDR x,
         }
 
         GMMA8W4MSDCompute<matmulType> op(mm);
+        op.Init(initParams, &tilingData, &pipe);
+        op.Process();
+    } else if (TILING_KEY_IS(11000000000000000111UL)) {
+        TPipe pipe;
+        if ASCEND_IS_AIV {
+            GMMA8W4PreProcess op1;
+            MMPreInitParams preInitParams {x, x, group_list, user};
+            op1.Init(preInitParams, tilingData, &pipe);
+            op1.Process();
+            pipe.Reset();
+            pipe.Destroy();
+            pipe.Init();
+        }
+        using aT = MatmulType<TPosition::TSCM, CubeFormat::NZ, int4b_t, false>;
+        using bT = MatmulType<TPosition::GM, wFormat, int4b_t, false>;
+        using biasT = MatmulType<TPosition::GM, CubeFormat::ND, int32_t, false>;
+        using cT = MatmulType<TPosition::GM, CubeFormat::ND, half, false>;
+        using matmulType = MMImplType<aT, bT, cT, biasT, GroupedMatmulFinalizeRouting::A8W4_GMM_CFG_MDL>;
+        matmulType::MT mm;
+        if ASCEND_IS_AIC {
+            mm.SetSubBlockIdx(0);
+            mm.Init(&tilingData.matmulTiling, &pipe);
+        }
+
+        GMMA8W4MSDL1OptCompute<matmulType> op(mm);
         op.Init(initParams, &tilingData, &pipe);
         op.Process();
     }
