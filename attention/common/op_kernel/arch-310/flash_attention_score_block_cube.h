@@ -476,7 +476,12 @@ __aicore__ inline void FABlockCube<TEMPLATE_ARGS>::IterateBmm2L1SplitN(
             Position startPos;
             startPos.bIdx = runInfo.boIdx;
             startPos.n2Idx = runInfo.n2oIdx;
-            startPos.s2Offset = runInfo.s2LoopCount * s2BaseSize;
+            if constexpr (isFd) {
+                startPos.s2Offset = runInfo.flashDecodeS2Idx * constInfo.sInnerLoopSize +  // FD分片起始
+                           runInfo.s2LoopCount * s2BaseSize;  // 核心内循环偏移
+            } else {
+                startPos.s2Offset = runInfo.s2LoopCount * s2BaseSize;  // 非FD场景
+            }
             startPos.dIdx = n * baseN;
             PAShape shape;
             shape.blockSize = kvCacheBlockSize;
@@ -560,7 +565,12 @@ __aicore__ inline void FABlockCube<TEMPLATE_ARGS>::IterateBmm2(
             Position startPos;
             startPos.bIdx = runInfo.boIdx;
             startPos.n2Idx = runInfo.n2oIdx;
-            startPos.s2Offset = runInfo.s2LoopCount * s2BaseSize;
+            if constexpr (isFd) {
+                startPos.s2Offset = runInfo.flashDecodeS2Idx * constInfo.sInnerLoopSize +  // FD分片起始
+                           runInfo.s2LoopCount * s2BaseSize;  // 核心内循环偏移
+            } else {
+                startPos.s2Offset = runInfo.s2LoopCount * s2BaseSize;  // 非FD场景
+            }
             startPos.dIdx = 0;
             PAShape shape;
             shape.blockSize = kvCacheBlockSize;
@@ -748,7 +758,12 @@ __aicore__ inline void FABlockCube<TEMPLATE_ARGS>::IterateBmm1NdL0Split(LocalTen
         Position startPos;
         startPos.bIdx = runInfo.boIdx;
         startPos.n2Idx = runInfo.n2oIdx;
-        startPos.s2Offset = runInfo.s2LoopCount * s2BaseSize;
+        if constexpr (isFd) {
+            startPos.s2Offset = runInfo.flashDecodeS2Idx * constInfo.sInnerLoopSize +  // FD分片起始
+                        runInfo.s2LoopCount * s2BaseSize;  // 核心内循环偏移
+        } else {
+            startPos.s2Offset = runInfo.s2LoopCount * s2BaseSize;  // 非FD场景
+        }
         startPos.dIdx = 0;
         PAShape shape;
         shape.blockSize = kvCacheBlockSize;
@@ -881,7 +896,12 @@ __aicore__ inline void FABlockCube<TEMPLATE_ARGS>::IterateBmm1DnSplitK(LocalTens
         Position startPos;
         startPos.bIdx = runInfo.boIdx;
         startPos.n2Idx = runInfo.n2oIdx;
-        startPos.s2Offset = runInfo.s2LoopCount * s2BaseSize;
+        if constexpr (isFd) {
+            startPos.s2Offset = runInfo.flashDecodeS2Idx * constInfo.sInnerLoopSize +  // FD分片起始
+                        runInfo.s2LoopCount * s2BaseSize;  // 核心内循环偏移
+        } else {
+            startPos.s2Offset = runInfo.s2LoopCount * s2BaseSize;  // 非FD场景
+        }
         startPos.dIdx = 0;
         PAShape shape;
         shape.blockSize = kvCacheBlockSize;
@@ -977,7 +997,12 @@ __aicore__ inline void FABlockCube<TEMPLATE_ARGS>::IterateBmm1Nd(
         Position startPos;
         startPos.bIdx = runInfo.boIdx;
         startPos.n2Idx = runInfo.n2oIdx;
-        startPos.s2Offset = runInfo.s2LoopCount * s2BaseSize;
+        if constexpr (isFd) {
+            startPos.s2Offset = runInfo.flashDecodeS2Idx * constInfo.sInnerLoopSize +  // FD分片起始
+                        runInfo.s2LoopCount * s2BaseSize;  // 核心内循环偏移
+        } else {
+            startPos.s2Offset = runInfo.s2LoopCount * s2BaseSize;  // 非FD场景
+        }
         startPos.dIdx = 0;
         PAShape shape;
         shape.blockSize = kvCacheBlockSize;
@@ -1091,7 +1116,12 @@ __aicore__ inline void FABlockCube<TEMPLATE_ARGS>::IterateBmm1NdL1SplitK(LocalTe
             Position startPos;
             startPos.bIdx = runInfo.boIdx;
             startPos.n2Idx = runInfo.n2oIdx;
-            startPos.s2Offset = runInfo.s2LoopCount * s2BaseSize;
+            if constexpr (isFd) {
+                startPos.s2Offset = runInfo.flashDecodeS2Idx * constInfo.sInnerLoopSize +  // FD分片起始
+                           runInfo.s2LoopCount * s2BaseSize;  // 核心内循环偏移
+            } else {
+                startPos.s2Offset = runInfo.s2LoopCount * s2BaseSize;  // 非FD场景
+            }
             startPos.dIdx = k * baseK;
             PAShape shape;
             shape.blockSize = kvCacheBlockSize;
@@ -1182,7 +1212,12 @@ __aicore__ inline void FABlockCube<TEMPLATE_ARGS>::IterateBmm1Dn(
         Position startPos;
         startPos.bIdx = runInfo.boIdx;
         startPos.n2Idx = runInfo.n2oIdx;
-        startPos.s2Offset = runInfo.s2LoopCount * s2BaseSize;
+        if constexpr (isFd) {
+            startPos.s2Offset = runInfo.flashDecodeS2Idx * constInfo.sInnerLoopSize +  // FD分片起始
+                        runInfo.s2LoopCount * s2BaseSize;  // 核心内循环偏移
+        } else {
+            startPos.s2Offset = runInfo.s2LoopCount * s2BaseSize;  // 非FD场景
+        }
         startPos.dIdx = 0;
         PAShape shape;
         shape.blockSize = kvCacheBlockSize;
