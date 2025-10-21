@@ -215,7 +215,7 @@
 ## 约束说明
 
 - 关于数据shape的约束，以inputLayout的BSND、BNSD为例（BSH、SBH下H=N\*D），其中：
-  -   B：取值范围为1\~2M。带prefixOptional的时候B最大支持2K。
+  -   B：取值范围为1\~2M。当prefixOptional的时候B最大支持2K。
   -   N：取值范围为1\~256。
   -   S：取值范围为1\~1M。
   -   D：取值范围为1\~512。

@@ -274,7 +274,7 @@ aclnnStatus aclnnApplyRotaryPosEmb(
   - layout为1时，queryRef、keyRef、cos、sin输入shape的前2维（B、S）必须相等；layout为4时，第1维（T）必须相等。
   - queryRef、keyRef、cos、sin输入shape的最后一维（D）必须相等。
   - 输入张量queryRef、keyRef、cos、sin的dtype必须相同。
-  - layout为1时，输入queryRef的shape用（q_b, q_s, q_n, q_d）表示，keyRef shape用（q_b, q_s, k_n, q_d）表示，cos和sin shape用（q_b, q_s, 1, q_d）表示。其中，b表示batch_size，s表示seq_length，n表示head_num，d表示head_dim。layout为4时，输入queryRef的shape用（q_t, q_n, q_d）表示，keyRef shape用（q_t, k_n, q_d）表示，cos和sin shape用（q_t, 1, q_d）表示。其中，t表示b和s合轴，n表示head_num，d表示head_dim
+  - layout为1时，输入queryRef的shape用（q_b, q_s, q_n, q_d）表示，keyRef的shape用（q_b, q_s, k_n, q_d）表示，cos和sin的shape用（q_b, q_s, 1, q_d）表示。其中，b表示batch_size，s表示seq_length，n表示head_num，d表示head_dim。layout为4时，输入queryRef的shape用（q_t, q_n, q_d）表示，keyRef的shape用（q_t, k_n, q_d）表示，cos和sin的shape用（q_t, 1, q_d）表示。其中，t表示b和s合轴，n表示head_num，d表示head_dim
 
     - 当输入是BFLOAT16时，cast表示为1，castSize为4，DtypeSize为2
     - 当输入是FLOAT16或FLOAT32时，cast表示为0，castSize = DtypeSize（FLOAT16时为2，FLOAT32时为4）

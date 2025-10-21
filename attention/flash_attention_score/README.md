@@ -85,7 +85,7 @@
       <td>dropMaskOptional</td>
       <td>可选输入</td>
       <td>公式中的Dropout，表示数据丢弃掩码。取值为1代表保留该数据，为0代表丢弃该数据。</td>
-      <td>UNIT8</td>
+      <td>UINT8</td>
       <td>ND</td>
     </tr>
     <tr>
@@ -158,7 +158,7 @@
 ## 约束说明
 
 - 关于数据shape的约束，以inputLayout的BSND、BNSD为例（BSH、SBH下H=N\*D），其中：
-    -   B：取值范围为1\~2M。带prefixOptional的时候B最大支持2K。
+    -   B：取值范围为1\~2M。当prefixOptional的时候B最大支持2K。
     -   N：取值范围为1\~256。
     -   S：取值范围为1\~1M。
     -   D：取值范围为1\~512。
