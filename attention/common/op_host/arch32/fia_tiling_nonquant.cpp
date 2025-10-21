@@ -495,7 +495,7 @@ void FiaTilingNonQuant::CalcMmResSize()
 void FiaTilingNonQuant::CalcMaxMmResSize()
 {
     mm1ResSize_ = 512 * 512; // mm1的结果最大为512*512个元素
-    mm2ResSize_ = static_cast<int64_t>(headDimAlign_) * static_cast<int64_t>(mBaseSize_);
+    mm2ResSize_ = static_cast<int64_t>(headDimAlign_) * 512; // mBaseSize最大值为512
 }
 
 void FiaTilingNonQuant::FillTiling()
@@ -512,22 +512,18 @@ uint32_t FiaTilingNonQuant::CalcFlashDecodeParamNums(const uint32_t coreNum) con
 }
 
 uint64_t FiaTilingNonQuant::CalcNormalWorkspaceSize(uint32_t coreNum, int64_t mm1ResSize,
-    int64_t mm2ResSize, uint32_t mBaseSize) const
+    int64_t mm2ResSize) const
 {
     constexpr uint32_t MM1_RES_ELEM_SIZE = 4;      // 4: fp32
     constexpr uint32_t V1_RES_ELEM_SIZE = 2;       // 2: fp16/bf16
     constexpr uint32_t MM2_RES_ELEM_SIZE = 4;      // 4: fp32
     constexpr uint32_t V2_RES_ELEM_SIZE = 4;       // 4: fp32
-    constexpr uint32_t N_UPDATE_ELEM_SIZE = 4;     // 4: int32
-    constexpr uint32_t SOFTMAX_SUM_ELEM_SIZE = 4;  // 4: int32
 
     uint64_t workspaceSize = 0;
     workspaceSize += PRE_LOAD_NUM_MLA * coreNum * mm1ResSize * MM1_RES_ELEM_SIZE;
     workspaceSize += PRE_LOAD_NUM_MLA * coreNum * mm1ResSize * V1_RES_ELEM_SIZE;
     workspaceSize += PRE_LOAD_NUM_MLA * coreNum * mm2ResSize * MM2_RES_ELEM_SIZE;
     workspaceSize += PRE_LOAD_NUM_MLA * coreNum * mm2ResSize * V2_RES_ELEM_SIZE;
-    workspaceSize += PRE_LOAD_NUM_MLA * coreNum * mBaseSize * N_UPDATE_ELEM_SIZE;        //aMla nUpdate, mBaseSize=128
-    workspaceSize += PRE_LOAD_NUM_MLA * coreNum * mBaseSize * SOFTMAX_SUM_ELEM_SIZE;     //aMla softmaxSum, mBaseSize=128
     return workspaceSize;
 }
 
@@ -543,7 +539,7 @@ uint64_t FiaTilingNonQuant::CalcFlashDecodeWorkspace(const uint32_t coreNum) con
 void FiaTilingNonQuant::CalcWorkspaceSize()
 {
     workspaceSize_ = libapiSize_;
-    workspaceSize_ += CalcNormalWorkspaceSize(coreNum_, mm1ResSize_, mm2ResSize_, mBaseSize_);
+    workspaceSize_ += CalcNormalWorkspaceSize(coreNum_, mm1ResSize_, mm2ResSize_);
     if (splitKVFlag_) {
         workspaceSize_ += CalcFlashDecodeWorkspace(coreNum_);
     }
@@ -553,7 +549,7 @@ void FiaTilingNonQuant::CalcMaxWorkspaceSize()
 {
     CalcMaxMmResSize();
     workspaceSize_ = libapiSize_;
-    workspaceSize_ += CalcNormalWorkspaceSize(coreNum_, mm1ResSize_, mm2ResSize_, mBaseSize_);
+    workspaceSize_ += CalcNormalWorkspaceSize(coreNum_, mm1ResSize_, mm2ResSize_);
     workspaceSize_ += CalcFlashDecodeWorkspace(aicNum_);
 }
 

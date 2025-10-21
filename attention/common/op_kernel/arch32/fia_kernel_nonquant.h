@@ -856,13 +856,30 @@ template <typename FIAT>
 __aicore__ inline void FiaKernelNonQuant<FIAT>::CalcCurS2StartEnd(uint32_t bN2Cur, uint32_t gS1Cur, uint32_t s2Cur)
 {
     uint32_t s2End;
-    if ((bN2Cur == constInfo.bN2End) && (gS1Cur == constInfo.gS1End)) { // 当前任务属于最后一个S1G块
+    if ((bN2Cur == constInfo.bN2End) && (gS1Cur == constInfo.gS1End)) { // 当前任务属于最后一个S1G
         s2End = constInfo.s2End;
     } else {
         s2End = (actSeqLensKv + constInfo.s2BaseSize - 1) / constInfo.s2BaseSize;
     }
 
     if (constInfo.attenMaskFlag == 0 || FLASH_DECODE) {
+        curS2Start = 0;
+        curS2End = s2End;
+        return;
+    }
+
+    uint32_t gs1Idx = gS1Cur * constInfo.mBaseSize;
+    int64_t sIdx;
+    uint32_t s1BaseSize;
+    if constexpr (GetOutUbFormat<LAYOUT_T>() == UbFormat::S1G) {
+        sIdx = static_cast<int64_t>(gs1Idx / constInfo.gSize);
+        s1BaseSize = constInfo.mBaseSize / constInfo.gSize + 1;
+    } else {
+        sIdx = static_cast<int64_t>(gs1Idx % actSeqLensQ);
+        s1BaseSize = constInfo.mBaseSize;
+    }
+
+    if (sIdx + static_cast<int64_t>(s1BaseSize) > static_cast<int64_t>(actSeqLensQ)) {
         curS2Start = 0;
         curS2End = s2End;
         return;
@@ -885,19 +902,8 @@ __aicore__ inline void FiaKernelNonQuant<FIAT>::CalcCurS2StartEnd(uint32_t bN2Cu
         nextTokenLeftUp = static_cast<int64_t>(actSeqLensKv) - static_cast<int64_t>(actSeqLensQ) + safeNextToken;
     }
 
-    uint32_t gs1Idx = gS1Cur * constInfo.mBaseSize;
-    int64_t sIdx = (LAYOUT_T == FIA_LAYOUT::TND || LAYOUT_T == FIA_LAYOUT::BSH) ?
-        static_cast<int64_t>(gs1Idx / constInfo.gSize) : static_cast<int64_t>(gs1Idx % actSeqLensQ);
-
     int64_t s2FirstToken = ClipSInnerToken(sIdx - preTokenLeftUp, static_cast<int64_t>(s2Start), static_cast<int64_t>(actSeqLensKv));
     curS2Start = static_cast<uint32_t>(s2FirstToken) / constInfo.s2BaseSize;
-
-    uint32_t s1BaseSize;
-    if (LAYOUT_T == FIA_LAYOUT::TND || LAYOUT_T == FIA_LAYOUT::BSH) { // SG:
-        s1BaseSize = constInfo.mBaseSize / constInfo.gSize + 1;
-    } else { // GS
-        s1BaseSize = constInfo.mBaseSize;
-    }
 
     int64_t s2LastToken = ClipSInnerToken(sIdx + nextTokenLeftUp + static_cast<int64_t>(s1BaseSize), 0, static_cast<int64_t>(s2End * constInfo.s2BaseSize));
     curS2End = (static_cast<uint32_t>(s2LastToken) + constInfo.s2BaseSize - 1) / constInfo.s2BaseSize;

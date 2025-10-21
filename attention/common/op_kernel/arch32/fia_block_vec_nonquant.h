@@ -149,6 +149,10 @@ protected:
     uint32_t negativeIntScalar = NEGATIVE_MIN_VAULE_FP32;
     uint16_t brcbNum = (fa_base_vector::BYTE_BLOCK / sizeof(COMPUTE_T));
     bool learnableSinkFlag = false;
+    static constexpr ActualSeqLensMode Q_MODE = GetQActSeqMode<LAYOUT_T>(); 
+    static constexpr ActualSeqLensMode KV_MODE = GetKvActSeqMode<LAYOUT_T, PAGE_ATTENTION>(); 
+    ActualSeqLensParser<Q_MODE> qActSeqLensParser; 
+    ActualSeqLensParser<KV_MODE> kvActSeqLensParser;
 
     // ================================Local Buffer区====================================
     // in queue
@@ -210,6 +214,8 @@ __aicore__ inline void FiaBlockVecNonQuant<FIAT>::Init(
         learnableSinkFlag = true;
         sinkGm.SetGlobalBuffer((__gm__ bfloat16_t *)learnableSink);
     }
+    qActSeqLensParser.Init(this->actualSeqLengthsGmQ, constInfo.actualLenQDims, constInfo.qSeqSize); 
+    kvActSeqLensParser.Init(this->actualSeqLengthsGm, constInfo.actualLenDims, constInfo.kvSeqSize);
 }
 
 template <typename FIAT>
@@ -369,7 +375,7 @@ template <typename FIAT> __aicore__ inline void FiaBlockVecNonQuant<FIAT>::Proce
                 }
             }
 
-            LocalTensor<T> tmpLseResCastTensor = outputQue2.AllocTensor<T>();           
+            LocalTensor<T> tmpLseResCastTensor = outputQue2.AllocTensor<T>();
             DataCopy(tmpLseResCastTensor, totalLseUb, mSplitInfo.vecDealM * brcbNum);
             outputQue2.EnQue(tmpLseResCastTensor);
             outputQue2.DeQue<T>();
@@ -389,7 +395,7 @@ template <typename FIAT> __aicore__ inline void FiaBlockVecNonQuant<FIAT>::Proce
                 DataCopySoftmaxLseBSND(softmaxLseGm, tmpLseResCastTensor, bN2Offset, mOffset, mSplitInfo.vecDealM, constInfo);
             } else { // BNSD
                 uint64_t bN2Offset = info.bIdx * constInfo.qHeadNum * constInfo.qSeqSize + info.n2Idx * constInfo.gSize * constInfo.qSeqSize;
-                DataCopySoftmaxLseBNSD(softmaxLseGm, tmpLseResCastTensor, bN2Offset, mOffset, mSplitInfo.vecDealM, constInfo);
+                DataCopySoftmaxLseBNSD<T, Q_MODE>(softmaxLseGm, tmpLseResCastTensor, bN2Offset, mOffset, mSplitInfo.vecDealM, constInfo, qActSeqLensParser, info.bIdx);
             }
             outputQue2.FreeTensor(tmpLseResCastTensor);
         }
@@ -450,6 +456,7 @@ __aicore__ inline void FiaBlockVecNonQuant<FIAT>::ElewiseCompute(
         maskInfo.batchIdx = info.bIdx;
         maskInfo.batchOffset = constInfo.attenMaskSize;
         maskInfo.attenMaskStride = constInfo.attenMaskStride;
+        maskInfo.maskValue = *((uint32_t *)&NEGATIVE_MIN_VAULE_FP32);
 
         if (constInfo.qSeqSize == 1) {
             maskInfo.layout = fa_base_vector::S1_EQUAL1;

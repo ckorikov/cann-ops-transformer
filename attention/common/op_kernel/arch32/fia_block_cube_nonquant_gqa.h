@@ -661,14 +661,6 @@ __aicore__ inline void FiaBlockCubeNonQuantGqa<FIAT, Config>::InitBuffers(TPipe 
 template <typename FIAT, typename Config>
 __aicore__ inline void FiaBlockCubeNonQuantGqa<FIAT, Config>::AllocEventID()
 {
-    for (uint32_t i = 0; i < L1_Q_BUFCNT; ++i) {
-        SetFlag<HardEvent::MTE1_MTE2>(Q_EVENT0 + i);
-    }
-
-    for (uint32_t i = 0; i < L1_V_BUFCNT; ++i) {
-        SetFlag<HardEvent::MTE1_MTE2>(V_EVENT0 + i);
-    }
-
     for (uint32_t i = 0; i < L1_KP_BUFCNT; ++i) {
         SetFlag<HardEvent::MTE1_MTE2>(KP_EVENT0 + i);
     }
@@ -684,14 +676,6 @@ __aicore__ inline void FiaBlockCubeNonQuantGqa<FIAT, Config>::AllocEventID()
 template <typename FIAT, typename Config>
 __aicore__ inline void FiaBlockCubeNonQuantGqa<FIAT, Config>::FreeEventID()
 {
-    for (uint32_t i = 0; i < L1_Q_BUFCNT; ++i) {
-        WaitFlag<HardEvent::MTE1_MTE2>(Q_EVENT0 + i);
-    }
-
-    for (uint32_t i = 0; i < L1_V_BUFCNT; ++i) {
-        WaitFlag<HardEvent::MTE1_MTE2>(V_EVENT0 + i);
-    }
-
     for (uint32_t i = 0; i < L1_KP_BUFCNT; ++i) {
         WaitFlag<HardEvent::MTE1_MTE2>(KP_EVENT0 + i);
     }

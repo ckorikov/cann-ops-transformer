@@ -512,7 +512,7 @@ FiaBlockVecFlashDecode<FIAT>::FlashDecode(FDparams &fd)
                     DataCopySoftmaxLseBSND(softmaxLseGm, lseftMaxLseUb, bN2Offset, mOffset, actualGSplitSize, constInfo);
                 } else { // BNSD
                     uint64_t bN2Offset = taskInfo.bIdx * constInfo.qHeadNum * constInfo.qSeqSize + taskInfo.n2Idx * constInfo.gSize * constInfo.qSeqSize;
-                    DataCopySoftmaxLseBNSD(softmaxLseGm, lseftMaxLseUb, bN2Offset, mOffset, actualGSplitSize, constInfo);
+                    DataCopySoftmaxLseBNSD<T, Q_MODE>(softmaxLseGm, lseftMaxLseUb, bN2Offset, mOffset, actualGSplitSize, constInfo, qActSeqLensParser, taskInfo.bIdx);
                 }
                 SetFlag<HardEvent::MTE3_V>(SYNC_LSEOUTPUT_BUF_FLAG);
             }

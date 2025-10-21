@@ -274,21 +274,17 @@ static void SplitCore(const BaseInfo &baseInfo, const InnerSplitParams &innerSpl
     for (uint32_t bN2Idx = 0; bN2Idx < baseInfo.bSize * baseInfo.n2Size; bN2Idx++) { 
         uint32_t bIdx = bN2Idx / baseInfo.n2Size;
         uint32_t s1Size = baseInfo.s1Size;
-        // uint32_t s2Size = baseInfo.s2Size;
         if (baseInfo.actualSeqS1Size != nullptr) {
-            if (baseInfo.isAccumSeqS1 && bIdx > 0) {
-                s1Size = baseInfo.actualSeqS1Size[bIdx] - baseInfo.actualSeqS1Size[bIdx - 1];
+            if (baseInfo.actualLenQDims == 1) {
+                s1Size = baseInfo.actualSeqS1Size[0];
             } else {
-                s1Size = baseInfo.actualSeqS1Size[bIdx];
-            } 
+                if (baseInfo.isAccumSeqS1 && bIdx > 0) {
+                    s1Size = baseInfo.actualSeqS1Size[bIdx] - baseInfo.actualSeqS1Size[bIdx - 1];
+                } else {
+                    s1Size = baseInfo.actualSeqS1Size[bIdx];
+                } 
+            }
         }
-        // if (baseInfo.actualSeqS2Size != nullptr) {
-        //     if (baseInfo.isAccumSeqS2 && bIdx > 0) {
-        //         s2Size = baseInfo.actualSeqS2Size[bIdx] - baseInfo.actualSeqS2Size[bIdx - 1];
-        //     } else {
-        //         s2Size = baseInfo.actualSeqS2Size[bIdx];
-        //     } 
-        // }
         for (uint32_t s1GIdx = 0; s1GIdx < s1GBaseNum[bIdx]; s1GIdx++) {
             uint32_t currKvSplitPart = 1;           // [B,N2,S1]确定后，S2被切了几份
             

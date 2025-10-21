@@ -399,6 +399,49 @@ bool CheckGqaInputLayoutSupport(gert::TilingContext *context)
     return false;
 }
 
+bool IsEmptyTensor(gert::TilingContext *context)
+{
+    auto qShape = context->GetInputShape(QUERY_INDEX);
+    if ((qShape != nullptr) && (qShape->GetStorageShape().GetShapeSize() == 0)) {
+        return true;
+    }
+
+    auto attenoutShape = context->GetInputShape(ATTENTION_OUT_INDEX);
+    if ((attenoutShape != nullptr) && (attenoutShape->GetStorageShape().GetShapeSize() == 0)) {
+        return true;
+    }
+
+    bool softmaxLseFlag = context->GetAttrs()->GetAttrPointer<bool>(SOFTMAX_LSE_FLAG_INDEX);
+    if (softmaxLseFlag) {
+        auto softmaxLseShape = context->GetInputShape(SOFTMAX_LSE_INDEX);
+        if ((softmaxLseShape != nullptr) && (softmaxLseShape->GetStorageShape().GetShapeSize() == 0)) {
+            return true;
+        }
+    }
+
+    uint32_t keyBIdx = 0;
+    while ((context->GetDynamicInputShape(KEY_INDEX, keyBIdx)) != nullptr) {
+        const gert::StorageShape * keyShape =
+            const_cast<gert::StorageShape *>(context->GetDynamicInputShape(KEY_INDEX, keyBIdx));
+        if (keyShape->GetStorageShape().GetShapeSize() == 0) {
+            return true;
+        }
+        keyBIdx++;
+    }
+
+    uint32_t valueBIdx = 0;
+    while ((context->GetDynamicInputShape(VALUE_INDEX, valueBIdx)) != nullptr) {
+        const gert::StorageShape * valueShape =
+            const_cast<gert::StorageShape *>(context->GetDynamicInputShape(VALUE_INDEX, valueBIdx));
+        if (valueShape->GetStorageShape().GetShapeSize() == 0) {
+            return true;
+        }
+        valueBIdx++;
+    }
+
+    return false;
+}
+
 bool CheckGqaFeatureSupport(gert::TilingContext *context)
 {
     auto pseShift = context->GetOptionalInputTensor(PSE_SHIFT_INDEX);
@@ -425,11 +468,12 @@ bool CheckGqaFeatureSupport(gert::TilingContext *context)
 
 bool CheckGqaConstrain(gert::TilingContext *context)
 {
-    // if (CheckGqaInputLayoutSupport(context) &&
-    //     CheckGqaDSupport(context) &&
-    //     CheckGqaFeatureSupport(context)) {
-    //     return true;
-    // }
+    if (CheckGqaInputLayoutSupport(context) && 
+        !IsEmptyTensor(context) && 
+        CheckGqaDSupport(context) && 
+        CheckGqaFeatureSupport(context)) { 
+            return true;
+    }
 
     return false;
 }
