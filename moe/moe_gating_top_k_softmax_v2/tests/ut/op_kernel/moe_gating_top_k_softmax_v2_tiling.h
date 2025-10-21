@@ -61,39 +61,6 @@ inline void InitTilingData(uint8_t* tiling, MoeGatingTopKSoftmaxV2EKFullLoadTili
 }
 #endif
 
-// #define CONVERT_TILING_DATA(tilingStruct, tilingDataPointer, tilingPointer) \
-//   __ubuf__ tilingStruct* tilingDataPointer =                                \
-//       reinterpret_cast<__ubuf__ tilingStruct*>((__ubuf__ uint8_t*)(tilingPointer));
-
-// #define INIT_TILING_DATA(tilingStruct, tilingDataPointer, tilingPointer) \
-//   CONVERT_TILING_DATA(tilingStruct, tilingDataPointer, tilingPointer);
-
-// #define GET_TILING_DATA(tilingData, tilingPointer)                                                     \
-//   MoeGatingTopKSoftmaxEKFullLoadTilingData tilingData;                                                 \
-//   INIT_TILING_DATA(MoeGatingTopKSoftmaxEKFullLoadTilingData, tilingDataPointer, tilingPointer);        \
-//   (tilingData).tilingKey = tilingDataPointer->tilingKey;                                               \
-//   (tilingData).row = tilingDataPointer->row;                                                           \
-//   (tilingData).col = tilingDataPointer->col;                                                           \
-//   (tilingData).colAlign = tilingDataPointer->colAlign;                                                 \
-//   (tilingData).k = tilingDataPointer->k;                                                               \
-//   (tilingData).kAlignB16 = tilingDataPointer->kAlignB16;                                               \
-//   (tilingData).kAlignB32 = tilingDataPointer->kAlignB32;                                               \
-//   (tilingData).blockNum = tilingDataPointer->blockNum;                                                 \
-//   (tilingData).blockFormer = tilingDataPointer->blockFormer;                                           \
-//   (tilingData).blockTail = tilingDataPointer->blockTail;                                               \
-//   (tilingData).ubLoopOfFormerBlock = tilingDataPointer->ubLoopOfFormerBlock;                           \
-//   (tilingData).ubLoopOfTailBlock = tilingDataPointer->ubLoopOfTailBlock;                               \
-//   (tilingData).ubFormer = tilingDataPointer->ubFormer;                                                 \
-//   (tilingData).ubTailOfFormerBlock = tilingDataPointer->ubTailOfFormerBlock;                           \
-//   (tilingData).ubTailOfTailBlock = tilingDataPointer->ubTailOfTailBlock;                               \
-//   (tilingData).formerSoftmaxTilingData = tilingDataPointer->formerSoftmaxTilingData;                   \
-//   (tilingData).formerBlockTailSoftmaxTilingData = tilingDataPointer->formerBlockTailSoftmaxTilingData; \
-//   (tilingData).tailBlockTailSoftmaxTilingData = tilingDataPointer->tailBlockTailSoftmaxTilingData;     \
-//   (tilingData).formerTopkTilingData = tilingDataPointer->formerTopkTilingData;                         \
-//   (tilingData).formerBlockTailTopkTilingData = tilingDataPointer->formerBlockTailTopkTilingData;       \
-//   (tilingData).tailBlockTailTopkTilingData = tilingDataPointer->tailBlockTailTopkTilingData;
-// #endif
-
 #pragma pack(1)
 
 struct MoeGatingTopKSoftmaxV2KFullLoadTilingData {
