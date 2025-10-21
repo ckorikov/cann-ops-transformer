@@ -11,9 +11,11 @@
 #include <gtest/gtest.h>
 #include <iostream>
 #include "infer_shape_context_faker.h"
+#include "infer_datatype_context_faker.h"
+#include "infer_shape_case_executor.h"
 #include "base/registry/op_impl_space_registry_v2.h"
 
-class MoeFinalizeRoutingV2Infershape : public testing::Test
+class MoeFinalizeRoutingV2Proto : public testing::Test
 {
 protected:
     static void SetUpTestCase()
@@ -27,91 +29,507 @@ protected:
     }
 };
 
-struct MoeFinalizeRoutingV2Info 
+TEST_F(MoeFinalizeRoutingV2Proto, moe_finalize_routing_v2_infershape_0)
 {
-    gert::StorageShape& expandedXShape;
-    gert::StorageShape& expandedRowIdxShape;
-    gert::StorageShape& x1Shape;
-    gert::StorageShape& x2Shape;
-    gert::StorageShape& biasShape;
-    gert::StorageShape& scalesShape;
-    gert::StorageShape& expertIdxShape;
-    std::vector<int64_t> expectOutShape;
-
-    ge::DataType expandedXDtype;
-    ge::DataType expandedRowIdxDtype;
-    ge::DataType x1Dtype;
-    ge::DataType x2Dtype;
-    ge::DataType biasDtype;
-    ge::DataType scalesDtype;
-    ge::DataType expertIdxDtype;
-    ge::DataType yDtype;
-
-    int64_t dropPadMode = 0;
-};
-
-static std::vector<int64_t> ToVector(const gert::Shape& shape) {
-    size_t shapeSize = shape.GetDimNum();
-    std::vector<int64_t> shapeVec(shapeSize, 0);
-
-    for (size_t i = 0; i < shapeSize; i++) {
-        shapeVec[i] = shape.GetDim(i);
-    }
-    return shapeVec;
+    gert::InfershapeContextPara infershapeContextPara("MoeFinalizeRoutingV2",
+                                                      {
+                                                        {{{6, 5}, {6, 5}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                        {{{6}, {6}}, ge::DT_INT32, ge::FORMAT_ND},
+                                                        {{{3, 5}, {3, 5}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                        {{{3, 5}, {3, 5}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                        {{{6, 5}, {6, 5}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                        {{{3, 2}, {3, 2}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                        {{{3, 2}, {3, 2}}, ge::DT_INT32, ge::FORMAT_ND},
+                                                      },
+                                                      {
+                                                        {{{}, {}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                      },
+                                                      {
+                                                        {"drop_pad_mode", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)}
+                                                      }
+                                                      );
+    std::vector<std::vector<int64_t>> expectOutputShape = {{3,5}};
+    ExecuteTestCase(infershapeContextPara, ge::GRAPH_SUCCESS, expectOutputShape);
 }
 
-static void ExeTestCase(const MoeFinalizeRoutingV2Info ioInfo,
-    ge::graphStatus testCaseResult = ge::GRAPH_SUCCESS)
+TEST_F(MoeFinalizeRoutingV2Proto, moe_finalize_routing_v2_infershape_1)
 {
-    /* make infershape context */
-    gert::StorageShape yStorageShape = {};
-    std::vector<gert::StorageShape*> ouputShapes = {&yStorageShape};
-    auto contextHolder = gert::InferShapeContextFaker()
-        .SetOpType("MoeFinalizeRoutingV2")
-        .NodeIoNum(7, 1)
-        .NodeInputTd(0, ioInfo.expandedXDtype, ge::FORMAT_ND, ge::FORMAT_ND)
-        .NodeInputTd(1, ioInfo.expandedRowIdxDtype, ge::FORMAT_ND, ge::FORMAT_ND)
-        .NodeInputTd(2, ioInfo.x1Dtype, ge::FORMAT_ND, ge::FORMAT_ND)
-        .NodeInputTd(3, ioInfo.x2Dtype, ge::FORMAT_ND, ge::FORMAT_ND)
-        .NodeInputTd(4, ioInfo.biasDtype, ge::FORMAT_ND, ge::FORMAT_ND)
-        .NodeInputTd(5, ioInfo.scalesDtype, ge::FORMAT_ND, ge::FORMAT_ND)
-        .NodeInputTd(6, ioInfo.expertIdxDtype, ge::FORMAT_ND, ge::FORMAT_ND)
-        .NodeOutputTd(0, ioInfo.yDtype, ge::FORMAT_ND, ge::FORMAT_ND)
-        
-        .InputTensors({(gert::Tensor *)&ioInfo.expandedXShape})
-        .InputTensors({(gert::Tensor *)&ioInfo.expandedRowIdxShape})
-        .InputTensors({(gert::Tensor *)&ioInfo.x1Shape})
-        .InputTensors({(gert::Tensor *)&ioInfo.x2Shape})
-        .InputTensors({(gert::Tensor *)&ioInfo.biasShape})
-        .InputTensors({(gert::Tensor *)&ioInfo.scalesShape})
-        .InputTensors({(gert::Tensor *)&ioInfo.expertIdxShape})
+    gert::InfershapeContextPara infershapeContextPara("MoeFinalizeRoutingV2",
+                                                      {
+                                                        {{{6, 1, 5}, {6, 1, 5}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                        {{{6}, {6}}, ge::DT_INT32, ge::FORMAT_ND},
+                                                        {{{3, 5}, {3, 5}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                        {{{3, 5}, {3, 5}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                        {{{6, 5}, {6, 5}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                        {{{3, 2}, {3, 2}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                        {{{3, 2}, {3, 2}}, ge::DT_INT32, ge::FORMAT_ND},
+                                                      },
+                                                      {
+                                                        {{{}, {}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                      },
+                                                      {
+                                                        {"drop_pad_mode", Ops::Transformer::AnyValue::CreateFrom<int64_t>(1)}
+                                                      }
+                                                      );
+    std::vector<std::vector<int64_t>> expectOutputShape = {{3,5}};
+    ExecuteTestCase(infershapeContextPara, ge::GRAPH_SUCCESS, expectOutputShape);
+}
 
-        .OutputShapes(ouputShapes)
-        .Attr("drop_pad_mode", int64_t(ioInfo.dropPadMode))
-        .Build();
+TEST_F(MoeFinalizeRoutingV2Proto, moe_finalize_routing_v2_error_shape_0)
+{
+    gert::InfershapeContextPara infershapeContextPara("MoeFinalizeRoutingV2",
+                                                      {
+                                                        {{{6, 5}, {6, 5}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                        {{{6}, {6}}, ge::DT_INT32, ge::FORMAT_ND},
+                                                        {{{3, 5, 1}, {3, 5, 1}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                        {{{3, 5}, {3, 5}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                        {{{6, 5}, {6, 5}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                        {{{3, 2}, {3, 2}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                        {{{3, 2}, {3, 2}}, ge::DT_INT32, ge::FORMAT_ND},
+                                                      },
+                                                      {
+                                                        {{{}, {}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                      },
+                                                      {
+                                                        {"drop_pad_mode", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)}
+                                                      }
+                                                      );
+    std::vector<std::vector<int64_t>> expectOutputShape = {{3,5}};
+    ExecuteTestCase(infershapeContextPara, ge::GRAPH_FAILED, expectOutputShape);
+}
 
-    /* get infershape func */
+TEST_F(MoeFinalizeRoutingV2Proto, moe_finalize_routing_v2_error_shape_1)
+{
+    gert::InfershapeContextPara infershapeContextPara("MoeFinalizeRoutingV2",
+                                                      {
+                                                        {{{6, 1, 5}, {6, 1, 5}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                        {{{6}, {6}}, ge::DT_INT32, ge::FORMAT_ND},
+                                                        {{{3, 5}, {3, 5}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                        {{{3, 5}, {3, 5}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                        {{{6, 5}, {6, 5}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                        {{{3, 2}, {3, 2}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                        {{{3, 2}, {3, 2}}, ge::DT_INT32, ge::FORMAT_ND},
+                                                      },
+                                                      {
+                                                        {{{}, {}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                      },
+                                                      {
+                                                        {"drop_pad_mode", Ops::Transformer::AnyValue::CreateFrom<int64_t>(5)}
+                                                      }
+                                                      );
+    std::vector<std::vector<int64_t>> expectOutputShape = {{3,5}};
+    ExecuteTestCase(infershapeContextPara, ge::GRAPH_FAILED, expectOutputShape);
+}
+
+TEST_F(MoeFinalizeRoutingV2Proto, moe_finalize_routing_v2_error_shape_2)
+{
+    gert::InfershapeContextPara infershapeContextPara("MoeFinalizeRoutingV2",
+                                                      {
+                                                        {{{6, 1, 5}, {6, 1, 5}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                        {{{6}, {6}}, ge::DT_INT32, ge::FORMAT_ND},
+                                                        {{{3, 5, 1}, {3, 5, 1}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                        {{{3, 5}, {3, 5}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                        {{{6, 5}, {6, 5}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                        {{{3, 2}, {3, 2}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                        {{{3, 2}, {3, 2}}, ge::DT_INT32, ge::FORMAT_ND},
+                                                      },
+                                                      {
+                                                        {{{}, {}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                      },
+                                                      {
+                                                        {"drop_pad_mode", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)}
+                                                      }
+                                                      );
+    std::vector<std::vector<int64_t>> expectOutputShape = {{3,5}};
+    ExecuteTestCase(infershapeContextPara, ge::GRAPH_FAILED, expectOutputShape);
+}
+
+TEST_F(MoeFinalizeRoutingV2Proto, moe_finalize_routing_v2_error_shape_3)
+{
+    gert::InfershapeContextPara infershapeContextPara("MoeFinalizeRoutingV2",
+                                                      {
+                                                        {{{6, 1, 5}, {6, 1, 5}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                        {{{6}, {6}}, ge::DT_INT32, ge::FORMAT_ND},
+                                                        {{{3, 5, 1}, {3, 5, 1}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                        {{{3, 5}, {3, 5}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                        {{{6, 5}, {6, 5}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                        {{{3, 2}, {3, 2}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                        {{{3, 2}, {3, 2}}, ge::DT_INT32, ge::FORMAT_ND},
+                                                      },
+                                                      {
+                                                        {{{}, {}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                      },
+                                                      {
+                                                        {"drop_pad_mode", Ops::Transformer::AnyValue::CreateFrom<int64_t>(1)}
+                                                      }
+                                                      );
+    std::vector<std::vector<int64_t>> expectOutputShape = {{3,5}};
+    ExecuteTestCase(infershapeContextPara, ge::GRAPH_FAILED, expectOutputShape);
+}
+
+TEST_F(MoeFinalizeRoutingV2Proto, moe_finalize_routing_v2_error_shape_4) // drop_pad_mode=1
+{
+    gert::InfershapeContextPara infershapeContextPara("MoeFinalizeRoutingV2",
+                                                      {
+                                                        {{{6, 1, 6, 1, 5}, {6, 1, 6, 1, 5}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                        {{{6}, {6}}, ge::DT_INT32, ge::FORMAT_ND},
+                                                        {{{3, 5}, {3, 5}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                        {{{3, 5}, {3, 5}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                        {{{6, 5}, {6, 5}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                        {{{3, 2}, {3, 2}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                        {{{3, 2}, {3, 2}}, ge::DT_INT32, ge::FORMAT_ND},
+                                                      },
+                                                      {
+                                                        {{{}, {}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                      },
+                                                      {
+                                                        {"drop_pad_mode", Ops::Transformer::AnyValue::CreateFrom<int64_t>(1)}
+                                                      }
+                                                      );
+    std::vector<std::vector<int64_t>> expectOutputShape = {{3,5}};
+    ExecuteTestCase(infershapeContextPara, ge::GRAPH_FAILED, expectOutputShape);
+}
+
+TEST_F(MoeFinalizeRoutingV2Proto, moe_finalize_routing_v2_error_shape_5) // drop_pad_mode=0
+{
+    gert::InfershapeContextPara infershapeContextPara("MoeFinalizeRoutingV2",
+                                                      {
+                                                        {{{6, 1, 6, 1, 5}, {6, 1, 6, 1, 5}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                        {{{6}, {6}}, ge::DT_INT32, ge::FORMAT_ND},
+                                                        {{{3, 5}, {3, 5}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                        {{{3, 5}, {3, 5}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                        {{{6, 5}, {6, 5}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                        {{{3, 2}, {3, 2}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                        {{{3, 2}, {3, 2}}, ge::DT_INT32, ge::FORMAT_ND},
+                                                      },
+                                                      {
+                                                        {{{}, {}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                      },
+                                                      {
+                                                        {"drop_pad_mode", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)}
+                                                      }
+                                                      );
+    std::vector<std::vector<int64_t>> expectOutputShape = {{3,5}};
+    ExecuteTestCase(infershapeContextPara, ge::GRAPH_FAILED, expectOutputShape);
+}
+
+TEST_F(MoeFinalizeRoutingV2Proto, moe_finalize_routing_v2_error_shape_6)
+{
+    gert::InfershapeContextPara infershapeContextPara("MoeFinalizeRoutingV2",
+                                                      {
+                                                        {{{6, 1, 5}, {6, 1, 5}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                        {{{6, 1}, {6, 1}}, ge::DT_INT32, ge::FORMAT_ND},
+                                                        {{{3, 5}, {3, 5}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                        {{{3, 5}, {3, 5}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                        {{{6, 5}, {6, 5}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                        {{{3, 2}, {3, 2}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                        {{{3, 2}, {3, 2}}, ge::DT_INT32, ge::FORMAT_ND},
+                                                      },
+                                                      {
+                                                        {{{}, {}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                      },
+                                                      {
+                                                        {"drop_pad_mode", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)}
+                                                      }
+                                                      );
+    std::vector<std::vector<int64_t>> expectOutputShape = {{3,5}};
+    ExecuteTestCase(infershapeContextPara, ge::GRAPH_FAILED, expectOutputShape);
+}
+
+TEST_F(MoeFinalizeRoutingV2Proto, moe_finalize_routing_v2_error_shape_7)
+{
+    gert::InfershapeContextPara infershapeContextPara("MoeFinalizeRoutingV2",
+                                                      {
+                                                        {{{6, 1, 5}, {6, 1, 5}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                        {{{6}, {6}}, ge::DT_INT32, ge::FORMAT_ND},
+                                                        {{{3, 5}, {3, 5}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                        {{{3, 5, 1}, {3, 5, 1}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                        {{{6, 5}, {6, 5}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                        {{{3, 2}, {3, 2}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                        {{{3, 2}, {3, 2}}, ge::DT_INT32, ge::FORMAT_ND},
+                                                      },
+                                                      {
+                                                        {{{}, {}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                      },
+                                                      {
+                                                        {"drop_pad_mode", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)}
+                                                      }
+                                                      );
+    std::vector<std::vector<int64_t>> expectOutputShape = {{3,5}};
+    ExecuteTestCase(infershapeContextPara, ge::GRAPH_FAILED, expectOutputShape);
+}
+
+TEST_F(MoeFinalizeRoutingV2Proto, moe_finalize_routing_v2_error_shape_8)
+{
+    gert::InfershapeContextPara infershapeContextPara("MoeFinalizeRoutingV2",
+                                                      {
+                                                        {{{6, 1, 5}, {6, 1, 5}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                        {{{6}, {6}}, ge::DT_INT32, ge::FORMAT_ND},
+                                                        {{{3, 5}, {3, 5}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                        {{{3, 5}, {3, 5}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                        {{{6, 5}, {6, 5}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                        {{{3, 2, 1}, {3, 2, 1}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                        {{{3, 2}, {3, 2}}, ge::DT_INT32, ge::FORMAT_ND},
+                                                      },
+                                                      {
+                                                        {{{}, {}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                      },
+                                                      {
+                                                        {"drop_pad_mode", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)}
+                                                      }
+                                                      );
+    std::vector<std::vector<int64_t>> expectOutputShape = {{3,5}};
+    ExecuteTestCase(infershapeContextPara, ge::GRAPH_FAILED, expectOutputShape);
+}
+
+TEST_F(MoeFinalizeRoutingV2Proto, moe_finalize_routing_v2_error_shape_9)
+{
+    gert::InfershapeContextPara infershapeContextPara("MoeFinalizeRoutingV2",
+                                                      {
+                                                        {{{6, 1, 5}, {6, 1, 5}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                        {{{6}, {6}}, ge::DT_INT32, ge::FORMAT_ND},
+                                                        {{{3, 5}, {3, 5}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                        {{{3, 5}, {3, 5}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                        {{{6, 5}, {6, 5}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                        {{{3, 2}, {3, 2}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                        {{{3, 2, 1}, {3, 2, 1}}, ge::DT_INT32, ge::FORMAT_ND},
+                                                      },
+                                                      {
+                                                        {{{}, {}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                      },
+                                                      {
+                                                        {"drop_pad_mode", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)}
+                                                      }
+                                                      );
+    std::vector<std::vector<int64_t>> expectOutputShape = {{3,5}};
+    ExecuteTestCase(infershapeContextPara, ge::GRAPH_FAILED, expectOutputShape);
+}
+
+TEST_F(MoeFinalizeRoutingV2Proto, moe_finalize_routing_v2_dynamic_shape_0)
+{
+    gert::InfershapeContextPara infershapeContextPara("MoeFinalizeRoutingV2",
+                                                      {
+                                                        {{{-2}, {-2}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                        {{{-2}, {-2}}, ge::DT_INT32, ge::FORMAT_ND},
+                                                        {{{-2}, {-2}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                        {{{-2}, {-2}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                        {{{-2}, {-2}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                        {{{-2}, {-2}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                        {{{-2}, {-2}}, ge::DT_INT32, ge::FORMAT_ND},
+                                                      },
+                                                      {
+                                                        {{{}, {}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                      },
+                                                      {
+                                                        {"drop_pad_mode", Ops::Transformer::AnyValue::CreateFrom<int64_t>(1)}
+                                                      }
+                                                      );
+    std::vector<std::vector<int64_t>> expectOutputShape = {{-2}};
+    ExecuteTestCase(infershapeContextPara, ge::GRAPH_SUCCESS, expectOutputShape);
+}
+
+TEST_F(MoeFinalizeRoutingV2Proto, moe_finalize_routing_v2_dynamic_shape_1)
+{
+    gert::InfershapeContextPara infershapeContextPara("MoeFinalizeRoutingV2",
+                                                      {
+                                                        {{{-1, -1, -1}, {-1, -1, -1}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                        {{{-1}, {-1}}, ge::DT_INT32, ge::FORMAT_ND},
+                                                        {{{-1, -1,}, {-1, -1,}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                        {{{-1, -1,}, {-1, -1,}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                        {{{-1, -1,}, {-1, -1,}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                        {{{-1, -1,}, {-1, -1,}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                        {{{-1, -1,}, {-1, -1,}}, ge::DT_INT32, ge::FORMAT_ND},
+                                                      },
+                                                      {
+                                                        {{{}, {}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                                      },
+                                                      {
+                                                        {"drop_pad_mode", Ops::Transformer::AnyValue::CreateFrom<int64_t>(1)}
+                                                      }
+                                                      );
+    std::vector<std::vector<int64_t>> expectOutputShape = {{-1, -1} };
+    ExecuteTestCase(infershapeContextPara, ge::GRAPH_SUCCESS, expectOutputShape);
+}
+
+// infer dataType
+TEST_F(MoeFinalizeRoutingV2Proto, dtype_infer_0)
+{
     auto spaceRegistry = gert::DefaultOpImplSpaceRegistryV2::GetInstance().GetSpaceRegistry();
-    auto inferShapeFunc = spaceRegistry->GetOpImpl("MoeFinalizeRoutingV2")->infer_shape;
-    ASSERT_NE(inferShapeFunc, nullptr);
+    ASSERT_NE(spaceRegistry, nullptr);
+    auto data_type_func = spaceRegistry->GetOpImpl("MoeFinalizeRoutingV2")->infer_datatype;
+    if (data_type_func != nullptr) {
+        ge::DataType input_ref = ge::DT_FLOAT;
+        ge::DataType input_ref1 = ge::DT_INT32;
+        ge::DataType output_ref = ge::DT_FLOAT;
+        auto context_holder =
+            gert::InferDataTypeContextFaker()
+                .NodeIoNum(7, 1)
+                .IrInstanceNum({1, 1, 1, 1, 1, 1, 1})
+                .NodeInputTd(0, ge::DT_FLOAT, ge::FORMAT_ND, ge::FORMAT_ND)
+                .NodeInputTd(1, ge::DT_INT32, ge::FORMAT_ND, ge::FORMAT_ND)
+                .NodeInputTd(2, ge::DT_FLOAT, ge::FORMAT_ND, ge::FORMAT_ND)
+                .NodeInputTd(3, ge::DT_FLOAT, ge::FORMAT_ND, ge::FORMAT_ND)
+                .NodeInputTd(4, ge::DT_FLOAT, ge::FORMAT_ND, ge::FORMAT_ND)
+                .NodeInputTd(5, ge::DT_FLOAT, ge::FORMAT_ND, ge::FORMAT_ND)
+                .NodeInputTd(6, ge::DT_INT32, ge::FORMAT_ND, ge::FORMAT_ND)
+                .NodeOutputTd(0, ge::DT_FLOAT, ge::FORMAT_ND, ge::FORMAT_ND)
+                .InputDataTypes({&input_ref, &input_ref1, &input_ref, &input_ref, &input_ref, &input_ref, &input_ref1})
+                .OutputDataTypes({&output_ref})
+                .Build();
+        auto context = context_holder.GetContext<gert::InferDataTypeContext>();
+        EXPECT_EQ(data_type_func(context), ge::GRAPH_SUCCESS);
+        ASSERT_NE(context, nullptr);
 
-    /* do infershape */
-    EXPECT_EQ(inferShapeFunc(contextHolder.GetContext()), testCaseResult);
-    EXPECT_EQ(ToVector(yStorageShape.GetOriginShape()), ioInfo.expectOutShape);
+        EXPECT_EQ(context->GetOutputDataType(0), output_ref);
+    }
 }
 
-TEST_F(MoeFinalizeRoutingV2Infershape, moe_finalize_routing_v2_infershape_0)
+TEST_F(MoeFinalizeRoutingV2Proto, dtype_infer_err1)
 {
-    gert::StorageShape expandedXShape = {{6, 5}, {6, 5}};
-    gert::StorageShape expandedRowIdxShape = {{6}, {6}};
-    gert::StorageShape x1Shape = {{3, 5}, {3, 5}};
-    gert::StorageShape x2Shape = {{3, 5}, {3, 5}};
-    gert::StorageShape biasShape = {{6, 5}, {6, 5}};
-    gert::StorageShape scalesShape = {{3, 2}, {3, 2}};
-    gert::StorageShape expertIdxShape = {{3, 2}, {3, 2}};
+    auto spaceRegistry = gert::DefaultOpImplSpaceRegistryV2::GetInstance().GetSpaceRegistry();
+    ASSERT_NE(spaceRegistry, nullptr);
+    auto data_type_func = spaceRegistry->GetOpImpl("MoeFinalizeRoutingV2")->infer_datatype;
+    
+    if (data_type_func != nullptr) {
+        ge::DataType input_ref = ge::DT_FLOAT;
+        ge::DataType input_ref1 = ge::DT_INT32;
+        ge::DataType output_ref = ge::DT_FLOAT;
+        auto context_holder =
+            gert::InferDataTypeContextFaker()
+                .NodeIoNum(7, 1)
+                .IrInstanceNum({1, 1, 1, 1, 1, 1, 1})
+                .NodeInputTd(0, ge::DT_INT32, ge::FORMAT_ND, ge::FORMAT_ND)
+                .NodeInputTd(1, ge::DT_INT32, ge::FORMAT_ND, ge::FORMAT_ND)
+                .NodeInputTd(2, ge::DT_FLOAT, ge::FORMAT_ND, ge::FORMAT_ND)
+                .NodeInputTd(3, ge::DT_FLOAT, ge::FORMAT_ND, ge::FORMAT_ND)
+                .NodeInputTd(4, ge::DT_FLOAT, ge::FORMAT_ND, ge::FORMAT_ND)
+                .NodeInputTd(5, ge::DT_FLOAT, ge::FORMAT_ND, ge::FORMAT_ND)
+                .NodeInputTd(6, ge::DT_INT32, ge::FORMAT_ND, ge::FORMAT_ND)
+                .NodeOutputTd(0, ge::DT_FLOAT, ge::FORMAT_ND, ge::FORMAT_ND)
+                .InputDataTypes({&input_ref1, &input_ref1, &input_ref, &input_ref, &input_ref, &input_ref, &input_ref1})
+                .OutputDataTypes({&output_ref})
+                .Build();
+        auto context = context_holder.GetContext<gert::InferDataTypeContext>();
+        EXPECT_EQ(data_type_func(context), ge::GRAPH_FAILED);
+    }
+}
 
-    std::vector<int64_t> expectOutShape = {3, 5}; // scale第0维，expandedX第一维
-    MoeFinalizeRoutingV2Info ioInfoT = {expandedXShape, expandedRowIdxShape, x1Shape, x2Shape, biasShape, scalesShape, expertIdxShape, expectOutShape,
-    ge::DT_FLOAT, ge::DT_INT32, ge::DT_FLOAT, ge::DT_FLOAT, ge::DT_FLOAT, ge::DT_FLOAT, ge::DT_INT32, ge::DT_FLOAT, 0};
-    ExeTestCase(ioInfoT, ge::GRAPH_SUCCESS);
+TEST_F(MoeFinalizeRoutingV2Proto, dtype_infer_err2)
+{
+    auto spaceRegistry = gert::DefaultOpImplSpaceRegistryV2::GetInstance().GetSpaceRegistry();
+    ASSERT_NE(spaceRegistry, nullptr);
+    auto data_type_func = spaceRegistry->GetOpImpl("MoeFinalizeRoutingV2")->infer_datatype;
+    
+    if (data_type_func != nullptr) {
+        ge::DataType input_ref = ge::DT_FLOAT;
+        ge::DataType input_ref1 = ge::DT_INT32;
+        ge::DataType output_ref = ge::DT_FLOAT;
+        auto context_holder =
+            gert::InferDataTypeContextFaker()
+                .NodeIoNum(7, 1)
+                .IrInstanceNum({1, 1, 1, 1, 1, 1, 1})
+                .NodeInputTd(0, ge::DT_INT32, ge::FORMAT_ND, ge::FORMAT_ND)
+                .NodeInputTd(1, ge::DT_INT32, ge::FORMAT_ND, ge::FORMAT_ND)
+                .NodeInputTd(2, ge::DT_FLOAT, ge::FORMAT_ND, ge::FORMAT_ND)
+                .NodeInputTd(3, ge::DT_FLOAT, ge::FORMAT_ND, ge::FORMAT_ND)
+                .NodeInputTd(4, ge::DT_FLOAT, ge::FORMAT_ND, ge::FORMAT_ND)
+                .NodeInputTd(5, ge::DT_FLOAT, ge::FORMAT_ND, ge::FORMAT_ND)
+                .NodeInputTd(6, ge::DT_INT32, ge::FORMAT_ND, ge::FORMAT_ND)
+                .NodeOutputTd(0, ge::DT_FLOAT, ge::FORMAT_ND, ge::FORMAT_ND)
+                .InputDataTypes({&input_ref, &input_ref, &input_ref, &input_ref, &input_ref, &input_ref, &input_ref1})
+                .OutputDataTypes({&output_ref})
+                .Build();
+        auto context = context_holder.GetContext<gert::InferDataTypeContext>();
+        EXPECT_EQ(data_type_func(context), ge::GRAPH_FAILED);
+    }
+}
+
+TEST_F(MoeFinalizeRoutingV2Proto, dtype_infer_err3)
+{
+    auto spaceRegistry = gert::DefaultOpImplSpaceRegistryV2::GetInstance().GetSpaceRegistry();
+    ASSERT_NE(spaceRegistry, nullptr);
+    auto data_type_func = spaceRegistry->GetOpImpl("MoeFinalizeRoutingV2")->infer_datatype;
+    
+    if (data_type_func != nullptr) {
+        ge::DataType input_ref = ge::DT_FLOAT;
+        ge::DataType input_ref1 = ge::DT_INT32;
+        ge::DataType output_ref = ge::DT_FLOAT;
+        auto context_holder =
+            gert::InferDataTypeContextFaker()
+                .NodeIoNum(7, 1)
+                .IrInstanceNum({1, 1, 1, 1, 1, 1, 1})
+                .NodeInputTd(0, ge::DT_INT32, ge::FORMAT_ND, ge::FORMAT_ND)
+                .NodeInputTd(1, ge::DT_INT32, ge::FORMAT_ND, ge::FORMAT_ND)
+                .NodeInputTd(2, ge::DT_FLOAT, ge::FORMAT_ND, ge::FORMAT_ND)
+                .NodeInputTd(3, ge::DT_FLOAT, ge::FORMAT_ND, ge::FORMAT_ND)
+                .NodeInputTd(4, ge::DT_FLOAT, ge::FORMAT_ND, ge::FORMAT_ND)
+                .NodeInputTd(5, ge::DT_FLOAT, ge::FORMAT_ND, ge::FORMAT_ND)
+                .NodeInputTd(6, ge::DT_INT32, ge::FORMAT_ND, ge::FORMAT_ND)
+                .NodeOutputTd(0, ge::DT_FLOAT, ge::FORMAT_ND, ge::FORMAT_ND)
+                .InputDataTypes({&input_ref, &input_ref1, &input_ref1, &input_ref, &input_ref, &input_ref, &input_ref1})
+                .OutputDataTypes({&output_ref})
+                .Build();
+        auto context = context_holder.GetContext<gert::InferDataTypeContext>();
+        EXPECT_EQ(data_type_func(context), ge::GRAPH_FAILED);
+    }
+}
+
+TEST_F(MoeFinalizeRoutingV2Proto, dtype_infer_err4)
+{
+    auto spaceRegistry = gert::DefaultOpImplSpaceRegistryV2::GetInstance().GetSpaceRegistry();
+    ASSERT_NE(spaceRegistry, nullptr);
+    auto data_type_func = spaceRegistry->GetOpImpl("MoeFinalizeRoutingV2")->infer_datatype;
+
+    if (data_type_func != nullptr) {
+        ge::DataType input_ref = ge::DT_FLOAT;
+        ge::DataType input_ref1 = ge::DT_INT32;
+        ge::DataType output_ref = ge::DT_FLOAT;
+        auto context_holder =
+            gert::InferDataTypeContextFaker()
+                .NodeIoNum(7, 1)
+                .IrInstanceNum({1, 1, 1, 1, 1, 1, 1})
+                .NodeInputTd(0, ge::DT_INT32, ge::FORMAT_ND, ge::FORMAT_ND)
+                .NodeInputTd(1, ge::DT_INT32, ge::FORMAT_ND, ge::FORMAT_ND)
+                .NodeInputTd(2, ge::DT_FLOAT, ge::FORMAT_ND, ge::FORMAT_ND)
+                .NodeInputTd(3, ge::DT_FLOAT, ge::FORMAT_ND, ge::FORMAT_ND)
+                .NodeInputTd(4, ge::DT_FLOAT, ge::FORMAT_ND, ge::FORMAT_ND)
+                .NodeInputTd(5, ge::DT_FLOAT, ge::FORMAT_ND, ge::FORMAT_ND)
+                .NodeInputTd(6, ge::DT_INT32, ge::FORMAT_ND, ge::FORMAT_ND)
+                .NodeOutputTd(0, ge::DT_FLOAT, ge::FORMAT_ND, ge::FORMAT_ND)
+                .InputDataTypes({&input_ref, &input_ref1, &input_ref, &input_ref, &input_ref, &input_ref1, &input_ref1})
+                .OutputDataTypes({&output_ref})
+                .Build();
+        auto context = context_holder.GetContext<gert::InferDataTypeContext>();
+        EXPECT_EQ(data_type_func(context), ge::GRAPH_FAILED);
+    }
+}
+
+TEST_F(MoeFinalizeRoutingV2Proto, dtype_infer_err5)
+{
+    auto spaceRegistry = gert::DefaultOpImplSpaceRegistryV2::GetInstance().GetSpaceRegistry();
+    ASSERT_NE(spaceRegistry, nullptr);
+    auto data_type_func = spaceRegistry->GetOpImpl("MoeFinalizeRoutingV2")->infer_datatype;
+
+    if (data_type_func != nullptr) {
+        ge::DataType input_ref = ge::DT_FLOAT;
+        ge::DataType input_ref1 = ge::DT_INT32;
+        ge::DataType output_ref = ge::DT_FLOAT;
+        auto context_holder =
+            gert::InferDataTypeContextFaker()
+                .NodeIoNum(7, 1)
+                .IrInstanceNum({1, 1, 1, 1, 1, 1, 1})
+                .NodeInputTd(0, ge::DT_INT32, ge::FORMAT_ND, ge::FORMAT_ND)
+                .NodeInputTd(1, ge::DT_INT32, ge::FORMAT_ND, ge::FORMAT_ND)
+                .NodeInputTd(2, ge::DT_FLOAT, ge::FORMAT_ND, ge::FORMAT_ND)
+                .NodeInputTd(3, ge::DT_FLOAT, ge::FORMAT_ND, ge::FORMAT_ND)
+                .NodeInputTd(4, ge::DT_FLOAT, ge::FORMAT_ND, ge::FORMAT_ND)
+                .NodeInputTd(5, ge::DT_FLOAT, ge::FORMAT_ND, ge::FORMAT_ND)
+                .NodeInputTd(6, ge::DT_INT32, ge::FORMAT_ND, ge::FORMAT_ND)
+                .NodeOutputTd(0, ge::DT_FLOAT, ge::FORMAT_ND, ge::FORMAT_ND)
+                .InputDataTypes({&input_ref, &input_ref1, &input_ref, &input_ref, &input_ref, &input_ref, &input_ref})
+                .OutputDataTypes({&output_ref})
+                .Build();
+        auto context = context_holder.GetContext<gert::InferDataTypeContext>();
+        EXPECT_EQ(data_type_func(context), ge::GRAPH_FAILED);
+    }
 }
