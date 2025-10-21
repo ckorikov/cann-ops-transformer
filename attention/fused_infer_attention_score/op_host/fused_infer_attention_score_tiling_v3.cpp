@@ -468,12 +468,12 @@ bool CheckGqaFeatureSupport(gert::TilingContext *context)
 
 bool CheckGqaConstrain(gert::TilingContext *context)
 {
-    if (CheckGqaInputLayoutSupport(context) && 
-        !IsEmptyTensor(context) && 
-        CheckGqaDSupport(context) && 
-        CheckGqaFeatureSupport(context)) { 
-            return true;
-    }
+    // if (CheckGqaInputLayoutSupport(context) && 
+    //     !IsEmptyTensor(context) && 
+    //     CheckGqaDSupport(context) && 
+    //     CheckGqaFeatureSupport(context)) { 
+    //         return true;
+    // }
 
     return false;
 }
