@@ -35,6 +35,8 @@ struct RmsNormParam{
     float epsilon;
     uint32_t row;
     uint32_t col;
+    float scale;
+    uint16_t isScaleEnable;
 };
 
 /**
@@ -400,6 +402,11 @@ __aicore__ inline void RmsNorm(const LocalTensor<float> &outLocal, const LocalTe
     AscendC::PipeBarrier<PIPE_V>();
 
     Mul(outLocal, inputLocal, xSquareLocal, cnt);
+
+    if (unlikely(rmsNormParams.isScaleEnable)) {
+        AscendC::PipeBarrier<PIPE_V>();
+        Muls(outLocal, outLocal, rmsNormParams.scale, cnt);
+    }
 }
 
 #if __CCE_AICORE__ == 310

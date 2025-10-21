@@ -541,6 +541,15 @@ src/transformer/mla_prolog_v2/ophost/aclnn_mla_prolog_v2.h
 src/transformer/mla_prolog_v2/ophost/aclnn_mla_prolog_v2.cpp
 src/transformer/mla_prolog_v2/ophost/aclnn_mla_prolog_v2_weight_nz.h
 src/transformer/mla_prolog_v2/ophost/aclnn_mla_prolog_v2_weight_nz.cpp
+src/transformer/mla_prolog_v3/mla_prolog_v3.cpp
+src/transformer/mla_prolog_v3/ophost/fallback_mla_prolog_v3.cpp
+src/transformer/mla_prolog_v3/ophost/mla_prolog_v3_def.cpp
+src/transformer/mla_prolog_v3/ophost/mla_prolog_v3_proto.cpp
+src/transformer/mla_prolog_v3/ophost/mla_prolog_v3_tiling_register.cc
+src/transformer/mla_prolog_v3/ophost/aclnn_mla_prolog_v3.h
+src/transformer/mla_prolog_v3/ophost/aclnn_mla_prolog_v3.cpp
+src/transformer/mla_prolog_v3/ophost/aclnn_mla_prolog_v3_weight_nz.h
+src/transformer/mla_prolog_v3/ophost/aclnn_mla_prolog_v3_weight_nz.cpp
 src/transformer/nsa_select_attention_infer/ophost/nsa_select_attention_infer_def.cpp
 src/transformer/nsa_select_attention_infer/ophost/nsa_select_attention_infer_proto.cpp
 src/transformer/nsa_select_attention_infer/ophost/aclnn_nsa_select_attention_infer.cpp
