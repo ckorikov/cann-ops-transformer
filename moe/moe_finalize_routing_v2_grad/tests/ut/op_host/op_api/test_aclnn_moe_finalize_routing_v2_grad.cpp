@@ -53,6 +53,4 @@ TEST_F(l2_moe_finalize_routing_v2_grad_test, Ascend910B2_moe_finalize_routing_v2
     aclOpExecutor* executor = nullptr;
     // aclnnStatus getWorkspaceResult = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspaceSize, executor);
     // EXPECT_EQ(getWorkspaceResult, ACLNN_SUCCESS);
-
-    // ut.TestPrecision();
 }

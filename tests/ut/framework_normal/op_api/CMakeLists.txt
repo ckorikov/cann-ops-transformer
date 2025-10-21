@@ -40,14 +40,37 @@ if(UT_TEST_ALL OR OP_API_UT)
           )
 
   ## add opapi ut exe:  transformer_op_api_ut
+  string(REPLACE ";" "," ASCEND_OP_NAME_TMP "${ASCEND_OP_NAME}")
+  set(RUNTIME_STUB_CPP ${CMAKE_CURRENT_BINARY_DIR}/runtime_stubs.cpp)
+  file(GLOB CHIP_DIRS "${ASCEND_DIR}/opp/built-in/op_impl/ai_core/tbe/kernel/config/*")
+  if (CHIP_DIRS)
+      list(GET CHIP_DIRS 0 CHIP_DIR_PATH)
+      get_filename_component(CHIP_NAME ${CHIP_DIR_PATH} NAME)
+  endif()
+  add_custom_command(
+      OUTPUT ${RUNTIME_STUB_CPP}
+      COMMAND ${Python3_EXECUTABLE} ${OPS_TRANSFORMER_DIR}/tests/ut/framework_normal/op_api/scripts/generate_oppai_stub.py
+              ${ASCEND_OP_NAME_TMP} ${ASCEND_DIR} ${CHIP_NAME} ${RUNTIME_STUB_CPP}
+      DEPENDS ${OPS_TRANSFORMER_DIR}/tests/ut/framework_normal/op_api/scripts/generate_oppai_stub.py
+      WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+      COMMENT "Generating runtime_stubs.cpp"
+    )
+  add_custom_target(generate_opapi_stub
+      DEPENDS ${RUNTIME_STUB_CPP}
+  )
+
   add_executable(${OP_API_UT_EXE}
           test_op_api_main.cpp
           $<TARGET_OBJECTS:${OP_API_MODULE_NAME}_cases_obj>
+          ${RUNTIME_STUB_CPP}
           )
   target_compile_definitions(${OP_API_UT_EXE} PRIVATE
           LOG_CPP
           )
   target_compile_options(${OP_API_UT_EXE} PUBLIC -fPIE -fno-access-control)
+  target_include_directories(
+    ${OP_API_UT_EXE} PRIVATE  ${OPAPI_INCLUDE}
+    )
   target_link_directories(${OP_API_UT_EXE} PRIVATE
           ${ASCEND_DIR}/${SYSTEM_PREFIX}/lib64
           )
@@ -62,8 +85,11 @@ if(UT_TEST_ALL OR OP_API_UT)
           graph
           gtest
           platform
+          c_sec
           -Wl,--no-whole-archive
           )
+  add_dependencies(${OP_API_UT_EXE} generate_opapi_stub)
+
 
   ## exec opapi ut exe
   if(ENABLE_UT_EXEC)
@@ -95,6 +121,7 @@ if(UT_TEST_ALL OR OP_API_UT)
               ${CMAKE_COMMAND} -E env LD_LIBRARY_PATH=$ENV{LD_LIBRARY_PATH}
               LD_PRELOAD=${LIBASAN_PATH}:${LIBSTDC_PATH} ASAN_OPTIONS=detect_leaks=0
               ${PRELOAD} ./${OP_API_UT_EXE}
+              COMMAND ${Python3_EXECUTABLE} ${OPS_TRANSFORMER_DIR}/tests/ut/framework_normal/op_api/scripts/clean_opapi_stub.py ${ASCEND_OP_NAME_TMP} ${ASCEND_DIR}
               COMMENT "Run ops op_api utest with asan"
       )
     else()
@@ -103,6 +130,7 @@ if(UT_TEST_ALL OR OP_API_UT)
               POST_BUILD
               COMMAND
               ${CMAKE_COMMAND} -E env LD_LIBRARY_PATH=$ENV{LD_LIBRARY_PATH} ./${OP_API_UT_EXE}
+              COMMAND ${Python3_EXECUTABLE} ${OPS_TRANSFORMER_DIR}/tests/ut/framework_normal/op_api/scripts/clean_opapi_stub.py ${ASCEND_OP_NAME_TMP} ${ASCEND_DIR}
               COMMENT "Run ops op_api utest"
       )
     endif()

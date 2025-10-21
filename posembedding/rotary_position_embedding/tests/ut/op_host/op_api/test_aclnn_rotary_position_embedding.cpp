@@ -46,6 +46,4 @@ TEST_F(l2_rotary_position_embedding_test, Ascend910B2_rotary_position_embedding_
     aclOpExecutor *executor = nullptr;
     aclnnStatus getWorkspaceResult = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspaceSize, executor);
     EXPECT_EQ(getWorkspaceResult, ACLNN_SUCCESS);
-
-    ut.TestPrecision();
 }

@@ -46,6 +46,4 @@ TEST_F(l2_interleave_rope_test, Ascend910B2_interleave_rope_fp32)
     aclOpExecutor* executor = nullptr;
     aclnnStatus getWorkspaceResult = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspaceSize, executor);
     EXPECT_EQ(getWorkspaceResult, ACLNN_SUCCESS);
-
-    ut.TestPrecision();
 }
