@@ -16,7 +16,6 @@
 #ifndef FIA_KERNEL_NONQUANT_MLA_H
 #define FIA_KERNEL_NONQUANT_MLA_H
 
-#include <math.h>
 #include "kernel_operator.h"
 #include "kernel_operator_list_tensor_intf.h"
 #include "kernel_tiling/kernel_tiling.h"
@@ -151,6 +150,11 @@ public:
     {
         return (a > b) ? (b) : (a);
     }
+
+    template <typename T1, typename T2> __aicore__ inline T1 Max(T1 a, T2 b)
+    {
+        return (a > b) ? (a) : (b);
+    }
     // ================================Init functions==================================
     __aicore__ inline void InitTilingData();
     __aicore__ inline void InitCalcParamsEach();
@@ -274,7 +278,7 @@ __aicore__ inline void FiaKernelNonQuantMla<FIAT, CubeBlockType, VecBlockType, F
         SetFlag<AscendC::HardEvent::MTE3_V>(initOutputEventId);
 
         if (constInfo.softmaxLseFlag) {
-            float lseInitValue = INFINITY;
+            float lseInitValue = constInfo.FLOAT_INF;
             uint64_t totalLseSize = tSize * constInfo.qHeadNum;
             uint64_t singleCoreLseSize = (totalLseSize + (2 * usedCoreNum) - 1) / (2 * usedCoreNum); // 2 means c:v = 1:2;
             uint64_t tailLseSize = totalLseSize - tmpBlockIdx * singleCoreLseSize;
@@ -818,19 +822,19 @@ __aicore__ inline void FiaKernelNonQuantMla<FIAT, CubeBlockType, VecBlockType, F
     GetSafeActToken(int64_t actSeqLensQ, int64_t actSeqLensKv, int64_t &safePreToken, int64_t &safeNextToken)
 {
     if (constInfo.sparseMode == 0) {
-        safePreToken = max(-actSeqLensKv, safePreToken);
-        safePreToken = min(safePreToken, actSeqLensQ);
+        safePreToken = Max(-actSeqLensKv, safePreToken);
+        safePreToken = Min(safePreToken, actSeqLensQ);
     } else if (constInfo.sparseMode == 4) {
-        safePreToken = max(-actSeqLensQ, safePreToken);
-        safePreToken = min(safePreToken, actSeqLensKv);
+        safePreToken = Max(-actSeqLensQ, safePreToken);
+        safePreToken = Min(safePreToken, actSeqLensKv);
     }
 
     if (constInfo.sparseMode == 0) {
-        safeNextToken = max(-actSeqLensQ, safeNextToken);
-        safeNextToken = min(safeNextToken, actSeqLensKv);
+        safeNextToken = Max(-actSeqLensQ, safeNextToken);
+        safeNextToken = Min(safeNextToken, actSeqLensKv);
     } else if (constInfo.sparseMode == 4) {
-        safeNextToken = max(-actSeqLensKv, safeNextToken);
-        safeNextToken = min(safeNextToken, actSeqLensQ);
+        safeNextToken = Max(-actSeqLensKv, safeNextToken);
+        safeNextToken = Min(safeNextToken, actSeqLensQ);
     }
 }
 
