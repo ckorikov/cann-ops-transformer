@@ -1108,9 +1108,12 @@ void PromptFlashAttentionTilingV2::SetSparseModeData(ContextParamsForPFATiling& 
 }
 
 bool PromptFlashAttentionTilingV2::CheckMaskShapeCrossSparse(ContextParamsForPFATiling& contextKeyParams,
-    const int32_t* sparseMode, const uint32_t sQ, const uint32_t sK, const uint32_t batchSize) {
+    const int32_t* sparseMode, uint32_t sQ, const uint32_t sK, const uint32_t batchSize) {
     if ((contextKeyParams.fromTilingSink != 0) || (!enableMask)) {
         return true;
+    }
+    if (enableIFA || enableIFAMLA || enablePFAMerge) {
+        sQ /= gSize; // 合轴场景使用原始的seq长度校验
     }
     int64_t attenMaskBatch = 1;
     int64_t attenMaskS1 = 0;
@@ -1264,6 +1267,25 @@ bool PromptFlashAttentionTilingV2::CheckQueryAndKey(ContextParamsForPFATiling& c
     return true;
 }
 
+bool PromptFlashAttentionTilingV2::CheckIFAMLA(ContextParamsForPFATiling& contextKeyParams, const PFAShapeInfo& queryShapeInfo) {
+    constexpr uint32_t maxQuerySeqLenInIfaMla = 16U; // ifa mla场景qS最大支持16
+    OP_CHECK_IF((queryShapeInfo.s > maxQuerySeqLenInIfaMla || queryShapeInfo.s < 1),
+        OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName, "input query's sequence length is %u, it should be "
+            "in range of [1, %u] when enable ifa mla", queryShapeInfo.s, maxQuerySeqLenInIfaMla),
+        return false);
+    static const std::set<uint32_t> supportNumHeadInIfaMla = {32U, 64U, 128U}; // ifa mla场景qN支持范围
+    OP_CHECK_IF((supportNumHeadInIfaMla.find(queryShapeInfo.n) == supportNumHeadInIfaMla.end()),
+        OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName, "input query's heads num is %u, it should be in range of "
+            "{32, 64, 128} when enable ifa mla", queryShapeInfo.n),
+        return false);
+    const int32_t nKV = *contextKeyParams.numKeyValueHeads; // ifa mla场景不支持g = 1, 因此在nKV用默认值0, nQ替代也属于异常场景
+    OP_CHECK_IF((nKV != 1U),
+        OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName, "input key/value's heads num is %u, it should be 1 when enable "
+            "ifa mla", nKV),
+        return false);
+    return true;
+}
+
 bool PromptFlashAttentionTilingV2::CheckRope(ContextParamsForPFATiling& contextKeyParams,
     PFAShapeInfo& queryShapeInfo, PFAShapeInfo& keyShapeInfo, PFAShapeInfo& queryRopeShapeInfo) {
     if (contextKeyParams.queryRopeInputShape == nullptr && contextKeyParams.keyRopeInputShape == nullptr) {
@@ -1293,13 +1315,6 @@ bool PromptFlashAttentionTilingV2::CheckRope(ContextParamsForPFATiling& contextK
         enablePFARope = true;
     } else {
         enableIFAMLA = true;
-    }
-    // fa run check
-    if (enableIFAMLA && enablePA) {
-        faRunFlag_ = true; // IFA_MLA支持PA场景，走新基础api模板
-    }
-    if (enableIFAMLA && enableMask) {
-        faRunFlag_ = true;
     }
     OP_LOGI(contextKeyParams.opName, "enableIFAMLA is %d, enablePA is %d, enableMask is %d, faRunFlag_ is %d", 
                 enableIFAMLA, enablePA, enableMask, faRunFlag_);
@@ -1832,6 +1847,29 @@ bool PromptFlashAttentionTilingV2::CheckPACrossover(ContextParamsForPFATiling& c
     return true;
 }
 
+bool PromptFlashAttentionTilingV2::CheckMaskCrossIFAMLA(ContextParamsForPFATiling& contextKeyParams,
+    const int32_t *sparseMode, uint32_t queryS) {
+    if (sparseMode == nullptr) {
+        return true;
+    }
+    if (queryS == 1U) {
+        OP_CHECK_IF(!((*sparseMode == SPARSE_MODE_NO_MASK) && (!enableMask)),
+            OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName,
+                "Only support sparse 0 without mask when ifa mla and query's sequence length is 1, "
+                "input sparse mode is %d and there has%smask",
+                *sparseMode, enableMask ? " " : " no "),
+            return false);
+    } else {
+        OP_CHECK_IF(!(((*sparseMode == SPARSE_MODE_RIGHT_DOWN) && (enableMask)) || ((*sparseMode == SPARSE_MODE_NO_MASK) && (!enableMask))),
+            OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName,
+                "Only support sparse 3 with mask, or sparse 0 without mask when ifa mla and query's sequence length is > 1, "
+                "input sparse mode is %d and there has%smask",
+                *sparseMode, enableMask ? " " : " no "),
+            return false);
+    }
+    return true;
+}
+
 bool PromptFlashAttentionTilingV2::CheckMaskCrossover(ContextParamsForPFATiling& contextKeyParams,
     PFAShapeInfo& queryShapeInfo, PromptFlashAttentionTilingData& tilingData) {
     auto maskDataType = contextKeyParams.maskDataType;
@@ -1860,6 +1898,9 @@ bool PromptFlashAttentionTilingV2::CheckMaskCrossover(ContextParamsForPFATiling&
         return false);
     if (!CheckMaskShapeCrossSparse(contextKeyParams, sparseMode, queryShapeInfo.s, S2 + actualSharedPrefixLen,
         queryShapeInfo.b)) {
+        return false;
+    }
+    if (enableIFAMLA && (!CheckMaskCrossIFAMLA(contextKeyParams, sparseMode, queryShapeInfo.s / gSize))) {
         return false;
     }
     return true;
@@ -3261,6 +3302,9 @@ ge::graphStatus PromptFlashAttentionTilingV2::CheckSingleAttribute(ContextParams
     if (!CheckQueryAndKey(contextKeyParams, queryShapeInfo, keyShapeInfo, tilingData)){
         OP_LOGE(contextKeyParams.opName, "Check query and key consistency failed!");
         return ge::GRAPH_FAILED;
+    }
+    if (enableIFAMLA && (!CheckIFAMLA(contextKeyParams, queryShapeInfo))) {
+        return false;
     }
     // print shape info
     OP_LOGI(contextKeyParams.opName,

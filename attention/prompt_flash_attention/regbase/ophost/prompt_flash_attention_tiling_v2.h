@@ -87,7 +87,8 @@ protected:
         PromptFlashAttentionTilingData& tilingData, const int32_t* sparseMode, const int64_t* preTokens,
         const int64_t* nextTokens);
     bool CheckMaskShapeCrossSparse(ContextParamsForPFATiling& contextKeyParams, const int32_t* sparseMode,
-        const uint32_t sQ, const uint32_t sK, const uint32_t batchSize);
+        uint32_t sQ, const uint32_t sK, const uint32_t batchSize);
+    bool CheckMaskCrossIFAMLA(ContextParamsForPFATiling& contextKeyParams, const int32_t *sparseMode, uint32_t queryS);
     bool CheckIO(ContextParamsForPFATiling& contextKeyParams, PFAShapeInfo& queryShapeInfo, PFAShapeInfo& valueShapeInfo);
     bool CheckKV(ContextParamsForPFATiling& contextKeyParams, PFAShapeInfo& keyShapeInfo, PFAShapeInfo& valueShapeInfo);
     bool CheckQueryAndKey(ContextParamsForPFATiling& contextKeyParams, PFAShapeInfo& queryShapeInfo, 
@@ -95,6 +96,7 @@ protected:
     bool CheckPFAMerge(ContextParamsForPFATiling& contextKeyParams, PFAShapeInfo& queryShapeInfo);
     bool CheckRope(ContextParamsForPFATiling& contextKeyParams, PFAShapeInfo& queryShapeInfo,
         PFAShapeInfo& keyShapeInfo, PFAShapeInfo& queryRopeShapeInfo);
+    bool CheckIFAMLA(ContextParamsForPFATiling& contextKeyParams, const PFAShapeInfo& queryShapeInfo);
     bool CheckQuant(ContextParamsForPFATiling& contextKeyParams, PFAShapeInfo& queryShapeInfo, const PFAShapeInfo& valueShapeInfo);
     bool CheckPrefix(ContextParamsForPFATiling& contextKeyParams, PFAShapeInfo& queryShapeInfo, PFAShapeInfo& keyShapeInfo, 
         PromptFlashAttentionTilingData& tilingData);
