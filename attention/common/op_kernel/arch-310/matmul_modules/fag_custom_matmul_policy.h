@@ -24,7 +24,7 @@
 #include "cube_in_buffer/fag_cube_in_buffer_pre.h"
 #include "cube_out_buffer/fag_cube_out_buffer_mm1.h"
 #include "cube_out_buffer/fag_cube_out_buffer_mm3.h"
-#include "lib/../impl/matmul/policy/matmul_policy.h"
+#include "lib/../../impl/adv_api/detail/matmul/policy/matmul_policy.h"
 
 namespace AscendC {
 namespace Impl {
