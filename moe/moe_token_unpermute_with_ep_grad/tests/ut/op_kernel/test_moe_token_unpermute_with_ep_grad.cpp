@@ -740,14 +740,14 @@ TEST_F(moe_token_unpermute_with_ep_grad_test, test_case_prob_not_none_split_h_fp
     size_t probsGradByteSize = 10 * 3 * sizeof(float);
     size_t tilingDataSize = sizeof(MoeTokenUnpermuteWithEpGradTilingData);
 
-    uint8_t* permuted_tokens = (uint8_t*)AscendC::GmAlloc(permutedTokensByteSize);
-    uint8_t* unpermuted_output_d = (uint8_t*)AscendC::GmAlloc(unpermutedOutputDByteSize);
-    uint8_t* sorted_indices = (uint8_t*)AscendC::GmAlloc(sortedIndicesByteSize);
-    uint8_t* probs = (uint8_t*)AscendC::GmAlloc(probsByteSize);
-    uint8_t* permuted_tokens_grad = (uint8_t*)AscendC::GmAlloc(permutedTokensGradByteSize);
-    uint8_t* probs_grad = (uint8_t*)AscendC::GmAlloc(probsGradByteSize);
-    uint8_t* workspace = (uint8_t*)AscendC::GmAlloc(16 * 1024 * 1024);
-    uint8_t* tiling = (uint8_t*)AscendC::GmAlloc(tilingDataSize);
+    uint8_t* permuted_tokens = (uint8_t*)AscendC::GmAlloc(permutedTokensByteSize + 32);
+    uint8_t* unpermuted_output_d = (uint8_t*)AscendC::GmAlloc(unpermutedOutputDByteSize + 32);
+    uint8_t* sorted_indices = (uint8_t*)AscendC::GmAlloc(sortedIndicesByteSize + 32);
+    uint8_t* probs = (uint8_t*)AscendC::GmAlloc(probsByteSize + 32);
+    uint8_t* permuted_tokens_grad = (uint8_t*)AscendC::GmAlloc(permutedTokensGradByteSize + 32);
+    uint8_t* probs_grad = (uint8_t*)AscendC::GmAlloc(probsGradByteSize + 32);
+    uint8_t* workspace = (uint8_t*)AscendC::GmAlloc(16 * 1024 * 1024 + 32);
+    uint8_t* tiling = (uint8_t*)AscendC::GmAlloc(tilingDataSize + 32);
     uint32_t blockDim = 32;
 
     char* path_ = get_current_dir_name();
