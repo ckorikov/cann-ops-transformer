@@ -66,7 +66,7 @@ static constexpr size_t WORK_SPACE_RESERVE_SIZE = 16 * 1024 * 1024;
 static const int64_t ATTEN_MASK_S1_REV_INDEX = 2L;
 static const int64_t ATTEN_MASK_COMPRESS_LIMIT = 2048L;
 static const int64_t ATTEN_MASK_COMPRESS_PREFIX_LIMIT = 3072L;
-static const int64_t MAX_VAR_LEN_SEQ_LEN = 4096L;
+static const int64_t MAX_VAR_LEN_SEQ_LEN = 20000L;
 static const int64_t SLOPE_BN_DIM_NUM = 2L;
 static const int64_t SLOPE_N_DIM_NUM = 1L;
 static const int64_t INVALID_ROW_SPARSE_RATIO = 6L;
@@ -735,7 +735,7 @@ bool FlashAttentionScoreConstTiling::GetActualSeqLenData(
     }
     int64_t seqLen = actualSeqLenShape.GetDim(0);
     if (seqLen > MAX_VAR_LEN_SEQ_LEN) {
-        OPS_REPORT_VECTOR_INNER_ERR(opName, "Seq len is more than 4096, not support.");
+        OPS_REPORT_VECTOR_INNER_ERR(opName, "Seq len is more than %ld, not support.", MAX_VAR_LEN_SEQ_LEN);
         return false;
     }
     res[0] = value[0];
