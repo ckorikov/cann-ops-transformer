@@ -574,7 +574,7 @@ __global__ __aicore__ void flash_attention_score_grad(
                                             mm12Format, mock_layout, mm345Format, TNDS1Pingpong);
         } else if constexpr (UB0 == 4 && UB1 == 3 && Block == 1) { // bn2
             REGISTER_TILING_FOR_TILINGKEY("TILING_KEY_VAR & 0xFFF = 0x134", FlashAttentionScoreGradTilingDataS1s2Bn2);
-            if constexpr (Layout == 4) { 
+            if constexpr (Layout == 3) {
                 if constexpr (HasDropOut) {
                     if constexpr (MatmulCfg == 1) {
                         INVOKE_FAG_GENERAL_S1S2_BN2_IMPL(half, MM_CFG_EXCEED, mm12Format, HasPse, HasAttenMask, INPUT_EXIST,
@@ -716,7 +716,7 @@ __global__ __aicore__ void flash_attention_score_grad(
         } else if constexpr (UB0 == 4 && UB1 == 3 && Block == 1) { // bn2
             REGISTER_TILING_FOR_TILINGKEY("TILING_KEY_VAR & 0xFFF = 0x134", FlashAttentionScoreGradTilingDataS1s2Bn2);
 
-            if constexpr (Layout == 4) { 
+            if constexpr (Layout == 3) {
                 if constexpr (HasDropOut) {
                     if constexpr (MatmulCfg == 1) {
                         INVOKE_FAG_GENERAL_S1S2_BN2_IMPL(bfloat16_t, MM_CFG_EXCEED, mm12Format, HasPse, HasAttenMask, INPUT_EXIST,
@@ -863,7 +863,7 @@ __global__ __aicore__ void flash_attention_score_grad(
                                             mm12Format, mock_layout, mm345Format, TNDS1Pingpong);
         } else if constexpr (UB0 == 4 && UB1 == 3 && Block == 1) { // bn2
             REGISTER_TILING_FOR_TILINGKEY("TILING_KEY_VAR & 0xFFF = 0x134", FlashAttentionScoreGradTilingDataS1s2Bn2);
-            if constexpr (Layout == 4) { 
+            if constexpr (Layout == 3) {
                 if constexpr (HasDropOut) {
                     if constexpr (MatmulCfg == 1) {
                         INVOKE_FAG_GENERAL_S1S2_BN2_IMPL(float, MM_CFG_EXCEED, mm12Format, HasPse, HasAttenMask, INPUT_EXIST,
