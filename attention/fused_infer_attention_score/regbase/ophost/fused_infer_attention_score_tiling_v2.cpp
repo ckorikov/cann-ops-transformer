@@ -523,7 +523,7 @@ static ge::graphStatus ConvertContextToParamsIFA(gert::TilingContext& context,
   std::string layoutStr(ifaContext.layOut);
   if (layoutStr == "TND") {
     OP_CHECK_IF((ifaContext.actualSeqLengthsQ.tensor == nullptr || ifaContext.actualSeqLengths.tensor == nullptr),
-                OPS_REPORT_VECTOR_INNER_ERR(context.GetNodeName(), "TND actualSeqLengths is null."),
+                OPS_REPORT_VECTOR_INNER_ERR(context.GetNodeName(), "TND actualSeqLengths or actualSeqLengthsKv is null."),
                 return ge::GRAPH_FAILED);
     batchOfQuery = ifaContext.actualSeqLengthsQ.tensor->GetSize();
     batchOfKey = ifaContext.actualSeqLengths.tensor->GetSize();

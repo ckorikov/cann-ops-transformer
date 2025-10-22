@@ -1350,7 +1350,32 @@ ge::graphStatus IFATilingV2::CheckActualSeqLens()
           actualLenQDims_, actualLenDims_);
         return ge::GRAPH_FAILED;
     }
-
+    int64_t lastActSeq = 0;
+    int64_t lastActSeqKV = 0;
+    for (uint32_t i = 0; i < actualLenQDims_; i++) {
+        int64_t curActSeq = context_->actualSeqLengthsQ.tensor->GetData<int64_t>()[i];
+        int64_t curActSeqKV = context_->actualSeqLengths.tensor->GetData<int64_t>()[i];
+        if (curActSeq < 0) {
+            OP_LOGE(context_->opName, "actualSeqLengths[%u] = %ld, should >= 0", i, curActSeq);
+            return ge::GRAPH_FAILED;
+        }
+        if (i >= 1U && curActSeq < lastActSeq) {
+            OP_LOGE(context_->opName, "When layout is TND, actualSeqLengths must not be decreasing, but actSeqLen[%u]=%ld is smaller than actSeqLen[%u]=%ld",
+                i, curActSeq, i - 1U, lastActSeq);
+            return ge::GRAPH_FAILED;
+        }
+        if (curActSeqKV < 0) {
+            OP_LOGE(context_->opName, "actualSeqLengthsKv[%u] = %ld, should >= 0", i, curActSeqKV);
+            return ge::GRAPH_FAILED;
+        }
+        if (!pageAttentionFlag_ && i >= 1U && curActSeqKV < lastActSeqKV) {
+            OP_LOGE(context_->opName, "When layout is TND, actualSeqLengthsKv must not be decreasing, but actSeqLenKV[%u]=%ld is smaller than actSeqLenKV[%u]=%ld",
+                i, curActSeqKV, i - 1U, lastActSeqKV);
+            return ge::GRAPH_FAILED;
+        }    
+        lastActSeq = curActSeq;
+        lastActSeqKV = curActSeqKV;
+    }
     return ge::GRAPH_SUCCESS;
 }
 
