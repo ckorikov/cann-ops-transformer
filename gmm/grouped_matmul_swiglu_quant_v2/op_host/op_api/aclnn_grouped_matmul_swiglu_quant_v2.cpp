@@ -48,12 +48,12 @@ static aclnnStatus aclnnGroupedMatmulSwigluQuantGetWorkspaceSizeCommon(const cha
         std::make_unique<gmm_dsq_base::GroupedMatmulSwigluQuantBaseHandler>());
     if (auto *handler = factory.getHandler(version)) {
         handler->Initialize(interfaceName, params, workspaceSize, executor);
-        handler->Process();
+        return handler->Process();
     } else {
          OP_LOGE(ACLNN_ERR_PARAM_INVALID, "interfaceName failed: the soc verison is not support");
     }
 
-    return ACLNN_SUCCESS;
+    return ACLNN_ERR_PARAM_INVALID;
 }
 
 #ifdef __cplusplus

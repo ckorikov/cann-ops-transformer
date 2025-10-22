@@ -100,16 +100,16 @@ protected:
         op::Format weightViewFormat = w->GetViewFormat();
         if (IsPrivateFormat(weightViewFormat)) {
             if (!(w->GetViewShape() == weightNZExpectShape1 || w->GetViewShape() == weightNZExpectShape2)) {
-                OP_LOGE(ACLNN_ERR_PARAM_INVALID, "Expected tensor for %s to have same size as %s or %s, but got %s.",
-                        w, op::ToString(weightNZExpectShape1).GetString(),
+                OP_LOGE(ACLNN_ERR_PARAM_INVALID, "Expected tensor for weight to have same size as %s or %s, but got %s.",
+                        op::ToString(weightNZExpectShape1).GetString(),
                         op::ToString(weightNZExpectShape2).GetString(),
                         op::ToString(w->GetViewShape()).GetString());
                 return false;
             }
         } else {
             if (!(w->GetViewShape() == weightNDExpectShape1 || w->GetViewShape() == weightNDExpectShape2)) {
-                OP_LOGE(ACLNN_ERR_PARAM_INVALID, "Expected tensor for %s to have same size as %s or %s, but got %s.",
-                        w, op::ToString(weightNDExpectShape1).GetString(),
+                OP_LOGE(ACLNN_ERR_PARAM_INVALID, "Expected tensor for weight to have same size as %s or %s, but got %s.",
+                        op::ToString(weightNDExpectShape1).GetString(),
                         op::ToString(weightNDExpectShape2).GetString(),
                         op::ToString(w->GetViewShape()).GetString());
                 return false;
@@ -117,8 +117,8 @@ protected:
         }
 
         if (!(wScale->GetViewShape() == weightScaleExpectShape1 || wScale->GetViewShape() == weightScaleExpectShape2)) {
-            OP_LOGE(ACLNN_ERR_PARAM_INVALID, "Expected tensor for %s to have same size as %s or %s, but got %s.",
-                    wScale, op::ToString(weightScaleExpectShape1).GetString(),
+            OP_LOGE(ACLNN_ERR_PARAM_INVALID, "Expected tensor for weight_scale to have same size as %s or %s, but got %s.",
+                    op::ToString(weightScaleExpectShape1).GetString(),
                     op::ToString(weightScaleExpectShape2).GetString(),
                     op::ToString(wScale->GetViewShape()).GetString());
             return false;
