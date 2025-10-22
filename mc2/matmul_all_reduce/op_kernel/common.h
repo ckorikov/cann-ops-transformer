@@ -157,6 +157,12 @@ __aicore__ __inline__ GM_ADDR GetTailC(GM_ADDR cGM, TCubeTiling& tiling, uint32_
 #define WEIGHT_W4_W8
 #endif
 
+#if ((ORIG_DTYPE_X1 == ORIG_DTYPE_X2) && (ORIG_DTYPE_X1 == DT_INT8) && (ORIG_DTYPE_Y == DT_FLOAT16))
+#define DAVID_QUANT_INT8_OUT_FP16
+#elif ((ORIG_DTYPE_X1 == ORIG_DTYPE_X2) && (ORIG_DTYPE_X1 == DT_INT8) && (ORIG_DTYPE_Y == DT_BF16))
+#define DAVID_QUANT_INT8_OUT_BF16
+#endif
+
 #if defined(FORMAT_X1) && FORMAT_X1 == FORMAT_FRACTAL_NZ
 constexpr CubeFormat X1_FORMAT = CubeFormat::NZ;
 #else
