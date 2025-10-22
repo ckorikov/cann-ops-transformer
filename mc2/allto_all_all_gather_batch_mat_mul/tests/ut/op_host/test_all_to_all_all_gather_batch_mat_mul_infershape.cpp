@@ -42,9 +42,13 @@ TEST_F(AlltoAllAllGatherBmmInfershape, infer_shape_0) {
     constexpr bool y3Flag = false;
     constexpr int xShard = 1;
 
-    gert::StorageShape xShape = {{E, C / tp, H}, {}};
-    gert::StorageShape weightShape = {{E / ep, H, M / tp}, {}};
-    gert::StorageShape biasShape = {{E / ep, 1, M / tp}, {}};
+    gert::StorageShape xShape = {{E, C / tp, H}, {E, C / tp, H}};
+    gert::StorageShape weightShape = {{E / ep, H, M / tp}, {E / ep, H, M / tp}};
+    gert::StorageShape biasShape = {{E / ep, 1, M / tp}, {E / ep, 1, M / tp}};
+
+    gert::StorageShape y1ShapeUninit = {{10000, 10000, 10000}, {10000, 10000, 10000}};
+    gert::StorageShape y2ShapeUninit = {{10000, 10000, 10000}, {10000, 10000, 10000}};
+    gert::StorageShape y3ShapeUninit = {{10000, 10000, 10000}, {10000, 10000, 10000}};
 
     gert::InfershapeContextPara infershapeContextPara("AlltoAllAllGatherBatchMatMul",
         {
@@ -53,9 +57,9 @@ TEST_F(AlltoAllAllGatherBmmInfershape, infer_shape_0) {
             {biasShape, ge::DT_FLOAT16, ge::FORMAT_ND},
         },
         {
-            {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
+            {y1ShapeUninit, ge::DT_FLOAT16, ge::FORMAT_ND},
+            {y2ShapeUninit, ge::DT_FLOAT16, ge::FORMAT_ND},
+            {y3ShapeUninit, ge::DT_FLOAT16, ge::FORMAT_ND},
         },
         {
             {"group_ep", Ops::Transformer::AnyValue::CreateFrom<std::string>("hcclComEp")},
@@ -70,7 +74,7 @@ TEST_F(AlltoAllAllGatherBmmInfershape, infer_shape_0) {
         }
     );
 
-    std::vector<std::vector<int64_t>> expertOutputShape = {{4, 16, 512}};
+    std::vector<std::vector<int64_t>> expertOutputShape = {{128, 8}};
     ExecuteTestCase(infershapeContextPara, ge::GRAPH_SUCCESS, expertOutputShape);
 }
 
@@ -86,9 +90,13 @@ TEST_F(AlltoAllAllGatherBmmInfershape, infer_shape_0_shard_0) {
     constexpr bool y3Flag = false;
     constexpr int xShard = 0;
 
-    gert::StorageShape xShape = {{E, C, H / tp}, {}};
-    gert::StorageShape weightShape = {{E / ep, H, M / tp}, {}};
-    gert::StorageShape biasShape = {{E / ep, 1, M / tp}, {}};
+    gert::StorageShape xShape = {{E, C, H / tp}, {E, C, H / tp}};
+    gert::StorageShape weightShape = {{E / ep, H, M / tp}, {E / ep, H, M / tp}};
+    gert::StorageShape biasShape = {{E / ep, 1, M / tp}, {E / ep, 1, M / tp}};
+
+    gert::StorageShape y1ShapeUninit = {{10000, 10000, 10000}, {10000, 10000, 10000}};
+    gert::StorageShape y2ShapeUninit = {{10000, 10000, 10000}, {10000, 10000, 10000}};
+    gert::StorageShape y3ShapeUninit = {{10000, 10000, 10000}, {10000, 10000, 10000}};
 
     gert::InfershapeContextPara infershapeContextPara("AlltoAllAllGatherBatchMatMul",
         {
@@ -97,9 +105,9 @@ TEST_F(AlltoAllAllGatherBmmInfershape, infer_shape_0_shard_0) {
             {biasShape, ge::DT_FLOAT16, ge::FORMAT_ND},
         },
         {
-            {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
+            {y1ShapeUninit, ge::DT_FLOAT16, ge::FORMAT_ND},
+            {y2ShapeUninit, ge::DT_FLOAT16, ge::FORMAT_ND},
+            {y3ShapeUninit, ge::DT_FLOAT16, ge::FORMAT_ND},
         },
         {
             {"group_ep", Ops::Transformer::AnyValue::CreateFrom<std::string>("hcclComEp")},
@@ -114,7 +122,7 @@ TEST_F(AlltoAllAllGatherBmmInfershape, infer_shape_0_shard_0) {
         }
     );
 
-    std::vector<std::vector<int64_t>> expertOutputShape = {{4, 16, 512}};
+    std::vector<std::vector<int64_t>> expertOutputShape = {{128, 8}};
     ExecuteTestCase(infershapeContextPara, ge::GRAPH_SUCCESS, expertOutputShape);
 }
 
@@ -131,9 +139,13 @@ TEST_F(AlltoAllAllGatherBmmInfershape, infer_shape_1) {
     constexpr bool y3Flag = false;
     constexpr int xShard = 1;
 
-    gert::StorageShape xShape = {{E, C / tp, H}, {}};
-    gert::StorageShape weightShape = {{E / ep, H, M / tp}, {}};
-    gert::StorageShape biasShape = {{E / ep, 1, M / tp}, {}};
+    gert::StorageShape xShape = {{E, C / tp, H}, {E, C / tp, H}};
+    gert::StorageShape weightShape = {{E / ep, H, M / tp}, {E / ep, H, M / tp}};
+    gert::StorageShape biasShape = {{E / ep, 1, M / tp}, {E / ep, 1, M / tp}};
+
+    gert::StorageShape y1ShapeUninit = {{10000, 10000, 10000}, {10000, 10000, 10000}};
+    gert::StorageShape y2ShapeUninit = {{10000, 10000, 10000}, {10000, 10000, 10000}};
+    gert::StorageShape y3ShapeUninit = {{10000, 10000, 10000}, {10000, 10000, 10000}};
 
     gert::InfershapeContextPara infershapeContextPara("AlltoAllAllGatherBatchMatMul",
         {
@@ -142,9 +154,9 @@ TEST_F(AlltoAllAllGatherBmmInfershape, infer_shape_1) {
             {biasShape, ge::DT_FLOAT16, ge::FORMAT_ND},
         },
         {
-            {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
+            {y1ShapeUninit, ge::DT_FLOAT16, ge::FORMAT_ND},
+            {y2ShapeUninit, ge::DT_FLOAT16, ge::FORMAT_ND},
+            {y3ShapeUninit, ge::DT_FLOAT16, ge::FORMAT_ND},
         },
         {
             {"group_ep", Ops::Transformer::AnyValue::CreateFrom<std::string>("hcclComEp")},
@@ -159,7 +171,7 @@ TEST_F(AlltoAllAllGatherBmmInfershape, infer_shape_1) {
         }
     );
 
-    std::vector<std::vector<int64_t>> expertOutputShape = {{4, 16, 512}};
+    std::vector<std::vector<int64_t>> expertOutputShape = {{128, 8}};
     ExecuteTestCase(infershapeContextPara, ge::GRAPH_SUCCESS, expertOutputShape);
 }
 
@@ -176,9 +188,13 @@ TEST_F(AlltoAllAllGatherBmmInfershape, infer_shape_2) {
     constexpr bool y3Flag = false;
     constexpr int xShard = 1;
 
-    gert::StorageShape xShape = {{E, C / tp, H}, {}};
-    gert::StorageShape weightShape = {{E / ep, H, M / tp}, {}};
-    gert::StorageShape biasShape = {{E / ep, 1, M / tp}, {}};
+    gert::StorageShape xShape = {{E, C / tp, H}, {E, C / tp, H}};
+    gert::StorageShape weightShape = {{E / ep, H, M / tp}, {E / ep, H, M / tp}};
+    gert::StorageShape biasShape = {{E / ep, 1, M / tp}, {E / ep, 1, M / tp}};
+
+    gert::StorageShape y1ShapeUninit = {{10000, 10000, 10000}, {10000, 10000, 10000}};
+    gert::StorageShape y2ShapeUninit = {{10000, 10000, 10000}, {10000, 10000, 10000}};
+    gert::StorageShape y3ShapeUninit = {{10000, 10000, 10000}, {10000, 10000, 10000}};
 
     gert::InfershapeContextPara infershapeContextPara("AlltoAllAllGatherBatchMatMul",
         {
@@ -187,9 +203,9 @@ TEST_F(AlltoAllAllGatherBmmInfershape, infer_shape_2) {
             {biasShape, ge::DT_FLOAT16, ge::FORMAT_ND},
         },
         {
-            {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
+            {y1ShapeUninit, ge::DT_FLOAT16, ge::FORMAT_ND},
+            {y2ShapeUninit, ge::DT_FLOAT16, ge::FORMAT_ND},
+            {y3ShapeUninit, ge::DT_FLOAT16, ge::FORMAT_ND},
         },
         {
             {"group_ep", Ops::Transformer::AnyValue::CreateFrom<std::string>("hcclComEp")},
@@ -220,9 +236,13 @@ TEST_F(AlltoAllAllGatherBmmInfershape, infer_shape_3) {
     constexpr bool y3Flag = false;
     constexpr int xShard = 1;
 
-    gert::StorageShape xShape = {{E, C / tp, H}, {}};
-    gert::StorageShape weightShape = {{E / ep, H, M / tp}, {}};
-    gert::StorageShape biasShape = {{E / ep, 1, M / tp}, {}};;
+    gert::StorageShape xShape = {{E, C / tp, H}, {E, C / tp, H}};
+    gert::StorageShape weightShape = {{E / ep, H, M / tp}, {E / ep, H, M / tp}};
+    gert::StorageShape biasShape = {{E / ep, 1, M / tp}, {E / ep, 1, M / tp}};;
+
+    gert::StorageShape y1ShapeUninit = {{10000, 10000, 10000}, {10000, 10000, 10000}};
+    gert::StorageShape y2ShapeUninit = {{10000, 10000, 10000}, {10000, 10000, 10000}};
+    gert::StorageShape y3ShapeUninit = {{10000, 10000, 10000}, {10000, 10000, 10000}};
 
     gert::InfershapeContextPara infershapeContextPara("AlltoAllAllGatherBatchMatMul",
         {
@@ -231,9 +251,9 @@ TEST_F(AlltoAllAllGatherBmmInfershape, infer_shape_3) {
             {biasShape, ge::DT_FLOAT16, ge::FORMAT_ND},
         },
         {
-            {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
+            {y1ShapeUninit, ge::DT_FLOAT16, ge::FORMAT_ND},
+            {y2ShapeUninit, ge::DT_FLOAT16, ge::FORMAT_ND},
+            {y3ShapeUninit, ge::DT_FLOAT16, ge::FORMAT_ND},
         },
         {
             {"group_ep", Ops::Transformer::AnyValue::CreateFrom<std::string>("")},
@@ -264,9 +284,13 @@ TEST_F(AlltoAllAllGatherBmmInfershape, infer_shape_4) {
     constexpr bool y3Flag = false;
     constexpr int xShard = -1; // x shard -1 failed
 
-    gert::StorageShape xShape = {{E, C / tp, H}, {}};
-    gert::StorageShape weightShape = {{E / ep, H, M / tp}, {}};
-    gert::StorageShape biasShape = {{E / ep, 1, M / tp}, {}};
+    gert::StorageShape xShape = {{E, C / tp, H}, {E, C / tp, H}};
+    gert::StorageShape weightShape = {{E / ep, H, M / tp}, {E / ep, H, M / tp}};
+    gert::StorageShape biasShape = {{E / ep, 1, M / tp}, {E / ep, 1, M / tp}};
+
+    gert::StorageShape y1ShapeUninit = {{10000, 10000, 10000}, {10000, 10000, 10000}};
+    gert::StorageShape y2ShapeUninit = {{10000, 10000, 10000}, {10000, 10000, 10000}};
+    gert::StorageShape y3ShapeUninit = {{10000, 10000, 10000}, {10000, 10000, 10000}};
 
     gert::InfershapeContextPara infershapeContextPara("AlltoAllAllGatherBatchMatMul",
         {
@@ -275,9 +299,9 @@ TEST_F(AlltoAllAllGatherBmmInfershape, infer_shape_4) {
             {biasShape, ge::DT_FLOAT16, ge::FORMAT_ND},
         },
         {
-            {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
+            {y1ShapeUninit, ge::DT_FLOAT16, ge::FORMAT_ND},
+            {y2ShapeUninit, ge::DT_FLOAT16, ge::FORMAT_ND},
+            {y3ShapeUninit, ge::DT_FLOAT16, ge::FORMAT_ND},
         },
         {
             {"group_ep", Ops::Transformer::AnyValue::CreateFrom<std::string>("hcclComEp")},
@@ -308,9 +332,13 @@ TEST_F(AlltoAllAllGatherBmmInfershape, infer_shape_5) {
     constexpr bool y3Flag = false;
     constexpr int xShard = 1;
 
-    gert::StorageShape xShape = {{E, C / tp}, {}}; // dim num failed
-    gert::StorageShape weightShape = {{E / ep, H, M / tp}, {}};
-    gert::StorageShape biasShape = {{E / ep, 1, M / tp}, {}};
+    gert::StorageShape xShape = {{E, C / tp}, {E, C / tp}}; // dim num failed
+    gert::StorageShape weightShape = {{E / ep, H, M / tp}, {E / ep, H, M / tp}};
+    gert::StorageShape biasShape = {{E / ep, 1, M / tp}, {E / ep, 1, M / tp}};
+
+    gert::StorageShape y1ShapeUninit = {{10000, 10000, 10000}, {10000, 10000, 10000}};
+    gert::StorageShape y2ShapeUninit = {{10000, 10000, 10000}, {10000, 10000, 10000}};
+    gert::StorageShape y3ShapeUninit = {{10000, 10000, 10000}, {10000, 10000, 10000}};
 
     gert::InfershapeContextPara infershapeContextPara("AlltoAllAllGatherBatchMatMul",
         {
@@ -319,9 +347,9 @@ TEST_F(AlltoAllAllGatherBmmInfershape, infer_shape_5) {
             {biasShape, ge::DT_FLOAT16, ge::FORMAT_ND},
         },
         {
-            {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
+            {y1ShapeUninit, ge::DT_FLOAT16, ge::FORMAT_ND},
+            {y2ShapeUninit, ge::DT_FLOAT16, ge::FORMAT_ND},
+            {y3ShapeUninit, ge::DT_FLOAT16, ge::FORMAT_ND},
         },
         {
             {"group_ep", Ops::Transformer::AnyValue::CreateFrom<std::string>("hcclComEp")},
@@ -352,9 +380,13 @@ TEST_F(AlltoAllAllGatherBmmInfershape, infer_shape_6) {
     constexpr bool y3Flag = false;
     constexpr int xShard = 1;
 
-    gert::StorageShape xShape = {{E, C / tp, 0}, {}}; // common check failed
-    gert::StorageShape weightShape = {{E / ep, H, M / tp}, {}};
-    gert::StorageShape biasShape = {{E / ep, 1, M / tp}, {}};
+    gert::StorageShape xShape = {{E, C / tp, 0}, {E, C / tp, 0}}; // common check failed
+    gert::StorageShape weightShape = {{E / ep, H, M / tp}, {E / ep, H, M / tp}};
+    gert::StorageShape biasShape = {{E / ep, 1, M / tp}, {E / ep, 1, M / tp}};
+
+    gert::StorageShape y1ShapeUninit = {{10000, 10000, 10000}, {10000, 10000, 10000}};
+    gert::StorageShape y2ShapeUninit = {{10000, 10000, 10000}, {10000, 10000, 10000}};
+    gert::StorageShape y3ShapeUninit = {{10000, 10000, 10000}, {10000, 10000, 10000}};
 
     gert::InfershapeContextPara infershapeContextPara("AlltoAllAllGatherBatchMatMul",
         {
@@ -363,9 +395,9 @@ TEST_F(AlltoAllAllGatherBmmInfershape, infer_shape_6) {
             {biasShape, ge::DT_FLOAT16, ge::FORMAT_ND},
         },
         {
-            {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
+            {y1ShapeUninit, ge::DT_FLOAT16, ge::FORMAT_ND},
+            {y2ShapeUninit, ge::DT_FLOAT16, ge::FORMAT_ND},
+            {y3ShapeUninit, ge::DT_FLOAT16, ge::FORMAT_ND},
         },
         {
             {"group_ep", Ops::Transformer::AnyValue::CreateFrom<std::string>("hcclComEp")},
@@ -396,9 +428,13 @@ TEST_F(AlltoAllAllGatherBmmInfershape, infer_shape_7) {
     constexpr bool y3Flag = false;
     constexpr int xShard = 1;
 
-    gert::StorageShape xShape = {{E / ep, C / tp, H}, {}}; // x shard 1 check failed
-    gert::StorageShape weightShape = {{E / ep, H, M / tp}, {}};
-    gert::StorageShape biasShape = {{E / ep, 1, M / tp}, {}};
+    gert::StorageShape xShape = {{E / ep, C / tp, H}, {E / ep, C / tp, H}}; // x shard 1 check failed
+    gert::StorageShape weightShape = {{E / ep, H, M / tp}, {E / ep, H, M / tp}};
+    gert::StorageShape biasShape = {{E / ep, 1, M / tp}, {E / ep, 1, M / tp}};
+
+    gert::StorageShape y1ShapeUninit = {{10000, 10000, 10000}, {10000, 10000, 10000}};
+    gert::StorageShape y2ShapeUninit = {{10000, 10000, 10000}, {10000, 10000, 10000}};
+    gert::StorageShape y3ShapeUninit = {{10000, 10000, 10000}, {10000, 10000, 10000}};
 
     gert::InfershapeContextPara infershapeContextPara("AlltoAllAllGatherBatchMatMul",
         {
@@ -407,9 +443,9 @@ TEST_F(AlltoAllAllGatherBmmInfershape, infer_shape_7) {
             {biasShape, ge::DT_FLOAT16, ge::FORMAT_ND},
         },
         {
-            {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
+            {y1ShapeUninit, ge::DT_FLOAT16, ge::FORMAT_ND},
+            {y2ShapeUninit, ge::DT_FLOAT16, ge::FORMAT_ND},
+            {y3ShapeUninit, ge::DT_FLOAT16, ge::FORMAT_ND},
         },
         {
             {"group_ep", Ops::Transformer::AnyValue::CreateFrom<std::string>("hcclComEp")},
@@ -440,9 +476,13 @@ TEST_F(AlltoAllAllGatherBmmInfershape, infer_shape_8) {
     constexpr bool y3Flag = false;
     constexpr int xShard = 4; // x shard 4 failed
 
-    gert::StorageShape xShape = {{E, C / tp, H}, {}};
-    gert::StorageShape weightShape = {{E / ep, H, M / tp}, {}};
-    gert::StorageShape biasShape = {{E / ep, 1, M / tp}, {}};
+    gert::StorageShape xShape = {{E, C / tp, H}, {E, C / tp, H}};
+    gert::StorageShape weightShape = {{E / ep, H, M / tp}, {E / ep, H, M / tp}};
+    gert::StorageShape biasShape = {{E / ep, 1, M / tp}, {E / ep, 1, M / tp}};
+
+    gert::StorageShape y1ShapeUninit = {{10000, 10000, 10000}, {10000, 10000, 10000}};
+    gert::StorageShape y2ShapeUninit = {{10000, 10000, 10000}, {10000, 10000, 10000}};
+    gert::StorageShape y3ShapeUninit = {{10000, 10000, 10000}, {10000, 10000, 10000}};
 
     gert::InfershapeContextPara infershapeContextPara("AlltoAllAllGatherBatchMatMul",
         {
@@ -451,9 +491,9 @@ TEST_F(AlltoAllAllGatherBmmInfershape, infer_shape_8) {
             {biasShape, ge::DT_FLOAT16, ge::FORMAT_ND},
         },
         {
-            {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
+            {y1ShapeUninit, ge::DT_FLOAT16, ge::FORMAT_ND},
+            {y2ShapeUninit, ge::DT_FLOAT16, ge::FORMAT_ND},
+            {y3ShapeUninit, ge::DT_FLOAT16, ge::FORMAT_ND},
         },
         {
             {"group_ep", Ops::Transformer::AnyValue::CreateFrom<std::string>("hcclComEp")},
@@ -484,9 +524,13 @@ TEST_F(AlltoAllAllGatherBmmInfershape, infer_shape_9) {
     constexpr bool y3Flag = false;
     constexpr int xShard = 1;
 
-    gert::StorageShape xShape = {{E, C / tp, H}, {}};
-    gert::StorageShape weightShape = {{E / ep, H, M / tp}, {}};
-    gert::StorageShape biasShape = {{E / ep, 1, M / tp}, {}};
+    gert::StorageShape xShape = {{E, C / tp, H}, {E, C / tp, H}};
+    gert::StorageShape weightShape = {{E / ep, H, M / tp}, {E / ep, H, M / tp}};
+    gert::StorageShape biasShape = {{E / ep, 1, M / tp}, {E / ep, 1, M / tp}};
+
+    gert::StorageShape y1ShapeUninit = {{10000, 10000, 10000}, {10000, 10000, 10000}};
+    gert::StorageShape y2ShapeUninit = {{10000, 10000, 10000}, {10000, 10000, 10000}};
+    gert::StorageShape y3ShapeUninit = {{10000, 10000, 10000}, {10000, 10000, 10000}};
 
     gert::InfershapeContextPara infershapeContextPara("AlltoAllAllGatherBatchMatMul",
         {
@@ -495,9 +539,9 @@ TEST_F(AlltoAllAllGatherBmmInfershape, infer_shape_9) {
             {biasShape, ge::DT_FLOAT16, ge::FORMAT_ND},
         },
         {
-            {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
+            {y1ShapeUninit, ge::DT_FLOAT16, ge::FORMAT_ND},
+            {y2ShapeUninit, ge::DT_FLOAT16, ge::FORMAT_ND},
+            {y3ShapeUninit, ge::DT_FLOAT16, ge::FORMAT_ND},
         },
         {
             {"group_ep", Ops::Transformer::AnyValue::CreateFrom<std::string>("hcclComEp")},
@@ -512,7 +556,7 @@ TEST_F(AlltoAllAllGatherBmmInfershape, infer_shape_9) {
         }
     );
 
-    std::vector<std::vector<int64_t>> expertOutputShape = {{4, 16, 512}};
+    std::vector<std::vector<int64_t>> expertOutputShape = {{128, 8}};
     ExecuteTestCase(infershapeContextPara, ge::GRAPH_SUCCESS, expertOutputShape);
 }
 
@@ -529,9 +573,13 @@ TEST_F(AlltoAllAllGatherBmmInfershape, infer_shape_10) {
     constexpr bool y3Flag = false;
     constexpr int xShard = 1;
 
-    gert::StorageShape xShape = {{E, C / tp, H}, {}};
-    gert::StorageShape weightShape = {{E / ep, H, M / tp}, {}};
-    gert::StorageShape biasShape = {{E / ep, 1, M / tp}, {}};
+    gert::StorageShape xShape = {{E, C / tp, H}, {E, C / tp, H}};
+    gert::StorageShape weightShape = {{E / ep, H, M / tp}, {E / ep, H, M / tp}};
+    gert::StorageShape biasShape = {{E / ep, 1, M / tp}, {E / ep, 1, M / tp}};
+
+    gert::StorageShape y1ShapeUninit = {{10000, 10000, 10000}, {10000, 10000, 10000}};
+    gert::StorageShape y2ShapeUninit = {{10000, 10000, 10000}, {10000, 10000, 10000}};
+    gert::StorageShape y3ShapeUninit = {{10000, 10000, 10000}, {10000, 10000, 10000}};
 
     gert::InfershapeContextPara infershapeContextPara("AlltoAllAllGatherBatchMatMul",
         {
@@ -540,9 +588,9 @@ TEST_F(AlltoAllAllGatherBmmInfershape, infer_shape_10) {
             {biasShape, ge::DT_FLOAT16, ge::FORMAT_ND},
         },
         {
-            {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
+            {y1ShapeUninit, ge::DT_FLOAT16, ge::FORMAT_ND},
+            {y2ShapeUninit, ge::DT_FLOAT16, ge::FORMAT_ND},
+            {y3ShapeUninit, ge::DT_FLOAT16, ge::FORMAT_ND},
         },
         {
             {"group_ep", Ops::Transformer::AnyValue::CreateFrom<std::string>("hcclComEp")},
@@ -557,7 +605,7 @@ TEST_F(AlltoAllAllGatherBmmInfershape, infer_shape_10) {
         }
     );
 
-    std::vector<std::vector<int64_t>> expertOutputShape = {{4, 16, 512}};
+    std::vector<std::vector<int64_t>> expertOutputShape = {{128, 8}};
     ExecuteTestCase(infershapeContextPara, ge::GRAPH_SUCCESS, expertOutputShape);
 }
 
@@ -574,9 +622,13 @@ TEST_F(AlltoAllAllGatherBmmInfershape, infer_shape_11) {
     constexpr bool y3Flag = false;
     constexpr int xShard = 1;
 
-    gert::StorageShape xShape = {{E, C / tp, H}, {}};
-    gert::StorageShape weightShape = {{E / ep, H, M / tp}, {}};
-    gert::StorageShape biasShape = {{E / ep, 1, M / tp}, {}};
+    gert::StorageShape xShape = {{E, C / tp, H}, {E, C / tp, H}};
+    gert::StorageShape weightShape = {{E / ep, H, M / tp}, {E / ep, H, M / tp}};
+    gert::StorageShape biasShape = {{E / ep, 1, M / tp}, {E / ep, 1, M / tp}};
+
+    gert::StorageShape y1ShapeUninit = {{10000, 10000, 10000}, {10000, 10000, 10000}};
+    gert::StorageShape y2ShapeUninit = {{10000, 10000, 10000}, {10000, 10000, 10000}};
+    gert::StorageShape y3ShapeUninit = {{10000, 10000, 10000}, {10000, 10000, 10000}};
 
     gert::InfershapeContextPara infershapeContextPara("AlltoAllAllGatherBatchMatMul",
         {
@@ -585,9 +637,9 @@ TEST_F(AlltoAllAllGatherBmmInfershape, infer_shape_11) {
             {biasShape, ge::DT_FLOAT16, ge::FORMAT_ND},
         },
         {
-            {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
+            {y1ShapeUninit, ge::DT_FLOAT16, ge::FORMAT_ND},
+            {y2ShapeUninit, ge::DT_FLOAT16, ge::FORMAT_ND},
+            {y3ShapeUninit, ge::DT_FLOAT16, ge::FORMAT_ND},
         },
         {
             {"group_ep", Ops::Transformer::AnyValue::CreateFrom<std::string>("hcclComEp")},
@@ -618,9 +670,13 @@ TEST_F(AlltoAllAllGatherBmmInfershape, infer_shape_12) {
     constexpr bool y3Flag = false;
     constexpr int xShard = 1;
 
-    gert::StorageShape xShape = {{E, C / tp, H}, {}};
-    gert::StorageShape weightShape = {{E / ep, H, M / tp}, {}};
-    gert::StorageShape biasShape = {{E / ep}, {}}; // bias dim num failed
+    gert::StorageShape xShape = {{E, C / tp, H}, {E, C / tp, H}};
+    gert::StorageShape weightShape = {{E / ep, H, M / tp}, {E / ep, H, M / tp}};
+    gert::StorageShape biasShape = {{E / ep}, {E / ep}}; // bias dim num failed
+
+    gert::StorageShape y1ShapeUninit = {{10000, 10000, 10000}, {10000, 10000, 10000}};
+    gert::StorageShape y2ShapeUninit = {{10000, 10000, 10000}, {10000, 10000, 10000}};
+    gert::StorageShape y3ShapeUninit = {{10000, 10000, 10000}, {10000, 10000, 10000}};
 
     gert::InfershapeContextPara infershapeContextPara("AlltoAllAllGatherBatchMatMul",
         {
@@ -629,9 +685,9 @@ TEST_F(AlltoAllAllGatherBmmInfershape, infer_shape_12) {
             {biasShape, ge::DT_FLOAT16, ge::FORMAT_ND},
         },
         {
-            {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
+            {y1ShapeUninit, ge::DT_FLOAT16, ge::FORMAT_ND},
+            {y2ShapeUninit, ge::DT_FLOAT16, ge::FORMAT_ND},
+            {y3ShapeUninit, ge::DT_FLOAT16, ge::FORMAT_ND},
         },
         {
             {"group_ep", Ops::Transformer::AnyValue::CreateFrom<std::string>("hcclComEp")},
@@ -662,9 +718,13 @@ TEST_F(AlltoAllAllGatherBmmInfershape, infer_shape_13) {
     constexpr bool y3Flag = false;
     constexpr int xShard = 1;
 
-    gert::StorageShape xShape = {{E, C / tp, H}, {}};
-    gert::StorageShape weightShape = {{E / ep, H, M / tp}, {}};
-    gert::StorageShape biasShape = {{E / ep, 12, M / tp}, {}}; // dim value failed
+    gert::StorageShape xShape = {{E, C / tp, H}, {E, C / tp, H}};
+    gert::StorageShape weightShape = {{E / ep, H, M / tp}, {E / ep, H, M / tp}};
+    gert::StorageShape biasShape = {{E / ep, 12, M / tp}, {E / ep, 12, M / tp}}; // dim value failed
+
+    gert::StorageShape y1ShapeUninit = {{10000, 10000, 10000}, {10000, 10000, 10000}};
+    gert::StorageShape y2ShapeUninit = {{10000, 10000, 10000}, {10000, 10000, 10000}};
+    gert::StorageShape y3ShapeUninit = {{10000, 10000, 10000}, {10000, 10000, 10000}};
 
     gert::InfershapeContextPara infershapeContextPara("AlltoAllAllGatherBatchMatMul",
         {
@@ -673,9 +733,9 @@ TEST_F(AlltoAllAllGatherBmmInfershape, infer_shape_13) {
             {biasShape, ge::DT_FLOAT16, ge::FORMAT_ND},
         },
         {
-            {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
+            {y1ShapeUninit, ge::DT_FLOAT16, ge::FORMAT_ND},
+            {y2ShapeUninit, ge::DT_FLOAT16, ge::FORMAT_ND},
+            {y3ShapeUninit, ge::DT_FLOAT16, ge::FORMAT_ND},
         },
         {
             {"group_ep", Ops::Transformer::AnyValue::CreateFrom<std::string>("hcclComEp")},
@@ -706,9 +766,13 @@ TEST_F(AlltoAllAllGatherBmmInfershape, infer_shape_14) {
     constexpr bool y3Flag = false;
     constexpr int xShard = 1;
 
-    gert::StorageShape xShape = {{E, C / tp, H}, {}};
-    gert::StorageShape weightShape = {{-1, H, M / tp}, {}}; // x[E] != -1, w[E] = -1 failed
-    gert::StorageShape biasShape = {{E / ep, 1, M / tp}, {}};
+    gert::StorageShape xShape = {{E, C / tp, H}, {E, C / tp, H}};
+    gert::StorageShape weightShape = {{-1, H, M / tp}, {-1, H, M / tp}}; // x[E] != -1, w[E] = -1 failed
+    gert::StorageShape biasShape = {{E / ep, 1, M / tp}, {E / ep, 1, M / tp}};
+
+    gert::StorageShape y1ShapeUninit = {{10000, 10000, 10000}, {10000, 10000, 10000}};
+    gert::StorageShape y2ShapeUninit = {{10000, 10000, 10000}, {10000, 10000, 10000}};
+    gert::StorageShape y3ShapeUninit = {{10000, 10000, 10000}, {10000, 10000, 10000}};
 
     gert::InfershapeContextPara infershapeContextPara("AlltoAllAllGatherBatchMatMul",
         {
@@ -717,9 +781,9 @@ TEST_F(AlltoAllAllGatherBmmInfershape, infer_shape_14) {
             {biasShape, ge::DT_FLOAT16, ge::FORMAT_ND},
         },
         {
-            {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
+            {y1ShapeUninit, ge::DT_FLOAT16, ge::FORMAT_ND},
+            {y2ShapeUninit, ge::DT_FLOAT16, ge::FORMAT_ND},
+            {y3ShapeUninit, ge::DT_FLOAT16, ge::FORMAT_ND},
         },
         {
             {"group_ep", Ops::Transformer::AnyValue::CreateFrom<std::string>("hcclComEp")},
@@ -750,9 +814,13 @@ TEST_F(AlltoAllAllGatherBmmInfershape, infer_shape_15) {
     constexpr bool y3Flag = false;
     constexpr int xShard = 1;
 
-    gert::StorageShape xShape = {{E, C / tp, H}, {}};
-    gert::StorageShape weightShape = {{E, H, M / tp}, {}}; // w[E] * ep != x[E] failed
-    gert::StorageShape biasShape = {{E / ep, 1, M / tp}, {}};
+    gert::StorageShape xShape = {{E, C / tp, H}, {E, C / tp, H}};
+    gert::StorageShape weightShape = {{E, H, M / tp}, {E, H, M / tp}}; // w[E] * ep != x[E] failed
+    gert::StorageShape biasShape = {{E / ep, 1, M / tp}, {E / ep, 1, M / tp}};
+
+    gert::StorageShape y1ShapeUninit = {{10000, 10000, 10000}, {10000, 10000, 10000}};
+    gert::StorageShape y2ShapeUninit = {{10000, 10000, 10000}, {10000, 10000, 10000}};
+    gert::StorageShape y3ShapeUninit = {{10000, 10000, 10000}, {10000, 10000, 10000}};
 
     gert::InfershapeContextPara infershapeContextPara("AlltoAllAllGatherBatchMatMul",
         {
@@ -761,9 +829,9 @@ TEST_F(AlltoAllAllGatherBmmInfershape, infer_shape_15) {
             {biasShape, ge::DT_FLOAT16, ge::FORMAT_ND},
         },
         {
-            {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
+            {y1ShapeUninit, ge::DT_FLOAT16, ge::FORMAT_ND},
+            {y2ShapeUninit, ge::DT_FLOAT16, ge::FORMAT_ND},
+            {y3ShapeUninit, ge::DT_FLOAT16, ge::FORMAT_ND},
         },
         {
             {"group_ep", Ops::Transformer::AnyValue::CreateFrom<std::string>("hcclComEp")},
@@ -794,9 +862,13 @@ TEST_F(AlltoAllAllGatherBmmInfershape, infer_shape_16) {
     constexpr bool y3Flag = false;
     constexpr int xShard = 1;
 
-    gert::StorageShape xShape = {{E, C / tp, H / ep}, {}}; // w[H] != x[H] failed
-    gert::StorageShape weightShape = {{E / ep, H, M / tp}, {}};
-    gert::StorageShape biasShape = {{E / ep, 1, M / tp}, {}};
+    gert::StorageShape xShape = {{E, C / tp, H / ep}, {E, C / tp, H / ep}}; // w[H] != x[H] failed
+    gert::StorageShape weightShape = {{E / ep, H, M / tp}, {E / ep, H, M / tp}};
+    gert::StorageShape biasShape = {{E / ep, 1, M / tp}, {E / ep, 1, M / tp}};
+
+    gert::StorageShape y1ShapeUninit = {{10000, 10000, 10000}, {10000, 10000, 10000}};
+    gert::StorageShape y2ShapeUninit = {{10000, 10000, 10000}, {10000, 10000, 10000}};
+    gert::StorageShape y3ShapeUninit = {{10000, 10000, 10000}, {10000, 10000, 10000}};
 
     gert::InfershapeContextPara infershapeContextPara("AlltoAllAllGatherBatchMatMul",
         {
@@ -805,9 +877,9 @@ TEST_F(AlltoAllAllGatherBmmInfershape, infer_shape_16) {
             {biasShape, ge::DT_FLOAT16, ge::FORMAT_ND},
         },
         {
-            {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
+            {y1ShapeUninit, ge::DT_FLOAT16, ge::FORMAT_ND},
+            {y2ShapeUninit, ge::DT_FLOAT16, ge::FORMAT_ND},
+            {y3ShapeUninit, ge::DT_FLOAT16, ge::FORMAT_ND},
         },
         {
             {"group_ep", Ops::Transformer::AnyValue::CreateFrom<std::string>("hcclComEp")},
@@ -839,9 +911,13 @@ TEST_F(AlltoAllAllGatherBmmInfershape, infer_shape_17) {
     constexpr int xShard = 1;
     constexpr int actType = 0; // y3Flag = true but actType = 0 failed
 
-    gert::StorageShape xShape = {{E, C / tp, H}, {}};
-    gert::StorageShape weightShape = {{E / ep, H, M / tp}, {}};
-    gert::StorageShape biasShape = {{E / ep, 1, M / tp}, {}};
+    gert::StorageShape xShape = {{E, C / tp, H}, {E, C / tp, H}};
+    gert::StorageShape weightShape = {{E / ep, H, M / tp}, {E / ep, H, M / tp}};
+    gert::StorageShape biasShape = {{E / ep, 1, M / tp}, {E / ep, 1, M / tp}};
+
+    gert::StorageShape y1ShapeUninit = {{10000, 10000, 10000}, {10000, 10000, 10000}};
+    gert::StorageShape y2ShapeUninit = {{10000, 10000, 10000}, {10000, 10000, 10000}};
+    gert::StorageShape y3ShapeUninit = {{10000, 10000, 10000}, {10000, 10000, 10000}};
 
     gert::InfershapeContextPara infershapeContextPara("AlltoAllAllGatherBatchMatMul",
         {
@@ -850,9 +926,9 @@ TEST_F(AlltoAllAllGatherBmmInfershape, infer_shape_17) {
             {biasShape, ge::DT_FLOAT16, ge::FORMAT_ND},
         },
         {
-            {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
+            {y1ShapeUninit, ge::DT_FLOAT16, ge::FORMAT_ND},
+            {y2ShapeUninit, ge::DT_FLOAT16, ge::FORMAT_ND},
+            {y3ShapeUninit, ge::DT_FLOAT16, ge::FORMAT_ND},
         },
         {
             {"group_ep", Ops::Transformer::AnyValue::CreateFrom<std::string>("hcclComEp")},
@@ -883,9 +959,13 @@ TEST_F(AlltoAllAllGatherBmmInfershape, infer_shape_18) {
     constexpr bool y3Flag = false;
     constexpr int xShard = 1;
 
-    gert::StorageShape xShape = {{E, C / tp, H}, {}};
-    gert::StorageShape weightShape = {{E / ep, H, M / tp}, {}};
-    gert::StorageShape biasShape = {{E / ep, 1, M / tp}, {}};
+    gert::StorageShape xShape = {{E, C / tp, H}, {E, C / tp, H}};
+    gert::StorageShape weightShape = {{E / ep, H, M / tp}, {E / ep, H, M / tp}};
+    gert::StorageShape biasShape = {{E / ep, 1, M / tp}, {E / ep, 1, M / tp}};
+
+    gert::StorageShape y1ShapeUninit = {{10000, 10000, 10000}, {10000, 10000, 10000}};
+    gert::StorageShape y2ShapeUninit = {{10000, 10000, 10000}, {10000, 10000, 10000}};
+    gert::StorageShape y3ShapeUninit = {{10000, 10000, 10000}, {10000, 10000, 10000}};
 
     gert::InfershapeContextPara infershapeContextPara("AlltoAllAllGatherBatchMatMul",
         {
@@ -894,9 +974,9 @@ TEST_F(AlltoAllAllGatherBmmInfershape, infer_shape_18) {
             {biasShape, ge::DT_FLOAT16, ge::FORMAT_ND},
         },
         {
-            {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
+            {y1ShapeUninit, ge::DT_FLOAT16, ge::FORMAT_ND},
+            {y2ShapeUninit, ge::DT_FLOAT16, ge::FORMAT_ND},
+            {y3ShapeUninit, ge::DT_FLOAT16, ge::FORMAT_ND},
         },
         {
             {"group_ep", Ops::Transformer::AnyValue::CreateFrom<std::string>("hcclComEp")},
@@ -927,9 +1007,13 @@ TEST_F(AlltoAllAllGatherBmmInfershape, infer_shape_19) {
     constexpr bool y3Flag = false;
     constexpr int xShard = 1;
 
-    gert::StorageShape xShape = {{E, C / tp, H}, {}};
-    gert::StorageShape weightShape = {{E / ep, H, M / tp}, {}};
-    gert::StorageShape biasShape = {{E / ep, 1, M / tp}, {}};
+    gert::StorageShape xShape = {{E, C / tp, H}, {E, C / tp, H}};
+    gert::StorageShape weightShape = {{E / ep, H, M / tp}, {E / ep, H, M / tp}};
+    gert::StorageShape biasShape = {{E / ep, 1, M / tp}, {E / ep, 1, M / tp}};
+
+    gert::StorageShape y1ShapeUninit = {{10000, 10000, 10000}, {10000, 10000, 10000}};
+    gert::StorageShape y2ShapeUninit = {{10000, 10000, 10000}, {10000, 10000, 10000}};
+    gert::StorageShape y3ShapeUninit = {{10000, 10000, 10000}, {10000, 10000, 10000}};
 
     gert::InfershapeContextPara infershapeContextPara("AlltoAllAllGatherBatchMatMul",
         {
@@ -938,9 +1022,9 @@ TEST_F(AlltoAllAllGatherBmmInfershape, infer_shape_19) {
             {biasShape, ge::DT_FLOAT16, ge::FORMAT_ND},
         },
         {
-            {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
+            {y1ShapeUninit, ge::DT_FLOAT16, ge::FORMAT_ND},
+            {y2ShapeUninit, ge::DT_FLOAT16, ge::FORMAT_ND},
+            {y3ShapeUninit, ge::DT_FLOAT16, ge::FORMAT_ND},
         },
         {
             {"group_ep", Ops::Transformer::AnyValue::CreateFrom<std::string>("hcclComEp")},
@@ -962,22 +1046,33 @@ TEST_F(AlltoAllAllGatherBmmInfershape, infer_shape_19) {
 TEST_F(AlltoAllAllGatherBmmInfershape, infer_dtype_0) {
     ge::DataType xType = ge::DT_FLOAT16;
     ge::DataType weightType = ge::DT_FLOAT16;
+    ge::DataType biasType = ge::DT_FLOAT16;
+    ge::DataType outType = ge::DT_UNDEFINED; // 初始化的时候设置为未定义的类型
 
     auto contextHolder = gert::InferDataTypeContextFaker()
-        .NodeIoNum(2, 3)
-        .InputDataTypes({&xType, &weightType})
-        .NodeOutputTd(0, ge::FORMAT_ND, ge::FORMAT_ND)
-        .NodeOutputTd(1, ge::FORMAT_ND, ge::FORMAT_ND)
-        .NodeOutputTd(2, ge::FORMAT_ND, ge::FORMAT_ND)
+        .IrInputNum(3)
+        .NodeIoNum(3, 3)
+        .IrInstanceNum({1, 1})
+        .NodeInputTd(0, xType, ge::FORMAT_ND, ge::FORMAT_ND)
+        .NodeInputTd(1, weightType, ge::FORMAT_ND, ge::FORMAT_ND)
+        .NodeInputTd(2, biasType, ge::FORMAT_ND, ge::FORMAT_ND)
+        .NodeOutputTd(0, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND)
+        .NodeOutputTd(1, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND)
+        .NodeOutputTd(2, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND)
+        .InputDataTypes({&xType, &weightType, &biasType})
+        .OutputDataTypes({&outType, &outType, &outType})
         .Build();
 
     auto spaceRegistry = gert::DefaultOpImplSpaceRegistryV2::GetInstance().GetSpaceRegistry();
     auto inferDtypeFunc = spaceRegistry->GetOpImpl("AlltoAllAllGatherBatchMatMul")->infer_datatype;
     ASSERT_EQ(inferDtypeFunc(contextHolder.GetContext<gert::InferDataTypeContext>()), ge::GRAPH_SUCCESS);
 
-    EXPECT_EQ(contextHolder.GetContext<gert::InferDataTypeContext>()->GetOutputDataType(0), ge::DT_FLOAT16);
-    EXPECT_EQ(contextHolder.GetContext<gert::InferDataTypeContext>()->GetOutputDataType(1), ge::DT_FLOAT16);
-    EXPECT_EQ(contextHolder.GetContext<gert::InferDataTypeContext>()->GetOutputDataType(2), ge::DT_FLOAT16);
+    int32_t outputIndex0 = 0;
+    int32_t outputIndex1 = 1;
+    int32_t outputIndex2 = 2;
+    EXPECT_EQ(contextHolder.GetContext<gert::InferDataTypeContext>()->GetOutputDataType(outputIndex0), ge::DT_FLOAT16);
+    EXPECT_EQ(contextHolder.GetContext<gert::InferDataTypeContext>()->GetOutputDataType(outputIndex1), ge::DT_FLOAT16);
+    EXPECT_EQ(contextHolder.GetContext<gert::InferDataTypeContext>()->GetOutputDataType(outputIndex2), ge::DT_FLOAT16);
 }
 
 
@@ -986,22 +1081,32 @@ TEST_F(AlltoAllAllGatherBmmInfershape, infer_dtype_1) {
     ge::DataType xType = ge::DT_FLOAT16;
     ge::DataType weightType = ge::DT_FLOAT16;
     ge::DataType biasType = ge::DT_FLOAT16;
+    ge::DataType outType = ge::DT_UNDEFINED; // 初始化的时候设置为未定义的类型
 
     auto contextHolder = gert::InferDataTypeContextFaker()
+        .IrInputNum(3)
         .NodeIoNum(3, 3)
+        .IrInstanceNum({1, 1, 1})
+        .NodeInputTd(0, xType, ge::FORMAT_ND, ge::FORMAT_ND)
+        .NodeInputTd(1, weightType, ge::FORMAT_ND, ge::FORMAT_ND)
+        .NodeInputTd(2, biasType, ge::FORMAT_ND, ge::FORMAT_ND)
+        .NodeOutputTd(0, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND)
+        .NodeOutputTd(1, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND)
+        .NodeOutputTd(2, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND)
         .InputDataTypes({&xType, &weightType, &biasType})
-        .NodeOutputTd(0, ge::FORMAT_ND, ge::FORMAT_ND)
-        .NodeOutputTd(1, ge::FORMAT_ND, ge::FORMAT_ND)
-        .NodeOutputTd(2, ge::FORMAT_ND, ge::FORMAT_ND)
+        .OutputDataTypes({&outType, &outType, &outType})
         .Build();
 
     auto spaceRegistry = gert::DefaultOpImplSpaceRegistryV2::GetInstance().GetSpaceRegistry();
     auto inferDtypeFunc = spaceRegistry->GetOpImpl("AlltoAllAllGatherBatchMatMul")->infer_datatype;
     ASSERT_EQ(inferDtypeFunc(contextHolder.GetContext<gert::InferDataTypeContext>()), ge::GRAPH_SUCCESS);
 
-    EXPECT_EQ(contextHolder.GetContext<gert::InferDataTypeContext>()->GetOutputDataType(0), ge::DT_FLOAT16);
-    EXPECT_EQ(contextHolder.GetContext<gert::InferDataTypeContext>()->GetOutputDataType(1), ge::DT_FLOAT16);
-    EXPECT_EQ(contextHolder.GetContext<gert::InferDataTypeContext>()->GetOutputDataType(2), ge::DT_FLOAT16);
+    int32_t outputIndex0 = 0;
+    int32_t outputIndex1 = 1;
+    int32_t outputIndex2 = 2;
+    EXPECT_EQ(contextHolder.GetContext<gert::InferDataTypeContext>()->GetOutputDataType(outputIndex0), ge::DT_FLOAT16);
+    EXPECT_EQ(contextHolder.GetContext<gert::InferDataTypeContext>()->GetOutputDataType(outputIndex1), ge::DT_FLOAT16);
+    EXPECT_EQ(contextHolder.GetContext<gert::InferDataTypeContext>()->GetOutputDataType(outputIndex2), ge::DT_FLOAT16);
 }
 
 // fp16 infer dtype with bias, with xType != weightType
@@ -1009,13 +1114,20 @@ TEST_F(AlltoAllAllGatherBmmInfershape, infer_dtype_2) {
     ge::DataType xType = ge::DT_FLOAT16;
     ge::DataType weightType = ge::DT_BF16;
     ge::DataType biasType = ge::DT_FLOAT16;
+    ge::DataType outType = ge::DT_UNDEFINED; // 初始化的时候设置为未定义的类型
 
     auto contextHolder = gert::InferDataTypeContextFaker()
+        .IrInputNum(3)
         .NodeIoNum(3, 3)
+        .IrInstanceNum({1, 1, 1})
+        .NodeInputTd(0, xType, ge::FORMAT_ND, ge::FORMAT_ND)
+        .NodeInputTd(1, weightType, ge::FORMAT_ND, ge::FORMAT_ND)
+        .NodeInputTd(2, biasType, ge::FORMAT_ND, ge::FORMAT_ND)
+        .NodeOutputTd(0, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND)
+        .NodeOutputTd(1, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND)
+        .NodeOutputTd(2, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND)
         .InputDataTypes({&xType, &weightType, &biasType})
-        .NodeOutputTd(0, ge::FORMAT_ND, ge::FORMAT_ND)
-        .NodeOutputTd(1, ge::FORMAT_ND, ge::FORMAT_ND)
-        .NodeOutputTd(2, ge::FORMAT_ND, ge::FORMAT_ND)
+        .OutputDataTypes({&outType, &outType, &outType})
         .Build();
 
     auto spaceRegistry = gert::DefaultOpImplSpaceRegistryV2::GetInstance().GetSpaceRegistry();
@@ -1028,13 +1140,20 @@ TEST_F(AlltoAllAllGatherBmmInfershape, infer_dtype_3) {
     ge::DataType xType = ge::DT_FLOAT16;
     ge::DataType weightType = ge::DT_FLOAT16;
     ge::DataType biasType = ge::DT_FLOAT;
+    ge::DataType outType = ge::DT_UNDEFINED; // 初始化的时候设置为未定义的类型
 
     auto contextHolder = gert::InferDataTypeContextFaker()
+        .IrInputNum(3)
         .NodeIoNum(3, 3)
+        .IrInstanceNum({1, 1, 1})
+        .NodeInputTd(0, xType, ge::FORMAT_ND, ge::FORMAT_ND)
+        .NodeInputTd(1, weightType, ge::FORMAT_ND, ge::FORMAT_ND)
+        .NodeInputTd(2, biasType, ge::FORMAT_ND, ge::FORMAT_ND)
+        .NodeOutputTd(0, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND)
+        .NodeOutputTd(1, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND)
+        .NodeOutputTd(2, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND)
         .InputDataTypes({&xType, &weightType, &biasType})
-        .NodeOutputTd(0, ge::FORMAT_ND, ge::FORMAT_ND)
-        .NodeOutputTd(1, ge::FORMAT_ND, ge::FORMAT_ND)
-        .NodeOutputTd(2, ge::FORMAT_ND, ge::FORMAT_ND)
+        .OutputDataTypes({&outType, &outType, &outType})
         .Build();
 
     auto spaceRegistry = gert::DefaultOpImplSpaceRegistryV2::GetInstance().GetSpaceRegistry();
@@ -1047,13 +1166,20 @@ TEST_F(AlltoAllAllGatherBmmInfershape, infer_dtype_4) {
     ge::DataType xType = ge::DT_FLOAT16;
     ge::DataType weightType = ge::DT_INT8;
     ge::DataType biasType = ge::DT_FLOAT16;
+    ge::DataType outType = ge::DT_UNDEFINED; // 初始化的时候设置为未定义的类型
 
     auto contextHolder = gert::InferDataTypeContextFaker()
+        .IrInputNum(3)
         .NodeIoNum(3, 3)
+        .IrInstanceNum({1, 1, 1})
+        .NodeInputTd(0, xType, ge::FORMAT_ND, ge::FORMAT_ND)
+        .NodeInputTd(1, weightType, ge::FORMAT_ND, ge::FORMAT_ND)
+        .NodeInputTd(2, biasType, ge::FORMAT_ND, ge::FORMAT_ND)
+        .NodeOutputTd(0, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND)
+        .NodeOutputTd(1, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND)
+        .NodeOutputTd(2, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND)
         .InputDataTypes({&xType, &weightType, &biasType})
-        .NodeOutputTd(0, ge::FORMAT_ND, ge::FORMAT_ND)
-        .NodeOutputTd(1, ge::FORMAT_ND, ge::FORMAT_ND)
-        .NodeOutputTd(2, ge::FORMAT_ND, ge::FORMAT_ND)
+        .OutputDataTypes({&outType, &outType, &outType})
         .Build();
 
     auto spaceRegistry = gert::DefaultOpImplSpaceRegistryV2::GetInstance().GetSpaceRegistry();
@@ -1066,13 +1192,20 @@ TEST_F(AlltoAllAllGatherBmmInfershape, infer_dtype_5) {
     ge::DataType xType = ge::DT_INT8;
     ge::DataType weightType = ge::DT_FLOAT16;
     ge::DataType biasType = ge::DT_FLOAT16;
+    ge::DataType outType = ge::DT_UNDEFINED; // 初始化的时候设置为未定义的类型
 
     auto contextHolder = gert::InferDataTypeContextFaker()
+        .IrInputNum(3)
         .NodeIoNum(3, 3)
+        .IrInstanceNum({1, 1, 1})
+        .NodeInputTd(0, xType, ge::FORMAT_ND, ge::FORMAT_ND)
+        .NodeInputTd(1, weightType, ge::FORMAT_ND, ge::FORMAT_ND)
+        .NodeInputTd(2, biasType, ge::FORMAT_ND, ge::FORMAT_ND)
+        .NodeOutputTd(0, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND)
+        .NodeOutputTd(1, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND)
+        .NodeOutputTd(2, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND)
         .InputDataTypes({&xType, &weightType, &biasType})
-        .NodeOutputTd(0, ge::FORMAT_ND, ge::FORMAT_ND)
-        .NodeOutputTd(1, ge::FORMAT_ND, ge::FORMAT_ND)
-        .NodeOutputTd(2, ge::FORMAT_ND, ge::FORMAT_ND)
+        .OutputDataTypes({&outType, &outType, &outType})
         .Build();
 
     auto spaceRegistry = gert::DefaultOpImplSpaceRegistryV2::GetInstance().GetSpaceRegistry();
@@ -1085,13 +1218,20 @@ TEST_F(AlltoAllAllGatherBmmInfershape, infer_dtype_6) {
     ge::DataType xType = ge::DT_BF16;
     ge::DataType weightType = ge::DT_BF16;
     ge::DataType biasType = ge::DT_INT8;
+    ge::DataType outType = ge::DT_UNDEFINED; // 初始化的时候设置为未定义的类型
 
     auto contextHolder = gert::InferDataTypeContextFaker()
+        .IrInputNum(3)
         .NodeIoNum(3, 3)
+        .IrInstanceNum({1, 1, 1})
+        .NodeInputTd(0, xType, ge::FORMAT_ND, ge::FORMAT_ND)
+        .NodeInputTd(1, weightType, ge::FORMAT_ND, ge::FORMAT_ND)
+        .NodeInputTd(2, biasType, ge::FORMAT_ND, ge::FORMAT_ND)
+        .NodeOutputTd(0, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND)
+        .NodeOutputTd(1, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND)
+        .NodeOutputTd(2, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND)
         .InputDataTypes({&xType, &weightType, &biasType})
-        .NodeOutputTd(0, ge::FORMAT_ND, ge::FORMAT_ND)
-        .NodeOutputTd(1, ge::FORMAT_ND, ge::FORMAT_ND)
-        .NodeOutputTd(2, ge::FORMAT_ND, ge::FORMAT_ND)
+        .OutputDataTypes({&outType, &outType, &outType})
         .Build();
 
     auto spaceRegistry = gert::DefaultOpImplSpaceRegistryV2::GetInstance().GetSpaceRegistry();
@@ -1104,13 +1244,20 @@ TEST_F(AlltoAllAllGatherBmmInfershape, infer_dtype_7) {
     ge::DataType xType = ge::DT_BF16;
     ge::DataType weightType = ge::DT_BF16;
     ge::DataType biasType = ge::DT_FLOAT16;
+    ge::DataType outType = ge::DT_UNDEFINED; // 初始化的时候设置为未定义的类型
 
     auto contextHolder = gert::InferDataTypeContextFaker()
+        .IrInputNum(3)
         .NodeIoNum(3, 3)
+        .IrInstanceNum({1, 1, 1})
+        .NodeInputTd(0, xType, ge::FORMAT_ND, ge::FORMAT_ND)
+        .NodeInputTd(1, weightType, ge::FORMAT_ND, ge::FORMAT_ND)
+        .NodeInputTd(2, biasType, ge::FORMAT_ND, ge::FORMAT_ND)
+        .NodeOutputTd(0, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND)
+        .NodeOutputTd(1, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND)
+        .NodeOutputTd(2, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND)
         .InputDataTypes({&xType, &weightType, &biasType})
-        .NodeOutputTd(0, ge::FORMAT_ND, ge::FORMAT_ND)
-        .NodeOutputTd(1, ge::FORMAT_ND, ge::FORMAT_ND)
-        .NodeOutputTd(2, ge::FORMAT_ND, ge::FORMAT_ND)
+        .OutputDataTypes({&outType, &outType, &outType})
         .Build();
 
     auto spaceRegistry = gert::DefaultOpImplSpaceRegistryV2::GetInstance().GetSpaceRegistry();
