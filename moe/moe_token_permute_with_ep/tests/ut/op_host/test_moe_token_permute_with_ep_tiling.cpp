@@ -58,7 +58,7 @@ TEST_F(MoeTokenPermuteWithEpTiling, moe_token_permute_with_ep_tiling_01)
                                             },
                                             &compileInfo);
     int64_t expectTilingKey = 5; // tilngkey
-    string expectTilingData = "1 2 5 16 3 1 6 1 6 6 6 1 6 6 8160 0 0 1024 2 2 0 1 0 10 2 2 2340 4680 14040 1 1 1 1 1 0 4680 2 2340 1 1 4 1 5 74880 14048 14048 ";
+    string expectTilingData = "1 2 5 16 3 1 6 1 6 6 6 1 6 6 8160 0 0 1024 2 2 0 1 0 10 2 2 2338 4676 14028 1 1 1 1 1 0 4676 2 2338 1 1 4 1 5 74816 14048 14048 ";
     std::vector<size_t> expectWorkspaces = {16777376}; // workspace
     ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey, expectTilingData, expectWorkspaces);
 }
@@ -89,12 +89,12 @@ TEST_F(MoeTokenPermuteWithEpTiling, moe_token_permute_with_ep_tiling_02)
                                             },
                                             &compileInfo);
     int64_t expectTilingKey = 6; // tilngkey
-    string expectTilingData = "64 4096 5 16 3 4 3072 1 3072 3072 3072 1 3072 3072 8128 0 0 1024 64 64 0 64 64 10 2 2 2340 4680 14040 1 1 1 1 64 1 64 1 64 1 64 4096 0 4096 74880 14048 14048 ";
+    string expectTilingData = "64 4096 5 16 3 4 3072 1 3072 3072 3072 1 3072 3072 8096 0 0 1024 64 64 0 64 64 10 2 2 2338 4676 14028 1 1 1 1 64 1 64 1 64 1 64 4096 0 4096 74816 14048 14048 ";
     std::vector<size_t> expectWorkspaces = {16977920}; // workspace
     ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey, expectTilingData, expectWorkspaces);
 }
 
-TEST_F(MoeTokenPermuteWithEpTiling, moe_token_permute_with_ep_tiling_error_h)
+TEST_F(MoeTokenPermuteWithEpTiling, moe_token_permute_with_ep_tiling_03)
 {
     optiling::MoeTokenPermuteWithEpCompileInfo compileInfo = {}; // 根据tiling头文件中的compileInfo填入对应值，一般原先的用例里能找到
     std::vector<int64_t> range({0, 4096});
@@ -120,7 +120,110 @@ TEST_F(MoeTokenPermuteWithEpTiling, moe_token_permute_with_ep_tiling_error_h)
                                             },
                                             &compileInfo);
     int64_t expectTilingKey = 6; // tilngkey
-    string expectTilingData = "64 4096 5 16 3 4 3072 1 3072 3072 3072 1 3072 3072 8128 0 0 1024 64 64 0 64 64 10 2 2 2340 4680 14040 1 1 1 1 64 1 64 1 64 1 64 4096 0 4096 74880 14048 14048 ";
+    string expectTilingData = "64 4096 5 16 3 4 3072 1 3072 3072 3072 1 3072 3072 8096 0 0 1024 64 64 0 64 64 10 2 2 2338 4676 14028 1 1 1 1 64 1 64 1 64 1 64 4096 0 4096 74816 14048 14048 ";
     std::vector<size_t> expectWorkspaces = {16977920}; // workspace
     ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey, expectTilingData, expectWorkspaces);
+}
+
+TEST_F(MoeTokenPermuteWithEpTiling, moe_token_permute_with_ep_tiling_multi_core)
+{
+    optiling::MoeTokenPermuteWithEpCompileInfo compileInfo = {}; // 根据tiling头文件中的compileInfo填入对应值，一般原先的用例里能找到
+    int64_t tokenNum = 16384;
+    int64_t topk = 3;
+    std::vector<int64_t> range({0, 4096});
+    gert::TilingContextPara tilingContextPara("MoeTokenPermuteWithEp", // op_name
+                                            {
+                                            // input info
+                                            // shape都需要重复一次，比如shape为{16,16}，要填入{{16, 16}, {16, 16}}
+                                                {{{tokenNum, 5}, {tokenNum, 5}}, ge::DT_BF16, ge::FORMAT_ND},
+                                                {{{tokenNum, 3}, {tokenNum, 3}}, ge::DT_INT64, ge::FORMAT_ND},
+                                                {{{tokenNum, 3}, {tokenNum, 3}}, ge::DT_BF16, ge::FORMAT_ND}
+                                            },
+                                            // output info
+                                            {
+                                                {{{4096, 5}, {4096, 5}}, ge::DT_BF16, ge::FORMAT_ND},
+                                                {{{tokenNum * topk}, {tokenNum * topk}}, ge::DT_INT32, ge::FORMAT_ND},
+                                                {{{4096}, {4096}}, ge::DT_INT32, ge::FORMAT_ND}
+                                            },
+                                            // attr
+                                            {
+                                                {"range", Ops::Transformer::AnyValue::CreateFrom<std::vector<int64_t>>(range)},
+                                                {"num_out_tokens", Ops::Transformer::AnyValue::CreateFrom<int64_t>(1)},
+                                                {"padded_mode", Ops::Transformer::AnyValue::CreateFrom<bool>(false)}
+                                            },
+                                            &compileInfo);
+    int64_t expectTilingKey = 6; // tilngkey
+    string expectTilingData = "64 16384 5 16 3 16 3072 1 3072 3072 3072 1 3072 3072 8096 0 4 1024 64 64 0 256 256 10 2 2 2338 4676 14028 1 1 1 1 256 1 256 1 256 1 256 4096 0 4096 74816 14048 14048 ";
+    std::vector<size_t> expectWorkspaces = {17567744}; // workspace
+    ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey, expectTilingData, expectWorkspaces);
+}
+
+TEST_F(MoeTokenPermuteWithEpTiling, moe_token_permute_with_ep_tiling_long_h)
+{
+    optiling::MoeTokenPermuteWithEpCompileInfo compileInfo = {}; // 根据tiling头文件中的compileInfo填入对应值，一般原先的用例里能找到
+    int64_t tokenNum = 16384;
+    int64_t topk = 3;
+    int64_t h = 32768;
+
+    std::vector<int64_t> range({0, 4096});
+    gert::TilingContextPara tilingContextPara("MoeTokenPermuteWithEp", // op_name
+                                            {
+                                            // input info
+                                            // shape都需要重复一次，比如shape为{16,16}，要填入{{16, 16}, {16, 16}}
+                                                {{{tokenNum, h}, {tokenNum, h}}, ge::DT_BF16, ge::FORMAT_ND},
+                                                {{{tokenNum, 3}, {tokenNum, 3}}, ge::DT_INT64, ge::FORMAT_ND},
+                                                {{{tokenNum, 3}, {tokenNum, 3}}, ge::DT_BF16, ge::FORMAT_ND}
+                                            },
+                                            // output info
+                                            {
+                                                {{{4096, h}, {4096, h}}, ge::DT_BF16, ge::FORMAT_ND},
+                                                {{{tokenNum * topk}, {tokenNum * topk}}, ge::DT_INT32, ge::FORMAT_ND},
+                                                {{{4096}, {4096}}, ge::DT_INT32, ge::FORMAT_ND}
+                                            },
+                                            // attr
+                                            {
+                                                {"range", Ops::Transformer::AnyValue::CreateFrom<std::vector<int64_t>>(range)},
+                                                {"num_out_tokens", Ops::Transformer::AnyValue::CreateFrom<int64_t>(1)},
+                                                {"padded_mode", Ops::Transformer::AnyValue::CreateFrom<bool>(false)}
+                                            },
+                                            &compileInfo);
+    int64_t expectTilingKey = 6; // tilngkey
+    string expectTilingData = "64 16384 32768 32768 3 16 3072 1 3072 3072 3072 1 3072 3072 8096 0 4 1024 64 64 0 256 256 65536 2 5450 1 5450 16350 1 1 1 1 256 1 256 256 1 256 1 4096 0 4096 65536 16352 16352 ";
+    std::vector<size_t> expectWorkspaces = {17567744}; // workspace
+    ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey, expectTilingData, expectWorkspaces);
+}
+
+TEST_F(MoeTokenPermuteWithEpTiling, moe_token_permute_with_ep_tiling_error)
+{
+    optiling::MoeTokenPermuteWithEpCompileInfo compileInfo = {}; // 根据tiling头文件中的compileInfo填入对应值，一般原先的用例里能找到
+    int64_t tokenNum = 16384;
+    int64_t topk = 3;
+    int64_t h = 32768;
+
+    std::vector<int64_t> range({0, 4096});
+    gert::TilingContextPara tilingContextPara("MoeTokenPermuteWithEp", // op_name
+                                            {
+                                            // input info
+                                            // shape都需要重复一次，比如shape为{16,16}，要填入{{16, 16}, {16, 16}}
+                                                {{{tokenNum, h}, {tokenNum, h}}, ge::DT_BF16, ge::FORMAT_ND},
+                                                {{{2, 3}, {2, 3}}, ge::DT_INT64, ge::FORMAT_ND},
+                                                {{{tokenNum, 3}, {tokenNum, 3}}, ge::DT_BF16, ge::FORMAT_ND}
+                                            },
+                                            // output info
+                                            {
+                                                {{{4096, h}, {4096, h}}, ge::DT_BF16, ge::FORMAT_ND},
+                                                {{{tokenNum * topk}, {tokenNum * topk}}, ge::DT_INT32, ge::FORMAT_ND},
+                                                {{{4096}, {4096}}, ge::DT_INT32, ge::FORMAT_ND}
+                                            },
+                                            // attr
+                                            {
+                                                {"range", Ops::Transformer::AnyValue::CreateFrom<std::vector<int64_t>>(range)},
+                                                {"num_out_tokens", Ops::Transformer::AnyValue::CreateFrom<int64_t>(1)},
+                                                {"padded_mode", Ops::Transformer::AnyValue::CreateFrom<bool>(false)}
+                                            },
+                                            &compileInfo);
+    int64_t expectTilingKey = 6; // tilngkey
+    string expectTilingData = "64 16384 5 16 3 16 3072 1 3072 3072 3072 1 3072 3072 8096 0 4 1024 64 64 0 256 256 10 2 2 2338 4676 14028 1 1 1 1 256 1 256 1 256 1 256 4096 0 4096 74816 14048 14048 ";
+    std::vector<size_t> expectWorkspaces = {17567744}; // workspace
+    ExecuteTestCase(tilingContextPara, ge::GRAPH_FAILED, expectTilingKey, expectTilingData, expectWorkspaces);
 }
