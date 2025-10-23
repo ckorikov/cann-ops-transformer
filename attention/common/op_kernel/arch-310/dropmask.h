@@ -221,7 +221,8 @@ __aicore__ inline void GenDropMask(TBuf<> &dropMaskBuf, TBuf<> &maskIndexBuf, ui
     int32_t eachRowOffset = CeilDiv(runInfo.actualS2Size, philoxRandomNumAlignSize);
 
     LocalTensor<int32_t> dropmaskIndexVec = maskIndexBuf.template Get<int32_t>();
-    if (runInfo.actualS1Size % constInfo.s1BaseSize == 0 && runInfo.actualS2Size % constInfo.s2BaseSize == 0) {
+    if (constInfo.layoutType != (uint8_t)LayOutTypeEnum::LAYOUT_TND &&
+        runInfo.actualS1Size % constInfo.s1BaseSize == 0 && runInfo.actualS2Size % constInfo.s2BaseSize == 0) {
         // 如果s1和s2方向上都没有尾块，一个核内dropmaskIndexVec只需要生成一次，可以复用
         if (runInfo.taskId == 0) {
             GenIndexVec(dropmaskIndexVec, runInfo.halfS1RealSize, eachRowIndexNum, eachRowOffset);
