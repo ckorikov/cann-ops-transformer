@@ -99,7 +99,6 @@ protected:
     __aicore__ inline int64_t GetKeyRopeOffset(RunInfo<isInfer> &runInfo);
     __aicore__ inline void InitPostQuant(__gm__ uint8_t *postQuantScale, __gm__ uint8_t *postQuantOffset);
 
-    __aicore__ inline bool IsLastBN(uint32_t bnStartIdx, uint32_t bnEndIdx); 
     __aicore__ inline void IterateBmm1(RunInfo<isInfer> &runInfo, RunParamStr<isInfer>& runParam, bool isLast);
     __aicore__ inline void WaitBmm1Result(RunInfo<isInfer> &runInfo);
     __aicore__ inline void IterateBmm2(RunInfo<isInfer> &runInfo);
@@ -924,24 +923,6 @@ __aicore__ inline int64_t FlashAttentionKvsameBN2GS1S2<CHILD_SPEC_TEMPLATE_ARGS>
 }
 
 CHILD_SPEC_TEMPLATE
-__aicore__ inline bool FlashAttentionKvsameBN2GS1S2<CHILD_SPEC_TEMPLATE_ARGS>::IsLastBN(uint32_t bnStartIdx, uint32_t bnEndIdx)
-{
-    // TND actualSeqQLen为0时需特殊处理
-    if (bnStartIdx != bnEndIdx - 1) {
-        for (uint32_t bnIdx = bnStartIdx + 1; bnIdx < bnEndIdx; bnIdx++) {
-            uint32_t boIdx = bnIdx / constInfo.n2Size;
-            uint32_t boStart = bnStartIdx / constInfo.n2Size;
-            if (actualSeqQlenAddr[boIdx] != actualSeqQlenAddr[boStart]) {
-                if (!isPa && (actualSeqKvlenAddr[boIdx] == actualSeqKvlenAddr[boIdx - 1]))
-                    continue;
-                return false;
-            }
-        }
-    }
-    return true;
-}
-
-CHILD_SPEC_TEMPLATE
 __aicore__ inline void FlashAttentionKvsameBN2GS1S2<CHILD_SPEC_TEMPLATE_ARGS>::Process()
 {
     int32_t actualCoreNums = this->tilingData->multiCoreParamsRegbase.coreNum;
@@ -986,12 +967,7 @@ __aicore__ inline void FlashAttentionKvsameBN2GS1S2<CHILD_SPEC_TEMPLATE_ARGS>::P
     }
     int64_t multiCoreInnerIdx = 0;
     for (uint32_t bnIdx = bnStartIdx; bnIdx < bnEndIdx; bnIdx++) {
-        bool lastBN;
-        if constexpr (layout == LayOutTypeEnum::LAYOUT_TND) {
-            lastBN = IsLastBN(bnIdx, bnEndIdx);
-        } else {
-            lastBN = (bnIdx == bnEndIdx - 1);
-        }
+        bool lastBN = (bnIdx == bnEndIdx - 1);
         if constexpr (!isFd) {
             runParam.boIdx = bnIdx / constInfo.n2Size;
             runParam.n2oIdx = bnIdx % constInfo.n2Size;
@@ -1021,12 +997,6 @@ __aicore__ inline void FlashAttentionKvsameBN2GS1S2<CHILD_SPEC_TEMPLATE_ARGS>::P
             bool lastLoopThisCore = lastBN && (gS1Index == runParam.s1LoopTimes - 1);
             if ((s1NoNeedCalc || s2NoNeedCalc) && !lastLoopThisCore) {
                 continue;
-            }
-            if constexpr (layout == LayOutTypeEnum::LAYOUT_TND) {
-                // TND 当前的actualSeqQLen为0时continue
-                if (runParam.boIdx > 0 && actualSeqQlenAddr[runParam.boIdx] - actualSeqQlenAddr[runParam.boIdx - 1] == 0) {
-                    continue;
-                }
             }
             // s2轴循环计数，支持sparse和非sparse场景
             s2LoopLimit = runParam.s2LoopEndIdx - 1;
