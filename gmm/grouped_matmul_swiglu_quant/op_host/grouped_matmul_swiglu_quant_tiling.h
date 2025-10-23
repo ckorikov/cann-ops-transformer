@@ -85,9 +85,9 @@ constexpr int64_t A8W4_MSD_TILING_KEY_MODE = 2;
 constexpr int64_t SPLITWORKSPACE_TILING_KEY_MODE = 1;
 constexpr int64_t COMMON_TILING_KEY_MODE = 0;
 constexpr int64_t A8W4_TOKEN_THRESHOLD = 32;
-constexpr int64_t A8W4_DECODE_BASEM = 128;
-constexpr int64_t A8W4_DECODE_BASEK = 256;
-constexpr int64_t A8W4_DECODE_BASEN = 256;
+constexpr int64_t A8W4_BASEM = 128;
+constexpr int64_t A8W4_BASEK = 256;
+constexpr int64_t A8W4_BASEN = 256;
 } // namespace GroupedMatmulSwigluQuantTiling
 
 #endif // AIR_CXX_RUNTIME_V2_OP_IMPL_GROUPED_MATMUL_SWIGLU_QUANT_H

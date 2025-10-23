@@ -55,19 +55,20 @@ static int64_t CalMaxRowInUb_A8W4(const gert::TilingContext *context, const uint
     // 表达式：8.5 * row * n + 4 * alignUp(row, 8) + 6n + 64 <= ubSize
 
     // 忽略对齐项的初始估计
-    int64_t maxRowEstimate = (ubSize - CONSTANT_TERM - LINEAR_TERM_FACTOR * n) / static_cast<int64_t>(WEIGHT_FACTOR * n);
+    int64_t maxRowEstimate =
+        (ubSize - CONSTANT_TERM - LINEAR_TERM_FACTOR * n) / static_cast<int64_t>(WEIGHT_FACTOR * n);
 
     // 考虑对齐影响
     uint64_t alignedRow = (maxRowEstimate + ALIGNMENT - 1) / ALIGNMENT * ALIGNMENT;
-    uint64_t totalSize = static_cast<uint64_t>(WEIGHT_FACTOR * maxRowEstimate * n) + ALIGNMENT_TERM_FACTOR * alignedRow +
-                         LINEAR_TERM_FACTOR * n + CONSTANT_TERM;
+    uint64_t totalSize = static_cast<uint64_t>(WEIGHT_FACTOR * maxRowEstimate * n) +
+                         ALIGNMENT_TERM_FACTOR * alignedRow + LINEAR_TERM_FACTOR * n + CONSTANT_TERM;
 
     // 如果超过UB大小，逐步减少row直到满足条件
     while (totalSize > ubSize && maxRowEstimate > 0) {
         maxRowEstimate--;
         alignedRow = (maxRowEstimate + ALIGNMENT - 1) / ALIGNMENT * ALIGNMENT;
-        totalSize = static_cast<uint64_t>(WEIGHT_FACTOR * maxRowEstimate * n) + ALIGNMENT_TERM_FACTOR * alignedRow + LINEAR_TERM_FACTOR * n +
-                    CONSTANT_TERM;
+        totalSize = static_cast<uint64_t>(WEIGHT_FACTOR * maxRowEstimate * n) + ALIGNMENT_TERM_FACTOR * alignedRow +
+                    LINEAR_TERM_FACTOR * n + CONSTANT_TERM;
     }
 
     if (maxRowEstimate < MIN_ROW_THRESHOLD) {
@@ -160,42 +161,18 @@ ASCENDC_EXTERN_C graphStatus TilingGMMSwigluQuant(gert::TilingContext *context)
         row = CalMaxRowInUb(context, compileInfoPtr->ubSize_, n);
     }
 
-    uint32_t baseM = compileInfoPtr->baseM_;
-    uint32_t baseK = 256; // 256： 初始化baseK
-    uint32_t baseN = compileInfoPtr->baseN_;
-    if (isA8W4MSD) {
-        uint32_t avgTokens = m / groupNum;
-        if (avgTokens < A8W4_TOKEN_THRESHOLD) {
-            baseM = A8W4_DECODE_BASEM;
-            baseK = A8W4_DECODE_BASEK;
-            baseN = A8W4_DECODE_BASEN;
-        }
-    }
-    OP_LOGI(context->GetNodeName(), "GMMSWIGLUQUANT_TILING: baseM is %u, baseK is %u, baseN is %u.", baseM, baseK, baseN);
-
     tilingData.gmmSwigluBaseParams.set_groupNum(groupNum);
     tilingData.gmmSwigluBaseParams.set_coreNum(compileInfoPtr->aicNum_);
     tilingData.gmmSwigluBaseParams.set_K(k);
     tilingData.gmmSwigluBaseParams.set_N(n);
     tilingData.gmmSwigluBaseParams.set_M(m);
-    tilingData.gmmSwigluBaseParams.set_baseM(baseM);
-    tilingData.gmmSwigluBaseParams.set_baseN(baseN);
+    tilingData.gmmSwigluBaseParams.set_baseM(A8W4_BASEM);
+    tilingData.gmmSwigluBaseParams.set_baseN(A8W4_BASEN);
     tilingData.gmmSwiglu.set_maxProcessRowNum(row);
     tilingData.gmmSwiglu.set_groupListLen(groupNum);
     tilingData.gmmSwiglu.set_tokenLen(n);
 
     tilingData.gmmSwigluBaseParams.set_quantGroupNum(quantGroupNum);
-
-    OP_LOGD(context->GetNodeName(), "grouped_matmul_swiglu_quant_tiling.");
-    OP_LOGD(context->GetNodeName(), "gmmSwigluBaseParams.groupNum:  %ld", groupNum);
-    OP_LOGD(context->GetNodeName(), "gmmSwigluBaseParams.coreNum:   %u ", compileInfoPtr->aicNum_);
-    OP_LOGD(context->GetNodeName(), "gmmSwigluBaseParams.M:         %ld", m);
-    OP_LOGD(context->GetNodeName(), "gmmSwigluBaseParams.K:         %ld", k);
-    OP_LOGD(context->GetNodeName(), "gmmSwigluBaseParams.N:         %ld", n);
-    OP_LOGD(context->GetNodeName(), "gmmSwiglu.maxProcessRowNum:    %ld", row);
-    OP_LOGD(context->GetNodeName(), "gmmSwiglu.groupListLen:        %ld", groupNum);
-    OP_LOGD(context->GetNodeName(), "gmmSwiglu.tokenLen:            %ld", n);
-    OP_LOGD(context->GetNodeName(), "gmmSwiglu.quantGroupNum:       %ld", quantGroupNum);
 
     auto ascendcPlatform = platform_ascendc::PlatformAscendC(context->GetPlatformInfo());
     using namespace matmul_tiling;
@@ -205,8 +182,8 @@ ASCENDC_EXTERN_C graphStatus TilingGMMSwigluQuant(gert::TilingContext *context)
     tiling.SetBType(TPosition::GM, CubeFormat::NZ, matmul_tiling::DataType::DT_INT4);
     tiling.SetCType(TPosition::GM, CubeFormat::ND, matmul_tiling::DataType::DT_FLOAT16);
     tiling.SetBias(false);
-    tiling.SetShape(baseM, baseN, k);
-    tiling.SetFixSplit(baseM, baseN, baseK);
+    tiling.SetShape(A8W4_BASEM, A8W4_BASEN, k);
+    tiling.SetFixSplit(A8W4_BASEM, A8W4_BASEN, A8W4_BASEK);
     tiling.SetOrgShape(m, n, k);
     tiling.SetBufferSpace(-1, -1, -1);
     OP_CHECK_IF(
@@ -214,7 +191,10 @@ ASCENDC_EXTERN_C graphStatus TilingGMMSwigluQuant(gert::TilingContext *context)
         OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "grouped_matmul_swiglu_quant_tiling, get tiling failed"),
         return GRAPH_FAILED);
     if (isA8W4MSD) {
-        tilingData.mmTilingData.set_dbL0B(baseN == A8W4_DECODE_BASEN ? 1 : DOUBLE_BUFFER); // baseN为512时不开L0B的db
+        tilingData.mmTilingData.set_baseM(A8W4_BASEM);
+        tilingData.mmTilingData.set_baseN(A8W4_BASEN);
+        tilingData.mmTilingData.set_baseK(A8W4_BASEK);
+        tilingData.mmTilingData.set_dbL0B(DOUBLE_BUFFER);
         tilingData.mmTilingData.set_stepKa(NUM_FOUR);
         tilingData.mmTilingData.set_stepKb(NUM_FOUR);
         tilingData.mmTilingData.set_depthA1(NUM_EIGHT);
@@ -223,12 +203,12 @@ ASCENDC_EXTERN_C graphStatus TilingGMMSwigluQuant(gert::TilingContext *context)
         tilingData.mmTilingData.set_stepN(1);
     }
     auto workspaceSizes = context->GetWorkspaceSizes(1);
-    int64_t usrWorkspaceLimut = USER_WORKSPACE_LIMIT;
+    int64_t usrWorkspaceLimit = USER_WORKSPACE_LIMIT;
     int64_t mLimit = 0;
     if (isA8W4MSD) {
-        mLimit = ((usrWorkspaceLimut / DOUBLE_WORKSPACE_SPLIT) / (k * sizeof(int8_t) + 2 * n * sizeof(half)));
+        mLimit = ((usrWorkspaceLimit / DOUBLE_WORKSPACE_SPLIT) / (k * sizeof(int8_t) + DOUBLE_ROW * n * sizeof(half)));
     } else {
-        mLimit = ((usrWorkspaceLimut / DOUBLE_WORKSPACE_SPLIT) / INT32_DTYPE_SIZE) / n;
+        mLimit = ((usrWorkspaceLimit / DOUBLE_WORKSPACE_SPLIT) / INT32_DTYPE_SIZE) / n;
     }
     OP_CHECK_IF(mLimit <= 0,
                 OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "mLimit is %ld must over then 0.", mLimit),
@@ -250,10 +230,23 @@ ASCENDC_EXTERN_C graphStatus TilingGMMSwigluQuant(gert::TilingContext *context)
         workspaceSizes[0] = SYS_WORKSPACE_SIZE + (workSpaceMTemp * n * sizeof(int32_t));
     }
     bool isSplitWorkSpace = m > mLimit * DOUBLE_WORKSPACE_SPLIT;
-    OP_LOGD(context->GetNodeName(), "USER_WORKSPACE_LIMIT:         %ld", usrWorkspaceLimut);
-    OP_LOGD(context->GetNodeName(), "mLimit:                       %ld", mLimit);
-    OP_LOGD(context->GetNodeName(), "workspaceSizes:               %lu", workspaceSizes[0]);
-    OP_LOGD(context->GetNodeName(), "isSplitWorkSpace:             %s", isSplitWorkSpace ? "true" : "false");
+    OP_LOGD(context->GetNodeName(), "grouped_matmul_swiglu_quant_tiling.");
+    OP_LOGD(context->GetNodeName(), "gmmSwigluBaseParams.groupNum:      %ld", groupNum);
+    OP_LOGD(context->GetNodeName(), "gmmSwigluBaseParams.coreNum:       %u ", compileInfoPtr->aicNum_);
+    OP_LOGD(context->GetNodeName(), "gmmSwigluBaseParams.M:             %ld", m);
+    OP_LOGD(context->GetNodeName(), "gmmSwigluBaseParams.K:             %ld", k);
+    OP_LOGD(context->GetNodeName(), "gmmSwigluBaseParams.N:             %ld", n);
+    OP_LOGD(context->GetNodeName(), "gmmSwigluBaseParams.baseM:         %ld", A8W4_BASEM);
+    OP_LOGD(context->GetNodeName(), "gmmSwigluBaseParams.baseN:         %ld", A8W4_BASEN);
+    OP_LOGD(context->GetNodeName(), "gmmSwigluBaseParams.mLimit:        %ld", mLimit);
+    OP_LOGD(context->GetNodeName(), "gmmSwigluBaseParams.quantGroupNum: %ld", quantGroupNum);
+    OP_LOGD(context->GetNodeName(), "gmmSwiglu.maxProcessRowNum:        %ld", row);
+    OP_LOGD(context->GetNodeName(), "gmmSwiglu.groupListLen:            %ld", groupNum);
+    OP_LOGD(context->GetNodeName(), "gmmSwiglu.tokenLen:                %ld", n);
+    OP_LOGD(context->GetNodeName(), "USER_WORKSPACE_LIMIT:              %ld", usrWorkspaceLimit);
+    OP_LOGD(context->GetNodeName(), "workspaceSizes:                    %lu", workspaceSizes[0]);
+    OP_LOGD(context->GetNodeName(), "isSplitWorkSpace:                  %s", isSplitWorkSpace ? "true" : "false");
+    OP_LOGD(context->GetNodeName(), "GMMSWIGLUQUANT_TILING: baseM is %u, baseK is %u, baseN is %u.", A8W4_BASEM, A8W4_BASEK, A8W4_BASEN);
     SetTilingKey(context, isSplitWorkSpace, isA8W4MSD);
     tilingData.SaveToBuffer(context->GetRawTilingData()->GetData(), context->GetRawTilingData()->GetCapacity());
     context->SetBlockDim(compileInfoPtr->aicNum_); // block dim is the number of aicube
