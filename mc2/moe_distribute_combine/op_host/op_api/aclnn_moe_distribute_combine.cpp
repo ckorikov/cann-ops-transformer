@@ -26,6 +26,7 @@ extern "C" {
 enum NnopbaseHcclServerType {
     NNOPBASE_HCCL_SERVER_TYPE_AICPU = 0,
     NNOPBASE_HCCL_SERVER_TYPE_MTE,
+    NNOPBASE_HCCL_SERVER_TYPE_CCU,
     NNOPBASE_HCCL_SERVER_TYPE_END
 };
 
@@ -140,6 +141,8 @@ aclnnStatus aclnnMoeDistributeCombine(void *workspace, uint64_t workspaceSize, a
     if (NnopbaseSetHcclServerType) {
         if (GetCurrentPlatformInfo().GetSocVersion() == SocVersion::ASCEND910B) {
             NnopbaseSetHcclServerType(executor, NNOPBASE_HCCL_SERVER_TYPE_AICPU);
+        } else if (GetCurrentPlatformInfo().GetSocVersion() == SocVersion::ASCEND910_95) {
+            NnopbaseSetHcclServerType(executor, NNOPBASE_HCCL_SERVER_TYPE_CCU);
         } else {
             NnopbaseSetHcclServerType(executor, NNOPBASE_HCCL_SERVER_TYPE_MTE);
         }
