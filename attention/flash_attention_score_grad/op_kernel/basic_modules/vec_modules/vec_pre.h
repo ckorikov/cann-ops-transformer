@@ -91,16 +91,8 @@ template <class TILING_TYPE> __aicore__ inline void VectorInitOuput<TILING_TYPE>
         InitOutput<float>(dqWorkSpaceGm[dqOffset], initdqSize, 0);
     }
 
-    AscendC::PipeBarrier<PIPE_V>();
-    event_t eventIDVToMTE3 = static_cast<event_t>(GetTPipePtr()->FetchEventID(HardEvent::MTE3_V));
-    SetFlag<HardEvent::MTE3_V>(eventIDVToMTE3);
-    WaitFlag<HardEvent::MTE3_V>(eventIDVToMTE3);
-
     if (g_coreType == AIV && cBlockIdx < kvPreBlockTotal) {
         InitOutput<float>(dkWorkSpaceGm[dkvOffset], initdkSize, 0);
-        AscendC::PipeBarrier<PIPE_V>();
-        SetFlag<HardEvent::MTE3_V>(eventIDVToMTE3);
-        WaitFlag<HardEvent::MTE3_V>(eventIDVToMTE3);
         InitOutput<float>(dvWorkSpaceGm[dkvOffset], initdkSize, 0);
     }
 }

@@ -180,25 +180,10 @@ __aicore__ inline void FlashAttentionVarLenScoreSameAB<layOutType, hasPse, hasAt
             }
             AscendC::InitOutput<INPUT_T>(this->attentionOutGm[accumSize * this->n2GD2],
                                          actualS1Len * this->n2GD2, static_cast<INPUT_T>(0.0));
-
-            AscendC::PipeBarrier<PIPE_V>();
-            event_t eventIDVToMTE3 = static_cast<event_t>(GetTPipePtr()->FetchEventID(HardEvent::MTE3_V));
-            SetFlag<HardEvent::MTE3_V>(eventIDVToMTE3);
-            WaitFlag<HardEvent::MTE3_V>(eventIDVToMTE3);
-
             AscendC::InitOutput<float>(this->softmaxMaxGm[accumSize * this->n2G * 8],
                                        actualS1Len * this->n2G * 8, static_cast<float>(0.0));
-
-            AscendC::PipeBarrier<PIPE_V>();
-            SetFlag<HardEvent::MTE3_V>(eventIDVToMTE3);
-            WaitFlag<HardEvent::MTE3_V>(eventIDVToMTE3);
-
             AscendC::InitOutput<float>(this->softmaxSumGm[accumSize * this->n2G * 8],
                                        actualS1Len * this->n2G * 8, static_cast<float>(0.0));
-
-            AscendC::PipeBarrier<PIPE_V>();
-            SetFlag<HardEvent::MTE3_V>(eventIDVToMTE3);
-            WaitFlag<HardEvent::MTE3_V>(eventIDVToMTE3);
         }
     }
     this->InitBuffer();
