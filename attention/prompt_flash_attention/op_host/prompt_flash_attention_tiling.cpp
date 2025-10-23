@@ -22,7 +22,7 @@
 #include "log/log.h"
 #include "err/ops_err.h"
 #include "../../prompt_flash_attention/op_kernel/prompt_flash_attention_tiling_data.h"
-#include "../../prompt_flash_attention/op_host/prompt_flash_attention_tiling_func.h"
+#include "../../prompt_flash_attention/op_host/prompt_flash_attention_tiling.h"
 #include "../../prompt_flash_attention/op_kernel/prompt_flash_attention_template_tiling_key.h"
 
 #include <cstdint>
@@ -201,7 +201,7 @@ constexpr int64_t S1_VEC2_BASE_8_HOST_TILING = 8;
 constexpr int64_t S1_VEC2_MULTIPLIER_2_HOST_TILING = 2;
 
 // tilingkey mode
-uint8_t g_tail = 0;             // 第0位
+uint8_t g_tail = 7;             // 第0位
 uint8_t g_newTiling = 0;        // 第1位
 uint8_t g_qT = 0;               // 第2位 
 uint8_t g_precisionMode = 0;    // 第3位         
@@ -217,7 +217,7 @@ uint8_t g_kvT = 0;              // 第11位
 uint8_t g_templateVersion = 0;  //第18位
 uint8_t g_kvlayoutT = 0;
 uint8_t g_flashDecode = 0;
-uint8_t g_templateMode = 0;
+uint8_t g_templateMode = 2;
 
 inline int32_t ConvertValueToIndexMM(int32_t val, int32_t idxBound)
 {
@@ -5496,6 +5496,10 @@ ge::graphStatus PromptFlashAttentionTiling::RunBigKernelTilingWithParams(Context
 
     size_t* workspaces = contextKeyParams.workspaceSize;
     workspaces[0] = GetPFAWorkSpaceSize(tilingData);
+    g_templateVersion += 1;
+    tilingKey = GET_TPL_TILING_KEY(static_cast<int>(g_qT), static_cast<int>(g_kvT), static_cast<int>(g_outT), static_cast<int>(g_pageAttention), static_cast<int>(g_layoutT),
+                                   static_cast<int>(g_kvlayoutT), static_cast<int>(g_flashDecode), static_cast<int>(g_enablePrefix), static_cast<int>(g_msdMode), static_cast<int>(g_tail), static_cast<int>(g_newTiling), static_cast<int>(g_precisionMode),
+                                   static_cast<int>(g_mmType), static_cast<int>(g_cvdiffBase), static_cast<int>(g_cvdiffMla), static_cast<int>(g_templateVersion), static_cast<int>(g_templateMode));
     OP_LOGI(contextKeyParams.opName, "The Tiling key is %lu", tilingKey);
 
     return ge::GRAPH_SUCCESS;
@@ -6736,20 +6740,6 @@ PFA_EXTERN_C ge::graphStatus TilingPromptFlashAttention(gert::TilingContext* con
                return ge::GRAPH_FAILED);
     ContextParamsForPFATiling contextParamsForPFATiling;
     uint64_t tilingKey = 7;  // 7: default tiling key
-    g_tail = 7;
-    g_newTiling = 0;
-    g_qT = 0;
-    g_precisionMode = 0;
-    g_outT = 0;
-    g_layoutT = 0;
-    g_mmType = 0;
-    g_pageAttention = 0;
-    g_enablePrefix = 0;
-    g_msdMode = 0;
-    g_cvdiffBase = 0;
-    g_cvdiffMla = 0;
-    g_kvT = 0;
-    g_templateVersion = 0;
     uint32_t blockDimToBeSet;
     auto ret = ConvertContextToPFAParams(context, contextParamsForPFATiling);
     OP_CHECK_IF(ret == ge::GRAPH_FAILED, OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "fail to convert to PFAParams"),
@@ -6758,10 +6748,6 @@ PFA_EXTERN_C ge::graphStatus TilingPromptFlashAttention(gert::TilingContext* con
     PromptFlashAttentionTiling flashTiling(nullptr);
 
     ret = flashTiling.RunBigKernelTilingWithParams(contextParamsForPFATiling, tilingKey, blockDimToBeSet, tilingData);
-    g_templateVersion += 1;
-    tilingKey = GET_TPL_TILING_KEY(static_cast<int>(g_qT), static_cast<int>(g_kvT), static_cast<int>(g_outT), static_cast<int>(g_pageAttention), static_cast<int>(g_layoutT),
-                                   static_cast<int>(g_kvlayoutT), static_cast<int>(g_flashDecode), static_cast<int>(g_enablePrefix), static_cast<int>(g_msdMode), static_cast<int>(g_tail), static_cast<int>(g_newTiling), static_cast<int>(g_precisionMode),
-                                   static_cast<int>(g_mmType), static_cast<int>(g_cvdiffBase), static_cast<int>(g_cvdiffMla), static_cast<int>(g_templateVersion), static_cast<int>(g_templateMode));
     context->SetTilingKey(tilingKey);
     context->SetBlockDim(blockDimToBeSet);
     flashTiling.PromptFlashAttentionSetTilingData(context, tilingData);

@@ -3127,13 +3127,10 @@ ge::graphStatus IFATiling::GenTilingKey() const
             kvLayoutInfo.kvLayoutVal = 1U;
        }
     context_->tilingKey = GET_TPL_TILING_KEY(static_cast<uint8_t>(inputQVal),
-            static_cast<uint8_t>(inputKvVal), static_cast<uint8_t>(outputVal), static_cast<uint8_t>(originVal),
-            static_cast<uint8_t>(paVal), static_cast<uint8_t>(splitKvVal),
-            static_cast<uint8_t>(layoutVal),
-            static_cast<uint8_t>(antiquantMode_),
-            static_cast<uint8_t>(kvLayoutInfo.kvLayoutVal),
-            static_cast<uint8_t>(kvLayoutInfo.amlaMode),
-            static_cast<uint8_t>(balanceMode), static_cast<uint8_t>(modeVal), static_cast<uint8_t>(perfMode_));
+            static_cast<uint8_t>(inputKvVal), static_cast<uint8_t>(outputVal), static_cast<uint8_t>(paVal), static_cast<uint8_t>(layoutVal),
+            static_cast<uint8_t>(kvLayoutInfo.kvLayoutVal), static_cast<uint8_t>(splitKvVal), 0, 
+            static_cast<uint8_t>(antiquantMode_), static_cast<uint8_t>(originVal), static_cast<uint8_t>(kvLayoutInfo.amlaMode),
+            static_cast<uint8_t>(balanceMode), static_cast<uint8_t>(modeVal), static_cast<uint8_t>(perfMode_), 0, 0, 1);
 
     OP_LOGI(context_->opName, "IFA tilingKey: %lu.", context_->tilingKey);
 

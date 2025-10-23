@@ -114,9 +114,10 @@ void FiaTilingNonQuantMla::GenTilingKey()
 
     bool isFlashDecode = (kvSplit_ > 0);
     bool isPageAttention = (fiaInfo_->pageAttentionFlag && fiaInfo_->s2Size != 0);
-    tilingKey_ = GET_TPL_TILING_KEY(inputQVal, inputKvVal, outputVal, static_cast<uint8_t>(fiaInfo_->inputLayout),
-                                    static_cast<uint8_t>(fiaInfo_->inputKvLayout), 0U, 0U, 0U, 0U,
-                                    isFlashDecode, isPageAttention, fiaInfo_->sysPrefixFlag, 0, 3U);
+    tilingKey_ = GET_TPL_TILING_KEY(static_cast<uint8_t>(inputQVal), static_cast<uint8_t>(inputKvVal), static_cast<uint8_t>(outputVal), static_cast<uint8_t>(isPageAttention),
+                                    static_cast<uint8_t>(fiaInfo_->inputLayout),
+                                    static_cast<uint8_t>(fiaInfo_->inputKvLayout), static_cast<uint8_t>(isFlashDecode), static_cast<uint8_t>(fiaInfo_->sysPrefixFlag),
+                                    0, 0, 0, 0, 3, 0, 0, 0, 0);
     OP_LOGI(fiaInfo_->opName, "FIA tilingKey_: %lu.", tilingKey_);
 }
 
