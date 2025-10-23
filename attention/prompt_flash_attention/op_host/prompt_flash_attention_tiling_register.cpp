@@ -13,7 +13,7 @@
  * \brief
  */
 #include "err/ops_err.h"
-#include "../../prompt_flash_attention/op_host/prompt_flash_attention_tiling_func.h"
+#include "../../prompt_flash_attention/op_host/prompt_flash_attention_tiling.h"
 #include "register/op_def_registry.h"
 
 using namespace ge;

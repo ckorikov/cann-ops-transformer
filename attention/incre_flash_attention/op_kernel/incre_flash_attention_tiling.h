@@ -1,5 +1,4 @@
-/**
- * Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
+* Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
  * This file is a part of the CANN Open Software.
  * Licensed under CANN Open Software License Agreement Version 1.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
@@ -17,182 +16,6 @@
 
 #include <cstdint>
 #include "kernel_tiling/kernel_tiling.h"
-// #include "tiling/tiling_api.h"
-// #include "register/op_def_registry.h"
-// #include "../../prompt_flash_attention/op_host/prompt_flash_attention_tiling.h"
-// #include "../../prompt_flash_attention/op_host/prompt_flash_attention_tiling_context.h"
-
-// #ifdef ASCENDC_OP_TEST
-// #define IFA_EXTERN_C extern "C"
-// #else
-// #define IFA_EXTERN_C
-// #endif
-// namespace optiling {
-// #if (__CCE_AICORE__ == 310) || (defined __DAV_310R6__)
-
-// BEGIN_TILING_DATA_DEF(IncreFlashAttentionInitOutputParams)
-// TILING_DATA_FIELD_DEF(uint32_t, isPerChnOut)
-// TILING_DATA_FIELD_DEF(uint32_t, isOutQuantTypeBf16)
-// TILING_DATA_FIELD_DEF(uint32_t, singleCoreSize)
-// TILING_DATA_FIELD_DEF(uint32_t, singleCoreLseSize)
-// TILING_DATA_FIELD_DEF(int64_t, totalOutputSize)
-// TILING_DATA_FIELD_DEF(int64_t, totalLseOutputSize)
-// TILING_DATA_FIELD_DEF(uint32_t, needInit)
-// TILING_DATA_FIELD_DEF(uint32_t, isBSNDOut)
-// END_TILING_DATA_DEF
-// REGISTER_TILING_DATA_CLASS(IncreFlashAttentionInitOutputParamsOp, IncreFlashAttentionInitOutputParams)
-
-// BEGIN_TILING_DATA_DEF(IncreFlashAttentionBaseParams)
-// TILING_DATA_FIELD_DEF(uint32_t, batchSize)
-// TILING_DATA_FIELD_DEF(uint32_t, seqSize)
-// TILING_DATA_FIELD_DEF(uint32_t, qSeqSize)
-// TILING_DATA_FIELD_DEF(uint32_t, headSize)
-// TILING_DATA_FIELD_DEF(uint32_t, headSizeV)
-// TILING_DATA_FIELD_DEF(uint32_t, blockSize)
-// TILING_DATA_FIELD_DEF(uint32_t, maxBlockNumPerBatch)
-// TILING_DATA_FIELD_DEF(uint32_t, maxBlockNumPerSeq)
-// TILING_DATA_FIELD_DEF(float, scaleValue)
-// TILING_DATA_FIELD_DEF(uint32_t, kvHeadNum)
-// TILING_DATA_FIELD_DEF(uint32_t, headNumRatio)
-// TILING_DATA_FIELD_DEF(uint32_t, qHeadNum)
-// TILING_DATA_FIELD_DEF(uint32_t, nNumOfQInOneGroup)
-// TILING_DATA_FIELD_DEF(uint32_t, batchContinuousFlag)
-// TILING_DATA_FIELD_DEF(uint32_t, pseShiftFlag)
-// TILING_DATA_FIELD_DEF(uint32_t, pseShiftB)
-// TILING_DATA_FIELD_DEF(uint32_t, pseShiftS)
-// TILING_DATA_FIELD_DEF(uint32_t, pseShiftS0)
-// TILING_DATA_FIELD_DEF(uint32_t, selectWithByteMaskTmpMinSize)
-// TILING_DATA_FIELD_DEF(uint32_t, actualLenQDims)
-// TILING_DATA_FIELD_DEF(uint32_t, actualLenDims)
-// TILING_DATA_FIELD_DEF(uint32_t, qPaddingFlag)
-// TILING_DATA_FIELD_DEF(uint32_t, kvPaddingFlag)
-// TILING_DATA_FIELD_DEF(uint32_t, msdIterNum)
-// TILING_DATA_FIELD_DEF(uint32_t, l2CacheOffFlag)
-// TILING_DATA_FIELD_DEF(uint32_t, antiquantPerTensorFlag)
-// TILING_DATA_FIELD_DEF(uint32_t, antiquantPerHeadFlag)
-// TILING_DATA_FIELD_DEF(uint32_t, antiquantParamsInPagedAttentionFlag)
-// TILING_DATA_FIELD_DEF(uint32_t, attenMaskFlag)
-// TILING_DATA_FIELD_DEF(uint32_t, attenMaskBatch)
-// TILING_DATA_FIELD_DEF(uint32_t, attenMaskQSize)
-// TILING_DATA_FIELD_DEF(uint32_t, attenMaskSize)
-// TILING_DATA_FIELD_DEF(uint32_t, softmaxLseFlag)
-// TILING_DATA_FIELD_DEF(uint32_t, totalBlockNum)
-// TILING_DATA_FIELD_DEF(uint32_t, paKvShapeType)
-// TILING_DATA_FIELD_DEF(uint32_t, antiqSeqSize)
-// TILING_DATA_FIELD_DEF(int32_t, preToken)
-// TILING_DATA_FIELD_DEF(int32_t, nextToken)
-// TILING_DATA_FIELD_DEF(uint32_t, isRowInvalid)
-// TILING_DATA_FIELD_DEF(uint32_t, sparseMode)
-// TILING_DATA_FIELD_DEF(uint32_t, slidingFlag)
-// TILING_DATA_FIELD_DEF(int64_t, windowSize)
-// END_TILING_DATA_DEF
-// REGISTER_TILING_DATA_CLASS(IncreFlashAttentionBaseParamsOp, IncreFlashAttentionBaseParams)
-
-// BEGIN_TILING_DATA_DEF(IncreFlashAttentionCoreParams)
-// TILING_DATA_FIELD_DEF_ARR(uint32_t, 50, coreSidxEnd); // 50:MAX_CORE_NUM of 910b coreSidxEnd数组首地址要保证8字节对齐
-// TILING_DATA_FIELD_DEF_ARR(uint32_t, 66, coreSidxEndRegbase); // 66:MAX_CORE_NUM of 910_95
-// TILING_DATA_FIELD_DEF_ARR(uint32_t, 66, coreSposStartRegbase); // 66:MAX_CORE_NUM of 910_95
-// END_TILING_DATA_DEF;
-// REGISTER_TILING_DATA_CLASS(IncreFlashAttentionCoreParamsOp, IncreFlashAttentionCoreParams);
-
-// BEGIN_TILING_DATA_DEF(IncreFlashAttentionSplitCoreParams)
-// TILING_DATA_FIELD_DEF(uint32_t, headSplit)
-// TILING_DATA_FIELD_DEF(uint32_t, maskHeadStride)
-// TILING_DATA_FIELD_DEF(uint32_t, maskBatchStride)
-// TILING_DATA_FIELD_DEF(uint32_t, qTokens)
-// TILING_DATA_FIELD_DEF(uint32_t, isTriu)
-// TILING_DATA_FIELD_DEF(uint32_t, maxSeqlen)
-// TILING_DATA_FIELD_DEF(uint32_t, totalQBlockNum)
-// TILING_DATA_FIELD_DEF(uint32_t, seqStepQ)
-// TILING_DATA_FIELD_DEF(uint32_t, seqStepKv)
-// TILING_DATA_FIELD_DEF_ARR(uint32_t, 50, startBlk); 
-// TILING_DATA_FIELD_DEF_ARR(uint32_t, 50, endBlk); 
-// TILING_DATA_FIELD_DEF_ARR(uint32_t, 50, startBatch); 
-// TILING_DATA_FIELD_DEF_ARR(uint32_t, 50, endBatch);
-// END_TILING_DATA_DEF;
-// REGISTER_TILING_DATA_CLASS(IncreFlashAttentionSplitCoreParamsOp, IncreFlashAttentionSplitCoreParams);
-
-// BEGIN_TILING_DATA_DEF(IncreFlashAttentionSingleCoreParams)
-// TILING_DATA_FIELD_DEF(uint32_t, sInnerLoopTimes);
-// TILING_DATA_FIELD_DEF(uint32_t, singleProcessSInnerSize);
-// TILING_DATA_FIELD_DEF(uint32_t, singleProcessSInnerSizeTail);
-// TILING_DATA_FIELD_DEF(uint32_t, usedCoreNum);
-// TILING_DATA_FIELD_DEF(uint32_t, formerCoreNum);
-// TILING_DATA_FIELD_DEF(uint32_t, blockSplitBn2Range);
-// TILING_DATA_FIELD_DEF(uint32_t, tailSplitedBatchRange);
-// TILING_DATA_FIELD_DEF(uint32_t, groupSplitSize);
-// TILING_DATA_FIELD_DEF(uint32_t, s1SplitSize);
-// END_TILING_DATA_DEF;
-// REGISTER_TILING_DATA_CLASS(IncreFlashAttentionSingleCoreParamsOp, IncreFlashAttentionSingleCoreParams)
-
-// BEGIN_TILING_DATA_DEF(IncreFlashAttentionSingleCoreTensorSize)
-// TILING_DATA_FIELD_DEF(uint32_t, mmResUbSize);
-// TILING_DATA_FIELD_DEF(uint32_t, bmm2ResUbSize);
-// END_TILING_DATA_DEF;
-// REGISTER_TILING_DATA_CLASS(IncreFlashAttentionSingleCoreTensorSizeOp, IncreFlashAttentionSingleCoreTensorSize)
-
-// BEGIN_TILING_DATA_DEF(IncreFlashAttentionSplitKVParams)
-// TILING_DATA_FIELD_DEF(uint32_t, s2)
-// TILING_DATA_FIELD_DEF(uint32_t, sInnerLoopSize)
-// TILING_DATA_FIELD_DEF(uint32_t, accumOutSize)
-// TILING_DATA_FIELD_DEF(uint32_t, logSumExpSize)
-// END_TILING_DATA_DEF
-// REGISTER_TILING_DATA_CLASS(IncreFlashAttentionSplitKVParamsOp, IncreFlashAttentionSplitKVParams)
-
-// BEGIN_TILING_DATA_DEF(IncreFlashAttentionTilingData)
-// TILING_DATA_FIELD_DEF_STRUCT(TCubeTiling, bmm1TilingData);
-// TILING_DATA_FIELD_DEF_STRUCT(TCubeTiling, bmm2TilingData);
-// TILING_DATA_FIELD_DEF_STRUCT(IncreFlashAttentionBaseParams, baseParams);
-// TILING_DATA_FIELD_DEF_STRUCT(IncreFlashAttentionSplitKVParams, splitKVParams);
-// TILING_DATA_FIELD_DEF_STRUCT(IncreFlashAttentionCoreParams, increFlashAttentionCoreParams);
-// TILING_DATA_FIELD_DEF_STRUCT(IncreFlashAttentionSingleCoreParams, increFlashAttentionSingleCoreParams);
-// TILING_DATA_FIELD_DEF_STRUCT(IncreFlashAttentionSingleCoreTensorSize, increFlashAttentionSingleCoreTensorSize);
-// TILING_DATA_FIELD_DEF_STRUCT(SoftMaxTiling, softmaxFlashTilingData);
-// TILING_DATA_FIELD_DEF_STRUCT(IncreFlashAttentionInitOutputParams, outputParams);
-// END_TILING_DATA_DEF
-// REGISTER_TILING_DATA_CLASS(IncreFlashAttentionTilingDataOp, IncreFlashAttentionTilingData)
-
-// BEGIN_TILING_DATA_DEF(IncreFlashAttentionTilingDataPrefix)
-// TILING_DATA_FIELD_DEF_STRUCT(IncreFlashAttentionTilingData, base);
-// TILING_DATA_FIELD_DEF(uint64_t, prefixAttenOutOffset); // 临时输出偏移
-// TILING_DATA_FIELD_DEF(uint64_t, userPromptAttenOutOffset);
-// TILING_DATA_FIELD_DEF(uint64_t, tmpLseOffset);
-// TILING_DATA_FIELD_DEF(uint64_t, prefixLen); // prefix 长度
-// TILING_DATA_FIELD_DEF(uint32_t, formerCoreNum); // combine 分核参数，参考普通bn分核流程，总数不超过blockdim
-// TILING_DATA_FIELD_DEF(uint32_t, blockSplitBn2Range);
-// TILING_DATA_FIELD_DEF(uint32_t, tailSplitedBatchRange);
-// TILING_DATA_FIELD_DEF(uint32_t, usedCoreNum);
-// TILING_DATA_FIELD_DEF(uint32_t, batchSizeQ);
-// END_TILING_DATA_DEF
-// REGISTER_TILING_DATA_CLASS(IncreFlashAttentionTilingDataPrefixOp, IncreFlashAttentionTilingDataPrefix)
-
-// BEGIN_TILING_DATA_DEF(IncreFlashAttentionTilingDataV2)
-// TILING_DATA_FIELD_DEF_STRUCT(IncreFlashAttentionTilingData, tilingBase);
-// TILING_DATA_FIELD_DEF_STRUCT(IncreFlashAttentionTilingDataPrefix, tilingPrefix);
-// END_TILING_DATA_DEF
-// REGISTER_TILING_DATA_CLASS(IncreFlashAttention, IncreFlashAttentionTilingDataV2)
-
-// BEGIN_TILING_DATA_DEF(IncreFlashAttentionTilingAtbDataV2)
-// TILING_DATA_FIELD_DEF_STRUCT(IncreFlashAttentionBaseParams, tilingBase);
-// TILING_DATA_FIELD_DEF_STRUCT(IncreFlashAttentionSplitCoreParams, tilingPerCore);
-// END_TILING_DATA_DEF
-// REGISTER_TILING_DATA_CLASS(IncreFlashAttention_30000000000200000, IncreFlashAttentionTilingAtbDataV2)
-// REGISTER_TILING_DATA_CLASS(IncreFlashAttention_30000000000200001, IncreFlashAttentionTilingAtbDataV2)
-// REGISTER_TILING_DATA_CLASS(IncreFlashAttention_30000000000200302, IncreFlashAttentionTilingAtbDataV2)
-// REGISTER_TILING_DATA_CLASS(IncreFlashAttention_30000000000222322, IncreFlashAttentionTilingAtbDataV2)
-
-// BEGIN_TILING_DATA_DEF(IncreFlashAttentionEmptyInputTilingData)
-// TILING_DATA_FIELD_DEF_STRUCT(IncreFlashAttentionInitOutputParams, outputParams);
-// END_TILING_DATA_DEF
-// REGISTER_TILING_DATA_CLASS(IncreFlashAttention_13, IncreFlashAttentionEmptyInputTilingData)
-// REGISTER_TILING_DATA_CLASS(IncreFlashAttention_14, IncreFlashAttentionEmptyInputTilingData)
-// REGISTER_TILING_DATA_CLASS(IncreFlashAttention_27, IncreFlashAttentionEmptyInputTilingData)
-// REGISTER_TILING_DATA_CLASS(IncreFlashAttention_30, IncreFlashAttentionEmptyInputTilingData)
-
-// REGISTER_TILING_DATA_CLASS(IncreFlashAttention_1000000000000000090, FlashAttentionScoreSimplifiedTilingData)
-// REGISTER_TILING_DATA_CLASS(IncreFlashAttention_1000000000000000020, PromptFlashAttentionTilingData)
-
-// #else
 
 class IncreFlashAttentionBaseParams {
 public:
@@ -298,7 +121,7 @@ public:
     void set_batchContinuousFlag(uint32_t batchContinuousFlag) { this->batchContinuousFlag = batchContinuousFlag; }
     void set_pseShiftFlag(uint32_t pseShiftFlag) { this->pseShiftFlag = pseShiftFlag; }
     void set_pseShiftB(uint32_t pseShiftB) { this->pseShiftB = pseShiftB; }
-    void set_pseShiftS(uint32_t pseShiftS) { this->batchSize = pseShiftS; }
+    void set_pseShiftS(uint32_t pseShiftS) { this->pseShiftS = pseShiftS; }
     void set_pseShiftS0(uint32_t pseShiftS0) { this->pseShiftS0 = pseShiftS0; }
     void set_selectWithByteMaskTmpMinSize(uint32_t selectWithByteMaskTmpMinSize) { this->selectWithByteMaskTmpMinSize = selectWithByteMaskTmpMinSize; }
     void set_actualLenQDims(uint32_t actualLenQDims) { this->actualLenQDims = actualLenQDims; }
@@ -335,6 +158,21 @@ public:
     uint32_t* get_coreSidxEnd() { return coreSidxEnd; }
     uint32_t* get_coreSidxEndRegbase() { return coreSidxEndRegbase; }
     uint32_t* get_coreSposStartRegbase() { return coreSposStartRegbase; }
+    void set_coreSidxEnd(const uint32_t* values) { 
+        for (int i = 0; i < 50; i++) {
+            this->coreSidxEnd[i] = values[i];
+        }
+    }
+    void set_coreSidxEndRegbase(const uint32_t* values) { 
+        for (int i = 0; i < 66; i++) {
+            this->coreSidxEndRegbase[i] = values[i];
+        }
+     }
+    void set_coreSposStartRegbase(const uint32_t* values) { 
+        for (int i = 0; i < 66; i++) {
+            this->coreSposStartRegbase[i] = values[i];
+        } 
+    }
 };
 
 class IncreFlashAttentionSplitCoreParams {
@@ -376,24 +214,24 @@ public:
     void set_totalQBlockNum(uint32_t totalQBlockNum) { this->totalQBlockNum = totalQBlockNum; }
     void set_seqStepQ(uint32_t seqStepQ) { this->seqStepQ = seqStepQ; }
     void set_seqStepKv(uint32_t seqStepKv) { this->seqStepKv = seqStepKv; }
-    void set_startBlk(const uint32_t* startBlk) { 
+    void set_startBlk(const uint32_t* values) { 
         for (int i = 0; i < 50; i++) {
-            this->startBlk[i] = startBlk[i];
+            this->startBlk[i] = values[i];
         }
     }
-    void set_endBlk(const uint32_t* endBlk) { 
+    void set_endBlk(const uint32_t* values) { 
         for (int i = 0; i < 50; i++) {
-            this->endBlk[i] = endBlk[i];
+            this->endBlk[i] = values[i];
         }
     }  
-    void set_startBatch(const uint32_t* startBatch) {
+    void set_startBatch(const uint32_t* values) {
         for (int i = 0; i < 50; i++) {
-            this->startBatch[i] = startBatch[i];
+            this->startBatch[i] = values[i];
         }
     }
-    void set_endBatch(const uint32_t* endBatch) {
+    void set_endBatch(const uint32_t* values) {
         for (int i = 0; i < 50; i++) {
-            this->endBatch[i] = endBatch[i];
+            this->endBatch[i] = values[i];
         }
     }
 };
@@ -613,6 +451,30 @@ public:
     uint32_t* get_coreSidxEnd() { return coreSidxEnd; }
     uint32_t* get_coreS1OuterEnd() { return coreS1OuterEnd; }
     uint32_t* get_coreS2End() { return coreS2End; }
+    void set_coreBEnd(
+        const uint32_t* values) {
+        for (int i = 0; i < MAX_AIC_CORE_NUM; i++) {
+            this->coreBEnd[i] = values[i];
+        }
+    }
+    void set_coreSidxEnd(
+        const uint32_t* values) {
+        for (int i = 0; i < MAX_AIC_CORE_NUM; i++) {
+            this->coreSidxEnd[i] = values[i];
+        }
+    }
+    void set_coreS1OuterEnd(
+        const uint32_t* values) {
+        for (int i = 0; i < MAX_AIC_CORE_NUM; i++) {
+            this->coreS1OuterEnd[i] = values[i];
+        }
+    }
+    void set_coreS2End(
+        const uint32_t* values) {
+        for (int i = 0; i < MAX_AIC_CORE_NUM; i++) {
+            this->coreS2End[i] = values[i];
+        }
+    }
 };
 
 class IncreFlashAttentionSingleCoreParamsMla {
@@ -681,6 +543,30 @@ public:
     
     void set_tndFDCoreArrLen(uint32_t tndFDCoreArrLen) { this->tndFDCoreArrLen = tndFDCoreArrLen; }
     void set_reserve(uint32_t reserve) { this->reserve = reserve; }
+    void set_balanceFDCoreBArr(
+        const uint32_t* values) {
+        for (int i = 0; i < MAX_AIC_CORE_NUM; i++) {
+            this->balanceFDCoreBArr[i] = values[i];
+        }
+    }
+    void set_balanceFDCoreS1Arr(
+        const uint32_t* values) {
+        for (int i = 0; i < MAX_AIC_CORE_NUM; i++) {
+            this->balanceFDCoreS1Arr[i] = values[i];
+        }
+    }
+    void set_balanceFDCoreKVSplitArr(
+        const uint32_t* values) {
+        for (int i = 0; i < MAX_AIC_CORE_NUM; i++) {
+            this->balanceFDCoreKVSplitArr[i] = values[i];
+        }
+    }
+    void set_balanceFDCoreStartKVSplitNum(
+        const uint32_t* values) {
+        for (int i = 0; i < MAX_AIC_CORE_NUM; i++) {
+            this->balanceFDCoreStartKVSplitNum[i] = values[i];
+        }
+    }
 };
 
 class IncreFlashAttentionTilingDataMla {
