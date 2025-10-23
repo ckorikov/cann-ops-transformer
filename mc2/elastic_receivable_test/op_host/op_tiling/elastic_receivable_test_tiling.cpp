@@ -118,6 +118,10 @@ static bool CheckAndSetAttrs(const char* nodeName, const gert::TilingContext* co
         OP_LOGE(nodeName, "WorldSize is invalid, only support [%d, %d], but got worldSize=%d.", 
             MIN_WORLD_SIZE, MAX_WORLD_SIZE, *worldSizePtr), return false);
 
+    OP_TILING_CHECK((*worldSizePtr % DIE_PER_RANK != 0),
+        OP_LOGE(nodeName, "WorldSize is invalid, only support WorldSize be a multiple of 16, but got worldSize=%d.", 
+        *worldSizePtr), return false);
+
     tilingData.elasticReceivableTestInfo.worldSize = *worldSizePtr;
 
     OP_TILING_CHECK((*rankNumPtr > MAX_RANK_SIZE),
@@ -126,7 +130,7 @@ static bool CheckAndSetAttrs(const char* nodeName, const gert::TilingContext* co
 
     OP_TILING_CHECK((strnlen(groupPtr, MAX_GROUP_NAME_LENGTH) == 0) ||
         (strnlen(groupPtr, MAX_GROUP_NAME_LENGTH) == MAX_GROUP_NAME_LENGTH),
-        OP_LOGE(nodeName, "group's length is invalid."), return ge::GRAPH_FAILED);
+        OP_LOGE(nodeName, "group's length is invalid."), return false);
 
     tilingData.elasticReceivableTestInfo.rankNum = *rankNumPtr;
 
