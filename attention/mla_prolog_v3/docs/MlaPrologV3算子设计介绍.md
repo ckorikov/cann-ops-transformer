@@ -147,19 +147,20 @@ q^N = \alpha_q\cdot\mathrm{RmsNorm}(x \cdot W^{DQ}) \cdot W^{UQ} \cdot W^{UK} \t
 $$
 
 $$
-q^R = ROPE(RmsNorm(x \cdot W^{DQ}) \cdot W^{QR}) \tag{b}
+q^R = \mathrm{ROPE}(\alpha_q\cdot\mathrm{RmsNorm}(x \cdot W^{DQ}) \cdot W^{QR}) \tag{b}
 $$
 
 $$
-k^R = ROPE(x \cdot W^{KR}) \tag{c}
+k^R = \mathrm{ROPE}(x \cdot W^{KR}) \tag{c}
 $$
 
 $$
-c^{KV} = RmsNorm(x \cdot W^{DKV}) \tag{d}
+c^{KV} = \alpha_{kv}\cdot\mathrm{RmsNorm}(x \cdot W^{DKV}) \tag{d}
 $$
 
 完整计算流程可以分解为以下的基本计算单元。
 注意，其中$\alpha_q$和$\alpha_{kv}$分别对应query和key的尺度矫正因子，由论文[Meituan](https://arxiv.org/abs/2509.01322)提出。
+$\alpha_q$和$\alpha_{kv}$分别对应接口文档的qcQrScale和kcScale。
 
 ### MatmulCq
 对输入$x$乘以Query下采样矩阵$W^{DQ}$进行下采样操作得到压缩后的Query矩阵$c^Q$。
@@ -170,13 +171,13 @@ $$
 本章节（以及后续章节）涉及的矩阵乘法模块使用AscendC Kernel API中Matmul高阶API实现。相关API使用可以参考官网[算子实现->矩阵编程（高阶API）](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/80RC3alpha003/devguide/opdevg/ascendcopdevg/atlas_ascendc_10_0041.html)开发指南。
 
 ### RMSNormCq
-对压缩后的$Q$矩阵按行进行RMSNorm(均方根归一化)操作。RMSNorm操作需要传入两个超参$\gamma$和$\epsilon$，对应到接口文档中的$rmsnormGammaCq$和$rmsnormEpsilonCq$。
+对压缩后的$Q$矩阵按行进行RMSNorm(均方根归一化)操作。RMSNorm操作需要传入两个超参$\gamma$和$\epsilon$，对应到接口文档中的 rmsnormGammaCq 和 rmsnormEpsilonCq。
 $$
-c_{norm}^Q = RmsNorm(c^Q) \tag{2}
+c_{\mathrm{norm}}^Q = \mathrm{RmsNorm}(c^Q) \tag{2}
 $$
-RmsNorm的计算公式如下：
+$\mathrm{RmsNorm}$的计算公式如下：
 $$
-RmsNorm(x) = \gamma \cdot \frac{x_i}{RMS(x)}  \tag{3}
+\mathrm{RmsNorm}(x) = \gamma \cdot \frac{x_i}{RMS(x)}  \tag{3}
 $$
 $$
 RMS(x) = \sqrt{\frac{1}{N} \sum_{i=1}^{N} x_i^2 + \epsilon} \tag{4}  
@@ -191,15 +192,15 @@ $$
 $$
 k^R = x \cdot W^{KR} \tag{6}
 $$
-利用矩阵乘法的性质，$W^{DKV}$和$W^{KR}$矩阵可以横向拼接成一个矩阵$[W^{DKV}|W^{KR}]$来计算，该拼接矩阵对应接口文档的$weightDkvKr$参数。
+利用矩阵乘法的性质，$W^{DKV}$和$W^{KR}$矩阵可以横向拼接成一个矩阵$[W^{DKV}|W^{KR}]$来计算，该拼接矩阵对应接口文档的weightDkvKr参数。
 $$
 c^{KV}k^R = x \cdot [W^{DKV}|W^{KR}] = [x \cdot W^{DKV}|x \cdot W^{KR}] \tag{7}
 $$
 
 ### RMSNormCkv
-对压缩后的$KV$矩阵按行进行RMSNorm(均方根归一化)操作。RMSNorm操作需要传入两个超参$\gamma$和$\epsilon$，对应到接口文档中的$rmsnormGammaCkv$和$rmsnormEpsilonCkv$。
+对压缩后的$KV$矩阵按行进行RMSNorm(均方根归一化)操作。RMSNorm操作需要传入两个超参$\gamma$和$\epsilon$，对应到接口文档中的rmsnormGammaCkv和rmsnormEpsilonCkv。
 $$
-c_{norm}^{KV} = \alpha_{kv}\cdot\mathrm{RmsNorm}(c^{KV}) \tag{8}
+c_{\mathrm{norm}}^{KV} = \mathrm{RmsNorm}(c^{KV}) \tag{8}
 $$
 RmsNorm的计算参考公式（3）-（4）。
 
