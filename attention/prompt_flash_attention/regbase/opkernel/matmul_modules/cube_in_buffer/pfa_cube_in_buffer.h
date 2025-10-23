@@ -48,7 +48,7 @@ public:
         return cacheHead_;
     }
 
-    __aicore__ inline void FreeTensor(int32_t bufferPos = -1, const LocalTensor<SrcT>& tensor = NULL_TENSOR<SrcT>) {}
+    __aicore__ inline void FreeTensor(int32_t bufferPos = -1, const LocalTensor<SrcT>& tensor = LocalTensor<SrcT>{}) {}
 
     __aicore__ inline void Reset() {
         tscmGlobalPFA->localScm[tscmIndex_].FreeTensor(cacheHead_);

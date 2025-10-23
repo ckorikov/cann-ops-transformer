@@ -45,7 +45,7 @@ class IFACubeInBuffer {
     return lastTensor;
   }
 
-  __aicore__ inline void FreeTensor(int32_t bufferPos = -1, const LocalTensor<SRC_T>& tensor = NULL_TENSOR<SRC_T>) {
+  __aicore__ inline void FreeTensor(int32_t bufferPos = -1, const LocalTensor<SRC_T>& tensor = LocalTensor<SRC_T>{}) {
     queryScm[tscmIdx].FreeTensor(lastTensor);
   }
 
@@ -56,7 +56,7 @@ class IFACubeInBuffer {
   }
 
   __aicore__ inline LocalTensor<SRC_T> GetBuffer(int32_t iterIndex, int32_t bufferPos = -1) {
-    return NULL_TENSOR<SRC_T>;
+    return LocalTensor<SRC_T>{};
   }
 
   __aicore__ inline void EnQue(LocalTensor<SRC_T>& tensor) {
