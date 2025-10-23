@@ -613,13 +613,11 @@ ge::graphStatus GroupedQbmmTiling::DoLibApiTiling()
     if (inputParams_.bQuantMode == optiling::QuantMode::MX_PERGROUP_MODE) {
         if (basicTiling_.scaleFactorA >= SCALER_FACTOR_MIN && basicTiling_.scaleFactorA <= SCALER_FACTOR_MAX &&
             basicTiling_.scaleFactorB >= SCALER_FACTOR_MIN && basicTiling_.scaleFactorB <= SCALER_FACTOR_MAX) {
-            tilingData_.mmTilingData.set_mxTypePara(
-                (SCALER_FACTOR_MAX << SCALER_FACTOR_N_BIT) + (SCALER_FACTOR_MAX << SCALER_FACTOR_M_BIT) +
-                (basicTiling_.scaleFactorB << SCALER_FACTOR_B_BIT) + basicTiling_.scaleFactorA);
+            tilingData_.mmTilingData.set_mxTypePara((basicTiling_.scaleFactorB << SCALER_FACTOR_B_BIT) +
+                                                    basicTiling_.scaleFactorA);
         } else {
-            tilingData_.mmTilingData.set_mxTypePara(
-                (SCALER_FACTOR_MAX << SCALER_FACTOR_N_BIT) + (SCALER_FACTOR_MAX << SCALER_FACTOR_M_BIT) +
-                (SCALER_FACTOR_DEFAULT << SCALER_FACTOR_B_BIT) + SCALER_FACTOR_DEFAULT);
+            tilingData_.mmTilingData.set_mxTypePara((SCALER_FACTOR_DEFAULT << SCALER_FACTOR_B_BIT) +
+                                                    SCALER_FACTOR_DEFAULT);
         }
     }
 
