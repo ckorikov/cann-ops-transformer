@@ -21,7 +21,7 @@
 #else
 #include "../moe_distribute_dispatch/moe_distribute_base.h"
 #endif
-namespace {
+namespace MoeDistributeCombineA2Impl {
 constexpr uint8_t BUFFER_NUM = 2;                       // 多buf
 constexpr uint32_t STATE_OFFSET = 512;                  // 状态空间偏移地址
 constexpr uint32_t STATE_SPACE_SIZE = 1024 * 1024;      // 1M
@@ -80,8 +80,6 @@ struct TaskInfo {
     }
 };
 
-}  // namespace
-namespace MoeDistributeCombineA2Impl {
 #define TemplateMC2TypeA2Class typename ExpandXType, typename ExpandIdxType
 #define TemplateMC2TypeA2Func ExpandXType, ExpandIdxType
 using namespace AscendC;
