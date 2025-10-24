@@ -9,7 +9,7 @@
  */
 
 /*!
- * \file nsa_select_attention_infer_tiling.cc
+ * \file nsa_selected_attention_infer_tiling.cpp
  * \brief
  */
 
@@ -20,8 +20,8 @@
 #include "err/ops_err.h"
 #include "register/op_def_registry.h"
 #include "register/op_impl_registry.h"
-#include "nsa_select_attention_infer_tiling_base.h"
-#include "nsa_select_attention_infer_tiling.h"
+#include "nsa_selected_attention_infer_tiling_base.h"
+#include "nsa_selected_attention_infer_tiling.h"
 
 using namespace ge;
 using namespace AscendC;
@@ -50,7 +50,7 @@ void NsaSelectTiling::SetCoreNum()
 ge::graphStatus NsaSelectTiling::GetNpuInfo()
 {
     OP_CHECK_IF(context_->platformInfo == nullptr,
-        OPS_REPORT_VECTOR_INNER_ERR("NsaSelectAttentionInfer", "GetPlatformInfo is nullptr."), return ge::GRAPH_FAILED);
+        OPS_REPORT_VECTOR_INNER_ERR("NsaSelectedAttentionInfer", "GetPlatformInfo is nullptr."), return ge::GRAPH_FAILED);
 
     auto ascendcPlatform = platform_ascendc::PlatformAscendC(context_->platformInfo);
     libapiSize_ = ascendcPlatform.GetLibApiWorkSpaceSize();
@@ -65,7 +65,7 @@ ge::graphStatus NsaSelectTiling::GetNpuInfo()
     socVersion_ = NsaSocVersion::A2;
 
     OP_CHECK_IF(aicNum_ == 0 || aivNum_ == 0,
-        OPS_REPORT_VECTOR_INNER_ERR("NsaSelectAttentionInfer", "num of core obtained is 0."), return GRAPH_FAILED);
+        OPS_REPORT_VECTOR_INNER_ERR("NsaSelectedAttentionInfer", "num of core obtained is 0."), return GRAPH_FAILED);
     return ge::GRAPH_SUCCESS;
 }
 
@@ -691,7 +691,7 @@ ge::graphStatus NsaSelectTiling::CalcBlockDim()
 ge::graphStatus NsaSelectTiling::ConvertContext(gert::TilingContext &context, NsaSelectAttentionInferContext &nsaContext)
 {
     if (context.GetNodeName() == nullptr) {
-        OP_LOGE("NsaSelectAttentionInfer", "opName got from TilingContext is nullptr");
+        OP_LOGE("NsaSelectedAttentionInfer", "opName got from TilingContext is nullptr");
         return ge::GRAPH_FAILED;
     }
     nsaContext.opName = context.GetNodeName();
@@ -740,7 +740,7 @@ ge::graphStatus NsaSelectTiling::ConvertContext(gert::TilingContext &context, Ns
     nsaContext.scaleValue = attrs->GetAttrPointer<float>(SCALE_VALUE_ATTR_INDEX);
     nsaContext.sparseMode = attrs->GetAttrPointer<int64_t>(SPARSE_MODE_ATTR_INDEX);
     OP_CHECK_IF(context.GetWorkspaceSizes(1) == nullptr,
-            OPS_REPORT_VECTOR_INNER_ERR("NsaSelectAttentionInfer", "workSpaceSize got from GE is nullptr"),
+            OPS_REPORT_VECTOR_INNER_ERR("NsaSelectedAttentionInfer", "workSpaceSize got from GE is nullptr"),
             return ge::GRAPH_FAILED);
     nsaContext.workSpaces = context.GetWorkspaceSizes(1);
     return ge::GRAPH_SUCCESS;
@@ -780,7 +780,7 @@ ge::graphStatus NsaSelectTiling::NsaSelectAttentionInferSetTilingData(gert::Tili
                                                             NsaSelectAttentionInferTilingDataV2 &tilingData) const
 {
     OP_CHECK_IF(context.GetRawTilingData() == nullptr,
-            OPS_REPORT_VECTOR_INNER_ERR("NsaSelectAttentionInfer", "RawTilingData got from GE context is nullptr."),
+            OPS_REPORT_VECTOR_INNER_ERR("NsaSelectedAttentionInfer", "RawTilingData got from GE context is nullptr."),
             return GRAPH_FAILED);
     tilingData.SaveToBuffer(context.GetRawTilingData()->GetData(), context.GetRawTilingData()->GetCapacity());
     context.GetRawTilingData()->SetDataSize(tilingData.GetDataSize());
@@ -804,7 +804,7 @@ ge::graphStatus TilingNsaSelectAttentionInferAdapter(gert::TilingContext *contex
 
 Nsa_EXTERN_C ge::graphStatus TilingNsaSelectAttentionInfer(gert::TilingContext *context)
 {
-    OP_CHECK_IF(context == nullptr, OPS_REPORT_VECTOR_INNER_ERR("NsaSelectAttentionInfer", "Context is nullptr."),
+    OP_CHECK_IF(context == nullptr, OPS_REPORT_VECTOR_INNER_ERR("NsaSelectedAttentionInfer", "Context is nullptr."),
             return ge::GRAPH_FAILED);
     NsaSelectAttentionInferTilingDataV2 tilingData;
     NsaSelectAttentionInferContext nsaContext{.opName = nullptr,

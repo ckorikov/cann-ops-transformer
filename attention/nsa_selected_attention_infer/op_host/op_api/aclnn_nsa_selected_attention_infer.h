@@ -9,12 +9,12 @@
  */
 
 /*!
- * \file aclnn_nsa_select_attention_infer.h
+ * \file aclnn_nsa_selected_attention_infer.h
  * \brief
  */
 
-#ifndef OP_API_INC_LEVEL2_ACLNN_NSA_SELECT_ATTENTION_INFER_H_
-#define OP_API_INC_LEVEL2_ACLNN_NSA_SELECT_ATTENTION_INFER_H_
+#ifndef OP_API_INC_LEVEL2_ACLNN_NSA_SELECTED_ATTENTION_INFER_H_
+#define OP_API_INC_LEVEL2_ACLNN_NSA_SELECTED_ATTENTION_INFER_H_
 
 #include "aclnn/aclnn_base.h"
 
@@ -60,4 +60,4 @@ aclnnStatus aclnnNsaSelectedAttentionInfer(
 }
 #endif
 
-#endif // OP_API_INC_LEVEL2_ACLNN_NSA_SELECT_ATTENTION_INFER_H_
+#endif // OP_API_INC_LEVEL2_ACLNN_NSA_SELECTED_ATTENTION_INFER_H_

@@ -10,10 +10,10 @@ add_op_to_compiled_list()
 
 if (BUILD_OPEN_PROJECT)
     target_sources(op_host_aclnnExc PRIVATE
-        nsa_select_attention_infer_def.cpp
+        nsa_selected_attention_infer_def.cpp
     )
     add_ops_compile_options(
-            OP_NAME NsaSelectAttentionInfer
+            OP_NAME NsaSelectedAttentionInfer
             OPTIONS --cce-auto-sync=off
                     -Wno-deprecated-declarations
                     -Werror

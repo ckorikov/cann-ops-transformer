@@ -9,11 +9,11 @@
  */
 
 /*!
- * \file nsa_select_attention_infer_tiling_base.h
+ * \file nsa_selected_attention_infer_tiling_base.h
  * \brief
  */
-#ifndef NSA_SELECT_ATTENTION_INFER_BASE_DEFINE_H
-#define NSA_SELECT_ATTENTION_INFER_BASE_DEFINE_H
+#ifndef NSA_SELECTED_ATTENTION_INFER_BASE_DEFINE_H
+#define NSA_SELECTED_ATTENTION_INFER_BASE_DEFINE_H
 
 #include <cstdint>
 #include <string>
@@ -103,4 +103,4 @@ constexpr uint32_t COPYND2NZ_SRC_STRIDE_LIMITATION = 65535;
 }// namespace optiling
 
 
-#endif // NSA_SELECT_ATTENTION_INFER_BASE_DEFINE_H
+#endif // NSA_SELECTED_ATTENTION_INFER_BASE_DEFINE_H

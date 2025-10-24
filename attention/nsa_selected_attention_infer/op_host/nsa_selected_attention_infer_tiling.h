@@ -12,8 +12,8 @@
  * \file nsa_select_flash_attention_infer_tiling.h
  * \brief
  */
-#ifndef NSA_SELECT_ATTENTION_INFER_TILING_H_
-#define NSA_SELECT_ATTENTION_INFER_TILING_H_
+#ifndef NSA_SELECTED_ATTENTION_INFER_TILING_H_
+#define NSA_SELECTED_ATTENTION_INFER_TILING_H_
 
 #include <cstdint>
 #include <string>
@@ -102,7 +102,7 @@ REGISTER_TILING_DATA_CLASS(NsaSelectAttentionInferTilingDataOp, NsaSelectAttenti
 BEGIN_TILING_DATA_DEF(NsaSelectAttentionInferTilingDataV2)
 TILING_DATA_FIELD_DEF_STRUCT(NsaSelectAttentionInferTilingData, tilingBase);
 END_TILING_DATA_DEF
-REGISTER_TILING_DATA_CLASS(NsaSelectAttentionInfer, NsaSelectAttentionInferTilingDataV2)
+REGISTER_TILING_DATA_CLASS(NsaSelectedAttentionInfer, NsaSelectAttentionInferTilingDataV2)
 
 struct NsaSelectAttentionCompileInfo {
     int64_t core_num;
@@ -371,5 +371,5 @@ ge::graphStatus TilingNsaSelectAttentionInferAdapter(gert::TilingContext *contex
 Nsa_EXTERN_C ge::graphStatus TilingNsaSelectAttentionInfer(gert::TilingContext *context);
 
 } // namespace optiling
-#endif // NSA_SELECT_ATTENTION_INFER_TILING_H_
+#endif // NSA_SELECTED_ATTENTION_INFER_TILING_H_
  

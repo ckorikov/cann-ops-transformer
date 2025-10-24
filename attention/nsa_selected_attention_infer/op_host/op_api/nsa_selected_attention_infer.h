@@ -9,18 +9,18 @@
  */
 
 /*!
- * \file nsa_select_attention_infer.h
+ * \file nsa_selected_attention_infer.h
  * \brief
  */
 
-#ifndef OP_API_INC_LEVEL0_OP_NSA_SELECT_ATTENTION_INFER_OP_H_
-#define OP_API_INC_LEVEL0_OP_NSA_SELECT_ATTENTION_INFER_OP_H_
+#ifndef OP_API_INC_LEVEL0_OP_NSA_SELECTED_ATTENTION_INFER_OP_H_
+#define OP_API_INC_LEVEL0_OP_NSA_SELECTED_ATTENTION_INFER_OP_H_
 
 #include "opdev/op_executor.h"
 
 namespace l0op {
 
-const aclTensor* NsaSelectAttentionInfer(const aclTensor *query, 
+const aclTensor* NsaSelectedAttentionInfer(const aclTensor *query, 
                                         const aclTensor *key, 
                                         const aclTensor *value, 
                                         const aclTensor *topkIndices, 
@@ -39,5 +39,5 @@ const aclTensor* NsaSelectAttentionInfer(const aclTensor *query,
                                         aclOpExecutor *executor);
 }
 
-#endif // OP_API_INC_LEVEL0_OP_NSA_SELECT_ATTENTION_INFER_OP_H_
+#endif // OP_API_INC_LEVEL0_OP_NSA_SELECTE_ATTENTION_INFER_OP_H_
  
