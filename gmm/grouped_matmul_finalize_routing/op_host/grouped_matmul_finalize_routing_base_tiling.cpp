@@ -154,14 +154,17 @@ ge::graphStatus GroupedMatmulFinalizeRoutingBaseTiling::ParseAttr()
         return ge::GRAPH_FAILED;
     }
 
-    const auto tuningConfigPtr = attrs->GetAttrPointer<gert::ContinuousVector>(ATTR_TUNINGCONFIG_INDEX);
-    if (tuningConfigPtr != nullptr && tuningConfigPtr->GetSize() > 0) {
-        tuningConfig_ = (reinterpret_cast<const int64_t *>(tuningConfigPtr->GetData()))[0];
-        tuningConfig_ = (tuningConfig_ > 0) ? tuningConfig_ : 0;
-        useL1OptKernel_ = (tuningConfigPtr->GetSize() > 1 && k_ <= A8W4_L1OPT_MAX_K) ? true : false;
-    } else {
-        tuningConfig_ = 0;
-        useL1OptKernel_ = false;
+    useL1OptKernel_ = false; // 确定性场景默认不使用L1Opt
+    if (context_->GetDeterministic() == 0) { // 非确定性场景进一步判断tuningConfig
+        const auto tuningConfigPtr = attrs->GetAttrPointer<gert::ContinuousVector>(ATTR_TUNINGCONFIG_INDEX);
+        if (tuningConfigPtr != nullptr && tuningConfigPtr->GetSize() > 0) {
+            tuningConfig_ = (reinterpret_cast<const int64_t *>(tuningConfigPtr->GetData()))[0];
+            tuningConfig_ = (tuningConfig_ > 0) ? tuningConfig_ : 0;
+            useL1OptKernel_ = (tuningConfigPtr->GetSize() > 1 && k_ <= A8W4_L1OPT_MAX_K) ? true : false;
+        } else {
+            tuningConfig_ = 0;
+            useL1OptKernel_ = false;
+        }
     }
 
     return ge::GRAPH_SUCCESS;
@@ -276,7 +279,7 @@ ge::graphStatus GroupedMatmulFinalizeRoutingBaseTiling::W4A8L1OptTilingProcess()
 {
     uint32_t singleN = 1024;
     uint32_t singleM = 128;
-    size_t userWorkspaceSize = (CV_PARALL_NUM * blockDim_ * singleN * singleM * sizeof(int32_t) * EIGHT) + m_ * sizeof(float);
+    size_t userWorkspaceSize = (blockDim_ * singleN * singleM * sizeof(int32_t) * EIGHT) + m_ * sizeof(float);
     size_t systemWorkspaceSize = RPC_WORKSIZE * MB_SIZE;
 
     auto wFormat0 = static_cast<ge::Format>(ge::GetPrimaryFormat(context_->GetInputDesc(0)->GetStorageFormat()));
@@ -400,7 +403,7 @@ ge::graphStatus GroupedMatmulFinalizeRoutingBaseTiling::W8A8TilingProcess()
 
 void GroupedMatmulFinalizeRoutingBaseTiling::DeterministicTilingProcess()
 {
-    if (context_->GetDeterministic() == 0 || useL1OptKernel_) {
+    if (context_->GetDeterministic() == 0) {
         deterministicFlag_ = 0;
         return;
     }
