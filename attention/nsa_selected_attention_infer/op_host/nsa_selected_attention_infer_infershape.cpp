@@ -9,7 +9,7 @@
  */
 
 /*!
- * \file nsa_select_attention_infer_proto.cpp
+ * \file nsa_selected_attention_infer_proto.cpp
  * \brief
  */
 
@@ -30,7 +30,7 @@
  
  ge::graphStatus InferShapeNsaSelectAttentionInfer(gert::InferShapeContext *context)
  {
-     OP_LOGI(context, "Enter NsaSelectAttentionInfer runtime infershape impl.");
+     OP_LOGI(context, "Enter NsaSelectedAttentionInfer runtime infershape impl.");
      if (context == nullptr) {
          return ge::GRAPH_FAILED;
      }
@@ -89,6 +89,6 @@
      return ge::GRAPH_SUCCESS;
  }
  
- IMPL_OP(NsaSelectAttentionInfer).InferShape(InferShapeNsaSelectAttentionInfer).InferDataType(InferDataTypeNsaSelectAttentionInfer);
+ IMPL_OP(NsaSelectedAttentionInfer).InferShape(InferShapeNsaSelectAttentionInfer).InferDataType(InferDataTypeNsaSelectAttentionInfer);
  } // namespace ops
   

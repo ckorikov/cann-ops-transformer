@@ -9,7 +9,7 @@
  */
 
   /*!
- * \file nsa_select_attention_infer.h
+ * \file nsa_selected_attention_infer.h
  * \brief
  */
 #include "kernel_operator.h"

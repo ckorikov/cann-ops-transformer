@@ -8,16 +8,20 @@
  * See LICENSE in the root of the software repository for the full text of the License.
  */
 /*!
- * \file ts_nsa_select_attention_infer.h
+ * \file ts_nsa_selected_attention_infer.h
  * \brief  UTest 相关基类定义.
  */
 #pragma once
 
 #include "tests/utest/ts.h"
-#include "nsa_select_attention_infer_case.h"
+#include "nsa_selected_attention_infer_case.h"
 
+<<<<<<< HEAD:attention/nsa_select_attention_infer/tests/utest/ts_nsa_select_attention_infer.h
 using NsaSelectAttentionInferParam = ops::adv::tests::NsaSelectAttentionInfer::NsaSelectAttentionInferParam;
 using NsaSelectAttentionInferCase = ops::adv::tests::NsaSelectAttentionInfer::NsaSelectAttentionInferCase;
+=======
+using NsaSelectAttentionInferCase = ops::adv::tests::NsaSelectedAttentionInfer::NsaSelectAttentionInferCase;
+>>>>>>> 542e12d... 【nsa_select_attention_infer: rename】:attention/nsa_selected_attention_infer/tests/utest/ts_nsa_selected_attention_infer.h
 
 class Ts_NsaSelectAttentionInfer_WithParam : public Ts_WithParam<NsaSelectAttentionInferCase> {};
 class Ts_NsaSelectAttentionInfer_WithParam_Ascend910B1 : public Ts_WithParam_Ascend910B1<NsaSelectAttentionInferCase> {};

@@ -16,9 +16,9 @@
 #include "register/op_def_registry.h"
 
 namespace ops {
-    class NsaSelectAttentionInfer : public OpDef {
+    class NsaSelectedAttentionInfer : public OpDef {
     public:
-    explicit NsaSelectAttentionInfer(const char *name) : OpDef(name)
+    explicit NsaSelectedAttentionInfer(const char *name) : OpDef(name)
         {
             this->Input("query")
                 .ParamType(REQUIRED)
@@ -95,5 +95,5 @@ namespace ops {
             this->AICore().AddConfig("ascend910_93", aicore_config);
         }
     };
-    OP_ADD(NsaSelectAttentionInfer);
+    OP_ADD(NsaSelectedAttentionInfer);
     } // namespace ops

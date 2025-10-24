@@ -9,7 +9,7 @@
  */
 
 /*!
- * \file nsa_select_attention_infer.cpp
+ * \file nsa_selected_attention_infer.cpp
  * \brief
  */
 
@@ -20,9 +20,9 @@ using namespace op;
 
 namespace l0op {
 
-OP_TYPE_REGISTER(NsaSelectAttentionInfer);
+OP_TYPE_REGISTER(NsaSelectedAttentionInfer);
 
-const aclTensor* NsaSelectAttentionInfer(
+const aclTensor* NsaSelectedAttentionInfer(
     const aclTensor *query, 
     const aclTensor *key, 
     const aclTensor *value, 
@@ -41,7 +41,7 @@ const aclTensor* NsaSelectAttentionInfer(
     int64_t sparseMode,
     aclOpExecutor *executor)
 {
-    L0_DFX(NsaSelectAttentionInfer, query, key, value, topkIndices, attenMaskOptional, blockTableOptional,
+    L0_DFX(NsaSelectedAttentionInfer, query, key, value, topkIndices, attenMaskOptional, blockTableOptional,
             actualQSeqLenOptional, actualKvSeqLenOptional, layoutOptional, numHeads,
             numKeyValueHeads, selectBlockSize, selectBlockCount, pageBlockSize, scaleValue, sparseMode);
 
@@ -71,18 +71,18 @@ const aclTensor* NsaSelectAttentionInfer(
 
     auto attentionOut = executor->AllocTensor(query->GetDataType(), Format::FORMAT_ND, Format::FORMAT_ND);
 
-    auto ret = INFER_SHAPE(NsaSelectAttentionInfer,
+    auto ret = INFER_SHAPE(NsaSelectedAttentionInfer,
                         OP_INPUT(query, key, value, topkIndices, attenMaskOptional, blockTableOptional,
                                     actualSeqQLen, actualSeqKvLen),
                         OP_OUTPUT(attentionOut),
                         OP_ATTR(layoutOptional, numHeads, numKeyValueHeads, selectBlockSize, selectBlockCount,
                                 pageBlockSize, static_cast<float>(scaleValue), sparseMode));
     if (ret != ACLNN_SUCCESS) {
-        OP_LOGE(ACLNN_ERR_PARAM_INVALID, "NsaSelectAttentionInfer InferShape failed.");
+        OP_LOGE(ACLNN_ERR_PARAM_INVALID, "NsaSelectedAttentionInfer InferShape failed.");
         return nullptr;
     }
 
-    ADD_TO_LAUNCHER_LIST_AICORE(NsaSelectAttentionInfer,
+    ADD_TO_LAUNCHER_LIST_AICORE(NsaSelectedAttentionInfer,
                                 OP_INPUT(query, key, value, topkIndices, attenMaskOptional, blockTableOptional,
                                         actualSeqQLen, actualSeqKvLen),
                                 OP_OUTPUT(attentionOut),

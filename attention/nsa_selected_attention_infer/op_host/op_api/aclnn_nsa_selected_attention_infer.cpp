@@ -9,11 +9,11 @@
  */
 
 /*!
- * \file aclnn_nsa_select_attention_infer.cpp
+ * \file aclnn_nsa_selected_attention_infer.cpp
  * \brief
  */
 
-#include "nsa_select_attention_infer.h"
+#include "nsa_selected_attention_infer.h"
 #include "aclnn_kernels/contiguous.h"
 #include "aclnn_kernels/pad.h"
 #include "aclnn_kernels/reshape.h"
@@ -23,7 +23,7 @@
 #include "opdev/fast_vector.h"
 #include "opdev/op_errno.h"
 #include "opdev/op_executor.h"
-#include "aclnn_nsa_select_attention_infer.h"
+#include "aclnn_nsa_selected_attention_infer.h"
 
 using namespace op;
 using namespace ge;
@@ -388,7 +388,7 @@ aclnnStatus aclnnNsaSelectedAttentionInferGetWorkspaceSize(
     CHECK_RET(ContiguousTensors(query, key, value, topkIndices, blockTableOptional, attenMaskOptional, l0Executor) == ACLNN_SUCCESS,
             ACLNN_ERR_INNER_NULLPTR);
 
-    auto l0attentionOut = l0op::NsaSelectAttentionInfer(
+    auto l0attentionOut = l0op::NsaSelectedAttentionInfer(
         query, key, value, topkIndices, attenMaskOptional, blockTableOptional, actualQSeqLenOptional, 
         actualKvSeqLenOptional, layoutOptional, numHeads, numKeyValueHeads, selectBlockSize,
         selectBlockCount, pageBlockSize, scaleValue, sparseMode, l0Executor);
