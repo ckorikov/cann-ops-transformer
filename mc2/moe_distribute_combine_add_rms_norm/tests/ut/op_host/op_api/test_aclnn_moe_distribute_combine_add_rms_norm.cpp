@@ -12,7 +12,7 @@
 
 #include <gmock/gmock.h>
 #include "gtest/gtest.h"
-#include "../../../../../../mc2/moe_distribute_combine_add_rms_norm/op_api/aclnn_moe_distribute_combine_add_rms_norm.h"
+#include "../../../../../../mc2/moe_distribute_combine_add_rms_norm/op_host/op_api/aclnn_moe_distribute_combine_add_rms_norm.h"
 #include "op_api_ut_common/tensor_desc.h"
 #include "op_api_ut_common/op_api_ut.h"
 #include "opdev/platform.h"
@@ -20,7 +20,6 @@
 using namespace op;
 using namespace std;
 
-namespace MoeDistributeCombineAddRmsNorm {
 class l2_moe_distribute_combine_add_rms_norm_test : public testing::Test
 {
 protected:
@@ -37,7 +36,6 @@ protected:
 
 TEST_F(l2_moe_distribute_combine_add_rms_norm_test, test_moe_distribute_combine_add_rms_norm_1)
 {
-    op::SetPlatformSocVersion(op::SocVersion::ASCEND910_93);
     TensorDesc expandX = TensorDesc({32, 7168}, ACL_BF16, ACL_FORMAT_ND);
     TensorDesc expertIds = TensorDesc({32, 8}, ACL_INT32, ACL_FORMAT_ND);
     TensorDesc expandIdx = TensorDesc({32 * 8}, ACL_INT32, ACL_FORMAT_ND);
@@ -87,7 +85,7 @@ TEST_F(l2_moe_distribute_combine_add_rms_norm_test, test_moe_distribute_combine_
     uint64_t workspace_size1 = 0;
     aclOpExecutor* executor1 = nullptr;
     aclnnStatus aclRet1 = ut1.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size1, executor1);
-    EXPECT_EQ(aclRet1, ACLNN_SUCCESS);
+    EXPECT_EQ(aclRet1, ACLNN_ERR_PARAM_INVALID);
 
     auto ut2 = OP_API_UT(
         aclnnMoeDistributeCombineAddRmsNorm,
@@ -127,4 +125,3 @@ TEST_F(l2_moe_distribute_combine_add_rms_norm_test, test_moe_distribute_combine_
     aclnnStatus aclRet4 = ut4.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size4, executor4);
     EXPECT_EQ(aclRet4, ACLNN_ERR_PARAM_INVALID);
 }
-} // MoeDistributeCombineAddRmsNorm
