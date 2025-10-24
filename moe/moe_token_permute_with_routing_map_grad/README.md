@@ -56,21 +56,16 @@ $$
 
 ## 参数说明
 
-<table style="undefined;table-layout: fixed; width: 1576px"> <colgroup>
- <col style="width: 170px">
- <col style="width: 170px">
- <col style="width: 800px">
- <col style="width: 800px">
- <col style="width: 200px">
- </colgroup>
- <thead>
-  <tr>
-   <th>参数名</th>
-   <th>输入/输出</th>
-   <th>描述</th>
-   <th>数据类型</th>
-   <th>数据格式</th>
-  </tr></thead>
+<table style="table-layout: auto; width: 100%">
+  <thead>
+    <tr>
+      <th style="white-space: nowrap">参数名</th>
+      <th style="white-space: nowrap">输入/输出/属性</th>
+      <th style="white-space: nowrap">描述</th>
+      <th style="white-space: nowrap">数据类型</th>
+      <th style="white-space: nowrap">数据格式</th>
+    </tr>
+  </thead>
  <tbody>
   <tr>
    <td>permutedTokenOutputGrad</td>
@@ -95,10 +90,10 @@ $$
   </tr>
   <tr>
    <td>routingMap</td>
-   <td>计算输入</td>
+   <td>输入</td>
    <td>代表token到expert的映射关系。</td>
    <td>INT8</td>
-   <td>-</td>
+   <td>ND</td>
   </tr>
   <tr>
    <td>experts_num</td>
@@ -117,7 +112,7 @@ $$
   <tr>
    <td>dropAndPad</td>
    <td>属性</td>
-   <td>true表示开启dropPaddedMode，false表示关闭dropPaddedMode</td>
+   <td>true表示开启dropPaddedMode，false表示关闭dropPaddedMode。</td>
    <td>BOOL</td>
    <td>-</td>
   </tr>
@@ -140,8 +135,8 @@ $$
 
 ## 约束说明
 
- - 非dropPaddedMode 场景topK_num <= 512
- - 不支持混合精度输入，即permutedTokenOutputGrad、permutedProbsOutputGradOptional、tokensGradOut、probsGradOutOptional需要保持相同的数据类型
+ - 非dropPaddedMode 场景topK_num <= 512。
+ - 不支持混合精度输入，即permutedTokenOutputGrad、permutedProbsOutputGradOptional、tokensGradOut、probsGradOutOptional需要保持相同的数据类型。
 
 ## 调用说明
 

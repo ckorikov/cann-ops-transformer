@@ -238,9 +238,9 @@
 - 其他限制：该算子支持两种性能模板，进入两种性能模板需要分别额外满足以下条件，不满足条件则进入通用模板：
 
   - 进入低时延性能模板需要同时满足以下条件：
-    - x、expertIdx、scaleOptional 输入 Shape 要求分别为：(1, 7168)、(1, 8)、(256, 7168)
-    - x 数据类型要求：BFLOAT16
-    - 属性要求：activeExpertRangeOptional=[0, 256]、 quantMode=1、expertTokensNumType=2、expertNum=256
+    - x、expertIdx、scaleOptional 输入 Shape 要求分别为：(1, 7168)、(1, 8)、(256, 7168)。
+    - x 数据类型要求：BFLOAT16。
+    - 属性要求：activeExpertRangeOptional=[0, 256]、 quantMode=1、expertTokensNumType=2、expertNum=256。
 
   - 进入大 batch 性能模板需要同时满足以下条件：
     - NUM_ROWS范围为[384, 8192]

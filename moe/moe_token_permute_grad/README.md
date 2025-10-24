@@ -33,21 +33,16 @@
 
 ## 参数说明
 
-<table style="undefined;table-layout: fixed; width: 1576px"> <colgroup>
- <col style="width: 170px">
- <col style="width: 170px">
- <col style="width: 800px">
- <col style="width: 800px">
- <col style="width: 200px">
- </colgroup>
- <thead>
-  <tr>
-   <th>参数名</th>
-   <th>输入/输出</th>
-   <th>描述</th>
-   <th>数据类型</th>
-   <th>数据格式</th>
-  </tr></thead>
+<table style="table-layout: auto; width: 100%">
+  <thead>
+    <tr>
+      <th style="white-space: nowrap">参数名</th>
+      <th style="white-space: nowrap">输入/输出/属性</th>
+      <th style="white-space: nowrap">描述</th>
+      <th style="white-space: nowrap">数据类型</th>
+      <th style="white-space: nowrap">数据格式</th>
+    </tr>
+  </thead>
  <tbody>
   <tr>
    <td>permutedOutputGrad</td>
@@ -68,12 +63,14 @@
    <td>属性</td>
    <td>被选中的专家个数。</td>
    <td>INT64</td>
+   <td>-</td>
   </tr>
   <tr>
    <td>paddedMode</td>
    <td>属性</td>
    <td>pad模式的开关。</td>
    <td>BOOL</td>
+   <td>-</td>
   </tr>
   <tr>
    <td>out</td>

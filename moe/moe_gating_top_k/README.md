@@ -86,7 +86,7 @@
     <tr>
       <td>groupCount</td>
       <td>输入</td>
-      <td>分组的总个数，对应公式中的`groupCount`</td>
+      <td>分组的总个数，对应公式中的`groupCount`。</td>
       <td>INT64</td>
       <td>-</td>
     </tr>

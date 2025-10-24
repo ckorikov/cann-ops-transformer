@@ -27,21 +27,16 @@
 
 ## 参数说明
 
-<table style="undefined;table-layout: fixed; width: 1576px"><colgroup>
-  <col style="width: 170px">
-  <col style="width: 170px">
-  <col style="width: 312px">
-  <col style="width: 213px">
-  <col style="width: 100px">
-  </colgroup>
+<table style="table-layout: auto; width: 100%">
   <thead>
     <tr>
-      <th>参数名</th>
-      <th>输入/输出/属性</th>
-      <th>描述</th>
-      <th>数据类型</th>
-      <th>数据格式</th>
-    </tr></thead>
+      <th style="white-space: nowrap">参数名</th>
+      <th style="white-space: nowrap">输入/输出/属性</th>
+      <th style="white-space: nowrap">描述</th>
+      <th style="white-space: nowrap">数据类型</th>
+      <th style="white-space: nowrap">数据格式</th>
+    </tr>
+  </thead>
   <tbody>
     <tr>
       <td>expandedX</td>
@@ -55,49 +50,49 @@
       <td>输入</td>
       <td>公式中的`x1`。</td>
       <td>FLOAT16、BFLOAT16、FLOAT32</td>
-      <td>-</td>
+      <td>ND</td>
     </tr>
     <tr>
       <td>x2Optional</td>
       <td>输入</td>
       <td>公式中的`x2Optional`。</td>
       <td>FLOAT16、BFLOAT16、FLOAT32</td>
-      <td>-</td>
+      <td>ND</td>
     </tr>
     <tr>
       <td>bias</td>
       <td>输入</td>
       <td>公式中的`bias`。</td>
       <td>FLOAT16、BFLOAT16、FLOAT32</td>
-      <td>-</td>
+      <td>ND</td>
     </tr>
     <tr>
       <td>scales</td>
       <td>输入</td>
       <td>公式中的`scales`。</td>
       <td>FLOAT16、BFLOAT16、FLOAT32</td>
-      <td>-</td>
+      <td>ND</td>
     </tr>
     <tr>
       <td>expandedRowIdx</td>
       <td>输入</td>
       <td>公式中的`expandedRowIdx`。</td>
       <td>INT32</td>
-      <td>-</td>
+      <td>ND</td>
     </tr>
     <tr>
       <td>expandedExpertIdx</td>
       <td>输入</td>
       <td>公式中的`expandedExpertIdx`。</td>
       <td>INT32</td>
-      <td>-</td>
+      <td>ND</td>
     </tr>
     <tr>
       <td>out</td>
       <td>输出</td>
       <td>公式中的`out`。</td>
       <td>FLOAT16、BFLOAT16、FLOAT32</td>
-      <td>-</td>
+      <td>ND</td>
     </tr>
   </tbody></table>
 
