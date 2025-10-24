@@ -103,6 +103,8 @@ void Mc2MatmulTilingCfg::SetTailCntAndType() const
         mc2MmV3TilingData_->set_nBaseTailSplitCnt(mmv3TilingData_->nBaseTailSplitCnt);
         mc2MmV3TilingData_->set_mTailMain(mmv3TilingData_->mTailMain);
         mc2MmV3TilingData_->set_nTailMain(mmv3TilingData_->nTailMain);
+        mc2MmV3TilingData_->set_isHf32(mmv3TilingData_->isHf32);
+        mc2MmV3TilingData_->set_aswWindowLen(mmv3TilingData_->aswWindowLen);
         return;
     }
 
@@ -138,6 +140,7 @@ void Mc2MatmulTilingCfg::SetTailCntAndType() const
     mc2MmV3TilingData_->set_mTailMain(mmv3TilingData_->mTailMain);
     mc2MmV3TilingData_->set_nTailMain(mmv3TilingData_->nTailMain);
     mc2MmV3TilingData_->set_isHf32(mmv3TilingData_->isHf32);
+    mc2MmV3TilingData_->set_aswWindowLen(mmv3TilingData_->aswWindowLen);
 }
 
 void Mc2MatmulTilingCfg::DealBaseBlock() const

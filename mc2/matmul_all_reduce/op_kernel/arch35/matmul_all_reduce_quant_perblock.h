@@ -61,7 +61,9 @@ protected:
         const uint64_t kOfScale = (tiling->matmulTiling.Ka + 128 - 1) / 128;
         const uint64_t x1ScaleOffset = sizeof(float) * mOfscale * kOfScale;
         for (uint32_t i = 0U; i < turnCnt; ++i) {
-            this->tPipe_->Reset();
+            // mm自己实现的perblock模板，存在eventId互锁问题，需要彻底释放
+            this->tPipe_->Destroy();
+            this->tPipe_->Init();
             // 当前MM的UpdateGlobalAddr接口存在问题，暂时每轮计算均使用Init接口更新地址
             mmOp.Init(
                 this->addrs_->aGM, this->addrs_->bGM, this->addrs_->biasGM, this->quantAddrs_->dequantGM,

@@ -33,7 +33,7 @@ public:
     {
         mc2TilingData_ = (MatmulAllReduce910TilingDataA5*)tilingData;
         this->tileInfo_.mmTiling = &mc2TilingData_->mC2Mmv3TileTilingData.matmulTiling;
-        this->tailInfo_.mmTiling = &mc2TilingData_->mC2Mmv3TileTilingData.matmulTiling;
+        this->tailInfo_.mmTiling = &mc2TilingData_->mC2Mmv3TailTilingData.matmulTiling;
     }
 
     __aicore__ inline void Process()
@@ -75,7 +75,7 @@ private:
         using AType = MatmulType<AscendC::TPosition::GM, CubeFormat::ND, DTYPE_X1, false>;                       \
         using BType = MatmulType<AscendC::TPosition::GM, CubeFormat::ND, DTYPE_X2, bTransFlag>;                  \
         using CType = MatmulType<AscendC::TPosition::GM, CubeFormat::ND, DTYPE_Y>;                               \
-        using BiasType = MatmulType<AscendC::TPosition::GM, CubeFormat::ND, DTYPE_X1>;                 \
+        using BiasType = MatmulType<AscendC::TPosition::GM, CubeFormat::ND, DTYPE_Y>;                            \
         using OpType =                                                                                           \
             opTemplateClass<AType, BType, CType, BiasType, MatmulV3Advanced::MatmulAswBlock, MM_CFG_NO_PRELOAD>; \
         MC2GmAddrs addrs = {aGM, bGM, biasGM, addGM, cGM, workspaceGM, cGM};                                     \
@@ -88,7 +88,7 @@ private:
 #define INVOKE_MC2_910_OP_IMPL(opTemplateClass, coreType)                                  \
     do {                                                                                   \
         GET_TILING_DATA_WITH_STRUCT(MatmulAllReduce910TilingDataA5, tilingData, tilingGM); \
-        if (tilingData.param.isTransposeB != 0U) {                      \
+        if (tilingData.param.isTransposeB != 0U) {                                         \
             INVOKE_MC2_910_OP_IMPL_HELPER(opTemplateClass, true, coreType);                \
         } else {                                                                           \
             INVOKE_MC2_910_OP_IMPL_HELPER(opTemplateClass, false, coreType);               \

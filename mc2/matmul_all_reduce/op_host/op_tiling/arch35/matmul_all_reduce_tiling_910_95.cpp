@@ -96,7 +96,12 @@ void MatmulAllReduceTilingA5::PrintExtendMatmulTiling(bool isTail)
     OP_LOGD(opName_, "Matmul tiling mTailCnt=%u", tiling.get_mTailCnt());
     OP_LOGD(opName_, "Matmul tiling nTailCnt=%u", tiling.get_nTailCnt());
     OP_LOGD(opName_, "Matmul tiling kTailCnt=%u", tiling.get_kTailCnt());
+    OP_LOGD(opName_, "Matmul tiling mBaseTailSplitCnt=%u", tiling.get_mBaseTailSplitCnt());
+    OP_LOGD(opName_, "Matmul tiling nBaseTailSplitCnt=%u", tiling.get_nBaseTailSplitCnt());
+    OP_LOGD(opName_, "Matmul tiling mTailMain=%u", tiling.get_mTailMain());
+    OP_LOGD(opName_, "Matmul tiling nTailMain=%u", tiling.get_nTailMain());
     OP_LOGD(opName_, "Matmul tiling isHf32=%u", tiling.get_isHf32());
+    OP_LOGD(opName_, "Matmul tiling aswWindowLen=%u", tiling.get_aswWindowLen());
 }
 
 ge::graphStatus MatmulAllReduceTilingA5::GetWorkspaceSize()
