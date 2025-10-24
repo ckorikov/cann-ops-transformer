@@ -213,14 +213,14 @@ ge::graphStatus MoeGatingTopKTilingBase::CheckAttr()
         groupSelectMode_ == GROUP_SELECT_MODE_SUM && perGroupExpertCount_ < 2,
         OP_LOGE(context_,
              "group expert count is: %ld, if group select mode is: %ld, group expert count should be greater than 1.",
-             groupSelectMode_, perGroupExpertCount_),
+             perGroupExpertCount_, groupSelectMode_),
         return ge::GRAPH_FAILED);
     OP_CHECK_IF(k_ > kGroup_ * perGroupExpertCount_,
                 OP_LOGE(context_, "k is: %ld, but should be smaller than %ld.", k_, kGroup_ * perGroupExpertCount_),
                 return ge::GRAPH_FAILED);
     int64_t groupExpertCountAlign = Ops::Base::CeilAlign(perGroupExpertCount_, 32L);
     if (groupCount_ != 1 && groupCount_ != expertCount_ && kGroup_ != groupCount_) {
-        // 非分组场景下才需要校验对齐后的数量
+        // 分组场景下才需要校验对齐后的数量
         OP_CHECK_IF(groupCount_ * groupExpertCountAlign > MAX_EXPERT_COUNT,
                     OP_LOGE(context_, "group count * group expert count align is: %ld, but should not greater than %ld.",
                          groupCount_ * groupExpertCountAlign, MAX_EXPERT_COUNT),
@@ -248,7 +248,7 @@ ge::graphStatus MoeGatingTopKTilingBase::GetShapeAttrsInfo()
     OP_CHECK_NULL_WITH_CONTEXT(context_, yShapePtr);
     yShape_ = &yShapePtr->GetStorageShape();
     auto expertIdxPtr = context_->GetOutputShape(EXPERT_IDX_OUTPUT_INDEX);
-    OP_CHECK_NULL_WITH_CONTEXT(context_, yShapePtr);
+    OP_CHECK_NULL_WITH_CONTEXT(context_, expertIdxPtr);
     expertIdxShape_ = &expertIdxPtr->GetStorageShape();
     auto outPtr = context_->GetOutputShape(OUT_OUTPUT_INDEX);
     OP_CHECK_NULL_WITH_CONTEXT(context_, outPtr);

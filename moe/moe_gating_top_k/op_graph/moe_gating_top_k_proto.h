@@ -48,7 +48,6 @@ namespace ge {
    * Warning: THIS FUNCTION IS EXPERIMENTAL. Please do not use.
    *
    * - Ascend 910_95 AI Processor:
-   * The attribute group_select_mode can only be 1 now.
    * The attribute norm_type can only be 1 now.
    * The attribute out_flag can only be false now.
    */
