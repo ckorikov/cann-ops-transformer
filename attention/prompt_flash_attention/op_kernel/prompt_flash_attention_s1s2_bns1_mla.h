@@ -632,7 +632,6 @@ __aicore__ inline void MlaS1s2Bn2gs1SameAB<TILING_TYPE, implMode, layOutType, ha
         }
         for (int64_t s2LoopCount = 0; s2LoopCount <= s2LoopLimit; ++s2LoopCount) {
             if (taskId >= 1 && notLast) {
-                // 对应extraInfo[(i+2)%3]
                 WaitBmm1Result(extraInfo[(taskId + 2) % 3]);
             }
 
@@ -655,7 +654,6 @@ __aicore__ inline void MlaS1s2Bn2gs1SameAB<TILING_TYPE, implMode, layOutType, ha
             }
 
             if (taskId > 1) {
-                // 对应extraInfo[(i+1)%3]
                 WaitBmm2Result(extraInfo[(taskId + 1) % 3]);
             }
 
@@ -1004,7 +1002,7 @@ MlaS1s2Bn2gs1SameAB<TILING_TYPE, implMode, layOutType, hasAtten, INPUT_T, T,
         }
         this->GetBmm1Result(extraInfo, actualUseTensor, loopIdx);
 
-        // mul需要等bmm结果搬完
+        // mul或attenMask的计算依赖bmm1计算结果
         SetFlag<HardEvent::MTE2_V>(eventIdMte2ToV);
         WaitFlag<HardEvent::MTE2_V>(eventIdMte2ToV);
 
@@ -1152,7 +1150,6 @@ __aicore__ inline int64_t MlaS1s2Bn2gs1SameAB<TILING_TYPE, implMode, layOutType,
             return this->ComputeOffsetForNoCompress(extraInfo, loopIdx);
         }
         if constexpr (InputLayoutIsTNDLike()) {
-            // compress mode
             int64_t delta = 0;
             int64_t deltaPre = 0;
             int64_t deltaN = static_cast<int64_t>((extraInfo.s1Size)) - static_cast<int64_t>((extraInfo.s2Size));
@@ -1795,7 +1792,6 @@ MlaS1s2Bn2gs1SameAB<TILING_TYPE, implMode, layOutType, hasAtten, INPUT_T, T,
 
     LocalTensor<float> sumUb = softmaxSumBuf[extraInfo.multiCoreInnerIdxMod2].template Get<float>();
     int32_t calcSize = sumUb.GetSize();
-    // 用optionalInputQueue的queue
     PipeBarrier<PIPE_V>();
     if (this->softmaxReduceSize == 1) {
         LocalTensor<T> softmaxTemp = this->softmaxTempBuf.template Get<T>();

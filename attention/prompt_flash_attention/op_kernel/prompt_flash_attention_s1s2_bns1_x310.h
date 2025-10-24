@@ -104,7 +104,7 @@ __aicore__ inline void PromptFlashAttentionS1s2Bns1X310<PFAT>::ComputeEachCoreSI
     this->a1Local_ = this->a1Buf_.template Get<mmInputType>();
     this->b1Local_ = this->b1Buf_.template Get<mmInputType>();
     int32_t outerSize, innerSize;
-    /* step 1 fetch and compute bmm1*/
+    // step 1 fetch and compute bmm1
     if (this->isOuterLoopStart_) {
         if (this->needCalMask_) {
             this->AttenMaskCopyIn(this->attenMaskCoreOffset, this->singleProcessSInnerSize, 0);
@@ -132,12 +132,12 @@ __aicore__ inline void PromptFlashAttentionS1s2Bns1X310<PFAT>::ComputeEachCoreSI
         this->mm.template GetTensorC<false>(mmResUb, false, true);
         this->mm.End();
 
-        /*step 2 muls scale*/
+        // step 2 muls scale
         outerSize = this->isOuterTail_ ? this->singleProcessSOuterSizeTail : this->singleProcessSOuterSize;
         innerSize = this->isInnerLoopLast_ ? this->singleProcessSInnerSizeTail : this->singleProcessSInnerSize;
         this->ElewiseCompute310P(mmResUb, this->singleProcessSInnerSize, this->singleProcessSOuterSize);
         PipeBarrier<PIPE_V>();
-        /* softmax compute*/
+        // softmax compute
         bool isInnerLoopStart = sInnerLoopIdx == startIndex;
         this->ComputeOffset(sInnerLoopIdx, this->isInnerLoopLast_);
         this->ComputeSoftmax(mmResUb, isInnerLoopStart);
@@ -148,7 +148,7 @@ __aicore__ inline void PromptFlashAttentionS1s2Bns1X310<PFAT>::ComputeEachCoreSI
         } else {
             bmm2ResUb = this->tempBmm2Queue.template AllocTensor<mmOutputType>();
         }
-        /* step4: compute bmm2*/
+        // step4: compute bmm2
         if (!(this->isInnerLoopLast_ && this->isOuterLoopLast_)) {
             if (this->needCalMask_) {
                 SetFlag<HardEvent::MTE2_V>(EVENT_ID0);
@@ -195,20 +195,20 @@ __aicore__ inline void PromptFlashAttentionS1s2Bns1X310<PFAT>::ComputeEachCoreSI
             this->tensorBOffset = this->tensorBCoreOffset + 
                 startIndex * this->keyValueStride * this->singleProcessSInnerSize;
         }
-        /*pre compute mm1 right matrix if not the tile*/
+        // pre compute mm1 right matrix if not the tile
         if (!(this->isInnerLoopLast_ && this->isOuterLoopLast_)) {
             innerSize = this->isNextInnerLoopLast_ ? this->singleProcessSInnerSizeTail : this->singleProcessSInnerSize;
             this->CopyND2NZOnTheFly(this->b1Local_, this->keyGm[this->tensorBOffset], innerSize, 
                 this->tilingData->promptAttentionBaseParams.headSize, this->keyValueStride, true);
             this->Bmm1Compute(this->a1Local_, this->b1Local_, this->fetchOuterSize_, innerSize, this->tilingData->promptAttentionBaseParams.headSize);
         }
-        /* Step 6: bmm2 update and copyout */
+        // Step 6: bmm2 update and copyout
         if (!isInnerLoopStart) {
             this->UpdateVmul(this->softmaxExpUb);
             this->Bmm2UpdateAdd(bmm2ResUb);
             this->tempBmm2Queue.FreeTensor(bmm2ResUb);
         }
-        /*last inner loop compute div and copy out*/
+        // last inner loop compute div and copy out
         if (this->isInnerLoopLast_) {
             PipeBarrier<PIPE_V>();
             LocalTensor<mmOutputType> bmm2ResPreUb = this->tempBmm2Ub.template Get<mmOutputType>(this->bmm2ResUbSize);

@@ -150,7 +150,7 @@ __aicore__ inline void PromptFlashAttentionBNSTillingNSWithBNSDNoTail<T, U, FORM
     } else {
         this->ElewiseCompute(mmResUb, computeSize, 0);
     }
-    PipeBarrier<PIPE_V>(); //  Vector pipeline synchronization
+    PipeBarrier<PIPE_V>();
 
     SoftMaxShapeInfo shapeInfo = {this->singleProcessSOuterSize, this->singleProcessSInnerSize,
                                   this->singleProcessSOuterSize, this->singleProcessSInnerSize};
@@ -191,7 +191,7 @@ __aicore__ inline void PromptFlashAttentionBNSTillingNSWithBNSDNoTail<T, U, FORM
     uint32_t computeSize = this->singleProcessSInnerSizeNow * this->singleProcessSOuterSize;
 
     Muls(mmResUb, mmResUb, static_cast<mmOutputType>(this->tilingData->promptAttentionBaseParams.scaleValue), computeSize);
-    PipeBarrier<PIPE_V>(); // Vector pipeline  synchronization
+    PipeBarrier<PIPE_V>();
 
     this->PseShiftProcess(sInnerLoopIdx, computeSize, mmResUb);
 
@@ -206,7 +206,7 @@ __aicore__ inline void PromptFlashAttentionBNSTillingNSWithBNSDNoTail<T, U, FORM
         this->ElewiseCompute(mmResUb, computeSize, 0);
     }
 
-    PipeBarrier<PIPE_V>(); // Vector pipeline synchronization
+    PipeBarrier<PIPE_V>();
 
     SoftMaxShapeInfo shapeInfo = {this->singleProcessSOuterSize, this->singleProcessSInnerSize,
                                   this->singleProcessSOuterSize, this->singleProcessSInnerSize};
@@ -303,7 +303,7 @@ __aicore__ inline void PromptFlashAttentionBNSTillingNSWithBNSDNoTail<T, U, FORM
         this->maskCopyInCol = this->singleProcessSInnerSize;
         this->pseShiftCopyInCol = this->singleProcessSInnerSize;
 
-        bool isLast = sInnerLoopIdx == endIndex-1;
+        bool isLast = sInnerLoopIdx == endIndex - 1;
 
         if (sInnerLoopIdx == startIndex) {
             Bmm1ResDoVecBmm2ComputeFirst(mmResUb, softmaxMaxUb, softmaxSumUb, this->softmaxExpUb, isLast, eventID, sInnerLoopIdx);
@@ -431,7 +431,7 @@ __aicore__ inline void PromptFlashAttentionBNSTillingNSWithBNSDNoTail<T, U, FORM
 
     int32_t tilingIdx = coreIdx;
     int32_t sIdx = 0;
-    int32_t totalTilingN = this->accumSOuterTilingNums[sNum-1];
+    int32_t totalTilingN = this->accumSOuterTilingNums[sNum - 1];
     uint32_t actualSeqLengthsIdx = 0;
     int32_t preAccumSOuterNum = 0;
     while (tilingIdx < totalTilingN) {
@@ -440,7 +440,7 @@ __aicore__ inline void PromptFlashAttentionBNSTillingNSWithBNSDNoTail<T, U, FORM
             sIdx++;
         }
         if (sIdx != 0) {
-            preAccumSOuterNum = this->accumSOuterTilingNums[sIdx-1];
+            preAccumSOuterNum = this->accumSOuterTilingNums[sIdx - 1];
         }
         this->GetSingleCoreParam(sIdx);
         this->GetSparseParam(&preTokens, &nextTokens);

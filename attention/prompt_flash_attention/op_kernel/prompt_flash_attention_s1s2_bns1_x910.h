@@ -162,7 +162,7 @@ protected:
 
     __aicore__ inline void Bmm2Antiquant(PFAComputeParam *params) {
         int step = this->tilingData->promptAttentionSingleCoreParams.kvAntiquantSInnerSize;
-        int kvAntiquantLoopTimes = (params->singleProcessSInnerBmmTail + step -1) / step;
+        int kvAntiquantLoopTimes = (params->singleProcessSInnerBmmTail + step - 1) / step;
         int headSize = this->tilingData->promptAttentionBaseParams.alignedHeadSize;
 
         LocalTensor<T> scaleLocal = this->antiquantScaleUb.template Get<T>(headSize);
@@ -190,7 +190,7 @@ protected:
         }
 
         DataCopyParams kvCopyParam;
-        kvCopyParam.blockLen = headSize / 32;   // KV int8 dtype  32 : 32B alignment
+        kvCopyParam.blockLen = headSize / 32;   // 32 : 32B alignment
         kvCopyParam.dstStride = 0;
         if constexpr (PFAT::layout == PFALayout::BNSD) {
             kvCopyParam.srcStride = 0;  // BNSD
@@ -278,7 +278,7 @@ protected:
 
     __aicore__ inline void Bmm1Antiquant(PFAComputeParam *params){
         int step = this->tilingData->promptAttentionSingleCoreParams.kvAntiquantSInnerSize;
-        int kvAntiquantLoopTimes = (params->singleProcessSInnerBmmTail + step -1) / step;
+        int kvAntiquantLoopTimes = (params->singleProcessSInnerBmmTail + step - 1) / step;
         int headSize = this->tilingData->promptAttentionBaseParams.alignedHeadSize;
 
         LocalTensor<T> scaleLocal = this->antiquantScaleUb.template Get<T>(headSize);
@@ -2488,7 +2488,7 @@ __aicore__ inline void PromptFlashAttentionS1s2Bns1X910<PFAT>::ComputeEachCoreBa
             params->sOuterOffset = 0;
         } else {
             params->singleProcessSOuterSize = this->singleProcessSOuterSizeWhole;
-            params->sOuterOffset = this->singleProcessSOuterSizeTail + (sOuterLoopIdx-1) * this->singleProcessSOuterSizeWhole;
+            params->sOuterOffset = this->singleProcessSOuterSizeTail + (sOuterLoopIdx - 1) * this->singleProcessSOuterSizeWhole;
         }
         if (nextTokens < 0 && params->sOuterOffset < ((nextTokens * (-1)) /
             this->singleProcessSOuterSizeWhole * this->singleProcessSOuterSizeWhole)) {

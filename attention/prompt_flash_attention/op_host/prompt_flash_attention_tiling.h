@@ -589,17 +589,17 @@ protected:
     bool CheckPseShiftTypeAndShape(ContextParamsForPFATiling& contextKeyParams, const gert::StorageShape *pseShiftShape,
                                    uint32_t b, uint32_t n, uint32_t s1, uint32_t s2);
     ge::graphStatus processPageAttentionInputFlag(ContextParamsForPFATiling& contextKeyParams);
-    bool checkPAKeyValueDimsWhenBBH(ContextParamsForPFATiling& contextKeyParams, int32_t keyDim1, int32_t keyDim2, int32_t keyDim3, int64_t blockNumValid, const int32_t* blockSize, 
-                                    int32_t h, int32_t headNumRatio);
+    bool checkPAKeyValueDimsWhenBBH(ContextParamsForPFATiling& contextKeyParams, int32_t keyDim1, int32_t keyDim2, int32_t keyDim3, int64_t blockNumValid,
+        const int32_t* curBlockSize, int32_t h, int32_t headNumRatio);
     bool checkPAKeyValueDimsWhenBNBD(ContextParamsForPFATiling& contextKeyParams, const gert::StorageShape* keyShape, const gert::StorageShape* valueShape, int32_t keyDim1, 
-                                int32_t keyDim2, int32_t keyDim3, int64_t blockNumValid, const int32_t* blockSize, int32_t h, int32_t n, int32_t headNumRatio);
+                                int32_t keyDim2, int32_t keyDim3, int64_t blockNumValid, const int32_t* curBlockSize, int32_t h, int32_t n, int32_t headNumRatio);
     bool checkPAKeyValueDimsWhenNZ(ContextParamsForPFATiling& contextKeyParams, const gert::StorageShape* keyShape, const gert::StorageShape* valueShape, int32_t keyDim1, 
-                                int32_t keyDim2, int32_t keyDim3, int64_t blockNumValid, const int32_t* blockSize, int32_t h, int32_t n, int32_t headNumRatio);
-    bool checkPABlockSizeAndBlockTable(ContextParamsForPFATiling& contextKeyParams, const gert::Tensor* actualSeqLenKV, const int32_t* blockSize, int64_t b);
+                                int32_t keyDim2, int32_t keyDim3, int64_t blockNumValid, const int32_t* curBlockSize, int32_t h, int32_t n, int32_t headNumRatio);
+    bool checkPABlockSizeAndBlockTable(ContextParamsForPFATiling& contextKeyParams, const gert::Tensor* actualSeqLenKV, const int32_t* curBlockSize, int64_t b);
     bool culActSeqLenParamsWhenPA(ContextParamsForPFATiling& contextKeyParams, const gert::Tensor* actualSeqLenKV, int64_t& blockNumValid, 
-                                int32_t& maxBlockNumPerBatch, int32_t tempBlockSize, const int32_t* blockSize, int64_t b);
+                                int32_t& maxBlockNumPerBatch, int32_t tempBlockSize, const int32_t* curBlockSize, int64_t b);
     bool CheckPAKeyValueParams(ContextParamsForPFATiling& contextKeyParams, const gert::StorageShape* keyShape, const gert::StorageShape* valueShape, 
-                                int64_t blockNumValid, const int32_t* blockSize, int32_t n, int32_t h, int32_t headNumRatio);
+                                int64_t blockNumValid, const int32_t* curBlockSize, int32_t n, int32_t h, int32_t headNumRatio);
     bool CheckPASparseMode(ContextParamsForPFATiling& contextKeyParams);
     bool CheckPAWhenBaseApi(ContextParamsForPFATiling& contextKeyParams, const gert::Tensor* actualSeqLenQ, const gert::Tensor* actualSeqLenKV,
                                    int32_t n, int32_t h, int32_t headNumRatio);
@@ -680,7 +680,7 @@ protected:
                                             const gert::StorageShape *pseShiftShape);
     ge::graphStatus AtbSplitBlock(ContextParamsForPFATiling& contextKeyParams);
     uint32_t CalcTschBlockDim(uint32_t sliceNum, uint32_t aicCoreNum, uint32_t aivCoreNum);
-    bool CalcUBSize();
+    void CalcUBSize();
     void SetDataCopyTransposeTiling();
     void SetSoftMaxTiling();
     bool SetBmm1TilingInput(int64_t tmpS1BasicBlock, int64_t tmpS2BasicBlock,
@@ -711,12 +711,12 @@ protected:
     void GetActualSeqLenData(int64_t inputIdx, std::array<int64_t, MAX_VAR_LEN_SEQ_LEN> &res, int64_t &actualLen);
     void SetMultiCoreParamsTND();
     void SetSparseParamsTND();
-    bool InitSparseValidArrayTND(std::vector<int64_t> &sparseValidArray);
+    void InitSparseValidArrayTND(std::vector<int64_t> &sparseValidArray);
     bool SetSparseStartIdxTND(const std::vector<int64_t> &sparseValidArray, PFAMultiCoreParams &multiCoreParams);
     int64_t GetS2RealSize(uint8_t sparseType, int32_t bOutIdx, int64_t s1OutIdx);
     bool BalanceLoad(const std::vector<int64_t> &sparseValidArray, PFAMultiCoreParams &multiCoreParams,
                      std::vector<int64_t> &localValue, std::vector<int64_t> &sparseStartIdx);
-    bool InitLoadValue(const std::vector<int64_t> &sparseValidArray, int64_t validAivNum, int64_t totalSize,
+    void InitLoadValue(const std::vector<int64_t> &sparseValidArray, int64_t validAivNum, int64_t totalSize,
                       const std::vector<int64_t> &sparseStartIdx, std::vector<int64_t> &localValue);
     ge::graphStatus CheckInputShapeWhenLayoutIsTND(ContextParamsForPFATiling& contextKeyParams);
     ge::graphStatus CheckActSeqWhenLayoutIsTND(ContextParamsForPFATiling& contextKeyParams);
