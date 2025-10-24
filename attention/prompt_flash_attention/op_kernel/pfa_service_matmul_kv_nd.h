@@ -51,7 +51,7 @@ public:
 protected:
     template <typename T1> static __aicore__ inline T1 Align(T1 num, T1 rnd)
     {
-        return (((rnd) == 0) ? 0 : (((num) + (rnd)-1) / (rnd) * (rnd)));
+        return (((rnd) == 0) ? 0 : (((num) + (rnd) - 1) / (rnd) * (rnd)));
     }
 
     template <typename T1> static __aicore__ inline size_t BlockAlign(size_t s)

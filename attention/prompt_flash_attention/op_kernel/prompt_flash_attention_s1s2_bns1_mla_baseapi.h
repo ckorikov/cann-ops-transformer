@@ -28,8 +28,8 @@
 // INPUT_T - means data type for input
 // T       - means data type when calc
 template <typename TILING_TYPE, ImplModeEnum implMode, LayOutTypeEnum layOutType, bool hasAtten, typename INPUT_T,
-        typename T = INPUT_T, CubeFormat bmm1Format = CubeFormat::ND,
-        MmPolicyType mmPolicyType = MmPolicyType::NORMAL, bool pageAttention = false>
+    typename T = INPUT_T, CubeFormat bmm1Format = CubeFormat::ND,
+    MmPolicyType mmPolicyType = MmPolicyType::NORMAL, bool pageAttention = false>
 class MlaS1s2Bn2gs1SameABBaseApi {
 public:
     __aicore__ inline MlaS1s2Bn2gs1SameABBaseApi(){};
@@ -58,7 +58,7 @@ protected:
 
     static __aicore__ inline constexpr bool InputLayoutIsTNDLike()
     {
-        return layOutType == LayOutTypeEnum::LAYOUT_TND || layOutType == LayOutTypeEnum::LAYOUT_NTD_TND;
+        return (layOutType == LayOutTypeEnum::LAYOUT_TND) || (layOutType == LayOutTypeEnum::LAYOUT_NTD_TND);
     }
 
     __aicore__ inline void InitInput(__gm__ uint8_t *query, __gm__ uint8_t *key, __gm__ uint8_t *value,
@@ -317,16 +317,10 @@ template <typename TILING_TYPE, ImplModeEnum implMode, LayOutTypeEnum layOutType
 __aicore__ inline void
 MlaS1s2Bn2gs1SameABBaseApi<TILING_TYPE, implMode, layOutType, hasAtten, INPUT_T, T,
     bmm1Format, mmPolicyType, pageAttention>::InitInput(__gm__ uint8_t *query, __gm__ uint8_t *key,
-                                                        __gm__ uint8_t *value,
-                                                        __gm__ uint8_t *queryRope, __gm__ uint8_t *keyRope,
-                                                        __gm__ uint8_t *attenMask,
-                                                        __gm__ uint8_t *blockTable,
-                                                        __gm__ uint8_t *learnableSink,
-                                                        __gm__ uint8_t *attentionOut,
-                                                        __gm__ uint8_t *softmaxLse,
-                                                        __gm__ uint8_t *workspace,
-                                                        const TILING_TYPE *__restrict tiling,
-                                                        TPipe *tPipe)
+    __gm__ uint8_t *value, __gm__ uint8_t *queryRope, __gm__ uint8_t *keyRope, __gm__ uint8_t *attenMask,
+    __gm__ uint8_t *blockTable, __gm__ uint8_t *learnableSink, __gm__ uint8_t *attentionOut,
+    __gm__ uint8_t *softmaxLse, __gm__ uint8_t *workspace, const TILING_TYPE *__restrict tiling,
+    TPipe *tPipe)
 {
     if ASCEND_IS_AIV {
         this->vecBlockIdx = GetBlockIdx();
@@ -478,8 +472,8 @@ __aicore__ inline void MlaS1s2Bn2gs1SameABBaseApi<TILING_TYPE, implMode, layOutT
         }
 
         // 输出空间
-        this->pipe->InitBuffer(this->outPBuf, V1_BASE_TILE_SZ * sizeof(INPUT_T)); // 输出P到GM，16K
-        this->pipe->InitBuffer(this->outOBuf, STAGE2_TBUF_SIZE * sizeof(T));  // 16k
+        this->pipe->InitBuffer(this->outPBuf, V1_BASE_TILE_SZ * sizeof(INPUT_T)); // 输出P到GM
+        this->pipe->InitBuffer(this->outOBuf, STAGE2_TBUF_SIZE * sizeof(T));
 
         // 输入空间中的大小非规则部分
         this->pipe->InitBuffer(this->stage1PongBuf, (V1_BASE_TILE_SZ + (V1_BASE_TILE_SZ / 16)) * sizeof(T)); // load bmm1 result, 32K + 32K/16 = 34K +32k/16 是为了在Nz-Nd间搬运时间隔一个bank，避免bank冲突
@@ -611,25 +605,7 @@ __aicore__ inline void MlaS1s2Bn2gs1SameABBaseApi<TILING_TYPE, implMode, layOutT
     // 计算切分轴的乘积
     this->s2BaseN2D = this->s2BaseSize * this->n2D;
 
-    if constexpr (layOutType == LayOutTypeEnum::LAYOUT_BSH) {
-        // BSH/BSNGD
-        this->s1BaseN2GD = this->cubeS1BaseSize * this->n2GD;
-        this->s1BaseN2GD2 = this->cubeS1BaseSize * this->n2GD2;
-        this->s2BaseNratioN2D = this->s2BaseN2D * this->tilingData->PFAcoreParams.nRatio;
-        this->mm1Ka = this->n2GD;
-        this->mm1Kb = this->n2D;
-        this->mm2Kb = this->n2D2;
-    } else if constexpr (layOutType == LayOutTypeEnum::LAYOUT_SBH) {
-        // SBH/SBNGD
-        this->bN2G = this->tilingData->PFAinputParams.bSize * this->n2G;
-        this->s1BaseBN2GD = this->cubeS1BaseSize * this->tilingData->PFAinputParams.bSize * this->n2GD;
-        this->s1BaseBN2GD2 = this->cubeS1BaseSize * this->tilingData->PFAinputParams.bSize * this->n2GD2;
-        this->s2BaseBN2D = this->tilingData->PFAinputParams.bSize * this->s2BaseN2D;
-        this->s2BaseNratioBN2D = this->s2BaseBN2D * this->tilingData->PFAcoreParams.nRatio;
-        this->mm1Ka = this->bN2GD;
-        this->mm1Kb = this->bN2D;
-        this->mm2Kb = this->bN2D2;
-    } else if constexpr (layOutType == LayOutTypeEnum::LAYOUT_BNSD) {
+    if constexpr (layOutType == LayOutTypeEnum::LAYOUT_BNSD) {
         // BNSD
         this->s1BaseD = this->cubeS1BaseSize * this->dSize;
         this->s1BaseD2 = this->cubeS1BaseSize * this->valueDSize;
@@ -828,18 +804,6 @@ MlaS1s2Bn2gs1SameABBaseApi<TILING_TYPE, implMode, layOutType, hasAtten, INPUT_T,
         s1Offset = extraInfo.s1oIdx * this->s1BaseN2GD;
         n2Offset = extraInfo.n2oIdx * this->gD;
         gOffset = extraInfo.goIdx * dSize;
-    } else if constexpr (layOutType == LayOutTypeEnum::LAYOUT_SBH) {
-        // SBH/SBNGD
-        s1Offset = extraInfo.s1oIdx * this->s1BaseBN2GD;
-        bOffset = extraInfo.boIdx * this->n2GD;
-        n2Offset = extraInfo.n2oIdx * this->gD;
-        gOffset = extraInfo.goIdx * dSize;
-    } else if constexpr (layOutType == LayOutTypeEnum::LAYOUT_BNSD) {
-        // bnsd
-        bOffset = extraInfo.boIdx * this->n2GS1D;
-        n2Offset = extraInfo.n2oIdx * this->gS1D;
-        gOffset = extraInfo.goIdx * this->s1D;
-        s1Offset = extraInfo.s1oIdx * this->s1BaseD;
     } else if constexpr (layOutType == LayOutTypeEnum::LAYOUT_TND) {
         // same as "ngbsd"
         bOffset = extraInfo.s1SizeAcc * this->n2GD;
@@ -894,28 +858,16 @@ MlaS1s2Bn2gs1SameABBaseApi<TILING_TYPE, implMode, layOutType, hasAtten, INPUT_T,
     int64_t bOffset = 0;
     int64_t n2Offset = 0;
     int64_t s2Offset = 0;
-    if constexpr (layOutType == LayOutTypeEnum::LAYOUT_BSH) {
-        // BSH/BSND
-        bOffset = extraInfo.boIdx * this->n2S2D;
-        s2Offset = extraInfo.s2StartIdx * this->n2D + extraInfo.s2LoopCount * this->s2BaseNratioN2D;
-        n2Offset = extraInfo.n2oIdx * dSize;
-    } else if constexpr (layOutType == LayOutTypeEnum::LAYOUT_SBH) {
-        // SBH/SBND
-        s2Offset = extraInfo.s2StartIdx * this->bN2D + extraInfo.s2LoopCount * this->s2BaseNratioBN2D;
-        bOffset = extraInfo.boIdx * this->n2D;
-        n2Offset = extraInfo.n2oIdx * dSize;
-    } else if constexpr (layOutType == LayOutTypeEnum::LAYOUT_BNSD) {
+    if constexpr (layOutType == LayOutTypeEnum::LAYOUT_BNSD) {
         // BNSD
         bOffset = extraInfo.boIdx * this->n2S2D;
         n2Offset = extraInfo.n2oIdx * this->s2D;
         s2Offset = extraInfo.s2StartIdx * dSize + extraInfo.s2LoopCount * this->s2BaseNratioD;
     } else if constexpr (layOutType == LayOutTypeEnum::LAYOUT_TND) {
-        // same as "BSND"
         bOffset = extraInfo.s2SizeAcc * this->n2D;
         s2Offset = extraInfo.s2StartIdx * this->n2D + extraInfo.s2LoopCount * this->s2BaseNratioN2D;
         n2Offset = extraInfo.n2oIdx * this->dSize;
     } else if constexpr (layOutType == LayOutTypeEnum::LAYOUT_NTD_TND) {
-        // same as "NBSD"
         n2Offset = extraInfo.n2oIdx * this->s2D;
         bOffset = extraInfo.s2SizeAcc * this->dSize;
         s2Offset = extraInfo.s2StartIdx * this->dSize + extraInfo.s2LoopCount * this->s2BaseNratioD;
@@ -1031,7 +983,7 @@ MlaS1s2Bn2gs1SameABBaseApi<TILING_TYPE, implMode, layOutType, hasAtten, INPUT_T,
         WaitFlag<HardEvent::V_MTE2>(this->v1ReadyToInBmm1ResEvent);
         this->GetBmm1Result(extraInfo, bmm1ResNdUb, loopIdx);
 
-        // mul需要等待bmm结果搬完
+        // mul或attenMask的计算依赖bmm1计算结果
         SetFlag<HardEvent::MTE2_V>(this->v1Bmm1ResMte2EndEvent);
         WaitFlag<HardEvent::MTE2_V>(this->v1Bmm1ResMte2EndEvent);
 
@@ -1098,8 +1050,8 @@ MlaS1s2Bn2gs1SameABBaseApi<TILING_TYPE, implMode, layOutType, hasAtten, INPUT_T,
                 }
                 DataCopy(
                     this->stage1Res[extraInfo.taskIdMod2][(extraInfo.vecCoreOffset +
-                                                           loopIdx * extraInfo.vec1S1BaseSize) * extraInfo.s2AlignedSize],
-                    stage1CastTensor, dataCopyParams);
+                        loopIdx * extraInfo.vec1S1BaseSize) * extraInfo.s2AlignedSize],
+                        stage1CastTensor, dataCopyParams);
             }
         } else {
             SetFlag<HardEvent::V_MTE3>(this->v1VecEndEvent);
@@ -1117,8 +1069,8 @@ MlaS1s2Bn2gs1SameABBaseApi<TILING_TYPE, implMode, layOutType, hasAtten, INPUT_T,
             }
             DataCopy(
                 this->stage1Res[extraInfo.taskIdMod2][(extraInfo.vecCoreOffset +
-                                                    loopIdx * extraInfo.vec1S1BaseSize) * extraInfo.s2AlignedSize],
-                this->v1CalcUb, dataCopyParams);
+                    loopIdx * extraInfo.vec1S1BaseSize) * extraInfo.s2AlignedSize],
+                    this->v1CalcUb, dataCopyParams);
         }
 
         SetFlag<HardEvent::MTE3_V>(this->v1Mte3EndEvent);
@@ -1134,7 +1086,7 @@ MlaS1s2Bn2gs1SameABBaseApi<TILING_TYPE, implMode, layOutType, hasAtten, INPUT_T,
     bmm1Format, mmPolicyType, pageAttention>::CopyInAttenMask(SplitSameABExtraInfo &extraInfo, int64_t loopIdx,
     int64_t maskOffset, bool secondTime)
 {
-    if constexpr (hasAtten == true) {
+    if constexpr (hasAtten) {
         LocalTensor<uint8_t> attenMaskUb;
         if (secondTime) {
             attenMaskUb = this->pseTBuf.template Get<uint8_t>();
@@ -1165,7 +1117,7 @@ MlaS1s2Bn2gs1SameABBaseApi<TILING_TYPE, implMode, layOutType, hasAtten, INPUT_T,
                 s2StrideSize = this->tilingData->PFAinputParams.attenMaskS2Size;
             }
         }
-        int64_t maskSize = extraInfo.vec1S1RealSize / extraInfo.gBaseSize * (CeilDiv(extraInfo.s2RealSize, 64) * 64);  // CeilDiv(extraInfo.s2RealSize, 64) * 64
+        int64_t maskSize = extraInfo.vec1S1RealSize / extraInfo.gBaseSize * (CeilDiv(extraInfo.s2RealSize, 64) * 64);
 
         if (unlikely(this->notSplitG)) {
             for (int64_t loop = 0; loop < extraInfo.gBaseSize; ++loop) {
@@ -1187,13 +1139,12 @@ __aicore__ inline int64_t
 MlaS1s2Bn2gs1SameABBaseApi<TILING_TYPE, implMode, layOutType, hasAtten, INPUT_T, T,
     bmm1Format, mmPolicyType, pageAttention>::ComputeAttenMaskOffset(SplitSameABExtraInfo &extraInfo, int64_t loopIdx)
 {
-    if constexpr (hasAtten == true) {
+    if constexpr (hasAtten) {
         if (this->tilingData->PFAinputParams.attenMaskCompressMode ==
             static_cast<uint8_t>(AttenMaskCompressMode::NO_COMPRESS_MODE)) {
             return this->ComputeOffsetForNoCompress(extraInfo, loopIdx);
         }
         if constexpr (InputLayoutIsTNDLike()) {
-            // compress mode
             int64_t delta = 0;
             int64_t deltaPre = 0;
             int64_t deltaN = static_cast<int64_t>((extraInfo.s1Size)) - static_cast<int64_t>((extraInfo.s2Size));
@@ -1276,7 +1227,7 @@ MlaS1s2Bn2gs1SameABBaseApi<TILING_TYPE, implMode, layOutType, hasAtten, INPUT_T,
     bmm1Format, mmPolicyType, pageAttention>::GetAttenMaskComputeMode(int64_t deltaCausalOrNext, int64_t deltaPre,
     int64_t s1Offset, SplitSameABExtraInfo &extraInfo)
 {
-    if constexpr (hasAtten == true) {
+    if constexpr (hasAtten) {
         int64_t causalOrNextFactor = deltaCausalOrNext - extraInfo.s2AlignedSize;
         if (this->tilingData->PFAinputParams.attenMaskCompressMode ==
                 static_cast<uint8_t>(AttenMaskCompressMode::LEFT_UP_CAUSAL_MODE) ||
@@ -1312,7 +1263,7 @@ __aicore__ inline int64_t
 MlaS1s2Bn2gs1SameABBaseApi<TILING_TYPE, implMode, layOutType, hasAtten, INPUT_T, T,
     bmm1Format, mmPolicyType, pageAttention>::ComputeOffsetForNoCompress(SplitSameABExtraInfo &extraInfo, int64_t loopIdx)
 {
-    if constexpr (hasAtten == true) {
+    if constexpr (hasAtten) {
         int64_t bOffset = 0;
         int64_t n2Offset = 0;
         int64_t gOffset = 0;
@@ -1408,7 +1359,7 @@ MlaS1s2Bn2gs1SameABBaseApi<TILING_TYPE, implMode, layOutType, hasAtten, INPUT_T,
     bmm1Format, mmPolicyType, pageAttention>::ComputeAttenMask(SelectWithBytesMaskShapeInfo &shapeInfo,
     LocalTensor<T> &bmm1ResUb, LocalTensor<uint8_t> &attenMaskUb, const uint8_t maskType, event_t vWaitMte2)
 {
-    if constexpr (hasAtten == true) {
+    if constexpr (hasAtten) {
         LocalTensor<uint8_t> apiTmpBuffer = commonTBuf.template Get<uint8_t>();
         attenMaskUb.SetSize(shapeInfo.firstAxis * shapeInfo.maskLastAxis);
         SetFlag<HardEvent::MTE2_V>(vWaitMte2);
@@ -1618,7 +1569,7 @@ MlaS1s2Bn2gs1SameABBaseApi<TILING_TYPE, implMode, layOutType, hasAtten, INPUT_T,
             SoftMaxShapeInfo softmaxFullShapeInfo{
                 static_cast<uint32_t>(extraInfo.s1RealSize), static_cast<uint32_t>(fp32BaseSize),
                 static_cast<uint32_t>(extraInfo.s1RealSize), static_cast<uint32_t>(fp32BaseSize)};
-            AdjustSoftMaxRes<T, T, false, 1>(softmaxTemp,  maxTensor, this->negativeIntScalar, 3e+99, softmaxFullShapeInfo);  
+            AdjustSoftMaxRes<T, T, false, 1>(softmaxTemp,  maxTensor, this->negativeIntScalar, 3e+99, softmaxFullShapeInfo); // 3e+99: 代表NAN
             PipeBarrier<PIPE_V>();
         }
 
@@ -1648,17 +1599,7 @@ MlaS1s2Bn2gs1SameABBaseApi<TILING_TYPE, implMode, layOutType, hasAtten, INPUT_T,
     int64_t n2Offset = 0;
     int64_t s2Offset = 0;
 
-    if constexpr (layOutType == LayOutTypeEnum::LAYOUT_BSH) {
-        // BSH/BSND
-        bOffset = extraInfo.boIdx * this->n2S2D2;
-        s2Offset = extraInfo.s2StartIdx * this->n2D2 + extraInfo.s2LoopCount * s2BaseNRatioSize * this->n2D2;
-        n2Offset = extraInfo.n2oIdx * valueDSize;
-    } else if constexpr (layOutType == LayOutTypeEnum::LAYOUT_SBH) {
-        // SBH/SBND
-        s2Offset = extraInfo.s2StartIdx * this->bN2D2 + extraInfo.s2LoopCount * s2BaseNRatioSize * this->bN2D2;
-        bOffset = extraInfo.boIdx * this->n2D2;
-        n2Offset = extraInfo.n2oIdx * valueDSize;
-    } else if constexpr (layOutType == LayOutTypeEnum::LAYOUT_BNSD) {
+    if constexpr (layOutType == LayOutTypeEnum::LAYOUT_BNSD) {
         // BNSD
         bOffset = extraInfo.boIdx * this->n2S2D2;
         n2Offset = extraInfo.n2oIdx * this->s2D2;
@@ -1832,7 +1773,6 @@ MlaS1s2Bn2gs1SameABBaseApi<TILING_TYPE, implMode, layOutType, hasAtten, INPUT_T,
 
     LocalTensor<float> sumUb = softmaxSumBuf[extraInfo.multiCoreInnerIdxMod2].template Get<float>();
     int32_t calcSize = sumUb.GetSize();
-    // 用optionalInputQueue的queue
     PipeBarrier<PIPE_V>();
     if (this->softmaxReduceSize == 1) {
         LocalTensor<T> softmaxTemp = this->commonTBuf.template Get<T>();
@@ -1923,9 +1863,6 @@ MlaS1s2Bn2gs1SameABBaseApi<TILING_TYPE, implMode, layOutType, hasAtten, INPUT_T,
     SetFlag<HardEvent::V_MTE3>(eventIdVToMte3);
     WaitFlag<HardEvent::V_MTE3>(eventIdVToMte3);
 
-    DataCopyParams dataCopyParams;
-    dataCopyParams.blockLen = this->valueDSize * sizeof(INPUT_T);
-    dataCopyParams.srcStride = 0;
     int64_t dstStride = 0;
     int64_t attenOutOffset = this->valueDSize;
     int64_t datacopyOffset = this->valueDSize;
@@ -1934,26 +1871,7 @@ MlaS1s2Bn2gs1SameABBaseApi<TILING_TYPE, implMode, layOutType, hasAtten, INPUT_T,
     int64_t gOffset = extraInfo.goIdx * this->s1D2;
     int64_t s1Offset = extraInfo.s1oIdx * this->s1BaseD2;
 
-    if constexpr (layOutType == LayOutTypeEnum::LAYOUT_BSH) {
-        datacopyOffset = this->n2GD2;
-        attenOutOffset = this->n2GD2;
-        dstStride = (this->tilingData->PFAinputParams.n2Size * this->tilingData->PFAinputParams.gSize - 1) * this->valueDSize *
-                    sizeof(INPUT_T);
-        bOffset = extraInfo.boIdx * this->n2GS1D2;
-        s1Offset = extraInfo.s1oIdx * this->s1BaseN2GD2;
-        n2Offset = extraInfo.n2oIdx * this->gD2;
-        gOffset = extraInfo.goIdx * this->valueDSize;
-    } else if constexpr (layOutType == LayOutTypeEnum::LAYOUT_SBH) {
-        datacopyOffset = this->bN2GD2;
-        attenOutOffset = this->bN2GD2;
-        dstStride = (this->tilingData->PFAinputParams.bSize * this->tilingData->PFAinputParams.n2Size *
-                     this->tilingData->PFAinputParams.gSize - 1) *
-                     this->valueDSize * sizeof(INPUT_T);
-        s1Offset = extraInfo.s1oIdx * this->s1BaseBN2GD2;
-        bOffset = extraInfo.boIdx * this->n2GD2;
-        n2Offset = extraInfo.n2oIdx * this->gD2;
-        gOffset = extraInfo.goIdx * this->valueDSize;
-    } else if constexpr ((layOutType == LayOutTypeEnum::LAYOUT_TND) || (layOutType == LayOutTypeEnum::LAYOUT_NTD_TND)) {
+    if constexpr ((layOutType == LayOutTypeEnum::LAYOUT_TND) || (layOutType == LayOutTypeEnum::LAYOUT_NTD_TND)) {
         datacopyOffset = this->n2GD2;
         attenOutOffset = this->n2GD2;
         dstStride = (this->tilingData->PFAinputParams.n2Size * this->tilingData->PFAinputParams.gSize - 1) * this->valueDSize *
@@ -1963,6 +1881,9 @@ MlaS1s2Bn2gs1SameABBaseApi<TILING_TYPE, implMode, layOutType, hasAtten, INPUT_T,
         n2Offset = extraInfo.n2oIdx * this->gD2;
         gOffset = extraInfo.goIdx * this->valueDSize;
     }
+    DataCopyParams dataCopyParams;
+    dataCopyParams.blockLen = this->valueDSize * sizeof(INPUT_T);
+    dataCopyParams.srcStride = 0;
     int64_t vCoreOffset = bOffset + n2Offset + gOffset + s1Offset;
     if (likely(!this->notSplitG)) {
         if (likely(dstStride <= 65535)) {
@@ -1987,7 +1908,7 @@ MlaS1s2Bn2gs1SameABBaseApi<TILING_TYPE, implMode, layOutType, hasAtten, INPUT_T,
     for (int32_t i = 0; i < extraInfo.gBaseSize; ++i) {
         if (likely(dstStride <= 65535)) {
             dataCopyParams.blockCount = extraInfo.vec2S1RealSize;
-            dataCopyParams.dstStride = static_cast<uint16_t>(dstStride); // static_cast<uint16_t>(dstStride);
+            dataCopyParams.dstStride = static_cast<uint16_t>(dstStride);
             DataCopyPad(this->attentionOutGm[vCoreOffset +
                         (s1oIdx * extraInfo.vec2S1BaseSize + extraInfo.vecCoreOffset) * attenOutOffset + i * this->valueDSize],
                         attenOut[i * dataCopyParams.blockCount * this->valueDSizeAlign16], dataCopyParams);

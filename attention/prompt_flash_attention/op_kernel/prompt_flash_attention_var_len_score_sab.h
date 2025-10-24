@@ -246,7 +246,7 @@ __aicore__ inline void PromptFlashAttentionVarLenScoreSameAB<TILING_TYPE, implMo
             this->s1oIdx * this->cubeS1BaseSize - this->tilingData->PFAcoreParams.s1SparseValidSize, 0);
         this->s2EndIdx =
             Min((this->s1oIdx + 1) * this->cubeS1BaseSize + this->tilingData->PFAcoreParams.s2SparseValidSize, actualS2Len);
-        // s1baseSize行都无效时，需要将startIdx设置为0，,endIdx设置为S2realSize
+        // s1baseSize行都无效时，需要将startIdx设置为0，endIdx设置为S2realSize
         if (this->s2EndIdx - this->s2StartIdx <= 0) {
             this->s2StartIdx = 0;
             this->s2EndIdx = actualS2Len;
@@ -258,7 +258,7 @@ __aicore__ inline void PromptFlashAttentionVarLenScoreSameAB<TILING_TYPE, implMo
         this->s2EndIdx = Min((this->s1oIdx + 1) * this->cubeS1BaseSize + actualS2Len -
                                  Max(actualS1Len - this->tilingData->PFAinputParams.nextTokens, 0),
                              actualS2Len);
-        // s1baseSize行都无效时，需要将startIdx设置为0，,endIdx设置为S2realSize
+        // s1baseSize行都无效时，需要将startIdx设置为0，endIdx设置为S2realSize
         if (this->s2EndIdx - this->s2StartIdx <= 0) {
             this->s2StartIdx = 0;
             this->s2EndIdx = actualS2Len;
@@ -334,7 +334,6 @@ __aicore__ inline void PromptFlashAttentionVarLenScoreSameAB<TILING_TYPE, implMo
                 this->softmaxPingPongCnt++;
             }
             if (taskId > 0) {
-                // 对应extraInfo[(i+2)%3]
                 this->WaitBmm1Result(extraInfo[(taskId + 2) % 3]);
             }
             this->SetExtraInfo(extraInfo[taskId % 3], taskId, s2LoopCount, s2LoopLimit, multiCoreInnerIdx);
@@ -351,7 +350,6 @@ __aicore__ inline void PromptFlashAttentionVarLenScoreSameAB<TILING_TYPE, implMo
             }
 
             if (taskId > 1) {
-                // 对应extraInfo[(i+1)%3]
                 this->WaitBmm2Result(extraInfo[(taskId + 1) % 3]);
             }
 
@@ -367,13 +365,11 @@ __aicore__ inline void PromptFlashAttentionVarLenScoreSameAB<TILING_TYPE, implMo
         }
     }
     if (taskId >= 1) {
-        // 对应extraInfo[(i+2)%3]
         this->softMaxCheckRes = SOFTMAX_CHECK_RES_DEFAULT_VALUE;
         this->WaitBmm1Result(extraInfo[(taskId + 2) % 3]);
         this->ProcessVec1(extraInfo[(taskId + 2) % 3]);
         SetFlag<HardEvent::MTE3_MTE2>(eventIdMte3ToMte2);
         if (taskId > 1) {
-            // 对应extraInfo[(i+1)%3]
             this->WaitBmm2Result(extraInfo[(taskId + 1) % 3]);
         }
         WaitFlag<HardEvent::MTE3_MTE2>(eventIdMte3ToMte2);
@@ -384,7 +380,6 @@ __aicore__ inline void PromptFlashAttentionVarLenScoreSameAB<TILING_TYPE, implMo
     }
     taskId++;
     if (taskId >= 2) {
-        // 对应extraInfo[(i+1)%3]
         this->WaitBmm2Result(extraInfo[(taskId + 1) % 3]);
         this->ProcessVec2(extraInfo[(taskId + 1) % 3]);
     }

@@ -180,9 +180,9 @@ __aicore__ inline void PromptFlashAttentionBNSTillingNSWithBNSDTail<T, U, FORMAT
         this->ElewiseCompute(mmResUb, computeSize, 0);
     }
 
-    PipeBarrier<PIPE_V>(); //  Vector    pipeline synchronization
+    PipeBarrier<PIPE_V>();
 
-    uint32_t alignSInner = (this->unalignSInner + this->typeByteNum -1) / this->typeByteNum * this->typeByteNum;
+    uint32_t alignSInner = (this->unalignSInner + this->typeByteNum - 1) / this->typeByteNum * this->typeByteNum;
     SoftMaxShapeInfo shapeInfo = {this->singleProcessSOuterSize, alignSInner,
                                   this->singleProcessSOuterSize, this->unalignSInner};
     // Calculate the intermediate result of softmax: softmaxExp,softmaxMaxUb, softmaxSumUb
@@ -254,7 +254,7 @@ __aicore__ inline void PromptFlashAttentionBNSTillingNSWithBNSDTail<T, U, FORMAT
         this->ElewiseCompute(mmResUb, computeSize, 0);
     }
 
-    PipeBarrier<PIPE_V>(); //  Vector     pipeline synchronization
+    PipeBarrier<PIPE_V>();
 
     SoftMaxShapeInfo shapeInfo = {this->singleProcessSOuterSize, this->singleProcessSInnerSize,
                                   this->singleProcessSOuterSize, this->singleProcessSInnerSize};
@@ -267,7 +267,7 @@ __aicore__ inline void PromptFlashAttentionBNSTillingNSWithBNSDTail<T, U, FORMAT
         this->SoftmaxComputeTail(mmResUb, softmaxMaxUb, softmaxSumUb, softmaxExpUb, shapeInfo);
     }
 
-    //// Calculate bmm2: atten*V block
+    // Calculate bmm2: atten*V block
     // Retrieve the UB memory for calculating BMM2
     LocalTensor<mmOutputType> bmm2ResUb;
     if (isSecond) {
@@ -401,7 +401,7 @@ __aicore__ inline void PromptFlashAttentionBNSTillingNSWithBNSDTail<T, U, FORMAT
             this->maskCopyInCol = this->singleProcessSInnerSize;
             this->pseShiftCopyInCol = this->singleProcessSInnerSize;
         }
-        bool isLast = sInnerLoopIdx == endIndex-1;
+        bool isLast = sInnerLoopIdx == endIndex - 1;
 
         if (sInnerLoopIdx == startIndex) {
             Bmm1ResDoVecBmm2ComputeFirst(mmResUb, softmaxMaxUb, softmaxSumUb, isLast, eventID, sInnerLoopIdx);
@@ -532,7 +532,7 @@ __aicore__ inline void PromptFlashAttentionBNSTillingNSWithBNSDTail<T, U, FORMAT
     int32_t tilingIdx = coreIdx;
     int32_t sIdx = 0;
     uint32_t actualSeqLengthsIdx = 0;
-    int32_t totalTilingN = this->accumSOuterTilingNums[sNum-1];
+    int32_t totalTilingN = this->accumSOuterTilingNums[sNum - 1];
     int32_t preAccumSOuterNum = 0;
 
     while (tilingIdx < totalTilingN) {
@@ -541,7 +541,7 @@ __aicore__ inline void PromptFlashAttentionBNSTillingNSWithBNSDTail<T, U, FORMAT
             sIdx++;
         }
         if (sIdx != 0) {
-            preAccumSOuterNum = this->accumSOuterTilingNums[sIdx-1];
+            preAccumSOuterNum = this->accumSOuterTilingNums[sIdx - 1];
         }
         this->GetSingleCoreParam(sIdx);
         this->GetSparseParam(&preTokens, &nextTokens);
@@ -565,7 +565,7 @@ __aicore__ inline void PromptFlashAttentionBNSTillingNSWithBNSDTail<T, U, FORMAT
             this->sOuterOffset = 0;
         } else {
             this->singleProcessSOuterSize = this->singleProcessSOuterSizeWhole;
-            this->sOuterOffset = this->singleProcessSOuterSizeTail + (sOuterLoopIdx-1) * this->singleProcessSOuterSizeWhole;
+            this->sOuterOffset = this->singleProcessSOuterSizeTail + (sOuterLoopIdx - 1) * this->singleProcessSOuterSizeWhole;
         }
         this->ComputeTokenOffset();
         if (nextTokens < 0 && this->sOuterOffset < ((nextTokens * (-1)) /
