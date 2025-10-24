@@ -278,7 +278,9 @@ __global__ __aicore__ void incre_flash_attention_FIAS(
 #if (__CCE_AICORE__ > 200)
     KERNEL_TASK_TYPE_DEFAULT(KERNEL_TYPE_MIX_AIC_1_2);
 #endif
-    //REGISTER_TILING_DEFAULT(IncreFlashAttentionTilingDataV2);
+    #ifndef FIA_IFA
+    REGISTER_TILING_DEFAULT(IncreFlashAttentionTilingDataV2);
+    #endif
 #if (__CCE_AICORE__ > 200)
     if constexpr (M_FIAFLAG_P_MMTYPETMP_I_MODEVAL == 1 && P_CVDIFF_BASE_FLAG == 1) {
         using Q_TYPE = half;
@@ -327,7 +329,7 @@ __global__ __aicore__ void incre_flash_attention_FIAS(
                             half>>;
         REGISTER_TILING_FOR_TILINGKEY("TRUE", IncreFlashAttentionTilingDataV2);
         INVOKE_IFA_GENERAL_OP_IMPL(IncreFlashAttentionAttenSplitBbn2s2Us2, Q_TYPE, KV_TYPE, OUT_TYPE, ORIGIN_TYPE, PAGE_ATTENTIOND, FLASH_DECODE,
-                                    LAYOUT_TYPE, M_Q_QUANTMODE_P_MSD_MODE_I_ANTIQUANTMODE);
+                                    LAYOUT_TYPE, M_Q_QUANTMODE_P_MSD_MODE_I_ANTIQUANTMODE, false);
     } else if (M_FIAFLAG_P_MMTYPETMP_I_MODEVAL == 2) {
         using Q_TYPE = std::conditional_t<Q_T == 0, half,
                        std::conditional_t<Q_T == 2, bfloat16_t,
@@ -378,6 +380,7 @@ __global__ __aicore__ void incre_flash_attention_FIAS(
         using KV_TYPE = int8_t;
         using OUT_TYPE = bfloat16_t;
         using ORIGIN_TYPE = bfloat16_t;
+        REGISTER_TILING_FOR_TILINGKEY("TRUE", IncreFlashAttentionTilingDataMla);
         INVOKE_IFA_NO_KFC_MLA_OP_IMPL(IncreFlashAttentionAttenPreloadMla, Q_TYPE, KV_TYPE, OUT_TYPE, ORIGIN_TYPE, PAGE_ATTENTIOND, FLASH_DECODE,
                                     LAYOUT_TYPE, M_Q_QUANTMODE_P_MSD_MODE_I_ANTIQUANTMODE, false, KV_LAYOUT_TYPE, AMLA_TYPE, M_V_QUANTMODE_P_PRECISION_MODE_I_BALANCE);
     } else if (M_FIAFLAG_P_MMTYPETMP_I_MODEVAL == 3 && KV_T == 3) {

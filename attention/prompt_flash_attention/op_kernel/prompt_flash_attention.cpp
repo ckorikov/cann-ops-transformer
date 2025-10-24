@@ -203,13 +203,13 @@ __global__ __aicore__ void prompt_flash_attention_FIAS(__gm__ uint8_t* query, __
     {
     #if (__CCE_AICORE__ > 200)
         // bit 2
-        using Q_DTYPE = std::conditional_t<QUERY_T == 0, half,
-                        std::conditional_t<QUERY_T == 1, bfloat16_t,
-                        std::conditional_t<QUERY_T == 2, int8_t,
-                        std::conditional_t<QUERY_T == 6, half, half>>>>; // 默认回退
+        using Q_DTYPE = std::conditional_t<Q_T == 0, half,
+                        std::conditional_t<Q_T == 1, bfloat16_t,
+                        std::conditional_t<Q_T == 2, int8_t,
+                        std::conditional_t<Q_T == 6, half, half>>>>; // 默认回退
 
-        constexpr OptimizationMode PRECISION_TYPE = (QUERY_T == 0) ? OptimizationMode::HighPerformance :
-                                                    (QUERY_T == 6) ? OptimizationMode::HighPrecision : OptimizationMode::HighPerformance;
+        constexpr OptimizationMode PRECISION_TYPE = (Q_T == 0) ? OptimizationMode::HighPerformance :
+                                                    (Q_T == 6) ? OptimizationMode::HighPrecision : OptimizationMode::HighPerformance;
         // bit 4
         using OUT_DTYPE = std::conditional_t<OUT_T == 0, half,
                           std::conditional_t<OUT_T == 1, bfloat16_t,
@@ -218,18 +218,18 @@ __global__ __aicore__ void prompt_flash_attention_FIAS(__gm__ uint8_t* query, __
         constexpr PFALayout LAYOUT_DTYPE = (LAYOUT_T == 0) ? PFALayout::BNSD :
                                            (LAYOUT_T == 1) ? PFALayout::BSH : PFALayout::BNSD;
         // bit 6
-        constexpr MatMulType MATMUL_TYPE = (MM_TYPE_TMP == 0) ? MatMulType::MM_MDL :
-                                           (MM_TYPE_TMP == 1) ? MatMulType::MM_NORM :
-                                           (MM_TYPE_TMP == 2) ? MatMulType::MM_IBSHARE_NORM : MatMulType::MM_MDL;
+        constexpr MatMulType MATMUL_TYPE = (M_FIAFLAG_P_MMTYPETMP_I_MODEVAL == 0) ? MatMulType::MM_MDL :
+                                           (M_FIAFLAG_P_MMTYPETMP_I_MODEVAL == 1) ? MatMulType::MM_NORM :
+                                           (M_FIAFLAG_P_MMTYPETMP_I_MODEVAL == 2) ? MatMulType::MM_IBSHARE_NORM : MatMulType::MM_MDL;
 
         // bit 7
-        constexpr MmPolicyType PA_TYPE = (PAGE_ATTENTION == 0) ? MmPolicyType::NORMAL :
-                                         (PAGE_ATTENTION == 1) ? MmPolicyType::PA_ND :
-                                         (PAGE_ATTENTION == 2) ? MmPolicyType::PA_NZ : MmPolicyType::NORMAL;
+        constexpr MmPolicyType PA_TYPE = (PAGE_ATTENTIOND == 0) ? MmPolicyType::NORMAL :
+                                         (PAGE_ATTENTIOND == 1) ? MmPolicyType::PA_ND :
+                                         (PAGE_ATTENTIOND == 2) ? MmPolicyType::PA_NZ : MmPolicyType::NORMAL;
 
         // bit 8-2
-        constexpr MsdMode MSD_TYPE = (MSD_MODE == 0) ? MsdMode::MSD_OFF :
-                                     (MSD_MODE == 1) ? MsdMode::MSD_ON : MsdMode::MSD_OFF;
+        constexpr MsdMode MSD_TYPE = (M_Q_QUANTMODE_P_MSD_MODE_I_ANTIQUANTMODE == 0) ? MsdMode::MSD_OFF :
+                                     (M_Q_QUANTMODE_P_MSD_MODE_I_ANTIQUANTMODE == 1) ? MsdMode::MSD_ON : MsdMode::MSD_OFF;
         // bit 8-1
         constexpr bool PREFIX_MODE = (ENABLE_PREFIX == 0) ? false :
                                      (ENABLE_PREFIX == 1) ? true : false;
@@ -324,58 +324,58 @@ __global__ __aicore__ void prompt_flash_attention_FIAS(__gm__ uint8_t* query, __
                     || (LAYOUT_T == 1 && M_FIAFLAG_P_MMTYPETMP_I_MODEVAL == 0 && ENABLE_PREFIX == 1) || (LAYOUT_T == 1 && M_FIAFLAG_P_MMTYPETMP_I_MODEVAL == 2 && ENABLE_PREFIX == 0))){
                         INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<LAYOUT_DTYPE, Q_DTYPE, bool, OUT_DTYPE, half, OptimizationMode::HighPrecision, MATMUL_TYPE, PREFIX_MODE, MsdMode::MSD_OFF>);
                     }
-                    else if ((KV_T == 0) && (PAGE_ATTENTION == 1) && (QUERY_T == 6) && (MM_TYPE_TMP == 0) && (ENABLE_PREFIX == 0) && (MSD_MODE == 0) && (CVDIFF_MLA_FLAG == 0) && (TEMPLATE_VERSION == 1) 
-                    && ((LAYOUT_T == 1 && MM_TYPE_TMP == 0 && ENABLE_PREFIX == 0) || (LAYOUT_T == 0 && MM_TYPE_TMP == 0 && ENABLE_PREFIX == 0))){
+                    else if ((KV_T == 0) && (PAGE_ATTENTIOND == 1) && (Q_T == 6) && (M_FIAFLAG_P_MMTYPETMP_I_MODEVAL == 0) && (ENABLE_PREFIX == 0) && (M_Q_QUANTMODE_P_MSD_MODE_I_ANTIQUANTMODE == 0) && (P_CVDIFF_MLA_FLAG == 0) && (P_TEMPLATE_VERSION == 1) 
+                    && ((LAYOUT_T == 1 && M_FIAFLAG_P_MMTYPETMP_I_MODEVAL == 0 && ENABLE_PREFIX == 0) || (LAYOUT_T == 0 && M_FIAFLAG_P_MMTYPETMP_I_MODEVAL == 0 && ENABLE_PREFIX == 0))){
                         INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<LAYOUT_DTYPE, Q_DTYPE, bool, OUT_DTYPE, half, OptimizationMode::HighPrecision, MatMulType::MM_PA>);
                     }
-                    else if ((KV_T == 8) && (PAGE_ATTENTION == 0) && (QUERY_T == 6) && (MM_TYPE_TMP == 0) && (MSD_MODE == 0) && (CVDIFF_MLA_FLAG == 0) && (TEMPLATE_VERSION == 1) 
-                    && ((LAYOUT_T == 1 && MM_TYPE_TMP == 0 && ENABLE_PREFIX == 0) || (LAYOUT_T == 1 && MM_TYPE_TMP == 0 && ENABLE_PREFIX == 1) 
-                    || (LAYOUT_T == 0 && MM_TYPE_TMP == 0 && ENABLE_PREFIX == 0) || (LAYOUT_T == 0 && MM_TYPE_TMP == 0 && ENABLE_PREFIX == 1))){
+                    else if ((KV_T == 8) && (PAGE_ATTENTIOND == 0) && (Q_T == 6) && (M_FIAFLAG_P_MMTYPETMP_I_MODEVAL == 0) && (M_Q_QUANTMODE_P_MSD_MODE_I_ANTIQUANTMODE == 0) && (P_CVDIFF_MLA_FLAG == 0) && (P_TEMPLATE_VERSION == 1) 
+                    && ((LAYOUT_T == 1 && M_FIAFLAG_P_MMTYPETMP_I_MODEVAL == 0 && ENABLE_PREFIX == 0) || (LAYOUT_T == 1 && M_FIAFLAG_P_MMTYPETMP_I_MODEVAL == 0 && ENABLE_PREFIX == 1) 
+                    || (LAYOUT_T == 0 && M_FIAFLAG_P_MMTYPETMP_I_MODEVAL == 0 && ENABLE_PREFIX == 0) || (LAYOUT_T == 0 && M_FIAFLAG_P_MMTYPETMP_I_MODEVAL == 0 && ENABLE_PREFIX == 1))){
                         INVOKE_PFA_KVANTIQUANT_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<LAYOUT_DTYPE, Q_DTYPE, bool, OUT_DTYPE, int8_t, OptimizationMode::HighPrecision, MATMUL_TYPE, PREFIX_MODE, MsdMode::MSD_OFF>);
                     }
-                    else if ((KV_T == 4)  && (PAGE_ATTENTION == 0) && (QUERY_T == 6) && (MM_TYPE_TMP == 0) && (MSD_MODE == 1) && (CVDIFF_MLA_FLAG == 0) && (TEMPLATE_VERSION == 1) 
+                    else if ((KV_T == 4)  && (PAGE_ATTENTIOND == 0) && (Q_T == 6) && (M_FIAFLAG_P_MMTYPETMP_I_MODEVAL == 0) && (M_Q_QUANTMODE_P_MSD_MODE_I_ANTIQUANTMODE == 1) && (P_CVDIFF_MLA_FLAG == 0) && (P_TEMPLATE_VERSION == 1) 
                     && ((LAYOUT_T == 1 && ENABLE_PREFIX == 1) || (LAYOUT_T == 0 && ENABLE_PREFIX == 1) || (LAYOUT_T == 0 && ENABLE_PREFIX == 0) || (LAYOUT_T == 1 && ENABLE_PREFIX == 0))){
                         INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<LAYOUT_DTYPE, Q_DTYPE, bool, OUT_DTYPE, int8_t, OptimizationMode::HighPrecision, MATMUL_TYPE, PREFIX_MODE, MSD_TYPE>);
                     }
-                    else if( (KV_T == 0) && (PAGE_ATTENTION == 0) && (QUERY_T == 0) && (OUT_T == 0) && (LAYOUT_T == 0) && (MM_TYPE_TMP == 0) && (PAGE_ATTENTION == 0) && (ENABLE_PREFIX == 1) 
-                    && (MSD_MODE == 0) && (CVDIFF_MLA_FLAG == 0) && (TEMPLATE_VERSION == 1)){
+                    else if( (KV_T == 0) && (PAGE_ATTENTIOND == 0) && (Q_T == 0) && (OUT_T == 0) && (LAYOUT_T == 0) && (M_FIAFLAG_P_MMTYPETMP_I_MODEVAL == 0) && (PAGE_ATTENTIOND == 0) && (ENABLE_PREFIX == 1) 
+                    && (M_Q_QUANTMODE_P_MSD_MODE_I_ANTIQUANTMODE == 0) && (P_CVDIFF_MLA_FLAG == 0) && (P_TEMPLATE_VERSION == 1)){
                         if (maskByteNum == FLOAT16BYTENUM) {
                             INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<LAYOUT_DTYPE, Q_DTYPE, half, OUT_DTYPE, half, OptimizationMode::HighPerformance, MatMulType::MM_MDL, true>);
                         } else {
                             INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<LAYOUT_DTYPE, Q_DTYPE, uint8_t, OUT_DTYPE, half, OptimizationMode::HighPerformance, MatMulType::MM_MDL, true>);
                         }
                     }
-                    else if ((KV_T == 0) && (PAGE_ATTENTION == 0) && (QUERY_T == 0) && (OUT_T == 0) && (LAYOUT_T == 1) && (MM_TYPE_TMP == 0) && (PAGE_ATTENTION == 0) && (ENABLE_PREFIX == 1) 
-                    && (MSD_MODE == 0) && (CVDIFF_MLA_FLAG == 0) && (TEMPLATE_VERSION == 1)){
+                    else if ((KV_T == 0) && (PAGE_ATTENTIOND == 0) && (Q_T == 0) && (OUT_T == 0) && (LAYOUT_T == 1) && (M_FIAFLAG_P_MMTYPETMP_I_MODEVAL == 0) && (PAGE_ATTENTIOND == 0) && (ENABLE_PREFIX == 1) 
+                    && (M_Q_QUANTMODE_P_MSD_MODE_I_ANTIQUANTMODE == 0) && (P_CVDIFF_MLA_FLAG == 0) && (P_TEMPLATE_VERSION == 1)){
                         if (maskByteNum == FLOAT16BYTENUM) {
                             INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<LAYOUT_DTYPE, Q_DTYPE, half, OUT_DTYPE, half, OptimizationMode::HighPerformance, MatMulType::MM_MDL, true>);
                         } else {
                             INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<LAYOUT_DTYPE, Q_DTYPE, bool, OUT_DTYPE, half, OptimizationMode::HighPerformance, MatMulType::MM_MDL, true>);
                         }
                     }
-                    else if ((KV_T == 0) && (PAGE_ATTENTION == 0) && (QUERY_T == 0) && (MSD_MODE == 0) && (CVDIFF_MLA_FLAG == 0) && (TEMPLATE_VERSION == 1) 
-                    && ((LAYOUT_T == 1 && MM_TYPE_TMP == 2 && ENABLE_PREFIX == 0) || (LAYOUT_T == 0 && MM_TYPE_TMP == 1 && ENABLE_PREFIX == 0) 
-                    || (LAYOUT_T == 0 && MM_TYPE_TMP == 1 && ENABLE_PREFIX == 1) || (LAYOUT_T == 0 && MM_TYPE_TMP == 2 && ENABLE_PREFIX == 0))){
+                    else if ((KV_T == 0) && (PAGE_ATTENTIOND == 0) && (Q_T == 0) && (M_Q_QUANTMODE_P_MSD_MODE_I_ANTIQUANTMODE == 0) && (P_CVDIFF_MLA_FLAG == 0) && (P_TEMPLATE_VERSION == 1) 
+                    && ((LAYOUT_T == 1 && M_FIAFLAG_P_MMTYPETMP_I_MODEVAL == 2 && ENABLE_PREFIX == 0) || (LAYOUT_T == 0 && M_FIAFLAG_P_MMTYPETMP_I_MODEVAL == 1 && ENABLE_PREFIX == 0) 
+                    || (LAYOUT_T == 0 && M_FIAFLAG_P_MMTYPETMP_I_MODEVAL == 1 && ENABLE_PREFIX == 1) || (LAYOUT_T == 0 && M_FIAFLAG_P_MMTYPETMP_I_MODEVAL == 2 && ENABLE_PREFIX == 0))){
                         INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<LAYOUT_DTYPE, Q_DTYPE, uint8_t, OUT_DTYPE, half, OptimizationMode::HighPerformance, MATMUL_TYPE, PREFIX_MODE, MsdMode::MSD_OFF>);
                     }
-                    else if ((KV_T == 0) && (PAGE_ATTENTION == 1) && (QUERY_T == 0) && (LAYOUT_T == 0) && (MM_TYPE_TMP == 0) && (ENABLE_PREFIX == 0) 
-                    && (MSD_MODE == 0) && (CVDIFF_MLA_FLAG == 0) && (TEMPLATE_VERSION == 1)){
+                    else if ((KV_T == 0) && (PAGE_ATTENTIOND == 1) && (Q_T == 0) && (LAYOUT_T == 0) && (M_FIAFLAG_P_MMTYPETMP_I_MODEVAL == 0) && (ENABLE_PREFIX == 0) 
+                    && (M_Q_QUANTMODE_P_MSD_MODE_I_ANTIQUANTMODE == 0) && (P_CVDIFF_MLA_FLAG == 0) && (P_TEMPLATE_VERSION == 1)){
                         INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<LAYOUT_DTYPE, Q_DTYPE, uint8_t, OUT_DTYPE, half, OptimizationMode::HighPerformance, MatMulType::MM_PA>);
                     }
-                    else if ((KV_T == 0) && (PAGE_ATTENTION == 1) && (QUERY_T == 0) && (LAYOUT_T == 1) && (MM_TYPE_TMP == 0) && (ENABLE_PREFIX == 0) 
-                    && (MSD_MODE == 0) && (CVDIFF_MLA_FLAG == 0) && (TEMPLATE_VERSION == 1)){
+                    else if ((KV_T == 0) && (PAGE_ATTENTIOND == 1) && (Q_T == 0) && (LAYOUT_T == 1) && (M_FIAFLAG_P_MMTYPETMP_I_MODEVAL == 0) && (ENABLE_PREFIX == 0) 
+                    && (M_Q_QUANTMODE_P_MSD_MODE_I_ANTIQUANTMODE == 0) && (P_CVDIFF_MLA_FLAG == 0) && (P_TEMPLATE_VERSION == 1)){
                         INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<LAYOUT_DTYPE, Q_DTYPE, bool, OUT_DTYPE, half, OptimizationMode::HighPerformance, MatMulType::MM_PA>);
                     }
-                    else if ((KV_T == 8) && (PAGE_ATTENTION == 0) && (QUERY_T == 0) && (MM_TYPE_TMP == 0) && (MSD_MODE == 0) && (CVDIFF_MLA_FLAG == 0) && (TEMPLATE_VERSION == 1) 
+                    else if ((KV_T == 8) && (PAGE_ATTENTIOND == 0) && (Q_T == 0) && (M_FIAFLAG_P_MMTYPETMP_I_MODEVAL == 0) && (M_Q_QUANTMODE_P_MSD_MODE_I_ANTIQUANTMODE == 0) && (P_CVDIFF_MLA_FLAG == 0) && (P_TEMPLATE_VERSION == 1) 
                     && ((LAYOUT_T == 0 && ENABLE_PREFIX == 0) || (LAYOUT_T == 0 && ENABLE_PREFIX == 1) || (LAYOUT_T == 1 && ENABLE_PREFIX == 0) ||(LAYOUT_T == 1 && ENABLE_PREFIX == 1))){
                         INVOKE_PFA_KVANTIQUANT_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<LAYOUT_DTYPE, Q_DTYPE, bool, OUT_DTYPE, int8_t, OptimizationMode::HighPerformance, MATMUL_TYPE, PREFIX_MODE, MsdMode::MSD_OFF>);
                     }
-                    else if ((KV_T == 8) && (PAGE_ATTENTION == 1) && (QUERY_T == 0) && (LAYOUT_T == 1) && (MM_TYPE_TMP == 0) && (ENABLE_PREFIX == 0) 
-                    && (MSD_MODE == 0) && (CVDIFF_MLA_FLAG == 0) && (TEMPLATE_VERSION == 1)){
+                    else if ((KV_T == 8) && (PAGE_ATTENTIOND == 1) && (Q_T == 0) && (LAYOUT_T == 1) && (M_FIAFLAG_P_MMTYPETMP_I_MODEVAL == 0) && (ENABLE_PREFIX == 0) 
+                    && (M_Q_QUANTMODE_P_MSD_MODE_I_ANTIQUANTMODE == 0) && (P_CVDIFF_MLA_FLAG == 0) && (P_TEMPLATE_VERSION == 1)){
                         INVOKE_PFA_KVANTIQUANT_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<LAYOUT_DTYPE, Q_DTYPE, bool, OUT_DTYPE, int8_t, OptimizationMode::HighPerformance, MatMulType::MM_PA_ANTIQUANT>);
                     }
-                    else if ((KV_T == 8) && (PAGE_ATTENTION == 1) && (QUERY_T == 0) && (LAYOUT_T == 0) && (MM_TYPE_TMP == 0) && (ENABLE_PREFIX == 0) 
-                    && (MSD_MODE == 0) && (CVDIFF_MLA_FLAG == 0) && (TEMPLATE_VERSION == 1)){
+                    else if ((KV_T == 8) && (PAGE_ATTENTIOND == 1) && (Q_T == 0) && (LAYOUT_T == 0) && (M_FIAFLAG_P_MMTYPETMP_I_MODEVAL == 0) && (ENABLE_PREFIX == 0) 
+                    && (M_Q_QUANTMODE_P_MSD_MODE_I_ANTIQUANTMODE == 0) && (P_CVDIFF_MLA_FLAG == 0) && (P_TEMPLATE_VERSION == 1)){
                         INVOKE_PFA_KVANTIQUANT_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<LAYOUT_DTYPE, Q_DTYPE, bool, OUT_DTYPE, int8_t>);
                     }
                 }   
@@ -385,7 +385,7 @@ __global__ __aicore__ void prompt_flash_attention_FIAS(__gm__ uint8_t* query, __
                         REGISTER_TILING_FOR_TILINGKEY("TRUE", PromptFlashAttentionBaseApiTilingData);
                         INVOKE_PFA_GENERAL_OP_IMPL_BASE_API(PromptFlashAttentionBaseApiHighPrecisionV, PFATypeNew<PromptFlashAttentionBaseApiTilingData, Q_DTYPE, half, OUT_DTYPE, float, half, float, half, OptimizationMode::HighPrecision>);
                     }
-                    else if (CVDIFF_MLA_FLAG == 1){
+                    else if (P_CVDIFF_MLA_FLAG == 1){
                         REGISTER_TILING_FOR_TILINGKEY("TRUE", PromptFlashAttentionBaseApiTilingData);
                         INVOKE_PFA_GENERAL_OP_IMPL_MLA(PromptFlashAttentionBaseMLAHighPrecision, PFAHighPrecisionMLAType<PromptFlashAttentionBaseApiTilingData, half, false>);
                     }
@@ -398,19 +398,19 @@ __global__ __aicore__ void prompt_flash_attention_FIAS(__gm__ uint8_t* query, __
                 if constexpr ((Q_T == 0 || Q_T == 6) && (KV_T == 0) && (PAGE_ATTENTIOND == 0) && (LAYOUT_T == 0 || LAYOUT_T == 1) && (ENABLE_PREFIX == 0 || ENABLE_PREFIX == 1) && (M_Q_QUANTMODE_P_MSD_MODE_I_ANTIQUANTMODE == 0)){
                     INVOKE_PFA_INT8_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<LAYOUT_DTYPE, Q_DTYPE, bool, OUT_DTYPE, half, PRECISION_TYPE, MATMUL_TYPE, PREFIX_MODE, MsdMode::MSD_OFF>);
                 }
-                else if ((QUERY_T == 0 || QUERY_T == 6) && (KV_T == 0) && (PAGE_ATTENTION == 1) && (LAYOUT_T == 0 || LAYOUT_T == 1) && (ENABLE_PREFIX == 0) && (MSD_MODE == 0)){
+                else if ((Q_T == 0 || Q_T == 6) && (KV_T == 0) && (PAGE_ATTENTIOND == 1) && (LAYOUT_T == 0 || LAYOUT_T == 1) && (ENABLE_PREFIX == 0) && (M_Q_QUANTMODE_P_MSD_MODE_I_ANTIQUANTMODE == 0)){
                     INVOKE_PFA_INT8_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<LAYOUT_DTYPE, Q_DTYPE, bool, OUT_DTYPE, half, PRECISION_TYPE, MatMulType::MM_PA, PREFIX_MODE, MsdMode::MSD_OFF>);
                 }
-                else if ((QUERY_T == 0 || QUERY_T == 6) && (KV_T == 8) && (PAGE_ATTENTION == 0) && (LAYOUT_T == 0 || LAYOUT_T == 1) && (ENABLE_PREFIX == 0 || ENABLE_PREFIX == 1) && (MSD_MODE == 0)){
+                else if ((Q_T == 0 || Q_T == 6) && (KV_T == 8) && (PAGE_ATTENTIOND == 0) && (LAYOUT_T == 0 || LAYOUT_T == 1) && (ENABLE_PREFIX == 0 || ENABLE_PREFIX == 1) && (M_Q_QUANTMODE_P_MSD_MODE_I_ANTIQUANTMODE == 0)){
                     INVOKE_PFA_KVANTIQUANT_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<LAYOUT_DTYPE, Q_DTYPE, bool, OUT_DTYPE, int8_t, PRECISION_TYPE, MATMUL_TYPE, PREFIX_MODE, MsdMode::MSD_OFF>);
                 }
-                else if ((QUERY_T == 6) && (KV_T == 4) && (PAGE_ATTENTION == 0) && (LAYOUT_T == 0 || LAYOUT_T == 1) && (ENABLE_PREFIX == 0 || ENABLE_PREFIX == 1) && (MSD_MODE == 1)){
+                else if ((Q_T == 6) && (KV_T == 4) && (PAGE_ATTENTIOND == 0) && (LAYOUT_T == 0 || LAYOUT_T == 1) && (ENABLE_PREFIX == 0 || ENABLE_PREFIX == 1) && (M_Q_QUANTMODE_P_MSD_MODE_I_ANTIQUANTMODE == 1)){
                     INVOKE_PFA_INT8_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<LAYOUT_DTYPE, Q_DTYPE, bool, OUT_DTYPE, int8_t, OptimizationMode::HighPrecision, MATMUL_TYPE, PREFIX_MODE, MSD_TYPE>);
                 }
             }
         }
             if constexpr ((Q_T == 0 || Q_T == 1) && (KV_T != 1) && (M_OUTLAYOUT_P_TAIL_MODE_I_ORIGIN_T == 0 || M_OUTLAYOUT_P_TAIL_MODE_I_ORIGIN_T == 1 || M_OUTLAYOUT_P_TAIL_MODE_I_ORIGIN_T == 2 || M_OUTLAYOUT_P_TAIL_MODE_I_ORIGIN_T == 5 || M_OUTLAYOUT_P_TAIL_MODE_I_ORIGIN_T == 6 || M_OUTLAYOUT_P_TAIL_MODE_I_ORIGIN_T == 3)     
-                && (M_K_QUANTMODE_P_NEWTILINGFLAG_I_AMLA == 0 || M_K_QUANTMODE_P_NEWTILINGFLAG_I_AMLA == 1) && (Q_T == 0 || Q_T == 1) && (M_V_QUANTMODE_P_PRECISION_MODE_I_BALANCE == 0) && (OUT_T == 0 || OUT_T == 1)                   
+                && (M_K_QUANTMODE_P_NEWTILINGFLAG_I_AMLA == 0 || M_K_QUANTMODE_P_NEWTILINGFLAG_I_AMLA == 1) && (Q_T == 0 || Q_T == 1) && (M_V_QUANTMODE_P_PRECISION_MODE_I_BALANCE == 0 || M_V_QUANTMODE_P_PRECISION_MODE_I_BALANCE == 1) && (OUT_T == 0 || OUT_T == 1 || OUT_T == 2)                   
                 && (LAYOUT_T == 0 || LAYOUT_T == 1) && (M_FIAFLAG_P_MMTYPETMP_I_MODEVAL == 0 || M_FIAFLAG_P_MMTYPETMP_I_MODEVAL == 4) && (PAGE_ATTENTIOND == 0 || PAGE_ATTENTIOND == 1 || PAGE_ATTENTIOND == 2) && (ENABLE_PREFIX == 0)       
                 && (M_Q_QUANTMODE_P_MSD_MODE_I_ANTIQUANTMODE == 0) && (P_CVDIFF_BASE_FLAG == 0 || P_CVDIFF_BASE_FLAG == 2) && (P_CVDIFF_MLA_FLAG == 0 || P_CVDIFF_MLA_FLAG == 1) && (KV_T == 0) && (P_TEMPLATE_VERSION == 1 || P_TEMPLATE_VERSION == 2 || P_TEMPLATE_VERSION == 4)){
             if constexpr ((P_TEMPLATE_VERSION == 1) && (M_K_QUANTMODE_P_NEWTILINGFLAG_I_AMLA == 1) && (M_OUTLAYOUT_P_TAIL_MODE_I_ORIGIN_T == 0) && (Q_T == 1) && (OUT_T == 0) && (LAYOUT_T == 0) && (M_FIAFLAG_P_MMTYPETMP_I_MODEVAL == 0) && (PAGE_ATTENTIOND == 0) 
@@ -554,11 +554,11 @@ __global__ __aicore__ void prompt_flash_attention_FIAS(__gm__ uint8_t* query, __
                 || (LAYOUT_T == 0 && M_FIAFLAG_P_MMTYPETMP_I_MODEVAL == 0 && ENABLE_PREFIX == 0) || (LAYOUT_T == 0 && M_FIAFLAG_P_MMTYPETMP_I_MODEVAL == 2 && ENABLE_PREFIX == 0) || (LAYOUT_T == 0 && M_FIAFLAG_P_MMTYPETMP_I_MODEVAL == 0 && ENABLE_PREFIX == 1))){
                     INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<LAYOUT_DTYPE, Q_DTYPE, bool, OUT_DTYPE, bfloat16_t, OptimizationMode::HighPerformance, MATMUL_TYPE, PREFIX_MODE, MSD_TYPE>);
                 }
-                else if ((KV_T == 0) && (PAGE_ATTENTION == 1) && (MM_TYPE_TMP == 0) && (ENABLE_PREFIX == 0) && (MSD_MODE == 0) 
+                else if ((KV_T == 0) && (PAGE_ATTENTIOND == 1) && (M_FIAFLAG_P_MMTYPETMP_I_MODEVAL == 0) && (ENABLE_PREFIX == 0) && (M_Q_QUANTMODE_P_MSD_MODE_I_ANTIQUANTMODE == 0) 
                 && ((LAYOUT_T == 1  && ENABLE_PREFIX == 0) || (LAYOUT_T == 0  && ENABLE_PREFIX == 0))){
                     INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<LAYOUT_DTYPE, Q_DTYPE, bool, OUT_DTYPE, bfloat16_t, OptimizationMode::HighPerformance, MatMulType::MM_PA, PREFIX_MODE, MSD_TYPE>);
                 }
-                else if ((KV_T == 4) && (PAGE_ATTENTION == 0) && (LAYOUT_T == 0 || LAYOUT_T == 1) && (MM_TYPE_TMP == 0) && (ENABLE_PREFIX == 0 || ENABLE_PREFIX == 1) && (MSD_MODE == 1)){
+                else if ((KV_T == 4) && (PAGE_ATTENTIOND == 0) && (LAYOUT_T == 0 || LAYOUT_T == 1) && (M_FIAFLAG_P_MMTYPETMP_I_MODEVAL == 0) && (ENABLE_PREFIX == 0 || ENABLE_PREFIX == 1) && (M_Q_QUANTMODE_P_MSD_MODE_I_ANTIQUANTMODE == 1)){
                     INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<LAYOUT_DTYPE, Q_DTYPE, bool, OUT_DTYPE, int8_t, OptimizationMode::HighPerformance, MATMUL_TYPE, PREFIX_MODE, MSD_TYPE>);
                 }   
             }
@@ -567,13 +567,13 @@ __global__ __aicore__ void prompt_flash_attention_FIAS(__gm__ uint8_t* query, __
                 && (LAYOUT_T == 0 || LAYOUT_T == 1) && (M_FIAFLAG_P_MMTYPETMP_I_MODEVAL == 0) && (PAGE_ATTENTIOND == 0 || PAGE_ATTENTIOND == 1) && (ENABLE_PREFIX == 0 || ENABLE_PREFIX == 1)   
                 && (M_Q_QUANTMODE_P_MSD_MODE_I_ANTIQUANTMODE == 0 || M_Q_QUANTMODE_P_MSD_MODE_I_ANTIQUANTMODE == 1) && (P_CVDIFF_BASE_FLAG == 0) && (P_CVDIFF_MLA_FLAG == 0) && (KV_T == 0 || KV_T == 4) && (P_TEMPLATE_VERSION == 1)){
                 if constexpr ((KV_T == 0) && (PAGE_ATTENTIOND == 0) && (LAYOUT_T == 0 || LAYOUT_T == 1) && (ENABLE_PREFIX == 0 || ENABLE_PREFIX == 1) && (M_Q_QUANTMODE_P_MSD_MODE_I_ANTIQUANTMODE == 0)){
-                    INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<LAYOUT_DTYPE, Q_DTYPE, bool, OUT_DTYPE, bfloat16_t, OptimizationMode::HighPerformance, MATMUL_TYPE, PREFIX_MODE, MSD_TYPE>);
+                    INVOKE_PFA_INT8_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<LAYOUT_DTYPE, Q_DTYPE, bool, OUT_DTYPE, bfloat16_t, OptimizationMode::HighPerformance, MATMUL_TYPE, PREFIX_MODE, MSD_TYPE>);
                 }
-                else if ((KV_T == 0) && (PAGE_ATTENTION == 1) && (LAYOUT_T == 0 || LAYOUT_T == 1) && (ENABLE_PREFIX == 0) && (MSD_MODE == 0)){
-                    INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<LAYOUT_DTYPE, Q_DTYPE, bool, OUT_DTYPE, bfloat16_t, OptimizationMode::HighPerformance, MatMulType::MM_PA, PREFIX_MODE, MSD_TYPE>);
+                else if ((KV_T == 0) && (PAGE_ATTENTIOND == 1) && (LAYOUT_T == 0 || LAYOUT_T == 1) && (ENABLE_PREFIX == 0) && (M_Q_QUANTMODE_P_MSD_MODE_I_ANTIQUANTMODE == 0)){
+                    INVOKE_PFA_INT8_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<LAYOUT_DTYPE, Q_DTYPE, bool, OUT_DTYPE, bfloat16_t, OptimizationMode::HighPerformance, MatMulType::MM_PA, PREFIX_MODE, MSD_TYPE>);
                 }
-                else if ((KV_T == 4) && (PAGE_ATTENTION == 0) && (LAYOUT_T == 0 || LAYOUT_T == 1) && (ENABLE_PREFIX == 0 || ENABLE_PREFIX == 1) && (MSD_MODE == 1)){
-                    INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<LAYOUT_DTYPE, Q_DTYPE, bool, OUT_DTYPE, int8_t, OptimizationMode::HighPerformance, MATMUL_TYPE, PREFIX_MODE, MSD_TYPE>);
+                else if ((KV_T == 4) && (PAGE_ATTENTIOND == 0) && (LAYOUT_T == 0 || LAYOUT_T == 1) && (ENABLE_PREFIX == 0 || ENABLE_PREFIX == 1) && (M_Q_QUANTMODE_P_MSD_MODE_I_ANTIQUANTMODE == 1)){
+                    INVOKE_PFA_INT8_OP_IMPL(PromptFlashAttentionS1s2Bns1X910, PFAType<LAYOUT_DTYPE, Q_DTYPE, bool, OUT_DTYPE, int8_t, OptimizationMode::HighPerformance, MATMUL_TYPE, PREFIX_MODE, MSD_TYPE>);
                 }
             }
         }

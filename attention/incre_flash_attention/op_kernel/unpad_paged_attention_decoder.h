@@ -34,7 +34,6 @@
 #include "l1_to_ub_iterator.h"
 #include "incre_flash_attention_tiling.h"
 
-
 constexpr int32_t LOCAL_STORAGE_BUFFER_SIZE = 4096;
 
 template <CalcMode DECODE_MODE = CalcMode::CALC_MODE_DEFAULT>

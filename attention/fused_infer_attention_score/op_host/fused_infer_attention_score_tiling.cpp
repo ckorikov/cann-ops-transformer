@@ -675,7 +675,7 @@ static ge::graphStatus TilingProcess4PFA(gert::TilingContext *context, const uin
     uint32_t blockDimToBeSet;
     pfa_tiling.fromPFA_ = false;
     ret = pfa_tiling.RunBigKernelTilingWithParams(contextParamsForPFATiling, tilingKey, blockDimToBeSet, pfaTilingData);
-    tilingKey += BENCHMARK_TILING_KEY;
+    // tilingKey += BENCHMARK_TILING_KEY;
     OP_LOGD(contextParamsForPFATiling.opName, "The final tiling key is: %lu", tilingKey);
     context->SetTilingKey(tilingKey);
     context->SetBlockDim(blockDimToBeSet);

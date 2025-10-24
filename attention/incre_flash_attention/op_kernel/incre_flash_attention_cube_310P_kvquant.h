@@ -20,7 +20,6 @@
 #include "lib/matmul_intf.h"
 #include "lib/matrix/matmul/tiling.h"
 #include "ifa_public_define.h"
-#include "incre_flash_attention_tiling.h"
 
 using namespace AscendC;
 
