@@ -2591,7 +2591,7 @@ __aicore__ inline void DealActSeqLenIsZero(uint32_t bIdx, uint32_t n2Idx, Offset
         uint32_t gSize = offsetCalculator.GetDimG();
         for (int gIdx = 0; gIdx < gSize; gIdx++) {
             uint64_t attenOutOffset = offsetCalculator.GetOffset(bIdx, n2Idx, gIdx, 0, 0);  
-            matmul::InitOutput<OUT_T>(attentionOutGm[attenOutOffset], offsetCalculator.GetStrideG(), 0);
+            matmul::InitOutput<OUT_T>(attentionOutGm[attenOutOffset], offsetCalculator.GetStrideB(), 0);
         }
     } 
 }
