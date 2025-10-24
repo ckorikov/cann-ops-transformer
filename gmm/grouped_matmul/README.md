@@ -64,40 +64,171 @@
 
 
 ## 参数说明
-|参数名| 输入/输出   |    描述 |数据类型 |
-|-----|---------|------|------|
-|x|输入|公式中的输入`x`。| FLOAT<sup>1</sup>、FLOAT16、INT16<sup>1</sup>、INT8、INT4<sup>1</sup>、BFLOAT16、FLOAT8_E5M2<sup>2</sup>、FLOAT8_E4M3FN<sup>2</sup>、HIFLOAT8<sup>2</sup> |
-|weight|输入|公式中的`weight`。|FLOAT<sup>1</sup>、FLOAT16、INT16<sup>1</sup>、INT8、INT4、BFLOAT16、FLOAT8_E5M2<sup>2</sup>、FLOAT8_E4M3FN<sup>2</sup>、HIFLOAT8<sup>2</sup> |
-|biasOptional|可选输入|公式中的`bias`。| FLOAT、FLOAT16、INT32、BFLOAT16<sup>2</sup> |
-|scaleOptional|可选输入|公式中的`scale`，代表量化参数中的缩放因子。| FLOAT、UINT64、BFLOAT16、FLOAT8_E8M0<sup>2</sup>、INT64<sup>2</sup> |
-|offsetOptional|可选输入|公式中的`offset`，代表量化参数中的偏移量。| FLOAT |
-|antiquantScaleOptional|可选输入|公式中的`antiquant_scale`，代表伪量化参数中的缩放因子。| FLOAT16、BFLOAT16 |
-|antiquantOffsetOptional|可选输入|公式中的`antiquant_offset`，代表伪量化参数中的缩放因子。| FLOAT16、BFLOAT16 |
-|perTokenScaleOptional|可选输入|公式中的`per_token_scale`，代表量化参数中的由x量化引入的缩放因子。| FLOAT、FLOAT8_E8M0<sup>2</sup> |
-|groupListOptional|可选输入|代表输入和输出分组轴方向的matmul大小分布。| INT64 |
-|activationInputOptional|可选输入|代表激活函数的反向输入，当前只支持传入nullptr。| - |
-|activationQuantScaleOptional|可选输入|当前只支持传入nullptr。| - |
-|activationQuantOffsetOptional|可选输入|当前只支持传入nullptr。| - |
-|splitItem|属性|代表输出是否要做tensor切分。| INT64 |
-|groupType|属性|代表需要分组的轴。| INT64 |
-|groupListType|属性|代表groupList输入的分组方式。| INT64 |
-|actType|属性|代表激活函数类型。| INT64 |
-|tuningConfigOptional|可选输入|代表各个专家处理的token数的预期值，用于优化tiling。| INT64 |
-|out|输出|公式中的输出`y`。| FLOAT、FLOAT16、INT32<sup>1</sup>、INT8<sup>1</sup>、BFLOAT16 |
-|activationFeatureOutOptional|输出|激活函数的输入数据，当前只支持传入nullptr。| - |
-|dynQuantScaleOutOptional|输出|当前只支持传入nullptr。| - |
+<table style="table-layout: auto; width: 100%">
+  <thead>
+    <tr>
+      <th style="white-space: nowrap">参数名</th>
+      <th style="white-space: nowrap">输入/输出/属性</th>
+      <th style="white-space: nowrap">描述</th>
+      <th style="white-space: nowrap">数据类型</th>
+      <th style="white-space: nowrap">数据格式</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td style="white-space: nowrap">x</td>
+      <td style="white-space: nowrap">输入</td>
+      <td style="white-space: nowrap">公式中的输入`x`。</td>
+      <td style="white-space: nowrap">FLOAT<sup>1</sup>、FLOAT16、INT16<sup>1</sup>、INT8、INT4<sup>1</sup>、BFLOAT16、FLOAT8_E5M2<sup>2</sup>、FLOAT8_E4M3FN<sup>2</sup>、HIFLOAT8<sup>2</sup></td>
+      <td style="white-space: nowrap">ND</td>
+    </tr>
+    <tr>
+      <td style="white-space: nowrap">weight</td>
+      <td style="white-space: nowrap">输入</td>
+      <td style="white-space: nowrap">公式中的`weight`。</td>
+      <td style="white-space: nowrap">FLOAT<sup>1</sup>、FLOAT16、INT16<sup>1</sup>、INT8、INT4、BFLOAT16、FLOAT8_E5M2<sup>2</sup>、FLOAT8_E4M3FN<sup>2</sup>、HIFLOAT8<sup>2</sup></td>
+      <td style="white-space: nowrap">ND/NZ</td>
+    </tr>
+    <tr>
+      <td style="white-space: nowrap">biasOptional</td>
+      <td style="white-space: nowrap">可选输入</td>
+      <td style="white-space: nowrap">公式中的`bias`。</td>
+      <td style="white-space: nowrap">FLOAT、FLOAT16、INT32、BFLOAT16<sup>2</sup></td>
+      <td style="white-space: nowrap">ND</td>
+    </tr>
+    <tr>
+      <td style="white-space: nowrap">scaleOptional</td>
+      <td style="white-space: nowrap">可选输入</td>
+      <td style="white-space: nowrap">公式中的`scale`，代表量化参数中的缩放因子。</td>
+      <td style="white-space: nowrap">FLOAT、UINT64、BFLOAT16、FLOAT8_E8M0<sup>2</sup>、INT64<sup>2</sup></td>
+      <td style="white-space: nowrap">ND</td>
+    </tr>
+    <tr>
+      <td style="white-space: nowrap">offsetOptional</td>
+      <td style="white-space: nowrap">可选输入</td>
+      <td style="white-space: nowrap">公式中的`offset`，代表量化参数中的偏移量。</td>
+      <td style="white-space: nowrap">FLOAT</td>
+      <td style="white-space: nowrap">ND</td>
+    </tr>
+    <tr>
+      <td style="white-space: nowrap">antiquantScaleOptional</td>
+      <td style="white-space: nowrap">可选输入</td>
+      <td style="white-space: nowrap">公式中的`antiquant_scale`，代表伪量化参数中的缩放因子。</td>
+      <td style="white-space: nowrap">FLOAT16、BFLOAT16</td>
+      <td style="white-space: nowrap">ND</td>
+    </tr>
+    <tr>
+      <td style="white-space: nowrap">antiquantOffsetOptional</td>
+      <td style="white-space: nowrap">可选输入</td>
+      <td style="white-space: nowrap">公式中的`antiquant_offset`，代表伪量化参数中的缩放因子。</td>
+      <td style="white-space: nowrap">FLOAT16、BFLOAT16</td>
+      <td style="white-space: nowrap">ND</td>
+    </tr>
+    <tr>
+      <td style="white-space: nowrap">perTokenScaleOptional</td>
+      <td style="white-space: nowrap">可选输入</td>
+      <td style="white-space: nowrap">公式中的`per_token_scale`，代表量化参数中的由x量化引入的缩放因子。</td>
+      <td style="white-space: nowrap">FLOAT、FLOAT8_E8M0<sup>2</sup></td>
+      <td style="white-space: nowrap">ND</td>
+    </tr>
+    <tr>
+      <td style="white-space: nowrap">groupListOptional</td>
+      <td style="white-space: nowrap">可选输入</td>
+      <td style="white-space: nowrap">代表输入和输出分组轴方向的matmul大小分布。</td>
+      <td style="white-space: nowrap">INT64</td>
+      <td style="white-space: nowrap">ND</td>
+    </tr>
+    <tr>
+      <td style="white-space: nowrap">activationInputOptional</td>
+      <td style="white-space: nowrap">可选输入</td>
+      <td style="white-space: nowrap">代表激活函数的反向输入，当前只支持传入nullptr。</td>
+      <td style="white-space: nowrap">-</td>
+      <td style="white-space: nowrap">-</td>
+    </tr>
+    <tr>
+      <td style="white-space: nowrap">activationQuantScaleOptional</td>
+      <td style="white-space: nowrap">可选输入</td>
+      <td style="white-space: nowrap">当前只支持传入nullptr。</td>
+      <td style="white-space: nowrap">-</td>
+      <td style="white-space: nowrap">-</td>
+    </tr>
+    <tr>
+      <td style="white-space: nowrap">activationQuantOffsetOptional</td>
+      <td style="white-space: nowrap">可选输入</td>
+      <td style="white-space: nowrap">当前只支持传入nullptr。</td>
+      <td style="white-space: nowrap">-</td>
+      <td style="white-space: nowrap">-</td>
+    </tr>
+    <tr>
+      <td style="white-space: nowrap">splitItem</td>
+      <td style="white-space: nowrap">属性</td>
+      <td style="white-space: nowrap">代表输出是否要做tensor切分。</td>
+      <td style="white-space: nowrap">INT64</td>
+      <td style="white-space: nowrap">-</td>
+    </tr>
+    <tr>
+      <td style="white-space: nowrap">groupType</td>
+      <td style="white-space: nowrap">属性</td>
+      <td style="white-space: nowrap">代表需要分组的轴。</td>
+      <td style="white-space: nowrap">INT64</td>
+      <td style="white-space: nowrap">-</td>
+    </tr>
+    <tr>
+      <td style="white-space: nowrap">groupListType</td>
+      <td style="white-space: nowrap">属性</td>
+      <td style="white-space: nowrap">代表groupList输入的分组方式。</td>
+      <td style="white-space: nowrap">INT64</td>
+      <td style="white-space: nowrap">-</td>
+    </tr>
+    <tr>
+      <td style="white-space: nowrap">actType</td>
+      <td style="white-space: nowrap">属性</td>
+      <td style="white-space: nowrap">代表激活函数类型。</td>
+      <td style="white-space: nowrap">INT64</td>
+      <td style="white-space: nowrap">-</td>
+    </tr>
+    <tr>
+      <td style="white-space: nowrap">tuningConfigOptional</td>
+      <td style="white-space: nowrap">可选输入</td>
+      <td style="white-space: nowrap">代表各个专家处理的token数的预期值，用于优化tiling。</td>
+      <td style="white-space: nowrap">INT64</td>
+      <td style="white-space: nowrap">-</td>
+    </tr>
+    <tr>
+      <td style="white-space: nowrap">out</td>
+      <td style="white-space: nowrap">输出</td>
+      <td style="white-space: nowrap">公式中的输出`y`。</td>
+      <td style="white-space: nowrap">FLOAT、FLOAT16、INT32<sup>1</sup>、INT8<sup>1</sup>、BFLOAT16</td>
+      <td style="white-space: nowrap">-</td>
+    </tr>
+    <tr>
+      <td style="white-space: nowrap">activationFeatureOutOptional</td>
+      <td style="white-space: nowrap">输出</td>
+      <td style="white-space: nowrap">激活函数的输入数据，当前只支持传入nullptr。</td>
+      <td style="white-space: nowrap">-</td>
+      <td style="white-space: nowrap">-</td>
+    </tr>
+    <tr>
+      <td style="white-space: nowrap">dynQuantScaleOutOptional</td>
+      <td style="white-space: nowrap">输出</td>
+      <td style="white-space: nowrap">当前只支持传入nullptr。</td>
+      <td style="white-space: nowrap">-</td>
+      <td style="white-space: nowrap">-</td>
+    </tr>
+  </tbody>
+</table>
 
 
 - <term>昇腾910_95 AI处理器</term>：
   
   - 上表数据类型列中的角标“1”代表该系列不支持的数据类型。
-  - 输入参数x、weight均不支持FLOAT、INT16类型，且x不支持int4类型；
+  - 输入参数x、weight均不支持FLOAT、INT16类型，且x不支持int4类型。
   - 输出参数out不支持INT32、INT8类型。
 - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：
   
   - 上表数据类型列中的角标“2”代表该系列不支持的数据类型。
   - 不支持FLOAT8_E5M2、FLOAT8_E4M3FN、HIFLOAT8、FLOAT8_E8M0类型。
-  - 输入参数biasOptional不支持BFLOAT16；
+  - 输入参数biasOptional不支持BFLOAT16。
   - 输入参数scaleOptional不支持INT64类型。
 - <term>Atlas 推理系列产品</term>：
   
@@ -140,14 +271,14 @@
           | 伪量化pergroup | weight多 | $[G_i, n_i]$|
       - x为INT8、weight为INT4场景支持对称量化和非对称量化：
         - 对称量化场景：
-          - 该场景下输出out的dtype为BFLOAT16或FLOAT16
-          - 该场景下offsetOptional为空
+          - 该场景下输出out的dtype为BFLOAT16或FLOAT16。
+          - 该场景下offsetOptional为空。
           - 该场景下仅支持count模式（算子不会检查groupListType的值），k要求为quantGroupSize的整数倍，且要求k <= 18432。其中quantGroupSize为k方向上pergroup量化长度，当前支持quantGroupSize=256。
           - 该场景下scale为pergroup与perchannel离线融合后的结果，shape要求为$[e, quantGroupNum, n]$，其中$quantGroupNum=k \div quantGroupSize$。
           - Bias为计算过程中离线计算的辅助结果，值要求为$8\times weight \times scale$，并在第1维累加，shape要求为$[e, n]$。
           - 该场景下要求n为8的整数倍。
         - 非对称量化场景：
-          - 该场景下输出out的dtype为FLOAT16
+          - 该场景下输出out的dtype为FLOAT16。
           - 该场景下仅支持count模式（算子不会检查groupListType的值）。
           - 该场景下{k, n}要求为{7168, 4096}或者{2048, 7168}。
           - scale为pergroup与perchannel离线融合后的结果，shape要求为$[e, 1, n]$。
@@ -163,7 +294,7 @@
 
     - 仅量化场景 (per-token)、反量化场景支持激活函数计算。
 
-    - <a id="groupType-constraints">不同groupType支持场景</a>：
+    - <a id="groupType-constraints"></a>不同groupType支持场景：
       - 伪量化仅支持groupType为-1和0场景。
       - 量化仅支持groupType为0场景。
       - x、weight、y的输入类型为aclTensorList，表示一个aclTensor类型的数组对象。下面表格支持场景用"单"表示由一个aclTensor组成的aclTensorList，"多"表示由多个aclTensor组成的aclTensorList。例如"单多单"，分别表示x为单tensor、weight为多tensor、y为单tensor。
@@ -214,7 +345,7 @@
         | -1 | 多多多 |1）仅支持splitItem为0/1<br>2）x，out中tensor需为2维， shape分别为（M, K）和（M, N）；weight中tensor需为2维，shape为（N, K）或（K, N）<br>3） groupListOptional必须传空<br>4）支持weight转置，但weight的tensorList中每个tensor是否转置需保持统一<br>5）x不支持转置<br>6）仅支持非量化  <br>7）仅支持ND进ND出<br>|
         | 0 | 单单单 |1）仅支持splitItem为2/3<br>2）weight中tensor需为3维，shape为（g, N, K）或（g, K, N）；x，out中tensor需为2维，shape分别为（M, K）和（M, N）<br>3）必须传groupListOptional，且当groupListType为0时，最后一个值不大于x中tensor的第一维，当groupListType为1时，数值的总和不大于x中tensor的第一维<br>4）groupListOptional第1维最大支持1024，即最多支持1024个group<br>5）支持x不转置，weight转置、不转置均支持，但在伪量化场景weight仅支持转置<br>6）仅支持ND进ND出<br>|
         | 0 | 单多单 |1）仅支持splitItem为2/3<br>2）必须传groupListOptional， 且当groupListType为0时，最后一个值与x中tensor的第一维相等，当groupListType为1时，数值的总与x中tensor的第一维相等，长度最大为 128<br>3）x，out中tensor需为2维， shape分别为（M, K）和（M, N）；weight中tensor需为2维，shape为（N, K）或（K, N）<br>4）weight中每个tensor的N轴必须相等<br>5）支持weight转置，但weight的tensorList中每tensor是否转置需保持统一<br>6）x不支持转置<br>7）仅支持非量化<br>8）仅支持ND进ND出<br> |
-        | 0 | 多多单 |1）仅支持splitItem为2/3<br>2）x，out中tensor需为2维， shape分别为（M, K）和（M, N）；weight中tensor需为2维，shape为（N, K）或（K, N） <br>3）weight中每个tensor的N轴必须相等<br>4）若传入groupListOptional，当groupListType为时，groupListOptional的差值需与x中tensor的第一维一一对应，当groupListType为1时，groupListOptional的数值需与x中tensor的第一维一一对应，且长度最大为128<br>5）支weight转置，但weight的tensorList中每个tensor是否转置需保持统一<br>6）x不支持转置  <br>7）仅支持非量化<br>8）仅支持ND进ND出<br> |
+        | 0 | 多多单 |1）仅支持splitItem为2/3<br>2）x，out中tensor需为2维， shape分别为（M, K）和（M, N）；weight中tensor需为2维，shape为（N, K）或（K, N） <br>3）weight中每个tensor的N轴必须相等<br>4）若传入groupListOptional，当groupListType为0时，groupListOptional的差值需与x中tensor的第一维一一对应，当groupListType为1时，groupListOptional的数值需与x中tensor的第一维一一对应，且长度最大为128<br>5）支weight转置，但weight的tensorList中每个tensor是否转置需保持统一<br>6）x不支持转置  <br>7）仅支持非量化<br>8）仅支持ND进ND出<br> |
         | 2 | 单单单 |1）仅支持splitItem为2/3<br>2）x，weight中tensor需为2维，shape分别为（K, M）和（K, N）；out中tensor需为3维, shape为（g, M, N）<br>3）必须传groupListOptional，且当groupListType为0时，最后一个值不大于x中tensor的第一维，当groupListType为1时，数值的总和不大于x中tensor的第一维<br>4）groupListOptional第1维最大支持1024，即最多支持1024个group<br>5）仅支持x转置且weight不转置<br>6）仅支持ND进ND出|
 
 ## 调用说明
