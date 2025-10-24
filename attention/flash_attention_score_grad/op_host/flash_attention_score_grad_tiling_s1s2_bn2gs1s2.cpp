@@ -148,7 +148,7 @@ uint64_t FlashAttentionScoreGradTilingS1s2Bn2gs1s2::GetTilingKey() const
     uint64_t tilingKey = GET_TPL_TILING_KEY(static_cast<uint8_t>(AxisEnum::S2), static_cast<uint8_t>(AxisEnum::S1), static_cast<uint8_t>(AxisEnum::S2),0,
             static_cast<uint8_t>(dtypeValue), static_cast<uint8_t>(inputLayout), static_cast<uint8_t>(SparseEnum::ALL),
             0, static_cast<uint8_t>(mm1IsNZOut), static_cast<uint8_t>(mm2IsNZOut), static_cast<uint8_t>(dropValue), static_cast<uint8_t>(pseValue),
-            static_cast<uint8_t>(attenMaskCfg), 0, 0, 
+            static_cast<uint8_t>(attenMaskCfg), 0, static_cast<uint8_t>(tndS1Pingpong),
             0,0, 0, 0, static_cast<uint8_t>(hasRope));
     OP_LOGI(context_, "FAGTiling S1s2Bn2gs1s2 DoTiling success, tiling is %lu.", tilingKey);
     return tilingKey;
