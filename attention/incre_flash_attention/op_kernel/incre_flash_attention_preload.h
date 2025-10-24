@@ -21,7 +21,6 @@
 #include "lib/matmul_intf.h"
 #include "ifa_public_define.h"
 #include "lib/matrix/matmul/tiling.h"
-#include "incre_flash_attention_tiling.h"
 
 using namespace matmul;
 using AscendC::CacheMode;

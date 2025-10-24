@@ -53,7 +53,7 @@ public:
     __aicore__ inline void ProcessVec2L(const AttentionCommon::RunInfo &info);
     __aicore__ inline void InitBuffers(TPipe *pipe);
     __aicore__ inline void InitParams(const struct AttentionCommon::ConstInfo &constInfo,
-                                      const  optiling::FusedInferAttentionScoreTilingData *__restrict tilingData);
+                                      const optiling::FusedInferAttentionScoreTilingData *__restrict tilingData);
     __aicore__ inline void InitMm2ResInt32GmGlobalTensor(GlobalTensor<int32_t> mm2ResInt32Gm);
     __aicore__ inline void InitVec1GlobalTensor(GlobalTensor<MM1_OUT_T> mm1ResGm, GlobalTensor<KV_T> vec1ResGm,
                                                 GlobalTensor<bool> attenMaskBoolGm,
@@ -204,7 +204,7 @@ private:
     // attention mask
     uint32_t attenMaskSizeAlign = 0U;
 
-    const  optiling::FusedInferAttentionScoreTilingData *__restrict tilingData = nullptr;
+    const optiling::FusedInferAttentionScoreTilingData *__restrict tilingData = nullptr;
 };
 
 template <typename FIAT> __aicore__ inline void FiaBlockVecNonQuantMla<FIAT>::InitBuffers(TPipe *pipe)
@@ -246,7 +246,7 @@ template <typename FIAT> __aicore__ inline void FiaBlockVecNonQuantMla<FIAT>::In
 template <typename FIAT>
 __aicore__ inline void
 FiaBlockVecNonQuantMla<FIAT>::InitParams(const struct AttentionCommon::ConstInfo &constInfo,
-                                                 const  optiling::FusedInferAttentionScoreTilingData *__restrict tilingData)
+                                                 const optiling::FusedInferAttentionScoreTilingData *__restrict tilingData)
 {
     this->constInfo = constInfo;
     this->tilingData = tilingData;
