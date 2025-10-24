@@ -275,6 +275,7 @@ protected:
     __aicore__ inline void InitFDBuffers();
     __aicore__ inline void FlashDecodeCompute();
     __aicore__ inline void GetActualSeqLenKV(int64_t boIdx, int64_t &actualSeqKvLen);
+    __aicore__ inline void GetActualSeqLenQ(int64_t boIdx, int64_t &actualSeqQLen);
     __aicore__ inline void CombineSplitKVRes(uint64_t attenOutOffset, uint32_t bIdx, uint32_t n2Idx);
     __aicore__ inline void ComputeScaleValue(LocalTensor<T> lseMaxUb, LocalTensor<T> lseSumUb, uint32_t splitSize, uint64_t lseOffset);
     __aicore__ inline void CopyLseIn(uint32_t bIdx, uint32_t n2Idx, uint32_t startRow, uint32_t dealRowCount);
@@ -864,7 +865,7 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
                                         this->constInfo.sInnerLoopSize :
                                         tailSInnerLoopSize;
             }
-            runParam.s1LoopTimes = 1;
+            runParam.s1LoopTimes = CeilDiv(runParam.actualS1Size, s1BaseSize);
         }
         int64_t tempGS1End = lastBN ? (runParam.s1LoopTimes + 2) : runParam.s1LoopTimes;
         for (int64_t gS1Index = gS1StartIdx; gS1Index < tempGS1End; ++gS1Index) {
@@ -930,7 +931,7 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
                         subTaskId++;
                     }
                 }
-                if (taskId >= 2) {  // Later Than mm1 is 2 
+                if (taskId >= 2) {  // Later Than mm1 is 2
                     if ASCEND_IS_AIV {
                         RunInfo<isInfer> &runInfo3 = runInfo[(taskId - 2) & 3]; // 3 is mod 4
                         ProcessVec2(runInfo3);
@@ -1617,7 +1618,8 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
 
     uint32_t mStart = constInfo.subBlockIdx * runInfo.firstHalfS1RealSize;
     size_t base = (runInfo.boIdx * constInfo.n2Size * constInfo.gSize * constInfo.dSizeV +
-                  runInfo.n2oIdx * constInfo.gSize * constInfo.dSizeV) * constInfo.splitKVNum + mStart * constInfo.dSizeV;
+                  runInfo.n2oIdx * constInfo.gSize * constInfo.dSizeV) * constInfo.splitKVNum + mStart * constInfo.dSizeV +
+                  runInfo.goIdx * constInfo.s1BaseSize * constInfo.dSizeV;
     DataCopyPad(this->accumOutGm[base + runInfo.flashDecodeS2Idx * constInfo.gSize * constInfo.dSizeV],
                 attenOut, dataCopyParams);
 }
@@ -1774,7 +1776,8 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
     uint32_t mStart = constInfo.subBlockIdx * runInfo.firstHalfS1RealSize;
     size_t gmOffset = runInfo.boIdx * constInfo.n2Size * constInfo.splitKVNum * constInfo.gSize * FP32_ONE_BLOCK_SIZE + 
                         runInfo.n2oIdx * constInfo.splitKVNum * constInfo.gSize * FP32_ONE_BLOCK_SIZE +
-                        runInfo.flashDecodeS2Idx * constInfo.gSize * FP32_ONE_BLOCK_SIZE + mStart * FP32_ONE_BLOCK_SIZE;
+                        runInfo.flashDecodeS2Idx * constInfo.gSize * FP32_ONE_BLOCK_SIZE + mStart * FP32_ONE_BLOCK_SIZE +
+                        runInfo.goIdx * constInfo.s1BaseSize * FP32_ONE_BLOCK_SIZE;
     // Copy sum to gm
     LocalTensor<float> sumTensor = softmaxSumBuf[runInfo.multiCoreIdxMod3].template Get<float>();
     LocalTensor<float> sumOutTensor =sumBrdcst.AllocTensor<float>();
@@ -1829,13 +1832,26 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
     if (constInfo.aivIdx >= batchSize * constInfo.n2Size) {
         return;
     }
-    int64_t actualSeqLen;
-    GetActualSeqLenKV(bIdx, actualSeqLen);
-    if (actualSeqLen == 0) {
+    if constexpr (layout == LayOutTypeEnum::LAYOUT_TND) {  // FD Only support IFA, IFA (except TND) dosen't support actualSeqLenQ
+        int64_t actualSeqLenQ;
+        GetActualSeqLenQ(bIdx, actualSeqLenQ);
+        if (actualSeqLenQ == 0) {
+            return;
+        }
+    }
+    int64_t actualSeqLenKV;
+    GetActualSeqLenKV(bIdx, actualSeqLenKV);
+    if (actualSeqLenKV == 0) {
         return;
     }
-    uint64_t attenOutOffset = (uint64_t)bIdx * constInfo.n2GDv + n2Idx * constInfo.gDv;
-    constInfo.actualCombineLoopSize = (actualSeqLen + constInfo.sInnerLoopSize - 1) / constInfo.sInnerLoopSize;
+    uint64_t attenOutOffset;
+    if constexpr(layout == LayOutTypeEnum::LAYOUT_TND) {
+        attenOutOffset = (bIdx == 0) ? 0 : this->actualSeqQlenAddr[bIdx - 1] * constInfo.n2GDv;
+        attenOutOffset += n2Idx * constInfo.gDv;
+    } else {
+        attenOutOffset = (uint64_t)bIdx * constInfo.n2GDv + n2Idx * constInfo.gDv;
+    }
+    constInfo.actualCombineLoopSize = (actualSeqLenKV + constInfo.sInnerLoopSize - 1) / constInfo.sInnerLoopSize;
     CombineSplitKVRes(attenOutOffset, bIdx, n2Idx);
 }
 
@@ -1862,6 +1878,11 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
     } else {
         actualSeqLen = (constInfo.actualSeqLenKVSize == 1) ? actualSeqKvlenAddr[0] :
                                                              actualSeqKvlenAddr[boIdx];
+        if constexpr ((layout == LayOutTypeEnum::LAYOUT_TND) && (!isPa)) {
+            if (boIdx > 0) {
+                actualSeqLen -= actualSeqKvlenAddr[boIdx - 1];
+            }
+        }
     }
     if (constInfo.isKVHasLeftPadding) {
         int64_t kvLeftPaddingSize = constInfo.s2Size - actualSeqLen - constInfo.kvRightPaddingSize;
@@ -1869,6 +1890,14 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
             actualSeqLen = 0;
         }
     }
+}
+
+/*FD*/
+CHILD_SPEC_TEMPLATE_ANTI
+__aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_ARGS_ANTI>::GetActualSeqLenQ(
+    int64_t boIdx, int64_t &actualSeqLen)
+{
+    actualSeqLen = (boIdx == 0) ? this->actualSeqQlenAddr[0] : this->actualSeqQlenAddr[boIdx] - this->actualSeqQlenAddr[boIdx - 1];
 }
 
 /*FD*/
@@ -1902,8 +1931,12 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
         LocalTensor<T> softmaxMaxLocal = softmaxMaxInputQue.DeQue<T>();
         // 内存复用，同时作为输出 scale 值
         LocalTensor<T> softmaxSumLocal = softmaxSumInputQue.DeQue<T>();
-
-        lseOffset = (bIdx * constInfo.n2Size + n2Idx) * constInfo.gSize + i * gSplitSize;
+        if constexpr (layout == LayOutTypeEnum::LAYOUT_TND) {
+            uint64_t batchoffset = bIdx == 0 ? 0 : actualSeqQlenAddr[bIdx - 1] * constInfo.n2G;
+            lseOffset = batchoffset + n2Idx * constInfo.gSize + i * gSplitSize;
+        } else {
+            lseOffset = (bIdx * constInfo.n2Size + n2Idx) * constInfo.gSize + i * gSplitSize;
+        }
         ComputeScaleValue(softmaxMaxLocal, softmaxSumLocal, gSplitSize, lseOffset);
 
         LocalTensor<T> tmp1 = lseMaxUb;
@@ -1920,8 +1953,12 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
         LocalTensor<T> softmaxMaxLocal = softmaxMaxInputQue.DeQue<T>();
         // 内存复用，同时作为输出 scale 值
         LocalTensor<T> softmaxSumLocal = softmaxSumInputQue.DeQue<T>();
-
-        lseOffset = (bIdx * constInfo.n2Size + n2Idx) * constInfo.gSize + (loopCount - 1) * gSplitSize;
+        if constexpr (layout == LayOutTypeEnum::LAYOUT_TND) {
+            uint64_t batchoffset = bIdx == 0 ? 0 : actualSeqQlenAddr[bIdx - 1] * constInfo.n2G;
+            lseOffset = batchoffset + n2Idx * constInfo.gSize + (loopCount - 1) * gSplitSize;
+        } else {
+            lseOffset = (bIdx * constInfo.n2Size + n2Idx) * constInfo.gSize + (loopCount - 1) * gSplitSize;
+        }
         ComputeScaleValue(softmaxMaxLocal, softmaxSumLocal, tailSplitSize, lseOffset);
 
         LocalTensor<T> tmp1 = lseMaxUb;
