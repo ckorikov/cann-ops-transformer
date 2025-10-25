@@ -1250,7 +1250,7 @@ bool FlashAttentionScoreTilingBase::Analyze3DimLayout(const gert::Shape &querySh
             maxS1Val = *std::max_element(actualSeqLenData.begin(), actualSeqLenData.end());
             maxS2Val = *std::max_element(actualSeqLenKvData.begin(), actualSeqLenKvData.end());
             bool couldConvert = CouldConvertTND2BSH(actualSeqLenData, actualSeqLenKvData,firstValidIndex,lastValidIndex,actualQBatch,actualKVBatch,maxS1Val,maxS2Val,t1Size,t2Size);
-            if (couldConvert && queryShape.GetDim(2) == 128) {
+            if (couldConvert && queryShape.GetDim(2) == 128 && keyShape.GetDim(2) == 128 && valueShape.GetDim(2) == 128) {
                 bSize = actualQBatch;
                 s1Size = maxS1Val;
                 s2Size = maxS2Val;
