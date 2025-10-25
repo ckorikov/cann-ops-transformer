@@ -80,7 +80,7 @@ ge::graphStatus InferDataTypeMlaPrologV3(gert::InferDataTypeContext* context) {
     context->SetOutputDataType(DEQUANT_SCALE_Q_NOPE_INDEX, ge::DT_FLOAT);
 
     // 预留接口，不做推导
-    context->SetOutputDataType(context->GetInputDataType(WEIGHT_UQ_QR_INDEX), ge::DT_FLOAT);
+    context->SetOutputDataType(QUERY_NORM_INDEX, context->GetInputDataType(WEIGHT_UQ_QR_INDEX));
     context->SetOutputDataType(DEQUANT_SCALE_Q_NORM_INDEX, ge::DT_FLOAT);
 
   return GRAPH_SUCCESS;
