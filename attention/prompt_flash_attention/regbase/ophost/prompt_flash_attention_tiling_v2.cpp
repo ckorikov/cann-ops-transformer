@@ -2160,6 +2160,9 @@ bool PromptFlashAttentionTilingV2::CheckMultiFeatureCrossover(ContextParamsForPF
 }
 
 bool PromptFlashAttentionTilingV2::CheckPerblockCrossover(ContextParamsForPFATiling& contextKeyParams) {
+    if (!enablePerblockQuant) {
+        return true;
+    }
     OP_CHECK_IF(enableActSeqLen, OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName,
             "ActSeqLen is not supported in per-block quant scenario!"),
             return false);
