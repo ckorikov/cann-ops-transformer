@@ -26,21 +26,21 @@
 
 ```cpp
 aclnnStatus aclnnDistributeBarrierV2GetWorkspaceSize(
-    const aclTensor* xRef, 
-    const aclTensor* timeOutOptional,
-    const aclTensor* elasticInfoOptional,
-    const char* group, 
-    int64_t worldSize,
-    uint64_t* workspaceSize, 
-    aclOpExecutor** executor)
+    const aclTensor *xRef, 
+    const aclTensor *timeOutOptional,
+    const aclTensor *elasticInfoOptional,
+    const char      *group, 
+    int64_t          worldSize,
+    uint64_t        *workspaceSize, 
+    aclOpExecutor  **executor)
 ```
 
 ```cpp
 aclnnStatus aclnnDistributeBarrierV2(
-    void *workspace, 
-    uint64_t workspaceSize, 
+    void          *workspace, 
+    uint64_t       workspaceSize, 
     aclOpExecutor *executor, 
-    aclrtStream stream)
+    aclrtStream    stream)
 ```
 
 ## aclnnDistributeBarrierV2GetWorkspaceSize
