@@ -106,7 +106,7 @@
     <tr>
       <td>dropPadMode</td>
       <td>属性</td>
-      <td>公表示是否为Drop/Pad场景。</td>
+      <td>表示是否为Drop/Pad场景。</td>
       <td>INT64</td>
       <td>-</td>
     </tr>
