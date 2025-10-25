@@ -34,20 +34,236 @@ class MoeTokenUnpermuteTiling : public testing::Test {
 
 TEST_F(MoeTokenUnpermuteTiling, test_tiling_prob_none_bf16) {
   optiling::MoeTokenUnpermuteCompileInfo compileInfo = {}; 
-  gert::TilingContextPara tilingContextPara("MoeTokenUnpermute", // op_name
+  gert::TilingContextPara tilingContextPara("MoeTokenUnpermute",
                                           {
-                                          // input info
-                                          // shape都需要重复一次，比如shape为{16,16}，要填入{{16, 16}, {16, 16}}
                                             {{{6144, 20480}, {6144, 20480}}, ge::DT_BF16, ge::FORMAT_ND},
                                             {{{6144}, {6144}}, ge::DT_INT32, ge::FORMAT_ND}
                                           },
-                                          // output info
                                           {{{{6144, 20480}, {6144, 20480}}, ge::DT_BF16, ge::FORMAT_ND},},
-                                          // attr
                                           {{"drop_pad_mode", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)}},
                                           &compileInfo);
-  int64_t expectTilingKey = 0; // tilngkey
-  string expectTilingData = "20480 1 6144 20480 1 0 96 0 96 1 0 4 "; // tilingData（不确定的话跑下对应用例打印看看）
-  std::vector<size_t> expectWorkspaces = {16 * 1024 * 1024}; // workspace
+  int64_t expectTilingKey = 0;
+  string expectTilingData = "20480 1 6144 20480 1 0 96 0 96 1 0 4 ";
+  std::vector<size_t> expectWorkspaces = {16 * 1024 * 1024};
   ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey, expectTilingData, expectWorkspaces);
+}
+
+TEST_F(MoeTokenUnpermuteTiling, test_tiling_prob_not_none_bf16) {
+    optiling::MoeTokenUnpermuteCompileInfo compileInfo = {};
+    gert::TilingContextPara tilingContextPara("MoeTokenUnpermute",
+                                            {
+                                              {{{49152,5120},{49152,5120}}, ge::DT_BF16, ge::FORMAT_ND},
+                                              {{{49152},{49152}}, ge::DT_INT32, ge::FORMAT_ND}
+                                            },
+                                            {
+                                              {{{6144,5120},{6144,5120}}, ge::DT_BF16, ge::FORMAT_ND}
+                                            },
+                                            {
+                                              {"drop_pad_mode", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)}
+                                            },
+                                            &compileInfo);
+    int64_t expectTilingKey = 0;
+    string expectTilingData = "5120 1 49152 5120 1 0 768 0 768 1 0 4 ";
+    std::vector<size_t> expectWorkspaces = {16777216};
+    ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey, expectTilingData, expectWorkspaces);
+}
+
+TEST_F(MoeTokenUnpermuteTiling, test_tiling_prob_none_fp16) {
+    optiling::MoeTokenUnpermuteCompileInfo compileInfo = {};
+    gert::TilingContextPara tilingContextPara("MoeTokenUnpermute",
+                                            {
+                                              {{{6144,5120},{6144,5120}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+                                              {{{6144},{6144}}, ge::DT_INT32, ge::FORMAT_ND}
+                                            },
+                                            {
+                                              {{{6144,5120},{6144,5120}}, ge::DT_FLOAT16, ge::FORMAT_ND}
+                                            },
+                                            {
+                                              {"drop_pad_mode", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)}
+                                            },
+                                            &compileInfo);
+    int64_t expectTilingKey = 0;
+    string expectTilingData = "5120 1 6144 5120 1 0 96 0 96 1 0 4 ";
+    std::vector<size_t> expectWorkspaces = {16777216};
+    ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey, expectTilingData, expectWorkspaces);
+}
+
+TEST_F(MoeTokenUnpermuteTiling, test_tiling_prob_not_none_fp16) {
+    optiling::MoeTokenUnpermuteCompileInfo compileInfo = {};
+    gert::TilingContextPara tilingContextPara("MoeTokenUnpermute",
+                                            {
+                                              {{{49152,5120},{49152,5120}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+                                              {{{49152},{49152}}, ge::DT_INT32, ge::FORMAT_ND}
+                                            },
+                                            {
+                                              {{{6144,5120},{6144,5120}}, ge::DT_FLOAT16, ge::FORMAT_ND}
+                                            },
+                                            {
+                                              {"drop_pad_mode", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)}
+                                            },
+                                            &compileInfo);
+    int64_t expectTilingKey = 0;
+    string expectTilingData = "5120 1 49152 5120 1 0 768 0 768 1 0 4 ";
+    std::vector<size_t> expectWorkspaces = {16777216};
+    ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey, expectTilingData, expectWorkspaces);
+}
+
+TEST_F(MoeTokenUnpermuteTiling, test_tiling_prob_none_fp32) {
+    optiling::MoeTokenUnpermuteCompileInfo compileInfo = {};
+    gert::TilingContextPara tilingContextPara("MoeTokenUnpermute",
+                                            {
+                                              {{{6144,5120},{6144,5120}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                              {{{6144},{6144}}, ge::DT_INT32, ge::FORMAT_ND}
+                                            },
+                                            {
+                                              {{{6144,5120},{6144,5120}}, ge::DT_FLOAT, ge::FORMAT_ND}
+                                            },
+                                            {
+                                              {"drop_pad_mode", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)}
+                                            },
+                                            &compileInfo);
+    int64_t expectTilingKey = 0;
+    string expectTilingData = "5120 1 6144 5120 1 0 96 0 96 1 0 4 ";
+    std::vector<size_t> expectWorkspaces = {16777216};
+    ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey, expectTilingData, expectWorkspaces);
+}
+
+TEST_F(MoeTokenUnpermuteTiling, test_tiling_prob_not_none_fp32) {
+    optiling::MoeTokenUnpermuteCompileInfo compileInfo = {};
+    gert::TilingContextPara tilingContextPara("MoeTokenUnpermute",
+                                            {
+                                              {{{49152,5120},{49152,5120}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                              {{{49152},{49152}}, ge::DT_INT32, ge::FORMAT_ND}
+                                            },
+                                            {
+                                              {{{6144,5120},{6144,5120}}, ge::DT_FLOAT, ge::FORMAT_ND}
+                                            },
+                                            {
+                                              {"drop_pad_mode", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)}
+                                            },
+                                            &compileInfo);
+    int64_t expectTilingKey = 0;
+    string expectTilingData = "5120 1 49152 5120 1 0 768 0 768 1 0 4 ";
+    std::vector<size_t> expectWorkspaces = {16777216};
+    ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey, expectTilingData, expectWorkspaces);
+}
+
+TEST_F(MoeTokenUnpermuteTiling, test_tiling_prob_not_none_mix_bf16_fp32) {
+    optiling::MoeTokenUnpermuteCompileInfo compileInfo = {};
+    gert::TilingContextPara tilingContextPara("MoeTokenUnpermute",
+                                            {
+                                              {{{49152,5120},{49152,5120}}, ge::DT_BF16, ge::FORMAT_ND},
+                                              {{{49152},{49152}}, ge::DT_INT32, ge::FORMAT_ND}
+                                            },
+                                            {
+                                              {{{6144,5120},{6144,5120}}, ge::DT_BF16, ge::FORMAT_ND}
+                                            },
+                                            {
+                                              {"drop_pad_mode", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)}
+                                            },
+                                            &compileInfo);
+    int64_t expectTilingKey = 0;
+    string expectTilingData = "5120 1 49152 5120 1 0 768 0 768 1 0 4 ";
+    std::vector<size_t> expectWorkspaces = {16777216};
+    ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey, expectTilingData, expectWorkspaces);
+}
+
+TEST_F(MoeTokenUnpermuteTiling, test_tiling_prob_not_none_mix_bf16_fp16) {
+    optiling::MoeTokenUnpermuteCompileInfo compileInfo = {};
+    gert::TilingContextPara tilingContextPara("MoeTokenUnpermute",
+                                            {
+                                              {{{49152,5120},{49152,5120}}, ge::DT_BF16, ge::FORMAT_ND},
+                                              {{{49152},{49152}}, ge::DT_INT32, ge::FORMAT_ND}
+                                            },
+                                            {
+                                              {{{6144,5120},{6144,5120}}, ge::DT_BF16, ge::FORMAT_ND}
+                                            },
+                                            {
+                                              {"drop_pad_mode", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)}
+                                            },
+                                            &compileInfo);
+    int64_t expectTilingKey = 0;
+    string expectTilingData = "5120 1 49152 5120 1 0 768 0 768 1 0 4 ";
+    std::vector<size_t> expectWorkspaces = {16777216};
+    ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey, expectTilingData, expectWorkspaces);
+}
+
+TEST_F(MoeTokenUnpermuteTiling, test_tiling_prob_not_none_mix_fp16_fp32) {
+    optiling::MoeTokenUnpermuteCompileInfo compileInfo = {};
+    gert::TilingContextPara tilingContextPara("MoeTokenUnpermute",
+                                            {
+                                              {{{49152,5120},{49152,5120}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+                                              {{{49152},{49152}}, ge::DT_INT32, ge::FORMAT_ND}
+                                            },
+                                            {
+                                              {{{6144,5120},{6144,5120}}, ge::DT_FLOAT16, ge::FORMAT_ND}
+                                            },
+                                            {
+                                              {"drop_pad_mode", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)}
+                                            },
+                                            &compileInfo);
+    int64_t expectTilingKey = 0;
+    string expectTilingData = "5120 1 49152 5120 1 0 768 0 768 1 0 4 ";
+    std::vector<size_t> expectWorkspaces = {16777216};
+    ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey, expectTilingData, expectWorkspaces);
+}
+
+TEST_F(MoeTokenUnpermuteTiling, test_tiling_prob_not_none_mix_fp16_bf16) {
+    optiling::MoeTokenUnpermuteCompileInfo compileInfo = {};
+    gert::TilingContextPara tilingContextPara("MoeTokenUnpermute",
+                                            {
+                                              {{{49152,5120},{49152,5120}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+                                              {{{49152},{49152}}, ge::DT_INT32, ge::FORMAT_ND}
+                                            },
+                                            {
+                                              {{{6144,5120},{6144,5120}}, ge::DT_FLOAT16, ge::FORMAT_ND}
+                                            },
+                                            {
+                                              {"drop_pad_mode", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)}
+                                            },
+                                            &compileInfo);
+    int64_t expectTilingKey = 0;
+    string expectTilingData = "5120 1 49152 5120 1 0 768 0 768 1 0 4 ";
+    std::vector<size_t> expectWorkspaces = {16777216};
+    ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey, expectTilingData, expectWorkspaces);
+}
+
+TEST_F(MoeTokenUnpermuteTiling, test_tiling_prob_not_none_mix_fp32_fp16) {
+    optiling::MoeTokenUnpermuteCompileInfo compileInfo = {};
+    gert::TilingContextPara tilingContextPara("MoeTokenUnpermute",
+                                            {
+                                              {{{49152,5120},{49152,5120}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                              {{{49152},{49152}}, ge::DT_INT32, ge::FORMAT_ND}
+                                            },
+                                            {
+                                              {{{6144,5120},{6144,5120}}, ge::DT_FLOAT, ge::FORMAT_ND}
+                                            },
+                                            {
+                                              {"drop_pad_mode", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)}
+                                            },
+                                            &compileInfo);
+    int64_t expectTilingKey = 0;
+    string expectTilingData = "5120 1 49152 5120 1 0 768 0 768 1 0 4 ";
+    std::vector<size_t> expectWorkspaces = {16777216};
+    ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey, expectTilingData, expectWorkspaces);
+}
+
+TEST_F(MoeTokenUnpermuteTiling, test_tiling_prob_not_none_mix_fp32_bf16) {
+    optiling::MoeTokenUnpermuteCompileInfo compileInfo = {};
+    gert::TilingContextPara tilingContextPara("MoeTokenUnpermute",
+                                            {
+                                              {{{49152,5120},{49152,5120}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                              {{{49152},{49152}}, ge::DT_INT32, ge::FORMAT_ND}
+                                            },
+                                            {
+                                              {{{6144,5120},{6144,5120}}, ge::DT_FLOAT, ge::FORMAT_ND}
+                                            },
+                                            {
+                                              {"drop_pad_mode", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)}
+                                            },
+                                            &compileInfo);
+    int64_t expectTilingKey = 0;
+    string expectTilingData = "5120 1 49152 5120 1 0 768 0 768 1 0 4 ";
+    std::vector<size_t> expectWorkspaces = {16777216};
+    ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey, expectTilingData, expectWorkspaces);
 }

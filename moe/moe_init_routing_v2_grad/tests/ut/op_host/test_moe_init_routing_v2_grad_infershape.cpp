@@ -11,6 +11,8 @@
 #include <gtest/gtest.h>
 #include <iostream>
 #include "infer_shape_context_faker.h"
+#include "infer_shape_case_executor.h"
+#include "infer_datatype_context_faker.h"
 #include "base/registry/op_impl_space_registry_v2.h"
 
 class MoeInitRoutingV2GradInferShape : public testing::Test {
@@ -91,4 +93,169 @@ TEST_F(MoeInitRoutingV2GradInferShape, moe_init_routing_v2_grad_infershape_0)
                                       ge::DT_FLOAT,
                                       6, 0, 0};
     ExeTestCase(ioInfoT, ge::GRAPH_SUCCESS);
+}
+
+TEST_F(MoeInitRoutingV2GradInferShape, moe_init_routing_v2_grad_infer_shape_01)
+{
+    gert::StorageShape gradExpandedXShape = {{-2}, {-2}};
+    gert::StorageShape expandedRowIdxShape = {{-2}, {-2}};
+    std::vector<int64_t> expectOutShape = {-1, -1}; // scale第0维，expandedX第一维
+    MoeInitRoutingV2GradInfo ioInfoT = {gradExpandedXShape,
+                                      expandedRowIdxShape,
+                                      expectOutShape,
+                                      ge::DT_FLOAT16,
+                                      ge::DT_INT32,
+                                      ge::DT_FLOAT16,
+                                      6, 0, 0};
+    ExeTestCase(ioInfoT, ge::GRAPH_SUCCESS);
+}
+
+TEST_F(MoeInitRoutingV2GradInferShape, moe_init_routing_v2_grad_infer_shape_02)
+{
+    gert::StorageShape gradExpandedXShape = {{-1, -1}, {-1, -1}};
+    gert::StorageShape expandedRowIdxShape = {{-1}, {-1}};
+    std::vector<int64_t> expectOutShape = {-1, -1}; // scale第0维，expandedX第一维
+    MoeInitRoutingV2GradInfo ioInfoT = {gradExpandedXShape,
+                                      expandedRowIdxShape,
+                                      expectOutShape,
+                                      ge::DT_FLOAT16,
+                                      ge::DT_INT32,
+                                      ge::DT_FLOAT16,
+                                      6, 0, 0};
+    ExeTestCase(ioInfoT, ge::GRAPH_SUCCESS);
+}
+
+TEST_F(MoeInitRoutingV2GradInferShape, moe_init_routing_v2_grad_infer_shape_03)
+{
+    gert::StorageShape gradExpandedXShape = {{1024, 512}, {1024, 512}};
+    gert::StorageShape expandedRowIdxShape = {{1024}, {1024}};
+    std::vector<int64_t> expectOutShape = {16, 512}; // scale第0维，expandedX第一维
+    MoeInitRoutingV2GradInfo ioInfoT = {gradExpandedXShape,
+                                      expandedRowIdxShape,
+                                      expectOutShape,
+                                      ge::DT_FLOAT16,
+                                      ge::DT_INT32,
+                                      ge::DT_FLOAT16,
+                                      64, 0, 0};
+    ExeTestCase(ioInfoT, ge::GRAPH_SUCCESS);
+}
+
+TEST_F(MoeInitRoutingV2GradInferShape, moe_init_routing_v2_grad_infer_shape_04)
+{
+    gert::StorageShape gradExpandedXShape = {{1024, 512}, {1024, 512}};
+    gert::StorageShape expandedRowIdxShape = {{1024}, {1024}};
+    std::vector<int64_t> expectOutShape = {}; // scale第0维，expandedX第一维
+    MoeInitRoutingV2GradInfo ioInfoT = {gradExpandedXShape,
+                                      expandedRowIdxShape,
+                                      expectOutShape,
+                                      ge::DT_FLOAT16,
+                                      ge::DT_INT32,
+                                      ge::DT_FLOAT16,
+                                      0, 0, 0};
+    ExeTestCase(ioInfoT, ge::GRAPH_FAILED);
+}
+
+TEST_F(MoeInitRoutingV2GradInferShape, moe_init_routing_v2_grad_infer_shape_05)
+{
+    gert::StorageShape gradExpandedXShape = {{1024, 512}, {1024, 512}};
+    gert::StorageShape expandedRowIdxShape = {{1024}, {1024}};
+    std::vector<int64_t> expectOutShape = {}; // scale第0维，expandedX第一维
+    MoeInitRoutingV2GradInfo ioInfoT = {gradExpandedXShape,
+                                      expandedRowIdxShape,
+                                      expectOutShape,
+                                      ge::DT_FLOAT16,
+                                      ge::DT_INT32,
+                                      ge::DT_FLOAT16,
+                                      64, 2, 0};
+    ExeTestCase(ioInfoT, ge::GRAPH_FAILED);
+}
+
+TEST_F(MoeInitRoutingV2GradInferShape, moe_init_routing_v2_grad_infer_shape_06)
+{
+    gert::StorageShape gradExpandedXShape = {{1024, 512}, {1024, 512}};
+    gert::StorageShape expandedRowIdxShape = {{1024}, {1024}};
+    std::vector<int64_t> expectOutShape = {}; // scale第0维，expandedX第一维
+    MoeInitRoutingV2GradInfo ioInfoT = {gradExpandedXShape,
+                                      expandedRowIdxShape,
+                                      expectOutShape,
+                                      ge::DT_FLOAT16,
+                                      ge::DT_INT32,
+                                      ge::DT_FLOAT16,
+                                      64, 0, -1};
+    ExeTestCase(ioInfoT, ge::GRAPH_FAILED);
+}
+
+TEST_F(MoeInitRoutingV2GradInferShape, moe_init_routing_v2_grad_infer_shape_07)
+{
+    gert::StorageShape gradExpandedXShape = {{1024, 512}, {1024, 512}};
+    gert::StorageShape expandedRowIdxShape = {{1024, 512}, {1024, 512}};
+    std::vector<int64_t> expectOutShape = {}; // scale第0维，expandedX第一维
+    MoeInitRoutingV2GradInfo ioInfoT = {gradExpandedXShape,
+                                      expandedRowIdxShape,
+                                      expectOutShape,
+                                      ge::DT_FLOAT16,
+                                      ge::DT_INT32,
+                                      ge::DT_FLOAT16,
+                                      64, 0, -1};
+    ExeTestCase(ioInfoT, ge::GRAPH_FAILED);
+}
+
+TEST_F(MoeInitRoutingV2GradInferShape, moe_init_routing_v2_grad_infer_shape_08)
+{
+    gert::StorageShape gradExpandedXShape = {{1024, 512}, {1024, 512}};
+    gert::StorageShape expandedRowIdxShape = {{1024}, {1024}};
+    std::vector<int64_t> expectOutShape = {}; // scale第0维，expandedX第一维
+    MoeInitRoutingV2GradInfo ioInfoT = {gradExpandedXShape,
+                                      expandedRowIdxShape,
+                                      expectOutShape,
+                                      ge::DT_FLOAT16,
+                                      ge::DT_INT32,
+                                      ge::DT_FLOAT16,
+                                      64, 2, -1};
+    ExeTestCase(ioInfoT, ge::GRAPH_FAILED);
+}
+
+TEST_F(MoeInitRoutingV2GradInferShape, moe_init_routing_v2_grad_infer_shape_09)
+{
+    gert::StorageShape gradExpandedXShape = {{-1, -1, -1}, {-1, -1, -1}};
+    gert::StorageShape expandedRowIdxShape = {{-1}, {-1}};
+    std::vector<int64_t> expectOutShape = {-1, -1}; // scale第0维，expandedX第一维
+    MoeInitRoutingV2GradInfo ioInfoT = {gradExpandedXShape,
+                                      expandedRowIdxShape,
+                                      expectOutShape,
+                                      ge::DT_FLOAT16,
+                                      ge::DT_INT32,
+                                      ge::DT_FLOAT16,
+                                      6, 1, 0};
+    ExeTestCase(ioInfoT, ge::GRAPH_SUCCESS);
+}
+
+TEST_F(MoeInitRoutingV2GradInferShape, moe_init_routing_v2_grad_infer_shape_10)
+{
+    gert::StorageShape gradExpandedXShape = {{-1, -1}, {-1, -1}};
+    gert::StorageShape expandedRowIdxShape = {{-1}, {-1}};
+    std::vector<int64_t> expectOutShape = {}; // scale第0维，expandedX第一维
+    MoeInitRoutingV2GradInfo ioInfoT = {gradExpandedXShape,
+                                      expandedRowIdxShape,
+                                      expectOutShape,
+                                      ge::DT_FLOAT16,
+                                      ge::DT_INT32,
+                                      ge::DT_FLOAT16,
+                                      6, 1, 0};
+    ExeTestCase(ioInfoT, ge::GRAPH_FAILED);
+}
+
+TEST_F(MoeInitRoutingV2GradInferShape, moe_init_routing_v2_grad_infer_shape_11)
+{
+    gert::StorageShape gradExpandedXShape = {{1024, 512}, {1024, 512}};
+    gert::StorageShape expandedRowIdxShape = {{1024, 512}, {1024, 512}};
+    std::vector<int64_t> expectOutShape = {}; // scale第0维，expandedX第一维
+    MoeInitRoutingV2GradInfo ioInfoT = {gradExpandedXShape,
+                                      expandedRowIdxShape,
+                                      expectOutShape,
+                                      ge::DT_FLOAT16,
+                                      ge::DT_INT32,
+                                      ge::DT_FLOAT16,
+                                      64, 0, 0};
+    ExeTestCase(ioInfoT, ge::GRAPH_FAILED);
 }

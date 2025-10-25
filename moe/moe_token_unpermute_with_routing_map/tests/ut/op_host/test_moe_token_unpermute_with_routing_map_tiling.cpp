@@ -51,7 +51,37 @@ TEST_F(MoeTokenUnpermuteWithRoutingMapTiling, test_tiling_fp32_droppad)
         &compileInfo);
     int64_t expectTilingKey = 1000;
     string expectTilingData =
-        "0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 64 4096 8 256 64 1 321 0 321 0 1 321 0 321 ";
+        "0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 64 4096 8 2568 64 1 321 0 321 0 1 321 0 321 ";
     std::vector<size_t> expectWorkspaces = {16 * 1024 * 1024};
     ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey, expectTilingData, expectWorkspaces);
+}
+
+TEST_F(MoeTokenUnpermuteWithRoutingMapTiling, test_tiling_bf16)
+{
+    optiling::MoeTokenUnpermuteWithRoutingMapCompileInfo compileInfo = {48, 65536};
+    gert::TilingContextPara tilingContextPara(
+        "MoeTokenUnpermuteWithRoutingMap",
+        {
+            {{{40968*8, 7168}, {40968*8, 7168}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+            {{{2568*8}, {2568*8}}, ge::DT_INT32, ge::FORMAT_ND},
+            {{{4096, 265}, {4096, 256}}, ge::DT_BOOL, ge::FORMAT_ND},
+            {{{4096, 8}, {4096, 8}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+        },
+        {
+            {{{8, 7168}, {8, 7168}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+            {{{2568*8}, {2568*8}}, ge::DT_INT32, ge::FORMAT_ND},
+            {{{2568*8}, {2568*8}}, ge::DT_INT32, ge::FORMAT_ND},
+            {{{2568*8}, {2568*8}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+        },
+        {
+            {"drop_pad_mode", Ops::Transformer::AnyValue::CreateFrom(false)},
+            {"restore_shape", Ops::Transformer::AnyValue::CreateFrom<vector<int64_t>>({4096, 7168})},
+        },
+        &compileInfo);
+    int64_t expectTilingKey = 1;
+    string expectTilingData =
+        "7168 80 327744 7168 1 0 64 0 64 1 0 64 4 8 4096 1 4096 4096 0 0 0 0 0 4096 8 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ";
+    std::vector<size_t> expectWorkspaces = {2 * 16 * 1024 * 1024};
+    ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey, expectTilingData, expectWorkspaces);
+    // ExecuteTestCase(tilingContextPara, ge::GRAPH_FAILED);
 }
