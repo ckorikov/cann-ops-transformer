@@ -19,7 +19,7 @@
 
 namespace MoeGatingTopK {
 using namespace AscendC;
-constexpr uint32_t MIN_FP32 = 0xFF800000;
+constexpr int32_t MIN_FP32 = 0xFF800000;
 constexpr int64_t ONE_REPEAT_SORT_NUM = 32;
 constexpr int64_t BLOCK_BYTES = 32;
 

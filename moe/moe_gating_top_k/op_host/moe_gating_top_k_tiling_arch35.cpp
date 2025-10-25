@@ -98,6 +98,7 @@ private:
     ge::graphStatus CheckInputShape();
     ge::graphStatus CheckAttr();
     ge::graphStatus CheckOutShape();
+    void CalTmpBufUbSize();
     void SplitRows();
     void Tiling4GatherOutComputeSplitK();
 
@@ -210,8 +211,9 @@ ge::graphStatus MoeGatingTopKTilingRegbase::CheckAttr()
                 OP_LOGE(context_, "renorm is: %ld, but currently only support %ld.", renorm_, RENORM_NO),
                 return ge::GRAPH_FAILED);
 
-    OP_CHECK_IF(normType_ != NORM_TYPE_SIGMOID,
-                OP_LOGE(context_, "norm_type is: %ld, but currently only support %ld.", normType_, NORM_TYPE_SIGMOID),
+    OP_CHECK_IF(normType_ != NORM_TYPE_SOFTMAX && normType_ != NORM_TYPE_SIGMOID,
+                OP_LOGE(context_, "norm type is: %ld, but currently only support %ld and %ld.", normType_,
+                        NORM_TYPE_SOFTMAX, NORM_TYPE_SIGMOID),
                 return ge::GRAPH_FAILED);
 
     OP_CHECK_IF(outFlag_ != 0, OP_LOGE(context_, "out_flag is: True, but currently only support False."),
@@ -416,6 +418,14 @@ ge::graphStatus MoeGatingTopKTilingRegbase::CheckOutShape()
     return ge::GRAPH_SUCCESS;
 }
 
+void MoeGatingTopKTilingRegbase::CalTmpBufUbSize() {
+    std::vector<int64_t> shape_vec = {groupCount_ * moeGatingTopKTilingData_.get_perGroupExpertCountAlign()};
+    ge::Shape softmaxShape(shape_vec);
+
+    uint32_t softmaxTmpSize = AscendC::GetSoftMaxMaxTmpSize(softmaxShape, sizeof(float), true);
+    AscendC::SoftMaxTilingFunc(softmaxShape, sizeof(float), softmaxTmpSize, moeGatingTopKTilingData_.softmaxTilingData);
+}
+
 void MoeGatingTopKTilingRegbase::SplitRows()
 {
     int64_t perCoreRows = Ops::Base::CeilDiv(rows_, static_cast<int64_t>(aicoreParams_.blockDim));
@@ -457,6 +467,7 @@ ge::graphStatus MoeGatingTopKTilingRegbase::DoOpTiling()
         return ret;
     }
 
+    CalTmpBufUbSize();
     SplitRows();
     return ge::GRAPH_SUCCESS;
 }
