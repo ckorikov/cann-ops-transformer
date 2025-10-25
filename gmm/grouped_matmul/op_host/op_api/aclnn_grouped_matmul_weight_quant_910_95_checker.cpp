@@ -110,13 +110,20 @@ aclnnStatus AclnnGroupedMatmulWeightQuant91095Checker::CheckTensorListShape(cons
     return ACLNN_SUCCESS;
 }
 
-aclnnStatus AclnnGroupedMatmulWeightQuant91095Checker::CheckGmmQuantParamsEmpty() const
+aclnnStatus AclnnGroupedMatmulWeightQuant91095Checker::CheckGmmQuantParams() const
 {
-    CHECK_RET(gmmParams_.scaleOptional == nullptr, ACLNN_ERR_PARAM_INVALID);
-    CHECK_RET(gmmParams_.offsetOptional == nullptr, ACLNN_ERR_PARAM_INVALID);
+    CHECK_COND(gmmParams_.scaleOptional == nullptr, ACLNN_ERR_PARAM_INVALID,
+               "In WeightQuant case, scale must be null.");
+    CHECK_COND(gmmParams_.offsetOptional == nullptr, ACLNN_ERR_PARAM_INVALID,
+               "In WeightQuant case, offset must be null.");
     auto weightDtype = (*gmmParams_.weight)[0]->GetDataType();
     if (!IsMxA8W4NZ(gmmParams_.xDtype, weightDtype)) {
-        CHECK_RET(gmmParams_.perTokenScaleOptional == nullptr, ACLNN_ERR_PARAM_INVALID);
+        CHECK_COND(gmmParams_.perTokenScaleOptional == nullptr, ACLNN_ERR_PARAM_INVALID,
+                   "In WeightQuant case, perTokenScale must be null when xDtype-weightDtype is not "
+                   "float8_e4m3fn-float4_e2m1.");
+    } else {
+        CHECK_COND(gmmParams_.perTokenScaleOptional != nullptr, ACLNN_ERR_PARAM_INVALID,
+                   "In MxA8W4 weight quantization, perTokenScale must not be null");
     }
     return ACLNN_SUCCESS;
 }
@@ -363,8 +370,8 @@ aclnnStatus AclnnGroupedMatmulWeightQuant91095Checker::CheckGroupedMatmulWeightQ
 
     CHECK_COND(CheckUnsupportApi(xDtype, weightDtype) == ACLNN_SUCCESS, ACLNN_ERR_PARAM_INVALID, "CheckUnsupportApi failed.");
 
-    CHECK_COND(CheckGmmQuantParamsEmpty() == ACLNN_SUCCESS, ACLNN_ERR_PARAM_INVALID,
-               "Detected antiquant, but quant inputs are not empty!");
+    CHECK_COND(CheckGmmQuantParams() == ACLNN_SUCCESS, ACLNN_ERR_PARAM_INVALID,
+               "CheckGmmQuantParams failed!");
 
     CHECK_RET(CheckWeightFormatAndShape(xDtype, weightDtype) == ACLNN_SUCCESS, ACLNN_ERR_PARAM_INVALID);
     CHECK_RET(CheckTransposeStatus(xDtype, weightDtype) == ACLNN_SUCCESS, ACLNN_ERR_PARAM_INVALID);

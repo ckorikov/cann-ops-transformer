@@ -22,7 +22,7 @@ public:
     aclnnStatus CheckGroupedMatmulWeightQuant91095();
 
 private:
-    aclnnStatus CheckGmmQuantParamsEmpty() const;
+    aclnnStatus CheckGmmQuantParams() const;
     aclnnStatus CheckTensorListDtype(const aclTensorList *tensorList, const DataType &xDtype,
                                      const DataType &weightDtype) const;
     aclnnStatus CheckTensorListShape(const aclTensorList *tensorList, const std::string &tensorType) const;
