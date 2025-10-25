@@ -21,7 +21,8 @@
 #include "acl/acl.h"
 #include "aclnnop/aclnn_incre_flash_attention_v4.h"
 #include<unistd.h>
- 
+
+// lch
 using namespace std;
 
 namespace {
