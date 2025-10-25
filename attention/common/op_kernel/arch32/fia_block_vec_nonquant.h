@@ -349,10 +349,10 @@ template <typename FIAT> __aicore__ inline void FiaBlockVecNonQuant<FIAT>::Proce
                     LSE_TMP_BUFFER_SIZE, LSE_TMP_BUFFER_SIZE  *2);
                 Brcb(lseSumUb, sumTensor[mSplitInfo.nBufferStartM / 2], (mSplitInfo.vecDealM + brcbNum - 1) / brcbNum, 
                     {1, brcbNum});
-                pipe_barrier(PIPE_V);
+                AscendC::PipeBarrier<PIPE_V>();
                 Brcb(lseMaxUb, maxTensor[mSplitInfo.nBufferStartM / 2], (mSplitInfo.vecDealM + brcbNum - 1) / brcbNum, 
                     {1, brcbNum});
-                pipe_barrier(PIPE_V);
+                AscendC::PipeBarrier<PIPE_V>();
                 fa_base_vector::ComputeSoftMaxLse(totalLseUb, lseSumUb, lseMaxUb, mSplitInfo.vecDealM);
             } else {
                 fa_base_vector::ComputeSoftMaxLse(totalLseUb, sumTensor, maxTensor, mSplitInfo.vecDealM);
@@ -415,10 +415,10 @@ __aicore__ inline void FiaBlockVecNonQuant<FIAT>::DealBmm1ResBaseBlock(
     inputQue1.DeQue<MM1_OUT_T>();
 
     ElewiseCompute(info, mmResUb, tmpBuff1, startRow, dealRowCount, columnCount, actualColumnCount);
-    pipe_barrier(PIPE_V);
+    AscendC::PipeBarrier<PIPE_V>();
     LocalTensor<uint8_t> softmaxTmpUb = tmpBuff1.Get<uint8_t>();
     SoftmaxFlashV2Compute(info, mmResUb, softmaxTmpUb, startRow, dealRowCount, columnCount, actualColumnCount);
-    pipe_barrier(PIPE_V);
+    AscendC::PipeBarrier<PIPE_V>();
     LocalTensor<KV_T> vec1ResUb = outputQue1.AllocTensor<KV_T>();
     Cast(vec1ResUb, mmResUb, AscendC::RoundMode::CAST_ROUND, computeSize);
     outputQue1.EnQue(vec1ResUb);
@@ -441,7 +441,7 @@ __aicore__ inline void FiaBlockVecNonQuant<FIAT>::ElewiseCompute(
     // }
 
     if (constInfo.attenMaskFlag == 1) {
-        pipe_barrier(PIPE_V);
+        AscendC::PipeBarrier<PIPE_V>();
         fa_base_vector::MaskInfo maskInfo;
         maskInfo.gs1StartIdx = info.gS1Idx + mSplitInfo.nBufferStartM + mSplitInfo.vecStartM + startRow;
         maskInfo.gs1dealNum = dealRowCount;
@@ -472,7 +472,7 @@ __aicore__ inline void FiaBlockVecNonQuant<FIAT>::ElewiseCompute(
         LocalTensor<bool> attenMaskTmpUb = maskUb[BUFFER_SIZE_BYTE_16K / 2];
         
         fa_base_vector::AttentionmaskCopyIn(maskUb, attenMaskBoolGm, attenMaskTmpUb, maskInfo);
-        pipe_barrier(PIPE_V);
+        AscendC::PipeBarrier<PIPE_V>();
         LocalTensor<uint8_t> ubWorkSpace = tmpBuf.Get<uint8_t>();
         fa_base_vector::AttentionmaskCompute<MM1_OUT_T>(mmResUb, mmResUb, maskUb, ubWorkSpace, maskInfo);
         inputQue2.FreeTensor(maskUb);
@@ -575,7 +575,7 @@ __aicore__ inline void FiaBlockVecNonQuant<FIAT>::DealBmm2ResBaseBlock(
         inputQue1.EnQue(bmm2ResPreUb);
 
         inputQue1.DeQue<COMPUTE_T>();
-        pipe_barrier(PIPE_V);
+        AscendC::PipeBarrier<PIPE_V>();
         uint32_t idx = info.loop % (constInfo.preLoadNum);
 
         if constexpr (SOFTMAX_WITH_BRC) {
@@ -585,18 +585,18 @@ __aicore__ inline void FiaBlockVecNonQuant<FIAT>::DealBmm2ResBaseBlock(
             LocalTensor<COMPUTE_T> tmpExpBrcbResUb = tmpBuff1.Get<COMPUTE_T>();
             Brcb(tmpExpBrcbResUb, softmaxExpUb[idx * SOFTMAX_TMP_BUFFER_SIZE / sizeof(COMPUTE_T) + baseOffset],
                 (dealRowCount + this->brcbNum - 1) / this->brcbNum, {1, this->brcbNum});
-            pipe_barrier(PIPE_V);
+            AscendC::PipeBarrier<PIPE_V>();
             RowMuls<COMPUTE_T>(bmm2ResPreUb, bmm2ResPreUb, tmpExpBrcbResUb, dealRowCount, columnCount, actualColumnCount);
         }
 
-        pipe_barrier(PIPE_V);
+        AscendC::PipeBarrier<PIPE_V>();
         Add(bmm2ResUb, bmm2ResUb, bmm2ResPreUb, vec2ComputeSize);
         inputQue1.FreeTensor(bmm2ResPreUb);
     }
 
     // 最后一次输出计算结果，否则将中间结果暂存至workspace
     if (info.isLastS2Loop) {
-        pipe_barrier(PIPE_V);
+        AscendC::PipeBarrier<PIPE_V>();
         uint32_t idx = info.loop % (constInfo.preLoadNum);
 
         if constexpr (SOFTMAX_WITH_BRC) {
@@ -606,14 +606,14 @@ __aicore__ inline void FiaBlockVecNonQuant<FIAT>::DealBmm2ResBaseBlock(
             LocalTensor<COMPUTE_T> tmpSumBrcbResUb = tmpBuff1.Get<COMPUTE_T>();
             Brcb(tmpSumBrcbResUb, softmaxSumUb[idx * SOFTMAX_TMP_BUFFER_SIZE / sizeof(COMPUTE_T) + baseOffset],
                 (dealRowCount + this->brcbNum - 1) / this->brcbNum, {1, this->brcbNum});
-            pipe_barrier(PIPE_V);
+            AscendC::PipeBarrier<PIPE_V>();
             fa_base_vector::RowDivs<COMPUTE_T>(bmm2ResUb, bmm2ResUb, tmpSumBrcbResUb, dealRowCount, columnCount, actualColumnCount);
         }
 
-        pipe_barrier(PIPE_V);
+        AscendC::PipeBarrier<PIPE_V>();
         Bmm2ResCopyOut(info, bmm2ResUb, mStart, startRow, dealRowCount, columnCount, actualColumnCount);
     } else {
-        pipe_barrier(PIPE_V);
+        AscendC::PipeBarrier<PIPE_V>();
         LocalTensor<COMPUTE_T> tmpBmm2Res = outputQue1.AllocTensor<COMPUTE_T>();
         DataCopy(tmpBmm2Res, bmm2ResUb, dealRowCount * columnCount);
         outputQue1.EnQue(tmpBmm2Res);
@@ -648,7 +648,7 @@ __aicore__ inline void FiaBlockVecNonQuant<FIAT>::Bmm2FDDataCopyOut(const RunInf
 {
     DealInvalidRows(info, bmm2ResUb, wsMStart, dealRowCount, columnCount, actualColumnCount);
     DealInvalidMaskRows(info, bmm2ResUb, wsMStart, startRow, dealRowCount, columnCount, actualColumnCount);
-    pipe_barrier(PIPE_V);
+    AscendC::PipeBarrier<PIPE_V>();
     LocalTensor<MM2_OUT_T> tmp = outputQue1.AllocTensor<MM2_OUT_T>();
     DataCopy(tmp, bmm2ResUb, columnCount * dealRowCount);
     outputQue1.EnQue(tmp);
@@ -695,7 +695,7 @@ __aicore__ inline void FiaBlockVecNonQuant<FIAT>::Bmm2CastAndCopyOut(const RunIn
 {
     DealInvalidRows(info, bmm2ResUb, wsMStart, dealRowCount, columnCount, actualColumnCount);
     DealInvalidMaskRows(info, bmm2ResUb, wsMStart, startRow, dealRowCount, columnCount, actualColumnCount);
-    pipe_barrier(PIPE_V);
+    AscendC::PipeBarrier<PIPE_V>();
     LocalTensor<OUT_T> tmpBmm2ResCastTensor = outputQue1.AllocTensor<OUT_T>();
     if constexpr (IsSameType<OUT_T, bfloat16_t>::value) { // bf16 采取四舍六入五成双模式
         Cast(tmpBmm2ResCastTensor, bmm2ResUb, AscendC::RoundMode::CAST_RINT, dealRowCount * columnCount);
@@ -875,15 +875,15 @@ template <typename FIAT>
 __aicore__ inline void FiaBlockVecNonQuant<FIAT>::Vec1SinkSoftmaxProc(const RunInfo &info, LocalTensor<COMPUTE_T> &tmpSinkResUbBrcb,
     uint32_t offset, uint32_t dealRowCountBrcb)
 {
-    pipe_barrier(PIPE_V);
+    AscendC::PipeBarrier<PIPE_V>();
     Sub(tmpSinkResUbBrcb, tmpSinkResUbBrcb, softmaxMaxUb[offset], dealRowCountBrcb);
-    pipe_barrier(PIPE_V);
+    AscendC::PipeBarrier<PIPE_V>();
     Exp(tmpSinkResUbBrcb, tmpSinkResUbBrcb, dealRowCountBrcb);
     if (info.tndIsS2SplitCore) {
         SoftMaxShapeInfo softmaxShapeInfo{
             static_cast<uint32_t>(dealRowCountBrcb), static_cast<uint32_t>(brcbNum),
             static_cast<uint32_t>(dealRowCountBrcb), static_cast<uint32_t>(brcbNum)};
-        pipe_barrier(PIPE_V);
+        AscendC::PipeBarrier<PIPE_V>();
         if constexpr (SOFTMAX_WITH_BRC) {
             AdjustSoftMaxRes<COMPUTE_T, COMPUTE_T>(tmpSinkResUbBrcb, softmaxMaxUb[offset], negativeIntScalar, 
                 (COMPUTE_T)0.0, softmaxShapeInfo);
@@ -892,9 +892,9 @@ __aicore__ inline void FiaBlockVecNonQuant<FIAT>::Vec1SinkSoftmaxProc(const RunI
                 (COMPUTE_T)0.0, softmaxShapeInfo);
         }
     }
-    pipe_barrier(PIPE_V);
+    AscendC::PipeBarrier<PIPE_V>();
     Add(softmaxSumUb[offset], softmaxSumUb[offset], tmpSinkResUbBrcb, dealRowCountBrcb);
-    pipe_barrier(PIPE_V);
+    AscendC::PipeBarrier<PIPE_V>();
 }
 
 template <typename FIAT>

@@ -628,9 +628,9 @@ __aicore__ inline void ComputeSoftMaxLse(LocalTensor<T> &softmaxlseUb, LocalTens
     }
     uint64_t dealRowCountAlign = dealRowCount * fa_base_vector::FP32_BLOCK_ELEMENT_NUM;
     Log(softmaxlseUb, softmaxSumUb, dealRowCountAlign);
-    pipe_barrier(PIPE_V);
+    AscendC::PipeBarrier<PIPE_V>();
     Add(softmaxlseUb, softmaxlseUb, softmaxMaxUb, dealRowCountAlign);
-    pipe_barrier(PIPE_V);
+    AscendC::PipeBarrier<PIPE_V>();
 }
 
 static constexpr uint64_t headDim = 512ULL;
@@ -1050,7 +1050,7 @@ public:
         }
 
         if (params.nextTokensPerBatch < 0) {  // 上方存在行无效
-            pipe_barrier(PIPE_V);
+            AscendC::PipeBarrier<PIPE_V>();
             DealInvalidRowsAbove(attenOutUb, params);
         }
     }
@@ -1075,7 +1075,7 @@ __aicore__ inline void InvalidRows<T, UB_INPUTFORMAT>::DealInvalidRowsBelow(Loca
                 }
                 int32_t s1RealStart = s1RealEnd - s1Num + 1;
                 Duplicate(attenOutUb[s1RealStart * params.columnCount], static_cast<T>(FLOAT_ZERO), params.columnCount * s1Num);
-                pipe_barrier(PIPE_V);
+                AscendC::PipeBarrier<PIPE_V>();
             }
             s1RealEnd -= s1End + 1;
             s1End = params.actS1Size - 1;
@@ -1103,7 +1103,7 @@ __aicore__ inline void InvalidRows<T, UB_INPUTFORMAT>::DealInvalidRowsBelow(Loca
                     gNum = params.dealRowCount - i;
                 }
                 Duplicate(attenOutUb[i * params.columnCount], static_cast<T>(FLOAT_ZERO), params.columnCount * gNum);
-                pipe_barrier(PIPE_V);
+                AscendC::PipeBarrier<PIPE_V>();
                 i += gNum;
                 s1++;
                 gIdx = 0;
@@ -1128,7 +1128,7 @@ __aicore__ inline void InvalidRows<T, UB_INPUTFORMAT>::DealInvalidRowsAbove(Loca
                     s1Num = params.dealRowCount - i;
                 }
                 Duplicate(attenOutUb[i * params.columnCount], static_cast<T>(FLOAT_ZERO), params.columnCount * s1Num);
-                pipe_barrier(PIPE_V);
+                AscendC::PipeBarrier<PIPE_V>();
             }
             i += params.actS1Size - s1;
             s1 = 0;
@@ -1143,7 +1143,7 @@ __aicore__ inline void InvalidRows<T, UB_INPUTFORMAT>::DealInvalidRowsAbove(Loca
                     gNum = params.dealRowCount - i;
                 }
                 Duplicate(attenOutUb[i * params.columnCount], static_cast<T>(FLOAT_ZERO), params.columnCount * gNum);
-                pipe_barrier(PIPE_V);
+                AscendC::PipeBarrier<PIPE_V>();
                 i += gNum;
                 s1++;
                 gIdx = 0;
@@ -1162,7 +1162,7 @@ __aicore__ inline void InvalidMaskRows(uint32_t softmaxOutOffset, uint32_t dealR
     static_cast<uint32_t>(dealRowCount), static_cast<uint32_t>(columnCount),
     static_cast<uint32_t>(dealRowCount), static_cast<uint32_t>(columnCount)};
 
-    pipe_barrier(PIPE_V);
+    AscendC::PipeBarrier<PIPE_V>();
     if constexpr (SOFTMAX_WITH_BRC) {
         AdjustSoftMaxRes<OUT_T, SOFTMAX_T>(bmm2ResUb, softmaxMaxUb[softmaxOutOffset], softmaxMinSaclar,
                                                (OUT_T)FLOAT_ZERO, softmaxShapeInfo);
