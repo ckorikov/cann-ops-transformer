@@ -253,7 +253,9 @@ __aicore__ inline void FlashAttentionScoreKernelBase<ChildClass, CubeBlockType, 
     this->pipe->InitBuffer(this->bmm1ResBuf[1], mm1ResultSize);
     if constexpr (bmm2Write2Ub) {
         this->pipe->InitBuffer(this->bmm2ResBuf[0], mm2ResultSize);
-        this->pipe->InitBuffer(this->bmm2ResBuf[1], mm2ResultSize);
+        if constexpr (!(useDn && isFp8)) {
+            this->pipe->InitBuffer(this->bmm2ResBuf[1], mm2ResultSize);
+        }
     }
 }
  

@@ -81,6 +81,7 @@ static const int64_t D_SCALE_DIM_NUM_1 = 1L;
 static const int64_t D_SCALE_DIM_NUM_2 = 2L;
 static const int64_t D_SCALE_DIM_NUM_3 = 3L;
 static const int64_t QUANT_BLOCK_SIZE = 128L;
+static const int64_t QUANT_KV_BLOCK_SIZE = 128L;
 
 enum class LayoutType : uint8_t {
     NONE = 0,
@@ -1274,11 +1275,13 @@ bool FlashAttentionScoreConstTiling::AnalyzeFp8OptionalInput()
         int64_t dimValue1 = dScaleKShape->GetStorageShape().GetDim(D_SCALE_DIM_NUM_1);
         int64_t dimValue2 = dScaleKShape->GetStorageShape().GetDim(D_SCALE_DIM_NUM_2);
         int64_t dimValue3 = dScaleKShape->GetStorageShape().GetDim(D_SCALE_DIM_NUM_3);
+        
         OP_CHECK_IF(dimValue0 != bSize || dimValue1 != n2Size ||
-        (dimValue2 != (s2Size + QUANT_BLOCK_SIZE - 1) / QUANT_BLOCK_SIZE) || dimValue3 != D_SCALE_DIM_NUM_1,
-                OPS_REPORT_VECTOR_INNER_ERR(opName, "invalid dScaleK dimNump[%ld][%ld][%ld][%ld], only support [B, N2, ceil(S2/128), 1]",
-                dimValue0, dimValue1, dimValue2, dimValue3),
-                return false);
+            (dimValue2 != (s2Size + QUANT_KV_BLOCK_SIZE  - 1) / QUANT_KV_BLOCK_SIZE ) || dimValue3 != D_SCALE_DIM_NUM_1,
+                    OPS_REPORT_VECTOR_INNER_ERR(opName, "invalid dScaleK dimNump[%ld][%ld][%ld][%ld], only support [B, N2, ceil(S2/128), 1]",
+                    dimValue0, dimValue1, dimValue2, dimValue3),
+                    return false);
+
     }
 
     auto dScaleVShape = context_->GetOptionalInputShape(D_V_SCALE_INDEX);
@@ -1298,10 +1301,10 @@ bool FlashAttentionScoreConstTiling::AnalyzeFp8OptionalInput()
         int64_t dimValue2 = dScaleVShape->GetStorageShape().GetDim(D_SCALE_DIM_NUM_2);
         int64_t dimValue3 = dScaleVShape->GetStorageShape().GetDim(D_SCALE_DIM_NUM_3);
         OP_CHECK_IF(dimValue0 != bSize || dimValue1 != n2Size ||
-        (dimValue2 != (s2Size + QUANT_BLOCK_SIZE - 1) / QUANT_BLOCK_SIZE) || dimValue3 != D_SCALE_DIM_NUM_1,
-                OPS_REPORT_VECTOR_INNER_ERR(opName, "invalid dScaleV dimNump[%ld][%ld][%ld][%ld], only support [B, N2, ceil(S2/128), 1]",
-                dimValue0, dimValue1, dimValue2, dimValue3),
-                return false);
+            (dimValue2 != (s2Size + QUANT_KV_BLOCK_SIZE - 1) / QUANT_KV_BLOCK_SIZE) || dimValue3 != D_SCALE_DIM_NUM_1,
+                    OPS_REPORT_VECTOR_INNER_ERR(opName, "invalid dScaleV dimNump[%ld][%ld][%ld][%ld], only support [B, N2, ceil(S2/128), 1]",
+                    dimValue0, dimValue1, dimValue2, dimValue3),
+                    return false);
     }
     return true;
 }
@@ -1935,9 +1938,6 @@ ge::graphStatus FlashAttentionScoreConstTiling::SetQKVStartIdx() {
                 const int64_t *value = qStartIdxTensor->GetData<int64_t>();
                 if (value != nullptr) {
                     qStartIdx = value[0];
-                    OP_CHECK_IF(qStartIdx > INT32_MAX || qStartIdx < INT32_MIN, OPS_REPORT_VECTOR_INNER_ERR(opName,
-                        "qStartIdx should >= %d and <= %d, but qStartIdx = %ld.", INT32_MIN, INT32_MAX, qStartIdx),
-                        return ge::GRAPH_FAILED);
                     inputParamsRegbase_->set_qStartIdx(qStartIdx);
                     OP_LOGD(context_, "[%s] SetQKVStartIdx qStartIdx:%ld", templateName, qStartIdx);
                 }
@@ -1951,9 +1951,6 @@ ge::graphStatus FlashAttentionScoreConstTiling::SetQKVStartIdx() {
                 const int64_t *kvValue = kvStartIdxTensor->GetData<int64_t>();
                 if (kvValue != nullptr) {
                     kvStartIdx = kvValue[0];
-                    OP_CHECK_IF(kvStartIdx > INT32_MAX || kvStartIdx < INT32_MIN, OPS_REPORT_VECTOR_INNER_ERR(opName,
-                        "kvStartIdx should >= %d and <= %d, but kvStartIdx = %ld.", INT32_MIN, INT32_MAX, kvStartIdx),
-                        return ge::GRAPH_FAILED);
                     inputParamsRegbase_->set_kvStartIdx(kvStartIdx);
                     OP_LOGD(context_, "[%s] SetQKVStartIdx kvStartIdx:%ld", templateName, kvStartIdx);
                 }

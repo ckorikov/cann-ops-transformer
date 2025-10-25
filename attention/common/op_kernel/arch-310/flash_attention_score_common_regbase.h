@@ -34,6 +34,7 @@ constexpr uint32_t POSITIVE_MAX_VALUE_FP32 = 0x7F7FFFFF;
 constexpr uint32_t POSITIVE_MAX_VALUE_FP16 = 0x7BFF;
 constexpr int64_t pse1NS1S2 = 2;
 constexpr int64_t FP8_QUANT_BLOCK_SIZE = 128;
+constexpr int64_t FP8_QUANT_KV_BLOCK_SIZE = 128;
 // 0级接口的block间隔范围需要满足32B对齐
 constexpr int64_t attenMaskBN2GS1S2 = 0;
 constexpr int64_t attenMaskBS1S2 = 1;
@@ -114,9 +115,9 @@ __aicore__ constexpr bool ContainOptionalInput(
 }
 
 __aicore__ constexpr bool IsDn(
-    bool isFp32, regbaseutil::PseTypeEnum pseMode, bool hasAtten, bool hasDrop, bool isS1Base64,
+    bool isFp32, bool isValidFp8, regbaseutil::PseTypeEnum pseMode, bool hasAtten, bool hasDrop, bool isS1Base64,
     regbaseutil::DTemplateType dTemplateType, bool hasRope) {
-    if (!isFp32 && !ContainOptionalInput(pseMode, hasAtten, hasDrop) && !isS1Base64 &&
+    if ((!isFp32 || isValidFp8) && !ContainOptionalInput(pseMode, hasAtten, hasDrop) && !isS1Base64 &&
         (uint16_t)dTemplateType <= (uint16_t)regbaseutil::DTemplateType::Aligned256 && !hasRope) {
         return true;
     }

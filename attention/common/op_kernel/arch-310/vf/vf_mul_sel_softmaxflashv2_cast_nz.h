@@ -60,6 +60,13 @@ constexpr static AscendC::MicroAPI::CastTrait castTraitTwo = {
     AscendC::RoundMode::CAST_ROUND,
 };
 
+constexpr static AscendC::MicroAPI::CastTrait castTraitThree = {
+    AscendC::MicroAPI::RegLayout::THREE,
+    AscendC::MicroAPI::SatMode::SAT,
+    AscendC::MicroAPI::MaskMergeMode::ZEROING,
+    AscendC::RoundMode::CAST_ROUND,
+};
+ 
 constexpr static AscendC::MicroAPI::CastTrait castTraitRintZero = {
     AscendC::MicroAPI::RegLayout::ZERO,
     AscendC::MicroAPI::SatMode::SAT,
@@ -67,6 +74,13 @@ constexpr static AscendC::MicroAPI::CastTrait castTraitRintZero = {
     AscendC::RoundMode::CAST_RINT,
 };
 
+constexpr static AscendC::MicroAPI::CastTrait castTraitRintOne = {
+    AscendC::MicroAPI::RegLayout::ONE,
+    AscendC::MicroAPI::SatMode::SAT,
+    AscendC::MicroAPI::MaskMergeMode::ZEROING,
+    AscendC::RoundMode::CAST_RINT,
+};
+ 
 constexpr static AscendC::MicroAPI::CastTrait castTraitRintTwo = {
     AscendC::MicroAPI::RegLayout::TWO,
     AscendC::MicroAPI::SatMode::SAT,
@@ -74,7 +88,13 @@ constexpr static AscendC::MicroAPI::CastTrait castTraitRintTwo = {
     AscendC::RoundMode::CAST_RINT,
 };
 
-
+constexpr static AscendC::MicroAPI::CastTrait castTraitRintThree = {
+    AscendC::MicroAPI::RegLayout::THREE,
+    AscendC::MicroAPI::SatMode::SAT,
+    AscendC::MicroAPI::MaskMergeMode::ZEROING,
+    AscendC::RoundMode::CAST_RINT,
+};
+ 
 // no update, 128 < originN <= 256
 template <typename T, typename T2, typename pseShiftType, uint32_t s1BaseSize = 64, uint32_t s2BaseSize = 256,
     bool hasAtten = 0, PseTypeEnum pseMode = PseTypeEnum::PSE_NONE_TYPE, bool hasDrop = 0>

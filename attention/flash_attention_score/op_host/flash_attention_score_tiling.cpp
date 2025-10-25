@@ -377,12 +377,14 @@ ASCENDC_EXTERN_C ge::graphStatus TilingFlashAttentionScore(gert::TilingContext *
     if (CheckParams(context) != ge::GRAPH_SUCCESS) {
         return ge::GRAPH_FAILED;
     }
-    auto compileInfoPtr = reinterpret_cast<const FlashAttentionScoreCompileInfo *>(context->GetCompileInfo());
-    OP_CHECK_IF(compileInfoPtr == nullptr,
-        OP_LOGE(context, "compileInfoPtr is null"),
+ 
+    auto platformInfoPtr = context->GetPlatformInfo();
+    OP_CHECK_IF(platformInfoPtr == nullptr,
+        OP_LOGE(context, "platformInfoPtr is null"),
         return ge::GRAPH_FAILED);
-    auto socVersion = compileInfoPtr->socVersion;
-    if (socVersion == platform_ascendc::SocVersion::ASCEND910_95) {
+ 
+    auto ascendcPlatform = platform_ascendc::PlatformAscendC(platformInfoPtr);
+    if (ascendcPlatform.GetSocVersion() == platform_ascendc::SocVersion::ASCEND910_95) {
         OP_LOGW(context, "Current soc version is ASCEND910_95.");
         if (IsEmptyInputRegbase(context)) {
             return ge::GRAPH_SUCCESS;
