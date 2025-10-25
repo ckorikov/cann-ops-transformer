@@ -12,7 +12,7 @@
  * \file incre_flash_attention.cpp
  * \brief
  */
-
+//lch
 #include "kernel_operator.h"
 #include "incre_flash_attention_allvec_new.h"
 #if (__CCE_AICORE__ > 200)
