@@ -68,12 +68,13 @@ __aicore__ inline void DataCopyInCommon(LocalTensor<INPUT_T> &dstTensor, GlobalT
             dataCopyParams.srcStride = (actualS2Len * dtypeSize - dataCopyParams.blockLen * blockBytes) / blockBytes;
             DataCopy(dstTensor, srcTensor[offset], dataCopyParams);
         } else {
-            dataCopyParams.blockLen = s2Size * dtypeSize; // 单位Byte
-            dataCopyParams.srcStride = (actualS2Len * dtypeSize - dataCopyParams.blockLen);
-            dataCopyParams.dstStride = CeilDiv(s2BaseSize * dtypeSize, blockBytes) -
-                                       CeilDiv(s2Size * dtypeSize, blockBytes);
-            DataCopyPadParams dataCopyPadParams;
-            DataCopyPad(dstTensor, srcTensor[offset], dataCopyParams, dataCopyPadParams);
+            DataCopyExtParams dataCopyExtParams;
+            dataCopyExtParams.blockCount = s1Size;
+            dataCopyExtParams.blockLen = s2Size * dtypeSize;
+            dataCopyExtParams.srcStride = actualS2Len * dtypeSize - dataCopyExtParams.blockLen;
+            dataCopyExtParams.dstStride = CeilDiv(s2BaseSize * dtypeSize, blockBytes) - CeilDiv(s2Size * dtypeSize, blockBytes);
+            DataCopyPadExtParams<INPUT_T> dataCopyPadParams;
+            DataCopyPad(dstTensor, srcTensor[offset], dataCopyExtParams, dataCopyPadParams);
         }
     }
 }
