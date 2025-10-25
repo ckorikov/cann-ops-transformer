@@ -43,7 +43,7 @@ public:
 
     __aicore__ inline LocalTensor<SrcT> AllocTensor() {}
 
-    __aicore__ inline void FreeTensor(int32_t bufferPos = -1, const LocalTensor<SrcT> &tensor = NULL_TENSOR<SrcT>) {}
+    __aicore__ inline void FreeTensor(int32_t bufferPos = -1, const LocalTensor<SrcT> &tensor = LocalTensor<SrcT>{}) {}
 
     __aicore__ inline void Reset() {}
 
@@ -51,7 +51,7 @@ public:
 
     __aicore__ inline LocalTensor<SrcT> GetBuffer(int32_t iterIndex, int32_t bufferPos = -1)
     {
-        return NULL_TENSOR<SrcT>;
+        return LocalTensor<SrcT>{};
     }
 
     __aicore__ inline void SetOrgAddr(__gm__ SrcT *gmAddr) {}

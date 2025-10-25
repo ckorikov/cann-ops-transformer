@@ -167,7 +167,7 @@
          return l1;
      }
   
-     __aicore__ inline void ClearLoadData(const LocalTensor<TRANS_T> &aMatrix = NULL_TENSOR<TRANS_T>, int32_t curRow = 0,
+     __aicore__ inline void ClearLoadData(const LocalTensor<TRANS_T> &aMatrix = LocalTensor<TRANS_T>{}, int32_t curRow = 0,
                                           int32_t curCol = 0)
      {
          if constexpr (!PhyPosIsUB(INPUT_TYPE::pos) && !PhyPosIsL1(INPUT_TYPE::pos)) {
