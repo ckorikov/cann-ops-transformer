@@ -285,71 +285,31 @@ __aicore__ inline void FlashAttentionScoreKernelBase<ChildClass, CubeBlockType, 
     }
     constInfo.gSize = sharedParams.gSize;
     constInfo.s1OuterSize = sharedParams.s1OuterSize;
-    constInfo.s1D = constInfo.s1Size * constInfo.dSize;
-    constInfo.s2D = constInfo.s2Size * constInfo.dSize;
-    constInfo.gD = constInfo.gSize * constInfo.dSize;
-    constInfo.n2D = constInfo.n2Size * constInfo.dSize;
     constInfo.s1S2 = constInfo.s1Size * constInfo.s2Size;
     constInfo.gS1 = constInfo.gSize * constInfo.s1Size;
     constInfo.n2G = constInfo.n2Size * constInfo.gSize;
 
-    constInfo.bN2D = sharedParams.bSize * constInfo.n2D;
-    constInfo.gS1D = constInfo.gSize * constInfo.s1D;
-    constInfo.n2S2D = constInfo.n2Size * constInfo.s2D;
-    constInfo.n2GD = constInfo.n2Size * constInfo.gD;
-    constInfo.bN2GD = sharedParams.bSize * constInfo.n2GD;
-    constInfo.n2GS1D = constInfo.n2Size * constInfo.gS1D;
-    // 计算切分轴的乘积
-    constInfo.s2BaseN2D = s2BaseSize * constInfo.n2D;
-    if (unlikely(constInfo.dSize != constInfo.dSizeV)) {
-        constInfo.s1Dv = constInfo.s1Size * constInfo.dSizeV;
-        constInfo.s2Dv = constInfo.s2Size * constInfo.dSizeV;
-        constInfo.n2Dv = constInfo.n2Size * constInfo.dSizeV;
-        constInfo.gDv = constInfo.gSize * constInfo.dSizeV;
-        constInfo.gS1Dv = constInfo.gSize * constInfo.s1Dv;
-        constInfo.n2S2Dv = constInfo.n2Size * constInfo.s2Dv;
-        constInfo.n2GDv = constInfo.n2Size * constInfo.gDv;
-        constInfo.s2BaseN2Dv = s2BaseSize * constInfo.n2Dv;
-        constInfo.n2GS1Dv = constInfo.n2Size * constInfo.gS1Dv;
-    } else {
-        constInfo.s1Dv = constInfo.s1D;
-        constInfo.s2Dv = constInfo.s2D;
-        constInfo.n2Dv = constInfo.n2D;
-        constInfo.gDv = constInfo.gD;
-        constInfo.gS1Dv = constInfo.gS1D;
-        constInfo.n2S2Dv = constInfo.n2S2D;
-        constInfo.n2GDv = constInfo.n2GD;
-        constInfo.s2BaseN2Dv = constInfo.s2BaseN2D;
-        constInfo.n2GS1Dv = constInfo.n2GS1D;
-    }
-
+    constInfo.s1Dv = constInfo.s1Size * constInfo.dSizeV;
+    constInfo.s2Dv = constInfo.s2Size * constInfo.dSizeV;
+    constInfo.n2Dv = constInfo.n2Size * constInfo.dSizeV;
+    constInfo.gDv = constInfo.gSize * constInfo.dSizeV;
+    constInfo.gS1Dv = constInfo.gSize * constInfo.s1Dv;
+    constInfo.n2S2Dv = constInfo.n2Size * constInfo.s2Dv;
+    constInfo.n2GDv = constInfo.n2Size * constInfo.gDv;
+    constInfo.s2BaseN2Dv = s2BaseSize * constInfo.n2Dv;
+    constInfo.n2GS1Dv = constInfo.n2Size * constInfo.gS1Dv;
     constInfo.layoutType = sharedParams.layoutType;
 
-    if constexpr (hasRope) {
-        constInfo.s1DR = constInfo.s1Size * constInfo.dSizeRope;
-        constInfo.s2DR = constInfo.s2Size * constInfo.dSizeRope;
-        constInfo.gDR = constInfo.gSize * constInfo.dSizeRope;
-        constInfo.n2DR = constInfo.n2Size * constInfo.dSizeRope;
-        constInfo.bN2DR = sharedParams.bSize * constInfo.n2DR;
-        constInfo.gS1DR = constInfo.gSize * constInfo.s1DR;
-        constInfo.n2S2DR = constInfo.n2Size * constInfo.s2DR;
-        constInfo.n2GDR = constInfo.n2Size * constInfo.gDR;
-        constInfo.bN2GDR = sharedParams.bSize * constInfo.n2GDR;
-        constInfo.n2GS1DR = constInfo.n2Size * constInfo.gS1DR;
-        constInfo.s2BaseN2DR = s2BaseSize * constInfo.n2DR;
-    }
     if constexpr (layout == LayOutTypeEnum::LAYOUT_TND) {
         // (BS)ND
-        constInfo.s1BaseN2GD = s1BaseSize * constInfo.n2GD;
         constInfo.s1BaseN2GDv = s1BaseSize * constInfo.n2GDv;
         if constexpr (hasRope) {
-            constInfo.s1BaseN2GDR = s1BaseSize * constInfo.n2GDR;
-            constInfo.mm1RopeKa = constInfo.n2GDR;
-            constInfo.mm1RopeKb = constInfo.n2DR;
+            constInfo.mm1RopeKa = constInfo.n2Size * constInfo.gSize * constInfo.dSizeRope;
+            constInfo.mm1RopeKb = constInfo.n2Size * constInfo.dSizeRope;
         }
 
-        constInfo.mm1Ka = constInfo.n2GD;
-        constInfo.mm1Kb = constInfo.n2D;
+        constInfo.mm1Ka = constInfo.n2Size * constInfo.gSize * constInfo.dSize;
+        constInfo.mm1Kb = constInfo.n2Size * constInfo.dSize;
         constInfo.mm2Kb = constInfo.n2Dv;
         if constexpr (isInfer) {
             if (sharedParams.isGqa) {
@@ -364,71 +324,59 @@ __aicore__ inline void FlashAttentionScoreKernelBase<ChildClass, CubeBlockType, 
                 }
             }
         }
-    } else {
-        if (constInfo.layoutType == (uint8_t)LayOutTypeEnum::LAYOUT_BSH) {
-            // BSH/BSNGD
-            constInfo.s1BaseN2GD = s1BaseSize * constInfo.n2GD;
-            constInfo.s1BaseN2GDv = s1BaseSize * constInfo.n2GDv;
-            if constexpr (hasRope) {
-                constInfo.s1BaseN2GDR = s1BaseSize * constInfo.n2GDR;
-                constInfo.mm1RopeKa = constInfo.n2GDR;
-                constInfo.mm1RopeKb = constInfo.n2DR;
+    } else if constexpr (layout == LayOutTypeEnum::LAYOUT_BSH) {
+        // BSH/BSNGD
+        constInfo.s1BaseN2GDv = s1BaseSize * constInfo.n2GDv;
+        if constexpr (hasRope) {
+            constInfo.mm1RopeKa = constInfo.n2Size * constInfo.gSize * constInfo.dSizeRope;
+            constInfo.mm1RopeKb = constInfo.n2Size * constInfo.dSizeRope;
+        }
+        constInfo.mm1Ka = constInfo.n2Size * constInfo.gSize * constInfo.dSize;
+        constInfo.mm1Kb = constInfo.n2Size * constInfo.dSize;
+        constInfo.mm2Kb = constInfo.n2Dv;
+        if constexpr (isInfer) {
+            if (sharedParams.isGqa) {
+                constInfo.mm1Ka = constInfo.dSize;
             }
-            constInfo.mm1Ka = constInfo.n2GD;
-            constInfo.mm1Kb = constInfo.n2D;
-            constInfo.mm2Kb = constInfo.n2Dv;
+        }
+        if ASCEND_IS_AIV {
+            constInfo.attentionOutStride =
+                (constInfo.n2G - 1) * constInfo.dSizeV * sizeof(OUTPUT_T);
             if constexpr (isInfer) {
                 if (sharedParams.isGqa) {
-                    constInfo.mm1Ka = constInfo.dSize;
+                    constInfo.attentionOutStride = 0;
                 }
             }
-            if ASCEND_IS_AIV {
-                constInfo.attentionOutStride =
-                    (constInfo.n2G - 1) * constInfo.dSizeV * sizeof(OUTPUT_T);
-                if constexpr (isInfer) {
-                    if (sharedParams.isGqa) {
-                        constInfo.attentionOutStride = 0;
-                    }
-                }
-            }
-        } else if (constInfo.layoutType == (uint8_t)LayOutTypeEnum::LAYOUT_SBH) {
-            // SBH/SBNGD
-            constInfo.s1BaseBN2GD = s1BaseSize * constInfo.bN2GD;
-            constInfo.s2BaseBN2D = sharedParams.bSize * constInfo.s2BaseN2D;
-            constInfo.bN2GDv = sharedParams.bSize * constInfo.n2GDv;
-            constInfo.s1BaseBN2GDv = s1BaseSize * constInfo.bN2GDv;
-            constInfo.s2BaseBN2Dv = sharedParams.bSize * constInfo.s2BaseN2Dv;
-            if constexpr (hasRope) {
-                constInfo.s1BaseBN2GDR = s1BaseSize * constInfo.bN2GDR;
-                constInfo.s2BaseBN2DR = sharedParams.bSize * constInfo.s2BaseN2DR;
-                constInfo.mm1RopeKa = constInfo.bN2GDR;
-                constInfo.mm1RopeKb = constInfo.bN2DR;
-            }
-            constInfo.mm1Ka = constInfo.bN2GD;
-            constInfo.mm1Kb = constInfo.bN2D;
-            constInfo.mm2Kb = sharedParams.bSize * constInfo.n2Dv;
-            if ASCEND_IS_AIV {
-                constInfo.attentionOutStride =
-                    (sharedParams.bSize * constInfo.n2Size * constInfo.gSize - 1) * constInfo.dSizeV * sizeof(OUTPUT_T);
-            }
-        } else if (constInfo.layoutType == (uint8_t)LayOutTypeEnum::LAYOUT_BNSD) {
-            // bnsd
-            constInfo.s1BaseD = s1BaseSize * constInfo.dSize;
-            constInfo.s2BaseD = s2BaseSize * constInfo.dSize;
-            constInfo.s1BaseDv = s1BaseSize * constInfo.dSizeV;
-            constInfo.s2BaseDv = s2BaseSize * constInfo.dSizeV;
-            if constexpr (hasRope) {
-                constInfo.s1BaseDR = s1BaseSize * constInfo.dSizeRope;
-                constInfo.s2BaseDR = s2BaseSize * constInfo.dSizeRope;
-                constInfo.mm1RopeKa = constInfo.dSizeRope;
-                constInfo.mm1RopeKb = constInfo.dSizeRope;
-            }
-            constInfo.mm1Ka = constInfo.dSize;
-            constInfo.mm1Kb = constInfo.dSize;
-            constInfo.mm2Kb = constInfo.dSizeV;
-            if ASCEND_IS_AIV {
-                constInfo.attentionOutStride = 0;
-            }
+        }
+    } else if constexpr (layout == LayOutTypeEnum::LAYOUT_SBH) {
+        // SBH/SBNGD
+        constInfo.bN2GDv = sharedParams.bSize * constInfo.n2GDv;
+        constInfo.s1BaseBN2GDv = s1BaseSize * constInfo.bN2GDv;
+        constInfo.s2BaseBN2Dv = sharedParams.bSize * constInfo.s2BaseN2Dv;
+        if constexpr (hasRope) {
+            constInfo.mm1RopeKa = sharedParams.bSize * constInfo.n2Size * constInfo.gSize * constInfo.dSizeRope;
+            constInfo.mm1RopeKb = sharedParams.bSize * constInfo.n2Size * constInfo.dSizeRope;
+        }
+        constInfo.mm1Ka = sharedParams.bSize * constInfo.n2Size * constInfo.gSize * constInfo.dSize;
+        constInfo.mm1Kb = sharedParams.bSize * constInfo.n2Size * constInfo.dSize;
+        constInfo.mm2Kb = sharedParams.bSize * constInfo.n2Dv;
+        if ASCEND_IS_AIV {
+            constInfo.attentionOutStride =
+                (sharedParams.bSize * constInfo.n2Size * constInfo.gSize - 1) * constInfo.dSizeV * sizeof(OUTPUT_T);
+        }
+    } else if constexpr (layout == LayOutTypeEnum::LAYOUT_BNSD) {
+        // bnsd
+        constInfo.s1BaseDv = s1BaseSize * constInfo.dSizeV;
+        constInfo.s2BaseDv = s2BaseSize * constInfo.dSizeV;
+        if constexpr (hasRope) {
+            constInfo.mm1RopeKa = constInfo.dSizeRope;
+            constInfo.mm1RopeKb = constInfo.dSizeRope;
+        }
+        constInfo.mm1Ka = constInfo.dSize;
+        constInfo.mm1Kb = constInfo.dSize;
+        constInfo.mm2Kb = constInfo.dSizeV;
+        if ASCEND_IS_AIV {
+            constInfo.attentionOutStride = 0;
         }
     }
 

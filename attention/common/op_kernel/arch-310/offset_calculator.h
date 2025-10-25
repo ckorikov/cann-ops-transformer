@@ -32,8 +32,8 @@ enum class GmFormat
     BNSD = 6,
     TND = 7,
     NTD = 8,
-    PA_BnBsND = 9,
-    PA_BnNBsD = 10,
+    PA_BNBSND = 9,
+    PA_BNNBSD = 10,
     PA_NZ = 11,
     SBNGD = 12,
     SBND = 13
@@ -189,7 +189,7 @@ struct GmLayout<GmFormat::NTD> {
 };
 
 template <>
-struct GmLayout<GmFormat::PA_BnBsND> {
+struct GmLayout<GmFormat::PA_BNBSND> {
     AscendC::Shape<uint32_t, uint32_t, uint32_t> shape;
     AscendC::Stride<uint64_t, uint64_t, uint64_t, uint64_t> stride;
 
@@ -205,7 +205,7 @@ struct GmLayout<GmFormat::PA_BnBsND> {
 };
 
 template <>
-struct GmLayout<GmFormat::PA_BnNBsD> {
+struct GmLayout<GmFormat::PA_BNNBSD> {
     AscendC::Shape<uint32_t, uint32_t, uint32_t> shape;
     AscendC::Stride<uint64_t, uint64_t, uint64_t, uint64_t> stride;
 
@@ -425,12 +425,12 @@ struct GmLayoutParams<GmFormat::NTD> {
 };
 
 template <>
-struct GmLayoutParams<GmFormat::PA_BnBsND> {
+struct GmLayoutParams<GmFormat::PA_BNBSND> {
     static constexpr FormatCategory CATEGORY = FormatCategory::GM_KV_PA_BNBD;
 };
 
 template <>
-struct GmLayoutParams<GmFormat::PA_BnNBsD> {
+struct GmLayoutParams<GmFormat::PA_BNNBSD> {
     static constexpr FormatCategory CATEGORY = FormatCategory::GM_KV_PA_BNBD;
 };
 
