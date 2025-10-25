@@ -159,7 +159,7 @@ extern "C" __global__ __aicore__ void fused_infer_attention_score(__gm__ uint8_t
                                 antiquantOffset, blocktable, queryPaddingSize, kvPaddingSize, 
                                 keyAntiquantScale, keyAntiquantOffset, valueAntiquantScale, 
                                 valueAntiquantOffset, keySharedPrefix, valueSharedPrefix, 
-                                actualSharedPrefixLen, queryRope, keyRope, learnableSink,
+                                actualSharedPrefixLen, queryRope, keyRope, dequantScaleQuery, learnableSink,
                                 attentionOut, softmaxLse, workspace, tiling);
 #else //__CCE_AICORE__ > 200
     prompt_flash_attention_FIAS(query, key, value, pse_shift, attenMask, actualSeqLengths, 
@@ -168,7 +168,7 @@ extern "C" __global__ __aicore__ void fused_infer_attention_score(__gm__ uint8_t
                                 antiquantOffset, blocktable, queryPaddingSize, kvPaddingSize, 
                                 keyAntiquantScale, keyAntiquantOffset, valueAntiquantScale, 
                                 valueAntiquantOffset, keySharedPrefix, valueSharedPrefix, 
-                                actualSharedPrefixLen, queryRope, keyRope, learnableSink, 
+                                actualSharedPrefixLen, queryRope, keyRope, dequantScaleQuery, learnableSink, 
                                 attentionOut, softmaxLse, workspace, tiling);
   } else if (TILING_KEY_VAR >= FIA_FLAG_TILING) { // 10^17
     fused_infer_attention(query, key, value, pse_shift, attenMask, actualSeqLengths,

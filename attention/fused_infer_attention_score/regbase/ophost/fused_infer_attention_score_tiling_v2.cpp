@@ -356,10 +356,26 @@ static ge::graphStatus ConvertContextToParamsPFA(gert::TilingContext* context, C
     contextKeyParams.blockTableShape = context->GetOptionalInputShape(BLOCK_TABLE_INDEX);
     contextKeyParams.outputShape = context->GetOutputShape(ATTENTION_OUT_INDEX);
     contextKeyParams.lseoutputShape = context->GetOutputShape(SOFTMAX_LSE_INDEX);
+
+    contextKeyParams.dequantScaleQueryShape = context->GetOptionalInputShape(DEQUANT_SCALE_QUERY_INDEX);
+    contextKeyParams.KeyAntiquantScaleShape = context->GetOptionalInputShape(KEY_ANTIQUANT_SCALE_INDEX);
+    contextKeyParams.valueAntiquantScaleShape = context->GetOptionalInputShape(VALUE_ANTIQUANT_SCALE_INDEX);
+
+    contextKeyParams.dequantScaleQueryType = context->GetInputDesc(DEQUANT_SCALE_QUERY_INDEX)->GetDataType();
+    contextKeyParams.KeyAntiquantScaleType = context->GetInputDesc(KEY_ANTIQUANT_SCALE_INDEX)->GetDataType();
+    contextKeyParams.valueAntiquantScaleType = context->GetInputDesc(VALUE_ANTIQUANT_SCALE_INDEX)->GetDataType();
+
+    contextKeyParams.dequantScaleQuery = context->GetOptionalInputTensor(DEQUANT_SCALE_QUERY_INDEX);
+    contextKeyParams.keyAntiquantScale = context->GetOptionalInputTensor(KEY_ANTIQUANT_SCALE_INDEX);
+    contextKeyParams.valueAntiquantScale = context->GetOptionalInputTensor(VALUE_ANTIQUANT_SCALE_INDEX);   
+    
     auto attrs = context->GetAttrs();
     OP_CHECK_IF(attrs == nullptr, OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(),
         "Attributes returned from context is a nullptr"),
         return ge::GRAPH_FAILED);
+    contextKeyParams.queryQuantMode = attrs->GetAttrPointer<int64_t>(QUERY_QUANT_MODE_INDEX);
+    contextKeyParams.keyAntiquantMode = attrs->GetAttrPointer<int64_t>(KEY_ANTIQUANT_MODE_INDEX);
+    contextKeyParams.valueAntiquantMode = attrs->GetAttrPointer<int64_t>(VALUE_ANTIQUANT_MODE_INDEX);
     contextKeyParams.innerPrecisePtr = attrs->GetAttrPointer<int64_t>(ATTR_INNER_PRECISE_INDEX);
     contextKeyParams.headsNumber = attrs->GetAttrPointer<int32_t>(ATTR_N_INDEX);
     contextKeyParams.sparseMode = attrs->GetAttrPointer<int32_t>(ATTR_SPARSE_MODE_INDEX);

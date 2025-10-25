@@ -2112,7 +2112,7 @@ incre_flash_attention(__gm__ uint8_t *query, __gm__ uint8_t *key, __gm__ uint8_t
         if (TILING_KEY_VAR >= PFA_FlAG_IN_TILING) {
             prompt_flash_attention_FIAS_regbase(query, key, value, pseShift, attenMask, nullptr, actualSeqLengths, deqScale1,
                                                 quantScale1, deqScale2, quantScale2, quantOffset2, antiquantScale, antiquantOffset, blocktable, nullptr,
-                                                kvPaddingSize, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
+                                                kvPaddingSize, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
                                                 attentionOut, nullptr, workspace, tiling);
         } else {
             incre_flash_attention_FIAS(query, key, value, pseShift, attenMask, nullptr, actualSeqLengths, deqScale1, quantScale1,

@@ -67,6 +67,8 @@ protected:
         const gert::StorageShape* quantOffset2Shape, const ge::DataType quantScale2Type, int64_t quantScale2ShapeSize,
         const PFAShapeInfo& queryShapeInfo, const PFAShapeInfo& valueShapeInfo) const;
     bool CheckPostQuantParams(const ContextParamsForPFATiling& contextKeyParams, const PFAShapeInfo& queryShapeInfo, const PFAShapeInfo& valueShapeInfo) const;
+    bool CheckPerTensorQuantParams(const ContextParamsForPFATiling& contextKeyParams) const;
+    bool CheckPerblockQuantParams(const ContextParamsForPFATiling& contextKeyParams, const PFAShapeInfo& queryShapeInfo, const PFAShapeInfo& keyShapeInfo, const PFAShapeInfo& valueShapeInfo) const;
     bool CheckAntiquantParamsShape(ContextParamsForPFATiling& contextKeyParams);
     bool GetAndCheckPrefixShape(ContextParamsForPFATiling& contextKeyParams, PFAShapeInfo& queryShapeInfo,
         PFAShapeInfo& prefixShapeInfo,
@@ -97,7 +99,7 @@ protected:
     bool CheckRope(ContextParamsForPFATiling& contextKeyParams, PFAShapeInfo& queryShapeInfo,
         PFAShapeInfo& keyShapeInfo, PFAShapeInfo& queryRopeShapeInfo);
     bool CheckIFAMLA(ContextParamsForPFATiling& contextKeyParams, const PFAShapeInfo& queryShapeInfo);
-    bool CheckQuant(ContextParamsForPFATiling& contextKeyParams, PFAShapeInfo& queryShapeInfo, const PFAShapeInfo& valueShapeInfo);
+    bool CheckQuant(ContextParamsForPFATiling& contextKeyParams, PFAShapeInfo& queryShapeInfo, PFAShapeInfo& keyShapeInfo, const PFAShapeInfo& valueShapeInfo);
     bool CheckPrefix(ContextParamsForPFATiling& contextKeyParams, PFAShapeInfo& queryShapeInfo, PFAShapeInfo& keyShapeInfo, 
         PromptFlashAttentionTilingData& tilingData);
     bool CheckActSeq(const ContextParamsForPFATiling& contextKeyParams, const PFAShapeInfo& queryShapeInfo) const;
@@ -119,6 +121,7 @@ protected:
         std::vector<int64_t>& actualSeqLengths, std::vector<int64_t>& actualSeqLengthsKV);
     bool CheckMultiFeatureCrossover(ContextParamsForPFATiling& contextKeyParams, PFAShapeInfo& queryShapeInfo, 
         std::vector<int64_t>& actualSeqLengths, std::vector<int64_t>& actualSeqLengthsKV, PromptFlashAttentionTilingData& tilingData);
+    bool CheckPerblockCrossover(ContextParamsForPFATiling& contextKeyParams);
     void SetTilingDataAttribute(ContextParamsForPFATiling& contextKeyParams, PromptFlashAttentionTilingData& tilingData);
     void GetEnableDN(ContextParamsForPFATiling& contextKeyParams, PromptFlashAttentionTilingData& tilingData,
         PFAShapeInfo& queryShapeInfo, PFAShapeInfo& valueShapeInfo, std::vector<int64_t>& actualSeqLengths, std::vector<int64_t>& actualSeqLengthsKV);
@@ -223,11 +226,16 @@ protected:
     bool enablePFARope = false;
     bool enableDN = false;
     bool enablePostQuant = false;
+    bool enablePertensorQuant = false;
+    bool enablePerblockQuant = false;
     uint32_t gSize = 1;
     InputLayout inputLayout = InputLayout::BSH;
     ge::DataType inputType{ge::DT_FLOAT16};
     ge::DataType outputType{ge::DT_FLOAT16};
     ge::DataType pseShiftElemType{ge::DT_FLOAT16};
+    ge::DataType queryType{ge::DT_FLOAT};
+    ge::DataType keyType{ge::DT_FLOAT};
+    ge::DataType valueType{ge::DT_FLOAT};
     uint32_t dataTypeSize = FLOAT32SIZE;
     uint32_t outputDataTypeSize = FLOAT32SIZE;
     uint32_t maskElemSize = FLOAT32SIZE;

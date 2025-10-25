@@ -126,11 +126,10 @@ namespace optiling {};
         using VecBlockType = typename std::conditional<g_coreType == AscendC::AIC, BaseApi::FABlockVecDummy<__VA_ARGS__>, BaseApi::FABlockVecInfer<__VA_ARGS__>>::type; \
         templateClass<CubeBlockType, VecBlockType> op;                                                                                  \
         op.InitBaseAPI(query, key, value, pseShift, nullptr, nullptr, attenMask, nullptr, actualSeqLengths,                             \
-            actualSeqLengthsKV, blocktable, queryPaddingSize, kvPaddingSize, nullptr, nullptr, nullptr, postQuantScale,                 \
+            actualSeqLengthsKV, blocktable, queryPaddingSize, kvPaddingSize, dequantScaleQuery, key_antiquant_scale, value_antiquant_scale, postQuantScale,                 \
             postQuantOffset, queryRope, keyRope,nullptr, nullptr, nullptr, softmaxLse, attentionOut, user, nullptr, &tPipe);            \
         op.Process();                                                                                                                   \
     } while (0)
- 
 #else // VECTOR 实现
 #define PFA_REGBASE_COPY_TILING_DATA(tiling)                                                                                                \
     GET_TILING_DATA_WITH_STRUCT(FlashAttentionScoreSimplifiedTilingData, tilingDataIn, tiling);                                           \
@@ -160,7 +159,7 @@ namespace optiling {};
         using VecBlockType = typename std::conditional<g_coreType == AscendC::AIC, BaseApi::FABlockVecDummy<__VA_ARGS__>, BaseApi::FABlockVecInfer<__VA_ARGS__>>::type; \
         templateClass<CubeBlockType, VecBlockType> op;                                                                                  \
         op.InitBaseAPI(query, key, value, pseShift, nullptr, nullptr, attenMask, nullptr, actualSeqLengths,                             \
-            actualSeqLengthsKV, blocktable, queryPaddingSize, kvPaddingSize, nullptr, nullptr, nullptr, postQuantScale,                 \
+            actualSeqLengthsKV, blocktable, queryPaddingSize, kvPaddingSize, dequantScaleQuery, key_antiquant_scale, value_antiquant_scale, postQuantScale,                 \
             postQuantOffset, queryRope, keyRope, nullptr, nullptr, nullptr, softmaxLse, attentionOut, user, tilingData, &tPipe);        \
         op.Process();                                                                                                                   \
     } while (0)
@@ -226,7 +225,7 @@ inline __aicore__ void prompt_flash_attention_FIAS_regbase(__gm__ uint8_t* query
     __gm__ uint8_t* queryPaddingSize, __gm__ uint8_t* kvPaddingSize, __gm__ uint8_t* key_antiquant_scale,
     __gm__ uint8_t* key_antiquant_offset, __gm__ uint8_t* value_antiquant_scale, __gm__ uint8_t* value_antiquant_offset,
     __gm__ uint8_t* keySharedPrefix, __gm__ uint8_t* valueSharedPrefix, __gm__ uint8_t* actualSharedPrefixLen,
-    __gm__ uint8_t * queryRope, __gm__ uint8_t * keyRope, __gm__ uint8_t *attentionOut,
+    __gm__ uint8_t * queryRope, __gm__ uint8_t * keyRope, __gm__ uint8_t* dequantScaleQuery, __gm__ uint8_t *attentionOut,
     __gm__ uint8_t *softmaxLse, __gm__ uint8_t* workspace, __gm__ uint8_t* tiling)
 {
     __gm__ uint8_t* user = GetUserWorkspace(workspace);
@@ -59634,8 +59633,8 @@ inline __aicore__ void prompt_flash_attention_FIAS_regbase(__gm__ uint8_t* query
 #endif
 
 #if (ORIG_DTYPE_QUERY == DT_FLOAT8_E5M2 && ORIG_DTYPE_KEY == DT_FLOAT8_E5M2 && ORIG_DTYPE_ATTENTION_OUT == DT_FLOAT16)
-    TILING_KEY_IS(1001311000001001512);
-    TILING_KEY_IS(1001311001001001512);
+    TILING_KEY_IS(1001311000001001512);                     
+    TILING_KEY_IS(1001311001001001512); 
     TILING_KEY_IS(1002312000001001512);
     TILING_KEY_IS(1003103000001001512);
     TILING_KEY_IS(1004104000001001512);

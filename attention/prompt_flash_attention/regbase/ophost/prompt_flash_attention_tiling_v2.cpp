@@ -700,6 +700,82 @@ bool PromptFlashAttentionTilingV2::CheckPostQuantShape(const ContextParamsForPFA
     return true;
 }
 
+bool PromptFlashAttentionTilingV2::CheckPerTensorQuantParams(const ContextParamsForPFATiling& contextKeyParams) const {
+    const gert::StorageShape* deqScale1Shape = contextKeyParams.deqScale1Shape;
+    const gert::StorageShape* quantScale1Shape = contextKeyParams.scale1Shape;
+    const gert::StorageShape* deqScale2Shape = contextKeyParams.deqScale2Shape;
+    const ge::DataType inputType = contextKeyParams.inputDataType;
+    OP_CHECK_IF((inputType != ge::DT_INT8) && (inputType != ge::DT_HIFLOAT8) && (inputType != ge::DT_FLOAT8_E5M2) &&
+                (inputType != ge::DT_FLOAT8_E4M3FN),
+        OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName,
+            "inputType must be INT8 or HIFLOAT8 or DT_FLOAT8_E5M2 or FLOAT8_E4M3FN in per-tensor quant scenario, now is %s", 
+            GetPfaDataTypeStr(contextKeyParams.inputDataType).c_str()),
+        return false);
+    OP_CHECK_IF((deqScale1Shape == nullptr) || (quantScale1Shape == nullptr) || (deqScale2Shape == nullptr),
+        OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName,
+            "deqScale1, quantScale1 or deqScale2 is nullptr in per-tensor quant scenario."),
+            return false);
+    OP_CHECK_IF((deqScale1Shape != nullptr && deqScale1Shape->GetStorageShape().GetShapeSize() == 0) ||
+                (quantScale1Shape != nullptr && quantScale1Shape->GetStorageShape().GetShapeSize() == 0) ||
+                (deqScale2Shape != nullptr && deqScale2Shape->GetStorageShape().GetShapeSize() == 0),
+        OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName,
+                "deqScale1, quantScale1 or deqScale2 is empty tensor in per-tensor quant scenario."),
+            return false);
+    return true;           
+}                                       
+
+bool PromptFlashAttentionTilingV2::CheckPerblockQuantParams(const ContextParamsForPFATiling& contextKeyParams, 
+    const PFAShapeInfo& queryShapeInfo, const PFAShapeInfo& keyShapeInfo, const PFAShapeInfo& valueShapeInfo) const {
+    const ge::DataType queryType = contextKeyParams.dequantScaleQueryType;
+    const ge::DataType keyType = contextKeyParams.KeyAntiquantScaleType;
+    const ge::DataType valueType = contextKeyParams.valueAntiquantScaleType;
+    const gert::StorageShape* dequantScaleQueryShape = contextKeyParams.dequantScaleQueryShape;
+    const gert::StorageShape* keyAntiquantScaleShape = contextKeyParams.KeyAntiquantScaleShape;
+    const gert::StorageShape* valueAntiquantScaleshape = contextKeyParams.valueAntiquantScaleShape;
+    OP_CHECK_IF((contextKeyParams.inputDataType != ge::DT_HIFLOAT8) && (contextKeyParams.inputDataType != ge::DT_FLOAT8_E5M2) && 
+                (contextKeyParams.inputDataType != ge::DT_FLOAT8_E4M3FN),
+        OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName,
+                "inputType must be HIFLOAT8 or FLOAT8_E5M2 or FLOAT8_E4M3FN in per-block quant scenario, now is %s.", 
+                 GetPfaDataTypeStr(inputType).c_str()),
+            return false);
+    OP_CHECK_IF((queryType != ge::DT_FLOAT) || (keyType != ge::DT_FLOAT) || (valueType != ge::DT_FLOAT),
+        OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName,
+                "dequantscale type must be DT_FLOAT in per-block quant scenario, now is %s.", GetPfaDataTypeStr(queryType).c_str()),
+            return false);   
+    OP_CHECK_IF((dequantScaleQueryShape == nullptr) || (keyAntiquantScaleShape == nullptr) || (valueAntiquantScaleshape == nullptr),
+        OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName,
+                "dequantScaleQuery, keyAntiquantScale or valueAntiquantScale is nullptr in per-block quant scenario."),
+            return false); 
+    OP_CHECK_IF((dequantScaleQueryShape->GetStorageShape().GetDim(0) != queryShapeInfo.b) ||
+                (dequantScaleQueryShape->GetStorageShape().GetDim(1) != queryShapeInfo.n) ||
+                (dequantScaleQueryShape->GetStorageShape().GetDim(2) != CeilDivision(queryShapeInfo.s, 128U)) ||   // 2 is the dim of dequantscale along s1.
+                (dequantScaleQueryShape->GetStorageShape().GetDim(3) != 1),  // 3 is the dim of dequantscale along d.
+        OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName,
+                "dequantScaleQueryShape must be (b,n1,ceil(s1/128),1) in per-block quant scenario, now is  [%ld, %ld, %ld, %ld].",
+                dequantScaleQueryShape->GetStorageShape().GetDim(0), dequantScaleQueryShape->GetStorageShape().GetDim(1),
+                dequantScaleQueryShape->GetStorageShape().GetDim(2), dequantScaleQueryShape->GetStorageShape().GetDim(3)),
+            return false); 
+    OP_CHECK_IF((keyAntiquantScaleShape->GetStorageShape().GetDim(0) != keyShapeInfo.b) ||
+                (keyAntiquantScaleShape->GetStorageShape().GetDim(1) != keyShapeInfo.n) ||
+                (keyAntiquantScaleShape->GetStorageShape().GetDim(2) != CeilDivision(keyShapeInfo.s, 256U)) || //  2 is the dim of dequantscale along s2.
+                (keyAntiquantScaleShape->GetStorageShape().GetDim(3) != 1), // 3 is the dim of dequantscale along d.
+        OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName,
+                "keyAntiquantScaleShape must be (b,n2,ceil(s2/256),1) in per-block quant scenario, now is [%ld, %ld, %ld, %ld].",
+                keyAntiquantScaleShape->GetStorageShape().GetDim(0), keyAntiquantScaleShape->GetStorageShape().GetDim(1),
+                keyAntiquantScaleShape->GetStorageShape().GetDim(2), keyAntiquantScaleShape->GetStorageShape().GetDim(3)),
+            return false);
+    OP_CHECK_IF((valueAntiquantScaleshape->GetStorageShape().GetDim(0) != valueShapeInfo.b) ||
+                (valueAntiquantScaleshape->GetStorageShape().GetDim(1) != valueShapeInfo.n) ||
+                (valueAntiquantScaleshape->GetStorageShape().GetDim(2) != CeilDivision(valueShapeInfo.s, 256U)) || // 2 is the dim of dequantscale along s2.
+                (valueAntiquantScaleshape->GetStorageShape().GetDim(3) != 1), // 3 is the dim of dequantscale along d.
+        OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName,
+                "valueAntiquantScaleshape must be (b,n2,ceil(s2/256),1) when enablePertensorQuant is true, now is [%ld, %ld, %ld, %ld].",
+                valueAntiquantScaleshape->GetStorageShape().GetDim(0), valueAntiquantScaleshape->GetStorageShape().GetDim(1),
+                valueAntiquantScaleshape->GetStorageShape().GetDim(2), valueAntiquantScaleshape->GetStorageShape().GetDim(3)),
+            return false); 
+    return true; 
+}
+
 bool PromptFlashAttentionTilingV2::CheckPostQuantParams(const ContextParamsForPFATiling& contextKeyParams, 
     const PFAShapeInfo& queryShapeInfo, const PFAShapeInfo& valueShapeInfo) const {
     const gert::StorageShape* quantScale2Shape = contextKeyParams.scale2Shape;
@@ -1322,25 +1398,24 @@ bool PromptFlashAttentionTilingV2::CheckRope(ContextParamsForPFATiling& contextK
 }
 
 bool PromptFlashAttentionTilingV2::CheckQuant(ContextParamsForPFATiling& contextKeyParams,
-    PFAShapeInfo& queryShapeInfo, const PFAShapeInfo& valueShapeInfo) {
+    PFAShapeInfo& queryShapeInfo, PFAShapeInfo& keyShapeInfo, const PFAShapeInfo& valueShapeInfo) {
     const gert::StorageShape* deqScale1Shape = contextKeyParams.deqScale1Shape;
     const gert::StorageShape* quantScale1Shape = contextKeyParams.scale1Shape;
     const gert::StorageShape* deqScale2Shape = contextKeyParams.deqScale2Shape;
-
-    // int8 quant/dequant check
-    if (inputType == ge::DT_INT8 || inputType == ge::DT_HIFLOAT8 || inputType == ge::DT_FLOAT8_E5M2 || 
-        inputType == ge::DT_FLOAT8_E4M3FN) {
-        OP_CHECK_IF((deqScale1Shape == nullptr) || (quantScale1Shape == nullptr) || (deqScale2Shape == nullptr),
-            OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName,
-                "dequant scale or first quant scale is nullptr when input type is %s.", GetPfaDataTypeStr(inputType).c_str()),
-            return false);
-        OP_CHECK_IF((deqScale1Shape != nullptr && deqScale1Shape->GetStorageShape().GetShapeSize() == 0) ||
-            (quantScale1Shape != nullptr && quantScale1Shape->GetStorageShape().GetShapeSize() == 0) ||
-            (deqScale2Shape != nullptr && deqScale2Shape->GetStorageShape().GetShapeSize() == 0),
-            OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName,
-                "dequant scale or first quant scale is empty tensor when input type is %s.", GetPfaDataTypeStr(inputType).c_str()),
+    // per-tensor quant check
+    if (enablePertensorQuant) {
+        OP_CHECK_IF(!CheckPerTensorQuantParams(contextKeyParams),
+            OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName, "per-tensor quant params check failed!"),
             return false);
     }
+
+    // per-block quant check
+    if (enablePerblockQuant) {
+        OP_CHECK_IF(!CheckPerblockQuantParams(contextKeyParams, queryShapeInfo, keyShapeInfo, valueShapeInfo),
+            OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName, "per-block quant params check failed!"),
+            return false);
+    }
+
     OP_CHECK_IF(((contextKeyParams.inputDataType == ge::DT_INT8) && (contextKeyParams.outputDataType == ge::DT_FLOAT16) &&
         ((contextKeyParams.scale2Shape != nullptr) || (contextKeyParams.offset2Shape != nullptr))),
         OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName,
@@ -2084,6 +2159,35 @@ bool PromptFlashAttentionTilingV2::CheckMultiFeatureCrossover(ContextParamsForPF
     return true;
 }
 
+bool PromptFlashAttentionTilingV2::CheckPerblockCrossover(ContextParamsForPFATiling& contextKeyParams) {
+    OP_CHECK_IF(enableActSeqLen, OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName,
+            "ActSeqLen is not supported in per-block quant scenario!"),
+            return false);
+    OP_CHECK_IF(enableActSeqLenKV, OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName,
+            "ActSeqLenKV is not supported in per-block quant scenario!"),
+            return false);
+    OP_CHECK_IF((innerPrecise == 2) || (innerPrecise == 3),
+        OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName,
+            "innerPrecise must be 0 or 1 in per-block quant scenario, now is %ld", innerPrecise),
+            return false);
+    OP_CHECK_IF(enablePA, OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName,
+            "PA is not supported in per-block quant scenario!"),
+        return false);
+    OP_CHECK_IF(enableTensorList, OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName,
+            "tensorlist is not supported in per-block quant scenario!"),
+        return false);
+    OP_CHECK_IF(enableLeftPadding, OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName,
+            "leftpadding is not supported in per-block quant scenario!"),
+        return false);
+    OP_CHECK_IF(enableIFAMLA, OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName,
+            "IFAMLA is not supported in per-block quant scenario!"),
+        return false);
+    OP_CHECK_IF(enablePFARope, OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName,
+            "PFARope is not supported in per-block quant scenario!"),
+        return false);
+    return true;
+}
+
 void PromptFlashAttentionTilingV2::SetTilingDataAttribute(ContextParamsForPFATiling& contextKeyParams,
     PromptFlashAttentionTilingData& tilingData) {
     tilingData.promptAttentionBaseParams.set_preTokens(sparsePreTokens);
@@ -2135,7 +2239,7 @@ void PromptFlashAttentionTilingV2::GetEnableDN(ContextParamsForPFATiling& contex
     enableDN = ((ascendPlatformInfo.socVersion != platform_ascendc::SocVersion::ASCEND910_55) &&
         !enableMask && !enablePseShift && !enableAlibiPse && !enablePA && !enablePFAMLA && !enablePFARope && 
         (queryShapeInfo.d <= dLimitDN) && (valueShapeInfo.d <= dLimitDN) &&
-        (contextKeyParams.inputDataType == ge::DT_FLOAT16 || contextKeyParams.inputDataType == ge::DT_BF16) &&
+        (contextKeyParams.inputDataType == ge::DT_FLOAT16 || contextKeyParams.inputDataType == ge::DT_BF16 || enablePerblockQuant) &&
         (tilingData.promptAttentionSingleCoreParams.get_singleProcessSOuterSize() * vecCoreNum > sOuterLimitDN));
     for (uint32_t i = LOOP_BEGIN_NUM; i < queryShapeInfo.b; i++) {
         if ((actualSeqLengths[i] % 32 > 0) || (actualSeqLengthsKV[i] <= 128)) { // 32: 只针对对齐场景修改基本快大小; 128: 扩大sInner的KV_S限制
@@ -2143,8 +2247,15 @@ void PromptFlashAttentionTilingV2::GetEnableDN(ContextParamsForPFATiling& contex
             break;
         }
     }
-    if (enableDN && isQKVActualSeqLengthsRight && (queryShapeInfo.d == valueShapeInfo.d) && (queryShapeInfo.d == 64)) { // 64：扩大sInner的dsize限制
-        tilingData.promptAttentionSingleCoreParams.set_singleProcessSInnerSize(256U);
+
+    if (enableDN && isQKVActualSeqLengthsRight && (queryShapeInfo.d == valueShapeInfo.d) && (queryShapeInfo.d == 64)) {  
+        // 64：扩大sInner的dsize限制	
+        tilingData.promptAttentionSingleCoreParams.set_singleProcessSInnerSize(256U);	
+    }   
+
+    if (enableDN && (queryShapeInfo.d == valueShapeInfo.d) && (queryShapeInfo.d <= 128) && enablePerblockQuant) {
+        // 128： perblock全量化 扩大sInner切块大小 d<=128
+         tilingData.promptAttentionSingleCoreParams.set_singleProcessSInnerSize(256U);
     }
 }
 
@@ -2427,7 +2538,7 @@ bool PromptFlashAttentionTilingV2::AdjustCVTilingCVDiff(const ContextParamsForPF
         bool checkSparseMode = ((sparseMode == SPARSE_MODE_ALL_MASK) || (sparseMode == SPARSE_MODE_RIGHT_DOWN) || \
             (((sparseMode == SPARSE_MODE_NO_MASK) || (sparseMode == SPARSE_MODE_BAND)) && \
             (preTokens + nextTokens > static_cast<int32_t>(SINNER_FACTOR_DEFAULT))));
-        if (checkDtype && checkQueryAndValueS && checkSparseMode && !enablePFARope) {
+        if (checkDtype && checkQueryAndValueS && checkSparseMode && !enablePFARope && !enablePerblockQuant) {
             minFactor = SOUTER_FACTOR_SUB;
             rectangleFactor = SINNER_FACTOR_DOUBLE;
             softmaxSOuterFactor = SOUTER_FACTOR_SUB;
@@ -3016,7 +3127,7 @@ bool PromptFlashAttentionTilingV2::TilingGetTilingKeyAttentionAscendC(uint64_t& 
     }
 
     if (enableFlashDecode) {
-        tilingKey += static_cast<uint64_t>(1e10); // 1e8: the situation of FD
+        tilingKey += static_cast<uint64_t>(1e10); // 1e10: the situation of FD
     }
 
     return true;
@@ -3198,13 +3309,30 @@ ge::graphStatus PromptFlashAttentionTilingV2::SetAttributeInfo(ContextParamsForP
     // LeftPadding check
     enableLeftPadding = ((contextKeyParams.queryPaddingSize != nullptr) || (contextKeyParams.kvPaddingSize != nullptr));
 
-    if (contextKeyParams.inputDataType != ge::DT_FLOAT16 && contextKeyParams.inputDataType != ge::DT_BF16) {
-        faRunFlag_ = false;
-    }
-
     // postQuant check
     if (contextKeyParams.outputDataType != ge::DT_BF16 && contextKeyParams.outputDataType != ge::DT_FLOAT16) {
         enablePostQuant = true;
+    }
+
+    //per-tensor or per-block check
+    if(contextKeyParams.inputDataType == ge::DT_INT8) {
+        enablePertensorQuant = true;
+    }
+    
+    const int64_t *keyAntiquantMode = contextKeyParams.keyAntiquantMode;
+    const int64_t *queryQuantMode = contextKeyParams.queryQuantMode;
+    const int64_t *valueAntiquantMode = contextKeyParams.valueAntiquantMode;
+    if (contextKeyParams.inputDataType == ge::DT_HIFLOAT8 || contextKeyParams.inputDataType == ge::DT_FLOAT8_E5M2 || 
+        contextKeyParams.inputDataType == ge::DT_FLOAT8_E4M3FN) {
+        if(*keyAntiquantMode == 7 && *queryQuantMode ==7 && *valueAntiquantMode ==7) { // 7: FP8 perblock quant
+            enablePerblockQuant = true;
+        }else{
+            enablePertensorQuant = true;
+        }
+    }
+
+    if (enablePertensorQuant) {
+        faRunFlag_ = false;
     }
     return ge::GRAPH_SUCCESS;
 }
@@ -3313,7 +3441,7 @@ ge::graphStatus PromptFlashAttentionTilingV2::CheckSingleAttribute(ContextParams
         S2, queryShapeInfo.h, queryShapeInfo.d, tilingData.promptAttentionBaseParams.get_headNumRatio());
 
     // quant/dequant/antiquant
-    if (!CheckQuant(contextKeyParams, queryShapeInfo, valueShapeInfo)){
+    if (!CheckQuant(contextKeyParams, queryShapeInfo, keyShapeInfo, valueShapeInfo)){
         OP_LOGE(contextKeyParams.opName, "Check quant failed!");
         return ge::GRAPH_FAILED;
     }
@@ -3431,6 +3559,10 @@ ge::graphStatus PromptFlashAttentionTilingV2::CheckCrossoverAttribute(ContextPar
 
     if ((contextKeyParams.fromTilingSink == 0) && !CheckMultiFeatureCrossover(contextKeyParams, queryShapeInfo,
         actualSeqLengths, actualSeqLengthsKV, tilingData)) {
+        return ge::GRAPH_FAILED;
+    }
+
+    if (!CheckPerblockCrossover(contextKeyParams)) {
         return ge::GRAPH_FAILED;
     }
     return ge::GRAPH_SUCCESS;
