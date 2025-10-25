@@ -1987,7 +1987,13 @@ __aicore__ inline void FlashAttentionKvsameBN2GS1S2<CHILD_SPEC_TEMPLATE_ARGS>::R
             }
         }
         if (isRowInvalidNeedUpdate) {
-            RowInvalidUpdateVF<float, static_cast<uint32_t>(dVTemplateType)>(vec2ResUb, maxTensor,  runInfo.vec2S1RealSize, constInfo.dSizeV);
+            if constexpr (!POST_QUANT) {
+                RowInvalidUpdateVF<float>(vec2ResUb, maxTensor,  runInfo.vec2S1RealSize, constInfo.dSizeV, static_cast<uint32_t>(dVTemplateType));
+            } else {
+                uint32_t dStride = CeilDivision(static_cast<uint32_t>(static_cast<uint32_t>(dVTemplateType)), sizeof(float));
+                uint16_t dSize = CeilDivision(constInfo.dSizeV, sizeof(float)); // w8后量化后的处理长度
+                RowInvalidUpdateVF<float>(*((LocalTensor<float>*)&vec2ResUb), maxTensor, runInfo.vec2S1RealSize, dSize, dStride);
+            }
         }
     }
 }

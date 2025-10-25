@@ -471,9 +471,9 @@ __aicore__ inline void ComputeLseOutputVF(const LocalTensor<T>& dstTensor, const
         }
     }
 }
-template <typename T, uint32_t dSize = 0>
+template <typename T>
 __aicore__ inline void RowInvalidUpdateVF(const LocalTensor<T>& finalTensor, const LocalTensor<float>& maxTensor,
-    const uint16_t m, const uint16_t d)
+    const uint16_t m, const uint16_t d, const uint32_t dSize)
 {
     __ubuf__ T * finalUb = (__ubuf__ T*)finalTensor.GetPhyAddr();
     __ubuf__ float * maxUb = (__ubuf__ float*)maxTensor.GetPhyAddr();

@@ -1549,7 +1549,7 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
             }
         }
         if (isRowInvalidNeedUpdate) {
-            RowInvalidUpdateVF<float, static_cast<uint32_t>(dVTemplateType)>(vec2ResUb, maxTensor, runInfo.vec2S1RealSize, constInfo.dSizeV);
+            RowInvalidUpdateVF<float>(vec2ResUb, maxTensor, runInfo.vec2S1RealSize, constInfo.dSizeV, static_cast<uint32_t>(dVTemplateType));
         }
     }
 }

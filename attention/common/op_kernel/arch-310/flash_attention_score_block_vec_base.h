@@ -159,7 +159,7 @@ private:
     __aicore__ inline void GetExtremeValue(T &negativeScalar, T &positiveScalar);
     template <typename VEC2_RES_T>
     __aicore__ inline void RowInvalid(LocalTensor<VEC2_RES_T> &vec2ResUb, int64_t vec2S1Idx, RunInfo<isInfer> &runInfo,
-        ConstInfo<isInfer, hasRope> &constInfo);
+        ConstInfo<isInfer, hasRope> &constInfo, int64_t dSizeAligned64);
 };
 
 TEMPLATES_DEF_BASE_NO_DEFAULT
@@ -861,7 +861,7 @@ __aicore__ inline void FABlockVecBase<TEMPLATE_BASE_ARGS>::ProcessVec2(
 TEMPLATES_DEF_BASE_NO_DEFAULT
 template <typename VEC2_RES_T>
 __aicore__ inline void FABlockVecBase<TEMPLATE_BASE_ARGS>::RowInvalid(LocalTensor<VEC2_RES_T> &vec2ResUb,
-    int64_t vec2S1Idx, RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo)
+    int64_t vec2S1Idx, RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo, int64_t dSizeAligned64)
 {
     if constexpr (isInfer && hasAtten) {
         if (!constInfo.isRowInvalid || \
@@ -883,7 +883,13 @@ __aicore__ inline void FABlockVecBase<TEMPLATE_BASE_ARGS>::RowInvalid(LocalTenso
             }
         }
         if (isRowInvalidNeedUpdate) {
-            RowInvalidUpdateVF<float, static_cast<uint32_t>(dVTemplateType)>(vec2ResUb, maxTensor, runInfo.vec2S1RealSize, constInfo.dSizeV);
+            if constexpr (!POST_QUANT) {
+                RowInvalidUpdateVF<float>(vec2ResUb, maxTensor,  runInfo.vec2S1RealSize, constInfo.dSizeV, static_cast<uint32_t>(dSizeAligned64));
+            } else {
+                uint32_t dStride = CeilDivision(static_cast<uint32_t>(static_cast<uint32_t>(dSizeAligned64)), sizeof(float));
+                uint16_t dSize = CeilDivision(constInfo.dSizeV, sizeof(float)); // w8后量化后的处理长度
+                RowInvalidUpdateVF<float>(*((LocalTensor<float>*)&vec2ResUb), maxTensor, runInfo.vec2S1RealSize, dSize, dStride);
+            }
         }
     }
 }
@@ -908,11 +914,12 @@ __aicore__ inline void FABlockVecBase<TEMPLATE_BASE_ARGS>::Bmm2DataCopyOut(
                     dSizeAligned64, this->negativeFloatScalar, 0.0);
             }
         }
-        RowInvalid(vec2ResUb, vec2S1Idx, runInfo, constInfo);
         if constexpr (!POST_QUANT) {
+            RowInvalid(vec2ResUb, vec2S1Idx, runInfo, constInfo, dSizeAligned64);
             Cast(attenOut, vec2ResUb, RoundMode::CAST_ROUND, vec2CalcSize);
         } else {
             GetDerived()->PostQuant(constInfo, runInfo, attenOut, vec2ResUb, vec2S1Idx, dSizeAligned64);
+            RowInvalid(vec2ResUb, vec2S1Idx, runInfo, constInfo, dSizeAligned64);
         }
         SetFlag<HardEvent::V_MTE3>(vToMte3Id[0]);
         WaitFlag<HardEvent::V_MTE3>(vToMte3Id[0]);
