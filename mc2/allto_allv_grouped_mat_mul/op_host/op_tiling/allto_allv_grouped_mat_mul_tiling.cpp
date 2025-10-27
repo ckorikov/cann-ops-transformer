@@ -413,8 +413,7 @@ ge::graphStatus AlltoAllvGmmTiling::CheckSendRecvDataVolumn(const gert::TilingCo
 
     auto sendCountsPtr = attrs->GetAttrPointer<gert::ContinuousVector>(ATTR_SEND_COUNTS_INDEX);
     auto recvCountsPtr = attrs->GetAttrPointer<gert::ContinuousVector>(ATTR_RECV_COUNTS_INDEX);
-    OP_TILING_CHECK(
-        (sendCountsPtr == nullptr) || (recvCountsPtr == nullptr),
+    OP_TILING_CHECK((sendCountsPtr == nullptr) || (recvCountsPtr == nullptr),
         OP_LOGE(A_INNER_DEBUG, "sendCountsPtr or recvCountsPtr is null."), return ge::GRAPH_FAILED);
 
     const uint64_t* sendCounts = static_cast<const uint64_t*>(sendCountsPtr->GetData());
@@ -422,29 +421,37 @@ ge::graphStatus AlltoAllvGmmTiling::CheckSendRecvDataVolumn(const gert::TilingCo
     uint64_t recvSum = 0U;
     uint64_t sendSum = 0U;
     uint64_t H1 = tilingData->commonTilingInfo.H1;
-    for (uint64_t i = 1U; i <= epWorldSize; i++) {
-        recvSum = 0U;
-        sendSum = 0U;
-        for (uint64_t j = (i - 1U) * E_ep; j <= i * E_ep - 1U; j++) {
-            recvSum += recvCounts[j] * H1 * 2U;
-            sendSum += sendCounts[j] * H1 * 2U; // /sizeof(gmmX) = 2U
+    uint64_t bsk = context->GetInputShape(GMM_X_INDEX)->GetStorageShape().GetDim(0);
+    uint64_t a = context->GetOutputShape(OUTPUT_GMM_Y_INDEX)->GetStorageShape().GetDim(0);
+    auto platformInfo = context->GetPlatformInfo();
+    platform_ascendc::PlatformAscendC ascendcPlatform(platformInfo);
+    if (ascendcPlatform.GetSocVersion() == platform_ascendc::SocVersion::ASCEND910_93) {
+        for (uint64_t i = 1U; i <= epWorldSize; i++) {
+            recvSum = 0U;
+            sendSum = 0U;
+            for (uint64_t j = (i - 1U) * E_ep; j <= i * E_ep - 1U; j++) {
+                OP_TILING_CHECK((sendCounts[j] < NUM_ZERO) || (sendCounts[j] > bsk),
+                    OP_LOGE(A_INNER_DEBUG, "sendCounts[%lu] should be in [0, bsK[%lu]], but get %lu",j, bsk, sendCounts[j]),
+                    return ge::GRAPH_FAILED);
+                OP_TILING_CHECK((recvCounts[j] < NUM_ZERO) || (recvCounts[j] > a),
+                    OP_LOGE(A_INNER_DEBUG, "recvCounts[%lu] should be in [0, a[%lu]], but get %lu",j, a, recvCounts[j]),
+                    return ge::GRAPH_FAILED);
+                recvSum += recvCounts[j] * H1 * 2U;
+                sendSum += sendCounts[j] * H1 * 2U; // /sizeof(gmmX) = 2U
+            }
+            OP_TILING_CHECK(((recvSum > recvSendMax) || (recvSum < recvSendMin)),
+                OP_LOGE(A_INNER_DEBUG,
+                    "rank %lu:sum(recvCounts[%lu, %lu]) * H1 * sizeof dtype(gmmx) should be [2MB, 100MB], "
+                    "but got %lu Byte!",
+                    i - 1U, (i - 1U) * E_ep, i * E_ep - 1U, recvSum),
+                return ge::GRAPH_FAILED);
+            OP_TILING_CHECK(((sendSum > recvSendMax) || (sendSum < recvSendMin)),
+                OP_LOGE(A_INNER_DEBUG,
+                    "rank %lu:sum(sendCounts[%lu, %lu]) * H1 * sizeof dtype(gmmx) should be [2MB, 100MB], "
+                    "but got %lu Byte!",
+                    i - 1U, (i - 1U) * E_ep, i * E_ep - 1U, sendSum),
+                return ge::GRAPH_FAILED);
         }
-        OP_TILING_CHECK(
-            ((recvSum > recvSendMax) || (recvSum < recvSendMin)),
-            OP_LOGE(
-                A_INNER_DEBUG,
-                "rank %lu:sum(recvCounts[%lu, %lu]) * H1 * sizeof dtype(gmmx) should be [2MB, 100MB], "
-                "but got %lu Byte!",
-                i - 1U, (i - 1U) * E_ep, i * E_ep - 1U, recvSum),
-            return ge::GRAPH_FAILED);
-        OP_TILING_CHECK(
-            ((sendSum > recvSendMax) || (sendSum < recvSendMin)),
-            OP_LOGE(
-                A_INNER_DEBUG,
-                "rank %lu:sum(sendCounts[%lu, %lu]) * H1 * sizeof dtype(gmmx) should be [2MB, 100MB], "
-                "but got %lu Byte!",
-                i - 1U, (i - 1U) * E_ep, i * E_ep - 1U, sendSum),
-            return ge::GRAPH_FAILED);
     }
     return ge::GRAPH_SUCCESS;
 }
