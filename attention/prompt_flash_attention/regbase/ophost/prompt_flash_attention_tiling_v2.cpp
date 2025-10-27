@@ -572,7 +572,7 @@ bool PromptFlashAttentionTilingV2::CheckInputDimAndHeadNum(ContextParamsForPFATi
     const size_t queryDim = queryShape->GetStorageShape().GetDimNum();
     const size_t keyDim = keyShape->GetStorageShape().GetDimNum();
     const size_t valueDim = valueShape->GetStorageShape().GetDimNum();
-    const size_t nIdx = (inputLayout == InputLayout::BNSD) ? 1U : 2U; // BNSD: 1; BSND:2
+    const size_t nIdx = (inputLayout == InputLayout::BNSD || inputLayout == InputLayout::TND) ? 1U : 2U; // BNSD/TND: 1; BSND:2
 
     if (((inputLayout == InputLayout::BNSD) || (inputLayout == InputLayout::BSND)) && (!enablePA)) {
         if ((queryDim == 4) && (keyDim == 4) && (valueDim == 4)) { // dim num: 4
@@ -581,6 +581,16 @@ bool PromptFlashAttentionTilingV2::CheckInputDimAndHeadNum(ContextParamsForPFATi
             valueShapeHeadNum = valueShape->GetStorageShape().GetDim(nIdx);
         } else {
             OP_LOGE(contextKeyParams.opName, "input dim of q(%zu), k(%zu), v(%zu) must be 4 for BNSD or BSND format!",
+                queryDim, keyDim, valueDim);
+            return false;
+        }
+    } else if ((inputLayout == InputLayout::TND) && (!enablePA)) {
+        if ((queryDim == 3) && (keyDim == 3) && (valueDim == 3)) { // dim num: 3
+            queryShapeHeadNum = queryShape->GetStorageShape().GetDim(nIdx);
+            keyShapeHeadNum = keyShape->GetStorageShape().GetDim(nIdx);
+            valueShapeHeadNum = valueShape->GetStorageShape().GetDim(nIdx);
+        } else {
+            OP_LOGE(contextKeyParams.opName, "input dim of q(%zu), k(%zu), v(%zu) must be 3 for TND format!",
                 queryDim, keyDim, valueDim);
             return false;
         }
@@ -1338,7 +1348,11 @@ bool PromptFlashAttentionTilingV2::CheckQueryAndKey(ContextParamsForPFATiling& c
         (!enableTensorList) && (!enablePA), OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName,
         "query batch must be equal to key/value batch, query batch = %u , key/value batch = %u.",
         queryShapeInfo.b, keyShapeInfo.b), return false);
-    
+
+    // check d size
+    OP_CHECK_IF(queryShapeInfo.d != keyShapeInfo.d, OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName,
+        "query d size must be equal to key/value d size, query d = %u , key/value d = %u.",
+        queryShapeInfo.d, keyShapeInfo.d), return false);
     return true;
 }
 
