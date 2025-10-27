@@ -363,16 +363,25 @@ ge::graphStatus IFATilingV2::ProcessBaseTensors() {
     sOfQuery_ = context_->query.shape->GetStorageShape().GetDim(NUM1);
     headDim_ = context_->query.shape->GetStorageShape().GetDim(NUM2) / numHeads_;
     nOfQuery = numHeads_;
+    headDimK_ = context_->key.shape->GetStorageShape().GetDim(NUM2) / numKvHeads_;
+    headDimV_ = context_->value.shape->GetStorageShape().GetDim(NUM2) / numKvHeads_;
+    headDimOut_ = context_->attenOut.shape->GetStorageShape().GetDim(NUM2) / numHeads_;
   } else if (layout == "BSND") {
     inputLayout_ = IfaLayout::BSH_BSND;
     sOfQuery_ = context_->query.shape->GetStorageShape().GetDim(NUM1);
     nOfQuery = context_->query.shape->GetStorageShape().GetDim(NUM2);
     headDim_ = context_->query.shape->GetStorageShape().GetDim(NUM3);
+    headDimK_ = context_->key.shape->GetStorageShape().GetDim(NUM3);
+    headDimV_ = context_->value.shape->GetStorageShape().GetDim(NUM3);
+    headDimOut_ = context_->attenOut.shape->GetStorageShape().GetDim(NUM3);
   } else if (layout == "BNSD" || layout == "BNSD_BSND") {
     inputLayout_ = IfaLayout::BNSD;
     nOfQuery = context_->query.shape->GetStorageShape().GetDim(NUM1);
     sOfQuery_ = context_->query.shape->GetStorageShape().GetDim(NUM2); // 2 : Q_S
     headDim_ = context_->query.shape->GetStorageShape().GetDim(NUM3);
+    headDimK_ = context_->key.shape->GetStorageShape().GetDim(NUM3);
+    headDimV_ = context_->value.shape->GetStorageShape().GetDim(NUM3);
+    headDimOut_ = context_->attenOut.shape->GetStorageShape().GetDim(NUM3);
   } else if (layout == "TND") {
     inputLayout_ = IfaLayout::TND;
     if (CheckActualSeqLens() != ge::GRAPH_SUCCESS) {
@@ -381,6 +390,9 @@ ge::graphStatus IFATilingV2::ProcessBaseTensors() {
     nOfQuery = context_->query.shape->GetStorageShape().GetDim(NUM1);
     sOfQuery_ = GetMaxSeqLength(context_->actualSeqLengthsQ.tensor);
     headDim_ = context_->query.shape->GetStorageShape().GetDim(NUM2);
+    headDimK_ = context_->key.shape->GetStorageShape().GetDim(NUM2);
+    headDimV_ = context_->value.shape->GetStorageShape().GetDim(NUM2);
+    headDimOut_ = context_->attenOut.shape->GetStorageShape().GetDim(NUM2);
     batchSize_ = actualLenQDims_;
     if (!pageAttentionFlag_) {
       batchContinuousFlag_ = true;
@@ -389,7 +401,16 @@ ge::graphStatus IFATilingV2::ProcessBaseTensors() {
     OP_LOGE(context_->opName, "Only support inputLayout(BSH, BNSD, BSND, BNSD_BSND, TND), actually is %s.", layout.c_str());
     return ge::GRAPH_FAILED;
   }
-
+  if (static_cast<uint64_t>(headDim_) != headDimOut_) {
+    OP_LOGE(context_->opName,
+      "Dim of Out[%lu] should be equal to Dim of Query[%u]", headDimOut_, headDim_);
+    return ge::GRAPH_FAILED;
+  }
+  if ((!pageAttentionFlag_) && (static_cast<uint64_t>(headDimK_) != headDimOut_ || static_cast<uint64_t>(headDimV_) != headDimOut_)) {
+    OP_LOGE(context_->opName,
+      "When not in pageAttention scenario, Dim of Out[%lu] should be equal to Dim of Key[%u] and Dim of Value[%u]", headDimOut_, headDimK_, headDimV_);
+    return ge::GRAPH_FAILED;
+  }
   if (((inputKvType_ == ge::DT_INT4) || (inputKvType_ == ge::DT_FLOAT4_E2M1) || (inputKvType_ == ge::DT_FLOAT4_E1M2)) &&
       headDim_ % KVINT4_BYTE_BLOCK != 0) {
       OP_LOGE(context_->opName,
@@ -550,6 +571,7 @@ ge::graphStatus IFATilingV2::CheckKVShape() const {
   for (int64_t size = 0; size < batchOfQuery; ++size) {
     auto keyTensorInList = context_->kCache[size];
     auto valueTensorInList = context_->vCache[size];
+
     OP_CHECK_IF((keyTensorInList == nullptr) || (valueTensorInList == nullptr),
       OP_LOGE(context_->opName, "IFA check input param failed, key/value tensor list length should be greater than or equal to query batch."),
       return ge::GRAPH_FAILED);
@@ -573,7 +595,6 @@ ge::graphStatus IFATilingV2::CheckKVShape() const {
     OP_CHECK_IF(keyTensorInList->GetStorageShape().GetDim(NUM0) != NUM1,
       OP_LOGE(context_->opName, "IFA check input param failed, the batch of tensor in tensorList should be 1, now batch is:%ld, list index:%ld.",
       keyTensorInList->GetStorageShape().GetDim(NUM0), size), return ge::GRAPH_FAILED);
-
     if (CheckKVHeadNum(keyTensorInList) != ge::GRAPH_SUCCESS ||
         CheckKVHeadNum(valueTensorInList) != ge::GRAPH_SUCCESS) {
         return ge::GRAPH_FAILED;

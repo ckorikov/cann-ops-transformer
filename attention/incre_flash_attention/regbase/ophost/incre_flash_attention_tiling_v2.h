@@ -233,6 +233,9 @@ class IFATilingV2 {
   uint32_t sOfQuery_ = 0;
   uint32_t seqSize_ = 0;
   uint32_t batchSize_ = 0;
+  uint64_t headDimOut_ = 0;
+  uint32_t headDimK_ = 0;
+  uint32_t headDimV_ = 0;
   uint32_t antiquantParaSeqSize_ = 0;
   IfaLayout inputLayout_ = IfaLayout::BSH_BSND;
   uint32_t sMax_ = 0;
