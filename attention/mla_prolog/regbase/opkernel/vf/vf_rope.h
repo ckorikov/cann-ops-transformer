@@ -1,4 +1,4 @@
-/**
+ /**
  * This program is free software, you can redistribute it and/or modify.
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
  * This file is a part of the CANN Open Software.
@@ -18,8 +18,7 @@
 #include "kernel_tensor.h"
 
 namespace MlaProlog {
-constexpr uint64_t FLOAT_REP_SIZE = 64;
-constexpr uint32_t HALF_REG = 32;
+constexpr uint64_t FLOAT_VF_SIZE = 64;
 
 template <typename T>
 __aicore__ inline void Rope_VF(const LocalTensor<T>& sinTensor, const LocalTensor<T>& cosTensor, const LocalTensor<T>& xTensor,
@@ -47,9 +46,9 @@ __aicore__ inline void Rope_VF(const LocalTensor<T>& sinTensor, const LocalTenso
         MicroAPI::RegTensor<T> vregSinDouble;
         MicroAPI::RegTensor<T> vregCos;
         MicroAPI::RegTensor<T> vregCosDouble;
-        
-        MicroAPI::MaskReg preg_all = MicroAPI::CreateMask<T, MicroAPI::MaskPattern::All>();
-        MicroAPI::MaskReg maskLower64 = MicroAPI::UpdateMask<T>(HALF_REG);
+        MicroAPI::MaskReg preg_all = MicroAPI::CreateMask<T, MicroAPI::MaskPattern::ALL>();
+        uint32_t halfReg = 32;
+        MicroAPI::MaskReg maskLower64 = MicroAPI::UpdateMask<T>(halfReg);
         MicroAPI::MaskReg maskHigher64;
         MicroAPI::MaskXor(maskHigher64, maskLower64, preg_all, preg_all);
         // 奇数在前，偶数在后
@@ -65,19 +64,19 @@ __aicore__ inline void Rope_VF(const LocalTensor<T>& sinTensor, const LocalTenso
         static constexpr MicroAPI::CastTrait castTrait0 ={MicroAPI::RegLayout::ONE,
                     MicroAPI::SatMode::NO_SAT, MicroAPI::MaskMergeMode::ZEROING, RoundMode::CAST_RINT};
         
-        for(uint16_t i = 0; i < row; i++) {
-            MicroAPI::DataCopyGather(vregRopeFp32_1, ropeUb + i * FLOAT_REP_SIZE, vregIndex_1, preg_all);
-            MicroAPI::DataCopyGather(vregRopeFp32_2, ropeUb + i * FLOAT_REP_SIZE, vregIndex_2, preg_all);
+        for (uint16_t i = 0; i < row; i++) {
+            MicroAPI::DataCopyGather(vregRopeFp32_1, ropeUb + i * FLOAT_VF_SIZE, vregIndex_1, preg_all);
+            MicroAPI::DataCopyGather(vregRopeFp32_2, ropeUb + i * FLOAT_VF_SIZE, vregIndex_2, preg_all);
             MicroAPI::Mul(vregRes_2, vregCosDouble, vregRopeFp32_2, preg_all);
 
-            MicroAPI::Muls(vregSinMulLow, vregRopeFp32_1, -1, maskLower64);
+            MicroAPI::Muls(vregSinMulLow, vregRopeFp32_1, 1, maskLower64);
             MicroAPI::Muls(vregSinMulHigh, vregRopeFp32_1, 1, maskHigher64);
             MicroAPI::Add(vregRes_1, vregSinMulHigh, vregSinMulLow, preg_all);
 
             MicroAPI::Mul(vregRes_1, vregSinDouble, vregRes_1, preg_all);
 
             MicroAPI::Add(vregRes_2, vregRes_1, vregRes_2, preg_all);
-            MicroAPI::DataCopy<T, MicroAPI::StoreDist::DIST_NORM_B32>(resUb + i * FLOAT_REP_SIZE, vregRes_2, preg_all);
+            MicroAPI::DataCopy<T, MicroAPI::StoreDist::DIST_NORM_B32>(resUb + i * FLOAT_VF_SIZE, vregRes_2, preg_all);
         }
     }
 }

@@ -43,7 +43,7 @@ __aicore__ inline void RmsNorm_VF(const LocalTensor<OutType> &outputLocal, const
         __ubuf__ OutType * outputBuf = (__ubuf__ OutType *)outputLocal.GetPhyAddr();
 
         MicroAPI::RegTensor<C> vregSum;
-        MitroAPI::RegTensor<C> vregSumReduce;
+        MicroAPI::RegTensor<C> vregSumReduce;
         MicroAPI::RegTensor<C> vregDiv;
         MicroAPI::RegTensor<C> vregSquareRoot;
 
@@ -58,7 +58,7 @@ __aicore__ inline void RmsNorm_VF(const LocalTensor<OutType> &outputLocal, const
         for(uint16_t i = 0; i < uint16_t(repeatTimes); ++i){
             MicroAPI::RegTensor<C> vregXCast;
             MicroAPI::RegTensor<C> vregXSquare;
-            uint16_t loopOffset = i * FLOAT_REP_SIZE;
+            uint64_t loopOffset = i * FLOAT_REP_SIZE;
 
             MicroAPI::DataCopy<C, MicroAPI::LoadDist::DIST_NORM>(vregXCast, inputBuf + loopOffset);
             MicroAPI::Mul<C, MicroAPI::MaskMergeMode::ZEROING>(vregXSquare, vregXCast, vregXCast, pregAll);
@@ -73,7 +73,7 @@ __aicore__ inline void RmsNorm_VF(const LocalTensor<OutType> &outputLocal, const
 
         for(uint16_t i = 0; i < uint16_t(repeatTimes); ++i){
             MicroAPI::RegTensor<C> vregXCast;
-            MicroAPI::RegTensor<C> vregGamma;
+            MicroAPI::RegTensor<GammaType> vregGamma;
             MicroAPI::RegTensor<C> vregGammaCast;
             uint16_t loopOffset = i * FLOAT_REP_SIZE;
 
@@ -84,7 +84,7 @@ __aicore__ inline void RmsNorm_VF(const LocalTensor<OutType> &outputLocal, const
             MicroAPI::Div<C, MicroAPI::MaskMergeMode::ZEROING>(vregXCast, vregXCast, vregDiv, pregAll);
             MicroAPI::Mul<C, MicroAPI::MaskMergeMode::ZEROING>(vregXCast, vregXCast, vregGammaCast, pregAll);
 
-            MicroAPI::DataCopy<OutType, MicroAPI::StoreDist::DIST_UNPACK_B32>(outputBuf + loopOffset, vregXCast, pregAll);
+            MicroAPI::DataCopy<OutType, MicroAPI::StoreDist::DIST_NORM>(outputBuf + loopOffset, vregXCast, pregAll);
         }
     }
 }

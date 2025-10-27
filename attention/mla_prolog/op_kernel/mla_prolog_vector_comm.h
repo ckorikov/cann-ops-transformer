@@ -421,7 +421,6 @@ __aicore__ inline void RotaryPosEmbVF(const LocalTensor<C> &outputLocal, const L
     offsetByBytes += col * sizeof(uint32_t); // 偏移col
     LocalTensor<uint32_t> gatherTensor2 = shareTmpUb.ReinterpretCast<uint32_t>()[offsetByBytes / sizeof(uint32_t)];
     offsetByBytes += col * sizeof(uint32_t); // 偏移col
-    LocalTensor<C> kFp32OutputLocal = shareTmpUb.ReinterpretCast<C>()[offsetByBytes / sizeof(C)];
 
     for(int i = 0; i < halfReg; ++i) {
         gatherTensor1.SetValue(i, i * 2 + 1); // 奇数在前面32
@@ -429,8 +428,7 @@ __aicore__ inline void RotaryPosEmbVF(const LocalTensor<C> &outputLocal, const L
         gatherTensor2.SetValue(i, i * 2); // 偶数在前面32
         gatherTensor2.SetValue(i + halfReg, i * 2 + 1); // 奇数在后面32
     }
-    Rope_VF<C>(sinLocal, cosLocal, inputLocal, gatherTensor1, gatherTensor2, kFp32OutputLocal, static_cast<uint16_t>(row));
-    Cast(outputLocal, kFp32OutputLocal, RoundMode::CAST_RINT, cnt);
+    Rope_VF<C>(sinLocal, cosLocal, inputLocal, gatherTensor1, gatherTensor2, outputLocal, static_cast<uint16_t>(row));
 }
 #endif
 
@@ -449,9 +447,6 @@ template <typename C>
 __aicore__ inline void RotaryPosEmb(const LocalTensor<C> &outputLocal, const LocalTensor<C> &inputLocal, const LocalTensor<C> &cosLocal,
                                     const LocalTensor<C> &sinLocal, const LocalTensor<uint8_t> &shareTmpUb, uint64_t row, uint64_t col,
                                     uint8_t sinCosRepStride) {
-#if __CCE_AICORE__ == 310
-    RotaryPosEmbVF(outputLocal, inputLocal, cosLocal, sinLocal, shareTmpUb, row, col);
-#else
     uint64_t cnt = row * col;
     uint64_t rsvdCnt = 0;
     LocalTensor<C> reArrLocal = shareTmpUb.ReinterpretCast<C>();
@@ -489,7 +484,6 @@ __aicore__ inline void RotaryPosEmb(const LocalTensor<C> &outputLocal, const Loc
                  col >> 1, row, mulParams);
     AscendC::PipeBarrier<PIPE_V>();
     Add(outputLocal, outputLocal, outputLocalSinTmp, cnt);
-#endif
 }
 
 }
