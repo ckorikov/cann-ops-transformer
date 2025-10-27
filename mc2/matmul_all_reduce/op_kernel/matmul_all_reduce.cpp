@@ -318,13 +318,13 @@ extern "C" __global__ __aicore__ void matmul_all_reduce(
 #undef DTYPE_BIAS
 #define DTYPE_BIAS int32_t
     if (TILING_KEY_IS(1000000000000000001)) {
-        INVOKE_MC2_QUANT_910_OP_IMPL(AscendC::MatMulASWKernel, Mc2CoreType::ON_CUBE_AND_VECTOR, false, true);
+        INVOKE_MC2_QUANT_910_OP_IMPL(AscendC::MatMulASWKernel, Mc2CoreType::ON_CUBE_AND_VECTOR, uint64_t, false, true);
     } else if (TILING_KEY_IS(1000000000000000000)) {
-        INVOKE_MC2_QUANT_910_OP_IMPL(AscendC::MatMulASWKernel, Mc2CoreType::ON_CUBE_AND_VECTOR, false, false);
+        INVOKE_MC2_QUANT_910_OP_IMPL(AscendC::MatMulASWKernel, Mc2CoreType::ON_CUBE_AND_VECTOR, uint64_t, false, false);
     } else if (TILING_KEY_IS(1000000000000000011)) {
-        INVOKE_MC2_QUANT_COMM_INT8_910_OP_IMPL(AscendC::MatMulASWKernel, Mc2CoreType::ON_CUBE_AND_VECTOR, false, true);
+        INVOKE_MC2_QUANT_COMM_INT8_910_OP_IMPL(AscendC::MatMulASWKernel, Mc2CoreType::ON_CUBE_AND_VECTOR, uint64_t, false, true);
     } else if (TILING_KEY_IS(1000000000000000010)) {
-        INVOKE_MC2_QUANT_COMM_INT8_910_OP_IMPL(AscendC::MatMulASWKernel, Mc2CoreType::ON_CUBE_AND_VECTOR, false, false);
+        INVOKE_MC2_QUANT_COMM_INT8_910_OP_IMPL(AscendC::MatMulASWKernel, Mc2CoreType::ON_CUBE_AND_VECTOR, uint64_t, false, false);
     }
 
     if (TILING_KEY_IS(1000000000000002000)) {
@@ -344,13 +344,13 @@ extern "C" __global__ __aicore__ void matmul_all_reduce(
 #undef DTYPE_BIAS
 #define DTYPE_BIAS int32_t
     if (TILING_KEY_IS(1000000000000000001)) {
-        INVOKE_MC2_QUANT_910_OP_IMPL(AscendC::MatMulASWKernel, Mc2CoreType::ON_CUBE_AND_VECTOR, false, true);
+        INVOKE_MC2_QUANT_910_OP_IMPL(AscendC::MatMulASWKernel, Mc2CoreType::ON_CUBE_AND_VECTOR, DTYPE_Y, false, true);
     } else if (TILING_KEY_IS(1000000000000000000)) {
-        INVOKE_MC2_QUANT_910_OP_IMPL(AscendC::MatMulASWKernel, Mc2CoreType::ON_CUBE_AND_VECTOR, false, false);
+        INVOKE_MC2_QUANT_910_OP_IMPL(AscendC::MatMulASWKernel, Mc2CoreType::ON_CUBE_AND_VECTOR, DTYPE_Y, false, false);
     } else if (TILING_KEY_IS(1000000000000000011)) {
-        INVOKE_MC2_QUANT_COMM_INT8_910_OP_IMPL(AscendC::MatMulASWKernel, Mc2CoreType::ON_CUBE_AND_VECTOR, false, true);
+        INVOKE_MC2_QUANT_COMM_INT8_910_OP_IMPL(AscendC::MatMulASWKernel, Mc2CoreType::ON_CUBE_AND_VECTOR, DTYPE_Y, false, true);
     } else if (TILING_KEY_IS(1000000000000000010)) {
-        INVOKE_MC2_QUANT_COMM_INT8_910_OP_IMPL(AscendC::MatMulASWKernel, Mc2CoreType::ON_CUBE_AND_VECTOR, false, false);
+        INVOKE_MC2_QUANT_COMM_INT8_910_OP_IMPL(AscendC::MatMulASWKernel, Mc2CoreType::ON_CUBE_AND_VECTOR, DTYPE_Y, false, false);
     }
 
     if (TILING_KEY_IS(1000000000000002000)) {
@@ -388,9 +388,9 @@ extern "C" __global__ __aicore__ void matmul_all_reduce(
     }
 #endif
     if (TILING_KEY_IS(1000000000000000001)) {
-        INVOKE_MC2_QUANT_910_OP_IMPL(AscendC::MatMulASWKernel, Mc2CoreType::ON_CUBE_AND_VECTOR, false, true);
+        INVOKE_MC2_QUANT_910_OP_IMPL(AscendC::MatMulASWKernel, Mc2CoreType::ON_CUBE_AND_VECTOR, uint64_t, false, true);
     } else if (TILING_KEY_IS(1000000000000000000)) {
-        INVOKE_MC2_QUANT_910_OP_IMPL(AscendC::MatMulASWKernel, Mc2CoreType::ON_CUBE_AND_VECTOR, false, false);
+        INVOKE_MC2_QUANT_910_OP_IMPL(AscendC::MatMulASWKernel, Mc2CoreType::ON_CUBE_AND_VECTOR, uint64_t, false, false);
     } else if (TILING_KEY_IS(1000000000000002000)) {
         INVOKE_BATCH_MATMUL_QUANT_PERTOKEN_IMPL(
             QuantBatchMatmulV3::QuantBmmPertokenRegbaseKernel, Mc2CoreType::ON_CUBE_AND_VECTOR, float, false, false);

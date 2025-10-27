@@ -86,13 +86,13 @@ private:
     bool isMXScene_ = false;
 };
 
-#define INVOKE_MC2_QUANT_910_OP_IMPL(templateClass, coreType, ...)                                           \
+#define INVOKE_MC2_QUANT_910_OP_IMPL(templateClass, coreType, scaleType, ...)                                           \
     do {                                                                                                     \
         GET_TILING_DATA_WITH_STRUCT(QuantMatmulAllReduceTilingDataA5, tilingData, tilingGM);                 \
         MC2GmAddrs addrs = {aGM, bGM, biasGM, addGM, cGM, workspaceGM, cGM};                                 \
         QuantGmAddrs quantAddrs = {nullptr, nullptr, nullptr, dequantGM, pertokenGM};                        \
         using OpType = templateClass<                                                                        \
-            DTYPE_X1, DTYPE_X2, uint64_t, DTYPE_BIAS, DTYPE_Y, X1_FORMAT, X2_FORMAT, Y_FORMAT, __VA_ARGS__>; \
+            DTYPE_X1, DTYPE_X2, scaleType, DTYPE_BIAS, DTYPE_Y, X1_FORMAT, X2_FORMAT, Y_FORMAT, __VA_ARGS__>; \
         MatmulAllReduceQuant<DTYPE_X1, DTYPE_X2, DTYPE_Y, OpType, coreType> op(                              \
             &addrs, &quantAddrs, nullptr, (MC2TilingHeader*)&tilingData, &tPipe, false);                     \
         op.Init();                                                                                           \
