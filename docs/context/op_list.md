@@ -38,8 +38,8 @@
 | mc2         | [allto_allv_grouped_mat_mul](../../mc2/allto_allv_grouped_mat_mul/README.md) | AI Core | 完成路由专家AlltoAllv、Permute、GroupedMatMul融合并实现与共享专家MatMul并行融合，**先通信后计算** |
 | mc2         | [batch_mat_mul_reduce_scatter_allto_all](../../mc2/batch_mat_mul_reduce_scatter_allto_all/README.md) | AI Core | 实现BatchMatMul计算与ReduceScatter、AllToAll集合通信并行 |
 | mc2         | [distribute_barrier](../../mc2/distribute_barrier/README.md) | AI Core | 完成通信域内的全卡同步，xRef仅用于构建Tensor依赖，接口内不对xRef做任何操作 |
-| mc2         | [elastic_receivable_info_collect](../../mc2/elastic_receivable_info_collect/README.md) | 收集一个通信域内的所有卡发送的数据并整理输出，以检测通信链路是否正常 |
-| mc2         | [elastic_receivable_test](../../mc2/elastic_receivable_test/README.md) | 对一个通信域内的所有卡发送数据并写状态位，以检测通信链路是否正常 |
+| mc2         | [elastic_receivable_info_collect](../../mc2/elastic_receivable_info_collect/README.md) | AI Core | 收集一个通信域内的所有卡发送的数据并整理输出，以检测通信链路是否正常 |
+| mc2         | [elastic_receivable_test](../../mc2/elastic_receivable_test/README.md) | AI Core | 对一个通信域内的所有卡发送数据并写状态位，以检测通信链路是否正常 |
 | mc2         | [grouped_mat_mul_all_reduce](../../mc2/grouped_mat_mul_all_reduce/README.md) | AI Core | 在grouped_matmul的基础上实现多卡并行AllReduce功能，实现分组矩阵乘计算，每组矩阵乘的维度大小可以不同 |
 | mc2         | [grouped_mat_mul_allto_allv](../../mc2/grouped_mat_mul_allto_allv/README.md) | AI Core | 完成路由专家GroupedMatMul、Unpermute、AlltoAllv融合并实现与共享专家MatMul并行融合，**先计算后通信** |
 | mc2         | [inplace_matmul_all_reduce_add_rms_norm](../../mc2/inplace_matmul_all_reduce_add_rms_norm/README.md) | AI Core | 完成mm + all_reduce + add + rms_norm计算 |
@@ -51,6 +51,7 @@
 | mc2         | [moe_distribute_combine_v2](../../mc2/moe_distribute_combine_v2/README.md) | AI Core | 当存在TP域通信时，先进行ReduceScatterV通信，再进行AlltoAllV通信，最后将接收的数据整合（乘权重再相加）；当不存在TP域通信时，进行AlltoAllV通信，最后将接收的数据整合（乘权重再相加） |
 | mc2         | [moe_distribute_dispatch](../../mc2/moe_distribute_dispatch/README.md) | AI Core | 对Token数据进行量化（可选），当存在TP域通信时，先进行EP（Expert Parallelism）域的AllToAllV通信，再进行TP（Tensor Parallelism）域的AllGatherV通信；当不存在TP域通信时，进行EP（Expert Parallelism）域的AllToAllV通信 |
 | mc2         | [moe_distribute_dispatch_v2](../../mc2/moe_distribute_dispatch_v2/README.md) | AI Core | 对Token数据进行量化（可选），当存在TP域通信时，先进行EP（Expert Parallelism）域的AllToAllV通信，再进行TP（Tensor Parallelism）域的AllGatherV通信；当不存在TP域通信时，进行EP（Expert Parallelism）域的AllToAllV通信 |
+| mc2         | [moe_distribute_buffer_reset](../../mc2/moe_distribute_buffer_reset/README.md) | AI Core | 故障检测流程中，对EP通信域做数据区与状态区的清理 |
 | mc2         | [moe_update_expert](../../mc2/moe_update_expert/README.md) | AI Core | 完成每个token的topK个专家逻辑专家号到物理卡号的映射 |
 | moe         | [moe_compute_expert_tokens](../../moe/moe_compute_expert_tokens/README.md) | AI Core | MoE计算中，通过二分查找的方式查找每个专家处理的最后一行的位置 |
 | moe         | [moe_finalize_routing](../../moe/moe_finalize_routing/README.md) | AI Core | MoE计算中，最后处理合并MoE FFN的输出结果 |

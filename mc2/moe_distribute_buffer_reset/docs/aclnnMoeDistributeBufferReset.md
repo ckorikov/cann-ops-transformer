@@ -1,4 +1,4 @@
-# aclnnElasticReceivableTest
+# aclnnMoeDistributeBufferReset
 
 ## 产品支持情况
 
@@ -14,31 +14,31 @@
 
 ## 功能说明
 
-算子功能：在快速恢复检测流程中，对一个通信域内的所有卡发送数据并写状态位，以供aclnnElasticReceivableInfoCollect检测通信链路是否正常。该接口必须和aclnnElasticReceivableInfoCollect及aclnnMoeDistributeBufferReset配合使用。
+算子功能：在故障检测流程中，对EP通信域做数据区与状态区的清理。若当前机器为未被隔离机器，则对其进行通信域的重置操作，对有效的die进行数据区和状态区的清0，确保后续使用时通信域不会存在已被隔离机器的数据或状态信息。该接口必须和aclnnElasticReceivableTest及aclnnElasticReceivableInfoCollect配合使用。
 
 ## 函数原型
 
-每个算子分为[两段式接口](../../../docs/context/两段式接口.md)，必须先调用 “aclnnElasticReceivableTestGetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnElasticReceivableTest”接口执行计算。
+每个算子分为[两段式接口](../../../docs/context/两段式接口.md)，必须先调用“aclnnMoeDistributeBufferResetGetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnMoeDistributeBufferReset”接口执行计算。
 
 ```cpp
-aclnnStatus aclnnElasticReceivableTestGetWorkspaceSize(
-    const aclTensor *dstRank,
-    const char      *group,
-    int64_t          worldSize,
-    int64_t          rankNum,
+aclnnStatus aclnnMoeDistributeBufferResetGetWorkspaceSize(
+    const aclTensor *elasticInfo,
+    const char      *groupEp,
+    int32_t          epWorldSize,
+    int32_t          needSync,
     uint64_t        *workspaceSize,
     aclOpExecutor  **executor);
 ```
 
 ```cpp
-aclnnStatus aclnnElasticReceivableTest(
-    void          *workspace,
-    uint64_t       workspaceSize,
-    aclOpExecutor *executor,
-    aclrtStream    stream)
+aclnnStatus aclnnMoeDistributeBufferReset(
+    void           *workspace,
+    uint64_t        workspaceSize,
+    aclOpExecutor  *executor,
+    aclrtStream     stream);
 ```
 
-## aclnnElasticReceivableTestGetWorkspaceSize
+## aclnnMoeDistributeBufferResetGetWorkspaceSize
 
 - **参数说明**
 
@@ -67,17 +67,17 @@ aclnnStatus aclnnElasticReceivableTest(
     </thead>
     <tbody>
     <tr>
-    <td>dstRank</td>
+    <td>elasticInfo</td>
     <td>输入</td>
-    <td>表示同一个通信域内目的server内的通信卡。</td>
-    <td>shape为(rankNum,)，表示在同一个server内的卡号</td>
+    <td>Device侧的aclTensor，有效rank掩码表，标识有效rank的tensor，其中0标识本卡与对应rank链路不通，1为联通</td>
+    <td>shape为(epWorldSize,)</td>
     <td>INT32</td>
     <td>ND</td>
     <td>1</td>
     <td>√</td>
     </tr>
     <tr>
-    <td>group</td>
+    <td>groupEp</td>
     <td>输入</td>
     <td>ep通信域名称，专家并行的通信域。</td>
     <td>字符串长度范围为(0, 128)</td>
@@ -87,21 +87,21 @@ aclnnStatus aclnnElasticReceivableTest(
     <td>-</td>
     </tr>
     <tr>
-    <td>worldSize</td>
+    <td>epWorldSize</td>
     <td>输入</td>
     <td>通信域大小。</td>
     <td>取值支持[16, 128]内16整数倍的数值</td>
-    <td>INT64</td>
+    <td>INT32</td>
     <td>-</td>
     <td>-</td>
     <td>-</td>
     </tr>
     <tr>
-    <td>rankNum</td>
+    <td>needSync</td>
     <td>输入</td>
-    <td>本端需要发送的目的server内的卡数。</td>
-    <td>当前只支持16卡</td>
-    <td>INT64</td>
+    <td>是否需要全卡同步。</td>
+    <td>取值支持0或1，0表示不需要，1表示需要。</td>
+    <td>INT32</td>
     <td>-</td>
     <td>-</td>
     <td>-</td>
@@ -150,18 +150,18 @@ aclnnStatus aclnnElasticReceivableTest(
     <tr>
     <td>ACLNN_ERR_PARAM_NULLPTR</td>
     <td>161001</td>
-    <td>传入的dstRank或group是空指针。</td>
+    <td>传入的elasticInfo、groupEp、epWorldSize或needSync是空指针。</td>
     </tr>
     <tr>
     <td rowspan="3" align="left">ACLNN_ERR_PARAM_INVALID</td>
     <td rowspan="3" align="left">161002</td>
-    <td align="left">传入的dstRank的数据类型不在支持的范围内。</td>
+    <td align="left">传入的elasticInfo的数据类型不在支持的范围内。</td>
     </tr>
-    <tr><td align="left">传入的dstRank的数据格式不在支持的范围内。</td></tr>
-    <tr><td align="left">传入的dstRank的shape不匹配。</td></tr>
+    <tr><td align="left">传入的elasticInfo的数据格式不在支持的范围内。</td></tr>
+    <tr><td align="left">传入的elasticInfo的shape不匹配。</td></tr>
     </tbody></table>
 
-## aclnnElasticReceivableTest
+## aclnnMoeDistributeBufferReset
 
 - **参数说明**
 
@@ -187,7 +187,7 @@ aclnnStatus aclnnElasticReceivableTest(
     <tr>
     <td>workspaceSize</td>
     <td>输入</td>
-    <td>在Device侧申请的workspace大小，由第一段接口aclnnElasticReceivableTestGetWorkspaceSize获取。</td>
+    <td>在Device侧申请的workspace大小，由第一段接口aclnnMoeDistributeBufferResetGetWorkspaceSize获取。</td>
     </tr>
     <tr>
     <td>executor</td>
@@ -212,7 +212,7 @@ aclnnStatus aclnnElasticReceivableTest(
 
 ## 调用示例
 
-以<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>单机为例，调起aclnnElasticReceivableTest和aclnnElasticReceivableInfoCollect。
+以<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>单机为例，调起aclnnElasticReceivableTest、aclnnElasticReceivableInfoCollect和aclnnMoeDistributeBufferReset。
 
 - 文件准备：
 

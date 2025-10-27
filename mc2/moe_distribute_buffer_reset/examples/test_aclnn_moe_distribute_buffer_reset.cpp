@@ -9,7 +9,7 @@
  */
 
 /*!
- * \file test_aclnn_elastic_receivable_test.cpp
+ * \file test_aclnn_moe_distribute_buffer_reset.cpp
  * \brief
  */
 
