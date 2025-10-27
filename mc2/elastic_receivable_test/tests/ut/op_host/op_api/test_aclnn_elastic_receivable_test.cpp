@@ -69,5 +69,5 @@ TEST_F(l2_aclnn_elastic_receivable_test_test, test_aclnn_elastic_receivable_test
   uint64_t workspace_size = 0;
   aclOpExecutor* executor = nullptr;
   aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
-  EXPECT_EQ(aclRet, ACLNN_SUCCESS);
+  EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_INVALID);
 }

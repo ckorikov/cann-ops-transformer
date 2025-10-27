@@ -50,9 +50,9 @@ static aclnnStatus CheckParams(const aclTensor* dstRank, const char* group)
     CHECK_RET(CheckNullStatus(dstRank, group), ACLNN_ERR_PARAM_NULLPTR);
     auto groupStrnLen = strnlen(group, HCCL_GROUP_NAME_MAX);
     if ((groupStrnLen >= HCCL_GROUP_NAME_MAX) || (groupStrnLen == 0)) {
-        OP_LOGE(ACLNN_ERR_PARAM_NULLPTR, "Required group name length in range (0, HCCL_GROUP_NAME_MAX), but it's %zu.", 
+        OP_LOGE(ACLNN_ERR_PARAM_INVALID, "Required group name length in range (0, HCCL_GROUP_NAME_MAX), but it's %zu.", 
             strnlen(group, HCCL_GROUP_NAME_MAX));
-        return false;
+        return ACLNN_ERR_PARAM_INVALID;
     }
 
     return ACLNN_SUCCESS;
