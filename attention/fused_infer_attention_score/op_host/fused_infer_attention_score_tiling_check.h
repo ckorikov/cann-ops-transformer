@@ -200,26 +200,24 @@ private:
     ge::graphStatus CheckFeatureMlaNoQuantDtype() const;
     ge::graphStatus CheckFeatureMlaNoquantLse() const;
     ge::graphStatus CheckFeatureNoquantBlockSize() const;
-    ge::graphStatus CheckFeatureMlaNoquantPa() const;
     ge::graphStatus CheckFeatureMlaNoquantMask() const;
     ge::graphStatus CheckFeatureNoquantUnsupported() const;
     ge::graphStatus CheckFeatureMlaSink() const;
     ge::graphStatus CheckFeatureMlaNoquantUnsupported() const;
-    ge::graphStatus CheckFeatureMlaNoquant() const;
+    ge::graphStatus CheckFeatureMlaNoquant();
     ge::graphStatus CheckFeatureMlaAntiquant() const;
     ge::graphStatus CheckFeatureMlaFullquant() const;
     ge::graphStatus CheckFeatureGqaNoquantUnsupported() const;
-    ge::graphStatus CheckFeatureGqaNoquantPa() const;
     ge::graphStatus CheckFeatureGqaNoquantMask() const;
     ge::graphStatus CheckFeatureGqaNoquantSink() const;
     ge::graphStatus CheckFeatureGqaNoQuantDtype() const;
     ge::graphStatus CheckFeatureGqaNoQuantLayout() const;
     ge::graphStatus CheckFeatureGqaNoQuantShape() const;
-    ge::graphStatus CheckFeatureGqaNoquant() const;
+    ge::graphStatus CheckFeatureGqaNoquant();
     ge::graphStatus CheckFeatureGqaAntiquant() const;
     ge::graphStatus CheckFeatureGqaFullquant() const;
-    ge::graphStatus CheckFeatureMla() const;
-    ge::graphStatus CheckFeatureGqa() const;
+    ge::graphStatus CheckFeatureMla();
+    ge::graphStatus CheckFeatureGqa();
     ge::graphStatus CheckFeature();
 
     // 多参数一致性校验

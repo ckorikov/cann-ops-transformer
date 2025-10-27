@@ -28,7 +28,7 @@ std::string LayoutToSerialString(FiaLayout layout)
         { FiaLayout::TND, "TND" },
         { FiaLayout::NBSD, "NBSD" },
         { FiaLayout::NTD, "NTD" },
-        { FiaLayout::S1S2, "SS" },
+        { FiaLayout::S1S2, "S1S2" },
         { FiaLayout::BS2, "BS2" },
         { FiaLayout::BnBsH, "BnBsH" },
         { FiaLayout::BnNBsD, "BnNBsD" },

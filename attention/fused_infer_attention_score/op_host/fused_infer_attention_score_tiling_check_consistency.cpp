@@ -369,7 +369,7 @@ ge::graphStatus FiaTilingCheck::CheckActualSeqLensKv() const
         return ge::GRAPH_SUCCESS;
     }
 
-    if (qLayout_ == FiaLayout::TND) {
+    if (kvLayout_ == FiaLayout::TND) {
         if (opParamInfo_.actualSeqLengthsQ.tensor != nullptr &&
             opParamInfo_.actualSeqLengthsQ.tensor->GetData<int64_t>() != nullptr &&
             actualSeqLengthsKvSize_ != actualSeqLengthsQSize_) {
@@ -475,7 +475,7 @@ ge::graphStatus FiaTilingCheck::SetAttenMaskCompare()
     int32_t sparseMode = *opParamInfo_.sparseMode;
     FiaLayout maskLayout;
 
-    if(sparseMode == SPARSE_MODE_NO_MASK || sparseMode == SPARSE_MODE_ALL_MASK) {
+    if (sparseMode == SPARSE_MODE_NO_MASK || sparseMode == SPARSE_MODE_ALL_MASK) {
         if (maskDimNum == DIM_NUM_TWO) {
             if (s1Size_ == 1U && maskDim0 == static_cast<int64_t>(bSize_)) {
                 maskLayout = FiaLayout::BS2;
@@ -549,23 +549,16 @@ ge::graphStatus FiaTilingCheck::CheckTokens()
 {
     preTokens_ = *opParamInfo_.preToken;
     nextTokens_ = *opParamInfo_.nextToken;
-    if (preTokens_ >= 0 && nextTokens_ >= 0) {
-        return ge::GRAPH_SUCCESS;
-    }
-
-    if (nextTokens_ < 0) {
-        OP_CHECK_IF( preTokens_  < (-1) * nextTokens_,
-        OP_LOGE(opName_, "when %s < 0, %s should be greater than or equal to -%s",
-            NEXT_TOKENS_NAME.c_str(), PRE_TOKENS_NAME.c_str(), NEXT_TOKENS_NAME.c_str()),
+    OP_CHECK_IF(preTokens_ < 0 && nextTokens_ < 0, 
+        OP_LOGE(opName_, "preTokens(%ld) and nextTokens(%ld) cannot neither be negative number.",
+            preTokens_, nextTokens_),
         return ge::GRAPH_FAILED);
-    }
 
-    if (preTokens_ < 0) {
-        OP_CHECK_IF( nextTokens_  < (-1) * preTokens_,
-        OP_LOGE(opName_, "when %s < 0, %s should be greater than or equal to -%s",
-            PRE_TOKENS_NAME.c_str(), NEXT_TOKENS_NAME.c_str(), PRE_TOKENS_NAME.c_str()),
+    OP_CHECK_IF(nextTokens_ * (-1) > preTokens_, 
+        OP_LOGE(opName_, "nextToken line(%ld) should be higher than preToken line(%ld).",
+            nextTokens_, preTokens_),
         return ge::GRAPH_FAILED);
-    }
+
     return ge::GRAPH_SUCCESS;
 }
 

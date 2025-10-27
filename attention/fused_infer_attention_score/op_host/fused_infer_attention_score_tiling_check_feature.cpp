@@ -148,23 +148,14 @@ ge::graphStatus FiaTilingCheck::CheckFeatureNoquantBlockSize() const
     return ge::GRAPH_SUCCESS;
 }
 
-ge::graphStatus FiaTilingCheck::CheckFeatureMlaNoquantPa() const
-{
-    if (kvStorageMode_ != KvStorageMode::PAGE_ATTENTION) {
-        return ge::GRAPH_SUCCESS;
-    }
-    return CheckFeatureNoquantBlockSize();
-}
-
 ge::graphStatus FiaTilingCheck::CheckFeatureMlaNoquantMask() const
 {
     if(vHeadDim_ == 512U) {
         int32_t sparseMode = *opParamInfo_.sparseMode;
         if (sparseMode != SPARSE_MODE_NO_MASK && sparseMode != SPARSE_MODE_RIGHT_DOWN && sparseMode != SPARSE_MODE_BAND) {
             OP_LOGE(opName_,
-                "In %s situation, rope exsists and query/key head dim = %u, %s is not supported, only support 0/3/4",
-                QuantModeToSerialString(quantMode_).c_str(), qkHeadDim_,
-                SPARSE_MODE_NAME.c_str());
+                "In %s situation, rope exsists and query/key head dim = %u, %s only support 0/3/4, but got %d.",
+                QuantModeToSerialString(quantMode_).c_str(), qkHeadDim_, SPARSE_MODE_NAME.c_str(), sparseMode);
             return ge::GRAPH_FAILED;
         }
 
@@ -260,14 +251,16 @@ ge::graphStatus FiaTilingCheck::CheckFeatureMlaNoquantUnsupported() const
     return ge::GRAPH_SUCCESS;
 }
 
-ge::graphStatus FiaTilingCheck::CheckFeatureMlaNoquant() const
+ge::graphStatus FiaTilingCheck::CheckFeatureMlaNoquant()
 {
     OP_CHECK_IF(socVersion_ == platform_ascendc::SocVersion::ASCEND310P,
         OP_LOGE(opName_, "In %s %s situation, Ascend310P is not supported",
             RopeModeToSerialString(ropeMode_).c_str(), QuantModeToSerialString(quantMode_).c_str()),
         return ge::GRAPH_FAILED);
     if (ge::GRAPH_SUCCESS != CheckFeatureMlaNoquantUnsupported() ||
-        ge::GRAPH_SUCCESS != CheckFeatureMlaNoquantPa() ||
+        ge::GRAPH_SUCCESS != CheckFeatureNoquantBlockSize() ||
+        ge::GRAPH_SUCCESS != CheckFeatureInOutDtype() ||
+        ge::GRAPH_SUCCESS != CheckFeatureActualSeqLens() ||
         ge::GRAPH_SUCCESS != CheckFeatureMlaNoquantMask() ||
         ge::GRAPH_SUCCESS != CheckFeatureMlaNoQuantDtype() ||
         ge::GRAPH_SUCCESS != CheckFeatureMlaNoquantLse() ||
@@ -289,7 +282,7 @@ ge::graphStatus FiaTilingCheck::CheckFeatureMlaFullquant() const
     return ge::GRAPH_SUCCESS;
 }
 
-ge::graphStatus FiaTilingCheck::CheckFeatureMla() const
+ge::graphStatus FiaTilingCheck::CheckFeatureMla()
 {
     if (quantMode_ == FiaQuantMode::NO_QUANT) {
         return CheckFeatureMlaNoquant();
@@ -319,14 +312,6 @@ ge::graphStatus FiaTilingCheck::CheckFeatureGqaNoquantUnsupported() const
         return ge::GRAPH_FAILED);
     }
     return ge::GRAPH_SUCCESS;
-}
-
-ge::graphStatus FiaTilingCheck::CheckFeatureGqaNoquantPa() const
-{
-    if (kvStorageMode_ != KvStorageMode::PAGE_ATTENTION) {
-        return ge::GRAPH_SUCCESS;
-    }
-    return CheckFeatureNoquantBlockSize();
 }
 
 ge::graphStatus FiaTilingCheck::CheckFeatureGqaNoquantMask() const
@@ -437,13 +422,8 @@ ge::graphStatus FiaTilingCheck::CheckFeatureGqaNoQuantLayout() const
 
 ge::graphStatus FiaTilingCheck::CheckFeatureGqaNoQuantShape() const
 {
-    constexpr uint32_t MAX_QT_BYTE = 1024U * 1024U;
     constexpr uint32_t MAX_ACTUAL_SEQ_LEN_BYTE = 64U * 1024U;
     constexpr uint32_t MAX_B_SIZE = 256U;
-    OP_CHECK_IF(qTSize_ > 1024 * 1024 / GetTypeSize(inputQType_),
-    OP_LOGE(opName_, "In %s situation, query T should be smaller than %u / sizeof(query_dtype) = %u, but got %u",
-        QuantModeToSerialString(quantMode_).c_str(), MAX_QT_BYTE, MAX_QT_BYTE / GetTypeSize(inputQType_), qTSize_),
-    return ge::GRAPH_FAILED);
 
     OP_CHECK_IF(actualSeqLengthsQSize_ > MAX_ACTUAL_SEQ_LEN_BYTE,
     OP_LOGE(opName_, "In %s situation, actual sequence length q should be smaller or equal to 64K, but got %u",
@@ -465,14 +445,16 @@ ge::graphStatus FiaTilingCheck::CheckFeatureGqaNoQuantShape() const
     return ge::GRAPH_SUCCESS;
 }
 
-ge::graphStatus FiaTilingCheck::CheckFeatureGqaNoquant() const
+ge::graphStatus FiaTilingCheck::CheckFeatureGqaNoquant()
 {
     OP_CHECK_IF(socVersion_ == platform_ascendc::SocVersion::ASCEND310P,
         OP_LOGE(opName_, "In %s %s situation, Ascend310P is not supported",
             RopeModeToSerialString(ropeMode_).c_str(), QuantModeToSerialString(quantMode_).c_str()),
         return ge::GRAPH_FAILED);
     if (ge::GRAPH_SUCCESS != CheckFeatureGqaNoquantUnsupported() ||
-        ge::GRAPH_SUCCESS != CheckFeatureGqaNoquantPa() ||
+        ge::GRAPH_SUCCESS != CheckFeatureNoquantBlockSize() ||
+        ge::GRAPH_SUCCESS != CheckFeatureInOutDtype() ||
+        ge::GRAPH_SUCCESS != CheckFeatureActualSeqLens() ||
         ge::GRAPH_SUCCESS != CheckFeatureGqaNoquantMask() ||
         ge::GRAPH_SUCCESS != CheckFeatureGqaNoQuantDtype() ||
         ge::GRAPH_SUCCESS != CheckFeatureGqaNoQuantLayout() ||
@@ -493,7 +475,7 @@ ge::graphStatus FiaTilingCheck::CheckFeatureGqaFullquant() const
     return ge::GRAPH_SUCCESS;
 }
 
-ge::graphStatus FiaTilingCheck::CheckFeatureGqa() const
+ge::graphStatus FiaTilingCheck::CheckFeatureGqa()
 {
     if (quantMode_ == FiaQuantMode::NO_QUANT) {
         return CheckFeatureGqaNoquant();
@@ -639,6 +621,12 @@ ge::graphStatus FiaTilingCheck::CheckFeatureActualSeqLensKvData()
         kvSize.push_back(tmpS2);
     }
 
+    OP_CHECK_IF((kvLayout_ == FiaLayout::TND) && (kTSize_ != actualSeq[actualSeqLengthsKvSize_ - 1]),
+        OP_LOGE(opName_, "when kv's layout is %s, T(%u) should be equal to the last element of %s(%ld).",
+            LayoutToSerialString(kvLayout_).c_str(), kTSize_, ACTUAL_SEQ_KV_LEN_NAME.c_str(),
+            actualSeq[actualSeqLengthsKvSize_ - 1]),
+            return ge::GRAPH_FAILED);
+
     return ge::GRAPH_SUCCESS;
 }
 
@@ -676,11 +664,6 @@ ge::graphStatus FiaTilingCheck::CheckFeatureActualSeqLens()
 
 ge::graphStatus FiaTilingCheck::CheckFeature()
 {
-    if (ge::GRAPH_SUCCESS != CheckFeatureInOutDtype() ||
-        ge::GRAPH_SUCCESS != CheckFeatureActualSeqLens()) {
-        return ge::GRAPH_FAILED;
-    }
-
     if (ropeMode_ == RopeMode::ROPE_SPLIT) {
         return CheckFeatureMla();
     } else {

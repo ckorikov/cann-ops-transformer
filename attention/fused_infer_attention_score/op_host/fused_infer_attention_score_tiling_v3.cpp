@@ -296,15 +296,24 @@ bool GetValueD(gert::TilingContext *context, int64_t &valueD)
         inputLayoutStr == "BSND_NBSD" ||
         inputLayoutStr == "BNSD" ||
         inputLayoutStr == "BSND") {
+        if (vStorageShape.GetDimNum() != DIM_BNSD_OR_BSND) {
+            return false;
+        }
         valueD = vStorageShape.GetDim(BNSD_D_IDX);
     } else if (inputLayoutStr == "BSH" ||
         inputLayoutStr == "BSH_NBSD" ||
         inputLayoutStr == "BSH_BNSD") {
+        if (vStorageShape.GetDimNum() != DIM_BSH) {
+            return false;
+        }
         valueD = vStorageShape.GetDim(BSH_H_IDX) / numKvHeads;
     } else if (inputLayoutStr == "TND" ||
         inputLayoutStr == "NTD" ||
         inputLayoutStr == "TND_NTD" ||
         inputLayoutStr == "NTD_TND") {
+        if (vStorageShape.GetDimNum() != DIM_TND) {
+            return false;
+        }
         valueD = vStorageShape.GetDim(TND_NTD_D_IDX);
     } else {
         return false;
@@ -335,6 +344,9 @@ bool GetQkvD(gert::TilingContext *context, int64_t &queryD, int64_t &queryRopeD,
         inputLayoutStr == "BSND_NBSD" ||
         inputLayoutStr == "BNSD" ||
         inputLayoutStr == "BSND") {
+        if (qStorageShape.GetDimNum() != DIM_BNSD_OR_BSND) {
+            return false;
+        }
         queryD = qStorageShape.GetDim(BNSD_D_IDX);
         if (qRopeShape != nullptr) {
             queryRopeD = qRopeShape->GetStorageShape().GetDim(BNSD_D_IDX);
@@ -342,6 +354,9 @@ bool GetQkvD(gert::TilingContext *context, int64_t &queryD, int64_t &queryRopeD,
     } else if (inputLayoutStr == "BSH" ||
         inputLayoutStr == "BSH_NBSD" ||
         inputLayoutStr == "BSH_BNSD") {
+        if (qStorageShape.GetDimNum() != DIM_BSH) {
+            return false;
+        }
         queryD = qStorageShape.GetDim(BSH_H_IDX) / numHeads;
         if (qRopeShape != nullptr) {
             queryRopeD = qRopeShape->GetStorageShape().GetDim(BSH_H_IDX) / numHeads;
@@ -350,6 +365,9 @@ bool GetQkvD(gert::TilingContext *context, int64_t &queryD, int64_t &queryRopeD,
         inputLayoutStr == "NTD" ||
         inputLayoutStr == "TND_NTD" ||
         inputLayoutStr == "NTD_TND") {
+        if (qStorageShape.GetDimNum() != DIM_TND) {
+            return false;
+        }
         queryD = qStorageShape.GetDim(TND_NTD_D_IDX);
         if (qRopeShape != nullptr) {
             queryRopeD = qRopeShape->GetStorageShape().GetDim(TND_NTD_D_IDX);
