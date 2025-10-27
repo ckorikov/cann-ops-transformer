@@ -316,7 +316,7 @@ aclnnStatus aclnnMoeDistributeCombineV2(
     - 不支持共享专家场景。
     - epSendCounts 的shape为 (moeExpertNum + 2 * globalBs * K * serverNum, )，前moeExpertNum个数表示从EP通信域各卡接收的token数，2 * globalBs * K * serverNum存储机间机内通信前combine可提前做reduce的token个数和通信区偏移，globalBs=0时按Bs * epWorldSize计算。
     - 当前不支持TP域通信。
-    - xActiveMaskOptional 要求为1D Tensor，shape为 (BS, )；true需排在false前（例：{true, false, true}非法）。
+    - xActiveMaskOptional 依commAlg取值，"fullmesh"要求为1D Tensor，shape为(Bs, )；true需排在false前（例：{true, false, true}非法）；"hierarchy"当前版本不支持，传空指针即可。
     - exapndScalesOptional 要求为1D Tensor，shape为 (A, )。
     - sharedExpertXOptional 为预留参数，当前版本不支持，传空指针即可。
     - epWorldSize 依commAlg取值，"fullmesh"支持16、32、64、128、256；"hierarchy"支持16、32、64。
