@@ -70,6 +70,7 @@ static bool CheckTensorDim(gert::TilingContext *context, const char *nodeName)
 {
     auto attrs = context->GetAttrs();
     auto worldSizePtr = attrs->GetAttrPointer<int>(ATTR_WORLD_SIZE_INDEX);
+    OP_TILING_CHECK(worldSizePtr == nullptr, OP_LOGE(nodeName, "worldSizePtr is null!"), return ge::GRAPH_FAILED);
     const gert::StorageShape *yStorageShape = context->GetOutputShape(Y_INDEX);
     OP_TILING_CHECK(yStorageShape == nullptr, OP_LOGE(nodeName, "yShape is null."), return false);
     OP_TILING_CHECK(yStorageShape->GetStorageShape().GetDimNum() != TWO_DIM,
@@ -191,7 +192,7 @@ ge::graphStatus ElasticReceivableInfoCollectTilingFunc(gert::TilingContext* cont
     ascendcPlatform.GetCoreMemSize(platform_ascendc::CoreMemType::UB, ubSize);
     blockDim = ascendcPlatform.CalcTschBlockDim(aivNum, 0, aivNum);
     context->SetBlockDim(blockDim);
-    context->SetScheduleMode(1); // 设置为batch mode模式，所有核同时启动
+    context->SetScheduleMode(0); // 设置为batch mode模式，所有核同时启动
     tilingData->elasticReceivableInfoCollectInfo.totalUbSize = ubSize;
     tilingData->elasticReceivableInfoCollectInfo.aivNum = aivNum;
     OP_LOGD(nodeName, "blockDim=%u, aivNum=%u, ubSize=%lu", blockDim, aivNum, ubSize);

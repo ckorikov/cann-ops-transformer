@@ -19,7 +19,7 @@
 struct ElasticReceivableInfoCollectInfo {
     uint32_t worldSize;
     uint32_t rankId;
-    uint32_t aivNum;                     // aivNum
+    uint32_t aivNum;
     uint64_t totalUbSize;
     uint64_t totalWinSize;
 };

@@ -21,16 +21,9 @@
 #include "../moe_distribute_dispatch/moe_distribute_base.h"
 
 namespace ElasticReceivableInfoCollectImpl {
-constexpr uint8_t BUFFER_NUM = 2; // 多buf
 constexpr uint32_t UB_ALIGN = 32; // UB按32字节对齐
 constexpr uint32_t STATUS_SIZE = 512; // 每卡写入512B
-constexpr uint32_t COPY_SIZE = STATUS_SIZE / sizeof(int32_t);
-constexpr uint32_t TEST_RANK_SIZE = 16; // 对端共16卡需要测试
-constexpr uint64_t SEND_TEST_SIZE = 1 * 1024 * 1024; // 单次测试发送量1M
-constexpr uint64_t STATUS_MULTIPLY = 512; // 状态区大小为512 * worldSize
 
-constexpr uint64_t WIN_STATE_OFFSET = 512 * 1024; // 状态区的偏移(A区域和B区域)
-constexpr uint64_t STATE_WIN_OFFSET = 900 * 1024; // flag标记位的偏移
 constexpr uint32_t MAX_AIV_NUM = 48;
 
 template<AscendC::HardEvent event>
