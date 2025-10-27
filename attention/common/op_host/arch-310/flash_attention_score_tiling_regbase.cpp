@@ -613,6 +613,24 @@ bool FlashAttentionScoreConstTiling::AnalyzeAttrs()
     keepProb = *keepProbPtr;
     scaleValue = *scaleValuePtr;
     n1Size = *n1SizePtr;
+    if (preTokens > std::numeric_limits<int32_t>::max()) {
+        OP_LOGW(context_, "preTokens[%ld] config error, should not greater than max int value."
+            "preTokens will be reset max int value.", preTokens);
+        preTokens = std::numeric_limits<int32_t>::max();
+    } else if (preTokens < std::numeric_limits<int32_t>::min()) {
+        OP_LOGW(context_, "preTokens[%ld] config error, should not less than min int value."
+            "preTokens will be reset min int value.", preTokens);
+        preTokens = std::numeric_limits<int32_t>::min();
+    }
+    if (nextTokens > std::numeric_limits<int32_t>::max()) {
+        OP_LOGW(context_, "nextTokens[%ld] config error, should not greater than max int value."
+            "nextTokens will be reset max int value.", nextTokens);
+        nextTokens = std::numeric_limits<int32_t>::max();
+    } else if (nextTokens < std::numeric_limits<int32_t>::min()) {
+        OP_LOGW(context_, "nextTokens[%ld] config error, should not less than min int value."
+            "nextTokens will be reset min int value.", nextTokens);
+        nextTokens = std::numeric_limits<int32_t>::min();
+    }
     OP_CHECK_IF(n1Size == 0, OPS_REPORT_VECTOR_INNER_ERR(opName, "head num is zero."), return false);
     OP_CHECK_IF(keepProb <= 0.0 || keepProb > 1.0,
                OPS_REPORT_VECTOR_INNER_ERR(opName, "keepProb value must be in range of (0, 1]."), return false);
@@ -700,6 +718,11 @@ bool FlashAttentionScoreConstTiling::AnalyzeLayout()
     OP_CHECK_IF(!Analyze3DimLayout(queryShape, keyShape, valueShape, layoutLen, queryRopeShape)||
                !Analyze4DimLayout(queryShape, keyShape, valueShape, layoutLen, queryRopeShape),
                OPS_REPORT_VECTOR_INNER_ERR(opName, "get unsupported layout: %s", inputLayout), return false);
+    if (s1Size > std::numeric_limits<int32_t>::max() || s2Size > std::numeric_limits<int32_t>::max()) {
+        OP_LOGE(context_, "s1Size[%ld] and s2Size[%ld] config error, both should not greater than max int value.",
+            s1Size, s2Size);
+        return false;
+    }
     OP_CHECK_IF(gSize == 0, OPS_REPORT_VECTOR_INNER_ERR(opName, "gSize is zero"), return false);
     OP_CHECK_IF(n2Size == 0, OPS_REPORT_VECTOR_INNER_ERR(opName, "n2Size is zero"), return false);
     OP_CHECK_IF(dSize <= 0L,
