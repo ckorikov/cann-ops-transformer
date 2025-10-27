@@ -23,15 +23,6 @@ constexpr static int64_t SPARSE_MODE_INT_DEFAULT = 2147483647;
 
 // INPUT_T - means data type for input
 // T       - means data type when calc
-#define S1S2_TEMPLATE \
-    template <typename ChildClass, typename INPUT_T, typename T, ImplModeEnum implMode, LayOutTypeEnum layout, \
-    S1TemplateType s1TemplateType, S2TemplateType s2TemplateType, DTemplateType dTemplateType, \
-    DTemplateType dVTemplateType, PseTypeEnum pseMode, bool hasAtten, bool hasDrop, bool hasRope, \
-    typename OUTPUT_T, bool isInfer, bool isPa, bool isFd>
-
-#define S1S2_TEMPLATE_ARGS \
-    ChildClass, INPUT_T, T, implMode, layout, s1TemplateType, s2TemplateType, dTemplateType, dVTemplateType, \
-    pseMode, hasAtten, hasDrop, hasRope, OUTPUT_T, isInfer, isPa, isFd
 
 #define CHILD_SPEC_TEMPLATE \
     template <typename INPUT_T, typename T, ImplModeEnum implMode, LayOutTypeEnum layout, \
@@ -115,22 +106,12 @@ constexpr static int64_t SPARSE_MODE_INT_DEFAULT = 2147483647;
 template <CUBE_BLOCK_TRAITS_TYPE_FIELDS(GEN_TYPE_PARAM) \
     CUBE_BLOCK_TRAITS_CONST_FIELDS(GEN_CONST_PARAM) bool end = true>
 
-/*伪量化模板参数*/
-#define ANTIQUANT_TEMPLATES_DEF \
-template <ANTIQUANT_CUBE_BLOCK_TRAITS_TYPE_FIELDS(GEN_TYPE_PARAM) \
-    ANTIQUANT_CUBE_BLOCK_TRAITS_CONST_FIELDS(GEN_CONST_PARAM) bool end = true>
-
 /* 2. 生成不带带默认值的模版Template */
 #define GEN_TEMPLATE_TYPE_NODEF(name) typename name,
 #define GEN_TEMPLATE_CONST_NODEF(name, type, default_val) type name,
 #define TEMPLATES_DEF_NO_DEFAULT \
 template <CUBE_BLOCK_TRAITS_TYPE_FIELDS(GEN_TEMPLATE_TYPE_NODEF) \
     CUBE_BLOCK_TRAITS_CONST_FIELDS(GEN_TEMPLATE_CONST_NODEF) bool end>
-
-/*伪量化模板参数*/
-#define ANTIQUANT_TEMPLATES_DEF_NO_DEFAULT \
-template <ANTIQUANT_CUBE_BLOCK_TRAITS_TYPE_FIELDS(GEN_TEMPLATE_TYPE_NODEF) \
-    ANTIQUANT_CUBE_BLOCK_TRAITS_CONST_FIELDS(GEN_TEMPLATE_CONST_NODEF) bool end>
 
 /* 3. 生成有默认值, 不带ChildClass的Args */
 #define GEN_ARG_NAME(name, ...) name,
