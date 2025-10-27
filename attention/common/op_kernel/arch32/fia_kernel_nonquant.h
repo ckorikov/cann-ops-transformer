@@ -908,10 +908,10 @@ __aicore__ inline void FiaKernelNonQuant<FIAT>::CalcCurS2StartEnd(uint32_t bN2Cu
     }
 
     int64_t s2FirstToken = ClipSInnerToken(sIdx - preTokenLeftUp, static_cast<int64_t>(s2Start), static_cast<int64_t>(actSeqLensKv));
-    curS2Start = static_cast<uint32_t>(s2FirstToken) / constInfo.s2BaseSize;
+    curS2Start = static_cast<uint32_t>(s2FirstToken / constInfo.s2BaseSize);
 
     int64_t s2LastToken = ClipSInnerToken(sIdx + nextTokenLeftUp + static_cast<int64_t>(s1BaseSize), 0, static_cast<int64_t>(s2End * constInfo.s2BaseSize));
-    curS2End = (static_cast<uint32_t>(s2LastToken) + constInfo.s2BaseSize - 1) / constInfo.s2BaseSize;
+    curS2End = static_cast<uint32_t>((s2LastToken + constInfo.s2BaseSize - 1) / constInfo.s2BaseSize);
 }
 
 template <typename FIAT>

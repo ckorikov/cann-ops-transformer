@@ -855,51 +855,45 @@ __aicore__ inline void FiaKernelNonQuantMla<FIAT, CubeBlockType, VecBlockType, F
         return;
     }
 
+    uint32_t gs1Idx = gS1Cur * constInfo.mBaseSize;
+    int64_t sIdx;
+    uint32_t s1BaseSize;
+    if constexpr (GetOutUbFormat<LAYOUT_T>() == UbFormat::S1G) {
+        sIdx = static_cast<int64_t>(gs1Idx / constInfo.gSize);
+        s1BaseSize = constInfo.mBaseSize / constInfo.gSize + 1;
+    } else {
+        sIdx = static_cast<int64_t>(gs1Idx % actSeqLensQ);
+        s1BaseSize = constInfo.mBaseSize;
+    }
+
+    if (sIdx + static_cast<int64_t>(s1BaseSize) > static_cast<int64_t>(actSeqLensQ)) {
+        curS2Start = 0;
+        curS2End = s2End;
+        return;
+    }
+
     uint32_t s2Start = bN2Cur == constInfo.bN2Start ? constInfo.s2Start : 0;
     int64_t safePreToken = constInfo.preToken;
     int64_t safeNextToken = constInfo.nextToken;
     GetSafeActToken(actSeqLensQ, actSeqLensKv, safePreToken, safeNextToken);
 
-    int64_t preTokenLeftUp = (constInfo.sparseMode != 4) ? safePreToken :
+    int64_t preTokenLeftUp = (constInfo.sparseMode != fa_base_vector::BAND) ? safePreToken :
         (static_cast<int64_t>(actSeqLensQ) - static_cast<int64_t>(actSeqLensKv) + safePreToken);
     int64_t nextTokenLeftUp;
-    if (constInfo.sparseMode == 0 || constInfo.sparseMode == 1 || constInfo.sparseMode == 2) {
+    if (constInfo.sparseMode == fa_base_vector::DEFAULT_MASK || constInfo.sparseMode == fa_base_vector::ALL_MASK 
+        || constInfo.sparseMode == fa_base_vector::LEFT_UP_CAUSAL) {
         nextTokenLeftUp = safeNextToken;
-    } else if (constInfo.sparseMode == 3) {
+    } else if (constInfo.sparseMode == fa_base_vector::RIGHT_DOWN_CAUSAL) {
         nextTokenLeftUp = static_cast<int64_t>(actSeqLensKv) - static_cast<int64_t>(actSeqLensQ);
     } else {
         nextTokenLeftUp = static_cast<int64_t>(actSeqLensKv) - static_cast<int64_t>(actSeqLensQ) + safeNextToken;
     }
 
-    uint32_t gs1Idx = gS1Cur * constInfo.mBaseSize;
-    int64_t sIdx = (LAYOUT_T == FIA_LAYOUT::TND || LAYOUT_T == FIA_LAYOUT::BSH) ?
-        static_cast<int64_t>(gs1Idx / constInfo.gSize) : static_cast<int64_t>(gs1Idx % actSeqLensQ);
-
     int64_t s2FirstToken = ClipSInnerToken(sIdx - preTokenLeftUp, static_cast<int64_t>(s2Start), static_cast<int64_t>(actSeqLensKv));
-    curS2Start = static_cast<uint32_t>(s2FirstToken) / constInfo.s2BaseSize;
-
-    uint32_t s1BaseSize;
-    if (LAYOUT_T == FIA_LAYOUT::TND || LAYOUT_T == FIA_LAYOUT::BSH) { // SG:
-        s1BaseSize = constInfo.mBaseSize / constInfo.gSize + 1;
-    } else { // GS
-        s1BaseSize = constInfo.mBaseSize;
-    }
+    curS2Start = static_cast<uint32_t>(s2FirstToken / constInfo.s2BaseSize);
 
     int64_t s2LastToken = ClipSInnerToken(sIdx + nextTokenLeftUp + static_cast<int64_t>(s1BaseSize), 0, static_cast<int64_t>(s2End * constInfo.s2BaseSize));
-    curS2End = (static_cast<uint32_t>(s2LastToken) + constInfo.s2BaseSize - 1) / constInfo.s2BaseSize;
-
-#ifdef BAND_SKIP_DEBUG
-    printf("---------------IsSkipS2ForBand------------------\n");
-    printf("constInfo.bN2Start = %d, constInfo.gS1Start = %d, constInfo.s2Start = %d\n", constInfo.bN2Start, constInfo.gS1Start, constInfo.s2Start);
-    printf("constInfo.bN2End = %d, constInfo.gS1End = %d, constInfo.s2End = %d\n", constInfo.bN2End, constInfo.gS1End, constInfo.s2End);
-    printf("bN2Cur = %d, gS1Cur = %d, s2Cur = %d  sparseMode = %d, pretoken = %d, nexttoken = %d\n",
-        bN2Cur, gS1Cur, s2Cur, constInfo.sparseMode, constInfo.preToken, constInfo.nextToken);
-    printf("preTokenLeftUp = %d, nextTokenLeftUp = %d\n", preTokenLeftUp, nextTokenLeftUp);
-    printf("gs1Idx = %d, sIdx = %d, s2Start = %d, s2End = %d\n", gs1Idx, sIdx, s2Start, s2End);
-    printf("s2FirstToken = %d, curS2Start = %d, s2LastToken = %d, curS2End = %d\n", s2FirstToken, curS2Start, s2LastToken, curS2End);
-    bool isSkip = s2Cur < curS2Start || s2Cur >= curS2End;
-    printf("--------isSkip = %d, end IsSkipS2ForBand------------------\n", isSkip);
-#endif
+    curS2End = static_cast<uint32_t>((s2LastToken + constInfo.s2BaseSize - 1) / constInfo.s2BaseSize);
 }
 
 template <typename FIAT, typename CubeBlockType, typename VecBlockType, typename FdBlockType> 
