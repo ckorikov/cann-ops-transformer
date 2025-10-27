@@ -104,8 +104,8 @@ TEST_F(MoeUpdateExpertInfershape, moe_update_expert_test_type) {
                     .OutputDataTypes({&balanced_expert_ids_type, &balanced_active_mask_type})
                     .NodeInputTd(0, ge::DT_INT64, ge::FORMAT_ND, ge::FORMAT_ND)
                     .NodeInputTd(1, ge::DT_INT32, ge::FORMAT_ND, ge::FORMAT_ND)
-                    .NodeOutputTd(0, ge::DT_INT64, ge::FORMAT_ND, ge::FORMAT_ND)
-                    .NodeOutputTd(1, ge::DT_BOOL, ge::FORMAT_ND, ge::FORMAT_ND)
+                    .NodeOutputTd(0, ge::FORMAT_ND, ge::FORMAT_ND)
+                    .NodeOutputTd(1, ge::FORMAT_ND, ge::FORMAT_ND)
                     .Build();
 
     auto spaceRegistry = gert::DefaultOpImplSpaceRegistryV2::GetInstance().GetSpaceRegistry();
@@ -136,8 +136,8 @@ TEST_F(MoeUpdateExpertInfershape, moe_update_expert_test_enhanced_type) {
                     .NodeInputTd(2, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND)
                     .NodeInputTd(3, ge::DT_FLOAT, ge::FORMAT_ND, ge::FORMAT_ND)
                     .NodeInputTd(4, ge::DT_BOOL, ge::FORMAT_ND, ge::FORMAT_ND)
-                    .NodeOutputTd(0, ge::DT_INT64, ge::FORMAT_ND, ge::FORMAT_ND)
-                    .NodeOutputTd(1, ge::DT_BOOL, ge::FORMAT_ND, ge::FORMAT_ND)
+                    .NodeOutputTd(0, ge::FORMAT_ND, ge::FORMAT_ND)
+                    .NodeOutputTd(1, ge::FORMAT_ND, ge::FORMAT_ND)
                     .Build();
 
     auto spaceRegistry = gert::DefaultOpImplSpaceRegistryV2::GetInstance().GetSpaceRegistry();

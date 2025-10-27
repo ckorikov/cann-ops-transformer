@@ -116,7 +116,7 @@ static void ExeTestCase(const SwinTransformerLnQkvQuantInfo ioInfo,
 
     /* do infershape */
     EXPECT_EQ(inferShapeFunc(contextHolder.GetContext()), testCaseResult);
-    EXPECT_EQ(ToVector(yStorageShape.GetOriginShape()), ioInfo.expectOutShape);
+    EXPECT_EQ(ToVector(*contextHolder.GetContext()->GetOutputShape(0)), ioInfo.expectOutShape);
 }
 
 

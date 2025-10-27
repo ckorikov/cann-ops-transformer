@@ -142,8 +142,8 @@ TEST_F(AllGatherMatmulInferShapeTest, infer_datatype) {
         .NodeInputTd(0, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND)
         .NodeInputTd(1, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND)
         .NodeInputTd(2, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND)
-        .NodeOutputTd(0, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND)
-        .NodeOutputTd(1, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND)
+        .NodeOutputTd(0, ge::FORMAT_ND, ge::FORMAT_ND)
+        .NodeOutputTd(1, ge::FORMAT_ND, ge::FORMAT_ND)
         .InputDataTypes({&x1_type, &x2_type, &bias_type})
         .OutputDataTypes({&output_shape, &gather_output_shape})
         .Build();

@@ -68,7 +68,7 @@ TEST_F(MoeDistributeCombineInfershape, infer_shape_0) {
             {"group_list_type", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)}
         }
     );
-    std::vector<std::vector<int64_t>> x_output_shape = {{32, 7168}, {32, 7168}};
+    std::vector<std::vector<int64_t>> x_output_shape = {{32, 7168},};
     ExecuteTestCase(infershapeContextPara, ge::GRAPH_SUCCESS, x_output_shape);
 }
 TEST_F(MoeDistributeCombineInfershape, infer_dtype_0) {
@@ -90,7 +90,7 @@ TEST_F(MoeDistributeCombineInfershape, infer_dtype_0) {
         .NodeInputTd(3, ep_send_counts_type, ge::FORMAT_ND, ge::FORMAT_ND)
         .NodeInputTd(4, tp_send_counts_type, ge::FORMAT_ND, ge::FORMAT_ND)
         .NodeInputTd(5, expert_scales_type, ge::FORMAT_ND, ge::FORMAT_ND)
-        .NodeOutputTd(0, ge::DT_FLOAT, ge::FORMAT_ND, ge::FORMAT_ND)
+        .NodeOutputTd(0, ge::FORMAT_ND, ge::FORMAT_ND)
         .InputDataTypes({&expand_x_type, &expert_ids_type, &expand_idx_type,
                          &ep_send_counts_type, &tp_send_counts_type, &expert_scales_type})
         .OutputDataTypes({&x_out_type})

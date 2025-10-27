@@ -81,9 +81,9 @@ namespace {
 
         /* do infershape */
         EXPECT_EQ(inferShapeFunc(contextHolder.GetContext()), testCaseResult);
-        EXPECT_EQ(ToVector(expandedXStorageShape.GetOriginShape()), ioInfo.expandedXShape);
-        EXPECT_EQ(ToVector(expandedRowIdxStorageShape.GetOriginShape()), ioInfo.expandedRowIdxShape);
-        EXPECT_EQ(ToVector(expandedExpertStorageShape.GetOriginShape()), ioInfo.expandedExpertShape);
+        EXPECT_EQ(ToVector(*contextHolder.GetContext()->GetOutputShape(0)), ioInfo.expandedXShape);
+        EXPECT_EQ(ToVector(*contextHolder.GetContext()->GetOutputShape(1)), ioInfo.expandedRowIdxShape);
+        EXPECT_EQ(ToVector(*contextHolder.GetContext()->GetOutputShape(2)), ioInfo.expandedExpertShape);
     }
 }
 

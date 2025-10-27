@@ -72,7 +72,7 @@ struct SwinTransformerLnQKVCompileInfo {
                 contextFaker.Attr(attrInfo.attrName_, *reinterpret_cast<float*>(attrInfo.attr_.valuePtr_.get()));      \
                 break;}                                                                                                \
             case Ops::Transformer::AnyValue::ValueType::VT_STRING: {                                                          \
-                contextFaker.Attr(attrInfo.attrName_, AscendString(reinterpret_cast<std::string*>(attrInfo.attr_.valuePtr_.get())->c_str()));\
+                contextFaker.Attr(attrInfo.attrName_, ge::AscendString(reinterpret_cast<std::string*>(attrInfo.attr_.valuePtr_.get())->c_str()));\
                 break;}                                                                                                \
             case Ops::Transformer::AnyValue::ValueType::VT_LIST_BOOL: {                                                       \
                 contextFaker.Attr(attrInfo.attrName_, *reinterpret_cast<std::vector<bool>*>(attrInfo.attr_.valuePtr_.get()));\

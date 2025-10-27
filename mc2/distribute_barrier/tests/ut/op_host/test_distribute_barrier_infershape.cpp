@@ -41,7 +41,7 @@ TEST_F(DistributeBarrierInfershape, infer_shape_0) {
         .NodeOutputTd(0, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND)
         .InputTensors(inputTensors)
         .OutputShapes(ouputShapes)
-        .Attr("group", AscendString("group"))
+        .Attr("group", ge::AscendString("group"))
         .Attr("world_size", int64_t(288))
         .Build();
 

@@ -566,7 +566,7 @@ TEST_F(GroupedMatMulAllReduceInfershape, infer_dtype) {
                         .IrInstanceNum({1, 1}, {1})
                         .NodeInputTd(0, x1_dtype, ge::FORMAT_ND, ge::FORMAT_ND)
                         .NodeInputTd(1, x2_dtype, ge::FORMAT_ND, ge::FORMAT_ND)
-                        .NodeOutputTd(0, y_dtype, ge::FORMAT_ND, ge::FORMAT_ND)
+                        .NodeOutputTd(0, ge::FORMAT_ND, ge::FORMAT_ND)
                         .NodeAttrs({{"splitItem", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)},
                                     {"group", Ops::Transformer::AnyValue::CreateFrom<std::string>("group")},
                                     {"reduceOp", Ops::Transformer::AnyValue::CreateFrom<std::string>("sum")},
@@ -614,7 +614,7 @@ TEST_F(GroupedMatMulAllReduceInfershape, infer_dtype_test_runtime_2) {
                         .NodeInputTd(5, weight_dtype_1, ge::FORMAT_ND, ge::FORMAT_ND)
                         .NodeInputTd(6, weight_dtype_2, ge::FORMAT_ND, ge::FORMAT_ND)
                         .NodeInputTd(7, weight_dtype_3, ge::FORMAT_ND, ge::FORMAT_ND)
-                        .NodeOutputTd(0, y_dtype, ge::FORMAT_ND, ge::FORMAT_ND)
+                        .NodeOutputTd(0, ge::FORMAT_ND, ge::FORMAT_ND)
                         .NodeAttrs({{"splitItem", Ops::Transformer::AnyValue::CreateFrom<int64_t>(2)},
                                     {"group", Ops::Transformer::AnyValue::CreateFrom<std::string>("group")},
                                     {"reduceOp", Ops::Transformer::AnyValue::CreateFrom<std::string>("sum")},

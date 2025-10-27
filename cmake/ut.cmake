@@ -46,7 +46,10 @@ if(UT_TEST_ALL OR OP_HOST_UT)
     target_compile_definitions(${OP_TILING_MODULE_NAME}_cases_obj PRIVATE
             LOG_CPP
       )
-    target_link_libraries(${OP_TILING_MODULE_NAME}_cases_obj PRIVATE $<BUILD_INTERFACE:intf_llt_pub_asan_cxx17> gtest)
+    target_link_libraries(${OP_TILING_MODULE_NAME}_cases_obj 
+      PRIVATE $<BUILD_INTERFACE:intf_llt_pub_asan_cxx17>
+      $<$<BOOL:${dlog_FOUND}>:$<BUILD_INTERFACE:dlog_headers>>
+      gtest)
 
     # add op tiling ut cases static lib: libtransformer_op_tiling_ut_cases.a
     add_library(${OP_TILING_MODULE_NAME}_cases STATIC)
@@ -82,7 +85,10 @@ if(UT_TEST_ALL OR OP_HOST_UT)
                                                      ${OPBASE_INC_DIRS}
       )
     target_link_libraries(
-      ${OP_INFERSHAPE_MODULE_NAME}_cases_obj PRIVATE $<BUILD_INTERFACE:intf_llt_pub_asan_cxx17> gtest
+      ${OP_INFERSHAPE_MODULE_NAME}_cases_obj 
+        PRIVATE $<BUILD_INTERFACE:intf_llt_pub_asan_cxx17>
+        $<$<BOOL:${dlog_FOUND}>:$<BUILD_INTERFACE:dlog_headers>>
+        gtest
       )
 
     # add op infershape ut cases static lib: libtransformer_op_infershape_ut_cases.a
@@ -113,7 +119,10 @@ if(UT_TEST_ALL OR OP_API_UT)
               ${ASCEND_DIR}/include ${ASCEND_DIR}/include/aclnn ${ASCEND_DIR}/include/aclnnop
               ${OPAPI_INCLUDE}
       )
-    target_link_libraries(${OP_API_MODULE_NAME}_cases_obj PRIVATE $<BUILD_INTERFACE:intf_llt_pub_asan_cxx17> gtest)
+    target_link_libraries(${OP_API_MODULE_NAME}_cases_obj 
+      PRIVATE $<BUILD_INTERFACE:intf_llt_pub_asan_cxx17>
+      $<$<BOOL:${dlog_FOUND}>:$<BUILD_INTERFACE:dlog_headers>>
+      gtest)
   endfunction()
 endif()
 
@@ -278,6 +287,7 @@ if(UT_TEST_ALL OR OP_KERNEL_UT)
         ${opName}_${socVersion}_tiling_tmp
         PRIVATE -Wl,--no-as-needed $<$<TARGET_EXISTS:opsbase>:opsbase> -Wl,--as-needed -Wl,--whole-archive tiling_api
                 -Wl,--no-whole-archive
+                $<$<BOOL:${dlog_FOUND}>:$<BUILD_INTERFACE:dlog_headers>>
         )
 
       # gen ascendc tiling head files

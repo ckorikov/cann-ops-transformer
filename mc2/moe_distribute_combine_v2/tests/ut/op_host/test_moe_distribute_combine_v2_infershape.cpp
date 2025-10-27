@@ -84,7 +84,7 @@ TEST_F(MoeDistributeCombineV2Infershape, infer_dtype_0) {
                     .NodeInputTd(3, ep_send_counts_type, ge::FORMAT_ND, ge::FORMAT_ND)
                     .NodeInputTd(4, tp_send_counts_type, ge::FORMAT_ND, ge::FORMAT_ND)
                     .NodeInputTd(5, expert_scales_type, ge::FORMAT_ND, ge::FORMAT_ND)
-                    .NodeOutputTd(0, ge::DT_FLOAT, ge::FORMAT_ND, ge::FORMAT_ND)
+                    .NodeOutputTd(0, ge::FORMAT_ND, ge::FORMAT_ND)
                     .InputDataTypes({&expand_x_type, &expert_ids_type, &expand_idx_type,
                                     &ep_send_counts_type, &tp_send_counts_type, &expert_scales_type})
                     .OutputDataTypes({&x_out_type})
