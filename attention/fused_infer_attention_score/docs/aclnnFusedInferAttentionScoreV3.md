@@ -777,7 +777,7 @@ aclnnStatus aclnnFusedInferAttentionScoreV3(
       - actualSeqLengths和actualSeqLengthsKv的元素个数不大于4096。
   - 昇腾910_95 AI处理器：
     - 支持TND;
-    - 不支持左padding、tensorlist、pseType=0、prefix、伪量化。
+    - 不支持左padding、tensorlist、pseType=0、prefix。
 
 - queryRope和keyRope输入时即为MLA场景，参数约束如下：
 

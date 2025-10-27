@@ -397,6 +397,20 @@ ge::graphStatus IFATilingV2::ProcessBaseTensors() {
     if (!pageAttentionFlag_) {
       batchContinuousFlag_ = true;
     }
+    int64_t tOfQuery = static_cast<int64_t>(context_->query.shape->GetStorageShape().GetDim(NUM0));
+    int64_t tOfkv = static_cast<int64_t>(context_->key.shape->GetStorageShape().GetDim(NUM0));
+    int64_t actualSeqLastSizeOfQuery = context_->actualSeqLengthsQ.tensor->GetData<int64_t>()[batchSize_ - 1U];
+    int64_t actualSeqLastSize = context_->actualSeqLengths.tensor->GetData<int64_t>()[batchSize_ - 1U];
+    if (tOfQuery != actualSeqLastSizeOfQuery) {  
+      OP_LOGE(context_->opName,
+          "When layout is TND, T of query[%ld] should be equal to the query's actual sequence lengths[%ld].", tOfQuery, actualSeqLastSizeOfQuery);
+      return ge::GRAPH_FAILED;
+    }
+    if (!pageAttentionFlag_ && tOfkv != actualSeqLastSize) {
+      OP_LOGE(context_->opName,
+          "When layout is TND, T of kv[%ld] should be equal to the kv's actual sequence lengths[%ld].", tOfkv, actualSeqLastSize);
+      return ge::GRAPH_FAILED;
+    }
   } else {
     OP_LOGE(context_->opName, "Only support inputLayout(BSH, BNSD, BSND, BNSD_BSND, TND), actually is %s.", layout.c_str());
     return ge::GRAPH_FAILED;
@@ -629,8 +643,8 @@ ge::graphStatus IFATilingV2::CheckQKOutShape() const
       OP_LOGE(context_->opName, "When inputLayout is TND, the dimension should be 3, dimOfQ:%lu, dimOfK:%lu, dimOfOut:%lu.", dimOfQ, dimOfK, dimOfOut),
       return ge::GRAPH_FAILED);
     OP_CHECK_IF(queryShape->GetStorageShape().GetDim(NUM1) != numHeads_ || keyShape->GetStorageShape().GetDim(NUM1) != numKvHeads_,
-      OP_LOGE(context_->opName, "When inputLayout is TND, the headDims in queryShape[%ld] is not equal to the headDims in keyShape[%ld].",
-      queryShape->GetStorageShape().GetDim(NUM1), keyShape->GetStorageShape().GetDim(NUM1)),return ge::GRAPH_FAILED);
+      OP_LOGE(context_->opName, "When inputLayout is TND, the headDims in queryShape[%ld] is not equal to numHeads[%ld] or the headDims in kvShape[%ld] is not equal to numKvHeads[%ld].",
+      queryShape->GetStorageShape().GetDim(NUM1), numHeads_, keyShape->GetStorageShape().GetDim(NUM1), numKvHeads_),return ge::GRAPH_FAILED);
   } else {
     OP_CHECK_IF((dimOfQ != DIM_BNSD_OR_BSND) || (dimOfK != DIM_BNSD_OR_BSND) || (dimOfOut != DIM_BNSD_OR_BSND),
       OP_LOGE(context_->opName, "When inputLayout is BNSD/BSND, the dimension should be 4, dimOfQ:%lu, dimOfK:%lu, dimOfOut:%lu.", dimOfQ, dimOfK, dimOfOut),
