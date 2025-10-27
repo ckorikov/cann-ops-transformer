@@ -757,8 +757,7 @@ aclnnStatus aclnnFusedInferAttentionScoreV3(
 
 - TND、TND_NTD、NTD_TND场景下query，key，value输入的综合限制：
 
-  - T小于等于1048576;
-  - actualSeqLengths和actualSeqLengthsKv必须传入，且以该入参元素的数量作为Batch值，该入参元素数量要小于等于4096。该入参中每个元素的值表示当前Batch与之前所有Batch的Sequence Length和，因此后一个元素的值必须大于等于前一个元素的值；
+  - actualSeqLengths和actualSeqLengthsKv必须传入，且以该入参元素的数量作为Batch值。该入参中每个元素的值表示当前Batch与之前所有Batch的Sequence Length和，因此后一个元素的值必须大于等于前一个元素的值；
   - Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件：
     - sparse模式仅支持sparse=0且不传mask，或sparse=3且传入mask；
     - 当query的d等于512时：

@@ -81,7 +81,6 @@ constexpr uint32_t NLIMIT = 256;      // n <= 256
 constexpr uint32_t SLIMIT = 20971520; // s, kvs <= 20MB
 constexpr uint32_t DLIMIT = 512;      // D <= 512
 constexpr uint32_t HLIMIT = 65535;    // warning: H <= 65536
-constexpr uint32_t TLIMIT = 1048576; // T <= 1M
 
 constexpr uint32_t MLA_QKD_SIZE = 192;
 constexpr uint32_t MLA_VD_SIZE = 128; // typical scene for PFA MLA, can be deleted after subsequent generalization.
@@ -389,9 +388,9 @@ bool PromptFlashAttentionTilingV2::GetAndCheckShape(ContextParamsForPFATiling& c
         OP_LOGW(contextKeyParams.opName, "layout = %s, h(%ld) size of %s should be less than or equal to 65535, "
             "which may cause precision problem! Please use BNSD or BNSD_BSND instead.", contextKeyParams.layout, h, sName.c_str());
     }
-    OP_CHECK_IF((inputLayout == InputLayout::TND) && (t > TLIMIT || t <= 0),
+    OP_CHECK_IF((inputLayout == InputLayout::TND) && (t <= 0),
         OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName,
-            "When layout is TND, t size of %s should be less than or equal to %u and > 0, but t = %ld.", sName.c_str(), TLIMIT, t),
+            "When layout is TND, t should > 0, but t = %ld.", t),
         return false);
     shapeInfo.b = static_cast<uint32_t>(b);
     shapeInfo.n = static_cast<uint32_t>(n);

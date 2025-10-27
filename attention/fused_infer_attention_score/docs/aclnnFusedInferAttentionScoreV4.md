@@ -1352,9 +1352,8 @@ aclnnStatus aclnnFusedInferAttentionScoreV4(
         </table>
 
 - <a id="TND"></a>TND、TND_NTD、NTD_TND场景下query，key，value输入的综合限制：
-    - T<=1048576 
     - sparseMode=0不传mask或者sparseMode=3且传入mask
-    - actualSeqLengths和actualSeqLengthsKv必须传入，长度<=4096 
+    - actualSeqLengths和actualSeqLengthsKv必须传入
 
     <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：
     <table style="undefined;table-layout: fixed; width: 979px"><colgroup>

@@ -144,7 +144,6 @@ constexpr uint32_t BLIMIT = 65536;
 constexpr uint32_t NLIMIT = 256;  // n <= 256
 constexpr uint32_t SLIMIT = 20971520;  // s、kvs <= 20M
 constexpr uint32_t DLIMIT = 512; // D <= 512
-constexpr uint32_t TLIMIT = 1048576; // T <= 1M
 
 constexpr uint32_t MSD_UB_BASE_WIDTH = 16;
 constexpr uint32_t MSD_UB_HEGHT = 256;
@@ -3616,13 +3615,6 @@ ge::graphStatus PromptFlashAttentionTiling::CheckInputShapeWhenLayoutIsTND(Conte
     if (!enablePA) {
         OP_CHECK_IF((keyT != lastSeqLenKV) || (valueT != lastSeqLenKV),
             OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName, "When layout is %s and PA not enabled, keyT(%ld) and valueT(%ld) must be equal to the last element of actualSeqenceLengthKV(%ld)", layoutStr.c_str(), keyT, valueT, lastSeqLenKV),
-            return ge::GRAPH_FAILED);
-        OP_CHECK_IF((queryT > TLIMIT) || (keyT > TLIMIT) || (valueT > TLIMIT),
-            OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName, "When layout is %s, T cannot be greater than 1048576(1M), queryT=%ld, keyT=%ld, valueT=%ld", layoutStr.c_str(), queryT, keyT, valueT),
-            return ge::GRAPH_FAILED);
-    } else {
-        OP_CHECK_IF((queryT > TLIMIT),   // only QueryT need to be limited when enablePA is true.
-            OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName, "When layout is %s, T cannot be greater than 1048576(1M), queryT=%ld", layoutStr.c_str(), queryT),
             return ge::GRAPH_FAILED);
     }
 
