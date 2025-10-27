@@ -91,7 +91,7 @@ __aicore__ inline void BoolCopyInRegbase(LocalTensor<uint8_t> &dstTensor, Global
         DataCopyPadExtParams<uint8_t> dataCopyPadParams;
         if constexpr (isInfer == true) {
             if (constInfo.isGqa) {
-                dataCopyParams.blockCount = 1;
+                dataCopyExtParams.blockCount = 1;
                 // IFA GS1合轴后, 1Size = gSize * s1 (1) , 但mask实际只有s1 (1) 行，因此需要循环拷贝
                 for (uint32_t i = 0; i < s1Size; ++i) {
                     // 需要用 s2BaseSize, 兼容S2方向有尾块情况
