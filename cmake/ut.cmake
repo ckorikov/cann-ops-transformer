@@ -104,7 +104,9 @@ if(UT_TEST_ALL OR OP_API_UT)
     if(NOT TARGET ${OP_API_MODULE_NAME}_cases_obj)
       add_library(${OP_API_MODULE_NAME}_cases_obj OBJECT)
     endif()
-    target_sources(${OP_API_MODULE_NAME}_cases_obj PRIVATE ${UT_PATH}/op_api/stub/opdev/platform.cpp)
+    target_sources(${OP_API_MODULE_NAME}_cases_obj PRIVATE
+                      ${UT_PATH}/op_api/stub/opdev/platform.cpp
+                      ${UT_PATH}/op_api/stub/opdev/nnopbase.cpp)
     target_include_directories(
       ${OP_API_MODULE_NAME}_cases_obj
       PRIVATE ${JSON_INCLUDE_DIR} ${HI_PYTHON_INC_TEMP} ${UT_PATH}/op_api/stub ${OP_API_UT_COMMON_INC}
@@ -176,7 +178,7 @@ if(UT_TEST_ALL
       get_filename_component(OP_NAME ${OP_NAME_DIR} NAME)
       list(FIND ASCEND_OP_NAME ${OP_NAME} INDEX)
       # if "--ops" is not NULL, opName not include, jump over. if "--ops" is NULL, include all.
-      if(NOT "${ASCEND_OP_NAME}" STREQUAL "" AND INDEX EQUAL -1)
+      if(NOT "${ASCEND_OP_NAME}" STREQUAL "ALL" AND INDEX EQUAL -1)
         return()
       endif()
 
@@ -194,7 +196,7 @@ if(UT_TEST_ALL
       get_filename_component(OP_NAME ${OP_NAME_DIR} NAME)
       list(FIND ASCEND_OP_NAME ${OP_NAME} INDEX)
       # if "--ops" is not NULL, opName not include, jump over. if "--ops" is NULL, include all.
-      if(NOT "${ASCEND_OP_NAME}" STREQUAL "" AND INDEX EQUAL -1)
+      if(NOT "${ASCEND_OP_NAME}" STREQUAL "ALL" AND INDEX EQUAL -1)
         return()
       endif()
 
@@ -213,7 +215,7 @@ if(UT_TEST_ALL
       get_filename_component(OP_NAME ${OP_NAME_DIR} NAME)
       list(FIND ASCEND_OP_NAME ${OP_NAME} INDEX)
       # if "--ops" is not NULL, opName not include, jump over. if "--ops" is NULL, include all.
-      if(NOT "${ASCEND_OP_NAME}" STREQUAL "" AND INDEX EQUAL -1)
+      if(NOT "${ASCEND_OP_NAME}" STREQUAL "ALL" AND INDEX EQUAL -1)
         return()
       endif()
 
@@ -238,7 +240,7 @@ if(UT_TEST_ALL OR OP_KERNEL_UT)
     get_filename_component(OP_NAME ${OP_NAME_DIR} NAME)
     list(FIND ASCEND_OP_NAME ${OP_NAME} INDEX)
     # if "--ops" is not NULL, opName not include, jump over. if "--ops" is NULL, include all.
-    if(NOT "${ASCEND_OP_NAME}" STREQUAL "" AND INDEX EQUAL -1)
+    if(NOT "${ASCEND_OP_NAME}" STREQUAL "ALL" AND INDEX EQUAL -1)
       return()
     endif()
 

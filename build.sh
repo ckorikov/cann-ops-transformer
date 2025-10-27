@@ -793,20 +793,24 @@ while [[ $# -gt 0 ]]; do
     --opgraph)
         BUILD_LIBS+=("opgraph_transformer")
         ENABLE_CREATE_LIB=TRUE
+        OP_GRAPH=TRUE
         shift
         ;;
     --opapi)
         BUILD_LIBS+=("opapi_transformer")
         ENABLE_CREATE_LIB=TRUE
+        OP_API=TRUE
         shift
         ;;
     --ophost)
         BUILD_LIBS+=("ophost_transformer")
         ENABLE_CREATE_LIB=TRUE
+        OP_HOST=TRUE
         shift
         ;;
     --opkernel)
         ENABLE_OPKERNEL=TRUE
+        OP_KERNEL=TRUE
         shift
         ;;
     --noexec)
@@ -1084,7 +1088,7 @@ build_ut() {
   fi
 
   if [ $(cmake -LA -N . | grep 'UTEST_FRAMEWORK_NEW:BOOL=' | cut -d'=' -f2) == "TRUE" ]; then
-    cmake --build . --target ${UT_TARGES[@]} -j $CORE_NUMS
+    cmake --build . --target ${UT_TARGES[@]} -j $CORE_NUMS -- -k
     if [[ "$cov" =~ "TRUE" ]]; then
         cmake --build . --target generate_ops_cpp_cov -- -j $CORE_NUMS
     fi

@@ -108,6 +108,6 @@ void ExecuteTestCase(gert::InfershapeContextPara&             infershapeContextP
 
     // check output shape
     for (int i = 0; i < expectOutputShape.size(); i++) {
-        // EXPECT_EQ(ToVector(*contextHolder.GetContext()->GetOutputShape(i)), expectOutputShape[i]);
+        EXPECT_EQ(ToVector(*contextHolder.GetContext()->GetOutputShape(i)), expectOutputShape[i]);
     }
 }
