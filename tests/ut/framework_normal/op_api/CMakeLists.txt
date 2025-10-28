@@ -118,19 +118,21 @@ if(UT_TEST_ALL OR OP_API_UT)
           TARGET ${OP_API_UT_EXE}
           POST_BUILD
           COMMAND
-              ${CMAKE_COMMAND} -E env LD_LIBRARY_PATH=$ENV{LD_LIBRARY_PATH}
+              ${CMAKE_COMMAND} -E env
+              LD_LIBRARY_PATH=$ENV{LD_LIBRARY_PATH}
               LD_PRELOAD=${LIBASAN_PATH}:${LIBSTDC_PATH} ASAN_OPTIONS=detect_leaks=0
-              ${PRELOAD} ./${OP_API_UT_EXE}
-              COMMAND ${Python3_EXECUTABLE} ${OPS_TRANSFORMER_DIR}/tests/ut/framework_normal/op_api/scripts/clean_opapi_stub.py ${ASCEND_OP_NAME_TMP} ${ASCEND_DIR}
-              COMMENT "Run ops op_api utest with asan"
+              ${PRELOAD}
+              bash -c "./${OP_API_UT_EXE};"${Python3_EXECUTABLE} ${OPS_TRANSFORMER_DIR}/tests/ut/framework_normal/op_api/scripts/clean_opapi_stub.py ${ASCEND_OP_NAME_TMP} ${ASCEND_DIR} ${CHIP_NAME}""
+          COMMENT "Run ops op_api utest with asan"
       )
     else()
       add_custom_command(
               TARGET ${OP_API_UT_EXE}
               POST_BUILD
               COMMAND
-              ${CMAKE_COMMAND} -E env LD_LIBRARY_PATH=$ENV{LD_LIBRARY_PATH} ./${OP_API_UT_EXE}
-              COMMAND ${Python3_EXECUTABLE} ${OPS_TRANSFORMER_DIR}/tests/ut/framework_normal/op_api/scripts/clean_opapi_stub.py ${ASCEND_OP_NAME_TMP} ${ASCEND_DIR}
+                ${CMAKE_COMMAND} -E env
+                LD_LIBRARY_PATH=$ENV{LD_LIBRARY_PATH}
+                bash -c "./${OP_API_UT_EXE};"${Python3_EXECUTABLE} ${OPS_TRANSFORMER_DIR}/tests/ut/framework_normal/op_api/scripts/clean_opapi_stub.py ${ASCEND_OP_NAME_TMP} ${ASCEND_DIR} ${CHIP_NAME}""
               COMMENT "Run ops op_api utest"
       )
     endif()

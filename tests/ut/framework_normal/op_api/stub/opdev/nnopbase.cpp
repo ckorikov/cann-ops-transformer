@@ -18,4 +18,8 @@ aclnnStatus NnopbaseRunForWorkspace(void *executor, uint64_t *workspaceLen) {
 aclnnStatus NnopbaseSetHcomGroup(void *const executor, char *const group) {
     return OK;
 }
+
+aclnnStatus NnopbaseDisableOptionalInput(void *executor, const size_t irIndex) {
+    return OK;
+}
 }

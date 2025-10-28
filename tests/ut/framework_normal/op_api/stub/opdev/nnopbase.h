@@ -16,5 +16,6 @@
 extern "C" {
 aclnnStatus NnopbaseRunForWorkspace(void *executor, uint64_t *workspaceLen);
 aclnnStatus NnopbaseSetHcomGroup(void *const executor, char *const group);
+aclnnStatus NnopbaseDisableOptionalInput(void *executor, const size_t irIndex);
 }
 #endif // OPS_TRANSFORMER_DEV_TESTS_UT_OP_API_STUB_OPDEV_NNOPBASE_H

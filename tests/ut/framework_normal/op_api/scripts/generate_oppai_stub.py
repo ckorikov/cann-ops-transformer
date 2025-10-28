@@ -19,7 +19,7 @@ def to_camel_case(name: str) -> str:
 
 def main():
     if len(sys.argv) != 5:
-        logging.error("Usage: python generate_op_stub.py <op_name> <path>")
+        logging.error("Usage: python generate_opapi_stub.py <op_name_list> <base_path> <chip_name> <runtime_stub_path>")
         sys.exit(1)
 
     op_names_raw = sys.argv[1]
@@ -52,9 +52,25 @@ def main():
         logging.info("Processing op: %s (CamelCase: %s)", op, camel_op)
 
         if camel_op not in data:
-            logging.warning("key [%s] not found in JSON, skipping.", camel_op)
-            continue
-
+            logging.info("key [%s] not found in JSON, create.", camel_op)
+            new_entry = {
+                "dynamicRankSupport": True,
+                "simplifiedKeyMode": 0,
+                "binaryList": [
+                    {
+                        "coreType": 2,
+                        "simplifiedKey": [
+                            f"{camel_op}/d=0,p=0/1"
+                        ],
+                        "binPath": f"{chip_name}/{op}/{op}_opapi_stub.o",
+                        "jsonPath": f"{chip_name}/{op}/{op}_opapi_stub.json"
+                    }
+                ]
+            }
+            data[camel_op] = new_entry
+            with open(config_path, 'w', encoding='utf-8') as f:
+                json.dump(data, f, indent=2, ensure_ascii=False)
+                f.write("\n")
         op_info = data[camel_op]
         binary_list = op_info.get("binaryList", [])
         if not binary_list:
