@@ -9,11 +9,11 @@
  */
 #include <algorithm>
 
-#include "aclnn_distribute_barrier.h"
 #include "aclnn_kernels/common/op_error_check.h"
 #include "op_mc2_def.h"
 #include "opdev/common_types.h"
 #include "opdev/op_log.h"
+#include "aclnn_distribute_barrier_v2.h"
 
 using namespace op;
 
@@ -22,7 +22,7 @@ extern "C" {
 #endif
 
 enum NnopbaseHcclServerType : uint32_t {
-  NNOPBASE_HCCL_SERVER_TYPE_AICPU = 0,
+  NNOPBASE_HCCL_SERVER_TYPE_AICPU = 0U,
   NNOPBASE_HCCL_SERVER_TYPE_MTE,
   NNOPBASE_HCCL_SERVER_TYPE_END
 };
@@ -36,25 +36,24 @@ extern aclnnStatus aclnnInnerDistributeBarrier(void* workspace,
                                                uint64_t workspaceSize,
                                                aclOpExecutor* executor,
                                                aclrtStream stream);
-extern "C" void __attribute__((weak))
-NnopbaseSetHcclServerType(void* executor, NnopbaseHcclServerType sType);
+extern "C" void __attribute__((weak)) NnopbaseSetHcclServerType(void* executor, NnopbaseHcclServerType sType);
 
 // check nullptr
 static bool CheckNullStatus(const aclTensor* xRef, const char* group) {
   // 检查必选入参出参为非空
-  OP_LOGD("aclnn_distribute_barrier CheckNotNull start");
+  OP_LOGD("aclnn_distribute_barrier_v2 CheckNotNull start");
   OP_CHECK_NULL(xRef, return false);
   if (group == nullptr) {
     OP_LOGE(ACLNN_ERR_PARAM_NULLPTR, "Required group name is Empty.");
     return false;
   }
-  OP_LOGD("aclnn_distribute_barrier CheckNotNull end");
+  OP_LOGD("aclnn_distribute_barrier_v2 CheckNotNull end");
   return true;
 }
 
 // 入参校验
 static aclnnStatus CheckParams(const aclTensor* xRef, const char* group) {
-  OP_LOGD("aclnn_distribute_barrier checkParams start");
+  OP_LOGD("aclnn_distribute_barrier_v2 checkParams start");
   CHECK_RET(CheckNullStatus(xRef, group), ACLNN_ERR_PARAM_NULLPTR);
   auto groupStrnLen = strnlen(group, HCCL_GROUP_NAME_MAX);
   if ((groupStrnLen >= HCCL_GROUP_NAME_MAX) || (groupStrnLen == 0)) {
@@ -64,24 +63,24 @@ static aclnnStatus CheckParams(const aclTensor* xRef, const char* group) {
             strnlen(group, HCCL_GROUP_NAME_MAX));
     return false;
   }
-  OP_LOGD("aclnn_distribute_barrier checkParams success");
+  OP_LOGD("aclnn_distribute_barrier_v2 checkParams success");
+
   return ACLNN_SUCCESS;
 }
 
-aclnnStatus aclnnDistributeBarrierGetWorkspaceSize(aclTensor* xRef,
-                                                   const char* group,
-                                                   int64_t worldSize,
-                                                   uint64_t* workspaceSize,
-                                                   aclOpExecutor** executor)
+aclnnStatus aclnnDistributeBarrierV2GetWorkspaceSize(const aclTensor* xRef, const aclTensor* timeOut,
+                                                     const aclTensor* elasticInfo, const char* group,
+                                                     int64_t worldSize, uint64_t* workspaceSize,
+                                                     aclOpExecutor** executor)
 
 {
   auto retParam = CheckParams(xRef, group);
   CHECK_RET(retParam == ACLNN_SUCCESS, retParam);
-  return aclnnInnerDistributeBarrierGetWorkspaceSize(xRef, nullptr, nullptr, group, worldSize,
-                                                     workspaceSize, executor);
+  return aclnnInnerDistributeBarrierGetWorkspaceSize(xRef, timeOut, elasticInfo,
+                                                     group, worldSize, workspaceSize, executor);
 }
 
-aclnnStatus aclnnDistributeBarrier(void* workspace, uint64_t workspaceSize,
+aclnnStatus aclnnDistributeBarrierV2(void* workspace, uint64_t workspaceSize,
                                    aclOpExecutor* executor,
                                    aclrtStream stream) {
   if (NnopbaseSetHcclServerType) {
