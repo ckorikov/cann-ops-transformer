@@ -533,7 +533,19 @@ static void SetHcclTiling(const gert::TilingContext* context, GroupedMatMulAllto
     auto attrs = context->GetAttrs();
     OP_TILING_CHECK(attrs == nullptr, OP_LOGE(C_INNER_DEBUG, "GetAttrs returned nullptr!"), return );
     auto groupEpPtr = attrs->GetAttrPointer<char>(ATTR_GROUP_INDEX);
-    Mc2CcTilingConfig hcclCcTilingConfig(groupEpPtr, alltoAllvCmd, alltoAllvConfig);
+
+    const uint32_t alltoallv_reduceType = 0u;
+    auto outputDataType = context->GetOutputDesc(OUTPUT_Y_INDEX)->GetDataType();
+    auto inputDataType = context->GetInputDesc(GMM_X_INDEX)->GetDataType();
+    OP_TILING_CHECK(mc2tiling::HCCL_DATA_TYPE.find(outputDataType) == mc2tiling::HCCL_DATA_TYPE.end() ||
+                    mc2tiling::HCCL_DATA_TYPE.find(inputDataType) == mc2tiling::HCCL_DATA_TYPE.end(), 
+                    OP_LOGE(C_INNER_DEBUG, "Unsupported data type!"), return );
+
+    auto alltoallv_dstDataType = static_cast<uint8_t>(mc2tiling::HCCL_DATA_TYPE.find(outputDataType)->second);
+    auto alltoallv_srcDataType = static_cast<uint8_t>(mc2tiling::HCCL_DATA_TYPE.find(inputDataType)->second);
+
+    Mc2CcTilingConfig hcclCcTilingConfig(groupEpPtr, alltoAllvCmd, alltoAllvConfig, 
+                                         alltoallv_reduceType, alltoallv_dstDataType, alltoallv_srcDataType);
     hcclCcTilingConfig.GetTiling(tilingData->hcclInitTiling);
     hcclCcTilingConfig.GetTiling(tilingData->alltoAllvCcTiling);
     return;
