@@ -642,7 +642,7 @@ uint64_t MatmulAllReduceTilingBase::GetBatchValue() const
 ge::graphStatus MatmulAllReduceTilingBase::CheckInput()
 {
     // 全量化mxfp&fp8hif8支持3种输出
-    std::initializer_list<ge::DataType> DTYPE_SUPPORT_LIST_Y;
+    std::vector<ge::DataType> DTYPE_SUPPORT_LIST_Y;
     if ((scenario_ == AllReduceScenario::MXFP8) || (scenario_ == AllReduceScenario::MXFP4) ||
         (scenario_ == AllReduceScenario::FP8HIF8)) {
         DTYPE_SUPPORT_LIST_Y = {ge::DataType::DT_FLOAT16, ge::DataType::DT_BF16, ge::DataType::DT_FLOAT};
