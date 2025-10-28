@@ -262,7 +262,7 @@ template <typename FIAT, typename CubeBlockType, typename VecBlockType, typename
 __aicore__ inline void FiaKernelNonQuantMla<FIAT, CubeBlockType, VecBlockType, FdBlockType>::
     InitOutputSingleCore()
 {
-   if (usedCoreNum != 0) {
+    if (usedCoreNum != 0) {
         uint32_t initOutputEventId = 0U;
         SetFlag<AscendC::HardEvent::MTE3_V>(initOutputEventId);
         uint64_t tSize = constInfo.batchSize * constInfo.qSeqSize;
@@ -288,7 +288,7 @@ __aicore__ inline void FiaKernelNonQuantMla<FIAT, CubeBlockType, VecBlockType, F
             SetFlag<AscendC::HardEvent::MTE3_V>(initOutputEventId);
         }
         WaitFlag<AscendC::HardEvent::MTE3_V>(initOutputEventId);
-        SyncAll();
+        SyncAll();  // 硬同步要求所有核都进行同步，此处对实际使用的核进行数据同步
     }
 }
 
@@ -318,6 +318,9 @@ __aicore__ inline void FiaKernelNonQuantMla<FIAT, CubeBlockType, VecBlockType, F
     // init tiling data
     tilingData = tiling;
     if (aiCoreIdx >= tilingData->baseParams.usedCoreNum) {
+        if ASCEND_IS_AIV {
+            SyncAll();  // 硬同步要求所有核都进行同步，此处对未使用核进行数据同步
+        }
         return;
     }
 
