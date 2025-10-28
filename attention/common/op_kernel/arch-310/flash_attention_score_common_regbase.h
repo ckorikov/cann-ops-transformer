@@ -59,6 +59,7 @@ constexpr uint64_t MM1_RES_INTRA_EVENT[2] = {9, 10}; //mm1ResIntraEvent
 constexpr uint64_t KB_TO_BYTES = 1024;
 constexpr uint64_t L0C_SIZE = 256;
 constexpr uint64_t BASE_SIZE_128 = 128;
+constexpr uint64_t FLOAT_BYTES = 4;
 enum class SparseModeEnum {
     ALL = 0,
     NONE = 1,

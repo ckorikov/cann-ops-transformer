@@ -476,6 +476,7 @@ protected:
     bool regbase = false;
     bool hasRope = false;
 
+    DTemplateType dTemplateType = DTemplateType::DTEMPLATEBOTTOM;
     DTemplateType dVTemplateType = DTemplateType::DTEMPLATEBOTTOM;
     FlashAttentionScoreSimplifiedTilingData *tilingData = context_->GetTilingData<FlashAttentionScoreSimplifiedTilingData>();
     InputParamsRegbase *inputParamsRegbase_ = &tilingData->inputParamsRegbase;
@@ -2011,31 +2012,18 @@ ge::graphStatus FlashAttentionScoreConstTiling::DoLibApiTiling()
 }
 
 void FlashAttentionScoreConstTiling::CalcDVBasicBlock() {
-    /* 先确定D的基本块，确定的逻辑是按照64来分档 */
     dVBasicBlock = AlignUp(dSizeV, D_TEMPLATE_SPLIT_SIZE);
-    switch (dVBasicBlock) {
-        case NUM_64:
-            dVTemplateType = DTemplateType::ALIGNED_64;
-            break;
-        case NUM_128:
+    if (dTemplateType == DTemplateType::ALIGNED_192) {
+        if (dVBasicBlock <= NUM_128) {
             dVTemplateType = DTemplateType::ALIGNED_128;
-            break;
-        case NUM_192:
+        }else {
             dVTemplateType = DTemplateType::ALIGNED_192;
-            break;
-        case NUM_256:
-            dVTemplateType = DTemplateType::ALIGNED_256;
-            break;
-        case NUM_320:
-        case NUM_384:
-        case NUM_448:
-        case NUM_512:
-            dVTemplateType = DTemplateType::ALIGNED_512;
-            break;
-        default:
-            dVTemplateType = DTemplateType::DTEMPLATEBOTTOM;
+        }
+    } else {
+        dVTemplateType = dTemplateType;
     }
 }
+
 
 ge::graphStatus FlashAttentionScoreConstTiling::PostTiling()
 {
@@ -2076,7 +2064,6 @@ public:
     ~FlashAttentionScoreTilingS1S2Const() override = default;
 
 protected:
-    DTemplateType dTemplateType = DTemplateType::DTEMPLATEBOTTOM;
     STemplateType s1TemplateType = STemplateType::STEMPLATEBOTTOM;
     STemplateType s2TemplateType = STemplateType::STEMPLATEBOTTOM;
 
@@ -2199,6 +2186,12 @@ protected:
             hasDropOut, hasRope, static_cast<uint8_t>(outDtype), static_cast<uint8_t>(regbase));
 
         // Const 128
+        if (dTemplateType == dVTemplateType) {
+            return GET_TPL_TILING_KEY(0, static_cast<uint8_t>(implMode), static_cast<uint8_t>(tilingKeyLayout),
+            static_cast<uint16_t>(s1TemplateType), static_cast<uint16_t>(s2TemplateType),
+            static_cast<uint16_t>(dTemplateType), static_cast<uint16_t>(DTemplateType::NONALIGNED), pseMode, hasAttenMask,
+            hasDropOut, hasRope, static_cast<uint8_t>(outDtype), static_cast<uint8_t>(regbase));
+        }
         return GET_TPL_TILING_KEY(0, static_cast<uint8_t>(implMode), static_cast<uint8_t>(tilingKeyLayout),
             static_cast<uint16_t>(s1TemplateType), static_cast<uint16_t>(s2TemplateType),
             static_cast<uint16_t>(dTemplateType), static_cast<uint16_t>(dVTemplateType), pseMode, hasAttenMask,
@@ -2262,7 +2255,6 @@ public:
 protected:
     int64_t s2SizeLimitMax = 128;
 
-    DTemplateType dTemplateType = DTemplateType::DTEMPLATEBOTTOM;
     STemplateType s1TemplateType = STemplateType::STEMPLATEBOTTOM;
     STemplateType s2TemplateType = STemplateType::STEMPLATEBOTTOM;
 
@@ -2414,6 +2406,12 @@ protected:
             static_cast<uint8_t>(regbase));
 
         // Const 128
+        if (dTemplateType == dVTemplateType) {
+            return GET_TPL_TILING_KEY(0, static_cast<uint8_t>(implMode), static_cast<uint8_t>(tilingKeyLayout),
+            static_cast<uint16_t>(s1TemplateType), static_cast<uint16_t>(s2TemplateType),
+            static_cast<uint16_t>(dTemplateType), static_cast<uint16_t>(DTemplateType::NONALIGNED), pseMode, hasAttenMask,
+            hasDropOut, hasRope, static_cast<uint8_t>(outDtype), static_cast<uint8_t>(regbase));
+        }
         return GET_TPL_TILING_KEY(0, static_cast<uint8_t>(implMode), static_cast<uint8_t>(tilingKeyLayout),
             static_cast<uint16_t>(s1TemplateType), static_cast<uint16_t>(s2TemplateType),
             static_cast<uint16_t>(dTemplateType), static_cast<uint16_t>(dVTemplateType), pseMode, hasAttenMask,
