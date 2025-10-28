@@ -1720,17 +1720,6 @@ ge::graphStatus PromptFlashAttentionTiling::PromptFlashAttentionApiTiling(Prompt
 
 ge::graphStatus PromptFlashAttentionTiling::PromptFlashAttentionSetTilingData(gert::TilingContext* context,
     PromptFlashAttentionTilingData* tilingData) {
-    // if (atbRunFlag_) {
-    //     baseApiTilingData.SaveToBuffer(context->GetRawTilingData()->GetData(), context->GetRawTilingData()->GetCapacity());
-    //     context->GetRawTilingData()->SetDataSize(baseApiTilingData.GetDataSize());
-    // } else if (mlaRunFlag_) {
-    //     mlaTilingData.SaveToBuffer(context->GetRawTilingData()->GetData(), context->GetRawTilingData()->GetCapacity());
-    //     context->GetRawTilingData()->SetDataSize(mlaTilingData.GetDataSize());
-    // } else {
-    //     tilingData->SaveToBuffer(context->GetRawTilingData()->GetData(), context->GetRawTilingData()->GetCapacity());
-    //     context->GetRawTilingData()->SetDataSize(tilingData->GetDataSize());
-    // }
-
     return ge::GRAPH_SUCCESS;
 }
 
