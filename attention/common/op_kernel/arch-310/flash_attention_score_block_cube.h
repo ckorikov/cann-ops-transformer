@@ -410,7 +410,10 @@ __aicore__ inline void FABlockCube<TEMPLATE_ARGS>::CalcS2Coord(RunInfo<isInfer> 
             if constexpr (layout == LayOutTypeEnum::LAYOUT_BNSD) {
                 // 更新N2方向stride
                 this->keyGm.offsetCalculator.Init(0, constInfo.n2Size, runInfo.s2InCurrentBatch, constInfo.dSize);
-                this->valueGm.offsetCalculator.Init(0, constInfo.n2Size, runInfo.s2InCurrentBatch, constInfo.dSizeV);
+                if constexpr (hasRope) {
+                    this->keyRopeGm.offsetCalculator.Init(0, constInfo.n2Size, runInfo.s2InCurrentBatch,
+                                                          constInfo.dSizeRope);
+                }
             }
         }
     }
@@ -557,6 +560,11 @@ TEMPLATES_DEF_NO_DEFAULT
 __aicore__ inline void FABlockCube<TEMPLATE_ARGS>::IterateBmm2(
     mm2ResPos outputTensor, BuffersPolicy3buff<BufferType::L1, false> &inputBuf, RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo)
 {
+    if constexpr (isInfer && layout == LayOutTypeEnum::LAYOUT_BNSD) {
+        if (constInfo.isKvContinuous == 0) {
+            this->valueGm.offsetCalculator.Init(0, constInfo.n2Size, runInfo.s2InCurrentBatch, constInfo.dSizeV);
+        }
+    }
     if constexpr (IsSameType<INPUT_T, float>::value || (uint32_t)dVTemplateType > 256 || (uint32_t)dTemplateType > 256) {
         IterateBmm2L1SplitN(outputTensor, inputBuf, runInfo, constInfo);
     } else {
@@ -808,7 +816,7 @@ __aicore__ inline void FABlockCube<TEMPLATE_ARGS>::IterateBmm1NdL0Split(LocalTen
             if constexpr (isFp8) {
                 dstNzC0Stride = (runInfo.s2RealSize + 31) >> 5 << 5; // fp8场景在L1上M方向32对齐，防止loadL12L0出现地址越界
             }
-            uint64_t gmRopeOffset = this->keyRopeGm.offsetCalculator.GetOffset(coordInfo[runInfo.taskIdMod3].curBIdx,
+            uint64_t gmRopeOffset = this->keyRopeGm.offsetCalculator.GetOffset(runInfo.boIdx,
                 runInfo.n2oIdx, coordInfo[runInfo.taskIdMod3].s2Coord, 0);
             CopyToL1Nd2Nz<INPUT_T>(mm1BTensor[dstNzC0Stride * constInfo.dSize], this->keyRopeGm.gmTensor[gmRopeOffset],
                 runInfo.s2RealSize, constInfo.dSizeRope, constInfo.mm1RopeKb); 
