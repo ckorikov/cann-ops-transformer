@@ -56,19 +56,47 @@ std::string ConvertContainerToString(const C &container, Func func = ElemToStrin
 // =================================全量参数校验=================================
 ge::graphStatus MlaPrologTilingCheck::CheckDims() const
 {
+    OP_CHECK_IF(context_.platformInfo == nullptr,
+        OP_LOGE(context_.opName, "GetPlatformInfo is nullptr."), return ge::GRAPH_FAILED);
+    auto ascendcPlatform = platform_ascendc::PlatformAscendC(context_.platformInfo);
+    auto socShortName = ascendcPlatform.GetSocVersion();
+    if (socShortName == platform_ascendc::SocVersion::ASCEND910_95) {
+        OP_CHECK_IF(context_.tokenX.shape->GetStorageShape().GetDimNum() != MLA_PROLOG_DIM_NUM_3,
+            OP_LOGE(context_.opName, "tokenX shape dim num allows only %u, got %u.",
+                MLA_PROLOG_DIM_NUM_3, context_.tokenX.shape->GetStorageShape().GetDimNum()),
+            return ge::GRAPH_FAILED);
+        OP_CHECK_IF(scenarioInfo_.quantMode_ != QUANT_MODE::NO_QUANT,
+            OP_LOGE(context_.opName, "QUANT_MODE allows only %u, got %u.",
+                QUANT_MODE::NO_QUANT, scenarioInfo_.quantMode_),
+            return ge::GRAPH_FAILED);
+    }
     OP_CHECK_IF(baseShapeInfo_.bSize > MAX_B_SIZE,
         OP_LOGE(context_.opName, "B should not be greater than %u, got %u.",
             MAX_B_SIZE, baseShapeInfo_.bSize),
         return ge::GRAPH_FAILED);
-    OP_CHECK_IF(baseShapeInfo_.s1Size > MAX_S1_SIZE,
-        OP_LOGE(context_.opName, "S should not be greater than %u, got %u.",
-            MAX_S1_SIZE, baseShapeInfo_.s1Size),
-        return ge::GRAPH_FAILED);
-    const std::set<uint32_t> supportedHeSize {7168U, 7680U, 6144U};
-    OP_CHECK_IF(supportedHeSize.find(baseShapeInfo_.heSize) == supportedHeSize.end(),
-        OP_LOGE(context_.opName, "He allows only %s, got %u.",
-            ConvertContainerToString(supportedHeSize).c_str(), baseShapeInfo_.heSize),
-        return ge::GRAPH_FAILED);
+    if (socShortName == platform_ascendc::SocVersion::ASCEND910_95) {
+        OP_CHECK_IF(baseShapeInfo_.s1Size != 1 && baseShapeInfo_.s1Size != 0,
+            OP_LOGE(context_.opName, "S allows only {0,1}, got %u.", baseShapeInfo_.s1Size),
+            return ge::GRAPH_FAILED);
+    } else {
+        OP_CHECK_IF(baseShapeInfo_.s1Size > MAX_S1_SIZE,
+            OP_LOGE(context_.opName, "S should not be greater than %u, got %u.",
+                MAX_S1_SIZE, baseShapeInfo_.s1Size),
+            return ge::GRAPH_FAILED);
+    }
+    if (socShortName == platform_ascendc::SocVersion::ASCEND910_95) {
+        const std::set<uint32_t> supportedHeSize {7168U};
+        OP_CHECK_IF(supportedHeSize.find(baseShapeInfo_.heSize) == supportedHeSize.end(),
+            OP_LOGE(context_.opName, "He allows only %s, got %u.",
+                ConvertContainerToString(supportedHeSize).c_str(), baseShapeInfo_.heSize),
+            return ge::GRAPH_FAILED);
+    } else {
+        const std::set<uint32_t> supportedHeSize {7168U, 7680U, 6144U};
+        OP_CHECK_IF(supportedHeSize.find(baseShapeInfo_.heSize) == supportedHeSize.end(),
+            OP_LOGE(context_.opName, "He allows only %s, got %u.",
+                ConvertContainerToString(supportedHeSize).c_str(), baseShapeInfo_.heSize),
+            return ge::GRAPH_FAILED);
+    }
     OP_CHECK_IF(baseShapeInfo_.hcqSize != HCQ_SIZE,
         OP_LOGE(context_.opName, "Hcq allows only %u, got %u.",
             HCQ_SIZE, baseShapeInfo_.hcqSize),
@@ -471,12 +499,24 @@ bool MlaPrologTilingCheck::CheckKrCache() const
 
 ge::graphStatus MlaPrologTilingCheck::CheckCacheMode() const
 {
-    if ((std::strcmp(context_.cacheMode, CACHE_MODE_PA_BSND) == 0) ||
-        (std::strcmp(context_.cacheMode, CACHE_MODE_PA_NZ) == 0)) {
-        return ge::GRAPH_SUCCESS;
+    OP_CHECK_IF(context_.platformInfo == nullptr,
+        OP_LOGE(context_.opName, "GetPlatformInfo is nullptr."), return ge::GRAPH_FAILED);
+    auto ascendcPlatform = platform_ascendc::PlatformAscendC(context_.platformInfo);
+    auto socShortName = ascendcPlatform.GetSocVersion();
+    if (socShortName == platform_ascendc::SocVersion::ASCEND910_95) {
+        if ((std::strcmp(context_.cacheMode, CACHE_MODE_PA_BSND) == 0)) {
+            return ge::GRAPH_SUCCESS;
+        }
+        OP_LOGE(context_.opName, "Only support cacheMode (PA_BSND), actually is %s.", context_.cacheMode);
+        return ge::GRAPH_FAILED;
+    } else {
+        if ((std::strcmp(context_.cacheMode, CACHE_MODE_PA_BSND) == 0) ||
+            (std::strcmp(context_.cacheMode, CACHE_MODE_PA_NZ) == 0)) {
+            return ge::GRAPH_SUCCESS;
+        }
+        OP_LOGE(context_.opName, "Only support cacheMode (PA_BSND, PA_NZ), actually is %s.", context_.cacheMode);
+        return ge::GRAPH_FAILED;
     }
-    OP_LOGE(context_.opName, "Only support cacheMode (PA_BSND, PA_NZ), actually is %s.", context_.cacheMode);
-    return ge::GRAPH_FAILED;
 }
 // ==================================单参数校验==================================
 }  // namespace optiling
