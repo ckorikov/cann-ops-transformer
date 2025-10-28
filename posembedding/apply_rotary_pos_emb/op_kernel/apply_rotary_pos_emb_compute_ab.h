@@ -145,12 +145,12 @@ __aicore__ inline void ARPEComputeAB<T1, T2>::SmallQC(
     for (int64_t ii = 0; ii < tilingData->qkcNum; ii++) {
         int64_t offi = ii * tilingData->lastDim;
         int64_t offset = j * tilingData->comBatchBB * tilingData->qkcNum * tilingData->lastDim + offi;
-        Mul<float, false>(mul1Ub[offi], outUb[offset], sinSize[offsin], tilingData->mask, comBatchBB, repeatParams);
-        Mul<float, false>(
+        Mul<T1, false>(mul1Ub[offi], outUb[offset], sinSize[offsin], tilingData->mask, comBatchBB, repeatParams);
+        Mul<T1, false>(
             mul1Ub[offi + tilingData->halfNum], outUb[offset + tilingData->halfNum],
             sinSize[offsin + tilingData->halfNum], tilingData->mask, comBatchBB, repeatParams);
-        Mul<float, false>(mul2Ub[offi], qSize[offset], cosSize[offsin], tilingData->mask, comBatchBB, repeatParams);
-        Mul<float, false>(
+        Mul<T1, false>(mul2Ub[offi], qSize[offset], cosSize[offsin], tilingData->mask, comBatchBB, repeatParams);
+        Mul<T1, false>(
             mul2Ub[offi + tilingData->halfNum], qSize[offset + tilingData->halfNum],
             cosSize[offsin + tilingData->halfNum], tilingData->mask, comBatchBB, repeatParams);
     }
