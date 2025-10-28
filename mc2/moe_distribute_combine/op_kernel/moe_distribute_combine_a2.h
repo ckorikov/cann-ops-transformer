@@ -271,9 +271,9 @@ __aicore__ inline void MoeDistributeCombineA2<TemplateMC2TypeA2Func>::Init(GM_AD
 template <TemplateMC2TypeA2Class>
 __aicore__ inline void MoeDistributeCombineA2<TemplateMC2TypeA2Func>::BuffInit()
 {
-    uint32_t expertIdsNumPerCore = RoundUp(axisBS_ , aivNum_) * axisK_; // 每个核分配到的task处理个数
-    uint32_t expertIdsBufSizePerCore = RoundUp(expertIdsNumPerCore * static_cast<uint32_t>(sizeof(int32_t)), B32_PER_BLOCK);
-    uint32_t moeExpertNumInt32Size = RoundUp(moeExpertNum_ * static_cast<uint32_t>(sizeof(int32_t)), B32_PER_BLOCK) ;
+    uint32_t expertIdsNumPerCore = Ceil(axisBS_, aivNum_) * axisK_; // 每个核分配到的task处理个数
+    uint32_t expertIdsBufSizePerCore = RoundUp(expertIdsNumPerCore * static_cast<uint32_t>(sizeof(int32_t)), UB_ALIGN);
+    uint32_t moeExpertNumInt32Size = RoundUp(moeExpertNum_ * static_cast<uint32_t>(sizeof(int32_t)), UB_ALIGN) ;
     tpipe_->InitBuffer(moeQueue_, BUFFER_NUM, axisHExpandXTypeSize_);
     // REPEAT_BYTES = 256 原因：在TokenActiveMaskCal函数中，复用expertIdsBuf_；
     // 若bs和k较小时，复用的大小不够，同时对齐指令需要至少256B。
