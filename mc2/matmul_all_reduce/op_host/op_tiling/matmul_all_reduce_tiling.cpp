@@ -722,7 +722,7 @@ bool MatmulAllReduceTilingBase::CheckBiasShape(const uint64_t nValue) const
     const auto bias = mmrCtxInfo_.bias_shape;
     if (bias != nullptr) {
         OP_TILING_CHECK(
-            isPerBlock_, VECTOR_INNER_ERR_REPORT_TILING(opName_, "do not suppport bias yet when inputs is perblock"),
+            isPerBlock_, VECTOR_INNER_ERR_REPORT_TILING(opName_, "do not support bias yet when inputs is perblock"),
             return false);
         const auto biasShapeSize = static_cast<size_t>(bias->GetStorageShape().GetShapeSize());
         uint64_t dimNum = bias->GetStorageShape().GetDimNum();

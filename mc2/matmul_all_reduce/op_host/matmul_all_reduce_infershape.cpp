@@ -135,6 +135,11 @@ static ge::graphStatus InferShapeForMatmulAllReduce(gert::InferShapeContext* con
         shape_out->SetDim(0U, shape.m);
         shape_out->SetDim(1U, shape.n);
     }
+    OPS_CHECK(
+        shape.s * shape.m * shape.n == 0,
+        OP_LOGE(
+            kInnerDebug, "MC2 output shape after infer shape, dim: %zu s: %ld m: %ld n: %ld.",
+            shape.output_dim, shape.s, shape.m, shape.n), return ge::GRAPH_FAILED);
     OP_LOGI(
         kInnerDebug, "MC2 output shape after infer shape, dim: %zu m: %ld n: %ld.", shape.output_dim, shape.m, shape.n);
     return ge::GRAPH_SUCCESS;
