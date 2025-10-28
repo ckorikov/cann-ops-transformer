@@ -21,15 +21,7 @@
 #include "incre_flash_attention_preload.h"
 #include "incre_flash_attention_preload_dd.h"
 #include "paged_attention_antiquantkv.h"
-
-// #ifdef FIA_ENABLE_MLA
-// // mla模板使用私有tiling结构，框架编译时根据一组DType预编译获取keylist，根据keylist找到对应的tiling结构
-// // 在这组DType中，若没有mla模板的key，包含mla模板编译会报错：unknown type name 'IncreFlashAttentionTilingDataMla'
-// #if ((ORIG_DTYPE_QUERY == DT_INT8) && (ORIG_DTYPE_ATTENTION_OUT == DT_BF16) && (ORIG_DTYPE_KEY == DT_INT8))
 #include "incre_flash_attention_preload_mla.h"
-// #endif
-// #endif // FIA_ENABLE_MLA
-
 #else
 #include "unpad_paged_attention_decoder.h"
 #endif
