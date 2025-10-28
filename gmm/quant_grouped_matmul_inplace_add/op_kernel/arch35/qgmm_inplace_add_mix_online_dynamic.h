@@ -16,9 +16,9 @@
 #ifndef QGMM_INPLACE_ADD_MIX_ONLNE_DYNAMIC_H
 #define QGMM_INPLACE_ADD_MIX_ONLNE_DYNAMIC_H
 
-#include "include/matmul/kernel/kernel_qgmm_inplace_add_mix_online_dynamic.h"
-#include "include/matmul/block/block_mmad_builder.h"
-#include "include/matmul/block/block_scheduler_gmm_aswt_with_tail_split.h"
+#include "act/matmul/block/block_mmad_builder.h"
+#include "act/matmul/block/block_scheduler_gmm_aswt_with_tail_split.h"
+#include "act/matmul/kernel/kernel_qgmm_inplace_add_mix_online_dynamic.h"
 #include "../qgmm_inplace_add_utils.h"
 #include "../quant_grouped_matmul_inplace_add_tiling_data.h"
 

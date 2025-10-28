@@ -1,0 +1,99 @@
+/*
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
+ * This file is a part of the CANN Open Software.
+ * Licensed under CANN Open Software License Agreement Version 2.0 (the "License").
+ * Please refer to the License for details. You may not use this file except in compliance with the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
+ */
+
+/*!
+ * \file common_utils.h
+ * \brief
+ */
+
+#ifndef UTILS_COMMON_UTILS_H
+#define UTILS_COMMON_UTILS_H
+
+namespace Act {
+namespace Gemm {
+constexpr int64_t MATRIX_INNER_DIM_LIMIT_SIZE = 65536;
+constexpr int32_t MATMUL_MNK_ALIGN = 16;
+constexpr int32_t MATMUL_MNK_ALIGN_INT8 = 32;
+constexpr int64_t DOUBLE_BUFFER_COUNT = 2;
+constexpr int64_t UB_FLOAT_ALIGN_NUM = 8;
+constexpr int64_t L1_EVENT_ID_OFFSET = 2;
+constexpr uint32_t UB_ALIGN_SIZE = 32;
+constexpr int MNK_M = 0;
+constexpr int MNK_N = 1;
+constexpr int MNK_K = 2;
+constexpr int MNK_B = 3;
+constexpr static uint64_t B_FULL_LOAD_MODE = 2UL;
+constexpr static int64_t PER_BLOCK_SIZE = 128L;
+
+struct MatmulShape {
+    int64_t m;
+    int64_t n;
+    int64_t k;
+    int64_t b;
+};
+
+__host_aicore__ inline int64_t CeilDiv(int64_t a, int64_t b)
+{
+    if (b == 0) {
+        return a;
+    }
+    return (a + b - 1) / b;
+}
+
+__host_aicore__ inline int64_t CeilAlign(int64_t a, int64_t b)
+{
+    if (b == 0) {
+        return a;
+    }
+    return (a + b - 1) / b * b;
+}
+
+template <typename T>
+__aicore__ inline T Max(T a, T b)
+{
+    return a > b ? a : b;
+}
+
+template <typename T>
+__aicore__ inline T Min(T a, T b)
+{
+    return a > b ? b : a;
+}
+
+__aicore__ inline uint64_t CeilDiv(uint64_t a, uint64_t b)
+{
+    if (b == 0) {
+        return a;
+    }
+    return (a + b - 1) / b;
+}
+
+__aicore__ inline uint64_t Align(uint64_t a, uint64_t b)
+{
+    if (b == 0) {
+        return a;
+    }
+    return (a + b - 1) / b * b;
+}
+
+/**
+ * Get the aiv corenum from aic in different platforms
+ */
+__aicore__ inline uint32_t GetAicAivTaskRation()
+{
+#if defined(__DAV_C310__) || __CCE_AICORE__ == 220
+    return 2U; // 2: aic:aiv = 1:2
+#else
+    return 1U;
+#endif
+}
+} // namespace Gemm
+} // namespace Act
+#endif

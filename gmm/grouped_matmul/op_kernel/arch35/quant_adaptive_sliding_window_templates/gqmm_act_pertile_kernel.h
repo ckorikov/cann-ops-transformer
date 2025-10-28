@@ -15,12 +15,12 @@
 #ifndef GQMM_ACT_PERTILE_KERNEL_H
 #define GQMM_ACT_PERTILE_KERNEL_H
 
-#include "include/epilogue/block_epilogue_pertile.h"
-#include "include/matmul/block/block_mmad_qgmm_pertile.h"
-#include "include/matmul/block/block_scheduler_gmm_aswt_with_tail_split.h"
-#include "include/matmul/block/block_scheduler_policy.h"
-#include "include/matmul/kernel/kernel_qgmm_pertile.h"
-#include "include/matmul/policy/dispatch_policy.h"
+#include "act/epilogue/block_epilogue_pertile.h"
+#include "act/matmul/block/block_mmad_pertile.h"
+#include "act/matmul/block/block_scheduler_gmm_aswt_with_tail_split.h"
+#include "act/matmul/block/block_scheduler_policy.h"
+#include "act/matmul/kernel/kernel_qgmm_pertile.h"
+#include "act/matmul/policy/dispatch_policy.h"
 #include "../../grouped_matmul_utils.h"
 #include "quant_utils.h"
 

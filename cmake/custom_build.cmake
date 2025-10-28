@@ -612,6 +612,10 @@ install(DIRECTORY ${OPS_ADV_UTILS_KERNEL_INC}/
         DESTINATION ${IMPL_INSTALL_DIR}/ascendc/common
 )
 
+install(DIRECTORY ${OPS_ADV_DIR}/common/act
+        DESTINATION ${IMPL_INSTALL_DIR}/ascendc/common
+)
+
 foreach (op_dir ${OP_DIR_LIST})
     get_filename_component(_op_name "${op_dir}" NAME)
 
@@ -619,12 +623,18 @@ foreach (op_dir ${OP_DIR_LIST})
         file(GLOB KERNEL_FILES
             ${op_dir}/op_kernel/*.cpp
             ${op_dir}/op_kernel/*.h
-    )
+        )
+    if (EXISTS "${op_dir}/op_kernel/arch35")
+        install(DIRECTORY ${op_dir}/op_kernel/arch35
+        DESTINATION ${IMPL_INSTALL_DIR}/ascendc/${_op_name}
+        OPTIONAL
+        )
+    endif()
     else()
         file(GLOB KERNEL_FILES
             ${op_dir}/*.cpp
             ${op_dir}/*.h
-    )
+        )     
     endif()
 
     install(FILES ${KERNEL_FILES}
@@ -638,12 +648,18 @@ foreach (op_dir ${OP_DIR_LIST})
                 file(GLOB DEPEND_KERNEL_FILES
                 ${OPS_TRANSFORMER_DIR}/${op_depend_dir}/op_kernel/*.cpp
                 ${OPS_TRANSFORMER_DIR}/${op_depend_dir}/op_kernel/*.h
-        )
+                )
+        if (EXISTS "${OPS_TRANSFORMER_DIR}/${op_depend_dir}/op_kernel/arch35")
+                install(DIRECTORY ${OPS_TRANSFORMER_DIR}/${op_depend_dir}/op_kernel/arch35
+                  DESTINATION ${IMPL_INSTALL_DIR}/ascendc/${op_depend_dir}
+                  OPTIONAL
+                )
+        endif()
         else()
-                file(GLOB DEPEND_KERNEL_FILES
+            file(GLOB DEPEND_KERNEL_FILES
                 ${OPS_TRANSFORMER_DIR}/${op_depend_dir}/*.cpp
                 ${OPS_TRANSFORMER_DIR}/${op_depend_dir}/*.h
-        )
+            )
         endif()
         install(FILES ${DEPEND_KERNEL_FILES}
                 DESTINATION ${IMPL_INSTALL_DIR}/ascendc/${_op_depened_name}
