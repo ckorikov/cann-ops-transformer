@@ -2777,8 +2777,8 @@ ge::graphStatus PromptFlashAttentionTiling::GetBasicShape310P(uint32_t &b,
       h = queryShape->GetStorageShape().GetDim(1);
       seqInnerSize = keyShape->GetStorageShape().GetDim(0);
 
-      Align(s);
-      Align(seqInnerSize);
+      // Align(s);
+      // Align(seqInnerSize);
       d = (h / n);
       Align(d);
       h = (d * n);
@@ -4479,14 +4479,14 @@ ge::graphStatus PromptFlashAttentionTiling::RunBigKernelTilingWithParams(Context
                     OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName,
                     "batch size(%u) should not be larger than %u!", b, BLIMIT),
                     return ge::GRAPH_FAILED);
-    OP_CHECK_IF((b > 128 && (inputLayout == InputLayout::SH)),
-                    OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName,
-                    "batch size(%u) should not be larger than 128 when input layout is SH!", b),
-                    return ge::GRAPH_FAILED);
-    OP_CHECK_IF((curShortSocName == platform_ascendc::SocVersion::ASCEND310P && b > 128U),
-                    OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName,
-                    "ascend310p platform do not support batch size(%u) more than 128.", b),
-                    return ge::GRAPH_FAILED);
+    // OP_CHECK_IF((b > 128 && (inputLayout == InputLayout::SH)),
+    //                 OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName,
+    //                 "batch size(%u) should not be larger than 128 when input layout is SH!", b),
+    //                 return ge::GRAPH_FAILED);
+    // OP_CHECK_IF((curShortSocName == platform_ascendc::SocVersion::ASCEND310P && b > 128U),
+    //                 OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName,
+    //                 "ascend310p platform do not support batch size(%u) more than 128.", b),
+    //                 return ge::GRAPH_FAILED);
 
     bool iskvdiff = (seqInnerSize != s);
     OP_CHECK_IF((iskvdiff) && (inputLayout == InputLayout::SH) && (!enablePA) && (contextKeyParams.fromTilingSink == 0),
@@ -5154,10 +5154,10 @@ ge::graphStatus PromptFlashAttentionTiling::RunBigKernelTilingWithParams(Context
 
     // Currently, there will be no D splitting scenario, and split D = 0 is default when splitting.
     if (tilingMod == TilingMod::CVSAME) {
-        OP_CHECK_IF(lenDims > 128,
-                        OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName,
-                        "when D axis size(%u) is unaligend with 32 bytes, batch size(%zu) can not larger than 128.", hDivN, lenDims),
-                        return ge::GRAPH_FAILED);
+        // OP_CHECK_IF(lenDims > 128,
+        //                 OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName,
+        //                 "when D axis size(%u) is unaligend with 32 bytes, batch size(%zu) can not larger than 128.", hDivN, lenDims),
+        //                 return ge::GRAPH_FAILED);
         auto ret = AdjustCVTiling(hDivN, *n, middleActualSeqLengths, ubSize, l1Size, l0CSize, maskElemSize,
                                     sOuterFactor, sInnerFactor, tilingData);
         OP_CHECK_IF(ret != ge::GRAPH_SUCCESS,

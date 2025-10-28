@@ -22,7 +22,7 @@
 #include "kernel_operator_softmax_compute_nz.h"
 
 using namespace matmul;
-constexpr uint32_t BATCH_NUM_MAX_NZ = 128;
+constexpr uint32_t BATCH_NUM_MAX_NZ = 400;
 constexpr static uint32_t NEGATIVE_MIN_VAULE_FP32 = 0xFF7FFFFF;
 constexpr static uint32_t NEGATIVE_MIN_VAULE_FP16 = 0xC61C4000;
 
