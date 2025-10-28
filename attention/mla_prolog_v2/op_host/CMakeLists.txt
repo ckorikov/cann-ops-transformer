@@ -13,9 +13,7 @@ if (BUILD_OPEN_PROJECT)
     target_sources(op_host_aclnnInner PRIVATE
         mla_prolog_v2_def.cpp
     )
-endif()
 
-if (BUILD_OPS_RTY_KERNEL)
     add_ops_compile_options(
         OP_NAME MlaPrologV2
         OPTIONS --cce-auto-sync=off
@@ -29,6 +27,8 @@ if (BUILD_OPS_RTY_KERNEL)
         OPTIONS -mllvm
                 -cce-aicore-jump-expand=true
     )
-else()
+endif()
+
+if (NOT BUILD_OPS_RTY_KERNEL)
     add_modules_sources(OPTYPE mla_prolog_v2 ACLNNTYPE aclnn_inner)
 endif()
