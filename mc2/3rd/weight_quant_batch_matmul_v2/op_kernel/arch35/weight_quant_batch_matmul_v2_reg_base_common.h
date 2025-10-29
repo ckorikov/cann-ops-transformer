@@ -203,10 +203,6 @@ public:
     __aicore__ inline void BL1ProcessKN1Vs1(uint64_t curBL1BufIdx, int64_t nBL1Offset, int64_t kBL1Offset);
     __aicore__ inline void BL1ProcessKN(
         uint64_t curBL1BufIdx, int64_t nBL1Offset, int64_t kBL1Offset, int32_t kL1Len, int32_t nL0Len);
-    __aicore__ inline void ScaleOffsetProcessOpti(
-        RegTensor<xType>& weightIntv, RegTensor<xType>& weightIntv1, RegTensor<xType>& weightOutNd,
-        RegTensor<xType>& weightOutNd1, RegTensor<xType>& scale, RegTensor<xType>& offset, MaskReg& pregCalcFirst,
-        MaskReg& pregCalcSecond);
     __aicore__ inline void CopyND2NZ(int al1PongFlag);
 
     __aicore__ inline void GetAL1KNotFullloadNoReuse(
@@ -1026,48 +1022,6 @@ __aicore__ inline void WeightQuantBatchMatmulV2RegBaseCommonKernel<
     if constexpr (hasAntiQuantOffset) {
         DataCopyPad(offsetInUb_[ubOffset], addGlobal_[gmOffset], intriParams, padParams);
     }
-}
-
-template <
-    typename xType, typename wType, typename biasType, typename yType, bool aTrans, bool bTrans,
-    bool hasAntiQuantOffset, QuantType antiQuantType, bool weightNz>
-__aicore__ inline void WeightQuantBatchMatmulV2RegBaseCommonKernel<
-    xType, wType, biasType, yType, aTrans, bTrans, hasAntiQuantOffset, antiQuantType, weightNz>::
-    ScaleOffsetProcessOpti(
-        RegTensor<xType>& weightIntv, RegTensor<xType>& weightIntv1, RegTensor<xType>& weightOutNd,
-        RegTensor<xType>& weightOutNd1, RegTensor<xType>& scale, RegTensor<xType>& offset, MaskReg& pregCalcFirst,
-        MaskReg& pregCalcSecond)
-{
-#ifndef __CCE_KT_TEST__
-    if constexpr (antiQuantType == QuantType::PER_CHANNEL) {
-        if constexpr (hasAntiQuantOffset) {
-            RegTensor<xType> weightOffsetNd;
-            RegTensor<xType> weightOffsetNd1;
-            MicroAPI::Add(weightOffsetNd, weightIntv, offset, pregCalcFirst);
-            MicroAPI::Add(weightOffsetNd1, weightIntv1, offset, pregCalcSecond);
-            MicroAPI::Mul(weightOutNd, weightOffsetNd, scale, pregCalcFirst);
-            MicroAPI::Mul(weightOutNd1, weightOffsetNd1, scale, pregCalcSecond);
-        } else {
-            MicroAPI::Mul(weightOutNd, weightIntv, scale, pregCalcFirst);
-            MicroAPI::Mul(weightOutNd1, weightIntv1, scale, pregCalcSecond);
-        }
-    } else {
-        xType scaleValue = scaleValue_;
-        if constexpr (hasAntiQuantOffset) {
-            xType offsetValue = offsetValue_;
-            RegTensor<xType> weightOffsetNd;
-            RegTensor<xType> weightOffsetNd1;
-            MicroAPI::Adds(weightOffsetNd, weightIntv, offsetValue, pregCalcFirst);
-            MicroAPI::Adds(weightOffsetNd1, weightIntv1, offsetValue, pregCalcSecond);
-            vmuls(weightOutNd, weightOffsetNd, scaleValue, pregCalcFirst);
-            vmuls(weightOutNd1, weightOffsetNd1, scaleValue, pregCalcSecond);
-        } else {
-            vmuls(weightOutNd, weightIntv, scaleValue, pregCalcFirst);
-            vmuls(weightOutNd1, weightIntv1, scaleValue, pregCalcSecond);
-        }
-    }
-
-#endif
 }
 
 template <
