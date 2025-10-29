@@ -223,7 +223,7 @@ aclnnStatus aclnnGroupedMatmulFinalizeRoutingV2(
     <tr>
       <td>sharedInputOffset</td>
       <td>输入</td>
-      <td>共享专家输出的在总输出中的偏移。</td>
+      <td>共享专家输出在总输出中的偏移。</td>
       <td></td>
       <td>INT64</td>
       <td></td>

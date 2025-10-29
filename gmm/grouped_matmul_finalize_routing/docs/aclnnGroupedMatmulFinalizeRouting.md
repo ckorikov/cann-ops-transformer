@@ -312,7 +312,7 @@ aclnnStatus aclnnGroupedMatmulFinalizeRouting(
     <tr>
       <td rowspan="8">ACLNN_ERR_PARAM_INVALID</td>
       <td rowspan="8">161002</td>
-      <td>x、w、scaleOptional、biasOptional、offsetOptional、antiquantScaleOptional、antiquantOffsetOptional、pertokenScaleOptional、groupListOptional、sharedInputOptional、logitOptional、rowIndexOptional、sharedInputWeight、sharedInputOffest、transposeX、transposeW、或y的数据类型或数据格式不在支持的范围内。</td>
+      <td>x、w、scaleOptional、biasOptional、offsetOptional、antiquantScaleOptional、antiquantOffsetOptional、pertokenScaleOptional、groupListOptional、sharedInputOptional、logitOptional、rowIndexOptional、sharedInputWeight、sharedInputOffset、transposeX、transposeW、或y的数据类型或数据格式不在支持的范围内。</td>
     </tr>
     <tr>
       <td>x、w、scaleOptional、biasOptional、offsetOptional、antiquantScaleOptional、antiquantOffsetOptional、pertokenScaleOptional、groupListOptional、sharedInputOptional、logitOptional、rowIndexOptional或y的shape不满足校验条件。</td>
