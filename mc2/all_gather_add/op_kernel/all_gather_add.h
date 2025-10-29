@@ -1,0 +1,159 @@
+/**
+ * This program is free software, you can redistribute it and/or modify.
+ * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+ * This file is a part of the CANN Open Software.
+ * Licensed under CANN Open Software License Agreement Version 2.0 (the "License").
+ * Please refer to the License for details. You may not use this file except in compliance with the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
+ */
+
+/* !
+ * \file all_gather_add.h
+ * \brief
+ */
+#ifndef ALL_GATHER_ADD_H
+#define ALL_GATHER_ADD_H
+
+#include "kernel_operator.h"
+#include "kernel_tiling/kernel_tiling.h"
+#include "all_gather_add_tiling.h"
+
+constexpr int32_t ALLGATHER_ADD_BUFFER_NUM = 1;
+
+namespace AscendC {
+class AllGatherAdd {
+public:
+    __aicore__ inline AllGatherAdd(){};
+    __aicore__ inline void Init(GM_ADDR aGM, GM_ADDR bGM, GM_ADDR cGM, GM_ADDR gatherGM, 
+                                GM_ADDR workspaceGM, GM_ADDR contextGM, AllGatherMatmulTilingData *tilingData, TPipe *tPipe);
+    __aicore__ inline void Process();
+
+private:
+    __aicore__ inline void HcclPrepare();
+    __aicore__ inline void CopyIn(int32_t progress);
+    __aicore__ inline void CopyOut();
+    __aicore__ inline void Compute(int32_t progress);
+    __aicore__ inline void HcclFinalize();
+
+private:
+    GM_ADDR aGM_;
+    GM_ADDR bGM_;
+    GM_ADDR cGM_;
+    GM_ADDR gatherGM_;
+    GM_ADDR workspaceGM_;
+    AllGatherMatmulTilingData *tilingData_;
+
+    TPipe *tPipe_;
+    Hccl hccl_;
+
+    TQue<QuePosition::VECIN, ALLGATHER_ADD_BUFFER_NUM> inputQueueGather;
+    TQue<QuePosition::VECIN, ALLGATHER_ADD_BUFFER_NUM> inputQueueB;
+    TQue<QuePosition::VECOUT, ALLGATHER_ADD_BUFFER_NUM> outputQueueC;
+
+    GlobalTensor<T> inputGMGather;
+    GlobalTensor<T> inputGMB;
+    GlobalTensor<T> outputGMC;
+
+    int64_t blockLength_ = 0;
+    int64_t tileNum_ = 0;
+    uint32_t tileLength_ = 0;
+
+    HcclHandle handleId_{ INVALID_HANDLE_ID };
+};
+
+template <typename T>
+__aicore__ inline void AllGatherAdd<T>::Init(GM_ADDR aGM, GM_ADDR bGM, GM_ADDR cGM, GM_ADDR gatherGM, 
+                                             GM_ADDR workspaceGM, GM_ADDR contextGM, AllGatherMatmulTilingData *tilingData, TPipe *tPipe)
+{
+    aGM_ = aGM;
+    bGM_ = bGM;
+    cGM_ = cGM;
+    gatherGM_ = gatherGM;
+    workspaceGM_ = workspaceGM;
+    tilingData_ = tilingData;
+    tPipe_ = tPipe;
+    blockLength_ = tilingData->cfg.totalLength / AscendC::GetBlockNum();
+    tileNum_ = tilingData->cfg.tileNum;
+    tileLength_ = blockLength_ / tileNum_ / ALLGATHER_ADD_BUFFER_NUM;
+    // todo 考虑尾块 对齐的话：a :48 2048 b: 96 2048
+
+    // 初始化hccl对象
+    hccl_.InitV2(contextGM, tilingData);
+    hccl_.SetCcTilingV2(offsetof(AllGatherAddTilingData, mc2CcTiling)); // 相对于Mc2InitTiling起始地址的偏移
+
+    inputGMGather.SetGlobalBuffer((__gm__ T*)gatherGM + blockLength_ * AscendC::GetBlockIdx(), blockLength_);
+    inputGMB.SetGlobalBuffer((__gm__ T*)bGM + blockLength_ * AscendC::GetBlockIdx(), blockLength_);
+    outputGMC.SetGlobalBuffer((__gm__ T*)cGM + blockLength_ * AscendC::GetBlockIdx(), blockLength_);
+
+    tPipe_.InitBuffer(inputQueueGather, ALLGATHER_ADD_BUFFER_NUM, tileLength_ * sizeof(T));
+    tPipe_.InitBuffer(inputQueueB, ALLGATHER_ADD_BUFFER_NUM, tileLength_ * sizeof(T));
+    tPipe_.InitBuffer(outputQueueC, ALLGATHER_ADD_BUFFER_NUM, tileLength_ * sizeof(T));
+}
+
+template <typename T>
+__aicore__ inline void AllGatherAdd<T>::HcclPrepare()
+{
+    // 下发通信任务
+    // sendBuf recvBuf(数据个数等于sendCount*rank size) sendCount（参与allgather的sendbuf的数据个数） dataType strideCount repeat
+    handleId_ = hccl_.AllGather<true>(aGM_, gatherGM_, tilingData_.cfg.tileLength,
+                                      HcclDataType::HCCL_DATA_TYPE_FP16, tilingData_.cfg.totalLength, tilingData_.cfg.tileNum);
+}
+
+__aicore__ inline void AllGatherAdd<T>::CopyIn(int32_t progress)
+{
+    AscendC::LocalTensor<T> gatherLocal = inputQueueGather.AllocTensor<T>();
+    AscendC::LocalTensor<T> bLocal = inputQueueB.AllocTensor<T>();
+    AscendC::DataCopy(gatherLocal, inputGMgather[progress * tileLength_], tileLength_);
+    AscendC::DataCopy(bLocal, inputGMB[progress * tileLength_], tileLength_);
+    inputQueueGather.EnQue(gatherLocal);
+    inputQueueB.EnQue(bLocal);
+}
+
+template <typename T>
+__aicore__ inline void AllGatherAdd<T>::Compute()
+{
+    AscendC::LocalTensor<T> gatherLocal = inputQueueGather.DeQue<T>();
+    AscendC::LocalTensor<T> bLocal = inputQueueB.DeQue<T>();
+    AscendC::LocalTensor<T> cLocal = outputQueueC.AllocTensor<T>();
+    AscendC::Add(gatherLocal, bLocal, cLocal, tileLength_);
+    outputQueueZ.EnQue<T>(gatherLocal);
+    inputQueueX.FreeTensor(bLocal);
+    inputQueueY.FreeTensor(cLocal);
+}
+
+template <typename T>
+__aicore__ inline void AllGatherAdd<T>::CopyOut(int32_t progress)
+{
+    AscendC::LocalTensor<T> cLocal = outputQueueC.DeQue<T>();
+    AscendC::DataCopy(outputGMC[progress * tileLength_], cLocal, tileLength_);
+    outputQueueC.FreeTensor(cLocal);
+}
+
+template <typename T>
+__aicore__ inline void AllGatherAdd<T>::HcclFinalize()
+{
+    hccl_.Finalize();
+}
+
+template <typename T>
+__aicore__ inline void AllGatherAdd<T>::Process()
+{
+    HcclPrepare();
+    // 等待每一块数据通信完成，对每一块进行add计算
+    for (int i = 0; i < tilingData_.cfg.tileNum; i++) {
+        hccl_.Wait(handleId_);
+        for (int rankId = 0; rankId < hccl_.GetRankDim(); rankId++) {
+            // 
+            if (rankId == hccl_.GetRankId()) {
+                continue;
+            }
+            CopyIn(i);
+            Compute();
+            CopyOut(i);
+        }
+    }
+    HcclFinalize();
+}
+}
+#endif
