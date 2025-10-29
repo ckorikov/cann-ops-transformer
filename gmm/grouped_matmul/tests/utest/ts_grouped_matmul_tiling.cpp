@@ -931,36 +931,6 @@ const auto Tc_Gmm_Tiling_Case_David = ::testing::Values(
               1,                                                                        // groupListType
               0),                                                                       // actType
         0),
-    GroupedMatmulCase(
-        "GroupedQuantMM_mxfp8_typem_false_true", true, "", /* CaseName, Enable, DebugInfo */
-        OpInfo(ControlInfo(true, false),
-               ExpectInfo(true, 20000000001, 32)), /* ExpectSuccess, ExpectTilingKey, ExpectTilingBlockDim */
-        Param({GenTensorList("x", {{256, 512}}, ge::DataType::DT_FLOAT8_E5M2),
-               GenTensorList("weight", {{4, 128, 512}}, ge::DataType::DT_FLOAT8_E5M2),
-               GenTensorList("bias", {{}}, ge::DataType::DT_FLOAT),
-               GenTensorList("scale", {{4, 128, 8, 2}}, ge::DataType::DT_FLOAT8_E8M0),
-               GenTensorList("offset", {{}}, ge::DataType::DT_FLOAT),
-               GenTensorList("antiquant_scale", {{}}, ge::DataType::DT_FLOAT16),
-               GenTensorList("antiquant_offset", {{}}, ge::DataType::DT_FLOAT16),
-               GenTensorList("y", {{256, 128}}, ge::DataType::DT_BF16)},
-              GenTensor("per_token_scale", {256, 8, 2}, ge::DataType::DT_FLOAT8_E8M0),
-              GenTensor("group_list", {4}, ge::DataType::DT_INT64), {64, 64, 64, 64}, 2, -1, true, false, 0, 1, 0),
-        0),
-    GroupedMatmulCase(
-        "GroupedQuantMM_mxfp8_typem_false_false", true, "", /* CaseName, Enable, DebugInfo */
-        OpInfo(ControlInfo(true, false),
-               ExpectInfo(true, 20000000000, 32)), /* ExpectSuccess, ExpectTilingKey, ExpectTilingBlockDim */
-        Param({GenTensorList("x", {{256, 512}}, ge::DataType::DT_FLOAT8_E5M2),
-               GenTensorList("weight", {{4, 512, 128}}, ge::DataType::DT_FLOAT8_E5M2),
-               GenTensorList("bias", {{}}, ge::DataType::DT_FLOAT),
-               GenTensorList("scale", {{4, 8, 128, 2}}, ge::DataType::DT_FLOAT8_E8M0),
-               GenTensorList("offset", {{}}, ge::DataType::DT_FLOAT),
-               GenTensorList("antiquant_scale", {{}}, ge::DataType::DT_FLOAT16),
-               GenTensorList("antiquant_offset", {{}}, ge::DataType::DT_FLOAT16),
-               GenTensorList("y", {{256, 128}}, ge::DataType::DT_BF16)},
-              GenTensor("per_token_scale", {256, 8, 2}, ge::DataType::DT_FLOAT8_E8M0),
-              GenTensor("group_list", {4}, ge::DataType::DT_INT64), {64, 64, 64, 64}, 2, -1, false, false, 0, 1, 0),
-        0),
    GroupedMatmulCase(
         "GroupedQuantMM_mxfp8_typem_true_false_error", true, "", /* CaseName, Enable, DebugInfo */
         OpInfo(ControlInfo(true, false),
@@ -975,52 +945,6 @@ const auto Tc_Gmm_Tiling_Case_David = ::testing::Values(
                GenTensorList("y", {{256, 128}}, ge::DataType::DT_BF16)},
               GenTensor("per_token_scale", {256, 8, 2}, ge::DataType::DT_FLOAT8_E8M0),
               GenTensor("group_list", {4}, ge::DataType::DT_INT64), {64, 64, 64, 64}, 2, -1, false, true, 0, 1, 0),
-        0),
-    GroupedMatmulCase(
-        "GroupedQuantMM_mxfp8_typek_true_false_0", true, "", /* CaseName, Enable, DebugInfo */
-        OpInfo(ControlInfo(true, false),
-               ExpectInfo(true, 20000000010, 32)), /* ExpectSuccess, ExpectTilingKey, ExpectTilingBlockDim */
-        Param({GenTensorList("x", {{960, 2068}}, ge::DataType::DT_FLOAT8_E5M2),
-               GenTensorList("weight", {{960, 1014}}, ge::DataType::DT_FLOAT8_E5M2),
-               GenTensorList("bias", {{}}, ge::DataType::DT_FLOAT),
-               GenTensorList("scale", {{19, 1014, 2}}, ge::DataType::DT_FLOAT8_E8M0),
-               GenTensorList("offset", {{}}, ge::DataType::DT_FLOAT),
-               GenTensorList("antiquant_scale", {{}}, ge::DataType::DT_FLOAT16),
-               GenTensorList("antiquant_offset", {{}}, ge::DataType::DT_FLOAT16),
-               GenTensorList("y", {{1, 2068, 1014}}, ge::DataType::DT_BF16)},
-              GenTensor("per_token_scale", {19, 2068, 2}, ge::DataType::DT_FLOAT8_E8M0),
-              GenTensor("group_list", {4}, ge::DataType::DT_INT64), {0,}, 2, -1, false, true, 2, 1, 0),
-        0),
-    GroupedMatmulCase(
-        "GroupedQuantMM_mxfp8_typek_true_false_1", true, "", /* CaseName, Enable, DebugInfo */
-        OpInfo(ControlInfo(true, false),
-               ExpectInfo(true, 20000000010, 32)), /* ExpectSuccess, ExpectTilingKey, ExpectTilingBlockDim */
-        Param({GenTensorList("x", {{8192, 7168}}, ge::DataType::DT_FLOAT8_E5M2),
-               GenTensorList("weight", {{8192, 2048}}, ge::DataType::DT_FLOAT8_E5M2),
-               GenTensorList("bias", {{}}, ge::DataType::DT_FLOAT),
-               GenTensorList("scale", {{132, 2048, 2}}, ge::DataType::DT_FLOAT8_E8M0),
-               GenTensorList("offset", {{}}, ge::DataType::DT_FLOAT),
-               GenTensorList("antiquant_scale", {{}}, ge::DataType::DT_FLOAT16),
-               GenTensorList("antiquant_offset", {{}}, ge::DataType::DT_FLOAT16),
-               GenTensorList("y", {{4, 7168, 2048}}, ge::DataType::DT_BF16)},
-              GenTensor("per_token_scale", {132, 7168, 2}, ge::DataType::DT_FLOAT8_E8M0),
-              GenTensor("group_list", {4}, ge::DataType::DT_INT64), {64, 0, 7168, 64}, 2, -1, false, true, 2, 1, 0),
-        0),
-    GroupedMatmulCase(
-        "GroupedQuantMM_fp8_perTensor_scale_uint64", true, "", /* CaseName, Enable, DebugInfo */
-        OpInfo(ControlInfo(true, false),
-               ExpectInfo(true, 20000000001, 32)), /* ExpectSuccess, ExpectTilingKey, ExpectTilingBlockDim */
-        Param({GenTensorList("x", {{2, 448}}, ge::DataType::DT_FLOAT8_E5M2),
-               GenTensorList("weight", {{2, 2043, 448}}, ge::DataType::DT_FLOAT8_E5M2),
-               GenTensorList("bias", {{}}, ge::DataType::DT_FLOAT),
-               GenTensorList("scale", {{2, 1}}, ge::DataType::DT_UINT64),
-               GenTensorList("offset", {{}}, ge::DataType::DT_FLOAT),
-               GenTensorList("antiquant_scale", {{}}, ge::DataType::DT_FLOAT16),
-               GenTensorList("antiquant_offset", {{}}, ge::DataType::DT_FLOAT16),
-               GenTensorList("y", {{2, 2043}}, ge::DataType::DT_BF16)},
-              GenTensor("per_token_scale", {}, ge::DataType::DT_FLOAT8_E8M0),
-              GenTensor("group_list", {2}, ge::DataType::DT_INT64), {1, 2}, 2, -1, true, false, 0, 0, 0),
-              /* GroupListData, SplitItem, Dtype, TransposeWeight, TransposeX, GroupType, GroupListType, ActType*/
         0),
     GroupedMatmulCase(
         "GroupedQuantMM_int8_perTensor_scale_fp32", true, "", /* CaseName, Enable, DebugInfo */
@@ -1068,38 +992,6 @@ const auto Tc_Gmm_Tiling_Case_David = ::testing::Values(
                GenTensorList("y", {{2, 2043}}, ge::DataType::DT_BF16)},
               GenTensor("per_token_scale", {}, ge::DataType::DT_FLOAT8_E8M0),
               GenTensor("group_list", {2}, ge::DataType::DT_INT64), {1, 2}, 2, -1, true, false, 0, 0, 0),
-              /* GroupListData, SplitItem, Dtype, TransposeWeight, TransposeX, GroupType, GroupListType, ActType*/
-        0),
-    GroupedMatmulCase(
-        "GroupedQuantMM_fp8_doubleScale", true, "", /* CaseName, Enable, DebugInfo */
-        OpInfo(ControlInfo(true, false),
-               ExpectInfo(true, 20000000001, 32)), /* ExpectSuccess, ExpectTilingKey, ExpectTilingBlockDim */
-        Param({GenTensorList("x", {{2, 448}}, ge::DataType::DT_FLOAT8_E5M2),
-               GenTensorList("weight", {{2, 2043, 448}}, ge::DataType::DT_FLOAT8_E5M2),
-               GenTensorList("bias", {{}}, ge::DataType::DT_FLOAT),
-               GenTensorList("scale", {{2, 1}}, ge::DataType::DT_FLOAT),
-               GenTensorList("offset", {{}}, ge::DataType::DT_FLOAT),
-               GenTensorList("antiquant_scale", {{}}, ge::DataType::DT_FLOAT16),
-               GenTensorList("antiquant_offset", {{}}, ge::DataType::DT_FLOAT16),
-               GenTensorList("y", {{2, 2043}}, ge::DataType::DT_BF16)},
-              GenTensor("per_token_scale", {2, 1}, ge::DataType::DT_FLOAT),
-              GenTensor("group_list", {2}, ge::DataType::DT_INT64), {1, 2}, 2, -1, true, false, 0, 0, 0),
-              /* GroupListData, SplitItem, Dtype, TransposeWeight, TransposeX, GroupType, GroupListType, ActType*/
-        0),
-    GroupedMatmulCase(
-        "GroupedQuantMM_hif8_doubleScale_groupListType_1", true, "", /* CaseName, Enable, DebugInfo */
-        OpInfo(ControlInfo(true, false),
-               ExpectInfo(true, 20000000000, 32)), /* ExpectSuccess, ExpectTilingKey, ExpectTilingBlockDim */
-        Param({GenTensorList("x", {{2, 448}}, ge::DataType::DT_HIFLOAT8),
-               GenTensorList("weight", {{3, 448, 2043}}, ge::DataType::DT_HIFLOAT8),
-               GenTensorList("bias", {{}}, ge::DataType::DT_FLOAT),
-               GenTensorList("scale", {{3, 1}}, ge::DataType::DT_FLOAT),
-               GenTensorList("offset", {{}}, ge::DataType::DT_FLOAT),
-               GenTensorList("antiquant_scale", {{}}, ge::DataType::DT_FLOAT16),
-               GenTensorList("antiquant_offset", {{}}, ge::DataType::DT_FLOAT16),
-               GenTensorList("y", {{2, 2043}}, ge::DataType::DT_BF16)},
-              GenTensor("per_token_scale", {3, 1}, ge::DataType::DT_FLOAT),
-              GenTensor("group_list", {3}, ge::DataType::DT_INT64), {0, 1, 1}, 2, -1, false, false, 0, 1, 0),
               /* GroupListData, SplitItem, Dtype, TransposeWeight, TransposeX, GroupType, GroupListType, ActType*/
         0),
     GroupedMatmulCase(
@@ -1151,102 +1043,6 @@ const auto Tc_Gmm_Tiling_Case_David = ::testing::Values(
               /* GroupListData, SplitItem, Dtype, TransposeWeight, TransposeX, GroupType, GroupListType, ActType*/
         0),
     GroupedMatmulCase(
-        "GroupedQuantMM_hifp8_perChannel_scale_fp32_splitM", true, "", /* CaseName, Enable, DebugInfo */
-        OpInfo(ControlInfo(true, false),
-               ExpectInfo(true, 20000000101, 32)), /* ExpectSuccess, ExpectTilingKey, ExpectTilingBlockDim */
-        Param({GenTensorList("x", {{4096, 7168}}, ge::DataType::DT_HIFLOAT8),
-               GenTensorList("weight", {{4, 2048, 7168}}, ge::DataType::DT_HIFLOAT8),
-               GenTensorList("bias", {{}}, ge::DataType::DT_FLOAT),
-               GenTensorList("scale", {{4, 2048}}, ge::DataType::DT_FLOAT),
-               GenTensorList("offset", {{}}, ge::DataType::DT_FLOAT),
-               GenTensorList("antiquant_scale", {{}}, ge::DataType::DT_FLOAT16),
-               GenTensorList("antiquant_offset", {{}}, ge::DataType::DT_FLOAT16),
-               GenTensorList("y", {{4096, 2048}}, ge::DataType::DT_FLOAT16)},
-               GenTensor("per_token_scale", {}, ge::DataType::DT_FLOAT),
-               GenTensor("group_list", {4}, ge::DataType::DT_INT64), {1, 5, 128, 4096}, 3, 1, true, false, 0, 0, 0),
-              /* GroupListData, SplitItem, Dtype, TransposeWeight, TransposeX, GroupType, GroupListType, ActType*/
-        0),
-    GroupedMatmulCase(
-        "GroupedQuantMM_hifp8_perChannel_scale_fp32_splitK", true, "", /* CaseName, Enable, DebugInfo */
-        OpInfo(ControlInfo(true, false),
-               ExpectInfo(true, 20000000110, 32)), /* ExpectSuccess, ExpectTilingKey, ExpectTilingBlockDim */
-        Param({GenTensorList("x", {{255, 4096}}, ge::DataType::DT_HIFLOAT8),
-               GenTensorList("weight", {{255, 2048}}, ge::DataType::DT_HIFLOAT8),
-               GenTensorList("bias", {{}}, ge::DataType::DT_FLOAT),
-               GenTensorList("scale", {{4, 2048}}, ge::DataType::DT_FLOAT),
-               GenTensorList("offset", {{}}, ge::DataType::DT_FLOAT),
-               GenTensorList("antiquant_scale", {{}}, ge::DataType::DT_FLOAT16),
-               GenTensorList("antiquant_offset", {{}}, ge::DataType::DT_FLOAT16),
-               GenTensorList("y", {{4, 4096, 2048}}, ge::DataType::DT_FLOAT16)},
-               GenTensor("per_token_scale", {}, ge::DataType::DT_FLOAT),
-               GenTensor("group_list", {4}, ge::DataType::DT_INT64), {1, 5, 128, 256}, 3, 1, false, true, 2, 0, 0),
-              /* GroupListData, SplitItem, Dtype, TransposeWeight, TransposeX, GroupType, GroupListType, ActType*/
-        0),
-    GroupedMatmulCase(
-        "GroupedQuantMM_fp8_perChannel_scale_fp32_splitM", true, "", /* CaseName, Enable, DebugInfo */
-        OpInfo(ControlInfo(true, false),
-               ExpectInfo(true, 20000000101, 32)), /* ExpectSuccess, ExpectTilingKey, ExpectTilingBlockDim */
-        Param({GenTensorList("x", {{4096, 7168}}, ge::DataType::DT_FLOAT8_E4M3FN),
-               GenTensorList("weight", {{4, 2048, 7168}}, ge::DataType::DT_FLOAT8_E5M2),
-               GenTensorList("bias", {{}}, ge::DataType::DT_FLOAT),
-               GenTensorList("scale", {{4, 2048}}, ge::DataType::DT_FLOAT),
-               GenTensorList("offset", {{}}, ge::DataType::DT_FLOAT),
-               GenTensorList("antiquant_scale", {{}}, ge::DataType::DT_FLOAT16),
-               GenTensorList("antiquant_offset", {{}}, ge::DataType::DT_FLOAT16),
-               GenTensorList("y", {{4096, 2048}}, ge::DataType::DT_FLOAT16)},
-               GenTensor("per_token_scale", {}, ge::DataType::DT_FLOAT),
-               GenTensor("group_list", {4}, ge::DataType::DT_INT64), {1, 5, 128, 4096}, 3, 1, true, false, 0, 0, 0),
-              /* GroupListData, SplitItem, Dtype, TransposeWeight, TransposeX, GroupType, GroupListType, ActType*/
-        0),
-    GroupedMatmulCase(
-        "GroupedQuantMM_fp8_perChannel_scale_fp32_splitK", true, "", /* CaseName, Enable, DebugInfo */
-        OpInfo(ControlInfo(true, false),
-               ExpectInfo(true, 20000000110, 32)), /* ExpectSuccess, ExpectTilingKey, ExpectTilingBlockDim */
-        Param({GenTensorList("x", {{255, 5}}, ge::DataType::DT_FLOAT8_E5M2),
-               GenTensorList("weight", {{255, 255}}, ge::DataType::DT_FLOAT8_E5M2),
-               GenTensorList("bias", {{}}, ge::DataType::DT_FLOAT),
-               GenTensorList("scale", {{4, 255}}, ge::DataType::DT_FLOAT),
-               GenTensorList("offset", {{}}, ge::DataType::DT_FLOAT),
-               GenTensorList("antiquant_scale", {{}}, ge::DataType::DT_FLOAT16),
-               GenTensorList("antiquant_offset", {{}}, ge::DataType::DT_FLOAT16),
-               GenTensorList("y", {{4, 5, 255}}, ge::DataType::DT_FLOAT16)},
-               GenTensor("per_token_scale", {}, ge::DataType::DT_FLOAT),
-               GenTensor("group_list", {4}, ge::DataType::DT_INT64), {1, 5, 128, 256}, 3, 1, false, true, 2, 0, 0),
-              /* GroupListData, SplitItem, Dtype, TransposeWeight, TransposeX, GroupType, GroupListType, ActType*/
-        0),
-    GroupedMatmulCase(
-        "GroupedQuantMM_hifp8_petensor_scale_fp32_splitK", true, "", /* CaseName, Enable, DebugInfo */
-        OpInfo(ControlInfo(true, false),
-               ExpectInfo(true, 20000000010, 32)), /* ExpectSuccess, ExpectTilingKey, ExpectTilingBlockDim */
-        Param({GenTensorList("x", {{255, 5}}, ge::DataType::DT_HIFLOAT8),
-               GenTensorList("weight", {{255, 255}}, ge::DataType::DT_HIFLOAT8),
-               GenTensorList("bias", {{}}, ge::DataType::DT_FLOAT),
-               GenTensorList("scale", {{4, 1}}, ge::DataType::DT_FLOAT),
-               GenTensorList("offset", {{}}, ge::DataType::DT_FLOAT),
-               GenTensorList("antiquant_scale", {{}}, ge::DataType::DT_FLOAT16),
-               GenTensorList("antiquant_offset", {{}}, ge::DataType::DT_FLOAT16),
-               GenTensorList("y", {{4, 5, 255}}, ge::DataType::DT_FLOAT16)},
-               GenTensor("per_token_scale", {}, ge::DataType::DT_FLOAT),
-               GenTensor("group_list", {4}, ge::DataType::DT_INT64), {1, 5, 128, 256}, 3, 1, false, true, 2, 0, 0),
-              /* GroupListData, SplitItem, Dtype, TransposeWeight, TransposeX, GroupType, GroupListType, ActType*/
-        0),
-    GroupedMatmulCase(
-        "GroupedQuantMM_fp8_double_scale_fp32_splitK", true, "", /* CaseName, Enable, DebugInfo */
-        OpInfo(ControlInfo(true, false),
-               ExpectInfo(true, 20000000010, 32)), /* ExpectSuccess, ExpectTilingKey, ExpectTilingBlockDim */
-        Param({GenTensorList("x", {{255, 5}}, ge::DataType::DT_FLOAT8_E5M2),
-               GenTensorList("weight", {{255, 255}}, ge::DataType::DT_FLOAT8_E5M2),
-               GenTensorList("bias", {{}}, ge::DataType::DT_FLOAT),
-               GenTensorList("scale", {{4, 1}}, ge::DataType::DT_FLOAT),
-               GenTensorList("offset", {{}}, ge::DataType::DT_FLOAT),
-               GenTensorList("antiquant_scale", {{}}, ge::DataType::DT_FLOAT16),
-               GenTensorList("antiquant_offset", {{}}, ge::DataType::DT_FLOAT16),
-               GenTensorList("y", {{4, 5, 255}}, ge::DataType::DT_FLOAT16)},
-               GenTensor("per_token_scale", {4}, ge::DataType::DT_FLOAT),
-               GenTensor("group_list", {4}, ge::DataType::DT_INT64), {1, 5, 128, 256}, 3, 1, false, true, 2, 0, 0),
-              /* GroupListData, SplitItem, Dtype, TransposeWeight, TransposeX, GroupType, GroupListType, ActType*/
-        0),
-    GroupedMatmulCase(
         "GroupedQuantMM_int8_perToken_scale_bf16_bias_fp32", true, "", /* CaseName, Enable, DebugInfo */
         OpInfo(ControlInfo(true, false),
                ExpectInfo(true, 20000000101, 32)), /* ExpectSuccess, ExpectTilingKey, ExpectTilingBlockDim */
@@ -1276,150 +1072,6 @@ const auto Tc_Gmm_Tiling_Case_David = ::testing::Values(
                GenTensorList("y", {{128, 504}}, ge::DataType::DT_BF16)},
                GenTensor("per_token_scale", {4, 128}, ge::DataType::DT_FLOAT),
                GenTensor("group_list", {4}, ge::DataType::DT_INT64), {1, 0, 127, 0}, 3, 1, true, false, 0, 1, 0),
-              /* GroupListData, SplitItem, Dtype, TransposeWeight, TransposeX, GroupType, GroupListType, ActType*/
-        0),
-    GroupedMatmulCase(
-        "GroupedQuantMM_hifp8_perToken_scale_fp32_splitM", true, "", /* CaseName, Enable, DebugInfo */
-        OpInfo(ControlInfo(true, false),
-               ExpectInfo(true, 20000000101, 32)), /* ExpectSuccess, ExpectTilingKey, ExpectTilingBlockDim */
-        Param({GenTensorList("x", {{4096, 7168}}, ge::DataType::DT_HIFLOAT8),
-               GenTensorList("weight", {{4, 2048, 7168}}, ge::DataType::DT_HIFLOAT8),
-               GenTensorList("bias", {{}}, ge::DataType::DT_FLOAT),
-               GenTensorList("scale", {{4, 2048}}, ge::DataType::DT_FLOAT),
-               GenTensorList("offset", {{}}, ge::DataType::DT_FLOAT),
-               GenTensorList("antiquant_scale", {{}}, ge::DataType::DT_FLOAT16),
-               GenTensorList("antiquant_offset", {{}}, ge::DataType::DT_FLOAT16),
-               GenTensorList("y", {{4096, 2048}}, ge::DataType::DT_FLOAT16)},
-               GenTensor("per_token_scale", {4, 4096}, ge::DataType::DT_FLOAT),
-               GenTensor("group_list", {4}, ge::DataType::DT_INT64), {1, 5, 128, 4096}, 3, 1, true, false, 0, 0, 0),
-              /* GroupListData, SplitItem, Dtype, TransposeWeight, TransposeX, GroupType, GroupListType, ActType*/
-        0),
-    GroupedMatmulCase(
-        "GroupedQuantMM_hifp8_perToken_scale_fp32_splitK", true, "", /* CaseName, Enable, DebugInfo */
-        OpInfo(ControlInfo(true, false),
-               ExpectInfo(true, 20000000110, 32)), /* ExpectSuccess, ExpectTilingKey, ExpectTilingBlockDim */
-        Param({GenTensorList("x", {{255, 4096}}, ge::DataType::DT_HIFLOAT8),
-               GenTensorList("weight", {{255, 2048}}, ge::DataType::DT_HIFLOAT8),
-               GenTensorList("bias", {{}}, ge::DataType::DT_FLOAT),
-               GenTensorList("scale", {{4, 2048}}, ge::DataType::DT_FLOAT),
-               GenTensorList("offset", {{}}, ge::DataType::DT_FLOAT),
-               GenTensorList("antiquant_scale", {{}}, ge::DataType::DT_FLOAT16),
-               GenTensorList("antiquant_offset", {{}}, ge::DataType::DT_FLOAT16),
-               GenTensorList("y", {{4, 4096, 2048}}, ge::DataType::DT_FLOAT16)},
-               GenTensor("per_token_scale", {4, 4096}, ge::DataType::DT_FLOAT),
-               GenTensor("group_list", {4}, ge::DataType::DT_INT64), {1, 5, 128, 256}, 3, 1, false, true, 2, 0, 0),
-              /* GroupListData, SplitItem, Dtype, TransposeWeight, TransposeX, GroupType, GroupListType, ActType*/
-        0),
-    GroupedMatmulCase(
-        "GroupedQuantMM_fp8_perToken_scale_fp32_splitM", true, "", /* CaseName, Enable, DebugInfo */
-        OpInfo(ControlInfo(true, false),
-               ExpectInfo(true, 20000000101, 32)), /* ExpectSuccess, ExpectTilingKey, ExpectTilingBlockDim */
-        Param({GenTensorList("x", {{4096, 7168}}, ge::DataType::DT_FLOAT8_E4M3FN),
-               GenTensorList("weight", {{4, 2048, 7168}}, ge::DataType::DT_FLOAT8_E5M2),
-               GenTensorList("bias", {{}}, ge::DataType::DT_FLOAT),
-               GenTensorList("scale", {{4, 2048}}, ge::DataType::DT_FLOAT),
-               GenTensorList("offset", {{}}, ge::DataType::DT_FLOAT),
-               GenTensorList("antiquant_scale", {{}}, ge::DataType::DT_FLOAT16),
-               GenTensorList("antiquant_offset", {{}}, ge::DataType::DT_FLOAT16),
-               GenTensorList("y", {{4096, 2048}}, ge::DataType::DT_FLOAT16)},
-               GenTensor("per_token_scale", {4, 4096}, ge::DataType::DT_FLOAT),
-               GenTensor("group_list", {4}, ge::DataType::DT_INT64), {1, 5, 128, 4096}, 3, 1, true, false, 0, 0, 0),
-              /* GroupListData, SplitItem, Dtype, TransposeWeight, TransposeX, GroupType, GroupListType, ActType*/
-        0),
-    GroupedMatmulCase(
-        "GroupedQuantMM_fp8_perToken_scale_fp32_splitK", true, "", /* CaseName, Enable, DebugInfo */
-        OpInfo(ControlInfo(true, false),
-               ExpectInfo(true, 20000000110, 32)), /* ExpectSuccess, ExpectTilingKey, ExpectTilingBlockDim */
-        Param({GenTensorList("x", {{255, 5}}, ge::DataType::DT_FLOAT8_E5M2),
-               GenTensorList("weight", {{255, 255}}, ge::DataType::DT_FLOAT8_E5M2),
-               GenTensorList("bias", {{}}, ge::DataType::DT_FLOAT),
-               GenTensorList("scale", {{4, 255}}, ge::DataType::DT_FLOAT),
-               GenTensorList("offset", {{}}, ge::DataType::DT_FLOAT),
-               GenTensorList("antiquant_scale", {{}}, ge::DataType::DT_FLOAT16),
-               GenTensorList("antiquant_offset", {{}}, ge::DataType::DT_FLOAT16),
-               GenTensorList("y", {{4, 5, 255}}, ge::DataType::DT_FLOAT16)},
-               GenTensor("per_token_scale", {4, 5}, ge::DataType::DT_FLOAT),
-               GenTensor("group_list", {4}, ge::DataType::DT_INT64), {1, 5, 128, 250}, 3, 1, false, true, 2, 0, 0),
-              /* GroupListData, SplitItem, Dtype, TransposeWeight, TransposeX, GroupType, GroupListType, ActType*/
-        0),
-    GroupedMatmulCase(
-        "GroupedQuantMM_fp8_GB_splitM", true, "", /* CaseName, Enable, DebugInfo */
-        OpInfo(ControlInfo(true, false),
-               ExpectInfo(true, 20000000201, 32)), /* ExpectSuccess, ExpectTilingKey, ExpectTilingBlockDim */
-        Param({GenTensorList("x", {{4096, 7168}}, ge::DataType::DT_FLOAT8_E4M3FN),
-               GenTensorList("weight", {{4, 2048, 7168}}, ge::DataType::DT_FLOAT8_E5M2),
-               GenTensorList("bias", {{}}, ge::DataType::DT_FLOAT),
-               GenTensorList("scale", {{4, 16, 56}}, ge::DataType::DT_FLOAT),
-               GenTensorList("offset", {{}}, ge::DataType::DT_FLOAT),
-               GenTensorList("antiquant_scale", {{}}, ge::DataType::DT_FLOAT16),
-               GenTensorList("antiquant_offset", {{}}, ge::DataType::DT_FLOAT16),
-               GenTensorList("y", {{4096, 2048}}, ge::DataType::DT_FLOAT16)},
-               GenTensor("per_token_scale", {4096, 56}, ge::DataType::DT_FLOAT),
-               GenTensor("group_list", {4}, ge::DataType::DT_INT64), {1, 5, 128, 4096}, 3, 1, true, false, 0, 0, 0),
-              /* GroupListData, SplitItem, Dtype, TransposeWeight, TransposeX, GroupType, GroupListType, ActType*/
-        0),
-    GroupedMatmulCase(
-        "GroupedQuantMM_fp8_GB_splitM_w_false", true, "", /* CaseName, Enable, DebugInfo */
-        OpInfo(ControlInfo(true, false),
-               ExpectInfo(true, 20000000200, 32)), /* ExpectSuccess, ExpectTilingKey, ExpectTilingBlockDim */
-        Param({GenTensorList("x", {{4096, 7168}}, ge::DataType::DT_FLOAT8_E4M3FN),
-               GenTensorList("weight", {{4, 7168, 2048}}, ge::DataType::DT_FLOAT8_E5M2),
-               GenTensorList("bias", {{}}, ge::DataType::DT_FLOAT),
-               GenTensorList("scale", {{4, 56, 16}}, ge::DataType::DT_FLOAT),
-               GenTensorList("offset", {{}}, ge::DataType::DT_FLOAT),
-               GenTensorList("antiquant_scale", {{}}, ge::DataType::DT_FLOAT16),
-               GenTensorList("antiquant_offset", {{}}, ge::DataType::DT_FLOAT16),
-               GenTensorList("y", {{4096, 2048}}, ge::DataType::DT_FLOAT16)},
-               GenTensor("per_token_scale", {4096, 56}, ge::DataType::DT_FLOAT),
-               GenTensor("group_list", {4}, ge::DataType::DT_INT64), {1, 5, 128, 4096}, 3, 1, false, false, 0, 0, 0),
-              /* GroupListData, SplitItem, Dtype, TransposeWeight, TransposeX, GroupType, GroupListType, ActType*/
-        0),
-    GroupedMatmulCase(
-        "GroupedQuantMM_hifp8_GB_splitM", true, "", /* CaseName, Enable, DebugInfo */
-        OpInfo(ControlInfo(true, false),
-               ExpectInfo(true, 20000000201, 32)), /* ExpectSuccess, ExpectTilingKey, ExpectTilingBlockDim */
-        Param({GenTensorList("x", {{4096, 7168}}, ge::DataType::DT_HIFLOAT8),
-               GenTensorList("weight", {{4, 2048, 7168}}, ge::DataType::DT_HIFLOAT8),
-               GenTensorList("bias", {{}}, ge::DataType::DT_FLOAT),
-               GenTensorList("scale", {{4, 16, 56}}, ge::DataType::DT_FLOAT),
-               GenTensorList("offset", {{}}, ge::DataType::DT_FLOAT),
-               GenTensorList("antiquant_scale", {{}}, ge::DataType::DT_FLOAT16),
-               GenTensorList("antiquant_offset", {{}}, ge::DataType::DT_FLOAT16),
-               GenTensorList("y", {{4096, 2048}}, ge::DataType::DT_FLOAT16)},
-               GenTensor("per_token_scale", {4096, 56}, ge::DataType::DT_FLOAT),
-               GenTensor("group_list", {4}, ge::DataType::DT_INT64), {1, 5, 128, 4096}, 3, 1, true, false, 0, 0, 0),
-              /* GroupListData, SplitItem, Dtype, TransposeWeight, TransposeX, GroupType, GroupListType, ActType*/
-        0),
-    GroupedMatmulCase(
-        "GroupedQuantMM_fp8_GB_splitK", true, "", /* CaseName, Enable, DebugInfo */
-        OpInfo(ControlInfo(true, false),
-               ExpectInfo(true, 20000000210, 32)), /* ExpectSuccess, ExpectTilingKey, ExpectTilingBlockDim */
-        Param({GenTensorList("x", {{255, 5}}, ge::DataType::DT_FLOAT8_E5M2),
-               GenTensorList("weight", {{255, 255}}, ge::DataType::DT_FLOAT8_E5M2),
-               GenTensorList("bias", {{}}, ge::DataType::DT_FLOAT),
-               GenTensorList("scale", {{5, 2}}, ge::DataType::DT_FLOAT),
-               GenTensorList("offset", {{}}, ge::DataType::DT_FLOAT),
-               GenTensorList("antiquant_scale", {{}}, ge::DataType::DT_FLOAT16),
-               GenTensorList("antiquant_offset", {{}}, ge::DataType::DT_FLOAT16),
-               GenTensorList("y", {{4, 5, 255}}, ge::DataType::DT_FLOAT16)},
-               GenTensor("per_token_scale", {5, 5}, ge::DataType::DT_FLOAT),
-               GenTensor("group_list", {4}, ge::DataType::DT_INT64), {1, 5, 128, 250}, 3, 1, false, true, 2, 0, 0),
-              /* GroupListData, SplitItem, Dtype, TransposeWeight, TransposeX, GroupType, GroupListType, ActType*/
-        0),
-    GroupedMatmulCase(
-        "GroupedQuantMM_fp8_GB_splitK", true, "", /* CaseName, Enable, DebugInfo */
-        OpInfo(ControlInfo(true, false),
-               ExpectInfo(true, 20000000210, 32)), /* ExpectSuccess, ExpectTilingKey, ExpectTilingBlockDim */
-        Param({GenTensorList("x", {{255, 5}}, ge::DataType::DT_HIFLOAT8),
-               GenTensorList("weight", {{255, 255}}, ge::DataType::DT_HIFLOAT8),
-               GenTensorList("bias", {{}}, ge::DataType::DT_FLOAT),
-               GenTensorList("scale", {{5, 2}}, ge::DataType::DT_FLOAT),
-               GenTensorList("offset", {{}}, ge::DataType::DT_FLOAT),
-               GenTensorList("antiquant_scale", {{}}, ge::DataType::DT_FLOAT16),
-               GenTensorList("antiquant_offset", {{}}, ge::DataType::DT_FLOAT16),
-               GenTensorList("y", {{4, 5, 255}}, ge::DataType::DT_FLOAT16)},
-               GenTensor("per_token_scale", {5, 5}, ge::DataType::DT_FLOAT),
-               GenTensor("group_list", {4}, ge::DataType::DT_INT64), {1, 5, 128, 250}, 3, 1, false, true, 2, 0, 0),
               /* GroupListData, SplitItem, Dtype, TransposeWeight, TransposeX, GroupType, GroupListType, ActType*/
         0),
     GroupedMatmulCase(
@@ -1581,21 +1233,6 @@ const auto Tc_Gmm_Tiling_Case_David = ::testing::Values(
               GenTensor("per_token_scale", {}, ge::DataType::DT_FLOAT),
               GenTensor("group_list", {2}, ge::DataType::DT_INT64), {57, 57}, 3, -1, true, false, 0, 1, 0),
               /* GroupListData, SplitItem, Dtype, TransposeWeight, TransposeX, GroupType, GroupListType, ActType*/
-        0),
-    GroupedMatmulCase(
-        "GroupedQuantMM_mxfp4_split_m_false_true", true, "", /* CaseName, Enable, DebugInfo */
-        OpInfo(ControlInfo(true, false),
-               ExpectInfo(true, 20000000001, 32)), /* ExpectSuccess, ExpectTilingKey, ExpectTilingBlockDim */
-        Param({GenTensorList("x", {{2, 448}}, ge::DataType::DT_FLOAT4_E1M2),
-               GenTensorList("weight", {{2, 2043, 448}}, ge::DataType::DT_FLOAT4_E1M2),
-               GenTensorList("bias", {{}}, ge::DataType::DT_FLOAT),
-               GenTensorList("scale", {{2, 2043, 7, 2}}, ge::DataType::DT_FLOAT8_E8M0),
-               GenTensorList("offset", {{}}, ge::DataType::DT_FLOAT),
-               GenTensorList("antiquant_scale", {{}}, ge::DataType::DT_FLOAT16),
-               GenTensorList("antiquant_offset", {{}}, ge::DataType::DT_FLOAT16),
-               GenTensorList("y", {{2, 2043}}, ge::DataType::DT_FLOAT16)},
-              GenTensor("per_token_scale", {2, 7, 2}, ge::DataType::DT_FLOAT8_E8M0),
-              GenTensor("group_list", {2}, ge::DataType::DT_INT64), {1, 2}, 2, -1, true, false, 0, 0, 0),
         0),
     GroupedMatmulCase(
         "GroupedQuantMM_mxfp4_split_m_false_false", true, "", /* CaseName, Enable, DebugInfo */
