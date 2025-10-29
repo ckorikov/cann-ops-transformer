@@ -8,7 +8,7 @@
  * See LICENSE in the root of the software repository for the full text of the License.
  */
 
-#include "../../../../op_host/op_api/aclnn_moe_distribute_dispatch_v2.h"
+#include "../../../../op_api/aclnn_moe_distribute_dispatch_v2.h"
 
 #include <array>
 #include <vector>
