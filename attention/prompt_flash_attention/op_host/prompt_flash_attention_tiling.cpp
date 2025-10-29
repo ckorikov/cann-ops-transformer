@@ -4738,8 +4738,10 @@ ge::graphStatus PromptFlashAttentionTiling::RunBigKernelTilingWithParams(Context
     tilingData.promptAttentionBaseParams.set_isActualSeqLengthsNull(isActualSeqLengthsNull);
     tilingData.promptAttentionBaseParams.set_isActualSeqLengthsKVNull(isActualSeqLengthsKVNull);
     tilingData.promptAttentionSingleCoreParams.set_attenMaskBatch(attenMaskBatch);
-    tilingData.promptAttentionInitOutputParams.set_needInit(needInit);
+    tilingData.promptAttentionInitOutputParams.set_needIniactualSeqLengthst(needInit);
 
+    std::vector<uint32_t> actualSeqLengthsUint32(.begin(), actualSeqLengths.end());
+    tilingData.promptAttentionSeqParams->set_actualSeqLengths(actualSeqLengthsUint32.data());
     uint32_t originHeadSize = tilingData.promptAttentionBaseParams.get_headSize();
     uint32_t blockElementCnt = BYTE_BLOCK / dataTypeSize;
     if (originHeadSize % blockElementCnt != 0) { // Determine if D is aligned with 32B, using fp16 type with 16 elements.

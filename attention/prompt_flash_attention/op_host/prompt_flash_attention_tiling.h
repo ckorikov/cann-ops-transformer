@@ -142,6 +142,7 @@ BEGIN_TILING_DATA_DEF(PromptAttentionSeqParams)
     TILING_DATA_FIELD_DEF_ARR(uint32_t, 64, singleCoreHeadNumSize); // coreSidEnd
     TILING_DATA_FIELD_DEF_ARR(uint32_t, 64, coreSeqPosStart);
     TILING_DATA_FIELD_DEF_ARR(uint32_t, 64, coreSeqPosEnd);
+    TILING_DATA_FIELD_DEF_ARR(uint32_t, 400, actualSeqLengths);
 END_TILING_DATA_DEF;
 REGISTER_TILING_DATA_CLASS(PromptAttentionSeqParamsOp, PromptAttentionSeqParams)
 
