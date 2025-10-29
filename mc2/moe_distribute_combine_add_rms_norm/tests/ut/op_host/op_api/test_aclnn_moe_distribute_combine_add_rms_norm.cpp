@@ -20,6 +20,7 @@
 using namespace op;
 using namespace std;
 
+namespace MoeDistributeCombineAddRmsNorm {
 class l2_moe_distribute_combine_add_rms_norm_test : public testing::Test
 {
 protected:
@@ -125,3 +126,4 @@ TEST_F(l2_moe_distribute_combine_add_rms_norm_test, test_moe_distribute_combine_
     aclnnStatus aclRet4 = ut4.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size4, executor4);
     EXPECT_EQ(aclRet4, ACLNN_ERR_PARAM_INVALID);
 }
+} // MoeDistributeCombineAddRmsNorm

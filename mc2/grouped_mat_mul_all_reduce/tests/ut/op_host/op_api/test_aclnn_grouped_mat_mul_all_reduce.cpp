@@ -68,9 +68,10 @@ TEST_F(l2_grouped_mat_mul_all_reduce_test, ascend910B2_case_0) {
     auto ut = OP_API_UT(aclnnGroupedMatMulAllReduce,
         INPUT(xList, weightList, biasList, array, splitItemOptional, "test_group", "sum", 0, 1),
         OUTPUT(outList));
-    uint64_t workspaceSize = 0;
-    aclnnStatus getWorkspaceResult = ut.TestGetWorkspaceSize(&workspaceSize);
-    EXPECT_EQ(getWorkspaceResult, ACLNN_ERR_PARAM_INVALID);
+    uint64_t workspace_size = 0;
+    aclOpExecutor* executor = nullptr;
+    aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
+    EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_INVALID);
 }
 
 TEST_F(l2_grouped_mat_mul_all_reduce_test, ascend910B2_case_1) {
@@ -105,9 +106,10 @@ TEST_F(l2_grouped_mat_mul_all_reduce_test, ascend910B2_case_1) {
     auto ut = OP_API_UT(aclnnGroupedMatMulAllReduce,
         INPUT(xList, weightList, biasList, array, splitItemOptional, "test_group", "sum", 0, 1),
         OUTPUT(outList));
-    uint64_t workspaceSize = 0;
-    aclnnStatus getWorkspaceResult = ut.TestGetWorkspaceSize(&workspaceSize);
-    EXPECT_EQ(getWorkspaceResult, ACLNN_ERR_PARAM_INVALID);
+    uint64_t workspace_size = 0;
+    aclOpExecutor* executor = nullptr;
+    aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
+    EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_INVALID);
 }
 
 TEST_F(l2_grouped_mat_mul_all_reduce_test, ascend910B2_case_2) {
@@ -142,9 +144,10 @@ TEST_F(l2_grouped_mat_mul_all_reduce_test, ascend910B2_case_2) {
     auto ut = OP_API_UT(aclnnGroupedMatMulAllReduce,
         INPUT(xList, weightList, biasList, array, splitItemOptional, "test_group", "sum", 0, 1),
         OUTPUT(outList));
-    uint64_t workspaceSize = 0;
-    aclnnStatus getWorkspaceResult = ut.TestGetWorkspaceSize(&workspaceSize);
-    EXPECT_EQ(getWorkspaceResult, ACLNN_ERR_PARAM_INVALID);
+    uint64_t workspace_size = 0;
+    aclOpExecutor* executor = nullptr;
+    aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
+    EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_INVALID);
 }
 
 TEST_F(l2_grouped_mat_mul_all_reduce_test, ascend910B2_case_3) {
@@ -178,9 +181,10 @@ TEST_F(l2_grouped_mat_mul_all_reduce_test, ascend910B2_case_3) {
     auto ut = OP_API_UT(aclnnGroupedMatMulAllReduce,
         INPUT(xList, weightList, biasList, array, splitItemOptional, "test_group", "sum", 0, 1),
         OUTPUT(outList));
-    uint64_t workspaceSize = 0;
-    aclnnStatus getWorkspaceResult = ut.TestGetWorkspaceSize(&workspaceSize);
-    EXPECT_EQ(getWorkspaceResult, ACLNN_ERR_PARAM_INVALID);
+    uint64_t workspace_size = 0;
+    aclOpExecutor* executor = nullptr;
+    aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
+    EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_INVALID);
 }
 
 TEST_F(l2_grouped_mat_mul_all_reduce_test, ascend910B2_case_4) {
@@ -214,9 +218,10 @@ TEST_F(l2_grouped_mat_mul_all_reduce_test, ascend910B2_case_4) {
     auto ut = OP_API_UT(aclnnGroupedMatMulAllReduce,
         INPUT(xList, weightList, biasList, array, splitItemOptional, "test_group", "sum", 0, 1),
         OUTPUT(outList));
-    uint64_t workspaceSize = 0;
-    aclnnStatus getWorkspaceResult = ut.TestGetWorkspaceSize(&workspaceSize);
-    EXPECT_EQ(getWorkspaceResult, ACLNN_ERR_PARAM_INVALID);
+    uint64_t workspace_size = 0;
+    aclOpExecutor* executor = nullptr;
+    aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
+    EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_INVALID);
 }
 
 TEST_F(l2_grouped_mat_mul_all_reduce_test, ascend910B2_case_5) {
@@ -250,9 +255,10 @@ TEST_F(l2_grouped_mat_mul_all_reduce_test, ascend910B2_case_5) {
     auto ut = OP_API_UT(aclnnGroupedMatMulAllReduce,
         INPUT(xList, weightList, biasList, array, splitItemOptional, "test_group", "sum", 0, 1),
         OUTPUT(outList));
-    uint64_t workspaceSize = 0;
-    aclnnStatus getWorkspaceResult = ut.TestGetWorkspaceSize(&workspaceSize);
-    EXPECT_EQ(getWorkspaceResult, ACLNN_ERR_PARAM_INVALID);
+    uint64_t workspace_size = 0;
+    aclOpExecutor* executor = nullptr;
+    aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
+    EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_INVALID);
 }
 
 TEST_F(l2_grouped_mat_mul_all_reduce_test, ascend910B2_case_7) {
@@ -286,9 +292,10 @@ TEST_F(l2_grouped_mat_mul_all_reduce_test, ascend910B2_case_7) {
     auto ut = OP_API_UT(aclnnGroupedMatMulAllReduce,
         INPUT(xList, weightList, biasList, array, splitItemOptional, "test_group", "sum", 0, 1),
         OUTPUT(outList));
-    uint64_t workspaceSize = 0;
-    aclnnStatus getWorkspaceResult = ut.TestGetWorkspaceSize(&workspaceSize);
-    EXPECT_EQ(getWorkspaceResult, ACLNN_ERR_PARAM_INVALID);
+    uint64_t workspace_size = 0;
+    aclOpExecutor* executor = nullptr;
+    aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
+    EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_INVALID);
 }
 
 TEST_F(l2_grouped_mat_mul_all_reduce_test, ascend910B2_case_10) {
@@ -366,9 +373,10 @@ TEST_F(l2_grouped_mat_mul_all_reduce_test, ascend910B2_case_11) {
     auto ut = OP_API_UT(aclnnGroupedMatMulAllReduce,
         INPUT(xList, weightList, biasList, array, splitItemOptional, "test_group", "sum", 8, 1),
         OUTPUT(outList));
-    uint64_t workspaceSize = 0;
-    aclnnStatus getWorkspaceResult = ut.TestGetWorkspaceSize(&workspaceSize);
-    EXPECT_EQ(getWorkspaceResult, ACLNN_ERR_PARAM_INVALID);
+    uint64_t workspace_size = 0;
+    aclOpExecutor* executor = nullptr;
+    aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
+    EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_INVALID);
 }
 
 TEST_F(l2_grouped_mat_mul_all_reduce_test, ascend910B2_case_12) {
@@ -403,8 +411,9 @@ TEST_F(l2_grouped_mat_mul_all_reduce_test, ascend910B2_case_12) {
     auto ut = OP_API_UT(aclnnGroupedMatMulAllReduce,
                     INPUT(xList, weightList, nullptr, array, splitItemOptional, "test_group", "sum", 0, 1),
                     OUTPUT(outList));
-    uint64_t workspaceSize = 0;
-    aclOpExecutor *executor = nullptr;
-    aclnnStatus getWorkspaceResult = ut.TestGetWorkspaceSize(&workspaceSize);
+    uint64_t workspace_size = 0;
+    aclOpExecutor* executor = nullptr;
+    aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
+    EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_INVALID);
 }
 }

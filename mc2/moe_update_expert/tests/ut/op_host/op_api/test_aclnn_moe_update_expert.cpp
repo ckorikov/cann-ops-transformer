@@ -23,6 +23,7 @@
 using namespace op;
 using namespace std;
 
+namespace MoeUpdateExpert {
 class l2_aclnn_moe_update_expert_test : public testing::Test {
 protected:
     static void SetUpTestCase() { cout << "l2_aclnn_moe_update_expert_test SetUp" << endl; }
@@ -44,7 +45,9 @@ TEST_F(l2_aclnn_moe_update_expert_test, test_moe_update_expert_no_tailor) {
                         INPUT(expertIds, eplbTable, nullptr, nullptr, nullptr, localRankId, worldSize, balanceMode),
                         OUTPUT(balancedExpertIds, balancedActiveMask));
     uint64_t workspace_size = 0;
-    aclnnStatus aclRet = ut.TestGetWorkspaceSize(&workspace_size);
+    aclOpExecutor* executor = nullptr;
+    aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
+    EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_NULLPTR);
 }
 
 TEST_F(l2_aclnn_moe_update_expert_test, test_moe_update_expert_expert_tailor) {
@@ -66,5 +69,8 @@ TEST_F(l2_aclnn_moe_update_expert_test, test_moe_update_expert_expert_tailor) {
                               localRankId, worldSize, balanceMode),
                         OUTPUT(balancedExpertIds, balancedActiveMask));
     uint64_t workspace_size = 0;
-    aclnnStatus aclRet = ut.TestGetWorkspaceSize(&workspace_size);
+    aclOpExecutor* executor = nullptr;
+    aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
+    EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_NULLPTR);
 }
+} // MoeUpdateExpert

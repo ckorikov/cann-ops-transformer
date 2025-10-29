@@ -24,6 +24,7 @@
 using namespace op;
 using namespace std;
 
+namespace MoeDistributeCombineV2 {
 class l2_moe_distribute_combine_v2_test : public testing::Test {
  protected:
   static void SetUpTestCase() { cout << "l2_moe_distribute_combine_test SetUp" << endl; }
@@ -67,5 +68,8 @@ TEST_F(l2_moe_distribute_combine_v2_test, test_moe_distribute_combine_first_api)
                       expertShardType, sharedExpertNum, sharedExpertRankNum, globalBs, outDtype, commQuantMode, groupList_type, "test"),
                                         OUTPUT(x));
   uint64_t workspace_size = 0;
-  aclnnStatus aclRet = ut.TestGetWorkspaceSize(&workspace_size);
+  aclOpExecutor* executor = nullptr;
+  aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
+  EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_NULLPTR);
 }
+} // MoeDistributeCombineV2
