@@ -36,7 +36,8 @@ using namespace AscendC;
     templateClass<__VA_ARGS__> op;                                                                                                    \
     op.Init(query, key, value, pseShift, attenMask, actualSeqLengthsQ, actualSeqLengths, blocktable,                                  \
       queryPaddingSize, kvPaddingSize, softmaxLse, attentionOut, user, tilingData, &tPipe);                                           \
-    op.InitQuant(antiquantScale, antiquantOffset, keyAntiquantScale, keyAntiquantOffset, valueAntiquantScale, valueAntiquantOffset);  \
+    op.InitQuant(antiquantScale, antiquantOffset, keyAntiquantScale, keyAntiquantOffset,                                              \
+        valueAntiquantScale, valueAntiquantOffset, quantScale2, quantOffset2);  \
     op.Process();                                                                                                                     \
   } while(0)
 

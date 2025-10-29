@@ -917,12 +917,24 @@ bool IFATilingV2::CanChangeToNew() const {
 ge::graphStatus IFATilingV2::InitInOutMode() {
   if (inputQType_ == ge::DT_INT8 && outputType_ == ge::DT_FLOAT16) {
     inOutMode_ = TilingInOutMode::INT8_FP16;
+  } else if (inputQType_ == ge::DT_FLOAT16 && outputType_ == ge::DT_FLOAT8_E4M3FN) {
+    inOutMode_ = TilingInOutMode::FP16_FP8_E4M3FN;
+  } else if (inputQType_ == ge::DT_FLOAT16 && outputType_ == ge::DT_FLOAT8_E5M2) {
+    inOutMode_ = TilingInOutMode::FP16_FP8_E5M2;
+  } else if (inputQType_ == ge::DT_FLOAT16 && outputType_ == ge::DT_HIFLOAT8) {
+    inOutMode_ = TilingInOutMode::FP16_HIFLOAT8;
   } else if (inputQType_ == ge::DT_FLOAT16 && outputType_ == ge::DT_INT8) {
     inOutMode_ = TilingInOutMode::FP16_INT8;
   } else if (inputQType_ == ge::DT_FLOAT16 && outputType_ == ge::DT_FLOAT16) {
     inOutMode_ = TilingInOutMode::FP16_FP16;
   } else if (inputQType_ == ge::DT_BF16 && outputType_ == ge::DT_BF16) {
     inOutMode_ = TilingInOutMode::BF16_BF16;
+  } else if (inputQType_ == ge::DT_BF16 && outputType_ == ge::DT_FLOAT8_E4M3FN) {
+    inOutMode_ = TilingInOutMode::BF16_FP8_E4M3FN;
+  } else if (inputQType_ == ge::DT_BF16 && outputType_ == ge::DT_FLOAT8_E5M2) {
+    inOutMode_ = TilingInOutMode::BF16_FP8_E5M2;
+  } else if (inputQType_ == ge::DT_BF16 && outputType_ == ge::DT_HIFLOAT8) {
+    inOutMode_ = TilingInOutMode::BF16_HIFLOAT8;
   } else if (inputQType_ == ge::DT_BF16 && outputType_ == ge::DT_INT8) {
     inOutMode_ = TilingInOutMode::BF16_INT8;
   } else if (inputQType_ == ge::DT_FLOAT && outputType_ == ge::DT_FLOAT) {
@@ -939,7 +951,7 @@ ge::graphStatus IFATilingV2::ProcessOptionalTensors() {
   if ((ProcessActualSeqLen() != ge::GRAPH_SUCCESS) ||
       (ProcessPseShift() != ge::GRAPH_SUCCESS) ||
       (ProcessAttenMask() != ge::GRAPH_SUCCESS) || (ProcessAttenMaskSparsePFA() != ge::GRAPH_SUCCESS) ||
-      (ProcessQuant2() != ge::GRAPH_SUCCESS) || (VerifyQuantScale2() != ge::GRAPH_SUCCESS) ||
+      (ProcessQuant2() != ge::GRAPH_SUCCESS) ||
       (ProcessAntiQuant() != ge::GRAPH_SUCCESS) || (ProcessBlockTable() != ge::GRAPH_SUCCESS) ||
       (ProcessQPaddingSize() != ge::GRAPH_SUCCESS) || (ProcessKVPaddingSize() != ge::GRAPH_SUCCESS)) {
     return ge::GRAPH_FAILED;
@@ -1601,53 +1613,91 @@ ge::graphStatus IFATilingV2::ProcessQuant2Dtype() const {
   return ge::GRAPH_SUCCESS;
 }
 
-ge::graphStatus IFATilingV2::VerifyQuantScale2() const {
-  auto qtScale2 = context_->quantScale2.tensor;
-  if (outputType_ == ge::DT_INT8) {
-    if (qtScale2->GetShapeSize() == NUM1) {
-        OP_LOGD(context_->opName, "QuantScale2 is a const value.");
-      } else {
-        OP_LOGD(context_->opName, "QuantScale2 is a tensor.");
-        if (CheckQuant2Shape(qtScale2->GetStorageShape()) != ge::GRAPH_SUCCESS) {
-          OP_LOGE(context_->opName, "Check quantScale2 shape failed.");
-          return ge::GRAPH_FAILED;
-        }
-        tilingData_->outputParams.set_isPerChnOut(1);
-      }
-    }
-    return ge::GRAPH_SUCCESS;
+ge::graphStatus IFATilingV2::ProcessQuant2Attribute(const gert::Tensor *qtScale2) {
+  const ge::DataType quantScale2Type = qtScale2->GetDataType();
+  int64_t quantScale2ShapeSize = qtScale2->GetShapeSize();
+  OP_CHECK_IF((quantScale2Type != ge::DT_BF16) && (quantScale2Type != ge::DT_FLOAT),
+      OPS_REPORT_VECTOR_INNER_ERR(context_->opName, "post quant scale dtype(%s) only support bf16 and fp32.", GetPfaDataTypeStr(quantScale2Type).c_str()),
+      return ge::GRAPH_FAILED);
+
+  // input dtype verification
+  if (inputQType_ == ge::DT_BF16) {
+    OP_CHECK_IF(quantScale2Type != ge::DT_FLOAT && quantScale2Type != ge::DT_BF16,
+        OPS_REPORT_VECTOR_INNER_ERR(context_->opName,
+        "invalid post quant scale dtype(%s), when q is %s, only support float32 and bf16",
+        GetPfaDataTypeStr(quantScale2Type).c_str(), GetPfaDataTypeStr(inputQType_).c_str()),
+    return ge::GRAPH_FAILED);
+  } else {
+    OP_CHECK_IF(quantScale2Type != ge::DT_FLOAT,
+        OPS_REPORT_VECTOR_INNER_ERR(context_->opName,
+        "invalid post quant scale dtype(%s), when q is %s, only support float32",
+        GetPfaDataTypeStr(quantScale2Type).c_str(), GetPfaDataTypeStr(inputQType_).c_str()),
+        return ge::GRAPH_FAILED);
   }
+  if (quantScale2Type == ge::DT_BF16) {
+    isPostQuantBF16_ = true;
+  }
+
+  // per-tensor or per-channel verification
+  uint64_t quantScale2ShapeSizePerChannel = static_cast<uint64_t>(numHeads_) * static_cast<uint64_t>(headDim_);
+  OP_CHECK_IF((static_cast<uint64_t>(quantScale2ShapeSize) != 1U) && 
+      (static_cast<uint64_t>(quantScale2ShapeSize) != quantScale2ShapeSizePerChannel),
+      OPS_REPORT_VECTOR_INNER_ERR(context_->opName,
+      "post quant scale2/offset2 dimension multiply result only support 1 and qN * vD(%u * %u = %lu), now is (%ld).",
+      numHeads_ , headDim_ , quantScale2ShapeSizePerChannel, quantScale2ShapeSize),
+      return ge::GRAPH_FAILED);
+  
+  if (static_cast<uint64_t>(quantScale2ShapeSize) == quantScale2ShapeSizePerChannel) {
+    isPostQuantPerChnl_ = true;
+  }
+
+  return ge::GRAPH_SUCCESS;
+} 
 
 ge::graphStatus IFATilingV2::ProcessQuant2() {
+  if (outputType_ == ge::DT_BF16 || outputType_ == ge::DT_FLOAT16) {
+    return ge::GRAPH_SUCCESS;
+  }
+  enablePostQuant_ = true;
+  OP_CHECK_IF(outputType_ != ge::DT_INT8 && outputType_ != ge::DT_FLOAT8_E5M2 && 
+              outputType_ != ge::DT_FLOAT8_E4M3FN && outputType_ != ge::DT_HIFLOAT8,
+              OPS_REPORT_VECTOR_INNER_ERR(context_->opName,
+              "invalid output type [%s], only support int8, fp8_e5m2_t, fp8_e4m3fn_t, hifloat8_t",
+              GetPfaDataTypeStr(outputType_).c_str()),
+              return ge::GRAPH_FAILED);
+              
+  // Basic verification: quantScale2 must be inputted and not an empty tensor
+  auto qtScale2 = context_->quantScale2.tensor;
+  OP_CHECK_IF(qtScale2 == nullptr, 
+      OPS_REPORT_VECTOR_INNER_ERR(context_->opName,
+      "quant_scale2_shape is nullptr in post quant scenario."),
+      return ge::GRAPH_FAILED);
+
+  const ge::DataType quantScale2Type = qtScale2->GetDataType();
+  int64_t quantScale2ShapeSize = qtScale2->GetShapeSize();
+  OP_CHECK_IF(quantScale2ShapeSize <= 0, OPS_REPORT_VECTOR_INNER_ERR(context_->opName,
+      "quant_scale2 is empty tensor in post quant scenario."),
+      return ge::GRAPH_FAILED);
+  
+  // offset verification
   auto qtOffset2 = context_->quantOffset2.tensor;
-  auto qtScale2Desc = context_->quantScale2.desc;
-  auto qtOffset2Desc = context_->quantOffset2.desc;
+  if (qtOffset2 != nullptr) {
+    const ge::DataType quantOffset2Type = qtOffset2->GetDataType();
+    OP_CHECK_IF(quantScale2Type != quantOffset2Type,
+      OPS_REPORT_VECTOR_INNER_ERR(context_->opName,
+          "post quant scale dtype(%s) and offset dtype(%s) must be consistent.",
+          GetPfaDataTypeStr(quantScale2Type).c_str(), GetPfaDataTypeStr(quantOffset2Type).c_str()),
+          return ge::GRAPH_FAILED);
 
-  if (ProcessQuant2Dtype() != ge::GRAPH_SUCCESS) {
-    return ge::GRAPH_FAILED;
+    int64_t quantOffset2ShapeSize = qtOffset2->GetShapeSize();
+    OP_CHECK_IF(quantScale2ShapeSize != quantOffset2ShapeSize, OPS_REPORT_VECTOR_INNER_ERR(context_->opName,
+        "quant_scale2 dimension multiply result(%ld) do not equal quant_offset2 dimension multiply result(%ld).",
+        quantScale2ShapeSize, quantOffset2ShapeSize),
+        return ge::GRAPH_FAILED);
   }
-
-  if (outputType_ == ge::DT_INT8) {
-    // for offset optional
-    if (qtOffset2 != nullptr && qtOffset2Desc != nullptr && qtScale2Desc != nullptr) {
-      OP_CHECK_IF(qtScale2Desc->GetDataType() != qtOffset2Desc->GetDataType(),
-                OP_LOGE(context_->opName, "The datatype (%s) of QuantScale2 and the datatype (%s) of quantOffset2 should have the same datatype.",
-                DataTypeToSerialString(qtScale2Desc->GetDataType()).c_str(),
-                DataTypeToSerialString(qtOffset2Desc->GetDataType()).c_str()),
-                return ge::GRAPH_FAILED);
-      if (qtOffset2->GetShapeSize() == NUM1) {
-        OP_LOGD(context_->opName, "QuantOffset2 is a const value.");
-      } else {
-        OP_LOGD(context_->opName, "QuantOffset2 is a tensor.");
-        OP_CHECK_IF(CheckQuant2Shape(qtOffset2->GetStorageShape()) != ge::GRAPH_SUCCESS,
-                  OP_LOGE(context_->opName, "Check quantOffset2 shape failed."),
-                  return ge::GRAPH_FAILED);
-        isPostQuantPerChnl_ = 1;
-        tilingData_->outputParams.set_isPerChnOut(1);
-      }
-    }
-  }
-
+  OP_CHECK_IF(ProcessQuant2Attribute(qtScale2) != ge::GRAPH_SUCCESS,
+      OPS_REPORT_VECTOR_INNER_ERR(context_->opName, "post quant attribute process failed!"),
+      return ge::GRAPH_FAILED);
   return ge::GRAPH_SUCCESS;
 }
 
@@ -2424,8 +2474,8 @@ void IFATilingV2::SetSparseStartIdx(const std::vector<int64_t>& sparseValidArray
 void IFATilingV2::PromptFlashAttentionInitOutputSplit() {
   int64_t totalSize = context_->attenOut.shape->GetStorageShape().GetShapeSize();
   uint32_t singleCoreSize = (totalSize + coreNum_ - 1) / (coreNum_);
-  if (outputType_ == ge::DT_INT8) {
-      // 2：In the int8 scenario, when initializing, fill in 0 according to the half type,
+  if (enablePostQuant_) {
+      // 2：In post quant scenario, when initializing, fill in 0 according to the half type,
       // requiring that the number of points allocated to each kernel must be even.
       singleCoreSize = ((singleCoreSize + 1) / 2) * 2; // 2 : fill in 0
   }
@@ -3235,7 +3285,7 @@ bool IFATilingV2::GetMatmulType(ge::DataType getype, matmul_tiling::DataType* mm
 }
 
 uint8_t IFATilingV2::GenHeadDimProfileVal() const {
-  if (outputType_ == ge::DT_INT8 || perfMode_ != IfaPerfMode::NORMAL) {  // 后量化用例，不开这个比特
+  if (perfMode_ != IfaPerfMode::NORMAL) { 
     return NUM0;
   }
   if (headDim_ <= NUM64) { // D小于64，常量化分档为1
@@ -3378,6 +3428,15 @@ ge::graphStatus IFATilingV2::GenTilingKey() {
     case ge::DT_INT8:
       outputVal = NUM3;
       break;
+    case ge::DT_FLOAT8_E4M3FN:
+      outputVal = NUM4;
+      break;
+    case ge::DT_FLOAT8_E5M2:
+      outputVal = NUM5;
+      break;
+    case ge::DT_HIFLOAT8:
+      outputVal = NUM6;
+      break;
     default :
       OP_LOGE(context_->opName, "Not support outputType[%s].", DataTypeToSerialString(outputType_).c_str());
       return ge::GRAPH_FAILED;
@@ -3482,6 +3541,15 @@ uint64_t IFATilingV2::GenTilingKeyfaRun() {
       break;
     case ge::DT_INT8:
       outputVal = NUM3;
+      break;
+    case ge::DT_FLOAT8_E4M3FN:
+      outputVal = NUM4;
+      break;
+    case ge::DT_FLOAT8_E5M2:
+      outputVal = NUM5;
+      break;
+    case ge::DT_HIFLOAT8:
+      outputVal = NUM6;
       break;
     default :
       OP_LOGE(context_->opName, "Not support outputType[%s].", DataTypeToSerialString(outputType_).c_str());
@@ -3772,7 +3840,7 @@ void IFATilingV2::IFATilingDataconvert() {
   initOutputParams.set_isOneN(0);  // 伪量化没有用到
 
   inputParams.set_isPostQuantPerChnl(isPostQuantPerChnl_);  // 伪量化暂不支持后量化，默认值
-  inputParams.set_isPostQuantBF16(isOutQuantTypeBf16_);  //伪量化暂不支持后量化，默认值
+  inputParams.set_isPostQuantBF16(isPostQuantBF16_);  //伪量化暂不支持后量化，默认值
 }
 
 ge::graphStatus IFATilingV2::IncreFlashAttentionSetTilingData(gert::TilingContext& context,

@@ -112,6 +112,7 @@ class IFATilingV2 {
   ge::graphStatus CheckKVAntiQuantPerHead(const gert::Shape &inputParaShape);
   ge::graphStatus CheckQuant2Shape(const gert::Shape &inputParaShape) const;
   ge::graphStatus ProcessQuant2Dtype() const;
+  ge::graphStatus ProcessQuant2Attribute(const gert::Tensor *qtScale2);
   ge::graphStatus CheckKVAntiQuantPerChannel(const gert::Shape &inputParaShape) const;
   ge::graphStatus CheckKVAntiQuantShapePA(const gert::Shape &inputParaShape) const;
   ge::graphStatus CheckKVAntiQuantParaShapeLegal(const int64_t antiquantMode, const gert::Shape &inputParaShape);
@@ -350,8 +351,9 @@ class IFATilingV2 {
   uint32_t singleCoreSize_ = 0;
   int64_t totalSize_ = 0;
   int64_t totalSizeLse_ = 0;
-  uint8_t isPostQuantPerChnl_ = 0;
-  uint8_t isOutQuantTypeBf16_ = 0;
+  bool enablePostQuant_ = false;
+  bool isPostQuantPerChnl_ = false;
+  bool isPostQuantBF16_ = false;
   uint8_t pageAttentionKvLayoutTypefaRun_ = 0;
   FlashAttentionScoreSimplifiedTilingData faRunTilingAdapter;
 };

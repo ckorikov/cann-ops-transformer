@@ -45,6 +45,7 @@ enum class AntiquantTypeEnum : uint8_t {
 #include "vf/vf_flashupdate_new.h"
 #include "vf/vf_div_cast.h"
 #include "vf/vf_flash_decode.h"
+#include "vf/vf_post_quant.h"
 #include "flash_attention_score_antiquant_processor.h"
 #include "infer_flash_attention_kvcache.h"
 #include "infer_flash_attention_sparse.h"
@@ -87,8 +88,20 @@ public:
         __gm__ uint8_t *workspace, const FlashAttentionScoreSimplifiedTilingData *__restrict tiling, TPipe *tPipe);
     __aicore__ inline void InitQuant(__gm__ uint8_t* antiquantScale, __gm__ uint8_t* antiquantOffset,
         __gm__ uint8_t* keyAntiquantScale, __gm__ uint8_t* keyAntiquantOffset,
-        __gm__ uint8_t* valueAntiquantScale, __gm__ uint8_t* valueAntiquantOffset);
+        __gm__ uint8_t* valueAntiquantScale, __gm__ uint8_t* valueAntiquantOffset,
+        __gm__ uint8_t *postQuantScale, __gm__ uint8_t *postQuantOffset);
+    __aicore__ inline void InitPostQuant(__gm__ uint8_t *postQuantScale, __gm__ uint8_t *postQuantOffset);    
     __aicore__ inline void Process();
+
+    template <typename VEC2_RES_T>
+    __aicore__ inline void PostQuant(ConstInfo<isInfer, hasRope> &constInfo, RunInfo<isInfer> &runInfo, LocalTensor<OUTPUT_T> &attenOut, LocalTensor<VEC2_RES_T> &vec2ResUb, int64_t vec2S1Idx, int64_t dSizeAligned64);
+
+    __aicore__ inline void FDPostQuant(ConstInfo<isInfer, hasRope> &constInfo, LocalTensor<OUTPUT_T> &attenOut, LocalTensor<T> &accumOutLocal, uint64_t perChannelQuantOffset, uint32_t dealRowCount, uint32_t dSizeAligned64);
+
+    template <typename POSTQUANT_PARAMS_T, typename VEC2_RES_T>
+    __aicore__ inline void PostQuantPerChnl(ConstInfo<isInfer, hasRope> &constInfo, LocalTensor<OUTPUT_T> &attenOut, 
+        LocalTensor<VEC2_RES_T> &vec2ResUb, uint64_t perChannelQuantOffset, uint32_t gSplitSize, uint32_t s1RowCount, uint32_t splitOffset, int64_t dSizeAligned64,
+        GlobalTensor<POSTQUANT_PARAMS_T> postQuantScaleGm, GlobalTensor<POSTQUANT_PARAMS_T> postQuantOffsetGm);
 
     static constexpr bool ANTIQUANT = !IsSameType<Q_T, KV_T>::value;
     static constexpr bool KVFP4 = (IsSameType<KV_T, fp4x2_e1m2_t>::value || IsSameType<KV_T, fp4x2_e2m1_t>::value);
@@ -106,6 +119,7 @@ public:
     using KEY_ANTIQ_PARAMS_T = typename std::conditional<KEY_ANTIQUANT_PER_TOKEN, T, Q_T>::type;
     using VALUE_ANTIQ_PARAMS_T = typename std::conditional<VALUE_ANTIQUANT_PER_TOKEN, T, Q_T>::type;
     static constexpr bool KVINT4 = IsSameType<KV_T, int4b_t>::value;
+    static constexpr bool POST_QUANT = !IsSameType<OUTPUT_T, half>::value && !IsSameType<OUTPUT_T, bfloat16_t>::value && !IsSameType<OUTPUT_T, float>::value;
 
 protected:
     static constexpr uint32_t s1BaseSize = (uint32_t)s1TemplateType;
@@ -158,8 +172,10 @@ protected:
     GlobalTensor<KV_T> key;
     GlobalTensor<Q_T> query;
     GlobalTensor<OUTPUT_T> attentionOutGm;
+    GlobalTensor<half> attentionOutInitGm;
     __gm__ uint8_t *pseSlope;
-    using pseGmType = typename std::conditional<hasPse, GlobalTensor<OUTPUT_T>, int8_t>::type;
+    using pseShiftType = typename AscendC::Conditional<POST_QUANT, Q_T, OUTPUT_T>::type;
+    using pseGmType = typename std::conditional<hasPse, GlobalTensor<pseShiftType>, int8_t>::type;
     pseGmType pseGm;
     using attenMaskGmType = typename std::conditional<hasAtten, GlobalTensor<uint8_t>, int8_t>::type;
     attenMaskGmType attenMaskGmInt;
@@ -168,11 +184,19 @@ protected:
     FDGmType accumOutGm;
     FDGmType softmaxFDMaxGm;
     FDGmType softmaxFDSumGm;
-    LocalTensor<OUTPUT_T> dummyPseTensor;
+    LocalTensor<pseShiftType> dummyPseTensor;
     LocalTensor<uint8_t> dummyAttenMaskTensor;
     GlobalTensor<Q_T> queryGm;
     GlobalTensor<KV_T> keyGm;
     GlobalTensor<KV_T> valueGm;
+
+    using postQuantGmType = typename std::conditional<POST_QUANT, GlobalTensor<float>, int8_t>::type;
+    postQuantGmType postQuantScaleGm;
+    postQuantGmType postQuantOffsetGm;
+    using postQuantBf16GmType = typename std::conditional<POST_QUANT, GlobalTensor<bfloat16_t>, int8_t>::type;
+    postQuantBf16GmType postQuantScaleBf16Gm;
+    postQuantBf16GmType postQuantOffsetBf16Gm;
+
     /*伪量化参数*/
     GlobalTensor<KEY_ANTIQ_PARAMS_T> keyAntiquantOffsetGm;
     GlobalTensor<KEY_ANTIQ_PARAMS_T> keyAntiqScaleGm;
@@ -208,6 +232,9 @@ protected:
     TQue<QuePosition::VECIN, 1> valueAntiqScaleInputQue;
     TQue<QuePosition::VECIN, 1> valueAntiqOffsetInputQue;
     TBuf<> kvAntiqMxScaleRes;  // for w4
+
+    TQue<QuePosition::VECIN, 1> postQuantScaleQue; 
+    TQue<QuePosition::VECIN, 1> postQuantOffsetQue; 
 
     /* =====================核间通道==================== */
     BufferManager<BufferType::L1> l1BufferManager;
@@ -266,7 +293,7 @@ protected:
     template<typename VEC2_RES_T>
     __aicore__ inline void Bmm2DataCopyOut(RunInfo<isInfer> &runInfo, LocalTensor<VEC2_RES_T> &vec2ResUb, int64_t vec2S1Idx, int64_t vec2CalcSize = 0);
     template<typename VEC2_RES_T>
-    __aicore__ inline void RowInvalid(LocalTensor<VEC2_RES_T> &vec2ResUb, int64_t vec2S1Idx, RunInfo<isInfer> &runInfo);
+    __aicore__ inline void RowInvalid(LocalTensor<VEC2_RES_T> &vec2ResUb, int64_t vec2S1Idx, RunInfo<isInfer> &runInfo, int64_t dSizeAligned64);
     __aicore__ inline int64_t ComputeOffsetForSoftmax(RunInfo<isInfer> &runInfo, const int64_t vec2S1Idx);
     __aicore__ inline void IterateBmm2(const int64_t &subTaskId, RunInfo<isInfer> &runInfo);
     __aicore__ inline void GetSeqQlenKvlenByBoidx(int64_t boIdx, int64_t &actualSeqQlen, int64_t &actualSeqKvLen);
@@ -279,7 +306,7 @@ protected:
     __aicore__ inline void CombineSplitKVRes(uint64_t attenOutOffset, uint32_t bIdx, uint32_t n2Idx);
     __aicore__ inline void ComputeScaleValue(LocalTensor<T> lseMaxUb, LocalTensor<T> lseSumUb, uint32_t splitSize, uint64_t lseOffset);
     __aicore__ inline void CopyLseIn(uint32_t bIdx, uint32_t n2Idx, uint32_t startRow, uint32_t dealRowCount);
-    __aicore__ inline void CopyFinalResOut(uint64_t attenOutOffset, LocalTensor<T> &accumOutLocal, uint32_t startRow, uint32_t dealRowCount);
+    __aicore__ inline void CopyFinalResOut(uint64_t attenOutOffset, LocalTensor<T> &accumOutLocal, uint32_t startRow, uint32_t dealRowCount, uint64_t perChannelQuantOffset);
     __aicore__ inline void CopyAccumOutIn(uint32_t bIdx, uint32_t n2Idx, uint32_t splitKVIndex, uint32_t startRow, uint32_t dealRowCount);
     __aicore__ inline void GetKvByTensorList(RunInfo<isInfer>& runInfo, GlobalTensor<KV_T>& keyValueGm, GlobalTensor<KV_T>& tempKeyValueGm);
     __aicore__ inline void ReduceFinalRes(uint32_t bIdx, uint32_t n2Idx, LocalTensor<T> &dst, LocalTensor<T> &lseLocal, uint32_t startRow, uint32_t dealRowCount);
@@ -602,9 +629,12 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
     }
     if ASCEND_IS_AIV {
         this->attentionOutGm.SetGlobalBuffer((__gm__ OUTPUT_T *)attentionOut);
+        if constexpr (POST_QUANT) {
+            this->attentionOutInitGm.SetGlobalBuffer((__gm__ half *)attentionOut);
+        }
         this->softmaxLseGm.SetGlobalBuffer((__gm__ float *)softmaxLse);
         if constexpr (hasPse) {
-            pseGm.SetGlobalBuffer((__gm__ OUTPUT_T *)pse);
+            pseGm.SetGlobalBuffer((__gm__ pseShiftType *)pse);
             pseSlope = pse;
         }
         if constexpr (hasAtten) {
@@ -691,6 +721,12 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
         }
         this->pipe->InitBuffer(this->stage1OutQue[0], 1, stage1OutQueSize);
         this->pipe->InitBuffer(this->stage2OutQue[0], 1, stage2OutQueSize);
+        if constexpr (POST_QUANT) {
+            this->pipe->InitBuffer(postQuantScaleQue, 1, 2048); // 2K
+            if (constInfo.isPostQuantOffsetExist) {
+                this->pipe->InitBuffer(postQuantOffsetQue, 1, 2048); // 2K
+            }
+        }
     }
 }
 
@@ -730,7 +766,11 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
     auto &initParams = this->tilingData->initOutputParams;
     uint32_t tailSize = initParams.totalOutputSize - constInfo.aivIdx * initParams.singleCoreSize;
     uint32_t singleInitOutputSize = tailSize < initParams.singleCoreSize ? tailSize : initParams.singleCoreSize;
-    InitOutput<OUTPUT_T>(this->attentionOutGm[constInfo.aivIdx * initParams.singleCoreSize], singleInitOutputSize, 0.0);
+    if constexpr (POST_QUANT) {
+        InitOutput<half>(this->attentionOutInitGm[constInfo.aivIdx * initParams.singleCoreSize / 2], singleInitOutputSize / 2, 0.0);
+    } else {
+        InitOutput<OUTPUT_T>(this->attentionOutGm[constInfo.aivIdx * initParams.singleCoreSize], singleInitOutputSize, 0.0);
+    }
 }
 
 CHILD_SPEC_TEMPLATE_ANTI
@@ -752,7 +792,8 @@ CHILD_SPEC_TEMPLATE_ANTI
 __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_ARGS_ANTI>::InitQuant(
     __gm__ uint8_t* antiquantScale, __gm__ uint8_t* antiquantOffset,
     __gm__ uint8_t* keyAntiquantScale, __gm__ uint8_t* keyAntiquantOffset,
-    __gm__ uint8_t* valueAntiquantScale, __gm__ uint8_t* valueAntiquantOffset)
+    __gm__ uint8_t* valueAntiquantScale, __gm__ uint8_t* valueAntiquantOffset,
+    __gm__ uint8_t* postQuantScale, __gm__ uint8_t *postQuantOffset)
 {
     if constexpr (ANTIQUANT) {
         if (keyAntiquantScale == nullptr) {
@@ -780,6 +821,66 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
             if (antiqOffsetExistFlag) {
                 keyAntiquantOffsetGm.SetGlobalBuffer((__gm__ KEY_ANTIQ_PARAMS_T*)keyAntiquantOffset);
                 valueAntiquantOffsetGm.SetGlobalBuffer((__gm__ VALUE_ANTIQ_PARAMS_T*)valueAntiquantOffset);
+            }
+        }
+    }
+
+    if constexpr (POST_QUANT) {
+        auto &inputParamsRegbase = this->tilingData->inputParamsRegbase;
+        this->constInfo.isPostQuantPerChnl = inputParamsRegbase.isPostQuantPerChnl;
+        this->constInfo.isPostQuantBF16 = inputParamsRegbase.isPostQuantBF16;
+        this->InitPostQuant(postQuantScale, postQuantOffset);
+    }
+}
+
+CHILD_SPEC_TEMPLATE_ANTI
+__aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_ARGS_ANTI>::InitPostQuant(__gm__ uint8_t *postQuantScale, __gm__ uint8_t *postQuantOffset)
+{
+    if constexpr (POST_QUANT) {
+        constInfo.isPostQuantOffsetExist = false;
+        if (!constInfo.isPostQuantPerChnl && !constInfo.isPostQuantBF16) {
+            if (postQuantScale != nullptr) {
+                postQuantScaleGm.SetGlobalBuffer((__gm__ float *)postQuantScale);
+                constInfo.postQuantScaleValue = postQuantScaleGm.GetValue(0);
+            }
+            if (postQuantOffset != nullptr) {
+                postQuantOffsetGm.SetGlobalBuffer((__gm__ float *)postQuantOffset);
+                constInfo.postQuantOffsetValue = postQuantOffsetGm.GetValue(0);
+            } else {
+                constInfo.postQuantOffsetValue = 0.0;
+            }
+        }
+        
+        if (!constInfo.isPostQuantPerChnl && constInfo.isPostQuantBF16) {
+            if (postQuantScale != nullptr) {
+                postQuantScaleBf16Gm.SetGlobalBuffer((__gm__ bfloat16_t *)postQuantScale);
+                constInfo.postQuantScaleValue = ToFloat(postQuantScaleBf16Gm.GetValue(0));
+            }
+            if (postQuantOffset != nullptr) {
+                postQuantOffsetBf16Gm.SetGlobalBuffer((__gm__ bfloat16_t *)postQuantOffset);
+                constInfo.postQuantOffsetValue = ToFloat(postQuantOffsetBf16Gm.GetValue(0));
+            } else {
+                constInfo.postQuantOffsetValue = 0.0;
+            }
+        }
+
+        if (constInfo.isPostQuantPerChnl && !constInfo.isPostQuantBF16) {
+            if (postQuantScale != nullptr) {
+                this->postQuantScaleGm.SetGlobalBuffer((__gm__ float *)postQuantScale);
+            }
+            if (postQuantOffset != nullptr) {
+                constInfo.isPostQuantOffsetExist = true;
+                postQuantOffsetGm.SetGlobalBuffer((__gm__ float *)postQuantOffset);
+            }
+        }
+
+        if (constInfo.isPostQuantPerChnl && constInfo.isPostQuantBF16) {
+            if (postQuantScale != nullptr) {
+                postQuantScaleBf16Gm.SetGlobalBuffer((__gm__ bfloat16_t *)postQuantScale);
+            }
+            if (postQuantOffset != nullptr) {
+                constInfo.isPostQuantOffsetExist = true;
+                postQuantOffsetBf16Gm.SetGlobalBuffer((__gm__ bfloat16_t *)postQuantOffset);
             }
         }
     }
@@ -1230,10 +1331,10 @@ CHILD_SPEC_TEMPLATE_ANTI
 __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_ARGS_ANTI>::ProcessVec1Nd(RunInfo<isInfer> &runInfo)
 {
     CrossCoreWaitFlag<SYNC_MODE, PIPE_V>(CV_MM1RES_EVENT[runInfo.taskIdMod2]);
-    LocalTensor<OUTPUT_T> pseUb;
+    LocalTensor<pseShiftType> pseUb;
     if constexpr (hasPseOuter == true) {
-        PseCopyIn<T, OUTPUT_T, hasPseOuter>(this->pseInQue, this->pseGm, runInfo, constInfo, pseInfo);
-        pseUb = this->pseInQue.template DeQue<OUTPUT_T>();
+        PseCopyIn<T, pseShiftType, hasPseOuter>(this->pseInQue, this->pseGm, runInfo, constInfo, pseInfo);
+        pseUb = this->pseInQue.template DeQue<pseShiftType>();
     } else {
         pseUb = dummyPseTensor;
     }
@@ -1270,37 +1371,37 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
     auto stage1CastTensor = this->stage1OutQue[0].template AllocTensor<Q_T>();
     if (unlikely(runInfo.s2LoopCount == runInfo.s2LoopStartIdx)) {
         if (runInfo.s2RealSize == 128) {  // 128 is s2RealSize
-            ProcessVec1Vf<T, Q_T, OUTPUT_T, false, s1BaseSize, s2BaseSize, EQ_128, hasAtten, pseMode, false>(
+            ProcessVec1Vf<T, Q_T, pseShiftType, false, s1BaseSize, s2BaseSize, EQ_128, hasAtten, pseMode, false>(
                 stage1CastTensor, this->vselrIndexesBuf, sumUb, maxUb, inputTensorVec, expUb, sumUb, maxUb,
                 attenMaskUb, pseUb, dropMaskUb, apiTmpBuffer, runInfo.halfS1RealSize, runInfo.s2RealSize,
                 pseInfo.pseStride, slopes, posShift, static_cast<T>(constInfo.scaleValue), 1.0, negativeFloatScalar,
                 constInfo.keepProb);
         } else if (runInfo.s2RealSize <= 64) { // 64 is s2RealSize
-            ProcessVec1Vf<T, Q_T, OUTPUT_T, false, s1BaseSize, s2BaseSize, GT_0_AND_LTE_64, hasAtten, pseMode, false>(
+            ProcessVec1Vf<T, Q_T, pseShiftType, false, s1BaseSize, s2BaseSize, GT_0_AND_LTE_64, hasAtten, pseMode, false>(
                 stage1CastTensor, this->vselrIndexesBuf, sumUb, maxUb, inputTensorVec, expUb, sumUb, maxUb,
                 attenMaskUb, pseUb, dropMaskUb, apiTmpBuffer, runInfo.halfS1RealSize, runInfo.s2RealSize,
                 pseInfo.pseStride, slopes, posShift, static_cast<T>(constInfo.scaleValue), 1.0, negativeFloatScalar,
                 constInfo.keepProb);
         } else if (runInfo.s2RealSize <= 128 && runInfo.s2RealSize > 64) {  // 64 and 128 is s2RealSize
-            ProcessVec1Vf<T, Q_T, OUTPUT_T, false, s1BaseSize, s2BaseSize, GT_64_AND_LTE_128, hasAtten, pseMode, false>(
+            ProcessVec1Vf<T, Q_T, pseShiftType, false, s1BaseSize, s2BaseSize, GT_64_AND_LTE_128, hasAtten, pseMode, false>(
                 stage1CastTensor, this->vselrIndexesBuf, sumUb, maxUb, inputTensorVec, expUb, sumUb, maxUb,
                 attenMaskUb, pseUb, dropMaskUb, apiTmpBuffer, runInfo.halfS1RealSize, runInfo.s2RealSize,
                 pseInfo.pseStride, slopes, posShift, static_cast<T>(constInfo.scaleValue), 1.0, negativeFloatScalar,
                 constInfo.keepProb);
         } else if (runInfo.s2RealSize <= 256 && runInfo.s2RealSize > 128) {  // 128 and 256 is s2RealSize
-            ProcessVec1Vf<T, Q_T, OUTPUT_T, false, s1BaseSize, s2BaseSize, GT_128_AND_LTE_256, hasAtten, pseMode, false>(
+            ProcessVec1Vf<T, Q_T, pseShiftType, false, s1BaseSize, s2BaseSize, GT_128_AND_LTE_256, hasAtten, pseMode, false>(
                 stage1CastTensor, this->vselrIndexesBuf, sumUb, maxUb, inputTensorVec, expUb, sumUb, maxUb,
                 attenMaskUb, pseUb, dropMaskUb, apiTmpBuffer, runInfo.halfS1RealSize, runInfo.s2RealSize,
                 pseInfo.pseStride, slopes, posShift, static_cast<T>(constInfo.scaleValue), 1.0, negativeFloatScalar,
                 constInfo.keepProb);
         } else if (runInfo.s2RealSize <= 512 && runInfo.s2RealSize > 256) {  // 256 and 512 is s2RealSize
-            ProcessVec1Vf<T, Q_T, OUTPUT_T, false, s1BaseSize, s2BaseSize, GT_256_AND_LTE_512, hasAtten, pseMode, false>(
+            ProcessVec1Vf<T, Q_T, pseShiftType, false, s1BaseSize, s2BaseSize, GT_256_AND_LTE_512, hasAtten, pseMode, false>(
                 stage1CastTensor, this->vselrIndexesBuf, sumUb, maxUb, inputTensorVec, expUb, sumUb, maxUb,
                 attenMaskUb, pseUb, dropMaskUb, apiTmpBuffer, runInfo.halfS1RealSize, runInfo.s2RealSize,
                 pseInfo.pseStride, slopes, posShift, static_cast<T>(constInfo.scaleValue), 1.0, negativeFloatScalar,
                 constInfo.keepProb);
         } else if (runInfo.s2RealSize <= 1024 && runInfo.s2RealSize > 512) {  // 512 and 1024 is s2RealSize
-            ProcessVec1Vf<T, Q_T, OUTPUT_T, false, s1BaseSize, s2BaseSize, GT_512_AND_LTE_1024, hasAtten, pseMode, false>(
+            ProcessVec1Vf<T, Q_T, pseShiftType, false, s1BaseSize, s2BaseSize, GT_512_AND_LTE_1024, hasAtten, pseMode, false>(
                 stage1CastTensor, this->vselrIndexesBuf, sumUb, maxUb, inputTensorVec, expUb, sumUb, maxUb,
                 attenMaskUb, pseUb, dropMaskUb, apiTmpBuffer, runInfo.halfS1RealSize, runInfo.s2RealSize,
                 pseInfo.pseStride, slopes, posShift, static_cast<T>(constInfo.scaleValue), 1.0, negativeFloatScalar,
@@ -1308,37 +1409,37 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
         }
     } else {
          if (runInfo.s2RealSize == 128) { // 128 is s2RealSize
-            ProcessVec1Vf<T, Q_T, OUTPUT_T, true, s1BaseSize, s2BaseSize, EQ_128, hasAtten, pseMode, false>(
+            ProcessVec1Vf<T, Q_T, pseShiftType, true, s1BaseSize, s2BaseSize, EQ_128, hasAtten, pseMode, false>(
                 stage1CastTensor, this->vselrIndexesBuf, sumUb, maxUb, inputTensorVec, expUb, sumUb, maxUb,
                 attenMaskUb, pseUb, dropMaskUb, apiTmpBuffer, runInfo.halfS1RealSize, runInfo.s2RealSize,
                 pseInfo.pseStride, slopes, posShift, static_cast<T>(constInfo.scaleValue), 1.0, negativeFloatScalar,
                 constInfo.keepProb);
         } else if (runInfo.s2RealSize <= 64) { // 64 is s2RealSize
-            ProcessVec1Vf<T, Q_T, OUTPUT_T, true, s1BaseSize, s2BaseSize, GT_0_AND_LTE_64, hasAtten, pseMode, false>(
+            ProcessVec1Vf<T, Q_T, pseShiftType, true, s1BaseSize, s2BaseSize, GT_0_AND_LTE_64, hasAtten, pseMode, false>(
                 stage1CastTensor, this->vselrIndexesBuf, sumUb, maxUb, inputTensorVec, expUb, sumUb, maxUb,
                 attenMaskUb, pseUb, dropMaskUb, apiTmpBuffer, runInfo.halfS1RealSize, runInfo.s2RealSize,
                 pseInfo.pseStride, slopes, posShift, static_cast<T>(constInfo.scaleValue), 1.0, negativeFloatScalar,
                 constInfo.keepProb);
         } else if (runInfo.s2RealSize <= 128 && runInfo.s2RealSize > 64) { // 64 and 128 is s2RealSize
-            ProcessVec1Vf<T, Q_T, OUTPUT_T, true, s1BaseSize, s2BaseSize, GT_64_AND_LTE_128, hasAtten, pseMode, false>(
+            ProcessVec1Vf<T, Q_T, pseShiftType, true, s1BaseSize, s2BaseSize, GT_64_AND_LTE_128, hasAtten, pseMode, false>(
                 stage1CastTensor, this->vselrIndexesBuf, sumUb, maxUb, inputTensorVec, expUb, sumUb, maxUb,
                 attenMaskUb, pseUb, dropMaskUb, apiTmpBuffer, runInfo.halfS1RealSize, runInfo.s2RealSize,
                 pseInfo.pseStride, slopes, posShift, static_cast<T>(constInfo.scaleValue), 1.0, negativeFloatScalar,
                 constInfo.keepProb);
         } else if (runInfo.s2RealSize <= 256 && runInfo.s2RealSize > 128) { // 128 and 256 is s2RealSize
-            ProcessVec1Vf<T, Q_T, OUTPUT_T, true, s1BaseSize, s2BaseSize, GT_128_AND_LTE_256, hasAtten, pseMode, false>(
+            ProcessVec1Vf<T, Q_T, pseShiftType, true, s1BaseSize, s2BaseSize, GT_128_AND_LTE_256, hasAtten, pseMode, false>(
                 stage1CastTensor, this->vselrIndexesBuf, sumUb, maxUb, inputTensorVec, expUb, sumUb, maxUb,
                 attenMaskUb, pseUb, dropMaskUb, apiTmpBuffer, runInfo.halfS1RealSize, runInfo.s2RealSize,
                 pseInfo.pseStride, slopes, posShift, static_cast<T>(constInfo.scaleValue), 1.0, negativeFloatScalar,
                 constInfo.keepProb);
         } else if (runInfo.s2RealSize <= 512 && runInfo.s2RealSize > 256) { // 256 and 512 is s2RealSize
-            ProcessVec1Vf<T, Q_T, OUTPUT_T, true, s1BaseSize, s2BaseSize, GT_256_AND_LTE_512, hasAtten, pseMode, false>(
+            ProcessVec1Vf<T, Q_T, pseShiftType, true, s1BaseSize, s2BaseSize, GT_256_AND_LTE_512, hasAtten, pseMode, false>(
                 stage1CastTensor, this->vselrIndexesBuf, sumUb, maxUb, inputTensorVec, expUb, sumUb, maxUb,
                 attenMaskUb, pseUb, dropMaskUb, apiTmpBuffer, runInfo.halfS1RealSize, runInfo.s2RealSize,
                 pseInfo.pseStride, slopes, posShift, static_cast<T>(constInfo.scaleValue), 1.0, negativeFloatScalar,
                 constInfo.keepProb);
         } else if (runInfo.s2RealSize <= 1024 && runInfo.s2RealSize > 512) { // 512 and 1024 is s2RealSize
-            ProcessVec1Vf<T, Q_T, OUTPUT_T, true, s1BaseSize, s2BaseSize, GT_512_AND_LTE_1024, hasAtten, pseMode, false>(
+            ProcessVec1Vf<T, Q_T, pseShiftType, true, s1BaseSize, s2BaseSize, GT_512_AND_LTE_1024, hasAtten, pseMode, false>(
                 stage1CastTensor, this->vselrIndexesBuf, sumUb, maxUb, inputTensorVec, expUb, sumUb, maxUb,
                 attenMaskUb, pseUb, dropMaskUb, apiTmpBuffer, runInfo.halfS1RealSize, runInfo.s2RealSize,
                 pseInfo.pseStride, slopes, posShift, static_cast<T>(constInfo.scaleValue), 1.0, negativeFloatScalar,
@@ -1460,6 +1561,25 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
 }
 
 CHILD_SPEC_TEMPLATE_ANTI
+__aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_ARGS_ANTI>::FDPostQuant(ConstInfo<isInfer, hasRope> &constInfo,
+    LocalTensor<OUTPUT_T> &attenOut, LocalTensor<T> &accumOutLocal, uint64_t perChannelQuantOffset, uint32_t dealRowCount, uint32_t dSizeAligned64)
+{
+    if (constInfo.isPostQuantPerChnl) {
+        if (constInfo.isPostQuantBF16) {
+            PostQuantPerChnl(constInfo, attenOut, accumOutLocal, perChannelQuantOffset, dealRowCount, 1U, 0U, dSizeAligned64,
+                postQuantScaleBf16Gm, postQuantOffsetBf16Gm);
+        } else {
+            PostQuantPerChnl(constInfo, attenOut, accumOutLocal, perChannelQuantOffset, dealRowCount, 1U, 0U, dSizeAligned64,
+                postQuantScaleGm, postQuantOffsetGm);
+        }
+    } else {
+        PostQuantPerTensorVF<T, OUTPUT_T, true>(
+            attenOut, accumOutLocal, constInfo.postQuantScaleValue, constInfo.postQuantOffsetValue, dealRowCount,
+            constInfo.dSizeV, dSizeAligned64);
+    }
+}
+
+CHILD_SPEC_TEMPLATE_ANTI
 template <typename VEC2_RES_T>
 __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_ARGS_ANTI>::Bmm2DataCopyOut(RunInfo<isInfer> &runInfo, 
     LocalTensor<VEC2_RES_T> &vec2ResUb, int64_t vec2S1Idx, int64_t vec2CalcSize)
@@ -1476,8 +1596,13 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
                     dSizeAligned64, this->negativeFloatScalar, 0.0);
             }
         }
-        RowInvalid(vec2ResUb, vec2S1Idx, runInfo);
-        Cast(attenOut, vec2ResUb, RoundMode::CAST_ROUND, vec2CalcSize);
+        if constexpr (!POST_QUANT) {
+            RowInvalid(vec2ResUb, vec2S1Idx, runInfo, dSizeAligned64);
+            Cast(attenOut, vec2ResUb, RoundMode::CAST_ROUND, vec2CalcSize);
+        } else {
+            PostQuant(constInfo, runInfo, attenOut, vec2ResUb, vec2S1Idx, dSizeAligned64);
+            RowInvalid(vec2ResUb, vec2S1Idx, runInfo, dSizeAligned64);
+        }
         stage2OutQue[0].EnQue(attenOut);
         stage2OutQue[0].DeQue<OUTPUT_T>();
     } else {
@@ -1490,6 +1615,8 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
     dataCopyParams.blockLen = constInfo.dSizeV * sizeof(OUTPUT_T);
     if constexpr (IsSameType<Q_T, float>::value) {
         dataCopyParams.srcStride = (dSizeAligned64 - constInfo.dSizeV) >> 3;
+    } else if constexpr (POST_QUANT) {
+        dataCopyParams.srcStride = (dSizeAligned64 - constInfo.dSizeV) >> 5;
     } else {
         dataCopyParams.srcStride = (dSizeAligned64 - constInfo.dSizeV) >> 4;
     }
@@ -1527,7 +1654,7 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
 CHILD_SPEC_TEMPLATE_ANTI
 template <typename VEC2_RES_T>
 __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_ARGS_ANTI>::RowInvalid(
-    LocalTensor<VEC2_RES_T> &vec2ResUb, int64_t vec2S1Idx, RunInfo<isInfer> &runInfo)
+    LocalTensor<VEC2_RES_T> &vec2ResUb, int64_t vec2S1Idx, RunInfo<isInfer> &runInfo, int64_t dSizeAligned64)
 {
     if constexpr (isInfer && hasAtten) {
         if (!constInfo.isRowInvalid || \
@@ -1549,10 +1676,95 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
             }
         }
         if (isRowInvalidNeedUpdate) {
-            RowInvalidUpdateVF<float>(vec2ResUb, maxTensor, runInfo.vec2S1RealSize, constInfo.dSizeV, static_cast<uint32_t>(dVTemplateType));
+            if constexpr (!POST_QUANT) {
+                RowInvalidUpdateVF<float>(vec2ResUb, maxTensor, runInfo.vec2S1RealSize, constInfo.dSizeV, dSizeAligned64);
+            } else {
+                uint32_t dStride = CeilDivision(static_cast<uint32_t>(dSizeAligned64), sizeof(float));
+                uint16_t dSize = CeilDivision(constInfo.dSizeV, sizeof(float)); // w8后量化的处理长度
+                RowInvalidUpdateVF<float>(*((LocalTensor<float>*)&vec2ResUb), maxTensor, runInfo.vec2S1RealSize, dSize, dStride);
+            }
         }
     }
 }
+
+CHILD_SPEC_TEMPLATE_ANTI
+template <typename POSTQUANT_PARAMS_T, typename VEC2_RES_T>
+__aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_ARGS_ANTI>::PostQuantPerChnl(
+    ConstInfo<isInfer, hasRope> &constInfo, LocalTensor<OUTPUT_T> &attenOut, LocalTensor<VEC2_RES_T> &vec2ResUb,
+    uint64_t perChannelQuantOffset, uint32_t gSplitSize, uint32_t s1RowCount, uint32_t splitOffset, int64_t dSizeAligned64,
+    GlobalTensor<POSTQUANT_PARAMS_T> postQuantScaleGm, GlobalTensor<POSTQUANT_PARAMS_T> postQuantOffsetGm)
+{
+    DataCopyExtParams copyInParams;
+    DataCopyPadExtParams<POSTQUANT_PARAMS_T> copyInPadParams;
+    copyInParams.blockCount = gSplitSize;
+    copyInParams.blockLen = constInfo.dSizeV * sizeof(POSTQUANT_PARAMS_T);
+    copyInParams.srcStride = 0;
+    copyInParams.dstStride = (dSizeAligned64 - constInfo.dSizeV) / (32 / sizeof(POSTQUANT_PARAMS_T)); // 32: DATA BLOCK SIZE
+
+    LocalTensor<POSTQUANT_PARAMS_T> postQuantScaleUb = 
+        this->postQuantScaleQue.template AllocTensor<POSTQUANT_PARAMS_T>();
+    DataCopyPad(postQuantScaleUb, postQuantScaleGm[perChannelQuantOffset], copyInParams, copyInPadParams);
+    this->postQuantScaleQue.template EnQue(postQuantScaleUb);
+    this->postQuantScaleQue.template DeQue<POSTQUANT_PARAMS_T>();
+    if (constInfo.isPostQuantOffsetExist) {
+        LocalTensor<POSTQUANT_PARAMS_T> postQuantOffsetUb = 
+            this->postQuantOffsetQue.template AllocTensor<POSTQUANT_PARAMS_T>();
+        DataCopyPad(postQuantOffsetUb, postQuantOffsetGm[perChannelQuantOffset], copyInParams, copyInPadParams);
+        this->postQuantOffsetQue.template EnQue(postQuantOffsetUb);
+        this->postQuantOffsetQue.template DeQue<POSTQUANT_PARAMS_T>();
+
+        PostQuantPerChnlVF<T, OUTPUT_T, POSTQUANT_PARAMS_T>(
+            attenOut[splitOffset], vec2ResUb[splitOffset], postQuantScaleUb, postQuantOffsetUb, gSplitSize, s1RowCount,
+            constInfo.dSizeV, dSizeAligned64);
+        this->postQuantOffsetQue.FreeTensor(postQuantOffsetUb);
+    } else {
+        PostQuantPerChnlVF<T, OUTPUT_T, POSTQUANT_PARAMS_T>(
+            attenOut[splitOffset], vec2ResUb[splitOffset], postQuantScaleUb, gSplitSize, s1RowCount, constInfo.dSizeV, dSizeAligned64);
+    }
+    this->postQuantScaleQue.FreeTensor(postQuantScaleUb);
+}
+
+
+CHILD_SPEC_TEMPLATE_ANTI
+template <typename VEC2_RES_T>
+__aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_ARGS_ANTI>::PostQuant(ConstInfo<isInfer, hasRope> &constInfo,
+                                                                        RunInfo<isInfer> &runInfo, LocalTensor<OUTPUT_T> &attenOut,
+                                                                        LocalTensor<VEC2_RES_T> &vec2ResUb,
+                                                                        int64_t vec2S1Idx, int64_t dSizeAligned64)
+{
+    uint32_t s1RowCount = constInfo.isGqa ? 1U : runInfo.vec2S1RealSize; // s1=1, gS合轴, bn2分核
+    uint32_t gRowCount = constInfo.isGqa ? runInfo.vec2S1RealSize : 1U;  // s1>1, bn1分核
+    if (constInfo.isPostQuantPerChnl) {
+        uint64_t perChannelQuantGQAOffset = runInfo.n2oIdx * constInfo.gDv + runInfo.vec2S1BaseSize * vec2S1Idx * constInfo.dSizeV +
+                                            constInfo.subBlockIdx * runInfo.firstHalfS1RealSize * constInfo.dSizeV;
+        uint64_t perChannelQuantOffset = constInfo.isGqa ?
+                                            perChannelQuantGQAOffset :
+                                            runInfo.n2oIdx * constInfo.gDv + runInfo.goIdx * constInfo.dSizeV;
+        uint32_t gSplitSize = constInfo.isPostQuantBF16 ? (2048U / ((uint32_t)dSizeAligned64 * sizeof(bfloat16_t))) :
+                                                          (2048U / ((uint32_t)dSizeAligned64 * sizeof(float)));
+        gSplitSize = gSplitSize > gRowCount ? gRowCount : gSplitSize;
+        uint32_t loopCount = (gRowCount + gSplitSize - 1) / gSplitSize;
+        uint32_t tailSplitSize = gRowCount - (loopCount - 1) * gSplitSize;
+        for (uint32_t i = 0; i < loopCount; i++) {
+            uint32_t startRow = i * gSplitSize;
+            if (i + 1 == loopCount) {
+                gSplitSize = tailSplitSize;
+            }
+            uint32_t splitOffset = startRow * dSizeAligned64;
+            if (constInfo.isPostQuantBF16) {
+                PostQuantPerChnl(constInfo, attenOut, vec2ResUb, perChannelQuantOffset + startRow * constInfo.dSizeV,
+                                 gSplitSize, s1RowCount, splitOffset, dSizeAligned64, postQuantScaleBf16Gm, postQuantOffsetBf16Gm);
+            } else {
+                PostQuantPerChnl(constInfo, attenOut, vec2ResUb, perChannelQuantOffset + startRow * constInfo.dSizeV,
+                    gSplitSize, s1RowCount, splitOffset, dSizeAligned64, postQuantScaleGm, postQuantOffsetGm);
+            }
+        }                                 
+    } else {
+        PostQuantPerTensorVF<T, OUTPUT_T, true>(
+            attenOut, vec2ResUb, constInfo.postQuantScaleValue, constInfo.postQuantOffsetValue, runInfo.vec2S1RealSize,
+            constInfo.dSizeV, dSizeAligned64);
+    }
+}          
 
 CHILD_SPEC_TEMPLATE_ANTI
 __aicore__ inline int64_t FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_ARGS_ANTI>::ComputeOffsetForSoftmax(
@@ -1816,6 +2028,12 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
     this->pipe->InitBuffer(softmaxSumInputQue, 1, bufferSizeByte32K);
     this->pipe->InitBuffer(FDResOutputQue, 1, bufferSizeByte32K);
     this->pipe->InitBuffer(accumOutInputQue, 1, bufferSizeByte32K);
+    if constexpr (POST_QUANT) {
+        this->pipe->InitBuffer(postQuantScaleQue, 1, BUFFER_SIZE_BYTE_32K);
+        if (this->constInfo.isPostQuantOffsetExist) {
+            this->pipe->InitBuffer(postQuantOffsetQue, 1, BUFFER_SIZE_BYTE_32K);
+        }
+    }
     if (constInfo.isSoftmaxLseEnable) {
         // 8: 适配TND, 每行结果存为8个重复lse元素(32B对齐)
         this->pipe->InitBuffer(softmaxLseQueue, 1, (s1BaseSize >> 1U) * sizeof(float) * 8);
@@ -1924,6 +2142,8 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
     uint32_t shapeArray[] = {(uint32_t)gSplitSize, fp32BaseSize};
     lseMaxUb.SetShapeInfo(ShapeInfo(2, shapeArray, DataFormat::ND)); // 2 for shape
 
+    uint64_t perChannelQuantOffset = n2Idx * this->constInfo.dSizeV * this->constInfo.gSize;
+
     // 非尾块处理
     for (uint32_t i = 0; i < loopCount - 1; i++) {
         uint32_t startRow = i * gSplitSize;
@@ -1944,7 +2164,7 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
 
         softmaxMaxInputQue.FreeTensor(softmaxMaxLocal);
         softmaxSumInputQue.FreeTensor(softmaxSumLocal);
-        CopyFinalResOut(attenOutOffset, tmp1, startRow, gSplitSize);
+        CopyFinalResOut(attenOutOffset, tmp1, startRow, gSplitSize, perChannelQuantOffset);
     }
     // 尾块处理
     if (tailSplitSize > 0) {
@@ -1966,7 +2186,7 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
 
         softmaxMaxInputQue.FreeTensor(softmaxMaxLocal);
         softmaxSumInputQue.FreeTensor(softmaxSumLocal);
-        CopyFinalResOut(attenOutOffset, tmp1, startRow, tailSplitSize);
+        CopyFinalResOut(attenOutOffset, tmp1, startRow, tailSplitSize, perChannelQuantOffset);
     }
 }
 
@@ -2066,13 +2286,17 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
 
 CHILD_SPEC_TEMPLATE_ANTI
 __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_ARGS_ANTI>::CopyFinalResOut(
-    uint64_t attenOutOffset, LocalTensor<T> &accumOutLocal, uint32_t startRow, uint32_t dealRowCount)
+    uint64_t attenOutOffset, LocalTensor<T> &accumOutLocal, uint32_t startRow, uint32_t dealRowCount, uint64_t perChannelQuantOffset)
 {
     LocalTensor<OUTPUT_T> tmpBmm2ResCastTensor = FDResOutputQue.AllocTensor<OUTPUT_T>();
     uint32_t dSizeAligned64 = (uint32_t)dVTemplateType;
     uint32_t shapeArray[] = {(uint32_t)dealRowCount, dSizeAligned64};
     tmpBmm2ResCastTensor.SetShapeInfo(ShapeInfo(2, shapeArray, DataFormat::ND)); // 2 for shape
-    Cast(tmpBmm2ResCastTensor, accumOutLocal, AscendC::RoundMode::CAST_ROUND, dealRowCount * dSizeAligned64);
+    if constexpr (POST_QUANT) {
+        FDPostQuant(constInfo, tmpBmm2ResCastTensor, accumOutLocal, perChannelQuantOffset + startRow * this->constInfo.dSizeV, dealRowCount, dSizeAligned64);
+    } else {
+        Cast(tmpBmm2ResCastTensor, accumOutLocal, AscendC::RoundMode::CAST_ROUND, dealRowCount * dSizeAligned64);
+    }
 
     FDResOutputQue.EnQue(tmpBmm2ResCastTensor);
     FDResOutputQue.DeQue<OUTPUT_T>();

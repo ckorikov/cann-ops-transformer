@@ -23,13 +23,16 @@
 using namespace matmul;
 
 TEMPLATE_INTF
-__aicore__ inline void InitQueryLeftPaddingSize(RunParamStr<isInfer>& runParam, const ConstInfo<isInfer, hasRope>& constInfo, int64_t actualS1Size)
+__aicore__ inline void InitQueryLeftPaddingSize(RunParamStr<isInfer>& runParam, const ConstInfo<isInfer, hasRope>& constInfo, int64_t& actualS1Size)
 {
     if (!constInfo.isQHasLeftPadding) {
         runParam.queryLeftPaddingSize = 0;
     } else {
         int64_t qLeftPaddingSize = constInfo.s1Size - actualS1Size - constInfo.queryRightPaddingSize;
         runParam.queryLeftPaddingSize = qLeftPaddingSize > 0 ? qLeftPaddingSize : 0;
+        if (qLeftPaddingSize < 0) {
+            actualS1Size = 0;
+        }
     }
 }
 
@@ -41,7 +44,7 @@ __aicore__ inline void InitKVLeftPaddingSize(RunParamStr<isInfer>& runParam, con
     } else {
         int64_t kvLeftPaddingSize = constInfo.s2Size - actualS2Size - constInfo.kvRightPaddingSize;
         runParam.kvLeftPaddingSize = kvLeftPaddingSize > 0 ? kvLeftPaddingSize : 0;
-        if (constInfo.isGqa && kvLeftPaddingSize < 0) {
+        if (kvLeftPaddingSize < 0) {
             actualS2Size = 0;
         }
     }
