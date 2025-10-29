@@ -68,7 +68,7 @@ static constexpr WeightQuantBatchMatmulV2::Arch35::VecAntiQuantConfig VEC_ANTIQU
 #endif
 #else
 #ifdef __CCE_KT_TEST__
-#include "rac_server_stub.h"
+#include "../tests/ut/op_kernel/rac_server_stub.h"
 #else
 #include "arch31/rac_server.h"
 #endif
@@ -152,6 +152,9 @@ extern "C" __global__ __aicore__ void matmul_all_reduce(
     GM_ADDR dequantGM, GM_ADDR pertokenGM, GM_ADDR commQuantScale1GM, GM_ADDR commQuantScale2GM, GM_ADDR cGM,
     GM_ADDR workspaceGM, GM_ADDR tilingGM)
 {
+#ifdef __CCE_KT_TEST__
+    REGISTER_TILING_DEFAULT(MatmulAllReduce910TilingData);
+#endif
     if (workspaceGM == nullptr) {
         return;
     }

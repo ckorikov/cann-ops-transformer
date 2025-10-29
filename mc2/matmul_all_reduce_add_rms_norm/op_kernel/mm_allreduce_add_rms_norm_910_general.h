@@ -17,8 +17,16 @@
 
 #include "kernel_operator.h"
 #include "lib/matmul_intf.h"
+#if __has_include("../../matmul_all_reduce/op_kernel/common.h")
+#include "../../matmul_all_reduce/op_kernel/common.h"
+#else
 #include "../matmul_all_reduce/common.h"
+#endif
+#if __has_include("../../matmul_all_reduce/op_kernel/matmul_all_reduce_910_general.h")
+#include "../../matmul_all_reduce/op_kernel/matmul_all_reduce_910_general.h"
+#else
 #include "../matmul_all_reduce/matmul_all_reduce_910_general.h"
+#endif
 #include "add_rms_norm_kernel.h"
 
 namespace MatmulAllReduceAddRmsNormImpl {
