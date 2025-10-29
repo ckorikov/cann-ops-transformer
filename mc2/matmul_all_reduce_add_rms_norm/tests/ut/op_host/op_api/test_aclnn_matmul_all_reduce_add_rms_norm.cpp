@@ -44,16 +44,9 @@ TEST_F(l2_matmul_all_reduce_add_rms_norm_test, test_mm_all_reduce_add_rms_norm_f
   auto ut = OP_API_UT(aclnnMatmulAllReduceAddRmsNorm, INPUT(x1_desc, x2_desc, bias, residual_desc, gamma_desc, 0.000001,
                       "test_group", "sum", 8, 1), OUTPUT(y_desc, normOut_desc));
   uint64_t workspace_size = 0;
-  aclnnStatus aclRet = ut.TestGetWorkspaceSize(&workspace_size);
-  aclRet = ut.TestGetWorkspaceSize(&workspace_size);
-}
-
-TEST_F(l2_matmul_all_reduce_add_rms_norm_test, test_mm_all_reduce_add_rms_norm_second_api) {
-  void* workspaceAddr;
-  uint64_t workspaceSize = 0;
-  aclOpExecutor *executor;
-  aclrtStream stream;
-  aclnnMatmulAllReduceAddRmsNorm(workspaceAddr, workspaceSize, executor, stream);
+  aclOpExecutor* executor = nullptr;
+  aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
+  EXPECT_EQ(aclRet, ACLNN_SUCCESS);
 }
 
 TEST_F(l2_matmul_all_reduce_add_rms_norm_test, test_mm_all_reduce_add_rms_norm_empty_M) {
@@ -68,7 +61,8 @@ TEST_F(l2_matmul_all_reduce_add_rms_norm_test, test_mm_all_reduce_add_rms_norm_e
   auto ut = OP_API_UT(aclnnMatmulAllReduceAddRmsNorm, INPUT(x1_desc, x2_desc, bias, residual_desc, gamma_desc, 0.000001,
                       "test_group", "sum", 8, 1), OUTPUT(y_desc, normOut_desc));
   uint64_t workspace_size = 0;
-  aclnnStatus aclRet = ut.TestGetWorkspaceSize(&workspace_size);
+  aclOpExecutor* executor = nullptr;
+  aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
   EXPECT_EQ(aclRet, ACLNN_SUCCESS);
 }
 
@@ -84,7 +78,8 @@ TEST_F(l2_matmul_all_reduce_add_rms_norm_test, test_mm_all_reduce_add_rms_norm_e
   auto ut = OP_API_UT(aclnnMatmulAllReduceAddRmsNorm, INPUT(x1_desc, x2_desc, bias, residual_desc, gamma_desc, 0.000001,
                       "test_group", "sum", 8, 1), OUTPUT(y_desc, normOut_desc));
   uint64_t workspace_size = 0;
-  aclnnStatus aclRet = ut.TestGetWorkspaceSize(&workspace_size);
+  aclOpExecutor* executor = nullptr;
+  aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
   EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_INVALID);
 }
 
@@ -100,7 +95,8 @@ TEST_F(l2_matmul_all_reduce_add_rms_norm_test, test_mm_all_reduce_add_rms_norm_e
   auto ut = OP_API_UT(aclnnMatmulAllReduceAddRmsNorm, INPUT(x1_desc, x2_desc, bias, residual_desc, gamma_desc, 0.000001,
                       "test_group", "sum", 8, 1), OUTPUT(y_desc, normOut_desc));
   uint64_t workspace_size = 0;
-  aclnnStatus aclRet = ut.TestGetWorkspaceSize(&workspace_size);
+  aclOpExecutor* executor = nullptr;
+  aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
   EXPECT_EQ(aclRet, ACLNN_SUCCESS);
 }
 
@@ -116,7 +112,8 @@ TEST_F(l2_matmul_all_reduce_add_rms_norm_test, test_mm_all_reduce_add_rms_norm_w
   auto ut = OP_API_UT(aclnnMatmulAllReduceAddRmsNorm, INPUT(x1_desc, x2_desc, bias, residual_desc, gamma_desc, 0.000001,
                       "test_group", "sum", 8, 1), OUTPUT(y_desc, normOut_desc));
   uint64_t workspace_size = 0;
-  aclnnStatus aclRet = ut.TestGetWorkspaceSize(&workspace_size);
+  aclOpExecutor* executor = nullptr;
+  aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
   EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_INVALID);
 }
 
@@ -132,7 +129,8 @@ TEST_F(l2_matmul_all_reduce_add_rms_norm_test, test_mm_all_reduce_add_rms_norm_w
   auto ut = OP_API_UT(aclnnMatmulAllReduceAddRmsNorm, INPUT(x1_desc, x2_desc, bias, residual_desc, gamma_desc, 0.000001,
                       "test_group", "sum", 8, 1), OUTPUT(y_desc, normOut_desc));
   uint64_t workspace_size = 0;
-  aclnnStatus aclRet = ut.TestGetWorkspaceSize(&workspace_size);
+  aclOpExecutor* executor = nullptr;
+  aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
   EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_INVALID);
 }
 

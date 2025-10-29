@@ -20,6 +20,7 @@
 using namespace op;
 using namespace std;
 
+namespace MoeDistributeDispatch {
 class l2_aclnn_moe_distribute_dispatch_test : public testing::Test {
  protected:
   static void SetUpTestCase() { cout << "l2_aclnn_moe_distribute_dispatch_test SetUp" << endl; }
@@ -59,7 +60,9 @@ TEST_F(l2_aclnn_moe_distribute_dispatch_test, test_aclnn_moe_distribute_dispatch
                       tpWorldSize, tpRankId, expertShardType, sharedExpertNum, shareExpertRankNum, quantMode, globalBs, expertTokenNumsType),
                       OUTPUT(expandX, dynamicScales, expandIdx, expertTokensNums, epRecvCounts, tpRecvCounts, expandScales));
   uint64_t workspace_size = 0;
-  aclnnStatus aclRet = ut.TestGetWorkspaceSize(&workspace_size);
+  aclOpExecutor* executor = nullptr;
+  aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
+  EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_NULLPTR);
 }
 
 TEST_F(l2_aclnn_moe_distribute_dispatch_test, ascend910B2_test_aclnn_moe_distribute_dispatch_tp_not_empty) {
@@ -94,6 +97,8 @@ TEST_F(l2_aclnn_moe_distribute_dispatch_test, ascend910B2_test_aclnn_moe_distrib
                       tpWorldSize, tpRankId, expertShardType, sharedExpertNum, shareExpertRankNum, quantMode, globalBs, expertTokenNumsType),
                       OUTPUT(expandX, dynamicScales, expandIdx, expertTokensNums, epRecvCounts, tpRecvCounts, expandScales));
   uint64_t workspace_size = 0;
-  aclnnStatus aclRet = ut.TestGetWorkspaceSize(&workspace_size);
+  aclOpExecutor* executor = nullptr;
+  aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
   EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_NULLPTR);
+}
 }

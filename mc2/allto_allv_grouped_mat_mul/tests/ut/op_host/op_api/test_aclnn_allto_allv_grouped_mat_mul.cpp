@@ -45,7 +45,9 @@ TEST_F(l2_allto_allv_grouped_mat_mul_test, test) {
 					  transGmmWeight, transMmWeight, permuteOutFlag),
                       OUTPUT(gmmY_desc, nullptr, nullptr));
   uint64_t workspace_size = 0;
-  aclnnStatus aclRet = ut.TestGetWorkspaceSize(&workspace_size);
+  aclOpExecutor* executor = nullptr;
+  aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
+  EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_NULLPTR);
 }
 
 // gmmx null
@@ -63,7 +65,9 @@ TEST_F(l2_allto_allv_grouped_mat_mul_test, test_gmmx_null) {
 						transGmmWeight, transMmWeight, permuteOutFlag),
 						OUTPUT(gmmY_desc, nullptr, nullptr));     
 	uint64_t workspace_size = 0;
-	aclnnStatus aclRet = ut.TestGetWorkspaceSize(&workspace_size);
+	aclOpExecutor* executor = nullptr;
+	aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
+	EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_NULLPTR);
   }
 
 // gmmWeight null
@@ -81,7 +85,9 @@ TEST_F(l2_allto_allv_grouped_mat_mul_test, test_gmmWeight_null) {
 						transGmmWeight, transMmWeight, permuteOutFlag),
 						OUTPUT(gmmY_desc, nullptr, nullptr));     
 	uint64_t workspace_size = 0;
-	aclnnStatus aclRet = ut.TestGetWorkspaceSize(&workspace_size);
+	aclOpExecutor* executor = nullptr;
+	aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
+	EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_NULLPTR);
   }
 
 // nullptr, nullptr null
@@ -100,7 +106,9 @@ TEST_F(l2_allto_allv_grouped_mat_mul_test, test_expertTokenNum_null) {
 						transGmmWeight, transMmWeight, permuteOutFlag),
 						OUTPUT(gmmY_desc, nullptr, nullptr));     
 	uint64_t workspace_size = 0;
-	aclnnStatus aclRet = ut.TestGetWorkspaceSize(&workspace_size);
+	aclOpExecutor* executor = nullptr;
+	aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
+	EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_NULLPTR);
   }
 
 // gmmY null 
@@ -118,7 +126,9 @@ TEST_F(l2_allto_allv_grouped_mat_mul_test, test_gmmY_null) {
 						transGmmWeight, transMmWeight, permuteOutFlag),
 						OUTPUT(nullptr, nullptr, nullptr));     
 	uint64_t workspace_size = 0;
-	aclnnStatus aclRet = ut.TestGetWorkspaceSize(&workspace_size);
+	aclOpExecutor* executor = nullptr;
+	aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
+	EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_NULLPTR);
 }
 
 // group ep null
@@ -137,7 +147,9 @@ TEST_F(l2_allto_allv_grouped_mat_mul_test, test_groupEp_null) {
 						transGmmWeight, transMmWeight, permuteOutFlag),
 						OUTPUT(gmmY_desc, nullptr, nullptr));  
 	uint64_t workspace_size = 0;
-	aclnnStatus aclRet = ut.TestGetWorkspaceSize(&workspace_size);
+	aclOpExecutor* executor = nullptr;
+	aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
+	EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_NULLPTR);
 }
   
 // group ep invalid
@@ -160,7 +172,9 @@ TEST_F(l2_allto_allv_grouped_mat_mul_test, test_groupEp_invalid) {
 						transGmmWeight, transMmWeight, permuteOutFlag),
 						OUTPUT(gmmY_desc, nullptr, nullptr));  
 	uint64_t workspace_size = 0;
-	aclnnStatus aclRet = ut.TestGetWorkspaceSize(&workspace_size);
+	aclOpExecutor* executor = nullptr;
+	aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
+	EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_INVALID);
 }
   
 // mmx not_null mmweight null mmy null
@@ -180,7 +194,9 @@ TEST_F(l2_allto_allv_grouped_mat_mul_test, test_mmX_invalid) {
 						transGmmWeight, transMmWeight, permuteOutFlag),
 						OUTPUT(gmmY_desc, nullptr, nullptr));     
 	uint64_t workspace_size = 0;
-	aclnnStatus aclRet = ut.TestGetWorkspaceSize(&workspace_size);
+	aclOpExecutor* executor = nullptr;
+	aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
+	EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_NULLPTR);
 }
 
 TEST_F(l2_allto_allv_grouped_mat_mul_test, test_permuteOutFlag_invalid) {
@@ -198,6 +214,8 @@ TEST_F(l2_allto_allv_grouped_mat_mul_test, test_permuteOutFlag_invalid) {
 						transGmmWeight, transMmWeight, permuteOutFlag),
 						OUTPUT(gmmY_desc, nullptr, nullptr));
 	uint64_t workspace_size = 0;
-	aclnnStatus aclRet = ut.TestGetWorkspaceSize(&workspace_size);
+	aclOpExecutor* executor = nullptr;
+	aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
+	EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_NULLPTR);
 }
 } // allto_allv_grouped_mat_mul_ut

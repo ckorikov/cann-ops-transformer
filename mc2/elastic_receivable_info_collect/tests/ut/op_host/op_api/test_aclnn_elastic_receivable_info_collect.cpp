@@ -20,6 +20,7 @@
 using namespace op;
 using namespace std;
 
+namespace ElasticReceivableInfoCollect {
 class l2_aclnn_elastic_receivable_info_collect_test : public testing::Test {
  protected:
   static void SetUpTestCase() { cout << "l2_aclnn_elastic_receivable_info_collect_test SetUp" << endl; }
@@ -69,5 +70,6 @@ TEST_F(l2_aclnn_elastic_receivable_info_collect_test, test_aclnn_elastic_receiva
   uint64_t workspace_size = 0;
   aclOpExecutor* executor = nullptr;
   aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
-  EXPECT_EQ(aclRet, ACLNN_SUCCESS);
+  EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_INVALID);
 }
+} // ElasticReceivableInfoCollect
