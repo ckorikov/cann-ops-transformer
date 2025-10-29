@@ -22,7 +22,7 @@
 #include "kernel_operator_softmax_compute_nz.h"
 
 using namespace matmul;
-constexpr uint32_t BATCH_NUM_MAX_NZ = 128;
+constexpr uint32_t BATCH_NUM_MAX_NZ = 400;
 constexpr static uint32_t NEGATIVE_MIN_VAULE_FP32 = 0xFF7FFFFF;
 constexpr static uint32_t NEGATIVE_MIN_VAULE_FP16 = 0xC61C4000;
 
@@ -355,7 +355,7 @@ __aicore__ inline void PromptFlashAttentionS1s2Bns1X310Base<PFAT>::Init(__gm__ u
     }
 
     for (int i = 0; i < tilingData->promptAttentionBaseParams.batchSize; i++) {
-        actualSeqLengthsIdx = isActualLenDimsNull ? tilingData->promptAttentionBaseParams.seqSize : actualSeqLengthsGm.GetValue(i);
+        actualSeqLengthsIdx = isActualLenDimsNull ? tilingData->promptAttentionBaseParams.seqSize : tilingData->promptAttentionSeqParams.actualSeqLengths[i];
         if (tilingData->promptAttentionBaseParams.isActualSeqLengthsNull) {
             actualSeqOffsets[i] = i * s * h;
         } else {
@@ -919,13 +919,13 @@ __aicore__ inline void PromptFlashAttentionS1s2Bns1X310Base<PFAT>::GetSingleCore
     MultiHeadKV = MultiHeadQ / headNumRatio;
 
     actualSeqLengthPerBatch = isActualLenDimsNull ? tilingData->promptAttentionBaseParams.seqSize :
-                              actualSeqLengthsGm.GetValue(sIdx);
+                              tilingData->promptAttentionSeqParams.actualSeqLengths[sIdx];
     actualSeqLengthPerBatch = ((int64_t)actualSeqLengthPerBatch >
                                (int64_t)tilingData->promptAttentionBaseParams.seqInnerSize +
                                (int64_t)tilingData->promptAttentionBaseParams.preTokens) ?
                                tilingData->promptAttentionBaseParams.seqInnerSize + tilingData->promptAttentionBaseParams.preTokens :
                                actualSeqLengthPerBatch;
-    actualSeqLengthKVPerBatch = isActualLenDimsKVNull ? tilingData->promptAttentionBaseParams.seqInnerSize : actualSeqLengthsKVGm.GetValue(sIdx);
+    actualSeqLengthKVPerBatch = isActualLenDimsKVNull ? tilingData->promptAttentionBaseParams.seqInnerSize : tilingData->promptAttentionSeqParams.actualSeqLengths[sIdx];
     singleProcessSOuterSizeTail = (actualSeqLengthPerBatch % singleProcessSOuterSize != 0) ?
                                    actualSeqLengthPerBatch % singleProcessSOuterSize : singleProcessSOuterSize;
     singleProcessSOuterSizeTailAlign = (singleProcessSOuterSizeTail + typeByteNum - 1) / typeByteNum * typeByteNum;

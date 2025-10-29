@@ -415,6 +415,7 @@ public:
    uint32_t singleCoreHeadNumSize[64] = {0};// coreSidEnd
    uint32_t coreSeqPosStart[64] = {0};
    uint32_t coreSeqPosEnd[64] = {0};
+   uint32_t actualSeqLengths[400] = {0};
 
   // ========================
   // Getter & Setter 方法
@@ -464,6 +465,14 @@ public:
   void set_coreSeqPosEnd(const uint32_t* values) { 
     for (int i = 0; i < 64; ++i) {
         coreSeqPosEnd[i] = values[i];
+    }
+  }
+
+
+  const uint32_t* get_actualSeqLengths() const { return actualSeqLengths; }
+  void set_actualSeqLengths(const uint32_t* values) {
+    for (int i = 0; i < 400; ++i) {
+        actualSeqLengths[i] = values[i];
     }
   }
 };
