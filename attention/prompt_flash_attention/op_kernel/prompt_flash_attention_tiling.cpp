@@ -4826,6 +4826,7 @@ ge::graphStatus PromptFlashAttentionTiling::RunBigKernelTilingWithParams(Context
     tilingData->promptAttentionBaseParams.set_seqSize(s);
     tilingData->promptAttentionBaseParams.set_headNumSize(*n);
     tilingData->promptAttentionBaseParams.set_batchSize(lenDims);
+
     tilingData->promptAttentionBaseParams.set_preTokens(sparsePreTokens);
     tilingData->promptAttentionBaseParams.set_nextTokens(sparseNextTokens);
     tilingData->promptAttentionBaseParams.set_sparseMode(static_cast<uint32_t>(sparseModeVal));
@@ -4834,9 +4835,9 @@ ge::graphStatus PromptFlashAttentionTiling::RunBigKernelTilingWithParams(Context
     tilingData->promptAttentionBaseParams.set_isActualSeqLengthsKVNull(isActualSeqLengthsKVNull);
     tilingData->promptAttentionSingleCoreParams.set_attenMaskBatch(attenMaskBatch);
     tilingData->promptAttentionInitOutputParams.set_needInit(needInit);
-    std::vector<uint32_t> actualSeqLengthsUint32(400, 0U);
-    actualSeqLengthsUint32(actualSeqLengths.begin(), actualSeqLengths.end());
-    tilingData.promptAttentionSeqParams->set_actualSeqLengths(actualSeqLengthsUint32.data());
+    std::vector<uint32_t> actualSeqLengthsUint32(actualSeqLengths.begin(), actualSeqLengths.end());
+    tilingData->promptAttentionSeqParams.set_actualSeqLengths(actualSeqLengthsUint32.data());
+
     uint32_t originHeadSize = tilingData->promptAttentionBaseParams.get_headSize();
     uint32_t blockElementCnt = BYTE_BLOCK / dataTypeSize;
     if (originHeadSize % blockElementCnt != 0) { // Determine if D is aligned with 32B, using fp16 type with 16 elements.

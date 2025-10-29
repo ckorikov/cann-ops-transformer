@@ -272,7 +272,7 @@ __aicore__ inline void PromptFlashAttentionS1s2Bns1X310<PFAT>::ComputeEachCore(u
         }
         for (int sIdx = sIdStart; sIdx < sLoopEndIdx; sIdx++) {
             this->GetSingleCoreParam(sIdx);
-            actualSeqLengthsIdx = this->isActualLenDimsNull ? this->tilingData->promptAttentionBaseParams.seqSize : this->actualSeqLengthsGm.GetValue(sIdx);
+            actualSeqLengthsIdx = this->isActualLenDimsNull ? this->tilingData->promptAttentionBaseParams.seqSize : this->tilingData->promptAttentionSeqParams.actualSeqLengths[sIdx];
             actualSeqLengthsIdx = (this->attentionMaskType == 0 && (int64_t)actualSeqLengthsIdx >
                                (int64_t)this->tilingData->promptAttentionBaseParams.seqInnerSize +
                                (int64_t)this->tilingData->promptAttentionBaseParams.preTokens) ?
