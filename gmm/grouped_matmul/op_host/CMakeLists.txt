@@ -23,6 +23,7 @@ if (BUILD_OPEN_PROJECT)
             OP_NAME GroupedMatmul
             COMPUTE_UNIT ascend910_9599
             OPTIONS -mllvm -cce-aicore-dcci-before-kernel-end=false
+                    -DENABLE_CV_COMM_VIA_SSBUF=true
         )
     endif()
 endif()

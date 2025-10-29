@@ -22,6 +22,14 @@ if (BUILD_OPS_RTY_KERNEL) # 回黄kernel
                 -mllvm -cce-vf-remove-membar=false
                 -mllvm -cce-aicore-hoist-movemask=false
     )
+    
+    if("${ASCEND_COMPUTE_UNIT}" STREQUAL "ascend910_95")
+        add_ops_compile_options(
+            OP_NAME PromptFlashAttention
+            COMPUTE_UNIT ascend910_9599
+            OPTIONS -DENABLE_CV_COMM_VIA_SSBUF=true
+        )
+    endif()
     set(prompt_flash_attention_depends attention/flash_attention_score attention/common PARENT_SCOPE)
 else()
     add_modules_sources(OPTYPE prompt_flash_attention ACLNNTYPE aclnn_inner)
@@ -33,4 +41,11 @@ if(NOT BUILD_OPS_RTY_KERNEL) #
         ../regbase/ophost/prompt_flash_attention_tiling_v2.cpp
         fallback_prompt_flash_attention.cpp
     )
+    if("${ASCEND_COMPUTE_UNIT}" STREQUAL "ascend910_95")
+        add_ops_compile_options(
+            OP_NAME PromptFlashAttention
+            COMPUTE_UNIT ascend910_9599
+            OPTIONS -DENABLE_CV_COMM_VIA_SSBUF=true
+        )
+    endif()
 endif()

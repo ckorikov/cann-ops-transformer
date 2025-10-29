@@ -22,6 +22,13 @@ if (BUILD_OPS_RTY_KERNEL)
                 -mllvm -cce-vf-remove-membar=false
                 -Werror
     )
+    if("${ASCEND_COMPUTE_UNIT}" STREQUAL "ascend910_95")
+        add_ops_compile_options(
+            OP_NAME IncreFlashAttention
+            COMPUTE_UNIT ascend910_9599
+            OPTIONS -DENABLE_CV_COMM_VIA_SSBUF=true
+        )
+    endif()
 else()
     add_modules_sources(OPTYPE incre_flash_attention ACLNNTYPE aclnn_inner)
 endif()
@@ -33,4 +40,12 @@ if(NOT BUILD_OPS_RTY_KERNEL) #
         ../regbase/ophost/incre_flash_attention_tiling_v2.cpp
         fallback_incre_flash_attention.cpp
     )
+    
+    if("${ASCEND_COMPUTE_UNIT}" STREQUAL "ascend910_95")
+        add_ops_compile_options(
+            OP_NAME IncreFlashAttention
+            COMPUTE_UNIT ascend910_9599
+            OPTIONS -DENABLE_CV_COMM_VIA_SSBUF=true
+        )
+    endif()
 endif()

@@ -13,6 +13,14 @@ if (BUILD_OPEN_PROJECT)
     )
 endif()
 
+if("${ASCEND_COMPUTE_UNIT}" STREQUAL "ascend910_95")
+        add_ops_compile_options(
+            OP_NAME FlashAttentionScore
+            COMPUTE_UNIT ascend910_9599
+            OPTIONS -DENABLE_CV_COMM_VIA_SSBUF=true
+        )
+endif()
+
 if (BUILD_OPS_RTY_KERNEL)
     add_ops_compile_options(
             OP_NAME FlashAttentionScore
