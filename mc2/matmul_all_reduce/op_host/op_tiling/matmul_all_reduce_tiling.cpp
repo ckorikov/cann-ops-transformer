@@ -1153,10 +1153,7 @@ bool MatmulAllReduceTilingBase::CheckMXScenarioScaleShape(const uint64_t dimZero
         OP_TILING_CHECK(
             (Ops::Base::CeilDiv(kValue, MX_FP4_GROUP_SIZE) % 2) != 0,
             VECTOR_INNER_ERR_REPORT_TILING(
-                opName_, 
-                "scale K dim must be match ceil(k, 32) must be even for MXfp4,"
-                "but got scale K: %lu",
-                kValue),
+                opName_, "ceil(k, 32) must be even in MXfp4 scene, but got scale K: %lu", kValue),
             return false);
     }
     OP_TILING_CHECK(
@@ -1279,10 +1276,10 @@ bool MatmulAllReduceTilingBase::CheckPertokenScaleShape(const uint64_t mValue, c
 
     if (scenario_ == AllReduceScenario::MXFP4) {
         return CheckMXScenarioScaleShape(
-            mValue / GetBatchValue(), kValue, pertokenScaleShape, true, true);
+            mValue, kValue, pertokenScaleShape, true, true);
     } else if (scenario_ == AllReduceScenario::MXFP8) {
         return CheckMXScenarioScaleShape(
-            mValue / GetBatchValue(), kValue, pertokenScaleShape, true, false);
+            mValue, kValue, pertokenScaleShape, true, false);
     }
 
     OP_TILING_CHECK(
