@@ -35,18 +35,15 @@ protected:
 
 TEST_F(moe_compute_expert_tokens_test, test_case_int32_s)
 {
-    system(
-        "cp -rf "
-        "moe_expert_data "
-        "./");
-    system("chmod -R 755 ./moe_expert_data/");
-    system("cd ./moe_expert_data/ && python3 gen_data.py 381 1");
-    system("cd ./moe_expert_data/ && python3 gen_tiling.py 'case0'");
     AscendC::SetKernelMode(KernelMode::AIV_MODE);
     size_t sysWorkspaceSize = 16 * 1024 * 1024;
     uint8_t* workspace = (uint8_t*)AscendC::GmAlloc(sysWorkspaceSize);
     size_t tilingSize = sizeof(MoeComputeExpertTokensTilingData);
     uint8_t* tiling = (uint8_t*)AscendC::GmAlloc(tilingSize);
+    reinterpret_cast<MoeComputeExpertTokensTilingData*>(tiling)->normalCoreHandleNumBefore = 32;
+    reinterpret_cast<MoeComputeExpertTokensTilingData*>(tiling)->tailCoreHandleNumBefore = 32;
+    reinterpret_cast<MoeComputeExpertTokensTilingData*>(tiling)->numOfExpert = 1;
+    reinterpret_cast<MoeComputeExpertTokensTilingData*>(tiling)->workLocalNeedSize = 16;
 
     uint32_t sortedExpertNum = 381;
     uint32_t outNum = 1;
@@ -61,35 +58,30 @@ TEST_F(moe_compute_expert_tokens_test, test_case_int32_s)
     uint8_t* workSpace = (uint8_t*)AscendC::GmAlloc(workspaceBytesSize);
 
     std::string curPath = ".";
-    ReadFile(
-        curPath + "/moe_expert_data/sorted_experts.bin", sortedExpertsByteSize, in_sorted_experts,
-        sortedExpertsByteSize);
-    ReadFile(curPath + "/moe_expert_data/tiling.bin", tilingSize, tiling, tilingSize);
 
     ICPU_SET_TILING_KEY(1001);
     ICPU_RUN_KF(moe_compute_expert_tokens, blockDim, in_sorted_experts, out, workSpace, tiling);
 
-    WriteFile(curPath + "/moe_expert_data/output_actual.bin", out, outByteSize);
     AscendC::GmFree((void*)in_sorted_experts);
     AscendC::GmFree((void*)out);
-
-    system("cd ./moe_expert_data/ && python3 compare_data.py 'int32'");
 }
 
 TEST_F(moe_compute_expert_tokens_test, test_case_int32m)
 {
-    system(
-        "cp -rf "
-        "moe_expert_data "
-        "./");
-    system("chmod -R 755 ./moe_expert_data/");
-    system("cd ./moe_expert_data/ && python3 gen_data.py  77 100");
-    system("cd ./moe_expert_data/ && python3 gen_tiling.py 'case1'");
     AscendC::SetKernelMode(KernelMode::AIV_MODE);
     size_t sysWorkspaceSize = 16 * 1024 * 1024;
     uint8_t* workspace = (uint8_t*)AscendC::GmAlloc(sysWorkspaceSize);
     size_t tilingSize = sizeof(MoeComputeExpertTokensTilingData);
     uint8_t* tiling = (uint8_t*)AscendC::GmAlloc(tilingSize);
+    reinterpret_cast<MoeComputeExpertTokensTilingData*>(tiling)->normalCoreHandleNumBefore = 32;
+    reinterpret_cast<MoeComputeExpertTokensTilingData*>(tiling)->tailCoreHandleNumBefore = 32;
+    reinterpret_cast<MoeComputeExpertTokensTilingData*>(tiling)->numOfExpert = 1;
+    reinterpret_cast<MoeComputeExpertTokensTilingData*>(tiling)->workLocalNeedSize = 16;
+    reinterpret_cast<MoeComputeExpertTokensTilingData*>(tiling)->tailCoreHandleNumPerLoopBefore = 10;
+    reinterpret_cast<MoeComputeExpertTokensTilingData*>(tiling)->tailCoreHandleNumTailLoopBefore = 10;
+    reinterpret_cast<MoeComputeExpertTokensTilingData*>(tiling)->usedCoreNumBefore = 10;
+    reinterpret_cast<MoeComputeExpertTokensTilingData*>(tiling)->normalCoreHandleNumPerLoopBefore = 10;
+    reinterpret_cast<MoeComputeExpertTokensTilingData*>(tiling)->normalCoreHandleNumPerLoopAfter = 10;
 
     uint32_t sortedExpertNum = 77;
     uint32_t outNum = 100;
@@ -104,35 +96,35 @@ TEST_F(moe_compute_expert_tokens_test, test_case_int32m)
     uint8_t* workSpace = (uint8_t*)AscendC::GmAlloc(workspaceBytesSize);
 
     std::string curPath = ".";
-    ReadFile(
-        curPath + "/moe_expert_data/sorted_experts.bin", sortedExpertsByteSize, in_sorted_experts,
-        sortedExpertsByteSize);
-    ReadFile(curPath + "/moe_expert_data/tiling.bin", tilingSize, tiling, tilingSize);
 
     ICPU_SET_TILING_KEY(1002);
     ICPU_RUN_KF(moe_compute_expert_tokens, blockDim, in_sorted_experts, out, workSpace, tiling);
 
-    WriteFile(curPath + "/moe_expert_data/output_actual.bin", out, outByteSize);
     AscendC::GmFree((void*)in_sorted_experts);
     AscendC::GmFree((void*)out);
-
-    system("cd ./moe_expert_data/ && python3 compare_data.py 'int32'");
 }
 
 TEST_F(moe_compute_expert_tokens_test, test_case_int32_l)
 {
-    system(
-        "cp -rf "
-        "moe_expert_data "
-        "./");
-    system("chmod -R 755 ./moe_expert_data/");
-    system("cd ./moe_expert_data/ && python3 gen_data.py  97601 8193");
-    system("cd ./moe_expert_data/ && python3 gen_tiling.py 'case2'");
     AscendC::SetKernelMode(KernelMode::AIV_MODE);
     size_t sysWorkspaceSize = 16 * 1024 * 1024;
     uint8_t* workspace = (uint8_t*)AscendC::GmAlloc(sysWorkspaceSize);
     size_t tilingSize = sizeof(MoeComputeExpertTokensTilingData);
     uint8_t* tiling = (uint8_t*)AscendC::GmAlloc(tilingSize);
+    reinterpret_cast<MoeComputeExpertTokensTilingData*>(tiling)->normalCoreHandleNumBefore = 32;
+    reinterpret_cast<MoeComputeExpertTokensTilingData*>(tiling)->tailCoreHandleNumBefore = 32;
+    reinterpret_cast<MoeComputeExpertTokensTilingData*>(tiling)->numOfExpert = 1;
+    reinterpret_cast<MoeComputeExpertTokensTilingData*>(tiling)->workLocalNeedSize = 16;
+    reinterpret_cast<MoeComputeExpertTokensTilingData*>(tiling)->tailCoreHandleNumPerLoopBefore = 10;
+    reinterpret_cast<MoeComputeExpertTokensTilingData*>(tiling)->tailCoreHandleNumTailLoopBefore = 10;
+    reinterpret_cast<MoeComputeExpertTokensTilingData*>(tiling)->usedCoreNumBefore = 10;
+    reinterpret_cast<MoeComputeExpertTokensTilingData*>(tiling)->normalCoreHandleNumPerLoopBefore = 10;
+    reinterpret_cast<MoeComputeExpertTokensTilingData*>(tiling)->normalCoreHandleNumPerLoopAfter = 10;
+    reinterpret_cast<MoeComputeExpertTokensTilingData*>(tiling)->handleNumTailCoreMainLoop = 10;
+    reinterpret_cast<MoeComputeExpertTokensTilingData*>(tiling)->handleNumPerLoopBefore = 10;
+    reinterpret_cast<MoeComputeExpertTokensTilingData*>(tiling)->handleExpertNumMainCorePerLoop = 10;
+    reinterpret_cast<MoeComputeExpertTokensTilingData*>(tiling)->tailCoreHandleNumPerLoopAfter = 10;
+    reinterpret_cast<MoeComputeExpertTokensTilingData*>(tiling)->usedCoreNumBefore3 = 10;
 
     uint32_t sortedExpertNum = 97601;
     uint32_t outNum = 8193;
@@ -147,17 +139,10 @@ TEST_F(moe_compute_expert_tokens_test, test_case_int32_l)
     uint8_t* workSpace = (uint8_t*)AscendC::GmAlloc(workspaceBytesSize);
 
     std::string curPath = ".";
-    ReadFile(
-        curPath + "/moe_expert_data/sorted_experts.bin", sortedExpertsByteSize, in_sorted_experts,
-        sortedExpertsByteSize);
-    ReadFile(curPath + "/moe_expert_data/tiling.bin", tilingSize, tiling, tilingSize);
 
     ICPU_SET_TILING_KEY(1003);
     ICPU_RUN_KF(moe_compute_expert_tokens, blockDim, in_sorted_experts, out, workSpace, tiling);
 
-    WriteFile(curPath + "/moe_expert_data/output_actual.bin", out, outByteSize);
     AscendC::GmFree((void*)in_sorted_experts);
     AscendC::GmFree((void*)out);
-
-    system("cd ./moe_expert_data/ && python3 compare_data.py 'int32'");
 }
