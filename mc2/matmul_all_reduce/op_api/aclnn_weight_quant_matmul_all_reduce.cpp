@@ -131,7 +131,7 @@ static bool CheckDtypeValid(
 // 检查传入的reduction数值是否在可选范围内
 static bool CheckAttr(const char* reduceOp, int64_t streamMode, int64_t antiquantGroupSize, const aclTensor* x1)
 {
-    if (strcmp(reduceOp, REDUCE_OP_SUM)) {
+    if (strcmp(reduceOp, REDUCE_OP_SUM) != 0) {
         OP_LOGE(ACLNN_ERR_PARAM_INVALID, "Expected reduceOp to be sum, but got %s.", reduceOp);
         return false;
     }
@@ -188,7 +188,7 @@ static bool IsAntiquantScaleShapeValid(
         return false;
     }
 
-    size_t kValue = CeilDiv(x1->GetViewShape().GetDim(x1Len - 1), antiquantGroupSize);
+    int64_t kValue = static_cast<int64_t>(CeilDiv(x1->GetViewShape().GetDim(x1Len - 1), antiquantGroupSize));
     if (antiquantGroupSize > 0) {
         if ((scaleLen == DIM_LEN_TWO && scale->GetViewShape().GetDim(0) == kValue &&
              scale->GetViewShape().GetDim(1) == outShape.GetDim(x1Len - 1))) {

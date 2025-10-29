@@ -480,12 +480,17 @@ aclnnStatus aclnnMoeDistributeCombineV2(
     #include <vector>
     #include "acl/acl.h"
     #include "hccl/hccl.h"
+<<<<<<< HEAD
     #include "../../moe_distribute_dispatch_v2/op_host/op_api/aclnn_moe_distribute_dispatch_v2.h"
     #include "../op_host/op_api/aclnn_moe_distribute_combine_v2.h"
 <<<<<<< HEAD
     #include <unistd.h>
 =======
 >>>>>>> e7791434 (mc2文档格式问题修改)
+=======
+    #include "../../moe_distribute_dispatch_v2/op_api/aclnn_moe_distribute_dispatch_v2.h"
+    #include "../op_api/aclnn_moe_distribute_combine_v2.h"
+>>>>>>> 7d353ba9 (移动opapi位置)
 
     #define CHECK_RET(cond, return_expr) \
         do {                             \

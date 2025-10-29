@@ -331,7 +331,7 @@ aclnnStatus aclnnWeightQuantMatmulAllReduce(
     #include <vector>
     #include <thread>
     #include <string.h>
-    #include "../op_host/op_api/aclnn_weight_quant_matmul_all_reduce.h"
+    #include "../op_api/aclnn_weight_quant_matmul_all_reduce.h"
 
     int ndev = 8;
 
@@ -574,7 +574,7 @@ aclnnStatus aclnnWeightQuantMatmulAllReduce(
     #include <vector>
     #include <string.h>
     #include <getopt.h>
-    #include "aclnnop/aclnn_weight_quant_matmul_all_reduce.h"
+    #include "../op_api/aclnn_weight_quant_matmul_all_reduce.h"
 
     #define CHECK_RET(cond, return_expr) \
         do {                             \
