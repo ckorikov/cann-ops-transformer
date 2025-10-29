@@ -31,7 +31,7 @@
 
 #include "acl/acl.h"
 #include "acl/acl_base.h"
-#include "aclnnop/aclnn_grouped_mat_mul_all_reduce.h"
+#include "../op_host/op_api/aclnn_grouped_mat_mul_all_reduce.h"
 using namespace std;
 
 #ifdef __aarch64__
@@ -583,41 +583,20 @@ int launchMultiThread(Args &input_args, int32_t *devices, HcclComm *comms, Resou
     return 0;
 }
 
-int InitParams(int argc, char **argv)
-{
-    if (argc < 4) {
-        LOG_PRINT("miss paramaters\n");
-    }
-    g_ndev = std::stoi(argv[1]);
-    loop = std::stoi(argv[2]);
-    std::stringstream str = std::stringstream(argv[3]);
-    std::string seg;
-    char c = ',';
-    while (std::getline(str, seg, c)) {
-        device_list.push_back(std::stoi(seg));
-    }
-    assert(g_ndev == device_list.size());
-    return 0;
-}
-
-
 int main(int argc, char *argv[])
 {
-    // usage: ./main 2 1 0,1
+    // usage: ./main
     int ret = 0;
-    CHECK_RET(InitParams(argc, argv) == 0, LOG_PRINT("init params failed.\n"); return 0);
     Args input_args;
+    constexpr int DEVICE_NUM = 2;
+    g_ndev = DEVICE_NUM;
     input_args.ndev = g_ndev;
     input_args.run_type = string("reduce");
-    input_args.loop_cnt = loop;
+    input_args.loop_cnt = 1;
 
-    if (input_args.ndev != 1 && input_args.ndev != 2 && input_args.ndev != 4 && input_args.ndev != 8) {
-        printf("device_num input error, only support 8,4,2,1.\n");
-        return -1;
-    }
     int32_t devices[input_args.ndev];
     for (int i = 0; i < input_args.ndev; i++) {
-        devices[i] = device_list[i];
+        devices[i] = i;
     }
 
     HcclComm comms[N];
@@ -639,7 +618,6 @@ int main(int argc, char *argv[])
         ret = launchMultiThread(input_args, devices, comms, resources);
         if (ret != 0) {
             printf("This is an error in opbase_test_by_data_size.\n");
-            // ACL_CHECK(aclFinalize());
             return -1;
         }
     }

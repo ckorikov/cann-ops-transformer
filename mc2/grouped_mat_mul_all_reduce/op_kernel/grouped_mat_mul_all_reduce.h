@@ -16,7 +16,7 @@
 #define ASCENDC_GROUPED_MAT_MUL_ALL_REDUCE_H
 
 #ifdef __CCE_KT_TEST__
-#include "rac_server_stub.h"
+#include "../tests/ut/op_kernel/rac_server_stub.h"
 #else
 #include "rac_server.h"
 #endif

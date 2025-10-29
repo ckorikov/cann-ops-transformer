@@ -53,6 +53,9 @@ using biasType = MatmulType<AscendC::TPosition::GM, CubeFormat::ND, DTYPE_BIAS>;
 extern "C" __global__ __aicore__ void grouped_mat_mul_all_reduce(
     GM_ADDR x, GM_ADDR weight, GM_ADDR bias, GM_ADDR group_list, GM_ADDR y, GM_ADDR workspace, GM_ADDR tiling)
 {
+#ifdef __CCE_KT_TEST__
+    REGISTER_TILING_DEFAULT(GMMAllReduceTilingData);
+#endif
     GET_TILING_DATA_MEMBER(GMMAllReduceTilingData, aicoreTiling, aicore_tiling_data, tiling);
     if (aicore_tiling_data.debugMode == static_cast<uint32_t>(DebugMode::MC2_DEBUG_ONLY_AICPU)) {
         return;
