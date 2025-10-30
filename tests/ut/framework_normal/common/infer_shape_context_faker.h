@@ -42,7 +42,7 @@ public:
     InfershapeContextPara(const std::string& opName,
                           const std::vector<TensorDescription>& inputTensorDesc,
                           const std::vector<TensorDescription>& outputTensorDesc,
-                          const std::vector<OpAttr>& attrs) : 
+                          const std::vector<OpAttr>& attrs) :
                           opName_(opName),
                           inputTensorDesc_(inputTensorDesc),
                           outputTensorDesc_(outputTensorDesc),
@@ -50,13 +50,39 @@ public:
 
     InfershapeContextPara(const std::string& opName,
                           const std::vector<TensorDescription>& inputTensorDesc,
-                          const std::vector<TensorDescription>& outputTensorDesc) : 
+                          const std::vector<TensorDescription>& outputTensorDesc) :
                           opName_(opName),
                           inputTensorDesc_(inputTensorDesc),
                           outputTensorDesc_(outputTensorDesc) {}
 
+    InfershapeContextPara(const std::string& opName,
+                          const std::vector<TensorDescription>& inputTensorDesc,
+                          const std::vector<TensorDescription>& outputTensorDesc,
+                          const std::vector<OpAttr>& attrs,
+                          const std::vector<uint32_t>& inputInstanceNum,
+                          const std::vector<uint32_t>& outputInstanceNum) :
+                          opName_(opName),
+                          inputTensorDesc_(inputTensorDesc),
+                          outputTensorDesc_(outputTensorDesc),
+                          attrs_(attrs),
+                          inputInstanceNum_(inputInstanceNum),
+                          outputInstanceNum_(outputInstanceNum) {}
+
+    InfershapeContextPara(const std::string& opName,
+                          const std::vector<TensorDescription>& inputTensorDesc,
+                          const std::vector<TensorDescription>& outputTensorDesc,
+                          const std::vector<uint32_t>& inputInstanceNum,
+                          const std::vector<uint32_t>& outputInstanceNum) :
+                          opName_(opName),
+                          inputTensorDesc_(inputTensorDesc),
+                          outputTensorDesc_(outputTensorDesc),
+                          inputInstanceNum_(inputInstanceNum),
+                          outputInstanceNum_(outputInstanceNum) {}
+
 public:
     std::string opName_;
+    std::vector<uint32_t> inputInstanceNum_;
+    std::vector<uint32_t> outputInstanceNum_;
     std::vector<TensorDescription> inputTensorDesc_;
     std::vector<TensorDescription> outputTensorDesc_;
     std::vector<OpAttr> attrs_;
