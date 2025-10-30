@@ -9,7 +9,7 @@
  */
 
 /*!
- * \file test_mla_prolog_v2_nq_tnd.cpp
+ * \file test_aclnn_mla_prolog_v2_nq_tnd.cpp
  * \brief
  */
 

@@ -8,7 +8,7 @@
  * See LICENSE in the root of the software repository for the full text of the License.
  */
 /*!
- * \file test_mla_prolog_pqkvnq_tnd.cpp
+ * \file test_aclnn_mla_prolog_pqkvnq_tnd.cpp
  * \brief
  */
 
