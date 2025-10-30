@@ -45,8 +45,7 @@ class AllGatherAdd : public OpDef {
     this->Attr("rank_size").AttrType(OPTIONAL).Int(0); // ?
     this->Attr("is_gather_out").AttrType(OPTIONAL).Bool(true);
 
-    this->AICore().SetTiling(optiling::AllGatherAddTilingFunc);
-    OpAICoreConfig aicore_config;
+    OpAICoreConfig aicoreconfig;
     aicoreConfig.DynamicCompileStaticFlag(true)
             .DynamicFormatFlag(false)
             .DynamicRankSupportFlag(true)
@@ -54,7 +53,7 @@ class AllGatherAdd : public OpDef {
             .NeedCheckSupportFlag(false)
             .PrecisionReduceFlag(true)
             .ExtendCfgInfo("opFile.value", "all_gather_add");    // 这里制定的值会对应到kernel入口文件名.cpp
-    this->AICore().AddConfig("ascend910b", aicore_config);
+    this->AICore().AddConfig("ascend910b", aicoreconfig);
     this->MC2().HcclGroup("group"); // group 属性配置为该算子的通信域名称
   }
 };

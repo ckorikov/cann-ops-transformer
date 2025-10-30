@@ -26,14 +26,14 @@ class AllGatherAdd {
 public:
     __aicore__ inline AllGatherAdd(){};
     __aicore__ inline void Init(GM_ADDR aGM, GM_ADDR bGM, GM_ADDR cGM, GM_ADDR gatherGM, 
-                                GM_ADDR workspaceGM, GM_ADDR contextGM, AllGatherMatmulTilingData *tilingData, TPipe *tPipe);
+                                GM_ADDR workspaceGM, GM_ADDR contextGM, AllGatherAddTilingData *tilingData, TPipe *tPipe);
     __aicore__ inline void Process();
 
 private:
     __aicore__ inline void HcclPrepare();
     __aicore__ inline void CopyIn(int32_t progress);
-    __aicore__ inline void CopyOut();
-    __aicore__ inline void Compute(int32_t progress);
+    __aicore__ inline void CopyOut(int32_t progress);
+    __aicore__ inline void Compute();
     __aicore__ inline void HcclFinalize();
 
 private:
@@ -42,18 +42,18 @@ private:
     GM_ADDR cGM_;
     GM_ADDR gatherGM_;
     GM_ADDR workspaceGM_;
-    AllGatherMatmulTilingData *tilingData_;
+    AllGatherAddTilingData *tilingData_;
 
     TPipe *tPipe_;
-    Hccl hccl_;
+    Hccl<HCCL_SERVER_TYPE_AICPU> hccl_;
 
     TQue<QuePosition::VECIN, ALLGATHER_ADD_BUFFER_NUM> inputQueueGather;
     TQue<QuePosition::VECIN, ALLGATHER_ADD_BUFFER_NUM> inputQueueB;
     TQue<QuePosition::VECOUT, ALLGATHER_ADD_BUFFER_NUM> outputQueueC;
 
-    GlobalTensor<T> inputGMGather;
-    GlobalTensor<T> inputGMB;
-    GlobalTensor<T> outputGMC;
+    GlobalTensor<half> gatherOutGM;
+    GlobalTensor<half> inputBGM;
+    GlobalTensor<half> outputCGM;
 
     int64_t blockLength_ = 0;
     int64_t tileNum_ = 0;
@@ -62,9 +62,8 @@ private:
     HcclHandle handleId_{ INVALID_HANDLE_ID };
 };
 
-template <typename T>
-__aicore__ inline void AllGatherAdd<T>::Init(GM_ADDR aGM, GM_ADDR bGM, GM_ADDR cGM, GM_ADDR gatherGM, 
-                                             GM_ADDR workspaceGM, GM_ADDR contextGM, AllGatherMatmulTilingData *tilingData, TPipe *tPipe)
+__aicore__ inline void AllGatherAdd::Init(GM_ADDR aGM, GM_ADDR bGM, GM_ADDR cGM, GM_ADDR gatherGM, 
+                                             GM_ADDR workspaceGM, GM_ADDR contextGM, AllGatherAddTilingData *tilingData, TPipe *tPipe)
 {
     aGM_ = aGM;
     bGM_ = bGM;
@@ -73,8 +72,8 @@ __aicore__ inline void AllGatherAdd<T>::Init(GM_ADDR aGM, GM_ADDR bGM, GM_ADDR c
     workspaceGM_ = workspaceGM;
     tilingData_ = tilingData;
     tPipe_ = tPipe;
-    blockLength_ = tilingData->cfg.totalLength / AscendC::GetBlockNum();
-    tileNum_ = tilingData->cfg.tileNum;
+    blockLength_ = tilingData->totalLength / AscendC::GetBlockNum();
+    tileNum_ = tilingData->tileNum;
     tileLength_ = blockLength_ / tileNum_ / ALLGATHER_ADD_BUFFER_NUM;
     // todo 考虑尾块 对齐的话：a :48 2048 b: 96 2048
 
@@ -82,66 +81,61 @@ __aicore__ inline void AllGatherAdd<T>::Init(GM_ADDR aGM, GM_ADDR bGM, GM_ADDR c
     hccl_.InitV2(contextGM, tilingData);
     hccl_.SetCcTilingV2(offsetof(AllGatherAddTilingData, mc2CcTiling)); // 相对于Mc2InitTiling起始地址的偏移
 
-    inputGMGather.SetGlobalBuffer((__gm__ T*)gatherGM + blockLength_ * AscendC::GetBlockIdx(), blockLength_);
-    inputGMB.SetGlobalBuffer((__gm__ T*)bGM + blockLength_ * AscendC::GetBlockIdx(), blockLength_);
-    outputGMC.SetGlobalBuffer((__gm__ T*)cGM + blockLength_ * AscendC::GetBlockIdx(), blockLength_);
+    gatherOutGM.SetGlobalBuffer((__gm__ half*)gatherGM + blockLength_ * AscendC::GetBlockIdx(), blockLength_);
+    inputBGM.SetGlobalBuffer((__gm__ half*)bGM + blockLength_ * AscendC::GetBlockIdx(), blockLength_);
+    outputCGM.SetGlobalBuffer((__gm__ half*)cGM + blockLength_ * AscendC::GetBlockIdx(), blockLength_);
 
-    tPipe_.InitBuffer(inputQueueGather, ALLGATHER_ADD_BUFFER_NUM, tileLength_ * sizeof(T));
-    tPipe_.InitBuffer(inputQueueB, ALLGATHER_ADD_BUFFER_NUM, tileLength_ * sizeof(T));
-    tPipe_.InitBuffer(outputQueueC, ALLGATHER_ADD_BUFFER_NUM, tileLength_ * sizeof(T));
+    tPipe_->InitBuffer(inputQueueGather, ALLGATHER_ADD_BUFFER_NUM, tileLength_ * sizeof(half));
+    tPipe_->InitBuffer(inputQueueB, ALLGATHER_ADD_BUFFER_NUM, tileLength_ * sizeof(half));
+    tPipe_->InitBuffer(outputQueueC, ALLGATHER_ADD_BUFFER_NUM, tileLength_ * sizeof(half));
 }
 
-template <typename T>
-__aicore__ inline void AllGatherAdd<T>::HcclPrepare()
+__aicore__ inline void AllGatherAdd::HcclPrepare()
 {
     // 下发通信任务
     // sendBuf recvBuf(数据个数等于sendCount*rank size) sendCount（参与allgather的sendbuf的数据个数） dataType strideCount repeat
-    handleId_ = hccl_.AllGather<true>(aGM_, gatherGM_, tilingData_.cfg.tileLength,
-                                      HcclDataType::HCCL_DATA_TYPE_FP16, tilingData_.cfg.totalLength, tilingData_.cfg.tileNum);
+    handleId_ = hccl_.AllGather<true>(aGM_, gatherGM_, tilingData_->tileLength,
+                                      HcclDataType::HCCL_DATA_TYPE_FP16, tilingData_->totalLength, tilingData_->tileNum);
 }
 
-__aicore__ inline void AllGatherAdd<T>::CopyIn(int32_t progress)
+__aicore__ inline void AllGatherAdd::CopyIn(int32_t progress)
 {
-    AscendC::LocalTensor<T> gatherLocal = inputQueueGather.AllocTensor<T>();
-    AscendC::LocalTensor<T> bLocal = inputQueueB.AllocTensor<T>();
-    AscendC::DataCopy(gatherLocal, inputGMgather[progress * tileLength_], tileLength_);
-    AscendC::DataCopy(bLocal, inputGMB[progress * tileLength_], tileLength_);
+    AscendC::LocalTensor<half> gatherLocal = inputQueueGather.AllocTensor<half>();
+    AscendC::LocalTensor<half> bLocal = inputQueueB.AllocTensor<half>();
+    AscendC::DataCopy(gatherLocal, gatherOutGM[progress * tileLength_], tileLength_);
+    AscendC::DataCopy(bLocal, inputBGM[progress * tileLength_], tileLength_);
     inputQueueGather.EnQue(gatherLocal);
     inputQueueB.EnQue(bLocal);
 }
 
-template <typename T>
-__aicore__ inline void AllGatherAdd<T>::Compute()
+__aicore__ inline void AllGatherAdd::Compute()
 {
-    AscendC::LocalTensor<T> gatherLocal = inputQueueGather.DeQue<T>();
-    AscendC::LocalTensor<T> bLocal = inputQueueB.DeQue<T>();
-    AscendC::LocalTensor<T> cLocal = outputQueueC.AllocTensor<T>();
+    AscendC::LocalTensor<half> gatherLocal = inputQueueGather.DeQue<half>();
+    AscendC::LocalTensor<half> bLocal = inputQueueB.DeQue<half>();
+    AscendC::LocalTensor<half> cLocal = outputQueueC.AllocTensor<half>();
     AscendC::Add(gatherLocal, bLocal, cLocal, tileLength_);
-    outputQueueZ.EnQue<T>(gatherLocal);
-    inputQueueX.FreeTensor(bLocal);
-    inputQueueY.FreeTensor(cLocal);
-}
-
-template <typename T>
-__aicore__ inline void AllGatherAdd<T>::CopyOut(int32_t progress)
-{
-    AscendC::LocalTensor<T> cLocal = outputQueueC.DeQue<T>();
-    AscendC::DataCopy(outputGMC[progress * tileLength_], cLocal, tileLength_);
+    inputQueueGather.EnQue<half>(gatherLocal);
+    inputQueueB.FreeTensor(bLocal);
     outputQueueC.FreeTensor(cLocal);
 }
 
-template <typename T>
-__aicore__ inline void AllGatherAdd<T>::HcclFinalize()
+__aicore__ inline void AllGatherAdd::CopyOut(int32_t progress)
+{
+    AscendC::LocalTensor<half> cLocal = outputQueueC.DeQue<half>();
+    AscendC::DataCopy(outputCGM[progress * tileLength_], cLocal, tileLength_);
+    outputQueueC.FreeTensor(cLocal);
+}
+
+__aicore__ inline void AllGatherAdd::HcclFinalize()
 {
     hccl_.Finalize();
 }
 
-template <typename T>
-__aicore__ inline void AllGatherAdd<T>::Process()
+__aicore__ inline void AllGatherAdd::Process()
 {
     HcclPrepare();
     // 等待每一块数据通信完成，对每一块进行add计算
-    for (int i = 0; i < tilingData_.cfg.tileNum; i++) {
+    for (int i = 0; i < tilingData_->tileNum; i++) {
         hccl_.Wait(handleId_);
         for (int rankId = 0; rankId < hccl_.GetRankDim(); rankId++) {
             // 

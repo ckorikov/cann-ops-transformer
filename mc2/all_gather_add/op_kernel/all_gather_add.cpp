@@ -17,7 +17,7 @@
 
 using namespace AscendC;
 
-extern "C" __global__ __aicore__ void all_gather_add_custom(GM_ADDR aGM, GM_ADDR bGM, GM_ADDR cGM,
+extern "C" __global__ __aicore__ void all_gather_add(GM_ADDR aGM, GM_ADDR bGM, GM_ADDR cGM,
     GM_ADDR gatherGM, GM_ADDR workspaceGM, GM_ADDR tilingGM)
 {
     KERNEL_TASK_TYPE_DEFAULT(KERNEL_TYPE_AIV_ONLY);
@@ -27,12 +27,12 @@ extern "C" __global__ __aicore__ void all_gather_add_custom(GM_ADDR aGM, GM_ADDR
     __gm__ void* mc2InitTiling = (__gm__ void*)(&(tiling->mc2InitTiling));
     __gm__ void* mc2CcTiling = (__gm__ void*)(&(tiling->mc2CcTiling));
     GET_TILING_DATA(tilingData, tilingGM);
-    Tpipe pipe;
+    TPipe pipe;
 
     GM_ADDR contextGM = GetHcclContext<HCCL_GROUP_ID_0>();
 
     // 初始化Add对象并对本卡数据进行Add计算，固定shape
     AllGatherAdd allGatherAdd;
-    allGatherAdd.Init(aGM, bGM, cGM, workspaceGM, contextGM, &tilingData, &pipe);
+    allGatherAdd.Init(aGM, bGM, cGM, gatherGM, workspaceGM, contextGM, &tilingData, &pipe);
     allGatherAdd.Process();
 }

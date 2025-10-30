@@ -24,7 +24,6 @@
 
 using namespace AscendC;
 using namespace ge;
-using namespace Ops::Math::OpTiling;
 
 constexpr uint32_t TILE_LENGTH = 128; // 先随手
 
@@ -78,9 +77,9 @@ static ge::graphStatus AllGatherAddTilingFunc(gert::TilingContext *context) {
     OP_CHECK_IF(
         memset_s(tilingData, sizeof(AllGatherAddTilingData), 0, sizeof(AllGatherAddTilingData)) != EOK,
         OP_LOGE(context, "set AllGatherAdd tiling data error"), return ge::GRAPH_FAILED);
-    tilingData->cfg.totalLength = context->GetInputTensor(0)->GetShapeSize();
-    tilingData->cfg.tileLength = TILE_LENGTH;
-    tilingData->cfg.tileNum = tilingData->cfg.totalLength / tilingData->cfg.tileLength;
+    tilingData->totalLength = context->GetInputTensor(0)->GetShapeSize();
+    tilingData->tileLength = TILE_LENGTH;
+    tilingData->tileNum = tilingData->totalLength / tilingData->tileLength;
 
     // 设置workspaceSize gather out需要额外的临时内存，大小=input b
     size_t* currentWorkspace = context->GetWorkspaceSizes(1);
@@ -88,7 +87,7 @@ static ge::graphStatus AllGatherAddTilingFunc(gert::TilingContext *context) {
     // 如需使用系统workspace需要调用GetLibApiWorkSpaceSize获取系统workspace大小
     uint32_t sysWorkSpaceSize = ascendcPlatform.GetLibApiWorkSpaceSize(); 
     // 预留18M + gather_out, gather_out 大小跟x1输入一样
-    currentWorkspace[0] = sysWorkSpaceSize + tilingData->cfg.totalLength;
+    currentWorkspace[0] = sysWorkSpaceSize + tilingData->totalLength;
 
     auto group = context->GetAttrs()->GetAttrPointer<char>(static_cast<int>(0));
     InitHcclParam(tilingData, group);
