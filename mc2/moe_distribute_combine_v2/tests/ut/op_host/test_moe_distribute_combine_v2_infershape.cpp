@@ -21,14 +21,12 @@ class MoeDistributeCombineV2Infershape : public testing::Test{
 
 // infer shape with bias, success
 TEST_F(MoeDistributeCombineV2Infershape, infer_shape_0) {
-    gert::StorageShape expand_x_shape = {{576, 7168}, {576, 7168}};
-    gert::StorageShape expert_ids_shape = {{32, 8}, {32, 8}};
-    gert::StorageShape expand_idx_shape = {{16384}, {16384}};
-    gert::StorageShape ep_send_counts_shape = {{288}, {288}};
-    gert::StorageShape tp_send_counts_shape = {{2}, {2}};
-    gert::StorageShape expert_scales_shape = {{32, 8}, {32, 8}};
-
-    gert::StorageShape x_output_shape_uninit = {{10000, 10000}, {10000, 10000}};
+    gert::StorageShape expand_x_shape = {{576, 7168}, {}};
+    gert::StorageShape expert_ids_shape = {{32, 8}, {}};
+    gert::StorageShape expand_idx_shape = {{16384}, {}};
+    gert::StorageShape ep_send_counts_shape = {{288}, {}};
+    gert::StorageShape tp_send_counts_shape = {{2}, {}};
+    gert::StorageShape expert_scales_shape = {{32, 8}, {}};
 
     gert::InfershapeContextPara infershapeContextPara("MoeDistributeCombineV2",
         {
@@ -40,7 +38,7 @@ TEST_F(MoeDistributeCombineV2Infershape, infer_shape_0) {
             {expert_scales_shape, ge::DT_FLOAT, ge::FORMAT_ND},
         },
         {
-            {x_output_shape_uninit, ge::DT_FLOAT16, ge::FORMAT_ND},
+            {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
         },
         {
             {"group_ep", Ops::Transformer::AnyValue::CreateFrom<std::string>("ep_group")},
@@ -72,22 +70,12 @@ TEST_F(MoeDistributeCombineV2Infershape, infer_dtype_0) {
     ge::DataType ep_send_counts_type = ge::DT_INT32;
     ge::DataType tp_send_counts_type = ge::DT_INT32;
     ge::DataType expert_scales_type = ge::DT_FLOAT;
-    ge::DataType x_out_type = ge::DT_UNDEFINED; // 初始化的时候设置为未定义的类型
 
     auto contextHolder = gert::InferDataTypeContextFaker()
-                    .IrInputNum(6)
                     .NodeIoNum(6, 1)
-                    .IrInstanceNum({1, 1, 1, 1, 1, 1})
-                    .NodeInputTd(0, expand_x_type, ge::FORMAT_ND, ge::FORMAT_ND)
-                    .NodeInputTd(1, expert_ids_type, ge::FORMAT_ND, ge::FORMAT_ND)
-                    .NodeInputTd(2, expand_idx_type, ge::FORMAT_ND, ge::FORMAT_ND)
-                    .NodeInputTd(3, ep_send_counts_type, ge::FORMAT_ND, ge::FORMAT_ND)
-                    .NodeInputTd(4, tp_send_counts_type, ge::FORMAT_ND, ge::FORMAT_ND)
-                    .NodeInputTd(5, expert_scales_type, ge::FORMAT_ND, ge::FORMAT_ND)
-                    .NodeOutputTd(0, ge::FORMAT_ND, ge::FORMAT_ND)
                     .InputDataTypes({&expand_x_type, &expert_ids_type, &expand_idx_type,
                                     &ep_send_counts_type, &tp_send_counts_type, &expert_scales_type})
-                    .OutputDataTypes({&x_out_type})
+                    .NodeOutputTd(0, ge::FORMAT_ND, ge::FORMAT_ND)
                     .Build();
 
     auto spaceRegistry = gert::DefaultOpImplSpaceRegistryV2::GetInstance().GetSpaceRegistry();

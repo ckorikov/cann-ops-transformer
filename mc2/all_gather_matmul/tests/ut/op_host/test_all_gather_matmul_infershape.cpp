@@ -29,20 +29,17 @@ protected:
 };
 
 TEST_F(AllGatherMatmulInferShapeTest, basic) {
-    gert::StorageShape x1_shape = {{8192, 12288}, {8192, 12288}};
-    gert::StorageShape x2_shape = {{12288, 3904}, {12288, 3904}};
-    gert::StorageShape output_shape = {{8192, 3904}, {8192, 3904}};
-    gert::StorageShape gather_output_shape = {{8192, 12288}, {8192, 12288}};
+    gert::StorageShape x1_shape = {{8192, 12288}, {}};
+    gert::StorageShape x2_shape = {{12288, 3904}, {}};
 
     gert::InfershapeContextPara infershapeContextPara("AllGatherMatmul",
         {
             {x1_shape, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {x2_shape, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {{{}, {}}, ge::DT_FLOAT16, ge::FORMAT_ND}
+            {x2_shape, ge::DT_FLOAT16, ge::FORMAT_ND}
         },
         {
-            {output_shape, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {gather_output_shape, ge::DT_FLOAT16, ge::FORMAT_ND}
+            {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
+            {{}, ge::DT_FLOAT16, ge::FORMAT_ND}
         },
         {
             {"groupstr", Ops::Transformer::AnyValue::CreateFrom<std::string>("hcclCom")},
@@ -51,7 +48,7 @@ TEST_F(AllGatherMatmulInferShapeTest, basic) {
             {"gather_index", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)},
             {"comm_turn", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)},
             {"rank_size", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)},
-            {"is_gather_out", Ops::Transformer::AnyValue::CreateFrom<int64_t>(true)}
+            {"is_gather_out", Ops::Transformer::AnyValue::CreateFrom<int64_t>(false)}
         }
     );
 
@@ -60,20 +57,17 @@ TEST_F(AllGatherMatmulInferShapeTest, basic) {
 }
 
 TEST_F(AllGatherMatmulInferShapeTest, empty_tensor_test) {
-    gert::StorageShape x1_shape = {{8192, 0}, {0, 12288}};
-    gert::StorageShape x2_shape = {{0, 3904}, {12288, 3904}};
-    gert::StorageShape output_shape = {{0, 0}, {0, 3904}};
-    gert::StorageShape gather_output_shape = {{0, 0}, {0, 12288}};
+    gert::StorageShape x1_shape = {{8192, 0}, {}};
+    gert::StorageShape x2_shape = {{0, 3904}, {}};
 
     gert::InfershapeContextPara infershapeContextPara("AllGatherMatmul",
         {
             {x1_shape, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {x2_shape, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {{{}, {}}, ge::DT_FLOAT16, ge::FORMAT_ND}
+            {x2_shape, ge::DT_FLOAT16, ge::FORMAT_ND}
         },
         {
-            {output_shape, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {gather_output_shape, ge::DT_FLOAT16, ge::FORMAT_ND}
+            {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
+            {{}, ge::DT_FLOAT16, ge::FORMAT_ND}
         },
         {
             {"groupstr", Ops::Transformer::AnyValue::CreateFrom<std::string>("hcclCom")},
@@ -81,8 +75,8 @@ TEST_F(AllGatherMatmulInferShapeTest, empty_tensor_test) {
             {"is_trans_b", Ops::Transformer::AnyValue::CreateFrom<bool>(false)},
             {"gather_index", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)},
             {"comm_turn", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)},
-            {"rank_size", Ops::Transformer::AnyValue::CreateFrom<int64_t>(8)},
-            {"is_gather_out", Ops::Transformer::AnyValue::CreateFrom<int64_t>(true)}
+            {"rank_size", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)},
+            {"is_gather_out", Ops::Transformer::AnyValue::CreateFrom<int64_t>(false)}
         }
     );
 
@@ -90,20 +84,17 @@ TEST_F(AllGatherMatmulInferShapeTest, empty_tensor_test) {
 }
 
 TEST_F(AllGatherMatmulInferShapeTest, is_gather_out_false) {
-    gert::StorageShape x1_shape = {{8192, 12288}, {8192, 12288}};
-    gert::StorageShape x2_shape = {{12288, 3904}, {12288, 3904}};
-    gert::StorageShape output_shape = {{8192, 3904}, {8192, 3904}};
-    gert::StorageShape gather_output_shape = {{8192, 12288}, {8192, 12288}};
+    gert::StorageShape x1_shape = {{8192, 12288}, {}};
+    gert::StorageShape x2_shape = {{12288, 3904}, {}};
 
     gert::InfershapeContextPara infershapeContextPara("AllGatherMatmul",
         {
             {x1_shape, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {x2_shape, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {{{}, {}}, ge::DT_FLOAT16, ge::FORMAT_ND}
+            {x2_shape, ge::DT_FLOAT16, ge::FORMAT_ND}
         },
         {
-            {output_shape, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {gather_output_shape, ge::DT_FLOAT16, ge::FORMAT_ND}
+            {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
+            {{}, ge::DT_FLOAT16, ge::FORMAT_ND}
         },
         {
             {"groupstr", Ops::Transformer::AnyValue::CreateFrom<std::string>("hcclCom")},
@@ -124,14 +115,11 @@ TEST_F(AllGatherMatmulInferShapeTest, infer_datatype) {
     ge::DataType x1_type = ge::DT_FLOAT16;
     ge::DataType x2_type = ge::DT_FLOAT16;
     ge::DataType bias_type = ge::DT_FLOAT16;
-    ge::DataType output_shape = ge::DT_UNDEFINED;
-    ge::DataType gather_output_shape = ge::DT_UNDEFINED;
+    ge::DataType output_type = ge::DT_UNDEFINED;
+    ge::DataType gather_output_type = ge::DT_UNDEFINED;
 
     auto contextHolder = gert::InferDataTypeContextFaker()
-        .SetOpType("AllGatherMatmul")
-        .IrInputNum(3)
         .NodeIoNum(3, 2)
-        .IrInstanceNum({1, 1})
         .NodeAttrs({{"groupstr", Ops::Transformer::AnyValue::CreateFrom<std::string>("hcclCom")},
                     {"is_trans_a", Ops::Transformer::AnyValue::CreateFrom<bool>(false)},
                     {"is_trans_b", Ops::Transformer::AnyValue::CreateFrom<bool>(false)},
@@ -139,13 +127,13 @@ TEST_F(AllGatherMatmulInferShapeTest, infer_datatype) {
                     {"comm_turn", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)},
                     {"rank_size", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)},
                     {"is_gather_out", Ops::Transformer::AnyValue::CreateFrom<int64_t>(true)}})
-        .NodeInputTd(0, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND)
-        .NodeInputTd(1, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND)
-        .NodeInputTd(2, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND)
+        .NodeInputTd(0, x1_type, ge::FORMAT_ND, ge::FORMAT_ND)
+        .NodeInputTd(1, x2_type, ge::FORMAT_ND, ge::FORMAT_ND)
+        .NodeInputTd(2, bias_type, ge::FORMAT_ND, ge::FORMAT_ND)
         .NodeOutputTd(0, ge::FORMAT_ND, ge::FORMAT_ND)
         .NodeOutputTd(1, ge::FORMAT_ND, ge::FORMAT_ND)
         .InputDataTypes({&x1_type, &x2_type, &bias_type})
-        .OutputDataTypes({&output_shape, &gather_output_shape})
+        .OutputDataTypes({&output_type, &gather_output_type})
         .Build();
 
     auto spaceRegistry = gert::DefaultOpImplSpaceRegistryV2::GetInstance().GetSpaceRegistry();

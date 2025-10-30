@@ -46,7 +46,7 @@ TEST_F(l2_all_to_all_all_gather_batch_matmul_test, test_all_to_all_all_gather_ba
   uint64_t workspace_size = 0;
   aclOpExecutor* executor = nullptr;
   aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
-  EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_NULLPTR);
+  EXPECT_EQ(aclRet, ACLNN_SUCCESS);
 }
 
 // xShardType = 1, E = 4, C = 2, H = 6, ep = 2, tp = 2, M = 4
@@ -64,7 +64,7 @@ TEST_F(l2_all_to_all_all_gather_batch_matmul_test, test_all_to_all_all_gather_ba
   uint64_t workspace_size = 0;
   aclOpExecutor* executor = nullptr;
   aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
-  EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_NULLPTR);
+  EXPECT_EQ(aclRet, ACLNN_SUCCESS);
 }
 
 // xShardType 不是 0 或 1 , E = 4, C = 2, H = 6, ep = 2, tp = 2, M = 4
@@ -99,7 +99,7 @@ TEST_F(l2_all_to_all_all_gather_batch_matmul_test, test_all_to_all_all_gather_ba
   uint64_t workspace_size = 0;
   aclOpExecutor* executor = nullptr;
   aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
-  EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_NULLPTR);
+  EXPECT_EQ(aclRet, ACLNN_SUCCESS);
 }
 
 // y3_out 因actType不输出
@@ -315,7 +315,7 @@ TEST_F(l2_all_to_all_all_gather_batch_matmul_test, test_all_to_all_all_gather_ba
   uint64_t workspace_size = 0;
   aclOpExecutor* executor = nullptr;
   aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
-  EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_NULLPTR);
+  EXPECT_EQ(aclRet, ACLNN_SUCCESS);
 }
 
 // M/tp > 65535

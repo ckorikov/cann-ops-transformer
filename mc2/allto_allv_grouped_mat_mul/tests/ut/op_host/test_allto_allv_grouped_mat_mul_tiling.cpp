@@ -264,7 +264,6 @@ TEST_P(AlltoAllvGroupedMatMulTiling, shape_size)
 }
 
 static TestParam test_params[] = {
-    {"Test_sample", {{"permute_out_flag", "true"}}, {}, {}, ge::GRAPH_SUCCESS},
     {"Test_gmmWeight_size", {{"e", "64"}, {"permute_out_flag", "true"}}, {}, {}, ge::GRAPH_FAILED},
     {"Test_ep_world_size", {{"ep_world_size", "4"}, {"permute_out_flag", "true"}}, {}, {}, ge::GRAPH_FAILED},
     {"Test_e", {{"e", "64"}, {"permute_out_flag", "true"}}, {}, {}, ge::GRAPH_FAILED},

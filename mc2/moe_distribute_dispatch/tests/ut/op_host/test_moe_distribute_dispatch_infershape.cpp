@@ -42,16 +42,8 @@ TEST_F(MoeDistributeDispatchInfershape, infer_shape_0) {
     platformInfo.str_info.short_soc_version = "Ascend910B";
     fe::PlatformInfoManager::Instance().platform_info_map_["Ascend910B"] = platformInfo;
     fe::PlatformInfoManager::Instance().SetOptionalCompilationInfo(opti_compilation_info);
-    gert::StorageShape expand_x_shape = {{32, 7168}, {32, 7168}};
-    gert::StorageShape expert_ids_shape = {{32, 8}, {32, 8}};
-
-    gert::StorageShape expand_x_output_shape_uninit = {{10000, 10000}, {10000, 10000}};
-    gert::StorageShape dynamic_scales_output_shape_uninit = {{10000}, {10000}};
-    gert::StorageShape expand_idx_output_shape_uninit = {{10000}, {10000}};
-    gert::StorageShape expert_token_nums_output_shape_uninit = {{10000}, {10000}};
-    gert::StorageShape ep_recv_count_output_shape_uninit = {{10000}, {10000}};
-    gert::StorageShape tp_recv_count_output_shape_uninit = {{10000}, {10000}};
-    gert::StorageShape expand_scales_output_shape_uninit = {{10000}, {10000}};
+    gert::StorageShape expand_x_shape = {{32, 7168}, {}};
+    gert::StorageShape expert_ids_shape = {{32, 8}, {}};
 
     gert::InfershapeContextPara infershapeContextPara("MoeDistributeDispatch",
         {
@@ -59,13 +51,13 @@ TEST_F(MoeDistributeDispatchInfershape, infer_shape_0) {
             {expert_ids_shape, ge::DT_INT32, ge::FORMAT_ND}
         },
         {
-            {expand_x_output_shape_uninit, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {dynamic_scales_output_shape_uninit, ge::DT_FLOAT, ge::FORMAT_ND},
-            {expand_idx_output_shape_uninit, ge::DT_INT32, ge::FORMAT_ND},
-            {expert_token_nums_output_shape_uninit, ge::DT_INT64, ge::FORMAT_ND},
-            {ep_recv_count_output_shape_uninit, ge::DT_INT32, ge::FORMAT_ND},
-            {tp_recv_count_output_shape_uninit, ge::DT_INT32, ge::FORMAT_ND},
-            {expand_scales_output_shape_uninit, ge::DT_FLOAT, ge::FORMAT_ND}
+            {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
+            {{}, ge::DT_FLOAT, ge::FORMAT_ND},
+            {{}, ge::DT_INT32, ge::FORMAT_ND},
+            {{}, ge::DT_INT64, ge::FORMAT_ND},
+            {{}, ge::DT_INT32, ge::FORMAT_ND},
+            {{}, ge::DT_INT32, ge::FORMAT_ND},
+            {{}, ge::DT_FLOAT, ge::FORMAT_ND}
         },
         {
             {"group_ep", Ops::Transformer::AnyValue::CreateFrom<std::string>("ep_group")},
@@ -83,7 +75,7 @@ TEST_F(MoeDistributeDispatchInfershape, infer_shape_0) {
         }
     );
 
-    std::vector<std::vector<int64_t>> expand_x_output_shape = {{576, 7168}, {576, 7168}};
+    std::vector<std::vector<int64_t>> expand_x_output_shape = {{576, 7168}};
     ExecuteTestCase(infershapeContextPara, ge::GRAPH_SUCCESS, expand_x_output_shape);
 }
 
@@ -103,13 +95,13 @@ TEST_F(MoeDistributeDispatchInfershape, infer_shape_1) {
             {{{32, 8}, {32, 8}}, ge::DT_FLOAT, ge::FORMAT_ND}
         },
         {
-            {{{10000, 10000}, {10000, 10000}}, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {{{10000}, {10000}}, ge::DT_FLOAT, ge::FORMAT_ND},
-            {{{10000}, {10000}}, ge::DT_INT32, ge::FORMAT_ND},
-            {{{10000}, {10000}}, ge::DT_INT64, ge::FORMAT_ND},
-            {{{10000}, {10000}}, ge::DT_INT32, ge::FORMAT_ND},
-            {{{10000}, {10000}}, ge::DT_INT32, ge::FORMAT_ND},
-            {{{10000}, {10000}}, ge::DT_FLOAT, ge::FORMAT_ND}
+            {{}, ge::DT_FLOAT16, ge::FORMAT_ND},
+            {{}, ge::DT_FLOAT, ge::FORMAT_ND},
+            {{}, ge::DT_INT32, ge::FORMAT_ND},
+            {{}, ge::DT_INT64, ge::FORMAT_ND},
+            {{}, ge::DT_INT32, ge::FORMAT_ND},
+            {{}, ge::DT_INT32, ge::FORMAT_ND},
+            {{}, ge::DT_FLOAT, ge::FORMAT_ND}
         },
         {
             {"group_ep", Ops::Transformer::AnyValue::CreateFrom<std::string>("ep_group")},
@@ -127,22 +119,16 @@ TEST_F(MoeDistributeDispatchInfershape, infer_shape_1) {
         }
     );
 
-    std::vector<std::vector<int64_t>> expand_x_output_shape = {{576, 7168}, {576, 7168}};
+    std::vector<std::vector<int64_t>> expand_x_output_shape = {{576, 7168}};
     ExecuteTestCase(infershapeContextPara, ge::GRAPH_SUCCESS, expand_x_output_shape);
 }
 
 TEST_F(MoeDistributeDispatchInfershape, infer_dtype_0) {
     ge::DataType expand_x_type = ge::DT_FLOAT16;
     ge::DataType expert_ids_type = ge::DT_INT32;
-    ge::DataType expand_x_out_type = ge::DT_UNDEFINED; // 初始化的时候设置为未定义的类型
-    ge::DataType expert_token_nums_out_type = ge::DT_UNDEFINED;
-    ge::DataType ep_recv_count_out_type = ge::DT_UNDEFINED;
-    ge::DataType tp_recv_count_out_type = ge::DT_UNDEFINED;
-    std::string opType("MoeDistributeDispatch");
+
     auto contextHolder = gert::InferDataTypeContextFaker()
-        .IrInputNum(2)
         .NodeIoNum(2, 6)
-        .IrInstanceNum({1, 1})
         .NodeAttrs({{"group_ep", Ops::Transformer::AnyValue::CreateFrom<std::string>("ep_group")},
                     {"ep_world_size", Ops::Transformer::AnyValue::CreateFrom<int64_t>(288)},
                     {"ep_rank_id", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)},
@@ -156,15 +142,13 @@ TEST_F(MoeDistributeDispatchInfershape, infer_dtype_0) {
                     {"global_bs", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)}})
         .NodeInputTd(0, expand_x_type, ge::FORMAT_ND, ge::FORMAT_ND)
         .NodeInputTd(1, expert_ids_type, ge::FORMAT_ND, ge::FORMAT_ND)
+        .InputDataTypes({&expand_x_type, &expert_ids_type})
         .NodeOutputTd(0, ge::FORMAT_ND, ge::FORMAT_ND)
         .NodeOutputTd(1, ge::FORMAT_ND, ge::FORMAT_ND)
         .NodeOutputTd(2, ge::FORMAT_ND, ge::FORMAT_ND)
         .NodeOutputTd(3, ge::FORMAT_ND, ge::FORMAT_ND)
         .NodeOutputTd(4, ge::FORMAT_ND, ge::FORMAT_ND)
         .NodeOutputTd(5, ge::FORMAT_ND, ge::FORMAT_ND)
-        .InputDataTypes({&expand_x_type, &expert_ids_type})
-        .OutputDataTypes({&expand_x_out_type, &expand_x_out_type, &expand_x_out_type,
-                          &expert_token_nums_out_type, &ep_recv_count_out_type, &tp_recv_count_out_type})
         .Build();
     auto spaceRegistry = gert::DefaultOpImplSpaceRegistryV2::GetInstance().GetSpaceRegistry();
     auto inferDtypeFunc = spaceRegistry->GetOpImpl("MoeDistributeDispatch")->infer_datatype;

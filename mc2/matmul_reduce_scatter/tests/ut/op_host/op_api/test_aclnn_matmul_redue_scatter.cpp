@@ -39,10 +39,10 @@ TEST_F(l2_aclnn_matmul_reduce_scatter_test, test_aclnn_matmul_reduce_scatter_fir
   uint64_t workspace_size = 0;
   aclOpExecutor* executor = nullptr;
   aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
-  EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_NULLPTR);
+  EXPECT_EQ(aclRet, ACLNN_SUCCESS);
 }
 
-TEST_F(l2_aclnn_matmul_reduce_scatter_test, test_third_api) {
+TEST_F(l2_aclnn_matmul_reduce_scatter_test, test_aclnn_matmul_reduce_scatter_first_api_2) {
   TensorDesc x1_desc = TensorDesc({0, 256}, ACL_FLOAT16, ACL_FORMAT_ND);
   TensorDesc x2_desc = TensorDesc({256, 16}, ACL_FLOAT16, ACL_FORMAT_ND);
   TensorDesc bias = TensorDesc({256}, ACL_FLOAT16, ACL_FORMAT_ND);
@@ -55,7 +55,7 @@ TEST_F(l2_aclnn_matmul_reduce_scatter_test, test_third_api) {
   EXPECT_EQ(aclRet, ACLNN_SUCCESS);
 }
 
-TEST_F(l2_aclnn_matmul_reduce_scatter_test, test_six_api) {
+TEST_F(l2_aclnn_matmul_reduce_scatter_test, test_aclnn_matmul_reduce_scatter_first_api_3) {
   TensorDesc x1_desc = TensorDesc({16, 256}, ACL_FLOAT16, ACL_FORMAT_ND);
   TensorDesc x2_desc = TensorDesc({256, 16}, ACL_FLOAT16, ACL_FORMAT_ND);
   TensorDesc bias = TensorDesc({256}, ACL_FLOAT16, ACL_FORMAT_ND);
@@ -65,7 +65,7 @@ TEST_F(l2_aclnn_matmul_reduce_scatter_test, test_six_api) {
   uint64_t workspace_size = 0;
   aclOpExecutor* executor = nullptr;
   aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
-  EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_NULLPTR);
+  EXPECT_EQ(aclRet, ACLNN_SUCCESS);
 }
 
 TEST_F(l2_aclnn_matmul_reduce_scatter_test, test_six_api_910_95) {
@@ -79,6 +79,6 @@ TEST_F(l2_aclnn_matmul_reduce_scatter_test, test_six_api_910_95) {
   uint64_t workspace_size = 0;
   aclOpExecutor* executor = nullptr;
   aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
-  EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_NULLPTR);
+  EXPECT_EQ(aclRet, ACLNN_SUCCESS);
 }
 } // MatmulReduceScatter

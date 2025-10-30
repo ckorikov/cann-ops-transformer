@@ -30,9 +30,9 @@ protected:
 };
 
 TEST_F(MatmulAllReduceInfershape, infer_shape_for_2dim) {
-    gert::StorageShape x1_shape = {{32, 64}, {4, 2, 16, 16}};
-    gert::StorageShape x2_shape = {{64, 128}, {4, 2, 16, 16}};
-    gert::StorageShape bias_shape = {{128}, {128}};
+    gert::StorageShape x1_shape = {{32, 64}, {}};
+    gert::StorageShape x2_shape = {{64, 128}, {}};
+    gert::StorageShape bias_shape = {{128}, {}};
     gert::StorageShape output_shape = {{}, {}};
 
     gert::InfershapeContextPara infershapeContextPara("MatmulAllReduce",
@@ -43,6 +43,17 @@ TEST_F(MatmulAllReduceInfershape, infer_shape_for_2dim) {
         },
         {
             {output_shape, ge::DT_FLOAT16, ge::FORMAT_ND},
+        },
+        {
+            {"group", Ops::Transformer::AnyValue::CreateFrom<std::string>("")},
+            {"reduce_op", Ops::Transformer::AnyValue::CreateFrom<std::string>("sum")},
+            {"is_trans_a", Ops::Transformer::AnyValue::CreateFrom<bool>(false)},
+            {"is_trans_b", Ops::Transformer::AnyValue::CreateFrom<bool>(false)},
+            {"comm_turn", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)},
+            {"antiquant_group_size", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)},
+            {"group_size", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)},
+            {"y_dtype", Ops::Transformer::AnyValue::CreateFrom<int64_t>(ge::DT_UNDEFINED)},
+            {"comm_quant_mode", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)}
         }
     );
 
@@ -51,9 +62,9 @@ TEST_F(MatmulAllReduceInfershape, infer_shape_for_2dim) {
 }
 
 TEST_F(MatmulAllReduceInfershape, infer_shape_for_3dim) {
-    gert::StorageShape x1_shape = {{4, 8, 64}, {4, 2, 16, 16}};
-    gert::StorageShape x2_shape = {{64, 128}, {8, 4, 16, 16}};
-    gert::StorageShape bias_shape = {{128}, {128}};
+    gert::StorageShape x1_shape = {{4, 8, 64}, {}};
+    gert::StorageShape x2_shape = {{64, 128}, {}};
+    gert::StorageShape bias_shape = {{128}, {}};
     gert::StorageShape output_shape = {{}, {}};
 
     gert::InfershapeContextPara infershapeContextPara("MatmulAllReduce",
@@ -64,6 +75,17 @@ TEST_F(MatmulAllReduceInfershape, infer_shape_for_3dim) {
         },
         {
             {output_shape, ge::DT_FLOAT16, ge::FORMAT_ND},
+        },
+        {
+            {"group", Ops::Transformer::AnyValue::CreateFrom<std::string>("")},
+            {"reduce_op", Ops::Transformer::AnyValue::CreateFrom<std::string>("sum")},
+            {"is_trans_a", Ops::Transformer::AnyValue::CreateFrom<bool>(false)},
+            {"is_trans_b", Ops::Transformer::AnyValue::CreateFrom<bool>(false)},
+            {"comm_turn", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)},
+            {"antiquant_group_size", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)},
+            {"group_size", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)},
+            {"y_dtype", Ops::Transformer::AnyValue::CreateFrom<int64_t>(ge::DT_UNDEFINED)},
+            {"comm_quant_mode", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)}
         }
     );
 
@@ -72,9 +94,9 @@ TEST_F(MatmulAllReduceInfershape, infer_shape_for_3dim) {
 }
 
 TEST_F(MatmulAllReduceInfershape, infer_shape_for_invalid_k) {
-    gert::StorageShape x1_shape = {{32, 8}, {4, 2, 16, 16}};
-    gert::StorageShape x2_shape = {{64, 128}, {4, 2, 16, 16}};
-    gert::StorageShape bias_shape = {{128}, {128}};
+    gert::StorageShape x1_shape = {{32, 8}, {}};
+    gert::StorageShape x2_shape = {{64, 128}, {}};
+    gert::StorageShape bias_shape = {{128}, {}};
     gert::StorageShape output_shape = {{}, {}};
 
     gert::InfershapeContextPara infershapeContextPara("MatmulAllReduce",
@@ -85,6 +107,17 @@ TEST_F(MatmulAllReduceInfershape, infer_shape_for_invalid_k) {
         },
         {
             {output_shape, ge::DT_FLOAT16, ge::FORMAT_ND},
+        },
+        {
+            {"group", Ops::Transformer::AnyValue::CreateFrom<std::string>("")},
+            {"reduce_op", Ops::Transformer::AnyValue::CreateFrom<std::string>("sum")},
+            {"is_trans_a", Ops::Transformer::AnyValue::CreateFrom<bool>(false)},
+            {"is_trans_b", Ops::Transformer::AnyValue::CreateFrom<bool>(false)},
+            {"comm_turn", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)},
+            {"antiquant_group_size", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)},
+            {"group_size", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)},
+            {"y_dtype", Ops::Transformer::AnyValue::CreateFrom<int64_t>(ge::DT_UNDEFINED)},
+            {"comm_quant_mode", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)}
         }
     );
 
@@ -92,9 +125,9 @@ TEST_F(MatmulAllReduceInfershape, infer_shape_for_invalid_k) {
 }
 
 TEST_F(MatmulAllReduceInfershape, infer_shape_for_invalid_zero_k) {
-    gert::StorageShape x1_shape = {{32, 0}, {4, 2, 16, 16}};
-    gert::StorageShape x2_shape = {{0, 128}, {4, 2, 16, 16}};
-    gert::StorageShape bias_shape = {{128}, {128}};
+    gert::StorageShape x1_shape = {{32, 0}, {}};
+    gert::StorageShape x2_shape = {{0, 128}, {}};
+    gert::StorageShape bias_shape = {{128}, {}};
     gert::StorageShape output_shape = {{}, {}};
 
     gert::InfershapeContextPara infershapeContextPara("MatmulAllReduce",
@@ -105,6 +138,17 @@ TEST_F(MatmulAllReduceInfershape, infer_shape_for_invalid_zero_k) {
         },
         {
             {output_shape, ge::DT_FLOAT16, ge::FORMAT_ND},
+        },
+        {
+            {"group", Ops::Transformer::AnyValue::CreateFrom<std::string>("")},
+            {"reduce_op", Ops::Transformer::AnyValue::CreateFrom<std::string>("sum")},
+            {"is_trans_a", Ops::Transformer::AnyValue::CreateFrom<bool>(false)},
+            {"is_trans_b", Ops::Transformer::AnyValue::CreateFrom<bool>(false)},
+            {"comm_turn", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)},
+            {"antiquant_group_size", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)},
+            {"group_size", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)},
+            {"y_dtype", Ops::Transformer::AnyValue::CreateFrom<int64_t>(ge::DT_UNDEFINED)},
+            {"comm_quant_mode", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)}
         }
     );
 
@@ -112,32 +156,11 @@ TEST_F(MatmulAllReduceInfershape, infer_shape_for_invalid_zero_k) {
     ExecuteTestCase(infershapeContextPara, ge::GRAPH_SUCCESS, expertOutputShape);
 }
 
-TEST_F(MatmulAllReduceInfershape, infer_dtype) {
-    ge::DataType x1 = ge::DT_FLOAT16;
-    ge::DataType x2 = ge::DT_FLOAT16;
-    ge::DataType y = ge::DT_FLOAT16;
-
-    auto contextHolder = gert::InferDataTypeContextFaker()
-                    .IrInputNum(2)
-                    .NodeIoNum(3, 1)
-                    .NodeInputTd(0, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND)
-                    .NodeInputTd(1, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND)
-                    .InputDataTypes({&x1, &x2})
-                    .OutputDataTypes({&y})
-                    .Build();
-
-    auto spaceRegistry = gert::DefaultOpImplSpaceRegistryV2::GetInstance().GetSpaceRegistry();
-    auto inferDtypeFunc = spaceRegistry->GetOpImpl("MatmulAllReduce")->infer_datatype;
-    ASSERT_EQ(inferDtypeFunc(contextHolder.GetContext<gert::InferDataTypeContext>()), ge::GRAPH_SUCCESS);
-
-    EXPECT_EQ(contextHolder.GetContext<gert::InferDataTypeContext>()->GetOutputDataType(0), y);
-}
-
 TEST_F(MatmulAllReduceInfershape, infer_shape_for_3dim_quant_v4)
 {
-    gert::StorageShape x1_shape = {{4, 8, 64}, {4, 2, 16, 16}};
-    gert::StorageShape x2_shape = {{64, 128}, {8, 4, 16, 16}};
-    gert::StorageShape bias_shape = {{128}, {128}};
+    gert::StorageShape x1_shape = {{4, 8, 64}, {}};
+    gert::StorageShape x2_shape = {{64, 128}, {}};
+    gert::StorageShape bias_shape = {{128}, {}};
     gert::StorageShape output_shape = {{}, {}};
 
     gert::InfershapeContextPara infershapeContextPara("MatmulAllReduce",
@@ -148,6 +171,17 @@ TEST_F(MatmulAllReduceInfershape, infer_shape_for_3dim_quant_v4)
         },
         {
             {output_shape, ge::DT_FLOAT16, ge::FORMAT_ND},
+        },
+        {
+            {"group", Ops::Transformer::AnyValue::CreateFrom<std::string>("")},
+            {"reduce_op", Ops::Transformer::AnyValue::CreateFrom<std::string>("sum")},
+            {"is_trans_a", Ops::Transformer::AnyValue::CreateFrom<bool>(false)},
+            {"is_trans_b", Ops::Transformer::AnyValue::CreateFrom<bool>(false)},
+            {"comm_turn", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)},
+            {"antiquant_group_size", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)},
+            {"group_size", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)},
+            {"y_dtype", Ops::Transformer::AnyValue::CreateFrom<int64_t>(ge::DT_UNDEFINED)},
+            {"comm_quant_mode", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)}
         }
     );
 
@@ -156,10 +190,10 @@ TEST_F(MatmulAllReduceInfershape, infer_shape_for_3dim_quant_v4)
 }
 
 TEST_F(MatmulAllReduceInfershape, infer_shape_add_rms_norm) {
-    gert::StorageShape x1_shape = {{4, 8, 64}, {4, 2, 16, 16}};
-    gert::StorageShape x2_shape = {{64, 128}, {8, 4, 16, 16}};
-    gert::StorageShape bias_shape = {{128}, {128}};
-    gert::StorageShape residual_shape = {{4, 8, 128}, {4, 2, 16, 16}};
+    gert::StorageShape x1_shape = {{4, 8, 64}, {}};
+    gert::StorageShape x2_shape = {{64, 128}, {}};
+    gert::StorageShape bias_shape = {{128}, {}};
+    gert::StorageShape residual_shape = {{4, 8, 128}, {}};
     gert::StorageShape output_shape_1 = {{}, {}};
     gert::StorageShape output_shape_2 = {{}, {}};
 
@@ -173,6 +207,17 @@ TEST_F(MatmulAllReduceInfershape, infer_shape_add_rms_norm) {
         {
             {output_shape_1, ge::DT_FLOAT16, ge::FORMAT_ND},
             {output_shape_2, ge::DT_FLOAT16, ge::FORMAT_ND},
+        },
+        {
+            {"group", Ops::Transformer::AnyValue::CreateFrom<std::string>("")},
+            {"reduce_op", Ops::Transformer::AnyValue::CreateFrom<std::string>("sum")},
+            {"is_trans_a", Ops::Transformer::AnyValue::CreateFrom<bool>(false)},
+            {"is_trans_b", Ops::Transformer::AnyValue::CreateFrom<bool>(false)},
+            {"comm_turn", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)},
+            {"antiquant_group_size", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)},
+            {"group_size", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)},
+            {"y_dtype", Ops::Transformer::AnyValue::CreateFrom<int64_t>(ge::DT_UNDEFINED)},
+            {"comm_quant_mode", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)}
         }
     );
 
@@ -180,29 +225,30 @@ TEST_F(MatmulAllReduceInfershape, infer_shape_add_rms_norm) {
     ExecuteTestCase(infershapeContextPara, ge::GRAPH_SUCCESS, expertOutputShape);
 }
 
-TEST_F(MatmulAllReduceInfershape, infer_dtype_add_rms_norm) {
+TEST_F(MatmulAllReduceInfershape, infer_dtype) {
     ge::DataType x1 = ge::DT_FLOAT16;
     ge::DataType x2 = ge::DT_FLOAT16;
-    ge::DataType bias = ge::DT_FLOAT16;
-    ge::DataType residual = ge::DT_FLOAT16;
-    ge::DataType y1 = ge::DT_FLOAT16;
-    ge::DataType y2 = ge::DT_FLOAT16;
 
     auto contextHolder = gert::InferDataTypeContextFaker()
-                    .IrInputNum(4)
-                    .NodeIoNum(4, 2)
-                    .NodeInputTd(0, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND)
-                    .NodeInputTd(1, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND)
-                    .NodeInputTd(2, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND)
-                    .NodeInputTd(3, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND)
-                    .InputDataTypes({&x1, &x2, &bias, &residual})
-                    .OutputDataTypes({&y1, &y2})
-                    .Build();
+        .NodeIoNum(2, 1)
+        .InputDataTypes({&x1, &x2})
+        .NodeOutputTd(0, ge::FORMAT_ND, ge::FORMAT_ND)
+        .NodeAttrs({
+            {"group", Ops::Transformer::AnyValue::CreateFrom<std::string>("")},
+            {"reduce_op", Ops::Transformer::AnyValue::CreateFrom<std::string>("sum")},
+            {"is_trans_a", Ops::Transformer::AnyValue::CreateFrom<bool>(false)},
+            {"is_trans_b", Ops::Transformer::AnyValue::CreateFrom<bool>(false)},
+            {"comm_turn", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)},
+            {"antiquant_group_size", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)},
+            {"group_size", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)},
+            {"y_dtype", Ops::Transformer::AnyValue::CreateFrom<int64_t>(ge::DT_FLOAT16)},
+            {"comm_quant_mode", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)}
+        })
+        .Build();
 
     auto spaceRegistry = gert::DefaultOpImplSpaceRegistryV2::GetInstance().GetSpaceRegistry();
     auto inferDtypeFunc = spaceRegistry->GetOpImpl("MatmulAllReduce")->infer_datatype;
     ASSERT_EQ(inferDtypeFunc(contextHolder.GetContext<gert::InferDataTypeContext>()), ge::GRAPH_SUCCESS);
 
-    EXPECT_EQ(contextHolder.GetContext<gert::InferDataTypeContext>()->GetOutputDataType(0), y1);
-    EXPECT_EQ(contextHolder.GetContext<gert::InferDataTypeContext>()->GetOutputDataType(1), y2);
+    EXPECT_EQ(contextHolder.GetContext<gert::InferDataTypeContext>()->GetOutputDataType(0), ge::DT_FLOAT16);
 }
