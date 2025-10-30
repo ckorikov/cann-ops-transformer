@@ -103,7 +103,7 @@
     -   B、S、T、Skv值允许一个或多个取0，即Shape与B、S、T、Skv值相关的入参允许传入空Tensor，其余入参不支持传入空Tensor。
         - 如果B、S、T取值为0，则query、query_rope输出空Tensor，kv_cache、kr_cache不做更新。
         - 如果Skv取值为0，则query、query_rope、dequantScaleQNopeOutOptional正常计算，kv_cache、kr_cache不做更新，即输出空Tensor。
-
+- weight_dq，weight_uq_qr，weight_dkv_kr只支持KN模式，即算子在计算时，不对矩阵做转置处理。
 -  aclnnMlaPrologV2WeightNz接口支持场景：
     <table style="table-layout: auto;" border="1">
       <tr>
