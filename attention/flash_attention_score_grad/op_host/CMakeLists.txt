@@ -13,7 +13,8 @@ if (BUILD_OPEN_PROJECT)
     )
 endif()
 
-if("${ASCEND_COMPUTE_UNIT}" STREQUAL "ascend910_95")
+set(CONDITION_UNIT ${ASCEND_COMPUTE_UNIT})
+if("${CONDITION_UNIT}" STREQUAL "ascend910_95")
         add_ops_compile_options(
             OP_NAME FlashAttentionScoreGrad
             COMPUTE_UNIT ascend910_9599

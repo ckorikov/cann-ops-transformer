@@ -6,6 +6,7 @@
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
 # See LICENSE in the root of the software repository for the full text of the License.
 # ======================================================================================================================
+set(CONDITION_UNIT ${ASCEND_COMPUTE_UNIT})
 
 if (BUILD_OPEN_PROJECT)
 set(incre_flash_attention_depends attention/prompt_flash_attention attention/flash_attention_score attention/common PARENT_SCOPE)
@@ -22,7 +23,7 @@ if (BUILD_OPS_RTY_KERNEL)
                 -mllvm -cce-vf-remove-membar=false
                 -Werror
     )
-    if("${ASCEND_COMPUTE_UNIT}" STREQUAL "ascend910_95")
+    if("${CONDITION_UNIT}" STREQUAL "ascend910_95")
         add_ops_compile_options(
             OP_NAME IncreFlashAttention
             COMPUTE_UNIT ascend910_9599
@@ -41,7 +42,7 @@ if(NOT BUILD_OPS_RTY_KERNEL) #
         fallback_incre_flash_attention.cpp
     )
     
-    if("${ASCEND_COMPUTE_UNIT}" STREQUAL "ascend910_95")
+    if("${CONDITION_UNIT}" STREQUAL "ascend910_95")
         add_ops_compile_options(
             OP_NAME IncreFlashAttention
             COMPUTE_UNIT ascend910_9599

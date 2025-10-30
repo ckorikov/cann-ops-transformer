@@ -13,6 +13,7 @@ if (BUILD_OPEN_PROJECT)
     )
 endif()
 
+set(CONDITION_UNIT ${ASCEND_COMPUTE_UNIT})
 if (BUILD_OPS_RTY_KERNEL) # 回黄kernel
     add_ops_compile_options(
         OP_NAME PromptFlashAttention
@@ -23,7 +24,7 @@ if (BUILD_OPS_RTY_KERNEL) # 回黄kernel
                 -mllvm -cce-aicore-hoist-movemask=false
     )
     
-    if("${ASCEND_COMPUTE_UNIT}" STREQUAL "ascend910_95")
+    if("${CONDITION_UNIT}" STREQUAL "ascend910_95")
         add_ops_compile_options(
             OP_NAME PromptFlashAttention
             COMPUTE_UNIT ascend910_9599
@@ -41,7 +42,7 @@ if(NOT BUILD_OPS_RTY_KERNEL) #
         ../regbase/ophost/prompt_flash_attention_tiling_v2.cpp
         fallback_prompt_flash_attention.cpp
     )
-    if("${ASCEND_COMPUTE_UNIT}" STREQUAL "ascend910_95")
+    if("${CONDITION_UNIT}" STREQUAL "ascend910_95")
         add_ops_compile_options(
             OP_NAME PromptFlashAttention
             COMPUTE_UNIT ascend910_9599
