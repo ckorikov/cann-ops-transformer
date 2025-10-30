@@ -11,19 +11,20 @@
 #define ALL_TO_ALL_ALL_GATHER_BATCH_MATMUL_TILING_DEF_H
 
 #include "kernel_tiling/kernel_tiling.h"
-struct Mc2L2cacheUseInfo{
+struct L2cacheUseInfo{
     uint32_t l2CacheFlag;
 };
 
-struct Mc2L2cacheTilePara{
-    uint32_t mTileCntL2;
-    uint32_t nTileCntL2;
-    uint32_t mTileBlock;
-    uint32_t nTileBlock;
-    uint32_t calOrder;
+struct L2cacheTilePara{
+  uint32_t mTileCntL2;
+  uint32_t nTileCntL2;
+  uint32_t mTileBlock;
+  uint32_t nTileBlock;
+  uint32_t calOrder;
 };
 
-struct Mc2MatMulRunInfo {
+
+struct MatMulRunInfo {
     uint32_t transA;
     uint32_t transB;
     uint32_t nd2nzA;
@@ -31,46 +32,47 @@ struct Mc2MatMulRunInfo {
     uint32_t isHf32;
 };
 
-struct Mc2MultiBatchInfo {
-    uint32_t batchUsedCoreNum;
-    uint32_t aBatchDimAll;
-    uint32_t bBatchDimAll;
-    uint32_t cBatchDimAll;
-    uint32_t aBatchDim0;
-    uint32_t bBatchDim0;
-    uint32_t cBatchDim0;
-    uint32_t aBatchDim1;
-    uint32_t bBatchDim1;
-    uint32_t cBatchDim1;
-    uint32_t aBatchDim2;
-    uint32_t bBatchDim2;
-    uint32_t cBatchDim2;
-    uint32_t aBatchDim3;
-    uint32_t bBatchDim3;
-    uint32_t cBatchDim3;
-    uint32_t iterBatch;
-    uint32_t biasWithBatch;
-    uint32_t mOri;
-    uint32_t batchTileBlock;
-    uint32_t aBatch;
-    uint32_t bBatch;
+struct MultiBatchInfo {
+  uint32_t batchUsedCoreNum;
+  uint32_t aBatchDimAll;
+  uint32_t bBatchDimAll;
+  uint32_t cBatchDimAll;
+  uint32_t aBatchDim0;
+  uint32_t bBatchDim0;
+  uint32_t cBatchDim0;
+  uint32_t aBatchDim1;
+  uint32_t bBatchDim1;
+  uint32_t cBatchDim1;
+  uint32_t aBatchDim2;
+  uint32_t bBatchDim2;
+  uint32_t cBatchDim2;
+  uint32_t aBatchDim3;
+  uint32_t bBatchDim3;
+  uint32_t cBatchDim3;
+  uint32_t iterBatch;
+  uint32_t biasWithBatch;
+  uint32_t mOri;
+  uint32_t batchTileBlock;
+  uint32_t aBatch;
+  uint32_t bBatch;
 };
 
-struct Mc2MatmulV3TilingData {
-    TCubeTiling matmulTiling;
-    Mc2L2cacheTilePara tileL2cacheTiling;
-    Mc2MatMulRunInfo matmulRunInfo;
-    Mc2L2cacheUseInfo l2cacheUseInfo;
-    uint32_t baseAN;
-    uint32_t baseAD;
-    uint32_t baseBN;
-    uint32_t baseBD;
+struct MatmulTilingData{
+  TCubeTiling matmulTiling;
+  L2cacheTilePara tileL2cacheTiling;
+  MatMulRunInfo matmulRunInfo;
+  L2cacheUseInfo l2cacheUseInfo;
+  uint32_t baseAN;
+  uint32_t baseAD;
+  uint32_t baseBN;
+  uint32_t baseBD;
 };
 
-struct Mc2BatchMatmulTilingData {
-    Mc2MatmulV3TilingData matmulTiling;
-    Mc2MultiBatchInfo Mc2multiBatchInfo;
+struct BatchMatmulTilingData {
+    MatmulTilingData matmulTiling;
+    MultiBatchInfo multiBatchInfo;
 };
+
 
 struct TileInfo {
     uint32_t tileCnt;
@@ -116,12 +118,12 @@ struct Mc2CommonTiling {
     uint32_t totalUbSize;
 };
 
-struct NewMc2MatmulTilingData {
+struct Mc2MatmulTilingData {
     uint32_t rankDim;
     uint32_t rankM;
     uint32_t rankID;
     uint32_t enableL2Tile;
-    Mc2BatchMatmulTilingData bmmTilingData;
+    BatchMatmulTilingData bmmTilingData;
 };
 
 struct AlltoAllAllGatherBatchMatMulTilingData
@@ -132,11 +134,11 @@ struct AlltoAllAllGatherBatchMatMulTilingData
     Mc2HcommCfg hcommCfgATA;
     Mc2HcommCfg hcommCfgAG;
     Mc2CommonTiling commonTiling;
-    NewMc2MatmulTilingData localTiling;
-    NewMc2MatmulTilingData domesticTiling;
-    NewMc2MatmulTilingData localTailTiling;
-    NewMc2MatmulTilingData domesticTailTiling;
-    NewMc2MatmulTilingData domesticTailETiling;
+    Mc2MatmulTilingData localTiling;
+    Mc2MatmulTilingData domesticTiling;
+    Mc2MatmulTilingData localTailTiling;
+    Mc2MatmulTilingData domesticTailTiling;
+    Mc2MatmulTilingData domesticTailETiling;
 };
 
 inline void InitAllGatherMatmulTilingData(uint8_t* tiling, AlltoAllAllGatherBatchMatMulTilingData* const_data)
