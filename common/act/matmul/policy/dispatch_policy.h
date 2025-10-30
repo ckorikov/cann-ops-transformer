@@ -63,6 +63,18 @@ struct MatmulNaivePipelineWithLayout {
 };
 
 /**
+ * @struct MatmulWithScale
+ * @brief Matrix multiplication with scaleA and scaleB
+ * @param [in] SingleCoreShape: the shape of a single core, default is AscendC::Shape<_0, _0, _0, _0>
+ */
+template <class SingleCoreShape = AscendC::Shape<_0, _0, _0, _0>, uint64_t FULL_LOAD_MODE_ = 0>
+struct MatmulWithScale {
+    using ScheduleType = KernelMmadWithScale;
+    using SingleShape = SingleCoreShape;
+    constexpr static uint64_t fullLoadMode = FULL_LOAD_MODE_;
+};
+
+/**
  * @struct MatmulMultiBlockWithLayout
  * @brief Matrix multiplication multi-block layout structure, no bias, no quant
  * @param [in] SingleCoreShape: the shape of a single core, default is AscendC::Shape<_0, _0, _0, _0>

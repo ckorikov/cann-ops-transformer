@@ -29,6 +29,7 @@ constexpr int MNK_M = 0;
 constexpr int MNK_N = 1;
 constexpr int MNK_K = 2;
 constexpr int MNK_B = 3;
+constexpr static uint64_t A_FULL_LOAD_MODE = 1UL;
 constexpr static uint64_t B_FULL_LOAD_MODE = 2UL;
 constexpr static int64_t PER_BLOCK_SIZE = 128L;
 
