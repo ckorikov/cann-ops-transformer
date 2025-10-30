@@ -20,16 +20,16 @@
 #include "common.h"
 #if (FORMAT_X2 == FORMAT_FRACTAL_NZ)
 #include "../3rd/weight_quant_batch_matmul_v2/op_kernel/weight_quant_batch_matmul_v2_custom_weight_nz.h"
-#define WEIGH_QUANT_MATMUL_CLASS_NAME WeightQuantBatchMatmulV2::WeightQuantBatchMatmulV2CustomWeightNzKernel
+#define WEIGH_QUANT_MATMUL_CLASS_NAME Mc2WeightQuantBatchMatmulV2::Mc2WeightQuantBatchMatmulV2CustomWeightNzKernel
 #else
 #include "../3rd/weight_quant_batch_matmul_v2/op_kernel/weight_quant_batch_matmul_v2_custom.h"
-#define WEIGH_QUANT_MATMUL_CLASS_NAME WeightQuantBatchMatmulV2::WeightQuantBatchMatmulV2CustomKernel
+#define WEIGH_QUANT_MATMUL_CLASS_NAME Mc2WeightQuantBatchMatmulV2::Mc2WeightQuantBatchMatmulV2CustomKernel
 #endif
 #include "matmul_all_reduce_base.h"
 
 namespace MatmulAllReduceImpl {
 using namespace AscendC;
-using WeightQuantBatchMatmulV2::QuantType;
+using Mc2WeightQuantBatchMatmulV2::Mc2QuantType;
 template <typename xType, typename wType, typename yType, class mmType>
 class MatmulAllReduceWeightQuant : public MatmulAllReduceBase<xType, yType, Mc2CoreType::ON_CUBE_AND_VECTOR>
 {
@@ -60,7 +60,7 @@ public:
 protected:
     __aicore__ inline void InnerProcess(bool tailFlag, uint32_t tileCnt, const MC2TileInfo& tileInfo)
     {
-        const WeightQuantBatchMatmulV2TilingData* tiling =
+        const Mc2WeightQuantBatchMatmulV2TilingData* tiling =
             (tailFlag ? &mc2TilingData_->tailmatmulTiling : &mc2TilingData_->tilematmulTiling);
         for (uint32_t i = 0U; i < tileCnt; ++i) {
             if (this->addFlag_ || i == 0U) {
@@ -90,7 +90,7 @@ private:
         GET_TILING_DATA_WITH_STRUCT(WeightQuantMatmulAllReduceTilingData, tilingData, tilingGM);       \
         using opType = WEIGH_QUANT_MATMUL_CLASS_NAME<                                                  \
             DTYPE_X1, DTYPE_X2, DTYPE_BIAS_FOR_MC2, DTYPE_Y, false, bTransFlag, quantType, offsetFlag, \
-            QuantType::NONE>;                                                                          \
+            Mc2QuantType::NONE>;                                                                          \
         MC2GmAddrs addrs = {aGM, bGM, biasGM, addGM, cGM, workspaceGM, cGM};                           \
         QuantGmAddrs quantAddrs = {antiquantScaleGM, antiquantOffsetGM, nullptr, nullptr};             \
         MatmulAllReduceWeightQuant<DTYPE_X1, DTYPE_X2, DTYPE_Y, opType> op(                            \

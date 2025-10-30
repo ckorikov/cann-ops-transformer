@@ -27,9 +27,9 @@ void Mc2MatmulTilingCfg::SetMatMulV3TilingData(optiling::MC2MatmulV3TilingData& 
     mc2MmV3TilingData_ = &tilingData;
 }
 
-void Mc2MatmulTilingCfg::Update(const optiling::TilingResult& result)
+void Mc2MatmulTilingCfg::Update(const optiling::Mc2TilingResult& result)
 {
-    mmv3TilingData_ = static_cast<MatMulV3TilingData*>(result.tilingData);
+    mmv3TilingData_ = static_cast<Mc2MatMulV3TilingData*>(result.tilingData);
 
     if ((mmv3TilingData_ == nullptr) || (mc2MmV3TilingData_ == nullptr)) {
         OP_LOGE("Mc2MatmulTilingCfg", "mc2MmV3TilingData_ or mmv3TilingData_ is nullptr!");

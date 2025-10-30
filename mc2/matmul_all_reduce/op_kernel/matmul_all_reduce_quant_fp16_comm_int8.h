@@ -52,7 +52,7 @@ public:
 
 private:
     __aicore__ inline void InnerProcess(
-        uint32_t isAdd, uint32_t tileCnt, QuantBatchMatmulV3TilingData& quant_tiling, uint32_t padM, uint32_t prePadM,
+        uint32_t isAdd, uint32_t tileCnt, Mc2QuantBatchMatmulV3TilingData& quant_tiling, uint32_t padM, uint32_t prePadM,
         bool isTiletoTileFlag);
     __aicore__ inline void PrepareInit();
     __aicore__ inline uint32_t SendCountCheck(uint32_t prepareIndex);
@@ -304,7 +304,7 @@ template <
     typename aType, typename bType, typename biasType, typename cType, typename commType, bool aTrans, bool bTrans>
 __aicore__ inline void
 MatmulAllReduceQuantFP16CommInt8<aType, bType, biasType, cType, commType, aTrans, bTrans>::InnerProcess(
-    uint32_t isAdd, uint32_t tileCnt, QuantBatchMatmulV3TilingData& quant_tiling, uint32_t padM, uint32_t prePadM,
+    uint32_t isAdd, uint32_t tileCnt, Mc2QuantBatchMatmulV3TilingData& quant_tiling, uint32_t padM, uint32_t prePadM,
     bool isTiletoTailFlag)
 {
     const int64_t aOffset = quant_tiling.matmulTiling.M * quant_tiling.matmulTiling.Ka * sizeof(aType);

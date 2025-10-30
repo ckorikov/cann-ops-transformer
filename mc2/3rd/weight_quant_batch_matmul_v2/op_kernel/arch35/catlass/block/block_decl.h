@@ -12,12 +12,12 @@
 
 #include "lib/std/type_traits.h"
 
-namespace WeightQuantBatchMatmulV2::Arch35::Catlass {
+namespace Mc2WeightQuantBatchMatmulV2::Arch35::Catlass {
 template <
     typename DispatchPolicy, typename TileShapeL1, typename TileShapeL0, typename DtypeA, typename StrideA,
     typename DtypeB, typename StrideB, typename DtypeBias, typename StrideBias, typename DtypeC, typename StrideC>
 struct BlockMmad {
     static_assert(!AscendC::Std::is_same_v<DispatchPolicy, DispatchPolicy>, "Unsupported combination");
 };
-} // namespace WeightQuantBatchMatmulV2::Arch35::Catlass
+} // namespace Mc2WeightQuantBatchMatmulV2::Arch35::Catlass
 #endif

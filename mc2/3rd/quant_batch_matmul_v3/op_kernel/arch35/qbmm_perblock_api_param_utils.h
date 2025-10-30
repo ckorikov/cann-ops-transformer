@@ -28,7 +28,7 @@
      aType, bType, scaleType, biasType, ptScaleType, cType, aFormat, bFormat, cFormat, aTrans, bTrans, l0cDtype, \
          blockType
 
- namespace QuantBatchMatmulV3 {
+ namespace Mc2QuantBatchMatmulV3 {
  MATMUL_PERBLOCK_CLASS_TEM_PARAMS
  class MatMulCommonParam {
  public:
@@ -238,5 +238,5 @@
              DequantBmm::Align(DequantBmm::CeilDiv(currN, static_cast<uint64_t>(k0_FLOAT16)), 2UL);
      }
  }
- }  // namespace QuantBatchMatmulV3
+ }  // namespace Mc2QuantBatchMatmulV3
  #endif  // QBMM_PERBLOCK_API_PARAM_UTILS_H

@@ -37,7 +37,7 @@ struct BasicBlock {
     double mte2TailBWRatio;
 };
 
-class WeightQuantBatchMatmulV2BasicBlockTable
+class Mc2WeightQuantBatchMatmulV2BasicBlockTable
 {
 public:
     const std::map<BlockMNComb, std::vector<BasicBlock>>& GetBasicBlockTable(int64_t aDtypeBits, int64_t bDtypeBits)

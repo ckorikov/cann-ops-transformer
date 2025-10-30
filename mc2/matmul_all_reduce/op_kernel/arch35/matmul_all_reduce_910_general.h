@@ -77,7 +77,7 @@ private:
         using CType = MatmulType<AscendC::TPosition::GM, CubeFormat::ND, DTYPE_Y>;                               \
         using BiasType = MatmulType<AscendC::TPosition::GM, CubeFormat::ND, DTYPE_Y>;                            \
         using OpType =                                                                                           \
-            opTemplateClass<AType, BType, CType, BiasType, MatmulV3Advanced::MatmulAswBlock, MM_CFG_NO_PRELOAD>; \
+            opTemplateClass<AType, BType, CType, BiasType, Mc2MatmulV3Advanced::Mc2MatmulAswBlock, MM_CFG_NO_PRELOAD>; \
         MC2GmAddrs addrs = {aGM, bGM, biasGM, addGM, cGM, workspaceGM, cGM};                                     \
         MatmulAllReduce910General<DTYPE_X1, DTYPE_X2, DTYPE_Y, OpType, coreType> op(                             \
             &addrs, nullptr, (MC2TilingHeader*)&tilingData, &tPipe);                                             \

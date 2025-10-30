@@ -27,11 +27,11 @@
 #include "common/op_host/op_tiling/debug_tiling.h"
 #include "platform/platform_infos_def.h"
 
-using namespace optiling::matmul_v3;
+using namespace optiling::mc2_matmul_v3;
 using Ops::Transformer::OpTiling::GET_TILINGKEY;
 using Ops::Transformer::MathUtil;
 namespace tuningtiling {
-REGISTER_TUNING_TILING_CLASS(MatMulV3, MatMulV3TunnerTiling);
+REGISTER_TUNING_TILING_CLASS(Mc2MatMulV3, Mc2MatMulV3TunnerTiling);
 }
 
 namespace {
@@ -104,43 +104,43 @@ inline uint64_t CalBaseSize(uint64_t cnt, uint64_t totalCoreNum, uint64_t size, 
 }
 
 namespace optiling {
-namespace matmul_v3 {
+namespace mc2_matmul_v3 {
 using ge::float32_t;
-bool MatmulV3BaseTiling::CheckAoeTilingEnable(uint32_t aoeTilingEnable, const std::string &opName)
+bool Mc2MatmulV3BaseTiling::CheckAoeTilingEnable(uint32_t aoeTilingEnable, const std::string &opName)
 {
     if (aoeTilingEnable <= 1U) {
         return true;
     }
     uint32_t tilingSplitK = aoeTilingEnable % 10U; // aoe 的tilingEnable的个位
-    uint32_t maxTilingEnable = static_cast<uint32_t>(TilingEnableSplitCore::MULTI_CORE_SPLIT_K);
+    uint32_t maxTilingEnable = static_cast<uint32_t>(Mc2TilingEnableSplitCore::MULTI_CORE_SPLIT_K);
     if (context_->GetDeterministic() == 1) {
-        maxTilingEnable = static_cast<uint32_t>(TilingEnableSplitCore::DETERMINISTIC_SPLIT_K);
+        maxTilingEnable = static_cast<uint32_t>(Mc2TilingEnableSplitCore::DETERMINISTIC_SPLIT_K);
     }
     bool isInvalidTilingEnable = tilingSplitK == 1U || tilingSplitK > maxTilingEnable;
     if (isInvalidTilingEnable) {
         OP_LOGW(opName, "Invalid tilingEnable which the bit of split k %d is undefined", tilingSplitK);
         return false;
     }
-    tilingEnable_.tilingEnableSplitCore = static_cast<TilingEnableSplitCore>(tilingSplitK);
+    tilingEnable_.tilingEnableSplitCore = static_cast<Mc2TilingEnableSplitCore>(tilingSplitK);
     uint32_t tilingFullLoad = (aoeTilingEnable / 10U) % 10U; // aoe 的tilingEnable的十位
-    if (tilingFullLoad > static_cast<uint32_t>(TilingEnableFullLoad::BL1_FULL_LOAD)) {
+    if (tilingFullLoad > static_cast<uint32_t>(Mc2TilingEnableFullLoad::BL1_FULL_LOAD)) {
         OP_LOGW(opName, "Invalid tilingEnable which the bit of full load %d is undefined", tilingFullLoad);
         return false;
     }
-    tilingEnable_.tilingEnableFullLoad = static_cast<TilingEnableFullLoad>(tilingFullLoad);
+    tilingEnable_.tilingEnableFullLoad = static_cast<Mc2TilingEnableFullLoad>(tilingFullLoad);
     uint32_t tilingFixOpti = (aoeTilingEnable / 1000U) % 10U; // aoe 的tilingEnable的千位
-    if (tilingFixOpti > static_cast<uint32_t>(TilingEnableFixOpti::VEC_NZ2ND_UNALIGNOUT)) {
+    if (tilingFixOpti > static_cast<uint32_t>(Mc2TilingEnableFixOpti::VEC_NZ2ND_UNALIGNOUT)) {
         OP_LOGW(opName, "Invalid tilingEnable which the bit of fix-Opti %d is undefined", tilingFixOpti);
         return false;
     }
-    tilingEnable_.tilingEnableFixOpti = static_cast<TilingEnableFixOpti>(tilingFixOpti);
+    tilingEnable_.tilingEnableFixOpti = static_cast<Mc2TilingEnableFixOpti>(tilingFixOpti);
     return true;
 }
 
-ge::graphStatus MatmulV3BaseTiling::GetPlatformInfo() // 检查平台信息是否支持
+ge::graphStatus Mc2MatmulV3BaseTiling::GetPlatformInfo() // 检查平台信息是否支持
 {
     if (!compileInfoInit_) {
-        auto compileInfoPtr = reinterpret_cast<const MatmulV3CompileInfo *>(context_->GetCompileInfo());
+        auto compileInfoPtr = reinterpret_cast<const Mc2MatmulV3CompileInfo *>(context_->GetCompileInfo());
         OP_CHECK_NULL_WITH_CONTEXT(context_, compileInfoPtr);
         compileInfo_ = *compileInfoPtr;
     }
@@ -151,14 +151,14 @@ ge::graphStatus MatmulV3BaseTiling::GetPlatformInfo() // 检查平台信息是�
     return ge::GRAPH_SUCCESS;
 }
 
-void MatmulV3BaseTiling::InitCompileInfo() // 检查输入属性是否支持
+void Mc2MatmulV3BaseTiling::InitCompileInfo() // 检查输入属性是否支持
 {
     auto platformInfo = context_->GetPlatformInfo();
     if (platformInfo == nullptr) {
         OP_LOGW(context_->GetNodeName(), "platformInfo is null");
         return;
     }
-    MatmulV3CompileInfo compileInfo;
+    Mc2MatmulV3CompileInfo compileInfo;
 
     auto ascendcPlatform = platform_ascendc::PlatformAscendC(platformInfo);
     platformInfo->GetPlatformRes("version", "SoC_version", compileInfo.socVersionStr);
@@ -190,7 +190,7 @@ void MatmulV3BaseTiling::InitCompileInfo() // 检查输入属性是否支持
 }
 
 
-ge::graphStatus MatmulV3BaseTiling::GetShapeAttrsInfo() // 检查输入属性是否支持
+ge::graphStatus Mc2MatmulV3BaseTiling::GetShapeAttrsInfo() // 检查输入属性是否支持
 {
     args_.opName = context_->GetNodeName();
     OP_TILING_CHECK(args_.opName == nullptr, CUBE_INNER_ERR_REPORT("matmul", "get op name invalid"),
@@ -201,7 +201,7 @@ ge::graphStatus MatmulV3BaseTiling::GetShapeAttrsInfo() // 检查输入属性是
     return ge::GRAPH_SUCCESS;
 }
 
-ge::graphStatus MatmulV3BaseTiling::CheckArgs()
+ge::graphStatus Mc2MatmulV3BaseTiling::CheckArgs()
 {
     auto attrs = context_->GetAttrs();
     OP_CHECK_NULL_WITH_CONTEXT(context_, attrs);
@@ -228,7 +228,7 @@ ge::graphStatus MatmulV3BaseTiling::CheckArgs()
     return ge::GRAPH_SUCCESS;
 }
 
-static inline void GetFormat(const gert::TilingContext &context, MatmulV3Args &args)
+static inline void GetFormat(const gert::TilingContext &context, Mc2MatmulV3Args &args)
 {
     ge::Format formatA = static_cast<ge::Format>(ge::GetPrimaryFormat(context.GetInputDesc(0)->GetStorageFormat()));
     ge::Format formatB = static_cast<ge::Format>(ge::GetPrimaryFormat(context.GetInputDesc(1)->GetStorageFormat()));
@@ -238,7 +238,7 @@ static inline void GetFormat(const gert::TilingContext &context, MatmulV3Args &a
     args.outFormat = (formatOut != ge::FORMAT_FRACTAL_NZ) ? ge::FORMAT_ND : formatOut;
 }
 
-static inline void GetDtype(const gert::TilingContext &context, MatmulV3Args &args)
+static inline void GetDtype(const gert::TilingContext &context, Mc2MatmulV3Args &args)
 {
     // op_impl_mode_enum: 0x1: default 0x2: high_performance 0x4: high_precision 0x8: super_performance
     // 0x10: support_of_bound_index 0x20: enable_float_32_execution 0x40: enable_hi_float_32_execution
@@ -274,10 +274,10 @@ static ge::graphStatus GetInputDims(const gert::Shape &storageShape, ge::Format 
     return ge::GRAPH_SUCCESS;
 }
 
-static ge::graphStatus OpSpecificCheck(const gert::TilingContext &context, const MatmulV3Args &args)
+static ge::graphStatus OpSpecificCheck(const gert::TilingContext &context, const Mc2MatmulV3Args &args)
 {
-    const bool isMatMulV3 = (strcmp(context.GetNodeType(), "MatMulV3") == 0);
-    const bool isBatchMatMulV3 = (strcmp(context.GetNodeType(), "BatchMatMulV3") == 0);
+    const bool isMatMulV3 = (strcmp(context.GetNodeType(), "Mc2MatMulV3") == 0);
+    const bool isBatchMatMulV3 = (strcmp(context.GetNodeType(), "Mc2BatchMatMulV3") == 0);
     if (!isBatchMatMulV3 && !isMatMulV3) {
         // apply no additional checks for ops other than MMV3, BMMV3, for now
         return ge::GRAPH_SUCCESS;
@@ -328,7 +328,7 @@ static ge::graphStatus OpSpecificCheck(const gert::TilingContext &context, const
     return isValidDtype(dtype);
 }
 
-static ge::graphStatus GetShape(const gert::TilingContext &context, MatmulV3Args &args)
+static ge::graphStatus GetShape(const gert::TilingContext &context, Mc2MatmulV3Args &args)
 {
     // get transpose
     args.isATrans = *context.GetAttrs()->GetAttrPointer<bool>(0);
@@ -389,7 +389,7 @@ static ge::graphStatus GetShape(const gert::TilingContext &context, MatmulV3Args
     return ge::GRAPH_SUCCESS;
 }
 
-ge::graphStatus MatmulV3BaseTiling::GetArgs()
+ge::graphStatus Mc2MatmulV3BaseTiling::GetArgs()
 {
     GetFormat(*context_, args_);
     GetDtype(*context_, args_);
@@ -399,7 +399,7 @@ ge::graphStatus MatmulV3BaseTiling::GetArgs()
     return OpSpecificCheck(*context_, args_);
 }
 
-inline bool GetNd2nzA(const MatmulV3Args& args_, const MatmulV3CompileInfo& compileInfo_)
+inline bool GetNd2nzA(const Mc2MatmulV3Args& args_, const Mc2MatmulV3CompileInfo& compileInfo_)
 {
     constexpr uint64_t nMataThread = 16384;
     constexpr uint64_t mMataThread = 4096;
@@ -411,7 +411,7 @@ inline bool GetNd2nzA(const MatmulV3Args& args_, const MatmulV3CompileInfo& comp
            (args_.aType == ge::DT_FLOAT16 || args_.aType == ge::DT_BF16);
 }
 
-inline bool GetNd2nzB(const MatmulV3Args& args_, const MatmulV3CompileInfo& compileInfo_)
+inline bool GetNd2nzB(const Mc2MatmulV3Args& args_, const Mc2MatmulV3CompileInfo& compileInfo_)
 {
     constexpr uint64_t kMataCond = 16384;
     constexpr uint64_t nMataCond = 7168;
@@ -423,7 +423,7 @@ inline bool GetNd2nzB(const MatmulV3Args& args_, const MatmulV3CompileInfo& comp
            (args_.aType == ge::DT_FLOAT16 || args_.aType == ge::DT_BF16) && compileInfo_.aicNum >= compileNum;
 }
 
-ge::graphStatus MatmulV3BaseTiling::GetMoreArgs()
+ge::graphStatus Mc2MatmulV3BaseTiling::GetMoreArgs()
 {
     aDtypeSize_ = GetSizeByDataType(args_.aType);
     bDtypeSize_ = GetSizeByDataType(args_.bType);
@@ -438,26 +438,26 @@ ge::graphStatus MatmulV3BaseTiling::GetMoreArgs()
     uint64_t innerSizeB = args_.nValue;
     uint64_t outerSizeA = args_.mValue;
     uint64_t outerSizeB = args_.kValue;
-    trans_ = MatmulV3Trans::NO_TRANS;
+    trans_ = Mc2MatmulV3Trans::NO_TRANS;
     if (args_.isATrans) {
-        trans_ = MatmulV3Trans::A_TRANS;
+        trans_ = Mc2MatmulV3Trans::A_TRANS;
         innerAlignA = m256Align_;
         innerSizeA = args_.mValue;
         outerSizeA = args_.kValue;
     }
     if (args_.isBTrans) {
-        trans_ = MatmulV3Trans::B_TRANS;
+        trans_ = Mc2MatmulV3Trans::B_TRANS;
         innerAlignB = kB256Align_;
         innerSizeB = args_.kValue;
         outerSizeB = args_.nValue;
     }
     if (args_.isATrans && args_.isBTrans) {
-        trans_ = MatmulV3Trans::AB_TRANS;
+        trans_ = Mc2MatmulV3Trans::AB_TRANS;
     }
     calcMBasic_ = compileInfo_.l0CSize == L0C_SIZE_256_KB ? CALC_MN_BASIC_L0C_256 : CALC_M_BASIC;
     calcMNBasic_ = compileInfo_.l0CSize == L0C_SIZE_256_KB ? CALC_MN_BASIC_L0C_256 : CALC_MN_BASIC;
     l2TileLength_ = L2_TILE_LENGTH;
-    OP_TILING_CHECK(!compileInfo_.supportL0c2out, tilingSelect_ = TilingCalcSelect::BASE, return ge::GRAPH_SUCCESS);
+    OP_TILING_CHECK(!compileInfo_.supportL0c2out, tilingSelect_ = Mc2TilingCalcSelect::BASE, return ge::GRAPH_SUCCESS);
 
     // check the size is equaled to {32, 64, 96, 128, 160, 192, 224, 256, 384}.
     bool supportNd2NzOnTheWayA = IsOnTheWay(args_.aFormat, innerSizeA, aDtypeSize_, SUPPORT_ND2NZ_GM2L0);
@@ -493,7 +493,7 @@ ge::graphStatus MatmulV3BaseTiling::GetMoreArgs()
     return ge::GRAPH_SUCCESS;
 }
 
-inline void ResetBase(MatmulV3RunInfo &runInfo, const uint64_t l0CSize, const uint64_t dTypeSize = 2)
+inline void ResetBase(Mc2MatmulV3RunInfo &runInfo, const uint64_t l0CSize, const uint64_t dTypeSize = 2)
 {
     runInfo.baseM = (l0CSize == L0C_SIZE_256_KB) ? BASIC_BLOCK_SIZE_256 : BASIC_BLOCK_SIZE_128;
     runInfo.baseN = BASIC_BLOCK_SIZE_256; // 256 is better base
@@ -504,7 +504,7 @@ inline void ResetBase(MatmulV3RunInfo &runInfo, const uint64_t l0CSize, const ui
     runInfo.dbL0c = DB_OFF_SIZE;
 }
 
-bool MatmulV3BaseTiling::IsOnTheWay(ge::Format matFormat, uint64_t innerSize, uint64_t dtypeSize,
+bool Mc2MatmulV3BaseTiling::IsOnTheWay(ge::Format matFormat, uint64_t innerSize, uint64_t dtypeSize,
                                     const std::vector<uint64_t> supportNd2nzList) const
 {
     if (matFormat == ge::FORMAT_ND) {
@@ -514,7 +514,7 @@ bool MatmulV3BaseTiling::IsOnTheWay(ge::Format matFormat, uint64_t innerSize, ui
     return false;
 }
 
-bool MatmulV3BaseTiling::NeedNd2NzVnchw(uint64_t outerSize, uint64_t innerSize, bool supportNd2NzOnTheWay,
+bool Mc2MatmulV3BaseTiling::NeedNd2NzVnchw(uint64_t outerSize, uint64_t innerSize, bool supportNd2NzOnTheWay,
                                         uint64_t dtypeSize, ge::Format matFormat) const
 {
     if (dtypeSize == 0UL) {
@@ -532,12 +532,12 @@ bool MatmulV3BaseTiling::NeedNd2NzVnchw(uint64_t outerSize, uint64_t innerSize, 
     return false;
 }
 
-ge::graphStatus MatmulV3BaseTiling::SelectNZTiling()
+ge::graphStatus Mc2MatmulV3BaseTiling::SelectNZTiling()
 {
     if ((compileInfo_.supportL12BtBf16 || compileInfo_.supportL0c2out) && args_.bFormat == ge::FORMAT_FRACTAL_NZ) {
-        if (tilingSelect_ == TilingCalcSelect::ALL) {
-            tilingSelect_ = TilingCalcSelect::BASE;
-        } else if (tilingSelect_ != TilingCalcSelect::BASE) {
+        if (tilingSelect_ == Mc2TilingCalcSelect::ALL) {
+            tilingSelect_ = Mc2TilingCalcSelect::BASE;
+        } else if (tilingSelect_ != Mc2TilingCalcSelect::BASE) {
             OP_LOGE(args_.opName, "weightNz don't support this tiling select yet.");
             return ge::GRAPH_FAILED;
         }
@@ -546,7 +546,7 @@ ge::graphStatus MatmulV3BaseTiling::SelectNZTiling()
     return ge::GRAPH_SUCCESS;
 }
 
-ge::graphStatus MatmulV3BaseTiling::DoOpTiling()
+ge::graphStatus Mc2MatmulV3BaseTiling::DoOpTiling()
 {
     OP_TILING_CHECK(GetMoreArgs() != ge::GRAPH_SUCCESS, CUBE_INNER_ERR_REPORT(args_.opName, "invalid context"),
         return ge::GRAPH_FAILED);
@@ -566,7 +566,7 @@ ge::graphStatus MatmulV3BaseTiling::DoOpTiling()
             runInfo_.baseN = std::min(256UL, runInfo_.baseN); // 有bias时 baseN 小于256
         }
         // check multi_core_split k
-        if (tilingEnable_.tilingEnableSplitCore == TilingEnableSplitCore::MULTI_CORE_SPLIT_K) {
+        if (tilingEnable_.tilingEnableSplitCore == Mc2TilingEnableSplitCore::MULTI_CORE_SPLIT_K) {
             bool isSingleRound =
                 MathUtil::CeilDivision(args_.mValue,
                     static_cast<uint64_t>(tilingData_.matmulTiling.get_singleCoreM())) *
@@ -589,12 +589,12 @@ ge::graphStatus MatmulV3BaseTiling::DoOpTiling()
     return ge::GRAPH_SUCCESS;
 }
 
-bool MatmulV3BaseTiling::IsPowerOfTwo(uint64_t x) const
+bool Mc2MatmulV3BaseTiling::IsPowerOfTwo(uint64_t x) const
 {
     return x > 0UL && (x & (x - 1UL)) == 0UL;
 }
 
-void MatmulV3BaseTiling::OptimizeLoadBalanceBasicKernel()
+void Mc2MatmulV3BaseTiling::OptimizeLoadBalanceBasicKernel()
 {
     OP_LOGI(args_.opName, "Optimize LoadBalance for BasicKernel");
     //判决门限
@@ -607,11 +607,11 @@ void MatmulV3BaseTiling::OptimizeLoadBalanceBasicKernel()
     uint64_t baseKCheck = BASIC_BLOCK_SIZE_128 / aDtypeSize_;
     constexpr uint64_t aicNumCheck = 24;
     bool baseMNKFlag = runInfo_.baseM * runInfo_.baseN == baseMNCheck && runInfo_.baseK == baseKCheck;
-    MixNd2NzType mixNd2nzType = GetMixNd2nzType();
-    bool tilingKeyCheckFlag = tilingEnable_.tilingEnableFullLoad == TilingEnableFullLoad::BASE &&
-                              tilingEnable_.tilingEnableSplitCore == TilingEnableSplitCore::BASE &&
-                              tilingEnable_.tilingEnableFixOpti == TilingEnableFixOpti::BASE &&
-                              (mixNd2nzType == MixNd2NzType::NO_ND2NZ || mixNd2nzType == MixNd2NzType::V_HEAD_ND2NZ);
+    Mc2MixNd2NzType mixNd2nzType = GetMixNd2nzType();
+    bool tilingKeyCheckFlag = tilingEnable_.tilingEnableFullLoad == Mc2TilingEnableFullLoad::BASE &&
+                              tilingEnable_.tilingEnableSplitCore == Mc2TilingEnableSplitCore::BASE &&
+                              tilingEnable_.tilingEnableFixOpti == Mc2TilingEnableFixOpti::BASE &&
+                              (mixNd2nzType == Mc2MixNd2NzType::NO_ND2NZ || mixNd2nzType == Mc2MixNd2NzType::V_HEAD_ND2NZ);
     bool aicNumCheckFlag = compileInfo_.aicNum == aicNumCheck;
     uint64_t mCore = ops::CeilDiv(args_.mValue, runInfo_.baseM);
     uint64_t nCore = ops::CeilDiv(args_.nValue, runInfo_.baseN);
@@ -636,7 +636,7 @@ void MatmulV3BaseTiling::OptimizeLoadBalanceBasicKernel()
     }
 }
 
-void MatmulV3BaseTiling::OptimizeBasicKernelStepK()
+void Mc2MatmulV3BaseTiling::OptimizeBasicKernelStepK()
 {
     //判决门限
     //1. 需要tiling_key==10000000000000000001UL，表示时BasicKernel场景
@@ -674,9 +674,9 @@ void MatmulV3BaseTiling::OptimizeBasicKernelStepK()
         static_cast<uint64_t>(tilingEnable_.tilingEnableFullLoad),
         static_cast<uint64_t>(tilingEnable_.tilingEnableSplitCore),
         static_cast<uint64_t>(tilingEnable_.tilingEnableFixOpti), disableMixNd2nz);
-    if (tilingEnable_.tilingEnableFullLoad == TilingEnableFullLoad::BASE &&
-        tilingEnable_.tilingEnableSplitCore == TilingEnableSplitCore::BASE &&
-        tilingEnable_.tilingEnableFixOpti == TilingEnableFixOpti::BASE && GetMixNd2nzType() == MixNd2NzType::NO_ND2NZ &&
+    if (tilingEnable_.tilingEnableFullLoad == Mc2TilingEnableFullLoad::BASE &&
+        tilingEnable_.tilingEnableSplitCore == Mc2TilingEnableSplitCore::BASE &&
+        tilingEnable_.tilingEnableFixOpti == Mc2TilingEnableFixOpti::BASE && GetMixNd2nzType() == Mc2MixNd2NzType::NO_ND2NZ &&
         baseMNKFlag && notMataFlag && dtypeFlag &&
         (alignFlag || middleMShapeFlag || middleKShapeFlag || BigMShapeFlag) && globalMNFlag && aicNumCheckFlag) {
         OP_LOGI(args_.opName, "Fit optimization condition, tilingKey_: %lu", tilingKey_);
@@ -710,7 +710,7 @@ void MatmulV3BaseTiling::OptimizeBasicKernelStepK()
     }
 }
 
-ge::graphStatus MatmulV3BaseTiling::CheckDimsAligned310P()
+ge::graphStatus Mc2MatmulV3BaseTiling::CheckDimsAligned310P()
 {
     if (compileInfo_.supportL12BtBf16 || compileInfo_.supportL0c2out) {
         return ge::GRAPH_SUCCESS;
@@ -730,7 +730,7 @@ ge::graphStatus MatmulV3BaseTiling::CheckDimsAligned310P()
     return ge::GRAPH_SUCCESS;
 }
 
-ge::graphStatus MatmulV3BaseTiling::InitTilingData()
+ge::graphStatus Mc2MatmulV3BaseTiling::InitTilingData()
 {
     auto aFormat = args_.aFormat == ge::FORMAT_ND ? matmul_tiling::CubeFormat::ND : matmul_tiling::CubeFormat::NZ;
     auto bFormat = args_.bFormat == ge::FORMAT_ND ? matmul_tiling::CubeFormat::ND : matmul_tiling::CubeFormat::NZ;
@@ -747,13 +747,13 @@ ge::graphStatus MatmulV3BaseTiling::InitTilingData()
     }
     mm_.SetBufferSpace(compileInfo_.l1Size, compileInfo_.l0CSize, compileInfo_.ubSize);
     if (mm_.GetTiling(tilingData_.matmulTiling) == -1) {
-        OP_LOGE(args_.opName, "MatmulV3 Get Tiling Failed!");
+        OP_LOGE(args_.opName, "Mc2MatmulV3 Get Tiling Failed!");
         return ge::GRAPH_FAILED;
     }
     return ge::GRAPH_SUCCESS;
 }
 
-void MatmulV3BaseTiling::SetParamsV310()
+void Mc2MatmulV3BaseTiling::SetParamsV310()
 {
     if (!compileInfo_.supportL12BtBf16) {
         return;
@@ -767,7 +767,7 @@ void MatmulV3BaseTiling::SetParamsV310()
     l2TileLength_ = L2_TILE_LENGTH_L2_128;
 }
 
-void MatmulV3BaseTiling::SetNd2NzInfo()
+void Mc2MatmulV3BaseTiling::SetNd2NzInfo()
 {
     tilingData_.set_baseAN(static_cast<uint32_t>(runInfo_.baseAN));
     tilingData_.set_baseAD(static_cast<uint32_t>(runInfo_.baseAD));
@@ -775,7 +775,7 @@ void MatmulV3BaseTiling::SetNd2NzInfo()
     tilingData_.set_baseBD(static_cast<uint32_t>(runInfo_.baseBD));
 }
 
-void MatmulV3BaseTiling::SetRunInfo()
+void Mc2MatmulV3BaseTiling::SetRunInfo()
 {
     tilingData_.matmulRunInfo.set_transA(static_cast<uint32_t>(args_.isATrans));
     tilingData_.matmulRunInfo.set_transB(static_cast<uint32_t>(args_.isBTrans));
@@ -786,7 +786,7 @@ void MatmulV3BaseTiling::SetRunInfo()
     tilingData_.matmulRunInfo.set_isHf32(static_cast<uint32_t>(args_.isHf32));
 }
 
-bool MatmulV3BaseTiling::GetTilingFromRepo()
+bool Mc2MatmulV3BaseTiling::GetTilingFromRepo()
 {
     OP_LOGI(args_.opName, "start get tiling from repo.");
     std::shared_ptr<tuningtiling::TuningTilingDef> tuningTiling = nullptr;
@@ -796,7 +796,7 @@ bool MatmulV3BaseTiling::GetTilingFromRepo()
         return false;
     }
 
-    auto ret = RuntimeKb::QueryBank(inputArgs.get(), inputArgsSize, "MatMulV3",
+    auto ret = RuntimeKb::QueryBank(inputArgs.get(), inputArgsSize, "Mc2MatMulV3",
         compileInfo_.socVersionStr, static_cast<uint32_t>(compileInfo_.aicNum), tuningTiling);
     if (ret != 0U || tuningTiling == nullptr) {
         return false;
@@ -804,11 +804,11 @@ bool MatmulV3BaseTiling::GetTilingFromRepo()
     return TranslateAoeTiling(tuningTiling);
 }
 
-bool MatmulV3BaseTiling::GetTilingInputArgs(std::shared_ptr<void> &inputArgs, size_t &size)
+bool Mc2MatmulV3BaseTiling::GetTilingInputArgs(std::shared_ptr<void> &inputArgs, size_t &size)
 {
-    std::shared_ptr<tuningtiling::MatMulV3InputArgs> matmulInputArgs = nullptr;
+    std::shared_ptr<tuningtiling::Mc2MatMulV3InputArgs> matmulInputArgs = nullptr;
     try {
-        matmulInputArgs = std::make_shared<tuningtiling::MatMulV3InputArgs>();
+        matmulInputArgs = std::make_shared<tuningtiling::Mc2MatMulV3InputArgs>();
     } catch(const std::bad_alloc &) {
         OP_LOGI(args_.opName, "get tiling from repo error: input args is nullptr.");
         return false;
@@ -852,12 +852,12 @@ bool MatmulV3BaseTiling::GetTilingInputArgs(std::shared_ptr<void> &inputArgs, si
     matmulInputArgs->reserved_params6 = 0;
 
     inputArgs = matmulInputArgs;
-    size = sizeof(tuningtiling::MatMulV3InputArgs);
+    size = sizeof(tuningtiling::Mc2MatMulV3InputArgs);
     DebugLog(matmulInputArgs);
     return true;
 }
 
-void MatmulV3BaseTiling::DebugLog(const std::shared_ptr<tuningtiling::MatMulV3InputArgs> &inputArgs)
+void Mc2MatmulV3BaseTiling::DebugLog(const std::shared_ptr<tuningtiling::Mc2MatMulV3InputArgs> &inputArgs)
 {
     OP_LOGD(args_.opName,
         "Binary tiling info dict, "
@@ -885,9 +885,9 @@ void MatmulV3BaseTiling::DebugLog(const std::shared_ptr<tuningtiling::MatMulV3In
 }
 
 
-bool MatmulV3BaseTiling::TranslateAoeTiling(tuningtiling::TuningTilingDefPtr &tuningTiling)
+bool Mc2MatmulV3BaseTiling::TranslateAoeTiling(tuningtiling::TuningTilingDefPtr &tuningTiling)
 {
-    auto aoeTiling = std::dynamic_pointer_cast<tuningtiling::MatMulV3TunnerTiling>(tuningTiling);
+    auto aoeTiling = std::dynamic_pointer_cast<tuningtiling::Mc2MatMulV3TunnerTiling>(tuningTiling);
     if (aoeTiling == nullptr) {
         return false;
     }
@@ -932,7 +932,7 @@ bool MatmulV3BaseTiling::TranslateAoeTiling(tuningtiling::TuningTilingDefPtr &tu
     return true;
 }
 
-void MatmulV3BaseTiling::SetBaseBlockTiling()
+void Mc2MatmulV3BaseTiling::SetBaseBlockTiling()
 {
     runInfo_.usedCoreNum = compileInfo_.aicNum;
     runInfo_.baseM = BASIC_BLOCK_SIZE_128;
@@ -981,8 +981,8 @@ void MatmulV3BaseTiling::SetBaseBlockTiling()
     return;
 }
 
-inline void Convert2AscendCTiling(CacheTilingData &tbeTiling, const BatchmatmulRunParas &runParams, const MatmulV3Args &args,
-    uint64_t aicNum, MatmulV3RunInfo &runInfo)
+inline void Convert2AscendCTiling(CacheTilingData &tbeTiling, const BatchmatmulRunParas &runParams, const Mc2MatmulV3Args &args,
+    uint64_t aicNum, Mc2MatmulV3RunInfo &runInfo)
 {
     if (tbeTiling.al1_full_load && !runParams.pattern_flag) {
         tbeTiling.kal1_16 = runParams.k / tbeTiling.k_dim;
@@ -1019,7 +1019,7 @@ inline void Convert2AscendCTiling(CacheTilingData &tbeTiling, const BatchmatmulR
     runInfo.l2Info.nTileBlock = 1;
 }
 
-inline void InitRunParams(const BatchmatmulCompileParas &compileParams, const MatmulV3Args &args,
+inline void InitRunParams(const BatchmatmulCompileParas &compileParams, const Mc2MatmulV3Args &args,
                           BatchmatmulRunParas &runParams)
 {
     runParams.trans_a_flag = args.isATrans;
@@ -1070,7 +1070,7 @@ inline void InitRunParams(const BatchmatmulCompileParas &compileParams, const Ma
     runParams.bias_dtype = args.biasType;
 }
 
-void MatmulV3BaseTiling::GetV2Tiling()
+void Mc2MatmulV3BaseTiling::GetV2Tiling()
 {
     BatchmatmulCompileParas compileParams;
     compileParams.binary_mode_flag = true;
@@ -1085,12 +1085,12 @@ void MatmulV3BaseTiling::GetV2Tiling()
 
     CacheTilingData tiling;
     tiling.tiling_id = std::numeric_limits<uint64_t>::max();
-    GenTiling("MatMulV3", compileParams, runParams, tiling, context_);
+    GenTiling("Mc2MatMulV3", compileParams, runParams, tiling, context_);
     Convert2AscendCTiling(tiling, runParams, args_, compileInfo_.aicNum, runInfo_);
     return;
 }
 
-bool MatmulV3BaseTiling::CheckUbOverFlow(uint64_t nAligned16, uint64_t nValue, const uint64_t &baseN,
+bool Mc2MatmulV3BaseTiling::CheckUbOverFlow(uint64_t nAligned16, uint64_t nValue, const uint64_t &baseN,
     const uint64_t &baseD, uint64_t dtypeSize)
 {
     uint64_t nAlignedLoop = MathUtil::CeilDivision(nAligned16, baseN);
@@ -1102,7 +1102,7 @@ bool MatmulV3BaseTiling::CheckUbOverFlow(uint64_t nAligned16, uint64_t nValue, c
         ((nAligned16 - ((nValue / baseN) - 1) * baseN) * baseD > (compileInfo_.ubSize / NUMBER_TWO / dtypeSize)));
 }
 
-void MatmulV3BaseTiling::CalcNd2NzTiling(uint64_t dtypeSize, uint64_t nValue, uint64_t dValue, uint64_t &baseN,
+void Mc2MatmulV3BaseTiling::CalcNd2NzTiling(uint64_t dtypeSize, uint64_t nValue, uint64_t dValue, uint64_t &baseN,
     uint64_t &baseD)
 {
     constexpr uint64_t mataD = 16384;
@@ -1189,7 +1189,7 @@ void MatmulV3BaseTiling::CalcNd2NzTiling(uint64_t dtypeSize, uint64_t nValue, ui
     return;
 }
 
-void MatmulV3BaseTiling::DoNd2NzVectorTiling() {
+void Mc2MatmulV3BaseTiling::DoNd2NzVectorTiling() {
     UpdateNd2nzFlag();
     OP_LOGI(args_.opName, "args_.nd2nzA = %d, args_.nd2nzB = %d.", static_cast<uint32_t>(args_.nd2nzA),
         static_cast<uint32_t>(args_.nd2nzB));
@@ -1207,7 +1207,7 @@ void MatmulV3BaseTiling::DoNd2NzVectorTiling() {
     }
 }
 
-void MatmulV3BaseTiling::DoSmallShapeTiling()
+void Mc2MatmulV3BaseTiling::DoSmallShapeTiling()
 {
     OP_LOGI(args_.opName, "meet small block num or meet small shape situation, enable small shape algorithm");
     FormulaicBaseBlockTiling();
@@ -1232,10 +1232,10 @@ void MatmulV3BaseTiling::DoSmallShapeTiling()
     }
 }
 
-void MatmulV3BaseTiling::DoSelectTiling()
+void Mc2MatmulV3BaseTiling::DoSelectTiling()
 {
     switch (tilingSelect_) {
-        case TilingCalcSelect::ALL:
+        case Mc2TilingCalcSelect::ALL:
             DO_CACL_TILING_ENABLE(DoBL1FullloadWithFixpipeTiling())
             DO_CACL_TILING_ENABLE(DoAL1FullLoadTiling())
             DO_CACL_TILING_ENABLE(DoBL1FullLoadTiling())
@@ -1244,14 +1244,14 @@ void MatmulV3BaseTiling::DoSelectTiling()
             DO_CACL_TILING_ENABLE(DoDeterministicMultiCoreSplitKTiling())
             DO_CACL_TILING_ENABLE(DoL2CacheTiling310P())
             break;
-        case TilingCalcSelect::BASE:
+        case Mc2TilingCalcSelect::BASE:
             DO_CACL_TILING_ENABLE(DoL2CacheTiling())
             DO_CACL_TILING_ENABLE(DoL2CacheTiling310P())
             break;
-        case TilingCalcSelect::SINGLE_CORE_SPLIT_K:
+        case Mc2TilingCalcSelect::SINGLE_CORE_SPLIT_K:
             DO_CACL_TILING_ENABLE(DoSingleCoreSplitKTiling())
             break;
-        case TilingCalcSelect::DETERMINISTIC_SPLIT_K:
+        case Mc2TilingCalcSelect::DETERMINISTIC_SPLIT_K:
             DO_CACL_TILING_ENABLE(DoDeterministicMultiCoreSplitKTiling())
             break;
         default:
@@ -1259,7 +1259,7 @@ void MatmulV3BaseTiling::DoSelectTiling()
     }
 }
 
-void MatmulV3BaseTiling::DoBasicTiling()
+void Mc2MatmulV3BaseTiling::DoBasicTiling()
 {
     runInfo_.needUpdate = true;
     basicBlockBaseM_ = (compileInfo_.l0CSize == L0C_SIZE_256_KB) ? BASIC_BLOCK_SIZE_256 : BASIC_BLOCK_SIZE_128;
@@ -1302,14 +1302,14 @@ void MatmulV3BaseTiling::DoBasicTiling()
     DoNd2NzVectorTiling();
     if (args_.hasBias) {
       runInfo_.baseN = std::min(256UL, runInfo_.baseN);  // 有bias时 baseN 小于256
-      if (tilingEnable_.tilingEnableSplitCore == TilingEnableSplitCore::BASE &&
-          tilingEnable_.tilingEnableFullLoad != TilingEnableFullLoad::BL1_FULL_LOAD) {
+      if (tilingEnable_.tilingEnableSplitCore == Mc2TilingEnableSplitCore::BASE &&
+          tilingEnable_.tilingEnableFullLoad != Mc2TilingEnableFullLoad::BL1_FULL_LOAD) {
             runInfo_.singleCoreN = runInfo_.baseN;
         }
     }
 }
 
-void MatmulV3BaseTiling::FormulateBasicBlockDavid()
+void Mc2MatmulV3BaseTiling::FormulateBasicBlockDavid()
 {
     uint64_t mCore = MathUtil::CeilDivision(args_.mValue, runInfo_.baseM);
     uint64_t nCore = MathUtil::CeilDivision(args_.nValue, runInfo_.baseN);
@@ -1336,7 +1336,7 @@ void MatmulV3BaseTiling::FormulateBasicBlockDavid()
     runInfo_.baseK = ops::CeilAlign(runInfo_.baseK, BASIC_BLOCK_SIZE_16);
 }
 
-void MatmulV3BaseTiling::CalcTailBasicBlock()
+void Mc2MatmulV3BaseTiling::CalcTailBasicBlock()
 {
     uint64_t mCnt = MathUtil::CeilDivision(args_.mValue, runInfo_.baseM);
     uint64_t nCnt = MathUtil::CeilDivision(args_.nValue, runInfo_.baseN);
@@ -1354,10 +1354,10 @@ void MatmulV3BaseTiling::CalcTailBasicBlock()
     }
 }
 
-void MatmulV3BaseTiling::FormulaicTilingNoTrans()
+void Mc2MatmulV3BaseTiling::FormulaicTilingNoTrans()
 {
     uint64_t nCore = MathUtil::CeilDivision(args_.nValue, runInfo_.baseN); // n方向上的base块个数
-    CalcBase<CalcType::M_BY_BASE_NK>(calcMBasic_);
+    CalcBase<Mc2CalcType::M_BY_BASE_NK>(calcMBasic_);
     // 非对齐场景
     if (!kA256Align_ && !n256Align_) {
         // A,B都会做ND2NZ，baseMNK 按照负载均衡分配
@@ -1374,18 +1374,18 @@ void MatmulV3BaseTiling::FormulaicTilingNoTrans()
     }
 }
 
-void MatmulV3BaseTiling::FormulaicBaseBlockTiling()
+void Mc2MatmulV3BaseTiling::FormulaicBaseBlockTiling()
 {
     uint64_t mCore = MathUtil::CeilDivision(args_.mValue, runInfo_.baseM); // m方向上的base块个数
     uint64_t nCore = MathUtil::CeilDivision(args_.nValue, runInfo_.baseN); // n方向上的base块个数
 
     // ND场景，不需要ND2NZ操作, 说明数据内存方向的边是256B对齐的
     switch (trans_) {
-        case MatmulV3Trans::NO_TRANS: {
+        case Mc2MatmulV3Trans::NO_TRANS: {
             FormulaicTilingNoTrans();
             break;
         }
-        case MatmulV3Trans::A_TRANS: {
+        case Mc2MatmulV3Trans::A_TRANS: {
             // [k, m], [k, n], m和n需要256B对齐，k可以任意切分
             // 如果对齐场景都为MTE2 bound，那非对齐场景的MTE2 bound会更严重，此时多核计算没有意义
             if (!m256Align_ && !n256Align_) {
@@ -1399,17 +1399,17 @@ void MatmulV3BaseTiling::FormulaicBaseBlockTiling()
             }
             break;
         }
-        case MatmulV3Trans::B_TRANS: {
+        case Mc2MatmulV3Trans::B_TRANS: {
             // [m, k], [n, k], k需要256B对齐，m和n可以任意切分
             // 负载均匀切分
-            CalcBase<CalcType::MN_BY_BASE_K>(calcMNBasic_);
+            CalcBase<Mc2CalcType::MN_BY_BASE_K>(calcMNBasic_);
             if (!kA256Align_) {
                 // A,B都会做ND2NZ，baseMNK 按照负载均衡分配
                 BalanceBaseBlockTiling();
             }
             break;
         }
-        case MatmulV3Trans::AB_TRANS: {
+        case Mc2MatmulV3Trans::AB_TRANS: {
             // [k, m], [n, k], m和k需要256B对齐，n可以任意切分
             runInfo_.baseN = CalBaseSize(mCore, compileInfo_.aicNum, args_.nValue, BASIC_BLOCK_SIZE_256);
             if (!m256Align_ && kB256Align_) {
@@ -1430,7 +1430,7 @@ void MatmulV3BaseTiling::FormulaicBaseBlockTiling()
     return;
 }
 
-void MatmulV3BaseTiling::BalanceBaseBlockTiling()
+void Mc2MatmulV3BaseTiling::BalanceBaseBlockTiling()
 {
     ResetBase(runInfo_, compileInfo_.l0CSize, aDtypeSize_);
     uint64_t nCore = 1;
@@ -1475,7 +1475,7 @@ void MatmulV3BaseTiling::BalanceBaseBlockTiling()
     return;
 }
 
-bool MatmulV3BaseTiling::CheckBTSize(uint64_t baseN)
+bool Mc2MatmulV3BaseTiling::CheckBTSize(uint64_t baseN)
 {
     if (!compileInfo_.supportL0c2out && baseN * DATA_SIZE_FP32 > compileInfo_.btSize) {
         return false;
@@ -1483,7 +1483,7 @@ bool MatmulV3BaseTiling::CheckBTSize(uint64_t baseN)
     return true;
 }
 
-template <CalcType T> void MatmulV3BaseTiling::CalcBase(const std::vector<std::vector<uint64_t>> &baseMNK)
+template <Mc2CalcType T> void Mc2MatmulV3BaseTiling::CalcBase(const std::vector<std::vector<uint64_t>> &baseMNK)
 {
     std::vector<std::vector<uint64_t>> calBaseMNK;
     size_t index = 0;
@@ -1492,7 +1492,7 @@ template <CalcType T> void MatmulV3BaseTiling::CalcBase(const std::vector<std::v
     uint64_t mCnt = 1;
     for (size_t i = 0; i < baseMNK.size(); ++i) {
         std::vector<uint64_t> tempBaseMNK(baseMNK[i].begin(), baseMNK[i].end());
-        if (T == CalcType::M_BY_BASE_NK) {
+        if (T == Mc2CalcType::M_BY_BASE_NK) {
             nCnt = MathUtil::CeilDivision(args_.nValue, baseMNK[i][1]);
             // baseM是除完n方向上的核数后，m方向上能分的最大base块
             tempBaseMNK[0] = CalBaseSize(nCnt, compileInfo_.aicNum, args_.mValue, baseMNK[i][0]);
@@ -1521,7 +1521,7 @@ template <CalcType T> void MatmulV3BaseTiling::CalcBase(const std::vector<std::v
     runInfo_.baseK = calBaseMNK[index][2] / aDtypeSize_; // 2: k index
 }
 
-void MatmulV3BaseTiling::CalBaseMBaseN(uint64_t &baseM, uint64_t &baseN, uint64_t maxBaseM, uint64_t maxBaseN)
+void Mc2MatmulV3BaseTiling::CalBaseMBaseN(uint64_t &baseM, uint64_t &baseN, uint64_t maxBaseM, uint64_t maxBaseN)
 {
     // 根据 m方向和n方向上谁的基本块多，更新base块的大小
     uint64_t mCore = MathUtil::CeilDivision(args_.mValue, maxBaseM);
@@ -1545,7 +1545,7 @@ void MatmulV3BaseTiling::CalBaseMBaseN(uint64_t &baseM, uint64_t &baseN, uint64_
     return;
 }
 
-void MatmulV3BaseTiling::CalL1TilingV200()
+void Mc2MatmulV3BaseTiling::CalL1TilingV200()
 {
     runInfo_.singleCoreK = args_.kValue;
     runInfo_.stepM = 1;
@@ -1582,7 +1582,7 @@ void MatmulV3BaseTiling::CalL1TilingV200()
     return;
 }
 
-void MatmulV3BaseTiling::CalL1Tiling()
+void Mc2MatmulV3BaseTiling::CalL1Tiling()
 {
     if (!compileInfo_.supportL0c2out) {
         CalL1TilingV200();
@@ -1620,7 +1620,7 @@ void MatmulV3BaseTiling::CalL1Tiling()
     return;
 }
 
-void MatmulV3BaseTiling::UpdateL1TilingStepK(uint64_t &stepK)
+void Mc2MatmulV3BaseTiling::UpdateL1TilingStepK(uint64_t &stepK)
 {
     if (stepK * runInfo_.baseK >= args_.kValue) {
         return;
@@ -1643,7 +1643,7 @@ void MatmulV3BaseTiling::UpdateL1TilingStepK(uint64_t &stepK)
     }
 }
 
-void MatmulV3BaseTiling::InitL2SplitParams(MatmulV3L2SplitParams &l2SplitParams) const
+void Mc2MatmulV3BaseTiling::InitL2SplitParams(Mc2MatmulV3L2SplitParams &l2SplitParams) const
 {
     l2SplitParams.outBase = std::max(runInfo_.baseM, 1UL);
     l2SplitParams.innerBase = std::max(runInfo_.baseN, 1UL);
@@ -1668,7 +1668,7 @@ void MatmulV3BaseTiling::InitL2SplitParams(MatmulV3L2SplitParams &l2SplitParams)
     }
 }
 
-bool MatmulV3BaseTiling::IsTailSmall(MatmulV3L2SplitParams &l2SplitParams, uint64_t outL2Split, uint64_t innerL2Split,
+bool Mc2MatmulV3BaseTiling::IsTailSmall(Mc2MatmulV3L2SplitParams &l2SplitParams, uint64_t outL2Split, uint64_t innerL2Split,
     uint64_t innerMaxConflict) const
 {
     if (outL2Split == 0UL || innerL2Split == 0UL) {
@@ -1683,10 +1683,10 @@ bool MatmulV3BaseTiling::IsTailSmall(MatmulV3L2SplitParams &l2SplitParams, uint6
     return (isOutTailSmall || isInnerTailSmall);
 }
 
-bool MatmulV3BaseTiling::CalcTile(uint64_t &outTile, uint64_t &innerTile, uint64_t &outL2Split, uint64_t &innerL2Split,
+bool Mc2MatmulV3BaseTiling::CalcTile(uint64_t &outTile, uint64_t &innerTile, uint64_t &outL2Split, uint64_t &innerL2Split,
     const bool isInnerBad) const
 {
-    MatmulV3L2SplitParams l2SplitParams;
+    Mc2MatmulV3L2SplitParams l2SplitParams;
     InitL2SplitParams(l2SplitParams);
     uint64_t innerMaxConflict = isInnerBad ? l2SplitParams.minConflictDim : l2SplitParams.maxConflictDim;
     uint64_t outerMinUseDim = compileInfo_.aicNum / l2SplitParams.maxConflictDim;
@@ -1733,7 +1733,7 @@ bool MatmulV3BaseTiling::CalcTile(uint64_t &outTile, uint64_t &innerTile, uint64
     return enableCache;
 }
 
-uint64_t MatmulV3BaseTiling::GetTotalSize(uint64_t m, uint64_t k, uint64_t n, uint64_t aDtype, uint64_t bDtype) const
+uint64_t Mc2MatmulV3BaseTiling::GetTotalSize(uint64_t m, uint64_t k, uint64_t n, uint64_t aDtype, uint64_t bDtype) const
 {
     uint64_t sizeA = m * k * aDtype;
     uint64_t sizeB = k * n * bDtype;
@@ -1741,7 +1741,7 @@ uint64_t MatmulV3BaseTiling::GetTotalSize(uint64_t m, uint64_t k, uint64_t n, ui
     return sizeA + sizeB + sizeC;
 }
 
-bool MatmulV3BaseTiling::DoBL1FullloadWithFixpipeTiling() {
+bool Mc2MatmulV3BaseTiling::DoBL1FullloadWithFixpipeTiling() {
     if (!NeedSolveFixBound()) {
         return false;
     }
@@ -1770,9 +1770,9 @@ bool MatmulV3BaseTiling::DoBL1FullloadWithFixpipeTiling() {
     runInfo_.singleCoreN = runInfo_.baseN;
     OP_TILING_CHECK(runInfo_.depthA1 == 0,
             CUBE_INNER_ERR_REPORT(context_->GetNodeName(), "Tiling calculate failed"), return false);
-    tilingEnable_.tilingEnableFixOpti = TilingEnableFixOpti::BASE_ENABLE_ALIGNOUT;
-    tilingEnable_.tilingEnableSplitCore = TilingEnableSplitCore::BASE;
-    tilingEnable_.tilingEnableFullLoad = TilingEnableFullLoad::BL1_FULL_LOAD;
+    tilingEnable_.tilingEnableFixOpti = Mc2TilingEnableFixOpti::BASE_ENABLE_ALIGNOUT;
+    tilingEnable_.tilingEnableSplitCore = Mc2TilingEnableSplitCore::BASE;
+    tilingEnable_.tilingEnableFullLoad = Mc2TilingEnableFullLoad::BL1_FULL_LOAD;
     args_.nd2nzB = false;
     // VEC_NZ2ND当前仅支持float类型
     if (args_.aType == ge::DT_FLOAT) {
@@ -1780,14 +1780,14 @@ bool MatmulV3BaseTiling::DoBL1FullloadWithFixpipeTiling() {
         bool isSupportVecOptOut = (args_.kValue % c0 == 0) && (args_.nValue <= 192)
         && !args_.nd2nzA && !args_.isATrans;
         if (isSupportVecOptOut) {
-            tilingEnable_.tilingEnableFixOpti = TilingEnableFixOpti::VEC_NZ2ND_UNALIGNOUT;
+            tilingEnable_.tilingEnableFixOpti = Mc2TilingEnableFixOpti::VEC_NZ2ND_UNALIGNOUT;
         }
     }
     OP_LOGI(args_.opName, "Hit NeedSolveFixBound.");
     return true;
 }
 
-bool MatmulV3BaseTiling::DoAL1FullLoadTiling()
+bool Mc2MatmulV3BaseTiling::DoAL1FullLoadTiling()
 {
     // only support fp32, and resreict transpose attrs as network cases
     if (!compileInfo_.supportL0c2out || args_.aType != ge::DT_FLOAT || args_.isATrans || !args_.isBTrans) {
@@ -1819,8 +1819,8 @@ bool MatmulV3BaseTiling::DoAL1FullLoadTiling()
     runInfo_.depthB1 = DB_SIZE;
     runInfo_.singleCoreM = args_.mValue;
     runInfo_.singleCoreN = runInfo_.baseN;
-    tilingEnable_.tilingEnableFullLoad = TilingEnableFullLoad::AL1_FULL_LOAD;
-    tilingEnable_.tilingEnableSplitCore = TilingEnableSplitCore::BASE;
+    tilingEnable_.tilingEnableFullLoad = Mc2TilingEnableFullLoad::AL1_FULL_LOAD;
+    tilingEnable_.tilingEnableSplitCore = Mc2TilingEnableSplitCore::BASE;
     runInfo_.dbL0c = runInfo_.baseM * runInfo_.baseN * GetSizeByDataType(ge::DT_FLOAT) * DB_SIZE <=
         compileInfo_.l0CSize ? DB_SIZE : 1;
     runInfo_.l2Info.mTileBlock = 1;
@@ -1829,7 +1829,7 @@ bool MatmulV3BaseTiling::DoAL1FullLoadTiling()
     return true;
 }
 
-bool MatmulV3BaseTiling::DoBL1FullLoadTiling()
+bool Mc2MatmulV3BaseTiling::DoBL1FullLoadTiling()
 {
     uint64_t c0 = BLOCK_BYTE_SIZE / aDtypeSize_;
     uint64_t innerSizeA = args_.isATrans ? args_.mValue : args_.kValue;
@@ -1875,11 +1875,11 @@ bool MatmulV3BaseTiling::DoBL1FullLoadTiling()
     return false;
 }
 
-bool MatmulV3BaseTiling::DoBL1FullLoadTilingBase()
+bool Mc2MatmulV3BaseTiling::DoBL1FullLoadTilingBase()
 {
     uint64_t c0 = BLOCK_BYTE_SIZE / aDtypeSize_;
-    tilingEnable_.tilingEnableFullLoad = TilingEnableFullLoad::BL1_FULL_LOAD;
-    tilingEnable_.tilingEnableSplitCore = TilingEnableSplitCore::BASE;
+    tilingEnable_.tilingEnableFullLoad = Mc2TilingEnableFullLoad::BL1_FULL_LOAD;
+    tilingEnable_.tilingEnableSplitCore = Mc2TilingEnableSplitCore::BASE;
     // fine tune tiling
     runInfo_.stepM = 1;
     runInfo_.baseN = std::min(args_.nValue, runInfo_.baseN);
@@ -1912,10 +1912,10 @@ bool MatmulV3BaseTiling::DoBL1FullLoadTilingBase()
     return true;
 }
 
-bool MatmulV3BaseTiling::DoBL1CoreSplitFullLoadTiling()
+bool Mc2MatmulV3BaseTiling::DoBL1CoreSplitFullLoadTiling()
 {
-    tilingEnable_.tilingEnableFullLoad = TilingEnableFullLoad::BL1_FULL_LOAD;
-    tilingEnable_.tilingEnableSplitCore = TilingEnableSplitCore::BASE;
+    tilingEnable_.tilingEnableFullLoad = Mc2TilingEnableFullLoad::BL1_FULL_LOAD;
+    tilingEnable_.tilingEnableSplitCore = Mc2TilingEnableSplitCore::BASE;
     runInfo_.baseN = args_.nValue / NUM_HALF;
     runInfo_.singleCoreN = runInfo_.baseN;
     runInfo_.stepM = 1;
@@ -1938,7 +1938,7 @@ bool MatmulV3BaseTiling::DoBL1CoreSplitFullLoadTiling()
     return true;
 }
 
-bool MatmulV3BaseTiling::NeedSolveFixBound()
+bool Mc2MatmulV3BaseTiling::NeedSolveFixBound()
 {
     if (compileInfo_.supportL12BtBf16 || !compileInfo_.supportL0c2out) {
         return false;
@@ -1979,10 +1979,10 @@ bool MatmulV3BaseTiling::NeedSolveFixBound()
     return true;
 }
 
-bool MatmulV3BaseTiling::DoL2CacheTiling()
+bool Mc2MatmulV3BaseTiling::DoL2CacheTiling()
 {
     if (compileInfo_.supportL12BtBf16 || !compileInfo_.supportL0c2out) {
-        tilingEnable_.tilingEnableSplitCore = TilingEnableSplitCore::BASE;
+        tilingEnable_.tilingEnableSplitCore = Mc2TilingEnableSplitCore::BASE;
         OP_LOGD(args_.opName, "david not support l2cache kernel, enter base kernel.");
         return false;
     }
@@ -2003,7 +2003,7 @@ bool MatmulV3BaseTiling::DoL2CacheTiling()
     mTile = MathUtil::CeilDivision(args_.mValue, mTileBlock * runInfo_.baseM);
     nTile = MathUtil::CeilDivision(args_.nValue, nTileBlock * runInfo_.baseN);
 
-    if (tilingSelect_ == TilingCalcSelect::ALL && !enableCache_ && compileInfo_.supportL0c2out) {
+    if (tilingSelect_ == Mc2TilingCalcSelect::ALL && !enableCache_ && compileInfo_.supportL0c2out) {
         constexpr uint64_t mTileBlockBase = 4UL;
         mTileBlock = std::min(mTileBlockBase, MathUtil::CeilDivision(args_.mValue, runInfo_.baseM));
         nTileBlock = compileInfo_.aicNum / mTileBlockBase;
@@ -2025,7 +2025,7 @@ bool MatmulV3BaseTiling::DoL2CacheTiling()
     return false; // 进去单核切K逻辑
 }
 
-bool MatmulV3BaseTiling::DoL2CacheTiling310P()
+bool Mc2MatmulV3BaseTiling::DoL2CacheTiling310P()
 {
     if (compileInfo_.supportL12BtBf16 || compileInfo_.supportL0c2out) {
         return false;
@@ -2045,7 +2045,7 @@ bool MatmulV3BaseTiling::DoL2CacheTiling310P()
     return true;
 }
 
-void MatmulV3BaseTiling::CalTileFactor(uint64_t &nTile)
+void Mc2MatmulV3BaseTiling::CalTileFactor(uint64_t &nTile)
 {
     // set the factor of 20 core
     vector<uint64_t> factor = { 1, 2, 4, 5, 10, 20 };
@@ -2076,7 +2076,7 @@ void MatmulV3BaseTiling::CalTileFactor(uint64_t &nTile)
     return;
 }
 
-void MatmulV3BaseTiling::SetBasicBlockOfNK33(MatmulV3RunInfo &runInfo)
+void Mc2MatmulV3BaseTiling::SetBasicBlockOfNK33(Mc2MatmulV3RunInfo &runInfo)
 {
     // 128是3*3算法的基本块
     runInfo.baseM = BASIC_BLOCK_SIZE_128;
@@ -2094,7 +2094,7 @@ void MatmulV3BaseTiling::SetBasicBlockOfNK33(MatmulV3RunInfo &runInfo)
     runInfo.iterateOrder = ITER_COL_FIRST;
 }
 
-void MatmulV3BaseTiling::SetBasicBlockOfMK33(MatmulV3RunInfo &runInfo)
+void Mc2MatmulV3BaseTiling::SetBasicBlockOfMK33(Mc2MatmulV3RunInfo &runInfo)
 {
     // 128是3*3算法的基本块
     runInfo.baseM = BASIC_BLOCK_SIZE_128;
@@ -2112,7 +2112,7 @@ void MatmulV3BaseTiling::SetBasicBlockOfMK33(MatmulV3RunInfo &runInfo)
     runInfo.iterateOrder = ITER_ROW_FIRST;
 }
 
-void MatmulV3BaseTiling::SetBasicBlockOf24(MatmulV3RunInfo &runInfo, const uint64_t &mTile, const uint64_t &nTile) const
+void Mc2MatmulV3BaseTiling::SetBasicBlockOf24(Mc2MatmulV3RunInfo &runInfo, const uint64_t &mTile, const uint64_t &nTile) const
 {
     // 2*4算法
     if (mTile * nTile < compileInfo_.aicNum) {
@@ -2134,7 +2134,7 @@ void MatmulV3BaseTiling::SetBasicBlockOf24(MatmulV3RunInfo &runInfo, const uint6
     }
 }
 
-void MatmulV3BaseTiling::DoIncreTiling()
+void Mc2MatmulV3BaseTiling::DoIncreTiling()
 {
     if (!compileInfo_.supportL0c2out) {
         OP_LOGI(args_.opName, "Ascend310P currently doesn't support IncreShape.");
@@ -2144,7 +2144,7 @@ void MatmulV3BaseTiling::DoIncreTiling()
         OP_LOGI(args_.opName, "M > 128, doesn't belong to IncreShape.");
         return;
     }
-    if (GetMixNd2nzType() != MixNd2NzType::NO_ND2NZ) { // 对应要求 N和K < 65536，K 256B对齐
+    if (GetMixNd2nzType() != Mc2MixNd2NzType::NO_ND2NZ) { // 对应要求 N和K < 65536，K 256B对齐
         OP_LOGI(args_.opName, "IncreShape shouldn't be MixNd2nz, please check shape size.");
         return;
     }
@@ -2166,9 +2166,9 @@ void MatmulV3BaseTiling::DoIncreTiling()
         OP_LOGI(args_.opName, "Bias not support in IncreShape.");
         return;
     }
-    tilingEnable_.tilingEnableSplitCore = TilingEnableSplitCore::BASE;
-    tilingEnable_.tilingEnableFullLoad = TilingEnableFullLoad::BASE;
-    tilingEnable_.tilingEnableFixOpti = TilingEnableFixOpti::BASE;
+    tilingEnable_.tilingEnableSplitCore = Mc2TilingEnableSplitCore::BASE;
+    tilingEnable_.tilingEnableFullLoad = Mc2TilingEnableFullLoad::BASE;
+    tilingEnable_.tilingEnableFixOpti = Mc2TilingEnableFixOpti::BASE;
     GetV2Tiling();
     OP_LOGD(args_.opName,
         "Incre convert tbe-tiling: CoreNum(%lu) singleMNK(%lu %lu %lu) baseMNK(%lu %lu %lu) depthAB(%lu %lu) "
@@ -2178,26 +2178,26 @@ void MatmulV3BaseTiling::DoIncreTiling()
         runInfo_.stepKa, runInfo_.stepKb, runInfo_.dbL0c);
 }
 
-MixNd2NzType MatmulV3BaseTiling::GetMixNd2nzType() // check different platform
+Mc2MixNd2NzType Mc2MatmulV3BaseTiling::GetMixNd2nzType() // check different platform
 {
     if (compileInfo_.supportL12BtBf16) {
-        return MixNd2NzType::NO_ND2NZ; // current not support mix kernel
+        return Mc2MixNd2NzType::NO_ND2NZ; // current not support mix kernel
     }
     if (compileInfo_.supportL0c2out) {
         if (args_.nd2nzA && !args_.nd2nzB && args_.unAlignProcessType > 0 &&
-            tilingEnable_.tilingEnableFullLoad == TilingEnableFullLoad::BL1_FULL_LOAD &&
-            tilingEnable_.tilingEnableSplitCore == TilingEnableSplitCore::BASE &&
-            tilingEnable_.tilingEnableFixOpti == TilingEnableFixOpti::BASE) {
-            return MixNd2NzType::V_PARALELL_ND2NZ;
+            tilingEnable_.tilingEnableFullLoad == Mc2TilingEnableFullLoad::BL1_FULL_LOAD &&
+            tilingEnable_.tilingEnableSplitCore == Mc2TilingEnableSplitCore::BASE &&
+            tilingEnable_.tilingEnableFixOpti == Mc2TilingEnableFixOpti::BASE) {
+            return Mc2MixNd2NzType::V_PARALELL_ND2NZ;
         }
         if (args_.nd2nzA || args_.nd2nzB) {
-            return MixNd2NzType::V_HEAD_ND2NZ;
+            return Mc2MixNd2NzType::V_HEAD_ND2NZ;
         }
     }
-    return MixNd2NzType::NO_ND2NZ;
+    return Mc2MixNd2NzType::NO_ND2NZ;
 }
 
-bool MatmulV3BaseTiling::IsSupportSingleCoreSplitSmallK(uint64_t xDim, uint64_t yDim) const
+bool Mc2MatmulV3BaseTiling::IsSupportSingleCoreSplitSmallK(uint64_t xDim, uint64_t yDim) const
 {
     // 条件0： A,B 矩阵数据仅支持 bf16/fp16, 矩阵格式支持 (ND,ND)
     bool isDTypeFormatSupport = args_.aFormat == ge::FORMAT_ND && args_.bFormat == ge::FORMAT_ND &&
@@ -2215,7 +2215,7 @@ bool MatmulV3BaseTiling::IsSupportSingleCoreSplitSmallK(uint64_t xDim, uint64_t 
     return isDTypeFormatSupport && isSmallKwithLargeMN && isLargeXSmallY && isL2Enough;
 }
 
-bool MatmulV3BaseTiling::IsSupportSingleCoreSplitK() const
+bool Mc2MatmulV3BaseTiling::IsSupportSingleCoreSplitK() const
 {
     bool isMKNsmallK = IsSupportSingleCoreSplitSmallK(args_.nValue, args_.mValue);
     bool isNKMsmallK = IsSupportSingleCoreSplitSmallK(args_.mValue, args_.nValue);
@@ -2272,9 +2272,9 @@ bool MatmulV3BaseTiling::IsSupportSingleCoreSplitK() const
     return false;
 }
 
-void MatmulV3BaseTiling::IsGmToL1ByShape()
+void Mc2MatmulV3BaseTiling::IsGmToL1ByShape()
 {
-    bool disableMixNd2nz = (GetMixNd2nzType() == MixNd2NzType::NO_ND2NZ);
+    bool disableMixNd2nz = (GetMixNd2nzType() == Mc2MixNd2NzType::NO_ND2NZ);
     uint64_t aMatrix;
     uint64_t bMatrix;
     if (disableMixNd2nz) {
@@ -2289,12 +2289,12 @@ void MatmulV3BaseTiling::IsGmToL1ByShape()
         if (runInfo_.stepM == STEP_NUM_3 && args_.hasBias){
             tilingData_.matmulTiling.set_shareL1Size(static_cast<uint32_t>(L1_BIAS_SIZE));
         }
-        tilingEnable_.tilingEnableSplitCore = TilingEnableSplitCore::SINGLE_CORE_SPLIT_K_GM_TO_L1;
+        tilingEnable_.tilingEnableSplitCore = Mc2TilingEnableSplitCore::SINGLE_CORE_SPLIT_K_GM_TO_L1;
         tilingData_.matmulTiling.set_shareL0CSize(static_cast<uint32_t>(0));
     }
 }
 
-bool MatmulV3BaseTiling::CheckSingleTilingOk(MatmulV3RunInfo &tmpRunInfo)
+bool Mc2MatmulV3BaseTiling::CheckSingleTilingOk(Mc2MatmulV3RunInfo &tmpRunInfo)
 {
     // 判断是否走NKM模板
     bool isNKM = args_.aType == ge::DT_FLOAT && args_.nValue <= NMK_N_THERS && args_.mValue >= NMK_M_THERS
@@ -2316,22 +2316,22 @@ bool MatmulV3BaseTiling::CheckSingleTilingOk(MatmulV3RunInfo &tmpRunInfo)
     }
     tmpRunInfo.singleCoreK = tmpRunInfo.stepKa * tmpRunInfo.baseK;
     tmpRunInfo.dbL0c = DB_SIZE;
-    tilingEnable_.tilingEnableSplitCore = TilingEnableSplitCore::SINGLE_CORE_SPLIT_K;
+    tilingEnable_.tilingEnableSplitCore = Mc2TilingEnableSplitCore::SINGLE_CORE_SPLIT_K;
     if (isNKM || isNKMsmallK) { // 走51：NKM模板
-        tilingEnable_.tilingEnableSplitCore = TilingEnableSplitCore::SINGLE_CORE_NKM_SPLIT_K;
+        tilingEnable_.tilingEnableSplitCore = Mc2TilingEnableSplitCore::SINGLE_CORE_NKM_SPLIT_K;
     } else if (args_.aType != ge::DT_FLOAT && args_.nValue % ALIGN_128 == 0 && !isMKNsmallK) {
         IsGmToL1ByShape();  // 走61：GM_to_L1分核模板;当前 isMKNsmallK 用例走21模板性能优于61
     }
-    tilingEnable_.tilingEnableFullLoad = TilingEnableFullLoad::BASE;
-    tilingEnable_.tilingEnableFixOpti = TilingEnableFixOpti::BASE;
+    tilingEnable_.tilingEnableFullLoad = Mc2TilingEnableFullLoad::BASE;
+    tilingEnable_.tilingEnableFixOpti = Mc2TilingEnableFixOpti::BASE;
     runInfo_ = tmpRunInfo;
     runInfo_.needUpdate = true;
     runInfo_.l2Info.calOrder = isNKMsmallK ? 1: 0; // 0: 默认行优先； 1: 列优先
-    OP_LOGI(args_.opName, "MatMulV3 tiling enable state is SingleCoreSplitK");
+    OP_LOGI(args_.opName, "Mc2MatMulV3 tiling enable state is SingleCoreSplitK");
     return true;
 }
 
-bool MatmulV3BaseTiling::CheckSingleCoreSplitKEdgeCases(const MatmulV3RunInfo &tmpRunInfo,
+bool Mc2MatmulV3BaseTiling::CheckSingleCoreSplitKEdgeCases(const Mc2MatmulV3RunInfo &tmpRunInfo,
                                             bool isNKM, bool isMKNsmallK, bool isNKMsmallK)
 {
     if (!isNKM && !isMKNsmallK && !isNKMsmallK) {
@@ -2357,13 +2357,13 @@ bool MatmulV3BaseTiling::CheckSingleCoreSplitKEdgeCases(const MatmulV3RunInfo &t
     return false;
 }
 
-bool MatmulV3BaseTiling::DoSingleCoreSplitKTiling()
+bool Mc2MatmulV3BaseTiling::DoSingleCoreSplitKTiling()
 {
     if (!compileInfo_.supportL0c2out || compileInfo_.supportL12BtBf16 || !IsSupportSingleCoreSplitK()) {
-        OP_LOGI(args_.opName, "MatMulV3 tiling not support SingleCoreSplitK.");
+        OP_LOGI(args_.opName, "Mc2MatMulV3 tiling not support SingleCoreSplitK.");
         return false;
     }
-    MatmulV3RunInfo tmpRunInfo = runInfo_;
+    Mc2MatmulV3RunInfo tmpRunInfo = runInfo_;
     uint64_t nL2TileLength = l2TileLength_; // L2缓存为192MB,切K时N为3072保证计算恰好被L2缓存容下
     SetBasicBlockOfMK33(tmpRunInfo);
     uint64_t mTile = MathUtil::CeilDivision(args_.mValue, tmpRunInfo.stepM * tmpRunInfo.baseM);
@@ -2419,7 +2419,7 @@ bool MatmulV3BaseTiling::DoSingleCoreSplitKTiling()
     return CheckSingleTilingOk(tmpRunInfo);
 }
 
-bool MatmulV3BaseTiling::SupportMultiSplitK() const
+bool Mc2MatmulV3BaseTiling::SupportMultiSplitK() const
 {
     // 判断是否为支持多核切k的芯片
     if (!compileInfo_.supportL12BtBf16 && !compileInfo_.supportL0c2out) {
@@ -2465,7 +2465,7 @@ bool MatmulV3BaseTiling::SupportMultiSplitK() const
     return true;
 }
 
-bool MatmulV3BaseTiling::IsNkOrder()
+bool Mc2MatmulV3BaseTiling::IsNkOrder()
 {
     // M > N && N方向需要对齐32B
     aDtypeSize_ = GetSizeByDataType(args_.aType);
@@ -2495,7 +2495,7 @@ bool MatmulV3BaseTiling::IsNkOrder()
     return true;
 }
 
-void MatmulV3BaseTiling::GetMoreMultiCoreSplitKArgs() {
+void Mc2MatmulV3BaseTiling::GetMoreMultiCoreSplitKArgs() {
     // 内轴较大时，串行的mixnd2nz相较随路nd2nz场景存在劣化，内轴>512B暂不走mixnd2nz(仅多核切K模板)
     uint64_t inSizeA = args_.isATrans ? args_.mValue : args_.kValue;
     uint64_t inSizeB = args_.isBTrans ? args_.kValue : args_.nValue;
@@ -2512,7 +2512,7 @@ void MatmulV3BaseTiling::GetMoreMultiCoreSplitKArgs() {
 
     // 如果M、N > 128，并且非16位对齐，使用nz2ndC搬出
     if (args_.nValue > BLOCK && args_.mValue > BLOCK && !Is16Align(args_.nValue)) {
-        tilingEnable_.tilingEnableFixOpti = TilingEnableFixOpti::VEC_NZ2ND_UNALIGNOUT;
+        tilingEnable_.tilingEnableFixOpti = Mc2TilingEnableFixOpti::VEC_NZ2ND_UNALIGNOUT;
     }
 
     uint64_t c0Size = GetSizeC0(aDtypeSize_);
@@ -2526,7 +2526,7 @@ void MatmulV3BaseTiling::GetMoreMultiCoreSplitKArgs() {
     }
 }
 
-bool MatmulV3BaseTiling::ShouldUseDeterministicMultiCoreSplitKwithSmallMN() const
+bool Mc2MatmulV3BaseTiling::ShouldUseDeterministicMultiCoreSplitKwithSmallMN() const
 {
     if (args_.aType != ge::DT_FLOAT || args_.isHf32){
         return false;
@@ -2534,7 +2534,7 @@ bool MatmulV3BaseTiling::ShouldUseDeterministicMultiCoreSplitKwithSmallMN() cons
     return args_.mValue <= BASIC_BLOCK_SIZE_64 && args_.nValue <= BASIC_BLOCK_SIZE_64 && args_.kValue >= MIN_SPLITK_MN64;
 }
 
-void MatmulV3BaseTiling::OptCoreNumsDeterministicMultiCoreSplitK(){
+void Mc2MatmulV3BaseTiling::OptCoreNumsDeterministicMultiCoreSplitK(){
     if (ShouldUseDeterministicMultiCoreSplitKwithSmallMN()) {
         // 经验值
         uint64_t kDeltaCore = ops::FloorDiv(args_.kValue - MIN_SPLITK_MN64, DELTAK_PER_CORE);
@@ -2545,15 +2545,15 @@ void MatmulV3BaseTiling::OptCoreNumsDeterministicMultiCoreSplitK(){
     }
 }
 
-bool MatmulV3BaseTiling::DoDeterministicMultiCoreSplitKTiling()
+bool Mc2MatmulV3BaseTiling::DoDeterministicMultiCoreSplitKTiling()
 {
     if (compileInfo_.supportL12BtBf16 || !SupportMultiSplitK()) {
         return false;
     }
-    tilingEnable_.tilingEnableSplitCore = TilingEnableSplitCore::DETERMINISTIC_SPLIT_K;
-    tilingEnable_.tilingEnableFullLoad = TilingEnableFullLoad::BASE;
-    tilingEnable_.tilingEnableFixOpti = TilingEnableFixOpti::BASE;
-    OP_LOGI(args_.opName, "MatMulV3 tiling enable state is DeterministicMultiCoreSplitK.");
+    tilingEnable_.tilingEnableSplitCore = Mc2TilingEnableSplitCore::DETERMINISTIC_SPLIT_K;
+    tilingEnable_.tilingEnableFullLoad = Mc2TilingEnableFullLoad::BASE;
+    tilingEnable_.tilingEnableFixOpti = Mc2TilingEnableFixOpti::BASE;
+    OP_LOGI(args_.opName, "Mc2MatMulV3 tiling enable state is DeterministicMultiCoreSplitK.");
 
     //MK耗时：(MK + NK) / 1.6 + NK * (M / ML1 - 1) / 7.8
     //NK耗时：(MK + NK) / 1.6 + MK * (N / NL1 - 1) / 7.8
@@ -2606,7 +2606,7 @@ bool MatmulV3BaseTiling::DoDeterministicMultiCoreSplitKTiling()
     return true;
 }
 
-bool MatmulV3BaseTiling::CheckMMTilingDataIsVaild()
+bool Mc2MatmulV3BaseTiling::CheckMMTilingDataIsVaild()
 {
     return (CheckNumberIsValid(runInfo_.usedCoreNum, args_.opName, "runInfo_.usedCoreNum") ||
         CheckNumberIsValid2(runInfo_.singleCoreM, args_.opName, "runInfo_.singleCoreM") ||
@@ -2629,7 +2629,7 @@ bool MatmulV3BaseTiling::CheckMMTilingDataIsVaild()
         CheckNumberIsValid(runInfo_.l2Info.nTileBlock, args_.opName, "runInfo_.l2Info.nTileBlock"));
 }
 
-ge::graphStatus MatmulV3BaseTiling::DoLibApiTiling()
+ge::graphStatus Mc2MatmulV3BaseTiling::DoLibApiTiling()
 {
     SetRunInfo();
     if (runInfo_.needUpdate) {
@@ -2664,17 +2664,17 @@ ge::graphStatus MatmulV3BaseTiling::DoLibApiTiling()
     }
     SetNd2NzInfo();
     DoTilingKey();
-    L2Cache l2Cache(args_, tilingData_);
+    Mc2L2Cache l2Cache(args_, tilingData_);
     l2Cache.SetL2CacheFlag(tilingEnable_, compileInfo_.l2Size, l2CacheFlag_);
     return ge::GRAPH_SUCCESS;
 }
 
-uint64_t MatmulV3BaseTiling::GetTilingKey() const
+uint64_t Mc2MatmulV3BaseTiling::GetTilingKey() const
 {
     return tilingKey_;
 }
 
-void MatmulV3BaseTiling::DoTilingKey()
+void Mc2MatmulV3BaseTiling::DoTilingKey()
 {
     // 1: disable mix nd2nz 0: enable mix nd2nz
     uint64_t disableMixNd2nz = static_cast<uint64_t>(GetMixNd2nzType());
@@ -2685,7 +2685,7 @@ void MatmulV3BaseTiling::DoTilingKey()
     OP_LOGI(args_.opName, "Tiling Key is 0x%x", tilingKey_);
 }
 
-ge::graphStatus MatmulV3BaseTiling::GetWorkspaceSize()
+ge::graphStatus Mc2MatmulV3BaseTiling::GetWorkspaceSize()
 {
     uint64_t align256Byte = 256 / aDtypeSize_;  // 256B 对齐shape
     uint64_t alignedM = ops::CeilAlign(tilingData_.matmulTiling.get_M(), 16);
@@ -2695,23 +2695,23 @@ ge::graphStatus MatmulV3BaseTiling::GetWorkspaceSize()
     alignedN = std::max(alignedN, static_cast<uint64_t>(tilingData_.matmulTiling.get_singleCoreN()));
 
     workspaceSize_ = RPC_WORKSIZE * MB_SIZE; // 20MB reserve > 16MB for rpc
-    if (tilingEnable_.tilingEnableSplitCore == TilingEnableSplitCore::SINGLE_CORE_SPLIT_K || tilingEnable_.tilingEnableSplitCore == TilingEnableSplitCore::SINGLE_CORE_NKM_SPLIT_K ||
-        tilingEnable_.tilingEnableSplitCore == TilingEnableSplitCore::SINGLE_CORE_SPLIT_K_GM_TO_L1) {
+    if (tilingEnable_.tilingEnableSplitCore == Mc2TilingEnableSplitCore::SINGLE_CORE_SPLIT_K || tilingEnable_.tilingEnableSplitCore == Mc2TilingEnableSplitCore::SINGLE_CORE_NKM_SPLIT_K ||
+        tilingEnable_.tilingEnableSplitCore == Mc2TilingEnableSplitCore::SINGLE_CORE_SPLIT_K_GM_TO_L1) {
         workspaceSize_ = args_.mValue * ops::CeilAlign(args_.nValue, align256Byte) * DATA_SIZE_FP32 +
             RPC_WORKSIZE * MB_SIZE; // 20 means 20MB
     }
      OP_LOGI(args_.opName, "if tiling enable is deterministic splitk, workspace size is %lu", workspaceSize_);
-    if (tilingEnable_.tilingEnableSplitCore == TilingEnableSplitCore::DETERMINISTIC_SPLIT_K) {
+    if (tilingEnable_.tilingEnableSplitCore == Mc2TilingEnableSplitCore::DETERMINISTIC_SPLIT_K) {
         uint64_t singleSize = alignedM * alignedN;
         workspaceSize_ =
             static_cast<uint64_t>(tilingData_.matmulTiling.get_usedCoreNum()) * singleSize * DB_SIZE * DATA_SIZE_FP32 +
             RPC_WORKSIZE * MB_SIZE;
     }
-    if (tilingEnable_.tilingEnableFixOpti == TilingEnableFixOpti::BASE_ENABLE_ALIGNOUT) {
+    if (tilingEnable_.tilingEnableFixOpti == Mc2TilingEnableFixOpti::BASE_ENABLE_ALIGNOUT) {
         workspaceSize_ += ops::CeilAlign(args_.nValue, CACHELINE / cDtypeSize_) * tilingData_.matmulTiling.get_baseM() *
            tilingData_.matmulTiling.get_usedCoreNum() * NUMBER_TWO * cDtypeSize_;
     }
-    if (tilingEnable_.tilingEnableFixOpti == TilingEnableFixOpti::VEC_NZ2ND_UNALIGNOUT) {
+    if (tilingEnable_.tilingEnableFixOpti == Mc2TilingEnableFixOpti::VEC_NZ2ND_UNALIGNOUT) {
         workspaceSize_ += ops::CeilAlign(args_.nValue, N_ALIGNED) * tilingData_.matmulTiling.get_baseM() *
            tilingData_.matmulTiling.get_usedCoreNum() * NUMBER_TWO * cDtypeSize_;
     }
@@ -2740,7 +2740,7 @@ ge::graphStatus MatmulV3BaseTiling::GetWorkspaceSize()
     return ge::GRAPH_SUCCESS;
 }
 
-ge::graphStatus MatmulV3BaseTiling::PostTiling()
+ge::graphStatus Mc2MatmulV3BaseTiling::PostTiling()
 {
     OP_TILING_CHECK(tilingData_.GetDataSize() % sizeof(uint64_t) != 0,
         OP_LOGE(args_.opName, "tiling data size[%zu] is not aligned to 8", tilingData_.GetDataSize()),

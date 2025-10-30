@@ -327,7 +327,7 @@ ge::graphStatus QuantTilingTransferHelper::GetShapeAttrsInfo()
     inputParams_.scaleDtype = tilingProcesser_.mmrCtxInfo_.dequant_scale->GetDataType();
     // optiling::PlatformInfo::GetInstance().intrinsic_fix_pipe_l0c2out = tilingProcesser_.supportL0c2Out_;
     GE_ASSERT_TRUE(AnalyzeInputs());
-    inputParams_.isPerTensor = (tilingProcesser_.quantType_ == QuantType::PER_TENSOR);
+    inputParams_.isPerTensor = (tilingProcesser_.quantType_ == Mc2QuantType::PER_TENSOR);
     PrintTilingInputParam(inputParams_);
     return ge::GRAPH_SUCCESS;
 }
@@ -340,7 +340,7 @@ ge::graphStatus QuantTilingTransferHelper::PostTiling()
     return ge::GRAPH_SUCCESS;
 }
 
-void QuantTilingTransferHelper::PrintTilingInputParam(QuantBatchMatmulInfo quantBatchMatmulInfo)
+void QuantTilingTransferHelper::PrintTilingInputParam(Mc2QuantBatchMatmulInfo quantBatchMatmulInfo)
 {
     OP_LOGD(
         tilingProcesser_.opName_, " transA_ %d transB_ %d, hasBias_ %d", quantBatchMatmulInfo.transA,
@@ -364,8 +364,8 @@ void QuantTilingTransferHelper::PrintTilingInputParam(QuantBatchMatmulInfo quant
     OP_LOGD(tilingProcesser_.opName_, "isPerTensor %d", static_cast<int32_t>(quantBatchMatmulInfo.isPerTensor));
 }
 QuantTilingTransferHelper::QuantTilingTransferHelper(
-    QuantMatmulAllReduceTiling& quantMatmulAllReduceTiling, QuantBatchMatmulV3TilingData& data)
-    : QuantBatchMatmulV3Tiling(quantMatmulAllReduceTiling.context_, &data), tilingProcesser_(quantMatmulAllReduceTiling)
+    QuantMatmulAllReduceTiling& quantMatmulAllReduceTiling, Mc2QuantBatchMatmulV3TilingData& data)
+    : Mc2QuantBatchMatmulV3Tiling(quantMatmulAllReduceTiling.context_, &data), tilingProcesser_(quantMatmulAllReduceTiling)
 {}
 } // namespace optiling
 

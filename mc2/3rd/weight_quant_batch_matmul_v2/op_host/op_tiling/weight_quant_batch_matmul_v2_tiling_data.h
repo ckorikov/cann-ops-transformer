@@ -25,7 +25,7 @@
 
 namespace optiling {
 // tiling data for custom and splitK
-BEGIN_TILING_DATA_DEF(WeightQuantBatchMatmulV2TilingData)
+BEGIN_TILING_DATA_DEF(Mc2WeightQuantBatchMatmulV2TilingData)
 TILING_DATA_FIELD_DEF(uint8_t, vecBlockDimN);
 TILING_DATA_FIELD_DEF(uint8_t, vecBlockDimK);
 TILING_DATA_FIELD_DEF(uint8_t, cubeBlockDimN);
@@ -88,7 +88,7 @@ TILING_DATA_FIELD_DEF(uint64_t, nBL1Size);
 TILING_DATA_FIELD_DEF(uint64_t, kBL1Size);
 TILING_DATA_FIELD_DEF_STRUCT(TCubeTiling, matmulTiling);
 END_TILING_DATA_DEF;
-REGISTER_TILING_DATA_CLASS(WeightQuantBatchMatmulV2, WeightQuantBatchMatmulV2TilingData)
-REGISTER_TILING_DATA_CLASS(WeightQuantBatchMatmulV2TilingDataOp, WeightQuantBatchMatmulV2TilingData)
+REGISTER_TILING_DATA_CLASS(Mc2WeightQuantBatchMatmulV2, Mc2WeightQuantBatchMatmulV2TilingData)
+REGISTER_TILING_DATA_CLASS(Mc2WeightQuantBatchMatmulV2TilingDataOp, Mc2WeightQuantBatchMatmulV2TilingData)
 } // namespace optiling
 #endif // WEIGHT_QUANT_BATCH_MATMUL_V2_TILING_DATA_H

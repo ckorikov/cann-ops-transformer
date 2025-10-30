@@ -24,7 +24,7 @@
 namespace MatmulAllReduceAddRmsNormImpl {
 using namespace AscendC;
 using MatmulAllReduceImpl::MatmulAllReduceWeightQuant;
-using WeightQuantBatchMatmulV2::QuantType;
+using Mc2WeightQuantBatchMatmulV2::Mc2QuantType;
 template <typename xType, typename wType, typename yType, class mmType>
 class MatmulAllReduceAddRmsNormWeightQuant : public MatmulAllReduceWeightQuant<xType, wType, yType, mmType>
 {
@@ -76,7 +76,7 @@ private:
         GET_TILING_DATA_WITH_STRUCT(WeightQuantMatmulAllReduceAddRmsNormTilingData, tilingData, tilingGM); \
         using opType = WEIGH_QUANT_MATMUL_CLASS_NAME<                                                      \
             DTYPE_X1, DTYPE_X2, DTYPE_BIAS_FOR_MC2, DTYPE_Y, false, bTransFlag, quantType, offsetFlag,     \
-            QuantType::NONE>;                                                                              \
+            Mc2QuantType::NONE>;                                                                              \
         MC2GmAddrs addrs = {aGM, bGM, biasGM, nullptr, normOutGM, workspaceGM, normOutGM};                 \
         QuantGmAddrs quantAddrs = {antiquantScaleGM, antiquantOffsetGM, nullptr, nullptr};                 \
         ArnGmAddrs arnAddrs = {residualGM, gammaGM, yGM, normOutGM};                                       \

@@ -15,7 +15,7 @@
 #include "quant_batch_matmul_v3_tiling_cache.h"
 
 namespace optiling {
-QuantBatchMatmulV3HashInput::QuantBatchMatmulV3HashInput(const QuantBatchMatmulInfo &params,
+Mc2QuantBatchMatmulV3HashInput::Mc2QuantBatchMatmulV3HashInput(const Mc2QuantBatchMatmulInfo &params,
                                                          const Ops::Transformer::OpTiling::AiCoreParams &aicoreParams)
 {
     mSize = params.mSize;

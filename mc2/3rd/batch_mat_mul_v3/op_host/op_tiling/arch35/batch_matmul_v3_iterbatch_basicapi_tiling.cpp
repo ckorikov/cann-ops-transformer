@@ -18,11 +18,11 @@
 #include "mat_mul_v3/op_host/op_tiling/arch35/matmul_tiling_registry.h"
 
 namespace optiling {
-namespace batch_matmul_v3_advanced {
+namespace Mc2batch_matmul_v3_advanced {
 using namespace strategy;
-MM_REGISTER_TILING_TEMPLATE(BatchMatMulV3, BatchMatMulV3IterBatchBasicApiTiling, ASCEND910_95, ITER_BATCH_BASICAPI);
+MC2_MM_REGISTER_TILING_TEMPLATE(Mc2BatchMatMulV3, Mc2BatchMatMulV3IterBatchBasicApiTiling, ASCEND910_95, ITER_BATCH_BASICAPI);
 
-bool BatchMatMulV3IterBatchBasicApiTiling::IsCapable()
+bool Mc2BatchMatMulV3IterBatchBasicApiTiling::IsCapable()
 {
     if (args_.hasBias) {
         return false;
@@ -44,24 +44,23 @@ bool BatchMatMulV3IterBatchBasicApiTiling::IsCapable()
                                      ops::CeilAlign(args_.kValue, BASIC_BLOCK_SIZE_16);
     // when fp16 or (fp32 and n,k), m align to 16; when fp32 and k,n, n align to 8 * 2 for frac combine in loadtol0b
     alignNValue_ = ops::CeilAlign(args_.nValue, BASIC_BLOCK_SIZE_16);
-    if (alignMValue_ * alignKaValue_ * args_.aDtypeSize * DB_SIZE > compileInfo_.l0ASize) {
-        return false;
-    }
-    if (alignKbValue_ * alignNValue_ * args_.aDtypeSize * DB_SIZE > compileInfo_.l0BSize) {
-        return false;
-    }
-    if (alignMValue_ * alignNValue_ * DATA_SIZE_FP32 * DB_SIZE > compileInfo_.l0CSize) {
-        return false;
-    }
     if ((alignMValue_ * alignKaValue_ + alignKbValue_ * alignNValue_) * args_.aDtypeSize * DB_SIZE >
         compileInfo_.l1Size) {
+        return false;
+    }
+    if (ops::FloorDiv(compileInfo_.l0ASize / DB_SIZE, alignKaValue_ * args_.aDtypeSize) < BASIC_BLOCK_SIZE_16) {
+        // baseM cannot small then 16, then K value should be restricted
+        return false;
+    }
+    if (ops::FloorDiv(compileInfo_.l0BSize / DB_SIZE, alignKbValue_ * args_.bDtypeSize) < BASIC_BLOCK_SIZE_16) {
+        // baseN cannot small then 16, then K value should be restricted
         return false;
     }
     OP_LOGI(args_.opName, "Enter BatchMatmul basicapi iterbatch module.");
     return true;
 }
 
-ge::graphStatus BatchMatMulV3IterBatchBasicApiTiling::DoOpTiling()
+ge::graphStatus Mc2BatchMatMulV3IterBatchBasicApiTiling::DoOpTiling()
 {
     constexpr uint64_t mmadCount = 8UL; // cube count which will cause issuequene
     constexpr uint64_t fullCopySize = 64 * 1024UL; // datasize moving once which can use full of bandwith
@@ -73,32 +72,54 @@ ge::graphStatus BatchMatMulV3IterBatchBasicApiTiling::DoOpTiling()
                                           alignMValue_ * alignNValue_ * DATA_SIZE_FP32);
     uint64_t iterBatchL1 = ops::FloorDiv(compileInfo_.l1Size / DB_SIZE, (alignMValue_ * alignKaValue_ +
                                          alignKbValue_ * alignNValue_) * args_.aDtypeSize);
+    uint64_t iterBatchTemp = std::min({iterBatchL0A, iterBatchL0B, iterBatchL0C, runInfo_.iterBatchL1});
     if (mmadCount * (alignMValue_ * alignKaValue_ + alignKbValue_ * alignNValue_) * args_.aDtypeSize > fullCopySize) {
         runInfo_.iterBatchL1 = std::min({iterBatchL1, mmadCount, ops::CeilDiv(batchInfo_->batchC,
                                          compileInfo_.aicNum)});
-        runInfo_.iterBatchL0 = std::min({iterBatchL0A, iterBatchL0B, iterBatchL0C, runInfo_.iterBatchL1, mmadCount});
+        runInfo_.iterBatchL0 = std::max(std::min({iterBatchL0A, iterBatchL0B, iterBatchL0C, runInfo_.iterBatchL1,
+                                        mmadCount}), 1UL);
     } else {
         runInfo_.iterBatchL1 = std::min({iterBatchL1, ops::CeilDiv(batchInfo_->batchC, compileInfo_.aicNum)});
-        runInfo_.iterBatchL0 = std::min({iterBatchL0A, iterBatchL0B, iterBatchL0C, runInfo_.iterBatchL1});
-        // now iterBatchL0c equals to L0a,b, which could be optimized
+        runInfo_.iterBatchL0 = std::max(std::min({iterBatchL0A, iterBatchL0B, iterBatchL0C, runInfo_.iterBatchL1}),
+                                        1UL);
+    }
+
+    if (iterBatchTemp == 0UL) {
+        // calculate baseM and baseN
+        uint64_t baseM = std::min(ops::FloorDiv(compileInfo_.l0ASize / DB_SIZE,
+                                  alignKaValue_ * args_.aDtypeSize), alignMValue_);
+        uint64_t baseN = std::min(ops::FloorDiv(compileInfo_.l0BSize / DB_SIZE,
+                                  alignKbValue_ * args_.bDtypeSize), alignNValue_);
+        while (baseM * baseN * NUM_FOUR > compileInfo_.l0CSize / DB_SIZE) { // in l0c dtypesize equals 4.
+            if (baseM >= baseN) {
+                baseM = ops::FloorDiv(baseM, NUM_TWO);
+            } else {
+                baseN = ops::FloorDiv(baseN, NUM_TWO);
+            }
+        }
+        runInfo_.baseM = ops::FloorAlign(baseM, BASIC_BLOCK_SIZE_16);
+        runInfo_.baseN = ops::FloorAlign(baseN, BASIC_BLOCK_SIZE_16);
+    } else {
+        runInfo_.baseM = args_.mValue;
+        runInfo_.baseN = args_.nValue;
     }
     OP_LOGI(args_.opName, "In IterBatchBasicApi module, temp iterBatchL0A is %lu, temp iterBatchL0B is %lu, \
         temp iterBatchL0C is %lu, temp iterBatchL1 is %lu, after calculation actual runInfo_.iterBatchL0 is %lu, \
-        runInfo_.iterBatchL1 is %lu,", iterBatchL0A, iterBatchL0B, iterBatchL0C, iterBatchL1, runInfo_.iterBatchL0,
-        runInfo_.iterBatchL1);
+        runInfo_.iterBatchL1 is %lu, runInfo_.baseM is %lu, runInfo_.baseN is %lu,", iterBatchL0A, iterBatchL0B,
+        iterBatchL0C, iterBatchL1, runInfo_.iterBatchL0, runInfo_.iterBatchL1, runInfo_.baseM, runInfo_.baseN);
     return ge::GRAPH_SUCCESS;
 }
 
-uint64_t BatchMatMulV3IterBatchBasicApiTiling::GetTilingKey() const
+uint64_t Mc2BatchMatMulV3IterBatchBasicApiTiling::GetTilingKey() const
 {
-    return MatMulV3TilingKey()
+    return Mc2MatMulV3TilingKey()
         .SetTrans(args_.isATrans, args_.isBTrans)
-        .SetModel(MatMulV3Model::ITER_BATCH_BATCH_BIAS)
-        .SetApiLevel(MatMulV3ApiLevel::BASIC_LEVEL)
+        .SetModel(Mc2MatMulV3Model::ITER_BATCH_BATCH_BIAS)
+        .SetApiLevel(Mc2MatMulV3ApiLevel::BASIC_LEVEL)
         .GetTilingKey();
 }
 
-uint64_t BatchMatMulV3IterBatchBasicApiTiling::GetBlockDim() const
+uint64_t Mc2BatchMatMulV3IterBatchBasicApiTiling::GetBlockDim() const
 {
     return compileInfo_.aicNum;
 }

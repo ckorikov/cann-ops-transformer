@@ -21,14 +21,14 @@
 #include "quant_batch_matmul_v3_tiling.h"
 
 namespace optiling {
-class QuantBatchMatmulInfoFactory {
+class Mc2QuantBatchMatmulInfoFactory {
 public:
-    QuantBatchMatmulInfoFactory() = default;
-    ~QuantBatchMatmulInfoFactory() = default;
+    Mc2QuantBatchMatmulInfoFactory() = default;
+    ~Mc2QuantBatchMatmulInfoFactory() = default;
 
-    QuantBatchMatmulInfo* Get()
+    Mc2QuantBatchMatmulInfo* Get()
     {
-        QuantBatchMatmulInfo *ptr = nullptr;
+        Mc2QuantBatchMatmulInfo *ptr = nullptr;
         auto threadId = pthread_self();
         lock_.rdlock();
         auto it = inst_.find(threadId);
@@ -45,7 +45,7 @@ public:
     }
 
 private:
-    std::map<pthread_t, QuantBatchMatmulInfo> inst_;
+    std::map<pthread_t, Mc2QuantBatchMatmulInfo> inst_;
     Ops::Transformer::Optiling::RWLock lock_;
 };
 

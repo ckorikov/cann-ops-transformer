@@ -18,10 +18,10 @@
 #include "quant_batch_matmul_v3_base.h"
 
 namespace AscendC {
-class QuantBatchMatmulV3BaseBlock {
+class Mc2QuantBatchMatmulV3BaseBlock {
 public:
-    __aicore__ inline QuantBatchMatmulV3BaseBlock() {}
-    __aicore__ inline void Init(const QuantBatchMatmulV3TilingData *tilingData);
+    __aicore__ inline Mc2QuantBatchMatmulV3BaseBlock() {}
+    __aicore__ inline void Init(const Mc2QuantBatchMatmulV3TilingData *tilingData);
     __aicore__ inline void Init(const L2cacheTileParam *tilingL2, const TCubeTiling *matmulTilingData);
     __aicore__ inline void UpdateBlockCnt(uint64_t mTileIndex, uint64_t nTileIndex);
     __aicore__ inline void InitFirstTileBlockIndex();
@@ -45,12 +45,12 @@ public:
     const TCubeTiling *matmulTilingData_;
 };
 
-__aicore__ inline void QuantBatchMatmulV3BaseBlock::Init(const QuantBatchMatmulV3TilingData *tilingData)
+__aicore__ inline void Mc2QuantBatchMatmulV3BaseBlock::Init(const Mc2QuantBatchMatmulV3TilingData *tilingData)
 {
     this->Init(&(tilingData->tileL2cacheTiling), &(tilingData->matmulTiling));
 }
 
-__aicore__ inline void QuantBatchMatmulV3BaseBlock::Init(const L2cacheTileParam *tilingL2, const TCubeTiling *matmulTilingData)
+__aicore__ inline void Mc2QuantBatchMatmulV3BaseBlock::Init(const L2cacheTileParam *tilingL2, const TCubeTiling *matmulTilingData)
 {
     blockIdx_ = static_cast<uint32_t>(GetBlockIdx());
     if ASCEND_IS_AIV {
@@ -83,7 +83,7 @@ __aicore__ inline void QuantBatchMatmulV3BaseBlock::Init(const L2cacheTileParam 
     rowOrder_ = tilingL2->calOrder > 0 ? tilingL2->calOrder : ROW_FIRST; // 默认行优先
 }
 
-__aicore__ inline void QuantBatchMatmulV3BaseBlock::UpdateBlockCnt(uint64_t mTileIndex, uint64_t nTileIndex)
+__aicore__ inline void Mc2QuantBatchMatmulV3BaseBlock::UpdateBlockCnt(uint64_t mTileIndex, uint64_t nTileIndex)
 {
     params_.mTileAddrOffset = mTileIndex * mCnt_ * matmulTilingData_->singleCoreM;
     params_.nTileAddrOffset = nTileIndex * nCnt_ * matmulTilingData_->singleCoreN;
@@ -113,7 +113,7 @@ __aicore__ inline void QuantBatchMatmulV3BaseBlock::UpdateBlockCnt(uint64_t mTil
     }
 }
 
-__aicore__ inline void QuantBatchMatmulV3BaseBlock::InitFirstTileBlockIndex()
+__aicore__ inline void Mc2QuantBatchMatmulV3BaseBlock::InitFirstTileBlockIndex()
 {
     params_.mTileAddrOffset = 0;
     params_.nTileAddrOffset = 0;
@@ -142,7 +142,7 @@ __aicore__ inline void QuantBatchMatmulV3BaseBlock::InitFirstTileBlockIndex()
     }
 }
 
-__aicore__ inline void QuantBatchMatmulV3BaseBlock::InitBlockIndex()
+__aicore__ inline void Mc2QuantBatchMatmulV3BaseBlock::InitBlockIndex()
 {
     if (indexInit_) {
         blockIdxStart_ = blockIdxEnd_; // 开始运算时，首核的索引
@@ -201,7 +201,7 @@ __aicore__ inline void QuantBatchMatmulV3BaseBlock::InitBlockIndex()
     }
 }
 
-__aicore__ inline void QuantBatchMatmulV3BaseBlock::UpdateBlockIndex()
+__aicore__ inline void Mc2QuantBatchMatmulV3BaseBlock::UpdateBlockIndex()
 {
     if (rowOrder_ == ROW_FIRST) {
         params_.index += 1;

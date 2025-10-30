@@ -1,6 +1,6 @@
 /**
- * This program is free software, you can redistribute it and/or modify.
- * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+ * This program is free software, you can redistribute it and/or modify.
+ * Copyright (c) 2025 Huawei Technologies Co., Ltd.
  * This file is a part of the CANN Open Software.
  * Licensed under CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@
 #include "log/log.h"
 
 namespace optiling {
-namespace matmul_v3 {
+namespace mc2_matmul_v3 {
 
 constexpr uint64_t BASIC_ALIGN_8 = 8;
 constexpr uint64_t BASIC_ALIGN_16 = 16;
@@ -67,13 +67,13 @@ constexpr size_t BIAS_IDX = 2;
 constexpr uint64_t NMK_N_THERS = 64;
 constexpr uint64_t NMK_M_THERS = 1920;
 
-enum class CalcType : int32_t
+enum class Mc2CalcType : int32_t
 {
   M_BY_BASE_NK,
   MN_BY_BASE_K
 };
 
-enum class MatmulV3Trans : int32_t
+enum class Mc2MatmulV3Trans : int32_t
 {
     NO_TRANS = 0,
     A_TRANS = 1,
@@ -81,22 +81,22 @@ enum class MatmulV3Trans : int32_t
     AB_TRANS = 3
 };
 
-enum class MixNd2NzType : int32_t
+enum class Mc2MixNd2NzType : int32_t
 {
     V_HEAD_ND2NZ = 0, // 所有核在头部做nd2nz
     NO_ND2NZ = 1, // 不做nd2nz
     V_PARALELL_ND2NZ = 2 // vect和cube并行做nd2nz
 };
 
-enum class TilingCalcSelect : int32_t //选择不同的计算Tiling的方法
-{  
+enum class Mc2TilingCalcSelect : int32_t //选择不同的计算Tiling的方法
+{
     ALL = 0,
     BASE = 1,
     SINGLE_CORE_SPLIT_K = 2,
     DETERMINISTIC_SPLIT_K = 3
 };
 
-enum class TilingEnableSplitCore : int32_t // 互斥flag, 对应不同切K模板选择
+enum class Mc2TilingEnableSplitCore : int32_t // 互斥flag, 对应不同切K模板选择
 {
     BASE = 0,
     SINGLE_CORE_SPLIT_K = 2,
@@ -107,15 +107,15 @@ enum class TilingEnableSplitCore : int32_t // 互斥flag, 对应不同切K模板
     MAX = 10 //模板类别不能超过10个
 };
 
-enum class TilingEnableFullLoad : int32_t // 互斥flag, 对应不同全载模板选择
-{ 
+enum class Mc2TilingEnableFullLoad : int32_t // 互斥flag, 对应不同全载模板选择
+{
     BASE = 0,
     AL1_FULL_LOAD = 1,
     BL1_FULL_LOAD = 2,
     MAX = 10 //模板类别不能超过10个
 };
 
-enum class TilingEnableFixOpti : int32_t // 互斥flag, 对应不同输出优化模板选择
+enum class Mc2TilingEnableFixOpti : int32_t // 互斥flag, 对应不同输出优化模板选择
 {
     BASE = 0,
     BASE_ENABLE_ALIGNOUT = 1,
@@ -123,14 +123,14 @@ enum class TilingEnableFixOpti : int32_t // 互斥flag, 对应不同输出优化
     MAX = 10 //模板类别不能超过10个
 };
 
-struct TilingEnable
+struct Mc2TilingEnable
 {
-    TilingEnableSplitCore tilingEnableSplitCore = TilingEnableSplitCore::BASE; //aoetilingenable的个位
-    TilingEnableFullLoad tilingEnableFullLoad = TilingEnableFullLoad::BASE; //aoetilingenable的十位
-    TilingEnableFixOpti tilingEnableFixOpti = TilingEnableFixOpti::BASE; //aoetilingenable的千位
+    Mc2TilingEnableSplitCore tilingEnableSplitCore = Mc2TilingEnableSplitCore::BASE; //aoetilingenable的个位
+    Mc2TilingEnableFullLoad tilingEnableFullLoad = Mc2TilingEnableFullLoad::BASE; //aoetilingenable的十位
+    Mc2TilingEnableFixOpti tilingEnableFixOpti = Mc2TilingEnableFixOpti::BASE; //aoetilingenable的千位
 };
 
-struct MatmulV3Args
+struct Mc2MatmulV3Args
 {
     const char *opName = nullptr;
     bool isATrans = false;
@@ -157,7 +157,7 @@ struct MatmulV3Args
     double l2Ratio = 0;
 };
 
-struct MatmulV3L2RunInfo
+struct Mc2MatmulV3L2RunInfo
 {
     uint64_t mTile = 1;
     uint64_t nTile = 1;
@@ -166,7 +166,7 @@ struct MatmulV3L2RunInfo
     uint64_t calOrder = 0;
 };
 
-struct MatmulV3RunInfo
+struct Mc2MatmulV3RunInfo
 {
     bool needUpdate = false;
     uint64_t usedCoreNum = 1;
@@ -188,10 +188,10 @@ struct MatmulV3RunInfo
     uint64_t baseAD = 0;
     uint64_t baseBN = 0;
     uint64_t baseBD = 0;
-    MatmulV3L2RunInfo l2Info;
+    Mc2MatmulV3L2RunInfo l2Info;
 };
 
-struct MatmulV3L2SplitParams
+struct Mc2MatmulV3L2SplitParams
 {
     uint64_t outBase = 0;
     uint64_t innerBase = 0;

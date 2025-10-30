@@ -20,7 +20,7 @@
 
 namespace optiling {
 
-struct AdaptiveSlidingWinow {
+struct Mc2AdaptiveSlidingWinow {
     uint64_t baseM = 0;            // 主窗口基本块大小
     uint64_t baseN = 0;            // 主窗口基本块大小
     uint64_t baseK = 0;
@@ -39,7 +39,7 @@ struct AdaptiveSlidingWinow {
     bool useTailWinLogic = true;  // 是否使用尾窗口处理逻辑
 };
 
-struct BasicRunInfoTiling {
+struct Mc2BasicRunInfoTiling {
     uint32_t usedCoreNum = 1;
     uint32_t singleCoreM = 1;
     uint32_t singleCoreN = 1;
@@ -61,13 +61,13 @@ struct BasicRunInfoTiling {
     uint32_t scaleFactorB = 0;
 };
 
-enum class BiasMode : uint32_t {
+enum class Mc2BiasMode : uint32_t {
     EXCLUEDE_FROM_TEMPLATE = 0,
     CUBE_BIAS_BF16_TEMPLATE = 1,
     CUBE_BIAS_FP16_TEMPLATE = 2
 };
 
-enum class QMMKernelType : uint32_t {
+enum class Mc2QMMKernelType : uint32_t {
     NO_VEC_EPILOGUE_WITH_MMAPI = 0,
     NO_VEC_EPILOGUE_CUSTOM_GMTOAL1_WITH_MMAPI = 1,
     VEC_EPILOGUE_WITH_MMAPI = 2,
@@ -75,11 +75,11 @@ enum class QMMKernelType : uint32_t {
     VEC_EPILOGUE_WITH_CUSTOM_MM = 4
 };
 
-class AdaptiveSlidingWindowTiling : public QuantBatchMatmulV3TilingBase {
+class Mc2AdaptiveSlidingWindowTiling : public Mc2QuantBatchMatmulV3TilingBase {
 public:
-    explicit AdaptiveSlidingWindowTiling(gert::TilingContext *context);
-    AdaptiveSlidingWindowTiling(gert::TilingContext *context, DequantBmm::QuantBatchMatmulV3TilingDataParams *out);
-    ~AdaptiveSlidingWindowTiling() override = default;
+    explicit Mc2AdaptiveSlidingWindowTiling(gert::TilingContext *context);
+    Mc2AdaptiveSlidingWindowTiling(gert::TilingContext *context, DequantBmm::Mc2QuantBatchMatmulV3TilingDataParams *out);
+    ~Mc2AdaptiveSlidingWindowTiling() override = default;
 
     // 1、获取平台信息比如CoreNum、UB/L1/L0C资源大小
     ge::graphStatus GetPlatformInfo() override;
@@ -131,12 +131,12 @@ protected:
     bool IsInValidWeighNzTailSplit(uint64_t splitCnt, bool isPreSplit) const;
     void Reset();
 
-    DequantBmm::QuantBatchMatmulV3TilingDataParams tilingDataSelf_;
-    DequantBmm::QuantBatchMatmulV3TilingDataParams &tilingData_;
+    DequantBmm::Mc2QuantBatchMatmulV3TilingDataParams tilingDataSelf_;
+    DequantBmm::Mc2QuantBatchMatmulV3TilingDataParams &tilingData_;
 
 private:
-    AdaptiveSlidingWinow adaptiveWin_;
-    BasicRunInfoTiling basicTiling_;
+    Mc2AdaptiveSlidingWinow adaptiveWin_;
+    Mc2BasicRunInfoTiling basicTiling_;
     bool isAFullLoad_ = false;
     bool isBf16Mix_ = false;
 };

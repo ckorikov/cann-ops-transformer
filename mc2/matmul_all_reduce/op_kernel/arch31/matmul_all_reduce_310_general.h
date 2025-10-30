@@ -28,7 +28,7 @@
 namespace MatmulAllReduceImpl {
 using namespace AscendC;
 template <
-    class A_TYPE, class B_TYPE, class BIAS_TYPE, class C_TYPE, bool L2Cache, bool WeightQuant,
+    class A_TYPE, class B_TYPE, class BIAS_TYPE, class C_TYPE, bool Mc2L2Cache, bool WeightQuant,
     AntiQuantType antiQuantType, bool hasAntiQuantOffset>
 class MatmulAllReduce310General
 {
@@ -40,7 +40,7 @@ public:
     __aicore__ inline void Process(
         GM_ADDR aGM, GM_ADDR bGM, GM_ADDR biasGM, GM_ADDR dequantGM, GM_ADDR antiquantScaleGM,
         GM_ADDR antiquantOffsetGM, GM_ADDR cGM, GM_ADDR workspaceGM, RCSTiling* cfg, Mc2Msg* msg, TCubeTiling* tiling,
-        TCubeTiling* tailTiling, L2cacheTilePara* tileL2cacheTiling, L2cacheTilePara* tailL2cacheTiling, TPipe* tPipe,
+        TCubeTiling* tailTiling, Mc2L2cacheTilePara* tileL2cacheTiling, Mc2L2cacheTilePara* tailL2cacheTiling, TPipe* tPipe,
         HcclServer* hcclServer);
 
 private:
@@ -49,10 +49,10 @@ private:
 };
 
 template <
-    class A_TYPE, class B_TYPE, class BIAS_TYPE, class C_TYPE, bool L2Cache, bool WeightQuant,
+    class A_TYPE, class B_TYPE, class BIAS_TYPE, class C_TYPE, bool Mc2L2Cache, bool WeightQuant,
     AntiQuantType antiQuantType, bool hasAntiQuantOffset>
 __aicore__ inline void
-MatmulAllReduce310General<A_TYPE, B_TYPE, BIAS_TYPE, C_TYPE, L2Cache, WeightQuant, antiQuantType, hasAntiQuantOffset>::
+MatmulAllReduce310General<A_TYPE, B_TYPE, BIAS_TYPE, C_TYPE, Mc2L2Cache, WeightQuant, antiQuantType, hasAntiQuantOffset>::
     Init(GM_ADDR workspaceGM, RCSTiling* cfg, Mc2Msg* msg, TCubeTiling* tiling, HcclServer* hcclServer)
 {
     TBuf<TPosition::VECCALC> tmpBuf;
@@ -72,25 +72,25 @@ MatmulAllReduce310General<A_TYPE, B_TYPE, BIAS_TYPE, C_TYPE, L2Cache, WeightQuan
 }
 
 template <
-    class A_TYPE, class B_TYPE, class BIAS_TYPE, class C_TYPE, bool L2Cache, bool WeightQuant,
+    class A_TYPE, class B_TYPE, class BIAS_TYPE, class C_TYPE, bool Mc2L2Cache, bool WeightQuant,
     AntiQuantType antiQuantType, bool hasAntiQuantOffset>
 __aicore__ inline void
-MatmulAllReduce310General<A_TYPE, B_TYPE, BIAS_TYPE, C_TYPE, L2Cache, WeightQuant, antiQuantType, hasAntiQuantOffset>::
+MatmulAllReduce310General<A_TYPE, B_TYPE, BIAS_TYPE, C_TYPE, Mc2L2Cache, WeightQuant, antiQuantType, hasAntiQuantOffset>::
     Process(
         GM_ADDR aGM, GM_ADDR bGM, GM_ADDR biasGM, GM_ADDR dequantGM, GM_ADDR antiquantScaleGM,
         GM_ADDR antiquantOffsetGM, GM_ADDR cGM, GM_ADDR workspaceGM, RCSTiling* cfg, Mc2Msg* msg, TCubeTiling* tiling,
-        TCubeTiling* tailTiling, L2cacheTilePara* tileL2cacheTiling, L2cacheTilePara* tailL2cacheTiling, TPipe* tPipe,
+        TCubeTiling* tailTiling, Mc2L2cacheTilePara* tileL2cacheTiling, Mc2L2cacheTilePara* tailL2cacheTiling, TPipe* tPipe,
         HcclServer* hcclServer)
 {
     MatMulKernel_AllReduce<
-        A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, L2Cache, false, false, WeightQuant, antiQuantType, hasAntiQuantOffset>(
+        A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, Mc2L2Cache, false, false, WeightQuant, antiQuantType, hasAntiQuantOffset>(
         aGM, bGM, cGM, biasGM, dequantGM, *tiling, *cfg, *tileL2cacheTiling, hcclServer, cfg->tileCnt,
         (cfg->tailM ? false : true), false, mmFormatUb_, antiquantScaleGM, antiquantOffsetGM);
     if (cfg->tailM) { // 存在尾块
         aGM = GetTailA(aGM, *tiling, cfg->tileCnt);
         cGM = GetTailC(cGM, *tiling, cfg->tileCnt);
         MatMulKernel_AllReduce<
-            A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, L2Cache, false, false, WeightQuant, antiQuantType, hasAntiQuantOffset>(
+            A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, Mc2L2Cache, false, false, WeightQuant, antiQuantType, hasAntiQuantOffset>(
             aGM, bGM, cGM, biasGM, dequantGM, *tailTiling, *cfg, *tailL2cacheTiling, hcclServer, cfg->tailCnt, true,
             true, mmFormatUb_, antiquantScaleGM, antiquantOffsetGM);
     }

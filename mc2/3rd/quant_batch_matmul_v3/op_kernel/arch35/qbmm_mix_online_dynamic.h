@@ -28,7 +28,7 @@
     aType, bType, scaleType, biasType, ptScaleType, cType, aFormat, bFormat, cFormat, aTrans, bTrans, l0cDtype, \
         blockType, mmCfg
 
-namespace QuantBatchMatmulV3 {
+namespace Mc2QuantBatchMatmulV3 {
 using AscendC::AIC;
 using AscendC::AIV;
 using AscendC::DataCopyExtParams;
@@ -60,10 +60,10 @@ constexpr AscendC::MicroAPI::CastTrait ctHalf2Fp32One = {
 
 template <class aType, class bType, class scaleType, class biasType, class ptScaleType, class cType, CubeFormat aFormat,
           CubeFormat bFormat, CubeFormat cFormat, bool aTrans, bool bTrans, class l0cDtype,
-          class blockType = QuantBmmAswBlock, const MatmulConfig &mmCfg = MM_CFG_NO_PRELOAD_OPEN_UNIT_FLAG>
-class QuantBmmPertokenRegbaseKernel {
+          class blockType = Mc2QuantBmmAswBlock, const MatmulConfig &mmCfg = MM_CFG_NO_PRELOAD_OPEN_UNIT_FLAG>
+class Mc2QuantBmmPertokenRegbaseKernel {
 public:
-    __aicore__ inline QuantBmmPertokenRegbaseKernel() {}
+    __aicore__ inline Mc2QuantBmmPertokenRegbaseKernel() {}
     __aicore__ inline void Init(GM_ADDR aGM, GM_ADDR bGM, GM_ADDR scale, GM_ADDR offset, GM_ADDR bias, GM_ADDR ptScale,
                                 GM_ADDR cGM, GM_ADDR workSpace, const void *tilingData, TPipe *pipe);
     __aicore__ inline void UpdateGlobalAddr(GM_ADDR aGM, GM_ADDR bGM, GM_ADDR scale, GM_ADDR bias, GM_ADDR ptScale,
@@ -143,13 +143,13 @@ protected:
     TQue<QuePosition::VECIN, 1> vecQueBias_;
     TQue<QuePosition::VECOUT, 1> vecQueOut_;
 
-    const DequantBmm::QuantBatchMatmulV3TilingDataParams *tilingData_;
+    const DequantBmm::Mc2QuantBatchMatmulV3TilingDataParams *tilingData_;
     uint32_t biasDtype_;
     bool isBiasEpilogue_ = false;
 };
 
 LOCAL_TEMPLATE_CLASS_MIX_PARAMS
-__aicore__ inline void QuantBmmPertokenRegbaseKernel<LOCAL_TEMPLATE_FUNC_MIX_PARAMS>::Init(
+__aicore__ inline void Mc2QuantBmmPertokenRegbaseKernel<LOCAL_TEMPLATE_FUNC_MIX_PARAMS>::Init(
     GM_ADDR aGM, GM_ADDR bGM, GM_ADDR scale, GM_ADDR offset, GM_ADDR bias, GM_ADDR ptScale, GM_ADDR cGM,
     GM_ADDR workSpace, const void *tilingData, TPipe *pipe)
 {
@@ -159,7 +159,7 @@ __aicore__ inline void QuantBmmPertokenRegbaseKernel<LOCAL_TEMPLATE_FUNC_MIX_PAR
         subBlockIdx_ = AscendC::GetSubBlockIdx();
     }
     pipe_ = pipe;
-    tilingData_ = static_cast<const DequantBmm::QuantBatchMatmulV3TilingDataParams *>(tilingData);
+    tilingData_ = static_cast<const DequantBmm::Mc2QuantBatchMatmulV3TilingDataParams *>(tilingData);
 
     biasDtype_ = tilingData_->params.biasDtype;
     isBiasEpilogue_ = IsSameType<aType, int8_t>::value &&
@@ -195,7 +195,7 @@ __aicore__ inline void QuantBmmPertokenRegbaseKernel<LOCAL_TEMPLATE_FUNC_MIX_PAR
 }
 
 LOCAL_TEMPLATE_CLASS_MIX_PARAMS
-__aicore__ inline void QuantBmmPertokenRegbaseKernel<LOCAL_TEMPLATE_FUNC_MIX_PARAMS>::UpdateGlobalAddr(
+__aicore__ inline void Mc2QuantBmmPertokenRegbaseKernel<LOCAL_TEMPLATE_FUNC_MIX_PARAMS>::UpdateGlobalAddr(
     GM_ADDR aGM, GM_ADDR bGM, GM_ADDR scale, GM_ADDR bias, GM_ADDR ptScale, GM_ADDR cGM, GM_ADDR workSpace)
 {
     block_.Init(tilingData_, blockIdx_);
@@ -238,7 +238,7 @@ __aicore__ inline void QuantBmmPertokenRegbaseKernel<LOCAL_TEMPLATE_FUNC_MIX_PAR
 }
 
 LOCAL_TEMPLATE_CLASS_MIX_PARAMS
-__aicore__ inline void QuantBmmPertokenRegbaseKernel<LOCAL_TEMPLATE_FUNC_MIX_PARAMS>::Process()
+__aicore__ inline void Mc2QuantBmmPertokenRegbaseKernel<LOCAL_TEMPLATE_FUNC_MIX_PARAMS>::Process()
 {
     if (tilingData_->params.batchC == 1) {
         block_.offset_.batchCOffset = 0;
@@ -251,7 +251,7 @@ __aicore__ inline void QuantBmmPertokenRegbaseKernel<LOCAL_TEMPLATE_FUNC_MIX_PAR
 }
 
 LOCAL_TEMPLATE_CLASS_MIX_PARAMS
-__aicore__ inline void QuantBmmPertokenRegbaseKernel<LOCAL_TEMPLATE_FUNC_MIX_PARAMS>::ProcessWithoutBatch()
+__aicore__ inline void Mc2QuantBmmPertokenRegbaseKernel<LOCAL_TEMPLATE_FUNC_MIX_PARAMS>::ProcessWithoutBatch()
 {
     bool isVecSetSyncCom = false;
     for (uint64_t j = 0; j < block_.params_.round; j++) {
@@ -287,7 +287,7 @@ __aicore__ inline void QuantBmmPertokenRegbaseKernel<LOCAL_TEMPLATE_FUNC_MIX_PAR
 }
 
 LOCAL_TEMPLATE_CLASS_MIX_PARAMS
-__aicore__ inline void QuantBmmPertokenRegbaseKernel<LOCAL_TEMPLATE_FUNC_MIX_PARAMS>::ProcessWithBatch()
+__aicore__ inline void Mc2QuantBmmPertokenRegbaseKernel<LOCAL_TEMPLATE_FUNC_MIX_PARAMS>::ProcessWithBatch()
 {
     uint64_t batchC3C4 = static_cast<uint64_t>(tilingData_->params.batchC3) * tilingData_->params.batchC4;
     uint64_t batchC2C3C4 = tilingData_->params.batchC2 * batchC3C4;
@@ -328,7 +328,7 @@ __aicore__ inline void QuantBmmPertokenRegbaseKernel<LOCAL_TEMPLATE_FUNC_MIX_PAR
 }
 
 LOCAL_TEMPLATE_CLASS_MIX_PARAMS
-__aicore__ inline void QuantBmmPertokenRegbaseKernel<LOCAL_TEMPLATE_FUNC_MIX_PARAMS>::MMCompute()
+__aicore__ inline void Mc2QuantBmmPertokenRegbaseKernel<LOCAL_TEMPLATE_FUNC_MIX_PARAMS>::MMCompute()
 {
     mm.SetTensorA(aGlobal_[block_.offset_.offsetA], aTrans);
     mm.SetTensorB(bGlobal_[block_.offset_.offsetB], bTrans);
@@ -340,7 +340,7 @@ __aicore__ inline void QuantBmmPertokenRegbaseKernel<LOCAL_TEMPLATE_FUNC_MIX_PAR
 }
 
 LOCAL_TEMPLATE_CLASS_MIX_PARAMS
-__aicore__ inline void QuantBmmPertokenRegbaseKernel<LOCAL_TEMPLATE_FUNC_MIX_PARAMS>::DequantCompute()
+__aicore__ inline void Mc2QuantBmmPertokenRegbaseKernel<LOCAL_TEMPLATE_FUNC_MIX_PARAMS>::DequantCompute()
 {
     auto halfSingleM = DequantBmm::CeilDiv(block_.params_.singleCoreM, static_cast<uint64_t>(2));  // 分配给2个AIV计算
     auto singleMInVec = subBlockIdx_ == 1 ? block_.params_.singleCoreM - halfSingleM : halfSingleM;
@@ -385,7 +385,7 @@ __aicore__ inline void QuantBmmPertokenRegbaseKernel<LOCAL_TEMPLATE_FUNC_MIX_PAR
 }
 
 LOCAL_TEMPLATE_CLASS_MIX_PARAMS
-__aicore__ inline void QuantBmmPertokenRegbaseKernel<LOCAL_TEMPLATE_FUNC_MIX_PARAMS>::CopyDataFromGm2Ub()
+__aicore__ inline void Mc2QuantBmmPertokenRegbaseKernel<LOCAL_TEMPLATE_FUNC_MIX_PARAMS>::CopyDataFromGm2Ub()
 {
     auto halfSingleM = DequantBmm::CeilDiv(block_.params_.singleCoreM, static_cast<uint64_t>(2));  // 分配给2个AIV计算
     auto singleMInVec = subBlockIdx_ == 1 ? block_.params_.singleCoreM - halfSingleM : halfSingleM;
@@ -422,7 +422,7 @@ __aicore__ inline void QuantBmmPertokenRegbaseKernel<LOCAL_TEMPLATE_FUNC_MIX_PAR
 }
 
 LOCAL_TEMPLATE_CLASS_MIX_PARAMS
-__aicore__ inline void QuantBmmPertokenRegbaseKernel<LOCAL_TEMPLATE_FUNC_MIX_PARAMS>::CopyX1ScaleFromGm2Ub(
+__aicore__ inline void Mc2QuantBmmPertokenRegbaseKernel<LOCAL_TEMPLATE_FUNC_MIX_PARAMS>::CopyX1ScaleFromGm2Ub(
     LocalTensor<ptScaleType> &dst, uint64_t blockLen, uint64_t offset)
 {
     DataCopyParams ptScale2UbParams{1, 0, 0, 0};
@@ -432,7 +432,7 @@ __aicore__ inline void QuantBmmPertokenRegbaseKernel<LOCAL_TEMPLATE_FUNC_MIX_PAR
 }
 
 LOCAL_TEMPLATE_CLASS_MIX_PARAMS
-__aicore__ inline void QuantBmmPertokenRegbaseKernel<LOCAL_TEMPLATE_FUNC_MIX_PARAMS>::CopyX2ScaleFromGm2Ub(
+__aicore__ inline void Mc2QuantBmmPertokenRegbaseKernel<LOCAL_TEMPLATE_FUNC_MIX_PARAMS>::CopyX2ScaleFromGm2Ub(
     LocalTensor<scaleType> &dst)
 {
     DataCopyParams scale2UbParams{1, 0, 0, 0};
@@ -443,7 +443,7 @@ __aicore__ inline void QuantBmmPertokenRegbaseKernel<LOCAL_TEMPLATE_FUNC_MIX_PAR
 
 LOCAL_TEMPLATE_CLASS_MIX_PARAMS
 template <class BiasDtype>
-__aicore__ inline void QuantBmmPertokenRegbaseKernel<LOCAL_TEMPLATE_FUNC_MIX_PARAMS>::CopyBiasFromGm2Ub(
+__aicore__ inline void Mc2QuantBmmPertokenRegbaseKernel<LOCAL_TEMPLATE_FUNC_MIX_PARAMS>::CopyBiasFromGm2Ub(
     LocalTensor<BiasDtype> &dst)
 {
     DataCopyParams bias2UbParams{1, 0, 0, 0};
@@ -458,7 +458,7 @@ __aicore__ inline void QuantBmmPertokenRegbaseKernel<LOCAL_TEMPLATE_FUNC_MIX_PAR
 }
 
 LOCAL_TEMPLATE_CLASS_MIX_PARAMS
-__aicore__ inline void QuantBmmPertokenRegbaseKernel<LOCAL_TEMPLATE_FUNC_MIX_PARAMS>::CopyDequantResFromUb2Gm(
+__aicore__ inline void Mc2QuantBmmPertokenRegbaseKernel<LOCAL_TEMPLATE_FUNC_MIX_PARAMS>::CopyDequantResFromUb2Gm(
     uint64_t blockCount, uint64_t offset, LocalTensor<cType> &src)
 {
     DataCopyExtParams ub2GmParams{1, 0, 0, 0, 0};
@@ -469,7 +469,7 @@ __aicore__ inline void QuantBmmPertokenRegbaseKernel<LOCAL_TEMPLATE_FUNC_MIX_PAR
 }
 
 LOCAL_TEMPLATE_CLASS_MIX_PARAMS
-__aicore__ inline void QuantBmmPertokenRegbaseKernel<LOCAL_TEMPLATE_FUNC_MIX_PARAMS>::FreeUbTensor()
+__aicore__ inline void Mc2QuantBmmPertokenRegbaseKernel<LOCAL_TEMPLATE_FUNC_MIX_PARAMS>::FreeUbTensor()
 {
     if (!static_cast<bool>(tilingData_->params.isPerTensor)) {
         vecQueScale_.FreeTensor(scaleUb_);
@@ -489,7 +489,7 @@ __aicore__ inline void QuantBmmPertokenRegbaseKernel<LOCAL_TEMPLATE_FUNC_MIX_PAR
 }
 
 LOCAL_TEMPLATE_CLASS_MIX_PARAMS
-__aicore__ inline void QuantBmmPertokenRegbaseKernel<LOCAL_TEMPLATE_FUNC_MIX_PARAMS>::VFDoDequantWithX1Pertoken(
+__aicore__ inline void Mc2QuantBmmPertokenRegbaseKernel<LOCAL_TEMPLATE_FUNC_MIX_PARAMS>::VFDoDequantWithX1Pertoken(
     __ubuf__ cType *dequantOutInUbAddr, __ubuf__ l0cDtype *l0cOutUbAddr, uint64_t offsetPtScale, uint16_t mSize)
 {
     __ubuf__ ptScaleType *ptScaleUbAddr = (__ubuf__ ptScaleType *)ptScaleUb_.GetPhyAddr();
@@ -539,7 +539,7 @@ __aicore__ inline void QuantBmmPertokenRegbaseKernel<LOCAL_TEMPLATE_FUNC_MIX_PAR
 }
 
 LOCAL_TEMPLATE_CLASS_MIX_PARAMS
-__aicore__ inline void QuantBmmPertokenRegbaseKernel<LOCAL_TEMPLATE_FUNC_MIX_PARAMS>::VFDoDequantWithX1Pertensor(
+__aicore__ inline void Mc2QuantBmmPertokenRegbaseKernel<LOCAL_TEMPLATE_FUNC_MIX_PARAMS>::VFDoDequantWithX1Pertensor(
     __ubuf__ cType *dequantOutInUbAddr, __ubuf__ l0cDtype *l0cOutUbAddr, uint16_t mSize)
 {
     VFDoDequant<false, BasicQuantMode::PERTENSOR_MODE, false, float>(
@@ -548,7 +548,7 @@ __aicore__ inline void QuantBmmPertokenRegbaseKernel<LOCAL_TEMPLATE_FUNC_MIX_PAR
 }
 
 LOCAL_TEMPLATE_CLASS_MIX_PARAMS
-__aicore__ inline void QuantBmmPertokenRegbaseKernel<LOCAL_TEMPLATE_FUNC_MIX_PARAMS>::VFDoDequantWithoutPertokenScale(
+__aicore__ inline void Mc2QuantBmmPertokenRegbaseKernel<LOCAL_TEMPLATE_FUNC_MIX_PARAMS>::VFDoDequantWithoutPertokenScale(
     __ubuf__ cType *dequantOutInUbAddr, __ubuf__ l0cDtype *l0cOutUbAddr, uint16_t mSize)
 {
     if (!isBiasEpilogue_) {
@@ -582,7 +582,7 @@ __aicore__ inline void QuantBmmPertokenRegbaseKernel<LOCAL_TEMPLATE_FUNC_MIX_PAR
 
 LOCAL_TEMPLATE_CLASS_MIX_PARAMS
 template <bool isPertensor, BasicQuantMode x1QuantMode, bool isBiasEpilogue, class BiasDtype>
-__aicore__ inline void QuantBmmPertokenRegbaseKernel<LOCAL_TEMPLATE_FUNC_MIX_PARAMS>::VFDoDequant(
+__aicore__ inline void Mc2QuantBmmPertokenRegbaseKernel<LOCAL_TEMPLATE_FUNC_MIX_PARAMS>::VFDoDequant(
     __ubuf__ cType *dst, __ubuf__ l0cDtype *l0cOut, __ubuf__ scaleType *scale, __ubuf__ ptScaleType *perTokenScale,
     __ubuf__ BiasDtype *bias, uint16_t mSize, uint16_t nSize)
 {
@@ -673,6 +673,6 @@ __aicore__ inline void QuantBmmPertokenRegbaseKernel<LOCAL_TEMPLATE_FUNC_MIX_PAR
     }
 }
 
-}  // namespace QuantBatchMatmulV3
+}  // namespace Mc2QuantBatchMatmulV3
 
 #endif  // QBMM_MIX_ONLINE_DYNAMIC_H

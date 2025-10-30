@@ -26,7 +26,7 @@ using AscendC::MicroAPI::AddrReg;
 using AscendC::MicroAPI::MaskReg;
 using AscendC::MicroAPI::RegTensor;
 
-namespace WeightQuantBatchMatmulV2::Arch35 {
+namespace Mc2WeightQuantBatchMatmulV2::Arch35 {
 
 template <typename xType>
 struct MxFp4NdScaleParams {
@@ -315,5 +315,5 @@ __aicore__ inline void AntiQuantFp4NzKnVf(Fp4NzParams<xType, wType>& fp4NzParams
         }
     }
 }
-} // namespace WeightQuantBatchMatmulV2::Arch35
+} // namespace Mc2WeightQuantBatchMatmulV2::Arch35
 #endif // WEIGHT_QUANT_BATCHMATMUL_V2_BASIC_BLOCK_VF_MX_H

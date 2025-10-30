@@ -181,7 +181,7 @@ BEGIN_TILING_DATA_DEF(Mc2MatmulTilingData)
     TILING_DATA_FIELD_DEF(uint32_t, rankM);
     TILING_DATA_FIELD_DEF(uint32_t, rankID);
     TILING_DATA_FIELD_DEF(uint32_t, enableL2Tile);
-    TILING_DATA_FIELD_DEF_STRUCT(BatchMatmulTilingData, bmmTilingData);
+    TILING_DATA_FIELD_DEF_STRUCT(Mc2BatchMatmulTilingData, bmmTilingData);
 
 END_TILING_DATA_DEF;
 REGISTER_TILING_DATA_CLASS(Mc2MatmulTilingDataOp, Mc2MatmulTilingData);

@@ -17,7 +17,7 @@ using AscendC::IsSameType;
 using AscendC::VECTOR_REG_WIDTH;
 namespace MicroAPI = AscendC::MicroAPI;
 
-namespace WeightQuantBatchMatmulV2::Arch35::Catlass {
+namespace Mc2WeightQuantBatchMatmulV2::Arch35::Catlass {
 
 template <typename T>
 struct ONE_REG_ELEM {
@@ -244,5 +244,5 @@ DEVICE void AntiQuantComputeKNGroupWeightNz(
     }
 #endif
 }
-} // namespace WeightQuantBatchMatmulV2::Arch35::Catlass
+} // namespace Mc2WeightQuantBatchMatmulV2::Arch35::Catlass
 #endif

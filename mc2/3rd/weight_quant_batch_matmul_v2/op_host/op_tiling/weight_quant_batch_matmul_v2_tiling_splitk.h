@@ -19,11 +19,11 @@
 #include "weight_quant_batch_matmul_v2_tiling_data.h"
 
 namespace optiling {
-class WeightQuantBatchMatmulV2TilingSplitK : public WeightQuantBatchMatmulV2Tiling
+class Mc2WeightQuantBatchMatmulV2TilingSplitK : public Mc2WeightQuantBatchMatmulV2Tiling
 {
 public:
-    explicit WeightQuantBatchMatmulV2TilingSplitK(gert::TilingContext* context)
-        : WeightQuantBatchMatmulV2Tiling(context)
+    explicit Mc2WeightQuantBatchMatmulV2TilingSplitK(gert::TilingContext* context)
+        : Mc2WeightQuantBatchMatmulV2Tiling(context)
     {
         Reset();
     }
@@ -32,10 +32,10 @@ public:
         TilingBaseClass::Reset(context);
         Reset();
     }
-    ~WeightQuantBatchMatmulV2TilingSplitK() override = default;
+    ~Mc2WeightQuantBatchMatmulV2TilingSplitK() override = default;
 
 protected:
-    std::unique_ptr<WeightQuantBatchMatmulV2TilingData> tilingData_;
+    std::unique_ptr<Mc2WeightQuantBatchMatmulV2TilingData> tilingData_;
     void Reset();
     bool IsCapable() override;
     ge::graphStatus DoOpTiling() override;

@@ -25,8 +25,8 @@ TILING_DATA_FIELD_DEF_STRUCT(MC2HcommCfg, hcommCfg);
 TILING_DATA_FIELD_DEF_STRUCT(MC2HcommCfg, hcommInt8Cfg);
 TILING_DATA_FIELD_DEF_STRUCT(Mc2Msg, msg);
 TILING_DATA_FIELD_DEF_STRUCT(RCSTiling, param);
-TILING_DATA_FIELD_DEF_STRUCT(QuantBatchMatmulV3TilingData, tilematmulTiling);
-TILING_DATA_FIELD_DEF_STRUCT(QuantBatchMatmulV3TilingData, tailmatmulTiling);
+TILING_DATA_FIELD_DEF_STRUCT(Mc2QuantBatchMatmulV3TilingData, tilematmulTiling);
+TILING_DATA_FIELD_DEF_STRUCT(Mc2QuantBatchMatmulV3TilingData, tailmatmulTiling);
 END_TILING_DATA_DEF;
 REGISTER_TILING_DATA_CLASS(MatmulAllReduce_1000000000000000000, QuantMatmulAllReduceTilingDataA5);
 REGISTER_TILING_DATA_CLASS(MatmulAllReduce_1000000000000000001, QuantMatmulAllReduceTilingDataA5);
@@ -93,12 +93,12 @@ private:
     bool isCommInt8Enable_ = false;
 };
 
-class QuantTilingTransferHelperA5 : public AdaptiveSlidingWindowTiling
+class QuantTilingTransferHelperA5 : public Mc2AdaptiveSlidingWindowTiling
 {
 public:
     QuantTilingTransferHelperA5(
-        QuantMatmulAllReduceTilingA5& quantMatmulAllReduceTiling, DequantBmm::QuantBatchMatmulV3TilingDataParams& data)
-        : AdaptiveSlidingWindowTiling(quantMatmulAllReduceTiling.context_, &data),
+        QuantMatmulAllReduceTilingA5& quantMatmulAllReduceTiling, DequantBmm::Mc2QuantBatchMatmulV3TilingDataParams& data)
+        : Mc2AdaptiveSlidingWindowTiling(quantMatmulAllReduceTiling.context_, &data),
           tilingProcesser_(quantMatmulAllReduceTiling)
     {}
 
@@ -109,7 +109,7 @@ public:
     const gert::StorageShape* GetPertokenShape(const size_t index) override;
     const gert::StorageShape* GetBiasShape(const size_t index) override;
     ge::graphStatus GetShapeAttrsInfo() override;
-    void PrintTilingInputParam(QuantBatchMatmulInfo quantBatchMatmulInfo);
+    void PrintTilingInputParam(Mc2QuantBatchMatmulInfo quantBatchMatmulInfo);
     ge::graphStatus PostTiling() override;
 
 private:

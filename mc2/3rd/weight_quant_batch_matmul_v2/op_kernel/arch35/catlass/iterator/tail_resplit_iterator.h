@@ -12,7 +12,7 @@
 
 #include "../utils/math_utils.h"
 
-namespace WeightQuantBatchMatmulV2::Arch35::Catlass {
+namespace Mc2WeightQuantBatchMatmulV2::Arch35::Catlass {
 /*
  * size和step不一致
  */
@@ -162,5 +162,5 @@ private:
     uint8_t subBlockIdx_;
 };
 
-} // namespace WeightQuantBatchMatmulV2::Arch35::Catlass
+} // namespace Mc2WeightQuantBatchMatmulV2::Arch35::Catlass
 #endif

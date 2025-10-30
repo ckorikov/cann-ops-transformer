@@ -41,7 +41,7 @@ public:
     __aicore__ inline void Process();
 
 private:
-    __aicore__ inline void InnerProcess(uint32_t tileCnt, QuantBatchMatmulV3TilingData& quant_tiling, uint32_t shift);
+    __aicore__ inline void InnerProcess(uint32_t tileCnt, Mc2QuantBatchMatmulV3TilingData& quant_tiling, uint32_t shift);
 
 private:
     QuantMatmulAllReduceTilingData* tilingData_;
@@ -105,7 +105,7 @@ __aicore__ inline void MatmulAllReduceQuantBmm<aType, bType, biasType, cType, aT
 
 template <typename aType, typename bType, typename biasType, typename cType, bool aTrans, bool bTrans>
 __aicore__ inline void MatmulAllReduceQuantBmm<aType, bType, biasType, cType, aTrans, bTrans>::InnerProcess(
-    uint32_t tileCnt, QuantBatchMatmulV3TilingData& quant_tiling, uint32_t shift)
+    uint32_t tileCnt, Mc2QuantBatchMatmulV3TilingData& quant_tiling, uint32_t shift)
 {
     const uint64_t aOffset = CalcShapeOffset(sizeof(aType), quant_tiling.matmulTiling.M, quant_tiling.matmulTiling.Ka);
     const uint64_t cOffset = CalcShapeOffset(sizeof(cType), quant_tiling.matmulTiling.M, quant_tiling.matmulTiling.N);

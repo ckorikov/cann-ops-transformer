@@ -1,6 +1,6 @@
 /**
- * This program is free software, you can redistribute it and/or modify.
- * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+ * This program is free software, you can redistribute it and/or modify.
+ * Copyright (c) 2025 Huawei Technologies Co., Ltd.
  * This file is a part of the CANN Open Software.
  * Licensed under CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
@@ -180,8 +180,10 @@ __aicore__ inline void WaitFlagDevLocal(int64_t flagID)
     CrossCoreWaitFlag(flagID);
 }
 
+//supportMmadS8S4平台无L2cacheUseInfo，用宏隔离
+#if !(defined(__NPU_ARCH__) && (__NPU_ARCH__ == 5102))
 template <class A_T, class B_T, class C_T, class BiasT>
-__aicore__ inline void SetL2CacheEnable(const L2cacheUseInfo& l2EnableInfo,
+__aicore__ inline void SetL2CacheEnable(const Mc2L2cacheUseInfo& l2EnableInfo,
     GlobalTensor<A_T> &aGlobal, GlobalTensor<B_T> &bGlobal,
     GlobalTensor<C_T> &cGlobal, GlobalTensor<BiasT> &biasGlobal)
 {
@@ -191,6 +193,7 @@ __aicore__ inline void SetL2CacheEnable(const L2cacheUseInfo& l2EnableInfo,
         }
     }
 }
+#endif
 
 template <class T>
 __aicore__ inline void CopyGmToUbufAlign(const LocalTensor<T>& dst, const GlobalTensor<T>& src,

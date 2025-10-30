@@ -17,23 +17,23 @@
 
 #include "mat_mul_asw_block.h"
 
-namespace MatmulV3Advanced {
+namespace Mc2MatmulV3Advanced {
 
 using namespace AscendC;
 using namespace matmul;
 
-class MatmulDaswBlock: public MatmulAswBlock {
+class Mc2MatmulDaswBlock: public Mc2MatmulAswBlock {
 public:
-    __aicore__ inline MatmulDaswBlock() {}
+    __aicore__ inline Mc2MatmulDaswBlock() {}
     template <class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE>
     __aicore__ inline void Init(const void *tilingData);
     __aicore__ inline void UpdateBasicIndex(uint64_t roundIdx, uint64_t newBlockIdx);
 };
 
 template <class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE>
-__aicore__ inline void MatmulDaswBlock::Init(const void *tilingData)
+__aicore__ inline void Mc2MatmulDaswBlock::Init(const void *tilingData)
 {
-    MatmulAswBlock::Init<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE>(tilingData);
+    Mc2MatmulAswBlock::Init<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE>(tilingData);
     if (params_.totalCnt % (matmulTilingData_->tCubeTiling.usedCoreNum * 2) == 0) {
         params_.roundToReverse = params_.round;
     } else if (params_.round % 2 == 0) {
@@ -43,7 +43,7 @@ __aicore__ inline void MatmulDaswBlock::Init(const void *tilingData)
     }
 }
 
-__aicore__ inline void MatmulDaswBlock::UpdateBasicIndex(uint64_t roundIdx, uint64_t newBlockIdx)
+__aicore__ inline void Mc2MatmulDaswBlock::UpdateBasicIndex(uint64_t roundIdx, uint64_t newBlockIdx)
 {
     uint64_t reversedRoundIdx = roundIdx;
     uint64_t reversedNewBlockIdx = newBlockIdx;
@@ -56,9 +56,9 @@ __aicore__ inline void MatmulDaswBlock::UpdateBasicIndex(uint64_t roundIdx, uint
         reversedRoundIdx = roundIdx - (params_.roundToReverse >> 1);
         reversedNewBlockIdx = newBlockIdx + (matmulTilingData_->tCubeTiling.usedCoreNum >> 1);
     }
-    MatmulAswBlock::UpdateBasicIndex(reversedRoundIdx, reversedNewBlockIdx);
+    Mc2MatmulAswBlock::UpdateBasicIndex(reversedRoundIdx, reversedNewBlockIdx);
 }
 
-} // namespace MatmulV3Advanced
+} // namespace Mc2MatmulV3Advanced
 
 #endif // MMV3_MATMUL_DASW_BLOCK_H

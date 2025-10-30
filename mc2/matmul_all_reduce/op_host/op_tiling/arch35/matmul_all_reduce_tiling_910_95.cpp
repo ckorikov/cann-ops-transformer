@@ -13,6 +13,7 @@
  * \brief
  */
 #include "matmul_all_reduce_tiling_910_95.h"
+#include "tiling/new_mc2_tiling_utils.h"
 #include "op_mc2.h"
 
 namespace optiling {
@@ -141,7 +142,7 @@ ge::graphStatus MatmulAllReduceTilingA5::Do910Tiling()
     OP_TILING_CHECK(platformInfo == nullptr, VECTOR_INNER_ERR_REPORT_TILING(opName_, "get platform info failed"),
                     return ge::GRAPH_FAILED);
     // 获取compileInfo
-    OP_TILING_CHECK(matmul_v3_advanced::InitCompileInfo(platformInfo, &compileInfo_) != ge::GRAPH_SUCCESS,
+    OP_TILING_CHECK(mc2_matmul_v3_advanced::InitCompileInfo(platformInfo, &compileInfo_) != ge::GRAPH_SUCCESS,
                     VECTOR_INNER_ERR_REPORT_TILING(opName_, "init compile info failed"), return ge::GRAPH_FAILED);
 
     // 根据芯片型号获取策略模板
@@ -149,31 +150,31 @@ ge::graphStatus MatmulAllReduceTilingA5::Do910Tiling()
     OP_TILING_CHECK(mc2tiling::GetMatmulV3PriorityPolicy(socVersion_, priorities, opName_) != ge::GRAPH_SUCCESS,
                     VECTOR_INNER_ERR_REPORT_TILING(opName_, "get mmv3 priority policy failed"),
                     return ge::GRAPH_FAILED);
-    MMRegisterCfg registerCfg {"MatMulV3", socVersion_, priorities};
-    mc2tiling::UpdateMatmulV3Args(mmV3Args_, args_, opName_);
+    Mc2MMRegisterCfg registerCfg {"Mc2MatMulV3", socVersion_, priorities};
+    mc2tiling::NewUpdateMatmulV3Args(mmV3Args_, args_, opName_);
 
     // 获取tileTiling
     mmV3Args_.mValue = tileMValue_;
-    OP_LOGD(opName_, "Do MatmulV3 tile tiling!");
-    Mc2MatmulHelper::Mc2MatmulTilingCfg tileTilingCfg(reinterpret_cast<const void*>(&compileInfo_),
+    OP_LOGD(opName_, "Do Mc2MatmulV3 tile tiling!");
+    Mc2MatmulHelper::NewMc2MatmulTilingCfg tileTilingCfg(reinterpret_cast<const void*>(&compileInfo_),
                                                       reinterpret_cast<const void*>(&mmV3Args_));
     GE_ASSERT_GRAPH_SUCCESS(DoMatmulV3Tiling(tileTilingCfg, registerCfg, MutableMC2MmV3TileTilingData()));
     if (tailMValue_ != 0UL) {
         mmV3Args_.mValue = tailMValue_;
-        OP_LOGD(opName_, "Do MatmulV3 tail tiling!");
-        Mc2MatmulHelper::Mc2MatmulTilingCfg tailTilingCfg(reinterpret_cast<const void*>(&compileInfo_),
+        OP_LOGD(opName_, "Do Mc2MatmulV3 tail tiling!");
+        Mc2MatmulHelper::NewMc2MatmulTilingCfg tailTilingCfg(reinterpret_cast<const void*>(&compileInfo_),
                                                           reinterpret_cast<const void*>(&mmV3Args_));
         GE_ASSERT_GRAPH_SUCCESS(DoMatmulV3Tiling(tileTilingCfg, registerCfg, MutableMC2MmV3TailTilingData()));
     }
     return ge::GRAPH_SUCCESS;
 }
 
-ge::graphStatus MatmulAllReduceTilingA5::DoMatmulV3Tiling(Mc2MatmulHelper::Mc2MatmulTilingCfg& tilingCfg,
-    MMRegisterCfg& registerCfg, MC2MatmulV3TilingData& tilingData)
+ge::graphStatus MatmulAllReduceTilingA5::DoMatmulV3Tiling(Mc2MatmulHelper::NewMc2MatmulTilingCfg& tilingCfg,
+    Mc2MMRegisterCfg& registerCfg, MC2MatmulV3TilingData& tilingData)
 {
     tilingCfg.SetRankDim(args_.rankDim);
     tilingCfg.SetMatMulV3TilingData(tilingData);
-    if (MMTilingRegistry::GetInstance().DoTilingImpl(context_, tilingCfg, registerCfg) != ge::GRAPH_SUCCESS) {
+    if (Mc2MMTilingRegistry::GetInstance().DoTilingImpl(context_, tilingCfg, registerCfg) != ge::GRAPH_SUCCESS) {
         OP_LOGE(opName_, "Failed to do MatmulV3Tiling.");
         return ge::GRAPH_FAILED;
     }

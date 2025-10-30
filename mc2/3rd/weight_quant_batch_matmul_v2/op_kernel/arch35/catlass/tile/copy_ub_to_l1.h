@@ -12,7 +12,7 @@
 
 #include "../utils/device_utils.h"
 
-namespace WeightQuantBatchMatmulV2::Arch35::Catlass {
+namespace Mc2WeightQuantBatchMatmulV2::Arch35::Catlass {
 using AscendC::DataCopyParams;
 using AscendC::LocalTensor;
 
@@ -29,5 +29,5 @@ DEVICE void CopyUbToL1IntervalDataCopy(
     DataCopy(dst, src, params);
 }
 
-} // namespace WeightQuantBatchMatmulV2::Arch35::Catlass
+} // namespace Mc2WeightQuantBatchMatmulV2::Arch35::Catlass
 #endif

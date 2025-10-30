@@ -19,7 +19,7 @@
 #include "qbmm_api_utils.h"
 #include "qbmm_perblock_api_utils.h"
 #include "quant_batch_matmul_v3_tiling_data.h"
-namespace QuantBatchMatmulV3 {
+namespace Mc2QuantBatchMatmulV3 {
 
 template <typename x1Type, typename x2Type, typename biasType, typename yType, CubeFormat formatX1, CubeFormat formatX2,
           CubeFormat formatY, bool aTrans, bool bTrans>
@@ -32,10 +32,10 @@ public:
     __aicore__ inline void ProcessWithoutBatch();
 
 protected:
-    const DequantBmm::QuantBatchMatmulV3TilingDataParams *quantBmmTilingData_;
-    QuantBmmAswBlock block_;
+    const DequantBmm::Mc2QuantBatchMatmulV3TilingDataParams *quantBmmTilingData_;
+    Mc2QuantBmmAswBlock block_;
     MatMulPerBlock<x1Type, x2Type, float, biasType, float, yType, formatX1, formatX2, formatY, aTrans, bTrans, float,
-                   QuantBatchMatmulV3::QuantBmmAswBlock>
+                   Mc2QuantBatchMatmulV3::Mc2QuantBmmAswBlock>
         mm_;
 };
 
@@ -46,7 +46,7 @@ __aicore__ inline void MatMulPerBlockASW<x1Type, x2Type, biasType, yType, format
                                                        GM_ADDR perTokenScale, GM_ADDR cGM, GM_ADDR workSpace,
                                                        const void *tilingData, TPipe *que)
 {
-    quantBmmTilingData_ = static_cast<const DequantBmm::QuantBatchMatmulV3TilingDataParams *>(tilingData);
+    quantBmmTilingData_ = static_cast<const DequantBmm::Mc2QuantBatchMatmulV3TilingDataParams *>(tilingData);
     uint32_t blockIdx = GetBlockIdx();
     if ASCEND_IS_AIV {
         blockIdx = blockIdx / AscendC::GetTaskRation();
@@ -91,5 +91,5 @@ MatMulPerBlockASW<x1Type, x2Type, biasType, yType, formatX1, formatX2, formatY, 
         mm_.Iterate();
     }
 }
-}  // namespace QuantBatchMatmulV3
+}  // namespace Mc2QuantBatchMatmulV3
 #endif  // QBMM_MIX_PERBLOCK_H

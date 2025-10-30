@@ -21,14 +21,14 @@
 using Ops::Transformer::MathUtil;
 namespace {
 using namespace optiling;
-using namespace optiling::matmul_v3_advanced;
+using namespace optiling::mc2_matmul_v3_advanced;
 // ------------------------------ CheckStreamKSKTiling -------------------------------------------//
-bool CheckStreamKSKTilingDefault(const MatmulV3CompileInfo & /* compileInfo */, const MatMulV3Args & /* args */)
+bool CheckStreamKSKTilingDefault(const Mc2MatmulV3CompileInfo & /* compileInfo */, const Mc2MatMulV3Args & /* args */)
 {
     return false;
 }
 
-bool CheckStreamKSKTiling91095(const MatmulV3CompileInfo &compileInfo, const MatMulV3Args &args)
+bool CheckStreamKSKTiling91095(const Mc2MatmulV3CompileInfo &compileInfo, const Mc2MatMulV3Args &args)
 {
     constexpr uint64_t STREAM_K_MAX_K_THRESHOLD = 2000000UL;
     // 如果dtype是fp32且k轴大于200万 则走基础模板来保证fp32的精度
@@ -40,7 +40,7 @@ bool CheckStreamKSKTiling91095(const MatmulV3CompileInfo &compileInfo, const Mat
     constexpr uint64_t STREAM_K_MIN_K_THRESHOLD = 8192UL;
     if (ops::CeilAlign(static_cast<uint64_t>(args.kValue), BASIC_BLOCK_SIZE_256) <
         std::max(STREAM_K_MIN_K_THRESHOLD, compileInfo.aicNum * BASIC_BLOCK_K_256_BYTE) / args.aDtypeSize) {
-        OP_LOGD(args.opName, "MatMulV3 tiling unenable state is DoStreamK value[%lu]", args.kValue);
+        OP_LOGD(args.opName, "Mc2MatMulV3 tiling unenable state is DoStreamK value[%lu]", args.kValue);
         return false;
     }
 
@@ -52,30 +52,30 @@ bool CheckStreamKSKTiling91095(const MatmulV3CompileInfo &compileInfo, const Mat
     uint64_t mCnt = MathUtil::CeilDivision(args.mValue, alignValue);
     uint64_t nCnt = MathUtil::CeilDivision(args.nValue, alignValue);
     if (mCnt * nCnt > compileInfo.aicNum / NUM_TWO) {
-        OP_LOGD(args.opName, "MatMulV3 tiling unenable state is DoStreamK mCnt[%lu], nCnt[%lu]", mCnt, nCnt);
+        OP_LOGD(args.opName, "Mc2MatMulV3 tiling unenable state is DoStreamK mCnt[%lu], nCnt[%lu]", mCnt, nCnt);
         return false;
     }
     if (args.bFormat != ge::FORMAT_ND || args.aFormat != ge::FORMAT_ND) {
         OP_LOGD(args.opName, "ND is the only supported format for basic api");
         return false;
     }
-    OP_LOGI(args.opName, "MatMulV3 tiling enable state is DoBasicApiSplitK.");
+    OP_LOGI(args.opName, "Mc2MatMulV3 tiling enable state is DoBasicApiSplitK.");
     return true;
 }
 
-using CheckStreamKSKTilingFunc = bool (*)(const MatmulV3CompileInfo &, const MatMulV3Args &);
+using CheckStreamKSKTilingFunc = bool (*)(const Mc2MatmulV3CompileInfo &, const Mc2MatMulV3Args &);
 
 const static std::map<platform_ascendc::SocVersion, CheckStreamKSKTilingFunc> CheckStreamKSKTilingFuncMap = {
     {platform_ascendc::SocVersion::ASCEND910_95, CheckStreamKSKTiling91095},
 };
 
 // ------------------------------ CheckStreamKDPSKTiling -------------------------------------------//
-bool CheckStreamKDPSKTilingDefault(const MatmulV3CompileInfo & /* compileInfo */, const MatMulV3Args & /* args */)
+bool CheckStreamKDPSKTilingDefault(const Mc2MatmulV3CompileInfo & /* compileInfo */, const Mc2MatMulV3Args & /* args */)
 {
     return false;
 }
 
-bool CheckStreamKDPSKTiling91095(const MatmulV3CompileInfo &compileInfo, const MatMulV3Args &args)
+bool CheckStreamKDPSKTiling91095(const Mc2MatmulV3CompileInfo &compileInfo, const Mc2MatMulV3Args &args)
 {
     constexpr uint64_t STREAM_K_MIN_K_THRESHOLD = 8192UL;
     // 如果k轴小于32*256/DtypeSize_ 或 mn轴不是256对齐 或 输入是fp32类型，不走stream-k-dpsk
@@ -93,28 +93,28 @@ bool CheckStreamKDPSKTiling91095(const MatmulV3CompileInfo &compileInfo, const M
            (totalMNCnt % compileInfo.aicNum <= compileInfo.aicNum / NUM_TWO);
 }
 
-using CheckStreamKDPSKTilingFunc = bool (*)(const MatmulV3CompileInfo &, const MatMulV3Args &);
+using CheckStreamKDPSKTilingFunc = bool (*)(const Mc2MatmulV3CompileInfo &, const Mc2MatMulV3Args &);
 
 const static std::map<platform_ascendc::SocVersion, CheckStreamKDPSKTilingFunc> CheckStreamKDPSKTilingFuncMap = {
     {platform_ascendc::SocVersion::ASCEND910_95, CheckStreamKDPSKTiling91095},
 };
 
 // ------------------------------ GetL0C2OutFlag -------------------------------------------//
-MatMulV3L0C2Out GetL0C2OutFlagDefault(const MatMulV3Args & /* args */)
+Mc2MatMulV3L0C2Out GetL0C2OutFlagDefault(const Mc2MatMulV3Args & /* args */)
 {
-    return MatMulV3L0C2Out::ON_THE_FLY;
+    return Mc2MatMulV3L0C2Out::ON_THE_FLY;
 }
 
-MatMulV3L0C2Out GetL0C2OutFlag91095(const MatMulV3Args &args)
+Mc2MatMulV3L0C2Out GetL0C2OutFlag91095(const Mc2MatMulV3Args &args)
 {
     if (args.nValue > BASIC_BLOCK_SIZE_64 && args.nValue % BASIC_BLOCK_SIZE_16 != 0 && args.mValue > NUM_TWO &&
         args.mValue * args.nValue >= BASIC_BLOCK_SIZE_256) {
-        return MatMulV3L0C2Out::ND_FIXPIPE_1_2;
+        return Mc2MatMulV3L0C2Out::ND_FIXPIPE_1_2;
     }
-    return MatMulV3L0C2Out::ON_THE_FLY;
+    return Mc2MatMulV3L0C2Out::ON_THE_FLY;
 }
 
-using GetL0C2OutFlagFunc = MatMulV3L0C2Out (*)(const MatMulV3Args &);
+using GetL0C2OutFlagFunc = Mc2MatMulV3L0C2Out (*)(const Mc2MatMulV3Args &);
 
 const static std::map<platform_ascendc::SocVersion, GetL0C2OutFlagFunc> GetL0C2OutFlagFuncMap = {
     {platform_ascendc::SocVersion::ASCEND910_95, GetL0C2OutFlag91095},
@@ -123,11 +123,11 @@ const static std::map<platform_ascendc::SocVersion, GetL0C2OutFlagFunc> GetL0C2O
 }  // namespace
 
 namespace optiling {
-namespace matmul_v3_advanced {
+namespace mc2_matmul_v3_advanced {
 using namespace strategy;
-MM_REGISTER_TILING_TEMPLATE(MatMulV3, MatMulV3BasicStreamKTiling, ASCEND910_95, BASIC_STREAM_K);
+MC2_MM_REGISTER_TILING_TEMPLATE(Mc2MatMulV3, Mc2MatMulV3BasicStreamKTiling, ASCEND910_95, BASIC_STREAM_K);
 
-bool MatMulV3BasicStreamKTiling::CheckStreamKSKTiling() const
+bool Mc2MatMulV3BasicStreamKTiling::CheckStreamKSKTiling() const
 {
     auto iter = (CheckStreamKSKTilingFuncMap.find(compileInfo_.socVersion) == CheckStreamKSKTilingFuncMap.end())
                     ? CheckStreamKSKTilingDefault
@@ -135,7 +135,7 @@ bool MatMulV3BasicStreamKTiling::CheckStreamKSKTiling() const
     return iter(compileInfo_, args_);
 }
 
-bool MatMulV3BasicStreamKTiling::CheckStreamKDPSKTiling() const
+bool Mc2MatMulV3BasicStreamKTiling::CheckStreamKDPSKTiling() const
 {
     auto iter = (CheckStreamKDPSKTilingFuncMap.find(compileInfo_.socVersion) == CheckStreamKDPSKTilingFuncMap.end())
                     ? CheckStreamKDPSKTilingDefault
@@ -143,7 +143,7 @@ bool MatMulV3BasicStreamKTiling::CheckStreamKDPSKTiling() const
     return iter(compileInfo_, args_);
 }
 
-MatMulV3L0C2Out MatMulV3BasicStreamKTiling::GetL0C2OutFlag() const
+Mc2MatMulV3L0C2Out Mc2MatMulV3BasicStreamKTiling::GetL0C2OutFlag() const
 {
     auto iter = (GetL0C2OutFlagFuncMap.find(compileInfo_.socVersion) == GetL0C2OutFlagFuncMap.end())
                     ? GetL0C2OutFlagDefault
@@ -151,14 +151,14 @@ MatMulV3L0C2Out MatMulV3BasicStreamKTiling::GetL0C2OutFlag() const
     return iter(args_);
 }
 
-bool MatMulV3BasicStreamKTiling::IsCapable()
+bool Mc2MatMulV3BasicStreamKTiling::IsCapable()
 {
     return CheckStreamKSKTiling() || CheckStreamKDPSKTiling();
 }
 
-ge::graphStatus MatMulV3BasicStreamKTiling::DoOpTiling()
+ge::graphStatus Mc2MatMulV3BasicStreamKTiling::DoOpTiling()
 {
-    MatMulV3TilingHelper::ResetBase(compileInfo_, args_, runInfo_);
+    Mc2MatMulV3TilingHelper::ResetBase(compileInfo_, args_, runInfo_);
 
     mCnt_ = MathUtil::CeilDivision(args_.mValue, runInfo_.baseM);
     nCnt_ = MathUtil::CeilDivision(args_.nValue, runInfo_.baseN);
@@ -187,7 +187,7 @@ ge::graphStatus MatMulV3BasicStreamKTiling::DoOpTiling()
     uint64_t kValueMax = ops::FloorAlign(
         L0A_SIZE_2 / DB_SIZE / args_.aDtypeSize / std::max(runInfo_.baseM, runInfo_.baseN), baseKAlignValue);
     runInfo_.baseK = std::min(runInfo_.singleCoreK, kValueMax);
-    MatMulV3TilingHelper::CalL1Tiling(compileInfo_, args_, runInfo_);
+    Mc2MatMulV3TilingHelper::CalL1Tiling(compileInfo_, args_, runInfo_);
     // depthb1 is less than deptha1
     if (runInfo_.baseM == runInfo_.baseN && runInfo_.depthB1 == runInfo_.depthA1 * NUM_TWO) {
         runInfo_.depthA1 = runInfo_.depthA1 * NUM_TWO;
@@ -202,22 +202,22 @@ ge::graphStatus MatMulV3BasicStreamKTiling::DoOpTiling()
     return ge::GRAPH_SUCCESS;
 }
 
-std::vector<size_t> MatMulV3BasicStreamKTiling::GetWorkspaceSize() const
+std::vector<size_t> Mc2MatMulV3BasicStreamKTiling::GetWorkspaceSize() const
 {
     size_t workspaceSize =
         compileInfo_.aicNum * BASIC_BLOCK_SIZE_256 * BASIC_BLOCK_SIZE_256 * DATA_SIZE_FP32 + RPC_WORKSIZE * MB_SIZE;
-    OP_LOGI(args_.opName, "MatMulV3 tiling workspace size is %lu", workspaceSize);
+    OP_LOGI(args_.opName, "Mc2MatMulV3 tiling workspace size is %lu", workspaceSize);
     return { workspaceSize };
 }
 
-uint64_t MatMulV3BasicStreamKTiling::GetTilingKey() const
+uint64_t Mc2MatMulV3BasicStreamKTiling::GetTilingKey() const
 {
-    return MatMulV3TilingKey()
+    return Mc2MatMulV3TilingKey()
         .SetTrans(args_.isATrans, args_.isBTrans)
-        .SetModel(MatMulV3Model::STREAM_K)
+        .SetModel(Mc2MatMulV3Model::STREAM_K)
         .SetL0C2Out(l0C2Out_)
-        .SetApiLevel(MatMulV3ApiLevel::BASIC_LEVEL)
+        .SetApiLevel(Mc2MatMulV3ApiLevel::BASIC_LEVEL)
         .GetTilingKey();
 }
-} // namespace matmul_v3
+} // namespace mc2_matmul_v3
 } // namespace optiling

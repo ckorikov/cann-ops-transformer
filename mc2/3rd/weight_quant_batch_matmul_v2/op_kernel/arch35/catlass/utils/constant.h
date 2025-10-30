@@ -12,7 +12,7 @@
 
 #include "lib/std/type_traits.h"
 
-namespace WeightQuantBatchMatmulV2::Arch35::Catlass {
+namespace Mc2WeightQuantBatchMatmulV2::Arch35::Catlass {
 using _0 = AscendC::Std::integral_constant<uint32_t, 0>;
 using _1 = AscendC::Std::integral_constant<uint32_t, 1>;
 // constant 16
@@ -27,5 +27,5 @@ using _256 = AscendC::Std::integral_constant<uint32_t, 256>;
 using _512 = AscendC::Std::integral_constant<uint32_t, 512>;
 // constant 1024
 using _1024 = AscendC::Std::integral_constant<uint32_t, 1024>;
-} // namespace WeightQuantBatchMatmulV2::Arch35::Catlass
+} // namespace Mc2WeightQuantBatchMatmulV2::Arch35::Catlass
 #endif

@@ -19,7 +19,7 @@
 using namespace Act;
 using namespace Act::Gemm;
 template <class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE, class A_LAYOUT, class B_LAYOUT, class C_LAYOUT>
-__aicore__ inline void BatchMatMulActIterBatchKernel(GM_ADDR aGM, GM_ADDR bGM, GM_ADDR biasGM,
+__aicore__ inline void Mc2BatchMatMulActIterBatchKernel(GM_ADDR aGM, GM_ADDR bGM, GM_ADDR biasGM,
     GM_ADDR cGM, GM_ADDR workspaceGM, const BatchMatMulV3IterBatchBasicTilingData& tilingData)
 {
     // 定义L1和L0的TileShape
