@@ -47,6 +47,12 @@ static constexpr VecAntiQuantConfig VEC_ANTIQUANT_CONFIG_4 = {3, 512};
     #undef DTYPE_WEIGHT
     #define DTYPE_WEIGHT fp4x2_e2m1_t
 #endif
+#if defined(DT_INT32) && defined(ORIG_DTYPE_WEIGHT) && ORIG_DTYPE_WEIGHT == DT_INT32
+    #undef DTYPE_WEIGHT
+    #define DTYPE_WEIGHT AscendC::int4b_t
+    #undef ORIG_DTYPE_WEIGHT
+    #define ORIG_DTYPE_WEIGHT DT_INT4
+#endif
 #else
 #include "arch35/non_quant/grouped_matmul_basic_kernel.h"
 #endif

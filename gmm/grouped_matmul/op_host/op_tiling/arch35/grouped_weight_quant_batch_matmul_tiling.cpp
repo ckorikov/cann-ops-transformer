@@ -64,7 +64,12 @@ bool GroupedWeightQuantBatchMatmulTiling::AnalyzeAttr(const gert::TilingContext 
     if (weightDtype_ == ge::DT_FLOAT) {
         weightDtype_ = ge::DT_FLOAT4_E2M1;
         if (!transB_) {
-            nSize_ = static_cast<uint64_t>(8) * nSize_;  // 一个float32表示8个fp4,设置为正确shape
+            nSize_ = static_cast<uint64_t>(8) * nSize_; // 一个float32表示8个fp4,设置为正确shape
+        }
+    } else if (weightDtype_ == ge::DT_INT32) {
+        weightDtype_ = ge::DT_INT4;
+        if (!transB_) {
+            nSize_ = static_cast<uint64_t>(8) * nSize_; // 一个int32表示8个int4,设置为正确shape
         }
     }
     PrintInputParam(context);

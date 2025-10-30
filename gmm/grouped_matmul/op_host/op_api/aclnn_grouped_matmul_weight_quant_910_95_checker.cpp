@@ -13,32 +13,43 @@
 using namespace gmm;
 
 namespace {
-static const std::unordered_set<DataType> X_TYPE_SUPPORT_SET = {ge::DT_FLOAT16, ge::DT_BF16, ge::DT_FLOAT8_E4M3FN};
+static const std::unordered_set<DataType> X_TYPE_SUPPORT_SET = {ge::DT_FLOAT16, ge::DT_BF16, ge::DT_FLOAT8_E4M3FN,
+                                                                ge::DT_INT8};
 static const std::unordered_set<DataType> WEIGHT_TYPE_SUPPORT_SET = {
-    ge::DT_INT8, ge::DT_FLOAT8_E4M3FN, ge::DT_FLOAT8_E5M2, ge::DT_HIFLOAT8, ge::DT_FLOAT4_E2M1};
+    ge::DT_INT8, ge::DT_FLOAT8_E4M3FN, ge::DT_FLOAT8_E5M2, ge::DT_HIFLOAT8, ge::DT_FLOAT4_E2M1, ge::DT_INT4};
 static const std::unordered_set<DataType> FP8_SUPPORT_SET = {ge::DT_FLOAT8_E4M3FN, ge::DT_FLOAT8_E5M2,
                                                                    ge::DT_HIFLOAT8};
 } // namespace
 
-bool AclnnGroupedMatmulWeightQuant91095Checker::IsA16MxFp4NZ(const ge::DataType &xDtype, const ge::DataType &weightDtype) const
+bool AclnnGroupedMatmulWeightQuant91095Checker::IsA16MxFp4NZ(const ge::DataType &xDtype,
+                                                             const ge::DataType &weightDtype) const
 {
     return (xDtype == ge::DT_FLOAT16 || xDtype == ge::DT_BF16) && weightDtype == ge::DT_FLOAT4_E2M1;
 }
 
-bool AclnnGroupedMatmulWeightQuant91095Checker::IsMxA8W4NZ(const ge::DataType &xDtype, const ge::DataType &weightDtype) const
+bool AclnnGroupedMatmulWeightQuant91095Checker::IsMxA8W4NZ(const ge::DataType &xDtype,
+                                                           const ge::DataType &weightDtype) const
 {
     return xDtype == ge::DT_FLOAT8_E4M3FN && weightDtype == ge::DT_FLOAT4_E2M1;
 }
 
-bool AclnnGroupedMatmulWeightQuant91095Checker::IsA16W8ND(const ge::DataType &xDtype, const ge::DataType &weightDtype) const
+bool AclnnGroupedMatmulWeightQuant91095Checker::IsA16W8ND(const ge::DataType &xDtype,
+                                                          const ge::DataType &weightDtype) const
 {
     return (xDtype == ge::DT_FLOAT16 || xDtype == ge::DT_BF16) && weightDtype == ge::DT_INT8;
 }
 
-bool AclnnGroupedMatmulWeightQuant91095Checker::IsA16F8ND(const ge::DataType &xDtype, const ge::DataType &weightDtype) const
+bool AclnnGroupedMatmulWeightQuant91095Checker::IsA16F8ND(const ge::DataType &xDtype,
+                                                          const ge::DataType &weightDtype) const
 {
     return (xDtype == ge::DT_FLOAT16 || xDtype == ge::DT_BF16) &&
            FP8_SUPPORT_SET.find(weightDtype) != FP8_SUPPORT_SET.end();
+}
+
+bool AclnnGroupedMatmulWeightQuant91095Checker::IsS8S4NZ(const ge::DataType &xDtype,
+                                                         const ge::DataType &weightDtype) const
+{
+    return xDtype == ge::DT_INT8 && weightDtype == ge::DT_INT4;
 }
 
 aclnnStatus AclnnGroupedMatmulWeightQuant91095Checker::CheckTensorListDtype(const aclTensorList *tensorList,
@@ -52,6 +63,8 @@ aclnnStatus AclnnGroupedMatmulWeightQuant91095Checker::CheckTensorListDtype(cons
                 OP_CHECK_DTYPE_NOT_MATCH(tensor, xDtype, return ACLNN_ERR_PARAM_INVALID);
             } else if (IsA16MxFp4NZ(xDtype, weightDtype) || IsMxA8W4NZ(xDtype, weightDtype)) {
                 OP_CHECK_DTYPE_NOT_MATCH(tensor, ge::DT_FLOAT8_E8M0, return ACLNN_ERR_PARAM_INVALID);
+            } else if (IsS8S4NZ(xDtype, weightDtype)) {
+                OP_CHECK_DTYPE_NOT_MATCH(tensor, ge::DT_FLOAT16, return ACLNN_ERR_PARAM_INVALID);
             }
         }
     }
@@ -85,8 +98,8 @@ aclnnStatus AclnnGroupedMatmulWeightQuant91095Checker::CheckTensorListShape(cons
         // 2含义:仅支持antiquantscale和antiquantoffset的维度为2
         CHECK_COND(tensorDimNum == 2, ACLNN_ERR_PARAM_INVALID, "%s Dim must be 2, but now is [%zu].",
                    tensorType.c_str(), tensorDimNum);
-    } else if (IsA16MxFp4NZ(xDtype, weightDtype) || IsMxA8W4NZ(xDtype, weightDtype)) {
-        // 当前仅伪量化的float8_e8m0类型的antiquantscale走到此分支，仅支持antiquantsacle维度为3
+    } else if (IsA16MxFp4NZ(xDtype, weightDtype) || IsMxA8W4NZ(xDtype, weightDtype) || IsS8S4NZ(xDtype, weightDtype)) {
+        // 当前pergroup场景走到此分支，仅支持antiquantsacle维度为3
         CHECK_COND(tensorDimNum == 3, ACLNN_ERR_PARAM_INVALID,
                    "%s Dim must be 3 when the dtype is fp8_e8m0, but now is [%zu].", tensorType.c_str(), tensorDimNum);
     }
@@ -112,18 +125,23 @@ aclnnStatus AclnnGroupedMatmulWeightQuant91095Checker::CheckTensorListShape(cons
 
 aclnnStatus AclnnGroupedMatmulWeightQuant91095Checker::CheckGmmQuantParams() const
 {
-    CHECK_COND(gmmParams_.scaleOptional == nullptr, ACLNN_ERR_PARAM_INVALID,
-               "In WeightQuant case, scale must be null.");
+    auto weightDtype = (*gmmParams_.weight)[0]->GetDataType();
+    if (!IsS8S4NZ(gmmParams_.xDtype, weightDtype)) {
+        CHECK_COND(gmmParams_.scaleOptional == nullptr, ACLNN_ERR_PARAM_INVALID,
+                   "In WeightQuant case no-S8S4, scale must be null.");
+    } else {
+        CHECK_COND(gmmParams_.scaleOptional != nullptr, ACLNN_ERR_PARAM_INVALID,
+                   "In WeightQuant case S8S4, scale must not be null");
+    }
     CHECK_COND(gmmParams_.offsetOptional == nullptr, ACLNN_ERR_PARAM_INVALID,
                "In WeightQuant case, offset must be null.");
-    auto weightDtype = (*gmmParams_.weight)[0]->GetDataType();
-    if (!IsMxA8W4NZ(gmmParams_.xDtype, weightDtype)) {
+    if (!IsMxA8W4NZ(gmmParams_.xDtype, weightDtype) && !IsS8S4NZ(gmmParams_.xDtype, weightDtype)) {
         CHECK_COND(gmmParams_.perTokenScaleOptional == nullptr, ACLNN_ERR_PARAM_INVALID,
                    "In WeightQuant case, perTokenScale must be null when xDtype-weightDtype is not "
-                   "float8_e4m3fn-float4_e2m1.");
+                   "float8_e4m3fn-float4_e2m1 or int8-int4.");
     } else {
         CHECK_COND(gmmParams_.perTokenScaleOptional != nullptr, ACLNN_ERR_PARAM_INVALID,
-                   "In MxA8W4 weight quantization, perTokenScale must not be null");
+                   "In MxA8W4/S8S4 weight quantization, perTokenScale must not be null");
     }
     return ACLNN_SUCCESS;
 }
@@ -138,7 +156,7 @@ aclnnStatus AclnnGroupedMatmulWeightQuant91095Checker::CheckWeightFormatAndShape
                        "The format of weight is invalid. It should only be ND when weight dtype is %s.",
                        op::ToString((*gmmParams_.weight)[0]->GetStorageFormat()).GetString());
         }
-    } else if (IsA16MxFp4NZ(xDtype, weightDtype) || IsMxA8W4NZ(xDtype, weightDtype)) {
+    } else if (IsA16MxFp4NZ(xDtype, weightDtype) || IsMxA8W4NZ(xDtype, weightDtype) || IsS8S4NZ(xDtype, weightDtype)) {
         CHECK_COND(op::IsPrivateFormat((*gmmParams_.weight)[0]->GetStorageFormat()), ACLNN_ERR_PARAM_INVALID,
                    "The format of weight is invalid. It should only be NZ when weight dtype is %s.",
                    op::ToString((*gmmParams_.weight)[0]->GetStorageFormat()).GetString());
@@ -162,7 +180,7 @@ aclnnStatus AclnnGroupedMatmulWeightQuant91095Checker::CheckTransposeStatus(cons
                 gmmParams_.transposeWeight, ACLNN_ERR_PARAM_INVALID,
                 "In weight quant case fp16/bf16-int8 fp16/bf16-fp8/hif8 fp8_e4m3-fp4_e2m1, weight must be transposed.");
         }
-    } else if (IsA16MxFp4NZ(xDtype, weightDtype)) {
+    } else if (IsA16MxFp4NZ(xDtype, weightDtype) || IsS8S4NZ(xDtype, weightDtype)) {
         if (WEIGHT_TYPE_SUPPORT_SET.find(weightDtype) != WEIGHT_TYPE_SUPPORT_SET.end()) {
             CHECK_COND(!gmmParams_.transposeWeight, ACLNN_ERR_PARAM_INVALID,
                        "In weight quant case fp16/bf16-fp4_e2m1, weight must be not transposed.");
@@ -190,16 +208,12 @@ aclnnStatus AclnnGroupedMatmulWeightQuant91095Checker::CheckNKValue(const DataTy
                    ACLNN_ERR_PARAM_INVALID,
                    "The value of dim n, k should be an integer multiple of [%ld], but actual n is [%ld], k is [%ld].",
                    N_K_ALIGN_VALUE_WEIGHT_QUANT, weightNDim, weightKDim);
-    } else if (IsA16MxFp4NZ(xDtype, weightDtype)) {
+    } else if (IsA16MxFp4NZ(xDtype, weightDtype) || IsMxA8W4NZ(xDtype, weightDtype) || IsS8S4NZ(xDtype, weightDtype)) {
         CHECK_COND((weightNDim % N_K_ALIGN_VALUE_WEIGHT_QUANT_4BIT == 0) &&
                        (weightKDim % N_K_ALIGN_VALUE_WEIGHT_QUANT_4BIT == 0),
                    ACLNN_ERR_PARAM_INVALID,
                    "The value of dim n, k should be an integer multiple of [%ld], but actual n is [%ld], k is [%ld].",
                    N_K_ALIGN_VALUE_WEIGHT_QUANT_4BIT, weightNDim, weightKDim);
-    } else if (IsMxA8W4NZ(xDtype, weightDtype)) {
-        CHECK_COND(weightKDim % N_K_ALIGN_VALUE_WEIGHT_QUANT_4BIT == 0, ACLNN_ERR_PARAM_INVALID,
-                   "The value of dim k should be an integer multiple of [%ld], but actual k is [%ld].",
-                   N_K_ALIGN_VALUE_WEIGHT_QUANT_4BIT, weightKDim);
     }
 
     return ACLNN_SUCCESS;
@@ -229,6 +243,11 @@ aclnnStatus AclnnGroupedMatmulWeightQuant91095Checker::CheckBiasDtype(const Data
                        "actual biasdtype is [%s], ydtype is [%s].",
                        op::ToString(biasDtype).GetString(),
                        op::ToString((*gmmParams_.y)[0]->GetDataType()).GetString());
+        } else if (IsS8S4NZ(xDtype, weightDtype)) {
+            CHECK_COND(
+                biasDtype == DataType::DT_FLOAT, ACLNN_ERR_PARAM_INVALID,
+                "When xDtype-weightDtype is int8-int4, the bias dtype should be float32, but the actual dtype is [%s].",
+                op::ToString(biasDtype).GetString());
         }
     }
 
@@ -250,7 +269,15 @@ aclnnStatus AclnnGroupedMatmulWeightQuant91095Checker::CheckAntiQuantDtype(const
     if (IsMxA8W4NZ(xDtype, weightDtype)) {
         auto pertokenScaleDtype = (*gmmParams_.perTokenScaleOptional)[0]->GetDataType();
         CHECK_COND(pertokenScaleDtype == ge::DT_FLOAT8_E8M0, ACLNN_ERR_PARAM_INVALID,
-                   "pertokenScaleDtype must be float8_e8m0.");
+                   "pertokenScaleDtype must be float8_e8m0 when quantMode is float8_e4m3fn-float4_e2m1.");
+    }
+    if (IsS8S4NZ(xDtype, weightDtype)) {
+        auto pertokenScaleDtype = (*gmmParams_.perTokenScaleOptional)[0]->GetDataType();
+        CHECK_COND(pertokenScaleDtype == ge::DT_FLOAT, ACLNN_ERR_PARAM_INVALID,
+                   "pertokenScaleDtype must be DT_FLOAT when quantMode is int8-int4.");
+        auto scaleDtype = (*gmmParams_.scaleOptional)[0]->GetDataType();
+        CHECK_COND(scaleDtype == ge::DT_FLOAT, ACLNN_ERR_PARAM_INVALID,
+                   "scaleDtype must be DT_FLOAT when quantMode is int8-int4.");
     }
     return ACLNN_SUCCESS;
 }
@@ -261,10 +288,11 @@ aclnnStatus AclnnGroupedMatmulWeightQuant91095Checker::CheckAntiQuantShape(const
     // 伪量化fp8、fp4场景不支持带有offset
     CHECK_COND(
         !(gmmParams_.antiquantOffsetOptional != nullptr &&
-          (IsA16F8ND(xDtype, weightDtype) || IsA16MxFp4NZ(xDtype, weightDtype) || IsMxA8W4NZ(xDtype, weightDtype))),
+          (IsA16F8ND(xDtype, weightDtype) || IsA16MxFp4NZ(xDtype, weightDtype) || IsMxA8W4NZ(xDtype, weightDtype) ||
+           IsS8S4NZ(xDtype, weightDtype))),
         ACLNN_ERR_PARAM_INVALID,
         "In weight quant case, it is unsupported for antiquantOffsetOptional to be non-nullptr when weightDtype is "
-        "fp8/fp4.");
+        "fp8/fp4 or xDtype-weightDtype is int8-int4.");
     CHECK_COND(CheckTensorListShape(gmmParams_.antiquantScaleOptional, "antiquantScale") == ACLNN_SUCCESS,
                ACLNN_ERR_PARAM_INVALID, "Invalid antiquantScale");
     if (IsA16W8ND(xDtype, weightDtype)) {
@@ -286,6 +314,26 @@ aclnnStatus AclnnGroupedMatmulWeightQuant91095Checker::CheckAntiQuantShape(const
         // 32含义：pertokenscale的shape应为(m,k/32)
         CHECK_COND(xShapeKDim == perTokenScaleShapeKDim * 32, ACLNN_ERR_PARAM_INVALID,
                    "The second dim of x must be 32 times the second dim of pertokenscale!");
+    }
+    if(IsS8S4NZ(xDtype, weightDtype)){
+        auto perTokenScaleShape = (*gmmParams_.perTokenScaleOptional)[0]->GetViewShape();
+        auto perTokenScaleShapeDimNum = perTokenScaleShape.GetDimNum();
+        CHECK_COND(perTokenScaleShapeDimNum == 1, ACLNN_ERR_PARAM_INVALID,
+                   "The dim of pertokenscale must be 2!"); // 仅支持perTokenScale维度为1
+        auto xShape = (*gmmParams_.x)[0]->GetViewShape();
+        auto weightShape = (*gmmParams_.weight)[0]->GetViewShape();
+        auto xShapeMDim = xShape.GetDim(0);
+        auto perTokenScaleShapeMDim = perTokenScaleShape.GetDim(0);
+        CHECK_COND(xShapeMDim == perTokenScaleShapeMDim, ACLNN_ERR_PARAM_INVALID,
+                   "The first dim of pertokenscale must be equal to the first dim of x!");
+        auto scaleShape = (*gmmParams_.scaleOptional)[0]->GetViewShape();
+        // S8S4中scale的shape维度仅支持2
+        CHECK_COND(scaleShape.GetDimNum() == 2, ACLNN_ERR_PARAM_INVALID, "The dim of scaleShape must be 2!");
+        CHECK_COND(scaleShape.GetDim(0) == weightShape.GetDim(0), ACLNN_ERR_PARAM_INVALID,
+                   "The dim0 of scaleShape must be g!");
+        // scale的index为1的维度需要为n，即weight的index为2时的数值
+        CHECK_COND(scaleShape.GetDim(1) == weightShape.GetDim(2), ACLNN_ERR_PARAM_INVALID,
+                   "The dim1 of scaleShape must be n!");
     }
     return ACLNN_SUCCESS;
 }
@@ -312,7 +360,9 @@ aclnnStatus AclnnGroupedMatmulWeightQuant91095Checker::CheckUnsupportApi(const D
     CHECK_COND(!(gmmParams_.apiVersion != GMMApiVersion::WeightNz && IsMxA8W4NZ(xDtype, weightDtype)),
                ACLNN_ERR_PARAM_INVALID,
                "Only AclnnGroupedMatmulWeightNz supported fp8_e4m3fn-fp4_e2m1 for xDtype-weightDtype.");
-
+    CHECK_COND(!(gmmParams_.apiVersion != GMMApiVersion::WeightNz && IsS8S4NZ(xDtype, weightDtype)),
+               ACLNN_ERR_PARAM_INVALID,
+               "Only AclnnGroupedMatmulWeightNz supported int8-int4 for xDtype-weightDtype.");
     return ACLNN_SUCCESS;
 }
 
@@ -327,7 +377,7 @@ aclnnStatus AclnnGroupedMatmulWeightQuant91095Checker::CheckGroupSize(const Data
     auto antiquantScaleDimNum = antiquantScaleShape.GetDimNum();
     int64_t groupSize = 0;
     // 3含义，当前shape为(g,k/groupsize,n)或者(g,n,k/groupSize)
-    if (IsA16MxFp4NZ(xDtype, weightDtype) || IsMxA8W4NZ(xDtype, weightDtype)) {
+    if (IsA16MxFp4NZ(xDtype, weightDtype) || IsMxA8W4NZ(xDtype, weightDtype) || IsS8S4NZ(xDtype, weightDtype)) {
         // 2含义: (g,k,n)的k轴索引
         int64_t kSize = weightShape.GetDim(weightShape.GetDimNum() - 2);
         // 2含义: (g,k/groupSize,n)的k轴索引
@@ -339,9 +389,15 @@ aclnnStatus AclnnGroupedMatmulWeightQuant91095Checker::CheckGroupSize(const Data
                    groupNum);
         groupSize = kSize / groupNum;
     }
-    // 当前伪量化仅支持groupsize为0或为32的整数倍
-    CHECK_COND(groupSize % 32 == 0, ACLNN_ERR_PARAM_INVALID,
-               "GroupSize must be a multiple of 32, but the actual groupSize is [%ld].", groupSize);
+    if (IsS8S4NZ(xDtype, weightDtype)) {
+        // 伪量化S8S4场景支持groupsize为128/256/512
+        CHECK_COND(groupSize == 128 || groupSize == 256 || groupSize == 512, ACLNN_ERR_PARAM_INVALID,
+                   "GroupSize must be 128/256/512, but the actual groupSize is [%ld].", groupSize);
+    } else {
+        // 当前伪量化非S8S4仅支持groupsize为0或为32的整数倍
+        CHECK_COND(groupSize == 32 || groupSize == 0, ACLNN_ERR_PARAM_INVALID,
+                   "GroupSize must be 0 or 32, but the actual groupSize is [%ld].", groupSize);
+    }
     return ACLNN_SUCCESS;
 }
 

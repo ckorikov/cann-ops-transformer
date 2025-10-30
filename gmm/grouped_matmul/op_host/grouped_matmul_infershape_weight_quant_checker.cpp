@@ -16,12 +16,15 @@
 #include "grouped_matmul_infershape_common_util.h"
 
 namespace ops {
-static const std::unordered_set<ge::DataType> X_TYPE_SUPPORT_SET = {ge::DT_FLOAT16, ge::DT_BF16, ge::DT_FLOAT8_E4M3FN};
+static const std::unordered_set<ge::DataType> X_TYPE_SUPPORT_SET = {ge::DT_FLOAT16, ge::DT_BF16, ge::DT_FLOAT8_E4M3FN,
+                                                                    ge::DT_INT8};
 static const std::unordered_set<ge::DataType> WEIGHT_TYPE_SUPPORT_SET = {
-    ge::DT_INT8, ge::DT_FLOAT8_E4M3FN, ge::DT_FLOAT8_E5M2, ge::DT_HIFLOAT8, ge::DT_FLOAT4_E2M1, ge::DT_FLOAT};
+    ge::DT_INT8,        ge::DT_FLOAT8_E4M3FN, ge::DT_FLOAT8_E5M2, ge::DT_HIFLOAT8,
+    ge::DT_FLOAT4_E2M1, ge::DT_FLOAT,         ge::DT_INT4,        ge::DT_INT32};
 static const std::map<ge::DataType, std::unordered_set<ge::DataType>> BIAS_TYPE_SUPPORT_MAP = {
     {ge::DT_FLOAT16, {ge::DT_FLOAT16}},
     {ge::DT_BF16, {ge::DT_BF16, ge::DT_FLOAT}},
+    {ge::DT_INT8, {ge::DT_FLOAT}},
     {ge::DT_FLOAT8_E4M3FN, {ge::DT_BF16, ge::DT_FLOAT16}}};
 static const std::unordered_set<ge::DataType> FP8_SUPPORT_SET = {ge::DT_FLOAT8_E4M3FN, ge::DT_FLOAT8_E5M2, ge::DT_HIFLOAT8};
 const int64_t UNKNOWN_SHAPE_VALUE = -1;
@@ -42,6 +45,11 @@ bool GroupedMatmulWeightQuantChecker::IsA16MxFp4NZ(const ge::DataType &xDtype, c
 bool GroupedMatmulWeightQuantChecker::IsMxA8W4NZ(const ge::DataType &xDtype, const ge::DataType &weightDtype) const
 {
     return xDtype == ge::DT_FLOAT8_E4M3FN && (weightDtype == ge::DT_FLOAT4_E2M1 || weightDtype == ge::DT_FLOAT);
+}
+
+bool GroupedMatmulWeightQuantChecker::IsS8S4NZ(const ge::DataType &xDtype, const ge::DataType &weightDtype) const
+{
+    return xDtype == ge::DT_INT8 && (weightDtype == ge::DT_INT4 || weightDtype == ge::DT_INT32);
 }
 
 ge::graphStatus GroupedMatmulWeightQuantChecker::GetXAndWeightDimValue(const gert::InferShapeContext *context,
@@ -82,6 +90,9 @@ ge::graphStatus GroupedMatmulWeightQuantChecker::GetXAndWeightDimValue(const ger
         } else {
             weightNDim_ = weightNDim_ * B4_NUMS_IN_B32;
         }
+    } else if (weightDtype == ge::DT_INT32) {
+        // 一个int32表示8个int4
+        weightNDim_ = weightNDim_ * B4_NUMS_IN_B32;
     }
     return ge::GRAPH_SUCCESS;
 }
@@ -100,14 +111,15 @@ ge::graphStatus GroupedMatmulWeightQuantChecker::CheckShapeForXAndWeight(const g
     OP_CHECK_IF(!(weightKDim_ > 0 && weightKDim_ <= GMM_MAX_INNER_AXIS), OP_LOGE(context->GetNodeName(),
                         "The k dim value should be positive and not larger than [%ld], but the actual value is [%ld].",
                         GMM_MAX_INNER_AXIS, weightKDim_), return ge::GRAPH_FAILED);
-    if (weightDtype == ge::DT_FLOAT4_E2M1 || weightDtype == ge::DT_FLOAT) {
+    if (weightDtype == ge::DT_FLOAT4_E2M1 || weightDtype == ge::DT_FLOAT || weightDtype == ge::DT_INT4 ||
+        weightDtype == ge::DT_INT32) {
         OP_CHECK_IF(
             !((weightNDim_ % GMM_N_K_ALIGN_VALUE_WEIGHT_QUANT_4BIT == 0) &&
               (weightKDim_ % GMM_N_K_ALIGN_VALUE_WEIGHT_QUANT_4BIT == 0)),
-            OP_LOGE(
-                context->GetNodeName(),
-                "The value of dim n, k should be an integer multiple of [%ld], but actual n is [%ld], k is [%ld].",
-                GMM_N_K_ALIGN_VALUE_WEIGHT_QUANT_4BIT, weightNDim_, weightKDim_), return ge::GRAPH_FAILED);
+            OP_LOGE(context->GetNodeName(),
+                    "The value of dim n, k should be an integer multiple of [%ld], but actual n is [%ld], k is [%ld].",
+                    GMM_N_K_ALIGN_VALUE_WEIGHT_QUANT_4BIT, weightNDim_, weightKDim_),
+            return ge::GRAPH_FAILED);
     } else {
         OP_CHECK_IF(
             !((weightNDim_ % GMM_N_K_ALIGN_VALUE_WEIGHT_QUANT == 0) &&
@@ -190,6 +202,59 @@ ge::graphStatus GroupedMatmulWeightQuantChecker::CheckShapeForGrouplist(const ge
     return ge::GRAPH_SUCCESS;
 }
 
+ge::graphStatus GroupedMatmulWeightQuantChecker::CheckTensorListShapeButGroupAntiS(const gert::InferShapeContext *context,
+                                                                   size_t gmm_index, const std::string &tensorType) const
+{
+    auto tensorShape = context->GetDynamicInputShape(gmm_index, 0);
+    size_t tensorDimNum = tensorShape->GetDimNum();
+    auto weightDesc = context->GetDynamicInputDesc(GMM_INDEX_IN_WEIGHT, 0);
+    ge::DataType weightDtype = weightDesc->GetDataType();
+    auto xDesc = context->GetDynamicInputDesc(GMM_INDEX_IN_X, 0);
+    ge::DataType xDtype = xDesc->GetDataType();
+    // check pertokenDim for s8s4
+    if (IsS8S4NZ(xDtype, weightDtype) && gmm_index == GMM_INDEX_IN_PERTOKEN_SCALE) {
+        OP_CHECK_IF(tensorDimNum != 1,
+                    OP_LOGE(context->GetNodeName(),
+                            "When %s is not null, its dim should be 1, but the actual dim num is [%zu].",
+                            tensorType.c_str(), tensorDimNum),
+                    return ge::GRAPH_FAILED);
+    } else {
+        // check 2 dim antiquantscale、 antiquantoffset、bias and scale for s8s4
+        OP_CHECK_IF(tensorDimNum != 2,
+                    OP_LOGE(context->GetNodeName(),
+                            "When %s is not null, its dim should be 2, but the actual dim num is [%zu].",
+                            tensorType.c_str(), tensorDimNum),
+                    return ge::GRAPH_FAILED);
+    }
+    // check pertokenscale for MxA8W4
+    if (gmm_index == GMM_INDEX_IN_PERTOKEN_SCALE) {
+        if (IsMxA8W4NZ(xDtype, weightDtype)) {
+            OP_CHECK_IF(
+                tensorShape->GetDim(0) != xMDim_ || tensorShape->GetDim(1) != weightKDim_ / 32, // 32含义：groupsize大小
+                OP_LOGE(context->GetNodeName(),
+                        "The shape of %s should be (m, k/32), which is (%ld, %ld), but the actual "
+                        "shape is (%ld, %ld).",
+                        tensorType.c_str(), xMDim_, weightKDim_ / 32, tensorShape->GetDim(0), tensorShape->GetDim(1)),
+                return ge::GRAPH_FAILED);
+        } else if (IsS8S4NZ(xDtype, weightDtype)) {
+            OP_CHECK_IF(tensorShape->GetDim(0) != xMDim_,
+                        OP_LOGE(context->GetNodeName(),
+                                "The shape of %s should be (m), which is (%ld), but the actual shape is (%ld).",
+                                tensorType.c_str(), xMDim_, tensorShape->GetDim(0)),
+                        return ge::GRAPH_FAILED);
+        }
+    } else {
+        // check the dim of antiquantscale、 antiquantoffset、bias、scale
+        OP_CHECK_IF(
+            tensorShape->GetDim(0) != groupNum_ || tensorShape->GetDim(1) != weightNDim_,
+            OP_LOGE(context->GetNodeName(),
+                    "The shape of %s should be (g, n), which is (%ld, %ld), but the actual shape is (%ld, %ld).",
+                    tensorType.c_str(), groupNum_, weightNDim_, tensorShape->GetDim(0), tensorShape->GetDim(1)),
+            return ge::GRAPH_FAILED);
+    }
+    return ge::GRAPH_SUCCESS;
+}
+
 ge::graphStatus GroupedMatmulWeightQuantChecker::CheckShapeForTensorList(const gert::InferShapeContext *context, size_t gmm_index,
                                                                      const std::string &tensorType) const{
     auto tensorShape = context->GetDynamicInputShape(gmm_index, 0);
@@ -201,42 +266,33 @@ ge::graphStatus GroupedMatmulWeightQuantChecker::CheckShapeForTensorList(const g
         ge::DataType xDtype = xDesc->GetDataType();
         // check 3 dim antiquantscale
         if (gmm_index == GMM_INDEX_IN_ANTIQUANT_SCALE &&
-            (weightDtype == ge::DT_FLOAT4_E2M1 || weightDtype == ge::DT_FLOAT)) {
+            (weightDtype == ge::DT_FLOAT4_E2M1 || weightDtype == ge::DT_FLOAT || weightDtype == ge::DT_INT4 ||
+             weightDtype == ge::DT_INT32)) {
             // antiquantscale的Shape为(g, k/groupSize, n)/(g, n, k/groupsize),维度数为3,单独校验
-            OP_CHECK_IF(tensorDimNum != 3,OP_LOGE(context->GetNodeName(),
-                        "When %s is not null, its dim should be 3, but the actual dim num is [%zu].",
-                        tensorType.c_str(), tensorDimNum), return ge::GRAPH_FAILED);
-            OP_CHECK_IF(tensorShape->GetDim(0) != groupNum_, OP_LOGE(context->GetNodeName(),
-                        "The first dim of %s should be g, which is  %ld , but the actual shape is %ld.",
-                        tensorType.c_str(), groupNum_, weightNDim_, tensorShape->GetDim(0)), return ge::GRAPH_FAILED);
+            OP_CHECK_IF(tensorDimNum != 3,
+                        OP_LOGE(context->GetNodeName(),
+                                "When %s is not null, its dim should be 3, but the actual dim num is [%zu].",
+                                tensorType.c_str(), tensorDimNum),
+                        return ge::GRAPH_FAILED);
+            OP_CHECK_IF(tensorShape->GetDim(0) != groupNum_,
+                        OP_LOGE(context->GetNodeName(),
+                                "The first dim of %s should be g, which is  %ld , but the actual shape is %ld.",
+                                tensorType.c_str(), groupNum_, weightNDim_, tensorShape->GetDim(0)),
+                        return ge::GRAPH_FAILED);
             const gert::RuntimeAttrs *attrs = context->GetAttrs();
             const bool *transposeWPtr = attrs->GetAttrPointer<bool>(GMM_INDEX_ATTR_TRANSPOSE_W);
             OP_CHECK_NULL_WITH_CONTEXT(context, transposeWPtr);
             bool transposeWeight = *transposeWPtr;
             auto antiSN = transposeWeight ? tensorShape->GetDim(1) : tensorShape->GetDim(2);
-            OP_CHECK_IF(antiSN != weightNDim_, OP_LOGE(context->GetNodeName(),
-                        "The n dim of %s should be weight's n, which is %ld, but the actual shape is %ld.",
-                        tensorType.c_str(), weightNDim_, antiSN), return ge::GRAPH_FAILED);
+            OP_CHECK_IF(antiSN != weightNDim_,
+                        OP_LOGE(context->GetNodeName(),
+                                "The n dim of %s should be weight's n, which is %ld, but the actual shape is %ld.",
+                                tensorType.c_str(), weightNDim_, antiSN),
+                        return ge::GRAPH_FAILED);
         } else {
-            // check 2 dim antiquantscale、 antiquantoffset、bias
-            OP_CHECK_IF(tensorDimNum != 2, OP_LOGE(context->GetNodeName(),
-                        "When %s is not null, its dim should be 2, but the actual dim num is [%zu].",
-                        tensorType.c_str(), tensorDimNum), return ge::GRAPH_FAILED);
-            // check pertokenscale for MxA8W4
-            if (gmm_index == GMM_INDEX_IN_PERTOKEN_SCALE && IsMxA8W4NZ(xDtype, weightDtype)) {
-                OP_CHECK_IF(
-                    tensorShape->GetDim(0) != xMDim_ || tensorShape->GetDim(1) != weightKDim_ / 32, // 32含义：groupsize大小
-                    OP_LOGE( context->GetNodeName(),
-                        "The shape of %s should be (m, k/32), which is (%ld, %ld), but the actual shape is (%ld, %ld).",
-                        tensorType.c_str(), xMDim_, weightKDim_ / 32, tensorShape->GetDim(0), tensorShape->GetDim(1)),
-                    return ge::GRAPH_FAILED);
-            } else {
-                // check the dim of antiquantscale、 antiquantoffset、bias
-                OP_CHECK_IF(
-                    tensorShape->GetDim(0) != groupNum_ || tensorShape->GetDim(1) != weightNDim_, OP_LOGE(context->GetNodeName(),
-                    "The shape of %s should be (g, n), which is (%ld, %ld), but the actual shape is (%ld, %ld).",
-                    tensorType.c_str(), groupNum_, weightNDim_, tensorShape->GetDim(0), tensorShape->GetDim(1)),return ge::GRAPH_FAILED);
-            }}}
+            return CheckTensorListShapeButGroupAntiS(context, gmm_index, tensorType);
+        }
+    }
     return ge::GRAPH_SUCCESS;
 }
 
@@ -258,37 +314,42 @@ ge::graphStatus GroupedMatmulWeightQuantChecker::CheckShapeForWeightQuantParam(c
                 OP_LOGE(context->GetNodeName(),
                         "In weight quant case, only support antiquantOffset is none when weightDtype is fp8/hif8/fp4."),
                 return ge::GRAPH_FAILED);
-
-    OP_CHECK_IF(IsNonEmpty(scaleShape) || IsNonEmpty(offsetShape),
-                OP_LOGE(context->GetNodeName(), "In weight quant case, scale, offset must be empty."),
+    OP_CHECK_IF(IsNonEmpty(scaleShape) && !IsS8S4NZ(xDtype, weightDtype),
+                OP_LOGE(context->GetNodeName(), "In weight quant case, scale must be empty."), return ge::GRAPH_FAILED);
+    OP_CHECK_IF(!IsNonEmpty(scaleShape) && IsS8S4NZ(xDtype, weightDtype),
+                OP_LOGE(context->GetNodeName(), "In weight quant case S8S4, scale must not be empty."),
                 return ge::GRAPH_FAILED);
-
+    OP_CHECK_IF(IsNonEmpty(offsetShape),
+                OP_LOGE(context->GetNodeName(), "In weight quant case, offset must be empty."),
+                return ge::GRAPH_FAILED);
     OP_CHECK_IF(
-        IsNonEmpty(perTokenScaleShape) && !IsMxA8W4NZ(xDtype, weightDtype),
-        OP_LOGE(context->GetNodeName(), "In non-MxA8W4 quantization weight quant case, pertokenscale must be empty."),
+        IsNonEmpty(perTokenScaleShape) && (!IsMxA8W4NZ(xDtype, weightDtype) && !IsS8S4NZ(xDtype,weightDtype)),
+        OP_LOGE(context->GetNodeName(), "In non MxA8W4/S8S4 quantization weight quant case, pertokenscale must be empty."),
         return ge::GRAPH_FAILED);
-
-    OP_CHECK_IF(!IsNonEmpty(perTokenScaleShape) && IsMxA8W4NZ(xDtype, weightDtype),
-                OP_LOGE(context->GetNodeName(), "In weight quant case MxA8W4, pertokenscale must be not empty."),
+    OP_CHECK_IF(!IsNonEmpty(perTokenScaleShape) && (IsMxA8W4NZ(xDtype, weightDtype) || IsS8S4NZ(xDtype,weightDtype)),
+                OP_LOGE(context->GetNodeName(), "In weight quant case MxA8W4/S8S4, pertokenscale must be not empty."),
                 return ge::GRAPH_FAILED);
-
     OP_CHECK_IF(!IsNonEmpty(antiquantScaleShape),
                 OP_LOGE(context->GetNodeName(), "In weight quant case, antiquantScale must be not empty."),
                 return ge::GRAPH_FAILED);
-
     OP_CHECK_IF(CheckShapeForTensorList(context, GMM_INDEX_IN_ANTIQUANT_SCALE, "antiquantScale") != ge::GRAPH_SUCCESS,
                 OP_LOGE(context->GetNodeName(), "CheckShapeForAntiquantScale failed."), return ge::GRAPH_FAILED);
-
     OP_CHECK_IF(CheckShapeForTensorList(context, GMM_INDEX_IN_ANTIQUANT_OFFSET, "antiquantOffset") != ge::GRAPH_SUCCESS,
                 OP_LOGE(context->GetNodeName(), "CheckShapeForAntiquantOffset failed."), return ge::GRAPH_FAILED);
-
+    if (IsMxA8W4NZ(xDtype, weightDtype) || IsS8S4NZ(xDtype, weightDtype)) {
+        OP_CHECK_IF(CheckShapeForTensorList(context, GMM_INDEX_IN_PERTOKEN_SCALE, "pertokenScale") !=
+                        ge::GRAPH_SUCCESS,
+                    OP_LOGE(context->GetNodeName(), "CheckShapeForpertokenScale failed."), return ge::GRAPH_FAILED);}
+    if(IsS8S4NZ(xDtype, weightDtype)){
+        OP_CHECK_IF(CheckShapeForTensorList(context, GMM_INDEX_IN_SCALE, "scale") !=
+                        ge::GRAPH_SUCCESS,
+                    OP_LOGE(context->GetNodeName(), "CheckShapeForscale failed."), return ge::GRAPH_FAILED);}
     return ge::GRAPH_SUCCESS;
 }
 
 ge::graphStatus GroupedMatmulWeightQuantChecker::CheckGroupSize(const gert::InferShapeContext *context,
-                                                            const GMMAttrs &gmmAttrs) const {
-    auto antiquantScaleShape = context->GetDynamicInputShape(GMM_INDEX_IN_ANTIQUANT_SCALE, 0);
-    auto antiquantScaleDimNum = antiquantScaleShape->GetDimNum();
+                                                                const GMMAttrs &gmmAttrs) const
+{
     auto weightDesc = context->GetDynamicInputDesc(GMM_INDEX_IN_WEIGHT, 0);
     OP_CHECK_NULL_WITH_CONTEXT(context, weightDesc);
     auto weightDtype = weightDesc->GetDataType();
@@ -297,7 +358,9 @@ ge::graphStatus GroupedMatmulWeightQuantChecker::CheckGroupSize(const gert::Infe
     auto xDtype = xDesc->GetDataType();
     int64_t groupSize = 0;
     // 3含义，当前shape为(g,k/groupsize,n)或者(g,n,k/groupSize), 在伪量化Mx场景出现
-    if (IsA16MxFp4NZ(xDtype, weightDtype) || IsMxA8W4NZ(xDtype, weightDtype)) {
+    if (IsA16MxFp4NZ(xDtype, weightDtype) || IsMxA8W4NZ(xDtype, weightDtype) || IsS8S4NZ(xDtype, weightDtype)) {
+        auto antiquantScaleShape = context->GetDynamicInputShape(GMM_INDEX_IN_ANTIQUANT_SCALE, 0);
+        auto antiquantScaleDimNum = antiquantScaleShape->GetDimNum();
         // 2含义: (g,k/groupSize,n)的k轴索引,此处groupNum是K轴上量化分组的groupNum，与groupNum_含义不同
         int64_t groupNum = gmmAttrs.transposeWeight ? antiquantScaleShape->GetDim(antiquantScaleDimNum - 1) :
                                                       antiquantScaleShape->GetDim(antiquantScaleDimNum - 2);
@@ -308,9 +371,19 @@ ge::graphStatus GroupedMatmulWeightQuantChecker::CheckGroupSize(const gert::Infe
                     return ge::GRAPH_FAILED);
         groupSize = weightKDim_ / groupNum;
     }
-    // 当前伪量化仅支持groupSize为0或为32的整数倍
-    OP_CHECK_IF(groupSize % 32 != 0, OP_LOGE(context->GetNodeName(), "groupSize must be a multiple of 32."),
-              return ge::GRAPH_FAILED);
+    if (IsS8S4NZ(xDtype, weightDtype)) {
+        // 伪量化S8S4场景支持groupsize为128/256/512
+        OP_CHECK_IF(groupSize != 128 && groupSize != 256 && groupSize != 512,
+                    OP_LOGE(context->GetNodeName(), "groupSize must be 128/256/512, but current groupSize is (%ld).",
+                            groupSize),
+                    return ge::GRAPH_FAILED);
+    } else {
+        // 当前伪量化非S8S4仅支持groupSize为0或为32的整数倍
+        OP_CHECK_IF(groupSize != 32 && groupSize != 0,
+                    OP_LOGE(context->GetNodeName(),
+                            "groupSize must be a multiple of 32, but current groupSize is (%ld).", groupSize),
+                    return ge::GRAPH_FAILED);
+    }
     return ge::GRAPH_SUCCESS;
 }
 
@@ -398,6 +471,40 @@ ge::graphStatus GroupedMatmulWeightQuantChecker::InferOutShape(gert::InferShapeC
     return ge::GRAPH_SUCCESS;
 }
 
+ge::graphStatus GroupedMatmulWeightQuantChecker::CheckScaleDtypeForS8S4(const gert::InferDataTypeContext *context) const
+{
+    auto perTokenScaleDtype = context->GetDynamicInputDataType(GMM_INDEX_IN_PERTOKEN_SCALE, 0);
+    auto scaleDtype = context->GetDynamicInputDataType(GMM_INDEX_IN_SCALE, 0);
+    auto antiquantScaleDtype = context->GetDynamicInputDataType(GMM_INDEX_IN_ANTIQUANT_SCALE, 0);
+    OP_CHECK_IF(scaleDtype != ge::DT_FLOAT,
+                OP_LOGE(context->GetNodeName(), "scaleDtype datatype [%s] does not match float32.",
+                        ge::TypeUtils::DataTypeToAscendString(scaleDtype).GetString()),
+                return ge::GRAPH_FAILED);
+    OP_CHECK_IF(antiquantScaleDtype != ge::DT_FLOAT16,
+                OP_LOGE(context->GetNodeName(), "antiquantScaleDtype datatype [%s] does not match float16.",
+                        ge::TypeUtils::DataTypeToAscendString(antiquantScaleDtype).GetString()),
+                return ge::GRAPH_FAILED);
+    OP_CHECK_IF(perTokenScaleDtype != ge::DT_FLOAT,
+                OP_LOGE(context->GetNodeName(), "perTokenScaleDtype datatype [%s] does not match float32.",
+                        ge::TypeUtils::DataTypeToAscendString(perTokenScaleDtype).GetString()),
+                return ge::GRAPH_FAILED);
+    return ge::GRAPH_SUCCESS;
+}
+
+ge::graphStatus GroupedMatmulWeightQuantChecker::CheckBiasDtype(const gert::InferDataTypeContext *context) const
+{
+    auto xDtype = context->GetDynamicInputDataType(GMM_INDEX_IN_X, 0);
+    auto biasDtype = context->GetDynamicInputDataType(GMM_INDEX_IN_BIAS, 0);
+    OP_CHECK_IF(BIAS_TYPE_SUPPORT_MAP.find(xDtype) == BIAS_TYPE_SUPPORT_MAP.end(),
+              OP_LOGE(context->GetNodeName(), "Cannot find bias dtype match with xDtype [%s].",
+                        ge::TypeUtils::DataTypeToAscendString(xDtype).GetString()),return ge::GRAPH_FAILED);
+    OP_CHECK_IF(BIAS_TYPE_SUPPORT_MAP.at(xDtype).find(biasDtype) == BIAS_TYPE_SUPPORT_MAP.at(xDtype).end(),
+              OP_LOGE(context->GetNodeName(), "Data type [%s] is not supported for bias, when xDtype is [%s].",
+                        ge::TypeUtils::DataTypeToAscendString(biasDtype).GetString(),
+                        ge::TypeUtils::DataTypeToAscendString(xDtype).GetString()),return ge::GRAPH_FAILED);
+    return ge::GRAPH_SUCCESS;
+}
+
 ge::graphStatus GroupedMatmulWeightQuantChecker::CheckDtype(const gert::InferDataTypeContext *context) const
 {
     auto xDtype = context->GetDynamicInputDataType(GMM_INDEX_IN_X, 0);
@@ -412,7 +519,7 @@ ge::graphStatus GroupedMatmulWeightQuantChecker::CheckDtype(const gert::InferDat
                         ge::TypeUtils::DataTypeToAscendString(weightDtype).GetString()),
               return ge::GRAPH_FAILED);
     auto antiquantScaleDtype = context->GetDynamicInputDataType(GMM_INDEX_IN_ANTIQUANT_SCALE, 0);
-    auto perTokenScaleDtype = context->GetDynamicInputDataType(GMM_INDEX_IN_PERTOKEN_SCALE,0);
+    auto perTokenScaleDtype = context->GetDynamicInputDataType(GMM_INDEX_IN_PERTOKEN_SCALE, 0);
     if (weightDtype == ge::DT_FLOAT4_E2M1 || weightDtype == ge::DT_FLOAT) {
         OP_CHECK_IF(perTokenScaleDtype != ge::DT_FLOAT8_E8M0 && IsMxA8W4NZ(xDtype, weightDtype),
                     OP_LOGE(context->GetNodeName(),
@@ -422,7 +529,11 @@ ge::graphStatus GroupedMatmulWeightQuantChecker::CheckDtype(const gert::InferDat
             antiquantScaleDtype != ge::DT_FLOAT8_E8M0,
             OP_LOGE(context->GetNodeName(),
                     "Only support float8_e8m0 for antiquantScaleDataType when weight is fp4, but now it is [%s].",
-                    ge::TypeUtils::DataTypeToAscendString(antiquantScaleDtype).GetString()), return ge::GRAPH_FAILED);
+                    ge::TypeUtils::DataTypeToAscendString(antiquantScaleDtype).GetString()),
+            return ge::GRAPH_FAILED);
+    } else if (IsS8S4NZ(xDtype, weightDtype)) {
+        OP_CHECK_IF(CheckScaleDtypeForS8S4(context) != ge::GRAPH_SUCCESS,
+                    OP_LOGE(context->GetNodeName(), "CheckScaleDtypeForS8S4 failed."), return ge::GRAPH_FAILED);
     } else {
         OP_CHECK_IF(antiquantScaleDtype != xDtype,
                     OP_LOGE(context->GetNodeName(), "AntiquantScale datatype [%s] does not match xDtype [%s].",
@@ -430,21 +541,15 @@ ge::graphStatus GroupedMatmulWeightQuantChecker::CheckDtype(const gert::InferDat
                             ge::TypeUtils::DataTypeToAscendString(xDtype).GetString()),
                     return ge::GRAPH_FAILED);}
     if (FP8_SUPPORT_SET.find(weightDtype) == FP8_SUPPORT_SET.end() && weightDtype != ge::DT_FLOAT4_E2M1 &&
-        weightDtype != ge::DT_FLOAT) {
+        weightDtype != ge::DT_FLOAT && weightDtype != ge::DT_INT4 && weightDtype != ge::DT_INT32) {
         auto antiquantOffsetDtype = context->GetDynamicInputDataType(GMM_INDEX_IN_ANTIQUANT_OFFSET, 0);
         OP_CHECK_IF(antiquantOffsetDtype != xDtype,
                   OP_LOGE(context->GetNodeName(), "AntiquantOffset datatype [%s] does not match xDtype [%s].",
                             ge::TypeUtils::DataTypeToAscendString(antiquantOffsetDtype).GetString(),
                             ge::TypeUtils::DataTypeToAscendString(xDtype).GetString()),
                   return ge::GRAPH_FAILED);}
-    OP_CHECK_IF(BIAS_TYPE_SUPPORT_MAP.find(xDtype) == BIAS_TYPE_SUPPORT_MAP.end(),
-              OP_LOGE(context->GetNodeName(), "Cannot find bias dtype match with xDtype [%s].",
-                        ge::TypeUtils::DataTypeToAscendString(xDtype).GetString()),return ge::GRAPH_FAILED);
-    auto biasDtype = context->GetDynamicInputDataType(GMM_INDEX_IN_BIAS, 0);
-    OP_CHECK_IF(BIAS_TYPE_SUPPORT_MAP.at(xDtype).find(biasDtype) == BIAS_TYPE_SUPPORT_MAP.at(xDtype).end(),
-              OP_LOGE(context->GetNodeName(), "Data type [%s] is not supported for bias, when xDtype is [%s].",
-                        ge::TypeUtils::DataTypeToAscendString(biasDtype).GetString(),
-                        ge::TypeUtils::DataTypeToAscendString(xDtype).GetString()),return ge::GRAPH_FAILED);
+    OP_CHECK_IF(CheckBiasDtype(context) != ge::GRAPH_SUCCESS,
+                    OP_LOGE(context->GetNodeName(), "CheckBiasDtype failed."), return ge::GRAPH_FAILED);
     return ge::GRAPH_SUCCESS;
 }
 

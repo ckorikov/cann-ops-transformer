@@ -1596,6 +1596,12 @@ static void SetAntiQuantParamsTensorEmpty91095(gmm::GroupedMatmulParams &params,
             aclTensorList *emptyAntiquantOffsetList = nullptr;
             CreateEmptyTensor(ToAclDataType(yDtype), params.antiquantOffsetOptional, emptyAntiquantOffsetList,
                               executor);
+        } else if (params.xDtype == ge::DataType::DT_INT8) {
+            aclTensorList *emptyBiasList = nullptr;
+            CreateEmptyTensor(ToAclDataType(ge::DataType::DT_FLOAT), params.biasOptional, emptyBiasList, executor);
+            aclTensorList *emptyAntiquantOffsetList = nullptr;
+            CreateEmptyTensor(ToAclDataType(ge::DataType::DT_FLOAT16), params.antiquantOffsetOptional, emptyAntiquantOffsetList,
+                              executor);
         } else {
             aclTensorList *emptyBiasList = nullptr;
             CreateEmptyTensor(ToAclDataType(params.xDtype), params.biasOptional, emptyBiasList, executor);
@@ -1718,8 +1724,7 @@ static aclnnStatus ParamsDataContiguous(gmm::GroupedMatmulParams &params, aclOpE
   DataType xDtype = (*params.x)[0]->GetDataType();
   DataType weightDtype = (*params.weight)[0]->GetDataType();
   if (!(GetCurrentPlatformInfo().GetSocVersion() == SocVersion::ASCEND910_95 &&
-        params.apiVersion == gmm::GMMApiVersion::WeightNz && weightDtype == ge::DT_FLOAT4_E2M1 &&
-        (xDtype == ge::DT_FLOAT16 || xDtype == ge::DT_BF16 || xDtype == ge::DT_FLOAT8_E4M3FN))) {
+        params.apiVersion == gmm::GMMApiVersion::WeightNz && IsWeightQuant(xDtype, weightDtype))) {
     CHECK_COND(DataContiguous(params.weight, executorPtr) == ACLNN_SUCCESS, ACLNN_ERR_PARAM_INVALID,
                "Contiguous weight failed."); // make w contiguous
   }
@@ -1763,7 +1768,7 @@ static aclnnStatus CheckWeightQuantGMMWeightNz(DataType x1Dtype, DataType weight
         CHECK_COND(
             yDtype == DataType::DT_BF16 || yDtype == DataType::DT_FLOAT16, ACLNN_ERR_PARAM_INVALID,
             "The dtypes of x[%s]-weight[%s]-y[%s] do not match with required dtype.The x-weight-y of the antiquant"
-            "case[A16mxFp4] only supports the following combinations: Fp8_e4m3fn-Fp4_e2m1-BF16/Fp16",
+            "case[MxA8W4] only supports the following combinations: Fp8_e4m3fn-Fp4_e2m1-BF16/Fp16",
             op::ToString(x1Dtype).GetString(), op::ToString(weightDtype).GetString(), op::ToString(yDtype).GetString());
         return ACLNN_SUCCESS;
     }
@@ -1838,9 +1843,8 @@ static aclnnStatus SetStorageShape(gmm::GroupedMatmulParams &params, op::Shape w
     DataType xDtype = (*params.x)[0]->GetDataType();
     DataType weightDtype = (*params.weight)[0]->GetDataType();
     if (GetCurrentPlatformInfo().GetSocVersion() == SocVersion::ASCEND910_95 &&
-        params.apiVersion == gmm::GMMApiVersion::WeightNz && weightDtype == ge::DT_FLOAT4_E2M1 &&
-        (xDtype == ge::DT_FLOAT16 || xDtype == ge::DT_BF16 || xDtype == ge::DT_FLOAT8_E4M3FN)) {
-        (*params.weight)[0]->SetStorageShape(wqbmmNzShape);
+        params.apiVersion == gmm::GMMApiVersion::WeightNz && IsWeightQuant(xDtype, weightDtype)) {
+      (*params.weight)[0]->SetStorageShape(wqbmmNzShape);
     }
     return ACLNN_SUCCESS;
 }

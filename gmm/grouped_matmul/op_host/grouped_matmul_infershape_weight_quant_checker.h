@@ -26,6 +26,8 @@ public:
     ge::graphStatus GetXAndWeightDimValue(const gert::InferShapeContext *context, const GMMAttrs &gmmAttrs);
     ge::graphStatus CheckShape(const gert::InferShapeContext *context, const GroupedMatmulCommonUtil &commonUtil);
     ge::graphStatus InferOutShape(gert::InferShapeContext *context) const;
+    ge::graphStatus CheckScaleDtypeForS8S4(const gert::InferDataTypeContext *context) const;
+    ge::graphStatus CheckBiasDtype(const gert::InferDataTypeContext *context) const;
     ge::graphStatus CheckDtype(const gert::InferDataTypeContext *context) const;
     ge::graphStatus InferOutDtype(gert::InferDataTypeContext *context) const;
 
@@ -33,6 +35,8 @@ private:
     ge::graphStatus CheckShapeForXAndWeight(const gert::InferShapeContext *context, const GMMAttrs &gmmAttrs) const;
     ge::graphStatus CheckShapeForTensorList(const gert::InferShapeContext *context, size_t gmm_index,
                                         const std::string &tensorType) const;
+    ge::graphStatus CheckTensorListShapeButGroupAntiS(const gert::InferShapeContext *context, size_t gmm_index,
+                                                                     const std::string &tensorType) const;
     ge::graphStatus CheckScenarioValidForShape(const gert::InferShapeContext *context, const GMMAttrs &gmmAttrs) const;
     ge::graphStatus CheckShapeValid(const gert::InferShapeContext *context, const GMMAttrs &gmmAttrs);
     ge::graphStatus CheckShapeForWeightQuantParam(const gert::InferShapeContext *context) const;
@@ -41,6 +45,7 @@ private:
     ge::graphStatus CheckGroupSize(const gert::InferShapeContext *context, const GMMAttrs &gmmAttrs) const;
     bool IsA16MxFp4NZ(const ge::DataType &xDtype, const ge::DataType &weightDtype) const;
     bool IsMxA8W4NZ(const ge::DataType &xDtype, const ge::DataType &weightDtype) const;
+    bool IsS8S4NZ(const ge::DataType &xDtype, const ge::DataType &weightDtype) const;
 
 private:
     int64_t groupNum_; //当前含义为M分组数g

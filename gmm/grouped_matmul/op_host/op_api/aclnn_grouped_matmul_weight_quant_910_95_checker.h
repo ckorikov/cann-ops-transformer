@@ -40,6 +40,7 @@ private:
     bool IsMxA8W4NZ(const DataType &xDtype, const DataType &weightDtype) const;
     bool IsA16W8ND(const DataType &xDtype, const DataType &weightDtype) const;
     bool IsA16F8ND(const DataType &xDtype, const DataType &weightDtype) const;
+    bool IsS8S4NZ(const DataType &xDtype, const DataType &weightDtype) const;
 
 private:
     GroupedMatmulParams gmmParams_;
