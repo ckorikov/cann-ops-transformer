@@ -17,7 +17,6 @@
 #define __ALL_GATHER_ADD_TILING_H__
 
 #include "kernel_tiling/kernel_tiling.h"
-#include "mc2_tiling_struct.h"
 
 struct AllGatherAddTilingData {
     Mc2InitTiling mc2InitTiling;
