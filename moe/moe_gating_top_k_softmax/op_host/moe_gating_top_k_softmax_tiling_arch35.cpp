@@ -20,7 +20,7 @@ BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULA
 #include "tiling/tiling_api.h"
 #include "moe_gating_top_k_softmax_tiling_base.h"
 #include "log/log.h"
-#include "../op_kernel/v35/moe_gating_top_k_softmax_tiling_def.h"
+#include "../op_kernel/arch35/moe_gating_top_k_softmax_tiling_def.h"
 using namespace Ops::Transformer::OpTiling;
 using namespace AscendC;
 using namespace ge;

@@ -234,39 +234,40 @@ __aicore__ inline void MoeGatingTopKSoftmaxFullloadGenerlized<T, hasFinished, ne
     LocalTensor<float> reduceValueTensor = calcTmpBuf_.Get<float>();
     LocalTensor<float> tmpTensor =
         calcTmpBuf_.Get<float>()[(rowCount + B32_BLOCK_COUNT - 1) / B32_BLOCK_COUNT * B32_BLOCK_COUNT];
-    if constexpr (!IsSameType<T, float>::value) {
-        Cast(xTensorFp32, xTensor, RoundMode::CAST_NONE, expertCountAlign_ * rowCount);
-    } else {
-        DataCopy(xTensorFp32, xTensor, expertCountAlign_ * rowCount);
-    }
+
     uint16_t rowLoops = static_cast<uint32_t>(rowCount);
     __VEC_SCOPE__
     {
         uint32_t repeatCount = B32_VF_COUNT;
         uint16_t expertCountLoops = (expertCount_ + repeatCount - 1) / repeatCount;
 
+        __local_mem__ T *xTensorAddr = (__local_mem__ T *)xTensor.GetPhyAddr();
         __local_mem__ float *xTensorFp32Addr = (__local_mem__ float *)xTensorFp32.GetPhyAddr();
+        
         AscendC::MicroAPI::RegTensor<float> reduceVreg, reduceMidRreg, dupVreg, vreg0;
         AscendC::MicroAPI::MaskReg mask;
         for (uint16_t i = 0; i < rowLoops; i++) {
-            uint32_t precessExpert = expertCount_;
-            mask = AscendC::MicroAPI::UpdateMask<int32_t>(precessExpert);
-            AscendC::MicroAPI::DataCopy(reduceMidRreg, xTensorFp32Addr + i * expertCountAlign_);
+            uint32_t remain = expertCount_;
+            mask = AscendC::MicroAPI::UpdateMask<int32_t>(remain);
+            uint32_t offset = i * expertCountAlign_
+            ops::LoadOneTensorForDtypeT<T>(xTensorAddr, reduceMidRreg, mask, offset);
             for (uint16_t j = 1; j < expertCountLoops; j++) {
-                mask = AscendC::MicroAPI::UpdateMask<int32_t>(precessExpert);
-                AscendC::MicroAPI::DataCopy(vreg0, xTensorFp32Addr + i * expertCountAlign_ + j * repeatCount);
+                mask = AscendC::MicroAPI::UpdateMask<int32_t>(remain);
+                offset = i * expertCountAlign_ + j * repeatCount;
+                ops::LoadOneTensorForDtypeT<T>(xTensorAddr, vreg0, mask, offset);
                 AscendC::MicroAPI::Max(reduceMidRreg, reduceMidRreg, vreg0, mask);
             }
-            precessExpert = expertCount_;
-            mask = AscendC::MicroAPI::UpdateMask<int32_t>(precessExpert);
+            remain = expertCount_;
+            mask = AscendC::MicroAPI::UpdateMask<int32_t>(remain);
             AscendC::MicroAPI::ReduceMax(reduceVreg, reduceMidRreg, mask);
             AscendC::MicroAPI::Duplicate(dupVreg, reduceVreg, mask);
             for (uint16_t j = 0; j < expertCountLoops; j++) {
-                AscendC::MicroAPI::DataCopy(vreg0, xTensorFp32Addr + i * expertCountAlign_ + j * repeatCount);
+                offset = i * expertCountAlign_ + j * repeatCount;
+                ops::LoadOneTensorForDtypeT<T>(xTensorAddr, vreg0, mask, offset);
                 AscendC::MicroAPI::Sub(vreg0, vreg0, dupVreg, mask);
                 AscendC::MicroAPI::Exp(vreg0, vreg0, mask);
-                AscendC::MicroAPI::DataCopy(xTensorFp32Addr + i * expertCountAlign_ + j * repeatCount, vreg0, mask);
-                mask = AscendC::MicroAPI::UpdateMask<int32_t>(precessExpert);
+                AscendC::MicroAPI::DataCopy(xTensorFp32Addr + offset, vreg0, mask);
+                mask = AscendC::MicroAPI::UpdateMask<int32_t>(remain);
             }
         }
     }

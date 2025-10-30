@@ -13,8 +13,8 @@
  * \brief
  */
 #include "kernel_operator.h"
-#include "v35/moe_gating_top_k_softmax_tiling_def.h"
-#include "v35/moe_gating_top_k_softmax_fullload_generalized_regbase.h"
+#include "arch35/moe_gating_top_k_softmax_tiling_def.h"
+#include "arch35/moe_gating_top_k_softmax_fullload_generalized_regbase.h"
 
 using namespace AscendC;
 using namespace MoeGatingTopKSoftmax;
