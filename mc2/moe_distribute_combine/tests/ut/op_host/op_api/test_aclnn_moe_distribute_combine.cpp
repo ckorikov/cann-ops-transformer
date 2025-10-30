@@ -64,7 +64,7 @@ TEST_F(l2_moe_distribute_combine_test, test_moe_distribute_combine_first_api) {
   uint64_t workspace_size = 0;
   aclOpExecutor* executor = nullptr;
   aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
-  EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_NULLPTR);
+  EXPECT_EQ(aclRet, ACLNN_SUCCESS);
 }
 
 TEST_F(l2_moe_distribute_combine_test, ascend910B2_test_moe_distribute_combine_tp_not_empty) {

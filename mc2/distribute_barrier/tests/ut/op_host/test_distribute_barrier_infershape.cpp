@@ -10,8 +10,9 @@
 
 #include <iostream>
 #include <gtest/gtest.h>
-#include <iostream>
-#include "infershape_context_faker.h"
+#include "infer_shape_context_faker.h"
+#include "infer_shape_case_executor.h"
+#include "infer_shape_case_executor.h"
 #include "base/registry/op_impl_space_registry_v2.h"
 
 class DistributeBarrierInfershape : public testing::Test
@@ -29,27 +30,21 @@ protected:
 };
 
 TEST_F(DistributeBarrierInfershape, infer_shape_0) {
-    gert::StorageShape xStorageShape = {{32, 7168}, {32, 7168}};
-    gert::StorageShape yStorageShape = {{32, 7168}, {32, 7168}};
+    gert::StorageShape x_ref_shape = {{32, 7168}, {}};
 
-    /* make infershape context */
-    std::vector<gert::Tensor*> inputTensors = {(gert::Tensor *)&xStorageShape};
-    std::vector<gert::StorageShape*> ouputShapes = {&yStorageShape};
-    auto contextHolder = gert::InferShapeContextFaker()
-        .SetOpType("DistributeBarrier")
-        .NodeIoNum(1, 1)
-        .NodeInputTd(0, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND)
-        .NodeOutputTd(0, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND)
-        .InputTensors(inputTensors)
-        .OutputShapes(ouputShapes)
-        .Attr("group", AscendString("group"))
-        .Attr("world_size", int64_t(288))
-        .Build();
+    gert::InfershapeContextPara infershapeContextPara("DistributeBarrier",
+        {
+            {x_ref_shape, ge::DT_FLOAT16, ge::FORMAT_ND}
+        },
+        {
+            {{}, ge::DT_FLOAT16, ge::FORMAT_ND}
+        },
+        {
+            {"group", Ops::Transformer::AnyValue::CreateFrom<std::string>("")},
+            {"world_size", Ops::Transformer::AnyValue::CreateFrom<int64_t>(288)}
+        }
+    );
 
-    /* get infershape func */
-    auto spaceRegistry = gert::DefaultOpImplSpaceRegistryV2::GetInstance().GetSpaceRegistry();
-    auto inferShapeFunc = spaceRegistry->GetOpImpl("DistributeBarrier")->infer_shape;
-
-    /* do infershape */
-    ASSERT_EQ(inferShapeFunc(contextHolder.GetContext()), ge::GRAPH_SUCCESS);
+    std::vector<std::vector<int64_t>> expectOutputShape = {{32, 7168}};
+    ExecuteTestCase(infershapeContextPara, ge::GRAPH_SUCCESS, expectOutputShape);
 }

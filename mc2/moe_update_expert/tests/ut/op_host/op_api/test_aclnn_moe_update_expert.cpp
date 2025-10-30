@@ -47,7 +47,7 @@ TEST_F(l2_aclnn_moe_update_expert_test, test_moe_update_expert_no_tailor) {
     uint64_t workspace_size = 0;
     aclOpExecutor* executor = nullptr;
     aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
-    EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_NULLPTR);
+    EXPECT_EQ(aclRet, ACLNN_SUCCESS);
 }
 
 TEST_F(l2_aclnn_moe_update_expert_test, test_moe_update_expert_expert_tailor) {
@@ -71,6 +71,6 @@ TEST_F(l2_aclnn_moe_update_expert_test, test_moe_update_expert_expert_tailor) {
     uint64_t workspace_size = 0;
     aclOpExecutor* executor = nullptr;
     aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
-    EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_NULLPTR);
+    EXPECT_EQ(aclRet, ACLNN_SUCCESS);
 }
 } // MoeUpdateExpert

@@ -37,6 +37,7 @@ protected:
 
 TEST_F(l2_moe_distribute_combine_add_rms_norm_test, test_moe_distribute_combine_add_rms_norm_1)
 {
+    op::SetPlatformSocVersion(op::SocVersion::ASCEND910_93);
     TensorDesc expandX = TensorDesc({32, 7168}, ACL_BF16, ACL_FORMAT_ND);
     TensorDesc expertIds = TensorDesc({32, 8}, ACL_INT32, ACL_FORMAT_ND);
     TensorDesc expandIdx = TensorDesc({32 * 8}, ACL_INT32, ACL_FORMAT_ND);
@@ -86,7 +87,7 @@ TEST_F(l2_moe_distribute_combine_add_rms_norm_test, test_moe_distribute_combine_
     uint64_t workspace_size1 = 0;
     aclOpExecutor* executor1 = nullptr;
     aclnnStatus aclRet1 = ut1.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size1, executor1);
-    EXPECT_EQ(aclRet1, ACLNN_ERR_PARAM_INVALID);
+    EXPECT_EQ(aclRet1, ACLNN_SUCCESS);
 
     auto ut2 = OP_API_UT(
         aclnnMoeDistributeCombineAddRmsNorm,
