@@ -42,7 +42,9 @@ TEST_F(l2_all_gather_matmul_test, test_all_gather_first_api) {
   auto ut = OP_API_UT(aclnnAllGatherMatmul, INPUT(x1_desc, x2_desc, bias, "test_all_gather_group", 0, 8, 1),
                       OUTPUT(out_desc, gather_out_desc));
   uint64_t workspace_size = 0;
-  aclnnStatus aclRet = ut.TestGetWorkspaceSize(&workspace_size);
+  aclOpExecutor* executor = nullptr;
+  aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
+  EXPECT_EQ(aclRet, ACLNN_SUCCESS);
 }
 
 TEST_F(l2_all_gather_matmul_test, test_all_gather_first_api_2) {
@@ -66,7 +68,9 @@ TEST_F(l2_all_gather_matmul_test, test_all_gather_first_api_3) {
   auto ut = OP_API_UT(aclnnAllGatherMatmul, INPUT(x1_desc, x2_desc, bias, "test_all_gather_group", 0, 8, 1),
                       OUTPUT(out_desc, gather_out_desc));
   uint64_t workspace_size = 0;
-  aclnnStatus aclRet = ut.TestGetWorkspaceSize(&workspace_size);
+  aclOpExecutor* executor = nullptr;
+  aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
+  EXPECT_EQ(aclRet, ACLNN_SUCCESS);
 }
 
 TEST_F(l2_all_gather_matmul_test, test_all_gather_first_api_4) {
@@ -78,7 +82,9 @@ TEST_F(l2_all_gather_matmul_test, test_all_gather_first_api_4) {
   auto ut = OP_API_UT(aclnnAllGatherMatmul, INPUT(x1_desc, x2_desc, bias, "test_all_gather_group", 0, 8, 1),
                       OUTPUT(out_desc, gather_out_desc));
   uint64_t workspace_size = 0;
-  aclnnStatus aclRet = ut.TestGetWorkspaceSize(&workspace_size);
+  aclOpExecutor* executor = nullptr;
+  aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
+  EXPECT_EQ(aclRet, ACLNN_SUCCESS);
 }
 
 TEST_F(l2_all_gather_matmul_test, test_all_gather_first_api_5) {
@@ -90,7 +96,9 @@ TEST_F(l2_all_gather_matmul_test, test_all_gather_first_api_5) {
   auto ut = OP_API_UT(aclnnAllGatherMatmul, INPUT(x1_desc, x2_desc, bias, "test_all_gather_group", 0, 8, 1),
                       OUTPUT(out_desc, gather_out_desc));
   uint64_t workspace_size = 0;
-  aclnnStatus aclRet = ut.TestGetWorkspaceSize(&workspace_size);
+  aclOpExecutor* executor = nullptr;
+  aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
+  EXPECT_EQ(aclRet, ACLNN_SUCCESS);
 }
 
 TEST_F(l2_all_gather_matmul_test, test_all_gather_first_api_input_false) {
@@ -106,23 +114,17 @@ TEST_F(l2_all_gather_matmul_test, test_all_gather_first_api_input_false) {
 }
 
 TEST_F(l2_all_gather_matmul_test, test_all_gather_first_api_gather_out_false) {
-  TensorDesc x1_desc = TensorDesc({16, 256}, ACL_FLOAT16, ACL_FORMAT_ND);
-  TensorDesc x2_desc = TensorDesc({256, 16}, ACL_FLOAT16, ACL_FORMAT_ND);
+  TensorDesc x1_desc = TensorDesc({16, 32}, ACL_FLOAT16, ACL_FORMAT_ND);
+  TensorDesc x2_desc = TensorDesc({32, 16}, ACL_FLOAT16, ACL_FORMAT_ND);
   TensorDesc bias = TensorDesc({32}, ACL_FLOAT16, ACL_FORMAT_ND);
   TensorDesc out_desc = TensorDesc({16, 16}, ACL_FLOAT16, ACL_FORMAT_ND);
   TensorDesc gather_out_desc = TensorDesc({0}, ACL_FLOAT16, ACL_FORMAT_ND);
   auto ut = OP_API_UT(aclnnAllGatherMatmul, INPUT(x1_desc, x2_desc, bias, "test_all_gather_group", 0, 8, 1),
                       OUTPUT(out_desc, gather_out_desc));
   uint64_t workspace_size = 0;
-  aclnnStatus aclRet = ut.TestGetWorkspaceSize(&workspace_size);
-}
-
-TEST_F(l2_all_gather_matmul_test, test_all_gather_second_api) {
-  void* workspaceAddr;
-  uint64_t workspaceSize = 0;
-  aclOpExecutor *executor;
-  aclrtStream stream;
-  aclnnAllGatherMatmul(workspaceAddr, workspaceSize, executor, stream);
+  aclOpExecutor* executor = nullptr;
+  aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
+  EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_INVALID);
 }
 
 } // AllGatherMatmulUT
