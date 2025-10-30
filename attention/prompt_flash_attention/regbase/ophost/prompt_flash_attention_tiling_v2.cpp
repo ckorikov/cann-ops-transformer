@@ -584,6 +584,16 @@ bool PromptFlashAttentionTilingV2::CheckInputDimAndHeadNum(ContextParamsForPFATi
                 queryDim, keyDim, valueDim);
             return false;
         }
+    } else if ((inputLayout == InputLayout::TND) && (!enablePA)) {
+        if ((queryDim == 3) && (keyDim == 3) && (valueDim == 3)) { // dim num: 3
+            queryShapeHeadNum = queryShape->GetStorageShape().GetDim(nIdx);
+            keyShapeHeadNum = keyShape->GetStorageShape().GetDim(nIdx);
+            valueShapeHeadNum = valueShape->GetStorageShape().GetDim(nIdx);
+        } else {
+            OP_LOGE(contextKeyParams.opName, "input dim of q(%zu), k(%zu), v(%zu) must be 3 for TND format!",
+                queryDim, keyDim, valueDim);
+            return false;
+        }
     }
 
     OP_CHECK_IF(nQ > 256U, // The maximum limit for head is 256.
@@ -1338,7 +1348,11 @@ bool PromptFlashAttentionTilingV2::CheckQueryAndKey(ContextParamsForPFATiling& c
         (!enableTensorList) && (!enablePA), OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName,
         "query batch must be equal to key/value batch, query batch = %u , key/value batch = %u.",
         queryShapeInfo.b, keyShapeInfo.b), return false);
-
+    // check d size
+    OP_CHECK_IF((contextKeyParams.fromTilingSink == 0) && (queryShapeInfo.d != keyShapeInfo.d) &&
+        (!enableTensorList) && (!enablePA), OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName,
+        "query d size must be equal to key/value d size, query d = %u , key/value d = %u.",
+        queryShapeInfo.d, keyShapeInfo.d), return false);
     return true;
 }
 
