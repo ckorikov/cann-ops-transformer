@@ -504,7 +504,7 @@ __aicore__ inline void FiaKernelNonQuantMla<FIAT>::Init(
     tilingData = tiling;
     if (aiCoreIdx >= tilingData->baseParams.usedCoreNum) {
         if ASCEND_IS_AIV {
-            SyncAll();  // 硬同步要求所有核都进行同步，此处对实际使用的核进行数据同步
+            SyncAll();  // 硬同步要求所有核都进行同步，此处对未使用的核进行数据同步
         }
         return;
     }
