@@ -58,10 +58,10 @@
 | 参数名                     | 输入/输出/属性 | 描述  | 数据类型       | 数据格式   |
 |----------------------------|-----------|----------------------------------------------------------------------|----------------|------------|
 | token_x                     | 输入      | 公式中计算Query和Key的输入tensor | INT8, BF16 | ND         |
-| weight_dq                   | 输入      | 公式中计算Query的下采样权重矩阵$W^{DQ}$ | INT8, BF16 | FRACTAL_NZ |
-| weight_uq_qr                 | 输入      | 公式中计算Query的上采样权重矩阵$W^{UQ}$和位置编码权重矩阵$W^{QR}$。| INT8, BF16 | FRACTAL_NZ |
+| weight_dq                   | 输入      | 公式中计算Query的下采样权重矩阵$W^{DQ}$ | INT8, BF16 | FRACTAL_NZ（KN格式） |
+| weight_uq_qr                 | 输入      | 公式中计算Query的上采样权重矩阵$W^{UQ}$和位置编码权重矩阵$W^{QR}$。| INT8, BF16 | FRACTAL_NZ（KN格式） |
 | weight_uk                   | 输入      | 公式中计算Key的上采样权重$W^{UK}$ | FLOAT16, BF16       | ND         |
-| weight_dkv_kr                | 输入      | 公式中计算Key的下采样权重矩阵$W^{DKV}$和位置编码权重矩阵$W^{KR}$ | INT8, BF16| FRACTAL_NZ |
+| weight_dkv_kr                | 输入      | 公式中计算Key的下采样权重矩阵$W^{DKV}$和位置编码权重矩阵$W^{KR}$ | INT8, BF16| FRACTAL_NZ（KN格式） |
 | rmsnorm_gamma_cq             | 输入      | 计算$c^Q$的RmsNorm公式中$\gamma$参数 | FLOAT16, BF16       | ND         |
 | rmsnorm_gamma_ckv            | 输入      | 计算$c^{KV}$的RmsNorm公式中$\gamma$参数 | FLOAT16, BF16       | ND         |
 | rope_sin                    | 输入      | 旋转位置编码的正弦参数矩阵 | FLOAT16, BF16       | ND         |
