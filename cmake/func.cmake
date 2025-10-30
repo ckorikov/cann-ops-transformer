@@ -352,7 +352,7 @@ function(add_ops_src_copy)
         "moe_distribute_combine_v2;"
         "elastic_receivable_info_collect;"
         "moe_update_expert;"
-        "elastic_receivable_test";
+        "elastic_receivable_test;"
         "all_gather_matmul;"
         "matmul_all_reduce;"
         "matmul_all_reduce_add_rms_norm;"

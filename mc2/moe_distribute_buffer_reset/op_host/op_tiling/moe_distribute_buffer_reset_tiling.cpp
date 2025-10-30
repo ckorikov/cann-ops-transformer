@@ -23,7 +23,7 @@
 #include <cmath>
 #include <cstdint>
 #include <string>
-
+#include "mc2_log.h"
 #include "mc2_hcom_topo_info.h"
 #include "graph/utils/type_utils.h"
 #include "register/op_def_registry.h"

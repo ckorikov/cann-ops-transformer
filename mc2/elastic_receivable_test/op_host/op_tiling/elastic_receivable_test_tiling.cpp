@@ -29,6 +29,7 @@
 #include "tiling/mc2_tiling_utils.h"
 #include "register/tilingdata_base.h"
 #include "tiling/tiling_api.h"
+#include "mc2_log.h"
 #include "graph/utils/type_utils.h"
 #include "register/op_def_registry.h"
 #include "platform/platform_infos_def.h"
@@ -122,11 +123,11 @@ static bool CheckAndSetAttrs(const char* nodeName, const gert::TilingContext* co
         OP_LOGE(nodeName, "WorldSize is invalid, only support WorldSize be a multiple of 16, but got worldSize=%d.", 
         *worldSizePtr), return false);
 
-    tilingData.elasticReceivableTestInfo.worldSize = *worldSizePtr;
+    OP_TILING_CHECK((*rankNumPtr != DIE_PER_RANK),
+        OP_LOGE(nodeName, "rankSize is invalid, only support %d, but got rankSize=%d.", 
+            DIE_PER_RANK, *rankNumPtr), return false);
 
-    OP_TILING_CHECK((*rankNumPtr > MAX_RANK_SIZE),
-        OP_LOGE(nodeName, "rankSize is invalid, only support [%d, %d], but got rankSize=%d.", 
-            MIN_RANK_SIZE, MAX_RANK_SIZE, *worldSizePtr), return false);
+    tilingData.elasticReceivableTestInfo.worldSize = *worldSizePtr;
 
     OP_TILING_CHECK((strnlen(groupPtr, MAX_GROUP_NAME_LENGTH) == 0) ||
         (strnlen(groupPtr, MAX_GROUP_NAME_LENGTH) == MAX_GROUP_NAME_LENGTH),
