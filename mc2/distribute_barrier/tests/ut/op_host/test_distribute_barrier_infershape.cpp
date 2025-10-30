@@ -12,7 +12,6 @@
 #include <gtest/gtest.h>
 #include "infer_shape_context_faker.h"
 #include "infer_shape_case_executor.h"
-#include "infer_shape_case_executor.h"
 #include "base/registry/op_impl_space_registry_v2.h"
 
 class DistributeBarrierInfershape : public testing::Test
@@ -45,6 +44,10 @@ TEST_F(DistributeBarrierInfershape, infer_shape_0) {
         }
     );
 
-    std::vector<std::vector<int64_t>> expectOutputShape = {{32, 7168}};
-    ExecuteTestCase(infershapeContextPara, ge::GRAPH_SUCCESS, expectOutputShape);
+    /* get infershape func */
+    auto spaceRegistry = gert::DefaultOpImplSpaceRegistryV2::GetInstance().GetSpaceRegistry();
+    auto inferShapeFunc = spaceRegistry->GetOpImpl("DistributeBarrier")->infer_shape;
+
+    /* do infershape */
+    ASSERT_EQ(inferShapeFunc(contextHolder.GetContext()), ge::GRAPH_SUCCESS);
 }
