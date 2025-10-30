@@ -19,7 +19,11 @@
     /* 1. input/output information */                                                                                  \
     size_t inputNum = tilingContextPara.inputTensorDesc_.size();                                                       \
     size_t outputNum = tilingContextPara.outputTensorDesc_.size();                                                     \
-    contextFaker.NodeIoNum(inputNum, outputNum);                                                                       \
+    if (tilingContextPara.inputInstanceNum_.size() != 0 || tilingContextPara.outputInstanceNum_.size() != 0) {         \
+        contextFaker.IrInstanceNum(tilingContextPara.inputInstanceNum_, tilingContextPara.outputInstanceNum_);         \
+    } else {                                                                                                           \
+        contextFaker.NodeIoNum(inputNum, outputNum);                                                                   \
+    }                                                                                                                  \
     std::vector<gert::Tensor *> inputTensors = {};                                                                     \
     std::vector<gert::Tensor *> outputTensors = {};                                                                    \
     for (size_t index = 0; index < inputNum; index++) {                                                                \
@@ -94,6 +98,9 @@
                                compileInfoStringMiddle +                                                               \
                                std::to_string(tilingContextPara.coreNum_) +                                            \
                                compileInfoStringSuffix;                                                                \
+    if (tilingContextPara.socInfoString_ != "") {                                                                      \
+        compileInfoString = tilingContextPara.socInfoString_;                                                          \
+    }                                                                                                                  \
     map<string, string> socInfos;                                                                                      \
     map<string, string> aicoreSpec;                                                                                    \
     map<string, string> intrinsics;                                                                                    \
