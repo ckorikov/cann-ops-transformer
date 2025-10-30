@@ -279,16 +279,17 @@ __aicore__ inline void MatmulFull(const LocalTensor<A> &aL1Tensor,
     mmadParams.k = param.singleK;
     mmadParams.cmatrixInitVal = param.isOutKFisrt;
     mmadParams.cmatrixSource = false;
+    mmadParams.unitFlag = param.unitFlag;
     if (mmadParams.m == 1) {
         mmadParams.m = 16;
     }
-
+ 
     Mmad(cL0Tensor, L0ATensor, L0BTensor, mmadParams);
-
+ 
     l0aBuffer.Set<HardEvent::M_MTE1>();
     l0bBuffer.Set<HardEvent::M_MTE1>();
 }
-
+ 
 // 切K
 template <typename A, typename B, typename C, uint32_t baseM, uint32_t baseN, uint32_t baseK, ABLayout AL, ABLayout BL, typename L0AType, typename L0BType>
 __aicore__ inline void MatmulK(const LocalTensor<A> &aL1Tensor,
@@ -308,8 +309,12 @@ __aicore__ inline void MatmulK(const LocalTensor<A> &aL1Tensor,
         L1Aoffset = ((param.singleM + 31) >> 5 << 5) * baseK;
         L1Boffset = ((param.singleN + 31) >> 5 << 5) * baseK;
     }
+    if constexpr (IsSameType<A, float32_t>::value) {
+        L1Aoffset = param.isLeftTranspose ? baseK << 3 : ((param.singleM + 15) >> 4 << 4) * baseK;
+        L1Boffset = param.isRightTranspose ? ((param.singleN + 15) >> 4 << 4) * baseK : baseK << 3; 
+    }
 #endif
-
+ 
     for (uint32_t k = 0; k < kLoops; k++) {
         uint32_t tileK = (k == (kLoops - 1)) ? tailK : baseK;
         Buffer<BufferType::L0A> l0aBuffer = aL0BuffsDb.Get();
@@ -317,17 +322,17 @@ __aicore__ inline void MatmulK(const LocalTensor<A> &aL1Tensor,
         LocalTensor<A> L0ATensor = l0aBuffer.GetTensor<A>();
         LoadDataToL0A(L0ATensor, aL1Tensor, param, k * L1Aoffset, tileK, param.singleM);
         l0aBuffer.Set<HardEvent::MTE1_M>(); // mte1搬运完后，通知可以开始matmul
-
+ 
         Buffer<BufferType::L0B> l0bBuffer = bL0BuffsDb.Get();
         l0bBuffer.Wait<HardEvent::M_MTE1>(); // mte1等Matmul：上一轮matmul完成后才能搬运新数据到L0B
         LocalTensor<B> L0BTensor = l0bBuffer.GetTensor<B>();
         uint64_t loopNum = param.isRightTranspose ? 1 : kLoops;
         LoadDataToL0B(L0BTensor, bL1Tensor, param, k * L1Boffset, tileK, param.singleN, loopNum);
         l0bBuffer.Set<HardEvent::MTE1_M>(); // mte1搬运完后，通知可以开始matmul
-
+ 
         l0aBuffer.Wait<HardEvent::MTE1_M>(); // matmul等mte1：L0A数据搬运完成后才能开始matmul
         l0bBuffer.Wait<HardEvent::MTE1_M>(); // matmul等mte1：L0B数据搬运完成后才能开始matmul
-
+ 
         MmadParams mmadParams;
         mmadParams.m = param.singleM;
         mmadParams.n = param.singleN;
@@ -337,13 +342,17 @@ __aicore__ inline void MatmulK(const LocalTensor<A> &aL1Tensor,
         }
         mmadParams.cmatrixInitVal = param.isOutKFisrt && (k == 0);
         mmadParams.cmatrixSource = false;
+        if (param.unitFlag != 0) {
+            mmadParams.unitFlag = (param.unitFlag == UNITFLAG_EN_OUTER_LAST) && (k == kLoops - 1) ?
+                                  UNITFLAG_EN_OUTER_LAST : UNITFLAG_ENABLE;
+        }
         Mmad(cL0Tensor, L0ATensor, L0BTensor, mmadParams);
-
+ 
         l0aBuffer.Set<HardEvent::M_MTE1>(); // matmul完成后，通知mte1可以开始搬运新数据到L0A
         l0bBuffer.Set<HardEvent::M_MTE1>(); // matmul完成后，通知mte1可以开始搬运新数据到L0B
     }
 }
-
+ 
 // 切N
 template <typename A, typename B, typename C, uint32_t baseM, uint32_t baseN, uint32_t baseK, ABLayout AL, ABLayout BL, typename L0AType, typename L0BType>
 __aicore__ inline void MatmulN(const LocalTensor<A> &aL1Tensor,
@@ -363,14 +372,14 @@ __aicore__ inline void MatmulN(const LocalTensor<A> &aL1Tensor,
     }
 #endif
     uint64_t L0Coffset = ((param.singleM + 15) >> 4 << 4) * baseN;
-
+ 
     Buffer<BufferType::L0A> l0aBuffer = aL0BuffsDb.Get();
     l0aBuffer.Wait<HardEvent::M_MTE1>(); // mte1等Matmul：上一轮matmul完成后才能搬运新数据到L0A
     LocalTensor<A> L0ATensor = l0aBuffer.GetTensor<A>();
     LoadDataToL0A(L0ATensor, aL1Tensor, param, 0, param.singleK, param.singleM);
     l0aBuffer.Set<HardEvent::MTE1_M>(); // mte1搬运完后，通知可以matmul
     l0aBuffer.Wait<HardEvent::MTE1_M>(); //  matmul等mte1：L0A数据搬运完成后才能开始matmul
-
+ 
     for (uint32_t n = 0; n < nLoops; n++) {
         uint32_t tileN = (n == (nLoops - 1)) ? tailN : baseN;
         
@@ -380,9 +389,9 @@ __aicore__ inline void MatmulN(const LocalTensor<A> &aL1Tensor,
         uint64_t loopNum = param.isRightTranspose ? nLoops : 1;
         LoadDataToL0B(L0BTensor, bL1Tensor, param, n * L1Boffset, param.singleK, tileN, loopNum);
         l0bBuffer.Set<HardEvent::MTE1_M>(); // mte1搬运完后，通知可以开始matmul
-
+ 
         l0bBuffer.Wait<HardEvent::MTE1_M>(); // matmul等mte1：L0B数据搬运完成后才能开始matmul
-
+ 
         MmadParams mmadParams;
         mmadParams.m = param.singleM;
         mmadParams.n = tileN;
@@ -390,8 +399,9 @@ __aicore__ inline void MatmulN(const LocalTensor<A> &aL1Tensor,
         if (mmadParams.m == 1) {
             mmadParams.m = 16;
         }
-        mmadParams.cmatrixInitVal = true;
+        mmadParams.cmatrixInitVal = param.isOutKFisrt;
         mmadParams.cmatrixSource = false;
+        mmadParams.unitFlag = param.unitFlag;
         Mmad(cL0Tensor[n * L0Coffset], L0ATensor, L0BTensor, mmadParams);
 
         l0bBuffer.Set<HardEvent::M_MTE1>(); // matmul完成后，通知mte1可以开始搬运新数据到L0B

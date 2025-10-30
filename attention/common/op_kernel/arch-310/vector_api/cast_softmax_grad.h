@@ -146,6 +146,12 @@ __aicore__ inline void CalculateCastSoftmaxGrad(FagConstInfo &constInfo, int32_t
             } else if (constInfo.dAlignToBlock <= 512) {
                 AscendC::MyAntiQuantSoftmaxGradFrontCast<T1, T2, OUTDTYPE, 512>(dstTensor, yTensor, dxTensor, deqScaleDyValue, curLoopSize,
                         constInfo.dAlignToBlock);
+            } else if (constInfo.dAlignToBlock <= 640) {
+                AscendC::MyAntiQuantSoftmaxGradFrontCast<T1, T2, OUTDTYPE, 640>(dstTensor, yTensor, dxTensor, deqScaleDyValue, curLoopSize,
+                        constInfo.dAlignToBlock);
+            } else if (constInfo.dAlignToBlock <= 768) {
+                AscendC::MyAntiQuantSoftmaxGradFrontCast<T1, T2, OUTDTYPE, 768>(dstTensor, yTensor, dxTensor, deqScaleDyValue, curLoopSize,
+                        constInfo.dAlignToBlock);
             }
         }
     } else {
@@ -164,6 +170,24 @@ __aicore__ inline void CalculateCastSoftmaxGrad(FagConstInfo &constInfo, int32_t
                                                             constInfo.dAlignToBlock);
             } else if (constInfo.dAlignToBlock > 384 && constInfo.dAlignToBlock <= 448 && IsSameType<T1, float>::value) {
                 AscendC::MySoftmaxGradFrontCast<T1, T2, 448>(dstTensor, yTensor, dxTensor, curLoopSize,
+                                                            constInfo.dAlignToBlock);
+            } else if (constInfo.dAlignToBlock > 448 && constInfo.dAlignToBlock <= 512 && IsSameType<T1, float>::value) {
+                AscendC::MySoftmaxGradFrontCast<T1, T2, 512>(dstTensor, yTensor, dxTensor, curLoopSize,
+                                                            constInfo.dAlignToBlock);
+            } else if (constInfo.dAlignToBlock <= 512 && !IsSameType<T1, float>::value) {
+                AscendC::MySoftmaxGradFrontCast<T1, T2, 512>(dstTensor, yTensor, dxTensor, curLoopSize,
+                                                            constInfo.dAlignToBlock);
+            } else if (constInfo.dAlignToBlock > 512 && constInfo.dAlignToBlock <= 576 && IsSameType<T1, float>::value) {
+                AscendC::MySoftmaxGradFrontCast<T1, T2, 576>(dstTensor, yTensor, dxTensor, curLoopSize,
+                                                            constInfo.dAlignToBlock);
+            } else if (constInfo.dAlignToBlock > 576 && constInfo.dAlignToBlock <= 640 && IsSameType<T1, float>::value) {
+                AscendC::MySoftmaxGradFrontCast<T1, T2, 640>(dstTensor, yTensor, dxTensor, curLoopSize,
+                                                            constInfo.dAlignToBlock);
+            } else if (constInfo.dAlignToBlock <= 640 && !IsSameType<T1, float>::value) {
+                AscendC::MySoftmaxGradFrontCast<T1, T2, 640>(dstTensor, yTensor, dxTensor, curLoopSize,
+                                                            constInfo.dAlignToBlock);                                                           
+            } else if (constInfo.dAlignToBlock > 640 && constInfo.dAlignToBlock <= 704 && IsSameType<T1, float>::value) {
+                AscendC::MySoftmaxGradFrontCast<T1, T2, 704>(dstTensor, yTensor, dxTensor, curLoopSize,
                                                             constInfo.dAlignToBlock);
             } else {
                 AscendC::MySoftmaxGradFrontCast<T1, T2, HEAD_DIM_ALIGN>(dstTensor, yTensor, dxTensor, curLoopSize,

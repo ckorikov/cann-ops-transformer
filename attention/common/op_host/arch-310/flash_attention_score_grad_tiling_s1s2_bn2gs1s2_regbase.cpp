@@ -165,7 +165,7 @@ uint32_t FlashAttentionScoreGradTilingUs1s2Bs2Regbase::GetDTemplateType()
     } else if (fBaseParams.d <= static_cast<uint32_t>(ConstAxisTemplateNum::NUM256)) {
         fBaseParams.dTemplateType = ConstAxisTemplateNum::NUM256;
         return static_cast<uint32_t>(ConstAxisTemplateNum::NUM256);
-    } else if (fBaseParams.d <= static_cast<uint32_t>(ConstAxisTemplateNum::NUM512)) {
+    } else if (fBaseParams.d <= static_cast<uint32_t>(ConstAxisTemplateNum::NUM768)) {
         fBaseParams.dTemplateType = ConstAxisTemplateNum::NUM512;
         return static_cast<uint32_t>(ConstAxisTemplateNum::NUM512);
     }
@@ -1143,7 +1143,7 @@ uint32_t FlashAttentionScoreGradTilingUs1s2Bs2Regbase::GetDeterSparseTilingKey()
         return static_cast<uint32_t>(DeterSparseType::NO_DETER);
     }
 
-    if (fBaseParams.hasRope || fBaseParams.layoutType == INPUT_FROAMT_TND || fBaseParams.n1 != fBaseParams.n2) {
+    if (fBaseParams.layoutType == INPUT_FROAMT_TND && fBaseParams.n1 != fBaseParams.n2 && fBaseParams.d <= static_cast<uint32_t>(ConstAxisTemplateNum::NUM512)) {
         return static_cast<uint32_t>(DeterSparseType::DETER_OLD);
     }
 
@@ -1161,7 +1161,7 @@ uint32_t FlashAttentionScoreGradTilingUs1s2Bs2Regbase::GetDeterSparseTilingKey()
                fBaseParams.sparseMode == static_cast<uint32_t>(SparseMode::NO_MASK)) {
         return static_cast<uint32_t>(DeterSparseType::DETER_BAND);
     }
-    return static_cast<uint32_t>(DeterSparseType::DETER_OLD);
+    return fBaseParams.d <= static_cast<uint32_t>(ConstAxisTemplateNum::NUM512) ? static_cast<uint32_t>(DeterSparseType::DETER_OLD) : static_cast<uint32_t>(DeterSparseType::NO_DETER);
 }
 
 void FlashAttentionScoreGradTilingUs1s2Bs2Regbase::CalcleDeterParam()
@@ -1185,12 +1185,12 @@ void FlashAttentionScoreGradTilingUs1s2Bs2Regbase::CalcleCausalDeterParam()
     int64_t m = fBaseParams.s1Outer;
     int64_t n = fBaseParams.s2Outer;
     int64_t k = static_cast<int64_t>(fBaseParams.aicNum);
-    int64_t b = fBaseParams.b * fBaseParams.n1;
+    int64_t b = fBaseParams.b * fBaseParams.n2;
 
     if (fBaseParams.sparseMode == static_cast<uint32_t>(SparseMode::RIGHT_DOWN_CAUSAL) && m > n) {
         m = n;
     } else if (fBaseParams.sparseMode == static_cast<uint32_t>(SparseMode::NO_MASK) ||
-               (fBaseParams.sparseMode == static_cast<uint32_t>(SparseMode::LEFT_UP_CAUSAL) && n > m)) {
+               fBaseParams.sparseMode == static_cast<uint32_t>(SparseMode::LEFT_UP_CAUSAL) && n > m) {
         n = m;
     } else if (fBaseParams.sparseMode == static_cast<uint32_t>(SparseMode::RIGHT_DOWN_CAUSAL) && m < n) {
         fBaseParams.deterSparseType = static_cast<uint32_t>(DeterSparseType::DETER_BAND);
@@ -1204,7 +1204,11 @@ void FlashAttentionScoreGradTilingUs1s2Bs2Regbase::CalcleCausalDeterParam()
     int64_t t1 = n / (MULT_BASE * k);
     int64_t n1 = t * k;
 
-    rUpper += bTail * (n1 * m - n1 * (n1 - 1) / MULT_BASE) / k;
+    if (fBaseParams.g != 1) {
+        rUpper += (MULT_BASE * m - n1 + 1) * t * (bTail / MULT_BASE);
+    } else {
+        rUpper += bTail * (n1 * m - n1 * (n1 - 1) / MULT_BASE) / k;
+    }
     if (bTail % MULT_BASE == 1) {
         if ((t % MULT_BASE) == 1) {
             int64_t m1 = m - t1 * MULT_BASE * k;
@@ -1228,6 +1232,7 @@ void FlashAttentionScoreGradTilingUs1s2Bs2Regbase::CalcleCausalDeterParam()
         L = MULT_BASE * (m - n) + ell;
     }
     rUpper += CeilDivideBy(ell1 * bTail, k) * L;
+    rUpper *= fBaseParams.g;
     fBaseParams.deterMaxRound = rUpper;
 }
 
@@ -1259,7 +1264,8 @@ void FlashAttentionScoreGradTilingUs1s2Bs2Regbase::CalcleTNDDenseDeterParam()
     }
     fBaseParams.splitAxis = SplitAxisEnum::BN2GS1S2;
     DeterPrefixData deterPrefixData;
-    int64_t lMax = 0;
+    int64_t s1Max = 0;
+    int64_t s2Max = 0;
     for (int64_t i = 0; i < fBaseParams.b; i++) {
         int64_t actualS1Outer =
             CeilDivideBy(fBaseParams.actualSeqQlen[i], fBaseParams.s1Inner * fBaseParams.s1CvRatio);
@@ -1271,10 +1277,15 @@ void FlashAttentionScoreGradTilingUs1s2Bs2Regbase::CalcleTNDDenseDeterParam()
             deterPrefixData.deterPrefixAlign.back() +
             fBaseParams.actualSeqQlen[i] *
                 AlignTo(fBaseParams.actualSeqKvlen[i], static_cast<int64_t>(ConstAxisTemplateNum::NUM16)));
-        lMax = actualS1Outer > lMax ? actualS1Outer : lMax;
+        s1Max = actualS1Outer > s1Max ? actualS1Outer : s1Max;
+        s2Max = actualS2Outer > s2Max ? actualS2Outer : s2Max;
     }
     int64_t totalArea = deterPrefixData.prefix0.back() * fBaseParams.n1;
-    fBaseParams.deterMaxRound = std::max(CeilDivideBy(totalArea, static_cast<int64_t>(fBaseParams.aicNum)), lMax * fBaseParams.n1);
+    if (fBaseParams.g == 1) {
+        fBaseParams.deterMaxRound = std::max(CeilDivideBy(totalArea, static_cast<int64_t>(fBaseParams.aicNum)), s1Max * fBaseParams.n1);
+    } else {
+        fBaseParams.deterMaxRound = std::max({CeilDivideBy(totalArea, static_cast<int64_t>(fBaseParams.aicNum)), s1Max * fBaseParams.g, s2Max});
+    }
 
     deterPrefixData.prefix0 = SliceVector(deterPrefixData.prefix0, fBaseParams.deterPrefixStep);
     deterPrefixData.deterPrefix = SliceVector(deterPrefixData.deterPrefix, fBaseParams.deterPrefixStep);
@@ -1640,7 +1651,7 @@ void FlashAttentionScoreGradTilingUs1s2Bs2Regbase::CalcleTNDBandDeterParam()
     if (fBaseParams.deterSparseType != static_cast<uint32_t>(DeterSparseType::DETER_BAND)) {
         return;
     }
-
+    fBaseParams.splitAxis = SplitAxisEnum::BN2GS1S2;
     int64_t N11 = fBaseParams.n1 / fBaseParams.aicNum;
     int64_t N12 = fBaseParams.n1 % fBaseParams.aicNum;
     int64_t mnMax = 0;
@@ -2063,6 +2074,7 @@ ge::graphStatus FlashAttentionScoreGradTilingUs1s2Bs2Regbase::GetWorkspaceSize()
         workspaceSize += (fBaseParams.s2Inner * fBaseParams.sfmgdInner * CORE_LIST_NUM * FP32_BYTES + GM_ALIGN) / GM_ALIGN * GM_ALIGN;
     } else if (fBaseParams.isBn2) {
         postTilingData_->set_dqWorkSpaceOffset(workspaceSize);
+        workspaceSize += (fBaseParams.s2Inner * fBaseParams.sfmgdInner * 2 * CORE_LIST_NUM * FP32_BYTES + GM_ALIGN) / GM_ALIGN * GM_ALIGN;
     } else {
         if (fBaseParams.queryType != ge::DT_FLOAT) {
             postTilingData_->set_dqWorkSpaceOffset(workspaceSize);
@@ -2138,34 +2150,20 @@ uint64_t FlashAttentionScoreGradTilingUs1s2Bs2Regbase::GetTilingKey() const
     auto pseValue = fBaseParams.pseOptional == NORMAL_TENSOR ? OptionEnum::ENABLE : OptionEnum::DISABLE;
     auto dropValue = fBaseParams.keepProb < 1 ? OptionEnum::ENABLE : OptionEnum::DISABLE;
     auto isRegbasePlatformValue = OptionEnum::ENABLE;
-    auto hasTail = (fBaseParams.s1 % (fBaseParams.s1Inner * S1CV_RATIO_DEFAULT) != 0) ||
-                    (fBaseParams.s2 % fBaseParams.s2Inner != 0) || dNoEqual;
-    if (fBaseParams.d <= static_cast<uint32_t>(ConstAxisTemplateNum::NUM256)) {
-        hasTail = hasTail || (fBaseParams.d % static_cast<uint32_t>(ConstAxisTemplateNum::NUM64) != 0);
-    } else {
-        hasTail = hasTail || (fBaseParams.d % static_cast<uint32_t>(ConstAxisTemplateNum::NUM256) != 0);
-    }
     auto isTnd = (inputLayout == LayoutEnum::TND);
-    if (isTnd) {
-        for (int64_t bIdx = 0; bIdx < fBaseParams.b; bIdx++) {
-            if ((fBaseParams.actualSeqQlen[bIdx] % (fBaseParams.s1Inner * S1CV_RATIO_DEFAULT) != 0) ||
-                (fBaseParams.actualSeqKvlen[bIdx] % fBaseParams.s2Inner != 0)) {
-                hasTail = 1;
-                break;
-            }
-        }
-    }
+    auto hasTail = true;
     auto splitAxis = fBaseParams.splitAxis;
     if (fBaseParams.hasRope) {
         splitAxis = SplitAxisEnum::BN2GS1S2;
     }
-    OP_LOGI(context_, "splitAxis[%d], inputDtype[%d], isTnd[%d], dropValue[%d], pseValue[%d], attenMaskCfg[%d], s1TemplateType[%d], s2TemplateType[%d], dTemplateType[%u], isDeterministic[%d], hasTail[%d], dNoEqual[%d], hasRope[%d], outDtype[%d], fp8OpenTscm[%d], isRegbasePlatformValue[%d]",
+    bool isDeterNEqual = fBaseParams.deterSparseType != static_cast<uint32_t>(DeterSparseType::DETER_OLD) && fBaseParams.deterSparseType != static_cast<uint32_t>(DeterSparseType::NO_DETER) && fBaseParams.g == 1;
+    OP_LOGI(context_, "splitAxis[%d], inputDtype[%d], isTnd[%d], dropValue[%d], pseValue[%d], attenMaskCfg[%d], s1TemplateType[%d], s2TemplateType[%d], dTemplateType[%u], isDeterministic[%d], nEqual[%d], hasTail[%d], dNoEqual[%d], hasRope[%d], outDtype[%d], fp8OpenTscm[%d], isRegbasePlatformValue[%d]",
                     static_cast<int>(splitAxis), static_cast<int>(fBaseParams.inputDtype), isTnd, static_cast<int>(dropValue), static_cast<int>(pseValue), static_cast<int>(attenMaskCfg), 
                     static_cast<int>(fBaseParams.s1TemplateType), static_cast<int>(fBaseParams.s2TemplateType), static_cast<uint32_t>(fBaseParams.dTemplateType),
-                    static_cast<int>(fBaseParams.deterSparseType), hasTail, dNoEqual, static_cast<int>(fBaseParams.hasRope), static_cast<int>(fBaseParams.outDtype),  static_cast<int>(fBaseParams.fp8OpenTscm), static_cast<int>(isRegbasePlatformValue));
-    
+                    static_cast<int>(fBaseParams.deterSparseType), static_cast<int>(isDeterNEqual), hasTail, dNoEqual, static_cast<int>(fBaseParams.hasRope), static_cast<int>(fBaseParams.outDtype),  static_cast<int>(fBaseParams.fp8OpenTscm), static_cast<int>(isRegbasePlatformValue));
+
     uint64_t tilingKey = GET_TPL_TILING_KEY(0, static_cast<uint8_t>(splitAxis), static_cast<uint8_t>(fBaseParams.inputDtype), static_cast<uint8_t>(isTnd), static_cast<uint8_t>(dropValue), static_cast<uint8_t>(pseValue),
-                                            static_cast<uint8_t>(attenMaskCfg), static_cast<uint16_t>(fBaseParams.s1TemplateType), static_cast<uint16_t>(fBaseParams.s2TemplateType), static_cast<uint16_t>(fBaseParams.dTemplateType), static_cast<uint8_t>(fBaseParams.deterSparseType),
+                                            static_cast<uint8_t>(attenMaskCfg), static_cast<uint16_t>(fBaseParams.s1TemplateType), static_cast<uint16_t>(fBaseParams.s2TemplateType), static_cast<uint16_t>(fBaseParams.dTemplateType), static_cast<uint8_t>(fBaseParams.deterSparseType), static_cast<uint8_t>(isDeterNEqual),
                                             static_cast<uint8_t>(hasTail), static_cast<uint8_t>(dNoEqual), static_cast<uint8_t>(fBaseParams.hasRope), static_cast<uint8_t>(fBaseParams.outDtype), static_cast<uint8_t>(fBaseParams.fp8OpenTscm), static_cast<uint8_t>(isRegbasePlatformValue));
 
     OP_LOGI(context_, "FAGTiling S1s2Bn2gs1s2 DoTiling success, tiling is %lu.", tilingKey);

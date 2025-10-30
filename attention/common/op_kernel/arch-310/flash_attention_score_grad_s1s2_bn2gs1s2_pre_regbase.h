@@ -243,6 +243,6 @@ __aicore__ inline void FlashAttentionScoreGradS1S2BNGS1S2PreRegbase<T1, T2, DETE
 template <typename T1, typename T2, const uint8_t DETER_SPARSE_TYPE, const uint32_t IS_TND, const uint8_t SPLIT_AXIS>
 __aicore__ inline void FlashAttentionScoreGradS1S2BNGS1S2PreRegbase<T1, T2, DETER_SPARSE_TYPE, IS_TND, SPLIT_AXIS>::SyncALLCores()
 {
-    SyncAll();
+    SyncAll<false>();
 }
 #endif // _FLASH_ATTENTION_SCORE_GRAD_S1S2_BNGS1S2_PRE_KERNEL_REGBASE_H_

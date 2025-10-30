@@ -62,6 +62,7 @@
      NUM240 = 240,
      NUM256 = 256,
      NUM512 = 512,
+     NUM768 = 768,
  };
  
  enum class SplitAxisEnum : uint32_t {

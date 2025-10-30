@@ -204,7 +204,11 @@ struct FagConstInfo {
     uint32_t dAlignToBlockForFp8;
     int64_t mm2Ka;
     int64_t mm2Kb;
+    int64_t mm3Ka;
+    int64_t mm4Kb;
     int64_t dRopeSize = 64; // rope旋转的维度
+    int64_t dAlign8;
+    int64_t dvAlign8;
 };
 
 // fp8反量化因子
@@ -231,6 +235,7 @@ struct FagRunInfo {
         firstHalfS2RealSize; // 当s2RealSize不是2的整数倍时，v0比v1少计算一行，计算subblock偏移的时候需要使用v0的s2 size
     uint8_t qDxPingPongIdx;
     uint8_t isS2IdxNoChange; // s2Idx是否变化
+    uint8_t isNextS2IdxNoChange; // 下一个基本块的s2Idx是否变化（是否切换了列）
     // TND需要记录上一次的基本块的信息，用于优化scalar
     int64_t lastBatchIdx = 0;
     int64_t lastBatchTotalBaseIdx = 0;
@@ -245,6 +250,11 @@ struct FagRunInfo {
     int64_t lastBatchTotalS2Size = 0;
     // 只有确定性计算使用
     bool completed = true;
+    int64_t dyOffset;
+    int64_t queryOffsetWithRope;
+    int64_t keyOffsetWithRope;
+    int64_t queryOffsetWithRopeForMm12;
+    int64_t keyOffsetWithRopeForMm12;
 };
 
 constexpr SyncAllConfig syncAllConfigMte2ToMte2 = {PIPE_MTE2, PIPE_MTE2};

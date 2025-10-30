@@ -85,6 +85,9 @@ __aicore__ inline void FlashAttentionScoreGradS1S2BNGS1S2PostRegbase<T1, T2, OUT
 template <typename T1, typename T2, typename OUTDTYPE, const uint8_t SPLIT_AXIS, bool IS_ROPE, const uint8_t DETER_SPARSE_TYPE, const bool IS_TND>
 __aicore__ inline void FlashAttentionScoreGradS1S2BNGS1S2PostRegbase<T1, T2, OUTDTYPE, SPLIT_AXIS, IS_ROPE, DETER_SPARSE_TYPE, IS_TND>::Process()
 {
+    if (g_coreType != AIV) {
+        return;
+    }
     for (int qkvIdx = 0; qkvIdx < 3; qkvIdx++) {
         if (qkvIdx == 1) {
             loop = tilingData->postTilingData.kPostBlockFactor;

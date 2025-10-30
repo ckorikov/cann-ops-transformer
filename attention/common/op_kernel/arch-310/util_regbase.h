@@ -38,6 +38,7 @@ enum class DTemplateType {
     Aligned256 = 256,
     Aligned512 = 512,
     Aligned576 = 576,
+    Aligned768 = 768,
     NotAligned,
 };
 
@@ -360,6 +361,14 @@ struct RunInfo<false> {
     uint32_t dSizeRope : 12; \
     uint32_t coreNum;
 
+#define FAG_CV_SHARED_PARAMS \
+    /* base params */ \
+    float qScaleDs
+ 
+struct FagCVSharedParams {
+    FAG_CV_SHARED_PARAMS;
+};
+ 
 template<bool isInfer = false, bool hasRope = false>
 struct ConstInfo;
 

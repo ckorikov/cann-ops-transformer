@@ -32,17 +32,17 @@
 
 #define FAG_CLASS_TEMPLATE                                                                                             \
     template <typename T1, typename T2, const bool IS_ATTEN_MASK = 0, const bool IS_PSE = 0, const bool IS_DROP = 0,   \
-              const bool IS_TND = 0, const bool HAS_TAIL = 0, const uint8_t DETER_SPARSE_TYPE = 0, const bool IS_D_NO_EQUAL = 0,   \
+              const bool IS_TND = 0, const bool HAS_TAIL = 0, const uint8_t DETER_SPARSE_TYPE = 0, bool IS_N_EQUAL = 0, const bool IS_D_NO_EQUAL = 0,   \
               const bool IS_ROPE = 0, const bool FP8_OPEN_TSCM = 0, const uint8_t SPLIT_AXIS = 0, S1TemplateType s1TemplateType = S1TemplateType::Aligned128, \
               S2TemplateType s2TemplateType = S2TemplateType::Aligned128,                                              \
               DTemplateType dTemplateType = DTemplateType::Aligned128, typename OUTDTYPE = T1>
 #define FAG_FUNCTION_TEMPLATE                                                                                          \
     template <typename T1, typename T2, const bool IS_ATTEN_MASK, const bool IS_PSE, const bool IS_DROP,               \
-              const bool IS_TND, const bool HAS_TAIL, const uint8_t DETER_SPARSE_TYPE, const bool IS_D_NO_EQUAL,                   \
+              const bool IS_TND, const bool HAS_TAIL, const uint8_t DETER_SPARSE_TYPE, const bool IS_N_EQUAL, const bool IS_D_NO_EQUAL,                   \
               const bool IS_ROPE, const bool FP8_OPEN_TSCM, const uint8_t SPLIT_AXIS, S1TemplateType s1TemplateType, S2TemplateType s2TemplateType,                  \
               DTemplateType dTemplateType, typename OUTDTYPE>
 #define FAG_FUNCTION_PARAMS_TEMPLATE                                                                                   \
-    T1, T2, IS_ATTEN_MASK, IS_PSE, IS_DROP, IS_TND, HAS_TAIL, DETER_SPARSE_TYPE, IS_D_NO_EQUAL, IS_ROPE, FP8_OPEN_TSCM, SPLIT_AXIS, s1TemplateType,     \
+    T1, T2, IS_ATTEN_MASK, IS_PSE, IS_DROP, IS_TND, HAS_TAIL, DETER_SPARSE_TYPE, IS_N_EQUAL, IS_D_NO_EQUAL, IS_ROPE, FP8_OPEN_TSCM, SPLIT_AXIS, s1TemplateType,     \
         s2TemplateType, dTemplateType, OUTDTYPE
 
 using namespace matmul;
@@ -951,18 +951,24 @@ FlashAttentionScoreGradUs1s2Bbn2gs1s2StaticRegbase<FAG_FUNCTION_PARAMS_TEMPLATE>
         } else if ((constInfo.sparseMode == NO_MASK || constInfo.sparseMode == LEFT_UP_CAUSAL) && n > m) {
             n = m;
         }
-
-        CalCausalIndex(k, m, n, b, j, r, coordinateInfo);
+        if constexpr(IS_N_EQUAL) {
+            CalCausalIndex(k, m, n, b, j, r, coordinateInfo);
+        } else {
+            CalGQACausalIndex(k, m, n, b, j, r, constInfo.commonConstInfo.gSize, coordinateInfo);
+        }
     } else {
         CalTNDCausalIndex<CUBE_BASEM, CUBE_BASEN>(actualSeqQlenAddr, actualSeqKvlenAddr, tilingData->deterParam.deterPrefix0, tilingData->deterParam.deterPrefix1, tilingData->deterParam.deterPrefix2, constInfo.bSize, constInfo.n2Size, k, j, r, tilingData->deterParam.deterPrefixStep, coordinateInfo);
     }
 
     int64_t w = coordinateInfo.batchId;
-    coordinateInfo.batchId = Ceil<int64_t>(w, constInfo.n2Size) - 1;
-    coordinateInfo.n1Idx = w - coordinateInfo.batchId * constInfo.n2Size - 1;
+    int64_t n1 = constInfo.commonConstInfo.gSize * constInfo.n2Size;
+    coordinateInfo.batchId = Ceil<int64_t>(w, n1) - 1;
+    coordinateInfo.n1Idx = w - coordinateInfo.batchId * n1 - 1;
     coordinateInfo.s1Idx = coordinateInfo.s1Idx + mGap - 1;
     coordinateInfo.s2Idx = coordinateInfo.s2Idx - 1;
-    if (!(w > 0 && w <= constInfo.bSize * constInfo.n2Size && coordinateInfo.s1Idx >= 0 && coordinateInfo.s1Idx < coordinateInfo.s1Outer && coordinateInfo.s2Idx >= 0 && coordinateInfo.s2Idx < coordinateInfo.s2Outer)) {
+    if (!(w > 0 && w <= constInfo.bSize * n1 &&
+          coordinateInfo.s1Idx >= 0 && coordinateInfo.s1Idx < coordinateInfo.s1Outer && coordinateInfo.s2Idx >= 0 &&
+          coordinateInfo.s2Idx < coordinateInfo.s2Outer)) {
         return -1;
     }
 
@@ -983,24 +989,31 @@ FlashAttentionScoreGradUs1s2Bbn2gs1s2StaticRegbase<FAG_FUNCTION_PARAMS_TEMPLATE>
 
     if constexpr (IS_TND) {
         int64_t b = constInfo.bSize;
-        CalTNDDenseIndex<CUBE_BASEM, CUBE_BASEN, DETER_SPARSE_TYPE>(
-            actualSeqQlenAddr, actualSeqKvlenAddr, tilingData->deterParam.deterPrefix0,
-            tilingData->s1s2BNGS1S2SplitCoreParams.deterMaxRound, constInfo.bSize, constInfo.n2Size, j, r, 0, tilingData->deterParam.deterPrefixStep, coordinateInfo);
+        CalTNDDenseIndex<CUBE_BASEM, CUBE_BASEN, DETER_SPARSE_TYPE, IS_N_EQUAL>(
+                actualSeqQlenAddr, actualSeqKvlenAddr, tilingData->deterParam.deterPrefix0,
+                tilingData->s1s2BNGS1S2SplitCoreParams.deterMaxRound, constInfo.bSize, constInfo.n2Size, constInfo.commonConstInfo.gSize, j, r, 0, tilingData->deterParam.deterPrefixStep, coordinateInfo);
     } else {
         int64_t k = static_cast<int64_t>(tilingData->s1s2BNGS1S2BaseParams.coreNum / NUM_TWO);
         int64_t b = constInfo.bSize * constInfo.n2Size;
-        CalDenseIndex(k, constInfo.s1Outer, constInfo.s2Outer, b, j, r, coordinateInfo);
+        if constexpr(IS_N_EQUAL) {
+            CalDenseIndex(k, constInfo.s1Outer, constInfo.s2Outer, b, j, r, coordinateInfo);
+        } else {
+            CalGQADenseIndex(k, constInfo.s1Outer, constInfo.s2Outer, b, j, r, constInfo.commonConstInfo.gSize, coordinateInfo);
+        }
     }
-
+ 
     int64_t w = coordinateInfo.batchId;
-    coordinateInfo.batchId = Ceil<int64_t>(w, constInfo.n2Size) - 1;
-    coordinateInfo.n1Idx = w - coordinateInfo.batchId * constInfo.n2Size - 1;
+    int64_t n1 = constInfo.commonConstInfo.gSize * constInfo.n2Size;
+    coordinateInfo.batchId = Ceil<int64_t>(w, n1) - 1;
+    coordinateInfo.n1Idx = w - coordinateInfo.batchId * n1 - 1;
     coordinateInfo.s1Idx -= 1;
     coordinateInfo.s2Idx -= 1;
-    if (!(w > 0 && w <= constInfo.bSize * constInfo.n2Size && coordinateInfo.s1Idx >= 0 && coordinateInfo.s1Idx < coordinateInfo.s1Outer && coordinateInfo.s2Idx >= 0 && coordinateInfo.s2Idx < coordinateInfo.s2Outer)) {
+    if (!(w > 0 && w <= constInfo.bSize * n1 &&
+          coordinateInfo.s1Idx >= 0 && coordinateInfo.s1Idx < coordinateInfo.s1Outer && coordinateInfo.s2Idx >= 0 &&
+          coordinateInfo.s2Idx < coordinateInfo.s2Outer)) {
         return -1;
     }
-    
+ 
     if constexpr (IS_TND) {
         return coordinateInfo.batchId;
     } else {
@@ -1017,7 +1030,11 @@ FlashAttentionScoreGradUs1s2Bbn2gs1s2StaticRegbase<FAG_FUNCTION_PARAMS_TEMPLATE>
     int64_t r = roundId + 1;
 
     if constexpr (!IS_TND) {
-        CalBandIndex(bandInfo, j, r, coordinateInfo);
+        if constexpr(IS_N_EQUAL) {
+            CalBandIndex(bandInfo, j, r, coordinateInfo);
+        } else {
+            CalGQABandIndex(bandInfo, j, r, constInfo.commonConstInfo.gSize, coordinateInfo);
+        }
     } else {
         int64_t k = static_cast<int64_t>(tilingData->s1s2BNGS1S2BaseParams.coreNum / NUM_TWO);
         coordinateInfo.p = constInfo.s1Token;
@@ -1027,13 +1044,14 @@ FlashAttentionScoreGradUs1s2Bbn2gs1s2StaticRegbase<FAG_FUNCTION_PARAMS_TEMPLATE>
                                                 tilingData->deterParam.deterPrefix1, constInfo.bSize, constInfo.n2Size,
                                                 k, j, r, tilingData->deterParam.deterPrefixStep, coordinateInfo);
     }
-
+ 
     int64_t w = coordinateInfo.batchId;
-    coordinateInfo.batchId = Ceil<int64_t>(w, constInfo.n2Size) - 1;
-    coordinateInfo.n1Idx = w - coordinateInfo.batchId * constInfo.n2Size - 1;
+    int64_t n1 = constInfo.commonConstInfo.gSize * constInfo.n2Size;
+    coordinateInfo.batchId = Ceil<int64_t>(w, n1) - 1;
+    coordinateInfo.n1Idx = w - coordinateInfo.batchId * n1 - 1;
     coordinateInfo.s1Idx = coordinateInfo.s1Idx - 1 + coordinateInfo.mOffset;
     coordinateInfo.s2Idx = coordinateInfo.s2Idx - 1 + coordinateInfo.nOffset;
-    if (!(w > 0 && w <= constInfo.bSize * constInfo.n2Size && coordinateInfo.s1Idx >= 0 &&
+    if (!(w > 0 && w <= constInfo.bSize * n1 && coordinateInfo.s1Idx >= 0 &&
           coordinateInfo.s1Idx < coordinateInfo.s1Outer && coordinateInfo.s2Idx >= 0 &&
           coordinateInfo.s2Idx < coordinateInfo.s2Outer)) {
         return -1;
@@ -1068,7 +1086,15 @@ FlashAttentionScoreGradUs1s2Bbn2gs1s2StaticRegbase<FAG_FUNCTION_PARAMS_TEMPLATE>
     }
 
     if constexpr (DETER_SPARSE_TYPE == DETER_DENSE) {
-        return Ceil<int64_t>(n * b, Min(k, m * b)) * m;
+        if constexpr(IS_N_EQUAL) {
+            return Ceil<int64_t>(n * b, Min(k, m * b)) * m;
+        } else {
+            return Max(Max(Ceil<int64_t>(b * n * constInfo.commonConstInfo.gSize,
+                                         (Min(Min(k, b * constInfo.commonConstInfo.gSize * m), b * n))),
+                           Ceil<int64_t>(n, m)),
+                       constInfo.commonConstInfo.gSize) *
+                   m;
+        }
     }
 
     if constexpr (DETER_SPARSE_TYPE == DETER_BAND) {
@@ -1102,12 +1128,15 @@ FlashAttentionScoreGradUs1s2Bbn2gs1s2StaticRegbase<FAG_FUNCTION_PARAMS_TEMPLATE>
                 nOffset = 0;
         }
 
-        if (actualP + actualQ > actualM) {
-                loopMax = actualM * Ceil<int64_t>(actualN * b, Min(k, b * actualM));
+        if constexpr(IS_N_EQUAL) {
+            GenBandInfo(k, actualM, actualN, actualP, actualQ, b, bandInfo);
+            loopMax = bandInfo.rm2;
         } else {
-                loopMax = Ceil<int64_t>(actualN * b, k) * (actualP + actualQ - 1);
+            k = Min(Min(k, b * constInfo.commonConstInfo.gSize * m), b * n);
+            int64_t b2 = b % k;
+            GenGQABandInfo(k, actualM, actualN, actualP, actualQ, b, constInfo.commonConstInfo.gSize, bandInfo);
+            loopMax = bandInfo.rm + bandInfo.rm2;
         }
-        GenBandInfo(k, actualM, actualN, actualP, actualQ, b, bandInfo);
         InitCoordinateInfo(constInfo.s1Outer, constInfo.s2Outer, mOffset, nOffset, coordinateInfos[0]);
         InitCoordinateInfo(constInfo.s1Outer, constInfo.s2Outer, mOffset, nOffset, coordinateInfos[1]);
         return loopMax;
@@ -1120,6 +1149,7 @@ __aicore__ inline void
     FlashAttentionScoreGradUs1s2Bbn2gs1s2StaticRegbase<FAG_FUNCTION_PARAMS_TEMPLATE>::CalDeterIndex(
         uint32_t roundId, uint32_t maxLoopNum, int64_t &nextValidRoundId, int64_t &nextValidIndex, CoordinateInfo &coordinateInfo, FagRunInfo &runInfo)
 {
+    coordinateInfo.sparseMode = constInfo.sparseMode;
     for (uint32_t currentRoundId = roundId; currentRoundId < maxLoopNum; currentRoundId++) {
         if constexpr (DETER_SPARSE_TYPE == DETER_BAND) {
             nextValidIndex = CalBandDeterIndex(currentRoundId, coordinateInfo);
@@ -1738,7 +1768,7 @@ FlashAttentionScoreGradUs1s2Bbn2gs1s2StaticRegbase<FAG_FUNCTION_PARAMS_TEMPLATE>
             s2Idx = gDimTail / constInfo.s1Outer;
             s1Idx = gDimTail % constInfo.s1Outer;
         } else {
-            float sqrt_delta = std::sqrt(((constInfo.s1Outer << 1) - 1) * (((constInfo.s1Outer << 1) - 1)) +
+            float sqrt_delta = sqrt(((constInfo.s1Outer << 1) - 1) * (((constInfo.s1Outer << 1) - 1)) +
                                          ((constInfo.s1Outer - 1 - gDimTail) << 3));
             s2Idx = Ceil<int64_t>(((constInfo.s1Outer << 1) - 1) - sqrt_delta, 2);
             s1Idx = gDimTail - ((((constInfo.s1Outer << 1) - 1 - s2Idx) * s2Idx) >> 1);
