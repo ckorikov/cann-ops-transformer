@@ -1081,19 +1081,12 @@ function(OpsTest_AddLaunch)
     endif ()
 
     # UTest 用例可执行程序(Aclnn)
-    set(_ACLNN_UTEST_SUPPORTED OFF)
     set(_param
             "--cann_path=${ASCEND_CANN_PACKAGE_PATH}"
             "--cann_package_name=opp"
             "get_package_version"
     )
-
-    string(TOLOWER "${_UTEST_OPP_CANN_VERSION}" _UTEST_OPP_CANN_VERSION)
-    string(REPLACE "t" "" _UTEST_OPP_CANN_VERSION "${_UTEST_OPP_CANN_VERSION}")
-    if ("${_UTEST_OPP_CANN_VERSION}" VERSION_GREATER "7.3.10.0")
-        set(_ACLNN_UTEST_SUPPORTED ON)
-    endif()
-    if (_OpsTestUt_UTestAclnnCaseLibraries AND _ACLNN_UTEST_SUPPORTED)
+    if (_OpsTestUt_UTestAclnnCaseLibraries)
         # 支持按算子分离可执行文件, 便于彼此冲突的 Kernel 侧编译宏设置
         foreach (_OpsTestUt_UTestAclnnCaseLibrary ${_OpsTestUt_UTestAclnnCaseLibraries})
             # 获取算子工程名
