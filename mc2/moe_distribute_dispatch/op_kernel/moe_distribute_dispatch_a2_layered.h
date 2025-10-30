@@ -936,7 +936,7 @@ __aicore__ inline void MoeDistributeDispatchA2Layered<TemplateMC2TypeA2layeredFu
     globalSet.SetGlobalBuffer((__gm__ uint64_t*)(shareAddrs[destRankIdx] + IPC_FLAG_OFFSET) +
         localRankId * B64_PER_BLOCK);
     LocalTensor<uint64_t> localSet = tBuf.GetWithOffset<uint64_t>(B64_PER_BLOCK, 0);
-    uint64_t setVal = MergeMagicWithValue(magicVal_, flagVal);
+    uint64_t setVal = magicVal_;
     localSet.SetValue(0, setVal);
     SyncFunc<AscendC::HardEvent::S_MTE3>();
     DataCopy(globalSet, localSet, B64_PER_BLOCK);
@@ -946,7 +946,7 @@ __aicore__ inline void MoeDistributeDispatchA2Layered<TemplateMC2TypeA2layeredFu
 template <TemplateMC2TypeA2layeredClass>
 __aicore__ inline void MoeDistributeDispatchA2Layered<TemplateMC2TypeA2layeredFunc>::WaitIpcFlag(int32_t flagVal)
 {
-    uint64_t waitVal = MergeMagicWithValue(magicVal_, flagVal);
+    uint64_t waitVal = magicVal_;
     if (aivId_ >= SERVER_RANK_SIZE) {
         return;
     }
