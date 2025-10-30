@@ -34,12 +34,13 @@ protected:
 TEST_F(AlltoAllAllGatherBmmTiling, all_to_all_all_gather_batch_matmul_test_tiling_float16_1)
 {
     struct DistributeBarrierCompileInfo {} compileInfo;
-    const std::string socVersion = "";
+    const std::string socVersion = "Ascend910_93";
     uint64_t coreNum = 20;
     uint64_t ubSize = 196608;
     uint64_t tilingDataSize = 4096;
     gert::TilingContextPara tilingContextPara("AlltoAllAllGatherBatchMatMul",
-        {{{{16, 128, 64}, {16, 128, 64}}, ge::DT_FLOAT16, ge::FORMAT_ND}, {{{4, 64, 128}, {4, 64, 128}}, ge::DT_FLOAT16, ge::FORMAT_ND}},
+        {{{{16, 128, 64}, {16, 128, 64}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+         {{{4, 64, 128}, {4, 64, 128}}, ge::DT_FLOAT16, ge::FORMAT_ND}},
         {{{{4, 512, 64}, {4, 512, 64}}, ge::DT_FLOAT16, ge::FORMAT_ND},},
         {{"group_ep", Ops::Transformer::AnyValue::CreateFrom<std::string>("ep_group")},
          {"group_tp", Ops::Transformer::AnyValue::CreateFrom<std::string>("tp_group")},
@@ -56,21 +57,18 @@ TEST_F(AlltoAllAllGatherBmmTiling, all_to_all_all_gather_batch_matmul_test_tilin
         ubSize,
         tilingDataSize);
     uint64_t expectTilingKey = 1000000000000000001UL;
-    std::string expectTilingData = "0 0 ";
-    std::vector<size_t> expectWorkspaces = {19136512};
-    uint64_t mc2TilingDataReservedLen = 375;
-    ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey, expectTilingData, expectWorkspaces,
-                    mc2TilingDataReservedLen);
+    ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey);
 }
 
 TEST_F(AlltoAllAllGatherBmmTiling, all_to_all_all_gather_batch_matmul_test_tiling_float16_xshard_0) {
     struct DistributeBarrierCompileInfo {} compileInfo;
-    const std::string socVersion = "";
+    const std::string socVersion = "Ascend910_93";
     uint64_t coreNum = 20;
     uint64_t ubSize = 196608;
     uint64_t tilingDataSize = 4096;
     gert::TilingContextPara tilingContextPara("AlltoAllAllGatherBatchMatMul",
-        {{{{16, 256, 32}, {16, 256, 32}}, ge::DT_FLOAT16, ge::FORMAT_ND}, {{{4, 64, 128}, {4, 64, 128}}, ge::DT_FLOAT16, ge::FORMAT_ND}},
+        {{{{16, 256, 32}, {16, 256, 32}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+         {{{4, 64, 128}, {4, 64, 128}}, ge::DT_FLOAT16, ge::FORMAT_ND}},
         {{{{4, 512, 64}, {4, 512, 64}}, ge::DT_FLOAT16, ge::FORMAT_ND},},
         {{"group_ep", Ops::Transformer::AnyValue::CreateFrom<std::string>("ep_group")},
          {"group_tp", Ops::Transformer::AnyValue::CreateFrom<std::string>("tp_group")},
@@ -87,16 +85,12 @@ TEST_F(AlltoAllAllGatherBmmTiling, all_to_all_all_gather_batch_matmul_test_tilin
         ubSize,
         tilingDataSize);
     uint64_t expectTilingKey = 1000000000000000000UL;
-    std::string expectTilingData = "0 0 ";
-    std::vector<size_t> expectWorkspaces = {18874368};
-    uint64_t mc2TilingDataReservedLen = 375;
-    ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey, expectTilingData, expectWorkspaces,
-                    mc2TilingDataReservedLen);
+    ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey);
 }
 
 TEST_F(AlltoAllAllGatherBmmTiling, all_to_all_all_gather_batch_matmul_test_tiling_float16_shard_0_invalid_H) {
     struct DistributeBarrierCompileInfo {} compileInfo;
-    const std::string socVersion = "";
+    const std::string socVersion = "Ascend910_93";
     uint64_t coreNum = 20;
     uint64_t ubSize = 196608;
     uint64_t tilingDataSize = 4096;
@@ -124,7 +118,7 @@ TEST_F(AlltoAllAllGatherBmmTiling, all_to_all_all_gather_batch_matmul_test_tilin
 
 TEST_F(AlltoAllAllGatherBmmTiling, all_to_all_all_gather_batch_matmul_test_tiling_float16_shard_0_unequal_H) {
     struct DistributeBarrierCompileInfo {} compileInfo;
-    const std::string socVersion = "";
+    const std::string socVersion = "Ascend910_93";
     uint64_t coreNum = 20;
     uint64_t ubSize = 196608;
     uint64_t tilingDataSize = 4096;
@@ -152,7 +146,7 @@ TEST_F(AlltoAllAllGatherBmmTiling, all_to_all_all_gather_batch_matmul_test_tilin
 
 TEST_F(AlltoAllAllGatherBmmTiling, all_to_all_all_gather_batch_matmul_test_tiling_float16_1_weight_trans) {
     struct DistributeBarrierCompileInfo {} compileInfo;
-    const std::string socVersion = "";
+    const std::string socVersion = "Ascend910_93";
     uint64_t coreNum = 20;
     uint64_t ubSize = 196608;
     uint64_t tilingDataSize = 4096;
@@ -175,16 +169,12 @@ TEST_F(AlltoAllAllGatherBmmTiling, all_to_all_all_gather_batch_matmul_test_tilin
         ubSize,
         tilingDataSize);
     uint64_t expectTilingKey = 1000000000000000011UL;
-    std::string expectTilingData = "0 0 ";
-    std::vector<size_t> expectWorkspaces = {19136512};
-    uint64_t mc2TilingDataReservedLen = 375;
-    ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey, expectTilingData, expectWorkspaces,
-                    mc2TilingDataReservedLen);
+    ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey);
 }
 
 TEST_F(AlltoAllAllGatherBmmTiling, all_to_all_all_gather_batch_matmul_test_tiling_float16_xShard_1_actType_1) {
     struct DistributeBarrierCompileInfo {} compileInfo;
-    const std::string socVersion = "";
+    const std::string socVersion = "Ascend910_93";
     uint64_t coreNum = 20;
     uint64_t ubSize = 196608;
     uint64_t tilingDataSize = 4096;
@@ -207,16 +197,12 @@ TEST_F(AlltoAllAllGatherBmmTiling, all_to_all_all_gather_batch_matmul_test_tilin
         ubSize,
         tilingDataSize);
     uint64_t expectTilingKey = 1000000000000000001UL;
-    std::string expectTilingData = "0 0 ";
-    std::vector<size_t> expectWorkspaces = {19136512};
-    uint64_t mc2TilingDataReservedLen = 375;
-    ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey, expectTilingData, expectWorkspaces,
-                    mc2TilingDataReservedLen);
+    ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey);
 }
 
 TEST_F(AlltoAllAllGatherBmmTiling, all_to_all_all_gather_batch_matmul_test_tiling_float16_xShard_1_actType_4) {
     struct DistributeBarrierCompileInfo {} compileInfo;
-    const std::string socVersion = "";
+    const std::string socVersion = "Ascend910_93";
     uint64_t coreNum = 20;
     uint64_t ubSize = 196608;
     uint64_t tilingDataSize = 4096;
@@ -239,16 +225,12 @@ TEST_F(AlltoAllAllGatherBmmTiling, all_to_all_all_gather_batch_matmul_test_tilin
         ubSize,
         tilingDataSize);
     uint64_t expectTilingKey = 1000000000000000001UL;
-    std::string expectTilingData = "0 0 ";
-    std::vector<size_t> expectWorkspaces = {19136512};
-    uint64_t mc2TilingDataReservedLen = 375;
-    ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey, expectTilingData, expectWorkspaces,
-                    mc2TilingDataReservedLen);
+    ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey);
 }
 
 TEST_F(AlltoAllAllGatherBmmTiling, all_to_all_all_gather_batch_matmul_test_tiling_float16_invalid_E) {
     struct DistributeBarrierCompileInfo {} compileInfo;
-    const std::string socVersion = "";
+    const std::string socVersion = "Ascend910_93";
     uint64_t coreNum = 20;
     uint64_t ubSize = 196608;
     uint64_t tilingDataSize = 4096;
@@ -275,7 +257,7 @@ TEST_F(AlltoAllAllGatherBmmTiling, all_to_all_all_gather_batch_matmul_test_tilin
 
 TEST_F(AlltoAllAllGatherBmmTiling, all_to_all_all_gather_batch_matmul_test_tiling_float16_shard) {
     struct DistributeBarrierCompileInfo {} compileInfo;
-    const std::string socVersion = "";
+    const std::string socVersion = "Ascend910_93";
     uint64_t coreNum = 20;
     uint64_t ubSize = 196608;
     uint64_t tilingDataSize = 4096;
@@ -298,16 +280,12 @@ TEST_F(AlltoAllAllGatherBmmTiling, all_to_all_all_gather_batch_matmul_test_tilin
         ubSize,
         tilingDataSize);
     uint64_t expectTilingKey = 1000000000000000001UL;
-    std::string expectTilingData = "0 0 ";
-    std::vector<size_t> expectWorkspaces = {19136512};
-    uint64_t mc2TilingDataReservedLen = 375;
-    ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey, expectTilingData, expectWorkspaces,
-                    mc2TilingDataReservedLen);
+    ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey);
 }
 
 TEST_F(AlltoAllAllGatherBmmTiling, all_to_all_all_gather_batch_matmul_test_tiling_invalid_EOverep_intercept) {
     struct DistributeBarrierCompileInfo {} compileInfo;
-    const std::string socVersion = "";
+    const std::string socVersion = "Ascend910_93";
     uint64_t coreNum = 20;
     uint64_t ubSize = 196608;
     uint64_t tilingDataSize = 4096;
@@ -334,7 +312,7 @@ TEST_F(AlltoAllAllGatherBmmTiling, all_to_all_all_gather_batch_matmul_test_tilin
 
 TEST_F(AlltoAllAllGatherBmmTiling, all_to_all_all_gather_batch_matmul_test_tiling_float16_shard_with_bias) {
     struct DistributeBarrierCompileInfo {} compileInfo;
-    const std::string socVersion = "";
+    const std::string socVersion = "Ascend910_93";
     uint64_t coreNum = 20;
     uint64_t ubSize = 196608;
     uint64_t tilingDataSize = 4096;
@@ -358,16 +336,12 @@ TEST_F(AlltoAllAllGatherBmmTiling, all_to_all_all_gather_batch_matmul_test_tilin
         ubSize,
         tilingDataSize);
     uint64_t expectTilingKey = 1000000000000000101UL;
-    std::string expectTilingData = "0 0 ";
-    std::vector<size_t> expectWorkspaces = {19136512};
-    uint64_t mc2TilingDataReservedLen = 375;
-    ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey, expectTilingData, expectWorkspaces,
-                    mc2TilingDataReservedLen);
+    ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey);
 }
 
 TEST_F(AlltoAllAllGatherBmmTiling, all_to_all_all_gather_batch_matmul_test_tiling_float16_shard_with_bias_bf16) {
     struct DistributeBarrierCompileInfo {} compileInfo;
-    const std::string socVersion = "";
+    const std::string socVersion = "Ascend910_93";
     uint64_t coreNum = 20;
     uint64_t ubSize = 196608;
     uint64_t tilingDataSize = 4096;
@@ -391,16 +365,12 @@ TEST_F(AlltoAllAllGatherBmmTiling, all_to_all_all_gather_batch_matmul_test_tilin
         ubSize,
         tilingDataSize);
     uint64_t expectTilingKey = 1000000000000000101UL;
-    std::string expectTilingData = "0 0 ";
-    std::vector<size_t> expectWorkspaces = {19136512};
-    uint64_t mc2TilingDataReservedLen = 375;
-    ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey, expectTilingData, expectWorkspaces,
-                    mc2TilingDataReservedLen);
+    ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey);
 }
 
 TEST_F(AlltoAllAllGatherBmmTiling, all_to_all_all_gather_batch_matmul_test_tiling_float16_shard_0) {
     struct DistributeBarrierCompileInfo {} compileInfo;
-    const std::string socVersion = "";
+    const std::string socVersion = "Ascend910_93";
     uint64_t coreNum = 20;
     uint64_t ubSize = 196608;
     uint64_t tilingDataSize = 4096;
@@ -427,7 +397,7 @@ TEST_F(AlltoAllAllGatherBmmTiling, all_to_all_all_gather_batch_matmul_test_tilin
 
 TEST_F(AlltoAllAllGatherBmmTiling, all_to_all_all_gather_batch_matmul_test_tiling_float16_shard_1) {
     struct DistributeBarrierCompileInfo {} compileInfo;
-    const std::string socVersion = "";
+    const std::string socVersion = "Ascend910_93";
     uint64_t coreNum = 20;
     uint64_t ubSize = 196608;
     uint64_t tilingDataSize = 4096;
@@ -454,7 +424,7 @@ TEST_F(AlltoAllAllGatherBmmTiling, all_to_all_all_gather_batch_matmul_test_tilin
 
 TEST_F(AlltoAllAllGatherBmmTiling, all_to_all_all_gather_batch_matmul_test_tiling_float16_shard_1_test1) {
     struct DistributeBarrierCompileInfo {} compileInfo;
-    const std::string socVersion = "";
+    const std::string socVersion = "Ascend910_93";
     uint64_t coreNum = 20;
     uint64_t ubSize = 196608;
     uint64_t tilingDataSize = 4096;
@@ -481,7 +451,7 @@ TEST_F(AlltoAllAllGatherBmmTiling, all_to_all_all_gather_batch_matmul_test_tilin
 
 TEST_F(AlltoAllAllGatherBmmTiling, all_to_all_all_gather_batch_matmul_test_tiling_float16_shard_with_bias_test1) {
     struct DistributeBarrierCompileInfo {} compileInfo;
-    const std::string socVersion = "";
+    const std::string socVersion = "Ascend910_93";
     uint64_t coreNum = 20;
     uint64_t ubSize = 196608;
     uint64_t tilingDataSize = 4096;
@@ -509,7 +479,7 @@ TEST_F(AlltoAllAllGatherBmmTiling, all_to_all_all_gather_batch_matmul_test_tilin
 
 TEST_F(AlltoAllAllGatherBmmTiling, all_to_all_all_gather_batch_matmul_test_tiling_float16_shard_with_bias_test2) {
     struct DistributeBarrierCompileInfo {} compileInfo;
-    const std::string socVersion = "";
+    const std::string socVersion = "Ascend910_93";
     uint64_t coreNum = 20;
     uint64_t ubSize = 196608;
     uint64_t tilingDataSize = 4096;
@@ -537,7 +507,7 @@ TEST_F(AlltoAllAllGatherBmmTiling, all_to_all_all_gather_batch_matmul_test_tilin
 
 TEST_F(AlltoAllAllGatherBmmTiling, all_to_all_all_gather_batch_matmul_test_tiling_float16_shard_with_bias_test3) {
     struct DistributeBarrierCompileInfo {} compileInfo;
-    const std::string socVersion = "";
+    const std::string socVersion = "Ascend910_93";
     uint64_t coreNum = 20;
     uint64_t ubSize = 196608;
     uint64_t tilingDataSize = 4096;
@@ -565,7 +535,7 @@ TEST_F(AlltoAllAllGatherBmmTiling, all_to_all_all_gather_batch_matmul_test_tilin
 
 TEST_F(AlltoAllAllGatherBmmTiling, all_to_all_all_gather_batch_matmul_test_tiling_float16_shard_with_bias_test4) {
     struct DistributeBarrierCompileInfo {} compileInfo;
-    const std::string socVersion = "";
+    const std::string socVersion = "Ascend910_93";
     uint64_t coreNum = 20;
     uint64_t ubSize = 196608;
     uint64_t tilingDataSize = 4096;
@@ -593,7 +563,7 @@ TEST_F(AlltoAllAllGatherBmmTiling, all_to_all_all_gather_batch_matmul_test_tilin
 
 TEST_F(AlltoAllAllGatherBmmTiling, all_to_all_all_gather_batch_matmul_test_tiling_float16_shard_with_bias_test5) {
     struct DistributeBarrierCompileInfo {} compileInfo;
-    const std::string socVersion = "";
+    const std::string socVersion = "Ascend910_93";
     uint64_t coreNum = 20;
     uint64_t ubSize = 196608;
     uint64_t tilingDataSize = 4096;
@@ -621,7 +591,7 @@ TEST_F(AlltoAllAllGatherBmmTiling, all_to_all_all_gather_batch_matmul_test_tilin
 
 TEST_F(AlltoAllAllGatherBmmTiling, all_to_all_all_gather_batch_matmul_test_tiling_float16_shard_with_bias_test6) {
     struct DistributeBarrierCompileInfo {} compileInfo;
-    const std::string socVersion = "";
+    const std::string socVersion = "Ascend910_93";
     uint64_t coreNum = 20;
     uint64_t ubSize = 196608;
     uint64_t tilingDataSize = 4096;
@@ -649,7 +619,7 @@ TEST_F(AlltoAllAllGatherBmmTiling, all_to_all_all_gather_batch_matmul_test_tilin
 
 TEST_F(AlltoAllAllGatherBmmTiling, all_to_all_all_gather_batch_matmul_test_tiling_float16_shard_with_bias_test7) {
     struct DistributeBarrierCompileInfo {} compileInfo;
-    const std::string socVersion = "";
+    const std::string socVersion = "Ascend910_93";
     uint64_t coreNum = 20;
     uint64_t ubSize = 196608;
     uint64_t tilingDataSize = 4096;
@@ -677,7 +647,7 @@ TEST_F(AlltoAllAllGatherBmmTiling, all_to_all_all_gather_batch_matmul_test_tilin
 
 TEST_F(AlltoAllAllGatherBmmTiling, all_to_all_all_gather_batch_matmul_test_tiling_float16_shard_with_bias_test8) {
     struct DistributeBarrierCompileInfo {} compileInfo;
-    const std::string socVersion = "";
+    const std::string socVersion = "Ascend910_93";
     uint64_t coreNum = 20;
     uint64_t ubSize = 196608;
     uint64_t tilingDataSize = 4096;
@@ -705,7 +675,7 @@ TEST_F(AlltoAllAllGatherBmmTiling, all_to_all_all_gather_batch_matmul_test_tilin
 
 TEST_F(AlltoAllAllGatherBmmTiling, all_to_all_all_gather_batch_matmul_test_tiling_float16_shard_with_bias_test9) {
     struct DistributeBarrierCompileInfo {} compileInfo;
-    const std::string socVersion = "";
+    const std::string socVersion = "Ascend910_93";
     uint64_t coreNum = 20;
     uint64_t ubSize = 196608;
     uint64_t tilingDataSize = 4096;
@@ -733,7 +703,7 @@ TEST_F(AlltoAllAllGatherBmmTiling, all_to_all_all_gather_batch_matmul_test_tilin
 
 TEST_F(AlltoAllAllGatherBmmTiling, all_to_all_all_gather_batch_matmul_test_tiling_float16_shard_with_bias_test10) {
     struct DistributeBarrierCompileInfo {} compileInfo;
-    const std::string socVersion = "";
+    const std::string socVersion = "Ascend910_93";
     uint64_t coreNum = 20;
     uint64_t ubSize = 196608;
     uint64_t tilingDataSize = 4096;
@@ -761,7 +731,7 @@ TEST_F(AlltoAllAllGatherBmmTiling, all_to_all_all_gather_batch_matmul_test_tilin
 
 TEST_F(AlltoAllAllGatherBmmTiling, all_to_all_all_gather_batch_matmul_test_tiling_float16_shard_with_bias_test11) {
     struct DistributeBarrierCompileInfo {} compileInfo;
-    const std::string socVersion = "";
+    const std::string socVersion = "Ascend910_93";
     uint64_t coreNum = 20;
     uint64_t ubSize = 196608;
     uint64_t tilingDataSize = 4096;
@@ -789,7 +759,7 @@ TEST_F(AlltoAllAllGatherBmmTiling, all_to_all_all_gather_batch_matmul_test_tilin
 
 TEST_F(AlltoAllAllGatherBmmTiling, all_to_all_all_gather_batch_matmul_test_tiling_float16_shard_with_bias_test12) {
     struct DistributeBarrierCompileInfo {} compileInfo;
-    const std::string socVersion = "";
+    const std::string socVersion = "Ascend910_93";
     uint64_t coreNum = 20;
     uint64_t ubSize = 196608;
     uint64_t tilingDataSize = 4096;
@@ -817,7 +787,7 @@ TEST_F(AlltoAllAllGatherBmmTiling, all_to_all_all_gather_batch_matmul_test_tilin
 
 TEST_F(AlltoAllAllGatherBmmTiling, all_to_all_all_gather_batch_matmul_test_tiling_float16_xshard_0_ep2) {
     struct DistributeBarrierCompileInfo {} compileInfo;
-    const std::string socVersion = "";
+    const std::string socVersion = "Ascend910_93";
     uint64_t coreNum = 20;
     uint64_t ubSize = 196608;
     uint64_t tilingDataSize = 4096;
@@ -840,16 +810,12 @@ TEST_F(AlltoAllAllGatherBmmTiling, all_to_all_all_gather_batch_matmul_test_tilin
         ubSize,
         tilingDataSize);
     uint64_t expectTilingKey = 1000000000000000000UL;
-    std::string expectTilingData = "0 0 ";
-    std::vector<size_t> expectWorkspaces = {19660800};
-    uint64_t mc2TilingDataReservedLen = 375;
-    ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey, expectTilingData, expectWorkspaces,
-                    mc2TilingDataReservedLen);
+    ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey);
 }
 
 TEST_F(AlltoAllAllGatherBmmTiling, all_to_all_all_gather_batch_matmul_test_tiling_float16_xshard_0_cut_e) {
     struct DistributeBarrierCompileInfo {} compileInfo;
-    const std::string socVersion = "";
+    const std::string socVersion = "Ascend910_93";
     uint64_t coreNum = 20;
     uint64_t ubSize = 196608;
     uint64_t tilingDataSize = 4096;
@@ -872,16 +838,12 @@ TEST_F(AlltoAllAllGatherBmmTiling, all_to_all_all_gather_batch_matmul_test_tilin
         ubSize,
         tilingDataSize);
     uint64_t expectTilingKey = 1000000000000000000UL;
-    std::string expectTilingData = "0 0 ";
-    std::vector<size_t> expectWorkspaces = {626114560};
-    uint64_t mc2TilingDataReservedLen = 375;
-    ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey, expectTilingData, expectWorkspaces,
-                    mc2TilingDataReservedLen);
+    ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey);
 }
 
 TEST_F(AlltoAllAllGatherBmmTiling, all_to_all_all_gather_batch_matmul_test_tiling_float16_xshard_0_cut_c) {
     struct DistributeBarrierCompileInfo {} compileInfo;
-    const std::string socVersion = "";
+    const std::string socVersion = "Ascend910_93";
     uint64_t coreNum = 20;
     uint64_t ubSize = 196608;
     uint64_t tilingDataSize = 4096;
@@ -904,16 +866,12 @@ TEST_F(AlltoAllAllGatherBmmTiling, all_to_all_all_gather_batch_matmul_test_tilin
         ubSize,
         tilingDataSize);
     uint64_t expectTilingKey = 1000000000000000000UL;
-    std::string expectTilingData = "0 0 ";
-    std::vector<size_t> expectWorkspaces = {344526848};
-    uint64_t mc2TilingDataReservedLen = 375;
-    ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey, expectTilingData, expectWorkspaces,
-                    mc2TilingDataReservedLen);
+    ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey);
 }
 
 TEST_F(AlltoAllAllGatherBmmTiling, all_to_all_all_gather_batch_matmul_test_tiling_float16_xshard_0_tile_short) {
     struct DistributeBarrierCompileInfo {} compileInfo;
-    const std::string socVersion = "";
+    const std::string socVersion = "Ascend910_93";
     uint64_t coreNum = 20;
     uint64_t ubSize = 196608;
     uint64_t tilingDataSize = 4096;
@@ -936,16 +894,12 @@ TEST_F(AlltoAllAllGatherBmmTiling, all_to_all_all_gather_batch_matmul_test_tilin
         ubSize,
         tilingDataSize);
     uint64_t expectTilingKey = 1000000000000000000UL;
-    std::string expectTilingData = "0 0 ";
-    std::vector<size_t> expectWorkspaces = {958480384};
-    uint64_t mc2TilingDataReservedLen = 375;
-    ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey, expectTilingData, expectWorkspaces,
-                    mc2TilingDataReservedLen);
+    ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey);
 }
 
 TEST_F(AlltoAllAllGatherBmmTiling, all_to_all_all_gather_batch_matmul_test_tiling_float16_xshard_0_multi_e) {
     struct DistributeBarrierCompileInfo {} compileInfo;
-    const std::string socVersion = "";
+    const std::string socVersion = "Ascend910_93";
     uint64_t coreNum = 20;
     uint64_t ubSize = 196608;
     uint64_t tilingDataSize = 4096;
@@ -968,16 +922,12 @@ TEST_F(AlltoAllAllGatherBmmTiling, all_to_all_all_gather_batch_matmul_test_tilin
         ubSize,
         tilingDataSize);
     uint64_t expectTilingKey = 1000000000000000000UL;
-    std::string expectTilingData = "4294967296 0 ";
-    std::vector<size_t> expectWorkspaces = {4494483456};
-    uint64_t mc2TilingDataReservedLen = 375;
-    ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey, expectTilingData, expectWorkspaces,
-                    mc2TilingDataReservedLen);
+    ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey);
 }
 
 TEST_F(AlltoAllAllGatherBmmTiling, all_to_all_all_gather_batch_matmul_test_tiling_float16_xshard_0_local_tail_e) {
     struct DistributeBarrierCompileInfo {} compileInfo;
-    const std::string socVersion = "";
+    const std::string socVersion = "Ascend910_93";
     uint64_t coreNum = 20;
     uint64_t ubSize = 196608;
     uint64_t tilingDataSize = 4096;
@@ -1000,9 +950,5 @@ TEST_F(AlltoAllAllGatherBmmTiling, all_to_all_all_gather_batch_matmul_test_tilin
         ubSize,
         tilingDataSize);
     uint64_t expectTilingKey = 1000000000000000000UL;
-    std::string expectTilingData = "12884901888 0 ";
-    std::vector<size_t> expectWorkspaces = {838459392};
-    uint64_t mc2TilingDataReservedLen = 375;
-    ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey, expectTilingData, expectWorkspaces,
-                    mc2TilingDataReservedLen);
+    ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey);
 }

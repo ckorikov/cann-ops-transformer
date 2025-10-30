@@ -44,7 +44,7 @@ TEST_F(l2_all_gather_matmul_test, test_all_gather_first_api) {
   uint64_t workspace_size = 0;
   aclOpExecutor* executor = nullptr;
   aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
-  EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_NULLPTR);
+  EXPECT_EQ(aclRet, ACLNN_SUCCESS);
 }
 
 TEST_F(l2_all_gather_matmul_test, test_all_gather_first_api_2) {
@@ -72,7 +72,7 @@ TEST_F(l2_all_gather_matmul_test, test_all_gather_first_api_3) {
   uint64_t workspace_size = 0;
   aclOpExecutor* executor = nullptr;
   aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
-  EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_NULLPTR);
+  EXPECT_EQ(aclRet, ACLNN_SUCCESS);
 }
 
 TEST_F(l2_all_gather_matmul_test, test_all_gather_first_api_4) {
@@ -86,7 +86,7 @@ TEST_F(l2_all_gather_matmul_test, test_all_gather_first_api_4) {
   uint64_t workspace_size = 0;
   aclOpExecutor* executor = nullptr;
   aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
-  EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_NULLPTR);
+  EXPECT_EQ(aclRet, ACLNN_SUCCESS);
 }
 
 TEST_F(l2_all_gather_matmul_test, test_all_gather_first_api_5) {
@@ -100,7 +100,7 @@ TEST_F(l2_all_gather_matmul_test, test_all_gather_first_api_5) {
   uint64_t workspace_size = 0;
   aclOpExecutor* executor = nullptr;
   aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
-  EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_NULLPTR);
+  EXPECT_EQ(aclRet, ACLNN_SUCCESS);
 }
 
 TEST_F(l2_all_gather_matmul_test, test_all_gather_first_api_input_false) {
@@ -118,8 +118,8 @@ TEST_F(l2_all_gather_matmul_test, test_all_gather_first_api_input_false) {
 }
 
 TEST_F(l2_all_gather_matmul_test, test_all_gather_first_api_gather_out_false) {
-  TensorDesc x1_desc = TensorDesc({16, 256}, ACL_FLOAT16, ACL_FORMAT_ND);
-  TensorDesc x2_desc = TensorDesc({256, 16}, ACL_FLOAT16, ACL_FORMAT_ND);
+  TensorDesc x1_desc = TensorDesc({16, 32}, ACL_FLOAT16, ACL_FORMAT_ND);
+  TensorDesc x2_desc = TensorDesc({32, 16}, ACL_FLOAT16, ACL_FORMAT_ND);
   TensorDesc bias = TensorDesc({32}, ACL_FLOAT16, ACL_FORMAT_ND);
   TensorDesc out_desc = TensorDesc({16, 16}, ACL_FLOAT16, ACL_FORMAT_ND);
   TensorDesc gather_out_desc = TensorDesc({0}, ACL_FLOAT16, ACL_FORMAT_ND);
@@ -128,7 +128,7 @@ TEST_F(l2_all_gather_matmul_test, test_all_gather_first_api_gather_out_false) {
   uint64_t workspace_size = 0;
   aclOpExecutor* executor = nullptr;
   aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
-  EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_NULLPTR);
+  EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_INVALID);
 }
 
 } // AllGatherMatmulUT

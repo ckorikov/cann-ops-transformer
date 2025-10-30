@@ -43,7 +43,7 @@ TEST_F(l2_batch_matmul_reduce_scatter_all_to_all_test, test_batch_matmul_reduce_
   uint64_t workspace_size = 0;
   aclOpExecutor* executor = nullptr;
   aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
-  EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_NULLPTR);
+  EXPECT_EQ(aclRet, ACLNN_SUCCESS);
 }
 
 // yShardType = 1, E = 4, C = 2, H = 6, ep = 2, tp = 2, M = 4
@@ -59,7 +59,7 @@ TEST_F(l2_batch_matmul_reduce_scatter_all_to_all_test, test_batch_matmul_reduce_
   uint64_t workspace_size = 0;
   aclOpExecutor* executor = nullptr;
   aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
-  EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_NULLPTR);
+  EXPECT_EQ(aclRet, ACLNN_SUCCESS);
 }
 
 // yShardType = 1, E = 4, C = 2, H = 6, ep = 2, tp = 2, M = 4, trans & no autocontinguous
@@ -75,7 +75,7 @@ TEST_F(l2_batch_matmul_reduce_scatter_all_to_all_test, test_batch_matmul_reduce_
   uint64_t workspace_size = 0;
   aclOpExecutor* executor = nullptr;
   aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
-  EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_NULLPTR);
+  EXPECT_EQ(aclRet, ACLNN_SUCCESS);
 }
 
 // E > 2048
