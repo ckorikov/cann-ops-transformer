@@ -37,19 +37,22 @@ TEST_F(BatchMatMulReduceScatterAlltoAllInfershape, infer_shape_0) {
     constexpr bool transW = false;
     constexpr int yShard = 1;
 
-    gert::StorageShape xStorageShape = {{E / ep, ep * C, M / tp}, {}};
-    gert::StorageShape weightStorageShape = {{E / ep, M / tp, H}, {}};
-    gert::StorageShape biasStorageShape = {{E / ep, 1, H}, {}};
+    gert::StorageShape xStorageShape = {{E / ep, ep * C, M / tp}, {E / ep, ep * C, M / tp}};
+    gert::StorageShape weightStorageShape = {{E / ep, M / tp, H}, {E / ep, M / tp, H}};
+    gert::StorageShape biasStorageShape = {{E / ep, 1, H}, {E / ep, 1, H}};
+
+    gert::StorageShape yStorageShape = {{E, C / tp, H}, {E, C / tp, H}};
+    gert::StorageShape yStorageShapeUninit = {{10000, 10000, 10000}, {10000, 10000, 10000}};
 
     gert::InfershapeContextPara infershapeContextPara(
         "BatchMatMulReduceScatterAlltoAll",
         {
-            {xStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {weightStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {biasStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND}
+            {xStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND},
+            {weightStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND},
+            {biasStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND}
         },
         {
-            {{}, ge::DT_FLOAT16, ge::FORMAT_ND}
+            {yStorageShapeUninit, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND}
         },
         {
             {"group_ep", Ops::Transformer::AnyValue::CreateFrom<std::string>("hcclComEp")},
@@ -76,19 +79,22 @@ TEST_F(BatchMatMulReduceScatterAlltoAllInfershape, infer_shape_1) {
     constexpr bool transW = false;
     constexpr int yShard = 1;
 
-    gert::StorageShape xStorageShape = {{E / ep, ep * C, M / tp}, {}};
-    gert::StorageShape weightStorageShape = {{E / ep, M / tp, H}, {}};
-    gert::StorageShape biasStorageShape = {{E / ep, 1, H}, {}};
+    gert::StorageShape xStorageShape = {{E / ep, ep * C, M / tp}, {E / ep, ep * C, M / tp}};
+    gert::StorageShape weightStorageShape = {{E / ep, M / tp, H}, {E / ep, M / tp, H}};
+    gert::StorageShape biasStorageShape = {{E / ep, 1, H}, {E / ep, 1, H}};
+
+    gert::StorageShape yStorageShape = {{E, C / tp, H}, {E, C / tp, H}};
+    gert::StorageShape yStorageShapeUninit = {{10000, 10000, 10000}, {10000, 10000, 10000}};
 
     gert::InfershapeContextPara infershapeContextPara(
         "BatchMatMulReduceScatterAlltoAll",
         {
-            {xStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {weightStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {biasStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND}
+            {xStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND},
+            {weightStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND},
+            {biasStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND}
         },
         {
-            {{}, ge::DT_FLOAT16, ge::FORMAT_ND}
+            {yStorageShapeUninit, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND}
         },
         {
             {"group_ep", Ops::Transformer::AnyValue::CreateFrom<std::string>("hcclComEp")},
@@ -115,19 +121,21 @@ TEST_F(BatchMatMulReduceScatterAlltoAllInfershape, infer_shape_2) {
     constexpr bool transW = false;
     constexpr int yShard = 1;
 
-    gert::StorageShape xStorageShape = {{E / ep, ep * C, M / tp}, {}};
-    gert::StorageShape weightStorageShape = {{E / ep, M / tp, H}, {}};
-    gert::StorageShape biasStorageShape = {{E / ep, 1, H}, {}};
+    gert::StorageShape xStorageShape = {{E / ep, ep * C, M / tp}, {E / ep, ep * C, M / tp}};
+    gert::StorageShape weightStorageShape = {{E / ep, M / tp, H}, {E / ep, M / tp, H}};
+    gert::StorageShape biasStorageShape = {{E / ep, 1, H}, {E / ep, 1, H}};
+
+    gert::StorageShape yStorageShapeUninit = {{10000, 10000, 10000}, {10000, 10000, 10000}};
 
     gert::InfershapeContextPara infershapeContextPara(
         "BatchMatMulReduceScatterAlltoAll",
         {
-            {xStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {weightStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {biasStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND}
+            {xStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND},
+            {weightStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND},
+            {biasStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND}
         },
         {
-            {{}, ge::DT_FLOAT16, ge::FORMAT_ND}
+            {yStorageShapeUninit, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND}
         },
         {
             {"group_ep", Ops::Transformer::AnyValue::CreateFrom<std::string>("hcclComEp")},
@@ -153,19 +161,21 @@ TEST_F(BatchMatMulReduceScatterAlltoAllInfershape, infer_shape_3) {
     constexpr bool transW = false;
     constexpr int yShard = 1;
 
-    gert::StorageShape xStorageShape = {{E / ep, ep * C, M / tp}, {}};
-    gert::StorageShape weightStorageShape = {{E / ep, M / tp, H}, {}};
-    gert::StorageShape biasStorageShape = {{E / ep, 1, H}, {}};
+    gert::StorageShape xStorageShape = {{E / ep, ep * C, M / tp}, {E / ep, ep * C, M / tp}};
+    gert::StorageShape weightStorageShape = {{E / ep, M / tp, H}, {E / ep, M / tp, H}};
+    gert::StorageShape biasStorageShape = {{E / ep, 1, H}, {E / ep, 1, H}};
+
+    gert::StorageShape yStorageShapeUninit = {{10000, 10000, 10000}, {10000, 10000, 10000}};
 
     gert::InfershapeContextPara infershapeContextPara(
         "BatchMatMulReduceScatterAlltoAll",
         {
-            {xStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {weightStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {biasStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND}
+            {xStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND},
+            {weightStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND},
+            {biasStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND}
         },
         {
-            {{}, ge::DT_FLOAT16, ge::FORMAT_ND}
+            {yStorageShapeUninit, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND}
         },
         {
             {"group_ep", Ops::Transformer::AnyValue::CreateFrom<std::string>("hcclComEp")},
@@ -191,19 +201,21 @@ TEST_F(BatchMatMulReduceScatterAlltoAllInfershape, infer_shape_4) {
     constexpr bool transW = false;
     constexpr int yShard = 1;
 
-    gert::StorageShape xStorageShape = {{E / ep, ep * C, M / tp}, {}};
-    gert::StorageShape weightStorageShape = {{E / ep, M / tp, H}, {}};
-    gert::StorageShape biasStorageShape = {{E / ep, 1, H}, {}};
+    gert::StorageShape xStorageShape = {{E / ep, ep * C, M / tp}, {E / ep, ep * C, M / tp}};
+    gert::StorageShape weightStorageShape = {{E / ep, M / tp, H}, {E / ep, M / tp, H}};
+    gert::StorageShape biasStorageShape = {{E / ep, 1, H}, {E / ep, 1, H}};
+
+    gert::StorageShape yStorageShapeUninit = {{10000, 10000, 10000}, {10000, 10000, 10000}};
 
     gert::InfershapeContextPara infershapeContextPara(
         "BatchMatMulReduceScatterAlltoAll",
         {
-            {xStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {weightStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {biasStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND}
+            {xStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND},
+            {weightStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND},
+            {biasStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND}
         },
         {
-            {{}, ge::DT_FLOAT16, ge::FORMAT_ND}
+            {yStorageShapeUninit, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND}
         },
         {
             {"group_ep", Ops::Transformer::AnyValue::CreateFrom<std::string>("hcclComEp")},
@@ -229,19 +241,21 @@ TEST_F(BatchMatMulReduceScatterAlltoAllInfershape, infer_shape_5) {
     constexpr bool transW = false;
     constexpr int yShard = 1;
 
-    gert::StorageShape xStorageShape = {{E / ep, ep * C, M / tp}, {}};
-    gert::StorageShape weightStorageShape = {{E / ep, M / tp, H}, {}};
-    gert::StorageShape biasStorageShape = {{E / ep, 1, H}, {}};
+    gert::StorageShape xStorageShape = {{E / ep, ep * C, M / tp}, {E / ep, ep * C, M / tp}};
+    gert::StorageShape weightStorageShape = {{E / ep, M / tp, H}, {E / ep, M / tp, H}};
+    gert::StorageShape biasStorageShape = {{E / ep, 1, H}, {E / ep, 1, H}};
+
+    gert::StorageShape yStorageShapeUninit = {{10000, 10000, 10000}, {10000, 10000, 10000}};
 
         gert::InfershapeContextPara infershapeContextPara(
         "BatchMatMulReduceScatterAlltoAll",
         {
-            {xStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {weightStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {biasStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND}
+            {xStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND},
+            {weightStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND},
+            {biasStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND}
         },
         {
-            {{}, ge::DT_FLOAT16, ge::FORMAT_ND}
+            {yStorageShapeUninit, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND}
         },
         {
             {"group_ep", Ops::Transformer::AnyValue::CreateFrom<std::string>("")},
@@ -267,19 +281,21 @@ TEST_F(BatchMatMulReduceScatterAlltoAllInfershape, infer_shape_6) {
     constexpr bool transW = false;
     constexpr int yShard = 1;
 
-    gert::StorageShape xStorageShape = {{E / ep, ep * C, M / tp}, {}};
-    gert::StorageShape weightStorageShape = {{E / ep, M / tp, H}, {}};
-    gert::StorageShape biasStorageShape = {{E / ep, 1, H}, {}};
+    gert::StorageShape xStorageShape = {{E / ep, ep * C, M / tp}, {E / ep, ep * C, M / tp}};
+    gert::StorageShape weightStorageShape = {{E / ep, M / tp, H}, {E / ep, M / tp, H}};
+    gert::StorageShape biasStorageShape = {{E / ep, 1, H}, {E / ep, 1, H}};
+
+    gert::StorageShape yStorageShapeUninit = {{10000, 10000, 10000}, {10000, 10000, 10000}};
 
     gert::InfershapeContextPara infershapeContextPara(
         "BatchMatMulReduceScatterAlltoAll",
         {
-            {xStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {weightStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {biasStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND}
+            {xStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND},
+            {weightStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND},
+            {biasStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND}
         },
         {
-            {{}, ge::DT_FLOAT16, ge::FORMAT_ND}
+            {yStorageShapeUninit, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND}
         },
         {
             {"group_ep", Ops::Transformer::AnyValue::CreateFrom<std::string>("hcclComEp")},
@@ -305,19 +321,21 @@ TEST_F(BatchMatMulReduceScatterAlltoAllInfershape, infer_shape_7) {
     constexpr bool transW = false;
     constexpr int yShard = 1;
 
-    gert::StorageShape xStorageShape = {{E / ep, ep * C}, {}}; // dim num invalid
-    gert::StorageShape weightStorageShape = {{E / ep, M / tp, H}, {}};
-    gert::StorageShape biasStorageShape = {{E / ep, 1, H}, {}};
+    gert::StorageShape xStorageShape = {{E / ep, ep * C}, {E / ep, ep * C}}; // dim num invalid
+    gert::StorageShape weightStorageShape = {{E / ep, M / tp, H}, {E / ep, M / tp, H}};
+    gert::StorageShape biasStorageShape = {{E / ep, 1, H}, {E / ep, 1, H}};
+
+    gert::StorageShape yStorageShapeUninit = {{10000, 10000, 10000}, {10000, 10000, 10000}};
 
     gert::InfershapeContextPara infershapeContextPara(
         "BatchMatMulReduceScatterAlltoAll",
         {
-            {xStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {weightStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {biasStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND}
+            {xStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND},
+            {weightStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND},
+            {biasStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND}
         },
         {
-            {{}, ge::DT_FLOAT16, ge::FORMAT_ND}
+            {yStorageShapeUninit, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND}
         },
         {
             {"group_ep", Ops::Transformer::AnyValue::CreateFrom<std::string>("hcclComEp")},
@@ -343,19 +361,21 @@ TEST_F(BatchMatMulReduceScatterAlltoAllInfershape, infer_shape_8) {
     constexpr bool transW = false;
     constexpr int yShard = 1;
 
-    gert::StorageShape xStorageShape = {{E / ep, ep * C, M}, {}}; // x[2] != w[1]
-    gert::StorageShape weightStorageShape = {{E / ep, M / tp, H}, {}};
-    gert::StorageShape biasStorageShape = {{E / ep, 1, H}, {}};
+    gert::StorageShape xStorageShape = {{E / ep, ep * C, M}, {E / ep, ep * C, M}}; // x[2] != w[1]
+    gert::StorageShape weightStorageShape = {{E / ep, M / tp, H}, {E / ep, M / tp, H}};
+    gert::StorageShape biasStorageShape = {{E / ep, 1, H}, {E / ep, 1, H}};
+
+    gert::StorageShape yStorageShapeUninit = {{10000, 10000, 10000}, {10000, 10000, 10000}};
 
     gert::InfershapeContextPara infershapeContextPara(
         "BatchMatMulReduceScatterAlltoAll",
         {
-            {xStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {weightStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {biasStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND}
+            {xStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND},
+            {weightStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND},
+            {biasStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND}
         },
         {
-            {{}, ge::DT_FLOAT16, ge::FORMAT_ND}
+            {yStorageShapeUninit, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND}
         },
         {
             {"group_ep", Ops::Transformer::AnyValue::CreateFrom<std::string>("hcclComEp")},
@@ -381,19 +401,21 @@ TEST_F(BatchMatMulReduceScatterAlltoAllInfershape, infer_shape_9) {
     constexpr bool transW = false;
     constexpr int yShard = 1;
 
-    gert::StorageShape xStorageShape = {{E / ep, ep * C, M / tp}, {}}; // x[2] = w[1] = 0
-    gert::StorageShape weightStorageShape = {{E / ep, M / tp, H}, {}};
-    gert::StorageShape biasStorageShape = {{E / ep, 1, H}, {}};
+    gert::StorageShape xStorageShape = {{E / ep, ep * C, M / tp}, {E / ep, ep * C, M / tp}}; // x[2] = w[1] = 0
+    gert::StorageShape weightStorageShape = {{E / ep, M / tp, H}, {E / ep, M / tp, H}};
+    gert::StorageShape biasStorageShape = {{E / ep, 1, H}, {E / ep, 1, H}};
+
+    gert::StorageShape yStorageShapeUninit = {{10000, 10000, 10000}, {10000, 10000, 10000}};
 
     gert::InfershapeContextPara infershapeContextPara(
         "BatchMatMulReduceScatterAlltoAll",
         {
-            {xStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {weightStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {biasStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND}
+            {xStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND},
+            {weightStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND},
+            {biasStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND}
         },
         {
-            {{}, ge::DT_FLOAT16, ge::FORMAT_ND}
+            {yStorageShapeUninit, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND}
         },
         {
             {"group_ep", Ops::Transformer::AnyValue::CreateFrom<std::string>("hcclComEp")},
@@ -419,19 +441,21 @@ TEST_F(BatchMatMulReduceScatterAlltoAllInfershape, infer_shape_10) {
     constexpr bool transW = false;
     constexpr int yShard = 1;
 
-    gert::StorageShape xStorageShape = {{E / ep, ep * C, M / tp}, {}};
-    gert::StorageShape weightStorageShape = {{E, M / tp, H}, {}}; // y shard = 1 check failed
-    gert::StorageShape biasStorageShape = {{E / ep, 1, H}, {}};
+    gert::StorageShape xStorageShape = {{E / ep, ep * C, M / tp}, {E / ep, ep * C, M / tp}};
+    gert::StorageShape weightStorageShape = {{E, M / tp, H}, {E / ep, M / tp, H}}; // y shard = 1 check failed
+    gert::StorageShape biasStorageShape = {{E / ep, 1, H}, {E / ep, 1, H}};
+
+    gert::StorageShape yStorageShapeUninit = {{10000, 10000, 10000}, {10000, 10000, 10000}};
 
     gert::InfershapeContextPara infershapeContextPara(
         "BatchMatMulReduceScatterAlltoAll",
         {
-            {xStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {weightStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {biasStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND}
+            {xStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND},
+            {weightStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND},
+            {biasStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND}
         },
         {
-            {{}, ge::DT_FLOAT16, ge::FORMAT_ND}
+            {yStorageShapeUninit, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND}
         },
         {
             {"group_ep", Ops::Transformer::AnyValue::CreateFrom<std::string>("hcclComEp")},
@@ -457,19 +481,21 @@ TEST_F(BatchMatMulReduceScatterAlltoAllInfershape, infer_shape_11) {
     constexpr bool transW = false;
     constexpr int yShard = 4; // yShard failed
 
-    gert::StorageShape xStorageShape = {{E / ep, ep * tp * C, M / tp}, {}};
-    gert::StorageShape weightStorageShape = {{E / ep, M / tp, H}, {}};
-    gert::StorageShape biasStorageShape = {{E / ep, 1, H}, {}};
+    gert::StorageShape xStorageShape = {{E / ep, ep * tp * C, M / tp}, {E / ep, ep * tp * C, M / tp}};
+    gert::StorageShape weightStorageShape = {{E / ep, M / tp, H}, {E / ep, M / tp, H}};
+    gert::StorageShape biasStorageShape = {{E / ep, 1, H}, {E / ep, 1, H}};
+
+    gert::StorageShape yStorageShapeUninit = {{10000, 10000, 10000}, {10000, 10000, 10000}};
 
     gert::InfershapeContextPara infershapeContextPara(
         "BatchMatMulReduceScatterAlltoAll",
         {
-            {xStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {weightStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {biasStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND}
+            {xStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND},
+            {weightStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND},
+            {biasStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND}
         },
         {
-            {{}, ge::DT_FLOAT16, ge::FORMAT_ND}
+            {yStorageShapeUninit, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND}
         },
         {
             {"group_ep", Ops::Transformer::AnyValue::CreateFrom<std::string>("hcclComEp")},
@@ -495,19 +521,21 @@ TEST_F(BatchMatMulReduceScatterAlltoAllInfershape, infer_shape_12) {
     constexpr bool transW = false;
     constexpr int yShard = -1;
 
-    gert::StorageShape xStorageShape = {{E / ep, ep * tp * C, M / tp}, {}};
-    gert::StorageShape weightStorageShape = {{E / ep, M / tp, H}, {}};
-    gert::StorageShape biasStorageShape = {{E / ep, 1, H}, {}};
+    gert::StorageShape xStorageShape = {{E / ep, ep * tp * C, M / tp}, {E / ep, ep * tp * C, M / tp}};
+    gert::StorageShape weightStorageShape = {{E / ep, M / tp, H}, {E / ep, M / tp, H}};
+    gert::StorageShape biasStorageShape = {{E / ep, 1, H}, {E / ep, 1, H}};
+
+    gert::StorageShape yStorageShapeUninit = {{10000, 10000, 10000}, {10000, 10000, 10000}};
 
     gert::InfershapeContextPara infershapeContextPara(
         "BatchMatMulReduceScatterAlltoAll",
         {
-            {xStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {weightStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {biasStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND}
+            {xStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND},
+            {weightStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND},
+            {biasStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND}
         },
         {
-            {{}, ge::DT_FLOAT16, ge::FORMAT_ND}
+            {yStorageShapeUninit, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND}
         },
         {
             {"group_ep", Ops::Transformer::AnyValue::CreateFrom<std::string>("hcclComEp")},
@@ -533,19 +561,21 @@ TEST_F(BatchMatMulReduceScatterAlltoAllInfershape, infer_shape_13) {
     constexpr bool transW = false;
     constexpr int yShard = 1;
 
-    gert::StorageShape xStorageShape = {{E / ep, ep * C, M / tp}, {}};
-    gert::StorageShape weightStorageShape = {{E / ep, M / tp, H}, {}};
-    gert::StorageShape biasStorageShape = {{E / ep, 1, H, H}, {}}; // bias dim failed
+    gert::StorageShape xStorageShape = {{E / ep, ep * C, M / tp}, {E / ep, ep * C, M / tp}};
+    gert::StorageShape weightStorageShape = {{E / ep, M / tp, H}, {E / ep, M / tp, H}};
+    gert::StorageShape biasStorageShape = {{E / ep, 1, H, H}, {E / ep, 1, H, H}}; // bias dim failed
+
+    gert::StorageShape yStorageShapeUninit = {{10000, 10000, 10000}, {10000, 10000, 10000}};
 
     gert::InfershapeContextPara infershapeContextPara(
         "BatchMatMulReduceScatterAlltoAll",
         {
-            {xStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {weightStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {biasStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND}
+            {xStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND},
+            {weightStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND},
+            {biasStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND}
         },
         {
-            {{}, ge::DT_FLOAT16, ge::FORMAT_ND}
+            {yStorageShapeUninit, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND}
         },
         {
             {"group_ep", Ops::Transformer::AnyValue::CreateFrom<std::string>("hcclComEp")},
@@ -571,19 +601,21 @@ TEST_F(BatchMatMulReduceScatterAlltoAllInfershape, infer_shape_14) {
     constexpr bool transW = false;
     constexpr int yShard = 1;
 
-    gert::StorageShape xStorageShape = {{E / ep, ep * C, M / tp}, {}};
-    gert::StorageShape weightStorageShape = {{E / ep, M / tp, H}, {}};
-    gert::StorageShape biasStorageShape = {{E / ep, 1, H / tp}, {}};
+    gert::StorageShape xStorageShape = {{E / ep, ep * C, M / tp}, {E / ep, ep * C, M / tp}};
+    gert::StorageShape weightStorageShape = {{E / ep, M / tp, H}, {E / ep, M / tp, H}};
+    gert::StorageShape biasStorageShape = {{E / ep, 1, H / tp}, {E / ep, 1, H / tp}};
+
+    gert::StorageShape yStorageShapeUninit = {{10000, 10000, 10000}, {10000, 10000, 10000}};
 
     gert::InfershapeContextPara infershapeContextPara(
         "BatchMatMulReduceScatterAlltoAll",
         {
-            {xStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {weightStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {biasStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND}
+            {xStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND},
+            {weightStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND},
+            {biasStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND}
         },
         {
-            {{}, ge::DT_FLOAT16, ge::FORMAT_ND}
+            {yStorageShapeUninit, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND}
         },
         {
             {"group_ep", Ops::Transformer::AnyValue::CreateFrom<std::string>("hcclComEp")},
@@ -609,19 +641,21 @@ TEST_F(BatchMatMulReduceScatterAlltoAllInfershape, infer_shape_15) {
     constexpr bool transW = false;
     constexpr int yShard = 1;
 
-    gert::StorageShape xStorageShape = {{E / ep, ep * C, M / tp}, {}};
-    gert::StorageShape weightStorageShape = {{E / ep, M / tp, H}, {}};
-    gert::StorageShape biasStorageShape = {{E, 1, H}, {}};
+    gert::StorageShape xStorageShape = {{E / ep, ep * C, M / tp}, {E / ep, ep * C, M / tp}};
+    gert::StorageShape weightStorageShape = {{E / ep, M / tp, H}, {E / ep, M / tp, H}};
+    gert::StorageShape biasStorageShape = {{E, 1, H}, {E, 1, H}};
+
+    gert::StorageShape yStorageShapeUninit = {{10000, 10000, 10000}, {10000, 10000, 10000}};
 
     gert::InfershapeContextPara infershapeContextPara(
         "BatchMatMulReduceScatterAlltoAll",
         {
-            {xStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {weightStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {biasStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND}
+            {xStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND},
+            {weightStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND},
+            {biasStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND}
         },
         {
-            {{}, ge::DT_FLOAT16, ge::FORMAT_ND}
+            {yStorageShapeUninit, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND}
         },
         {
             {"group_ep", Ops::Transformer::AnyValue::CreateFrom<std::string>("hcclComEp")},
@@ -647,19 +681,21 @@ TEST_F(BatchMatMulReduceScatterAlltoAllInfershape, infer_shape_16) {
     constexpr bool transW = false;
     constexpr int yShard = 1;
 
-    gert::StorageShape xStorageShape = {{E / ep, ep * C, M / tp}, {}};
-    gert::StorageShape weightStorageShape = {{E / ep, M / tp, H}, {}};
-    gert::StorageShape biasStorageShape = {{E / ep, 1, H}, {}};
+    gert::StorageShape xStorageShape = {{E / ep, ep * C, M / tp}, {E / ep, ep * C, M / tp}};
+    gert::StorageShape weightStorageShape = {{E / ep, M / tp, H}, {E / ep, M / tp, H}};
+    gert::StorageShape biasStorageShape = {{E / ep, 1, H}, {E / ep, 1, H}};
+
+    gert::StorageShape yStorageShapeUninit = {{10000, 10000, 10000}, {10000, 10000, 10000}};
 
     gert::InfershapeContextPara infershapeContextPara(
         "BatchMatMulReduceScatterAlltoAll",
         {
-            {xStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {weightStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {biasStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND}
+            {xStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND},
+            {weightStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND},
+            {biasStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND}
         },
         {
-            {{}, ge::DT_FLOAT16, ge::FORMAT_ND}
+            {yStorageShapeUninit, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND}
         },
         {
             {"group_ep", Ops::Transformer::AnyValue::CreateFrom<std::string>("hcclComEp")},
@@ -685,19 +721,21 @@ TEST_F(BatchMatMulReduceScatterAlltoAllInfershape, infer_shape_17) {
     constexpr bool transW = false;
     constexpr int yShard = 1;
 
-    gert::StorageShape xStorageShape = {{E / ep, ep * C, M / tp}, {}};
-    gert::StorageShape weightStorageShape = {{E / ep, M / tp, H}, {}};
-    gert::StorageShape biasStorageShape = {{E / ep, 1, H}, {}};
+    gert::StorageShape xStorageShape = {{E / ep, ep * C, M / tp}, {E / ep, ep * C, M / tp}};
+    gert::StorageShape weightStorageShape = {{E / ep, M / tp, H}, {E / ep, M / tp, H}};
+    gert::StorageShape biasStorageShape = {{E / ep, 1, H}, {E / ep, 1, H}};
+
+    gert::StorageShape yStorageShapeUninit = {{10000, 10000, 10000}, {10000, 10000, 10000}};
 
     gert::InfershapeContextPara infershapeContextPara(
         "BatchMatMulReduceScatterAlltoAll",
         {
-            {xStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {weightStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {biasStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND}
+            {xStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND},
+            {weightStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND},
+            {biasStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND}
         },
         {
-            {{}, ge::DT_FLOAT16, ge::FORMAT_ND}
+            {yStorageShapeUninit, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND}
         },
         {
             {"group_ep", Ops::Transformer::AnyValue::CreateFrom<std::string>("hcclComEp")},
@@ -723,19 +761,21 @@ TEST_F(BatchMatMulReduceScatterAlltoAllInfershape, infer_shape_18) {
     constexpr bool transW = false;
     constexpr int yShard = 1;
 
-    gert::StorageShape xStorageShape = {{E / ep, ep * C, M / tp}, {}};
-    gert::StorageShape weightStorageShape = {{E / ep, M / tp, H}, {}};
-    gert::StorageShape biasStorageShape = {{E / ep, 1, H}, {}};
+    gert::StorageShape xStorageShape = {{E / ep, ep * C, M / tp}, {E / ep, ep * C, M / tp}};
+    gert::StorageShape weightStorageShape = {{E / ep, M / tp, H}, {E / ep, M / tp, H}};
+    gert::StorageShape biasStorageShape = {{E / ep, 1, H}, {E / ep, 1, H}};
+
+    gert::StorageShape yStorageShapeUninit = {{10000, 10000, 10000}, {10000, 10000, 10000}};
 
     gert::InfershapeContextPara infershapeContextPara(
         "BatchMatMulReduceScatterAlltoAll",
         {
-            {xStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {weightStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {biasStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND}
+            {xStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND},
+            {weightStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND},
+            {biasStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND}
         },
         {
-            {{}, ge::DT_FLOAT16, ge::FORMAT_ND}
+            {yStorageShapeUninit, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND}
         },
         {
             {"group_ep", Ops::Transformer::AnyValue::CreateFrom<std::string>("hcclComEp")},
@@ -761,19 +801,21 @@ TEST_F(BatchMatMulReduceScatterAlltoAllInfershape, infer_shape_19) {
     constexpr bool transW = false;
     constexpr int yShard = 1;
 
-    gert::StorageShape xStorageShape = {{E / ep, ep * C, M / tp}, {}};
-    gert::StorageShape weightStorageShape = {{E / ep, M / tp, H}, {}};
-    gert::StorageShape biasStorageShape = {{E / ep, 1, H}, {}};
+    gert::StorageShape xStorageShape = {{E / ep, ep * C, M / tp}, {E / ep, ep * C, M / tp}};
+    gert::StorageShape weightStorageShape = {{E / ep, M / tp, H}, {E / ep, M / tp, H}};
+    gert::StorageShape biasStorageShape = {{E / ep, 1, H}, {E / ep, 1, H}};
+
+    gert::StorageShape yStorageShapeUninit = {{10000, 10000, 10000}, {10000, 10000, 10000}};
 
     gert::InfershapeContextPara infershapeContextPara(
         "BatchMatMulReduceScatterAlltoAll",
         {
-            {xStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {weightStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {biasStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND}
+            {xStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND},
+            {weightStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND},
+            {biasStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND}
         },
         {
-            {{}, ge::DT_FLOAT16, ge::FORMAT_ND}
+            {yStorageShapeUninit, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND}
         },
         {
             {"group_ep", Ops::Transformer::AnyValue::CreateFrom<std::string>("hcclComEp")},
@@ -792,18 +834,26 @@ TEST_F(BatchMatMulReduceScatterAlltoAllInfershape, infer_shape_19) {
 TEST_F(BatchMatMulReduceScatterAlltoAllInfershape, infer_dtype_0) {
     ge::DataType xType = ge::DT_FLOAT16;
     ge::DataType weightType = ge::DT_FLOAT16;
+    ge::DataType biasType = ge::DT_FLOAT16;
+    ge::DataType outType = ge::DT_UNDEFINED; // 初始化的时候设置为未定义的类型
 
     auto contextHolder = gert::InferDataTypeContextFaker()
-        .NodeIoNum(2, 1)
-        .InputDataTypes({&xType, &weightType})
+        .IrInputNum(3)
+        .NodeIoNum(3, 1)
+        .IrInstanceNum({1, 1})
+        .NodeInputTd(0, xType, ge::FORMAT_ND, ge::FORMAT_ND)
+        .NodeInputTd(1, weightType, ge::FORMAT_ND, ge::FORMAT_ND)
+        .NodeInputTd(2, biasType, ge::FORMAT_ND, ge::FORMAT_ND)
         .NodeOutputTd(0, ge::FORMAT_ND, ge::FORMAT_ND)
+        .InputDataTypes({&xType, &weightType, &biasType})
+        .OutputDataTypes({&outType})
         .Build();
 
     auto spaceRegistry = gert::DefaultOpImplSpaceRegistryV2::GetInstance().GetSpaceRegistry();
     auto inferDtypeFunc = spaceRegistry->GetOpImpl("BatchMatMulReduceScatterAlltoAll")->infer_datatype;
     ASSERT_EQ(inferDtypeFunc(contextHolder.GetContext<gert::InferDataTypeContext>()), ge::GRAPH_SUCCESS);
 
-    EXPECT_EQ(contextHolder.GetContext<gert::InferDataTypeContext>()->GetOutputDataType(0), ge::DT_FLOAT16);
+    EXPECT_EQ(contextHolder.GetContext<gert::InferDataTypeContext>()->GetOutputDataType(0), xType);
 }
 
 // fp16 infer dtype with bias, success
@@ -811,18 +861,25 @@ TEST_F(BatchMatMulReduceScatterAlltoAllInfershape, infer_dtype_1) {
     ge::DataType xType = ge::DT_FLOAT16;
     ge::DataType weightType = ge::DT_FLOAT16;
     ge::DataType biasType = ge::DT_FLOAT16;
+    ge::DataType outType = ge::DT_UNDEFINED; // 初始化的时候设置为未定义的类型
 
     auto contextHolder = gert::InferDataTypeContextFaker()
+        .IrInputNum(3)
         .NodeIoNum(3, 1)
-        .InputDataTypes({&xType, &weightType, &biasType})
+        .IrInstanceNum({1, 1, 1})
+        .NodeInputTd(0, xType, ge::FORMAT_ND, ge::FORMAT_ND)
+        .NodeInputTd(1, weightType, ge::FORMAT_ND, ge::FORMAT_ND)
+        .NodeInputTd(2, biasType, ge::FORMAT_ND, ge::FORMAT_ND)
         .NodeOutputTd(0, ge::FORMAT_ND, ge::FORMAT_ND)
+        .InputDataTypes({&xType, &weightType, &biasType})
+        .OutputDataTypes({&outType})
         .Build();
 
     auto spaceRegistry = gert::DefaultOpImplSpaceRegistryV2::GetInstance().GetSpaceRegistry();
     auto inferDtypeFunc = spaceRegistry->GetOpImpl("BatchMatMulReduceScatterAlltoAll")->infer_datatype;
     ASSERT_EQ(inferDtypeFunc(contextHolder.GetContext<gert::InferDataTypeContext>()), ge::GRAPH_SUCCESS);
 
-    EXPECT_EQ(contextHolder.GetContext<gert::InferDataTypeContext>()->GetOutputDataType(0), ge::DT_FLOAT16);
+    EXPECT_EQ(contextHolder.GetContext<gert::InferDataTypeContext>()->GetOutputDataType(0), xType);
 }
 
 // fp16 infer dtype with bias, xType != weightType, failed
@@ -830,11 +887,18 @@ TEST_F(BatchMatMulReduceScatterAlltoAllInfershape, infer_dtype_2) {
     ge::DataType xType = ge::DT_FLOAT16;
     ge::DataType weightType = ge::DT_BF16;
     ge::DataType biasType = ge::DT_FLOAT16;
+    ge::DataType outType = ge::DT_UNDEFINED; // 初始化的时候设置为未定义的类型
 
     auto contextHolder = gert::InferDataTypeContextFaker()
+        .IrInputNum(3)
         .NodeIoNum(3, 1)
-        .InputDataTypes({&xType, &weightType, &biasType})
+        .IrInstanceNum({1, 1, 1})
+        .NodeInputTd(0, xType, ge::FORMAT_ND, ge::FORMAT_ND)
+        .NodeInputTd(1, weightType, ge::FORMAT_ND, ge::FORMAT_ND)
+        .NodeInputTd(2, biasType, ge::FORMAT_ND, ge::FORMAT_ND)
         .NodeOutputTd(0, ge::FORMAT_ND, ge::FORMAT_ND)
+        .InputDataTypes({&xType, &weightType, &biasType})
+        .OutputDataTypes({&outType})
         .Build();
 
     auto spaceRegistry = gert::DefaultOpImplSpaceRegistryV2::GetInstance().GetSpaceRegistry();
@@ -847,11 +911,18 @@ TEST_F(BatchMatMulReduceScatterAlltoAllInfershape, infer_dtype_3) {
     ge::DataType xType = ge::DT_FLOAT16;
     ge::DataType weightType = ge::DT_FLOAT16;
     ge::DataType biasType = ge::DT_FLOAT;
+    ge::DataType outType = ge::DT_UNDEFINED; // 初始化的时候设置为未定义的类型
 
     auto contextHolder = gert::InferDataTypeContextFaker()
+        .IrInputNum(3)
         .NodeIoNum(3, 1)
-        .InputDataTypes({&xType, &weightType, &biasType})
+        .IrInstanceNum({1, 1, 1})
+        .NodeInputTd(0, xType, ge::FORMAT_ND, ge::FORMAT_ND)
+        .NodeInputTd(1, weightType, ge::FORMAT_ND, ge::FORMAT_ND)
+        .NodeInputTd(2, biasType, ge::FORMAT_ND, ge::FORMAT_ND)
         .NodeOutputTd(0, ge::FORMAT_ND, ge::FORMAT_ND)
+        .InputDataTypes({&xType, &weightType, &biasType})
+        .OutputDataTypes({&outType})
         .Build();
 
     auto spaceRegistry = gert::DefaultOpImplSpaceRegistryV2::GetInstance().GetSpaceRegistry();
@@ -864,18 +935,25 @@ TEST_F(BatchMatMulReduceScatterAlltoAllInfershape, infer_dtype_4) {
     ge::DataType xType = ge::DT_BF16;
     ge::DataType weightType = ge::DT_BF16;
     ge::DataType biasType = ge::DT_FLOAT;
+    ge::DataType outType = ge::DT_UNDEFINED; // 初始化的时候设置为未定义的类型
 
     auto contextHolder = gert::InferDataTypeContextFaker()
+        .IrInputNum(3)
         .NodeIoNum(3, 1)
-        .InputDataTypes({&xType, &weightType, &biasType})
+        .IrInstanceNum({1, 1, 1})
+        .NodeInputTd(0, xType, ge::FORMAT_ND, ge::FORMAT_ND)
+        .NodeInputTd(1, weightType, ge::FORMAT_ND, ge::FORMAT_ND)
+        .NodeInputTd(2, biasType, ge::FORMAT_ND, ge::FORMAT_ND)
         .NodeOutputTd(0, ge::FORMAT_ND, ge::FORMAT_ND)
+        .InputDataTypes({&xType, &weightType, &biasType})
+        .OutputDataTypes({&outType})
         .Build();
 
     auto spaceRegistry = gert::DefaultOpImplSpaceRegistryV2::GetInstance().GetSpaceRegistry();
     auto inferDtypeFunc = spaceRegistry->GetOpImpl("BatchMatMulReduceScatterAlltoAll")->infer_datatype;
     ASSERT_EQ(inferDtypeFunc(contextHolder.GetContext<gert::InferDataTypeContext>()), ge::GRAPH_SUCCESS);
 
-    EXPECT_EQ(contextHolder.GetContext<gert::InferDataTypeContext>()->GetOutputDataType(0), ge::DT_BF16);
+    EXPECT_EQ(contextHolder.GetContext<gert::InferDataTypeContext>()->GetOutputDataType(0), xType);
 }
 
 // infer dtype with bias, xType invalid, failed
@@ -883,11 +961,18 @@ TEST_F(BatchMatMulReduceScatterAlltoAllInfershape, infer_dtype_5) {
     ge::DataType xType = ge::DT_INT8;
     ge::DataType weightType = ge::DT_FLOAT16;
     ge::DataType biasType = ge::DT_FLOAT16;
+    ge::DataType outType = ge::DT_UNDEFINED; // 初始化的时候设置为未定义的类型
 
     auto contextHolder = gert::InferDataTypeContextFaker()
+        .IrInputNum(3)
         .NodeIoNum(3, 1)
-        .InputDataTypes({&xType, &weightType, &biasType})
+        .IrInstanceNum({1, 1, 1})
+        .NodeInputTd(0, xType, ge::FORMAT_ND, ge::FORMAT_ND)
+        .NodeInputTd(1, weightType, ge::FORMAT_ND, ge::FORMAT_ND)
+        .NodeInputTd(2, biasType, ge::FORMAT_ND, ge::FORMAT_ND)
         .NodeOutputTd(0, ge::FORMAT_ND, ge::FORMAT_ND)
+        .InputDataTypes({&xType, &weightType, &biasType})
+        .OutputDataTypes({&outType})
         .Build();
 
     auto spaceRegistry = gert::DefaultOpImplSpaceRegistryV2::GetInstance().GetSpaceRegistry();
@@ -900,11 +985,18 @@ TEST_F(BatchMatMulReduceScatterAlltoAllInfershape, infer_dtype_6) {
     ge::DataType xType = ge::DT_FLOAT16;
     ge::DataType weightType = ge::DT_INT8;
     ge::DataType biasType = ge::DT_FLOAT16;
+    ge::DataType outType = ge::DT_UNDEFINED; // 初始化的时候设置为未定义的类型
 
     auto contextHolder = gert::InferDataTypeContextFaker()
+        .IrInputNum(3)
         .NodeIoNum(3, 1)
-        .InputDataTypes({&xType, &weightType, &biasType})
+        .IrInstanceNum({1, 1, 1})
+        .NodeInputTd(0, xType, ge::FORMAT_ND, ge::FORMAT_ND)
+        .NodeInputTd(1, weightType, ge::FORMAT_ND, ge::FORMAT_ND)
+        .NodeInputTd(2, biasType, ge::FORMAT_ND, ge::FORMAT_ND)
         .NodeOutputTd(0, ge::FORMAT_ND, ge::FORMAT_ND)
+        .InputDataTypes({&xType, &weightType, &biasType})
+        .OutputDataTypes({&outType})
         .Build();
 
     auto spaceRegistry = gert::DefaultOpImplSpaceRegistryV2::GetInstance().GetSpaceRegistry();
@@ -917,11 +1009,18 @@ TEST_F(BatchMatMulReduceScatterAlltoAllInfershape, infer_dtype_7) {
     ge::DataType xType = ge::DT_FLOAT16;
     ge::DataType weightType = ge::DT_FLOAT16;
     ge::DataType biasType = ge::DT_INT8;
+    ge::DataType outType = ge::DT_UNDEFINED; // 初始化的时候设置为未定义的类型
 
     auto contextHolder = gert::InferDataTypeContextFaker()
+        .IrInputNum(3)
         .NodeIoNum(3, 1)
-        .InputDataTypes({&xType, &weightType, &biasType})
+        .IrInstanceNum({1, 1, 1})
+        .NodeInputTd(0, xType, ge::FORMAT_ND, ge::FORMAT_ND)
+        .NodeInputTd(1, weightType, ge::FORMAT_ND, ge::FORMAT_ND)
+        .NodeInputTd(2, biasType, ge::FORMAT_ND, ge::FORMAT_ND)
         .NodeOutputTd(0, ge::FORMAT_ND, ge::FORMAT_ND)
+        .InputDataTypes({&xType, &weightType, &biasType})
+        .OutputDataTypes({&outType})
         .Build();
 
     auto spaceRegistry = gert::DefaultOpImplSpaceRegistryV2::GetInstance().GetSpaceRegistry();
@@ -934,11 +1033,18 @@ TEST_F(BatchMatMulReduceScatterAlltoAllInfershape, infer_dtype_8) {
     ge::DataType xType = ge::DT_BF16;
     ge::DataType weightType = ge::DT_BF16;
     ge::DataType biasType = ge::DT_FLOAT16;
+    ge::DataType outType = ge::DT_UNDEFINED; // 初始化的时候设置为未定义的类型
 
     auto contextHolder = gert::InferDataTypeContextFaker()
+        .IrInputNum(3)
         .NodeIoNum(3, 1)
-        .InputDataTypes({&xType, &weightType, &biasType})
+        .IrInstanceNum({1, 1, 1})
+        .NodeInputTd(0, xType, ge::FORMAT_ND, ge::FORMAT_ND)
+        .NodeInputTd(1, weightType, ge::FORMAT_ND, ge::FORMAT_ND)
+        .NodeInputTd(2, biasType, ge::FORMAT_ND, ge::FORMAT_ND)
         .NodeOutputTd(0, ge::FORMAT_ND, ge::FORMAT_ND)
+        .InputDataTypes({&xType, &weightType, &biasType})
+        .OutputDataTypes({&outType})
         .Build();
 
     auto spaceRegistry = gert::DefaultOpImplSpaceRegistryV2::GetInstance().GetSpaceRegistry();

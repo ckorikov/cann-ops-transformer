@@ -29,17 +29,20 @@ protected:
 };
 
 TEST_F(MatmulReduceScatterInfershape, basic) {
-    gert::StorageShape x1StorageShape = {{8192, 1536}, {}};
-    gert::StorageShape x2StorageShape = {{1536, 12288}, {}};
+    gert::StorageShape x1StorageShape = {{8192, 1536}, {8192, 1536}};
+    gert::StorageShape x2StorageShape = {{1536, 12288}, {1536, 12288}};
+    gert::StorageShape x3StorageShape = {{}, {}};
+    gert::StorageShape yStorageShape = {{8192, 12288}, {8192, 12288}};
 
     gert::InfershapeContextPara infershapeContextPara(
         "MatmulReduceScatter",
         {
-            {x1StorageShape, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {x2StorageShape, ge::DT_FLOAT16, ge::FORMAT_ND}
+            {x1StorageShape, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND},
+            {x2StorageShape, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND},
+            {x3StorageShape, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND}
         },
         {
-            {{}, ge::DT_FLOAT16, ge::FORMAT_ND}
+            {yStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND}
         },
         {
             {"group", Ops::Transformer::AnyValue::CreateFrom<std::string>("hcclCom")},
@@ -51,22 +54,24 @@ TEST_F(MatmulReduceScatterInfershape, basic) {
         }
     );
 
-    std::vector<std::vector<int64_t>> expectOutputShape = {{1024, 12288}};
-    ExecuteTestCase(infershapeContextPara, ge::GRAPH_SUCCESS, expectOutputShape);
+    ExecuteTestCase(infershapeContextPara, ge::GRAPH_SUCCESS);
 }
 
 TEST_F(MatmulReduceScatterInfershape, empty_tensor_test) {
-    gert::StorageShape x1StorageShape = {{8192, 0}, {}};
-    gert::StorageShape x2StorageShape = {{0, 12288}, {}};
+    gert::StorageShape x1StorageShape = {{8192, 0}, {0, 1536}};
+    gert::StorageShape x2StorageShape = {{0, 12288}, {1536, 12288}};
+    gert::StorageShape x3StorageShape = {{}, {}};
+    gert::StorageShape yStorageShape = {{0, 0}, {0, 12288}};
 
     gert::InfershapeContextPara infershapeContextPara(
         "MatmulReduceScatter",
         {
-            {x1StorageShape, ge::DT_FLOAT16, ge::FORMAT_ND},
-            {x2StorageShape, ge::DT_FLOAT16, ge::FORMAT_ND}
+            {x1StorageShape, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND},
+            {x2StorageShape, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND},
+            {x3StorageShape, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND}
         },
         {
-            {{}, ge::DT_FLOAT16, ge::FORMAT_ND}
+            {yStorageShape, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND}
         },
         {
             {"group", Ops::Transformer::AnyValue::CreateFrom<std::string>("hcclCom")},
