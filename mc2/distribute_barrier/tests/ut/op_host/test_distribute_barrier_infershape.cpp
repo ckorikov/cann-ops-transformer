@@ -8,9 +8,10 @@
  * See LICENSE in the root of the software repository for the full text of the License.
  */
 
-#include <gtest/gtest.h>
 #include <iostream>
+#include <gtest/gtest.h>
 #include "infer_shape_context_faker.h"
+#include "infer_shape_case_executor.h"
 #include "base/registry/op_impl_space_registry_v2.h"
 
 class DistributeBarrierInfershape : public testing::Test
