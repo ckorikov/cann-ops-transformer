@@ -196,7 +196,7 @@ aclnnStatus aclnnMlaPrologV2WeightNz(
   | BlockSize    | PagedAttention 场景下的块大小  | 取值范围：16、128                                                           |
   | T            | BS 合轴后的大小                | 取值范围：0~1048576；注：若采用 BS 合轴，此时 tokenX、ropeSin、ropeCos 均为 2 维，cacheIndex 为 1 维，queryOut、queryRopeOut 为 3 维 |
 
-
+- weight_dq，weight_uq_qr，weight_dkv_kr在不转置的情况下各个维度的表示：（k，n）。
 -   shape约束
     -   若tokenX的维度采用BS合轴，即(T, He)
         - ropeSin和ropeCos的shape为(T, Dr)

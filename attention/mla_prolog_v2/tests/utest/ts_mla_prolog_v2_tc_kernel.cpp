@@ -9,7 +9,7 @@
  */
 
 /*!
- * \file ts_mla_prolog_v2_tc.cpp
+ * \file ts_mla_prolog_v2_tc_kernel.cpp
  * \brief MlaPrologV2 正反向用例.
  */
 
