@@ -412,9 +412,9 @@ __aicore__ inline void MoeDistributeCombineA2<TemplateMC2TypeA2Func>::AlltoAllDi
 template <TemplateMC2TypeA2Class>
 __aicore__ inline void MoeDistributeCombineA2<TemplateMC2TypeA2Func>::Preload()
 {
-    recvCountLocal_ = rowTmpFloatBuf_.Get<uint32_t>();          //复用rowTmpFloatBuf_
-    expertWindowOffsetLocal_ = batchWriteItemBuf_.Get<uint32_t>();    //复用batchWriteItemBuf_
-    //缩减UB占用，只读取1/AivNum的专家序号片段，其他核处理部分不读取
+    recvCountLocal_ = rowTmpFloatBuf_.Get<uint32_t>();          // 复用rowTmpFloatBuf_
+    expertWindowOffsetLocal_ = batchWriteItemBuf_.Get<uint32_t>();    // 复用batchWriteItemBuf_
+    // 缩减UB占用，只读取1/AivNum的专家序号片段，其他核处理部分不读取
     taskInfo_.SplitCore(axisBS_ * axisK_, aivNum_, coreIdx_);
     expertIdsSegLocal_ = expertIdsBuf_.Get<ExpandIdxType>();
     DataCopyPad(expertIdsSegLocal_, expertIdsGlobal_[taskInfo_.startTaskId],
@@ -434,7 +434,7 @@ __aicore__ inline void MoeDistributeCombineA2<TemplateMC2TypeA2Func>::Preload()
     SyncAll<true>();
 
     if (isInputExpertMaskFlag_) {
-        //需要额外校验Mask，Mask表为全量表，专家表为片段表
+        // 需要额外校验Mask，Mask表为全量表，专家表为片段表
         for (uint32_t i = taskInfo_.startTaskId; i < taskInfo_.endTaskId; ++i) {
             if (expertMaskTensor_(i) == false){ // 全量表，用[0-bs*k]做索引
                 continue;
@@ -446,7 +446,7 @@ __aicore__ inline void MoeDistributeCombineA2<TemplateMC2TypeA2Func>::Preload()
             }
         }
     } else {
-        //无需校验Mask，直接用片段表
+        // 无需校验Mask，直接用片段表
         for (uint32_t i = 0; i < taskInfo_.taskNum; ++i) {
             uint32_t expId = expertIdsSegLocal_.GetValue(i);
             if (expId < moeExpertNum_)
@@ -499,7 +499,7 @@ __aicore__ inline void MoeDistributeCombineA2<TemplateMC2TypeA2Func>::Preload()
         return;
     }
 
-     //缩减UB占用，只读取1/AivNum的Scale\IndexCounts片段，其他核处理部分不读取
+     // 缩减UB占用，只读取1/AivNum的Scale\IndexCounts片段，其他核处理部分不读取
     expandScalesSegLocal_ = expandScalesBuf_.Get<float>();
     indexCountsSegLocal_ = indexCountsBuf_.Get<ExpandIdxType>();
     DataCopyPad(expandScalesSegLocal_, expandScalesGlobal_[tokenBeginIndex_ * axisK_],
@@ -584,7 +584,7 @@ __aicore__ inline void MoeDistributeCombineA2<TemplateMC2TypeA2Func>::LocalWindo
     float scaleVal = 0.0;
     for (uint32_t i = 0; i < tokenNumPerCore_; i++) {
         uint32_t tokenIdx = tokenBeginIndex_ + i;
-        Duplicate(sumFloatLocal_, 0.0f, axisH_); //28K接收最终输出
+        Duplicate(sumFloatLocal_, 0.0f, axisH_);
         for (uint32_t topKIdx = 0; topKIdx < axisK_; topKIdx++) {
             uint32_t tokentopKIdx = tokenIdx * axisK_ + topKIdx;
             if (isInputExpertMaskFlag_) {
@@ -608,11 +608,10 @@ __aicore__ inline void MoeDistributeCombineA2<TemplateMC2TypeA2Func>::LocalWindo
         PipeBarrier<PIPE_V>();
         LocalTensor<ExpandXType> sumBufLocal_ = tokenBuf_.Get<ExpandXType>();
         SyncFunc<AscendC::HardEvent::MTE3_V>();
-        Cast(sumBufLocal_, sumFloatLocal_, AscendC::RoundMode::CAST_RINT, axisH_); // 28k
+        Cast(sumBufLocal_, sumFloatLocal_, AscendC::RoundMode::CAST_RINT, axisH_);
         SyncFunc<AscendC::HardEvent::V_MTE3>();
         DataCopy(expandOutGlobal_[tokenIdx * axisH_], sumBufLocal_, axisH_);
     }
-    PipeBarrier<PIPE_ALL>();
 }
 
 template <TemplateMC2TypeA2Class>
