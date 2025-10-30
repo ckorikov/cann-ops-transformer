@@ -98,6 +98,11 @@ protected:
         return ge::GRAPH_SUCCESS;
     }
 
+    [[nodiscard]] ge::graphStatus SetScheduleMode(uint32_t scheduleMode) const
+    {
+        return context_->SetScheduleMode(scheduleMode);
+    }
+
     template <typename T>
     [[nodiscard]] std::string GetShapeDebugStr(const T &shape) const
     {

@@ -413,6 +413,12 @@ uint64_t FiaTilingNonQuantMla::CalcFlashDecodeWorkspace(const uint32_t coreNum) 
     return workspaceSize;
 }
 
+void FiaTilingNonQuant::CalcScheduleMode()
+{
+    scheduleMode_ = static_cast<uint32_t>(ScheduleMode::BATCH_MODE);
+    OP_LOGI(fiaInfo_->opName, "FIA schedule mode: %u.", scheduleMode_);
+}
+
 void FiaTilingNonQuantMla::CalcWorkspaceSize()
 {
     workspaceSize_ = libapiSize_;
@@ -453,14 +459,16 @@ ge::graphStatus FiaTilingNonQuantMla::DoOpTiling()
         Split();
         FillTiling();
         CalcBlockDim(usedCoreNum_);
+        CalcScheduleMode();
         CalcWorkspaceSize();
         GenTilingKey();
     }
 
     if ((SetBlockDim(blockDim_) != ge::GRAPH_SUCCESS) ||
         (SetTilingKey(tilingKey_) != ge::GRAPH_SUCCESS) ||
-        (SetWorkspaceSize(workspaceSize_) != ge::GRAPH_SUCCESS) 
+        (SetWorkspaceSize(workspaceSize_) != ge::GRAPH_SUCCESS) ||
         //|| (SetTilingData(tilingData_) != ge::GRAPH_SUCCESS)
+        (SetScheduleMode(scheduleMode_) != ge::GRAPH_SUCCESS)
         ) {
         return ge::GRAPH_FAILED;
     }
