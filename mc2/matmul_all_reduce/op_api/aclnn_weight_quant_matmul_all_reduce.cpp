@@ -21,6 +21,7 @@
 #include "opdev/make_op_executor.h"
 #include "opdev/op_log.h"
 #include "opdev/platform.h"
+#include "opdev/tensor_view_utils.h"
 #include "matmul_all_reduce_util.h"
 #include "aclnn_kernels/contiguous.h"
 
@@ -332,9 +333,43 @@ static bool CheckShape(
     if (offset != nullptr) {
         OP_CHECK_SHAPE_NOT_EQUAL(offset, scale, return false);
     }
-
     return true;
 }
+
+namespace ContiguousCheckImpl {
+static bool IsAffineInconsistent(const aclTensor *affineTensor, bool transposeX2)
+{
+    if (affineTensor == nullptr) {
+        return false;
+    }
+    const auto affineTensorShape = affineTensor->GetViewShape();
+    if (affineTensorShape.GetDimNum() != DIM_LEN_TWO) {
+        return false;
+    }
+    if (affineTensorShape.GetDim(0) == 1 || affineTensorShape.GetDim(1) == 1) {
+        return false;
+    }
+    return (transposeX2 && IsContiguous(affineTensor)) || (!transposeX2 && !IsContiguous(affineTensor));
+}
+
+static bool CheckContiguous(const aclTensor *x2, const aclTensor *scale, const aclTensor *offset)
+{
+    // check x2(weight) is transposed, scale and offset should also be transposed
+    const bool transposeX2 = IsTransposeLastTwoDims(x2) || IsAclnnPreTransposed(x2);
+    if (op::GetCurrentPlatformInfo().GetSocVersion() != op::SocVersion::ASCEND910_95) {
+        return true;
+    }
+    if (IsAffineInconsistent(scale, transposeX2)) {
+        OP_LOGE(ACLNN_ERR_PARAM_INVALID, "When x2 is contiguous or transpose, scale should be consistent with it.");
+        return false;
+    }
+    if (IsAffineInconsistent(offset, transposeX2)) {
+        OP_LOGE(ACLNN_ERR_PARAM_INVALID, "When x2 is contiguous or transpose, offset should be consistent with it.");
+        return false;
+    }
+    return true;
+}
+} // namespace ContiguousCheckImpl
 
 static aclnnStatus CheckParams(
     const aclTensor* x1, const aclTensor* x2, const aclTensor* bias, const aclTensor* antiquantScale,
@@ -354,7 +389,8 @@ static aclnnStatus CheckParams(
     CHECK_RET(
         CheckShape(x1, x2, bias, antiquantScale, antiquantOffset, x3, output, antiquantGroupSize),
         ACLNN_ERR_PARAM_INVALID);
-
+    // 5. 检查连续性
+    CHECK_RET(ContiguousCheckImpl::CheckContiguous(x2, antiquantScale, antiquantOffset), ACLNN_ERR_PARAM_INVALID);
     return ACLNN_SUCCESS;
 }
 
