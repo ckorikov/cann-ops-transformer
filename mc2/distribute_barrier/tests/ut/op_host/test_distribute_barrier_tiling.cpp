@@ -72,3 +72,72 @@ TEST_F(DistributeBarrierTiling, distribute_barrier_test_tiling_world_size_385)
         &compileInfo, "Ascend910_93", coreNum, ubSize);
     ExecuteTestCase(tilingContextPara);
 }
+
+TEST_F(DistributeBarrierTiling, distribute_barrier_test_tiling_time_out) 
+{
+    struct DistributeBarrierCompileInfo {} compileInfo;
+    uint64_t coreNum = 20;
+    uint64_t ubSize = 196608;
+    gert::TilingContextPara tilingContextPara("DistributeBarrier",
+        {
+            {{{3, 4}, {3, 4}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+            {{{1}, {1}}, ge::DT_INT32, ge::FORMAT_ND},
+            {{}, ge::DT_INT32, ge::FORMAT_ND},
+        },
+        {{{{3, 4}, {3, 4}}, ge::DT_FLOAT16, ge::FORMAT_ND},},
+        {{"group", Ops::Transformer::AnyValue::CreateFrom<std::string>("group")},
+         {"world_size", Ops::Transformer::AnyValue::CreateFrom<int64_t>(16)}},
+        &compileInfo, "Ascend910_93", coreNum, ubSize);
+    uint64_t expectTilingKey = 10000UL;
+    std::string expectTilingData = "8 16 20 196352 0 1 ";
+    std::vector<size_t> expectWorkspaces = {16777216};
+    uint64_t mc2TilingDataReservedLen = 42;
+    ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey, expectTilingData, expectWorkspaces,
+                    mc2TilingDataReservedLen);
+}
+
+TEST_F(DistributeBarrierTiling, distribute_barrier_test_tiling_elastic_info) 
+{
+    struct DistributeBarrierCompileInfo {} compileInfo;
+    uint64_t coreNum = 20;
+    uint64_t ubSize = 196608;
+    gert::TilingContextPara tilingContextPara("DistributeBarrier",
+        {
+            {{{3, 4}, {3, 4}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+            {{}, ge::DT_INT32, ge::FORMAT_ND},
+            {{{36}, {36}}, ge::DT_INT32, ge::FORMAT_ND},
+        },
+        {{{{3, 4}, {3, 4}}, ge::DT_FLOAT16, ge::FORMAT_ND},},
+        {{"group", Ops::Transformer::AnyValue::CreateFrom<std::string>("group")},
+         {"world_size", Ops::Transformer::AnyValue::CreateFrom<int64_t>(16)}},
+        &compileInfo, "Ascend910_93", coreNum, ubSize);
+    uint64_t expectTilingKey = 10000UL;
+    std::string expectTilingData = "8 16 20 196352 0 256 ";
+    std::vector<size_t> expectWorkspaces = {16777216};
+    uint64_t mc2TilingDataReservedLen = 42;
+    ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey, expectTilingData, expectWorkspaces,
+                    mc2TilingDataReservedLen);
+}
+
+TEST_F(DistributeBarrierTiling, distribute_barrier_test_tiling_time_out_elastic_info) 
+{
+    struct DistributeBarrierCompileInfo {} compileInfo;
+    uint64_t coreNum = 20;
+    uint64_t ubSize = 196608;
+    gert::TilingContextPara tilingContextPara("DistributeBarrier",
+        {
+            {{{3, 4}, {3, 4}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+            {{{1}, {1}}, ge::DT_INT32, ge::FORMAT_ND},
+            {{{36}, {36}}, ge::DT_INT32, ge::FORMAT_ND},
+        },
+        {{{{3, 4}, {3, 4}}, ge::DT_FLOAT16, ge::FORMAT_ND},},
+        {{"group", Ops::Transformer::AnyValue::CreateFrom<std::string>("group")},
+         {"world_size", Ops::Transformer::AnyValue::CreateFrom<int64_t>(16)}},
+        &compileInfo, "Ascend910_93", coreNum, ubSize);
+    uint64_t expectTilingKey = 10000UL;
+    std::string expectTilingData = "8 16 20 196352 0 257 ";
+    std::vector<size_t> expectWorkspaces = {16777216};
+    uint64_t mc2TilingDataReservedLen = 42;
+    ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey, expectTilingData, expectWorkspaces,
+                    mc2TilingDataReservedLen);
+}
