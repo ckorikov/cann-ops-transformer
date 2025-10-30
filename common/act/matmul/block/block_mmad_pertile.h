@@ -87,14 +87,14 @@ public:
     using Params = Arguments;
 
 public:
-    __aicore__ BlockMmadGmm() = default;
-    __aicore__ ~BlockMmadGmm() = default;
+    __aicore__ inline BlockMmadGmm();
     __aicore__ inline void Init(const TupleShape& l0Shape, const TupleTileShape& tileL12L0,
                                 AscendC::LocalTensor<CType>* ping, AscendC::LocalTensor<CType>* pong);
     __aicore__ inline void operator()(const TupleShape& actualSingleShape, const AscendC::GlobalTensor<AType>& aGlobal,
                                       const AscendC::GlobalTensor<BType>& bGlobal);
     __aicore__ inline void UpdateParamsForNextProblem(const TupleShape& problemShape);
     __aicore__ inline void End();
+    __aicore__ inline ~BlockMmadGmm();
 
 private:
     __aicore__ inline void AicBaseMadProcess(AscendC::LocalTensor<AType>& aL1, AscendC::LocalTensor<BType>& bL1,
@@ -127,19 +127,22 @@ public:
     AscendC::LocalTensor<CType>* mmResPing_;
     AscendC::LocalTensor<CType>* mmResPong_;
 
-    // define the queue
-    AscendC::TQue<AscendC::QuePosition::A1, 1> inQueueTensorAL1_;
-    AscendC::TQue<AscendC::QuePosition::B1, 1> inQueueTensorBL1_;
-    AscendC::TQue<AscendC::QuePosition::A2, 1> inQueueTensorAL0_;
-    AscendC::TQue<AscendC::QuePosition::B2, 1> inQueueTensorBL0_;
-    AscendC::TQue<AscendC::QuePosition::CO1, 1> inQueueTensorCL0_;
+    AscendC::LocalTensor<AType> aL1Ping_;
+    AscendC::LocalTensor<AType> aL1Pong_;
+    AscendC::LocalTensor<BType> bL1Ping_;
+    AscendC::LocalTensor<BType> bL1Pong_;
+    AscendC::LocalTensor<AType> aL0Ping_;
+    AscendC::LocalTensor<AType> aL0Pong_;
+    AscendC::LocalTensor<BType> bL0Ping_;
+    AscendC::LocalTensor<BType> bL0Pong_;
+    AscendC::LocalTensor<CType> cL0Ping_;
+    AscendC::LocalTensor<CType> cL0Pong_;
 
 private:
     TupleShape problemShape_;
     TupleShape actualSingleShape_;
     PerBlockMmParam mmParams_;
     MatMulCommonParam<transA, transB> matmulParam_;
-    AscendC::TPipe* pipe_;
     uint64_t baseCount_ = 0;
     uint64_t maxStepK_ = 0;
     uint64_t minStepK_ = 0;
@@ -150,11 +153,29 @@ private:
     uint32_t stepN_;
     uint32_t stepKa_;
     uint32_t stepKb_;
-    uint16_t aL1BlockNum_ = 0;
     uint16_t crossPingPongID_ = 0;
+    int32_t aL1PingPongID_ = 0;
+    int32_t bL1PingPongID_= 0;
+    int32_t l0PingPongID_ = 0;
     bool needAicWait_ = false;
     bool orderAL1BL1_ = false;
 };
+
+QGMM_BLOCK_MMAD_CLASS_LOCAL_PARAMS
+__aicore__ inline BlockMmadGmm<QGMM_BLOCK_MMAD_FUNC_LOCAL_PARAMS>::BlockMmadGmm()
+{
+    if ASCEND_IS_AIC {
+        AscendC::SetFlag<AscendC::HardEvent::MTE1_MTE2>(0);
+        AscendC::SetFlag<AscendC::HardEvent::MTE1_MTE2>(1);
+        AscendC::SetFlag<AscendC::HardEvent::MTE1_MTE2>(0 + GMM_BUFFER_NUM);
+        AscendC::SetFlag<AscendC::HardEvent::MTE1_MTE2>(1 + GMM_BUFFER_NUM);
+        // 框架会使用AscendC::HardEvent::M_MTE1的0、1、2 eventID,后续都将使用GMM_CUBE_SYNC_MTE1_FLAG来避免eventID冲突
+        AscendC::SetFlag<AscendC::HardEvent::M_MTE1>(0 + GMM_CUBE_SYNC_MTE1_FLAG);
+        AscendC::SetFlag<AscendC::HardEvent::M_MTE1>(1 + GMM_CUBE_SYNC_MTE1_FLAG);
+        AscendC::SetFlag<AscendC::HardEvent::FIX_M>(0);
+        AscendC::SetFlag<AscendC::HardEvent::FIX_M>(1);
+    }
+}
 
 QGMM_BLOCK_MMAD_CLASS_LOCAL_PARAMS
 __aicore__ inline void BlockMmadGmm<QGMM_BLOCK_MMAD_FUNC_LOCAL_PARAMS>::Init(const TupleShape& l0Shape,
@@ -168,25 +189,34 @@ __aicore__ inline void BlockMmadGmm<QGMM_BLOCK_MMAD_FUNC_LOCAL_PARAMS>::Init(con
         baseK_ = Get<MNK_K>(l0Shape);
         stepM_ = Get<MNK_M>(tileL12L0);
         stepN_ = Get<MNK_N>(tileL12L0);
-        stepKa_ = Get<2>(tileL12L0); // 2: idx of stepKa in tileshape
-        stepKb_ = Get<3>(tileL12L0); // 3: idx of stepKb in tileshape
+        stepKa_ = Get<2>(tileL12L0);  // 2: idx of stepKa in tileshape
+        stepKb_ = Get<3>(tileL12L0);  // 3: idx of stepKb in tileshape
         orderAL1BL1_ = stepKa_ >= stepKb_;
         maxStepK_ = (orderAL1BL1_ ? stepKa_ : stepKb_) * baseK_;
         minStepK_ = (orderAL1BL1_ ? stepKb_ : stepKa_) * baseK_;
         matmulParam_.Init(l0Shape, tileL12L0);
         mmResPing_ = ping;
         mmResPong_ = pong;
-        pipe_ = GetTPipePtr();
 
-        // L1 buffer ping-pong enabled by default
-        auto aL1ElementNum = baseM_ * baseK_ * stepKa_;
-        aL1BlockNum_ = static_cast<uint16_t>(aL1ElementNum * sizeof(AType) / static_cast<uint64_t>(GMM_DATA_BLOCK));
-        pipe_->InitBuffer(inQueueTensorAL1_, GMM_BUFFER_NUM, aL1ElementNum * sizeof(AType));
-        pipe_->InitBuffer(inQueueTensorBL1_, GMM_BUFFER_NUM, baseN_ * baseK_ * stepKb_ * sizeof(BType));
-        // L0 buffer ping-pong enabled by default
-        pipe_->InitBuffer(inQueueTensorAL0_, GMM_BUFFER_NUM, baseM_ * baseK_ * sizeof(AType));
-        pipe_->InitBuffer(inQueueTensorBL0_, GMM_BUFFER_NUM, baseN_ * baseK_ * sizeof(BType));
-        pipe_->InitBuffer(inQueueTensorCL0_, GMM_BUFFER_NUM, baseM_ * baseN_ * sizeof(CType));
+        aL1Ping_ = AscendC::LocalTensor<AType>(AscendC::TPosition::A1, 0, baseM_ * baseK_ * stepKa_);
+        aL1Pong_ = AscendC::LocalTensor<AType>(AscendC::TPosition::A1, baseM_ * baseK_ * stepKa_ * sizeof(AType),
+                                               baseM_ * baseK_ * stepKa_);
+        bL1Ping_ = AscendC::LocalTensor<BType>(AscendC::TPosition::B1,
+                                               baseM_ * baseK_ * stepKa_ * sizeof(AType) * GMM_BUFFER_NUM,
+                                               baseN_ * baseK_ * stepKb_);
+        bL1Pong_ = AscendC::LocalTensor<BType>(
+            AscendC::TPosition::B1,
+            baseM_ * baseK_ * stepKa_ * sizeof(AType) * GMM_BUFFER_NUM + baseN_ * baseK_ * stepKb_ * sizeof(BType),
+            baseN_ * baseK_ * stepKb_);
+        aL0Ping_ = AscendC::LocalTensor<AType>(AscendC::TPosition::A2, 0, baseM_ * baseK_);
+        aL0Pong_ =
+            AscendC::LocalTensor<AType>(AscendC::TPosition::A2, baseM_ * baseK_ * sizeof(AType), baseM_ * baseK_);
+        bL0Ping_ = AscendC::LocalTensor<BType>(AscendC::TPosition::B2, 0, baseN_ * baseK_);
+        bL0Pong_ =
+            AscendC::LocalTensor<BType>(AscendC::TPosition::B2, baseN_ * baseK_ * sizeof(BType), baseN_ * baseK_);
+        cL0Ping_ = AscendC::LocalTensor<CType>(AscendC::TPosition::CO1, 0, baseM_ * baseN_);
+        cL0Pong_ =
+            AscendC::LocalTensor<CType>(AscendC::TPosition::CO1, baseM_ * baseN_ * sizeof(CType), baseM_ * baseN_);
     }
 }
 
@@ -235,35 +265,37 @@ BlockMmadGmm<QGMM_BLOCK_MMAD_FUNC_LOCAL_PARAMS>::operator()(const TupleShape& ac
         for (uint64_t kOuter = 0; kOuter < Get<MNK_K>(problemShape_); kOuter += maxStepK_) {
             isTailAL1 = (kOuter + maxStepK_) >= Get<MNK_K>(problemShape_);
             CopyInA1Nd2Nz(aGlobal, kOuter, isTailAL1);
-            auto aL1 = inQueueTensorAL1_.template DeQue<AType>();
             for (uint64_t kInner = kOuter;
                  kInner < AscendC::Std::min(kOuter + maxStepK_, static_cast<uint64_t>(Get<MNK_K>(problemShape_)));
                  kInner += minStepK_) {
                 isTailBL1 = (kInner + minStepK_) >= Get<MNK_K>(problemShape_);
                 CopyInB1Nd2Nz(bGlobal, kInner, isTailBL1);
-                auto bL1 = inQueueTensorBL1_.template DeQue<BType>();
                 uint64_t kAL1Offset = kInner - kOuter;
-                AicBaseMadProcess(aL1, bL1, kInner, kAL1Offset, isTailAL1, 0UL, isTailBL1);
-                inQueueTensorBL1_.FreeTensor(bL1);
+                AicBaseMadProcess(aL1PingPongID_ == 0 ? aL1Ping_ : aL1Pong_, bL1PingPongID_ == 0 ? bL1Ping_ : bL1Pong_,
+                                  kInner, kAL1Offset, isTailAL1, 0UL, isTailBL1);
+                AscendC::SetFlag<AscendC::HardEvent::MTE1_MTE2>(bL1PingPongID_ + GMM_BUFFER_NUM);
+                bL1PingPongID_ = bL1PingPongID_ ^ 1;
             }
-            inQueueTensorAL1_.FreeTensor(aL1);
+            AscendC::SetFlag<AscendC::HardEvent::MTE1_MTE2>(aL1PingPongID_);
+            aL1PingPongID_ = aL1PingPongID_ ^ 1;
         }
     } else {
         for (uint64_t kOuter = 0; kOuter < Get<MNK_K>(problemShape_); kOuter += maxStepK_) {
             isTailBL1 = (kOuter + maxStepK_) >= Get<MNK_K>(problemShape_);
             CopyInB1Nd2Nz(bGlobal, kOuter, isTailBL1);
-            auto bL1 = inQueueTensorBL1_.template DeQue<BType>();
             for (uint64_t kInner = kOuter;
                  kInner < AscendC::Std::min(kOuter + maxStepK_, static_cast<uint64_t>(Get<MNK_K>(problemShape_)));
                  kInner += minStepK_) {
                 isTailAL1 = (kInner + minStepK_) >= Get<MNK_K>(problemShape_);
                 CopyInA1Nd2Nz(aGlobal, kInner, isTailAL1);
                 uint64_t kBL1Offset = kInner - kOuter;
-                auto aL1 = inQueueTensorAL1_.template DeQue<AType>();
-                AicBaseMadProcess(aL1, bL1, kInner, 0UL, isTailAL1, kBL1Offset, isTailBL1);
-                inQueueTensorAL1_.FreeTensor(aL1);
+                AicBaseMadProcess(aL1PingPongID_ == 0 ? aL1Ping_ : aL1Pong_, bL1PingPongID_ == 0 ? bL1Ping_ : bL1Pong_,
+                                  kInner, 0UL, isTailAL1, kBL1Offset, isTailBL1);
+                AscendC::SetFlag<AscendC::HardEvent::MTE1_MTE2>(aL1PingPongID_);
+                aL1PingPongID_ = aL1PingPongID_ ^ 1;
             }
-            inQueueTensorBL1_.FreeTensor(bL1);
+            AscendC::SetFlag<AscendC::HardEvent::MTE1_MTE2>(bL1PingPongID_ + GMM_BUFFER_NUM);
+            bL1PingPongID_ = bL1PingPongID_ ^ 1;
         }
     }
 }
@@ -275,10 +307,16 @@ __aicore__ inline void BlockMmadGmm<QGMM_BLOCK_MMAD_FUNC_LOCAL_PARAMS>::AicBaseM
 {
     for (uint64_t kb = kInner;
          kb < AscendC::Std::min(kInner + minStepK_, static_cast<uint64_t>(Get<MNK_K>(problemShape_))); kb += baseK_) {
+        AscendC::WaitFlag<AscendC::HardEvent::M_MTE1>(l0PingPongID_ + GMM_CUBE_SYNC_MTE1_FLAG);
         CopyInA2(aL1, 0, kAL1Offset, kb, isTailAL1);
         CopyInB2(bL1, 0, kBL1Offset, kb, isTailBL1);
+        AscendC::SetFlag<AscendC::HardEvent::MTE1_M>(l0PingPongID_);
+        AscendC::WaitFlag<AscendC::HardEvent::MTE1_M>(l0PingPongID_);
+        AscendC::WaitFlag<AscendC::HardEvent::FIX_M>(l0PingPongID_);
         MmadBase(kb);
-        auto cL0 = inQueueTensorCL0_.template DeQue<CType>();
+        AscendC::SetFlag<AscendC::HardEvent::M_MTE1>(l0PingPongID_ + GMM_CUBE_SYNC_MTE1_FLAG);
+        AscendC::SetFlag<AscendC::HardEvent::M_FIX>(l0PingPongID_);
+        AscendC::WaitFlag<AscendC::HardEvent::M_FIX>(l0PingPongID_);
         AscendC::FixpipeParamsC310<AscendC::CO2Layout::ROW_MAJOR> fixpipeParams(
             mmParams_.fixpipeN, mmParams_.fixpipeM, mmParams_.fixSrcStride, mmParams_.fixpipeD);
         fixpipeParams.dualDstCtl = mmParams_.fixpipeSplitN ? 2 : 1; // 2 means splitting N with ratio 1:2
@@ -286,12 +324,12 @@ __aicore__ inline void BlockMmadGmm<QGMM_BLOCK_MMAD_FUNC_LOCAL_PARAMS>::AicBaseM
             WaitForVector(crossPingPongID_);
         }
         AscendC::Fixpipe<CType, CType, AscendC::Impl::CFG_ROW_MAJOR_UB>(
-            crossPingPongID_ == 0 ? *mmResPing_ : *mmResPong_, cL0, fixpipeParams);
+            crossPingPongID_ == 0 ? *mmResPing_ : *mmResPong_, l0PingPongID_ == 0 ? cL0Ping_ : cL0Pong_, fixpipeParams);
         NotifyVector(crossPingPongID_);
+        AscendC::SetFlag<AscendC::HardEvent::FIX_M>(l0PingPongID_);
         needAicWait_ = needAicWait_ || crossPingPongID_ == 1;
         crossPingPongID_ = (crossPingPongID_ + 1) & 1;
-        inQueueTensorCL0_.FreeTensor(cL0);
-
+        l0PingPongID_ = l0PingPongID_ ^ 1;
         kAL1Offset = kAL1Offset + baseK_;
         kBL1Offset = kBL1Offset + baseK_;
         baseCount_++;
@@ -305,11 +343,9 @@ __aicore__ inline void BlockMmadGmm<QGMM_BLOCK_MMAD_FUNC_LOCAL_PARAMS>::CopyInA2
                                                                                  bool isTailAL1)
 {
     uint64_t offsetAL1 = matmulParam_.CalcAL1Offset(mAL1Offset, kAL1Offset, isTailAL1);
-    AscendC::LocalTensor<AType> aL0 = inQueueTensorAL0_.template AllocTensor<AType>();
     AscendC::LoadData2DParamsV2 loadData2dParams;
     matmulParam_.LoadData2dParamsA(loadData2dParams, kOffset, isTailAL1);
-    AscendC::LoadData(aL0, aL1[offsetAL1], loadData2dParams);
-    inQueueTensorAL0_.EnQue(aL0);
+    AscendC::LoadData(l0PingPongID_ == 0 ? aL0Ping_ : aL0Pong_, aL1[offsetAL1], loadData2dParams);
 }
 
 QGMM_BLOCK_MMAD_CLASS_LOCAL_PARAMS
@@ -319,19 +355,14 @@ __aicore__ inline void BlockMmadGmm<QGMM_BLOCK_MMAD_FUNC_LOCAL_PARAMS>::CopyInB2
                                                                                  bool isTailBL1)
 {
     uint64_t offsetBL1 = matmulParam_.CalcBL1Offset(nBL1Offset, kBL1Offset, isTailBL1);
-    AscendC::LocalTensor<BType> bL0 = inQueueTensorBL0_.template AllocTensor<BType>();
     AscendC::LoadData2DParamsV2 loadData2dParams;
     matmulParam_.LoadData2dParamsB(loadData2dParams, kOffset, isTailBL1);
-    AscendC::LoadData(bL0, bL1[offsetBL1], loadData2dParams);
-    inQueueTensorBL0_.EnQue(bL0);
+    AscendC::LoadData(l0PingPongID_ == 0 ? bL0Ping_ : bL0Pong_, bL1[offsetBL1], loadData2dParams);
 }
 
 QGMM_BLOCK_MMAD_CLASS_LOCAL_PARAMS
 __aicore__ inline void BlockMmadGmm<QGMM_BLOCK_MMAD_FUNC_LOCAL_PARAMS>::MmadBase(uint64_t kOffset)
 {
-    auto aL0 = inQueueTensorAL0_.template DeQue<AType>();
-    auto bL0 = inQueueTensorBL0_.template DeQue<BType>();
-    AscendC::LocalTensor<CType> cL0 = inQueueTensorCL0_.template AllocTensor<CType>();
     uint32_t mmadK = AscendC::Std::min(static_cast<uint64_t>(baseK_), Get<MNK_K>(problemShape_) - kOffset);
     AscendC::MmadParams mmadParams;
     if constexpr (transA) {
@@ -346,10 +377,8 @@ __aicore__ inline void BlockMmadGmm<QGMM_BLOCK_MMAD_FUNC_LOCAL_PARAMS>::MmadBase
     }
     mmadParams.k = mmadK;
     mmadParams.disableGemv = true;
-    AscendC::Mmad(cL0, aL0, bL0, mmadParams);
-    inQueueTensorCL0_.EnQue(cL0);
-    inQueueTensorAL0_.FreeTensor(aL0);
-    inQueueTensorBL0_.FreeTensor(bL0);
+    AscendC::Mmad(l0PingPongID_ == 0 ? cL0Ping_ : cL0Pong_, l0PingPongID_ == 0 ? aL0Ping_ : aL0Pong_,
+                  l0PingPongID_ == 0 ? bL0Ping_ : bL0Pong_, mmadParams);
 }
 
 QGMM_BLOCK_MMAD_CLASS_LOCAL_PARAMS
@@ -357,12 +386,13 @@ __aicore__ inline void
 BlockMmadGmm<QGMM_BLOCK_MMAD_FUNC_LOCAL_PARAMS>::CopyInA1Nd2Nz(const AscendC::GlobalTensor<AType>& aGlobal,
                                                                uint64_t kOffset, bool isTailAL1)
 {
-    AscendC::LocalTensor<AType> aL1 = inQueueTensorAL1_.template AllocTensor<AType>();
+    AscendC::WaitFlag<AscendC::HardEvent::MTE1_MTE2>(aL1PingPongID_);   
     uint64_t offset = matmulParam_.CalcAGMOffsetInnerLoop(0, kOffset);
     AscendC::Nd2NzParams nd2nzParam;
     matmulParam_.CalNd2NzParamA(nd2nzParam, isTailAL1);
-    AscendC::DataCopy(aL1, aGlobal[offset], nd2nzParam);
-    inQueueTensorAL1_.EnQue(aL1);
+    AscendC::DataCopy(aL1PingPongID_ == 0 ? aL1Ping_ : aL1Pong_, aGlobal[offset], nd2nzParam);
+    AscendC::SetFlag<AscendC::HardEvent::MTE2_MTE1>(aL1PingPongID_);
+    AscendC::WaitFlag<AscendC::HardEvent::MTE2_MTE1>(aL1PingPongID_);
 }
 
 QGMM_BLOCK_MMAD_CLASS_LOCAL_PARAMS
@@ -370,12 +400,13 @@ __aicore__ inline void
 BlockMmadGmm<QGMM_BLOCK_MMAD_FUNC_LOCAL_PARAMS>::CopyInB1Nd2Nz(const AscendC::GlobalTensor<BType>& bGlobal,
                                                                uint64_t kOffset, bool isTailBL1)
 {
-    AscendC::LocalTensor<BType> bL1 = inQueueTensorBL1_.template AllocTensor<BType>();
+    AscendC::WaitFlag<AscendC::HardEvent::MTE1_MTE2>(bL1PingPongID_ + GMM_BUFFER_NUM);      
     uint64_t offset = matmulParam_.CalcBGMOffsetInnerLoop(0, kOffset);
     AscendC::Nd2NzParams nd2nzParam;
     matmulParam_.CalNd2NzParamB(nd2nzParam, isTailBL1);
-    AscendC::DataCopy(bL1, bGlobal[offset], nd2nzParam);
-    inQueueTensorBL1_.EnQue(bL1);
+    AscendC::DataCopy(bL1PingPongID_ == 0 ? bL1Ping_ : bL1Pong_, bGlobal[offset], nd2nzParam);
+    AscendC::SetFlag<AscendC::HardEvent::MTE2_MTE1>(bL1PingPongID_ + GMM_BUFFER_NUM);
+    AscendC::WaitFlag<AscendC::HardEvent::MTE2_MTE1>(bL1PingPongID_ + GMM_BUFFER_NUM);
 }
 
 QGMM_BLOCK_MMAD_CLASS_LOCAL_PARAMS
@@ -390,7 +421,22 @@ __aicore__ inline void BlockMmadGmm<QGMM_BLOCK_MMAD_FUNC_LOCAL_PARAMS>::End()
         }
     }
 }
-} // namespace Block
+
+QGMM_BLOCK_MMAD_CLASS_LOCAL_PARAMS
+__aicore__ inline BlockMmadGmm<QGMM_BLOCK_MMAD_FUNC_LOCAL_PARAMS>::~BlockMmadGmm()
+{
+    if ASCEND_IS_AIC {
+        AscendC::WaitFlag<AscendC::HardEvent::MTE1_MTE2>(0);
+        AscendC::WaitFlag<AscendC::HardEvent::MTE1_MTE2>(1);
+        AscendC::WaitFlag<AscendC::HardEvent::MTE1_MTE2>(0 + GMM_BUFFER_NUM);
+        AscendC::WaitFlag<AscendC::HardEvent::MTE1_MTE2>(1 + GMM_BUFFER_NUM);
+        AscendC::WaitFlag<AscendC::HardEvent::M_MTE1>(0 + GMM_CUBE_SYNC_MTE1_FLAG);
+        AscendC::WaitFlag<AscendC::HardEvent::M_MTE1>(1 + GMM_CUBE_SYNC_MTE1_FLAG);
+        AscendC::WaitFlag<AscendC::HardEvent::FIX_M>(0);
+        AscendC::WaitFlag<AscendC::HardEvent::FIX_M>(1);
+    }
+}
+}  // namespace Block
 } // namespace Gemm
 } // namespace Act
 #endif

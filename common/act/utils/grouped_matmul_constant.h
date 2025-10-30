@@ -21,6 +21,7 @@ constexpr uint32_t GMM_BUFFER_NUM = 2;
 constexpr uint16_t GMM_FLAG_ID_MAX = 16;
 constexpr uint16_t GMM_AIV_SYNC_AIC_FLAG = 6;
 constexpr uint16_t GMM_AIC_SYNC_AIV_FLAG = 8;
+constexpr int32_t GMM_CUBE_SYNC_MTE1_FLAG = 3;
 constexpr uint8_t GMM_AIC_SYNC_AIV_MODE = 4;
 constexpr uint64_t GMM_MAX_STEP_SCALEA_K = 16;
 constexpr uint32_t GMM_UB_ALIGN_SIZE = 32;
