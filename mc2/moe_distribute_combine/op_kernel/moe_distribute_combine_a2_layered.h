@@ -504,7 +504,8 @@ __aicore__ inline void MoeDistributeCombineA2Layered<TemplateMC2TypeA2layeredFun
 {
     ipcSliceSize = IPC_DATA_SIZE / worldSize_ / BLOCK_SIZE * BLOCK_SIZE;
     ipcSliceNodeSize = ipcSliceSize * SERVER_RANK_SIZE;
-    uint32_t tokenSize = axisHExpandXTypeSize_ + 32U;
+    constexpr uint32_t EXPAND_SCALES_BYTES = 32U;
+    uint32_t tokenSize = axisHExpandXTypeSize_ + EXPAND_SCALES_BYTES;
     maxBsInRankSizeOnIpc = (ipcSliceSize - IPC_DATA_OFFSET) / localMoeExpertNum_ / tokenSize;
     // 初始化baseBuffOffset
     uint32_t baseBuffOffset = TBUF_TEMP_OFFSET;
@@ -534,7 +535,7 @@ __aicore__ inline void MoeDistributeCombineA2Layered<TemplateMC2TypeA2layeredFun
         dstshareMemGlobal_.SetGlobalBuffer((__gm__ ExpandXType *)(targetRankAddr));
 
         uint32_t rankTokenNum = 0U;
-
+        uint32_t rankTokenNumInit = 0U;
         for (uint32_t expertId = 0U; expertId < localMoeExpertNum_; ++expertId) {
             uint32_t preCount = 0U;
 
@@ -546,7 +547,7 @@ __aicore__ inline void MoeDistributeCombineA2Layered<TemplateMC2TypeA2layeredFun
             PipeBarrier<PIPE_ALL>();
             DataCopy(expandScalesLocal, expandScalesGlobal_[preCount], (tokenNum + UB_ALIGN -1) / UB_ALIGN * UB_ALIGN);
             SyncFunc<AscendC::HardEvent::MTE2_S>();
-            rankTokenNum = expertId * maxBsInRankSizeOnIpc;
+            rankTokenNum = rankTokenNumInit;
             for (uint32_t tokenId = 0U; tokenId < tokenNum; ++tokenId) {
                 float scaleVal = expandScalesLocal.GetValue(tokenId);
                 inUbTemp(0) = scaleVal;
@@ -560,6 +561,7 @@ __aicore__ inline void MoeDistributeCombineA2Layered<TemplateMC2TypeA2layeredFun
                 rankTokenNum++;
                 PipeBarrier<PIPE_ALL>();
             }
+            rankTokenNumInit += maxBsInRankSizeOnIpc; // (expertId + 1) * maxBsInRankSizeOnIpc, 下个专家存放的起点
         }
     }
     SyncAll<true>();
@@ -607,20 +609,14 @@ template <TemplateMC2TypeA2layeredClass>
 __aicore__ inline void MoeDistributeCombineA2Layered<TemplateMC2TypeA2layeredFunc>::SumToWindow()
 {
     // 32core流水并行
-    uint32_t BASE_VALUE = globalBs;
+    uint32_t offsetNumPerExpert = globalBs;
     uint32_t coreNumPerServer = stepCoreNum / serverNum;
     uint32_t serverId_ = coreIdx_ / coreNumPerServer;
     uint32_t targetRankId_ = rankId_ % SERVER_RANK_SIZE + serverId_ * SERVER_RANK_SIZE;
 
     // 初始baseBuffOffset
     uint32_t baseBuffOffset = TBUF_TEMP_OFFSET;
-    // innerRealBSLocal拿到bs信息即可被覆盖
-    LocalTensor<int16_t> innerRealBSLocal = tBuf.GetWithOffset<int16_t>(B16_PER_BLOCK, baseBuffOffset);
-    DataCopy(innerRealBSLocal,
-        countInnerGlobal_[globalBs * serverId_],
-        B16_PER_BLOCK);
-    SyncFunc<AscendC::HardEvent::MTE2_S>();
-    uint32_t realBS = static_cast<uint32_t>(innerRealBSLocal(0));
+    uint32_t realBS = static_cast<uint32_t>(countInnerGlobal_.GetValue(globalBs * serverId_));
 
     LocalTensor<int16_t> countReduceLocal  = tBuf.GetWithOffset<int16_t>(RoundUp(realBS,
         B16_PER_BLOCK), baseBuffOffset);
@@ -726,11 +722,11 @@ __aicore__ inline void MoeDistributeCombineA2Layered<TemplateMC2TypeA2layeredFun
 
     uint32_t tokenOffset = 0;
     for (uint32_t i = 0U; i < totalCopyLen; i++) {
-        uint32_t targetLocalServerExpertId = offsetReduceLocal.GetValue(offsetIndex) / BASE_VALUE;
+        uint32_t targetLocalServerExpertId = offsetReduceLocal.GetValue(offsetIndex) / offsetNumPerExpert;
         uint32_t targetIpcRank = (targetLocalServerExpertId / localMoeExpertNum_) + (rankId_ / SERVER_RANK_SIZE) * SERVER_RANK_SIZE;
         uint32_t targetLocalExpertId = targetLocalServerExpertId % localMoeExpertNum_;
-        uint32_t targetIpcOffset = offsetReduceLocal.GetValue(offsetIndex) % BASE_VALUE + targetLocalExpertId * maxBsInRankSizeOnIpc;
-        targetIpcOffset = targetIpcOffset * (axisH_ + 16U);
+        uint32_t targetIpcOffset = offsetReduceLocal.GetValue(offsetIndex) % offsetNumPerExpert + targetLocalExpertId * maxBsInRankSizeOnIpc;
+        targetIpcOffset = targetIpcOffset * (axisH_ + WEIGHT_VALUE_NUM);
 
         uint64_t copyAddr = shareAddreRank[targetIpcRank % SERVER_RANK_SIZE] +
                             static_cast<uint64_t>(targetRankId_ * ipcSliceSize) +
