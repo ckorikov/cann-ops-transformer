@@ -101,8 +101,13 @@ __aicore__ inline void RopeWithSinCosCacheF32<T>::Init(
         pipe->InitBuffer(temp1, this->num_tokens_each_loop_current_core * num_heads_max * this->rotary_dim * sizeof(T));
         pipe->InitBuffer(offsetBuf, this->rotary_dim * sizeof(uint32_t));
     } else {
+#ifndef __CCE_KT_TEST__
         pipe->InitBuffer(temp1, 0 * sizeof(T));
         pipe->InitBuffer(offsetBuf, 0 * sizeof(uint32_t));
+#else
+        pipe->InitBuffer(temp1, 1 * sizeof(T));
+        pipe->InitBuffer(offsetBuf, 1 * sizeof(uint32_t));
+#endif
     }
 }
 
@@ -116,8 +121,13 @@ __aicore__ inline void RopeWithSinCosCacheF32<T>::Compute(uint64_t index, uint64
     uint64_t offsetCosSin = index * loopN * this->rotary_dim;
 
     uint32_t dstShape_[2] = {static_cast<uint32_t>(this->num_heads_max), static_cast<uint32_t>(this->rotary_dim)};
+#ifndef __CCE_KT_TEST__
     uint32_t dstShape_4Negone_[2] = {
         static_cast<uint32_t>(loopN * this->num_heads_max), static_cast<uint32_t>(this->rotary_dim)};
+#else
+    uint32_t dstShape_4Negone_[2] = {static_cast<uint32_t>(loopN * (this->num_heads_max - 1)),
+                                     static_cast<uint32_t>(this->rotary_dim)};
+#endif
     uint32_t srcShape_[2] = {1, static_cast<uint32_t>(this->rotary_dim)};
 
     LocalTensor<T> inLocal = inQQue.AllocTensor<T>();
