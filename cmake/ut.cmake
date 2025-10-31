@@ -10,6 +10,19 @@
 
 include_guard(GLOBAL)
 
+function(register_op_name op_name)
+  get_property(op_list GLOBAL PROPERTY ALL_OP_LIST)
+  if(NOT op_list)
+    set(op_list "")
+  endif()
+
+  list(FIND op_list "${op_name}" idx)
+  if(idx EQUAL -1)
+    list(APPEND op_list "${op_name}")
+    set_property(GLOBAL PROPERTY ALL_OP_LIST "${op_list}")
+  endif()
+endfunction()
+
 if(UT_TEST_ALL OR OP_HOST_UT)
   set(OP_TILING_MODULE_NAME
       ${PKG_NAME}_op_tiling_ut
@@ -228,6 +241,7 @@ if(UT_TEST_ALL
         return()
       endif()
 
+      register_op_name(${OP_NAME})
       if(NOT TARGET ${MODULE_UT_NAME}_cases_obj)
         add_library(${MODULE_UT_NAME}_cases_obj OBJECT)
       endif()

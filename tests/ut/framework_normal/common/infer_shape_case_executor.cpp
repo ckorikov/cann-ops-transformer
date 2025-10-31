@@ -17,7 +17,11 @@
     /* 1. input/output information */                                                                                  \
     size_t inputNum = infershapeContextPara.inputTensorDesc_.size();                                                   \
     size_t outputNum = infershapeContextPara.outputTensorDesc_.size();                                                 \
-    contextFaker.NodeIoNum(inputNum, outputNum);                                                                       \
+    if (infershapeContextPara.inputInstanceNum_.size() != 0 || infershapeContextPara.outputInstanceNum_.size() != 0) { \
+        contextFaker.IrInstanceNum(infershapeContextPara.inputInstanceNum_, infershapeContextPara.outputInstanceNum_); \
+    } else {                                                                                                           \
+        contextFaker.NodeIoNum(inputNum, outputNum);                                                                   \
+    }                                                                                                                  \
     std::vector<gert::Tensor *> inputTensors = {};                                                                     \
     std::vector<std::unique_ptr<gert::Tensor>> inputTensorsKeepAlive = {};                                             \
     for (size_t index = 0; index < inputNum; index++) {                                                                \

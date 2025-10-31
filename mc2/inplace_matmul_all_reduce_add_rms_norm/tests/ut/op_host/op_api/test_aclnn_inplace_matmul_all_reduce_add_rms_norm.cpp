@@ -45,7 +45,7 @@ TEST_F(l2_inplace_matmul_all_reduce_add_rms_norm_test, test_inplace_mm_all_reduc
   uint64_t workspace_size = 0;
   aclOpExecutor* executor = nullptr;
   aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
-  EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_NULLPTR);
+  EXPECT_EQ(aclRet, ACLNN_SUCCESS);
 }
 
 TEST_F(l2_inplace_matmul_all_reduce_add_rms_norm_test, test_inplace_mm_all_reduce_add_rms_norm_wrong_stream_mode) {

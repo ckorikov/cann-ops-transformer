@@ -40,7 +40,11 @@ if(UT_TEST_ALL OR OP_API_UT)
           )
 
   ## add opapi ut exe:  transformer_op_api_ut
-  string(REPLACE ";" "," ASCEND_OP_NAME_TMP "${ASCEND_OP_NAME}")
+  get_property(ALL_OP GLOBAL PROPERTY ALL_OP_LIST)
+  if("${ALL_OP}" STREQUAL "")
+    return()
+  endif()
+  string(REPLACE ";" "," ALL_OP "${ALL_OP}")
   set(RUNTIME_STUB_CPP ${CMAKE_CURRENT_BINARY_DIR}/runtime_stubs.cpp)
   file(GLOB CHIP_DIRS "${ASCEND_DIR}/opp/built-in/op_impl/ai_core/tbe/kernel/config/*")
   if (CHIP_DIRS)
@@ -49,9 +53,9 @@ if(UT_TEST_ALL OR OP_API_UT)
   endif()
   add_custom_command(
       OUTPUT ${RUNTIME_STUB_CPP}
-      COMMAND ${Python3_EXECUTABLE} ${OPS_TRANSFORMER_DIR}/tests/ut/framework_normal/op_api/scripts/generate_oppai_stub.py
-              ${ASCEND_OP_NAME_TMP} ${ASCEND_DIR} ${CHIP_NAME} ${RUNTIME_STUB_CPP}
-      DEPENDS ${OPS_TRANSFORMER_DIR}/tests/ut/framework_normal/op_api/scripts/generate_oppai_stub.py
+      COMMAND ${Python3_EXECUTABLE} ${OPS_TRANSFORMER_DIR}/tests/ut/framework_normal/op_api/scripts/generate_opapi_stub.py
+              ${ALL_OP} ${ASCEND_DIR} ${CHIP_NAME} ${RUNTIME_STUB_CPP}
+      DEPENDS ${OPS_TRANSFORMER_DIR}/tests/ut/framework_normal/op_api/scripts/generate_opapi_stub.py
       WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
       COMMENT "Generating runtime_stubs.cpp"
     )
@@ -122,7 +126,7 @@ if(UT_TEST_ALL OR OP_API_UT)
               LD_LIBRARY_PATH=$ENV{LD_LIBRARY_PATH}
               LD_PRELOAD=${LIBASAN_PATH}:${LIBSTDC_PATH} ASAN_OPTIONS=detect_leaks=0
               ${PRELOAD}
-              bash -c "./${OP_API_UT_EXE};"${Python3_EXECUTABLE} ${OPS_TRANSFORMER_DIR}/tests/ut/framework_normal/op_api/scripts/clean_opapi_stub.py ${ASCEND_OP_NAME_TMP} ${ASCEND_DIR} ${CHIP_NAME}""
+              bash -c "./${OP_API_UT_EXE};"${Python3_EXECUTABLE} ${OPS_TRANSFORMER_DIR}/tests/ut/framework_normal/op_api/scripts/clean_opapi_stub.py ${ALL_OP} ${ASCEND_DIR} ${CHIP_NAME}""
           COMMENT "Run ops op_api utest with asan"
       )
     else()
@@ -132,7 +136,7 @@ if(UT_TEST_ALL OR OP_API_UT)
               COMMAND
                 ${CMAKE_COMMAND} -E env
                 LD_LIBRARY_PATH=$ENV{LD_LIBRARY_PATH}
-                bash -c "./${OP_API_UT_EXE};"${Python3_EXECUTABLE} ${OPS_TRANSFORMER_DIR}/tests/ut/framework_normal/op_api/scripts/clean_opapi_stub.py ${ASCEND_OP_NAME_TMP} ${ASCEND_DIR} ${CHIP_NAME}""
+                bash -c "./${OP_API_UT_EXE};"${Python3_EXECUTABLE} ${OPS_TRANSFORMER_DIR}/tests/ut/framework_normal/op_api/scripts/clean_opapi_stub.py ${ALL_OP} ${ASCEND_DIR} ${CHIP_NAME}""
               COMMENT "Run ops op_api utest"
       )
     endif()

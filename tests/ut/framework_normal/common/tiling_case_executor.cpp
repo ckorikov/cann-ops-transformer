@@ -57,7 +57,11 @@
     for (size_t index = 0; index < outputTensors.size(); index++) {                                                    \
         outputTensorsPtr.push_back(&(outputTensors[index]));                                                           \
     }                                                                                                                  \
-    contextFaker.IrInstanceNum(inputIrInstance, outputIrInstance);                                                     \
+    if (tilingContextPara.inputInstanceNum_.size() != 0 || tilingContextPara.outputInstanceNum_.size() != 0) {         \
+        contextFaker.IrInstanceNum(tilingContextPara.inputInstanceNum_, tilingContextPara.outputInstanceNum_);         \
+    } else {                                                                                                           \
+        contextFaker.IrInstanceNum(inputIrInstance, outputIrInstance);                                                 \
+    }                                                                                                                  \
     contextFaker.InputTensors(inputTensorsPtr).OutputTensors(outputTensorsPtr);                                        \
     for (auto& attrInfo : tilingContextPara.attrs_) {                                                                  \
         switch (attrInfo.attr_.type_) {                                                                                \
@@ -109,6 +113,9 @@
                                compileInfoStringMiddle +                                                               \
                                std::to_string(tilingContextPara.coreNum_) +                                            \
                                compileInfoStringSuffix;                                                                \
+    if (tilingContextPara.socInfoString_ != "") {                                                                      \
+        compileInfoString = tilingContextPara.socInfoString_;                                                          \
+    }                                                                                                                  \
     map<string, string> socInfos;                                                                                      \
     map<string, string> aicoreSpec;                                                                                    \
     map<string, string> intrinsics;                                                                                    \
