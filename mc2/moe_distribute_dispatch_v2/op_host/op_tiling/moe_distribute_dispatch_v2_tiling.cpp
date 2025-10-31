@@ -1088,6 +1088,7 @@ static ge::graphStatus MoeDistributeDispatchA2CheckAttrAndSetTiling(const gert::
     } else {
         info.globalBs = *globalBsPtr;
     }
+    info.expertTokenNumsType = *expertTokenNumsTypePtr;
     info.zeroComputeExpertNum = static_cast<int32_t>(zeroComputeExpertNum);
 
     OP_LOGD(K_INNER_DEBUG, "quantMode=%d", info.quantMode);
@@ -1165,7 +1166,7 @@ static ge::graphStatus MoeDistributeDispatchA2CheckShapeAndSetTiling(const gert:
     OP_TILING_CHECK(*quantModePtr == UNQUANT_MODE && isScales,
         OP_LOGE(K_INNER_DEBUG, "scales should be null when quantMode is unQuant."), return GRAPH_FAILED);
 
-    bool  isActiveMask = (xActiveMaskStorageShape != nullptr);
+    bool isActiveMask = (xActiveMaskStorageShape != nullptr);
     if (isActiveMask) {
         const int64_t xActiveMaskDimNums = xActiveMaskStorageShape->GetStorageShape().GetDimNum();
         OP_TILING_CHECK(((xActiveMaskDimNums != ONE_DIM) && (xActiveMaskDimNums != TWO_DIMS)),
@@ -1183,7 +1184,7 @@ static ge::graphStatus MoeDistributeDispatchA2CheckShapeAndSetTiling(const gert:
             "expertIds's dim1 is %ld", xActiveMaskStorageShape->GetStorageShape().GetDim(1), k), return GRAPH_FAILED);
     }
 
-    info.isTokenMask =  ((isActiveMask) && (xActiveMaskStorageShape->GetStorageShape().GetDimNum() == ONE_DIM));
+    info.isTokenMask = ((isActiveMask) && (xActiveMaskStorageShape->GetStorageShape().GetDimNum() == ONE_DIM));
     info.isExpertMask = ((isActiveMask) && (xActiveMaskStorageShape->GetStorageShape().GetDimNum() == TWO_DIMS));
     info.bs = bs;
     info.k = k;
