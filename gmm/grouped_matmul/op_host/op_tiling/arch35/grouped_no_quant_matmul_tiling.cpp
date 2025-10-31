@@ -19,8 +19,8 @@ namespace optiling {
 bool GroupedNoQuantMatmulTiling::SetTiling(gert::TilingContext *context)
 {
     auto compileInfoPtr = context->GetCompileInfo<GMMCompileInfo>();
-    usedCoreNum_ = compileInfoPtr->aicNum;
     OP_CHECK_IF(compileInfoPtr == nullptr, OP_LOGE(context->GetNodeName(), "compileInfoPtr is nullptr."), return false);
+    usedCoreNum_ = compileInfoPtr->aicNum;
     OP_CHECK_IF(!Init(context), OP_LOGE(context->GetNodeName(), "Init failed"), return false);
     OP_CHECK_IF(!CalMatMulTiling(context, compileInfoPtr),
         OP_LOGE(context->GetNodeName(), "Unable to calculate matmul-tiling"), return false);
