@@ -714,8 +714,7 @@ __aicore__ inline void MoeDistributeDispatchA2Layered<TemplateMC2TypeA2layeredFu
     baseBuffOffset += RoundUp(serverNum, BITS32_PER_BLOCK) * sizeof(int32_t);
     Duplicate<int32_t>(tokenCntServer, 0, RoundUp(serverNum, BITS32_PER_BLOCK));
 
-    LocalTensor<uint64_t> sendTokenInfoLocalTensor =
-        tBuf.GetWithOffset<uint64_t>(outerSendTokenInfoNumInUB_, baseBuffOffset);
+    LocalTensor<uint64_t> sendTokenInfoLocalTensor = tBuf.GetWithOffset<uint64_t>(outerSendTokenInfoNumInUB_, baseBuffOffset);
     baseBuffOffset += outerSendTokenInfoSizeInUB_;
     LocalTensor<int32_t> outerCntLt = tBuf.GetWithOffset<int32_t>(outerCntNumInUB_, baseBuffOffset);
     baseBuffOffset += outerCntSizeInUB_;
@@ -755,8 +754,7 @@ __aicore__ inline void MoeDistributeDispatchA2Layered<TemplateMC2TypeA2layeredFu
         DataCopyExtParams outerCntWriteCountsParams{1, static_cast<uint32_t>(currentBS * sizeof(int32_t)), 0, 0, 0};
         SyncFunc<AscendC::HardEvent::S_MTE3>();
         DataCopyPad(combineOuterCnt[outerCntNumInUB_ * batchIndex], outerCntLt, outerCntWriteCountsParams);
-        DataCopyExtParams outerOffsetWriteCountsParams{1, static_cast<uint32_t>(currentBS * serverNum * sizeof(int32_t)),
-            0, 0, 0};
+        DataCopyExtParams outerOffsetWriteCountsParams{1, static_cast<uint32_t>(currentBS * serverNum * sizeof(int32_t)), 0, 0, 0};
         DataCopyPad(combineOuterOffset[outerOffsetNumInUB_ * batchIndex], outerOffsetLt, outerOffsetWriteCountsParams);
         leftBS -= currentBS;
     }
