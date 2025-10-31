@@ -149,6 +149,6 @@ TEST_F(SwinTransformerLnQkvQuantInfershape, swin_transformer_ln_qkv_quant_infer_
             {"w_win_size", Ops::Transformer::AnyValue::CreateFrom<int64_t>(7)},
             {"weight_transpose", Ops::Transformer::AnyValue::CreateFrom<bool>(true)},
         });
-    std::vector<std::vector<int64_t>> expectOutputShape = {{4, 3}, {8}, {8}};
+    std::vector<std::vector<int64_t>> expectOutputShape = {{128, 3, 49, 32}, {128, 3, 49, 32}, {128, 3, 49, 32}};
     ExecuteTestCase(infershapeContextPara, ge::GRAPH_SUCCESS, expectOutputShape);
 }

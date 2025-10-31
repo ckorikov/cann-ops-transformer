@@ -43,6 +43,6 @@ TEST_F(SwinTransformerLnQKV, swin_transformer_ln_qkv_test_1)
         {"shifts",Ops::Transformer::AnyValue::CreateFrom<std::vector<int64_t>>({0})},
     }
     );
-    std::vector<std::vector<int64_t>> expectOutputShape = {{8192, 4, 64, 32},}; // 预期输出shape
+    std::vector<std::vector<int64_t>> expectOutputShape = {{32, 4, 64, 32},}; // 预期输出shape
     ExecuteTestCase(infershapeContextPara, ge::GRAPH_SUCCESS, expectOutputShape); // 框架中已提供该接口
 }

@@ -217,14 +217,14 @@ TEST_F(SwinTransformerLnQKVTiling, swin_transformer_ln_qkv_tiling_1){
                                                {
                                                 // input info
                                                 // shape都需要重复一次，比如shape为{16,16}，要填入{{16, 16}, {16, 16}}
-                                                 {{{8, 65536, 128}, {1, 1000, 5120}}, ge::DT_FLOAT16, ge::FORMAT_ND},
-                                                 {{{128}, {1, 1000, 5120}}, ge::DT_FLOAT16, ge::FORMAT_ND},
-                                                 {{{128}, {1, 1000, 5120}}, ge::DT_FLOAT16, ge::FORMAT_ND},
-                                                 {{{128, 384}, {1, 1000, 5120}}, ge::DT_FLOAT16, ge::FORMAT_ND},
-                                                 {{{384}, {1, 1000, 5120}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+                                                 {{{8, 65536, 128}, {8, 65536, 128}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+                                                 {{{128}, {128}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+                                                 {{{128}, {128}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+                                                 {{{128, 384}, {128, 384}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+                                                 {{{384}, {384}}, ge::DT_FLOAT16, ge::FORMAT_ND},
                                                },
                                                // output info
-                                               {{{{8192, 4, 64, 32}, {8192, 4, 64, 32}}, ge::DT_FLOAT16, ge::FORMAT_ND},},
+                                               {{{{32, 4, 64, 32}, {32, 4, 64, 32}}, ge::DT_FLOAT16, ge::FORMAT_ND},},
                                                { // attr
                                                  {"epsilon",Ops::Transformer::AnyValue::CreateFrom<float>(0.001)},
                                                  {"head_dim",Ops::Transformer::AnyValue::CreateFrom<int64_t>(4)},
