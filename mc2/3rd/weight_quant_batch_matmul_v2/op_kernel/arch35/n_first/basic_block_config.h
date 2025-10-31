@@ -21,7 +21,7 @@
 #include "kernel_operator_intf.h"
 #include "lib/matmul_intf.h"
 
-namespace Mc2WeightQuantBatchMatmulV2::Arch35 {
+namespace WeightQuantBatchMatmulV2::Arch35 {
 
 constexpr static uint16_t WEIGHT_F16_UB_NZ_STRIDE = 65;
 constexpr int16_t SHIFT_FOR_BF16 = 1;
@@ -29,9 +29,9 @@ constexpr int16_t SHIFT_FOR_BF16 = 1;
 struct WqmmConfig {
     bool aTrans;
     bool bTrans;
-    Mc2QuantType antiQuantType;
+    QuantType antiQuantType;
     bool hasAntiQuantOffset;
-    Mc2QuantType quantType;
+    QuantType quantType;
     CubeFormat weightFormat;
 };
 
@@ -178,7 +178,7 @@ __aicore__ constexpr UbBufferInfo GetMxFp4NzBufferInfo()
 template <typename xType, const WqmmConfig& wqmmConfig, const VecAntiQuantConfig& vecConfig>
 __aicore__ constexpr UbBufferInfo GetBufferConfig()
 {
-    if constexpr (wqmmConfig.antiQuantType == Mc2QuantType::MX) {
+    if constexpr (wqmmConfig.antiQuantType == QuantType::MX) {
         if constexpr (wqmmConfig.weightFormat != CubeFormat::NZ) {
             return GetMxFp4NdBufferInfo<vecConfig>();
         } else {
@@ -211,7 +211,7 @@ __aicore__ constexpr VfConfig GetVfConfig()
         return {.vfNStandardLen = 256, .vfKStandardLen = 64};
     } else {
         // NZ transB=False
-        if constexpr (wqmmConfig.antiQuantType == Mc2QuantType::MX) {
+        if constexpr (wqmmConfig.antiQuantType == QuantType::MX) {
             return {
                 .vfNStandardLen = 32 * GetKBUnit<half>() / vecConfig.ubMte2InnerSize,
                 .vfKStandardLen = vecConfig.ubMte2InnerSize};
@@ -222,5 +222,5 @@ __aicore__ constexpr VfConfig GetVfConfig()
         }
     }
 }
-} // namespace Mc2WeightQuantBatchMatmulV2::Arch35
+} // namespace WeightQuantBatchMatmulV2::Arch35
 #endif // WEIGHT_QUANT_BATCHMATMUL_V2_BASIC_BLOCK_CONFIG_H

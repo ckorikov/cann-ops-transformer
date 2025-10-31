@@ -22,21 +22,21 @@
 #include "matmul_v3_tuning.h"
 #include "op_cache_tiling.h"
 namespace optiling {
-namespace mc2_matmul_v3 {
-class Mc2MatmulV3BaseTiling : public Ops::Transformer::OpTiling::TilingBaseClass {
+namespace matmul_v3 {
+class MatmulV3BaseTiling : public Ops::Transformer::OpTiling::TilingBaseClass {
 public:
  public:
-    explicit Mc2MatmulV3BaseTiling(gert::TilingContext* context)
+    explicit MatmulV3BaseTiling(gert::TilingContext* context)
         : TilingBaseClass(context), tilingData_(tilingDataSelf_) {
     }
-    Mc2MatmulV3BaseTiling(gert::TilingContext* context,
-                       Mc2MatmulV3TilingData* tilingData,
-                       Mc2TilingCalcSelect tilingSelect = Mc2TilingCalcSelect::BASE)
+    MatmulV3BaseTiling(gert::TilingContext* context,
+                       MatmulTilingData* tilingData,
+                       TilingCalcSelect tilingSelect = TilingCalcSelect::BASE)
         : TilingBaseClass(context), tilingData_(*tilingData) {
         InitCompileInfo();
         tilingSelect_ = tilingSelect;
     }
-    ~Mc2MatmulV3BaseTiling() override {
+    ~MatmulV3BaseTiling() override {
     }
 
 protected:
@@ -70,7 +70,7 @@ protected:
     void SetParamsV310();
     bool GetTilingFromRepo();
     bool GetTilingInputArgs(std::shared_ptr<void> &inputArgs, size_t &size);
-    void DebugLog(const std::shared_ptr<tuningtiling::Mc2MatMulV3InputArgs> &inputArgs);
+    void DebugLog(const std::shared_ptr<tuningtiling::MatMulV3InputArgs> &inputArgs);
     bool TranslateAoeTiling(tuningtiling::TuningTilingDefPtr &tuningTiling);
     ge::graphStatus SelectNZTiling();
     void DoTilingKey();
@@ -92,7 +92,7 @@ protected:
     bool CheckUbOverFlow(uint64_t nAligned16, uint64_t nValue, const uint64_t& baseN,
                          const uint64_t& baseD, uint64_t dtypeSize);
     bool CheckBTSize(uint64_t baseN);
-    template<Mc2CalcType T>
+    template<CalcType T>
     void CalcBase(const std::vector<std::vector<uint64_t>>& baseMNK);
     void BalanceBaseBlockTiling();
     void CalBaseMBaseN(uint64_t& baseM, uint64_t& baseN,
@@ -114,15 +114,15 @@ protected:
     void OptCoreNumsDeterministicMultiCoreSplitK();
     bool IsNkOrder();
     void CalTileFactor(uint64_t& nTile);
-    void SetBasicBlockOfMK33(Mc2MatmulV3RunInfo &runInfo);
-    void SetBasicBlockOfNK33(Mc2MatmulV3RunInfo &runInfo);
+    void SetBasicBlockOfMK33(MatmulV3RunInfo &runInfo);
+    void SetBasicBlockOfNK33(MatmulV3RunInfo &runInfo);
     bool NeedSolveFixBound();
     bool CheckAoeTilingEnable(uint32_t aoeTilingEnable, const std::string &opName);
-    void SetBasicBlockOf24(Mc2MatmulV3RunInfo &runInfo, const uint64_t &mTile, const uint64_t &nTile) const;
-    Mc2MixNd2NzType GetMixNd2nzType();
+    void SetBasicBlockOf24(MatmulV3RunInfo &runInfo, const uint64_t &mTile, const uint64_t &nTile) const;
+    MixNd2NzType GetMixNd2nzType();
     void IsGmToL1ByShape();
-    void InitL2SplitParams(Mc2MatmulV3L2SplitParams &l2SplitParams) const;
-    bool IsTailSmall(Mc2MatmulV3L2SplitParams &l2SplitParams, uint64_t outL2Split, uint64_t innerL2Split,
+    void InitL2SplitParams(MatmulV3L2SplitParams &l2SplitParams) const;
+    bool IsTailSmall(MatmulV3L2SplitParams &l2SplitParams, uint64_t outL2Split, uint64_t innerL2Split,
                      uint64_t innerMaxConflict) const;
     bool CalcTile(uint64_t &outTile, uint64_t &innerTile, uint64_t &outL2Split, uint64_t &innerL2Split,
                   const bool isInnerBad) const;
@@ -132,8 +132,8 @@ protected:
     bool CheckMMTilingDataIsVaild();
     void FormulateBasicBlockDavid();
     void CalcTailBasicBlock();
-    bool CheckSingleTilingOk(Mc2MatmulV3RunInfo &tmpRunInfo);
-    bool CheckSingleCoreSplitKEdgeCases(const Mc2MatmulV3RunInfo &tmpRunInfo,
+    bool CheckSingleTilingOk(MatmulV3RunInfo &tmpRunInfo);
+    bool CheckSingleCoreSplitKEdgeCases(const MatmulV3RunInfo &tmpRunInfo,
                                         bool isNKM, bool isMKNsmallK, bool isNKMsmallK);
     bool IsOnTheWay(ge::Format matFormat, uint64_t innerSize, uint64_t dtypeSize,
                     const std::vector<uint64_t> supportNd2nzList) const;
@@ -141,18 +141,18 @@ protected:
                         uint64_t dtypeSize, ge::Format matFormat) const;
 
 private:
-    Mc2MatmulV3TilingData tilingDataSelf_;
+    MatmulTilingData tilingDataSelf_;
 protected:
-    Mc2MatmulV3CompileInfo compileInfo_;
-    Mc2MatmulV3Args args_;
+    MatmulV3CompileInfo compileInfo_;
+    MatmulV3Args args_;
     matmul_tiling::MultiCoreMatmulTiling mm_;
-    Mc2MatmulV3TilingData &tilingData_;
-    Mc2MatmulV3RunInfo runInfo_;
+    MatmulTilingData &tilingData_;
+    MatmulV3RunInfo runInfo_;
     uint64_t aDtypeSize_{1};
     uint64_t bDtypeSize_{1};
     uint64_t cDtypeSize_{1};
-    Mc2MatmulV3Trans trans_ = Mc2MatmulV3Trans::NO_TRANS;
-    Mc2TilingEnable tilingEnable_;
+    MatmulV3Trans trans_ = MatmulV3Trans::NO_TRANS;
+    TilingEnable tilingEnable_;
     bool m256Align_{false};
     bool kA256Align_{false};
     bool kB256Align_{false};
@@ -164,7 +164,7 @@ protected:
     uint64_t basicBlockBaseM_{BASIC_BLOCK_SIZE_256};
     uint32_t l2CacheFlag_{0};
     bool compileInfoInit_{false};
-    Mc2TilingCalcSelect tilingSelect_ = Mc2TilingCalcSelect::ALL;
+    TilingCalcSelect tilingSelect_ = TilingCalcSelect::ALL;
 };
 }
 }

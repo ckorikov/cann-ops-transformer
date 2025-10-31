@@ -33,13 +33,13 @@ int64_t DownwardFactor(int64_t value, const int64_t base)
 
 namespace optiling {
 
-void Mc2WeightQuantBatchMatmulV2BasicBlockTiling::Init()
+void WeightQuantBatchMatmulV2BasicBlockTiling::Init()
 {
     opName_ = nullptr;
     aByteSize_ = 0.0;
     bByteSize_ = 0.0;
     biasByteSize_ = 0.0;
-    antiquantType_ = Mc2QuantType::PER_CHANNEL;
+    antiquantType_ = QuantType::PER_CHANNEL;
     hasOffset_ = false;
 
     mte2BoundResults_.clear();
@@ -63,7 +63,7 @@ void Mc2WeightQuantBatchMatmulV2BasicBlockTiling::Init()
     InitPlatformParam();
 }
 
-void Mc2WeightQuantBatchMatmulV2BasicBlockTiling::InitPlatformParam()
+void WeightQuantBatchMatmulV2BasicBlockTiling::InitPlatformParam()
 {
     platformParam_.blockNum = 0;
     platformParam_.aicNum = 0;
@@ -80,7 +80,7 @@ void Mc2WeightQuantBatchMatmulV2BasicBlockTiling::InitPlatformParam()
     platformParam_.l2BW = 0;
 }
 
-void Mc2WeightQuantBatchMatmulV2BasicBlockTiling::InitL1TilingParam()
+void WeightQuantBatchMatmulV2BasicBlockTiling::InitL1TilingParam()
 {
     basicBlockParam_.l1Param.iterateOrder = 1;
     basicBlockParam_.l1Param.stepM = 1;
@@ -91,7 +91,7 @@ void Mc2WeightQuantBatchMatmulV2BasicBlockTiling::InitL1TilingParam()
     basicBlockParam_.l1Param.B1BufferNum = 1;
 }
 
-void Mc2WeightQuantBatchMatmulV2BasicBlockTiling::InitBasicBlockParam()
+void WeightQuantBatchMatmulV2BasicBlockTiling::InitBasicBlockParam()
 {
     // mSize, nSize, kSize, singleK 采用SetShape传入的结果
     basicBlockParam_.singleM = 1;
@@ -112,14 +112,14 @@ void Mc2WeightQuantBatchMatmulV2BasicBlockTiling::InitBasicBlockParam()
     InitL1TilingParam();
 }
 
-void Mc2WeightQuantBatchMatmulV2BasicBlockTiling::Reset()
+void WeightQuantBatchMatmulV2BasicBlockTiling::Reset()
 {
     InitBasicBlockParam();
     mte2BoundResults_.clear();
     cubeBoundResults_.clear();
 }
 
-void Mc2WeightQuantBatchMatmulV2BasicBlockTiling::SetPlatformParam(const PlatformParam& param)
+void WeightQuantBatchMatmulV2BasicBlockTiling::SetPlatformParam(const PlatformParam& param)
 {
     platformParam_ = param;
     OP_LOGI(
@@ -131,7 +131,7 @@ void Mc2WeightQuantBatchMatmulV2BasicBlockTiling::SetPlatformParam(const Platfor
         platformParam_.minCacheLine, platformParam_.frequency, platformParam_.hbmBW, platformParam_.l2BW);
 }
 
-void Mc2WeightQuantBatchMatmulV2BasicBlockTiling::SetShape(int64_t mSize, int64_t nSize, int64_t kSize, int64_t groupSize)
+void WeightQuantBatchMatmulV2BasicBlockTiling::SetShape(int64_t mSize, int64_t nSize, int64_t kSize, int64_t groupSize)
 {
     basicBlockParam_.mSize = mSize;
     basicBlockParam_.nSize = nSize;
@@ -143,7 +143,7 @@ void Mc2WeightQuantBatchMatmulV2BasicBlockTiling::SetShape(int64_t mSize, int64_
         basicBlockParam_.nSize, basicBlockParam_.kSize, basicBlockParam_.groupSize);
 }
 
-void Mc2WeightQuantBatchMatmulV2BasicBlockTiling::SetAttr(const char* opName, const WeightQuantBmmAttr& attr)
+void WeightQuantBatchMatmulV2BasicBlockTiling::SetAttr(const char* opName, const WeightQuantBmmAttr& attr)
 {
     opName_ = opName;
     basicBlockParam_.transA = attr.transA;
@@ -158,7 +158,7 @@ void Mc2WeightQuantBatchMatmulV2BasicBlockTiling::SetAttr(const char* opName, co
         hasOffset_ ? "true" : "false");
 }
 
-void Mc2WeightQuantBatchMatmulV2BasicBlockTiling::SetDtypeBits(
+void WeightQuantBatchMatmulV2BasicBlockTiling::SetDtypeBits(
     int64_t aDtypeBits, int64_t bDtypeBits, int64_t biasDtypeBits)
 {
     basicBlockParam_.aDtypeBits = aDtypeBits;
@@ -172,13 +172,13 @@ void Mc2WeightQuantBatchMatmulV2BasicBlockTiling::SetDtypeBits(
         biasByteSize_);
 }
 
-void Mc2WeightQuantBatchMatmulV2BasicBlockTiling::SetQuantType(Mc2QuantType antiquantType)
+void WeightQuantBatchMatmulV2BasicBlockTiling::SetQuantType(QuantType antiquantType)
 {
     antiquantType_ = antiquantType;
     OP_LOGI(opName_, "Init antiquantType_: %d", static_cast<int>(antiquantType_));
 }
 
-bool Mc2WeightQuantBatchMatmulV2BasicBlockTiling::ValidateInputParam() const
+bool WeightQuantBatchMatmulV2BasicBlockTiling::ValidateInputParam() const
 {
     OP_TILING_CHECK(
         basicBlockParam_.mSize <= 0 || basicBlockParam_.nSize <= 0 || basicBlockParam_.kSize <= 0,
@@ -209,7 +209,7 @@ bool Mc2WeightQuantBatchMatmulV2BasicBlockTiling::ValidateInputParam() const
     return true;
 }
 
-double Mc2WeightQuantBatchMatmulV2BasicBlockTiling::GetMinMte2BW(
+double WeightQuantBatchMatmulV2BasicBlockTiling::GetMinMte2BW(
     int64_t baseM, int64_t baseN, int64_t mDim, int64_t nDim) const
 {
     if (mDim * nDim * baseM * baseN == 0) {
@@ -222,7 +222,7 @@ double Mc2WeightQuantBatchMatmulV2BasicBlockTiling::GetMinMte2BW(
            (aByteSize_ / static_cast<double>(baseN) + bByteSize_ / static_cast<double>(baseM));
 }
 
-double Mc2WeightQuantBatchMatmulV2BasicBlockTiling::GetMte2BW(
+double WeightQuantBatchMatmulV2BasicBlockTiling::GetMte2BW(
     int64_t baseM, int64_t baseN, int64_t mDim, int64_t nDim) const
 {
     // 估算V100平台当前分核条件下的综合MTE2带宽
@@ -252,7 +252,7 @@ double Mc2WeightQuantBatchMatmulV2BasicBlockTiling::GetMte2BW(
     return res;
 }
 
-double Mc2WeightQuantBatchMatmulV2BasicBlockTiling::GetMte2BWRatio(
+double WeightQuantBatchMatmulV2BasicBlockTiling::GetMte2BWRatio(
     int64_t baseM, int64_t baseN, int64_t mDim, int64_t nDim) const
 {
     if (GetMinMte2BW(baseM, baseN, mDim, nDim) > 0) {
@@ -261,7 +261,7 @@ double Mc2WeightQuantBatchMatmulV2BasicBlockTiling::GetMte2BWRatio(
     return 0;
 }
 
-bool Mc2WeightQuantBatchMatmulV2BasicBlockTiling::GetCachelineAlignFlag(int64_t dtypeBits, int64_t cacheline) const
+bool WeightQuantBatchMatmulV2BasicBlockTiling::GetCachelineAlignFlag(int64_t dtypeBits, int64_t cacheline) const
 {
     // 具备cachline对齐的条件：
     // 1）singleK大于cachline；
@@ -274,7 +274,7 @@ bool Mc2WeightQuantBatchMatmulV2BasicBlockTiling::GetCachelineAlignFlag(int64_t 
     return cachelineAlignFlag;
 }
 
-void Mc2WeightQuantBatchMatmulV2BasicBlockTiling::UpdateMte2DataSize()
+void WeightQuantBatchMatmulV2BasicBlockTiling::UpdateMte2DataSize()
 {
     // 给定单核L1、L0切分条件，计算MTE2总搬运量
     int64_t singleMLoop =
@@ -311,7 +311,7 @@ void Mc2WeightQuantBatchMatmulV2BasicBlockTiling::UpdateMte2DataSize()
     basicBlockParam_.mte2DataSize *= basicBlockParam_.mDim * basicBlockParam_.nDim;
 }
 
-int64_t Mc2WeightQuantBatchMatmulV2BasicBlockTiling::GetUbLoadSize() const
+int64_t WeightQuantBatchMatmulV2BasicBlockTiling::GetUbLoadSize() const
 {
     int64_t ubLoadSize = 0;
     if (!basicBlockParam_.weightNzFlag && basicBlockParam_.groupSize > 0) {
@@ -353,7 +353,7 @@ int64_t Mc2WeightQuantBatchMatmulV2BasicBlockTiling::GetUbLoadSize() const
     return ubLoadSize;
 }
 
-bool Mc2WeightQuantBatchMatmulV2BasicBlockTiling::GetInvalidFlagForBasicBlock() const
+bool WeightQuantBatchMatmulV2BasicBlockTiling::GetInvalidFlagForBasicBlock() const
 {
     // 128: reg base寄存器处理B16最大元素数量
     constexpr int64_t REG_WIDTH = 128;
@@ -369,7 +369,7 @@ bool Mc2WeightQuantBatchMatmulV2BasicBlockTiling::GetInvalidFlagForBasicBlock() 
     return invalidFlag;
 }
 
-bool Mc2WeightQuantBatchMatmulV2BasicBlockTiling::GetInvalidFlagA16W4() const
+bool WeightQuantBatchMatmulV2BasicBlockTiling::GetInvalidFlagA16W4() const
 {
     if (basicBlockParam_.basicBlock.baseN * basicBlockParam_.l1Param.stepN <= 0 || basicBlockParam_.singleN <= 0 ||
         basicBlockParam_.singleK <= 0 || basicBlockParam_.l1Param.stepKb * basicBlockParam_.basicBlock.baseK <= 0) {
@@ -430,7 +430,7 @@ bool Mc2WeightQuantBatchMatmulV2BasicBlockTiling::GetInvalidFlagA16W4() const
     return invalidFlag;
 }
 
-bool Mc2WeightQuantBatchMatmulV2BasicBlockTiling::GetInvalidFlagA16W8() const
+bool WeightQuantBatchMatmulV2BasicBlockTiling::GetInvalidFlagA16W8() const
 {
     bool invalidFlag = false;
     if (!basicBlockParam_.weightNzFlag && basicBlockParam_.groupSize > 0) {
@@ -463,7 +463,7 @@ bool Mc2WeightQuantBatchMatmulV2BasicBlockTiling::GetInvalidFlagA16W8() const
                       (basicBlockParam_.l1Param.stepN * basicBlockParam_.basicBlock.baseN) % UB_ALIGN_SIZE != 0;
         // 比较使用UB空间大小,公式 BufferNum * ((nbub * kbub) * (aByteSize + bByteSize) + Scale + Offset) > ubsize
         int64_t antiquantSize = 0;
-        if (antiquantType_ == Mc2QuantType::PER_TENSOR) {
+        if (antiquantType_ == QuantType::PER_TENSOR) {
             antiquantSize = 0;
         } else {
             antiquantSize = static_cast<int64_t>(nBl1Size * aByteSize_ + nBl1Size * aByteSize_);
@@ -477,7 +477,7 @@ bool Mc2WeightQuantBatchMatmulV2BasicBlockTiling::GetInvalidFlagA16W8() const
     return invalidFlag;
 }
 
-bool Mc2WeightQuantBatchMatmulV2BasicBlockTiling::GetInvalidFlag(bool isCubeBoundSolution, int64_t stepKMax) const
+bool WeightQuantBatchMatmulV2BasicBlockTiling::GetInvalidFlag(bool isCubeBoundSolution, int64_t stepKMax) const
 {
     bool invalidFlag = GetL1LoadSize(basicBlockParam_.basicBlock, basicBlockParam_.l1Param) > platformParam_.l1Size;
     invalidFlag =
@@ -507,7 +507,7 @@ bool Mc2WeightQuantBatchMatmulV2BasicBlockTiling::GetInvalidFlag(bool isCubeBoun
     return invalidFlag;
 }
 
-void Mc2WeightQuantBatchMatmulV2BasicBlockTiling::GetL1Param(
+void WeightQuantBatchMatmulV2BasicBlockTiling::GetL1Param(
     bool isCubeBoundSolution, int64_t stepKMax, int64_t stepKaTmp, int64_t stepKbTmp)
 {
     int64_t a1BufferNum, b1BufferNum;
@@ -548,7 +548,7 @@ void Mc2WeightQuantBatchMatmulV2BasicBlockTiling::GetL1Param(
  *  为优化scalar，当前仅考虑stepM=1且stepN=1场景。遍历stepKa及stepKb组合，根据不同场景筛选出合法组合，并根据mte2Cost最小原则
  *  添加到解集中。特别地，在A16W4 NZ场景，当L1 tiling满足特定载入量时直接添加到解集。
  */
-void Mc2WeightQuantBatchMatmulV2BasicBlockTiling::DoL1Tiling(bool isCubeBoundSolution)
+void WeightQuantBatchMatmulV2BasicBlockTiling::DoL1Tiling(bool isCubeBoundSolution)
 {
     int64_t stepKMax = CeilDiv(basicBlockParam_.singleK, basicBlockParam_.basicBlock.baseK);
     int64_t stepKaMax = std::min(
@@ -600,7 +600,7 @@ void Mc2WeightQuantBatchMatmulV2BasicBlockTiling::DoL1Tiling(bool isCubeBoundSol
     }
 }
 
-int64_t Mc2WeightQuantBatchMatmulV2BasicBlockTiling::GetBaseK(int64_t baseM, int64_t baseN) const
+int64_t WeightQuantBatchMatmulV2BasicBlockTiling::GetBaseK(int64_t baseM, int64_t baseN) const
 {
     // baseK选取能开启L0 DB的最大值(由于baseM/baseN最大取值512，因此baseK最小取值32)
     // baseK满足32对齐，方便MTE2 cache line对齐
@@ -642,7 +642,7 @@ int64_t Mc2WeightQuantBatchMatmulV2BasicBlockTiling::GetBaseK(int64_t baseM, int
     return baseK;
 }
 
-void Mc2WeightQuantBatchMatmulV2BasicBlockTiling::GetBasicBlockTable()
+void WeightQuantBatchMatmulV2BasicBlockTiling::GetBasicBlockTable()
 {
     // 给定singleM、singleN、mDim、nDim，获取可行基本块集
     for (int64_t baseM = BLOCK_CUBE; baseM <= basicBlockParam_.singleM; baseM += BLOCK_CUBE) {
@@ -663,7 +663,7 @@ void Mc2WeightQuantBatchMatmulV2BasicBlockTiling::GetBasicBlockTable()
     }
 }
 
-bool Mc2WeightQuantBatchMatmulV2BasicBlockTiling::GetHalfSingleShape(
+bool WeightQuantBatchMatmulV2BasicBlockTiling::GetHalfSingleShape(
     const std::vector<BasicBlock>& basicBlockTable, int64_t& halfSingleM, int64_t& halfSingleN)
 {
     if (basicBlockTable.empty()) {
@@ -704,7 +704,7 @@ bool Mc2WeightQuantBatchMatmulV2BasicBlockTiling::GetHalfSingleShape(
  *  要求basicBlockParam_中mSize、nSize、kSize、singleM、singleN、mDim、nDim已设置；
  *  要求basicBlockTable_已存放可选基本块集；
  */
-void Mc2WeightQuantBatchMatmulV2BasicBlockTiling::SingleShapeTiling(const std::vector<BasicBlock>& basicBlockTable)
+void WeightQuantBatchMatmulV2BasicBlockTiling::SingleShapeTiling(const std::vector<BasicBlock>& basicBlockTable)
 {
     InitL1TilingParam();
     int64_t halfSingleM = basicBlockParam_.singleM;
@@ -772,7 +772,7 @@ void Mc2WeightQuantBatchMatmulV2BasicBlockTiling::SingleShapeTiling(const std::v
     }
 }
 
-int64_t Mc2WeightQuantBatchMatmulV2BasicBlockTiling::GetL1LoadSize(
+int64_t WeightQuantBatchMatmulV2BasicBlockTiling::GetL1LoadSize(
     const BasicBlock& basicBlock, const L1TilingParam& l1Param) const
 {
     int64_t b1BufferNum = l1Param.B1BufferNum;
@@ -799,7 +799,7 @@ int64_t Mc2WeightQuantBatchMatmulV2BasicBlockTiling::GetL1LoadSize(
         basicBlock.baseN * biasBufferNum * biasByteSize_);
 }
 
-void Mc2WeightQuantBatchMatmulV2BasicBlockTiling::PrintFinalResult(const BasicBlockParam& param, bool enable) const
+void WeightQuantBatchMatmulV2BasicBlockTiling::PrintFinalResult(const BasicBlockParam& param, bool enable) const
 {
     if (enable) {
         OP_LOGD(
@@ -817,7 +817,7 @@ void Mc2WeightQuantBatchMatmulV2BasicBlockTiling::PrintFinalResult(const BasicBl
     }
 }
 
-bool Mc2WeightQuantBatchMatmulV2BasicBlockTiling::ValidateTilingResult() const
+bool WeightQuantBatchMatmulV2BasicBlockTiling::ValidateTilingResult() const
 {
     OP_TILING_CHECK(
         basicBlockParam_.mDim * basicBlockParam_.nDim * basicBlockParam_.kDim > platformParam_.blockNum,
@@ -860,7 +860,7 @@ bool Mc2WeightQuantBatchMatmulV2BasicBlockTiling::ValidateTilingResult() const
     return true;
 }
 
-bool Mc2WeightQuantBatchMatmulV2BasicBlockTiling::DoL1TilingForCubeBoundResult()
+bool WeightQuantBatchMatmulV2BasicBlockTiling::DoL1TilingForCubeBoundResult()
 {
     // 遍历排序好的cube bound解集，找到第一个成功求解L1 tiling的解后返回
     for (const BasicBlockParam& cubeBoundRes : cubeBoundResults_) {
@@ -875,7 +875,7 @@ bool Mc2WeightQuantBatchMatmulV2BasicBlockTiling::DoL1TilingForCubeBoundResult()
     return false;
 }
 
-bool Mc2WeightQuantBatchMatmulV2BasicBlockTiling::GetFinalResult()
+bool WeightQuantBatchMatmulV2BasicBlockTiling::GetFinalResult()
 {
     bool ret = true;
     if (cubeBoundResults_.empty() && mte2BoundResults_.empty()) {
@@ -900,7 +900,7 @@ bool Mc2WeightQuantBatchMatmulV2BasicBlockTiling::GetFinalResult()
 /*
  *  该函数用于在绑满核条件下无解时，寻找非满核CUBE BOUND解，或耗时最小的MTE2 bound解。
  */
-bool Mc2WeightQuantBatchMatmulV2BasicBlockTiling::GetDefaultBasicBlockTiling()
+bool WeightQuantBatchMatmulV2BasicBlockTiling::GetDefaultBasicBlockTiling()
 {
     Reset();
     OP_LOGD(opName_, "Enter GetDefaultBasicBlockTiling");
@@ -935,14 +935,14 @@ bool Mc2WeightQuantBatchMatmulV2BasicBlockTiling::GetDefaultBasicBlockTiling()
  *  1）核间偏移非128B对齐引入的MTE2拆包、fixpipe写出效率下降；
  *  2）避免fixpipe bound需要考虑kL1；
  */
-bool Mc2WeightQuantBatchMatmulV2BasicBlockTiling::GetBasicBlockTiling()
+bool WeightQuantBatchMatmulV2BasicBlockTiling::GetBasicBlockTiling()
 {
     OP_TILING_CHECK(
         !ValidateInputParam(), OP_LOGE(opName_, "Invalid input param"), return false);
 
     Reset();
-    std::unique_ptr<Mc2WeightQuantBatchMatmulV2BasicBlockTable> basicBlockTablePtr =
-        std::make_unique<Mc2WeightQuantBatchMatmulV2BasicBlockTable>();
+    std::unique_ptr<WeightQuantBatchMatmulV2BasicBlockTable> basicBlockTablePtr =
+        std::make_unique<WeightQuantBatchMatmulV2BasicBlockTable>();
     auto basicBlockTable =
         basicBlockTablePtr->GetBasicBlockTable(basicBlockParam_.aDtypeBits, basicBlockParam_.bDtypeBits);
 

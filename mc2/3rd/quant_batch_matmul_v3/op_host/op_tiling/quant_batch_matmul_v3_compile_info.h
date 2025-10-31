@@ -18,7 +18,7 @@
 
 namespace optiling {
 
-struct Mc2QuantBatchMatmulV3CompileInfo {
+struct QuantBatchMatmulV3CompileInfo {
     uint64_t ubSize;
     uint64_t l1Size;
     uint64_t l2Size;

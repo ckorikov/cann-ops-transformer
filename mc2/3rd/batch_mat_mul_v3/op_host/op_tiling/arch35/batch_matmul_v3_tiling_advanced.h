@@ -18,22 +18,22 @@
 #include "mat_mul_v3/op_host/op_tiling/arch35/matmul_v3_tiling_advanced.h"
 
 namespace optiling {
-namespace Mc2batch_matmul_v3_advanced {
-using namespace mc2_matmul_v3_advanced;
-class Mc2BatchMatMulV3Tiling : public Mc2MatMulV3Tiling {
+namespace batch_matmul_v3_advanced {
+using namespace matmul_v3_advanced;
+class BatchMatMulV3Tiling : public MatMulV3Tiling {
 public:
-    explicit Mc2BatchMatMulV3Tiling(gert::TilingContext *context) : Mc2MatMulV3Tiling(context){};
+    explicit BatchMatMulV3Tiling(gert::TilingContext *context) : MatMulV3Tiling(context){};
 
-    ~Mc2BatchMatMulV3Tiling() override = default;
+    ~BatchMatMulV3Tiling() override = default;
 
     ge::graphStatus DoTiling() override;
 
 protected:
-    ge::graphStatus GetBatchInfo(const gert::TilingContext &context, Mc2MatMulV3Args& args, Mc2MatMulV3BatchInfo& batchInfo);
+    ge::graphStatus GetBatchInfo(const gert::TilingContext &context, MatMulV3Args& args, MatMulV3BatchInfo& batchInfo);
 private:
-    void MergeBatchAndMAxis(Mc2MatMulV3Args& args, Mc2MatMulV3BatchInfo& batchInfo);
-    ge::graphStatus GetBmmBiasInfo(const gert::TilingContext &context, Mc2MatMulV3Args& args,
-                                   Mc2MatMulV3BatchInfo& batchInfo);
+    void MergeBatchAndMAxis(MatMulV3Args& args, MatMulV3BatchInfo& batchInfo);
+    ge::graphStatus GetBmmBiasInfo(const gert::TilingContext &context, MatMulV3Args& args,
+                                   MatMulV3BatchInfo& batchInfo);
 };
 }
 }

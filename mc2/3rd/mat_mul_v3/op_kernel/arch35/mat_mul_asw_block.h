@@ -18,7 +18,7 @@
 #include "../mat_mul_v3_common.h"
 #include "mat_mul_tiling_data.h"
 
-namespace Mc2MatmulV3Advanced {
+namespace MatmulV3Advanced {
 
 using namespace AscendC;
 using namespace matmul;
@@ -71,9 +71,9 @@ struct AswBlockArgs {
     uint64_t singleShapeKTail = 0UL;
 };
 
-class Mc2MatmulAswBlock {
+class MatmulAswBlock {
 public:
-    __aicore__ inline Mc2MatmulAswBlock() {}
+    __aicore__ inline MatmulAswBlock() {}
     template <class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE>
     __aicore__ inline void Init(const void *tilingData);
     template <class A_TYPE, class B_TYPE>
@@ -96,11 +96,11 @@ public:
 public:
     AswBlockOffset offset_;
     AswBlockArgs params_;
-    const Mc2MatMulV3TilingData *matmulTilingData_;
+    const MatMulV3TilingData *matmulTilingData_;
 };
 
 template <class A_TYPE, class B_TYPE>
-__aicore__ inline void Mc2MatmulAswBlock::LoadBalanceInit()
+__aicore__ inline void MatmulAswBlock::LoadBalanceInit()
 {
     params_.mBaseTailMain = params_.mBaseTailSplitCnt == 1UL ? params_.mBaseTail :
         static_cast<uint64_t>(matmulTilingData_->mTailMain);
@@ -111,9 +111,9 @@ __aicore__ inline void Mc2MatmulAswBlock::LoadBalanceInit()
 }
 
 template <class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE>
-__aicore__ inline void Mc2MatmulAswBlock::Init(const void *tilingData)
+__aicore__ inline void MatmulAswBlock::Init(const void *tilingData)
 {
-    matmulTilingData_ = static_cast<const Mc2MatMulV3TilingData *>(tilingData);
+    matmulTilingData_ = static_cast<const MatMulV3TilingData *>(tilingData);
     params_.index = 0UL;
     params_.singleCoreM = 0UL;
     params_.singleCoreN = 0UL;
@@ -165,14 +165,14 @@ __aicore__ inline void Mc2MatmulAswBlock::Init(const void *tilingData)
     }
 }
 
-__aicore__ inline uint64_t Mc2MatmulAswBlock::GetNewBlockIdx(uint64_t roundIdx)
+__aicore__ inline uint64_t MatmulAswBlock::GetNewBlockIdx(uint64_t roundIdx)
 {
     uint64_t newBlockIdx = GetBlockIdx();
     newBlockIdx = (roundIdx == params_.round - 1UL) ? (newBlockIdx / params_.totalSplitCnt) : newBlockIdx;
     return newBlockIdx;
 }
 
-__aicore__ inline void Mc2MatmulAswBlock::UpdateBasicIndex(uint64_t roundIdx, uint64_t newBlockIdx)
+__aicore__ inline void MatmulAswBlock::UpdateBasicIndex(uint64_t roundIdx, uint64_t newBlockIdx)
 {
     params_.index = newBlockIdx + roundIdx * matmulTilingData_->tCubeTiling.usedCoreNum;
     uint64_t rowIdx = params_.index / params_.nCnt / params_.mainWindow;
@@ -192,7 +192,7 @@ __aicore__ inline void Mc2MatmulAswBlock::UpdateBasicIndex(uint64_t roundIdx, ui
 }
 
 template <class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE>
-__aicore__ inline void Mc2MatmulAswBlock::UpdateBlockParams(uint64_t roundIdx)
+__aicore__ inline void MatmulAswBlock::UpdateBlockParams(uint64_t roundIdx)
 {
     params_.singleCoreM = params_.blockBaseM;
     if (params_.mCntIndex >= params_.mBaseNormCnt) {
@@ -240,7 +240,7 @@ __aicore__ inline void Mc2MatmulAswBlock::UpdateBlockParams(uint64_t roundIdx)
 template <
     typename IndexType, typename BaseNormCntType, typename BlockBaseType, typename BaseTailMainType,
     typename SplitAddrOffsetType>
-__aicore__ inline uint64_t Mc2MatmulAswBlock::CalculateOffset(
+__aicore__ inline uint64_t MatmulAswBlock::CalculateOffset(
     IndexType cntIndex, BaseNormCntType baseNormCnt, BlockBaseType blockBase, BaseTailMainType baseTailMain,
     SplitAddrOffsetType splitAddrOffset)
 {
@@ -251,7 +251,7 @@ __aicore__ inline uint64_t Mc2MatmulAswBlock::CalculateOffset(
 }
 
 template <class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE>
-__aicore__ inline void Mc2MatmulAswBlock::CalcGMOffset()
+__aicore__ inline void MatmulAswBlock::CalcGMOffset()
 {
     uint64_t mOffset = CalculateOffset(
         params_.mCntIndex, params_.mBaseNormCnt, params_.blockBaseM, params_.mBaseTailMain, params_.mSplitAddrOffset);
@@ -283,7 +283,7 @@ __aicore__ inline void Mc2MatmulAswBlock::CalcGMOffset()
 }
 
 template <class A_TYPE, class B_TYPE>
-__aicore__ inline void Mc2MatmulAswBlock::CalcSplitKGMOffset(uint64_t splitKIndex)
+__aicore__ inline void MatmulAswBlock::CalcSplitKGMOffset(uint64_t splitKIndex)
 {
     if (params_.splitKRound == 1) {
         return;
@@ -304,6 +304,6 @@ __aicore__ inline void Mc2MatmulAswBlock::CalcSplitKGMOffset(uint64_t splitKInde
     }
 }
 
-} // namespace Mc2MatmulV3Advanced
+} // namespace MatmulV3Advanced
 
 #endif // MMV3_MATMUL_ASW_BLOCK_H

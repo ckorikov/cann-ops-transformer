@@ -26,7 +26,7 @@
 #include "register/op_def_registry.h"
 #include "tiling_base/tiling_templates_registry.h"
 
-using namespace optiling::mc2_matmul_v3;
+using namespace optiling::matmul_v3;
 using Ops::Transformer::OpTiling::TilingRegistry;
 
 namespace {
@@ -39,26 +39,26 @@ static const int32_t BIAS_INDEX = 2;
 
 namespace optiling {
 
-REGISTER_TILING_TEMPLATE("Mc2MatMulV3", Mc2MatmulV3BaseTiling, 0);
+REGISTER_TILING_TEMPLATE("MatMulV3", MatmulV3BaseTiling, 0);
 
-static ge::graphStatus Mc2MatmulV3TilingFunc(gert::TilingContext *context) {
-  OP_TILING_CHECK(context == nullptr, CUBE_INNER_ERR_REPORT("Mc2MatMulV3", "context is null"), return ge::GRAPH_FAILED);
-  if (Mc2IsAdvancedSocVersion(context)) {
-      return mc2_matmul_v3_advanced::Mc2MatMulV3Tiling(context).DoTiling();
+static ge::graphStatus MatmulV3TilingFunc(gert::TilingContext *context) {
+  OP_TILING_CHECK(context == nullptr, CUBE_INNER_ERR_REPORT("MatMulV3", "context is null"), return ge::GRAPH_FAILED);
+  if (IsAdvancedSocVersion(context)) {
+      return matmul_v3_advanced::MatMulV3Tiling(context).DoTiling();
   }
   return TilingRegistry::GetInstance().DoTilingImpl(context);
 }
 
-static ge::graphStatus Mc2TilingPrepareForMatmulV3(gert::TilingParseContext *context) {
-  if (Mc2IsAdvancedSocVersion(context)) {
-      return mc2_matmul_v3_advanced::InitCompileInfo(context);
+static ge::graphStatus TilingPrepareForMatmulV3(gert::TilingParseContext *context) {
+  if (IsAdvancedSocVersion(context)) {
+      return matmul_v3_advanced::InitCompileInfo(context);
   }
-  OP_TILING_CHECK(context == nullptr, CUBE_INNER_ERR_REPORT("Mc2MatMulV3", "context is null"), return ge::GRAPH_FAILED);
+  OP_TILING_CHECK(context == nullptr, CUBE_INNER_ERR_REPORT("MatMulV3", "context is null"), return ge::GRAPH_FAILED);
   fe::PlatFormInfos *platformInfo = context->GetPlatformInfo();
   OP_TILING_CHECK(platformInfo == nullptr, CUBE_INNER_ERR_REPORT(context->GetNodeName(), "platformInfoPtr is null"),
                   return ge::GRAPH_FAILED);
 
-  auto compileInfoPtr = context->GetCompiledInfo<Mc2MatmulV3CompileInfo>();
+  auto compileInfoPtr = context->GetCompiledInfo<MatmulV3CompileInfo>();
   OP_TILING_CHECK(compileInfoPtr == nullptr, CUBE_INNER_ERR_REPORT(context->GetNodeName(), "compileInfoPtr is null"),
                   return ge::GRAPH_FAILED);
   auto ascendcPlatform = platform_ascendc::PlatformAscendC(platformInfo);
@@ -91,8 +91,8 @@ static ge::graphStatus Mc2TilingPrepareForMatmulV3(gert::TilingParseContext *con
   return ge::GRAPH_SUCCESS;
 }
 
-IMPL_OP_OPTILING(Mc2MatMulV3)
-    .Tiling(Mc2MatmulV3TilingFunc)
-    .TilingParse<Mc2MatmulV3CompileInfo>(Mc2TilingPrepareForMatmulV3)
-    .GenSimplifiedKey(Mc2GenSimplifiedKey);
+IMPL_OP_OPTILING(MatMulV3)
+    .Tiling(MatmulV3TilingFunc)
+    .TilingParse<MatmulV3CompileInfo>(TilingPrepareForMatmulV3)
+    .GenSimplifiedKey(GenSimplifiedKey);
 }

@@ -10,13 +10,13 @@
 #ifndef ARCH35_CATLASS_CONSTANT_H
 #define ARCH35_CATLASS_CONSTANT_H
 
-namespace Mc2WeightQuantBatchMatmulV2::Arch35::Catlass {
-enum class Mc2QuantType
+namespace WeightQuantBatchMatmulV2::Arch35::Catlass {
+enum class QuantType
 {
     NONE = 0,
     PER_TENSOR = 1,
     PER_CHANNEL = 2,
     PER_GROUP = 3,
 };
-} // namespace Mc2WeightQuantBatchMatmulV2::Arch35::Catlass
+} // namespace WeightQuantBatchMatmulV2::Arch35::Catlass
 #endif

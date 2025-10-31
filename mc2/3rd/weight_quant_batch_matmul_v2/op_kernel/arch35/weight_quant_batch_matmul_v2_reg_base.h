@@ -18,17 +18,17 @@
 
 #include "weight_quant_batch_matmul_v2_reg_base_common.h"
 
-namespace Mc2WeightQuantBatchMatmulV2::Arch35 {
+namespace WeightQuantBatchMatmulV2::Arch35 {
 
 template <
     typename xType, typename wType, typename biasType, typename yType, bool aTrans, bool bTrans,
-    bool hasAntiQuantOffset, Mc2QuantType antiQuantType, bool weightNz = false>
-class Mc2WeightQuantBatchMatmulV2RegBaseKernel
-    : public Mc2WeightQuantBatchMatmulV2RegBaseCommonKernel<
+    bool hasAntiQuantOffset, QuantType antiQuantType, bool weightNz = false>
+class WeightQuantBatchMatmulV2RegBaseKernel
+    : public WeightQuantBatchMatmulV2RegBaseCommonKernel<
           xType, wType, biasType, yType, aTrans, bTrans, hasAntiQuantOffset, antiQuantType, weightNz>
 {
 public:
-    __aicore__ inline Mc2WeightQuantBatchMatmulV2RegBaseKernel(){};
+    __aicore__ inline WeightQuantBatchMatmulV2RegBaseKernel(){};
     __aicore__ inline void Process();
 };
 
@@ -38,8 +38,8 @@ public:
  */
 template <
     typename xType, typename wType, typename biasType, typename yType, bool aTrans, bool bTrans,
-    bool hasAntiQuantOffset, Mc2QuantType antiQuantType, bool weightNz>
-__aicore__ inline void Mc2WeightQuantBatchMatmulV2RegBaseKernel<
+    bool hasAntiQuantOffset, QuantType antiQuantType, bool weightNz>
+__aicore__ inline void WeightQuantBatchMatmulV2RegBaseKernel<
     xType, wType, biasType, yType, aTrans, bTrans, hasAntiQuantOffset, antiQuantType, weightNz>::Process()
 {
     uint16_t usedCoreNum = this->tiling_->cubeBlockDimM * this->tiling_->cubeBlockDimN;
@@ -62,5 +62,5 @@ __aicore__ inline void Mc2WeightQuantBatchMatmulV2RegBaseKernel<
     }
     this->EndSync(eventIdsMte1ToMte2, biasEventIdsMte1ToMte2);
 }
-} // namespace Mc2WeightQuantBatchMatmulV2::Arch35
+} // namespace WeightQuantBatchMatmulV2::Arch35
 #endif // WEIGHT_QUANT_BATCHMATMUL_V2_REG_BASE_H

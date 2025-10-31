@@ -51,7 +51,7 @@ inline ge::graphStatus GetMatmulPara(
     return ge::SUCCESS;
 }
 
-enum class Mc2QuantType : size_t
+enum class QuantType : size_t
 {
     K_NONE_QUANT,
     K_WEIGHT_QUANT,
@@ -67,7 +67,7 @@ struct QuantParas {
     const gert::Tensor* comm_quant_scale_1 = nullptr;
     const gert::Tensor* comm_quant_scale_2 = nullptr;
     int64_t antiquant_group_size;
-    Mc2QuantType type;
+    QuantType type;
 };
 
 inline ge::graphStatus GetQuantPara(
@@ -97,7 +97,7 @@ inline ge::graphStatus GetQuantPara(
                 para.antiquant_offset_acl == nullptr, OP_LOGE(host_api_ctx->GetNodeName(), "antiquant_offset is null"),
                 return ge::GRAPH_FAILED);
         }
-        para.type = Mc2QuantType::K_WEIGHT_QUANT;
+        para.type = QuantType::K_WEIGHT_QUANT;
     } else if ((para.dequant_scale = host_api_ctx->GetOptionalInputTensor(dequant_idx)) != nullptr) {
         if (comm_quant_scale_1_idx != static_cast<size_t>(-1) && comm_quant_scale_2_idx != static_cast<size_t>(-1)) {
             para.comm_quant_scale_1 = host_api_ctx->GetOptionalInputTensor(comm_quant_scale_1_idx);
@@ -106,9 +106,9 @@ inline ge::graphStatus GetQuantPara(
         if (pertoken_idx != static_cast<size_t>(-1)) {
             para.pertoken_scale = host_api_ctx->GetOptionalInputTensor(pertoken_idx);
         }
-        para.type = Mc2QuantType::K_QUANT;
+        para.type = QuantType::K_QUANT;
     } else {
-        para.type = Mc2QuantType::K_NONE_QUANT;
+        para.type = QuantType::K_NONE_QUANT;
     }
 
     return ge::SUCCESS;
@@ -202,7 +202,7 @@ ge::graphStatus MatmulAllreduceExecuteFunc(gert::OpExecuteContext* host_api_ctx)
     OPS_CHECK(y == nullptr, OP_LOGE(host_api_ctx->GetNodeName(), "y is null"), return ge::GRAPH_FAILED);
 
     switch (quant_para.type) {
-        case Mc2QuantType::K_NONE_QUANT:
+        case QuantType::K_NONE_QUANT:
             if (x3 != nullptr) {
                 return EXEC_OPAPI_CMD(
                     aclnnMatmulAllReduceV2, mm_para.x1_acl, mm_para.x2_acl, mm_para.bias, x3, comm_para.group,
@@ -212,12 +212,12 @@ ge::graphStatus MatmulAllreduceExecuteFunc(gert::OpExecuteContext* host_api_ctx)
                     aclnnMatmulAllReduce, mm_para.x1_acl, mm_para.x2_acl, mm_para.bias, comm_para.group, comm_para.op,
                     comm_para.comm_turn, comm_para.stream_mode, y);
             }
-        case Mc2QuantType::K_WEIGHT_QUANT:
+        case QuantType::K_WEIGHT_QUANT:
             return EXEC_OPAPI_CMD(
                 aclnnWeightQuantMatmulAllReduce, mm_para.x1_acl, mm_para.x2_acl, mm_para.bias,
                 quant_para.antiquant_scale_acl, quant_para.antiquant_offset_acl, x3, comm_para.group, comm_para.op,
                 comm_para.comm_turn, comm_para.stream_mode, quant_para.antiquant_group_size, y);
-        case Mc2QuantType::K_QUANT:
+        case QuantType::K_QUANT:
             if (all_reduce_para.y_dtype != static_cast<uint64_t>(ge::DataType::DT_UNDEFINED)) {
                 return EXEC_OPAPI_CMD(
                     aclnnQuantMatmulAllReduceV4, mm_para.x1_acl, mm_para.x2_acl, mm_para.bias, x3, 

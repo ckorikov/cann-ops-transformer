@@ -14,7 +14,7 @@
 
 #include "../utils/device_utils.h"
 
-namespace Mc2WeightQuantBatchMatmulV2::Arch35::Catlass {
+namespace WeightQuantBatchMatmulV2::Arch35::Catlass {
 
 namespace detail {
 constexpr bool IsPowerOfTwo(int n)
@@ -57,5 +57,5 @@ struct PipelineState {
         }
     }
 };
-} // namespace Mc2WeightQuantBatchMatmulV2::Arch35::Catlass
+} // namespace WeightQuantBatchMatmulV2::Arch35::Catlass
 #endif

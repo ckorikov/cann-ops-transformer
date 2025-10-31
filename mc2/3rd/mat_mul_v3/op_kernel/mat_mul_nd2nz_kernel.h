@@ -24,9 +24,9 @@ using namespace std;
 #endif
 
 template <class T>
-class Mc2KernelND2NZMM {
+class KernelND2NZMM {
    public:
-    __aicore__ inline Mc2KernelND2NZMM(){};
+    __aicore__ inline KernelND2NZMM(){};
     __aicore__ inline void CopyIn(uint64_t progress, LocalTensor<T>& dstLocal);
     __aicore__ inline void CopyOutMM(uint64_t progress, LocalTensor<T>& srcLocal);
     __aicore__ inline void PadD(uint64_t progress, LocalTensor<T>& dstLocal, LocalTensor<T>& srcLocal,
@@ -75,7 +75,7 @@ class Mc2KernelND2NZMM {
 };
 
 template <class T>
-__aicore__ inline void Mc2KernelND2NZMM<T>::CopyIn(uint64_t progress, LocalTensor<T>& dstLocal) {
+__aicore__ inline void KernelND2NZMM<T>::CopyIn(uint64_t progress, LocalTensor<T>& dstLocal) {
     uint64_t curCopyInSize = progress == nFullProgress_ ? heightTotalTail_ * width_ : copyInSize_;
     uint64_t gmInOffset = copyInSize_ * progress;
     DataCopyExtParams copyParams{DEFAULT_DATA_COPY_NBURST, static_cast<uint32_t>(curCopyInSize * sizeof(T)),
@@ -85,7 +85,7 @@ __aicore__ inline void Mc2KernelND2NZMM<T>::CopyIn(uint64_t progress, LocalTenso
 }
 
 template <class T>
-__aicore__ inline void Mc2KernelND2NZMM<T>::CopyOutMM(uint64_t progress, LocalTensor<T>& srcLocal) {
+__aicore__ inline void KernelND2NZMM<T>::CopyOutMM(uint64_t progress, LocalTensor<T>& srcLocal) {
     uint64_t oneColSizeGM = Align2(height_ * batch_, ALIGNED_H) * c0_;
     uint64_t oneColSize = hBuffer_ * c0_;
     uint32_t copyOutSize = progress == nFullProgress_ ? Align2(heightTotalTail_, ALIGNED_H) * c0_ : oneColSize;
@@ -103,7 +103,7 @@ __aicore__ inline void Mc2KernelND2NZMM<T>::CopyOutMM(uint64_t progress, LocalTe
 }
 
 template <class T>
-__aicore__ inline void Mc2KernelND2NZMM<T>::PadD(uint64_t progress, LocalTensor<T>& dstLocal, LocalTensor<T>& srcLocal,
+__aicore__ inline void KernelND2NZMM<T>::PadD(uint64_t progress, LocalTensor<T>& dstLocal, LocalTensor<T>& srcLocal,
                                             int eventIn, int eventOut) {
     if (wTail_ == 0) {
         PadDAligned<T>(progress, dstLocal, srcLocal, eventIn, eventOut, width_, c0_, hBlockNum_, true);
@@ -114,7 +114,7 @@ __aicore__ inline void Mc2KernelND2NZMM<T>::PadD(uint64_t progress, LocalTensor<
 }
 
 template <class T>
-__aicore__ inline void Mc2KernelND2NZMM<T>::Init(GM_ADDR dst, GM_ADDR src, uint32_t height, uint32_t width, uint32_t batch,
+__aicore__ inline void KernelND2NZMM<T>::Init(GM_ADDR dst, GM_ADDR src, uint32_t height, uint32_t width, uint32_t batch,
                                             TBuf<TPosition::VECCALC>& ubBuffer, uint32_t usedCoreNum)
 {
     height_ = height;
@@ -148,7 +148,7 @@ __aicore__ inline void Mc2KernelND2NZMM<T>::Init(GM_ADDR dst, GM_ADDR src, uint3
 
 template <class T>
 template <ND2NZ_DB_TYPE TYPE, bool noZero>
-__aicore__ inline bool Mc2KernelND2NZMM<T>::SetBufMM() {
+__aicore__ inline bool KernelND2NZMM<T>::SetBufMM() {
     uint32_t hTotal = height_ * batch_;
     uint32_t wAligned = Align2(width_, c0_);
 
@@ -234,7 +234,7 @@ __aicore__ inline bool Mc2KernelND2NZMM<T>::SetBufMM() {
 
 template <class T>
 template <Nd2NzMode mode>
-__aicore__ inline bool Mc2KernelND2NZMM<T>::ProcessMM() {
+__aicore__ inline bool KernelND2NZMM<T>::ProcessMM() {
     if (width_ % c0_ == 0) {
         if (SetBufMM<ND2NZ_DB_TYPE::IN_OUTPUT, true>()) { // issue:when innersize > 49152B, will return false and break.
             ProcessInOutDB<mode>();
@@ -254,7 +254,7 @@ __aicore__ inline bool Mc2KernelND2NZMM<T>::ProcessMM() {
 
 template <class T>
 template <Nd2NzMode mode>
-__aicore__ inline void Mc2KernelND2NZMM<T>::ProcessInOutDB() {
+__aicore__ inline void KernelND2NZMM<T>::ProcessInOutDB() {
     uint32_t nLoop = heightTotalTail_ ? nFullProgress_ + 1 : nFullProgress_;
     uint32_t j = 0;
     SetFlag<HardEvent::V_MTE2>(EVENT_ID0);
@@ -297,7 +297,7 @@ __aicore__ inline void Mc2KernelND2NZMM<T>::ProcessInOutDB() {
 
 template <class T>
 template <Nd2NzMode mode>
-__aicore__ inline void Mc2KernelND2NZMM<T>::ProcessOutDBReuse() {
+__aicore__ inline void KernelND2NZMM<T>::ProcessOutDBReuse() {
     uint32_t nLoop = heightTotalTail_ ? nFullProgress_ + 1 : nFullProgress_;
     uint32_t j = 0;
     SetFlag<HardEvent::MTE3_MTE2>(EVENT_ID0);
@@ -335,7 +335,7 @@ __aicore__ inline void Mc2KernelND2NZMM<T>::ProcessOutDBReuse() {
 
 template <class T>
 template <Nd2NzMode mode>
-__aicore__ inline void Mc2KernelND2NZMM<T>::ProcessNoDBReuse() {
+__aicore__ inline void KernelND2NZMM<T>::ProcessNoDBReuse() {
     uint32_t nLoop = heightTotalTail_ ? nFullProgress_ + 1 : nFullProgress_;
     int32_t start_idx = (mode == Nd2NzMode::MULTI_CORE ? blockIdx_ : GetSubBlockIdx());
     for (int32_t i = start_idx; i < nLoop; i += blockDim_) {

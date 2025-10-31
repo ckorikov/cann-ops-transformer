@@ -41,11 +41,11 @@ public:
           shape_b(inferShapeTensor.input_shape_b),
           trans_a(inferShapeTensor.input_trans_a),
           trans_b(inferShapeTensor.input_trans_b),
+          num_dima(shape_a.GetDimNum()),
+          num_dimb(shape_b.GetDimNum()),
           shape_out(*(context->GetOutputShape(0))),
           shape_bias(context->GetOptionalInputShape(batch_matmul_bias_index))
     {
-        num_dima = shape_a.GetDimNum();
-        num_dimb = shape_b.GetDimNum();
         num_dim = std::max(num_dima, num_dimb);
         num_dim_bias = 0;
         if (shape_bias != nullptr) {
@@ -59,15 +59,14 @@ public:
         : op_name(context->GetNodeName()),
           shape_a(input_shape_a),
           shape_b(input_shape_b),
-          shape_out(*(context->GetOutputShape(0)))
+          trans_a(*(context->GetAttrs()->GetAttrPointer<bool>(0))),
+          trans_b(*(context->GetAttrs()->GetAttrPointer<bool>(1))),
+          num_dima(shape_a.GetDimNum()),
+          num_dimb(shape_b.GetDimNum()),
+          shape_out(*(context->GetOutputShape(0))),
+          shape_bias(context->GetOptionalInputShape(BATCH_MATMUL_FIXPIPE_BIAS_IDX))
     {
-        shape_bias = context->GetOptionalInputShape(BATCH_MATMUL_FIXPIPE_BIAS_IDX);
-        num_dima = shape_a.GetDimNum();
-        num_dimb = shape_b.GetDimNum();
         num_dim = std::max(num_dima, num_dimb);
-        auto attrs = context->GetAttrs();
-        trans_a = *(attrs->GetAttrPointer<bool>(0));
-        trans_b = *(attrs->GetAttrPointer<bool>(1));
         num_dim_bias = 0;
         if (shape_bias != nullptr) {
             num_dim_bias = shape_bias->GetDimNum();
@@ -82,19 +81,17 @@ public:
 protected:
     bool InferBatch() const;
     bool InferBias();
-
-    size_t num_dim = 0;
-    size_t num_dima = 0;
-    size_t num_dimb = 0;
-    size_t num_dim_bias = 0;
-
     const char* op_name;
     const Shape& shape_a;
     const Shape& shape_b;
-    bool trans_a = false;
-    bool trans_b = false;
+    bool trans_a;
+    bool trans_b;
+    size_t num_dima;
+    size_t num_dimb;
     Shape& shape_out;
     const Shape* shape_bias;
+    size_t num_dim;
+    size_t num_dim_bias;
 };
 
 static void CopyOutShapeFromInputShape(const Shape& shape_in, Shape& shape_out, int64_t valid_offset)
@@ -233,7 +230,7 @@ bool InferShapeBatchMatMul::InferShape()
             CUBE_INNER_ERR_REPORT(
                 op_name,
                 "[InferShape] Invalid x1 [%zu] dimension: value %ld is less than the minimum allowed value (-2)", i,
-                static_cast<int64_t>(shape_a.GetDim(i))),
+                shape_a.GetDim(i)),
             return false);
     }
     for (size_t i = 0; i < shape_b.GetDimNum(); ++i) {
@@ -242,7 +239,7 @@ bool InferShapeBatchMatMul::InferShape()
             CUBE_INNER_ERR_REPORT(
                 op_name,
                 "[InferShape] Invalid x2 [%zu] dimension: value %ld is less than the minimum allowed value (-2)", i,
-                static_cast<int64_t>(shape_b.GetDim(i))),
+                shape_b.GetDim(i)),
             return false);
     }
     // using index - 2 to get m_dim
@@ -337,7 +334,7 @@ ge::graphStatus UpdateX2NewShape(
         size_t dim_num = new_shape.GetDimNum();
         size_t x2_dim_num = new_shape.GetDimNum();
         size_t k_x2_dim = trans_x2 ? (x2_dim_num - 1UL) : (x2_dim_num - 2UL);
-        size_t n_x2_dim = trans_x2 ? (x2_dim_num - 2UL) : (x2_dim_num - 1UL);
+        size_t n_x2_dim = trans_x2 ? (x2_dim_num - 1UL) : (x2_dim_num - 2UL);
         int64_t k_dim = new_shape.GetDim(k_x2_dim);
         int64_t n_dim = new_shape.GetDim(n_x2_dim);
         if (desc->GetDataType() == ge::DT_FLOAT && k_dim > 0 && n_dim > 0) {
@@ -550,37 +547,31 @@ bool InferRangeBias(
             bias_min_shape == nullptr || bias_max_shape == nullptr,
             CUBE_INNER_ERR_REPORT(op_name, "[InferShapeRange] bias min/max shape is null"), return false);
         size_t num_dim_bias = bias_min_shape->GetDimNum();
-        // 数组长度为0，也是bias不存在，直接返回true不进行校验
-        if (num_dim_bias == 0) {
-            new_shape_range_out[num_dim_out - 1] = new_shape_range_x2[idx_n];
-            return true;
+        std::pair<int64_t, int64_t> src_shape_range_bias_n;
+        src_shape_range_bias_n.first = bias_min_shape->GetDim(num_dim_bias - 1);
+        src_shape_range_bias_n.second = bias_max_shape->GetDim(num_dim_bias - 1);
+        if (!GetKNIntersection(
+                op_name, src_shape_range_bias_n, new_shape_range_x2[idx_n], new_shape_range_out[num_dim_out - 1])) {
+            return false;
         }
         // 初始化bias，转为vector形式
-        std::vector<std::pair<int64_t, int64_t>> tmp_shape_range_bias;
+        std::vector<std::pair<int64_t, int64_t>> new_shape_range_bias;
         if (num_dim_out > num_dim_bias) {
             // 把前面差的轴补上
             for (size_t i = 0; i < num_dim_out - num_dim_bias; ++i) {
-                tmp_shape_range_bias.emplace_back(std::make_pair(1, 1));
+                new_shape_range_bias.emplace_back(std::make_pair(1, 1));
             }
         }
         for (size_t i = 0; i < num_dim_bias; ++i) {
             std::pair<int64_t, int64_t> new_dim = {bias_min_shape->GetDim(i), bias_max_shape->GetDim(i)};
-            tmp_shape_range_bias.emplace_back(new_dim);
+            new_shape_range_bias.emplace_back(new_dim);
         }
-        std::vector<std::pair<int64_t, int64_t>> new_shape_range_bias;
-        OP_CHECK_IF(!InitializeRange(num_dim_out, tmp_shape_range_bias, new_shape_range_bias),
-            CUBE_INNER_ERR_REPORT(op_name, "[InferShapeRange] InitializeRange bias failed."),
-            return false);
         // 按bias的batch轴校验并扩充，除去最后的2维，继承原有rt1.0逻辑
         for (size_t i = 0; i < num_dim_out - 2; ++i) {
             OP_CHECK_IF(
                 !GetBatchIntersection(op_name, new_shape_range_out[i], new_shape_range_bias[i], new_shape_range_out[i]),
                 CUBE_INNER_ERR_REPORT(op_name, "[InferShapeRange] Infer bias batch range incorrect at dim[%zu].", i),
                 return false);
-        }
-        if (!GetKNIntersection(op_name, new_shape_range_bias[num_dim_out - 1], new_shape_range_x2[idx_n],
-                               new_shape_range_out[num_dim_out - 1])) {
-            return false;
         }
     }
     return true;
@@ -595,7 +586,7 @@ public:
           attr_adj_idx(in_attr_adj_idx),
           x1_shape_range(in_context->GetInputShapeRange(0)),
           x2_shape_range(in_context->GetInputShapeRange(1)),
-          bias_shape_range(in_context->GetOptionalInputShapeRange(input_bias_index)),
+          bias_shape_range(in_context->GetInputShapeRange(input_bias_index)),
           out_shape_range(in_context->GetOutputShapeRange(0)){};
     bool Init();
     bool InferShapeRange();

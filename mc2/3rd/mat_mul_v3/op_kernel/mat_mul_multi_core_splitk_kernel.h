@@ -16,7 +16,7 @@
 
 #include "mat_mul_deterministic_splitk_kernel.h"
 
-namespace Mc2MatmulV3 {
+namespace MatmulV3 {
 
 template <class C_T>
 __aicore__ inline void ClearOutput(GlobalTensor<C_T>& cGlobal, const TCubeTiling& tiling, TPipe &pipe)
@@ -46,7 +46,7 @@ __aicore__ inline void ClearOutput(GlobalTensor<C_T>& cGlobal, const TCubeTiling
 }
 
 template <class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE>
-__aicore__ inline void Mc2MatMulBlockMultiCoreSplitK(GM_ADDR aGM, GM_ADDR bGM, GM_ADDR cGM, GM_ADDR biasGM,
+__aicore__ inline void MatMulBlockMultiCoreSplitK(GM_ADDR aGM, GM_ADDR bGM, GM_ADDR cGM, GM_ADDR biasGM,
     const TCubeTiling& tiling)
 {
     using A_T = typename A_TYPE::T;
@@ -103,18 +103,18 @@ __aicore__ inline void Mc2MatMulBlockMultiCoreSplitK(GM_ADDR aGM, GM_ADDR bGM, G
 }
 
 template <class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE, FIXPIPE_OPT_SELECT FIXPIPE_OPT>
-__aicore__ inline void Mc2MatMulMultiCoreSplitK(GM_ADDR aGM, GM_ADDR bGM, GM_ADDR cGM, GM_ADDR biasGM,
-                                             const Mc2MatmulV3TilingData& matmulTilingData, GM_ADDR workspaceGM)
+__aicore__ inline void MatMulMultiCoreSplitK(GM_ADDR aGM, GM_ADDR bGM, GM_ADDR cGM, GM_ADDR biasGM,
+                                             const MatmulTilingData& matmulTilingData, GM_ADDR workspaceGM)
 {
     if ASCEND_IS_AIV {
         return;
     }
     const TCubeTiling& tiling = matmulTilingData.matmulTiling;
     if ASCEND_IS_AIC {
-        Mc2MatMulBlockMultiCoreSplitK<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE>(aGM, bGM, cGM, biasGM, tiling);
+        MatMulBlockMultiCoreSplitK<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE>(aGM, bGM, cGM, biasGM, tiling);
         return;
     }
 }
-} // namespace Mc2MatmulV3
+} // namespace MatmulV3
 
 #endif // __OP_KERNEL_MATMUL_V3_MULTI_CORE_SPLITK_KERNEL_H__

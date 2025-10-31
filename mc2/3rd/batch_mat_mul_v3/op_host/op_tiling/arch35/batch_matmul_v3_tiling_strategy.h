@@ -23,7 +23,7 @@
 #include "tiling/platform/platform_ascendc.h"
 
 namespace optiling {
-namespace Mc2batch_matmul_v3_advanced {
+namespace batch_matmul_v3_advanced {
 namespace strategy {
 constexpr int32_t ITER_BATCH_BASICAPI = 0;
 constexpr int32_t ITER_BATCH = 1;
@@ -37,7 +37,6 @@ const static std::map<platform_ascendc::SocVersion, std::vector<int32_t>> BatchM
     {platform_ascendc::SocVersion::ASCEND910_95,
      {strategy::ITER_BATCH_BASICAPI, strategy::ITER_BATCH, strategy::AL1_FULL_LOAD, strategy::BL1_FULL_LOAD_BASIC,
       strategy::BL1_FULL_LOAD, strategy::ASW_BASIC, strategy::BASE}},
-    {platform_ascendc::SocVersion::RESERVED_VERSION, {strategy::ITER_BATCH, strategy::BASE}}, //supportMmadS8S4平台
 };
 
 inline std::vector<int32_t> GetBatchMatMulV3Priorities(platform_ascendc::SocVersion socVersion)

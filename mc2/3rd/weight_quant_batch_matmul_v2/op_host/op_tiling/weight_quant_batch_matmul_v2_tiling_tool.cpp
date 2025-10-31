@@ -21,7 +21,7 @@ constexpr int64_t B16_BITS = 16;
 constexpr int64_t B8_BITS = 8;
 constexpr int64_t B4_BITS = 4;
 
-uint64_t Mc2GetBlockAlignSizeByDataType(ge::DataType dtype)
+uint64_t GetBlockAlignSizeByDataType(ge::DataType dtype)
 {
     if (dtype == ge::DT_INT4 || dtype == ge::DT_FLOAT4_E2M1 || dtype == ge::DT_FLOAT4_E1M2) {
         return ONE_BLK_SIZE + ONE_BLK_SIZE;
@@ -30,7 +30,7 @@ uint64_t Mc2GetBlockAlignSizeByDataType(ge::DataType dtype)
     }
 }
 
-uint64_t Mc2GetShapeSizeWithDataType(uint64_t shapeSize, ge::DataType dtype)
+uint64_t GetShapeSizeWithDataType(uint64_t shapeSize, ge::DataType dtype)
 {
     if (dtype == ge::DT_INT4) {
         return (shapeSize + 1) >> 1;
@@ -39,12 +39,12 @@ uint64_t Mc2GetShapeSizeWithDataType(uint64_t shapeSize, ge::DataType dtype)
     }
 }
 
-bool Mc2CheckOptionalInputByShape(const gert::StorageShape* storageShape)
+bool CheckOptionalInputByShape(const gert::StorageShape* storageShape)
 {
     return storageShape != nullptr && storageShape->GetStorageShape().GetShapeSize() != 0;
 }
 
-int64_t Mc2GetDtypeBits(ge::DataType dtype)
+int64_t GetDtypeBits(ge::DataType dtype)
 {
     if (dtype == ge::DT_INT4 || dtype == ge::DT_FLOAT4_E2M1 || dtype == ge::DT_FLOAT4_E1M2) {
         return B4_BITS;
@@ -74,14 +74,14 @@ const std::map<ge::DataType, matmul_tiling::DataType> DTYPE_MAP = {
     {ge::DT_FLOAT4_E1M2, matmul_tiling::DataType::DT_FLOAT4_E1M2},
 };
 
-matmul_tiling::DataType Mc2GetMatmulTilingDtype(ge::DataType dtype)
+matmul_tiling::DataType GetMatmulTilingDtype(ge::DataType dtype)
 {
     auto it = DTYPE_MAP.find(dtype);
     // impossible to get runtime error
     return it != DTYPE_MAP.end() ? it->second : matmul_tiling::DataType::DT_FLOAT16;
 }
 
-ge::Format Mc2GetInputStorageFormat(const gert::TilingContext* context, size_t id)
+ge::Format GetInputStorageFormat(const gert::TilingContext* context, size_t id)
 {
     auto desc = context->GetInputDesc(id);
     OP_TILING_CHECK(

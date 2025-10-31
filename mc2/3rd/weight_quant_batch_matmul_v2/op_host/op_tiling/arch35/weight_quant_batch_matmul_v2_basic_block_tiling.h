@@ -105,14 +105,14 @@ struct BasicBlockParam {
     BasicBlock basicBlock;
 };
 
-class Mc2WeightQuantBatchMatmulV2BasicBlockTiling
+class WeightQuantBatchMatmulV2BasicBlockTiling
 {
 public:
-    Mc2WeightQuantBatchMatmulV2BasicBlockTiling()
+    WeightQuantBatchMatmulV2BasicBlockTiling()
     {
         Init();
     }
-    ~Mc2WeightQuantBatchMatmulV2BasicBlockTiling() = default;
+    ~WeightQuantBatchMatmulV2BasicBlockTiling() = default;
 
     void Init();
     void Reset();
@@ -120,7 +120,7 @@ public:
     void SetShape(int64_t mSize, int64_t nSize, int64_t kSize, int64_t groupSize);
     void SetAttr(const char* opName, const WeightQuantBmmAttr& attr);
     void SetDtypeBits(int64_t aDtypeBits, int64_t bDtypeBits, int64_t biasDtypeBits);
-    void SetQuantType(Mc2QuantType antiquantType);
+    void SetQuantType(QuantType antiquantType);
     double GetMinMte2BW(int64_t baseM, int64_t baseN, int64_t mDim, int64_t nDim) const;
     double GetMte2BW(int64_t baseM, int64_t baseN, int64_t mDim, int64_t nDim) const;
     double GetMte2BWRatio(int64_t baseM, int64_t baseN, int64_t mDim, int64_t nDim) const;
@@ -494,7 +494,7 @@ protected:
     double aByteSize_;
     double bByteSize_;
     double biasByteSize_;
-    Mc2QuantType antiquantType_;
+    QuantType antiquantType_;
 
     PlatformParam platformParam_;
     std::vector<BasicBlockParam> mte2BoundResults_;

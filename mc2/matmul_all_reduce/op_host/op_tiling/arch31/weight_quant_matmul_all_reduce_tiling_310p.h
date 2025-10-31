@@ -19,13 +19,13 @@
 namespace optiling {
 class WeightQuantMatmulAllReduceTiling310P : public MatmulAllReduceTilingBase
 {
-    class WeightQuantTilingTransferHelper : public Mc2WeightQuantBatchMatmulV2WeightNz
+    class WeightQuantTilingTransferHelper : public WeightQuantBatchMatmulV2WeightNz
     {
     public:
         WeightQuantTilingTransferHelper(
             WeightQuantMatmulAllReduceTiling310P& weightQuantMatmulAllReduceTiling,
-            Mc2WeightQuantBatchMatmulV2NzTilingData& data)
-            : Mc2WeightQuantBatchMatmulV2WeightNz(weightQuantMatmulAllReduceTiling.context_, &data),
+            WeightQuantBatchMatmulV2NzTilingData& data)
+            : WeightQuantBatchMatmulV2WeightNz(weightQuantMatmulAllReduceTiling.context_, &data),
               tilingProcesser_(weightQuantMatmulAllReduceTiling)
         {}
         ge::graphStatus GetShapeAttrsInfo() override
@@ -50,7 +50,7 @@ class WeightQuantMatmulAllReduceTiling310P : public MatmulAllReduceTilingBase
             PrintTilingInputParam(inputParams_);
             return ge::GRAPH_SUCCESS;
         }
-        void PrintTilingInputParam(Mc2WeightQuantBatchMatmulInfo& weightQuantBatchMatmulInfo)
+        void PrintTilingInputParam(WeightQuantBatchMatmulInfo& weightQuantBatchMatmulInfo)
         {
             OP_LOGD(
                 tilingProcesser_.opName_, " transA_ %d transB_ %d, hasBias_ %d, hasAntiQuantOffset_ %d, ",

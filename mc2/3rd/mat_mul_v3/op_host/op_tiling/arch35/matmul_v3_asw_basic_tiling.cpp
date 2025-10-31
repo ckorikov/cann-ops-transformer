@@ -20,18 +20,18 @@
 
 using Ops::Transformer::MathUtil;
 namespace optiling {
-namespace mc2_matmul_v3_advanced {
+namespace matmul_v3_advanced {
 
 constexpr uint64_t FP32_SPLIT_K_THRESHOLD = 8192UL;
 using namespace strategy;
-MC2_MM_REGISTER_TILING_TEMPLATE(Mc2MatMulV3, Mc2MatMulV3AswBasicApiTiling, ASCEND910_95, BASIC_ASWT);
+MM_REGISTER_TILING_TEMPLATE(MatMulV3, MatMulV3AswBasicApiTiling, ASCEND910_95, BASIC_ASWT);
 
-bool Mc2MatMulV3AswBasicApiTiling::IsCapable()
+bool MatMulV3AswBasicApiTiling::IsCapable()
 {
     uint64_t mCore = MathUtil::CeilDivision(args_.mValue, BASIC_BLOCK_SIZE_256);
     uint64_t nCore = MathUtil::CeilDivision(args_.nValue, BASIC_BLOCK_SIZE_256);
     if (mCore * nCore > compileInfo_.aicNum){
-        OP_LOGD(args_.opName, "mCnt_[%lu] and nCnt_[%lu] is not enter in Mc2MatMulV3 basic api", mCore, nCore);
+        OP_LOGD(args_.opName, "mCnt_[%lu] and nCnt_[%lu] is not enter in matmulv3 basic api", mCore, nCore);
         return false;
     }
     if (args_.bFormat != ge::FORMAT_ND || args_.aFormat != ge::FORMAT_ND) {
@@ -44,18 +44,18 @@ bool Mc2MatMulV3AswBasicApiTiling::IsCapable()
         return false;
     }
 
-    OP_LOGI(args_.opName, "Mc2MatMulV3 tiling enable state basic api");
+    OP_LOGI(args_.opName, "MatMulV3 tiling enable state basic api");
     return true;
 }
 
 
-uint64_t Mc2MatMulV3AswBasicApiTiling::GetTilingKey() const
+uint64_t MatMulV3AswBasicApiTiling::GetTilingKey() const
 {
-    return Mc2MatMulV3TilingKey()
+    return MatMulV3TilingKey()
         .SetTrans(args_.isATrans, args_.isBTrans)
-        .SetL0C2Out(Mc2MatMulV3L0C2Out::ON_THE_FLY)
-        .SetApiLevel(Mc2MatMulV3ApiLevel::BASIC_LEVEL)
+        .SetL0C2Out(MatMulV3L0C2Out::ON_THE_FLY)
+        .SetApiLevel(MatMulV3ApiLevel::BASIC_LEVEL)
         .GetTilingKey();
 }
-} // namespace mc2_matmul_v3
+} // namespace matmul_v3
 } // namespace optiling

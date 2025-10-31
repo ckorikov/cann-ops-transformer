@@ -19,10 +19,10 @@
 using Ops::Transformer::MathUtil;
 namespace {
 using namespace optiling;
-using namespace optiling::mc2_matmul_v3_advanced;
+using namespace optiling::matmul_v3_advanced;
 
 // ------------------------------ ResetBase -------------------------------------------//
-void ResetBaseDefault(const Mc2MatmulV3CompileInfo &compileInfo, const Mc2MatMulV3Args &args, Mc2MatMulV3RunInfo &runInfo)
+void ResetBaseDefault(const MatmulV3CompileInfo &compileInfo, const MatMulV3Args &args, MatMulV3RunInfo &runInfo)
 {
     runInfo.usedCoreNum = compileInfo.aicNum;
     runInfo.baseM = BASIC_BLOCK_SIZE_128;
@@ -35,27 +35,23 @@ void ResetBaseDefault(const Mc2MatmulV3CompileInfo &compileInfo, const Mc2MatMul
     runInfo.singleCoreK = args.kValue;
     runInfo.singleCoreM = runInfo.baseM;
     runInfo.singleCoreN = runInfo.baseN;
-    runInfo.mBaseTailSplitCnt = INIT_SPLIT_CNT;
-    runInfo.nBaseTailSplitCnt = INIT_SPLIT_CNT;
-    runInfo.tailInfo.mTailMain = INIT_SPLIT_VALUE;
-    runInfo.tailInfo.nTailMain = INIT_SPLIT_VALUE;
 }
 
-void ResetBase91095(const Mc2MatmulV3CompileInfo &compileInfo, const Mc2MatMulV3Args &args, Mc2MatMulV3RunInfo &runInfo)
+void ResetBase91095(const MatmulV3CompileInfo &compileInfo, const MatMulV3Args &args, MatMulV3RunInfo &runInfo)
 {
     ResetBaseDefault(compileInfo, args, runInfo);
     runInfo.baseM = BASIC_BLOCK_SIZE_256;
     runInfo.singleCoreM = runInfo.baseM;
 }
 
-using ResetBaseFunc = void (*)(const Mc2MatmulV3CompileInfo &, const Mc2MatMulV3Args &, Mc2MatMulV3RunInfo &);
+using ResetBaseFunc = void (*)(const MatmulV3CompileInfo &, const MatMulV3Args &, MatMulV3RunInfo &);
 
 const static std::map<platform_ascendc::SocVersion, ResetBaseFunc> ResetBaseFuncMap = {
     {platform_ascendc::SocVersion::ASCEND910_95, ResetBase91095},
 };
 
 // ------------------------------ CalL1Tiling -------------------------------------------//
-void CalL1TilingDefault(const Mc2MatmulV3CompileInfo &compileInfo, const Mc2MatMulV3Args &args, Mc2MatMulV3RunInfo &runInfo)
+void CalL1TilingDefault(const MatmulV3CompileInfo &compileInfo, const MatMulV3Args &args, MatMulV3RunInfo &runInfo)
 {
     uint64_t totalL1Size = compileInfo.l1Size;
     uint64_t reserveBTSize = args.hasBias ? BIAS_TABLE_NUM * DATA_SIZE_FP32 : 0UL;
@@ -91,7 +87,7 @@ void CalL1TilingDefault(const Mc2MatmulV3CompileInfo &compileInfo, const Mc2MatM
     return;
 }
 
-void CalL1Tiling310P(const Mc2MatmulV3CompileInfo &compileInfo, const Mc2MatMulV3Args &args, Mc2MatMulV3RunInfo &runInfo)
+void CalL1Tiling310P(const MatmulV3CompileInfo &compileInfo, const MatMulV3Args &args, MatMulV3RunInfo &runInfo)
 {
     runInfo.stepM = 1UL;
     runInfo.stepN = 1UL;
@@ -127,21 +123,21 @@ void CalL1Tiling310P(const Mc2MatmulV3CompileInfo &compileInfo, const Mc2MatMulV
     return;
 }
 
-using CalL1TilingFunc = void (*)(const Mc2MatmulV3CompileInfo &, const Mc2MatMulV3Args &, Mc2MatMulV3RunInfo &);
+using CalL1TilingFunc = void (*)(const MatmulV3CompileInfo &, const MatMulV3Args &, MatMulV3RunInfo &);
 
 const static std::map<platform_ascendc::SocVersion, CalL1TilingFunc> CalL1TilingFuncMap = {
     {platform_ascendc::SocVersion::ASCEND310P, CalL1Tiling310P},
 };
 
 // ------------------------------ GetL0C2Out -------------------------------------------//
-Mc2MatMulV3L0C2Out GetL0C2OutDefault(const Mc2MatmulV3CompileInfo & /* compileInfo */, const Mc2MatMulV3Args & /* args */,
-                              const Mc2MatMulV3RunInfo & /* runInfo */)
+MatMulV3L0C2Out GetL0C2OutDefault(const MatmulV3CompileInfo & /* compileInfo */, const MatMulV3Args & /* args */,
+                              const MatMulV3RunInfo & /* runInfo */)
 {
-    return Mc2MatMulV3L0C2Out::ON_THE_FLY;
+    return MatMulV3L0C2Out::ON_THE_FLY;
 }
 
-Mc2MatMulV3L0C2Out GetL0C2Out91095(const Mc2MatmulV3CompileInfo &compileInfo, const Mc2MatMulV3Args &args,
-                                const Mc2MatMulV3RunInfo &runInfo)
+MatMulV3L0C2Out GetL0C2Out91095(const MatmulV3CompileInfo &compileInfo, const MatMulV3Args &args,
+                                const MatMulV3RunInfo &runInfo)
 {
     bool isValidMKN = args.kValue <= BASIC_BLOCK_SIZE_256 && args.mValue >= BASIC_BLOCK_SIZE_256;
     uint64_t mCnt = MathUtil::CeilDivision(args.mValue, runInfo.singleCoreM);
@@ -153,27 +149,27 @@ Mc2MatMulV3L0C2Out GetL0C2Out91095(const Mc2MatmulV3CompileInfo &compileInfo, co
     bool isUnalignedN = args.nValue * cDtypeSize % 128UL != 0 && args.nValue * cDtypeSize > BASIC_BLOCK_SIZE_256;
     bool fixpipeBound = isValidMKN && isMultiRound && isUnalignedN;
     if (!fixpipeBound) {
-        return Mc2MatMulV3L0C2Out::ON_THE_FLY;
+        return MatMulV3L0C2Out::ON_THE_FLY;
     }
     if (args.aType == ge::DT_FLOAT16 || args.aType == ge::DT_BF16) {
-        return Mc2MatMulV3L0C2Out::ND_FIXPIPE_1_1;
+        return MatMulV3L0C2Out::ND_FIXPIPE_1_1;
     }
-    return Mc2MatMulV3L0C2Out::ND_FIXPIPE_1_2;
+    return MatMulV3L0C2Out::ND_FIXPIPE_1_2;
 }
 
-using GetL0C2OutFunc = Mc2MatMulV3L0C2Out (*)(const Mc2MatmulV3CompileInfo &, const Mc2MatMulV3Args &, const Mc2MatMulV3RunInfo &);
+using GetL0C2OutFunc = MatMulV3L0C2Out (*)(const MatmulV3CompileInfo &, const MatMulV3Args &, const MatMulV3RunInfo &);
 
 const static std::map<platform_ascendc::SocVersion, GetL0C2OutFunc> GetL0C2OutFuncMap = {
     {platform_ascendc::SocVersion::ASCEND910_95, GetL0C2Out91095},
 };
 
 // ------------------------------ CheckIfDoubleAswt -------------------------------------------//
-bool CheckIfDoubleAswtDefault(const Mc2MatMulV3Args & /* args */, const uint64_t /* batchC */)
+bool CheckIfDoubleAswtDefault(const MatMulV3Args & /* args */, const uint64_t /* batchC */)
 {
     return false;
 }
 
-bool CheckIfDoubleAswt91095(const Mc2MatMulV3Args &args, const uint64_t batchC)
+bool CheckIfDoubleAswt91095(const MatMulV3Args &args, const uint64_t batchC)
 {
     constexpr uint64_t halfL2Size = 64UL * 1024UL * 1024UL;  // 64mb
     constexpr uint64_t cubeBoundRatio = 512UL;
@@ -190,7 +186,7 @@ bool CheckIfDoubleAswt91095(const Mc2MatMulV3Args &args, const uint64_t batchC)
     return true;
 }
 
-using CheckIfDoubleAswtFunc = bool (*)(const Mc2MatMulV3Args &, const uint64_t);
+using CheckIfDoubleAswtFunc = bool (*)(const MatMulV3Args &, const uint64_t);
 
 const static std::map<platform_ascendc::SocVersion, CheckIfDoubleAswtFunc> CheckIfDoubleAswtFuncMap = {
     {platform_ascendc::SocVersion::ASCEND910_95, CheckIfDoubleAswt91095},
@@ -198,9 +194,9 @@ const static std::map<platform_ascendc::SocVersion, CheckIfDoubleAswtFunc> Check
 }  // namespace
 
 namespace optiling {
-namespace mc2_matmul_v3_advanced {
-void Mc2MatMulV3TilingHelper::ResetBase(const Mc2MatmulV3CompileInfo &compileInfo, const Mc2MatMulV3Args &args,
-                                     Mc2MatMulV3RunInfo &runInfo)
+namespace matmul_v3_advanced {
+void MatMulV3TilingHelper::ResetBase(const MatmulV3CompileInfo &compileInfo, const MatMulV3Args &args,
+                                     MatMulV3RunInfo &runInfo)
 {
     auto iter = (ResetBaseFuncMap.find(compileInfo.socVersion) == ResetBaseFuncMap.end())
                     ? ResetBaseDefault
@@ -208,8 +204,8 @@ void Mc2MatMulV3TilingHelper::ResetBase(const Mc2MatmulV3CompileInfo &compileInf
     iter(compileInfo, args, runInfo);
 }
 
-void Mc2MatMulV3TilingHelper::CalL1Tiling(const Mc2MatmulV3CompileInfo &compileInfo, const Mc2MatMulV3Args &args,
-                                       Mc2MatMulV3RunInfo &runInfo)
+void MatMulV3TilingHelper::CalL1Tiling(const MatmulV3CompileInfo &compileInfo, const MatMulV3Args &args,
+                                       MatMulV3RunInfo &runInfo)
 {
     auto iter = (CalL1TilingFuncMap.find(compileInfo.socVersion) == CalL1TilingFuncMap.end())
                     ? CalL1TilingDefault
@@ -217,8 +213,8 @@ void Mc2MatMulV3TilingHelper::CalL1Tiling(const Mc2MatmulV3CompileInfo &compileI
     iter(compileInfo, args, runInfo);
 }
 
-Mc2MatMulV3L0C2Out Mc2MatMulV3TilingHelper::GetL0C2Out(const Mc2MatmulV3CompileInfo &compileInfo, const Mc2MatMulV3Args &args,
-                                                 const Mc2MatMulV3RunInfo &runInfo)
+MatMulV3L0C2Out MatMulV3TilingHelper::GetL0C2Out(const MatmulV3CompileInfo &compileInfo, const MatMulV3Args &args,
+                                                 const MatMulV3RunInfo &runInfo)
 {
     auto iter = (GetL0C2OutFuncMap.find(compileInfo.socVersion) == GetL0C2OutFuncMap.end())
                     ? GetL0C2OutDefault
@@ -226,7 +222,7 @@ Mc2MatMulV3L0C2Out Mc2MatMulV3TilingHelper::GetL0C2Out(const Mc2MatmulV3CompileI
     return iter(compileInfo, args, runInfo);
 }
 
-bool Mc2MatMulV3TilingHelper::CheckIfDoubleAswt(const Mc2MatmulV3CompileInfo &compileInfo, const Mc2MatMulV3Args &args,
+bool MatMulV3TilingHelper::CheckIfDoubleAswt(const MatmulV3CompileInfo &compileInfo, const MatMulV3Args &args,
                                              const uint64_t batchC)
 {
     auto iter = (CheckIfDoubleAswtFuncMap.find(compileInfo.socVersion) == CheckIfDoubleAswtFuncMap.end())
@@ -234,5 +230,5 @@ bool Mc2MatMulV3TilingHelper::CheckIfDoubleAswt(const Mc2MatmulV3CompileInfo &co
                     : CheckIfDoubleAswtFuncMap.at(compileInfo.socVersion);
     return iter(args, batchC);
 }
-}  // namespace mc2_matmul_v3_advanced
+}  // namespace matmul_v3_advanced
 }  // namespace optiling

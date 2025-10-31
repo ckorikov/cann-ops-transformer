@@ -27,7 +27,7 @@ using AscendC::SetFlag;
 using AscendC::TEventID;
 using AscendC::WaitFlag;
 
-namespace Mc2WeightQuantBatchMatmulV2::Arch35::Catlass {
+namespace WeightQuantBatchMatmulV2::Arch35::Catlass {
 template <Hardware Src, Hardware Dst, uint8_t Stages_>
 struct PipelineStageSingleCore
     : public PipelineStageSingleCoreBase<Src, Dst, Stages_, PipelineStageSingleCore<Src, Dst, Stages_>> {
@@ -60,5 +60,5 @@ struct PipelineStageSingleCore
         WaitFlag<Base::ForwardHardEvent>(forwardEventId_);
     }
 };
-} // namespace Mc2WeightQuantBatchMatmulV2::Arch35::Catlass
+} // namespace WeightQuantBatchMatmulV2::Arch35::Catlass
 #endif

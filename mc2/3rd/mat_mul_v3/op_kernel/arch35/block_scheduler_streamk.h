@@ -29,7 +29,7 @@ template <
     class L1TileShape_,
     class L0TileShape_
 >
-class Mc2BlockSchedulerStreamKBuiltIn {
+class BlockSchedulerStreamKBuiltIn {
 public:
     int64_t usedCoreNum_{0};
     int64_t mTileNum_{0};
@@ -64,10 +64,10 @@ public:
     using ProblemShape = ProblemShape_;
 
     struct Params {
-        const Mc2MatMulV3BasicTilingData* tilingData;
+        const MatMulV3BasicTilingData* tilingData;
     };
 public:
-    __aicore__ inline Mc2BlockSchedulerStreamKBuiltIn(const ProblemShape& shape, const Params& params)
+    __aicore__ inline BlockSchedulerStreamKBuiltIn(const ProblemShape& shape, const Params& params)
     {
         usedCoreNum_ = params.tilingData->usedCoreNum;
         m_ = shape.m;
@@ -204,7 +204,7 @@ struct BlockSchedulerSelector<
     TransA_,
     TransB_
 > {
-using SchedulerOp = Mc2BlockSchedulerStreamKBuiltIn<ProblemShape_, L1TileShape_, L0TileShape_>;
+using SchedulerOp = BlockSchedulerStreamKBuiltIn<ProblemShape_, L1TileShape_, L0TileShape_>;
 };
 
 } // namespace Block

@@ -20,9 +20,9 @@
 #endif
 
 namespace DequantBmm {
-// Mc2QuantBatchMatmulV3Tiling set Mc2QuantBatchMatmulV3Params tilingData mc2 calls Mc2QuantBatchMatmulV3Tiling DoLibApiTiling
+// QuantBatchMatmulV3Tiling set QuantBatchMatmulV3Params tilingData mc2 calls QuantBatchMatmulV3Tiling DoLibApiTiling
 #pragma pack(push, 8)
-struct Mc2QuantBatchMatmulV3DataParams {
+struct QuantBatchMatmulV3DataParams {
     uint32_t batchA = 0;
     uint32_t batchB = 0;
     uint32_t batchC = 0;
@@ -77,8 +77,8 @@ struct SlidingWindowParams {
 #pragma pack(pop)
 
 #pragma pack(push, 8)
-struct Mc2QuantBatchMatmulV3TilingDataParams {
-    Mc2QuantBatchMatmulV3DataParams params;
+struct QuantBatchMatmulV3TilingDataParams {
+    QuantBatchMatmulV3DataParams params;
     TCubeTiling matmulTiling;
     L2cacheTileParams tileL2cacheTiling;
     SlidingWindowParams adaptiveSlidingWin;

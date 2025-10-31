@@ -20,15 +20,15 @@
 #include "kernel_operator.h"
 #include "lib/matmul_intf.h"
 
-namespace Mc2BatchMatMulV3Advanced {
+namespace BatchMatMulV3Advanced {
 using namespace AscendC;
 using namespace matmul;
 
-template <class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE, class BLOCK_TYPE = Mc2BatchMatMulAswBlock,
+template <class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE, class BLOCK_TYPE = BatchMatMulAswBlock,
     const MatmulConfig &MM_CFG = MM_CFG_NO_PRELOAD>
-class Mc2BatchMatMulAswAL1FullLoadKernel {
+class BatchMatMulAswAL1FullLoadKernel {
 public:
-    __aicore__ inline Mc2BatchMatMulAswAL1FullLoadKernel() {}
+    __aicore__ inline BatchMatMulAswAL1FullLoadKernel() {}
 
     __aicore__ inline void Init(GM_ADDR aGM, GM_ADDR bGM, GM_ADDR cGM, GM_ADDR biasGM, GM_ADDR offsetWGM,
         GM_ADDR workspaceGM, const void *tilingData, TPipe *pipe);
@@ -45,7 +45,7 @@ protected:
     BLOCK_TYPE block_;
 
     using A_T = typename A_TYPE::T;
-    using A_TYPE_NEW = Mc2MatmulV3Advanced::MatmulL1GmType<AscendC::TPosition::TSCM, A_TYPE::format, A_T, A_TYPE::isTrans>;
+    using A_TYPE_NEW = MatmulV3Advanced::MatmulL1GmType<AscendC::TPosition::TSCM, A_TYPE::format, A_T, A_TYPE::isTrans>;
 
     MatmulImpl<A_TYPE_NEW, B_TYPE, C_TYPE, BIAS_TYPE, MM_CFG> mm_;
 
@@ -64,7 +64,7 @@ protected:
 
 
 template <class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE, class BLOCK_TYPE, const MatmulConfig &MM_CFG>
-__aicore__ inline void Mc2BatchMatMulAswAL1FullLoadKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLOCK_TYPE, MM_CFG>::Init(
+__aicore__ inline void BatchMatMulAswAL1FullLoadKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLOCK_TYPE, MM_CFG>::Init(
     GM_ADDR aGM, GM_ADDR bGM, GM_ADDR cGM, GM_ADDR biasGM, GM_ADDR offsetWGM, GM_ADDR workspaceGM,
     const void *tilingData, TPipe *pipe)
 {
@@ -74,7 +74,7 @@ __aicore__ inline void Mc2BatchMatMulAswAL1FullLoadKernel<A_TYPE, B_TYPE, C_TYPE
 }
 
 template <class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE, class BLOCK_TYPE, const MatmulConfig &MM_CFG>
-__aicore__ inline void Mc2BatchMatMulAswAL1FullLoadKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLOCK_TYPE, MM_CFG>::
+__aicore__ inline void BatchMatMulAswAL1FullLoadKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLOCK_TYPE, MM_CFG>::
     InitInputs(GM_ADDR aGM, GM_ADDR bGM, GM_ADDR cGM, GM_ADDR biasGM)
 {
     aGlobal_.SetGlobalBuffer(reinterpret_cast<__gm__ A_T *>(aGM), block_.params_.aBatchDimAll *
@@ -91,22 +91,22 @@ __aicore__ inline void Mc2BatchMatMulAswAL1FullLoadKernel<A_TYPE, B_TYPE, C_TYPE
 }
 
 template <class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE, class BLOCK_TYPE, const MatmulConfig &MM_CFG>
-__aicore__ inline void Mc2BatchMatMulAswAL1FullLoadKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLOCK_TYPE, MM_CFG>::
+__aicore__ inline void BatchMatMulAswAL1FullLoadKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLOCK_TYPE, MM_CFG>::
     UpdateGlobalTensor(GM_ADDR aGM, GM_ADDR bGM, GM_ADDR cGM, GM_ADDR biasGM, GM_ADDR offsetWGM, GM_ADDR workspaceGM)
 {
     InitInputs(aGM, bGM, cGM, biasGM);
 }
 
 template <class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE, class BLOCK_TYPE, const MatmulConfig &MM_CFG>
-__aicore__ inline void Mc2BatchMatMulAswAL1FullLoadKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLOCK_TYPE, MM_CFG>::
+__aicore__ inline void BatchMatMulAswAL1FullLoadKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLOCK_TYPE, MM_CFG>::
     Process(uint8_t enAtomic)
 {
     if ASCEND_IS_AIV {
         return;
     }
-    Mc2MatmulV3Advanced::AswAL1FullLoadKernelCopyInA1<A_TYPE_NEW, A_T, BLOCK_TYPE>(block_,
+    MatmulV3Advanced::AswAL1FullLoadKernelCopyInA1<A_TYPE_NEW, A_T, BLOCK_TYPE>(block_,
         &block_.batchMatmulTilingData_->matMulTilingData, false, aGlobal_, InQueueAL1_, al1Local_);
-    Mc2MatmulV3Advanced::AswAL1FullLoadKernelMainLoop<A_TYPE_NEW, B_TYPE, C_TYPE, BIAS_TYPE, BLOCK_TYPE, MM_CFG>(mm_,
+    MatmulV3Advanced::AswAL1FullLoadKernelMainLoop<A_TYPE_NEW, B_TYPE, C_TYPE, BIAS_TYPE, BLOCK_TYPE, MM_CFG>(mm_,
         block_, &block_.batchMatmulTilingData_->matMulTilingData, bGlobal_, cGlobal_, biasGlobal_, InQueueAL1_,
         al1Local_, enAtomic);
 }

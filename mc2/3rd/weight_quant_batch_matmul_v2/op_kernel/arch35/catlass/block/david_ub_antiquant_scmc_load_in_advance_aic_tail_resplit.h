@@ -30,7 +30,7 @@ using AscendC::TBuf;
 using AscendC::TPosition;
 using AscendC::Std::get;
 
-namespace Mc2WeightQuantBatchMatmulV2::Arch35::Catlass {
+namespace WeightQuantBatchMatmulV2::Arch35::Catlass {
 
 template <
     TPosition POSITION, CubeFormat FORMAT, typename TYPE, bool ISTRANS = false, LayoutMode LAYOUT = LayoutMode::NONE,
@@ -481,5 +481,5 @@ private:
         }
     }
 };
-} // namespace Mc2WeightQuantBatchMatmulV2::Arch35::Catlass
+} // namespace WeightQuantBatchMatmulV2::Arch35::Catlass
 #endif

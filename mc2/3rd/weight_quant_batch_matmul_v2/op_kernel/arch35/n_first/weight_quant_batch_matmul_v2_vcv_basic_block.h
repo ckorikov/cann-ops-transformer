@@ -28,7 +28,7 @@ using AscendC::TBuf;
 using AscendC::TPipe;
 using AscendC::TPosition;
 
-namespace Mc2WeightQuantBatchMatmulV2::Arch35 {
+namespace WeightQuantBatchMatmulV2::Arch35 {
 
 template <
     typename xType, typename wType, typename biasType, typename yType, const WqmmConfig& wqmmConfig,
@@ -296,6 +296,6 @@ __aicore__ inline void WeightQuantVcvMatmulBasicBlock<xType, wType, biasType, yT
         vecCompute_.End();
     }
 }
-} // namespace Mc2WeightQuantBatchMatmulV2::Arch35
+} // namespace WeightQuantBatchMatmulV2::Arch35
 
 #endif // WEIGHT_QUANT_BATCHMATMUL_V2_BASIC_BLOCK_H

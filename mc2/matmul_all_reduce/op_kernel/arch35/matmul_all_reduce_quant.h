@@ -56,7 +56,7 @@ public:
 protected:
     __aicore__ inline void InnerProcess(MmType& mmOp, bool tailFlag, uint32_t turnCnt, const MC2TileInfo& tileInfo)
     {
-        const Mc2QuantBatchMatmulV3TilingData* tiling =
+        const QuantBatchMatmulV3TilingData* tiling =
             (tailFlag ? &mc2TilingData_->tailmatmulTiling : &mc2TilingData_->tilematmulTiling);
         uint64_t pertokenOffset = 0UL;
         uint64_t MX_GROUP_SIZE = 64UL;

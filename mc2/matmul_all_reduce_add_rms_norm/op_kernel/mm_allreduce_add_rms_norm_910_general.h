@@ -86,7 +86,7 @@ private:
         using bType = MatmulType<AscendC::TPosition::GM, CubeFormat::ND, DTYPE_X2, bTransFlag>;            \
         using cType = MatmulType<AscendC::TPosition::GM, CubeFormat::ND, DTYPE_Y>;                         \
         using biasType = MatmulType<AscendC::TPosition::GM, CubeFormat::ND, DTYPE_BIAS_FOR_MC2>;           \
-        using opType = opTemplateClass<aType, bType, cType, biasType, Mc2MatmulBaseBlock, MM_CFG_NO_PRELOAD>; \
+        using opType = opTemplateClass<aType, bType, cType, biasType, MatmulBaseBlock, MM_CFG_NO_PRELOAD>; \
         MC2GmAddrs addrs = {aGM, bGM, biasGM, nullptr, normOutGM, workspaceGM, normOutGM};                 \
         ArnGmAddrs arnAddrs = {residualGM, gammaGM, yGM, normOutGM};                                       \
         MatmulAllReduceAddRmsNorm910General<DTYPE_X1, DTYPE_X2, DTYPE_Y, opType> op(                       \

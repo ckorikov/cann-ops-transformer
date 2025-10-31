@@ -18,19 +18,19 @@
 #include "qbmm_mix_online_dynamic.h"
 #include "qbmm_api_utils.h"
 
-namespace Mc2QuantBatchMatmulV3 {
+namespace QuantBatchMatmulV3 {
 
 using namespace AscendC;
 using namespace matmul;
 
 template <class aType, class bType, class scaleType, class biasType, class ptScaleType, class cType, CubeFormat aFormat,
           CubeFormat bFormat, CubeFormat cFormat, bool aTrans, bool bTrans, class l0cDtype,
-          class blockType = Mc2QuantBmmAswBlock, const MatmulConfig &mmCfg = MM_CFG_NO_PRELOAD_OPEN_UNIT_FLAG>
-class Mc2QuantBmmPertokenAL1FullLoad
-    : public Mc2QuantBmmPertokenRegbaseKernel<aType, bType, scaleType, biasType, ptScaleType, cType, aFormat, bFormat,
+          class blockType = QuantBmmAswBlock, const MatmulConfig &mmCfg = MM_CFG_NO_PRELOAD_OPEN_UNIT_FLAG>
+class QuantBmmPertokenAL1FullLoad
+    : public QuantBmmPertokenRegbaseKernel<aType, bType, scaleType, biasType, ptScaleType, cType, aFormat, bFormat,
                                            cFormat, aTrans, bTrans, l0cDtype, blockType, mmCfg> {
 public:
-    __aicore__ inline Mc2QuantBmmPertokenAL1FullLoad() {}
+    __aicore__ inline QuantBmmPertokenAL1FullLoad() {}
     __aicore__ inline void Init(GM_ADDR aGM, GM_ADDR bGM, GM_ADDR scale, GM_ADDR offset, GM_ADDR bias, GM_ADDR ptScale,
                                 GM_ADDR cGM, GM_ADDR workSpace, const void *tilingData, TPipe *pipe);
     __aicore__ inline void InitBuffer();
@@ -52,7 +52,7 @@ protected:
 };
 
 LOCAL_TEMPLATE_CLASS_MIX_PARAMS
-__aicore__ inline void Mc2QuantBmmPertokenAL1FullLoad<LOCAL_TEMPLATE_FUNC_MIX_PARAMS>::Init(
+__aicore__ inline void QuantBmmPertokenAL1FullLoad<LOCAL_TEMPLATE_FUNC_MIX_PARAMS>::Init(
     GM_ADDR aGM, GM_ADDR bGM, GM_ADDR scale, GM_ADDR offset, GM_ADDR bias, GM_ADDR ptScale, GM_ADDR cGM,
     GM_ADDR workSpace, const void *tilingData, TPipe *pipe)
 {
@@ -62,7 +62,7 @@ __aicore__ inline void Mc2QuantBmmPertokenAL1FullLoad<LOCAL_TEMPLATE_FUNC_MIX_PA
         this->subBlockIdx_ = AscendC::GetSubBlockIdx();
     }
     this->pipe_ = pipe;
-    this->tilingData_ = static_cast<const DequantBmm::Mc2QuantBatchMatmulV3TilingDataParams *>(tilingData);
+    this->tilingData_ = static_cast<const DequantBmm::QuantBatchMatmulV3TilingDataParams *>(tilingData);
 
     this->biasDtype_ = this->tilingData_->params.biasDtype;
     this->isBiasEpilogue_ =
@@ -72,7 +72,7 @@ __aicore__ inline void Mc2QuantBmmPertokenAL1FullLoad<LOCAL_TEMPLATE_FUNC_MIX_PA
 }
 
 LOCAL_TEMPLATE_CLASS_MIX_PARAMS
-__aicore__ inline void Mc2QuantBmmPertokenAL1FullLoad<LOCAL_TEMPLATE_FUNC_MIX_PARAMS>::InitBuffer()
+__aicore__ inline void QuantBmmPertokenAL1FullLoad<LOCAL_TEMPLATE_FUNC_MIX_PARAMS>::InitBuffer()
 {
     if ASCEND_IS_AIC {
         uint64_t aL1Size = DequantBmm::CalcAL1Size<aType, aTrans>(
@@ -111,7 +111,7 @@ __aicore__ inline void Mc2QuantBmmPertokenAL1FullLoad<LOCAL_TEMPLATE_FUNC_MIX_PA
 }
 
 LOCAL_TEMPLATE_CLASS_MIX_PARAMS
-__aicore__ inline void Mc2QuantBmmPertokenAL1FullLoad<LOCAL_TEMPLATE_FUNC_MIX_PARAMS>::Process()
+__aicore__ inline void QuantBmmPertokenAL1FullLoad<LOCAL_TEMPLATE_FUNC_MIX_PARAMS>::Process()
 {
     isMMultiCore_ = this->block_.tilingData_->matmulTiling.singleCoreM < this->block_.tilingData_->matmulTiling.M;
     uint64_t innerAlignedBlock = ONE_BLK_SIZE / sizeof(aType);
@@ -136,7 +136,7 @@ __aicore__ inline void Mc2QuantBmmPertokenAL1FullLoad<LOCAL_TEMPLATE_FUNC_MIX_PA
         this->block_.offset_.batchBOffset = 0;
         ProcessWithoutBatch();
     } else {
-        ProcessWithBatch<Mc2QuantBmmPertokenAL1FullLoad>(this->block_, *this);
+        ProcessWithBatch<QuantBmmPertokenAL1FullLoad>(this->block_, *this);
     }
     if ASCEND_IS_AIC {
         InQueueAL1_.FreeTensor(al1Local_);
@@ -144,7 +144,7 @@ __aicore__ inline void Mc2QuantBmmPertokenAL1FullLoad<LOCAL_TEMPLATE_FUNC_MIX_PA
 }
 
 LOCAL_TEMPLATE_CLASS_MIX_PARAMS
-__aicore__ inline void Mc2QuantBmmPertokenAL1FullLoad<LOCAL_TEMPLATE_FUNC_MIX_PARAMS>::ProcessWithoutBatch()
+__aicore__ inline void QuantBmmPertokenAL1FullLoad<LOCAL_TEMPLATE_FUNC_MIX_PARAMS>::ProcessWithoutBatch()
 {
     bool isVecSetSyncCom = false;
     for (uint64_t j = 0; j < this->block_.params_.round; j++) {
@@ -188,7 +188,7 @@ __aicore__ inline void Mc2QuantBmmPertokenAL1FullLoad<LOCAL_TEMPLATE_FUNC_MIX_PA
 }
 
 LOCAL_TEMPLATE_CLASS_MIX_PARAMS
-__aicore__ inline void Mc2QuantBmmPertokenAL1FullLoad<LOCAL_TEMPLATE_FUNC_MIX_PARAMS>::MMCompute()
+__aicore__ inline void QuantBmmPertokenAL1FullLoad<LOCAL_TEMPLATE_FUNC_MIX_PARAMS>::MMCompute()
 {
     mm.SetTensorA(al1Local_, aTrans);
     mm.SetTensorB(this->bGlobal_[this->block_.offset_.offsetB], bTrans);
@@ -205,6 +205,6 @@ __aicore__ inline void Mc2QuantBmmPertokenAL1FullLoad<LOCAL_TEMPLATE_FUNC_MIX_PA
     mm.GetTensorC(this->l0cOutUb_, 0, true);
 }
 
-}  // namespace Mc2QuantBatchMatmulV3
+}  // namespace QuantBatchMatmulV3
 
 #endif  // QBMM_MIX_ONLINE_DYNAMIC_AL1_FULL_LOAD_H

@@ -22,9 +22,9 @@
 using namespace AscendC;
 using namespace matmul;
 
-template <class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE, class BLOCK_TYPE = Mc2MatmulSingleCoreSplitKBaseBlock,
+template <class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE, class BLOCK_TYPE = MatmulSingleCoreSplitKBaseBlock,
     const MatmulConfig &MM_CFG = MM_CFG_NO_PRELOAD>
-class Mc2MatMulUnAlignedSingleCoreSplitKKernel {
+class MatMulUnAlignedSingleCoreSplitKKernel {
     struct UnAlignedSingleCoreSplitKParams {
         int nd2nzFlag;
         GM_ADDR alignedworkspaceGM;
@@ -53,9 +53,9 @@ class Mc2MatMulUnAlignedSingleCoreSplitKKernel {
     };
 
 public:
-    __aicore__ inline Mc2MatMulUnAlignedSingleCoreSplitKKernel() {}
+    __aicore__ inline MatMulUnAlignedSingleCoreSplitKKernel() {}
     __aicore__ inline void Init(GM_ADDR aGM, GM_ADDR bGM, GM_ADDR cGM, GM_ADDR biasGM, GM_ADDR offsetWGM,
-        GM_ADDR workspaceGM, const Mc2MatmulV3TilingData *matmulTilingData, TPipe *pipe);
+        GM_ADDR workspaceGM, const MatmulTilingData *matmulTilingData, TPipe *pipe);
     __aicore__ inline void UpdateGlobalTensor(GM_ADDR aGM, GM_ADDR bGM, GM_ADDR cGM, GM_ADDR biasGM, GM_ADDR offsetWGM,
         GM_ADDR workspaceGM);
     __aicore__ inline void Process();
@@ -75,15 +75,15 @@ protected:
     using aType = MatmulType<A_TYPE::pos, CubeFormat::NZ, typename A_TYPE::T, A_TYPE::isTrans>;
     using bType = MatmulType<B_TYPE::pos, CubeFormat::NZ, typename B_TYPE::T, B_TYPE::isTrans>;
     using cType = MatmulType<C_TYPE::pos, C_TYPE::format, float, C_TYPE::isTrans>;
-    Mc2MatMulBaseKernelSingleCoreSplitK<aType, B_TYPE, cType, C_TYPE, BIAS_TYPE, BLOCK_TYPE, MM_CFG> mma_;
-    Mc2MatMulBaseKernelSingleCoreSplitK<A_TYPE, bType, cType, C_TYPE, BIAS_TYPE, BLOCK_TYPE, MM_CFG> mmb_;
-    Mc2MatMulBaseKernelSingleCoreSplitK<aType, bType, cType, C_TYPE, BIAS_TYPE, BLOCK_TYPE, MM_CFG> mmab_;
+    MatMulBaseKernelSingleCoreSplitK<aType, B_TYPE, cType, C_TYPE, BIAS_TYPE, BLOCK_TYPE, MM_CFG> mma_;
+    MatMulBaseKernelSingleCoreSplitK<A_TYPE, bType, cType, C_TYPE, BIAS_TYPE, BLOCK_TYPE, MM_CFG> mmb_;
+    MatMulBaseKernelSingleCoreSplitK<aType, bType, cType, C_TYPE, BIAS_TYPE, BLOCK_TYPE, MM_CFG> mmab_;
     GlobalTensor<float> matmulOutput_;
     GlobalTensor<typename C_TYPE::T> castCGm_;
     TPipe *pipe_;
     TBuf<> ubBuf_;
     UnAlignedSingleCoreSplitKParams innerParams_;
-    const Mc2MatmulV3TilingData *matmulTilingData_;
+    const MatmulTilingData *matmulTilingData_;
 
 private:
     __aicore__ inline void ProcessNDtoNZ();
@@ -94,9 +94,9 @@ private:
 
 template <class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE, class BLOCK_TYPE, const MatmulConfig &MM_CFG>
 __aicore__ inline void
-Mc2MatMulUnAlignedSingleCoreSplitKKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLOCK_TYPE, MM_CFG>::Init(GM_ADDR aGM,
+MatMulUnAlignedSingleCoreSplitKKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLOCK_TYPE, MM_CFG>::Init(GM_ADDR aGM,
     GM_ADDR bGM, GM_ADDR cGM, GM_ADDR biasGM, GM_ADDR offsetWGM, GM_ADDR workspaceGM,
-    const Mc2MatmulV3TilingData *matmulTilingData, TPipe *pipe)
+    const MatmulTilingData *matmulTilingData, TPipe *pipe)
 {
     matmulTilingData_ = matmulTilingData;
     innerParams_.isTransposeAIn = matmulTilingData_->matmulRunInfo.transA;
@@ -140,7 +140,7 @@ Mc2MatMulUnAlignedSingleCoreSplitKKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLOC
 
 template <class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE, class BLOCK_TYPE, const MatmulConfig &MM_CFG>
 __aicore__ inline void
-Mc2MatMulUnAlignedSingleCoreSplitKKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLOCK_TYPE, MM_CFG>::InitInputs(GM_ADDR aGM,
+MatMulUnAlignedSingleCoreSplitKKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLOCK_TYPE, MM_CFG>::InitInputs(GM_ADDR aGM,
     GM_ADDR bGM, GM_ADDR cGM, GM_ADDR biasGM, GM_ADDR offsetWGM, GM_ADDR workspaceGM)
 {
     innerParams_.alignedworkspaceGM = reinterpret_cast<GM_ADDR>(
@@ -231,7 +231,7 @@ Mc2MatMulUnAlignedSingleCoreSplitKKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLOC
 }
 
 template <class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE, class BLOCK_TYPE, const MatmulConfig &MM_CFG>
-__aicore__ inline void Mc2MatMulUnAlignedSingleCoreSplitKKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLOCK_TYPE,
+__aicore__ inline void MatMulUnAlignedSingleCoreSplitKKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLOCK_TYPE,
     MM_CFG>::UpdateGlobalTensor(GM_ADDR aGM, GM_ADDR bGM, GM_ADDR cGM, GM_ADDR biasGM, GM_ADDR offsetWGM,
     GM_ADDR workspaceGM)
 {
@@ -264,7 +264,7 @@ __aicore__ inline void Mc2MatMulUnAlignedSingleCoreSplitKKernel<A_TYPE, B_TYPE, 
 
 template <class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE, class BLOCK_TYPE, const MatmulConfig &MM_CFG>
 __aicore__ inline void
-Mc2MatMulUnAlignedSingleCoreSplitKKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLOCK_TYPE, MM_CFG>::ProcessNDtoNZ()
+MatMulUnAlignedSingleCoreSplitKKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLOCK_TYPE, MM_CFG>::ProcessNDtoNZ()
 {
     // ND2NZ
     if (innerParams_.nd2nzFlag == static_cast<int32_t>(ND2NZ_SELECT::ONLY_B)) {
@@ -287,7 +287,7 @@ Mc2MatMulUnAlignedSingleCoreSplitKKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLOC
 
 template <class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE, class BLOCK_TYPE, const MatmulConfig &MM_CFG>
 __aicore__ inline void
-Mc2MatMulUnAlignedSingleCoreSplitKKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLOCK_TYPE, MM_CFG>::ProcessRemovePaddingImpl()
+MatMulUnAlignedSingleCoreSplitKKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLOCK_TYPE, MM_CFG>::ProcessRemovePaddingImpl()
 {
     if (static_cast<uint64_t>(matmulTilingData_->matmulTiling.N) * DATA_SIZE_FP32 % ALIGN_BYTE != 0) {
         uint64_t splitM = matmulTilingData_->matmulTiling.M / (matmulTilingData_->matmulTiling.usedCoreNum * NUM_TWO);
@@ -317,7 +317,7 @@ Mc2MatMulUnAlignedSingleCoreSplitKKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLOC
 
 template <class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE, class BLOCK_TYPE, const MatmulConfig &MM_CFG>
 __aicore__ inline void
-Mc2MatMulUnAlignedSingleCoreSplitKKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLOCK_TYPE, MM_CFG>::Process()
+MatMulUnAlignedSingleCoreSplitKKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLOCK_TYPE, MM_CFG>::Process()
 {
     using C_T = typename C_TYPE::T;
     if ASCEND_IS_AIV {

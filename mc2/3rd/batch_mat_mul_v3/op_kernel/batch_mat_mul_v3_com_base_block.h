@@ -23,9 +23,9 @@
 using namespace AscendC;
 using namespace matmul;
 
-class Mc2BatchMatMulCommonBaseBlock {
+class BatchMatMulCommonBaseBlock {
 public:
-    __aicore__ inline Mc2BatchMatMulCommonBaseBlock() {}
+    __aicore__ inline BatchMatMulCommonBaseBlock() {}
     template <class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE>
     __aicore__ inline void Init(const void *tilingData);
     template <class C_TYPE> __aicore__ inline void InitBatchCount();
@@ -47,17 +47,17 @@ public:
 public:
     static constexpr uint64_t DIAGONAL_THRESHOLD = 5;
 
-    Mc2CommonKernelBlockOffset offset_;
-    Mc2CommonKernelBaseBlockArgs params_;
-    const Mc2BatchMatmulTilingData *batchMatmulTilingData_;
+    CommonKernelBlockOffset offset_;
+    CommonKernelBaseBlockArgs params_;
+    const BatchMatmulTilingData *batchMatmulTilingData_;
     bool indexInit_ = false;
     bool batchLastFlag_ = false;
 };
 
 template <class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE>
-__aicore__ inline void Mc2BatchMatMulCommonBaseBlock::Init(const void *tilingData)
+__aicore__ inline void BatchMatMulCommonBaseBlock::Init(const void *tilingData)
 {
-    batchMatmulTilingData_ = static_cast<const Mc2BatchMatmulTilingData *>(tilingData);
+    batchMatmulTilingData_ = static_cast<const BatchMatmulTilingData *>(tilingData);
 
     InitBatchCount<C_TYPE>();
 
@@ -74,7 +74,7 @@ __aicore__ inline void Mc2BatchMatMulCommonBaseBlock::Init(const void *tilingDat
     // 使能L2cache
     InitL2Cache();
     if (params_.preCoreNum == 0) {
-        params_.preCoreNum = batchMatmulTilingData_->Mc2multiBatchInfo.batchUsedCoreNum;
+        params_.preCoreNum = batchMatmulTilingData_->multiBatchInfo.batchUsedCoreNum;
     }
 
     params_.c0Size = 0;
@@ -99,25 +99,25 @@ __aicore__ inline void Mc2BatchMatMulCommonBaseBlock::Init(const void *tilingDat
 }
 
 template <class C_TYPE>
-__aicore__ inline void Mc2BatchMatMulCommonBaseBlock::InitBatchCount()
+__aicore__ inline void BatchMatMulCommonBaseBlock::InitBatchCount()
 {
     params_.isHf32 = batchMatmulTilingData_->matmulTiling.matmulRunInfo.isHf32;
-    params_.batchA1 = batchMatmulTilingData_->Mc2multiBatchInfo.aBatchDim0;
-    params_.batchA2 = batchMatmulTilingData_->Mc2multiBatchInfo.aBatchDim1;
-    params_.batchA3 = batchMatmulTilingData_->Mc2multiBatchInfo.aBatchDim2;
-    params_.batchA4 = batchMatmulTilingData_->Mc2multiBatchInfo.aBatchDim3;
-    params_.batchB1 = batchMatmulTilingData_->Mc2multiBatchInfo.bBatchDim0;
-    params_.batchB2 = batchMatmulTilingData_->Mc2multiBatchInfo.bBatchDim1;
-    params_.batchB3 = batchMatmulTilingData_->Mc2multiBatchInfo.bBatchDim2;
-    params_.batchB4 = batchMatmulTilingData_->Mc2multiBatchInfo.bBatchDim3;
-    params_.batchC1 = batchMatmulTilingData_->Mc2multiBatchInfo.cBatchDim0;
-    params_.batchC2 = batchMatmulTilingData_->Mc2multiBatchInfo.cBatchDim1;
-    params_.batchC3 = batchMatmulTilingData_->Mc2multiBatchInfo.cBatchDim2;
-    params_.batchC4 = batchMatmulTilingData_->Mc2multiBatchInfo.cBatchDim3;
-    params_.aBatchDimAll = batchMatmulTilingData_->Mc2multiBatchInfo.aBatchDimAll;
-    params_.bBatchDimAll = batchMatmulTilingData_->Mc2multiBatchInfo.bBatchDimAll;
-    params_.cBatchDimAll = batchMatmulTilingData_->Mc2multiBatchInfo.cBatchDimAll;
-    params_.biasWithBatch = batchMatmulTilingData_->Mc2multiBatchInfo.biasWithBatch;
+    params_.batchA1 = batchMatmulTilingData_->multiBatchInfo.aBatchDim0;
+    params_.batchA2 = batchMatmulTilingData_->multiBatchInfo.aBatchDim1;
+    params_.batchA3 = batchMatmulTilingData_->multiBatchInfo.aBatchDim2;
+    params_.batchA4 = batchMatmulTilingData_->multiBatchInfo.aBatchDim3;
+    params_.batchB1 = batchMatmulTilingData_->multiBatchInfo.bBatchDim0;
+    params_.batchB2 = batchMatmulTilingData_->multiBatchInfo.bBatchDim1;
+    params_.batchB3 = batchMatmulTilingData_->multiBatchInfo.bBatchDim2;
+    params_.batchB4 = batchMatmulTilingData_->multiBatchInfo.bBatchDim3;
+    params_.batchC1 = batchMatmulTilingData_->multiBatchInfo.cBatchDim0;
+    params_.batchC2 = batchMatmulTilingData_->multiBatchInfo.cBatchDim1;
+    params_.batchC3 = batchMatmulTilingData_->multiBatchInfo.cBatchDim2;
+    params_.batchC4 = batchMatmulTilingData_->multiBatchInfo.cBatchDim3;
+    params_.aBatchDimAll = batchMatmulTilingData_->multiBatchInfo.aBatchDimAll;
+    params_.bBatchDimAll = batchMatmulTilingData_->multiBatchInfo.bBatchDimAll;
+    params_.cBatchDimAll = batchMatmulTilingData_->multiBatchInfo.cBatchDimAll;
+    params_.biasWithBatch = batchMatmulTilingData_->multiBatchInfo.biasWithBatch;
 
     params_.batchCnt = params_.batchC1 * params_.batchC2 * params_.batchC3 * params_.batchC4;
     params_.mCnt = MMV3DivCeil(batchMatmulTilingData_->matmulTiling.matmulTiling.M,
@@ -131,24 +131,24 @@ __aicore__ inline void Mc2BatchMatMulCommonBaseBlock::InitBatchCount()
         (params_.mCnt - 1) * batchMatmulTilingData_->matmulTiling.matmulTiling.singleCoreM; // m方向上的baseM尾块
 #if defined(__CCE_AICORE__) && __CCE_AICORE__ < 220
     if constexpr (C_TYPE::format == CubeFormat::ND) {
-        params_.mBaseTail = static_cast<uint64_t>(batchMatmulTilingData_->Mc2multiBatchInfo.mOri) -
+        params_.mBaseTail = static_cast<uint64_t>(batchMatmulTilingData_->multiBatchInfo.mOri) -
             (params_.mCnt - 1) * batchMatmulTilingData_->matmulTiling.matmulTiling.singleCoreM;
     }
 #endif
     params_.totalCnt = params_.batchCnt * params_.mCnt * params_.nCnt;                // 所有的基本块个数
-    params_.round = (params_.totalCnt + batchMatmulTilingData_->Mc2multiBatchInfo.batchUsedCoreNum - 1) /
-        batchMatmulTilingData_->Mc2multiBatchInfo.batchUsedCoreNum; // 每一个core最大做base块计算的次数
+    params_.round = (params_.totalCnt + batchMatmulTilingData_->multiBatchInfo.batchUsedCoreNum - 1) /
+        batchMatmulTilingData_->multiBatchInfo.batchUsedCoreNum; // 每一个core最大做base块计算的次数
     params_.realRound = 0;                                       // 单核做多少次base块计算
     params_.preCoreNum = params_.totalCnt %
-        batchMatmulTilingData_->Mc2multiBatchInfo.batchUsedCoreNum; // 从0core开始有多少个core会多做一次base块
+        batchMatmulTilingData_->multiBatchInfo.batchUsedCoreNum; // 从0core开始有多少个core会多做一次base块
     params_.blockIdxStart = 0;
     params_.blockIdxEnd = 0;
     params_.preTotalBlock = 0;
 }
 
-__aicore__ inline void Mc2BatchMatMulCommonBaseBlock::InitL2Cache()
+__aicore__ inline void BatchMatMulCommonBaseBlock::InitL2Cache()
 {
-    const Mc2L2cacheTilePara &tilingL2 = batchMatmulTilingData_->matmulTiling.tileL2cacheTiling;
+    const L2cacheTilePara &tilingL2 = batchMatmulTilingData_->matmulTiling.tileL2cacheTiling;
     params_.mTileCntL2 = static_cast<uint64_t>(tilingL2.mTileCntL2); // M 方向上Tile份数
     params_.nTileCntL2 = static_cast<uint64_t>(tilingL2.nTileCntL2); // N 方向上Tile份数
     params_.enableL2Cache = ((params_.mTileCntL2 > 1) || (params_.nTileCntL2 > 1));
@@ -164,7 +164,7 @@ __aicore__ inline void Mc2BatchMatMulCommonBaseBlock::InitL2Cache()
     }
 }
 
-__aicore__ inline void Mc2BatchMatMulCommonBaseBlock::InitBlockIndex()
+__aicore__ inline void BatchMatMulCommonBaseBlock::InitBlockIndex()
 {
     if (indexInit_) { // ND
         params_.blockIdxStart = params_.blockIdxEnd; // 开始运算时，首核的索引
@@ -213,7 +213,7 @@ __aicore__ inline void Mc2BatchMatMulCommonBaseBlock::InitBlockIndex()
     }
 }
 
-__aicore__ inline void Mc2BatchMatMulCommonBaseBlock::UpdateBasicIndex(const uint64_t roundIdx,
+__aicore__ inline void BatchMatMulCommonBaseBlock::UpdateBasicIndex(const uint64_t roundIdx,
     uint64_t mTileIndex, uint64_t nTileIndex) {
     uint64_t newBlockIdx = (GetBlockIdx() + batchMatmulTilingData_->matmulTiling.matmulTiling.usedCoreNum - params_.blockIdxStart) %
                             batchMatmulTilingData_->matmulTiling.matmulTiling.usedCoreNum +
@@ -226,7 +226,7 @@ __aicore__ inline void Mc2BatchMatMulCommonBaseBlock::UpdateBasicIndex(const uin
     params_.index = mIdx * params_.nCntUse + nIdx;
 }
 
-__aicore__ inline void Mc2BatchMatMulCommonBaseBlock::UpdateBlockParams(uint64_t mTileIndex, uint64_t nTileIndex)
+__aicore__ inline void BatchMatMulCommonBaseBlock::UpdateBlockParams(uint64_t mTileIndex, uint64_t nTileIndex)
 {
     if (!(params_.enableL2Cache)) {
         if ((params_.index + 1) % (params_.mCnt * params_.nCnt) == 0) {
@@ -267,7 +267,7 @@ __aicore__ inline void Mc2BatchMatMulCommonBaseBlock::UpdateBlockParams(uint64_t
     }
 }
 
-__aicore__ inline void Mc2BatchMatMulCommonBaseBlock::UpdateBlockCnt(uint64_t bmTileIndex, uint64_t nTileIndex)
+__aicore__ inline void BatchMatMulCommonBaseBlock::UpdateBlockCnt(uint64_t bmTileIndex, uint64_t nTileIndex)
 {
     // 当前Tile切分不跨Batch
     // 计算偏移时每一个Tile块的起始偏移是无需区分尾块场景的，跨batch用M计算偏移，batch内用singlecoreM计算
@@ -302,7 +302,7 @@ __aicore__ inline void Mc2BatchMatMulCommonBaseBlock::UpdateBlockCnt(uint64_t bm
     }
 }
 
-__aicore__ inline void Mc2BatchMatMulCommonBaseBlock::UpdateBlockParams()
+__aicore__ inline void BatchMatMulCommonBaseBlock::UpdateBlockParams()
 {
     if ((params_.index + 1) % (params_.mCnt * params_.nCnt) == 0) {
         // 最后一块是尾块
@@ -324,7 +324,7 @@ __aicore__ inline void Mc2BatchMatMulCommonBaseBlock::UpdateBlockParams()
 }
 
 template <class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE>
-__aicore__ inline void Mc2BatchMatMulCommonBaseBlock::CalcGMOffset(uint64_t mTileIndex, uint64_t nTileIndex)
+__aicore__ inline void BatchMatMulCommonBaseBlock::CalcGMOffset(uint64_t mTileIndex, uint64_t nTileIndex)
 {
     // batch, M 合轴 处理 index
     uint64_t bmTileStartIndex = params_.mTileAddrOffset /
@@ -374,7 +374,7 @@ __aicore__ inline void Mc2BatchMatMulCommonBaseBlock::CalcGMOffset(uint64_t mTil
 }
 
 template <class A_TYPE>
-__aicore__ inline void Mc2BatchMatMulCommonBaseBlock::CalcAOffset(uint64_t batchAIndex, uint64_t mCntIndex,
+__aicore__ inline void BatchMatMulCommonBaseBlock::CalcAOffset(uint64_t batchAIndex, uint64_t mCntIndex,
     uint64_t mInnerBatchOffset)
 {
     if constexpr (A_TYPE::format == CubeFormat::ND) {
@@ -398,7 +398,7 @@ __aicore__ inline void Mc2BatchMatMulCommonBaseBlock::CalcAOffset(uint64_t batch
 }
 
 template <class B_TYPE>
-__aicore__ inline void Mc2BatchMatMulCommonBaseBlock::CalcBOffset(uint64_t batchBIndex, uint64_t nCntIndex)
+__aicore__ inline void BatchMatMulCommonBaseBlock::CalcBOffset(uint64_t batchBIndex, uint64_t nCntIndex)
 {
     if constexpr (B_TYPE::format == CubeFormat::ND) {
         uint64_t offsetBBatch = batchBIndex *
@@ -421,12 +421,12 @@ __aicore__ inline void Mc2BatchMatMulCommonBaseBlock::CalcBOffset(uint64_t batch
 }
 
 template <class C_TYPE>
-__aicore__ inline void Mc2BatchMatMulCommonBaseBlock::CalcCOffset(uint64_t batchCIndex, uint64_t mCntIndex,
+__aicore__ inline void BatchMatMulCommonBaseBlock::CalcCOffset(uint64_t batchCIndex, uint64_t mCntIndex,
     uint64_t nCntIndex, uint64_t mInnerBatchOffset)
 {
     if constexpr (C_TYPE::format == CubeFormat::ND) {
 #if defined(__CCE_AICORE__) && __CCE_AICORE__ < 220
-        offset_.offsetC = batchCIndex * static_cast<uint64_t>(batchMatmulTilingData_->Mc2multiBatchInfo.mOri) *
+        offset_.offsetC = batchCIndex * static_cast<uint64_t>(batchMatmulTilingData_->multiBatchInfo.mOri) *
             batchMatmulTilingData_->matmulTiling.matmulTiling.N +
             nCntIndex * batchMatmulTilingData_->matmulTiling.matmulTiling.baseN +
             mCntIndex * static_cast<uint64_t>(batchMatmulTilingData_->matmulTiling.matmulTiling.baseM) *
@@ -451,7 +451,7 @@ __aicore__ inline void Mc2BatchMatMulCommonBaseBlock::CalcCOffset(uint64_t batch
     }
 }
 
-__aicore__ inline void Mc2BatchMatMulCommonBaseBlock::UpdateBlockIndex()
+__aicore__ inline void BatchMatMulCommonBaseBlock::UpdateBlockIndex()
 {
     if (params_.rowOrder == ROW_FIRST) {
         params_.index += 1;

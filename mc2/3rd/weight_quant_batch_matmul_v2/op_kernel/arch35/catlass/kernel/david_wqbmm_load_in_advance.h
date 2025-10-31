@@ -12,7 +12,7 @@
 
 #include "../utils/device_utils.h"
 
-namespace Mc2WeightQuantBatchMatmulV2::Arch35::Catlass {
+namespace WeightQuantBatchMatmulV2::Arch35::Catlass {
 template <typename ProblemShape, typename BlockMainloop, typename TileScheduler>
 class wqbmmv2
 {
@@ -57,5 +57,5 @@ public:
         blockMainloop.ClearPipeline(pipelines, states);
     }
 };
-} // namespace Mc2WeightQuantBatchMatmulV2::Arch35::Catlass
+} // namespace WeightQuantBatchMatmulV2::Arch35::Catlass
 #endif

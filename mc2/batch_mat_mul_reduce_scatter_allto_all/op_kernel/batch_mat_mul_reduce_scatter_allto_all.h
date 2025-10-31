@@ -54,7 +54,7 @@ public:
     using bType = MatmulType<AscendC::TPosition::GM, CubeFormat::ND, X_T, IS_TRANS>;
     using cType = MatmulType<AscendC::TPosition::GM, CubeFormat::ND, X_T, false>;
     using biasType = MatmulType<AscendC::TPosition::GM, CubeFormat::ND, BIAS_T, false>;
-    Mc2BatchMatMulCommonKernel<aType, bType, cType, biasType> bmmV3;
+    BatchMatMulCommonKernel<aType, bType, cType, biasType> bmmV3;
 
 private:
     __aicore__ inline void InitTilingData();
@@ -93,10 +93,10 @@ private:
 
     TPipe* pipe = nullptr;
     const BatchMatMulReduceScatterAlltoAllTilingData* tilingData = nullptr;
-    Mc2BatchMatmulTilingData localTileTiling;
-    Mc2BatchMatmulTilingData localTailTiling;
-    Mc2BatchMatmulTilingData nonLocalTileTiling;
-    Mc2BatchMatmulTilingData nonLocalTailTiling;
+    BatchMatmulTilingData localTileTiling;
+    BatchMatmulTilingData localTailTiling;
+    BatchMatmulTilingData nonLocalTileTiling;
+    BatchMatmulTilingData nonLocalTailTiling;
 
     uint64_t tmpBlockIdx = 0U;
     uint64_t E_ep = 0U;

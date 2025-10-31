@@ -23,8 +23,8 @@ namespace optiling {
 BEGIN_TILING_DATA_DEF(UnQuantMatmulAllReduceTilingData)
 TILING_DATA_FIELD_DEF_STRUCT(Mc2Msg, msg);
 TILING_DATA_FIELD_DEF_STRUCT(RCSTiling, param);
-TILING_DATA_FIELD_DEF_STRUCT(Mc2MatmulV3TilingData, tilematmulTiling);
-TILING_DATA_FIELD_DEF_STRUCT(Mc2MatmulV3TilingData, tailmatmulTiling);
+TILING_DATA_FIELD_DEF_STRUCT(MatmulTilingData, tilematmulTiling);
+TILING_DATA_FIELD_DEF_STRUCT(MatmulTilingData, tailmatmulTiling);
 END_TILING_DATA_DEF;
 
 REGISTER_TILING_DATA_CLASS(MatmulAllReduce_2000, UnQuantMatmulAllReduceTilingData);
@@ -32,12 +32,12 @@ REGISTER_TILING_DATA_CLASS(MatmulAllReduce_67536, UnQuantMatmulAllReduceTilingDa
 
 class UnQuantMatmulAllReduceTiling310 : public MatmulAllReduceTilingBase
 {
-    class UnQuantTilingTransferHelper : public mc2_matmul_v3::Mc2MatmulV3BaseTiling
+    class UnQuantTilingTransferHelper : public matmul_v3::MatmulV3BaseTiling
     {
     public:
         UnQuantTilingTransferHelper(
-            UnQuantMatmulAllReduceTiling310& unquantMatmulAllReduceTiling, Mc2MatmulV3TilingData& data)
-            : Mc2MatmulV3BaseTiling(unquantMatmulAllReduceTiling.context_, &data),
+            UnQuantMatmulAllReduceTiling310& unquantMatmulAllReduceTiling, MatmulTilingData& data)
+            : MatmulV3BaseTiling(unquantMatmulAllReduceTiling.context_, &data),
               tilingProcesser_(unquantMatmulAllReduceTiling)
         {}
 

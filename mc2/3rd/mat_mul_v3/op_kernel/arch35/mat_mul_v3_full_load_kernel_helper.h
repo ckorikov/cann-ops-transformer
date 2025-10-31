@@ -17,7 +17,7 @@
 
 #include "../mat_mul_v3_common.h"
 
-namespace Mc2MatmulV3Advanced {
+namespace MatmulV3Advanced {
 using namespace AscendC;
 using namespace matmul;
 
@@ -28,7 +28,7 @@ struct MatmulL1GmType : MatmulType<POSITION, FORMAT, TYPE, ISTRANS, LAYOUT, IBSH
 };
 
 template <class A_TYPE, class A_T, class BLOCK_TYPE>
-__aicore__ inline void AswAL1FullLoadKernelCopyInA1(BLOCK_TYPE &block, const Mc2MatMulV3TilingData *matmulv3TilingData,
+__aicore__ inline void AswAL1FullLoadKernelCopyInA1(BLOCK_TYPE &block, const MatMulV3TilingData *matmulv3TilingData,
     bool isMMultiCore, GlobalTensor<A_T> &aGlobal, TQue<QuePosition::A1, 1> &InQueueAL1, LocalTensor<A_T> &al1Local)
 {
     uint64_t innerAlignedBlock = BLOCK_BYTE_SIZE / sizeof(A_T);
@@ -68,8 +68,8 @@ __aicore__ inline void AswAL1FullLoadKernelCopyInA1(BLOCK_TYPE &block, const Mc2
 }
 
 template <class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE, class BLOCK_TYPE, const MatmulConfig &MM_CFG>
-__aicore__ inline void Mc2AswAL1FullLoadKernelMainLoop(MatmulImpl<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, MM_CFG> &mm,
-    BLOCK_TYPE &block, const Mc2MatMulV3TilingData *matmulv3TilingData, GlobalTensor<typename B_TYPE::T> &bGlobal,
+__aicore__ inline void AswAL1FullLoadKernelMainLoop(MatmulImpl<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, MM_CFG> &mm,
+    BLOCK_TYPE &block, const MatMulV3TilingData *matmulv3TilingData, GlobalTensor<typename B_TYPE::T> &bGlobal,
     GlobalTensor<typename C_TYPE::T> &cGlobal, GlobalTensor<typename BIAS_TYPE::T> &biasGlobal,
     TQue<QuePosition::A1, 1> &InQueueAL1, LocalTensor<typename A_TYPE::T> &al1Local, uint8_t enAtomic)
 {
@@ -106,7 +106,7 @@ __aicore__ inline void Mc2AswAL1FullLoadKernelMainLoop(MatmulImpl<A_TYPE, B_TYPE
 }
 
 template <class B_TYPE>
-__aicore__ inline void CalCopyBL1Nd2NzParams(const Mc2MatMulV3TilingData* matmulv3TilingData, Nd2NzParams& nd2nzParams,
+__aicore__ inline void CalCopyBL1Nd2NzParams(const MatMulV3TilingData* matmulv3TilingData, Nd2NzParams& nd2nzParams,
                                              uint64_t instrN)
 {
     nd2nzParams.ndNum = 1;
@@ -121,7 +121,7 @@ __aicore__ inline void CalCopyBL1Nd2NzParams(const Mc2MatMulV3TilingData* matmul
 }
 
 template <class B_TYPE, class B_T, class BLOCK_TYPE>
-__aicore__ inline void CalCopyBL1Nz2NzParams(const BLOCK_TYPE& block, const Mc2MatMulV3TilingData* matmulv3TilingData,
+__aicore__ inline void CalCopyBL1Nz2NzParams(const BLOCK_TYPE& block, const MatMulV3TilingData* matmulv3TilingData,
                                              bool isNMultiCore, DataCopyParams& dataCopyParams, uint64_t instrN)
 {
     if (B_TYPE::isTrans && isNMultiCore) {
@@ -144,7 +144,7 @@ __aicore__ inline void CalCopyBL1Nz2NzParams(const BLOCK_TYPE& block, const Mc2M
 }
 
 template <class B_TYPE, class B_T, class BLOCK_TYPE>
-__aicore__ inline void AswBL1FullLoadKernelCopyInB1(BLOCK_TYPE &block, const Mc2MatMulV3TilingData* matmulv3TilingData,
+__aicore__ inline void AswBL1FullLoadKernelCopyInB1(BLOCK_TYPE &block, const MatMulV3TilingData* matmulv3TilingData,
                                                     bool isNMultiCore, GlobalTensor<B_T>& bGlobal,
                                                     TQue<QuePosition::B1, 1>& InQueueBL1, LocalTensor<B_T>& bl1Local)
 {
@@ -186,7 +186,7 @@ __aicore__ inline void AswBL1FullLoadKernelCopyInB1(BLOCK_TYPE &block, const Mc2
 
 template <class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE, class BLOCK_TYPE, const MatmulConfig &MM_CFG>
 __aicore__ inline void AswBL1FullLoadKernelMainLoop(MatmulImpl<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, MM_CFG> &mm,
-    BLOCK_TYPE &block, const Mc2MatMulV3TilingData *matmulv3TilingData, GlobalTensor<typename A_TYPE::T> &aGlobal,
+    BLOCK_TYPE &block, const MatMulV3TilingData *matmulv3TilingData, GlobalTensor<typename A_TYPE::T> &aGlobal,
     GlobalTensor<typename C_TYPE::T> &cGlobal, GlobalTensor<typename BIAS_TYPE::T> &biasGlobal,
     TQue<QuePosition::B1, 1> &InQueueBL1, LocalTensor<typename B_TYPE::T> &bl1Local, uint8_t enAtomic)
 {
@@ -225,5 +225,5 @@ __aicore__ inline void AswBL1FullLoadKernelMainLoop(MatmulImpl<A_TYPE, B_TYPE, C
     mm.SetHF32(false, 0);
 }
 
-} // namespace Mc2MatmulV3Advanced
+} // namespace MatmulV3Advanced
 #endif // __OP_KERNEL_MAT_MUL_V3_FULL_LOAD_KERNEL_HELPER_H__

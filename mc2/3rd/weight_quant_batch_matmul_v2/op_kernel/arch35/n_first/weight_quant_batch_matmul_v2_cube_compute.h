@@ -34,7 +34,7 @@ using AscendC::WaitFlag;
 using matmul::MatmulImpl;
 using matmul::MatmulType;
 
-namespace Mc2WeightQuantBatchMatmulV2::Arch35 {
+namespace WeightQuantBatchMatmulV2::Arch35 {
 
 #define WQBMM_CUBE_COMPUTE_TEMPLATE_PARAM \
     template <typename xType, typename biasType, typename yType, const WqmmConfig& wqmmConfig, typename MatmulImplType>
@@ -153,7 +153,7 @@ __aicore__ inline void WQBMM_CUBE_COMPUTE_CLASS::LaunchMatmul(
     mmObj_.SetTail(param.mL1Size, param.nL1Size, kbL1RealSize);
 
     if constexpr (IsSameType<yType, int8_t>::value) {
-        if constexpr (wqmmConfig.quantType == Mc2QuantType::PER_TENSOR) {
+        if constexpr (wqmmConfig.quantType == QuantType::PER_TENSOR) {
             mmObj_.SetQuantScalar(quantScaleValue_);
         } else {
             mmObj_.SetQuantVector(quantScaleGlobal_[param.nOffset]);
@@ -398,7 +398,7 @@ __aicore__ inline void WQBMM_CUBE_COMPUTE_CLASS::Init(
     mmObj_.Init(matmulTiling, tPipe);
     InitSync();
 
-    if constexpr (IsSameType<yType, int8_t>::value && wqmmConfig.quantType == Mc2QuantType::PER_TENSOR) {
+    if constexpr (IsSameType<yType, int8_t>::value && wqmmConfig.quantType == QuantType::PER_TENSOR) {
         quantScaleValue_ = this->quantScaleGlobal_.GetValue(0);
     }
 }
@@ -419,5 +419,5 @@ __aicore__ inline void WQBMM_CUBE_COMPUTE_CLASS::GetTensorC(LocalTensor<yType>& 
     mmObj_.GetTensorC(yUb, 0, true);
 #endif
 }
-} // namespace Mc2WeightQuantBatchMatmulV2::Arch35
+} // namespace WeightQuantBatchMatmulV2::Arch35
 #endif

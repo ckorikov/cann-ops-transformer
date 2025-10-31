@@ -20,7 +20,7 @@
 namespace tuningtiling {
 #pragma pack(push)
 #pragma pack(1)
-struct Mc2MatMulV3InputArgs { //GemmInputArgs
+struct MatMulV3InputArgs { //GemmInputArgs
   int64_t m;
   int64_t k;
   int64_t n;
@@ -58,7 +58,7 @@ struct Mc2MatMulV3InputArgs { //GemmInputArgs
 };
 #pragma pack(pop)
 
-BEGIN_TUNING_TILING_DEF(Mc2MatMulV3TunnerTiling)
+BEGIN_TUNING_TILING_DEF(MatMulV3TunnerTiling)
   TUNING_TILING_DATA_FIELD_DEF(uint32_t, usedCoreNum);
   TUNING_TILING_DATA_FIELD_DEF(uint32_t, singleCoreM);
   TUNING_TILING_DATA_FIELD_DEF(uint32_t, singleCoreN);
@@ -84,30 +84,30 @@ BEGIN_TUNING_TILING_DEF(Mc2MatMulV3TunnerTiling)
   TUNING_TILING_DATA_FIELD_DEF(uint32_t, tilingEnable);
 END_TUNING_TILING_DEF
 
-DECLARE_SCHEMA(Mc2MatMulV3TunnerTiling,
-  FIELD(Mc2MatMulV3TunnerTiling, usedCoreNum),
-  FIELD(Mc2MatMulV3TunnerTiling, singleCoreM),
-  FIELD(Mc2MatMulV3TunnerTiling, singleCoreN),
-  FIELD(Mc2MatMulV3TunnerTiling, singleCoreK),
-  FIELD(Mc2MatMulV3TunnerTiling, baseM),
-  FIELD(Mc2MatMulV3TunnerTiling, baseN),
-  FIELD(Mc2MatMulV3TunnerTiling, baseK),
-  FIELD(Mc2MatMulV3TunnerTiling, depthA1),
-  FIELD(Mc2MatMulV3TunnerTiling, depthB1),
-  FIELD(Mc2MatMulV3TunnerTiling, stepM),
-  FIELD(Mc2MatMulV3TunnerTiling, stepN),
-  FIELD(Mc2MatMulV3TunnerTiling, iterateOrder),
-  FIELD(Mc2MatMulV3TunnerTiling, stepKa),
-  FIELD(Mc2MatMulV3TunnerTiling, stepKb),
-  FIELD(Mc2MatMulV3TunnerTiling, dbL0A),
-  FIELD(Mc2MatMulV3TunnerTiling, dbL0B),
-  FIELD(Mc2MatMulV3TunnerTiling, dbL0C),
-  FIELD(Mc2MatMulV3TunnerTiling, l2MTileCnt),
-  FIELD(Mc2MatMulV3TunnerTiling, l2NTileCnt),
-  FIELD(Mc2MatMulV3TunnerTiling, l2MTileBlock),
-  FIELD(Mc2MatMulV3TunnerTiling, l2NTileBlock),
-  FIELD(Mc2MatMulV3TunnerTiling, l2IterateOrder),
-  FIELD(Mc2MatMulV3TunnerTiling, tilingEnable));
+DECLARE_SCHEMA(MatMulV3TunnerTiling,
+  FIELD(MatMulV3TunnerTiling, usedCoreNum),
+  FIELD(MatMulV3TunnerTiling, singleCoreM),
+  FIELD(MatMulV3TunnerTiling, singleCoreN),
+  FIELD(MatMulV3TunnerTiling, singleCoreK),
+  FIELD(MatMulV3TunnerTiling, baseM),
+  FIELD(MatMulV3TunnerTiling, baseN),
+  FIELD(MatMulV3TunnerTiling, baseK),
+  FIELD(MatMulV3TunnerTiling, depthA1),
+  FIELD(MatMulV3TunnerTiling, depthB1),
+  FIELD(MatMulV3TunnerTiling, stepM),
+  FIELD(MatMulV3TunnerTiling, stepN),
+  FIELD(MatMulV3TunnerTiling, iterateOrder),
+  FIELD(MatMulV3TunnerTiling, stepKa),
+  FIELD(MatMulV3TunnerTiling, stepKb),
+  FIELD(MatMulV3TunnerTiling, dbL0A),
+  FIELD(MatMulV3TunnerTiling, dbL0B),
+  FIELD(MatMulV3TunnerTiling, dbL0C),
+  FIELD(MatMulV3TunnerTiling, l2MTileCnt),
+  FIELD(MatMulV3TunnerTiling, l2NTileCnt),
+  FIELD(MatMulV3TunnerTiling, l2MTileBlock),
+  FIELD(MatMulV3TunnerTiling, l2NTileBlock),
+  FIELD(MatMulV3TunnerTiling, l2IterateOrder),
+  FIELD(MatMulV3TunnerTiling, tilingEnable));
 } // namespace tuningtiling
 
 #endif

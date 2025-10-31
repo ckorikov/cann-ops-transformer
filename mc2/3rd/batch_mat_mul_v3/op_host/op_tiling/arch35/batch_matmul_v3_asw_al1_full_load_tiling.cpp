@@ -19,11 +19,11 @@
 #include "mat_mul_v3/op_host/op_tiling/arch35/matmul_tiling_registry.h"
 
 namespace optiling {
-namespace Mc2batch_matmul_v3_advanced {
+namespace batch_matmul_v3_advanced {
 using namespace strategy;
-MC2_MM_REGISTER_TILING_TEMPLATE(Mc2BatchMatMulV3, Mc2BatchMatMulV3AswAL1FullLoadTiling, ASCEND910_95, AL1_FULL_LOAD);
+MM_REGISTER_TILING_TEMPLATE(BatchMatMulV3, BatchMatMulV3AswAL1FullLoadTiling, ASCEND910_95, AL1_FULL_LOAD);
 
-bool Mc2BatchMatMulV3AswAL1FullLoadTiling::IsCapable()
+bool BatchMatMulV3AswAL1FullLoadTiling::IsCapable()
 {
     if (batchInfo_->batchA > 1UL) { // matrix A should not have batch when AL1FullLoad
         return false;
@@ -56,23 +56,23 @@ bool Mc2BatchMatMulV3AswAL1FullLoadTiling::IsCapable()
     return true;
 }
 
-ge::graphStatus Mc2BatchMatMulV3AswAL1FullLoadTiling::DoOpTiling()
+ge::graphStatus BatchMatMulV3AswAL1FullLoadTiling::DoOpTiling()
 {
-    Mc2MatMulV3TilingHelper::ResetBase(compileInfo_, args_, runInfo_);
-    Mc2MatMulV3TilingHelper::CalL1Tiling(compileInfo_, args_, runInfo_);
-    Mc2MatMulV3AswFullLoadTiling::DoAL1FullLoad(isAl1MulCoreLoad_, args_.batchInfo->batchB, args_.batchInfo->batchBias);
-    if (Mc2MatMulV3TilingHelper::CheckIfDoubleAswt(compileInfo_, args_, batchInfo_->batchC)) {
-        aswtModel_ = Mc2MatMulV3Model::DOUBLE_ASWT;
+    MatMulV3TilingHelper::ResetBase(compileInfo_, args_, runInfo_);
+    MatMulV3TilingHelper::CalL1Tiling(compileInfo_, args_, runInfo_);
+    MatMulV3AswFullLoadTiling::DoAL1FullLoad(isAl1MulCoreLoad_, args_.batchInfo->batchB, args_.batchInfo->batchBias);
+    if (MatMulV3TilingHelper::CheckIfDoubleAswt(compileInfo_, args_, batchInfo_->batchC)) {
+        aswtModel_ = MatMulV3Model::DOUBLE_ASWT;
     }
     return ge::GRAPH_SUCCESS;
 }
 
-uint64_t Mc2BatchMatMulV3AswAL1FullLoadTiling::GetTilingKey() const
+uint64_t BatchMatMulV3AswAL1FullLoadTiling::GetTilingKey() const
 {
-    return Mc2MatMulV3TilingKey()
+    return MatMulV3TilingKey()
         .SetTrans(args_.isATrans, args_.isBTrans)
         .SetModel(aswtModel_)
-        .SetFullLoad(Mc2MatMulV3FullLoad::A_FULL_LOAD)
+        .SetFullLoad(MatMulV3FullLoad::A_FULL_LOAD)
         .GetTilingKey();
 }
 }

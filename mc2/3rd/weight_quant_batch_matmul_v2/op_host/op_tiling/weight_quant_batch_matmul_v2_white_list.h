@@ -20,12 +20,12 @@
 
 namespace optiling {
 
-class Mc2WhiteListShape
+class WhiteListShape
 {
 public:
-    bool operator<(const Mc2WhiteListShape& right) const
+    bool operator<(const WhiteListShape& right) const
     {
-        return memcmp(this, &right, sizeof(Mc2WhiteListShape)) < 0;
+        return memcmp(this, &right, sizeof(WhiteListShape)) < 0;
     }
 
     uint64_t mSize_;
@@ -37,7 +37,7 @@ public:
     uint64_t aicNum_ : 40;
 };
 
-inline void Mc2SetMatmulTilingFromCacheData(
+inline void SetMatmulTilingFromCacheData(
     WeightQuantBatchMatmulCacheTilingData& cacheTilingData, optiling::TCubeTiling& matmulTiling, uint64_t m, uint64_t n,
     int32_t isBias)
 {

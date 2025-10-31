@@ -29,23 +29,23 @@
 #include "matmul_tiling_cfg.h"
 
 namespace optiling {
-struct Mc2MMRegisterCfg {
+struct MMRegisterCfg {
     const char *opType{ nullptr };
     platform_ascendc::SocVersion socVersion{ platform_ascendc::SocVersion::RESERVED_VERSION };
     std::vector<int32_t> priorities{ }; // 0 base
 };
 
 template <typename T>
-std::unique_ptr<Mc2MatMulBaseTiling> MM_TILING_CLASS(gert::TilingContext *context, Mc2MatMulTilingCfg &cfg)
+std::unique_ptr<MatMulBaseTiling> MM_TILING_CLASS(gert::TilingContext *context, MatMulTilingCfg &cfg)
 {
     return std::unique_ptr<T>(new (std::nothrow) T(context, cfg));
 }
 
-using Mc2MMTilingClassCase = std::unique_ptr<Mc2MatMulBaseTiling> (*)(gert::TilingContext *, Mc2MatMulTilingCfg &);
+using MMTilingClassCase = std::unique_ptr<MatMulBaseTiling> (*)(gert::TilingContext *, MatMulTilingCfg &);
 
-class Mc2MMTilingCases {
+class MMTilingCases {
 public:
-    explicit Mc2MMTilingCases(std::string opType) : opType_(std::move(opType)) {}
+    explicit MMTilingCases(std::string opType) : opType_(std::move(opType)) {}
 
     template <typename T>
     void AddTiling(int32_t priority)
@@ -58,40 +58,40 @@ public:
             return );
     }
 
-    const std::map<int32_t, Mc2MMTilingClassCase> &GetTilingCases()
+    const std::map<int32_t, MMTilingClassCase> &GetTilingCases()
     {
         return cases_;
     }
 
 private:
-    std::map<int32_t, Mc2MMTilingClassCase> cases_;
+    std::map<int32_t, MMTilingClassCase> cases_;
     const std::string opType_;
 };
 
-class Mc2MMTilingRegistry {
+class MMTilingRegistry {
 public:
-    Mc2MMTilingRegistry() = default;
+    MMTilingRegistry() = default;
 
 #ifdef ASCENDC_OP_TEST
-    static Mc2MMTilingRegistry &GetInstance();
+    static MMTilingRegistry &GetInstance();
 #else
-    static Mc2MMTilingRegistry &GetInstance()
+    static MMTilingRegistry &GetInstance()
     {
-        static Mc2MMTilingRegistry registryImpl_;
+        static MMTilingRegistry registryImpl_;
         return registryImpl_;
     }
 #endif
 
-    std::shared_ptr<Mc2MMTilingCases> RegisterOp(const std::string &opType, platform_ascendc::SocVersion socVersion)
+    std::shared_ptr<MMTilingCases> RegisterOp(const std::string &opType, platform_ascendc::SocVersion socVersion)
     {
         auto socIter = registryMap_.find(socVersion);
         if (socIter == registryMap_.end()) {
-            std::map<std::string, std::shared_ptr<Mc2MMTilingCases>> opTypeMap;
-            opTypeMap[opType] = std::shared_ptr<Mc2MMTilingCases>(new (std::nothrow) Mc2MMTilingCases(opType));
+            std::map<std::string, std::shared_ptr<MMTilingCases>> opTypeMap;
+            opTypeMap[opType] = std::shared_ptr<MMTilingCases>(new (std::nothrow) MMTilingCases(opType));
             registryMap_[socVersion] = opTypeMap;
         } else {
             if (socIter->second.find(opType) == socIter->second.end()) {
-                socIter->second[opType] = std::shared_ptr<Mc2MMTilingCases>(new (std::nothrow) Mc2MMTilingCases(opType));
+                socIter->second[opType] = std::shared_ptr<MMTilingCases>(new (std::nothrow) MMTilingCases(opType));
             }
         }
 
@@ -101,8 +101,8 @@ public:
         return registryMap_[socVersion][opType];
     }
 
-    ge::graphStatus DoTilingImpl(gert::TilingContext *context, Mc2MatMulTilingCfg &tilingCfg,
-        const Mc2MMRegisterCfg &registerCfg)
+    ge::graphStatus DoTilingImpl(gert::TilingContext *context, MatMulTilingCfg &tilingCfg,
+        const MMRegisterCfg &registerCfg)
     {
         if (context == nullptr || tilingCfg.compileInfo == nullptr || tilingCfg.args == nullptr) {
             OPS_LOG_E(context, "DoTilingImpl failed, context or tilingCfg or args is null.");
@@ -140,7 +140,7 @@ public:
         return ge::GRAPH_FAILED;
     }
 
-    const std::map<int32_t, Mc2MMTilingClassCase> &GetTilingTemplates(const std::string &opType, platform_ascendc::SocVersion socVersion)
+    const std::map<int32_t, MMTilingClassCase> &GetTilingTemplates(const std::string &opType, platform_ascendc::SocVersion socVersion)
     {
         auto socIter = registryMap_.find(socVersion);
         OPS_ERR_IF(socIter == registryMap_.end(),
@@ -155,18 +155,18 @@ public:
     }
 
 private:
-    std::map<platform_ascendc::SocVersion, std::map<std::string, std::shared_ptr<Mc2MMTilingCases>>> registryMap_; // key is socversion
-    const std::map<int32_t, Mc2MMTilingClassCase> emptyTilingCase_{};
+    std::map<platform_ascendc::SocVersion, std::map<std::string, std::shared_ptr<MMTilingCases>>> registryMap_; // key is socversion
+    const std::map<int32_t, MMTilingClassCase> emptyTilingCase_{};
 };
 
-class Mc2MMRegister {
+class MMRegister {
 public:
-    explicit Mc2MMRegister(std::string opType) : opType_(std::move(opType)) {}
+    explicit MMRegister(std::string opType) : opType_(std::move(opType)) {}
 
     template <typename T>
-    Mc2MMRegister &tiling(int32_t priority, platform_ascendc::SocVersion socVersion)
+    MMRegister &tiling(int32_t priority, platform_ascendc::SocVersion socVersion)
     {
-        auto tilingCases = Mc2MMTilingRegistry::GetInstance().RegisterOp(opType_, socVersion);
+        auto tilingCases = MMTilingRegistry::GetInstance().RegisterOp(opType_, socVersion);
         OPS_ERR_IF(tilingCases == nullptr,
             OPS_REPORT_VECTOR_INNER_ERR(opType_, "Register op tiling failed, please the op name."), return *this);
         tilingCases->AddTiling<T>(priority);
@@ -179,10 +179,10 @@ private:
 
 // opType: 算子名称， className: 注册的 tiling 类,
 // priority: tiling 类的优先级, 越小表示优先级越高, 即被选中的概率越大
-// 取代 MC2_MM_REGISTER_TILING_TEMPLATE , 传入的op_type如果是字符串常量，需要去掉引号
-#define MC2_MM_REGISTER_TILING_TEMPLATE(opType, className, socVersion, priority)                                      \
-    static Mc2MMRegister __attribute__((unused)) mc2_mm_register_##opType##_##className##_##socVersion##_##priority##_ = \
-        Mc2MMRegister(#opType).tiling<className>(static_cast<int32_t>(priority), platform_ascendc::SocVersion::socVersion)
+// 取代 MM_REGISTER_TILING_TEMPLATE , 传入的op_type如果是字符串常量，需要去掉引号
+#define MM_REGISTER_TILING_TEMPLATE(opType, className, socVersion, priority)                                      \
+    static MMRegister __attribute__((unused)) mm_register_##opType##_##className##_##socVersion##_##priority##_ = \
+        MMRegister(#opType).tiling<className>(static_cast<int32_t>(priority), platform_ascendc::SocVersion::socVersion)
 } // namespace optiling
 
 #endif // __OP_HOST_MATMUL_TILING_REGISTRY_H__

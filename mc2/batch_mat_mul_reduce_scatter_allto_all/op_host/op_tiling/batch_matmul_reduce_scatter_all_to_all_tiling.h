@@ -20,7 +20,6 @@
 #include "register/tilingdata_base.h"
 #include "tiling/tiling_api.h"
 #include "tiling/mc2_tiling_struct.h"
-#include "tiling/new_mc2_tiling_struct.h"
 #include "../../../3rd/mat_mul_v3/op_host/op_tiling/matmul_v3_tiling.h"
 #include "mc2_log.h"
 #include "tiling/matmul_formulaic_tiling.h"
@@ -95,19 +94,19 @@ BEGIN_TILING_DATA_DEF(BatchMatMulReduceScatterAlltoAllTilingData)
     TILING_DATA_FIELD_DEF_STRUCT(Mc2HcommCfg, hcommCfgRS);                          // 通信域1：reducescatter
     TILING_DATA_FIELD_DEF_STRUCT(Mc2HcommCfg, hcommCfgATA);                         // 通信域2：allToall
     TILING_DATA_FIELD_DEF_STRUCT(Mc2RSATATiling, commonTiling);                     // kernel侧需要的通用tiling
-    TILING_DATA_FIELD_DEF_STRUCT(NewMc2MatmulTilingData, localTiling);                 // local块的matmul tiling数据
-    TILING_DATA_FIELD_DEF_STRUCT(NewMc2MatmulTilingData, domesticTiling);              // 非local块的matmul tiling数据
-    TILING_DATA_FIELD_DEF_STRUCT(NewMc2MatmulTilingData, localTailTiling);             // local尾块的matmul tiling数据
-    TILING_DATA_FIELD_DEF_STRUCT(NewMc2MatmulTilingData, domesticTailTiling);          // 非local尾块的matmul tiling数据
+    TILING_DATA_FIELD_DEF_STRUCT(Mc2MatmulTilingData, localTiling);                 // local块的matmul tiling数据
+    TILING_DATA_FIELD_DEF_STRUCT(Mc2MatmulTilingData, domesticTiling);              // 非local块的matmul tiling数据
+    TILING_DATA_FIELD_DEF_STRUCT(Mc2MatmulTilingData, localTailTiling);             // local尾块的matmul tiling数据
+    TILING_DATA_FIELD_DEF_STRUCT(Mc2MatmulTilingData, domesticTailTiling);          // 非local尾块的matmul tiling数据
 
 END_TILING_DATA_DEF;
 REGISTER_TILING_DATA_CLASS(BatchMatMulReduceScatterAlltoAll, BatchMatMulReduceScatterAlltoAllTilingData);
 
-class BatchMatMulReduceScatterAlltoAllTiling : public Mc2batch_mat_mul_v3::Mc2BatchMatmulV3BaseTiling{
+class BatchMatMulReduceScatterAlltoAllTiling : public batch_mat_mul_v3::BatchMatmulV3BaseTiling{
     public:
-        BatchMatMulReduceScatterAlltoAllTiling(gert::TilingContext *context, Mc2BatchMatmulTilingData &bmmTilingData,
+        BatchMatMulReduceScatterAlltoAllTiling(gert::TilingContext *context, BatchMatmulTilingData &bmmTilingData,
                                     ReduceScatterAlltoAllBatchInfo &BMMV3BatchInfo, ReduceScatterAlltoAllMatmulInfo &MMV3ArgsInfo)
-            : Mc2BatchMatmulV3BaseTiling(context, bmmTilingData), BMMV3BatchInfo_(BMMV3BatchInfo), MMV3ArgsInfo_(MMV3ArgsInfo) {}
+            : BatchMatmulV3BaseTiling(context, bmmTilingData), BMMV3BatchInfo_(BMMV3BatchInfo), MMV3ArgsInfo_(MMV3ArgsInfo) {}
 
         ge::graphStatus GetShapeAttrsInfo() override {
             args_.opName = MMV3ArgsInfo_.opName;

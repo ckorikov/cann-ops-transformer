@@ -62,7 +62,7 @@ constexpr int DEBUG_HALF_WIDTH = 14;
 constexpr int DEBUG_HALF_PRECISION = 4;
 
 template <typename T>
-std::string Mc2DoPrintData(
+std::string DoPrintData(
     const LocalTensor<T>& tensor, size_t count, size_t stride, size_t elementsPerRow, const std::string& block_id,
     const std::string& core_type)
 {
@@ -82,7 +82,7 @@ std::string Mc2DoPrintData(
 }
 
 template <>
-std::string Mc2DoPrintData(
+std::string DoPrintData(
     const LocalTensor<uint8_t>& tensor, size_t count, size_t stride, size_t elementsPerRow, const std::string& block_id,
     const std::string& core_type)
 {
@@ -102,7 +102,7 @@ std::string Mc2DoPrintData(
 }
 
 template <>
-std::string Mc2DoPrintData(
+std::string DoPrintData(
     const LocalTensor<int8_t>& tensor, size_t count, size_t stride, size_t elementsPerRow, const std::string& block_id,
     const std::string& core_type)
 {
@@ -122,7 +122,7 @@ std::string Mc2DoPrintData(
 }
 
 template <>
-std::string Mc2DoPrintData(
+std::string DoPrintData(
     const LocalTensor<half>& tensor, size_t count, size_t stride, size_t elementsPerRow, const std::string& block_id,
     const std::string& core_type)
 {
@@ -142,7 +142,7 @@ std::string Mc2DoPrintData(
 }
 
 template <typename T>
-std::string Mc2DoPrintData(
+std::string DoPrintData(
     const GlobalTensor<T>& tensor, size_t count, size_t stride, size_t elementsPerRow, const std::string& block_id,
     const std::string& core_type)
 {
@@ -161,7 +161,7 @@ std::string Mc2DoPrintData(
     return oss.str();
 }
 
-std::string Mc2DoPrintData(
+std::string DoPrintData(
     const GlobalTensor<int8_t>& tensor, size_t count, size_t stride, size_t elementsPerRow, const std::string& block_id,
     const std::string& core_type)
 {
@@ -181,7 +181,7 @@ std::string Mc2DoPrintData(
 }
 
 template <>
-std::string Mc2DoPrintData(
+std::string DoPrintData(
     const GlobalTensor<half>& tensor, size_t count, size_t stride, size_t elementsPerRow, const std::string& block_id,
     const std::string& core_type)
 {
@@ -218,7 +218,7 @@ std::string Mc2DoPrintData(
         printf(                                                                                                   \
             "[%s][%s][%s:%d][%s][%ld] " format "\n%s\n", block_id.c_str(), core_type.c_str(), FILENAME, __LINE__, \
             __FUNCTION__, (long)getpid(), ##__VA_ARGS__,                                                          \
-            Mc2DoPrintData(data, count, stride, elementsPerRow, block_id, core_type).c_str());                       \
+            DoPrintData(data, count, stride, elementsPerRow, block_id, core_type).c_str());                       \
     } while (0)
 
 #define SHORT_MIX_LOG(format, ...)                                                                            \
@@ -247,7 +247,7 @@ std::string Mc2DoPrintData(
 #define PRINT_DATA(format, ...)
 
 #endif
-namespace Mc2WeightQuantBatchMatmulV2 {
+namespace WeightQuantBatchMatmulV2 {
 static constexpr uint64_t SYNC_MODE0 = 0;
 static constexpr uint64_t SYNC_MODE2 = 2;
 static constexpr uint64_t SYNC_MODE4 = 4;
@@ -564,5 +564,5 @@ struct MatmulL1GmType : MatmulType<POSITION, FORMAT, TYPE, ISTRANS, LAYOUT, IBSH
     constexpr static TPosition srcPos = TPosition::GM;
 };
 
-} // namespace Mc2WeightQuantBatchMatmulV2
+} // namespace WeightQuantBatchMatmulV2
 #endif

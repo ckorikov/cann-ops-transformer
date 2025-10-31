@@ -1,6 +1,6 @@
 /**
- * This program is free software, you can redistribute it and/or modify.
- * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+ * This program is free software, you can redistribute it and/or modify.
+ * Copyright (c) 2025 Huawei Technologies Co., Ltd.
  * This file is a part of the CANN Open Software.
  * Licensed under CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@ using namespace Act::Gemm;
 template <class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE, class A_LAYOUT, class B_LAYOUT, class C_LAYOUT,
           MatMulL0C2Out MATMUL_L0C2OUT>
 __aicore__ inline void MatMulStreamKActKernel(GM_ADDR aGM, GM_ADDR bGM, GM_ADDR biasGM,
-    GM_ADDR cGM, GM_ADDR workspaceGM, const Mc2MatMulV3BasicTilingData& tilingData, int64_t batch = 0)
+    GM_ADDR cGM, GM_ADDR workspaceGM, const MatMulV3BasicTilingData& tilingData, int64_t batch = 0)
 {
     // 定义L1和L0的TileShape
     using L1TileShape = AscendC::Shape<_0, _0, _0>;
@@ -65,7 +65,7 @@ __aicore__ inline void MatMulStreamKActKernel(GM_ADDR aGM, GM_ADDR bGM, GM_ADDR 
     using Params = typename MatmulKernel::Params;
     Params params = {
         {tilingData.m, tilingData.n, tilingData.k, batch}, // shape
-        {aGM, bGM, cGM, biasGM, nullptr, workspaceGM}, // gm addr
+        {aGM, bGM, cGM, biasGM, workspaceGM}, // gm addr
         {cGM, workspaceGM}, // epilogue args
         {&tilingData}
     };

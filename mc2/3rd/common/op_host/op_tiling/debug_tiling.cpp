@@ -40,7 +40,7 @@ static std::string TensorDesc2String(const gert::StorageShape *shape, const gert
     return oss.str();
 }
 
-std::string DebugTilingContext(const gert::TilingContext *context)
+std::string DebugTilingContext(gert::TilingContext *context)
 {
     std::ostringstream oss;
     for (size_t i = 0; i < context->GetComputeNodeInfo()->GetInputsNum(); ++i) {

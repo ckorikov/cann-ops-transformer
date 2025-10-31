@@ -39,13 +39,13 @@ constexpr uint32_t PERTOKEN_SCALE_INDEX = 5;
 
 namespace optiling {
 
-bool Mc2QuantBatchMatmulV3Checker::LogicXOR(bool cond1, bool cond2) const
+bool QuantBatchMatmulV3Checker::LogicXOR(bool cond1, bool cond2) const
 {
     uint64_t result = static_cast<uint64_t>(cond1) ^ static_cast<uint64_t>(cond2);
     return static_cast<bool>(result);
 }
 
-bool Mc2QuantBatchMatmulV3Checker::CheckABDtypes() const
+bool QuantBatchMatmulV3Checker::CheckABDtypes() const
 {
     OP_TILING_CHECK(
         LogicXOR((inputParams_.aDtype == ge::DT_INT8), (inputParams_.bDtype == ge::DT_INT8)),
@@ -97,7 +97,7 @@ bool Mc2QuantBatchMatmulV3Checker::CheckABDtypes() const
     return true;
 }
 
-bool Mc2QuantBatchMatmulV3Checker::CheckScaleDtypeWithPertoken() const
+bool QuantBatchMatmulV3Checker::CheckScaleDtypeWithPertoken() const
 {
     bool isFp4 = inputParams_.aDtype == ge::DT_FLOAT4_E2M1 || inputParams_.aDtype == ge::DT_FLOAT4_E1M2;
     bool isFp8 = inputParams_.aDtype == ge::DT_FLOAT8_E5M2 || inputParams_.aDtype == ge::DT_FLOAT8_E4M3FN;
@@ -146,7 +146,7 @@ should be FLOAT/BFLOAT16, actual dtype is %s.",
     return true;
 }
 
-bool Mc2QuantBatchMatmulV3Checker::CheckScalesDtype() const
+bool QuantBatchMatmulV3Checker::CheckScalesDtype() const
 {
     bool isFp4 = inputParams_.aDtype == ge::DT_FLOAT4_E2M1 || inputParams_.aDtype == ge::DT_FLOAT4_E1M2;
     if (context_->GetOptionalInputDesc(PERTOKEN_SCALE_INDEX) != nullptr &&
@@ -187,7 +187,7 @@ dtype should be UINT64/FLOAT/BFLOAT16/INT64, actual dtype is %s.",
     return true;
 }
 
-bool Mc2QuantBatchMatmulV3Checker::CheckBiasDtype() const
+bool QuantBatchMatmulV3Checker::CheckBiasDtype() const
 {
     auto biasDesc = context_->GetOptionalInputDesc(BIAS_INDEX);
     OP_TILING_CHECK(
@@ -232,7 +232,7 @@ bias dtype should be INT32/FLOAT/BFLOAT16, actual dtype is %s.",
     return true;
 }
 
-bool Mc2QuantBatchMatmulV3Checker::CheckOutputDtype() const
+bool QuantBatchMatmulV3Checker::CheckOutputDtype() const
 {
     OP_TILING_CHECK(
         (inputParams_.aDtype == ge::DT_FLOAT8_E5M2 || inputParams_.aDtype == ge::DT_FLOAT8_E4M3FN ||
@@ -281,7 +281,7 @@ bool Mc2QuantBatchMatmulV3Checker::CheckOutputDtype() const
     return true;
 }
 
-bool Mc2QuantBatchMatmulV3Checker::CheckDtypesInRange() const
+bool QuantBatchMatmulV3Checker::CheckDtypesInRange() const
 {
     static const std::vector<ge::DataType> legalInputDtypes = {
         ge::DT_INT8, ge::DT_FLOAT8_E4M3FN, ge::DT_FLOAT8_E5M2, ge::DT_HIFLOAT8, ge::DT_FLOAT4_E2M1, ge::DT_FLOAT4_E1M2};
@@ -315,7 +315,7 @@ bool Mc2QuantBatchMatmulV3Checker::CheckDtypesInRange() const
     return true;
 }
 
-bool Mc2QuantBatchMatmulV3Checker::CheckDtype() const
+bool QuantBatchMatmulV3Checker::CheckDtype() const
 {
     if (!CheckDtypesInRange()) {
         return false;
@@ -335,7 +335,7 @@ bool Mc2QuantBatchMatmulV3Checker::CheckDtype() const
     return true;
 }
 
-bool Mc2QuantBatchMatmulV3Checker::CheckInputValidInPerblockMode(const gert::Shape& scaleShape,
+bool QuantBatchMatmulV3Checker::CheckInputValidInPerblockMode(const gert::Shape& scaleShape,
                                                               const gert::StorageShape *pertokenShape,
                                                               const gert::Shape& x1Shape,
                                                               const gert::Shape& x2Shape) const
@@ -369,7 +369,7 @@ bool Mc2QuantBatchMatmulV3Checker::CheckInputValidInPerblockMode(const gert::Sha
     return true;
 }
 
-bool Mc2QuantBatchMatmulV3Checker::CheckGroupValidInPerblockMode() const
+bool QuantBatchMatmulV3Checker::CheckGroupValidInPerblockMode() const
 {
     OP_TILING_CHECK(inputParams_.groupSizeM != PER_BLOCK_SIZE && inputParams_.groupSizeM != 1,
                     CUBE_INNER_ERR_REPORT(inputParams_.opName,
@@ -395,7 +395,7 @@ groupSizeN = (groupSize >> 16) & 0xFFFF.",
   return true;
 }
 
-bool Mc2QuantBatchMatmulV3Checker::CheckShapeValidInPerblockMode(const gert::Shape& scaleShape,
+bool QuantBatchMatmulV3Checker::CheckShapeValidInPerblockMode(const gert::Shape& scaleShape,
                                                               const gert::Shape& pertoken, const gert::Shape& x1Shape,
                                                               const gert::Shape& x2Shape) const
 {
@@ -441,7 +441,7 @@ k dimension size of pertokenScale is %lu, k dimension size of x1Shape is %lu.",
     return true;
 }
 
-bool Mc2QuantBatchMatmulV3Checker::CheckDimValidInPerblockMode(size_t x1ShapeLen, size_t x2ShapeLen,
+bool QuantBatchMatmulV3Checker::CheckDimValidInPerblockMode(size_t x1ShapeLen, size_t x2ShapeLen,
                                                             size_t pertokenShapeLen, size_t scaleShapeLen) const
 {
     OP_TILING_CHECK(scaleShapeLen != x2ShapeLen,
@@ -462,7 +462,7 @@ but x1 dimension is: %zu, pertoken dimension is: %zu.",
     return true;
 }
 
-bool Mc2QuantBatchMatmulV3Checker::CheckBatchValidInPerblockMode(const gert::Shape& scaleShape,
+bool QuantBatchMatmulV3Checker::CheckBatchValidInPerblockMode(const gert::Shape& scaleShape,
                                                               const gert::Shape& pertoken, const gert::Shape& x1Shape,
                                                               const gert::Shape& x2Shape) const
 {
@@ -489,7 +489,7 @@ bool Mc2QuantBatchMatmulV3Checker::CheckBatchValidInPerblockMode(const gert::Sha
     return true;
 }
 
-bool Mc2QuantBatchMatmulV3Checker::MxPertokenScaleShapeCheck(const gert::StorageShape *pertokenShape) const
+bool QuantBatchMatmulV3Checker::MxPertokenScaleShapeCheck(const gert::StorageShape *pertokenShape) const
 {
     auto &pertoken = pertokenShape->GetStorageShape();
     auto pertokenShapeLen = pertoken.GetDimNum();
@@ -524,7 +524,7 @@ should be equal to 2, but actual is [%ld].",
     return true;
 }
 
-bool Mc2QuantBatchMatmulV3Checker::MxScaleShapeCheck(const gert::Shape &scaleShape) const
+bool QuantBatchMatmulV3Checker::MxScaleShapeCheck(const gert::Shape &scaleShape) const
 {
     auto scaleShapeLen = scaleShape.GetDimNum();
     OP_TILING_CHECK(
@@ -558,7 +558,7 @@ actual is [%ld].",
     return true;
 }
 
-bool Mc2QuantBatchMatmulV3Checker::CheckInputValidInMxPerGroupMode(const gert::Shape& scaleShape,
+bool QuantBatchMatmulV3Checker::CheckInputValidInMxPerGroupMode(const gert::Shape& scaleShape,
                                                                 const gert::StorageShape *pertokenShape,
                                                                 const std::vector<int64_t> &dimValueOfMKN) const
 {
@@ -600,7 +600,7 @@ ceil div 32 must be even, actual is %lu.",
     return true;
 }
 
-bool Mc2QuantBatchMatmulV3Checker::CheckShapeInRangeForOptionalInputs(const gert::Shape & scaleShape,
+bool QuantBatchMatmulV3Checker::CheckShapeInRangeForOptionalInputs(const gert::Shape & scaleShape,
                                                                    const gert::StorageShape *biasShape,
                                                                    const gert::StorageShape *pertokenShape,
                                                                    const gert::StorageShape *offsetShape,
@@ -643,7 +643,7 @@ Scale must be 1, actual are [%zu] and [%zu]", pertokenDimNum, scaleShape.GetDimN
     return true;
 }
 
-bool Mc2QuantBatchMatmulV3Checker::CheckShapeInBoundary(const gert::Shape &shape, uint32_t shapeIdx) const
+bool QuantBatchMatmulV3Checker::CheckShapeInBoundary(const gert::Shape &shape, uint32_t shapeIdx) const
 {
     int64_t mul = 1;
     int64_t mulBound = 1;
@@ -674,7 +674,7 @@ actual %zu dimension of %s is %ld.",
     return true;
 }
 
-bool Mc2QuantBatchMatmulV3Checker::BiasShapeCheck(const gert::Shape &biasShape, const gert::Shape &scaleShape,
+bool QuantBatchMatmulV3Checker::BiasShapeCheck(const gert::Shape &biasShape, const gert::Shape &scaleShape,
                                                const gert::StorageShape *pertokenShape) const
 {
     auto biasDimNum = biasShape.GetDimNum();
@@ -716,7 +716,7 @@ but it is %zu while n is %lu.",
     return true;
 }
 
-bool Mc2QuantBatchMatmulV3Checker::ExtraInputCheck() const
+bool QuantBatchMatmulV3Checker::ExtraInputCheck() const
 {
     bool isInt8Input = !(inputParams_.aDtype == ge::DT_HIFLOAT8 || inputParams_.aDtype == ge::DT_FLOAT8_E4M3FN ||
                          inputParams_.aDtype == ge::DT_FLOAT8_E5M2);
@@ -736,7 +736,7 @@ trans_a false and trans_b true, actual [%s, %s].",
     return true;
 }
 
-bool Mc2QuantBatchMatmulV3Checker::PerTokenDimValueCheck(const gert::Shape &scaleShape,
+bool QuantBatchMatmulV3Checker::PerTokenDimValueCheck(const gert::Shape &scaleShape,
                                                       const gert::StorageShape *pertokenShape) const
 {
     auto &pertoken = pertokenShape->GetStorageShape();
@@ -777,7 +777,7 @@ but actual is [%ld].",
     return true;
 }
 
-bool Mc2QuantBatchMatmulV3Checker::CheckDimValue(const gert::Shape & scaleShape, const gert::StorageShape *biasShape,
+bool QuantBatchMatmulV3Checker::CheckDimValue(const gert::Shape & scaleShape, const gert::StorageShape *biasShape,
                                               const gert::StorageShape *pertokenShape,
                                               const gert::StorageShape *offsetShape,
                                               const std::vector<int64_t> &dimValueOfMKN) const
@@ -817,7 +817,7 @@ but it is %ld.",
     return true;
 }
 
-bool Mc2QuantBatchMatmulV3Checker::CheckShape(const std::vector<gert::Shape *> &mandtoryShape,
+bool QuantBatchMatmulV3Checker::CheckShape(const std::vector<gert::Shape *> &mandtoryShape,
                                            const gert::StorageShape *biasShape,
                                            const gert::StorageShape *pertokenShape,
                                            const std::vector<int64_t> &dimValueOfMKN) const

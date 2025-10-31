@@ -20,19 +20,19 @@
 #include "matmul_v3_asw_tiling.h"
 
 namespace optiling {
-namespace mc2_matmul_v3_advanced {
-class Mc2MatMulV3AswBasicApiTiling : public Mc2MatMulV3AswTiling {
+namespace matmul_v3_advanced {
+class MatMulV3AswBasicApiTiling : public MatMulV3AswTiling {
 public:
-    Mc2MatMulV3AswBasicApiTiling(gert::TilingContext *context, Mc2MatMulTilingCfg &cfg)
-        : Mc2MatMulV3AswTiling(context, cfg) {};
+    MatMulV3AswBasicApiTiling(gert::TilingContext *context, MatMulTilingCfg &cfg)
+        : MatMulV3AswTiling(context, cfg) {};
 
-    ~Mc2MatMulV3AswBasicApiTiling() override {};
+    ~MatMulV3AswBasicApiTiling() override {};
 
 protected:
     bool IsCapable() override;
 
     uint64_t GetTilingKey() const override;
 };
-} // namespace mc2_matmul_v3
+} // namespace matmul_v3
 } // namespace optiling
 #endif // __OP_HOST_MATMUL_V3_ASW_BASIC_TILING_H__

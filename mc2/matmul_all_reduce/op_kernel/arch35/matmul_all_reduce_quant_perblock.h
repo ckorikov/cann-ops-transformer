@@ -54,7 +54,7 @@ public:
 protected:
     __aicore__ inline void InnerProcess(MmType& mmOp, bool tailFlag, uint32_t turnCnt, const MC2TileInfo& tileInfo)
     {
-        const Mc2QuantBatchMatmulV3TilingData* tiling =
+        const QuantBatchMatmulV3TilingData* tiling =
             (tailFlag ? &mc2TilingData_->tailmatmulTiling : &mc2TilingData_->tilematmulTiling);
         // CeilDiv
         const uint64_t mOfscale = (tiling->matmulTiling.M + 128 - 1) / 128;

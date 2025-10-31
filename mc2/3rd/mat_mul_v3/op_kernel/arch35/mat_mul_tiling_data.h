@@ -25,7 +25,7 @@ constexpr uint64_t TILINGDATA_OFFSET = 512;
 constexpr uint64_t TILINGDATA_SPLIT_NUM = 2;
 
 #pragma pack(push, 8)
-struct Mc2MatMulV3TilingData {
+struct MatMulV3TilingData {
     TCubeTiling tCubeTiling;
     // aswt滑窗最后一轮m或n方向的切分次数
     uint32_t mTailCnt = 0;
@@ -47,15 +47,15 @@ struct Mc2MatMulV3TilingData {
 #pragma pack(pop)
 
 #pragma pack(push, 8)
-struct Mc2MatMulV3TilingDataCopy {
-    Mc2MatMulV3TilingData matMulTilingData;
+struct MatMulV3TilingDataCopy {
+    MatMulV3TilingData matMulTilingData;
     uint8_t reserved[TILINGDATA_OFFSET] = {};  // 申请一个空的512B大小的空间，用于tiling分块
 };
 #pragma pack(pop)
 
 #pragma pack(push, 8)
-struct Mc2BatchMatMulV3TilingData {
-    Mc2MatMulV3TilingData matMulTilingData;
+struct BatchMatMulV3TilingData {
+    MatMulV3TilingData matMulTilingData;
     uint32_t aBatchDimAll = 1;
     uint32_t bBatchDimAll = 1;
     uint32_t cBatchDimAll = 1;
@@ -78,7 +78,7 @@ struct Mc2BatchMatMulV3TilingData {
 #pragma pack(pop)
 
 #pragma pack(push, 8)
-struct Mc2MatMulV3BasicTilingData {
+struct MatMulV3BasicTilingData {
     uint32_t usedCoreNum = 0;
     uint32_t m = 0;
     uint32_t n = 0;
@@ -104,15 +104,15 @@ struct Mc2MatMulV3BasicTilingData {
 #pragma pack(pop)
 
 #pragma pack(push, 8)
-struct Mc2BatchMatMulV3BasicTilingData {
-    Mc2MatMulV3BasicTilingData matMulTilingData;
+struct BatchMatMulV3BasicTilingData {
+    MatMulV3BasicTilingData matMulTilingData;
     uint32_t batchDimAll = 1;
     uint32_t reserved = 0;
 };
 #pragma pack(pop)
 
 #pragma pack(push, 8)
-struct Mc2BatchMatMulV3IterBatchBasicTilingData {
+struct BatchMatMulV3IterBatchBasicTilingData {
     uint32_t m = 1;
     uint32_t n = 1;
     uint32_t k = 1;
@@ -120,9 +120,6 @@ struct Mc2BatchMatMulV3IterBatchBasicTilingData {
     uint32_t iterBatchL1 = 1;
     uint32_t iterBatchL0 = 1;
     uint32_t isHf32 = 0;
-    uint32_t baseM = 16;
-    uint32_t baseN = 16;
-    uint32_t baseK = 16;
 };
 #pragma pack(pop)
 #endif // __OP_KERNEL_MATMUL_TILING_DATA_H__

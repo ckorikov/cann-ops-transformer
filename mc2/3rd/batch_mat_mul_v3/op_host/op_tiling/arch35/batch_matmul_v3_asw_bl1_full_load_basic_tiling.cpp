@@ -19,11 +19,11 @@
 #include "mat_mul_v3/op_host/op_tiling/arch35/matmul_tiling_registry.h"
 
 namespace optiling {
-namespace Mc2batch_matmul_v3_advanced {
+namespace batch_matmul_v3_advanced {
 using namespace strategy;
-MC2_MM_REGISTER_TILING_TEMPLATE(Mc2BatchMatMulV3, Mc2BatchMatMulV3AswBL1FullLoadBasicTiling, ASCEND910_95, BL1_FULL_LOAD_BASIC);
+MM_REGISTER_TILING_TEMPLATE(BatchMatMulV3, BatchMatMulV3AswBL1FullLoadBasicTiling, ASCEND910_95, BL1_FULL_LOAD_BASIC);
 
-bool Mc2BatchMatMulV3AswBL1FullLoadBasicTiling::IsCapable()
+bool BatchMatMulV3AswBL1FullLoadBasicTiling::IsCapable()
 {
     if (batchInfo_->batchA < 1UL) { // matrix A should have batch when BL1FullLoad
         return false;
@@ -57,11 +57,11 @@ bool Mc2BatchMatMulV3AswBL1FullLoadBasicTiling::IsCapable()
     return true;
 }
 
-ge::graphStatus Mc2BatchMatMulV3AswBL1FullLoadBasicTiling::DoOpTiling()
+ge::graphStatus BatchMatMulV3AswBL1FullLoadBasicTiling::DoOpTiling()
 {
-    Mc2MatMulV3TilingHelper::ResetBase(compileInfo_, args_, runInfo_);
-    Mc2MatMulV3TilingHelper::CalL1Tiling(compileInfo_, args_, runInfo_);
-    Mc2MatMulV3AswFullLoadTiling::DoBL1FullLoad(isBl1MulCoreLoad_, args_.batchInfo->batchA, args_.batchInfo->batchBias);
+    MatMulV3TilingHelper::ResetBase(compileInfo_, args_, runInfo_);
+    MatMulV3TilingHelper::CalL1Tiling(compileInfo_, args_, runInfo_);
+    MatMulV3AswFullLoadTiling::DoBL1FullLoad(isBl1MulCoreLoad_, args_.batchInfo->batchA, args_.batchInfo->batchBias);
 
     // l1开2db后依然只使用了一半的空间，则开启4 db。该字段仅在基础api场景生效
     uint64_t c0Size = BLOCK_BYTE_SIZE / args_.aDtypeSize;
@@ -83,13 +83,13 @@ ge::graphStatus Mc2BatchMatMulV3AswBL1FullLoadBasicTiling::DoOpTiling()
     return ge::GRAPH_SUCCESS;
 }
 
-uint64_t Mc2BatchMatMulV3AswBL1FullLoadBasicTiling::GetTilingKey() const
+uint64_t BatchMatMulV3AswBL1FullLoadBasicTiling::GetTilingKey() const
 {
-    return Mc2MatMulV3TilingKey()
+    return MatMulV3TilingKey()
         .SetTrans(args_.isATrans, args_.isBTrans)
         .SetModel(aswtModel_)
-        .SetFullLoad(Mc2MatMulV3FullLoad::B_FULL_LOAD)
-        .SetApiLevel(Mc2MatMulV3ApiLevel::BASIC_LEVEL)
+        .SetFullLoad(MatMulV3FullLoad::B_FULL_LOAD)
+        .SetApiLevel(MatMulV3ApiLevel::BASIC_LEVEL)
         .GetTilingKey();
 }
 }

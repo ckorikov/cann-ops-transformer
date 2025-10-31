@@ -29,12 +29,12 @@
 #if defined(WEIGHT_F8) || defined(WEIGHT_W4_W8)
 #include "./arch35/matmul_all_reduce_weight_quant_adaptive_split.h"
 #include "./arch35/matmul_all_reduce_empty_tensor_k_general.h"
-using Mc2WeightQuantBatchMatmulV2::Arch35::WeightQuantBatchMatmulV2BasicBlockController;
-static constexpr Mc2WeightQuantBatchMatmulV2::Arch35::VecAntiQuantConfig VEC_ANTIQUANT_CONFIG_0 = {2, 512}; // b 转置场景
-static constexpr Mc2WeightQuantBatchMatmulV2::Arch35::VecAntiQuantConfig VEC_ANTIQUANT_CONFIG_1 = {4, 512};
-static constexpr Mc2WeightQuantBatchMatmulV2::Arch35::VecAntiQuantConfig VEC_ANTIQUANT_CONFIG_2 = {2, 1024};
-static constexpr Mc2WeightQuantBatchMatmulV2::Arch35::VecAntiQuantConfig VEC_ANTIQUANT_CONFIG_3 = {4, 256}; // b 非转置场景
-static constexpr Mc2WeightQuantBatchMatmulV2::Arch35::VecAntiQuantConfig VEC_ANTIQUANT_CONFIG_4 = {2, 256}; // solomon
+using WeightQuantBatchMatmulV2::Arch35::WeightQuantBatchMatmulV2BasicBlockController;
+static constexpr WeightQuantBatchMatmulV2::Arch35::VecAntiQuantConfig VEC_ANTIQUANT_CONFIG_0 = {2, 512}; // b 转置场景
+static constexpr WeightQuantBatchMatmulV2::Arch35::VecAntiQuantConfig VEC_ANTIQUANT_CONFIG_1 = {4, 512};
+static constexpr WeightQuantBatchMatmulV2::Arch35::VecAntiQuantConfig VEC_ANTIQUANT_CONFIG_2 = {2, 1024};
+static constexpr WeightQuantBatchMatmulV2::Arch35::VecAntiQuantConfig VEC_ANTIQUANT_CONFIG_3 = {4, 256}; // b 非转置场景
+static constexpr WeightQuantBatchMatmulV2::Arch35::VecAntiQuantConfig VEC_ANTIQUANT_CONFIG_4 = {2, 256}; // solomon
 #endif
 #if ((ORIG_DTYPE_X1 == ORIG_DTYPE_X2) && (ORIG_DTYPE_X1 == DT_INT8)) ||               \
     (((ORIG_DTYPE_X1 == ORIG_DTYPE_X2) && (ORIG_DTYPE_X1 == DT_HIFLOAT8)) ||          \
@@ -93,9 +93,9 @@ static constexpr Mc2WeightQuantBatchMatmulV2::Arch35::VecAntiQuantConfig VEC_ANT
             GET_TILING_DATA_WITH_STRUCT(QuantMatmulAllReduceTilingData, tilingData, tilingGM);                      \
             templateClass<DTYPE_X1, DTYPE_X2, FORMAT_X1, FORMAT_X2, DTYPE_Y, DTYPE_Y, int8_t, __VA_ARGS__> matmul;  \
             const QuantMatmulAllReduceTilingData* QuantMatmulAllReduceTiling = &tilingData;                         \
-            const Mc2QuantBatchMatmulV3TilingData* qBmmV3TilingData = &(QuantMatmulAllReduceTiling->tilematmulTiling); \
+            const QuantBatchMatmulV3TilingData* qBmmV3TilingData = &(QuantMatmulAllReduceTiling->tilematmulTiling); \
             const TCubeTiling* mmTilingTile = &(qBmmV3TilingData->matmulTiling);                                    \
-            const Mc2QuantBatchMatmulV3TilingData* qBmmV3TilingDataTail =                                              \
+            const QuantBatchMatmulV3TilingData* qBmmV3TilingDataTail =                                              \
                 &(QuantMatmulAllReduceTiling->tailmatmulTiling);                                                    \
             const TCubeTiling* mmTilingTail = &(qBmmV3TilingDataTail->matmulTiling);                                \
             REGIST_MATMUL_OBJ(&tPipe, GetSysWorkSpacePtr(), opTile.mm, mmTilingTile, opTail.mm, mmTilingTail);      \
@@ -127,9 +127,9 @@ static constexpr Mc2WeightQuantBatchMatmulV2::Arch35::VecAntiQuantConfig VEC_ANT
             GET_TILING_DATA_WITH_STRUCT(QuantMatmulAllReduceTilingData, tilingData, tilingGM);                       \
             templateClass<DTYPE_X1, DTYPE_X2, FORMAT_X1, FORMAT_X2, scaleType, DTYPE_Y, int8_t, __VA_ARGS__> matmul; \
             const QuantMatmulAllReduceTilingData* QuantMatmulAllReduceTiling = &tilingData;                          \
-            const Mc2QuantBatchMatmulV3TilingData* qBmmV3TilingData = &(QuantMatmulAllReduceTiling->tilematmulTiling);  \
+            const QuantBatchMatmulV3TilingData* qBmmV3TilingData = &(QuantMatmulAllReduceTiling->tilematmulTiling);  \
             const TCubeTiling* mmTilingTile = &(qBmmV3TilingData->matmulTiling);                                     \
-            const Mc2QuantBatchMatmulV3TilingData* qBmmV3TilingDataTail =                                               \
+            const QuantBatchMatmulV3TilingData* qBmmV3TilingDataTail =                                               \
                 &(QuantMatmulAllReduceTiling->tailmatmulTiling);                                                     \
             const TCubeTiling* mmTilingTail = &(qBmmV3TilingDataTail->matmulTiling);                                 \
             REGIST_MATMUL_OBJ(&tPipe, GetSysWorkSpacePtr(), opTile.mm, mmTilingTile, opTail.mm, mmTilingTail);       \
@@ -171,9 +171,9 @@ extern "C" __global__ __aicore__ void matmul_all_reduce(
     // 910非量化
     if (TILING_KEY_IS(11000000000000001100UL)) {
         KERNEL_TASK_TYPE(11000000000000001100UL, KERNEL_TYPE_MIX_AIC_1_0);
-        INVOKE_MC2_910_OP_IMPL(Mc2MatmulV3Advanced::Mc2MatmulAswKernel, Mc2CoreType::ON_CUBE);
+        INVOKE_MC2_910_OP_IMPL(MatmulV3Advanced::MatmulAswKernel, Mc2CoreType::ON_CUBE);
     } else if (TILING_KEY_IS(11000000000000000001UL)) {
-        INVOKE_MC2_910_OP_IMPL(Mc2MatmulV3Advanced::Mc2MatmulAswKernel, Mc2CoreType::ON_CUBE_AND_VECTOR);
+        INVOKE_MC2_910_OP_IMPL(MatmulV3Advanced::MatmulAswKernel, Mc2CoreType::ON_CUBE_AND_VECTOR);
     } else if (TILING_KEY_IS(11000000000000000009UL)) {
         KERNEL_TASK_TYPE(11000000000000000009UL, KERNEL_TYPE_MIX_AIV_1_0);
         INVOKE_MC2_EMPTY_TENSOR_OP_IMPL();
@@ -186,79 +186,79 @@ extern "C" __global__ __aicore__ void matmul_all_reduce(
 #define DTYPE_BIAS DTYPE_X1
     // perchannel&pertensor的key计划删除，走新tilingkey，跟随matmul，暂时保留
     if (TILING_KEY_IS(100200UL)) {
-        INVOKE_MC2_WEIGHT_QUANT_KERNEL(false, Mc2QuantType::PER_CHANNEL, false, false);
+        INVOKE_MC2_WEIGHT_QUANT_KERNEL(false, QuantType::PER_CHANNEL, false, false);
     } else if (TILING_KEY_IS(101200UL)) {
-        INVOKE_MC2_WEIGHT_QUANT_KERNEL(false, Mc2QuantType::PER_CHANNEL, true, false);
+        INVOKE_MC2_WEIGHT_QUANT_KERNEL(false, QuantType::PER_CHANNEL, true, false);
     } else if (TILING_KEY_IS(100210UL)) {
-        INVOKE_MC2_WEIGHT_QUANT_KERNEL(true, Mc2QuantType::PER_CHANNEL, false, false);
+        INVOKE_MC2_WEIGHT_QUANT_KERNEL(true, QuantType::PER_CHANNEL, false, false);
     } else if (TILING_KEY_IS(101210UL)) {
-        INVOKE_MC2_WEIGHT_QUANT_KERNEL(true, Mc2QuantType::PER_CHANNEL, true, false);
+        INVOKE_MC2_WEIGHT_QUANT_KERNEL(true, QuantType::PER_CHANNEL, true, false);
     } else if (TILING_KEY_IS(100300UL)) {
-        INVOKE_MC2_WEIGHT_QUANT_KERNEL(false, Mc2QuantType::PER_GROUP, false, false);
+        INVOKE_MC2_WEIGHT_QUANT_KERNEL(false, QuantType::PER_GROUP, false, false);
     } else if (TILING_KEY_IS(100310UL)) {
-        INVOKE_MC2_WEIGHT_QUANT_KERNEL(true, Mc2QuantType::PER_GROUP, false, false);
+        INVOKE_MC2_WEIGHT_QUANT_KERNEL(true, QuantType::PER_GROUP, false, false);
     } else if (TILING_KEY_IS(101300UL)) {
-        INVOKE_MC2_WEIGHT_QUANT_KERNEL(false, Mc2QuantType::PER_GROUP, true, false);
+        INVOKE_MC2_WEIGHT_QUANT_KERNEL(false, QuantType::PER_GROUP, true, false);
     } else if (TILING_KEY_IS(101310UL)) {
-        INVOKE_MC2_WEIGHT_QUANT_KERNEL(true, Mc2QuantType::PER_GROUP, true, false);
+        INVOKE_MC2_WEIGHT_QUANT_KERNEL(true, QuantType::PER_GROUP, true, false);
     } else if (TILING_KEY_IS(100100UL)) {
-        INVOKE_MC2_WEIGHT_QUANT_KERNEL(false, Mc2QuantType::PER_TENSOR, false, false);
+        INVOKE_MC2_WEIGHT_QUANT_KERNEL(false, QuantType::PER_TENSOR, false, false);
     } else if (TILING_KEY_IS(100110UL)) {
-        INVOKE_MC2_WEIGHT_QUANT_KERNEL(true, Mc2QuantType::PER_TENSOR, false, false);
+        INVOKE_MC2_WEIGHT_QUANT_KERNEL(true, QuantType::PER_TENSOR, false, false);
     } else if (TILING_KEY_IS(101100UL)) {
-        INVOKE_MC2_WEIGHT_QUANT_KERNEL(false, Mc2QuantType::PER_TENSOR, true, false);
+        INVOKE_MC2_WEIGHT_QUANT_KERNEL(false, QuantType::PER_TENSOR, true, false);
     } else if (TILING_KEY_IS(101110UL)) {
-        INVOKE_MC2_WEIGHT_QUANT_KERNEL(true, Mc2QuantType::PER_TENSOR, true, false);
+        INVOKE_MC2_WEIGHT_QUANT_KERNEL(true, QuantType::PER_TENSOR, true, false);
     }
 #endif
     if (TILING_KEY_IS(2000030004000012100UL)) {
         INVOKE_MC2_WEIGHT_QUANT_ADAPTIVE_SPLIT_KERNEL(
-            true, false, Mc2QuantType::PER_CHANNEL, DTYPE_BIAS, VEC_ANTIQUANT_CONFIG_0);
+            true, false, QuantType::PER_CHANNEL, DTYPE_BIAS, VEC_ANTIQUANT_CONFIG_0);
     } else if (TILING_KEY_IS(2000030004000012120UL)) {
         INVOKE_MC2_WEIGHT_QUANT_ADAPTIVE_SPLIT_KERNEL(
-            true, true, Mc2QuantType::PER_CHANNEL, DTYPE_BIAS, VEC_ANTIQUANT_CONFIG_0);
+            true, true, QuantType::PER_CHANNEL, DTYPE_BIAS, VEC_ANTIQUANT_CONFIG_0);
     } else if (TILING_KEY_IS(2000030003000002100UL)) {
         INVOKE_MC2_WEIGHT_QUANT_ADAPTIVE_SPLIT_KERNEL(
-            false, false, Mc2QuantType::PER_CHANNEL, DTYPE_BIAS, VEC_ANTIQUANT_CONFIG_3);
+            false, false, QuantType::PER_CHANNEL, DTYPE_BIAS, VEC_ANTIQUANT_CONFIG_3);
     } else if (TILING_KEY_IS(2000030003000002120UL)) {
         INVOKE_MC2_WEIGHT_QUANT_ADAPTIVE_SPLIT_KERNEL(
-            false, true, Mc2QuantType::PER_CHANNEL, DTYPE_BIAS, VEC_ANTIQUANT_CONFIG_3);
+            false, true, QuantType::PER_CHANNEL, DTYPE_BIAS, VEC_ANTIQUANT_CONFIG_3);
     } else if (TILING_KEY_IS(2000020000000012100UL)) {
         INVOKE_MC2_WEIGHT_QUANT_ADAPTIVE_SPLIT_KERNEL(
-            true, false, Mc2QuantType::PER_CHANNEL, DTYPE_BIAS, VEC_ANTIQUANT_CONFIG_0);
+            true, false, QuantType::PER_CHANNEL, DTYPE_BIAS, VEC_ANTIQUANT_CONFIG_0);
     } else if (TILING_KEY_IS(2000020001000012100UL)) {
         INVOKE_MC2_WEIGHT_QUANT_ADAPTIVE_SPLIT_KERNEL(
-            true, false, Mc2QuantType::PER_CHANNEL, DTYPE_BIAS, VEC_ANTIQUANT_CONFIG_0);
+            true, false, QuantType::PER_CHANNEL, DTYPE_BIAS, VEC_ANTIQUANT_CONFIG_0);
     } else if (TILING_KEY_IS(2000020002000012100UL)) {
         INVOKE_MC2_WEIGHT_QUANT_ADAPTIVE_SPLIT_KERNEL(
-            true, false, Mc2QuantType::PER_CHANNEL, DTYPE_BIAS, VEC_ANTIQUANT_CONFIG_0);
+            true, false, QuantType::PER_CHANNEL, DTYPE_BIAS, VEC_ANTIQUANT_CONFIG_0);
     } else if (TILING_KEY_IS(2000020003000012100UL)) {
         INVOKE_MC2_WEIGHT_QUANT_ADAPTIVE_SPLIT_KERNEL(
-            true, false, Mc2QuantType::PER_CHANNEL, DTYPE_BIAS, VEC_ANTIQUANT_CONFIG_0);
+            true, false, QuantType::PER_CHANNEL, DTYPE_BIAS, VEC_ANTIQUANT_CONFIG_0);
     } else if (TILING_KEY_IS(2000020000000012120UL)) {
         INVOKE_MC2_WEIGHT_QUANT_ADAPTIVE_SPLIT_KERNEL(
-            true, true, Mc2QuantType::PER_CHANNEL, DTYPE_BIAS, VEC_ANTIQUANT_CONFIG_0);
+            true, true, QuantType::PER_CHANNEL, DTYPE_BIAS, VEC_ANTIQUANT_CONFIG_0);
     } else if (TILING_KEY_IS(2000020001000012120UL)) {
         INVOKE_MC2_WEIGHT_QUANT_ADAPTIVE_SPLIT_KERNEL(
-            true, true, Mc2QuantType::PER_CHANNEL, DTYPE_BIAS, VEC_ANTIQUANT_CONFIG_0);
+            true, true, QuantType::PER_CHANNEL, DTYPE_BIAS, VEC_ANTIQUANT_CONFIG_0);
     } else if (TILING_KEY_IS(2000020002000012120UL)) {
         INVOKE_MC2_WEIGHT_QUANT_ADAPTIVE_SPLIT_KERNEL(
-            true, true, Mc2QuantType::PER_CHANNEL, DTYPE_BIAS, VEC_ANTIQUANT_CONFIG_0);
+            true, true, QuantType::PER_CHANNEL, DTYPE_BIAS, VEC_ANTIQUANT_CONFIG_0);
     } else if (TILING_KEY_IS(2000020003000012120UL)) {
         INVOKE_MC2_WEIGHT_QUANT_ADAPTIVE_SPLIT_KERNEL(
-            true, true, Mc2QuantType::PER_CHANNEL, DTYPE_BIAS, VEC_ANTIQUANT_CONFIG_0);
+            true, true, QuantType::PER_CHANNEL, DTYPE_BIAS, VEC_ANTIQUANT_CONFIG_0);
     } else if (TILING_KEY_IS(2000030004000011100UL)) {
         INVOKE_MC2_WEIGHT_QUANT_ADAPTIVE_SPLIT_KERNEL(
-            true, false, Mc2QuantType::PER_TENSOR, DTYPE_BIAS, VEC_ANTIQUANT_CONFIG_0);
+            true, false, QuantType::PER_TENSOR, DTYPE_BIAS, VEC_ANTIQUANT_CONFIG_0);
     } else if (TILING_KEY_IS(2000030004000011120UL)) {
         INVOKE_MC2_WEIGHT_QUANT_ADAPTIVE_SPLIT_KERNEL(
-            true, true, Mc2QuantType::PER_TENSOR, DTYPE_BIAS, VEC_ANTIQUANT_CONFIG_0);
+            true, true, QuantType::PER_TENSOR, DTYPE_BIAS, VEC_ANTIQUANT_CONFIG_0);
     } else if (TILING_KEY_IS(2000030003000001100UL)) {
         INVOKE_MC2_WEIGHT_QUANT_ADAPTIVE_SPLIT_KERNEL(
-            false, false, Mc2QuantType::PER_TENSOR, DTYPE_BIAS, VEC_ANTIQUANT_CONFIG_3);
+            false, false, QuantType::PER_TENSOR, DTYPE_BIAS, VEC_ANTIQUANT_CONFIG_3);
     } else if (TILING_KEY_IS(2000030003000001120UL)) {
         INVOKE_MC2_WEIGHT_QUANT_ADAPTIVE_SPLIT_KERNEL(
-            false, true, Mc2QuantType::PER_TENSOR, DTYPE_BIAS, VEC_ANTIQUANT_CONFIG_3);
+            false, true, QuantType::PER_TENSOR, DTYPE_BIAS, VEC_ANTIQUANT_CONFIG_3);
     } else if (TILING_KEY_IS(10000000000000000008UL)) {
         KERNEL_TASK_TYPE(10000000000000000008UL, KERNEL_TYPE_MIX_AIV_1_0);
         INVOKE_MC2_EMPTY_TENSOR_OP_IMPL();
@@ -268,51 +268,51 @@ extern "C" __global__ __aicore__ void matmul_all_reduce(
 #define DTYPE_BIAS float
     if (TILING_KEY_IS(2000030004000012140UL)) {
         INVOKE_MC2_WEIGHT_QUANT_ADAPTIVE_SPLIT_KERNEL(
-            true, false, Mc2QuantType::PER_CHANNEL, float, VEC_ANTIQUANT_CONFIG_0);
+            true, false, QuantType::PER_CHANNEL, float, VEC_ANTIQUANT_CONFIG_0);
     } else if (TILING_KEY_IS(2000030003000002140UL)) {
         INVOKE_MC2_WEIGHT_QUANT_ADAPTIVE_SPLIT_KERNEL(
-            false, false, Mc2QuantType::PER_CHANNEL, float, VEC_ANTIQUANT_CONFIG_3);
+            false, false, QuantType::PER_CHANNEL, float, VEC_ANTIQUANT_CONFIG_3);
     } else if (TILING_KEY_IS(2000030004000012160UL)) {
         INVOKE_MC2_WEIGHT_QUANT_ADAPTIVE_SPLIT_KERNEL(
-            true, true, Mc2QuantType::PER_CHANNEL, float, VEC_ANTIQUANT_CONFIG_0);
+            true, true, QuantType::PER_CHANNEL, float, VEC_ANTIQUANT_CONFIG_0);
     } else if (TILING_KEY_IS(2000030003000002160UL)) {
         INVOKE_MC2_WEIGHT_QUANT_ADAPTIVE_SPLIT_KERNEL(
-            false, true, Mc2QuantType::PER_CHANNEL, float, VEC_ANTIQUANT_CONFIG_3);
+            false, true, QuantType::PER_CHANNEL, float, VEC_ANTIQUANT_CONFIG_3);
     } else if (TILING_KEY_IS(2000020000000012140UL)) {
         INVOKE_MC2_WEIGHT_QUANT_ADAPTIVE_SPLIT_KERNEL(
-            true, false, Mc2QuantType::PER_CHANNEL, float, VEC_ANTIQUANT_CONFIG_0);
+            true, false, QuantType::PER_CHANNEL, float, VEC_ANTIQUANT_CONFIG_0);
     } else if (TILING_KEY_IS(2000020001000012140UL)) {
         INVOKE_MC2_WEIGHT_QUANT_ADAPTIVE_SPLIT_KERNEL(
-            true, false, Mc2QuantType::PER_CHANNEL, float, VEC_ANTIQUANT_CONFIG_0);
+            true, false, QuantType::PER_CHANNEL, float, VEC_ANTIQUANT_CONFIG_0);
     } else if (TILING_KEY_IS(2000020002000012140UL)) {
         INVOKE_MC2_WEIGHT_QUANT_ADAPTIVE_SPLIT_KERNEL(
-            true, false, Mc2QuantType::PER_CHANNEL, float, VEC_ANTIQUANT_CONFIG_0);
+            true, false, QuantType::PER_CHANNEL, float, VEC_ANTIQUANT_CONFIG_0);
     } else if (TILING_KEY_IS(2000020003000012140UL)) {
         INVOKE_MC2_WEIGHT_QUANT_ADAPTIVE_SPLIT_KERNEL(
-            true, false, Mc2QuantType::PER_CHANNEL, float, VEC_ANTIQUANT_CONFIG_0);
+            true, false, QuantType::PER_CHANNEL, float, VEC_ANTIQUANT_CONFIG_0);
     } else if (TILING_KEY_IS(2000020000000012160UL)) {
         INVOKE_MC2_WEIGHT_QUANT_ADAPTIVE_SPLIT_KERNEL(
-            true, true, Mc2QuantType::PER_CHANNEL, float, VEC_ANTIQUANT_CONFIG_0);
+            true, true, QuantType::PER_CHANNEL, float, VEC_ANTIQUANT_CONFIG_0);
     } else if (TILING_KEY_IS(2000020001000012160UL)) {
         INVOKE_MC2_WEIGHT_QUANT_ADAPTIVE_SPLIT_KERNEL(
-            true, true, Mc2QuantType::PER_CHANNEL, float, VEC_ANTIQUANT_CONFIG_0);
+            true, true, QuantType::PER_CHANNEL, float, VEC_ANTIQUANT_CONFIG_0);
     } else if (TILING_KEY_IS(2000020002000012160UL)) {
         INVOKE_MC2_WEIGHT_QUANT_ADAPTIVE_SPLIT_KERNEL(
-            true, true, Mc2QuantType::PER_CHANNEL, float, VEC_ANTIQUANT_CONFIG_0);
+            true, true, QuantType::PER_CHANNEL, float, VEC_ANTIQUANT_CONFIG_0);
     } else if (TILING_KEY_IS(2000020003000012160UL)) {
         INVOKE_MC2_WEIGHT_QUANT_ADAPTIVE_SPLIT_KERNEL(
-            true, true, Mc2QuantType::PER_CHANNEL, float, VEC_ANTIQUANT_CONFIG_0);
+            true, true, QuantType::PER_CHANNEL, float, VEC_ANTIQUANT_CONFIG_0);
     } else if (TILING_KEY_IS(2000030003000001140UL)) {
         INVOKE_MC2_WEIGHT_QUANT_ADAPTIVE_SPLIT_KERNEL(
-            false, false, Mc2QuantType::PER_TENSOR, float, VEC_ANTIQUANT_CONFIG_3);
+            false, false, QuantType::PER_TENSOR, float, VEC_ANTIQUANT_CONFIG_3);
     } else if (TILING_KEY_IS(2000030003000001160UL)) {
         INVOKE_MC2_WEIGHT_QUANT_ADAPTIVE_SPLIT_KERNEL(
-            false, true, Mc2QuantType::PER_TENSOR, float, VEC_ANTIQUANT_CONFIG_3);
+            false, true, QuantType::PER_TENSOR, float, VEC_ANTIQUANT_CONFIG_3);
     } else if (TILING_KEY_IS(2000030004000011140UL)) {
         INVOKE_MC2_WEIGHT_QUANT_ADAPTIVE_SPLIT_KERNEL(
-            true, false, Mc2QuantType::PER_TENSOR, float, VEC_ANTIQUANT_CONFIG_0);
+            true, false, QuantType::PER_TENSOR, float, VEC_ANTIQUANT_CONFIG_0);
     } else if (TILING_KEY_IS(2000030004000011160UL)) {
-        INVOKE_MC2_WEIGHT_QUANT_ADAPTIVE_SPLIT_KERNEL(true, true, Mc2QuantType::PER_TENSOR, float, VEC_ANTIQUANT_CONFIG_0);
+        INVOKE_MC2_WEIGHT_QUANT_ADAPTIVE_SPLIT_KERNEL(true, true, QuantType::PER_TENSOR, float, VEC_ANTIQUANT_CONFIG_0);
     }
 #endif
 #endif
@@ -332,16 +332,16 @@ extern "C" __global__ __aicore__ void matmul_all_reduce(
 
     if (TILING_KEY_IS(1000000000000002000)) {
         INVOKE_BATCH_MATMUL_QUANT_PERTOKEN_IMPL(
-            Mc2QuantBatchMatmulV3::Mc2QuantBmmPertokenRegbaseKernel, Mc2CoreType::ON_CUBE_AND_VECTOR, float, false, false);
+            QuantBatchMatmulV3::QuantBmmPertokenRegbaseKernel, Mc2CoreType::ON_CUBE_AND_VECTOR, float, false, false);
     } else if (TILING_KEY_IS(1000000000000002001)) {
         INVOKE_BATCH_MATMUL_QUANT_PERTOKEN_IMPL(
-            Mc2QuantBatchMatmulV3::Mc2QuantBmmPertokenRegbaseKernel, Mc2CoreType::ON_CUBE_AND_VECTOR, float, false, true);
+            QuantBatchMatmulV3::QuantBmmPertokenRegbaseKernel, Mc2CoreType::ON_CUBE_AND_VECTOR, float, false, true);
     } else if (TILING_KEY_IS(1000000000000002010)) {
         INVOKE_BATCH_MATMUL_QUANT_PERTOKEN_COMM_INT8_IMPL(
-            Mc2QuantBatchMatmulV3::Mc2QuantBmmPertokenRegbaseKernel, Mc2CoreType::ON_CUBE_AND_VECTOR, float, false, false);
+            QuantBatchMatmulV3::QuantBmmPertokenRegbaseKernel, Mc2CoreType::ON_CUBE_AND_VECTOR, float, false, false);
     } else if (TILING_KEY_IS(1000000000000002011)) {
         INVOKE_BATCH_MATMUL_QUANT_PERTOKEN_COMM_INT8_IMPL(
-            Mc2QuantBatchMatmulV3::Mc2QuantBmmPertokenRegbaseKernel, Mc2CoreType::ON_CUBE_AND_VECTOR, float, false, true);
+            QuantBatchMatmulV3::QuantBmmPertokenRegbaseKernel, Mc2CoreType::ON_CUBE_AND_VECTOR, float, false, true);
     }
 #elif defined(DAVID_QUANT_INT8_OUT_BF16)
 #undef DTYPE_BIAS
@@ -358,16 +358,16 @@ extern "C" __global__ __aicore__ void matmul_all_reduce(
 
     if (TILING_KEY_IS(1000000000000002000)) {
         INVOKE_BATCH_MATMUL_QUANT_PERTOKEN_IMPL(
-            Mc2QuantBatchMatmulV3::Mc2QuantBmmPertokenRegbaseKernel, Mc2CoreType::ON_CUBE_AND_VECTOR, DTYPE_Y, false, false);
+            QuantBatchMatmulV3::QuantBmmPertokenRegbaseKernel, Mc2CoreType::ON_CUBE_AND_VECTOR, DTYPE_Y, false, false);
     } else if (TILING_KEY_IS(1000000000000002001)) {
         INVOKE_BATCH_MATMUL_QUANT_PERTOKEN_IMPL(
-            Mc2QuantBatchMatmulV3::Mc2QuantBmmPertokenRegbaseKernel, Mc2CoreType::ON_CUBE_AND_VECTOR, DTYPE_Y, false, true);
+            QuantBatchMatmulV3::QuantBmmPertokenRegbaseKernel, Mc2CoreType::ON_CUBE_AND_VECTOR, DTYPE_Y, false, true);
     } else if (TILING_KEY_IS(1000000000000002010)) {
         INVOKE_BATCH_MATMUL_QUANT_PERTOKEN_COMM_INT8_IMPL(
-            Mc2QuantBatchMatmulV3::Mc2QuantBmmPertokenRegbaseKernel, Mc2CoreType::ON_CUBE_AND_VECTOR, DTYPE_Y, false, false);
+            QuantBatchMatmulV3::QuantBmmPertokenRegbaseKernel, Mc2CoreType::ON_CUBE_AND_VECTOR, DTYPE_Y, false, false);
     } else if (TILING_KEY_IS(1000000000000002011)) {
         INVOKE_BATCH_MATMUL_QUANT_PERTOKEN_COMM_INT8_IMPL(
-            Mc2QuantBatchMatmulV3::Mc2QuantBmmPertokenRegbaseKernel, Mc2CoreType::ON_CUBE_AND_VECTOR, DTYPE_Y, false, true);
+            QuantBatchMatmulV3::QuantBmmPertokenRegbaseKernel, Mc2CoreType::ON_CUBE_AND_VECTOR, DTYPE_Y, false, true);
     }
 #elif (                                                                         \
     ((ORIG_DTYPE_X1 == DT_FLOAT4_E1M2) || (ORIG_DTYPE_X1 == DT_FLOAT4_E2M1)) && \
@@ -396,16 +396,16 @@ extern "C" __global__ __aicore__ void matmul_all_reduce(
         INVOKE_MC2_QUANT_910_OP_IMPL(AscendC::MatMulASWKernel, Mc2CoreType::ON_CUBE_AND_VECTOR, uint64_t, false, false);
     } else if (TILING_KEY_IS(1000000000000002000)) {
         INVOKE_BATCH_MATMUL_QUANT_PERTOKEN_IMPL(
-            Mc2QuantBatchMatmulV3::Mc2QuantBmmPertokenRegbaseKernel, Mc2CoreType::ON_CUBE_AND_VECTOR, float, false, false);
+            QuantBatchMatmulV3::QuantBmmPertokenRegbaseKernel, Mc2CoreType::ON_CUBE_AND_VECTOR, float, false, false);
     } else if (TILING_KEY_IS(1000000000000002001)) {
         INVOKE_BATCH_MATMUL_QUANT_PERTOKEN_IMPL(
-            Mc2QuantBatchMatmulV3::Mc2QuantBmmPertokenRegbaseKernel, Mc2CoreType::ON_CUBE_AND_VECTOR, float, false, true);
+            QuantBatchMatmulV3::QuantBmmPertokenRegbaseKernel, Mc2CoreType::ON_CUBE_AND_VECTOR, float, false, true);
     } else if (TILING_KEY_IS(1000000000000004000)) {
         INVOKE_MC2_QUANT_PERBLOCK_910_OP_IMPL(
-            Mc2QuantBatchMatmulV3::MatMulPerBlockASW, Mc2CoreType::ON_CUBE_AND_VECTOR, false, false);
+            QuantBatchMatmulV3::MatMulPerBlockASW, Mc2CoreType::ON_CUBE_AND_VECTOR, false, false);
     } else if (TILING_KEY_IS(1000000000000004001)) {
         INVOKE_MC2_QUANT_PERBLOCK_910_OP_IMPL(
-            Mc2QuantBatchMatmulV3::MatMulPerBlockASW, Mc2CoreType::ON_CUBE_AND_VECTOR, false, true);
+            QuantBatchMatmulV3::MatMulPerBlockASW, Mc2CoreType::ON_CUBE_AND_VECTOR, false, true);
     }
 #endif
 #else
@@ -482,45 +482,45 @@ extern "C" __global__ __aicore__ void matmul_all_reduce(
     }
 #elif defined(MC2_WEIGHT_QUANT)
     if (TILING_KEY_IS(365056114230017)) {   // 310100
-        INVOKE_MC2_WEIGHT_QUANT_910_OP_IMPL(false, Mc2QuantType::PER_TENSOR, false);
+        INVOKE_MC2_WEIGHT_QUANT_910_OP_IMPL(false, QuantType::PER_TENSOR, false);
     } else if (TILING_KEY_IS(365330992136961)) { // 311100
-        INVOKE_MC2_WEIGHT_QUANT_910_OP_IMPL(false, Mc2QuantType::PER_TENSOR, true);
+        INVOKE_MC2_WEIGHT_QUANT_910_OP_IMPL(false, QuantType::PER_TENSOR, true);
     } else if (TILING_KEY_IS(365056651100929)) { // 310110
-        INVOKE_MC2_WEIGHT_QUANT_910_OP_IMPL(true, Mc2QuantType::PER_TENSOR, false);
+        INVOKE_MC2_WEIGHT_QUANT_910_OP_IMPL(true, QuantType::PER_TENSOR, false);
     } else if (TILING_KEY_IS(365331529007873)) { // 311110
-        INVOKE_MC2_WEIGHT_QUANT_910_OP_IMPL(true, Mc2QuantType::PER_TENSOR, true);
+        INVOKE_MC2_WEIGHT_QUANT_910_OP_IMPL(true, QuantType::PER_TENSOR, true);
 #if (FORMAT_X2 == FORMAT_FRACTAL_NZ)
     } else if (TILING_KEY_IS(365057188299521)) { // 810200
 #else
     } else if (TILING_KEY_IS(365057187971841)) { // 310200
 #endif
-        INVOKE_MC2_WEIGHT_QUANT_910_OP_IMPL(false, Mc2QuantType::PER_CHANNEL, false);
+        INVOKE_MC2_WEIGHT_QUANT_910_OP_IMPL(false, QuantType::PER_CHANNEL, false);
 #if (FORMAT_X2 == FORMAT_FRACTAL_NZ)
     } else if (TILING_KEY_IS(365332066206465)) { // 811200
 #else
     } else if (TILING_KEY_IS(365332065878785)) { // 311200
 #endif
-        INVOKE_MC2_WEIGHT_QUANT_910_OP_IMPL(false, Mc2QuantType::PER_CHANNEL, true);
+        INVOKE_MC2_WEIGHT_QUANT_910_OP_IMPL(false, QuantType::PER_CHANNEL, true);
 #if (FORMAT_X2 == FORMAT_FRACTAL_NZ)
     } else if (TILING_KEY_IS(365057725170433)) { // 810210
 #else
     } else if (TILING_KEY_IS(365057724842753)) { // 310210
 #endif
-        INVOKE_MC2_WEIGHT_QUANT_910_OP_IMPL(true, Mc2QuantType::PER_CHANNEL, false);
+        INVOKE_MC2_WEIGHT_QUANT_910_OP_IMPL(true, QuantType::PER_CHANNEL, false);
 #if (FORMAT_X2 == FORMAT_FRACTAL_NZ)
     } else if (TILING_KEY_IS(365332603077377)) { // 811210
 #else
     } else if (TILING_KEY_IS(365332602749697)) { // 311210
 #endif
-        INVOKE_MC2_WEIGHT_QUANT_910_OP_IMPL(true, Mc2QuantType::PER_CHANNEL, true);
+        INVOKE_MC2_WEIGHT_QUANT_910_OP_IMPL(true, QuantType::PER_CHANNEL, true);
     } else if (TILING_KEY_IS(365058261713665)) { // 310300
-        INVOKE_MC2_WEIGHT_QUANT_910_OP_IMPL(false, Mc2QuantType::PER_GROUP, false);
+        INVOKE_MC2_WEIGHT_QUANT_910_OP_IMPL(false, QuantType::PER_GROUP, false);
     } else if (TILING_KEY_IS(365058798584577)) { // 310310
-        INVOKE_MC2_WEIGHT_QUANT_910_OP_IMPL(true, Mc2QuantType::PER_GROUP, false);
+        INVOKE_MC2_WEIGHT_QUANT_910_OP_IMPL(true, QuantType::PER_GROUP, false);
     } else if (TILING_KEY_IS(365333139620609)) { // 311300
-        INVOKE_MC2_WEIGHT_QUANT_910_OP_IMPL(false, Mc2QuantType::PER_GROUP, true);
+        INVOKE_MC2_WEIGHT_QUANT_910_OP_IMPL(false, QuantType::PER_GROUP, true);
     } else if (TILING_KEY_IS(365333676491521)) { // 311310UL
-        INVOKE_MC2_WEIGHT_QUANT_910_OP_IMPL(true, Mc2QuantType::PER_GROUP, true);
+        INVOKE_MC2_WEIGHT_QUANT_910_OP_IMPL(true, QuantType::PER_GROUP, true);
     } else if (TILING_KEY_IS(10000000000000000008UL)) { // 空kernel模板
         KERNEL_TASK_TYPE(10000000000000000008UL, KERNEL_TYPE_MIX_AIV_1_0);
         INVOKE_MC2_EMPTY_TENSOR_OP_IMPL();
@@ -528,11 +528,11 @@ extern "C" __global__ __aicore__ void matmul_all_reduce(
 #else
     if (TILING_KEY_IS(10000000000000001100UL)) {
         KERNEL_TASK_TYPE(10000000000000001100UL, KERNEL_TYPE_MIX_AIC_1_0);
-        INVOKE_MC2_910_OP_IMPL(Mc2MatmulBaseKernel, Mc2CoreType::ON_CUBE);
+        INVOKE_MC2_910_OP_IMPL(MatmulBaseKernel, Mc2CoreType::ON_CUBE);
     } else if (TILING_KEY_IS(65536UL)) {
-        INVOKE_MC2_910_OP_IMPL(Mc2MatmulBaseKernel, Mc2CoreType::ON_CUBE_AND_VECTOR);
+        INVOKE_MC2_910_OP_IMPL(MatmulBaseKernel, Mc2CoreType::ON_CUBE_AND_VECTOR);
     } else if (TILING_KEY_IS(0UL)) {
-        INVOKE_MC2_910_OP_IMPL(Mc2MatmulBaseUnAlignedKernel, Mc2CoreType::ON_CUBE_AND_VECTOR);
+        INVOKE_MC2_910_OP_IMPL(MatmulBaseUnAlignedKernel, Mc2CoreType::ON_CUBE_AND_VECTOR);
     } else if (TILING_KEY_IS(10000000000000000009UL)) {
         KERNEL_TASK_TYPE(10000000000000000009UL, KERNEL_TYPE_MIX_AIV_1_0);
         INVOKE_MC2_EMPTY_TENSOR_OP_IMPL();
@@ -548,21 +548,21 @@ extern "C" __global__ __aicore__ void matmul_all_reduce(
 #elif (ORIG_DTYPE_X1 == DT_FLOAT16 && ORIG_DTYPE_X2 == DT_INT8 && FORMAT_X2 != FORMAT_ND) // 归一化310p weightNZ伪量化
     // transA, transB, antiQuantType, hasAntiQuantOffset
     if (TILING_KEY_IS(13195213800193)) { // 80010
-        INVOKE_WEIGHT_QUANT_BMM_OP_IMPL_310(MatmulAllReduceWeightQuant310, false, true, Mc2QuantType::PER_TENSOR, false);
+        INVOKE_WEIGHT_QUANT_BMM_OP_IMPL_310(MatmulAllReduceWeightQuant310, false, true, QuantType::PER_TENSOR, false);
     } else if (TILING_KEY_IS(13195482235649)) {   // 80011
-        INVOKE_WEIGHT_QUANT_BMM_OP_IMPL_310(MatmulAllReduceWeightQuant310, true, true, Mc2QuantType::PER_TENSOR, false);
+        INVOKE_WEIGHT_QUANT_BMM_OP_IMPL_310(MatmulAllReduceWeightQuant310, true, true, QuantType::PER_TENSOR, false);
     } else if (TILING_KEY_IS(13196287542017)) {   // 80020
-        INVOKE_WEIGHT_QUANT_BMM_OP_IMPL_310(MatmulAllReduceWeightQuant310, false, true, Mc2QuantType::PER_CHANNEL, false);
+        INVOKE_WEIGHT_QUANT_BMM_OP_IMPL_310(MatmulAllReduceWeightQuant310, false, true, QuantType::PER_CHANNEL, false);
     } else if (TILING_KEY_IS(13196555977473)) {   // 80021
-        INVOKE_WEIGHT_QUANT_BMM_OP_IMPL_310(MatmulAllReduceWeightQuant310, true, true, Mc2QuantType::PER_CHANNEL, false);
+        INVOKE_WEIGHT_QUANT_BMM_OP_IMPL_310(MatmulAllReduceWeightQuant310, true, true, QuantType::PER_CHANNEL, false);
     } else if (TILING_KEY_IS(13470091707137)) {   // 80110
-        INVOKE_WEIGHT_QUANT_BMM_OP_IMPL_310(MatmulAllReduceWeightQuant310, false, true, Mc2QuantType::PER_TENSOR, true);
+        INVOKE_WEIGHT_QUANT_BMM_OP_IMPL_310(MatmulAllReduceWeightQuant310, false, true, QuantType::PER_TENSOR, true);
     } else if (TILING_KEY_IS(13470360142593)) {   // 80111
-        INVOKE_WEIGHT_QUANT_BMM_OP_IMPL_310(MatmulAllReduceWeightQuant310, true, true, Mc2QuantType::PER_TENSOR, true);
+        INVOKE_WEIGHT_QUANT_BMM_OP_IMPL_310(MatmulAllReduceWeightQuant310, true, true, QuantType::PER_TENSOR, true);
     } else if (TILING_KEY_IS(13471165448961)) {   // 80120
-        INVOKE_WEIGHT_QUANT_BMM_OP_IMPL_310(MatmulAllReduceWeightQuant310, false, true, Mc2QuantType::PER_CHANNEL, true);
+        INVOKE_WEIGHT_QUANT_BMM_OP_IMPL_310(MatmulAllReduceWeightQuant310, false, true, QuantType::PER_CHANNEL, true);
     } else if (TILING_KEY_IS(13471433884417)) {   // 80121
-        INVOKE_WEIGHT_QUANT_BMM_OP_IMPL_310(MatmulAllReduceWeightQuant310, true, true, Mc2QuantType::PER_CHANNEL, true);
+        INVOKE_WEIGHT_QUANT_BMM_OP_IMPL_310(MatmulAllReduceWeightQuant310, true, true, QuantType::PER_CHANNEL, true);
     } else if (TILING_KEY_IS(2100000UL)) { // 空kernel
         GET_TILING_DATA_WITH_STRUCT(WeightQuantMatmulAllReduceNzTilingData, tilingData, tilingGM);
         WeightQuantEmptyTensorKernel(biasGM, cGM, workspaceGM, &tilingData, &hcclServer);

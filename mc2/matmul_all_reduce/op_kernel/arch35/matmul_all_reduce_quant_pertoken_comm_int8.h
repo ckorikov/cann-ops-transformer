@@ -49,7 +49,7 @@ public:
 
 private:
     __aicore__ inline void InnerProcess(
-        MmType& mmOp, uint32_t tileCnt, Mc2QuantBatchMatmulV3TilingData* mmTiling, uint32_t isAdd, uint32_t needUbBuffer,
+        MmType& mmOp, uint32_t tileCnt, QuantBatchMatmulV3TilingData* mmTiling, uint32_t isAdd, uint32_t needUbBuffer,
         uint32_t padM, bool isTailFlag);
     __aicore__ inline void PrepareInit();
     __aicore__ inline uint32_t SendCountCheck(uint32_t prepareIndex);
@@ -225,7 +225,7 @@ __aicore__ inline void MatmulAllReduceQuantPertokenCommInt8<xType, WType, YType,
 
 template <typename xType, typename WType, typename YType, class MmType, Mc2CoreType CoreType>
 __aicore__ inline void MatmulAllReduceQuantPertokenCommInt8<xType, WType, YType, MmType, CoreType>::InnerProcess(
-    MmType& mmOp, uint32_t tileCnt, Mc2QuantBatchMatmulV3TilingData* mmTiling, uint32_t isAdd, uint32_t needUbBuffer,
+    MmType& mmOp, uint32_t tileCnt, QuantBatchMatmulV3TilingData* mmTiling, uint32_t isAdd, uint32_t needUbBuffer,
     uint32_t padM, bool isTailFlag)
 {
     const uint64_t aOffset = CalcShapeOffset(sizeof(xType), mmTiling->matmulTiling.M, mmTiling->matmulTiling.Ka);
@@ -352,8 +352,8 @@ __aicore__ inline void MatmulAllReduceQuantPertokenCommInt8<xType, WType, YType,
         MC2GmAddrs addrs = {aGM, bGM, biasGM, addGM, cGM, workspaceGM, cGM};                                           \
         QuantGmAddrs quantAddrs = {nullptr, nullptr, nullptr, dequantGM, pertokenGM};                                  \
         using OpType = templateClass<                                                                                  \
-            DTYPE_X1, DTYPE_X2, float, DTYPE_BIAS, float, DTYPE_Y, X1_FORMAT, X2_FORMAT, Y_FORMAT, isATrans, isBTrans, \
-            DTYPE_LOC_LOCAL, Mc2QuantBatchMatmulV3::Mc2QuantBmmAswBlock, MM_CFG_NO_PRELOAD_OPEN_UNIT_FLAG>;                  \
+            DTYPE_X1, DTYPE_X2, scaleType, DTYPE_BIAS, float, DTYPE_Y, X1_FORMAT, X2_FORMAT, Y_FORMAT, isATrans, isBTrans, \
+            DTYPE_LOC_LOCAL, QuantBatchMatmulV3::QuantBmmAswBlock, MM_CFG_NO_PRELOAD_OPEN_UNIT_FLAG>;                  \
         MatmulAllReduceQuantPertokenCommInt8<DTYPE_X1, DTYPE_X2, DTYPE_Y, OpType, coreType> op;                        \
         op.Init(                                                                                                       \
             aGM, bGM, biasGM, addGM, dequantGM, pertokenGM, commQuantScale1GM, commQuantScale2GM, cGM, userWS,         \

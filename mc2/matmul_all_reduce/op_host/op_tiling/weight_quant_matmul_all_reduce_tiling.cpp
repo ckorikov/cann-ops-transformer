@@ -24,7 +24,7 @@ ge::graphStatus WeightQuantTilingTransferHelper::GetShapeAttrsInfo()
     OP_LOGI(tilingProcesser_.opName_, "Start assemble input params for matmul tiling");
     auto&& tilingArgs = tilingProcesser_.args_;
     opName_ = tilingProcesser_.opName_;
-    matmulInfoPtr_ = std::make_unique<Mc2WeightQuantBatchMatmulInfo>();
+    matmulInfoPtr_ = std::make_unique<WeightQuantBatchMatmulInfo>();
     matmulInfoPtr_->transA = tilingArgs.isATrans;
     matmulInfoPtr_->transB = tilingArgs.isBTrans;
     matmulInfoPtr_->hasBias = tilingArgs.isBias;
@@ -42,7 +42,7 @@ ge::graphStatus WeightQuantTilingTransferHelper::GetShapeAttrsInfo()
     matmulInfoPtr_->bFormat =
         static_cast<ge::Format>(ge::GetPrimaryFormat(tilingProcesser_.mmrCtxInfo_.x2->GetStorageFormat()));
     OP_TILING_CHECK(
-        (matmulInfoPtr_->bFormat == ge::FORMAT_FRACTAL_NZ) && (matmulInfoPtr_->antiQuantType != Mc2QuantType::PER_CHANNEL),
+        (matmulInfoPtr_->bFormat == ge::FORMAT_FRACTAL_NZ) && (matmulInfoPtr_->antiQuantType != QuantType::PER_CHANNEL),
         OP_LOGE(
             opName_,
             "Nz weight input only supports per-channel scene, "
@@ -52,7 +52,7 @@ ge::graphStatus WeightQuantTilingTransferHelper::GetShapeAttrsInfo()
     PrintTilingInputParam(*matmulInfoPtr_);
     return ge::GRAPH_SUCCESS;
 }
-void WeightQuantTilingTransferHelper::PrintTilingInputParam(Mc2WeightQuantBatchMatmulInfo& weightQuantBatchMatmulInfo)
+void WeightQuantTilingTransferHelper::PrintTilingInputParam(WeightQuantBatchMatmulInfo& weightQuantBatchMatmulInfo)
 {
     OP_LOGD(
         tilingProcesser_.opName_, " transA_ %d transB_ %d, hasBias_ %d, hasAntiQuantOffset_ %d",

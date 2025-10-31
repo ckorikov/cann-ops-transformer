@@ -18,7 +18,7 @@
 #include "basic_block_config.h"
 #include "weight_quant_batch_matmul_v2_basic_block.h"
 
-namespace Mc2WeightQuantBatchMatmulV2::Arch35 {
+namespace WeightQuantBatchMatmulV2::Arch35 {
 
 template <
     typename xType, typename wType, typename antiQuantScaleType, typename biasType, typename yType,
@@ -30,14 +30,14 @@ public:
     __aicore__ inline void Init(
         GM_ADDR x, GM_ADDR weight, GM_ADDR antiquantScale, GM_ADDR antiquantOffset, GM_ADDR quantScale,
         GM_ADDR quantOffset, GM_ADDR bias, GM_ADDR y, GM_ADDR workspace,
-        const Mc2WeightQuantBatchMatmulV2ASTilingData* tilingData, TPipe* tPipe);
+        const WeightQuantBatchMatmulV2ASTilingData* tilingData, TPipe* tPipe);
     __aicore__ inline void Process();
 
 private:
     uint64_t curBlockIdx_;
     uint64_t mDimIdx_;
     uint64_t nDimIdx_;
-    const Mc2WeightQuantBatchMatmulV2ASTilingData* tiling_;
+    const WeightQuantBatchMatmulV2ASTilingData* tiling_;
     WeightQuantMatmulBasicBlock<xType, wType, antiQuantScaleType, biasType, yType, wqmmCfg, vecCfg> wqmmBasicBlock_;
     BasicBlockOffsetParam basicBlockOffsetParam_;
 };
@@ -48,7 +48,7 @@ template <
 __aicore__ inline void
 WeightQuantBatchMatmulV2BasicBlockController<xType, wType, antiQuantScaleType, biasType, yType, wqmmCfg, vecCfg>::Init(
     GM_ADDR x, GM_ADDR weight, GM_ADDR antiquantScale, GM_ADDR antiquantOffset, GM_ADDR quantScale, GM_ADDR quantOffset,
-    GM_ADDR bias, GM_ADDR y, GM_ADDR workspace, const Mc2WeightQuantBatchMatmulV2ASTilingData* tilingData, TPipe* tPipe)
+    GM_ADDR bias, GM_ADDR y, GM_ADDR workspace, const WeightQuantBatchMatmulV2ASTilingData* tilingData, TPipe* tPipe)
 {
     tiling_ = tilingData;
     curBlockIdx_ = GetBlockIdx();
@@ -126,5 +126,5 @@ __aicore__ inline void WeightQuantBatchMatmulV2BasicBlockController<
     }
     wqmmBasicBlock_.End();
 }
-} // namespace Mc2WeightQuantBatchMatmulV2::Arch35
+} // namespace WeightQuantBatchMatmulV2::Arch35
 #endif // WEIGHT_QUANT_BATCHMATMUL_V2_BASIC_BLOCK_CONTROLLER_H

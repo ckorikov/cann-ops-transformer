@@ -23,8 +23,8 @@
 
 namespace optiling {
 
-// Mc2QuantBatchMatmulV3Tiling set Mc2QuantBatchMatmulV3Params tilingData, mc2 calls Mc2QuantBatchMatmulV3Tiling DoLibApiTiling
-BEGIN_TILING_DATA_DEF(Mc2QuantBatchMatmulV3Params)
+// QuantBatchMatmulV3Tiling set QuantBatchMatmulV3Params tilingData, mc2 calls QuantBatchMatmulV3Tiling DoLibApiTiling
+BEGIN_TILING_DATA_DEF(QuantBatchMatmulV3Params)
     TILING_DATA_FIELD_DEF(uint32_t, batchA);
     TILING_DATA_FIELD_DEF(uint32_t, batchB);
     TILING_DATA_FIELD_DEF(uint32_t, batchC);
@@ -59,7 +59,7 @@ BEGIN_TILING_DATA_DEF(Mc2QuantBatchMatmulV3Params)
     TILING_DATA_FIELD_DEF(uint32_t, groupSizeK);
 END_TILING_DATA_DEF;
 
-REGISTER_TILING_DATA_CLASS(Mc2QuantBatchMatmulV3ParamsOp, Mc2QuantBatchMatmulV3Params)
+REGISTER_TILING_DATA_CLASS(QuantBatchMatmulV3ParamsOp, QuantBatchMatmulV3Params)
 
 BEGIN_TILING_DATA_DEF(L2cacheTileParam)
     TILING_DATA_FIELD_DEF(uint32_t, mTileCntL2);
@@ -78,21 +78,21 @@ BEGIN_TILING_DATA_DEF(SlidingWindowParam)
 END_TILING_DATA_DEF;
 REGISTER_TILING_DATA_CLASS(SlidingWindowParamOp, SlidingWindowParam)
 
-BEGIN_TILING_DATA_DEF(Mc2QuantBatchMatmulV3TilingData)
-    TILING_DATA_FIELD_DEF_STRUCT(Mc2QuantBatchMatmulV3Params, params);
+BEGIN_TILING_DATA_DEF(QuantBatchMatmulV3TilingData)
+    TILING_DATA_FIELD_DEF_STRUCT(QuantBatchMatmulV3Params, params);
     TILING_DATA_FIELD_DEF_STRUCT(TCubeTiling, matmulTiling);
     TILING_DATA_FIELD_DEF_STRUCT(L2cacheTileParam, tileL2cacheTiling);
     TILING_DATA_FIELD_DEF_STRUCT(SlidingWindowParam, adaptiveSlidingWin);
 END_TILING_DATA_DEF;
 
-REGISTER_TILING_DATA_CLASS(Mc2QuantBatchMatmulV3, Mc2QuantBatchMatmulV3TilingData)
-REGISTER_TILING_DATA_CLASS(Mc2QuantBatchMatmulV3TilingDataOp, Mc2QuantBatchMatmulV3TilingData)
+REGISTER_TILING_DATA_CLASS(QuantBatchMatmulV3, QuantBatchMatmulV3TilingData)
+REGISTER_TILING_DATA_CLASS(QuantBatchMatmulV3TilingDataOp, QuantBatchMatmulV3TilingData)
 
-class Mc2QuantBatchMatmulV3Tiling : public Mc2QuantBatchMatmulV3TilingBase {
+class QuantBatchMatmulV3Tiling : public QuantBatchMatmulV3TilingBase {
 public:
-    explicit Mc2QuantBatchMatmulV3Tiling(gert::TilingContext *context);
-    Mc2QuantBatchMatmulV3Tiling(gert::TilingContext *context, Mc2QuantBatchMatmulV3TilingData *out);
-    ~Mc2QuantBatchMatmulV3Tiling() override = default;
+    explicit QuantBatchMatmulV3Tiling(gert::TilingContext *context);
+    QuantBatchMatmulV3Tiling(gert::TilingContext *context, QuantBatchMatmulV3TilingData *out);
+    ~QuantBatchMatmulV3Tiling() override = default;
 
     void Reset(gert::TilingContext *context) override
     {
@@ -164,10 +164,10 @@ protected:
     uint32_t GetABankConflictSize();
     void UpdateSmallMTbeTiling();
     void UpdateSmallMTbeTiling(uint64_t baseM, uint64_t baseN, uint64_t baseK);
-    void SetQuantBatchMatmulRunParas(QuantBatchMatmulRunParas& runParams, const optiling::Mc2QuantBatchMatmulInfo& inputParams);
-    // 新增数据成员请注意：如果是在GetShapeAttrsInfo函数过程中获取的，请放到Mc2QuantBatchMatmulInfo结构体中，或者保证在DoOpTiling赋值
-    Mc2QuantBatchMatmulV3TilingData tilingDataSelf_;
-    Mc2QuantBatchMatmulV3TilingData &tilingData_;
+    void SetQuantBatchMatmulRunParas(QuantBatchMatmulRunParas& runParams, const optiling::QuantBatchMatmulInfo& inputParams);
+    // 新增数据成员请注意：如果是在GetShapeAttrsInfo函数过程中获取的，请放到QuantBatchMatmulInfo结构体中，或者保证在DoOpTiling赋值
+    QuantBatchMatmulV3TilingData tilingDataSelf_;
+    QuantBatchMatmulV3TilingData &tilingData_;
 };
 }  // namespace optiling
 #endif  // QUANT_BATCH_MATMUL_V3_TILING_H

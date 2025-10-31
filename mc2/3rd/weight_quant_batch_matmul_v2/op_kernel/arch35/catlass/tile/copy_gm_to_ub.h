@@ -12,7 +12,7 @@
 
 #include "../utils/device_utils.h"
 
-namespace Mc2WeightQuantBatchMatmulV2::Arch35::Catlass {
+namespace WeightQuantBatchMatmulV2::Arch35::Catlass {
 using AscendC::DataCopyExtParams;
 using AscendC::DataCopyPadExtParams;
 using AscendC::GlobalTensor;
@@ -55,5 +55,5 @@ DEVICE void CopyGmToUbIntervalDataCopy(
     DataCopyPad(dst, src, params, padParams);
 }
 
-} // namespace Mc2WeightQuantBatchMatmulV2::Arch35::Catlass
+} // namespace WeightQuantBatchMatmulV2::Arch35::Catlass
 #endif

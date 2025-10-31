@@ -19,8 +19,8 @@
 #include "mat_mul_deterministic_splitk_kernel.h"
 
 template <class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE, FIXPIPE_OPT_SELECT FIXPIPE_OPT = FIXPIPE_OPT_SELECT::BASE>
-__aicore__ inline void Mc2MatMulUnAlignedKernelDeterministicSplitK(GM_ADDR aGM, GM_ADDR bGM, GM_ADDR cGM, GM_ADDR biasGM,
-                                                                const Mc2MatmulV3TilingData& matmulTilingData,
+__aicore__ inline void MatMulUnAlignedKernelDeterministicSplitK(GM_ADDR aGM, GM_ADDR bGM, GM_ADDR cGM, GM_ADDR biasGM,
+                                                                const MatmulTilingData& matmulTilingData,
                                                                 GM_ADDR workspaceGM)
 {
     const TCubeTiling& tiling = matmulTilingData.matmulTiling;
@@ -152,12 +152,12 @@ __aicore__ inline void Mc2MatMulUnAlignedKernelDeterministicSplitK(GM_ADDR aGM, 
                 using aType = MatmulType<A_TYPE::pos, CubeFormat::NZ, typename A_TYPE::T, A_TYPE::isTrans>;
                 if (matmulTilingData.matmulRunInfo.isNzB) {
                     using bType = MatmulType<B_TYPE::pos, CubeFormat::NZ, typename B_TYPE::T, B_TYPE::isTrans>;
-                    Mc2MatMulMultiCoreSplitKDivideL2cache<aType, bType, cType, BIAS_TYPE>(alignedworkspaceGM, bGM, biasGM, mmOffsetGM,
+                    MatMulMultiCoreSplitKDivideL2cache<aType, bType, cType, BIAS_TYPE>(alignedworkspaceGM, bGM, biasGM, mmOffsetGM,
                                                                         singleSize,
                                                                         matmulTilingData.matmulRunInfo.isHf32,
                                                                         &que, tiling, tiling.isBias);
                 } else {
-                    Mc2MatMulMultiCoreSplitKDivideL2cache<aType, B_TYPE, cType, BIAS_TYPE>(alignedworkspaceGM, bGM, biasGM, mmOffsetGM,
+                    MatMulMultiCoreSplitKDivideL2cache<aType, B_TYPE, cType, BIAS_TYPE>(alignedworkspaceGM, bGM, biasGM, mmOffsetGM,
                                                                         singleSize,
                                                                         matmulTilingData.matmulRunInfo.isHf32,
                                                                         &que, tiling, tiling.isBias);
@@ -166,12 +166,12 @@ __aicore__ inline void Mc2MatMulUnAlignedKernelDeterministicSplitK(GM_ADDR aGM, 
                 using bType = MatmulType<B_TYPE::pos, CubeFormat::NZ, typename B_TYPE::T, B_TYPE::isTrans>;
                 if (matmulTilingData.matmulRunInfo.isNzA) {
                     using aType = MatmulType<A_TYPE::pos, CubeFormat::NZ, typename A_TYPE::T, A_TYPE::isTrans>;
-                    Mc2MatMulMultiCoreSplitKDivideL2cache<aType, bType, cType, BIAS_TYPE>(aGM, alignedworkspaceGM,
+                    MatMulMultiCoreSplitKDivideL2cache<aType, bType, cType, BIAS_TYPE>(aGM, alignedworkspaceGM,
                                                                         biasGM, mmOffsetGM, singleSize,
                                                                         matmulTilingData.matmulRunInfo.isHf32,
                                                                         &que, tiling, tiling.isBias);
                 } else {
-                    Mc2MatMulMultiCoreSplitKDivideL2cache<A_TYPE, bType, cType, BIAS_TYPE>(aGM, alignedworkspaceGM,
+                    MatMulMultiCoreSplitKDivideL2cache<A_TYPE, bType, cType, BIAS_TYPE>(aGM, alignedworkspaceGM,
                                                                         biasGM, mmOffsetGM, singleSize,
                                                                         matmulTilingData.matmulRunInfo.isHf32,
                                                                         &que, tiling, tiling.isBias);
@@ -180,7 +180,7 @@ __aicore__ inline void Mc2MatMulUnAlignedKernelDeterministicSplitK(GM_ADDR aGM, 
                 using aType = MatmulType<A_TYPE::pos, CubeFormat::NZ, typename A_TYPE::T, A_TYPE::isTrans>;
                 using bType = MatmulType<B_TYPE::pos, CubeFormat::NZ, typename B_TYPE::T, B_TYPE::isTrans>;
 
-                Mc2MatMulMultiCoreSplitKDivideL2cache<aType, bType, cType, BIAS_TYPE>(alignedworkspaceGM, alignedworkspaceGM +
+                MatMulMultiCoreSplitKDivideL2cache<aType, bType, cType, BIAS_TYPE>(alignedworkspaceGM, alignedworkspaceGM +
                                                                         alignedOriM * alignedKaSize * sizeof(A_T),
                                                                         biasGM, mmOffsetGM, singleSize,
                                                                         matmulTilingData.matmulRunInfo.isHf32,
@@ -191,12 +191,12 @@ __aicore__ inline void Mc2MatMulUnAlignedKernelDeterministicSplitK(GM_ADDR aGM, 
                 using aType = MatmulType<A_TYPE::pos, CubeFormat::NZ, typename A_TYPE::T, A_TYPE::isTrans>;
                 if (matmulTilingData.matmulRunInfo.isNzB) {
                     using bType = MatmulType<B_TYPE::pos, CubeFormat::NZ, typename B_TYPE::T, B_TYPE::isTrans>;
-                    Mc2MatMulMultiCoreSplitKDivide<aType, bType, cType, BIAS_TYPE>(alignedworkspaceGM, bGM, biasGM, mmOffsetGM,
+                    MatMulMultiCoreSplitKDivide<aType, bType, cType, BIAS_TYPE>(alignedworkspaceGM, bGM, biasGM, mmOffsetGM,
                                                                         singleSize,
                                                                         matmulTilingData.matmulRunInfo.isHf32,
                                                                         &que, tiling, tiling.isBias);
                 } else {
-                    Mc2MatMulMultiCoreSplitKDivide<aType, B_TYPE, cType, BIAS_TYPE>(alignedworkspaceGM, bGM, biasGM, mmOffsetGM,
+                    MatMulMultiCoreSplitKDivide<aType, B_TYPE, cType, BIAS_TYPE>(alignedworkspaceGM, bGM, biasGM, mmOffsetGM,
                                                                         singleSize,
                                                                         matmulTilingData.matmulRunInfo.isHf32,
                                                                         &que, tiling, tiling.isBias);
@@ -205,12 +205,12 @@ __aicore__ inline void Mc2MatMulUnAlignedKernelDeterministicSplitK(GM_ADDR aGM, 
                 using bType = MatmulType<B_TYPE::pos, CubeFormat::NZ, typename B_TYPE::T, B_TYPE::isTrans>;
                 if (matmulTilingData.matmulRunInfo.isNzA) {
                     using aType = MatmulType<A_TYPE::pos, CubeFormat::NZ, typename A_TYPE::T, A_TYPE::isTrans>;
-                    Mc2MatMulMultiCoreSplitKDivide<aType, bType, cType, BIAS_TYPE>(aGM, alignedworkspaceGM,
+                    MatMulMultiCoreSplitKDivide<aType, bType, cType, BIAS_TYPE>(aGM, alignedworkspaceGM,
                                                                         biasGM, mmOffsetGM, singleSize,
                                                                         matmulTilingData.matmulRunInfo.isHf32,
                                                                         &que, tiling, tiling.isBias);
                 } else {
-                    Mc2MatMulMultiCoreSplitKDivide<A_TYPE, bType, cType, BIAS_TYPE>(aGM, alignedworkspaceGM,
+                    MatMulMultiCoreSplitKDivide<A_TYPE, bType, cType, BIAS_TYPE>(aGM, alignedworkspaceGM,
                                                                         biasGM, mmOffsetGM, singleSize,
                                                                         matmulTilingData.matmulRunInfo.isHf32,
                                                                         &que, tiling, tiling.isBias);
@@ -218,7 +218,7 @@ __aicore__ inline void Mc2MatMulUnAlignedKernelDeterministicSplitK(GM_ADDR aGM, 
             } else if (matmulTilingData.matmulRunInfo.nd2nzA && matmulTilingData.matmulRunInfo.nd2nzB) {
                 using aType = MatmulType<A_TYPE::pos, CubeFormat::NZ, typename A_TYPE::T, A_TYPE::isTrans>;
                 using bType = MatmulType<B_TYPE::pos, CubeFormat::NZ, typename B_TYPE::T, B_TYPE::isTrans>;
-                Mc2MatMulMultiCoreSplitKDivide<aType, bType, cType, BIAS_TYPE>(alignedworkspaceGM, alignedworkspaceGM +
+                MatMulMultiCoreSplitKDivide<aType, bType, cType, BIAS_TYPE>(alignedworkspaceGM, alignedworkspaceGM +
                                                                         alignedOriM * alignedKaSize * sizeof(A_T),
                                                                         biasGM, mmOffsetGM, singleSize,
                                                                         matmulTilingData.matmulRunInfo.isHf32,

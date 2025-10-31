@@ -11,7 +11,7 @@
 #define ARCH35_CATLASS_BLOCK_CONSTANT_H
 #include <cstdint>
 
-namespace Mc2WeightQuantBatchMatmulV2::Arch35::Catlass {
+namespace WeightQuantBatchMatmulV2::Arch35::Catlass {
 constexpr int32_t BLOCK_SIZE = 32;
 }
 #endif

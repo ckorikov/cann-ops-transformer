@@ -15,7 +15,7 @@
 #include "block_utils.h"
 #include "../utils/constant.h"
 
-namespace Mc2WeightQuantBatchMatmulV2::Arch35::Catlass {
+namespace WeightQuantBatchMatmulV2::Arch35::Catlass {
 
 template <
     int Stages, typename TileShapeUb, typename TileShapeReg, int32_t CoreType, int32_t SubBlockDim,
@@ -64,5 +64,5 @@ public:
         uint64_t groupSize;
     };
 };
-} // namespace Mc2WeightQuantBatchMatmulV2::Arch35::Catlass
+} // namespace WeightQuantBatchMatmulV2::Arch35::Catlass
 #endif

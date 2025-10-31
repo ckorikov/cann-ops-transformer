@@ -46,7 +46,3 @@
     endif()
    endif()
  endif()
- 
- file(GLOB NEW_MC2_OPTILING_SRCS new_mc2_mm/*.cpp)
- add_tiling_modules()
- target_sources(${OPHOST_NAME}_tiling_obj PRIVATE ${NEW_MC2_OPTILING_SRCS})

@@ -30,7 +30,7 @@ template <
     class L1TileShape_,
     class L0TileShape_
 >
-class Mc2BlockSchedulerIterBatchBuiltIn {
+class BlockSchedulerIterBatchBuiltIn {
 public:
     int64_t m_{0};
     int64_t n_{0};
@@ -38,8 +38,6 @@ public:
     int64_t k_{0};
     int64_t iterBatchL1_{1};
     int64_t iterBatchL0_{1};
-    int64_t baseM_{16};
-    int64_t baseN_{16};
     int64_t isHf32_{0};
 
     using BlockShape = Shape<int64_t, int64_t, int64_t, int64_t>;
@@ -51,7 +49,7 @@ public:
     };
 
 public:
-    __aicore__ inline Mc2BlockSchedulerIterBatchBuiltIn(const ProblemShape& shape, int64_t blockIdx, int64_t blockNum,
+    __aicore__ inline BlockSchedulerIterBatchBuiltIn(const ProblemShape& shape, int64_t blockIdx, int64_t blockNum,
                                                      const Params& params)
     {
         m_ = shape.m;
@@ -60,8 +58,6 @@ public:
         b_ = shape.b;
         iterBatchL1_ = params.tilingData->iterBatchL1;
         iterBatchL0_ = params.tilingData->iterBatchL0;
-        baseM_ = params.tilingData->baseM;
-        baseN_ = params.tilingData->baseN;
         isHf32_ = params.tilingData->isHf32;
     }
 
@@ -72,7 +68,7 @@ public:
 
     __aicore__ inline Shape<int64_t, int64_t, int64_t, int64_t> GetIterBatchTuple()
     {
-        return {iterBatchL1_, iterBatchL0_, baseM_, baseN_};
+        return {iterBatchL1_, iterBatchL0_, 0, 0};
     }
 
     __aicore__ inline int64_t GetHf32Flag()
@@ -116,7 +112,7 @@ struct BlockSchedulerSelector<
     TransA_,
     TransB_
 > {
-  using SchedulerOp = Mc2BlockSchedulerIterBatchBuiltIn<ProblemShape_, L1TileShape_, L0TileShape_>;
+  using SchedulerOp = BlockSchedulerIterBatchBuiltIn<ProblemShape_, L1TileShape_, L0TileShape_>;
 };
 
 } // namespace Block

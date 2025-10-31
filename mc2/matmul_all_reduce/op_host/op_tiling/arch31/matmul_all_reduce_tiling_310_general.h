@@ -31,7 +31,7 @@ protected:
     uint64_t GetTilingKey() const override;
 
     void DoMatmulTiling310(
-        matmul_tiling::MultiCoreMatmulTiling& mm1, TCubeTiling& cubeTiling, Mc2L2cacheTilePara& l2cacheTiling);
+        matmul_tiling::MultiCoreMatmulTiling& mm1, TCubeTiling& cubeTiling, L2cacheTilePara& l2cacheTiling);
 
     void DoWeightAntiQuantTiling();
 

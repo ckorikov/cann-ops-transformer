@@ -296,7 +296,7 @@ ge::graphStatus TilingTransferHelper::PostTiling()
     return ge::GRAPH_SUCCESS;
 }
 
-TilingTransferHelper::TilingTransferHelper(MatmulAllReduceTiling910& matmulAllReduceTiling910, Mc2MatmulV3TilingData& data)
-    : Mc2MatmulV3BaseTiling(matmulAllReduceTiling910.context_, &data), tilingProcesser_(matmulAllReduceTiling910)
+TilingTransferHelper::TilingTransferHelper(MatmulAllReduceTiling910& matmulAllReduceTiling910, MatmulTilingData& data)
+    : MatmulV3BaseTiling(matmulAllReduceTiling910.context_, &data), tilingProcesser_(matmulAllReduceTiling910)
 {}
 } // namespace optiling

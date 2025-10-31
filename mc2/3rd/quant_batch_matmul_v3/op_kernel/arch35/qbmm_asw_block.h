@@ -18,7 +18,7 @@
 #include "quant_batch_matmul_v3_tiling_data.h"
 #include "../quant_batch_matmul_v3_base.h"
 
-namespace Mc2QuantBatchMatmulV3 {
+namespace QuantBatchMatmulV3 {
 constexpr uint64_t PER_BLOCK_SIZE= 128;
 struct ASWTilingParam {
     uint64_t singleCoreM;
@@ -81,10 +81,10 @@ struct PerBlockMmParam {
     uint64_t fixSrcStride;
 };
 
-class Mc2QuantBmmAswBlock {
+class QuantBmmAswBlock {
 public:
-    __aicore__ inline Mc2QuantBmmAswBlock() {}
-    __aicore__ inline void Init(const DequantBmm::Mc2QuantBatchMatmulV3TilingDataParams *tilingData, uint32_t blockIdx);
+    __aicore__ inline QuantBmmAswBlock() {}
+    __aicore__ inline void Init(const DequantBmm::QuantBatchMatmulV3TilingDataParams *tilingData, uint32_t blockIdx);
     __aicore__ inline void UpdateBasicIndex(uint64_t roundIdx);
     __aicore__ inline void UpdateBasicIndex4AL1FullLoad(uint64_t roundIdx);
     template <bool bTrans, CubeFormat formatX2 = CubeFormat::ND>
@@ -104,7 +104,7 @@ public:
     ASWOffsetParam offset_;
     PerBlockUBParam ubParams_;
     PerBlockMmParam mmParams_;
-    const DequantBmm::Mc2QuantBatchMatmulV3TilingDataParams *tilingData_;
+    const DequantBmm::QuantBatchMatmulV3TilingDataParams *tilingData_;
 
 private:
     const uint64_t WINDOW_LEN = 4;
@@ -112,7 +112,7 @@ private:
     uint32_t blockIdx_;
 };
 
-__aicore__ inline void Mc2QuantBmmAswBlock::Init(const DequantBmm::Mc2QuantBatchMatmulV3TilingDataParams *tilingData,
+__aicore__ inline void QuantBmmAswBlock::Init(const DequantBmm::QuantBatchMatmulV3TilingDataParams *tilingData,
                                               uint32_t blockIdx)
 {
     params_.mSplitAddrOffset = 0UL;
@@ -136,7 +136,7 @@ __aicore__ inline void Mc2QuantBmmAswBlock::Init(const DequantBmm::Mc2QuantBatch
     offset_.offsetBias = 0UL;
 }
 
-__aicore__ inline void Mc2QuantBmmAswBlock::UpdateBasicIndex(uint64_t roundIdx)
+__aicore__ inline void QuantBmmAswBlock::UpdateBasicIndex(uint64_t roundIdx)
 {
     uint64_t newBlockIdx = (roundIdx == params_.round - 1) ? (blockIdx_ / params_.totalTailTile) : blockIdx_;
     params_.index = newBlockIdx + roundIdx * tilingData_->matmulTiling.usedCoreNum;
@@ -156,7 +156,7 @@ __aicore__ inline void Mc2QuantBmmAswBlock::UpdateBasicIndex(uint64_t roundIdx)
     }
 }
 
-__aicore__ inline void Mc2QuantBmmAswBlock::UpdateBasicIndex4AL1FullLoad(uint64_t roundIdx)
+__aicore__ inline void QuantBmmAswBlock::UpdateBasicIndex4AL1FullLoad(uint64_t roundIdx)
 {
     params_.index = blockIdx_ / params_.totalTailTile + roundIdx * tilingData_->matmulTiling.usedCoreNum;
     params_.mIndex = blockIdx_ % params_.mCnt;
@@ -165,7 +165,7 @@ __aicore__ inline void Mc2QuantBmmAswBlock::UpdateBasicIndex4AL1FullLoad(uint64_
 }
 
 template <bool bTrans, CubeFormat formatX2>
-__aicore__ inline void Mc2QuantBmmAswBlock::UpdateBlockParams(uint64_t roundIdx)
+__aicore__ inline void QuantBmmAswBlock::UpdateBlockParams(uint64_t roundIdx)
 {
     params_.singleCoreM = params_.mIndex != (params_.mCnt - 1) ? tilingData_->matmulTiling.baseM : params_.mBaseTail;
     params_.singleCoreN = params_.nIndex != (params_.nCnt - 1) ? tilingData_->matmulTiling.baseN : params_.nBaseTail;
@@ -207,14 +207,14 @@ __aicore__ inline void Mc2QuantBmmAswBlock::UpdateBlockParams(uint64_t roundIdx)
     }
 }
 
-__aicore__ inline void Mc2QuantBmmAswBlock::ResetAddressOffsets()
+__aicore__ inline void QuantBmmAswBlock::ResetAddressOffsets()
 {
     params_.mSplitAddrOffset = 0UL;
     params_.nSplitAddrOffset = 0UL;
 }
 
 template <bool bTrans, CubeFormat formatX2>
-__aicore__ inline void Mc2QuantBmmAswBlock::UpdateBlockParams4AL1FullLoad(uint64_t roundIdx)
+__aicore__ inline void QuantBmmAswBlock::UpdateBlockParams4AL1FullLoad(uint64_t roundIdx)
 {
     params_.singleCoreM = params_.mIndex != (params_.mCnt - 1) ? tilingData_->matmulTiling.baseM : params_.mBaseTail;
     params_.singleCoreN = params_.nIndex != (params_.nCnt - 1) ? tilingData_->matmulTiling.baseN : params_.nBaseTail;
@@ -253,7 +253,7 @@ __aicore__ inline void Mc2QuantBmmAswBlock::UpdateBlockParams4AL1FullLoad(uint64
 }
 
 template <bool aTrans, bool bTrans, class x1Type, class scaleType, CubeFormat formatX2>
-__aicore__ inline void Mc2QuantBmmAswBlock::CalcGMOffset()
+__aicore__ inline void QuantBmmAswBlock::CalcGMOffset()
 {
     uint64_t mOffset = params_.mIndex * tilingData_->matmulTiling.baseM + params_.mSplitAddrOffset;
     uint64_t nOffset = params_.nIndex * tilingData_->matmulTiling.baseN + params_.nSplitAddrOffset;
@@ -318,7 +318,7 @@ __aicore__ inline void Mc2QuantBmmAswBlock::CalcGMOffset()
     }
 }
 
-__aicore__ inline void Mc2QuantBmmAswBlock::UpdatePerBlockUBValidMN()
+__aicore__ inline void QuantBmmAswBlock::UpdatePerBlockUBValidMN()
 {
     if (ubParams_.fixpipeSplitN) {
         ubParams_.validM = ubParams_.singleM;
@@ -346,7 +346,7 @@ __aicore__ inline void Mc2QuantBmmAswBlock::UpdatePerBlockUBValidMN()
     }
 }
 
-__aicore__ inline void Mc2QuantBmmAswBlock::UpdatePerBlockUBParam()
+__aicore__ inline void QuantBmmAswBlock::UpdatePerBlockUBParam()
 {
     ubParams_.fixpipeSplitN = params_.singleCoreN > PER_BLOCK_SIZE || params_.singleCoreM == 1;
     ubParams_.offsetM = params_.mIndex * tilingData_->matmulTiling.baseM + params_.mSplitAddrOffset;
@@ -373,7 +373,7 @@ __aicore__ inline void Mc2QuantBmmAswBlock::UpdatePerBlockUBParam()
 }
 
 template <bool aTrans, bool bTrans>
-__aicore__ inline void Mc2QuantBmmAswBlock::UpdatePerBlockMmParam()
+__aicore__ inline void QuantBmmAswBlock::UpdatePerBlockMmParam()
 {
     mmParams_.fixpipeSplitN = params_.singleCoreN > PER_BLOCK_SIZE || params_.singleCoreM == 1;
     if ASCEND_IS_AIC {
@@ -395,6 +395,6 @@ __aicore__ inline void Mc2QuantBmmAswBlock::UpdatePerBlockMmParam()
         mmParams_.fixpipeD = mmParams_.fixpipeN;
     }
 }
-}  // namespace Mc2QuantBatchMatmulV3
+}  // namespace QuantBatchMatmulV3
 
 #endif  // QBMM_ASW_BLOCK_H

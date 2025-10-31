@@ -15,9 +15,9 @@
 #include "register/op_def_registry.h"
 
 namespace ops {
-class Mc2BatchMatMulV3 : public OpDef {
+class BatchMatMulV3 : public OpDef {
 public:
-    explicit Mc2BatchMatMulV3(const char* name) : OpDef(name)
+    explicit BatchMatMulV3(const char* name) : OpDef(name)
     {
         this->Input("x1")
             .ParamType(REQUIRED)
@@ -122,6 +122,6 @@ public:
     }
 };
 
-OP_ADD(Mc2BatchMatMulV3);
+OP_ADD(BatchMatMulV3);
 
 }

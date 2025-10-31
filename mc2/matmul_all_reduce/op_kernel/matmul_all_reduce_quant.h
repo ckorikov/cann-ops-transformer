@@ -54,7 +54,7 @@ public:
 protected:
     __aicore__ inline void InnerProcess(mmType& mmOp, bool tailFlag, uint32_t tileCnt, const MC2TileInfo& tileInfo)
     {
-        const Mc2QuantBatchMatmulV3TilingData* tiling =
+        const QuantBatchMatmulV3TilingData* tiling =
             (tailFlag ? &mc2TilingData_->tailmatmulTiling : &mc2TilingData_->tilematmulTiling);
         const uint64_t pertokenOffset = sizeof(float) * tiling->matmulTiling.M;
         for (uint32_t i = 0U; i < tileCnt; ++i) {

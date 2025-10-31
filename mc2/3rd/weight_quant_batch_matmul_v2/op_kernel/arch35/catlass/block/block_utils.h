@@ -11,7 +11,7 @@
 #define ARCH35_CATLASS_BLOCK_BLOCK_UTILS_H
 
 #include "../utils/device_utils.h"
-namespace Mc2WeightQuantBatchMatmulV2::Arch35::Catlass {
+namespace WeightQuantBatchMatmulV2::Arch35::Catlass {
 template <size_t I, class Tuple>
 struct deduce_optional_input {
 private:
@@ -57,5 +57,5 @@ DEVICE auto crd2idx(AscendC::Std::tuple<TupleTypes...> const& t, Args... args)
     return detail::Crd2idxHelper(t, argsTuple, AscendC::Std::make_index_sequence<sizeof...(TupleTypes)>{});
 }
 
-} // namespace Mc2WeightQuantBatchMatmulV2::Arch35::Catlass
+} // namespace WeightQuantBatchMatmulV2::Arch35::Catlass
 #endif

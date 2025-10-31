@@ -28,7 +28,7 @@ namespace optiling {
 constexpr uint64_t BASIC_BLOCK = 512UL;
 
 template <typename T1, typename T2>
-T2 Mc2CalcTailSize(T1 num1, T2 num2)
+T2 CalcTailSize(T1 num1, T2 num2)
 {
     if (num2 == 0) {
         return 0;
@@ -38,16 +38,16 @@ T2 Mc2CalcTailSize(T1 num1, T2 num2)
     return mod != 0 ? static_cast<T2>(mod) : num2;
 }
 
-int64_t Mc2GetDtypeBits(ge::DataType dtype);
+int64_t GetDtypeBits(ge::DataType dtype);
 
-uint64_t Mc2GetBlockAlignSizeByDataType(ge::DataType dtype);
+uint64_t GetBlockAlignSizeByDataType(ge::DataType dtype);
 
-uint64_t Mc2GetShapeSizeWithDataType(uint64_t shapeSize, ge::DataType dtype);
+uint64_t GetShapeSizeWithDataType(uint64_t shapeSize, ge::DataType dtype);
 
-bool Mc2CheckOptionalInputByShape(const gert::StorageShape* storageShape);
+bool CheckOptionalInputByShape(const gert::StorageShape* storageShape);
 
-matmul_tiling::DataType Mc2GetMatmulTilingDtype(ge::DataType dtype);
+matmul_tiling::DataType GetMatmulTilingDtype(ge::DataType dtype);
 
-ge::Format Mc2GetInputStorageFormat(const gert::TilingContext* context, size_t id);
+ge::Format GetInputStorageFormat(const gert::TilingContext* context, size_t id);
 } // namespace optiling
 #endif // WEIGHT_QUANT_BATCH_MATMUL_V2_TOOL_H

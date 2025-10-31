@@ -89,7 +89,7 @@ uint64_t MatmulAllReduceTiling310General::GetTilingKey() const
 }
 
 void MatmulAllReduceTiling310General::DoMatmulTiling310(
-    matmul_tiling::MultiCoreMatmulTiling& mm1, TCubeTiling& cubeTiling, Mc2L2cacheTilePara& l2cacheTiling)
+    matmul_tiling::MultiCoreMatmulTiling& mm1, TCubeTiling& cubeTiling, L2cacheTilePara& l2cacheTiling)
 {
     DoMatmulTiling(mm1, cubeTiling);
     SetTransLength(mm1, cubeTiling);

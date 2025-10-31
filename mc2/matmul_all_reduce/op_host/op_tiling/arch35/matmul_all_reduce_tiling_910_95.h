@@ -22,10 +22,10 @@
 #include "mat_mul_v3/op_host/op_tiling/arch35/matmul_v3_common_advanced.h"
 #include "mat_mul_v3/op_host/op_tiling/arch35/matmul_tiling_registry.h"
 #include "mat_mul_v3/op_host/op_tiling/arch35/matmul_v3_tiling_strategy.h"
-#include "new_mc2_matmul_tiling_cfg.h"
+#include "mc2_matmul_tiling_cfg.h"
 
 namespace optiling {
-using namespace mc2_matmul_v3_advanced;
+using namespace matmul_v3_advanced;
 
 BEGIN_TILING_DATA_DEF(MatmulAllReduce910TilingDataA5)
     TILING_DATA_FIELD_DEF(uint32_t, version);
@@ -49,7 +49,7 @@ public:
     ~MatmulAllReduceTilingA5() override = default;
 
 protected:
-    ge::graphStatus DoMatmulV3Tiling(Mc2MatmulHelper::NewMc2MatmulTilingCfg &tilingCfg, Mc2MMRegisterCfg &registerCfg,
+    ge::graphStatus DoMatmulV3Tiling(Mc2MatmulHelper::Mc2MatmulTilingCfg &tilingCfg, MMRegisterCfg &registerCfg,
                                      MC2MatmulV3TilingData &tilingData);
     bool IsCapable() override;
 
@@ -98,8 +98,8 @@ private:
     MatmulAllReduce910TilingDataA5 matmulAllReduce910TilingDataSelf_;
     MatmulAllReduce910TilingDataA5& matmulAllReduce910TilingData_;
     uint64_t myWorkSpaceSize_{0U};
-    Mc2MatMulV3Args mmV3Args_;
-    Mc2MatmulV3CompileInfo compileInfo_;
+    MatMulV3Args mmV3Args_;
+    MatmulV3CompileInfo compileInfo_;
 };
 
 } // namespace optiling

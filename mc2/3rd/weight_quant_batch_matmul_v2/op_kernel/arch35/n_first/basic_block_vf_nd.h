@@ -25,7 +25,7 @@ using AscendC::MicroAPI::AddrReg;
 using AscendC::MicroAPI::MaskReg;
 using AscendC::MicroAPI::RegTensor;
 
-namespace Mc2WeightQuantBatchMatmulV2::Arch35 {
+namespace WeightQuantBatchMatmulV2::Arch35 {
 
 template <typename xType, typename wType>
 struct LocalAddressParam {
@@ -67,7 +67,7 @@ static constexpr MicroAPI::CastTrait FP16_TO_BF16_TRAIT = {
     MicroAPI::RegLayout::UNKNOWN, MicroAPI::SatMode::UNKNOWN, MicroAPI::MaskMergeMode::ZEROING,
     AscendC::RoundMode::CAST_RINT};
 
-template <typename xType, typename wType, bool hasAntiQuantOffset, Mc2QuantType antiQuantType>
+template <typename xType, typename wType, bool hasAntiQuantOffset, QuantType antiQuantType>
 __aicore__ inline void AntiQuantFP8NdNkVfLoadScaleOffset(
     RegTensor<xType>& antiQuantScaleVreg, RegTensor<xType>& antiQuantOffsetVreg,
     LocalAddressParam<xType, wType>& localAddressParam, const CalculateParam<xType>& calculateParam, uint16_t nIdx)
@@ -76,7 +76,7 @@ __aicore__ inline void AntiQuantFP8NdNkVfLoadScaleOffset(
         MicroAPI::DataCopy<xType, MicroAPI::LoadDist::DIST_BRC_B16>(
             antiQuantOffsetVreg, localAddressParam.antiQuantOffsetBasePhyAddr + nIdx);
     }
-    if constexpr (antiQuantType == Mc2QuantType::PER_TENSOR) {
+    if constexpr (antiQuantType == QuantType::PER_TENSOR) {
         MicroAPI::Duplicate(antiQuantScaleVreg, calculateParam.scaleValue);
     } else {
         MicroAPI::DataCopy<xType, MicroAPI::LoadDist::DIST_BRC_B16>(
@@ -98,7 +98,7 @@ __aicore__ inline void AntiQuantFP8NdNkVfLoadWeight(
         weightF8Vreg1, localAddressParam.weightLowBitPhyAddr1 + nIdx * ubMte2InnerSize);
 }
 
-template <typename xType, typename wType, bool hasAntiQuantOffset, uint32_t ubMte2InnerSize, Mc2QuantType antiQuantType>
+template <typename xType, typename wType, bool hasAntiQuantOffset, uint32_t ubMte2InnerSize, QuantType antiQuantType>
 __aicore__ inline void AntiQuantFP8NdNkVf(
     LocalAddressParam<xType, wType>& localAddressParam, const CalculateParam<xType>& calculateParam)
 {
@@ -132,7 +132,7 @@ __aicore__ inline void AntiQuantFP8NdNkVf(
             (RegTensor<uint16_t>&)weightF16Vreg1, maskAll);
 
         if constexpr (hasAntiQuantOffset) {
-            if constexpr (antiQuantType == Mc2QuantType::PER_TENSOR) {
+            if constexpr (antiQuantType == QuantType::PER_TENSOR) {
                 MicroAPI::Adds(weightF16Vreg0, weightF16Vreg0, calculateParam.offsetValue, maskAll);
                 MicroAPI::Adds(weightF16Vreg2, weightF16Vreg2, calculateParam.offsetValue, maskAll);
             } else {
@@ -164,12 +164,12 @@ __aicore__ inline void AntiQuantFP8NdKnVfLoadOffset(
     }
 }
 
-template <typename xType, typename wType, bool hasAntiQuantOffset, Mc2QuantType antiQuantType>
+template <typename xType, typename wType, bool hasAntiQuantOffset, QuantType antiQuantType>
 __aicore__ inline void AntiQuantFP8NdKnVfLoadScale(
     RegTensor<xType>& antiQuantScaleVreg0, RegTensor<xType>& antiQuantScaleVreg1,
     LocalAddressParam<xType, wType>& localAddressParam, const CalculateParam<xType>& calculateParam)
 {
-    if constexpr (antiQuantType == Mc2QuantType::PER_TENSOR) {
+    if constexpr (antiQuantType == QuantType::PER_TENSOR) {
         MicroAPI::Duplicate(antiQuantScaleVreg0, calculateParam.scaleValue);
         MicroAPI::Duplicate(antiQuantScaleVreg1, calculateParam.scaleValue);
     } else {
@@ -205,7 +205,7 @@ __aicore__ inline void AntiQuantFP8NdKnVfStoreWeight(
         localAddressParam.weightF16PhyAddr1, weightF16Vreg2, WEIGHT_F16_UB_NZ_STRIDE, 1, mask);
 }
 
-template <typename xType, typename wType, bool hasAntiQuantOffset, uint32_t ubMte2InnerSize, Mc2QuantType antiQuantType>
+template <typename xType, typename wType, bool hasAntiQuantOffset, uint32_t ubMte2InnerSize, QuantType antiQuantType>
 __aicore__ inline void AntiQuantFP8NdKnVf(
     LocalAddressParam<xType, wType>& localAddressParam, const CalculateParam<xType>& calculateParam)
 {
@@ -236,7 +236,7 @@ __aicore__ inline void AntiQuantFP8NdKnVf(
             (RegTensor<uint16_t>&)weightF16Vreg2, (RegTensor<uint16_t>&)weightF16Vreg2,
             (RegTensor<uint16_t>&)weightF16Vreg3, maskAll);
         if constexpr (hasAntiQuantOffset) {
-            if constexpr (antiQuantType == Mc2QuantType::PER_TENSOR) {
+            if constexpr (antiQuantType == QuantType::PER_TENSOR) {
                 MicroAPI::Adds(weightF16Vreg0, weightF16Vreg0, calculateParam.offsetValue, maskAll);
                 MicroAPI::Adds(weightF16Vreg2, weightF16Vreg2, calculateParam.offsetValue, maskAll);
             } else {
@@ -273,7 +273,7 @@ __aicore__ inline void AddMulWeightF16RegTensorNdKn(
     RegTensor<xType>& antiQuantOffsetVreg1, MicroAPI::MaskReg& maskAll, const xType& offsetValue)
 {
     if constexpr (wqmmConfig.hasAntiQuantOffset) {
-        if constexpr (wqmmConfig.antiQuantType == Mc2QuantType::PER_TENSOR) {
+        if constexpr (wqmmConfig.antiQuantType == QuantType::PER_TENSOR) {
             MicroAPI::Adds(weightF16Vreg0, weightF16Vreg0, offsetValue, maskAll);
             MicroAPI::Adds(weightF16Vreg1, weightF16Vreg1, offsetValue, maskAll);
         } else {
@@ -304,7 +304,7 @@ __aicore__ inline void AddMulWeightF16RegTensorNdNk(
     const xType& offsetValue)
 {
     if constexpr (wqmmConfig.hasAntiQuantOffset) {
-        if constexpr (wqmmConfig.antiQuantType == Mc2QuantType::PER_TENSOR) {
+        if constexpr (wqmmConfig.antiQuantType == QuantType::PER_TENSOR) {
             MicroAPI::Adds(weightF16Vreg0, weightF16Vreg0, offsetValue, maskAll);
             MicroAPI::Adds(weightF16Vreg1, weightF16Vreg1, offsetValue, maskAll);
         } else {
@@ -326,7 +326,7 @@ __aicore__ inline void NdNkLoadScaleOffset(
         MicroAPI::DataCopy<xType, MicroAPI::LoadDist::DIST_BRC_B16>(
             antiQuantOffsetVreg, antiQuantOffsetBasePhyAddr + ubLoopNIdx);
     }
-    if constexpr (wqmmConfig.antiQuantType == Mc2QuantType::PER_TENSOR) {
+    if constexpr (wqmmConfig.antiQuantType == QuantType::PER_TENSOR) {
         MicroAPI::Duplicate(antiQuantScaleVreg, scaleValue);
     } else {
         MicroAPI::DataCopy<xType, MicroAPI::LoadDist::DIST_BRC_B16>(
@@ -345,7 +345,7 @@ __aicore__ inline void NdKnLoadScaleOffset(
         MicroAPI::DataCopy<xType, MicroAPI::LoadDist::DIST_NORM>(antiQuantOffsetVreg, antiQuantOffsetBasePhyAddr);
         MicroAPI::DataCopy<xType, MicroAPI::LoadDist::DIST_NORM>(antiQuantOffsetVreg1, antiQuantOffsetBasePhyAddr1);
     }
-    if constexpr (wqmmConfig.antiQuantType == Mc2QuantType::PER_TENSOR) {
+    if constexpr (wqmmConfig.antiQuantType == QuantType::PER_TENSOR) {
         MicroAPI::Duplicate(antiQuantScaleVreg, scaleValue);
         MicroAPI::Duplicate(antiQuantScaleVreg1, scaleValue);
     } else {
@@ -549,5 +549,5 @@ __aicore__ inline void AntiQuantInt4NdKn(
     }
 }
 
-} // namespace Mc2WeightQuantBatchMatmulV2::Arch35
+} // namespace WeightQuantBatchMatmulV2::Arch35
 #endif // WEIGHT_QUANT_BATCHMATMUL_V2_BASIC_BLOCK_VF_ND_H

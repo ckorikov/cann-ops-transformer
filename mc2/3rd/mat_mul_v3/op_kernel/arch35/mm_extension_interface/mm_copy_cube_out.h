@@ -1,6 +1,6 @@
 /**
- * This program is free software, you can redistribute it and/or modify.
- * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+ * This program is free software, you can redistribute it and/or modify.
+ * Copyright (c) 2025 Huawei Technologies Co., Ltd.
  * This file is a part of the CANN Open Software.
  * Licensed under CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@
 namespace MatmulCommon {
 
 template <typename IMPL, class A_TYPE, class B_TYPE, class C_TYPE, const auto& MM_CFG, McgShfMode FIXPIPE_MODE>
-class Mc2MMCustomCopyCubeOut {
+class MMCustomCopyCubeOut {
     using DstT = typename C_TYPE::T;
     using SrcT = typename GetMmDstType<typename A_TYPE::T>::Type;
     using FixpipeAdaptor =
@@ -34,7 +34,7 @@ class Mc2MMCustomCopyCubeOut {
     MATMUL_USE_MODULE(MatmulSubBlockInfo);
 
 public:
-    __aicore__ inline Mc2MMCustomCopyCubeOut() = default;
+    __aicore__ inline MMCustomCopyCubeOut() = default;
 
     template <bool enSequentialWrite = false, typename ScheduleContext = int>
     __aicore__ inline void Copy(const GlobalTensor<DstT>& gm, const LocalTensor<SrcT>& co1Local, int32_t curRow,

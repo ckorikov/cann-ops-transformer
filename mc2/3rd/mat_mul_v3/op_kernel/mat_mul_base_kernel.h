@@ -21,11 +21,11 @@
 using namespace AscendC;
 using namespace matmul;
 
-template <class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE, class BLOCK_TYPE = Mc2MatmulBaseBlock,
+template <class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE, class BLOCK_TYPE = MatmulBaseBlock,
     const MatmulConfig &MM_CFG = MM_CFG_NO_PRELOAD, class MM_CB = MatmulCallBackFunc<nullptr, nullptr, nullptr>>
-class Mc2MatmulBaseKernel {
+class MatmulBaseKernel {
 public:
-    __aicore__ inline Mc2MatmulBaseKernel() {}
+    __aicore__ inline MatmulBaseKernel() {}
 
     __aicore__ inline void InitInputs(GM_ADDR aGM, GM_ADDR bGM, GM_ADDR cGM, GM_ADDR biasGM);
     __aicore__ inline void SetOrgShape();
@@ -63,7 +63,7 @@ protected:
 
 template <class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE, class BLOCK_TYPE, const MatmulConfig &MM_CFG,
     class MM_CB>
-__aicore__ inline void Mc2MatmulBaseKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLOCK_TYPE, MM_CFG, MM_CB>::Init(GM_ADDR aGM,
+__aicore__ inline void MatmulBaseKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLOCK_TYPE, MM_CFG, MM_CB>::Init(GM_ADDR aGM,
     GM_ADDR bGM, GM_ADDR cGM, GM_ADDR biasGM, GM_ADDR offsetWGM, GM_ADDR workspaceGM, const void *tilingData,
     TPipe *pipe)
 {
@@ -83,7 +83,7 @@ __aicore__ inline void Mc2MatmulBaseKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BL
 
 template <class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE, class BLOCK_TYPE, const MatmulConfig &MM_CFG,
     class MM_CB>
-__aicore__ inline void Mc2MatmulBaseKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLOCK_TYPE, MM_CFG, MM_CB>::InitInputs(
+__aicore__ inline void MatmulBaseKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLOCK_TYPE, MM_CFG, MM_CB>::InitInputs(
     GM_ADDR aGM, GM_ADDR bGM, GM_ADDR cGM, GM_ADDR biasGM)
 {
     using A_T = typename A_TYPE::T;
@@ -102,7 +102,7 @@ __aicore__ inline void Mc2MatmulBaseKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BL
 
 template <class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE, class BLOCK_TYPE, const MatmulConfig &MM_CFG,
     class MM_CB>
-__aicore__ inline void Mc2MatmulBaseKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLOCK_TYPE, MM_CFG, MM_CB>::SetOrgShape()
+__aicore__ inline void MatmulBaseKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLOCK_TYPE, MM_CFG, MM_CB>::SetOrgShape()
 {
     if constexpr (A_TYPE::format == CubeFormat::NZ && B_TYPE::format == CubeFormat::NZ) {
         mm_.SetOrgShape(block_.params_.alignedOriM, block_.params_.alignedOriN, block_.params_.alignedKaSize,
@@ -121,7 +121,7 @@ __aicore__ inline void Mc2MatmulBaseKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BL
 
 template <class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE, class BLOCK_TYPE, const MatmulConfig &MM_CFG,
     class MM_CB>
-__aicore__ inline void Mc2MatmulBaseKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLOCK_TYPE, MM_CFG,
+__aicore__ inline void MatmulBaseKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLOCK_TYPE, MM_CFG,
     MM_CB>::UpdateGlobalTensor(GM_ADDR aGM, GM_ADDR bGM, GM_ADDR cGM, GM_ADDR biasGM, GM_ADDR offsetWGM,
     GM_ADDR workspaceGM)
 {
@@ -131,7 +131,7 @@ __aicore__ inline void Mc2MatmulBaseKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BL
 
 template <class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE, class BLOCK_TYPE, const MatmulConfig &MM_CFG,
     class MM_CB>
-__aicore__ inline void Mc2MatmulBaseKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLOCK_TYPE, MM_CFG, MM_CB>::Process(
+__aicore__ inline void MatmulBaseKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLOCK_TYPE, MM_CFG, MM_CB>::Process(
     uint64_t index, uint8_t enAtomic)
 {
     if ASCEND_IS_AIV {

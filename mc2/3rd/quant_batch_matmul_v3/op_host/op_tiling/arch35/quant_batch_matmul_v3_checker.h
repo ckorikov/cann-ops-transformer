@@ -21,12 +21,12 @@
 
 namespace optiling {
 
-class Mc2QuantBatchMatmulV3Checker {
+class QuantBatchMatmulV3Checker {
 public:
-    Mc2QuantBatchMatmulV3Checker(gert::TilingContext *context, const Mc2QuantBatchMatmulInfo &inputParams)
+    QuantBatchMatmulV3Checker(gert::TilingContext *context, const QuantBatchMatmulInfo &inputParams)
      : context_(context), inputParams_(inputParams) {}
 
-    ~Mc2QuantBatchMatmulV3Checker() = default;
+    ~QuantBatchMatmulV3Checker() = default;
     bool CheckDtype() const;
     bool CheckShape(const std::vector<gert::Shape *> &mandtoryShape, const gert::StorageShape *biasShape,
                     const gert::StorageShape *pertokenShape, const std::vector<int64_t> &DimValueOfMKN) const;
@@ -66,7 +66,7 @@ protected:
 
 protected:
     gert::TilingContext *context_ = nullptr;
-    Mc2QuantBatchMatmulInfo inputParams_;
+    QuantBatchMatmulInfo inputParams_;
 };
 }  // namespace optiling
 #endif  // QUANT_BATCH_MATMUL_V3_CHECKER_H

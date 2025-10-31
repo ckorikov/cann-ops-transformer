@@ -24,7 +24,7 @@
 
 namespace MatmulAllReduceImpl {
 using namespace AscendC;
-using Mc2WeightQuantBatchMatmulV2::Mc2QuantType;
+using WeightQuantBatchMatmulV2::QuantType;
 template <typename XType, typename WType, typename YType, class MmType>
 class MatmulAllReduceWeightQuantRegBase : public MatmulAllReduceBase<XType, YType, Mc2CoreType::ON_CUBE_AND_VECTOR>
 {
@@ -50,7 +50,7 @@ public:
 protected:
     __aicore__ inline void InnerProcess(const bool tailFlag, const uint32_t turnCnt, const MC2TileInfo& tileInfo)
     {
-        const Mc2WeightQuantBatchMatmulV2RegBaseTilingData* tiling =
+        const WeightQuantBatchMatmulV2RegBaseTilingData* tiling =
             (tailFlag) ? &mc2TilingData_->tailRegBaseMmTiling : &mc2TilingData_->tileRegBaseMmTiling;
         for (uint32_t idx = 0; idx < turnCnt; ++idx) {
             MmType mmOp;
@@ -71,7 +71,7 @@ private:
 #define INVOKE_MC2_WEIGHT_QUANT_KERNEL(bTransFlag, quantType, offsetFlag, weightNz)                       \
     do {                                                                                                  \
         GET_TILING_DATA_WITH_STRUCT(WeightQuantMatmulAllReduceA5TilingData, tilingData, tilingGM);        \
-        using OpType = Mc2WeightQuantBatchMatmulV2::Arch35::Mc2WeightQuantBatchMatmulV2RegBaseKernel<           \
+        using OpType = WeightQuantBatchMatmulV2::Arch35::WeightQuantBatchMatmulV2RegBaseKernel<           \
             DTYPE_X1, DTYPE_X2, DTYPE_BIAS, DTYPE_Y, false, bTransFlag, offsetFlag, quantType, weightNz>; \
         MC2GmAddrs addrs = {aGM, bGM, biasGM, addGM, cGM, workspaceGM, cGM};                              \
         QuantGmAddrs quantAddrs = {antiquantScaleGM, antiquantOffsetGM, nullptr, nullptr};                \

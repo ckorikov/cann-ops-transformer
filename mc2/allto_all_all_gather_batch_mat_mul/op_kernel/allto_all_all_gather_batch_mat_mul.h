@@ -123,9 +123,9 @@ private:
     GlobalTensor<DataType1> allgatherNonLocalOutGM;
     GlobalTensor<DataType1> transposeOutGM; //每轮地址复用
     GlobalTensor<DataType1> bmmOutGM;
-    NewMc2MatmulTilingData *bmmLocalTiling;
-    NewMc2MatmulTilingData *bmmNonLocalTileTiling;
-    NewMc2MatmulTilingData *bmmNonLocalTailTiling;
+    Mc2MatmulTilingData *bmmLocalTiling;
+    Mc2MatmulTilingData *bmmNonLocalTileTiling;
+    Mc2MatmulTilingData *bmmNonLocalTailTiling;
 
     Hccl<HCCL_SERVER_TYPE_AICPU> hcclAlltoall;
     Hccl<HCCL_SERVER_TYPE_AICPU> hcclAllgather;
@@ -350,7 +350,7 @@ __aicore__ inline void AlltoAllAllGatherBatchMatMul<DataType1, DataType2, ShardT
 
         // bmm
         tpipe->Reset();
-        Mc2BatchMatMulCommonKernel<aType, bType, cType, biasType> bmmv3;
+        BatchMatMulCommonKernel<aType, bType, cType, biasType> bmmv3;
         bmmv3.Init(bmmInGm, wGM, (__gm__ uint8_t*)bmmOutGM.GetPhyAddr(), nullptr, nullptr, nullptr, &bmmLocalTiling->bmmTilingData, tpipe);
         bmmv3.Process();
         SyncAll<false>();
@@ -569,7 +569,7 @@ __aicore__ inline void AlltoAllAllGatherBatchMatMul<DataType1, DataType2, ShardT
 
             // bmm
             tpipe->Reset();
-            Mc2BatchMatMulCommonKernel<aType, bType, cType, biasType> bmmv3;
+            BatchMatMulCommonKernel<aType, bType, cType, biasType> bmmv3;
             if (isCTail) {
                 allgatherRecvTensor = allgatherRecvTensor[allgatherRecvBufOffsetTail];
                 bmmv3.Init((__gm__ uint8_t*)transposeOutGM.GetPhyAddr(), wGM, (__gm__ uint8_t*)bmmOutGM.GetPhyAddr(), nullptr, nullptr, nullptr, &bmmNonLocalTailTiling->bmmTilingData, tpipe);

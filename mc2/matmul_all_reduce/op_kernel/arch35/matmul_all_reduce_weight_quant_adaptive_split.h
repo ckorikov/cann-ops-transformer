@@ -24,7 +24,7 @@
 
 namespace MatmulAllReduceImpl {
 using namespace AscendC;
-using Mc2WeightQuantBatchMatmulV2::Mc2QuantType;
+using WeightQuantBatchMatmulV2::QuantType;
 template <typename XType, typename WType, typename YType, class MmType>
 class MatmulAllReduceWeightQuantAdaptiveSplit
     : public MatmulAllReduceBase<XType, YType, Mc2CoreType::ON_CUBE_AND_VECTOR>
@@ -51,7 +51,7 @@ public:
 protected:
     __aicore__ inline void InnerProcess(const bool tailFlag, const uint32_t turnCnt, const MC2TileInfo& tileInfo)
     {
-        const Mc2WeightQuantBatchMatmulV2ASTilingData* tiling =
+        const WeightQuantBatchMatmulV2ASTilingData* tiling =
             (tailFlag) ? &mc2TilingData_->tailMmASTiling : &mc2TilingData_->tileMmASTiling;
         for (uint32_t i = 0; i < turnCnt; ++i) {
             MmType mmOp;
@@ -72,9 +72,9 @@ private:
 #define INVOKE_MC2_WEIGHT_QUANT_ADAPTIVE_SPLIT_KERNEL(bTransFlag, offsetFlag, quantType, biasType, vecAntiQuantConfig) \
     do {                                                                                                               \
         GET_TILING_DATA_WITH_STRUCT(WeightQuantMatmulAllReduceA5Fp8TilingData, tilingData, tilingGM);                  \
-        static constexpr Mc2WeightQuantBatchMatmulV2::Arch35::WqmmConfig wqmmCfg = {                                      \
-            false, bTransFlag, quantType, offsetFlag, Mc2QuantType::NONE, CubeFormat::ND};                                \
-        using OpType = Mc2WeightQuantBatchMatmulV2::Arch35::WeightQuantBatchMatmulV2BasicBlockController<                 \
+        static constexpr WeightQuantBatchMatmulV2::Arch35::WqmmConfig wqmmCfg = {                                      \
+            false, bTransFlag, quantType, offsetFlag, QuantType::NONE, CubeFormat::ND};                                \
+        using OpType = WeightQuantBatchMatmulV2::Arch35::WeightQuantBatchMatmulV2BasicBlockController<                 \
             DTYPE_X1, DTYPE_X2, DTYPE_X1, biasType, DTYPE_Y, wqmmCfg, vecAntiQuantConfig>;                             \
         MC2GmAddrs addrs = {aGM, bGM, biasGM, addGM, cGM, workspaceGM, cGM};                                           \
         \ 

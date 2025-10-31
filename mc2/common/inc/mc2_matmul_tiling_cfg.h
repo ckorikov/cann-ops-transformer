@@ -34,16 +34,16 @@
 #include "tiling/mc2_tiling_struct.h"
 
 namespace Mc2MatmulHelper {
-class Mc2MatmulTilingCfg : public optiling::Mc2MatMulTilingCfg
+class Mc2MatmulTilingCfg : public optiling::MatMulTilingCfg
 {
 public:
     Mc2MatmulTilingCfg(const void* compileInfoIn, const void* argsIn, uint32_t baseMLimit = 0, bool needUpdateIn = true)
-        : Mc2MatMulTilingCfg(needUpdateIn, compileInfoIn, argsIn), baseMLimit_(baseMLimit)
+        : MatMulTilingCfg(needUpdateIn, compileInfoIn, argsIn), baseMLimit_(baseMLimit)
     {
     }
 
     void SetMatMulV3TilingData(optiling::MC2MatmulV3TilingData& tilingData);
-    void Update(const optiling::Mc2TilingResult& result) override;
+    void Update(const optiling::TilingResult& result) override;
     void SetRankDim(uint64_t rankDim);
     void SetCommCnt(uint64_t commCnt);
 
@@ -56,7 +56,7 @@ private:
     uint64_t rankDim_{0};
     uint64_t commCnt_{0};
     optiling::MC2MatmulV3TilingData* mc2MmV3TilingData_{nullptr};
-    Mc2MatMulV3TilingData* mmv3TilingData_{nullptr};
+    MatMulV3TilingData* mmv3TilingData_{nullptr};
 };
 
 }  // namespace Mc2MatmulHelper

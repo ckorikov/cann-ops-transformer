@@ -18,13 +18,11 @@
 #include "mat_mul_v3/op_host/op_tiling/arch35/matmul_tiling_registry.h"
 
 namespace optiling {
-namespace Mc2batch_matmul_v3_advanced {
+namespace batch_matmul_v3_advanced {
 using namespace strategy;
-MC2_MM_REGISTER_TILING_TEMPLATE(Mc2BatchMatMulV3, Mc2BatchMatMulV3IterBatchTiling, ASCEND910_95, ITER_BATCH);
-//supportMmadS8S4平台
-MC2_MM_REGISTER_TILING_TEMPLATE(Mc2BatchMatMulV3, Mc2BatchMatMulV3IterBatchTiling, RESERVED_VERSION, ITER_BATCH);
+MM_REGISTER_TILING_TEMPLATE(BatchMatMulV3, BatchMatMulV3IterBatchTiling, ASCEND910_95, ITER_BATCH);
 
-bool Mc2BatchMatMulV3IterBatchTiling::IsCapable()
+bool BatchMatMulV3IterBatchTiling::IsCapable()
 {
     bool isNotEqualBatch = batchInfo_->batchA0 != batchInfo_->batchB0 || batchInfo_->batchA1 != batchInfo_->batchB1 ||
                            batchInfo_->batchA2 != batchInfo_->batchB2 || batchInfo_->batchA3 != batchInfo_->batchB3;
@@ -52,10 +50,10 @@ bool Mc2BatchMatMulV3IterBatchTiling::IsCapable()
     return true;
 }
 
-ge::graphStatus Mc2BatchMatMulV3IterBatchTiling::DoOpTiling()
+ge::graphStatus BatchMatMulV3IterBatchTiling::DoOpTiling()
 {
-    Mc2MatMulV3TilingHelper::ResetBase(compileInfo_, args_, runInfo_);
-    Mc2MatMulV3TilingHelper::CalL1Tiling(compileInfo_, args_, runInfo_);
+    MatMulV3TilingHelper::ResetBase(compileInfo_, args_, runInfo_);
+    MatMulV3TilingHelper::CalL1Tiling(compileInfo_, args_, runInfo_);
     runInfo_.singleCoreM = args_.mValue;
     runInfo_.singleCoreN = args_.nValue;
     runInfo_.singleCoreK = args_.kValue;
@@ -91,19 +89,19 @@ ge::graphStatus Mc2BatchMatMulV3IterBatchTiling::DoOpTiling()
     runInfo_.bmmRunInfo.iterBatch = iterBatch_;
     runInfo_.bmmRunInfo.batchOutNum = batchOutNum_;
     iterBatchBiasModel_ = (args_.hasBias && (args_.batchInfo->batchBias == 1UL)) ?
-                          Mc2MatMulV3Model::ITER_BATCH_SINGLE_BIAS : Mc2MatMulV3Model::ITER_BATCH_BATCH_BIAS;
+                          MatMulV3Model::ITER_BATCH_SINGLE_BIAS : MatMulV3Model::ITER_BATCH_BATCH_BIAS;
     return ge::GRAPH_SUCCESS;
 }
 
-uint64_t Mc2BatchMatMulV3IterBatchTiling::GetTilingKey() const
+uint64_t BatchMatMulV3IterBatchTiling::GetTilingKey() const
 {
-    return Mc2MatMulV3TilingKey()
+    return MatMulV3TilingKey()
         .SetTrans(args_.isATrans, args_.isBTrans)
         .SetModel(iterBatchBiasModel_)
         .GetTilingKey();
 }
 
-uint64_t Mc2BatchMatMulV3IterBatchTiling::GetBlockDim() const
+uint64_t BatchMatMulV3IterBatchTiling::GetBlockDim() const
 {
     return compileInfo_.aicNum;
 }

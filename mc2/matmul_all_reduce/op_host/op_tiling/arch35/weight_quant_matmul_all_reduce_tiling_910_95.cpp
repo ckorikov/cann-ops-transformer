@@ -41,7 +41,7 @@ ge::graphStatus WeightQuantTilingTransferHelperA5::GetShapeAttrsInfo()
     auto&& tilingArgs = tilingProcesser_.args_;
     opName_ = tilingProcesser_.opName_;
     try {
-        matmulInfoPtr_ = std::make_unique<Mc2WeightQuantBatchMatmulInfo>();
+        matmulInfoPtr_ = std::make_unique<WeightQuantBatchMatmulInfo>();
     } catch (const std::bad_alloc& e) {
         OP_LOGE(opName_, "Failed to create matmul info.");
         return ge::GRAPH_FAILED;
@@ -63,7 +63,7 @@ ge::graphStatus WeightQuantTilingTransferHelperA5::GetShapeAttrsInfo()
     matmulInfoPtr_->bFormat =
         static_cast<ge::Format>(ge::GetPrimaryFormat(tilingProcesser_.mmrCtxInfo_.x2->GetStorageFormat()));
     OP_TILING_CHECK(
-        (matmulInfoPtr_->bFormat == ge::FORMAT_FRACTAL_NZ) && (matmulInfoPtr_->antiQuantType != Mc2QuantType::PER_CHANNEL),
+        (matmulInfoPtr_->bFormat == ge::FORMAT_FRACTAL_NZ) && (matmulInfoPtr_->antiQuantType != QuantType::PER_CHANNEL),
         VECTOR_INNER_ERR_REPORT_TILING(
             matmulInfoPtr_->opName,
             "Nz weight input only supports per-channel scene, "
@@ -79,7 +79,7 @@ ge::graphStatus WeightQuantAsTilingTransferHelper::GetShapeAttrsInfo()
     auto&& fp8Hif8TilingArgs = tilingProcesser_.args_;
     opName_ = tilingProcesser_.opName_;
     try {
-        matmulInfoPtr_ = std::make_unique<Mc2WeightQuantBatchMatmulInfo>();
+        matmulInfoPtr_ = std::make_unique<WeightQuantBatchMatmulInfo>();
     } catch (const std::bad_alloc& e) {
         OP_LOGE(opName_, "Failed to create matmul info.");
         return ge::GRAPH_FAILED;
@@ -110,7 +110,7 @@ ge::graphStatus WeightQuantAsTilingTransferHelper::GetShapeAttrsInfo()
     return ge::GRAPH_SUCCESS;
 }
 
-void WeightQuantAsTilingTransferHelper::PrintTilingInputParam(std::unique_ptr<Mc2WeightQuantBatchMatmulInfo>& matmulInfo)
+void WeightQuantAsTilingTransferHelper::PrintTilingInputParam(std::unique_ptr<WeightQuantBatchMatmulInfo>& matmulInfo)
 {
     OP_LOGD(
         tilingProcesser_.opName_, "The transA_=%d, transB_=%d, hasBias_=%d, hasAntiQuantOffset_=%d.",

@@ -12,7 +12,7 @@
 
 #include "device_utils.h"
 
-namespace Mc2WeightQuantBatchMatmulV2::Arch35::Catlass {
+namespace WeightQuantBatchMatmulV2::Arch35::Catlass {
 template <typename T>
 DEVICE T CeilDiv(T a, T b)
 {
@@ -46,5 +46,5 @@ DEVICE T Max(T a, T b)
     return max(a, b);
 #endif
 }
-} // namespace Mc2WeightQuantBatchMatmulV2::Arch35::Catlass
+} // namespace WeightQuantBatchMatmulV2::Arch35::Catlass
 #endif

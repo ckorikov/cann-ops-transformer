@@ -39,8 +39,8 @@ TILING_DATA_FIELD_DEF_STRUCT(RCSTiling, param);
 TILING_DATA_FIELD_DEF_STRUCT(TCubeTiling, matmulTiling);
 TILING_DATA_FIELD_DEF_STRUCT(TCubeTiling, tailTiling);
 TILING_DATA_FIELD_DEF_STRUCT(TCubeTiling, matmulTiling2);
-TILING_DATA_FIELD_DEF_STRUCT(Mc2L2cacheTilePara, tileL2cacheTiling);
-TILING_DATA_FIELD_DEF_STRUCT(Mc2L2cacheTilePara, tailL2cacheTiling);
+TILING_DATA_FIELD_DEF_STRUCT(L2cacheTilePara, tileL2cacheTiling);
+TILING_DATA_FIELD_DEF_STRUCT(L2cacheTilePara, tailL2cacheTiling);
 END_TILING_DATA_DEF;
 
 REGISTER_TILING_DATA_CLASS(MatmulAllReduce, MatmulAllReduceTilingData);
@@ -49,8 +49,8 @@ REGISTER_TILING_DATA_CLASS(MatmulAllReduceTilingDataOp, MatmulAllReduceTilingDat
 BEGIN_TILING_DATA_DEF(WeightQuantMatmulAllReduceNzTilingData)
 TILING_DATA_FIELD_DEF_STRUCT(Mc2Msg, msg);
 TILING_DATA_FIELD_DEF_STRUCT(RCSTiling, param);
-TILING_DATA_FIELD_DEF_STRUCT(Mc2WeightQuantBatchMatmulV2NzTilingData, tilematmulTiling);
-TILING_DATA_FIELD_DEF_STRUCT(Mc2WeightQuantBatchMatmulV2NzTilingData, tailmatmulTiling);
+TILING_DATA_FIELD_DEF_STRUCT(WeightQuantBatchMatmulV2NzTilingData, tilematmulTiling);
+TILING_DATA_FIELD_DEF_STRUCT(WeightQuantBatchMatmulV2NzTilingData, tailmatmulTiling);
 END_TILING_DATA_DEF;
 
 REGISTER_TILING_DATA_CLASS(MatmulAllReduce_13195213800193, WeightQuantMatmulAllReduceNzTilingData);
@@ -62,7 +62,7 @@ REGISTER_TILING_DATA_CLASS(MatmulAllReduce_13470360142593, WeightQuantMatmulAllR
 REGISTER_TILING_DATA_CLASS(MatmulAllReduce_13471165448961, WeightQuantMatmulAllReduceNzTilingData);
 REGISTER_TILING_DATA_CLASS(MatmulAllReduce_13471433884417, WeightQuantMatmulAllReduceNzTilingData);
 
-using AntiQuantType = Mc2QuantType;
+using AntiQuantType = QuantType;
 
 constexpr uint8_t MC2_DEBUG_ONLY_AICPU = 4;
 constexpr uint8_t DIM_NUM_THREE = 3;
@@ -214,7 +214,7 @@ protected:
     void SetMCutSocVersion(SocVersion& inputSocVersion);
     void DoSplitMTiling();
     ge::graphStatus DoMatmulTiling(matmul_tiling::MultiCoreMatmulTiling& mm1, TCubeTiling& cubeTiling);
-    void DoL2CacheTiling(Mc2L2cacheTilePara& l2cacheTiling);
+    void DoL2CacheTiling(L2cacheTilePara& l2cacheTiling);
     void setUseBufferType();
 
     void Reset();
@@ -274,7 +274,7 @@ protected:
     bool isPerTensor_{false};
     bool isPerBlock_{false};
     AntiQuantType antiQuantType_{AntiQuantType::NONE};
-    Mc2QuantType quantType_{Mc2QuantType::PER_TENSOR};
+    QuantType quantType_{QuantType::PER_TENSOR};
     uint64_t antiGroupSize_{0UL}; // anti quant per group info
     bool isUbQuant_{false};
     bool enableL2Cache_{false};

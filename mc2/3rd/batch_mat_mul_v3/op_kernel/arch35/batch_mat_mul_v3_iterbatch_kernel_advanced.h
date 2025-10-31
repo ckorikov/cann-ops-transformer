@@ -19,15 +19,15 @@
 #include "kernel_operator.h"
 #include "lib/matmul_intf.h"
 
-namespace Mc2BatchMatMulV3Advanced {
+namespace BatchMatMulV3Advanced {
 using namespace AscendC;
 using namespace matmul;
 
-template <class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE, class BLOCK_TYPE = Mc2BatchMatMulMultiBatchBaseBlock,
+template <class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE, class BLOCK_TYPE = BatchMatMulMultiBatchBaseBlock,
           const MatmulConfig& MM_CFG = MM_CFG_MULTI_BATCH_OUT_BATCH_BIAS>
-class Mc2BatchMatMulMultiBatchKernel {
+class BatchMatMulMultiBatchKernel {
 public:
-    __aicore__ inline Mc2BatchMatMulMultiBatchKernel() {}
+    __aicore__ inline BatchMatMulMultiBatchKernel() {}
     __aicore__ inline void Init(GM_ADDR aGM, GM_ADDR bGM, GM_ADDR cGM, GM_ADDR biasGM, GM_ADDR offsetWGM,
         GM_ADDR workspaceGM, const void *tilingData, TPipe *pipe);
     __aicore__ inline void UpdateGlobalTensor(GM_ADDR aGM, GM_ADDR bGM, GM_ADDR cGM, GM_ADDR biasGM, GM_ADDR offsetWGM,
@@ -56,7 +56,7 @@ private:
 };
 
 template <class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE, class BLOCK_TYPE, const MatmulConfig& MM_CFG>
-__aicore__ inline void Mc2BatchMatMulMultiBatchKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLOCK_TYPE, MM_CFG>::Init(
+__aicore__ inline void BatchMatMulMultiBatchKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLOCK_TYPE, MM_CFG>::Init(
     GM_ADDR aGM, GM_ADDR bGM, GM_ADDR cGM, GM_ADDR biasGM, GM_ADDR offsetWGM, GM_ADDR workspaceGM,
     const void *tilingData, TPipe *pipe)
 {
@@ -76,7 +76,7 @@ __aicore__ inline void Mc2BatchMatMulMultiBatchKernel<A_TYPE, B_TYPE, C_TYPE, BI
 }
 
 template <class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE, class BLOCK_TYPE, const MatmulConfig& MM_CFG>
-__aicore__ inline void Mc2BatchMatMulMultiBatchKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLOCK_TYPE, MM_CFG>::InitInputs(
+__aicore__ inline void BatchMatMulMultiBatchKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLOCK_TYPE, MM_CFG>::InitInputs(
     GM_ADDR aGM, GM_ADDR bGM, GM_ADDR cGM, GM_ADDR biasGM)
 {
     using A_T = typename A_TYPE::T;
@@ -101,7 +101,7 @@ __aicore__ inline void Mc2BatchMatMulMultiBatchKernel<A_TYPE, B_TYPE, C_TYPE, BI
 }
 
 template <class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE, class BLOCK_TYPE, const MatmulConfig& MM_CFG>
-__aicore__ inline void Mc2BatchMatMulMultiBatchKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLOCK_TYPE, MM_CFG>::Process()
+__aicore__ inline void BatchMatMulMultiBatchKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLOCK_TYPE, MM_CFG>::Process()
 {
     if ASCEND_IS_AIV {
         return;

@@ -21,14 +21,14 @@
 #include "matmul_v3_tiling_key.h"
 
 namespace optiling {
-namespace mc2_matmul_v3_advanced {
-class Mc2MatMulV3TilingHelper {
+namespace matmul_v3_advanced {
+class MatMulV3TilingHelper {
 public:
-    static void ResetBase(const Mc2MatmulV3CompileInfo &compileInfo, const Mc2MatMulV3Args &args, Mc2MatMulV3RunInfo &runInfo);
-    static void CalL1Tiling(const Mc2MatmulV3CompileInfo &compileInfo, const Mc2MatMulV3Args &args, Mc2MatMulV3RunInfo &runInfo);
-    static Mc2MatMulV3L0C2Out GetL0C2Out(const Mc2MatmulV3CompileInfo &compileInfo, const Mc2MatMulV3Args &args,
-        const Mc2MatMulV3RunInfo &runInfo);
-    static bool CheckIfDoubleAswt(const Mc2MatmulV3CompileInfo &compileInfo, const Mc2MatMulV3Args &args,
+    static void ResetBase(const MatmulV3CompileInfo &compileInfo, const MatMulV3Args &args, MatMulV3RunInfo &runInfo);
+    static void CalL1Tiling(const MatmulV3CompileInfo &compileInfo, const MatMulV3Args &args, MatMulV3RunInfo &runInfo);
+    static MatMulV3L0C2Out GetL0C2Out(const MatmulV3CompileInfo &compileInfo, const MatMulV3Args &args,
+        const MatMulV3RunInfo &runInfo);
+    static bool CheckIfDoubleAswt(const MatmulV3CompileInfo &compileInfo, const MatMulV3Args &args,
                                   const uint64_t batchC);
 };
 }

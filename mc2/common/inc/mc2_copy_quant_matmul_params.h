@@ -20,7 +20,7 @@
 #include "quant_batch_matmul_v3/op_kernel/arch35/quant_batch_matmul_v3_tiling_data.h"
 
 namespace optiling {
-void CopyQuantBatchMatmulParams(DequantBmm::Mc2QuantBatchMatmulV3TilingDataParams& quantBatchMatmulParams, 
-    Mc2QuantBatchMatmulV3TilingData& quantBmmV3TilingData);
+void CopyQuantBatchMatmulParams(DequantBmm::QuantBatchMatmulV3TilingDataParams& quantBatchMatmulParams, 
+    QuantBatchMatmulV3TilingData& quantBmmV3TilingData);
 }
 #endif

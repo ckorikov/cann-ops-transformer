@@ -18,7 +18,7 @@
 #include "mat_mul_asw_block.h"
 #include "mm_extension_interface/mm_custom_mm_policy.h"
 
-namespace Mc2MatmulV3Advanced {
+namespace MatmulV3Advanced {
 using namespace AscendC;
 using namespace matmul;
 
@@ -26,11 +26,11 @@ using namespace matmul;
 using namespace std;
 #endif
 
-template <class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE, class BLOCK_TYPE = Mc2MatmulAswBlock,
+template <class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE, class BLOCK_TYPE = MatmulAswBlock,
     const MatmulConfig &MM_CFG = MM_CFG_NO_PRELOAD>
-class Mc2MatmulFixpipeOptiKernel {
+class MatmulFixpipeOptiKernel {
 public:
-    __aicore__ inline Mc2MatmulFixpipeOptiKernel() {}
+    __aicore__ inline MatmulFixpipeOptiKernel() {}
     __aicore__ inline void Init(GM_ADDR aGM, GM_ADDR bGM, GM_ADDR cGM, GM_ADDR biasGM, GM_ADDR offsetWGM,
         GM_ADDR workspaceGM, const void *tilingData, TPipe *pipe);
     __aicore__ inline void AicProcess(bool aicNeedWaitAiv);
@@ -55,7 +55,7 @@ protected:
 
 template <class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE, class BLOCK_TYPE, const MatmulConfig &MM_CFG>
 __aicore__ inline void
-Mc2MatmulFixpipeOptiKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLOCK_TYPE, MM_CFG>::Init(GM_ADDR aGM, GM_ADDR bGM,
+MatmulFixpipeOptiKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLOCK_TYPE, MM_CFG>::Init(GM_ADDR aGM, GM_ADDR bGM,
     GM_ADDR cGM, GM_ADDR biasGM, GM_ADDR offsetWGM, GM_ADDR workspaceGM, const void *tilingData, TPipe *pipe)
 {
     pipe_ = pipe;
@@ -73,7 +73,7 @@ Mc2MatmulFixpipeOptiKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLOCK_TYPE, MM_CFG
 }
 
 template <class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE, class BLOCK_TYPE, const MatmulConfig &MM_CFG>
-__aicore__ inline void Mc2MatmulFixpipeOptiKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLOCK_TYPE, MM_CFG>::AivProcess(
+__aicore__ inline void MatmulFixpipeOptiKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLOCK_TYPE, MM_CFG>::AivProcess(
     uint64_t roundIdx)
 {
     if ASCEND_IS_AIV {
@@ -96,7 +96,7 @@ __aicore__ inline void Mc2MatmulFixpipeOptiKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_T
 }
 
 template <class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE, class BLOCK_TYPE, const MatmulConfig &MM_CFG>
-__aicore__ inline void Mc2MatmulFixpipeOptiKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLOCK_TYPE, MM_CFG>::AicProcess(
+__aicore__ inline void MatmulFixpipeOptiKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLOCK_TYPE, MM_CFG>::AicProcess(
     bool aicNeedWaitAiv)
 {
     if ASCEND_IS_AIC {
@@ -120,7 +120,7 @@ __aicore__ inline void Mc2MatmulFixpipeOptiKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_T
 }
 
 template <class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE, class BLOCK_TYPE, const MatmulConfig &MM_CFG>
-__aicore__ inline void Mc2MatmulFixpipeOptiKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLOCK_TYPE, MM_CFG>::Process()
+__aicore__ inline void MatmulFixpipeOptiKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLOCK_TYPE, MM_CFG>::Process()
 {
     if ASCEND_IS_AIV {
         // aiv初始等待AIC时可以load所有的.o
@@ -149,11 +149,11 @@ __aicore__ inline void Mc2MatmulFixpipeOptiKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_T
 }
 
 
-template <class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE, class BLOCK_TYPE = Mc2MatmulAswBlock,
+template <class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE, class BLOCK_TYPE = MatmulAswBlock,
     const MatmulConfig &MM_CFG = MM_CFG_NO_PRELOAD>
-class Mc2MatmulFixpipeOptiDualDstKernel {
+class MatmulFixpipeOptiDualDstKernel {
 public:
-    __aicore__ inline Mc2MatmulFixpipeOptiDualDstKernel() {}
+    __aicore__ inline MatmulFixpipeOptiDualDstKernel() {}
     __aicore__ inline void Init(GM_ADDR aGM, GM_ADDR bGM, GM_ADDR cGM, GM_ADDR biasGM, GM_ADDR offsetWGM,
         GM_ADDR workspaceGM, const void *tilingData, TPipe *pipe);
     __aicore__ inline void AicProcess(bool aicNeedWaitAiv);
@@ -167,7 +167,7 @@ protected:
     using BiasT = typename BIAS_TYPE::T;
     using C_TYPE_FIXPIPE_OPTI = MatmulType<AscendC::TPosition::VECIN, CubeFormat::ND_ALIGN, C_T>;
     MatmulImpl<A_TYPE, B_TYPE, C_TYPE_FIXPIPE_OPTI, BIAS_TYPE, MM_CFG, MatmulCallBackFunc<nullptr, nullptr, nullptr>,
-               MatmulCommon::Mc2MMCustomMatmulPolicy> mm_;
+               MatmulCommon::MMCustomMatmulPolicy> mm_;
     GlobalTensor<A_T> aGlobal_;
     GlobalTensor<B_T> bGlobal_;
     GlobalTensor<C_T> cGlobal_;
@@ -178,7 +178,7 @@ protected:
 
 template <class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE, class BLOCK_TYPE, const MatmulConfig &MM_CFG>
 __aicore__ inline void
-Mc2MatmulFixpipeOptiDualDstKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLOCK_TYPE, MM_CFG>::Init(GM_ADDR aGM, GM_ADDR bGM,
+MatmulFixpipeOptiDualDstKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLOCK_TYPE, MM_CFG>::Init(GM_ADDR aGM, GM_ADDR bGM,
     GM_ADDR cGM, GM_ADDR biasGM, GM_ADDR offsetWGM, GM_ADDR workspaceGM, const void *tilingData, TPipe *pipe)
 {
     pipe_ = pipe;
@@ -196,7 +196,7 @@ Mc2MatmulFixpipeOptiDualDstKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLOCK_TYPE,
 }
 
 template <class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE, class BLOCK_TYPE, const MatmulConfig &MM_CFG>
-__aicore__ inline void Mc2MatmulFixpipeOptiDualDstKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLOCK_TYPE, MM_CFG>::
+__aicore__ inline void MatmulFixpipeOptiDualDstKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLOCK_TYPE, MM_CFG>::
     AivProcess(uint64_t roundIdx)
 {
     if ASCEND_IS_AIV {
@@ -219,7 +219,7 @@ __aicore__ inline void Mc2MatmulFixpipeOptiDualDstKernel<A_TYPE, B_TYPE, C_TYPE,
 }
 
 template <class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE, class BLOCK_TYPE, const MatmulConfig &MM_CFG>
-__aicore__ inline void Mc2MatmulFixpipeOptiDualDstKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLOCK_TYPE, MM_CFG>::
+__aicore__ inline void MatmulFixpipeOptiDualDstKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLOCK_TYPE, MM_CFG>::
     AicProcess(bool aicNeedWaitAiv)
 {
     if ASCEND_IS_AIC {
@@ -245,7 +245,7 @@ __aicore__ inline void Mc2MatmulFixpipeOptiDualDstKernel<A_TYPE, B_TYPE, C_TYPE,
 }
 
 template <class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE, class BLOCK_TYPE, const MatmulConfig &MM_CFG>
-__aicore__ inline void Mc2MatmulFixpipeOptiDualDstKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLOCK_TYPE, MM_CFG>::Process()
+__aicore__ inline void MatmulFixpipeOptiDualDstKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLOCK_TYPE, MM_CFG>::Process()
 {
     if ASCEND_IS_AIV {
         // aiv初始等待AIC时可以load所有的.o
@@ -272,6 +272,6 @@ __aicore__ inline void Mc2MatmulFixpipeOptiDualDstKernel<A_TYPE, B_TYPE, C_TYPE,
     return;
 }
 
-} // namespace Mc2MatmulV3Advanced
+} // namespace MatmulV3Advanced
 
 #endif

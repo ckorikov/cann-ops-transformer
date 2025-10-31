@@ -14,10 +14,10 @@
  */
 #ifndef WEIGHT_QUANT_BATCH_MATMUL_V2_CONSTANT_H
 #define WEIGHT_QUANT_BATCH_MATMUL_V2_CONSTANT_H
-namespace Mc2WeightQuantBatchMatmulV2 {
+namespace WeightQuantBatchMatmulV2 {
 using HighPreciseType = int32_t;
 using HighPerformanceType = half;
-enum class Mc2QuantType
+enum class QuantType
 {
     NONE = 0,
     PER_TENSOR = 1,
@@ -32,5 +32,5 @@ enum class PrecisionType
     HIGH_PRECISION = 1,
 };
 
-} // namespace Mc2WeightQuantBatchMatmulV2
+} // namespace WeightQuantBatchMatmulV2
 #endif // WEIGHT_QUANT_BATCH_MATMUL_V2_CONSTANT_H

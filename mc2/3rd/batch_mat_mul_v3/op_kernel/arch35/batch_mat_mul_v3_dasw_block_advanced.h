@@ -17,23 +17,23 @@
 
 #include "batch_mat_mul_v3_asw_block_advanced.h"
 
-namespace Mc2BatchMatMulV3Advanced {
+namespace BatchMatMulV3Advanced {
 
 using namespace AscendC;
 using namespace matmul;
 
-class Mc2BatchMatMulDaswBlock: public Mc2BatchMatMulAswBlock {
+class BatchMatMulDaswBlock: public BatchMatMulAswBlock {
 public:
-    __aicore__ inline Mc2BatchMatMulDaswBlock() {}
+    __aicore__ inline BatchMatMulDaswBlock() {}
     template <class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE>
     __aicore__ inline void Init(const void *tilingData);
     __aicore__ inline void UpdateBasicIndex(uint64_t roundIdx, uint64_t newBlockIdx);
 };
 
 template <class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE>
-__aicore__ inline void Mc2BatchMatMulDaswBlock::Init(const void *tilingData)
+__aicore__ inline void BatchMatMulDaswBlock::Init(const void *tilingData)
 {
-    Mc2BatchMatMulAswBlock::Init<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE>(tilingData);
+    BatchMatMulAswBlock::Init<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE>(tilingData);
     if (params_.totalCnt % (batchMatmulTilingData_->matMulTilingData.tCubeTiling.usedCoreNum * 2) == 0) {
         params_.roundToReverse = params_.round;
     } else if (params_.round % 2 == 0) {
@@ -43,7 +43,7 @@ __aicore__ inline void Mc2BatchMatMulDaswBlock::Init(const void *tilingData)
     }
 }
 
-__aicore__ inline void Mc2BatchMatMulDaswBlock::UpdateBasicIndex(uint64_t roundIdx, uint64_t newBlockIdx)
+__aicore__ inline void BatchMatMulDaswBlock::UpdateBasicIndex(uint64_t roundIdx, uint64_t newBlockIdx)
 {
     uint64_t reversedRoundIdx = roundIdx;
     uint64_t reversedNewBlockIdx = newBlockIdx;
@@ -56,8 +56,8 @@ __aicore__ inline void Mc2BatchMatMulDaswBlock::UpdateBasicIndex(uint64_t roundI
         reversedRoundIdx = roundIdx - (params_.roundToReverse >> 1);
         reversedNewBlockIdx = newBlockIdx + (batchMatmulTilingData_->matMulTilingData.tCubeTiling.usedCoreNum >> 1);
     }
-    Mc2BatchMatMulAswBlock::UpdateBasicIndex(reversedRoundIdx, reversedNewBlockIdx);
+    BatchMatMulAswBlock::UpdateBasicIndex(reversedRoundIdx, reversedNewBlockIdx);
 }
-} // namespace Mc2BatchMatMulV3Advanced
+} // namespace BatchMatMulV3Advanced
 
 #endif // BATCH_MAT_MUL_V3_DASW_BLOCK_ADVANCED_H

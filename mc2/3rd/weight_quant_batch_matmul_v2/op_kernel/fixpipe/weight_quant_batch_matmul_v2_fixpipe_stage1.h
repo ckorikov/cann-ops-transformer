@@ -19,7 +19,7 @@
 #include "kernel_operator_intf.h"
 #include "../tool.h"
 
-namespace Mc2WeightQuantBatchMatmulV2 {
+namespace WeightQuantBatchMatmulV2 {
 
 using AscendC::DataCopyCO12DstParams;
 using AscendC::DataCopyParams;
@@ -27,10 +27,10 @@ using AscendC::LoadData2dTransposeParams;
 using AscendC::MmadParams;
 
 template <bool hasAntiqOffset>
-class Mc2WeightQuantBatchMatmulV2FixpipeStage1
+class WeightQuantBatchMatmulV2FixpipeStage1
 {
 public:
-    __aicore__ inline Mc2WeightQuantBatchMatmulV2FixpipeStage1()
+    __aicore__ inline WeightQuantBatchMatmulV2FixpipeStage1()
     {}
 
     __aicore__ inline void Init(
@@ -195,5 +195,5 @@ private:
     LocalTensor<uint64_t> antiqScaleFP_;
     LocalTensor<int32_t> weightS32L0c_;
 };
-} // namespace Mc2WeightQuantBatchMatmulV2
+} // namespace WeightQuantBatchMatmulV2
 #endif // WEIGHT_QUANT_BATCH_MATMUL_V2_FIXPIPE_STAGE1_H

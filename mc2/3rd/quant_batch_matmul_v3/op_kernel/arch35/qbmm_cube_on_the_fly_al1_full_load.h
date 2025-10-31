@@ -20,7 +20,7 @@
 #include "../quant_batch_matmul_v3_base.h"
 #include "qbmm_api_utils.h"
 
-namespace Mc2QuantBatchMatmulV3 {
+namespace QuantBatchMatmulV3 {
 
 using namespace AscendC;
 using namespace matmul;
@@ -76,7 +76,7 @@ __aicore__ inline void MatmulAswKernelAL1FullLoad<LOCAL_TEMPLATE_FUNC_PARAMS>::I
     }
     pipe_ = pipe;
     this->blockIdx_ = GetBlockIdx();
-    this->quantBmmTilingData_ = static_cast<const DequantBmm::Mc2QuantBatchMatmulV3TilingDataParams *>(tilingData);
+    this->quantBmmTilingData_ = static_cast<const DequantBmm::QuantBatchMatmulV3TilingDataParams *>(tilingData);
     this->UpdateGlobalAddr(aGM, bGM, bias, scale, perTokenScale, cGM, workSpace);
 }
 
@@ -207,6 +207,6 @@ __aicore__ inline void MatmulAswKernelAL1FullLoad<LOCAL_TEMPLATE_FUNC_PARAMS>::P
     }
 }
 
-}  // namespace Mc2QuantBatchMatmulV3
+}  // namespace QuantBatchMatmulV3
 
 #endif  // QBMM_CUBE_ON_THE_FLY_AL1_FULL_LOAD_H

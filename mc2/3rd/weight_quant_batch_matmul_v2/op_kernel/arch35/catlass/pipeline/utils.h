@@ -16,7 +16,7 @@
 using AscendC::HardEvent;
 using AscendC::Hardware;
 
-namespace Mc2WeightQuantBatchMatmulV2::Arch35::Catlass {
+namespace WeightQuantBatchMatmulV2::Arch35::Catlass {
 namespace detail {
 template <Hardware Src, Hardware Dst, bool FwdDirect>
 DEVICE constexpr HardEvent GetQueEvt()
@@ -35,5 +35,5 @@ DEVICE constexpr HardEvent GetQueEvt()
     return HardEvent::MAX;
 }
 } // namespace detail
-} // namespace Mc2WeightQuantBatchMatmulV2::Arch35::Catlass
+} // namespace WeightQuantBatchMatmulV2::Arch35::Catlass
 #endif

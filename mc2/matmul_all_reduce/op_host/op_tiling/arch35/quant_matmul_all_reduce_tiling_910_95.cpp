@@ -18,7 +18,7 @@
 #include "op_mc2.h"
 #include "mc2_log.h"
 #include "util/math_util.h"
-#include "new_mc2_copy_quant_matmul_params.h"
+#include "mc2_copy_quant_matmul_params.h"
 
 using namespace Mc2Log;
 namespace optiling {
@@ -241,24 +241,24 @@ TCubeTiling& QuantMatmulAllReduceTilingA5::MutableTCubeTailTilingData()
 ge::graphStatus QuantMatmulAllReduceTilingA5::DoQuantTiling()
 {
     args_.mValue = tileMValue_;
-    DequantBmm::Mc2QuantBatchMatmulV3TilingDataParams tileQuantBatchMatmulParams;
+    DequantBmm::QuantBatchMatmulV3TilingDataParams tileQuantBatchMatmulParams;
     QuantTilingTransferHelperA5 mmTile(*this, tileQuantBatchMatmulParams);
     if (args_.enableSplitK) {
         OP_LOGD(opName_, "Enable SplitK Tiling.");
         GE_ASSERT_GRAPH_SUCCESS(mmTile.DoTiling());
-        NewCopyQuantBatchMatmulParams(tileQuantBatchMatmulParams, quantMatmulAllReduceTilingData_.tilematmulTiling);
+        CopyQuantBatchMatmulParams(tileQuantBatchMatmulParams, quantMatmulAllReduceTilingData_.tilematmulTiling);
         return ge::GRAPH_SUCCESS;
     } else {
         GE_ASSERT_GRAPH_SUCCESS(mmTile.DoTiling());
-        NewCopyQuantBatchMatmulParams(tileQuantBatchMatmulParams, quantMatmulAllReduceTilingData_.tilematmulTiling);
+        CopyQuantBatchMatmulParams(tileQuantBatchMatmulParams, quantMatmulAllReduceTilingData_.tilematmulTiling);
         if (MutableRCSTilingData().get_tailCnt() == 0) {
             return ge::GRAPH_SUCCESS;
         }
         args_.mValue = tailMValue_;
-        DequantBmm::Mc2QuantBatchMatmulV3TilingDataParams tailQuantBatchMatmulParams;
+        DequantBmm::QuantBatchMatmulV3TilingDataParams tailQuantBatchMatmulParams;
         QuantTilingTransferHelperA5 mmTail(*this, tailQuantBatchMatmulParams);
         GE_ASSERT_GRAPH_SUCCESS(mmTail.DoTiling());
-        NewCopyQuantBatchMatmulParams(tailQuantBatchMatmulParams, quantMatmulAllReduceTilingData_.tailmatmulTiling);
+        CopyQuantBatchMatmulParams(tailQuantBatchMatmulParams, quantMatmulAllReduceTilingData_.tailmatmulTiling);
         return ge::GRAPH_SUCCESS;
     }
 }
@@ -675,7 +675,7 @@ ge::graphStatus QuantTilingTransferHelperA5::GetShapeAttrsInfo()
     }
     // optiling::PlatformInfo::GetInstance().intrinsic_fix_pipe_l0c2out = tilingProcesser_.supportL0c2Out_;
     GE_ASSERT_TRUE(AnalyzeInputs());
-    inputParams_.isPerTensor = (tilingProcesser_.quantType_ == Mc2QuantType::PER_TENSOR);
+    inputParams_.isPerTensor = (tilingProcesser_.quantType_ == QuantType::PER_TENSOR);
     PrintTilingInputParam(inputParams_);
     return ge::GRAPH_SUCCESS;
 }
@@ -687,7 +687,7 @@ ge::graphStatus QuantTilingTransferHelperA5::PostTiling()
     return ge::GRAPH_SUCCESS;
 }
 
-void QuantTilingTransferHelperA5::PrintTilingInputParam(Mc2QuantBatchMatmulInfo quantBatchMatmulInfo)
+void QuantTilingTransferHelperA5::PrintTilingInputParam(QuantBatchMatmulInfo quantBatchMatmulInfo)
 {
     OP_LOGD(
         tilingProcesser_.opName_, "The transA_=%d, transB_=%d, hasBias_=%d.", quantBatchMatmulInfo.transA,

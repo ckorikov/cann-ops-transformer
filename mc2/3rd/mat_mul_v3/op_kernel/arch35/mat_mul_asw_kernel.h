@@ -1,6 +1,6 @@
 /**
- * This program is free software, you can redistribute it and/or modify.
- * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+ * This program is free software, you can redistribute it and/or modify.
+ * Copyright (c) 2025 Huawei Technologies Co., Ltd.
  * This file is a part of the CANN Open Software.
  * Licensed under CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
@@ -18,16 +18,16 @@
 #include "mat_mul_asw_block.h"
 #include "mat_mul_dasw_block.h"
 
-namespace Mc2MatmulV3Advanced {
+namespace MatmulV3Advanced {
 
 using namespace AscendC;
 using namespace matmul;
 
-template <class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE, class BLOCK_TYPE = Mc2MatmulAswBlock,
+template <class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE, class BLOCK_TYPE = MatmulAswBlock,
     const MatmulConfig &MM_CFG = MM_CFG_NO_PRELOAD>
-class Mc2MatmulAswKernel {
+class MatmulAswKernel {
 public:
-    __aicore__ inline Mc2MatmulAswKernel() {}
+    __aicore__ inline MatmulAswKernel() {}
     __aicore__ inline void Init(GM_ADDR aGM, GM_ADDR bGM, GM_ADDR cGM, GM_ADDR biasGM, GM_ADDR offsetWGM,
         GM_ADDR workspaceGM, const void *tilingData, TPipe *pipe);
     __aicore__ inline void UpdateGlobalTensor(GM_ADDR aGM, GM_ADDR bGM, GM_ADDR cGM, GM_ADDR biasGM, GM_ADDR offsetWGM,
@@ -54,7 +54,7 @@ protected:
 
 
 template <class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE, class BLOCK_TYPE, const MatmulConfig &MM_CFG>
-__aicore__ inline void Mc2MatmulAswKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLOCK_TYPE, MM_CFG>::Init(GM_ADDR aGM,
+__aicore__ inline void MatmulAswKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLOCK_TYPE, MM_CFG>::Init(GM_ADDR aGM,
     GM_ADDR bGM, GM_ADDR cGM, GM_ADDR biasGM, GM_ADDR offsetWGM, GM_ADDR workspaceGM, const void *tilingData,
     TPipe *pipe)
 {
@@ -66,7 +66,7 @@ __aicore__ inline void Mc2MatmulAswKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLO
 }
 
 template <class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE, class BLOCK_TYPE, const MatmulConfig &MM_CFG>
-__aicore__ inline void Mc2MatmulAswKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLOCK_TYPE, MM_CFG>::InitInputs(GM_ADDR aGM,
+__aicore__ inline void MatmulAswKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLOCK_TYPE, MM_CFG>::InitInputs(GM_ADDR aGM,
     GM_ADDR bGM, GM_ADDR cGM, GM_ADDR biasGM)
 {
     aGlobal_.SetGlobalBuffer(reinterpret_cast<__gm__ A_T *>(aGM),
@@ -80,14 +80,14 @@ __aicore__ inline void Mc2MatmulAswKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLO
 
 
 template <class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE, class BLOCK_TYPE, const MatmulConfig &MM_CFG>
-__aicore__ inline void Mc2MatmulAswKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLOCK_TYPE, MM_CFG>::UpdateGlobalTensor(
+__aicore__ inline void MatmulAswKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLOCK_TYPE, MM_CFG>::UpdateGlobalTensor(
     GM_ADDR aGM, GM_ADDR bGM, GM_ADDR cGM, GM_ADDR biasGM, GM_ADDR offsetWGM, GM_ADDR workspaceGM)
 {
     InitInputs(aGM, bGM, cGM, biasGM);
 }
 
 template <class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE, class BLOCK_TYPE, const MatmulConfig& MM_CFG>
-__aicore__ inline void Mc2MatmulAswKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLOCK_TYPE, MM_CFG>::UpdateBias(
+__aicore__ inline void MatmulAswKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLOCK_TYPE, MM_CFG>::UpdateBias(
     uint64_t kIndex)
 {
     if (block_.matmulTilingData_->tCubeTiling.isBias) {
@@ -100,7 +100,7 @@ __aicore__ inline void Mc2MatmulAswKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLO
 }
 
 template <class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE, class BLOCK_TYPE, const MatmulConfig& MM_CFG>
-__aicore__ inline void Mc2MatmulAswKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLOCK_TYPE, MM_CFG>::Process(uint8_t enAtomic)
+__aicore__ inline void MatmulAswKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLOCK_TYPE, MM_CFG>::Process(uint8_t enAtomic)
 {
     if ASCEND_IS_AIV {
         return;
@@ -134,6 +134,6 @@ __aicore__ inline void Mc2MatmulAswKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLO
     mm_.SetHF32(false, 0);
 }
 
-} // namespace Mc2MatmulV3Advanced
+} // namespace MatmulV3Advanced
 
 #endif // MMV3_MATMUL_ASW_KERNEL_H

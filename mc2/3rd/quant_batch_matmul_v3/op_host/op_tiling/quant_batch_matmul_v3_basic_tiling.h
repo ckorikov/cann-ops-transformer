@@ -47,18 +47,18 @@ enum class BasicTilingMode : uint32_t{
     L2_CACHE_TILING_MODE = 1
 };
 
-class Mc2QuantBatchMatmulV3BasicTiling : public Mc2QuantBatchMatmulV3Tiling {
+class QuantBatchMatmulV3BasicTiling : public QuantBatchMatmulV3Tiling {
 public:
-    explicit Mc2QuantBatchMatmulV3BasicTiling(gert::TilingContext *contextIn)
-     : Mc2QuantBatchMatmulV3Tiling(contextIn), context(contextIn) { }
-    Mc2QuantBatchMatmulV3BasicTiling(gert::TilingContext *contextIn, Mc2QuantBatchMatmulV3TilingData *out)
-     : Mc2QuantBatchMatmulV3Tiling(contextIn, out), context(contextIn)
+    explicit QuantBatchMatmulV3BasicTiling(gert::TilingContext *contextIn)
+     : QuantBatchMatmulV3Tiling(contextIn), context(contextIn) { }
+    QuantBatchMatmulV3BasicTiling(gert::TilingContext *contextIn, QuantBatchMatmulV3TilingData *out)
+     : QuantBatchMatmulV3Tiling(contextIn, out), context(contextIn)
     {
     }
-    ~Mc2QuantBatchMatmulV3BasicTiling() override = default;
+    ~QuantBatchMatmulV3BasicTiling() override = default;
 
     BasicTiling basicTiling_;
-    Mc2QuantBatchMatmulV3Trans trans_ = Mc2QuantBatchMatmulV3Trans::NO_TRANS;
+    QuantBatchMatmulV3Trans trans_ = QuantBatchMatmulV3Trans::NO_TRANS;
 
 protected:
     bool IsCapable() override;

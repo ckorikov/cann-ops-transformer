@@ -50,7 +50,7 @@ public:
 
 private:
     __aicore__ inline void InnerProcess(
-        MmType& mmOp, uint32_t tileCnt, Mc2QuantBatchMatmulV3TilingData* mmTiling, uint32_t isAdd, uint32_t needUbBuffer,
+        MmType& mmOp, uint32_t tileCnt, QuantBatchMatmulV3TilingData* mmTiling, uint32_t isAdd, uint32_t needUbBuffer,
         uint32_t curPadM, bool isTailFlag);
     __aicore__ inline void PrepareInit();
     __aicore__ inline uint32_t SendCountCheck(uint32_t prepareIndex);
@@ -220,7 +220,7 @@ __aicore__ inline void MatmulAllReduceQuantCommInt8<XType, WType, YType, MmType,
 
 template <typename XType, typename WType, typename YType, class MmType, Mc2CoreType CoreType>
 __aicore__ inline void MatmulAllReduceQuantCommInt8<XType, WType, YType, MmType, CoreType>::InnerProcess(
-    MmType& mmOp, uint32_t tileCnt, Mc2QuantBatchMatmulV3TilingData* mmTiling, uint32_t isAdd, uint32_t needUbBuffer,
+    MmType& mmOp, uint32_t tileCnt, QuantBatchMatmulV3TilingData* mmTiling, uint32_t isAdd, uint32_t needUbBuffer,
     uint32_t curPadM, bool isTailFlag)
 {
     const uint64_t aOffset = CalcShapeOffset(sizeof(XType), mmTiling->matmulTiling.M, mmTiling->matmulTiling.Ka);

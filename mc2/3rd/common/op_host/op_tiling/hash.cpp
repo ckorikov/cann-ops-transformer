@@ -49,7 +49,7 @@ uint32_t MurmurHash(const void *src, uint32_t len, uint32_t seed) {
   // Process the rest
   const uint8_t *rest_key = static_cast<const uint8_t *>(src);
   tmp_key = 0U;
-  for (uint32_t i = len & 3U; i != 0U; i--) {
+  for (uint32_t i = len & 3U; i > 0UL; i--) {
     tmp_key <<= kRolTailLeft;
     tmp_key |= rest_key[i - 1U];
   }

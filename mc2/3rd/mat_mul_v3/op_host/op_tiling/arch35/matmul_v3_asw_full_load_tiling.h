@@ -20,13 +20,13 @@
 #include "matmul_v3_common_advanced.h"
 
 namespace optiling {
-namespace mc2_matmul_v3_advanced {
-class Mc2MatMulV3AswFullLoadTiling : public Mc2MatMulV3AswTiling {
+namespace matmul_v3_advanced {
+class MatMulV3AswFullLoadTiling : public MatMulV3AswTiling {
 public:
-    Mc2MatMulV3AswFullLoadTiling(gert::TilingContext *context, Mc2MatMulTilingCfg &cfg)
-        : Mc2MatMulV3AswTiling(context, cfg) {};
+    MatMulV3AswFullLoadTiling(gert::TilingContext *context, MatMulTilingCfg &cfg)
+        : MatMulV3AswTiling(context, cfg) {};
 
-    ~Mc2MatMulV3AswFullLoadTiling() override {};
+    ~MatMulV3AswFullLoadTiling() override {};
     bool CheckBL1FullLoadDefault(bool &isKFullLoad, uint64_t kAlignedValue, uint64_t nAlignedValue) const;
     bool CheckBL1FullLoad91095(bool &isKFullLoad, uint64_t kAlignedValue, uint64_t nAlignedValue);
     void AdjustTiling91095Basic(uint64_t biasBatchDimAll);
@@ -51,12 +51,12 @@ private:
     bool ABL1FullLoadExtraCond(uint64_t al1SingleCoreSize, uint64_t bl1SingleCoreSize) const;
     uint64_t GetStepSmallK(bool isBL1FullLoad) const;
 
-    Mc2MatMulV3FullLoad fullLoad_ {Mc2MatMulV3FullLoad::NONE_FULL_LOAD};
-    Mc2MatMulV3L0C2Out l0C2Out_ {Mc2MatMulV3L0C2Out::ON_THE_FLY};
-    Mc2MatMulV3ApiLevel apiLevel_ {Mc2MatMulV3ApiLevel::HIGH_LEVEL};
+    MatMulV3FullLoad fullLoad_ {MatMulV3FullLoad::NONE_FULL_LOAD};
+    MatMulV3L0C2Out l0C2Out_ {MatMulV3L0C2Out::ON_THE_FLY};
+    MatMulV3ApiLevel apiLevel_ {MatMulV3ApiLevel::HIGH_LEVEL};
     uint64_t biasSize_ {0};
     bool isSingleRound_ {false};
 };
-} // namespace mc2_matmul_v3
+} // namespace matmul_v3
 } // namespace optiling
 #endif // __OP_HOST_MATMUL_V3_FULL_LOAD_TILING_H__

@@ -26,7 +26,7 @@ using AscendC::WaitFlag;
 std::set<std::tuple<HardEvent, int>> setCopyInAdvance;
 #endif
 
-namespace Mc2WeightQuantBatchMatmulV2::Arch35::Catlass {
+namespace WeightQuantBatchMatmulV2::Arch35::Catlass {
 
 template <Hardware Src, Hardware Dst, uint8_t Stages_>
 struct PipelineStageSingleCoreCopyInAdvance
@@ -76,5 +76,5 @@ struct PipelineStageSingleCoreCopyInAdvance
         ConsumerWait(state.index());
     }
 };
-} // namespace Mc2WeightQuantBatchMatmulV2::Arch35::Catlass
+} // namespace WeightQuantBatchMatmulV2::Arch35::Catlass
 #endif

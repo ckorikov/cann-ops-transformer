@@ -115,7 +115,7 @@ uint8_t Mc2GetCommAlgo(int64_t rankDim, uint64_t mValue, const char *group,
 bool CheckDataTypeVaild(ge::DataType type,
                         std::initializer_list<ge::DataType> supportDtypeList);
 
-void UpdateMatmulV3Args(optiling::mc2_matmul_v3_advanced::Mc2MatMulV3Args &mmV3Args,
+void UpdateMatmulV3Args(optiling::matmul_v3_advanced::MatMulV3Args &mmV3Args,
                         const mc2tiling::TilingArgs &args, const char *opName);
 ge::graphStatus GetMatmulV3PriorityPolicy(
     const platform_ascendc::SocVersion socVersion,

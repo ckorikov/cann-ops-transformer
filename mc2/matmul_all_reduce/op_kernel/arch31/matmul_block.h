@@ -32,7 +32,7 @@ class MatmulBlock
 public:
     __aicore__ inline MatmulBlock()
     {}
-    __aicore__ inline void Init(TCubeTiling& tiling, RCSTiling& cfg, Mc2L2cacheTilePara& tileL2cacheTiling);
+    __aicore__ inline void Init(TCubeTiling& tiling, RCSTiling& cfg, L2cacheTilePara& tileL2cacheTiling);
     __aicore__ inline void UpdateBlockIndex();
     __aicore__ inline void InitBlockIndex();
     __aicore__ inline uint32_t LCM(uint32_t m, uint32_t n); // 计算最小公倍数
@@ -66,7 +66,7 @@ public:
     uint32_t blockCurN; // 当前block块N轴大小
 };
 
-__aicore__ inline void MatmulBlock::Init(TCubeTiling& tiling, RCSTiling& cfg, Mc2L2cacheTilePara& tileL2cacheTiling)
+__aicore__ inline void MatmulBlock::Init(TCubeTiling& tiling, RCSTiling& cfg, L2cacheTilePara& tileL2cacheTiling)
 {
     (void)tileL2cacheTiling;
     this->tiling = tiling;

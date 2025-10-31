@@ -44,13 +44,13 @@ protected:
     __aicore__ inline void SetMMParaAndCompute();
 
     uint32_t blockIdx_;
-    const DequantBmm::Mc2QuantBatchMatmulV3TilingDataParams *quantBmmTilingData_;
+    const DequantBmm::QuantBatchMatmulV3TilingDataParams *quantBmmTilingData_;
 
     GlobalTensor<x1Type> aGlobal_;
     GlobalTensor<x2Type> bGlobal_;
     GlobalTensor<yType> cGlobal_;
     GlobalTensor<biasType> biasGlobal_;
-    Mc2QuantBatchMatmulV3::Mc2QuantBmmAswBlock block_;
+    QuantBatchMatmulV3::QuantBmmAswBlock block_;
 
     GlobalTensor<fp8_e8m0_t> scaleAGlobal_;
     GlobalTensor<fp8_e8m0_t> scaleBGlobal_;
@@ -85,7 +85,7 @@ __aicore__ inline void MatMulASWKernel<LOCAL_TEMPLATE_FUNC_PARAMS>::Init(GM_ADDR
     if ASCEND_IS_AIV {
         return;
     }
-    quantBmmTilingData_ = static_cast<const DequantBmm::Mc2QuantBatchMatmulV3TilingDataParams *>(tilingData);
+    quantBmmTilingData_ = static_cast<const DequantBmm::QuantBatchMatmulV3TilingDataParams *>(tilingData);
     blockIdx_ = GetBlockIdx();
     UpdateGlobalAddr(aGM, bGM, bias, scale, perTokenScale, cGM, workSpace);
     mm_.SetSubBlockIdx(0);

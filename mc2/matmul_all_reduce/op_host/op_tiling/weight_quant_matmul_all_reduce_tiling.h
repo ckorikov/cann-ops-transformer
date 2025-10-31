@@ -21,8 +21,8 @@ namespace optiling {
 BEGIN_TILING_DATA_DEF(WeightQuantMatmulAllReduceTilingData)
 TILING_DATA_FIELD_DEF_STRUCT(Mc2Msg, msg);
 TILING_DATA_FIELD_DEF_STRUCT(RCSTiling, param);
-TILING_DATA_FIELD_DEF_STRUCT(Mc2WeightQuantBatchMatmulV2TilingData, tilematmulTiling);
-TILING_DATA_FIELD_DEF_STRUCT(Mc2WeightQuantBatchMatmulV2TilingData, tailmatmulTiling);
+TILING_DATA_FIELD_DEF_STRUCT(WeightQuantBatchMatmulV2TilingData, tilematmulTiling);
+TILING_DATA_FIELD_DEF_STRUCT(WeightQuantBatchMatmulV2TilingData, tailmatmulTiling);
 END_TILING_DATA_DEF;
 REGISTER_TILING_DATA_CLASS(MatmulAllReduce_365056114230017, WeightQuantMatmulAllReduceTilingData);
 REGISTER_TILING_DATA_CLASS(MatmulAllReduce_365330992136961, WeightQuantMatmulAllReduceTilingData);
@@ -100,16 +100,16 @@ private:
     uint64_t myWorkSpaceSize_{0U};
 };
 
-class WeightQuantTilingTransferHelper : public Mc2WeightQuantBatchMatmulV2TilingCustom
+class WeightQuantTilingTransferHelper : public WeightQuantBatchMatmulV2TilingCustom
 {
 public:
     WeightQuantTilingTransferHelper(
-        WeightQuantMatmulAllReduceTiling& weightQuantMatmulAllReduceTiling, Mc2WeightQuantBatchMatmulV2TilingData& data)
-        : Mc2WeightQuantBatchMatmulV2TilingCustom(weightQuantMatmulAllReduceTiling.context_, &data),
+        WeightQuantMatmulAllReduceTiling& weightQuantMatmulAllReduceTiling, WeightQuantBatchMatmulV2TilingData& data)
+        : WeightQuantBatchMatmulV2TilingCustom(weightQuantMatmulAllReduceTiling.context_, &data),
           tilingProcesser_(weightQuantMatmulAllReduceTiling)
     {}
     ge::graphStatus GetShapeAttrsInfo() override;
-    void PrintTilingInputParam(Mc2WeightQuantBatchMatmulInfo& weightQuantBatchMatmulInfo);
+    void PrintTilingInputParam(WeightQuantBatchMatmulInfo& weightQuantBatchMatmulInfo);
     ge::graphStatus PostTiling() override;
 
 private:

@@ -21,7 +21,7 @@ using AscendC::SetFlag;
 using AscendC::TEventID;
 using AscendC::WaitFlag;
 
-namespace Mc2WeightQuantBatchMatmulV2::Arch35::Catlass {
+namespace WeightQuantBatchMatmulV2::Arch35::Catlass {
 template <Hardware Src, Hardware Dst, uint8_t Stages_, typename Derived>
 struct PipelineStageSingleCoreBase {
     static constexpr uint8_t Stages = Stages_;
@@ -78,5 +78,5 @@ struct PipelineStageSingleCoreBase {
         }
     }
 };
-} // namespace Mc2WeightQuantBatchMatmulV2::Arch35::Catlass
+} // namespace WeightQuantBatchMatmulV2::Arch35::Catlass
 #endif

@@ -28,10 +28,10 @@
 
 namespace MatmulAllReduceImpl {
 using namespace AscendC;
-using namespace Mc2WeightQuantBatchMatmulV2;
+using namespace WeightQuantBatchMatmulV2;
 template <
     typename xType, typename wType, typename biasType, typename yType, bool aTrans, bool bTrans,
-    Mc2QuantType antiQuantType, bool hasAntiQuantOffset>
+    QuantType antiQuantType, bool hasAntiQuantOffset>
 class MatmulAllReduceWeightQuant310
 {
 public:
@@ -44,7 +44,7 @@ public:
 
 private:
     __aicore__ inline void InnerProcess(
-        uint32_t tileCnt, Mc2WeightQuantBatchMatmulV2NzTilingData* mmTiling, uint32_t shift, int32_t coreNum);
+        uint32_t tileCnt, WeightQuantBatchMatmulV2NzTilingData* mmTiling, uint32_t shift, int32_t coreNum);
     WeightQuantMatmulAllReduceNzTilingData* tilingData_;
     HcclServer* hcclServer_;
     TPipe* tPipe_;
@@ -61,15 +61,15 @@ private:
 
 template <
     typename xType, typename wType, typename biasType, typename yType, bool aTrans, bool bTrans,
-    Mc2QuantType antiQuantType, bool hasAntiQuantOffset>
+    QuantType antiQuantType, bool hasAntiQuantOffset>
 __aicore__ inline void
 MatmulAllReduceWeightQuant310<xType, wType, biasType, yType, aTrans, bTrans, antiQuantType, hasAntiQuantOffset>::
-    InnerProcess(uint32_t tileCnt, Mc2WeightQuantBatchMatmulV2NzTilingData* mmTiling, uint32_t shift, int32_t coreNum)
+    InnerProcess(uint32_t tileCnt, WeightQuantBatchMatmulV2NzTilingData* mmTiling, uint32_t shift, int32_t coreNum)
 {
     const uint64_t aOffset = CalcShapeOffset(sizeof(xType), mmTiling->mSize, mmTiling->kSize);
     const uint64_t cOffset = CalcShapeOffset(sizeof(yType), mmTiling->mSize, mmTiling->nSize);
     if (GetBlockIdx() < coreNum) {
-        Mc2WeightQuantBatchMatmulV2WeightNzPerformanceKernel<
+        WeightQuantBatchMatmulV2WeightNzPerformanceKernel<
             xType, wType, biasType, yType, aTrans, bTrans, antiQuantType, hasAntiQuantOffset>
             op;
         for (uint32_t i = 1U; i <= tileCnt; ++i) {
@@ -97,7 +97,7 @@ MatmulAllReduceWeightQuant310<xType, wType, biasType, yType, aTrans, bTrans, ant
 
 template <
     typename xType, typename wType, typename biasType, typename yType, bool aTrans, bool bTrans,
-    Mc2QuantType antiQuantType, bool hasAntiQuantOffset>
+    QuantType antiQuantType, bool hasAntiQuantOffset>
 __aicore__ inline void
 MatmulAllReduceWeightQuant310<xType, wType, biasType, yType, aTrans, bTrans, antiQuantType, hasAntiQuantOffset>::Init(
     GM_ADDR aGM, GM_ADDR bGM, GM_ADDR antiquantScaleGM, GM_ADDR antiquantOffsetGM, GM_ADDR biasGM, GM_ADDR cGM,
@@ -141,7 +141,7 @@ MatmulAllReduceWeightQuant310<xType, wType, biasType, yType, aTrans, bTrans, ant
 
 template <
     typename xType, typename wType, typename biasType, typename yType, bool aTrans, bool bTrans,
-    Mc2QuantType antiQuantType, bool hasAntiQuantOffset>
+    QuantType antiQuantType, bool hasAntiQuantOffset>
 __aicore__ inline void MatmulAllReduceWeightQuant310<
     xType, wType, biasType, yType, aTrans, bTrans, antiQuantType, hasAntiQuantOffset>::Process()
 {

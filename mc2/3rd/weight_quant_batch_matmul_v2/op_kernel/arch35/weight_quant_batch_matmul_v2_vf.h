@@ -21,7 +21,7 @@
 
 namespace MicroAPI = AscendC::MicroAPI;
 
-namespace Mc2WeightQuantBatchMatmulV2::Arch35 {
+namespace WeightQuantBatchMatmulV2::Arch35 {
 
 template <typename TIN>
 struct RegTensorActualT {
@@ -876,14 +876,14 @@ __aicore__ inline void AntiquantW4PergroupGt128NKCase2(ParamsGroupSizeGt128<XTyp
     MicroAPI::MaskReg maskAll = MicroAPI::CreateMask<XType, MicroAPI::MaskPattern::ALL>();
     MicroAPI::MaskReg maskKLenMod128 = MicroAPI::UpdateMask<XType>(p.tailKLen);
 
-    for (uint16_t nBubIdx = 0; nBubIdx < p.bubNLen; ++nBubIdx) {
+    for (uint32_t nBubIdx = 0; nBubIdx < p.bubNLen; ++nBubIdx) {
         if constexpr (hasAntiquantOffset) {
             // 16 即 BLOCK_CUBE
             MicroAPI::DataCopy<XType, MicroAPI::LoadDist::DIST_BRC_B16>(offset, p.offsetBaseAddr + nBubIdx * 16);
         }
         MicroAPI::DataCopy<XType, MicroAPI::LoadDist::DIST_BRC_B16>(scale, p.scaleBaseAddr + nBubIdx * 16);
         // 处理 bubKLen 中 128 对齐部分
-        for (uint16_t vlIdx = 0; vlIdx < p.numVLInKLen; ++vlIdx) {
+        for (uint32_t vlIdx = 0; vlIdx < p.numVLInKLen; ++vlIdx) {
             MicroAPI::DataCopy<typename RegTensorActualT<WType>::T, MicroAPI::LoadDist::DIST_UNPACK4_B8>(
                 weightB4,
                 (__local_mem__ typename RegTensorActualT<WType>::T*)(p.weightInBaseAddr + nBubIdx * p.innerExtend +
@@ -1028,6 +1028,6 @@ __aicore__ inline void AntiquantW4Pergroup32OddNK(ParamsGroupSize32OddNK<XType>&
     }
 }
 
-} // namespace Mc2WeightQuantBatchMatmulV2::Arch35
+} // namespace WeightQuantBatchMatmulV2::Arch35
 
 #endif // WEIGHT_QUANT_BATCHMATMUL_V2_VF_H

@@ -19,7 +19,7 @@
 #define BLOCK_N 32
 #define BLOCK_M 1
 
-namespace Mc2WeightQuantBatchMatmulV2::Arch35::Catlass {
+namespace WeightQuantBatchMatmulV2::Arch35::Catlass {
 // SubBlockNum实际使用的核数
 template <int32_t SubBlockNum>
 class TileSchedulerTailResplit
@@ -136,5 +136,5 @@ private:
     TailResplitIterator<uint64_t> nIter;
     bool fullloadM;
 };
-} // namespace Mc2WeightQuantBatchMatmulV2::Arch35::Catlass
+} // namespace WeightQuantBatchMatmulV2::Arch35::Catlass
 #endif

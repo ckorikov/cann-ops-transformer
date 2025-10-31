@@ -20,16 +20,16 @@
 #include "weight_quant_batch_matmul_v2_tiling_data.h"
 
 namespace optiling {
-class Mc2WeightQuantBatchMatmulV2TilingCustom : public Mc2WeightQuantBatchMatmulV2Tiling
+class WeightQuantBatchMatmulV2TilingCustom : public WeightQuantBatchMatmulV2Tiling
 {
 public:
-    explicit Mc2WeightQuantBatchMatmulV2TilingCustom(gert::TilingContext* context)
-        : Mc2WeightQuantBatchMatmulV2Tiling(context)
+    explicit WeightQuantBatchMatmulV2TilingCustom(gert::TilingContext* context)
+        : WeightQuantBatchMatmulV2Tiling(context)
     {
         Reset();
     }
-    Mc2WeightQuantBatchMatmulV2TilingCustom(gert::TilingContext* context, Mc2WeightQuantBatchMatmulV2TilingData* out)
-        : Mc2WeightQuantBatchMatmulV2Tiling(context)
+    WeightQuantBatchMatmulV2TilingCustom(gert::TilingContext* context, WeightQuantBatchMatmulV2TilingData* out)
+        : WeightQuantBatchMatmulV2Tiling(context)
     {
         Reset();
         tilingData_ = out;
@@ -41,11 +41,11 @@ public:
         TilingBaseClass::Reset(context);
         Reset();
     }
-    ~Mc2WeightQuantBatchMatmulV2TilingCustom() override = default;
+    ~WeightQuantBatchMatmulV2TilingCustom() override = default;
 
 protected:
-    Mc2WeightQuantBatchMatmulV2TilingData* tilingData_ = nullptr;
-    std::unique_ptr<Mc2WeightQuantBatchMatmulV2TilingData> tilingDataManager_;
+    WeightQuantBatchMatmulV2TilingData* tilingData_ = nullptr;
+    std::unique_ptr<WeightQuantBatchMatmulV2TilingData> tilingDataManager_;
     // mc2信息
     bool isOutTilingData_ = false;
     uint64_t cubeBaseN_;

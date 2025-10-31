@@ -19,14 +19,14 @@
 #include "mat_mul_v3/op_host/op_tiling/arch35/matmul_v3_base_tiling_advanced.h"
 
 namespace optiling {
-namespace Mc2batch_matmul_v3_advanced {
-using namespace mc2_matmul_v3_advanced;
-class Mc2BatchMatMulV3AswBasicTiling : public Mc2MatMulV3BaseTiling {
+namespace batch_matmul_v3_advanced {
+using namespace matmul_v3_advanced;
+class BatchMatMulV3AswBasicTiling : public MatMulV3BaseTiling {
 public:
-    Mc2BatchMatMulV3AswBasicTiling(gert::TilingContext *context, Mc2MatMulTilingCfg &cfg)
-        : Mc2MatMulV3BaseTiling(context, cfg) {};
+    BatchMatMulV3AswBasicTiling(gert::TilingContext *context, MatMulTilingCfg &cfg)
+        : MatMulV3BaseTiling(context, cfg) {};
 
-    ~Mc2BatchMatMulV3AswBasicTiling() override {};
+    ~BatchMatMulV3AswBasicTiling() override {};
 
 protected:
     bool IsCapable() override;
@@ -37,7 +37,7 @@ protected:
 
     uint64_t GetBlockDim() const override;
 
-    Mc2MatMulV3Model aswtModel_{Mc2MatMulV3Model::BASIC};
+    MatMulV3Model aswtModel_{MatMulV3Model::BASIC};
 };
 }
 }

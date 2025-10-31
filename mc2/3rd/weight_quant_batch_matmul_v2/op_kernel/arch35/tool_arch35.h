@@ -36,7 +36,7 @@ using AscendC::TPosition;
 using AscendC::VECTOR_REG_WIDTH;
 using matmul::MatmulType;
 
-namespace Mc2WeightQuantBatchMatmulV2::Arch35 {
+namespace WeightQuantBatchMatmulV2::Arch35 {
 // buffer相关定义
 static constexpr int32_t QUADRUPLE_BUFFER_NUM = 4;
 static constexpr int32_t DOUBLE_BUFFER_NUM = 2;
@@ -129,5 +129,5 @@ template <
 struct MatmulL1GmType : MatmulType<POSITION, FORMAT, TYPE, ISTRANS, LAYOUT, IBSHARE> {
     constexpr static TPosition srcPos = TPosition::GM;
 };
-} // namespace Mc2WeightQuantBatchMatmulV2::Arch35
+} // namespace WeightQuantBatchMatmulV2::Arch35
 #endif

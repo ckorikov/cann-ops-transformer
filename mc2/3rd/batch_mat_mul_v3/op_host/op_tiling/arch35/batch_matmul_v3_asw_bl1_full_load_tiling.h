@@ -20,14 +20,14 @@
 #include "mat_mul_v3/op_host/op_tiling/arch35/matmul_v3_asw_full_load_tiling.h"
 
 namespace optiling {
-namespace Mc2batch_matmul_v3_advanced {
-using namespace mc2_matmul_v3_advanced;
-class Mc2BatchMatMulV3AswBL1FullLoadTiling : public Mc2MatMulV3AswFullLoadTiling {
+namespace batch_matmul_v3_advanced {
+using namespace matmul_v3_advanced;
+class BatchMatMulV3AswBL1FullLoadTiling : public MatMulV3AswFullLoadTiling {
 public:
-    Mc2BatchMatMulV3AswBL1FullLoadTiling(gert::TilingContext *context, Mc2MatMulTilingCfg &cfg)
-        : Mc2MatMulV3AswFullLoadTiling(context, cfg) {};
+    BatchMatMulV3AswBL1FullLoadTiling(gert::TilingContext *context, MatMulTilingCfg &cfg)
+        : MatMulV3AswFullLoadTiling(context, cfg) {};
 
-    ~Mc2BatchMatMulV3AswBL1FullLoadTiling() override {};
+    ~BatchMatMulV3AswBL1FullLoadTiling() override {};
 
 protected:
     bool IsCapable() override;
