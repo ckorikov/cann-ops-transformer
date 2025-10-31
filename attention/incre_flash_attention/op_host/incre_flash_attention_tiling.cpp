@@ -2593,6 +2593,7 @@ uint32_t IFATiling::CalcUnbalanceFDParamNums() const
 ge::graphStatus IFATiling::FillTiling()
 {
     if (ropeFlag_) {
+        tilingDataMla_ = geContext_->GetTilingData<IncreFlashAttentionTilingDataMla>();
         return FillTilingMla();
     }
     FillTilingBaseParams();
@@ -3385,24 +3386,6 @@ ge::graphStatus IFATiling::RunBigKernelTiling(IncreFlashAttentionContext &contex
 ge::graphStatus IFATiling::IncreFlashAttentionSetTilingData(gert::TilingContext &context,
                                                             IncreFlashAttentionTilingDataV2 &tilingData)
 {
-    // OP_CHECK_IF(context.GetRawTilingData() == nullptr,
-    //            OPS_REPORT_VECTOR_INNER_ERR(context.GetNodeName(), "RawTilingData got from GE context is nullptr."),
-    //            return GRAPH_FAILED);
-
-    // if (ropeFlag_) {
-    //     tilingDataMla_->SaveToBuffer(context.GetRawTilingData()->GetData(), context.GetRawTilingData()->GetCapacity());
-    //     context.GetRawTilingData()->SetDataSize(tilingDataMla_->GetDataSize());
-    //     return ge::GRAPH_SUCCESS;
-    // }
-
-    // if (atbRunFlag_ && pageAttentionFlag_) {
-    //     ifaTilingAtbData.SaveToBuffer(context.GetRawTilingData()->GetData(), context.GetRawTilingData()->GetCapacity());
-    //     context.GetRawTilingData()->SetDataSize(ifaTilingAtbData.GetDataSize());
-    // } else {
-    //     tilingData.SaveToBuffer(context.GetRawTilingData()->GetData(), context.GetRawTilingData()->GetCapacity());
-    //     context.GetRawTilingData()->SetDataSize(tilingData.GetDataSize());
-    // }
-
     return ge::GRAPH_SUCCESS;
 }
 
@@ -3759,6 +3742,7 @@ ge::graphStatus IFATiling::AtbTilingProcess()
 {
     pageAttentionFlag_ = context_->blockTable.tensor != nullptr;
     if (pageAttentionFlag_) {
+        ifaTilingAtbData = geContext_->GetTilingData<IncreFlashAttentionTilingAtbDataV2>();
         this->tilingDataBase_ = &(ifaTilingAtbData->tilingBase);
         this->tilingDataCore_ = &(ifaTilingAtbData->tilingPerCore);
     }

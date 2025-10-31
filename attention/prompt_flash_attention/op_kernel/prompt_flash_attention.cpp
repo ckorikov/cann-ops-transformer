@@ -34,7 +34,6 @@
 #include "prompt_flash_attention_tiling_data.h"
 #include "prompt_flash_attention_template_tiling_key.h"
 #else
-#include "unpad_flash_attention_common.h"
 #include "prompt_attention_prefill.h"
 #include "prompt_flash_attention_s1s2_bns1_x310_base.h"
 #include "prompt_flash_attention_s1s2_bns1_x310.h"

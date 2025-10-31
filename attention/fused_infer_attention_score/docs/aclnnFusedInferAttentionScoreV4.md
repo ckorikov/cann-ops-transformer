@@ -1258,7 +1258,13 @@ aclnnStatus aclnnFusedInferAttentionScoreV4(
                         </li>
                         </ul>
                     </td>
-                    <td>per-channel模式下要求两个参数的shape为(N, D)，(N, 1, D)或(H)，数据类型固定为BF16。</td>
+                    <td>
+                    <ul>
+                    <li>
+                    per-channel模式下要求两个参数的shape为(N, D)，(N, 1, D)或(H)，数据类型固定为BF16。
+                    </li>
+                    </ul>
+                    </td>
                     <td rowspan="2">
                         <ul>
                         <li>keyAntiquantOffset 和 valueAntiquantOffset要么都为空，要么都不为空</li>
@@ -1306,9 +1312,8 @@ aclnnStatus aclnnFusedInferAttentionScoreV4(
                         <ul>
                         <li>keyAntiquantOffset 和 valueAntiquantOffset要么都为空，要么都不为空</li>
                         <li>
-                            <ul>keyAntiquantOffset 和 valueAntiquantOffset都不为空时：
-                            <li>除了keyAntiquantMode为0并且valueAntiquantMode为1的场景外，其shape需要保持一致</li>
-                            </ul>
+                            keyAntiquantOffset 和 valueAntiquantOffset都不为空时：
+                            除了keyAntiquantMode为0并且valueAntiquantMode为1的场景外，其shape需要保持一致
                         </li>
                         </ul>
                     </td>
@@ -1910,7 +1915,7 @@ aclnnStatus aclnnFusedInferAttentionScoreV4(
                 <td>
                 <ul>
                     <li>
-                    当query的inputLayout不为TND时，该参数无效。当query的inputLayout为TND/TND_NTD时，综合约束请见[TND、TND_NTD、NTD_TND场景下query，key，value输入的综合限制](#TND)。</li>
+                    当query的inputLayout不为TND时，该参数无效。当query的inputLayout为TND/TND_NTD时，综合约束请见<a href="#TND">TND、TND_NTD、NTD_TND场景下query，key，value输入的综合限制</a>。</li>
                 </ul>
                 </td>
             </tr>
@@ -1918,7 +1923,7 @@ aclnnStatus aclnnFusedInferAttentionScoreV4(
                 <td>actualSeqLengthsKv</td>
                 <td>
                 <ul>
-                    <li>当key/value的inputLayout为TND/TND_NTD时，综合约束请见[TND、TND_NTD、NTD_TND场景下query，key，value输入的综合限制](#TND)。
+                    <li>当key/value的inputLayout为TND/TND_NTD时，综合约束请见<a href="#TND">TND、TND_NTD、NTD_TND场景下query，key，value输入的综合限制</a>。
                     </li>
                 </ul>
                 </td>

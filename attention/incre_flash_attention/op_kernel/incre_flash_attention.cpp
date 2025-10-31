@@ -15,12 +15,10 @@
 
 #include "kernel_operator.h"
 #include "incre_flash_attention_allvec_new.h"
-#include "incre_flash_attention_cube_310P_kvquant.h"
 #if (__CCE_AICORE__ > 200)
 #include "incre_flash_attention_split_Bbn2s2_Us2.h"
 #include "incre_flash_attention_preload.h"
 #include "incre_flash_attention_preload_dd.h"
-#include "paged_attention_antiquantkv.h"
 
 // #ifdef FIA_ENABLE_MLA
 // // mla模板使用私有tiling结构，框架编译时根据一组DType预编译获取keylist，根据keylist找到对应的tiling结构
@@ -30,8 +28,6 @@
 // #endif
 // #endif // FIA_ENABLE_MLA
 
-#else
-#include "unpad_paged_attention_decoder.h"
 #endif
 
 #include "incre_flash_attention_template_tiling_key.h"
@@ -383,19 +379,7 @@ __global__ __aicore__ void incre_flash_attention_FIAS(
         REGISTER_TILING_FOR_TILINGKEY("TRUE", IncreFlashAttentionTilingDataMla);
         INVOKE_IFA_NO_KFC_MLA_OP_IMPL(IncreFlashAttentionAttenPreloadMla, Q_TYPE, KV_TYPE, OUT_TYPE, ORIGIN_TYPE, PAGE_ATTENTIOND, FLASH_DECODE,
                                     LAYOUT_TYPE, M_Q_QUANTMODE_P_MSD_MODE_I_ANTIQUANTMODE, false, KV_LAYOUT_TYPE, AMLA_TYPE, M_V_QUANTMODE_P_PRECISION_MODE_I_BALANCE);
-    } else if (M_FIAFLAG_P_MMTYPETMP_I_MODEVAL == 3 && KV_T == 3) {
-        using Q_TYPE = std::conditional_t<Q_T == 0, half,
-                       std::conditional_t<Q_T == 2, bfloat16_t,
-                       half>>;
-        using KV_TYPE = int8_t;
-        using OUT_TYPE = half;
-        using ORIGIN_TYPE = std::conditional_t<M_OUTLAYOUT_P_TAIL_MODE_I_ORIGIN_T == 0, half,
-                            std::conditional_t<M_OUTLAYOUT_P_TAIL_MODE_I_ORIGIN_T == 2, bfloat16_t,
-                            half>>;
-        REGISTER_TILING_FOR_TILINGKEY("TRUE", IncreFlashAttentionTilingDataV2);                    
-        INVOKE_IFA_ANTIQUANT_OP_IMPL(PagedAttentionAntiquant, Q_TYPE, int8_t, OUT_TYPE, ORIGIN_TYPE, true, FLASH_DECODE,
-                                    LAYOUT::TND, M_Q_QUANTMODE_P_MSD_MODE_I_ANTIQUANTMODE, false, LAYOUT::BSND, AMLA_TYPE, M_V_QUANTMODE_P_PRECISION_MODE_I_BALANCE, IncreFlashAttentionTilingAtbDataV2);
-    }
+    } 
 #else
     REGISTER_TILING_DEFAULT(IncreFlashAttentionTilingData);
     if constexpr (M_FIAFLAG_P_MMTYPETMP_I_MODEVAL == 1 && P_CVDIFF_BASE_FLAG == 1) {
@@ -408,25 +392,7 @@ __global__ __aicore__ void incre_flash_attention_FIAS(
         REGISTER_TILING_FOR_TILINGKEY("TRUE", IncreFlashAttentionTilingDataV2);  
         INVOKE_IFA_ALL_VEC_OP_IMPL(IncreFlashAttentionAttenAllVecNew, Q_TYPE, KV_TYPE, OUT_TYPE, ORIGIN_TYPE, PAGE_ATTENTIOND, FLASH_DECODE,
                                     LAYOUT_TYPE, M_Q_QUANTMODE_P_MSD_MODE_I_ANTIQUANTMODE, false);
-    } else if (M_FIAFLAG_P_MMTYPETMP_I_MODEVAL== 1 && P_CVDIFF_BASE_FLAG == 3) {
-        using Q_TYPE = half;
-        using KV_TYPE = std::conditional_t<KV_T == 0, half,
-                        std::conditional_t<KV_T == 3, int8_t,
-                        half>>;
-        using OUT_TYPE = half;
-        using ORIGIN_TYPE = half;
-        REGISTER_TILING_FOR_TILINGKEY("TRUE", IncreFlashAttentionTilingDataV2);  
-        INVOKE_IFA_ALL_VEC_OP_IMPL(IncreFlashAttentionMulAttenCube310P, Q_TYPE, KV_TYPE, OUT_TYPE, ORIGIN_TYPE, PAGE_ATTENTIOND, FLASH_DECODE,
-                                    LAYOUT_TYPE, M_Q_QUANTMODE_P_MSD_MODE_I_ANTIQUANTMODE, false);
-    } else if (M_FIAFLAG_P_MMTYPETMP_I_MODEVAL == 3) {
-        using Q_TYPE = half;
-        using KV_TYPE = half;
-        using OUT_TYPE = half;
-        using ORIGIN_TYPE = half;
-        REGISTER_TILING_FOR_TILINGKEY("TRUE", IncreFlashAttentionTilingAtbDataV2);  
-        INVOKE_IFA_NEW_GQA_OP_IMPL(PagedAttentionDecoderMask, Q_TYPE, KV_TYPE, OUT_TYPE, ORIGIN_TYPE, true, FLASH_DECODE,
-                                    LAYOUT_TYPE, M_Q_QUANTMODE_P_MSD_MODE_I_ANTIQUANTMODE, false, LAYOUT_TYPE, AMLA_TYPE, M_V_QUANTMODE_P_PRECISION_MODE_I_BALANCE, IncreFlashAttentionTilingAtbDataV2);
-    }
+    } 
 #endif
 }
 
