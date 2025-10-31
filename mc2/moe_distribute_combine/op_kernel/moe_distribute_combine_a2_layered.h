@@ -73,6 +73,7 @@ public:
     constexpr static uint64_t GM2IPC_SYNC_FLAG = 12345ULL;
     constexpr static uint64_t RDMA_TOKEN_ARRIVED_FLAG = 123ULL;
     constexpr static uint64_t RDMA_TOKEN_END_FLAG = 321ULL;
+
     template <AscendC::HardEvent event>
     __aicore__ inline void SyncFunc()
     {
