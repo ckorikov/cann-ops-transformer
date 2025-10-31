@@ -149,8 +149,8 @@ public:
     {
         int64_t singleCoreM = Get<MNK_M>(blockCoord) != (mCnt_ - 1) ? baseM_ : mBaseTail_;
         int64_t singleCoreN = Get<MNK_N>(blockCoord) != (nCnt_ - 1) ? baseN_ : nBaseTail_;
-        if (tailCnt_ == 1) {
-            return {singleCoreM, singleCoreN, 0, 0};
+        if (tailCnt_ == 1 || roundIdx_ < round_ -1 ) {	
+            return {singleCoreM, singleCoreN, 0, 0};	
         }
 
         int64_t singleCoreMSplit = (singleCoreM + mTailCnt_ - 1) / mTailCnt_;
@@ -178,6 +178,11 @@ public:
         return {mTileIdx * l1M, nTileIdx * l1N, 0, 0};
     }
 
+    __aicore__ inline int64_t GetEndBlockIdx()
+    {
+        return endBlockIdx_;
+    }
+    
     static int64_t GetBlockNum(ProblemShape shape)
     {
         return DoGetBlockNum(l1M, l1N, shape);
