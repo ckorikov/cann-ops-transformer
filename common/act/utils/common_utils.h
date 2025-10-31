@@ -16,6 +16,7 @@
 #ifndef UTILS_COMMON_UTILS_H
 #define UTILS_COMMON_UTILS_H
 
+#include "integral_constant.h"
 namespace Act {
 namespace Gemm {
 constexpr int64_t MATRIX_INNER_DIM_LIMIT_SIZE = 65536;
@@ -25,10 +26,16 @@ constexpr int64_t DOUBLE_BUFFER_COUNT = 2;
 constexpr int64_t UB_FLOAT_ALIGN_NUM = 8;
 constexpr int64_t L1_EVENT_ID_OFFSET = 2;
 constexpr uint32_t UB_ALIGN_SIZE = 32;
+constexpr uint32_t UB_SUB_BANK_LEN = 256; // SUB0: 256, SUB1: 256B
+constexpr uint32_t UB_TWO_BANK_ELEMS_B32 = 128;
+constexpr uint32_t UB_SUB_BANK_ELEMS_B32 = 64; // SUB0: 64, SUB1: 64
+constexpr uint32_t UB_SUB_BANK_NUM = 2;
 constexpr int MNK_M = 0;
 constexpr int MNK_N = 1;
 constexpr int MNK_K = 2;
 constexpr int MNK_B = 3;
+constexpr int MNK_M0 = 4;
+constexpr int MNK_N0 = 5;
 constexpr static uint64_t A_FULL_LOAD_MODE = 1UL;
 constexpr static uint64_t B_FULL_LOAD_MODE = 2UL;
 constexpr static int64_t PER_BLOCK_SIZE = 128L;
@@ -95,6 +102,24 @@ __aicore__ inline uint32_t GetAicAivTaskRation()
     return 1U;
 #endif
 }
+
+template <class T>
+struct is_static : AscendC::Std::bool_constant<std::is_empty<T>::value> {};
+
+template <class T>
+constexpr bool is_static_v = is_static<AscendC::Std::remove_cvref_t<T>>::value;
+
+template <typename Stride>
+struct is_2d_nz_c0_32_impl : AscendC::Std::false_type {};
+
+template <typename T0, typename T1, typename U0, typename U1>
+struct is_2d_nz_c0_32_impl<AscendC::Std::tuple<AscendC::Std::tuple<T0, T1>, AscendC::Std::tuple<U0, U1>>>
+    : AscendC::Std::bool_constant<AscendC::Std::is_same_v<T0, Act::Gemm::_32> &&
+                                  AscendC::Std::is_same_v<T1, Act::Gemm::_512> &&
+                                  AscendC::Std::is_same_v<U0, Act::Gemm::_1> && !is_static_v<U1>> {};
+
+template <class Stride>
+struct is_2d_nz_c0_32 : is_2d_nz_c0_32_impl<typename AscendC::Std::remove_cvref_t<Stride>> {};
 } // namespace Gemm
 } // namespace Act
 #endif

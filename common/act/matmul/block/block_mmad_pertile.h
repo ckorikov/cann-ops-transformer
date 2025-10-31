@@ -32,10 +32,10 @@ namespace Block {
 
 struct PerBlockMmParam {
     bool fixpipeSplitN = false;
-    uint64_t fixpipeM;
     uint64_t fixpipeN;
-    uint64_t fixpipeD;
-    uint64_t fixSrcStride;
+    uint64_t fixpipeM;
+    uint64_t srcStride;
+    uint64_t ndNum;
 };
 
 #define QGMM_BLOCK_MMAD_CLASS_LOCAL_PARAMS                                                                             \
@@ -234,20 +234,24 @@ __aicore__ inline void BlockMmadGmm<QGMM_BLOCK_MMAD_FUNC_LOCAL_PARAMS>::UpdatePe
     mmParams_.fixpipeSplitN = Get<MNK_N>(actualSingleShape_) > PER_BLOCK_SIZE || Get<MNK_M>(actualSingleShape_) == 1;
 
     if constexpr (transA) {
-        mmParams_.fixSrcStride = Align(Get<MNK_M>(actualSingleShape_), static_cast<uint64_t>(AscendC::ONE_BLK_SIZE));
+        mmParams_.srcStride = Align(Get<MNK_M>(actualSingleShape_), static_cast<uint64_t>(AscendC::ONE_BLK_SIZE));
     } else {
-        mmParams_.fixSrcStride = Align(Get<MNK_M>(actualSingleShape_), static_cast<uint64_t>(AscendC::BLOCK_CUBE));
+        mmParams_.srcStride = Align(Get<MNK_M>(actualSingleShape_), static_cast<uint64_t>(AscendC::BLOCK_CUBE));
     }
     mmParams_.fixpipeM = mmParams_.fixpipeSplitN ?
                              Get<MNK_M>(actualSingleShape_) :
                              Align(Get<MNK_M>(actualSingleShape_), static_cast<uint64_t>(GetAicAivTaskRation()));
     if (mmParams_.fixpipeSplitN) {
-        mmParams_.fixpipeN = Align(Get<MNK_N>(actualSingleShape_), static_cast<uint64_t>(PER_BLOCK_SIZE));
-        mmParams_.fixpipeD = mmParams_.fixpipeN / static_cast<uint64_t>(GetAicAivTaskRation());
+        mmParams_.ndNum = Get<MNK_N>(actualSingleShape_) > UB_TWO_BANK_ELEMS_B32 ? 2 : 1; // 2: 2 ND
+        int64_t alignedNBase =
+            Get<MNK_N>(actualSingleShape_) > PER_BLOCK_SIZE ? PER_BLOCK_SIZE : AscendC::ONE_BLK_SIZE * mmParams_.ndNum;
+        mmParams_.fixpipeN = Align(Get<MNK_N>(actualSingleShape_), static_cast<uint64_t>(alignedNBase));
     } else {
-        mmParams_.fixpipeN = Align(Get<MNK_N>(actualSingleShape_), static_cast<uint64_t>(AscendC::BLOCK_CUBE));
-        mmParams_.fixpipeD = mmParams_.fixpipeN;
+        mmParams_.ndNum = Get<MNK_N>(actualSingleShape_) > UB_SUB_BANK_ELEMS_B32 ? 2 : 1;
+        mmParams_.fixpipeN =
+            Align(Get<MNK_N>(actualSingleShape_), static_cast<uint64_t>(AscendC::BLOCK_CUBE) * mmParams_.ndNum);
     }
+    mmParams_.fixpipeN /= mmParams_.ndNum;
 }
 
 QGMM_BLOCK_MMAD_CLASS_LOCAL_PARAMS
@@ -318,8 +322,12 @@ __aicore__ inline void BlockMmadGmm<QGMM_BLOCK_MMAD_FUNC_LOCAL_PARAMS>::AicBaseM
         AscendC::SetFlag<AscendC::HardEvent::M_FIX>(l0PingPongID_);
         AscendC::WaitFlag<AscendC::HardEvent::M_FIX>(l0PingPongID_);
         AscendC::FixpipeParamsC310<AscendC::CO2Layout::ROW_MAJOR> fixpipeParams(
-            mmParams_.fixpipeN, mmParams_.fixpipeM, mmParams_.fixSrcStride, mmParams_.fixpipeD);
+            mmParams_.fixpipeN, mmParams_.fixpipeM, mmParams_.srcStride, UB_TWO_BANK_ELEMS_B32); // dstStride is 128
         fixpipeParams.dualDstCtl = mmParams_.fixpipeSplitN ? 2 : 1; // 2 means splitting N with ratio 1:2
+        // When nz2nd loop in copyout, srcndstride is unit of c0Size, dstndstride is unit of one element.
+        fixpipeParams.params.ndNum = mmParams_.ndNum;
+        fixpipeParams.params.srcNdStride = mmParams_.srcStride * (mmParams_.fixpipeN / AscendC::BLOCK_CUBE);
+        fixpipeParams.params.dstNdStride = UB_TWO_BANK_ELEMS_B32 * PER_BLOCK_SIZE;
         if (needAicWait_) {
             WaitForVector(crossPingPongID_);
         }

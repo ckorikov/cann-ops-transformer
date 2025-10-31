@@ -145,16 +145,11 @@ private:
     GM_ADDR wTensorPtr_;
     GM_ADDR yTensorPtr_;
 
-    AscendC::TPipe* pipe_;
     uint32_t blockIdx_;
     int32_t preOffset_ = 0;
     uint32_t groupNum_;
     int8_t groupType_;
     uint8_t groupListType_;
-
-    // define the queue
-    AscendC::TQue<AscendC::QuePosition::VECIN, 1> vecQueMMRes_;
-    AscendC::TBuf<AscendC::TPosition::VECCALC> initBuff_;
 };
 
 QGMM_PERTILE_KERNEL_CLASS_TEM_PARAMS
@@ -212,7 +207,6 @@ __aicore__ inline void QuantMmGroupedPerTile<QGMM_PERTILE_KERNEL_FUN_TEM_PARAMS>
     groupNum_ = params.gmmParams.groupNum;
     groupType_ = params.gmmParams.groupType;
     groupListType_ = params.gmmParams.groupListType;
-    pipe_ = GetTPipePtr();
 
     blockIdx_ = AscendC::GetBlockIdx();
     if ASCEND_IS_AIV {
@@ -222,25 +216,24 @@ __aicore__ inline void QuantMmGroupedPerTile<QGMM_PERTILE_KERNEL_FUN_TEM_PARAMS>
     if (groupListPtr_ != nullptr) {
         groupListGlobal_.SetGlobalBuffer((__gm__ int64_t*)groupListPtr_);
     }
-    uint64_t baseL0cSingleV = Act::Gemm::CeilDiv(static_cast<uint64_t>(params.gmmParams.baseM) * params.gmmParams.baseN,
-                                                 GetAicAivTaskRation());
-    pipe_->InitBuffer(vecQueMMRes_, GMM_BUFFER_NUM, baseL0cSingleV * sizeof(CType));
-    mmResPing_ = vecQueMMRes_.template AllocTensor<CType>();
-    mmResPong_ = vecQueMMRes_.template AllocTensor<CType>();
     TupleShape l0Shape{static_cast<int64_t>(params.gmmParams.baseM), static_cast<int64_t>(params.gmmParams.baseN),
                        static_cast<int64_t>(params.gmmParams.baseK)};
     BlockShape tileL12L0{static_cast<int64_t>(params.gmmParams.stepM), static_cast<int64_t>(params.gmmParams.stepN),
                          static_cast<int64_t>(params.gmmParams.stepKa), static_cast<int64_t>(params.gmmParams.stepKb)};
+    auto mmResPing_ = epilogueOp_.GetL0c2UbPingTensor();
+    auto mmResPong_ = epilogueOp_.GetL0c2UbPongTensor();
     mmadOp_.Init(l0Shape, tileL12L0, &mmResPing_, &mmResPong_);
-    epilogueOp_.Init(&params.epilogueParams, &mmResPing_, &mmResPong_, baseL0cSingleV);
+    epilogueOp_.Init(&params.epilogueParams);
+
     Get<MNK_M>(problemShape_) = params.gmmParams.m;
     Get<MNK_N>(problemShape_) = params.gmmParams.n;
     Get<MNK_K>(problemShape_) = params.gmmParams.k;
     if ASCEND_IS_AIV {
         // k = 0, init out
         if (AscendC::GetSubBlockIdx() == 0 && groupType_ == GMM_SPLIT_K) {
-            pipe_->InitBuffer(initBuff_, AscendC::MAX_REPEAT_TIMES * AscendC::ONE_BLK_SIZE);
-            initLocal_ = initBuff_.Get<YType>();
+            uint32_t initSize = AscendC::MAX_REPEAT_TIMES * AscendC::ONE_BLK_SIZE;
+            initLocal_ = AscendC::LocalTensor<YType>(AscendC::TPosition::VECCALC,
+                                                     AscendC::GetUBSizeInBytes() - initSize, initSize / sizeof(YType));
         }
     }
 }
@@ -286,7 +279,7 @@ QuantMmGroupedPerTile<QGMM_PERTILE_KERNEL_FUN_TEM_PARAMS>::ProcessSingleGroup(co
         if (Get<MNK_M>(singleShape) <= 0 || Get<MNK_N>(singleShape) <= 0) {
             return;
         }
-        blockOffset_ = coord.template GetQuantOffset<false, true>(
+        blockOffset_ = coord.template GetQuantOffset<QuantMode::PERGROUP_MODE>(
             Get<IDX_M_TILEIDX>(tileIdx), Get<IDX_N_TILEIDX>(tileIdx), Get<IDX_M_TAIL_SPLIT_TILEIDX>(singleShape),
             Get<IDX_N_TAIL_SPLIT_TILEIDX>(singleShape));
         Iterate(Get<MNK_M>(singleShape), Get<MNK_N>(singleShape));
@@ -342,8 +335,6 @@ __aicore__ inline void QuantMmGroupedPerTile<QGMM_PERTILE_KERNEL_FUN_TEM_PARAMS>
 QGMM_PERTILE_KERNEL_CLASS_TEM_PARAMS
 __aicore__ inline void QuantMmGroupedPerTile<QGMM_PERTILE_KERNEL_FUN_TEM_PARAMS>::End()
 {
-    vecQueMMRes_.FreeTensor(mmResPing_);
-    vecQueMMRes_.FreeTensor(mmResPong_);
     if ASCEND_IS_AIC {
         mmadOp_.End();
     }

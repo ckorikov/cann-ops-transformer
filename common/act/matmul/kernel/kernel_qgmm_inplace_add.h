@@ -21,6 +21,7 @@
 #include "lib/matmul_intf.h"
 
 #include "../../utils/common_utils.h"
+#include "../../utils/grouped_matmul_constant.h"
 #include "../../utils/layout_utils.h"
 #include "../../utils/tuple_utils.h"
 #include "../../utils/coord_utils.h"
@@ -93,11 +94,11 @@ public:
     using AType = typename BlockMmadBuilder::AType;
     using BType = typename BlockMmadBuilder::BType;
     using CType = typename BlockMmadBuilder::CType;
-    using TupleShape = Shape<int64_t, int64_t, int64_t, int64_t>;
-    using BlockShape = Shape<int64_t, int64_t, int64_t, int64_t>;
-    using BlockCoord = Coord<int64_t, int64_t, int64_t, int64_t>;
+    using TupleShape = AscendC::Shape<int64_t, int64_t, int64_t, int64_t>;
+    using BlockShape = AscendC::Shape<int64_t, int64_t, int64_t, int64_t>;
+    using BlockCoord = AscendC::Coord<int64_t, int64_t, int64_t, int64_t>;
     // order by {x1, x2, scale1, scale2, bias, y}
-    using BlockOffset = Shape<int64_t, int64_t, int64_t, int64_t, int64_t, int64_t>;
+    using BlockOffset = AscendC::Shape<int64_t, int64_t, int64_t, int64_t, int64_t, int64_t>;
     // coordinate
     using CoordClass =
         Coordinate<transA, transB, BlockMmadBuilder::formatA, BlockMmadBuilder::formatB, BlockMmadBuilder::formatC>;
@@ -162,9 +163,9 @@ public:
     {
         aGlobal_.SetGlobalBuffer((__gm__ AType*)params.mmadParams.aGmAddr + Get<IDX_A_OFFSET>(baseOffset_));
         bGlobal_.SetGlobalBuffer((__gm__ BType*)params.mmadParams.bGmAddr + Get<IDX_B_OFFSET>(baseOffset_));
-        x1ScaleGlobal_.SetGlobalBuffer((__gm__ fp8_e8m0_t*)params.mmadParams.x1ScaleGmAddr +
+        x1ScaleGlobal_.SetGlobalBuffer((__gm__ AscendC::fp8_e8m0_t*)params.mmadParams.x1ScaleGmAddr +
                                        Get<IDX_X1SCALE_OFFSET>(baseOffset_));
-        x2ScaleGlobal_.SetGlobalBuffer((__gm__ fp8_e8m0_t*)params.mmadParams.x2ScaleGmAddr +
+        x2ScaleGlobal_.SetGlobalBuffer((__gm__ AscendC::fp8_e8m0_t*)params.mmadParams.x2ScaleGmAddr +
                                        Get<IDX_X2SCALE_OFFSET>(baseOffset_));
         cGlobal_.SetGlobalBuffer((__gm__ CType*)params.mmadParams.cGmAddr + Get<IDX_C_OFFSET>(baseOffset_));
     }
@@ -208,7 +209,7 @@ public:
     {
         Get<M_VALUE>(problemShape_) = params.gmmParams.matmulTiling->M;
         Get<N_VALUE>(problemShape_) = params.gmmParams.matmulTiling->N;
-        cGlobal_.SetL2CacheHint(CacheMode::CACHE_MODE_DISABLE);
+        cGlobal_.SetL2CacheHint(AscendC::CacheMode::CACHE_MODE_DISABLE);
         groupListGm_.SetGlobalBuffer(reinterpret_cast<__gm__ int64_t*>(params.mmadParams.groupListGmAddr));
     }
 
@@ -221,7 +222,7 @@ public:
         BlockCoord tileIdx;
         while (bs.GetTileIdx(tileIdx)) {
             BlockShape singleShape = bs.GetBlockShape(tileIdx);
-            blockOffset_ = coord.template GetQuantOffset<true, false>(
+            blockOffset_ = coord.template GetQuantOffset<GroupedMatmul::QuantMode::MX_PERGROUP_MODE>(
                 Get<IDX_M_TILEIDX>(tileIdx), Get<IDX_N_TILEIDX>(tileIdx), Get<IDX_M_TAIL_SPLIT_TILEIDX>(singleShape),
                 Get<IDX_N_TAIL_SPLIT_TILEIDX>(singleShape));
             AscendC::Std::tuple<int32_t, int32_t, int32_t> mmSingleShape{Get<M_VALUE>(singleShape),
@@ -304,7 +305,7 @@ public:
         // Get blockIdx
         int64_t curBlockIdx = AscendC::GetBlockIdx();
         int64_t blockNum = AscendC::GetBlockNum();
-        SetAtomicAdd<float>(); // GMM res + yIn
+        AscendC::SetAtomicAdd<float>(); // GMM res + yIn
         // Instantiate mmadOp
         BlockMmadOp blockMmadOp;
         blockMmadOp.Init(const_cast<TCubeTiling* __restrict>(params.gmmParams.matmulTiling), GetTPipePtr());
@@ -318,7 +319,7 @@ public:
             bs.UpdateNextProblem(problemShape_);
             ProcessSingleGroup(params, bs, blockMmadOp);
         }
-        SetAtomicNone();
+        AscendC::SetAtomicNone();
     }
 };
 } // namespace Kernel

@@ -96,10 +96,10 @@ public:
     using AType = typename BlockMmadBuilder::AType;
     using BType = typename BlockMmadBuilder::BType;
     using CType = typename BlockMmadBuilder::CType;
-    using TupleShape = Shape<int64_t, int64_t, int64_t, int64_t>;
-    using BlockShape = Shape<int64_t, int64_t, int64_t, int64_t>;
-    using BlockCoord = Coord<int64_t, int64_t, int64_t, int64_t>;
-    using BlockOffset = Shape<int64_t, int64_t, int64_t, int64_t, int64_t, int64_t>;
+    using TupleShape = AscendC::Shape<int64_t, int64_t, int64_t, int64_t>;
+    using BlockShape = AscendC::Shape<int64_t, int64_t, int64_t, int64_t>;
+    using BlockCoord = AscendC::Coord<int64_t, int64_t, int64_t, int64_t>;
+    using BlockOffset = AscendC::Shape<int64_t, int64_t, int64_t, int64_t, int64_t, int64_t>;
     // coordinate
     using CoordClass =
         Coordinate<transA, transB, BlockMmadBuilder::formatA, BlockMmadBuilder::formatB, BlockMmadBuilder::formatC>;
@@ -115,7 +115,7 @@ public:
     uint64_t preOffset_ = 0;
     BlockMmadOp mmadOp_;
     BlockEpilogue epilogueOp_;
-    LocalTensor<CType> l0cOutUb_;
+    AscendC::LocalTensor<CType> l0cOutUb_;
     bool isVecSetSyncCom_ = false;
 
     struct GMMTiling {
@@ -150,21 +150,21 @@ public:
 
     __aicore__ inline void NotifyCube()
     {
-        CrossCoreSetFlag<SYNC_AIC_AIV_MODE, PIPE_V>(AIV_SYNC_AIC_FLAG);
+        AscendC::CrossCoreSetFlag<SYNC_AIC_AIV_MODE, PIPE_V>(AIV_SYNC_AIC_FLAG);
     }
     __aicore__ inline void WaitForVector()
     {
-        CrossCoreWaitFlag<SYNC_AIC_AIV_MODE, PIPE_FIX>(AIV_SYNC_AIC_FLAG);
-        CrossCoreWaitFlag<SYNC_AIC_AIV_MODE, PIPE_FIX>(AIV_SYNC_AIC_FLAG + FLAG_ID_MAX);
+        AscendC::CrossCoreWaitFlag<SYNC_AIC_AIV_MODE, PIPE_FIX>(AIV_SYNC_AIC_FLAG);
+        AscendC::CrossCoreWaitFlag<SYNC_AIC_AIV_MODE, PIPE_FIX>(AIV_SYNC_AIC_FLAG + FLAG_ID_MAX);
     }
     __aicore__ inline void NotifyVector()
     {
-        CrossCoreSetFlag<SYNC_AIC_AIV_MODE, PIPE_FIX>(AIC_SYNC_AIV_FLAG);
-        CrossCoreSetFlag<SYNC_AIC_AIV_MODE, PIPE_FIX>(AIC_SYNC_AIV_FLAG + FLAG_ID_MAX);
+        AscendC::CrossCoreSetFlag<SYNC_AIC_AIV_MODE, PIPE_FIX>(AIC_SYNC_AIV_FLAG);
+        AscendC::CrossCoreSetFlag<SYNC_AIC_AIV_MODE, PIPE_FIX>(AIC_SYNC_AIV_FLAG + FLAG_ID_MAX);
     }
     __aicore__ inline void WaitForCube()
     {
-        CrossCoreWaitFlag<SYNC_AIC_AIV_MODE, PIPE_V>(AIC_SYNC_AIV_FLAG);
+        AscendC::CrossCoreWaitFlag<SYNC_AIC_AIV_MODE, PIPE_V>(AIC_SYNC_AIV_FLAG);
     }
 
     __aicore__ inline void End()
@@ -256,7 +256,7 @@ public:
         BlockCoord tileIdx;
         while (bs.GetTileIdx(tileIdx)) {
             BlockShape singleShape = bs.GetBlockShape(tileIdx);
-            blockOffset_ = coord.template GetQuantOffset<false, false>(
+            blockOffset_ = coord.template GetQuantOffset<GroupedMatmul::QuantMode::PERTENSOR_MODE>(
                 Get<IDX_M_TILEIDX>(tileIdx), Get<IDX_N_TILEIDX>(tileIdx), Get<IDX_M_TAIL_SPLIT_TILEIDX>(singleShape),
                 Get<IDX_N_TAIL_SPLIT_TILEIDX>(singleShape));
             if ASCEND_IS_AIC {
@@ -357,7 +357,7 @@ public:
             curBlockIdx /= AscendC::GetTaskRation();
         }
         int64_t blockNum = AscendC::GetBlockNum();
-        SetAtomicAdd<float>(); // GMM res + yIn
+        AscendC::SetAtomicAdd<float>(); // GMM res + yIn
         // Init mmadOp epilogue
         mmadOp_.Init(const_cast<TCubeTiling* __restrict>(params.gmmParams.matmulTiling), GetTPipePtr());
         InitParamsAndTensor(params);
@@ -374,10 +374,10 @@ public:
             ProcessSingleGroup(params, bs, groupIdx);
         }
         End();
-        SetAtomicNone();
+        AscendC::SetAtomicNone();
     }
 };
 } // namespace Kernel
 } // namespace Gemm
 } // namespace Act
-#endif // AOT_KERNEL_ASWT_GROUPED_MATMUL_H
+#endif // MATMUL_KERNEL_KERNEL_QGMM_INPLACE_ADD_MIX_ONLINE_DYNAMIC_H

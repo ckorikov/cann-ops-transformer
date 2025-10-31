@@ -17,6 +17,7 @@
 #define UTILS_COORD_UTILS_H
 
 #include "common_utils.h"
+#include "grouped_matmul_constant.h"
 namespace Act {
 namespace Gemm {
 
@@ -78,6 +79,49 @@ GetOffsetWithoutLayout(BlockCoord blockCoord, ProblemShape problemShape, ATensor
     }
     if (isBias) {
         offsetBias = Get<MNK_B>(blockCoord) * n + Get<1>(blockCoord);
+    }
+
+    return {offsetA, offsetB, offsetC, offsetBias};
+}
+
+// GetOffsetStreamK
+template <class BlockCoord_, class ProblemShape_, class ATensorType_, class BTensorType_, class CTensorType_>
+__aicore__ inline AscendC::Coord<int64_t, int64_t, int64_t, int64_t>
+GetOffsetStreamK(BlockCoord_ blockCoord, ProblemShape_ problemShape,
+                 AscendC::Shape<int64_t, int64_t, int64_t, int64_t> tileL1, int64_t kSingleCore,
+                 ATensorType_ aTensor, BTensorType_ bTensor, CTensorType_ cTensor,
+                 bool transA, bool transB, bool isBias)
+{
+    int64_t m = Get<MNK_M>(problemShape);
+    int64_t n = Get<MNK_N>(problemShape);
+    int64_t k = Get<MNK_K>(problemShape);
+    int64_t mL1 = Get<MNK_M>(tileL1);
+    int64_t nL1 = Get<MNK_N>(tileL1);
+
+    int64_t offsetA = 0;
+    int64_t offsetB = 0;
+    int64_t offsetC = Get<MNK_B>(blockCoord) * m * n + Get<MNK_M>(blockCoord) * mL1 * n + Get<MNK_N>(blockCoord) * nL1;
+    int64_t offsetBias = 0;
+    if (transA) {
+        offsetA = Get<MNK_B>(blockCoord) * m * k +
+                  Get<MNK_M>(blockCoord) * mL1 +
+                  Get<MNK_K>(blockCoord) * kSingleCore * m;
+    } else {
+        offsetA = Get<MNK_B>(blockCoord) * m * k +
+                  Get<MNK_M>(blockCoord) * mL1 * k +
+                  Get<MNK_K>(blockCoord) * kSingleCore;
+    }
+    if (transB) {
+        offsetB = Get<MNK_B>(blockCoord) * n * k +
+                  Get<MNK_N>(blockCoord) * nL1 * k +
+                  Get<MNK_K>(blockCoord) * kSingleCore;
+    } else {
+        offsetB = Get<MNK_B>(blockCoord) * n * k +
+                  Get<MNK_N>(blockCoord) * nL1 +
+                  Get<MNK_K>(blockCoord) * kSingleCore * n;
+    }
+    if (isBias) {
+        offsetBias = Get<MNK_B>(blockCoord) * n + Get<MNK_N>(blockCoord) * nL1;
     }
 
     return {offsetA, offsetB, offsetC, offsetBias};
@@ -149,7 +193,7 @@ public:
         return nTileIdx * l1N + nSplitOffset;
     }
 
-    template <bool isMx, bool isGB>
+    template <GroupedMatmul::QuantMode aQuantMode>
     __aicore__ inline AscendC::Std::tuple<int64_t, int64_t, int64_t, int64_t, int64_t, int64_t>
     GetQuantOffset(int64_t mTileIdx, int64_t nTileIdx, int64_t mSplitOffset = 0, int64_t nSplitOffset = 0)
     {
@@ -167,12 +211,16 @@ public:
             Get<1>(offset) = nOffset;
         }
         Get<5>(offset) = mOffset * n + nOffset; // 5: idx of y
-        if constexpr (isGB) {
+        if constexpr (aQuantMode == GroupedMatmul::QuantMode::PERGROUP_MODE ||
+                      aQuantMode == GroupedMatmul::QuantMode::PERBLOCK_MODE) {
             if ASCEND_IS_AIV {
+                int64_t x1ScaleMOffset = (aQuantMode == GroupedMatmul::QuantMode::PERGROUP_MODE) ?
+                                             mOffset :
+                                             CeilDiv(mOffset, PER_BLOCK_SIZE);
                 if constexpr (isTransA) {
-                    Get<2>(offset) = mOffset; // 2: idx of x1Scale
+                    Get<2>(offset) = x1ScaleMOffset; // 2: idx of x1Scale
                 } else {
-                    Get<2>(offset) = mOffset * CeilDiv(k, PER_BLOCK_SIZE); // 2: idx of x1Scale
+                    Get<2>(offset) = x1ScaleMOffset * CeilDiv(k, PER_BLOCK_SIZE); // 2: idx of x1Scale
                 }
                 if constexpr (isTransB) {
                     Get<3>(offset) = CeilDiv(nOffset, PER_BLOCK_SIZE) * CeilDiv(k, PER_BLOCK_SIZE); // 3: idx of x2Scale
@@ -180,7 +228,7 @@ public:
                     Get<3>(offset) = CeilDiv(nOffset, PER_BLOCK_SIZE); // 3: idx of x2Scale
                 }
             }
-        } else if constexpr (isMx) {
+        } else if constexpr (aQuantMode == GroupedMatmul::QuantMode::MX_PERGROUP_MODE) {
             if constexpr (isTransA) {
                 Get<2>(offset) = mOffset * MXFP_MULTI_BASE_SIZE; // 2: idx of x1Scale
             } else {
