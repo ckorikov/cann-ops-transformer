@@ -22,28 +22,42 @@ public:
     aclnnStatus CheckGroupedMatmulWeightQuant91095();
 
 private:
-    aclnnStatus CheckGmmQuantParams() const;
-    aclnnStatus CheckTensorListDtype(const aclTensorList *tensorList, const DataType &xDtype,
-                                     const DataType &weightDtype) const;
-    aclnnStatus CheckTensorListShape(const aclTensorList *tensorList, const std::string &tensorType) const;
+    aclnnStatus CheckGroupTypeScenario() const;
+    aclnnStatus CheckUnsupportApi() const;
+    aclnnStatus CheckAntiQuantParams() const;
+    aclnnStatus CheckQuantParams() const;
+    aclnnStatus CheckYDtype() const;
+    aclnnStatus CheckQuantDtype() const;
+    aclnnStatus CheckBiasDtype();
 
-    aclnnStatus CheckWeightFormatAndShape(const DataType &xDtype, const DataType &weightDtype) const;
-    aclnnStatus CheckTransposeStatus(const DataType &xDtype, const DataType &weightDtype) const;
-    aclnnStatus CheckNKValue(const DataType &xDtype, const DataType &weightDtype) const;
+    aclnnStatus CheckTensorListSize() const;
+    aclnnStatus CheckTensorNotNull(size_t idx) const;
+    aclnnStatus CheckTensorNotNullPtr(const aclTensorList *tensorList, size_t idx, const std::string &tensorType) const;
+    aclnnStatus CheckTensorDtype(const aclTensorList *tensorList, const DataType &tensorDtype, size_t idx,
+                                 const std::string &tensorType) const;
+    aclnnStatus CheckTensorShape(const aclTensorList *tensorList, size_t idx, const std::string &tensorType) const;
 
-    aclnnStatus CheckBiasDtype(const DataType &xDtype, const DataType &weightDtype) const;
-    aclnnStatus CheckAntiQuantDtype(const DataType &xDtype, const DataType &weightDtype) const;
-    aclnnStatus CheckAntiQuantShape(const DataType &xDtype, const DataType &weightDtype) const;
-    aclnnStatus CheckUnsupportApi(const DataType &xDtype, const DataType &weightDtype) const;
-    aclnnStatus CheckGroupSize(const DataType &xDtype, const DataType &weightDtype) const;
-    bool IsA16MxFp4NZ(const DataType &xDtype, const DataType &weightDtype) const;
-    bool IsMxA8W4NZ(const DataType &xDtype, const DataType &weightDtype) const;
-    bool IsA16W8ND(const DataType &xDtype, const DataType &weightDtype) const;
-    bool IsA16F8ND(const DataType &xDtype, const DataType &weightDtype) const;
-    bool IsS8S4NZ(const DataType &xDtype, const DataType &weightDtype) const;
+    aclnnStatus CheckDimNumAndFormat(size_t idx) const;
+    aclnnStatus CheckTransposeStatus() const;
+    aclnnStatus CheckDimValue(size_t idx) const;
+    aclnnStatus CheckV1GroupList(size_t idx) const;
+
+    aclnnStatus CheckAntiQuantDtype(size_t idx) const;
+    aclnnStatus CheckScaleAndPerTokenScaleShape() const;
+    aclnnStatus CheckGroupSize(size_t idx) const;
+
+    bool IsA16MxFp4NZ() const;
+    bool IsMxA8W4NZ() const;
+    bool IsA16W8ND() const;
+    bool IsA16F8ND() const;
+    bool IsS8S4NZ() const;
 
 private:
     GroupedMatmulParams gmmParams_;
+    DataType xDtype_ = ge::DT_UNDEFINED;
+    DataType weightDtype_ = ge::DT_UNDEFINED;
+    DataType biasDtype_ = ge::DT_UNDEFINED;
+    DataType yDtype_ = ge::DT_UNDEFINED;
 };
 } // namespace gmm
 #endif

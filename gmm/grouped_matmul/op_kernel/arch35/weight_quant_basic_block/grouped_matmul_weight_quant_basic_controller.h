@@ -61,7 +61,8 @@ private:
     TILING_TYPE *nListGm_;
     TILING_TYPE *kListGm_;
 
-    WeightQuantMatmulBasicBlock<xType, wType, xType, uint64_t, biasType, yType, wqmmConfig, vecConfig> wqmmBasicBlock_;
+    WeightQuantMatmulBasicBlock<xType, wType, xType, uint64_t, float, biasType, yType, wqmmConfig, vecConfig>
+        wqmmBasicBlock_;
 };
 
 template <typename xType, typename wType, typename biasType, typename yType, const WqmmConfig &wqmmConfig,

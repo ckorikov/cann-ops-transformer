@@ -34,6 +34,9 @@ constexpr uint64_t ATTR_TRANS_X_IDX = 3;
 constexpr uint64_t ATTR_GROUPTYPE_IDX = 4;
 constexpr uint32_t ATTR_GROUP_LIST_TYPE_IDX = 5;
 
+constexpr uint32_t MAX_X_DIM = 6UL;
+constexpr uint32_t MIN_X_DIM = 2UL;
+
 constexpr uint32_t BASIC_BLOCK_BASE_M = 256;
 constexpr uint32_t BASIC_BLOCK_BASE_M_WITH_BIAS = 240;
 constexpr uint32_t BASIC_BLOCK_BASE_N = 256;
@@ -238,6 +241,7 @@ protected:
     bool SetCustomParam(gert::TilingContext *context);
     bool CheckAttr(const gert::TilingContext *context) const;
     bool SetShapeListSplitMSingleXSingleWeightSingleY(const gert::TilingContext *context);
+    bool SetShapeListMultiXMultiWeightMultiY(const gert::TilingContext *context);
     bool SetAntiquantGroupSize(const gert::TilingContext *context);
     bool GetC0Size(const gert::TilingContext *context, ge::DataType dtype, uint64_t &c0Size) const;
     void CalcFullBlockDimResplitTiling(uint64_t c0Size);
@@ -245,6 +249,7 @@ protected:
     bool CheckResplitTilingResult(const gert::TilingContext *context) const;
     void PrintInputParam(const gert::TilingContext *context) const;
     void PrintTilingResult(const gert::TilingContext *context);
+    bool EnableTailResplit() const;
 
 private:
     int32_t mList_[GroupedMatmul::MAX_TENSOR_CONT] = {0};

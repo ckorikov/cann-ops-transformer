@@ -49,7 +49,6 @@ constexpr int64_t EVEN_FACTOR = 2L;
 constexpr int64_t LAST_TOW_DIM_INDEX = 2L;
 
 constexpr int64_t N_K_MAX_VALUE_WEIGHT_QUANT = 65535L;
-constexpr int64_t N_K_ALIGN_VALUE_WEIGHT_QUANT = 32L;
 constexpr int64_t N_K_ALIGN_VALUE_WEIGHT_QUANT_4BIT = 64L;
 
 constexpr size_t LAST_SECOND_DIM_INDEX = 2;
