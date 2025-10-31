@@ -36,6 +36,7 @@ constexpr uint64_t STATE_CHECK_OFFSET = 1000UL * 1024UL;
 constexpr uint64_t TIMEOUT_DETECTION_THRESHOLD = 50000UL;
 constexpr uint64_t CYCLES_PER_US = 50UL;
 constexpr uint64_t TIMEOUT_DETECTION_TX_UNITS = 8UL;
+constexpr uint64_t STATE_HCCL_OFFSET = 32UL;
 constexpr uint32_t EXPAND_IDX_INFO = 3U;                // expand_idx是按3元组保存信息，分别为rank_id token_id topk_id
 constexpr uint32_t ALIGNED_LEN = 256U;                  // blockReduceMax中，最多支持连续256字节数据参与计算
 constexpr float SCALE_PARAM = 127.0;                    // 计算量化参数所需的缩放倍数
