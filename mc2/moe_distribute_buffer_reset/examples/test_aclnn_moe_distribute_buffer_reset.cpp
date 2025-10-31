@@ -43,7 +43,7 @@ constexpr uint32_t SERVER_NUM = 1;
 constexpr uint32_t WORLD_SIZE = 16;
 constexpr uint32_t EP_WORLD_SIZE = WORLD_SIZE * SERVER_NUM;
 constexpr uint32_t TP_WORLD_SIZE = 1;
-constexpr uint32_t TIME_OUT = 100000;
+constexpr uint32_t TIME_OUT = 10000;
 constexpr uint32_t NEED_SYNC = 0;
 
 constexpr uint32_t DEV_NUM = DIE_PER_SERVER * SERVER_NUM;

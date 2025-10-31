@@ -212,7 +212,7 @@ aclnnStatus aclnnElasticReceivableTest(
 
 ## 调用示例
 
-以<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>单机为例，调起aclnnElasticReceivableTest和aclnnElasticReceivableInfoCollect。
+以<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>单机为例，调起aclnnElasticReceivableTest、aclnnElasticReceivableInfoCollect和aclnnMoeDistributeBufferReset。
 
 - 文件准备：
 
@@ -271,7 +271,7 @@ aclnnStatus aclnnElasticReceivableTest(
     constexpr uint32_t WORLD_SIZE = 16;
     constexpr uint32_t EP_WORLD_SIZE = WORLD_SIZE * SERVER_NUM;
     constexpr uint32_t TP_WORLD_SIZE = 1;
-    constexpr uint32_t TIME_OUT = 100000;
+    constexpr uint32_t TIME_OUT = 10000;
     constexpr uint32_t NEED_SYNC = 0;
 
     constexpr uint32_t DEV_NUM = DIE_PER_SERVER * SERVER_NUM;

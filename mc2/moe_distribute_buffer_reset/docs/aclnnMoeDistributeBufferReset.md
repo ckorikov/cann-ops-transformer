@@ -150,7 +150,7 @@ aclnnStatus aclnnMoeDistributeBufferReset(
     <tr>
     <td>ACLNN_ERR_PARAM_NULLPTR</td>
     <td>161001</td>
-    <td>传入的elasticInfo、groupEp、epWorldSize或needSync是空指针。</td>
+    <td>传入的elasticInfo或groupEp是空指针。</td>
     </tr>
     <tr>
     <td rowspan="3" align="left">ACLNN_ERR_PARAM_INVALID</td>
@@ -216,15 +216,15 @@ aclnnStatus aclnnMoeDistributeBufferReset(
 
 - 文件准备：
 
-  1.新建testDemo目录，按照下方指导在testDemo下新建aclnnTestDemo.cpp，buildTest.sh文件并参考如下代码修改。
+  1.新建resetDemo目录，按照下方指导在resetDemo下新建aclnnResetDemo.cpp，buildReset.sh文件并参考如下代码修改。
 
-  2.安装cann包，并根据下方指导编译运行testDemo。
+  2.安装cann包，并根据下方指导编译运行resetDemo。
 
 -  编译脚本
     ```bash
     #!/bin/bash
     cann_path="/path/to/cann_env" # 更改cann包环境的路径
-    g++ "aclnnTestDemo.cpp" -o testDemo -I"$cann_path/latest/include/" -I"$cann_path/latest/include/aclnnop/" \
+    g++ "aclnnResetDemo.cpp" -o resetDemo -I"$cann_path/latest/include/" -I"$cann_path/latest/include/aclnnop/" \
                         -L="$cann_path/latest/lib64/" -lascendcl -lnnopbase -lopapi -lop_common -lpthread -lhccl
     ```
 - 编译与运行：
@@ -233,10 +233,10 @@ aclnnStatus aclnnMoeDistributeBufferReset(
     # source cann环境
     source /path/to/cann_env/latest/bin/setenv.bash
 
-    # 编译aclnnTestDemo.cpp
-    bash buildTest.sh
+    # 编译aclnnResetDemo.cpp
+    bash buildReset.sh
 
-    ./testDemo
+    ./resetDemo
     ```
 
 - 示例代码如下，仅供参考
@@ -271,7 +271,7 @@ aclnnStatus aclnnMoeDistributeBufferReset(
     constexpr uint32_t WORLD_SIZE = 16;
     constexpr uint32_t EP_WORLD_SIZE = WORLD_SIZE * SERVER_NUM;
     constexpr uint32_t TP_WORLD_SIZE = 1;
-    constexpr uint32_t TIME_OUT = 100000;
+    constexpr uint32_t TIME_OUT = 10000;
     constexpr uint32_t NEED_SYNC = 0;
 
     constexpr uint32_t DEV_NUM = DIE_PER_SERVER * SERVER_NUM;
