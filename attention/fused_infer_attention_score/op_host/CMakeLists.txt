@@ -14,6 +14,15 @@ set(fused_infer_attention_score_depends attention/incre_flash_attention attentio
     )
 endif()
 
+set(CONDITION_UNIT ${ASCEND_COMPUTE_UNIT})
+if("${CONDITION_UNIT}" STREQUAL "ascend910_95")
+        add_ops_compile_options(
+            OP_NAME FusedInferAttentionScore
+            COMPUTE_UNIT ascend910_9599
+            OPTIONS -DENABLE_CV_COMM_VIA_SSBUF=true
+        )
+endif()
+
 if (BUILD_OPS_RTY_KERNEL)
     add_ops_compile_options(
         OP_NAME FusedInferAttentionScore

@@ -24,15 +24,15 @@ if (BUILD_OPEN_PROJECT)
             OPTIONS -mllvm -cce-aicore-dcci-before-kernel-end=false
         )
     endif()
+endif()
 
-    set(CONDITION_UNIT ${ASCEND_COMPUTE_UNIT})
-    if("${CONDITION_UNIT}" STREQUAL "ascend910_95")
-        add_ops_compile_options(
-            OP_NAME GroupedMatmul
-            COMPUTE_UNIT ascend910_9599
-            OPTIONS -DENABLE_CV_COMM_VIA_SSBUF=true
-        )
-    endif()
+set(CONDITION_UNIT ${ASCEND_COMPUTE_UNIT})
+if("${CONDITION_UNIT}" STREQUAL "ascend910_95")
+    add_ops_compile_options(
+        OP_NAME GroupedMatmul
+        COMPUTE_UNIT ascend910_9599
+        OPTIONS -DENABLE_CV_COMM_VIA_SSBUF=true
+    )
 endif()
 
 if(NOT BUILD_OPS_RTY_KERNEL)
