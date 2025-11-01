@@ -86,11 +86,11 @@ __aicore__ inline void ProcessVec1DnNoUpdate(
 
         RegTensor<float> vreg_x_f32_1_a;
         RegTensor<float> vreg_x_f32_1_b;
-        RegTensor<half> vreg_x_exp_f16_pack;
         RegTensor<float> vreg_x_f32_2_a;
         RegTensor<float> vreg_x_f32_2_b;
         RegTensor<float> vreg_x_f32_3_a;
         RegTensor<float> vreg_x_f32_3_b;
+        RegTensor<half> vreg_x_exp_f16_pack;
         RegTensor<half> vreg_x_exp_f16_1_pack;
         RegTensor<half> vreg_x_exp_f16_packa;
         RegTensor<half> vreg_x_exp_f16_1_packa;

@@ -2195,12 +2195,21 @@ bool PromptFlashAttentionTilingV2::CheckPerblockCrossover(ContextParamsForPFATil
     OP_CHECK_IF(enableLeftPadding, OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName,
             "leftpadding is not supported in per-block quant scenario!"),
         return false);
-    OP_CHECK_IF(enableIFAMLA, OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName,
-            "IFAMLA is not supported in per-block quant scenario!"),
+    OP_CHECK_IF(enablePFAMLA, OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName,
+            "PFAMLA is not supported in per-block quant scenario!"),
         return false);
     OP_CHECK_IF(enablePFARope, OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName,
             "PFARope is not supported in per-block quant scenario!"),
         return false);
+    OP_CHECK_IF(enableMask, OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName,
+            "mask is not supported in per-block quant scenario!"),
+        return false);
+    OP_CHECK_IF(enablePseShift, OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName,
+            "PseShift is not supported in per-block quant scenario!"),
+        return false);
+    OP_CHECK_IF(enableAlibiPse, OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName,
+            "AlibiPse is not supported in per-block quant scenario!"),
+        return false);      
     return true;
 }
 
@@ -2247,7 +2256,7 @@ void PromptFlashAttentionTilingV2::SetTilingDataAttribute(ContextParamsForPFATil
 void PromptFlashAttentionTilingV2::GetEnableDN(ContextParamsForPFATiling& contextKeyParams,
     PromptFlashAttentionTilingData& tilingData, PFAShapeInfo& queryShapeInfo, PFAShapeInfo& valueShapeInfo,
     std::vector<int64_t>& actualSeqLengths, std::vector<int64_t>& actualSeqLengthsKV) {
-    // 使能DN条件：1.sOuter >= 128; 2.d等长且不大于128; 3.输入类型为fp16/bf16; 4.不带mask、pse、MLA等高阶特性
+    // 使能DN条件：1.sOuter >= 128; 2.d等长且不大于128; 3.输入类型为fp16/bf16; 4.不带mask、pse、MLA等高阶特性; 5.FP8 perblock全量化
     bool isQKVActualSeqLengthsRight = true;
     constexpr uint32_t dLimitDN = 128;
     constexpr uint32_t vecCoreNum = 2;
@@ -3102,6 +3111,7 @@ bool PromptFlashAttentionTilingV2::TilingGetTilingKeyAttentionAscendC(uint64_t& 
     tilingKey += (inputDataType == ge::DT_HIFLOAT8) ? 400U : 0; // 400: hifloat8
     tilingKey += (inputDataType == ge::DT_FLOAT8_E5M2) ? 500U : 0; // 500: float8_e5m2
     tilingKey += (inputDataType == ge::DT_FLOAT8_E4M3FN) ? 900U : 0; // 900: float8_e4m3
+    tilingKey += (enablePerblockQuant == true) ? 1U : 0; // 0: FP8 perblock dequant
     // When the output dtype is bf16, tilingKey should increase by 10000.
     tilingKey += (outputDataType == ge::DT_BF16) ? static_cast<uint64_t>(1e4) : 0;
     tilingKey += (outputDataType == ge::DT_INT8) ? static_cast<uint64_t>(2e4) : 0; // 20000: The situation of outputDataType == ge::DT_INT8

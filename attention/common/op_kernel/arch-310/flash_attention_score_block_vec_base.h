@@ -62,6 +62,7 @@ public:
     static constexpr uint64_t SYNC_V1_C2_FLAG[3] = {2, 3, 4};
     static constexpr bool POST_QUANT = !IsSameType<OUTPUT_T, half>::value && !IsSameType<OUTPUT_T, bfloat16_t>::value && !IsSameType<OUTPUT_T, float>::value;
     using pseShiftType = typename AscendC::Conditional<POST_QUANT, INPUT_T, OUTPUT_T>::type;
+    static constexpr int64_t FP8_QUANT_KV_BLOCK_SIZE = isInfer ? 256 : 128;
     // ==================== Functions ======================
     __aicore__ inline FABlockVecBase() {};
     __aicore__ inline void InitVecBlock(TPipe *pipe, const FlashAttentionScoreSimplifiedTilingData *__restrict tiling,
@@ -237,7 +238,7 @@ __aicore__ inline void FABlockVecBase<TEMPLATE_BASE_ARGS>::ProcessVec1Dn(
                                  runInfo.goIdx * s1BlockCnt + runInfo.s1oIdx;
         runInfo.deScaleKvOffset = runInfo.boIdx * constInfo.n2Size * s2BlockCnt +
                                   runInfo.n2oIdx * s2BlockCnt +
-                                  (runInfo.s2StartIdx >> 7) + runInfo.s2LoopCount;
+                                  (runInfo.s2StartIdx >> 8) + runInfo.s2LoopCount;
         float deSCaleQValue = this->deScaleQGm.GetValue(deScaleQOffset);
         float deSCaleKValue = this->deScaleKGm.GetValue(runInfo.deScaleKvOffset);  // [0-128)
         descaleQK = deSCaleQValue * deSCaleKValue;
@@ -281,8 +282,11 @@ __aicore__ inline void FABlockVecBase<TEMPLATE_BASE_ARGS>::ProcessVec1Dn(
     LocalTensor<INPUT_T> mm2AL1Tensor = outputBuf.GetTensor<INPUT_T>();
 
     if constexpr (isFp8) {
-        DataCopy(mm2AL1Tensor[constInfo.subBlockIdx * 16384], stage1CastTensor, {4, 64, 66, 0});
-        DataCopy(mm2AL1Tensor[constInfo.subBlockIdx * 16384 + 8192], stage1CastTensor[65 * 32], {4, 64, 66, 0});
+        // 按照64对齐搬运
+        DataCopy(mm2AL1Tensor[constInfo.subBlockIdx * vec1HalfS1BaseSize * ((runInfo.s2RealSize + 63) >> 6 << 6)],
+            stage1CastTensor, {static_cast<uint16_t>((runInfo.s2RealSize + 63) >> 6), 64, 66, 0});
+        DataCopy(mm2AL1Tensor[constInfo.subBlockIdx * vec1HalfS1BaseSize * ((runInfo.s2RealSize + 63) >> 6 << 6) +
+            ((runInfo.s2RealSize + 63) >> 6 << 6) * 32], stage1CastTensor[65 << 5], {static_cast<uint16_t>((runInfo.s2RealSize + 63) >> 6), 64, 66, 0});
     } else {
         if (runInfo.s2RealSize > vec1S2CopyLenDn) {
             DataCopy(mm2AL1Tensor[constInfo.subBlockIdx * vec1HalfS1BaseSize * runInfo.s2AlignedSize], stage1CastTensor,
@@ -423,17 +427,24 @@ __aicore__ inline void FABlockVecBase<TEMPLATE_BASE_ARGS>::ProcessVec1Nd(
     }
     float descaleQK = 1.0;
     if constexpr (isFp8) {
+        // 训练模板：128*128  推理模板：128*256
         int64_t s1BlockCnt = CeilDivision(constInfo.s1Size, FP8_QUANT_BLOCK_SIZE);
-        int64_t s2BlockCnt = CeilDivision(constInfo.s2Size, FP8_QUANT_BLOCK_SIZE);
+        int64_t s2BlockCnt = CeilDivision(constInfo.s2Size, FP8_QUANT_KV_BLOCK_SIZE);
         /* Q的反量化scale内容在Gm中的偏移 原始shape为 [B, N2, G, Ceil(S1, 128), 1] */
         int64_t deScaleQOffset = runInfo.boIdx * constInfo.n2G * s1BlockCnt +
                                  runInfo.n2oIdx * constInfo.gSize * s1BlockCnt +
                                  runInfo.goIdx * s1BlockCnt + runInfo.s1oIdx;
-        runInfo.deScaleKvOffset = runInfo.boIdx * constInfo.n2Size * s2BlockCnt * (FP8_QUANT_KV_BLOCK_SIZE / s2BaseSize) +
+        if constexpr (isInfer) {
+            runInfo.deScaleKvOffset = runInfo.boIdx * constInfo.n2Size * s2BlockCnt +
+                                      runInfo.n2oIdx * s2BlockCnt +
+                                      (runInfo.s2StartIdx >> 8) + (runInfo.s2LoopCount >> 1);
+        } else {
+            runInfo.deScaleKvOffset = runInfo.boIdx * constInfo.n2Size * s2BlockCnt * (FP8_QUANT_KV_BLOCK_SIZE / s2BaseSize) +
                                   runInfo.n2oIdx * s2BlockCnt * (FP8_QUANT_KV_BLOCK_SIZE / s2BaseSize) + 
                                   (runInfo.s2StartIdx >> 7) + runInfo.s2LoopCount;
+        }
         float deSCaleQValue = this->deScaleQGm.GetValue(deScaleQOffset);
-        float deSCaleKValue = this->deScaleKGm.GetValue(runInfo.deScaleKvOffset * s2BaseSize / FP8_QUANT_KV_BLOCK_SIZE);
+        float deSCaleKValue = this->deScaleKGm.GetValue(runInfo.deScaleKvOffset);
         descaleQK = deSCaleQValue * deSCaleKValue;
     }
 
@@ -577,7 +588,7 @@ __aicore__ inline void FABlockVecBase<TEMPLATE_BASE_ARGS>::ProcessVec2OnUb(
     int64_t vec2CalcSize = runInfo.vec2S1RealSize * dTemplateAlign64;
     float deSCaleVValue;
     if constexpr (isFp8) {
-        deSCaleVValue = this->deScaleVGm.GetValue(runInfo.deScaleKvOffset * s2BaseSize / FP8_QUANT_KV_BLOCK_SIZE);
+        deSCaleVValue = this->deScaleVGm.GetValue(runInfo.deScaleKvOffset);
     }
     LocalTensor<T> vec2ResUb = this->stage2OutBuf.template Get<T>();
     WaitFlag<HardEvent::MTE3_V>(mte3ToVId[0]);
@@ -587,7 +598,19 @@ __aicore__ inline void FABlockVecBase<TEMPLATE_BASE_ARGS>::ProcessVec2OnUb(
         LocalTensor<T> expUb = softmaxExpBuf[runInfo.taskIdMod3].template Get<T>();
         float deSCalePreVValue = 1.0f;
         if constexpr (isFp8) {
-            deSCalePreVValue = this->deScaleVGm.GetValue((runInfo.deScaleKvOffset - 1)  * s2BaseSize / FP8_QUANT_KV_BLOCK_SIZE);
+            if constexpr (isInfer) {
+                if constexpr (useDn) {
+                    deSCalePreVValue = this->deScaleVGm.GetValue(runInfo.deScaleKvOffset - 1);
+                } else {
+                    if (((runInfo.s2StartIdx >> 7) + runInfo.s2LoopCount) & 1) {
+                        deSCalePreVValue = this->deScaleVGm.GetValue(runInfo.deScaleKvOffset);
+                    } else {
+                        deSCalePreVValue = this->deScaleVGm.GetValue(runInfo.deScaleKvOffset - 1);
+                    }
+                }
+            } else {
+                deSCalePreVValue = this->deScaleVGm.GetValue((runInfo.deScaleKvOffset - 1)  * s2BaseSize / FP8_QUANT_KV_BLOCK_SIZE);
+            }
         }
         if (runInfo.s2LoopCount < runInfo.s2LoopLimit) {
             if constexpr (isFp8) {
@@ -669,7 +692,7 @@ __aicore__ inline void FABlockVecBase<TEMPLATE_BASE_ARGS>::ProcessVec2DSplit(
     event_t mte3ToMte2 = static_cast<event_t>(GetTPipePtr()->FetchEventID(HardEvent::MTE3_MTE2));
     float deSCaleVValue;
     if constexpr (isFp8) {
-        deSCaleVValue = this->deScaleVGm.GetValue(runInfo.deScaleKvOffset * s2BaseSize / FP8_QUANT_KV_BLOCK_SIZE);
+        deSCaleVValue = this->deScaleVGm.GetValue(runInfo.deScaleKvOffset);
     }
     for (int64_t vec2S1Idx = 0; vec2S1Idx < vec2LoopLimit; vec2S1Idx++) {
         runInfo.vec2S1RealSize = runInfo.vec2S1BaseSize;
@@ -710,7 +733,19 @@ __aicore__ inline void FABlockVecBase<TEMPLATE_BASE_ARGS>::ProcessVec2DSplit(
             int64_t vec2ExpBufOffset = ComputeOffsetForSoftmax(runInfo, vec2S1Idx);
             float deSCalePreVValue = 1.0f;
             if constexpr (isFp8) {
-                deSCalePreVValue = this->deScaleVGm.GetValue((runInfo.deScaleKvOffset - 1) * s2BaseSize / FP8_QUANT_KV_BLOCK_SIZE);
+                if constexpr (isInfer) {
+                    if constexpr (useDn) {
+                        deSCalePreVValue = this->deScaleVGm.GetValue(runInfo.deScaleKvOffset - 1);
+                    } else {
+                        if (((runInfo.s2StartIdx >> 7) + runInfo.s2LoopCount) & 1) {
+                            deSCalePreVValue = this->deScaleVGm.GetValue(runInfo.deScaleKvOffset);
+                        } else {
+                            deSCalePreVValue = this->deScaleVGm.GetValue(runInfo.deScaleKvOffset - 1);
+                        }
+                    }
+                } else {
+                    deSCalePreVValue = this->deScaleVGm.GetValue((runInfo.deScaleKvOffset - 1) * s2BaseSize / FP8_QUANT_KV_BLOCK_SIZE);
+                }
             }
             LocalTensor<T> expUb = softmaxExpBuf[runInfo.taskIdMod3].template Get<T>()[vec2ExpBufOffset];
             if (runInfo.s2LoopCount < runInfo.s2LoopLimit) {
@@ -777,7 +812,7 @@ __aicore__ inline void FABlockVecBase<TEMPLATE_BASE_ARGS>::ProcessVec2(
         event_t vToMte2 = static_cast<event_t>(tPipe->FetchEventID(HardEvent::V_MTE2));
         float deSCaleVValue;
         if constexpr (isFp8) {
-            deSCaleVValue = this->deScaleVGm.GetValue(runInfo.deScaleKvOffset * s2BaseSize / FP8_QUANT_KV_BLOCK_SIZE);
+            deSCaleVValue = this->deScaleVGm.GetValue(runInfo.deScaleKvOffset);
         }
         for (int64_t vec2S1Idx = 0; vec2S1Idx < vec2LoopLimit; vec2S1Idx++) {
             runInfo.vec2S1RealSize = runInfo.vec2S1BaseSize;
@@ -813,7 +848,19 @@ __aicore__ inline void FABlockVecBase<TEMPLATE_BASE_ARGS>::ProcessVec2(
                 int64_t vec2ExpBufOffset = ComputeOffsetForSoftmax(runInfo, vec2S1Idx);
                 float deSCalePreVValue = 1.0f;
                 if constexpr (isFp8) {
-                    deSCalePreVValue = deScaleVGm.GetValue((runInfo.deScaleKvOffset - 1) * s2BaseSize / FP8_QUANT_KV_BLOCK_SIZE);
+                    if constexpr (isInfer) {
+                        if constexpr (useDn) {
+                            deSCalePreVValue = deScaleVGm.GetValue(runInfo.deScaleKvOffset - 1);
+                        } else {
+                            if (((runInfo.s2StartIdx >> 7) + runInfo.s2LoopCount) & 1) {
+                                deSCalePreVValue = deScaleVGm.GetValue(runInfo.deScaleKvOffset);
+                            } else {
+                                deSCalePreVValue = deScaleVGm.GetValue(runInfo.deScaleKvOffset - 1);
+                            }
+                        }
+                    } else {
+                        deSCalePreVValue = deScaleVGm.GetValue((runInfo.deScaleKvOffset - 1) * s2BaseSize / FP8_QUANT_KV_BLOCK_SIZE);
+                    }
                 }
                 LocalTensor<T> expUb = softmaxExpBuf[runInfo.taskIdMod3].template Get<T>()[vec2ExpBufOffset];
                 if (runInfo.s2LoopCount < runInfo.s2LoopLimit) {

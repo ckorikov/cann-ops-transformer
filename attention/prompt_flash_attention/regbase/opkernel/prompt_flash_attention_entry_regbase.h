@@ -59633,7 +59633,7 @@ inline __aicore__ void prompt_flash_attention_FIAS_regbase(__gm__ uint8_t* query
 #endif
 
 #if (ORIG_DTYPE_QUERY == DT_FLOAT8_E5M2 && ORIG_DTYPE_KEY == DT_FLOAT8_E5M2 && ORIG_DTYPE_ATTENTION_OUT == DT_FLOAT16)
-    TILING_KEY_IS(1001311000001001512);                     
+    TILING_KEY_IS(1001311000001001512);       
     TILING_KEY_IS(1001311001001001512); 
     TILING_KEY_IS(1002312000001001512);
     TILING_KEY_IS(1003103000001001512);
@@ -59813,6 +59813,10 @@ inline __aicore__ void prompt_flash_attention_FIAS_regbase(__gm__ uint8_t* query
     TILING_KEY_IS(1002313001121201512);
     TILING_KEY_IS(1002313000221201512);
     TILING_KEY_IS(1002313001221201512);
+    TILING_KEY_IS(1001321000041001513);
+    TILING_KEY_IS(1002322000041001513);
+    TILING_KEY_IS(1001321000041101513);
+    TILING_KEY_IS(1002322000041101513);
     #if TILING_KEY_VAR == 1001311000001001512
         // BNSD layout HighPrecision, No mask, No pse, Cube split, 常量化, D64, float8_e5m2
         INVOKE_PFA_INT8_OP_IMPL_V2(PromptFlashAttentionNormalBNS1Preload, PFAType<PFALayout::BNSD, fp8_e5m2_t, uint8_t, half, fp8_e5m2_t,
@@ -60893,6 +60897,26 @@ inline __aicore__ void prompt_flash_attention_FIAS_regbase(__gm__ uint8_t* query
                                     PFAMask::ENABLE_MASK_BAND, PFAPse::ENABLE_PSE,
                                     RunMode::HighPrecision, SplitCoreMode::SPLIT_NBS_CUBE,
                                     SOUTER_CONST_128, SINNER_CONST_128, DSIZE_CONST_256, DSIZE_CONST_128, PFAMatMulType::MM_PA>);
+    #elif  TILING_KEY_VAR == 1001321000041001513
+       // BNSD layout HighPrecision, perblock全量化, qkD 64 vD 64, float8_e5m2
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, fp8_e5m2_t, float, half, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned256,
+            DTemplateType::Aligned64, DTemplateType::Aligned64, PseTypeEnum::PSE_NONE_TYPE, false, false, false, true, false, false);          
+    #elif  TILING_KEY_VAR == 1002322000041001513
+       // BNSD layout HighPrecision, perblock全量化, qkD 128 vD 128, float8_e5m2
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, fp8_e5m2_t, float, half, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned256,
+            DTemplateType::Aligned128, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, false, false, false, true, false, false);
+    #elif  TILING_KEY_VAR == 1001321000041101513
+       // BSH layout HighPrecision, perblock全量化, qkD 64 vD 64, float8_e5m2
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, fp8_e5m2_t, float, half, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned256,
+            DTemplateType::Aligned64, DTemplateType::Aligned64, PseTypeEnum::PSE_NONE_TYPE, false, false, false, true, false, false);
+    #elif  TILING_KEY_VAR == 1002322000041101513
+       // BSH layout HighPrecision, perblock全量化, qkD 128 vD 128, float8_e5m2
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, fp8_e5m2_t, float, half, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned256,
+            DTemplateType::Aligned128, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, false, false, false, true, false, false);                                
     #endif
 #endif
 #if (ORIG_DTYPE_QUERY == DT_FLOAT8_E4M3FN && ORIG_DTYPE_KEY == DT_FLOAT8_E4M3FN && ORIG_DTYPE_ATTENTION_OUT == DT_FLOAT16)
@@ -61076,6 +61100,10 @@ inline __aicore__ void prompt_flash_attention_FIAS_regbase(__gm__ uint8_t* query
     TILING_KEY_IS(1002313001121201912);
     TILING_KEY_IS(1002313000221201912);
     TILING_KEY_IS(1002313001221201912);
+    TILING_KEY_IS(1001321000041001913);
+    TILING_KEY_IS(1002322000041001913);
+    TILING_KEY_IS(1001321000041101913);
+    TILING_KEY_IS(1002322000041101913);
     #if TILING_KEY_VAR == 1001311000001001912
         // BNSD layout HighPrecision, No mask, No pse, Cube split, 常量化, D64, float8_e4m3
         INVOKE_PFA_INT8_OP_IMPL_V2(PromptFlashAttentionNormalBNS1Preload, PFAType<PFALayout::BNSD, fp8_e4m3fn_t, uint8_t, half, fp8_e4m3fn_t,
@@ -62156,6 +62184,26 @@ inline __aicore__ void prompt_flash_attention_FIAS_regbase(__gm__ uint8_t* query
                                    PFAMask::ENABLE_MASK_BAND, PFAPse::ENABLE_PSE,
                                    RunMode::HighPrecision, SplitCoreMode::SPLIT_NBS_CUBE,
                                    SOUTER_CONST_128, SINNER_CONST_128, DSIZE_CONST_256, DSIZE_CONST_128, PFAMatMulType::MM_PA>);
+    #elif  TILING_KEY_VAR == 1001321000041001913
+       // BNSD layout HighPrecision, perblock全量化, qkD 64 vD 64, fp8_e4m3fn_t
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, fp8_e4m3fn_t, float, half, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned256,
+            DTemplateType::Aligned64, DTemplateType::Aligned64, PseTypeEnum::PSE_NONE_TYPE, false, false, false, true, false, false);
+    #elif  TILING_KEY_VAR == 1002322000041001913
+       // BNSD layout HighPrecision, perblock全量化, qkD 128 vD 128, fp8_e4m3fn_t
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, fp8_e4m3fn_t, float, half, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned256,
+            DTemplateType::Aligned128, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, false, false, false, true, false, false);
+    #elif  TILING_KEY_VAR == 1001321000041101913
+       // BSH layout HighPrecision, perblock全量化, qkD 64 vD 64, fp8_e4m3fn_t
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, fp8_e4m3fn_t, float, half, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned256,
+            DTemplateType::Aligned64, DTemplateType::Aligned64, PseTypeEnum::PSE_NONE_TYPE, false, false, false, true, false, false);
+    #elif  TILING_KEY_VAR == 1002322000041101913
+       // BSH layout HighPrecision, perblock全量化, qkD 128 vD 128, fp8_e4m3fn_t
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, fp8_e4m3fn_t, float, half, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned256,
+            DTemplateType::Aligned128, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, false, false, false, true, false, false);          
     #endif
 #endif
 #if (ORIG_DTYPE_QUERY == DT_HIFLOAT8 && ORIG_DTYPE_KEY == DT_HIFLOAT8 && ORIG_DTYPE_ATTENTION_OUT == DT_FLOAT16)
@@ -63421,6 +63469,63 @@ inline __aicore__ void prompt_flash_attention_FIAS_regbase(__gm__ uint8_t* query
                                    SOUTER_CONST_128, SINNER_CONST_128, DSIZE_CONST_256, DSIZE_CONST_128, PFAMatMulType::MM_PA>);
     #endif
 #endif
+
+#if (ORIG_DTYPE_QUERY == DT_FLOAT8_E5M2 && ORIG_DTYPE_KEY == DT_FLOAT8_E5M2 && ORIG_DTYPE_ATTENTION_OUT == DT_BF16)
+    TILING_KEY_IS(1001321000041011513);
+    TILING_KEY_IS(1002322000041011513);
+    TILING_KEY_IS(1001321000041111513);
+    TILING_KEY_IS(1002322000041111513);
+    #if TILING_KEY_VAR == 1001321000041011513
+    // BNSD layout HighPrecision, perblock全量化, qkD 64 vD 64, float8_e5m2
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, fp8_e5m2_t, float, bfloat16_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned256,
+            DTemplateType::Aligned64, DTemplateType::Aligned64, PseTypeEnum::PSE_NONE_TYPE, false, false, false, true, false, false);
+    #elif  TILING_KEY_VAR == 1002322000041011513
+       // BNSD layout HighPrecision, perblock全量化, qkD 128 vD 128, float8_e5m2
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, fp8_e5m2_t, float, bfloat16_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned256,
+            DTemplateType::Aligned128, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, false, false, false, true, false, false);
+    #elif  TILING_KEY_VAR == 1001321000041111513
+       // BSH layout HighPrecision, perblock全量化, qkD 64 vD 64, float8_e5m2
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, fp8_e5m2_t, float, bfloat16_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned256,
+            DTemplateType::Aligned64, DTemplateType::Aligned64, PseTypeEnum::PSE_NONE_TYPE, false, false, false, true, false, false);
+    #elif  TILING_KEY_VAR == 1002322000041111513
+       // BSH layout HighPrecision, perblock全量化, qkD 128 vD 128, float8_e5m2
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, fp8_e5m2_t, float, bfloat16_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned256,
+            DTemplateType::Aligned128, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, false, false, false, true, false, false);
+    #endif    
+#endif
+
+#if (ORIG_DTYPE_QUERY == DT_FLOAT8_E4M3FN && ORIG_DTYPE_KEY == DT_FLOAT8_E4M3FN && ORIG_DTYPE_ATTENTION_OUT == DT_BF16)
+    TILING_KEY_IS(1001321000041011913);
+    TILING_KEY_IS(1002322000041011913);
+    TILING_KEY_IS(1001321000041111913);
+    TILING_KEY_IS(1002322000041111913);
+    #if TILING_KEY_VAR == 1001321000041011913
+    // BNSD layout HighPrecision, perblock全量化, qkD 64 vD 64, float8_e4m3
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, fp8_e4m3fn_t, float, bfloat16_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned256,
+            DTemplateType::Aligned64, DTemplateType::Aligned64, PseTypeEnum::PSE_NONE_TYPE, false, false, false, true, false, false);
+    #elif  TILING_KEY_VAR == 1002322000041011913
+       // BNSD layout HighPrecision, perblock全量化, qkD 128 vD 128, float8_e4m3
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, fp8_e4m3fn_t, float, bfloat16_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned128, S2TemplateType::Aligned256,
+            DTemplateType::Aligned128, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, false, false, false, true, false, false);
+    #elif  TILING_KEY_VAR == 1001321000041111913
+       // BSH layout HighPrecision, perblock全量化, qkD 64 vD 64, float8_e4m3
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, fp8_e4m3fn_t, float, bfloat16_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned256,
+            DTemplateType::Aligned64, DTemplateType::Aligned64, PseTypeEnum::PSE_NONE_TYPE, false, false, false, true, false, false);
+    #elif  TILING_KEY_VAR == 1002322000041111913
+       // BSH layout HighPrecision, perblock全量化, qkD 128 vD 128, float8_e4m3
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, fp8_e4m3fn_t, float, bfloat16_t, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned128, S2TemplateType::Aligned256,
+            DTemplateType::Aligned128, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, false, false, false, true, false, false);
+    #endif    
+#endif
+
     TILING_KEY_IS(1000000000000000020);
     TILING_KEY_IS(1000000000000000090);
     #if TILING_KEY_VAR == 1000000000000000020

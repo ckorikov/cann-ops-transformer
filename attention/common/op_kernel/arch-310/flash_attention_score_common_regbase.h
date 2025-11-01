@@ -34,7 +34,6 @@ constexpr uint32_t POSITIVE_MAX_VALUE_FP32 = 0x7F7FFFFF;
 constexpr uint32_t POSITIVE_MAX_VALUE_FP16 = 0x7BFF;
 constexpr int64_t pse1NS1S2 = 2;
 constexpr int64_t FP8_QUANT_BLOCK_SIZE = 128;
-constexpr int64_t FP8_QUANT_KV_BLOCK_SIZE = 128;
 // 0级接口的block间隔范围需要满足32B对齐
 constexpr int64_t attenMaskBN2GS1S2 = 0;
 constexpr int64_t attenMaskBS1S2 = 1;

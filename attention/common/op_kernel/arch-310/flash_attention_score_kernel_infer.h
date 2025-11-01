@@ -230,7 +230,11 @@ __aicore__ inline void FlashAttentionScoreKernelInfer<CubeBlockType, VecBlockTyp
                         CrossCoreWaitFlag<SYNC_MODE, PIPE_MTE1>(BaseClass::SYNC_V1_C2_FLAG[runInfo2.taskIdMod3]);
                         CrossCoreWaitFlag<SYNC_MODE, PIPE_MTE1>(16 + BaseClass::SYNC_V1_C2_FLAG[runInfo2.taskIdMod3]);
                         if constexpr (BaseClass::bmm2Write2Ub) {
-                            this->cubeBlock.IterateBmm2(this->bmm2ResBuf[runInfo2.taskIdMod2].template Get<T>(), this->l1PBuffers, runInfo2, this->constInfo);
+                            if constexpr (CubeBlockType::useDn && CubeBlockType::isFp8) {
+                                this->cubeBlock.IterateBmm2(this->bmm2ResBuf[0].template Get<T>(), this->l1PBuffers, runInfo2, this->constInfo);
+                            } else {
+                                this->cubeBlock.IterateBmm2(this->bmm2ResBuf[runInfo2.taskIdMod2].template Get<T>(), this->l1PBuffers, runInfo2, this->constInfo);
+                            }
                         } else {
                             this->cubeBlock.IterateBmm2(this->bmm2ResGm[runInfo2.taskIdMod3], this->l1PBuffers, runInfo2, this->constInfo);
                         }
@@ -243,7 +247,12 @@ __aicore__ inline void FlashAttentionScoreKernelInfer<CubeBlockType, VecBlockTyp
                         RunInfo<isInfer> &runInfo3 = runInfo[(taskId + 1) & 3];
                         CrossCoreWaitFlag<SYNC_MODE, PIPE_V>(BaseClass::SYNC_C2_V2_FLAG[runInfo3.taskIdMod2]); // 等待bmm2完成/等待SYNC_C2_V2_FLAG置位
                         if constexpr (BaseClass::bmm2Write2Ub) {
-                            LocalTensor<T> bmm2Res = this->bmm2ResBuf[runInfo3.taskIdMod2].template Get<T>();
+                            LocalTensor<T> bmm2Res;
+                            if constexpr (CubeBlockType::useDn && CubeBlockType::isFp8) {
+                                bmm2Res = this->bmm2ResBuf[0].template Get<T>();
+                            } else {
+                                bmm2Res = this->bmm2ResBuf[runInfo3.taskIdMod2].template Get<T>();
+                            }
                             this->vecBlock.ProcessVec2(bmm2Res, runInfo3, this->constInfo);
                         } else {
                             this->vecBlock.ProcessVec2(this->bmm2ResGm[runInfo3.taskIdMod3], runInfo3, this->constInfo);
