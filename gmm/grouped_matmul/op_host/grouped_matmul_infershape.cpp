@@ -1365,7 +1365,7 @@ static graphStatus InferShape4DavidWeightQuantGMM(gert::InferShapeContext *conte
               OP_LOGE(context->GetNodeName(), "GetXAndWeightDimValue failed"), return GRAPH_FAILED);
     OP_CHECK_IF(davidWeightQuantGMMChecker.CheckShape(context, utilForDavidWeightQuantGMM) != GRAPH_SUCCESS,
               OP_LOGE(context->GetNodeName(), "CheckShape failed"), return GRAPH_FAILED);
-    OP_CHECK_IF(davidWeightQuantGMMChecker.InferOutShape(context) != GRAPH_SUCCESS,
+    OP_CHECK_IF(davidWeightQuantGMMChecker.InferOutShape(context, utilForDavidWeightQuantGMM.attrsInfo) != GRAPH_SUCCESS,
               OP_LOGE(context->GetNodeName(), "InferOutShape failed"), return GRAPH_FAILED);
     return GRAPH_SUCCESS;
 }
