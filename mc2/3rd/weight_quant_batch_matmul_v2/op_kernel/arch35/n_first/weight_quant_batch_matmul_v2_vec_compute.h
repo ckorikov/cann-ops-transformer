@@ -45,7 +45,7 @@ using AscendC::MicroAPI::MaskReg;
 using AscendC::MicroAPI::RegTensor;
 using AscendC::MicroAPI::TypeGet;
 
-namespace WeightQuantBatchMatmulV2::Arch35 {
+namespace Mc2WeightQuantBatchMatmulV2::Arch35 {
 template <
     typename xType, typename wType, typename antiQuantScaleType, typename yType, const WqmmConfig& wqmmConfig,
     const VecAntiQuantConfig& vecConfig>
@@ -224,7 +224,7 @@ BasicBlockLibVectorAntiQuantCompute<xType, wType, antiQuantScaleType, yType, wqm
     TBuf<> ubBuffer;
     tPipe->InitBuffer(ubBuffer, UB_AVAILABLE_SIZE);
 
-    if constexpr (wqmmConfig.antiQuantType == QuantType::MX) {
+    if constexpr (wqmmConfig.antiQuantType == Mc2QuantType::MX) {
         InitMX(ubBuffer);
     } else {
         if constexpr (wqmmConfig.weightFormat != CubeFormat::NZ) {
@@ -402,7 +402,7 @@ BasicBlockLibVectorAntiQuantCompute<xType, wType, antiQuantScaleType, yType, wqm
         return;
     }
 
-    if constexpr (wqmmConfig.antiQuantType == QuantType::MX) {
+    if constexpr (wqmmConfig.antiQuantType == Mc2QuantType::MX) {
         CopyAntiQuantParamsGmToUb(ubMte2NSize, ubMte2KSize, ubMte2NOffset, ubMte2KOffset, offsetParam);
         CopyWeightGmToUb(ubMte2NSize, ubMte2KSize, ubMte2NOffset, ubMte2KOffset, offsetParam);
     } else {
@@ -481,7 +481,7 @@ BasicBlockLibVectorAntiQuantCompute<xType, wType, antiQuantScaleType, yType, wqm
         uint64_t ubMte2NSize, uint64_t ubMte2KSize, uint64_t ubMte2NOffset, uint64_t ubMte2KOffset,
         const BasicBlockOffsetParam& offsetParam)
 {
-    if constexpr (wqmmConfig.antiQuantType == QuantType::PER_CHANNEL) {
+    if constexpr (wqmmConfig.antiQuantType == Mc2QuantType::PER_CHANNEL) {
         DataCopyPad2D(
             ubAntiQuantScaleTotalBuffer_
                 [(ubMte2LoopIdx_ % vecConfig.ubMte2BufferNum) * UB_BUFFER_INFO.antiQuantScaleUbSingleBufferSize],
@@ -494,18 +494,18 @@ BasicBlockLibVectorAntiQuantCompute<xType, wType, antiQuantScaleType, yType, wqm
                 antiQuantOffsetGlobal_[ubMte2NOffset], 1, ubMte2NSize,
                 CeilAlign(ubMte2NSize, static_cast<uint64_t>(VECTOR_REG_WIDTH)), offsetParam.nSize);
         }
-    } else if constexpr (wqmmConfig.antiQuantType == QuantType::PER_TENSOR) {
+    } else if constexpr (wqmmConfig.antiQuantType == Mc2QuantType::PER_TENSOR) {
         scaleValue_ = antiQuantScaleGlobal_.GetValue(0);
         if constexpr (wqmmConfig.hasAntiQuantOffset) {
             offsetValue_ = antiQuantOffsetGlobal_.GetValue(0);
         }
-    } else if constexpr (wqmmConfig.antiQuantType == QuantType::PER_GROUP) {
+    } else if constexpr (wqmmConfig.antiQuantType == Mc2QuantType::PER_GROUP) {
         DataCopyPad2D(
             ubAntiQuantScaleTotalBuffer_
                 [(ubMte2LoopIdx_ % vecConfig.ubMte2BufferNum) * UB_BUFFER_INFO.antiQuantScaleUbSingleBufferSize],
             antiQuantScaleGlobal_[ubMte2KOffset / antiQuantGroupSize_ * offsetParam.nSize + ubMte2NOffset],
             CeilDiv(ubMte2KSize, antiQuantGroupSize_), ubMte2NSize, VEC_MAX_ELEM_B16, offsetParam.nSize);
-    } else if constexpr (wqmmConfig.antiQuantType == QuantType::MX) {
+    } else if constexpr (wqmmConfig.antiQuantType == Mc2QuantType::MX) {
         CopyMxAntiQuantParamsGmToUb(ubMte2NSize, ubMte2KSize, ubMte2NOffset, ubMte2KOffset, offsetParam);
     }
 }
@@ -746,7 +746,7 @@ __aicore__ inline void
 BasicBlockLibVectorAntiQuantCompute<xType, wType, antiQuantScaleType, yType, wqmmConfig, vecConfig>::AntiQuantProcess(
     uint64_t vfExternalRealLen, uint64_t vfInnerRealLen, uint64_t nWeightLowBitUbOffset, uint64_t kWeightLowBitUbOffset)
 {
-    if constexpr (wqmmConfig.antiQuantType == QuantType::MX) {
+    if constexpr (wqmmConfig.antiQuantType == Mc2QuantType::MX) {
         if constexpr (wqmmConfig.weightFormat != CubeFormat::NZ) {
             AntiQuantProcessNdMx(vfExternalRealLen, vfInnerRealLen, nWeightLowBitUbOffset, kWeightLowBitUbOffset);
         } else {
@@ -927,7 +927,7 @@ BasicBlockLibVectorAntiQuantCompute<xType, wType, antiQuantScaleType, yType, wqm
         // 跳写UB避免bank冲突，A16跳1024B，A8跳512B; MTE3对应跳读
         int4NzParams.innerDstStride = VEC_MAX_ELEM_B16 * UB_BUFFER_INFO.ubWeightOutputHighBitBufferNum;
 
-        if constexpr (wqmmConfig.antiQuantType == QuantType::PER_GROUP) {
+        if constexpr (wqmmConfig.antiQuantType == Mc2QuantType::PER_GROUP) {
             int4NzParams.antiQuantGroupSize = antiQuantGroupSize_;
             int4NzParams.loopGroupNum = CeilDiv(vfInnerRealLen, antiQuantGroupSize_);
             int4NzParams.loopInnerNum =
@@ -1070,7 +1070,7 @@ BasicBlockLibVectorAntiQuantCompute<xType, wType, antiQuantScaleType, yType, wqm
             weightHighBitL1[weightHighBitL1Offset],
             ubHighBitTotalBuffer_[(ubComputeLoopIdx_ & 1) * UB_BUFFER_INFO.highBitDataUbSingleBufferSize], params);
     } else {
-        if constexpr (wqmmConfig.antiQuantType == QuantType::MX) {
+        if constexpr (wqmmConfig.antiQuantType == Mc2QuantType::MX) {
             // 小数据量vfInnerRealLen或K与BLOCK_CUBE, MX_GROUPSIZE上对齐大小相同时, mte3对齐到BLOCK_CUBE
             if (antiQuantRealK < MX_GROUPSIZE || CeilAlign(antiQuantRealK, static_cast<uint64_t>(BLOCK_CUBE)) ==
                                                      CeilAlign(antiQuantRealK, static_cast<uint64_t>(MX_GROUPSIZE))) {
@@ -1257,6 +1257,6 @@ BasicBlockLibVectorAntiQuantCompute<xType, wType, antiQuantScaleType, yType, wqm
         }
     }
 }
-} // namespace WeightQuantBatchMatmulV2::Arch35
+} // namespace Mc2WeightQuantBatchMatmulV2::Arch35
 
 #endif // WEIGHT_QUANT_BATCH_MATMUL_V2_VEC_COMPUTE_H

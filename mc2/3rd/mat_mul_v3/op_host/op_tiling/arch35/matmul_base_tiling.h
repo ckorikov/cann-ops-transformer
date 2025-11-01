@@ -20,11 +20,11 @@
 #include "matmul_tiling_cfg.h"
 
 namespace optiling {
-class MatMulBaseTiling {
+class Mc2MatMulBaseTiling {
 public:
-    MatMulBaseTiling(gert::TilingContext *context, MatMulTilingCfg &cfg) : context_(context), cfg_(cfg) {};
+    Mc2MatMulBaseTiling(gert::TilingContext *context, Mc2MatMulTilingCfg &cfg) : context_(context), cfg_(cfg) {};
 
-    virtual ~MatMulBaseTiling() {};
+    virtual ~Mc2MatMulBaseTiling() {};
 
     ge::graphStatus DoTiling()
     {
@@ -88,7 +88,7 @@ protected:
 
 protected:
     gert::TilingContext *context_ = nullptr;
-    MatMulTilingCfg &cfg_;
+    Mc2MatMulTilingCfg &cfg_;
 };
 } // namespace optiling
 

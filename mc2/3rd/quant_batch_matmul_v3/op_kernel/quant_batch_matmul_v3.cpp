@@ -85,16 +85,16 @@ constexpr CubeFormat format_y = CubeFormat::ND;
 
 #define INVOKE_QUANT_BATCH_MATMUL_V3_CUBE_IMPL(transposeX1, transposeX2)                                          \
     do {                                                                                                          \
-        const QuantBatchMatmulV3TilingData *qBmmV3TilingData = &tilingData;                                       \
-        QuantBatchMatmulV3BaseKernel<DTYPE_X1, DTYPE_X2, DTYPE_SCALE, DTYPE_Y, FORMAT_X1, FORMAT_X2, transposeX1, \
-                                     transposeX2, QuantBatchMatmulV3Update> op;                                   \
+        const Mc2QuantBatchMatmulV3TilingData *qBmmV3TilingData = &tilingData;                                       \
+        Mc2QuantBatchMatmulV3BaseKernel<DTYPE_X1, DTYPE_X2, DTYPE_SCALE, DTYPE_Y, FORMAT_X1, FORMAT_X2, transposeX1, \
+                                     transposeX2, Mc2QuantBatchMatmulV3Update> op;                                   \
         op.Init(x1, x2, scale, bias, y, user1, qBmmV3TilingData, &tPipe);                                         \
         op.Process();                                                                                             \
     } while (0)
 
 #define INVOKE_QUANT_BATCH_MATMUL_DEQUANT_BF16_IMPL(transposeX1, transposeX2)                             \
     do {                                                                                                  \
-        const QuantBatchMatmulV3TilingData *qBmmV3TilingData = &tilingData;                               \
+        const Mc2QuantBatchMatmulV3TilingData *qBmmV3TilingData = &tilingData;                               \
         const TCubeTiling *mmTiling = &(qBmmV3TilingData->matmulTiling);                                  \
         BmmDequantBf16<DTYPE_X1, DTYPE_X2, FORMAT_X1, FORMAT_X2, DTYPE_SCALE, DTYPE_Y, transposeX1, transposeX2> op; \
         REGIST_MATMUL_OBJ(&tPipe, GetSysWorkSpacePtr(), op.mm, mmTiling);                                 \
@@ -105,7 +105,7 @@ constexpr CubeFormat format_y = CubeFormat::ND;
 
 #define INVOKE_QUANT_BATCH_MATMUL_DEQUANT_BF16_OPT_IMPL(transposeX1, transposeX2)                            \
     do {                                                                                                     \
-        const QuantBatchMatmulV3TilingData *qBmmV3TilingData = &tilingData;                                  \
+        const Mc2QuantBatchMatmulV3TilingData *qBmmV3TilingData = &tilingData;                                  \
         BmmDequantBf16Opt<DTYPE_X1, DTYPE_X2, FORMAT_X1, FORMAT_X2, DTYPE_SCALE, DTYPE_Y, transposeX1, transposeX2> op; \
         op.Init(x1, x2, bias, scale, y, user1, qBmmV3TilingData, &tPipe);                                    \
         op.Process();                                                                                        \
@@ -114,7 +114,7 @@ constexpr CubeFormat format_y = CubeFormat::ND;
 
 #define INVOKE_QUANT_BATCH_MATMUL_DEQUANT_PERTOKEN_IMPL(transposeX1, transposeX2)                             \
     do {                                                                                                      \
-        const QuantBatchMatmulV3TilingData *qBmmV3TilingData = &tilingData;                                   \
+        const Mc2QuantBatchMatmulV3TilingData *qBmmV3TilingData = &tilingData;                                   \
         const TCubeTiling *mmTiling = &(qBmmV3TilingData->matmulTiling);                                      \
         BmmDequantPertoken<DTYPE_X1, DTYPE_X2, FORMAT_X1, FORMAT_X2, DTYPE_SCALE, DTYPE_Y, transposeX1, transposeX2> op; \
         REGIST_MATMUL_OBJ(&tPipe, GetSysWorkSpacePtr(), op.mm, mmTiling);                                     \
@@ -125,7 +125,7 @@ constexpr CubeFormat format_y = CubeFormat::ND;
 
 #define INVOKE_QUANT_BATCH_MATMUL_DEQUANT_PERTOKEN_OPT_IMPL(transposeX1, transposeX2)                            \
     do {                                                                                                         \
-        const QuantBatchMatmulV3TilingData *qBmmV3TilingData = &tilingData;                                      \
+        const Mc2QuantBatchMatmulV3TilingData *qBmmV3TilingData = &tilingData;                                      \
         BmmDequantPertokenOpt<DTYPE_X1, DTYPE_X2, FORMAT_X1, FORMAT_X2, DTYPE_SCALE, DTYPE_Y, transposeX1, transposeX2> op; \
         op.Init(x1, x2, bias, scale, pertokenScale, y, user1, qBmmV3TilingData, &tPipe);                         \
         op.Process();                                                                                            \
@@ -134,9 +134,9 @@ constexpr CubeFormat format_y = CubeFormat::ND;
 
 #define INVOKE_QUANT_BATCH_MATMUL_DEQUANT_PERTOKEN_BASIC_IMPL(transposeX1, transposeX2)                      \
     do {                                                                                                     \
-        const QuantBatchMatmulV3TilingData *qBmmV3TilingData = &tilingData;                                  \
+        const Mc2QuantBatchMatmulV3TilingData *qBmmV3TilingData = &tilingData;                                  \
         BmmDequantPertokenBasic<DTYPE_X1, DTYPE_X2, DTYPE_SCALE, DTYPE_Y, FORMAT_X1, FORMAT_X2, transposeX1, \
-                                transposeX2, QuantBatchMatmulV3Update> op;                                   \
+                                transposeX2, Mc2QuantBatchMatmulV3Update> op;                                   \
         op.Init(x1, x2, scale, bias, pertokenScale, y, user1, qBmmV3TilingData, &tPipe);                     \
         op.Process();                                                                                        \
         tPipe.Destroy();                                                                                     \
@@ -144,9 +144,9 @@ constexpr CubeFormat format_y = CubeFormat::ND;
 
 #define INVOKE_QUANT_BATCH_MATMUL_DEQUANT_BASIC_BLOCK_IMPL(transposeX1, transposeX2)                                  \
     do {                                                                                                              \
-        const QuantBatchMatmulV3TilingData *qBmmV3TilingData = &tilingData;                                           \
+        const Mc2QuantBatchMatmulV3TilingData *qBmmV3TilingData = &tilingData;                                           \
         BmmBasicDequantBf16<DTYPE_X1, DTYPE_X2, DTYPE_SCALE, DTYPE_Y, FORMAT_X1, FORMAT_X2, transposeX1, transposeX2, \
-                            QuantBatchMatmulV3Update>  op;                                                            \
+                            Mc2QuantBatchMatmulV3Update>  op;                                                            \
         op.Init(x1, x2, scale, bias, y, user1, qBmmV3TilingData, &tPipe);                                             \
         op.Process();                                                                                                 \
         tPipe.Destroy();                                                                                              \
@@ -183,14 +183,13 @@ __global__ __aicore__ void quant_batch_matmul_v3(GM_ADDR x1, GM_ADDR x2, GM_ADDR
 // 6bit from hight to low: needClean, pertoken, opt, basic, transX1, transX2
 #if (ORIG_DTYPE_Y == DT_FLOAT16 || ORIG_DTYPE_Y == DT_INT8 || ORIG_DTYPE_Y == DT_INT32)  // fp16, int8, int32
 #if (ORIG_DTYPE_SCALE != DT_FLOAT || ORIG_DTYPE_Y == DT_INT32)
+#if defined(__CCE_AICORE__) && __CCE_AICORE__ == 200
     if (TRANS == QUANT_BATCH_MATMUL_V3_B_TRANS && KERNEL_TEMPLATE_TYPE == QUANT_BATCH_MATMUl_V3_KERNEL_TEMPLATE_TYPE_TBE &&
         PERTOKEN == QUANT_BATCH_MATMUL_V3_NOT_PERTOKEN && OPTIONATTR == QUANT_BATCH_MATMUL_V3_OPTION_ATTR_NONE) {  // false true
         BmmDequant<DTYPE_X1, DTYPE_X2, FORMAT_X1, FORMAT_X2, int32_t, uint64_t, DTYPE_Y, false, true> op;
         op.Init(x1, x2, bias, scale, y, user1, &tilingData, &tPipe);
         op.Process();
     }
-
-#if defined(__CCE_AICORE__) && __CCE_AICORE__ == 200
     if (TRANS == QUANT_BATCH_MATMUL_V3_B_TRANS && KERNEL_TEMPLATE_TYPE == QUANT_BATCH_MATMUl_V3_KERNEL_TEMPLATE_TYPE_TBE &&
         PERTOKEN == QUANT_BATCH_MATMUL_V3_NOT_PERTOKEN && OPTIONATTR == QUANT_BATCH_MATMUL_V3_NEED_ATOMICLEAN) {  // false true
         BmmDequantInitOutput<DTYPE_Y> clearOp;
@@ -206,6 +205,12 @@ __global__ __aicore__ void quant_batch_matmul_v3(GM_ADDR x1, GM_ADDR x2, GM_ADDR
 #endif
 #endif
 #if defined(__CCE_AICORE__) && __CCE_AICORE__ == 220
+    if (TRANS == QUANT_BATCH_MATMUL_V3_B_TRANS && KERNEL_TEMPLATE_TYPE == QUANT_BATCH_MATMUl_V3_KERNEL_TEMPLATE_TYPE_TBE &&
+        PERTOKEN == QUANT_BATCH_MATMUL_V3_NOT_PERTOKEN && OPTIONATTR == QUANT_BATCH_MATMUL_V3_OPTION_ATTR_NONE) {  // false true
+        BmmDequant<DTYPE_X1, DTYPE_X2, FORMAT_X1, FORMAT_X2, int32_t, uint64_t, DTYPE_Y, false, true> op;
+        op.Init(x1, x2, bias, scale, y, user1, &tilingData, &tPipe);
+        op.Process();
+    }
 #if (ORIG_DTYPE_SCALE != DT_FLOAT || ORIG_DTYPE_Y == DT_INT32)
     if (TRANS == QUANT_BATCH_MATMUL_V3_NOT_TRANS && KERNEL_TEMPLATE_TYPE == QUANT_BATCH_MATMUl_V3_KERNEL_TEMPLATE_TYPE_TBE &&
         PERTOKEN == QUANT_BATCH_MATMUL_V3_NOT_PERTOKEN && OPTIONATTR == QUANT_BATCH_MATMUL_V3_OPTION_ATTR_NONE) {  // false false

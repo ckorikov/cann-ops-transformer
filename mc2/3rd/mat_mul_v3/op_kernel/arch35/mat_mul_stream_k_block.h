@@ -17,7 +17,7 @@
 
 #include "mat_mul_asw_block.h"
 
-namespace MatmulV3Advanced {
+namespace Mc2MatmulV3Advanced {
 
 using namespace AscendC;
 using namespace matmul;
@@ -58,7 +58,7 @@ struct StreamKAicArgs {
 };
 
 
-class MatmulStreamKBlock: public MatmulAswBlock {
+class MatmulStreamKBlock: public Mc2MatmulAswBlock {
 public:
     __aicore__ inline MatmulStreamKBlock() {}
     template <class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE>
@@ -80,7 +80,7 @@ public:
 template <class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE>
 __aicore__ inline void MatmulStreamKBlock::Init(const void *tilingData)
 {
-    MatmulAswBlock::Init<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE>(tilingData);
+    Mc2MatmulAswBlock::Init<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE>(tilingData);
     // sk过程k方向切分块数
     if (params_.round >= 2) {
         aicParams_.blockBaseK =
@@ -112,7 +112,7 @@ __aicore__ inline void MatmulStreamKBlock::UpdateBasicIndex(uint64_t roundIdx)
         newBlockIdx = GetBlockIdx() / (GetTaskRation() * matmulTilingData_->kTailCnt);
         aicParams_.kCntIndex = GetBlockIdx() % (GetTaskRation() * matmulTilingData_->kTailCnt);
     }
-    MatmulAswBlock::UpdateBasicIndex(roundIdx, newBlockIdx);
+    Mc2MatmulAswBlock::UpdateBasicIndex(roundIdx, newBlockIdx);
 }
 
 __aicore__ inline uint64_t MatmulStreamKBlock::UpdateLoopIndex(uint64_t roundIdx)
@@ -265,6 +265,6 @@ __aicore__ inline void MatmulStreamKBlock::UpdateAivParams(uint64_t index, uint6
     aivParams_.copyUb2GmDstGap = matmulTilingData_->tCubeTiling.N - params_.singleCoreN;
     aivParams_.copyUb2GmSrcGap = aicParams_.alignSingleCoreN - params_.singleCoreN;
 }
-} // namespace MatmulV3Advanced
+} // namespace Mc2MatmulV3Advanced
 
 #endif // MMV3_MATMUL_STREAM_K_BLOCK_H

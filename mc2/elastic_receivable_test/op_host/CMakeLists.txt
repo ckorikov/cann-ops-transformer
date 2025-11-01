@@ -13,8 +13,11 @@ if (BUILD_OPEN_PROJECT)  # custom
         elastic_receivable_test_def.cpp
     )
     add_mc2_modules_sources(OPTYPE elastic_receivable_test ACLNNTYPE aclnn_inner)
+    set(SUB_MC2_COMPILE TRUE PARENT_SCOPE)
     set(MC2_OPT ON PARENT_SCOPE)
     set(elastic_receivable_test_depends mc2/common mc2/3rd mc2/moe_distribute_dispatch PARENT_SCOPE)
 else()
-    add_mc2_modules_sources(OPTYPE elastic_receivable_test ACLNNTYPE aclnn_inner) 
+    add_mc2_modules_sources(OPTYPE elastic_receivable_test ACLNNTYPE aclnn_inner)
+    set(SUB_MC2_COMPILE TRUE PARENT_SCOPE)
+    set(SUB_MC2_COMPILE TRUE PARENT_SCOPE) 
 endif()

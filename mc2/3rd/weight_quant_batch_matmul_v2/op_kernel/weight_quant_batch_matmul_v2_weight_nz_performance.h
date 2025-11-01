@@ -18,24 +18,24 @@
 
 #include "weight_quant_batch_matmul_v2_weight_nz_performance_base.h"
 
-namespace WeightQuantBatchMatmulV2 {
+namespace Mc2WeightQuantBatchMatmulV2 {
 template <
     typename xType, typename wType, typename biasType, typename yType, bool aTrans, bool bTrans,
-    QuantType antiQuantType, bool hasAntiQuantOffset>
-class WeightQuantBatchMatmulV2WeightNzPerformanceKernel
-    : public WeightQuantBatchMatmulV2WeightNzBasePerformanceKernel<
+    Mc2QuantType antiQuantType, bool hasAntiQuantOffset>
+class Mc2WeightQuantBatchMatmulV2WeightNzPerformanceKernel
+    : public Mc2WeightQuantBatchMatmulV2WeightNzBasePerformanceKernel<
           xType, wType, biasType, yType, aTrans, bTrans, antiQuantType, hasAntiQuantOffset>
 {
 public:
-    __aicore__ inline WeightQuantBatchMatmulV2WeightNzPerformanceKernel(){};
+    __aicore__ inline Mc2WeightQuantBatchMatmulV2WeightNzPerformanceKernel(){};
     __aicore__ inline void Process();
     __aicore__ inline void OneProcess();
 };
 
 template <
     typename xType, typename wType, typename biasType, typename yType, bool aTrans, bool bTrans,
-    QuantType antiQuantType, bool hasAntiQuantOffset>
-__aicore__ inline void WeightQuantBatchMatmulV2WeightNzPerformanceKernel<
+    Mc2QuantType antiQuantType, bool hasAntiQuantOffset>
+__aicore__ inline void Mc2WeightQuantBatchMatmulV2WeightNzPerformanceKernel<
     xType, wType, biasType, yType, aTrans, bTrans, antiQuantType, hasAntiQuantOffset>::Process()
 {
     OneProcess();
@@ -43,8 +43,8 @@ __aicore__ inline void WeightQuantBatchMatmulV2WeightNzPerformanceKernel<
 
 template <
     typename xType, typename wType, typename biasType, typename yType, bool aTrans, bool bTrans,
-    QuantType antiQuantType, bool hasAntiQuantOffset>
-__aicore__ inline void WeightQuantBatchMatmulV2WeightNzPerformanceKernel<
+    Mc2QuantType antiQuantType, bool hasAntiQuantOffset>
+__aicore__ inline void Mc2WeightQuantBatchMatmulV2WeightNzPerformanceKernel<
     xType, wType, biasType, yType, aTrans, bTrans, antiQuantType, hasAntiQuantOffset>::OneProcess()
 {
     LocalTensor<xType> bL1Local = this->InBufBL1_.template Get<xType>();
@@ -65,7 +65,7 @@ __aicore__ inline void WeightQuantBatchMatmulV2WeightNzPerformanceKernel<
             int64_t nBlockOffset = this->nBlockOffset_ + nCoreFactorIdx * this->nBL1Size_;
 
             int32_t realNLen = this->min(this->nBL1Size_, this->tiling_->nSize - nBlockOffset);
-            if constexpr (antiQuantType == QuantType::PER_CHANNEL) {
+            if constexpr (antiQuantType == Mc2QuantType::PER_CHANNEL) {
                 this->CopyInAddMul(nBlockOffset, realNLen, 0);
             }
 
@@ -111,13 +111,13 @@ __aicore__ inline void WeightQuantBatchMatmulV2WeightNzPerformanceKernel<
 
 template <
     typename xType, typename wType, typename biasType, typename yType, bool aTrans, bool bTrans,
-    QuantType antiQuantType, bool hasAntiQuantOffset>
-class WeightQuantBatchMatmulV2WeightNzKernel
-    : public WeightQuantBatchMatmulV2WeightNzPerformanceKernel<
+    Mc2QuantType antiQuantType, bool hasAntiQuantOffset>
+class Mc2WeightQuantBatchMatmulV2WeightNzKernel
+    : public Mc2WeightQuantBatchMatmulV2WeightNzPerformanceKernel<
           xType, wType, biasType, yType, aTrans, bTrans, antiQuantType, hasAntiQuantOffset>
 {
 public:
-    __aicore__ inline WeightQuantBatchMatmulV2WeightNzKernel(){};
+    __aicore__ inline Mc2WeightQuantBatchMatmulV2WeightNzKernel(){};
     __aicore__ inline void Process();
 
 protected:
@@ -127,8 +127,8 @@ protected:
 
 template <
     typename xType, typename wType, typename biasType, typename yType, bool aTrans, bool bTrans,
-    QuantType antiQuantType, bool hasAntiQuantOffset>
-__aicore__ inline void WeightQuantBatchMatmulV2WeightNzKernel<
+    Mc2QuantType antiQuantType, bool hasAntiQuantOffset>
+__aicore__ inline void Mc2WeightQuantBatchMatmulV2WeightNzKernel<
     xType, wType, biasType, yType, aTrans, bTrans, antiQuantType, hasAntiQuantOffset>::Process()
 {
     uint64_t xSize = this->tiling_->mSize * this->tiling_->kSize;
@@ -189,6 +189,6 @@ __aicore__ inline void WeightQuantBatchMatmulV2WeightNzKernel<
         }
     }
 }
-} // namespace WeightQuantBatchMatmulV2
+} // namespace Mc2WeightQuantBatchMatmulV2
 
 #endif // WEIGHT_QUANT_BATCHMATMUL_V2_WEIGHT_NZ_H

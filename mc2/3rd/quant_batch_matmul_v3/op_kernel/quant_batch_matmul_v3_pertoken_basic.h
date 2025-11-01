@@ -24,7 +24,7 @@ class BmmDequantPertokenBasic {
 public:
     __aicore__ inline BmmDequantPertokenBasic() {}
     __aicore__ inline void Init(GM_ADDR x1, GM_ADDR x2, GM_ADDR scale, GM_ADDR bias, GM_ADDR pertokenScale, GM_ADDR y,
-                                GM_ADDR workSpace, const QuantBatchMatmulV3TilingData *__restrict tilingData,
+                                GM_ADDR workSpace, const Mc2QuantBatchMatmulV3TilingData *__restrict tilingData,
                                 TPipe *tPipe)
     {
         blockIdx_ = GetBlockIdx();
@@ -98,7 +98,7 @@ public:
     }
 
 private:
-    __aicore__ inline void InitTilingData(const QuantBatchMatmulV3TilingData *tilingData)
+    __aicore__ inline void InitTilingData(const Mc2QuantBatchMatmulV3TilingData *tilingData)
     {
         isPerTensor_ = tilingData->params.isPerTensor;
         m_ = tilingData->matmulTiling.M;
@@ -447,7 +447,7 @@ private:
     uint64_t offsetWorkspaceC_ = 0;
     uint64_t loop_ = 0;
 
-    QuantBatchMatmulV3BaseBlock block_;
+    Mc2QuantBatchMatmulV3BaseBlock block_;
     UPDATE_TYPE update_; // 量化mm或mc2的更新计算大小和地址的接口
     QBmmBlockOffset offset_;
 

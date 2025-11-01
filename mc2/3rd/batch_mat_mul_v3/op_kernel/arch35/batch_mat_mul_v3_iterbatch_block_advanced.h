@@ -18,18 +18,18 @@
 #include "kernel_operator.h"
 #include "lib/matmul_intf.h"
 
-namespace BatchMatMulV3Advanced {
+namespace Mc2BatchMatMulV3Advanced {
 using namespace AscendC;
 using namespace matmul;
 
-struct MatMulMultiBatchBaseBlockOffset {
+struct Mc2MatMulMultiBatchBaseBlockOffset {
     uint64_t offsetA;
     uint64_t offsetB;
     uint64_t offsetC;
     uint64_t offsetBias;
 };
 
-struct MatMulMultiBatchBaseBlockArgs {
+struct Mc2MatMulMultiBatchBaseBlockArgs {
     uint64_t singleASize;
     uint64_t singleBSize;
     uint64_t singleCSize;
@@ -45,20 +45,20 @@ struct MatMulMultiBatchBaseBlockArgs {
     bool isHf32;
 };
 
-class BatchMatMulMultiBatchBaseBlock {
+class Mc2BatchMatMulMultiBatchBaseBlock {
 public:
-    __aicore__ inline BatchMatMulMultiBatchBaseBlock() {}
+    __aicore__ inline Mc2BatchMatMulMultiBatchBaseBlock() {}
     __aicore__ inline void Init(const void *tilingData);
     __aicore__ inline void GetMultiBatchInfo(uint64_t loopIndex);
     __aicore__ inline void CalcGMOffset();
 
 public:
-    MatMulMultiBatchBaseBlockOffset offset_;
-    MatMulMultiBatchBaseBlockArgs params_;
+    Mc2MatMulMultiBatchBaseBlockOffset offset_;
+    Mc2MatMulMultiBatchBaseBlockArgs params_;
     const BatchMatMulV3TilingData *batchMatmulTilingData_;
 };
 
-__aicore__ inline void BatchMatMulMultiBatchBaseBlock::Init(const void *tilingData)
+__aicore__ inline void Mc2BatchMatMulMultiBatchBaseBlock::Init(const void *tilingData)
 {
     batchMatmulTilingData_ = static_cast<const BatchMatMulV3TilingData *>(tilingData);
     params_.isHf32 = batchMatmulTilingData_->matMulTilingData.isHf32;
@@ -92,7 +92,7 @@ __aicore__ inline void BatchMatMulMultiBatchBaseBlock::Init(const void *tilingDa
     params_.batchBNum = 1;
 }
 
-__aicore__ inline void BatchMatMulMultiBatchBaseBlock::GetMultiBatchInfo(uint64_t loopIndex)
+__aicore__ inline void Mc2BatchMatMulMultiBatchBaseBlock::GetMultiBatchInfo(uint64_t loopIndex)
 {
     // main loop
     if (loopIndex + 1 < params_.LoopTimes) {
@@ -118,7 +118,7 @@ __aicore__ inline void BatchMatMulMultiBatchBaseBlock::GetMultiBatchInfo(uint64_
     }
 }
 
-__aicore__ inline void BatchMatMulMultiBatchBaseBlock::CalcGMOffset()
+__aicore__ inline void Mc2BatchMatMulMultiBatchBaseBlock::CalcGMOffset()
 {
     offset_.offsetA = params_.batchIndex * params_.singleASize;
     offset_.offsetB = params_.batchIndex * params_.singleBSize;

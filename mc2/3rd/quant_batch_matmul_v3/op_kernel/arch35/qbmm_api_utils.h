@@ -19,13 +19,13 @@
 #include "qbmm_asw_block.h"
 
 
-namespace QuantBatchMatmulV3 {
+namespace Mc2QuantBatchMatmulV3 {
 
 using namespace AscendC;
 using namespace matmul;
 
 template <typename T, bool trans>
-__aicore__ inline void CopyInA1(const QuantBmmAswBlock& block, uint32_t blockIdx, bool isMultiCore,
+__aicore__ inline void CopyInA1(const Mc2QuantBmmAswBlock& block, uint32_t blockIdx, bool isMultiCore,
                                 LocalTensor<T>& al1Local, const GlobalTensor<T>& aGlobal)
 {
     auto &matmulTilingData = *block.tilingData_;
@@ -79,7 +79,7 @@ __aicore__ inline void CopyInA1(const QuantBmmAswBlock& block, uint32_t blockIdx
 }
 
 template <typename T, bool trans>
-__aicore__ inline void CopyInScaleA(const QuantBmmAswBlock& block, uint32_t blockId, bool isMultiCore,
+__aicore__ inline void CopyInScaleA(const Mc2QuantBmmAswBlock& block, uint32_t blockId, bool isMultiCore,
                                     LocalTensor<T>& scaleAl1Local, const GlobalTensor<T>& scaleAGlobal)
 {
     auto &multiTilingData = *block.tilingData_;
@@ -119,7 +119,7 @@ __aicore__ inline void CopyInScaleA(const QuantBmmAswBlock& block, uint32_t bloc
 }
 
 template <typename T>
-__aicore__ inline void ProcessWithBatch(QuantBmmAswBlock& block, T& object)
+__aicore__ inline void ProcessWithBatch(Mc2QuantBmmAswBlock& block, T& object)
 {
     uint64_t batchC3C4 =
         static_cast<uint64_t>(block.tilingData_->params.batchC3) * block.tilingData_->params.batchC4;

@@ -20,14 +20,14 @@
 #include "mat_mul_v3/op_host/op_tiling/arch35/matmul_v3_base_tiling_advanced.h"
 
 namespace optiling {
-namespace batch_matmul_v3_advanced {
-using namespace matmul_v3_advanced;
-class BatchMatMulV3IterBatchTiling : public MatMulV3BaseTiling {
+namespace Mc2batch_matmul_v3_advanced {
+using namespace mc2_matmul_v3_advanced;
+class Mc2BatchMatMulV3IterBatchTiling : public Mc2MatMulV3BaseTiling {
 public:
-    BatchMatMulV3IterBatchTiling(gert::TilingContext *context, MatMulTilingCfg &cfg)
-        : MatMulV3BaseTiling(context, cfg) {};
+    Mc2BatchMatMulV3IterBatchTiling(gert::TilingContext *context, Mc2MatMulTilingCfg &cfg)
+        : Mc2MatMulV3BaseTiling(context, cfg) {};
 
-    ~BatchMatMulV3IterBatchTiling() override {};
+    ~Mc2BatchMatMulV3IterBatchTiling() override {};
 
 protected:
     bool IsCapable() override;
@@ -43,7 +43,7 @@ private:
     uint64_t batchOutNum_{1};
     uint64_t preCoreBatch_{1};
     uint64_t inputSizeOneBatch_{1};
-    MatMulV3Model iterBatchBiasModel_{MatMulV3Model::ITER_BATCH_BATCH_BIAS};
+    Mc2MatMulV3Model iterBatchBiasModel_{Mc2MatMulV3Model::ITER_BATCH_BATCH_BIAS};
 };
 }
 }

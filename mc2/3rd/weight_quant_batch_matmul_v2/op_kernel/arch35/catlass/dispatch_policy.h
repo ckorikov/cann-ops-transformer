@@ -10,7 +10,7 @@
 #ifndef ARCH35_CATLASS_DISPATCH_POLICY_H
 #define ARCH35_CATLASS_DISPATCH_POLICY_H
 
-namespace WeightQuantBatchMatmulV2::Arch35::Catlass {
+namespace Mc2WeightQuantBatchMatmulV2::Arch35::Catlass {
 struct KernelWqbmm {
 };
 
@@ -28,6 +28,6 @@ struct MainloopDavidWqbmmUbAntiquantScmc {
     constexpr static int32_t CoreType = CoreType_;
     using Schedule = KernelSchedule;
 };
-} // namespace WeightQuantBatchMatmulV2::Arch35::Catlass
+} // namespace Mc2WeightQuantBatchMatmulV2::Arch35::Catlass
 
 #endif

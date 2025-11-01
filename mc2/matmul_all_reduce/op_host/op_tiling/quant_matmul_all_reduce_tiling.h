@@ -20,8 +20,8 @@ namespace optiling {
 BEGIN_TILING_DATA_DEF(QuantMatmulAllReduceTilingData)
 TILING_DATA_FIELD_DEF_STRUCT(Mc2Msg, msg);
 TILING_DATA_FIELD_DEF_STRUCT(RCSTiling, param);
-TILING_DATA_FIELD_DEF_STRUCT(QuantBatchMatmulV3TilingData, tilematmulTiling);
-TILING_DATA_FIELD_DEF_STRUCT(QuantBatchMatmulV3TilingData, tailmatmulTiling);
+TILING_DATA_FIELD_DEF_STRUCT(Mc2QuantBatchMatmulV3TilingData, tilematmulTiling);
+TILING_DATA_FIELD_DEF_STRUCT(Mc2QuantBatchMatmulV3TilingData, tailmatmulTiling);
 END_TILING_DATA_DEF;
 REGISTER_TILING_DATA_CLASS(MatmulAllReduce_0, QuantMatmulAllReduceTilingData);
 REGISTER_TILING_DATA_CLASS(MatmulAllReduce_10, QuantMatmulAllReduceTilingData); // 低 bit 通信 bf16
@@ -77,18 +77,18 @@ private:
     bool isCommInt8Enable_ = false;
 };
 
-class QuantTilingTransferHelper : public QuantBatchMatmulV3Tiling
+class QuantTilingTransferHelper : public Mc2QuantBatchMatmulV3Tiling
 {
 public:
     QuantTilingTransferHelper(
-        QuantMatmulAllReduceTiling& quantMatmulAllReduceTiling, QuantBatchMatmulV3TilingData& data);
+        QuantMatmulAllReduceTiling& quantMatmulAllReduceTiling, Mc2QuantBatchMatmulV3TilingData& data);
     const gert::Shape GetX1Shape(const size_t index) override;
     const gert::Shape GetX2Shape(const size_t index) override;
     const gert::Shape& GetScaleShape(const size_t index) override;
     const gert::StorageShape* GetPertokenShape(const size_t index) override;
     const gert::StorageShape* GetBiasShape(const size_t index) override;
     ge::graphStatus GetShapeAttrsInfo() override;
-    void PrintTilingInputParam(QuantBatchMatmulInfo quantBatchMatmulInfo);
+    void PrintTilingInputParam(Mc2QuantBatchMatmulInfo quantBatchMatmulInfo);
     ge::graphStatus PostTiling() override;
 
 private:

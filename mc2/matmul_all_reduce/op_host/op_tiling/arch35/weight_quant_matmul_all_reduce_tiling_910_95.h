@@ -18,8 +18,8 @@
 #include "weight_quant_batch_matmul_v2/op_host/op_tiling/weight_quant_batch_matmul_v2_tiling_custom.h"
 
 namespace optiling {
-using weight_quant_batch_matmul_v2::WeightQuantBatchMatmulV2ASTilingData;
-using weight_quant_batch_matmul_v2::WeightQuantBatchMatmulV2TilingAS;
+using Mc2weight_quant_batch_matmul_v2::Mc2WeightQuantBatchMatmulV2ASTilingData;
+using Mc2weight_quant_batch_matmul_v2::Mc2WeightQuantBatchMatmulV2TilingAS;
 
 BEGIN_TILING_DATA_DEF(WeightQuantMatmulAllReduceA5TilingData)
 TILING_DATA_FIELD_DEF(uint32_t, version);
@@ -28,8 +28,8 @@ TILING_DATA_FIELD_DEF_STRUCT(MC2ServerCfg, serverCfg);
 TILING_DATA_FIELD_DEF_STRUCT(MC2HcommCfg, hcommCfg);
 TILING_DATA_FIELD_DEF_STRUCT(Mc2Msg, msg);
 TILING_DATA_FIELD_DEF_STRUCT(RCSTiling, param);
-TILING_DATA_FIELD_DEF_STRUCT(WeightQuantBatchMatmulV2RegBaseTilingData, tileRegBaseMmTiling);
-TILING_DATA_FIELD_DEF_STRUCT(WeightQuantBatchMatmulV2RegBaseTilingData, tailRegBaseMmTiling);
+TILING_DATA_FIELD_DEF_STRUCT(Mc2WeightQuantBatchMatmulV2RegBaseTilingData, tileRegBaseMmTiling);
+TILING_DATA_FIELD_DEF_STRUCT(Mc2WeightQuantBatchMatmulV2RegBaseTilingData, tailRegBaseMmTiling);
 END_TILING_DATA_DEF;
 // weight int8
 REGISTER_TILING_DATA_CLASS(MatmulAllReduce_100200, WeightQuantMatmulAllReduceA5TilingData);
@@ -54,8 +54,8 @@ TILING_DATA_FIELD_DEF_STRUCT(MC2ServerCfg, serverCfg);
 TILING_DATA_FIELD_DEF_STRUCT(MC2HcommCfg, hcommCfg);
 TILING_DATA_FIELD_DEF_STRUCT(Mc2Msg, msg);
 TILING_DATA_FIELD_DEF_STRUCT(RCSTiling, param);
-TILING_DATA_FIELD_DEF_STRUCT(WeightQuantBatchMatmulV2ASTilingData, tileMmASTiling);
-TILING_DATA_FIELD_DEF_STRUCT(WeightQuantBatchMatmulV2ASTilingData, tailMmASTiling);
+TILING_DATA_FIELD_DEF_STRUCT(Mc2WeightQuantBatchMatmulV2ASTilingData, tileMmASTiling);
+TILING_DATA_FIELD_DEF_STRUCT(Mc2WeightQuantBatchMatmulV2ASTilingData, tailMmASTiling);
 END_TILING_DATA_DEF;
 // weight fp8/hif8
 REGISTER_TILING_DATA_CLASS(MatmulAllReduce_2000030004000012100, WeightQuantMatmulAllReduceA5Fp8TilingData);
@@ -168,13 +168,13 @@ private:
     bool isWeightFp8Hif8_{false};
 };
 
-class WeightQuantTilingTransferHelperA5 : public WeightQuantBatchMatmulV2RegBase
+class WeightQuantTilingTransferHelperA5 : public Mc2WeightQuantBatchMatmulV2RegBase
 {
 public:
     WeightQuantTilingTransferHelperA5(
         WeightQuantMatmulAllReduceTilingA5& weightQuantMatmulAllReduceTiling,
-        WeightQuantBatchMatmulV2RegBaseTilingData& data)
-        : WeightQuantBatchMatmulV2RegBase(weightQuantMatmulAllReduceTiling.context_),
+        Mc2WeightQuantBatchMatmulV2RegBaseTilingData& data)
+        : Mc2WeightQuantBatchMatmulV2RegBase(weightQuantMatmulAllReduceTiling.context_),
           tilingProcesser_(weightQuantMatmulAllReduceTiling),
           data_(data)
     {}
@@ -232,22 +232,22 @@ public:
 
 private:
     WeightQuantMatmulAllReduceTilingA5& tilingProcesser_;
-    WeightQuantBatchMatmulV2RegBaseTilingData& data_;
+    Mc2WeightQuantBatchMatmulV2RegBaseTilingData& data_;
 };
 
-class WeightQuantAsTilingTransferHelper : public WeightQuantBatchMatmulV2TilingAS
+class WeightQuantAsTilingTransferHelper : public Mc2WeightQuantBatchMatmulV2TilingAS
 {
 public:
     WeightQuantAsTilingTransferHelper(
         WeightQuantMatmulAllReduceTilingA5& weightQuantMatmulAllReduceTiling,
-        WeightQuantBatchMatmulV2ASTilingData& data)
-        : WeightQuantBatchMatmulV2TilingAS(weightQuantMatmulAllReduceTiling.context_),
+        Mc2WeightQuantBatchMatmulV2ASTilingData& data)
+        : Mc2WeightQuantBatchMatmulV2TilingAS(weightQuantMatmulAllReduceTiling.context_),
           tilingProcesser_(weightQuantMatmulAllReduceTiling),
           mmASTilingdata_(data)
     {}
     ge::graphStatus GetShapeAttrsInfo() override;
     ge::graphStatus PostTiling() override;
-    void PrintTilingInputParam(std::unique_ptr<WeightQuantBatchMatmulInfo>& matmulInfo);
+    void PrintTilingInputParam(std::unique_ptr<Mc2WeightQuantBatchMatmulInfo>& matmulInfo);
     bool IsCapable() override
     {
         return true;
@@ -305,7 +305,7 @@ public:
 
 private:
     WeightQuantMatmulAllReduceTilingA5& tilingProcesser_;
-    WeightQuantBatchMatmulV2ASTilingData& mmASTilingdata_;
+    Mc2WeightQuantBatchMatmulV2ASTilingData& mmASTilingdata_;
 };
 
 } // namespace optiling

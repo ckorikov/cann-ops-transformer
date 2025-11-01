@@ -20,7 +20,7 @@
 
 using AscendC::int4b_t;
 
-namespace WeightQuantBatchMatmulV2::Arch35::Catlass {
+namespace Mc2WeightQuantBatchMatmulV2::Arch35::Catlass {
 template <bool innerK, bool isNz, typename DtypeA, typename DtypeB>
 struct XWeightStride {
 };
@@ -67,12 +67,12 @@ struct XWeightStride<innerK, true, DtypeA, DtypeB> {
     }
 };
 
-template <bool trans, QuantType antiquantType>
+template <bool trans, Mc2QuantType antiquantType>
 struct ScaleOffsetStride {
 };
 
 template <bool trans>
-struct ScaleOffsetStride<trans, QuantType::PER_TENSOR> {
+struct ScaleOffsetStride<trans, Mc2QuantType::PER_TENSOR> {
     DEVICE decltype(auto) operator()(uint64_t n, uint64_t k, int32_t groupSize)
     {
         return AscendC::Std::make_tuple(_1{});
@@ -80,7 +80,7 @@ struct ScaleOffsetStride<trans, QuantType::PER_TENSOR> {
 };
 
 template <bool trans>
-struct ScaleOffsetStride<trans, QuantType::PER_CHANNEL> {
+struct ScaleOffsetStride<trans, Mc2QuantType::PER_CHANNEL> {
     DEVICE decltype(auto) operator()(uint64_t n, uint64_t k, int32_t groupSize)
     {
         return AscendC::Std::make_tuple(_1{}, _1{});
@@ -88,7 +88,7 @@ struct ScaleOffsetStride<trans, QuantType::PER_CHANNEL> {
 };
 
 template <>
-struct ScaleOffsetStride<false, QuantType::PER_GROUP> {
+struct ScaleOffsetStride<false, Mc2QuantType::PER_GROUP> {
     DEVICE decltype(auto) operator()(uint64_t n, uint64_t k, int32_t groupSize)
     {
         return AscendC::Std::make_tuple(_1{}, n);
@@ -96,7 +96,7 @@ struct ScaleOffsetStride<false, QuantType::PER_GROUP> {
 };
 
 template <>
-struct ScaleOffsetStride<true, QuantType::PER_GROUP> {
+struct ScaleOffsetStride<true, Mc2QuantType::PER_GROUP> {
     DEVICE decltype(auto) operator()(uint64_t n, uint64_t k, int32_t groupSize)
     {
         return AscendC::Std::make_tuple(groupSize == 0 ? k : (k + groupSize - 1) / groupSize, _1{});
@@ -108,8 +108,8 @@ struct TilingKeyParams {
     uint32_t ubMte2BufNum;
     bool transA;
     bool transB;
-    QuantType antiquantType;
-    QuantType quantType;
+    Mc2QuantType antiquantType;
+    Mc2QuantType quantType;
     bool hasAntiquantOffset;
     bool biasTypeSameAsX;
     bool isWeightNz;
@@ -131,8 +131,8 @@ struct TilingKeyParams {
             .ubMte2BufNum = ubMte2BufNum,
             .transA = trans == 2 || trans == 3,
             .transB = trans == 1 || trans == 3,
-            .antiquantType = static_cast<QuantType>(TILING_KEY / 1000UL % 10UL),
-            .quantType = static_cast<QuantType>(TILING_KEY / 100UL % 10UL),
+            .antiquantType = static_cast<Mc2QuantType>(TILING_KEY / 1000UL % 10UL),
+            .quantType = static_cast<Mc2QuantType>(TILING_KEY / 100UL % 10UL),
             .hasAntiquantOffset = optional == 2 || optional == 6,
             .biasTypeSameAsX = optional == 0 || optional == 2,
             .isWeightNz = (TILING_KEY % 10UL) == 1};
@@ -169,29 +169,29 @@ struct StrideXWeight<false, false> {
     using type = AscendC::Std::tuple<_1, uint64_t>;
 };
 
-template <QuantType antiquantType, bool innerK>
+template <Mc2QuantType antiquantType, bool innerK>
 struct StrideAntiquant {
     // PS delay errors until template instantiation
     static_assert(innerK != innerK, "Unsupported (antiquantType, innerK) combination");
 };
 
 template <bool innerK>
-struct StrideAntiquant<QuantType::PER_TENSOR, innerK> {
+struct StrideAntiquant<Mc2QuantType::PER_TENSOR, innerK> {
     using type = AscendC::Std::tuple<_1>;
 };
 
 template <bool innerK>
-struct StrideAntiquant<QuantType::PER_CHANNEL, innerK> {
+struct StrideAntiquant<Mc2QuantType::PER_CHANNEL, innerK> {
     using type = AscendC::Std::tuple<_1, _1>;
 };
 
 template <>
-struct StrideAntiquant<QuantType::PER_GROUP, true> {
+struct StrideAntiquant<Mc2QuantType::PER_GROUP, true> {
     using type = AscendC::Std::tuple<uint64_t, _1>;
 };
 
 template <>
-struct StrideAntiquant<QuantType::PER_GROUP, false> {
+struct StrideAntiquant<Mc2QuantType::PER_GROUP, false> {
     using type = AscendC::Std::tuple<_1, uint64_t>;
 };
 
@@ -225,7 +225,7 @@ DEVICE void InvokeActKernel(
     GM_ADDR bias, GM_ADDR y, GM_ADDR workspace, GM_ADDR tiling)
 {
     KERNEL_TASK_TYPE_DEFAULT(KERNEL_TYPE_MIX_AIC_1_2);
-    GET_TILING_DATA_WITH_STRUCT(WeightQuantBatchMatmulV2ASTilingData, tilingDataIn, tiling);
+    GET_TILING_DATA_WITH_STRUCT(Mc2WeightQuantBatchMatmulV2ASTilingData, tilingDataIn, tiling);
 
     constexpr TilingKeyParams params = TilingKeyParams::Build<TILING_KEY>();
     using StrideA = typename StrideXWeight<false, !params.transA>::type;
@@ -274,7 +274,7 @@ DEVICE void InvokeActKernel(
     Kernel op;
     op(kernelParams);
 }
-} // namespace WeightQuantBatchMatmulV2::Arch35::Catlass
+} // namespace Mc2WeightQuantBatchMatmulV2::Arch35::Catlass
 
 #define KERNEL_PARAMS x, weight, antiquantScale, antiquantOffset, quantScale, quantOffset, bias, y, workspace, tiling
 

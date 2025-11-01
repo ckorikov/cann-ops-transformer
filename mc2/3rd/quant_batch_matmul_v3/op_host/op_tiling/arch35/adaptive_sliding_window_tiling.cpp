@@ -62,15 +62,15 @@ constexpr uint32_t VEC_CORE_GROUP_NUM = 2;
 
 namespace optiling {
 
-AdaptiveSlidingWindowTiling::AdaptiveSlidingWindowTiling(gert::TilingContext *context)
-    : QuantBatchMatmulV3TilingBase(context, false), tilingData_(tilingDataSelf_)
+Mc2AdaptiveSlidingWindowTiling::Mc2AdaptiveSlidingWindowTiling(gert::TilingContext *context)
+    : Mc2QuantBatchMatmulV3TilingBase(context, false), tilingData_(tilingDataSelf_)
 {
     Reset();
 }
 
-AdaptiveSlidingWindowTiling::AdaptiveSlidingWindowTiling(gert::TilingContext *context,
-    DequantBmm::QuantBatchMatmulV3TilingDataParams *out)
-    : QuantBatchMatmulV3TilingBase(context, true),
+Mc2AdaptiveSlidingWindowTiling::Mc2AdaptiveSlidingWindowTiling(gert::TilingContext *context,
+    DequantBmm::Mc2QuantBatchMatmulV3TilingDataParams *out)
+    : Mc2QuantBatchMatmulV3TilingBase(context, true),
       tilingData_(*out)
 {
     Reset();
@@ -78,39 +78,39 @@ AdaptiveSlidingWindowTiling::AdaptiveSlidingWindowTiling(gert::TilingContext *co
     inputParams_.Reset();
 }
 
-void AdaptiveSlidingWindowTiling::Reset()
+void Mc2AdaptiveSlidingWindowTiling::Reset()
 {
     isBf16Opt_ = false;
     isUbQuant_ = false;
 
     if (!isTilingOut_) {
-        tilingData_ = DequantBmm::QuantBatchMatmulV3TilingDataParams();
+        tilingData_ = DequantBmm::Mc2QuantBatchMatmulV3TilingDataParams();
         OP_TILING_CHECK(memset_s(context_->GetRawTilingData()->GetData(), context_->GetRawTilingData()->GetCapacity(),
                                  0, context_->GetRawTilingData()->GetCapacity()) != EOK,
                         CUBE_INNER_ERR_REPORT(inputParams_.opName, "Fail to clear tiling data"), return);
     }
 }
 
-bool AdaptiveSlidingWindowTiling::CheckDtype() const
+bool Mc2AdaptiveSlidingWindowTiling::CheckDtype() const
 {
-    QuantBatchMatmulV3Checker qmmV3Checker(context_, inputParams_);
+    Mc2QuantBatchMatmulV3Checker qmmV3Checker(context_, inputParams_);
     OP_TILING_CHECK(!qmmV3Checker.CheckDtype(),
                     CUBE_INNER_ERR_REPORT(inputParams_.opName, "CheckDtype fail"), return false);
     return true;
 }
 
-bool AdaptiveSlidingWindowTiling::CheckShape(const std::vector<gert::Shape *> &mandatoryShape,
+bool Mc2AdaptiveSlidingWindowTiling::CheckShape(const std::vector<gert::Shape *> &mandatoryShape,
                                              const gert::StorageShape *biasShape,
                                              const gert::StorageShape *pertokenShape,
                                              const std::vector<int64_t> &dimValueOfMKN) const
 {
-    QuantBatchMatmulV3Checker qmmV3Checker(context_, inputParams_);
+    Mc2QuantBatchMatmulV3Checker qmmV3Checker(context_, inputParams_);
     OP_TILING_CHECK(!qmmV3Checker.CheckShape(mandatoryShape, biasShape, pertokenShape, dimValueOfMKN),
                     CUBE_INNER_ERR_REPORT(inputParams_.opName, "CheckShape fail"), return false);
     return true;
 }
 
-ge::graphStatus AdaptiveSlidingWindowTiling::GetPlatformInfo()
+ge::graphStatus Mc2AdaptiveSlidingWindowTiling::GetPlatformInfo()
 {
     OP_LOGE_IF(!SetPlatformInfoForTiling(), ge::GRAPH_FAILED, inputParams_.opName, "SetPlatformInfo fail");
     if (aicoreParams_.aicNum == 0UL || aicoreParams_.l1Size == 0UL || aicoreParams_.l0cSize == 0UL) {
@@ -121,15 +121,15 @@ ge::graphStatus AdaptiveSlidingWindowTiling::GetPlatformInfo()
     return ge::GRAPH_SUCCESS;
 }
 
-ge::graphStatus AdaptiveSlidingWindowTiling::GetShapeAttrsInfo()
+ge::graphStatus Mc2AdaptiveSlidingWindowTiling::GetShapeAttrsInfo()
 {
     inputParams_.Reset();
-    tilingDataSize_ = sizeof(DequantBmm::QuantBatchMatmulV3TilingDataParams);
-    return QuantBatchMatmulV3TilingBase::GetShapeAttrsInfo();
+    tilingDataSize_ = sizeof(DequantBmm::Mc2QuantBatchMatmulV3TilingDataParams);
+    return Mc2QuantBatchMatmulV3TilingBase::GetShapeAttrsInfo();
 }
 
 
-ge::graphStatus AdaptiveSlidingWindowTiling::DoOpTiling()
+ge::graphStatus Mc2AdaptiveSlidingWindowTiling::DoOpTiling()
 {
     OP_LOGD(inputParams_.opName, "DoOpTiling of adaptive sliding window tiling strategy.");
     if (!AnalyseSlidingWinInfo()) {
@@ -145,7 +145,7 @@ ge::graphStatus AdaptiveSlidingWindowTiling::DoOpTiling()
     return ge::GRAPH_SUCCESS;
 }
 
-ge::graphStatus AdaptiveSlidingWindowTiling::DoLibApiTiling()
+ge::graphStatus Mc2AdaptiveSlidingWindowTiling::DoLibApiTiling()
 {
     tilingData_.matmulTiling.M = inputParams_.mSize;
     tilingData_.matmulTiling.N = inputParams_.nSize;
@@ -182,58 +182,58 @@ ge::graphStatus AdaptiveSlidingWindowTiling::DoLibApiTiling()
     return ge::GRAPH_SUCCESS;
 }
 
-uint64_t AdaptiveSlidingWindowTiling::GetBiasMode() const
+uint64_t Mc2AdaptiveSlidingWindowTiling::GetBiasMode() const
 {
     uint64_t biasMode = 0UL;
     if (!inputParams_.hasBias) {
-        biasMode = static_cast<uint64_t>(BiasMode::EXCLUEDE_FROM_TEMPLATE);
+        biasMode = static_cast<uint64_t>(Mc2BiasMode::EXCLUEDE_FROM_TEMPLATE);
     } else if (inputParams_.aDtype == ge::DT_INT8) {
-        biasMode = static_cast<uint64_t>(BiasMode::EXCLUEDE_FROM_TEMPLATE);
+        biasMode = static_cast<uint64_t>(Mc2BiasMode::EXCLUEDE_FROM_TEMPLATE);
     } else {
         if (inputParams_.biasDtype == ge::DT_FLOAT) {
-            biasMode = static_cast<uint64_t>(BiasMode::EXCLUEDE_FROM_TEMPLATE);
+            biasMode = static_cast<uint64_t>(Mc2BiasMode::EXCLUEDE_FROM_TEMPLATE);
         } else if (inputParams_.biasDtype == ge::DT_BF16) {
-            biasMode = static_cast<uint64_t>(BiasMode::CUBE_BIAS_BF16_TEMPLATE);
+            biasMode = static_cast<uint64_t>(Mc2BiasMode::CUBE_BIAS_BF16_TEMPLATE);
         } else if (inputParams_.biasDtype == ge::DT_FLOAT16) {
-            biasMode = static_cast<uint64_t>(BiasMode::CUBE_BIAS_FP16_TEMPLATE);
+            biasMode = static_cast<uint64_t>(Mc2BiasMode::CUBE_BIAS_FP16_TEMPLATE);
         }
     }
     return biasMode;
 }
 
-uint64_t AdaptiveSlidingWindowTiling::GetKernelType() const
+uint64_t Mc2AdaptiveSlidingWindowTiling::GetKernelType() const
 {
     uint64_t kernelType = 0UL;
     bool isScaleVecPostProcess = inputParams_.isPerChannel &&
                                  !(inputParams_.scaleDtype == ge::DT_UINT64 || inputParams_.scaleDtype == ge::DT_INT64);
     bool isVecPostProcess = (isScaleVecPostProcess || inputParams_.isPertoken || inputParams_.isPerBlock || isBf16Mix_);
     if (!isVecPostProcess && !isAFullLoad_) {
-        kernelType = static_cast<uint64_t>(QMMKernelType::NO_VEC_EPILOGUE_WITH_MMAPI);
+        kernelType = static_cast<uint64_t>(Mc2QMMKernelType::NO_VEC_EPILOGUE_WITH_MMAPI);
     } else if (!isVecPostProcess && isAFullLoad_) {
-        kernelType = static_cast<uint64_t>(QMMKernelType::NO_VEC_EPILOGUE_CUSTOM_GMTOAL1_WITH_MMAPI);
+        kernelType = static_cast<uint64_t>(Mc2QMMKernelType::NO_VEC_EPILOGUE_CUSTOM_GMTOAL1_WITH_MMAPI);
     } else if ((isScaleVecPostProcess || inputParams_.isPertoken || isBf16Mix_) && !isAFullLoad_) {
-        kernelType = static_cast<uint64_t>(QMMKernelType::VEC_EPILOGUE_WITH_MMAPI);
+        kernelType = static_cast<uint64_t>(Mc2QMMKernelType::VEC_EPILOGUE_WITH_MMAPI);
     } else if ((isScaleVecPostProcess || inputParams_.isPertoken || isBf16Mix_) && isAFullLoad_) {
-        kernelType = static_cast<uint64_t>(QMMKernelType::VEC_EPILOGUE_CUSTOM_GMTOAL1_WITH_MMAPI);
+        kernelType = static_cast<uint64_t>(Mc2QMMKernelType::VEC_EPILOGUE_CUSTOM_GMTOAL1_WITH_MMAPI);
     } else if (inputParams_.isPerBlock) {
-        kernelType = static_cast<uint64_t>(QMMKernelType::VEC_EPILOGUE_WITH_CUSTOM_MM);
+        kernelType = static_cast<uint64_t>(Mc2QMMKernelType::VEC_EPILOGUE_WITH_CUSTOM_MM);
     }
     return kernelType;
 }
 
-uint64_t AdaptiveSlidingWindowTiling::GetTilingKey() const
+uint64_t Mc2AdaptiveSlidingWindowTiling::GetTilingKey() const
 {
     return RecursiveSum(inputParams_.transB, inputParams_.transA, GetBiasMode(), GetKernelType(),
                         false, false, false, false);
 }
 
-ge::graphStatus AdaptiveSlidingWindowTiling::GetWorkspaceSize()
+ge::graphStatus Mc2AdaptiveSlidingWindowTiling::GetWorkspaceSize()
 {
     workspaceSize_ = inputParams_.libApiWorkSpaceSize;
     return ge::GRAPH_SUCCESS;
 }
 
-ge::graphStatus AdaptiveSlidingWindowTiling::PostTiling()
+ge::graphStatus Mc2AdaptiveSlidingWindowTiling::PostTiling()
 {
     OP_TILING_CHECK(tilingDataSize_ % sizeof(uint64_t) != 0UL,
                     CUBE_INNER_ERR_REPORT(inputParams_.opName, "Tiling data size[%zu] is not aligned to 8.",
@@ -253,7 +253,7 @@ ge::graphStatus AdaptiveSlidingWindowTiling::PostTiling()
     return ge::GRAPH_SUCCESS;
 }
 
-ge::graphStatus AdaptiveSlidingWindowTiling::CalcUbTiling()
+ge::graphStatus Mc2AdaptiveSlidingWindowTiling::CalcUbTiling()
 {
     uint64_t ubSize = static_cast<uint64_t>(aicoreParams_.ubSize);
     basicTiling_.ubCalcN = basicTiling_.baseN;
@@ -277,7 +277,7 @@ ge::graphStatus AdaptiveSlidingWindowTiling::CalcUbTiling()
     return ge::GRAPH_SUCCESS;
 }
 
-bool AdaptiveSlidingWindowTiling::AnalyseSlidingWinInfo()
+bool Mc2AdaptiveSlidingWindowTiling::AnalyseSlidingWinInfo()
 {
     if (!CalcBasicBlock()){
         OP_LOGE(inputParams_.opName, "inappropriate basicBlock");
@@ -301,7 +301,7 @@ bool AdaptiveSlidingWindowTiling::AnalyseSlidingWinInfo()
     return true;
 }
 
-bool AdaptiveSlidingWindowTiling::CalcBasicBlock()
+bool Mc2AdaptiveSlidingWindowTiling::CalcBasicBlock()
 {
     if (inputParams_.isPerBlock) {
         // when m or n is not divisible by 128, baseM or baseN is 128,
@@ -353,7 +353,7 @@ bool AdaptiveSlidingWindowTiling::CalcBasicBlock()
     return true;
 }
 
-void AdaptiveSlidingWindowTiling::AdjustBasicBlock()
+void Mc2AdaptiveSlidingWindowTiling::AdjustBasicBlock()
 {
     uint64_t baseMAlignNum =
         inputParams_.transA ? GetShapeWithDataType(L2_ALIGN_SIZE, inputParams_.aDtype) : CUBE_BLOCK;
@@ -416,7 +416,7 @@ void AdaptiveSlidingWindowTiling::AdjustBasicBlock()
     }
 }
 
-void AdaptiveSlidingWindowTiling::SetBf16Compat()
+void Mc2AdaptiveSlidingWindowTiling::SetBf16Compat()
 {
     bool isMix = (inputParams_.scaleDtype != ge::DT_UINT64 && inputParams_.scaleDtype != ge::DT_INT64 &&
                   inputParams_.scaleDtype != ge::DT_FLOAT8_E8M0) && inputParams_.isPerChannel;
@@ -427,18 +427,18 @@ void AdaptiveSlidingWindowTiling::SetBf16Compat()
     isBf16Mix_ = isMix || isCompat;
 }
 
-bool AdaptiveSlidingWindowTiling::IsMxKOdd() const
+bool Mc2AdaptiveSlidingWindowTiling::IsMxKOdd() const
 {
     return inputParams_.scaleDtype == ge::DT_FLOAT8_E8M0 &&
            ops::CeilDiv(inputParams_.kSize, MX_GROUP_SIZE) % MXFP_MULTI_BASE_SIZE != 0;
 }
 
-bool AdaptiveSlidingWindowTiling::IsMxBackwardTrans() const
+bool Mc2AdaptiveSlidingWindowTiling::IsMxBackwardTrans() const
 {
     return inputParams_.scaleDtype == ge::DT_FLOAT8_E8M0 && (inputParams_.transA || !inputParams_.transB);
 }
 
-void AdaptiveSlidingWindowTiling::IsAFullLoad()
+void Mc2AdaptiveSlidingWindowTiling::IsAFullLoad()
 {
     if (inputParams_.batchA != 1UL || IsMxKOdd() || IsMxBackwardTrans() || isTilingOut_ || inputParams_.isPerBlock) {
         isAFullLoad_ = false;
@@ -455,7 +455,7 @@ void AdaptiveSlidingWindowTiling::IsAFullLoad()
                     adaptiveWin_.mBlockCnt * adaptiveWin_.nBlockCnt <= aicoreParams_.aicNum);
 }
 
-bool AdaptiveSlidingWindowTiling::CheckBiasAndScale(uint64_t baseN, uint64_t dbL0c) const
+bool Mc2AdaptiveSlidingWindowTiling::CheckBiasAndScale(uint64_t baseN, uint64_t dbL0c) const
 {
     // bias int32(BT 4096B)对baseN的影响，不超过1024; 开DB不超过512
     // scale uint64(FB 4096B)目前对baseN无影响，api会对超512的scale再做tiling
@@ -467,7 +467,7 @@ bool AdaptiveSlidingWindowTiling::CheckBiasAndScale(uint64_t baseN, uint64_t dbL
     return !(isBiasInvalid || isScaleInvalid);
 }
 
-void AdaptiveSlidingWindowTiling::CalL1Tiling()
+void Mc2AdaptiveSlidingWindowTiling::CalL1Tiling()
 {
     basicTiling_.usedCoreNum = CalUsedCoreNum();
     OP_LOGD(inputParams_.opName, "coreNum: %u", basicTiling_.usedCoreNum);
@@ -502,7 +502,7 @@ void AdaptiveSlidingWindowTiling::CalL1Tiling()
     }
 }
 
-void AdaptiveSlidingWindowTiling::CalL1TilingDepthAfullload(uint64_t leftL1Size)
+void Mc2AdaptiveSlidingWindowTiling::CalL1TilingDepthAfullload(uint64_t leftL1Size)
 {
     basicTiling_.stepKa = ops::CeilDiv(inputParams_.kSize, static_cast<uint64_t>(basicTiling_.baseK));
     basicTiling_.depthA1 = basicTiling_.stepKa;
@@ -533,7 +533,7 @@ void AdaptiveSlidingWindowTiling::CalL1TilingDepthAfullload(uint64_t leftL1Size)
     basicTiling_.stepKb = basicTiling_.depthB1 == 1U ? basicTiling_.depthB1 : basicTiling_.depthB1 / DB_SIZE;
 }
 
-void AdaptiveSlidingWindowTiling::CalL1TilingDepthANotfullload(uint64_t leftL1Size)
+void Mc2AdaptiveSlidingWindowTiling::CalL1TilingDepthANotfullload(uint64_t leftL1Size)
 {
     if (inputParams_.isMxPerGroup) {
         uint64_t baseASize = GetSizeWithDataType(basicTiling_.baseM * basicTiling_.baseK, inputParams_.aDtype);
@@ -569,7 +569,7 @@ void AdaptiveSlidingWindowTiling::CalL1TilingDepthANotfullload(uint64_t leftL1Si
     }
 }
 
-void AdaptiveSlidingWindowTiling::CalStepKs()
+void Mc2AdaptiveSlidingWindowTiling::CalStepKs()
 {
     // depthA,depthB 为1时，stepka, stepkb 只能是1.
     basicTiling_.stepKa = basicTiling_.depthA1 == 1U ? 1U : basicTiling_.depthA1 / DB_SIZE;
@@ -601,7 +601,7 @@ void AdaptiveSlidingWindowTiling::CalStepKs()
     basicTiling_.depthB1 = basicTiling_.stepKb * DB_SIZE;
 }
 
-void AdaptiveSlidingWindowTiling::CalScaleFactors(uint64_t baseASize, uint64_t baseBSize, uint64_t baseScaleASize,
+void Mc2AdaptiveSlidingWindowTiling::CalScaleFactors(uint64_t baseASize, uint64_t baseBSize, uint64_t baseScaleASize,
                                                   uint64_t baseScaleBSize, [[maybe_unused]] uint64_t leftL1Size)
 {
     uint64_t biasDtypeSize = ge::GetSizeByDataType(inputParams_.biasDtype);
@@ -645,7 +645,7 @@ void AdaptiveSlidingWindowTiling::CalScaleFactors(uint64_t baseASize, uint64_t b
     }
 }
 
-uint64_t AdaptiveSlidingWindowTiling::GetDepthA1B1(uint64_t leftSize, uint64_t perDepthSize, uint64_t depthInit)
+uint64_t Mc2AdaptiveSlidingWindowTiling::GetDepthA1B1(uint64_t leftSize, uint64_t perDepthSize, uint64_t depthInit)
 {
     if (depthInit > 1UL && perDepthSize > DB_SIZE * MTE2_MIN_LOAD_SIZE_V100) {
         return depthInit;
@@ -672,7 +672,7 @@ uint64_t AdaptiveSlidingWindowTiling::GetDepthA1B1(uint64_t leftSize, uint64_t p
     return depthInit * depthScale;
 }
 
-uint64_t AdaptiveSlidingWindowTiling::GetDepthB1AfullLoad(uint64_t leftSize)
+uint64_t Mc2AdaptiveSlidingWindowTiling::GetDepthB1AfullLoad(uint64_t leftSize)
 {
     // 内轴128B 对齐
     uint64_t stepKbBase = 1UL;
@@ -709,7 +709,7 @@ uint64_t AdaptiveSlidingWindowTiling::GetDepthB1AfullLoad(uint64_t leftSize)
     return stepKbBase * DB_SIZE;
 }
 
-uint64_t AdaptiveSlidingWindowTiling::GetScaleFactorBAfullLoad(uint64_t leftSize)
+uint64_t Mc2AdaptiveSlidingWindowTiling::GetScaleFactorBAfullLoad(uint64_t leftSize)
 {
     uint64_t baseScaleBSize = GetSizeWithDataType(
         basicTiling_.baseN * ops::CeilAlign(ops::CeilDiv(static_cast<uint64_t>(basicTiling_.baseK), MX_GROUP_SIZE),
@@ -748,7 +748,7 @@ uint64_t AdaptiveSlidingWindowTiling::GetScaleFactorBAfullLoad(uint64_t leftSize
     return scaleFactorB;
 }
 
-void AdaptiveSlidingWindowTiling::SetTilingData()
+void Mc2AdaptiveSlidingWindowTiling::SetTilingData()
 {
     tilingData_.params.batchA = inputParams_.batchA;
     tilingData_.params.batchB = inputParams_.batchB;
@@ -779,7 +779,7 @@ void AdaptiveSlidingWindowTiling::SetTilingData()
     tilingData_.params.groupSizeK = static_cast<uint32_t>(inputParams_.groupSizeK);
 }
 
-uint32_t AdaptiveSlidingWindowTiling::CalUsedCoreNum()
+uint32_t Mc2AdaptiveSlidingWindowTiling::CalUsedCoreNum()
 {
     if (adaptiveWin_.totalWinCnt > 1UL || adaptiveWin_.tailWinBlockCnt == 0UL) {
         return aicoreParams_.aicNum;
@@ -788,12 +788,12 @@ uint32_t AdaptiveSlidingWindowTiling::CalUsedCoreNum()
     return static_cast<uint32_t>(adaptiveWin_.tailWinBlockCnt * adaptiveWin_.mTailTile * adaptiveWin_.nTailTile);
 }
 
-uint32_t AdaptiveSlidingWindowTiling::CalUsedCoreNum(uint32_t mTile, uint32_t nTile)
+uint32_t Mc2AdaptiveSlidingWindowTiling::CalUsedCoreNum(uint32_t mTile, uint32_t nTile)
 {
     return mTile * nTile * static_cast<uint32_t>(adaptiveWin_.tailWinBlockCnt);
 }
 
-bool AdaptiveSlidingWindowTiling::IsInValidPerblockTailSplit(uint64_t splitCnt) const
+bool Mc2AdaptiveSlidingWindowTiling::IsInValidPerblockTailSplit(uint64_t splitCnt) const
 {
     if (!inputParams_.isPerBlock) {
         return false;
@@ -802,7 +802,7 @@ bool AdaptiveSlidingWindowTiling::IsInValidPerblockTailSplit(uint64_t splitCnt) 
     return PER_BLOCK_SIZE % splitCnt != 0UL;
 }
 
-bool AdaptiveSlidingWindowTiling::IsInValidWeighNzTailSplit(uint64_t splitCnt, bool isPreSplit) const
+bool Mc2AdaptiveSlidingWindowTiling::IsInValidWeighNzTailSplit(uint64_t splitCnt, bool isPreSplit) const
 {
     if (inputParams_.bFormat != ge::FORMAT_FRACTAL_NZ ||
         (!isAFullLoad_ && ((isPreSplit && adaptiveWin_.mTail >= adaptiveWin_.nTail) ||
@@ -814,7 +814,7 @@ bool AdaptiveSlidingWindowTiling::IsInValidWeighNzTailSplit(uint64_t splitCnt, b
     return tailN % GetShapeWithDataType(L1_ALIGN_SIZE, inputParams_.bDtype) != 0UL;
 }
 
-void AdaptiveSlidingWindowTiling::CalcTailBasicBlock()
+void Mc2AdaptiveSlidingWindowTiling::CalcTailBasicBlock()
 {
     if (adaptiveWin_.tailWinBlockCnt == 0UL) {
         return;
@@ -843,7 +843,7 @@ void AdaptiveSlidingWindowTiling::CalcTailBasicBlock()
     adaptiveWin_.nTailTile = nTile;
 }
 
-void AdaptiveSlidingWindowTiling::CalcTailBasicBlockAfullLoad()
+void Mc2AdaptiveSlidingWindowTiling::CalcTailBasicBlockAfullLoad()
 {
     adaptiveWin_.mTailTile = 1UL;
     uint64_t nTile = 1UL;

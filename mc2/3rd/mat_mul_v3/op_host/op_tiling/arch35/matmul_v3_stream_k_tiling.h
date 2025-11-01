@@ -19,12 +19,12 @@
 #include "matmul_v3_base_tiling_advanced.h"
 
 namespace optiling {
-namespace matmul_v3_advanced {
-class MatMulV3StreamKTiling : public MatMulV3BaseTiling {
+namespace mc2_matmul_v3_advanced {
+class Mc2MatMulV3StreamKTiling : public Mc2MatMulV3BaseTiling {
 public:
-    MatMulV3StreamKTiling(gert::TilingContext *context, MatMulTilingCfg &cfg) : MatMulV3BaseTiling(context, cfg) {}
+    Mc2MatMulV3StreamKTiling(gert::TilingContext *context, Mc2MatMulTilingCfg &cfg) : Mc2MatMulV3BaseTiling(context, cfg) {}
 
-    ~MatMulV3StreamKTiling() override {}
+    ~Mc2MatMulV3StreamKTiling() override {}
 
 protected:
     bool IsCapable() override;
@@ -38,12 +38,12 @@ protected:
 private:
     bool CheckStreamKSKTiling() const;
     bool CheckStreamKDPSKTiling() const;
-    MatMulV3L0C2Out GetL0C2OutFlag() const;
+    Mc2MatMulV3L0C2Out GetL0C2OutFlag() const;
 
     uint64_t mCnt_{ 1 };
     uint64_t nCnt_{ 1 };
     uint64_t totalMNCnt_{ 1 };
-    MatMulV3L0C2Out l0C2Out_{MatMulV3L0C2Out::ON_THE_FLY};
+    Mc2MatMulV3L0C2Out l0C2Out_{Mc2MatMulV3L0C2Out::ON_THE_FLY};
 };
 }
 }

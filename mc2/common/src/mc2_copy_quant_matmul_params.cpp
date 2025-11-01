@@ -52,7 +52,7 @@ void SetMatmulTilingParams(::TCubeTiling& matmulTilingParams, TCubeTiling& matmu
     matmulTilingData.set_mxTypePara(matmulTilingParams.mxTypePara);
 }
 
-void SetQuantBatchMatmulV3Params(DequantBmm::QuantBatchMatmulV3DataParams& params, QuantBatchMatmulV3Params& dataParams)
+void SetQuantBatchMatmulV3Params(DequantBmm::Mc2QuantBatchMatmulV3DataParams& params, Mc2QuantBatchMatmulV3Params& dataParams)
 {
     dataParams.set_batchA(params.batchA);
     dataParams.set_batchB(params.batchB);
@@ -88,8 +88,8 @@ void SetQuantBatchMatmulV3Params(DequantBmm::QuantBatchMatmulV3DataParams& param
     dataParams.set_groupSizeK(params.groupSizeK);
 }
 
-void CopyQuantBatchMatmulParams(DequantBmm::QuantBatchMatmulV3TilingDataParams& quantBatchMatmulParams, 
-    QuantBatchMatmulV3TilingData& quantBmmV3TilingData)
+void CopyQuantBatchMatmulParams(DequantBmm::Mc2QuantBatchMatmulV3TilingDataParams& quantBatchMatmulParams, 
+    Mc2QuantBatchMatmulV3TilingData& quantBmmV3TilingData)
 {
     SetMatmulTilingParams(quantBatchMatmulParams.matmulTiling, quantBmmV3TilingData.matmulTiling);
 

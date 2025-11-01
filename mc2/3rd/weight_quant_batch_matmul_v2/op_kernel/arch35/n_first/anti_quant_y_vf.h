@@ -22,7 +22,7 @@
 namespace MicroAPI = AscendC::MicroAPI;
 using AscendC::MicroAPI::RegTensor;
 
-namespace WeightQuantBatchMatmulV2::Arch35 {
+namespace Mc2WeightQuantBatchMatmulV2::Arch35 {
 
 template <typename yType>
 struct LocalAddressYParam {
@@ -89,5 +89,5 @@ __aicore__ inline void AntiQuantYB32(
         }
     }
 }
-} // namespace WeightQuantBatchMatmulV2::Arch35
+} // namespace Mc2WeightQuantBatchMatmulV2::Arch35
 #endif // WEIGHT_QUANT_BATCHMATMUL_V2_ANTI_QUANT_Y_VF_H

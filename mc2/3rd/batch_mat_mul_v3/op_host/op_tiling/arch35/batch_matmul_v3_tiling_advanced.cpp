@@ -26,28 +26,28 @@
 #include "mat_mul_v3/op_host/op_tiling/arch35/matmul_v3_compile_info_advanced.h"
 
 namespace optiling {
-namespace batch_matmul_v3_advanced {
+namespace Mc2batch_matmul_v3_advanced {
 
-ge::graphStatus BatchMatMulV3Tiling::DoTiling()
+ge::graphStatus Mc2BatchMatMulV3Tiling::DoTiling()
 {
     if (GetShapeAttrsInfo() != ge::GRAPH_SUCCESS) {
         return ge::GRAPH_FAILED;
     }
-    MatMulV3BatchInfo tempBatchInfo;
+    Mc2MatMulV3BatchInfo tempBatchInfo;
     OP_TILING_CHECK((GetBatchInfo(*context_, args_, tempBatchInfo) != ge::GRAPH_SUCCESS),
        CUBE_INNER_ERR_REPORT(args_.opName, "GetBatchInfo failed"),
        return ge::GRAPH_FAILED);
     args_.batchInfo = &tempBatchInfo;
-    MatMulTilingCfg tilingCfg(false, context_->GetCompileInfo(), reinterpret_cast<void *>(&args_));
+    Mc2MatMulTilingCfg tilingCfg(false, context_->GetCompileInfo(), static_cast<void *>(&args_));
     OPS_CHECK_NULL_WITH_CONTEXT(context_, tilingCfg.compileInfo);
     platform_ascendc::SocVersion socVersion =
-        reinterpret_cast<const MatmulV3CompileInfo *>(tilingCfg.compileInfo)->socVersion;
-    MMRegisterCfg registerCfg{ "BatchMatMulV3", socVersion, strategy::GetBatchMatMulV3Priorities(socVersion) };
-    return MMTilingRegistry::GetInstance().DoTilingImpl(context_, tilingCfg, registerCfg);
+        static_cast<const Mc2MatmulV3CompileInfo *>(tilingCfg.compileInfo)->socVersion;
+    Mc2MMRegisterCfg registerCfg{ "Mc2BatchMatMulV3", socVersion, strategy::GetBatchMatMulV3Priorities(socVersion) };
+    return Mc2MMTilingRegistry::GetInstance().DoTilingImpl(context_, tilingCfg, registerCfg);
 }
 
-ge::graphStatus BatchMatMulV3Tiling::GetBmmBiasInfo(const gert::TilingContext &context, MatMulV3Args& args,
-                                                    MatMulV3BatchInfo& batchInfo)
+ge::graphStatus Mc2BatchMatMulV3Tiling::GetBmmBiasInfo(const gert::TilingContext &context, Mc2MatMulV3Args& args,
+                                                    Mc2MatMulV3BatchInfo& batchInfo)
 {
     if (!args_.hasBias) {
         return ge::GRAPH_SUCCESS;
@@ -89,12 +89,12 @@ ge::graphStatus BatchMatMulV3Tiling::GetBmmBiasInfo(const gert::TilingContext &c
         }
     }
     batchInfo.batchBias = batchBias3 * batchBias2 * batchBias1 * batchBias0;
-    OP_LOGI(args.opName, "Check BatchMatMulV3 with bias success.");
+    OP_LOGI(args.opName, "Check Mc2BatchMatMulV3 with bias success.");
     return ge::GRAPH_SUCCESS;
 }
 
-ge::graphStatus BatchMatMulV3Tiling::GetBatchInfo(const gert::TilingContext &context, MatMulV3Args& args,
-                                                  MatMulV3BatchInfo& batchInfo)
+ge::graphStatus Mc2BatchMatMulV3Tiling::GetBatchInfo(const gert::TilingContext &context, Mc2MatMulV3Args& args,
+                                                  Mc2MatMulV3BatchInfo& batchInfo)
 {
     auto aShape = context.GetInputShape(0)->GetOriginShape();
     auto bShape = context.GetInputShape(1)->GetOriginShape();
@@ -141,7 +141,7 @@ ge::graphStatus BatchMatMulV3Tiling::GetBatchInfo(const gert::TilingContext &con
     bool batch1Invalid = batchInfo.batchA1 != batchInfo.batchB1 && batchInfo.batchA1 != 1UL && batchInfo.batchB1 != 1UL;
     bool batch0Invalid = batchInfo.batchA0 != batchInfo.batchB0 && batchInfo.batchA0 != 1UL && batchInfo.batchB0 != 1UL;
     if (batch3Invalid || batch2Invalid || batch1Invalid || batch0Invalid) {
-        OP_LOGE("[BatchMatMulV3]", "Is M broadcast to N situation, do not support!");
+        OP_LOGE("[Mc2BatchMatMulV3]", "Is M broadcast to N situation, do not support!");
         return ge::GRAPH_FAILED;
     }
     OP_TILING_CHECK((GetBmmBiasInfo(context, args, batchInfo) != ge::GRAPH_SUCCESS),
@@ -149,12 +149,12 @@ ge::graphStatus BatchMatMulV3Tiling::GetBatchInfo(const gert::TilingContext &con
     return ge::GRAPH_SUCCESS;
 }
 
-void BatchMatMulV3Tiling::MergeBatchAndMAxis(MatMulV3Args& args, MatMulV3BatchInfo& batchInfo)
+void Mc2BatchMatMulV3Tiling::MergeBatchAndMAxis(Mc2MatMulV3Args& args, Mc2MatMulV3BatchInfo& batchInfo)
 {
     if (batchInfo.batchB != 1UL || args.isATrans){
         return;
     }
-    OP_LOGD("[BatchMatMulV3]", "Merge Batch and M axis");
+    OP_LOGD("[Mc2BatchMatMulV3]", "Merge Batch and M axis");
     // when BatchB == 1, adjust M = batchA * M, batchA = 1
     args.mValue = batchInfo.batchA * args.mValue;
     batchInfo.batchA3 = 1UL;

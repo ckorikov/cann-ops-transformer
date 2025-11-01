@@ -26,7 +26,7 @@
 constexpr uint16_t MAX_TENSOR_CONT = 256;
 constexpr uint16_t MAX_CORE_CONT = 64;
 
-struct L2cacheTileParam
+struct Mc2L2cacheTileParam
 {
     uint32_t mTileCntL2;
     uint32_t nTileCntL2;
@@ -72,7 +72,7 @@ struct QuantBatchMatmulV3Params
     uint32_t groupSizeK = 0;
 };
 
-struct SlidingWindowParam {
+struct Mc2SlidingWindowParam {
     uint32_t mTailTile = 0;
     uint32_t nTailTile = 0;
 };
@@ -81,8 +81,8 @@ struct QuantBatchMatmulV3TilingData
 {
     QuantBatchMatmulV3Params params;
     TCubeTiling matmulTiling;
-    L2cacheTileParam tileL2cacheTiling;
-    SlidingWindowParam adaptiveSlidingWin;
+    Mc2L2cacheTileParam tileL2cacheTiling;
+    Mc2SlidingWindowParam adaptiveSlidingWin;
 };
 
 inline void InitQuantBatchMatmulV3TilingData(uint8_t* tiling, QuantBatchMatmulV3TilingData* const_data)

@@ -25,7 +25,7 @@
 
 namespace {
 using namespace optiling;
-using namespace optiling::matmul_v3_advanced;
+using namespace optiling::mc2_matmul_v3_advanced;
 
 constexpr uint64_t ONE_BATCH_DIM = 1UL;
 constexpr uint64_t TWO_BATCH_DIM = 2UL;
@@ -35,7 +35,7 @@ constexpr size_t HF32_ATTR_NUM = 4UL;
 constexpr size_t HF32_ATTR_INDEX = 3UL;
 constexpr size_t BIAS_IDX = 2UL;
 
-inline void GetFormat(const gert::TilingContext &context, MatMulV3Args &args)
+inline void GetFormat(const gert::TilingContext &context, Mc2MatMulV3Args &args)
 {
     ge::Format formatA = static_cast<ge::Format>(ge::GetPrimaryFormat(context.GetInputDesc(0)->GetStorageFormat()));
     ge::Format formatB = static_cast<ge::Format>(ge::GetPrimaryFormat(context.GetInputDesc(1)->GetStorageFormat()));
@@ -45,7 +45,7 @@ inline void GetFormat(const gert::TilingContext &context, MatMulV3Args &args)
     args.outFormat = (formatOut != ge::FORMAT_FRACTAL_NZ) ? ge::FORMAT_ND : formatOut;
 }
 
-inline void GetDtype(const gert::TilingContext &context, MatMulV3Args &args)
+inline void GetDtype(const gert::TilingContext &context, Mc2MatMulV3Args &args)
 {
     args.aType = context.GetInputDesc(0)->GetDataType();
     args.bType = context.GetInputDesc(1)->GetDataType();
@@ -60,7 +60,7 @@ inline void GetDtype(const gert::TilingContext &context, MatMulV3Args &args)
     }
     args.aDtypeSize = ge::GetSizeByDataType(args.aType);
     args.bDtypeSize = ge::GetSizeByDataType(args.bType);
-    OP_LOGD(args.opName, "MatMulV3 Hf32 flag is: %d", args.isHf32);
+    OP_LOGD(args.opName, "Mc2MatMulV3 Hf32 flag is: %d", args.isHf32);
 }
 
 ge::graphStatus GetInputDims(const gert::Shape& storageShape, const gert::Shape& oriShape, uint64_t dtypeSize,
@@ -82,7 +82,7 @@ ge::graphStatus GetInputDims(const gert::Shape& storageShape, const gert::Shape&
         int64_t storageShape1 = storageShape[dimNum - FOUR_BATCH_DIM] * storageShape[dimNum - ONE_BATCH_DIM];
         if (ops::CeilAlign(dims[0], static_cast<int64_t>(BASIC_BLOCK_SIZE_16)) != storageShape0 ||
             ops::CeilAlign(dims[1], static_cast<int64_t>(BLOCK_BYTE_SIZE / dtypeSize)) != storageShape1) {
-            OP_LOGE("MatMulV3", "NZ aligned oriShape (%ld, %ld) is not equal to storageShape (%ld, %ld))", dims[0],
+            OP_LOGE("Mc2MatMulV3", "NZ aligned oriShape (%ld, %ld) is not equal to storageShape (%ld, %ld))", dims[0],
                     dims[1], storageShape0, storageShape1);
             return ge::GRAPH_FAILED;
         }
@@ -90,7 +90,7 @@ ge::graphStatus GetInputDims(const gert::Shape& storageShape, const gert::Shape&
     return ge::GRAPH_SUCCESS;
 }
 
-ge::graphStatus IsValidDtype(const MatMulV3Args &args)
+ge::graphStatus IsValidDtype(const Mc2MatMulV3Args &args)
 {
     std::vector<ge::DataType> dtype = { args.aType, args.bType, args.cType };
     if (args.hasBias) {
@@ -128,10 +128,10 @@ ge::graphStatus IsValidDtype(const MatMulV3Args &args)
     }
 }
 
-ge::graphStatus OpSpecificCheck(const gert::TilingContext &context, const MatMulV3Args &args)
+ge::graphStatus OpSpecificCheck(const gert::TilingContext &context, const Mc2MatMulV3Args &args)
 {
-    const bool isMatMulV3 = (strcmp(context.GetNodeType(), "MatMulV3") == 0);
-    const bool isBatchMatMulV3 = (strcmp(context.GetNodeType(), "BatchMatMulV3") == 0);
+    const bool isMatMulV3 = (strcmp(context.GetNodeType(), "Mc2MatMulV3") == 0);
+    const bool isBatchMatMulV3 = (strcmp(context.GetNodeType(), "Mc2BatchMatMulV3") == 0);
     if (!isBatchMatMulV3 && !isMatMulV3) {
         // apply no additional checks for ops other than MMV3, BMMV3, for now
         return ge::GRAPH_SUCCESS;
@@ -163,7 +163,7 @@ ge::graphStatus OpSpecificCheck(const gert::TilingContext &context, const MatMul
     return IsValidDtype(args);
 }
 
-ge::graphStatus GetShape(const gert::TilingContext &context, MatMulV3Args &args)
+ge::graphStatus GetShape(const gert::TilingContext &context, Mc2MatMulV3Args &args)
 {
     // get transpose
     args.isATrans = *((context.GetAttrs())->GetAttrPointer<bool>(0));
@@ -212,8 +212,8 @@ ge::graphStatus GetShape(const gert::TilingContext &context, MatMulV3Args &args)
 }
 
 namespace optiling {
-namespace matmul_v3_advanced {
-ge::graphStatus MatMulV3Tiling::GetArgs()
+namespace mc2_matmul_v3_advanced {
+ge::graphStatus Mc2MatMulV3Tiling::GetArgs()
 {
     GetFormat(*context_, args_);
     GetDtype(*context_, args_);
@@ -223,7 +223,7 @@ ge::graphStatus MatMulV3Tiling::GetArgs()
     return OpSpecificCheck(*context_, args_);
 }
 
-ge::graphStatus MatMulV3Tiling::CheckArgs()
+ge::graphStatus Mc2MatMulV3Tiling::CheckArgs()
 {
     auto attrs = context_->GetAttrs();
     OPS_CHECK_NULL_WITH_CONTEXT(context_, attrs);
@@ -249,7 +249,7 @@ ge::graphStatus MatMulV3Tiling::CheckArgs()
     return ge::GRAPH_SUCCESS;
 }
 
-ge::graphStatus MatMulV3Tiling::GetShapeAttrsInfo() // 检查输入属性是否支持
+ge::graphStatus Mc2MatMulV3Tiling::GetShapeAttrsInfo() // 检查输入属性是否支持
 {
     args_.opName = context_->GetNodeName();
     OP_TILING_CHECK(args_.opName == nullptr, CUBE_INNER_ERR_REPORT("matmul", "get op name invalid context"),
@@ -260,17 +260,17 @@ ge::graphStatus MatMulV3Tiling::GetShapeAttrsInfo() // 检查输入属性是否�
     return ge::GRAPH_SUCCESS;
 }
 
-ge::graphStatus MatMulV3Tiling::DoTiling()
+ge::graphStatus Mc2MatMulV3Tiling::DoTiling()
 {
     if (GetShapeAttrsInfo() != ge::GRAPH_SUCCESS) {
         return ge::GRAPH_FAILED;
     }
-    MatMulTilingCfg tilingCfg(false, context_->GetCompileInfo(), reinterpret_cast<void *>(&args_));
+    Mc2MatMulTilingCfg tilingCfg(false, context_->GetCompileInfo(), reinterpret_cast<void *>(&args_));
     OPS_CHECK_NULL_WITH_CONTEXT(context_, tilingCfg.compileInfo);
     platform_ascendc::SocVersion socVersion =
-        reinterpret_cast<const MatmulV3CompileInfo *>(tilingCfg.compileInfo)->socVersion;
-    MMRegisterCfg registerCfg{ "MatMulV3", socVersion, strategy::GetMatMulV3Priorities(socVersion) };
-    return MMTilingRegistry::GetInstance().DoTilingImpl(context_, tilingCfg, registerCfg);
+        reinterpret_cast<const Mc2MatmulV3CompileInfo *>(tilingCfg.compileInfo)->socVersion;
+    Mc2MMRegisterCfg registerCfg{ "Mc2MatMulV3", socVersion, strategy::GetMatMulV3Priorities(socVersion) };
+    return Mc2MMTilingRegistry::GetInstance().DoTilingImpl(context_, tilingCfg, registerCfg);
 }
 }
 }

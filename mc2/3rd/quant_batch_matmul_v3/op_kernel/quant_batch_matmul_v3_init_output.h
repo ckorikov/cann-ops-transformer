@@ -22,7 +22,7 @@ template <typename yType>
 class BmmDequantInitOutput {
 public:
     __aicore__ inline BmmDequantInitOutput() {}
-    __aicore__ inline void Init(GM_ADDR y, GM_ADDR workSpace, const QuantBatchMatmulV3TilingData *tilingData,
+    __aicore__ inline void Init(GM_ADDR y, GM_ADDR workSpace, const Mc2QuantBatchMatmulV3TilingData *tilingData,
                                 TPipe *tPipe)
     {
         InitTilingData(tilingData);
@@ -158,7 +158,7 @@ private:
     static constexpr uint64_t MIN_CLEAR_SIZE = MIN_CLEAR_BYTE / sizeof(yType);
     static constexpr uint64_t ONE_BLK_ITEM_NUM = ONE_BLK_SIZE / sizeof(yType);
 
-    __aicore__ inline void InitTilingData(const QuantBatchMatmulV3TilingData *tilingData)
+    __aicore__ inline void InitTilingData(const Mc2QuantBatchMatmulV3TilingData *tilingData)
     {
         uint32_t batch = tilingData->params.batchC;
         uint32_t mSize = tilingData->matmulTiling.M;

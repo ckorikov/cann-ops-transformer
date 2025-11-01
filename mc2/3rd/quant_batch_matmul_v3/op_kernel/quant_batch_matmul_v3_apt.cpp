@@ -97,50 +97,50 @@ extern "C" __global__ __aicore__ void quant_batch_matmul_v3(
     if (user1 == nullptr) {
         return;
     }
-    REGISTER_TILING_DEFAULT(DequantBmm::QuantBatchMatmulV3TilingDataParams);
+    REGISTER_TILING_DEFAULT(DequantBmm::Mc2QuantBatchMatmulV3TilingDataParams);
     GET_TILING_DATA(tilingData, tiling);
 
 #if (ORIG_DTYPE_SCALE == DT_FLOAT || ORIG_DTYPE_SCALE == DT_BF16)
     if (TILING_KEY_IS(2000)) {
         KERNEL_TASK_TYPE(2000, KERNEL_TYPE_MIX_AIC_1_2);
         QUANT_BMMV3_IMPL_CLASS(format_x1, format_x2, format_y, false, false,
-                                QuantBatchMatmulV3::QuantBmmPertokenRegbaseKernel, QuantBatchMatmulV3::QuantBmmAswBlock,
+                                Mc2QuantBatchMatmulV3::Mc2QuantBmmPertokenRegbaseKernel, Mc2QuantBatchMatmulV3::Mc2QuantBmmAswBlock,
                                 MM_CFG_NO_PRELOAD_OPEN_UNIT_FLAG);
     } else if (TILING_KEY_IS(2001)) {
         KERNEL_TASK_TYPE(2001, KERNEL_TYPE_MIX_AIC_1_2);
         QUANT_BMMV3_IMPL_CLASS(format_x1, format_x2, format_y, false, true,
-                                QuantBatchMatmulV3::QuantBmmPertokenRegbaseKernel, QuantBatchMatmulV3::QuantBmmAswBlock,
+                                Mc2QuantBatchMatmulV3::Mc2QuantBmmPertokenRegbaseKernel, Mc2QuantBatchMatmulV3::Mc2QuantBmmAswBlock,
                                 MM_CFG_NO_PRELOAD_OPEN_UNIT_FLAG);
     } else if (TILING_KEY_IS(2010)) {
         KERNEL_TASK_TYPE(2010, KERNEL_TYPE_MIX_AIC_1_2);
         QUANT_BMMV3_IMPL_CLASS(format_x1, format_x2, format_y, true, false,
-                                QuantBatchMatmulV3::QuantBmmPertokenRegbaseKernel, QuantBatchMatmulV3::QuantBmmAswBlock,
+                                Mc2QuantBatchMatmulV3::Mc2QuantBmmPertokenRegbaseKernel, Mc2QuantBatchMatmulV3::Mc2QuantBmmAswBlock,
                                 MM_CFG_NO_PRELOAD_OPEN_UNIT_FLAG);
 
     } else if (TILING_KEY_IS(2011)) {
         KERNEL_TASK_TYPE(2011, KERNEL_TYPE_MIX_AIC_1_2);
         QUANT_BMMV3_IMPL_CLASS(format_x1, format_x2, format_y, true, true,
-                                QuantBatchMatmulV3::QuantBmmPertokenRegbaseKernel, QuantBatchMatmulV3::QuantBmmAswBlock,
+                                Mc2QuantBatchMatmulV3::Mc2QuantBmmPertokenRegbaseKernel, Mc2QuantBatchMatmulV3::Mc2QuantBmmAswBlock,
                                 MM_CFG_NO_PRELOAD_OPEN_UNIT_FLAG);
     } else if (TILING_KEY_IS(3000)) {
         KERNEL_TASK_TYPE(3000, KERNEL_TYPE_MIX_AIC_1_2);
         QUANT_BMMV3_IMPL_CLASS(format_x1, format_x2, format_y, false, false,
-                                QuantBatchMatmulV3::QuantBmmPertokenAL1FullLoad, QuantBatchMatmulV3::QuantBmmAswBlock,
+                                Mc2QuantBatchMatmulV3::Mc2QuantBmmPertokenAL1FullLoad, Mc2QuantBatchMatmulV3::Mc2QuantBmmAswBlock,
                                 MM_CFG_NO_PRELOAD_OPEN_UNIT_FLAG);
     } else if (TILING_KEY_IS(3001)) {
         KERNEL_TASK_TYPE(3001, KERNEL_TYPE_MIX_AIC_1_2);
         QUANT_BMMV3_IMPL_CLASS(format_x1, format_x2, format_y, false, true,
-                                QuantBatchMatmulV3::QuantBmmPertokenAL1FullLoad, QuantBatchMatmulV3::QuantBmmAswBlock,
+                                Mc2QuantBatchMatmulV3::Mc2QuantBmmPertokenAL1FullLoad, Mc2QuantBatchMatmulV3::Mc2QuantBmmAswBlock,
                                 MM_CFG_NO_PRELOAD_OPEN_UNIT_FLAG);
     } else if (TILING_KEY_IS(3010)) {
         KERNEL_TASK_TYPE(3010, KERNEL_TYPE_MIX_AIC_1_2);
         QUANT_BMMV3_IMPL_CLASS(format_x1, format_x2, format_y, true, false,
-                                QuantBatchMatmulV3::QuantBmmPertokenAL1FullLoad, QuantBatchMatmulV3::QuantBmmAswBlock,
+                                Mc2QuantBatchMatmulV3::Mc2QuantBmmPertokenAL1FullLoad, Mc2QuantBatchMatmulV3::Mc2QuantBmmAswBlock,
                                 MM_CFG_NO_PRELOAD_OPEN_UNIT_FLAG);
     } else if (TILING_KEY_IS(3011)) {
         KERNEL_TASK_TYPE(3011, KERNEL_TYPE_MIX_AIC_1_2);
         QUANT_BMMV3_IMPL_CLASS(format_x1, format_x2, format_y, true, true,
-                                QuantBatchMatmulV3::QuantBmmPertokenAL1FullLoad, QuantBatchMatmulV3::QuantBmmAswBlock,
+                                Mc2QuantBatchMatmulV3::Mc2QuantBmmPertokenAL1FullLoad, Mc2QuantBatchMatmulV3::Mc2QuantBmmAswBlock,
                                 MM_CFG_NO_PRELOAD_OPEN_UNIT_FLAG);
     }
 #endif
@@ -175,7 +175,7 @@ extern "C" __global__ __aicore__ void quant_batch_matmul_v3(
             op.Process();
         } else if (TILING_KEY_IS(1001)) {
             KERNEL_TASK_TYPE(1001, KERNEL_TYPE_AIC_ONLY);
-            QuantBatchMatmulV3::MatmulAswKernelAL1FullLoad<DTYPE_X1, DTYPE_X2, DTYPE_SCALE, DTYPE_BIAS, DTYPE_Y,
+            Mc2QuantBatchMatmulV3::MatmulAswKernelAL1FullLoad<DTYPE_X1, DTYPE_X2, DTYPE_SCALE, DTYPE_BIAS, DTYPE_Y,
                                                             format_x1, format_x2, format_y, false, true>
                 op;
             op.Init(x1, x2, bias, scale, pertokenScale, y, user1, &tilingData, &tPipe);
@@ -212,28 +212,28 @@ extern "C" __global__ __aicore__ void quant_batch_matmul_v3(
             op.Process();
         } else if (TILING_KEY_IS(1000)) {
             KERNEL_TASK_TYPE(1000, KERNEL_TYPE_AIC_ONLY);
-            QuantBatchMatmulV3::MatmulAswKernelAL1FullLoad<DTYPE_X1, DTYPE_X2, DTYPE_SCALE, DTYPE_BIAS, DTYPE_Y,
+            Mc2QuantBatchMatmulV3::MatmulAswKernelAL1FullLoad<DTYPE_X1, DTYPE_X2, DTYPE_SCALE, DTYPE_BIAS, DTYPE_Y,
                                                             format_x1, format_x2, format_y, false, false>
                 op;
             op.Init(x1, x2, bias, scale, pertokenScale, y, user1, &tilingData, &tPipe);
             op.Process();
         } else if (TILING_KEY_IS(1001)) {
             KERNEL_TASK_TYPE(1001, KERNEL_TYPE_AIC_ONLY);
-            QuantBatchMatmulV3::MatmulAswKernelAL1FullLoad<DTYPE_X1, DTYPE_X2, DTYPE_SCALE, DTYPE_BIAS, DTYPE_Y,
+            Mc2QuantBatchMatmulV3::MatmulAswKernelAL1FullLoad<DTYPE_X1, DTYPE_X2, DTYPE_SCALE, DTYPE_BIAS, DTYPE_Y,
                                                             format_x1, format_x2, format_y, false, true>
                 op;
             op.Init(x1, x2, bias, scale, pertokenScale, y, user1, &tilingData, &tPipe);
             op.Process();
         } else if (TILING_KEY_IS(1010)) {
             KERNEL_TASK_TYPE(1010, KERNEL_TYPE_AIC_ONLY);
-            QuantBatchMatmulV3::MatmulAswKernelAL1FullLoad<DTYPE_X1, DTYPE_X2, DTYPE_SCALE, DTYPE_BIAS, DTYPE_Y,
+            Mc2QuantBatchMatmulV3::MatmulAswKernelAL1FullLoad<DTYPE_X1, DTYPE_X2, DTYPE_SCALE, DTYPE_BIAS, DTYPE_Y,
                                                             format_x1, format_x2, format_y, true, false>
                 op;
             op.Init(x1, x2, bias, scale, pertokenScale, y, user1, &tilingData, &tPipe);
             op.Process();
         } else if (TILING_KEY_IS(1011)) {
             KERNEL_TASK_TYPE(1011, KERNEL_TYPE_AIC_ONLY);
-            QuantBatchMatmulV3::MatmulAswKernelAL1FullLoad<DTYPE_X1, DTYPE_X2, DTYPE_SCALE, DTYPE_BIAS, DTYPE_Y,
+            Mc2QuantBatchMatmulV3::MatmulAswKernelAL1FullLoad<DTYPE_X1, DTYPE_X2, DTYPE_SCALE, DTYPE_BIAS, DTYPE_Y,
                                                             format_x1, format_x2, format_y, true, true>
                 op;
             op.Init(x1, x2, bias, scale, pertokenScale, y, user1, &tilingData, &tPipe);
@@ -244,22 +244,22 @@ extern "C" __global__ __aicore__ void quant_batch_matmul_v3(
 #if SUPPORT_PERBLOCK
     KERNEL_TASK_TYPE_DEFAULT(KERNEL_TYPE_MIX_AIC_1_2);
     if (TILING_KEY_IS(4000)) {
-        QuantBatchMatmulV3::MatMulPerBlockASW<DTYPE_X1, DTYPE_X2, DTYPE_BIAS, DTYPE_Y, format_x1, format_x2, format_y,
+        Mc2QuantBatchMatmulV3::MatMulPerBlockASW<DTYPE_X1, DTYPE_X2, DTYPE_BIAS, DTYPE_Y, format_x1, format_x2, format_y,
                                                 false, false> op;
         op.Init(x1, x2, bias, scale, pertokenScale, y, user1, &tilingData, &tPipe);
         op.Process();
     } else if (TILING_KEY_IS(4001)) {
-        QuantBatchMatmulV3::MatMulPerBlockASW<DTYPE_X1, DTYPE_X2, DTYPE_BIAS, DTYPE_Y, format_x1, format_x2, format_y,
+        Mc2QuantBatchMatmulV3::MatMulPerBlockASW<DTYPE_X1, DTYPE_X2, DTYPE_BIAS, DTYPE_Y, format_x1, format_x2, format_y,
                                                 false, true> op;
         op.Init(x1, x2, bias, scale, pertokenScale, y, user1, &tilingData, &tPipe);
         op.Process();
     } else if (TILING_KEY_IS(4010)) {
-        QuantBatchMatmulV3::MatMulPerBlockASW<DTYPE_X1, DTYPE_X2, DTYPE_BIAS, DTYPE_Y, format_x1, format_x2, format_y,
+        Mc2QuantBatchMatmulV3::MatMulPerBlockASW<DTYPE_X1, DTYPE_X2, DTYPE_BIAS, DTYPE_Y, format_x1, format_x2, format_y,
                                                 true, false> op;
         op.Init(x1, x2, bias, scale, pertokenScale, y, user1, &tilingData, &tPipe);
         op.Process();
     } else if (TILING_KEY_IS(4011)) {
-        QuantBatchMatmulV3::MatMulPerBlockASW<DTYPE_X1, DTYPE_X2, DTYPE_BIAS, DTYPE_Y, format_x1, format_x2, format_y,
+        Mc2QuantBatchMatmulV3::MatMulPerBlockASW<DTYPE_X1, DTYPE_X2, DTYPE_BIAS, DTYPE_Y, format_x1, format_x2, format_y,
                                                 true, true> op;
         op.Init(x1, x2, bias, scale, pertokenScale, y, user1, &tilingData, &tPipe);
         op.Process();

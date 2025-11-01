@@ -19,7 +19,7 @@
 using AscendC::CrossCoreSetFlag;
 using AscendC::CrossCoreWaitFlag;
 
-namespace WeightQuantBatchMatmulV2::Arch35::Catlass {
+namespace Mc2WeightQuantBatchMatmulV2::Arch35::Catlass {
 
 #if defined(__CCE_KT_TEST__)
 template <uint8_t modeId, pipe_t pipe>
@@ -91,5 +91,5 @@ private:
         CrossCoreWaitFlag<SyncMode, ProducerPipeline>(FlagId);
     }
 };
-} // namespace WeightQuantBatchMatmulV2::Arch35::Catlass
+} // namespace Mc2WeightQuantBatchMatmulV2::Arch35::Catlass
 #endif

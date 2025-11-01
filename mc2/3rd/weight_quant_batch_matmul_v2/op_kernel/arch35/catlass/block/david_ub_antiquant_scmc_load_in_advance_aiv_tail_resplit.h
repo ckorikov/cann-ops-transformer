@@ -35,20 +35,20 @@ using AscendC::ONE_BLK_SIZE;
 using AscendC::TBuf;
 using AscendC::VECTOR_REG_WIDTH;
 
-namespace WeightQuantBatchMatmulV2::Arch35::Catlass {
+namespace Mc2WeightQuantBatchMatmulV2::Arch35::Catlass {
 
 template <typename StrideAntiquantScale>
-DEVICE static constexpr QuantType GetQuantType() // StrideAntiquantScale /*strideAntiquantScale*/)
+DEVICE static constexpr Mc2QuantType GetQuantType() // StrideAntiquantScale /*strideAntiquantScale*/)
 {
     if constexpr (AscendC::Std::tuple_size<StrideAntiquantScale>::value == 1) {
-        return QuantType::PER_TENSOR;
+        return Mc2QuantType::PER_TENSOR;
     } else if constexpr (
         AscendC::Std::tuple_size<StrideAntiquantScale>::value == 2 &&
         AscendC::Std::is_same_v<typename AscendC::Std::tuple_element<0, StrideAntiquantScale>::type, _1> &&
         AscendC::Std::is_same_v<typename AscendC::Std::tuple_element<1, StrideAntiquantScale>::type, _1>) {
-        return QuantType::PER_CHANNEL;
+        return Mc2QuantType::PER_CHANNEL;
     } else {
-        return QuantType::PER_GROUP;
+        return Mc2QuantType::PER_GROUP;
     }
 }
 
@@ -81,7 +81,7 @@ public:
     using StrideWeightL1 = AscendC::Std::tuple<uint32_t, _256, _16, _1, _0, uint32_t>;
     using StrideScaleUb = AscendC::Std::tuple<uint32_t, uint32_t, uint32_t>;
 
-    static constexpr QuantType antiQuantType = GetQuantType<StrideAntiquantScale>();
+    static constexpr Mc2QuantType antiQuantType = GetQuantType<StrideAntiquantScale>();
 
 private:
     // gm global tensor
@@ -471,7 +471,7 @@ private:
         if (unlikely(tileSizeN == 0)) {
             return;
         }
-        if constexpr (antiQuantType == QuantType::PER_CHANNEL) {
+        if constexpr (antiQuantType == Mc2QuantType::PER_CHANNEL) {
             DataCopyPad2D(
                 tensorScaleUb[offsetScaleUb], tensorScaleGm_[offsetScaleGm], 1, tileSizeN,
                 CeilAlign(dstSizeN, static_cast<uint64_t>(VECTOR_REG_WIDTH)), srcSizeN);
@@ -480,7 +480,7 @@ private:
                     tensorOffsetUb[offsetScaleUb], tensorOffsetGm_[offsetScaleGm], 1, tileSizeN,
                     CeilAlign(dstSizeN, static_cast<uint64_t>(VECTOR_REG_WIDTH)), srcSizeN);
             }
-        } else if constexpr (antiQuantType == QuantType::PER_TENSOR) {
+        } else if constexpr (antiQuantType == Mc2QuantType::PER_TENSOR) {
             scaleValue_ = tensorScaleGm_.GetValue(0);
             if constexpr (Base::hasAntiQuantOffset) {
                 offsetValue_ = tensorOffsetGm_.GetValue(0);
@@ -611,5 +611,5 @@ private:
         }
     }
 };
-} // namespace WeightQuantBatchMatmulV2::Arch35::Catlass
+} // namespace Mc2WeightQuantBatchMatmulV2::Arch35::Catlass
 #endif

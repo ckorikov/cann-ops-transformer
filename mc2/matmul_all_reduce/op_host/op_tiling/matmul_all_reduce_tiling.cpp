@@ -110,7 +110,7 @@ void MatmulAllReduceTilingBase::Reset()
     isQuantKey_ = false;
     isPerTensor_ = false;
     antiQuantType_ = AntiQuantType::NONE;
-    quantType_ = QuantType::PER_TENSOR;
+    quantType_ = Mc2QuantType::PER_TENSOR;
     antiGroupSize_ = 0;
     isUbQuant_ = false;
     enableL2Cache_ = false;
@@ -408,7 +408,7 @@ ge::graphStatus MatmulAllReduceTilingBase::DoMatmulTiling(
     return ge::GRAPH_SUCCESS;
 }
 
-void MatmulAllReduceTilingBase::DoL2CacheTiling(L2cacheTilePara& l2cacheTiling)
+void MatmulAllReduceTilingBase::DoL2CacheTiling(Mc2L2cacheTilePara& l2cacheTiling)
 {
     L2TilePara tileL2;
     bool enableL2Tile = CalL2TilePara(tileL2, args_.mValue, args_.kValue, args_.nValue, args_.aicCoreNum);
@@ -566,7 +566,7 @@ void MatmulAllReduceTilingBase::SetQuantData()
         isQuantKey_ = true;
         const auto& dequantShape = matrixDequant->GetStorageShape();
         isPerTensor_ = (dequantShape.GetDimNum() == 1 && dequantShape.GetDim(0) == 1);
-        quantType_ = isPerTensor_ ? QuantType::PER_TENSOR : QuantType::PER_CHANNEL;
+        quantType_ = isPerTensor_ ? Mc2QuantType::PER_TENSOR : Mc2QuantType::PER_CHANNEL;
 
         // perblock要求2维scale
         if (matrixPertoken != nullptr) {

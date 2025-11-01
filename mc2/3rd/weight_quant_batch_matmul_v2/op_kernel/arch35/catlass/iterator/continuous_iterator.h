@@ -12,7 +12,7 @@
 
 #include "../utils/device_utils.h"
 
-namespace WeightQuantBatchMatmulV2::Arch35::Catlass {
+namespace Mc2WeightQuantBatchMatmulV2::Arch35::Catlass {
 /*
  * size和step一致
  */
@@ -120,5 +120,5 @@ struct ContinuousIterator {
         size = curr + step < stop ? step : stop - curr;
     }
 };
-} // namespace WeightQuantBatchMatmulV2::Arch35::Catlass
+} // namespace Mc2WeightQuantBatchMatmulV2::Arch35::Catlass
 #endif

@@ -32,7 +32,7 @@ struct ReduceScatterSoc {
     uint32_t baseBN;
 };
 
-struct L2cacheUseInfo {
+struct Mc2L2cacheUseInfo {
     uint32_t l2CacheFlag;
 };
 
@@ -48,7 +48,7 @@ public:
     TileL2Tiling tailL2Tiling;
     TileL2Tiling localL2Tiling;
 	ReduceScatterSoc socParam;
-    L2cacheUseInfo l2cacheUseInfo;
+    Mc2L2cacheUseInfo l2cacheUseInfo;
 };
 
 #endif //__MATMUL_REDUCE_SCATTER_TILING_H__

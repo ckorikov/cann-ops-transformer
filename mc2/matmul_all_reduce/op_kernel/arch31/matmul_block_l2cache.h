@@ -23,7 +23,7 @@ class MatmulBlockL2Cache : public MatmulBlock
 public:
     __aicore__ inline MatmulBlockL2Cache()
     {}
-    __aicore__ inline void Init(TCubeTiling& tiling, RCSTiling& cfg, L2cacheTilePara& tileL2cacheTiling);
+    __aicore__ inline void Init(TCubeTiling& tiling, RCSTiling& cfg, Mc2L2cacheTilePara& tileL2cacheTiling);
     __aicore__ inline void UpdateBlockIndex();
     template <class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE>
     __aicore__ inline void CalcGMOffset(int32_t mTileIndex = 0, int32_t nTileIndex = 0);
@@ -34,7 +34,7 @@ private:
     __aicore__ inline void UpdateSingleCorePara(int32_t mTileIndex, int32_t nTileIndex);
 
 public:
-    L2cacheTilePara tilingL2;
+    Mc2L2cacheTilePara tilingL2;
     uint32_t singleCoreM = 0;      // 单次计算的singleCoreM
     uint32_t singleCoreN = 0;      // 单次计算的singleCoreN
     uint32_t mTileBaseCnt = 0;     // 每一份Tile M方向包含的base块个数
@@ -46,7 +46,7 @@ public:
     uint32_t nCntUse = 0;
 };
 
-__aicore__ inline void MatmulBlockL2Cache::Init(TCubeTiling& tiling, RCSTiling& cfg, L2cacheTilePara& tileL2cacheTiling)
+__aicore__ inline void MatmulBlockL2Cache::Init(TCubeTiling& tiling, RCSTiling& cfg, Mc2L2cacheTilePara& tileL2cacheTiling)
 {
     MatmulBlock::Init(tiling, cfg, tileL2cacheTiling);
     this->tilingL2 = tileL2cacheTiling;
@@ -225,7 +225,7 @@ __aicore__ inline void MatmulBlockL2Cache::CalcGMOffset(int32_t mTileIndex, int3
 
 } // namespace MC2
 
-template <bool L2Cache>
+template <bool Mc2L2Cache>
 struct BlockType {
     __aicore__ inline BlockType(){};
 };

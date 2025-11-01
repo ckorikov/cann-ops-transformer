@@ -7,9 +7,9 @@
  # INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  # See LICENSE in the root of the software repository for the full text of the License.
  # ----------------------------------------------------------------------------
- if(BUILD_OPEN_PROJECT)
-   file(GLOB OPTILING_SRCS src/*.cpp)
-   if(UT_TEST_ALL OR OP_HOST_UT)
+if(BUILD_OPEN_PROJECT)
+  file(GLOB OPTILING_SRCS src/*.cpp)
+  if(UT_TEST_ALL OR OP_HOST_UT)
     list(FILTER OPTILING_SRCS EXCLUDE REGEX "src/mc2_hcom_topo_info\\.cpp")
     list(APPEND OPTILING_SRCS ${UT_COMMON_INC}/mock_mc2_hcom_topo_info.cpp)
    endif()
@@ -19,21 +19,29 @@
    endif()
    if(NOT ENABLE_BUILT_IN AND NOT ENABLE_TEST)
     file(GLOB OPPROTO_SRCS
-     src/mc2_moe_utils.cpp
-     src/mc2_common_infershape.cpp
-     src/mc2_hcom_topo_info.cpp
-     )
-     if(OPPROTO_SRCS)
-       add_infer_modules()
-       target_sources(${OPHOST_NAME}_infer_obj PRIVATE ${OPPROTO_SRCS})
-     endif()
-     file(GLOB OPAPI_SRC
-       src/mc2_hcom_topo_info.cpp
-       src/mc2_common_infershape.cpp
-     )
-     if(OPAPI_SRC)
-       add_opapi_modules()
-       target_sources(${OPHOST_NAME}_opapi_obj PRIVATE ${OPAPI_SRC})
+      src/mc2_moe_utils.cpp
+      src/mc2_common_infershape.cpp
+      src/mc2_hcom_topo_info.cpp
+    )
+    if(OPPROTO_SRCS)
+      add_infer_modules()
+      target_sources(${OPHOST_NAME}_infer_obj PRIVATE ${OPPROTO_SRCS})
     endif()
-   endif()
- endif()
+    file(GLOB OPAPI_SRC
+      src/mc2_hcom_topo_info.cpp
+      src/mc2_common_infershape.cpp
+    )
+    if(OPAPI_SRC)
+      add_opapi_modules()
+      target_sources(${OPHOST_NAME}_opapi_obj PRIVATE ${OPAPI_SRC})
+    endif()
+  endif()
+endif()
+
+file(GLOB NEW_MC2_MM_SRC new_mc2_mm/*.cpp)
+# MC2_COMPILE used to avoid tefusion_llt
+# when blue use SUB_MC2_COMPILE when rty use MC2_COMPILE
+if(MC2_COMPILE OR SUB_MC2_COMPILE)
+  add_tiling_modules()
+  target_sources(${OPHOST_NAME}_tiling_obj PRIVATE ${NEW_MC2_MM_SRC})
+endif()

@@ -12,7 +12,7 @@
 
 #include "../utils/device_utils.h"
 
-namespace WeightQuantBatchMatmulV2::Arch35::Catlass {
+namespace Mc2WeightQuantBatchMatmulV2::Arch35::Catlass {
 using AscendC::GlobalTensor;
 using AscendC::LocalTensor;
 using AscendC::Nd2NzParams;
@@ -42,5 +42,5 @@ DEVICE void CopyGmToL1(const LocalTensor<T>& dst, const GlobalTensor<T>& src, ui
     DataCopy(dst, src, size);
 }
 
-} // namespace WeightQuantBatchMatmulV2::Arch35::Catlass
+} // namespace Mc2WeightQuantBatchMatmulV2::Arch35::Catlass
 #endif

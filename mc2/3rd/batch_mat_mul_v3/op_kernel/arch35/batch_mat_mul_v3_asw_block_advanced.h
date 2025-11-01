@@ -20,19 +20,19 @@
 #include "../../../mat_mul_v3/op_kernel/mat_mul_v3_common.h"
 #include "../../../mat_mul_v3/op_kernel/arch35/mat_mul_tiling_data.h"
 
-namespace BatchMatMulV3Advanced {
+namespace Mc2BatchMatMulV3Advanced {
 
 using namespace AscendC;
 using namespace matmul;
 
-struct BmmAswBlockOffset {
+struct Mc2BmmAswBlockOffset {
     uint64_t offsetA = 0;
     uint64_t offsetB = 0;
     uint64_t offsetC = 0;
     uint64_t offsetBias = 0;
 };
 
-struct BmmAswBlockArgs {
+struct Mc2BmmAswBlockArgs {
     uint64_t batchA1 = 1;
     uint64_t batchA2 = 1;
     uint64_t batchA3 = 1;
@@ -76,9 +76,9 @@ struct BmmAswBlockArgs {
 };
 
 
-class BatchMatMulAswBlock {
+class Mc2BatchMatMulAswBlock {
 public:
-    __aicore__ inline BatchMatMulAswBlock() {}
+    __aicore__ inline Mc2BatchMatMulAswBlock() {}
     template <class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE>
     __aicore__ inline void Init(const void *tilingData);
     __aicore__ inline void UpdateBasicIndex(uint64_t roundIdx, uint64_t newBlockIdx);
@@ -88,16 +88,13 @@ public:
     __aicore__ inline void CalcGMOffset();
 
 public:
-    BmmAswBlockOffset offset_;
-    BmmAswBlockArgs params_;
+    Mc2BmmAswBlockOffset offset_;
+    Mc2BmmAswBlockArgs params_;
     const BatchMatMulV3TilingData *batchMatmulTilingData_;
-
-private:
-    const uint64_t WINDOW_LEN = 4;
 };
 
 template <class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE>
-__aicore__ inline void BatchMatMulAswBlock::Init(const void *tilingData)
+__aicore__ inline void Mc2BatchMatMulAswBlock::Init(const void *tilingData)
 {
     batchMatmulTilingData_ = static_cast<const BatchMatMulV3TilingData *>(tilingData);
 
@@ -132,7 +129,9 @@ __aicore__ inline void BatchMatMulAswBlock::Init(const void *tilingData)
     params_.totalCnt = params_.batchCnt * params_.mCnt * params_.nCnt;
     params_.round = (params_.totalCnt + batchMatmulTilingData_->matMulTilingData.tCubeTiling.usedCoreNum - 1) /
         batchMatmulTilingData_->matMulTilingData.tCubeTiling.usedCoreNum;
-    params_.mainWindow = WINDOW_LEN < params_.mCnt ? WINDOW_LEN : params_.mCnt; // 主划窗m方向的块个数
+    params_.mainWindow = AscendC::Std::min(
+        static_cast<uint64_t>(batchMatmulTilingData_->matMulTilingData.aswWindowLen),
+        params_.mCnt);                                       // 主划窗m方向的块个数
     params_.mainRow = params_.mCnt / params_.mainWindow - 1; // 主划窗数量
     params_.tailWindow = params_.mCnt - params_.mainRow * params_.mainWindow; // 尾划窗m方向的块个数
     using B_T = typename B_TYPE::T;
@@ -140,7 +139,7 @@ __aicore__ inline void BatchMatMulAswBlock::Init(const void *tilingData)
     params_.nAlignSize = (B_TYPE::isTrans) ? BLOCK_SIZE : BLOCK_BYTE_SIZE / sizeof(B_T);
 }
 
-__aicore__ inline void BatchMatMulAswBlock::UpdateBasicIndex(uint64_t roundIdx, uint64_t newBlockIdx)
+__aicore__ inline void Mc2BatchMatMulAswBlock::UpdateBasicIndex(uint64_t roundIdx, uint64_t newBlockIdx)
 {
     params_.index = newBlockIdx + roundIdx * batchMatmulTilingData_->matMulTilingData.tCubeTiling.usedCoreNum;
     uint64_t matIndex = params_.index % (params_.mCnt * params_.nCnt);
@@ -161,14 +160,14 @@ __aicore__ inline void BatchMatMulAswBlock::UpdateBasicIndex(uint64_t roundIdx, 
 }
 
 template <class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE>
-__aicore__ inline void BatchMatMulAswBlock::UpdateBlockParams(uint64_t roundIdx)
+__aicore__ inline void Mc2BatchMatMulAswBlock::UpdateBlockParams(uint64_t roundIdx)
 {
     params_.singleCoreM = params_.mCntIndex != (params_.mCnt - 1) ? params_.blockBaseM : params_.mBaseTail;
     params_.singleCoreN = params_.nCntIndex != (params_.nCnt - 1) ? params_.blockBaseN : params_.nBaseTail;
 }
 
 template <class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE>
-__aicore__ inline void BatchMatMulAswBlock::CalcGMOffset()
+__aicore__ inline void Mc2BatchMatMulAswBlock::CalcGMOffset()
 {
     uint64_t batchC1Index =
         params_.index / (params_.batchC2 * params_.batchC3 * params_.batchC4 * params_.mCnt * params_.nCnt);
@@ -219,6 +218,6 @@ __aicore__ inline void BatchMatMulAswBlock::CalcGMOffset()
     }
 }
 
-} // namespace BatchMatMulV3Advanced
+} // namespace Mc2BatchMatMulV3Advanced
 
 #endif // BATCH_MAT_MUL_V3_ASW_BLOCK_ADVANCED_H

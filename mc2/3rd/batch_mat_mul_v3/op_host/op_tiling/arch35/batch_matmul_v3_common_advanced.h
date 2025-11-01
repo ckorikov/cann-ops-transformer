@@ -18,7 +18,7 @@
 #include "mat_mul_v3/op_host/op_tiling/arch35/matmul_v3_common_advanced.h"
 
 namespace optiling {
-namespace batch_matmul_v3_advanced {
+namespace Mc2batch_matmul_v3_advanced {
 
 constexpr uint64_t FINAL_SHAPE_DIM = 1;
 constexpr uint64_t NO_BATCH_SHAPE_DIM = 2;

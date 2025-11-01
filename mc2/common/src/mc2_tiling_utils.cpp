@@ -249,7 +249,7 @@ bool CheckDataTypeVaild(ge::DataType type,
          supportDtypeList.end();
 }
 
-void UpdateMatmulV3Args(optiling::matmul_v3_advanced::MatMulV3Args &mmV3Args,
+void UpdateMatmulV3Args(optiling::mc2_matmul_v3_advanced::Mc2MatMulV3Args &mmV3Args,
                         const TilingArgs &args, const char *opName) {
   mmV3Args.opName = opName;
   mmV3Args.isATrans = args.isATrans;
@@ -276,7 +276,7 @@ ge::graphStatus GetMatmulV3PriorityPolicy(
   const static std::map<platform_ascendc::SocVersion, std::vector<int32_t>>
       MATMUL_V3_PRIOR_MAP = {
           {platform_ascendc::SocVersion::ASCEND910_95,
-           {optiling::matmul_v3_advanced::strategy::BASE}},
+           {optiling::mc2_matmul_v3_advanced::strategy::BASE}},
       };
   if (MATMUL_V3_PRIOR_MAP.find(socVersion) != MATMUL_V3_PRIOR_MAP.end()) {
     priorities = MATMUL_V3_PRIOR_MAP.at(socVersion);

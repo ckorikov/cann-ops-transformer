@@ -19,30 +19,31 @@
 #include "mat_mul_v3/op_host/op_tiling/arch35/matmul_tiling_registry.h"
 
 namespace optiling {
-namespace batch_matmul_v3_advanced {
+namespace Mc2batch_matmul_v3_advanced {
 using namespace strategy;
-MM_REGISTER_TILING_TEMPLATE(BatchMatMulV3, BatchMatMulV3AswTiling, ASCEND910_95, BASE);
+MC2_MM_REGISTER_TILING_TEMPLATE(Mc2BatchMatMulV3, Mc2BatchMatMulV3AswTiling, ASCEND910_95, BASE);
+MC2_MM_REGISTER_TILING_TEMPLATE(Mc2BatchMatMulV3, Mc2BatchMatMulV3AswTiling, RESERVED_VERSION, BASE); //supportMmadS8S4平台
 
-ge::graphStatus BatchMatMulV3AswTiling::DoOpTiling()
+ge::graphStatus Mc2BatchMatMulV3AswTiling::DoOpTiling()
 {
-    MatMulV3TilingHelper::ResetBase(compileInfo_, args_, runInfo_);
-    MatMulV3TilingHelper::CalL1Tiling(compileInfo_, args_, runInfo_);
-    if (MatMulV3TilingHelper::CheckIfDoubleAswt(compileInfo_, args_, batchInfo_->batchC)) {
-        aswtModel_ = MatMulV3Model::DOUBLE_ASWT;
+    Mc2MatMulV3TilingHelper::ResetBase(compileInfo_, args_, runInfo_);
+    Mc2MatMulV3TilingHelper::CalL1Tiling(compileInfo_, args_, runInfo_);
+    if (Mc2MatMulV3TilingHelper::CheckIfDoubleAswt(compileInfo_, args_, batchInfo_->batchC)) {
+        aswtModel_ = Mc2MatMulV3Model::DOUBLE_ASWT;
     }
 
     return ge::GRAPH_SUCCESS;
 }
 
-uint64_t BatchMatMulV3AswTiling::GetTilingKey() const
+uint64_t Mc2BatchMatMulV3AswTiling::GetTilingKey() const
 {
-    return MatMulV3TilingKey()
+    return Mc2MatMulV3TilingKey()
         .SetTrans(args_.isATrans, args_.isBTrans)
         .SetModel(aswtModel_)
         .GetTilingKey();
 }
 
-uint64_t BatchMatMulV3AswTiling::GetBlockDim() const
+uint64_t Mc2BatchMatMulV3AswTiling::GetBlockDim() const
 {
     return compileInfo_.aicNum;
 }

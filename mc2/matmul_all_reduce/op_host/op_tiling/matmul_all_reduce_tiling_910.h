@@ -22,8 +22,8 @@ namespace optiling {
 BEGIN_TILING_DATA_DEF(MatmulAllReduce910TilingData)
 TILING_DATA_FIELD_DEF_STRUCT(Mc2Msg, msg);
 TILING_DATA_FIELD_DEF_STRUCT(RCSTiling, param);
-TILING_DATA_FIELD_DEF_STRUCT(MatmulTilingData, tilematmulTiling);
-TILING_DATA_FIELD_DEF_STRUCT(MatmulTilingData, tailmatmulTiling);
+TILING_DATA_FIELD_DEF_STRUCT(Mc2MatmulV3TilingData, tilematmulTiling);
+TILING_DATA_FIELD_DEF_STRUCT(Mc2MatmulV3TilingData, tailmatmulTiling);
 END_TILING_DATA_DEF;
 REGISTER_TILING_DATA_CLASS(MatmulAllReduce_10000000000000001100, MatmulAllReduce910TilingData);
 REGISTER_TILING_DATA_CLASS(MatmulAllReduce_10000000000000000009, MatmulAllReduce910TilingData);
@@ -77,10 +77,10 @@ private:
     uint64_t myWorkSpaceSize_{0U};
 };
 
-class TilingTransferHelper : public matmul_v3::MatmulV3BaseTiling
+class TilingTransferHelper : public mc2_matmul_v3::Mc2MatmulV3BaseTiling
 {
 public:
-    TilingTransferHelper(MatmulAllReduceTiling910& matmulAllReduceTiling910, MatmulTilingData& data);
+    TilingTransferHelper(MatmulAllReduceTiling910& matmulAllReduceTiling910, Mc2MatmulV3TilingData& data);
 
     ge::graphStatus GetShapeAttrsInfo() override;
     ge::graphStatus PostTiling() override;

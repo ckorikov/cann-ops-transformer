@@ -20,9 +20,9 @@
 #endif
 
 namespace DequantBmm {
-// QuantBatchMatmulV3Tiling set QuantBatchMatmulV3Params tilingData mc2 calls QuantBatchMatmulV3Tiling DoLibApiTiling
+// Mc2QuantBatchMatmulV3Tiling set Mc2QuantBatchMatmulV3Params tilingData mc2 calls Mc2QuantBatchMatmulV3Tiling DoLibApiTiling
 #pragma pack(push, 8)
-struct QuantBatchMatmulV3DataParams {
+struct Mc2QuantBatchMatmulV3DataParams {
     uint32_t batchA = 0;
     uint32_t batchB = 0;
     uint32_t batchC = 0;
@@ -59,7 +59,7 @@ struct QuantBatchMatmulV3DataParams {
 #pragma pack(pop)
 
 #pragma pack(push, 8)
-struct L2cacheTileParams {
+struct Mc2L2cacheTileParams {
     uint32_t mTileCntL2 = 0;
     uint32_t nTileCntL2 = 0;
     uint32_t mTileBlock = 0;
@@ -70,18 +70,18 @@ struct L2cacheTileParams {
 #pragma pack(pop)
 
 #pragma pack(push, 8)
-struct SlidingWindowParams {
+struct Mc2SlidingWindowParams {
     uint32_t mTailTile = 0;
     uint32_t nTailTile = 0;
 };
 #pragma pack(pop)
 
 #pragma pack(push, 8)
-struct QuantBatchMatmulV3TilingDataParams {
-    QuantBatchMatmulV3DataParams params;
+struct Mc2QuantBatchMatmulV3TilingDataParams {
+    Mc2QuantBatchMatmulV3DataParams params;
     TCubeTiling matmulTiling;
-    L2cacheTileParams tileL2cacheTiling;
-    SlidingWindowParams adaptiveSlidingWin;
+    Mc2L2cacheTileParams tileL2cacheTiling;
+    Mc2SlidingWindowParams adaptiveSlidingWin;
 };
 #pragma pack(pop)
 } // DequantBmm

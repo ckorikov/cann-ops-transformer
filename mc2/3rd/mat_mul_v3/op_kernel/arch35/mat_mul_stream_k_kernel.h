@@ -19,7 +19,7 @@
 #endif
 #include "mat_mul_stream_k_block.h"
 
-namespace MatmulV3Advanced {
+namespace Mc2MatmulV3Advanced {
 
 using namespace AscendC;
 using namespace matmul;
@@ -58,11 +58,11 @@ static __aicore__ inline void CustomDataCopyOut(const __gm__ void* gm, const Loc
     }
 }
 
-template <class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE, class BLOCK_TYPE = MatmulStreamKBlock,
+template <class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE, class BLOCK_TYPE = Mc2MatmulStreamKBlock,
     const MatmulConfig &MM_CFG = MM_CFG_NO_PRELOAD, const bool ALIGN_FLAG = false>
-class MatmulStreamKKernel {
+class Mc2MatmulStreamKKernel {
 public:
-    __aicore__ inline MatmulStreamKKernel() {}
+    __aicore__ inline Mc2MatmulStreamKKernel() {}
     __aicore__ inline void Init(GM_ADDR aGM, GM_ADDR bGM, GM_ADDR cGM, GM_ADDR biasGM, GM_ADDR offsetWGM,
         GM_ADDR workspaceGM, const void *tilingData, TPipe *pipe);
     __aicore__ inline void InitInputs(GM_ADDR aGM, GM_ADDR bGM, GM_ADDR cGM, GM_ADDR biasGM, GM_ADDR workspaceGM);
@@ -93,7 +93,7 @@ protected:
 
 template <class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE, class BLOCK_TYPE, const MatmulConfig &MM_CFG,
           const bool ALIGN_FLAG>
-__aicore__ inline void MatmulStreamKKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLOCK_TYPE, MM_CFG, ALIGN_FLAG>::Init(
+__aicore__ inline void Mc2MatmulStreamKKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLOCK_TYPE, MM_CFG, ALIGN_FLAG>::Init(
     GM_ADDR aGM, GM_ADDR bGM, GM_ADDR cGM, GM_ADDR biasGM, GM_ADDR offsetWGM, GM_ADDR workspaceGM,
     const void *tilingData, TPipe *pipe)
 {
@@ -104,7 +104,7 @@ __aicore__ inline void MatmulStreamKKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BL
 
 template <class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE, class BLOCK_TYPE, const MatmulConfig &MM_CFG,
           const bool ALIGN_FLAG>
-__aicore__ inline void MatmulStreamKKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLOCK_TYPE, MM_CFG,
+__aicore__ inline void Mc2MatmulStreamKKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLOCK_TYPE, MM_CFG,
                                            ALIGN_FLAG>::InitInputs(GM_ADDR aGM, GM_ADDR bGM, GM_ADDR cGM,
                                                                    GM_ADDR biasGM, GM_ADDR workspaceGM)
 {
@@ -129,7 +129,7 @@ __aicore__ inline void MatmulStreamKKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BL
 
 template <class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE, class BLOCK_TYPE, const MatmulConfig &MM_CFG,
           const bool ALIGN_FLAG>
-__aicore__ inline void MatmulStreamKKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLOCK_TYPE, MM_CFG, ALIGN_FLAG>::Process()
+__aicore__ inline void Mc2MatmulStreamKKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLOCK_TYPE, MM_CFG, ALIGN_FLAG>::Process()
 {
     if ASCEND_IS_AIV {
         if (GetBlockIdx() >= block_.aicParams_.lastLoopTotalCnt * GetTaskRation()) {
@@ -165,7 +165,7 @@ __aicore__ inline void MatmulStreamKKernel<A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BL
 
 template <class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE, class BLOCK_TYPE,
           const MatmulConfig &MM_CFG, const bool ALIGN_FLAG>
-__aicore__ inline void MatmulStreamKKernel
+__aicore__ inline void Mc2MatmulStreamKKernel
     <A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLOCK_TYPE, MM_CFG, ALIGN_FLAG>::StreamKAicProcess(uint64_t roundIdx)
 {
     block_.UpdateBasicIndex(roundIdx); // 使能ASWT更新Index
@@ -208,7 +208,7 @@ __aicore__ inline void MatmulStreamKKernel
 
 template <class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE, class BLOCK_TYPE,
           const MatmulConfig &MM_CFG, const bool ALIGN_FLAG>
-__aicore__ inline void MatmulStreamKKernel
+__aicore__ inline void Mc2MatmulStreamKKernel
     <A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLOCK_TYPE, MM_CFG, ALIGN_FLAG>::StreamKAivProcess(uint64_t roundIdx)
 {
     block_.UpdateBasicIndex(roundIdx);
@@ -260,7 +260,7 @@ __aicore__ inline void MatmulStreamKKernel
 
 template <class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE, class BLOCK_TYPE,
           const MatmulConfig &MM_CFG, const bool ALIGN_FLAG>
-__aicore__ inline void MatmulStreamKKernel
+__aicore__ inline void Mc2MatmulStreamKKernel
     <A_TYPE, B_TYPE, C_TYPE, BIAS_TYPE, BLOCK_TYPE, MM_CFG, ALIGN_FLAG>::CheckNeedClearWorkSpace(uint64_t roundIdx)
 {
     if constexpr (ALIGN_FLAG) {
@@ -295,6 +295,6 @@ __aicore__ inline void MatmulStreamKKernel
         }
     }
 }
-} // namespace MatmulV3Advanced
+} // namespace Mc2MatmulV3Advanced
 
 #endif // MMV3_MATMUL_STREAM_K_KERNEL_H

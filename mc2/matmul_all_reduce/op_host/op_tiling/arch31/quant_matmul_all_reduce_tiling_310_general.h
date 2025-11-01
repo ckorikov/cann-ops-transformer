@@ -20,12 +20,12 @@
 namespace optiling {
 class QuantMatmulAllReduceTiling310General : public MatmulAllReduceTilingBase
 {
-    class QuantTilingTransferHelper : public QuantBatchMatmulV3Tiling
+    class QuantTilingTransferHelper : public Mc2QuantBatchMatmulV3Tiling
     {
     public:
         QuantTilingTransferHelper(
-            QuantMatmulAllReduceTiling310General& quantMatmulAllReduceTiling, QuantBatchMatmulV3TilingData& data)
-            : QuantBatchMatmulV3Tiling(quantMatmulAllReduceTiling.context_, &data),
+            QuantMatmulAllReduceTiling310General& quantMatmulAllReduceTiling, Mc2QuantBatchMatmulV3TilingData& data)
+            : Mc2QuantBatchMatmulV3Tiling(quantMatmulAllReduceTiling.context_, &data),
               tilingProcesser_(quantMatmulAllReduceTiling)
         {}
 
@@ -101,7 +101,7 @@ class QuantMatmulAllReduceTiling310General : public MatmulAllReduceTilingBase
             return ge::GRAPH_SUCCESS;
         }
 
-        void PrintTilingInputParam(QuantBatchMatmulInfo& info)
+        void PrintTilingInputParam(Mc2QuantBatchMatmulInfo& info)
         {
             OP_LOGD(
                 tilingProcesser_.opName_, " transA %d transB %d, hasBias %d, mSize %ld, kSize %ld, nSize %ld ",

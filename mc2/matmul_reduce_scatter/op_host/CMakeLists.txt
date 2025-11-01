@@ -15,7 +15,8 @@ if (BUILD_OPEN_PROJECT)  # custom
     set(MC2_OPT ON PARENT_SCOPE)
     set(matmul_reduce_scatter_depends mc2/common mc2/3rd PARENT_SCOPE)
 else() # 回黄host
-     add_mc2_modules_sources(OPTYPE matmul_reduce_scatter matmul_reduce_scatter ACLNNTYPE aclnn aclnn_inner) 
+    add_mc2_modules_sources(OPTYPE matmul_reduce_scatter matmul_reduce_scatter ACLNNTYPE aclnn aclnn_inner) 
+    set(SUB_MC2_COMPILE TRUE PARENT_SCOPE) 
  endif()
 
  #打桩操作

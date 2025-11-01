@@ -12,8 +12,10 @@ if (BUILD_OPEN_PROJECT)  # custom
         grouped_mat_mul_all_reduce_def.cpp
     )
     add_mc2_modules_sources(OPTYPE grouped_mat_mul_all_reduce grouped_mat_mul_all_reduce ACLNNTYPE aclnn aclnn_inner)
+    set(SUB_MC2_COMPILE TRUE PARENT_SCOPE)
     set(MC2_OPT ON PARENT_SCOPE)
     set(grouped_mat_mul_all_reduce_depends mc2/common mc2/3rd PARENT_SCOPE)
 else() # 回黄host
-    add_mc2_modules_sources(OPTYPE grouped_mat_mul_all_reduce grouped_mat_mul_all_reduce ACLNNTYPE aclnn aclnn_inner) 
+    add_mc2_modules_sources(OPTYPE grouped_mat_mul_all_reduce grouped_mat_mul_all_reduce ACLNNTYPE aclnn aclnn_inner)
+    set(SUB_MC2_COMPILE TRUE PARENT_SCOPE) 
 endif()

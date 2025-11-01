@@ -30,7 +30,7 @@ template <
     class L1TileShape_,
     class L0TileShape_
 >
-class BlockSchedulerAswtBuiltIn {
+class Mc2BlockSchedulerAswtBuiltIn {
 public:
     int64_t mTileNum_{0};
     int64_t nTileNum_{0};
@@ -80,14 +80,14 @@ public:
     using ProblemShape = ProblemShape_;
 
     struct Params {
-        const MatMulV3BasicTilingData* tilingData;
+        const Mc2MatMulV3BasicTilingData* tilingData;
     };
 
     struct BatchMatMulParams {
-        const BatchMatMulV3BasicTilingData* tilingData;
+        const Mc2BatchMatMulV3BasicTilingData* tilingData;
     };
 public:
-    __aicore__ inline BlockSchedulerAswtBuiltIn(
+    __aicore__ inline Mc2BlockSchedulerAswtBuiltIn(
         const ProblemShape& shape, int64_t blockIdx, int64_t blockNum, const Params& params)
         : blockIdx_(blockIdx), blockNum_(blockNum)
     {
@@ -297,7 +297,7 @@ struct BlockSchedulerSelector<
     TransA_,
     TransB_
 > {
-  using SchedulerOp = BlockSchedulerAswtBuiltIn<ProblemShape_, L1TileShape_, L0TileShape_>;
+  using SchedulerOp = Mc2BlockSchedulerAswtBuiltIn<ProblemShape_, L1TileShape_, L0TileShape_>;
 };
 
 template <
@@ -314,7 +314,7 @@ struct BlockSchedulerSelector<
     TransA_,
     TransB_
 > {
-  using SchedulerOp = BlockSchedulerAswtBuiltIn<ProblemShape_, L1TileShape_, L0TileShape_>;
+  using SchedulerOp = Mc2BlockSchedulerAswtBuiltIn<ProblemShape_, L1TileShape_, L0TileShape_>;
 };
 
 } // namespace Block

@@ -19,7 +19,7 @@
 #include "../quant_batch_matmul_v3_base.h"
 #include "qbmm_perblock_api_param_utils.h"
 
-namespace QuantBatchMatmulV3 {
+namespace Mc2QuantBatchMatmulV3 {
 
 MATMUL_PERBLOCK_CLASS_TEM_PARAMS
 class MatMulPerBlock {
@@ -782,5 +782,5 @@ __aicore__ inline void MatMulPerBlock<MATMUL_PERBLOCK_FUNC_PARAMS>::AicEnd()
     }
 }
 
-}  // namespace QuantBatchMatmulV3
+}  // namespace Mc2QuantBatchMatmulV3
 #endif  // QBMM_PERBLOCK_API_UTILS_H

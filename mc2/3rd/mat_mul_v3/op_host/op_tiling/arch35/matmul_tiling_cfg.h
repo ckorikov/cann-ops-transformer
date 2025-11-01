@@ -20,7 +20,7 @@
 #include <vector>
 
 namespace optiling {
-struct TilingResult {
+struct Mc2TilingResult {
     uint64_t tilingKey;
     uint64_t blockDim;
     void *tilingData;
@@ -28,15 +28,15 @@ struct TilingResult {
     std::vector<size_t> workspaceSize;
 };
 
-class MatMulTilingCfg {
+class Mc2MatMulTilingCfg {
 public:
-    MatMulTilingCfg(bool needUpdateIn, const void *compileInfoIn, const void *argsIn)
+    Mc2MatMulTilingCfg(bool needUpdateIn, const void *compileInfoIn, const void *argsIn)
         : needUpdate(needUpdateIn), compileInfo(compileInfoIn), args(argsIn)
     {}
 
-    virtual ~MatMulTilingCfg() {};
+    virtual ~Mc2MatMulTilingCfg() {};
 
-    virtual void Update(const TilingResult &result) {
+    virtual void Update(const Mc2TilingResult &result) {
         (void)result;
     };
 
