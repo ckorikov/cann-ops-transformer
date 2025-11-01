@@ -723,9 +723,7 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
         this->pipe->InitBuffer(this->stage2OutQue[0], 1, stage2OutQueSize);
         if constexpr (POST_QUANT) {
             this->pipe->InitBuffer(postQuantScaleQue, 1, 2048); // 2K
-            if (constInfo.isPostQuantOffsetExist) {
-                this->pipe->InitBuffer(postQuantOffsetQue, 1, 2048); // 2K
-            }
+            this->pipe->InitBuffer(postQuantOffsetQue, 1, 2048); // 2K
         }
     }
 }
