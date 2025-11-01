@@ -3853,6 +3853,1099 @@ TEST_F(Ts_Fia_Ascend910B1, case_ifa_sliding_pa_kv_unequal_bsh) // for IFA slidin
     ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
 }
 
+TEST_F(Ts_Fia_Ascend910_9591, case_value_antiquant_scale)
+{
+    FiaCase cs;
+    cs.mParam.b = 4;
+    cs.mParam.s = 2048;
+    cs.mParam.layout = "BSH";
+    cs.mParam.numHeads = 10;
+    cs.mParam.scaleValue = 1.0f;
+    ASSERT_TRUE(cs.Init());
+    cs.query = Tensor("query", {4, 1, 10}, "BSH", cs.mParam.kvDataType, ge::FORMAT_ND);
+    cs.key = TensorList("key", {4, 2048, 10}, "BSH", ge::DT_INT8, ge::FORMAT_ND);
+    cs.value = TensorList("value", {4, 2048, 10}, "BSH", ge::DT_INT8, ge::FORMAT_ND);
+    cs.quantScale2 = Tensor("quantScale2", {2, 2, 2, 2, 2}, "5", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.attentionOut = Tensor("attentionOut", {4, 1, 10}, "BSH", ge::DT_INT8, ge::FORMAT_ND);
+    cs.antiquantScale = Tensor("antiquantScale", {2}, "1", cs.mParam.kvDataType, ge::FORMAT_ND);
+    cs.antiquantOffset = Tensor("antiquantOffset", {2}, "1", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.keyAntiquantScale = Tensor("keyAntiquantScale", {2}, "1", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.mOpInfo.mExp.mSuccess = false;
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
+TEST_F(Ts_Fia_Ascend910_9591, case_key_antiquant_scale_1)
+{
+    FiaCase cs;
+    cs.mParam.b = 4;
+    cs.mParam.s = 2048;
+    cs.mParam.layout = "BSH";
+    cs.mParam.numHeads = 10;
+    cs.mParam.scaleValue = 1.0f;
+    ASSERT_TRUE(cs.Init());
+    cs.query = Tensor("query", {4, 1, 10}, "BSH", cs.mParam.kvDataType, ge::FORMAT_ND);
+    cs.key = TensorList("key", {4, 2048, 10}, "BSH", ge::DT_INT8, ge::FORMAT_ND);
+    cs.value = TensorList("value", {4, 2048, 10}, "BSH", ge::DT_INT8, ge::FORMAT_ND);
+    cs.quantScale2 = Tensor("quantScale2", {2, 2, 2, 2, 2}, "5", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.attentionOut = Tensor("attentionOut", {4, 1, 10}, "BSH", ge::DT_INT8, ge::FORMAT_ND);
+    cs.antiquantScale = Tensor("antiquantScale", {2}, "1", cs.mParam.kvDataType, ge::FORMAT_ND);
+    cs.antiquantOffset = Tensor("antiquantOffset", {2}, "1", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.valueAntiquantScale = Tensor("valueAntiquantScale", {2}, "1", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.mOpInfo.mExp.mSuccess = false;
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
+TEST_F(Ts_Fia_Ascend910_9591, case_value_antiquant_offset)
+{
+    FiaCase cs;
+    cs.mParam.b = 4;
+    cs.mParam.s = 2048;
+    cs.mParam.layout = "BSH";
+    cs.mParam.numHeads = 10;
+    cs.mParam.scaleValue = 1.0f;
+    ASSERT_TRUE(cs.Init());
+    cs.query = Tensor("query", {4, 1, 10}, "BSH", cs.mParam.kvDataType, ge::FORMAT_ND);
+    cs.key = TensorList("key", {4, 2048, 10}, "BSH", ge::DT_INT8, ge::FORMAT_ND);
+    cs.value = TensorList("value", {4, 2048, 10}, "BSH", ge::DT_INT8, ge::FORMAT_ND);
+    cs.quantScale2 = Tensor("quantScale2", {2, 2, 2, 2, 2}, "5", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.attentionOut = Tensor("attentionOut", {4, 1, 10}, "BSH", ge::DT_INT8, ge::FORMAT_ND);
+    cs.antiquantScale = Tensor("antiquantScale", {2}, "1", cs.mParam.kvDataType, ge::FORMAT_ND);
+    cs.antiquantOffset = Tensor("antiquantOffset", {2}, "1", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.keyAntiquantOffset = Tensor("keyAntiquantOffset", {2}, "1", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.mOpInfo.mExp.mSuccess = false;
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
+TEST_F(Ts_Fia_Ascend910_9591, case_key_antiquant_scale_2)
+{
+    FiaCase cs;
+    cs.mParam.b = 4;
+    cs.mParam.s = 2048;
+    cs.mParam.layout = "BSH";
+    cs.mParam.numHeads = 10;
+    cs.mParam.scaleValue = 1.0f;
+    ASSERT_TRUE(cs.Init());
+    cs.query = Tensor("query", {4, 1, 10}, "BSH", cs.mParam.kvDataType, ge::FORMAT_ND);
+    cs.key = TensorList("key", {4, 2048, 10}, "BSH", ge::DT_INT8, ge::FORMAT_ND);
+    cs.value = TensorList("value", {4, 2048, 10}, "BSH", ge::DT_INT8, ge::FORMAT_ND);
+    cs.quantScale2 = Tensor("quantScale2", {2, 2, 2, 2, 2}, "5", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.attentionOut = Tensor("attentionOut", {4, 1, 10}, "BSH", ge::DT_INT8, ge::FORMAT_ND);
+    cs.antiquantScale = Tensor("antiquantScale", {2}, "1", cs.mParam.kvDataType, ge::FORMAT_ND);
+    cs.antiquantOffset = Tensor("antiquantOffset", {2}, "1", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.valueAntiquantOffset = Tensor("valueAntiquantOffset", {2}, "1", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.mOpInfo.mExp.mSuccess = false;
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
+TEST_F(Ts_Fia_Ascend910_9591, case_key_antiquant_scale_3)
+{
+    FiaCase cs;
+    cs.mParam.b = 4;
+    cs.mParam.s = 2048;
+    cs.mParam.layout = "BSH";
+    cs.mParam.numHeads = 10;
+    cs.mParam.scaleValue = 1.0f;
+    ASSERT_TRUE(cs.Init());
+    cs.query = Tensor("query", {4, 1, 10}, "BSH", cs.mParam.kvDataType, ge::FORMAT_ND);
+    cs.key = TensorList("key", {4, 2048, 10}, "BSH", ge::DT_INT8, ge::FORMAT_ND);
+    cs.value = TensorList("value", {4, 2048, 10}, "BSH", ge::DT_INT8, ge::FORMAT_ND);
+    cs.quantScale2 = Tensor("quantScale2", {2, 2, 2, 2, 2}, "5", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.attentionOut = Tensor("attentionOut", {4, 1, 10}, "BSH", ge::DT_INT8, ge::FORMAT_ND);
+    cs.antiquantScale = Tensor("antiquantScale", {2}, "1", cs.mParam.kvDataType, ge::FORMAT_ND);
+    cs.antiquantOffset = Tensor("antiquantOffset", {2}, "1", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.keyAntiquantOffset = Tensor("keyAntiquantOffset", {2}, "1", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.mOpInfo.mExp.mSuccess = false;
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
+TEST_F(Ts_Fia_Ascend910_9591, case_compare_key_value_offset)
+{
+    FiaCase cs;
+    cs.mParam.b = 4;
+    cs.mParam.s = 2048;
+    cs.mParam.layout = "BSH";
+    cs.mParam.numHeads = 10;
+    cs.mParam.scaleValue = 1.0f;
+    ASSERT_TRUE(cs.Init());
+    cs.query = Tensor("query", {4, 1, 10}, "BSH", cs.mParam.kvDataType, ge::FORMAT_ND);
+    cs.key = TensorList("key", {4, 2048, 10}, "BSH", ge::DT_INT8, ge::FORMAT_ND);
+    cs.value = TensorList("value", {4, 2048, 10}, "BSH", ge::DT_INT8, ge::FORMAT_ND);
+    cs.quantScale2 = Tensor("quantScale2", {2, 2, 2, 2, 2}, "5", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.attentionOut = Tensor("attentionOut", {4, 1, 10}, "BSH", ge::DT_INT8, ge::FORMAT_ND);
+    cs.antiquantScale = Tensor("antiquantScale", {2}, "1", cs.mParam.kvDataType, ge::FORMAT_ND);
+    cs.antiquantOffset = Tensor("antiquantOffset", {2}, "1", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.keyAntiquantScale = Tensor("keyAntiquantScale", {2}, "1", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.valueAntiquantScale = Tensor("valueAntiquantScale", {2}, "1", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.keyAntiquantOffset = Tensor("keyAntiquantOffset", {2, 3}, "2", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.valueAntiquantOffset = Tensor("valueAntiquantOffset", {2, 4}, "1", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.mOpInfo.mExp.mSuccess = false;
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
+TEST_F(Ts_Fia_Ascend910_9591, case_compare_key_value_scale)
+{
+    FiaCase cs;
+    cs.mParam.b = 4;
+    cs.mParam.s = 2048;
+    cs.mParam.layout = "BSH";
+    cs.mParam.numHeads = 10;
+    cs.mParam.scaleValue = 1.0f;
+    ASSERT_TRUE(cs.Init());
+    cs.query = Tensor("query", {4, 1, 10}, "BSH", cs.mParam.kvDataType, ge::FORMAT_ND);
+    cs.key = TensorList("key", {4, 2048, 10}, "BSH", ge::DT_INT8, ge::FORMAT_ND);
+    cs.value = TensorList("value", {4, 2048, 10}, "BSH", ge::DT_INT8, ge::FORMAT_ND);
+    cs.quantScale2 = Tensor("quantScale2", {2, 2, 2, 2, 2}, "5", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.attentionOut = Tensor("attentionOut", {4, 1, 10}, "BSH", ge::DT_INT8, ge::FORMAT_ND);
+    cs.antiquantScale = Tensor("antiquantScale", {2}, "1", cs.mParam.kvDataType, ge::FORMAT_ND);
+    cs.antiquantOffset = Tensor("antiquantOffset", {2}, "1", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.keyAntiquantScale = Tensor("keyAntiquantScale", {2, 3}, "2", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.valueAntiquantScale = Tensor("valueAntiquantScale", {2, 4}, "2", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.keyAntiquantOffset = Tensor("keyAntiquantOffset", {2, 3}, "2", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.valueAntiquantOffset = Tensor("valueAntiquantOffset", {2, 3}, "2", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.mOpInfo.mExp.mSuccess = false;
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
+TEST_F(Ts_Fia_Ascend910_9591, case_compare_key_antiquant_mode)
+{
+    FiaCase cs;
+    cs.mParam.b = 4;
+    cs.mParam.s = 2048;
+    cs.mParam.layout = "BSH";
+    cs.mParam.numHeads = 10;
+    cs.mParam.scaleValue = 1.0f;
+    cs.mParam.key_antiquant_mode = 1;
+    cs.mParam.value_antiquant_mode = 3;
+    ASSERT_TRUE(cs.Init());
+    cs.query = Tensor("query", {4, 1, 10}, "BSH", cs.mParam.kvDataType, ge::FORMAT_ND);
+    cs.key = TensorList("key", {4, 2048, 10}, "BSH", ge::DT_INT8, ge::FORMAT_ND);
+    cs.value = TensorList("value", {4, 2048, 10}, "BSH", ge::DT_INT8, ge::FORMAT_ND);
+    cs.quantScale2 = Tensor("quantScale2", {2, 2, 2, 2, 2}, "5", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.attentionOut = Tensor("attentionOut", {4, 1, 10}, "BSH", ge::DT_INT8, ge::FORMAT_ND);
+    cs.antiquantScale = Tensor("antiquantScale", {2}, "1", cs.mParam.kvDataType, ge::FORMAT_ND);
+    cs.antiquantOffset = Tensor("antiquantOffset", {2}, "1", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.keyAntiquantScale = Tensor("keyAntiquantScale", {2, 3}, "2", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.valueAntiquantScale = Tensor("valueAntiquantScale", {2, 3}, "2", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.keyAntiquantOffset = Tensor("keyAntiquantOffset", {2, 3}, "2", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.valueAntiquantOffset = Tensor("valueAntiquantOffset", {2, 3}, "2", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.mOpInfo.mExp.mSuccess = false;
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
+TEST_F(Ts_Fia_Ascend910_9591, case_antiquant_mode_1)
+{
+    FiaCase cs;
+    cs.mParam.b = 4;
+    cs.mParam.s = 2048;
+    cs.mParam.layout = "BSH";
+    cs.mParam.numHeads = 10;
+    cs.mParam.scaleValue = 1.0f;
+    cs.mParam.key_antiquant_mode = 0;
+    cs.mParam.value_antiquant_mode = 0;
+    ASSERT_TRUE(cs.Init());
+    cs.query = Tensor("query", {4, 1, 10}, "BSH", cs.mParam.kvDataType, ge::FORMAT_ND);
+    cs.key = TensorList("key", {4, 2048, 10}, "BSH", ge::DT_INT8, ge::FORMAT_ND);
+    cs.value = TensorList("value", {4, 2048, 10}, "BSH", ge::DT_INT8, ge::FORMAT_ND);
+    cs.quantScale2 = Tensor("quantScale2", {2, 2, 2, 2, 2}, "5", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.attentionOut = Tensor("attentionOut", {4, 1, 10}, "BSH", ge::DT_INT8, ge::FORMAT_ND);
+    cs.antiquantScale = Tensor("antiquantScale", {2}, "1", cs.mParam.kvDataType, ge::FORMAT_ND);
+    cs.antiquantOffset = Tensor("antiquantOffset", {2}, "1", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.keyAntiquantScale = Tensor("keyAntiquantScale", {2, 3}, "2", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.valueAntiquantScale = Tensor("valueAntiquantScale", {2, 3}, "2", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.keyAntiquantOffset = Tensor("keyAntiquantOffset", {2, 3}, "2", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.valueAntiquantOffset = Tensor("valueAntiquantOffset", {2, 3}, "2", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.mOpInfo.mExp.mSuccess = false;
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
+TEST_F(Ts_Fia_Ascend910_9591, case_antiquant_mode_msd2) // for msd PFA
+{
+    FiaCase cs;
+    cs.mParam.b = 4;
+    cs.mParam.s = 16;
+    cs.mParam.layout = "BSH";
+    cs.mParam.numHeads = 1;
+    cs.mParam.scaleValue = 1.0f;
+    cs.mParam.key_antiquant_mode = 0;
+    cs.mParam.value_antiquant_mode = 0;
+    cs.mParam.kvDataType = ge::DT_INT8;
+    ASSERT_TRUE(cs.Init());
+    cs.query = Tensor("query", {4, 6, 128}, "BSH", ge::DT_BF16, ge::FORMAT_ND);
+    cs.key = TensorList("key", {4, 16, 128}, "BSH", ge::DT_INT8, ge::FORMAT_ND);
+    cs.value = TensorList("value", {4, 16, 128}, "BSH", ge::DT_INT8, ge::FORMAT_ND);
+    cs.quantScale2 = Tensor("quantScale2", {2, 2, 2, 2, 2}, "5", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.attentionOut = Tensor("attentionOut", {4, 6, 128}, "BSH", ge::DT_BF16, ge::FORMAT_ND);
+    cs.antiquantScale = Tensor("antiquantScale", {2}, "1", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.antiquantOffset = Tensor("antiquantOffset", {2}, "1", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.keyAntiquantScale = Tensor("keyAntiquantScale", {1, 128}, "2", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.valueAntiquantScale = Tensor("valueAntiquantScale", {1, 128}, "2", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.keyAntiquantOffset = Tensor("keyAntiquantOffset", {1, 128}, "2", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.valueAntiquantOffset = Tensor("valueAntiquantOffset", {1, 128}, "2", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.mOpInfo.mExp.mSuccess = false;
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
+TEST_F(Ts_Fia_Ascend910_9591, case_antiquant_mode_msd3) // for msd PFA
+{
+    FiaCase cs;
+    cs.mParam.b = 4;
+    cs.mParam.s = 16;
+    cs.mParam.layout = "BSH";
+    cs.mParam.numHeads = 1;
+    cs.mParam.scaleValue = 1.0f;
+    cs.mParam.key_antiquant_mode = 0;
+    cs.mParam.value_antiquant_mode = 0;
+    cs.mParam.kvDataType = ge::DT_INT8;
+    ASSERT_TRUE(cs.Init());
+    cs.query = Tensor("query", {4, 6, 128}, "BSH", ge::DT_BF16, ge::FORMAT_ND);
+    cs.key = TensorList("key", {4, 16, 128}, "BSH", ge::DT_INT8, ge::FORMAT_ND);
+    cs.value = TensorList("value", {4, 16, 128}, "BSH", ge::DT_INT8, ge::FORMAT_ND);
+    cs.quantScale2 = Tensor("quantScale2", {2, 2, 2, 2, 2}, "5", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.attentionOut = Tensor("attentionOut", {4, 6, 128}, "BSH", ge::DT_BF16, ge::FORMAT_ND);
+    cs.antiquantScale = Tensor("antiquantScale", {2}, "1", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.antiquantOffset = Tensor("antiquantOffset", {2}, "1", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.keyAntiquantScale = Tensor("keyAntiquantScale", {1, 1, 128}, "2", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.valueAntiquantScale = Tensor("valueAntiquantScale", {1, 1, 128}, "2", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.keyAntiquantOffset = Tensor("keyAntiquantOffset", {1, 1, 128}, "2", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.valueAntiquantOffset = Tensor("valueAntiquantOffset", {1, 1, 128}, "2", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.mOpInfo.mExp.mSuccess = false;
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
+TEST_F(Ts_Fia_Ascend910_9591, case_antiquant_mode_msd4) // for msd PFA
+{
+    FiaCase cs;
+    cs.mParam.b = 4;
+    cs.mParam.s = 16;
+    cs.mParam.layout = "BSH";
+    cs.mParam.numHeads = 1;
+    cs.mParam.scaleValue = 1.0f;
+    cs.mParam.key_antiquant_mode = 0;
+    cs.mParam.value_antiquant_mode = 0;
+    cs.mParam.kvDataType = ge::DT_INT8;
+    ASSERT_TRUE(cs.Init());
+    cs.query = Tensor("query", {4, 6, 128}, "BSH", ge::DT_BF16, ge::FORMAT_ND);
+    cs.key = TensorList("key", {4, 16, 128}, "BSH", ge::DT_INT8, ge::FORMAT_ND);
+    cs.value = TensorList("value", {4, 16, 128}, "BSH", ge::DT_INT8, ge::FORMAT_ND);
+    cs.quantScale2 = Tensor("quantScale2", {2, 2, 2, 2, 2}, "5", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.attentionOut = Tensor("attentionOut", {4, 6, 128}, "BSH", ge::DT_BF16, ge::FORMAT_ND);
+    cs.antiquantScale = Tensor("antiquantScale", {2}, "1", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.antiquantOffset = Tensor("antiquantOffset", {2}, "1", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.keyAntiquantScale = Tensor("keyAntiquantScale", {128}, "2", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.valueAntiquantScale = Tensor("valueAntiquantScale", {128}, "2", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.keyAntiquantOffset = Tensor("keyAntiquantOffset", {128}, "2", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.valueAntiquantOffset = Tensor("valueAntiquantOffset", {128}, "2", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.mOpInfo.mExp.mSuccess = false;
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
+TEST_F(Ts_Fia_Ascend910_9591, case_antiquant_mode_msd5) // for msd PFA
+{
+    FiaCase cs;
+    cs.mParam.b = 4;
+    cs.mParam.s = 16;
+    cs.mParam.layout = "BSH";
+    cs.mParam.numHeads = 1;
+    cs.mParam.scaleValue = 1.0f;
+    cs.mParam.key_antiquant_mode = 0;
+    cs.mParam.value_antiquant_mode = 0;
+    cs.mParam.kvDataType = ge::DT_INT8;
+    ASSERT_TRUE(cs.Init());
+    cs.query = Tensor("query", {4, 17, 128}, "BSH", ge::DT_BF16, ge::FORMAT_ND);
+    cs.key = TensorList("key", {4, 16, 128}, "BSH", ge::DT_INT8, ge::FORMAT_ND);
+    cs.value = TensorList("value", {4, 16, 128}, "BSH", ge::DT_INT8, ge::FORMAT_ND);
+    cs.quantScale2 = Tensor("quantScale2", {2, 2, 2, 2, 2}, "5", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.attentionOut = Tensor("attentionOut", {4, 6, 128}, "BSH", ge::DT_BF16, ge::FORMAT_ND);
+    cs.antiquantScale = Tensor("antiquantScale", {2}, "1", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.antiquantOffset = Tensor("antiquantOffset", {2}, "1", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.keyAntiquantScale = Tensor("keyAntiquantScale", {128}, "2", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.valueAntiquantScale = Tensor("valueAntiquantScale", {128}, "2", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.keyAntiquantOffset = Tensor("keyAntiquantOffset", {128}, "2", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.valueAntiquantOffset = Tensor("valueAntiquantOffset", {128}, "2", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.mOpInfo.mExp.mSuccess = false;
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
+TEST_F(Ts_Fia_Ascend910_9591, case_antiquant_mode_msd6) // for msd PFA
+{
+    FiaCase cs;
+    cs.mParam.b = 4;
+    cs.mParam.s = 16;
+    cs.mParam.layout = "BSH";
+    cs.mParam.numHeads = 1;
+    cs.mParam.scaleValue = 1.0f;
+    cs.mParam.key_antiquant_mode = 0;
+    cs.mParam.value_antiquant_mode = 0;
+    cs.mParam.kvDataType = ge::DT_INT8;
+    ASSERT_TRUE(cs.Init());
+    cs.query = Tensor("query", {4, 17, 128}, "BSH", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.key = TensorList("key", {4, 16, 128}, "BSH", ge::DT_INT8, ge::FORMAT_ND);
+    cs.value = TensorList("value", {4, 16, 128}, "BSH", ge::DT_INT8, ge::FORMAT_ND);
+    cs.quantScale2 = Tensor("quantScale2", {2, 2, 2, 2, 2}, "5", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.attentionOut = Tensor("attentionOut", {4, 6, 128}, "BSH", ge::DT_BF16, ge::FORMAT_ND);
+    cs.antiquantScale = Tensor("antiquantScale", {2}, "1", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.antiquantOffset = Tensor("antiquantOffset", {2}, "1", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.keyAntiquantScale = Tensor("keyAntiquantScale", {128}, "2", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.valueAntiquantScale = Tensor("valueAntiquantScale", {128}, "2", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.keyAntiquantOffset = Tensor("keyAntiquantOffset", {128}, "2", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.valueAntiquantOffset = Tensor("valueAntiquantOffset", {128}, "2", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.mOpInfo.mExp.mSuccess = false;
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
+TEST_F(Ts_Fia_Ascend910_9591, case_antiquant_mode_msd7) // for msd PFA
+{
+    FiaCase cs;
+    cs.mParam.b = 4;
+    cs.mParam.s = 32;
+    cs.mParam.layout = "BSH";
+    cs.mParam.numHeads = 1;
+    cs.mParam.scaleValue = 1.0f;
+    cs.mParam.key_antiquant_mode = 1;
+    cs.mParam.value_antiquant_mode = 1;
+    cs.mParam.kvDataType = ge::DT_INT8;
+    ASSERT_TRUE(cs.Init());
+    cs.query = Tensor("query", {4, 32, 128}, "BSH", ge::DT_BF16, ge::FORMAT_ND);
+    cs.key = TensorList("key", {4, 16, 128}, "BSH", ge::DT_INT8, ge::FORMAT_ND);
+    cs.value = TensorList("value", {4, 16, 128}, "BSH", ge::DT_INT8, ge::FORMAT_ND);
+    cs.quantScale2 = Tensor("quantScale2", {2, 2, 2, 2, 2}, "5", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.attentionOut = Tensor("attentionOut", {4, 6, 128}, "BSH", ge::DT_BF16, ge::FORMAT_ND);
+    cs.antiquantScale = Tensor("antiquantScale", {2}, "1", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.antiquantOffset = Tensor("antiquantOffset", {2}, "1", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.keyAntiquantScale = Tensor("keyAntiquantScale", {4, 16}, "2", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.valueAntiquantScale = Tensor("valueAntiquantScale", {4, 16}, "2", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.keyAntiquantOffset = Tensor("keyAntiquantOffset", {4, 16}, "2", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.valueAntiquantOffset = Tensor("valueAntiquantOffset", {4, 16}, "2", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.mOpInfo.mExp.mSuccess = false;
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
+TEST_F(Ts_Fia_Ascend910_9591, case_antiquant_mode_msd8) // for msd PFA
+{
+    FiaCase cs;
+    cs.mParam.b = 4;
+    cs.mParam.s = 256;
+    cs.mParam.layout = "BSH";
+    cs.mParam.numHeads = 1;
+    cs.mParam.scaleValue = 1.0f;
+    cs.mParam.key_antiquant_mode = 1;
+    cs.mParam.value_antiquant_mode = 1;
+    cs.mParam.kvDataType = ge::DT_INT8;
+    ASSERT_TRUE(cs.Init());
+    cs.query = Tensor("query", {4, 256, 128}, "BSH", ge::DT_BF16, ge::FORMAT_ND);
+    cs.key = TensorList("key", {4, 256, 128}, "BSH", ge::DT_INT8, ge::FORMAT_ND);
+    cs.value = TensorList("value", {4, 256, 128}, "BSH", ge::DT_INT8, ge::FORMAT_ND);
+    cs.quantScale2 = Tensor("quantScale2", {2, 2, 2, 2, 2}, "5", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.attentionOut = Tensor("attentionOut", {4, 6, 128}, "BSH", ge::DT_BF16, ge::FORMAT_ND);
+    cs.antiquantScale = Tensor("antiquantScale", {2}, "1", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.antiquantOffset = Tensor("antiquantOffset", {2}, "1", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.keyAntiquantScale = Tensor("keyAntiquantScale", {4, 256}, "2", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.valueAntiquantScale = Tensor("valueAntiquantScale", {4, 256}, "2", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.keyAntiquantOffset = Tensor("keyAntiquantOffset", {4, 256}, "2", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.valueAntiquantOffset = Tensor("valueAntiquantOffset", {4, 256}, "2", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.mOpInfo.mExp.mSuccess = false;
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
+TEST_F(Ts_Fia_Ascend910_9591, case_antiquant_mode_fp16_msd1) // for msd PFA fp16 pertoken
+{
+    FiaCase cs;
+    cs.mParam.b = 4;
+    cs.mParam.s = 16;
+    cs.mParam.layout = "BSH";
+    cs.mParam.numHeads = 1;
+    cs.mParam.scaleValue = 1.0f;
+    cs.mParam.key_antiquant_mode = 0;
+    cs.mParam.value_antiquant_mode = 0;
+    cs.mParam.kvDataType = ge::DT_INT8;
+    ASSERT_TRUE(cs.Init());
+    cs.query = Tensor("query", {4, 6, 128}, "BSH", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.key = TensorList("key", {4, 16, 128}, "BSH", ge::DT_INT8, ge::FORMAT_ND);
+    cs.value = TensorList("value", {4, 16, 128}, "BSH", ge::DT_INT8, ge::FORMAT_ND);
+    cs.quantScale2 = Tensor("quantScale2", {2, 2, 2, 2, 2}, "5", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.attentionOut = Tensor("attentionOut", {4, 6, 128}, "BSH", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.antiquantScale = Tensor("antiquantScale", {2}, "1", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.antiquantOffset = Tensor("antiquantOffset", {2}, "1", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.keyAntiquantScale = Tensor("keyAntiquantScale", {1, 128}, "2", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.valueAntiquantScale = Tensor("valueAntiquantScale", {1, 128}, "2", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.keyAntiquantOffset = Tensor("keyAntiquantOffset", {1, 128}, "2", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.valueAntiquantOffset = Tensor("valueAntiquantOffset", {1, 128}, "2", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.mOpInfo.mExp.mSuccess = false;
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
+TEST_F(Ts_Fia_Ascend910_9591, case_antiquant_mode_fp16_msd2) // for msd PFA fp16 pertoken
+{
+    FiaCase cs;
+    cs.mParam.b = 4;
+    cs.mParam.s = 16;
+    cs.mParam.layout = "BSH";
+    cs.mParam.numHeads = 1;
+    cs.mParam.scaleValue = 1.0f;
+    cs.mParam.key_antiquant_mode = 0;
+    cs.mParam.value_antiquant_mode = 0;
+    cs.mParam.kvDataType = ge::DT_INT8;
+    ASSERT_TRUE(cs.Init());
+    cs.query = Tensor("query", {4, 6, 128}, "BSH", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.key = TensorList("key", {4, 16, 128}, "BSH", ge::DT_INT8, ge::FORMAT_ND);
+    cs.value = TensorList("value", {4, 16, 128}, "BSH", ge::DT_INT8, ge::FORMAT_ND);
+    cs.quantScale2 = Tensor("quantScale2", {2, 2, 2, 2, 2}, "5", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.attentionOut = Tensor("attentionOut", {4, 6, 128}, "BSH", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.antiquantScale = Tensor("antiquantScale", {2}, "1", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.antiquantOffset = Tensor("antiquantOffset", {2}, "1", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.keyAntiquantScale = Tensor("keyAntiquantScale", {1, 1, 128}, "2", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.valueAntiquantScale = Tensor("valueAntiquantScale", {1, 1, 128}, "2", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.keyAntiquantOffset = Tensor("keyAntiquantOffset", {1, 1, 128}, "2", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.valueAntiquantOffset = Tensor("valueAntiquantOffset", {1, 1, 128}, "2", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.mOpInfo.mExp.mSuccess = false;
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
+TEST_F(Ts_Fia_Ascend910_9591, case_antiquant_mode_fp16_msd3) // for msd PFA fp16 pertoken
+{
+    FiaCase cs;
+    cs.mParam.b = 4;
+    cs.mParam.s = 16;
+    cs.mParam.layout = "BSH";
+    cs.mParam.numHeads = 1;
+    cs.mParam.scaleValue = 1.0f;
+    cs.mParam.key_antiquant_mode = 0;
+    cs.mParam.value_antiquant_mode = 0;
+    cs.mParam.kvDataType = ge::DT_INT8;
+    ASSERT_TRUE(cs.Init());
+    cs.query = Tensor("query", {4, 6, 128}, "BSH", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.key = TensorList("key", {4, 16, 128}, "BSH", ge::DT_INT8, ge::FORMAT_ND);
+    cs.value = TensorList("value", {4, 16, 128}, "BSH", ge::DT_INT8, ge::FORMAT_ND);
+    cs.quantScale2 = Tensor("quantScale2", {2, 2, 2, 2, 2}, "5", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.attentionOut = Tensor("attentionOut", {4, 6, 128}, "BSH", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.antiquantScale = Tensor("antiquantScale", {2}, "1", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.antiquantOffset = Tensor("antiquantOffset", {2}, "1", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.keyAntiquantScale = Tensor("keyAntiquantScale", {128}, "2", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.valueAntiquantScale = Tensor("valueAntiquantScale", {128}, "2", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.keyAntiquantOffset = Tensor("keyAntiquantOffset", {128}, "2", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.valueAntiquantOffset = Tensor("valueAntiquantOffset", {128}, "2", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.mOpInfo.mExp.mSuccess = false;
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
+TEST_F(Ts_Fia_Ascend910_9591, case_antiquant_mode_fp16_msd4) // for msd PFA fp16 pertoken
+{
+    FiaCase cs;
+    cs.mParam.b = 4;
+    cs.mParam.s = 16;
+    cs.mParam.layout = "BSH";
+    cs.mParam.numHeads = 1;
+    cs.mParam.scaleValue = 1.0f;
+    cs.mParam.key_antiquant_mode = 0;
+    cs.mParam.value_antiquant_mode = 0;
+    cs.mParam.kvDataType = ge::DT_INT8;
+    ASSERT_TRUE(cs.Init());
+    cs.query = Tensor("query", {4, 17, 128}, "BSH", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.key = TensorList("key", {4, 16, 128}, "BSH", ge::DT_INT8, ge::FORMAT_ND);
+    cs.value = TensorList("value", {4, 16, 128}, "BSH", ge::DT_INT8, ge::FORMAT_ND);
+    cs.quantScale2 = Tensor("quantScale2", {2, 2, 2, 2, 2}, "5", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.attentionOut = Tensor("attentionOut", {4, 6, 128}, "BSH", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.antiquantScale = Tensor("antiquantScale", {2}, "1", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.antiquantOffset = Tensor("antiquantOffset", {2}, "1", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.keyAntiquantScale = Tensor("keyAntiquantScale", {128}, "2", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.valueAntiquantScale = Tensor("valueAntiquantScale", {128}, "2", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.keyAntiquantOffset = Tensor("keyAntiquantOffset", {128}, "2", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.valueAntiquantOffset = Tensor("valueAntiquantOffset", {128}, "2", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.mOpInfo.mExp.mSuccess = false;
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
+TEST_F(Ts_Fia_Ascend910_9591, case_antiquant_mode_fp16_msd5) // for msd PFA fp16 pertoken
+{
+    FiaCase cs;
+    cs.mParam.b = 4;
+    cs.mParam.s = 16;
+    cs.mParam.layout = "BSH";
+    cs.mParam.numHeads = 1;
+    cs.mParam.scaleValue = 1.0f;
+    cs.mParam.key_antiquant_mode = 0;
+    cs.mParam.value_antiquant_mode = 0;
+    cs.mParam.kvDataType = ge::DT_INT8;
+    ASSERT_TRUE(cs.Init());
+    cs.query = Tensor("query", {4, 17, 128}, "BSH", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.key = TensorList("key", {4, 16, 128}, "BSH", ge::DT_INT8, ge::FORMAT_ND);
+    cs.value = TensorList("value", {4, 16, 128}, "BSH", ge::DT_INT8, ge::FORMAT_ND);
+    cs.quantScale2 = Tensor("quantScale2", {2, 2, 2, 2, 2}, "5", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.attentionOut = Tensor("attentionOut", {4, 6, 128}, "BSH", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.antiquantScale = Tensor("antiquantScale", {2}, "1", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.antiquantOffset = Tensor("antiquantOffset", {2}, "1", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.keyAntiquantScale = Tensor("keyAntiquantScale", {128}, "2", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.valueAntiquantScale = Tensor("valueAntiquantScale", {128}, "2", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.keyAntiquantOffset = Tensor("keyAntiquantOffset", {128}, "2", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.valueAntiquantOffset = Tensor("valueAntiquantOffset", {128}, "2", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.mOpInfo.mExp.mSuccess = false;
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
+TEST_F(Ts_Fia_Ascend910_9591, case_antiquant_mode_fp16_msd6) // for msd PFA fp16 pertoken
+{
+    FiaCase cs;
+    cs.mParam.b = 4;
+    cs.mParam.s = 32;
+    cs.mParam.layout = "BSH";
+    cs.mParam.numHeads = 1;
+    cs.mParam.scaleValue = 1.0f;
+    cs.mParam.key_antiquant_mode = 1;
+    cs.mParam.value_antiquant_mode = 1;
+    cs.mParam.kvDataType = ge::DT_INT8;
+    ASSERT_TRUE(cs.Init());
+    cs.query = Tensor("query", {4, 32, 128}, "BSH", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.key = TensorList("key", {4, 16, 128}, "BSH", ge::DT_INT8, ge::FORMAT_ND);
+    cs.value = TensorList("value", {4, 16, 128}, "BSH", ge::DT_INT8, ge::FORMAT_ND);
+    cs.quantScale2 = Tensor("quantScale2", {2, 2, 2, 2, 2}, "5", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.attentionOut = Tensor("attentionOut", {4, 6, 128}, "BSH", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.antiquantScale = Tensor("antiquantScale", {2}, "1", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.antiquantOffset = Tensor("antiquantOffset", {2}, "1", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.keyAntiquantScale = Tensor("keyAntiquantScale", {4, 16}, "2", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.valueAntiquantScale = Tensor("valueAntiquantScale", {4, 16}, "2", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.keyAntiquantOffset = Tensor("keyAntiquantOffset", {4, 16}, "2", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.valueAntiquantOffset = Tensor("valueAntiquantOffset", {4, 16}, "2", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.mOpInfo.mExp.mSuccess = false;
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
+TEST_F(Ts_Fia_Ascend910_9591, case_antiquant_mode_fp16_msd7) // for msd PFA fp16 pertoken
+{
+    FiaCase cs;
+    cs.mParam.b = 4;
+    cs.mParam.s = 256;
+    cs.mParam.layout = "BSH";
+    cs.mParam.numHeads = 1;
+    cs.mParam.scaleValue = 1.0f;
+    cs.mParam.key_antiquant_mode = 1;
+    cs.mParam.value_antiquant_mode = 1;
+    cs.mParam.kvDataType = ge::DT_INT8;
+    ASSERT_TRUE(cs.Init());
+    cs.query = Tensor("query", {4, 256, 128}, "BSH", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.key = TensorList("key", {4, 256, 128}, "BSH", ge::DT_INT8, ge::FORMAT_ND);
+    cs.value = TensorList("value", {4, 256, 128}, "BSH", ge::DT_INT8, ge::FORMAT_ND);
+    cs.quantScale2 = Tensor("quantScale2", {2, 2, 2, 2, 2}, "5", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.attentionOut = Tensor("attentionOut", {4, 6, 128}, "BSH", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.antiquantScale = Tensor("antiquantScale", {2}, "1", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.antiquantOffset = Tensor("antiquantOffset", {2}, "1", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.keyAntiquantScale = Tensor("keyAntiquantScale", {4, 256}, "2", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.valueAntiquantScale = Tensor("valueAntiquantScale", {4, 256}, "2", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.keyAntiquantOffset = Tensor("keyAntiquantOffset", {4, 256}, "2", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.valueAntiquantOffset = Tensor("valueAntiquantOffset", {4, 256}, "2", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.mOpInfo.mExp.mSuccess = false;
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
+TEST_F(Ts_Fia_Ascend910_9591, case_antiquant_mode_2)
+{
+    FiaCase cs;
+    cs.mParam.b = 4;
+    cs.mParam.s = 2048;
+    cs.mParam.layout = "BSH";
+    cs.mParam.numHeads = 10;
+    cs.mParam.scaleValue = 1.0f;
+    cs.mParam.key_antiquant_mode = 1;
+    cs.mParam.value_antiquant_mode = 1;
+    cs.mParam.antiquant_mode = 1;
+    cs.mParam.softmax_lse_flag = 1;
+    ASSERT_TRUE(cs.Init());
+    cs.query = Tensor("query", {4, 1, 10}, "BSH", cs.mParam.kvDataType, ge::FORMAT_ND);
+    cs.key = TensorList("key", {4, 2048, 10}, "BSH", ge::DT_INT8, ge::FORMAT_ND);
+    cs.value = TensorList("value", {4, 2048, 10}, "BSH", ge::DT_INT8, ge::FORMAT_ND);
+    cs.quantScale2 = Tensor("quantScale2", {2, 2, 2, 2, 2}, "5", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.attentionOut = Tensor("attentionOut", {4, 1, 10}, "BSH", ge::DT_INT8, ge::FORMAT_ND);
+    cs.antiquantScale = Tensor("antiquantScale", {2, 2, 2}, "3", cs.mParam.kvDataType, ge::FORMAT_ND);
+    cs.antiquantOffset = Tensor("antiquantOffset", {2, 2, 2}, "3", cs.mParam.kvDataType, ge::FORMAT_ND);
+    cs.mOpInfo.mExp.mSuccess = false;
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
+TEST_F(Ts_Fia_Ascend910_9591, case_antiquant_mode_3)
+{
+    FiaCase cs;
+    cs.mParam.b = 4;
+    cs.mParam.s = 2048;
+    cs.mParam.layout = "BSH";
+    cs.mParam.numHeads = 10;
+    cs.mParam.scaleValue = 1.0f;
+    cs.mParam.key_antiquant_mode = 1;
+    cs.mParam.value_antiquant_mode = 1;
+    cs.mParam.antiquant_mode = 1;
+    cs.mParam.softmax_lse_flag = 1;
+    ASSERT_TRUE(cs.Init());
+    cs.query = Tensor("query", {4, 1, 10}, "BSH", cs.mParam.kvDataType, ge::FORMAT_ND);
+    cs.key = TensorList("key", {4, 2048, 10}, "BSH", ge::DT_INT8, ge::FORMAT_ND);
+    cs.value = TensorList("value", {4, 2048, 10}, "BSH", ge::DT_INT8, ge::FORMAT_ND);
+    cs.quantScale2 = Tensor("quantScale2", {2, 2, 2, 2, 2}, "5", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.attentionOut = Tensor("attentionOut", {4, 1, 10}, "BSH", ge::DT_INT8, ge::FORMAT_ND);
+    cs.antiquantScale = Tensor("antiquantScale", {2, 4, 2048}, "3", cs.mParam.kvDataType, ge::FORMAT_ND);
+    cs.antiquantOffset = Tensor("antiquantOffset", {2, 4, 2048}, "3", cs.mParam.kvDataType, ge::FORMAT_ND);
+    cs.mOpInfo.mExp.mSuccess = false;
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
+TEST_F(Ts_Fia_Ascend910_9591, case_actual_share_prefix_bsh)
+{
+    FiaCase cs;
+    cs.mParam.b = 4;
+    cs.mParam.s = 2048;
+    cs.mParam.layout = "BSH";
+    cs.mParam.numHeads = 10;
+    cs.mParam.scaleValue = 1.0f;
+    cs.mParam.key_antiquant_mode = 1;
+    cs.mParam.value_antiquant_mode = 1;
+    ASSERT_TRUE(cs.Init());
+    cs.query = Tensor("query", {4, 1, 10}, "BSH", cs.mParam.kvDataType, ge::FORMAT_ND);
+    cs.key = TensorList("key", {4, 2048, 10}, "BSH", ge::DT_INT8, ge::FORMAT_ND);
+    cs.value = TensorList("value", {4, 2048, 10}, "BSH", ge::DT_INT8, ge::FORMAT_ND);
+    cs.quantScale2 = Tensor("quantScale2", {2, 2, 2, 2, 2}, "5", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.attentionOut = Tensor("attentionOut", {4, 1, 10}, "BSH", ge::DT_INT8, ge::FORMAT_ND);
+    cs.antiquantScale = Tensor("antiquantScale", {2, 4, 2048}, "3", cs.mParam.kvDataType, ge::FORMAT_ND);
+    cs.antiquantOffset = Tensor("antiquantOffset", {2, 4, 2048}, "3", cs.mParam.kvDataType, ge::FORMAT_ND);
+    cs.keySharedPrefix = Tensor("keySharedPrefix", {1, 0, 10}, "3", ge::DT_INT8, ge::FORMAT_ND);
+    cs.valueSharedPrefix = Tensor("valueSharedPrefix", {1, 0, 10}, "3", ge::DT_INT8, ge::FORMAT_ND);
+    cs.actualSharedPrefixLen = Tensor("actualSharedPrefixLen", {1, 0, 10}, "3", ge::DT_INT8, ge::FORMAT_ND);
+    cs.mOpInfo.mExp.mSuccess = false;
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
+TEST_F(Ts_Fia_Ascend910_9591, case_antiquant_mode_msd_kvSep) // for msd IFA
+{
+    FiaCase cs;
+    cs.mParam.b = 4;
+    cs.mParam.s = 16;
+    cs.mParam.layout = "BSH";
+    cs.mParam.numHeads = 1;
+    cs.mParam.scaleValue = 1.0f;
+    cs.mParam.key_antiquant_mode = 0;
+    cs.mParam.value_antiquant_mode = 1;
+    cs.mParam.kvDataType = ge::DT_INT8;
+    ASSERT_TRUE(cs.Init());
+    cs.query = Tensor("query", {4, 1, 128}, "BSH", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.key = TensorList("key", {4, 16, 128}, "BSH", ge::DT_INT8, ge::FORMAT_ND);
+    cs.value = TensorList("value", {4, 16, 128}, "BSH", ge::DT_INT8, ge::FORMAT_ND);
+    cs.attentionOut = Tensor("attentionOut", {4, 1, 128}, "BSH", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.antiquantScale = Tensor("antiquantScale", {2}, "1", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.antiquantOffset = Tensor("antiquantOffset", {2}, "1", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.keyAntiquantScale = Tensor("keyAntiquantScale", {1, 128}, "2", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.valueAntiquantScale = Tensor("valueAntiquantScale", {1, 4, 16}, "3", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.keyAntiquantOffset = Tensor("keyAntiquantOffset", {1, 128}, "2", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.valueAntiquantOffset = Tensor("valueAntiquantOffset", {1, 4, 16}, "3", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.mOpInfo.mExp.mSuccess = true;
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
+TEST_F(Ts_Fia_Ascend910_9591, case_antiquant_mode_msd_kvSep_0) // for msd IFA
+{
+    FiaCase cs;
+    cs.mParam.b = 4;
+    cs.mParam.s = 16;
+    cs.mParam.layout = "BSH";
+    cs.mParam.numHeads = 1;
+    cs.mParam.scaleValue = 1.0f;
+    cs.mParam.key_antiquant_mode = 0;
+    cs.mParam.value_antiquant_mode = 1;
+    cs.mParam.kvDataType = ge::DT_INT8;
+    ASSERT_TRUE(cs.Init());
+    cs.query = Tensor("query", {4, 1, 128}, "BSH", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.key = TensorList("key", {4, 16, 128}, "BSH", ge::DT_INT8, ge::FORMAT_ND);
+    cs.value = TensorList("value", {4, 16, 128}, "BSH", ge::DT_INT8, ge::FORMAT_ND);
+    cs.attentionOut = Tensor("attentionOut", {4, 1, 128}, "BSH", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.antiquantScale = Tensor("antiquantScale", {2}, "1", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.antiquantOffset = Tensor("antiquantOffset", {2}, "1", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.keyAntiquantScale = Tensor("keyAntiquantScale", {1, 128}, "2", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.valueAntiquantScale = Tensor("valueAntiquantScale", {1, 4, 16}, "3", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.keyAntiquantOffset = Tensor("keyAntiquantOffset", {1, 128}, "2", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.valueAntiquantOffset = Tensor("valueAntiquantOffset", {1, 4, 16}, "3", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.mOpInfo.mExp.mSuccess = false;
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
+TEST_F(Ts_Fia_Ascend910_9591, case_antiquant_mode_msd_kvSep_1) // for msd IFA
+{
+    FiaCase cs;
+    cs.mParam.b = 4;
+    cs.mParam.s = 16;
+    cs.mParam.layout = "BSH";
+    cs.mParam.numHeads = 1;
+    cs.mParam.scaleValue = 1.0f;
+    cs.mParam.key_antiquant_mode = 0;
+    cs.mParam.value_antiquant_mode = 1;
+    cs.mParam.kvDataType = ge::DT_INT8;
+    ASSERT_TRUE(cs.Init());
+    cs.query = Tensor("query", {4, 1, 128}, "BSH", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.key = TensorList("key", {4, 16, 128}, "BSH", ge::DT_INT8, ge::FORMAT_ND);
+    cs.value = TensorList("value", {4, 16, 128}, "BSH", ge::DT_INT8, ge::FORMAT_ND);
+    cs.attentionOut = Tensor("attentionOut", {4, 1, 128}, "BSH", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.antiquantScale = Tensor("antiquantScale", {2}, "1", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.antiquantOffset = Tensor("antiquantOffset", {2}, "1", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.keyAntiquantScale = Tensor("keyAntiquantScale", {1, 128}, "2", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.valueAntiquantScale = Tensor("valueAntiquantScale", {1, 4, 16}, "3", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.keyAntiquantOffset = Tensor("keyAntiquantOffset", {1, 128}, "2", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.valueAntiquantOffset = Tensor("valueAntiquantOffset", {1, 4, 16}, "3", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.mOpInfo.mExp.mSuccess = false;
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
+TEST_F(Ts_Fia_Ascend910_9591, case_antiquant_mode_msd_kvSep_2) // for msd IFA
+{
+    FiaCase cs;
+    cs.mParam.b = 4;
+    cs.mParam.s = 16;
+    cs.mParam.layout = "BSH";
+    cs.mParam.numHeads = 1;
+    cs.mParam.scaleValue = 1.0f;
+    cs.mParam.key_antiquant_mode = 0;
+    cs.mParam.value_antiquant_mode = 1;
+    cs.mParam.kvDataType = ge::DT_INT8;
+    ASSERT_TRUE(cs.Init());
+    cs.query = Tensor("query", {4, 1, 128}, "BSH", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.key = TensorList("key", {4, 16, 128}, "BSH", ge::DT_INT8, ge::FORMAT_ND);
+    cs.value = TensorList("value", {4, 16, 128}, "BSH", ge::DT_INT8, ge::FORMAT_ND);
+    cs.attentionOut = Tensor("attentionOut", {4, 1, 128}, "BSH", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.antiquantScale = Tensor("antiquantScale", {2}, "1", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.antiquantOffset = Tensor("antiquantOffset", {2}, "1", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.keyAntiquantScale = Tensor("keyAntiquantScale", {1, 128}, "2", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.valueAntiquantScale = Tensor("valueAntiquantScale", {1, 4, 16}, "3", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.keyAntiquantOffset = Tensor("keyAntiquantOffset", {1, 128}, "2", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.valueAntiquantOffset = Tensor("valueAntiquantOffset", {1, 4, 16}, "3", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.mOpInfo.mExp.mSuccess = false;
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
+TEST_F(Ts_Fia_Ascend910_9591, case_antiquant_mode_msd_kvSep_3) // for msd IFA
+{
+    FiaCase cs;
+    cs.mParam.b = 4;
+    cs.mParam.s = 16;
+    cs.mParam.layout = "BSH";
+    cs.mParam.numHeads = 1;
+    cs.mParam.scaleValue = 1.0f;
+    cs.mParam.key_antiquant_mode = 0;
+    cs.mParam.value_antiquant_mode = 1;
+    cs.mParam.kvDataType = ge::DT_INT8;
+    ASSERT_TRUE(cs.Init());
+    cs.query = Tensor("query", {4, 1, 128}, "BSH", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.key = TensorList("key", {4, 16, 128}, "BSH", ge::DT_INT8, ge::FORMAT_ND);
+    cs.value = TensorList("value", {4, 16, 128}, "BSH", ge::DT_INT8, ge::FORMAT_ND);
+    cs.attentionOut = Tensor("attentionOut", {4, 1, 128}, "BSH", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.antiquantScale = Tensor("antiquantScale", {2}, "1", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.antiquantOffset = Tensor("antiquantOffset", {2}, "1", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.keyAntiquantScale = Tensor("keyAntiquantScale", {1, 128}, "2", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.valueAntiquantScale = Tensor("valueAntiquantScale", {1, 4, 16}, "3", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.keyAntiquantOffset = Tensor("keyAntiquantOffset", {1, 128}, "2", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.valueAntiquantOffset = Tensor("valueAntiquantOffset", {1, 4, 16}, "3", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.mOpInfo.mExp.mSuccess = false;
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
+TEST_F(Ts_Fia_Ascend910_9591, case_deepseek_mla_qs_no_equal) // for mla
+{
+    FiaCase cs;
+    cs.mParam.b = 32;
+    cs.mParam.n = 32;
+    cs.mParam.s = 256;
+    cs.mParam.d = 512;
+    cs.mParam.layout = "BNSD";
+    cs.mParam.numHeads = 32;
+    cs.mParam.kvNumHeads = 1;
+    cs.mParam.scaleValue = 1.0f;
+    cs.mParam.kvDataType = ge::DT_FLOAT16;
+    cs.mParam.blockSize = 128;
+
+    ASSERT_TRUE(cs.Init());
+    cs.query = Tensor("query", {32, 32, 2, 512}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.key = TensorList("key", {64, 1, 128, 512}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.value = TensorList("value", {64, 1, 128, 512}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.attentionOut = Tensor("attentionOut", {32, 32, 2, 512}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.actualSeqLengthsKV = Tensor("actualSeqLengthsKV", {32}, "B", ge::DT_INT64, ge::FORMAT_ND);
+    cs.queryRope = Tensor("queryRope", {32, 32, 1, 64}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.keyRope = Tensor("keyRope", {64, 1, 128, 64}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.blocktable = Tensor("blockTable", {32, 2}, "BNSD", ge::DT_INT32, ge::FORMAT_ND);
+
+    cs.mOpInfo.mExp.mSuccess = false;
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
+TEST_F(Ts_Fia_Ascend910_9591, case_deepseek_mla_witmask_mtp_sparsemode_err) // for mla
+{
+    FiaCase cs;
+    cs.mParam.b = 32;
+    cs.mParam.n = 32;
+    cs.mParam.s = 256;
+    cs.mParam.d = 512;
+    cs.mParam.layout = "BNSD";
+    cs.mParam.numHeads = 32;
+    cs.mParam.kvNumHeads = 1;
+    cs.mParam.scaleValue = 1.0f;
+    cs.mParam.kvDataType = ge::DT_FLOAT16;
+    cs.mParam.blockSize = 128;
+    cs.mParam.sparse_mode = 0;
+
+    ASSERT_TRUE(cs.Init());
+    cs.query = Tensor("query", {32, 32, 2, 512}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.key = TensorList("key", {64, 1, 128, 512}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.value = TensorList("value", {64, 1, 128, 512}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.attentionOut = Tensor("attentionOut", {32, 32, 2, 512}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.actualSeqLengthsKV = Tensor("actualSeqLengthsKV", {32}, "B", ge::DT_INT64, ge::FORMAT_ND);
+    cs.queryRope = Tensor("queryRope", {32, 32, 2, 64}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.keyRope = Tensor("keyRope", {64, 1, 128, 64}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.blocktable = Tensor("blockTable", {32, 2}, "BNSD", ge::DT_INT32, ge::FORMAT_ND);
+    cs.attenMask = Tensor("attenMask", {2048, 2048}, "BB", ge::DT_INT8, ge::FORMAT_ND);
+
+    cs.mOpInfo.mExp.mSuccess = false;
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
+TEST_F(Ts_Fia_Ascend910_9591, case_deepseek_mla_witmask_mtp_maskshape_error) // for mla
+{
+    FiaCase cs;
+    cs.mParam.b = 32;
+    cs.mParam.n = 32;
+    cs.mParam.s = 256;
+    cs.mParam.d = 512;
+    cs.mParam.layout = "BNSD";
+    cs.mParam.numHeads = 32;
+    cs.mParam.kvNumHeads = 1;
+    cs.mParam.scaleValue = 1.0f;
+    cs.mParam.kvDataType = ge::DT_FLOAT16;
+    cs.mParam.blockSize = 128;
+    cs.mParam.sparse_mode = 3;  // 3, sparsemode 3
+
+    ASSERT_TRUE(cs.Init());
+    cs.query = Tensor("query", {32, 32, 2, 512}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.key = TensorList("key", {64, 1, 128, 512}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.value = TensorList("value", {64, 1, 128, 512}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.attentionOut = Tensor("attentionOut", {32, 32, 2, 512}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.actualSeqLengthsKV = Tensor("actualSeqLengthsKV", {32}, "B", ge::DT_INT64, ge::FORMAT_ND);
+    cs.queryRope = Tensor("queryRope", {32, 32, 2, 64}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.keyRope = Tensor("keyRope", {64, 1, 128, 64}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.blocktable = Tensor("blockTable", {32, 2}, "BNSD", ge::DT_INT32, ge::FORMAT_ND);
+    cs.attenMask = Tensor("attenMask", {2048, 2047}, "BB", ge::DT_INT8, ge::FORMAT_ND);
+
+    cs.mOpInfo.mExp.mSuccess = false;
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
+TEST_F(Ts_Fia_Ascend910_9591, case_deepseek_mla_witmask_sparsemode) // for mla
+{
+    FiaCase cs;
+    cs.mParam.b = 32;
+    cs.mParam.n = 32;
+    cs.mParam.s = 256;
+    cs.mParam.d = 512;
+    cs.mParam.layout = "BNSD";
+    cs.mParam.numHeads = 32;
+    cs.mParam.kvNumHeads = 1;
+    cs.mParam.scaleValue = 1.0f;
+    cs.mParam.kvDataType = ge::DT_FLOAT16;
+    cs.mParam.blockSize = 128;
+    cs.mParam.sparse_mode = 3;  // 3, sparsemode 3
+
+    ASSERT_TRUE(cs.Init());
+    cs.query = Tensor("query", {32, 32, 1, 512}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.key = TensorList("key", {64, 1, 128, 512}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.value = TensorList("value", {64, 1, 128, 512}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.attentionOut = Tensor("attentionOut", {32, 32, 1, 512}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.actualSeqLengthsKV = Tensor("actualSeqLengthsKV", {32}, "B", ge::DT_INT64, ge::FORMAT_ND);
+    cs.queryRope = Tensor("queryRope", {32, 32, 1, 64}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.keyRope = Tensor("keyRope", {64, 1, 128, 64}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.blocktable = Tensor("blockTable", {32, 2}, "BNSD", ge::DT_INT32, ge::FORMAT_ND);
+    cs.attenMask = Tensor("attenMask", {2048, 2047}, "BB", ge::DT_INT8, ge::FORMAT_ND);
+
+    cs.mOpInfo.mExp.mSuccess = false;
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
+TEST_F(Ts_Fia_Ascend910_9591, case_deepseek_mla_keyrope_null) // for mla
+{
+    FiaCase cs;
+    cs.mParam.b = 32;
+    cs.mParam.n = 32;
+    cs.mParam.s = 256;
+    cs.mParam.d = 512;
+    cs.mParam.layout = "BNSD";
+    cs.mParam.numHeads = 32;
+    cs.mParam.kvNumHeads = 1;
+    cs.mParam.scaleValue = 1.0f;
+    cs.mParam.kvDataType = ge::DT_FLOAT16;
+    cs.mParam.blockSize = 128;
+
+    ASSERT_TRUE(cs.Init());
+    cs.query = Tensor("query", {32, 32, 2, 512}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.key = TensorList("key", {64, 1, 128, 512}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.value = TensorList("value", {64, 1, 128, 512}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.attentionOut = Tensor("attentionOut", {32, 32, 2, 512}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.actualSeqLengthsKV = Tensor("actualSeqLengthsKV", {32}, "B", ge::DT_INT64, ge::FORMAT_ND);
+    cs.queryRope = Tensor("queryRope", {32, 32, 2, 64}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.blocktable = Tensor("blockTable", {32, 2}, "BNSD", ge::DT_INT32, ge::FORMAT_ND);
+
+    cs.mOpInfo.mExp.mSuccess = false;
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
+TEST_F(Ts_Fia_Ascend910_9591, case_deepseek_mla_keyrope_null_qactqlen32) // for mla
+{
+    FiaCase cs;
+    cs.mParam.b = 32;
+    cs.mParam.n = 32;
+    cs.mParam.s = 256;
+    cs.mParam.d = 512;
+    cs.mParam.layout = "BNSD";
+    cs.mParam.numHeads = 32;
+    cs.mParam.kvNumHeads = 1;
+    cs.mParam.scaleValue = 1.0f;
+    cs.mParam.kvDataType = ge::DT_FLOAT16;
+    cs.mParam.blockSize = 128;
+
+    ASSERT_TRUE(cs.Init());
+    cs.query = Tensor("query", {32, 32, 2, 512}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.key = TensorList("key", {64, 1, 128, 512}, "BNSD", ge::DT_INT8, ge::FORMAT_ND);
+    cs.value = TensorList("value", {64, 1, 128, 512}, "BNSD", ge::DT_INT8, ge::FORMAT_ND);
+    cs.attentionOut = Tensor("attentionOut", {32, 32, 2, 512}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.actualSeqLengthsKV = Tensor("actualSeqLengthsKV", {32}, "B", ge::DT_INT64, ge::FORMAT_ND);
+    cs.actualSeqLengths = Tensor("actualSeqLengths", {32}, "B", ge::DT_INT64, ge::FORMAT_ND);
+    cs.antiquantScale = Tensor("antiquantScale", {2}, "1", cs.mParam.kvDataType, ge::FORMAT_ND);
+    cs.antiquantOffset = Tensor("antiquantOffset", {2}, "1", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.blocktable = Tensor("blockTable", {32, 2}, "BNSD", ge::DT_INT32, ge::FORMAT_ND);
+
+    cs.mOpInfo.mExp.mSuccess = false;
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
+TEST_F(Ts_Fia_Ascend910_9591, case_deepseek_mla_keyrope_null_qactqlen1) // for mla
+{
+    FiaCase cs;
+    cs.mParam.b = 32;
+    cs.mParam.n = 32;
+    cs.mParam.s = 256;
+    cs.mParam.d = 512;
+    cs.mParam.layout = "BNSD";
+    cs.mParam.numHeads = 32;
+    cs.mParam.kvNumHeads = 1;
+    cs.mParam.scaleValue = 1.0f;
+    cs.mParam.kvDataType = ge::DT_FLOAT16;
+    cs.mParam.blockSize = 128;
+
+    ASSERT_TRUE(cs.Init());
+    cs.query = Tensor("query", {32, 32, 2, 512}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.key = TensorList("key", {64, 1, 128, 512}, "BNSD", ge::DT_INT8, ge::FORMAT_ND);
+    cs.value = TensorList("value", {64, 1, 128, 512}, "BNSD", ge::DT_INT8, ge::FORMAT_ND);
+    cs.attentionOut = Tensor("attentionOut", {32, 32, 2, 512}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.actualSeqLengthsKV = Tensor("actualSeqLengthsKV", {32}, "B", ge::DT_INT64, ge::FORMAT_ND);
+    cs.actualSeqLengths = Tensor("actualSeqLengths", {32}, "B", ge::DT_INT64, ge::FORMAT_ND);
+    cs.blocktable = Tensor("blockTable", {32, 2}, "BNSD", ge::DT_INT32, ge::FORMAT_ND);
+
+    cs.mOpInfo.mExp.mSuccess = false;
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
+TEST_F(Ts_Fia_Ascend910_9591, case_deepseek_mla_keyrope_null_qactqlenq) // for mla
+{
+    FiaCase cs;
+    cs.mParam.b = 32;
+    cs.mParam.n = 32;
+    cs.mParam.s = 256;
+    cs.mParam.d = 512;
+    cs.mParam.layout = "BNSD";
+    cs.mParam.numHeads = 32;
+    cs.mParam.kvNumHeads = 1;
+    cs.mParam.scaleValue = 1.0f;
+    cs.mParam.kvDataType = ge::DT_FLOAT16;
+    cs.mParam.blockSize = 128;
+    cs.mParam.actualSeqLength = {10};
+
+    ASSERT_TRUE(cs.Init());
+    cs.query = Tensor("query", {32, 32, 2, 512}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.key = TensorList("key", {64, 1, 128, 512}, "BNSD", ge::DT_INT8, ge::FORMAT_ND);
+    cs.value = TensorList("value", {64, 1, 128, 512}, "BNSD", ge::DT_INT8, ge::FORMAT_ND);
+    cs.attentionOut = Tensor("attentionOut", {32, 32, 2, 512}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.actualSeqLengthsKV = Tensor("actualSeqLengthsKV", {32}, "B", ge::DT_INT64, ge::FORMAT_ND);
+    cs.actualSeqLengths = Tensor("actualSeqLengths", {32,32,64}, "B", ge::DT_INT64, ge::FORMAT_ND);
+    cs.blocktable = Tensor("blockTable", {32, 2}, "BNSD", ge::DT_INT32, ge::FORMAT_ND);
+
+    cs.mOpInfo.mExp.mSuccess = false;
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
+TEST_F(Ts_Fia_Ascend910_9591, case_pfa_pa)
+{
+    FiaCase cs;
+    cs.mParam.b = 1;
+    cs.mParam.n = 1;
+    cs.mParam.s = 128;
+    cs.mParam.d = 128;
+    cs.mParam.layout = "BNSD";
+    cs.mParam.numHeads = 1;
+    cs.mParam.kvNumHeads = 1;
+    cs.mParam.scaleValue = 1.0f;
+    cs.mParam.kvDataType = ge::DT_FLOAT16;
+    cs.mParam.blockSize = 128;
+    cs.mParam.actualSeqLengthKV = {128};
+
+    ASSERT_TRUE(cs.Init());
+    cs.query = Tensor("query", {1, 1, 128, 128}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.key = TensorList("key", {1, 1, 128, 128}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.value = TensorList("value", {1, 1, 128, 128}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.attentionOut = Tensor("attentionOut", {1, 1, 128, 128}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.blocktable = Tensor("blockTable", {1, 1}, "BNSD", ge::DT_INT32, ge::FORMAT_ND);
+
+    cs.mOpInfo.mExp.mSuccess = true;
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
+TEST_F(Ts_Fia_Ascend910_9591, case_pfa_pa_invalid_blockSize)
+{
+    FiaCase cs;
+    cs.mParam.b = 1;
+    cs.mParam.n = 1;
+    cs.mParam.s = 128;
+    cs.mParam.d = 128;
+    cs.mParam.layout = "BNSD";
+    cs.mParam.numHeads = 1;
+    cs.mParam.kvNumHeads = 1;
+    cs.mParam.scaleValue = 1.0f;
+    cs.mParam.kvDataType = ge::DT_FLOAT16;
+    cs.mParam.blockSize = 129;
+    cs.mParam.actualSeqLengthKV = {128};
+
+    ASSERT_TRUE(cs.Init());
+    cs.query = Tensor("query", {1, 1, 128, 128}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.key = TensorList("key", {1, 1, 128, 128}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.value = TensorList("value", {1, 1, 128, 128}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.attentionOut = Tensor("attentionOut", {1, 1, 128, 128}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.blocktable = Tensor("blockTable", {1, 1}, "BNSD", ge::DT_INT32, ge::FORMAT_ND);
+
+    cs.mOpInfo.mExp.mSuccess = false;
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
+TEST_F(Ts_Fia_Ascend910_9591, case_ifa_pa_invalid_blockSize)
+{
+    FiaCase cs;
+    cs.mParam.b = 1;
+    cs.mParam.n = 1;
+    cs.mParam.s = 1;
+    cs.mParam.d = 128;
+    cs.mParam.layout = "BNSD";
+    cs.mParam.numHeads = 1;
+    cs.mParam.kvNumHeads = 1;
+    cs.mParam.scaleValue = 1.0f;
+    cs.mParam.kvDataType = ge::DT_FLOAT16;
+    cs.mParam.blockSize = 129;
+    cs.mParam.actualSeqLengthKV = {128};
+
+    ASSERT_TRUE(cs.Init());
+    cs.query = Tensor("query", {1, 1, 1, 128}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.key = TensorList("key", {1, 1, 128, 128}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.value = TensorList("value", {1, 1, 128, 128}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.attentionOut = Tensor("attentionOut", {1, 1, 1, 128}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.blocktable = Tensor("blockTable", {1, 1}, "BNSD", ge::DT_INT32, ge::FORMAT_ND);
+
+    cs.mOpInfo.mExp.mSuccess = false;
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
 TEST_F(Ts_Fia_Ascend910B1, case_ifa_exception_ds_pa_000001)
 {
     FiaCase cs;
@@ -6322,6 +7415,1071 @@ TEST_F(Ts_Fia_Ascend910B1, ifa_exception_ds_TND_000112)
     cs.value = TensorList("value", {32,128,512}, "TND", ge::DT_BF16, ge::FORMAT_ND);
 
     cs.blocktable = Tensor("blockTable", {4,16}, "TND", ge::DT_INT32, ge::FORMAT_ND);
+
+    cs.mOpInfo.mExp.mSuccess = false;
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
+TEST_F(Ts_Fia_Ascend910_9591, case_pfa_mla_keyRope_empty)
+{
+    FiaCase cs;
+    cs.mParam.b = 1;
+    cs.mParam.n = 1;
+    cs.mParam.s = 128;
+    cs.mParam.d = 128;
+    cs.mParam.layout = "BNSD";
+    cs.mParam.numHeads = 1;
+    cs.mParam.kvNumHeads = 1;
+    cs.mParam.scaleValue = 1.0f;
+    cs.mParam.kvDataType = ge::DT_FLOAT16;
+
+    ASSERT_TRUE(cs.Init());
+    cs.query = Tensor("query", {1, 1, 128, 128}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.key = TensorList("key", {1, 1, 128, 128}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.value = TensorList("value", {1, 1, 128, 128}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.attentionOut = Tensor("attentionOut", {1, 1, 128, 128}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.keyRope = Tensor("keyRope", {1, 1, 128, 0}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.queryRope = Tensor("queryRope", {1, 1, 128, 64}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+
+    cs.mOpInfo.mExp.mSuccess = false;
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
+TEST_F(Ts_Fia_Ascend910_9591, case_pfa_mla_queryRope_empty)
+{
+    FiaCase cs;
+    cs.mParam.b = 1;
+    cs.mParam.n = 1;
+    cs.mParam.s = 128;
+    cs.mParam.d = 128;
+    cs.mParam.layout = "BNSD";
+    cs.mParam.numHeads = 1;
+    cs.mParam.kvNumHeads = 1;
+    cs.mParam.scaleValue = 1.0f;
+    cs.mParam.kvDataType = ge::DT_FLOAT16;
+
+    ASSERT_TRUE(cs.Init());
+    cs.query = Tensor("query", {1, 1, 128, 128}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.key = TensorList("key", {1, 1, 128, 128}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.value = TensorList("value", {1, 1, 128, 128}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.attentionOut = Tensor("attentionOut", {1, 1, 128, 128}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.keyRope = Tensor("keyRope", {1, 1, 128, 64}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.queryRope = Tensor("queryRope", {1, 1, 128, 0}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+
+    cs.mOpInfo.mExp.mSuccess = false;
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
+TEST_F(Ts_Fia_Ascend910_9591, case_pfa_mla_queryRope_nullptr)
+{
+    FiaCase cs;
+    cs.mParam.b = 1;
+    cs.mParam.n = 1;
+    cs.mParam.s = 128;
+    cs.mParam.d = 128;
+    cs.mParam.layout = "BNSD";
+    cs.mParam.numHeads = 1;
+    cs.mParam.kvNumHeads = 1;
+    cs.mParam.scaleValue = 1.0f;
+    cs.mParam.kvDataType = ge::DT_FLOAT16;
+
+    ASSERT_TRUE(cs.Init());
+    cs.query = Tensor("query", {1, 1, 128, 128}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.key = TensorList("key", {1, 1, 128, 128}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.value = TensorList("value", {1, 1, 128, 128}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.attentionOut = Tensor("attentionOut", {1, 1, 128, 128}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.keyRope = Tensor("keyRope", {1, 1, 128, 64}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+
+    cs.mOpInfo.mExp.mSuccess = false;
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
+TEST_F(Ts_Fia_Ascend910_9591, case_pfa_mla_keyRope_nullptr)
+{
+    FiaCase cs;
+    cs.mParam.b = 1;
+    cs.mParam.n = 1;
+    cs.mParam.s = 128;
+    cs.mParam.d = 128;
+    cs.mParam.layout = "BNSD";
+    cs.mParam.numHeads = 1;
+    cs.mParam.kvNumHeads = 1;
+    cs.mParam.scaleValue = 1.0f;
+    cs.mParam.kvDataType = ge::DT_FLOAT16;
+
+    ASSERT_TRUE(cs.Init());
+    cs.query = Tensor("query", {1, 1, 128, 128}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.key = TensorList("key", {1, 1, 128, 128}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.value = TensorList("value", {1, 1, 128, 128}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.attentionOut = Tensor("attentionOut", {1, 1, 128, 128}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.queryRope = Tensor("queryRope", {1, 1, 128, 64}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+
+    cs.mOpInfo.mExp.mSuccess = false;
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
+TEST_F(Ts_Fia_Ascend910_9591, case_pfa_mla_rope)
+{
+    FiaCase cs;
+    cs.mParam.b = 1;
+    cs.mParam.n = 1;
+    cs.mParam.s = 128;
+    cs.mParam.d = 128;
+    cs.mParam.layout = "BNSD";
+    cs.mParam.numHeads = 1;
+    cs.mParam.kvNumHeads = 1;
+    cs.mParam.scaleValue = 1.0f;
+    cs.mParam.kvDataType = ge::DT_FLOAT16;
+
+    ASSERT_TRUE(cs.Init());
+    cs.query = Tensor("query", {1, 1, 128, 128}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.key = TensorList("key", {1, 1, 128, 128}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.value = TensorList("value", {1, 1, 128, 128}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.attentionOut = Tensor("attentionOut", {1, 1, 128, 128}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.keyRope = Tensor("keyRope", {1, 1, 128, 64}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.queryRope = Tensor("queryRope", {1, 1, 128, 64}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+
+    cs.mOpInfo.mExp.mSuccess = true;
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
+TEST_F(Ts_Fia_Ascend910_9591, case_pfa_mla_rope_tensorList_BNSD_bError)
+{
+    FiaCase cs;
+    cs.mParam.b = 2;
+    cs.mParam.n = 1;
+    cs.mParam.s = 128;
+    cs.mParam.d = 128;
+    cs.mParam.layout = "BNSD";
+    cs.mParam.numHeads = 1;
+    cs.mParam.kvNumHeads = 1;
+    cs.mParam.scaleValue = 1.0f;
+    cs.mParam.kvDataType = ge::DT_FLOAT16;
+
+    ASSERT_TRUE(cs.Init());
+    std::vector<std::vector<int64_t>> kvshape = {{1,1,128,128}, {1,1,128,128}};
+    cs.query = Tensor("query", {2, 1, 128, 128}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.key = TensorList("key", kvshape, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.value = TensorList("value", kvshape, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.attentionOut = Tensor("attentionOut", {2, 1, 128, 128}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.keyRope = Tensor("keyRope", {1, 1, 128, 64}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.queryRope = Tensor("queryRope", {2, 1, 128, 64}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+
+    cs.mOpInfo.mExp.mSuccess = false;
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
+TEST_F(Ts_Fia_Ascend910_9591, case_pfa_mla_rope_tensorList_BSH_bError)
+{
+    FiaCase cs;
+    cs.mParam.b = 2;
+    cs.mParam.s = 128;
+    cs.mParam.layout = "BSH";
+    cs.mParam.numHeads = 1;
+    cs.mParam.kvNumHeads = 1;
+    cs.mParam.scaleValue = 1.0f;
+    cs.mParam.kvDataType = ge::DT_FLOAT16;
+
+    ASSERT_TRUE(cs.Init());
+    std::vector<std::vector<int64_t>> kvshape = {{1,128,128}, {1,128,128}};
+    cs.query = Tensor("query", {2, 128, 128}, "BSH", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.key = TensorList("key", kvshape, "BSH", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.value = TensorList("value", kvshape, "BSH", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.attentionOut = Tensor("attentionOut", {2, 128, 128}, "BSH", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.keyRope = Tensor("keyRope", {1, 128, 64}, "BSH", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.queryRope = Tensor("queryRope", {2, 128, 64}, "BSH", ge::DT_FLOAT16, ge::FORMAT_ND);
+
+    cs.mOpInfo.mExp.mSuccess = false;
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
+TEST_F(Ts_Fia_Ascend910_9591, case_pfa_mla_rope_tensorList_BSND_bError)
+{
+    FiaCase cs;
+    cs.mParam.b = 2;
+    cs.mParam.n = 1;
+    cs.mParam.s = 128;
+    cs.mParam.d = 128;
+    cs.mParam.layout = "BSND";
+    cs.mParam.numHeads = 1;
+    cs.mParam.kvNumHeads = 1;
+    cs.mParam.scaleValue = 1.0f;
+    cs.mParam.kvDataType = ge::DT_FLOAT16;
+
+    ASSERT_TRUE(cs.Init());
+    std::vector<std::vector<int64_t>> kvshape = {{1,128,1,128}, {1,128,1,128}};
+    cs.query = Tensor("query", {2, 128, 1, 128}, "BSND", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.key = TensorList("key", kvshape, "BSND", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.value = TensorList("value", kvshape, "BSND", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.attentionOut = Tensor("attentionOut", {2, 128, 1, 128}, "BSND", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.keyRope = Tensor("keyRope", {1, 128, 1, 64}, "BSND", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.queryRope = Tensor("queryRope", {2, 128, 1, 64}, "BSND", ge::DT_FLOAT16, ge::FORMAT_ND);
+
+    cs.mOpInfo.mExp.mSuccess = false;
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
+TEST_F(Ts_Fia_Ascend910_9591, case_pfa_mla_rope_tensorList_BNSD_sError)
+{
+    FiaCase cs;
+    cs.mParam.b = 2;
+    cs.mParam.n = 1;
+    cs.mParam.s = 128;
+    cs.mParam.d = 128;
+    cs.mParam.layout = "BNSD";
+    cs.mParam.numHeads = 1;
+    cs.mParam.kvNumHeads = 1;
+    cs.mParam.scaleValue = 1.0f;
+    cs.mParam.kvDataType = ge::DT_FLOAT16;
+
+    ASSERT_TRUE(cs.Init());
+    std::vector<std::vector<int64_t>> kvshape = {{1,1,128,128}, {1,1,128,128}};
+    cs.query = Tensor("query", {2, 1, 128, 128}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.key = TensorList("key", kvshape, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.value = TensorList("value", kvshape, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.attentionOut = Tensor("attentionOut", {2, 1, 128, 128}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.keyRope = Tensor("keyRope", {2, 1, 256, 64}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.queryRope = Tensor("queryRope", {2, 1, 128, 64}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+
+    cs.mOpInfo.mExp.mSuccess = false;
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
+TEST_F(Ts_Fia_Ascend910_9591, case_pfa_mla_rope_tensorList_BSH_sError)
+{
+    FiaCase cs;
+    cs.mParam.b = 2;
+    cs.mParam.s = 128;
+    cs.mParam.layout = "BSH";
+    cs.mParam.numHeads = 1;
+    cs.mParam.kvNumHeads = 1;
+    cs.mParam.scaleValue = 1.0f;
+    cs.mParam.kvDataType = ge::DT_FLOAT16;
+
+    ASSERT_TRUE(cs.Init());
+    std::vector<std::vector<int64_t>> kvshape = {{1,128,128}, {1,128,128}};
+    cs.query = Tensor("query", {2, 128, 128}, "BSH", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.key = TensorList("key", kvshape, "BSH", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.value = TensorList("value", kvshape, "BSH", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.attentionOut = Tensor("attentionOut", {2, 128, 128}, "BSH", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.keyRope = Tensor("keyRope", {2, 256, 64}, "BSH", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.queryRope = Tensor("queryRope", {2, 128, 64}, "BSH", ge::DT_FLOAT16, ge::FORMAT_ND);
+
+    cs.mOpInfo.mExp.mSuccess = false;
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
+TEST_F(Ts_Fia_Ascend910_9591, case_pfa_mla_rope_tensorList_BSND_sError)
+{
+    FiaCase cs;
+    cs.mParam.b = 2;
+    cs.mParam.n = 1;
+    cs.mParam.s = 128;
+    cs.mParam.d = 128;
+    cs.mParam.layout = "BSND";
+    cs.mParam.numHeads = 1;
+    cs.mParam.kvNumHeads = 1;
+    cs.mParam.scaleValue = 1.0f;
+    cs.mParam.kvDataType = ge::DT_FLOAT16;
+
+    ASSERT_TRUE(cs.Init());
+    std::vector<std::vector<int64_t>> kvshape = {{1,128,1,128}, {1,128,1,128}};
+    cs.query = Tensor("query", {2, 128, 1, 128}, "BSND", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.key = TensorList("key", kvshape, "BSND", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.value = TensorList("value", kvshape, "BSND", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.attentionOut = Tensor("attentionOut", {2, 128, 1, 128}, "BSND", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.keyRope = Tensor("keyRope", {2, 256, 1, 64}, "BSND", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.queryRope = Tensor("queryRope", {2, 128, 1, 64}, "BSND", ge::DT_FLOAT16, ge::FORMAT_ND);
+
+    cs.mOpInfo.mExp.mSuccess = false;
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
+TEST_F(Ts_Fia_Ascend910_9591, case_pfa_mla_rope_tensorList_BNSD_nError)
+{
+    FiaCase cs;
+    cs.mParam.b = 2;
+    cs.mParam.n = 1;
+    cs.mParam.s = 128;
+    cs.mParam.d = 128;
+    cs.mParam.layout = "BNSD";
+    cs.mParam.numHeads = 1;
+    cs.mParam.kvNumHeads = 1;
+    cs.mParam.scaleValue = 1.0f;
+    cs.mParam.kvDataType = ge::DT_FLOAT16;
+
+    ASSERT_TRUE(cs.Init());
+    std::vector<std::vector<int64_t>> kvshape = {{1,1,128,128}, {1,1,128,128}};
+    cs.query = Tensor("query", {2, 1, 128, 128}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.key = TensorList("key", kvshape, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.value = TensorList("value", kvshape, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.attentionOut = Tensor("attentionOut", {2, 1, 128, 128}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.keyRope = Tensor("keyRope", {1, 2, 128, 64}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.queryRope = Tensor("queryRope", {2, 1, 128, 64}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+
+    cs.mOpInfo.mExp.mSuccess = false;
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
+TEST_F(Ts_Fia_Ascend910_9591, case_pfa_mla_rope_tensorList_BSH_nError)
+{
+    FiaCase cs;
+    cs.mParam.b = 2;
+    cs.mParam.s = 128;
+    cs.mParam.layout = "BSH";
+    cs.mParam.numHeads = 1;
+    cs.mParam.kvNumHeads = 1;
+    cs.mParam.scaleValue = 1.0f;
+    cs.mParam.kvDataType = ge::DT_FLOAT16;
+
+    ASSERT_TRUE(cs.Init());
+    std::vector<std::vector<int64_t>> kvshape = {{1,128,128}, {1,128,128}};
+    cs.query = Tensor("query", {2, 128, 128}, "BSH", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.key = TensorList("key", kvshape, "BSH", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.value = TensorList("value", kvshape, "BSH", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.attentionOut = Tensor("attentionOut", {2, 128, 128}, "BSH", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.keyRope = Tensor("keyRope", {1, 128, 128}, "BSH", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.queryRope = Tensor("queryRope", {2, 128, 64}, "BSH", ge::DT_FLOAT16, ge::FORMAT_ND);
+
+    cs.mOpInfo.mExp.mSuccess = false;
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
+TEST_F(Ts_Fia_Ascend910_9591, case_pfa_mla_rope_tensorList_BSND_nError)
+{
+    FiaCase cs;
+    cs.mParam.b = 2;
+    cs.mParam.n = 1;
+    cs.mParam.s = 128;
+    cs.mParam.d = 128;
+    cs.mParam.layout = "BSND";
+    cs.mParam.numHeads = 1;
+    cs.mParam.kvNumHeads = 1;
+    cs.mParam.scaleValue = 1.0f;
+    cs.mParam.kvDataType = ge::DT_FLOAT16;
+
+    ASSERT_TRUE(cs.Init());
+    std::vector<std::vector<int64_t>> kvshape = {{1,128,1,128}, {1,128,1,128}};
+    cs.query = Tensor("query", {2, 128, 1, 128}, "BSND", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.key = TensorList("key", kvshape, "BSND", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.value = TensorList("value", kvshape, "BSND", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.attentionOut = Tensor("attentionOut", {2, 128, 1, 128}, "BSND", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.keyRope = Tensor("keyRope", {1, 128, 2, 64}, "BSND", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.queryRope = Tensor("queryRope", {2, 128, 1, 64}, "BSND", ge::DT_FLOAT16, ge::FORMAT_ND);
+
+    cs.mOpInfo.mExp.mSuccess = false;
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
+TEST_F(Ts_Fia_Ascend910_9591, case_pfa_mla_rope_BNSD_ropeDError)
+{
+    FiaCase cs;
+    cs.mParam.b = 1;
+    cs.mParam.n = 1;
+    cs.mParam.s = 128;
+    cs.mParam.d = 128;
+    cs.mParam.layout = "BNSD";
+    cs.mParam.numHeads = 1;
+    cs.mParam.kvNumHeads = 1;
+    cs.mParam.scaleValue = 1.0f;
+    cs.mParam.kvDataType = ge::DT_FLOAT16;
+
+    ASSERT_TRUE(cs.Init());
+    cs.query = Tensor("query", {1, 1, 128, 128}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.key = TensorList("key", {1, 1, 128, 128}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.value = TensorList("value", {1, 1, 128, 128}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.attentionOut = Tensor("attentionOut", {1, 1, 128, 128}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.keyRope = Tensor("keyRope", {1, 1, 128, 64}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.queryRope = Tensor("queryRope", {1, 1, 128, 77}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+
+    cs.mOpInfo.mExp.mSuccess = false;
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
+TEST_F(Ts_Fia_Ascend910_9591, case_pfa_mla_rope_BSH_ropeDError)
+{
+    FiaCase cs;
+    cs.mParam.b = 1;
+    cs.mParam.s = 128;
+    cs.mParam.layout = "BSH";
+    cs.mParam.numHeads = 1;
+    cs.mParam.kvNumHeads = 1;
+    cs.mParam.scaleValue = 1.0f;
+    cs.mParam.kvDataType = ge::DT_FLOAT16;
+
+    ASSERT_TRUE(cs.Init());
+    cs.query = Tensor("query", {1, 128, 128}, "BSH", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.key = TensorList("key", {1, 128, 128}, "BSH", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.value = TensorList("value", {1, 128, 128}, "BSH", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.attentionOut = Tensor("attentionOut", {1, 128, 128}, "BSH", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.keyRope = Tensor("keyRope", {1, 128, 77}, "BSH", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.queryRope = Tensor("queryRope", {1, 128, 64}, "BSH", ge::DT_FLOAT16, ge::FORMAT_ND);
+
+    cs.mOpInfo.mExp.mSuccess = false;
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
+TEST_F(Ts_Fia_Ascend910_9591, case_pfa_mla_rope_BNSD_queryDError)
+{
+    FiaCase cs;
+    cs.mParam.b = 1;
+    cs.mParam.n = 1;
+    cs.mParam.s = 128;
+    cs.mParam.d = 128;
+    cs.mParam.layout = "BNSD";
+    cs.mParam.numHeads = 1;
+    cs.mParam.kvNumHeads = 1;
+    cs.mParam.scaleValue = 1.0f;
+    cs.mParam.kvDataType = ge::DT_FLOAT16;
+
+    ASSERT_TRUE(cs.Init());
+    cs.query = Tensor("query", {1, 1, 128, 192}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.key = TensorList("key", {1, 1, 128, 192}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.value = TensorList("value", {1, 1, 128, 128}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.attentionOut = Tensor("attentionOut", {1, 1, 128, 128}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.keyRope = Tensor("keyRope", {1, 1, 128, 64}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.queryRope = Tensor("queryRope", {1, 1, 128, 64}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+
+    cs.mOpInfo.mExp.mSuccess = false;
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
+TEST_F(Ts_Fia_Ascend910_9591, case_pfa_tensorList_BSH_hError0)
+{
+    FiaCase cs;
+    cs.mParam.b = 2;
+    cs.mParam.s = 128;
+    cs.mParam.layout = "BSH";
+    cs.mParam.numHeads = 1;
+    cs.mParam.kvNumHeads = 1;
+    cs.mParam.scaleValue = 1.0f;
+    cs.mParam.kvDataType = ge::DT_FLOAT16;
+
+    ASSERT_TRUE(cs.Init());
+    std::vector<std::vector<int64_t>> kShape = {{1,128,64}, {1,128,128}};
+    std::vector<std::vector<int64_t>> vShape = {{1,128,128}, {1,128,128}};
+    cs.query = Tensor("query", {2, 128, 128}, "BSH", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.key = TensorList("key", kShape, "BSH", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.value = TensorList("value", vShape, "BSH", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.attentionOut = Tensor("attentionOut", {2, 128, 128}, "BSH", ge::DT_FLOAT16, ge::FORMAT_ND);
+
+    cs.mOpInfo.mExp.mSuccess = false;
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
+TEST_F(Ts_Fia_Ascend910_9591, case_pfa_tensorList_BSH_hError1)
+{
+    FiaCase cs;
+    cs.mParam.b = 2;
+    cs.mParam.s = 128;
+    cs.mParam.layout = "BSH";
+    cs.mParam.numHeads = 1;
+    cs.mParam.kvNumHeads = 1;
+    cs.mParam.scaleValue = 1.0f;
+    cs.mParam.kvDataType = ge::DT_FLOAT16;
+
+    ASSERT_TRUE(cs.Init());
+    std::vector<std::vector<int64_t>> kShape = {{1,128,128}, {1,128,64}};
+    std::vector<std::vector<int64_t>> vShape = {{1,128,128}, {1,128,128}};
+    cs.query = Tensor("query", {2, 128, 128}, "BSH", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.key = TensorList("key", kShape, "BSH", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.value = TensorList("value", vShape, "BSH", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.attentionOut = Tensor("attentionOut", {2, 128, 128}, "BSH", ge::DT_FLOAT16, ge::FORMAT_ND);
+
+    cs.mOpInfo.mExp.mSuccess = false;
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
+TEST_F(Ts_Fia_Ascend910_9591, case_pfa_tensorList_BSH_hError2)
+{
+    FiaCase cs;
+    cs.mParam.b = 2;
+    cs.mParam.s = 128;
+    cs.mParam.layout = "BSH";
+    cs.mParam.numHeads = 1;
+    cs.mParam.kvNumHeads = 1;
+    cs.mParam.scaleValue = 1.0f;
+    cs.mParam.kvDataType = ge::DT_FLOAT16;
+
+    ASSERT_TRUE(cs.Init());
+    std::vector<std::vector<int64_t>> kShape = {{1,128,128}, {1,128,128}};
+    std::vector<std::vector<int64_t>> vShape = {{1,128,128}, {1,128,64}};
+    cs.query = Tensor("query", {2, 128, 128}, "BSH", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.key = TensorList("key", kShape, "BSH", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.value = TensorList("value", vShape, "BSH", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.attentionOut = Tensor("attentionOut", {2, 128, 128}, "BSH", ge::DT_FLOAT16, ge::FORMAT_ND);
+
+    cs.mOpInfo.mExp.mSuccess = false;
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
+TEST_F(Ts_Fia_Ascend910_9591, case_pfa_tensorList_BSH_sError)
+{
+    FiaCase cs;
+    cs.mParam.b = 2;
+    cs.mParam.s = 128;
+    cs.mParam.layout = "BSH";
+    cs.mParam.numHeads = 1;
+    cs.mParam.kvNumHeads = 1;
+    cs.mParam.scaleValue = 1.0f;
+    cs.mParam.kvDataType = ge::DT_FLOAT16;
+
+    ASSERT_TRUE(cs.Init());
+    std::vector<std::vector<int64_t>> kShape = {{1,128,128}, {1,128,128}};
+    std::vector<std::vector<int64_t>> vShape = {{1,64,128}, {1,128,128}};
+    cs.query = Tensor("query", {2, 128, 128}, "BSH", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.key = TensorList("key", kShape, "BSH", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.value = TensorList("value", vShape, "BSH", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.attentionOut = Tensor("attentionOut", {2, 128, 128}, "BSH", ge::DT_FLOAT16, ge::FORMAT_ND);
+
+    cs.mOpInfo.mExp.mSuccess = false;
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
+TEST_F(Ts_Fia_Ascend910_9591, case_pfa_tensorList_BNSD_nError0)
+{
+    FiaCase cs;
+    cs.mParam.b = 2;
+    cs.mParam.n = 1;
+    cs.mParam.s = 128;
+    cs.mParam.d = 128;
+    cs.mParam.layout = "BNSD";
+    cs.mParam.numHeads = 1;
+    cs.mParam.kvNumHeads = 1;
+    cs.mParam.scaleValue = 1.0f;
+    cs.mParam.kvDataType = ge::DT_FLOAT16;
+
+    ASSERT_TRUE(cs.Init());
+    std::vector<std::vector<int64_t>> kShape = {{1,2,128,128}, {1,1,128,128}};
+    std::vector<std::vector<int64_t>> vShape = {{1,1,128,128}, {1,1,128,128}};
+    cs.query = Tensor("query", {2, 1, 128, 128}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.key = TensorList("key", kShape, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.value = TensorList("value", vShape, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.attentionOut = Tensor("attentionOut", {2, 1, 128, 128}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+
+    cs.mOpInfo.mExp.mSuccess = false;
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
+TEST_F(Ts_Fia_Ascend910_9591, case_pfa_tensorList_BNSD_dError0)
+{
+    FiaCase cs;
+    cs.mParam.b = 2;
+    cs.mParam.n = 1;
+    cs.mParam.s = 128;
+    cs.mParam.d = 128;
+    cs.mParam.layout = "BNSD";
+    cs.mParam.numHeads = 1;
+    cs.mParam.kvNumHeads = 1;
+    cs.mParam.scaleValue = 1.0f;
+    cs.mParam.kvDataType = ge::DT_FLOAT16;
+
+    ASSERT_TRUE(cs.Init());
+    std::vector<std::vector<int64_t>> kShape = {{1,1,128,128}, {1,1,128,128}};
+    std::vector<std::vector<int64_t>> vShape = {{1,1,128,64}, {1,1,128,128}};
+    cs.query = Tensor("query", {2, 1, 128, 128}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.key = TensorList("key", kShape, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.value = TensorList("value", vShape, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.attentionOut = Tensor("attentionOut", {2, 1, 128, 128}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+
+    cs.mOpInfo.mExp.mSuccess = false;
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
+TEST_F(Ts_Fia_Ascend910_9591, case_pfa_tensorList_BNSD_nError1)
+{
+    FiaCase cs;
+    cs.mParam.b = 2;
+    cs.mParam.n = 1;
+    cs.mParam.s = 128;
+    cs.mParam.d = 128;
+    cs.mParam.layout = "BNSD";
+    cs.mParam.numHeads = 1;
+    cs.mParam.kvNumHeads = 1;
+    cs.mParam.scaleValue = 1.0f;
+    cs.mParam.kvDataType = ge::DT_FLOAT16;
+
+    ASSERT_TRUE(cs.Init());
+    std::vector<std::vector<int64_t>> kShape = {{1,1,128,128}, {1,3,128,128}};
+    std::vector<std::vector<int64_t>> vShape = {{1,1,128,64}, {1,3,128,128}};
+    cs.query = Tensor("query", {2, 1, 128, 128}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.key = TensorList("key", kShape, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.value = TensorList("value", vShape, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.attentionOut = Tensor("attentionOut", {2, 1, 128, 128}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+
+    cs.mOpInfo.mExp.mSuccess = false;
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
+TEST_F(Ts_Fia_Ascend910_9591, case_pfa_tensorList_BNSD_dError1)
+{
+    FiaCase cs;
+    cs.mParam.b = 2;
+    cs.mParam.n = 1;
+    cs.mParam.s = 128;
+    cs.mParam.d = 128;
+    cs.mParam.layout = "BNSD";
+    cs.mParam.numHeads = 1;
+    cs.mParam.kvNumHeads = 1;
+    cs.mParam.scaleValue = 1.0f;
+    cs.mParam.kvDataType = ge::DT_FLOAT16;
+
+    ASSERT_TRUE(cs.Init());
+    std::vector<std::vector<int64_t>> kShape = {{1,1,128,128}, {1,1,128,64}};
+    std::vector<std::vector<int64_t>> vShape = {{1,1,128,128}, {1,1,128,128}};
+    cs.query = Tensor("query", {2, 1, 128, 128}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.key = TensorList("key", kShape, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.value = TensorList("value", vShape, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.attentionOut = Tensor("attentionOut", {2, 1, 128, 128}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+
+    cs.mOpInfo.mExp.mSuccess = false;
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
+TEST_F(Ts_Fia_Ascend910_9591, case_pfa_tensorList_BNSD_dError2)
+{
+    FiaCase cs;
+    cs.mParam.b = 2;
+    cs.mParam.n = 1;
+    cs.mParam.s = 128;
+    cs.mParam.d = 128;
+    cs.mParam.layout = "BNSD";
+    cs.mParam.numHeads = 1;
+    cs.mParam.kvNumHeads = 1;
+    cs.mParam.scaleValue = 1.0f;
+    cs.mParam.kvDataType = ge::DT_FLOAT16;
+
+    ASSERT_TRUE(cs.Init());
+    std::vector<std::vector<int64_t>> kShape = {{1,1,128,128}, {1,1,128,128}};
+    std::vector<std::vector<int64_t>> vShape = {{1,1,128,128}, {1,1,128,64}};
+    cs.query = Tensor("query", {2, 1, 128, 128}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.key = TensorList("key", kShape, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.value = TensorList("value", vShape, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.attentionOut = Tensor("attentionOut", {2, 1, 128, 128}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+
+    cs.mOpInfo.mExp.mSuccess = false;
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
+TEST_F(Ts_Fia_Ascend910_9591, case_pfa_tensorList_BNSD_sError)
+{
+    FiaCase cs;
+    cs.mParam.b = 2;
+    cs.mParam.n = 1;
+    cs.mParam.s = 128;
+    cs.mParam.d = 128;
+    cs.mParam.layout = "BNSD";
+    cs.mParam.numHeads = 1;
+    cs.mParam.kvNumHeads = 1;
+    cs.mParam.scaleValue = 1.0f;
+    cs.mParam.kvDataType = ge::DT_FLOAT16;
+
+    ASSERT_TRUE(cs.Init());
+    std::vector<std::vector<int64_t>> kShape = {{1,1,64,128}, {1,1,128,128}};
+    std::vector<std::vector<int64_t>> vShape = {{1,1,128,128}, {1,1,128,128}};
+    cs.query = Tensor("query", {2, 1, 128, 128}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.key = TensorList("key", kShape, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.value = TensorList("value", vShape, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.attentionOut = Tensor("attentionOut", {2, 1, 128, 128}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+
+    cs.mOpInfo.mExp.mSuccess = false;
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
+TEST_F(Ts_Fia_Ascend910_9591, case_pfa_tensorList_BSND_nError0)
+{
+    FiaCase cs;
+    cs.mParam.b = 2;
+    cs.mParam.n = 1;
+    cs.mParam.s = 128;
+    cs.mParam.d = 128;
+    cs.mParam.layout = "BSND";
+    cs.mParam.numHeads = 1;
+    cs.mParam.kvNumHeads = 1;
+    cs.mParam.scaleValue = 1.0f;
+    cs.mParam.kvDataType = ge::DT_FLOAT16;
+
+    ASSERT_TRUE(cs.Init());
+    std::vector<std::vector<int64_t>> kShape = {{1,128,2,128}, {1,128,1,128}};
+    std::vector<std::vector<int64_t>> vShape = {{1,128,1,128}, {1,128,1,128}};
+    cs.query = Tensor("query", {2, 128, 1, 128}, "BSND", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.key = TensorList("key", kShape, "BSND", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.value = TensorList("value", vShape, "BSND", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.attentionOut = Tensor("attentionOut", {2, 128, 1, 128}, "BSND", ge::DT_FLOAT16, ge::FORMAT_ND);
+
+    cs.mOpInfo.mExp.mSuccess = false;
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
+TEST_F(Ts_Fia_Ascend910_9591, case_pfa_tensorList_BSND_nError1)
+{
+    FiaCase cs;
+    cs.mParam.b = 2;
+    cs.mParam.n = 1;
+    cs.mParam.s = 128;
+    cs.mParam.d = 128;
+    cs.mParam.layout = "BSND";
+    cs.mParam.numHeads = 1;
+    cs.mParam.kvNumHeads = 1;
+    cs.mParam.scaleValue = 1.0f;
+    cs.mParam.kvDataType = ge::DT_FLOAT16;
+
+    ASSERT_TRUE(cs.Init());
+    std::vector<std::vector<int64_t>> kShape = {{1,128,1,128}, {1,128,2,128}};
+    std::vector<std::vector<int64_t>> vShape = {{1,128,1,128}, {1,128,1,128}};
+    cs.query = Tensor("query", {2, 128, 1, 128}, "BSND", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.key = TensorList("key", kShape, "BSND", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.value = TensorList("value", vShape, "BSND", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.attentionOut = Tensor("attentionOut", {2, 128, 1, 128}, "BSND", ge::DT_FLOAT16, ge::FORMAT_ND);
+
+    cs.mOpInfo.mExp.mSuccess = false;
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
+TEST_F(Ts_Fia_Ascend910_9591, case_pfa_tensorList_BSND_dError0)
+{
+    FiaCase cs;
+    cs.mParam.b = 2;
+    cs.mParam.n = 1;
+    cs.mParam.s = 128;
+    cs.mParam.d = 128;
+    cs.mParam.layout = "BSND";
+    cs.mParam.numHeads = 1;
+    cs.mParam.kvNumHeads = 1;
+    cs.mParam.scaleValue = 1.0f;
+    cs.mParam.kvDataType = ge::DT_FLOAT16;
+
+    ASSERT_TRUE(cs.Init());
+    std::vector<std::vector<int64_t>> kShape = {{1,128,1,64}, {1,128,1,128}};
+    std::vector<std::vector<int64_t>> vShape = {{1,128,1,128}, {1,128,1,128}};
+    cs.query = Tensor("query", {2, 128, 1, 128}, "BSND", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.key = TensorList("key", kShape, "BSND", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.value = TensorList("value", vShape, "BSND", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.attentionOut = Tensor("attentionOut", {2, 128, 1, 128}, "BSND", ge::DT_FLOAT16, ge::FORMAT_ND);
+
+    cs.mOpInfo.mExp.mSuccess = false;
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
+TEST_F(Ts_Fia_Ascend910_9591, case_pfa_tensorList_BSND_dError1)
+{
+    FiaCase cs;
+    cs.mParam.b = 2;
+    cs.mParam.n = 1;
+    cs.mParam.s = 128;
+    cs.mParam.d = 128;
+    cs.mParam.layout = "BSND";
+    cs.mParam.numHeads = 1;
+    cs.mParam.kvNumHeads = 1;
+    cs.mParam.scaleValue = 1.0f;
+    cs.mParam.kvDataType = ge::DT_FLOAT16;
+
+    ASSERT_TRUE(cs.Init());
+    std::vector<std::vector<int64_t>> kShape = {{1,128,1,128}, {1,128,1,64}};
+    std::vector<std::vector<int64_t>> vShape = {{1,128,1,128}, {1,128,1,128}};
+    cs.query = Tensor("query", {2, 128, 1, 128}, "BSND", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.key = TensorList("key", kShape, "BSND", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.value = TensorList("value", vShape, "BSND", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.attentionOut = Tensor("attentionOut", {2, 128, 1, 128}, "BSND", ge::DT_FLOAT16, ge::FORMAT_ND);
+
+    cs.mOpInfo.mExp.mSuccess = false;
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
+TEST_F(Ts_Fia_Ascend910_9591, case_pfa_tensorList_BSND_dError2)
+{
+    FiaCase cs;
+    cs.mParam.b = 2;
+    cs.mParam.n = 1;
+    cs.mParam.s = 128;
+    cs.mParam.d = 128;
+    cs.mParam.layout = "BSND";
+    cs.mParam.numHeads = 1;
+    cs.mParam.kvNumHeads = 1;
+    cs.mParam.scaleValue = 1.0f;
+    cs.mParam.kvDataType = ge::DT_FLOAT16;
+
+    ASSERT_TRUE(cs.Init());
+    std::vector<std::vector<int64_t>> kShape = {{1,128,1,128}, {1,128,1,128}};
+    std::vector<std::vector<int64_t>> vShape = {{1,128,1,128}, {1,128,1,64}};
+    cs.query = Tensor("query", {2, 128, 1, 128}, "BSND", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.key = TensorList("key", kShape, "BSND", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.value = TensorList("value", vShape, "BSND", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.attentionOut = Tensor("attentionOut", {2, 128, 1, 128}, "BSND", ge::DT_FLOAT16, ge::FORMAT_ND);
+
+    cs.mOpInfo.mExp.mSuccess = false;
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
+TEST_F(Ts_Fia_Ascend910_9591, case_pfa_tensorList_BSND_sError)
+{
+    FiaCase cs;
+    cs.mParam.b = 2;
+    cs.mParam.n = 1;
+    cs.mParam.s = 128;
+    cs.mParam.d = 128;
+    cs.mParam.layout = "BSND";
+    cs.mParam.numHeads = 1;
+    cs.mParam.kvNumHeads = 1;
+    cs.mParam.scaleValue = 1.0f;
+    cs.mParam.kvDataType = ge::DT_FLOAT16;
+
+    ASSERT_TRUE(cs.Init());
+    std::vector<std::vector<int64_t>> kShape = {{1,128,1,128}, {1,128,1,128}};
+    std::vector<std::vector<int64_t>> vShape = {{1,64,1,128}, {1,128,1,128}};
+    cs.query = Tensor("query", {2, 128, 1, 128}, "BSND", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.key = TensorList("key", kShape, "BSND", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.value = TensorList("value", vShape, "BSND", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.attentionOut = Tensor("attentionOut", {2, 128, 1, 128}, "BSND", ge::DT_FLOAT16, ge::FORMAT_ND);
+
+    cs.mOpInfo.mExp.mSuccess = false;
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
+TEST_F(Ts_Fia_Ascend910_9591, case_pfa_alibi_pseType_error)
+{
+    FiaCase cs;
+    cs.mParam.b = 1;
+    cs.mParam.n = 1;
+    cs.mParam.s = 128;
+    cs.mParam.d = 128;
+    cs.mParam.layout = "BNSD";
+    cs.mParam.numHeads = 1;
+    cs.mParam.kvNumHeads = 1;
+    cs.mParam.scaleValue = 1.0f;
+    cs.mParam.kvDataType = ge::DT_FLOAT16;
+    cs.mParam.pseType = 4;
+
+    ASSERT_TRUE(cs.Init());
+    cs.query = Tensor("query", {1, 1, 128, 128}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.key = TensorList("key", {1, 1, 128, 128}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.value = TensorList("value", {1, 1, 128, 128}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.attentionOut = Tensor("attentionOut", {1, 1, 128, 128}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.qStartIdx = Tensor("qStartIdx", {1}, "B", ge::DT_INT64, ge::FORMAT_ND);
+    cs.kvStartIdx = Tensor("kvStartIdx", {1}, "B", ge::DT_INT64, ge::FORMAT_ND);
+    cs.pseShift = Tensor("pseShift", {1}, "N", ge::DT_FLOAT, ge::FORMAT_ND);
+
+    cs.mOpInfo.mExp.mSuccess = false;
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
+TEST_F(Ts_Fia_Ascend910_9591, case_pfa_alibi_pseType2)
+{
+    FiaCase cs;
+    cs.mParam.b = 1;
+    cs.mParam.n = 1;
+    cs.mParam.s = 128;
+    cs.mParam.d = 128;
+    cs.mParam.layout = "BNSD";
+    cs.mParam.numHeads = 1;
+    cs.mParam.kvNumHeads = 1;
+    cs.mParam.scaleValue = 1.0f;
+    cs.mParam.kvDataType = ge::DT_FLOAT16;
+    cs.mParam.pseType = 2;
+
+    ASSERT_TRUE(cs.Init());
+    cs.query = Tensor("query", {1, 1, 128, 128}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.key = TensorList("key", {1, 1, 128, 128}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.value = TensorList("value", {1, 1, 128, 128}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.attentionOut = Tensor("attentionOut", {1, 1, 128, 128}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.qStartIdx = Tensor("qStartIdx", {1}, "B", ge::DT_INT64, ge::FORMAT_ND);
+    cs.kvStartIdx = Tensor("kvStartIdx", {1}, "B", ge::DT_INT64, ge::FORMAT_ND);
+    cs.pseShift = Tensor("pseShift", {1}, "N", ge::DT_FLOAT, ge::FORMAT_ND);
+
+    cs.mOpInfo.mExp.mSuccess = true;
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
+TEST_F(Ts_Fia_Ascend910_9591, case_pfa_alibi_pseType3)
+{
+    FiaCase cs;
+    cs.mParam.b = 1;
+    cs.mParam.n = 1;
+    cs.mParam.s = 128;
+    cs.mParam.d = 128;
+    cs.mParam.layout = "BNSD";
+    cs.mParam.numHeads = 1;
+    cs.mParam.kvNumHeads = 1;
+    cs.mParam.scaleValue = 1.0f;
+    cs.mParam.kvDataType = ge::DT_FLOAT16;
+    cs.mParam.pseType = 3;
+
+    ASSERT_TRUE(cs.Init());
+    cs.query = Tensor("query", {1, 1, 128, 128}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.key = TensorList("key", {1, 1, 128, 128}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.value = TensorList("value", {1, 1, 128, 128}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.attentionOut = Tensor("attentionOut", {1, 1, 128, 128}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.qStartIdx = Tensor("qStartIdx", {1}, "B", ge::DT_INT64, ge::FORMAT_ND);
+    cs.kvStartIdx = Tensor("kvStartIdx", {1}, "B", ge::DT_INT64, ge::FORMAT_ND);
+    cs.pseShift = Tensor("pseShift", {1}, "N", ge::DT_FLOAT, ge::FORMAT_ND);
+
+    cs.mOpInfo.mExp.mSuccess = true;
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
+TEST_F(Ts_Fia_Ascend910_9591, case_pfa_alibi_pseShift_dimError)
+{
+    FiaCase cs;
+    cs.mParam.b = 1;
+    cs.mParam.n = 1;
+    cs.mParam.s = 128;
+    cs.mParam.d = 128;
+    cs.mParam.layout = "BNSD";
+    cs.mParam.numHeads = 1;
+    cs.mParam.kvNumHeads = 1;
+    cs.mParam.scaleValue = 1.0f;
+    cs.mParam.kvDataType = ge::DT_FLOAT16;
+    cs.mParam.pseType = 2;
+
+    ASSERT_TRUE(cs.Init());
+    cs.query = Tensor("query", {1, 1, 128, 128}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.key = TensorList("key", {1, 1, 128, 128}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.value = TensorList("value", {1, 1, 128, 128}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.attentionOut = Tensor("attentionOut", {1, 1, 128, 128}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.qStartIdx = Tensor("qStartIdx", {1}, "B", ge::DT_INT64, ge::FORMAT_ND);
+    cs.kvStartIdx = Tensor("kvStartIdx", {1}, "B", ge::DT_INT64, ge::FORMAT_ND);
+    cs.pseShift = Tensor("pseShift", {1,2}, "BN", ge::DT_FLOAT, ge::FORMAT_ND);
+
+    cs.mOpInfo.mExp.mSuccess = false;
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
+TEST_F(Ts_Fia_Ascend910_9591, case_pfa_alibi_pseShift_sError)
+{
+    FiaCase cs;
+    cs.mParam.b = 1;
+    cs.mParam.n = 1;
+    cs.mParam.s = 128;
+    cs.mParam.d = 128;
+    cs.mParam.layout = "BNSD";
+    cs.mParam.numHeads = 1;
+    cs.mParam.kvNumHeads = 1;
+    cs.mParam.scaleValue = 1.0f;
+    cs.mParam.kvDataType = ge::DT_FLOAT16;
+    cs.mParam.pseType = 2;
+    cs.mParam.actualSeqLength = {8};
+    cs.mParam.actualSeqLengthKV = {9};
+
+    ASSERT_TRUE(cs.Init());
+    cs.query = Tensor("query", {1, 1, 128, 128}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.key = TensorList("key", {1, 1, 128, 128}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.value = TensorList("value", {1, 1, 128, 128}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.attentionOut = Tensor("attentionOut", {1, 1, 128, 128}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.qStartIdx = Tensor("qStartIdx", {1}, "B", ge::DT_INT64, ge::FORMAT_ND);
+    cs.kvStartIdx = Tensor("kvStartIdx", {1}, "B", ge::DT_INT64, ge::FORMAT_ND);
+    cs.pseShift = Tensor("pseShift", {1,2}, "BN", ge::DT_FLOAT, ge::FORMAT_ND);
+
+    cs.mOpInfo.mExp.mSuccess = false;
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
+TEST_F(Ts_Fia_Ascend910_9591, case_pfa_alibi_pseShift_kvsError)
+{
+    FiaCase cs;
+    cs.mParam.b = 1;
+    cs.mParam.n = 1;
+    cs.mParam.s = 128;
+    cs.mParam.d = 128;
+    cs.mParam.layout = "BNSD";
+    cs.mParam.numHeads = 1;
+    cs.mParam.kvNumHeads = 1;
+    cs.mParam.scaleValue = 1.0f;
+    cs.mParam.kvDataType = ge::DT_FLOAT16;
+    cs.mParam.pseType = 2;
+
+    ASSERT_TRUE(cs.Init());
+    cs.query = Tensor("query", {1, 1, 128, 128}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.key = TensorList("key", {1, 1, 127, 128}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.value = TensorList("value", {1, 1, 127, 128}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.attentionOut = Tensor("attentionOut", {1, 1, 128, 127}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.qStartIdx = Tensor("qStartIdx", {1}, "B", ge::DT_INT64, ge::FORMAT_ND);
+    cs.kvStartIdx = Tensor("kvStartIdx", {1}, "B", ge::DT_INT64, ge::FORMAT_ND);
+    cs.pseShift = Tensor("pseShift", {1,2}, "BN", ge::DT_FLOAT, ge::FORMAT_ND);
+
+    cs.mOpInfo.mExp.mSuccess = false;
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
+TEST_F(Ts_Fia_Ascend910_9591, case_pfa_alibi_pseShift_TNDsError)
+{
+    FiaCase cs;
+    cs.mParam.b = 1;
+    cs.mParam.n = 1;
+    cs.mParam.s = 128;
+    cs.mParam.d = 128;
+    cs.mParam.layout = "TND";
+    cs.mParam.numHeads = 1;
+    cs.mParam.kvNumHeads = 1;
+    cs.mParam.scaleValue = 1.0f;
+    cs.mParam.kvDataType = ge::DT_FLOAT16;
+    cs.mParam.pseType = 2;
+    cs.mParam.actualSeqLength = {8,128};
+    cs.mParam.actualSeqLengthKV = {9,128};
+
+    ASSERT_TRUE(cs.Init());
+    cs.query = Tensor("query", {128, 1, 128}, "TND", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.key = TensorList("key", {128, 1, 128}, "TND", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.value = TensorList("value", {128, 1, 128}, "TND", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.qStartIdx = Tensor("qStartIdx", {1}, "B", ge::DT_INT64, ge::FORMAT_ND);
+    cs.kvStartIdx = Tensor("kvStartIdx", {1}, "B", ge::DT_INT64, ge::FORMAT_ND);
+    cs.pseShift = Tensor("pseShift", {1,2}, "BN", ge::DT_FLOAT, ge::FORMAT_ND);
+
+    cs.mOpInfo.mExp.mSuccess = false;
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
+TEST_F(Ts_Fia_Ascend910_9591, case_pfa_alibi_pseShift_rope)
+{
+    FiaCase cs;
+    cs.mParam.b = 1;
+    cs.mParam.n = 1;
+    cs.mParam.s = 128;
+    cs.mParam.d = 128;
+    cs.mParam.layout = "BNSD";
+    cs.mParam.numHeads = 1;
+    cs.mParam.kvNumHeads = 1;
+    cs.mParam.scaleValue = 1.0f;
+    cs.mParam.kvDataType = ge::DT_FLOAT16;
+    cs.mParam.pseType = 2;
+
+    ASSERT_TRUE(cs.Init());
+    cs.query = Tensor("query", {1, 1, 128, 128}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.key = TensorList("key", {1, 1, 128, 128}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.value = TensorList("value", {1, 1, 128, 128}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.attentionOut = Tensor("attentionOut", {1, 1, 128, 128}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.keyRope = Tensor("keyRope", {1, 1, 128, 64}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.queryRope = Tensor("queryRope", {1, 1, 128, 64}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.qStartIdx = Tensor("qStartIdx", {1}, "B", ge::DT_INT64, ge::FORMAT_ND);
+    cs.kvStartIdx = Tensor("kvStartIdx", {1}, "B", ge::DT_INT64, ge::FORMAT_ND);
+    cs.pseShift = Tensor("pseShift", {1,2}, "BN", ge::DT_FLOAT, ge::FORMAT_ND);
+
+    cs.mOpInfo.mExp.mSuccess = false;
+    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
+}
+
+TEST_F(Ts_Fia_Ascend910_9591, case_pfa_alibi_pseShift_leftPadding)
+{
+    FiaCase cs;
+    cs.mParam.b = 1;
+    cs.mParam.n = 1;
+    cs.mParam.s = 128;
+    cs.mParam.d = 128;
+    cs.mParam.layout = "BNSD";
+    cs.mParam.numHeads = 1;
+    cs.mParam.kvNumHeads = 1;
+    cs.mParam.scaleValue = 1.0f;
+    cs.mParam.kvDataType = ge::DT_FLOAT16;
+    cs.mParam.pseType = 2;
+
+    ASSERT_TRUE(cs.Init());
+    cs.query = Tensor("query", {1, 1, 128, 128}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.key = TensorList("key", {1, 1, 127, 128}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.value = TensorList("value", {1, 1, 127, 128}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.attentionOut = Tensor("attentionOut", {1, 1, 128, 127}, "BNSD", ge::DT_FLOAT16, ge::FORMAT_ND);
+    cs.qStartIdx = Tensor("qStartIdx", {1}, "B", ge::DT_INT64, ge::FORMAT_ND);
+    cs.kvStartIdx = Tensor("kvStartIdx", {1}, "B", ge::DT_INT64, ge::FORMAT_ND);
+    cs.pseShift = Tensor("pseShift", {1,2}, "BN", ge::DT_FLOAT, ge::FORMAT_ND);
+    cs.queryPaddinSize = Tensor("queryPaddinSize", {1}, "1", ge::DataType::DT_INT8, ge::FORMAT_ND);
 
     cs.mOpInfo.mExp.mSuccess = false;
     ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
