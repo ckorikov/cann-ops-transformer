@@ -295,6 +295,36 @@ static bool CheckKVPaddingCrossover(gert::TilingContext* context, ContextParamsF
     return true;
 }
 
+ge::graphStatus ConvertQuantOptionalInputs(gert::TilingContext* context, ContextParamsForPFATiling& contextKeyParams) {
+    contextKeyParams.deqScale1Shape = context->GetOptionalInputShape(DEQUANT_SCALE1_INDEX);
+    contextKeyParams.scale1Shape = context->GetOptionalInputShape(QUANT_SCALE1_INDEX);
+    contextKeyParams.deqScale2Shape = context->GetOptionalInputShape(DEQUANT_SCALE2_INDEX);
+    contextKeyParams.scale2Shape = context->GetOptionalInputShape(QUANT_SCALE2_INDEX);
+    contextKeyParams.offset2Shape = context->GetOptionalInputShape(QUANT_OFFSET2_INDEX);
+    contextKeyParams.antiquantScaleShape = context->GetOptionalInputShape(ANTIQUANT_SCALE_INDEX);
+    contextKeyParams.antiquantOffsetShape = context->GetOptionalInputShape(ANTIQUANT_OFFSET_INDEX);
+
+    contextKeyParams.quantScale2Type = (context->GetOptionalInputDesc(QUANT_SCALE2_INDEX) != nullptr) ?
+        context->GetOptionalInputDesc(QUANT_SCALE2_INDEX)->GetDataType() : ge::DT_FLOAT;
+    contextKeyParams.quantOffset2Type = (context->GetOptionalInputDesc(QUANT_OFFSET2_INDEX) != nullptr) ?
+        context->GetOptionalInputDesc(QUANT_OFFSET2_INDEX)->GetDataType() : ge::DT_FLOAT;
+    contextKeyParams.dequantScaleQueryShape = context->GetOptionalInputShape(DEQUANT_SCALE_QUERY_INDEX);
+    contextKeyParams.KeyAntiquantScaleShape = context->GetOptionalInputShape(KEY_ANTIQUANT_SCALE_INDEX);
+    contextKeyParams.valueAntiquantScaleShape = context->GetOptionalInputShape(VALUE_ANTIQUANT_SCALE_INDEX);
+
+    contextKeyParams.dequantScaleQueryType = (context->GetOptionalInputDesc(DEQUANT_SCALE_QUERY_INDEX) != nullptr) ?
+        context->GetOptionalInputDesc(DEQUANT_SCALE_QUERY_INDEX)->GetDataType() : ge::DT_FLOAT;
+    contextKeyParams.KeyAntiquantScaleType = (context->GetOptionalInputDesc(KEY_ANTIQUANT_SCALE_INDEX) != nullptr) ?
+        context->GetOptionalInputDesc(KEY_ANTIQUANT_SCALE_INDEX)->GetDataType() : ge::DT_FLOAT16;
+    contextKeyParams.valueAntiquantScaleType = (context->GetOptionalInputDesc(VALUE_ANTIQUANT_SCALE_INDEX) != nullptr) ?
+        context->GetOptionalInputDesc(VALUE_ANTIQUANT_SCALE_INDEX)->GetDataType() : ge::DT_FLOAT16;
+
+    contextKeyParams.dequantScaleQuery = context->GetOptionalInputTensor(DEQUANT_SCALE_QUERY_INDEX);
+    contextKeyParams.keyAntiquantScale = context->GetOptionalInputTensor(KEY_ANTIQUANT_SCALE_INDEX);
+    contextKeyParams.valueAntiquantScale = context->GetOptionalInputTensor(VALUE_ANTIQUANT_SCALE_INDEX);   
+    return ge::GRAPH_SUCCESS;
+}
+
 static ge::graphStatus ConvertContextToParamsPFA(gert::TilingContext* context, ContextParamsForPFATiling& contextKeyParams) {
     constexpr uint32_t FROM_FUSED_FLAG = 71;
 
@@ -334,10 +364,6 @@ static ge::graphStatus ConvertContextToParamsPFA(gert::TilingContext* context, C
         context->GetOptionalInputDesc(PSE_SHIFT_INDEX)->GetDataType() : contextKeyParams.inputDataType;
     contextKeyParams.maskDataType = (contextKeyParams.attentionMask != nullptr) ?
         context->GetOptionalInputDesc(ATTEN_MASK_INDEX)->GetDataType() : contextKeyParams.inputDataType;
-    contextKeyParams.quantScale2Type = (context->GetOptionalInputDesc(QUANT_SCALE2_INDEX) != nullptr) ?
-        context->GetOptionalInputDesc(QUANT_SCALE2_INDEX)->GetDataType() : ge::DT_FLOAT;
-    contextKeyParams.quantOffset2Type = (context->GetOptionalInputDesc(QUANT_OFFSET2_INDEX) != nullptr) ?
-        context->GetOptionalInputDesc(QUANT_OFFSET2_INDEX)->GetDataType() : ge::DT_FLOAT;
     contextKeyParams.blockTableType = (context->GetOptionalInputDesc(BLOCK_TABLE_INDEX) != nullptr) ?
         context->GetOptionalInputDesc(BLOCK_TABLE_INDEX)->GetDataType() : ge::DT_INT32;
     contextKeyParams.outputDataType = context->GetOutputDesc(ATTENTION_OUT_INDEX)->GetDataType();
@@ -346,28 +372,15 @@ static ge::graphStatus ConvertContextToParamsPFA(gert::TilingContext* context, C
     contextKeyParams.valueInputShape = context->GetDynamicInputShape(VALUE_INDEX, 0);
     contextKeyParams.pseShiftShape = context->GetOptionalInputShape(PSE_SHIFT_INDEX);
     contextKeyParams.attentionMaskShape = context->GetOptionalInputShape(ATTEN_MASK_INDEX);
-    contextKeyParams.deqScale1Shape = context->GetOptionalInputShape(DEQUANT_SCALE1_INDEX);
-    contextKeyParams.scale1Shape = context->GetOptionalInputShape(QUANT_SCALE1_INDEX);
-    contextKeyParams.deqScale2Shape = context->GetOptionalInputShape(DEQUANT_SCALE2_INDEX);
-    contextKeyParams.scale2Shape = context->GetOptionalInputShape(QUANT_SCALE2_INDEX);
-    contextKeyParams.offset2Shape = context->GetOptionalInputShape(QUANT_OFFSET2_INDEX);
-    contextKeyParams.antiquantScaleShape = context->GetOptionalInputShape(ANTIQUANT_SCALE_INDEX);
-    contextKeyParams.antiquantOffsetShape = context->GetOptionalInputShape(ANTIQUANT_OFFSET_INDEX);
     contextKeyParams.blockTableShape = context->GetOptionalInputShape(BLOCK_TABLE_INDEX);
     contextKeyParams.outputShape = context->GetOutputShape(ATTENTION_OUT_INDEX);
     contextKeyParams.lseoutputShape = context->GetOutputShape(SOFTMAX_LSE_INDEX);
 
-    contextKeyParams.dequantScaleQueryShape = context->GetOptionalInputShape(DEQUANT_SCALE_QUERY_INDEX);
-    contextKeyParams.KeyAntiquantScaleShape = context->GetOptionalInputShape(KEY_ANTIQUANT_SCALE_INDEX);
-    contextKeyParams.valueAntiquantScaleShape = context->GetOptionalInputShape(VALUE_ANTIQUANT_SCALE_INDEX);
-
-    contextKeyParams.dequantScaleQueryType = context->GetInputDesc(DEQUANT_SCALE_QUERY_INDEX)->GetDataType();
-    contextKeyParams.KeyAntiquantScaleType = context->GetInputDesc(KEY_ANTIQUANT_SCALE_INDEX)->GetDataType();
-    contextKeyParams.valueAntiquantScaleType = context->GetInputDesc(VALUE_ANTIQUANT_SCALE_INDEX)->GetDataType();
-
-    contextKeyParams.dequantScaleQuery = context->GetOptionalInputTensor(DEQUANT_SCALE_QUERY_INDEX);
-    contextKeyParams.keyAntiquantScale = context->GetOptionalInputTensor(KEY_ANTIQUANT_SCALE_INDEX);
-    contextKeyParams.valueAntiquantScale = context->GetOptionalInputTensor(VALUE_ANTIQUANT_SCALE_INDEX);   
+    auto convertQuantRet = ConvertQuantOptionalInputs(context, contextKeyParams);
+    if (convertQuantRet != ge::GRAPH_SUCCESS) {
+        OP_LOGE(context->GetNodeName(), "Error occured while convert quant related tilingContext to PFA context!");
+        return convertQuantRet;
+    }
     
     auto attrs = context->GetAttrs();
     OP_CHECK_IF(attrs == nullptr, OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(),
