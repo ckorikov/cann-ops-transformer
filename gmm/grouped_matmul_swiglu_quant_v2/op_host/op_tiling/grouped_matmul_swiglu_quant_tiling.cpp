@@ -24,6 +24,7 @@
 #include "tiling_base/tiling_templates_registry.h"
 #include "grouped_matmul_swiglu_quant_fusion_tiling.h"
 #include "grouped_matmul_swiglu_quant_base_tiling.h"
+#include "platform/platform_infos_def.h"
 
 using namespace ge;
 using namespace AscendC;
@@ -35,18 +36,27 @@ namespace optiling {
 REGISTER_TILING_TEMPLATE("GroupedMatmulSwigluQuantV2", GroupedMatmulSwigluQuantV2FusionTiling, 0);
 REGISTER_TILING_TEMPLATE("GroupedMatmulSwigluQuantV2", GroupedMatmulSwigluQuantV2BaseTiling, 1);
 
-ASCENDC_EXTERN_C graphStatus TilingGMMSwigluQuantV2(gert::TilingContext *context)
+static ge::graphStatus GroupedMatmulSwigluQuantV2TilingFunc(gert::TilingContext *context)
 {
     OP_CHECK_IF(context == nullptr,
-            OPS_REPORT_CUBE_INNER_ERR("GroupedMatmulSwigluQuantV2", "context is null"),
+            OPS_REPORT_CUBE_INNER_ERR("GroupedMatmulSwigluQuantV2TilingFunc", "Tilingcontext is null"),
             return ge::GRAPH_FAILED);
-    return Ops::Transformer::OpTiling::TilingRegistry::GetInstance().DoTilingImpl(context);
+    auto compileInfoPtr = context->GetCompileInfo<GMMSwigluV2CompileInfo>();
+    if (compileInfoPtr->supportL12BtBf16) {
+        std::vector<int32_t> registerList = {2};
+        OP_LOGD("GroupedMatmulSwigluQuantV2TilingFunc", "Using the tiling strategy in the mxfp8");
+        return TilingRegistry::GetInstance().DoTilingImpl(context, registerList);
+    }else {
+        std::vector<int32_t> registerList = {0,1};
+        OP_LOGD("GroupedMatmulSwigluQuantV2TilingFunc", "Using the tiling strategy in the int8");
+        return TilingRegistry::GetInstance().DoTilingImpl(context, registerList);
+    }
 }
 
 ASCENDC_EXTERN_C graphStatus TilingPrepareForGMMSwigluQuantV2(gert::TilingParseContext *context)
 {
     // get info
-    fe::PlatFormInfos *platformInfoPtr = context->GetPlatformInfo();
+    auto platformInfoPtr = context->GetPlatformInfo();
     OP_CHECK_NULL_WITH_CONTEXT(context, platformInfoPtr);
     auto compileInfoPtr = context->GetCompiledInfo<GMMSwigluV2CompileInfo>();
     OP_CHECK_NULL_WITH_CONTEXT(context, compileInfoPtr);
@@ -54,12 +64,15 @@ ASCENDC_EXTERN_C graphStatus TilingPrepareForGMMSwigluQuantV2(gert::TilingParseC
     auto ascendcPlatform = platform_ascendc::PlatformAscendC(platformInfoPtr);
     compileInfoPtr->aicNum_ = ascendcPlatform.GetCoreNumAic();
     compileInfoPtr->aivNum_ = ascendcPlatform.GetCoreNumAiv();
+    std::string platformRes;
+    platformInfoPtr->GetPlatformRes("AICoreintrinsicDtypeMap", "Intrinsic_data_move_l12bt", platformRes);
+    compileInfoPtr->supportL12BtBf16 = (platformRes.find("bf16") != std::string::npos);
     ascendcPlatform.GetCoreMemSize(platform_ascendc::CoreMemType::UB, compileInfoPtr->ubSize_);
     OP_LOGD(context->GetNodeName(), "ubSize is %lu, aicNum is %u.", compileInfoPtr->ubSize_, compileInfoPtr->aicNum_);
     return GRAPH_SUCCESS;
 }
 
 IMPL_OP_OPTILING(GroupedMatmulSwigluQuantV2)
-    .Tiling(TilingGMMSwigluQuantV2)
+    .Tiling(GroupedMatmulSwigluQuantV2TilingFunc)
     .TilingParse<GMMSwigluV2CompileInfo>(TilingPrepareForGMMSwigluQuantV2);
 } // namespace optiling

@@ -53,6 +53,22 @@ TILING_DATA_FIELD_DEF(int8_t, isSingleTensor);
 TILING_DATA_FIELD_DEF_STRUCT(TCubeTiling, matmulTiling);
 END_TILING_DATA_DEF;
 
+BEGIN_TILING_DATA_DEF(GMMSwigluQuantParams)
+TILING_DATA_FIELD_DEF(uint32_t, groupNum);
+TILING_DATA_FIELD_DEF(uint8_t, groupListType);
+TILING_DATA_FIELD_DEF(uint8_t, quantDtype);
+TILING_DATA_FIELD_DEF(uint8_t, reserved1);
+END_TILING_DATA_DEF;
+REGISTER_TILING_DATA_CLASS(GMMSwigluQuantParamsOp, GMMSwigluQuantParams)
+
+BEGIN_TILING_DATA_DEF(GMMSwigluQuantTilingDataParams)
+TILING_DATA_FIELD_DEF_STRUCT(GMMSwigluQuantParams, gmmSwigluQuantParams);
+TILING_DATA_FIELD_DEF_STRUCT(TCubeTiling, mmTilingData);
+END_TILING_DATA_DEF;
+
+REGISTER_TILING_DATA_CLASS(GroupedMatmulSwigluQuantV2_20000000000, GMMSwigluQuantTilingDataParams)
+REGISTER_TILING_DATA_CLASS(GroupedMatmulSwigluQuantV2_20000000001, GMMSwigluQuantTilingDataParams)
+
 REGISTER_TILING_DATA_CLASS(GroupedMatmulSwigluQuantV2, GMMSwigluQuantV2TilingData)
 REGISTER_TILING_DATA_CLASS(GroupedMatmulSwigluQuantV2_3, GMMSwigluQuantV2TilingFusionData)
 
@@ -62,6 +78,7 @@ struct GMMSwigluV2CompileInfo {
     uint32_t aivNum_ = 0;
     uint32_t baseM_ = 128;
     uint32_t baseN_ = 256;
+    bool supportL12BtBf16;
 };
 
 namespace GroupedMatmulSwigluQuantV2Tiling {
@@ -75,8 +92,8 @@ constexpr uint32_t DIM_1 = 1;
 constexpr uint32_t DIM_2 = 2;
 constexpr uint32_t DIM_3 = 3;
 constexpr uint32_t DIM_4 = 4;
-constexpr uint32_t SYS_WORKSPACE_SIZE = 16 * 1024 * 1024;
-constexpr int64_t USER_WORKSPACE_LIMIT = 64 * 1024 * 1024;
+constexpr uint32_t SYS_WORKSPACE_SIZE = static_cast<uint32_t>(16 * 1024 * 1024);
+constexpr int64_t USER_WORKSPACE_LIMIT = static_cast<int64_t>(64 * 1024 * 1024);
 constexpr int64_t DOUBLE_WORKSPACE_SPLIT = 2;
 constexpr int64_t INT32_DTYPE_SIZE = 4;
 constexpr int64_t FP32_DTYPE_SIZE = 4;
