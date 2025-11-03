@@ -45,10 +45,10 @@ extern "C" __global__ __aicore__ void matmul_all_reduce(GM_ADDR aGM, GM_ADDR bGM
 extern uint8_t* g_hcclContextReserved[2];
 
 struct HcclCombinOpParam {
-  uint64_t WorkSpace;
-  uint64_t WorkSpaceSize;
-  uint32_t rankId;
-  uint32_t rankDim;
+    uint64_t WorkSpace;
+    uint64_t WorkSpaceSize;
+    uint32_t rankId;
+    uint32_t rankDim;
 };
 
 class matmul_all_reduce_test : public testing::Test {
@@ -144,7 +144,7 @@ TEST_F(matmul_all_reduce_test, matmul_all_reduce_test_no_bias_l2cache_cube) {
     tilingData->param.aicCoreNum = 8;
     tilingData->param.rankDim = 1;
     tilingData->param.tileCnt = 1;
-    L2cacheTilePara tileL2cacheTiling;
+    Mc2L2cacheTilePara tileL2cacheTiling;
     tilingData->tileL2cacheTiling.mTileCntL2 = 1;
     tilingData->tileL2cacheTiling.nTileCntL2 = 2;
     tilingData->tileL2cacheTiling.mTileBlock = 1;
@@ -234,7 +234,7 @@ TEST_F(matmul_all_reduce_test, matmul_all_reduce_test_no_bias_l2cache) {
     tilingData->param.aicCoreNum = 8;
     tilingData->param.rankDim = 1;
     tilingData->param.tileCnt = 1;
-    L2cacheTilePara tileL2cacheTiling;
+    Mc2L2cacheTilePara tileL2cacheTiling;
     tilingData->tileL2cacheTiling.mTileCntL2 = 1;
     tilingData->tileL2cacheTiling.nTileCntL2 = 2;
     tilingData->tileL2cacheTiling.mTileBlock = 1;
@@ -290,7 +290,7 @@ TEST_F(matmul_all_reduce_test, matmul_all_reduce_test_201111) {
     tilingData->param.aicCoreNum = 8;
     tilingData->param.rankDim = 1;
     tilingData->param.tileCnt = 1;
-    L2cacheTilePara tileL2cacheTiling;
+    Mc2L2cacheTilePara tileL2cacheTiling;
     tilingData->tileL2cacheTiling.mTileCntL2 = 1;
     tilingData->tileL2cacheTiling.nTileCntL2 = 2;
     tilingData->tileL2cacheTiling.mTileBlock = 1;

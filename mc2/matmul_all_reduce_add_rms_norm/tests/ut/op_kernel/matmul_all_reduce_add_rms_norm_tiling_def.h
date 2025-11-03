@@ -156,11 +156,11 @@ struct Mc2Msg
     uint8_t reserve2 = 0;
 };
 
-struct L2cacheUseInfo {
+struct Mc2L2cacheUseInfo{
     uint32_t l2CacheFlag;
 };
 
-struct L2cacheTilePara {
+struct Mc2L2cacheTilePara{
     uint32_t mTileCntL2;
     uint32_t nTileCntL2;
     uint32_t mTileBlock;
@@ -168,7 +168,7 @@ struct L2cacheTilePara {
     uint32_t calOrder;
 };
 
-struct MatMulRunInfo {
+struct Mc2MatMulRunInfo {
     uint32_t transA;
     uint32_t transB;
     uint32_t nd2nzA;
@@ -176,11 +176,11 @@ struct MatMulRunInfo {
     uint32_t isHf32;
 };
 
-struct MatmulTilingData {
+struct Mc2MatmulV3TilingData {
     TCubeTiling matmulTiling;
-    L2cacheTilePara tileL2cacheTiling;
-    MatMulRunInfo matmulRunInfo;
-    L2cacheUseInfo l2cacheUseInfo;
+    Mc2L2cacheTilePara tileL2cacheTiling;
+    Mc2MatMulRunInfo matmulRunInfo;
+    Mc2L2cacheUseInfo l2cacheUseInfo;
     uint32_t baseAN;
     uint32_t baseAD;
     uint32_t baseBN;
@@ -191,15 +191,15 @@ struct MatmulAllReduceTilingData
 {
     Mc2Msg msg;
     RCSTiling param;
-    MatmulTilingData tilematmulTiling;
-    MatmulTilingData tailmatmulTiling;
+    Mc2MatmulV3TilingData tilematmulTiling;
+    Mc2MatmulV3TilingData tailmatmulTiling;
 };
 
 struct MatmulAllReduce910TilingData {
     Mc2Msg msg;
     RCSTiling param;
-    MatmulTilingData tilematmulTiling;
-    MatmulTilingData tailmatmulTiling;
+    Mc2MatmulV3TilingData tilematmulTiling;
+    Mc2MatmulV3TilingData tailmatmulTiling;
 };
 
 struct AddRMSNormTilingeKeyData
