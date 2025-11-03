@@ -218,10 +218,11 @@ public:
                     AscendC::SetFlag<AscendC::HardEvent::MTE1_M>(EVENT_ID0);
                     AscendC::WaitFlag<AscendC::HardEvent::MTE1_M>(EVENT_ID0);
                     bool initMmad = (kL0Idx == 0U);
+                    uint32_t mL0Align = (mL0Actual + BLOCK_SIZE - 1U) / BLOCK_SIZE * BLOCK_SIZE;
                     tileMmad(l0CTensor[l0CPingPongFlag],
                         l0ATensor[l0ABPingPongFlag],
                         l0BTensor[l0ABPingPongFlag],
-                        mL0Actual,
+                        mL0Align,
                         nActual,
                         kL0Actual,
                         initMmad);
