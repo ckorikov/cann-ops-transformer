@@ -11,7 +11,9 @@
 #include <gtest/gtest.h>
 #include <iostream>
 #include "infer_shape_context_faker.h"
+#include "infer_datatype_context_faker.h"
 #include "infer_shape_case_executor.h"
+#include "base/registry/op_impl_space_registry_v2.h"
 
 class MoeReRouting : public testing::Test
 {
@@ -114,4 +116,40 @@ TEST_F(MoeReRouting, MoeReRouting_infershape_unkownshape)
                                                       });
     std::vector<std::vector<int64_t>> expectOutputShape = {{-2}, {-2}, {-2}, {-2}};
     ExecuteTestCase(infershapeContextPara, ge::GRAPH_SUCCESS, expectOutputShape);
+}
+
+TEST_F(MoeReRouting, MoeReRouting_inferdtype)
+{
+    ASSERT_NE(gert::DefaultOpImplSpaceRegistryV2::GetInstance().GetSpaceRegistry()->GetOpImpl("MoeReRouting"), nullptr);
+    auto data_type_func = gert::DefaultOpImplSpaceRegistryV2::GetInstance().GetSpaceRegistry()->GetOpImpl("MoeReRouting")->infer_datatype;
+    ASSERT_NE(data_type_func, nullptr);
+    ge::DataType input_0 = ge::DT_FLOAT16;
+    ge::DataType input_1 = ge::DT_INT32;
+    ge::DataType input_2 = ge::DT_FLOAT;
+    ge::DataType output_0 = ge::DT_FLOAT16;
+    ge::DataType output_1 = ge::DT_FLOAT;
+    ge::DataType output_2 = ge::DT_INT32;
+    ge::DataType output_3 = ge::DT_INT32;
+    auto context_holder = gert::InferDataTypeContextFaker()
+                              .IrInputNum(3)
+                              .NodeIoNum(3, 4)
+                              .NodeInputTd(0, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND)
+                              .NodeInputTd(1, ge::DT_INT32, ge::FORMAT_ND, ge::FORMAT_ND)
+                              .NodeInputTd(2, ge::DT_FLOAT, ge::FORMAT_ND, ge::FORMAT_ND)
+                              .NodeAttrs({})
+                              .NodeOutputTd(0, ge::DT_FLOAT16, ge::FORMAT_ND, ge::FORMAT_ND)
+                              .NodeOutputTd(1, ge::DT_FLOAT, ge::FORMAT_ND, ge::FORMAT_ND)
+                              .NodeOutputTd(2, ge::DT_INT32, ge::FORMAT_ND, ge::FORMAT_ND)
+                              .NodeOutputTd(3, ge::DT_INT32, ge::FORMAT_ND, ge::FORMAT_ND)
+                              .InputDataTypes({&input_0, &input_1, &input_2})
+                              .OutputDataTypes({&output_0, &output_1, &output_2, &output_3})
+                              .Build();
+    auto context = context_holder.GetContext<gert::InferDataTypeContext>();
+    EXPECT_EQ(data_type_func(context), ge::GRAPH_SUCCESS);
+    ASSERT_NE(context, nullptr);
+
+    EXPECT_EQ(context->GetOutputDataType(0), ge::DT_FLOAT16);
+    EXPECT_EQ(context->GetOutputDataType(1), ge::DT_FLOAT);
+    EXPECT_EQ(context->GetOutputDataType(2), ge::DT_INT32);
+    EXPECT_EQ(context->GetOutputDataType(3), ge::DT_INT32);
 }

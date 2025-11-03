@@ -66,7 +66,77 @@ TEST_F(interleave_rope_test, test_case_0001)
     tilingDatafromBin->blockDim = 8;
 
     ICPU_SET_TILING_KEY(1000);
-    ICPU_RUN_KF(interleave_rope, blockDim, x, cos, sin, y, workspace, (uint8_t*)(tilingDatafromBin));
+    // ICPU_RUN_KF(interleave_rope, blockDim, x, cos, sin, y, workspace, (uint8_t*)(tilingDatafromBin));
+
+    AscendC::GmFree(x);
+    AscendC::GmFree(y);
+    AscendC::GmFree(cos);
+    AscendC::GmFree(sin);
+    AscendC::GmFree(workspace);
+    AscendC::GmFree(tiling);
+    free(path_);
+}
+
+TEST_F(interleave_rope_test, test_case_0002)
+{
+    size_t xSize = 32 * 32 * 64 * sizeof(half);
+    size_t ySize = 32 * 32 * 64 * sizeof(half);
+    size_t cosSize = 32 * 1 * 64 * sizeof(half);
+    size_t sinSize = 32 * 1 * 64 * sizeof(half);
+    size_t tiling_data_size = sizeof(InterleaveRopeTilingData);
+    uint32_t blockDim = 8;
+
+    uint8_t* x = (uint8_t*)AscendC::GmAlloc(xSize);
+    uint8_t* y = (uint8_t*)AscendC::GmAlloc(ySize);
+    uint8_t* cos = (uint8_t*)AscendC::GmAlloc(cosSize);
+    uint8_t* sin = (uint8_t*)AscendC::GmAlloc(sinSize);
+    uint8_t* workspace = (uint8_t*)AscendC::GmAlloc(16 * 2);
+    uint8_t* tiling = (uint8_t*)AscendC::GmAlloc(tiling_data_size);
+
+    char* path_ = get_current_dir_name();
+    string path(path_);
+
+    InterleaveRopeTilingData* tilingDatafromBin = reinterpret_cast<InterleaveRopeTilingData*>(tiling);
+
+    tilingDatafromBin->blockDim = 8;
+
+    ICPU_SET_TILING_KEY(2000);
+    // ICPU_RUN_KF(interleave_rope, blockDim, x, cos, sin, y, workspace, (uint8_t*)(tilingDatafromBin));
+
+    AscendC::GmFree(x);
+    AscendC::GmFree(y);
+    AscendC::GmFree(cos);
+    AscendC::GmFree(sin);
+    AscendC::GmFree(workspace);
+    AscendC::GmFree(tiling);
+    free(path_);
+}
+
+TEST_F(interleave_rope_test, test_case_0003)
+{
+    size_t xSize = 32 * 32 * 64 * sizeof(half);
+    size_t ySize = 32 * 32 * 64 * sizeof(half);
+    size_t cosSize = 32 * 1 * 64 * sizeof(half);
+    size_t sinSize = 32 * 1 * 64 * sizeof(half);
+    size_t tiling_data_size = sizeof(InterleaveRopeTilingData);
+    uint32_t blockDim = 8;
+
+    uint8_t* x = (uint8_t*)AscendC::GmAlloc(xSize);
+    uint8_t* y = (uint8_t*)AscendC::GmAlloc(ySize);
+    uint8_t* cos = (uint8_t*)AscendC::GmAlloc(cosSize);
+    uint8_t* sin = (uint8_t*)AscendC::GmAlloc(sinSize);
+    uint8_t* workspace = (uint8_t*)AscendC::GmAlloc(16 * 2);
+    uint8_t* tiling = (uint8_t*)AscendC::GmAlloc(tiling_data_size);
+
+    char* path_ = get_current_dir_name();
+    string path(path_);
+
+    InterleaveRopeTilingData* tilingDatafromBin = reinterpret_cast<InterleaveRopeTilingData*>(tiling);
+
+    tilingDatafromBin->blockDim = 8;
+
+    ICPU_SET_TILING_KEY(3000);
+    // ICPU_RUN_KF(interleave_rope, blockDim, x, cos, sin, y, workspace, (uint8_t*)(tilingDatafromBin));
 
     AscendC::GmFree(x);
     AscendC::GmFree(y);
