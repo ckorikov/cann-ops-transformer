@@ -34,7 +34,6 @@
 #include "register/op_def_registry.h"
 #include "platform/platform_infos_def.h"
 #include "../../../moe_distribute_dispatch/op_kernel/moe_distribute_dispatch_tiling.h"
-#include "../../../moe_distribute_dispatch/op_host/op_tiling/arch35/moe_distribute_dispatch_tiling_arch35.h"
 #include "../../op_kernel/moe_distribute_dispatch_v2_tiling.h"
 
 using namespace AscendC;
@@ -157,7 +156,7 @@ static void PrintTilingDataInfo(const char *nodeName, MoeDistributeDispatchV2Til
     OP_LOGD(nodeName, "totalWinSize is %lu.", tilingData.moeDistributeDispatchV2Info.totalWinSize);
     OP_LOGD(nodeName, "hasElastic is %d.", tilingData.moeDistributeDispatchV2Info.hasElasticInfo);
     OP_LOGD(nodeName, "zeroComputeExpertNum is %d", tilingData.moeDistributeDispatchV2Info.zeroComputeExpertNum);
-    OP_LOGD(nodeName, "CumSumUBMinValue is %d", tilingData.moeDistributeDispatchV2Info.CumSumUBMinValue);
+    OP_LOGD(nodeName, "cumSumUBMinValue is %d", tilingData.moeDistributeDispatchV2Info.CumSumUBMinValue);
 }
 
 static bool CheckTensorDim(const gert::TilingContext *context, const char *nodeName,
@@ -1333,8 +1332,6 @@ static ge::graphStatus MoeDistributeDispatchV2TilingFunc(gert::TilingContext* co
     ge::graphStatus ret;
     if (socVersion == "Ascend910B") {
         ret = MoeDistributeDispatchA2TilingFuncImpl(context);
-    } else if(socVersion == "Ascend910_95"){
-        ret = MoeDistributeDispatchTilingImpl(context);
     } else {
         ret = MoeDistributeDispatchA3TilingFuncImpl(context);
     }
