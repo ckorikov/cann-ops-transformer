@@ -45,10 +45,10 @@ extern "C" __global__ __aicore__ void matmul_all_reduce(GM_ADDR aGM, GM_ADDR bGM
 extern uint8_t* g_hcclContextReserved[2];
 
 struct HcclCombinOpParam {
-  uint64_t WorkSpace;
-  uint64_t WorkSpaceSize;
-  uint32_t rankId;
-  uint32_t rankDim;
+    uint64_t WorkSpace;
+    uint64_t WorkSpaceSize;
+    uint32_t rankId;
+    uint32_t rankDim;
 };
 
 class matmul_all_reduce_test : public testing::Test {
