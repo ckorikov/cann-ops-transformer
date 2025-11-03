@@ -8,12 +8,11 @@
  * See LICENSE in the root of the software repository for the full text of the License.
  */
 /*!
- * \file ts_fia_tiling.cpp
+ * \file test_fused_infer_attention_score_kernel.cpp
  * \brief FusedInferAttentionScore用例.
  */
 
 #include "ts_fia.h"
-
 
 TEST_F(Ts_Fia_Ascend910B1, case_SetL2CacheFlag_001)
 {

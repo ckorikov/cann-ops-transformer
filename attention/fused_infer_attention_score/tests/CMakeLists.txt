@@ -54,6 +54,33 @@ set(_FIA_OpKernelPrivateIncludesExt
 
 set(_FIA_TargetPrivateLinkLibrariesExt)
 
+set(_FIA_UTestSourcesExtForce)
+
+if (UT_TEST_ALL)
+        message(STATUS "+++++ DEBUG: all ut")
+        file(GLOB_RECURSE _Src1 "${CMAKE_CURRENT_SOURCE_DIR}/utest/*.cc")
+        file(GLOB_RECURSE _Src2 "${CMAKE_CURRENT_SOURCE_DIR}/utest/*.cpp")
+elseif(OP_HOST_UT)
+        message(STATUS "+++++ DEBUG: only host")
+        file(GLOB_RECURSE _Src1 "${CMAKE_CURRENT_SOURCE_DIR}/utest/op_host/*tiling.cpp")
+        file(GLOB_RECURSE _Src2 "${CMAKE_CURRENT_SOURCE_DIR}/utest/op_host/*infershape.cpp")
+elseif(OP_KERNEL_UT)
+        message(STATUS "+++++ DEBUG: only kernel")
+        file(GLOB_RECURSE _Src1 "${CMAKE_CURRENT_SOURCE_DIR}/utest/op_kernel/*kernel.cpp")
+elseif(OP_API_UT)
+        message(STATUS "+++++ DEBUG: only opapi")
+        file(GLOB_RECURSE _Src1 "${CMAKE_CURRENT_SOURCE_DIR}/utest/op_api/*opapi.cpp")
+endif()
+
+list(APPEND _FIA_UTestSourcesExtForce ${_Src1} ${_Src2})
+message(STATUS "+++++ DEBUG: .cpp files: ${_FIA_UTestSourcesExtForce}")
+
+if (_FIA_UTestSourcesExtForce)
+    set(UTEST_FORCE_FLAG ON)
+else()
+    set(UTEST_FORCE_FLAG OFF)
+endif()
+
 aux_source_directory(${CMAKE_SOURCE_DIR}/attention/fused_infer_attention_score/op_kernel _FIA_KernelSourcesExt)
 set(_FIA_CompileDefintions
         KernelCtrlParam incre_flash_attention,incre_flash_attention_FIAS,prompt_flash_attention,prompt_flash_attention_FIAS fia PFA_UT
@@ -70,4 +97,6 @@ OpsTest_Level2_AddOp(
         UTEST_COMMON_PRIVATE_LINK_LIBRARIES_EXT ${_FIA_TargetPrivateLinkLibrariesExt}
         KERNEL_PRIVATE_INCLUDES_EXT             ${_FIA_OpKernelPrivateIncludesExt}
         UTEST_COMMON_PRIVATE_INCLUDES_EXT       ${_FIA_UTestCommonPrivateIncludeExt}
+        UTEST_SOURCES_EXT                       ${_FIA_UTestSourcesExtForce}
+        UTEST_SOURCES_EXT_FORCE                 ${UTEST_FORCE_FLAG}
 )
