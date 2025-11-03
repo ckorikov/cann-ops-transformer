@@ -35,6 +35,7 @@ using namespace AscendC;
 using namespace Ops::Transformer::OpTiling;
 namespace optiling {
 constexpr uint32_t GMM_X_INDEX = 0U;
+constexpr uint32_t OUTPUT_Y_INDEX = 0U;
 constexpr uint32_t GMM_WEIGHT_INDEX = 1U;
 
 constexpr uint32_t SEND_COUNTS_TENSOR_INDEX = 2U;
@@ -737,7 +738,23 @@ ge::graphStatus AlltoAllvGmmTiling::SetHcclTiling(const gert::TilingContext* con
     uint32_t alltoAllvCmd = 8U;
     std::string alltoAllvConfig = "AlltoAll=level0:fullmesh;level1:pairwise";
 
-    Mc2CcTilingConfig hcclCcTilingConfig(epGroup_, alltoAllvCmd, alltoAllvConfig);
+    const uint32_t alltoAllvReduceType = 0u;
+    auto outputDataType = context->GetOutputDesc(OUTPUT_Y_INDEX)->GetDataType();
+    auto inputDataType = context->GetInputDesc(GMM_X_INDEX)->GetDataType();
+    OP_TILING_CHECK(
+        mc2tiling::HCCL_DATA_TYPE.find(outputDataType) == mc2tiling::HCCL_DATA_TYPE.end(),
+        OP_LOGE(A_INNER_DEBUG, "%s is Unsupported outputdata type!", Ops::Base::ToString(outputDataType).c_str()),
+        return ge::GRAPH_FAILED);
+    OP_TILING_CHECK(
+        mc2tiling::HCCL_DATA_TYPE.find(inputDataType) == mc2tiling::HCCL_DATA_TYPE.end(),
+        OP_LOGE(A_INNER_DEBUG, "%s is Unsupported inputdata type!", Ops::Base::ToString(inputDataType).c_str()),
+        return ge::GRAPH_FAILED);   
+
+    auto alltoAllvDstDataType = static_cast<uint8_t>(mc2tiling::HCCL_DATA_TYPE.find(outputDataType)->second);
+    auto alltoAllvSrcDataType = static_cast<uint8_t>(mc2tiling::HCCL_DATA_TYPE.find(inputDataType)->second);
+
+    Mc2CcTilingConfig hcclCcTilingConfig(epGroup_, alltoAllvCmd, alltoAllvConfig,
+                                         alltoAllvReduceType, alltoAllvDstDataType, alltoAllvSrcDataType);
     hcclCcTilingConfig.GetTiling(tilingData->hcclInitTiling);
     hcclCcTilingConfig.GetTiling(tilingData->alltoAllvCcTiling);
 
