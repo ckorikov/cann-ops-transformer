@@ -133,32 +133,10 @@
   - 仅支持paged attention。
   - 仅支持selectBlockSize取值为16的整数倍，最大支持到128。
   - selectBlockCount上限满足selectBlockCount * selectBlockSize <= MaxKvSeqlen，MaxKvSeqlen = Max(actualSelKvSeqLenOptional)。
+
 # 调用说明
 
-<div style="overflow-x: auto;">
-    <table style="undefined;table-layout: fixed; width: 1030px">
-  	<colgroup>
-        <col style="width: 250px">
-        <col style="width: 130px">
-        <col style="width: 650px">
-    </colgroup>
-    <thead>
-      <tr>
-        <th>调用方式</th>
-        <th>样例代码</th>
-        <th>说明</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td>aclnn接口</td>
-        <td>
-            <a href="./examples/test_nsa_select_attention_infer.cpp">test_aclnn_nsa_select_attention_infer</a>
-        </td>
-        <td>
-            通过<a href="./docs/aclnnNsaSelectedAttentionInfer.md">aclnnNsaSelectedAttentionInfer</a>接口方式调用NsaSelectedAttentionInfer算子。
-		 </td>
-      </tr>
-  </tboby>
-</table>
-</div>
+| 调用方式  | 样例代码                                                                | 说明                                                                                          |
+| ----------- | ------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| aclnn接口 | [test_aclnn_nsa_select_attention_infer](./examples/test_aclnn_nsa_select_attention_infer.cpp) | 通过[`aclnnNsaSelectedAttentionInfer`](./docs/aclnnNsaSelectedAttentionInfer.md)接口方式调用NsaCompressAttentionInfer算子。 |
+
