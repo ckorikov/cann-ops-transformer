@@ -2550,7 +2550,7 @@ bool PromptFlashAttentionTilingV2::AdjustCVTilingCVDiff(const ContextParamsForPF
 
     if (tilingData.promptAttentionBaseParams.get_vHeadSize() <= 128 && !enablePFAMLA) { // 128 for D size
         bool checkDtype = contextKeyParams.inputDataType == ge::DT_FLOAT16 || contextKeyParams.inputDataType == ge::DT_BF16;
-        bool checkQueryAndValueS = queryShapeInfo.s <= SOUTER_FACTOR_DEFAULT && valueShapeInfo.s > SINNER_FACTOR_DEFAULT;
+        bool checkQueryAndValueS = queryShapeInfo.s <= SOUTER_FACTOR_DEFAULT && S2 > SINNER_FACTOR_DEFAULT;
         uint32_t sparseMode = tilingData.promptAttentionBaseParams.get_sparseMode();
         int32_t preTokens = tilingData.promptAttentionBaseParams.get_preTokens();
         int32_t nextTokens = tilingData.promptAttentionBaseParams.get_nextTokens();
