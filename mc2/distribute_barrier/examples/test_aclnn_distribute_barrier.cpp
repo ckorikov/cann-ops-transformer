@@ -300,7 +300,7 @@ int LaunchOneProcessDispatchAndCombine(Args &args)
     ret = aclrtSynchronizeStreamWithTimeout(args.combineStream, 10000);
     CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("[ERROR] aclrtSynchronizeStreamWithTimeout failed. ret = %d \n", ret);
               return ret);
-    LOG_PRINT("[INFO] device_%d aclnnMoeDistributeDispatchV2 and aclnnMoeDistributeCombineV2                      \
+    LOG_PRINT("[INFO] device_%d aclnnDistributeBarrier, aclnnMoeDistributeDispatchV2 and aclnnMoeDistributeCombineV2                      \
                execute successfully.\n",
               args.rankId);
 
@@ -391,9 +391,6 @@ int LaunchOneProcessDispatchAndCombine(Args &args)
 
 int main(int argc, char *argv[])
 {
-    #ifndef ASCEND910_93
-        CHECK_RET(false, LOG_PRINT("[INFO] This example is implemented based on Atlas A3 and must be run on Atlas A3 \n"); return -1);
-    #endif
     // 本样例基于Atlas A3实现，必须在Atlas A3上运行
     int ret = aclInit(nullptr);
     CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("[ERROR] aclrtInit failed, ret = %d\n", ret); return ret);
