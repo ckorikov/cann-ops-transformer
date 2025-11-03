@@ -233,7 +233,7 @@ __aicore__ inline void MoeFinalizeRoutingV2FpCuthK2Optimized<T>::PrepareData()
             static_cast<uint16_t>(tilingData_.K), static_cast<uint32_t>(curCoreHandleNum_ * sizeof(int32_t)),
             static_cast<uint32_t>((tilingData_.totalRowNum - curCoreHandleNum_) * sizeof(int32_t)), 0, 0};
 #if defined(__CCE_AICORE__) && __CCE_AICORE__ == 200
-        DataCopyPadCustom(
+        DataCopyPadExtCustom(
             expandedSrcToDstRow_, gmExpandedSrcToDstRow_[GetBlockIdx() * tilingData_.normalCoreHandleNum],
             copyParamsSrcToDstRow, padParamsSrcToDstRow);
 #else
@@ -246,7 +246,7 @@ __aicore__ inline void MoeFinalizeRoutingV2FpCuthK2Optimized<T>::PrepareData()
             static_cast<uint16_t>(1), static_cast<uint32_t>(curCoreHandleNum_ * tilingData_.K * sizeof(int32_t)), 0, 0,
             0};
 #if defined(__CCE_AICORE__) && __CCE_AICORE__ == 200
-        DataCopyPadCustom(
+        DataCopyPadExtCustom(
             expandedSrcToDstRow_,
             gmExpandedSrcToDstRow_[GetBlockIdx() * tilingData_.normalCoreHandleNum * tilingData_.K],
             copyParamsSrcToDstRow, padParamsSrcToDstRow);
@@ -508,7 +508,7 @@ __aicore__ inline void MoeFinalizeRoutingV2FpCuthK2Optimized<T>::CopyOut(
 #if defined(__CCE_AICORE__) && __CCE_AICORE__ == 200
     DataCopyCustom<T, true, false>(
         gmOut_[nLoopIdx / (tilingData_.hSliceNum + 1) * curCoreHandleNumPerLoop_ * tilingData_.H + bias], outLocal,
-        copyParams.blockCount, copyParams.blockLen));
+        copyParams.blockCount, copyParams.blockLen);
 #else
     DataCopyPad(
         gmOut_[nLoopIdx / (tilingData_.hSliceNum + 1) * curCoreHandleNumPerLoop_ * tilingData_.H + bias], outLocal,
