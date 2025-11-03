@@ -1351,7 +1351,7 @@ bool PromptFlashAttentionTilingV2::CheckQueryAndKey(ContextParamsForPFATiling& c
     // check d size
     OP_CHECK_IF((contextKeyParams.fromTilingSink == 0) && (queryShapeInfo.d != keyShapeInfo.d) &&
         (!enableTensorList) && (!enablePA), OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName,
-        "query d size must be equal to key/value d size, query d = %u , key/value d = %u.",
+        "query d size must be equal to key d size, query d = %u , key d = %u.",
         queryShapeInfo.d, keyShapeInfo.d), return false);
     return true;
 }
