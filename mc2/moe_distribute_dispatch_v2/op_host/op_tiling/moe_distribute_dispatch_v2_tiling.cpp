@@ -542,6 +542,8 @@ static ge::graphStatus GetAttrAndSetTilingData(const gert::TilingContext *contex
         return ge::GRAPH_FAILED);
 
     groupEp = std::string(groupEpPtr);
+    isSetCommAlg = ((strcmp(commAlgPtr, "fullmesh_v2") == 0) ? true : false);
+    OP_LOGD(nodeName, "MoeDistributeDispatchV2 isSetCommAlg = %d\n", isSetCommAlg);
     
     tilingData.moeDistributeDispatchV2Info.epWorldSize = static_cast<uint32_t>(epWorldSize);
     tilingData.moeDistributeDispatchV2Info.tpWorldSize = static_cast<uint32_t>(*tpWorldSizePtr);
