@@ -156,7 +156,7 @@ static void PrintTilingDataInfo(const char *nodeName, MoeDistributeDispatchV2Til
     OP_LOGD(nodeName, "totalWinSize is %lu.", tilingData.moeDistributeDispatchV2Info.totalWinSize);
     OP_LOGD(nodeName, "hasElastic is %d.", tilingData.moeDistributeDispatchV2Info.hasElasticInfo);
     OP_LOGD(nodeName, "zeroComputeExpertNum is %d", tilingData.moeDistributeDispatchV2Info.zeroComputeExpertNum);
-    OP_LOGD(nodeName, "cumSumUBMinValue is %d", tilingData.moeDistributeDispatchV2Info.CumSumUBMinValue);
+    OP_LOGD(nodeName, "cumSumUBMinValue is %d", tilingData.moeDistributeDispatchV2Info.cumSumUBMinValue);
 }
 
 static bool CheckTensorDim(const gert::TilingContext *context, const char *nodeName,
@@ -304,7 +304,7 @@ static bool CheckTensorDataType(const gert::TilingContext *context, const char *
     if (hasElasticInfo) {
         auto elasticInfoDesc = context->GetOptionalInputDesc(ELASTIC_INFO_INDEX);
         OP_TILING_CHECK(elasticInfoDesc == nullptr, OP_LOGE(nodeName, "elasticInfoDesc is null."), return false);
-        OP_TILING_CHECK(elasticInfoDesc->GetDataType() != ge::DT_INT32, OP_LOGE(nodeName,
+        OP_TILING_CHECK(elasticInfoDesc->GetDataType() != ge::DT_INT32, OP_LOGE(nodeName, 
             "elasticInfoDesc dataType is invalid, dataType should be int32, but is %s.",
             Ops::Base::ToString(elasticInfoDesc->GetDataType()).c_str()), return false);
     }
@@ -385,7 +385,7 @@ static bool CheckTensorFormat(const gert::TilingContext *context, const char *no
         OP_TILING_CHECK(static_cast<ge::Format>(ge::GetPrimaryFormat(xActiveMaskDesc->GetStorageFormat())) ==
             ge::FORMAT_FRACTAL_NZ, OP_LOGE(nodeName, "xActiveMask format is invalid."), return false);
     }
-
+    
     if (static_cast<bool>(hasElasticInfo)) {
         auto elasticInfoDesc = context->GetOptionalInputDesc(ELASTIC_INFO_INDEX);
         OP_TILING_CHECK(elasticInfoDesc == nullptr, OP_LOGE(nodeName, "elasticInfoDesc is null."), return false);
@@ -542,8 +542,7 @@ static ge::graphStatus GetAttrAndSetTilingData(const gert::TilingContext *contex
         return ge::GRAPH_FAILED);
 
     groupEp = std::string(groupEpPtr);
-    isSetCommAlg = ((strcmp(commAlgPtr, "fullmesh_v2") == 0) ? true : false);
-    OP_LOGD(nodeName, "MoeDistributeDispatchV2 isSetCommAlg = %d\n", isSetCommAlg);
+    
     tilingData.moeDistributeDispatchV2Info.epWorldSize = static_cast<uint32_t>(epWorldSize);
     tilingData.moeDistributeDispatchV2Info.tpWorldSize = static_cast<uint32_t>(*tpWorldSizePtr);
     tilingData.moeDistributeDispatchV2Info.epRankId = static_cast<uint32_t>(*epRankIdPtr);
@@ -566,12 +565,12 @@ static ge::graphStatus GetAttrAndSetTilingData(const gert::TilingContext *contex
     uint32_t lastDim = localMoeExpertNum * static_cast<uint32_t>(epWorldSize);
     std::vector<int64_t> srcShapeDim = {1, lastDim};
     auto srcShape = ge::Shape(srcShapeDim);
-    uint32_t CumSumUBMaxValue = 0;
-    uint32_t CumSumUBMinValue = 0;
-    AscendC::GetCumSumMaxMinTmpSize(srcShape, sizeof(float), true, true, CumSumUBMaxValue, CumSumUBMinValue);
-    tilingData.moeDistributeDispatchV2Info.CumSumUBMinValue = static_cast<uint32_t>(CumSumUBMinValue);    
-    OP_LOGD(nodeName, "lastDim = %d, MoeDistributeDispatchV2 CumSumUBMinValue = %d\n", lastDim,
-        tilingData.moeDistributeDispatchV2Info.CumSumUBMinValue);
+    uint32_t cumSumUBMaxValue = 0;
+    uint32_t cumSumUBMinValue = 0;
+    AscendC::GetCumSumMaxMinTmpSize(srcShape, sizeof(float), true, true, cumSumUBMaxValue, cumSumUBMinValue);
+    tilingData.moeDistributeDispatchV2Info.cumSumUBMinValue = static_cast<uint32_t>(cumSumUBMinValue);    
+    OP_LOGD(nodeName, "lastDim = %d, MoeDistributeDispatchV2 cumSumUBMinValue = %d\n", lastDim,
+        tilingData.moeDistributeDispatchV2Info.cumSumUBMinValue);
     return ge::GRAPH_SUCCESS;
 }
 
@@ -634,7 +633,7 @@ static ge::graphStatus CheckAttrs(const gert::TilingContext *context, const char
         OP_LOGE(nodeName, "Check shared expert related attributes failed."), return ge::GRAPH_FAILED);
     OP_TILING_CHECK(!CheckCommAlgAttrs(nodeName, tilingData, isActiveMask, isSetCommAlg),
         OP_LOGE(nodeName, "Check comm_alg related attributes failed."), return ge::GRAPH_FAILED);
-    
+
     // 校验moe专家数量能否均分给多机
     localMoeExpertNum = moeExpertNum / (epWorldSize - sharedExpertRankNum);
     OP_TILING_CHECK(moeExpertNum % (epWorldSize - sharedExpertRankNum) != 0,
@@ -694,7 +693,7 @@ static ge::graphStatus CheckTensorShape(const gert::TilingContext *context, cons
     auto zeroExpertNumPtr = attrs->GetAttrPointer<int64_t>(static_cast<int>(ATTR_ZERO_EXPERT_NUM_INDEX));
     auto copyExpertNumPtr = attrs->GetAttrPointer<int64_t>(static_cast<int>(ATTR_COPY_EXPERT_NUM_INDEX));
     auto constExpertNumPtr = attrs->GetAttrPointer<int64_t>(static_cast<int>(ATTR_CONST_EXPERT_NUM_INDEX));
-
+    
     int64_t zeroExpertNum = *zeroExpertNumPtr;
     int64_t copyExpertNum = *copyExpertNumPtr;
     int64_t constExpertNum = *constExpertNumPtr;
@@ -744,7 +743,7 @@ static ge::graphStatus CheckTensorShape(const gert::TilingContext *context, cons
     if ((sharedExpertNum != 0U) && (sharedExpertRankNum != 0U)) { // 除零保护
         rankNumPerSharedExpert = sharedExpertRankNum / sharedExpertNum;
         maxSharedGroupNum = (epWorldSizeU32 + rankNumPerSharedExpert - 1U) / rankNumPerSharedExpert;
-    }
+    } 
     if (isSharedExpert) { // 本卡为共享专家
         A = maxBs * maxSharedGroupNum;
     } else {     // 本卡为moe专家
@@ -1053,27 +1052,12 @@ static ge::graphStatus MoeDistributeDispatchA2CheckAttrAndSetTiling(const gert::
         OP_LOGE(K_INNER_DEBUG, "globalBs is null."), return GRAPH_FAILED);
     OP_TILING_CHECK(expertTokenNumsTypePtr == nullptr || *expertTokenNumsTypePtr < 0 || *expertTokenNumsTypePtr > 1,
         OP_LOGE(K_INNER_DEBUG, "expertTokenNumsType is invalid. Must be 0 or 1. "), return GRAPH_FAILED);
-    OP_TILING_CHECK(zeroExpertNumPtr == nullptr, OP_LOGE(K_INNER_DEBUG, "zeroExpertNumPtr is null."),
-        return ge::GRAPH_FAILED);
-    OP_TILING_CHECK(copyExpertNumPtr == nullptr, OP_LOGE(K_INNER_DEBUG, "copyExpertNumPtr is null."),
-        return ge::GRAPH_FAILED);
-    OP_TILING_CHECK(constExpertNumPtr == nullptr, OP_LOGE(K_INNER_DEBUG, "constExpertNumPtr is null."),
-        return ge::GRAPH_FAILED);
-
-    // 判断是否满足uint32_t及其他限制
-    int64_t moeExpertNum = static_cast<int64_t>(*moeExpertNumPtr);
-    int64_t zeroExpertNum = *zeroExpertNumPtr;
-    int64_t copyExpertNum = *copyExpertNumPtr;
-    int64_t constExpertNum = *constExpertNumPtr;
-    int64_t zeroComputeExpertNum = zeroExpertNum + copyExpertNum + constExpertNum;
-
-    OP_LOGD(K_INNER_DEBUG, "zeroExpertNum=%ld,copyExpertNum= %ld, constExpertNum=%ld", zeroExpertNum, copyExpertNum,
-        constExpertNum);
-    OP_TILING_CHECK(zeroComputeExpertNum + moeExpertNum > INT32_MAX,
-        OP_LOGE(K_INNER_DEBUG,
-        "zeroExpertNum[%ld] + copyExpertNum[%ld] + constExpertNum[%ld] + moeExpertNum[%ld] exceed INT32_MAX.",
-         zeroExpertNum, copyExpertNum, constExpertNum, moeExpertNum), return ge::GRAPH_FAILED);
-
+    OP_TILING_CHECK(zeroExpertNumPtr == nullptr || *zeroExpertNumPtr != 0,
+        OP_LOGE(K_INNER_DEBUG, "zeroExpertNum is invalid. Must be 0"), return GRAPH_FAILED);
+    OP_TILING_CHECK(copyExpertNumPtr == nullptr || *copyExpertNumPtr != 0,
+        OP_LOGE(K_INNER_DEBUG, "copyExpertNum is invalid. Must be 0"), return GRAPH_FAILED);
+    OP_TILING_CHECK(constExpertNumPtr == nullptr || *constExpertNumPtr != 0,
+        OP_LOGE(K_INNER_DEBUG, "constExpertNum is invalid. Must be 0"), return GRAPH_FAILED);
     info.epWorldSize = *epWorldSizePtr;
     info.tpWorldSize = static_cast<uint32_t>(0);
     info.epRankId = *epRankIdPtr;
@@ -1087,7 +1071,7 @@ static ge::graphStatus MoeDistributeDispatchA2CheckAttrAndSetTiling(const gert::
     } else {
         info.globalBs = *globalBsPtr;
     }
-    info.zeroComputeExpertNum = static_cast<int32_t>(zeroComputeExpertNum);
+    info.expertTokenNumsType = *expertTokenNumsTypePtr;
 
     OP_LOGD(K_INNER_DEBUG, "quantMode=%d", info.quantMode);
     OP_LOGD(K_INNER_DEBUG, "globalBs=%d", info.globalBs);
@@ -1099,7 +1083,6 @@ static ge::graphStatus MoeDistributeDispatchA2CheckAttrAndSetTiling(const gert::
     OP_LOGD(K_INNER_DEBUG, "tpWorldSize=%d", info.tpWorldSize);
     OP_LOGD(K_INNER_DEBUG, "epRankId=%d", info.epRankId);
     OP_LOGD(K_INNER_DEBUG, "tpRankId=%d", info.tpRankId);
-    OP_LOGD(K_INNER_DEBUG, "zeroComputeExpertNum=%d", info.zeroComputeExpertNum);
 
     return ge::GRAPH_SUCCESS;
 }
@@ -1125,7 +1108,7 @@ static ge::graphStatus MoeDistributeDispatchA2CheckShapeAndSetTiling(const gert:
         OP_LOGE(K_INNER_DEBUG, "expertScales is null."), return GRAPH_FAILED);
     OP_TILING_CHECK(isLayered && expandScalesStorageShape == nullptr,
         OP_LOGE(K_INNER_DEBUG, "expandScales is null."), return GRAPH_FAILED);
-    OP_TILING_CHECK(elasticInfoStorageShape != nullptr,
+    OP_TILING_CHECK(elasticInfoStorageShape != nullptr, 
         OP_LOGE(K_INNER_DEBUG, "current does not support elasticInfo as input"), return GRAPH_FAILED);
     OP_TILING_CHECK(xStorageShape->GetStorageShape().GetDimNum() != TWO_DIMS,
         OP_LOGE(K_INNER_DEBUG, "x dims is invalid."), return GRAPH_FAILED);
@@ -1148,48 +1131,29 @@ static ge::graphStatus MoeDistributeDispatchA2CheckShapeAndSetTiling(const gert:
         OP_LOGE(K_INNER_DEBUG, "hiddensize is invalid."), return GRAPH_FAILED);
     OP_TILING_CHECK(bs == 0 || bs > MAX_BATCH_SIZE_A2,
         OP_LOGE(K_INNER_DEBUG, "batchsize is invalid."), return GRAPH_FAILED);
-
-    auto moeExpertNumPtr = attrs->GetAttrPointer<int>(ATTR_MOE_EXPERT_NUM_INDEX);
-    auto zeroExpertNumPtr = attrs->GetAttrPointer<int64_t>(static_cast<int>(ATTR_ZERO_EXPERT_NUM_INDEX));
-    auto copyExpertNumPtr = attrs->GetAttrPointer<int64_t>(static_cast<int>(ATTR_COPY_EXPERT_NUM_INDEX));
-    auto constExpertNumPtr = attrs->GetAttrPointer<int64_t>(static_cast<int>(ATTR_CONST_EXPERT_NUM_INDEX));
-    // 判断是否满足uint32_t及其他限制
-    int32_t moeExpertNum = *moeExpertNumPtr;
-    int32_t zeroExpertNum = static_cast<int32_t>(*zeroExpertNumPtr);
-    int32_t copyExpertNum = static_cast<int32_t>(*copyExpertNumPtr);
-    int32_t constExpertNum = static_cast<int32_t>(*constExpertNumPtr);
-    int32_t zeroComputeExpertNum = zeroExpertNum + copyExpertNum + constExpertNum;
-    OP_TILING_CHECK(k == 0 || k > MAX_K_VALUE_A2 || k > moeExpertNum + zeroComputeExpertNum,
+    OP_TILING_CHECK(k == 0 || k > MAX_K_VALUE_A2,
         OP_LOGE(K_INNER_DEBUG, "k is invalid."), return GRAPH_FAILED);
     OP_TILING_CHECK(*quantModePtr == UNQUANT_MODE && isScales,
         OP_LOGE(K_INNER_DEBUG, "scales should be null when quantMode is unQuant."), return GRAPH_FAILED);
 
-    bool  isActiveMask = (xActiveMaskStorageShape != nullptr);
-    if (isActiveMask) {
-        const int64_t xActiveMaskDimNums = xActiveMaskStorageShape->GetStorageShape().GetDimNum();
-        OP_TILING_CHECK(((xActiveMaskDimNums != ONE_DIM) && (xActiveMaskDimNums != TWO_DIMS)),
-            OP_LOGE(nodeName, "xActiveMask must be 1-dimension or 2-dimension, but got %lu dim",
-            xActiveMaskDimNums), return GRAPH_FAILED);
+    bool isTokenMask = (xActiveMaskStorageShape != nullptr);
+    OP_TILING_CHECK(isTokenMask && xActiveMaskStorageShape->GetStorageShape().GetDimNum() != ONE_DIM,
+        OP_LOGE(K_INNER_DEBUG, "When xActiveMask is not null, it needs to be one-dimensional."), return GRAPH_FAILED);
+    OP_TILING_CHECK(
+        isTokenMask && xActiveMaskStorageShape->GetStorageShape().GetDim(0) != static_cast<int64_t>(bs),
+        OP_LOGE(
+            K_INNER_DEBUG,
+            "The Size of xActiveMask should be equal to bs when xActiveMask is not null,"
+            "but xActiveMask Size is %ld and bs is %u.",
+            xActiveMaskStorageShape->GetStorageShape().GetDim(0), bs),
+        return GRAPH_FAILED);
 
-        int64_t xActiveMaskDim0 = xActiveMaskStorageShape->GetStorageShape().GetDim(0);
-        OP_TILING_CHECK(xActiveMaskDim0 != static_cast<int64_t>(bs),
-            OP_LOGE(nodeName, "xActiveMask's dim0 not equal to expertIds's dim0, xActiveMask's dim0 is %ld, "
-            "expertIds's dim0 is %ld", xActiveMaskDim0, bs), return GRAPH_FAILED);
-
-        OP_TILING_CHECK(((xActiveMaskStorageShape->GetStorageShape().GetDimNum() == TWO_DIMS) &&
-            (xActiveMaskStorageShape->GetStorageShape().GetDim(1) != static_cast<int64_t>(k))),
-            OP_LOGE(nodeName, "xActiveMask's dim1 not equal to expertIds's dim1, xActiveMask's dim1 is %ld, "
-            "expertIds's dim1 is %ld", xActiveMaskStorageShape->GetStorageShape().GetDim(1), k), return GRAPH_FAILED);
-    }
-
-    info.isTokenMask =  ((isActiveMask) && (xActiveMaskStorageShape->GetStorageShape().GetDimNum() == ONE_DIM));
-    info.isExpertMask = ((isActiveMask) && (xActiveMaskStorageShape->GetStorageShape().GetDimNum() == TWO_DIMS));
+    info.isTokenMask = isTokenMask;
     info.bs = bs;
     info.k = k;
     info.h = h;
 
-    OP_LOGD(K_INNER_DEBUG, "isTokenMask is %d", static_cast<int32_t>(info.isTokenMask));
-    OP_LOGD(K_INNER_DEBUG, "isExpertMask is %d", static_cast<int32_t>(info.isExpertMask));
+    OP_LOGD(K_INNER_DEBUG, "isTokenMask is %u", info.isTokenMask);
     OP_LOGD(K_INNER_DEBUG, "batchSize is %u", info.bs);
     OP_LOGD(K_INNER_DEBUG, "k is %u", info.k);
     OP_LOGD(K_INNER_DEBUG, "hiddenSize is %u", info.h);
