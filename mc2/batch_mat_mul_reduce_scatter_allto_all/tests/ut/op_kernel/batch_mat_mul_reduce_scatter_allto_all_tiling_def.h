@@ -82,7 +82,7 @@ struct Mc2MatmulTilingData {
     uint32_t rankM;
     uint32_t rankID;
     uint32_t enableL2Tile;
-    BatchMatmulTilingData bmmTilingData;
+    Mc2BatchMatmulTilingData bmmTilingData;
 };
 
 struct BatchMatMulReduceScatterAlltoAllTilingData {
