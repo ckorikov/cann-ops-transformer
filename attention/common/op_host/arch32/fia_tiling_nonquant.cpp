@@ -231,6 +231,7 @@ void FiaTilingNonQuant::InitParams()
 {
     perfMode_ = IfaPerfMode::CUBE_VIEW_MM;
     coreNum_ = aicNum_;
+    blockDim_ = aicNum_; // Tiling下沉首次Tiling也会校验blockDim_是否为0，为避免拦截报错，将blockDim_设置为aicNum_，实际不生效
 
     headDimAlign_ = Align(fiaInfo_->qkHeadDim, BYTE_BLOCK); // 元素个数按照基本块大小对齐
     ZeroTensorProcess();
@@ -494,6 +495,7 @@ void FiaTilingNonQuant::CalcMmResSize()
 
 void FiaTilingNonQuant::CalcMaxMmResSize()
 {
+    mBaseSize_ = M_BASE_SIZE_512;
     mm1ResSize_ = 512 * 512; // mm1的结果最大为512*512个元素
     mm2ResSize_ = static_cast<int64_t>(headDimAlign_) * 512; // mBaseSize最大值为512
 }
