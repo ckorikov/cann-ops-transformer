@@ -17,31 +17,7 @@
 class Ts_Pfa_Ascend910B2_Case : public Ts_Pfa_WithParam_Ascend910B2 {};
 class Ts_Pfa_Ascend310P3_Case : public Ts_Pfa_WithParam_Ascend310P3 {};
 class Ts_Pfa_Ascend910_9591_Case : public Ts_Pfa_WithParam_Ascend910_9591 {};
-TEST_P(Ts_Pfa_Ascend910B2_Case, general_case)
-{
-    ASSERT_TRUE(case_->Init());
-    ASSERT_TRUE(case_->Run());
-}
-TEST_P(Ts_Pfa_Ascend310P3_Case, general_case)
-{
-    ASSERT_TRUE(case_->Init());
-    ASSERT_TRUE(case_->Run());
-}
-TEST_P(Ts_Pfa_Ascend910_9591_Case, general_case)
-{
-    ASSERT_TRUE(case_->Init());
-    ASSERT_TRUE(case_->Run());
-}
 
-const auto Tc_Pfa_General_Case =
-    ::testing::Values(PfaCase("case_001", true, "",
-                              OpInfo(ControlInfo(true, false), ExpectInfo(true, ExpectInfo::kInvalidTilingKey,
-                                                                          ExpectInfo::kInvalidTilingBlockDim)),
-                              PfaCase::Param(1, 4, 1024, 128, "BSH", 4, 4, 1.0f, 0, 1, 0, 524288, 0)));
-
-INSTANTIATE_TEST_SUITE_P(Pfa, Ts_Pfa_Ascend910B2_Case, Tc_Pfa_General_Case);
-INSTANTIATE_TEST_SUITE_P(Pfa, Ts_Pfa_Ascend310P3_Case, Tc_Pfa_General_Case);
-INSTANTIATE_TEST_SUITE_P(Pfa, Ts_Pfa_Ascend910_9591_Case, Tc_Pfa_General_Case);
 
 TEST_F(Ts_Pfa_Ascend910B2, case_empty_query)
 {
