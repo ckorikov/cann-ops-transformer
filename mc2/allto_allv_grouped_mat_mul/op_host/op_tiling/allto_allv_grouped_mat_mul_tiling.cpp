@@ -235,6 +235,7 @@ protected:
     ge::graphStatus CheckSendRecvDataVolumn(const gert::TilingContext* context) const;
     ge::graphStatus CheckShapeRelation(const gert::TilingContext* context) const;
     ge::graphStatus CheckShapeDims(const gert::TilingContext* context);
+    ge::graphStatus CheckDType(const gert::TilingContext* context) const;
     ge::graphStatus CheckMmShapeDims(const gert::TilingContext* context) const;
     ge::graphStatus SetHcclTiling(const gert::TilingContext* context) const;
 
@@ -761,6 +762,47 @@ ge::graphStatus AlltoAllvGmmTiling::SetHcclTiling(const gert::TilingContext* con
     return ge::GRAPH_SUCCESS;
 }
 
+ge::graphStatus AlltoAllvGmmTiling::CheckDType(const gert::TilingContext* context) const
+{
+    OP_TILING_CHECK(
+        (context->GetInputDesc(GMM_X_INDEX) == nullptr) || (context->GetInputDesc(GMM_WEIGHT_INDEX) == nullptr),
+        OP_LOGE(A_INNER_DEBUG, "GetInputDesc gmmX or gmmWeight returned null."), return ge::GRAPH_FAILED);
+    OP_TILING_CHECK(
+        context->GetOutputDesc(OUTPUT_Y_INDEX) == nullptr, OP_LOGE(A_INNER_DEBUG, "GetOutputDesc y returned null."),
+        return ge::GRAPH_FAILED);
+    OP_TILING_CHECK(
+        (context->GetInputDesc(GMM_X_INDEX)->GetDataType() != ge::DT_FLOAT16) &&
+            (context->GetInputDesc(GMM_X_INDEX)->GetDataType() != ge::DT_BF16),
+        OP_LOGE(A_INNER_DEBUG, "Unsupported dataType, gmmx only support float16 and bfloat16!"), return ge::GRAPH_FAILED);
+    OP_TILING_CHECK(
+        (context->GetInputDesc(GMM_X_INDEX)->GetDataType() != context->GetInputDesc(GMM_WEIGHT_INDEX)->GetDataType()) ||
+            (context->GetInputDesc(GMM_X_INDEX)->GetDataType() !=
+             context->GetOutputDesc(OUTPUT_Y_INDEX)->GetDataType()),
+        OP_LOGE(A_INNER_DEBUG, "The dataType of gmmWeight and gmmY should be the same with gmmX."), return ge::GRAPH_FAILED);
+    if (tilingData->commonTilingInfo.isNeedMM) {
+        auto mmXDex = context->GetOptionalInputDesc(MM_X_INDEX);
+        OP_TILING_CHECK(mmXDex == nullptr, OP_LOGE(A_INNER_DEBUG, "Flag isNeedMM is True, but MM_X is null."), return ge::GRAPH_FAILED);
+        auto mmWeightDesc = context->GetOptionalInputDesc(MM_WEIGHT_INDEX);
+        OP_TILING_CHECK(
+            mmWeightDesc == nullptr, OP_LOGE(A_INNER_DEBUG, "Flag isNeedMM is True, MM_WEIGHT is null."), return ge::GRAPH_FAILED);
+        auto mmYDesc = context->GetOutputDesc(OUTPUT_MM_Y_INDEX);
+        OP_TILING_CHECK(mmYDesc == nullptr, OP_LOGE(A_INNER_DEBUG, "GetOutputDesc mmY returned null."), return ge::GRAPH_FAILED);
+
+        OP_TILING_CHECK(
+            (context->GetOptionalInputDesc(MM_X_INDEX)->GetDataType() != ge::DT_FLOAT16) &&
+                (context->GetOptionalInputDesc(MM_X_INDEX)->GetDataType() != ge::DT_BF16),
+            OP_LOGE(A_INNER_DEBUG, "Unsupported dataType, mmx only support float16 and bfloat16!"), return ge::GRAPH_FAILED);
+        OP_TILING_CHECK(
+            (context->GetOptionalInputDesc(MM_X_INDEX)->GetDataType() !=
+             context->GetOptionalInputDesc(MM_WEIGHT_INDEX)->GetDataType()) ||
+                (context->GetOptionalInputDesc(MM_X_INDEX)->GetDataType() !=
+                 context->GetOutputDesc(OUTPUT_MM_Y_INDEX)->GetDataType()),
+            OP_LOGE(A_INNER_DEBUG, "The dataType of mmWeight and mmY should be the same with mmX."), return ge::GRAPH_FAILED);
+    }
+
+    return ge::GRAPH_SUCCESS;
+}
+
 ge::graphStatus AlltoAllvGmmTiling::Init(gert::TilingContext* context)
 {
     tilingData = context->GetTilingData<AlltoAllvGmmTilingData>();
@@ -778,6 +820,9 @@ ge::graphStatus AlltoAllvGmmTiling::Init(gert::TilingContext* context)
     }   
     OP_TILING_CHECK(
         CheckShapeDims(context) != ge::GRAPH_SUCCESS, OP_LOGE(A_INNER_DEBUG, "Check shape dim failed!"),
+        return ge::GRAPH_FAILED);
+    OP_TILING_CHECK(
+        CheckDType(context) != ge::GRAPH_SUCCESS, OP_LOGE(A_INNER_DEBUG, "Check dtype failed!"),
         return ge::GRAPH_FAILED);
     OP_TILING_CHECK(
         CheckShapeRelation(context) != ge::GRAPH_SUCCESS, OP_LOGE(A_INNER_DEBUG, "Check shape relation failed!"),

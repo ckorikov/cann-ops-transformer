@@ -374,7 +374,7 @@ static bool CheckDtype(const gert::TilingContext* context, const GroupedMatMulAl
     OP_TILING_CHECK(
         (context->GetInputDesc(GMM_X_INDEX)->GetDataType() != ge::DT_FLOAT16) &&
             (context->GetInputDesc(GMM_X_INDEX)->GetDataType() != ge::DT_BF16),
-        OP_LOGE(C_INNER_DEBUG, "Unsupported dataType, gmmx only support float16 and bf16!"), return false);
+        OP_LOGE(C_INNER_DEBUG, "Unsupported dataType, gmmx only support float16 and bfloat16!"), return false);
     OP_TILING_CHECK(
         (context->GetInputDesc(GMM_X_INDEX)->GetDataType() != context->GetInputDesc(GMM_WEIGHT_INDEX)->GetDataType()) ||
             (context->GetInputDesc(GMM_X_INDEX)->GetDataType() !=
@@ -392,7 +392,7 @@ static bool CheckDtype(const gert::TilingContext* context, const GroupedMatMulAl
         OP_TILING_CHECK(
             (context->GetOptionalInputDesc(MM_X_OPTIONAL_INDEX)->GetDataType() != ge::DT_FLOAT16) &&
                 (context->GetOptionalInputDesc(MM_X_OPTIONAL_INDEX)->GetDataType() != ge::DT_BF16),
-            OP_LOGE(C_INNER_DEBUG, "Unsupported dataType, mmx only support float16 and bf16!"), return false);
+            OP_LOGE(C_INNER_DEBUG, "Unsupported dataType, mmx only support float16 and bfloat16!"), return false);
         OP_TILING_CHECK(
             (context->GetOptionalInputDesc(MM_X_OPTIONAL_INDEX)->GetDataType() !=
              context->GetOptionalInputDesc(MM_WEIGHT_OPTIONAL_INDEX)->GetDataType()) ||
