@@ -22,3 +22,4 @@ class Ts_Fia : public Ts<FiaCase> {};
 class Ts_Fia_Ascend910B1 : public Ts_Ascend910B1<FiaCase> {};
 
 class Ts_Fia_WithParam : public Ts_WithParam<FiaCase> {};
+class Ts_Fia_WithParam_Ascend910B1 : public Ts_WithParam_Ascend910B1<FiaCase> {};
