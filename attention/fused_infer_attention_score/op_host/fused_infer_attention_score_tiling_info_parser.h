@@ -45,6 +45,7 @@ public:
     ge::graphStatus GetOpParaInfo();
 
     ge::graphStatus GetMaxWorkspaceFlag();
+    ge::graphStatus GetLegacyIfaFlag();
 
     ge::graphStatus GetInOutDataType();
     ge::graphStatus GetBatchSize();
@@ -71,6 +72,7 @@ public:
     ge::graphStatus GetN1Size();
     ge::graphStatus GetN2Size();
     ge::graphStatus GetGSize();
+    ge::graphStatus GetSparseMode();
     ge::graphStatus GetAttenMaskInfo();
     ge::graphStatus GetPaddingSizeFlag();
     ge::graphStatus GetActualSeqInfo();
@@ -143,6 +145,7 @@ public:
     bool pseShiftFlag_ = false;
     int64_t maxActualseq_ = 0;
     bool isMaxWorkspace_ = false;
+    bool isLegacyIfa_ = false;
 
     bool isAccumQSeq_ = false;
     bool isAccumKVSeq_ = false;

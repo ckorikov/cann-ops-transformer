@@ -300,6 +300,7 @@ public:
     bool softmaxLseFlag = false;
     bool quantFlag = false;
     bool isMaxWorkspace = false;
+    bool isLegacyIfa = false;
     bool needInit = false;
     bool slidingFlag = false;
     bool learnableSinkFlag = false;

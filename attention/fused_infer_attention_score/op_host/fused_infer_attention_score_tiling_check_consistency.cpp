@@ -547,8 +547,8 @@ ge::graphStatus FiaTilingCheck::CheckAttentionMask()
 
 ge::graphStatus FiaTilingCheck::CheckTokens()
 {
-    preTokens_ = *opParamInfo_.preToken;
-    nextTokens_ = *opParamInfo_.nextToken;
+    preTokens_ = fiaInfo_.preToken;
+    nextTokens_ = fiaInfo_.nextToken;
     OP_CHECK_IF(preTokens_ < 0 && nextTokens_ < 0, 
         OP_LOGE(opName_, "preTokens(%ld) and nextTokens(%ld) cannot neither be negative number.",
             preTokens_, nextTokens_),

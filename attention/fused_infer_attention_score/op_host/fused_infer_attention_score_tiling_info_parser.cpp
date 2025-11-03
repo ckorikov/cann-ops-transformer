@@ -76,8 +76,6 @@ ge::graphStatus FiaInfoParser::CheckRequiredAttrExistence() const
                return ge::GRAPH_FAILED);
     OP_CHECK_IF(opParamInfo_.innerPrecise == nullptr, OP_LOGE(opName_, "attr innerPrecise is nullptr"),
                return ge::GRAPH_FAILED);
-    OP_CHECK_IF(opParamInfo_.sparseMode == nullptr, OP_LOGE(opName_, "attr sparseMode is nullptr"),
-               return ge::GRAPH_FAILED);
     OP_CHECK_IF(opParamInfo_.queryQuantMode == nullptr, OP_LOGE(opName_, "attr queryQuantMode is nullptr"),
                return ge::GRAPH_FAILED);
 
@@ -102,6 +100,19 @@ ge::graphStatus FiaInfoParser::GetMaxWorkspaceFlag()
         OP_LOGI(opName_, "FIA tiling sink");
     } else {
         isMaxWorkspace_ = false;
+    }
+    return ge::GRAPH_SUCCESS;
+}
+
+ge::graphStatus FiaInfoParser::GetLegacyIfaFlag()
+{
+    std::string layout(opParamInfo_.layOut);
+    if ((layout == "BSH" || layout == "BSND" || layout == "BNSD") &&
+        s1Size_ == 1U &&
+        qkHeadDim_ == vHeadDim_ &&
+        opParamInfo_.queryRope.tensor == nullptr &&
+        opParamInfo_.keyRope.tensor == nullptr) {
+        isLegacyIfa_ = true;
     }
     return ge::GRAPH_SUCCESS;
 }
@@ -272,11 +283,60 @@ ge::graphStatus FiaInfoParser::GetAttrParaInfo()
     opParamInfo_.keyAntiquantMode = attrs->GetAttrPointer<int64_t>(KEY_ANTIQUANT_MODE_INDEX);
     opParamInfo_.valueAntiquantMode = attrs->GetAttrPointer<int64_t>(VALUE_ANTIQUANT_MODE_INDEX);
     opParamInfo_.innerPrecise = attrs->GetAttrPointer<int32_t>(ATTR_INNER_PRECISE_INDEX);
-    opParamInfo_.sparseMode = attrs->GetAttrPointer<int32_t>(ATTR_SPARSE_MODE_INDEX);
     opParamInfo_.queryQuantMode = attrs->GetAttrPointer<int64_t>(QUERY_QUANT_MODE_INDEX);
-    opParamInfo_.preToken = attrs->GetAttrPointer<int64_t>(ATTR_PRE_TOKEN_INDEX);
-    opParamInfo_.nextToken = attrs->GetAttrPointer<int64_t>(ATTR_NEXT_TOKEN_INDEX);
 
+    return ge::GRAPH_SUCCESS;
+}
+
+ge::graphStatus FiaInfoParser::GetSparseMode()
+{
+    auto attrs = context_->GetAttrs();
+    static int32_t SPARSE_ZERO = 0U;
+    if (isLegacyIfa_) {
+        opParamInfo_.sparseMode = &SPARSE_ZERO;
+    } else {
+        opParamInfo_.sparseMode = attrs->GetAttrPointer<int32_t>(ATTR_SPARSE_MODE_INDEX);
+    }
+
+    OP_CHECK_IF(opParamInfo_.sparseMode == nullptr, OP_LOGE(opName_, "attr sparseMode is nullptr"),
+               return ge::GRAPH_FAILED);
+    return ge::GRAPH_SUCCESS;
+}
+
+ge::graphStatus FiaInfoParser::GetPreNextToken()
+{
+    auto attrs = context_->GetAttrs();
+    static int64_t TOKEN_MAX = 2147483647;
+    if (isLegacyIfa_) {
+        opParamInfo_.preToken = &TOKEN_MAX;
+        opParamInfo_.nextToken = &TOKEN_MAX;
+    } else {
+        opParamInfo_.preToken = attrs->GetAttrPointer<int64_t>(ATTR_PRE_TOKEN_INDEX);
+        opParamInfo_.nextToken = attrs->GetAttrPointer<int64_t>(ATTR_NEXT_TOKEN_INDEX);
+    }
+
+    int32_t sparseMode = (*opParamInfo_.sparseMode);
+    if (sparseMode == SPARSE_MODE_ALL_MASK) {
+        preToken_ = SPARSE_MODE_INT_MAX;
+        nextToken_ = SPARSE_MODE_INT_MAX;
+    } else if (sparseMode == SPARSE_MODE_LEFT_UP || sparseMode == SPARSE_MODE_RIGHT_DOWN) {
+        nextToken_ = 0;
+        preToken_ = SPARSE_MODE_INT_MAX;
+    } else {
+        preToken_ = opParamInfo_.preToken == nullptr ? 0 : *opParamInfo_.preToken;
+        nextToken_ = opParamInfo_.nextToken == nullptr ? 0 : *opParamInfo_.nextToken;
+    }
+
+    if (preToken_ > SPARSE_MODE_INT_MAX) {
+        preToken_ = SPARSE_MODE_INT_MAX;
+    } else if (preToken_ < -(SPARSE_MODE_INT_MAX)) {
+        preToken_ = -(SPARSE_MODE_INT_MAX);
+    }
+    if (nextToken_ > SPARSE_MODE_INT_MAX) {
+        nextToken_ = SPARSE_MODE_INT_MAX;
+    } else if (nextToken_ < -(SPARSE_MODE_INT_MAX)) {
+        nextToken_ = -(SPARSE_MODE_INT_MAX);
+    }
     return ge::GRAPH_SUCCESS;
 }
 
@@ -772,33 +832,6 @@ ge::graphStatus FiaInfoParser::GetActualSeqInfo()
     return ge::GRAPH_SUCCESS;
 }
 
-ge::graphStatus FiaInfoParser::GetPreNextToken()
-{
-    int32_t sparseMode = (*opParamInfo_.sparseMode);
-    if (sparseMode == SPARSE_MODE_ALL_MASK) {
-        preToken_ = SPARSE_MODE_INT_MAX;
-        nextToken_ = SPARSE_MODE_INT_MAX;
-    } else if (sparseMode == SPARSE_MODE_LEFT_UP || sparseMode == SPARSE_MODE_RIGHT_DOWN) {
-        nextToken_ = 0;
-        preToken_ = SPARSE_MODE_INT_MAX;
-    } else {
-        preToken_ = opParamInfo_.preToken == nullptr ? 0 : *opParamInfo_.preToken;
-        nextToken_ = opParamInfo_.nextToken == nullptr ? 0 : *opParamInfo_.nextToken;
-    }
-
-    if (preToken_ > SPARSE_MODE_INT_MAX) {
-        preToken_ = SPARSE_MODE_INT_MAX;
-    } else if (preToken_ < -(SPARSE_MODE_INT_MAX)) {
-        preToken_ = -(SPARSE_MODE_INT_MAX);
-    }
-    if (nextToken_ > SPARSE_MODE_INT_MAX) {
-        nextToken_ = SPARSE_MODE_INT_MAX;
-    } else if (nextToken_ < -(SPARSE_MODE_INT_MAX)) {
-        nextToken_ = -(SPARSE_MODE_INT_MAX);
-    }
-    return ge::GRAPH_SUCCESS;
-}
-
 TilingKeyLayout FiaInfoParser::MapStringToLayout(FiaLayout &layoutString) const
 {
     const std::map<FiaLayout, TilingKeyLayout> layoutMap = {
@@ -842,6 +875,7 @@ void FiaInfoParser::GenerateFeatureInfo(FiaTilingInfo &fiaInfo)
     fiaInfo.pseShiftFlag = pseShiftFlag_;
     fiaInfo.softmaxLseFlag = *opParamInfo_.softmaxLseFlag;
     fiaInfo.isMaxWorkspace = isMaxWorkspace_;
+    fiaInfo.isLegacyIfa = isLegacyIfa_;
     fiaInfo.preToken = preToken_;
     fiaInfo.nextToken = nextToken_;
     fiaInfo.learnableSinkFlag = (opParamInfo_.learnableSink.tensor != nullptr);
@@ -972,11 +1006,13 @@ ge::graphStatus FiaInfoParser::ParseAxisInfo()
 
 ge::graphStatus FiaInfoParser::ParseFeatureInfo()
 {
-    if (ge::GRAPH_SUCCESS != GetMaxWorkspaceFlag() ||
+    if (ge::GRAPH_SUCCESS != GetLegacyIfaFlag() ||
+        ge::GRAPH_SUCCESS != GetSparseMode() || 
+        ge::GRAPH_SUCCESS != GetPreNextToken() ||
         ge::GRAPH_SUCCESS != GetAttenMaskInfo() ||
+        ge::GRAPH_SUCCESS != GetMaxWorkspaceFlag() ||
         ge::GRAPH_SUCCESS != GetPaddingSizeFlag() ||
-        ge::GRAPH_SUCCESS != GetActualSeqInfo() ||
-        ge::GRAPH_SUCCESS != GetPreNextToken()) {
+        ge::GRAPH_SUCCESS != GetActualSeqInfo()) {
         return ge::GRAPH_FAILED;
     }
     return ge::GRAPH_SUCCESS;
