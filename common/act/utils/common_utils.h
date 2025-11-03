@@ -39,6 +39,8 @@ constexpr int MNK_N0 = 5;
 constexpr static uint64_t A_FULL_LOAD_MODE = 1UL;
 constexpr static uint64_t B_FULL_LOAD_MODE = 2UL;
 constexpr static int64_t PER_BLOCK_SIZE = 128L;
+constexpr int32_t MXFP_DIVISOR_SIZE = 64;
+constexpr int32_t MXFP_MULTI_BASE_SIZE = 2;
 
 struct MatmulShape {
     int64_t m;

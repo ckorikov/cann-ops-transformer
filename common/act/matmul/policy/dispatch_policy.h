@@ -49,6 +49,18 @@ struct QuantMatmulMultiBlock {
 };
 
 /**
+ * @struct QuantMatmulWithTileMultiBlock
+ * @brief Define a template struct QuantMatmulWithTileMultiBlock for multi-block matrix multiplication policies
+ * @param [in] SingleCoreShape: the shape of a single core, default is AscendC::Shape<_0, _0, _0, _0>
+ */
+template <class SingleCoreShape = AscendC::Shape<_0, _0, _0, _0>>
+struct QuantMatmulWithTileMultiBlock {
+    using ScheduleType = KernelMmadWithScale;
+    using SingleShape = SingleCoreShape;
+    constexpr static bool enableInputDataLenCheck = false;
+};
+
+/**
  * @struct MatmulNaivePipelineWithLayout
  * @brief Structure for a naive matrix multiplication pipeline with layout
  * @param [in] SingleCoreShape: the shape of a single core, default is AscendC::Shape<_0, _0, _0, _0>
