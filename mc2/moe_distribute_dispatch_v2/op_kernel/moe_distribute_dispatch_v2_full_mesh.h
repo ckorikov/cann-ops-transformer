@@ -250,7 +250,7 @@ __aicore__ inline void MoeDistributeDispatchV2FullMesh<TemplateMC2TypeFunc>::Set
     isExpertMaskFlag_ = tilingData->moeDistributeDispatchV2Info.isExpertMask;
     axisK_ = tilingData->moeDistributeDispatchV2Info.k;
     aivNum_ = tilingData->moeDistributeDispatchV2Info.aivNum;
-    cumSumUBMinValue_ = tilingData->moeDistributeDispatchV2Info.CumSumUBMinValue;
+    cumSumUBMinValue_ = tilingData->moeDistributeDispatchV2Info.cumSumUBMinValue;
     
     if (epRankId_ < sharedExpertRankNum_) {
         isShareExpertRankFlag_ = true;
