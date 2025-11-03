@@ -1009,7 +1009,7 @@ __aicore__ inline void MoeDistributeDispatchV2<TemplateMC2TypeFunc>::QuantProces
         ReduceMaxInplace(floatLocalAbsTemp, axisH_);
 
         SyncFunc<AscendC::HardEvent::V_S>();
-        dynamicScale = float(127.0) / floatLocalAbsTemp.GetValue(0);
+        dynamicScale = static_cast<float>(127.0) / floatLocalAbsTemp.GetValue(0);
         SyncFunc<AscendC::HardEvent::S_V>();
         Muls(floatLocalTemp, floatLocalTemp, dynamicScale, axisH_);
         PipeBarrier<PIPE_V>();
@@ -1027,7 +1027,7 @@ __aicore__ inline void MoeDistributeDispatchV2<TemplateMC2TypeFunc>::QuantProces
     Cast(xOutTensor_, halfLocalTemp, RoundMode::CAST_TRUNC, axisH_);
 
     floatLocalTemp = xOutTensor_.template ReinterpretCast<float>();
-    floatLocalTemp.SetValue(hOutSizeAlign_ / sizeof(float), float(1.0) / dynamicScale); // int8->float32
+    floatLocalTemp.SetValue(hOutSizeAlign_ / sizeof(float), static_cast<float>(1.0) / dynamicScale); // int8->float32
 }
 
 template <TemplateMC2TypeClass>
