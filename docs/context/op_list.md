@@ -14,6 +14,7 @@
 | attention   | [incre_flash_attention](../../attention/incre_flash_attention/README.md) | AI Core | 增量推理场景的FlashAttention算子  |
 | attention   | [mla_prolog](../../attention/mla_prolog/README.md) | AI Core | 推理MlaProlog算子  |
 | attention   | [mla_prolog_v2](../../attention/mla_prolog_v2/README.md) | AI Core |  推理MlaPrologV2WeightNz算子 |
+| attention   | [mla_prolog_v3](../../attention/mla_prolog_v3/README.md) | AI Core |  推理MlaPrologV3WeightNz算子 |
 | attention   | [nsa_compress](../../attention/nsa_compress/README.md) | AI Core | 训练场景下，使用NSA Compress算法减轻long-context的注意力计算，实现在KV序列维度进行压缩 |
 | attention   | [nsa_compress_attention](../../attention/nsa_compress_attention/README.md) | AI Core |  NSA中compress attention以及select topk索引计算 |
 | attention   | [nsa_compress_attention_infer](../../attention/nsa_compress_attention_infer/README.md) | AI Core | 实现Native Sparse Attention推理过程中，Compress Attention的计算 |
