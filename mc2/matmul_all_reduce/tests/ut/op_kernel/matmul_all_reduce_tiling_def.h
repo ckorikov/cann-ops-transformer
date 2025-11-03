@@ -200,14 +200,14 @@ struct Mc2MatMulRunInfo {
 };
 
 struct Mc2MatmulV3TilingData {
-  TCubeTiling matmulTiling;
-  Mc2L2cacheTilePara tileL2cacheTiling;
-  Mc2MatMulRunInfo matmulRunInfo;
-  Mc2L2cacheUseInfo l2cacheUseInfo;
-  uint32_t baseAN;
-  uint32_t baseAD;
-  uint32_t baseBN;
-  uint32_t baseBD;
+    TCubeTiling matmulTiling;
+    Mc2L2cacheTilePara tileL2cacheTiling;
+    Mc2MatMulRunInfo matmulRunInfo;
+    Mc2L2cacheUseInfo l2cacheUseInfo;
+    uint32_t baseAN;
+    uint32_t baseAD;
+    uint32_t baseBN;
+    uint32_t baseBD;
 };
 
 struct MatmulAllReduce910TilingData {
