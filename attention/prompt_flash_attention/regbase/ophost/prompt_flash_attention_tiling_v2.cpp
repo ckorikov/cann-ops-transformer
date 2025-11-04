@@ -749,7 +749,8 @@ bool PromptFlashAttentionTilingV2::CheckPerblockQuantParams(const ContextParamsF
             return false);
     OP_CHECK_IF((queryType != ge::DT_FLOAT) || (keyType != ge::DT_FLOAT) || (valueType != ge::DT_FLOAT),
         OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName,
-                "dequantscale type must be DT_FLOAT in per-block quant scenario, now is %s.", GetPfaDataTypeStr(queryType).c_str()),
+                "dequantscale type must be DT_FLOAT in per-block quant scenario, now is %s, %s, %s.", GetPfaDataTypeStr(queryType).c_str(),
+                 GetPfaDataTypeStr(keyType).c_str(), GetPfaDataTypeStr(valueType).c_str()),
             return false);   
     OP_CHECK_IF((dequantScaleQueryShape == nullptr) || (keyAntiquantScaleShape == nullptr) || (valueAntiquantScaleshape == nullptr),
         OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName,

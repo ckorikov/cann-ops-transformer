@@ -243,7 +243,7 @@ __aicore__ inline void FABlockVecBase<TEMPLATE_BASE_ARGS>::ProcessVec1Dn(
                                  runInfo.goIdx * s1BlockCnt + runInfo.s1oIdx;
         runInfo.deScaleKvOffset = runInfo.boIdx * constInfo.n2Size * s2BlockCnt +
                                   runInfo.n2oIdx * s2BlockCnt +
-                                  (runInfo.s2StartIdx >> 8) + runInfo.s2LoopCount;
+                                  (runInfo.s2StartIdx >> 8) + runInfo.s2LoopCount; // 8 ：按照256分块计算deScaleKv偏移
         float deSCaleQValue = this->deScaleQGm.GetValue(deScaleQOffset);
         float deSCaleKValue = this->deScaleKGm.GetValue(runInfo.deScaleKvOffset);  // [0-128)
         descaleQK = deSCaleQValue * deSCaleKValue;
@@ -442,11 +442,11 @@ __aicore__ inline void FABlockVecBase<TEMPLATE_BASE_ARGS>::ProcessVec1Nd(
         if constexpr (isInfer) {
             runInfo.deScaleKvOffset = runInfo.boIdx * constInfo.n2Size * s2BlockCnt +
                                       runInfo.n2oIdx * s2BlockCnt +
-                                      (runInfo.s2StartIdx >> 8) + (runInfo.s2LoopCount >> 1);
+                                      (runInfo.s2StartIdx >> 8) + (runInfo.s2LoopCount >> 1); // 8 ：按照256分块计算deScaleKv偏移
         } else {
             runInfo.deScaleKvOffset = runInfo.boIdx * constInfo.n2Size * s2BlockCnt * (FP8_QUANT_KV_BLOCK_SIZE / s2BaseSize) +
                                   runInfo.n2oIdx * s2BlockCnt * (FP8_QUANT_KV_BLOCK_SIZE / s2BaseSize) + 
-                                  (runInfo.s2StartIdx >> 7) + runInfo.s2LoopCount;
+                                  (runInfo.s2StartIdx >> 7) + runInfo.s2LoopCount;   // 7 ：按照128分块计算deScaleKv偏移
         }
         float deSCaleQValue = this->deScaleQGm.GetValue(deScaleQOffset);
         float deSCaleKValue = this->deScaleKGm.GetValue(runInfo.deScaleKvOffset);
@@ -607,7 +607,7 @@ __aicore__ inline void FABlockVecBase<TEMPLATE_BASE_ARGS>::ProcessVec2OnUb(
                 if constexpr (useDn) {
                     deSCalePreVValue = this->deScaleVGm.GetValue(runInfo.deScaleKvOffset - 1);
                 } else {
-                    if (((runInfo.s2StartIdx >> 7) + runInfo.s2LoopCount) & 1) {
+                    if (((runInfo.s2StartIdx >> 7) + runInfo.s2LoopCount) & 1) {   // 7：KV基本块大小128，按照256分块计算deScaleKv偏移
                         deSCalePreVValue = this->deScaleVGm.GetValue(runInfo.deScaleKvOffset);
                     } else {
                         deSCalePreVValue = this->deScaleVGm.GetValue(runInfo.deScaleKvOffset - 1);
