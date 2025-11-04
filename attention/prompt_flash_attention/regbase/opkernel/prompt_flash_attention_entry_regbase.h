@@ -15,14 +15,19 @@
 
 #ifndef PROMPT_FLASH_ATTENTION_ENTRY_310_H_
 #define PROMPT_FLASH_ATTENTION_ENTRY_310_H_
+#if (__NPU_ARCH__ != 5102)
 #include "kernel/prompt_flash_attention_normal_bns1_preload.h"
 #include "matmul_modules/pfa_policy_data.h"
 #include "prompt_flash_attention_zero_output.h"
 #include "prompt_flash_attention_dummy.h"
 namespace optiling {};
-
 #include "../../../common/op_kernel/arch-310/flash_attention_score_kernel_infer.h"
 #include "../../../common/op_kernel/arch-310/flash_attention_kvsame_bn2gs1s2.h"
+#else
+#include "../../../common/op_kernel/arch-310/flash_attention_score_kernel_infer_regbase_v2.h"
+#include "prompt_flash_attention_dummy.h"
+namespace optiling {};
+#endif
 
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 
@@ -94,6 +99,27 @@ namespace optiling {};
     INVOKE_PFA_TILING_DATA_V2(tiling)
 #endif
 
+#if (__NPU_ARCH__ == 5102)
+#define PFA_REGBASE_COPY_TILING_DATA(tiling)                                                                                                \
+    GET_TILING_DATA_WITH_STRUCT(FlashAttentionScoreSimplifiedTilingData, tilingDataIn, tiling);                                           \
+    const FlashAttentionScoreSimplifiedTilingData *__restrict tilingData = &tilingDataIn;                                                 \
+ 
+#define INVOKE_PFA_GENERAL_OP_IMPL_REGBASE_V2_FA_BASEAPI(templateClass, ...)                                 \
+    do {                                                                                                                                \
+        if (query == nullptr) {return;}                                                                                                 \
+        PFA_REGBASE_COPY_TILING_DATA(tiling);                                                                                           \
+        TPipe tPipe;                                                                                                                    \
+        using CubeBlockType = BaseApi::FABlockCube<__VA_ARGS__>; \
+        using VecBlockType = BaseApi::FABlockVecInfer<__VA_ARGS__>; \
+        templateClass<CubeBlockType, VecBlockType> op;                                                                                  \
+        op.InitBaseAPI(query, key, value, pseShift, nullptr, nullptr, attenMask, nullptr, actualSeqLengths,                             \
+            actualSeqLengthsKV, blocktable, queryPaddingSize, kvPaddingSize, nullptr, nullptr, deq_scale2,                                 \
+            deq_scale1, quant_scale1, postQuantScale, postQuantOffset, queryRope, keyRope,                                                           \
+            nullptr, nullptr, nullptr, softmaxLse, attentionOut, user, tilingData, &tPipe);                                             \
+        op.Process();                                                                                                                   \
+    } while (0)
+#else
+
 #ifdef __DAV_C310_CUBE__ // CUBE 实现
 
 #define PFA_REGBASE_COPY_TILING_DATA(tiling)                                                                     \
@@ -163,6 +189,7 @@ namespace optiling {};
             postQuantOffset, queryRope, keyRope, nullptr, nullptr, nullptr, softmaxLse, attentionOut, user, tilingData, &tPipe);        \
         op.Process();                                                                                                                   \
     } while (0)
+#endif
 #endif
 
 #define INVOKE_PFA_GENERAL_OP_IMPL_V2(templateClass, ...)                                                                  \

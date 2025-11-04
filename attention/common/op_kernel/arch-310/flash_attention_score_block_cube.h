@@ -116,6 +116,9 @@ public:
     static constexpr bool isFp8 = IsSameType<INPUT_T, fp8_e5m2_t>::value ||
                                 IsSameType<INPUT_T, fp8_e4m3fn_t>::value ||
                                 IsSameType<INPUT_T, hifloat8_t>::value;
+#if (__NPU_ARCH__ == 5102)
+    static constexpr bool isInt8 = IsSameType<INPUT_T, int8_t>::value;
+#endif
     static constexpr bool splitD = (uint16_t)dVTemplateType > (uint16_t)DTemplateType::Aligned256;
     static constexpr bool useDn = IsDn(((IsSameType<INPUT_T, float>::value) || isFp8), (isFp8 && (s2BaseSize == 256)), pseMode, hasAtten, hasDrop,
                                        s1BaseSize == 64, dTemplateType, hasRope);
@@ -127,6 +130,11 @@ public:
     static constexpr uint32_t l1BaseD = isFp8 ? 256: ((IsSameType<INPUT_T, float>::value) ? (dBaseSize > 128 ? 96 : 128): 128);
     using mm2ResPos = typename std::conditional<bmm2Write2Ub, LocalTensor<T>, GlobalTensor<T>&>::type;
 
+#if (__NPU_ARCH__ == 5102)
+        GlobalTensor<uint32_t> deqScaleQKGm;
+        GlobalTensor<uint32_t> deqScaleVGm;
+#endif
+
     __aicore__ inline FABlockCube() {};
     __aicore__ inline void InitCubeBlock(TPipe *pipe, BufferManager<BufferType::L1> *l1BufferManagerPtr,
         __gm__ uint8_t *query, __gm__ uint8_t *key, __gm__ uint8_t *value, __gm__ uint8_t *blockTable, 
@@ -134,7 +142,9 @@ public:
     __aicore__ inline void InitCubeInput(__gm__ uint8_t *key, __gm__ uint8_t *value,
         CVSharedParams<isInfer, isPa> *sharedParams, AttenMaskInfo *attenMaskInfo,
         __gm__ int64_t *actualSeqQlenAddr, __gm__ int64_t *actualSeqKvlenAddr);
-
+#if (__NPU_ARCH__ == 5102)
+    __aicore__ inline void InitGlobalBuffer(__gm__ uint8_t *deqScaleQK, __gm__ uint8_t *deqScaleV, ConstInfo<isInfer, hasRope> &constInfo);
+#endif
     __aicore__ inline void IterateBmm1(LocalTensor<T> outputTensor, RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo);
 
     __aicore__ inline void IterateBmm2(mm2ResPos outputTensor, BuffersPolicy3buff<BufferType::L1, false> &inputBuf, 
@@ -159,6 +169,9 @@ private:
     __aicore__ inline void IterateBmm1DnSplitK(LocalTensor<T> outputTensor, RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo);
     __aicore__ inline void IterateBmm1Dn(LocalTensor<T> outputTensor, RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo);
 
+#if (__NPU_ARCH__ == 5102)
+    __aicore__ inline void InitQuant(ConstInfo<isInfer, hasRope> &constInfo, __gm__ uint8_t *deqScaleQK, __gm__ uint8_t *deqScaleV);
+#endif
 
     // --------------------Bmm2--------------------------
     __aicore__ inline void IterateBmm2L1SplitN(
@@ -271,6 +284,33 @@ __aicore__ inline void FABlockCube<TEMPLATE_ARGS>::InitCubeInput(
         InitGmTensor(sharedParams, actualSeqQlenAddr, actualSeqKvlenAddr);
     }
 }
+
+#if (__NPU_ARCH__ == 5102)
+TEMPLATES_DEF_NO_DEFAULT
+__aicore__ inline void FABlockCube<TEMPLATE_ARGS>::InitGlobalBuffer(__gm__ uint8_t *deqScaleQK,
+    __gm__ uint8_t *deqScaleV, ConstInfo<isInfer, hasRope> &constInfo)
+{
+    if constexpr (isInt8) {
+        this->InitQuant(constInfo, deqScaleQK, deqScaleV);
+    }
+}
+ 
+TEMPLATES_DEF_NO_DEFAULT
+__aicore__ inline void FABlockCube<TEMPLATE_ARGS>::InitQuant(ConstInfo<isInfer, hasRope> &constInfo, __gm__ uint8_t *deqScaleQK,
+    __gm__ uint8_t *deqScaleV)
+{
+    if constexpr (isInt8) {
+        if (deqScaleQK != nullptr) {
+            deqScaleQKGm.SetGlobalBuffer((__gm__ uint32_t *)deqScaleQK);
+            constInfo.deqScaleQKValue = deqScaleQKGm.GetValue(0);
+        }
+        if (deqScaleV != nullptr) {
+            deqScaleVGm.SetGlobalBuffer((__gm__ uint32_t *)deqScaleV);
+            constInfo.deqScaleVValue = deqScaleVGm.GetValue(0);
+        }
+    }
+}
+#endif
 
 TEMPLATES_DEF_NO_DEFAULT
 __aicore__ inline void FABlockCube<TEMPLATE_ARGS>::InitLocalBuffer() {
@@ -619,6 +659,16 @@ __aicore__ inline void FABlockCube<TEMPLATE_ARGS>::IterateBmm2(
                         };
         mm2B.Wait<HardEvent::MTE2_MTE1>(); // 等待
         if constexpr (isFp8) {
+#if (__NPU_ARCH__ == 5102)
+            using L0C_TYPE = int32_t;
+            MatmulFull<INPUT_T, INPUT_T, L0C_TYPE, 128, (uint32_t)dVTemplateType, 128, ABLayout::MK, ABLayout::KN>(
+                mm2A.GetTensor<INPUT_T>(),
+                mm2BTensor,
+                mmL0ABuffers,
+                mmL0BBuffers,
+                mm2ResL0C.GetTensor<L0C_TYPE>(),
+                param);
+#else
             MatmulFull<INPUT_T, INPUT_T, T, 128, (uint32_t)dVTemplateType, 128, ABLayout::MK, ABLayout::KN>(
                 mm2A.GetTensor<INPUT_T>(),
                 mm2BTensor,
@@ -626,6 +676,7 @@ __aicore__ inline void FABlockCube<TEMPLATE_ARGS>::IterateBmm2(
                 mmL0BBuffers,
                 mm2ResL0C.GetTensor<T>(),
                 param);
+#endif
         } else {
             if constexpr ((uint32_t)dVTemplateType > 128) {
                 MatmulN<INPUT_T, INPUT_T, T, (uint32_t)s1TemplateType, 128, s2BaseSize, ABLayout::MK, ABLayout::KN>(
@@ -661,6 +712,28 @@ __aicore__ inline void FABlockCube<TEMPLATE_ARGS>::IterateBmm2(
         mm2ResL0C.Set<HardEvent::M_FIX>(); // 通知
         mm2ResL0C.Wait<HardEvent::M_FIX>(); // 等待
 
+#if (__NPU_ARCH__ == 5102)
+        FixpipeParamsC310<CO2Layout::ROW_MAJOR> fixpipeParams; // L0C→UB;FixpipeParamsM300:L0C→UB
+        fixpipeParams.nSize = constInfo.dSizeV; // L0C上的bmm1结果矩阵N方向的size大小
+ 
+        fixpipeParams.mSize = s1BaseSize; // 有效数据不足16行，只需要输出部分行即可; L0C上的bmm1结果矩阵M方向的size大小; 同mmadParams.m
+        fixpipeParams.srcStride = ((s1BaseSize + 15) / 16) * 16; // L0C上bmm1结果相邻连续数据片段间隔（前面一个数据块的头与后面数据块的头的间隔）
+        if constexpr (bmm2Write2Ub) {
+            fixpipeParams.dstStride = ((uint32_t)dVTemplateType + 15) >> 4 << 4;
+        } else {
+            fixpipeParams.dstStride = (uint32_t)constInfo.dSizeV; // dstGm 两行之间的间隔
+        }
+        fixpipeParams.dualDstCtl = 0;
+        fixpipeParams.params.ndNum = 1;
+        fixpipeParams.params.srcNdStride = 0;
+        fixpipeParams.params.dstNdStride = 0;
+        if constexpr ((IsSameType<INPUT_T, int8_t>::value) && (implMode == ImplModeEnum::AA_HIGH_PERFORMANCE)) {
+            fixpipeParams.quantPre = QuantMode_t::DEQF16;
+            fixpipeParams.deqScalar = 0x3F800000; // constInfo.deqScaleVValue;
+        }
+        Fixpipe<T, int32_t, BMM2_FIXPIPE_CONFIG>(outputTensor, mm2ResL0C.GetTensor<int32_t>(), fixpipeParams); // 将matmul结果从L0C搬运到UB
+        mm2ResL0C.Set<HardEvent::FIX_M>(); // 释放
+#else
         if constexpr (bmm2Write2Ub) {
             if constexpr (isFp8 && useDn) {
                 CrossCoreWaitFlag<SYNC_MODE, PIPE_FIX>(MM2_RES_INTRA_EVENT[0]);
@@ -691,6 +764,7 @@ __aicore__ inline void FABlockCube<TEMPLATE_ARGS>::IterateBmm2(
         fixpipeParams.params.dstNdStride = 0;
         Fixpipe<T, T, BMM2_FIXPIPE_CONFIG>(outputTensor, mm2ResL0C.GetTensor<T>(), fixpipeParams); // 将matmul结果从L0C搬运到UB
         mm2ResL0C.Set<HardEvent::FIX_M>(); // 释放
+#endif
     }
 }
 
@@ -1054,11 +1128,20 @@ __aicore__ inline void FABlockCube<TEMPLATE_ARGS>::IterateBmm1Nd(
                         0,    // isLeftTranspose
                         1     // isRightTranspose
     };
+#if (__NPU_ARCH__ == 5102)
+    using L0C_TYPE = int32_t;
+    MatmulBase<INPUT_T, INPUT_T, L0C_TYPE, 128, 128, dBaseSize, ABLayout::MK, ABLayout::KN>(
+        mm1A.GetTensor<INPUT_T>(), mm1B.GetTensor<INPUT_T>(),
+        mmL0ABuffers, mmL0BBuffers,
+        mm1ResL0C.GetTensor<L0C_TYPE>(),
+        param);
+#else
     MatmulBase<INPUT_T, INPUT_T, T, 128, 128, dBaseSize, ABLayout::MK, ABLayout::KN>(
         mm1A.GetTensor<INPUT_T>(), mm1B.GetTensor<INPUT_T>(),
         mmL0ABuffers, mmL0BBuffers,
         mm1ResL0C.GetTensor<T>(),
         param);
+#endif
     if (unlikely(runInfo.s2LoopCount == runInfo.s2LoopLimit)) {
         mm1A.Set<HardEvent::MTE1_MTE2>(); // 释放L1A
     }
@@ -1068,9 +1151,28 @@ __aicore__ inline void FABlockCube<TEMPLATE_ARGS>::IterateBmm1Nd(
     mm1ResL0C.Set<HardEvent::M_FIX>(); // 通知
     mm1ResL0C.Wait<HardEvent::M_FIX>(); //等待L0C
 
+#if (__NPU_ARCH__ != 5102)
     CrossCoreWaitFlag<SYNC_MODE, PIPE_FIX>(MM1_RES_INTRA_EVENT[runInfo.taskIdMod2]);
     CrossCoreWaitFlag<SYNC_MODE, PIPE_FIX>(16 + MM1_RES_INTRA_EVENT[runInfo.taskIdMod2]);
+#endif
 
+#if (__NPU_ARCH__ == 5102)
+    FixpipeParamsC310<CO2Layout::ROW_MAJOR> fixpipeParams; // L0C→UB
+    fixpipeParams.nSize = (runInfo.s2RealSize + 7) >> 3 << 3; // L0C上的bmm1结果矩阵N方向的size大小; 同mmadParams.n; 为什么要8个元素对齐(32B对齐) // 128
+    fixpipeParams.mSize = (runInfo.s1RealSize + 1) >> 1 << 1; // 有效数据不足16行，只需要输出部分行即可; L0C上的bmm1结果矩阵M方向的size大小(必须为偶数) // 128
+    fixpipeParams.srcStride = ((fixpipeParams.mSize + 15) / 16) * 16; // L0C上bmm1结果相邻连续数据片段间隔(前面一个数据块的头与后面数据块的头的间隔), 单位为16*sizeof(T) // 源Nz矩阵中相邻大Z排布的起始地址偏移
+    fixpipeParams.dstStride = s2BaseSize; // mmResUb上两行之间的间隔，单位：element。 // 128:根据比对dump文件得到, ND方案(S1*S2)时脏数据用mask剔除
+    fixpipeParams.dualDstCtl = 0; // 双目标模式，按M维度拆分，M / 2 * N写入每个UB, M必须为2的倍数
+    fixpipeParams.params.ndNum = 1;
+    fixpipeParams.params.srcNdStride = 0;
+    fixpipeParams.params.dstNdStride = 0;
+    if constexpr ((IsSameType<INPUT_T, int8_t>::value) && (implMode == ImplModeEnum::AA_HIGH_PERFORMANCE)) {
+        fixpipeParams.quantPre = QuantMode_t::DEQF16;
+        fixpipeParams.deqScalar = constInfo.deqScaleQKValue;
+    }
+    Fixpipe<T, int32_t, PFA_CFG_ROW_MAJOR_UB>(outputTensor, mm1ResL0C.GetTensor<int32_t>(), fixpipeParams); // 将matmul结果从L0C搬运到UB
+    mm1ResL0C.Set<HardEvent::FIX_M>(); // 释放L0C
+#else
     FixpipeParamsC310<CO2Layout::ROW_MAJOR> fixpipeParams; // L0C→UB
     fixpipeParams.nSize = (runInfo.s2RealSize + 7) >> 3 << 3; // L0C上的bmm1结果矩阵N方向的size大小; 同mmadParams.n; 为什么要8个元素对齐(32B对齐) // 128
     fixpipeParams.mSize = (runInfo.s1RealSize + 1) >> 1 << 1; // 有效数据不足16行，只需要输出部分行即可; L0C上的bmm1结果矩阵M方向的size大小(必须为偶数) // 128
@@ -1082,6 +1184,7 @@ __aicore__ inline void FABlockCube<TEMPLATE_ARGS>::IterateBmm1Nd(
     fixpipeParams.params.dstNdStride = 0;
     Fixpipe<T, T, PFA_CFG_ROW_MAJOR_UB>(outputTensor, mm1ResL0C.GetTensor<T>(), fixpipeParams); // 将matmul结果从L0C搬运到UB
     mm1ResL0C.Set<HardEvent::FIX_M>(); // 释放L0C
+#endif
 }
 
 /* 针对S1Base=128, S2Base = 128, D > 256场景，L1层面切K，且左矩阵单Buffer+驻留，右矩阵每次重新搬运。*/
@@ -1265,11 +1368,20 @@ __aicore__ inline void FABlockCube<TEMPLATE_ARGS>::IterateBmm1Dn(
                      0,    // isLeftTranspose
                      1     // isRightTranspose
     };
+#if (__NPU_ARCH__ == 5102)
+    using L0C_TYPE = int32_t;
+    MatmulBase<INPUT_T, INPUT_T, L0C_TYPE, 128, 128, dBaseSize, ABLayout::MK, ABLayout::KN>(
+        mm1A.GetTensor<INPUT_T>(), mm1B.GetTensor<INPUT_T>(),
+        mmL0ABuffers, mmL0BBuffers,
+        mm1ResL0C.GetTensor<L0C_TYPE>(),
+        param);
+#else
     MatmulBase<INPUT_T, INPUT_T, T, 128, 128, dBaseSize, ABLayout::MK, ABLayout::KN>(
         mm1A.GetTensor<INPUT_T>(), mm1B.GetTensor<INPUT_T>(),
         mmL0ABuffers, mmL0BBuffers,
         mm1ResL0C.GetTensor<T>(),
         param);
+#endif
     if (unlikely(runInfo.s2LoopCount == runInfo.s2LoopLimit)) {
         mm1B.Set<HardEvent::MTE1_MTE2>(); // 释放L1Q
     }
@@ -1278,6 +1390,22 @@ __aicore__ inline void FABlockCube<TEMPLATE_ARGS>::IterateBmm1Dn(
     mm1ResL0C.Set<HardEvent::M_FIX>(); // 通知
     mm1ResL0C.Wait<HardEvent::M_FIX>(); //等待L0C
 
+#if (__NPU_ARCH__ == 5102)
+    FixpipeParamsC310<CO2Layout::ROW_MAJOR> fixpipeParams; // L0C→UB
+    fixpipeParams.nSize = (runInfo.s1RealSize + 31) >> 5 << 5; // L0C上的bmm1结果矩阵N方向的size大小; 同mmadParams.n; 为什么要8个元素对齐(32B对齐) // 128
+    fixpipeParams.mSize = runInfo.s2RealSize; // 有效数据不足16行，只需要输出部分行即可; L0C上的bmm1结果矩阵M方向的size大小(必须为偶数) // 128
+    fixpipeParams.srcStride = ((fixpipeParams.mSize + 15) / 16) * 16; // L0C上bmm1结果相邻连续数据片段间隔(前面一个数据块的头与后面数据块的头的间隔), 单位为16*sizeof(T) // 源Nz矩阵中相邻大Z排布的起始地址偏移
+    fixpipeParams.dstStride = fixpipeParams.nSize; // mmResUb上两行之间的间隔，单位：element。 // 128:根据比对dump文件得到, ND方案(S1*S2)时脏数据用mask剔除
+    fixpipeParams.dualDstCtl = 0; // 双目标模式，按M维度拆分，M / 2 * N写入每个UB, M必须为2的倍数
+    fixpipeParams.params.ndNum = 1;
+    fixpipeParams.params.srcNdStride = 0;
+    fixpipeParams.params.dstNdStride = 0;
+    if constexpr ((IsSameType<INPUT_T, int8_t>::value) && (implMode == ImplModeEnum::AA_HIGH_PERFORMANCE)) {
+        fixpipeParams.quantPre = QuantMode_t::DEQF16;
+        fixpipeParams.deqScalar = 0x3F800000; //constInfo.deqScaleQKValue;
+    }
+    Fixpipe<T, int32_t, PFA_CFG_ROW_MAJOR_UB>(outputTensor, mm1ResL0C.GetTensor<int32_t>(), fixpipeParams); // 将matmul结果从L0C搬运到UB
+#else
     CrossCoreWaitFlag<SYNC_MODE, PIPE_FIX>(MM1_RES_INTRA_EVENT[runInfo.taskIdMod2]);
     CrossCoreWaitFlag<SYNC_MODE, PIPE_FIX>(16 + MM1_RES_INTRA_EVENT[runInfo.taskIdMod2]);
 
@@ -1296,7 +1424,7 @@ __aicore__ inline void FABlockCube<TEMPLATE_ARGS>::IterateBmm1Dn(
     fixpipeParams.params.srcNdStride = 0;
     fixpipeParams.params.dstNdStride = 0;
     Fixpipe<T, T, PFA_CFG_ROW_MAJOR_UB>(outputTensor, mm1ResL0C.GetTensor<T>(), fixpipeParams); // 将matmul结果从L0C搬运到UB
-
+#endif
     mm1ResL0C.Set<HardEvent::FIX_M>(); // 释放L0C
 }
 
@@ -1320,6 +1448,9 @@ public:
     __aicore__ inline void IterateBmm1(LocalTensor<T> outputTensor, RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo) {}
     __aicore__ inline void IterateBmm2(LocalTensor<T> outputTensor, RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo,
         BuffersPolicy3buff<BufferType::L1> &inputBuf) {}
+#if (__NPU_ARCH__ == 5102)
+    __aicore__ inline void InitGlobalBuffer(__gm__ uint8_t *deqScaleQK, __gm__ uint8_t *deqScaleV, ConstInfo<isInfer, hasRope> &constInfo) {}
+#endif
 };
 
 template <typename T>
