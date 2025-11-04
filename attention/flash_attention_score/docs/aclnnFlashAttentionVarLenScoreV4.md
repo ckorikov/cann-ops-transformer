@@ -414,7 +414,7 @@ aclnnStatus aclnnFlashAttentionVarLenScoreV4(
 
 - 该接口与PyTorch配合使用时，需要保证CANN相关包与PyTorch相关包的版本匹配。
 - 输入query、key、value的B：batchsize必须相等。
-- 输入query、key、value的D：Head-Dim必须满（qD == kD && kD >= vD）。
+- 输入query、key、value的D：Head-Dim必须满足（qD == kD && kD >= vD）。
 - 输入query、key、value的input_layout必须一致。
 - 输入query、key、value、realShiftOptional的数据类型必须一致。
 - 支持输入query的N和key/value的N不相等，但必须成比例关系，即Nq/Nkv必须是非0整数，Nq取值范围1~256。当Nq/Nkv > 1时，即为GQA（grouped-query attention）；当Nkv=1时，即为MQA（multi-query attention）。本文如无特殊说明，N表示的是Nq。
@@ -602,7 +602,7 @@ aclnnStatus aclnnFlashAttentionVarLenScoreV4(
     int64_t nextTokens = 65536;
     int64_t headNum = 1;
     int64_t innerPrecise = 0;
-    int64_t sparseMod = 0;
+    int64_t sparseMode = 0;
   
     char layOut[5] = {'T', 'N', 'D', 0};
     char softmaxOutLayout[] = "same_as_input";
@@ -615,7 +615,7 @@ aclnnStatus aclnnFlashAttentionVarLenScoreV4(
     ret = aclnnFlashAttentionVarLenScoreV4GetWorkspaceSize(
               q, k, v, pse, dropMask, padding, attenmask, prefix, acSeqQLen, acSeqKvLen,
               scaleValue, keepProb, preTokens, nextTokens, headNum, layOut, innerPrecise,
-              sparseMod, softmaxOutLayout, softmaxMax, softmaxSum, softmaxOut, attentionOut, &workspaceSize, &executor);
+              sparseMode, softmaxOutLayout, softmaxMax, softmaxSum, softmaxOut, attentionOut, &workspaceSize, &executor);
     CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclnnFlashAttentionVarLenScoreV4GetWorkspaceSize failed. ERROR: %d\n", ret);
               return ret);
   

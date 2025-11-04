@@ -51,8 +51,9 @@ static inline int64_t calcUbAlignBufferSize(const uint32_t curRowInUb, const uin
            BLOCK_SIZE * static_cast<int64_t>(curRowInUb);
 }
 
-static inline uint32_t calcGatingAlignCol(const uint32_t col)
+static inline uint32_t calcGatingAlignCol(const uint32_t col, const ge::DataType dtypeLocal)
 {
+    (void)dtypeLocal;
     // 对齐成32个数处理
     return CeilDiv(col, static_cast<uint32_t>(ALIGN_NUM)) * static_cast<uint32_t>(ALIGN_NUM);
 }
@@ -92,7 +93,7 @@ bool MoeGatingTopKSoftmaxEKFullLoadTiling::IsCapable()
     if (col > static_cast<uint32_t>(MAX_COL_IN_UB)) {
         return false;
     }
-    gatingAlignCol = calcGatingAlignCol(col);
+    gatingAlignCol = calcGatingAlignCol(col, dtype);
     doubleBufferFlag = getDoubleBufferFlag(gatingAlignCol, ubSize, dtype, k);
     maxRow = calcMaxRowInUb(doubleBufferFlag, ubSize, dtype, k, CeilDiv(row, coreNum));
     if (maxRow == 0U) {
@@ -287,11 +288,11 @@ bool MoeGatingTopKSoftmaxEKFullLoadTiling::isBufferSizeEnough(
 }
 
 uint32_t MoeGatingTopKSoftmaxEKFullLoadTiling::calcMaxRowInUb(
-    const bool doubleBufferFlag, const uint64_t ubSizeLocal, const ge::DataType dtypeLocal, const uint32_t kLocal,
+    const bool doubleBufferFlagLocal, const uint64_t ubSizeLocal, const ge::DataType dtypeLocal, const uint32_t kLocal,
     const uint32_t blockRow)
 {
     uint32_t ubOuter = 1;
-    uint64_t tmpUbSize = doubleBufferFlag ? ubSizeLocal / static_cast<uint64_t>(2) : ubSizeLocal;
+    uint64_t tmpUbSize = doubleBufferFlagLocal ? ubSizeLocal / static_cast<uint64_t>(2) : ubSizeLocal;
     uint64_t curRowInUb;
     while (true) {
         curRowInUb = CeilDiv(blockRow, ubOuter);

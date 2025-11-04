@@ -2,49 +2,10 @@
 
 # 产品支持情况
 
-<table style="table-layout: fixed; width: 750px; border-collapse: collapse;">
-  <colgroup>
-    <col style="width: 600px;">
-    <col style="width: 150px;">
-  </colgroup>
-  <thead>
-    <tr>
-      <!-- 表头单元格完全居中 -->
-      <th style="border: 1px solid #ccc; text-align: center; font-weight: bold;">产品</th>
-      <th style="border: 1px solid #ccc; text-align: center; font-weight: bold;">是否支持</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td style="border: 1px solid #ccc; padding: 12px;"><term>昇腾910_95 AI处理器</term></td>
-      <td style="border: 1px solid #ccc; text-align: center;">×</td>
-    </tr>
-    <tr>
-      <td style="border: 1px solid #ccc; padding: 12px;"><term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term></td>
-      <td style="border: 1px solid #ccc; text-align: center;">√</td>
-    </tr>
-    <tr>
-      <td style="border: 1px solid #ccc; padding: 12px;"><term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term></td>
-      <td style="border: 1px solid #ccc; text-align: center;">√</td>
-    </tr>
-    <tr>
-      <td style="border: 1px solid #ccc; padding: 12px;"><term>Atlas 200I/500 A2 推理产品</term></td>
-      <td style="border: 1px solid #ccc; text-align: center;">×</td>
-    </tr>
-    <tr>
-      <td style="border: 1px solid #ccc; padding: 12px;"><term>Atlas 推理系列产品</term></td>
-      <td style="border: 1px solid #ccc; text-align: center;">×</td>
-    </tr>
-    <tr>
-      <td style="border: 1px solid #ccc; padding: 12px;"><term>Atlas 训练系列产品</term></td>
-      <td style="border: 1px solid #ccc; text-align: center;">×</td>
-    </tr>
-    <tr>
-      <td style="border: 1px solid #ccc; padding: 12px;"><term>Atlas 200I/300/500 推理产品</term></td>
-      <td style="border: 1px solid #ccc; text-align: center;">×</td>
-    </tr>
-  </tbody>
-</table>
+|产品      | 是否支持 |
+|:----------------------------|:-----------:|
+|<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>|      √     |
+|<term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>|      √     |
 
 # 功能说明
 
@@ -59,7 +20,7 @@
   Attention(query,key,value)=Softmax(\frac{query · key_{topk}^T}{\sqrt{d}})value_{topk}
   $$
   
-  其中$query$和的 $key_{topk}^T$乘积代表输入$x$的注意力，为避免该值变得过大，通常除以$d$的开根号进行缩放，并对每行进行softmax归一化，与$value_{topk}$相乘后得到一个$n*d$的矩阵。
+  其中$query$和$key_{topk}^T$乘积代表输入$x$的注意力，为避免该值变得过大，通常除以$d$的开根号进行缩放，并对每行进行softmax归一化，与$value_{topk}$相乘后得到一个$n*d$的矩阵。
 
 # 函数原型
 
@@ -67,25 +28,25 @@
 
 ```c++
 aclnnStatus aclnnNsaSelectedAttentionInferGetWorkspaceSize(
-    const aclTensor		*query, 
-    const aclTensor		*key, 
-    const aclTensor		*value, 
-    const aclTensor		*topkIndices, 
-    const aclTensor		*attenMaskOptional,
-    const aclTensor		*blockTableOptional,
-    const aclIntArray *actualQSeqLenOptional,
-    const aclIntArray	*actualKvSeqLenOptional,
-    char 			        *layoutOptional,
-    int64_t 		       numHeads,
-    int64_t 		       numKeyValueHeads,
-    int64_t 		       selectBlockSize,
-    int64_t            selectBlockCount,
-    int64_t            pageBlockSize,
-    double             scaleValue,
-    int64_t            sparseMode,
-    aclTensor         *output,
-    uint64_t          *workspaceSize,
-    aclOpExecutor    **executor)
+    const aclTensor     *query, 
+    const aclTensor     *key, 
+    const aclTensor     *value, 
+    const aclTensor     *topkIndices, 
+    const aclTensor     *attenMaskOptional,
+    const aclTensor     *blockTableOptional,
+    const aclIntArray   *actualQSeqLenOptional,
+    const aclIntArray   *actualKvSeqLenOptional,
+    char                *layoutOptional,
+    int64_t              numHeads,
+    int64_t              numKeyValueHeads,
+    int64_t              selectBlockSize,
+    int64_t              selectBlockCount,
+    int64_t              pageBlockSize,
+    double               scaleValue,
+    int64_t              sparseMode,
+    aclTensor           *output,
+    uint64_t            *workspaceSize,
+    aclOpExecutor      **executor)
 ```
 
 ```c++
@@ -98,7 +59,7 @@ aclnnStatus aclnnNsaSelectedAttentionInfer(
 
 # aclnnNsaSelectedAttentionInferGetWorkspaceSize
 
-- 参数说明
+- **参数说明**
   
   <div style="overflow-x: auto;">
     <table style="undefined;table-layout: fixed; width: 1567px">
@@ -382,7 +343,7 @@ aclnnStatus aclnnNsaSelectedAttentionInfer(
     </table>
   </div>
   
-- 返回值
+- **返回值**
   
   aclnnStatus：返回状态码，具体参见[aclnn返回码](../../../docs/context/aclnn返回码.md)。
   
@@ -405,7 +366,7 @@ aclnnStatus aclnnNsaSelectedAttentionInfer(
       <tr>
         <td>ACLNN_ERR_PARAM_NULLPTR</td>
         <td>161001</td>
-        <td>传入参数是必选输入，输出或者必选属性，且是空指针</td>
+        <td>传入参数是必选输入，输出或者必选属性，且是空指针。</td>
       </tr>
       <tr>
         <!-- 合并单元格添加 merged-cell 类实现上下居中 -->
@@ -422,7 +383,7 @@ aclnnStatus aclnnNsaSelectedAttentionInfer(
 
 # aclnnNsaSelectedAttentionInfer
 
-- 参数说明
+- **参数说明**
   
   <div style="overflow-x: auto;">
       <table style="undefined;table-layout: fixed; width: 1030px">
@@ -457,12 +418,12 @@ aclnnStatus aclnnNsaSelectedAttentionInfer(
         <tr>
           <td>stream</td>
           <td>输入</td>
-          <td>指定执行任务的AscendCL stream流</td>
+          <td>指定执行任务的AscendCL Stream流。</td>
         </tr>
       </tbody>
     </table>
   </div>
-- 返回值
+- **返回值**
   
   返回aclnnStatus状态码，具体参见[aclnn返回码](../../../docs/context/aclnn返回码.md)。
 
@@ -488,16 +449,16 @@ aclnnStatus aclnnNsaSelectedAttentionInfer(
 #include "aclnn/opdev/fp16_t.h"
 #include "aclnnop/aclnn_nsa_select_attention_infer.h"
 
-#define CHECK_RET(cond, return_expr)                                                                                   \
-    do {                                                                                                               \
-        if (!(cond)) {                                                                                                 \
-            return_expr;                                                                                               \
-        }                                                                                                              \
+#define CHECK_RET(cond, return_expr)
+    do {
+        if (!(cond)) {
+            return_expr;
+        }
     } while (0)
 
-#define LOG_PRINT(message, ...)                                                                                        \
-    do {                                                                                                               \
-        printf(message, ##__VA_ARGS__);                                                                                \
+#define LOG_PRINT(message, ...)
+    do {
+        printf(message, ##__VA_ARGS__);
     } while (0)
 
 int64_t GetShapeSize(const std::vector<int64_t> &shape)
@@ -513,24 +474,23 @@ void PrintOutResult(std::vector<int64_t> &shape, void** deviceAddr) {
     auto size = GetShapeSize(shape);
     std::vector<float> resultData(size, 0);
     auto ret = aclrtMemcpy(resultData.data(), resultData.size() * sizeof(resultData[0]),
-                            *deviceAddr, size * sizeof(resultData[0]), ACL_MEMCPY_DEVICE_TO_HOST);
+    *deviceAddr, size * sizeof(resultData[0]), ACL_MEMCPY_DEVICE_TO_HOST);
     CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("copy result from device to host failed. ERROR: %d\n", ret); return);
     for (int64_t i = 0; i < size; i++) {
-        LOG_PRINT("mean result[%ld] is: %f\n", i, resultData[i]);
+    LOG_PRINT("mean result[%ld] is: %f\n", i, resultData[i]);
     }
 }
 
 int Init(int32_t deviceId, aclrtStream* stream) {
-  // 固定写法，AscendCL初始化
-  auto ret = aclInit(nullptr);
-  CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclInit failed. ERROR: %d\n", ret); return ret);
-  ret = aclrtSetDevice(deviceId);
-  CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclrtSetDevice failed. ERROR: %d\n", ret); return ret);
-  ret = aclrtCreateStream(stream);
-  CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclrtCreateStream failed. ERROR: %d\n", ret); return ret);
-  return 0;
+    // 固定写法，AscendCL初始化
+    auto ret = aclInit(nullptr);
+    CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclInit failed. ERROR: %d\n", ret); return ret);
+    ret = aclrtSetDevice(deviceId);
+    CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclrtSetDevice failed. ERROR: %d\n", ret); return ret);
+    ret = aclrtCreateStream(stream);
+    CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclrtCreateStream failed. ERROR: %d\n", ret); return ret);
+    return 0;
 }
-
 
 template <typename T>
 int CreateAclTensor(const std::vector<T> &hostData, const std::vector<int64_t> &shape, void **deviceAddr,
@@ -540,7 +500,7 @@ int CreateAclTensor(const std::vector<T> &hostData, const std::vector<int64_t> &
     // 调用aclrtMalloc申请device侧内存
     auto ret = aclrtMalloc(deviceAddr, size, ACL_MEM_MALLOC_HUGE_FIRST);
     CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclrtMalloc failed. ERROR: %d\n", ret); return ret);
-
+    
     // 调用aclrtMemcpy将host侧数据拷贝到device侧内存上
     ret = aclrtMemcpy(*deviceAddr, size, hostData.data(), size, ACL_MEMCPY_HOST_TO_DEVICE);
     CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclrtMemcpy failed. ERROR: %d\n", ret); return ret);
@@ -553,10 +513,9 @@ int CreateAclTensor(const std::vector<T> &hostData, const std::vector<int64_t> &
 
     // 调用aclCreateTensor接口创建aclTensor
     *tensor = aclCreateTensor(shape.data(), shape.size(), dataType, strides.data(), 0, aclFormat::ACL_FORMAT_ND,
-                              shape.data(), shape.size(), *deviceAddr);
+                            shape.data(), shape.size(), *deviceAddr);
     return 0;
 }
-
 
 int main(int argc, char **argv)
 {
@@ -568,33 +527,31 @@ int main(int argc, char **argv)
     CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("Init acl failed. ERROR: %d\n", ret); return ret);
 
     // 2. 构造输入与输出，需要根据API的接口自定义构造
-    // 如果需要修改shape值，需要同步修改../scripts/fa_generate_data.py中 test_nsa_selected_attention_infer 分支下生成
-    // query、key、value对应的shape值，并重新gen data，再执行
-
-    int64_t batch = 21;
-    int sequenceLengthK = 97;
+    int64_t batch = 1;
+    int sequenceLengthK = 48;
     aclIntArray * actualCmpKvSeqLen = nullptr;
     aclIntArray * actualCmpQSeqLen = nullptr;
     // 创建actualCmpKvSeqLen aclIntArray
     std::vector<int64_t> actualCmpKvSeqLenVector(batch, sequenceLengthK);
     actualCmpKvSeqLen = aclCreateIntArray(actualCmpKvSeqLenVector.data(), actualCmpKvSeqLenVector.size());
     // 创建actualCmpQSeqLen aclIntArray
-    std::vector<int64_t> actualCmpQSeqLenVector(batch, 1);
+    int64_t s1 = 1;
+    std::vector<int64_t> actualCmpQSeqLenVector(batch, s1);
     actualCmpQSeqLen = aclCreateIntArray(actualCmpQSeqLenVector.data(), actualCmpQSeqLenVector.size());
     int64_t d1 = 192;
     int64_t d2 = 128;
-    int64_t g = 4;
-    int64_t s1 = 1;
+    int64_t g = 1;
+
     int64_t n2 = 1;
-    int64_t blockSize = 128;
+    int64_t blockSize = 64;
     int64_t selectBlockSize = 64;
-    int64_t selectBlockCount = 2;
+    int64_t selectBlockCount = 1;
     int64_t blockTableLength = 1;
     int64_t numBlocks = batch * blockTableLength;
     std::vector<int64_t> queryShape = {batch, s1, n2 * g, d1};
-    std::vector<int64_t> keyShape = {numBlocks, blockSize, n2, d1};
-    std::vector<int64_t> valueShape = {numBlocks, blockSize, n2, d2};
-    std::vector<int64_t> topkIndicesShape = {batch, n2, selectBlockCount};
+    std::vector<int64_t> keyShape = {numBlocks, blockSize, n2,d1};
+    std::vector<int64_t> valueShape = {numBlocks, blockSize, n2,d2};
+    std::vector<int64_t> topkIndicesShape = {batch, s1, n2, selectBlockCount};
     std::vector<int64_t> blockTableOptionalShape = {batch, blockTableLength};
     std::vector<int64_t> outputShape = {batch, s1, n2 * g, d2};
 
@@ -610,15 +567,17 @@ int main(int argc, char **argv)
     std::vector<int16_t> valueHostData(valueShapeSize, 1);
     std::vector<int32_t> blockTableOptionalHostData(blockTableOptionalShapeSize, 0);
     std::vector<int16_t> outputHostData(outputShapeSize, 1);
-    
+
     std::vector<int32_t> topkIndicesHostData;
     for (int b = 0; b < batch; ++b) {
-        for (int h = 0; h < n2; ++h) {
-            for (int s = 0; s < selectBlockCount; ++s) {
-                if (s == 0) {
-                    topkIndicesHostData.push_back(s);
-                } else {
-                    topkIndicesHostData.push_back(-1);
+        for (int s = 0; s < s1; ++s) {
+            for (int h = 0; h < n2; ++h) {
+                for (int k = 0; k < selectBlockCount; ++k) {
+                    if (k == 0) {
+                        topkIndicesHostData.push_back(k);
+                    } else {
+                        topkIndicesHostData.push_back(-1);
+                    }
                 }
             }
         }
@@ -643,7 +602,6 @@ int main(int argc, char **argv)
     aclTensor *blockTableOptionalTensor = nullptr;
     aclTensor *outputTensor = nullptr;
     aclTensor *topkIndicesTensor = nullptr;
-    
 
     uint64_t workspaceSize = 0;
     void *workspaceAddr = nullptr;
@@ -696,7 +654,7 @@ int main(int argc, char **argv)
     ret = aclrtSynchronizeStream(stream);
     CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclnnNsaSelectedAttentionInfer aclrtSynchronizeStream failed. ERROR: %d\n", ret); return ret);
     LOG_PRINT("aclnn execute success : %d\n", ret);
-    
+
     // 5. 获取输出的值，将device侧内存上的结果拷贝至host侧，需要根据具体API的接口定义修改
     auto size = GetShapeSize(outputShape);
     std::vector<op::fp16_t> resultData(size, 0);

@@ -2,19 +2,14 @@
 
 ## 产品支持情况
 
-| 产品                                                         | 是否支持 |
-| ------------------------------------------------------------ | -------- |
-| <term>昇腾910_95 AI处理器</term>                             | √        |
-| <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>     | ×        |
-| <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term> | √        |
-| <term>Atlas 200I/500 A2 推理产品</term>                      | ×        |
-| <term>Atlas 推理系列加速卡产品</term>                        | √        |
-| <term>Atlas 训练系列产品</term>                              | ×        |
-| <term>Atlas 200I/300/500 推理产品</term>                     | ×        |
+|产品      | 是否支持 |
+|:----------------------------|:-----------:|
+|<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>|      √     |
+|<term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>|      √     |
 
 ##  功能说明
 
-- **算子功能**：兼容（[aclnnIncreFlashAttentionV2](aclnnIncreFlashAttentionV2.md)）接口功能，在其基础上**新增位置编码，page attention，kv cache反量化特性**。
+- **算子功能**：兼容（[aclnnIncreFlashAttentionV2](aclnnIncreFlashAttentionV2.md)）接口功能，在其基础上**新增位置编码，page attention，KV cache反量化特性**。
 
   对于自回归（Auto-regressive）的语言模型，随着新词的生成，推理输入长度不断增大。在原来全量推理的基础上**实现增量推理**，query的S轴固定为1，key和value是经过KV Cache后，将之前推理过的state信息，叠加在一起，每个Batch对应S轴的实际长度可能不一样，输入的数据是经过padding后的固定长度数据。
 
@@ -328,7 +323,7 @@ aclnnStatus aclnnIncreFlashAttentionV3(
       <td>FLOAT16、BFLOAT16、INT8</td>
       <td>ND</td>
       <td><ul><li>(B, N, S, D)</li><li>(B, S, N, D)</li><li>(B, S, H)</li></ul></td>
-      <td>×</td>
+      <td>-</td>
     </tr>
     <tr>
       <td>workspaceSize</td>
@@ -439,18 +434,12 @@ aclnnStatus aclnnIncreFlashAttentionV3(
 
 ##   约束说明
 
-- <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>昇腾910_95 AI处理器</term>：
+- <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：
   - 支持B轴小于等于65536，N轴小于等于256，D轴小于等于512。
   - query数据类型支持FLOAT16、BFLOAT16，attentionOut、key和value数据类型支持FLOAT16、INT8、BFLOAT16。
   - dequantScale1、dequantScale2数据类型支持UINT64、FLOAT32。
   - quantScale1、quantScale2和quantOffset2数据类型支持FLOAT32
   - numKeyValueHeads数据类型支持INT64。
-- <term>Atlas 推理系列加速卡产品</term>：
-  - 支持B轴小于等于256，N轴小于等于256，D轴小于等于512。
-  - 支持key、value的S轴小于等于65536。
-  - query、key、value和attentionOut数据类型仅支持FLOAT16。
-  - dequantScale1、quantScale1、dequantScale2、quantScale2和quantOffset2仅支持nullptr。
-  - numKeyValueHeads仅支持取值0。
 - 非连续场景下，参数key、value的tensorlist中tensor的个数等于query的B(由于tensorlist限制，非连续场景下B需要小于等于256)。shape除S外需要完全一致，且batch只能为1。
 - 参数query中的N和numHeads值相等，key、value的N和numKeyValueHeads值相等，并且numHeads是numKeyValueHeads的倍数关系，并且numHeads与numKeyValueHeads的比值不能大于64。
 - 仅支持query的S轴等于1。
@@ -469,7 +458,7 @@ aclnnStatus aclnnIncreFlashAttentionV3(
   - blockSize是用户自定义的参数，该参数的取值会影响page attention的性能，在使能page attention场景下，blockSize需要传入非0值, 且blocksize最大不超过512。key、value输入类型为FLOAT16/BFLOAT16时需要16对齐，key、value 输入类型为INT8时需要32对齐，推荐使用128。通常情况下，page attention可以提高吞吐量，但会带来性能上的下降。
   - page attention场景下，当query的inputLayout为BNSD时，kv cache排布支持（blocknum, blocksize, H）和（blocknum, KV_N, blocksize, D）两种格式，当query的inputLayout为BSH、BSND时，kv cache排布只支持（blocknum, blocksize, H）一种格式。blocknum不能小于根据actualSeqLengthsKv和blockSize计算的每个batch的block数量之和。且key和value的shape需保证一致。
   - page attention场景下，kv cache排布为（blocknum, KV_N, blocksize, D）时性能通常优于kv cache排布为（blocknum, blocksize, H）时的性能，建议优先选择（blocknum, KV_N, blocksize, D）格式。
-  - page attention使能场景下，当输入kv cache排布格式为（blocknum, blocksize, H），且 numKvHeads * headDim 超过64k时，受硬件指令约束，会被拦截报错。可通过使能GQA（减小 numKvHeads）或调整kv cache排布格式为（blocknum, numKvHeads, blocksize, D）解决。
+  - page attention使能场景下，当输入kv cache排布格式为（blocknum, blocksize, H），且 numKeyValueHeads * headDim 超过64k时，受硬件指令约束，会被拦截报错。可通过使能GQA（减小 numKeyValueHeads）或调整kv cache排布格式为（blocknum, numKeyValueHeads, blocksize, D）解决。
   - page attention场景下，必须传入输入actualSeqLengths。
   - page attention场景下，blockTable必须为二维，第一维长度需等于B，第二维长度不能小于maxBlockNumPerSeq（maxBlockNumPerSeq为每个batch中最大actualSeqLengthsKv对应的block数量）。
   - page attention使能场景下，以下场景输入S需要大于等于maxBlockNumPerSeq * blockSize。

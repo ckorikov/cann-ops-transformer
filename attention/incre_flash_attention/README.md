@@ -2,34 +2,14 @@
 
 ## 产品支持情况
 
-<table style="undefined;table-layout: fixed; width: 700px"><colgroup>
-<col style="width: 600px">
-<col style="width: 100px">
-</colgroup>
-<thead>
-  <tr>
-    <th style="text-align: center;">产品</th>
-    <th style="text-align: center;">是否支持</th>
-  </tr></thead>
-<tbody>
-  <tr>
-    <td>Atlas A3 训练系列产品/Atlas A3 推理系列产品</td>
-    <td style="text-align: center;">√</td>
-  </tr>
-  <tr>
-    <td>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</td>
-    <td style="text-align: center;">√</td>
-  </tr>
-  <tr>
-    <td>Atlas 推理系列加速卡产品</td>
-    <td style="text-align: center;">√</td>
-  </tr>
-</tbody>
-</table>
+|产品      | 是否支持 |
+|:----------------------------|:-----------:|
+|<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>|      √     |
+|<term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>|      √     |
 
 ##  功能说明
 
-- 算子功能：对于自回归（Auto-regressive）的语言模型，随着新词的生成，推理输入长度不断增大。在原来全量推理的基础上**实现增量推理**，query的S轴固定为1，key和value是经过KV Cache后，将之前推理过的state信息，叠加在一起，每个Batch对应S轴的实际长度可能不一样，输入的数据是经过padding后的固定长度数据。支持**量化，位置编码，page attention，kv cache反量化和kv左Padding特性。**
+- 算子功能：对于自回归（Auto-regressive）的语言模型，随着新词的生成，推理输入长度不断增大。在原来全量推理的基础上**实现增量推理**，query的S轴固定为1，key和value是经过KV Cache后，将之前推理过的state信息，叠加在一起，每个Batch对应S轴的实际长度可能不一样，输入的数据是经过padding后的固定长度数据。支持**量化，位置编码，page attention，KV cache反量化和KV左Padding特性。**
 
   相比全量场景的FlashAttention算子（[PromptFlashAttention](../prompt_flash_attention/README.md)），增量推理的流程与正常全量推理并不完全等价，不过增量推理的精度并无明显劣化。
 
@@ -132,10 +112,6 @@
 - Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件：
   - 支持B轴小于等于65536，N轴小于等于256，D轴小于等于512。
   - numHeads与numKeyValueHeads的比值不能大于64。
-- Atlas 推理系列加速卡产品：
-  - 支持B轴小于等于256，N轴小于等于256，D轴小于等于512，key、value的S轴小于等于65536。
-  - query、key、value和ttentionOut数据类型仅支持FLOAT16。
-  - 在数据排布格式为BNSD时，需要满足numHeads与numKeyValueHeads的比值不大于8，其他情况仅支持取值0；
 - INT8量化相关入参数量与输入、输出数据格式的综合限制：
   - query、key、value输入为FLOAT16，输出为INT8的场景：入参quantScale2必填，quantOffset2可选，不能传入dequantScale1、quantScale1、dequantScale2（即为nullptr）参数。
 

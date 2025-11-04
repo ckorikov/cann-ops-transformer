@@ -17,7 +17,7 @@
   tileNum_ = tilingData->tileNum;
   tileLength_ = blockLength_ / tileNum_ / BUFFER_NUM;
   // 打印当前核计算Block长度
-  AscendC::PRINTF("Tiling blockLength\n", blockLength_);
+  AscendC::PRINTF("Tiling blockLength is %llu\n", blockLength_);
   ```
 * **DumpTensor**
 
@@ -34,7 +34,7 @@
 
 ## 性能调优
 
-算子运行过程中，如果出现执行精度下降、内存占用异常等问题，可通过[msProf](https://www.hiascend.com/document/redirect/CannCommunityToolMsprof)性能分析工具分析算子各运行阶段指标数据（如吞吐率、内容占用、耗时等），从而确定问题根源，并针对性地优化。
+算子运行过程中，如果出现执行精度下降、内存占用异常等问题，可通过[msProf](https://www.hiascend.com/document/redirect/CannCommunityToolMsprof)性能分析工具分析算子各运行阶段指标数据（如吞吐率、内存占用、耗时等），从而确定问题根源，并针对性地优化。
 
 本章以`AddExample`自定义算子为例，通过采集算子上板运行时各项流水指标分析算子Bound场景。
 

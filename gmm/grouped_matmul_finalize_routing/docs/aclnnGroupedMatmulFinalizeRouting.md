@@ -2,15 +2,10 @@
 
 ## 产品支持情况
 
-| 产品                                                                | 是否支持 |
-|:------------------------------------------------------------------|:----:|
-| <term>昇腾910_95 AI处理器</term>                                       |  ×   |
-| <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>                      |  √   |
-| <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term> |  √   |
-| <term>Atlas 200I/500 A2 推理产品</term>                               |  ×   |
-| <term>Atlas 推理系列产品 </term>                                        |  ×   |
-| <term>Atlas 训练系列产品</term>                                         |  ×   |
-| <term>Atlas 200/300/500 推理产品</term>                               |  ×   |
+|产品      | 是否支持 |
+|:----------------------------|:-----------:|
+|<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>|      √     |
+|<term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>|      √     | ×   |
 
 ## 功能说明
 
@@ -312,13 +307,13 @@ aclnnStatus aclnnGroupedMatmulFinalizeRouting(
     <tr>
       <td rowspan="8">ACLNN_ERR_PARAM_INVALID</td>
       <td rowspan="8">161002</td>
-      <td>x、w、scaleOptional、biasOptional、offsetOptional、antiquantScaleOptional、antiquantOffsetOptional、pertokenScaleOptional、groupListOptional、shareInputOptional、logitOptional、rowIndexOptional、shareInputWeight、shareInputOffest、transposeX、transposeW、或y的数据类型或数据格式不在支持的范围内。</td>
+      <td>x、w、scaleOptional、biasOptional、offsetOptional、antiquantScaleOptional、antiquantOffsetOptional、pertokenScaleOptional、groupListOptional、sharedInputOptional、logitOptional、rowIndexOptional、sharedInputWeight、sharedInputOffset、transposeX、transposeW、或y的数据类型或数据格式不在支持的范围内。</td>
     </tr>
     <tr>
-      <td>x、w、scaleOptional、biasOptional、offsetOptional、antiquantScaleOptional、antiquantOffsetOptional、pertokenScaleOptional、groupListOptional、shareInputOptional、logitOptional、rowIndexOptional或y的shape不满足校验条件。</td>
+      <td>x、w、scaleOptional、biasOptional、offsetOptional、antiquantScaleOptional、antiquantOffsetOptional、pertokenScaleOptional、groupListOptional、sharedInputOptional、logitOptional、rowIndexOptional或y的shape不满足校验条件。</td>
     </tr>
     <tr>
-      <td>x、w、scaleOptional、biasOptional、offsetOptional、antiquantScaleOptional、antiquantOffsetOptional、pertokenScaleOptional、groupListOptional、shareInputOptional、logitOptional、rowIndexOptional或y的shape是空tensor。</td>
+      <td>x、w、scaleOptional、biasOptional、offsetOptional、antiquantScaleOptional、antiquantOffsetOptional、pertokenScaleOptional、groupListOptional、sharedInputOptional、logitOptional、rowIndexOptional或y的shape是空tensor。</td>
     </tr>
     <tr>
       <td>dtype、sharedInputOffset、transposeX、transposeW、groupListType的取值范围不满足条件。</td>
@@ -639,7 +634,7 @@ aclnnStatus aclnnGroupedMatmulFinalizeRouting(
           LOG_PRINT("result[%ld] is: %u\n", i, resultData[i]);
       }
 
-      // 6. 释放aclTensor和aclTensor，需要根据具体API的接口定义修改
+      // 6. 释放aclTensor资源，需要根据具体API的接口定义修改
       aclDestroyTensor(x);
       aclDestroyTensor(w);
       aclDestroyTensor(scale);

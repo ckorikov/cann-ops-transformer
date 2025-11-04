@@ -1,7 +1,5 @@
 # MoeDistributeCombine
 
-> 注意：
-> 本文档仅仅是算子功能的简介，不支持用户直接调用，因为当前不支持kernel直调，等后续支持再完善文档!!!!!!
 
 ## 产品支持情况
 
@@ -22,13 +20,13 @@
 
 ## 参数说明
 
-<table style="undefined;table-layout: fixed; width: 1576px">
+<table style="undefined;table-layout: fixed; width: 1490px">
 <colgroup>
 <col style="width: 170px">
 <col style="width: 170px">
-<col style="width: 800px">
-<col style="width: 800px">
+<col style="width: 850px">
 <col style="width: 200px">
+<col style="width: 100px">
 </colgroup>
 <thead>
 <tr>
@@ -229,7 +227,7 @@
 
 ## 约束说明
 
-- aclnnMoeDistributeDispatch接口与aclnnMoeDistributeCombine接口必须配套使用，具体参考[调用示例](#调用示例)。
+- aclnnMoeDistributeDispatch接口与aclnnMoeDistributeCombine接口必须配套使用，具体参考调用示例。
 
 - 在不同产品型号、不同通信算法或不同版本中，aclnnMoeDistributeDispatch的Tensor输出expandIdx、epRecvCounts、tpRecvCounts、expandScales中的元素值可能不同，使用时直接将上述Tensor传给aclnnMoeDistributeCombine对应参数即可，模型其他业务逻辑不应对其存在依赖。
 
@@ -239,7 +237,7 @@
 
 - 参数说明里shape格式说明：
     - A：表示本卡需要分发的最大token数量，取值范围如下：
-        - 对于共享专家，要满足A = BS * epWorldSize \* sharedExpertNum / sharedExpertRankNum。
+        - 对于共享专家，要满足A = BS * epWorldSize * sharedExpertNum / sharedExpertRankNum。
         - 对于MoE专家，当globalBs为0时，要满足A >= BS * epWorldSize * min(localExpertNum, K)；当globalBs非0时，要满足A >= globalBs * min(localExpertNum, K)。
     - H：表示hidden size隐藏层大小。
         - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：取值范围(0, 7168]，且保证是32的整数倍。
@@ -256,12 +254,12 @@
 
 - HCCL_BUFFSIZE：
     调用本接口前需检查HCCL_BUFFSIZE环境变量取值是否合理，该环境变量表示单个通信域占用内存大小，单位MB，不配置时默认为200MB。
-    - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：要求 >= 2 \* (BS \* epWorldSize \* min(localExpertNum, K) \* H \* sizeof(uint16) + 2MB)。
-    - <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：要求 >= 2且满足1024 ^ 2 \* (HCCL_BUFFSIZE - 2) / 2 >= BS \* 2 \* (H + 128) \* (epWorldSize \* localExpertNum + K + 1)，localExpertNum需使用MoE专家卡的本卡专家数。
+    - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：要求 >= 2 * (BS * epWorldSize * min(localExpertNum, K) * H * sizeof(uint16) + 2MB)。
+    - <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：要求 >= 2且满足1024 ^ 2 * (HCCL_BUFFSIZE - 2) / 2 >= BS * 2 * (H + 128) * (epWorldSize * localExpertNum + K + 1)，localExpertNum需使用MoE专家卡的本卡专家数。
 
 - HCCL_INTRA_PCIE_ENABLE和HCCL_INTRA_ROCE_ENABLE：
     - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：设置环境变量HCCL_INTRA_PCIE_ENABLE = 1和HCCL_INTRA_ROCE_ENABLE = 0可以减少跨机通信数据量，可能提升算子性能。
-    此时，HCCL_BUFFSIZE要求 >= moeExpertNum \* BS \* (H \* sizeof(dtypeX) + 4 \* ((K + 7) / 8 \* 8) \* sizeof(uint32)) + 4MB + 100MB。并且，对于入参moeExpertNum，只要求moeExpertNum \% (epWorldSize - sharedExpertRankNum) = 0，不要求moeExpertNum / (epWorldSize - sharedExpertRankNum) <= 24。
+    此时，HCCL_BUFFSIZE要求 >= moeExpertNum * BS * (H * sizeof(dtypeX) + 4 * ((K + 7) / 8 * 8) * sizeof(uint32)) + 4MB + 100MB。并且，对于入参moeExpertNum，只要求moeExpertNum % (epWorldSize - sharedExpertRankNum) = 0，不要求moeExpertNum / (epWorldSize - sharedExpertRankNum) <= 24。
 
 - 本文公式中的"/"表示整除。
 
@@ -274,6 +272,6 @@
 
 | 调用方式  | 样例代码                                  | 说明                                                     |
 | :--------: | :----------------------------------------: | :-------------------------------------------------------: |
-| aclnn接口 | [test_moe_distribute_combine.cpp](./examples/test_moe_distribute_combine.cpp) | 通过[aclnnMoeDistributeCombine](./docs/aclnnMoeDistributeCombine.md)接口方式调用moe_distribute_combine算子。 |
+| aclnn接口 | [test_aclnn_moe_distribute_combine.cpp](./examples/test_aclnn_moe_distribute_combine.cpp) | 通过[aclnnMoeDistributeCombine](./docs/aclnnMoeDistributeCombine.md)接口方式调用moe_distribute_combine算子。 |
 
 

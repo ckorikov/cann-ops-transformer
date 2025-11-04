@@ -2,22 +2,10 @@
 
 ## 产品支持情况
 
-<table class="tg"><thead>
-  <tr>
-    <th class="tg-baqh">产品</th>
-    <th class="tg-baqh">是否支持</th>
-  </tr></thead>
-<tbody>
-  <tr>
-    <td class="tg-0lax">Atlas A3 训练系列产品/Atlas A3 推理系列产品</td>
-    <td class="tg-0lax">√</td>
-  </tr>
-  <tr>
-    <td class="tg-0lax">Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</td>
-    <td class="tg-0lax">√</td>
-  </tr>
-</tbody>
-</table>
+|产品      | 是否支持 |
+|:----------------------------|:-----------:|
+|<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>|      √     |
+|<term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>|      √     |
 
 ## 功能说明
 
@@ -121,11 +109,17 @@
   * 支持B轴小于等于3072。
   * 支持key/value的N轴小于等于256。
   * 支持query的N轴与key/value的N轴（H/D）的比值（即GQA中的group大小）小于等于16。
-  * 支持query与Key的D轴等于192。
+  * 支持query与key的D轴等于192。
   * 支持value的D轴等于128。
-  * 支持Key与Value的blockSize等于64或128。
+  * 支持key与value的blockSize等于64或128。
   * 普通场景下仅支持query的S轴等于1。
   * 多token推理场景下，仅支持query的S轴最大等于4，并且此时要求每个batch单独的actualQSeqLen<=actualSelKvSeqLen。
   * 仅支持paged attention。
   * 仅支持selectBlockSize取值为16的整数倍，最大支持到128。
   * selectBlockCount上限满足selectBlockCount*selectBlockSize<=MaxKvSeqlen，MaxKvSeqlen=Max(actualSelKvSeqLenOptional)。
+
+## 调用说明
+
+| 调用方式  | 样例代码                                                                | 说明                                                                                          |
+| ----------- | ------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| aclnn接口 | [test_aclnn_nsa_compress_attention_infer](./examples/test_aclnn_nsa_compress_attention_infer.cpp) | 通过[`aclnnNsaCompressAttentionInfer`](./docs/aclnnNsaCompressAttentionInfer.md)接口方式调用NsaCompressAttentionInfer算子。 |

@@ -14,7 +14,7 @@
 
 - 算子功能：训练场景下计算注意力的反向输出，即[FlashAttentionVarLenScoreV4](./aclnnFlashAttentionVarLenScoreV4.md)的反向计算。该接口相较于[FlashAttentionUnpaddingScoreGrad](./aclnnFlashAttentionUnpaddingScoreGrad.md)接口，新增softmaxInLayout参数。
   - 当输入softmaxSumOut和softmaxMaxOut的shape和实际数据排布均为TND格式时，softmaxInLayout需要配置为"same_as_input"。
-  - 当输入softmaxSumOut和softmaxMaxOut的shape未TND但实际数据排布均为NTD格式时，softmaxInLayout需要配置为""。
+  - 当输入softmaxSumOut和softmaxMaxOut的shape为TND但实际数据排布均为NTD格式时，softmaxInLayout需要配置为""。
   - 原有FlashAttentionVarLenScore接口的softmaxSumOut和softmaxMaxOut的输出格式为NTD，FlashAttentionVarLenScoreV4接口允许传入字符串类型参数softmaxOutLayout，来控制是否输出Shape和数据排布均为TND格式的softmaxSumOut和softmaxMaxOut。
 
 
@@ -725,7 +725,7 @@ aclnnStatus aclnnFlashAttentionUnpaddingScoreGradV4(
     int64_t nextTokens = 65536;
     int64_t headNum = 1;
     int64_t innerPrecise = 0;
-    int64_t sparseMod = 0;
+    int64_t sparseMode = 0;
     char softmaxInLayoutArr[] = "same_as_input";
 
     char layOut[5] = {'T', 'N', 'D', 0};
@@ -737,7 +737,7 @@ aclnnStatus aclnnFlashAttentionUnpaddingScoreGradV4(
     // 调用aclnnFlashAttentionUnpaddingScoreGradV4第一段接口
     ret = aclnnFlashAttentionUnpaddingScoreGradV4GetWorkspaceSize(q, k, v, dx, pse, dropMask, padding,
               attenmask, softmaxMax, softmaxSum, softmaxIn, attentionIn, prefix, acSeqQLen, acSeqKvLen,
-              scaleValue, keepProb, preTokens, nextTokens, headNum, layOut, innerPrecise, sparseMod,
+              scaleValue, keepProb, preTokens, nextTokens, headNum, layOut, innerPrecise, sparseMode,
               dq, dk, dv, dpse, softmaxInLayoutArr, &workspaceSize, &executor);
     CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclnnFlashAttentionUnpaddingScoreGradV4GetWorkspaceSize failed. ERROR: %d\n", ret); return ret);
 

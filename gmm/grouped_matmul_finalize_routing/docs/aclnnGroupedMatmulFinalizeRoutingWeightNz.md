@@ -2,15 +2,10 @@
 
 ## 产品支持情况
 
-| 产品                                                                | 是否支持 |
-|:------------------------------------------------------------------|:----:|
-| <term>昇腾910_95 AI处理器</term>                                       |  ×   |
-| <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>                      |  √   |
-| <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term> |  √   |
-| <term>Atlas 200I/500 A2 推理产品</term>                               |  ×   |
-| <term>Atlas 推理系列产品 </term>                                        |  ×   |
-| <term>Atlas 训练系列产品</term>                                         |  ×   |
-| <term>Atlas 200/300/500 推理产品</term>                               |  ×   |
+|产品      | 是否支持 |
+|:----------------------------|:-----------:|
+|<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>|      √     |
+|<term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>|      √     |
 
 ## 功能说明
 
@@ -29,7 +24,7 @@ aclnnStatus aclnnGroupedMatmulFinalizeRoutingWeightNzGetWorkspaceSize(
     const aclTensor *pertokenScaleOptional,
     const aclTensor *groupList,
     const aclTensor *sharedInput,
-    const aclTensor *logit,
+    const aclTensor* logit,
     const aclTensor *rowIndex,
     int64_t          dtype,
     float            sharedInputWeight,
@@ -188,7 +183,7 @@ aclnnStatus aclnnGroupedMatmulFinalizeRoutingWeightNz(
     <tr>
       <td>sharedInputOffset</td>
       <td>输入</td>
-      <td>共享专家输出的在总输出中的偏移。</td>
+      <td>共享专家输出在总输出中的偏移。</td>
       <td></td>
       <td>INT64</td>
       <td></td>
@@ -622,7 +617,7 @@ aclnnStatus aclnnGroupedMatmulFinalizeRoutingWeightNz(
           LOG_PRINT("result[%ld] is: %u\n", i, resultData[i]);
       }
 
-      // 6. 释放aclTensor和aclTensor，需要根据具体API的接口定义修改
+      // 6. 释放aclTensor资源，需要根据具体API的接口定义修改
       aclDestroyTensor(x);
       aclDestroyTensor(w);
       aclDestroyTensor(scale);

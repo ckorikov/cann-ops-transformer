@@ -1,8 +1,5 @@
 # AlltoAllvGroupedMatMul
 
-> 注意：
-> 本文档仅仅是算子功能的简介，不支持用户直接调用，因为当前不支持kernel直调，等后续支持再完善文档!!!!!!
-
 ## 产品支持情况
 
 | 产品                                                         | 是否支持 |
@@ -180,5 +177,5 @@
 
 | 调用方式  | 样例代码                                  | 说明                                                     |
 | :--------: | :----------------------------------------: | :-------------------------------------------------------: |
-| aclnn接口 | [test_allto_allv_grouped_mat_mul.cpp](./examples/test_allto_allv_grouped_mat_mul.cpp) | 通过[aclnnAlltoAllvGroupedMatMul](./docs/aclnnAlltoAllvGroupedMatMul.md)接口方式调用allto_allv_grouped_mat_mul算子。 |
+| aclnn接口 | [test_aclnn_allto_allv_grouped_mat_mul.cpp](./examples/test_aclnn_allto_allv_grouped_mat_mul.cpp) | 通过[aclnnAlltoAllvGroupedMatMul](./docs/aclnnAlltoAllvGroupedMatMul.md)接口方式调用allto_allv_grouped_mat_mul算子。 |
 

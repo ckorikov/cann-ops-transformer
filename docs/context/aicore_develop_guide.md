@@ -126,7 +126,7 @@ bash build.sh --genop=${op_class}/${op_name}
 ```bash
 Create the initial directory for ${op_name} under ${op_class} success
 ```
-创建完成后，目录结构如下所示：
+创建完成后，关键目录结构如下所示：
 
 ```
 ${op_name}                              # 替换为实际算子名的小写下划线形式
@@ -517,13 +517,15 @@ __aicore__ inline void AddExample<T>::CopyOut(int32_t progress)
 ```
 ## aclnn适配
 
-完成算子开发和编译后，会自动生成aclnn接口（一套基于C 的API），可在应用程序中调用aclnn接口实现调用算子的目的。该方式依赖算子的二进制包，为了生成对应的二进制包，需要增加二进制编译json：
+通常算子开发和编译完成后，会自动生成aclnn接口（一套基于C 的API），可直接在应用程序中调用aclnn接口实现调用算子。
 
-以`AddExample`算子为例：
+为实现该调用方式，需提前生成算子对应的二进制包，增加二进制编译json文件，以`AddExample`算子为例：
 
 1. 在`examples/add_example/op_host`目录新建`config/${soc_version}`文件夹，用于存放配置文件。
 
 2. 在`${soc_version}`目录新建json文件，命名为`${op_name}_binary.json`，用于描述算子相关信息，包括算子输入、输出、shape、data type、format等信息，完整定义请参考[add_example_binary.json](../../examples/add_example/op_host/config/ascend910b/add_example_binary.json)。
+
+3. 在`${soc_version}`目录新建ini文件，命名为`${op_name}_simplified_key.ini`，与二进制匹配逻辑相关，默认是0，示例参考[add_example_simplified_key.ini](../../examples/add_example/op_host/config/ascend910b/add_example_simplified_key.ini)。
 
 ## 编译部署
 
@@ -633,15 +635,15 @@ ${op_name}                              # 替换为实际算子名的小写下�
 │   └── ${op_name}_infershape.cpp       # InferShape实现，实现算子形状推导，在运行时推导输出shape
 ├── op_graph                            # 图融合相关实现
 │   ├── CMakeLists.txt                  # op_graph侧cmakelist文件
-│   ├── ${op_name}_graph_infer.cpp      # InferDataType文件，实现算子类型推导，在运行时推导输出dataType
+│   ├── ${op_name}_graph_infer.cpp      # InferDataType文件，实现算子类型推导，在运行时推导输出DataType
 └── └── ${op_name}_proto.h              # 算子原型定义，用于图优化和融合阶段识别算子
 ```
 
 ### Shape与DataType推导
 
 在深度学习中，当一个算子被加入计算图时，为确保图的正确性和后续的编译、优化、执行流程顺利进行，通常需要为该算子实现两个关键的推导函数：
-  - InferShape：用于推导输出张量的形状（shape）。
-  - InferDataType：用于推导输出张量的数据类型（dataType）。
+  - InferShape：用于推导输出张量的形状（Shape）。
+  - InferDataType：用于推导输出张量的数据类型（DataType）。
 
 操作步骤如下：
 
@@ -680,11 +682,11 @@ static ge::graphStatus InferShapeAddExample(gert::InferShapeContext* context)
     ....
 }
 
-// AddExample算子逻辑是两个数相加，因此输出dataType与输入dataType一致
+// AddExample算子逻辑是两个数相加，因此输出DataType与输入DataType一致
 static ge::graphStatus InferDataTypeAddExample(gert::InferDataTypeContext* context)
 {
     ....
-    // 获取输入的dataType
+    // 获取输入的DataType
     ge::DataType sizeDtype = context->GetInputDataType(IDX_0);
     // 将输出dataType设置到输出
     context->SetOutputDataType(IDX_0, sizeDtype);

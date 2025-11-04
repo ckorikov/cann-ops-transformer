@@ -2,15 +2,10 @@
 
 ## 产品支持情况
 
-| 产品                                                         | 是否支持 |
-| :----------------------------------------------------------- | :------: |
-| <term>昇腾910_95 AI处理器</term>                             |    ×     |
-| <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>     |    √     |
-| <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term> |    ×     |
-| <term>Atlas 200I/500 A2 推理产品</term>                      |    ×     |
-| <term>Atlas 推理系列产品 </term>                             |    ×     |
-| <term>Atlas 训练系列产品</term>                              |    ×     |
-| <term>Atlas 200/300/500 推理产品</term>                      |    ×     |
+| 产品                                                         |  是否支持   |
+| :----------------------------------------------------------- |:-------:|
+| <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>     |    √    |
+| <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term> |    ×    |
 
 ## 功能说明
 
@@ -97,35 +92,35 @@ aclnnStatus aclnnMoeUpdateExpert(
   <tr>
    <td>expertIds</td>
    <td>输入</td>
-   <td>每个token的topK个专家索引，Device侧的aclTensor，要求为2D Tensor，shape为 \( (BS, K) \)；支持非连续的Tensor。</td>
+   <td>每个token的topK个专家索引，Device侧的aclTensor，要求为2D Tensor，shape为 (BS, K)；支持非连续的Tensor。</td>
    <td>INT32、INT64</td>
    <td>ND</td>
   </tr>
   <tr>
    <td>eplbTable</td>
    <td>输入</td>
-   <td>逻辑专家到物理专家的映射表（外部需保证值正确）：<br> - 共`world_size*place_per_rank`个专家实例（`world_size`为卡数，`place_per_rank`为单卡部署路由专家实例数）。<br> - 每行第一列为对应逻辑专家的部署实例数（取值[1, world_size]），后[1, count]列为实例编号（取值[0, world_size*place_per_rank)，且不重复）。<br>Device侧的aclTensor，要求为2D Tensor，shape为 \( (moeExperNum, F) \)；支持非连续的Tensor。</td>
+   <td>逻辑专家到物理专家的映射表（外部需保证值正确）：<br> - 共`world_size*place_per_rank`个专家实例（`world_size`为卡数，`place_per_rank`为单卡部署路由专家实例数）。<br> - 每行第一列为对应逻辑专家的部署实例数（取值[1, world_size]），后[1, count]列为实例编号（取值[0, world_size*place_per_rank)，且不重复）。<br>Device侧的aclTensor，要求为2D Tensor，shape为 (moeExperNum, F)；支持非连续的Tensor。</td>
    <td>INT32</td>
    <td>ND</td>
   </tr>
   <tr>
    <td>expertScalesOptional</td>
    <td>输入</td>
-   <td>每个token的topK个专家的scale权重（需保证token内部按降序排列），可传有效数据或空指针（传有效数据时，`pruningThresholdOptional`必须同时传有效数据）。<br>Device侧的aclTensor，要求为2D Tensor，shape为 \( (BS, K) \)；支持非连续的Tensor。</td>
+   <td>每个token的topK个专家的scale权重（需保证token内部按降序排列），可传有效数据或空指针（传有效数据时，`pruningThresholdOptional`必须同时传有效数据）。<br>Device侧的aclTensor，要求为2D Tensor，shape为 (BS, K)；支持非连续的Tensor。</td>
    <td>FLOAT16、BFLOAT16、FLOAT</td>
    <td>ND</td>
   </tr>
   <tr>
    <td>pruningThresholdOptional</td>
    <td>输入</td>
-   <td>专家scale权重的最小阈值（token对应专家scale小于阈值时会被剪枝），可传有效数据或空指针（传有效数据时，`expertScalesOptional`必须同时传有效数据）。<br>Device侧的aclTensor，要求为1D或2D Tensor，shape为 \( (K,) \) 或 \( (1, K) \)；支持非连续的Tensor。</td>
+   <td>专家scale权重的最小阈值（token对应专家scale小于阈值时会被剪枝），可传有效数据或空指针（传有效数据时，`expertScalesOptional`必须同时传有效数据）。<br>Device侧的aclTensor，要求为1D或2D Tensor，shape为 (K,) 或 (1, K)；支持非连续的Tensor。</td>
    <td>FLOAT</td>
    <td>ND</td>
   </tr>
   <tr>
    <td>activeMaskOptional</td>
    <td>输入</td>
-   <td>表示token是否参与通信，可传有效数据或空指针：<br> - 传有效数据时，`expertScalesOptional`和`pruningThresholdOptional`必须同时传有效数据；true表示参与通信，且true需排在false前（例：{true, false, true}非法）。<br> - 传空指针时，默认所有token参与通信。<br>Device侧的aclTensor，要求为1D Tensor，shape为 \( (BS,) \)；支持非连续的Tensor。</td>
+   <td>表示token是否参与通信，可传有效数据或空指针：<br> - 传有效数据时，`expertScalesOptional`和`pruningThresholdOptional`必须同时传有效数据；true表示参与通信，且true需排在false前（例：{true, false, true}非法）。<br> - 传空指针时，默认所有token参与通信。<br>Device侧的aclTensor，要求为1D Tensor，shape为 (BS,)；支持非连续的Tensor。</td>
    <td>BOOL</td>
    <td>ND</td>
   </tr>
@@ -153,14 +148,14 @@ aclnnStatus aclnnMoeUpdateExpert(
   <tr>
    <td>balancedExpertIds</td>
    <td>输出</td>
-   <td>映射后每个token的topK个专家所在物理专家的实例编号，Device侧的aclTensor，要求为2D Tensor，shape为 \( (BS, K) \)；数据类型、数据格式与`expertIds`保持一致。</td>
+   <td>映射后每个token的topK个专家所在物理专家的实例编号，Device侧的aclTensor，要求为2D Tensor，shape为 (BS, K)；数据类型、数据格式与`expertIds`保持一致。</td>
    <td>与`expertIds`一致（INT32/INT64）</td>
    <td>ND</td>
   </tr>
   <tr>
    <td>balancedActiveMask</td>
    <td>输出</td>
-   <td>剪枝后均衡的activeMask，仅当`expertScalesOptional`和`pruningThresholdOptional`传有效数据时有效。<br>Device侧的aclTensor，要求为2D Tensor，shape为 \( (BS, K) \)；支持非连续的Tensor。</td>
+   <td>剪枝后均衡的activeMask，仅当`expertScalesOptional`和`pruningThresholdOptional`传有效数据时有效。<br>Device侧的aclTensor，要求为2D Tensor，shape为 (BS, K)；支持非连续的Tensor。</td>
    <td>BOOL</td>
    <td>ND</td>
   </tr>
@@ -271,7 +266,7 @@ aclnnStatus aclnnMoeUpdateExpert(
     `aclnnMoeUpdateExpert` → `aclnnMoeDistributeDispatchV2` → `aclnnMoeDistributeCombineV2`/`aclnnMoeDistributeCombineAddRmsNorm`；
 
     或与`aclnnMoeDistributeDispatchV3`及`aclnnMoeDistributeCombineV3`/`aclnnMoeDistributeCombineAddRmsNormV2`接口配套使用，**调用顺序固定为**：  
-    `aclnnMoeUpdateExpert` → `aclnnMoeDistributeDispatchV3` → `aclnnMoeDistributeCombineV3`/`aclnnMoeDistributeCombineAddRmsNormV2`；具体参考[调用示例](#调用示例)。
+    `aclnnMoeUpdateExpert` → `aclnnMoeDistributeDispatchV3` → `aclnnMoeDistributeCombineV3`/`aclnnMoeDistributeCombineAddRmsNormV2`；具体参考调用示例。
 
 2. **参数一致性要求**：  
    调用过程中使用的`worldSize`、`moeExpertNum`参数取值，所有卡需保持一致，网络不同层中也需保持一致，且需与`aclnnMoeDistributeDispatchV2`、`aclnnMoeDistributeCombineV2`/`aclnnMoeDistributeCombineAddRmsNorm`的对应参数一致。
@@ -280,42 +275,18 @@ aclnnStatus aclnnMoeUpdateExpert(
    <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：单卡包含双DIE（“晶粒”或“裸片”），因此参数说明中的“本卡”均指**单DIE**。
 
 4. **参数shape格式约束**：
-   - **BS**：本卡最终输出的token数量，取值范围 \( 0 < BS ≤ 512 \)。
-   - **K**：选取的topK个专家，取值范围 \( 0 < K ≤ 16 \)，且需满足 \( 0 < K ≤ moeExpertNum \)。
-   - **moeExpertNum**：MoE专家数量，取值范围 \( (0, 1024] \)。
-   - **F**：映射表`eplbTable`的列数，取值范围 \( [2, worldSize + 1] \)；第一列为逻辑专家的部署实例数（值>0），后F-1列为对应的物理卡号。
-   - **实例总数限制**：所有卡部署的MoE专家实例总数最多1024，即 \( place\_per\_rank * world\_size ≤ 1024 \)（`place_per_rank`为单卡部署实例数）。
+   - **BS**：本卡最终输出的token数量，取值范围 ( 0 < BS ≤ 512 )。
+   - **K**：选取的topK个专家，取值范围 ( 0 < K ≤ 16 )，且需满足 ( 0 < K ≤ moeExpertNum )。
+   - **moeExpertNum**：MoE专家数量，取值范围 (0, 1024]。
+   - **F**：映射表`eplbTable`的列数，取值范围 [2, worldSize + 1]；第一列为逻辑专家的部署实例数（值>0），后F-1列为对应的物理卡号。
+   - **实例总数限制**：所有卡部署的MoE专家实例总数最多1024，即 ( place_per_rank * world_size ≤ 1024 )（`place_per_rank`为单卡部署实例数）。
    - **单卡实例数一致性**：每张卡部署的专家实例数必须相同。
 
 ## 调用示例
 
-以<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>为例，调起MoeUpdateExpert，MoeDistributeDispatchV2和MoeDistributeCombineAddRmsNorm算子。本示例代码仅支持Atlas A3。
+示例代码如下，仅供参考，具体编译和执行过程请参考编译与运行样例。本示例代码仅支持Atlas A3。
 
-- 文件准备：    
-  1.新建eplbDemo目录，按照下方指导在eplbDemo下新建aclnnEPLBDemo.cpp，buildEPLB.sh，文件并修改。
-  2.将eplbDemo项目拷贝到服务器中。
-  3.安装cann包，并根据下方指导编译运行eplbDemo。
-
--  编译脚本
-    ```bash
-    #!/bin/bash
-    cann_path="/path/to/cann_env" # 更改cann包环境的路径
-    g++ "aclnnEPLBDemo.cpp" -o eplbDemo -I"$cann_path/latest/include/" -I"$cann_path/latest/include/aclnnop/" \
-        -L="$cann_path/latest/lib64/" -lascendcl -lnnopbase -lopapi -lop_common -lpthread -lhccl
-    ```
-- 编译与运行：
-
-    ```bash
-    # source cann环境
-    source /path/to/cann_env/latest/bin/setenv.bash
-
-    # 编译aclnnEPLBDemo.cpp
-    bash buildEPLB.sh
-
-    ./eplbDemo
-    ```
-
-- 示例代码如下，仅供参考
+- <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>
     ```Cpp
     #include <thread>
     #include <iostream>
@@ -323,9 +294,10 @@ aclnnStatus aclnnMoeUpdateExpert(
     #include <vector>
     #include "acl/acl.h"
     #include "hccl/hccl.h"
-    #include "aclnnop/aclnn_moe_update_expert.h"
-    #include "aclnnop/aclnn_moe_distribute_dispatch_v2.h"
-    #include "aclnnop/aclnn_moe_distribute_combine_add_rms_norm.h"
+    #include "../op_host/op_api/aclnn_moe_update_expert.h"
+    #include "../../moe_distribute_dispatch_v2/op_host/op_api/aclnn_moe_distribute_dispatch_v2.h"
+    #include "../../moe_distribute_combine_add_rms_norm/op_host/op_api/aclnn_moe_distribute_combine_add_rms_norm.h"
+    #include <unistd.h>
 
     #define CHECK_RET(cond, return_expr) \
         do {                             \

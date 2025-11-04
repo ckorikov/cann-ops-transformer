@@ -2,42 +2,10 @@
 
 ## 产品支持情况
 
-<table class="tg"><thead>
-  <tr>
-    <th class="tg-baqh">产品</th>
-    <th class="tg-baqh">是否支持</th>
-  </tr></thead>
-<tbody>
-  <tr>
-    <td class="tg-0lax"><term>昇腾910_95 AI处理器</term></td>
-    <td class="tg-0lax">x</td>
-  </tr>
-  <tr>
-    <td class="tg-0lax"><term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term></td>
-    <td class="tg-0lax">√</td>
-  </tr>
-  <tr>
-    <td class="tg-0lax"><term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term></td>
-    <td class="tg-0lax">√</td>
-  </tr>
-  <tr>
-    <td class="tg-0lax"><term>Atlas 200I/500 A2 推理产品</term></td>
-    <td class="tg-0lax">x</td>
-  </tr>
-  <tr>
-    <td class="tg-0lax"><term>Atlas 推理系列产品</term></td>
-    <td class="tg-0lax">x</td>
-  </tr>
-  <tr>
-    <td class="tg-0lax"><term>Atlas 训练系列产品</term></td>
-    <td class="tg-0lax">x</td>
-  </tr>
-  <tr>
-    <td class="tg-0lax"><term>Atlas 200/300/500 推理产品</term></td>
-    <td class="tg-0lax">x</td>
-  </tr>
-</tbody>
-</table>
+|产品      | 是否支持 |
+|:----------------------------|:-----------:|
+|<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>|      √     |
+|<term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>|      √     |
 
 ## 功能说明
 
@@ -225,7 +193,7 @@ aclnnStatus aclnnNsaCompressWithCache(
         <td>actSeqLenType</td>
         <td>输入</td>
         <td>actSeqLenOptional的不同表达形式</td>
-        <td>actSeqLenOptional有输入时生效，可取值0或1，0代表actSeqLenOptional中数值为前继batch的系列大小的cumsum结果（累积和），1代表actSeqLenOptional中数值为每个batch中序列大小，当前仅支持1。</td>
+        <td>actSeqLenOptional有输入时生效，可取值0或1，0代表actSeqLenOptional中数值为前继batch的序列大小的cumsum结果（累积和），1代表actSeqLenOptional中数值为每个batch中序列大小，当前仅支持1。</td>
         <td>INT64</td>
         <td>-</td>
         <td>-</td>
@@ -518,7 +486,7 @@ int main() {
                       size * sizeof(aclFloat16), ACL_MEMCPY_DEVICE_TO_HOST);
     CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("copy result from device to host failed. ERROR: %d\n", ret); return ret);
     for (int64_t i = heads_dim * heads_num - 16; i < heads_dim * heads_num + 16; i++) {
-        printf("outputCache[%d]:%f\n", i, aclFloat16ToFloat(resultData[i]));
+        printf("outputCache[%ld]:%f\n", i, aclFloat16ToFloat(resultData[i]));
     }
     // 6. 释放aclTensor，需要根据具体API的接口定义修改
     aclDestroyTensor(input);

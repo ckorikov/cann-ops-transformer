@@ -2,15 +2,11 @@
 
 ## 产品支持情况
 
-| 产品                                                         |  是否支持   |
-| :----------------------------------------------------------- |:-------:|
-| <term>昇腾910_95 AI处理器</term>                             |    √    |
-| <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>     |    √    |
-| <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term> |    √    |
-| <term>Atlas 200I/500 A2 推理产品</term>                      |    ×    |
-| <term>Atlas 推理系列产品 </term>                             |    √    |
-| <term>Atlas 训练系列产品</term>                              |    √    |
-| <term>Atlas 200/300/500 推理产品</term>                      |    ×    |
+| 产品                                                         | 是否支持 |
+| :----------------------------------------------------------- | :------: |
+| <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>     |    √     |
+| <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term> |    √     |
+
 
 ## 功能说明
 -  算子功能：推理网络为了提升性能，将query和key两路算子融合成一路。执行旋转位置编码计算，计算结果执行原地更新。
@@ -305,8 +301,7 @@ aclnnStatus aclnnApplyRotaryPosEmbV2(
   </tbody>
   </table>
 
-  - <term>Atlas训练系列产品</term>：不支持BFLOAT16
-  - <term>Atlas推理系列产品</term>：不支持BFLOAT16
+  - <term>Atlas 推理系列产品</term>：不支持BFLOAT16
 
 - **返回值：**
 
@@ -550,13 +545,13 @@ int main() {
     }
 
     auto size1 = GetShapeSize(keyShape);
-    std::vector<float> resultData1(size, 0);
+    std::vector<float> resultData1(size1, 0);
     ret = aclrtMemcpy(resultData1.data(), resultData1.size() * sizeof(resultData1[0]), keyDeviceAddr, size1 * sizeof(float),
                       ACL_MEMCPY_DEVICE_TO_HOST);
     CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("copy result from device to host failed. ERROR: %d\n", ret); return ret);
 
-    for (int64_t i = 0; i < size; i++) {
-        LOG_PRINT("result[%ld] is: %f\n", i, resultData[i]);
+    for (int64_t i = 0; i < size1; i++) {
+        LOG_PRINT("result[%ld] is: %f\n", i, resultData1[i]);
     }
 
     // 6. 释放aclTensor和aclScalar，需要根据具体API的接口定义修改

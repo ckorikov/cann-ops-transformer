@@ -27,6 +27,7 @@
 #include "fia_block_cube_nonquant_mla.h"
 #include "fia_block_vec_flashdecode.h"
 
+using namespace optiling;
 using namespace matmul;
 using AscendC::CacheMode;
 using AscendC::CrossCoreSetFlag;
@@ -340,7 +341,7 @@ __aicore__ inline void FiaKernelNonQuantMla<FIAT>::InitOutputSingleCore()
         uint64_t tailSize = totalOutputSize - tmpBlockIdx * singleCoreSize;
         uint64_t singleInitOutputSize = tailSize < singleCoreSize ? tailSize : singleCoreSize;
         matmul::InitOutput<OUT_T>(attentionOutGm[tmpBlockIdx * singleCoreSize], singleInitOutputSize, 0);
-        SyncAll();
+        SyncAll();  // 硬同步要求所有核都进行同步，此处对实际使用的核进行数据同步
     }
 }
 
@@ -502,6 +503,9 @@ __aicore__ inline void FiaKernelNonQuantMla<FIAT>::Init(
     // init tiling data
     tilingData = tiling;
     if (aiCoreIdx >= tilingData->baseParams.usedCoreNum) {
+        if ASCEND_IS_AIV {
+            SyncAll();  // 硬同步要求所有核都进行同步，此处对未使用的核进行数据同步
+        }
         return;
     }
 

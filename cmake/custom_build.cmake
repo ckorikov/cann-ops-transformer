@@ -113,6 +113,7 @@ if (BUILD_OPEN_PROJECT)
             $<BUILD_INTERFACE:intf_pub>
             $<BUILD_INTERFACE:ops_transformer_utils_proto_headers>
             $<$<BOOL:${alog_FOUND}>:$<BUILD_INTERFACE:alog_headers>>
+            $<$<BOOL:${dlog_FOUND}>:$<BUILD_INTERFACE:dlog_headers>>
             -Wl,--whole-archive
             rt2_registry
             -Wl,--no-whole-archive
@@ -154,6 +155,7 @@ if (BUILD_OPEN_PROJECT)
             $<BUILD_INTERFACE:intf_pub>
             $<BUILD_INTERFACE:ops_transformer_utils_tiling_headers>
             $<$<BOOL:${alog_FOUND}>:$<BUILD_INTERFACE:alog_headers>>
+            $<$<BOOL:${dlog_FOUND}>:$<BUILD_INTERFACE:dlog_headers>>
             -Wl,--whole-archive
             rt2_registry
             -Wl,--no-whole-archive
@@ -626,6 +628,25 @@ foreach (op_dir ${OP_DIR_LIST})
         OPTIONAL
     )
 
+    foreach (op_depend_dir ${${_op_name}_depends})
+        get_filename_component(_op_depened_name "${op_depend_dir}" NAME)
+        if (EXISTS "${OPS_TRANSFORMER_DIR}/${op_depend_dir}/op_kernel")
+                file(GLOB DEPEND_KERNEL_FILES
+                ${OPS_TRANSFORMER_DIR}/${op_depend_dir}/op_kernel/*.cpp
+                ${OPS_TRANSFORMER_DIR}/${op_depend_dir}/op_kernel/*.h
+        )
+        else()
+                file(GLOB DEPEND_KERNEL_FILES
+                ${OPS_TRANSFORMER_DIR}/${op_depend_dir}/*.cpp
+                ${OPS_TRANSFORMER_DIR}/${op_depend_dir}/*.h
+        )
+        endif()
+        install(FILES ${DEPEND_KERNEL_FILES}
+                DESTINATION ${IMPL_INSTALL_DIR}/ascendc/${_op_depened_name}
+                OPTIONAL
+        )  
+    endforeach ()
+    
     install(DIRECTORY ${op_dir}/regbase/opkernel
         DESTINATION ${IMPL_INSTALL_DIR}/ascendc/${_op_name}/regbase
         OPTIONAL

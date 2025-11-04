@@ -2,29 +2,10 @@
 
 # 产品支持情况
 
-<table style="table-layout: fixed; width: 750px; border-collapse: collapse;">
-  <colgroup>
-    <col style="width: 600px;">
-    <col style="width: 150px;">
-  </colgroup>
-  <thead>
-    <tr>
-      <!-- 表头单元格完全居中 -->
-      <th style="border: 1px solid #ccc; text-align: center; font-weight: bold;">产品</th>
-      <th style="border: 1px solid #ccc; text-align: center; font-weight: bold;">是否支持</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td style="border: 1px solid #ccc;">Atlas A3 训练系列产品/Atlas A3 推理系列产品</td>
-      <td style="border: 1px solid #ccc; text-align: center;">√</td>
-    </tr>
-    <tr>
-      <td style="border: 1px solid #ccc;">Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</td>
-      <td style="border: 1px solid #ccc; text-align: center;">√</td>
-    </tr>
-  </tbody>
-</table>
+|产品      | 是否支持 |
+|:----------------------------|:-----------:|
+|<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>|      √     |
+|<term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>|      √     |
 
 # 功能说明
 
@@ -39,7 +20,7 @@
   Attention(query,key,value)=Softmax(\frac{query · key_{topk}^T}{\sqrt{d}})value_{topk}
   $$
   
-  其中$query$和的 $key_{topk}^T$乘积代表输入$x$的注意力，为避免该值变得过大，通常除以$d$的开根号进行缩放，并对每行进行softmax归一化，与$value_{topk}$相乘后得到一个$n*d$的矩阵。
+  其中$query$和$key_{topk}^T$乘积代表输入$x$的注意力，为避免该值变得过大，通常除以$d$的开根号进行缩放，并对每行进行softmax归一化，与$value_{topk}$相乘后得到一个$n*d$的矩阵。
 
 # 参数说明
 
@@ -117,3 +98,9 @@
   - 仅支持paged attention。
   - 仅支持selectBlockSize取值为16的整数倍，最大支持到128。
   - selectBlockCount上限满足selectBlockCount * selectBlockSize <= MaxKvSeqlen，MaxKvSeqlen = Max(actualSelKvSeqLenOptional)。
+  
+# 调用说明
+
+| 调用方式  | 样例代码                                                                | 说明                                                                                          |
+| ----------- | ------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| aclnn接口 | [test_aclnn_nsa_select_attention_infer](./examples/test_aclnn_nsa_select_attention_infer.cpp) | 通过[`aclnnNsaSelectedAttentionInfer`](./docs/aclnnNsaSelectedAttentionInfer.md)接口方式调用NsaCompressAttentionInfer算子。 |

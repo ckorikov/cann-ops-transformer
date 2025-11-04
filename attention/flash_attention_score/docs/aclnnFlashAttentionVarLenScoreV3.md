@@ -4,7 +4,7 @@
 
 |产品      | 是否支持 |
 |:----------------------------|:-----------:|
-|<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>|      √     |
+|<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>|      ×     |
 |<term>Atlas A2 训练系列产品</term>|      √     |
 |<term>Atlas 800I A2 推理产品</term>|      ×     |
 |<term>A200I A2 Box 异构组件</term>|      ×     |
@@ -653,7 +653,7 @@ aclnnStatus aclnnFlashAttentionVarLenScoreV3(
     int64_t nextTokens = 65536;
     int64_t headNum = 1;
     int64_t innerPrecise = 0;
-    int64_t sparseMod = 0;
+    int64_t sparseMode = 0;
     int64_t pseType = 1;
 
     char layOut[5] = {'T', 'N', 'D', 0};
@@ -666,7 +666,7 @@ aclnnStatus aclnnFlashAttentionVarLenScoreV3(
     ret = aclnnFlashAttentionVarLenScoreV3GetWorkspaceSize(
               q, qRope, k, kRope, v, pse, dropMask, padding, attenmask, prefix, acSeqQLen, acSeqKvLen, qStartIdx, kvStartIdx,
               scaleValue, keepProb, preTokens, nextTokens, headNum, layOut, innerPrecise,
-              sparseMod, pseType, softmaxMax, softmaxSum, softmaxOut, attentionOut, &workspaceSize, &executor);
+              sparseMode, pseType, softmaxMax, softmaxSum, softmaxOut, attentionOut, &workspaceSize, &executor);
     CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclnnFlashAttentionVarLenScoreV3GetWorkspaceSize failed. ERROR: %d\n", ret);
               return ret);
 

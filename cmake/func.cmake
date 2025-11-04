@@ -43,20 +43,32 @@ function(op_add_subdirectory OP_LIST OP_DIR_LIST)
     set(_OP_LIST)
     set(_OP_DIR_LIST)
 
-    file(GLOB OP_HOST_CMAKE_FILES 
-    "${CMAKE_CURRENT_SOURCE_DIR}/gmm/**/op_host/CMakeLists.txt"
-    "${CMAKE_CURRENT_SOURCE_DIR}/attention/**/op_host/CMakeLists.txt"
-    "${CMAKE_CURRENT_SOURCE_DIR}/gmm/**/CMakeLists.txt"
-    "${CMAKE_CURRENT_SOURCE_DIR}/attention/**/CMakeLists.txt"
-    )
-    if(BUILD_OPEN_PROJECT AND (NOT BUILD_OPS_RTY_KERNEL))
-        file(GLOB CANNDEV_OPS_HOST_CMAKE_FILES 
-            "${CMAKE_CURRENT_SOURCE_DIR}/posembedding/**/op_host/CMakeLists.txt"
-            "${CMAKE_CURRENT_SOURCE_DIR}/moe/**/op_host/CMakeLists.txt"
-            "${CMAKE_CURRENT_SOURCE_DIR}/ffn/**/op_host/CMakeLists.txt"
-            "${CMAKE_CURRENT_SOURCE_DIR}/mc2/**/op_host/CMakeLists.txt"
+if(ENABLE_EXPERIMENTAL)
+        message(STATUS "Build experimental module")
+        file(GLOB OP_HOST_CMAKE_FILES
+        "${CMAKE_CURRENT_SOURCE_DIR}/experimental/attention/**/op_host/CMakeLists.txt"
+        "${CMAKE_CURRENT_SOURCE_DIR}/experimental/ffn/**/op_host/CMakeLists.txt"
+        "${CMAKE_CURRENT_SOURCE_DIR}/experimental/gmm/**/op_host/CMakeLists.txt"
+        "${CMAKE_CURRENT_SOURCE_DIR}/experimental/mc2/**/op_host/CMakeLists.txt"
+        "${CMAKE_CURRENT_SOURCE_DIR}/experimental/moe/**/op_host/CMakeLists.txt"
+        "${CMAKE_CURRENT_SOURCE_DIR}/experimental/posembedding/**/op_host/CMakeLists.txt"
         )
-        List(APPEND OP_HOST_CMAKE_FILES ${CANNDEV_OPS_HOST_CMAKE_FILES})
+    else()
+        file(GLOB OP_HOST_CMAKE_FILES 
+        "${CMAKE_CURRENT_SOURCE_DIR}/gmm/**/op_host/CMakeLists.txt"
+        "${CMAKE_CURRENT_SOURCE_DIR}/attention/**/op_host/CMakeLists.txt"
+        "${CMAKE_CURRENT_SOURCE_DIR}/gmm/**/CMakeLists.txt"
+        "${CMAKE_CURRENT_SOURCE_DIR}/attention/**/CMakeLists.txt"
+        )
+        if(BUILD_OPEN_PROJECT AND (NOT BUILD_OPS_RTY_KERNEL))
+            file(GLOB CANNDEV_OPS_HOST_CMAKE_FILES 
+                "${CMAKE_CURRENT_SOURCE_DIR}/posembedding/**/op_host/CMakeLists.txt"
+                "${CMAKE_CURRENT_SOURCE_DIR}/moe/**/op_host/CMakeLists.txt"
+                "${CMAKE_CURRENT_SOURCE_DIR}/ffn/**/op_host/CMakeLists.txt"
+                "${CMAKE_CURRENT_SOURCE_DIR}/mc2/**/op_host/CMakeLists.txt"
+            )
+            List(APPEND OP_HOST_CMAKE_FILES ${CANNDEV_OPS_HOST_CMAKE_FILES})
+        endif()
     endif()
 
     foreach(OP_CMAKE_FILE ${OP_HOST_CMAKE_FILES})
@@ -326,11 +338,11 @@ function(add_ops_src_copy)
 
     set(MC2_OPS_LIST "matmul_reduce_scatter;"
         "grouped_mat_mul_allto_allv;"
-        "grouped_mat_mul_all_reduce;"
         "batch_mat_mul_reduce_scatter_allto_all;"
         "allto_allv_grouped_mat_mul;"
         "allto_all_all_gather_batch_mat_mul;"
         "distribute_barrier;"
+        "moe_distribute_buffer_reset;"
         "moe_distribute_combine_add_rms_norm;"
         "moe_distribute_dispatch;"
         "moe_distribute_combine;"

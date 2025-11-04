@@ -5,13 +5,9 @@
 
 | 产品                                                         | 是否支持 |
 | :----------------------------------------------------------- | :------: |
-| <term>昇腾910_95 AI处理器</term>                             |    √     |
 | <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>     |    √     |
 | <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term> |    √     |
-| <term>Atlas 200I/500 A2 推理产品</term>                      |    ×     |
-| <term>Atlas 推理系列产品 </term>                             |    √     |
-| <term>Atlas 训练系列产品</term>                              |    √     |
-| <term>Atlas 200/300/500 推理产品</term>                      |    ×     |
+
 
 ## 功能说明
 -  算子功能：推理网络为了提升性能，将query和key两路算子融合成一路。执行旋转位置编码计算，计算结果执行原地更新。
@@ -200,8 +196,7 @@ aclnnStatus aclnnApplyRotaryPosEmb(
   </tbody>
   </table>
 
-  - <term>Atlas训练系列产品</term>：不支持BFLOAT16
-  - <term>Atlas推理系列产品</term>：不支持BFLOAT16
+  - <term>Atlas 推理系列产品</term>：不支持BFLOAT16
 
 - **返回值：**
 
@@ -272,7 +267,7 @@ aclnnStatus aclnnApplyRotaryPosEmb(
 
   - queryRef、keyRef、cos、sin输入shape的前2维（B、S）和最后一维（D）必须相等。
   - 输入张量queryRef、keyRef、cos、sin的dtype必须相同。
-  - 输入queryRef的shape用（q_b, q_s, q_n, q_d）表示，keyRef shape用（q_b, q_s, k_n, q_d）表示，cos和sin shape用（q_b, q_s, 1, q_d）表示。其中，b表示batch_size，s表示seq_length，n表示head_num，d表示head_dim。
+  - 输入queryRef的shape用（q_b, q_s, q_n, q_d）表示，keyRe的shape用（q_b, q_s, k_n, q_d）表示，cos和sin的shape用（q_b, q_s, 1, q_d）表示。其中，b表示batch_size，s表示seq_length，n表示head_num，d表示head_dim。
 
     - 当输入是BFLOAT16时，cast表示为1，castSize为4，DtypeSize为2
     - 当输入是FLOAT16或FLOAT32时，cast表示为0，castSize = DtypeSize（FLOAT16时为2，FLOAT32时为4）
@@ -439,13 +434,13 @@ int main() {
     }
 
     auto size1 = GetShapeSize(keyShape);
-    std::vector<float> resultData1(size, 0);
+    std::vector<float> resultData1(size1, 0);
     ret = aclrtMemcpy(resultData1.data(), resultData1.size() * sizeof(resultData1[0]), keyDeviceAddr, size1 * sizeof(float),
                       ACL_MEMCPY_DEVICE_TO_HOST);
     CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("copy result from device to host failed. ERROR: %d\n", ret); return ret);
 
-    for (int64_t i = 0; i < size; i++) {
-        LOG_PRINT("result[%ld] is: %f\n", i, resultData[i]);
+    for (int64_t i = 0; i < size1; i++) {
+        LOG_PRINT("result[%ld] is: %f\n", i, resultData1[i]);
     }
 
     // 6. 释放aclTensor和aclScalar，需要根据具体API的接口定义修改

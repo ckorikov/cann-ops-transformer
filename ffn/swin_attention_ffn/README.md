@@ -1,30 +1,12 @@
 # SwinAttentionFFN
 
-> 注意：
-> 本文档仅仅是算子功能的简介，不支持用户直接调用，因为当前不支持kernel直调，等后续支持再完善文档!!!!!!
 
 ## 产品支持情况
 
-<table style="undefined;table-layout: fixed; width: 700px"><colgroup>
-<col style="width: 600px">
-<col style="width: 100px">
-</colgroup>
-<thead>
-  <tr>
-    <th style="text-align: center;">产品</th>
-    <th style="text-align: center;">是否支持</th>
-  </tr></thead>
-<tbody>
-  <tr>
-    <td>Atlas A3 训练系列产品/Atlas A3 推理系列产品</td>
-    <td style="text-align: center;">×</td>
-  </tr>
-  <tr>
-    <td>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</td>
-    <td style="text-align: center;">√</td>
-  </tr>
-</tbody>
-</table>
+| 产品                                                         | 是否支持 |
+| :----------------------------------------------------------- | :------: |
+| <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>     |    ×     |
+| <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term> |    √     |
 
 ## 功能说明
 
@@ -94,10 +76,13 @@
 </tbody>
 </table>
 
-
-
 ## 约束说明
+无
 
-当前不支持用户直接调用
+## 调用说明
+
+| 调用方式   | 样例代码           | 说明                                         |
+| ---------------- | --------------------------- | --------------------------------------------------- |
+| 图模式 | [test_geir_swin_attention_ffn](examples/test_geir_swin_attention_ffn.cpp)  | 通过[算子IR](op_graph/swin_attention_ffn_proto.h)构图方式调用SwinAttentionFFN算子。         |
 
 

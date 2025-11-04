@@ -18,8 +18,7 @@ set(_PFA_TilingSourcesExt
 )
 
 set(_PFA_KernelTilingDataDefH
-        ${OPS_TRANSFORMER_DIR}/common/include/tiling_base/data_copy_transpose_tiling_def.h
-        ${CMAKE_SOURCE_DIR}/attention/prompt_flash_attention/op_host/prompt_flash_attention_tiling.h
+        ${CMAKE_SOURCE_DIR}/attention/prompt_flash_attention/op_kernel/prompt_flash_attention_tiling_data.h
 )
 
 set(_PFA_UTestCommonPrivateIncludeExt
@@ -37,6 +36,25 @@ aux_source_directory(${CMAKE_SOURCE_DIR}/attention/prompt_flash_attention/op_ker
 set(_PFA_CompileDefintions
         PFA_UT
 )
+
+set(_PFA_UTestSourcesExtForce)
+if (UT_TEST_ALL)
+        file(GLOB_RECURSE _Src2 "${CMAKE_CURRENT_SOURCE_DIR}/utest/*.cpp")
+elseif(OP_HOST_UT)
+        file(GLOB_RECURSE _Src2 "${CMAKE_CURRENT_SOURCE_DIR}/utest/op_host/*.cpp")
+elseif(OP_KERNEL_UT)
+        file(GLOB_RECURSE _Src2 "${CMAKE_CURRENT_SOURCE_DIR}/utest/op_kernel/*.cpp")
+elseif(OP_API_UT)
+        file(GLOB_RECURSE _Src2 "${CMAKE_CURRENT_SOURCE_DIR}/utest/op_api/*.cpp")        
+endif()
+list(APPEND _PFA_UTestSourcesExtForce ${_Src1} ${_Src2})
+
+if (_PFA_UTestSourcesExtForce)
+    set(UTEST_FORCE_FLAG ON)
+else()
+    set(UTEST_FORCE_FLAG OFF)
+endif()
+
 OpsTest_Level2_AddOp(
         SUB_SYSTEM                              transformer
         BRIEF                                   Pfa
@@ -48,4 +66,6 @@ OpsTest_Level2_AddOp(
         UTEST_COMMON_PRIVATE_LINK_LIBRARIES_EXT ${_PFA_TargetPrivateIncludesExt}
         KERNEL_PRIVATE_INCLUDES_EXT             ${_PFA_OpKernelPrivateIncludesExt}
         UTEST_COMMON_PRIVATE_INCLUDES_EXT       ${_PFA_UTestCommonPrivateIncludeExt}
+        UTEST_SOURCES_EXT                       ${_PFA_UTestSourcesExtForce}
+        UTEST_SOURCES_EXT_FORCE                 ${UTEST_FORCE_FLAG}
 )

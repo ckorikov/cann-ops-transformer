@@ -66,7 +66,7 @@
 | rmsnorm_gamma_ckv            | 输入      | 计算$c^{KV}$的RmsNorm公式中$\gamma$参数 | FLOAT16, BF16       | ND         |
 | rope_sin                    | 输入      | 旋转位置编码的正弦参数矩阵 | FLOAT16, BF16       | ND         |
 | rope_cos                    | 输入      | 旋转位置编码的余弦参数矩阵 | FLOAT16, BF16       | ND         |
-| cache_index                 | 输入      | 存储kvCache和krCache的索引 | INT64          | ND         |
+| cache_index                 | 输入      | 存储kvcache和krcache的索引 | INT64          | ND         |
 | kv_cache                 | 输入/ 输出| cache索引的aclTensor，计算结果原地更新（对应$k^C$）| FLOAT16, BF16, NT8 | ND         |
 | kr_cache                 | 输入/ 输出| key位置编码的cache，计算结果原地更新（对应$k^R$） | FLOAT16, BF16, INT8 | ND         |
 | dequant_scale_x      | 输入      | 预留参数，当前版本暂未使用，必须传入空指针  | FLOAT          | ND         |
@@ -103,7 +103,7 @@
     -   B、S、T、Skv值允许一个或多个取0，即Shape与B、S、T、Skv值相关的入参允许传入空Tensor，其余入参不支持传入空Tensor。
         - 如果B、S、T取值为0，则query、query_rope输出空Tensor，kv_cache、kr_cache不做更新。
         - 如果Skv取值为0，则query、query_rope、dequantScaleQNopeOutOptional正常计算，kv_cache、kr_cache不做更新，即输出空Tensor。
-
+- weight_dq，weight_uq_qr，weight_dkv_kr在不转置的情况下各个维度的表示：（k，n）。
 -  aclnnMlaPrologV2WeightNz接口支持场景：
     <table style="table-layout: auto;" border="1">
       <tr>

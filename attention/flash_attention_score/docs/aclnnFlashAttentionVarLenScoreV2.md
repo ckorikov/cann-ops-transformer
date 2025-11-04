@@ -12,7 +12,7 @@
 
 ## 功能说明
 
-- 算子功能：训练场景下，使用FlashAttention算法实现self-attention（自注意力）的计算。**跟[FlashAttentionScoreV2](./aclnnFlashAttentionScoreV2.md)的区别是该接口支持可变长S的计算，即可以一次传入多个长度不相等的sequence。使用此接口时，query，key和value使用TND的格式传入数据，其中T意为total number，表示其所有sequence的length总和，同时使用actualSeqQLenOptional与actualSeqKvLenOptional输入传入每个sequence依次的累积长度以区分不同sequence。每个sequence单独计算其注意力结果**。
+- 算子功能：训练场景下，使用FlashAttention算法实现self-attention（自注意力）的计算。**跟[FlashAttentionScoreV2](./aclnnFlashAttentionScoreV2.md)的区别是该接口支持可变长S的计算，即可以一次传入多个长度不相等的sequence。使用此接口时，query，key和value使用TND的格式传入数据，其中T意为total number，表示其所有sequence的length总和，同时使用actualSeqQLenOptional与actualSeqKvLenOptional传入每个sequence依次的累积长度以区分不同sequence。每个sequence单独计算其注意力结果**。
 - 计算公式：
 
    注意力的正向计算公式如下：
@@ -614,7 +614,7 @@ aclnnStatus aclnnFlashAttentionVarLenScoreV2GetWorkspaceSize(
     int64_t nextTokens = 65536;
     int64_t headNum = 1;
     int64_t innerPrecise = 0;
-    int64_t sparseMod = 0;
+    int64_t sparseMode = 0;
     int64_t pseType = 1;
 
     char layOut[5] = {'T', 'N', 'D', 0};
@@ -627,7 +627,7 @@ aclnnStatus aclnnFlashAttentionVarLenScoreV2GetWorkspaceSize(
     ret = aclnnFlashAttentionVarLenScoreV2GetWorkspaceSize(
               q, k, v, pse, dropMask, padding, attenmask, prefix, acSeqQLen, acSeqKvLen, qStartIdx, kvStartIdx,
               scaleValue, keepProb, preTokens, nextTokens, headNum, layOut, innerPrecise,
-              sparseMod, pseType, softmaxMax, softmaxSum, softmaxOut, attentionOut, &workspaceSize, &executor);
+              sparseMode, pseType, softmaxMax, softmaxSum, softmaxOut, attentionOut, &workspaceSize, &executor);
     CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclnnFlashAttentionVarLenScoreV2GetWorkspaceSize failed. ERROR: %d\n", ret);
               return ret);
 

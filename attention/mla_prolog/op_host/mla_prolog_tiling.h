@@ -28,6 +28,8 @@
 #include "tiling_base/data_copy_transpose_tiling.h"
 #include "exe_graph/runtime/tiling_context.h"
 #include "register/op_def_registry.h"
+#include "../op_kernel/mla_prolog_template_tiling_key.h"
+#include "../op_kernel/mla_prolog_tiling_data.h"
 
 #ifdef ASCENDC_OP_TEST
 #define MLA_EXTERN_C extern "C"
@@ -51,6 +53,10 @@ constexpr uint32_t CACHE_INDEX_INPUT_INDEX = 9;
 constexpr uint32_t KV_CACHE_INPUT_INDEX = 10;
 constexpr uint32_t KR_CACHE_INPUT_INDEX = 11;
 
+constexpr uint32_t KV_CACHE_INPUT_INDEX_V3 = 9;
+constexpr uint32_t KR_CACHE_INPUT_INDEX_V3 = 10;
+constexpr uint32_t CACHE_INDEX_INPUT_INDEX_V3 = 11;
+
 // INPUT(OPTION)
 constexpr uint32_t DEQUANT_SCALE_X_INDEX = 12;
 constexpr uint32_t DEQUANT_SCALE_W_DQ_INDEX = 13;
@@ -71,6 +77,16 @@ constexpr uint32_t DEQUANT_SCALE_Q_NOPE_OUTPUT_INDEX = 4;
 constexpr uint32_t RMS_NORM_EPSILON_CQ_ATTR_INDEX = 0;
 constexpr uint32_t RMS_NORM_EPSILON_CKV_ATTR_INDEX = 1;
 constexpr uint32_t CACHE_MODE_ATTR_INDEX = 2;
+constexpr uint32_t QUERY_NORM_FLAG_ATTR_INDEX = 3;
+constexpr uint32_t WEIGHT_QUANT_MODE_ATTR_INDEX = 4;
+constexpr uint32_t KV_CACHE_QUANT_MODE_ATTR_INDEX = 5;
+constexpr uint32_t QUERY_QUANT_MODE_ATTR_INDEX = 6;
+constexpr uint32_t CKVKR_REPO_MODE_ATTR_INDEX = 7;
+constexpr uint32_t QUANT_SCALE_REPO_MODE_ATTR_INDEX = 8;
+constexpr uint32_t TILE_SIZE_ATTR_INDEX = 9;
+constexpr uint32_t K_NOPE_CLIP_ALPHA_ATTR_INDEX = 10;
+constexpr uint32_t QC_QR_SCALE_ATTR_INDEX = 11;
+constexpr uint32_t KC_SCALE_ATTR_INDEX = 12;
 
 constexpr uint32_t MLA_PROLOG_DIM_INDEX_0 = 0;
 constexpr uint32_t MLA_PROLOG_DIM_INDEX_1 = 1;
@@ -86,52 +102,6 @@ constexpr uint32_t MLA_PROLOG_DIM_NUM_4 = 4;
 constexpr char CACHE_MODE_PA_BSND[] {"PA_BSND"};
 constexpr char CACHE_MODE_PA_NZ[] {"PA_NZ"};
 constexpr char V1_OP_NAME[] {"MlaProlog"};
-
-
-BEGIN_TILING_DATA_DEF(MlaPrologBaseParams)
-TILING_DATA_FIELD_DEF(uint32_t, batchSize);       // batch size
-TILING_DATA_FIELD_DEF(uint32_t, stepBatchSize);   // batch size per step 32
-TILING_DATA_FIELD_DEF(uint32_t, stepNumHeadDequant);    // head size per step when dequant before mmqn
-TILING_DATA_FIELD_DEF(uint32_t, tokenSize);  // token size = batchSize * seq1Size
-TILING_DATA_FIELD_DEF(uint32_t, seq1Size);        // seq1
-TILING_DATA_FIELD_DEF(uint32_t, seq2Size);        // seq2
-TILING_DATA_FIELD_DEF(uint32_t, headSizeX);       // head size of Input Hidden 7168
-TILING_DATA_FIELD_DEF(uint32_t, headSizeCq);      // head size of Latent Query 1536
-TILING_DATA_FIELD_DEF(uint32_t, headSizeCkv);     // head size of Latent KeyValue 512
-TILING_DATA_FIELD_DEF(uint32_t, headSizeQc);      // head size of Query = dimHeadSizeQc * numHeadSize = 128 * 32
-TILING_DATA_FIELD_DEF(uint32_t, headSizeQr);      // head size of Query Rope = dimHeadRope * numHeadSize = 64 * 32
-TILING_DATA_FIELD_DEF(uint32_t, headSizeKr);      // head size of Key Rope 64
-TILING_DATA_FIELD_DEF(uint32_t, numHeadSize);     // number of head 32
-TILING_DATA_FIELD_DEF(uint32_t, numHeadKvSize);     // number of headkv
-TILING_DATA_FIELD_DEF(uint32_t, dimHeadSizeQc);   // dim size per query head 128
-TILING_DATA_FIELD_DEF(uint32_t, dimHeadRope);     // dim size per rope head 64
-TILING_DATA_FIELD_DEF(uint32_t, blockNum);       // pa block num
-TILING_DATA_FIELD_DEF(uint32_t, blockSize);       // pa block size 128
-TILING_DATA_FIELD_DEF(uint32_t, mm1BlockNum);     // 24  Cq
-TILING_DATA_FIELD_DEF(uint32_t, mm2BlockNum);     // 9   Ckv
-TILING_DATA_FIELD_DEF(uint32_t, mm3BlockNum);     // 24  QcQr
-TILING_DATA_FIELD_DEF(uint32_t, mm4BlockNum);     // 24  Qn
-TILING_DATA_FIELD_DEF(uint32_t, vectorBlockNum);  // 32
-TILING_DATA_FIELD_DEF(uint32_t, mm1SingleCoreN);  // single headSizeCq
-TILING_DATA_FIELD_DEF(uint32_t, mm2SingleCoreN);  // single headSizeCkv+headSizeKr
-TILING_DATA_FIELD_DEF(uint32_t, mm3SingleCoreN);  // single headSizeQc+headSizeQr
-TILING_DATA_FIELD_DEF(uint32_t, mm4SingleCoreBatch);  // single numHeadSize
-TILING_DATA_FIELD_DEF(float, reciprocalCq);       // 1 / headSizeCq
-TILING_DATA_FIELD_DEF(float, epsilonCq);
-TILING_DATA_FIELD_DEF(float, reciprocalCkv);      // 1 / headSizeCkv
-TILING_DATA_FIELD_DEF(float, epsilonCkv);
-END_TILING_DATA_DEF
-REGISTER_TILING_DATA_CLASS(MlaPrologBaseParamsOp, MlaPrologBaseParams)
-
-BEGIN_TILING_DATA_DEF(MlaPrologTilingData)
-TILING_DATA_FIELD_DEF_STRUCT(TCubeTiling, bmm1TilingData);
-TILING_DATA_FIELD_DEF_STRUCT(TCubeTiling, bmm2TilingData);
-TILING_DATA_FIELD_DEF_STRUCT(TCubeTiling, bmm3TilingData);
-TILING_DATA_FIELD_DEF_STRUCT(TCubeTiling, bmm4TilingData);
-TILING_DATA_FIELD_DEF_STRUCT(MlaPrologBaseParams, baseParams);
-END_TILING_DATA_DEF
-REGISTER_TILING_DATA_CLASS(MlaProlog, MlaPrologTilingData)
-
 
 struct MlaPrologBaseShapeInfo {
     uint32_t bSize = 0;     // B
@@ -248,6 +218,8 @@ struct MlaPrologContext {
     const float *rmsNormEspilonCq;
     const float *rmsNormEspilonCkv;
     const char *cacheMode;
+    const float *qcQrScale;
+    const float *kcScale;
 
     size_t *workSpaces;
     uint64_t tilingKey;
@@ -259,8 +231,8 @@ public:
     MlaPrologTiling() = default;
     ~MlaPrologTiling() = default;
 
-    ge::graphStatus RunBigKernelTiling(MlaPrologContext &context, MlaPrologTilingData &tilingData);
-    ge::graphStatus MlaPrologSetTilingData(gert::TilingContext &context, MlaPrologTilingData &tilingData);
+    ge::graphStatus RunBigKernelTiling(MlaPrologContext &context, MlaPrologTilingData* tilingData);
+    ge::graphStatus MlaPrologSetTilingData(gert::TilingContext &context, MlaPrologTilingData* tilingData);
     static ge::graphStatus ConvertContext(gert::TilingContext &context, MlaPrologContext &mlaPrologContext);
 
 private:
@@ -302,6 +274,8 @@ private:
     float epsilonCq_ = 1.0;
     float reciprocalCkv_ = 0.00001f;
     float epsilonCkv_ = 1.0;
+    float qcQrScale_ = 1.0;
+    float kcScale_ = 1.0;
 
     ge::DataType mmDateType_ = ge::DT_BF16;
     bool enableDequantOpt_ = false;
@@ -318,10 +292,6 @@ private:
     size_t workspaceSize_ = 0;
 
     MlaPrologContext *context_ = nullptr;
-    TCubeTiling *bmm1TilingData_ = nullptr;
-    TCubeTiling *bmm2TilingData_ = nullptr;
-    TCubeTiling *bmm3TilingData_ = nullptr;
-    TCubeTiling *bmm4TilingData_ = nullptr;
     MlaPrologBaseParams *baseParams_ = nullptr;
 };
 
@@ -329,4 +299,4 @@ ge::graphStatus TilingPrepareForMlaProlog(gert::TilingParseContext *context);
 MLA_EXTERN_C ge::graphStatus TilingMlaProlog(gert::TilingContext *context);
 } // optiling
 
-#endif
+#endif // MLA_PROLOG_TILING_H

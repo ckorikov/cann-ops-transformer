@@ -22,8 +22,8 @@ set(_IFA_TilingSourcesExt
 
 set(_IFA_KernelTilingDataDefH
         ${OPS_TRANSFORMER_DIR}/common/include/tiling_base/data_copy_transpose_tiling_def.h
-        ${CMAKE_SOURCE_DIR}/attention/incre_flash_attention/op_host/incre_flash_attention_tiling.h
-        ${CMAKE_SOURCE_DIR}/attention/prompt_flash_attention/op_host/prompt_flash_attention_tiling.h
+        ${CMAKE_SOURCE_DIR}/attention/incre_flash_attention/op_kernel/incre_flash_attention_tiling.h
+        ${CMAKE_SOURCE_DIR}/attention/prompt_flash_attention/op_kernel/prompt_flash_attention_tiling_data.h
 )
 
 set(_IFA_TargetPrivateLinkLibrariesExt)
@@ -51,6 +51,33 @@ set(_IFA_UTestCommonPrivateIncludeExt
         ${OPS_TRANSFORMER_DIR}/common/include
 )
 
+set(_IFA_UTestSourcesExtForce)
+
+if (UT_TEST_ALL)
+        message(STATUS "+++++ DEBUG: all ut")
+        file(GLOB_RECURSE _Src1 "${CMAKE_CURRENT_SOURCE_DIR}/utest/*.cc")
+        file(GLOB_RECURSE _Src2 "${CMAKE_CURRENT_SOURCE_DIR}/utest/*.cpp")
+elseif(OP_HOST_UT)
+        message(STATUS "+++++ DEBUG: only host")
+        file(GLOB_RECURSE _Src1 "${CMAKE_CURRENT_SOURCE_DIR}/utest/op_host/*tiling.cpp")
+        file(GLOB_RECURSE _Src2 "${CMAKE_CURRENT_SOURCE_DIR}/utest/op_host/*infershape.cpp")
+elseif(OP_KERNEL_UT)
+        message(STATUS "+++++ DEBUG: only kernel")
+        file(GLOB_RECURSE _Src1 "${CMAKE_CURRENT_SOURCE_DIR}/utest/op_kernel/*kernel.cpp")
+elseif(OP_API_UT)
+        message(STATUS "+++++ DEBUG: only opapi")
+        file(GLOB_RECURSE _Src1 "${CMAKE_CURRENT_SOURCE_DIR}/utest/op_api/*opapi.cpp")
+endif()
+
+list(APPEND _IFA_UTestSourcesExtForce ${_Src1} ${_Src2})
+message(STATUS "+++++ DEBUG: .cpp files: ${_IFA_UTestSourcesExtForce}")
+
+if (_IFA_UTestSourcesExtForce)
+    set(UTEST_FORCE_FLAG ON)
+else()
+    set(UTEST_FORCE_FLAG OFF)
+endif()
+
 OpsTest_Level2_AddOp(
         SUB_SYSTEM                              transformer
         BRIEF                                   Ifa
@@ -63,4 +90,6 @@ OpsTest_Level2_AddOp(
         KERNEL_PRIVATE_INCLUDES_EXT             ${_IFA_OpKernelPrivateIncludesExt}
         TILING_PRIVATE_INCLUDES_EXT             ${_IFA_KernelTilingExtInclude}
         UTEST_COMMON_PRIVATE_INCLUDES_EXT       ${_IFA_UTestCommonPrivateIncludeExt}
+        UTEST_SOURCES_EXT                       ${_IFA_UTestSourcesExtForce}
+        UTEST_SOURCES_EXT_FORCE                 ${UTEST_FORCE_FLAG}
 )
