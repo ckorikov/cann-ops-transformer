@@ -1628,6 +1628,19 @@ string GetOutputLayoutStr(const string &inputLayoutStr)
     return inputLayoutStr.substr(underLinePos + 1);
 }
 
+static ge::graphStatus IsMla(gert::TilingContext *context)
+{
+    auto qRope = context->GetOptionalInputTensor(QUERY_ROPE_INDEX);
+    auto kRope = context->GetOptionalInputTensor(KEY_ROPE_INDEX);
+    OP_CHECK_IF((qRope != nullptr && kRope == nullptr),
+        OP_LOGE(context->GetNodeName(), "keyRope is null, but queryRope exists, they should be both null or exist."),
+        return ge::GRAPH_FAILED);
+    OP_CHECK_IF((qRope == nullptr && kRope != nullptr),
+        OP_LOGE(context->GetNodeName(), "queryRope is null, but keyRope exists, they should be both null or exist."),
+        return ge::GRAPH_FAILED);
+    return ge::GRAPH_SUCCESS;
+}
+
 static ge::graphStatus CheckInputLayoutMla(gert::TilingContext *context, const string inputLayoutStr, const int64_t queryD, const bool isPageAttention)
 {
     // MLA support layout
@@ -1657,6 +1670,9 @@ static ge::graphStatus CheckInputLayout(gert::TilingContext *context, const stri
     auto tempV = context->GetInputShape(VALUE_INDEX);
     // mla check
     auto qRope = context->GetOptionalInputTensor(QUERY_ROPE_INDEX);
+    if (IsMla(context) != ge::GRAPH_SUCCESS) {
+        return ge::GRAPH_FAILED;
+    }
     if (qRope != nullptr) {
         if (CheckInputLayoutMla(context, inputLayoutStr, queryD, isPageAttention) != ge::GRAPH_SUCCESS) {
             return ge::GRAPH_FAILED;
