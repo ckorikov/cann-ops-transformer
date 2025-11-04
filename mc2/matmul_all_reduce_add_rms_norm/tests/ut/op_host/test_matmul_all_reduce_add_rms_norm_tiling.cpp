@@ -239,11 +239,11 @@ static TestParam casesParamsQuant[] = {
         {"MODEL0_group_sum_4_4096_11008_1_0_0_1_-1_0_0_1_0_0.1_INT8_INT8_INT32_BF16", 8, 1},
         {"MODEL0_group_sum_4_4096_11008_1_0_0_0_-1_0_0_1_10_0.1_INT8_INT8_INT32_BF16", 8, 0},
         // 伪量化
-        {"MODEL0_group_sum_4096_688_4096_1_0_0_0_-1_1_1_0_0_0.1_FLOAT16_INT8_FLOAT16_FLOAT16", 8, 311200},
+        {"MODEL0_group_sum_4096_688_4096_1_0_0_0_-1_1_1_0_0_0.1_FLOAT16_INT8_FLOAT16_FLOAT16", 8, 365332065878785},
         // transB
-        {"MODEL0_group_sum_4_4096_11008_1_0_0_1_-1_1_1_0_0_0.1_FLOAT16_INT4_FLOAT16_FLOAT16", 8, 311210},
+        {"MODEL0_group_sum_4_4096_11008_1_0_0_1_-1_1_1_0_0_0.1_FLOAT16_INT4_FLOAT16_FLOAT16", 8, 365332602749697},
         // per group
-        {"MODEL0_group_sum_4_4096_11008_1_0_0_0_32_1_1_0_32_0.1_BF16_INT4_BF16_BF16", 8, 311300},
+        {"MODEL0_group_sum_4_4096_11008_1_0_0_0_32_1_1_0_32_0.1_BF16_INT4_BF16_BF16", 8, 365333139620609},
         // 非量化
         {"MODEL0_group_sum_4_4096_11008_1_0_0_0_32_0_0_0_32_0.1_BF16_BF16_BF16_BF16", 8, 65536UL},
         {"MODEL0_group_sum_9471_18_379_1_0_0_0_32_0_0_0_32_0.1_BF16_BF16_BF16_BF16", 8, 65536UL},
@@ -251,16 +251,16 @@ static TestParam casesParamsQuant[] = {
 };
 static TestParam InValidCheckcasesParamsQuant[] = {
         // dequant设置的同时，antiquant信息也设置
-        {"InValidMODEL0_group_sum_4_4096_11008_1_0_0_0_-1_1_1_1_10_0.1_INT8_INT8_BF16_BF16", 8, 311300},
+        {"InValidMODEL0_group_sum_4_4096_11008_1_0_0_0_-1_1_1_1_10_0.1_INT8_INT8_BF16_BF16", 8, 365333139620609},
         // transA
         {"InValidMODEL0_group_sum_4096_688_4096_1_0_1_0_-1_0_0_1_0_0.1_INT8_INT8_INT32_BF16", 8, 0},
         // 伪量化
         // transA
-        {"InValidMODEL0_group_sum_4096_688_4096_1_0_1_0_-1_1_1_0_0_0.1_BF16_INT8_BF16_BF16", 8, 311200},
+        {"InValidMODEL0_group_sum_4096_688_4096_1_0_1_0_-1_1_1_0_0_0.1_BF16_INT8_BF16_BF16", 8, 365332065878785},
         // per group: groupsize <32
-        {"InValidMODEL0_group_sum_4_4096_11008_1_0_0_0_32_1_1_0_30_0.1_BF16_INT4_BF16_BF16", 8, 311300},
+        {"InValidMODEL0_group_sum_4_4096_11008_1_0_0_0_32_1_1_0_30_0.1_BF16_INT4_BF16_BF16", 8, 365333139620609},
         // per group: k - 1 < 32
-        {"InValidMODEL0_group_sum_4_2_11008_1_0_0_0_32_1_1_0_32_0.1_BF16_INT4_BF16_BF16", 8, 311300},
+        {"InValidMODEL0_group_sum_4_2_11008_1_0_0_0_32_1_1_0_32_0.1_BF16_INT4_BF16_BF16", 8, 365333139620609},
         // epsilon
         {"InValidMODEL0_group_sum_4096_688_4096_1_0_0_0_-1_0_0_1_0_0_INT8_INT8_INT32_BF16", 8, 0},
         {"InValidMODEL0_group_sum_4096_688_4096_1_0_0_0_-1_0_0_1_0_1_INT8_INT8_INT32_BF16", 8, 0},
