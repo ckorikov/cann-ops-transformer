@@ -20,29 +20,30 @@ class AllGatherAdd : public OpDef {
   explicit AllGatherAdd(const char *name) : OpDef(name) {
     this->Input("a")
         .ParamType(REQUIRED)
-        .DataType({ge::DT_FLOAT16, ge::DT_BF16})
+        .DataType({ge::DT_FLOAT16})
         .Format({ge::FORMAT_ND, ge::FORMAT_ND})
         .UnknownShapeFormat({ge::FORMAT_ND, ge::FORMAT_ND});
     this->Input("b")
         .ParamType(REQUIRED)
-        .DataType({ge::DT_FLOAT16, ge::DT_BF16})
+        .DataType({ge::DT_FLOAT16})
         .Format({ge::FORMAT_ND, ge::FORMAT_ND})
         .UnknownShapeFormat({ge::FORMAT_ND, ge::FORMAT_ND})
         .IgnoreContiguous();
     
     this->Output("c")
         .ParamType(REQUIRED)
-        .DataType({ge::DT_FLOAT16, ge::DT_BF16})
+        .DataType({ge::DT_FLOAT16})
         .Format({ge::FORMAT_ND, ge::FORMAT_ND})
         .UnknownShapeFormat({ge::FORMAT_ND, ge::FORMAT_ND});
     this->Output("gather_out")
         .ParamType(REQUIRED)
-        .DataType({ge::DT_FLOAT16, ge::DT_BF16})
+        .DataType({ge::DT_FLOAT16})
         .Format({ge::FORMAT_ND, ge::FORMAT_ND})
         .UnknownShapeFormat({ge::FORMAT_ND, ge::FORMAT_ND});
 
     this->Attr("group").AttrType(REQUIRED).String(); // 通算融合算子属性，表示通信域名称
-    this->Attr("rank_size").AttrType(OPTIONAL).Int(0); // ?
+    this->Attr("rank_size").AttrType(OPTIONAL).Int(0);
+    this->Attr("comm_turn").AttrType(OPTIONAL).Int(0);
     this->Attr("is_gather_out").AttrType(OPTIONAL).Bool(true);
 
     OpAICoreConfig aicoreConfig;

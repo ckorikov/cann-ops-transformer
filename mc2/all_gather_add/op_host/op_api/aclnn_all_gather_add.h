@@ -30,6 +30,7 @@ extern "C" {
  * @param [in] b: add右操作数，数据类型支持：float16, bf16。
  * @param [in] group: 标识列组的字符串。
  * @param [in] rankSize: rank数量。
+ * @param [in] commTurn: 通信切分轮次，默认值：2。
  * @param [out] cOut: 计算+通信的结果，数据类型：同输入。
  * @param [out] gatherOut: 仅gather通信操作的结果，数据类型：同输入。
  * @param [out] workspaceSize: 返回需要在npu device侧申请的workspace大小。
@@ -37,7 +38,7 @@ extern "C" {
  * @return aclnnStatus: 返回状态码
  */
 ACLNN_API aclnnStatus aclnnAllGatherAddGetWorkspaceSize(const aclTensor *a, const aclTensor *b, char *group,
-                                                        int64_t rankSize, const aclTensor *cOut, const aclTensor *gatherOutOut,
+                                                        int64_t rankSize, int64_t commTurn, const aclTensor *cOut, const aclTensor *gatherOutOut,
                                                         uint64_t *workspaceSize, aclOpExecutor **executor);
 
 /**

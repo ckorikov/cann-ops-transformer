@@ -24,8 +24,10 @@
 using namespace AscendC;
 using namespace ge;
 
-constexpr uint32_t TILE_LENGTH = 128; // 先随手
-
+namespace {
+    constexpr uint32_t TILE_LENGTH = 128; // 先随手
+    constexpr uint32_t COMM_TURN = 2;
+}
 namespace optiling {
 
 static ge::graphStatus AllGatherParamsCheck(const gert::TilingContext* context)
@@ -54,9 +56,8 @@ static ge::graphStatus AllGatherParamsCheck(const gert::TilingContext* context)
 static void InitHcclParam(AllGatherAddTilingData* tilingData, const char* group)
 {
 
-    std::string algConfig = "AllGather=level0:doublering"; // 啥
-    Mc2CcTilingConfig mc2CcTilingConfig(group, HCCL_CMD_ALLGATHER, algConfig, HCCL_REDUCE_SUM);
-    mc2CcTilingConfig.SetSkipBufferWindowCopy(0); // 需要输出本卡通信算法的计算结果 ？
+    std::string algConfig = "AllGather=level0:fullmesh"; // 啥
+    Mc2CcTilingConfig mc2CcTilingConfig(group, HCCL_CMD_ALLGATHER, algConfig);
     mc2CcTilingConfig.GetTiling(tilingData->mc2InitTiling);
     mc2CcTilingConfig.GetTiling(tilingData->mc2CcTiling);
 }
@@ -78,13 +79,14 @@ static ge::graphStatus AllGatherAddTilingFunc(gert::TilingContext *context) {
         OP_LOGE(context, "set AllGatherAdd tiling data error"), return ge::GRAPH_FAILED);
     tilingData->totalLength = context->GetInputTensor(0)->GetShapeSize();
     tilingData->tileLength = TILE_LENGTH;
+    tilingData->commTurn = COMM_TURN;
     tilingData->tileNum = tilingData->totalLength / tilingData->tileLength;
 
     // 设置workspaceSize gather out需要额外的临时内存，大小=input b
     size_t* currentWorkspace = context->GetWorkspaceSizes(1);
     OP_CHECK_NULL_WITH_CONTEXT(context,currentWorkspace);
     // 如需使用系统workspace需要调用GetLibApiWorkSpaceSize获取系统workspace大小
-    uint32_t sysWorkSpaceSize = ascendcPlatform.GetLibApiWorkSpaceSize(); 
+    uint32_t sysWorkSpaceSize = ascendcPlatform.GetLibApiWorkSpaceSize();
     // 预留18M + gather_out, gather_out 大小跟x1输入一样
     currentWorkspace[0] = sysWorkSpaceSize + tilingData->totalLength;
 
@@ -96,7 +98,7 @@ static ge::graphStatus AllGatherAddTilingFunc(gert::TilingContext *context) {
 struct AllGatherAddCompileInfo {};
 
 static ge::graphStatus TilingParseForAllGatherAdd([[maybe_unused]] gert::TilingParseContext *context)
-{ 
+{
     (void)context;
     return ge::GRAPH_SUCCESS;
 }

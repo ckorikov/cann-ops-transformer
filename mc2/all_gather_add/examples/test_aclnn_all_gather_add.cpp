@@ -30,7 +30,7 @@
         printf(message, ##__VA_ARGS__); \
     } while(0)
 
-constexpr int RANK_DIM = 8;
+constexpr int RANK_DIM = 2;
 
 int64_t GetShapeSize(const std::vector<int64_t> &shape)
 {
@@ -74,10 +74,10 @@ int launchOneThread_AllGatherAdd(Args &args)
     ret = HcclGetCommName(args.hcclComm, hcomName);
     CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("[ERROR] HcclGetCommName failed. ret: %d\n", ret); return -1);
     LOG_PRINT("[INFO] rank = %d, hcomName = %s, stream = %p\n", args.rankId, hcomName, args.stream);
-    std::vector<int64_t> aShape = {16, 256};
-    std::vector<int64_t> gatherOutShape = {16 * RANK_DIM, 256};
-    std::vector<int64_t> bShape = {16 * RANK_DIM, 256};
-    std::vector<int64_t> outputShape = {16 * RANK_DIM, 256};
+    std::vector<int64_t> aShape = {120, 256};
+    std::vector<int64_t> gatherOutShape = {120 * RANK_DIM, 256};
+    std::vector<int64_t> bShape = {120 * RANK_DIM, 256};
+    std::vector<int64_t> outputShape = {120 * RANK_DIM, 256};
     void *aDeviceAddr = nullptr;
     void *bDeviceAddr = nullptr;
     void *outDeviceAddr = nullptr;
@@ -90,6 +90,8 @@ int launchOneThread_AllGatherAdd(Args &args)
     uint64_t workspaceSize = 0;
     aclOpExecutor *executor = nullptr;
     void *workspaceAddr = nullptr;
+
+    int64_t commTurn = 2;
 
     long long aShapeSize = GetShapeSize(aShape);
     long long bShapeSize = GetShapeSize(bShape);
@@ -113,7 +115,7 @@ int launchOneThread_AllGatherAdd(Args &args)
 
     // 调用第一阶段接口
     ret = aclnnAllGatherAddGetWorkspaceSize(
-        a, b, hcomName, RANK_DIM, out, gatherOut, &workspaceSize, &executor);
+        a, b, hcomName, RANK_DIM, commTurn, out, gatherOut, &workspaceSize, &executor);
     CHECK_RET(ret == ACL_SUCCESS,
         LOG_PRINT("[ERROR] aclnnAllGatherAddGetWorkspaceSize failed. ret = %d \n", ret); return ret);
     // 根据第一阶段接口计算出的workspaceSize申请device内存

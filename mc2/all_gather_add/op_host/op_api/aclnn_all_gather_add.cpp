@@ -35,7 +35,7 @@ typedef struct {
 } NnopbaseDfxId;
 
 extern aclnnStatus aclnnInnerAllGatherAddGetWorkspaceSize(const aclTensor *a, const aclTensor *b, char *group,
-                                                          int64_t rankSize, bool isGatherOut, const aclTensor *cOut,
+                                                          int64_t rankSize, int64_t commTurn, bool isGatherOut, const aclTensor *cOut,
                                                           const aclTensor *gatherOutOut, uint64_t *workspaceSize,
                                                           aclOpExecutor **executor);
 extern aclnnStatus aclnnInnerAllGatherAdd(void *workspace, uint64_t workspaceSize, aclOpExecutor *executor,
@@ -127,7 +127,7 @@ static bool CheckShape(const aclTensor *a, const aclTensor *b, const aclTensor *
     4.获取计算过程所需workspace大小
 */
 aclnnStatus aclnnAllGatherAddGetWorkspaceSize(const aclTensor *a, const aclTensor *b, char *group,
-                                              int64_t rankSize, const aclTensor *cOut,
+                                              int64_t rankSize, int64_t commTurn, const aclTensor *cOut,
                                               const aclTensor *gatherOutOut, uint64_t *workspaceSize,
                                               aclOpExecutor **executor) 
 {
@@ -140,7 +140,7 @@ aclnnStatus aclnnAllGatherAddGetWorkspaceSize(const aclTensor *a, const aclTenso
 
   CHECK_RET(CheckShape(a, b, cOut, gatherOutOut), ACLNN_ERR_PARAM_INVALID);
   bool isGatherOut = IsGatherOut(gatherOutOut);
-  aclnnStatus ret = aclnnInnerAllGatherAddGetWorkspaceSize(a, b, group, rankSize, isGatherOut,
+  aclnnStatus ret = aclnnInnerAllGatherAddGetWorkspaceSize(a, b, group, rankSize, commTurn, isGatherOut,
                                                            cOut, gatherOutOut, workspaceSize, executor);
   OP_LOGD("AllGatherAdd, aclnnInnerGetWorkspaceSize ret = %d.", ret);
   static NnopbaseDfxId dfxId = {0x60000, __func__, false};
