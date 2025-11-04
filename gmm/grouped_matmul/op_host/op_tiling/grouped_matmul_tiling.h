@@ -211,6 +211,7 @@ public:
 protected:
     ge::graphStatus CalMMTiling(const gert::TilingContext *context, const GMMCompileInfo *compileInfoPtr);
     ge::graphStatus GMMSetMMTiling(const gert::TilingContext *context, const GMMCompileInfo *compileInfoPtr);
+    void GMMSetTilingKey(gert::TilingContext *context) const;
     ge::graphStatus GMMGetAttrs(const gert::TilingContext *context);
     ge::graphStatus GMMSetUbDivideBlk();
     ge::graphStatus GMMSetUbDivideBlkAntiquant();
@@ -248,11 +249,11 @@ protected:
     ge::graphStatus CheckMKN(const gert::TilingContext *context);
     void FullLoadK(const GMMCompileInfo *compileInfoPtr);
     void SetMMPreTiling();
-    bool StaticTilingProcess(gert::TilingContext *context);
+    void StaticTilingProcess(gert::TilingContext *context);
     bool CheckTilingMatchStaticValue();
+    uint64_t GenGmmStaticTilingKey(bool transB, bool isSparseM, bool isMixCore);
     void PrintTilingInfo(gert::TilingContext *context);
-    void GMMSetTplTilingKey(gert::TilingContext *context);
-    uint32_t GetTplDataType(const ge::DataType &dtype);
+
 private:
     int32_t mList_[GroupedMatmul::MAX_TENSOR_CONT] = {0};
     int32_t kList_[GroupedMatmul::MAX_TENSOR_CONT] = {0};
