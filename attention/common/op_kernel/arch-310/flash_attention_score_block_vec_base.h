@@ -60,8 +60,13 @@ public:
         s1BaseSize == 64), (s2BaseSize == 256 && s1BaseSize == 64));
     static constexpr bool bmm2Write2Ub = bmm2OutPos == TPosition::VECCALC;
     static constexpr uint64_t SYNC_V1_C2_FLAG[3] = {2, 3, 4};
+    static constexpr bool isW8In = IsSameType<INPUT_T, fp8_e5m2_t>::value ||
+                                  IsSameType<INPUT_T, fp8_e4m3fn_t>::value ||
+                                  IsSameType<INPUT_T, hifloat8_t>::value ||
+                                  IsSameType<INPUT_T, int8_t>::value;
     static constexpr bool POST_QUANT = !IsSameType<OUTPUT_T, half>::value && !IsSameType<OUTPUT_T, bfloat16_t>::value && !IsSameType<OUTPUT_T, float>::value;
-    using pseShiftType = typename AscendC::Conditional<POST_QUANT, INPUT_T, OUTPUT_T>::type;
+    using pseShiftW8InType = typename AscendC::Conditional<isInfer, half, OUTPUT_T>::type;
+    using pseShiftType = typename AscendC::Conditional<isW8In, pseShiftW8InType, INPUT_T>::type;
     static constexpr int64_t FP8_QUANT_KV_BLOCK_SIZE = isInfer ? 256 : 128;
     // ==================== Functions ======================
     __aicore__ inline FABlockVecBase() {};

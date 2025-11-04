@@ -78,9 +78,12 @@ public:
                                 __gm__ uint8_t *softmaxLse, __gm__ uint8_t *attentionOut, __gm__ uint8_t *workspace,
                                 const FlashAttentionScoreSimplifiedTilingData *__restrict tiling, TPipe *tPipe);
     __aicore__ inline void Process();
-
+    static constexpr bool isW8In = IsSameType<INPUT_T, fp8_e5m2_t>::value ||
+                                  IsSameType<INPUT_T, fp8_e4m3fn_t>::value ||
+                                  IsSameType<INPUT_T, hifloat8_t>::value ||
+                                  IsSameType<INPUT_T, int8_t>::value;
     static constexpr bool POST_QUANT = !IsSameType<OUTPUT_T, half>::value && !IsSameType<OUTPUT_T, bfloat16_t>::value && !IsSameType<OUTPUT_T, float>::value;
-    using pseShiftType = typename AscendC::Conditional<POST_QUANT, INPUT_T, OUTPUT_T>::type;
+    using pseShiftType = typename AscendC::Conditional<isW8In, half, INPUT_T>::type;
 
 protected:
     __aicore__ inline void GetExtremeValue(T &negativeScalar, T &positiveScalar);
