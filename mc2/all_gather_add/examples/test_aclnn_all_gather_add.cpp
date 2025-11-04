@@ -76,7 +76,7 @@ int launchOneThread_AllGatherAdd(Args &args)
     LOG_PRINT("[INFO] rank = %d, hcomName = %s, stream = %p\n", args.rankId, hcomName, args.stream);
     std::vector<int64_t> aShape = {16, 256};
     std::vector<int64_t> gatherOutShape = {16 * RANK_DIM, 256};
-    std::vector<int64_t> bShape = {32, 256};
+    std::vector<int64_t> bShape = {16 * RANK_DIM, 256};
     std::vector<int64_t> outputShape = {16 * RANK_DIM, 256};
     void *aDeviceAddr = nullptr;
     void *bDeviceAddr = nullptr;
@@ -113,7 +113,7 @@ int launchOneThread_AllGatherAdd(Args &args)
 
     // 调用第一阶段接口
     ret = aclnnAllGatherAddGetWorkspaceSize(
-        a, b, hcomName, out, gatherOut, &workspaceSize, &executor);
+        a, b, hcomName, RANK_DIM, out, gatherOut, &workspaceSize, &executor);
     CHECK_RET(ret == ACL_SUCCESS,
         LOG_PRINT("[ERROR] aclnnAllGatherAddGetWorkspaceSize failed. ret = %d \n", ret); return ret);
     // 根据第一阶段接口计算出的workspaceSize申请device内存
