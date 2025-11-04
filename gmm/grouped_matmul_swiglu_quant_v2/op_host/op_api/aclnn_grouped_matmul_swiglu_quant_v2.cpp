@@ -13,10 +13,8 @@
 #include <memory>
 #include <unordered_map>
 #include "aclnn_gmm_dsq_base.h"
-#include "aclnn_gmmsq_v2.h"
 #include "grouped_matmul_swiglu_quant_v2.h"
 #include "aclnn_grouped_matmul_swiglu_quant_weight_nz_v2.h"
-#include "aclnn_grouped_matmul_swiglu_quant_v2.h"
 
 using namespace op;
 using namespace gmm_dsq;
@@ -48,9 +46,6 @@ static aclnnStatus aclnnGroupedMatmulSwigluQuantGetWorkspaceSizeCommon(const cha
         std::make_unique<gmm_dsq_base::GroupedMatmulSwigluQuantBaseHandler>());
     factory.registerHandler(SocVersion::ASCEND910_93,
         std::make_unique<gmm_dsq_base::GroupedMatmulSwigluQuantBaseHandler>());
-    factory.registerHandler(SocVersion::ASCEND910_95,
-        std::make_unique<gmmsq_v2::GroupedMatmulSwigluQuantBaseHandler>());
-
     if (auto *handler = factory.getHandler(version)) {
         handler->Initialize(interfaceName, params, workspaceSize, executor);
         return handler->Process();
@@ -111,45 +106,12 @@ aclnnStatus aclnnGroupedMatmulSwigluQuantWeightNzV2GetWorkspaceSize(const aclTen
                                         params, workspaceSize, executor);                                              
 }
 
-aclnnStatus aclnnGroupedMatmulSwigluQuantV2GetWorkspaceSize(const aclTensor *x,
-        const aclTensorList *weight, const aclTensorList *weightScale,
-        [[maybe_unused]] const aclTensorList *weightAssistMatrix, [[maybe_unused]] const aclTensor *bias,
-        [[maybe_unused]] const aclTensor *xScale, [[maybe_unused]] const aclTensor *smoothScale,
-        const aclTensor *groupList,  [[maybe_unused]] int64_t dequantMode, 
-        [[maybe_unused]] int64_t dequantDtype, [[maybe_unused]] int64_t quantMode, int64_t groupListType,
-        const aclIntArray *tuningConfigOptional, aclTensor *output, aclTensor *outputScale,
-        uint64_t *workspaceSize, aclOpExecutor **executor)
-{
-    OP_CHECK_COMM_INPUT(workspaceSize, executor);
-    L2_DFX_PHASE_1(aclnnGroupedMatmulSwigluQuantV2,
-                   DFX_IN(x, weight, weightScale, xScale, groupList),
-                   DFX_OUT(output, outputScale));
-
-    GroupedMatmulSwigluQuantParamsBase params =
-        GroupedMatmulSwigluQuantParamsBuilder::Create(x, weight, weightScale, output, outputScale)
-        .SetXScale(xScale).SetGroupList(groupList).SetDequantAttr(dequantMode, dequantDtype).SetTransposeAttr(false)
-        .SetQuantAttr(quantMode, static_cast<int64_t> (output->GetDataType())).SetGroupListType(groupListType)
-        .SetWeightAssistMatrix(weightAssistMatrix).SetTuningConfig(tuningConfigOptional).Build();
-    // 调用公共接口
-    return aclnnGroupedMatmulSwigluQuantGetWorkspaceSizeCommon(__FUNCTION__,
-                                        params, workspaceSize, executor);                                              
-}
-
 aclnnStatus aclnnGroupedMatmulSwigluQuantWeightNzV2(void *workspace, uint64_t workspaceSize, aclOpExecutor *executor,
                                                   aclrtStream stream)
 {
     L2_DFX_PHASE_2(aclnnGroupedMatmulSwigluQuantWeightNzV2);
     CHECK_COND(CommonOpExecutorRun(workspace, workspaceSize, executor, stream) == ACLNN_SUCCESS, ACLNN_ERR_INNER,
                "This is an error in GroupedMatmulSwigluQuantWeightNzV2 launch aicore");
-    return ACLNN_SUCCESS;
-}
-
-aclnnStatus aclnnGroupedMatmulSwigluQuantV2(void *workspace, uint64_t workspaceSize, aclOpExecutor *executor,
-                                                  aclrtStream stream)
-{
-    L2_DFX_PHASE_2(aclnnGroupedMatmulSwigluQuantV2);
-    CHECK_COND(CommonOpExecutorRun(workspace, workspaceSize, executor, stream) == ACLNN_SUCCESS, ACLNN_ERR_INNER,
-               "This is an error in GroupedMatmulSwigluQuantV2 launch aicore");
     return ACLNN_SUCCESS;
 }
 

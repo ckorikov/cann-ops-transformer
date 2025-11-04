@@ -51,7 +51,6 @@ struct GroupedMatmulSwigluQuantParamsBase {
     int64_t quantMode;
     int64_t quantDtype;
     int64_t groupListType;
-    bool transposeWeight = false;
 };
 
 class GroupedMatmulSwigluQuantParamsBuilder {
@@ -115,12 +114,6 @@ public:
     {
         p_.quantMode = quantMode;
         p_.quantDtype = quantDtype;
-        return *this;
-    }
-
-    GroupedMatmulSwigluQuantParamsBuilder &SetTransposeAttr(bool transposeWeight)
-    {
-        p_.transposeWeight = transposeWeight;
         return *this;
     }
 
@@ -285,10 +278,12 @@ public:
         l0Executor_ = uniqueExecutor.get();
         for (size_t i = 0; i < gmmDsqParams_.weight->Size(); i++) {
             auto *w = (*gmmDsqParams_.weight)[i];
+            w->SetOriginalShape(w->GetViewShape());
             if (IsPrivateFormat(w->GetStorageFormat())) {
                 w->SetOriginalShape(w->GetViewShape());
             }
         }
+
         auto ret = CheckParams();
         CHECK_RET(ret == ACLNN_SUCCESS, ret);
 
@@ -301,14 +296,15 @@ public:
 
         ret = CovertDataContiguous();
         CHECK_RET(ret == ACLNN_SUCCESS, ret);
+
         auto ret0 = l0op::GroupedMatmulSwigluQuantV2(gmmDsqParams_.x, gmmDsqParams_.weight, gmmDsqParams_.weightScale,
                                                 gmmDsqParams_.xScale, gmmDsqParams_.weightAssistMatrix,
                                                 gmmDsqParams_.bias,
                                                 gmmDsqParams_.smoothScale, gmmDsqParams_.groupList,
                                                 gmmDsqParams_.dequantMode, gmmDsqParams_.dequantDtype,
                                                 gmmDsqParams_.quantMode, gmmDsqParams_.quantDtype,
-                                                gmmDsqParams_.transposeWeight, gmmDsqParams_.groupListType,
-                                                gmmDsqParams_.tuningConfig, uniqueExecutor.get());
+                                                gmmDsqParams_.groupListType, gmmDsqParams_.tuningConfig,
+                                                uniqueExecutor.get());
         CHECK_RET(ret0 != std::tuple(nullptr, nullptr), ACLNN_ERR_INNER_NULLPTR);
 
         auto out0 = std::get<OUTPUT_IDX_0>(ret0);
