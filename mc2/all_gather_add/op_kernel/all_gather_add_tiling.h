@@ -24,6 +24,7 @@ struct AllGatherAddTilingData {
     uint32_t totalLength;
     uint32_t tileNum;
     uint32_t tileLength;
+    uint32_t commTurn;
 };
 
 #endif //__ALL_GATHER_ADD_TILING_H__
