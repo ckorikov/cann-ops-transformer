@@ -119,12 +119,6 @@ enum class RopeMode : uint32_t {
     ROPE_COMBINE = 2
 };
 
-enum class ScheduleMode : uint32_t {
-    NORMAL_MODE = 0,
-    BATCH_MODE = 1,
-    SYNC_MODE = 2
-};
-
 enum class FiaTilingInOutMode : uint32_t {
     IO_INVALID = 0,
     INT8_INT8 = 1,
