@@ -19,7 +19,6 @@
 #include "graph/utils/type_utils.h"
 #include "register/op_def_registry.h"
 #include "tiling/mc2_tiling_utils.h"
-#include "tiling/matmul_formulaic_tiling.h"
 #include "../../op_kernel/all_gather_add_tiling.h"
 
 using namespace AscendC;
@@ -94,7 +93,7 @@ static ge::graphStatus AllGatherAddTilingFunc(gert::TilingContext *context) {
     return ge::GRAPH_SUCCESS;
 }
 
-struct AllGatherMatmulCompileInfo {};
+struct AllGatherAddCompileInfo {};
 
 static ge::graphStatus TilingParseForAllGatherAdd([[maybe_unused]] gert::TilingParseContext *context)
 { 
@@ -102,7 +101,7 @@ static ge::graphStatus TilingParseForAllGatherAdd([[maybe_unused]] gert::TilingP
     return ge::GRAPH_SUCCESS;
 }
 
-IMPL_OP_OPTILING(AllGatherMatmul)
+IMPL_OP_OPTILING(AllGatherAdd)
     .Tiling(AllGatherAddTilingFunc)
-    .TilingParse<AllGatherMatmulCompileInfo>(TilingParseForAllGatherAdd);
+    .TilingParse<AllGatherAddCompileInfo>(TilingParseForAllGatherAdd);
 }  // namespace optiling

@@ -20,7 +20,6 @@
 #include "opdev/op_executor.h"
 #include "opdev/op_log.h"
 #include "opdev/platform.h"
-#include "matmul_util.h"
 #include "hccl_util.h"
 
 using namespace op;
@@ -35,9 +34,9 @@ typedef struct {
   bool hasReg;
 } NnopbaseDfxId;
 
-extern aclnnStatus aclnnInnerAllGatherAddGetWorkspaceSize(const aclTensor *x1, const aclTensor *x2,
-                                                          int64_t rankSize, bool isGatherOut, const aclTensor *output,
-                                                          const aclTensor *gatherOut, uint64_t *workspaceSize,
+extern aclnnStatus aclnnInnerAllGatherAddGetWorkspaceSize(const aclTensor *a, const aclTensor *b, char *group,
+                                                          int64_t rankSize, bool isGatherOut, const aclTensor *cOut,
+                                                          const aclTensor *gatherOutOut, uint64_t *workspaceSize,
                                                           aclOpExecutor **executor);
 extern aclnnStatus aclnnInnerAllGatherAdd(void *workspace, uint64_t workspaceSize, aclOpExecutor *executor,
                                           aclrtStream stream);
@@ -127,23 +126,22 @@ static bool CheckShape(const aclTensor *a, const aclTensor *b, const aclTensor *
     3.计算结果拷贝
     4.获取计算过程所需workspace大小
 */
-aclnnStatus aclnnAllGatherAddGetWorkspaceSize(const aclTensor* a, const aclTensor* b,
-                                              const char* group, const aclTensor* output, 
-                                              const aclTensor* gatherOut, uint64_t* workspaceSize, 
-                                              aclOpExecutor** executor) 
+aclnnStatus aclnnAllGatherAddGetWorkspaceSize(const aclTensor *a, const aclTensor *b, char *group,
+                                              int64_t rankSize, const aclTensor *cOut,
+                                              const aclTensor *gatherOutOut, uint64_t *workspaceSize,
+                                              aclOpExecutor **executor) 
 {
   uint64_t timeStamp = NnopbaseMsprofSysTime();
-  auto retParam = CheckParams(a, b, gatherOut, output);
+  auto retParam = CheckParams(a, b, gatherOutOut, cOut);
   CHECK_RET(retParam == ACLNN_SUCCESS, retParam);
 
   OP_LOGD("A is %s, B is %s.", a->ToString().GetString(), b->ToString().GetString());
-  OP_LOGD("Output is %s, gatherOut is %s.", output->ToString().GetString(), gatherOut->ToString().GetString());
+  OP_LOGD("Output is %s, gatherOut is %s.", cOut->ToString().GetString(), gatherOutOut->ToString().GetString());
 
-  uint32_t rankSize = 0; // ???
-  CHECK_RET(CheckShape(a, b, output, gatherOut), ACLNN_ERR_PARAM_INVALID);
-  bool isGatherOut = IsGatherOut(gatherOut);
-  aclnnStatus ret = aclnnInnerAllGatherAddGetWorkspaceSize(a, b, rankSize, isGatherOut,
-                                                           output, gatherOut, workspaceSize, executor);
+  CHECK_RET(CheckShape(a, b, cOut, gatherOutOut), ACLNN_ERR_PARAM_INVALID);
+  bool isGatherOut = IsGatherOut(gatherOutOut);
+  aclnnStatus ret = aclnnInnerAllGatherAddGetWorkspaceSize(a, b, group, rankSize, isGatherOut,
+                                                           cOut, gatherOutOut, workspaceSize, executor);
   OP_LOGD("AllGatherAdd, aclnnInnerGetWorkspaceSize ret = %d.", ret);
   static NnopbaseDfxId dfxId = {0x60000, __func__, false};
   NnopbaseReportApiInfo(timeStamp, dfxId);
