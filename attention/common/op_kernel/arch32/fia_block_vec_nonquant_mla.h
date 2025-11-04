@@ -149,6 +149,7 @@ protected:
     static constexpr uint32_t SOFTMAX_TMP_BUFFER_OFFSET = AttentionCommon::ConstInfo::BUFFER_SIZE_BYTE_1K;
 
     static constexpr T BOOL_ATTEN_MASK_SCALAR_VALUE = -1000000000000.0; // 用于mask为bool类型
+    uint32_t negativeIntScalar = *((uint32_t *)&BOOL_ATTEN_MASK_SCALAR_VALUE);
     static constexpr uint64_t kvHeadNum = 1ULL;
     static constexpr uint32_t BASE_BLOCK_MAX_ELEMENT_NUM = AttentionCommon::ConstInfo::BUFFER_SIZE_BYTE_32K / sizeof(T); // 32768/4=8096
     static constexpr uint32_t BLOCK_ELEMENT_NUM = fa_base_vector::BYTE_BLOCK / sizeof(T); // 32/4=8
@@ -162,7 +163,6 @@ protected:
     static constexpr uint64_t headDimAlign = 512ULL;
     static constexpr uint64_t headDimRope = 64ULL;
     static constexpr uint64_t headDimAll = 576ULL;
-
 private:
     // ================================Local Buffer区====================================
     // queue
@@ -265,7 +265,7 @@ template <typename FIAT> __aicore__ inline void FiaBlockVecNonQuantMla<FIAT>::In
     softmaxMaxDefaultUb = softmaxMaxDefaultBuff.Get<T>();
     softmaxSumDefaultUb = softmaxSumDefaultBuff.Get<T>();
 
-    Duplicate(softmaxMaxDefaultUb, BOOL_ATTEN_MASK_SCALAR_VALUE, SOFTMAX_TMP_BUFFER_OFFSET / sizeof(T));
+    Duplicate(softmaxMaxDefaultUb, SOFTMAX_MIN_NUM, SOFTMAX_TMP_BUFFER_OFFSET / sizeof(T));
     Duplicate(softmaxSumDefaultUb, FLOAT_ZERO, SOFTMAX_TMP_BUFFER_OFFSET / sizeof(T));
 }
 
@@ -385,7 +385,7 @@ __aicore__ inline void FiaBlockVecNonQuantMla<FIAT>::ElewiseCompute(
         maskInfo.batchIdx = info.bIdx;
         maskInfo.batchOffset = constInfo.attenMaskSize;
         maskInfo.attenMaskStride = constInfo.attenMaskStride;
-        maskInfo.maskValue = *((uint32_t *)&BOOL_ATTEN_MASK_SCALAR_VALUE);
+        maskInfo.maskValue = negativeIntScalar;
         if (constInfo.qSeqSize == 1) {
             maskInfo.layout = fa_base_vector::S1_EQUAL1;
         } else if (LAYOUT_T == FIA_LAYOUT::TND || LAYOUT_T == FIA_LAYOUT::BSH) {
@@ -585,10 +585,8 @@ FiaBlockVecNonQuantMla<FIAT>::DealInvalidMaskRows(const AttentionCommon::RunInfo
     uint32_t outIdx = info.loop % (constInfo.preLoadNum);
     uint32_t softmaxOutOffset = outIdx * SOFTMAX_TMP_BUFFER_OFFSET / sizeof(T) + baseOffset;
 
-    uint32_t softmaxMinSaclar = *((uint32_t *)&BOOL_ATTEN_MASK_SCALAR_VALUE);
-
     fa_base_vector::InvalidMaskRows<MM2_OUT_T, T, SOFTMAX_WITH_BRC>(softmaxOutOffset, dealRowCount, columnCount,
-        softmaxMaxUb, softmaxMinSaclar, bmm2ResUb);
+        softmaxMaxUb, negativeIntScalar, bmm2ResUb);
 }
 
 

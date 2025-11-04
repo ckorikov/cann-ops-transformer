@@ -135,8 +135,8 @@ protected:
 
     // =================================常量区=================================
     static constexpr T BOOL_ATTEN_MASK_SCALAR_VALUE = -1000000000000.0; // 用于mask为bool类型
-    constexpr static uint32_t NEGATIVE_MIN_VAULE_FP32 = 0xFF7FFFFF;
-    constexpr static uint32_t NEGATIVE_MIN_VAULE_FP16 = 0xC77FE000;
+    uint32_t negativeIntScalar = *((uint32_t *)&BOOL_ATTEN_MASK_SCALAR_VALUE);
+
     static constexpr T SOFTMAX_MIN_NUM = -2e38;
     static constexpr uint32_t BASE_BLOCK_MAX_ELEMENT_NUM = ConstInfo::BUFFER_SIZE_BYTE_32K / sizeof(T);
     static constexpr uint32_t SOFTMAX_TMP_BUFFER_SIZE = ConstInfo::BUFFER_SIZE_BYTE_2K;
@@ -146,7 +146,7 @@ protected:
 
     ConstInfo constInfo = {};
     MSplitInfo mSplitInfo = {};
-    uint32_t negativeIntScalar = NEGATIVE_MIN_VAULE_FP32;
+    
     uint16_t brcbNum = (fa_base_vector::BYTE_BLOCK / sizeof(COMPUTE_T));
     bool learnableSinkFlag = false;
     static constexpr ActualSeqLensMode Q_MODE = GetQActSeqMode<LAYOUT_T>(); 
@@ -271,8 +271,7 @@ template <typename FIAT> __aicore__ inline void FiaBlockVecNonQuant<FIAT>::InitB
     softmaxMaxDefaultUb = softmaxMaxDefaultBuff.Get<COMPUTE_T>();
     softmaxSumDefaultUb = softmaxSumDefaultBuff.Get<COMPUTE_T>();
 
-    const COMPUTE_T minValue = *((COMPUTE_T *)&negativeIntScalar);
-    Duplicate(softmaxMaxDefaultUb, minValue, SOFTMAX_TMP_BUFFER_SIZE / sizeof(COMPUTE_T));
+    Duplicate(softmaxMaxDefaultUb, SOFTMAX_MIN_NUM, SOFTMAX_TMP_BUFFER_SIZE / sizeof(COMPUTE_T));
     Duplicate(softmaxSumDefaultUb, (COMPUTE_T)0.0, SOFTMAX_TMP_BUFFER_SIZE / sizeof(COMPUTE_T));
 }
 
@@ -456,7 +455,7 @@ __aicore__ inline void FiaBlockVecNonQuant<FIAT>::ElewiseCompute(
         maskInfo.batchIdx = info.bIdx;
         maskInfo.batchOffset = constInfo.attenMaskSize;
         maskInfo.attenMaskStride = constInfo.attenMaskStride;
-        maskInfo.maskValue = *((uint32_t *)&NEGATIVE_MIN_VAULE_FP32);
+        maskInfo.maskValue = negativeIntScalar;
 
         if (constInfo.qSeqSize == 1) {
             maskInfo.layout = fa_base_vector::S1_EQUAL1;

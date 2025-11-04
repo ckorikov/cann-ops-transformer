@@ -97,7 +97,10 @@ protected:
     
     int64_t preTokensPerBatch = 0;
     int64_t nextTokensPerBatch = 0;
-    static constexpr uint32_t negativeIntScalar = NEGATIVE_MIN_VAULE_FP32;
+    
+    static constexpr T BOOL_ATTEN_MASK_SCALAR_VALUE = -1000000000000.0; // 用于mask为bool类型
+    uint32_t negativeIntScalar = *((uint32_t *)&BOOL_ATTEN_MASK_SCALAR_VALUE);
+
     // ================================类成员变量====================================
     // aic、aiv核信息
     uint32_t blockIdx = 0U;
