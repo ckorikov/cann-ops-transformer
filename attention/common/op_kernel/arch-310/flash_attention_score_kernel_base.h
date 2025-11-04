@@ -220,15 +220,15 @@ __aicore__ inline void FlashAttentionScoreKernelBase<ChildClass, CubeBlockType, 
         if constexpr (splitD) {
             bmm2ResBlock = (int64_t)dVTemplateType;
         }
-        int64_t mm2ResultSize = (s1BaseSize) * bmm2ResBlock; // 使用Cube计算的总大小， Gm上的数据按照实际的dSize存储
+        int64_t mm2ResultSize = (s1BaseSize) * bmm2ResBlock; // 使用Cube计算的总大小，Gm上的数据按照实际的dSize存储
         int64_t mm2Offset = CeilDiv(mm2ResultSize, 128) * 128 * sizeof(T);
         int64_t vec2ResultSize = (s1BaseSize) * constInfo.dBasicBlock;
         int64_t vec2Offset = CeilDiv(vec2ResultSize, 128) * 128 * sizeof(T);
-        int64_t totalOffset = this->aicIdx * 3 * mm2Offset;
+        singleCoreOffset = mm2Offset;
         if constexpr (splitD) {
-            totalOffset = this->aicIdx * 3 * (mm2Offset + vec2Offset);
             singleCoreOffset = mm2Offset + vec2Offset;
         }
+        int64_t totalOffset = this->aicIdx * 3 * singleCoreOffset; // 3为preload次数
         // SameB模式下V0和V1调用IterateAll的时候填写的地址相同
         this->bmm2ResGm[0].SetGlobalBuffer((__gm__ T *)(workspace + totalOffset));
         this->bmm2ResGm[1].SetGlobalBuffer((__gm__ T *)(workspace + totalOffset + mm2Offset));
