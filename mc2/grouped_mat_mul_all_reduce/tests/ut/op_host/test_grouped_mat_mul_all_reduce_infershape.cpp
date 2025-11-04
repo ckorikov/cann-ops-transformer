@@ -17,6 +17,9 @@
 #include "infer_shape_context_faker.h"
 #include "infer_datatype_context_faker.h"
 #include "base/registry/op_impl_space_registry_v2.h"
+
+using namespace ge;
+
 namespace {
 class GroupedMatMulAllReduceInfershape : public testing::Test {
 protected:
