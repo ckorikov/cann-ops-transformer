@@ -428,6 +428,10 @@ ge::graphStatus FiaTilingCheck::CheckPseShiftDType()
 
 ge::graphStatus FiaTilingCheck::CheckPseShiftShape()
 {
+    if (fiaInfo_.isMaxWorkspace) {
+        return ge::GRAPH_SUCCESS;
+    }
+
     size_t pseShiftDim0 = opParamInfo_.pseShift.tensor->GetStorageShape().GetDim(0);
     if (pseShiftDim0 == 1U) {
         pseShiftLayout_ = FiaLayout::INS1S2;
@@ -530,6 +534,9 @@ ge::graphStatus FiaTilingCheck::CheckAttentionMask()
     constexpr int64_t OPT_ATTEN_MASK_LEN = 2048;  // 2048: ATTEN_MASK_LEN
     FiaTilingShapeCompareParam shapeParams;
     if (sparseMode == SPARSE_MODE_NO_MASK || sparseMode == SPARSE_MODE_ALL_MASK) {
+        if (fiaInfo_.isMaxWorkspace) {
+            return ge::GRAPH_SUCCESS;
+        }
         shapeParams.B = static_cast<int64_t>(bSize_);
         shapeParams.S1 = static_cast<int64_t>(s1Size_);
         shapeParams.S2 = s2Size_;

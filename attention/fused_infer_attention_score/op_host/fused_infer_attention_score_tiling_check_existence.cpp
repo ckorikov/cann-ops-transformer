@@ -181,9 +181,8 @@ ge::graphStatus FiaTilingCheck::CheckDtypeAndSetQuantFlag()
 ge::graphStatus FiaTilingCheck::CheckExists(const void *pointer, const std::string &name) const
 {
     OP_CHECK_IF(pointer == nullptr,
-        OP_LOGE(opName_, "In %s situation, %s should not be null",
-            QuantModeToSerialString(quantMode_).c_str(),
-            name.c_str()),
+        OP_LOGE(opName_, "In %s, %s situation, %s should not be null",
+            QuantModeToSerialString(quantMode_).c_str(), SituationToSerialString(ropeMode_).c_str(), name.c_str()),
         return ge::GRAPH_FAILED);
     return ge::GRAPH_SUCCESS;
 }
@@ -191,9 +190,8 @@ ge::graphStatus FiaTilingCheck::CheckExists(const void *pointer, const std::stri
 ge::graphStatus FiaTilingCheck::CheckNotExists(const void *pointer, const std::string &name) const
 {
     OP_CHECK_IF(pointer != nullptr,
-        OP_LOGE(opName_, "In %s situation, %s should be null",
-            QuantModeToSerialString(quantMode_).c_str(),
-            name.c_str()),
+        OP_LOGE(opName_, "In %s, %s situation, %s should be null",
+            QuantModeToSerialString(quantMode_).c_str(), SituationToSerialString(ropeMode_).c_str(), name.c_str()),
         return ge::GRAPH_FAILED);
     return ge::GRAPH_SUCCESS;
 }
@@ -387,7 +385,6 @@ ge::graphStatus FiaTilingCheck::CheckParaExistenceMlaAntiquant() const
         CheckAttrValueByMap(attrDefaultValueMap) != ge::GRAPH_SUCCESS) {
         return ge::GRAPH_FAILED;
     }
-
     return ge::GRAPH_SUCCESS;
 }
 
@@ -536,7 +533,6 @@ ge::graphStatus FiaTilingCheck::CheckParaExistenceGqaAntiquantInt8() const
         CheckParaExistenceGqaAntiquantInt8Inner() != ge::GRAPH_SUCCESS) {
         return ge::GRAPH_FAILED;
     }
-
     return ge::GRAPH_SUCCESS;
 }
 

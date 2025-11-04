@@ -95,4 +95,13 @@ std::string QuantModeToSerialString(FiaQuantMode fiaQuantMode)
             return "UNKNOWN";
     }
 }
+
+std::string SituationToSerialString(RopeMode ropeMode)
+{
+    if (ropeMode == RopeMode::ROPE_SPLIT) {
+        return "qkHeadDim = vHeadDim and rope exist";
+    } else {
+        return "rope not exist";
+    }
+}
 } // namespace optiling

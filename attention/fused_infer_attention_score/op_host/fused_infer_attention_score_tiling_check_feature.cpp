@@ -565,6 +565,19 @@ ge::graphStatus FiaTilingCheck::CheckFeatureActualSeqLensQData()
     for (uint32_t i = 0; i < loop; i++) {
         int64_t tmpS1 = 0;
         if (qLayout_ == FiaLayout::TND || qLayout_ == FiaLayout::NTD) {
+            OP_CHECK_IF(actualSeq[i] < 0,
+                OP_LOGE(opName_, "when %s's layout is %s, %s[%u] should not be a negative number, but got %ld.",
+                    QUERY_NAME.c_str(), LayoutToSerialString(qLayout_).c_str(),
+                    ACTUAL_SEQ_Q_LEN_NAME.c_str(), i, actualSeq[i]),
+                    return ge::GRAPH_FAILED);
+
+            OP_CHECK_IF(i > 0U && (actualSeq[i] < actualSeq[i - 1U]),
+                OP_LOGE(opName_, "when %s's layout is %s, %s[%u](%ld) should not be less than %s[%u](%ld).",
+                    QUERY_NAME.c_str(), LayoutToSerialString(qLayout_).c_str(),
+                    ACTUAL_SEQ_Q_LEN_NAME.c_str(), i, actualSeq[i],
+                    ACTUAL_SEQ_Q_LEN_NAME.c_str(), (i - 1U), actualSeq[i - 1U]),
+                    return ge::GRAPH_FAILED);
+
             tmpS1 = (i == 0U) ? actualSeq[0] : (actualSeq[i] - actualSeq[i - 1U]);
         } else {
             tmpS1 = actualSeq[i];
@@ -582,7 +595,7 @@ ge::graphStatus FiaTilingCheck::CheckFeatureActualSeqLensQData()
         OP_LOGE(opName_, "when %s's layout is %s, T(%u) should be equal to the last element of %s(%ld).",
             QUERY_NAME.c_str(), LayoutToSerialString(qLayout_).c_str(), qTSize_, ACTUAL_SEQ_Q_LEN_NAME.c_str(),
             actualSeq[actualSeqLengthsQSize_ - 1]),
-            return ge::GRAPH_FAILED);
+        return ge::GRAPH_FAILED);
     
     return ge::GRAPH_SUCCESS;
 }
@@ -609,6 +622,19 @@ ge::graphStatus FiaTilingCheck::CheckFeatureActualSeqLensKvData()
     for (uint32_t i = 0; i < loop; i++) {
         int64_t tmpS2 = 0;
         if (kvLayout_ == FiaLayout::TND || kvLayout_ == FiaLayout::NTD) {
+            OP_CHECK_IF(actualSeq[i] < 0,
+                OP_LOGE(opName_, "when kv's layout is %s, %s[%u] should not be a negative number, but got %ld.",
+                    LayoutToSerialString(kvLayout_).c_str(),
+                    ACTUAL_SEQ_KV_LEN_NAME.c_str(), i, actualSeq[i]),
+                    return ge::GRAPH_FAILED);
+
+            OP_CHECK_IF(i > 0U && (actualSeq[i] < actualSeq[i - 1U]),
+                OP_LOGE(opName_, "when kv's layout is %s, %s[%u](%ld) should not be less than %s[%u](%ld).",
+                    LayoutToSerialString(kvLayout_).c_str(),
+                    ACTUAL_SEQ_KV_LEN_NAME.c_str(), i, actualSeq[i],
+                    ACTUAL_SEQ_KV_LEN_NAME.c_str(), (i - 1U), actualSeq[i - 1U]),
+                    return ge::GRAPH_FAILED);
+
             tmpS2 = (i == 0U) ? actualSeq[0] : (actualSeq[i] - actualSeq[i - 1U]);
         } else {
             tmpS2 = actualSeq[i];
@@ -625,7 +651,7 @@ ge::graphStatus FiaTilingCheck::CheckFeatureActualSeqLensKvData()
         OP_LOGE(opName_, "when kv's layout is %s, T(%u) should be equal to the last element of %s(%ld).",
             LayoutToSerialString(kvLayout_).c_str(), kTSize_, ACTUAL_SEQ_KV_LEN_NAME.c_str(),
             actualSeq[actualSeqLengthsKvSize_ - 1]),
-            return ge::GRAPH_FAILED);
+        return ge::GRAPH_FAILED);
 
     return ge::GRAPH_SUCCESS;
 }

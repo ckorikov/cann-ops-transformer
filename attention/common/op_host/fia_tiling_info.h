@@ -157,6 +157,7 @@ enum class TilingKeyLayout : uint32_t {
 std::string LayoutToSerialString(FiaLayout layout);
 std::string AxisToSerialString(FiaAxis axis);
 std::string QuantModeToSerialString(FiaQuantMode fiaQuantMode);
+std::string SituationToSerialString(RopeMode ropeMode);
 
 struct FIARequiredParaInfo {
     const gert::CompileTimeTensorDesc *desc;
