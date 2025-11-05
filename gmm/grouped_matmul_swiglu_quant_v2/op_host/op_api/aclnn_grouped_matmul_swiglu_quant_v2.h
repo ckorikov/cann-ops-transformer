@@ -7,8 +7,8 @@
  * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
-#ifndef OP_API_INC_GROUPED_MATMUL_SWIGLU_QUANT_WEIGHT_ND_V2_H
-#define OP_API_INC_GROUPED_MATMUL_SWIGLU_QUANT_WEIGHT_ND_V2_H
+#ifndef OP_API_INC_GROUPED_MATMUL_SWIGLU_QUANT_V2_H
+#define OP_API_INC_GROUPED_MATMUL_SWIGLU_QUANT_V2_H
 #include "aclnn/aclnn_base.h"
 
 #ifdef __cplusplus
@@ -16,40 +16,41 @@ extern "C" {
 #endif
 
 /**
- * @brief aclnnGroupedMatmulSwigluQuantWeightNzV2 的第一段接口，根据具体的计算流程，计算workspace大小。
+ * @brief aclnnGroupedMatmulSwigluQuantV2 的第一段接口，根据具体的计算流程，计算workspace大小。
  * @domain aclnn_ops_infer
  *
- * @param [in] x: 表示公式中的x，数据类型支持INT8数据类型，数据格式支持ND。
+ * @param [in] x: 表示公式中的x，数据类型支持FLOAT8_E4M3FN、FLOAT8_E5M2数据类型，数据格式支持ND。
  * @param [in] weight:
- * 表示公式中的weight，数据类型支持INT8数据类型，数据格式支持NZ。
+ * 表示公式中的weight，数据类型支持FLOAT8_E4M3FN、FLOAT8_E5M2数据类型，数据格式支持ND。
  * @param [in] weightScale:
- * 表示量化参数，数据类型支持FLOAT32数据类型，数据格式支持ND。 
+ * 表示量化参数，数据类型支持FLOAT8_E8M0数据类型，数据格式支持ND。 
  * @param [in] weightAssistMatrix:
  * 表示weight辅助矩阵，数据类型支持FLOAT32数据类型。 
-  * @param [in] weightScale:
+ * @param [in] bias:
  * 表示偏移，数据类型支持FLOAT32数据类型，数据格式支持ND。 
  * @param [in] xScale:
  * 表示perToken量化参数，数据类型支持FLOAT8_E8M0数据类型，数据格式支持ND。
  * @param [in] smoothScale:
- * 数据类型支持FLOAT32数据类型。 
- * @param [in] groupList: 必选参数，代表输入和输出分组轴上的索引情况，数据类型支持INT64。
- * @param [in] dequantMode: 表示反量化模式。
- * @param [in] dequantDtype: 表示反量化数据格式。
- * @param [in] quantMode: 表示量化模式。
- * @param [in] quantDtype: 表示量化数据格式。
+ * 左矩阵的的量化因子，数据类型支持FLOAT32数据类型，数据格式支持ND。 
+ * @param [in] groupList: 必选参数，表示每个分组参与计算的Token个数，数据类型支持INT64。
+ * @param [in] dequantMode: 表示反量化计算类型，用于确定激活矩阵与权重矩阵的反量化方式。
+ * @param [in] dequantDtype: 表示中间GroupedMatmul的结果数据类型。
+ * @param [in] quantMode: 表示量化计算类型，用于确定swiglu结果的量化模式。
+ * @param [in] quantDtype: 表示输出的数据类型。
+ * @param [in] groupListType: 表示指定分组的解释方式，用于确定groupList的语义。
+ * @param [in] tuningConfig: 用于算子预估m/e的大小，走不同的算子模板，以适配不不同场景性能要求。默认值为[]。
  * @param [out] quantOutput: 表示公式中的out，数据类型支持FLOAT8_E4M3FN、FLOAT8_E5M2数据类型，数据格式支持ND。
  * @param [out] quantScaleOutput: 表示公式中的outQuantScale，数据类型支持FLOAT8_E8M0数据类型。
  * @param [out] workspaceSize: 返回用户需要在npu device侧申请的workspace大小。
  * @param [out] executor: 返回op执行器，包含算子计算流程。
  * @return aclnnStatus: 返回状态码。
  */
-aclnnStatus aclnnGroupedMatmulSwigluQuantWeightNzV2GetWorkspaceSize(const aclTensor *x,
+aclnnStatus aclnnGroupedMatmulSwigluQuantV2GetWorkspaceSize(const aclTensor *x,
         const aclTensorList *weight, const aclTensorList *weightScale,
         [[maybe_unused]] const aclTensorList *weightAssistMatrix, [[maybe_unused]] const aclTensor *bias,
         [[maybe_unused]] const aclTensor *xScale, [[maybe_unused]] const aclTensor *smoothScale,
         const aclTensor *groupList,  [[maybe_unused]] int64_t dequantMode, 
-        [[maybe_unused]] int64_t dequantDtype, [[maybe_unused]] int64_t quantMode,
-        int64_t groupListType,
+        [[maybe_unused]] int64_t dequantDtype, [[maybe_unused]] int64_t quantMode, int64_t groupListType,
         const aclIntArray *tuningConfigOptional, 
         aclTensor *output, aclTensor *outputScale,
         uint64_t *workspaceSize, aclOpExecutor **executor);
@@ -63,7 +64,7 @@ aclnnStatus aclnnGroupedMatmulSwigluQuantWeightNzV2GetWorkspaceSize(const aclTen
  * @param [in] executor: op执行器，包含了算子计算流程。
  * @return aclnnStatus: 返回状态码。
  */
-__attribute__((visibility("default"))) aclnnStatus aclnnGroupedMatmulSwigluQuantWeightNzV2(void *workspace, uint64_t workspaceSize,
+__attribute__((visibility("default"))) aclnnStatus aclnnGroupedMatmulSwigluQuantV2(void *workspace, uint64_t workspaceSize,
     aclOpExecutor *executor, aclrtStream stream);
 
 #ifdef __cplusplus

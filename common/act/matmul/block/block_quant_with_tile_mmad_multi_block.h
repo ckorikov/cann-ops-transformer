@@ -67,7 +67,7 @@ public:
         template <class InputType, const auto& COPY_CFG>
         using AdaptedCubeInB = typename TileCopy::template CopyGmToB1<InputType, COPY_CFG>;
         using CopyCubeInB =
-            AscendC::Impl::Detail::CopyCubeIn<Impl, AscendC::MatmulInputBType<InputBType, typename InputAType::T>,
+            AscendC::Impl::Detail::CopyCubeIn<Impl, AscendC::MatmulInputBType<InputBType, typename InputBType::T>,
                                               MM_CFG, void, AdaptedCubeInB>;
 
         template <class InputType, class OutputType, typename T = void>
