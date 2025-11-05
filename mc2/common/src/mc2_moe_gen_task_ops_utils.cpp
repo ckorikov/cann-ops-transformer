@@ -228,8 +228,7 @@ ge::Status Mc2MoeGenTaskOpsUtils::Mc2MoeInsertTask(
   ++aicoreIdx;
 
   // 2. aicpu task
-  bool needAicpuTesk = IsPlatform910B(nodeName) ||
-                       NO_AI_CPU_SET.find(opTypeStr) == NO_AI_CPU_SET.end();
+  bool needAicpuTesk = NO_AI_CPU_SET.find(opTypeStr) == NO_AI_CPU_SET.end();
   if (needAicpuTesk) {
     const std::string soName = "libccl_kernel.so";
     const std::string kernelName = "RunAicpuKfcSrvLaunch";

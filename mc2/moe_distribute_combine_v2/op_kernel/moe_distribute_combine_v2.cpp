@@ -15,10 +15,17 @@
 #include "kernel_operator.h"
 #include "lib/matmul_intf.h"
 #include "moe_distribute_combine_v2_tiling.h"
+#include "moe_distribute_combine_v2.h"
+
+#if __has_include("../moe_distribute_combine/moe_distribute_combine_a2.h")
 #include "../moe_distribute_combine/moe_distribute_combine_a2.h"
 #include "../moe_distribute_combine/moe_distribute_combine_a2_layered.h"
 #include "../moe_distribute_combine/moe_distribute_combine_a2_layered_aicpu.h"
-#include "moe_distribute_combine_v2.h"
+#else
+#include "../../moe_distribute_combine/op_kernel/moe_distribute_combine_a2.h"
+#include "../../moe_distribute_combine/op_kernel/moe_distribute_combine_a2_layered.h"
+#include "../../moe_distribute_combine/op_kernel/moe_distribute_combine_a2_layered_aicpu.h"
+#endif
 using namespace MoeDistributeCombineV2Impl;
 using namespace MoeDistributeCombineA2Impl;
 using namespace AscendC;
@@ -71,7 +78,7 @@ extern "C" __global__ __aicore__ void moe_distribute_combine_v2(GM_ADDR expandX,
             epSendCount, tpSendCount, scales, xActiveMask, sharedExpertX, elasticInfo, oriX, constExpertAlpha1, constExpertAlpha2, constExpertV, XOut, workspaceGM, tilingGM, &pipe);
     }
     if (TILING_KEY_IS(10000)) { // tp=1 IsInt8Quant=0
-        ExecMoeDistributeCombineV2<DTYPE_EXPAND_X, DTYPE_X, int32_t, false, false>(expandX, expertIds, assistInfoForCombine, 
+        ExecMoeDistributeCombineV2<DTYPE_EXPAND_X, DTYPE_X, int32_t, false, false>(expandX, expertIds, assistInfoForCombine,
             epSendCount, tpSendCount, scales, xActiveMask, sharedExpertX, elasticInfo, oriX, constExpertAlpha1, constExpertAlpha2, constExpertV, XOut, workspaceGM, tilingGM, &pipe);
     }
     if (TILING_KEY_IS(10120)) { // tp=2 IsInt8Quant=1
@@ -85,7 +92,8 @@ extern "C" __global__ __aicore__ void moe_distribute_combine_v2(GM_ADDR expandX,
     if (TILING_KEY_IS(2000)) {
         GET_TILING_DATA_WITH_STRUCT(MoeDistributeCombineA2TilingData, tilingData, tilingGM);
         MoeDistributeCombineA2<DTYPE_EXPAND_X, int32_t> op;
-        op.Init(expandX, expertIds, assistInfoForCombine, epSendCount, scales, xActiveMask, XOut, workspaceGM, &pipe, &tilingData);
+        op.Init(expandX, expertIds, assistInfoForCombine, epSendCount, scales, xActiveMask,
+            oriX, constExpertAlpha1, constExpertAlpha2, constExpertV, XOut, workspaceGM, &pipe, &tilingData);
         op.Process();
     }
     if (TILING_KEY_IS(3000)) {
