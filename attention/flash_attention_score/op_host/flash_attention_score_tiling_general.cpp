@@ -1117,6 +1117,9 @@ bool FlashAttentionScoreTilingBase::CouldConvertTND2BSH(std::array<int64_t, MAX_
     if (queryRopeShape != nullptr) {
         return false;
     }
+    if (tndSoftmaxOut == 1) {
+        return false; // could not switch to BSH layout with TND softmax 
+    }
     if (!(pseShape == nullptr || pseShape->GetStorageShape().GetDimNum() == 0)) {
         return false; 
     }
