@@ -301,7 +301,7 @@ aclnnStatus aclnnFusedInferAttentionScoreV4(
         <tr>
             <td>antiquantScaleOptional</td>
             <td>可选输入</td>
-            <td>表示对key/value进行反量化的因子</td>
+            <td>表示对key/value进行伪量化的因子</td>
             <td>支持per-tensor、per-channel、per-token</td>
             <td>Q_S=1：FLOAT16、BFLOAT16、FLOAT32Q_S&gt;1：FLOAT16</td>
             <td>ND</td>
@@ -365,7 +365,7 @@ aclnnStatus aclnnFusedInferAttentionScoreV4(
         <tr>
             <td>keyAntiquantScaleOptional</td>
             <td>可选输入</td>
-            <td>表示对key进行反量化的因子(?只有伪量化)</td>
+            <td>表示对key进行反量化的因子</td>
             <td>
             <ul>
                 <li>keyAntiquantScaleOptional和valueAntiquantScaleOptional要么都为空，要么都不为空。</li>
@@ -1357,7 +1357,7 @@ aclnnStatus aclnnFusedInferAttentionScoreV4(
         </table>
 
 - <a id="TND"></a>TND、TND_NTD、NTD_TND场景下query，key，value输入的综合限制：
-    - sparseMode=0不传mask或者sparseMode=3且传入mask
+    - sparseMode支持0, 3, 4
     - actualSeqLengths和actualSeqLengthsKv必须传入
 
     <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：
@@ -1382,19 +1382,17 @@ aclnnStatus aclnnFusedInferAttentionScoreV4(
             <td>支持TND、TND_NTD;</td>
         </tr>
         <tr>
-            <td>actualSeqLengths</td>
-            <td>支持query每个batch的s为1-16；</td>
         </tr>
         <tr>
             <td>numHeads</td>
-            <td>32、64、128</td>
+            <td>支持1、2、4、8、16、32、64、128</td>
         </tr>
         <tr>
             <td>numKeyValueHeads</td>
             <td>1</td>
         </tr>
         <tr>
-            <td rowspan="2">PagedAttention(必须开启)</td>
+            <td rowspan="2">PagedAttention</td>
             <td>blocktable</td>
             <td>不为nullptr</td>
         </tr>
@@ -1478,7 +1476,7 @@ aclnnStatus aclnnFusedInferAttentionScoreV4(
             <td rowspan="18">query d=512</td>
             <td rowspan="6">通用场景</td>
             <td>query</td>
-            <td>FLOAT16、BFLOAT16；Q_S [1,16] Q_N=[1,2,4,8,16,32,64,128]</td>
+            <td>FLOAT16、BFLOAT16；Q_N=[1,2,4,8,16,32,64,128]</td>
             <td>-</td>
         </tr>
         <tr>
@@ -1503,13 +1501,13 @@ aclnnStatus aclnnFusedInferAttentionScoreV4(
         </tr>
         <tr>
             <td>inputLayout</td>
-            <td>BSH、BSND、BNSD、BNSD_NBSD、BSND_NBSD、BSH_NBSD、TND、TND_NTD，其中key/value shape为五维时，不支持BNSD、BNSD_NBSD</td>
+            <td>支持BSH、BSND、BNSD、BNSD_NBSD、BSND_NBSD、BSH_NBSD、TND、TND_NTD</td>
             <td>-</td>
         </tr>
         <tr>
             <td>MASK</td>
             <td>sparseMode</td>
-            <td>Q_S等于1时支持sparse=0且不传mask或sparse=4且传mask，Q_S大于1时支持sparse=3且传入mask或sparse=4且传入mask</td>
+            <td>sparseMode支持0, 3, 4</td>
             <td>-</td>
         </tr>
         <tr>
@@ -1551,7 +1549,7 @@ aclnnStatus aclnnFusedInferAttentionScoreV4(
         </tr>
         <tr>
             <td>blockSize</td>
-            <td>128</td>
+            <td>blockSize16对齐，且<=1024</td>
             <td>-</td>
         </tr>
         <tr>
