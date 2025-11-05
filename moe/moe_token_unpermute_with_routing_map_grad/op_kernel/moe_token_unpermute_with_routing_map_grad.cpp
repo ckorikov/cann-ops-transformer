@@ -42,14 +42,14 @@ extern "C" __global__ __aicore__ void moe_token_unpermute_with_routing_map_grad(
     }
 #ifdef DTYPE_PROBS
     if (TILING_KEY_IS(1)) {
-        MoeTokenUnpermuteWithRoutingMapGradProbNotNoneDropPadFalse<DTYPE_PERMUTED_TOKENS, int32_t> op;
+        MoeTokenUnpermuteWithRoutingMapGradProbNotNoneDropPadFalse<DTYPE_PERMUTED_TOKENS, int32_t, DTYPE_PROBS> op;
         op.Init(
             unpermuted_tokens_grad, out_index, permute_token_id, routing_map, permuted_tokens, probs,
             permuted_tokens_grad, probs_grad, tiling_data);
         op.Process();
     }
     if (TILING_KEY_IS(11)) {
-        MoeTokenUnpermuteWithRoutingMapGradProbNotNoneDropPadTrue<DTYPE_PERMUTED_TOKENS, int32_t> op;
+        MoeTokenUnpermuteWithRoutingMapGradProbNotNoneDropPadTrue<DTYPE_PERMUTED_TOKENS, int32_t, DTYPE_PROBS> op;
         op.Init(
             unpermuted_tokens_grad, out_index, permute_token_id, routing_map, permuted_tokens, probs,
             permuted_tokens_grad, probs_grad, tiling_data);
