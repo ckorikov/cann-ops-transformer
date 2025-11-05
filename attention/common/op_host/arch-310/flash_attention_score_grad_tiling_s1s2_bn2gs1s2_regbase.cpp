@@ -385,7 +385,8 @@ ge::graphStatus FlashAttentionScoreGradTilingUs1s2Bs2Regbase::ProcessOptionalInp
                         && fBaseParams.d <= BN2_MAX_D && fBaseParams.n1 == fBaseParams.n2
                         && (queryType != ge::DT_FLOAT)
                         && (fBaseParams.d == fBaseParams.d1)
-                        && !(queryType == ge::DT_FLOAT8_E5M2 || queryType == ge::DT_FLOAT8_E4M3FN);
+                        && !(queryType == ge::DT_FLOAT8_E5M2 || queryType == ge::DT_FLOAT8_E4M3FN)
+                        && !fBaseParams.isDeterministic;
     if (fBaseParams.isBn2) {
         fBaseParams.isDeterministic = false;
         if ((fBaseParams.layoutType == INPUT_FROAMT_TND && fBaseParams.d > ALIGN128)
@@ -2622,7 +2623,7 @@ void FlashAttentionScoreGradTilingUs1s2Bs2Regbase::GetParseS1S2OuterInfo(int64_t
     if (parseInfo[fBaseParams.s2Outer - 1][LENGTH_IDX] <= 1 && fBaseParams.d <= BN2_MAX_D &&
         fBaseParams.n1 == fBaseParams.n2 && (fBaseParams.queryType != ge::DT_FLOAT) && 
         fBaseParams.queryType != ge::DT_FLOAT8_E5M2 && fBaseParams.queryType != ge::DT_FLOAT8_E4M3FN &&
-        fBaseParams.d == fBaseParams.d1) {
+        fBaseParams.d == fBaseParams.d1 && !fBaseParams.isDeterministic) {
         fBaseParams.isBn2 = true;
         fBaseParams.isDeterministic = false;
         fBaseParams.splitAxis = SplitAxisEnum::BN2;
