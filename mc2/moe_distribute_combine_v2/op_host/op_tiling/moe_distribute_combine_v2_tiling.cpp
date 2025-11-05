@@ -1393,17 +1393,15 @@ static ge::graphStatus MoeDistributeCombineV2TilingFunc(gert::TilingContext* con
     fe::PlatFormInfos &platformInfo = *platformInfoPtr;
 
     ge::graphStatus ret;
-    #ifdef __DEV_C310__
-    ret = MoeDistributeCombineTilingImpl(context);
-    #else
     std::string socVersion;
     (void)platformInfo.GetPlatformResWithLock("version", "Short_SoC_version", socVersion);
     if (socVersion == "Ascend910B") {
         ret = MoeDistributeCombineA2TilingFuncImpl(context);
+    } else if (socVersion == "Ascend910_95") {
+        ret = MoeDistributeCombineTilingImpl(context);
     } else {
         ret = MoeDistributeCombineA3TilingFuncImpl(context);
     }
-    #endif
 
     return ret;
 }
