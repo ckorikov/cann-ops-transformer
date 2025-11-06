@@ -429,9 +429,11 @@ bool GroupedQbmmTiling::SetQuantMode(const gert::Shape &wScaleShape, const gert:
         return true;
     }
     // scale pertensor: (g,1) 2维或（g,）1维, perchannel:（g, N), 2维
-    if (wScaleDims == 2 && static_cast<uint64_t>(wScaleShape.GetDim(wScaleDims - 1)) == inputParams_.nSize) {
+    if (wScaleDims == 2 && static_cast<uint64_t>(wScaleShape.GetDim(wScaleDims - 1)) == inputParams_.nSize &&
+        inputParams_.nSize != 1UL) {
         inputParams_.bQuantMode = optiling::QuantMode::PERCHANNEL_MODE;
-    } else {
+    } else if ((wScaleDims == 2 && wScaleShape[wScaleDims - 1] == 1) ||  // 2:（g,1) 2维
+               (wScaleDims == 1 && static_cast<uint64_t>(wScaleShape[0]) == inputParams_.groupNum)) {
         inputParams_.bQuantMode = optiling::QuantMode::PERTENSOR_MODE;
     }
     if (xScaleStorageShape != nullptr) {
@@ -440,8 +442,9 @@ bool GroupedQbmmTiling::SetQuantMode(const gert::Shape &wScaleShape, const gert:
         auto &xScaleShape = xScaleStorageShape->GetStorageShape();
         auto xScaleDims = xScaleShape.GetDimNum();
         if (inputParams_.aDtype != ge::DT_INT8 &&
-            ((xScaleDims == 2 && xScaleShape[xScaleDims - 1] == 1) || // 2:（g,1) 2维
-             (xScaleDims == 1 && static_cast<uint64_t>(xScaleShape[0]) == inputParams_.groupNum))) {
+            ((xScaleDims == 2 && xScaleShape[xScaleDims - 1] == 1) ||  // 2:（g,1) 2维
+             (xScaleDims == 1 && static_cast<uint64_t>(xScaleShape[0]) == inputParams_.groupNum &&
+              inputParams_.groupNum != inputParams_.mSize))) {
             inputParams_.aQuantMode = optiling::QuantMode::PERTENSOR_MODE;
         } else {
             inputParams_.aQuantMode = optiling::QuantMode::PERTOKEN_MODE;
@@ -463,23 +466,25 @@ void GroupedQbmmTiling::SetPerGroupQuantMode(const gert::Shape &xScaleShape, con
     }
     auto wScaleDims = wScaleShape.GetDimNum();
     uint32_t wDimNum = static_cast<uint32_t>(wShape.GetDimNum());
-    if (wDimNum != wScaleDims || (inputParams_.groupType == SPLIT_M && wScaleDims < SPLIT_M_W_DIMS)) {
+    if (wDimNum != wScaleDims || (inputParams_.groupType == SPLIT_M && wScaleDims < SPLIT_M_W_DIMS) ||
+        (inputParams_.groupType == SPLIT_K && wScaleDims < SPLIT_K_W_DIMS)) {
         return;
     }
     optiling::QuantMode aQuantMode = optiling::QuantMode::DEFAULT;
     optiling::QuantMode bQuantMode = optiling::QuantMode::DEFAULT;
     if (inputParams_.groupType == SPLIT_M) {
-        uint64_t scaleKPerBlock = CeilDiv(inputParams_.kSize, PER_BLOCK_GROUP_SIZE);
-        if (static_cast<uint64_t>(xScaleShape.GetDim(xScaleDims - LAST_FIRST_DIM_INDEX)) == scaleKPerBlock &&
-            static_cast<uint64_t>(xScaleShape.GetDim(xScaleDims - LAST_SECOND_DIM_INDEX)) == inputParams_.mSize) {
-            aQuantMode = optiling::QuantMode::PERGROUP_MODE;
-        }
         for (uint64_t i = 1; i < wScaleDims; ++i) {
             if (wScaleShape.GetDim(i) != CeilDiv(wShape.GetDim(i), PER_BLOCK_GROUP_SIZE)) {
                 return;
             }
         }
         bQuantMode = optiling::QuantMode::PERBLOCK_MODE;
+
+        uint64_t scaleKPerBlock = CeilDiv(inputParams_.kSize, PER_BLOCK_GROUP_SIZE);
+        if (static_cast<uint64_t>(xScaleShape.GetDim(xScaleDims - LAST_FIRST_DIM_INDEX)) == scaleKPerBlock &&
+            static_cast<uint64_t>(xScaleShape.GetDim(xScaleDims - LAST_SECOND_DIM_INDEX)) == inputParams_.mSize) {
+            aQuantMode = optiling::QuantMode::PERGROUP_MODE;
+        }
     }
     if (inputParams_.groupType == SPLIT_K) {
         uint64_t scaleKPerBlock = inputParams_.kSize / PER_BLOCK_GROUP_SIZE + inputParams_.groupNum;
