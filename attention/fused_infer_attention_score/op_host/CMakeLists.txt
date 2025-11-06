@@ -23,18 +23,16 @@ if("${CONDITION_UNIT}" STREQUAL "ascend910_95")
         )
 endif()
 
-if (BUILD_OPS_RTY_KERNEL)
-    add_ops_compile_options(
-        OP_NAME FusedInferAttentionScore
-        OPTIONS --cce-auto-sync=off
-                -Wno-deprecated-declarations
-                -Werror
-                -mllvm -cce-vf-remove-membar=false
-                -mllvm -cce-aicore-hoist-movemask=false
-                --op_relocatable_kernel_binary=true
-    )
-else()
-
+add_ops_compile_options(
+    OP_NAME FusedInferAttentionScore
+    OPTIONS --cce-auto-sync=off
+            -Wno-deprecated-declarations
+            -Werror
+            -mllvm -cce-vf-remove-membar=false
+            -mllvm -cce-aicore-hoist-movemask=false
+            --op_relocatable_kernel_binary=true
+)
+if(NOT BUILD_OPS_RTY_KERNEL)
     add_modules_sources(OPTYPE fused_infer_attention_score ACLNNTYPE aclnn_inner)
 endif()
 

@@ -23,15 +23,14 @@ if("${CONDITION_UNIT}" STREQUAL "ascend910_95")
         )
 endif()
 
-if (BUILD_OPS_RTY_KERNEL)
-    add_ops_compile_options(
-        OP_NAME IncreFlashAttention
-        OPTIONS --cce-auto-sync=off
-                -Wno-deprecated-declarations
-                -mllvm -cce-vf-remove-membar=false
-                -Werror
-    )
-else()
+add_ops_compile_options(
+    OP_NAME IncreFlashAttention
+    OPTIONS --cce-auto-sync=off
+            -Wno-deprecated-declarations
+            -mllvm -cce-vf-remove-membar=false
+            -Werror
+)
+if(NOT BUILD_OPS_RTY_KERNEL)
     add_modules_sources(OPTYPE incre_flash_attention ACLNNTYPE aclnn_inner)
 endif()
 

@@ -13,17 +13,17 @@ if (BUILD_OPEN_PROJECT)
     )
 endif()
 
+add_ops_compile_options(
+    OP_NAME PromptFlashAttention
+    OPTIONS --cce-auto-sync=off
+            -Wno-deprecated-declarations
+            -Werror
+            -mllvm -cce-vf-remove-membar=false
+            -mllvm -cce-aicore-hoist-movemask=false
+)
+
 set(CONDITION_UNIT ${ASCEND_COMPUTE_UNIT})
 if (BUILD_OPS_RTY_KERNEL) # 回黄kernel
-    add_ops_compile_options(
-        OP_NAME PromptFlashAttention
-        OPTIONS --cce-auto-sync=off
-                -Wno-deprecated-declarations
-                -Werror
-                -mllvm -cce-vf-remove-membar=false
-                -mllvm -cce-aicore-hoist-movemask=false
-    )
-    
     if("${CONDITION_UNIT}" STREQUAL "ascend910_95")
         add_ops_compile_options(
             OP_NAME PromptFlashAttention
