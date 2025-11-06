@@ -565,6 +565,12 @@ void FiaTilingNonQuant::CalcBlockDim(uint32_t coreNum)
     OP_LOGI(fiaInfo_->opName, "FIA block dim: %u aiv Num: %u aic Num: %u.", blockDim_, aivNum, aicNum);
 }
 
+void FiaTilingNonQuant::CalcScheduleMode()
+{
+    scheduleMode_ = ScheduleMode::BATCH_MODE;
+    OP_LOGI(fiaInfo_->opName, "FIA schedule mode: %u.", static_cast<uint32_t>(scheduleMode_));
+}
+
 ge::graphStatus FiaTilingNonQuant::DoOpTiling()
 {
     if (GetPlatformInfo() != ge::GRAPH_SUCCESS) {
@@ -578,6 +584,7 @@ ge::graphStatus FiaTilingNonQuant::DoOpTiling()
         Split();
         FillTiling();
         CalcBlockDim(usedCoreNum_);
+        CalcScheduleMode();
         CalcWorkspaceSize();
         GenTilingKey();
     }
@@ -585,7 +592,8 @@ ge::graphStatus FiaTilingNonQuant::DoOpTiling()
     if ((SetBlockDim(blockDim_) != ge::GRAPH_SUCCESS) ||
         (SetTilingKey(tilingKey_) != ge::GRAPH_SUCCESS) ||
         (SetWorkspaceSize(workspaceSize_) != ge::GRAPH_SUCCESS) ||
-        (SetTilingData(tilingData_) != ge::GRAPH_SUCCESS)) {
+        (SetTilingData(tilingData_) != ge::GRAPH_SUCCESS) ||
+        (SetScheduleMode(scheduleMode_) != ge::GRAPH_SUCCESS)) {
         return ge::GRAPH_FAILED;
     }
 
