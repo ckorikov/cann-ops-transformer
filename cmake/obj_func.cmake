@@ -220,14 +220,13 @@ endmacro()
 function(add_opapi_modules)
   if (NOT TARGET ${OPHOST_NAME}_opapi_obj)
     add_library(${OPHOST_NAME}_opapi_obj OBJECT)
-    unset(OPAPI_UT_DEPEND_INC)
+    set(BUILD_UT OFF CACHE BOOL "No UT Compilation" FORCE)
     if(UT_TEST_ALL OR OP_API_UT)
-      set(OPAPI_UT_DEPEND_INC ${UT_PATH}/op_api/stub)
+      set(BUILD_UT ON CACHE BOOL "Build OpApi UT Compilation" FORCE)
     endif()
     target_include_directories(${OPHOST_NAME}_opapi_obj
       PRIVATE
       ${OPAPI_INCLUDE}
-      ${OPAPI_UT_DEPEND_INC}
       $<BUILD_INTERFACE:${ASCEND_CANN_PACKAGE_PATH}/include>
       $<BUILD_INTERFACE:${ASCEND_CANN_PACKAGE_PATH}/include/aclnn>
       $<$<BOOL:${BUILD_OPEN_PROJECT}>:$<BUILD_INTERFACE:${ASCEND_CANN_PACKAGE_PATH}/include/experiment/metadef/common/util>>
@@ -269,6 +268,10 @@ endfunction()
 function(add_infer_modules)
   if (NOT TARGET ${OPHOST_NAME}_infer_obj)
     add_library(${OPHOST_NAME}_infer_obj OBJECT)
+    set(BUILD_UT OFF CACHE BOOL "No UT Compilation" FORCE)
+    if(UT_TEST_ALL OR PROTO_UT OR PASS_UT OR PLUGIN_UT OR ONNX_PLUGIN_UT)
+      set(BUILD_UT ON CACHE BOOL "Build InferShape UT Compilation" FORCE)
+    endif()
     target_include_directories(${OPHOST_NAME}_infer_obj
       PRIVATE ${OP_PROTO_INCLUDE}
       $<BUILD_INTERFACE:${ASCEND_CANN_PACKAGE_PATH}/include>
@@ -285,9 +288,11 @@ function(add_infer_modules)
       PRIVATE
       LOG_CPP
       OPS_UTILS_LOG_SUB_MOD_NAME="OP_PROTO"
+      $<$<BOOL:${BUILD_UT}>:ASCEND_OPSPROTO_UT>
     )
     target_compile_options(${OPHOST_NAME}_infer_obj
       PRIVATE
+      $<$<NOT:$<BOOL:${BUILD_UT}>>:-DDISABLE_COMPILE_V1>
       -Dgoogle=ascend_private
       -fvisibility=hidden
     )
@@ -319,6 +324,10 @@ function(add_tiling_modules)
   if (NOT TARGET ${OPHOST_NAME}_tiling_obj)
     add_library(${OPHOST_NAME}_tiling_obj OBJECT)
     add_dependencies(${OPHOST_NAME}_tiling_obj json)
+    set(BUILD_UT OFF CACHE BOOL "No UT Compilation" FORCE)
+    if(UT_TEST_ALL OR TILING_UT)
+      set(BUILD_UT ON CACHE BOOL "Build OpTiling UT Compilation" FORCE)
+    endif()
     target_include_directories(${OPHOST_NAME}_tiling_obj
       PRIVATE ${OP_TILING_INCLUDE}
       $<BUILD_INTERFACE:${ASCEND_CANN_PACKAGE_PATH}/include>
@@ -335,15 +344,18 @@ function(add_tiling_modules)
       PRIVATE
       LOG_CPP
       OPS_UTILS_LOG_SUB_MOD_NAME="OP_TILING"
+      $<$<BOOL:${BUILD_UT}>:ASCEND_OPTILING_UT>
     )
     target_compile_options(${OPHOST_NAME}_tiling_obj
       PRIVATE
+      $<$<NOT:$<BOOL:${BUILD_UT}>>:-DDISABLE_COMPILE_V1>
       -Dgoogle=ascend_private
       -fvisibility=hidden
       -fno-strict-aliasing
     )
     target_link_libraries(${OPHOST_NAME}_tiling_obj
       PRIVATE
+      # # $<BUILD_INTERFACE:$<IF:$<BOOL:${BUILD_UT}>, intf_llt_pub_asan_cxx17, intf_pub_cxx17>>
       $<BUILD_INTERFACE:intf_pub>
       $<BUILD_INTERFACE:ops_transformer_utils_tiling_headers>
       $<$<BOOL:${alog_FOUND}>:$<BUILD_INTERFACE:alog_headers>>
@@ -396,6 +408,7 @@ function(add_opmaster_ct_gentask_modules)
   if (NOT TARGET ${OPHOST_NAME}_opmaster_ct_gentask_obj)
     add_library(${OPHOST_NAME}_opmaster_ct_gentask_obj OBJECT)
     add_dependencies(${OPHOST_NAME}_opmaster_ct_gentask_obj json)
+    set(BUILD_UT OFF CACHE BOOL "No UT Compilation" FORCE)
 
     target_include_directories(${OPHOST_NAME}_opmaster_ct_gentask_obj
       PRIVATE ${OP_TILING_INCLUDE}
@@ -408,6 +421,7 @@ function(add_opmaster_ct_gentask_modules)
     )
     target_compile_options(${OPHOST_NAME}_opmaster_ct_gentask_obj
       PRIVATE
+      $<$<NOT:$<BOOL:${BUILD_UT}>>:-DDISABLE_COMPILE_V1>
       -Dgoogle=ascend_private
       -fvisibility=hidden
       -fno-strict-aliasing
