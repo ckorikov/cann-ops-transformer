@@ -66,7 +66,6 @@ static constexpr size_t WORK_SPACE_RESERVE_SIZE = 16 * 1024 * 1024;
 static const int64_t ATTEN_MASK_S1_REV_INDEX = 2L;
 static const int64_t ATTEN_MASK_COMPRESS_LIMIT = 2048L;
 static const int64_t ATTEN_MASK_COMPRESS_PREFIX_LIMIT = 3072L;
-static const int64_t MAX_VAR_LEN_SEQ_LEN = 20000L;
 static const int64_t SLOPE_BN_DIM_NUM = 2L;
 static const int64_t SLOPE_N_DIM_NUM = 1L;
 static const int64_t INVALID_ROW_SPARSE_RATIO = 6L;
@@ -349,7 +348,7 @@ protected:
     // 7、保存Tiling数据，// 由于这个类中不保存TilingData，子类中需要调用这个类的PostTiling并额外设置RawTilingData的DataSize
     ge::graphStatus PostTiling() override;
 
-    bool GetActualSeqLenData(int64_t inputIdx, std::array<int64_t, MAX_VAR_LEN_SEQ_LEN> &res, int64_t &actualLen) const;
+    bool GetActualSeqLenData(int64_t inputIdx, std::vector<int64_t> &res, int64_t &actualLen) const;
 
     // 关于TilingData的校验需要在子类中实现
     virtual ge::graphStatus CheckContext();
@@ -441,8 +440,8 @@ protected:
     int64_t dropTotalSize;
     int64_t accumS2;
     int64_t bandIndex;
-    std::array<int64_t, MAX_VAR_LEN_SEQ_LEN> actualSeqLenData;
-    std::array<int64_t, MAX_VAR_LEN_SEQ_LEN> actualSeqLenKvData;
+    std::vector<int64_t> actualSeqLenData;
+    std::vector<int64_t> actualSeqLenKvData;
     float keepProb;
     int64_t keepProbUint8;
     int64_t seed;
@@ -739,7 +738,7 @@ bool FlashAttentionScoreConstTiling::AnalyzeLayout()
 }
 
 bool FlashAttentionScoreConstTiling::GetActualSeqLenData(
-    int64_t inputIdx, std::array<int64_t, MAX_VAR_LEN_SEQ_LEN> &res, int64_t &actualLen) const
+    int64_t inputIdx, std::vector<int64_t> &res, int64_t &actualLen) const
 {
     auto actualSeqLenTensor = context_->GetOptionalInputTensor(inputIdx);
     if (actualSeqLenTensor == nullptr) {
@@ -759,14 +758,16 @@ bool FlashAttentionScoreConstTiling::GetActualSeqLenData(
         return true;
     }
     int64_t seqLen = actualSeqLenShape.GetDim(0);
-    if (seqLen > MAX_VAR_LEN_SEQ_LEN) {
-        OPS_REPORT_VECTOR_INNER_ERR(opName, "Seq len is more than %ld, not support.", MAX_VAR_LEN_SEQ_LEN);
+    try {
+        res.reserve(seqLen);
+    } catch (...) {
+        OPS_REPORT_VECTOR_INNER_ERR(opName, "Init actual_seq_len failed, array is too long.");
         return false;
     }
-    res[0] = value[0];
+    res.emplace_back(value[0]);
     actualLen++;
     for (auto i = 1; i < seqLen; ++i) {
-        res[i] = value[i] - value[i - 1];
+        res.emplace_back(value[i] - value[i - 1]);
         actualLen++;
     }
     return true;
@@ -2719,7 +2720,6 @@ protected:
                 if (preTokens >= s1Size && nextTokens >= s2Size) {
                     return true;
                 }
-                int64_t minS1Val = *std::min_element(actualSeqLenData.begin(), actualSeqLenData.begin() + bSize);
                 int64_t minS2Val = *std::min_element(actualSeqLenKvData.begin(), actualSeqLenKvData.begin() + bSize);
                 if (!SparseNoMaskModeCheck(s1Size, s2Size, minS2Val, sparseType)) {
                     return false;
