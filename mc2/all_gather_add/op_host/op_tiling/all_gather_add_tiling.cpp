@@ -24,8 +24,10 @@
 using namespace AscendC;
 using namespace ge;
 
-constexpr uint32_t TILE_LENGTH = 128; // 先随手
-
+namespace {
+    constexpr uint32_t TILE_NUM = 1;
+    constexpr uint32_t COMM_TURN = 1;
+}
 namespace optiling {
 
 static ge::graphStatus AllGatherParamsCheck(const gert::TilingContext* context)
@@ -54,9 +56,8 @@ static ge::graphStatus AllGatherParamsCheck(const gert::TilingContext* context)
 static void InitHcclParam(AllGatherAddTilingData* tilingData, const char* group)
 {
 
-    std::string algConfig = "AllGather=level0:doublering"; // 啥
-    Mc2CcTilingConfig mc2CcTilingConfig(group, HCCL_CMD_ALLGATHER, algConfig, HCCL_REDUCE_SUM);
-    mc2CcTilingConfig.SetSkipBufferWindowCopy(0); // 需要输出本卡通信算法的计算结果 ？
+    std::string algConfig = "AllGather=level0:fullmesh";
+    Mc2CcTilingConfig mc2CcTilingConfig(group, HCCL_CMD_ALLGATHER, algConfig);
     mc2CcTilingConfig.GetTiling(tilingData->mc2InitTiling);
     mc2CcTilingConfig.GetTiling(tilingData->mc2CcTiling);
 }
@@ -66,7 +67,6 @@ static ge::graphStatus AllGatherAddTilingFunc(gert::TilingContext *context) {
     OP_TILING_CHECK(AllGatherParamsCheck(context) != ge::GRAPH_SUCCESS,
                     VECTOR_INNER_ERR_REPORT_TILING(context->GetNodeName(), "param is invalid"), return ge::GRAPH_FAILED);
     
-    // 设置kernel核数 SetBlockDim 2 4 8
     auto ascendcPlatform = platform_ascendc::PlatformAscendC(context->GetPlatformInfo());
     context->SetBlockDim(ascendcPlatform.GetCoreNumAiv());
 
@@ -76,15 +76,20 @@ static ge::graphStatus AllGatherAddTilingFunc(gert::TilingContext *context) {
     OP_CHECK_IF(
         memset_s(tilingData, sizeof(AllGatherAddTilingData), 0, sizeof(AllGatherAddTilingData)) != EOK,
         OP_LOGE(context, "set AllGatherAdd tiling data error"), return ge::GRAPH_FAILED);
-    tilingData->totalLength = context->GetInputTensor(0)->GetShapeSize();
-    tilingData->tileLength = TILE_LENGTH;
-    tilingData->tileNum = tilingData->totalLength / tilingData->tileLength;
+    auto dataType = context->GetInputTensor(1)->GetDataType();
+    tilingData->commTurn = COMM_TURN;
+    tilingData->tileNum = TILE_NUM;
+    tilingData->totalLength = context->GetInputTensor(1)->GetShapeSize() / sizeof(dataType); // 总长度是参与Add操作的数据个数
+    tilingData->blockLength = tilingData->totalLength / context->GetBlockDim(); // 每个核处理的数据个数
+    tilingData->tileLength = tilingData->totalLength / context->GetBlockDim() / tilingData->tileNum; // 每个分片处理的数据个数
+    tilingData->gatherTileLength = tilingData->totalLength / 2; // 待gather的数据个数
+    
 
     // 设置workspaceSize gather out需要额外的临时内存，大小=input b
     size_t* currentWorkspace = context->GetWorkspaceSizes(1);
     OP_CHECK_NULL_WITH_CONTEXT(context,currentWorkspace);
     // 如需使用系统workspace需要调用GetLibApiWorkSpaceSize获取系统workspace大小
-    uint32_t sysWorkSpaceSize = ascendcPlatform.GetLibApiWorkSpaceSize(); 
+    uint32_t sysWorkSpaceSize = ascendcPlatform.GetLibApiWorkSpaceSize();
     // 预留18M + gather_out, gather_out 大小跟x1输入一样
     currentWorkspace[0] = sysWorkSpaceSize + tilingData->totalLength;
 
@@ -96,7 +101,7 @@ static ge::graphStatus AllGatherAddTilingFunc(gert::TilingContext *context) {
 struct AllGatherAddCompileInfo {};
 
 static ge::graphStatus TilingParseForAllGatherAdd([[maybe_unused]] gert::TilingParseContext *context)
-{ 
+{
     (void)context;
     return ge::GRAPH_SUCCESS;
 }

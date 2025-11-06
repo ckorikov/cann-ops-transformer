@@ -30,7 +30,7 @@
         printf(message, ##__VA_ARGS__); \
     } while(0)
 
-constexpr int RANK_DIM = 8;
+constexpr int RANK_DIM = 2;
 
 int64_t GetShapeSize(const std::vector<int64_t> &shape)
 {
@@ -74,10 +74,10 @@ int launchOneThread_AllGatherAdd(Args &args)
     ret = HcclGetCommName(args.hcclComm, hcomName);
     CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("[ERROR] HcclGetCommName failed. ret: %d\n", ret); return -1);
     LOG_PRINT("[INFO] rank = %d, hcomName = %s, stream = %p\n", args.rankId, hcomName, args.stream);
-    std::vector<int64_t> aShape = {16, 256};
-    std::vector<int64_t> gatherOutShape = {16 * RANK_DIM, 256};
-    std::vector<int64_t> bShape = {16 * RANK_DIM, 256};
-    std::vector<int64_t> outputShape = {16 * RANK_DIM, 256};
+    std::vector<int64_t> aShape = {240, 256};
+    std::vector<int64_t> gatherOutShape = {240 * RANK_DIM, 256};
+    std::vector<int64_t> bShape = {240 * RANK_DIM, 256};
+    std::vector<int64_t> outputShape = {240 * RANK_DIM, 256};
     void *aDeviceAddr = nullptr;
     void *bDeviceAddr = nullptr;
     void *outDeviceAddr = nullptr;

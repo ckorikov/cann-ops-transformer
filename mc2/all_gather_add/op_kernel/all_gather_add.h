@@ -51,6 +51,7 @@ private:
     TQue<QuePosition::VECIN, ALLGATHER_ADD_BUFFER_NUM> inputQueueB;
     TQue<QuePosition::VECOUT, ALLGATHER_ADD_BUFFER_NUM> outputQueueC;
 
+    GlobalTensor<half> inputAGM;
     GlobalTensor<half> gatherOutGM;
     GlobalTensor<half> inputBGM;
     GlobalTensor<half> outputCGM;
@@ -63,7 +64,7 @@ private:
 };
 
 __aicore__ inline void AllGatherAdd::Init(GM_ADDR aGM, GM_ADDR bGM, GM_ADDR cGM, GM_ADDR gatherGM, 
-                                             GM_ADDR workspaceGM, GM_ADDR contextGM, AllGatherAddTilingData *tilingData, TPipe *tPipe)
+                                          GM_ADDR workspaceGM, GM_ADDR contextGM, AllGatherAddTilingData *tilingData, TPipe *tPipe)
 {
     aGM_ = aGM;
     bGM_ = bGM;
@@ -72,18 +73,18 @@ __aicore__ inline void AllGatherAdd::Init(GM_ADDR aGM, GM_ADDR bGM, GM_ADDR cGM,
     workspaceGM_ = workspaceGM;
     tilingData_ = tilingData;
     tPipe_ = tPipe;
-    blockLength_ = tilingData->totalLength / AscendC::GetBlockNum();
-    tileNum_ = tilingData->tileNum;
-    tileLength_ = blockLength_ / tileNum_ / ALLGATHER_ADD_BUFFER_NUM;
+    blockLength_ = tilingData->blockLength;
+    tileLength_ = tilingData->tileLength;
     // todo 考虑尾块 对齐的话：a :48 2048 b: 96 2048
 
     // 初始化hccl对象
     hccl_.InitV2(contextGM, tilingData);
     hccl_.SetCcTilingV2(offsetof(AllGatherAddTilingData, mc2CcTiling)); // 相对于Mc2InitTiling起始地址的偏移
 
-    gatherOutGM.SetGlobalBuffer((__gm__ half*)gatherGM + blockLength_ * AscendC::GetBlockIdx(), blockLength_);
-    inputBGM.SetGlobalBuffer((__gm__ half*)bGM + blockLength_ * AscendC::GetBlockIdx(), blockLength_);
-    outputCGM.SetGlobalBuffer((__gm__ half*)cGM + blockLength_ * AscendC::GetBlockIdx(), blockLength_);
+    inputAGM.SetGlobalBuffer((__gm__ half*)aGM, tilingData->gatherTileLength);
+    gatherOutGM.SetGlobalBuffer((__gm__ half*)gatherGM + blockLength_ * AscendC::GetBlockIdx() * sizeof(half), blockLength_);
+    inputBGM.SetGlobalBuffer((__gm__ half*)bGM + blockLength_ * AscendC::GetBlockIdx() * sizeof(half), blockLength_);
+    outputCGM.SetGlobalBuffer((__gm__ half*)cGM + blockLength_ * AscendC::GetBlockIdx() * sizeof(half), blockLength_);
 
     tPipe_->InitBuffer(inputQueueGather, ALLGATHER_ADD_BUFFER_NUM, tileLength_ * sizeof(half));
     tPipe_->InitBuffer(inputQueueB, ALLGATHER_ADD_BUFFER_NUM, tileLength_ * sizeof(half));
@@ -94,8 +95,8 @@ __aicore__ inline void AllGatherAdd::HcclPrepare()
 {
     // 下发通信任务
     // sendBuf recvBuf(数据个数等于sendCount*rank size) sendCount（参与allgather的sendbuf的数据个数） dataType strideCount repeat
-    handleId_ = hccl_.AllGather<true>(aGM_, gatherGM_, tilingData_->tileLength,
-                                      HcclDataType::HCCL_DATA_TYPE_FP16, tilingData_->totalLength, tilingData_->tileNum);
+    handleId_ = hccl_.AllGather<true>((__gm__ uint8_t*)this->inputAGM.GetPhyAddr(), (__gm__ uint8_t*)this->gatherOutGM.GetPhyAddr(), tilingData->gatherTileLength,
+                                      HcclDataType::HCCL_DATA_TYPE_FP16, 0, tilingData_->commTurn);
 }
 
 __aicore__ inline void AllGatherAdd::CopyIn(int32_t progress)
@@ -113,10 +114,10 @@ __aicore__ inline void AllGatherAdd::Compute()
     AscendC::LocalTensor<half> gatherLocal = inputQueueGather.DeQue<half>();
     AscendC::LocalTensor<half> bLocal = inputQueueB.DeQue<half>();
     AscendC::LocalTensor<half> cLocal = outputQueueC.AllocTensor<half>();
-    AscendC::Add(gatherLocal, bLocal, cLocal, tileLength_);
-    inputQueueGather.EnQue<half>(gatherLocal);
+    AscendC::Add(cLocal, gatherLocal, bLocal, tileLength_);
+    outputQueueC.EnQue<half>(cLocal);
+    inputQueueGather.FreeTensor(gatherLocal);
     inputQueueB.FreeTensor(bLocal);
-    outputQueueC.FreeTensor(cLocal);
 }
 
 __aicore__ inline void AllGatherAdd::CopyOut(int32_t progress)
@@ -134,11 +135,9 @@ __aicore__ inline void AllGatherAdd::HcclFinalize()
 __aicore__ inline void AllGatherAdd::Process()
 {
     HcclPrepare();
-    // 等待每一块数据通信完成，对每一块进行add计算
     for (int i = 0; i < tilingData_->tileNum; i++) {
         hccl_.Wait(handleId_);
         for (int rankId = 0; rankId < hccl_.GetRankDim(); rankId++) {
-            // 
             if (rankId == hccl_.GetRankId()) {
                 continue;
             }

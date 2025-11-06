@@ -64,7 +64,7 @@ static bool CheckNotNull(const aclTensor *a, const aclTensor *b,
 
 // 根据API定义，需要列出所能支持的所有dtype
 static const std::initializer_list<op::DataType> DTYPE_SUPPORT_LIST = {
-  op::DataType::DT_FLOAT16, op::DataType::DT_BF16
+  op::DataType::DT_FLOAT16
 };
 
 static bool CheckDtypeValid(const aclTensor* a, const aclTensor* b, const aclTensor* gatherout, const aclTensor* output)
