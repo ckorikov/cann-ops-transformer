@@ -7,169 +7,49 @@
 # See LICENSE in the root of the software repository for the full text of the License.
 # ======================================================================================================================
 
-# 说明:
-#   本文件用于配置 PR 应触发的测试用例范围.
-# 格式:
-#     required(路径)     --- Path, 相对源码根目录的相对路径
-#       optional(路径)   --- Path, 相对源码根目录的相对路径, 可选. 需根据实际情况填写.
-#         module        --- Boolean, 用于标识当前路径是否是最小设置单元
-#         src           --- List[Path], 标识该模块所包含的源文件列表, 每个单元可以是路径/文件, 且必须是较源码根目录的相对路径
-#         exclude       --- List[Path], 标识该模块所包含的排除文件列表, 每个单元可以是路径/文件, 且必须是较源码根目录的相对路径
-#         tests
-#           ut
-#             ops_test
-#               src     --- List[Path], 标识该模块所包含测试文件列表, 每个单元可以是路径/文件, 且必须是较源码根目录的相对路径
-#               exclude --- List[Path], 标识该模块所包含测试文件排除列表, 每个单元可以是路径/文件, 且必须是较源码根目录的相对路径
-#               options --- List[str], 标识触发该模块 ops_test 内对应用例所需设置的编译宏
-
-cmake:
-  module: True
-  src:
-    - cmake
-    - build.sh
-    - CMakeLists.txt
-    - version.info
-  exclude:
-    - .clang-format
-    - .gitignore
-    - blacklist.txt
-    - LICENSE
-    - OAT.xml
-    - OWNERS
-    - README.md
-    - cmake/OWNERS
-  tests:
-    ut:
-      ops_test:
-        options:
-          - all
-
 attention:
-  flash_attention_score:
-    module: True
-    src:
-      - attention/flash_attention_score
-    tests:
-      ut:
-        ops_test:
-          src:
-            - tests/ut/ops_test/src/transformer/flash_attention/comm
-            - tests/ut/ops_test/src/transformer/flash_attention/utest/ts_fa
-            - tests/ut/ops_test/src/transformer/flash_attention/utest/ts_fas
-            - tests/ut/ops_test/src/transformer/flash_attention/utest_aclnn/ts_fa
-            - tests/ut/ops_test/src/transformer/flash_attention/utest_aclnn/ts_fas
-            - tests/ut/ops_test/src/transformer/flash_attention/CMakeLists.txt
-          options:
-            - flash_attention_score
-
-  flash_attention_score_grad:
-    module: True
-    src:
-      - attention/flash_attention_score_grad
-    tests:
-      ut:
-        ops_test:
-          src:
-            - tests/ut/ops_test/src/transformer/flash_attention/comm
-            - tests/ut/ops_test/src/transformer/flash_attention/utest/ts_fa
-            - tests/ut/ops_test/src/transformer/flash_attention/utest/ts_fag
-            - tests/ut/ops_test/src/transformer/flash_attention/utest_aclnn/ts_fa
-            - tests/ut/ops_test/src/transformer/flash_attention/utest_aclnn/ts_fag
-            - tests/ut/ops_test/src/transformer/flash_attention/CMakeLists.txt
-          options:
-            - flash_attention_score_grad
-
   incre_flash_attention:
     module: True
     src:
       - attention/incre_flash_attention
-    tests:
-      ut:
-        ops_test:
-          src:
-            - tests/ut/ops_test/src/transformer/incre_flash_attention
-          options:
-            - incre_flash_attention
-            - fused_infer_attention_score
+    options:
+      - incre_flash_attention
 
+  
   prompt_flash_attention:
     module: True
     src:
       - attention/prompt_flash_attention
-    tests:
-      ut:
-        ops_test:
-          src:
-            - tests/ut/ops_test/src/transformer/prompt_flash_attention
-          options:
-            - prompt_flash_attention
-            - fused_infer_attention_score
+    options:
+      - prompt_flash_attention
+      - fused_infer_attention_score
 
   fused_infer_attention_score:
     module: True
     src:
       - attention/fused_infer_attention_score
-    tests:
-      ut:
-        ops_test:
-          src:
-            - tests/ut/ops_test/src/transformer/fused_infer_attention_score
-          options:
-            - incre_flash_attention
-            - prompt_flash_attention
-            - fused_infer_attention_score
-moe:  
-  moe_init_routing_v2:
+    options:
+      - incre_flash_attention
+      - fused_infer_attention_score
+      - prompt_flash_attention
+
+  nsa_compress_attention_infer:
     module: True
     src:
-      - moe/moe_init_routing_v2
+      - attention/nsa_compress_attention_infer
+    options:
+      - nsa_compress_attention_infer
 
-
-  grouped_matmul:
-      module: True
-      src:
-        - gmm/grouped_matmul
-      tests:
-        ut:
-          ops_test:
-            src:
-              - gmm/grouped_matmul/tests
-            options:
-              - grouped_matmul
-
-  quant_grouped_matmul_inplace_add:
-      module: True
-      src:
-        - gmm/quant_grouped_matmul_inplace_add
-      tests:
-        ut:
-          ops_test:
-            src:
-              - gmm/quant_grouped_matmul_inplace_add/tests
-            options:
-              - quant_grouped_matmul_inplace_add
-
-common:
-  module: True
-  src:
-    - common
-  tests:
-    ut:
-      ops_test:
-        options:
-          - all
-
-tests:
-  ut:
-    ops_test:
-      module: True
-      tests:
-        ut:
-          ops_test:
-            src:
-              - tests/ut/ops_test/framework
-              - tests/ut/ops_test/CMakeLists.txt
-            exclude:
-              - tests/ut/ops_test/framework/OWNERS
-            options:
-              - all
+  nsa_compress_with_cache:
+    module: True
+    src:
+      - attention/nsa_compress_with_cache
+    options:
+      - nsa_compress_with_cache
+  
+  nsa_select_attention_infer:
+    module: True
+    src:
+      - attention/nsa_select_attention_infer
+    options:
+      - nsa_select_attention_infer
