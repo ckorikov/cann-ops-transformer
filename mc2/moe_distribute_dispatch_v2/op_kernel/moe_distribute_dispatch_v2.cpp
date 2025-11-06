@@ -16,8 +16,6 @@
 #include "moe_distribute_dispatch_v2_tiling.h"
 #include "moe_distribute_dispatch_v2_full_mesh.h"
 #include "moe_distribute_dispatch_v2.h"
-#endif
-
 #if __has_include("../moe_distribute_dispatch/moe_distribute_dispatch_a2.h")
 #include "../moe_distribute_dispatch/moe_distribute_dispatch_a2.h"
 #include "../moe_distribute_dispatch/moe_distribute_dispatch_a2_layered.h"
@@ -27,6 +25,7 @@
 #include "../../moe_distribute_dispatch/op_kernel/moe_distribute_dispatch_a2_layered.h"
 #include "../../moe_distribute_dispatch/op_kernel/moe_distribute_dispatch_a2_layered_aicpu.h"
 #endif
+#endif // defined(__DAV_C310__)
 
 #if defined(__DAV_C310__)
 using namespace MoeDistributeDispatchA5Impl;
