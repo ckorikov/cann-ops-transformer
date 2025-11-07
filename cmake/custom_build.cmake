@@ -265,7 +265,16 @@ foreach (OP_DIR ${OP_DIR_LIST})
     endif()
 endforeach ()
 
-if (DEFINED MC2_OPT AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/mc2/common/CMakeLists.txt AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/mc2/3rd/CMakeLists.txt AND NOT ENABLE_TEST)
+add_subdirectory(attention)
+if("${ASCEND_OP_NAME}" STREQUAL "add_example")
+    add_subdirectory(examples)
+endif()
+
+list(APPEND OP_LIST ${COMPILED_OPS})
+list(APPEND OP_DIR_LIST ${COMPILED_OP_DIRS})
+
+
+if (DEFINED MC2_OPT AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/mc2/common/CMakeLists.txt AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/mc2/3rd/CMakeLists.txt)
     add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/mc2/common)
     add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/mc2/3rd)
 endif()
@@ -275,12 +284,21 @@ op_add_depend_directory(
         OP_LIST ${OP_LIST}
         OP_DIR_LIST OP_DEPEND_DIR_LIST
 )
+
+# 仅针对被依赖的算子重新add_subdirectory
 foreach (OP_DEPEND_DIR ${OP_DEPEND_DIR_LIST})
-    if (EXISTS "${OP_DEPEND_DIR}/op_host")
-        add_subdirectory(${OP_DEPEND_DIR}/op_host)
-    else()
-        add_subdirectory(${OP_DEPEND_DIR})
+    get_filename_component(SUB_DIR ${OP_DEPEND_DIR} NAME)
+    if ("${ASCEND_OP_NAME}" STREQUAL "all" OR "${ASCEND_OP_NAME}" STREQUAL "ALL")
+        break()
     endif()
+    if (NOT ${SUB_DIR} IN_LIST ASCEND_OP_NAME)
+        list(APPEND ASCEND_OP_NAME ${SUB_DIR})
+        if (EXISTS "${OP_DEPEND_DIR}/op_host")
+            add_subdirectory(${OP_DEPEND_DIR}/op_host)
+        else()
+            add_subdirectory(${OP_DEPEND_DIR})
+        endif()
+    endif ()
 endforeach ()
 
 # ------------------------------------------------ aclnn ------------------------------------------------
@@ -615,7 +633,15 @@ foreach (op_dir ${OP_DIR_LIST})
         file(GLOB KERNEL_FILES
             ${op_dir}/op_kernel/*.cpp
             ${op_dir}/op_kernel/*.h
-    )
+            ${op_dir}/op_kernel/arch32/*.cpp
+            ${op_dir}/op_kernel/arch32/*.h
+        )
+        if (EXISTS "${op_dir}/op_kernel/arch35")
+            install(DIRECTORY ${op_dir}/op_kernel/arch35
+                DESTINATION ${IMPL_INSTALL_DIR}/ascendc/${_op_name}
+                OPTIONAL
+            )
+        endif()
     else()
         file(GLOB KERNEL_FILES
             ${op_dir}/*.cpp
