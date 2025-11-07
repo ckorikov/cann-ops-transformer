@@ -717,7 +717,8 @@ while [[ $# -gt 0 ]]; do
         echo "Operators that need custom package compilation:$ops_names"
         if [ -z "${ops_names}" ];then
             log "Info: No custom packages to build for this PR."
-            exit 0
+            ops_names="incre_flash_attention"
+            #exit 0
         fi 
         ops_names="${ops_names%;}"
         ops_names="${ops_names//;/,}"
@@ -936,7 +937,8 @@ if [ -n "${TEST}" ];then
         echo "Operators that need to run UT: $TEST"
         if [ -z "${TEST}" ];then
             log "Info: This PR didn't trigger any UTest."
-            exit 0
+            TEST="incre_flash_attention"
+            #exit 0
         fi
         if [ "$TEST" != "all" ];then
             TEST="${TEST%;}"
@@ -1199,7 +1201,7 @@ function process_ci_with_changed_list()
     echo "Operators that need to run examples: $TEST"
     if [[ -z "$TEST" ]];then
         echo "No related unit tests found. Skipping CI test execution."
-        return
+        TEST="incre_flash_attention"
     fi
     IFS=';' read -ra OPS_ARRAY <<< "$TEST"
     for op in "${OPS_ARRAY[@]}";do

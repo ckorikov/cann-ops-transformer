@@ -53,3 +53,19 @@ attention:
       - attention/nsa_select_attention_infer
     options:
       - nsa_select_attention_infer
+
+gmm:
+  grouped_matmul:
+    module: True
+    src:
+      - gmm/grouped_matmul
+    options:
+      - grouped_matmul
+
+ffn:
+  ffn:
+    module: True
+    src:
+      - ffn/ffn
+    options:
+      - ffn
