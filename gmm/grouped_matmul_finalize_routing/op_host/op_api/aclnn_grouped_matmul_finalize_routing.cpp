@@ -689,12 +689,13 @@ static op::Shape SwapLastTwoDimValue(const op::Shape tensorShape)
     return swapedShape;
 }
 
-static inline bool TensorContiguousProcess(const aclTensor *&contiguousTensor, bool &transpose, aclOpExecutor *executor)
+static inline bool TransposeTensorContiguousProcess(const aclTensor *&contiguousTensor, bool &transpose, aclOpExecutor *executor)
 {
     if (contiguousTensor == nullptr || contiguousTensor->GetViewShape().GetDimNum() == 1) {
         OP_LOGD("GroupedMatmulFinalizeRouting no need to do contiguous process.");
         return true;
     }
+
     auto transposeFlag = IsLastTwoDimsTranspose(contiguousTensor);
     // swap tensor if its viewshape not satisfy request shape without adding a transpose node
     if (transposeFlag) {
@@ -704,6 +705,19 @@ static inline bool TensorContiguousProcess(const aclTensor *&contiguousTensor, b
     } else {
         contiguousTensor = l0op::Contiguous(contiguousTensor, executor);
     }
+    CHECK_RET(contiguousTensor != nullptr, false);
+    return true;
+}
+
+static inline bool TensorContiguousProcess(const aclTensor *&contiguousTensor, aclOpExecutor *executor)
+{
+    if (contiguousTensor == nullptr) {
+        OP_LOGD("GroupedMatmulFinalizeRouting no need to do contiguous process.");
+        return true;
+    }
+
+    contiguousTensor = l0op::Contiguous(contiguousTensor, executor);
+
     CHECK_RET(contiguousTensor != nullptr, false);
     return true;
 }
@@ -740,7 +754,7 @@ static aclnnStatus WeightNZCaseProcess(const aclTensor *&x2, bool &transposeX2, 
     // if weight is already in nz format, no need to set contiguous
     if (ge::GetPrimaryFormat(x2->GetStorageFormat()) == op::Format::FORMAT_FRACTAL_NZ) {
     } else {
-        CHECK_RET(TensorContiguousProcess(x2, transposeX2, executor), ACLNN_ERR_INNER_NULLPTR);
+        CHECK_RET(TransposeTensorContiguousProcess(x2, transposeX2, executor), ACLNN_ERR_INNER_NULLPTR);
     }
     x2->SetOriginalShape(x2->GetViewShape());
     return ACLNN_SUCCESS;
@@ -781,7 +795,7 @@ static aclnnStatus PreMatmulCalcProcess(GroupedMatmulParams &params, aclOpExecut
 
     CHECK_RET(executor != nullptr, ACLNN_ERR_INNER_CREATE_EXECUTOR);
     CHECK_RET(CheckNotNull(params), ACLNN_ERR_PARAM_NULLPTR);
-    CHECK_RET(TensorContiguousProcess(x1, transposeX1, executor), ACLNN_ERR_INNER_NULLPTR);
+    CHECK_RET(TransposeTensorContiguousProcess(x1, transposeX1, executor), ACLNN_ERR_INNER_NULLPTR);
     auto ret = WeightNZCaseProcess(x2, transposeX2, executor);
     CHECK_RET(ret == ACLNN_SUCCESS, ret);
     CHECK_RET(CheckDimRange(params), ACLNN_ERR_PARAM_INVALID);
@@ -793,15 +807,18 @@ static aclnnStatus aclnnGroupedMatmulFinalizeRoutingGetWorkspaceSizeCommonProces
     auto ret = PreMatmulCalcProcess(params, executor);
     CHECK_RET(ret == ACLNN_SUCCESS, ret);
     // shareInput格式转换
-    bool biasTransValue = false;
-    CHECK_RET(TensorContiguousProcess(params.shareInput, biasTransValue, executor), ACLNN_ERR_INNER_NULLPTR);
-    CHECK_RET(TensorContiguousProcess(params.x1, biasTransValue, executor), ACLNN_ERR_INNER_NULLPTR);
+    CHECK_RET(TensorContiguousProcess(params.shareInput, executor), ACLNN_ERR_INNER_NULLPTR);
+    CHECK_RET(TensorContiguousProcess(params.x1, executor), ACLNN_ERR_INNER_NULLPTR);
     if (ge::GetPrimaryFormat(params.x2->GetStorageFormat()) != op::Format::FORMAT_FRACTAL_NZ) {
-        CHECK_RET(TensorContiguousProcess(params.x2, biasTransValue, executor), ACLNN_ERR_INNER_NULLPTR);
+        CHECK_RET(TensorContiguousProcess(params.x2, executor), ACLNN_ERR_INNER_NULLPTR);
     }
-    CHECK_RET(TensorContiguousProcess(params.scale, biasTransValue, executor), ACLNN_ERR_INNER_NULLPTR);
-    CHECK_RET(TensorContiguousProcess(params.offset, biasTransValue, executor), ACLNN_ERR_INNER_NULLPTR);
-    CHECK_RET(TensorContiguousProcess(params.bias, biasTransValue, executor), ACLNN_ERR_INNER_NULLPTR);
+    CHECK_RET(TensorContiguousProcess(params.scale, executor), ACLNN_ERR_INNER_NULLPTR);
+    CHECK_RET(TensorContiguousProcess(params.offset, executor), ACLNN_ERR_INNER_NULLPTR);
+    CHECK_RET(TensorContiguousProcess(params.bias, executor), ACLNN_ERR_INNER_NULLPTR);
+    CHECK_RET(TensorContiguousProcess(params.rowIndex, executor), ACLNN_ERR_INNER_NULLPTR);
+    CHECK_RET(TensorContiguousProcess(params.groupList, executor), ACLNN_ERR_INNER_NULLPTR);
+    CHECK_RET(TensorContiguousProcess(params.logit, executor), ACLNN_ERR_INNER_NULLPTR);
+    CHECK_RET(TensorContiguousProcess(params.pertokenScaleOptional, executor), ACLNN_ERR_INNER_NULLPTR);
     
     auto reformatedX1 = SetTensorToNDFormat(params.x1);
     const aclTensor *reformatedX2 = SetTensorToNDFormat(params.x2);
@@ -833,7 +850,8 @@ static aclnnStatus aclnnGroupedMatmulFinalizeRoutingGetWorkspaceSizeCommonProces
     auto matmulRet = l0op::GroupedMatmulFinalizeRouting(reformatedX1, reformatedX2, reformatedScale, reformatedBias,
         reformatedPertokenScaleOptional, reformatedGroupList, reformatedShareInput, reformatedLogit, reformatedRowIndex,
         reformatedOffset, 0, params.shareInputWeight, params.shareInputOffset, params.transposeX1, params.transposeX2, outputBS, params.groupListType, params.tuningConfig, executor);
-    CHECK_RET(PostMatmulCalcProcess(matmulRet, params, executor) == ACLNN_SUCCESS, ret);
+    ret = PostMatmulCalcProcess(matmulRet, params, executor);
+    CHECK_RET(ret == ACLNN_SUCCESS, ret);
     return ACLNN_SUCCESS;
 }
 }
