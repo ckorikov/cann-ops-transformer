@@ -23,6 +23,7 @@
 #include "../../common/inc/kernel/mc2_nd_to_nz.h"
 #include "../../common/inc/kernel/mc2_matmul_compute.h"
 #endif
+
 #include "all_gather_matmul_tiling.h"
 
 namespace AscendC {

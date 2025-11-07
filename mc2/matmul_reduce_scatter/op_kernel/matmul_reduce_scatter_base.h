@@ -22,8 +22,15 @@
 #include "../../common/inc/kernel/mc2_nd_to_nz.h"
 #include "../../common/inc/kernel/mc2_matmul_compute.h"
 #else
+#include "reduce_scatter_nd_to_nz.h"
+
+#if __has_include("../../common/inc/kernel/mc2_nd_to_nz.h")
+#include "../../common/inc/kernel/mc2_nd_to_nz.h"
+#include "../../common/inc/kernel/mc2_matmul_compute.h"
+#else
 #include "../common/inc/kernel/mc2_nd_to_nz.h"
 #include "../common/inc/kernel/mc2_matmul_compute.h"
+#endif
 #endif
 
 namespace AscendC {

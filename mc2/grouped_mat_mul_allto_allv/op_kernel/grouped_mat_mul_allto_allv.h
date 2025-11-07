@@ -18,6 +18,7 @@
 #include "kernel_operator.h"
 #include "kernel_operator_intf.h"
 #include "lib/matmul_intf.h"
+
 #if __has_include("../../allto_allv_grouped_mat_mul/op_kernel/allto_allv_gmm.h")
 #include "../../allto_allv_grouped_mat_mul/op_kernel/allto_allv_gmm.h"
 #else
