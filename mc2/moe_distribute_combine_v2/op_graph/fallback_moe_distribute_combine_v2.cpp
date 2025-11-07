@@ -60,6 +60,8 @@ static graphStatus MoeDistributeCombineV2ExecuteFunc(OpExecuteContext* host_api_
 
   const auto const_expert_v = host_api_ctx->GetOptionalInputTensor(static_cast<size_t>(15));
 
+  const auto performance_info = host_api_ctx->GetOptionalInputTensor(static_cast<size_t>(16));
+
   const auto x = host_api_ctx->GetOutputTensor(static_cast<size_t>(0));
   OP_CHECK_IF(x == nullptr, OP_LOGE(MoeDistributeCombineV2Info,"x is null"), return ge::GRAPH_FAILED);
 
@@ -123,10 +125,10 @@ static graphStatus MoeDistributeCombineV2ExecuteFunc(OpExecuteContext* host_api_
   OP_CHECK_IF(const_expert_num == nullptr, OP_LOGE(MoeDistributeCombineV2Info,"const_expert_num is null"), return ge::GRAPH_FAILED);
 
   if (elastic_info != nullptr || ori_x != nullptr || const_expert_alpha_1 != nullptr || const_expert_alpha_2 != nullptr ||
-      const_expert_v != nullptr || *zero_expert_num != 0 || *copy_expert_num != 0 || *const_expert_num != 0) {
+      const_expert_v != nullptr || performance_info != nullptr || *zero_expert_num != 0 || *copy_expert_num != 0 || *const_expert_num != 0) {
     const auto api_ret_newfeature = EXEC_OPAPI_CMD(aclnnMoeDistributeCombineV3, expand_x, expert_ids, assist_info_for_combine, ep_send_counts,
       expert_scales, tp_send_counts, x_active_mask, activation_scale, weight_scale, group_list, shared_expert_x, elastic_info, ori_x,
-      const_expert_alpha_1, const_expert_alpha_2, const_expert_v, group_ep, *ep_word_size, *ep_rank_id, *moe_expert_num, group_tp,
+      const_expert_alpha_1, const_expert_alpha_2, const_expert_v, performance_info, group_ep, *ep_word_size, *ep_rank_id, *moe_expert_num, group_tp,
       *tp_word_size, *tp_rank_id, *expert_shard_type, *shared_expert_num, *shared_expert_rank_num, *global_bs_ptr, *out_dtype_ptr, 
       *comm_quant_mode_ptr, *group_list_type_ptr, *comm_alg_ptr, *zero_expert_num, *copy_expert_num, *const_expert_num, x);
     OP_CHECK_IF(api_ret_newfeature != ge::GRAPH_SUCCESS, OP_LOGE(MoeDistributeCombineV2Info,"aclnn api error code %u", api_ret_newfeature), return api_ret_newfeature);

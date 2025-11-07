@@ -45,6 +45,7 @@ namespace {
     constexpr uint32_t X_ACTIVE_MASK_INDEX = 3U;
     constexpr uint32_t EXPERT_SCALES_INDEX = 4U;
     constexpr uint32_t ELASTIC_INFO_INDEX = 5U;
+    constexpr uint32_t PERFORMANCE_INFO_INDEX = 6U;
     constexpr uint32_t OUTPUT_EXPAND_X_INDEX = 0U;
     constexpr uint32_t OUTPUT_DYNAMIC_SCALES_INDEX = 1U;
     constexpr uint32_t OUTPUT_ASSIST_INFO_INDEX = 2U;
@@ -1047,6 +1048,7 @@ static ge::graphStatus MoeDistributeDispatchA2CheckShapeAndSetTiling(const gert:
     const gert::StorageShape *xActiveMaskStorageShape = context->GetOptionalInputShape(X_ACTIVE_MASK_INDEX);
     const gert::StorageShape *expertScalesStorageShape = context->GetOptionalInputShape(EXPERT_SCALES_INDEX);
     const gert::StorageShape *elasticInfoStorageShape = context->GetOptionalInputShape(ELASTIC_INFO_INDEX);
+    const gert::StorageShape *performanceInfoStorageShape = context->GetOptionalInputShape(PERFORMANCE_INFO_INDEX);
     const gert::StorageShape *expandScalesStorageShape = context->GetOutputShape(OUTPUT_EXPAND_SCALES_INDEX);
 
     OP_TILING_CHECK(xStorageShape == nullptr,
@@ -1098,11 +1100,13 @@ static ge::graphStatus MoeDistributeDispatchA2CheckShapeAndSetTiling(const gert:
         return GRAPH_FAILED);
 
     info.isTokenMask = isTokenMask;
+    info.hasPerformanceInfo = (performanceInfoStorageShape != nullptr); // 获取performanceInfo
     info.bs = bs;
     info.k = k;
     info.h = h;
 
     OP_LOGD(K_INNER_DEBUG, "isTokenMask is %u", info.isTokenMask);
+    OP_LOGD(K_INNER_DEBUG, "hasPerformanceInfo is %u", info.hasPerformanceInfo);
     OP_LOGD(K_INNER_DEBUG, "batchSize is %u", info.bs);
     OP_LOGD(K_INNER_DEBUG, "k is %u", info.k);
     OP_LOGD(K_INNER_DEBUG, "hiddenSize is %u", info.h);

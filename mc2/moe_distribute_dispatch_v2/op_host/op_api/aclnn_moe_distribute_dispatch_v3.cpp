@@ -30,7 +30,7 @@ enum NnopbaseHcclServerType {
 };
 
 extern aclnnStatus aclnnInnerMoeDistributeDispatchV2GetWorkspaceSize(const aclTensor* x, const aclTensor* expertIds, const aclTensor* scales,
-                                                                   const aclTensor* xActiveMask, const aclTensor* expertScales,  const aclTensor* elasticInfo,
+                                                                   const aclTensor* xActiveMask, const aclTensor* expertScales,  const aclTensor* elasticInfo, const aclTensor* performanceInfo,
                                                                    const char* groupEp, int64_t epWorldSize,
                                                                    int64_t epRankId, int64_t moeExpertNum, const char* groupTp, int64_t tpWorldSize,
                                                                    int64_t tpRankId, int64_t expertShardType, int64_t sharedExpertNum, int64_t shareExpertRankNum,
@@ -93,7 +93,7 @@ static aclnnStatus CheckParams(const aclTensor* x, const aclTensor* expertIds,
 
 aclnnStatus aclnnMoeDistributeDispatchV3GetWorkspaceSize(const aclTensor* x, const aclTensor* expertIds, const aclTensor* scalesOptional,
                                                                         const aclTensor* xActiveMaskOptional, const aclTensor* expertScalesOptional,
-                                                                        const aclTensor* elasticInfoOptional, const char* groupEp, int64_t epWorldSize,
+                                                                        const aclTensor* elasticInfoOptional, const aclTensor* performanceInfoOptional, const char* groupEp, int64_t epWorldSize,
                                                                         int64_t epRankId, int64_t moeExpertNum, const char* groupTp, int64_t tpWorldSize,
                                                                         int64_t tpRankId, int64_t expertShardType, int64_t sharedExpertNum, int64_t sharedExpertRankNum,
                                                                         int64_t quantMode, int64_t globalBs, int64_t expertTokenNumsType, const char* commAlg,
@@ -110,7 +110,7 @@ aclnnStatus aclnnMoeDistributeDispatchV3GetWorkspaceSize(const aclTensor* x, con
 
     if (is910B) {
         return aclnnInnerMoeDistributeDispatchV2GetWorkspaceSize(x, expertIds, scalesOptional, xActiveMaskOptional, expertScalesOptional,
-                                                                 elasticInfoOptional, groupEp, epWorldSize, epRankId, moeExpertNum,
+                                                                 elasticInfoOptional, performanceInfoOptional, groupEp, epWorldSize, epRankId, moeExpertNum,
                                                                  "", tpWorldSize, tpRankId, expertShardType, sharedExpertNum,
                                                                  sharedExpertRankNum, quantMode, globalBs, expertTokenNumsType, commAlg,
                                                                  zeroExpertNum, copyExpertNum, constExpertNum, expandXOut,
@@ -119,7 +119,7 @@ aclnnStatus aclnnMoeDistributeDispatchV3GetWorkspaceSize(const aclTensor* x, con
     }
 
     return aclnnInnerMoeDistributeDispatchV2GetWorkspaceSize(x, expertIds, scalesOptional, xActiveMaskOptional, expertScalesOptional,
-                                                                        elasticInfoOptional, groupEp, epWorldSize, epRankId, moeExpertNum,
+                                                                        elasticInfoOptional, performanceInfoOptional, groupEp, epWorldSize, epRankId, moeExpertNum,
                                                                         groupTp, tpWorldSize, tpRankId, expertShardType, sharedExpertNum,
                                                                         sharedExpertRankNum, quantMode, globalBs, expertTokenNumsType, commAlg,
                                                                         zeroExpertNum, copyExpertNum, constExpertNum, expandXOut,

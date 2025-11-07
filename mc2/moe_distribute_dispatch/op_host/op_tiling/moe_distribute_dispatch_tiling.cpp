@@ -607,6 +607,7 @@ static ge::graphStatus MoeDistributeDispatchA2CheckShapeAndSetTiling(gert::Tilin
     const gert::StorageShape *xStorageShape = context->GetInputShape(X_INDEX);
     const gert::StorageShape *expertIdStorageShape = context->GetInputShape(EXPERT_IDS_INDEX);
     const gert::StorageShape *scalesStorageShape = context->GetOptionalInputShape(SCALES_INDEX);
+    const gert::StorageShape *performanceInfoStorageShape = context->GetOptionalInputShape(PERFORMANCE_INFO_INDEX);
 
     OP_TILING_CHECK(xStorageShape == nullptr,
         OP_LOGE(K_INNER_DEBUG, "xShape is null."), return GRAPH_FAILED);
@@ -637,6 +638,7 @@ static ge::graphStatus MoeDistributeDispatchA2CheckShapeAndSetTiling(gert::Tilin
     OP_TILING_CHECK(*quantModePtr == UNQUANT_MODE && isScales,
         OP_LOGE(K_INNER_DEBUG, "scales should be null when quantMode is unQuant."), return GRAPH_FAILED);
 
+    info.hasPerformanceInfo = (performanceInfoStorageShape != nullptr); // 获取performanceInfo
     info.bs = bs;
     info.k = k;
     info.h = h;
