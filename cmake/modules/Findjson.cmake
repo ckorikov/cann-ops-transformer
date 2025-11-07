@@ -8,29 +8,7 @@
 # See LICENSE in the root of the software repository for the full text of the License.
 # ----------------------------------------------------------------------------
 
-if (json_FOUND)
-  message(STATUS "Package json has been found.")
-  return()
-endif()
-
-find_path(JSON_INCLUDE
-  NAMES nlohmann/json.hpp
-  NO_CMAKE_SYSTEM_PATH
-  NO_CMAKE_FIND_ROOT_PATH)
-
-include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(json
-  FOUND_VAR
-    json_FOUND
-  REQUIRED_VARS
-    JSON_INCLUDE
-  )
-
-if(json_FOUND)
-  set(JSON_INCLUDE_DIR ${JSON_INCLUDE_DIR})
-
-  add_library(json INTERFACE IMPORTED)
-  set_target_properties(json PROPERTIES
-    INTERFACE_INCLUDE_DIRECTORIES "${JSON_INCLUDE_DIR}")
-  target_compile_definitions(json INTERFACE nlohmann=ascend_nlohmann)
+if(UT_TEST_ALL OR OP_HOST_UT)
+    add_modules_ut_sources(UT_NAME ${OP_TILING_MODULE_NAME} MODE PRIVATE DIR ${CMAKE_CURRENT_SOURCE_DIR})
+    add_modules_ut_sources(UT_NAME ${OP_INFERSHAPE_MODULE_NAME} MODE PRIVATE DIR ${CMAKE_CURRENT_SOURCE_DIR})
 endif()
