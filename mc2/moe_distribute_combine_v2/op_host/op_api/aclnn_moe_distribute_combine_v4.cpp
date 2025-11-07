@@ -7,7 +7,7 @@
  * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
-#include "aclnn_moe_distribute_combine_v2.h"
+#include "aclnn_moe_distribute_combine_v4.h"
 #include <algorithm>
 #include "op_mc2.h"
 #include "matmul_util.h"
@@ -36,7 +36,7 @@ extern aclnnStatus aclnnInnerMoeDistributeCombineV2GetWorkspaceSize(const aclTen
                                                                   const aclTensor* expandScales, const aclTensor* sharedExpertX,
                                                                   const aclTensor* elasticInfo, const aclTensor* oriX,
                                                                   const aclTensor* constExpertAlpha1, const aclTensor* constExpertAlpha2, 
-                                                                  const aclTensor* constExpertV, const aclTensor* performanceInfo,
+                                                                  const aclTensor* constExpertV, const aclTensor *performanceInfo,
                                                                   const char* groupEp, int64_t epWorldSize,
                                                                   int64_t epRankId, int64_t moeExpertNum,
                                                                   const char* groupTp, int64_t tpWorldSize, int64_t tpRankId,
@@ -56,7 +56,7 @@ static bool CheckNotNull(const aclTensor* expandX, const aclTensor* expertIds, c
                          const aclTensor* epSendCounts, const aclTensor* expertScales,
                          const char* groupEp, aclTensor* x)
 {
-    OP_LOGD("aclnn_moe_distribute_combine_v2 CheckNotNull start");
+    OP_LOGD("aclnn_moe_distribute_combine_v4 CheckNotNull start");
     OP_CHECK_NULL(expandX, return false);
     OP_CHECK_NULL(expertIds, return false);
     OP_CHECK_NULL(assistInfoForCombine, return false);
@@ -67,7 +67,7 @@ static bool CheckNotNull(const aclTensor* expandX, const aclTensor* expertIds, c
         OP_LOGE(ACLNN_ERR_PARAM_NULLPTR, "Required groupEp name is Empty.");
         return false;
     }
-    OP_LOGD("aclnn_moe_distribute_combine_v2 CheckNotNull success");
+    OP_LOGD("aclnn_moe_distribute_combine_v4 CheckNotNull success");
     return true;
 }
 
@@ -77,7 +77,7 @@ static aclnnStatus CheckParams(const aclTensor* expandX, const aclTensor* expert
                                const aclTensor* expertScales, const char* groupEp, const char* groupTp,
                                aclTensor* x)
 {
-    OP_LOGD("aclnn_moe_distribute_combine_v2 checkparams start");
+    OP_LOGD("aclnn_moe_distribute_combine_v4 checkparams start");
     CHECK_RET(CheckNotNull(expandX, expertIds, expandIdx, epSendCounts, expertScales, groupEp,
                            x), ACLNN_ERR_PARAM_NULLPTR);
 
@@ -89,22 +89,26 @@ static aclnnStatus CheckParams(const aclTensor* expandX, const aclTensor* expert
         OP_LOGE(ACLNN_ERR_PARAM_INVALID, "Required groupTp name exceeds %zu.", HCCL_GROUP_NAME_MAX);
         return ACLNN_ERR_PARAM_INVALID;
     }
-    OP_LOGD("aclnn_moe_distribute_combine_v2 checkparams success");
+    OP_LOGD("aclnn_moe_distribute_combine_v4 checkparams success");
     return ACLNN_SUCCESS;
 }
 
-aclnnStatus aclnnMoeDistributeCombineV2GetWorkspaceSize(const aclTensor* expandX, const aclTensor* expertIds,
+aclnnStatus aclnnMoeDistributeCombineV4GetWorkspaceSize(const aclTensor* expandX, const aclTensor* expertIds,
                                                             const aclTensor* assistInfoForCombine, const aclTensor* epSendCounts,
                                                             const aclTensor* expertScales, const aclTensor* tpSendCountsOptional,
                                                             const aclTensor* xActiveMaskOptional, const aclTensor* activationScaleOptional,
                                                             const aclTensor* weightScaleOptional, const aclTensor* groupListOptional,
                                                             const aclTensor* expandScalesOptional, const aclTensor* sharedExpertXOptional,
+                                                            const aclTensor* elasticInfoOptional, const aclTensor* oriXOptional,
+                                                            const aclTensor* constExpertAlpha1Optional, const aclTensor* constExpertAlpha2Optional, 
+                                                            const aclTensor* constExpertVOptional, const aclTensor* performanceInfoOptional,
                                                             const char* groupEp, int64_t epWorldSize,
                                                             int64_t epRankId, int64_t moeExpertNum,
                                                             const char* groupTp, int64_t tpWorldSize, int64_t tpRankId,
                                                             int64_t expertShardType, int64_t sharedExpertNum, int64_t sharedExpertRankNum,
                                                             int64_t globalBs, int64_t outDtype, int64_t commQuantMode,
                                                             int64_t groupListType, const char* commAlg, 
+                                                            int64_t zeroExpertNum, int64_t copyExpertNum, int64_t constExpertNum,
                                                             aclTensor* xOut, uint64_t* workspaceSize,
                                                             aclOpExecutor** executor)
 {
@@ -116,21 +120,21 @@ aclnnStatus aclnnMoeDistributeCombineV2GetWorkspaceSize(const aclTensor* expandX
     if (is910B) {
         return aclnnInnerMoeDistributeCombineV2GetWorkspaceSize(expandX, expertIds, assistInfoForCombine, epSendCounts, expertScales,
             tpSendCountsOptional, xActiveMaskOptional, activationScaleOptional, weightScaleOptional, groupListOptional, expandScalesOptional,
-            sharedExpertXOptional, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
-            groupEp, epWorldSize, epRankId, moeExpertNum, "", tpWorldSize, tpRankId, expertShardType, sharedExpertNum,
-            sharedExpertRankNum, globalBs, outDtype, commQuantMode, groupListType, commAlg, 0, 0 , 0,
+            sharedExpertXOptional, elasticInfoOptional, oriXOptional, constExpertAlpha1Optional, constExpertAlpha2Optional, 
+            constExpertVOptional, performanceInfoOptional, groupEp, epWorldSize, epRankId, moeExpertNum, "", tpWorldSize, tpRankId, expertShardType, sharedExpertNum,
+            sharedExpertRankNum, globalBs, outDtype, commQuantMode, groupListType, commAlg, zeroExpertNum, copyExpertNum, constExpertNum,
             xOut, workspaceSize, executor);
     }
 
     return aclnnInnerMoeDistributeCombineV2GetWorkspaceSize(expandX, expertIds, assistInfoForCombine, epSendCounts, expertScales,
         tpSendCountsOptional, xActiveMaskOptional, activationScaleOptional, weightScaleOptional, groupListOptional, expandScalesOptional,
-        sharedExpertXOptional, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
-        groupEp, epWorldSize, epRankId, moeExpertNum, groupTp, tpWorldSize, tpRankId, expertShardType, sharedExpertNum,
-        sharedExpertRankNum, globalBs, outDtype, commQuantMode, groupListType, commAlg, 0, 0, 0,
+        sharedExpertXOptional, elasticInfoOptional, oriXOptional, constExpertAlpha1Optional, constExpertAlpha2Optional, 
+        constExpertVOptional, performanceInfoOptional, groupEp, epWorldSize, epRankId, moeExpertNum, groupTp, tpWorldSize, tpRankId, expertShardType, sharedExpertNum,
+        sharedExpertRankNum, globalBs, outDtype, commQuantMode, groupListType, commAlg, zeroExpertNum, copyExpertNum, constExpertNum, 
         xOut, workspaceSize, executor);
 }
 
-aclnnStatus aclnnMoeDistributeCombineV2(void *workspace, uint64_t workspaceSize, aclOpExecutor *executor,
+aclnnStatus aclnnMoeDistributeCombineV4(void *workspace, uint64_t workspaceSize, aclOpExecutor *executor,
                                                   aclrtStream stream)
 {
     if (NnopbaseSetHcclServerType) {

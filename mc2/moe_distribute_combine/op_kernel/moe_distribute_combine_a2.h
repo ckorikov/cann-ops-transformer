@@ -32,6 +32,7 @@ constexpr uint32_t SKIP_OFFSET = 32;
 constexpr uint32_t FLAG_VALUE = 0xFFFFFFFF;
 constexpr uint32_t REPEAT_BYTES = 256;
 constexpr uint64_t MB_SIZE = 1024 * 1024;
+constexpr uint32_t TIME_CYCLE = 50;
 template <AscendC::HardEvent event>
 __aicore__ inline void SyncFunc()
 {
@@ -84,7 +85,7 @@ class MoeDistributeCombineA2 {
 public:
     __aicore__ inline MoeDistributeCombineA2(){};
     __aicore__ inline void Init(GM_ADDR expandX, GM_ADDR expertIds, GM_ADDR expandIdx, GM_ADDR sendCount,
-        GM_ADDR scales, GM_ADDR xActiveMask, GM_ADDR XOut, GM_ADDR workspaceGM, TPipe *pipe,
+        GM_ADDR scales, GM_ADDR xActiveMask, GM_ADDR performanceInfo, GM_ADDR XOut, GM_ADDR workspaceGM, TPipe *pipe,
         const MoeDistributeCombineA2TilingData *tilingData);
     __aicore__ inline void Process();
 
@@ -112,6 +113,9 @@ private:
     GlobalTensor<uint32_t> workspaceGlobal32_;  // 存储batchWriteInfo结构体信息
     GlobalTensor<uint32_t> flagGlobal_;
     GlobalTensor<int8_t> xActiveMaskGMTensor_;
+    GlobalTensor<uint64_t> performanceInfoU64GMTensor_;
+    GlobalTensor<uint32_t> performanceInfoU32GMTensor_;
+
     LocalTensor<uint64_t> batchWriteItemLocalB64;
     LocalTensor<uint32_t> batchWriteItemLocalB32;
     LocalTensor<uint32_t> recvCountLocal_;
@@ -123,6 +127,9 @@ private:
     LocalTensor<ExpandIdxType> indexCountsLocal_;
     LocalTensor<ExpandXType> tmpUb_;
     LocalTensor<uint32_t> statusTensor_;
+    LocalTensor<uint64_t> performanceInfoU64Tensor_;
+    LocalTensor<uint32_t> performanceInfoU32Tensor_;
+
     GM_ADDR windowInGM_;
     GM_ADDR windowOutGM_;
     GM_ADDR expandXGM_;
@@ -156,6 +163,8 @@ private:
     uint32_t bufferId_{0};
     uint32_t tokenNumPerCore_{0};
     uint32_t tokenIndex_{0};
+    uint32_t performanceInfoSize_{0};
+    bool hasPerformanceInfo_=false;
     TQueBind<QuePosition::VECIN, QuePosition::VECOUT, BUFFER_NUM> moeQueue_;
     TBuf<> expertIdsBuf_;
     TBuf<> expandScalesBuf_;
@@ -168,6 +177,7 @@ private:
     TBuf<> batchWriteItemBuf_;
     TBuf<> recvCountBuf_;
     TBuf<> expertWindowOffsetBuf_;
+    TBuf<> performanceInfoBuf_; 
 
     TaskInfo taskInfo_;
 
@@ -179,7 +189,7 @@ private:
 };
 template <TemplateMC2TypeA2Class>
 __aicore__ inline void MoeDistributeCombineA2<TemplateMC2TypeA2Func>::Init(GM_ADDR expandX, GM_ADDR expertIds,
-    GM_ADDR expandIdx, GM_ADDR sendCount, GM_ADDR scales, GM_ADDR xActiveMask, GM_ADDR XOut, GM_ADDR workspaceGM,
+    GM_ADDR expandIdx, GM_ADDR sendCount, GM_ADDR scales, GM_ADDR xActiveMask, GM_ADDR performanceInfo, GM_ADDR XOut, GM_ADDR workspaceGM,
     TPipe *pipe, const MoeDistributeCombineA2TilingData *tilingData)
 {
     tpipe_ = pipe;
@@ -196,6 +206,8 @@ __aicore__ inline void MoeDistributeCombineA2<TemplateMC2TypeA2Func>::Init(GM_AD
     aivNum_ = tilingData->moeDistributeCombineInfo.aivNum;
     moeExpertNum_ = tilingData->moeDistributeCombineInfo.moeExpertNum;
     worldSize_ = tilingData->moeDistributeCombineInfo.epWorldSize;
+    performanceInfoSize_ = worldSize_;
+    hasPerformanceInfo_ = (performanceInfo != nullptr);
     auto contextGM = AscendC::GetHcclContext<HCCL_GROUP_ID_0>();
     winContext_ = (__gm__ HcclOpResParam *)contextGM;
     hccl_.InitV2(contextGM, tilingData);
@@ -234,6 +246,15 @@ __aicore__ inline void MoeDistributeCombineA2<TemplateMC2TypeA2Func>::Init(GM_AD
         axisH_ * sizeof(uint16_t) + stateSizeMaxSize) * BUFFER_NUM; // 考虑负载极其不均衡时，HCCL BUFFSIZE需要开的大小
 
     BuffInit();
+    // init performanceInfo
+    if (hasPerformanceInfo_) {
+        performanceInfoU64GMTensor_.SetGlobalBuffer((__gm__ uint64_t*)performanceInfo);
+        performanceInfoU32GMTensor_.SetGlobalBuffer((__gm__ uint32_t*)performanceInfo);
+        tpipe_->InitBuffer(performanceInfoBuf_, performanceInfoSize_ * sizeof(uint64_t));
+        performanceInfoU64Tensor_ = performanceInfoBuf_.Get<uint64_t>();
+        performanceInfoU32Tensor_ = performanceInfoU64Tensor_.template ReinterpretCast<uint32_t>();
+        Duplicate<uint32_t>(performanceInfoU32Tensor_, 0, performanceInfoSize_ * sizeof(uint64_t) / sizeof(uint32_t));
+    }
     if (tilingData->moeDistributeCombineInfo.isTokenMask) {
         TokenActiveMaskCal();
     }
@@ -458,6 +479,7 @@ __aicore__ inline void MoeDistributeCombineA2<TemplateMC2TypeA2Func>::WaitDispat
         return;
     }
     SyncFunc<AscendC::HardEvent::MTE2_S>();
+    uint32_t startTime = GetSystemCycle() / TIME_CYCLE;
     for (uint32_t waitFlagNum = 0; waitFlagNum < sendRankNum_;) {
         waitFlagNum = 0;
         for (uint32_t rankId = startRankId_; rankId < endRankId_; ++rankId) {
@@ -469,6 +491,16 @@ __aicore__ inline void MoeDistributeCombineA2<TemplateMC2TypeA2Func>::WaitDispat
                 flagGlobal_);
             uint32_t flag = flagGlobal_(0);
             if (flag == FLAG_VALUE) {
+                uint32_t endTime = GetSystemCycle() / TIME_CYCLE; 
+                uint32_t duration = endTime - startTime;
+                auto srcId = rankId;
+                if (hasPerformanceInfo_){
+                    Duplicate<uint32_t>(performanceInfoU32Tensor_, 0, performanceInfoSize_ * sizeof(uint64_t) / sizeof(uint32_t));
+                    performanceInfoU32Tensor_.SetValue(rankId * sizeof(uint64_t) / sizeof(uint32_t), duration);
+                    AscendC::SetAtomicAdd<int32_t>();
+                    AscendC::DataCopy(performanceInfoU32GMTensor_, performanceInfoU32Tensor_, performanceInfoSize_ * sizeof(uint64_t) / sizeof(uint32_t));
+                    AscendC::SetAtomicNone();
+		        }
                 waitFlagNum++;
             }
         }
