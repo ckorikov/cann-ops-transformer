@@ -33,6 +33,7 @@ struct MoeDistributeCombineA2Info {
     uint32_t aivNum;                     // aivNum
     uint64_t totalUbSize;                // epWorldSize
     bool isTokenMask;                    // input active mask 1dims or not
+    bool hasPerformanceInfo;             // has performanceinfo or not
     int8_t reserved[7];                  // Pad 7 int8 for memory alignment
 };
 

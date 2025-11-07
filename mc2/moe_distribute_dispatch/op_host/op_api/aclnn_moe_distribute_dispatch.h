@@ -28,6 +28,7 @@ extern "C" {
  * @param [in] scales: 计算可选输入，Tensor，数据类型float32，必须为2维，数据格式支持ND。每个专家的smooth权重。
  * @param [in] xActiveMask: 计算输入，Tensor，数据类型Bool，必须为1维，数据格式支持ND。预留参数，暂未使用，传空即可。
  * @param [in] expertScales: 计算输入，Tensor，数据类型float32，必须为2维，数据格式支持ND。
+ * @param [in] performanceInfo: 计算输入，Tensor，数据类型int64，必须为1维，数据格式支持ND。
  * @param [in] groupEp: 计算输入，str。ep通信域名称，专家并行的通信域。不能和groupTp相同。
  * @param [in] epWorldSize: 计算输入，int。ep通信域size。
  * @param [in] epRankId: 计算输入，int。ep本卡Id。同一个EP通信域中各卡的epRankId不能重复。
@@ -57,7 +58,7 @@ extern "C" {
  */
 ACLNN_API aclnnStatus aclnnMoeDistributeDispatchGetWorkspaceSize(const aclTensor* x, const aclTensor* expertIds,
     const aclTensor* scales, const aclTensor* xActiveMask,
-    const aclTensor* expertScales,
+    const aclTensor* expertScales, const aclTensor* performanceInfo,
     const char* groupEp, int64_t epWorldSize, int64_t epRankId,
     int64_t moeExpertNum, const char* groupTp, int64_t tpWorldSize,
     int64_t tpRankId, int64_t expertShardType, int64_t sharedExpertNum, 

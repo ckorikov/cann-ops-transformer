@@ -37,6 +37,7 @@ struct MoeDistributeDispatchA2Info {
     bool reserved1;                      // reserved
     bool reserved2;                      // reserved
     bool reserved3;                      // reserved
+    bool hasPerformanceInfo;             // has performanceinfo or not
     uint64_t totalUbSize;                // epWorldSize
     uint32_t expertTokenNumsType;        // expert token nums type, support 0: cumsum mode, 1: count mode
 };

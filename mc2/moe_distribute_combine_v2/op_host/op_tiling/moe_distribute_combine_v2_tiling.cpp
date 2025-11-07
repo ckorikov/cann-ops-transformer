@@ -56,6 +56,7 @@ namespace {
     constexpr uint32_t CONST_EXPERT_ALPHA_1_INDEX = 14;
     constexpr uint32_t CONST_EXPERT_ALPHA_2_INDEX = 15;
     constexpr uint32_t CONST_EXPERT_V_INDEX = 16;
+    constexpr uint32_t PERFORMANCE_INFO_INDEX = 17;
     constexpr uint32_t OUTPUT_X_INDEX = 0;
 
     constexpr uint32_t ATTR_GROUP_EP_INDEX = 0;
@@ -1205,6 +1206,7 @@ static ge::graphStatus MoeDistributeCombineA2CheckShapeAndSetTiling(const gert::
     const gert::StorageShape* constExpertAlpha2StorageShape =
         context->GetOptionalInputShape(CONST_EXPERT_ALPHA_2_INDEX);
     const gert::StorageShape* constExpertVStorageShape = context->GetOptionalInputShape(CONST_EXPERT_V_INDEX);
+    const gert::StorageShape* performanceInfoStorageShape = context->GetOptionalInputShape(PERFORMANCE_INFO_INDEX);
 
     if (oriXStorageShape != nullptr || constExpertAlpha1StorageShape != nullptr ||
         constExpertAlpha2StorageShape != nullptr || constExpertVStorageShape != nullptr) {
@@ -1242,6 +1244,7 @@ static ge::graphStatus MoeDistributeCombineA2CheckShapeAndSetTiling(const gert::
             xActiveMaskStorageShape->GetStorageShape().GetDim(0), bs),
         return GRAPH_FAILED);
 
+    info.hasPerformanceInfo = (performanceInfoStorageShape != nullptr); // 获取performanceInfo
     info.isTokenMask = isTokenMask;
     info.bs = bs;
     info.k = k;

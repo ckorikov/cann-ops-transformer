@@ -37,7 +37,7 @@ using namespace AscendC;
 */
 
 extern "C" __global__ __aicore__ void moe_distribute_dispatch_v2(
-    GM_ADDR x, GM_ADDR expertIds, GM_ADDR scales, GM_ADDR xActiveMask, GM_ADDR expertScales, GM_ADDR elasticInfo,
+    GM_ADDR x, GM_ADDR expertIds, GM_ADDR scales, GM_ADDR xActiveMask, GM_ADDR expertScales, GM_ADDR elasticInfo, GM_ADDR performanceInfo,
     GM_ADDR expandXOut, GM_ADDR dynamicScalesOut, GM_ADDR assistInfoOut, GM_ADDR expertTokenNumsOut,
     GM_ADDR epSendCountsOut, GM_ADDR tpSendCountsOut, GM_ADDR expandScalesOut, GM_ADDR workspaceGM, GM_ADDR tilingGM)
 {
@@ -65,7 +65,7 @@ extern "C" __global__ __aicore__ void moe_distribute_dispatch_v2(
     if (TILING_KEY_IS(2000001000)) {
         GET_TILING_DATA_WITH_STRUCT(MoeDistributeDispatchA2TilingData, tilingData, tilingGM);
         MoeDistributeDispatchA2<DTYPE_X, DTYPE_EXPAND_X, false, false, false> op;
-        op.Init(x, expertIds, scales, xActiveMask, expandXOut, dynamicScalesOut, assistInfoOut, expertTokenNumsOut, epSendCountsOut,
+        op.Init(x, expertIds, scales, xActiveMask, performanceInfo, expandXOut, dynamicScalesOut, assistInfoOut, expertTokenNumsOut, epSendCountsOut,
                 workspaceGM, &pipe, tilingGM);
         op.Process();
     }
@@ -80,7 +80,7 @@ extern "C" __global__ __aicore__ void moe_distribute_dispatch_v2(
             op.Process();
         } else if (dataplaneMode == DataplaneMode::AIV) {
             MoeDistributeDispatchA2Layered<DTYPE_X, DTYPE_EXPAND_X, false, false, false> op;
-            op.Init(x, expertIds, scales, expertScales, expandXOut, dynamicScalesOut, assistInfoOut, expertTokenNumsOut,
+            op.Init(x, expertIds, scales, expertScales, performanceInfo, expandXOut, dynamicScalesOut, assistInfoOut, expertTokenNumsOut,
                     epSendCountsOut, expandScalesOut, workspaceGM, &pipe, tilingGM, contextGM0);
             op.Process();
         }
@@ -138,14 +138,14 @@ extern "C" __global__ __aicore__ void moe_distribute_dispatch_v2(
     if (TILING_KEY_IS(2000001002)) {
         GET_TILING_DATA_WITH_STRUCT(MoeDistributeDispatchA2TilingData, tilingData, tilingGM);
         MoeDistributeDispatchA2<DTYPE_X, DTYPE_EXPAND_X, false, true, false> op;
-        op.Init(x, expertIds, scales, xActiveMask, expandXOut, dynamicScalesOut, assistInfoOut, expertTokenNumsOut, epSendCountsOut,
+        op.Init(x, expertIds, scales, xActiveMask, performanceInfo, expandXOut, dynamicScalesOut, assistInfoOut, expertTokenNumsOut, epSendCountsOut,
                 workspaceGM, &pipe, tilingGM);
         op.Process();
     }
     if (TILING_KEY_IS(2000001012)) {
         GET_TILING_DATA_WITH_STRUCT(MoeDistributeDispatchA2TilingData, tilingData, tilingGM);
         MoeDistributeDispatchA2<DTYPE_X, DTYPE_EXPAND_X, false, true, true> op;
-        op.Init(x, expertIds, scales, xActiveMask, expandXOut, dynamicScalesOut, assistInfoOut, expertTokenNumsOut, epSendCountsOut,
+        op.Init(x, expertIds, scales, xActiveMask, performanceInfo, expandXOut, dynamicScalesOut, assistInfoOut, expertTokenNumsOut, epSendCountsOut,
                 workspaceGM, &pipe, tilingGM);
         op.Process();
     }
@@ -160,7 +160,7 @@ extern "C" __global__ __aicore__ void moe_distribute_dispatch_v2(
             op.Process();
         } else if (dataplaneMode == DataplaneMode::AIV) {
             MoeDistributeDispatchA2Layered<DTYPE_X, DTYPE_EXPAND_X, false, true, false> op;
-            op.Init(x, expertIds, scales, expertScales, expandXOut, dynamicScalesOut, assistInfoOut, expertTokenNumsOut,
+            op.Init(x, expertIds, scales, expertScales, performanceInfo, expandXOut, dynamicScalesOut, assistInfoOut, expertTokenNumsOut,
                     epSendCountsOut, expandScalesOut, workspaceGM, &pipe, tilingGM, contextGM0);
             op.Process();
         }
@@ -176,7 +176,7 @@ extern "C" __global__ __aicore__ void moe_distribute_dispatch_v2(
             op.Process();
         } else if (dataplaneMode == DataplaneMode::AIV) {
             MoeDistributeDispatchA2Layered<DTYPE_X, DTYPE_EXPAND_X, false, true, true> op;
-            op.Init(x, expertIds, scales, expertScales, expandXOut, dynamicScalesOut, assistInfoOut, expertTokenNumsOut,
+            op.Init(x, expertIds, scales, expertScales, performanceInfo, expandXOut, dynamicScalesOut, assistInfoOut, expertTokenNumsOut,
                     epSendCountsOut, expandScalesOut, workspaceGM, &pipe, tilingGM, contextGM0);
             op.Process();
         }

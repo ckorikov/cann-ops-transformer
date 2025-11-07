@@ -28,6 +28,7 @@ namespace ge {
 * @li scales: An optional tensor. Support dtype: float32, dimension must be 2, support format: ND.
 * @li x_active_mask: An optional tensor. Support dtype: bool, support format: ND.
 * @li expert_scales: An optional tensor. Support dtype: float32. Shape supports (BS, K), support format: ND.
+* @li performance_info: An optional tensor. Support dtype: int64. Shape supports (worldsize, ), support format: ND.
 
 * @par Attributes
 * @li group_ep: Required. Input ep comm group name, ep means experts parallelism, dtype: String.
@@ -60,6 +61,7 @@ REG_OP(MoeDistributeDispatch)
     .OPTIONAL_INPUT(scales, TensorType({DT_FLOAT}))
     .OPTIONAL_INPUT(x_active_mask, TensorType({DT_BOOL}))
     .OPTIONAL_INPUT(expert_scales, TensorType({DT_FLOAT}))
+    .OPTIONAL_INPUT(performance_info, TensorType({DT_INT64}))
     .OUTPUT(expand_x, TensorType({DT_BF16, DT_INT8, DT_FLOAT16}))
     .OUTPUT(dynamic_scales, TensorType({DT_FLOAT}))
     .OUTPUT(expand_idx, TensorType({DT_INT32}))

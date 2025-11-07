@@ -48,6 +48,11 @@ public:
         .DataTypeList({ge::DT_FLOAT})
         .FormatList({ge::FORMAT_ND})
         .AutoContiguous();
+    this->Input("performance_info")
+        .ParamType(OPTIONAL)
+        .DataTypeList({ge::DT_INT64})
+        .FormatList({ge::FORMAT_ND})
+        .AutoContiguous();
 
     this->Output("expand_x")
         .ParamType(REQUIRED)
