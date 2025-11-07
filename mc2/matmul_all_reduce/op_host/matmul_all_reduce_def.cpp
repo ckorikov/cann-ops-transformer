@@ -568,10 +568,13 @@ public:
             .NeedCheckSupportFlag(false)
             .PrecisionReduceFlag(true)
             .ExtendCfgInfo("aclnnSupport.value", "support_aclnn")
-            .ExtendCfgInfo("jitCompile.flag", "static_false")
+            .ExtendCfgInfo("jitCompile.flag", "static_false") // 动态shape,复用二进制,后续图支持后修改
             .ExtendCfgInfo("multiKernelSupportDynamicGraph.value", "multi_kernel");
         this->AICore().AddConfig("ascend910_95", aicore_config);
+        this->AICore().AddConfig("ascend910_93", aicore_config);
         this->MC2().HcclGroup("group");
+        this->MC2().HcclServerType(HcclServerType::AICORE, "ascend910_93");
+        this->MC2().HcclServerType(HcclServerType::CCU, "ascend910_95");
 
         OpAICoreConfig aicore_config_910b;
         aicore_config_910b.Input("x1")
@@ -772,10 +775,11 @@ public:
             .NeedCheckSupportFlag(false)
             .PrecisionReduceFlag(true)
             .ExtendCfgInfo("aclnnSupport.value", "support_aclnn")
-            .ExtendCfgInfo("jitCompile.flag", "static_false")
+            .ExtendCfgInfo("jitCompile.flag", "static_false") // 动态shape,复用二进制,后续图支持后修改
             .ExtendCfgInfo("multiKernelSupportDynamicGraph.value", "multi_kernel");
         this->AICore().AddConfig("ascend910b", aicore_config_910b);
         this->MC2().HcclGroup("group");
+        this->MC2().HcclServerType(HcclServerType::AICORE, "ascend910b");
 
         OpAICoreConfig aicore_config_310p;
         aicore_config_310p.Input("x1")
@@ -857,10 +861,11 @@ public:
             .NeedCheckSupportFlag(false)
             .PrecisionReduceFlag(true)
             .ExtendCfgInfo("aclnnSupport.value", "support_aclnn")
-            .ExtendCfgInfo("jitCompile.flag", "static_false")
+            .ExtendCfgInfo("jitCompile.flag", "static_false") // 动态shape,复用二进制,后续图支持后修改
             .ExtendCfgInfo("multiKernelSupportDynamicGraph.value", "multi_kernel");
         this->AICore().AddConfig("ascend310p", aicore_config_310p);
         this->MC2().HcclGroup("group");
+        this->MC2().HcclServerType(HcclServerType::AICPU, "ascend310p");
     }
 };
 

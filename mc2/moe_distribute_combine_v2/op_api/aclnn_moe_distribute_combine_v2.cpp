@@ -23,13 +23,6 @@ using namespace op;
 extern "C" {
 #endif
 
-enum NnopbaseHcclServerType {
-    NNOPBASE_HCCL_SERVER_TYPE_AICPU = 0,
-    NNOPBASE_HCCL_SERVER_TYPE_MTE,
-    NNOPBASE_HCCL_SERVER_TYPE_CCU,
-    NNOPBASE_HCCL_SERVER_TYPE_END
-};
-
 extern aclnnStatus aclnnInnerMoeDistributeCombineV2GetWorkspaceSize(const aclTensor* expandX, const aclTensor* expertIds,
                                                                   const aclTensor* assistInfoForCombine, const aclTensor* epSendCounts,
                                                                   const aclTensor* expertScales, const aclTensor* tpSendCounts,
@@ -50,8 +43,6 @@ extern aclnnStatus aclnnInnerMoeDistributeCombineV2GetWorkspaceSize(const aclTen
                                                                   aclOpExecutor** executor);
 extern aclnnStatus aclnnInnerMoeDistributeCombineV2(void *workspace, uint64_t workspaceSize, aclOpExecutor *executor,
                                                   aclrtStream stream);
-
-extern "C" void __attribute__((weak)) NnopbaseSetHcclServerType(void *executor, NnopbaseHcclServerType sType);
 
 // check nullptr
 static bool CheckNotNull(const aclTensor* expandX, const aclTensor* expertIds, const aclTensor* assistInfoForCombine,
@@ -135,16 +126,6 @@ aclnnStatus aclnnMoeDistributeCombineV2GetWorkspaceSize(const aclTensor* expandX
 aclnnStatus aclnnMoeDistributeCombineV2(void *workspace, uint64_t workspaceSize, aclOpExecutor *executor,
                                                   aclrtStream stream)
 {
-    if (NnopbaseSetHcclServerType) {
-        if (GetCurrentPlatformInfo().GetSocVersion() == SocVersion::ASCEND910_95) {
-            NnopbaseSetHcclServerType(executor, NNOPBASE_HCCL_SERVER_TYPE_CCU);
-        } else if (GetCurrentPlatformInfo().GetSocVersion() == SocVersion::ASCEND910B) {
-            NnopbaseSetHcclServerType(executor, NNOPBASE_HCCL_SERVER_TYPE_AICPU);
-        } else {
-            NnopbaseSetHcclServerType(executor, NNOPBASE_HCCL_SERVER_TYPE_MTE);
-        }
-    }
-
     return aclnnInnerMoeDistributeCombineV2(workspace, workspaceSize, executor, stream);
 }
 

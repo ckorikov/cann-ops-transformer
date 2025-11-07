@@ -11,7 +11,6 @@
 #include "op_mc2_def.h"
 #include "aclnn_kernels/common/op_error_check.h"
 #include "opdev/op_log.h"
-#include "opdev/platform.h"
 #include "opdev/common_types.h"
 #include "aclnn_grouped_mat_mul_allto_allv.h"
 
@@ -20,13 +19,6 @@ using namespace op;
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-enum class NnopbaseHcclServerType : uint32_t {
-    NNOPBASE_HCCL_SERVER_TYPE_AICPU = 0,
-    NNOPBASE_HCCL_SERVER_TYPE_MTE,
-    NNOPBASE_HCCL_SERVER_TYPE_CCU,
-    NNOPBASE_HCCL_SERVER_TYPE_END
-};
 
 extern aclnnStatus aclnnInnerGroupedMatMulAlltoAllvGetWorkspaceSize(
     const aclTensor* gmmX, const aclTensor* gmmWeight, const aclTensor* sendCountsTensorOptional,
@@ -37,7 +29,6 @@ extern aclnnStatus aclnnInnerGroupedMatMulAlltoAllvGetWorkspaceSize(
 
 extern aclnnStatus aclnnInnerGroupedMatMulAlltoAllv(void* workspace, uint64_t workspaceSize, aclOpExecutor* executor,
                                                     aclrtStream stream);
-extern "C" void __attribute__((weak)) NnopbaseSetHcclServerType(void *executor, NnopbaseHcclServerType sType);
 
 // check nullptr
 static bool CheckNullStatus(const aclTensor* gmmX, const aclTensor* gmmWeight,
@@ -116,11 +107,6 @@ aclnnStatus aclnnGroupedMatMulAlltoAllvGetWorkspaceSize(
 aclnnStatus aclnnGroupedMatMulAlltoAllv(void* workspace, uint64_t workspaceSize, aclOpExecutor* executor,
                                         aclrtStream stream)
 {
-    if (NnopbaseSetHcclServerType) {
-        if (op::GetCurrentPlatformInfo().GetSocVersion() == op::SocVersion::ASCEND910_95) {
-            NnopbaseSetHcclServerType(executor, NnopbaseHcclServerType::NNOPBASE_HCCL_SERVER_TYPE_CCU);
-        }
-    }
     aclnnStatus ret = aclnnInnerGroupedMatMulAlltoAllv(workspace, workspaceSize, executor, stream);
     return ret;
 }
