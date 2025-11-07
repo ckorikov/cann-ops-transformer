@@ -47,6 +47,7 @@ static constexpr Mc2WeightQuantBatchMatmulV2::Arch35::VecAntiQuantConfig VEC_ANT
 #include "arch35/matmul_all_reduce_quant.h"
 #include "arch35/matmul_all_reduce_quant_comm_int8.h"
 #include "arch35/matmul_all_reduce_quant_perblock.h"
+#include "arch35/matmul_all_reduce_quant_pertile_comm_fp8.h"
 #endif
 #else
 #if __CCE_AICORE__ == 220
@@ -388,6 +389,12 @@ extern "C" __global__ __aicore__ void matmul_all_reduce(
 #if (ORIG_DTYPE_X1 != DT_HIFLOAT8)
     if (TILING_KEY_IS(1000000000000000011)) {
         INVOKE_MC2_QUANT_MXFP_910_OP_IMPL(AscendC::MatMulASWKernel, Mc2CoreType::ON_CUBE_AND_VECTOR, false, true);
+    } else if (TILING_KEY_IS(1000000000050102010)) {
+        INVOKE_MC2_QUANT_PERTILE_COMM_FP8_910_OP_IMPL(Mc2QuantBatchMatmulV3::Mc2QuantBmmPertokenRegbaseKernel,
+                                                      Mc2CoreType::ON_CUBE_AND_VECTOR, false, false);
+    } else if (TILING_KEY_IS(1000000000050102011)) {
+        INVOKE_MC2_QUANT_PERTILE_COMM_FP8_910_OP_IMPL(Mc2QuantBatchMatmulV3::Mc2QuantBmmPertokenRegbaseKernel,
+                                                      Mc2CoreType::ON_CUBE_AND_VECTOR, false, true);
     }
 #endif
     if (TILING_KEY_IS(1000000000000000001)) {

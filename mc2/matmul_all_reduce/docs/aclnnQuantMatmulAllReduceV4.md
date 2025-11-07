@@ -249,7 +249,7 @@ aclnnStatus aclnnQuantMatmulAllReduceV4(
           <td>commQuantMode</td>
           <td>输入</td>
           <td>Host侧的整型，静态量化和动态量化的标志位。</td>
-          <td>数值为0和1。</td>
+          <td>数值为0和1。仅在x1和x2为fp8e4m3或fp8e5m2时支持1，为1时走Pertile量化Fp8通信场景。</td>
           <td>INT64</td>
           <td>-</td>
           <td>-</td>

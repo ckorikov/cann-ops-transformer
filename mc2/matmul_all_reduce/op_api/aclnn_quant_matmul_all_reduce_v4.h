@@ -44,7 +44,7 @@ extern "C" {
  * @param [in] commTurn: 通信数据切分数，即总数据量/单次通信量，默认值：0。
  * @param [in] streamMode: acl流模式的枚举，类型支持：1。
  * @param [in] groupSize: 量化系数在不同维度上量化尺度，默认值：0。
- * @param [in] commQuantMode: 静态量化和动态量化的标志位，默认值：0。
+ * @param [in] commQuantMode: 静态量化和动态量化的标志位，默认值：0。动态量化目前只为fp8通信场景。
  * @param [out] output: 计算+通信的结果，数据类型：float16, bfloat16, float32。
  * @param [out] workspaceSize: 返回需要在npu device侧申请的workspace大小。
  * @param [out] executor: 返回op执行器，包含了算子计算流程。
