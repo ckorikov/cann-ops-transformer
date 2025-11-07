@@ -22,7 +22,7 @@
 #include "kernel_operator_softmax_compute_nz.h"
 
 using namespace matmul;
-constexpr uint32_t BATCH_NUM_MAX_NZ = 400;
+constexpr uint32_t BATCH_NUM_MAX_NZ = 500;
 constexpr static uint32_t NEGATIVE_MIN_VAULE_FP32 = 0xFF7FFFFF;
 constexpr static uint32_t NEGATIVE_MIN_VAULE_FP16 = 0xC61C4000;
 
@@ -954,9 +954,9 @@ __aicore__ inline void PromptFlashAttentionS1s2Bns1X310Base<PFAT>::CopyND2NZOnTh
     int32_t calcWidth = width / BLOCK_CUBE; // cube block numbers that do not need to be pad zero
     int32_t calcHeightAlign = (height + BLOCK_CUBE - 1) / BLOCK_CUBE;
     if (height % BLOCK_CUBE != 0) {
-        int32_t repeat = calcWidth * calcHeightAlign;
-        Duplicate<mmOutputType>(dst, static_cast<mmOutputType>(0), repeat);
-        PipeBarrier<PIPE_MTE2>();
+        int64_t repeat = calcWidth * calcHeightAlign;
+        create_cbuf_matrix((__cbuf__ void*)dst.GetPhyAddr(), repeat, 0);
+        pipe_barrier(PIPE_MTE2);
     }
     // gCol unaligned ,can not use dma copy repeat stride
     int src_gap = gCol * sizeof(mmOutputType) / UB_ALIGN_NZ - 1;
