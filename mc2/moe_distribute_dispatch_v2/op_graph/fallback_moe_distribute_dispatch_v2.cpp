@@ -36,6 +36,7 @@ static graphStatus MoeDistributeDispatchV2ExecuteFunc(OpExecuteContext* host_api
   const auto x_active_mask = host_api_ctx->GetOptionalInputTensor(static_cast<size_t>(3));
   const auto expert_scales = host_api_ctx->GetOptionalInputTensor(static_cast<size_t>(4));
   const auto elastic_info = host_api_ctx->GetOptionalInputTensor(static_cast<size_t>(5));
+  const auto performance_info = host_api_ctx->GetOptionalInputTensor(static_cast<size_t>(6));
 
   const auto expand_x = host_api_ctx->GetOutputTensor(static_cast<size_t>(0));
   OP_CHECK_IF(expand_x == nullptr, OP_LOGE(MoeDistributeDispatchV2Info, "expand_x is null"), return ge::GRAPH_FAILED);
@@ -112,8 +113,8 @@ static graphStatus MoeDistributeDispatchV2ExecuteFunc(OpExecuteContext* host_api
   const auto *const_expert_num_ptr = attrs->GetInt(static_cast<size_t>(16));
   OP_CHECK_IF(const_expert_num_ptr == nullptr, OP_LOGE(MoeDistributeDispatchV2Info, "const_expert_num_ptr is null"), return ge::GRAPH_FAILED);
 
-  if (elastic_info != nullptr || *zero_expert_num_ptr != 0 || *copy_expert_num_ptr != 0 || *const_expert_num_ptr != 0) {
-    const auto api_ret_newfeature = EXEC_OPAPI_CMD(aclnnMoeDistributeDispatchV3, x, expand_ids, scales, x_active_mask, expert_scales, elastic_info, group_ep, *ep_world_size,
+  if (elastic_info != nullptr || performance_info != nullptr || *zero_expert_num_ptr != 0 || *copy_expert_num_ptr != 0 || *const_expert_num_ptr != 0) {
+    const auto api_ret_newfeature = EXEC_OPAPI_CMD(aclnnMoeDistributeDispatchV3, x, expand_ids, scales, x_active_mask, expert_scales, elastic_info, performance_info, group_ep, *ep_world_size,
                                         *ep_rank_id, *moe_expert_num, group_tp, *tp_world_size, *tp_rank_id, *expert_shard_type, *shared_expert_num,
                                         *shared_expert_rank_num, *quant_mode_ptr, *global_bs_ptr, *expert_token_nums_type_ptr, *comm_alg_ptr, *zero_expert_num_ptr,
                                         *copy_expert_num_ptr, *const_expert_num_ptr, expand_x, dynamic_scales, assist_info_for_combine, expert_token_nums, 

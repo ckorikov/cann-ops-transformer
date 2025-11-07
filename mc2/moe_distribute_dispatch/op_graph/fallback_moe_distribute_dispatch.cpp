@@ -35,6 +35,7 @@ static graphStatus MoeDistributeDispatchExecuteFunc(OpExecuteContext* host_api_c
   const auto scales = host_api_ctx->GetOptionalInputTensor(static_cast<size_t>(2));
   const auto x_active_mask = host_api_ctx->GetOptionalInputTensor(static_cast<size_t>(3));
   const auto expert_scales = host_api_ctx->GetOptionalInputTensor(static_cast<size_t>(4));
+  const auto performance_info = host_api_ctx->GetOptionalInputTensor(static_cast<size_t>(5));
 
   const auto expand_x = host_api_ctx->GetOutputTensor(static_cast<size_t>(0));
   OP_CHECK_IF(expand_x == nullptr, OP_LOGE(MoeDistributeDispatchInfo, "expand_x is null"), return ge::GRAPH_FAILED);
@@ -99,7 +100,7 @@ static graphStatus MoeDistributeDispatchExecuteFunc(OpExecuteContext* host_api_c
   const int64_t *expert_token_nums_type_ptr = attrs->GetInt(static_cast<size_t>(12));
   OP_CHECK_IF(expert_token_nums_type_ptr == nullptr, OP_LOGE(MoeDistributeDispatchInfo, "expert_token_nums_type_ptr is null"), return ge::GRAPH_FAILED);
 
-  const auto api_ret = EXEC_OPAPI_CMD(aclnnMoeDistributeDispatch, x, expand_ids, scales, x_active_mask, expert_scales, group_ep, *ep_world_size, *ep_rank_id,
+  const auto api_ret = EXEC_OPAPI_CMD(aclnnMoeDistributeDispatch, x, expand_ids, scales, x_active_mask, expert_scales, performance_info, group_ep, *ep_world_size, *ep_rank_id,
                                       *moe_expert_num, group_tp, *tp_world_size, *tp_rank_id, *expert_shard_type, *shared_expert_num, *shared_expert_rank_num,
                                       *quant_mode_ptr, *global_bs_ptr, *expert_token_nums_type_ptr, expand_x, dynamic_scales, expand_idx, expert_token_nums, 
                                       ep_recv_count, tp_recv_count, expand_scales);

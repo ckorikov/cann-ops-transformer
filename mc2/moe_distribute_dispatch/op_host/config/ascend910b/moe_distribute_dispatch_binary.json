@@ -58,6 +58,17 @@
                 -2
                 ],
                 "format_match_mode": "FormatAgnostic"
+            },
+            {
+                "name": "performace_info",
+                "index": 5,
+                "dtype": "int64",
+                "format": "ND",
+                "paramType": "optional",
+                "shape": [
+                -2
+                ],
+                "format_match_mode": "FormatAgnostic"
             }
             ],
             "outputs": [
@@ -258,6 +269,17 @@
                 "name": "expert_scales",
                 "index": 4,
                 "dtype": "float32",
+                "format": "ND",
+                "paramType": "optional",
+                "shape": [
+                -2
+                ],
+                "format_match_mode": "FormatAgnostic"
+            },
+            {
+                "name": "performace_info",
+                "index": 5,
+                "dtype": "int64",
                 "format": "ND",
                 "paramType": "optional",
                 "shape": [
@@ -470,6 +492,17 @@
                 -2
                 ],
                 "format_match_mode": "FormatAgnostic"
+            },
+            {
+                "name": "performace_info",
+                "index": 5,
+                "dtype": "int64",
+                "format": "ND",
+                "paramType": "optional",
+                "shape": [
+                -2
+                ],
+                "format_match_mode": "FormatAgnostic"
             }
             ],
             "outputs": [
@@ -670,6 +703,17 @@
                 "name": "expert_scales",
                 "index": 4,
                 "dtype": "float32",
+                "format": "ND",
+                "paramType": "optional",
+                "shape": [
+                -2
+                ],
+                "format_match_mode": "FormatAgnostic"
+            },
+            {
+                "name": "performace_info",
+                "index": 5,
+                "dtype": "int64",
                 "format": "ND",
                 "paramType": "optional",
                 "shape": [
