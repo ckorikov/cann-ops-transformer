@@ -862,7 +862,6 @@ ge::graphStatus MoeFinalizeRoutingV2Membase::Check310pParams()
         dropPadMode != DROP_MODE_VALUE_2,
         OP_LOGE(context_->GetNodeName(), "310p only support dropPadMode being 2."),
         return ge::GRAPH_FAILED);
-    return ge::GRAPH_SUCCESS;
     
     // check hidden size
     // 调用本函数前会先调用DoGetShapeAttrsInfo，已完成输入shape校验
@@ -873,6 +872,7 @@ ge::graphStatus MoeFinalizeRoutingV2Membase::Check310pParams()
         OP_LOGE(context_->GetNodeName(), 
             "310p only support h, which means the trailing axis of expanded_x[num_rows * k, h], is 32-aligned."),
         return ge::GRAPH_FAILED);
+    return ge::GRAPH_SUCCESS;
 }
 
 ge::graphStatus MoeFinalizeRoutingV2Membase::CalcOpTiling()
