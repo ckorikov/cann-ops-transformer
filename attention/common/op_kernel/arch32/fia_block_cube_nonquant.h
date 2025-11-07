@@ -572,7 +572,7 @@ __aicore__ inline void FiaBlockCubeNonQuant<FIAT>::DealMm1SingleMKN(const RunInf
                 mmadParams.cmatrixSource = false;
                 Mmad(cL0Tensor, aL0Tensor, bL0Tensor, mmadParams);
             }
-            PipeBarrier<PIPE_M>();
+            AscendC::PipeBarrier<PIPE_M>();
             SetFlag<HardEvent::M_MTE1>(L0AB_EVENT0 + l0abBufId % 2);
             l0abBufId = (l0abBufId + 1) % 2;
         }
@@ -720,7 +720,7 @@ __aicore__ inline void FiaBlockCubeNonQuant<FIAT>::DealMm2SingleMKN(const RunInf
                 mmadParams.cmatrixSource = false;
                 Mmad(cL0Tensor, aL0Tensor, bL0Tensor, mmadParams);
             }
-            PipeBarrier<PIPE_M>();
+            AscendC::PipeBarrier<PIPE_M>();
             SetFlag<HardEvent::M_MTE1>(L0AB_EVENT0 + l0abBufId % 2);
             l0abBufId = (l0abBufId + 1) % 2;
         }

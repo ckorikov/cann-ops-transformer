@@ -525,7 +525,7 @@ __aicore__ inline void MatmulKPP(const LocalTensor<A> &aL1Tensor,
         Mmad(cL0Tensor, L0ATensor, L0BTensor, mmadParams);
     #if (__CCE_AICORE__ != 310) && (!(defined __DAV_310R6__))
         if ((mmadParams.m / FP16_ONE_FRACTAL_ELEMENT) * (mmadParams.n / FP16_ONE_FRACTAL_ELEMENT) < MMAD_MN_SIZE_10) {
-            PipeBarrier<PIPE_M>();
+            AscendC::PipeBarrier<PIPE_M>();
         }
     #endif
         l0aBuffer.Set<HardEvent::M_MTE1>(); // matmul完成后，通知mte1可以开始搬运新数据到L0A
