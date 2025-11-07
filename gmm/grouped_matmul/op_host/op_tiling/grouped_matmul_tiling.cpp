@@ -468,7 +468,7 @@ void GMMTiling::DivideUbAndSetWorkspaceAntiquant(size_t* workspaces, const uint3
         CeilDiv(CeilDiv(maxM_, groupNum_), baseM_) * CeilDiv(maxN_, baseN_);
       bool goodCubeUtility = dimMN * (xDType_ == ge::DT_BF16 ? 2 : 1) >= static_cast<int32_t>(aicNum * 0.4);  // 0.4: a factor, in practice.
       antiquantPerformance_ =
-        goodCubeUtility && static_cast<int64_t>(minK_) * baseN_ * aicNum >= ANTIQUANT_PERFORMANCE_THRESHOLD && !transposeWeight_;
+        goodCubeUtility && static_cast<int64_t>(minK_) * baseN_ * static_cast<int64_t>(aicNum) >= ANTIQUANT_PERFORMANCE_THRESHOLD && !transposeWeight_;
       uint32_t maxUbBaseN = static_cast<uint32_t>(BEST_UB_BASEN);
       if (transposeWeight_) {
         maxUbBaseN = baseN_;
@@ -896,36 +896,36 @@ void GMMTiling::GMMSetTplTilingKey(gert::TilingContext* context) {
   uint32_t aivAicRatio = GROUPED_MATMUL_AIV_AIC_RATIO_1;
 
   if (isA8W4FakeA8W8_) {
-    a8w4KernelTemplate = GROUPED_MATMUL_A8W4_KERNEL_TEMPLATE_PERCHANNEL_ANTIQUANT;
+    a8w4KernelTemplate = static_cast<uint32_t>(GROUPED_MATMUL_A8W4_KERNEL_TEMPLATE_PERCHANNEL_ANTIQUANT);
   }
 
   if ((xDType_ == ge::DT_FLOAT16 || xDType_ == ge::DT_BF16) && weightDtype_ == ge::DT_INT8) {
-    a16w8KernelTemplate = GROUPED_MATMUL_A16W8_KERNEL_TEMPLATE_ANTIQUANT;
+    a16w8KernelTemplate = static_cast<uint32_t>(GROUPED_MATMUL_A16W8_KERNEL_TEMPLATE_ANTIQUANT);
     if (isA16W8Msd_) {
-      a16w8KernelTemplate = GROUPED_MATMUL_A16W8_KERNEL_TEMPLATE_MSD;
+      a16w8KernelTemplate = static_cast<uint32_t>(GROUPED_MATMUL_A16W8_KERNEL_TEMPLATE_MSD);
     }
   }
 
   if (isA4W4_ || antiquantPerformance_) {
-    aivAicRatio = GROUPED_MATMUL_AIV_AIC_RATIO_2;
+    aivAicRatio = static_cast<uint32_t>(GROUPED_MATMUL_AIV_AIC_RATIO_2);
   } else if (isA8W8_) {
     if (actType_ == ACT_TYPE_GELU ||
         ((maxK_ <= DOUBLE_VECTOT_THRESHOLD_K_LOWER || maxK_ >= DOUBLE_VECTOT_THRESHOLD_K_UPPER) &&
          tuningConfig_ >= SMALL_TUNING_CONFIG_THRESHOLD &&
          perTokenOrPerGroupSize_ > 0U)) {
-        aivAicRatio = GROUPED_MATMUL_AIV_AIC_RATIO_2;
+        aivAicRatio = static_cast<uint32_t>(GROUPED_MATMUL_AIV_AIC_RATIO_2);
     } else if (yDtype_ == ge::DT_INT8 || yDtype_ == ge::DT_INT32) {
-      aivAicRatio = GROUPED_MATMUL_CUBE_ONLY;
+      aivAicRatio = static_cast<uint32_t>(GROUPED_MATMUL_CUBE_ONLY);
     }
   } else if (!transposeX_ && xDType_ == weightDtype_ && (xDType_ == ge::DT_FLOAT16 || xDType_ == ge::DT_BF16 || xDType_ == ge::DT_FLOAT)) {
-    aivAicRatio = GROUPED_MATMUL_CUBE_ONLY;
+    aivAicRatio = static_cast<uint32_t>(GROUPED_MATMUL_CUBE_ONLY);
   }
 
   if (a8w4KernelTemplate == GROUPED_MATMUL_A8W4_KERNEL_TEMPLATE_NONE &&
       a16w8KernelTemplate == GROUPED_MATMUL_A16W8_KERNEL_TEMPLATE_NONE &&
       aivAicRatio != GROUPED_MATMUL_AIV_AIC_RATIO_2 &&
       StaticTilingProcess(context)) {
-    isStaticTilingApi = 1;
+    isStaticTilingApi = 1U;
   }
 
   const uint64_t tilingKey = GET_TPL_TILING_KEY(GetTplDataType(xDType_),
@@ -1425,7 +1425,7 @@ ge::graphStatus GMMTiling::A8W4Tiling(gert::TilingContext* context, const GMMCom
       OP_CHECK_NULL_WITH_CONTEXT(context, yDesc);
       uint32_t yDtype = GMM_TPL_FLOAT16;
       if (yDesc->GetDataType() == ge::DT_BF16) {
-        yDtype = GMM_TPL_BF16;
+        yDtype = static_cast<uint32_t>(GMM_TPL_BF16);
       }
       GMMTilingData tilingDataA8W4;
       auto w0Desc = context->GetDynamicInputDesc(WEIGHT_INDEX, 0);
@@ -1720,7 +1720,7 @@ ge::graphStatus GMMTiling::A8W4Tiling(gert::TilingContext* context, const GMMCom
           context->SetScheduleMode(1);  // set as batchmod for template using SyncAll
           uint32_t a8w4KernelTemplate = GROUPED_MATMUL_A8W4_KERNEL_TEMPLATE_MSD_API_DEQUANT;
           if (is_in_a8w4_white_list) {
-            a8w4KernelTemplate = GROUPED_MATMUL_A8W4_KERNEL_TEMPLATE_MSD_VECTOR_DEQUANT;
+            a8w4KernelTemplate = static_cast<uint32_t>(GROUPED_MATMUL_A8W4_KERNEL_TEMPLATE_MSD_VECTOR_DEQUANT);
           }
           context->SetTilingKey(GET_TPL_TILING_KEY(GMM_TPL_INT8, GMM_TPL_INT4, yDtype, 0, 0,
                                                    GROUPED_MATMUL_GROUP_LIST_TYPE_COUNT, 0,
