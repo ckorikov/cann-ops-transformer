@@ -14,9 +14,17 @@
  */
 #include "kernel_operator.h"
 #include "moe_distribute_dispatch_v2_tiling.h"
+
+#if __has_include("../moe_distribute_dispatch/moe_distribute_dispatch_a2.h")
 #include "../moe_distribute_dispatch/moe_distribute_dispatch_a2.h"
 #include "../moe_distribute_dispatch/moe_distribute_dispatch_a2_layered.h"
 #include "../moe_distribute_dispatch/moe_distribute_dispatch_a2_layered_aicpu.h"
+#else
+#include "../../moe_distribute_dispatch/op_kernel/moe_distribute_dispatch_a2.h"
+#include "../../moe_distribute_dispatch/op_kernel/moe_distribute_dispatch_a2_layered.h"
+#include "../../moe_distribute_dispatch/op_kernel/moe_distribute_dispatch_a2_layered_aicpu.h"
+#endif
+
 #include "moe_distribute_dispatch_v2.h"
 
 using namespace MoeDistributeDispatchV2Impl;
