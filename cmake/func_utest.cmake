@@ -255,6 +255,7 @@ function(OpsTest_AddOpProtoShared)
     )
     target_include_directories(${_Target}
             PRIVATE
+                ${OPBASE_INC_DIRS}
                 ${_OpsTestUt_OpProtoPrivateIncludesExt}
     )
     target_compile_options(${_Target}
@@ -340,6 +341,7 @@ function(OpsTest_AddOpTilingShared)
     )
     target_include_directories(${_Target}
             PRIVATE
+                ${OPBASE_INC_DIRS}
                 ${_OpsTestUt_OpTilingPrivateIncludesExt}
                 ${OPS_TRANSFORMER_DIR}/common/include
     )
