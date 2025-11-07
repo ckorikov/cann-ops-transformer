@@ -51,11 +51,11 @@ constexpr uint32_t ATTR_RANK_NUM_INDEX = 2;
 
 constexpr uint32_t SYSTEM_NEED_WORKSPACE = 16U * 1024 * 1024;
 constexpr uint32_t OP_TYPE_ALL_TO_ALL = 8;
-constexpr uint32_t AIV_NUM_USED = 6;
+constexpr uint32_t AIV_NUM_USED = 1;
 constexpr size_t MAX_GROUP_NAME_LENGTH = 128UL;
 
 const int MIN_WORLD_SIZE = 2;
-const int MAX_WORLD_SIZE = 128;
+const int MAX_WORLD_SIZE = 768;
 const int MIN_RANK_SIZE = 1;
 const int MAX_RANK_SIZE = 16;
 const int DIE_PER_RANK = 16;
@@ -158,6 +158,7 @@ static void SetHcommCfg(const char* nodeName, [[maybe_unused]] gert::TilingConte
     std::string algConfigAllToAllStr = "AlltoAll=level0:fullmesh;level1:pairwise";
 
     AscendC::Mc2CcTilingConfig mc2CcTilingConfig(group, opType1, algConfigAllToAllStr);
+    mc2CcTilingConfig.SetCommEngine(2);
     mc2CcTilingConfig.GetTiling(tiling->mc2InitTiling);
     mc2CcTilingConfig.GetTiling(tiling->mc2CcTiling1);
 }
@@ -198,7 +199,7 @@ ge::graphStatus ElasticReceivableTestTilingFunc(gert::TilingContext* context)
     ascendcPlatform.GetCoreMemSize(platform_ascendc::CoreMemType::UB, ubSize);
     blockDim = ascendcPlatform.CalcTschBlockDim(aivNum, 0, aivNum);
     context->SetBlockDim(blockDim);
-    context->SetScheduleMode(1); // 设置为batch mode模式，所有核同时启动
+    context->SetScheduleMode(0); // 设置为batch mode模式，所有核同时启动
     tilingData->elasticReceivableTestInfo.totalUbSize = ubSize;
     tilingData->elasticReceivableTestInfo.aivNum = aivNum;
     OP_LOGD(nodeName, "blockDim=%u, aivNum=%u, ubSize=%lu", blockDim, aivNum, ubSize);
