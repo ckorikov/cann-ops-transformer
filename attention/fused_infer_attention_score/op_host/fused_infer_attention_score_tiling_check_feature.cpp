@@ -205,7 +205,7 @@ ge::graphStatus FiaTilingCheck::CheckFeatureMlaSink() const
         QuantModeToSerialString(quantMode_).c_str(), vHeadDim_, LEARNABLE_SINK_NAME.c_str()),
         return ge::GRAPH_FAILED);
 
-    return ge::GRAPH_SUCCESS;
+    return CheckFeatureGqaNoquantSink();
 }
 
 ge::graphStatus FiaTilingCheck::CheckFeatureNoquantUnsupported() const

@@ -109,6 +109,7 @@ protected:
     // ================================Required Global Tensor=================================
     GlobalTensor<OUT_T> attentionOutGm;
     GlobalTensor<float> softmaxLseGm;
+    GlobalTensor<bfloat16_t> sinkGm;
 
     __gm__ uint8_t *keyPtr = nullptr;
     __gm__ uint8_t *valuePtr = nullptr;
@@ -427,6 +428,10 @@ __aicore__ inline void FiaKernelNonQuant<FIAT>::Init(
                                        actualSeqLengthsGmQ, actualSeqLengthsGm);
             if (constInfo.softmaxLseFlag) {
                 fdService.InitSoftmaxLseGm(softmaxLseGm);
+            }
+            if (learnableSink != nullptr) {
+                sinkGm.SetGlobalBuffer((__gm__ bfloat16_t *)learnableSink);
+                fdService.InitLearnableSinkGm(sinkGm);
             }
         }
         vectorService.InitParams(constInfo);

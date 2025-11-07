@@ -40,10 +40,12 @@ public:
     using T = float;
     using OUT_T = typename FIAT::outputType;  
     static constexpr FIA_LAYOUT LAYOUT_T = FIAT::layout; 
+    using SINK_T = bfloat16_t;
 
     __aicore__ inline void InitGlobalTensor(GlobalTensor<T> lseMaxFdGm, GlobalTensor<T> lseSumFdGm, GlobalTensor<T> accumOutGm, 
          GlobalTensor<OUT_T> attentionOutGm, GlobalTensor<uint64_t> actualSeqLengthsGmQ, GlobalTensor<uint64_t> actualSeqLengthsGm);
     __aicore__ inline void InitSoftmaxLseGm(GlobalTensor<float> softmaxLseGm);
+    __aicore__ inline void InitLearnableSinkGm(GlobalTensor<SINK_T> learnableSink);
     __aicore__ inline void InitParams(const AttentionCommon::ConstInfo &constInfo);
     __aicore__ inline void InitDecodeParams();
     __aicore__ inline void InitBuffers(TPipe *pipe);
@@ -64,7 +66,10 @@ protected:
                                           uint32_t cntKV, uint32_t dealRowCount);
     __aicore__ inline void CopyFinalResOut(LocalTensor<T> &accumOutLocal, uint32_t startRow, uint32_t dealRowCount);
     __aicore__ inline void CalaPreNextTokens();
- 
+    __aicore__ inline void CopySinkIn(uint32_t cntM);
+    __aicore__ inline void SinkMax(LocalTensor<T> lseMaxUb, uint32_t startRow, uint32_t dealRowCount);
+    __aicore__ inline void SinkExpSumUpdate(LocalTensor<T> lseMaxUb, LocalTensor<T> lseSumUb, uint64_t dealRowCountAlign);
+
 private:
 // =================================常量区=================================
     static constexpr uint64_t SYNC_LSE_SUM_BUF1_FLAG = 6;
@@ -75,6 +80,8 @@ private:
     static constexpr uint64_t SYNC_MM2RES_BUF2_FLAG = 11;
     static constexpr uint64_t SYNC_FDOUTPUT_BUF_FLAG = 6;
     static constexpr uint64_t SYNC_LSEOUTPUT_BUF_FLAG = 7;
+    static constexpr uint64_t SYNC_SINK_BUF1_FLAG = 12;
+    static constexpr uint64_t SYNC_SINK_BUF2_FLAG = 13;
 
     static constexpr uint32_t BLOCK_ELEMENT_NUM = fa_base_vector::BYTE_BLOCK / sizeof(T); // 32/4=8
 
@@ -86,6 +93,7 @@ protected:
     GlobalTensor<float> softmaxLseGm;
     GlobalTensor<uint64_t> actualSeqLengthsGmQ;
     GlobalTensor<uint64_t> actualSeqLengthsGm;
+    GlobalTensor<SINK_T> sinkGm;
     // =======================获取实际Act_S，用于行无效处理===========================
     static constexpr bool PAGE_ATTENTION = FIAT::pageAttention;
     static constexpr ActualSeqLensMode Q_MODE = GetQActSeqMode<LAYOUT_T>();
@@ -100,7 +108,7 @@ protected:
     
     static constexpr T BOOL_ATTEN_MASK_SCALAR_VALUE = -1000000000000.0; // 用于mask为bool类型
     uint32_t negativeIntScalar = *((uint32_t *)&BOOL_ATTEN_MASK_SCALAR_VALUE);
-
+    bool learnableSinkFlag = false;
     // ================================类成员变量====================================
     // aic、aiv核信息
     uint32_t blockIdx = 0U;
@@ -117,6 +125,10 @@ private:
     TBuf<> fdMm2ResBuf2; // 32k: 16*512*4
     TBuf<> fdReduceBuf;  // 32k: 16*512*4
     TBuf<> fdOutputBuf;  // 32k: 16*512*4
+    TBuf<> fdSinkCopyInBuf;   // 2*1k: 2*128*8
+    TBuf<> fdSinkValueBuf;    // 2k
+    TBuf<> fdSinkExpBuf;      // 256B
+    TBuf<> fdSinkTmpBuf;      // 2k
 
     TBuf<> fdLseMaxUbBuf; // 64B: 16*4
     TBuf<> fdLseSumUbBuf; // 64B: 16*4
@@ -149,6 +161,13 @@ void FiaBlockVecFlashDecode<FIAT>::InitSoftmaxLseGm(GlobalTensor<float> softmaxL
 }
 
 template <typename FIAT> __aicore__ inline 
+void FiaBlockVecFlashDecode<FIAT>::InitLearnableSinkGm(GlobalTensor<SINK_T> learnableSink)
+{
+    learnableSinkFlag = true;
+    this->sinkGm = learnableSink;
+}
+
+template <typename FIAT> __aicore__ inline 
 void FiaBlockVecFlashDecode<FIAT>::InitParams(const AttentionCommon::ConstInfo &constInfo)
 {
    this->constInfo = constInfo;
@@ -178,7 +197,13 @@ void FiaBlockVecFlashDecode<FIAT>::InitBuffers(TPipe *pipe)
         pipe->InitBuffer(fdLseMaxUbBuf, AttentionCommon::ConstInfo::BUFFER_SIZE_BYTE_256B);
         pipe->InitBuffer(fdLseSumUbBuf, AttentionCommon::ConstInfo::BUFFER_SIZE_BYTE_256B);
         pipe->InitBuffer(fdLseUbBuf, AttentionCommon::ConstInfo::BUFFER_SIZE_BYTE_256B);
-    }
+        if (unlikely(learnableSinkFlag)) {
+            pipe->InitBuffer(fdSinkCopyInBuf, AttentionCommon::ConstInfo::BUFFER_SIZE_BYTE_2K);
+            pipe->InitBuffer(fdSinkValueBuf, AttentionCommon::ConstInfo::BUFFER_SIZE_BYTE_2K);
+            pipe->InitBuffer(fdSinkExpBuf, AttentionCommon::ConstInfo::BUFFER_SIZE_BYTE_256B);
+            pipe->InitBuffer(fdSinkTmpBuf, AttentionCommon::ConstInfo::BUFFER_SIZE_BYTE_2K);
+        }
+     }
 }
 
 template <typename FIAT> __aicore__ inline 
@@ -192,6 +217,8 @@ void FiaBlockVecFlashDecode<FIAT>::AllocEventID()
     SetFlag<AscendC::HardEvent::V_MTE2>(SYNC_MM2RES_BUF2_FLAG);
     SetFlag<AscendC::HardEvent::MTE3_V>(SYNC_FDOUTPUT_BUF_FLAG);
     SetFlag<AscendC::HardEvent::MTE3_V>(SYNC_LSEOUTPUT_BUF_FLAG);
+    SetFlag<AscendC::HardEvent::V_MTE2>(SYNC_SINK_BUF1_FLAG);
+    SetFlag<AscendC::HardEvent::V_MTE2>(SYNC_SINK_BUF2_FLAG);
 }
 
 template <typename FIAT> __aicore__ inline 
@@ -205,6 +232,8 @@ void FiaBlockVecFlashDecode<FIAT>::FreeEventID()
     WaitFlag<AscendC::HardEvent::V_MTE2>(SYNC_MM2RES_BUF2_FLAG);
     WaitFlag<AscendC::HardEvent::MTE3_V>(SYNC_FDOUTPUT_BUF_FLAG);
     WaitFlag<AscendC::HardEvent::MTE3_V>(SYNC_LSEOUTPUT_BUF_FLAG);
+    WaitFlag<AscendC::HardEvent::V_MTE2>(SYNC_SINK_BUF1_FLAG);
+    WaitFlag<AscendC::HardEvent::V_MTE2>(SYNC_SINK_BUF2_FLAG);
 }
 
 template <typename FIAT> __aicore__ inline 
@@ -254,6 +283,66 @@ void FiaBlockVecFlashDecode<FIAT>::CopyLseIn(uint32_t startRow,
     WaitFlag<AscendC::HardEvent::MTE2_V>(SYNC_LSE_MAX_BUF1_FLAG + cntM % 2);
 }
 
+template <typename FIAT> __aicore__ inline 
+void FiaBlockVecFlashDecode<FIAT>::CopySinkIn(uint32_t cntM)
+{
+    LocalTensor<SINK_T> sinkCopyInBuf = fdSinkCopyInBuf.GetWithOffset<SINK_T>(BUFFER_SIZE_BYTE_1K, (cntM % 2) * BUFFER_SIZE_BYTE_1K);
+
+    uint32_t copySize = constInfo.gSize + 16; //DataCopy函数搬运量要求是32字节整数倍，不对齐时，将向下取整，因此该处多搬运16*sizeof(bf16)占位
+    uint64_t sinkGmOffset = taskInfo.n2Idx * constInfo.gSize;
+
+    WaitFlag<AscendC::HardEvent::V_MTE2>(SYNC_SINK_BUF1_FLAG + cntM % 2);
+    DataCopy(sinkCopyInBuf, sinkGm[sinkGmOffset], copySize);
+    SetFlag<AscendC::HardEvent::MTE2_V>(SYNC_SINK_BUF1_FLAG + cntM % 2);
+    WaitFlag<AscendC::HardEvent::MTE2_V>(SYNC_SINK_BUF1_FLAG + cntM % 2);
+
+    LocalTensor<T> tmpSinkCastBuf = fdSinkTmpBuf.Get<T>();
+    Cast(tmpSinkCastBuf, sinkCopyInBuf, AscendC::RoundMode::CAST_NONE, constInfo.gSize);
+    AscendC::PipeBarrier<PIPE_V>();
+
+    SetFlag<AscendC::HardEvent::V_MTE2>(SYNC_SINK_BUF1_FLAG + cntM % 2);
+
+    LocalTensor<T> sinkBrcbBuf = fdSinkValueBuf.Get<T>();
+    Brcb(sinkBrcbBuf, tmpSinkCastBuf, (constInfo.gSize + BLOCK_ELEMENT_NUM - 1) / BLOCK_ELEMENT_NUM, {1, BLOCK_ELEMENT_NUM});
+    AscendC::PipeBarrier<PIPE_V>();
+}
+
+template <typename FIAT> __aicore__ inline 
+void FiaBlockVecFlashDecode<FIAT>::SinkMax(LocalTensor<T> lseMaxUb, uint32_t startRow, uint32_t dealRowCount)
+{
+    constexpr GmFormat Q_FORMAT = GetQueryGmFormat<LAYOUT_T>();
+    int64_t gIdx = 0;
+    LocalTensor<T> sinkBrcbBuf = fdSinkValueBuf.Get<T>();
+
+    for (int64_t row = 0; row < dealRowCount; ++row) {
+        if constexpr ((Q_FORMAT == GmFormat::BSNGD) || (Q_FORMAT == GmFormat::TNGD)) { //内存按照S1G排布
+            gIdx = (taskInfo.gS1Idx + startRow + row) % constInfo.gSize;
+        } else if constexpr ((Q_FORMAT == GmFormat::BNGSD) || (Q_FORMAT == GmFormat::NGTD)) { //内存按照GS1排布
+            int64_t actS1Size = qActSeqLensParser.GetActualSeqLength(taskInfo.bIdx);
+            gIdx = (taskInfo.gS1Idx + startRow + row) / actS1Size;
+        }
+        DataCopy(lseMaxUb[row * BLOCK_ELEMENT_NUM], sinkBrcbBuf[gIdx * BLOCK_ELEMENT_NUM], BLOCK_ELEMENT_NUM);
+    }
+    AscendC::PipeBarrier<PIPE_V>();
+
+    // lseMaxUb是基于S1G/GS1排布原始sink value值，copy到sinkExpBuf中，后面计算sink的exp使用
+    LocalTensor<T> sinkExpBuf = fdSinkExpBuf.Get<T>();
+    DataCopy(sinkExpBuf, lseMaxUb, dealRowCount * BLOCK_ELEMENT_NUM);
+    AscendC::PipeBarrier<PIPE_V>();
+}
+
+template <typename FIAT> __aicore__ inline 
+void FiaBlockVecFlashDecode<FIAT>::SinkExpSumUpdate(LocalTensor<T> lseMaxUb, LocalTensor<T> lseSumUb, uint64_t dealRowCountAlign)
+{
+    LocalTensor<T> sinkExpBuf = fdSinkExpBuf.Get<T>();
+    Sub(sinkExpBuf, sinkExpBuf, lseMaxUb, dealRowCountAlign);
+    AscendC::PipeBarrier<PIPE_V>();
+    Exp(sinkExpBuf, sinkExpBuf, dealRowCountAlign);
+    AscendC::PipeBarrier<PIPE_V>();
+    Add(lseSumUb, lseSumUb, sinkExpBuf, dealRowCountAlign);  // 计算分母，累计sink exp
+    AscendC::PipeBarrier<PIPE_V>();
+}
+
 template <typename FIAT> __aicore__ inline void
 FiaBlockVecFlashDecode<FIAT>::ComputeScaleValue(LocalTensor<T> &lseExp, 
                                                     uint32_t startRow,
@@ -266,7 +355,12 @@ FiaBlockVecFlashDecode<FIAT>::ComputeScaleValue(LocalTensor<T> &lseExp,
     LocalTensor<T> lseMaxUb = fdLseMaxUbBuf.Get<T>();
     LocalTensor<T> lseSumUb = fdLseSumUbBuf.Get<T>();
     uint64_t dealRowCountAlign = dealRowCount * fa_base_vector::FP32_BLOCK_ELEMENT_NUM;
-    Duplicate(lseMaxUb, -AttentionCommon::ConstInfo::FLOAT_MAX, dealRowCountAlign);
+
+    if (unlikely(learnableSinkFlag)) {
+        SinkMax(lseMaxUb, startRow, dealRowCount);
+    } else {
+        Duplicate(lseMaxUb, -AttentionCommon::ConstInfo::FLOAT_MAX, dealRowCountAlign);
+    }
     Duplicate(lseSumUb, AttentionCommon::ConstInfo::FLOAT_ZERO, dealRowCountAlign);
     AscendC::PipeBarrier<PIPE_V>();
 
@@ -284,6 +378,10 @@ FiaBlockVecFlashDecode<FIAT>::ComputeScaleValue(LocalTensor<T> &lseExp,
 
     fa_base_vector::ColAdd(lseSumUb, lseExp, lseSumUb, taskInfo.actualCombineLoopSize, dealRowCountAlign, dealRowCountAlign);
     AscendC::PipeBarrier<PIPE_V>();
+
+    if (unlikely(learnableSinkFlag)) {
+        SinkExpSumUpdate(lseMaxUb, lseSumUb, dealRowCountAlign);
+    }
 
     fa_base_vector::MatDivsVec(lseExp, lseExp, lseSumUb, taskInfo.actualCombineLoopSize, dealRowCountAlign, dealRowCountAlign);
     AscendC::PipeBarrier<PIPE_V>();
@@ -466,6 +564,9 @@ FiaBlockVecFlashDecode<FIAT>::FlashDecode(FDparams &fd)
             LocalTensor<T> lseExp = fdLseExpBuf.Get<T>();
             LocalTensor<T> reduceOut = fdReduceBuf.Get<T>();
             CopyLseIn(startRow, actualGSplitSize, taskOffset, reduceMLoop);
+            if (unlikely(learnableSinkFlag)) {
+                CopySinkIn(reduceMLoop);
+            }
 
             LocalTensor<T> mm2Res;
             for (uint32_t preLoadIdx = 0; preLoadIdx < constInfo.preLoadNum; preLoadIdx++) {
