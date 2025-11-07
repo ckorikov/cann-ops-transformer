@@ -29,6 +29,7 @@ constexpr uint32_t X_INDEX = 0U;
 constexpr uint32_t EXPERT_IDS_INDEX = 1U;
 constexpr uint32_t SCALES_INDEX = 2U;
 constexpr uint32_t X_ACTIVE_MASK_INDEX = 3U;
+constexpr uint32_t PERFORMANCE_INFO_INDEX = 5U;
 constexpr uint32_t OUTPUT_EXPAND_X_INDEX = 0U;
 constexpr uint32_t OUTPUT_DYNAMIC_SCALES_INDEX = 1U;
 constexpr uint32_t OUTPUT_EXPAND_IDX_INDEX = 2U;

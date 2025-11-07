@@ -40,6 +40,7 @@ extern "C" {
  * @param [in] const_expert_alpha_1Optional: 计算可选输入，Tensor，数据类型float16，bfloat16，必须为2维，数据格式支持ND。
  * @param [in] const_expert_alpha_2Optional: 计算可选输入，Tensor，数据类型float16，bfloat16，必须为2维，数据格式支持ND。
  * @param [in] const_expert_vOptional: 计算可选输入，Tensor，数据类型float16，bfloat16，必须为2维，数据格式支持ND。
+ * @param [in] performanceInfoOptional: 计算可选输入，Tensor，数据类型int64，必须为1维，数据格式支持ND。
  * @param [in] groupEp: 计算输入，str。ep通信域名称，专家并行的通信域。不能和groupTp相同。
  * @param [in] epWorldSize: 计算输入，int。ep通信域size。
  * @param [in] epRankId: 计算输入，int。ep本卡Id。同一个EP通信域中各卡的epRankId不重复。
@@ -71,7 +72,7 @@ ACLNN_API aclnnStatus aclnnMoeDistributeCombineV3GetWorkspaceSize(const aclTenso
     const aclTensor* weightScaleOptional, const aclTensor* groupListOptional, const aclTensor* expandScalesOptional,
     const aclTensor* sharedExpertXOptional, const aclTensor* elasticInfoOptional, const aclTensor* oriXOptional,
     const aclTensor* constExpertAlpha1Optional, const aclTensor* constExpertAlpha2Optional, 
-    const aclTensor* constExpertVOptional,
+    const aclTensor* constExpertVOptional, const aclTensor* performanceInfoOptional,
     const char* groupEp, int64_t epWorldSize, 
     int64_t epRankId, int64_t moeExpertNum,
     const char* groupTp, int64_t tpWorldSize, int64_t tpRankId,

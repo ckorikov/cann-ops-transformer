@@ -49,6 +49,8 @@ static graphStatus MoeDistributeCombineExecuteFunc(OpExecuteContext* host_api_ct
   const auto group_list = host_api_ctx->GetOptionalInputTensor(static_cast<size_t>(9));
 
   const auto expand_scales = host_api_ctx->GetOptionalInputTensor(static_cast<size_t>(10));
+
+  const auto performance_info = host_api_ctx->GetOptionalInputTensor(static_cast<size_t>(11));
   
   const auto y = host_api_ctx->GetOutputTensor(static_cast<size_t>(0));
   OP_CHECK_IF(y == nullptr, OP_LOGE(MoeDistributeCombineInfo,"y is null"), return ge::GRAPH_FAILED);

@@ -30,7 +30,7 @@ enum NnopbaseHcclServerType {
 };
 
 extern aclnnStatus aclnnInnerMoeDistributeDispatchGetWorkspaceSize(const aclTensor* x, const aclTensor* expertIds, const aclTensor* scales,
-                                                                   const aclTensor* xActiveMask, const aclTensor* expertScales,
+                                                                   const aclTensor* xActiveMask, const aclTensor* expertScales, const aclTensor* performanceInfo,
                                                                    const char* groupEp, int64_t epWorldSize,
                                                                    int64_t epRankId, int64_t moeExpertNum, const char* groupTp, int64_t tpWorldSize,
                                                                    int64_t tpRankId, int64_t expertShardType, int64_t sharedExpertNum, int64_t shareExpertRankNum,
@@ -94,7 +94,7 @@ static aclnnStatus CheckParams(const aclTensor* x, const aclTensor* expertIds, c
 }
 
 aclnnStatus MoeDistributeDispatchGetWorkspaceSize(const aclTensor* x, const aclTensor* expertIds, const aclTensor* scales,
-                                                                        const aclTensor* xActiveMask, const aclTensor* expertScales,
+                                                                        const aclTensor* xActiveMask, const aclTensor* expertScales, const aclTensor* performanceInfo,
                                                                         const char* groupEp, int64_t epWorldSize,
                                                                         int64_t epRankId, int64_t moeExpertNum, const char* groupTp, int64_t tpWorldSize,
                                                                         int64_t tpRankId, int64_t expertShardType, int64_t sharedExpertNum, int64_t shareExpertRankNum,
@@ -108,7 +108,7 @@ aclnnStatus MoeDistributeDispatchGetWorkspaceSize(const aclTensor* x, const aclT
                                  expertTokensNums, epRecvCounts, tpRecvCounts);
     CHECK_RET(ret_param == ACLNN_SUCCESS, ret_param);
 
-    aclnnStatus ret = aclnnInnerMoeDistributeDispatchGetWorkspaceSize(x, expertIds, scales, xActiveMask, expertScales,
+    aclnnStatus ret = aclnnInnerMoeDistributeDispatchGetWorkspaceSize(x, expertIds, scales, xActiveMask, expertScales, performanceInfo,
                                                                             groupEp, epWorldSize, epRankId, moeExpertNum,
                                                                             groupTp, tpWorldSize, tpRankId, expertShardType, sharedExpertNum,
                                                                             shareExpertRankNum, quantMode, globalBs, expertTokenNumsType,
@@ -118,7 +118,7 @@ aclnnStatus MoeDistributeDispatchGetWorkspaceSize(const aclTensor* x, const aclT
 }
 
 aclnnStatus aclnnMoeDistributeDispatchGetWorkspaceSize(const aclTensor* x, const aclTensor* expertIds, const aclTensor* scales,
-                                                                        const aclTensor* xActiveMask, const aclTensor* expertScales,
+                                                                        const aclTensor* xActiveMask, const aclTensor* expertScales, const aclTensor* performanceInfo,
                                                                         const char* groupEp, int64_t epWorldSize,
                                                                         int64_t epRankId, int64_t moeExpertNum, const char* groupTp, int64_t tpWorldSize,
                                                                         int64_t tpRankId, int64_t expertShardType, int64_t sharedExpertNum, int64_t sharedExpertRankNum,
@@ -129,7 +129,7 @@ aclnnStatus aclnnMoeDistributeDispatchGetWorkspaceSize(const aclTensor* x, const
 {
     if (GetCurrentPlatformInfo().GetSocVersion() == SocVersion::ASCEND910B) {
         const char* groupTpEmptyWord = "";
-        aclnnStatus distributeDispatchRet = MoeDistributeDispatchGetWorkspaceSize(x, expertIds, scales, xActiveMask, expertScales,
+        aclnnStatus distributeDispatchRet = MoeDistributeDispatchGetWorkspaceSize(x, expertIds, scales, xActiveMask, expertScales, performanceInfo,
                                                                                 groupEp, epWorldSize, epRankId, moeExpertNum,
                                                                                 groupTpEmptyWord, tpWorldSize, tpRankId, expertShardType, sharedExpertNum,
                                                                                 sharedExpertRankNum, quantMode, globalBs, expertTokenNumsType,
@@ -137,7 +137,7 @@ aclnnStatus aclnnMoeDistributeDispatchGetWorkspaceSize(const aclTensor* x, const
                                                                                 expandScales, workspaceSize, executor);
         return distributeDispatchRet;
     }
-    aclnnStatus ret = MoeDistributeDispatchGetWorkspaceSize(x, expertIds, scales, xActiveMask, expertScales,
+    aclnnStatus ret = MoeDistributeDispatchGetWorkspaceSize(x, expertIds, scales, xActiveMask, expertScales, performanceInfo,
                                                                             groupEp, epWorldSize, epRankId, moeExpertNum,
                                                                             groupTp, tpWorldSize, tpRankId, expertShardType, sharedExpertNum,
                                                                             sharedExpertRankNum, quantMode, globalBs, expertTokenNumsType,

@@ -32,7 +32,8 @@ constexpr uint32_t EP_SEND_COUNTS_INDEX = 3;
 constexpr uint32_t EXPERT_SCALES_INDEX = 4;
 constexpr uint32_t TP_SEND_COUNTS_INDEX = 5;
 constexpr uint32_t X_ACTIVE_MASK_INDEX = 6;
-constexpr uint32_t SHARED_EXPERT_X_INDEX = 11;
+constexpr uint32_t SHARED_EXPERT_X_INDEX = 11; //不是10吗？
+constexpr uint32_t PERFORMANCE_INFO_INDEX = 11;
 constexpr uint32_t OUTPUT_X_INDEX = 0;
 constexpr uint32_t ATTR_SHARED_EXPERT_RANK_NUM_INDEX = 9;
 
