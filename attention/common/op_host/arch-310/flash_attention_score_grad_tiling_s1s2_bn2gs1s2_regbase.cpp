@@ -636,10 +636,6 @@ ge::graphStatus FlashAttentionScoreGradTilingUs1s2Bs2Regbase::GetShapeAttrsInfo(
         }
     }
 
-    if (fBaseParams.queryType == ge::DT_FLOAT8_E5M2 || fBaseParams.queryType == ge::DT_FLOAT8_E4M3FN) {
-        fBaseParams.fp8OpenTscm = (AlignTo(fBaseParams.s1, static_cast<int64_t>(ConstAxisTemplateNum::NUM16)) == AlignTo(fBaseParams.s1, static_cast<int64_t>(ConstAxisTemplateNum::NUM32))) 
-            && (AlignTo(fBaseParams.s2, static_cast<int64_t>(ConstAxisTemplateNum::NUM16)) == AlignTo(fBaseParams.s2, static_cast<int64_t>(ConstAxisTemplateNum::NUM32)));
-    }
     fBaseParams.n1 = fBaseParams.n2 * fBaseParams.g;
     return ProcessOptionalInput();
 }
@@ -2158,14 +2154,19 @@ uint64_t FlashAttentionScoreGradTilingUs1s2Bs2Regbase::GetTilingKey() const
         splitAxis = SplitAxisEnum::BN2GS1S2;
     }
     bool isDeterNEqual = fBaseParams.deterSparseType != static_cast<uint32_t>(DeterSparseType::DETER_OLD) && fBaseParams.deterSparseType != static_cast<uint32_t>(DeterSparseType::NO_DETER) && fBaseParams.g == 1;
+    bool fp8OpenTscm = false;
+    if (fBaseParams.queryType == ge::DT_FLOAT8_E5M2 || fBaseParams.queryType == ge::DT_FLOAT8_E4M3FN) {
+        fp8OpenTscm = (AlignTo(fBaseParams.s1, static_cast<int64_t>(ConstAxisTemplateNum::NUM16)) == AlignTo(fBaseParams.s1, static_cast<int64_t>(ConstAxisTemplateNum::NUM32))) 
+            && (AlignTo(fBaseParams.s2, static_cast<int64_t>(ConstAxisTemplateNum::NUM16)) == AlignTo(fBaseParams.s2, static_cast<int64_t>(ConstAxisTemplateNum::NUM32)));
+    }
     OP_LOGI(context_, "splitAxis[%d], inputDtype[%d], isTnd[%d], dropValue[%d], pseValue[%d], attenMaskCfg[%d], s1TemplateType[%d], s2TemplateType[%d], dTemplateType[%u], isDeterministic[%d], nEqual[%d], hasTail[%d], dNoEqual[%d], hasRope[%d], outDtype[%d], fp8OpenTscm[%d], isRegbasePlatformValue[%d]",
                     static_cast<int>(splitAxis), static_cast<int>(fBaseParams.inputDtype), isTnd, static_cast<int>(dropValue), static_cast<int>(pseValue), static_cast<int>(attenMaskCfg), 
                     static_cast<int>(fBaseParams.s1TemplateType), static_cast<int>(fBaseParams.s2TemplateType), static_cast<uint32_t>(fBaseParams.dTemplateType),
-                    static_cast<int>(fBaseParams.deterSparseType), static_cast<int>(isDeterNEqual), hasTail, dNoEqual, static_cast<int>(fBaseParams.hasRope), static_cast<int>(fBaseParams.outDtype),  static_cast<int>(fBaseParams.fp8OpenTscm), static_cast<int>(isRegbasePlatformValue));
+                    static_cast<int>(fBaseParams.deterSparseType), static_cast<int>(isDeterNEqual), hasTail, dNoEqual, static_cast<int>(fBaseParams.hasRope), static_cast<int>(fBaseParams.outDtype),  static_cast<int>(fp8OpenTscm), static_cast<int>(isRegbasePlatformValue));
 
     uint64_t tilingKey = GET_TPL_TILING_KEY(0, static_cast<uint8_t>(splitAxis), static_cast<uint8_t>(fBaseParams.inputDtype), static_cast<uint8_t>(isTnd), static_cast<uint8_t>(dropValue), static_cast<uint8_t>(pseValue),
                                             static_cast<uint8_t>(attenMaskCfg), static_cast<uint16_t>(fBaseParams.s1TemplateType), static_cast<uint16_t>(fBaseParams.s2TemplateType), static_cast<uint16_t>(fBaseParams.dTemplateType), static_cast<uint8_t>(fBaseParams.deterSparseType), static_cast<uint8_t>(isDeterNEqual),
-                                            static_cast<uint8_t>(hasTail), static_cast<uint8_t>(dNoEqual), static_cast<uint8_t>(fBaseParams.hasRope), static_cast<uint8_t>(fBaseParams.outDtype), static_cast<uint8_t>(fBaseParams.fp8OpenTscm), static_cast<uint8_t>(isRegbasePlatformValue));
+                                            static_cast<uint8_t>(hasTail), static_cast<uint8_t>(dNoEqual), static_cast<uint8_t>(fBaseParams.hasRope), static_cast<uint8_t>(fBaseParams.outDtype), static_cast<uint8_t>(fp8OpenTscm), static_cast<uint8_t>(isRegbasePlatformValue));
 
     OP_LOGI(context_, "FAGTiling S1s2Bn2gs1s2 DoTiling success, tiling is %lu.", tilingKey);
     return tilingKey;

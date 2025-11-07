@@ -225,7 +225,6 @@
 
      bool isBn2 = false;
      bool hasRope = false;
-     bool fp8OpenTscm = false;
      SplitAxisEnum splitAxis = SplitAxisEnum::BN2GS1S2;
      bool sValueZeroUnderTND = false;
  
