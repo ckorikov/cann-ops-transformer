@@ -198,7 +198,7 @@ ge::graphStatus ElasticReceivableTestTilingFunc(gert::TilingContext* context)
     ascendcPlatform.GetCoreMemSize(platform_ascendc::CoreMemType::UB, ubSize);
     blockDim = ascendcPlatform.CalcTschBlockDim(aivNum, 0, aivNum);
     context->SetBlockDim(blockDim);
-    context->SetScheduleMode(0); // 设置为batch mode模式，所有核同时启动
+    context->SetScheduleMode(0);
     tilingData->elasticReceivableTestInfo.totalUbSize = ubSize;
     tilingData->elasticReceivableTestInfo.aivNum = aivNum;
     OP_LOGD(nodeName, "blockDim=%u, aivNum=%u, ubSize=%lu", blockDim, aivNum, ubSize);
