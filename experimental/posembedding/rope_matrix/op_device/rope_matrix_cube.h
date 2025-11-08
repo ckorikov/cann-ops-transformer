@@ -1,0 +1,105 @@
+#include "kernel_operator.h"
+#include "lib/matmul_intf.h"
+#include "../inc/rope_matrix_tiling.h"
+
+using namespace matmul;
+
+namespace RopeMatrix {
+
+__aicore__ inline uint32_t Ceiling(uint32_t a, uint32_t b)
+{
+    return (a + b - 1) / b;
+}
+
+template <typename A_T, typename B_T, typename C_T>
+class MatmulBatchKernel {
+public:
+    __aicore__ inline MatmulBatchKernel(){};
+    __aicore__ inline void Init(GM_ADDR a, GM_ADDR b, GM_ADDR c, GM_ADDR workspace,
+                                const TCubeTiling &tiling, AscendC::TPipe *pipe);
+    __aicore__ inline void Process(AscendC::TPipe *pipe, RopeMatrixTiling *ropeTiling);
+    
+    static constexpr MatmulConfig MM_CFG = GetIBShareNormConfig();
+    typedef MatmulType<AscendC::TPosition::GM, CubeFormat::ND, A_T> aType;
+    typedef MatmulType<AscendC::TPosition::GM, CubeFormat::ND, B_T, false, LayoutMode::NONE, true> bType;
+    typedef MatmulType<AscendC::TPosition::GM, CubeFormat::ND, C_T> cType;
+    typedef MatmulType<AscendC::TPosition::GM, CubeFormat::ND, C_T> biasType;
+    Matmul<aType, bType, cType, biasType, MM_CFG> matmulObj;
+
+    AscendC::GlobalTensor<A_T> aGlobal;
+    AscendC::GlobalTensor<B_T> bGlobal;
+    AscendC::GlobalTensor<C_T> cGlobal;
+    TCubeTiling tiling;
+
+private:
+    __aicore__ inline void CalcGMOffset(int blockIdx, int &offsetA, int &offsetB, int &offsetC,
+                                        int &tailM, int &tailN, bool isTransA, bool isTransB,
+                                        int B, int H, int M, int N, int K, int Nindex);
+};
+
+template <typename A_T, typename B_T, typename C_T>
+__aicore__ inline void MatmulBatchKernel<A_T, B_T, C_T>::Init(GM_ADDR a, GM_ADDR b, GM_ADDR c,
+                                                                GM_ADDR workspace, const TCubeTiling &tiling,
+                                                                AscendC::TPipe *pipe)
+{
+    this->tiling = tiling;
+    aGlobal.SetGlobalBuffer(reinterpret_cast<__gm__ A_T *>(a), tiling.M * tiling.Ka);
+    bGlobal.SetGlobalBuffer(reinterpret_cast<__gm__ B_T *>(b), tiling.Ka * tiling.N);
+    cGlobal.SetGlobalBuffer(reinterpret_cast<__gm__ C_T *>(c), tiling.M * tiling.N);
+}
+
+template <typename A_T, typename B_T, typename C_T>
+__aicore__ inline void MatmulBatchKernel<A_T, B_T, C_T>::Process(AscendC::TPipe *pipe, RopeMatrixTiling *ropeTiling)
+{
+    REGIST_MATMUL_OBJ(pipe, GetSysWorkSpacePtr(), matmulObj, &tiling);
+
+    auto B = ropeTiling->b;
+    auto H = ropeTiling->n;
+    auto M = ropeTiling->s;
+    auto N = ropeTiling->d;
+    auto K = ropeTiling->d;
+
+    int total_N = B * H;
+    for (int Nindex = 0; Nindex < total_N; ++Nindex) {
+        int offsetA = 0, offsetB = 0, offsetC = 0;
+        int tailM = 0, tailN = 0;
+        bool isTransA = false, isTransB = false;
+
+        CalcGMOffset(AscendC::GetBlockIdx(), offsetA, offsetB, offsetC,
+                    tailM, tailN, isTransA, isTransB, B, H, M, N, K, Nindex);
+
+        matmulObj.SetTensorA(aGlobal[offsetA], isTransA);
+        matmulObj.SetTensorB(bGlobal[offsetB], isTransB);
+        matmulObj.SetTail(tailM, tailN);
+        matmulObj.IterateAll(cGlobal[offsetC]);
+    }
+    matmulObj.End();
+}
+
+template <typename A_T, typename B_T, typename C_T>
+__aicore__ inline void MatmulBatchKernel<A_T, B_T, C_T>::CalcGMOffset(int blockIdx,
+                                                                        int &offsetA, int &offsetB, int &offsetC,
+                                                                        int &tailM, int &tailN, bool isTransA,
+                                                                        bool isTransB, int B, int H, int M,
+                                                                        int N, int K, int Nindex)
+{
+    uint32_t aCoreInaS = tiling.singleCoreM / B / H;
+    uint32_t aCoreMBlock = M / aCoreInaS;
+    uint32_t mCoreIndx = blockIdx % aCoreMBlock;
+    uint32_t nCoreIndx = blockIdx / aCoreMBlock;
+
+    offsetA = mCoreIndx * tiling.Ka * aCoreInaS + Nindex * M * tiling.Ka;
+    if (isTransA) {
+        offsetA = mCoreIndx * tiling.singleCoreM;
+    }
+    offsetB = nCoreIndx * tiling.singleCoreN;
+    if (isTransB) {
+        offsetB = nCoreIndx * tiling.Kb * tiling.singleCoreN;
+    }
+    offsetC = mCoreIndx * tiling.N * aCoreInaS + nCoreIndx * tiling.singleCoreN + Nindex * M * tiling.N;
+
+    tailM = aCoreInaS;
+    tailN = tiling.singleCoreN;
+}
+
+}  // namespace RopeMatrix
