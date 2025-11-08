@@ -15,7 +15,7 @@
 
 #include "gtest/gtest.h"
 #include <gmock/gmock.h>
-#include "aclnn_all_to_all_all_gather_batch_matmul.h"
+#include "../../../op_api/aclnn_all_to_all_all_gather_batch_matmul.h"
 #include "op_api_ut_common/tensor_desc.h"
 #include "op_api_ut_common/op_api_ut.h"
 #include "opdev/platform.h"
