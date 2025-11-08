@@ -17,7 +17,7 @@
   $$
   
   $$
-  inputGrad = inputGrad.reshape(-1, topK, hiddenSize)
+  inputGrad = inputGrad.reshape(-1, numTopk, hiddenSize)
   $$
   
   $$
@@ -28,21 +28,16 @@
 
 ## 参数说明
 
-<table style="undefined;table-layout: fixed; width: 1576px"> <colgroup>
- <col style="width: 170px">
- <col style="width: 170px">
- <col style="width: 800px">
- <col style="width: 800px">
- <col style="width: 200px">
- </colgroup>
- <thead>
-  <tr>
-   <th>参数名</th>
-   <th>输入/输出</th>
-   <th>描述</th>
-   <th>数据类型</th>
-   <th>数据格式</th>
-  </tr></thead>
+<table style="table-layout: auto; width: 100%">
+  <thead>
+    <tr>
+      <th style="white-space: nowrap">参数名</th>
+      <th style="white-space: nowrap">输入/输出/属性</th>
+      <th style="white-space: nowrap">描述</th>
+      <th style="white-space: nowrap">数据类型</th>
+      <th style="white-space: nowrap">数据格式</th>
+    </tr>
+  </thead>
  <tbody>
   <tr>
    <td>permutedOutputGrad</td>
@@ -63,17 +58,19 @@
    <td>属性</td>
    <td>被选中的专家个数。</td>
    <td>INT64</td>
+   <td>-</td>
   </tr>
   <tr>
    <td>paddedMode</td>
    <td>属性</td>
    <td>pad模式的开关。</td>
    <td>BOOL</td>
+   <td>-</td>
   </tr>
   <tr>
    <td>out</td>
    <td>输出</td>
-   <td>输入token的梯度。</td>
+   <td>输出token的梯度。</td>
    <td>BFLOAT16、FLOAT16、FLOAT32</td>
    <td>ND</td>
   </tr>
@@ -84,6 +81,14 @@
 ## 约束说明
 
 - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：numTopk <= 512。
+- <term>昇腾910_95 AI处理器</term>：
+  在调用本接口时，框架内部会转调用[aclnnMoeInitRoutingV2Grad](../moe_init_routing_v2_grad/docs/aclnnMoeInitRoutingV2Grad.md)接口，如果出现参数错误提示，请参考以下参数映射关系：
+  - permutedOutputGrad输入等同于aclnnMoeInitRoutingV2Grad接口的gradExpandedX输入。
+  - sortedIndices输入等同于aclnnMoeInitRoutingV2Grad接口的expandedRowIdx输入。
+  - numTopk输入等同于aclnnMoeInitRoutingV2Grad接口的topK输入。
+  - paddedMode输入等同于aclnnMoeInitRoutingV2Grad接口的dropPadMode输入。
+  - out输出等同于aclnnMoeInitRoutingV2Grad接口的out输出。
+
 - <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>: 单卡通信量取值范围[2MB，100MB]。
 
 ## 调用说明

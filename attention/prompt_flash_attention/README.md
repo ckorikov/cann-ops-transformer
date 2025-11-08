@@ -10,7 +10,7 @@
 
 ## 功能说明
 
-- 算子功能：全量推理场景的FlashAttention算子，支持sparse优化、支持actualSeqLengthsKv优化、支持int8量化功能，支持高精度或者高性能模式选择。
+- 算子功能：全量推理场景的FlashAttention算子，支持sparse优化、支持actualSeqLengthsKv优化、支持INT8量化功能，支持高精度或者高性能模式选择。
 
 - 计算公式：
 
@@ -79,17 +79,18 @@
 </tbody>
 </table>
 
-- Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件：数据类型支持FLOAT16、BFLOAT16、INT8。
+- Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件、昇腾910_95 AI处理器：数据类型支持FLOAT16、BFLOAT16、INT8。
+- Atlas 推理系列加速卡产品：仅支持FLOAT16。
 
 ## 约束说明
 
 - 该接口与PyTorch配合使用时，需要保证CANN相关包与PyTorch相关包的版本匹配。
 
-- 入参为空的处理：算子内部需要判断参数query是否为空，如果是空则直接返回。参数query不为空Tensor，参数key、value为空tensor（即S2为0），则attentionOut填充为全零。attentionOut为空Tensor时，AscendCLNN框架会处理。其余在上述参数说明中标注了“可传入nullptr”的入参为空指针时，不进行处理。
+- 入参为空的处理：算子内部需要判断参数query是否为空，如果是空则直接返回。参数query不为空Tensor，参数key、value为空tensor，则attentionOut填充为全零。attentionOut为空Tensor时，AscendCLNN框架会处理。其余在上述参数说明中标注了“可传入nullptr”的入参为空指针时，不进行处理。
 
 - query，key，value输入，功能使用限制如下：
 
-  - Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件：
+  - Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件、昇腾910_95 AI处理器：
 
     - 支持B轴小于等于65536（64k），输入类型包含INT8时D轴非32对齐或输入类型为FLOAT16或BFLOAT16时D轴非16对齐时，B轴仅支持到128。
 
@@ -157,6 +158,9 @@
     - 数据类型仅支持BFLOAT16。
     - sparse模式仅支持sparse=0且不传mask，或sparse=3且传入mask。
     - 当sparse=3时，要求每个batch单独的actualSeqLengths < actualSeqLengthsKv。
+    
+  - Atlas 推理系列加速卡产品：
+    - 支持B轴小于等于128；支持N轴小于等于256；支持S轴小于等于65535（64k）, Q_S或KV_S非128对齐，Q_S和KV_S不等长的场景不支持配置atten_mask；支持D轴小于等于512。
   
 - 当inputLayout为BNSD_BSND时，输入query的shape是BNSD，输出attentionOut的shape为BSND；其余情况attentionOut的shape需要与入参query的shape保持一致。
 

@@ -11,7 +11,7 @@
 -  **算子功能**：执行单路旋转位置编码[RotaryPositionEmbedding](../rotary_position_embedding/README.md)的反向计算。
 -  **计算公式**：
   
-    取旋转位置编码的正向计算中，boardcast的轴列表为`dims`，则计算公式可表达如下：
+    取旋转位置编码的正向计算中，broadcast的轴列表为`dims`，则计算公式可表达如下：
 
     - <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>、<term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：
 
@@ -72,6 +72,7 @@
     $$
     dsin = sum(dy * stack((-x2, x1), dim=-1).reshape(dy.shape), dims)
     $$
+    - <term>昇腾910_95 AI处理器</term>：
     
     （3）quarter模式（mode等于2）：
     $$
@@ -213,6 +214,7 @@
 
 
 ## 约束说明
+  - <term>昇腾910_95 AI处理器</term>：
     
     用(B, S, N, D)表示四维输入dy的shape，在该表示下，各参数的shape约束可以描述如下：
     - 输入张量dy、cos、sin、xOptional及输出张量dxOut、dcosOut、dsinOut的D维度大小必须相同，且小于等于1024。对于half、interleave和interleave-half模式，D必须能被2整除，对于quarter模式，D必须能被4整除。
@@ -231,8 +233,8 @@
     - 输入张量cos、sin和输出张量dcosOut、dsinOut的shape必须完全相同，且cos和sin的shape必须完全相同。
     - half模式：
       - B，N < 1000；当需要计算dsin、dcos时，B * N <= 1024
-      - 当dy为BNSD时，cos、sin支持11SD、B1SD、BNSD
-      - 当dy为BSND时，cos、sin支持1S1D、BS1D、BSND
+      - 当dy为BNSD时，cos、sin支持11SD、B1SD、BNSD；当cos、sin为B1SD时需满足B < S
+      - 当dy为BSND时，cos、sin支持1S1D、BS1D、BSND；当cos、sin为BS1D时需满足B < S
       - 当dy为SBND时，cos、sin支持S11D、SB1D、SBND
     - interleave模式：
       - B * N < 1000

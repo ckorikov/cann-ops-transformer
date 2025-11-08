@@ -10,8 +10,8 @@
 
 算子功能：对token数据进行量化（可选），当存在TP域通信时，先进行EP（Expert Parallelism）域的AllToAllV通信，再进行TP（Tensor Parallelism）域的AllGatherV通信；当不存在TP域通信时，进行EP（Expert Parallelism）域的AllToAllV通信。
 $$
-agOut = AllGatherV(X)\\
 expandXOut = AllToAllV(agOut)\\
+agOut = AllGatherV(X)\\
 $$
 
 - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：该接口必须与aclnnMoeDistributeCombineV2配套使用。
@@ -282,5 +282,3 @@ $$
 | 调用方式  | 样例代码                                  | 说明                                                     |
 | :--------: | :----------------------------------------: | :-------------------------------------------------------: |
 | aclnn接口 | [test_aclnn_moe_distribute_dispatch_v2.cpp](./examples/test_aclnn_moe_distribute_dispatch_v2.cpp) | 通过[aclnnMoeDistributeDispatchV2](./docs/aclnnMoeDistributeDispatchV2.md)接口方式调用moe_distribute_dispatch_v2算子。 |
-
-
