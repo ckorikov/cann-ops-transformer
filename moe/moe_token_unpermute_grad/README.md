@@ -19,7 +19,7 @@
     $$
 
     $$
-    unpermutedTokens = unpermutedTokens.reshape(-1, topK, hiddenSize)
+    unpermutedTokens = unpermutedTokens.reshape(-1, topK\_num, hiddenSize)
     $$
 
     $$
@@ -42,21 +42,16 @@
 
 ## 参数说明
 
-<table style="undefined;table-layout: fixed; width: 1576px"><colgroup>
-  <col style="width: 170px">
-  <col style="width: 170px">
-  <col style="width: 312px">
-  <col style="width: 213px">
-  <col style="width: 100px">
-  </colgroup>
+<table style="table-layout: auto; width: 100%">
   <thead>
     <tr>
-      <th>参数名</th>
-      <th>输入/输出/属性</th>
-      <th>描述</th>
-      <th>数据类型</th>
-      <th>数据格式</th>
-    </tr></thead>
+      <th style="white-space: nowrap">参数名</th>
+      <th style="white-space: nowrap">输入/输出/属性</th>
+      <th style="white-space: nowrap">描述</th>
+      <th style="white-space: nowrap">数据类型</th>
+      <th style="white-space: nowrap">数据格式</th>
+    </tr>
+  </thead>
   <tbody>
     <tr>
       <td>permutedTokens</td>
@@ -119,6 +114,15 @@
 ## 约束说明
 
 - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：topK_num <= 512。
+- <term>昇腾910_95 AI处理器</term>：
+  在调用本接口时，框架内部会转调用[aclnnMoeFinalizeRoutingV2Grad](../moe_finalize_routing_v2_grad/docs/aclnnMoeFinalizeRoutingV2Grad.md)接口，如果出现参数错误提示，请参考以下参数映射关系：
+  - permutedTokens输入等同于aclnnMoeFinalizeRoutingV2Grad接口的expandedXOptional输入。
+  - unpermutedTokensGrad输入等同于aclnnMoeFinalizeRoutingV2Grad接口的gradY输入。
+  - sortedIndices输入等同于aclnnMoeFinalizeRoutingV2Grad接口的expandedRowIdx输入。
+  - probsOptional输入等同于aclnnMoeFinalizeRoutingV2Grad接口的scalesOptional输入。
+  - paddedMode输入等同于aclnnMoeFinalizeRoutingV2Grad接口的dropPadMode输入。
+  - permutedTokensGradOut输出等同于aclnnMoeFinalizeRoutingV2Grad接口的gradExpandedXOut输出。
+  - probsGradOut输出等同于aclnnMoeFinalizeRoutingV2Grad接口的gradScalesOut输出。
 
 ## 调用说明
 
