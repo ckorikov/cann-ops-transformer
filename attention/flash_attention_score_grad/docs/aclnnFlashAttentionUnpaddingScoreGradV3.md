@@ -17,7 +17,7 @@
 
 ## 功能说明
 
-- 算子功能：训练场景下计算注意力的反向输出，即[aclnnFlashAttentionVarLenScoreV3](./aclnnFlashAttentionVarLenScoreV3.md)的反向计算。该接口相较于[aclnnFlashAttentionUnpaddingScoreGradV2](./aclnnFlashAttentionUnpaddingScoreGradV2.md)接口，新增queryRope、keyRope、dqRope和dkRope参数。
+- 算子功能：训练场景下计算注意力的反向输出，即[aclnnFlashAttentionVarLenScoreV3](../../flash_attention_score/docs/aclnnFlashAttentionVarLenScoreV3.md)的反向计算。该接口相较于[aclnnFlashAttentionUnpaddingScoreGradV2](./aclnnFlashAttentionUnpaddingScoreGradV2.md)接口，新增queryRope、keyRope、dqRope和dkRope参数。
 
 - 计算公式：
 

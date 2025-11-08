@@ -17,7 +17,7 @@
 
 ## 功能说明
 
-- 算子功能：训练场景下计算注意力的反向输出，即[aclnnFlashAttentionVarLenScoreV2](./aclnnFlashAttentionVarLenScoreV2.md)的反向计算。**该接口相较于[aclnnFlashAttentionUnpaddingScoreGrad](./aclnnFlashAttentionUnpaddingScoreGrad.md)接口，新增psetype参数**：
+- 算子功能：训练场景下计算注意力的反向输出，即[aclnnFlashAttentionVarLenScoreV2](../../flash_attention_score/docs/aclnnFlashAttentionVarLenScoreV2.md)的反向计算。**该接口相较于[aclnnFlashAttentionUnpaddingScoreGrad](./aclnnFlashAttentionUnpaddingScoreGrad.md)接口，新增psetype参数**：
 
   -   psetype=1时，与[aclnnFlashAttentionUnpaddingScoreGrad](./aclnnFlashAttentionUnpaddingScoreGrad.md)实现相同。
   -   psetype=其他取值时，需要先mul再add。
