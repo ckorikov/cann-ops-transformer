@@ -225,6 +225,9 @@ endif ()
 
 add_subdirectory(common)
 
+set(OP_LIST)
+set(OP_DIR_LIST)
+op_add_subdirectory(OP_LIST OP_DIR_LIST)
 
 if (BUILD_OPEN_PROJECT)
     if (ENABLE_TEST)
@@ -232,7 +235,10 @@ if (BUILD_OPEN_PROJECT)
         set(OP_UT_DIR_LIST)
         op_add_ut_subdirectory(OP_UT_LIST OP_UT_DIR_LIST)
         foreach (OP_UT_LIST ${OP_UT_DIR_LIST})
-            add_subdirectory(${OP_UT_LIST}/tests)
+            # 仅通过op_add_subdirectory添加的算子目录，需要在这里add tests
+            if(OP_UT_LIST IN_LIST OP_DIR_LIST)
+                add_subdirectory(${OP_UT_LIST}/tests)
+            endif()
         endforeach ()
 
         if (TESTS_UT_OPS_TEST)
@@ -250,9 +256,6 @@ if (BUILD_OPEN_PROJECT)
    endif ()
 endif ()
 
-set(OP_LIST)
-set(OP_DIR_LIST)
-op_add_subdirectory(OP_LIST OP_DIR_LIST)
 
 foreach (OP_DIR ${OP_DIR_LIST})
     if (EXISTS "${OP_DIR}/op_host")
