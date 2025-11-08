@@ -415,8 +415,8 @@ uint64_t FiaTilingNonQuantMla::CalcFlashDecodeWorkspace(const uint32_t coreNum) 
 
 void FiaTilingNonQuant::CalcScheduleMode()
 {
-    scheduleMode_ = ScheduleMode::BATCH_MODE;
-    OP_LOGI(fiaInfo_->opName, "FIA schedule mode: %u.", static_cast<uint32_t>(scheduleMode_));
+    scheduleMode_ = static_cast<uint32_t>(ScheduleMode::BATCH_MODE);
+    OP_LOGI(fiaInfo_->opName, "FIA schedule mode: %u.", scheduleMode_);
 }
 
 void FiaTilingNonQuantMla::CalcWorkspaceSize()

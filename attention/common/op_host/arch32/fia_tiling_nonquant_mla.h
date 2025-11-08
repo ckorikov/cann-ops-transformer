@@ -88,7 +88,7 @@ private:
     // set info to context
     FusedInferAttentionScoreTilingData *tilingData_ = GetContext()->GetTilingData<FusedInferAttentionScoreTilingData>();
     uint32_t blockDim_{0};
-    ScheduleMode scheduleMode_{ScheduleMode::NORMAL_MODE};
+    uint32_t scheduleMode_{0};
     uint64_t workspaceSize_{0};
     uint64_t tilingKey_{0};
 
