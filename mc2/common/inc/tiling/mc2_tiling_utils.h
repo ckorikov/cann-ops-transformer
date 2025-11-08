@@ -44,6 +44,7 @@ constexpr size_t RES_LEN = 64;
 constexpr size_t MAX_MSG_NUM = 16;
 constexpr uint8_t MC2_DEBUG_ONLY_AICPU = 4;  // 只通信不计算
 constexpr char HCCL_DETERMINISTIC[] = "HCCL_DETERMINISTIC";
+constexpr uint8_t AIV_ENGINE = 2;   // 当前通信API未提供枚举，后续会提供， 0：AICPU，1：CCU，2：AIV
 constexpr uint8_t Y_INDEX = 3;
 constexpr uint8_t COMM_ALG_DEFAULT = 0;
 constexpr uint8_t COMM_ALG_FULL_MESH = 1;

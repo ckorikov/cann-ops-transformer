@@ -158,6 +158,7 @@ static void SetHcommCfg(const char* nodeName, [[maybe_unused]] gert::TilingConte
     std::string algConfigAllToAllStr = "AlltoAll=level0:fullmesh;level1:pairwise";
 
     AscendC::Mc2CcTilingConfig mc2CcTilingConfig(group, opType1, algConfigAllToAllStr);
+    mc2CcTilingConfig.SetCommEngine(mc2tiling::AIV_ENGINE);   // 通过不拉起AICPU，提高算子退出性能
     mc2CcTilingConfig.GetTiling(tiling->mc2InitTiling);
     mc2CcTilingConfig.GetTiling(tiling->mc2CcTiling1);
 }
