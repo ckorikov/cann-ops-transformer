@@ -1095,6 +1095,7 @@ __aicore__ inline uint32_t MoeDistributeDispatchA2Layered<TemplateMC2TypeA2layer
 template <TemplateMC2TypeA2layeredClass>
 __aicore__ inline void MoeDistributeDispatchA2Layered<TemplateMC2TypeA2layeredFunc>::Win2Ipc()
 {
+    uint32_t aivMax = 0;
     uint32_t startTime = GetSystemCycle() / TIME_CYCLE;
     uint32_t coresPerServer = (aivNum_ - serverNum - 1) / serverNum;
     uint32_t logicAivId = aivId_ - serverNum - 1;
@@ -1148,6 +1149,9 @@ __aicore__ inline void MoeDistributeDispatchA2Layered<TemplateMC2TypeA2layeredFu
             expInfoTensor = localUB_32[expOffsetInStruct_/ sizeof(int32_t)];
         }
 
+        uint32_t cmpDuration = 0;
+        uint32_t duration = 0;
+        auto curServerId = logicAivId / coresPerServer;
         for (int32_t expIndex = 0; expIndex < axisK_; ++expIndex) {
             uint32_t targetExpId = (uint32_t)(expInfoTensor(expIndex));
             if (targetExpId < expStartId || targetExpId >= expEndId) {
@@ -1176,15 +1180,19 @@ __aicore__ inline void MoeDistributeDispatchA2Layered<TemplateMC2TypeA2layeredFu
 
             //统计机间通信时间
             uint32_t endTime = GetSystemCycle() / TIME_CYCLE;
-            uint32_t duration = endTime - startTime;
-	        auto curServerId = logicAivId / coresPerServer;
-	        auto srcId = rankId_ % SERVER_RANK_SIZE + curServerId * SERVER_RANK_SIZE;
-            if (hasPerformanceInfo_) {
-		        performanceInfoU32Tensor_.SetValue(srcId * sizeof(uint64_t) / sizeof(uint32_t), duration);
-		        AscendC::SetAtomicMax<int32_t>();
-		        AscendC::DataCopy(performanceInfoU32GMTensor_, performanceInfoU32Tensor_, performanceInfoSize_ * sizeof(uint64_t) / sizeof(uint32_t));
-                AscendC::SetAtomicNone();
+            duration = endTime - startTime;
+            //确保每个卡只加一次max
+            //找到exp中的max
+            if (hasPerformanceInfo_ && curServerId != serverId_) {
+                duration = duration > cmpDuration ? duration : cmpDuration;
     	    }
+        }
+        //找每张卡上的aiv time max
+        if (hasPerformanceInfo_ && curServerId != serverId_) {
+            auto srcId = rankId_ % SERVER_RANK_SIZE + curServerId * SERVER_RANK_SIZE;
+            uint32_t cmpAivMax = performanceInfoU32Tensor_.GetValue(srcId * sizeof(uint64_t) / sizeof(uint32_t));
+            aivMax = duration > cmpAivMax ? duration : cmpAivMax;
+            performanceInfoU32Tensor_.SetValue(srcId * sizeof(uint64_t) / sizeof(uint32_t), aivMax);
         }
         tokenIdx += 1;
         justExpInfo = (tokenIdx % coresPerServer != logicAivId % coresPerServer);
@@ -1413,6 +1421,16 @@ __aicore__ inline void MoeDistributeDispatchA2Layered<TemplateMC2TypeA2layeredFu
         } else {
             Win2Ipc();
         }
+        //把aiv中的max累加到GMTensor里
+        uint32_t coresPerServer = (aivNum_ - serverNum - 1) / serverNum;
+        uint32_t logicAivId = aivId_ - serverNum - 1;
+        //每张卡只加一次
+        if (logicAivId % coresPerServer == 0) {
+            AscendC::SetAtomicAdd<int32_t>();
+            AscendC::DataCopy(performanceInfoU32GMTensor_, performanceInfoU32Tensor_, performanceInfoSize_ * sizeof(uint64_t) / sizeof(uint32_t));
+            AscendC::SetAtomicNone();                
+        }
+
         PipeBarrier<PIPE_ALL>();
         SyncAll<true>();
         SetIpcFlag(IPC_FLAG_STEP_1);
