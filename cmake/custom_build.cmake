@@ -244,7 +244,6 @@ if (BUILD_OPEN_PROJECT)
         if (TESTS_UT_OPS_TEST)
             add_subdirectory(tests/ut/framework_special)
             add_definitions(-Wno-builtin-macro-redefined)
-            OpsTest_AddLaunch()
         endif()
 
         if (UT_TEST_ALL OR OP_HOST_UT OR OP_API_UT OR OP_KERNEL_UT OR OP_GRAPH_UT)
@@ -275,6 +274,20 @@ endif()
 
 list(APPEND OP_LIST ${COMPILED_OPS})
 list(APPEND OP_DIR_LIST ${COMPILED_OP_DIRS})
+
+if(ENABLE_TEST)
+    foreach (OP_DIR ${OP_DIR_LIST})
+        file(READ "${OP_DIR}/tests/CMakeLists.txt" CML_CONTENT)
+        if (CML_CONTENT MATCHES "OpsTest_Level2_AddOp")
+            set(UTEST_FRAMEWORK_OLD TRUE CACHE BOOL "UTEST_FRAMEWORK_OLD" FORCE)
+        else()
+            set(UTEST_FRAMEWORK_NEW TRUE CACHE BOOL "UTEST_FRAMEWORK_NEW" FORCE)
+        endif()
+    endforeach()
+    if(TESTS_UT_OPS_TEST)
+        OpsTest_AddLaunch()
+    endif()
+endif()
 
 
 if (DEFINED MC2_OPT AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/mc2/common/CMakeLists.txt AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/mc2/3rd/CMakeLists.txt)
