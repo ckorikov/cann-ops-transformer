@@ -86,19 +86,14 @@ public :
         this->sdBlockSize = sinSize / sizeof(T);
         this->sBlockSize = this->sdBlockSize / this->d;
 
-        uint32_t sBlockNumTotal = this->CeilDiv(seqLen, this->sBlockSize);
-        this->sBlockNum = this->CeilDiv(sBlockNumTotal, this->aivNum);
-        this->sSize = this->sBlockSize * this->sBlockNum;
+        this->sSize = this->CeilDiv(this->seqLen, this->aivNum);
         this->sdSize = this->sSize * this->d;
 
-        uint32_t startIdx = this->sBlockNum * this->aivIdx;
-        this->startSize = startIdx * this->sBlockSize;
-
         uint32_t remainSize = this->seqLen - this->sSize * this->aivIdx;
+        this->startSize = this->sSize * this->aivIdx;
+        // update sSize for last core, need after this->startSize set
         this->sSize = (this->sSize < remainSize) ? (this->sSize) : (remainSize);
-        uint32_t lastBlockNum = sBlockNumTotal - this->sBlockNum * this->aivIdx;
-        this->sBlockNum = (this->sBlockNum < lastBlockNum) ? (this->sBlockNum) : (lastBlockNum);
-
+        this->sBlockNum = this->CeilDiv(sSize, this->sBlockSize);
         this->sLastBlockSize = this->sSize % this->sBlockSize;
         this->sLastBlockSize = (this->sLastBlockSize == 0) ? this->sBlockSize : this->sLastBlockSize;
         this->sdLastBlockSize = this->sLastBlockSize * this->d;
