@@ -23,6 +23,13 @@ using namespace op;
 extern "C" {
 #endif
 
+enum NnopbaseHcclServerType {
+    NNOPBASE_HCCL_SERVER_TYPE_AICPU = 0,
+    NNOPBASE_HCCL_SERVER_TYPE_MTE,
+    NNOPBASE_HCCL_SERVER_TYPE_CCU,
+    NNOPBASE_HCCL_SERVER_TYPE_END
+};
+
 extern aclnnStatus aclnnInnerMoeDistributeCombineGetWorkspaceSize(
     const aclTensor *expandX, const aclTensor *expertIds, const aclTensor *expandIdx, const aclTensor *epSendCounts,
     const aclTensor *expertScales, const aclTensor *tpSendCounts, const aclTensor *xActiveMask,
@@ -33,6 +40,7 @@ extern aclnnStatus aclnnInnerMoeDistributeCombineGetWorkspaceSize(
     aclTensor *x, uint64_t *workspaceSize, aclOpExecutor **executor);
 extern aclnnStatus aclnnInnerMoeDistributeCombine(void *workspace, uint64_t workspaceSize, aclOpExecutor *executor,
                                                   aclrtStream stream);
+extern "C" void __attribute__((weak)) NnopbaseSetHcclServerType(void *executor, NnopbaseHcclServerType sType);
 
 // check nullptr
 static bool CheckNotNull(const aclTensor *expandX, const aclTensor *expertIds, const aclTensor *expandIdx,
@@ -130,6 +138,15 @@ aclnnStatus aclnnMoeDistributeCombineGetWorkspaceSize(
 aclnnStatus aclnnMoeDistributeCombine(void *workspace, uint64_t workspaceSize, aclOpExecutor *executor,
                                       aclrtStream stream)
 {
+    if (NnopbaseSetHcclServerType) {
+        if (GetCurrentPlatformInfo().GetSocVersion() == SocVersion::ASCEND910B) {
+            NnopbaseSetHcclServerType(executor, NNOPBASE_HCCL_SERVER_TYPE_AICPU);
+        } else if (GetCurrentPlatformInfo().GetSocVersion() == SocVersion::ASCEND910_95) {
+            NnopbaseSetHcclServerType(executor, NNOPBASE_HCCL_SERVER_TYPE_CCU);
+        } else {
+            NnopbaseSetHcclServerType(executor, NNOPBASE_HCCL_SERVER_TYPE_MTE);
+        }
+    }
     aclnnStatus ret = aclnnInnerMoeDistributeCombine(workspace, workspaceSize, executor, stream);
     return ret;
 }

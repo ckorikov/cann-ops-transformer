@@ -24,6 +24,12 @@ extern "C" {
 #endif
 
 static constexpr int32_t DISPATCH_DYNAMIC_QUANT_MODE = 2;
+enum NnopbaseHcclServerType {
+    NNOPBASE_HCCL_SERVER_TYPE_AICPU = 0,
+    NNOPBASE_HCCL_SERVER_TYPE_MTE,
+    NNOPBASE_HCCL_SERVER_TYPE_CCU,
+    NNOPBASE_HCCL_SERVER_TYPE_END
+};
 
 extern aclnnStatus aclnnInnerMoeDistributeDispatchV2GetWorkspaceSize(const aclTensor* x, const aclTensor* expertIds, const aclTensor* scales,
                                                                    const aclTensor* xActiveMask, const aclTensor* expertScales,  const aclTensor* elasticInfo,
@@ -37,6 +43,8 @@ extern aclnnStatus aclnnInnerMoeDistributeDispatchV2GetWorkspaceSize(const aclTe
                                                                    uint64_t* workspaceSize, aclOpExecutor** executor);
 extern aclnnStatus aclnnInnerMoeDistributeDispatchV2(void* workspace, uint64_t workspaceSize,
                                                         aclOpExecutor* executor, aclrtStream stream);
+
+extern "C" void __attribute__((weak)) NnopbaseSetHcclServerType(void *executor, NnopbaseHcclServerType sType);
 
 // check nullptr
 static bool CheckNotNull(const aclTensor* x, const aclTensor* expertIds, const char* groupEp, [[maybe_unused]] const char* groupTp, aclTensor* expandX, [[maybe_unused]] aclTensor* dynamicScales,
@@ -120,6 +128,16 @@ aclnnStatus aclnnMoeDistributeDispatchV2GetWorkspaceSize(const aclTensor* x, con
 
 aclnnStatus aclnnMoeDistributeDispatchV2(void* workspace, uint64_t workspaceSize, aclOpExecutor *executor, aclrtStream stream)
 {
+    if (NnopbaseSetHcclServerType) {
+        if (GetCurrentPlatformInfo().GetSocVersion() == SocVersion::ASCEND910B) {
+            NnopbaseSetHcclServerType(executor, NNOPBASE_HCCL_SERVER_TYPE_AICPU);
+        } else if (GetCurrentPlatformInfo().GetSocVersion() == SocVersion::ASCEND910_95) {
+            NnopbaseSetHcclServerType(executor, NNOPBASE_HCCL_SERVER_TYPE_CCU);
+        } else {
+            NnopbaseSetHcclServerType(executor, NNOPBASE_HCCL_SERVER_TYPE_MTE);
+        }
+    }
+
     return aclnnInnerMoeDistributeDispatchV2(workspace, workspaceSize, executor, stream);
 }
 #ifdef __cplusplus
