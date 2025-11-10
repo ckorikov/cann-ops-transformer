@@ -8,7 +8,25 @@
  # See LICENSE in the root of the software repository for the full text of the License.
  # ----------------------------------------------------------------------------
  if(BUILD_OPEN_PROJECT)
-   file(GLOB OPTILING_SRCS src/*.cpp)
+   file(GLOB OPTILING_SRCS 
+    src/context_transfer.cpp
+    src/hccl_formulaic_tiling.cpp
+    src/hccl_performance.cpp
+    src/matmul_all_reduce_gen_task_ops_utils.cpp
+    src/matmul_formulaic_tiling.cpp
+    src/matmul_performance.cpp
+    src/mc2_common_infershape.cpp
+    src/mc2_copy_quant_matmul_params.cpp
+    src/mc2_gen_task_ops_utils.cpp
+    src/mc2_hcom_topo_info.cpp
+    src/mc2_log.cpp
+    src/mc2_matmul_tiling_cfg.cpp
+    src/mc2_moe_gen_task_ops_utils.cpp
+    src/mc2_moe_utils.cpp
+    src/mc2_tiling_utils.cpp
+    src/moe_tiling_base.cpp
+    src/one_calc_two_comm_tiling.cpp
+    )
    if(OPTILING_SRCS)
      add_tiling_modules()
      target_sources(${OPHOST_NAME}_tiling_obj PRIVATE ${OPTILING_SRCS})
@@ -33,3 +51,11 @@
     endif()
    endif()
  endif()
+
+file(GLOB OPAPI_SRC
+  src/mc2_aclnn_util.cpp
+)
+if(OPAPI_SRC)
+  add_opapi_modules()
+  target_sources(${OPHOST_NAME}_opapi_obj PRIVATE ${OPAPI_SRC})
+endif()
