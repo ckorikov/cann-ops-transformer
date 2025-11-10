@@ -22,7 +22,7 @@ namespace GROUPED_MATMUL {
 constexpr uint32_t thresholdBlockNum = 8;   // 8 is obtained by tests, indicating the threshold of basic block numbers
                                             // in both directions when assigning data blocks to cube cores when using
                                             // diagnal strategy
-#if defined(__CCE_AICORE__) && __CCE_AICORE__ == 200
+#if defined(__CCE_AICORE__) && (__CCE_AICORE__ == 200 || __CCE_AICORE__ == 100)
 constexpr uint32_t thresholdDimM = 1;       // not needs any special strategies
 #else
 constexpr uint32_t thresholdDimM = 5;       // 5 is obtained by tests, indicating the threshold for distinguishing
@@ -439,7 +439,7 @@ __aicore__ inline void GMMCompute<mmType, sync>::Init(GM_ADDR x, GM_ADDR weight,
 #if defined(GMM_QUANT_INT8)
     scaleTensorPtr = scale;
 #endif
-#if defined(__CCE_AICORE__) && __CCE_AICORE__ == 200
+#if defined(__CCE_AICORE__) && (__CCE_AICORE__ == 200 || (__CCE_AICORE__ == 100 && defined(GMM_FLOAT)))
     TBuf<> ubBuf;
     pipe->InitBuffer(ubBuf, TOTAL_UB_SIZE / 2);
     LocalTensor<uint8_t> buf = ubBuf.template Get<uint8_t>();

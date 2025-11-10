@@ -404,6 +404,7 @@ ge::graphStatus GMMTiling::Init(const gert::TilingContext* context) {
   if (isA8W4FakeA8W8_) {
     hasBias_ = false;
   }
+
   tilingData.gmmArray.set_mList(mList_);
   tilingData.gmmArray.set_kList(kList_);
   tilingData.gmmArray.set_nList(nList_);
@@ -729,6 +730,12 @@ ge::graphStatus GMMTiling::RunFusionKernelTiling(gert::TilingContext* context) {
   auto compileInfoPtr = context->GetCompileInfo<GMMCompileInfo>();
   OP_CHECK_NULL_WITH_CONTEXT(context, compileInfoPtr);  // check compileInfoPtr is not null
 
+  if(xDType_ == ge::DT_INT8 && weightDtype_ == ge::DT_INT8 &&
+     compileInfoPtr->socVersion == platform_ascendc::SocVersion::ASCEND910) {
+    auto ret = CalDequantTiling(context);
+    return ret;
+  }
+
   ubSize_ = compileInfoPtr->ubSize;  // get ubSize from compileInfo
   const uint32_t& aicNum = compileInfoPtr->aicNum;  // get aicNum from compileInfo
   if (aicNum == 0U) {  // invaild value
@@ -925,7 +932,10 @@ void GMMTiling::GMMSetTplTilingKey(gert::TilingContext* context) {
       StaticTilingProcess(context)) {
     isStaticTilingApi = 1U;
   }
-
+  auto compileInfoPtr = context->GetCompileInfo<GMMCompileInfo>();
+  if (compileInfoPtr->socVersion == platform_ascendc::SocVersion::ASCEND910) {
+    aivAicRatio = GROUPED_MATMUL_CUBE_ONLY;
+  }
   const uint64_t tilingKey = GET_TPL_TILING_KEY(GetTplDataType(xDType_),
                                                 GetTplDataType(weightDtype_),
                                                 GetTplDataType(yDtype_),
@@ -1321,6 +1331,147 @@ ge::graphStatus GMMTiling::CalMMTiling(const gert::TilingContext* context, const
   OP_CHECK_IF(baseM_ == 0,
              OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "baseM_ cannot be 0."),
              return ge::GRAPH_FAILED);
+
+  return ge::GRAPH_SUCCESS;
+}
+
+uint32_t NdWithNzNeedSpace(uint32_t baseM, uint32_t baseK, uint32_t baseN) {
+  return std::max(baseM * baseK * 2, baseM * baseN * FP32_DATATYPE_SIZE);
+}
+
+uint32_t GMMTiling::CalDequantUseUbSize(GMMTilingData& tilingData, uint32_t ubBaseM, uint32_t ubBaseN) {
+  uint32_t baseM = tilingData.mmTilingData.get_baseM();
+  uint32_t baseK = tilingData.mmTilingData.get_baseK();
+  uint32_t baseN = tilingData.mmTilingData.get_baseN();
+  uint32_t restBytes = CalUbRestBytes(baseM, baseK, baseN, ubBaseM);
+  uint32_t mmToUbInSize = baseM * baseN * FP32_DATATYPE_SIZE;
+  uint32_t outputSize = ubBaseM * ubBaseN * FP32_DATATYPE_SIZE;
+  uint32_t scaleInSize = ubBaseN * FP32_DATATYPE_SIZE * DB_ON;
+  uint32_t perTokenSize = 0;
+  if (perTokenOrPerGroupSize_) {
+    perTokenSize = ubBaseM * FP32_DATATYPE_SIZE * DB_ON;
+  }
+  return restBytes + mmToUbInSize + scaleInSize + perTokenSize + outputSize;
+}
+
+uint32_t GMMTiling::CalUbRestBytes(uint32_t baseM, uint32_t baseK, uint32_t baseN,
+                                   uint32_t ubBaseM) {
+  uint32_t localTensorSize = NdWithNzNeedSpace(baseM, baseK, baseN);
+  constexpr uint32_t helpTensorOneSize = SPACE_FOR_HELP_TENSOR * 2;
+  uint32_t pertokenBrcbLocalSize = 0;
+  uint32_t biasSize = 0;
+  if (perTokenOrPerGroupSize_) {
+    pertokenBrcbLocalSize = ubBaseM * 32;
+  }
+
+  if (hasBias_) {
+    biasSize = baseN * sizeof(int32_t);
+  }
+  return localTensorSize + helpTensorOneSize + pertokenBrcbLocalSize + biasSize;
+}
+
+void GMMTiling::CalDequantUbTiling(GMMTilingData& tilingData, const GMMCompileInfo* compileInfoPtr) {
+  uint32_t baseM = tilingData.mmTilingData.get_baseM();
+  uint32_t baseK = tilingData.mmTilingData.get_baseK();
+  uint32_t baseN = tilingData.mmTilingData.get_baseN();
+
+  // make sure baseM baseK baseN can be load by ub
+  while(CalDequantUseUbSize(tilingData, 1, baseN) > compileInfoPtr->ubSize) {
+    if (baseM >= baseN) {
+      baseM /= 2;
+      tilingData.mmTilingData.set_baseM(baseM);
+    } else {
+      baseN /= 2;
+      tilingData.mmTilingData.set_baseN(baseN);
+    }
+  }
+  uint32_t ubBaseN = baseN;
+  uint32_t ubBaseM = baseM;
+  while(CalDequantUseUbSize(tilingData, ubBaseM, ubBaseN) > compileInfoPtr->ubSize) {
+      if (ubBaseM > 1) {
+        ubBaseM /= 2;
+      } else {
+        ubBaseN /= 2;
+      }
+  }
+
+  uint32_t ubRestBytes = CalUbRestBytes(baseM, baseK, baseN, ubBaseM);
+
+  tilingData.gmmBaseParams.set_ubRestBytes(ubRestBytes);  // in byte unit ubRestBytes
+  tilingData.gmmBaseParams.set_ubBaseK(ubBaseM);
+  tilingData.gmmBaseParams.set_ubBaseN(ubBaseN);
+  tilingData.mmTilingData.set_transLength(baseM * baseK + SPACE_FOR_HELP_TENSOR);
+  tilingData.mmTilingData.set_shareMode(0);
+  tilingData.mmTilingData.set_shareUbSize(0);
+  tilingData.mmTilingData.set_singleCoreN(baseN);
+  tilingData.mmTilingData.set_singleCoreM(baseM);
+  tilingData.gmmBaseParams.set_singleN(baseN);
+
+}
+
+ge::graphStatus GMMTiling::CalDequantTiling(gert::TilingContext* context) {
+
+  auto compileInfoPtr = context->GetCompileInfo<GMMCompileInfo>();
+  OP_CHECK_NULL_WITH_CONTEXT(context, compileInfoPtr);
+  const uint32_t& aicNum = compileInfoPtr->aicNum;  // get aicNum from compileInfo
+  if (aicNum == 0) {  // invaild value
+    return ge::GRAPH_FAILED;
+  }
+
+  uint32_t n = context->GetDynamicInputTensor(SCALE_INDEX, 0)->GetStorageShape().GetDim(1);
+  uint32_t k = context->GetDynamicInputTensor(X_INDEX, 0)->GetStorageShape().GetDim(1);
+
+  matmul_tiling::PlatformInfo platformInfo;
+  InitPlatformInfo(compileInfoPtr, platformInfo);
+  matmul_tiling::MultiCoreMatmulTiling mm(platformInfo);
+
+  mm.SetAType(matmul_tiling::TPosition::GM, matmul_tiling::CubeFormat::ND, matmul_tiling::DataType::DT_INT8, false);
+  mm.SetBType(matmul_tiling::TPosition::GM, matmul_tiling::CubeFormat::NZ, matmul_tiling::DataType::DT_INT8, true);
+  mm.SetCType(matmul_tiling::TPosition::VECIN, matmul_tiling::CubeFormat::ND, matmul_tiling::DataType::DT_FLOAT);
+  mm.SetBias(hasBias_);
+  mm.SetShape(maxM_, n, k);
+  mm.SetOrgShape(maxM_, n, k);
+
+  if (mm.GetTiling(tilingData.mmTilingData) == -1){
+    OP_LOGE(context->GetNodeName(), "GetTiling by api failed.");
+    return ge::GRAPH_FAILED;
+  }
+  GetPerGroupNum(context);
+  CalDequantUbTiling(tilingData, compileInfoPtr);
+
+  GMMSetTplTilingKey(context);
+  // printf("fhp test ---------------------\n");
+  // printf("M: %u\n", tilingData.mmTilingData.get_M());
+  // printf("K: %u %u\n", tilingData.mmTilingData.get_Ka(), tilingData.mmTilingData.get_Kb());
+  // printf("N: %u\n", tilingData.mmTilingData.get_N());
+  // printf("baseM: %u\n", tilingData.mmTilingData.get_baseM());
+  // printf("baseK: %u\n", tilingData.mmTilingData.get_baseK());
+  // printf("baseN: %u\n", tilingData.mmTilingData.get_baseN());
+  // printf("stepKa: %u\n", tilingData.mmTilingData.get_stepKa());
+  // printf("stepKb: %u\n", tilingData.mmTilingData.get_stepKb());
+  // printf("stepM: %u\n", tilingData.mmTilingData.get_stepM());
+  // printf("stepN: %u\n", tilingData.mmTilingData.get_stepN());
+  // printf("singleCoreM: %u\n", tilingData.mmTilingData.get_singleCoreM());
+  // printf("singleCoreK: %u\n", tilingData.mmTilingData.get_singleCoreK());
+  // printf("singleCoreN: %u\n", tilingData.mmTilingData.get_singleCoreN());
+  // printf("groupNum: %u\n", tilingData.gmmBaseParams.get_groupNum());
+  // printf("usedCoreNum: %u\n", tilingData.mmTilingData.get_usedCoreNum());
+  // printf("aicNum: %u\n", compileInfoPtr->aicNum);
+  // printf("fhp test ---------------------\n");
+  // std::cout << "fhp test tilingKey:" << context->GetTilingKey() << std::endl;
+
+  size_t* workspaces = context->GetWorkspaceSizes(1);  // get second variable
+  OP_CHECK_NULL_WITH_CONTEXT(context, workspaces);
+  workspaces[0] = SYS_WORKSPACE_SIZE;  // default size
+
+  tilingData.gmmBaseParams.set_coreNum(compileInfoPtr->aicNum);
+  tilingData.mmTilingData.set_usedCoreNum(compileInfoPtr->aicNum);
+  context->SetBlockDim(compileInfoPtr->aicNum);
+  // tilingData.gmmBaseParams.set_coreNum(1);
+  // tilingData.mmTilingData.set_usedCoreNum(1);
+  // context->SetBlockDim(1);
+  tilingData.SaveToBuffer(context->GetRawTilingData()->GetData(), context->GetRawTilingData()->GetCapacity());
+  context->GetRawTilingData()->SetDataSize(tilingData.GetDataSize());
 
   return ge::GRAPH_SUCCESS;
 }

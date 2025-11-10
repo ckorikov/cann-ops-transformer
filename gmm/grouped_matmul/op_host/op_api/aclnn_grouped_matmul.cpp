@@ -721,8 +721,10 @@ static aclnnStatus CheckGroupedMatmulAntiQuant(const gmm::GroupedMatmulParams &g
   DataType xDtype = gmmParams.xDtype;
   string sXtype = gmm::DTYPE_STRING.at(xDtype);
   string sWtype = gmm::DTYPE_STRING.at(weightDtype);
-  CHECK_COND(GetCurrentPlatformInfo().GetSocVersion() != SocVersion::ASCEND310P, ACLNN_ERR_PARAM_INVALID,
-             "GMM Xtype:%s Wtype:%s: antiquant cases do not support on Ascend310P.", sXtype.c_str(), sWtype.c_str());
+  bool is310p = GetCurrentPlatformInfo().GetSocVersion() == SocVersion::ASCEND310P ||
+                GetCurrentPlatformInfo().GetSocVersion() == SocVersion::ASCEND910;
+  CHECK_COND(!is310p, ACLNN_ERR_PARAM_INVALID,
+             "GMM Xtype:%s Wtype:%s: antiquant cases do not support on Ascend310P/Ascend910A.", sXtype.c_str(), sWtype.c_str());
   CHECK_COND(gmmParams.groupType != gmm::SPLIT_K, ACLNN_ERR_PARAM_INVALID,
              "GMM Xtype:%s Wtype:%s: antiquant cases do not support splited axis is k.", sXtype.c_str(), sWtype.c_str());
   CHECK_COND(gmmParams.antiquantScaleOptional != nullptr, ACLNN_ERR_PARAM_INVALID,
@@ -1301,10 +1303,12 @@ static aclnnStatus CheckParamDifferentGroupType(const gmm::GroupedMatmulParams &
              (gmmParams.groupTensorOptional == nullptr || gmmParams.groupTensorOptional->GetViewShape().GetDim(0) >= 1),
              ACLNN_ERR_PARAM_INVALID, "size of groupList can not be 0."
              "If expected group num is 1, groupList should be nullptr.");
-  if (GetCurrentPlatformInfo().GetSocVersion() == SocVersion::ASCEND310P && gmmParams.transposeWeight) {
+  bool is310p = GetCurrentPlatformInfo().GetSocVersion() == SocVersion::ASCEND310P ||
+                GetCurrentPlatformInfo().GetSocVersion() == SocVersion::ASCEND910;
+  if (is310p && gmmParams.transposeWeight) {
     CHECK_COND(gmmParams.groupType == gmm::SPLIT_M && gmmParams.x->Size() == 1 && gmmParams.weight->Size() == 1
                && gmmParams.y->Size() == 1, ACLNN_ERR_PARAM_INVALID,
-               "When transpose weight, ASCEND310P only support split m, single x, single weight, single y.");
+               "When transpose weight, ASCEND310P/ASCEND910 only support split m, single x, single weight, single y.");
   }
   if (gmmParams.groupType == gmm::NO_SPLIT) {
     CHECK_COND(!gmmParams.transposeX, ACLNN_ERR_PARAM_INVALID,
@@ -1471,7 +1475,8 @@ static aclnnStatus DataContiguousAndTransFormat(const aclTensor *tensor, const a
 }
 
 static aclnnStatus TransWeightToNz(gmm::GroupedMatmulParams &gmmParams, aclOpExecutor *executor) {
-  bool is310p = GetCurrentPlatformInfo().GetSocVersion() == SocVersion::ASCEND310P;
+  bool is310p = GetCurrentPlatformInfo().GetSocVersion() == SocVersion::ASCEND310P ||
+                GetCurrentPlatformInfo().GetSocVersion() == SocVersion::ASCEND910;
   if (is310p) {
     const aclTensorList *&weights = gmmParams.weight;
     size_t wLength = weights->Size();
@@ -1884,10 +1889,10 @@ aclnnStatus CheckCommonParam(const aclTensorList *x , const aclTensorList *weigh
   const aclTensor *groupListOptional, int64_t splitItem, int64_t groupType, int64_t groupListType,
   int64_t actType, const aclTensorList *out) {
   auto socVersion = GetCurrentPlatformInfo().GetSocVersion();
-  bool is310P = socVersion == SocVersion::ASCEND310P;
+  bool is310P = socVersion == SocVersion::ASCEND310P || socVersion == SocVersion::ASCEND910;
   bool supportedCaseOn310P = x->Size() == 1 && out->Size() == 1 && weight->Size() == 1 && groupType == 0;
   CHECK_COND((is310P && supportedCaseOn310P) || !is310P, ACLNN_ERR_PARAM_INVALID,
-             "only surpport x, y, weight not separated case with groupType is 0 on ASCEND310P.");
+             "only surpport x, y, weight not separated case with groupType is 0 on ASCEND310P/ASCEND910.");
   CHECK_COND(PreCheckGroupType(splitItem, groupType) == ACLNN_SUCCESS, ACLNN_ERR_PARAM_INVALID,
              "PreCheckGroupType failed, groupType is invalid.");
   // sparse group list shape [e, 2]
