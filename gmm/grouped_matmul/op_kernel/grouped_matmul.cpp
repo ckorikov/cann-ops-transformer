@@ -30,6 +30,11 @@
 #include "grouped_matmul_pre_tiling.h"
 #include "grouped_matmul_a4w4.h"
 #include "grouped_matmul_autotiling_a8w4.h"
+
+#elif defined(__CCE_AICORE__) && __CCE_AICORE__ == 100
+
+#include "grouped_matmul_quant.h"
+
 #endif
 
 
@@ -414,14 +419,73 @@ namespace {
                                              &gmmQuantParams_, &mmTilingData_, &tPipe);                                \
     } while (0)
 
+#if defined(__CCE_AICORE__) && __CCE_AICORE__ == 100
+
+#define GMM_CUBE_IMPL_A100(transA, transB, sync, cfg)                                                              \
+    do {                                                                                                           \
+        using matmulType = MMImplType<xType<transA>, weightType<transB>, yType, biasType, cfg>;                    \
+        matmulType::MT mm;                                                                                         \
+        GET_TILING_DATA_MEMBER(GMMTilingData, gmmBaseParams, gmmBaseParams_, tiling);                              \
+        GET_TILING_DATA_MEMBER(GMMTilingData, mmTilingData, mmTilingData_, tiling);                                \
+        GET_TILING_DATA_MEMBER_ADDR(GMMTilingData, gmmArray, gmmArrayAddr_, tiling);                               \
+        mm.Init(&mmTilingData_, &tPipe);                                                                           \
+        GMMCompute<matmulType, sync> computeOp(mm);                                                                \
+        computeOp.Init(x, weight, bias, scale, offset, antiquantScale, antiquantOffset, groupList, perTokenScale,  \
+                       y, user1,  &gmmBaseParams_, &mmTilingData_, &tPipe);                                        \
+        GMMProcess<decltype(computeOp)> op(computeOp);                                                             \
+        op.Init(&gmmBaseParams_, &mmTilingData_, gmmArrayAddr_, groupList, tiling);                                \
+        op.Process();                                                                                              \
+    } while (0)
+
+#define GMM_IMPL_A100(computeClass, processClass, transA, transB, sync, cfg, aType, bType, cType)                  \
+    do {                                                                                                           \
+        using matmulType = MMImplType<aType<transA>, bType<transB>, cType, biasType, cfg>;                         \
+        matmulType::MT mm;                                                                                         \
+        GET_TILING_DATA_MEMBER(GMMTilingData, gmmBaseParams, gmmBaseParams_, tiling);                              \
+        GET_TILING_DATA_MEMBER(GMMTilingData, mmTilingData, mmTilingData_, tiling);                                \
+        GET_TILING_DATA_MEMBER_ADDR(GMMTilingData, gmmArray, gmmArrayAddr_, tiling);                               \
+        mm.Init(&mmTilingData_, &tPipe);                                                                           \
+        computeClass<matmulType, sync> computeOp(mm);                                                              \
+        computeOp.Init(x, weight, bias, scale, offset, antiquantScale, antiquantOffset, groupList, perTokenScale,  \
+                       y, user1, &gmmBaseParams_, &mmTilingData_, &tPipe);                                         \
+        processClass<decltype(computeOp)> op(computeOp);                                                           \
+        op.Init(&gmmBaseParams_, &mmTilingData_, gmmArrayAddr_, groupList, tiling);                                \
+        op.Process();                                                                                              \
+    } while (0)
+
+#endif
+
 extern "C" __global__ __aicore__ void grouped_matmul(GM_ADDR x, GM_ADDR weight, GM_ADDR bias, GM_ADDR scale,
                                                      GM_ADDR offset, GM_ADDR antiquantScale, GM_ADDR antiquantOffset,
                                                      GM_ADDR groupList, GM_ADDR perTokenScale, GM_ADDR y,
                                                      GM_ADDR workspace, GM_ADDR tiling) {
     TPipe tPipe;
+    GM_ADDR user1 = GetUserWorkspace(workspace);
+
+#if defined(__CCE_AICORE__) && __CCE_AICORE__ == 100
+
+#if defined(GMM_FLOAT)
+    if (TILING_KEY_IS(0)) {
+        GMM_CUBE_IMPL_A100(false, false, false, NZ_CFG_MDL);
+    } else if (TILING_KEY_IS(1)) {    // x transposed
+        GMM_CUBE_IMPL_A100(true, false, false, NZ_CFG_MDL);
+    } else if (TILING_KEY_IS(2)) {    // weight transposed
+        GMM_CUBE_IMPL_A100(false, true, false, NZ_CFG_MDL);
+    }
+#else
+    if (TILING_KEY_IS(0)) {
+        GMM_IMPL_A100(GMMQuantCompute, GMMProcess, false, false, false, NZ_CFG_MDL, xType, weightType, yTypeMSD);
+    } else if (TILING_KEY_IS(1)) {    // x transposed
+        GMM_IMPL_A100(GMMQuantCompute, GMMProcess, true, false, false, NZ_CFG_MDL, xType, weightType, yTypeMSD);
+    } else if (TILING_KEY_IS(2)) {    // weight transposed
+        GMM_IMPL_A100(GMMQuantCompute, GMMProcess, false, true, false, NZ_CFG_MDL, xType, weightType, yTypeMSD);
+    }
+#endif
+
+#else
+
     AscendCUtils::SetOverflow(1);
     KERNEL_TASK_TYPE_DEFAULT(KERNEL_TYPE_AIC_ONLY);
-    GM_ADDR user1 = GetUserWorkspace(workspace);
 
 #if defined(__CCE_AICORE__) && __CCE_AICORE__ == 310
 #ifndef __CCE_KT_TEST__
@@ -588,6 +652,7 @@ extern "C" __global__ __aicore__ void grouped_matmul(GM_ADDR x, GM_ADDR weight, 
         GMM_CUBE_IMP(GMMProcess, false, true, false, matmulCFG);
     }
 
+#endif
 #endif
 #endif
 }

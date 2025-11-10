@@ -220,6 +220,60 @@ public:
 
         this->AICore().AddConfig("ascend310p", config310P);
 
+        OpAICoreConfig config910;
+        config910.Input("x")
+            .ParamType(DYNAMIC)
+            .DataType({ge::DT_FLOAT16, ge::DT_FLOAT16, ge::DT_INT8})
+            .FormatList({ge::FORMAT_ND});
+        config910.Input("weight")
+            .ParamType(DYNAMIC)
+            .DataType({ge::DT_FLOAT16, ge::DT_FLOAT16, ge::DT_INT8})
+            .Format({ge::FORMAT_ND, ge::FORMAT_FRACTAL_NZ, ge::FORMAT_FRACTAL_NZ});
+        config910.Input("bias")
+            .ParamType(DYNAMIC)
+            .DataType({ge::DT_FLOAT16, ge::DT_FLOAT16, ge::DT_INT32})
+            .FormatList({ge::FORMAT_ND});
+        config910.Input("scale")
+            .ParamType(DYNAMIC)
+            .DataType({ge::DT_UINT64, ge::DT_UINT64, ge::DT_FLOAT})
+            .FormatList({ge::FORMAT_ND});
+        config910.Input("offset")
+            .ParamType(DYNAMIC)
+            .DataType({ge::DT_FLOAT, ge::DT_FLOAT, ge::DT_FLOAT})
+            .FormatList({ge::FORMAT_ND});
+        config910.Input("antiquant_scale")
+            .ParamType(DYNAMIC)
+            .DataType({ge::DT_FLOAT16, ge::DT_FLOAT16, ge::DT_FLOAT16})
+            .FormatList({ge::FORMAT_ND});
+        config910.Input("antiquant_offset")
+            .ParamType(DYNAMIC)
+            .DataType({ge::DT_FLOAT16, ge::DT_FLOAT16, ge::DT_FLOAT16})
+            .FormatList({ge::FORMAT_ND});
+        config910.Input("group_list")
+            .ParamType(OPTIONAL)
+            .DataTypeList({ge::DT_INT64})
+            .FormatList({ge::FORMAT_ND});
+        config910.Input("per_token_scale")
+            .ParamType(OPTIONAL)
+            .DataType({ge::DT_FLOAT16, ge::DT_FLOAT16, ge::DT_FLOAT})
+            .FormatList({ge::FORMAT_ND});
+        config910.Output("y")
+            .ParamType(DYNAMIC)
+            .DataType({ge::DT_FLOAT16, ge::DT_FLOAT16, ge::DT_FLOAT16})
+            .FormatList({ge::FORMAT_ND});
+        config910.DynamicCompileStaticFlag(true)
+            .DynamicFormatFlag(true)
+            .DynamicRankSupportFlag(true)
+            .DynamicShapeSupportFlag(true)
+            .NeedCheckSupportFlag(false)
+            .PrecisionReduceFlag(true)
+            .ExtendCfgInfo("prebuildPattern.value", "Opaque")
+            .ExtendCfgInfo("coreType.value", "AiCore")
+            .ExtendCfgInfo("aclnnSupport.value", "support_aclnn")
+            .ExtendCfgInfo("jitCompile.flag", "static_false,dynamic_false");
+
+        this->AICore().AddConfig("ascend910", config910);
+
     }
 };
 

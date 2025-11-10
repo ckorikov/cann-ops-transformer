@@ -19,6 +19,20 @@
 #include "kernel_operator.h"
 #include "lib/matmul_intf.h"
 
+#if defined(__CCE_AICORE__) && __CCE_AICORE__ == 100
+
+#if defined(ORIG_DTYPE_X) && defined(ORIG_DTYPE_WEIGHT) && defined(ORIG_DTYPE_Y) && defined(DT_INT8)
+  #if ORIG_DTYPE_X == DT_INT8
+    #define GMM_QUANT_FLOAT16
+    #define MM_DTYPE_Y int32_t
+  #else
+    #define GMM_FLOAT
+    // #define MM_DTYPE_Y float
+  #endif
+#endif
+
+#else
+
 #if defined(ORIG_DTYPE_X) && defined(ORIG_DTYPE_WEIGHT) && defined(ORIG_DTYPE_Y) && defined(DT_INT8) && \
     defined(DT_BF16) && defined(DT_INT4)
   #if ORIG_DTYPE_X == ORIG_DTYPE_WEIGHT
@@ -60,6 +74,8 @@
       #define GMM_ANTI_QUANT
     #endif
   #endif
+#endif
+
 #endif
 
 #if defined(DTYPE_Y) && !defined(MM_DTYPE_Y)
@@ -105,6 +121,8 @@ constexpr uint32_t HALF_UB_BLOCK_UNIT_SIZE = UB_BLOCK_UNIT_SIZE / 2;  // 2: a fl
 constexpr MatmulConfig NZ_CFG_MDL =
     GetMDLConfig(false, false, 0, true, false, false, true, true, true, false, false, true);
 constexpr MatmulConfig matmulCFGUnitFlag{.doMultiDataLoad = true, .enUnitFlag = true, .enableKdimReorderLoad = true};
+#elif __CCE_AICORE__ == 100
+constexpr MatmulConfig NZ_CFG_MDL = GetNormalConfig(false, false, true);
 #else
 constexpr MatmulConfig NZ_CFG_MDL = GetMDLConfig(false, false, 0, true, false, false, true);
 constexpr MatmulConfig matmulCFGUnitFlag{false, false, true, 0, 0, 0, false, false, false, false, false, 0, 0, 0,

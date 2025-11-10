@@ -122,6 +122,8 @@ constexpr float INT4_DATA_TYPE_SIZE = 0.5;
 constexpr int32_t STATIC_TILING_DEPTH_A1_B1 = 8;
 constexpr int32_t STATIC_TILING_STEP_KA_KB = 4;
 constexpr int32_t STATIC_TILING_MAX_K = 8192;
+constexpr uint32_t DB_ON = 2;
+constexpr uint32_t SPACE_FOR_HELP_TENSOR = 256;
 
 constexpr uint64_t RecursiveSum()
 {
