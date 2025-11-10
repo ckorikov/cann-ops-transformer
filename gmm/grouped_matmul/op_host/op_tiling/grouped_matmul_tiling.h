@@ -246,6 +246,10 @@ protected:
     bool StaticTilingProcess(gert::TilingContext *context);
     bool CheckTilingMatchStaticValue();
     void PrintTilingInfo(gert::TilingContext *context);
+    ge::graphStatus CalDequantTiling(gert::TilingContext* context);
+    void CalDequantUbTiling(GMMTilingData& tilingData, const GMMCompileInfo* compileInfoPtr);
+    uint32_t CalDequantUseUbSize(GMMTilingData& tilingData, uint32_t ubBaseM, uint32_t ubBaseN);
+    uint32_t CalUbRestBytes(uint32_t baseM, uint32_t baseK, uint32_t baseN, uint32_t ubBaseM);
     void GMMSetTplTilingKey(gert::TilingContext *context);
     uint32_t GetTplDataType(const ge::DataType &dtype);
 private:
