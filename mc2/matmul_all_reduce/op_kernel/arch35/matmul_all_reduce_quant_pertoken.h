@@ -87,7 +87,7 @@ private:
         MC2GmAddrs addrs = {aGM, bGM, biasGM, addGM, cGM, workspaceGM, cGM};                                           \
         QuantGmAddrs quantAddrs = {nullptr, nullptr, nullptr, dequantGM, pertokenGM};                                  \
         using OpType = templateClass<                                                                                  \
-            DTYPE_X1, DTYPE_X2, float, DTYPE_BIAS, float, DTYPE_Y, X1_FORMAT, X2_FORMAT, Y_FORMAT, isATrans, isBTrans, \
+            DTYPE_X1, DTYPE_X2, scaleType, DTYPE_BIAS, float, DTYPE_Y, X1_FORMAT, X2_FORMAT, Y_FORMAT, isATrans, isBTrans, \
             DTYPE_LOC_LOCAL, Mc2QuantBatchMatmulV3::Mc2QuantBmmAswBlock, MM_CFG_NO_PRELOAD_OPEN_UNIT_FLAG>;                  \
         MatmulAllReduceQuantPerToken<DTYPE_X1, DTYPE_X2, DTYPE_Y, OpType, coreType> op(                                \
             &addrs, &quantAddrs, nullptr, (MC2TilingHeader*)&tilingData, &tPipe);                                      \
