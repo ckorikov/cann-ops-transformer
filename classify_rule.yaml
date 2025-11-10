@@ -55,6 +55,19 @@ gmm:
     options:
       - grouped_matmul
 
+  grouped_matmul_add:
+    module: True
+    src:
+      - gmm/grouped_matmul_add
+    options:
+      - grouped_matmul_add
+    
+  grouped_matmul_swiglu_quant:
+    module: True
+    src:
+      - gmm/grouped_matmul_swiglu_quant
+    options:
+      - grouped_matmul_swiglu_quant
 ffn:
   ffn:
     module: True
@@ -62,3 +75,216 @@ ffn:
       - ffn/ffn
     options:
       - ffn
+moe:
+  moe_finalize_routing_v2:
+    module: True
+    src:
+      - moe/moe_finalize_routing_v2
+    options:
+      - moe_finalize_routing_v2
+  
+  moe_compute_expert_tokens:
+    module: True
+    src:
+      - moe/moe_compute_expert_tokens
+    options:
+      - moe_compute_expert_tokens
+
+  moe_finalize_routing:
+    module: True
+    src:
+      - moe/moe_finalize_routing
+    options:
+      - moe_finalize_routing
+
+  moe_finalize_routing_v2_grad:
+    module: True
+    src:
+      - moe/moe_finalize_routing_v2_grad
+    options:
+      - moe_finalize_routing_v2_grad
+
+  moe_fused_topk:
+    module: True
+    src:
+      - moe/moe_fused_topk
+    options:
+      - moe_fused_topk
+
+  moe_gating_top_k:
+    module: True
+    src:
+      - moe/moe_gating_top_k
+    options:
+      - moe_gating_top_k
+
+  moe_gating_top_k_softmax:
+    module: True
+    src:
+      - moe/moe_gating_top_k_softmax
+    options:
+      - moe_gating_top_k_softmax
+
+  moe_gating_top_k_softmax_v2:
+    module: True
+    src:
+      - moe/moe_gating_top_k_softmax_v2
+    options:
+      - moe_gating_top_k_softmax_v2
+
+  moe_init_routing:
+    module: True
+    src:
+      - moe/moe_init_routing
+    options:
+      - moe_init_routing
+
+  moe_init_routing_quant:
+    module: True
+    src:
+      - moe/moe_init_routing_quant
+    options:
+      - moe_init_routing_quant
+
+  moe_init_routing_quant_v2:
+    module: True
+    src:
+      - moe/moe_init_routing_quant_v2
+    options:
+      - moe_init_routing_quant_v2
+
+  moe_init_routing_v2:
+    module: True
+    src:
+      - moe/moe_init_routing_v2
+    options:
+      - moe_init_routing_v2
+
+  moe_init_routing_v2_grad:
+    module: True
+    src:
+      - moe/moe_init_routing_v2_grad
+    options:
+      - moe_init_routing_v2_grad
+
+  moe_init_routing_v3:
+    module: True
+    src:
+      - moe/moe_init_routing_v3
+    options:
+      - moe_init_routing_v3
+
+  moe_re_routing:
+    module: True
+    src:
+      - moe/moe_re_routing
+    options:
+      - moe_re_routing
+
+  moe_token_permute:
+    module: True
+    src:
+      - moe/moe_token_permute
+    options:
+      - moe_token_permute
+
+  moe_token_permute_grad:
+    module: True
+    src:
+      - moe/moe_token_permute_grad
+    options:
+      - moe_token_permute_grad
+
+  moe_token_permute_with_ep:
+    module: True
+    src:
+      - moe/moe_token_permute_with_ep
+    options:
+      - moe_token_permute_with_ep
+
+  moe_token_permute_with_ep_grad:
+    module: True
+    src:
+      - moe/moe_token_permute_with_ep_grad
+    options:
+      - moe_token_permute_with_ep_grad
+
+  moe_token_permute_with_routing_map:
+    module: True
+    src:
+      - moe/moe_token_permute_with_routing_map
+    options:
+      - moe_token_permute_with_routing_map
+
+  moe_token_permute_with_routing_map_grad:
+    module: True
+    src:
+      - moe/moe_token_permute_with_routing_map_grad
+    options:
+      - moe_token_permute_with_routing_map_grad
+
+  moe_token_unpermute:
+    module: True
+    src:
+      - moe/moe_token_unpermute
+    options:
+      - moe_token_unpermute
+      - moe_token_permute_grad
+      - moe_token_permute_with_routing_map_grad
+
+  moe_token_unpermute_grad:
+    module: True
+    src:
+      - moe/moe_token_unpermute_grad
+    options:
+      - moe_token_unpermute_grad
+
+  moe_token_unpermute_with_ep:
+    module: True
+    src:
+      - moe/moe_token_unpermute_with_ep
+    options:
+      - moe_token_unpermute_with_ep
+
+  moe_token_unpermute_with_ep_grad:
+    module: True
+    src:
+      - moe/moe_token_unpermute_with_ep_grad
+    options:
+      - moe_token_unpermute_with_ep_grad
+
+  moe_token_unpermute_with_routing_map:
+    module: True
+    src:
+      - moe/moe_token_unpermute_with_routing_map
+    options:
+      - moe_token_unpermute_with_routing_map
+
+  moe_token_unpermute_with_routing_map_grad:
+    module: True
+    src:
+      - moe/moe_token_unpermute_with_routing_map_grad
+    options:
+      - moe_token_unpermute_with_routing_map_grad
+
+posembedding:
+  dequant_rope_quant_kvcache:
+    module: True
+    src:
+      - posembedding/dequant_rope_quant_kvcache
+    options:
+      - dequant_rope_quant_kvcache
+
+  rope_with_sin_cos_cache:
+    module: True
+    src:
+      - posembedding/rope_with_sin_cos_cache
+    options:
+      - rope_with_sin_cos_cache
+
+  rope_quant_kvcache:
+    module: True
+    src:
+      - posembedding/rope_quant_kvcache
+    options:
+      - rope_quant_kvcache
