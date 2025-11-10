@@ -417,7 +417,11 @@ const aclTensor* QuantMatmulAllReduceTransTensor(const aclTensor* x2)
 
     aclDataType dataType = aclDataType::ACL_DT_UNDEFINED;
     aclGetDataType(x2, &dataType);
-    auto stride = x2->GetViewStrides();
+    std::vector<int64_t> stride(viewDimsNum);
+    auto transStride = x2->GetViewStrides();
+    // transpose the two dimensions
+    stride[0] = transStride[1];
+    stride[1] = transStride[0];
 
     auto offset = x2->GetViewOffset();
     aclFormat format = aclFormat::ACL_FORMAT_ND;

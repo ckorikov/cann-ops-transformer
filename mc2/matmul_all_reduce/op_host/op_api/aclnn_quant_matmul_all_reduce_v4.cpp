@@ -315,24 +315,28 @@ aclnnStatus aclnnQuantMatmulAllReduceV4GetWorkspaceSize(
     int64_t antiquantGroupSize = 0;
     auto tempX2 = x2;
     if (op::GetCurrentPlatformInfo().GetSocVersion() != op::SocVersion::ASCEND310P && IsWeightNZFormat(x2)) {
-        if(x2->GetTensor() == nullptr){
+        if (x2->GetTensor() == nullptr) {
             OP_LOGE(ACLNN_ERR_INNER_NULLPTR, "Tensor of x2 is null.");
             return ACLNN_ERR_INNER_NULLPTR;
         }
         tempX2 = CopyTensor(x2);
     }
     auto transX2 = tempX2;
+    auto transX2Scale = x2Scale;
     if (transposeX2) {
-        if(tempX2->GetTensor() == nullptr){
+        if (tempX2->GetTensor() == nullptr) {
             OP_LOGE(ACLNN_ERR_INNER_NULLPTR, "Tensor is null.");
             return ACLNN_ERR_INNER_NULLPTR;
         }
         transX2 = QuantMatmulAllReduceTransTensor(tempX2);
+        // mxfp是3维scale，转置的是前两维，需要特殊判断，perblock场景复用判断转置接口
+        if (MC2Aclnn::IsNeedScaleTrans(x2Scale)) {
+            transX2Scale = QuantMatmulAllReduceTransTensor(x2Scale);
+        }
     }
-
     uint64_t yDtype = static_cast<uint64_t>(output->GetDataType());
     aclnnStatus ret = aclnnInnerMatmulAllReduceGetWorkspaceSize(
-        x1, transX2, biasOptional, x3Optional, scale, offset, dequant, x1ScaleOptional, commQuantScale1Optional,
+        x1, transX2, biasOptional, x3Optional, scale, offset, transX2Scale, x1ScaleOptional, commQuantScale1Optional,
         commQuantScale2Optional, group, reduceOp, transposeX1, transposeX2, commTurn, antiquantGroupSize, groupSize,
         yDtype, commQuantMode, output, workspaceSize, executor);
 
