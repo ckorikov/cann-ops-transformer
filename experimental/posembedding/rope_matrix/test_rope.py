@@ -163,14 +163,6 @@ def main():
 
     q = torch.randn((b, n, s, d), dtype=torch.bfloat16, device='npu')
     k = torch.randn((b, n, s, d), dtype=torch.bfloat16, device='npu')
-    freqs_cis_1d = []
-    for shape in shape_lists_1d:
-        sincos = torch.randn((s, shape), dtype=torch.bfloat16, device='npu')
-        freqs_cis_1d.append([sincos, sincos])
-    freqs_cis_2d = []
-    for shape in shape_lists_2d:
-        sincos = torch.randn((s, shape), dtype=torch.bfloat16, device='npu')
-        freqs_cis_2d.append([sincos, sincos])
     freqs_cis_3d = []
     for shape in shape_lists_3d:
         sincos = torch.randn((s, shape), dtype=torch.bfloat16, device='npu')
@@ -180,68 +172,7 @@ def main():
     half_mat_44 = get_half_matrix(44)
     half_mat_40 = get_half_matrix(40)
     half_mat_44_44_40 = compose_3matrix(half_mat_44, half_mat_44, half_mat_40)
-
-    mode = 'half' # or 'interleave or None
     
-    experimental_config = torch_npu.profiler._ExperimentalConfig(
-        aic_metrics=torch_npu.profiler.AiCMetrics.PipeUtilization,
-        profiler_level=torch_npu.profiler.ProfilerLevel.Level1,
-        l2_cache=False,
-    )
-
-    op = ROPE3D()
-    import torchair
-    config = torchair.CompilerConfig()
-    npu_backend = torchair.get_npu_backend(compiler_config=config)
-    op = torch.compile(
-        op,
-        mode="default",
-        backend=npu_backend,
-        dynamic=False,
-        fullgraph=False
-    )
-
-    with torch.profiler.profile(
-            activities=[
-                torch.profiler.ProfilerActivity.CPU,
-                torch.profiler.ProfilerActivity.CUDA,
-            ],
-            schedule=torch.profiler.schedule(wait=0, warmup=0, active=1, repeat=1, skip_first=0),
-            on_trace_ready=torch.profiler.tensorboard_trace_handler("profiling_rope_matrix"),
-            record_shapes=True,
-            profile_memory=True,
-            with_stack=False,
-            with_flops=False,
-            with_modules=False,
-            experimental_config=experimental_config) as prof:
-        
-        if mode == 'interleave':
-            with torch.no_grad():
-                for i in range(10):
-                    # 3D rope, if needed want know more call type can see the code in readme
-                    xxx = torch.randn(3, 3).npu()
-                    xxx = torch.pow(xxx, 2)
-                    with record_function("3d rope v3"):
-                        outq3, outk3 = apply_3drotary_pos_v3(q, k, freqs_cis_3d, inter_mat_128)
-                        torch.cuda.synchronize()
-        elif mode == 'half':
-            with torch.no_grad():
-                for i in range(10):
-                    # 3D rope, if needed want know more can see the code in readme
-                    xxx = torch.randn(3, 3).npu()
-                    xxx = torch.pow(xxx, 2)
-                    with record_function("3d rope v3 op"):
-                        outq3, outk3 = op(q, k, freqs_cis_3d, half_mat_44_44_40)
-                        torch.cuda.synchronize()
-                    
-                    xxx = torch.randn(3, 3).npu()
-                    xxx = torch.pow(xxx, 2)
-                    with record_function("3d rope v5"):
-                        outq5, outk5 = apply_3drotary_pos_v5(q, k, freqs_cis_3d, half_mat_44_44_40)
-                        torch.cuda.synchronize()
-
-                    prof.step()
-
     # test precision
     with record_function("3d rope v5"):
         outq5, outk5 = apply_3drotary_pos_v5(q, k, freqs_cis_3d, half_mat_44_44_40)
