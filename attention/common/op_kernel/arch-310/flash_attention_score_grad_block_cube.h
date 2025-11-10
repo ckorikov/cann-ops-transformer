@@ -126,6 +126,7 @@ public:
         GET_IS_L1_REUSE<INPUT_TYPE>(HEAD_DIM_ALIGN, IS_DETER_OLD(DETER_SPARSE_TYPE), FP8_OPEN_TSCM);
     constexpr static bool IS_L1_PRELOAD = GET_IS_L1_PRELOAD<INPUT_TYPE>(
         HEAD_DIM_ALIGN, SPLIT_AXIS, IS_DETER_OLD(DETER_SPARSE_TYPE), IS_TND, FP8_OPEN_TSCM, IS_ROPE);
+    constexpr static SyncType SYNC_TYPE = IS_L1_PRELOAD ? SyncType::NO_SYNC : SyncType::INNER_CORE_SYNC;
     constexpr static bool IS_DKV_RESIDENT_L0C = IS_DKV_RESIDENT_L0C(CUBE_BASEM, CUBE_BASEN, HEAD_DIM_ALIGN);
     constexpr static bool IS_FP32_D_EXCEED_256 = IS_FP32_INPUT && HEAD_DIM_ALIGN > 256;
  
@@ -147,7 +148,7 @@ public:
     BufferManager<BufferType::L1> *l1BufferManagerPtr;
     typename std::conditional<IS_L1_REUSE, typename DyL1BuffSelector<IS_L1_REUSE, IS_L1_PRELOAD>::TYPE,
                               std::nullptr_t>::type dYL1Buf;
-    typename std::conditional<IS_L1_REUSE, BuffersPolicySingleBuffer<BufferType::L1, !IS_L1_PRELOAD>, std::nullptr_t>::type vL1Buf;
+    typename std::conditional<IS_L1_REUSE, BuffersPolicySingleBuffer<BufferType::L1, SYNC_TYPE>, std::nullptr_t>::type vL1Buf;
     typename std::conditional<IS_L1_REUSE, typename QL1BuffSelector<IS_L1_REUSE, IS_L1_PRELOAD>::TYPE,
                               std::nullptr_t>::type qL1Buf;
     typename std::conditional<IS_L1_REUSE, typename KL1BuffSelector<IS_L1_REUSE, IS_L1_PRELOAD>::TYPE,
@@ -196,28 +197,28 @@ public:
                                        FagRunInfo &runInfo, PreloadArgs<IS_ROPE> &preloadArgs); // mm2
     template <typename T, bool IS_WRITE_UB>
     __aicore__ inline void IterateMmDsK(typename DqkvResPos<T, IS_WRITE_UB>::PosType outTensor,
-                                        BuffersPolicySingleBuffer<BufferType::L1, false> &dSL1Buf, FagConstInfo &constInfo,
-                                        FagRunInfo &runInfo); // mm3 dq
+                                        BuffersPolicySingleBuffer<BufferType::L1, SyncType::NO_SYNC> &dSL1Buf,
+                                        FagConstInfo &constInfo, FagRunInfo &runInfo); // mm3 dq
     template <typename T, bool IS_WRITE_UB>
     __aicore__ inline void IterateMmDsQ(typename DqkvResPos<T, IS_WRITE_UB>::PosType outTensor,
-                                        BuffersPolicySingleBuffer<BufferType::L1, false> &dSL1Buf, FagConstInfo &constInfo,
-                                        FagRunInfo &runInfo); // mm4 dk
+                                        BuffersPolicySingleBuffer<BufferType::L1, SyncType::NO_SYNC> &dSL1Buf,
+                                        FagConstInfo &constInfo, FagRunInfo &runInfo); // mm4 dk
     template <typename T, bool IS_WRITE_UB>
     __aicore__ inline void IterateMmPDy(typename DqkvResPos<T, IS_WRITE_UB>::PosType outTensor,
-                                        BuffersPolicySingleBuffer<BufferType::L1, false> &pL1Buf, FagConstInfo &constInfo,
-                                        FagRunInfo &runInfo); // mm5 dv
+                                        BuffersPolicySingleBuffer<BufferType::L1, SyncType::NO_SYNC> &pL1Buf,
+                                        FagConstInfo &constInfo, FagRunInfo &runInfo); // mm5 dv
 private:
     template <typename T, bool IS_WRITE_UB>
     __aicore__ inline void IterateMmDsKNormal(typename DqkvResPos<T, IS_WRITE_UB>::PosType outTensor,
-                                              BuffersPolicySingleBuffer<BufferType::L1, false> &dSL1Buf,
+                                              BuffersPolicySingleBuffer<BufferType::L1, SyncType::NO_SYNC> &dSL1Buf,
                                               FagConstInfo &constInfo, FagRunInfo &runInfo);
     template <typename T, bool IS_WRITE_UB>
     __aicore__ inline void IterateMmDsQNormal(typename DqkvResPos<T, IS_WRITE_UB>::PosType outTensor,
-                                              BuffersPolicySingleBuffer<BufferType::L1, false> &dSL1Buf,
+                                              BuffersPolicySingleBuffer<BufferType::L1, SyncType::NO_SYNC> &dSL1Buf,
                                               FagConstInfo &constInfo, FagRunInfo &runInfo);
     template <typename T, bool IS_WRITE_UB>
     __aicore__ inline void IterateMmPDyNormal(typename DqkvResPos<T, IS_WRITE_UB>::PosType outTensor,
-                                              BuffersPolicySingleBuffer<BufferType::L1, false> &pL1Buf,
+                                              BuffersPolicySingleBuffer<BufferType::L1, SyncType::NO_SYNC> &pL1Buf,
                                               FagConstInfo &constInfo, FagRunInfo &runInfo);
 };
  
@@ -315,7 +316,7 @@ __aicore__ inline void FAGBlockCube<TEMPLATE_ARGS>::IterateMmDyV(LocalTensor<CAL
 {
     Buffer<BufferType::L1> dyL1Buffer;
     Buffer<BufferType::L1> dyL1NextBuffer;
-    Buffer<BufferType::L1, !IS_L1_PRELOAD> vL1Buffer;
+    Buffer<BufferType::L1, SYNC_TYPE> vL1Buffer;
     Nd2NzParams nd2NzParams;
  
     // load left matrix to L1
@@ -706,10 +707,10 @@ TEMPLATES_DEF_NO_DEFAULT
 template <typename T, bool IS_WRITE_UB>
 __aicore__ inline void
 FAGBlockCube<TEMPLATE_ARGS>::IterateMmDsKNormal(typename DqkvResPos<T, IS_WRITE_UB>::PosType outTensor,
-                                                BuffersPolicySingleBuffer<BufferType::L1, false> &dSL1Buf,
+                                                BuffersPolicySingleBuffer<BufferType::L1, SyncType::NO_SYNC> &dSL1Buf,
                                                 FagConstInfo &constInfo, FagRunInfo &runInfo)
 {
-    Buffer<BufferType::L1, false> dSL1Buffer = dSL1Buf.Get();
+    Buffer<BufferType::L1, SyncType::NO_SYNC> dSL1Buffer = dSL1Buf.Get();
  
     constexpr uint32_t baseN = l1BaseD;
     uint32_t nLoops = ((uint32_t)constInfo.commonConstInfo.dSize + baseN - 1) / baseN; // 尾块处理
@@ -861,10 +862,10 @@ TEMPLATES_DEF_NO_DEFAULT
 template <typename T, bool IS_WRITE_UB>
 __aicore__ inline void
 FAGBlockCube<TEMPLATE_ARGS>::IterateMmDsQNormal(typename DqkvResPos<T, IS_WRITE_UB>::PosType outTensor,
-                                                BuffersPolicySingleBuffer<BufferType::L1, false> &dSL1Buf,
+                                                BuffersPolicySingleBuffer<BufferType::L1, SyncType::NO_SYNC> &dSL1Buf,
                                                 FagConstInfo &constInfo, FagRunInfo &runInfo)
 {
-    Buffer<BufferType::L1, false> dSL1Buffer = dSL1Buf.Get();
+    Buffer<BufferType::L1, SyncType::NO_SYNC> dSL1Buffer = dSL1Buf.Get();
     constexpr uint32_t baseN = l1BaseD;
     uint32_t nLoops = ((uint32_t)constInfo.commonConstInfo.dSize + baseN - 1) / baseN; // 尾块处理
     uint32_t realN = baseN;
@@ -1000,10 +1001,10 @@ TEMPLATES_DEF_NO_DEFAULT
 template <typename T, bool IS_WRITE_UB>
 __aicore__ inline void
 FAGBlockCube<TEMPLATE_ARGS>::IterateMmPDyNormal(typename DqkvResPos<T, IS_WRITE_UB>::PosType outTensor,
-                                                BuffersPolicySingleBuffer<BufferType::L1, false> &pL1Buf,
+                                                BuffersPolicySingleBuffer<BufferType::L1, SyncType::NO_SYNC> &pL1Buf,
                                                 FagConstInfo &constInfo, FagRunInfo &runInfo)
 {
-    Buffer<BufferType::L1, false> pL1Buffer = pL1Buf.Get();
+    Buffer<BufferType::L1, SyncType::NO_SYNC> pL1Buffer = pL1Buf.Get();
  
     constexpr uint32_t baseN = l1BaseD;
     uint32_t nLoops = ((uint32_t)constInfo.commonConstInfo.dSizeV + baseN - 1) / baseN; // 尾块处理
@@ -1144,7 +1145,7 @@ FAGBlockCube<TEMPLATE_ARGS>::IterateMmPDyNormal(typename DqkvResPos<T, IS_WRITE_
 TEMPLATES_DEF_NO_DEFAULT
 template <typename T, bool IS_WRITE_UB>
 __aicore__ inline void FAGBlockCube<TEMPLATE_ARGS>::IterateMmDsK(typename DqkvResPos<T, IS_WRITE_UB>::PosType outTensor,
-                                                                 BuffersPolicySingleBuffer<BufferType::L1, false> &dSL1Buf,
+                                                                 BuffersPolicySingleBuffer<BufferType::L1, SyncType::NO_SYNC> &dSL1Buf,
                                                                  FagConstInfo &constInfo, FagRunInfo &runInfo)
 {
     if constexpr (IS_DETER_OLD(DETER_SPARSE_TYPE)) {
@@ -1156,7 +1157,7 @@ __aicore__ inline void FAGBlockCube<TEMPLATE_ARGS>::IterateMmDsK(typename DqkvRe
 TEMPLATES_DEF_NO_DEFAULT
 template <typename T, bool IS_WRITE_UB>
 __aicore__ inline void FAGBlockCube<TEMPLATE_ARGS>::IterateMmDsQ(typename DqkvResPos<T, IS_WRITE_UB>::PosType outTensor,
-                                                                 BuffersPolicySingleBuffer<BufferType::L1, false> &dSL1Buf,
+                                                                 BuffersPolicySingleBuffer<BufferType::L1, SyncType::NO_SYNC> &dSL1Buf,
                                                                  FagConstInfo &constInfo, FagRunInfo &runInfo)
 {
     if constexpr (IS_DETER_OLD(DETER_SPARSE_TYPE)) {
@@ -1168,7 +1169,7 @@ __aicore__ inline void FAGBlockCube<TEMPLATE_ARGS>::IterateMmDsQ(typename DqkvRe
 TEMPLATES_DEF_NO_DEFAULT
 template <typename T, bool IS_WRITE_UB>
 __aicore__ inline void FAGBlockCube<TEMPLATE_ARGS>::IterateMmPDy(typename DqkvResPos<T, IS_WRITE_UB>::PosType outTensor,
-                                                                 BuffersPolicySingleBuffer<BufferType::L1, false> &pL1Buf,
+                                                                 BuffersPolicySingleBuffer<BufferType::L1, SyncType::NO_SYNC> &pL1Buf,
                                                                  FagConstInfo &constInfo, FagRunInfo &runInfo)
 {
     if constexpr (IS_DETER_OLD(DETER_SPARSE_TYPE)) {
@@ -1192,16 +1193,16 @@ public:
                                        FagRunInfo &runInfo, PreloadArgs<IS_ROPE> &preloadArgs){};
     template <typename T, bool IS_WRITE_UB>
     __aicore__ inline void IterateMmDsK(typename DqkvResPos<T, IS_WRITE_UB>::PosType outTensor,
-                                        BuffersPolicySingleBuffer<BufferType::L1, false> &dSL1Buf, FagConstInfo &constInfo,
-                                        FagRunInfo &runInfo){}; // dq
+                                        BuffersPolicySingleBuffer<BufferType::L1, SyncType::NO_SYNC> &dSL1Buf,
+                                        FagConstInfo &constInfo, FagRunInfo &runInfo){}; // dq
     template <typename T, bool IS_WRITE_UB>
     __aicore__ inline void IterateMmDsQ(typename DqkvResPos<T, IS_WRITE_UB>::PosType outTensor,
-                                        BuffersPolicySingleBuffer<BufferType::L1, false> &dSL1Buf, FagConstInfo &constInfo,
-                                        FagRunInfo &runInfo){}; // dk
+                                        BuffersPolicySingleBuffer<BufferType::L1, SyncType::NO_SYNC> &dSL1Buf,
+                                        FagConstInfo &constInfo, FagRunInfo &runInfo){}; // dk
     template <typename T, bool IS_WRITE_UB>
     __aicore__ inline void IterateMmPDy(typename DqkvResPos<T, IS_WRITE_UB>::PosType outTensor,
-                                        BuffersPolicySingleBuffer<BufferType::L1, false> &pL1Buf, FagConstInfo &constInfo,
-                                        FagRunInfo &runInfo){}; // dv
+                                        BuffersPolicySingleBuffer<BufferType::L1, SyncType::NO_SYNC> &pL1Buf,
+                                        FagConstInfo &constInfo, FagRunInfo &runInfo){}; // dv
 };
  
 template <typename T>

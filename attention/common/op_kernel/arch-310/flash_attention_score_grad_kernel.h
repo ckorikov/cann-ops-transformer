@@ -126,8 +126,8 @@ __aicore__ inline void FlashAttentionScoreGradKernel<CubeBlockType, VecBlockType
                     CrossCoreWaitFlag<SYNC_MODE, PIPE_MTE3>(SYNC_C4_TO_V3_FLAG);
                 }
             }
-            Buffer<BufferType::L1, false> dSL1Buffer = this->dSL1Buf.Get();
-            Buffer<BufferType::L1, false> pL1Buffer = this->pL1Buf.Get();
+            Buffer<BufferType::L1, SyncType::NO_SYNC> dSL1Buffer = this->dSL1Buf.Get();
+            Buffer<BufferType::L1, SyncType::NO_SYNC> pL1Buffer = this->pL1Buf.Get();
             this->vecBlock.ProcessVec3(dSL1Buffer, mm1ResTensor, mm2ResTensor, this->constInfo,
                                        runInfos[(taskId + 1) & 1]); // v3: dropout + cast + nd2nz
             if ASCEND_IS_AIV {

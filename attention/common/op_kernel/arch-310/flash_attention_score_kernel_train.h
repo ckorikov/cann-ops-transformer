@@ -119,55 +119,37 @@ __aicore__ inline void FlashAttentionScoreKernelTrain<CubeBlockType, VecBlockTyp
         for (int64_t s2LoopCount = 0; s2LoopCount <= s2LoopLimit; s2LoopCount++) {
             if (notLastThreeLoop) {
                 RunInfo<isInfer> &runInfo1 = runInfo[taskId & 3];
-                this->SetRunInfo(runInfo1, runParam, taskId, s2LoopCount, s2LoopLimit,
-                                 multiCoreInnerIdx);
+                this->SetRunInfo(runInfo1, runParam, taskId, s2LoopCount, s2LoopLimit, multiCoreInnerIdx);
                 if ASCEND_IS_AIC {
-                    this->cubeBlock.IterateBmm1(this->bmm1ResBuf[runInfo1.taskIdMod2].template Get<T>(), runInfo1, this->constInfo);
-                    CrossCoreSetFlag<SYNC_MODE, PIPE_FIX>(BaseClass::SYNC_C1_V1_FLAG[runInfo1.taskIdMod2]); // fixpip将结果搬运到UB后，设置SYNC_C1_V1_FLAG
-                    CrossCoreSetFlag<SYNC_MODE, PIPE_FIX>(16 + BaseClass::SYNC_C1_V1_FLAG[runInfo1.taskIdMod2]); // fixpip将结果搬运到UB后，设置SYNC_C1_V1_FLAG
+                    this->cubeBlock.IterateBmm1(this->bmm1Buffers.Get(), runInfo1, this->constInfo);
                 }
             }
             if (taskId > 0 && notLastTwoLoop) {
                 if ASCEND_IS_AIV {
                     auto &runInfo3 = runInfo[(taskId + 3) & 3];
-                    CrossCoreWaitFlag<SYNC_MODE, PIPE_V>(BaseClass::SYNC_C1_V1_FLAG[runInfo3.taskIdMod2]); // 等待bmm1完成/等待SYNC_C1_V1_FLAG置位
-                    LocalTensor<T> inputTensor = this->bmm1ResBuf[runInfo3.taskIdMod2].template Get<T>();
-                    Buffer<BufferType::L1, false> outputBuf = this->l1PBuffers.Get();
-                    this->vecBlock.ProcessVec1(outputBuf, inputTensor, runInfo3, this->constInfo);
+                    this->vecBlock.ProcessVec1(this->l1PBuffers.Get(), this->bmm1Buffers.Get(), runInfo3,
+                        this->constInfo);
                 }
             }
             if (taskId > 1 && notLast) {
                 RunInfo<isInfer> &runInfo2 = runInfo[(taskId + 2) & 3];
                 if ASCEND_IS_AIC {
-                    CrossCoreWaitFlag<SYNC_MODE, PIPE_MTE1>(BaseClass::SYNC_V1_C2_FLAG[runInfo2.taskIdMod3]);
-                    CrossCoreWaitFlag<SYNC_MODE, PIPE_MTE1>(16 + BaseClass::SYNC_V1_C2_FLAG[runInfo2.taskIdMod3]);
                     if constexpr (BaseClass::bmm2Write2Ub) {
-                        if constexpr (CubeBlockType::useDn && CubeBlockType::isFp8) {
-                            this->cubeBlock.IterateBmm2(this->bmm2ResBuf[0].template Get<T>(), this->l1PBuffers, runInfo2, this->constInfo);
-                        } else {
-                            this->cubeBlock.IterateBmm2(this->bmm2ResBuf[runInfo2.taskIdMod2].template Get<T>(), this->l1PBuffers, runInfo2, this->constInfo);
-                        }
+                        this->cubeBlock.IterateBmm2(this->bmm2Buffers.Get(), this->l1PBuffers, runInfo2,
+                            this->constInfo);
                     } else {
-                        this->cubeBlock.IterateBmm2(this->bmm2ResGm[runInfo2.taskIdMod3], this->l1PBuffers, runInfo2, this->constInfo);
+                        this->cubeBlock.IterateBmm2(this->bmm2ResGmBuffers.Get(), this->l1PBuffers, runInfo2,
+                            this->constInfo);
                     }
-                    CrossCoreSetFlag<SYNC_MODE, PIPE_FIX>(BaseClass::SYNC_C2_V2_FLAG[runInfo2.taskIdMod2]); // fixpip将结果搬运到UB后，设置SYNC_C2_V2_FLAG
-                    CrossCoreSetFlag<SYNC_MODE, PIPE_FIX>(16 + BaseClass::SYNC_C2_V2_FLAG[runInfo2.taskIdMod2]); // fixpip将结果搬运到UB后，设置SYNC_C2_V2_FLAG
                 }
             }
             if (taskId > 2) {
                 if ASCEND_IS_AIV {
                     RunInfo<isInfer> &runInfo3 = runInfo[(taskId + 1) & 3];
-                    CrossCoreWaitFlag<SYNC_MODE, PIPE_V>(BaseClass::SYNC_C2_V2_FLAG[runInfo3.taskIdMod2]); // 等待bmm2完成/等待SYNC_C2_V2_FLAG置位
                     if constexpr (BaseClass::bmm2Write2Ub) {
-                        LocalTensor<T> bmm2Res;
-                        if constexpr (CubeBlockType::useDn && CubeBlockType::isFp8) {
-                            bmm2Res = this->bmm2ResBuf[0].template Get<T>();
-                        } else {
-                            bmm2Res = this->bmm2ResBuf[runInfo3.taskIdMod2].template Get<T>();
-                        }
-                        this->vecBlock.ProcessVec2(bmm2Res, runInfo3, this->constInfo);
+                        this->vecBlock.ProcessVec2(this->bmm2Buffers.Get(), runInfo3, this->constInfo);
                     } else {
-                        this->vecBlock.ProcessVec2(this->bmm2ResGm[runInfo3.taskIdMod3], runInfo3, this->constInfo);
+                        this->vecBlock.ProcessVec2(this->bmm2ResGmBuffers.Get(), runInfo3, this->constInfo);
                     }
                 }
             }
