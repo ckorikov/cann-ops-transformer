@@ -13,6 +13,14 @@
 namespace RopeMatrix {
 using namespace matmul_tiling;
 
+uint32_t Ceiling(uint32_t a, uint32_t b)
+{
+    if (b == 0) {
+        return 0;
+    }
+    return (a + b -1) / b;
+}
+
 uint8_t *GetTilingBuf(optiling::TCubeTiling *tilingData)
 {
     uint8_t *buf = nullptr;
@@ -49,8 +57,9 @@ uint8_t *GenerateTiling(RopeMatrixTiling *ropeTiling)
     DataType resultDtype = DataType::DT_BFLOAT16;
 
     bool isBias = false;
+    uint32_t aicRatio = 2;
 
-    uint32_t calSingleCoreM = B * H * M / usedCoreNum;
+    uint32_t calSingleCoreM = Ceiling(M, usedCoreNum * aicRatio) * B * H * aicRatio;
     uint32_t baseM = baseSize;
     uint32_t baseN = baseSize;
 
