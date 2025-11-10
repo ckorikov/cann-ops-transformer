@@ -90,7 +90,7 @@
 #define LOCAL_FLAGID7           0x7
 
 #define HardWareSyncAmount      8388608     // (2048 * 4096)
-#define GmmWorkSpaceAmount      524288      // (256 * 2048)
+#define GmmWorkSpaceAmount      262144      // (256 * 1024)
 #define SoftwareWorkSpaceEle    (64)
 #define L0C_FORMAT_SIZE         4
 #define DEFAULT_BASEK           1088
@@ -2643,7 +2643,7 @@ __aicore__ inline void dynamic_unisor_programming(GM_ADDR gmA, GM_ADDR gmB, GM_A
     uint32_t group_num = tiling_data->group_num;
 
     //Group总长度
-    uint32_t total_M = ori_out_shape[0];               // 16384
+    uint32_t total_M = 0;                              // 16384
     uint32_t total_N = ori_out_shape[1];               // 4096
     uint32_t total_K_A = ori_in0_shape[1];             // 7168
     uint32_t total_K_B = ori_in0_shape[1] * group_num; // 512
@@ -2662,7 +2662,36 @@ __aicore__ inline void dynamic_unisor_programming(GM_ADDR gmA, GM_ADDR gmB, GM_A
 
     float format_in = tiling_data->format_in;
     float format_out = tiling_data->format_out;
+    
+    GlobalTensor<int64_t> groupListGm;
+    groupListGm.SetGlobalBuffer((__gm__ int64_t *)gmGrpList);
 
+    uint32_t true_group_num = 0;
+    for (uint32_t group_idx = 0; group_idx < group_num; group_idx++) {
+        if (group_type == 0) { // 从m轴方向切割
+            int64_t mSizeInGroup = static_cast<int64_t>(groupListGm.GetValue(group_idx));
+            if(mSizeInGroup != 0){
+                true_group_num += 1;
+            }
+            M_Lengths[group_idx] = mSizeInGroup * FACTOR_2;
+            total_M += M_Lengths[group_idx];
+        }
+    }
+
+    constexpr uint32_t TOTAL_N_THRESHOLD_1024 = 1024;
+    constexpr uint32_t TOTAL_N_THRESHOLD_512 = 512;
+    constexpr float USAGE_RATE_THRESHOLD = 0.9f;
+
+    uint32_t E_M_length = ceilINT(total_M, true_group_num);
+    int32_t UsageRate512 = ceilINT(total_N, TOTAL_N_THRESHOLD_512) * ceilINT(E_M_length, single_M) * true_group_num;
+    int32_t virtualCoreNum512 = ceilINT((uint32_t)UsageRate512, numAic) * numAic;
+    int32_t UsageRate1024 = ceilINT(total_N, TOTAL_N_THRESHOLD_1024) * ceilINT(E_M_length, single_M) * true_group_num;
+    int32_t virtualCoreNum1024 = ceilINT((uint32_t)UsageRate1024, numAic) * numAic;
+    if ((float)UsageRate512/virtualCoreNum512 >= USAGE_RATE_THRESHOLD) {
+        single_N = UsageRate512;//single_N
+    }else if ((float)UsageRate1024/virtualCoreNum1024 >= USAGE_RATE_THRESHOLD) {
+        single_N = TOTAL_N_THRESHOLD_1024;//single_N
+    }
     Dim2 vecC(total_M / FACTOR_2, total_N);
     Dim2 vecD(total_M, total_N);
     Dim2 vecB;
@@ -2689,8 +2718,6 @@ __aicore__ inline void dynamic_unisor_programming(GM_ADDR gmA, GM_ADDR gmB, GM_A
     Unisor<GlobalMem, Dim2> inputA_workUnisor(gmWorkspaceDevice + Temp_A_Offset, vecA_Work, INT4);
 
     uint32_t SyncOffset = Temp_A_Offset + (ceilINT_16(total_M) * total_K_A / FACTOR_2 * sizeof(uint8_t));
-    GlobalTensor<uint64_t> SyncUnisor;
-    SyncUnisor.SetGlobalBuffer(reinterpret_cast<__gm__ uint64_t *>(gmWorkspaceDevice + SyncOffset), ceilINT_16(total_M) * SoftwareWorkSpaceEle / sizeof(uint64_t));
 
     uint32_t rowOffset = SyncOffset + ceilINT_16(total_M) * SoftwareWorkSpaceEle;
     Unisor<GlobalMem, Dim1> RowsumUnisor((gmWorkspaceDevice + rowOffset), vecWorkRow, FP32, true);
@@ -2737,16 +2764,6 @@ __aicore__ inline void dynamic_unisor_programming(GM_ADDR gmA, GM_ADDR gmB, GM_A
     uint32_t splitTimes = tiling_data->splitTimes;
     uint32_t core_id = 0;
 
-    GlobalTensor<int64_t> groupListGm;
-    groupListGm.SetGlobalBuffer((__gm__ int64_t *)gmGrpList);
-
-    for (uint32_t group_idx = 0; group_idx < group_num; group_idx++) {
-        if (group_type == 0) { // 从m轴方向切割
-        int64_t mSizeInGroup = static_cast<int64_t>(groupListGm.GetValue(group_idx));
-        M_Lengths[group_idx] = mSizeInGroup * FACTOR_2;
-        }
-    }
-
     uint32_t posInOffset = 0, posOutOffset = 0;
     uint32_t pos_M_Offset = 0;
     // true：只有硬同步； false：硬 + 软同步混合;  我们可以将该变量加入到tiling_data中，这样可以由tiling自动选择是否开启软同步；default：硬 + 软同步混合
@@ -2784,8 +2801,6 @@ __aicore__ inline void dynamic_unisor_programming(GM_ADDR gmA, GM_ADDR gmB, GM_A
         posInOffset = mIn;
         posOutOffset = mOut;
 
-        SyncUnisor.SetValue(blockIdx * INT64, posOutOffset);
-        AscendC::DataCacheCleanAndInvalid<uint64_t, AscendC::CacheLine::SINGLE_CACHE_LINE, AscendC::DcciDst::CACHELINE_OUT>(SyncUnisor[blockIdx * INT64]);
         AscendC::PipeBarrier<PIPE_ALL>();
 
         AscendC::SyncAll<false>();
@@ -2802,7 +2817,9 @@ __aicore__ inline void dynamic_unisor_programming(GM_ADDR gmA, GM_ADDR gmB, GM_A
     //Cube计算 + 后处理
     for (int32_t i=0; i<group_num; i++) {
         auto M_Length = M_Lengths[i];
-
+        if(M_Length == 0){
+            continue;
+        } 
         uint32_t pos_M = pos_M_Offset;
         uint32_t pos_N = 0;
         uint32_t pos_K_group = i * total_K_A;
@@ -2827,38 +2844,6 @@ __aicore__ inline void dynamic_unisor_programming(GM_ADDR gmA, GM_ADDR gmB, GM_A
             while (multiCoreUnisorIterator1.posIterator(multiCoreCartesianUnisorC1)) {
                 if ((core_id % numAic) == blockId) {
                     //前处理
-                    if (g_coreType == AscendC::AIV && !once_flag && !hardSyncFlag) {
-                        int mIn = single_M / FACTOR_2;
-                        int mOut = single_M;
-                        Dim2 vecIn(mIn, total_K_A);
-                        Dim2 vecOut(mOut, total_K_A);
-                        Dim2 posIn(posInOffset, 0);
-                        Dim2 posOut(posOutOffset, 0);
-
-                        inputAUnisor.setCartesian(posIn, vecIn);
-                        inputA_workUnisor.setCartesian(posOut, vecOut); //两倍关系
-                        Dim1 posRowsum(posInOffset);
-                        Dim1 vecRowsum(mIn);
-                        RowsumUnisor.setCartesian(posRowsum, vecRowsum);
-                        if (op.offset_enable) {
-                            return;
-                        } else {
-                            op.npu_user_defined_matmul_kernel_slave_Double_A8ToA4_off(inputAUnisor, inputA_workUnisor, total_M / FACTOR_2);
-                        }
-                        SetFlag<HardEvent::MTE3_S>(LOCAL_HWEVENT_ID0);
-                        WaitFlag<HardEvent::MTE3_S>(LOCAL_HWEVENT_ID0);
-
-                        //软同步
-                        if (blockIdx % FACTOR_2 != 0) {
-                        SyncUnisor.SetValue(blockIdx * INT64, posOutOffset + mOut / FACTOR_2);
-                        } else {
-                        SyncUnisor.SetValue(blockIdx * INT64, posOutOffset + mOut);
-                        }
-                        AscendC::DataCacheCleanAndInvalid<uint64_t, AscendC::CacheLine::SINGLE_CACHE_LINE, AscendC::DcciDst::CACHELINE_OUT>(SyncUnisor[blockIdx * INT64]);
-                        AscendC::PipeBarrier<PIPE_ALL>();
-
-                        once_flag = true;
-                    }
 
                     Dim2 posA = Dim2(multiCoreCartesianUnisorC0.pos.getAxisByName('M'), 0, 'M', 'K');
                     Dim2 vecA = Dim2(multiCoreCartesianUnisorC0.vec.getAxisByName('M'), single_K, 'M', 'K');
@@ -2884,40 +2869,6 @@ __aicore__ inline void dynamic_unisor_programming(GM_ADDR gmA, GM_ADDR gmB, GM_A
                     work_count++;
 
                     //Cube核
-                    if (g_coreType == AscendC::AIC) {
-                        bool sync_flag = hardSyncFlag;
-                        uint8_t hit_count = 0;
-                        uint64_t index = 0;
-                        uint64_t aic_current_field = multiCoreCartesianUnisorC0.pos.getAxisByName('M') + single_M;
-                        if (aic_current_field > total_M ) {
-                            aic_current_field = total_M;
-                        }
-                        while(!sync_flag) {
-                            for (int sync_index = 0; sync_index < numAiv; sync_index++) {
-                                index = (uint64_t)SyncUnisor.GetValue(sync_index * INT64);
-                                if (index >= aic_current_field) {
-                                    hit_count++;
-                                }
-                                if(hit_count == numAiv){
-                                    sync_flag = true;
-                                }
-                            }
-                            if (sync_flag) {
-                                break;
-                            }
-
-                            for (int sync_index = 0; sync_index < numAiv; sync_index++) {
-                                AscendC::DataCacheCleanAndInvalid<uint64_t, AscendC::CacheLine::SINGLE_CACHE_LINE, AscendC::DcciDst::CACHELINE_OUT>(SyncUnisor[sync_index * FACTOR_64]);
-                                index = (uint64_t)SyncUnisor.GetValue(sync_index * INT64);
-                                if (index >= aic_current_field) {
-                                    hit_count++;
-                                }
-                                if(hit_count == numAiv){
-                                    sync_flag = true;
-                                }
-                            }
-                        }
-                    }
                     op.npu_user_defined_matmul_kernel_switch(inputA_workUnisor, inputBUnisor, outputCUnisor, workUnisorPing, RowsumUnisor, biasUnisor, offsetUnisor, saUnisor, swUnisor, baseCTiling, i, kernel_index);
                 }
                 core_id++;

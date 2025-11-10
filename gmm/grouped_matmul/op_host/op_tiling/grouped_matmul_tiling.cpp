@@ -1327,7 +1327,7 @@ ge::graphStatus GMMTiling::CalMMTiling(const gert::TilingContext* context, const
   return ge::GRAPH_SUCCESS;
 }
 
-static void SetA8W4HPTiling(A8W4HPTiling *tiling_data, uint32_t group_num, uint32_t aicNum)
+static void SetA8W4HPTiling(A8W4HPTiling *tiling_data, uint32_t aicNum)
 {
   constexpr int SIZE_TWO = 2;
   constexpr int SIZE_THREE = 3;
@@ -1335,19 +1335,12 @@ static void SetA8W4HPTiling(A8W4HPTiling *tiling_data, uint32_t group_num, uint3
   constexpr int IDX_ONE = 1;
   constexpr int IDX_TWO = 2;
   constexpr uint32_t SINGLE_CORE_TILING_0 = 128;
-  constexpr uint32_t SINGLE_CORE_TILING_1 = 512;
+  constexpr uint32_t SINGLE_CORE_TILING_1 = 256;
   constexpr uint32_t SINGLE_CORE_BASE_TILING_0 = 128;
   constexpr uint32_t SINGLE_CORE_BASE_TILING_1 = 256;
   constexpr uint32_t TOTAL_K_THRESHOLD_7168 = 7168;
-  constexpr uint32_t TOTAL_K_THRESHOLD_3584 = 3584;
-  constexpr uint32_t TOTAL_N_THRESHOLD_2048 = 2048;
-  constexpr uint32_t TOTAL_N_THRESHOLD_1024 = 1024;
-  constexpr float USAGE_RATE_THRESHOLD = 0.9f;
-
-  uint32_t *ori_out_shape = tiling_data->get_ori_out_shape();
+  
   uint32_t *ori_in0_shape = tiling_data->get_ori_in0_shape();
-  uint32_t total_M = ori_out_shape[IDX_ZERO];
-  uint32_t total_N = ori_out_shape[IDX_ONE];
   uint32_t total_K = ori_in0_shape[IDX_ONE];
   uint32_t core_num = aicNum;
   uint32_t splitRecord[SIZE_THREE] = {1, 1, 1};
@@ -1361,25 +1354,6 @@ static void SetA8W4HPTiling(A8W4HPTiling *tiling_data, uint32_t group_num, uint3
   if (total_K > TOTAL_K_THRESHOLD_7168) {
     splitRecord[IDX_ZERO] = CeilDiv(total_K, TOTAL_K_THRESHOLD_7168);
     single_core_tiling[IDX_TWO] = TOTAL_K_THRESHOLD_7168;
-  }
-
-  uint32_t M_length = CeilDiv(total_M, group_num);
-  float UsageRate2048 =
-      CeilDiv(total_N, TOTAL_N_THRESHOLD_2048) * CeilDiv(M_length, single_core_tiling[IDX_ZERO]) * group_num;
-  uint32_t virtualCoreNum = CeilDiv(static_cast<uint32_t>(UsageRate2048), core_num) * core_num;
-  UsageRate2048 = UsageRate2048 / virtualCoreNum;
-
-  float UsageRate1024 =
-      CeilDiv(total_N, TOTAL_N_THRESHOLD_1024) * CeilDiv(M_length, single_core_tiling[IDX_ZERO]) * group_num;
-  virtualCoreNum = CeilDiv(static_cast<uint32_t>(UsageRate1024), core_num) * core_num;
-  UsageRate1024 = UsageRate1024 / virtualCoreNum;
-
-  if (total_K >= TOTAL_K_THRESHOLD_3584 && UsageRate2048 >= USAGE_RATE_THRESHOLD) {
-    single_core_tiling[IDX_ONE] = TOTAL_N_THRESHOLD_2048;
-  }
-
-  if (total_K < TOTAL_K_THRESHOLD_3584 && UsageRate1024 >= USAGE_RATE_THRESHOLD) {
-    single_core_tiling[IDX_ONE] = TOTAL_N_THRESHOLD_1024;
   }
 
   tiling_data->set_splitRecord(splitRecord);
@@ -1452,8 +1426,7 @@ ge::graphStatus GMMTiling::A8W4Tiling(gert::TilingContext* context, const GMMCom
       bool useHighPerf = (tuningConfigPtr != nullptr && tuningConfigPtr->GetSize() > 1);
       if (useHighPerf) {
         OP_LOGD(context->GetNodeName(), "Enter GMM A8W4 MSD high performance path...");
-        constexpr size_t GMM_WORKSPACE_AMOUNT = 524288L;     // 256 * 2048
-        constexpr size_t SOFTWARE_WORKSPACE_ELE = 64;
+        constexpr size_t GMM_WORKSPACE_AMOUNT = 262144L;     // 256 * 1024
         constexpr int CASE_ZERO = 0;
         constexpr int CASE_ONE = 1;
         constexpr int CASE_TWO = 2;
@@ -1518,7 +1491,7 @@ ge::graphStatus GMMTiling::A8W4Tiling(gert::TilingContext* context, const GMMCom
         uint64_t szUB = compileInfoPtr->ubSize;
         uint64_t szL0A = compileInfoPtr->l0ASize;
         uint64_t szL0C = compileInfoPtr->l0CSize;
-        SetA8W4HPTiling(&tilingDataA8W4.hpTilingData, groupNum, aic);
+        SetA8W4HPTiling(&tilingDataA8W4.hpTilingData, aic);
 
         // autotiling parameters
         tilingDataA8W4.hpTilingData.set_group_num(groupNum);
@@ -1541,10 +1514,7 @@ ge::graphStatus GMMTiling::A8W4Tiling(gert::TilingContext* context, const GMMCom
         }
 
         size_t workspaceSize = aic * GMM_WORKSPACE_AMOUNT * sizeof(uint32_t) +
-                               (static_cast<size_t>(SixteenAlign(M, true)) * K / TWO * sizeof(uint8_t)) +
-                               (static_cast<size_t>(SixteenAlign(M, true)) * SOFTWARE_WORKSPACE_ELE) +
-                               TWO * static_cast<size_t>(SixteenAlign(M, true)) * sizeof(float);
-
+                               (static_cast<size_t>(SixteenAlign(M, true)) * K / TWO * sizeof(uint8_t));
         context->SetScheduleMode(1); // set as batchmod for template using SyncAll
         context->SetTilingKey(GET_TPL_TILING_KEY(GMM_TPL_INT8, GMM_TPL_INT4, yDtype, 0, 0,
                                                  GROUPED_MATMUL_GROUP_LIST_TYPE_COUNT, 0,
