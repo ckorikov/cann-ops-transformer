@@ -433,6 +433,28 @@ ge::graphStatus FiaTilingCheck::CheckParaExistenceMlaFullquant() const
     return ge::GRAPH_SUCCESS;
 }
 
+ge::graphStatus FiaTilingCheck::CheckParaExistenceGqaNoquantForFullquant() const
+{
+    std::string layout = opParamInfo_.layOut;
+    const std::vector<std::string> layoutSupportList = {
+        "BSH", "BSND", "BNSD", "BNSD_BSND"
+    };
+    if((std::find(layoutSupportList.begin(), layoutSupportList.end(), layout) != layoutSupportList.end()) && (s1Size_ > 1) && (inputQType_ == ge::DT_INT8 || outputType_ != ge::DT_INT8)) {
+        return ge::GRAPH_SUCCESS;
+    } else {
+        std::map<std::string, const void *> gqaNoquantParamNotExistMap = {
+            // fullquantParam
+            {DEQUANT_SCALE1_NAME, opParamInfo_.deqScale1.tensor},
+            {QUANT_SCALE1_NAME, opParamInfo_.quantScale1.tensor},
+            {DEQUANT_SCALE2_NAME, opParamInfo_.deqScale2.tensor},
+        };
+        if (CheckNotExistsByMap(gqaNoquantParamNotExistMap) != ge::GRAPH_SUCCESS) {
+            return ge::GRAPH_FAILED;
+        }
+    }
+    return ge::GRAPH_SUCCESS;
+}
+
 ge::graphStatus FiaTilingCheck::CheckParaExistenceGqaNoquant() const
 {
     std::map<std::string, const void *> gqaNoquantParamExistMap = {};
@@ -447,9 +469,6 @@ ge::graphStatus FiaTilingCheck::CheckParaExistenceGqaNoquant() const
         {VALUE_ANTIQUANT_OFFSET_NAME, opParamInfo_.valueAntiquantOffset.tensor},
         {KEY_ROPE_ANTIQUANT_SCALE_NAME, opParamInfo_.keyRopeAntiquantScale.tensor},
         // fullquantParam
-        {DEQUANT_SCALE1_NAME, opParamInfo_.deqScale1.tensor},
-        {QUANT_SCALE1_NAME, opParamInfo_.quantScale1.tensor},
-        {DEQUANT_SCALE2_NAME, opParamInfo_.deqScale2.tensor},
         {DEQUANT_SCALE_QUERY_NAME, opParamInfo_.dequantScaleQuery.tensor},
     };
 
@@ -463,6 +482,11 @@ ge::graphStatus FiaTilingCheck::CheckParaExistenceGqaNoquant() const
         CheckAttrValueByMap(attrDefaultValueMap) != ge::GRAPH_SUCCESS) {
         return ge::GRAPH_FAILED;
     }
+
+    if(CheckParaExistenceGqaNoquantForFullquant() != ge::GRAPH_SUCCESS) {
+        return ge::GRAPH_FAILED;
+    }
+
     return ge::GRAPH_SUCCESS;
 }
 

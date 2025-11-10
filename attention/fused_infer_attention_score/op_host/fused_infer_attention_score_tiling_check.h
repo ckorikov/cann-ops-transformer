@@ -173,6 +173,7 @@ private:
     ge::graphStatus CheckParaExistenceMlaAntiquant() const;
     ge::graphStatus CheckParaExistenceMlaFullquant() const;
     ge::graphStatus CheckParaExistenceGqaNoquant() const;
+    ge::graphStatus CheckParaExistenceGqaNoquantForFullquant() const;
     ge::graphStatus CheckParaExistenceGqaAntiquantInt8Inner() const;
     ge::graphStatus CheckParaExistenceGqaAntiquantInt8() const;
     ge::graphStatus CheckParaExistenceGqaAntiquantInt4() const;
