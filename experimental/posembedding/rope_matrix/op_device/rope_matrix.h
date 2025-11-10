@@ -1,3 +1,13 @@
+/**
+ * This program is free software, you can redistribute it and/or modify.
+ * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+ * This file is a part of the CANN Open Software.
+ * Licensed under CANN Open Software License Agreement Version 2.0 (the "License").
+ * Please refer to the License for details. You may not use this file except in compliance with the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
+ */
+
 #pragma once
 #ifndef ASCENDC_CUBE_ONLY
 #define ASCENDC_CUBE_ONLY
@@ -12,9 +22,6 @@ using namespace AscendC;
 #endif
 
 namespace RopeMatrix {
-// #ifndef ROPE_DEBUG
-// #define ROPE_DEBUG
-// #endif
 
 constexpr int32_t DOUBLE_BUFFER = 2;
 
@@ -60,12 +67,10 @@ public :
         this->aivNum = GetBlockNum();
         this->subIdx = GetSubBlockIdx();
         this->subNum = GetSubBlockNum();
-
-        //
+        // doc say aivNum has already mul subNum, by we test are not, thus need this
         this->aivNum *= this->subNum;
 
         // init bsnd
-        // this->CopyTiling(tiling);
         this->CopyTiling(ropeTiling);
         this->bnSize = this->b * this->n;
         // init pipe
@@ -119,6 +124,9 @@ public :
 
     __aicore__ inline int CeilDiv(int a, int b)
     {
+        if (b == 0) {
+            return 0;
+        }
         return (a + b - 1) / b;
     }
 
@@ -146,7 +154,11 @@ public :
     }
 
     __aicore__ inline void SingleStepProcess(uint32_t progress, uint64_t copyLength, uint64_t calcLength) {
-        uint64_t xOffset, rOffset, bnLoopXStartOffset, progressOffset, batchOffset;
+        uint64_t xOffset;
+        uint64_t rOffset;
+        uint64_t bnLoopXStartOffset;
+        uint64_t progressOffset;
+        uint64_t batchOffset;
         rOffset = progress * this->sdBlockSize;
         CopyInR(rOffset, copyLength);
         LocalTensor<T> cosLocal = inQueueCos.DeQue<T>();
@@ -219,10 +231,20 @@ public :
 
 protected:
     TPipe *pipe;
-    TQue<QuePosition::VECIN, DOUBLE_BUFFER> inQueueX, inQueueXnew, inQueueCos, inQueueSin;
+    TQue<QuePosition::VECIN, DOUBLE_BUFFER> inQueueX;
+    TQue<QuePosition::VECIN, DOUBLE_BUFFER> inQueueXnew;
+    TQue<QuePosition::VECIN, DOUBLE_BUFFER> inQueueCos;
+    TQue<QuePosition::VECIN, DOUBLE_BUFFER> inQueueSin;
     TQue<QuePosition::VECOUT, DOUBLE_BUFFER> outQueueY;
-    TBuf<TPosition::VECCALC> xBuf, xNewBuf, cosBuf, sinBuf;
-    GlobalTensor<T> xGm, xNewGm, sinGm, cosGm, yGm;
+    TBuf<TPosition::VECCALC> xBuf;
+    TBuf<TPosition::VECCALC> xNewBuf;
+    TBuf<TPosition::VECCALC> cosBuf;
+    TBuf<TPosition::VECCALC> sinBuf;
+    GlobalTensor<T> xGm;
+    GlobalTensor<T> xNewGm;
+    GlobalTensor<T> sinGm;
+    GlobalTensor<T> cosGm;
+    GlobalTensor<T> yGm;
 
     uint32_t seqLen;
     uint32_t b;
@@ -249,11 +271,16 @@ protected:
 };
 } // namespace RopeMatrix
 
-extern "C" __global__ __aicore__ void rope_matrix_kernel_bf16(GM_ADDR x, GM_ADDR y, GM_ADDR sin, GM_ADDR cos, GM_ADDR out, GM_ADDR workspace, GM_ADDR tiling) {
+extern "C" __global__ __aicore__ void rope_matrix_kernel_bf16(
+    GM_ADDR x, GM_ADDR y, 
+    GM_ADDR sin, GM_ADDR cos, 
+    GM_ADDR out, GM_ADDR workspace, 
+    GM_ADDR tiling) 
+{
     KERNEL_TASK_TYPE_DEFAULT(KERNEL_TYPE_MIX_AIC_1_2);
     TPipe tpipe;
     TCubeTiling cubeTiling;
-    RopeMatrixTiling ropeTiling;
+    RopeMatrix::RopeMatrixTiling ropeTiling;
     RopeMatrix::CopyTiling(&cubeTiling, &ropeTiling, tiling);
     __gm__ uint8_t *user = GetUserWorkspace(workspace);
 
@@ -262,7 +289,7 @@ extern "C" __global__ __aicore__ void rope_matrix_kernel_bf16(GM_ADDR x, GM_ADDR
         mmkernel.Init(x, y, user, workspace, cubeTiling, &tpipe);
         mmkernel.Process(&tpipe, &ropeTiling);
 
-        // saet flag after matmul, need wait in vector: AscendC::CrossCoreSetFlag<modeID. pipe>(flagId)
+        // set flag after matmul, need wait in vector: AscendC::CrossCoreSetFlag<modeID. pipe>(flagId)
         AscendC::CrossCoreSetFlag<0x2, PIPE_FIX>(0x8);
     }
 
@@ -272,7 +299,5 @@ extern "C" __global__ __aicore__ void rope_matrix_kernel_bf16(GM_ADDR x, GM_ADDR
 
         vec.Init(x, workspace, sin, cos, out, &ropeTiling, &tpipe);
         vec.Process();
-        // if needed, add debug;
-        // vec.Debug();
     }
 }

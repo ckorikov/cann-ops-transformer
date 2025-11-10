@@ -1,3 +1,13 @@
+/**
+ * This program is free software, you can redistribute it and/or modify.
+ * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+ * This file is a part of the CANN Open Software.
+ * Licensed under CANN Open Software License Agreement Version 2.0 (the "License").
+ * Please refer to the License for details. You may not use this file except in compliance with the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
+ */
+
 #include <pybind11/pybind11.h>
 #include <torch/extension.h>
 #include "torch_npu/csrc/core/npu/NPUStream.h"
@@ -8,16 +18,18 @@
 #include "tiling/platform/platform_ascendc.h"
 #include "rope_matrix_tiling.h"
 
-extern void run_rope_matrix_kernel_bf16(uint32_t blockDim, void* stream, uint8_t* x, uint8_t* y, uint8_t* sin, uint8_t* cos, uint8_t* out, uint8_t* workspace, uint8_t* tiling);
-extern uint8_t *GenerateTiling(RopeMatrixTiling *ropeTiling);
+using namespace RopeMatrix;
 
 void PackInputInfo(at::Tensor &x, uint32_t blockDim, RopeMatrixTiling *ropeTiling)
 {
     ropeTiling->blockDim = blockDim;
-    ropeTiling->b = x.sizes()[0];
-    ropeTiling->n = x.sizes()[1];
-    ropeTiling->s = x.sizes()[2];
-    ropeTiling->d = x.sizes()[3];
+    uint32_t *ropePtr = reinterpret_cast<uint32_t *>(ropeTiling);
+    ropePtr++; // skip blockDim
+    for (uint32_t size : x.sizes()) {
+        // set bnsd=size[0,4] value into ropeTiling
+        *ropePtr = size;
+        ropePtr++;
+    }
     return;
 }
 
