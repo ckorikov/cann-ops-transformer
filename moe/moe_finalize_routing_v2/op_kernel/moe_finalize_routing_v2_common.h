@@ -40,5 +40,51 @@ __aicore__ inline int64_t Int32AlignmentProcess(int64_t param)
 {
     return (param + ONCE_ALGN_NUM_INT32 - 1) / ONCE_ALGN_NUM_INT32 * ONCE_ALGN_NUM_INT32;
 }
+
+template <typename T, typename CopyParamType, typename PadParamType>
+__aicore__ inline void DataCopyPadCustom(
+    LocalTensor<T> inLocal, GlobalTensor<T> srcGm, CopyParamType padCopyParams, PadParamType padParams)
+{
+#if __CCE_AICORE__ == 200
+    int64_t elem = padCopyParams.blockLen / sizeof(T);
+    int64_t numPerBlock = ONE_BLK_SIZE / sizeof(T);
+    int64_t alignElem = AlignUp(elem, numPerBlock);
+    if (likely(alignElem == elem)) {
+        DataCopyParams copyParams = {padCopyParams.blockCount, static_cast<uint16_t>(alignElem / numPerBlock), 0, 0};
+        DataCopy(inLocal, srcGm, copyParams);
+    } else {
+        DataCopyParams copyParams = {1, static_cast<uint16_t>(alignElem / numPerBlock), 0, 0};
+        for (uint32_t i = 0; i < padCopyParams.blockCount; i++) {
+            DataCopy(inLocal[i * alignElem], srcGm[i * elem], copyParams);
+        }
+    }
+#else
+    DataCopyPad(inLocal, srcGm, padCopyParams, padParams);
+#endif
+}
+
+template <typename T>
+__aicore__ inline void DataCopyPadCustom(
+    GlobalTensor<T> dstGm, LocalTensor<T> outLocal, DataCopyParams padCopyParams)
+{
+#if __CCE_AICORE__ == 200
+    int64_t elem = padCopyParams.blockLen / sizeof(T);
+    int64_t numPerBlock = ONE_BLK_SIZE / sizeof(T);
+    int64_t alignElem = AlignUp(elem, numPerBlock);
+
+    if (likely(alignElem == elem)) {
+        DataCopyParams copyParams = {padCopyParams.blockCount, static_cast<uint16_t>(alignElem / numPerBlock), 0, 0};
+        DataCopy(dstGm, outLocal, copyParams);
+    } else {
+        DataCopyParams copyParams = {1, static_cast<uint16_t>(alignElem / numPerBlock), 0, 0};
+        for (uint32_t i = 0; i < padCopyParams.blockCount; i++) {
+            DataCopy(dstGm[i * elem], outLocal[i * alignElem], copyParams);
+        }
+    }
+#else
+    DataCopyPad(dstGm, outLocal, padCopyParams);
+#endif
+}
+
 } // namespace MoeFinalizeRoutingV2
 #endif // MOE_FINALIZE_ROUTING_V2_COMMON

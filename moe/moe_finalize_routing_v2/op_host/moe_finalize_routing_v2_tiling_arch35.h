@@ -9,12 +9,12 @@
  */
 
 /*!
- * \file moe_finalize_routing_v2_tiling_apt.h
+ * \file moe_finalize_routing_v2_tiling_arch35.h
  * \brief
  */
 
-#ifndef MOE_FINALIZE_ROUTING_V2_TILING_APT_H_
-#define MOE_FINALIZE_ROUTING_V2_TILING_APT_H_
+#ifndef MOE_FINALIZE_ROUTING_V2_TILING_ARCH35_H_
+#define MOE_FINALIZE_ROUTING_V2_TILING_ARCH35_H_
 
 #include <cstdint>
 
