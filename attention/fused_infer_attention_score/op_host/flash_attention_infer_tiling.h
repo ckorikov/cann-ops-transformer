@@ -45,6 +45,7 @@ namespace optiling{
         int32_t blockSize = 0;
         int32_t kvHeads = 0;
         int32_t batch = 0;
+        int32_t innerPrecise = 0;
         int64_t maxQSeqlen = 0;
         int64_t maxKvSeqlen = 0;
         uint32_t maxNumBlocksPerBatch = 0;
@@ -131,6 +132,7 @@ namespace optiling{
         constexpr uint64_t DTYPE_FP16_KEY = 100;
         constexpr uint64_t DTYPE_BF16_KEY = 200;
         constexpr uint64_t LSE_OUT_ONLY_KEY = 1000;
+        constexpr uint64_t INNER_LOW_PREC_KEY = 10000;
         uint64_t tilingKey = SPLIT_FUSE_BASE_KEY;
         if (faInfo_.pagedCacheFlag) {
             tilingKey += static_cast<uint64_t>(PAGED_CACHE_KEY);
@@ -148,6 +150,9 @@ namespace optiling{
         }
         if (faInfo_.lseFlag) {
             tilingKey += static_cast<uint64_t>(LSE_OUT_ONLY_KEY);
+        }
+        if (faInfo_.innerPrecise == 1) {
+            tilingKey += static_cast<uint64_t>(INNER_LOW_PREC_KEY);
         }
         return tilingKey;
     }

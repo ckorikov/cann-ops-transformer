@@ -30,6 +30,7 @@ using namespace ge;
 using namespace AscendC;
 namespace optiling {
 REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_5000000000000200100, FAInferTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_5000000000000210100, FAInferTilingData)
 REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_5000000000000200103, FAInferTilingData)
 REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_5000000000010200100, FAInferTilingData)
 REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_5000000000010200103, FAInferTilingData)
@@ -38,6 +39,7 @@ REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_5000000000000200203, FAInfer
 REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_5000000000010200200, FAInferTilingData)
 REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_5000000000010200203, FAInferTilingData)
 REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_5000000000000201100, FAInferTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_5000000000000211100, FAInferTilingData)
 REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_5000000000000201103, FAInferTilingData)
 REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_5000000000010201100, FAInferTilingData)
 REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_5000000000010201103, FAInferTilingData)
@@ -1127,12 +1129,14 @@ static ge::graphStatus ConvertContextToParamsFAI(gert::TilingContext *context, F
     float scaleValue = *(attrs->GetAttrPointer<float>(ATTR_SCALE_INDEX));
     string inputLayoutStr = string(attrs->GetAttrPointer<char>(ATTR_INPUT_LAYOUT_INDEX));
     bool lseFlag = *(attrs->GetAttrPointer<bool>(SOFTMAX_LSE_FLAG_INDEX));
+    int32_t innerPrecise = *(attrs->GetAttrPointer<int32_t>(ATTR_INNER_PRECISE_INDEX));
     faInfo.numBlocks = tempK->GetStorageShape().GetDim(DIM_0);
     faInfo.blockSize = tmpBlkSize;
     faInfo.kvHeads = tmpNKv;
     faInfo.scaleValue = scaleValue;
     faInfo.layout = inputLayoutStr;
     faInfo.lseFlag = lseFlag;
+    faInfo.innerPrecise = innerPrecise;
     if (faInfo.pagedCacheFlag) {
         faInfo.maxNumBlocksPerBatch = blockTable->GetStorageShape().GetDim(DIM_1);
     }
@@ -1160,6 +1164,8 @@ static ge::graphStatus ConvertContextToParamsFAI(gert::TilingContext *context, F
 static bool IsUsingFAI(gert::TilingContext &context, const string inputLayoutStr, const uint32_t tempD)
 {
     bool isPageAttention = context.GetOptionalInputShape(BLOCK_TABLE_INDEX) != nullptr ? true : false;
+    auto tempAttnMaskShape = context.GetOptionalInputShape(ATTEN_MASK_INDEX);
+    auto qDataType = context.GetInputDesc(QUERY_INDEX)->GetDataType();
     auto tempK = context.GetInputShape(KEY_INDEX);
     auto tempV = context.GetInputShape(VALUE_INDEX);
     auto kvDimNum = tempK->GetStorageShape().GetDimNum();
@@ -1167,16 +1173,20 @@ static bool IsUsingFAI(gert::TilingContext &context, const string inputLayoutStr
     int32_t headNum = *(attrs->GetAttrPointer<int32_t>(ATTR_N_INDEX));
     int32_t kvHeadNum = *(attrs->GetAttrPointer<int32_t>(ATTR_NUM_KV_HEADS_INDEX));
     int32_t sparseMode = *(attrs->GetAttrPointer<int32_t>(ATTR_SPARSE_MODE_INDEX));
+    int32_t innerPrecise = *(attrs->GetAttrPointer<int32_t>(ATTR_INNER_PRECISE_INDEX));
     bool isLearnableSink = context.GetOptionalInputTensor(LEARNABLE_SINK_INDEX) != nullptr ? true : false;
     auto qRope = context.GetOptionalInputTensor(QUERY_ROPE_INDEX);
     auto kRope = context.GetOptionalInputTensor(KEY_ROPE_INDEX);
     bool isRopeSplitMla = (qRope != nullptr) && (kRope != nullptr);
     bool sparseModeSupported = (sparseMode == 0) || (sparseMode == 3);
+    bool isMha = (kvHeadNum == 0) || (headNum == kvHeadNum);
+    bool mhaConditions = isMha && (tempAttnMaskShape == nullptr) &&
+        (qDataType == ge::DT_FLOAT16) && (innerPrecise == 1) && !isPageAttention;
+    bool nonMhaConditions = !isMha && (innerPrecise == 0);
 
     bool usingFAI = false;
-    if (inputLayoutStr == "TND" &&
-        kvHeadNum != 0 && headNum != kvHeadNum && headNum % kvHeadNum == 0 &&
-        !isLearnableSink && !isRopeSplitMla && sparseModeSupported) {
+    if (inputLayoutStr == "TND" && !isLearnableSink && !isRopeSplitMla && sparseModeSupported &&
+        (nonMhaConditions || mhaConditions)) {
         if (!isPageAttention) {
             int64_t tempKD = tempK->GetStorageShape().GetDim(DIM_2);
             int64_t tempVD = tempV->GetStorageShape().GetDim(DIM_2);

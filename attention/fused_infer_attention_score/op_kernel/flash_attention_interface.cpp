@@ -20,6 +20,7 @@ namespace SplitFuse {
     template <
         typename InputDtypeQ = half,
         typename InputDtypeKv = half,
+        typename IntermCalcPrec = float,
         bool PagedCacheFlag = false,
         FaiKenel::MaskType maskCategory = FaiKenel::MaskType::NO_MASK,
         FaiKenel::inputLayout inLayout = FaiKenel::inputLayout::TND,
@@ -44,7 +45,7 @@ namespace SplitFuse {
         using LayoutK = layout::ColumnMajor;
         using ElementV = InputDtypeKv;
         using LayoutV = layout::RowMajor;
-        using ElementS = float;
+        using ElementS = IntermCalcPrec;
         using LayoutS = layout::RowMajor;
         using ElementP = InputDtypeQ;
         using LayoutP = layout::RowMajor;
@@ -54,9 +55,9 @@ namespace SplitFuse {
         using LayoutLse = layout::RowMajor;
         using ElementMask = int8_t;
         using LayoutMask = layout::RowMajor;
-        using ElementOTmp = float;
+        using ElementOTmp = IntermCalcPrec;
         using LayoutOTmp = layout::RowMajor;
-        using ElementUpdate = float;
+        using ElementUpdate = IntermCalcPrec;
         using LayoutUpdate = layout::RowMajor;
 
         using L1TileShapeQK = GemmShape<Q_TILE_CEIL, 128, 128>;
@@ -68,7 +69,7 @@ namespace SplitFuse {
         using BlockMmadQK = Gemm::Block::BlockMmad<DispatchPolicyQK, L1TileShapeQK, L0TileShapeQK,
                                                    QType, KType, SType>;
 
-        using DispatchPolicyOnlineSoftmax = Epilogue::EpilogueAtlasA2OnlineSoftmax<lseMode>;
+        using DispatchPolicyOnlineSoftmax = Epilogue::EpilogueAtlasA2OnlineSoftmax<lseMode, IntermCalcPrec>;
         using PType = Gemm::GemmType<ElementP, LayoutP>;
         using maskType = Gemm::GemmType<ElementMask, LayoutMask>;
         using EpilogueOnlineSoftmax =
@@ -82,7 +83,7 @@ namespace SplitFuse {
         using BlockMmadPV = Gemm::Block::BlockMmad<DispatchPolicyPV, L1TileShapePV, L0TileShapePV,
                                                    PType, VType, OTmpType>;
 
-        using DispatchPolicyRescaleO = Epilogue::EpilogueAtlasA2RescaleO<lseMode>;
+        using DispatchPolicyRescaleO = Epilogue::EpilogueAtlasA2RescaleO<lseMode, IntermCalcPrec>;
         using OType = Gemm::GemmType<ElementO, LayoutO>;
         using OUpdateType = Gemm::GemmType<ElementUpdate, LayoutUpdate>;
         using LseType = Gemm::GemmType<ElementLse, LayoutLse>;

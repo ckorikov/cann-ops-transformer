@@ -27,13 +27,13 @@ template <
     class MaskType_,
     LseMode LSE_MODE_>
 class BlockEpilogue<
-    EpilogueAtlasA2OnlineSoftmax<LSE_MODE_>,
+    EpilogueAtlasA2OnlineSoftmax<LSE_MODE_, float>,
     OutputType_,
     InputType_,
     MaskType_>
 {
 public:
-    using DispatchPolicy = EpilogueAtlasA2OnlineSoftmax<LSE_MODE_>;
+    using DispatchPolicy = EpilogueAtlasA2OnlineSoftmax<LSE_MODE_, float>;
     using ArchTag = typename DispatchPolicy::ArchTag;
     using ElementOutput = typename OutputType_::Element;
     using ElementInput = typename InputType_::Element;
@@ -878,8 +878,8 @@ public:
                     rowOffsetCurLoop,
                     isFirstStackTile,
                     isLastNoMaskStackTile,
-                    delayedRowLoopIdx == 0,
-                    delayedRowLoopIdx == rowLoopNum - 1,
+                    (delayedRowLoopIdx == 0),
+                    (delayedRowLoopIdx == rowLoopNum - 1),
                     columnNumRound,
                     pingpongFlag,
                     curStackTileMod);
@@ -1034,8 +1034,8 @@ public:
                     rowOffsetCurLoop,
                     isFirstStackTile,
                     0,
-                    delayedRowLoopIdx == 0,
-                    delayedRowLoopIdx == rowLoopNum - 1,
+                    (delayedRowLoopIdx == 0),
+                    (delayedRowLoopIdx == rowLoopNum - 1),
                     columnNumRound,
                     pingpongFlag,
                     curStackTileMod);
