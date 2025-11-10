@@ -8,8 +8,8 @@
  * See LICENSE in the root of the software repository for the full text of the License.
  */
 
-#ifndef ROPE_MATRIX_EXTERN_H
-#define ROPE_MATRIX_EXTERN_H
+#ifndef ROPE_MATRIX_TILING_H
+#define ROPE_MATRIX_TILING_H
 
 #include <iostream>
 #include "tiling/tiling_api.h"

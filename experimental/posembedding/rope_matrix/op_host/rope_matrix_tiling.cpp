@@ -15,12 +15,11 @@ using namespace matmul_tiling;
 
 uint8_t *GetTilingBuf(optiling::TCubeTiling *tilingData)
 {
+    uint8_t *buf = nullptr;
     uint32_t tilingSize = tilingData->GetDataSize();
     if (tilingSize > 0) {
-        uint8_t *buf = (uint8_t *)malloc(tilingSize);
+        buf = (uint8_t *)malloc(tilingSize);
         tilingData->SaveToBuffer(buf, tilingSize);
-    } else {
-        buf = nullptr;
     }
     return buf;
 }

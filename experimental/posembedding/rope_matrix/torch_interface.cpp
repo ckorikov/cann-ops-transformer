@@ -24,7 +24,6 @@ void PackInputInfo(at::Tensor &x, uint32_t blockDim, RopeMatrixTiling *ropeTilin
 {
     ropeTiling->blockDim = blockDim;
     uint32_t *ropePtr = reinterpret_cast<uint32_t *>(ropeTiling);
-    uint32_t i = 0;
     ropePtr++; // skip blockDim
     for (uint32_t size : x.sizes()) {
         // set bnsd=size[0,4] value into ropeTiling

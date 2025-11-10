@@ -11,7 +11,7 @@
 #ifndef ROPE_MATRIX_EXTERN_H
 #define ROPE_MATRIX_EXTERN_H
 
-#include <cstdint.h>
+#include <cstdint>
 namespace RopeMatrix {
 // define a struct as TCubeTiling, which can be call by both op_device and op_host
 struct RopeMatrixTiling

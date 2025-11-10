@@ -280,7 +280,7 @@ extern "C" __global__ __aicore__ void rope_matrix_kernel_bf16(
     KERNEL_TASK_TYPE_DEFAULT(KERNEL_TYPE_MIX_AIC_1_2);
     TPipe tpipe;
     TCubeTiling cubeTiling;
-    RopeMatrixTiling ropeTiling;
+    RopeMatrix::RopeMatrixTiling ropeTiling;
     RopeMatrix::CopyTiling(&cubeTiling, &ropeTiling, tiling);
     __gm__ uint8_t *user = GetUserWorkspace(workspace);
 

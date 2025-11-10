@@ -20,10 +20,11 @@ setup(
     ext_modules=[
         ascendc_extension(
             name=PACKAGE_NAME,
-            sources=['torch_interface.cpp', "op_host/rope_matrix_tiling.cpp", "op_host/rope_matrix_tiling.h"],
+            sources=['torch_interface.cpp', "op_host/rope_matrix_tiling.cpp"],
             extra_include_dirs=[
                 os.path.join(CURRENT_DIR, "build_kernel", "include", "rope_matrix_custom_kernel"),
-                os.path.join(CURRENT_DIR, "inc")
+                os.path.join(CURRENT_DIR, "inc"),
+                os.path.join(CURRENT_DIR, "op_host")
             ],
             extra_library_dirs=[
                 os.path.join(CURRENT_DIR, "build_kernel", "lib")
