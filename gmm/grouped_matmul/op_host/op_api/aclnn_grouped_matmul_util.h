@@ -130,5 +130,6 @@ void CreateContiguousTensorListForMXTypeMScale(const aclTensorList *tensorList, 
                                                aclOpExecutor *executor);
 void CreateContiguousTensorList(const aclTensorList *tensorList, std::vector<aclTensor *> &newTensorList,
                                 aclOpExecutor *executor);
+const char* dTypeToString(const ge::DataType &dtype);
 } // namespace gmm
 #endif
