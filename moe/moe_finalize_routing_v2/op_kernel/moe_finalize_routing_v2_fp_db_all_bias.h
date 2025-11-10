@@ -217,7 +217,7 @@ __aicore__ inline void MoeFinalizeRoutingV2FpDbAllBias<T, ISBIASEXIST>::PrepareD
         DataCopyExtParams copyParamsSrcToDstRow{
             static_cast<uint16_t>(tilingData_.K), static_cast<uint32_t>(curCoreHandleNum_ * sizeof(int32_t)),
             static_cast<uint32_t>((tilingData_.totalRowNum - curCoreHandleNum_) * sizeof(int32_t)), 0, 0};
-        DataCopyPad(
+        DataCopyPadCustom<int32_t, DataCopyExtParams, DataCopyPadExtParams<int32_t>>(
             expandedSrcToDstRow_, gmExpandedSrcToDstRow_[GetBlockIdx() * tilingData_.normalCoreHandleNum],
             copyParamsSrcToDstRow, padParamsSrcToDstRow);
     } else if (tilingData_.dropPadMode == MODE_VALUE_2 || tilingData_.dropPadMode == MODE_VALUE_3) {
@@ -225,7 +225,7 @@ __aicore__ inline void MoeFinalizeRoutingV2FpDbAllBias<T, ISBIASEXIST>::PrepareD
             static_cast<uint16_t>(1), static_cast<uint32_t>(curCoreHandleNum_ * tilingData_.K * sizeof(int32_t)), 0, 0,
             0};
 
-        DataCopyPad(
+        DataCopyPadCustom<int32_t, DataCopyExtParams, DataCopyPadExtParams<int32_t>>(
             expandedSrcToDstRow_,
             gmExpandedSrcToDstRow_[GetBlockIdx() * tilingData_.normalCoreHandleNum * tilingData_.K],
             copyParamsSrcToDstRow, padParamsSrcToDstRow);
@@ -258,12 +258,12 @@ __aicore__ inline void MoeFinalizeRoutingV2FpDbAllBias<T, ISBIASEXIST>::CopyIn(i
     DataCopyPadParams padParamsSkip{isPadH_, 0, static_cast<uint8_t>(rightPaddingH_), 0};
 
     if (tilingData_.skip1IsNull == 0) {
-        DataCopyPad(
+        DataCopyPadCustom<T, DataCopyParams, DataCopyPadParams> (
             skip1Local, gmSkip1_[nLoopIdx * curCoreHandleNumPerLoop_ * tilingData_.H], copyParamsSkip, padParamsSkip);
     }
 
     if (tilingData_.skip2IsNull == 0) {
-        DataCopyPad(
+        DataCopyPadCustom<T, DataCopyParams, DataCopyPadParams> (
             skip2Local, gmSkip2_[nLoopIdx * curCoreHandleNumPerLoop_ * tilingData_.H], copyParamsSkip, padParamsSkip);
     }
 
@@ -272,7 +272,7 @@ __aicore__ inline void MoeFinalizeRoutingV2FpDbAllBias<T, ISBIASEXIST>::CopyIn(i
         DataCopyParams copyParamsScales{
             static_cast<uint16_t>(curRepeatTimes), static_cast<uint16_t>(tilingData_.K * sizeof(T)), 0, 0};
         DataCopyPadParams padParamsScales{isPadK_, 0, static_cast<uint8_t>(rightPaddingK_), 0};
-        DataCopyPad(
+        DataCopyPadCustom<T, DataCopyParams, DataCopyPadParams> (
             scalesLocal, gmScales_[nLoopIdx * curCoreHandleNumPerLoop_ * tilingData_.K], copyParamsScales,
             padParamsScales);
     }
@@ -281,7 +281,7 @@ __aicore__ inline void MoeFinalizeRoutingV2FpDbAllBias<T, ISBIASEXIST>::CopyIn(i
         DataCopyParams copyParamsExpert{
             static_cast<uint16_t>(curRepeatTimes), static_cast<uint16_t>(tilingData_.K * sizeof(int32_t)), 0, 0};
         DataCopyPadParams padParamsExpert{isPadKInt32_, 0, static_cast<uint8_t>(rightPaddingKInt32_), 0};
-        DataCopyPad(
+        DataCopyPadCustom<int32_t, DataCopyParams, DataCopyPadParams>(
             expertForSourceRowLocal, gmExpertForSourceRow_[nLoopIdx * curCoreHandleNumPerLoop_ * tilingData_.K],
             copyParamsExpert, padParamsExpert);
     }
@@ -389,12 +389,12 @@ __aicore__ inline void MoeFinalizeRoutingV2FpDbAllBias<T, ISBIASEXIST>::Compute(
             WaitFlag<HardEvent::S_MTE2>(EVENT_ID0);
             WaitFlag<HardEvent::S_MTE2>(EVENT_ID2);
             if (expandedPermutedRowsIndexDb0 != INVALID_ROW_INDEX) {
-                DataCopyPad(
+                DataCopyPadCustom<T, DataCopyParams, DataCopyPadParams> (
                     expandedPermutedTmpUbDb0, gmExpandedPermutedRows_[expandedPermutedRowsIndexDb0 * tilingData_.H],
                     copyParams, padParams);
             }
             if constexpr (ISBIASEXIST) {
-                DataCopyPad(biasTmpUbDb0, gmBias_[biasIndexDb0 * tilingData_.H], copyParams, padParams);
+                DataCopyPadCustom<T, DataCopyParams, DataCopyPadParams> (biasTmpUbDb0, gmBias_[biasIndexDb0 * tilingData_.H], copyParams, padParams);
             }
             SetFlag<HardEvent::MTE2_V>(EVENT_ID0);
 
@@ -427,12 +427,12 @@ __aicore__ inline void MoeFinalizeRoutingV2FpDbAllBias<T, ISBIASEXIST>::Compute(
             WaitFlag<HardEvent::S_MTE2>(EVENT_ID1);
             WaitFlag<HardEvent::S_MTE2>(EVENT_ID3);
             if (expandedPermutedRowsIndexDb1 != INVALID_ROW_INDEX) {
-                DataCopyPad(
+                DataCopyPadCustom<T, DataCopyParams, DataCopyPadParams> (
                     expandedPermutedTmpUbDb1, gmExpandedPermutedRows_[expandedPermutedRowsIndexDb1 * tilingData_.H],
                     copyParams, padParams);
             }
             if constexpr (ISBIASEXIST) {
-                DataCopyPad(biasTmpUbDb1, gmBias_[biasIndexDb1 * tilingData_.H], copyParams, padParams);
+                DataCopyPadCustom<T, DataCopyParams, DataCopyPadParams> (biasTmpUbDb1, gmBias_[biasIndexDb1 * tilingData_.H], copyParams, padParams);
             }
             SetFlag<HardEvent::MTE2_V>(EVENT_ID1);
 
@@ -520,12 +520,12 @@ __aicore__ inline void MoeFinalizeRoutingV2FpDbAllBias<T, ISBIASEXIST>::Compute(
             WaitFlag<HardEvent::S_MTE2>(EVENT_ID0);
             WaitFlag<HardEvent::S_MTE2>(EVENT_ID2);
             if (expandedPermutedRowsIndexDb0 != INVALID_ROW_INDEX) {
-                DataCopyPad(
+                DataCopyPadCustom<T, DataCopyParams, DataCopyPadParams> (
                     expandedPermutedTmpUbDb0, gmExpandedPermutedRows_[expandedPermutedRowsIndexDb0 * tilingData_.H],
                     copyParams, padParams);
             }
             if constexpr (ISBIASEXIST) {
-                DataCopyPad(biasTmpUbDb0, gmBias_[biasIndexDb0 * tilingData_.H], copyParams, padParams);
+                DataCopyPadCustom<T, DataCopyParams, DataCopyPadParams> (biasTmpUbDb0, gmBias_[biasIndexDb0 * tilingData_.H], copyParams, padParams);
             }
             SetFlag<HardEvent::MTE2_V>(EVENT_ID0);
 
@@ -591,7 +591,7 @@ __aicore__ inline void MoeFinalizeRoutingV2FpDbAllBias<T, ISBIASEXIST>::CopyOut(
     LocalTensor<T> outLocal = outQueue_.DeQue<T>();
     DataCopyParams copyParams{
         static_cast<uint16_t>(curRepeatTimes), static_cast<uint16_t>(tilingData_.H * sizeof(T)), 0, 0};
-    DataCopyPad(gmOut_[nLoopIdx * tilingData_.H * curCoreHandleNumPerLoop_], outLocal, copyParams);
+    DataCopyPadCustom<T>(gmOut_[nLoopIdx * tilingData_.H * curCoreHandleNumPerLoop_], outLocal, copyParams);
     outQueue_.FreeTensor(outLocal);
 }
 

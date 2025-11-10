@@ -29,7 +29,6 @@ public:
 
 private:
     __aicore__ inline void SyncAll();
-    __aicore__ inline void ComputeSimt() const;
 
 private:
     __gm__ int32_t *expandDstToSrcRowGm_;
@@ -74,20 +73,23 @@ __aicore__ inline void MoeV2SrcToDstOpSimt::Init(GM_ADDR expandedRowIdx, GM_ADDR
     expandDstToSrcRowGm_ = (__gm__ int32_t *)expandDstToSrcRow + Align(this->totalLength_, sizeof(int32_t));
 }
 
-__aicore__ inline void MoeV2SrcToDstOpSimt::ComputeSimt() const
+__simt_vf__ __aicore__ LAUNCH_BOUND(THREAD_NUM) inline void ComputeSimt(int64_t coreRows, int64_t startIndex,
+                                                                        __gm__ int32_t *expandDstToSrcRowGm,
+                                                                        __gm__ int32_t *expandedRowIdxGm)
 {
-    for (int32_t index = static_cast<int32_t>(Simt::GetThreadIdx()); index < static_cast<int32_t>(this->coreRows_);
+    for (int32_t index = static_cast<int32_t>(Simt::GetThreadIdx()); index < static_cast<int32_t>(coreRows);
          index += static_cast<int32_t>(Simt::GetThreadNum())) {
-        int64_t srcIndex = index + this->startIndex_;
-        int64_t dstIndex = expandDstToSrcRowGm_[srcIndex];
-        expandedRowIdxGm_[dstIndex] = srcIndex;
+        int64_t srcIndex = index + startIndex;
+        int64_t dstIndex = expandDstToSrcRowGm[srcIndex];
+        expandedRowIdxGm[dstIndex] = srcIndex;
     }
 }
 
 __aicore__ inline void MoeV2SrcToDstOpSimt::Process()
 {
     if (this->blockIdx_ < this->srcToDstTilingData_->needCoreNum) {
-        Simt::VF_CALL<ComputeSimt>(simt::Dim3{static_cast<uint32_t>(this->threadNum_), 1, 1});
+        Simt::VF_CALL<ComputeSimt>(Simt::Dim3{static_cast<uint32_t>(this->threadNum_), 1, 1}, this->coreRows_,
+                                   this->startIndex_, expandDstToSrcRowGm_, expandedRowIdxGm_);
     }
     this->SyncAll();
 }

@@ -4,8 +4,13 @@
 
 |产品      | 是否支持 |
 |:----------------------------|:-----------:|
+|<term>昇腾910_95 AI处理器</term>|      √     |
 |<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>|      √     |
 |<term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>|      √     |
+|<term>Atlas 200I/500 A2 推理产品</term>|      ×     |
+|<term>Atlas 推理系列产品</term>|      ×     |
+|<term>Atlas 训练系列产品</term>|      ×     |
+|<term>Atlas 200I/300/500 推理产品</term>|      ×     |
 
 ## 功能说明
 
@@ -22,21 +27,16 @@
 
 ## 参数说明
 
-<table style="undefined;table-layout: fixed; width: 1576px"><colgroup>
-  <col style="width: 170px">
-  <col style="width: 170px">
-  <col style="width: 312px">
-  <col style="width: 213px">
-  <col style="width: 100px">
-  </colgroup>
+<table style="table-layout: auto; width: 100%">
   <thead>
     <tr>
-      <th>参数名</th>
-      <th>输入/输出/属性</th>
-      <th>描述</th>
-      <th>数据类型</th>
-      <th>数据格式</th>
-    </tr></thead>
+      <th style="white-space: nowrap">参数名</th>
+      <th style="white-space: nowrap">输入/输出/属性</th>
+      <th style="white-space: nowrap">描述</th>
+      <th style="white-space: nowrap">数据类型</th>
+      <th style="white-space: nowrap">数据格式</th>
+    </tr>
+  </thead>
   <tbody>
     <tr>
       <td>expandedX</td>
@@ -89,7 +89,7 @@
     </tr>
     <tr>
       <td>dropPadMode</td>
-      <td>输入</td>
+      <td>属性</td>
       <td>表示是否支持丢弃模式，expandedRowIdx的排列方式。</td>
       <td>INT64</td>
       <td>-</td>
