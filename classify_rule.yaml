@@ -39,13 +39,6 @@ attention:
       - attention/nsa_compress_with_cache
     options:
       - nsa_compress_with_cache
-  
-  nsa_select_attention_infer:
-    module: True
-    src:
-      - attention/nsa_select_attention_infer
-    options:
-      - nsa_select_attention_infer
 
 gmm:
   grouped_matmul:
