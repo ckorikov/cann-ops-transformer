@@ -46,8 +46,8 @@ public:
 
 private:
     __aicore__ inline void CalcGMOffset(int blockIdx, int &offsetA, int &offsetB, int &offsetC,
-                                        int &tailM, int &tailN, bool isTransA, bool isTransB,
-                                        int B, int H, int M, int N, int K, int Nindex);
+                                        int &tailM, int &tailN, int B, int H, int M, int N,
+                                        int K, int Nindex);
 };
 
 template <typename A_T, typename B_T, typename C_T>
@@ -79,7 +79,7 @@ __aicore__ inline void MatmulBatchKernel<A_T, B_T, C_T>::Process(AscendC::TPipe 
         bool isTransA = false, isTransB = false;
 
         CalcGMOffset(AscendC::GetBlockIdx(), offsetA, offsetB, offsetC,
-                    tailM, tailN, isTransA, isTransB, B, H, M, N, K, Nindex);
+                    tailM, tailN, B, H, M, N, K, Nindex);
 
         matmulObj.SetTensorA(aGlobal[offsetA], isTransA);
         matmulObj.SetTensorB(bGlobal[offsetB], isTransB);
@@ -92,27 +92,23 @@ __aicore__ inline void MatmulBatchKernel<A_T, B_T, C_T>::Process(AscendC::TPipe 
 template <typename A_T, typename B_T, typename C_T>
 __aicore__ inline void MatmulBatchKernel<A_T, B_T, C_T>::CalcGMOffset(int blockIdx,
                                                                         int &offsetA, int &offsetB, int &offsetC,
-                                                                        int &tailM, int &tailN, bool isTransA,
-                                                                        bool isTransB, int B, int H, int M,
-                                                                        int N, int K, int Nindex)
+                                                                        int &tailM, int &tailN, int B, int H,
+                                                                        int M, int N, int K, int Nindex)
 {
-    uint32_t aCoreInaS = tiling.singleCoreM / B / H;
-    uint32_t aCoreMBlock = M / aCoreInaS;
+    uint32_t aCoreInaS = Ceiling(tiling.singleCoreM, (B * H));
+    uint32_t aCoreMBlock = Ceiling(M, aCoreInaS);
     uint32_t mCoreIndx = blockIdx % aCoreMBlock;
     uint32_t nCoreIndx = blockIdx / aCoreMBlock;
 
     offsetA = mCoreIndx * tiling.Ka * aCoreInaS + Nindex * M * tiling.Ka;
-    if (isTransA) {
-        offsetA = mCoreIndx * tiling.singleCoreM;
-    }
     offsetB = nCoreIndx * tiling.singleCoreN;
-    if (isTransB) {
-        offsetB = nCoreIndx * tiling.Kb * tiling.singleCoreN;
-    }
     offsetC = mCoreIndx * tiling.N * aCoreInaS + nCoreIndx * tiling.singleCoreN + Nindex * M * tiling.N;
 
-    tailM = aCoreInaS;
-    tailN = tiling.singleCoreN;
+    tailM = M - mCoreIndx * aCoreInaS;
+    tailM = tailM < aCoreInaS ? tailM : aCoreInaS;
+
+    tailN = N - nCoreIndx * tiling.singleCoreN;
+    tailN = tailN < tiling.singleCoreN ? tailN : tiling.singleCoreN;
 }
 
 }  // namespace RopeMatrix
