@@ -107,8 +107,7 @@ private:
     GlobalTensor<uint32_t> expertToServerGlobalTensor_;
     GlobalTensor<uint64_t> readStatusTensor_;
     GlobalTensor<uint64_t> tokenAddrFlagStructGlobalU64Tensor_;
-    GlobalTensor<uint64_t> performanceInfoU64GMTensor_;
-    GlobalTensor<uint32_t> performanceInfoU32GMTensor_;
+    GlobalTensor<int32_t> performanceInfoU32GMTensor_;
 
     LocalTensor<int32_t> expertCountTensor_;
     LocalTensor<int16_t> expertIdsI16Tensor_;
@@ -118,8 +117,7 @@ private:
     LocalTensor<uint32_t> expertToServerIdxTensor_;
     LocalTensor<uint64_t> ubLocal;
     LocalTensor<uint32_t> ubLocalHead;
-    LocalTensor<uint64_t> performanceInfoU64Tensor_;
-    LocalTensor<uint32_t> performanceInfoU32Tensor_;
+    LocalTensor<int32_t> performanceInfoU32Tensor_;
 
     TBuf<> statusBuf_;
     TBuf<> performanceInfoBuf_;
@@ -325,12 +323,10 @@ __aicore__ inline void MoeDistributeDispatchA2Layered<TemplateMC2TypeA2layeredFu
 
     // init performanceInfo
     if (hasPerformanceInfo_) {
-        performanceInfoU64GMTensor_.SetGlobalBuffer((__gm__ uint64_t*)performanceInfo);
-        performanceInfoU32GMTensor_.SetGlobalBuffer((__gm__ uint32_t*)performanceInfo);
-        tpipe_->InitBuffer(performanceInfoBuf_, performanceInfoSize_ * sizeof(uint64_t));
-        performanceInfoU64Tensor_ = performanceInfoBuf_.Get<uint64_t>();
-        performanceInfoU32Tensor_ = performanceInfoU64Tensor_.template ReinterpretCast<uint32_t>();
-        Duplicate<uint32_t>(performanceInfoU32Tensor_, 0, performanceInfoSize_ * sizeof(uint64_t) / sizeof(uint32_t));
+        performanceInfoU32GMTensor_.SetGlobalBuffer((__gm__ int32_t*)performanceInfo);
+        tpipe_->InitBuffer(performanceInfoBuf_, performanceInfoSize_ * sizeof(int64_t));
+        performanceInfoU32Tensor_ = performanceInfoBuf_.Get<int32_t>();
+        Duplicate<int32_t>(performanceInfoU32Tensor_, 0, performanceInfoSize_ * sizeof(int64_t) / sizeof(int32_t));
     }
 
     // The maximum value of expertIdsCnt_ is 256 * 16, so there is no integer wrap.
@@ -978,7 +974,7 @@ __aicore__ inline void MoeDistributeDispatchA2Layered<TemplateMC2TypeA2layeredFu
     flagIpcGt.SetGlobalBuffer((__gm__ uint64_t*)(shareAddrs[localRankId] + IPC_FLAG_OFFSET) +
         destRankIdx * B64_PER_BLOCK);
     PipeBarrier<PIPE_ALL>();
-    uint32_t startTime = GetSystemCycle() / TIME_CYCLE;
+    int64_t startTime = GetSystemCycle() / TIME_CYCLE;
     do {
         DataCopy(localWait, flagIpcGt, B64_PER_BLOCK);
         SyncFunc<AscendC::HardEvent::MTE2_S>();
@@ -989,15 +985,15 @@ __aicore__ inline void MoeDistributeDispatchA2Layered<TemplateMC2TypeA2layeredFu
         }
     } while (isSync);
 
-    uint32_t endTime = GetSystemCycle() / TIME_CYCLE;
-    uint32_t duration = endTime - startTime;
+    int64_t endTime = GetSystemCycle() / TIME_CYCLE;
+    int32_t duration = static_cast<int32_t>(endTime - startTime);
     auto curServerId = rankId_ / SERVER_RANK_SIZE;
     auto srcId = curServerId * SERVER_RANK_SIZE + destRankIdx;
     if (hasPerformanceInfo_){
-        Duplicate<uint32_t>(performanceInfoU32Tensor_, 0, performanceInfoSize_ * sizeof(uint64_t) / sizeof(uint32_t));
-        performanceInfoU32Tensor_.SetValue(srcId * sizeof(uint64_t) / sizeof(uint32_t), duration);
+        Duplicate<int32_t>(performanceInfoU32Tensor_, 0, performanceInfoSize_ * sizeof(int64_t) / sizeof(int32_t));
+        performanceInfoU32Tensor_.SetValue(srcId * sizeof(int64_t) / sizeof(int32_t), duration);
 	    AscendC::SetAtomicAdd<int32_t>();
-	    AscendC::DataCopy(performanceInfoU32GMTensor_, performanceInfoU32Tensor_, performanceInfoSize_ * sizeof(uint64_t) / sizeof(uint32_t));
+	    AscendC::DataCopy(performanceInfoU32GMTensor_, performanceInfoU32Tensor_, performanceInfoSize_ * sizeof(int64_t) / sizeof(int32_t));
         AscendC::SetAtomicNone();
     }
 }
@@ -1095,8 +1091,8 @@ __aicore__ inline uint32_t MoeDistributeDispatchA2Layered<TemplateMC2TypeA2layer
 template <TemplateMC2TypeA2layeredClass>
 __aicore__ inline void MoeDistributeDispatchA2Layered<TemplateMC2TypeA2layeredFunc>::Win2Ipc()
 {
-    uint32_t aivMax = 0;
-    uint32_t startTime = GetSystemCycle() / TIME_CYCLE;
+    int32_t aivMaxTime = 0;
+    int64_t startTime = GetSystemCycle() / TIME_CYCLE;
     uint32_t coresPerServer = (aivNum_ - serverNum - 1) / serverNum;
     uint32_t logicAivId = aivId_ - serverNum - 1;
     if (logicAivId >= coresPerServer * serverNum) {
@@ -1149,8 +1145,8 @@ __aicore__ inline void MoeDistributeDispatchA2Layered<TemplateMC2TypeA2layeredFu
             expInfoTensor = localUB_32[expOffsetInStruct_/ sizeof(int32_t)];
         }
 
-        uint32_t cmpDuration = 0;
-        uint32_t duration = 0;
+        int32_t cmpDuration = 0;
+        int32_t duration = 0;
         auto curServerId = logicAivId / coresPerServer;
         for (int32_t expIndex = 0; expIndex < axisK_; ++expIndex) {
             uint32_t targetExpId = (uint32_t)(expInfoTensor(expIndex));
@@ -1179,8 +1175,8 @@ __aicore__ inline void MoeDistributeDispatchA2Layered<TemplateMC2TypeA2layeredFu
             PipeBarrier<PIPE_ALL>();
 
             //统计机间通信时间
-            uint32_t endTime = GetSystemCycle() / TIME_CYCLE;
-            duration = endTime - startTime;
+            int64_t endTime = GetSystemCycle() / TIME_CYCLE;
+            duration = static_cast<int32_t>(endTime - startTime);
             //确保每个卡只加一次max
             //找到exp中的max
             if (hasPerformanceInfo_ && curServerId != serverId_) {
@@ -1190,9 +1186,9 @@ __aicore__ inline void MoeDistributeDispatchA2Layered<TemplateMC2TypeA2layeredFu
         //找每张卡上的aiv time max
         if (hasPerformanceInfo_ && curServerId != serverId_) {
             auto srcId = rankId_ % SERVER_RANK_SIZE + curServerId * SERVER_RANK_SIZE;
-            uint32_t cmpAivMax = performanceInfoU32Tensor_.GetValue(srcId * sizeof(uint64_t) / sizeof(uint32_t));
-            aivMax = duration > cmpAivMax ? duration : cmpAivMax;
-            performanceInfoU32Tensor_.SetValue(srcId * sizeof(uint64_t) / sizeof(uint32_t), aivMax);
+            int32_t cmpaivMaxTime = performanceInfoU32Tensor_.GetValue(srcId * sizeof(int64_t) / sizeof(int32_t));
+            aivMaxTime = duration > cmpaivMaxTime ? duration : cmpaivMaxTime;
+            performanceInfoU32Tensor_.SetValue(srcId * sizeof(int64_t) / sizeof(int32_t), aivMaxTime);
         }
         tokenIdx += 1;
         justExpInfo = (tokenIdx % coresPerServer != logicAivId % coresPerServer);
@@ -1427,7 +1423,7 @@ __aicore__ inline void MoeDistributeDispatchA2Layered<TemplateMC2TypeA2layeredFu
         //每张卡只加一次
         if (logicAivId % coresPerServer == 0) {
             AscendC::SetAtomicAdd<int32_t>();
-            AscendC::DataCopy(performanceInfoU32GMTensor_, performanceInfoU32Tensor_, performanceInfoSize_ * sizeof(uint64_t) / sizeof(uint32_t));
+            AscendC::DataCopy(performanceInfoU32GMTensor_, performanceInfoU32Tensor_, performanceInfoSize_ * sizeof(int64_t) / sizeof(int32_t));
             AscendC::SetAtomicNone();                
         }
 

@@ -130,8 +130,7 @@ private:
     GlobalTensor<uint32_t> bufferIdGlobal_;     // 用于存对端状态window的变量
     GlobalTensor<int32_t> statusSpaceGlobal_;   // win区状态位置拷入相关参数
     GlobalTensor<int32_t> readStateGlobal_;
-    GlobalTensor<uint64_t> performanceInfoU64GMTensor_;
-    GlobalTensor<uint32_t> performanceInfoU32GMTensor_;
+    GlobalTensor<int32_t> performanceInfoU32GMTensor_;
 
     uint64_t shareAddreRank[8];
 
@@ -230,8 +229,7 @@ private:
     LocalTensor<int32_t> countReduceLocal_;
     LocalTensor<uint64_t> ubLocal;
     LocalTensor<uint32_t> ubLocalHead;
-    LocalTensor<uint64_t> performanceInfoU64Tensor_;
-    LocalTensor<uint32_t> performanceInfoU32Tensor_;
+    LocalTensor<int32_t> performanceInfoU32Tensor_;
     // 低精度相关
     uint32_t repeatNum{0};
     uint32_t scaleNum;
@@ -439,12 +437,10 @@ __aicore__ inline void MoeDistributeCombineA2Layered<TemplateMC2TypeA2layeredFun
 
     // init performanceInfo
     if (hasPerformanceInfo_) {
-        performanceInfoU64GMTensor_.SetGlobalBuffer((__gm__ uint64_t*)performanceInfo);
-        performanceInfoU32GMTensor_.SetGlobalBuffer((__gm__ uint32_t*)performanceInfo);
-        tpipe_->InitBuffer(performanceInfoBuf_, performanceInfoSize_ * sizeof(uint64_t));
-        performanceInfoU64Tensor_ = performanceInfoBuf_.Get<uint64_t>();
-        performanceInfoU32Tensor_ = performanceInfoU64Tensor_.template ReinterpretCast<uint32_t>();
-        Duplicate<uint32_t>(performanceInfoU32Tensor_, 0, performanceInfoSize_ * sizeof(uint64_t) / sizeof(uint32_t));
+        performanceInfoU32GMTensor_.SetGlobalBuffer((__gm__ int32_t*)performanceInfo);
+        tpipe_->InitBuffer(performanceInfoBuf_, performanceInfoSize_ * sizeof(int64_t));
+        performanceInfoU32Tensor_ = performanceInfoBuf_.Get<int32_t>();
+        Duplicate<int32_t>(performanceInfoU32Tensor_, 0, performanceInfoSize_ * sizeof(int64_t) / sizeof(int32_t));
     }
 
     SplitCoreCal();
@@ -599,7 +595,7 @@ __aicore__ inline void MoeDistributeCombineA2Layered<TemplateMC2TypeA2layeredFun
     // 只要8个core分别wait 来自8卡的flag，然后sync一下 再进行流水
 
     if (coreIdx_ < stepCoreNum_){
-        uint32_t startTime = GetSystemCycle() / TIME_CYCLE;
+        int64_t startTime = GetSystemCycle() / TIME_CYCLE;
         LocalTensor<uint64_t> inUb = statusBuf_.Get<uint64_t>();
         uint32_t waitFlagAddr = coreIdx_ % stepCoreNum_;
         while (true) {
@@ -614,13 +610,13 @@ __aicore__ inline void MoeDistributeCombineA2Layered<TemplateMC2TypeA2layeredFun
         DataCopy(shareFlagGlobal_[waitFlagAddr * 4], inUb, 4);  // *4是因为单次拷贝256byte = 4*int64
         PipeBarrier<PIPE_ALL>();
 
-        uint32_t endTime = GetSystemCycle() / TIME_CYCLE;
-        uint32_t duration = endTime - startTime;
+        int64_t endTime = GetSystemCycle() / TIME_CYCLE;
+        int32_t duration = static_cast<int32_t>(endTime - startTime);
 	    auto srcId = (rankId_ / SERVER_RANK_SIZE) * SERVER_RANK_SIZE + coreIdx_;
     	if (hasPerformanceInfo_) {
-	        performanceInfoU32Tensor_.SetValue(srcId * sizeof(uint64_t) / sizeof(uint32_t), duration);
+	        performanceInfoU32Tensor_.SetValue(srcId * sizeof(int64_t) / sizeof(int32_t), duration);
 	        AscendC::SetAtomicAdd<int32_t>();
-            AscendC::DataCopy(performanceInfoU32GMTensor_, performanceInfoU32Tensor_, performanceInfoSize_ * sizeof(uint64_t) / sizeof(uint32_t));
+            AscendC::DataCopy(performanceInfoU32GMTensor_, performanceInfoU32Tensor_, performanceInfoSize_ * sizeof(int64_t) / sizeof(int32_t));
             AscendC::SetAtomicNone();
         }
     }

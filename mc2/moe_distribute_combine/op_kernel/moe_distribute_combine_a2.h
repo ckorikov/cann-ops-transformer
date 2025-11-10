@@ -113,8 +113,7 @@ private:
     GlobalTensor<uint32_t> workspaceGlobal32_;  // 存储batchWriteInfo结构体信息
     GlobalTensor<uint32_t> flagGlobal_;
     GlobalTensor<int8_t> xActiveMaskGMTensor_;
-    GlobalTensor<uint64_t> performanceInfoU64GMTensor_;
-    GlobalTensor<uint32_t> performanceInfoU32GMTensor_;
+    GlobalTensor<int32_t> performanceInfoU32GMTensor_;
 
     LocalTensor<uint64_t> batchWriteItemLocalB64;
     LocalTensor<uint32_t> batchWriteItemLocalB32;
@@ -127,8 +126,7 @@ private:
     LocalTensor<ExpandIdxType> indexCountsLocal_;
     LocalTensor<ExpandXType> tmpUb_;
     LocalTensor<uint32_t> statusTensor_;
-    LocalTensor<uint64_t> performanceInfoU64Tensor_;
-    LocalTensor<uint32_t> performanceInfoU32Tensor_;
+    LocalTensor<int32_t> performanceInfoU32Tensor_;
 
     GM_ADDR windowInGM_;
     GM_ADDR windowOutGM_;
@@ -248,12 +246,10 @@ __aicore__ inline void MoeDistributeCombineA2<TemplateMC2TypeA2Func>::Init(GM_AD
     BuffInit();
     // init performanceInfo
     if (hasPerformanceInfo_) {
-        performanceInfoU64GMTensor_.SetGlobalBuffer((__gm__ uint64_t*)performanceInfo);
-        performanceInfoU32GMTensor_.SetGlobalBuffer((__gm__ uint32_t*)performanceInfo);
-        tpipe_->InitBuffer(performanceInfoBuf_, performanceInfoSize_ * sizeof(uint64_t));
-        performanceInfoU64Tensor_ = performanceInfoBuf_.Get<uint64_t>();
-        performanceInfoU32Tensor_ = performanceInfoU64Tensor_.template ReinterpretCast<uint32_t>();
-        Duplicate<uint32_t>(performanceInfoU32Tensor_, 0, performanceInfoSize_ * sizeof(uint64_t) / sizeof(uint32_t));
+        performanceInfoU32GMTensor_.SetGlobalBuffer((__gm__ int32_t *)performanceInfo);
+        tpipe_->InitBuffer(performanceInfoBuf_, performanceInfoSize_ * sizeof(int64_t));
+        performanceInfoU32Tensor_ = performanceInfoBuf_.Get<int32_t>();
+        Duplicate<int32_t>(performanceInfoU32Tensor_, 0, performanceInfoSize_ * sizeof(int64_t) / sizeof(int32_t));
     }
     if (tilingData->moeDistributeCombineInfo.isTokenMask) {
         TokenActiveMaskCal();
@@ -479,7 +475,7 @@ __aicore__ inline void MoeDistributeCombineA2<TemplateMC2TypeA2Func>::WaitDispat
         return;
     }
     SyncFunc<AscendC::HardEvent::MTE2_S>();
-    uint32_t startTime = GetSystemCycle() / TIME_CYCLE;
+    int64_t startTime = GetSystemCycle() / TIME_CYCLE;
     for (uint32_t waitFlagNum = 0; waitFlagNum < sendRankNum_;) {
         waitFlagNum = 0;
         for (uint32_t rankId = startRankId_; rankId < endRankId_; ++rankId) {
@@ -491,20 +487,24 @@ __aicore__ inline void MoeDistributeCombineA2<TemplateMC2TypeA2Func>::WaitDispat
                 flagGlobal_);
             uint32_t flag = flagGlobal_(0);
             if (flag == FLAG_VALUE) {
-                uint32_t endTime = GetSystemCycle() / TIME_CYCLE; 
-                uint32_t duration = endTime - startTime;
+                int64_t endTime = GetSystemCycle() / TIME_CYCLE; 
+                int32_t duration = static_cast<int32_t>(endTime - startTime);
                 auto srcId = rankId;
                 if (hasPerformanceInfo_){
-                    Duplicate<uint32_t>(performanceInfoU32Tensor_, 0, performanceInfoSize_ * sizeof(uint64_t) / sizeof(uint32_t));
-                    performanceInfoU32Tensor_.SetValue(rankId * sizeof(uint64_t) / sizeof(uint32_t), duration);
-                    AscendC::SetAtomicAdd<int32_t>();
-                    AscendC::DataCopy(performanceInfoU32GMTensor_, performanceInfoU32Tensor_, performanceInfoSize_ * sizeof(uint64_t) / sizeof(uint32_t));
-                    AscendC::SetAtomicNone();
+                    Duplicate<int32_t>(performanceInfoU32Tensor_, 0, performanceInfoSize_ * sizeof(int64_t) / sizeof(int32_t));
+                    performanceInfoU32Tensor_.SetValue(srcId * sizeof(int64_t) / sizeof(int32_t), duration);
 		        }
                 waitFlagNum++;
             }
         }
     }
+    //在for循环外面累加performance time，节约时间
+    if (hasPerformanceInfo_){
+        AscendC::SetAtomicAdd<int32_t>();
+        AscendC::DataCopy(performanceInfoU32GMTensor_, performanceInfoU32Tensor_, performanceInfoSize_ * sizeof(int64_t) / sizeof(int32_t));
+        AscendC::SetAtomicNone();
+    }
+
     for (uint32_t rankId = startRankId_; rankId < endRankId_; ++rankId) {
         uint32_t tokenIdx = (rankId + 1) * localMoeExpertNum_ - 1;
         GM_ADDR wAddr = windowInGM_ + rankSizeOnWin_ * rankId + SKIP_OFFSET +
