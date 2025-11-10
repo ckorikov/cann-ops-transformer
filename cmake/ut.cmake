@@ -153,7 +153,8 @@ if(UT_TEST_ALL OR OP_KERNEL_UT)
     target_sources(${OP_KERNEL_MODULE_NAME}_common_obj PRIVATE ${OP_KERNEL_UT_COMMON_SRC})
     target_include_directories(
       ${OP_KERNEL_MODULE_NAME}_common_obj PRIVATE ${JSON_INCLUDE_DIR} ${GTEST_INCLUDE}
-                                                  ${ASCEND_DIR}/include/base/context_builder ${ASCEND_DIR}/pkg_inc
+                                                  ${OPBASE_INC_DIRS} ${ASCEND_DIR}/include/base
+                                                  ${ASCEND_DIR}/include/base/context_builder
                                                   ${ASCEND_DIR}/include/experiment
                                                   ${ASCEND_DIR}/include/experiment/metadef/common/util
       )
@@ -292,9 +293,10 @@ if(UT_TEST_ALL OR OP_KERNEL_UT)
       add_library(${opName}_${socVersion}_tiling_tmp SHARED ${tilingSrc} $<TARGET_OBJECTS:${COMMON_NAME}_obj>)
       target_include_directories(
         ${opName}_${socVersion}_tiling_tmp
-        PRIVATE ${ASCEND_DIR}/include/op_common/atvoss ${ASCEND_DIR}/include/op_common
-                ${ASCEND_DIR}/include/op_common/op_host ${PROJECT_SOURCE_DIR}/common/include
-                ${ASCEND_DIR}/include/experiment ${ASCEND_DIR}/include/experiment/metadef/common/util
+        PRIVATE ${OPBASE_INC_DIRS} ${ASCEND_DIR}/include/base 
+                ${PROJECT_SOURCE_DIR}/common/include
+                ${ASCEND_DIR}/include/experiment 
+                ${ASCEND_DIR}/include/experiment/metadef/common/util
         )
       target_compile_definitions(${opName}_${socVersion}_tiling_tmp PRIVATE LOG_CPP _GLIBCXX_USE_CXX11_ABI=0)
       target_link_libraries(
