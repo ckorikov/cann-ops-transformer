@@ -97,14 +97,11 @@ public:
         __gm__ uint8_t *&workspace, ConstInfo<isInfer, hasRope> &constInfo);
     __aicore__ inline void InitLocalBuffer(TPipe *pipe, ConstInfo<isInfer, hasRope> &constInfo);
 
-    __aicore__ inline void ProcessVec1(Buffer<BufferType::L1, SyncType::CROSS_CORE_SYNC_FORWARD> &outputBuf,
-        Buffer<BufferType::UB, SyncType::CROSS_CORE_SYNC_BOTH> &bmm1ResBuf, RunInfo<isInfer> &runInfo,
-        ConstInfo<isInfer, hasRope> &constInfo);
+    __aicore__ inline void ProcessVec1(Buffer<BufferType::L1, false> &outputBuf, LocalTensor<T> mmRes, 
+        RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo);
 
-    using mm2ResPos = typename std::conditional<bmm2Write2Ub, Buffer<BufferType::UB, SyncType::CROSS_CORE_SYNC_BOTH>,
-        Buffer<BufferType::GM, SyncType::CROSS_CORE_SYNC_FORWARD>>::type;
-    __aicore__ inline void ProcessVec2(mm2ResPos &bmm2ResBuf, RunInfo<isInfer> &runInfo,
-        ConstInfo<isInfer, hasRope> &constInfo);
+    using mm2ResPos = typename std::conditional<bmm2Write2Ub, LocalTensor<T>, GlobalTensor<T>&>::type;    
+    __aicore__ inline void ProcessVec2(mm2ResPos mmRes, RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo);
 
     TPipe *tPipe;
     const FlashAttentionScoreSimplifiedTilingData *__restrict tilingData;
@@ -161,25 +158,21 @@ protected:
         LocalTensor<VEC2_RES_T> &vec2ResUb, int64_t vec2S1Idx, int64_t vec2CalcSize = 0);
 private:
     __aicore__ inline void SoftmaxInitBuffer();
-    __aicore__ inline void ProcessVec1Dn(Buffer<BufferType::L1, SyncType::CROSS_CORE_SYNC_FORWARD> &outputBuf,
-        Buffer<BufferType::UB, SyncType::CROSS_CORE_SYNC_BOTH> &bmm1ResBuf, RunInfo<isInfer> &runInfo,
-        ConstInfo<isInfer, hasRope> &constInfo);
-    __aicore__ inline void ProcessVec1Nd(Buffer<BufferType::L1, SyncType::CROSS_CORE_SYNC_FORWARD> &outputBuf,
-        Buffer<BufferType::UB, SyncType::CROSS_CORE_SYNC_BOTH> &bmm1ResBuf, RunInfo<isInfer> &runInfo,
-        ConstInfo<isInfer, hasRope> &constInfo);
+    __aicore__ inline void ProcessVec1Dn(Buffer<BufferType::L1, false> &outputBuf, LocalTensor<T> mmRes,
+        RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo);
+    __aicore__ inline void ProcessVec1Nd(Buffer<BufferType::L1, false> &outputBuf, LocalTensor<T> mmRes,
+        RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo);
 #if (__NPU_ARCH__ == 5102)
-    __aicore__ inline void ProcessVec1NdRegbaseV2(Buffer<BufferType::L1, SyncType::CROSS_CORE_SYNC_FORWARD> &outputBuf,
-        LocalTensor<T> mmRes, RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo);
-    __aicore__ inline void ProcessVec1DnRegbaseV2(Buffer<BufferType::L1, SyncType::CROSS_CORE_SYNC_FORWARD> &outputBuf,
-        LocalTensor<T> mmRes, RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo);
+    __aicore__ inline void ProcessVec1NdRegbaseV2(Buffer<BufferType::L1, false> &outputBuf, LocalTensor<T> mmRes,
+        RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo);
+    __aicore__ inline void ProcessVec1DnRegbaseV2(Buffer<BufferType::L1, false> &outputBuf, LocalTensor<T> mmRes,
+        RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo);
     __aicore__ inline void ProcessVec2OnUbRegbaseV2(LocalTensor<T> mmRes, RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo);
 #endif
-    __aicore__ inline void ProcessVec2OnUb(Buffer<BufferType::UB, SyncType::CROSS_CORE_SYNC_BOTH> &bmm2ResBuf,
-        RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo);
+    __aicore__ inline void ProcessVec2OnUb(LocalTensor<T> mmRes, RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo);
 
     __aicore__ inline void ProcessVec2DSplit(GlobalTensor<T> &mmRes, RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo);
-    __aicore__ inline void ProcessVec2NoGlobalUpdate(RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo,
-        Buffer<BufferType::UB, SyncType::CROSS_CORE_SYNC_BOTH> &bmm2ResBuf, int64_t vec2CalcSize);
+    __aicore__ inline void ProcessVec2NoGlobalUpdate(RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo, LocalTensor<T> &bmm2Ub, int64_t vec2CalcSize);
 
     __aicore__ inline bool SoftmaxInvalidLineCheck(LocalTensor<T> &maxUb, uint32_t negativeIntScalar, SoftMaxShapeInfo &softmaxShapeInfo);
     __aicore__ inline void InvalidLineProcess(RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo, LocalTensor<T> &sumUb, LocalTensor<T> &maxUb);
@@ -235,12 +228,10 @@ __aicore__ inline void FABlockVecBase<TEMPLATE_BASE_ARGS>::InitCommonGlobalBuffe
 
 TEMPLATES_DEF_BASE_NO_DEFAULT
 __aicore__ inline void FABlockVecBase<TEMPLATE_BASE_ARGS>::ProcessVec1(
-    Buffer<BufferType::L1, SyncType::CROSS_CORE_SYNC_FORWARD> &outputBuf,
-    Buffer<BufferType::UB, SyncType::CROSS_CORE_SYNC_BOTH> &bmm1ResBuf, RunInfo<isInfer> &runInfo, 
+    Buffer<BufferType::L1, false> &outputBuf, LocalTensor<T> mmRes, RunInfo<isInfer> &runInfo, 
     ConstInfo<isInfer, hasRope> &constInfo)
 {
 #if (__NPU_ARCH__ == 5102)
-    LocalTensor<T> mmRes = bmm1ResBuf.tmeplate GetTensor<T>();
     if constexpr (useDn) {
         ProcessVec1DnRegbaseV2(outputBuf, mmRes, runInfo, constInfo);
     } else {
@@ -248,9 +239,9 @@ __aicore__ inline void FABlockVecBase<TEMPLATE_BASE_ARGS>::ProcessVec1(
     }
 #else
     if constexpr (useDn) {
-        ProcessVec1Dn(outputBuf, bmm1ResBuf, runInfo, constInfo);
+        ProcessVec1Dn(outputBuf, mmRes, runInfo, constInfo);
     } else {
-        ProcessVec1Nd(outputBuf, bmm1ResBuf, runInfo, constInfo);
+        ProcessVec1Nd(outputBuf, mmRes, runInfo, constInfo);
     }
 #endif
 }
@@ -259,7 +250,7 @@ __aicore__ inline void FABlockVecBase<TEMPLATE_BASE_ARGS>::ProcessVec1(
 #if (__NPU_ARCH__ == 5102)
 TEMPLATES_DEF_BASE_NO_DEFAULT
 __aicore__ inline void FABlockVecBase<TEMPLATE_BASE_ARGS>::ProcessVec1DnRegbaseV2(
-    Buffer<BufferType::L1, SyncType::CROSS_CORE_SYNC_FORWARD> &outputBuf, LocalTensor<T> mmRes,
+    Buffer<BufferType::L1, false> &outputBuf, LocalTensor<T> mmRes,
     RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo)
 {
     LocalTensor<INPUT_T> tmpSoftmaxResUb[2];
@@ -292,8 +283,8 @@ __aicore__ inline void FABlockVecBase<TEMPLATE_BASE_ARGS>::ProcessVec1DnRegbaseV
 
 TEMPLATES_DEF_BASE_NO_DEFAULT
 __aicore__ inline void FABlockVecBase<TEMPLATE_BASE_ARGS>::ProcessVec1NdRegbaseV2(
-    Buffer<BufferType::L1, SyncType::CROSS_CORE_SYNC_FORWARD> &outputBuf, LocalTensor<T> mmRes,
-    RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo)
+    Buffer<BufferType::L1, false> &outputBuf, LocalTensor<T> mmRes, RunInfo<isInfer> &runInfo, 
+    ConstInfo<isInfer, hasRope> &constInfo)
 {
     LocalTensor<pseShiftType> pseUb;
     if constexpr (hasPseOuter == true) {
@@ -440,11 +431,9 @@ __aicore__ inline void FABlockVecBase<TEMPLATE_BASE_ARGS>::ProcessVec2OnUbRegbas
 #else
 TEMPLATES_DEF_BASE_NO_DEFAULT
 __aicore__ inline void FABlockVecBase<TEMPLATE_BASE_ARGS>::ProcessVec1Dn(
-    Buffer<BufferType::L1, SyncType::CROSS_CORE_SYNC_FORWARD> &outputBuf,
-    Buffer<BufferType::UB, SyncType::CROSS_CORE_SYNC_BOTH> &bmm1ResBuf, RunInfo<isInfer> &runInfo,
-    ConstInfo<isInfer, hasRope> &constInfo)
+    Buffer<BufferType::L1, false> &outputBuf, LocalTensor<T> mmRes,
+    RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo)
 {
-    bmm1ResBuf.WaitCrossCore();
     LocalTensor<float> sumUb = this->softmaxSumBuf[runInfo.multiCoreIdxMod3].template Get<float>()[0];
     LocalTensor<float> maxUb = this->softmaxMaxBuf[runInfo.multiCoreIdxMod3].template Get<float>()[0];
 
@@ -466,7 +455,6 @@ __aicore__ inline void FABlockVecBase<TEMPLATE_BASE_ARGS>::ProcessVec1Dn(
         descaleQK = deSCaleQValue * deSCaleKValue;
     }
  
-    LocalTensor<T> mmRes = bmm1ResBuf.template GetTensor<T>();
     auto stage1CastTensor = this->stage1OutQue[stage1Offset].template AllocTensor<INPUT_T>();
     if (unlikely(runInfo.s2LoopCount == runInfo.s2LoopStartIdx)) {
         if constexpr (isFp8) {
@@ -498,7 +486,7 @@ __aicore__ inline void FABlockVecBase<TEMPLATE_BASE_ARGS>::ProcessVec1Dn(
                 negativeFloatScalar, constInfo.keepProb);
         }
     }
-    bmm1ResBuf.SetCrossCore();
+    CrossCoreSetFlag<4, PIPE_V>(MM1_RES_INTRA_EVENT[runInfo.taskIdMod2]);
     this->stage1OutQue[stage1Offset].template EnQue(stage1CastTensor);
     this->stage1OutQue[stage1Offset].template DeQue<INPUT_T>();
     //-------------------------Data copy to l1-------------------------
@@ -525,7 +513,7 @@ __aicore__ inline void FABlockVecBase<TEMPLATE_BASE_ARGS>::ProcessVec1Dn(
         }
     }
  
-    outputBuf.SetCrossCore();
+    CrossCoreSetFlag<SYNC_MODE, PIPE_MTE3>(SYNC_V1_C2_FLAG[runInfo.taskIdMod3]); // mte3将结果搬运到L1后，设置SYNC_V1_C2_FLAG
     //-----------------------------------------------------------------
     this->stage1OutQue[stage1Offset].template FreeTensor(stage1CastTensor);
     if (runInfo.s2LoopCount == runInfo.s2LoopLimit) {
@@ -603,11 +591,9 @@ __aicore__ inline void FABlockVecBase<TEMPLATE_BASE_ARGS>::BroadCastAndCopyOut(
 
 TEMPLATES_DEF_BASE_NO_DEFAULT
 __aicore__ inline void FABlockVecBase<TEMPLATE_BASE_ARGS>::ProcessVec1Nd(
-    Buffer<BufferType::L1, SyncType::CROSS_CORE_SYNC_FORWARD> &outputBuf,
-    Buffer<BufferType::UB, SyncType::CROSS_CORE_SYNC_BOTH> &bmm1ResBuf, RunInfo<isInfer> &runInfo, 
+    Buffer<BufferType::L1, false> &outputBuf, LocalTensor<T> mmRes, RunInfo<isInfer> &runInfo, 
     ConstInfo<isInfer, hasRope> &constInfo)
 {
-    bmm1ResBuf.WaitCrossCore();
     LocalTensor<pseShiftType> pseUb;
     if constexpr (hasPseOuter == true) {
         PseCopyIn<T, pseShiftType, hasPseOuter>(this->pseInQue, this->pseGm, runInfo, constInfo, *pseInfoPtr);
@@ -673,7 +659,6 @@ __aicore__ inline void FABlockVecBase<TEMPLATE_BASE_ARGS>::ProcessVec1Nd(
         descaleQK = deSCaleQValue * deSCaleKValue;
     }
 
-    LocalTensor<T> mmRes = bmm1ResBuf.template GetTensor<T>();
     auto stage1CastTensor = this->stage1OutQue[stage1Offset].template AllocTensor<INPUT_T>();
     if (runInfo.s2LoopCount == runInfo.s2LoopStartIdx) {
         if (likely(runInfo.s2RealSize == 128)) {
@@ -732,7 +717,7 @@ __aicore__ inline void FABlockVecBase<TEMPLATE_BASE_ARGS>::ProcessVec1Nd(
             }
         }
     }
-    bmm1ResBuf.SetCrossCore();
+    CrossCoreSetFlag<SYNC_MODE, PIPE_V>(MM1_RES_INTRA_EVENT[runInfo.taskIdMod2]);
     if constexpr (hasAtten) {
         this->attenMaskInQue[runInfo.taskIdMod2].template FreeTensor(attenMaskUb);
     }
@@ -761,7 +746,7 @@ __aicore__ inline void FABlockVecBase<TEMPLATE_BASE_ARGS>::ProcessVec1Nd(
         }
     }
     this->stage1OutQue[stage1Offset].template FreeTensor(stage1CastTensor);
-    outputBuf.SetCrossCore();
+    CrossCoreSetFlag<SYNC_MODE, PIPE_MTE3>(SYNC_V1_C2_FLAG[runInfo.taskIdMod3]); // mte3将结果搬运到L1后，设置SYNC_V1_C2_FLAG
     // ======================================================
     if (runInfo.s2LoopCount != runInfo.s2LoopStartIdx) {
         UpdateExpSumAndExpMax<T>(sumUb, maxUb, expUb, sumUb, maxUb, apiTmpBuffer, runInfo.halfS1RealSize);
@@ -788,22 +773,25 @@ __aicore__ inline int64_t FABlockVecBase<TEMPLATE_BASE_ARGS>::ComputeOffsetForSo
 
 TEMPLATES_DEF_BASE_NO_DEFAULT
 __aicore__ inline void FABlockVecBase<TEMPLATE_BASE_ARGS>::ProcessVec2OnUb(
-    Buffer<BufferType::UB, SyncType::CROSS_CORE_SYNC_BOTH> &bmm2ResBuf, RunInfo<isInfer> &runInfo,
-    ConstInfo<isInfer, hasRope> &constInfo) {
+    LocalTensor<T> mmRes, RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo) {
     if (unlikely(runInfo.vec2S1BaseSize == 0)) {
-        bmm2ResBuf.SetCrossCore();
+        if constexpr (useDn && isFp8) {
+            CrossCoreSetFlag<SYNC_MODE, PIPE_V>(MM2_RES_INTRA_EVENT[0]);
+        } else {
+            CrossCoreSetFlag<SYNC_MODE, PIPE_V>(MM2_RES_INTRA_EVENT[runInfo.taskIdMod2]);
+        }
         return;
     }
     runInfo.vec2S1RealSize = runInfo.vec2S1BaseSize;
     if constexpr (implMode != ImplModeEnum::AA_INVALID_LINE_HIGH_PRECISION && !isFp8 && useDn) {
         if constexpr (isInfer) {
             if (constInfo.s2Size <= 128 && !constInfo.isRowInvalid && !POST_QUANT) { // 128: kv方向基本块大小
-                ProcessVec2NoGlobalUpdate(runInfo, constInfo, bmm2ResBuf, (dTemplateAlign64 * sizeof(INPUT_T)) << 5);
+                ProcessVec2NoGlobalUpdate(runInfo, constInfo, mmRes, (dTemplateAlign64 * sizeof(INPUT_T)) << 5);
                 return;
             }
         } else {
             if (constInfo.s2Size <= 128) { // 128: kv方向基本块大小
-                ProcessVec2NoGlobalUpdate(runInfo, constInfo, bmm2ResBuf, (dTemplateAlign64 * sizeof(INPUT_T)) << 5);
+                ProcessVec2NoGlobalUpdate(runInfo, constInfo, mmRes, (dTemplateAlign64 * sizeof(INPUT_T)) << 5);
                 return;
             }
         }
@@ -814,7 +802,6 @@ __aicore__ inline void FABlockVecBase<TEMPLATE_BASE_ARGS>::ProcessVec2OnUb(
         deSCaleVValue = this->deScaleVGm.GetValue(runInfo.deScaleKvOffset);
     }
     LocalTensor<T> vec2ResUb = this->stage2OutBuf.template Get<T>();
-    LocalTensor<T> mmRes = bmm2ResBuf.template GetTensor<T>();
     WaitFlag<HardEvent::MTE3_V>(mte3ToVId[0]);
     if (unlikely(runInfo.s2LoopCount == runInfo.s2LoopStartIdx)) {
         DataCopy(vec2ResUb, mmRes, vec2CalcSize);
@@ -873,7 +860,11 @@ __aicore__ inline void FABlockVecBase<TEMPLATE_BASE_ARGS>::ProcessVec2OnUb(
             }
         }
     }
-    bmm2ResBuf.SetCrossCore();
+    if constexpr (useDn && isFp8) {
+        CrossCoreSetFlag<SYNC_MODE, PIPE_V>(MM2_RES_INTRA_EVENT[0]);
+    } else {
+        CrossCoreSetFlag<SYNC_MODE, PIPE_V>(MM2_RES_INTRA_EVENT[runInfo.taskIdMod2]);
+    }
     if (runInfo.s2LoopCount == runInfo.s2LoopLimit) {
         if (unlikely(runInfo.s2LoopCount == runInfo.s2LoopStartIdx)) {
             LocalTensor<float> sumUb = this->softmaxSumBuf[runInfo.multiCoreIdxMod3].template Get<float>();
@@ -886,14 +877,13 @@ __aicore__ inline void FABlockVecBase<TEMPLATE_BASE_ARGS>::ProcessVec2OnUb(
 }
 
 TEMPLATES_DEF_BASE_NO_DEFAULT
-__aicore__ inline void FABlockVecBase<TEMPLATE_BASE_ARGS>::ProcessVec2NoGlobalUpdate(RunInfo<isInfer> &runInfo,
-    ConstInfo<isInfer, hasRope> &constInfo, Buffer<BufferType::UB, SyncType::CROSS_CORE_SYNC_BOTH> &bmm2ResBuf,
-    int64_t vec2CalcSize) {
+__aicore__ inline void FABlockVecBase<TEMPLATE_BASE_ARGS>::ProcessVec2NoGlobalUpdate(
+    RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo, LocalTensor<T> &bmm2Ub, int64_t vec2CalcSize) {
     LocalTensor<INPUT_T> vec2ResUb = this->stage2OutBuf.template Get<INPUT_T>()[runInfo.taskIdMod2 * vec2CalcSize];
     WaitFlag<HardEvent::MTE3_V>(mte3ToVId[runInfo.taskIdMod2]);
     LocalTensor<float> sumUb = this->softmaxSumBuf[runInfo.multiCoreIdxMod3].template Get<float>();
-    DivCast<T, INPUT_T, dTemplateAlign64>(vec2ResUb, bmm2ResBuf.template GetTensor<T>(), sumUb, runInfo.vec2S1RealSize);
-    bmm2ResBuf.SetCrossCore();
+    DivCast<T, INPUT_T, dTemplateAlign64>(vec2ResUb, bmm2Ub, sumUb, runInfo.vec2S1RealSize);
+    CrossCoreSetFlag<SYNC_MODE, PIPE_V>(MM2_RES_INTRA_EVENT[runInfo.taskIdMod2]);
     Bmm2DataCopyOut(runInfo, constInfo, vec2ResUb, 0);
     SetFlag<HardEvent::MTE3_V>(mte3ToVId[runInfo.taskIdMod2]);
 }
@@ -1016,19 +1006,15 @@ __aicore__ inline void FABlockVecBase<TEMPLATE_BASE_ARGS>::ProcessVec2DSplit(
 
 TEMPLATES_DEF_BASE_NO_DEFAULT
 __aicore__ inline void FABlockVecBase<TEMPLATE_BASE_ARGS>::ProcessVec2(
-    mm2ResPos &bmm2ResBuf, RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo)
+    mm2ResPos mmRes, RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo)
 {
-    bmm2ResBuf.WaitCrossCore();
-
     if constexpr (bmm2Write2Ub) {
 #if (__NPU_ARCH__ == 5102)
-        LocalTensor<T> mmRes = bmm2ResBuf.template GetTensor<T>();
         ProcessVec2OnUbRegbaseV2(mmRes, runInfo, constInfo);
 #else
-        ProcessVec2OnUb(bmm2ResBuf, runInfo, constInfo);
+        ProcessVec2OnUb(mmRes, runInfo, constInfo);
 #endif
     } else if constexpr (splitD) {
-        GlobalTensor<T> mmRes = bmm2ResBuf.template GetTensor<T>();
         ProcessVec2DSplit(mmRes, runInfo, constInfo);
     } else {
         // bmm2 result is on GM and global update data on UB
@@ -1037,7 +1023,6 @@ __aicore__ inline void FABlockVecBase<TEMPLATE_BASE_ARGS>::ProcessVec2(
         LocalTensor<T> vec2ResUb = this->stage2OutBuf.template Get<T>();
         WaitFlag<HardEvent::MTE3_V>(mte3ToVId[0]);
         LocalTensor<T> bmm2Ub = mm2InBuf.template Get<T>();
-        GlobalTensor<T> mmRes = bmm2ResBuf.template GetTensor<T>();
 
         event_t mte2ToV = static_cast<event_t>(tPipe->FetchEventID(HardEvent::MTE2_V));
         event_t vToMte2 = static_cast<event_t>(tPipe->FetchEventID(HardEvent::V_MTE2));
@@ -1392,6 +1377,11 @@ __aicore__ inline void FABlockVecBase<TEMPLATE_BASE_ARGS>::InitLocalBuffer(TPipe
             }
         }
     }
+    // vec侧需要先发mm1和mm2的两个核间同步
+    CrossCoreSetFlag<SYNC_MODE, PIPE_V>(MM2_RES_INTRA_EVENT[0]);
+    CrossCoreSetFlag<SYNC_MODE, PIPE_V>(MM2_RES_INTRA_EVENT[1]);
+    CrossCoreSetFlag<SYNC_MODE, PIPE_V>(MM1_RES_INTRA_EVENT[0]);
+    CrossCoreSetFlag<SYNC_MODE, PIPE_V>(MM1_RES_INTRA_EVENT[1]);
 
     GetDerived()->InitUniqueLocalBuffer(constInfo);
 
@@ -1458,14 +1448,11 @@ public:
         ConstInfo<isInfer, hasRope> &constInfo) {}
 
     __aicore__ inline void InitLocalBuffer(TPipe *pipe, ConstInfo<isInfer, hasRope> &constInfo) {}
-    __aicore__ inline void ProcessVec1(Buffer<BufferType::L1, SyncType::CROSS_CORE_SYNC_FORWARD> &outputBuf,
-        Buffer<BufferType::UB, SyncType::CROSS_CORE_SYNC_BOTH> &bmm1ResBuf, RunInfo<isInfer> &runInfo,
-        ConstInfo<isInfer, hasRope> &constInfo) {}
+    __aicore__ inline void ProcessVec1(Buffer<BufferType::L1, false> &outputBuf, LocalTensor<T> mmRes, 
+        RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo) {}
 
-    using mm2ResPos = typename std::conditional<bmm2Write2Ub, Buffer<BufferType::UB, SyncType::CROSS_CORE_SYNC_BOTH>,
-        Buffer<BufferType::GM, SyncType::CROSS_CORE_SYNC_FORWARD>>::type;
-    __aicore__ inline void ProcessVec2(mm2ResPos &bmm2ResBuf, RunInfo<isInfer> &runInfo,
-        ConstInfo<isInfer, hasRope> &constInfo) {}
+    using mm2ResPos = typename std::conditional<bmm2Write2Ub, LocalTensor<T>, GlobalTensor<T>&>::type;    
+    __aicore__ inline void ProcessVec2(mm2ResPos mmRes, RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo) {}
 };
 }
 #endif // FLASH_ATTENTION_SCORE_BLOCK_VEC_BASE_H_

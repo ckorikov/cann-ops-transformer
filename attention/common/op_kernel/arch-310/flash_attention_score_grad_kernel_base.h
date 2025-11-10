@@ -108,8 +108,8 @@ protected:
     TBuf<> mm1ResBuf[2];
     TBuf<> mm2ResBuf[2];
     BufferManager<BufferType::L1> l1BufferManager;
-    BuffersPolicySingleBuffer<BufferType::L1, SyncType::NO_SYNC> pL1Buf;
-    BuffersPolicySingleBuffer<BufferType::L1, SyncType::NO_SYNC> dSL1Buf;
+    BuffersPolicySingleBuffer<BufferType::L1, false> pL1Buf;
+    BuffersPolicySingleBuffer<BufferType::L1, false> dSL1Buf;
  
     GM_ADDR prefixNAddr;
     GM_ADDR actualSeqQlenAddr;

@@ -96,17 +96,13 @@ public:
     static constexpr uint64_t SYNC_V1_C2_FLAG[3] = {2, 3, 4};
     static constexpr uint64_t SYNC_C2_V2_FLAG[2] = {5, 6};
     /* 核间通道 */
-    BufferManager<BufferType::GM> gmBufferManager;
-    BuffersPolicy3buff<BufferType::GM, SyncType::CROSS_CORE_SYNC_FORWARD> bmm2ResGmBuffers;
-
-    BufferManager<BufferType::UB> ubBufferManager;
-    BuffersPolicyDB<BufferType::UB, SyncType::CROSS_CORE_SYNC_BOTH> bmm1Buffers;
-    using bmm2ResBufferType = typename Bmm2ResBuffSel<useDn, isFp8>::Type;
-    bmm2ResBufferType bmm2Buffers;
-
-    // mm2左矩阵P
+    using bmm2ResGmType = typename std::conditional<bmm2Write2Ub, int32_t, GlobalTensor<float>>::type;
+    bmm2ResGmType bmm2ResGm[3];
+    TBuf<> bmm2ResBuf[2];
+    TBuf<> bmm1ResBuf[2];
     BufferManager<BufferType::L1> l1BufferManager;
-    BuffersPolicy3buff<BufferType::L1, SyncType::CROSS_CORE_SYNC_FORWARD> l1PBuffers; 
+    // mm2左矩阵P
+    BuffersPolicy3buff<BufferType::L1, false> l1PBuffers; 
     CVSharedParams<isInfer, isPa> sharedParams;
     /* GM信息 */
     using keyGmType = typename std::conditional<isInfer, GlobalTensor<INPUT_T>, int32_t>::type;
@@ -142,7 +138,6 @@ __aicore__ inline void FlashAttentionScoreKernelBase<ChildClass, CubeBlockType, 
     __gm__ uint8_t *attentionOut, __gm__ uint8_t *workspace,
     const FlashAttentionScoreSimplifiedTilingData *__restrict tiling, TPipe *tPipe)
 {
-    fa_base_matmul::idCounterNum = 0;
     constInfo.subBlockIdx = GetSubBlockIdx();
 #if (__NPU_ARCH__ == 5102)
     constInfo.aivIdx = GetBlockIdx();
@@ -242,8 +237,9 @@ __aicore__ inline void FlashAttentionScoreKernelBase<ChildClass, CubeBlockType, 
         }
         int64_t totalOffset = this->aicIdx * 3 * singleCoreOffset; // 3为preload次数
         // SameB模式下V0和V1调用IterateAll的时候填写的地址相同
-        gmBufferManager.Init(workspace + totalOffset);
-        bmm2ResGmBuffers.Init(gmBufferManager, mm2Offset);
+        this->bmm2ResGm[0].SetGlobalBuffer((__gm__ T *)(workspace + totalOffset));
+        this->bmm2ResGm[1].SetGlobalBuffer((__gm__ T *)(workspace + totalOffset + mm2Offset));
+        this->bmm2ResGm[2].SetGlobalBuffer((__gm__ T *)(workspace + totalOffset + mm2Offset * 2));
         workspace += (totalOffset + mm2Offset * 3);
     }
     vecBlock.InitGlobalBuffer(pse, deqScaleQ, deqScaleK, deqScaleV, postQuantScale, postQuantOffset,
@@ -260,28 +256,13 @@ __aicore__ inline void FlashAttentionScoreKernelBase<ChildClass, CubeBlockType, 
     l1BufferManager.Init(pipe, 524288); // 512 * 1024
     // 保存p结果的L1内存必须放在第一个L1 policy上，保证和vec申请的地址相同
     l1PBuffers.Init(l1BufferManager, mm2LeftSize);
+    this->pipe->InitBuffer(this->bmm1ResBuf[0], mm1ResultSize);
+    this->pipe->InitBuffer(this->bmm1ResBuf[1], mm1ResultSize);
     if constexpr (bmm2Write2Ub) {
+        this->pipe->InitBuffer(this->bmm2ResBuf[0], mm2ResultSize);
         if constexpr (!(useDn && isFp8)) {
-            ubBufferManager.Init(pipe, mm1ResultSize * 2 + mm2ResultSize * 2);
-            bmm2Buffers.Init(ubBufferManager, mm2ResultSize);
-            if ASCEND_IS_AIV {
-                bmm2Buffers.Get().SetCrossCore();
-                bmm2Buffers.Get().SetCrossCore();
-            }
-        } else {
-            ubBufferManager.Init(pipe, mm1ResultSize * 2 + mm2ResultSize);
-            bmm2Buffers.Init(ubBufferManager, mm2ResultSize);
-            if ASCEND_IS_AIV {
-                bmm2Buffers.Get().SetCrossCore();
-            }
+            this->pipe->InitBuffer(this->bmm2ResBuf[1], mm2ResultSize);
         }
-    } else {
-        ubBufferManager.Init(pipe, mm1ResultSize * 2);
-    }
-    bmm1Buffers.Init(ubBufferManager, mm1ResultSize);
-    if ASCEND_IS_AIV {
-        bmm1Buffers.Get().SetCrossCore();
-        bmm1Buffers.Get().SetCrossCore();
     }
 }
  

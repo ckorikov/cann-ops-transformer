@@ -607,8 +607,8 @@ __aicore__ inline void FlashAttentionScoreGradKernelDeter<CubeBlockType, VecBloc
                 }
             }
             
-            Buffer<BufferType::L1, SyncType::NO_SYNC> dSL1Buffer = this->dSL1Buf.Get();
-            Buffer<BufferType::L1, SyncType::NO_SYNC> pL1Buffer = this->pL1Buf.Get();
+            Buffer<BufferType::L1, false> dSL1Buffer = this->dSL1Buf.Get();
+            Buffer<BufferType::L1, false> pL1Buffer = this->pL1Buf.Get();
             this->vecBlock.ProcessVec3(dSL1Buffer, mm1ResTensor, mm2ResTensor, this->constInfo,
                                        runInfos[(taskId + 1) & 1]); // v3: dropout + cast + nd2nz
  
