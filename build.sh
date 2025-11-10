@@ -705,10 +705,14 @@ while [[ $# -gt 0 ]]; do
         ;;
     -f|--changed_list)
         PR_CHANGED_FILES="$2"
-        ENABLE_TEST=TRUE 
-        ENABLE_PR=TRUE 
+        ENABLE_SMOKE=TRUE
         PKG_MODE="cust"
         VENDOR="custom"     
+        shift 2
+        ;;
+    --PR_UT)
+        PR_CHANGED_FILES="$2"
+        ENABLE_TEST=TRUE 
         shift 2
         ;;
     --PR_PKG)
@@ -1205,7 +1209,8 @@ function build_example_group_eager()
 
 }
 
-function process_ci_with_changed_list()
+# 冒烟任务只跑examples
+function process_ci_smoke_with_changed_list()
 {
     TEST=$(python3 "$CURRENT_DIR"/cmake/scripts/parse_changed_files.py -c "$CURRENT_DIR"/classify_rule.yaml -f "$PR_CHANGED_FILES" get_related_examples)
     echo "Operators that need to run examples: $TEST"
@@ -1222,8 +1227,8 @@ function process_ci_with_changed_list()
         fi
     done
 }
-if [[ "$ENABLE_PR" == "TRUE" ]]; then
-    process_ci_with_changed_list
+if [[ "$ENABLE_SMOKE" == "TRUE" ]]; then
+    process_ci_smoke_with_changed_list
 fi
 
 cd ${BUILD_DIR}
