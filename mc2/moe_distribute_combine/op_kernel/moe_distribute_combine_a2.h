@@ -21,7 +21,8 @@
 #else
 #include "../moe_distribute_dispatch/moe_distribute_base.h"
 #endif
-namespace {
+
+namespace MoeDistributeCombineA2Impl {
 constexpr uint8_t BUFFER_NUM = 2;                       // 多buf
 constexpr uint32_t STATE_OFFSET = 512;                  // 状态空间偏移地址
 constexpr uint32_t STATE_SPACE_SIZE = 1024 * 1024;      // 1M
