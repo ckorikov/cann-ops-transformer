@@ -177,3 +177,4 @@ __aicore__ inline void GmCopyInToL1PA(LocalTensor<L1Type>& l1Tensor, GlobalTenso
         curS2Idx += copyRowCnt;
     }
 }
+#endif
