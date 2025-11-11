@@ -38,7 +38,7 @@ using ActiveFuncPtr = void (*)(const LocalTensor<T>, const LocalTensor<T>, uint3
 
 enum class ActiveType {
     FASTGELU = 0,
-    RELU,
+    RELU = 1,
     SILU,
     GELU,
     INVALID_TYPE
