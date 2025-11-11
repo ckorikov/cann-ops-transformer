@@ -515,7 +515,7 @@ __aicore__ inline void FAGBlockVec<TEMPLATE_ARGS>::DqkvMulsAndCastFromUB(FagCons
     if constexpr (IS_TND) {
         intriParamsOut.dstStride =
             static_cast<uint32_t>((constInfo.commonConstInfo.n2G - 1) * dSize * sizeof(OUTDTYPE));
-        dqkvGmOffset += vSubBlockIdx * dSize * halfSRealSize;
+        dqkvGmOffset += vSubBlockIdx * dSize * constInfo.commonConstInfo.n2G * halfSRealSize;
     } else {
         if (constInfo.commonConstInfo.layoutType == BNGSD) {
             intriParamsOut.dstStride = 0;
