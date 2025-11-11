@@ -553,6 +553,14 @@ set_ut_mode() {
   if [[ "$ENABLE_TEST" != "TRUE" ]]; then
     return
   fi
+  if [ -n "${PR_CHANGED_FILES}" ]; then
+    OP_HOST_UT=TRUE
+    OP_KERNEL_UT=TRUE
+    UT_TEST_ALL=FALSE
+    UT_TARGES+=("${REPOSITORY_NAME}_op_host_ut")
+    UT_TARGES+=("${REPOSITORY_NAME}_op_kernel_ut")
+    return
+  fi 
   UT_TEST_ALL=TRUE
   if [[ "$OP_HOST" == "TRUE" ]]; then
     OP_HOST_UT=TRUE
