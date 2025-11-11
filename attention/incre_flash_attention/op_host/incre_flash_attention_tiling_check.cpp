@@ -241,8 +241,7 @@ ge::graphStatus IFATiling::CheckKeyShapeInput() const
 {
     const gert::StorageShape *keyShape = context_->kCache[0];
     OP_CHECK_IF((keyShape->GetStorageShape().GetDimNum() != KV_CACHE_DIM_NUM),
-            OP_LOGE(context_->opName,
-            "key dim num %lu, invalid, should be %lu", keyShape->GetStorageShape().GetDimNum(), KV_CACHE_DIM_NUM),
+            OP_LOGE(context_->opName, "key dim num %lu, invalid, should be %lu", keyShape->GetStorageShape().GetDimNum(), KV_CACHE_DIM_NUM),
             return ge::GRAPH_FAILED);
 
     OP_CHECK_IF((keyShape->GetStorageShape().GetDim(3) != 16),
