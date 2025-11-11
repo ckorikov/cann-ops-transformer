@@ -23,32 +23,38 @@
 // Q复用 KV复用
 // 申请单块buffer
 namespace fa_base_matmul {
-template<BufferType Type>
+template<BufferType Type, bool sync = true>
 class BuffersPolicySingleBuffer {
 public:
     __aicore__ inline void Init(BufferManager<Type> &bufferManager, uint32_t size){
-        buffer_ = bufferManager.AllocBuffer(size);
-        buffer_.Init();
+        if constexpr (sync) {
+            buffer_ = bufferManager.AllocBuffer(size);
+            buffer_.Init();
+        } else {
+            buffer_ = bufferManager.AllocBufferNoSync(size);
+        }
     }
-
+ 
     __aicore__ inline void Uninit(BufferManager<Type> &bufferManager){
-        buffer_.UnInit();
+        if constexpr (sync) {
+            buffer_.UnInit();
+        }
         bufferManager.FreeBuffer(buffer_);
     }
-
-    __aicore__ inline Buffer<Type> &Get(){
+ 
+    __aicore__ inline Buffer<Type, sync> &Get(){
         return buffer_;
     }
-
-    __aicore__ inline Buffer<Type> &GetPre(){
+ 
+    __aicore__ inline Buffer<Type, sync> &GetPre(){
         return Get();
     }
-
-    __aicore__ inline Buffer<Type> &GetReused(){
+ 
+    __aicore__ inline Buffer<Type, sync> &GetReused(){
         return Get();
     }
 private:
-    Buffer<Type> buffer_;
+    Buffer<Type, sync> buffer_;
 };
 
 // 申请2个buffer，乒乓轮转
@@ -92,15 +98,28 @@ public:
 
     // 需要与Get,GetPre联用， 首次调用Get，第二次调用GetPre,第三次复用时GetReused(KV复用)
     __aicore__ inline Buffer<Type> &GetReused() {
-        if (flag2_ == 0) { 
+        if (flag2_ == 0) {
             flag2_ = 1;
             return pong_;
-        } else if (flag2_ == 1){ 
+        } else { 
             flag2_ = 0;
             return ping_;
         }
     }
-
+ 
+    // 针对
+    __aicore__ inline Buffer<Type> &GetReused(bool isNextS2IdxNoChange) {
+        if (isNextS2IdxNoChange) {
+            if (flag2_ == 0) {
+                return pong_;
+            } else {
+                return ping_;
+            }
+        } else {
+            return GetReused();
+        }
+    }
+ 
 private:
     Buffer<Type> ping_;
     Buffer<Type> pong_;

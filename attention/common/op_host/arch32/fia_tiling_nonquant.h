@@ -9,24 +9,25 @@
  */
 
 /*!
- * \file fia_tiling_nonquant_mla.h
+ * \file fia_tiling_nonquant.h
  * \brief
  */
-#ifndef FIA_TILING_NONQUNAT_MLA_H
-#define FIA_TILING_NONQUNAT_MLA_H
+#ifndef FIA_TILING_NONQUANT_H
+#define FIA_TILING_NONQUANT_H
 
 #include "register/tilingdata_base.h"
 #include "exe_graph/runtime/tiling_context.h"
 #include "../fia_tiling_base.h"
 #include "../fia_tiling_info.h"
+#include "../split_core_v1.h"
 #include "../../../fused_infer_attention_score/op_host/fused_infer_attention_score_tiling.h"
 
 namespace optiling {
 
-class FiaTilingNonQuantMla : public FiaTilingBase {
+class FiaTilingNonQuant : public FiaTilingBase {
 public:
-    explicit FiaTilingNonQuantMla(gert::TilingContext *context) : FiaTilingBase(context) {}
-    ~FiaTilingNonQuantMla() override = default;
+    explicit FiaTilingNonQuant(gert::TilingContext *context) : FiaTilingBase(context) {}
+    ~FiaTilingNonQuant() override = default;
 
 protected:
     void InitTilingInfo(TilingInfo *tilingInfo) override;
@@ -36,29 +37,32 @@ protected:
 private:
     ge::graphStatus GetPlatformInfo();
     void GenTilingKey();
-    bool DealSameSeqEachBatch() const;
+    bool DealSameSeqEachBatch();
 
-    void ZeroTensorProcess() const;
+    void ZeroTensorProcess();
     void InitParams();
 
     void Split();
+    void CreateSplitInput(BaseInfo &baseInfo);
+    void CreateSplitOutput(OuterSplitParams &outerSplitParams, FlashDecodeParams &fDParams, SplitCoreRes &res);
     void CalcInnerSize(uint32_t seqSize);
     void CalcMBaseSize();
 
-    bool IsFlashDecode();
+    bool IsFlashDecode(uint32_t coreNum);
 
     void CalcMmResSize();
     void CalcMaxMmResSize();
+
+    uint32_t GetL2CacheOffFlag();
 
     void FillTilingBaseParams();
     void FillTilingPageAttenParams();
     void FillTilingMaskParams();
     void FillTilingWorkspaceParams();
-
     void FillTiling();
 
     uint32_t CalcFlashDecodeParamNums(const uint32_t coreNum) const;
-    uint64_t CalcNormalWorkspaceSize(uint32_t coreNum, int64_t mm1ResSize, int64_t mm2ResSize, uint32_t mBaseSize) const;
+    uint64_t CalcNormalWorkspaceSize(uint32_t coreNum, int64_t mm1ResSize, int64_t mm2ResSize) const;
     uint64_t CalcFlashDecodeWorkspace(const uint32_t coreNum) const;
     void CalcScheduleMode();
     void CalcWorkspaceSize();
@@ -78,6 +82,7 @@ private:
     uint32_t sInnerSizeAlign_ = 0;
     uint32_t kvSplit_ = 0;
     uint32_t usedCoreNum_ = 0;
+    uint32_t l2CacheOffFlag_ = 0;
 
     // platform info
     uint32_t aicNum_ = 0;
@@ -85,7 +90,7 @@ private:
     size_t libapiSize_ = 0;
 
     // set info to context
-    FusedInferAttentionScoreTilingData *tilingData_ = GetContext()->GetTilingData<FusedInferAttentionScoreTilingData>();
+    FusedInferAttentionScoreTilingData tilingData_;
     uint32_t blockDim_{0};
     ScheduleMode scheduleMode_{ScheduleMode::NORMAL_MODE};
     uint64_t workspaceSize_{0};
@@ -94,10 +99,11 @@ private:
     uint32_t headDimAlign_ = 0;
     uint32_t mBaseSize_ = 256;
     uint32_t mFdBaseSize_ = 8;
+    bool softmaxWithBrcbFlag_ = false;
 
     // Tiling Info
     FiaTilingInfo *fiaInfo_ = nullptr;
 };
 
 } // namespace optiling
-#endif // FIA_TILING_NONQUNAT_MLA_H
+#endif // FIA_TILING_NONQUANT_H

@@ -64,6 +64,12 @@ const std::string SOFTMAX_LSE_NAME = "softmax_lse";
 const std::string VALUE_SHARED_PREFIX_NAME = "value_shared_prefix";
 const std::string ACTUAL_SHARED_PREFIX_LEN_NAME = "actual_shared_prefix_len";
 
+constexpr int32_t SPARSE_MODE_NO_MASK = 0;
+constexpr int32_t SPARSE_MODE_ALL_MASK = 1;
+constexpr int32_t SPARSE_MODE_LEFT_UP = 2;
+constexpr int32_t SPARSE_MODE_RIGHT_DOWN = 3;
+constexpr int32_t SPARSE_MODE_BAND = 4;
+
 enum class FiaLayout : uint32_t {
     // stardard
     BSH = 0,
@@ -78,11 +84,17 @@ enum class FiaLayout : uint32_t {
     S1S2 = 7,
     // Qs = 1
     BS2 = 8,
-    B1S2 = 9,
-    B11S2 = 10,
     // PA
     BnBsH = 11,
-    BnNBsD = 12
+    BnNBsD = 12,
+    BNS1S2 = 13,
+    INS1S2 = 14,
+    BNS11 = 15,
+    TN1 = 16,
+    BS1S2 = 18,
+    B1S1S2 = 19,
+    IS1S2 = 20,
+    I1S1S2 = 21,
 };
 
 enum class FiaAxis : uint32_t {
@@ -144,6 +156,7 @@ enum class TilingKeyLayout : uint32_t {
 std::string LayoutToSerialString(FiaLayout layout);
 std::string AxisToSerialString(FiaAxis axis);
 std::string QuantModeToSerialString(FiaQuantMode fiaQuantMode);
+std::string SituationToSerialString(RopeMode ropeMode);
 
 struct FIARequiredParaInfo {
     const gert::CompileTimeTensorDesc *desc;
@@ -223,6 +236,7 @@ public:
     uint32_t gSize = 0;
     uint32_t ropeHeadDim = 0;
     uint32_t qTSize = 0; // 仅TND/NTD时生效
+    uint32_t kTSize = 0;
     float scaleValue = 0;
     int32_t innerPrecise = 0;
     uint32_t l2CacheOffFlag = 0;
@@ -251,6 +265,7 @@ public:
     // Q actual_seq_lens
     uint32_t actualLenQDims = 0;
     int64_t maxActualseq = 0;
+    bool isAccumQSeq = false;
 
     // KV actual_seq_lens
     bool actualSeqLenFlag = false;
@@ -258,6 +273,7 @@ public:
     bool isSameActualseq = true;
     uint32_t actualLenDims = 0;
     std::vector<int64_t> kvListSeqLens {};
+    bool isAccumKVSeq = false;
 
     // PSE
     bool pseShiftFlag = false;
@@ -267,6 +283,7 @@ public:
     // Mask
     bool attenMaskFlag = false;
     uint32_t attenMaskSize = 0;
+    uint32_t attenMaskStride = 0;
     int32_t sparseMode = 0;
     int64_t preToken = 0;
     int64_t nextToken = 0;
@@ -278,12 +295,13 @@ public:
     // Others Flag
     bool batchContinuousFlag = true;
     bool kvPaddingSizeFlag = false;
+    bool qPaddingSizeFlag = false;
     bool softmaxLseFlag = false;
     bool quantFlag = false;
     bool isMaxWorkspace = false;
+    bool isLegacyIfa = false;
     bool needInit = false;
     bool slidingFlag = false;
-
     // DType
     FiaTilingInOutMode inOutMode = FiaTilingInOutMode::FP16_FP16;
     ge::DataType inputQType = ge::DT_FLOAT16;
