@@ -345,14 +345,6 @@ __aicore__ inline void Mc2SyncAll()
         WaitFlagDevLocal(3);
     }
 }
-
-template <AscendC::HardEvent event>
-__aicore__ inline void SyncFunc()
-{
-    int32_t eventID = static_cast<int32_t>(GetTPipePtr()->FetchEventID(event));
-    AscendC::SetFlag<event>(eventID);
-    AscendC::WaitFlag<event>(eventID);
-}
 #endif
 } // namespace AscendC
 #endif // MC2_ALLREDUCE_COMM_H

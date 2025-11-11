@@ -103,7 +103,6 @@ BEGIN_TILING_DATA_DEF(RCSTiling)
     TILING_DATA_FIELD_DEF(uint32_t, isInputCommQuantScale); // 是否传入CommQuantScale
     TILING_DATA_FIELD_DEF(uint32_t, dataType);
     TILING_DATA_FIELD_DEF(uint32_t, commInt8WorkSpace); // int8 通信时用于存放reduceScatter输入 workspace 的开销
-    TILING_DATA_FIELD_DEF(uint32_t, dynamicQuantTempBuffSize); // fp8通信时用于存放BroadCast接口需要的临时空间开销
 END_TILING_DATA_DEF;
 REGISTER_TILING_DATA_CLASS(RCSTilingOp, RCSTiling)
 

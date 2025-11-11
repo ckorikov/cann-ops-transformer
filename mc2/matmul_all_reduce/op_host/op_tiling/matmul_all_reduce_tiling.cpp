@@ -64,7 +64,6 @@ constexpr uint32_t ADD_X3_FP16_UB_BUF_FACTOR = 6;  // 对应add x3算子中FP16�
 constexpr uint32_t ADD_X3_BF16_UB_BUF_FACTOR = 10; // 对应add x3算子中BF16数据的切分数
 constexpr uint32_t ALIGN_DATA_SIZE = 32;
 constexpr uint64_t L2_CACHE_SIZE_910_B4 = 100663296;
-constexpr uint32_t COMM_QUANT_MODE_TRUE = 2;
 
 struct HcclAicpuOpParam {
     uint8_t res[64];
@@ -365,11 +364,6 @@ void MatmulAllReduceTilingBase::SetCommQuantScale()
 
     MutableRCSTilingData().set_isInputCommQuantScale(isInput);
     OP_LOGD(opName_, "is input comm_quant_scale_1_shape and comm_quant_scale_2_shape? %d", isInput ? 1 : 0);
-
-    const int64_t* commQuantModePtr = mmrCtxInfo_.commQuantModePtr;
-    if (*commQuantModePtr == 1) {
-        MutableRCSTilingData().set_isInputCommQuantScale(COMM_QUANT_MODE_TRUE);
-    }
 }
 
 ge::graphStatus MatmulAllReduceTilingBase::DoMatmulTiling(
@@ -1498,13 +1492,11 @@ void MatmulAllReduceTilingBase::CalcUbTiling()
 {
     // __DAV_C310__
     // end __DAV_C310__
-    const int64_t* commQuantModePtr = mmrCtxInfo_.commQuantModePtr;
-    bool isPertile = *commQuantModePtr == 1;
     uint32_t addX3UbBufFac =
-        ((args_.geCType == ge::DT_BF16) && (socVersion_ != platform_ascendc::SocVersion::ASCEND910_95)) || isPertile ?
+        (args_.geCType == ge::DT_BF16) && (socVersion_ != platform_ascendc::SocVersion::ASCEND910_95) ?
             ADD_X3_BF16_UB_BUF_FACTOR :
             ADD_X3_FP16_UB_BUF_FACTOR;
-    addX3UbBufFac *= isPertile ? sizeof(float) : D_MTYPE_SIZE_MAP.at(args_.cType);
+    addX3UbBufFac *= D_MTYPE_SIZE_MAP.at(args_.cType);
     uint32_t addX3UbCnt =
         mc2tiling::AlignDown(static_cast<uint32_t>((aicoreParams_.ubSize) / addX3UbBufFac), ALIGN_DATA_SIZE);
     OP_LOGD(
