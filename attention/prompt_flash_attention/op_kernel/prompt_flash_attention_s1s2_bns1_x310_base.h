@@ -653,7 +653,7 @@ __aicore__ inline void PromptFlashAttentionS1s2Bns1X310Base<PFAT>::Bmm2UpdateDiv
     int32_t repeat = 16 * outerSize * sizeof(mmOutputType) / 256;
 	
 	constexpr int32_t FP32_BLOCK_NUM = 8;
-    int32_t calcSize = outerSize * FP32_BLOCK_NUM;
+    int32_t calcSize = outerSize * 8;
     LocalTensor<float> tmpBuffer = tmpmm2Ub_.template Get<float>();
 	DataCopy(tmpBuffer, softmaxSumUb, {static_cast<uint16_t>(outerSize), 1, 0, 1});
     DataCopy(tmpBuffer[FP32_BLOCK_NUM], softmaxSumUb, {static_cast<uint16_t>(outerSize), 1, 0, 1});    
