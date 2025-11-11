@@ -664,6 +664,9 @@ __aicore__ inline void FiaBlockCubeNonQuantGqa<FIAT, Config>::AllocEventID()
     for (uint32_t i = 0; i < L1_KP_BUFCNT; ++i) {
         SetFlag<HardEvent::MTE1_MTE2>(KP_EVENT0 + i);
     }
+    for (uint32_t i = 0; i < L1_V_BUFCNT; ++i) {
+        SetFlag<HardEvent::MTE1_MTE2>(V_EVENT0 + i);
+    }
 
     SetFlag<HardEvent::M_MTE1>(L0A_EVENT0);
     SetFlag<HardEvent::M_MTE1>(L0A_EVENT1);
@@ -678,6 +681,9 @@ __aicore__ inline void FiaBlockCubeNonQuantGqa<FIAT, Config>::FreeEventID()
 {
     for (uint32_t i = 0; i < L1_KP_BUFCNT; ++i) {
         WaitFlag<HardEvent::MTE1_MTE2>(KP_EVENT0 + i);
+    }
+    for (uint32_t i = 0; i < L1_V_BUFCNT; ++i) {
+        WaitFlag<HardEvent::MTE1_MTE2>(V_EVENT0 + i);
     }
 
     WaitFlag<HardEvent::M_MTE1>(L0A_EVENT0);
@@ -813,7 +819,6 @@ __aicore__ inline uint32_t FiaBlockCubeNonQuantGqa<FIAT, Config>::CopyVToL1(
 {
     uint32_t pingpong = this->vL1BufIter % L1_V_BUFCNT;
     ++this->vL1BufIter;
-    SetFlag<HardEvent::MTE1_MTE2>(V_EVENT0 + pingpong);
     WaitFlag<HardEvent::MTE1_MTE2>(V_EVENT0 + pingpong);
 
     auto vL1Tensor = this->vL1Tensor[pingpong];
@@ -1121,6 +1126,7 @@ __aicore__ inline void FiaBlockCubeNonQuantGqa<FIAT, Config>::ComputeMm2(const R
             }
 
             SetFlag<HardEvent::MTE1_MTE2>(KP_EVENT0 + pBufId);
+            SetFlag<HardEvent::MTE1_MTE2>(V_EVENT0 + vBufId);
         }
 
         FixpipeCToGM<OutFormat>(mmResGm, cL0BufId, (OutFormat == CubeFormat::NZ) ? m.sizeAct : constInfo.headDimAlign, /* 输出ND时，mm2ResGm两行之间间隔元素个数按32对齐 */
