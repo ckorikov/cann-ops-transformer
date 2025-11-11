@@ -34,6 +34,9 @@ class Module:
 
     @staticmethod
     def _add_str_cfg(src, dst: List[str]):
+        # 检查输入参数的有效性
+        if src is None:
+            return True
         if isinstance(src, str):
             src = [src]
         for s in src:
@@ -150,6 +153,31 @@ class Parser:
     _Modules: List[Module] = []         # 保存规则文件(classify_rule)内设置的模块列表
     _ChangedPaths: List[Path] = []      # 修改文件列表文件(changed_file)内设置的修改文件列表
 
+    @staticmethod
+    def main() -> str:
+        # 参数注册
+        ps = argparse.ArgumentParser(description="Parse changed files", epilog="Best Regards!")
+        ps.add_argument("-c", "--classify", required=True, nargs=1, type=Path, help="classify_rule.yaml")
+        ps.add_argument("-f", "--file", required=True, nargs=1, type=Path, help="changed files desc file.")
+        # 子命令行
+        sub_ps = ps.add_subparsers(help="Sub-Command")
+        p_ut = sub_ps.add_parser('get_related_ut', help="Get related ut.")
+        p_ut.set_defaults(func=Parser.get_related_ut)
+        p_st = sub_ps.add_parser('get_related_st', help="Get related st.")
+        p_st.set_defaults(func=Parser.get_related_st)
+        p_examples = sub_ps.add_parser('get_related_examples', help="Get related examples.")
+        p_examples.set_defaults(func=Parser.get_related_examples)
+        # 处理
+        args = ps.parse_args()
+        logging.debug(args)
+        if not Parser.parse_classify_file(file=Path(args.classify[0])):
+            return ""
+        if not Parser.parse_changed_file(file=Path(args.file[0])):
+            return ""
+        Parser.print_details()
+        rst = args.func()
+        return rst
+
     @classmethod
     def print_details(cls):
         for m in cls._Modules:
@@ -256,30 +284,6 @@ class Parser:
                 return False
         return True
 
-    @staticmethod
-    def main() -> str:
-        # 参数注册
-        ps = argparse.ArgumentParser(description="Parse changed files", epilog="Best Regards!")
-        ps.add_argument("-c", "--classify", required=True, nargs=1, type=Path, help="classify_rule.yaml")
-        ps.add_argument("-f", "--file", required=True, nargs=1, type=Path, help="changed files desc file.")
-        # 子命令行
-        sub_ps = ps.add_subparsers(help="Sub-Command")
-        p_ut = sub_ps.add_parser('get_related_ut', help="Get related ut.")
-        p_ut.set_defaults(func=Parser.get_related_ut)
-        p_st = sub_ps.add_parser('get_related_st', help="Get related st.")
-        p_st.set_defaults(func=Parser.get_related_st)
-        p_examples = sub_ps.add_parser('get_related_examples', help="Get related examples.")
-        p_examples.set_defaults(func=Parser.get_related_examples)
-        # 处理
-        args = ps.parse_args()
-        logging.debug(args)
-        if not Parser.parse_classify_file(file=Path(args.classify[0])):
-            return ""
-        if not Parser.parse_changed_file(file=Path(args.file[0])):
-            return ""
-        Parser.print_details()
-        rst = args.func()
-        return rst
 
 
 if __name__ == '__main__':
