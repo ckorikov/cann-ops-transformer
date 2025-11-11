@@ -45,3 +45,11 @@ if(MC2_COMPILE OR SUB_MC2_COMPILE)
   add_tiling_modules()
   target_sources(${OPHOST_NAME}_tiling_obj PRIVATE ${NEW_MC2_MM_SRC})
 endif()
+
+file(GLOB OPAPI_SRC
+  src/mc2_aclnn_util.cpp
+)
+if(OPAPI_SRC)
+  add_opapi_modules()
+  target_sources(${OPHOST_NAME}_opapi_obj PRIVATE ${OPAPI_SRC})
+endif()
