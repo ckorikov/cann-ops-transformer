@@ -69,28 +69,28 @@
       <td style="white-space: nowrap">x</td>
       <td style="white-space: nowrap">输入</td>
       <td style="white-space: nowrap">公式中的输入`x`。</td>
-      <td style="white-space: nowrap">FLOAT<sup>1</sup>、FLOAT16、INT16<sup>1</sup>、INT8、INT4<sup>1</sup>、BFLOAT16、FLOAT8_E5M2<sup>2</sup>、FLOAT8_E4M3FN<sup>2</sup>、HIFLOAT8<sup>2</sup></td>
+      <td style="white-space: nowrap">FLOAT、FLOAT16、INT16、INT8、INT4、BFLOAT16、FLOAT8_E5M2<sup>1</sup>、FLOAT8_E4M3FN<sup>1</sup>、HIFLOAT8<sup>1</sup></td>
       <td style="white-space: nowrap">ND</td>
     </tr>
     <tr>
       <td style="white-space: nowrap">weight</td>
       <td style="white-space: nowrap">输入</td>
       <td style="white-space: nowrap">公式中的`weight`。</td>
-      <td style="white-space: nowrap">FLOAT<sup>1</sup>、FLOAT16、INT16<sup>1</sup>、INT8、INT4、BFLOAT16、FLOAT8_E5M2<sup>2</sup>、FLOAT8_E4M3FN<sup>2</sup>、HIFLOAT8<sup>2</sup></td>
+      <td style="white-space: nowrap">FLOAT、FLOAT16、INT16、INT8、INT4、BFLOAT16、FLOAT8_E5M2<sup>1</sup>、FLOAT8_E4M3FN<sup>1</sup>、HIFLOAT8<sup>1</sup></td>
       <td style="white-space: nowrap">ND/NZ</td>
     </tr>
     <tr>
       <td style="white-space: nowrap">biasOptional</td>
       <td style="white-space: nowrap">可选输入</td>
       <td style="white-space: nowrap">公式中的`bias`。</td>
-      <td style="white-space: nowrap">FLOAT、FLOAT16、INT32、BFLOAT16<sup>2</sup></td>
+      <td style="white-space: nowrap">FLOAT、FLOAT16、INT32、BFLOAT16<sup>1</sup></td>
       <td style="white-space: nowrap">ND</td>
     </tr>
     <tr>
       <td style="white-space: nowrap">scaleOptional</td>
       <td style="white-space: nowrap">可选输入</td>
       <td style="white-space: nowrap">公式中的`scale`，代表量化参数中的缩放因子。</td>
-      <td style="white-space: nowrap">FLOAT、UINT64、BFLOAT16、FLOAT8_E8M0<sup>2</sup>、INT64<sup>2</sup></td>
+      <td style="white-space: nowrap">FLOAT、UINT64、BFLOAT16、FLOAT8_E8M0<sup>1</sup>、INT64<sup>1</sup></td>
       <td style="white-space: nowrap">ND</td>
     </tr>
     <tr>
@@ -118,7 +118,7 @@
       <td style="white-space: nowrap">perTokenScaleOptional</td>
       <td style="white-space: nowrap">可选输入</td>
       <td style="white-space: nowrap">公式中的`per_token_scale`，代表量化参数中的由x量化引入的缩放因子。</td>
-      <td style="white-space: nowrap">FLOAT、FLOAT8_E8M0<sup>2</sup></td>
+      <td style="white-space: nowrap">FLOAT、FLOAT8_E8M0<sup>1</sup></td>
       <td style="white-space: nowrap">ND</td>
     </tr>
     <tr>
@@ -188,7 +188,7 @@
       <td style="white-space: nowrap">out</td>
       <td style="white-space: nowrap">输出</td>
       <td style="white-space: nowrap">公式中的输出`y`。</td>
-      <td style="white-space: nowrap">FLOAT、FLOAT16、INT32<sup>1</sup>、INT8<sup>1</sup>、BFLOAT16</td>
+      <td style="white-space: nowrap">FLOAT、FLOAT16、INT32、INT8、BFLOAT16</td>
       <td style="white-space: nowrap">-</td>
     </tr>
     <tr>
@@ -211,7 +211,7 @@
 
 - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：
   
-  - 上表数据类型列中的角标“2”代表该系列不支持的数据类型。
+  - 上表数据类型列中的角标“1”代表该系列不支持的数据类型。
   - 不支持FLOAT8_E5M2、FLOAT8_E4M3FN、HIFLOAT8、FLOAT8_E8M0类型。
   - 输入参数biasOptional不支持BFLOAT16。
   - 输入参数scaleOptional不支持INT64类型。
@@ -256,13 +256,13 @@
         - 对称量化场景：
           - 该场景下输出out的dtype为BFLOAT16或FLOAT16。
           - 该场景下offsetOptional为空。
-          - 该场景下仅支持count模式（算子不会检查groupListType的值），k要求为quantGroupSize的整数倍，且要求k <= 18432。其中quantGroupSize为k方向上pergroup量化长度，当前支持quantGroupSize=256。
+          - 该场景下仅支持count模式（即groupList中数值的总和应小于等于x中tensor的第一维。算子不会检查groupListType的值，会认为groupListType=1），k要求为quantGroupSize的整数倍，且要求k <= 18432。其中quantGroupSize为k方向上pergroup量化长度，当前支持quantGroupSize=256。
           - 该场景下scale为pergroup与perchannel离线融合后的结果，shape要求为$[e, quantGroupNum, n]$，其中$quantGroupNum=k \div quantGroupSize$。
           - Bias为计算过程中离线计算的辅助结果，值要求为$8\times weight \times scale$，并在第1维累加，shape要求为$[e, n]$。
           - 该场景下要求n为8的整数倍。
         - 非对称量化场景：
           - 该场景下输出out的dtype为FLOAT16。
-          - 该场景下仅支持count模式（算子不会检查groupListType的值）。
+          - 该场景下仅支持count模式（即groupList中数值的总和应小于等于x中tensor的第一维。算子不会检查groupListType的值，会认为groupListType=1）。
           - 该场景下{k, n}要求为{7168, 4096}或者{2048, 7168}。
           - scale为pergroup与perchannel离线融合后的结果，shape要求为$[e, 1, n]$。
           - 该场景下offsetOptional不为空。非对称量化offsetOptional为计算过程中离线计算辅助结果，即$antiquantOffset \times scale$，shape要求为$[e, 1, n]$，dtype为FLOAT32。
@@ -275,7 +275,7 @@
       - 该场景仅支持groupType=0(x,weight,y均为单tensor)，actType=0，groupListType=0/1。
       - 该场景不支持weight转置。
 
-    - 仅量化场景 (per-token)、反量化场景支持激活函数计算。
+    - 仅量化场景 (pertoken)、反量化场景支持激活函数计算。
 
     - <a id="groupType-constraints"></a>不同groupType支持场景：
       - 伪量化仅支持groupType为-1和0场景。
