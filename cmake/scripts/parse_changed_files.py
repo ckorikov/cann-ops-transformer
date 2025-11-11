@@ -34,6 +34,9 @@ class Module:
 
     @staticmethod
     def _add_str_cfg(src, dst: List[str]):
+        # 检查输入参数的有效性
+        if src is None:
+            return True
         if isinstance(src, str):
             src = [src]
         for s in src:
