@@ -245,7 +245,7 @@ aclnnStatus aclnnMoeDistributeDispatchV3(
   <tr>
    <td>commAlg</td>
    <td>输入</td>
-   <td>通信亲和内存布局算法：<ul><li><term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：当前版本支持nullptr， ""， "fullmesh"， "hierarchy"四种输入方式。推荐配置"hierarchy"并搭配25.0.RC1.1及以上版本驱动使用。<ul><li>nullptr和"": 仅在此场景下，HCCL_INTRA_PCIE_ENABLE和HCCL_INTRA_ROCE_ENABLE配置生效。当HCCL_INTRA_PCIE_ENABLE=1&&HCCL_INTRA_ROCE_ENABLE=0时，调用"hierarchy"算法，否则调用"fullmesh"算法。不推荐使用该方式。</li> <li>"fullmesh": token数据直接通过RDMA方式发往topk个目标专家所在的卡。</li> <li>"hierarchy": token数据经过跨机、机内两次发送，仅不同server同号卡之间使用RDMA通信，server内使用HCCS通信。</ul></li> <li><term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：当前版本仅支持""，"fullmesh_v1"，"fullmesh_v2"三种输入方式。<ul><li>""：默认值，不使能性能优化模板；</li><li>"fullmesh_v1"：不使能性能优化模板；</li><li>"fullmesh_v2"：使能性能优化模板，其中commAlg仅在tpWorldSize取值为1时生效，且不支持在各卡Bs不一致、输入xActiveMask和特殊专家场景下使能。</li></li></ul></td>
+   <td>通信亲和内存布局算法：<ul><li><term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：当前版本支持nullptr， ""， "fullmesh"， "hierarchy"四种输入方式。推荐配置"hierarchy"并搭配25.0.RC1.1及以上版本驱动使用。<ul><li>nullptr和"": 仅在此场景下，HCCL_INTRA_PCIE_ENABLE和HCCL_INTRA_ROCE_ENABLE配置生效。当HCCL_INTRA_PCIE_ENABLE=1&&HCCL_INTRA_ROCE_ENABLE=0时，调用"hierarchy"算法，否则调用"fullmesh"算法。不推荐使用该方式。</li> <li>"fullmesh": token数据直接通过RDMA方式发往topk个目标专家所在的卡。</li> <li>"hierarchy": token数据经过跨机、机内两次发送，仅不同server同号卡之间使用RDMA通信，server内使用HCCS通信。</ul></li> <li><term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：当前版本仅支持""，"fullmesh_v1"，"fullmesh_v2"三种输入方式。<ul><li>""：默认值，不使能fullmesh_v2模板；</li><li>"fullmesh_v1"：不使能fullmesh_v2模板；</li><li>"fullmesh_v2"：使能fullmesh_v2模板，其中commAlg仅在tpWorldSize取值为1时生效，且不支持在各卡Bs不一致、输入xActiveMask和特殊专家场景下使能。</li></li></ul></td>
    <td>STRING</td>
    <td>-</td>
   </tr>
