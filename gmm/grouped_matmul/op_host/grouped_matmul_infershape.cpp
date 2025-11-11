@@ -1043,7 +1043,7 @@ static ge::graphStatus CheckGroupListCommonTensor(const gert::InferShapeContext*
     OP_CHECK_NULL_WITH_CONTEXT(context, groupListDesc);
     OP_CHECK_IF(groupListDesc->GetDataType() != DataType::DT_INT64,
               OP_LOGE(context->GetNodeName(), "Invalid dtype: Only int64 is supported for groupList, but now is %s.",
-                        ToString(groupListDesc->GetDataType()).data()),
+                        TypeUtils::DataTypeToAscendString(groupListDesc->GetDataType()).GetString()),
               return GRAPH_FAILED);
     return GRAPH_SUCCESS;
 }
@@ -1499,15 +1499,15 @@ static graphStatus CheckMatmulDataType(gert::InferDataTypeContext* context, cons
                                        const DataType weightDtype, const DataType biasDtype) {
     OP_CHECK_IF(CheckTensorListDataType(context, GMM_INDEX_IN_X, xDtype) != GRAPH_SUCCESS,
               OP_LOGE(context->GetNodeName(), "x dtype does not match with required dtype[%s].",
-                        ToString(xDtype).data()),
+                        TypeUtils::DataTypeToAscendString(xDtype).GetString()),
               return GRAPH_FAILED);
     OP_CHECK_IF(CheckTensorListDataType(context, GMM_INDEX_IN_WEIGHT, weightDtype) != GRAPH_SUCCESS,
               OP_LOGE(context->GetNodeName(), "weight dtype does not match with required dtype[%s].",
-                        ToString(weightDtype).data()),
+                        TypeUtils::DataTypeToAscendString(weightDtype).GetString()),
               return GRAPH_FAILED);
     OP_CHECK_IF(CheckTensorListDataType(context, GMM_INDEX_IN_BIAS, biasDtype) != GRAPH_SUCCESS,
               OP_LOGE(context->GetNodeName(), "bias dtype does not match with required dtype[%s].",
-                        ToString(biasDtype).data()),
+                        TypeUtils::DataTypeToAscendString(biasDtype).GetString()),
               return GRAPH_FAILED);
     return GRAPH_SUCCESS;
 }
@@ -1526,7 +1526,7 @@ static graphStatus CheckNonQuantMatmulParams(fe::PlatformInfo& platformInfo, ger
     }
     OP_CHECK_IF(CheckMatmulDataType(context, xDtype, weightDtype, biasDtype) != GRAPH_SUCCESS,
               OP_LOGE(context->GetNodeName(), "case with x dtype %s and weight dtype %s is not supported!",
-                        ToString(xDtype).data(), ToString(weightDtype).data()),
+                        TypeUtils::DataTypeToAscendString(xDtype).GetString(), TypeUtils::DataTypeToAscendString(weightDtype).GetString()),
               return GRAPH_FAILED);
     return GRAPH_SUCCESS;
 }
@@ -1563,10 +1563,10 @@ static graphStatus CheckFunctionQuantParams(gert::InferDataTypeContext* context)
 static graphStatus CheckGroupedMatmulAntiQuantForDtype(gert::InferDataTypeContext* context) {
     auto xDtype = context->GetDynamicInputDataType(GMM_INDEX_IN_X, 0);
     OP_CHECK_IF(CheckTensorListDataType(context, GMM_INDEX_IN_ANTIQUANT_SCALE, xDtype) != GRAPH_SUCCESS,
-              OP_LOGE(context->GetNodeName(), "antiquantScale dtype does not match with x dtype[%s].", ToString(xDtype).data()),
+              OP_LOGE(context->GetNodeName(), "antiquantScale dtype does not match with x dtype[%s].", TypeUtils::DataTypeToAscendString(xDtype).GetString()),
               return GRAPH_FAILED);
     OP_CHECK_IF(CheckTensorListDataType(context, GMM_INDEX_IN_ANTIQUANT_OFFSET, xDtype) != GRAPH_SUCCESS,
-              OP_LOGE(context->GetNodeName(), "antiquantOffset dtype does not match with x dtype[%s].", ToString(xDtype).data()),
+              OP_LOGE(context->GetNodeName(), "antiquantOffset dtype does not match with x dtype[%s].", TypeUtils::DataTypeToAscendString(xDtype).GetString()),
               return GRAPH_FAILED);
     return GRAPH_SUCCESS;
 }
@@ -1612,13 +1612,13 @@ static graphStatus CheckFunctionParamsForDtype(gert::InferDataTypeContext* conte
         DataType biasDtype = xDtype == DataType::DT_BF16 ? DataType::DT_FLOAT: DataType::DT_FLOAT16;
         OP_CHECK_IF(CheckMatmulDataType(context, xDtype, weightDtype, biasDtype) != GRAPH_SUCCESS,
                   OP_LOGE(context->GetNodeName(), "case with x dtype %s and weight dtype %s is not supported!",
-                            ToString(xDtype).data(), ToString(weightDtype).data()),
+                            TypeUtils::DataTypeToAscendString(xDtype).GetString(), TypeUtils::DataTypeToAscendString(weightDtype).GetString()),
                   return GRAPH_FAILED);
         return CheckGroupedMatmulAntiQuantForDtype(context);
     }
     OP_LOGE(context->GetNodeName(), "GMM: there is no matching xDtype and weightDtype pattern. "
               "case with x dtype %s and weight dtype %s is not supported.",
-              ToString(xDtype).data(), ToString(weightDtype).data());
+              TypeUtils::DataTypeToAscendString(xDtype).GetString(), TypeUtils::DataTypeToAscendString(weightDtype).GetString());
     return GRAPH_FAILED;
 }
 
@@ -1637,7 +1637,7 @@ static graphStatus CheckQuantParamsDtype(const gert::InferDataTypeContext* conte
                   OP_LOGE(context->GetNodeName(), "per-token quant case only supports scale data type bfloat16 with "
                             "output data type bfloat16, or scale with data type float32 when output is float16, but "
                             "now scale[%zu] has data type %s and output has data type %s!",
-                            i, ToString(scale0Dtype).data(), ToString(yDtype).data()),
+                            i, TypeUtils::DataTypeToAscendString(scale0Dtype).GetString(), TypeUtils::DataTypeToAscendString(yDtype).GetString()),
                   return GRAPH_FAILED);
     } else {
         bool isOutputInt8 = scale0Dtype == DataType::DT_UINT64 && outputDtype == -1;
@@ -1647,13 +1647,13 @@ static graphStatus CheckQuantParamsDtype(const gert::InferDataTypeContext* conte
                   OP_LOGE(context->GetNodeName(), "per-channel quant case only supports scale with data type uint64 "
                             "when output is int8, or data type bfloat16 when output is bfloat16, or data type float32 "
                             "when output is float16, but scale[%zu] has data type %s and output has data type %s!",
-                            i, ToString(scale0Dtype).data(), ToString(yDtype).data()),
+                            i, TypeUtils::DataTypeToAscendString(scale0Dtype).GetString(), TypeUtils::DataTypeToAscendString(yDtype).GetString()),
                   return GRAPH_FAILED);
     }
     if (isPerTokenQuant) {
         OP_CHECK_IF(perTokenScale0Dtype != DataType::DT_FLOAT,
                   OP_LOGE(context->GetNodeName(), "pertoken quant case only support perTokenScale with dtype float32,"
-                            "but perTokenScale[%zu] has data type %s!", i, ToString(perTokenScale0Dtype).data()),
+                            "but perTokenScale[%zu] has data type %s!", i, TypeUtils::DataTypeToAscendString(perTokenScale0Dtype).GetString()),
                   return GRAPH_FAILED);
     }
     return GRAPH_SUCCESS;
