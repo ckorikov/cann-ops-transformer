@@ -86,7 +86,7 @@ __aicore__ inline void AllGatherAdd::HcclPrepare()
 {
     // 下发通信任务
     // sendBuf recvBuf(数据个数等于sendCount*rank size) sendCount（参与allgather的sendbuf的数据个数） dataType strideCount repeat
-    handleId_ = hccl_.AllGather<true>((__gm__ uint8_t*)this->inputAGM.GetPhyAddr(), (__gm__ uint8_t*)this->gatherOutGM.GetPhyAddr(), tilingData->gatherTileLength,
+    handleId_ = hccl_.AllGather<true>((__gm__ uint8_t*)this->inputAGM.GetPhyAddr(), (__gm__ uint8_t*)this->gatherOutGM.GetPhyAddr(), tilingData_->gatherTileLength,
                                       HcclDataType::HCCL_DATA_TYPE_FP16, 0, tilingData_->commTurn);
 }
 
@@ -130,11 +130,10 @@ __aicore__ inline void AllGatherAdd::Process()
         hccl_.Wait(handleId_);
         for (int rankId = 0; rankId < hccl_.GetRankDim(); rankId++) {
             if (rankId == hccl_.GetRankId()) {
-                continue;
+                CopyIn(i);
+                Compute();
+                CopyOut(i);
             }
-            CopyIn(i);
-            Compute();
-            CopyOut(i);
         }
     }
     HcclFinalize();
