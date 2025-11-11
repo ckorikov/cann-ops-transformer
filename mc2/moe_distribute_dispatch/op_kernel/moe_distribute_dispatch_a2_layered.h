@@ -468,7 +468,6 @@ PreloadForInner() {
     uint32_t leftTBUFTempSize = TBUF_SIZE - TBUF_TEMP_OFFSET - UB_32B_ALIGN -
                                 RoundUp(moeExpertNumInServer_, BITS32_PER_BLOCK) * sizeof(int32_t); 
     maxBSInUBForInner_ = leftTBUFTempSize / innerBlockSizeInUB * innerCntNumInBlock; // 能放的最大BS，向16向下对齐。
-    maxBSInUBForInner_ = AscendC::Std::min(maxBSInUBForInner_, RoundUp(axisBS_, BITS16_PER_BLOCK));
     innerExpIdNumInUB_ = RoundUp(maxBSInUBForInner_ * axisK_, BITS32_PER_BLOCK);
     innerExpIdSizeInUB_ = innerExpIdNumInUB_ * sizeof(int32_t);
     innerCntNumInUB_ = RoundUp(maxBSInUBForInner_, BITS16_PER_BLOCK);
