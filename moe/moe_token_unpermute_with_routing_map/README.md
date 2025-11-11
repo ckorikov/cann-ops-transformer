@@ -127,7 +127,7 @@
     <tr>
       <td>probsOptional</td>
       <td>可选输入</td>
-      <td>代表对应位置的Token被对应专家处理后的结果在最终结果中的权重，对应公式中的`probsOptional`。</td>
+      <td>代表对应位置的Token被对应专家处理后的结果在最终结果中的权重，对应公式中的`probs`。</td>
       <td>FLOAT16、BFLOAT16、FLOAT32</td>
       <td>ND</td>
     </tr>

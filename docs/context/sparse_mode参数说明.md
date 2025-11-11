@@ -92,7 +92,7 @@ $QK^T$矩阵在attenMask为True的位置会被遮蔽，效果如下：
     ![原理图](../figures/sparsemode为8遮挡矩阵.png)
 
   **说明**：
-    - sparseModeOptional=8，band表示的是第一个非空tensor的Batch的sparse类型；如果只有一个batch，用户需按照band模式的要求来配置参数；sparseModeOptional=8时，用户需要输入2048x2048的下三角mask作为该融合算子的输入。
+    - sparseModeOptional=8，band表示的是第一个非空tensor的Batch的sparse类型；如果只有一个batch，用户需按照band模式的要求来配置参数；用户需要输入2048x2048的下三角mask作为该融合算子的输入。
     - 基于sparseModeOptional=2进行外切产生的band模式的sparse的参数应符合以下条件：
        - preTokensOptional >= first_Skv。
        - nextTokensOptional >= first_Sq - first_Skv，根据实际情况进行配置。

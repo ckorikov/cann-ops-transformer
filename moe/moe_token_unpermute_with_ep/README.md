@@ -21,7 +21,7 @@ $$
 sortedIndices = sortedIndices[rangeOptional[0]<=i<rangeOptional[1]]
 $$
 
-（1）probs非None计算公式如下，其中$i \in {0, 1, 2, ..., num\_tokens - 1}$，$j \in {0, 1, 2, ..., topK\_num - 1}$，$k \in {0, 1, 2, ..., num\_tokens * topK\_num}$：
+（1）probs非None计算公式如下，其中$i \in {0, 1, 2, ..., num\_tokens - 1}$，$j \in {0, 1, 2, ..., numTopk - 1}$，$k \in {0, 1, 2, ..., num\_tokens * numTopk}$：
 
 $$
 permutedTokens = permutedTokens.indexSelect(0, sortedIndices)
@@ -32,17 +32,17 @@ permutedTokens_{k} = permutedTokens_{k} * probs_{i,j}
 $$
 
 $$
-out_{i} = \sum_{k=i*topK\_num}^{(i+1)*topK\_num - 1 } permutedTokens_{k}
+out_{i} = \sum_{k=i*numTopk}^{(i+1)*numTopk - 1 } permutedTokens_{k}
 $$
 
-（2）probs为None计算公式如下，其中$i \in {0, 1, 2, ..., num\_tokens - 1}$，$j \in {0, 1, 2, ..., topK\_num - 1}$：
+（2）probs为None计算公式如下，其中$i \in {0, 1, 2, ..., num\_tokens - 1}$，$j \in {0, 1, 2, ..., numTopk - 1}$：
 
 $$
 permutedTokens = permutedTokens.indexSelect(0, sortedIndices)
 $$
 
 $$
-out_{i} = \sum_{k=i*topK\_num}^{(i+1)*topK\_num - 1 } permutedTokens_{k}
+out_{i} = \sum_{k=i*numTopk}^{(i+1)*numTopk - 1 } permutedTokens_{k}
 $$
 
 ## 参数说明

@@ -14,7 +14,7 @@
 
 ## 功能说明
 
-- 算子功能：该算子对应MoE（Mixture of Experts，混合专家模型）中的**Routing计算**，以MoeGatingTopKSoftmax算子的输出x和expert_idx作为输入，并输出Routing矩阵expanded_x等结果供后续计算使用。本接口针对V1接口（MoeInitRouting，源码未开放）做了如下功能变更，请根据实际情况选择合适的接口：
+- 算子功能：该算子对应MoE（Mixture of Experts，混合专家模型）中的**Routing计算**，以MoeGatingTopKSoftmax算子的输出x和expertIdx作为输入，并输出Routing矩阵expanded_x等结果供后续计算使用。本接口针对V1接口（MoeInitRouting，源码未开放）做了如下功能变更，请根据实际情况选择合适的接口：
 
     - 新增Drop模式，在该模式下输出内容会将每个专家需要处理的Token个数对齐为expertCapacity个，超过expertCapacity个的Token会被Drop，不足的会用0填充。
     - 新增Dropless模式下expertTokensCountOrCumsumOut可选输出，输出每个专家需要处理的累积Token个数（Cumsum），或每个专家需要处理的Token数（Count）。

@@ -280,15 +280,6 @@
       </tr>
       <tr>
         <td> quant_scale_ckv </td>
-        <td> 无需赋值 </td>
-        <td> / </td>
-        <td> 无需赋值 </td>
-        <td> / </td>
-        <td> 无需赋值 </td>
-        <td> / </td>
-      </tr>
-      <tr>
-        <td> quant_scale_ckv </td>
         <td>无需赋值</td>
         <td> / </td>
         <td>无需赋值</td>

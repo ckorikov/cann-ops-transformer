@@ -24,7 +24,7 @@
     $$
 
     $$
-    unpermutedTokens = unpermutedTokens.reshape(-1, topK, hiddenSize)
+    unpermutedTokens = unpermutedTokens.reshape(-1, topK\_num, hiddenSize)
     $$
 
     $$

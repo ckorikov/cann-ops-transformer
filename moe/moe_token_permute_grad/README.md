@@ -22,7 +22,7 @@
   $$
   
   $$
-  inputGrad = inputGrad.reshape(-1, topK, hiddenSize)
+  inputGrad = inputGrad.reshape(-1, numTopk, hiddenSize)
   $$
   
   $$
@@ -75,7 +75,7 @@
   <tr>
    <td>out</td>
    <td>输出</td>
-   <td>输入token的梯度。</td>
+   <td>输出token的梯度。</td>
    <td>BFLOAT16、FLOAT16、FLOAT32</td>
    <td>ND</td>
   </tr>

@@ -35,13 +35,13 @@
     $$
     output= allReduce(dequantScale * pertokenScaleOptional * (x1_{int8}@x2_{int8} + biasOptional_{int32}) + x3Optional)
     $$
-  - 情形5：对量化后的入参x1、x2进行MatMul、Dequant和pertoken计算，接着与x3进行Add操作，再对输出进行perchannel量化，然后进行AllToAll通信，对第一次通讯结果进行reduceSum计算，接着进行AllGather通信，最后对第二次通信结果进行Dequant，得到最终输出。
+  - 情形5：对量化后的入参x1、x2进行MatMul、Dequant和pertoken计算，接着与x3进行Add操作，再对输出进行per-channel量化，然后进行AllToAll通信，对第一次通讯结果进行reduceSum计算，接着进行AllGather通信，最后对第二次通信结果进行Dequant，得到最终输出。
     $$
-    matmulAddOutPut = (dequantScale * pertokenScaleOptional * (x1_{int8}@x2_{int8} + biasOptional_{int32}) + x3Optional);
+    matmulAddOutput = (dequantScale * pertokenScaleOptional * (x1_{int8}@x2_{int8} + biasOptional_{int32}) + x3Optional);
     $$
 
     $$
-    alltoallOutPut_{int8} = alltoall(matmulAddOutPut / commQuantScale1Optional); 
+    alltoallOutPut_{int8} = alltoall(matmulAddOutput / commQuantScale1Optional); 
     $$
 
     $$
@@ -146,23 +146,23 @@
       <td>ND</td>
     </tr>
     <tr>
-      <td>antiquant_scale</td>
+      <td>antiquantScale</td>
       <td>可选输入</td>
-      <td>公式中的输入antiquant_scale。</td>
+      <td>公式中的输入antiquantScale。</td>
       <td>FLOAT16、BFLOAT16、FLOAT</td>
       <td>ND</td>
     </tr>
     <tr>
-      <td>antiquant_offset</td>
+      <td>antiquantOffset</td>
       <td>可选输入</td>
-      <td>公式中的输入antiquant_offset。</td>
+      <td>公式中的输入antiquantOffset。</td>
       <td>FLOAT16、BFLOAT16、FLOAT</td>
       <td>ND</td>
     </tr>
     <tr>
-      <td>dequant_scale</td>
+      <td>dequantScale</td>
       <td>可选输入</td>
-      <td>MatMul计算后的去量化系数，即公式中的输入dequant_scale。</td>
+      <td>MatMul计算后的去量化系数，即公式中的输入dequantScale。</td>
       <td>FLOAT16、BFLOAT16、FLOAT、UINT64、FLOAT8_E8M0</td>
       <td>ND</td>
     </tr>
@@ -176,14 +176,14 @@
     <tr>
       <td>comm_quant_scale_1</td>
       <td>可选输入</td>
-      <td>matmulAdd计算后的perchannel量化系数，即公式中的输入comm_quant_scale_1。</td>
+      <td>matmulAdd计算后的per-channel量化系数，即公式中的输入comm_quant_scale_1。</td>
       <td>FLOAT、BFLOAT16、FLOAT16</td>
       <td>ND</td>
     </tr>
     <tr>
       <td>comm_quant_scale_2</td>
       <td>可选输入</td>
-      <td>allGather计算后的perchannel量化系数，即公式中的输入comm_quant_scale_2。</td>
+      <td>allGather计算后的per-channel量化系数，即公式中的输入comm_quant_scale_2。</td>
       <td>FLOAT、BFLOAT16、FLOAT16</td>
       <td>ND</td>
     </tr>
@@ -263,7 +263,7 @@
 * 传入的x1、x2、antiquantScale或者output不为空指针。
 * 当输入x1的shape为(b, s, k)时，x3（非空场景）与输出output的shape为(b, s, n)，pertoken_scale的shape为(b*s)；当输入x1的shape为(m, k)时，x3（非空场景）与输出output的shape为(m, n)，pertoken_scale的shape为(m)。
 * 输入comm_quant_scale_1和comm_quant_scale_2可选，可为空，当x2为(k, n)时, shape可为(n)或者(1,n)。
-* 输入dequant_scale可选，可为空，shape在pertensor场景为(1)，perchannel场景为(n)/(1, n)。输出为BFLOAT16时，直接将BFLOAT16类型的dequantScale传入本接口。输出为FLOAT16时，如果pertokenScale不为空，可直接将FLOAT32类型的dequantScale传入本接口，如果pertokenScale为空，则需提前调用TransQuantParamV2算子的aclnn接口来将dequantScale转成INT64/UINT64数据类型。
+* 输入dequantScale可选，可为空，shape在pertensor场景为(1)，per-channel场景为(n)/(1, n)。输出为BFLOAT16时，直接将BFLOAT16类型的dequantScale传入本接口。输出为FLOAT16时，如果pertokenScale不为空，可直接将FLOAT32类型的dequantScale传入本接口，如果pertokenScale为空，则需提前调用TransQuantParamV2算子的aclnn接口来将dequantScale转成INT64/UINT64数据类型。
 * bias若非空，当前版本仅支持一维，shape大小与output最后一维大小相等。antiquantScale在per-tensor场景下shape为(1)，在per-channel场景下shape为(1,n)/(n)，在per-group场景shape为(ceil(k,antiquantGroupSize), n)。antiquantOffset若非空，其shape与antiquantScale一致。
 * x1和x2，x3（非空场景）、antiquantScale、antiquantOffset（非空场景）、output、bias（非空场景）的数据类型和数据格式需要在支持的范围之内。
 * x1，antiquantScale，antiquantOffset（非空场景），x3（非空场景）、bias（非空场景）output的数据类型相同。antiquantGroupSize在不支持per_group场景时，传入0，在支持per_group场景时，传入值的范围为[32, min(k-1,INT_MAX)]，且为32的倍数。k取值范围与mm接口保持一致。

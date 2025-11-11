@@ -122,7 +122,7 @@
       <td>ND</td>
     </tr>
     <tr>
-      <td>outOut</td>
+      <td>normOut</td>
       <td>输出</td>
       <td>norm计算的输出结果，对应公式中的`normOut`。</td>
       <td>FLOAT32</td>

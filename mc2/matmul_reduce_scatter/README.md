@@ -20,7 +20,7 @@
 
 计算公式：
 $$
-output=reduce_scatter_base(x1@x2+bias)
+output=reduce\_scatter\_base(x1@x2+bias)
 $$
 
 

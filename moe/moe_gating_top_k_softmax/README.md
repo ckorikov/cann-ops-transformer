@@ -70,14 +70,14 @@
     <tr>
       <td>yOut</td>
       <td>输出</td>
-      <td>公式中的`yOut`，表示对x做softmax后取topk值的索引，即专家的序号。</td>
+      <td>公式中的`yOut`，表示softmax的topk结果。</td>
       <td>INT32</td>
       <td>ND</td>
     </tr>
     <tr>
       <td>expertIdxOut</td>
       <td>输出</td>
-      <td>公式中的`expertIdxOut`，表示对x做softmax后取topk值的索引，即专家的序号。</td>
+      <td>公式中的`expertIdxOut`，表示topk的indices结果即对应的专家序号。</td>
       <td>INT32</td>
       <td>ND</td>
     </tr>

@@ -33,7 +33,7 @@
 - **Combine操作**负责整合各专家输出的计算结果，执行加权求和，并通过逆向的AllToAllV通信将处理后的Token数据恢复至原始位置，完成整个分布式专家计算的协同与整合。
 
 #### 1.2.2 技术优势
-Dispatch/Combine操作本质上是计算与通信的紧密结合。通算融合算子相较于传统的AlltoAllV通信实现了以下突破：
+Dispatch/Combine操作本质上是计算与通信的紧密结合。通算融合算子相较于传统的AllToAllV通信实现了以下突破：
 - 将路由计算等Host侧逻辑下沉至Device侧，彻底消除Host与Device间的同步开销；
 - 实现Combine操作中部分计算与AllToAllV通信的流水并行，有效掩盖计算与通信耗时。
 

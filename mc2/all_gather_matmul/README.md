@@ -73,7 +73,7 @@
     <tr>
       <td>gather_out</td>
       <td>输出</td>
-      <td>公式中的输出gather_out。</td>
+      <td>公式中的输出gatherOut。</td>
       <td>FLOAT16、BFLOAT16</td>
       <td>ND</td>
     </tr>

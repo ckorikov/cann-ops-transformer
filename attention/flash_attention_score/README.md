@@ -18,19 +18,19 @@
 
 - 算子功能：训练场景下，使用FlashAttention算法实现self-attention（自注意力）的计算：
 
-    -   psetype=1时，需要先add再mul。
-    -   psetype≠1时，需要先mul再add。
+    -   pseType=1时，需要先add再mul。
+    -   pseType≠1时，需要先mul再add。
 
 - 计算公式：
 
   注意力的正向计算公式如下：
 
-    - psetype=1时，公式如下：
+    - pseType=1时，公式如下：
       $$
       attention\_out = Dropout(Softmax(Mask(scale*(pse+query*key^T), atten\_mask)), keep\_prob)*value
       $$
 
-    - psetype≠1时，公式如下：
+    - pseType≠1时，公式如下：
       $$
       attention\_out=Dropout(Softmax(Mask(scale*(query*key^T) + pse),atten\_mask),keep\_prob)*value
       $$
@@ -146,7 +146,7 @@
       <td>ND</td>
     </tr>
     <tr>
-      <td>attentionOutOut</td>
+      <td>attentionOut</td>
       <td>输出</td>
       <td>公式中的attention_out。</td>
       <td>BFLOAT16、FLOAT16、FLOAT</td>

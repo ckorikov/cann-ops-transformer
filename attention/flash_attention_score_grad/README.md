@@ -18,18 +18,18 @@
 
 - 算子功能：训练场景下计算注意力的反向输出，即FlashAttentionScore的反向计算：
 
-  - psetype=1时，需要先add再mul。
-  - psetype≠1时，需要先mul再add。
+  - pseType=1时，需要先add再mul。
+  - pseType≠1时，需要先mul再add。
 
 - 计算公式：
 
   已知注意力的正向计算公式为：
-  - psetype=1时，公式如下：
+  - pseType=1时，公式如下：
 
     $$
     Y=Dropout(Softmax(Mask(\frac{QK^T+pse}{\sqrt{d}}),atten\_mask),keep\_prob)V
     $$
-  - psetype≠1时，公式如下：
+  - pseType≠1时，公式如下：
 
     $$
     Y=Dropout(Softmax(Mask(\frac{QK^T}{\sqrt{d}}+pse),atten\_mask),keep\_prob)V
@@ -121,7 +121,7 @@
       <td>dropMaskOptional</td>
       <td>可选输入</td>
       <td>公式中的Dropout，表示数据丢弃掩码。取值为1代表保留该数据，为0代表丢弃该数据。</td>
-      <td>UNIT8</td>
+      <td>UINT8</td>
       <td>ND</td>
     </tr>
     <tr>

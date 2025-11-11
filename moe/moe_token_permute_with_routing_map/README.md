@@ -14,7 +14,7 @@
 
 ## 功能说明
 
-算子功能：MoE的permute计算，将token和expert的标签作为routingMap传入，根据routingMaps将tokens和可选probsOptional广播后排序。
+算子功能：MoE的permute计算，将token和expert的标签作为routingMap传入，根据routingMap将tokens和可选probsOptional广播后排序。
 
 计算公式：
   tokens\_num 为routingMap的第0维大小，expert\_num为routingMap的第1维大小。
@@ -62,21 +62,21 @@
   $$
   
   $$
-  permutedTokensOut = tokens.index_select(0, sorted_indices)
+  permutedTokensOut = tokens.index_select(0, sortedIndicesOut)
   $$
   
 - 如果probs不是`none`时：
   
   $$
-  robs\_T\_1D = probsOptional.T.view(-1)
+  probs\_T\_1D = probsOptional.T.view(-1)
   $$
   
   $$
-  indices\_dim0 = arange(num\_experts)
+  indices\_dim0 = arange(expert\_num)
   $$
   
   $$
-  indices\_dim1 = sorted_indices.view(expert\_num, capacity)
+  indices\_dim1 = sortedIndicesOut.view(expert\_num, capacity)
   $$
   
   $$
@@ -162,7 +162,7 @@
 
 ## 约束说明
 
- - tokens_num和experts_num要求小于`16777215`。
+ - tokens_num和expert_num要求小于`16777215`。
  - pad模式为false时routingMap中每行为1或true的个数固定且小于`512`。
  
 ## 调用说明

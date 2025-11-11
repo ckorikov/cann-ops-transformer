@@ -23,13 +23,13 @@ permuteTokenId, outIndex= sortedIndices.sort(dim=-1)
 $$
 
 $$
-capacity = permutedTokenOutputGrad.size(0) / numExperts
+capacity = permutedTokenOutputGrad.size(0) / experts\_num
 $$
 
 - probs不为None：
   
   $$
-  probsGradOutOptional = zeros(tokens_num, numExperts)
+  probsGradOutOptional = zeros(tokens\_num, experts\_num)
   $$
   
   - paddedMode为true时
@@ -46,11 +46,11 @@ $$
 - probs为None：
   
   $$
-  tokensGradout= zeros(restoreShape, dtype=permutedTokens.dtype, device=permutedTokens.device)
+  tokensGradOut= zeros(restoreShape, dtype=permutedTokens.dtype, device=permutedTokens.device)
   $$
   
   $$
-  tokensGradout[permuteTokenId[i]] += permutedTokens[outIndex[i]]
+  tokensGradOut[permuteTokenId[i]] += permutedTokens[outIndex[i]]
   $$
 
 
