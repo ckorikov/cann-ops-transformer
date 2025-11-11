@@ -214,16 +214,16 @@ public:
             if ASCEND_IS_AIV {
                 int64_t x1ScaleMOffset = (aQuantMode == GroupedMatmul::QuantMode::PERGROUP_MODE) ?
                                              mOffset :
-                                             CeilDiv(mOffset, PER_BLOCK_SIZE);
+                                             mOffset / PER_BLOCK_SIZE;
                 if constexpr (isTransA) {
                     Get<2>(offset) = x1ScaleMOffset; // 2: idx of x1Scale
                 } else {
                     Get<2>(offset) = x1ScaleMOffset * CeilDiv(k, PER_BLOCK_SIZE); // 2: idx of x1Scale
                 }
                 if constexpr (isTransB) {
-                    Get<3>(offset) = CeilDiv(nOffset, PER_BLOCK_SIZE) * CeilDiv(k, PER_BLOCK_SIZE); // 3: idx of x2Scale
+                    Get<3>(offset) = nOffset / PER_BLOCK_SIZE * CeilDiv(k, PER_BLOCK_SIZE); // 3: idx of x2Scale
                 } else {
-                    Get<3>(offset) = CeilDiv(nOffset, PER_BLOCK_SIZE); // 3: idx of x2Scale
+                    Get<3>(offset) = nOffset / PER_BLOCK_SIZE; // 3: idx of x2Scale
                 }
             }
         } else if constexpr (aQuantMode == GroupedMatmul::QuantMode::MX_PERGROUP_MODE) {

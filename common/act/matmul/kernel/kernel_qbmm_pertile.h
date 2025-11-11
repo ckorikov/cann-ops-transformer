@@ -314,6 +314,8 @@ __aicore__ inline void QuantMmBatchPertile<QBMM_PERTILE_KERNEL_FUN_TEM_PARAMS>::
     Get<MNK_M>(problemShape_) = params.qbmmParams.m;
     Get<MNK_N>(problemShape_) = params.qbmmParams.n;
     Get<MNK_K>(problemShape_) = params.qbmmParams.k;
+    mTailTile_ = params.qbmmParams.mTailTile;
+    nTailTile_ = params.qbmmParams.nTailTile;
 
     isPertile_ = (params.qbmmParams.groupSizeM == 1);
     if ASCEND_IS_AIC {
