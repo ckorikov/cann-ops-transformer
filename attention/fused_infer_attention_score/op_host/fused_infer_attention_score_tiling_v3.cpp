@@ -484,6 +484,60 @@ bool CheckGqaFeatureSupport(gert::TilingContext *context)
     return true;
 }
 
+bool CheckSpecConditions(gert::TilingContext *context)
+{
+    auto tempQ = context->GetInputShape(QUERY_INDEX);
+    auto tempK = context->GetInputShape(KEY_INDEX);
+    auto tempV = context->GetInputShape(VALUE_INDEX);
+    auto kvDimNum = tempK->GetStorageShape().GetDimNum();
+    auto qRope = context->GetOptionalInputTensor(QUERY_ROPE_INDEX);
+    auto kRope = context->GetOptionalInputTensor(KEY_ROPE_INDEX);
+    auto tempAttnMaskShape = context->GetOptionalInputShape(ATTEN_MASK_INDEX);
+    auto qDataType = context->GetInputDesc(QUERY_INDEX)->GetDataType();
+
+    auto attrs = context->GetAttrs();
+    string inputLayoutStr = string(attrs->GetAttrPointer<char>(ATTR_INPUT_LAYOUT_INDEX));
+    int32_t headNum = *(attrs->GetAttrPointer<int32_t>(ATTR_N_INDEX));
+    int32_t kvHeadNum = *(attrs->GetAttrPointer<int32_t>(ATTR_NUM_KV_HEADS_INDEX));
+    int32_t innerPrecise = *(attrs->GetAttrPointer<int32_t>(ATTR_INNER_PRECISE_INDEX));
+    int32_t sparseMode = *(attrs->GetAttrPointer<int32_t>(ATTR_SPARSE_MODE_INDEX));
+    
+    bool isLayoutSupported = (inputLayoutStr == "TND") ? true : false;
+    bool isPageAttention = context->GetOptionalInputShape(BLOCK_TABLE_INDEX) != nullptr ? true : false;
+    bool isLearnableSink = context->GetOptionalInputTensor(LEARNABLE_SINK_INDEX) != nullptr ? true : false;
+    bool sparseModeSupported = (sparseMode == 0) || (sparseMode == 3);
+    bool isRopeSplitMla = (qRope != nullptr) && (kRope != nullptr);
+    
+    bool isMha = (kvHeadNum == 0) || (headNum == kvHeadNum);
+    bool mhaConditions = isMha && (tempAttnMaskShape == nullptr) &&
+        (qDataType == ge::DT_FLOAT16) && (innerPrecise == 1) && !isPageAttention;
+    bool nonMhaConditions = !isMha && (innerPrecise == 0);
+    bool specConditionFlag = false;
+    if (isLayoutSupported && !isLearnableSink && !isRopeSplitMla && sparseModeSupported &&
+        (nonMhaConditions || mhaConditions)) {
+        int64_t tempQD = tempQ->GetStorageShape().GetDim(DIM_2);
+        if (!isPageAttention) {
+            int64_t tempKD = tempK->GetStorageShape().GetDim(DIM_2);
+            int64_t tempVD = tempV->GetStorageShape().GetDim(DIM_2);
+            bool isFAIDSize = (tempQD <= 128U && tempKD <= 128 && tempVD <= 128) ||
+                    (tempQD == 256 && tempKD == 256 && tempVD == 256);
+            if (isFAIDSize) {
+                specConditionFlag = true;
+            }
+        } else if (kvDimNum == 3U) {
+            int64_t tempKD = (tempK->GetStorageShape().GetDim(DIM_2)) / kvHeadNum;
+            int64_t tempVD = (tempV->GetStorageShape().GetDim(DIM_2)) / kvHeadNum;
+            int64_t blockSize = tempK->GetStorageShape().GetDim(DIM_1);
+            bool isFAIDSize = (tempQD <= 128U && tempKD <= 128 && tempVD <= 128) ||
+                    (tempQD == 256 && tempKD == 256 && tempVD == 256);
+            if (isFAIDSize && blockSize == 128U) {
+                specConditionFlag = true;
+            }
+        }
+    }
+    return specConditionFlag;
+}
+
 bool CheckGqaConstrain(gert::TilingContext *context)
 {
     if (CheckGqaInputLayoutSupport(context) && 
@@ -574,7 +628,11 @@ bool RouteToFia(gert::TilingContext *context)
         // GQA非量化
         if ((qDataType == ge::DT_FLOAT16 || qDataType == ge::DT_BF16) && (qDataType == kDataType)) {
             OP_LOGI(context->GetNodeName(), "FIA GQA No quant.");
-            return CheckGqaConstrain(context);
+            if (!CheckSpecConditions(context)) {
+                return CheckGqaConstrain(context);
+            } else {
+                return false;
+            }
         }
     }
     return false;
