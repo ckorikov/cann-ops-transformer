@@ -17,9 +17,7 @@ $$
 - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：该接口必须与aclnnMoeDistributeCombineV2配套使用。
 - <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：该接口必须与aclnnMoeDistributeCombineV2或aclnnMoeDistributeCombineAddRmsNorm配套使用。
 
-> 说明：
->
-> aclnnMoeDistributeCombineV2、aclnnMoeDistributeCombineAddRmsNorm算子在后续文档中统称为CombineV2系列算子。
+> 说明：aclnnMoeDistributeCombineV2、aclnnMoeDistributeCombineAddRmsNorm算子在后续文档中统称为CombineV2系列算子。
 
 相较于aclnnMoeDistributeDispatch接口，该接口变更如下：
 
@@ -30,13 +28,12 @@ $$
 
 ## 参数说明
 
-<table style="undefined;table-layout: fixed; width: 1576px">
- <colgroup>
-  <col style="width: 170px">
-  <col style="width: 170px">
-  <col style="width: 800px">
-  <col style="width: 800px">
-  <col style="width: 200px">
+<table style="undefined;table-layout: fixed; width: 1392px"> <colgroup>
+ <col style="width: 120px">
+ <col style="width: 120px">
+ <col style="width: 160px">
+ <col style="width: 150px">
+ <col style="width: 80px">
  </colgroup>
  <thead>
   <tr>
