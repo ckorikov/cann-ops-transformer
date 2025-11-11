@@ -52,8 +52,8 @@ struct PromptFlashAttentionTypeTraitsNZ
     using mmInputType = T;
     using mmBiasType = T;
     using mmOutputType = T;
-    using softmaxType = std::conditional_t<M == ModeNZ::HighPrecisionNZ, float, T>;
-    using mm1OutputType = std::conditional_t<M == ModeNZ::HighPrecisionNZ, float, T>;
+    using softmaxType = typename AscendC::Conditional<M == ModeNZ::HighPrecisionNZ, float, T>::type;
+    using mm1OutputType = typename AscendC::Conditional<M == ModeNZ::HighPrecisionNZ, float, T>::type;
 };
 
 constexpr uint32_t BOOLBYTENUM_NZ = 32U;
