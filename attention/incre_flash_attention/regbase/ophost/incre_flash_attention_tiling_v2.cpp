@@ -972,11 +972,6 @@ ge::graphStatus IFATilingV2::ProcessOptionalTensors() {
 }
 
 void IFATilingV2::SetfaRunFlag() {
-  uint64_t tilingkey = GenTilingKeyfaRun();
-  if ((tilingkey == 10000000023000501) || (tilingkey == 10000000011000300)) {
-    faRunFlagAntiq_ = false;
-    return;
-  }
   if (antiQuantFlag_) {
     faRunFlagAntiq_ = true;
     if(sOfQuery_ == NUM1) {

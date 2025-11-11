@@ -2142,15 +2142,9 @@ inline __aicore__ void incre_flash_attention_FIAS_regbase(__gm__ uint8_t *query,
   TILING_KEY_IS(10000000515200302);
   
   #if TILING_KEY_VAR == 10000000011000300
-    TPipe tPipe;
-    COPY_TILING_DATA(tiling, NEED_CUBE_TILING);
-    IncreFlashAttentionAntiqSplitBbn2s2Us2<IFAType<half, int8_t, half, half, false, false, LAYOUT::BNSD, 0, INPUTKVTYPE::INT8, IFA_PROFILE_D64, true>> op(*tiling_data);
-    REGIST_MATMUL_OBJ(&tPipe, GetSysWorkSpacePtr(), MM1_OBJ, (TCubeTiling*)nullptr, MM2_OBJ, (TCubeTiling*)nullptr);
-    op.Init(query, key, value, pseShift, attenMask, actualSeqLengthsQ, actualSeqLengths, blocktable, queryPaddingSize, kvPaddingSize, attentionOut, softmaxLse, user,
-      tiling_data, &tPipe);
-    op.InitQuant(deqScale1, quantScale1, deqScale2, quantScale2, quantOffset2, antiquantScale, antiquantOffset,
-      keyAntiquantScale, keyAntiquantOffset, valueAntiquantScale, valueAntiquantOffset, user);
-    op.Process();
+    INVOKE_FA_OP_IMPL_ASCEND910_95_ANTIQUANT_BASEAPI(BaseApi::FlashAttentionScoreAntiquantKernel, half, int8_t, float, half, ImplModeEnum::AA_HIGH_PRECISION,
+    LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned16, S2TemplateType::Aligned1024, DTemplateType::Aligned64, DTemplateType::Aligned64,
+    PseTypeEnum::PSE_NONE_TYPE, AntiquantTypeEnum::PER_CHANNEL, true, false, false, true, false, false);
   #elif TILING_KEY_VAR == 10000000010000300
     INVOKE_FA_OP_IMPL_ASCEND910_95_ANTIQUANT_BASEAPI(BaseApi::FlashAttentionScoreAntiquantKernel, half, int8_t, float, half, ImplModeEnum::AA_HIGH_PRECISION,
     LayOutTypeEnum::LAYOUT_BNSD, S1TemplateType::Aligned16, S2TemplateType::Aligned1024, DTemplateType::Aligned64, DTemplateType::Aligned64,
@@ -8778,15 +8772,9 @@ inline __aicore__ void incre_flash_attention_FIAS_regbase(__gm__ uint8_t *query,
     LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned16, S2TemplateType::Aligned512, DTemplateType::Aligned64, DTemplateType::Aligned64,
     PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, AntiquantTypeEnum::PER_CHANNEL, false, false, false, true, false, false);
   #elif TILING_KEY_VAR == 10000000023000501 // mask
-    TPipe tPipe;
-    COPY_TILING_DATA(tiling, NEED_CUBE_TILING);
-    IncreFlashAttentionAntiqSplitBbn2s2Us2<IFAType<half, hifloat8_t, half, half, false, false, LAYOUT::BSH, 0, INPUTKVTYPE::HIF8, IFA_PROFILE_D128, true, true>> op(*tiling_data);
-    REGIST_MATMUL_OBJ(&tPipe, GetSysWorkSpacePtr(), MM1_OBJ, (TCubeTiling*)nullptr, MM2_OBJ, (TCubeTiling*)nullptr);
-    op.Init(query, key, value, pseShift, attenMask, actualSeqLengthsQ, actualSeqLengths, blocktable, queryPaddingSize, kvPaddingSize, attentionOut, softmaxLse, user,
-      tiling_data, &tPipe);
-    op.InitQuant(deqScale1, quantScale1, deqScale2, quantScale2, quantOffset2, antiquantScale, antiquantOffset,
-      keyAntiquantScale, keyAntiquantOffset, valueAntiquantScale, valueAntiquantOffset, user);
-    op.Process();
+    INVOKE_FA_OP_IMPL_ASCEND910_95_ANTIQUANT_BASEAPI(BaseApi::FlashAttentionScoreAntiquantKernel, half, hifloat8_t, float, half, ImplModeEnum::AA_HIGH_PRECISION,
+    LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned16, S2TemplateType::Aligned512, DTemplateType::Aligned128, DTemplateType::Aligned128,
+    PseTypeEnum::PSE_OUTER_MUL_ADD_TYPE, AntiquantTypeEnum::PER_CHANNEL, true, false, false, true, false, false);
   #elif TILING_KEY_VAR == 10000000022000501
     INVOKE_FA_OP_IMPL_ASCEND910_95_ANTIQUANT_BASEAPI(BaseApi::FlashAttentionScoreAntiquantKernel, half, hifloat8_t, float, half, ImplModeEnum::AA_HIGH_PRECISION,
     LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned16, S2TemplateType::Aligned512, DTemplateType::Aligned128, DTemplateType::Aligned128,
