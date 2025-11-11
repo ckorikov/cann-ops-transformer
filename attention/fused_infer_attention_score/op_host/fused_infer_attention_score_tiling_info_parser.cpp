@@ -503,7 +503,7 @@ ge::graphStatus FiaInfoParser::GetKvLayout()
         } else if (keyDimNum == 5U) {
             kvLayout_ = FiaLayout::NZ;
         } else {
-            OP_LOGE(opName_, "the first tensor of %s's tensor list is %u dim, only support 3/4/5.",
+            OP_LOGE(opName_, "when Page Attention enabled, the first tensor of %s's tensor list is %u dim, only support 3/4/5.",
                 KEY_NAME.c_str(), keyDimNum);
             return ge::GRAPH_FAILED;
         }

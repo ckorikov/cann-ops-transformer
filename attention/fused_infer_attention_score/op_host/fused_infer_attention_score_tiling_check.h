@@ -39,6 +39,7 @@ constexpr size_t DIM_NUM_ONE = 1;
 constexpr size_t DIM_NUM_TWO = 2;
 constexpr size_t DIM_NUM_THREE = 3;
 constexpr size_t DIM_NUM_FOUR = 4;
+constexpr size_t DIM_NUM_FIVE = 5;
 
 constexpr size_t HEAD_DIM_512 = 512;
 constexpr size_t SHAPE_NUM_ONE = 1;
