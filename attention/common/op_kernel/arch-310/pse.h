@@ -104,7 +104,7 @@ __aicore__ inline void DataCopyInAlign8(LocalTensor<INPUT_T> &dstTensor, GlobalT
 }
 
 template <bool hasPse, bool isInfer = false, bool hasRope = false>
-__aicore__ inline int64_t PseComputeOffset(RunInfo<isInfer> &runInfo, 
+__aicore__ inline int64_t PseComputeOffset(const RunInfo<isInfer> &runInfo, 
     ConstInfo<isInfer, hasRope> &constInfo, PseInfo &pseInfo)
 {
     if constexpr (hasPse == true) {
@@ -140,7 +140,7 @@ __aicore__ inline int64_t PseComputeOffset(RunInfo<isInfer> &runInfo,
 }
 
 template <bool hasPse, bool isInfer = false, bool hasRope = false>
-__aicore__ inline int64_t PseAlibiComputeOffset(RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo, PseInfo &pseInfo)
+__aicore__ inline int64_t PseAlibiComputeOffset(const RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo, PseInfo &pseInfo)
 {
     if constexpr (hasPse == true) {
         int64_t bOffset = (runInfo.boIdx % pseInfo.pseBSize) * constInfo.n2G * pseInfo.pseS2Size * pseInfo.pseS1Size;
@@ -187,7 +187,7 @@ __aicore__ inline int64_t PseAlibiComputeOffset(RunInfo<isInfer> &runInfo, Const
 }
 
 template <bool hasPse, bool isInfer = false, bool hasRope = false>
-__aicore__ inline bool NeedPseAlibiCompute(RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo, PseInfo &pseInfo)
+__aicore__ inline bool NeedPseAlibiCompute(const RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo, PseInfo &pseInfo)
 {
     if constexpr (hasPse == true) {
         // Alibi编码只计算下三角
@@ -203,7 +203,7 @@ __aicore__ inline bool NeedPseAlibiCompute(RunInfo<isInfer> &runInfo, ConstInfo<
 
 template <typename T, typename INPUT_T, bool hasPse, bool isInfer = false, bool hasRope = false>
 __aicore__ inline void PseAlibiCopyIn(LocalTensor<INPUT_T> &dstTensor, GlobalTensor<INPUT_T> &srcTensor,
-                                      RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo, PseInfo &pseInfo)
+                                      const RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo, PseInfo &pseInfo)
 {
     if constexpr (hasPse == true) {
         if (!NeedPseAlibiCompute<hasPse>(runInfo, constInfo, pseInfo)) {
@@ -224,7 +224,7 @@ __aicore__ inline void PseAlibiCopyIn(LocalTensor<INPUT_T> &dstTensor, GlobalTen
 
 template <typename T, typename INPUT_T, bool hasPse, bool isInfer = false, bool hasRope = false>
 __aicore__ inline void PseCopyIn(LocalTensor<INPUT_T> &dstTensor, GlobalTensor<INPUT_T> &srcTensor,
-                                 RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo, PseInfo &pseInfo)
+                                 const RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo, PseInfo &pseInfo)
 {
     if constexpr (hasPse == true) {
         if (pseInfo.pseEncodeType == pseEncodeALibiS2Full) {
@@ -251,7 +251,7 @@ __aicore__ inline void PseCopyIn(LocalTensor<INPUT_T> &dstTensor, GlobalTensor<I
 
 template <typename T, typename INPUT_T, bool hasPse, bool isInfer = false, bool hasRope = false>
 __aicore__ inline void PseCopyIn(TQue<QuePosition::VECIN, 1> &pseInQue, GlobalTensor<INPUT_T> &srcTensor,
-                                 RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo, PseInfo &pseInfo)
+                                 const RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo, PseInfo &pseInfo)
 {
     if constexpr (hasPse == true) {
         LocalTensor<INPUT_T> pseUb = pseInQue.template AllocTensor<INPUT_T>();
@@ -282,7 +282,7 @@ __aicore__ inline void PseCopyIn(TQue<QuePosition::VECIN, 1> &pseInQue, GlobalTe
 }
 
 template <typename T, typename INPUT_T, bool hasPse, bool isInfer = false, bool hasRope = false>
-__aicore__ inline void ComputeInnerPseOffset(float &slopes, float &posShift, RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo,
+__aicore__ inline void ComputeInnerPseOffset(float &slopes, float &posShift, const RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo,
                                              PseInfo &pseInfo, __gm__ uint8_t *pseSlope)
 {
     if constexpr (hasPse)

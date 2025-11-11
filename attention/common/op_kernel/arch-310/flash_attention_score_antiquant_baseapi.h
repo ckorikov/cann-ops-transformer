@@ -282,23 +282,23 @@ protected:
         int64_t s2LoopLimit, int64_t multiCoreInnerIdx);
     __aicore__ inline void ComputeBmm1Tail(RunInfo<isInfer> &runInfo, RunParamStr<isInfer> &runParam);
     __aicore__ inline void IterateBmm1(RunInfo<isInfer> &runInfo, RunParamStr<isInfer> &runParam, const int64_t &subTaskId);
-    __aicore__ inline void AntiquantKey(RunInfo<isInfer> &runInfo, int64_t &subTaskId, bool &first, RunParamStr<isInfer> &runParam);
-    __aicore__ inline void AntiquantValue(RunInfo<isInfer> &runInfo, int64_t &subTaskId, bool &first, RunParamStr<isInfer> &runParam);
+    __aicore__ inline void AntiquantKey(const RunInfo<isInfer> &runInfo, int64_t &subTaskId, bool &first, RunParamStr<isInfer> &runParam);
+    __aicore__ inline void AntiquantValue(const RunInfo<isInfer> &runInfo, int64_t &subTaskId, bool &first, RunParamStr<isInfer> &runParam);
     __aicore__ inline void ProcessVec1(RunInfo<isInfer> &runInfo);
     __aicore__ inline void ProcessVec1Nd(RunInfo<isInfer> &runInfo);
     __aicore__ inline void ProcessVec2(RunInfo<isInfer> &runInfo);
     __aicore__ inline void ProcessVec2S2Split(RunInfo<isInfer> &runInfo);
-    __aicore__ inline void ComputeLogSumExpAndCopyToGm(RunInfo<isInfer> &runInfo);
-    __aicore__ inline void SoftmaxLseCopyOut(LocalTensor<float> &softmaxSumTmp, LocalTensor<float> &softmaxMaxTmp, RunInfo<isInfer> &runInfo);
+    __aicore__ inline void ComputeLogSumExpAndCopyToGm(const RunInfo<isInfer> &runInfo);
+    __aicore__ inline void SoftmaxLseCopyOut(LocalTensor<float> &softmaxSumTmp, LocalTensor<float> &softmaxMaxTmp, const RunInfo<isInfer> &runInfo);
     template<typename VEC2_RES_T>
-    __aicore__ inline void Bmm2DataCopyOut(RunInfo<isInfer> &runInfo, LocalTensor<VEC2_RES_T> &vec2ResUb, int64_t vec2S1Idx, int64_t vec2CalcSize = 0);
+    __aicore__ inline void Bmm2DataCopyOut(const RunInfo<isInfer> &runInfo, LocalTensor<VEC2_RES_T> &vec2ResUb, int64_t vec2S1Idx, int64_t vec2CalcSize = 0);
     template<typename VEC2_RES_T>
-    __aicore__ inline void RowInvalid(LocalTensor<VEC2_RES_T> &vec2ResUb, int64_t vec2S1Idx, RunInfo<isInfer> &runInfo, int64_t dSizeAligned64);
-    __aicore__ inline int64_t ComputeOffsetForSoftmax(RunInfo<isInfer> &runInfo, const int64_t vec2S1Idx);
-    __aicore__ inline void IterateBmm2(const int64_t &subTaskId, RunInfo<isInfer> &runInfo);
+    __aicore__ inline void RowInvalid(LocalTensor<VEC2_RES_T> &vec2ResUb, int64_t vec2S1Idx, const RunInfo<isInfer> &runInfo, int64_t dSizeAligned64);
+    __aicore__ inline int64_t ComputeOffsetForSoftmax(const RunInfo<isInfer> &runInfo, const int64_t vec2S1Idx);
+    __aicore__ inline void IterateBmm2(const int64_t &subTaskId, const RunInfo<isInfer> &runInfo);
     __aicore__ inline void GetSeqQlenKvlenByBoidx(int64_t boIdx, int64_t &actualSeqQlen, int64_t &actualSeqKvLen);
     /*FD相关*/
-    __aicore__ inline void Bmm2FDOut( RunInfo<isInfer> &runInfo, LocalTensor<T> &vec2ResUb, int64_t vec2CalcSize);
+    __aicore__ inline void Bmm2FDOut(const RunInfo<isInfer> &runInfo, LocalTensor<T> &vec2ResUb, int64_t vec2CalcSize);
     __aicore__ inline void InitFDBuffers();
     __aicore__ inline void FlashDecodeCompute();
     __aicore__ inline void GetActualSeqLenKV(int64_t boIdx, int64_t &actualSeqKvLen);
@@ -308,11 +308,11 @@ protected:
     __aicore__ inline void CopyLseIn(uint32_t bIdx, uint32_t n2Idx, uint32_t startRow, uint32_t dealRowCount);
     __aicore__ inline void CopyFinalResOut(uint64_t attenOutOffset, LocalTensor<T> &accumOutLocal, uint32_t startRow, uint32_t dealRowCount, uint64_t perChannelQuantOffset);
     __aicore__ inline void CopyAccumOutIn(uint32_t bIdx, uint32_t n2Idx, uint32_t splitKVIndex, uint32_t startRow, uint32_t dealRowCount);
-    __aicore__ inline void GetKvByTensorList(RunInfo<isInfer>& runInfo, GlobalTensor<KV_T>& keyValueGm, GlobalTensor<KV_T>& tempKeyValueGm);
+    __aicore__ inline void GetKvByTensorList(const RunInfo<isInfer>& runInfo, GlobalTensor<KV_T>& keyValueGm, GlobalTensor<KV_T>& tempKeyValueGm);
     __aicore__ inline void ReduceFinalRes(uint32_t bIdx, uint32_t n2Idx, LocalTensor<T> &dst, LocalTensor<T> &lseLocal, uint32_t startRow, uint32_t dealRowCount);
     __aicore__ inline void ReduceFDDataCopyOut(uint64_t attenOutOffset, LocalTensor<OUTPUT_T> &attenOutUb, uint32_t startRow,
         uint32_t dealRowCount, uint32_t columnCount, uint32_t actualColumnCount);
-    __aicore__ inline void SoftmaxDataCopyOut(RunInfo<isInfer> &runInfo);
+    __aicore__ inline void SoftmaxDataCopyOut(const RunInfo<isInfer> &runInfo);
     __aicore__ inline void InvalidLineProcess(RunInfo<isInfer> &runInfo, LocalTensor<T> &sumUb, LocalTensor<T> &maxUb);
     __aicore__ inline bool SoftmaxInvalidLineCheck(LocalTensor<T> &maxUb, uint32_t negativeIntScalar, SoftMaxShapeInfo &softmaxShapeInfo);
 };
@@ -1206,7 +1206,7 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
 }
 
 CHILD_SPEC_TEMPLATE_ANTI
-__aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_ARGS_ANTI>::GetKvByTensorList(RunInfo<isInfer>& runInfo,
+__aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_ARGS_ANTI>::GetKvByTensorList(const RunInfo<isInfer>& runInfo,
     GlobalTensor<KV_T>& keyValueGm, GlobalTensor<KV_T>& tempKeyValueGm)
 {
     if (constInfo.isKvContinuous != 0) {
@@ -1219,7 +1219,7 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
 }
 
 CHILD_SPEC_TEMPLATE_ANTI
-__aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_ARGS_ANTI>::AntiquantKey(RunInfo<isInfer> &runInfo, 
+__aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_ARGS_ANTI>::AntiquantKey(const RunInfo<isInfer> &runInfo, 
     int64_t &subTaskId, bool &first, RunParamStr<isInfer> &runParam)
 {
     Buffer<BufferType::L1> outBufAntiKey = this->kvAntiquantRes.Get();
@@ -1270,7 +1270,7 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
 }
 
 CHILD_SPEC_TEMPLATE_ANTI
-__aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_ARGS_ANTI>::AntiquantValue(RunInfo<isInfer> &runInfo, 
+__aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_ARGS_ANTI>::AntiquantValue(const RunInfo<isInfer> &runInfo, 
     int64_t &subTaskId, bool &first, RunParamStr<isInfer> &runParam)
 {
     Buffer<BufferType::L1> outBufAntiValue = this->kvAntiquantRes.Get();
@@ -1579,7 +1579,7 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
 
 CHILD_SPEC_TEMPLATE_ANTI
 template <typename VEC2_RES_T>
-__aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_ARGS_ANTI>::Bmm2DataCopyOut(RunInfo<isInfer> &runInfo, 
+__aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_ARGS_ANTI>::Bmm2DataCopyOut(const RunInfo<isInfer> &runInfo, 
     LocalTensor<VEC2_RES_T> &vec2ResUb, int64_t vec2S1Idx, int64_t vec2CalcSize)
 {
     LocalTensor<OUTPUT_T> attenOut;
@@ -1652,7 +1652,7 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
 CHILD_SPEC_TEMPLATE_ANTI
 template <typename VEC2_RES_T>
 __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_ARGS_ANTI>::RowInvalid(
-    LocalTensor<VEC2_RES_T> &vec2ResUb, int64_t vec2S1Idx, RunInfo<isInfer> &runInfo, int64_t dSizeAligned64)
+    LocalTensor<VEC2_RES_T> &vec2ResUb, int64_t vec2S1Idx, const RunInfo<isInfer> &runInfo, int64_t dSizeAligned64)
 {
     if constexpr (isInfer && hasAtten) {
         if (!constInfo.isRowInvalid || \
@@ -1766,14 +1766,14 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
 
 CHILD_SPEC_TEMPLATE_ANTI
 __aicore__ inline int64_t FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_ARGS_ANTI>::ComputeOffsetForSoftmax(
-        RunInfo<isInfer> &runInfo, const int64_t vec2S1Idx)
+        const RunInfo<isInfer> &runInfo, const int64_t vec2S1Idx)
 {
     return vec2S1Idx * runInfo.vec2S1BaseSize;
 }
 
 CHILD_SPEC_TEMPLATE_ANTI
 __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_ARGS_ANTI>::SoftmaxLseCopyOut(
-    LocalTensor<float> &softmaxSumTmp, LocalTensor<float> &softmaxMaxTmp, RunInfo<isInfer> &runInfo)
+    LocalTensor<float> &softmaxSumTmp, LocalTensor<float> &softmaxMaxTmp, const RunInfo<isInfer> &runInfo)
 {
     if (unlikely(runInfo.halfS1RealSize == 0)) {
         return;
@@ -1810,7 +1810,7 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
 }
 
 CHILD_SPEC_TEMPLATE_ANTI
-__aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_ARGS_ANTI>::Bmm2FDOut(RunInfo<isInfer> &runInfo,
+__aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_ARGS_ANTI>::Bmm2FDOut(const RunInfo<isInfer> &runInfo,
     LocalTensor<T> &vec2ResUb, int64_t vec2CalcSize)
 {
     LocalTensor<T> attenOut;
@@ -1883,7 +1883,7 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
     }
 
     mm1ResL0C.Set<HardEvent::M_FIX>(); // 通知
-    mm1ResL0C.Wait<HardEvent::M_FIX>(); // 等待L0C
+    mm1ResL0C.Wait<HardEvent::M_FIX>(); // 等待
 
     CrossCoreSetFlag<SYNC_MODE, PIPE_MTE1>(CV_L1_EVENT[subTaskId % 2]); // 2 is double buffer
     CrossCoreSetFlag<SYNC_MODE, PIPE_MTE1>(16 + CV_L1_EVENT[subTaskId % 2]); // 16 is Vec num, 2 is double buffer
@@ -1909,7 +1909,7 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
 
 CHILD_SPEC_TEMPLATE_ANTI
 __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_ARGS_ANTI>::IterateBmm2(
-    const int64_t &subTaskId, RunInfo<isInfer> &runInfo)
+    const int64_t &subTaskId, const RunInfo<isInfer> &runInfo)
 {
     CrossCoreWaitFlag<SYNC_MODE, PIPE_MTE1>(VC_L1_EVENT[subTaskId % 2]); // 2 is double buffer
     CrossCoreWaitFlag<SYNC_MODE, PIPE_MTE1>(16 + VC_L1_EVENT[subTaskId % 2]); // 16 is Vec num, 2 is double buffer
@@ -1931,11 +1931,9 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
                                 mmL0BBuffers,
                                 mm2ResL0C.GetTensor<T>(),
                                 param);
-    // inputBufA.Set<HardEvent::MTE1_MTE2>(); // 释放
-    // inputBufB.Set<HardEvent::MTE1_MTE2>(); // 释放
 
     mm2ResL0C.Set<HardEvent::M_FIX>(); // 通知
-    mm2ResL0C.Wait<HardEvent::M_FIX>(); // 等待L0C
+    mm2ResL0C.Wait<HardEvent::M_FIX>(); // 等待
 
     CrossCoreSetFlag<SYNC_MODE, PIPE_MTE1>(CV_L1_EVENT[subTaskId % 2]); // 2 is double buffer
     CrossCoreSetFlag<SYNC_MODE, PIPE_MTE1>(16 + CV_L1_EVENT[subTaskId % 2]); // 16 is Vec num, 2 is double buffer
@@ -1962,7 +1960,7 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
 //fd
 CHILD_SPEC_TEMPLATE_ANTI
 __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_ARGS_ANTI>::ComputeLogSumExpAndCopyToGm(
-    RunInfo<isInfer> &runInfo)
+    const RunInfo<isInfer> &runInfo)
 {
     if (unlikely(runInfo.halfS1RealSize == 0)) {
         return;
@@ -2141,9 +2139,12 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
     lseMaxUb.SetShapeInfo(ShapeInfo(2, shapeArray, DataFormat::ND)); // 2 for shape
 
     uint64_t perChannelQuantOffset = n2Idx * this->constInfo.dSizeV * this->constInfo.gSize;
-
-    // 非尾块处理
-    for (uint32_t i = 0; i < loopCount - 1; i++) {
+    // 融合处理: 尾块处理 + 非尾块处理
+    for (uint32_t i = 0; i <= loopCount - 1; i++) {
+        uint32_t gSplitSizeTail = gSplitSize;
+        if (tailSplitSize > 0 && i == (loopCount - 1)) {
+            gSplitSizeTail = tailSplitSize;
+        }
         uint32_t startRow = i * gSplitSize;
         CopyLseIn(bIdx, n2Idx, startRow, gSplitSize);
         LocalTensor<T> softmaxMaxLocal = softmaxMaxInputQue.DeQue<T>();
@@ -2155,36 +2156,14 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
         } else {
             lseOffset = (bIdx * constInfo.n2Size + n2Idx) * constInfo.gSize + i * gSplitSize;
         }
-        ComputeScaleValue(softmaxMaxLocal, softmaxSumLocal, gSplitSize, lseOffset);
+        ComputeScaleValue(softmaxMaxLocal, softmaxSumLocal, gSplitSizeTail, lseOffset);
 
         LocalTensor<T> tmp1 = lseMaxUb;
-        ReduceFinalRes(bIdx, n2Idx, tmp1, softmaxSumLocal, startRow, gSplitSize);
+        ReduceFinalRes(bIdx, n2Idx, tmp1, softmaxSumLocal, startRow, gSplitSizeTail);
 
         softmaxMaxInputQue.FreeTensor(softmaxMaxLocal);
         softmaxSumInputQue.FreeTensor(softmaxSumLocal);
-        CopyFinalResOut(attenOutOffset, tmp1, startRow, gSplitSize, perChannelQuantOffset);
-    }
-    // 尾块处理
-    if (tailSplitSize > 0) {
-        uint32_t startRow = (loopCount - 1) * gSplitSize;
-        CopyLseIn(bIdx, n2Idx, startRow, tailSplitSize);
-        LocalTensor<T> softmaxMaxLocal = softmaxMaxInputQue.DeQue<T>();
-        // 内存复用，同时作为输出 scale 值
-        LocalTensor<T> softmaxSumLocal = softmaxSumInputQue.DeQue<T>();
-        if constexpr (layout == LayOutTypeEnum::LAYOUT_TND) {
-            uint64_t batchoffset = bIdx == 0 ? 0 : actualSeqQlenAddr[bIdx - 1] * constInfo.n2G;
-            lseOffset = batchoffset + n2Idx * constInfo.gSize + (loopCount - 1) * gSplitSize;
-        } else {
-            lseOffset = (bIdx * constInfo.n2Size + n2Idx) * constInfo.gSize + (loopCount - 1) * gSplitSize;
-        }
-        ComputeScaleValue(softmaxMaxLocal, softmaxSumLocal, tailSplitSize, lseOffset);
-
-        LocalTensor<T> tmp1 = lseMaxUb;
-        ReduceFinalRes(bIdx, n2Idx, tmp1, softmaxSumLocal, startRow, tailSplitSize);
-
-        softmaxMaxInputQue.FreeTensor(softmaxMaxLocal);
-        softmaxSumInputQue.FreeTensor(softmaxSumLocal);
-        CopyFinalResOut(attenOutOffset, tmp1, startRow, tailSplitSize, perChannelQuantOffset);
+        CopyFinalResOut(attenOutOffset, tmp1, startRow, gSplitSizeTail, perChannelQuantOffset);
     }
 }
 
@@ -2316,7 +2295,6 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
     DataCopyPad(this->attentionOutGm[attenOutOffset + startRow * actualColumnCount], attenOutUb, dataCopyParams);
 }
 
-/*当前用不到*/
 CHILD_SPEC_TEMPLATE_ANTI
 __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_ARGS_ANTI>::InvalidLineProcess(
     RunInfo<isInfer> &runInfo, LocalTensor<T> &sumUb, LocalTensor<T> &maxUb)
@@ -2337,7 +2315,6 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
     }
 }
 
-/*当前用不到*/
 CHILD_SPEC_TEMPLATE_ANTI
 __aicore__ inline bool FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_ARGS_ANTI>::SoftmaxInvalidLineCheck(
     LocalTensor<T> &maxUb, uint32_t negativeIntScalar, SoftMaxShapeInfo &softmaxShapeInfo)
@@ -2364,7 +2341,7 @@ __aicore__ inline bool FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
 /*当前用不到*/
 CHILD_SPEC_TEMPLATE_ANTI
 __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_ARGS_ANTI>::SoftmaxDataCopyOut(
-    RunInfo<isInfer> &runInfo)
+    const RunInfo<isInfer> &runInfo)
 {
     if constexpr (isInfer) {
         return;

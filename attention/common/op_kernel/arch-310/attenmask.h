@@ -106,7 +106,7 @@ __aicore__ inline void BoolCopyInRegbase(LocalTensor<uint8_t> &dstTensor, Global
 
 template <bool hasAtten, bool isInfer = false, bool hasRope = false>
 __aicore__ inline void GetAttenMaskComputeMode(int64_t deltaCausalOrNext, int64_t deltaPre,
-                                               int64_t s1Offset, RunInfo<isInfer> &runInfo, 
+                                               int64_t s1Offset, const RunInfo<isInfer> &runInfo, 
                                                ConstInfo<isInfer, hasRope> &constInfo,
                                                AttenMaskInfo &attenMaskInfo)
 {
@@ -157,7 +157,7 @@ __aicore__ inline void GetAttenMaskComputeMode(int64_t deltaCausalOrNext, int64_
 }
 
 template <bool hasAtten, bool isInfer = false, bool hasRope = false>
-__aicore__ inline int64_t ComputeOffsetForNoCompress(RunInfo<isInfer> &runInfo, 
+__aicore__ inline int64_t ComputeOffsetForNoCompress(const RunInfo<isInfer> &runInfo, 
     ConstInfo<isInfer, hasRope> &constInfo, AttenMaskInfo &attenMaskInfo)
 {
     if constexpr (hasAtten == true) {
@@ -297,7 +297,7 @@ __aicore__ inline void MergePrefixModeMask(LocalTensor<uint8_t> &maskPre, LocalT
 #endif
                                       
 template <bool hasAtten, bool hasRope = false, bool isInfer = false, DTemplateType dTemplateType = DTemplateType::Aligned128>
-__aicore__ inline int64_t ComputeAttenMaskInnerOffset(RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo,
+__aicore__ inline int64_t ComputeAttenMaskInnerOffset(const RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo,
                                                       AttenMaskInfo &attenMaskInfo)
 {
     if constexpr (hasAtten == true) {
@@ -424,7 +424,7 @@ __aicore__ inline int64_t ComputeAttenMaskInnerOffset(RunInfo<isInfer> &runInfo,
 }
 
 template <bool hasAtten, bool isFd = false, bool hasRope = false, bool isInfer = false, DTemplateType dTemplateType = DTemplateType::Aligned128>
-__aicore__ inline int64_t ComputeAttenMaskOffset(RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo,
+__aicore__ inline int64_t ComputeAttenMaskOffset(const RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo,
     AttenMaskInfo &attenMaskInfo)
 {
     auto result = ComputeAttenMaskInnerOffset<hasAtten, hasRope, isInfer, dTemplateType>(runInfo, constInfo, attenMaskInfo);
