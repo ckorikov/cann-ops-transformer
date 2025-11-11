@@ -88,7 +88,8 @@ bool GroupedWeightQuantBatchMatmulTiling::AnalyzeInput(const gert::TilingContext
     OP_CHECK_IF(wDesc == nullptr, OP_LOGE(context->GetNodeName(), "wDesc is nullptr."), return false);
     weightDtype_ = wDesc->GetDataType();
     auto wFormat = static_cast<ge::Format>(ge::GetPrimaryFormat(wDesc->GetStorageFormat()));
-    if (wFormat == ge::FORMAT_FRACTAL_NZ_C0_16 || wFormat == ge::FORMAT_FRACTAL_NZ_C0_32) {
+    if (wFormat == ge::FORMAT_FRACTAL_NZ_C0_16 || wFormat == ge::FORMAT_FRACTAL_NZ_C0_32 ||
+        wFormat == ge::FORMAT_FRACTAL_NZ_C0_4) {
         wFormat = ge::FORMAT_FRACTAL_NZ;
     }
     weightNzFlag_ = wFormat == ge::FORMAT_FRACTAL_NZ;
