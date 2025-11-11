@@ -36,6 +36,7 @@ public:
         }
 
         this->ProcessNormal();
+        return;
     }
 };
 

@@ -15,7 +15,7 @@
 
 #ifndef ASCENDC_FFN_H
 #define ASCENDC_FFN_H
-
+// test_ci
 #include "kernel_tiling/kernel_tiling.h"
 #include "kernel_operator.h"
 #include "lib/matmul_intf.h"
@@ -38,7 +38,7 @@ using ActiveFuncPtr = void (*)(const LocalTensor<T>, const LocalTensor<T>, uint3
 
 enum class ActiveType {
     FASTGELU = 0,
-    RELU,
+    RELU = 1,
     SILU,
     GELU,
     INVALID_TYPE
