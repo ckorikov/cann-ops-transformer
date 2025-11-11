@@ -2014,12 +2014,8 @@ ge::graphStatus FlashAttentionScoreConstTiling::DoLibApiTiling()
 
 void FlashAttentionScoreConstTiling::CalcDVBasicBlock() {
     dVBasicBlock = AlignUp(dSizeV, D_TEMPLATE_SPLIT_SIZE);
-    if (dTemplateType == DTemplateType::ALIGNED_192) {
-        if (dVBasicBlock <= NUM_128) {
-            dVTemplateType = DTemplateType::ALIGNED_128;
-        }else {
-            dVTemplateType = DTemplateType::ALIGNED_192;
-        }
+    if (dTemplateType == DTemplateType::ALIGNED_192 && hasRope) {
+        dVTemplateType = DTemplateType::ALIGNED_128;
     } else {
         dVTemplateType = dTemplateType;
     }
