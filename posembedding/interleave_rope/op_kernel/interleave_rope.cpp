@@ -43,8 +43,11 @@ extern "C" __global__ __aicore__ void interleave_rope(
         op.Init(x, cos, sin, y);
         op.Process();
     } else if (TILING_KEY_IS(INTERLEAVE_ROPE_SPLIT_S)) {
+#if defined(__DAV_C100__)
+#else
         KernelInterleaveRopeSplitS<DTYPE_X> op(&pipe, &tilingData);
         op.Init(x, cos, sin, y);
         op.Process();
+#endif
     }
 }

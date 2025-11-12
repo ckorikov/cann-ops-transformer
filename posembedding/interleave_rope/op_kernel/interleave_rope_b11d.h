@@ -123,18 +123,29 @@ public:
             LocalTensor<float> imagLocal = bufferImag.Get<float>();
             LocalTensor<float> buf_ = buffer_.Get<float>();
             uint64_t rsvdCnt = 0;
+#if defined(__DAV_C100__)
+            DataCopyParams copyParams{(uint16_t)factor, (uint16_t)(hiddenDimHalf/16), (uint16_t)(hiddenDimHalf/16), 0};
+            DataCopy(realLocal[hiddenDimCountPerLoop_ * hiddenDimHalf].template ReinterpretCast<T>(), xLocal, copyParams);
+            DataCopy(imagLocal[hiddenDimCountPerLoop_ * hiddenDimHalf].template ReinterpretCast<T>(), xLocal[hiddenDimHalf], copyParams);
+            PipeBarrier<PIPE_V>();
+#else
             GatherMask(
                 realLocal[hiddenDimCountPerLoop_ * hiddenDimHalf].template ReinterpretCast<T>(), xLocal, 1, true,
                 factor * hiddenDim, {1, 1, 8, 0}, rsvdCnt);
             GatherMask(
                 imagLocal[hiddenDimCountPerLoop_ * hiddenDimHalf].template ReinterpretCast<T>(), xLocal, numTwo, true,
                 factor * hiddenDim, {1, 1, 8, 0}, rsvdCnt);
+#endif
+            
             Cast(
                 realLocal, realLocal[hiddenDimCountPerLoop_ * hiddenDimHalf].template ReinterpretCast<T>(),
                 RoundMode::CAST_NONE, factor * hiddenDimHalf);
             Cast(
                 imagLocal, imagLocal[hiddenDimCountPerLoop_ * hiddenDimHalf].template ReinterpretCast<T>(),
                 RoundMode::CAST_NONE, factor * hiddenDimHalf);
+#if defined(__DAV_C100__)
+            PipeBarrier<PIPE_V>();
+#endif
             inQueueX.FreeTensor(xLocal);
 
             uint64_t mask[numTwo] = {0xffffffff, 0}; // mask hiddenDimHalf Elements
@@ -151,9 +162,15 @@ public:
 
             Add(outLocal, outLocal, buf_, factor * hiddenDim);
             PipeBarrier<PIPE_V>();
+#if defined(__DAV_C100__)
+            Cast(
+                outLocal[hiddenDimCountPerLoop_ * hiddenDim].template ReinterpretCast<T>(), outLocal,
+                RoundMode::CAST_NONE, factor * hiddenDim);
+#else
             Cast(
                 outLocal[hiddenDimCountPerLoop_ * hiddenDim].template ReinterpretCast<T>(), outLocal,
                 RoundMode::CAST_RINT, factor * hiddenDim);
+#endif
             PipeBarrier<PIPE_V>();
 
             outQueueY.EnQue(outLocal);

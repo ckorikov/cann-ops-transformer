@@ -44,9 +44,35 @@ public:
             .DataType({ge::DT_FLOAT16, ge::DT_BF16})
             .Format({ge::FORMAT_ND, ge::FORMAT_ND})
             .UnknownShapeFormat({ge::FORMAT_ND, ge::FORMAT_ND});
-
         this->AICore().AddConfig("ascend910b");
         this->AICore().AddConfig("ascend910_93");
+
+        OpAICoreConfig config_without_bf16;
+        config_without_bf16.Input("x")
+            .ParamType(REQUIRED)
+            .DataType({ge::DT_FLOAT16})
+            .Format({ge::FORMAT_ND})
+            .UnknownShapeFormat({ge::FORMAT_ND})
+            .AutoContiguous();
+        config_without_bf16.Input("cos")
+            .ParamType(REQUIRED)
+            .DataType({ge::DT_FLOAT16})
+            .Format({ge::FORMAT_ND})
+            .UnknownShapeFormat({ge::FORMAT_ND})
+            .AutoContiguous();
+        config_without_bf16.Input("sin")
+            .ParamType(REQUIRED)
+            .DataType({ge::DT_FLOAT16})
+            .Format({ge::FORMAT_ND})
+            .UnknownShapeFormat({ge::FORMAT_ND})
+            .AutoContiguous();
+        config_without_bf16.Output("y")
+            .ParamType(REQUIRED)
+            .DataType({ge::DT_FLOAT16})
+            .Format({ge::FORMAT_ND})
+            .UnknownShapeFormat({ge::FORMAT_ND});
+        config_without_bf16.DynamicCompileStaticFlag(true).DynamicRankSupportFlag(true).DynamicShapeSupportFlag(true);
+        this->AICore().AddConfig("ascend910", config_without_bf16);
     }
 };
 

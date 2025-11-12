@@ -219,11 +219,15 @@ public:
             PipeBarrier<PIPE_V>();
 
             // step #7: outLocal = Cast(y0, T1)
+#if defined(__DAV_C100__)
+            Cast(outLocal, y0, RoundMode::CAST_NONE, rows * headSize);
+#else
             if constexpr (std::is_same<T1, bfloat16_t>::value) {
                 Cast(outLocal, y0, RoundMode::CAST_RINT, rows * headSize);
             } else if constexpr (std::is_same<T1, half>::value) {
                 Cast(outLocal, y0, RoundMode::CAST_NONE, rows * headSize);
             }
+#endif
         }
     }
 
