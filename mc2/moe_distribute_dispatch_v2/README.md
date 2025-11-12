@@ -237,7 +237,7 @@ $$
 
 - aclnnMoeDistributeDispatchV2接口与CombineV2系列算子接口必须配套使用，具体参考调用示例。
 
-- 在不同产品型号、不同通信算法或不同版本中，aclnnMoeDistributeDispatchV2的Tensor输出assistInfoForCombineOut、epRecvCounts、tpRecvCounts、expandScales中的元素值可能不同，使用时直接将上述Tensor传给aclnnMoeDistributeCombineV2对应参数即可，模型其他业务逻辑不应对其存在依赖。
+- 在不同产品型号、不同通信算法或不同版本中，aclnnMoeDistributeDispatchV2的Tensor输出assistInfoForCombineOut、epRecvCounts、tpRecvCounts中的元素值可能不同，使用时直接将上述Tensor传给aclnnMoeDistributeCombineV2对应参数即可，模型其他业务逻辑不应对其存在依赖。
 
 - 调用接口过程中使用的groupEp、epWorldSize、moeExpertNum、groupTp、tpWorldSize、expertShardType、sharedExpertNum、sharedExpertRankNum、globalBs、commAlg参数，HCCL_BUFFSIZE取值所有卡需保持一致，网络中不同层中也需保持一致，且和CombineV2系列算子对应参数也保持一致。
 
