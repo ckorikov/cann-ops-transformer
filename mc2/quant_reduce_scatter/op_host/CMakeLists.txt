@@ -12,8 +12,10 @@ if (BUILD_OPEN_PROJECT)  # custom
         quant_reduce_scatter_def.cpp
     )
     add_mc2_modules_sources(OPTYPE quant_reduce_scatter quant_reduce_scatter ACLNNTYPE aclnn aclnn_inner)
+    set(SUB_MC2_COMPILE TRUE PARENT_SCOPE)
     set(MC2_OPT ON PARENT_SCOPE)
     set(quant_reduce_scatter_depends mc2/common mc2/3rd PARENT_SCOPE)
 else() # 回黄host
-    add_mc2_modules_sources(OPTYPE quant_reduce_scatter quant_reduce_scatter ACLNNTYPE aclnn aclnn_inner) 
+    add_mc2_modules_sources(OPTYPE quant_reduce_scatter quant_reduce_scatter ACLNNTYPE aclnn aclnn_inner)
+    set(SUB_MC2_COMPILE TRUE PARENT_SCOPE)
 endif()

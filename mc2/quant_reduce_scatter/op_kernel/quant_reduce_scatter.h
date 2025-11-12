@@ -18,7 +18,7 @@ BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULA
 
 #include <kernel_operator.h>
 #include <kernel_tiling/kernel_tiling.h>
-#include "quant_reduce_scatter_tiling.h"
+#include "quant_reduce_scatter_tiling_data.h"
 
 namespace QuantReduceScatterImpl {
 

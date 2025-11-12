@@ -15,19 +15,25 @@ BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULA
  */
 #include <kernel_operator.h>
 #include <lib/matmul_intf.h>
-#include "quant_reduce_scatter_tiling.h"
+#include "quant_reduce_scatter_tiling_data.h"
+#include "quant_reduce_scatter_tiling_key.h"
 #include "quant_reduce_scatter.h"
 
 using namespace AscendC;
 using namespace QuantReduceScatterImpl;
+#if defined(__DAV_C310__)
+#endif
 
-extern "C" __global__ __aicore__ void quant_reduce_scatter(GM_ADDR x, GM_ADDR scales, GM_ADDR xOut, GM_ADDR workspaceGM,
+template<uint32_t quantReduceScatterTemplateId>
+__global__ __aicore__ void quant_reduce_scatter(GM_ADDR x, GM_ADDR scales, GM_ADDR xOut, GM_ADDR workspaceGM,
                                                            GM_ADDR tilingGM)
 {
     REGISTER_TILING_DEFAULT(QuantReduceScatterTilingData);
     GET_TILING_DATA_WITH_STRUCT(QuantReduceScatterTilingData, tilingData, tilingGM);
     TPipe pipe;
-    QuantReduceScatter<true, true, true> op;
-    op.Init(x, scales, xOut, workspaceGM, &pipe, &tilingData);
-    op.Process();
+    if (quantReduceScatterTemplateId == MTE_COMM) {
+        QuantReduceScatter<true, true, true> op;
+        op.Init(x, scales, xOut, workspaceGM, &pipe, &tilingData);
+        op.Process();
+    }
 }
