@@ -207,18 +207,15 @@ __aicore__ inline void FlashAttentionScoreKernelInferRegbaseV2<CubeBlockType, Ve
             for (int64_t s2LoopCount = runParam.s2LoopStartIdx; s2LoopCount <= s2LoopLimit; ++s2LoopCount) {
                 if (notLastThreeLoop) {
                     RunInfo<isInfer> &runInfo1 = runInfo[taskId & 3];
-                    this->SetRunInfo(runInfo1, runParam, taskId, s2LoopCount, s2LoopLimit,
-                                    multiCoreInnerIdx);
-                    this->cubeBlock.IterateBmm1(this->bmm1ResBuf[runInfo1.taskIdMod2].template Get<T>(), runInfo1, this->constInfo);
-                    // SetFlag<HardEvent::FIX_V>(BaseClass::SYNC_C1_V1_FLAG[runInfo1.taskIdMod2]);
+                    this->SetRunInfo(runInfo1, runParam, taskId, s2LoopCount, s2LoopLimit, multiCoreInnerIdx);
+                    this->cubeBlock.IterateBmm1(this->bmm1Buffers.Get(), runInfo1, this->constInfo);
                 }
                 if (taskId > 0 && notLastTwoLoop) {
                     auto &runInfo3 = runInfo[(taskId + 3) & 3];
                     // CrossCoreWaitFlag<SYNC_MODE, PIPE_V>(BaseClass::SYNC_C1_V1_FLAG[runInfo3.taskIdMod2]); // 等待bmm1完成/等待SYNC_C1_V1_FLAG置位
                     // WaitFlag<HardEvent::FIX_V>(BaseClass::SYNC_C1_V1_FLAG[runInfo3.taskIdMod2]);
-                    LocalTensor<T> inputTensor = this->bmm1ResBuf[runInfo3.taskIdMod2].template Get<T>();
-                    Buffer<BufferType::L1, false> outputBuf = this->l1PBuffers.Get();
-                    this->vecBlock.ProcessVec1(outputBuf, inputTensor, runInfo3, this->constInfo);
+                    this->vecBlock.ProcessVec1(this->l1PBuffers.Get(), this->bmm1Buffers.Get(), runInfo3,
+                        this->constInfo);
                     // MTE3_V 在ProcessVec1中完成
                     // MTE3_MTE1 set 在ProcessVec1中完成
                 }
@@ -226,9 +223,11 @@ __aicore__ inline void FlashAttentionScoreKernelInferRegbaseV2<CubeBlockType, Ve
                     RunInfo<isInfer> &runInfo2 = runInfo[(taskId + 2) & 3];
                     // WaitFlag<HardEvent::FIX_V>(BaseClass::SYNC_V1_C2_FLAG[runInfo2.taskIdMod3]);
                     if constexpr (BaseClass::bmm2Write2Ub) {
-                        this->cubeBlock.IterateBmm2(this->bmm2ResBuf[runInfo2.taskIdMod2].template Get<T>(), this->l1PBuffers, runInfo2, this->constInfo);
+                        this->cubeBlock.IterateBmm2(this->bmm2Buffers.Get(), this->l1PBuffers, runInfo2,
+                            this->constInfo);
                     } else {
-                        this->cubeBlock.IterateBmm2(this->bmm2ResGm[runInfo2.taskIdMod3], this->l1PBuffers, runInfo2, this->constInfo);
+                        this->cubeBlock.IterateBmm2(this->bmm2ResGmBuffers.Get(), this->l1PBuffers, runInfo2,
+                            this->constInfo);
                     }
                     // SetFlag<HardEvent::FIX_V>(BaseClass::SYNC_C2_V2_FLAG[runInfo2.taskIdMod2]);
                 }
@@ -236,10 +235,9 @@ __aicore__ inline void FlashAttentionScoreKernelInferRegbaseV2<CubeBlockType, Ve
                     RunInfo<isInfer> &runInfo3 = runInfo[(taskId + 1) & 3];
                     // WaitFlag<HardEvent::FIX_V>(BaseClass::SYNC_C2_V2_FLAG[runInfo3.taskIdMod2]);
                     if constexpr (BaseClass::bmm2Write2Ub) {
-                        LocalTensor<T> bmm2Res = this->bmm2ResBuf[runInfo3.taskIdMod2].template Get<T>();
-                        this->vecBlock.ProcessVec2(bmm2Res, runInfo3, this->constInfo);
+                        this->vecBlock.ProcessVec2(this->bmm2Buffers.Get(), runInfo3, this->constInfo);
                     } else {
-                        this->vecBlock.ProcessVec2(this->bmm2ResGm[runInfo3.taskIdMod3], runInfo3, this->constInfo);
+                        this->vecBlock.ProcessVec2(this->bmm2ResGmBuffers.Get(), runInfo3, this->constInfo);
                     }
                 }
                 ++taskId;

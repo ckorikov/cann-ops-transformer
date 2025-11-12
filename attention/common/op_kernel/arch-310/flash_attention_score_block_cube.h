@@ -105,6 +105,14 @@ struct L0CBuffSel {
         BuffersPolicyDB<BufferType::L0C>>;
 };
 
+/* ============确定bmm2ResBuffer的类型============= */
+template <bool useDn, bool isFp8>
+struct Bmm2ResBuffSel {
+    using Type = std::conditional_t<(useDn && isFp8),
+        BuffersPolicySingleBuffer<BufferType::UB, SyncType::CROSS_CORE_SYNC_BOTH>,
+        BuffersPolicyDB<BufferType::UB, SyncType::CROSS_CORE_SYNC_BOTH>>;
+};
+
 TEMPLATES_DEF
 class FABlockCube {
 public:
@@ -128,7 +136,8 @@ public:
     static constexpr bool bmm2Write2Ub = bmm2OutPos == TPosition::VECCALC;
     static constexpr FixpipeConfig BMM2_FIXPIPE_CONFIG = {CO2Layout::ROW_MAJOR, bmm2Write2Ub};
     static constexpr uint32_t l1BaseD = isFp8 ? 256: ((IsSameType<INPUT_T, float>::value) ? (dBaseSize > 128 ? 96 : 128): 128);
-    using mm2ResPos = typename std::conditional<bmm2Write2Ub, LocalTensor<T>, GlobalTensor<T>&>::type;
+    using mm2ResPos = typename std::conditional<bmm2Write2Ub, Buffer<BufferType::UB, SyncType::CROSS_CORE_SYNC_BOTH>,
+        Buffer<BufferType::GM, SyncType::CROSS_CORE_SYNC_FORWARD>>::type;
 
 #if (__NPU_ARCH__ == 5102)
         GlobalTensor<uint32_t> deqScaleQKGm;
@@ -145,10 +154,12 @@ public:
 #if (__NPU_ARCH__ == 5102)
     __aicore__ inline void InitGlobalBuffer(__gm__ uint8_t *deqScaleQK, __gm__ uint8_t *deqScaleV, ConstInfo<isInfer, hasRope> &constInfo);
 #endif
-    __aicore__ inline void IterateBmm1(LocalTensor<T> outputTensor, RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo);
-
-    __aicore__ inline void IterateBmm2(mm2ResPos outputTensor, BuffersPolicy3buff<BufferType::L1, false> &inputBuf, 
+    __aicore__ inline void IterateBmm1(Buffer<BufferType::UB, SyncType::CROSS_CORE_SYNC_BOTH> &output,
         RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo);
+
+    __aicore__ inline void IterateBmm2(mm2ResPos &outputBuf,
+        BuffersPolicy3buff<BufferType::L1, SyncType::CROSS_CORE_SYNC_FORWARD> &inputBuf, RunInfo<isInfer> &runInfo,
+        ConstInfo<isInfer, hasRope> &constInfo);
 
 private:
     __aicore__ inline void InitLocalBuffer();
@@ -161,21 +172,26 @@ private:
     __aicore__ inline GlobalTensor<INPUT_T> GetKeyGm(RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo);
     __aicore__ inline GlobalTensor<INPUT_T> GetValueGm(RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo);
 
-    __aicore__ inline void IterateBmm1Nd(LocalTensor<T> outputTensor, RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo);
-    __aicore__ inline void IterateBmm1NdL0Split(LocalTensor<T> outputTensor, RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo);
-    __aicore__ inline void IterateBmm1NdL1SplitK(LocalTensor<T> outputTensor, 
+    __aicore__ inline void IterateBmm1Nd(Buffer<BufferType::UB, SyncType::CROSS_CORE_SYNC_BOTH> &outputBuf,
+        RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo);
+    __aicore__ inline void IterateBmm1NdL0Split(Buffer<BufferType::UB, SyncType::CROSS_CORE_SYNC_BOTH> &outputBuf,
+        RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo);
+    __aicore__ inline void IterateBmm1NdL1SplitK(Buffer<BufferType::UB, SyncType::CROSS_CORE_SYNC_BOTH> &outputBuf,
         RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo);
 
-    __aicore__ inline void IterateBmm1DnSplitK(LocalTensor<T> outputTensor, RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo);
-    __aicore__ inline void IterateBmm1Dn(LocalTensor<T> outputTensor, RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo);
+    __aicore__ inline void IterateBmm1DnSplitK(Buffer<BufferType::UB, SyncType::CROSS_CORE_SYNC_BOTH> &outputBuf,
+        RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo);
+    __aicore__ inline void IterateBmm1Dn(Buffer<BufferType::UB, SyncType::CROSS_CORE_SYNC_BOTH> &outputBuf,
+        RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo);
 
 #if (__NPU_ARCH__ == 5102)
     __aicore__ inline void InitQuant(ConstInfo<isInfer, hasRope> &constInfo, __gm__ uint8_t *deqScaleQK, __gm__ uint8_t *deqScaleV);
 #endif
 
     // --------------------Bmm2--------------------------
-    __aicore__ inline void IterateBmm2L1SplitN(
-        mm2ResPos outputTensor, BuffersPolicy3buff<BufferType::L1, false> &inputBuf, RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo);
+    __aicore__ inline void IterateBmm2L1SplitN(mm2ResPos &outputBuf,
+        BuffersPolicy3buff<BufferType::L1, SyncType::CROSS_CORE_SYNC_FORWARD> &inputBuf, RunInfo<isInfer> &runInfo,
+        ConstInfo<isInfer, hasRope> &constInfo);
 
     TPipe *tPipe;
     /* =====================GM变量==================== */
@@ -461,36 +477,37 @@ __aicore__ inline void FABlockCube<TEMPLATE_ARGS>::CalcS2Coord(RunInfo<isInfer> 
 
 TEMPLATES_DEF_NO_DEFAULT
 __aicore__ inline void FABlockCube<TEMPLATE_ARGS>::IterateBmm1(
-    LocalTensor<T> outputTensor, RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo)
+    Buffer<BufferType::UB, SyncType::CROSS_CORE_SYNC_BOTH> &outputBuf, RunInfo<isInfer> &runInfo,
+    ConstInfo<isInfer, hasRope> &constInfo)
 {
     CalcS1Coord(runInfo, constInfo);
     CalcS2Coord(runInfo, constInfo);
     if constexpr (isFp8) {
         if constexpr (dBaseSize > 256) {
-            IterateBmm1NdL0Split(outputTensor, runInfo, constInfo);
+            IterateBmm1NdL0Split(outputBuf, runInfo, constInfo);
         } else {
             if constexpr (useDn) {
-                IterateBmm1Dn(outputTensor, runInfo, constInfo);
+                IterateBmm1Dn(outputBuf, runInfo, constInfo);
             } else {
-                IterateBmm1Nd(outputTensor, runInfo, constInfo);
+                IterateBmm1Nd(outputBuf, runInfo, constInfo);
             }
         }
     } else {
         if constexpr (dBaseSize > 256 || IsSameType<INPUT_T, float>::value) {
-            IterateBmm1NdL1SplitK(outputTensor, runInfo, constInfo);
+            IterateBmm1NdL1SplitK(outputBuf, runInfo, constInfo);
         } else {
             if constexpr (useDn) {
                 // D > 256 不支持Dn
                 if constexpr (dBaseSize > 128){
-                    IterateBmm1DnSplitK(outputTensor, runInfo, constInfo);
+                    IterateBmm1DnSplitK(outputBuf, runInfo, constInfo);
                 } else {
-                    IterateBmm1Dn(outputTensor, runInfo, constInfo);
+                    IterateBmm1Dn(outputBuf, runInfo, constInfo);
                 }
             } else {
                 if constexpr (dBaseSize > 128) {
-                    IterateBmm1NdL0Split(outputTensor, runInfo, constInfo);
+                    IterateBmm1NdL0Split(outputBuf, runInfo, constInfo);
                 } else {
-                    IterateBmm1Nd(outputTensor, runInfo, constInfo);
+                    IterateBmm1Nd(outputBuf, runInfo, constInfo);
                 }
             }
         }
@@ -498,17 +515,19 @@ __aicore__ inline void FABlockCube<TEMPLATE_ARGS>::IterateBmm1(
 }
 
 TEMPLATES_DEF_NO_DEFAULT
-__aicore__ inline void FABlockCube<TEMPLATE_ARGS>::IterateBmm2L1SplitN(
-    mm2ResPos outputTensor, BuffersPolicy3buff<BufferType::L1, false> &inputBuf, RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo) 
+__aicore__ inline void FABlockCube<TEMPLATE_ARGS>::IterateBmm2L1SplitN(mm2ResPos &outputBuf,
+    BuffersPolicy3buff<BufferType::L1, SyncType::CROSS_CORE_SYNC_FORWARD> &inputBuf, RunInfo<isInfer> &runInfo,
+    ConstInfo<isInfer, hasRope> &constInfo) 
 {
+    Buffer<BufferType::L1, SyncType::CROSS_CORE_SYNC_FORWARD> mm2A = inputBuf.Get();
+    mm2A.WaitCrossCore();
+
     // dVTemplateType > 256, L1切N, 左矩阵不变，右矩阵每次循环搬运S2 * 128
     if constexpr (bmm2Write2Ub) {
-        CrossCoreWaitFlag<SYNC_MODE, PIPE_FIX>(MM2_RES_INTRA_EVENT[runInfo.taskIdMod2]);
-        CrossCoreWaitFlag<SYNC_MODE, PIPE_FIX>(16 + MM2_RES_INTRA_EVENT[runInfo.taskIdMod2]);
+        outputBuf.WaitCrossCore();
     }
     constexpr uint32_t baseN = l1BaseD;
     uint32_t nLoops = ((uint32_t)constInfo.dSizeV + baseN - 1) / baseN; // 尾块处理
-    Buffer<BufferType::L1, false> mm2A = inputBuf.Get();
     uint32_t realN = baseN;
     for (uint32_t n = 0; n < nLoops; ++n) {
         if (n == nLoops - 1) {
@@ -591,14 +610,17 @@ __aicore__ inline void FABlockCube<TEMPLATE_ARGS>::IterateBmm2L1SplitN(
         fixpipeParams.params.ndNum = 1;
         fixpipeParams.params.srcNdStride = 0;
         fixpipeParams.params.dstNdStride = 0;
-        Fixpipe<T, T, BMM2_FIXPIPE_CONFIG>(outputTensor[gmNOffset], mm2ResL0C.GetTensor<T>(), fixpipeParams); // 将matmul结果从L0C搬运到UB
+        Fixpipe<T, T, BMM2_FIXPIPE_CONFIG>(outputBuf.template GetTensor<T>()[gmNOffset], mm2ResL0C.GetTensor<T>(),
+            fixpipeParams); // 将matmul结果从L0C搬运到UB
         mm2ResL0C.Set<HardEvent::FIX_M>(); // 释放
     }
+    outputBuf.SetCrossCore();
 }
 
 TEMPLATES_DEF_NO_DEFAULT
-__aicore__ inline void FABlockCube<TEMPLATE_ARGS>::IterateBmm2(
-    mm2ResPos outputTensor, BuffersPolicy3buff<BufferType::L1, false> &inputBuf, RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo)
+__aicore__ inline void FABlockCube<TEMPLATE_ARGS>::IterateBmm2(mm2ResPos &outputBuf,
+    BuffersPolicy3buff<BufferType::L1, SyncType::CROSS_CORE_SYNC_FORWARD> &inputBuf, RunInfo<isInfer> &runInfo,
+    ConstInfo<isInfer, hasRope> &constInfo)
 {
     if constexpr (isInfer && layout == LayOutTypeEnum::LAYOUT_BNSD) {
         if (constInfo.isKvContinuous == 0) {
@@ -606,11 +628,11 @@ __aicore__ inline void FABlockCube<TEMPLATE_ARGS>::IterateBmm2(
         }
     }
     if constexpr (IsSameType<INPUT_T, float>::value || (uint32_t)dVTemplateType > 256 || (uint32_t)dTemplateType > 256) {
-        IterateBmm2L1SplitN(outputTensor, inputBuf, runInfo, constInfo);
+        IterateBmm2L1SplitN(outputBuf, inputBuf, runInfo, constInfo);
     } else {
-        Buffer<BufferType::L1, false> mm2A = inputBuf.Get();
+        Buffer<BufferType::L1, SyncType::CROSS_CORE_SYNC_FORWARD> mm2A = inputBuf.Get();
         Buffer<BufferType::L1> mm2B = l1VBuffers.Get();
-
+        mm2A.WaitCrossCore();
         mm2B.Wait<HardEvent::MTE1_MTE2>(); // 占用L1B
         LocalTensor<INPUT_T> mm2BTensor = mm2B.GetTensor<INPUT_T>();
         if constexpr (isPa) {
@@ -731,17 +753,12 @@ __aicore__ inline void FABlockCube<TEMPLATE_ARGS>::IterateBmm2(
             fixpipeParams.quantPre = QuantMode_t::DEQF16;
             fixpipeParams.deqScalar = 0x3F800000; // constInfo.deqScaleVValue;
         }
-        Fixpipe<T, int32_t, BMM2_FIXPIPE_CONFIG>(outputTensor, mm2ResL0C.GetTensor<int32_t>(), fixpipeParams); // 将matmul结果从L0C搬运到UB
+        Fixpipe<T, int32_t, BMM2_FIXPIPE_CONFIG>(outputBuf.template GetTensor<T>(), mm2ResL0C.GetTensor<int32_t>(),
+            fixpipeParams); // 将matmul结果从L0C搬运到UB
         mm2ResL0C.Set<HardEvent::FIX_M>(); // 释放
 #else
         if constexpr (bmm2Write2Ub) {
-            if constexpr (isFp8 && useDn) {
-                CrossCoreWaitFlag<SYNC_MODE, PIPE_FIX>(MM2_RES_INTRA_EVENT[0]);
-                CrossCoreWaitFlag<SYNC_MODE, PIPE_FIX>(16 + MM2_RES_INTRA_EVENT[0]);
-            } else {
-                CrossCoreWaitFlag<SYNC_MODE, PIPE_FIX>(MM2_RES_INTRA_EVENT[runInfo.taskIdMod2]);
-                CrossCoreWaitFlag<SYNC_MODE, PIPE_FIX>(16 + MM2_RES_INTRA_EVENT[runInfo.taskIdMod2]);
-            }
+            outputBuf.WaitCrossCore();
         }
 
         FixpipeParamsC310<CO2Layout::ROW_MAJOR> fixpipeParams; // L0C→UB;FixpipeParamsM300:L0C→UB
@@ -762,8 +779,9 @@ __aicore__ inline void FABlockCube<TEMPLATE_ARGS>::IterateBmm2(
         fixpipeParams.params.ndNum = 1;
         fixpipeParams.params.srcNdStride = 0;
         fixpipeParams.params.dstNdStride = 0;
-        Fixpipe<T, T, BMM2_FIXPIPE_CONFIG>(outputTensor, mm2ResL0C.GetTensor<T>(), fixpipeParams); // 将matmul结果从L0C搬运到UB
+        Fixpipe<T, T, BMM2_FIXPIPE_CONFIG>(outputBuf.template GetTensor<T>(), mm2ResL0C.GetTensor<T>(), fixpipeParams); // 将matmul结果从L0C搬运到UB
         mm2ResL0C.Set<HardEvent::FIX_M>(); // 释放
+        outputBuf.SetCrossCore();
 #endif
     }
 }
@@ -812,8 +830,9 @@ FABlockCube<TEMPLATE_ARGS>::GetValueGm(RunInfo<isInfer> &runInfo,
 
 /* 针对S1Base=128, S2Base = 128, D > 128场景，L1全载，左矩阵驻留 + L0切D + L0Db*/
 TEMPLATES_DEF_NO_DEFAULT
-__aicore__ inline void FABlockCube<TEMPLATE_ARGS>::IterateBmm1NdL0Split(LocalTensor<T> outputTensor, 
-    RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo)
+__aicore__ inline void FABlockCube<TEMPLATE_ARGS>::IterateBmm1NdL0Split(
+    Buffer<BufferType::UB, SyncType::CROSS_CORE_SYNC_BOTH> &outputBuf, RunInfo<isInfer> &runInfo,
+    ConstInfo<isInfer, hasRope> &constInfo)
 {
     Buffer<BufferType::L1> mm1A;
     Buffer<BufferType::L1> mm1B;
@@ -939,8 +958,7 @@ __aicore__ inline void FABlockCube<TEMPLATE_ARGS>::IterateBmm1NdL0Split(LocalTen
     mm1ResL0C.Set<HardEvent::M_FIX>(); // 通知
     mm1ResL0C.Wait<HardEvent::M_FIX>(); // 等待L0C
 
-    CrossCoreWaitFlag<SYNC_MODE, PIPE_FIX>(MM1_RES_INTRA_EVENT[runInfo.taskIdMod2]);
-    CrossCoreWaitFlag<SYNC_MODE, PIPE_FIX>(16 + MM1_RES_INTRA_EVENT[runInfo.taskIdMod2]);
+    outputBuf.WaitCrossCore();
 
     FixpipeParamsC310<CO2Layout::ROW_MAJOR> fixpipeParams; // L0C->UB
     fixpipeParams.nSize = (runInfo.s2RealSize + 7) >> 3 << 3; // L0C上的bmm1结果矩阵N方向的size大小；同mmadParams.n；8个元素（32B)对齐
@@ -951,14 +969,16 @@ __aicore__ inline void FABlockCube<TEMPLATE_ARGS>::IterateBmm1NdL0Split(LocalTen
     fixpipeParams.params.ndNum = 1;
     fixpipeParams.params.srcNdStride = 0;
     fixpipeParams.params.dstNdStride = 0;
-    Fixpipe<T, T, PFA_CFG_ROW_MAJOR_UB>(outputTensor, mm1ResL0C.GetTensor<T>(), fixpipeParams); // 将matmul结果从L0C搬运到UB
+    Fixpipe<T, T, PFA_CFG_ROW_MAJOR_UB>(outputBuf.template GetTensor<T>(), mm1ResL0C.GetTensor<T>(), fixpipeParams); // 将matmul结果从L0C搬运到UB
     mm1ResL0C.Set<HardEvent::FIX_M>(); // 释放
+    outputBuf.SetCrossCore();
 }
 
 /* 针对useDn=true, S1Base=128, S2Base = 128, 128 < D <= 256场景，L1全载，左矩阵驻留 + L0切D + L0Db*/
 TEMPLATES_DEF_NO_DEFAULT
-__aicore__ inline void FABlockCube<TEMPLATE_ARGS>::IterateBmm1DnSplitK(LocalTensor<T> outputTensor,
-    RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo)
+__aicore__ inline void FABlockCube<TEMPLATE_ARGS>::IterateBmm1DnSplitK(
+    Buffer<BufferType::UB, SyncType::CROSS_CORE_SYNC_BOTH> &outputBuf, RunInfo<isInfer> &runInfo,
+    ConstInfo<isInfer, hasRope> &constInfo)
 {
     Buffer<BufferType::L1> mm1A;
     Buffer<BufferType::L1> mm1B;
@@ -1039,8 +1059,7 @@ __aicore__ inline void FABlockCube<TEMPLATE_ARGS>::IterateBmm1DnSplitK(LocalTens
     mm1ResL0C.Set<HardEvent::M_FIX>(); // 通知
     mm1ResL0C.Wait<HardEvent::M_FIX>(); //等待L0C
 
-    CrossCoreWaitFlag<SYNC_MODE, PIPE_FIX>(MM1_RES_INTRA_EVENT[runInfo.taskIdMod2]);
-    CrossCoreWaitFlag<SYNC_MODE, PIPE_FIX>(16 + MM1_RES_INTRA_EVENT[runInfo.taskIdMod2]);
+    outputBuf.WaitCrossCore();
 
     FixpipeParamsC310<CO2Layout::ROW_MAJOR> fixpipeParams; // L0C→UB
     fixpipeParams.nSize = (runInfo.s1RealSize + 31) >> 5 << 5; // L0C上的bmm1结果矩阵N方向的size大小; 同mmadParams.n; 为什么要8个元素对齐(32B对齐) // 128
@@ -1051,14 +1070,16 @@ __aicore__ inline void FABlockCube<TEMPLATE_ARGS>::IterateBmm1DnSplitK(LocalTens
     fixpipeParams.params.ndNum = 1;
     fixpipeParams.params.srcNdStride = 0;
     fixpipeParams.params.dstNdStride = 0;
-    Fixpipe<T, T, PFA_CFG_ROW_MAJOR_UB>(outputTensor, mm1ResL0C.GetTensor<T>(), fixpipeParams); // 将matmul结果从L0C搬运到UB
+    Fixpipe<T, T, PFA_CFG_ROW_MAJOR_UB>(outputBuf.template GetTensor<T>(), mm1ResL0C.GetTensor<T>(), fixpipeParams); // 将matmul结果从L0C搬运到UB
 
     mm1ResL0C.Set<HardEvent::FIX_M>(); // 释放L0C
+    outputBuf.SetCrossCore();
 }
 
 TEMPLATES_DEF_NO_DEFAULT
 __aicore__ inline void FABlockCube<TEMPLATE_ARGS>::IterateBmm1Nd(
-    LocalTensor<T> outputTensor, RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo)
+    Buffer<BufferType::UB, SyncType::CROSS_CORE_SYNC_BOTH> &outputBuf, RunInfo<isInfer> &runInfo,
+    ConstInfo<isInfer, hasRope> &constInfo)
 {
     // 计算key的offset
     Buffer<BufferType::L1> mm1A;
@@ -1152,8 +1173,7 @@ __aicore__ inline void FABlockCube<TEMPLATE_ARGS>::IterateBmm1Nd(
     mm1ResL0C.Wait<HardEvent::M_FIX>(); //等待L0C
 
 #if (__NPU_ARCH__ != 5102)
-    CrossCoreWaitFlag<SYNC_MODE, PIPE_FIX>(MM1_RES_INTRA_EVENT[runInfo.taskIdMod2]);
-    CrossCoreWaitFlag<SYNC_MODE, PIPE_FIX>(16 + MM1_RES_INTRA_EVENT[runInfo.taskIdMod2]);
+    outputBuf.WaitCrossCore();
 #endif
 
 #if (__NPU_ARCH__ == 5102)
@@ -1170,7 +1190,7 @@ __aicore__ inline void FABlockCube<TEMPLATE_ARGS>::IterateBmm1Nd(
         fixpipeParams.quantPre = QuantMode_t::DEQF16;
         fixpipeParams.deqScalar = constInfo.deqScaleQKValue;
     }
-    Fixpipe<T, int32_t, PFA_CFG_ROW_MAJOR_UB>(outputTensor, mm1ResL0C.GetTensor<int32_t>(), fixpipeParams); // 将matmul结果从L0C搬运到UB
+    Fixpipe<T, int32_t, PFA_CFG_ROW_MAJOR_UB>(outputBuf.template GetTensor<T>(), mm1ResL0C.GetTensor<int32_t>(), fixpipeParams); // 将matmul结果从L0C搬运到UB
     mm1ResL0C.Set<HardEvent::FIX_M>(); // 释放L0C
 #else
     FixpipeParamsC310<CO2Layout::ROW_MAJOR> fixpipeParams; // L0C→UB
@@ -1182,15 +1202,17 @@ __aicore__ inline void FABlockCube<TEMPLATE_ARGS>::IterateBmm1Nd(
     fixpipeParams.params.ndNum = 1;
     fixpipeParams.params.srcNdStride = 0;
     fixpipeParams.params.dstNdStride = 0;
-    Fixpipe<T, T, PFA_CFG_ROW_MAJOR_UB>(outputTensor, mm1ResL0C.GetTensor<T>(), fixpipeParams); // 将matmul结果从L0C搬运到UB
+    Fixpipe<T, T, PFA_CFG_ROW_MAJOR_UB>(outputBuf.template GetTensor<T>(), mm1ResL0C.GetTensor<T>(), fixpipeParams); // 将matmul结果从L0C搬运到UB
     mm1ResL0C.Set<HardEvent::FIX_M>(); // 释放L0C
+    outputBuf.SetCrossCore();
 #endif
 }
 
 /* 针对S1Base=128, S2Base = 128, D > 256场景，L1层面切K，且左矩阵单Buffer+驻留，右矩阵每次重新搬运。*/
 TEMPLATES_DEF_NO_DEFAULT
-__aicore__ inline void FABlockCube<TEMPLATE_ARGS>::IterateBmm1NdL1SplitK(LocalTensor<T> outputTensor, 
-    RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo) 
+__aicore__ inline void FABlockCube<TEMPLATE_ARGS>::IterateBmm1NdL1SplitK(
+    Buffer<BufferType::UB, SyncType::CROSS_CORE_SYNC_BOTH> &outputBuf, RunInfo<isInfer> &runInfo,
+    ConstInfo<isInfer, hasRope> &constInfo) 
 {
     constexpr uint32_t baseK = l1BaseD;
     uint32_t kLoops = (constInfo.dSize + baseK - 1) / baseK; // 尾块处理
@@ -1284,8 +1306,7 @@ __aicore__ inline void FABlockCube<TEMPLATE_ARGS>::IterateBmm1NdL1SplitK(LocalTe
         mm1A.Set<HardEvent::MTE1_MTE2>();
     }
     mm1ResL0C.Set<HardEvent::M_FIX>(); // 通知
-    CrossCoreWaitFlag<SYNC_MODE, PIPE_FIX>(MM1_RES_INTRA_EVENT[runInfo.taskIdMod2]);
-    CrossCoreWaitFlag<SYNC_MODE, PIPE_FIX>(16 + MM1_RES_INTRA_EVENT[runInfo.taskIdMod2]);
+    outputBuf.WaitCrossCore();
 
     mm1ResL0C.Wait<HardEvent::M_FIX>(); // 等待L0C
     FixpipeParamsC310<CO2Layout::ROW_MAJOR> fixpipeParams; // L0C->UB
@@ -1297,13 +1318,15 @@ __aicore__ inline void FABlockCube<TEMPLATE_ARGS>::IterateBmm1NdL1SplitK(LocalTe
     fixpipeParams.params.ndNum = 1;
     fixpipeParams.params.srcNdStride = 0;
     fixpipeParams.params.dstNdStride = 0;
-    Fixpipe<T, T, PFA_CFG_ROW_MAJOR_UB>(outputTensor, mm1ResL0C.GetTensor<T>(), fixpipeParams); // 将matmul结果从L0C搬运到UB
+    Fixpipe<T, T, PFA_CFG_ROW_MAJOR_UB>(outputBuf.template GetTensor<T>(), mm1ResL0C.GetTensor<T>(), fixpipeParams); // 将matmul结果从L0C搬运到UB
     mm1ResL0C.Set<HardEvent::FIX_M>(); // 释放
+    outputBuf.SetCrossCore();
 }
 
 TEMPLATES_DEF_NO_DEFAULT
 __aicore__ inline void FABlockCube<TEMPLATE_ARGS>::IterateBmm1Dn(
-    LocalTensor<T> outputTensor, RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo)
+    Buffer<BufferType::UB, SyncType::CROSS_CORE_SYNC_BOTH> &outputBuf, RunInfo<isInfer> &runInfo,
+    ConstInfo<isInfer, hasRope> &constInfo)
 {
     Buffer<BufferType::L1> mm1A;
     Buffer<BufferType::L1> mm1B;
@@ -1404,10 +1427,10 @@ __aicore__ inline void FABlockCube<TEMPLATE_ARGS>::IterateBmm1Dn(
         fixpipeParams.quantPre = QuantMode_t::DEQF16;
         fixpipeParams.deqScalar = 0x3F800000; //constInfo.deqScaleQKValue;
     }
-    Fixpipe<T, int32_t, PFA_CFG_ROW_MAJOR_UB>(outputTensor, mm1ResL0C.GetTensor<int32_t>(), fixpipeParams); // 将matmul结果从L0C搬运到UB
+    Fixpipe<T, int32_t, PFA_CFG_ROW_MAJOR_UB>(outputBuf.template GetTensor<T>(), mm1ResL0C.GetTensor<int32_t>(),
+        fixpipeParams); // 将matmul结果从L0C搬运到UB
 #else
-    CrossCoreWaitFlag<SYNC_MODE, PIPE_FIX>(MM1_RES_INTRA_EVENT[runInfo.taskIdMod2]);
-    CrossCoreWaitFlag<SYNC_MODE, PIPE_FIX>(16 + MM1_RES_INTRA_EVENT[runInfo.taskIdMod2]);
+    outputBuf.WaitCrossCore();
 
     FixpipeParamsC310<CO2Layout::ROW_MAJOR> fixpipeParams; // L0C→UB
     fixpipeParams.nSize = (runInfo.s1RealSize + 31) >> 5 << 5; // L0C上的bmm1结果矩阵N方向的size大小; 同mmadParams.n; 为什么要8个元素对齐(32B对齐) // 128
@@ -1423,9 +1446,10 @@ __aicore__ inline void FABlockCube<TEMPLATE_ARGS>::IterateBmm1Dn(
     fixpipeParams.params.ndNum = 1;
     fixpipeParams.params.srcNdStride = 0;
     fixpipeParams.params.dstNdStride = 0;
-    Fixpipe<T, T, PFA_CFG_ROW_MAJOR_UB>(outputTensor, mm1ResL0C.GetTensor<T>(), fixpipeParams); // 将matmul结果从L0C搬运到UB
+    Fixpipe<T, T, PFA_CFG_ROW_MAJOR_UB>(outputBuf.template GetTensor<T>(), mm1ResL0C.GetTensor<T>(), fixpipeParams); // 将matmul结果从L0C搬运到UB
 #endif
     mm1ResL0C.Set<HardEvent::FIX_M>(); // 释放L0C
+    outputBuf.SetCrossCore();
 }
 
 
@@ -1445,9 +1469,14 @@ public:
         CVSharedParams<isInfer, isPa> *sharedParams, AttenMaskInfo *attenMaskInfo,
         __gm__ int64_t *actualSeqQlenAddr, __gm__ int64_t *actualSeqKvlenAddr) {}
 
-    __aicore__ inline void IterateBmm1(LocalTensor<T> outputTensor, RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo) {}
-    __aicore__ inline void IterateBmm2(LocalTensor<T> outputTensor, RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo,
-        BuffersPolicy3buff<BufferType::L1> &inputBuf) {}
+    __aicore__ inline void IterateBmm1(Buffer<BufferType::UB, SyncType::CROSS_CORE_SYNC_BOTH> &outputBuf,
+        RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo) {}
+
+    using mm2ResPos = typename std::conditional<bmm2Write2Ub, Buffer<BufferType::UB, SyncType::CROSS_CORE_SYNC_BOTH>,
+        Buffer<BufferType::GM, SyncType::CROSS_CORE_SYNC_FORWARD>>::type;
+    __aicore__ inline void IterateBmm2(mm2ResPos &outputBuf,
+        BuffersPolicy3buff<BufferType::L1, SyncType::CROSS_CORE_SYNC_FORWARD> &inputBuf,RunInfo<isInfer> &runInfo,
+        ConstInfo<isInfer, hasRope> &constInfo) {}
 #if (__NPU_ARCH__ == 5102)
     __aicore__ inline void InitGlobalBuffer(__gm__ uint8_t *deqScaleQK, __gm__ uint8_t *deqScaleV, ConstInfo<isInfer, hasRope> &constInfo) {}
 #endif
