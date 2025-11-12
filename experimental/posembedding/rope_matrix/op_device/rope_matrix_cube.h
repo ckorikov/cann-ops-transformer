@@ -32,12 +32,11 @@ public:
                                 const TCubeTiling &tiling, AscendC::TPipe *pipe);
     __aicore__ inline void Process(AscendC::TPipe *pipe, RopeMatrixTiling *ropeTiling);
     
-    static constexpr MatmulConfig MM_CFG = GetIBShareNormConfig();
     typedef MatmulType<AscendC::TPosition::GM, CubeFormat::ND, A_T> aType;
     typedef MatmulType<AscendC::TPosition::GM, CubeFormat::ND, B_T, false, LayoutMode::NONE, true> bType;
     typedef MatmulType<AscendC::TPosition::GM, CubeFormat::ND, C_T> cType;
     typedef MatmulType<AscendC::TPosition::GM, CubeFormat::ND, C_T> biasType;
-    Matmul<aType, bType, cType, biasType, MM_CFG> matmulObj;
+    Matmul<aType, bType, cType, biasType> matmulObj;
 
     AscendC::GlobalTensor<A_T> aGlobal;
     AscendC::GlobalTensor<B_T> bGlobal;
