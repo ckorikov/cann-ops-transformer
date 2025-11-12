@@ -15,6 +15,7 @@
 #include "register/op_impl_registry.h"
 #include "log/log.h"
 #include "platform/platform_info.h"
+#include "util/math_util.h"
 
 using namespace ge;
 namespace ops {
@@ -32,29 +33,33 @@ constexpr size_t QUANT_MODE_TYPE = 2;
 static ge::graphStatus InferShape4GroupedMatmulSwigluQuantV2(gert::InferShapeContext *context)
 {
     const gert::Shape *xShape = context->GetDynamicInputShape(X_INDEX, 0);
+    OP_CHECK_NULL_WITH_CONTEXT(context, xShape);
     const gert::Shape *weightScaleShape = context->GetDynamicInputShape(WEIGHTSCALE_INDEX, 0);
+    OP_CHECK_NULL_WITH_CONTEXT(context, weightScaleShape);
     int64_t m = xShape->GetDim(M_DIM_INDEX);
-    int64_t N_DIM_INDEX = weightScaleShape->GetDimNum() - 1;
+    int64_t nDimIndex = weightScaleShape->GetDimNum() - 1;
     auto outScaleShape = context->GetOutputShape(1);
-    if (N_DIM_INDEX == OUT_DIM_LEN) {
+    OP_CHECK_NULL_WITH_CONTEXT(context, outScaleShape);
+    if (nDimIndex == OUT_DIM_LEN) {
         auto attrs = context->GetAttrs();
         OP_CHECK_NULL_WITH_CONTEXT(context, attrs);
         const bool *transposeWeightPtr = attrs->GetBool(WEIGHTSCALE_INDEX);
         const bool transposeWeight = (transposeWeightPtr != nullptr ? *transposeWeightPtr : false);
-        N_DIM_INDEX = transposeWeight ? weightScaleShape->GetDimNum() - OUT_DIM_LEN :
+        nDimIndex = transposeWeight ? weightScaleShape->GetDimNum() - OUT_DIM_LEN :
                                         weightScaleShape->GetDimNum() - DIM_LEN;
-        int64_t nV2 = static_cast<int64_t>(weightScaleShape->GetDim(N_DIM_INDEX) / N_SPLIT_RATIO);
+        int64_t n = static_cast<int64_t>(Ops::Base::CeilDiv(weightScaleShape->GetDim(nDimIndex), N_SPLIT_RATIO));
         outScaleShape->SetDimNum(OUT_DIM_LEN);
         outScaleShape->SetDim(0, m);
-        outScaleShape->SetDim(1, nV2);
+        outScaleShape->SetDim(1, n);
         outScaleShape->SetDim(2, SPLIT_RATIO); // 设置outScaleShape的第2维度
     } else {
         outScaleShape->SetDimNum(1);
         outScaleShape->SetDim(0, m);
     }
 
-    int64_t n = static_cast<int64_t>(weightScaleShape->GetDim(N_DIM_INDEX) / SPLIT_RATIO);
+    int64_t n = static_cast<int64_t>(weightScaleShape->GetDim(nDimIndex) / SPLIT_RATIO);
     auto outShape = context->GetOutputShape(0);
+    OP_CHECK_NULL_WITH_CONTEXT(context, outShape);
     outShape->SetDimNum(DIM_LEN);
     outShape->SetDim(0, m);
     outShape->SetDim(1, n);
@@ -66,7 +71,9 @@ static graphStatus InferDataType4GroupedMatmulSwigluQuantV2(gert::InferDataTypeC
     auto attrs = context->GetAttrs();
     OP_CHECK_NULL_WITH_CONTEXT(context, attrs);
     const int64_t* outDtype = attrs->GetInt(GMMSQ_INDEX_ATTR_QUANT_DTYPE);
+    OP_CHECK_NULL_WITH_CONTEXT(context, outDtype);
     const int64_t* quantMode = attrs->GetInt(GMMSQ_INDEX_ATTR_QUANT_MODE);
+    OP_CHECK_NULL_WITH_CONTEXT(context, quantMode);
     context->SetOutputDataType(0, static_cast<ge::DataType>(*outDtype));  
     if (*quantMode == QUANT_MODE_TYPE) {
         context->SetOutputDataType(1, DataType::DT_FLOAT8_E8M0);

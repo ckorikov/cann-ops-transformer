@@ -13,7 +13,7 @@
 #include <memory>
 #include <unordered_map>
 #include "aclnn_gmm_dsq_base.h"
-#include "aclnn_gmmsq_v2.h"
+#include "aclnn_grouped_matmul_swiglu_quant_v2_utils.h"
 #include "grouped_matmul_swiglu_quant_v2.h"
 #include "aclnn_grouped_matmul_swiglu_quant_weight_nz_v2.h"
 #include "aclnn_grouped_matmul_swiglu_quant_v2.h"
@@ -49,7 +49,7 @@ static aclnnStatus aclnnGroupedMatmulSwigluQuantGetWorkspaceSizeCommon(const cha
     factory.registerHandler(SocVersion::ASCEND910_93,
         std::make_unique<gmm_dsq_base::GroupedMatmulSwigluQuantBaseHandler>());
     factory.registerHandler(SocVersion::ASCEND910_95,
-        std::make_unique<gmmsq_v2::GroupedMatmulSwigluQuantBaseHandler>());
+        std::make_unique<gmmSwigluQuantV2::GroupedMatmulSwigluQuantBaseHandler>());
 
     if (auto *handler = factory.getHandler(version)) {
         handler->Initialize(interfaceName, params, workspaceSize, executor);

@@ -11,12 +11,17 @@
 #include "opdev/op_log.h"
 #include "opdev/op_dfx.h"
 #include "opdev/make_op_executor.h"
+#include "util/math_util.h"
+#include "aclnn_grouped_matmul_swiglu_quant_utils.h"
 #include "grouped_matmul_swiglu_quant_v2.h"
 
 using namespace op;
+using namespace gmm_dsq;
 
 namespace l0op {
 OP_TYPE_REGISTER(GroupedMatmulSwigluQuantV2);
+
+constexpr int64_t SWIGLU_SPLIT_SIZE = 64L;
 
 const std::tuple<aclTensor *, aclTensor *> GroupedMatmulSwigluQuantV2(const aclTensor *x, const aclTensorList *weight,
                          const aclTensorList *weightScale,
@@ -43,7 +48,7 @@ const std::tuple<aclTensor *, aclTensor *> GroupedMatmulSwigluQuantV2(const aclT
         n = transposeWeight ? (*weightScale)[0]->GetViewShape().GetDim(1) : // 转置情况下weightScale的第1维是n
                             (*weightScale)[0]->GetViewShape().GetDim(2); // 非转置情况下weightScale的第2维是n
         nAfterHalve = static_cast<int64_t>(n / 2); // outShape需要为[M, N / 2]
-        int64_t nAfterSplit = static_cast<int64_t>(n / 128); // outScaleShape需要为[M, N / 128, 2]
+        int64_t nAfterSplit = static_cast<int64_t>(Ops::Base::CeilDiv(nAfterHalve, SWIGLU_SPLIT_SIZE)); 
         gert::Shape outShapeV2({m, nAfterHalve});
         gert::Shape scaleOutShapeV2({m, nAfterSplit, 2});
         out = executor->AllocTensor(outShapeV2, static_cast<ge::DataType>(quantDtype), ge::FORMAT_ND);

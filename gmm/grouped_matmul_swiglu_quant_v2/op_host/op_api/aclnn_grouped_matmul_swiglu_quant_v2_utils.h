@@ -13,7 +13,7 @@
 
 #include "aclnn_grouped_matmul_swiglu_quant_utils.h"
 
-namespace gmmsq_v2 {
+namespace gmmSwigluQuantV2 {
 
 using namespace gmm_dsq;
 
@@ -39,14 +39,6 @@ const std::initializer_list<DataType> QUANTOUT_DTYPE_SUPPORT_LIST = {DataType::D
 const std::initializer_list<DataType> QUANTSCALEOUT_DTYPE_SUPPORT_LIST = {DataType::DT_FLOAT8_E8M0};
 class GroupedMatmulSwigluQuantBaseHandler : public GroupedMatmulSwigluQuantHandler {
 protected:
-
-    int64_t Ceil(int64_t a, int64_t b)
-    {
-        if (b == 0) {
-            return 0;
-        }
-        return (a + b - 1) / b;
-    }
 
     bool IsTransposeForMxShape(const aclTensor *tensor)
     {
