@@ -456,8 +456,7 @@ aclnnStatus AclnnGroupedMatmul91095Checker<T>::CheckGroupedMatmulFp4MxDimValue()
         auto weightNDimModValue = weightNDimValue % 2;
         //2：检查K是否为偶数
         auto xKDimModValue = xKDimValue % 2;
-        bool transposeWeight = gmmParams_.transposeWeight;
-        if (!transposeWeight) {
+        if (!gmmParams_.transposeWeight) {
             CHECK_COND(weightNDimModValue == 0, ACLNN_ERR_PARAM_INVALID,
                    "When the weight is not transposed, the dim N value of %s should be even, but actual dim \
 value is %lu",

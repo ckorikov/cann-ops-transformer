@@ -9,7 +9,7 @@
  */
 
 /*!
- * \file test_quant_grouped_matmul_inplace_add.cpp
+ * \file test_aclnn_quant_grouped_matmul_inplace_add.cpp
  * \brief
  */
 

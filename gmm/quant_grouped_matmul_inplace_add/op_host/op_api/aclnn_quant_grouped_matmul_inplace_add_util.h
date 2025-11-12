@@ -11,7 +11,8 @@
 #define OP_API_INC_QUANT_GROUPED_MATMUL_INPLACE_ADD_UTIL_H
 #include "opdev/common_types.h"
 
-namespace qgmm_add {
+namespace QGmmInPlaceAdd {
+using namespace op;
 struct QuantGroupedMatmulInplaceAddParams {
     const aclTensor *x1 = nullptr;
     const aclTensor *x2 = nullptr;

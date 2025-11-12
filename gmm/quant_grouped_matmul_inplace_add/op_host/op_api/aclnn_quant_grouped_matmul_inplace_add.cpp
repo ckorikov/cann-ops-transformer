@@ -32,6 +32,7 @@
 #include "../../../grouped_matmul/op_host/op_api/aclnn_grouped_matmul_910_95_checker.h"
 #include "aclnn_quant_grouped_matmul_inplace_add_util.h"
 #include "quant_grouped_matmul_inplace_add.h"
+#include "aclnn_quant_grouped_matmul_inplace_add_910_95_checker.h"
 
 using namespace op;
 
@@ -40,7 +41,7 @@ extern "C" {
 #endif
 
 namespace {
-static aclnnStatus CheckNotNull(qgmm_add::QuantGroupedMatmulInplaceAddParams params)
+static aclnnStatus CheckNotNull(QGmmInPlaceAdd::QuantGroupedMatmulInplaceAddParams params)
 {
     CHECK_COND(params.x1 != nullptr, ACLNN_ERR_PARAM_NULLPTR, "x1 must not be nullptr.");
     CHECK_COND(params.x2 != nullptr, ACLNN_ERR_PARAM_NULLPTR, "x2 must not be nullptr.");
@@ -51,7 +52,7 @@ static aclnnStatus CheckNotNull(qgmm_add::QuantGroupedMatmulInplaceAddParams par
     return ACLNN_SUCCESS;
 }
 
-static aclnnStatus CheckFormat(qgmm_add::QuantGroupedMatmulInplaceAddParams params)
+static aclnnStatus CheckFormat(QGmmInPlaceAdd::QuantGroupedMatmulInplaceAddParams params)
 {
     CHECK_COND(params.x1->GetStorageFormat() == Format::FORMAT_ND, ACLNN_ERR_PARAM_INVALID,
                "Format of x1 should be ND, current format is invalid.");
@@ -62,16 +63,16 @@ static aclnnStatus CheckFormat(qgmm_add::QuantGroupedMatmulInplaceAddParams para
                ACLNN_ERR_PARAM_INVALID, "Format of scale2 should be ND or NCL, current format is invalid.");
     CHECK_COND(params.groupList->GetStorageFormat() == Format::FORMAT_ND, ACLNN_ERR_PARAM_INVALID,
                "Format of groupList should be ND, current format is invalid.");
-    CHECK_COND(
-        params.yRef->GetStorageFormat() == Format::FORMAT_ND || params.yRef->GetStorageFormat() == Format::FORMAT_NCL,
-        ACLNN_ERR_PARAM_INVALID, "Format of yRef should be ND or NCL, current format is invalid.");
+    CHECK_COND(params.yRef->GetStorageFormat() == Format::FORMAT_ND ||
+                   params.yRef->GetStorageFormat() == Format::FORMAT_NCL,
+               ACLNN_ERR_PARAM_INVALID, "Format of yRef should be ND or NCL, current format is invalid.");
     CHECK_COND(params.scale1Optional->GetStorageFormat() == Format::FORMAT_ND ||
                    params.scale1Optional->GetStorageFormat() == Format::FORMAT_NCL,
                ACLNN_ERR_PARAM_INVALID, "Format of scale1 should be ND or NCL, current format is invalid.");
     return ACLNN_SUCCESS;
 }
 
-static aclnnStatus IsTcQuant(qgmm_add::QuantGroupedMatmulInplaceAddParams params)
+static aclnnStatus IsTcQuant(QGmmInPlaceAdd::QuantGroupedMatmulInplaceAddParams params)
 {
     auto x1ScaleDimNum = params.scale1Optional->GetViewShape().GetDimNum();
     CHECK_COND(x1ScaleDimNum == 1 || x1ScaleDimNum == 2, ACLNN_ERR_PARAM_INVALID, // 2 max dim num in T-C quant
@@ -98,13 +99,13 @@ but the actual is (%ld, %ld).",
     auto x2ScaleLastDim = params.scale2->GetViewShape().GetDim(x2ScaleDimNum - 1);
     auto x2ScaleFirstDim = params.scale2->GetViewShape().GetDim(0);
     CHECK_COND(x2ScaleFirstDim == g && x2ScaleLastDim == nDim, ACLNN_ERR_PARAM_INVALID,
-               "In T-C quant mode, the expected shape of scale2 is (%ld, %ld), but the actual is (%ld, %ld).",
-               g, nDim, x2ScaleFirstDim, x2ScaleLastDim);
+               "In T-C quant mode, the expected shape of scale2 is (%ld, %ld), but the actual is (%ld, %ld).", g, nDim,
+               x2ScaleFirstDim, x2ScaleLastDim);
     return ACLNN_SUCCESS;
 }
 
 
-static aclnnStatus IsMxQuantDim(qgmm_add::QuantGroupedMatmulInplaceAddParams params)
+static aclnnStatus IsMxQuantDim(QGmmInPlaceAdd::QuantGroupedMatmulInplaceAddParams params)
 {
     auto x1ScaleDimNum = params.scale1Optional->GetViewShape().GetDimNum();
     auto x2ScaleDimNum = params.scale2->GetViewShape().GetDimNum();
@@ -121,7 +122,7 @@ static aclnnStatus IsMxQuantDim(qgmm_add::QuantGroupedMatmulInplaceAddParams par
     return ACLNN_SUCCESS;
 }
 
-static aclnnStatus CheckShape(qgmm_add::QuantGroupedMatmulInplaceAddParams params)
+static aclnnStatus CheckShape(QGmmInPlaceAdd::QuantGroupedMatmulInplaceAddParams params)
 {
     auto x2DimNum = params.x2->GetViewShape().GetDimNum();
     auto x1DimNum = params.x1->GetViewShape().GetDimNum();
@@ -150,12 +151,12 @@ static aclnnStatus CheckShape(qgmm_add::QuantGroupedMatmulInplaceAddParams param
     CHECK_COND(aKDim == bKDim, ACLNN_ERR_PARAM_INVALID,
                "The kDimNum of x1/x2 should be equal, but the actual is %ld/%ld.", aKDim, bKDim);
     CHECK_COND(gDim == yGDim && mDim == yMDim && nDim == yNDim, ACLNN_ERR_PARAM_INVALID,
-               "The expected shape of yRef is (%ld, %ld, %ld), but the actual is (%ld, %ld, %ld).",
-                gDim, mDim, nDim, yGDim, yMDim, yNDim);
+               "The expected shape of yRef is (%ld, %ld, %ld), but the actual is (%ld, %ld, %ld).", gDim, mDim, nDim,
+               yGDim, yMDim, yNDim);
     return ACLNN_SUCCESS;
 }
 
-static aclnnStatus CheckDtype(qgmm_add::QuantGroupedMatmulInplaceAddParams params)
+static aclnnStatus CheckDtype(QGmmInPlaceAdd::QuantGroupedMatmulInplaceAddParams params)
 {
     auto x1Dtype = params.x1->GetDataType();
     auto x2Dtype = params.x2->GetDataType();
@@ -184,15 +185,14 @@ static aclnnStatus CheckDtype(qgmm_add::QuantGroupedMatmulInplaceAddParams param
                    "With FLOAT8_E4M3FN/FLOAT8_E5M2 inputs, scale1 dtype should be FLOAT8_E8M0, actual dtype is %s.",
                    op::ToString(params.scale1Optional->GetDataType()).GetString());
     } else {
-        OP_LOGE(ACLNN_ERR_PARAM_INVALID,
-                "Quant case with x1 dtype %s and x2 dtype %s is not supported.",
+        OP_LOGE(ACLNN_ERR_PARAM_INVALID, "Quant case with x1 dtype %s and x2 dtype %s is not supported.",
                 op::ToString(x1Dtype).GetString(), op::ToString(x2Dtype).GetString());
         return ACLNN_ERR_PARAM_INVALID;
     }
     return ACLNN_SUCCESS;
 }
 
-static aclnnStatus CheckParams(qgmm_add::QuantGroupedMatmulInplaceAddParams params)
+static aclnnStatus CheckParams(QGmmInPlaceAdd::QuantGroupedMatmulInplaceAddParams params)
 {
     CHECK_RET(CheckNotNull(params) == ACLNN_SUCCESS, ACLNN_ERR_PARAM_INVALID);
     CHECK_RET(CheckFormat(params) == ACLNN_SUCCESS, ACLNN_ERR_PARAM_INVALID);
@@ -210,9 +210,15 @@ static aclnnStatus CheckParams(qgmm_add::QuantGroupedMatmulInplaceAddParams para
     gmmParams.xDtype = params.x1->GetDataType();
     gmmParams.transposeX = true;
     gmmParams.transposeWeight = false;
-    auto checker = gmm::AclnnGroupedMatmul91095Checker<aclTensor>(gmmParams);
-    checker.SetInputName("x1", "x2", "scale1Optional", "scale2", "groupList");
-    CHECK_RET(checker.CheckGroupedMatmul91095() == ACLNN_SUCCESS, ACLNN_ERR_PARAM_INVALID);
+    if (params.x1->GetDataType() == DataType::DT_HIFLOAT8 && params.x2->GetDataType() == DataType::DT_HIFLOAT8) {
+        auto checkerTC = QGmmInPlaceAdd::AclnnQuantGroupedMatmulInplaceAdd91095Checker<aclTensor>(gmmParams);
+        checkerTC.SetInputName("x1", "x2", "scale1Optional", "scale2", "groupList");
+        CHECK_RET(checkerTC.CheckQuantGroupedMatmulInplaceAdd91095() == ACLNN_SUCCESS, ACLNN_ERR_PARAM_INVALID);
+    } else {
+        auto checker = gmm::AclnnGroupedMatmul91095Checker<aclTensor>(gmmParams);
+        checker.SetInputName("x1", "x2", "scale1Optional", "scale2", "groupList");
+        CHECK_RET(checker.CheckGroupedMatmul91095() == ACLNN_SUCCESS, ACLNN_ERR_PARAM_INVALID);
+    }
     return ACLNN_SUCCESS;
 }
 
@@ -251,13 +257,15 @@ static aclnnStatus SetTransViewShapeForPertoken(const aclTensor *&inputTensor, a
     return ACLNN_SUCCESS;
 }
 
-static aclnnStatus DataContiguous(const aclTensor *&tensor, aclOpExecutor *executor) {
+static aclnnStatus DataContiguous(const aclTensor *&tensor, aclOpExecutor *executor)
+{
     tensor = l0op::Contiguous(tensor, executor);
     CHECK_RET(tensor != nullptr, ACLNN_ERR_INNER_NULLPTR);
     return ACLNN_SUCCESS;
 }
 
-static aclnnStatus ParamsDataContiguous(qgmm_add::QuantGroupedMatmulInplaceAddParams &params, aclOpExecutor *executorPtr) {
+static aclnnStatus ParamsDataContiguous(QGmmInPlaceAdd::QuantGroupedMatmulInplaceAddParams &params, aclOpExecutor *executorPtr)
+{
     CHECK_COND(DataContiguous(params.x1, executorPtr) == ACLNN_SUCCESS, ACLNN_ERR_PARAM_INVALID,
                "Contiguous x1 failed.");
     CHECK_COND(DataContiguous(params.x2, executorPtr) == ACLNN_SUCCESS, ACLNN_ERR_PARAM_INVALID,
@@ -269,10 +277,10 @@ static aclnnStatus ParamsDataContiguous(qgmm_add::QuantGroupedMatmulInplaceAddPa
     CHECK_COND(DataContiguous(params.groupList, executorPtr) == ACLNN_SUCCESS, ACLNN_ERR_PARAM_INVALID,
                "Contiguous groupList failed.");
     return ACLNN_SUCCESS;
-  }
+}
 
-static aclnnStatus aclnnQuantGroupedMatmulInplaceAddGetWorkspaceSizeCommon(
-    qgmm_add::QuantGroupedMatmulInplaceAddParams params, uint64_t *workspaceSize, aclOpExecutor **executor)
+static aclnnStatus aclnnQuantGroupedMatmulInplaceAddGetWorkspaceSizeCommon(QGmmInPlaceAdd::QuantGroupedMatmulInplaceAddParams params,
+                                                        uint64_t *workspaceSize, aclOpExecutor **executor)
 {
     // 固定写法，创建OpExecutor
     auto uniqueExecutor = CREATE_EXECUTOR();
@@ -297,7 +305,7 @@ static aclnnStatus aclnnQuantGroupedMatmulInplaceAddGetWorkspaceSizeCommon(
         }
     }
     CHECK_COND(ParamsDataContiguous(params, executorPtr) == ACLNN_SUCCESS, ACLNN_ERR_PARAM_INVALID,
-             "ParamsDataContiguous failed.");
+               "ParamsDataContiguous failed.");
     // Invoke l0 operator QuantGroupedMatmulInplaceAdd for calculation.
     auto result =
         l0op::QuantGroupedMatmulInplaceAdd(params.x1, params.x2, params.scale1Optional, params.scale2, params.groupList,
@@ -321,8 +329,8 @@ aclnnStatus aclnnQuantGroupedMatmulInplaceAddGetWorkspaceSize(const aclTensor *x
                                                               int64_t groupListType, int64_t groupSize,
                                                               uint64_t *workspaceSize, aclOpExecutor **executor)
 {
-    qgmm_add::QuantGroupedMatmulInplaceAddParams params{x1,        x2,   scale1Optional, scale2,
-                                                        groupList, yRef, groupListType,  groupSize};
+    QGmmInPlaceAdd::QuantGroupedMatmulInplaceAddParams params{x1,        x2,   scale1Optional, scale2,
+                                                       groupList, yRef, groupListType,  groupSize};
     // Standard syntax, Check parameters.
     L2_DFX_PHASE_1(aclnnQuantGroupedMatmulInplaceAdd,
                    DFX_IN(x1, x2, scale1Optional, scale2, groupList, yRef, groupListType, groupSize), DFX_OUT(yRef));
