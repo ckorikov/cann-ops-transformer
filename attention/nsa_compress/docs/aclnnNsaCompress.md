@@ -16,7 +16,7 @@
 
 - 计算公式：
 
-    Nsa Compress正向计算公式如下：
+    NSA Compress正向计算公式如下：
 $$
 \tilde{K}_t^{\text{cmp}} = f_K^{\text{cmp}}(k_{:t}) = \left\{ \varphi(k_{id+1:id+l}) \bigg| 0 \leq i \leq \left\lfloor \frac{t-l}{d} \right\rfloor \right\}
 $$
