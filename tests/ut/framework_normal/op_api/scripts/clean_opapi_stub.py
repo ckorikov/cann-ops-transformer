@@ -81,16 +81,11 @@ def main():
 
     for lib_dir in lib_paths:
         lib_file = os.path.join(lib_dir, "libopmaster_rt2.0.so")
-        if os.path.exists(lib_file):
-            try:
-                # 判断文件是否为0字节（即我们创建的占位文件）
-                if os.path.getsize(lib_file) == 0:
-                    os.remove(lib_file)
-                    logging.info("Empty placeholder file deleted: %s", lib_file)
-                else:
-                    logging.info("%s is non-empty, keeping it.", lib_file)
-            except Exception as e:
-                logging.info("Failed to process %s: %s", lib_file, e)
+        if os.path.islink(lib_file):
+            symlink = os.readlink(lib_file)
+            if symlink == "libopmaster_rt2.0.so":
+                os.unlink(lib_file)
+                logging.info("Deleted symlink:%s", symlink)
 
     logging.info("Cleanup finished.")
 

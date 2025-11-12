@@ -111,13 +111,13 @@ def main():
     for lib_dir in lib_paths:
         os.makedirs(lib_dir, exist_ok=True)
         lib_file = os.path.join(lib_dir, "libopmaster_rt2.0.so")
-        if os.path.exists(lib_file):
+        if os.path.lexists(lib_file):
             logging.info("%s already exists, skipping creation.", lib_file)
         else:
-            # 创建一个空的占位文件
-            with open(lib_file, "wb") as f:
-                pass
-            logging.info("Created %s", lib_file)
+            symlink_path = lib_file
+            if not os.path.lexists(symlink_path):
+                os.symlink("libopmaster_rt2.0.so", symlink_path)
+                logging.info("Created symlink:%s", symlink_path)
 
     # 生成runtime_stubs.cpp
     runtime_stub_path = os.path.join(runtime_stub_path)

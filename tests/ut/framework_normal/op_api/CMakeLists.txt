@@ -35,6 +35,7 @@ if(UT_TEST_ALL OR OP_API_UT)
           )
   target_link_libraries(${OPAPI_NAME}_ut PRIVATE
           ${OPHOST_NAME}_opapi_obj
+          opapi_stub
           PRIVATE $<$<BOOL:${BUILD_WITH_INSTALLED_DEPENDENCY_CANN_PKG}>:$<BUILD_INTERFACE:opapi>>
           $<BUILD_INTERFACE:intf_llt_pub_asan_cxx17>
           )
@@ -53,7 +54,7 @@ if(UT_TEST_ALL OR OP_API_UT)
   endif()
   add_custom_command(
       OUTPUT ${RUNTIME_STUB_CPP}
-      COMMAND ${Python3_EXECUTABLE} ${OPS_TRANSFORMER_DIR}/tests/ut/framework_normal/op_api/scripts/generate_opapi_stub.py
+      COMMAND sudo ${Python3_EXECUTABLE} ${OPS_TRANSFORMER_DIR}/tests/ut/framework_normal/op_api/scripts/generate_opapi_stub.py
               ${ALL_OP} ${ASCEND_DIR} ${CHIP_NAME} ${RUNTIME_STUB_CPP}
       DEPENDS ${OPS_TRANSFORMER_DIR}/tests/ut/framework_normal/op_api/scripts/generate_opapi_stub.py
       WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
@@ -126,7 +127,7 @@ if(UT_TEST_ALL OR OP_API_UT)
               LD_LIBRARY_PATH=$ENV{LD_LIBRARY_PATH}
               LD_PRELOAD=${LIBASAN_PATH}:${LIBSTDC_PATH} ASAN_OPTIONS=detect_leaks=0
               ${PRELOAD}
-              bash -c "./${OP_API_UT_EXE};"${Python3_EXECUTABLE} ${OPS_TRANSFORMER_DIR}/tests/ut/framework_normal/op_api/scripts/clean_opapi_stub.py ${ALL_OP} ${ASCEND_DIR} ${CHIP_NAME}""
+              bash -c "./${OP_API_UT_EXE};"sudo ${Python3_EXECUTABLE} ${OPS_TRANSFORMER_DIR}/tests/ut/framework_normal/op_api/scripts/clean_opapi_stub.py ${ALL_OP} ${ASCEND_DIR} ${CHIP_NAME}""
           COMMENT "Run ops op_api utest with asan"
       )
     else()
@@ -136,7 +137,7 @@ if(UT_TEST_ALL OR OP_API_UT)
               COMMAND
                 ${CMAKE_COMMAND} -E env
                 LD_LIBRARY_PATH=$ENV{LD_LIBRARY_PATH}
-                bash -c "./${OP_API_UT_EXE};"${Python3_EXECUTABLE} ${OPS_TRANSFORMER_DIR}/tests/ut/framework_normal/op_api/scripts/clean_opapi_stub.py ${ALL_OP} ${ASCEND_DIR} ${CHIP_NAME}""
+                bash -c "./${OP_API_UT_EXE};"sudo ${Python3_EXECUTABLE} ${OPS_TRANSFORMER_DIR}/tests/ut/framework_normal/op_api/scripts/clean_opapi_stub.py ${ALL_OP} ${ASCEND_DIR} ${CHIP_NAME}""
               COMMENT "Run ops op_api utest"
       )
     endif()

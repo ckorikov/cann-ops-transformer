@@ -591,9 +591,11 @@ set_ut_mode() {
   fi
   if [ -n "${PR_CHANGED_FILES}" ]; then
     OP_HOST_UT=TRUE
+    OP_API_UT=TRUE
     OP_KERNEL_UT=TRUE
     UT_TEST_ALL=FALSE
     UT_TARGES+=("${REPOSITORY_NAME}_op_host_ut")
+    UT_TARGES+=("${REPOSITORY_NAME}_op_api_ut")
     UT_TARGES+=("${REPOSITORY_NAME}_op_kernel_ut")
     return
   fi 

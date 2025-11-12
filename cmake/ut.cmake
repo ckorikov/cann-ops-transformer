@@ -195,7 +195,7 @@ if(UT_TEST_ALL
     cmake_parse_arguments(MODULE "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
     if("${MODULE_UT_NAME}" STREQUAL "${OP_TILING_MODULE_NAME}")
-      get_filename_component(UT_DIR ${CMAKE_CURRENT_SOURCE_DIR} DIRECTORY)
+      get_filename_component(UT_DIR ${MODULE_DIR} DIRECTORY)
       get_filename_component(TESTS_DIR ${UT_DIR} DIRECTORY)
       get_filename_component(OP_NAME_DIR ${TESTS_DIR} DIRECTORY)
       get_filename_component(OP_NAME ${OP_NAME_DIR} NAME)
@@ -213,7 +213,7 @@ if(UT_TEST_ALL
     endif()
 
     if("${MODULE_UT_NAME}" STREQUAL "${OP_INFERSHAPE_MODULE_NAME}")
-      get_filename_component(UT_DIR ${CMAKE_CURRENT_SOURCE_DIR} DIRECTORY)
+      get_filename_component(UT_DIR ${MODULE_DIR} DIRECTORY)
       get_filename_component(TESTS_DIR ${UT_DIR} DIRECTORY)
       get_filename_component(OP_NAME_DIR ${TESTS_DIR} DIRECTORY)
       get_filename_component(OP_NAME ${OP_NAME_DIR} NAME)
@@ -231,8 +231,13 @@ if(UT_TEST_ALL
     endif()
 
     if("${MODULE_UT_NAME}" STREQUAL "${OP_API_MODULE_NAME}")
-      get_filename_component(OP_HOST_DIR ${CMAKE_CURRENT_SOURCE_DIR} DIRECTORY)
-      get_filename_component(UT_DIR ${OP_HOST_DIR} DIRECTORY)
+      get_filename_component(OP_HOST_DIR ${MODULE_DIR} DIRECTORY)
+      get_filename_component(OP_HOST_NAME ${OP_HOST_DIR} NAME)
+      if("${OP_HOST_NAME}" STREQUAL "op_host")
+        get_filename_component(UT_DIR ${OP_HOST_DIR} DIRECTORY)
+      else()
+        get_filename_component(UT_DIR ${MODULE_DIR} DIRECTORY)
+      endif()
       get_filename_component(TESTS_DIR ${UT_DIR} DIRECTORY)
       get_filename_component(OP_NAME_DIR ${TESTS_DIR} DIRECTORY)
       get_filename_component(OP_NAME ${OP_NAME_DIR} NAME)
