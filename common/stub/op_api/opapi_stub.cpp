@@ -102,11 +102,11 @@ const aclTensor *ReViewToOut(const aclTensor *x, const aclTensor * /*y*/, aclOpE
     return x;
 }
 
-const std::tuple<aclTensor *, aclTensor *> Sort(const aclTensor * /*self*/, int64_t /*dim*/, bool /*descending*/,
+const std::tuple<aclTensor *, aclTensor *> Sort(const aclTensor * self, int64_t /*dim*/, bool /*descending*/,
                                                 bool /*stable*/, op::DataType /*indicesType*/,
                                                 aclOpExecutor * /*executor*/)
 {
-    return std::tuple<aclTensor *, aclTensor *>(nullptr, nullptr);
+    return std::tuple<aclTensor *, aclTensor *>(const_cast<aclTensor *>(self), const_cast<aclTensor *>(self));
 }
 
 bool CanOptimizeContiguous(const op::Shape & /*viewShape*/, const op::Strides & /*strides*/, int64_t /*offset*/,
@@ -261,32 +261,32 @@ const aclTensor *ReduceSumOp(const aclTensor *x, const aclIntArray * /*axes*/, b
     return x;
 }
 
-const aclTensor *MaskedScatter(const aclTensor * /*self*/, const aclTensor * /*mask*/, const aclTensor * /*source*/,
+const aclTensor *MaskedScatter(const aclTensor * self, const aclTensor * /*mask*/, const aclTensor * /*source*/,
                                aclOpExecutor * /*executor*/)
 {
-    return nullptr;
+    return self;
 }
 
-const aclTensor *InplaceIndexAddAiCore(const aclTensor * /*self*/, const int64_t /*dim*/, const aclTensor * /*index*/,
+const aclTensor *InplaceIndexAddAiCore(const aclTensor * self, const int64_t /*dim*/, const aclTensor * /*index*/,
                                        const aclTensor * /*source*/, const aclTensor * /*alphaTensor*/,
                                        aclOpExecutor * /*executor*/)
 {
-    return nullptr;
+    return self;
 }
 
-const aclTensor *InplaceIndexAddAiCpu(const aclTensor * /*self*/, const int64_t /*dim*/, const aclTensor * /*index*/,
+const aclTensor *InplaceIndexAddAiCpu(const aclTensor * self, const int64_t /*dim*/, const aclTensor * /*index*/,
                                       const aclTensor * /*source*/, const aclTensor * /*alphaTensor*/,
                                       aclOpExecutor * /*executor*/)
 {
-    return nullptr;
+    return self;
 }
 
-const aclTensor *InplaceIndexAddWithSorted(const aclTensor * /*self*/, const int64_t /*dim*/,
+const aclTensor *InplaceIndexAddWithSorted(const aclTensor * self, const int64_t /*dim*/,
                                            const aclTensor * /*sortedIndices*/, const aclTensor * /*pos*/,
                                            const aclTensor * /*value*/, const aclTensor * /*alphaTensor*/,
                                            aclOpExecutor * /*executor*/)
 {
-    return nullptr;
+    return self;
 }
 
 const aclTensor *GatherV3(const aclTensor *self, int64_t axis, const aclTensor *indices, aclOpExecutor *executor,
@@ -298,7 +298,7 @@ const aclTensor *GatherV3(const aclTensor *self, int64_t axis, const aclTensor *
     (void)executor;
     (void)batchDims;
     (void)negativeIndexSupport;
-    return nullptr;
+    return self;
 }
 
 } // namespace l0op
