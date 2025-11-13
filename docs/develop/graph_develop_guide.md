@@ -1,5 +1,5 @@
 # 图模式开发指南
-自定义算子如需运行图模式，不需要aclnn适配，做如下交付件适配：
+自定义算子如需运行图模式，不需要aclnn适配，但需做如下交付件适配：
 ```
 ${op_name}                              # 替换为实际算子名的小写下划线形式
 ├── op_host                             # Host侧实现
@@ -12,23 +12,23 @@ ${op_name}                              # 替换为实际算子名的小写下�
 
 ### Shape与DataType推导
 
-在深度学习中，当一个算子被加入计算图时，为确保图的正确性和后续的编译、优化、执行流程顺利进行，通常需要为该算子实现两个关键的推导函数：
+在深度学习中，当一个算子被加入计算图时，为确保图的正确性和后续的编译、优化、执行流程顺利进行，需要实现两个关键的推导函数：
   - InferShape：用于推导输出张量的形状（shape）。
   - InferDataType：用于推导输出张量的数据类型（dataType）。
 
-操作步骤如下：
+**操作步骤如下：**
 
-**1. 注册InferShape与InferDataType。**
+ 1. 注册InferShape与InferDataType。
 
    实现两个目标函数之前，需要先进行注册，框架判断算子的shape和dataType推导逻辑由哪两个函数来处理。
 
-**2. InferShape推导实现。**
+ 2. InferShape推导实现。
 
    Infershape函数的作用是根据输入的shape推导输出的shape。
 
-**3. InferDataType推导实现。**
+ 3. InferDataType推导实现。
 
-   InferDataType函数的作用是根据输入的data type推导输出的data type。
+   InferDataType函数的作用是根据输入的dataType推导输出的dataType。
 
 根据上述步骤，编写`AddExample`算子的推导实现，示例代码如下：
 
@@ -59,15 +59,15 @@ static ge::graphStatus InferDataTypeAddExample(gert::InferDataTypeContext* conte
     ....
     // 获取输入的dataType
     ge::DataType sizeDtype = context->GetInputDataType(IDX_0);
-    // 将输出dataType设置到输出
+    // 将输入的dataType设置到输出
     context->SetOutputDataType(IDX_0, sizeDtype);
     ....
 }
 
 // 注册InferShape与InferDataType
 IMPL_OP_INFERSHAPE(AddExample).
-    InferShape(InferShapeAddExample).
-    InferDataType(InferDataTypeAddExample);
+    .InferShape(InferShapeAddExample).
+    .InferDataType(InferDataTypeAddExample);
 ```
 
 完整代码请参考`examples/add_example/op_host`目录下[add_example_infershape.cpp](../../examples/add_example/op_host/add_example_infershape.cpp)。   
