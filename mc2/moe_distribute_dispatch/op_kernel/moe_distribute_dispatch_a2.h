@@ -36,7 +36,6 @@ constexpr static uint32_t U64_PER_ITEM = BW_ITEM_SIZE / sizeof(uint64_t);
 constexpr static uint32_t U32_PER_ITEM = BW_ITEM_SIZE / sizeof(uint32_t);
 constexpr static uint32_t SKIP_OFFSET = 512;
 constexpr static uint32_t REPEAT_BYTES = 256;
-constexpr static uint32_t TIME_CYCLE = 50; // 系统cycle数转换成时间的基准单位，固定为50
 constexpr static int32_t FLAG_VALUE = 0xFFFFFFFF;
 constexpr uint64_t MB_SIZE = 1024 * 1024;
 
@@ -159,7 +158,7 @@ private:
     uint32_t totalSize_{0};
     uint32_t expertTokenNumsType_{0};
     uint32_t performanceInfoSize_{0};
-    bool hasPerformanceInfo_ = false;
+    bool needPerformanceInfo_ = false;
     bool isQuant_ = false;
     Hccl<HCCL_SERVER_TYPE_AICPU> hccl_;
     __gm__ HcclOpResParam *winContext_{nullptr};
@@ -198,9 +197,6 @@ __aicore__ inline void MoeDistributeDispatchA2<TemplateMC2TypeA2Func>::Init(
     aivId_ = GetBlockIdx();
     expertIdsCnt_ = axisBS_ * axisK_;
     localMoeExpertNumAlign_ = (localMoeExpertNum_ + BITS32_PER_BLOCK - 1) / BITS32_PER_BLOCK * BITS32_PER_BLOCK;
-    performanceInfoSize_ = worldSize_;
-    hasPerformanceInfo_ = (performanceInfo != nullptr);
-
     bufferChosenGlobal_.SetGlobalBuffer((__gm__ uint32_t*)(windowInGM_ + dataSize_));
     bufferChosen_ = bufferChosenGlobal_(0);
 
@@ -247,7 +243,9 @@ __aicore__ inline void MoeDistributeDispatchA2<TemplateMC2TypeA2Func>::Init(
         QuantInit(scales);
     }
     // init performanceInfo
-    if (hasPerformanceInfo_) {
+    needPerformanceInfo_ = performanceInfo != nullptr;
+    if (unlikely(needPerformanceInfo_)) {
+        performanceInfoSize_ = worldSize_;
         performanceInfoU32GMTensor_.SetGlobalBuffer((__gm__ int32_t*)performanceInfo);
         tpipe_->InitBuffer(performanceInfoBuf_, performanceInfoSize_ * sizeof(int64_t));
         performanceInfoU32Tensor_ = performanceInfoBuf_.Get<int32_t>();
@@ -609,7 +607,7 @@ __aicore__ inline void MoeDistributeDispatchA2<TemplateMC2TypeA2Func>::WaitDispa
     SyncFunc<AscendC::HardEvent::S_MTE2>();
 
     uint32_t recvFlagNum = 0;
-    int64_t startTime = GetSystemCycle() / TIME_CYCLE;
+    int64_t startTime = GetCurrentTimestampUs();
     while (recvFlagNum < batchWriteItemNum) {
         for (uint32_t rankId = startRankId; rankId < endRankId; rankId++) {
             DataCopy(statusTensor_[rankId * STATUS_ENTRY_COUNT], windowInstatusTensor_[rankId * dataSizePerRank_ / sizeof(int32_t)], STATUS_ENTRY_COUNT);
@@ -631,11 +629,9 @@ __aicore__ inline void MoeDistributeDispatchA2<TemplateMC2TypeA2Func>::WaitDispa
                 windowInstatusTensor_(dataFlagOffset) = 0;
                 // 重要：要下DCCI保证清零写进去，避免下一次判断时又判断生效，重复累计recvFlagNum
                 DataCacheCleanAndInvalid<int32_t, AscendC::CacheLine::SINGLE_CACHE_LINE, AscendC::DcciDst::CACHELINE_OUT>(windowInstatusTensor_[dataFlagOffset]);
-                if (hasPerformanceInfo_) {
-                    int64_t endTime = GetSystemCycle() / TIME_CYCLE;
-                    int32_t duration = static_cast<int32_t>(endTime - startTime); // int32_t可以表示2^31(us)，约35min在实际场景下满足需要
-                    auto srcId = rankId;
-                    performanceInfoU32Tensor_.SetValue(srcId * sizeof(int64_t) / sizeof(int32_t), duration);
+                if (unlikely(needPerformanceInfo_)) {
+                    auto srcRankId = rankId;
+                    RecordRankCommDuration(performanceInfoU32Tensor_, srcRankId, startTime);
                 }
             }
         }
@@ -789,7 +785,7 @@ template <TemplateMC2TypeA2Class>
 __aicore__ inline void MoeDistributeDispatchA2<TemplateMC2TypeA2Func>::CopyPerformanceInfo()
 {
     // copy local performance info to GMTensor
-    if (hasPerformanceInfo_) {
+    if (unlikely(needPerformanceInfo_)) {
         AscendC::SetAtomicAdd<int32_t>();
         AscendC::DataCopy(performanceInfoU32GMTensor_, performanceInfoU32Tensor_, performanceInfoSize_ * sizeof(int64_t) / sizeof(int32_t));
         AscendC::SetAtomicNone();
@@ -804,7 +800,6 @@ __aicore__ inline void MoeDistributeDispatchA2<TemplateMC2TypeA2Func>::Process()
         ReorderTokens();
         SendToMoeExpert();
         WaitDispatch();
-        CopyPerformanceInfo();
         LocalWindowCopy();
         SyncAll<true>();
         if (aivId_ == 0) {
@@ -814,6 +809,7 @@ __aicore__ inline void MoeDistributeDispatchA2<TemplateMC2TypeA2Func>::Process()
             DataCopyExtParams copyStatusParams{static_cast<uint16_t>(worldSize_), STATUS_SIZE, 0, dstStrideU32, 0};
             DataCopyPad(windowInstatusTensor_, statusTensor_, copyStatusParams);
         }
+        CopyPerformanceInfo();
         hccl_.Finalize();
     }
 }

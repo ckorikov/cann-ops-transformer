@@ -73,7 +73,6 @@ public:
     constexpr static uint64_t GM2IPC_SYNC_FLAG = 12345ULL;
     constexpr static uint64_t RDMA_TOKEN_ARRIVED_FLAG = 123ULL;
     constexpr static uint64_t RDMA_TOKEN_END_FLAG = 321ULL;
-    constexpr static uint32_t TIME_CYCLE = 50;
 
     template <AscendC::HardEvent event>
     __aicore__ inline void SyncFunc()
@@ -208,7 +207,7 @@ private:
     uint64_t share_offset{0};
     uint32_t IPC_DATA_SIZE{0};
     uint32_t performanceInfoSize_{0};
-    bool hasPerformanceInfo_=false;
+    bool needPerformanceInfo_=false;
     TBuf<QuePosition::VECCALC> tBuf;
     TBuf<TPosition::VECOUT> rdmaInBuf_;
     TBuf<TPosition::VECOUT> rdmaInBuf2_;
@@ -346,9 +345,6 @@ __aicore__ inline void MoeDistributeCombineA2Layered<TemplateMC2TypeA2layeredFun
     aivNum_ = tilingData->moeDistributeCombineInfo.aivNum;
     moeExpertNum_ = tilingData->moeDistributeCombineInfo.moeExpertNum;
     worldSize_ = tilingData->moeDistributeCombineInfo.epWorldSize;
-    performanceInfoSize_ = worldSize_;
-    hasPerformanceInfo_ = (performanceInfo != nullptr);
-
     globalBs = tilingData->moeDistributeCombineInfo.globalBs;
     if (globalBs >= 256U) {
         maxLocalBs = 256U;
@@ -437,7 +433,9 @@ __aicore__ inline void MoeDistributeCombineA2Layered<TemplateMC2TypeA2layeredFun
     BuffInit();
 
     // init performanceInfo
-    if (hasPerformanceInfo_) {
+    needPerformanceInfo_ = performanceInfo != nullptr;
+    if (unlikely(needPerformanceInfo_)) {
+        performanceInfoSize_ = worldSize_;
         performanceInfoU32GMTensor_.SetGlobalBuffer((__gm__ int32_t*)performanceInfo);
         tpipe_->InitBuffer(performanceInfoBuf_, performanceInfoSize_ * sizeof(int64_t));
         performanceInfoU32Tensor_ = performanceInfoBuf_.Get<int32_t>();
@@ -596,7 +594,7 @@ __aicore__ inline void MoeDistributeCombineA2Layered<TemplateMC2TypeA2layeredFun
     // 只要8个core分别wait 来自8卡的flag，然后sync一下 再进行流水
 
     if (coreIdx_ < stepCoreNum_){
-        int64_t startTime = GetSystemCycle() / TIME_CYCLE;
+        int64_t startTime = GetCurrentTimestampUs();
         LocalTensor<uint64_t> inUb = statusBuf_.Get<uint64_t>();
         uint32_t waitFlagAddr = coreIdx_ % stepCoreNum_;
         while (true) {
@@ -610,12 +608,10 @@ __aicore__ inline void MoeDistributeCombineA2Layered<TemplateMC2TypeA2layeredFun
         PipeBarrier<PIPE_ALL>();
         DataCopy(shareFlagGlobal_[waitFlagAddr * 4], inUb, 4);  // *4是因为单次拷贝256byte = 4*int64
         PipeBarrier<PIPE_ALL>();
-
-        int64_t endTime = GetSystemCycle() / TIME_CYCLE;
-        int32_t duration = static_cast<int32_t>(endTime - startTime); // int32_t可以表示2^31(us)，约35min在实际场景下满足需要
-	    auto srcId = (rankId_ / SERVER_RANK_SIZE) * SERVER_RANK_SIZE + coreIdx_;
-    	if (hasPerformanceInfo_) {
-	        performanceInfoU32Tensor_.SetValue(srcId * sizeof(int64_t) / sizeof(int32_t), duration);
+        // 记录打点耗时
+        if (unlikely(needPerformanceInfo_)) {
+	        auto srcRankId = (rankId_ / SERVER_RANK_SIZE) * SERVER_RANK_SIZE + coreIdx_;
+            RecordRankCommDuration(performanceInfoU32Tensor_, srcRankId, startTime);
         }
     }
     SyncAll<true>();
@@ -933,11 +929,10 @@ __aicore__ inline void MoeDistributeCombineA2Layered<TemplateMC2TypeA2layeredFun
                 break;
             }
         }
-        int64_t endTime = GetSystemCycle() / TIME_CYCLE;
-        int32_t duration = static_cast<int32_t>(endTime - startTime); // int32_t可以表示2^31(us)，约35min在实际场景下满足需要
-        auto srcId = targetRank;
-	    if (hasPerformanceInfo_) {
-	        performanceInfoU32Tensor_.SetValue(srcId * sizeof(int64_t) / sizeof(int32_t), duration);
+        // 记录打点耗时
+        if (unlikely(needPerformanceInfo_)) {
+            auto srcRankId = targetRank;
+            RecordRankCommDuration(performanceInfoU32Tensor_, srcRankId, startTime);
         }
     }
     PipeBarrier<PIPE_ALL>();
@@ -1154,7 +1149,7 @@ template <TemplateMC2TypeA2layeredClass>
 __aicore__ inline void MoeDistributeCombineA2Layered<TemplateMC2TypeA2layeredFunc>::CopyPerformanceInfo()
 {
     // copy local performance info to GMTensor
-    if (hasPerformanceInfo_) {
+    if (unlikely(needPerformanceInfo_)) {
         AscendC::SetAtomicAdd<int32_t>();
         AscendC::DataCopy(performanceInfoU32GMTensor_, performanceInfoU32Tensor_, performanceInfoSize_ * sizeof(int64_t) / sizeof(int32_t));
         AscendC::SetAtomicNone();
@@ -1188,8 +1183,8 @@ __aicore__ inline void MoeDistributeCombineA2Layered<TemplateMC2TypeA2layeredFun
         }
         Preload();
         WaitDispatch();
-        CopyPerformanceInfo();
         SumToServer();
+        CopyPerformanceInfo();
         hccl_.Finalize();
     }
 }

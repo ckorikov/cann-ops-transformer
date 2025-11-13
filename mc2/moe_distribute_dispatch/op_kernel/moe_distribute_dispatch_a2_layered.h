@@ -57,7 +57,6 @@ public:
     constexpr static uint32_t SKIP_STATUS = 3;
     constexpr static uint32_t RDMA_DATA_SIZE = 100U * 1024U * 1024U;
     constexpr static uint32_t EXTRA_TOKEN_INFO_NUM = 4U; // 专家信息 权重信息 量化Scale 到达标志位
-    constexpr static uint32_t TIME_CYCLE = 50; // 系统cycle数转换成时间的基准单位，固定为50
 
 template <typename T>
 inline __aicore__ T RoundUp(const T val, const T align) {
@@ -166,7 +165,7 @@ private:
     uint32_t shareMemOffset_{0};
     uint32_t tokenUbSize_{0};
     uint32_t performanceInfoSize_{0};
-    bool hasPerformanceInfo_ = false;
+    bool needPerformanceInfo_ = false;
 
     // TokenStruck
     uint32_t tokenGapInStruct_{0};
@@ -233,8 +232,6 @@ __aicore__ inline void MoeDistributeDispatchA2Layered<TemplateMC2TypeA2layeredFu
     aivId_ = GetBlockIdx();
     expertIdsCnt_ = axisBS_ * axisK_;
     serverNum = worldSize_ / SERVER_RANK_SIZE;
-    performanceInfoSize_ = worldSize_;
-    hasPerformanceInfo_ = (performanceInfo != nullptr);
 
     uint64_t winSizeMin = moeExpertNum_ * axisBS_ * (axisH_ * sizeof(XType) + EXTRA_TOKEN_INFO_NUM * alignK_ * sizeof(uint32_t)) +
         IPC_DATA_OFFSET + RDMA_DATA_SIZE; // 考虑负载极其不均衡时，HCCL BUFFSIZE需要开的大小
@@ -323,7 +320,9 @@ __aicore__ inline void MoeDistributeDispatchA2Layered<TemplateMC2TypeA2layeredFu
     tpipe_->InitBuffer(tBuf, TBUF_SIZE);
 
     // init performanceInfo
-    if (hasPerformanceInfo_) {
+    needPerformanceInfo_ = performanceInfo != nullptr;
+    if (unlikely(needPerformanceInfo_)) {
+        performanceInfoSize_ = worldSize_;
         performanceInfoU32GMTensor_.SetGlobalBuffer((__gm__ int32_t*)performanceInfo);
         tpipe_->InitBuffer(performanceInfoBuf_, performanceInfoSize_ * sizeof(int64_t));
         performanceInfoU32Tensor_ = performanceInfoBuf_.Get<int32_t>();
@@ -975,7 +974,7 @@ __aicore__ inline void MoeDistributeDispatchA2Layered<TemplateMC2TypeA2layeredFu
     flagIpcGt.SetGlobalBuffer((__gm__ uint64_t*)(shareAddrs[localRankId] + IPC_FLAG_OFFSET) +
         destRankIdx * B64_PER_BLOCK);
     PipeBarrier<PIPE_ALL>();
-    int64_t startTime = GetSystemCycle() / TIME_CYCLE;
+    int64_t startTime = GetCurrentTimestampUs();
     do {
         DataCopy(localWait, flagIpcGt, B64_PER_BLOCK);
         SyncFunc<AscendC::HardEvent::MTE2_S>();
@@ -985,16 +984,11 @@ __aicore__ inline void MoeDistributeDispatchA2Layered<TemplateMC2TypeA2layeredFu
             break;
         }
     } while (isSync);
-
-    int64_t endTime = GetSystemCycle() / TIME_CYCLE;
-    int32_t duration = static_cast<int32_t>(endTime - startTime);
-    auto curServerId = rankId_ / SERVER_RANK_SIZE;
-    auto srcId = curServerId * SERVER_RANK_SIZE + destRankIdx;
-    if (hasPerformanceInfo_){
-        performanceInfoU32Tensor_.SetValue(srcId * sizeof(int64_t) / sizeof(int32_t), duration);
-	    AscendC::SetAtomicAdd<int32_t>();
-	    AscendC::DataCopy(performanceInfoU32GMTensor_, performanceInfoU32Tensor_, performanceInfoSize_ * sizeof(int64_t) / sizeof(int32_t));
-        AscendC::SetAtomicNone();
+    // 记录打点耗时
+    if (unlikely(needPerformanceInfo_)){
+        auto curServerId = rankId_ / SERVER_RANK_SIZE;
+        auto srcRankId = curServerId * SERVER_RANK_SIZE + destRankIdx;
+        RecordRankCommDuration(performanceInfoU32Tensor_, srcRankId, startTime);
     }
 }
 
@@ -1092,7 +1086,7 @@ template <TemplateMC2TypeA2layeredClass>
 __aicore__ inline void MoeDistributeDispatchA2Layered<TemplateMC2TypeA2layeredFunc>::Win2Ipc()
 {
     int32_t aivMaxTime = 0;
-    int64_t startTime = GetSystemCycle() / TIME_CYCLE;
+    int64_t startTime = GetCurrentTimestampUs();
     uint32_t coresPerServer = (aivNum_ - serverNum - 1) / serverNum;
     uint32_t logicAivId = aivId_ - serverNum - 1;
     if (logicAivId >= coresPerServer * serverNum) {
@@ -1175,15 +1169,13 @@ __aicore__ inline void MoeDistributeDispatchA2Layered<TemplateMC2TypeA2layeredFu
             PipeBarrier<PIPE_ALL>();
         }
         // 统计机间通信时间
-        int64_t endTime = GetSystemCycle() / TIME_CYCLE;
-        duration = static_cast<int32_t>(endTime - startTime);
         // 找每张卡上的aiv time max
         // 多个核处理同一个server只有第一个核记录时间，其他核不记录保持0，不影响最后的atomicAdd
-        if (hasPerformanceInfo_ && (curServerId != serverId_) && (logicAivId % coresPerServer == 0)) { 
-            auto srcId = rankId_ % SERVER_RANK_SIZE + curServerId * SERVER_RANK_SIZE;
-            int32_t cmpaivMaxTime = performanceInfoU32Tensor_.GetValue(srcId * sizeof(int64_t) / sizeof(int32_t));
+        if (unlikely(needPerformanceInfo_) && (curServerId != serverId_) && (logicAivId % coresPerServer == 0)) { 
+            auto srcRankId = rankId_ % SERVER_RANK_SIZE + curServerId * SERVER_RANK_SIZE;
+            int32_t cmpaivMaxTime = performanceInfoU32Tensor_.GetValue(srcRankId * sizeof(int64_t) / sizeof(int32_t));
             aivMaxTime = duration > cmpaivMaxTime ? duration : cmpaivMaxTime;
-            performanceInfoU32Tensor_.SetValue(srcId * sizeof(int64_t) / sizeof(int32_t), aivMaxTime);
+            RecordRankCommDuration(performanceInfoU32Tensor_, srcRankId, startTime);
         }
         tokenIdx += 1;
         justExpInfo = (tokenIdx % coresPerServer != logicAivId % coresPerServer);
@@ -1399,7 +1391,7 @@ template <TemplateMC2TypeA2layeredClass>
 __aicore__ inline void MoeDistributeDispatchA2Layered<TemplateMC2TypeA2layeredFunc>::CopyPerformanceInfo()
 {
     // copy local performance info to GMTensor
-    if (hasPerformanceInfo_) {
+    if (unlikely(needPerformanceInfo_)) {
         AscendC::SetAtomicAdd<int32_t>();
         AscendC::DataCopy(performanceInfoU32GMTensor_, performanceInfoU32Tensor_, performanceInfoSize_ * sizeof(int64_t) / sizeof(int32_t));
         AscendC::SetAtomicNone();
@@ -1427,7 +1419,6 @@ __aicore__ inline void MoeDistributeDispatchA2Layered<TemplateMC2TypeA2layeredFu
         SyncAll<true>();
         SetIpcFlag(IPC_FLAG_STEP_1);
         WaitIpcFlag(IPC_FLAG_STEP_1);
-        CopyPerformanceInfo();
         PipeBarrier<PIPE_ALL>();
         SyncAll<true>();
         Ipc2Out();
@@ -1438,6 +1429,7 @@ __aicore__ inline void MoeDistributeDispatchA2Layered<TemplateMC2TypeA2layeredFu
 
         PipeBarrier<PIPE_ALL>();
         SyncAll<true>();
+        CopyPerformanceInfo();
         hccl_.Finalize();
     }
 }
