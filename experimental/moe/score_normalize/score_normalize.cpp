@@ -15,9 +15,9 @@ namespace npu_ops_transformer_ext
         #include <iostream>
         #include <stdio.h>
         #include "kernel_operator.h"
+        #include "tiling/platform/platform_ascendc.h"
         #include "rotary/moe_routing.h"
         #include "rotary/dtype_convert.h"
-        #include "tiling/platform/platform_ascendc.h"
         using namespace AscendC;
 
         constexpr int BUFFER_NUM = 2;
@@ -27,9 +27,8 @@ namespace npu_ops_transformer_ext
         {
         public:
             __aicore__ inline KernelFusedMoeGate() {}
-            __aicore__ inline void Init(GM_ADDR topk_logits_gather, int32_t ROWS, int32_t per_count, int32_t block_cnt)
+            __aicore__ inline void Init(GM_ADDR topk_logits_gather, int32_t ROWS, int32_t per_count, int32_t block_cnt, TPipe* pipe)
             {
-
                 BASE_SIZE = 32 / sizeof(T);
                 BASE_SIZE_FP32 = 32 / sizeof(float);
                 core_id_ = GetBlockIdx();
@@ -72,11 +71,11 @@ namespace npu_ops_transformer_ext
 
                 topk_logits_gather_Gm.SetGlobalBuffer((__gm__ T *)topk_logits_gather, rows_per_core_per_loop_ * align_logit_cnt);
 
-                pipe.InitBuffer(inQueue_topk_logits_gather, BUFFER_NUM, rows_per_core_per_loop_ * align_logit_cnt * sizeof(T));
-                pipe.InitBuffer(outQueue_topk_logits, BUFFER_NUM, rows_per_core_per_loop_ * align_logit_cnt * sizeof(T));
-                pipe.InitBuffer(work_buf, rows_per_core_per_loop_ * align_logit_cnt * sizeof(float));
-                pipe.InitBuffer(work_buf1, align_reduce_cnt * sizeof(float));
-                pipe.InitBuffer(work_buf3, rows_per_core_per_loop_ * align_logit_cnt * sizeof(float));
+                pipe -> InitBuffer(inQueue_topk_logits_gather, BUFFER_NUM, rows_per_core_per_loop_ * align_logit_cnt * sizeof(T));
+                pipe -> InitBuffer(outQueue_topk_logits, BUFFER_NUM, rows_per_core_per_loop_ * align_logit_cnt * sizeof(T));
+                pipe -> InitBuffer(work_buf, rows_per_core_per_loop_ * align_logit_cnt * sizeof(float));
+                pipe -> InitBuffer(work_buf1, align_reduce_cnt * sizeof(float));
+                pipe -> InitBuffer(work_buf3, rows_per_core_per_loop_ * align_logit_cnt * sizeof(float));
             }
 
             __aicore__ inline void Process()
@@ -120,7 +119,6 @@ namespace npu_ops_transformer_ext
 
             __aicore__ inline void Compute(int32_t loop_cnt)
             {
-
                 LocalTensor<T> topk_logits_gatherLocal = inQueue_topk_logits_gather.DeQue<T>();
                 LocalTensor<T> topk_logitsLocal = outQueue_topk_logits.AllocTensor<T>();
                 LocalTensor<float> topk_logits_gatherfp32Local = work_buf.Get<float>();
@@ -147,7 +145,6 @@ namespace npu_ops_transformer_ext
 
             __aicore__ inline void CopyOut(int32_t loop_cnt)
             {
-
                 LocalTensor<T> topk_logitsLocal = outQueue_topk_logits.DeQue<T>();
                 DataCopyParams copyParams{(uint16_t)rows_per_core_per_loop_, (uint16_t)(TILE_LENGTH * sizeof(T)), 0, 0};
                 DataCopyPad(topk_logits_gather_Gm[rows_offset_], topk_logitsLocal, copyParams);
@@ -156,7 +153,6 @@ namespace npu_ops_transformer_ext
             }
 
         private:
-            TPipe pipe;
             TQue<QuePosition::VECIN, BUFFER_NUM> inQueue_topk_logits_gather;
             TQue<QuePosition::VECOUT, BUFFER_NUM> outQueue_topk_logits;
             TBuf<QuePosition::VECCALC> work_buf, work_buf1, work_buf2, work_buf3;
@@ -173,17 +169,16 @@ namespace npu_ops_transformer_ext
 
         extern "C" __global__ __aicore__ void compute_score_normalize(GM_ADDR topk_logits_gather, int32_t ROWS, int32_t per_count, int32_t block_cnt, int32_t dtype)
         {
-
+            TPipe pipe;
             TYPE_SWITCH(dtype, T, {
                 KernelFusedMoeGate<T> op;
-                op.Init(topk_logits_gather, ROWS, per_count, block_cnt);
+                op.Init(topk_logits_gather, ROWS, per_count, block_cnt, &pipe);
                 op.Process();
             });
         }
 
         void score_normalize_launch(uint8_t *topk_logits_gather, int32_t ROWS, int32_t per_count, int32_t blockDim, void *stream, int32_t dtype)
         {
-
             int32_t real_blockDim = ROWS < blockDim ? ROWS : blockDim;
             compute_score_normalize<<<real_blockDim, nullptr, stream>>>(topk_logits_gather, ROWS, per_count, real_blockDim, dtype);
         }
