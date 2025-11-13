@@ -10,8 +10,7 @@
 
 #include <iostream>
 #include <gtest/gtest.h>
-#include "tiling_context_faker.h"
-#include "tiling_case_executor.h"
+#include "mc2_tiling_case_executor.h"
 
 using namespace std;
 
@@ -41,8 +40,9 @@ TEST_F(DistributeBarrierTiling, distribute_barrier_test_tiling)
     std::string expectTilingData = "8 16 20 196352 0 0 ";
     std::vector<size_t> expectWorkspaces = {16777216};
     uint64_t mc2TilingDataReservedLen = 42;
-    ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey, expectTilingData, expectWorkspaces,
-                    mc2TilingDataReservedLen);
+    Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 8}};
+    Mc2ExecuteTestCase(tilingContextPara, hcomTopologyMockValues, ge::GRAPH_SUCCESS, expectTilingKey, 
+                       expectTilingData, expectWorkspaces, mc2TilingDataReservedLen);
 }
 
 TEST_F(DistributeBarrierTiling, distribute_barrier_test_tiling_world_size_1)
@@ -56,7 +56,8 @@ TEST_F(DistributeBarrierTiling, distribute_barrier_test_tiling_world_size_1)
         {{"group", Ops::Transformer::AnyValue::CreateFrom<std::string>("group")},
          {"world_size", Ops::Transformer::AnyValue::CreateFrom<int64_t>(1)}},
         &compileInfo, "Ascend910_93", coreNum, ubSize);
-    ExecuteTestCase(tilingContextPara);
+    Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 8}};
+    Mc2ExecuteTestCase(tilingContextPara, hcomTopologyMockValues);
 }
 
 TEST_F(DistributeBarrierTiling, distribute_barrier_test_tiling_world_size_385)
@@ -70,7 +71,8 @@ TEST_F(DistributeBarrierTiling, distribute_barrier_test_tiling_world_size_385)
         {{"group", Ops::Transformer::AnyValue::CreateFrom<std::string>("group")},
          {"world_size", Ops::Transformer::AnyValue::CreateFrom<int64_t>(385)}},
         &compileInfo, "Ascend910_93", coreNum, ubSize);
-    ExecuteTestCase(tilingContextPara);
+    Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 8}};
+    Mc2ExecuteTestCase(tilingContextPara, hcomTopologyMockValues);
 }
 
 TEST_F(DistributeBarrierTiling, distribute_barrier_test_tiling_time_out) 
@@ -92,8 +94,9 @@ TEST_F(DistributeBarrierTiling, distribute_barrier_test_tiling_time_out)
     std::string expectTilingData = "8 16 20 196352 0 1 ";
     std::vector<size_t> expectWorkspaces = {16777216};
     uint64_t mc2TilingDataReservedLen = 42;
-    ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey, expectTilingData, expectWorkspaces,
-                    mc2TilingDataReservedLen);
+    Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 8}};
+    Mc2ExecuteTestCase(tilingContextPara, hcomTopologyMockValues, ge::GRAPH_SUCCESS, expectTilingKey, 
+                       expectTilingData, expectWorkspaces, mc2TilingDataReservedLen);
 }
 
 TEST_F(DistributeBarrierTiling, distribute_barrier_test_tiling_elastic_info) 
@@ -115,8 +118,9 @@ TEST_F(DistributeBarrierTiling, distribute_barrier_test_tiling_elastic_info)
     std::string expectTilingData = "8 16 20 196352 0 256 ";
     std::vector<size_t> expectWorkspaces = {16777216};
     uint64_t mc2TilingDataReservedLen = 42;
-    ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey, expectTilingData, expectWorkspaces,
-                    mc2TilingDataReservedLen);
+    Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 8}};
+    Mc2ExecuteTestCase(tilingContextPara, hcomTopologyMockValues, ge::GRAPH_SUCCESS, expectTilingKey, 
+                       expectTilingData, expectWorkspaces, mc2TilingDataReservedLen);
 }
 
 TEST_F(DistributeBarrierTiling, distribute_barrier_test_tiling_time_out_elastic_info) 
@@ -138,6 +142,7 @@ TEST_F(DistributeBarrierTiling, distribute_barrier_test_tiling_time_out_elastic_
     std::string expectTilingData = "8 16 20 196352 0 257 ";
     std::vector<size_t> expectWorkspaces = {16777216};
     uint64_t mc2TilingDataReservedLen = 42;
-    ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey, expectTilingData, expectWorkspaces,
-                    mc2TilingDataReservedLen);
+    Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 8}};
+    Mc2ExecuteTestCase(tilingContextPara, hcomTopologyMockValues, ge::GRAPH_SUCCESS, expectTilingKey, 
+                       expectTilingData, expectWorkspaces, mc2TilingDataReservedLen);
 }

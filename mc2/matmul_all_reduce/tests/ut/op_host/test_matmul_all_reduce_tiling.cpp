@@ -53,10 +53,9 @@ TEST_F(MatmulAllReduceTiling, matmul_all_reduce_test_tiling_float16_1)
             {"y_dtype", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)},
             {"comm_quant_mode", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)}
         },
-        &compileInfo, "Ascend910B", coreNum, ubSize);
-
+        &compileInfo, "Ascend910B", coreNum, ubSize);    Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 8}};
     uint64_t expectTilingKey = 65536UL;
-    ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey);
+    Mc2ExecuteTestCase(tilingContextPara, hcomTopologyMockValues, ge::GRAPH_SUCCESS, expectTilingKey);
 }
 
 TEST_F(MatmulAllReduceTiling, matmul_all_reduce_test_tiling_float16_1_cube)
@@ -87,9 +86,9 @@ TEST_F(MatmulAllReduceTiling, matmul_all_reduce_test_tiling_float16_1_cube)
             {"comm_quant_mode", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)}
         },
         &compileInfo, "Ascend910B", coreNum, ubSize);
-
+    Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 8}};
     uint64_t expectTilingKey = 10000000000000001100UL;
-    ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey);
+    Mc2ExecuteTestCase(tilingContextPara, hcomTopologyMockValues, ge::GRAPH_SUCCESS, expectTilingKey);
 }
 
 TEST_F(MatmulAllReduceTiling, matmul_all_reduce_test_tiling_float16_unaligned)
@@ -120,9 +119,9 @@ TEST_F(MatmulAllReduceTiling, matmul_all_reduce_test_tiling_float16_unaligned)
             {"comm_quant_mode", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)}
         },
         &compileInfo, "Ascend910B", coreNum, ubSize);
-
+    Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 8}};
     uint64_t expectTilingKey = 10000000000000001100UL;
-    ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey);
+    Mc2ExecuteTestCase(tilingContextPara, hcomTopologyMockValues, ge::GRAPH_SUCCESS, expectTilingKey);
 }
 
 TEST_F(MatmulAllReduceTiling, matmul_all_reduce_test_tiling_big_N)
@@ -152,10 +151,9 @@ TEST_F(MatmulAllReduceTiling, matmul_all_reduce_test_tiling_big_N)
             {"y_dtype", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)},
             {"comm_quant_mode", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)}
         },
-        &compileInfo, "Ascend910B", coreNum, ubSize);
-
+        &compileInfo, "Ascend910B", coreNum, ubSize);    Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 8}};
     uint64_t expectTilingKey = 65536UL;
-    ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey);
+    Mc2ExecuteTestCase(tilingContextPara, hcomTopologyMockValues, ge::GRAPH_SUCCESS, expectTilingKey);
 }
 
 TEST_F(MatmulAllReduceTiling, matmul_all_reduce_test_tiling_big_K)
@@ -186,9 +184,9 @@ TEST_F(MatmulAllReduceTiling, matmul_all_reduce_test_tiling_big_K)
             {"comm_quant_mode", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)}
         },
         &compileInfo, "Ascend910B", coreNum, ubSize);
-
+    Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 8}};
     uint64_t expectTilingKey = 65536UL;
-    ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey);
+    Mc2ExecuteTestCase(tilingContextPara, hcomTopologyMockValues, ge::GRAPH_SUCCESS, expectTilingKey);
 }
 
 TEST_F(MatmulAllReduceTiling, matmul_all_reduce_test_mcut_float16_910B_1)
@@ -219,9 +217,9 @@ TEST_F(MatmulAllReduceTiling, matmul_all_reduce_test_mcut_float16_910B_1)
             {"comm_quant_mode", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)}
         },
         &compileInfo, "Ascend910B", coreNum, ubSize);
-
+    Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 8}};
     uint64_t expectTilingKey = 10000000000000001100UL;
-    ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey);
+    Mc2ExecuteTestCase(tilingContextPara, hcomTopologyMockValues, ge::GRAPH_SUCCESS, expectTilingKey);
 }
 
 TEST_F(MatmulAllReduceTiling, matmul_all_reduce_test_mcut_float16_910B_win2win)
@@ -252,9 +250,9 @@ TEST_F(MatmulAllReduceTiling, matmul_all_reduce_test_mcut_float16_910B_win2win)
             {"comm_quant_mode", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)}
         },
         &compileInfo, "Ascend910B", coreNum, ubSize);
-
+    Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 8}};
     uint64_t expectTilingKey = 10000000000000001100UL;
-    ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey);
+    Mc2ExecuteTestCase(tilingContextPara, hcomTopologyMockValues, ge::GRAPH_SUCCESS, expectTilingKey);
 }
 
 TEST_F(MatmulAllReduceTiling, matmul_all_reduce_test_tiling_float16_2)
@@ -285,9 +283,9 @@ TEST_F(MatmulAllReduceTiling, matmul_all_reduce_test_tiling_float16_2)
             {"comm_quant_mode", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)}
         },
         &compileInfo, "Ascend910B", coreNum, ubSize);
-
+    Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 8}};
     uint64_t expectTilingKey = 10000000000000001100UL;
-    ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey);
+    Mc2ExecuteTestCase(tilingContextPara, hcomTopologyMockValues, ge::GRAPH_SUCCESS, expectTilingKey);
 }
 
 TEST_F(MatmulAllReduceTiling, matmul_all_reduce_test_tiling_float16_3)
@@ -318,9 +316,9 @@ TEST_F(MatmulAllReduceTiling, matmul_all_reduce_test_tiling_float16_3)
             {"comm_quant_mode", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)}
         },
         &compileInfo, "Ascend910B", coreNum, ubSize);
-
+    Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 8}};
     uint64_t expectTilingKey = 10000000000000001100UL;
-    ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey);
+    Mc2ExecuteTestCase(tilingContextPara, hcomTopologyMockValues, ge::GRAPH_SUCCESS, expectTilingKey);
 }
 
 TEST_F(MatmulAllReduceTiling, matmul_all_reduce_test_tiling_float16_4)
@@ -351,9 +349,9 @@ TEST_F(MatmulAllReduceTiling, matmul_all_reduce_test_tiling_float16_4)
             {"comm_quant_mode", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)}
         },
         &compileInfo, "Ascend910B", coreNum, ubSize);
-
+    Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 8}};
     uint64_t expectTilingKey = 10000000000000001100UL;
-    ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey);
+    Mc2ExecuteTestCase(tilingContextPara, hcomTopologyMockValues, ge::GRAPH_SUCCESS, expectTilingKey);
 }
 
 TEST_F(MatmulAllReduceTiling, matmul_all_reduce_test_tiling_float16_5)
@@ -384,9 +382,9 @@ TEST_F(MatmulAllReduceTiling, matmul_all_reduce_test_tiling_float16_5)
             {"comm_quant_mode", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)}
         },
         &compileInfo, "Ascend910B", coreNum, ubSize);
-
+    Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 8}};
     uint64_t expectTilingKey = 10000000000000001100UL;
-    ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey);
+    Mc2ExecuteTestCase(tilingContextPara, hcomTopologyMockValues, ge::GRAPH_SUCCESS, expectTilingKey);
 }
 
 TEST_F(MatmulAllReduceTiling, matmul_all_reduce_test_tiling_float16_support_3_dim)
@@ -417,9 +415,9 @@ TEST_F(MatmulAllReduceTiling, matmul_all_reduce_test_tiling_float16_support_3_di
             {"comm_quant_mode", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)}
         },
         &compileInfo, "Ascend910B", coreNum, ubSize);
-
+    Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 8}};
     uint64_t expectTilingKey = 10000000000000001100UL;
-    ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey);
+    Mc2ExecuteTestCase(tilingContextPara, hcomTopologyMockValues, ge::GRAPH_SUCCESS, expectTilingKey);
 }
 
 TEST_F(MatmulAllReduceTiling, matmul_all_reduce_test_tiling_bfloat16)
@@ -450,9 +448,9 @@ TEST_F(MatmulAllReduceTiling, matmul_all_reduce_test_tiling_bfloat16)
             {"comm_quant_mode", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)}
         },
         &compileInfo, "Ascend910B", coreNum, ubSize);
-
+    Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 8}};
     uint64_t expectTilingKey = 10000000000000001100UL;
-    ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey);
+    Mc2ExecuteTestCase(tilingContextPara, hcomTopologyMockValues, ge::GRAPH_SUCCESS, expectTilingKey);
 }
 
 TEST_F(MatmulAllReduceTiling, matmul_all_reduce_test_tiling_int8_1)
@@ -487,9 +485,9 @@ TEST_F(MatmulAllReduceTiling, matmul_all_reduce_test_tiling_int8_1)
             {"comm_quant_mode", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)}
         },
         &compileInfo, "Ascend910B", coreNum, ubSize);
-
+    Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 8}};
     uint64_t expectTilingKey = 0UL;
-    ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey);
+    Mc2ExecuteTestCase(tilingContextPara, hcomTopologyMockValues, ge::GRAPH_SUCCESS, expectTilingKey);
 }
 
 TEST_F(MatmulAllReduceTiling, matmul_all_reduce_test_tiling_int8_2)
@@ -525,9 +523,9 @@ TEST_F(MatmulAllReduceTiling, matmul_all_reduce_test_tiling_int8_2)
             {"comm_quant_mode", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)}
         },
         &compileInfo, "Ascend910B", coreNum, ubSize);
-
+    Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 8}};
     uint64_t expectTilingKey = 16UL;
-    ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey);
+    Mc2ExecuteTestCase(tilingContextPara, hcomTopologyMockValues, ge::GRAPH_SUCCESS, expectTilingKey);
 }
 
 TEST_F(MatmulAllReduceTiling, matmul_all_reduce_test_tiling_int8_bf16)
@@ -562,9 +560,9 @@ TEST_F(MatmulAllReduceTiling, matmul_all_reduce_test_tiling_int8_bf16)
             {"comm_quant_mode", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)}
         },
         &compileInfo, "Ascend910B", coreNum, ubSize);
-
+    Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 8}};
     uint64_t expectTilingKey = 0UL;
-    ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey);
+    Mc2ExecuteTestCase(tilingContextPara, hcomTopologyMockValues, ge::GRAPH_SUCCESS, expectTilingKey);
 }
 
 TEST_F(MatmulAllReduceTiling, matmul_all_reduce_test_tiling_a8w8_910b)
@@ -601,9 +599,9 @@ TEST_F(MatmulAllReduceTiling, matmul_all_reduce_test_tiling_a8w8_910b)
             {"comm_quant_mode", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)}
         },
         &compileInfo, "Ascend910B", coreNum, ubSize);
-
+    Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 8}};
     uint64_t expectTilingKey = 10UL;
-    ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey);
+    Mc2ExecuteTestCase(tilingContextPara, hcomTopologyMockValues, ge::GRAPH_SUCCESS, expectTilingKey);
 }
 
 TEST_F(MatmulAllReduceTiling, matmul_all_reduce_test_tiling_a8w8_scaleDimNum2_910b)
@@ -640,9 +638,9 @@ TEST_F(MatmulAllReduceTiling, matmul_all_reduce_test_tiling_a8w8_scaleDimNum2_91
             {"comm_quant_mode", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)}
         },
         &compileInfo, "Ascend910B", coreNum, ubSize);
-
+    Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 8}};
     uint64_t expectTilingKey = 10UL;
-    ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey);
+    Mc2ExecuteTestCase(tilingContextPara, hcomTopologyMockValues, ge::GRAPH_SUCCESS, expectTilingKey);
 }
 
 TEST_F(MatmulAllReduceTiling, matmul_all_reduce_test_tiling_a8w8_910b_mCut_1)
@@ -679,9 +677,9 @@ TEST_F(MatmulAllReduceTiling, matmul_all_reduce_test_tiling_a8w8_910b_mCut_1)
             {"comm_quant_mode", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)}
         },
         &compileInfo, "Ascend910B", coreNum, ubSize);
-
+    Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 8}};
     uint64_t expectTilingKey = 10UL;
-    ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey);
+    Mc2ExecuteTestCase(tilingContextPara, hcomTopologyMockValues, ge::GRAPH_SUCCESS, expectTilingKey);
 }
 
 TEST_F(MatmulAllReduceTiling, matmul_all_reduce_test_tiling_a8w8_910b_mCut_2)
@@ -718,9 +716,9 @@ TEST_F(MatmulAllReduceTiling, matmul_all_reduce_test_tiling_a8w8_910b_mCut_2)
             {"comm_quant_mode", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)}
         },
         &compileInfo, "Ascend910B", coreNum, ubSize);
-
+    Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 8}};
     uint64_t expectTilingKey = 10UL;
-    ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey);
+    Mc2ExecuteTestCase(tilingContextPara, hcomTopologyMockValues, ge::GRAPH_SUCCESS, expectTilingKey);
 }
 
 TEST_F(MatmulAllReduceTiling, matmul_all_reduce_test_tiling_float16_empty_k)
@@ -751,9 +749,9 @@ TEST_F(MatmulAllReduceTiling, matmul_all_reduce_test_tiling_float16_empty_k)
             {"comm_quant_mode", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)}
         },
         &compileInfo, "Ascend910B", coreNum, ubSize);
-
+    Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 8}};
     uint64_t expectTilingKey = 10000000000000000009UL;
-    ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey);
+    Mc2ExecuteTestCase(tilingContextPara, hcomTopologyMockValues, ge::GRAPH_SUCCESS, expectTilingKey);
 }
 
 //===============================================Ascend310P====================================================
@@ -786,8 +784,7 @@ TEST_F(MatmulAllReduceTiling, matmul_all_reduce_test_tiling_float16_1_310P)
             {"y_dtype", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)},
             {"comm_quant_mode", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)}
         },
-        &compileInfo, "Ascend310P", coreNum, ubSize);
-    Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 8}};
+        &compileInfo, "Ascend310P", coreNum, ubSize);    Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 8}};
     Mc2ExecuteTestCase(tilingContextPara, hcomTopologyMockValues);
 }
 
@@ -820,8 +817,7 @@ TEST_F(MatmulAllReduceTiling, matmul_all_reduce_test_tiling_float16_1_310P_weigh
             {"y_dtype", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)},
             {"comm_quant_mode", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)}
         },
-        &compileInfo, "Ascend310P", coreNum, ubSize);
-    Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 2}};
+        &compileInfo, "Ascend310P", coreNum, ubSize);    Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 2}};
     Mc2ExecuteTestCase(tilingContextPara, hcomTopologyMockValues);
 }
 
@@ -852,8 +848,7 @@ TEST_F(MatmulAllReduceTiling, matmul_all_reduce_test_mcut_float16_310P_1)
             {"y_dtype", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)},
             {"comm_quant_mode", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)}
         },
-        &compileInfo, "Ascend310P", coreNum, ubSize);
-    Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 2}};
+        &compileInfo, "Ascend310P", coreNum, ubSize);    Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 2}};
     uint64_t expectTilingKey = 2000000UL;
     Mc2ExecuteTestCase(tilingContextPara, hcomTopologyMockValues, ge::GRAPH_SUCCESS, expectTilingKey);
 }
@@ -885,8 +880,7 @@ TEST_F(MatmulAllReduceTiling, matmul_all_reduce_test_mcut_float16_310P_1_k_zero)
             {"y_dtype", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)},
             {"comm_quant_mode", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)}
         },
-        &compileInfo, "Ascend310P", coreNum, ubSize);
-    Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 2}};
+        &compileInfo, "Ascend310P", coreNum, ubSize);    Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 2}};
     uint64_t expectTilingKey = 2100000UL;
     Mc2ExecuteTestCase(tilingContextPara, hcomTopologyMockValues, ge::GRAPH_SUCCESS, expectTilingKey);
 }
@@ -918,8 +912,7 @@ TEST_F(MatmulAllReduceTiling, matmul_all_reduce_test_mcut_float16_310P_2)
             {"y_dtype", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)},
             {"comm_quant_mode", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)}
         },
-        &compileInfo, "Ascend310P", coreNum, ubSize);
-    Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 2}};
+        &compileInfo, "Ascend310P", coreNum, ubSize);    Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 2}};
     uint64_t expectTilingKey = 2000001UL;
     Mc2ExecuteTestCase(tilingContextPara, hcomTopologyMockValues, ge::GRAPH_SUCCESS, expectTilingKey);
 }
@@ -951,8 +944,7 @@ TEST_F(MatmulAllReduceTiling, matmul_all_reduce_test_mcut_float16_310P_3)
             {"y_dtype", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)},
             {"comm_quant_mode", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)}
         },
-        &compileInfo, "Ascend310P", coreNum, ubSize);
-    Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 2}};
+        &compileInfo, "Ascend310P", coreNum, ubSize);    Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 2}};
     uint64_t expectTilingKey = 2000001UL;
     Mc2ExecuteTestCase(tilingContextPara, hcomTopologyMockValues, ge::GRAPH_SUCCESS, expectTilingKey);
 }
@@ -984,8 +976,7 @@ TEST_F(MatmulAllReduceTiling, matmul_all_reduce_test_mcut_float16_310P_4)
             {"y_dtype", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)},
             {"comm_quant_mode", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)}
         },
-        &compileInfo, "Ascend310P", coreNum, ubSize);
-    Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 2}};
+        &compileInfo, "Ascend310P", coreNum, ubSize);    Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 2}};
     uint64_t expectTilingKey = 2000000UL;
     Mc2ExecuteTestCase(tilingContextPara, hcomTopologyMockValues, ge::GRAPH_SUCCESS, expectTilingKey);
 }
@@ -1017,8 +1008,7 @@ TEST_F(MatmulAllReduceTiling, matmul_all_reduce_test_mcut_float16_310P_5)
             {"y_dtype", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)},
             {"comm_quant_mode", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)}
         },
-        &compileInfo, "Ascend310P", coreNum, ubSize);
-    Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 2}};
+        &compileInfo, "Ascend310P", coreNum, ubSize);    Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 2}};
     uint64_t expectTilingKey = 2000000UL;
     Mc2ExecuteTestCase(tilingContextPara, hcomTopologyMockValues, ge::GRAPH_SUCCESS, expectTilingKey);
 }
@@ -1050,8 +1040,7 @@ TEST_F(MatmulAllReduceTiling, matmul_all_reduce_test_mcut_float16_310P_6)
             {"y_dtype", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)},
             {"comm_quant_mode", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)}
         },
-        &compileInfo, "Ascend310P", coreNum, ubSize);
-    Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 2}};
+        &compileInfo, "Ascend310P", coreNum, ubSize);    Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 2}};
     uint64_t expectTilingKey = 2000001UL;
     Mc2ExecuteTestCase(tilingContextPara, hcomTopologyMockValues, ge::GRAPH_SUCCESS, expectTilingKey);
 }
@@ -1083,8 +1072,7 @@ TEST_F(MatmulAllReduceTiling, matmul_all_reduce_test_mcut_float16_310P_Weight_NZ
             {"y_dtype", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)},
             {"comm_quant_mode", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)}
         },
-        &compileInfo, "Ascend310P", coreNum, ubSize);
-    Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 2}};
+        &compileInfo, "Ascend310P", coreNum, ubSize);    Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 2}};
     uint64_t expectTilingKey = 67536UL;
     Mc2ExecuteTestCase(tilingContextPara, hcomTopologyMockValues, ge::GRAPH_SUCCESS, expectTilingKey);
 }
@@ -1120,8 +1108,7 @@ TEST_F(MatmulAllReduceTiling, matmul_all_reduce_test_tiling_a8w8_310p)
             {"y_dtype", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)},
             {"comm_quant_mode", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)}
         },
-        &compileInfo, "Ascend310P", coreNum, ubSize);
-    Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 2}};
+        &compileInfo, "Ascend310P", coreNum, ubSize);    Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 2}};
     uint64_t expectTilingKey = 1UL;
     Mc2ExecuteTestCase(tilingContextPara, hcomTopologyMockValues, ge::GRAPH_SUCCESS, expectTilingKey);
 }
@@ -1153,8 +1140,7 @@ TEST_F(MatmulAllReduceTiling, matmul_all_reduce_test_tiling_float16_empty_k_310p
             {"y_dtype", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)},
             {"comm_quant_mode", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)}
         },
-        &compileInfo, "Ascend310P", coreNum, ubSize);
-    Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 2}};
+        &compileInfo, "Ascend310P", coreNum, ubSize);    Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 2}};
     uint64_t expectTilingKey = 2100000UL;
     Mc2ExecuteTestCase(tilingContextPara, hcomTopologyMockValues, ge::GRAPH_SUCCESS, expectTilingKey);
 }

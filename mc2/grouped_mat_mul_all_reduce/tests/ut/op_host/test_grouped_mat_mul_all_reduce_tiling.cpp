@@ -17,8 +17,7 @@
 #include <iostream>
 #include <gtest/gtest.h>
 #include "../../../op_host/op_tiling/grouped_mat_mul_all_reduce_tiling.h"
-#include "tiling_context_faker.h"
-#include "tiling_case_executor.h"
+#include "mc2_tiling_case_executor.h"
 namespace {
 class GroupedMatMulAllReduceTiling : public testing::Test {
 protected:
@@ -34,6 +33,7 @@ struct GroupedMatMulAllReduceCompileInfo {
     int32_t totalCoreNum = 0;
     uint64_t ubSize = 0;
 };
+
 TEST_F(GroupedMatMulAllReduceTiling, grouped_mat_mul_all_reduce_test_tiling_float16_1) {
     GroupedMatMulAllReduceCompileInfo compileInfo {20, 196608};
     const std::string socVersion = "Ascend910B";
@@ -65,8 +65,9 @@ TEST_F(GroupedMatMulAllReduceTiling, grouped_mat_mul_all_reduce_test_tiling_floa
         ubSize,
         tilingDataSize
         );
+    Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 8}};
     int64_t expectTilingKey = 0;
-    ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey);
+    Mc2ExecuteTestCase(tilingContextPara, hcomTopologyMockValues, ge::GRAPH_SUCCESS, expectTilingKey);
 }
 
 TEST_F(GroupedMatMulAllReduceTiling, grouped_mat_mul_all_reduce_test_mcut_float16_910B_1) {
@@ -99,9 +100,11 @@ TEST_F(GroupedMatMulAllReduceTiling, grouped_mat_mul_all_reduce_test_mcut_float1
         coreNum,
         ubSize,
         tilingDataSize);
+    Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 8}};
     int64_t expectTilingKey = 0;
-    ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey);
+    Mc2ExecuteTestCase(tilingContextPara, hcomTopologyMockValues, ge::GRAPH_SUCCESS, expectTilingKey);
 }
+
 TEST_F(GroupedMatMulAllReduceTiling, grouped_mat_mul_all_reduce_test_mcut_float16_910B_2) {
     GroupedMatMulAllReduceCompileInfo compileInfo {20, 196608};
     const std::string socVersion = "Ascend910B";
@@ -132,8 +135,9 @@ TEST_F(GroupedMatMulAllReduceTiling, grouped_mat_mul_all_reduce_test_mcut_float1
         coreNum,
         ubSize,
         tilingDataSize);
+    Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 2}};
     int64_t expectTilingKey = 0;
-    ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey);
+    Mc2ExecuteTestCase(tilingContextPara, hcomTopologyMockValues, ge::GRAPH_SUCCESS, expectTilingKey);
 }
 
 TEST_F(GroupedMatMulAllReduceTiling, grouped_mat_mul_all_reduce_test_mcut_float16_910B_win2win) {
@@ -166,8 +170,9 @@ TEST_F(GroupedMatMulAllReduceTiling, grouped_mat_mul_all_reduce_test_mcut_float1
         coreNum,
         ubSize,
         tilingDataSize);
+    Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 8}};
     int64_t expectTilingKey = 0;
-    ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey);
+    Mc2ExecuteTestCase(tilingContextPara, hcomTopologyMockValues, ge::GRAPH_SUCCESS, expectTilingKey);
 }
 
 TEST_F(GroupedMatMulAllReduceTiling, grouped_mat_mul_all_reduce_test_tiling_float16_2) {
@@ -200,8 +205,9 @@ TEST_F(GroupedMatMulAllReduceTiling, grouped_mat_mul_all_reduce_test_tiling_floa
         coreNum,
         ubSize,
         tilingDataSize);
+    Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 8}};
     int64_t expectTilingKey = 0;
-    ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey);
+    Mc2ExecuteTestCase(tilingContextPara, hcomTopologyMockValues, ge::GRAPH_SUCCESS, expectTilingKey);
 }
 
 TEST_F(GroupedMatMulAllReduceTiling, grouped_mat_mul_all_reduce_test_tiling_float16_3) {
@@ -234,8 +240,9 @@ TEST_F(GroupedMatMulAllReduceTiling, grouped_mat_mul_all_reduce_test_tiling_floa
         coreNum,
         ubSize,
         tilingDataSize);
+    Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 8}};
     int64_t expectTilingKey = 0;
-    ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey);
+    Mc2ExecuteTestCase(tilingContextPara, hcomTopologyMockValues, ge::GRAPH_SUCCESS, expectTilingKey);
 }
 
 TEST_F(GroupedMatMulAllReduceTiling, grouped_mat_mul_all_reduce_test_tiling_float16_4) {
@@ -268,8 +275,9 @@ TEST_F(GroupedMatMulAllReduceTiling, grouped_mat_mul_all_reduce_test_tiling_floa
         coreNum,
         ubSize,
         tilingDataSize);
+    Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 8}};
     int64_t expectTilingKey = 0;
-    ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey);
+    Mc2ExecuteTestCase(tilingContextPara, hcomTopologyMockValues, ge::GRAPH_SUCCESS, expectTilingKey);
 }
 
 TEST_F(GroupedMatMulAllReduceTiling, grouped_mat_mul_all_reduce_test_tiling_float16_5) {
@@ -302,8 +310,9 @@ TEST_F(GroupedMatMulAllReduceTiling, grouped_mat_mul_all_reduce_test_tiling_floa
         coreNum,
         ubSize,
         tilingDataSize);
+    Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 8}};
     int64_t expectTilingKey = 0;
-    ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey);
+    Mc2ExecuteTestCase(tilingContextPara, hcomTopologyMockValues, ge::GRAPH_SUCCESS, expectTilingKey);
 }
 
 TEST_F(GroupedMatMulAllReduceTiling, grouped_mat_mul_all_reduce_test_tiling_float16_support_3_dim) {
@@ -336,8 +345,9 @@ TEST_F(GroupedMatMulAllReduceTiling, grouped_mat_mul_all_reduce_test_tiling_floa
         coreNum,
         ubSize,
         tilingDataSize);
+    Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 8}};
     int64_t expectTilingKey = 0;
-    ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey);
+    Mc2ExecuteTestCase(tilingContextPara, hcomTopologyMockValues, ge::GRAPH_SUCCESS, expectTilingKey);
 }
 
 TEST_F(GroupedMatMulAllReduceTiling, grouped_mat_mul_all_reduce_test_tiling_bfloat16) {
@@ -370,7 +380,8 @@ TEST_F(GroupedMatMulAllReduceTiling, grouped_mat_mul_all_reduce_test_tiling_bflo
         coreNum,
         ubSize,
         tilingDataSize);
+    Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 8}};
     int64_t expectTilingKey = 0;
-    ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey);
+    Mc2ExecuteTestCase(tilingContextPara, hcomTopologyMockValues, ge::GRAPH_SUCCESS, expectTilingKey);
 }
 }

@@ -9,8 +9,7 @@
  */
 #include <gtest/gtest.h>
 #include <iostream>
-#include "tiling_context_faker.h"
-#include "tiling_case_executor.h"
+#include "mc2_tiling_case_executor.h"
 #include "../../../op_host/op_tiling/quant_matmul_all_reduce_add_rms_norm_tiling.h"
 #include "../../../op_host/op_tiling/matmul_all_reduce_add_rms_norm_tiling.h"
 #include "../../../op_host/op_tiling/weight_quant_matmul_all_reduce_add_rms_norm_tiling.h"
@@ -216,14 +215,11 @@ static void TestOneParamCase(const WeightQuantTestParam& param) {
         coreNum,
         ubSize,
         tilingDataSize);
-    uint64_t expectTilingKey = 10000UL;
-    std::string expectTilingData = "8 16 64 262144 0 ";
-    std::vector<size_t> expectWorkspaces = {16777216};
-    uint64_t mc2TilingDataReservedLen = 42;
+    Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 8}};
     if (is_valid_case) {
-        ExecuteTestCase(tilingContextPara);
+        Mc2ExecuteTestCase(tilingContextPara, hcomTopologyMockValues);
     } else {
-        ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, param.tilingKey);
+        Mc2ExecuteTestCase(tilingContextPara, hcomTopologyMockValues, ge::GRAPH_SUCCESS, param.tilingKey);
     }
 }
 
