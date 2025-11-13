@@ -115,6 +115,7 @@ private:
     __aicore__ inline void SumToServer();
     __aicore__ inline void Preload();
     __aicore__ inline void ToWindowPreload();
+    __aicore__ inline void CopyPerformanceInfo();
 
     TPipe *tpipe_{nullptr};
     GlobalTensor<ExpandXType> expandXGlobal_;
@@ -611,13 +612,10 @@ __aicore__ inline void MoeDistributeCombineA2Layered<TemplateMC2TypeA2layeredFun
         PipeBarrier<PIPE_ALL>();
 
         int64_t endTime = GetSystemCycle() / TIME_CYCLE;
-        int32_t duration = static_cast<int32_t>(endTime - startTime);
+        int32_t duration = static_cast<int32_t>(endTime - startTime); // int32_t可以表示2^31(us)，约35min在实际场景下满足需要
 	    auto srcId = (rankId_ / SERVER_RANK_SIZE) * SERVER_RANK_SIZE + coreIdx_;
     	if (hasPerformanceInfo_) {
 	        performanceInfoU32Tensor_.SetValue(srcId * sizeof(int64_t) / sizeof(int32_t), duration);
-	        AscendC::SetAtomicAdd<int32_t>();
-            AscendC::DataCopy(performanceInfoU32GMTensor_, performanceInfoU32Tensor_, performanceInfoSize_ * sizeof(int64_t) / sizeof(int32_t));
-            AscendC::SetAtomicNone();
         }
     }
     SyncAll<true>();
@@ -926,7 +924,7 @@ __aicore__ inline void MoeDistributeCombineA2Layered<TemplateMC2TypeA2layeredFun
         LocalTensor<int32_t> statusTensor = statusBuf_.Get<int32_t>();
         uint32_t readNum = 1U;
         DataCopyParams intriParams{static_cast<uint16_t>(readNum), 1, 15, 0};  // srcStride为15个block
-        uint32_t startTime = GetSystemCycle() / TIME_CYCLE;
+        int64_t startTime = GetSystemCycle() / TIME_CYCLE;
         while (true) {
             DataCopy(statusTensor, statusSpaceGlobal_[(coreIdx_)*STATE_OFFSET / sizeof(int32_t)], intriParams);
             PipeBarrier<PIPE_ALL>();
@@ -935,14 +933,11 @@ __aicore__ inline void MoeDistributeCombineA2Layered<TemplateMC2TypeA2layeredFun
                 break;
             }
         }
-        uint32_t endTime = GetSystemCycle() / TIME_CYCLE;
-        uint32_t duration = endTime - startTime;
+        int64_t endTime = GetSystemCycle() / TIME_CYCLE;
+        int32_t duration = static_cast<int32_t>(endTime - startTime); // int32_t可以表示2^31(us)，约35min在实际场景下满足需要
         auto srcId = targetRank;
 	    if (hasPerformanceInfo_) {
-	        performanceInfoU32Tensor_.SetValue(srcId * sizeof(uint64_t) / sizeof(uint32_t), duration);
-	        AscendC::SetAtomicAdd<int32_t>();
-            AscendC::DataCopy(performanceInfoU32GMTensor_, performanceInfoU32Tensor_, performanceInfoSize_ * sizeof(uint64_t) / sizeof(uint32_t));
-            AscendC::SetAtomicNone();
+	        performanceInfoU32Tensor_.SetValue(srcId * sizeof(int64_t) / sizeof(int32_t), duration);
         }
     }
     PipeBarrier<PIPE_ALL>();
@@ -1156,6 +1151,17 @@ __aicore__ inline void MoeDistributeCombineA2Layered<TemplateMC2TypeA2layeredFun
 }
 
 template <TemplateMC2TypeA2layeredClass>
+__aicore__ inline void MoeDistributeCombineA2Layered<TemplateMC2TypeA2layeredFunc>::CopyPerformanceInfo()
+{
+    // copy local performance info to GMTensor
+    if (hasPerformanceInfo_) {
+        AscendC::SetAtomicAdd<int32_t>();
+        AscendC::DataCopy(performanceInfoU32GMTensor_, performanceInfoU32Tensor_, performanceInfoSize_ * sizeof(int64_t) / sizeof(int32_t));
+        AscendC::SetAtomicNone();
+    }
+}
+
+template <TemplateMC2TypeA2layeredClass>
 __aicore__ inline void MoeDistributeCombineA2Layered<TemplateMC2TypeA2layeredFunc>::Process()
 {
     if ASCEND_IS_AIV {
@@ -1182,6 +1188,7 @@ __aicore__ inline void MoeDistributeCombineA2Layered<TemplateMC2TypeA2layeredFun
         }
         Preload();
         WaitDispatch();
+        CopyPerformanceInfo();
         SumToServer();
         hccl_.Finalize();
     }

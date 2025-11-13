@@ -95,6 +95,7 @@ private:
                                         uint64_t messageLen, __gm__ HcclAiRMAInfo* QpInfo);
     __aicore__ inline uint32_t GetSelfServerTokenInfo(uint32_t tokenIdx, bool justExpInfo,
                                                     LocalTensor<uint8_t> localUB_U8);
+     __aicore__ inline void CopyPerformanceInfo();
 
     TPipe *tpipe_{nullptr};
     GlobalTensor<int32_t> expertIdsGMTensor_;
@@ -1173,18 +1174,13 @@ __aicore__ inline void MoeDistributeDispatchA2Layered<TemplateMC2TypeA2layeredFu
             PipeBarrier<PIPE_ALL>();
             DataCopy(targetTokenIpcGt, localUB_U8, tokenStructLen_);
             PipeBarrier<PIPE_ALL>();
-
-            //统计机间通信时间
-            int64_t endTime = GetSystemCycle() / TIME_CYCLE;
-            duration = static_cast<int32_t>(endTime - startTime);
-            //确保每个卡只加一次max
-            //找到exp中的max
-            if (hasPerformanceInfo_ && curServerId != serverId_) {
-                duration = duration > cmpDuration ? duration : cmpDuration;
-    	    }
         }
-        //找每张卡上的aiv time max
-        if (hasPerformanceInfo_ && curServerId != serverId_) {
+        // 统计机间通信时间
+        int64_t endTime = GetSystemCycle() / TIME_CYCLE;
+        duration = static_cast<int32_t>(endTime - startTime);
+        // 找每张卡上的aiv time max
+        // 多个核处理同一个server只有第一个核记录时间，其他核不记录保持0，不影响最后的atomicAdd
+        if (hasPerformanceInfo_ && (curServerId != serverId_) && (logicAivId % coresPerServer == 0)) { 
             auto srcId = rankId_ % SERVER_RANK_SIZE + curServerId * SERVER_RANK_SIZE;
             int32_t cmpaivMaxTime = performanceInfoU32Tensor_.GetValue(srcId * sizeof(int64_t) / sizeof(int32_t));
             aivMaxTime = duration > cmpaivMaxTime ? duration : cmpaivMaxTime;
@@ -1401,6 +1397,17 @@ __aicore__ inline void MoeDistributeDispatchA2Layered<TemplateMC2TypeA2layeredFu
 }
 
 template <TemplateMC2TypeA2layeredClass>
+__aicore__ inline void MoeDistributeDispatchA2Layered<TemplateMC2TypeA2layeredFunc>::CopyPerformanceInfo()
+{
+    // copy local performance info to GMTensor
+    if (hasPerformanceInfo_) {
+        AscendC::SetAtomicAdd<int32_t>();
+        AscendC::DataCopy(performanceInfoU32GMTensor_, performanceInfoU32Tensor_, performanceInfoSize_ * sizeof(int64_t) / sizeof(int32_t));
+        AscendC::SetAtomicNone();
+    }
+}
+
+template <TemplateMC2TypeA2layeredClass>
 __aicore__ inline void MoeDistributeDispatchA2Layered<TemplateMC2TypeA2layeredFunc>::Process()
 {
     if ASCEND_IS_AIV { // 全aiv处理
@@ -1417,20 +1424,11 @@ __aicore__ inline void MoeDistributeDispatchA2Layered<TemplateMC2TypeA2layeredFu
         } else {
             Win2Ipc();
         }
-        //把aiv中的max累加到GMTensor里
-        uint32_t coresPerServer = (aivNum_ - serverNum - 1) / serverNum;
-        uint32_t logicAivId = aivId_ - serverNum - 1;
-        //每张卡只加一次
-        if (logicAivId % coresPerServer == 0) {
-            AscendC::SetAtomicAdd<int32_t>();
-            AscendC::DataCopy(performanceInfoU32GMTensor_, performanceInfoU32Tensor_, performanceInfoSize_ * sizeof(int64_t) / sizeof(int32_t));
-            AscendC::SetAtomicNone();                
-        }
-
         PipeBarrier<PIPE_ALL>();
         SyncAll<true>();
         SetIpcFlag(IPC_FLAG_STEP_1);
         WaitIpcFlag(IPC_FLAG_STEP_1);
+        CopyPerformanceInfo();
         PipeBarrier<PIPE_ALL>();
         SyncAll<true>();
         Ipc2Out();

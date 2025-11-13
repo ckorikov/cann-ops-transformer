@@ -73,6 +73,7 @@ private:
     __aicore__ inline void QuantProcess(uint32_t expertIndex, TEventID eventId);
     __aicore__ inline void QuantInit(GM_ADDR scales);
     __aicore__ inline void TokenActiveMaskCal();
+    __aicore__ inline void CopyPerformanceInfo();
 
     TPipe *tpipe_{nullptr};
     GlobalTensor<XType> xGMTensor_;
@@ -607,38 +608,37 @@ __aicore__ inline void MoeDistributeDispatchA2<TemplateMC2TypeA2Func>::WaitDispa
     LocalTensor<int32_t> dataFlagLocal = scalarBuf_.Get<int32_t>();
     SyncFunc<AscendC::HardEvent::S_MTE2>();
 
-    for (uint32_t rankId = startRankId; rankId < endRankId; rankId++) {
-        int32_t statusFlag = 0;
-        int32_t dataFlag = 0;
-        int64_t startTime = GetSystemCycle() / TIME_CYCLE;
-        while (statusFlag != FLAG_VALUE) {
+    uint32_t recvFlagNum = 0;
+    int64_t startTime = GetSystemCycle() / TIME_CYCLE;
+    while (recvFlagNum < batchWriteItemNum) {
+        for (uint32_t rankId = startRankId; rankId < endRankId; rankId++) {
             DataCopy(statusTensor_[rankId * STATUS_ENTRY_COUNT], windowInstatusTensor_[rankId * dataSizePerRank_ / sizeof(int32_t)], STATUS_ENTRY_COUNT);
             SyncFunc<AscendC::HardEvent::MTE2_S>();
-            statusFlag = statusTensor_(rankId * STATUS_ENTRY_COUNT + FLAG_OFFSET);
-            PipeBarrier<PIPE_MTE2>();
-        }
-        uint32_t tokenCount = 0;
-        for (int32_t expertOffset = 0; expertOffset < localMoeExpertNum_; expertOffset++) {
-            tokenCount += statusTensor_(rankId * STATUS_ENTRY_COUNT + expertOffset);
-        }
-        uint64_t dataFlagOffset = (rankId * dataSizePerRank_ + DATA_OFFSET + tokenCount * hCommuSize_ + SKIP_OFFSET) / sizeof(int32_t);
-        while (dataFlag != FLAG_VALUE) {
+            int32_t statusFlag = statusTensor_(rankId * STATUS_ENTRY_COUNT + FLAG_OFFSET);
+            if (statusFlag != FLAG_VALUE) {
+                continue;
+            }
+            uint32_t tokenCount = 0;
+            for (int32_t expertOffset = 0; expertOffset < localMoeExpertNum_; expertOffset++) {
+                tokenCount += statusTensor_(rankId * STATUS_ENTRY_COUNT + expertOffset);
+            }
+            uint64_t dataFlagOffset = (rankId * dataSizePerRank_ + DATA_OFFSET + tokenCount * hCommuSize_ + SKIP_OFFSET) / sizeof(int32_t);
             DataCopyPad(dataFlagLocal, windowInstatusTensor_[dataFlagOffset], copyFlagParams, padParams);
             SyncFunc<AscendC::HardEvent::MTE2_S>();
-            dataFlag = dataFlagLocal(0);
-            PipeBarrier<PIPE_MTE2>();
+            int32_t dataFlag = dataFlagLocal(0);
+            if (dataFlag == FLAG_VALUE) {
+                recvFlagNum++;
+                windowInstatusTensor_(dataFlagOffset) = 0;
+                // 重要：要下DCCI保证清零写进去，避免下一次判断时又判断生效，重复累计recvFlagNum
+                DataCacheCleanAndInvalid<int32_t, AscendC::CacheLine::SINGLE_CACHE_LINE, AscendC::DcciDst::CACHELINE_OUT>(windowInstatusTensor_[dataFlagOffset]);
+                if (hasPerformanceInfo_) {
+                    int64_t endTime = GetSystemCycle() / TIME_CYCLE;
+                    int32_t duration = static_cast<int32_t>(endTime - startTime); // int32_t可以表示2^31(us)，约35min在实际场景下满足需要
+                    auto srcId = rankId;
+                    performanceInfoU32Tensor_.SetValue(srcId * sizeof(int64_t) / sizeof(int32_t), duration);
+                }
+            }
         }
-        int64_t endTime = GetSystemCycle() / TIME_CYCLE;
-	    int32_t duration = static_cast<int32_t>(endTime - startTime);
-        auto srcId = rankId;
-        if (hasPerformanceInfo_){
-            Duplicate<int32_t>(performanceInfoU32Tensor_, 0, performanceInfoSize_ * sizeof(int64_t) / sizeof(int32_t));
-            performanceInfoU32Tensor_.SetValue(srcId * sizeof(int64_t) / sizeof(int32_t), duration);
-            AscendC::SetAtomicAdd<int32_t>();
-            AscendC::DataCopy(performanceInfoU32GMTensor_, performanceInfoU32Tensor_, performanceInfoSize_ * sizeof(int64_t) / sizeof(int32_t));
-            AscendC::SetAtomicNone();
-        }
-        windowInstatusTensor_(dataFlagOffset) = 0;
     }
     SyncAll<true>();
 }
@@ -786,6 +786,17 @@ __aicore__ inline void MoeDistributeDispatchA2<TemplateMC2TypeA2Func>::LocalWind
 }
 
 template <TemplateMC2TypeA2Class>
+__aicore__ inline void MoeDistributeDispatchA2<TemplateMC2TypeA2Func>::CopyPerformanceInfo()
+{
+    // copy local performance info to GMTensor
+    if (hasPerformanceInfo_) {
+        AscendC::SetAtomicAdd<int32_t>();
+        AscendC::DataCopy(performanceInfoU32GMTensor_, performanceInfoU32Tensor_, performanceInfoSize_ * sizeof(int64_t) / sizeof(int32_t));
+        AscendC::SetAtomicNone();
+    }
+}
+
+template <TemplateMC2TypeA2Class>
 __aicore__ inline void MoeDistributeDispatchA2<TemplateMC2TypeA2Func>::Process()
 {
     if ASCEND_IS_AIV {
@@ -793,6 +804,7 @@ __aicore__ inline void MoeDistributeDispatchA2<TemplateMC2TypeA2Func>::Process()
         ReorderTokens();
         SendToMoeExpert();
         WaitDispatch();
+        CopyPerformanceInfo();
         LocalWindowCopy();
         SyncAll<true>();
         if (aivId_ == 0) {

@@ -97,6 +97,7 @@ private:
     __aicore__ inline void Preload();
     __aicore__ inline void WaitDispatch();
     __aicore__ inline void TokenActiveMaskCal();
+    __aicore__ inline void CopyPerformanceInfo();
     TPipe *tpipe_{nullptr};
     GlobalTensor<ExpandXType> expandXGlobal_;
     GlobalTensor<ExpandIdxType> expertIdsGlobal_;
@@ -474,45 +475,44 @@ __aicore__ inline void MoeDistributeCombineA2<TemplateMC2TypeA2Func>::WaitDispat
         SyncAll<true>();
         return;
     }
-    SyncFunc<AscendC::HardEvent::MTE2_S>();
+ 
+    uint32_t waitFlagNum = 0;
     int64_t startTime = GetSystemCycle() / TIME_CYCLE;
-    for (uint32_t waitFlagNum = 0; waitFlagNum < sendRankNum_;) {
-        waitFlagNum = 0;
+    while (waitFlagNum < sendRankNum_) {
         for (uint32_t rankId = startRankId_; rankId < endRankId_; ++rankId) {
             uint32_t tokenIdx = (rankId + 1) * localMoeExpertNum_ - 1;
             GM_ADDR wAddr = windowInGM_ + rankSizeOnWin_ * rankId + SKIP_OFFSET +
                             (recvCountLocal_(tokenIdx) + expertWindowOffsetLocal_(tokenIdx)) * axisHExpandXTypeSize_;
             flagGlobal_.SetGlobalBuffer((__gm__ uint32_t *)wAddr);
-            DataCacheCleanAndInvalid<uint32_t, AscendC::CacheLine::SINGLE_CACHE_LINE, AscendC::DcciDst::CACHELINE_OUT>(
-                flagGlobal_);
+            DataCacheCleanAndInvalid<uint32_t, AscendC::CacheLine::SINGLE_CACHE_LINE, AscendC::DcciDst::CACHELINE_OUT>(flagGlobal_);
             uint32_t flag = flagGlobal_(0);
-            if (flag == FLAG_VALUE) {
+            if (flag != FLAG_VALUE) {
+                continue;
+            }
+            waitFlagNum++;
+            flagGlobal_(0) = 0;
+            // 重要：要下DCCI保证清零写进去，避免下一次判断时又判断生效，重复累计recvFlagNum
+            DataCacheCleanAndInvalid<uint32_t, AscendC::CacheLine::SINGLE_CACHE_LINE, AscendC::DcciDst::CACHELINE_OUT>(flagGlobal_);
+            if (hasPerformanceInfo_) {
                 int64_t endTime = GetSystemCycle() / TIME_CYCLE; 
-                int32_t duration = static_cast<int32_t>(endTime - startTime);
+                int32_t duration = static_cast<int32_t>(endTime - startTime); // int32_t可以表示2^31(us)，约35min在实际场景下满足需要
                 auto srcId = rankId;
-                if (hasPerformanceInfo_){
-                    Duplicate<int32_t>(performanceInfoU32Tensor_, 0, performanceInfoSize_ * sizeof(int64_t) / sizeof(int32_t));
-                    performanceInfoU32Tensor_.SetValue(srcId * sizeof(int64_t) / sizeof(int32_t), duration);
-		        }
-                waitFlagNum++;
+                performanceInfoU32Tensor_.SetValue(srcId * sizeof(int64_t) / sizeof(int32_t), duration);
             }
         }
     }
-    //在for循环外面累加performance time，节约时间
-    if (hasPerformanceInfo_){
+    SyncAll<true>();
+}
+
+template <TemplateMC2TypeA2Class>
+__aicore__ inline void MoeDistributeCombineA2<TemplateMC2TypeA2Func>::CopyPerformanceInfo()
+{
+    // copy local performance info to GMTensor
+    if (hasPerformanceInfo_) {
         AscendC::SetAtomicAdd<int32_t>();
         AscendC::DataCopy(performanceInfoU32GMTensor_, performanceInfoU32Tensor_, performanceInfoSize_ * sizeof(int64_t) / sizeof(int32_t));
         AscendC::SetAtomicNone();
     }
-
-    for (uint32_t rankId = startRankId_; rankId < endRankId_; ++rankId) {
-        uint32_t tokenIdx = (rankId + 1) * localMoeExpertNum_ - 1;
-        GM_ADDR wAddr = windowInGM_ + rankSizeOnWin_ * rankId + SKIP_OFFSET +
-                        (recvCountLocal_(tokenIdx) + expertWindowOffsetLocal_(tokenIdx)) * axisHExpandXTypeSize_;
-        flagGlobal_.SetGlobalBuffer((__gm__ uint32_t *)wAddr);
-        flagGlobal_(0) = 0;
-    }
-    SyncAll<true>();
 }
 
 template <TemplateMC2TypeA2Class>
@@ -522,6 +522,7 @@ __aicore__ inline void MoeDistributeCombineA2<TemplateMC2TypeA2Func>::Process()
         AlltoAllDispatch();
         Preload();
         WaitDispatch();
+        CopyPerformanceInfo();
         LocalWindowCopy();
         hccl_.Finalize();
     }
