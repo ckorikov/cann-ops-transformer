@@ -1,13 +1,13 @@
 #  FusedInferAttentionScore
 
-## 产品支持情况
+## Product Support
 
-|产品      | 是否支持 |
+| Product      | Is it supported? |
 |:----------------------------|:-----------:|
 |<term>Atlas A3 Training Series Products / Atlas A3 Inference Series Products</term>|      √     |
 |<term>Atlas A2 Training Series Products / Atlas 800I A2 Inference Products / A200I A2 Box Heterogeneous Components</term>|      √     |
 
-## 功能说明
+## Function Specification
 
 - Operator Function: The FlashAttention operator is designed for incremental and full inference scenarios, supporting both full computation scenarios.（[PromptFlashAttention](../prompt_flash_attention/README.md)），It also supports incremental computing scenarios.（[IncreFlashAttention](../incre_flash_attention/README.md)）。
 
@@ -57,14 +57,14 @@
   <tr>
     <td>key</td>
     <td>input</td>
-    <td>公式中的输入K。</td>
+    <td>Input K in the formula。</td>
     <td>FLOAT16、BFLOAT16、INT8、INT4</td>
     <td>ND</td>
   </tr>
   <tr>
     <td>value</td>
     <td>input</td>
-    <td>公式中的输入V。</td>
+    <td>Input V in the formula.</td>
     <td>FLOAT16、BFLOAT16、INT8、INT4</td>
     <td>ND</td>
   </tr>
