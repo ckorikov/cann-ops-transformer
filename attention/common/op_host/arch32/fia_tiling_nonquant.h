@@ -90,7 +90,7 @@ private:
     size_t libapiSize_ = 0;
 
     // set info to context
-    FusedInferAttentionScoreTilingData tilingData_;
+    FusedInferAttentionScoreTilingData *tilingData_ = GetContext()->GetTilingData<FusedInferAttentionScoreTilingData>();
     uint32_t blockDim_{0};
     ScheduleMode scheduleMode_{ScheduleMode::NORMAL_MODE};
     uint64_t workspaceSize_{0};
