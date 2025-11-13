@@ -39,6 +39,7 @@ nsa_selected_attention_infer(__gm__ uint8_t *query, __gm__ uint8_t *key, __gm__ 
                            __gm__ uint8_t *attentionOut, __gm__ uint8_t *workspace, __gm__ uint8_t *tiling)
 {
     TPipe tPipe;
+    printf("lwg-------!!!!!!!!!!!!修改的！！！！！！！！！")
     __gm__ uint8_t *user = GetUserWorkspace(workspace);
     #if (ORIG_DTYPE_QUERY == DT_FLOAT16)
         if (TILING_KEY_IS(0)) {
