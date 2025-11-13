@@ -991,7 +991,6 @@ __aicore__ inline void MoeDistributeDispatchA2Layered<TemplateMC2TypeA2layeredFu
     auto curServerId = rankId_ / SERVER_RANK_SIZE;
     auto srcId = curServerId * SERVER_RANK_SIZE + destRankIdx;
     if (hasPerformanceInfo_){
-        Duplicate<int32_t>(performanceInfoU32Tensor_, 0, performanceInfoSize_ * sizeof(int64_t) / sizeof(int32_t));
         performanceInfoU32Tensor_.SetValue(srcId * sizeof(int64_t) / sizeof(int32_t), duration);
 	    AscendC::SetAtomicAdd<int32_t>();
 	    AscendC::DataCopy(performanceInfoU32GMTensor_, performanceInfoU32Tensor_, performanceInfoSize_ * sizeof(int64_t) / sizeof(int32_t));
