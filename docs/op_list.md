@@ -1,9 +1,8 @@
 # 算子列表
 
-> 说明：
-> - **算子目录**：目录名为算子名小写下划线形式，每个目录承载该算子所有交付件，包括代码实现、examples、文档等，目录介绍参见[项目目录](context/dir_structure.md)。
-> - **算子执行硬件单元**：大部分算子运行在AI Core，少部分算子运行在AI CPU。默认情况下，项目中提到的算子一般指AI Core算子。关于AI Core和AI CPU详细介绍参见[《Ascend C算子开发》](https://hiascend.com/document/redirect/CannCommunityOpdevAscendC)中“概念原理和术语 > 硬件架构与数据处理原理”。
-> - **算子接口列表**：为方便调用算子，CANN提供一套C API执行算子，一般以aclnn为前缀，全量接口参见[aclnn列表](op_api_list.md)。
+> **说明：**
+> - 算子目录：目录名为算子名小写下划线形式，每个目录承载该算子所有交付件，包括代码实现、examples、文档等，目录介绍参见[项目目录](context/dir_structure.md)。
+> - 算子执行硬件单元：大部分算子运行在AI Core，少部分算子运行在AI CPU。默认情况下，项目中提到的算子一般指AI Core算子。关于AI Core和AI CPU详细介绍参见[《Ascend C算子开发》](https://hiascend.com/document/redirect/CannCommunityOpdevAscendC)中“概念原理和术语 > 硬件架构与数据处理原理”。
 
 项目提供的所有算子分类和算子列表如下：
 
@@ -72,7 +71,7 @@
     <td>×</td>
     <td>×</td>
     <td>AI Core</td>
-    <td>推理MlaProlog算子</td>
+    <td>推理MlaProlog算子。</td>
   </tr>
   <tr>
     <td>attention</td>
@@ -239,8 +238,8 @@
     <td><a href="../gmm/grouped_matmul_add/README.md">grouped_matmul_add</a></td>
     <td>√</td>
     <td>√</td>
-    <td>×</td>
     <td>√</td>
+    <td>×</td>
     <td>AI Core</td>
     <td>实现分组矩阵乘计算，每组矩阵乘的维度大小可以不同。</td>
   </tr>
@@ -259,8 +258,8 @@
     <td><a href="../gmm/grouped_matmul_swiglu_quant/README.md">grouped_matmul_swiglu_quant</a></td>
     <td>√</td>
     <td>√</td>
-    <td>×</td>
     <td>√</td>
+    <td>×</td>
     <td>AI Core</td>
     <td>融合GroupedMatmul 、dquant、swiglu和quant。</td>
   </tr>
@@ -269,8 +268,8 @@
     <td><a href="../gmm/quant_grouped_matmul_inplace_add/README.md">quant_grouped_matmul_inplace_add</a></td>
     <td>√</td>
     <td>√</td>
-    <td>×</td>
     <td>√</td>
+    <td>×</td>
     <td>AI Core</td>
     <td>实现分组矩阵乘计算和加法计算。</td>
   </tr>
@@ -352,7 +351,7 @@
     <td>√</td>
     <td>√</td>
     <td>AI Core</td>
-    <td>在grouped_matmul的基础上实现多卡并行AllReduce功能，实现分组矩阵乘计算，每组矩阵乘的维度大小可以不同。</td>
+    <td>在融合GroupedMatMul的基础上实现多卡并行AllReduce功能，实现分组矩阵乘计算，每组矩阵乘的维度大小可以不同。</td>
   </tr>
   <tr>
     <td>mc2</td>
@@ -532,7 +531,7 @@
     <td>×</td>
     <td>√</td>
     <td>AI Core</td>
-    <td>MoE计算中，对x的输出做Softmax计算，取topk操作。</td>
+    <td>MoE计算中，对x的输出做Softmax计算，取TopK操作。</td>
   </tr>
   <tr>
     <td>moe</td>
@@ -562,7 +561,7 @@
     <td>×</td>
     <td>√</td>
     <td>AI Core</td>
-    <td>MoE的routing计算，根据<a href="aclnnMoeInitRoutingQuantSoftmax.md">aclnnMoeInitRoutingQuantSoftmax</a>的计算结果做routing处理，并对结果进行量化。</td>
+    <td>MoE的routing计算，根据<a href="../moe/moe_gating_top_k_softmax/docs/aclnnMoeGatingTopKSoftmax.md">aclnnMoeGatingTopKSoftmax</a>的计算结果做routing处理，并对结果进行量化。</td>
   </tr>
   <tr>
     <td>moe</td>
@@ -739,7 +738,7 @@
     <td><a href="../posembedding/apply_rotary_pos_emb/README.md">apply_rotary_pos_emb</a></td>
     <td>√</td>
     <td>√</td>
-    <td>×</td>
+    <td>√</td>
     <td>√</td>
     <td>AI Core</td>
     <td>执行旋转位置编码计算，推理网络为了提升性能，将query和key两路算子融合成一路。</td>
@@ -749,7 +748,7 @@
     <td><a href="../posembedding/dequant_rope_quant_kvcache/README.md">dequant_rope_quant_kvcache</a></td>
     <td>√</td>
     <td>√</td>
-    <td>√</td>
+    <td>×</td>
     <td>√</td>
     <td>AI Core</td>
     <td>对输入张量（x）进行dequant（可选）后，按`sizeSplits`（为切分的长度）对尾轴进行切分，划分为q、k、vOut，对q、k进行旋转位置编码，生成qOut和kOut，之后对kOut和vOut进行量化并按照`indices`更新到kCacheRef和vCacheRef上。</td>

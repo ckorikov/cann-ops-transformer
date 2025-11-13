@@ -10,7 +10,7 @@
 |<term>Atlas 200I/500 A2 推理产品</term>|      ×     |
 |<term>Atlas 推理系列产品</term>|      ×     |
 |<term>Atlas 训练系列产品</term>|      ×     |
-|<term>Atlas 200I/300/500 推理产品</term>|      ×     |
+|<term>Atlas 200/300/500 推理产品</term>|      ×     |
 
 ## 功能说明
 
@@ -24,7 +24,7 @@
     - <term>昇腾910_95 AI处理器</term>：
       -   支持不同分组轴，由groupType表示。
       -   非量化场景，支持x，weight转置（转置指若shape为[M,K]时，则stride为[1,  M],数据排布为[K,M]的场景）。
-      -   支持伪量化weight是INT8的输入,仅支持perchannel模式。
+      -   支持伪量化weight是INT8的输入，仅支持perchannel模式。
 - 计算公式：
   - **非量化场景：**
 
@@ -75,10 +75,8 @@
   -   offsetOptional（aclTensorList\*，计算输入）可选参数，Device侧的aclTensorList，代表量化参数中的偏移量，[数据格式](../../../docs/context/数据格式.md)支持ND，长度与weight相同。
       - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：数据类型支持FLOAT32
       - <term>昇腾910_95 AI处理器</term>：暂不支持
-  -   antiquantScaleOptional（aclTensorList\*，计算输入）可选参数，Device侧的aclTensorList，代表伪量化参数中的缩放因子6，[数据格式](../../../docs/context/数据格式.md)支持ND，长度与weight相同。
-      - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>昇腾910_95 AI处理器</term>：数据类型支持FLOAT16、BFLOAT16
-  -   antiquantOffsetOptional（aclTensorList\*，计算输入）可选参数，Device侧的aclTensorList，代表伪量化参数中的偏移量，[数据格式](../../../docs/context/数据格式.md)支持ND，长度与weight相同。
-      - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>昇腾910_95 AI处理器</term>：数据类型支持FLOAT16、BFLOAT16
+  -   antiquantScaleOptional（aclTensorList\*，计算输入）可选参数，Device侧的aclTensorList，代表伪量化参数中的缩放因子6，[数据格式](../../../docs/context/数据格式.md)支持ND，长度与weight相同，数据类型支持FLOAT16、BFLOAT16。
+  -   antiquantOffsetOptional（aclTensorList\*，计算输入）可选参数，Device侧的aclTensorList，代表伪量化参数中的偏移量，[数据格式](../../../docs/context/数据格式.md)支持ND，长度与weight相同，数据类型支持FLOAT16、BFLOAT16。
   -   groupListOptional（aclIntArray\*，计算输入）：可选参数，Host侧的aclIntArray类型，分组轴方向的matmul索引情况，分组轴由参数groupType表示，数据类型支持INT64，[数据格式](../../../docs/context/数据格式.md)支持ND，长度与weight相同。需注意：当输出中TensorList的长度为1时，groupListOptional中的最后一个值约束了输出数据的有效部分，groupListOptional中未指定的部分将不会参与更新。
   -   splitItem（int64\_t，计算输入）：整数型参数，代表输出是否要做tensor切分，0/1代表输出为多tensor；2/3代表输出为单tensor。
   -   groupType（int64\_t，计算输入）：整数型参数，代表需要分组的轴，如矩阵乘为C[m,n]=A[m,k]xB[k,n]，则groupType取值-1：不分组，0：m轴分组，1：n轴分组，2：k轴分组，默认值为-1，当前不支持n轴分组。
@@ -160,19 +158,19 @@
       - 不为空的参数支持的数据类型组合要满足下表：
         |groupType| x       | weight  | antiquantScaleOptional | antiquantOffsetOptional | biasOptional | y     |
         |:-------:|:-------:|:-------:| :------  | :------ | :------     |:------ |
-        |0   |BFLOAT16     |INT8   |BFLOAT16  |BFLOAT16/null  |BFLOAT16/FLOAT32/null   | BFLOAT16|
-        |0   |FLOAT16     |INT8  |FLOAT16 |FLOAT16/null   |FLOAT16/null    | FLOAT16|
+        |-1/0   |BFLOAT16     |INT8   |BFLOAT16  |BFLOAT16/null  |BFLOAT16/FLOAT32/null   | BFLOAT16|
+        |-1/0   |FLOAT16     |INT8  |FLOAT16 |FLOAT16/null   |FLOAT16/null    | FLOAT16|
       - antiquantScaleOptional和非空的biasOptional、antiquantOffsetOptional要满足下表（其中g为matmul组数即分组数）：
         |groupType| 使用场景 | shape限制 |
         |:---------:|:---------:| :------ |
-        |0|weight单tensor|每个tensor 2维，shape为（g, N）|
-      - x和weight的K轴及weight的N轴都应小于65536且能被32整除。
-      - 仅支持单单单场景。
+        |-1|weight多tensor|每个tensor 1维，shape为（N）|
+        |0 |weight单tensor|每个tensor 2维，shape为（g, N）|
+      - 仅支持单单单和多多多场景。
     - 支持场景中单表示单tensor，多表示多tensor，表示顺序为x、weight、y。例如单多单表示支持x为单tensor、weight多tensor、y单tensor的场景。
       | groupType | 支持场景 | 场景限制 |
       |:---------:|:-------:| :-------|
-      | -1 | 多多多 |1）仅支持splitItem为0/1<br>2）x，y中tensor需为2维， shape分别为（M, K）和（M, N）；weight中tensor需为2维，shape为（N, K）或（K, N）<br>3）groupListOptional必须传空<br>4）仅支持ND进ND出<br>5）支持weight转置，但weight的tensorList中每个tensor是否转置需保持统一<br>6）x不支持转置 |
-      | 0 | 单单单 |1）仅支持splitItem为2/3<br>2）weight中tensor需为3维，shape为（g, N, K）或（g, K, N）；x，y中tensor需为2维，shape分别为（M, K）和（M, N）<br>3）必须传groupListOptional，且最后一个值不大于x中tensor的第一维<br>4）仅支持ND进ND出<br>5）支持weight转置<br>6）x不支持转置，伪量化场景下仅支持x不转置且weight转置；|
+      | -1 | 多多多 |1）仅支持splitItem为0/1<br>2）非量化x，out中tensor需为2维， shape分别为（M, K）和（M, N）；伪量化场景x中tensor要求维度一致，支持2-6维，y中tensor维度和x保持一致；weight中tensor需为2维，shape为（N, K）或（K, N）<br>3）groupListOptional必须传空<br>4）仅支持ND进ND出<br>5）支持weight转置，但weight的tensorList中每个tensor是否转置需保持统一<br>6）x不支持转置 |
+      | 0 | 单单单 |1）仅支持splitItem为2/3<br>2）weight中tensor需为3维，shape为（g, N, K）或（g, K, N）；x，y中tensor需为2维，shape分别为（M, K）和（M, N）<br>3）必须传groupListOptional，且最后一个值不大于x中tensor的第一维<br>4）仅支持ND进ND出<br>5）支持weight转置<br>6）x不支持转置|
       | 0 | 单多单 |1）仅支持splitItem为2/3<br>2）必须传groupListOptional且最后一个值与x中tensor的第一维相等<br>3）x，y中tensor需为2维， shape分别为（M, K）和（M, N）；weight中tensor需为2维，shape为（N, K）或（K, N）<br>4）weight中每个tensor的N轴必须相等<br>5）仅支持ND进ND出<br>6）支持weight转置，但weight的tensorList中每个tensor是否转置需保持统一<br>7）x不支持转置 |
       | 0 | 单多多 |1）仅支持splitItem为0/1<br>2）必须groupListOptional，groupListOptional的差值需与y中tensor的第一维一对应<br>3）x，y中tensor需为2维， shape分别为（M, K）和（M, N）；weight中tensor需为2维，shape为（N, K）或（K, N）<br>4）仅支持ND进ND出<br>5）支持weight转置，但weight的tensorList中每个tensor是否转置需保持统一<br>6）x不支持转置 |
       | 0 | 多多单 |1）仅支持splitItem为2/3<br>2）x，y中tensor需为2维， shape分别为（M, K）和（M, N）；weight中tensor需为2维，shape为（N, K）或（K, N） <br>3）weight中每个tensor的N轴必须相等<br>4）若传groupListOptional，groupListOptional的差值需与x中tensor的第一维一对应<br>4）仅支持ND进ND出<br>5）支持weight转置，但weight的tensorList中每个tensor是否转置需保持统一<br>6）x不支持转置 |
@@ -355,4 +353,3 @@ int main() {
     return 0;
 }
   ```
-

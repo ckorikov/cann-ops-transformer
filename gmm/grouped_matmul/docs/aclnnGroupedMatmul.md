@@ -10,7 +10,7 @@
 |<term>Atlas 200I/500 A2 推理产品</term>|      ×     |
 |<term>Atlas 推理系列产品</term>|      ×     |
 |<term>Atlas 训练系列产品</term>|      ×     |
-|<term>Atlas 200I/300/500 推理产品</term>|      ×     |
+|<term>Atlas 200/300/500 推理产品</term>|      ×     |
 
 ## 功能说明
 
@@ -58,11 +58,11 @@
 
 - **参数说明：**
   -   x（aclTensorList\*，计算输入）：必选参数，Device侧的aclTensorList，公式中的输入x，[数据格式](../../../docs/context/数据格式.md)支持ND，支持的最大长度为128个。
-      - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：数据类型支持FLOAT16、BFLOAT16、INT8、FLOAT32
+      - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：数据类型支持FLOAT16、BFLOAT16、INT8
       - <term>昇腾910_95 AI处理器</term>：数据类型支持FLOAT16、BFLOAT16
   -   weight（aclTensorList\*，计算输入）：必选参数，Device侧的aclTensorList，公式中的weight，[数据格式](../../../docs/context/数据格式.md)支持ND，支持的最大长度为128个。
-      - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：数据类型支持FLOAT16、BFLOAT16、INT8、FLOAT32
-      - <term>昇腾910_95 AI处理器</term>：数据类型支持FLOAT16、BFLOAT16
+      - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：数据类型支持FLOAT16、BFLOAT16、INT8
+      - <term>昇腾910_95 AI处理器</term>：数据类型支持FLOAT16、BFLOAT16、INT8
   -   biasOptional（aclTensorList\*，计算输入）可选参数，Device侧的aclTensorList，公式中的bias，[数据格式](../../../docs/context/数据格式.md)支持ND，长度与weight相同。
       - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：数据类型支持FLOAT16、FLOAT32、INT32
       - <term>昇腾910_95 AI处理器</term>：数据类型支持FLOAT16、BFLOAT16、FLOAT32
@@ -72,12 +72,8 @@
   -   offsetOptional（aclTensorList\*，计算输入）可选参数，Device侧的aclTensorList，代表量化参数中的偏移量，[数据格式](../../../docs/context/数据格式.md)支持ND，长度与weight相同。
       - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：数据类型支持FLOAT32
       - <term>昇腾910_95 AI处理器</term>：暂不支持
-  -   antiquantScaleOptional（aclTensorList\*，计算输入）可选参数，Device侧的aclTensorList，代表伪量化参数中的缩放因子，[数据格式](../../../docs/context/数据格式.md)支持ND，长度与weight相同。
-      - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：数据类型支持FLOAT16、BFLOAT16
-      - <term>昇腾910_95 AI处理器</term>：暂不支持
-  -   antiquantOffsetOptional（aclTensorList\*，计算输入）可选参数，Device侧的aclTensorList，代表伪量化参数中的偏移量，[数据格式](../../../docs/context/数据格式.md)支持ND，长度与weight相同。
-      - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：数据类型支持FLOAT16、BFLOAT16
-      - <term>昇腾910_95 AI处理器</term>：暂不支持
+  -   antiquantScaleOptional（aclTensorList\*，计算输入）可选参数，Device侧的aclTensorList，代表伪量化参数中的缩放因子，[数据格式](../../../docs/context/数据格式.md)支持ND，长度与weight相同，数据类型支持FLOAT16、BFLOAT16。
+  -   antiquantOffsetOptional（aclTensorList\*，计算输入）可选参数，Device侧的aclTensorList，代表伪量化参数中的偏移量，[数据格式](../../../docs/context/数据格式.md)支持ND，长度与weight相同，数据类型支持FLOAT16、BFLOAT16。
   -   groupListOptional（aclIntArray\*，计算输入）：可选参数，Host侧的aclIntArray类型，代表输入和输出M方向的matmul索引情况，数据类型支持INT64，[数据格式](../../../docs/context/数据格式.md)支持ND，长度与weight相同。需注意：当输出中TensorList的长度为1时，groupListOptional中的最后一个值约束了输出数据的有效部分，groupListOptional中未指定的部分将不会参与更新。
   -   splitItem（int64\_t，计算输入）：整数型参数，代表输出是否要做tensor切分，0/1代表输出为多tensor；2/3代表输出为单tensor。
   -   y（aclTensorList\*，计算输出）：Device侧的aclTensorList，公式中的输出y，[数据格式](../../../docs/context/数据格式.md)支持ND，支持的最大长度为128个。
@@ -143,7 +139,7 @@
     - x和weight中每一组tensor的每一维大小在32字节对齐后都应小于int32的最大值  2147483647。
 
   - <term>昇腾910_95 AI处理器</term>：
-    - 仅支持非量化场景。
+    - 仅支持非量化和伪量化场景。
     - 非量化场景支持的数据类型为：
       - 以下入参为空：scaleOptional、offsetOptional、antiquantScaleOptional、antiquantOffsetOptional
       - 不为空的参数支持的数据类型组合要满足下表：
@@ -151,11 +147,19 @@
         |:-------:|:-------:| :------      |:------ |
         |BFLOAT16     |BFLOAT16     |BFLOAT16/FLOAT32/null    | BFLOAT16|
         |FLOAT16     |FLOAT16     |FLOAT16/FLOAT32/null    | FLOAT16|
+    - 伪量化场景支持的数据类型为：
+      - 以下入参为空：scaleOptional、offsetOptional
+      - 不为空的参数支持的数据类型组合要满足下表：
+        | x       | weight  | biasOptional | antiquantScaleOptional | antiquantOffsetOptional | y     |
+        |:-------:|:-------:| :------      |:------ |:------ |:------ |
+        |BFLOAT16    |INT8     |BFLOAT16/FLOAT32/null    | BFLOAT16 | BFLOAT16 | BFLOAT16 |
+        |FLOAT16     |INT8     |FLOAT16/null             | FLOAT16  | FLOAT16  | FLOAT16  |
+      - 仅支持多多多场景。
 
     - 支持场景中单表示单tensor，多表示多tensor，表示顺序为x、weight、y。例如单多单表示支持x为单tensor、weight多tensor、y单tensor的场景。
       | 支持场景 | 场景限制 |
       |:-------:| :-------|
-      | 多多多 |1）仅支持splitItem为0/1<br>2）x，y中tensor需为2维， shape分别为（M, K）和（M, N）；weight中tensor需为2维，shape为（N, K）或（K, N）<br>3）若x中存在tensor大于2维，groupListOptional必须传空<br>4）若x中tensor为2维且传入  groupListOptional，groupListOptional的差值需与x中tensor的第一维一一对应<br>5）仅支持ND进ND出 |
+      | 多多多 |1）仅支持splitItem为0/1<br>2）伪量化场景x中tensor要求维度一致，支持2-6维，y中tensor维度和x保持一致；非量化场景x，y中tensor需为2维， shape分别为（M, K）和（M, N）；weight中tensor需为2维，shape为（N, K）或（K, N）<br>3）若x中存在tensor大于2维，groupListOptional必须传空<br>4）若x中tensor为2维且传入  groupListOptional，groupListOptional的差值需与x中tensor的第一维一一对应<br>5）仅支持ND进ND出 |
       | 单多单 |1）仅支持splitItem为2/3<br>2）必须传groupListOptional，且最后一个值不大于x中tensor的第一维<br>3）x，y中tensor需为2维， shape分别为（M, K）和（M, N）；weight中tensor需为2维，shape为（N, K）或（K, N）<br>4） weight中每个tensor的N轴必须相等<br>5）仅支持ND进ND出 |
       | 单多多 |1）仅支持splitItem为0/1<br>2）必须传groupListOptional， groupListOptional的差值需与y中tensor的第一维一一对应<br>3）x，y中tensor需为2维，shape分别为（M, K）和（M, N）；weight中tensor需为2维，shape为（N, K）或（K, N）<br>4）仅支持ND进ND出 |
       | 多多单 |1）仅支持splitItem为2/3<br>2）x，y中tensor需为2维， shape分别为（M, K）和（M, N）；weight中tensor需为2维，shape为（N, K）或（K, N） <br>3）weight中每个tensor的N轴必须相等<br>4）若传入groupListOptional， groupListOptional的差值需与x中tensor的第一维一一对应<br>5）仅支持ND进ND出 |
