@@ -1,23 +1,23 @@
 # AI Core算子开发指南
 
 > 说明：  
-> 1. 算子开发过程中涉及的基本概念如Tiling、Kernel、Ascend C接口等，详细介绍请参考[《Ascend C算子开发》](https://hiascend.com/document/redirect/CannCommunityOpdevAscendC)。  
-> 2. AI CORE算子是使用Ascend C语言开发，运行在AI CORE硬件单元算子。
+> 算子开发过程中涉及的基本概念如Tiling、Kernel、Ascend C接口等请参考[《Ascend C算子开发》](https://hiascend.com/document/redirect/CannCommunityOpdevAscendC)。  
 
 开发指南以`AddExample`算子开发为例，介绍新算子开发流程以及涉及的交付件，完整样例代码请访问项目`examples`目录。
 
 1. [工程创建](#工程创建)：开发算子前，需完成环境部署并创建算子目录，方便后续算子的编译和部署。
-2. [算子定义](#算子定义)：算子功能说明与原型定义
+
+2. [算子定义](#算子定义)：算子功能说明与原型定义。
 
 3. [Tiling实现](#Tiling实现)：实现Host侧算子Tiling函数。
 
 4. [Kernel实现](#Kernel实现)：实现Device侧算子核函数。
 
-5. [aclnn适配](#aclnn适配)：自定义算子推荐aclnn接口调用，需完成二进制发布。如需入图，请参考[附录](#附录)。
+5. [aclnn适配](#aclnn适配)：自定义算子推荐使用aclnn接口调用。如需入图，请参考[附录](#附录)。
 
 6. [编译部署](#编译部署)：通过工程编译脚本完成自定义算子的编译和安装。 
 
-7. [算子验证](#算子验证)：通过常见算子调用方式，验证自定义算子功能。  
+7. [算子验证](#算子验证)：通过常见算子调用方式，验证自定义算子的功能。  
 
 ## 工程创建
 **1. 环境部署**
@@ -26,12 +26,10 @@
 
 **2. 目录创建**
 
-目录创建是算子开发的重要步骤，为后续代码编写、编译构建和调试提供统一的目录结构和文件组织方式。
-
-本项目`build.sh`，支持快速创建算子目录。进入项目根目录，执行以下命令：
+本项目支持通过`build.sh`快速创建算子目录。进入项目根目录，执行以下命令：
 
 ```bash
-# 创建指定算子目录，如bash build.sh --genop=examples/add_example
+# 创建指定算子目录，如bash build.sh --genop=examples/div_example
 # ${op_class}表示算子类型，如transformer类。
 # ${op_name}表示算子名的小写下划线形式，如`AddExample`算子对应为add_example。
 bash build.sh --genop=${op_class}/${op_name}
@@ -51,7 +49,7 @@ ${op_name}                              # 替换为实际算子名的小写下�
 ├── op_host                             # Host侧实现
 │   ├── ${op_name}_def.cpp              # 算子信息库，定义算子基本信息，如名称、输入输出、数据类型等
 │   ├── ${op_name}_infershape.cpp       # InferShape实现，实现算子形状推导，在运行时推导输出shape
-│   ├── ${op_name}_tiling.cpp           # Tiling实现，将张量划分为多个小块，区分数据类型进行并行计算
+│   ├── ${op_name}_tiling.cpp           # Tiling实现，实现输入数据切分的逻辑
 │   └── CMakeLists.txt                  # Host侧cmakelist文件
 └── op_kernel                           # Device侧Kernel实现
 │   ├── ${op_name}_tiling_key.h         # Tilingkey文件，定义Tiling策略的Key，标识不同的划分方式
@@ -63,7 +61,6 @@ ${op_name}                              # 替换为实际算子名的小写下�
 └── CMakeLists.txt                      # 算子cmakelist入口
 ```
 
-使用上述命令行创建算子工程后，若要手动删除新创建出的算子工程，需要同时删除与算子工程同目录CMakeLists.txt中新添加的add_subdirectory(${op_class})
 ## 算子定义
 算子定义需要完成两个交付件：`README.md` `${op_name}_def.cpp`
 
@@ -92,7 +89,7 @@ Tiling一共需要三个交付件：`${op_name}_tiling.cpp` `${op_name}_tiling_k
 
 **交付件1：${op_name}_tiling.cpp**
 
-Tiling主要切分逻辑。
+实现Tiling主要切分逻辑。
 
 如需查看详细实现，请参考[add_example_tiling.cpp](../../examples/add_example/op_host/add_example_tiling.cpp)。
 
@@ -108,7 +105,7 @@ static ge::graphStatus TilingParse(gert::TilingParseContext* context)
     auto ascendcPlatform = platform_ascendc::PlatformAscendC(platformInfo);
     // 1.2获取可用核数
     compileInfo->totalCoreNum = ascendcPlatform.GetCoreNumAiv();
-    // 1,3获取UB大小
+    // 1.3获取UB大小
     uint64_t ubSizePlatForm;
     ascendcPlatform.GetCoreMemSize(platform_ascendc::CoreMemType::UB, ubSizePlatForm);
     compileInfo->ubSize = static_cast<int64_t>(ubSizePlatForm);
@@ -174,8 +171,7 @@ ASCENDC_TPL_SEL(ASCENDC_TPL_ARGS_SEL(
 ```
 **交付件3：${op_name}_tiling_data.h**
 
-切分算法相关的参数，比如总数据量大小、每个核数据切块数量，通过结构体存储。
-
+声明TilingData结构体用于存储Tiling的参数，比如总数据量大小、每个核数据切块数量。
 如需查看详细实现，请参考[add_example_tiling_data.h](../../examples/add_example/op_kernel/add_example_tiling_data.h)。
 
 ```CPP
@@ -191,7 +187,7 @@ struct ${op_name}TilingData {
 ## Kernel实现
 
 ### Kernel简介
-Kernel是算子在NPU执行的核心部分，负责张量数据的加载、计算和存储，是算子功能实现的最终载体。Kernel的实现需要与Tiling策略紧密配合，根据Tiling提供的`TilingData`、`TilingKey`信息进行内存分配和计算调度。Kernel实现包括如下步骤：
+Kernel是算子在NPU执行的核心部分，通过调用计算、数据搬运、内存管理、任务同步API，实现算子逻辑。Kernel的实现需要与Tiling策略紧密配合，根据Tiling提供的`TilingData`、`TilingKey`信息进行内存分配和计算调度。Kernel实现包括如下步骤：
 
 
 ```mermaid
@@ -212,9 +208,9 @@ graph LR
 
 ### 代码实现
 
-Kernel一个需要两个交付件：`${op_name}.cpp` `${op_name}.h`
+以自定义`AddExample`算子为例，该算子一共包含两个交付件：`add_example.cpp` `add_example.h`
 
-**交付件1：${op_name}.cpp**
+**交付件1：add_example.cpp**
 
 Kernel入口文件，包含主函数和调度逻辑。
 
@@ -242,7 +238,7 @@ __global__ __aicore__ void add_example(GM_ADDR x, GM_ADDR y, GM_ADDR z, GM_ADDR 
     ....
 }
 ```
-**交付件2：${op_name}.h**
+**交付件2：add_example.h**
 
 定义Kernel头文件，包含函数声明、结构定义、逻辑实现等。
 
@@ -344,7 +340,7 @@ __aicore__ inline void AddExample<T>::Process()
 
     完成基础环境搭建，同时检查算子开发交付件是否完备，是否在对应算子分类目录下。
 
-2. **编译自定义算子包。**
+2. **编译自定义算子包。** 
 
     以`AddExample`算子为例，假设开发交付件在`examples`目录，完整代码参见[add_example](../../examples/add_example)目录。
 
