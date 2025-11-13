@@ -131,36 +131,12 @@ bool FiaTilingNonQuant::IsCapable()
 
 void FiaTilingNonQuant::GenTilingKey()
 {
-    uint8_t layoutVal{0};
-    uint8_t inputQVal{0};
-    uint8_t inputKvVal{0};
-    uint8_t outputVal{0};
-    uint8_t originVal{0};
-    uint8_t splitKvVal = static_cast<uint8_t>(kvSplit_ > static_cast<uint32_t>(0) ? 1 : 0);
-    uint8_t paVal = static_cast<uint8_t>((fiaInfo_->pageAttentionFlag && fiaInfo_->s2Size != 0) ? 1 * 2 : 0);
-    uint8_t softmaxBrcbFlagVal = static_cast<uint8_t>((softmaxWithBrcbFlag_) ? 1 * 4 : 0);
-    uint8_t antiquantModeVal = 0;
-    uint64_t modeVal = static_cast<uint64_t>(fiaInfo_->sysPrefixFlag ? 2 : 1);
-    uint8_t kvLayoutVal = 0;
-    
-    const std::map<TilingKeyLayout, uint8_t> kvLayoutMap = {
-        {TilingKeyLayout::BNSD, 0U}, {TilingKeyLayout::BSH_BSND, 1U}, {TilingKeyLayout::NZ, 2U}, {TilingKeyLayout::TND, 3U}, {TilingKeyLayout::NTD, 5U}
-    };
-
-    const std::map<TilingKeyLayout, uint8_t> qLayoutMap = {
-        {TilingKeyLayout::BNSD, 0U}, {TilingKeyLayout::BSH_BSND, 1U}, {TilingKeyLayout::TND, 3U}, {TilingKeyLayout::NTD, 5U}
-    };
+    uint8_t inputQVal{0}, inputKvVal{0}, outputVal{0};
 
     const std::map<ge::DataType, uint8_t> typeMap = {
         {ge::DT_FLOAT16, 0U}, {ge::DT_BF16, 2U}, {ge::DT_INT8, 3U}, {ge::DT_INT4, 4U},
     };
 
-    if (kvLayoutMap.find(fiaInfo_->inputKvLayout) != kvLayoutMap.end()) {
-        kvLayoutVal = kvLayoutMap.at(fiaInfo_->inputKvLayout);
-    }
-    if (qLayoutMap.find(fiaInfo_->inputLayout) != qLayoutMap.end()) {
-        layoutVal = qLayoutMap.at(fiaInfo_->inputLayout);
-    }
     if (typeMap.find(fiaInfo_->inputQType) != typeMap.end()) {
         inputQVal = typeMap.at(fiaInfo_->inputQType);
     }
@@ -171,18 +147,19 @@ void FiaTilingNonQuant::GenTilingKey()
         outputVal = typeMap.at(fiaInfo_->outputType);
     }
 
-    originVal = inputQVal;
-    uint64_t baseOffset =
-        modeVal * FIA_TILINGKEYOFFSET + (static_cast<uint64_t>(perfMode_)) * FIA_PERF_MODE_TILINGKEYOFFSET;
-    tilingKey_ = baseOffset + FIA_GET_TILINGKEY(layoutVal, inputQVal, inputKvVal, outputVal, originVal,
-        (softmaxBrcbFlagVal + paVal + splitKvVal), antiquantModeVal, kvLayoutVal);
+    bool isFlashDecode = (kvSplit_ > 0);
+    bool isPageAttention = (fiaInfo_->pageAttentionFlag && fiaInfo_->s2Size != 0);
+    tilingKey_ = GET_TPL_TILING_KEY(static_cast<uint8_t>(inputQVal), static_cast<uint8_t>(inputKvVal), static_cast<uint8_t>(outputVal), static_cast<uint8_t>(isPageAttention),
+                                    static_cast<uint8_t>(fiaInfo_->inputLayout),
+                                    static_cast<uint8_t>(fiaInfo_->inputKvLayout), static_cast<uint8_t>(isFlashDecode), static_cast<uint8_t>(fiaInfo_->sysPrefixFlag),
+                                    0, 0, 0, 0, 3, 0, 0, 0, 0);
 
     OP_LOGI(fiaInfo_->opName, "FIA tilingKey_: %lu.", tilingKey_);
 }
 
 bool FiaTilingNonQuant::IsFlashDecode(uint32_t coreNum)
 {
-    uint32_t tndFDCoreArrLen = tilingData_.fdParams.get_numOfFdHead();
+    uint32_t tndFDCoreArrLen = tilingData_->fdParams.get_numOfFdHead();
     return tndFDCoreArrLen > static_cast<uint32_t>(0);
 
     if ((fiaInfo_->s1Size > static_cast<uint32_t>(1) || fiaInfo_->gSize > G_SIZE_128)) {
@@ -338,20 +315,20 @@ void FiaTilingNonQuant::CreateSplitInput(BaseInfo &baseInfo)
 
 void FiaTilingNonQuant::CreateSplitOutput(OuterSplitParams &outerSplitParams, FlashDecodeParams &fDParams, SplitCoreRes &res)
 {   
-    outerSplitParams.bN2End = tilingData_.outerSplitParams.get_bN2End();
-    outerSplitParams.gS1End = tilingData_.outerSplitParams.get_gS1End();
-    outerSplitParams.s2End = tilingData_.outerSplitParams.get_s2End();
+    outerSplitParams.bN2End = tilingData_->outerSplitParams.get_bN2End();
+    outerSplitParams.gS1End = tilingData_->outerSplitParams.get_gS1End();
+    outerSplitParams.s2End = tilingData_->outerSplitParams.get_s2End();
     
-    tilingData_.fdParams.set_gS1BaseSizeOfFd(mFdBaseSize_);
-    fDParams.bN2IdxOfFdHead = tilingData_.fdParams.get_bN2IdxOfFdHead();
-    fDParams.gS1IdxOfFdHead = tilingData_.fdParams.get_gS1IdxOfFdHead();
-    fDParams.s2SplitNumOfFdHead = tilingData_.fdParams.get_s2SplitNumOfFdHead();
-    fDParams.s2SplitStartIdxOfCore = tilingData_.fdParams.get_s2SplitStartIdxOfCore();
-    fDParams.gS1BaseSizeOfFd = tilingData_.fdParams.get_gS1BaseSizeOfFd();
-    fDParams.gS1SplitNumOfFdHead = tilingData_.fdParams.get_gS1SplitNumOfFdHead();
-    fDParams.gS1LastPartSizeOfFdHead = tilingData_.fdParams.get_gS1LastPartSizeOfFdHead();
-    fDParams.gS1IdxEndOfFdHead = tilingData_.fdParams.get_gS1IdxEndOfFdHead();
-    fDParams.gS1IdxEndOfFdHeadSplit = tilingData_.fdParams.get_gS1IdxEndOfFdHeadSplit();
+    tilingData_->fdParams.set_gS1BaseSizeOfFd(mFdBaseSize_);
+    fDParams.bN2IdxOfFdHead = tilingData_->fdParams.get_bN2IdxOfFdHead();
+    fDParams.gS1IdxOfFdHead = tilingData_->fdParams.get_gS1IdxOfFdHead();
+    fDParams.s2SplitNumOfFdHead = tilingData_->fdParams.get_s2SplitNumOfFdHead();
+    fDParams.s2SplitStartIdxOfCore = tilingData_->fdParams.get_s2SplitStartIdxOfCore();
+    fDParams.gS1BaseSizeOfFd = tilingData_->fdParams.get_gS1BaseSizeOfFd();
+    fDParams.gS1SplitNumOfFdHead = tilingData_->fdParams.get_gS1SplitNumOfFdHead();
+    fDParams.gS1LastPartSizeOfFdHead = tilingData_->fdParams.get_gS1LastPartSizeOfFdHead();
+    fDParams.gS1IdxEndOfFdHead = tilingData_->fdParams.get_gS1IdxEndOfFdHead();
+    fDParams.gS1IdxEndOfFdHeadSplit = tilingData_->fdParams.get_gS1IdxEndOfFdHeadSplit();
     
     res.numOfFdHead = 0;
     res.maxS2SplitNum = 1;
@@ -369,8 +346,8 @@ void FiaTilingNonQuant::Split()
     InnerSplitParams innerSplitParams;
     innerSplitParams.s1GBaseSize = mBaseSize_;
     innerSplitParams.s2BaseSize = sInnerSize_;
-    tilingData_.innerSplitParams.set_mBaseSize(innerSplitParams.s1GBaseSize);
-    tilingData_.innerSplitParams.set_s2BaseSize(innerSplitParams.s2BaseSize);
+    tilingData_->innerSplitParams.set_mBaseSize(innerSplitParams.s1GBaseSize);
+    tilingData_->innerSplitParams.set_s2BaseSize(innerSplitParams.s2BaseSize);
 
     OuterSplitParams outerSplitParams;
     FlashDecodeParams fDParams;
@@ -383,7 +360,7 @@ void FiaTilingNonQuant::Split()
             res.usedCoreNum, res.numOfFdHead, res.maxS2SplitNum, aicNum_);
     }
 
-    tilingData_.fdParams.set_numOfFdHead(res.numOfFdHead);
+    tilingData_->fdParams.set_numOfFdHead(res.numOfFdHead);
     usedCoreNum_ = res.usedCoreNum;
 
     if (IsFlashDecode(coreNum_)) {
@@ -391,7 +368,7 @@ void FiaTilingNonQuant::Split()
         kvSplit_++;
         kvSplitPart_ = res.maxS2SplitNum; // kvSplitPart_, 用于lse out workspace计算
         SplitFD(res, fDParams, usedCoreNum_);
-        tilingData_.fdParams.set_usedVecNumOfFd(res.usedVecNumOfFd);
+        tilingData_->fdParams.set_usedVecNumOfFd(res.usedVecNumOfFd);
     }
     CalcMmResSize();
 }
@@ -437,54 +414,54 @@ uint32_t FiaTilingNonQuant::GetL2CacheOffFlag()
 
 void FiaTilingNonQuant::FillTilingBaseParams()
 {
-    tilingData_.baseParams.set_bSize(fiaInfo_->bSize);
-    tilingData_.baseParams.set_s2Size(fiaInfo_->s2Size);
-    tilingData_.baseParams.set_s1Size(fiaInfo_->s1Size);
-    tilingData_.baseParams.set_n2Size(fiaInfo_->n2Size);
-    tilingData_.baseParams.set_headDim(fiaInfo_->vHeadDim);
-    tilingData_.baseParams.set_headDimRope(fiaInfo_->ropeHeadDim);
-    tilingData_.baseParams.set_scaleValue(fiaInfo_->scaleValue);
-    tilingData_.baseParams.set_gSize(fiaInfo_->n1Size / fiaInfo_->n2Size);
-    tilingData_.baseParams.set_batchContinuous((fiaInfo_->kvStorageMode == KvStorageMode::TENSOR_LIST) ? 0 : 1);
-    tilingData_.baseParams.set_actualSeqS1Dims(fiaInfo_->actualLenQDims);
-    tilingData_.baseParams.set_actualSeqS2Dims(fiaInfo_->actualLenDims);
-    tilingData_.baseParams.set_accumQSeqFlag(fiaInfo_->isAccumQSeq ? 1 : 0);
-    tilingData_.baseParams.set_accumKVSeqFlag(fiaInfo_->isAccumKVSeq ? 1 : 0);
-    tilingData_.baseParams.set_outputLayout(static_cast<uint32_t>(fiaInfo_->outputLayout));
-    tilingData_.baseParams.set_softmaxLseFlag(fiaInfo_->softmaxLseFlag ? 1 : 0);
-    tilingData_.baseParams.set_usedCoreNum(usedCoreNum_);
+    tilingData_->baseParams.set_bSize(fiaInfo_->bSize);
+    tilingData_->baseParams.set_s2Size(fiaInfo_->s2Size);
+    tilingData_->baseParams.set_s1Size(fiaInfo_->s1Size);
+    tilingData_->baseParams.set_n2Size(fiaInfo_->n2Size);
+    tilingData_->baseParams.set_headDim(fiaInfo_->vHeadDim);
+    tilingData_->baseParams.set_headDimRope(fiaInfo_->ropeHeadDim);
+    tilingData_->baseParams.set_scaleValue(fiaInfo_->scaleValue);
+    tilingData_->baseParams.set_gSize(fiaInfo_->n1Size / fiaInfo_->n2Size);
+    tilingData_->baseParams.set_batchContinuous((fiaInfo_->kvStorageMode == KvStorageMode::TENSOR_LIST) ? 0 : 1);
+    tilingData_->baseParams.set_actualSeqS1Dims(fiaInfo_->actualLenQDims);
+    tilingData_->baseParams.set_actualSeqS2Dims(fiaInfo_->actualLenDims);
+    tilingData_->baseParams.set_accumQSeqFlag(fiaInfo_->isAccumQSeq ? 1 : 0);
+    tilingData_->baseParams.set_accumKVSeqFlag(fiaInfo_->isAccumKVSeq ? 1 : 0);
+    tilingData_->baseParams.set_outputLayout(static_cast<uint32_t>(fiaInfo_->outputLayout));
+    tilingData_->baseParams.set_softmaxLseFlag(fiaInfo_->softmaxLseFlag ? 1 : 0);
+    tilingData_->baseParams.set_usedCoreNum(usedCoreNum_);
     l2CacheOffFlag_ = GetL2CacheOffFlag();
-    tilingData_.baseParams.set_l2CacheOffFlag(l2CacheOffFlag_);
+    tilingData_->baseParams.set_l2CacheOffFlag(l2CacheOffFlag_);
     
 }
  
 void FiaTilingNonQuant::FillTilingPageAttenParams()
 {
-    tilingData_.pageAttenParams.set_blockSize(fiaInfo_->blockSize);
-    tilingData_.pageAttenParams.set_maxBlockNumPerBatch(fiaInfo_->maxBlockNumPerBatch);
+    tilingData_->pageAttenParams.set_blockSize(fiaInfo_->blockSize);
+    tilingData_->pageAttenParams.set_maxBlockNumPerBatch(fiaInfo_->maxBlockNumPerBatch);
 }
  
 void FiaTilingNonQuant::FillTilingMaskParams()
 {
-    tilingData_.maskParams.set_attenMaskFlag(fiaInfo_->attenMaskFlag ? 1 : 0);
-    tilingData_.maskParams.set_attenMaskSize(fiaInfo_->attenMaskSize);
-    tilingData_.maskParams.set_attenMaskStride(fiaInfo_->attenMaskStride);
-    tilingData_.maskParams.set_sparseMode(fiaInfo_->sparseMode);
-    tilingData_.maskParams.set_preToken(fiaInfo_->preToken);
-    tilingData_.maskParams.set_nextToken(fiaInfo_->nextToken);
+    tilingData_->maskParams.set_attenMaskFlag(fiaInfo_->attenMaskFlag ? 1 : 0);
+    tilingData_->maskParams.set_attenMaskSize(fiaInfo_->attenMaskSize);
+    tilingData_->maskParams.set_attenMaskStride(fiaInfo_->attenMaskStride);
+    tilingData_->maskParams.set_sparseMode(fiaInfo_->sparseMode);
+    tilingData_->maskParams.set_preToken(fiaInfo_->preToken);
+    tilingData_->maskParams.set_nextToken(fiaInfo_->nextToken);
     uint32_t isRowInvalid = fiaInfo_->innerPrecise >> 1;
-    tilingData_.maskParams.set_isRowInvalid(isRowInvalid);
+    tilingData_->maskParams.set_isRowInvalid(isRowInvalid);
 }
 
 // for flash decode
 void FiaTilingNonQuant::FillTilingWorkspaceParams()
 {
     // 每个核可能有头规约和尾规约，一共两份规约信息
-    tilingData_.workspaceParams.set_fdAccumOutSize(aicNum_ * 2 * mBaseSize_ * headDimAlign_);
+    tilingData_->workspaceParams.set_fdAccumOutSize(aicNum_ * 2 * mBaseSize_ * headDimAlign_);
     // 每个核可能有头规约和尾规约，一共两份规约信息; 另外sum和max各一份
-    tilingData_.workspaceParams.set_fdLogSumExpSize(2 * aicNum_ * 2 * mBaseSize_ * (BYTE_BLOCK / BLOCK_TABLE_ELEM_BYTE));
-    tilingData_.workspaceParams.set_mm1ResSize(mm1ResSize_);
-    tilingData_.workspaceParams.set_mm2ResSize(mm2ResSize_);
+    tilingData_->workspaceParams.set_fdLogSumExpSize(2 * aicNum_ * 2 * mBaseSize_ * (BYTE_BLOCK / BLOCK_TABLE_ELEM_BYTE));
+    tilingData_->workspaceParams.set_mm1ResSize(mm1ResSize_);
+    tilingData_->workspaceParams.set_mm2ResSize(mm2ResSize_);
 }
 
 void FiaTilingNonQuant::CalcMmResSize()
@@ -593,7 +570,6 @@ ge::graphStatus FiaTilingNonQuant::DoOpTiling()
     if ((SetBlockDim(blockDim_) != ge::GRAPH_SUCCESS) ||
         (SetTilingKey(tilingKey_) != ge::GRAPH_SUCCESS) ||
         (SetWorkspaceSize(workspaceSize_) != ge::GRAPH_SUCCESS) ||
-        (SetTilingData(tilingData_) != ge::GRAPH_SUCCESS) ||
         (SetScheduleMode(scheduleMode_) != ge::GRAPH_SUCCESS)) {
         return ge::GRAPH_FAILED;
     }
