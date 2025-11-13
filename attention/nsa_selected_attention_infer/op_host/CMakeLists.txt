@@ -21,6 +21,6 @@ if (BUILD_OPEN_PROJECT)
 endif()
 
 if (NOT BUILD_OPS_RTY_KERNEL)
-    add_modules_sources(OPTYPE nsa_select_attention_infer ACLNNTYPE aclnn_exclude)
+    add_modules_sources(OPTYPE nsa_selected_attention_infer ACLNNTYPE aclnn_exclude)
 endif()
 
