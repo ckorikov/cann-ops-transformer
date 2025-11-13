@@ -29,7 +29,8 @@ static const int64_t DIM_1 = 1;
 static const int64_t DIM_2 = 2;
 static const int64_t DIM_3 = 3;
 static const int64_t DIM_4 = 4;
-static const int64_t LASTDIM = 128;
+static const int64_t LASTDIM_64 = 64;
+static const int64_t LASTDIM_128 = 128;
 static const int64_t BLOCK_SIZE = 32;
 static const int64_t REPEAT_FP32 = 64;
 static const int64_t REPEAT_FP16 = 128;
@@ -192,7 +193,7 @@ ge::graphStatus ApplyRotaryPosEmbTiling::CheckParams(gert::TilingContext *contex
                 OP_LOGE(context->GetNodeName(), "all input dim1 must equal"), return ge::GRAPH_FAILED);
     OP_CHECK_IF((params.kDim3 != params.qDim3) || (params.cosDim3 != params.kDim3),
                 OP_LOGE(context->GetNodeName(), "all input dim3 must equal"), return ge::GRAPH_FAILED);
-    OP_CHECK_IF(params.qDim3 != LASTDIM, OP_LOGE(context->GetNodeName(), "last dim is not 128"),
+    OP_CHECK_IF(params.qDim3 != LASTDIM_128 && params.qDim3 != LASTDIM_64, OP_LOGE(context->GetNodeName(), "last dim is not 128 or 64"),
                 return ge::GRAPH_FAILED);
     OP_CHECK_IF(params.coscNum != 1, OP_LOGE(context->GetNodeName(), "cos dim2 is not one"), return ge::GRAPH_FAILED);
     OP_CHECK_IF(context->GetInputDesc(INPUT0) == nullptr, OP_LOGE(context->GetNodeName(), "input 0 get desc failed"),
@@ -296,6 +297,10 @@ ge::graphStatus ApplyRotaryPosEmbTiling::Compute(gert::TilingContext *context, A
     params.kcdNum = params.kcNum * params.kDim3;       // K_n * D
     params.coscdNum = params.coscNum * params.cosDim3; // coscNum = 1 --> 1 * D
     params.qkcNum = params.qcNum + params.kcNum;       // (Q_n + K_n), Q、K在N轴上进行拼接
+    // kernel侧Mul()中repeatTimes参数为uint8_t类型，避免使用qkcNum传参计算时超出范围
+    OP_CHECK_IF(params.qkcNum > UINT8_MAX, OP_LOGE(context->GetNodeName(),
+        "qkcNum exceeds the maximum range of uint8_t"), return ge::GRAPH_FAILED);
+                
     params.mulNum = params.qkcNum * params.halfNum;    // (Q_n + K_n) * D / 2
     params.qcdHalfNum = params.qcNum * params.halfNum; // Q_n * D / 2
     // 单核处理的数据偏移 batch * ND
@@ -303,11 +308,9 @@ ge::graphStatus ApplyRotaryPosEmbTiling::Compute(gert::TilingContext *context, A
     params.kCoreOffset = params.preCoreBatch * params.kcdNum;
     params.cosCoreOffset = params.preCoreBatch * params.coscdNum;
     // ub size
-    params.qPart1Ub =
-        params.qkcNum * params.lastDim * params.castDtypeSize; // 搬运 (Q_n + K_n) * D * 4(fp32)/2(fp16/bf16)
+    params.qPart1Ub = params.qkcNum * params.lastDim * params.castDtypeSize; // 搬运 (Q_n + K_n) * D * 4(fp32)/2(fp16/bf16)
     params.cosPart1Ub = params.coscNum * params.lastDim * params.dtypeSize; // 搬运 1 * D * 4(fp32)/2(fp16/bf16)
-    params.q2q1Part1Ub =
-        params.qkcNum * params.lastDim * params.castDtypeSize; // 计算 (Q_n + K_n) * D * 4(bf16/fp32)/2(fp16)
+    params.q2q1Part1Ub = params.qkcNum * params.lastDim * params.castDtypeSize; // 计算 (Q_n + K_n) * D * 4(bf16/fp32)/2(fp16)
     params.sin1UbSize = params.coscNum * params.lastDim * params.castDtypeSize; // 计算 1 * D * 4， 为BF16 cast使用
     int64_t speUb = params.qPart1Ub * 2 + params.cosPart1Ub * 2 + params.q2q1Part1Ub * 2 +
                     static_cast<int64_t>(params.isCast) * (params.sin1UbSize * 2);
@@ -319,7 +322,10 @@ ge::graphStatus ApplyRotaryPosEmbTiling::Compute(gert::TilingContext *context, A
         params.mulNum = params.qkcNum * params.lastDim;
         params.blockLenQ = params.halfNum / params.oneBlockFp32; // D/2 占用block数，搬运
         params.dstRepSBr = params.lastDim / params.oneBlockFp32; // D 占用block数，计算
-        params.qcdHalfNum = params.lastDim / params.mask;        // D 计算时的repeat次数（按列计算）
+        if (params.lastDim <= params.mask) {
+            params.mask = params.lastDim;  // lastDim值放开至64的情况下，数据类型为F16时，lastDim值可能小于mask值，则重新设置mask值为lastDim
+        }
+        params.qcdHalfNum = params.lastDim / params.mask; // D 计算时的repeat次数（按列计算），至少会执行一次，不能为0
         return ge::GRAPH_SUCCESS;
     }
     OP_CHECK_IF(ComputeAB(context, params) != ge::GRAPH_SUCCESS, OP_LOGE(context->GetNodeName(), "ComputeAB failed"),

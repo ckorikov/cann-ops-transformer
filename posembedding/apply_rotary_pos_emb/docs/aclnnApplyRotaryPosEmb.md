@@ -105,7 +105,7 @@ aclnnStatus aclnnApplyRotaryPosEmb(
       <td>
         <ul>
           <li>不支持空Tensor。</li>
-          <li>shape最后一维（D）必须等于128。</li>
+          <li>shape最后一维（D）必须等于128或者64。</li>
         </ul>
       </td>
       <td>BFLOAT16、FLOAT16、FLOAT</td>
@@ -120,7 +120,7 @@ aclnnStatus aclnnApplyRotaryPosEmb(
       <td>
         <ul>
           <li>不支持空Tensor。</li>
-          <li>shape最后一维（D）必须等于128。</li>
+          <li>shape最后一维（D）必须等于128或者64。</li>
         </ul>
       </td>
       <td>BFLOAT16、FLOAT16、FLOAT</td>
@@ -136,7 +136,7 @@ aclnnStatus aclnnApplyRotaryPosEmb(
         <ul>
           <li>不支持空Tensor。</li>
           <li>shape第3维（N）必须等于1。</li>
-          <li>shape最后一维（D）必须等于128。</li>
+          <li>shape最后一维（D）必须等于128或者64。</li>
           <li>cos与sin shape必须相同。</li>
         </ul>
       </td>
@@ -153,7 +153,7 @@ aclnnStatus aclnnApplyRotaryPosEmb(
         <ul>
           <li>不支持空Tensor。</li>
           <li>shape第3维（N）必须等于1。</li>
-          <li>shape最后一维（D）必须等于128。</li>
+          <li>shape最后一维（D）必须等于128或者64。</li>
           <li>cos与sin shape必须相同。</li>
         </ul>
       </td>
@@ -278,7 +278,8 @@ aclnnStatus aclnnApplyRotaryPosEmb(
     - 当输入是BFLOAT16时，cast表示为1，castSize为4，DtypeSize为2
     - 当输入是FLOAT16或FLOAT32时，cast表示为0，castSize = DtypeSize（FLOAT16时为2，FLOAT32时为4）
 
-    需要使用的UB空间大小计算方式：`ub_required = (q_n + k_n) * 128 * castSize * 2 + 128 * DtypeSize * 4 + (q_n + k_n) * 128 * castSize + (q_n + k_n) * 128 * castSize * 2 + cast * (128 * 4 * 2)`，
+    使用lastDim表示输入shape最后一维head_dim的值，计算需要使用的UB空间大小：
+      `ub_required = (q_n + k_n) * lastDim * castSize * 2 + lastDim * DtypeSize * 4 + (q_n + k_n) * lastDim * castSize + (q_n + k_n) * lastDim * castSize * 2 + cast * (lastDim * 4 * 2)`，
     当计算出`ub_required`的大小超过当前AI处理器的UB空间总大小时，不支持使用该融合算子。
 
 

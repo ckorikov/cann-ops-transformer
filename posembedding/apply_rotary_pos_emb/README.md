@@ -147,14 +147,15 @@
 ## 约束说明
 
 - <term>Atlas 推理系列产品</term>、<term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：
-    - 输入张量query、key、cos、sin支持4维和3维的shape，layout支持1-BSND和4-TND，且4个输入shape的前2维（BSND格式）或者第一维（TND格式）和最后一维必须相等，cos和sin的shape倒数第2维（N维）必须等于1，输入shape最后一维必须等于128。
+    - 输入张量query、key、cos、sin支持4维和3维的shape，layout支持1-BSND和4-TND，且4个输入shape的前2维（BSND格式）或者第一维（TND格式）和最后一维必须相等，cos和sin的shape倒数第2维（N维）必须等于1，输入shape最后一维必须等于128或者64。
     - 输入张量query、key、cos、sin的dtype必须相同。
     - layout为1时，输入queryRef的shape用（q_b, q_s, q_n, q_d）表示，keyRef shape用（q_b, q_s, k_n, q_d）表示，cos和sin shape用（q_b, q_s, 1, q_d）表示。其中，b表示batch_size，s表示seq_length，n表示head_num，d表示head_dim。layout为4时，输入queryRef的shape用（q_t, q_n, q_d）表示，keyRef shape用（q_t, k_n, q_d）表示，cos和sin shape用（q_t, 1, q_d）表示。其中，t表示b和s合轴，n表示head_num，d表示head_dim
 
       - 当输入是BFLOAT16时，cast表示为1，castSize为4，DtypeSize为2
       - 当输入是FLOAT16或FLOAT32时，cast表示为0，castSize = DtypeSize（FLOAT16时为2，FLOAT32时为4）
 
-      需要使用的UB空间大小计算方式：`ub_required = (q_n + k_n) * 128 * castSize * 2 + 128 * DtypeSize * 4 + (q_n + k_n) * 128 * castSize + (q_n + k_n) * 128 * castSize * 2 + cast * (128 * 4 * 2)`，
+      使用lastDim表示输入shape最后一维head_dim的值，计算需要使用的UB空间大小：
+      `ub_required = (q_n + k_n) * lastDim * castSize * 2 + lastDim * DtypeSize * 4 + (q_n + k_n) * lastDim * castSize + (q_n + k_n) * lastDim * castSize * 2 + cast * (lastDim * 4 * 2)`，
       当计算出`ub_required`的大小超过当前AI处理器的UB空间总大小时，不支持使用该融合算子。
     - rotary_mode只支持"half"。
     - 不支持空tensor场景。
