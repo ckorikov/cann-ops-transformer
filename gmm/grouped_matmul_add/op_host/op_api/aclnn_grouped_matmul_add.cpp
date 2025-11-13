@@ -47,6 +47,8 @@ static aclnnStatus CheckNotNull(gmm_add_advanced::GroupedMatmulAddParams params)
     CHECK_COND(params.weight != nullptr, ACLNN_ERR_PARAM_NULLPTR, "weight must not be nullptr.");
     CHECK_COND(params.groupList != nullptr, ACLNN_ERR_PARAM_NULLPTR, "groupList must not be nullptr.");
     CHECK_COND(params.yRef != nullptr, ACLNN_ERR_PARAM_NULLPTR, "yRef must not be nullptr.");
+    CHECK_COND(params.groupListType == 0 || params.groupListType == 1, ACLNN_ERR_PARAM_INVALID,
+               "groupListType shoule be 0 or 1, but actual is: %d", params.groupListType);
     return ACLNN_SUCCESS;
 }
 
@@ -86,13 +88,15 @@ static aclnnStatus CheckShape(gmm_add_advanced::GroupedMatmulAddParams params)
     return ACLNN_SUCCESS;
 }
 
-static aclnnStatus DataContiguous(const aclTensor *&tensor, aclOpExecutor *executor) {
+static aclnnStatus DataContiguous(const aclTensor *&tensor, aclOpExecutor *executor)
+{
     tensor = l0op::Contiguous(tensor, executor);
     CHECK_RET(tensor != nullptr, ACLNN_ERR_INNER_NULLPTR);
     return ACLNN_SUCCESS;
 }
 
-static aclnnStatus ParamsDataContiguous(gmm_add_advanced::GroupedMatmulAddParams &params, aclOpExecutor *executorPtr) {
+static aclnnStatus ParamsDataContiguous(gmm_add_advanced::GroupedMatmulAddParams &params, aclOpExecutor *executorPtr)
+{
     CHECK_COND(DataContiguous(params.x, executorPtr) == ACLNN_SUCCESS, ACLNN_ERR_PARAM_INVALID,
                "Contiguous x1 failed.");
     CHECK_COND(DataContiguous(params.weight, executorPtr) == ACLNN_SUCCESS, ACLNN_ERR_PARAM_INVALID,
@@ -100,7 +104,7 @@ static aclnnStatus ParamsDataContiguous(gmm_add_advanced::GroupedMatmulAddParams
     CHECK_COND(DataContiguous(params.groupList, executorPtr) == ACLNN_SUCCESS, ACLNN_ERR_PARAM_INVALID,
                "Contiguous groupList failed.");
     return ACLNN_SUCCESS;
-  }
+}
 
 static aclnnStatus CheckDtype(gmm_add_advanced::GroupedMatmulAddParams params)
 {
@@ -112,8 +116,7 @@ static aclnnStatus CheckDtype(gmm_add_advanced::GroupedMatmulAddParams params)
     CHECK_COND(params.groupList->GetDataType() == DataType::DT_INT64, ACLNN_ERR_PARAM_INVALID,
                "Input groupList dtype should be INT64, actual dtype is %s.",
                op::ToString(params.groupList->GetDataType()).GetString());
-    if ((xDtype != DataType::DT_FLOAT16 && xDtype != DataType::DT_BF16) ||
-        (weightDtype != DataType::DT_FLOAT16 && weightDtype != DataType::DT_BF16)) {
+    if ((xDtype != DataType::DT_FLOAT16 && xDtype != DataType::DT_BF16) || (xDtype != weightDtype)) {
         OP_LOGE(ACLNN_ERR_PARAM_INVALID, "case with x dtype %s and weight dtype %s is not supported.",
                 op::ToString(xDtype).GetString(), op::ToString(weightDtype).GetString());
         return ACLNN_ERR_PARAM_INVALID;
@@ -141,10 +144,9 @@ static aclnnStatus aclnnGroupedMatmulAddGetWorkspaceSizeCommon(gmm_add_advanced:
     auto ret = CheckParams(params);
     CHECK_RET(ret == ACLNN_SUCCESS, ACLNN_ERR_PARAM_INVALID);
     CHECK_COND(ParamsDataContiguous(params, executorPtr) == ACLNN_SUCCESS, ACLNN_ERR_PARAM_INVALID,
-             "ParamsDataContiguous failed.");
-    auto result =
-        l0op::GroupedMatmulAdd(params.x, params.weight, params.groupList, params.yRef, params.transposeX,
-                               params.transposeWeight, params.groupType, params.groupListType, executorPtr);
+               "ParamsDataContiguous failed.");
+    auto result = l0op::GroupedMatmulAdd(params.x, params.weight, params.groupList, params.yRef, params.transposeX,
+                                         params.transposeWeight, params.groupType, params.groupListType, executorPtr);
     CHECK_RET(result != nullptr, ACLNN_ERR_INNER_NULLPTR);
 
     // If the output tensor is non-contiguous, convert the calculated contiguous tensor to non-contiguous.

@@ -1,92 +1,13 @@
-# aclnnGroupedMatmulAdd
+/**
+ * This program is free software, you can redistribute it and/or modify.
+ * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+ * This file is a part of the CANN Open Software.
+ * Licensed under CANN Open Software License Agreement Version 2.0 (the "License").
+ * Please refer to the License for details. You may not use this file except in compliance with the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
+ */
 
-## 产品支持情况
-
-| 产品                                                         | 是否支持 |
-| :----------------------------------------------------------- | :------: |
-| <term>昇腾910_95 AI处理器</term>                             |    √     |
-| <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>     |    ×     |
-| <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term> |    ×     |
-| <term>Atlas 200I/500 A2 推理产品</term>                      |    ×     |
-| <term>Atlas 推理系列产品 </term>                             |    ×     |
-| <term>Atlas 训练系列产品</term>                              |    ×     |
-| <term>Atlas 200/300/500 推理产品</term>                      |    ×     |
-
-## 功能说明
-
-- 算子功能：实现分组矩阵乘计算，每组矩阵乘的维度大小可以不同。基本功能为矩阵乘，如$y_i[m_i,n_i]=x_i[m_i,k_i] \times weight_i[k_i,n_i]+y_i[m_i,n_i], i=1...g$，其中g为分组个数，$m_i/k_i/n_i$为对应shape。输入输出数据类型均为aclTensor，K轴分组。
-
-  - k轴分组：$k_i$各不相同，但$m_i/n_i$每组相同。
-  - 相较于aclnnGroupedMatmulAdd接口，此接口新增：
-    - 支持groupList中数值为分组轴上每组大小
-- 计算公式：
-
-  $$
-  yRef_i=x_i\times weight_i + y_i
-  $$
-
-## 函数原型
-
-每个算子分为[两段式接口](common/两段式接口.md)，必须先调用“aclnnGroupedMatmulAddV2GetWorkspaceSize”接口获取入参并根据计算流程计算所需workspace大小，再调用“aclnnGroupedMatmulAddV2”接口执行计算。
-
-- `aclnnStatus aclnnGroupedMatmulAddV2GetWorkspaceSize(const aclTensor *x, const aclTensor *weight, const aclTensor *groupList, aclTensor *yRef, bool transposeX, bool transposeWeight, int64_t groupType, int64_t group_list_type, uint64_t *workspaceSize, aclOpExecutor **executor)`
-- `aclnnStatus aclnnGroupedMatmulAddV2(void *workspace, uint64_t workspaceSize, aclOpExecutor *executor, aclrtStream stream)`
-
-## aclnnGroupedMatmulAddGetWorkspaceSize
-
-- **参数说明：**
-
-  - x（aclTensor\*，计算输入）：表示输入，Device侧的aclTensor类型，公式中的输入x，x必须转置，[数据格式](common/数据格式.md)支持ND，支持[非连续的Tensor](common/非连续的Tensor.md)，不支持空Tensor，数据类型支持FLOAT16、BFLOAT16。
-  - weight（aclTensor\*，计算输入）：表示权重，Device侧的aclTensor类型，公式中的weight，weight不支持转置，[数据格式](common/数据格式.md)支持ND，支持[非连续的Tensor](common/非连续的Tensor.md)，不支持空Tensor，数据类型支持FLOAT16、BFLOAT16。
-  - groupList（aclTensor\*，计算输入）：Device侧的aclTensor类型，代表输入和输出分组轴方向的matmul大小分布，数据类型支持INT64，[数据格式](common/数据格式.md)支持ND。
-  - y（aclTensor\*，计算输入）：表示原地累加的输入矩阵，Device侧的aclTensor类型，公式中的y，[数据格式](common/数据格式.md)支持ND，数据类型支持FLOAT32。
-  - yRef（aclTensor\*，计算输出）：表示原地累加的输入矩阵y的引用（与y完全相同），Device侧的aclTensor类型，公式中的yRef，[数据格式](common/数据格式.md)支持ND，数据类型支持FLOAT32。
-  - transposeX（bool，计算输入）：表示x矩阵是否转置，Host侧的布尔值，当前仅支持True。
-  - transposeWeight（bool，计算输入）：表示weight矩阵是否转置，Host侧的布尔值，当前仅支持False。
-  - groupType（int64\_t，计算输入）：表示分组类型，Host侧的整型，当前仅支持2（K轴分组）。
-  - groupListType（int64\_t，计算输入）：整数型参数，支持的取值如下：
-    - 0：groupList中数值为分组轴大小的cumsum结果（累积和）。
-    - 1：groupList中的数值为分组轴上每组大小。
-  - workspaceSize（uint64\_t\*，出参）：返回需要在Device侧申请的workspace大小。
-  - executor（aclOpExecutor\*\*，出参）：返回op执行器，包含了算子计算流程。
-- **返回值：**
-
-  返回aclnnStatus状态码，具体参见[aclnn返回码](common/aclnn返回码.md)。
-
-## aclnnGroupedMatmulAdd
-
-- **参数说明：**
-
-  - workspace（void\*，入参）：在Device侧申请的workspace内存地址。
-  - workspaceSize（uint64\_t，入参）：在Device侧申请的workspace大小，由第一段接口aclnnGroupedMatmulAddGetWorkspaceSize获取。
-  - executor（aclOpExecutor\*，入参）：op执行器，包含了算子计算流程。
-  - stream（aclrtStream，入参）：指定执行任务的Stream。
-- **返回值：**
-
-    返回aclnnStatus状态码，具体参见[aclnn返回码](common/aclnn返回码.md)。
-
-    ```
-    第一段接口完成入参校验，出现以下场景时报错：
-    返回161001 (ACLNN_ERR_PARAM_NULLPTR): 1. 传入的x、weight、groupList、y、yRef是空指针。
-    返回161002 (ACLNN_ERR_PARAM_INVALID): 1. x、weight、groupList、y、yRef的数据类型或数据格式不在支持的范围之内。
-                                         2. x与weight的数据类型不一致。
-    返回561002 (ACLNN_ERR_INNER_TILING_ERROR): 1. x、weight、y、yRef的shape不满足矩阵乘限制要求。
-    ```
-
-## 约束说明
-
-- x和weight中每一组tensor的每一维大小在32字节对齐后都应小于int32的最大值2147483647。
-- 支持的输入类型为：
-  - x为FLOAT16、weight为FLOAT16、y为FLOAT32。
-  - x为BFLOAT16、weight为BFLOAT16、y为FLOAT32。
-
-## 调用示例
-
-- aclnn单算子调用方式
-
-  通过aclnn单算子调用示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](common/编译与运行样例.md)。
-
-```c++
 #include <iostream>
 #include <vector>
 #include "acl/acl.h"
@@ -113,7 +34,7 @@ int64_t GetShapeSize(const std::vector<int64_t>& shape) {
 }
 
 int Init(int32_t deviceId, aclrtStream* stream) {
-  // 固定写法，资源初始化
+  // 固定写法，AscendCL初始化
   auto ret = aclInit(nullptr);
   CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclInit failed. ERROR: %d\n", ret); return ret);
   ret = aclrtSetDevice(deviceId);
@@ -187,7 +108,7 @@ int CreateAclTensorList(const std::vector<std::vector<int64_t>>& shapes, void** 
 
 
 int main() {
-  // 1. （固定写法）device/stream初始化，参考acl API手册
+  // 1. （固定写法）device/stream初始化，参考AscendCL对外接口列表
   // 根据自己的实际device填写deviceId
   int32_t deviceId = 0;
   aclrtStream stream;
@@ -237,9 +158,8 @@ int main() {
 
   // 3. 调用CANN算子库API
   // 调用aclnnGroupedMatmulAdd第一段接口
-  ret = aclnnGroupedMatmulAddV2GetWorkspaceSize(x, weight, groupedList, yRef, transpose_x, transpose_weight, group_type, group_list_type,
-  &workspaceSize, &executor);
-  CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclnnGroupedMatmulGetWorkspaceSize failed. ERROR: %d\n", ret); return ret);
+  ret = aclnnGroupedMatmulAddV2GetWorkspaceSize(x, weight, groupedList, yRef, transpose_x, transpose_weight, group_type, group_list_type, &workspaceSize, &executor);
+  CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclnnGroupedMatmulAddV2GetWorkspaceSize failed. ERROR: %d\n", ret); return ret);
   // 根据第一段接口计算出的workspaceSize申请device内存
   void* workspaceAddr = nullptr;
   if (workspaceSize > 0) {
@@ -248,7 +168,7 @@ int main() {
   }
   // 调用aclnnGroupedMatmulAdd第二段接口
   ret = aclnnGroupedMatmulAddV2(workspaceAddr, workspaceSize, executor, stream);
-  CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclnnGroupedMatmul failed. ERROR: %d\n", ret); return ret);
+  CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclnnGroupedMatmulAddV2 failed. ERROR: %d\n", ret); return ret);
 
   // 4. （固定写法）同步等待任务执行结束
   ret = aclrtSynchronizeStream(stream);
@@ -283,4 +203,3 @@ int main() {
   aclFinalize();
   return 0;
 }
-```
