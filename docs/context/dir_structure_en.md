@@ -21,82 +21,82 @@ The detailed directory hierarchy is as follows:
 │   │   └── CMakeLists.txt
 │   ├── ffn                                             # Optional, directory for user-developed FNN class operators
 │   │   └── CMakeLists.txt
-│   ├── gmm                                             # 可选，用户开发的gmm类算子目录
+│   ├── gmm                                             # Optional, directory for GMM operator developed by users.
 │   │   └── CMakeLists.txt
-│   ├── mc2                                             # 可选，用户开发的mc2类算子目录
+│   ├── mc2                                             # Directory of mc2 operators developed by users. This parameter is optional.
 │   │   └── CMakeLists.txt
-│   ├── moe                                             # 可选，用户开发的moe类算子目录
+│   ├── moe                                             # Optional, directory for MOE operator developed by users.
 │   │   └── CMakeLists.txt
-│   └── posembedding                                    # 可选，用户开发的posembedding类算子目录
+│   └── posembedding                                    # Optional, directory for user-developed posembedding class operators.
 │       └── CMakeLists.txt
 ├── ${op_class}                                         # Operator classification, such as attention, ffn, and gmm operators.
 │   ├${op_name}                                         # Operator project directory, where ${op_name} represents the operator name (in lowercase with underscores).
-│   │   ├── CMakeLists.txt                              # 算子cmakelist入口
-│   │   ├── README.md                                   # 算子介绍文档
-│   │   ├── docs                                        # 算子文档目录
-│   │   │   └── aclnn${OpName}.md                       # 算子aclnn接口介绍文档，${OpName}表示算子名（大驼峰形式）
-│   │   ├── examples                                    # 算子调用示例目录
-│   │   │   ├── test_aclnn_${op_name}.cpp               # 算子通过aclnn调用的示例
-│   │   │   └── test_geir_${op_name}.cpp                # 算子通过geir调用的示例
-│   │   ├── op_graph                                    # 图融合相关实现
-│   │   │   ├── CMakeLists.txt                          # op_graph侧cmakelist文件
-│   │   │   ├── ${op_name}_graph_infer.cpp              # InferDataType文件，实现算子数据类型推导
-│   │   │   ├── ${op_name}_proto.h                      # 算子原型定义，用于图优化和融合阶段识别算子
-│   │   │   └── fusion_pass                             # 算子融合规则目录
-│   │   ├── op_host                                     # Host侧实现
-│   │   │   ├── CMakeLists.txt                          # Host侧cmakelist文件
-│   │   │   ├── config                                  # 可选，二进制配置文件，若未配置工程自动生成
-│   │   │   │   ├── ${soc_version}                      # 算子在NPU上配置的二进制信息，${soc_version}表示NPU型号
-│   │   │   │   │   ├── ${op_name}_binary.json          # 算子二进制配置文件
-│   │   │   │   │   └── ${op_name}_simplified_key.ini   # 算子SimplifiedKey配置信息
+│   │   ├── CMakeLists.txt                              # Operator CMakeLists entry
+│   │   ├── README.md                                   # Operator introduction documents
+│   │   ├── docs                                        # Operator document directory
+│   │   │   └── aclnn${OpName}.md                       # Operator aclnn API introduction documents. ${OpName} indicates the operator name (in upper camel case).
+│   │   ├── examples                                    # Operator call example directory
+│   │   │   ├── test_aclnn_${op_name}.cpp               # Example of calling the operator through aclnn
+│   │   │   └── test_geir_${op_name}.cpp                # Example of calling the operator through geir
+│   │   ├── op_graph                                    # Implementation of graph fusion
+│   │   │   ├── CMakeLists.txt                          # CMakeLists file on the op_graph side
+│   │   │   ├── ${op_name}_graph_infer.cpp              # InferDataType file, which implements operator data type inference.
+│   │   │   ├── ${op_name}_proto.h                      # Operator prototype definition, which is used to identify operators during graph optimization and fusion.
+│   │   │   └── fusion_pass                             # Operator fusion rule directory
+│   │   ├── op_host                                     # Host-side implementation
+│   │   │   ├── CMakeLists.txt                          # CMakeLists file on the host side
+│   │   │   ├── config                                  # (Optional) Binary configuration file. If not configured, the project will be automatically generated.
+│   │   │   │   ├── ${soc_version}                      # Binary information of the operator configured on the NPU. ${soc_version} indicates the NPU model.
+│   │   │   │   │   ├── ${op_name}_binary.json          # Operator binary configuration file
+│   │   │   │   │   └── ${op_name}_simplified_key.ini   # Operator SimplifiedKey configuration information
 │   │   │   │   └── ...
-│   │   │   ├── ${op_name}_def.cpp                      # 算子信息库，定义算子基本信息，如名称、输入输出、数据类型等
-│   │   │   ├── ${op_name}_infershape.cpp               # 可选，InferShape实现，根据算子形状推导输出shape，若未配置则输出shape与输入shape一样
-│   │   │   ├── ${op_name}_tiling_${sub_case}.cpp       # 可选，针对某些子场景下的Tiling优化，${sub_case}表示子场景，如${op_name}_tiling_arch35是针对arch35架构的优化，若无该文件表明该算子没有对应子场景的特定Tiling策略
-│   │   │   ├── ${op_name}_tiling_${sub_case}.h         # 可选，${sub_case}子场景下Tiling实现用的头文件
-│   │   │   ├── ${op_name}_tiling.cpp                   # 可选，若无该文件表明对应场景下无Tiling实现(将张量划分为多个小块，区分数据类型进行并行计算)
-│   │   │   ├── ${op_name}_tiling.h                     # 可选，Tiling实现用的头文件
-│   │   │   └── op_api                                  # 可选，算子aclnn实现文件目录，若未配置工程自动生成
-│   │   │       ├── aclnn_${op_name}.cpp                # 算子aclnn接口实现文件
-│   │   │       ├── aclnn_${op_name}.h                  # 算子aclnn接口实现头文件
-│   │   │       ├── ${op_name}.cpp                      # 算子l0接口实现文件
-│   │   │       ├── ${op_name}.h                        # 算子l0接口实现头文件
+│   │   │   ├── ${op_name}_def.cpp                      # Operator information library, which defines basic operator information, such as the name, input and output, and data type.
+│   │   │   ├── ${op_name}_infershape.cpp               # Optional. InferShape implementation, which is used to derive the output shape based on the operator shape. If this file is not configured, the output shape is the same as the input shape.
+│   │   │   ├── ${op_name}_tiling_${sub_case}.cpp       # Optional. Tiling optimization for some sub-scenarios. ${sub_case} indicates the sub-scenario. For example, ${op_name}_tiling_arch35 indicates the optimization for the arch35 architecture. If this file does not exist, it indicates that the operator does not have a specific tiling policy for the corresponding sub-scenario.
+│   │   │   ├── ${op_name}_tiling_${sub_case}.h         # Optional. Header file used for tiling implementation in the ${sub_case} sub-scenario.
+│   │   │   ├── ${op_name}_tiling.cpp                   # Optional. If this file does not exist, it indicates that there is no tiling implementation in the corresponding scenario (the tensor is divided into multiple blocks and parallel computing is performed by distinguishing data types).
+│   │   │   ├── ${op_name}_tiling.h                     # Optional. Header file used for tiling implementation.
+│   │   │   └── op_api                                  # Optional. Directory of the aclnn operator implementation file. If this file is not configured, the project will automatically generate it.
+│   │   │       ├── aclnn_${op_name}.cpp                # Implementation file of the aclnn operator interface.
+│   │   │       ├── aclnn_${op_name}.h                  # Header file of the aclnn operator interface.
+│   │   │       ├── ${op_name}.cpp                      # Implementation file of the L0 operator interface.
+│   │   │       ├── ${op_name}.h                        # Header file of the L0 operator interface.
 │   │   │       └── CMakeLists.txt
-│   │   │── op_kernel                                   # AI Core算子Device侧Kernel实现
-│   │   │   ├── ${sub_case}                             # 可选，${sub_case}子场景使用的目录
-│   │   │   │   ├── ${op_name}_${model}.h               # 算子kernel实现文件，${model}表示用户自定义文件名后缀，通常为Tiling模板名
+│   │   │── op_kernel                                   # AI Core Operator Kernel Implementation on the Device Side
+│   │   │   ├── ${sub_case}                             # (Optional) Directory used in the ${sub_case} sub-scenario
+│   │   │   │   ├── ${op_name}_${model}.h               # Operator kernel implementation file. ${model} indicates the user-defined file name extension, which is usually the tiling template.
 │   │   │   │   └── ...
-│   │   │   ├── ${op_name}_tiling_key.h                 # 可选，TilingKey文件，定义Tiling策略的Key，标识不同划分方式，若未配置表明该算子无相应的Tiling策略
-│   │   │   ├── ${op_name}_tiling_data.h                # 可选，TilingData文件，存储Tiling策略相关配置信息，如块大小、并行度，若未配置表明该算子无相应的Tiling策略
-│   │   │   ├── ${op_name}.cpp                          # Kernel入口文件，包含主函数和调度逻辑
-│   │   │   └── ${op_name}.h                            # Kernel实现文件，定义Kernel头文件，包含函数声明、结构定义、逻辑实现
-│   │   └── tests                                       # 算子测试用例目录
+│   │   │   ├── ${op_name}_tiling_key.h                 # Optional. TilingKey file, which defines the key for the tiling strategy and identifies different partitioning methods. If not configured, it indicates that the operator does not have a corresponding tiling strategy.
+│   │   │   ├── ${op_name}_tiling_data.h                # Optional. TilingData file, which stores configuration information related to the tiling strategy, such as block size and parallelism degree. If not configured, it indicates that the operator does not have a corresponding tiling strategy.
+│   │   │   ├── ${op_name}.cpp                          # Kernel entry file, containing the main function and scheduling logic.
+│   │   │   └── ${op_name}.h                            # Kernel implementation file, defining the kernel header file, including function declarations, structure definitions, and logic implementations.
+│   │   └── tests                                       # Operator test case directory.
 │   │       ├── CMakeLists.txt
-│   │       └── ut                                      # 可选，UT测试用例，根据实际情况开发相应的用例
+│   │       └── ut                                      # Optional, UT test cases, develop corresponding test cases according to actual conditions.
 │   └── ...
-├── docs                                                # 项目相关文档目录
-├── examples                                            # 端到端算子开发和调用示例
-│   ├── add_example                                     # AI Core算子示例目录
-│   │   ├── CMakeLists.txt                              # 算子编译配置文件 
-│   │   ├── examples                                    # 算子使用示例目录
-│   │   ├── op_graph                                    # 算子构图相关目录
-│   │   ├── op_host                                     # 算子信息库、Tiling、InferShape相关实现目录
-│   │   ├── op_kernel                                   # 算子Kernel目录
-│   │   └── tests                                       # 算子测试用例目录
+├── docs                                                # Project-related Document Directory
+├── examples                                            # End-to-End Operator Development and Invocation示例
+│   ├── add_example                                     # AI Core Operator Example Directory
+│   │   ├── CMakeLists.txt                              # Operator Compilation Configuration File
+│   │   ├── examples                                    # Operator Usage Example Directory
+│   │   ├── op_graph                                    # Operator Graph Construction Related Directory
+│   │   ├── op_host                                     # Operator Information Library, TilingInferShape相关实现目录
+│   │   ├── op_kernel                                   # Operator Kernel Directory
+│   │   └── tests                                       # Operator Test Case Directory
 │   ├── CMakeLists.txt
-│   └── README.md                                       # 项目示例介绍文档
-├── scripts                                             # 脚本目录，包含自定义算子、Kernel构建相关配置文件
-├── tests                                               # 项目级测试目录
-├── CMakeLists.txt                                      # 项目工程cmakelist入口
-├── CONTRIBUTING.md                                     # 项目贡献指南文件
-├── LICENSE                                             # 项目开源许可证信息
-├── OAT.xml                                             # 配置脚本，代码仓工具使用，用于检查License是否规范
-├── README.md                                           # 项目工程总介绍文档
-├── SECURITY.md                                         # 项目安全声明文件
-├── build.sh                                            # 项目工程编译脚本
-├── classify_rule.yaml                                  # 组件划分信息
-├── install_deps.sh                                     # 项目安装依赖包脚本
-├── requirements.txt                                    # 项目的第三方依赖包
+│   └── README.md                                       # Project Example Introduction Document
+├── scripts                                             # Script directory, containing configuration files related to custom operators and kernel building.
+├── tests                                               # Project-level test directory.
+├── CMakeLists.txt                                      # Project-level CMakeLists entry.
+├── CONTRIBUTING.md                                     # Project contribution guide file.
+├── LICENSE                                             # Project open-source license information.
+├── OAT.xml                                             # Configuration script for using code repository tools to check whether the license is compliant.
+├── README.md                                           # Overall project introduction document.
+├── SECURITY.md                                         # Project security statement file.
+├── build.sh                                            # Project compilation script.
+├── classify_rule.yaml                                  # Component division information.
+├── install_deps.sh                                     # Script for installing project dependencies.
+├── requirements.txt                                    # Third-party dependency packages of the project.
 └── version.info                                        # Project version information
 ```
 

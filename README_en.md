@@ -4,7 +4,7 @@
 
 - [2025/09] ops-transformer项目首次上线。
 
-## 🚀概述
+## 🚀Overview
 
 ops-transformer is an advanced operator library that provides transformer-class large model computing in the [CANN](https://hiascend.com/software/cann) (Compute Architecture for Neural Networks) operator library, including attention and moe operators. The following figure shows the operator library architecture.
 
