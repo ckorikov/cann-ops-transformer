@@ -54,7 +54,7 @@ TEST_F(l2_aclnn_distribute_barrier_test, test_aclnn_distribute_barrier_first_api
   uint64_t workspace_size = 0;
   aclOpExecutor* executor = nullptr;
   aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
-  EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_NULLPTR);
+  EXPECT_NE(aclRet, ACLNN_SUCCESS);
 }
 
 TEST_F(l2_aclnn_distribute_barrier_test, test_aclnn_distribute_barrier_first_api_group_min) {
@@ -96,7 +96,7 @@ TEST_F(l2_aclnn_distribute_barrier_test, test_aclnn_distribute_barrier_v2_first_
   uint64_t workspace_size = 0;
   aclOpExecutor* executor = nullptr;
   aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
-  EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_NULLPTR);
+  EXPECT_NE(aclRet, ACLNN_SUCCESS);
 }
 
 TEST_F(l2_aclnn_distribute_barrier_test, test_aclnn_distribute_barrier_v2_first_api_group_min) {

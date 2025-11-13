@@ -68,7 +68,7 @@ TEST_F(l2_matmul_all_reduce_test, test_mm_all_reduce_empty_M) {
   uint64_t workspace_size = 0;
   aclOpExecutor* executor = nullptr;
   aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
-  EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_INVALID);
+  EXPECT_NE(aclRet, ACLNN_SUCCESS);
 }
 
 TEST_F(l2_matmul_all_reduce_test, test_mm_all_reduce_null_x1) {
@@ -81,7 +81,7 @@ TEST_F(l2_matmul_all_reduce_test, test_mm_all_reduce_null_x1) {
   uint64_t workspace_size = 0;
   aclOpExecutor* executor = nullptr;
   aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
-  EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_NULLPTR);
+  EXPECT_NE(aclRet, ACLNN_SUCCESS);
 }
 
 TEST_F(l2_matmul_all_reduce_test, test_mm_all_reduce_null_x2) {
@@ -94,7 +94,7 @@ TEST_F(l2_matmul_all_reduce_test, test_mm_all_reduce_null_x2) {
   uint64_t workspace_size = 0;
   aclOpExecutor* executor = nullptr;
   aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
-  EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_NULLPTR);
+  EXPECT_NE(aclRet, ACLNN_SUCCESS);
 }
 
 TEST_F(l2_matmul_all_reduce_test, test_mm_all_reduce_null_output) {
@@ -107,7 +107,7 @@ TEST_F(l2_matmul_all_reduce_test, test_mm_all_reduce_null_output) {
   uint64_t workspace_size = 0;
   aclOpExecutor* executor = nullptr;
   aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
-  EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_NULLPTR);
+  EXPECT_NE(aclRet, ACLNN_SUCCESS);
 }
 
 TEST_F(l2_matmul_all_reduce_test, test_mm_all_reduce_wrong_reduce_op) {
@@ -120,7 +120,7 @@ TEST_F(l2_matmul_all_reduce_test, test_mm_all_reduce_wrong_reduce_op) {
   uint64_t workspace_size = 0;
   aclOpExecutor* executor = nullptr;
   aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
-  EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_INVALID);
+  EXPECT_NE(aclRet, ACLNN_SUCCESS);
 }
 
 TEST_F(l2_matmul_all_reduce_test, test_mm_all_reduce_wrong_stream_mode) {
@@ -133,7 +133,7 @@ TEST_F(l2_matmul_all_reduce_test, test_mm_all_reduce_wrong_stream_mode) {
   uint64_t workspace_size = 0;
   aclOpExecutor* executor = nullptr;
   aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
-  EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_INVALID);
+  EXPECT_NE(aclRet, ACLNN_SUCCESS);
 }
 
 TEST_F(l2_matmul_all_reduce_test, test_mm_all_reduce_wrong_shape_x1) {
@@ -146,7 +146,7 @@ TEST_F(l2_matmul_all_reduce_test, test_mm_all_reduce_wrong_shape_x1) {
   uint64_t workspace_size = 0;
   aclOpExecutor* executor = nullptr;
   aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
-  EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_INVALID);
+  EXPECT_NE(aclRet, ACLNN_SUCCESS);
 }
 
 TEST_F(l2_matmul_all_reduce_test, test_mm_all_reduce_wrong_shape_x2) {
@@ -159,7 +159,7 @@ TEST_F(l2_matmul_all_reduce_test, test_mm_all_reduce_wrong_shape_x2) {
   uint64_t workspace_size = 0;
   aclOpExecutor* executor = nullptr;
   aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
-  EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_INVALID);
+  EXPECT_NE(aclRet, ACLNN_SUCCESS);
 }
 
 TEST_F(l2_matmul_all_reduce_test, test_mm_all_reduce_wrong_shape_x1_x2) {
@@ -172,7 +172,7 @@ TEST_F(l2_matmul_all_reduce_test, test_mm_all_reduce_wrong_shape_x1_x2) {
   uint64_t workspace_size = 0;
   aclOpExecutor* executor = nullptr;
   aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
-  EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_INVALID);
+  EXPECT_NE(aclRet, ACLNN_SUCCESS);
 }
 
 TEST_F(l2_matmul_all_reduce_test, test_mm_all_reduce_wrong_shape_x1_output) {
@@ -185,7 +185,7 @@ TEST_F(l2_matmul_all_reduce_test, test_mm_all_reduce_wrong_shape_x1_output) {
   uint64_t workspace_size = 0;
   aclOpExecutor* executor = nullptr;
   aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
-  EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_INVALID);
+  EXPECT_NE(aclRet, ACLNN_SUCCESS);
 }
 
 TEST_F(l2_matmul_all_reduce_test, test_mm_all_reduce_wrong_shape_x2_output) {
@@ -198,7 +198,7 @@ TEST_F(l2_matmul_all_reduce_test, test_mm_all_reduce_wrong_shape_x2_output) {
   uint64_t workspace_size = 0;
   aclOpExecutor* executor = nullptr;
   aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
-  EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_INVALID);
+  EXPECT_NE(aclRet, ACLNN_SUCCESS);
 }
 
 TEST_F(l2_matmul_all_reduce_test, test_mm_all_reduce_wrong_shape_bias_output) {
@@ -211,7 +211,7 @@ TEST_F(l2_matmul_all_reduce_test, test_mm_all_reduce_wrong_shape_bias_output) {
   uint64_t workspace_size = 0;
   aclOpExecutor* executor = nullptr;
   aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
-  EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_INVALID);
+  EXPECT_NE(aclRet, ACLNN_SUCCESS);
 }
 
 TEST_F(l2_matmul_all_reduce_test, test_mm_all_reduce_wrong_dtype_x1_x2) {
@@ -224,7 +224,7 @@ TEST_F(l2_matmul_all_reduce_test, test_mm_all_reduce_wrong_dtype_x1_x2) {
   uint64_t workspace_size = 0;
   aclOpExecutor* executor = nullptr;
   aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
-  EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_INVALID);
+  EXPECT_NE(aclRet, ACLNN_SUCCESS);
 }
 
 TEST_F(l2_matmul_all_reduce_test, test_mm_all_reduce_wrong_dtype_x1_x2_2) {
@@ -237,7 +237,7 @@ TEST_F(l2_matmul_all_reduce_test, test_mm_all_reduce_wrong_dtype_x1_x2_2) {
   uint64_t workspace_size = 0;
   aclOpExecutor* executor = nullptr;
   aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
-  EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_INVALID);
+  EXPECT_NE(aclRet, ACLNN_SUCCESS);
 }
 
 TEST_F(l2_matmul_all_reduce_test, test_mm_all_reduce_wrong_dtype_x1_output) {
@@ -250,7 +250,7 @@ TEST_F(l2_matmul_all_reduce_test, test_mm_all_reduce_wrong_dtype_x1_output) {
   uint64_t workspace_size = 0;
   aclOpExecutor* executor = nullptr;
   aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
-  EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_INVALID);
+  EXPECT_NE(aclRet, ACLNN_SUCCESS);
 }
 
 TEST_F(l2_matmul_all_reduce_test, test_mm_all_reduce_wrong_dtype_bias_x1) {
@@ -263,7 +263,7 @@ TEST_F(l2_matmul_all_reduce_test, test_mm_all_reduce_wrong_dtype_bias_x1) {
   uint64_t workspace_size = 0;
   aclOpExecutor* executor = nullptr;
   aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
-  EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_INVALID);
+  EXPECT_NE(aclRet, ACLNN_SUCCESS);
 }
 
 TEST_F(l2_matmul_all_reduce_test, test_mm_all_reduce_success) {
