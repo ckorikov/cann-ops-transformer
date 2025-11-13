@@ -132,6 +132,8 @@ moe:
       - moe/moe_finalize_routing_v2_grad/README.md
     options:
       - moe_finalize_routing_v2_grad
+      - moe_token_unpermute_grad
+      - moe_token_unpermute
 
   moe_fused_topk:
     module: True
