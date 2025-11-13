@@ -21,13 +21,16 @@
 namespace optiling {
 
 constexpr uint32_t MAX_B_SIZE = 65536U;
-constexpr uint32_t MAX_S1_SIZE = 16U;
+constexpr uint32_t MAX_S1_SIZE = 65536U;
 constexpr uint32_t MAX_T_SIZE = 1024U * 1024U;
 constexpr uint32_t HCQ_SIZE = 1536U;
 constexpr uint32_t HCKV_SIZE = 512U;
 constexpr uint32_t D_SIZE = 128U;
 constexpr uint32_t DR_SIZE = 64U;
 constexpr uint32_t NKV_SIZE = 1U;
+constexpr uint32_t MIN_BLOCK_SIZE = 16U;
+constexpr uint32_t MAX_BLOCK_SIZE = 1024U;
+constexpr uint32_t ALIGN_BLOCK_SIZE = 16U;
 
 constexpr int64_t  NZ_H0_SIZE = 16U;
 
@@ -50,6 +53,8 @@ constexpr char DEQUANT_SCALE_W_DKV_KR_NAME[] {"dequantScaleWDkvKr"};
 constexpr char QUANT_SCALE_CKV_NAME[] {"quantScaleCkv"};
 constexpr char QUANT_SCALE_CKR_NAME[] {"quantScaleCkr"};
 constexpr char SMOOTH_SCALES_CQ_NAME[] {"smoothScalesCq"};
+constexpr char ACTUAL_SEQ_LEN_NAME[] {"actualSeqLen"};
+constexpr char K_NOPE_CLIP_ALPHA_NAME[] {"kNopeClipAlpha"};
 constexpr char QUERY_NAME[] {"query"};
 constexpr char QUERY_ROPE_NAME[] {"queryRope"};
 constexpr char KV_CACHE_OUT_NAME[] {"kvCacheOut"};
@@ -78,8 +83,7 @@ struct ParamInfo {
             }
         }
     }
-    explicit ParamInfo(const RequiredParaInfo &info) : ParamInfo(info.desc, info.shape) {}
-    explicit ParamInfo(const OptionalParaInfo &info) : ParamInfo(info.desc, info.shape) {}
+    explicit ParamInfo(const BaseParaInfo &info) : ParamInfo(info.desc, info.shape) {}
     explicit ParamInfo(const std::vector<uint32_t> &expectedShape)
     {
         isValid = true;
@@ -91,7 +95,7 @@ struct ParamInfo {
         }
     }
 
-    bool operator==(const ParamInfo &other) const {
+    bool operator == (const ParamInfo &other) const {
         if (!isValid && !other.isValid) {
             return true;
         }
@@ -103,7 +107,7 @@ struct ParamInfo {
         return (isValid == other.isValid && dtype == other.dtype &&
             dimNum == other.dimNum && shape == other.shape);
     }
-    bool operator!=(const ParamInfo &other) const {
+    bool operator != (const ParamInfo &other) const {
         return !(*this == other);
     }
 
@@ -123,12 +127,14 @@ public:
         : context_(context), baseShapeInfo_(baseShapeInfo), scenarioInfo_(scenarioInfo) {}
     ge::graphStatus CheckSingleRequiredParam() const;
     ge::graphStatus CheckCacheMode() const;
+    ge::graphStatus CheckPANZPerTile() const;
     ge::graphStatus CheckDims() const;
     ge::graphStatus CheckParamByScenario();
+    ge::graphStatus CheckScenarParam();
 
 private:
     // ==================================单参数校验==================================
-    bool IsSingleParamValid(const RequiredParaInfo &param, const std::string &paramName,
+    bool IsSingleParamValid(const BaseParaInfo &param, const std::string &paramName,
                             const std::set<ge::DataType> &expectedDtype,
                             const std::set<ge::Format> &expectedFormat,
                             const std::set<size_t> &expectedDimNum) const;
@@ -144,6 +150,7 @@ private:
     bool CheckCacheIndex() const;
     bool CheckKvCache() const;
     bool CheckKrCache() const;
+    bool CheckActSeqLen() const;
     // ==================================单参数校验==================================
 
     // =================================全量参数校验=================================
@@ -154,8 +161,10 @@ private:
     void FillNonQuantParamInfo();
     void FillPartialQuantParamInfo();
     void FillPartialKVQuantParamInfo();
+    void FillPartialKVPertileQuantParamInfo();
     void FillFullQuantParamInfo();
     void FillFullKVQuantParamInfo();
+    void FillFullKVPertileQuantParamInfo();
 
     void GenActualParamInfo();
     // =================================全量参数校验=================================

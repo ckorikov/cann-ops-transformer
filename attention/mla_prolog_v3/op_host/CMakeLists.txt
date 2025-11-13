@@ -20,13 +20,8 @@ if (BUILD_OPEN_PROJECT)
         OPTIONS --cce-auto-sync=off
                 -Wno-deprecated-declarations
                 -Werror
-    )
-
-    add_ops_compile_options(
-        OP_NAME MlaPrologV3
-        COMPUTE_UNIT ascend310p1
-        OPTIONS -mllvm
-                -cce-aicore-jump-expand=true
+                -mllvm -cce-aicore-hoist-movemask=false
+                --op_relocatable_kernel_binary=true
     )
 endif()
 

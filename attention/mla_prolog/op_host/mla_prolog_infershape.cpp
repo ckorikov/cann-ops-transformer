@@ -19,7 +19,7 @@ using namespace ge;
 
 namespace ops {
 
-ge::graphStatus GetMlaPrologShapeDim(const gert::InferShapeContext* context, MlaProlgoProtoShapeParam &shapeParam)
+ge::graphStatus GetMlaPrologShapeDim(const gert::InferShapeContext* context, MlaPrologProtoShapeParam &shapeParam)
 {
     auto tokenXShape = context->GetRequiredInputShape(TOKEN_X_INDEX);      // (B, S, He) | (T, He)
     OP_CHECK_NULL_WITH_CONTEXT(context, tokenXShape);
@@ -47,6 +47,7 @@ ge::graphStatus GetMlaPrologShapeDim(const gert::InferShapeContext* context, Mla
         shapeParam.B = tokenXShape->GetDim(DIM_INDEX_0);
         shapeParam.S = tokenXShape->GetDim(DIM_INDEX_1);
         shapeParam.Dr = ropeSinShape->GetDim(DIM_INDEX_2);
+        shapeParam.T = shapeParam.B * shapeParam.S;
     } else {                                                    // T
         shapeParam.isBsMerge = true;
         shapeParam.T = tokenXShape->GetDim(DIM_INDEX_0);
@@ -58,7 +59,7 @@ ge::graphStatus GetMlaPrologShapeDim(const gert::InferShapeContext* context, Mla
     return GRAPH_SUCCESS;
 }
 
-ge::graphStatus SetMlaPrologShapeDim(const MlaProlgoProtoShapeParam &shapeParam, gert::InferShapeContext* context)
+ge::graphStatus SetMlaPrologShapeDim(const MlaPrologProtoShapeParam &shapeParam, gert::InferShapeContext* context)
 {
     auto queryShape = context->GetOutputShape(QUERY_INDEX);                 // query: (B, S, N, Hckv) | (T, N, Hckv)
     OP_CHECK_NULL_WITH_CONTEXT(context, queryShape);
@@ -93,6 +94,7 @@ ge::graphStatus SetMlaPrologShapeDim(const MlaProlgoProtoShapeParam &shapeParam,
         queryRopeShape->SetDim(DIM_INDEX_1, shapeParam.N);
         queryRopeShape->SetDim(DIM_INDEX_2, shapeParam.Dr);
     }
+
     if (std::strcmp(context->GetNodeType(), "MlaPrologV3") == 0) {
         *kvCacheOutShape = *context->GetRequiredInputShape(KV_CACHE_INDEX_V3);
         *krCacheOutShape = *context->GetRequiredInputShape(KR_CACHE_INDEX_V3);
@@ -106,7 +108,7 @@ ge::graphStatus SetMlaPrologShapeDim(const MlaProlgoProtoShapeParam &shapeParam,
 ge::graphStatus InferShapeMlaProlog(gert::InferShapeContext* context) {
     OP_LOGI(context->GetNodeName(), "Enter MlaProlog infershape impl.");
 
-    MlaProlgoProtoShapeParam shapeParam {};
+    MlaPrologProtoShapeParam shapeParam {};
     auto apiRet = GetMlaPrologShapeDim(context, shapeParam);
     OP_CHECK_IF((apiRet != GRAPH_SUCCESS), OP_LOGE(context->GetNodeName(), "Context get input shape failed"), return ge::GRAPH_FAILED);
 
