@@ -8,7 +8,25 @@
  # See LICENSE in the root of the software repository for the full text of the License.
  # ----------------------------------------------------------------------------
 if(BUILD_OPEN_PROJECT)
-  file(GLOB OPTILING_SRCS src/*.cpp)
+  file(GLOB OPTILING_SRCS 
+    src/context_transfer.cpp
+    src/hccl_formulaic_tiling.cpp
+    src/hccl_performance.cpp
+    src/matmul_all_reduce_gen_task_ops_utils.cpp
+    src/matmul_formulaic_tiling.cpp
+    src/matmul_performance.cpp
+    src/mc2_common_infershape.cpp
+    src/mc2_copy_quant_matmul_params.cpp
+    src/mc2_gen_task_ops_utils.cpp
+    src/mc2_hcom_topo_info.cpp
+    src/mc2_log.cpp
+    src/mc2_matmul_tiling_cfg.cpp
+    src/mc2_moe_gen_task_ops_utils.cpp
+    src/mc2_moe_utils.cpp
+    src/mc2_tiling_utils.cpp
+    src/moe_tiling_base.cpp
+    src/one_calc_two_comm_tiling.cpp
+    )
   if(UT_TEST_ALL OR OP_HOST_UT)
     list(FILTER OPTILING_SRCS EXCLUDE REGEX "src/mc2_hcom_topo_info\\.cpp")
     file(GLOB MC2_TILING_UT_STUB ${UT_COMMON_INC}/mc2_hcom_topology_mocker.cpp)
