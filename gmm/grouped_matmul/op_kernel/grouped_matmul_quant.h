@@ -95,10 +95,9 @@ class GMMQuantCompute : public GMMCompute<mmType, sync> {
     TQue<QuePosition::VECIN, 1> vecInQueue;
     TQue<QuePosition::VECOUT, 1> vecOutQueue;
     TQue<QuePosition::VECIN, 1> scaleInQueue;
-    TQue<QuePosition::VECIN, 1> perTokenInQueue;
     TBuf<TPosition::VECCALC> ubBuf;
     // LocalTensor<CT> mmOutInUb;
-    LocalTensor<DTYPE_SCALE> scaleInUb;
+    // LocalTensor<DTYPE_SCALE> scaleInUb;
     LocalTensor<float> dequantMiddleResult;
     LocalTensor<float> mulsResultLocal;
     LocalTensor<half> pertokenBrcbLocal;
@@ -211,7 +210,7 @@ __aicore__ inline void GMMQuantCompute<mmType, sync>::DequantCompute(LocalTensor
     repeatParams.dstRepStride = curVecBaseN / FP32_BLOCK_VAL_NUM;
     repeatParams.src0RepStride = curVecBaseN / FP32_BLOCK_VAL_NUM;
     repeatParams.src1RepStride = 0;
-
+    LocalTensor<DTYPE_SCALE> scaleInUb = scaleInQueue.DeQue<DTYPE_SCALE>();
     for (uint32_t i = 0; i < loopTime; ++i) {
         uint32_t offset = i * FP32_PER_REPEAT;
         Mul(mmOutLocalFp32[offset], mmOutLocalFp32[offset], scaleInUb[offset], FP32_PER_REPEAT, repeatTimes, repeatParams);
@@ -221,6 +220,7 @@ __aicore__ inline void GMMQuantCompute<mmType, sync>::DequantCompute(LocalTensor
         Mul(mmOutLocalFp32[offset], mmOutLocalFp32[offset], scaleInUb[offset], tailLen, repeatTimes, repeatParams);
     }
     PipeBarrier<PIPE_V>();
+    scaleInQueue.EnQue(scaleInUb);
 }
 
 template <typename mmType, bool sync>
@@ -250,7 +250,8 @@ __aicore__ inline void GMMQuantCompute<mmType, sync>::PerTokenQuant(MNConfig& mn
     // copyIn
     DataCopyPerToken(mnConfig, curBaseM, offsetM);
 
-    LocalTensor<float> perTokenScaleLocal = perTokenInQueue.DeQue<float>();
+    LocalTensor<float> scaleInUb = scaleInQueue.DeQue<float>();
+    LocalTensor<float> perTokenScaleLocal = scaleInUb[ubBaseN_];
 
     // brac
     LocalTensor<half> perTokenScaleLocalFp16 = perTokenScaleLocal.template ReinterpretCast<half>();
@@ -307,8 +308,9 @@ __aicore__ inline void GMMQuantCompute<mmType, sync>::PerTokenQuant(MNConfig& mn
     }
 
     PipeBarrier<PIPE_V>();
+    scaleInQueue.EnQue(scaleInUb);
     vecOutQueue.EnQue(yLocalInUb);
-    perTokenInQueue.FreeTensor(perTokenScaleLocal);
+    // perTokenInQueue.FreeTensor(perTokenScaleLocal);
 }
 
 template <typename mmType, bool sync>
@@ -353,6 +355,7 @@ __aicore__ inline void GMMQuantCompute<mmType, sync>::Dequant(MNConfig& mnConfig
                                   mnConfig.nIdx * mnConfig.singleN + offsetN;
             DataCopyOut(mnConfig, curVecBaseM, curVecBaseN, alignBaseN, outOffset);
         }
+        LocalTensor<DTYPE_SCALE> scaleInUb = scaleInQueue.DeQue<DTYPE_SCALE>();
         scaleInQueue.FreeTensor(scaleInUb);
     }
     vecInQueue.FreeTensor(mmOutInUb);
@@ -383,11 +386,12 @@ __aicore__ inline void GMMQuantCompute<mmType, sync>::SetPerTokenQuantStaticBuff
 
     // ubBaseK as ubBaseM
     this->pipe->InitBuffer(vecOutQueue, 2, gmmBaseParams->ubBaseK * gmmBaseParams->ubBaseN * sizeof(DTYPE_Y));
-    this->pipe->InitBuffer(scaleInQueue, 2, gmmBaseParams->ubBaseN * sizeof(DTYPE_SCALE));
+    uint32_t scaleSize = ubBaseN_ * sizeof(DTYPE_SCALE);
     if (isPerTokenQuant) {
-        this->pipe->InitBuffer(perTokenInQueue, 2, gmmBaseParams->ubBaseK * sizeof(float));
+        scaleSize += ubBaseM_ * sizeof(float);
     }
-    // TBuf<> ubBuf;
+    this->pipe->InitBuffer(scaleInQueue, 2, scaleSize);
+
     this->pipe->InitBuffer(ubBuf, gmmBaseParams->ubRestBytes);
     LocalTensor<uint8_t> buf = ubBuf.template Get<uint8_t>();
     this->mm.SetLocalWorkspace(buf);
@@ -398,9 +402,6 @@ __aicore__ inline void GMMQuantCompute<mmType, sync>::SetPerTokenQuantStaticBuff
         pertokenBrcbLocal = ubBuf.GetWithOffset<half>(pertokenBrcbSize, offsetByte);
     }
 
-    // LocalTensor<int32_t> helpTensorOnes = ubBuf.GetWithOffset<int32_t>(64, mmTilingData->transLength * 2);
-    // Duplicate(helpTensorOnes, (int32_t)1, 64);
-    // PipeBarrier<PIPE_V>();
 }
 
 template <typename mmType, bool sync>
@@ -430,20 +431,18 @@ __aicore__ inline void GMMQuantCompute<mmType, sync>::DataCopyScale(
     LocalTensor<DTYPE_SCALE> scaleLocal = scaleInQueue.AllocTensor<DTYPE_SCALE>();
     DataCopy(scaleLocal, scaleGm[scaleOffset], scaleParams);
     scaleInQueue.EnQue(scaleLocal);
-
-    scaleInUb = scaleInQueue.DeQue<DTYPE_SCALE>();
-    scaleInUb.SetSize(alignBaseN);
 }
 
 template <typename mmType, bool sync>
 __aicore__ inline void GMMQuantCompute<mmType, sync>::DataCopyPerToken(
     MNConfig& mnConfig, uint32_t curBaseM, uint64_t offsetM) {
     // GM copy perToken
-    LocalTensor<float> perTokenLocal = perTokenInQueue.AllocTensor<float>();
+    LocalTensor<float> scaleInUb = scaleInQueue.DeQue<float>();
+    LocalTensor<float> perTokenLocal = scaleInUb[ubBaseN_];
     uint32_t alignBaseM = AlignUp(curBaseM, static_cast<uint32_t>(UB_BLOCK_UNIT_SIZE / sizeof(float)));
     uint64_t perTokenScaleOffset = mnConfig.mIdx * mnConfig.singleM + offsetM;
     DataCopy(perTokenLocal, perTokenScaleGm[perTokenScaleOffset], alignBaseM);
-    perTokenInQueue.EnQue(perTokenLocal);
+    scaleInQueue.EnQue(scaleInUb);
 }
 
 
