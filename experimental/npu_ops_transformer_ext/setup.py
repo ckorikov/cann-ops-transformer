@@ -12,6 +12,7 @@
 # ----------------------------------------------------------------------------
 
 import os
+import logging
 import sys
 import glob
 import shutil
@@ -36,30 +37,30 @@ class CleanCommand(Command):
         # 删除构建目录
         if os.path.exists('build'):
             shutil.rmtree('build')
-            print("Removed build/")
+            logging.info("Removed build/")
         
         # 删除dist目录
         if os.path.exists('dist'):
             shutil.rmtree('dist')
-            print("Removed dist/")
+            logging.info("Removed dist/")
         
         # 删除egg-info目录
         egg_info_dir = f"{self.distribution.get_name().replace('-', '_')}.egg-info"
         if os.path.exists(egg_info_dir):
             shutil.rmtree(egg_info_dir)
-            print(f"Removed {egg_info_dir}/")
+            logging.info(f"Removed {egg_info_dir}/")
         
         # 删除.pyc文件和__pycache__目录
         for root, dirs, files in os.walk('.'):
             for file in files:
                 if file.endswith('.pyc'):
                     os.remove(os.path.join(root, file))
-                    print(f"Removed {os.path.join(root, file)}")
+                    logging.info(f"Removed {os.path.join(root, file)}")
             
-            for dir in dirs:
-                if dir == '__pycache__':
-                    shutil.rmtree(os.path.join(root, dir))
-                    print(f"Removed {os.path.join(root, dir)}/")
+            for dir_name in dirs:
+                if dir_name == '__pycache__':
+                    shutil.rmtree(os.path.join(root, dir_name))
+                    logging.info(f"Removed {os.path.join(root, dir_name)}/")
 
 
 class CMakeExtension(Extension):
@@ -70,10 +71,17 @@ class CMakeExtension(Extension):
 
 class CMakeBuild(build_ext):
     def run(self):
-        try:
-            subprocess.check_output(["cmake", "--version"])
-        except OSError:
+        cmake_path = shutil.which("cmake")
+        if cmake_path is None:
             raise RuntimeError("CMake must be installed to build the extensions")
+
+        try:
+            subprocess.check_output([cmake_path, "--version"])
+        except OSError as e:
+            raise RuntimeError(
+                f"Failed to execute CMake: {e}\n"
+                "Please ensure CMake is properly installed."
+            ) from e
 
         for ext in self.extensions:
             self.build_cmake(ext)
