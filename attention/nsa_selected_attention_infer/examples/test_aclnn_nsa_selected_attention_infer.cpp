@@ -9,7 +9,7 @@
  */
 
 /*!
- * \file test_nsa_select_attention_infer.cpp
+ * \file test_nsa_selected_attention_infer.cpp
  * \brief
  */
 
