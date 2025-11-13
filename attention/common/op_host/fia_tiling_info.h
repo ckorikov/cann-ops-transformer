@@ -243,6 +243,9 @@ public:
     int32_t innerPrecise = 0;
     uint32_t l2CacheOffFlag = 0;
 
+    // empty Tensor
+    bool emptyTensorFlag = false;
+
     // PageAttention
     bool pageAttentionFlag = false;
     int32_t blockSize = 0;
@@ -293,6 +296,7 @@ public:
     // PostQuant
     bool isOutQuantPerChnOut = false;
     bool isOutQuantTypeBf16 = false;
+    bool isOutQuantEnable = false;
 
     // Others Flag
     bool batchContinuousFlag = true;

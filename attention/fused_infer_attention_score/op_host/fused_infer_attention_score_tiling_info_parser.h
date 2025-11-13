@@ -44,6 +44,8 @@ public:
     ge::graphStatus GetKvCache();
     ge::graphStatus GetOpParaInfo();
 
+    ge::graphStatus GetEmptyTensorFlag();
+
     ge::graphStatus GetMaxWorkspaceFlag();
     ge::graphStatus GetLegacyIfaFlag();
 
@@ -132,6 +134,7 @@ public:
     std::vector<gert::StorageShape *> kCache_ = {};
     std::vector<gert::StorageShape *> vCache_ = {};
 
+    bool emptyTensorFlag_ = false;
     bool isSameSeqAllKVTensor_ = true;
     bool isSameActualseq_ = true;
     bool attenMaskFlag_ = false;

@@ -92,6 +92,29 @@ ge::graphStatus FiaInfoParser::CheckRequiredParaExistence() const
     return ge::GRAPH_SUCCESS;
 }
 
+ge::graphStatus FiaInfoParser::GetEmptyTensorFlag()
+{
+    if (opParamInfo_.query.shape->GetStorageShape().GetShapeSize() == 0) {
+        if (opParamInfo_.attenOut.shape->GetStorageShape().GetShapeSize() == 0) {
+            emptyTensorFlag_ = true;
+        }
+        // attentionOut 的 shapesize不为0，在check函数中会校验一致性，不需要处理
+        return ge::GRAPH_SUCCESS;
+    }
+    for(auto &kTensor : kCache_) {
+        if (kTensor->GetStorageShape().GetShapeSize() != 0) {
+            return ge::GRAPH_SUCCESS;
+        }
+    }
+    for(auto &vTensor : vCache_) {
+        if (vTensor->GetStorageShape().GetShapeSize() != 0) {
+            return ge::GRAPH_SUCCESS;
+        }
+    }
+    emptyTensorFlag_ = true;
+    return ge::GRAPH_SUCCESS;
+}
+
 ge::graphStatus FiaInfoParser::GetMaxWorkspaceFlag()
 {
     if ((opParamInfo_.actualSeqLengths.tensor && !opParamInfo_.actualSeqLengths.tensor->GetData<int64_t>()) || 
@@ -661,6 +684,9 @@ ge::graphStatus FiaInfoParser::GetRopeMode()
 
 ge::graphStatus FiaInfoParser::GetRopeHeadDim()
 {
+    if (emptyTensorFlag_ == true) {
+        return ge::GRAPH_SUCCESS;
+    }
     if (ge::GRAPH_SUCCESS != GetRopeMode()) {
         return ge::GRAPH_FAILED;
     }
@@ -855,6 +881,9 @@ TilingKeyLayout FiaInfoParser::MapStringToLayout(FiaLayout &layoutString) const
 
 void FiaInfoParser::GenerateFeatureInfo(FiaTilingInfo &fiaInfo)
 {
+    // empty tensor
+    fiaInfo.emptyTensorFlag = emptyTensorFlag_;
+
     // pa
     fiaInfo.pageAttentionFlag = (kvStorageMode_ == KvStorageMode::PAGE_ATTENTION);
     fiaInfo.blockSize = blockSize_;
@@ -966,7 +995,9 @@ ge::graphStatus FiaInfoParser::Parse(FiaTilingInfo &fiaInfo)
         ge::GRAPH_SUCCESS != CheckRequiredParaExistence()) {
         return ge::GRAPH_FAILED;
     }
-
+    if (ge::GRAPH_SUCCESS != GetEmptyTensorFlag()) {
+        return ge::GRAPH_FAILED;
+    }
     if (ge::GRAPH_SUCCESS != GetInOutDataType() ||
         ge::GRAPH_SUCCESS != GetQueryAndOutLayout() ||
         ge::GRAPH_SUCCESS != GetKvStorageMode() ||

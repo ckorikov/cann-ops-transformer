@@ -18,6 +18,7 @@
 #include "fused_infer_attention_score_tiling_info_parser.h"
 #include "../../common/op_host/arch32/fia_tiling_nonquant_mla.h"
 #include "../../common/op_host/arch32/fia_tiling_nonquant.h"
+#include "../../common/op_host/arch32/fia_tiling_empty_tensor.h"
 #include "../../common/op_host/fia_tiling_templates_registry.h"
 
 using namespace AscendC;
@@ -226,6 +227,8 @@ REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000000522220, FusedInf
 REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000010522221, FusedInferAttentionScoreTilingData)
 REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000030522223, FusedInferAttentionScoreTilingData)
 REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_103000000050522225, FusedInferAttentionScoreTilingData)
+// empty tensor
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_100000000000000020, FusedInferAttentionScoreEmptyTensorTilingData)
 
 constexpr size_t DIM_NZ = 5;
 constexpr uint32_t NZ_D1_IDX = 2;
@@ -540,8 +543,7 @@ bool CheckSpecConditions(gert::TilingContext *context)
 
 bool CheckGqaConstrain(gert::TilingContext *context)
 {
-    if (CheckGqaInputLayoutSupport(context) && 
-        !IsEmptyTensor(context) && 
+    if (CheckGqaInputLayoutSupport(context) &&
         CheckGqaDSupport(context) && 
         CheckGqaFeatureSupport(context)) { 
             return true;

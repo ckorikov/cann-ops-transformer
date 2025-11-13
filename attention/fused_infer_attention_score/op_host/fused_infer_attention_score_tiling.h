@@ -125,6 +125,17 @@ TILING_DATA_FIELD_DEF_STRUCT(FusedInferAttentionOuterSplitParams, outerSplitPara
 TILING_DATA_FIELD_DEF_STRUCT(FusedInferAttentionFlashDecodeParams, fdParams);
 END_TILING_DATA_DEF
 
+// empty tenmsor 模板TilingData
+BEGIN_TILING_DATA_DEF(FusedInferAttentionScoreEmptyTensorTilingData)
+TILING_DATA_FIELD_DEF(uint64_t, totalOutputSize)
+TILING_DATA_FIELD_DEF(uint64_t, singleCoreSize)
+TILING_DATA_FIELD_DEF(uint64_t, totalLseSize)
+TILING_DATA_FIELD_DEF(uint64_t, singleCoreLseSize)
+TILING_DATA_FIELD_DEF(uint32_t, usedCoreNum)
+TILING_DATA_FIELD_DEF(uint32_t, softmaxLseFlag)
+TILING_DATA_FIELD_DEF(uint32_t, headDim)
+END_TILING_DATA_DEF
+
 // Left Padding 参数
 BEGIN_TILING_DATA_DEF(FusedInferAttentionLeftPaddingParams)
 TILING_DATA_FIELD_DEF(uint32_t, qPaddingFlag)

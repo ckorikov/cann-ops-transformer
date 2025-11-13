@@ -16,6 +16,12 @@
 #include "kernel_operator.h"
 #include "fused_infer_attention_score_tilingkey.h"
 
+#ifdef NOT_DYNAMIC_COMPILE
+#include "../../common/op_kernel/arch32/fia_kernel_empty_tensor.h"
+#else
+#include "../common/arch32/fia_kernel_empty_tensor.h"
+#endif
+
 #ifdef FIA_ENABLE_MLA
 // mla模板使用私有tiling结构，框架编译时根据一组DType预编译获取keylist，根据keylist找到对应的tiling结构
 // 在这组DType中，若没有mla模板的key，包含mla模板编译会报错：unknown type name 'FusedInferAttentionScoreTilingData'
@@ -856,6 +862,15 @@ extern "C" __global__ __aicore__ void fused_infer_attention(
                                     FIA_LAYOUT::NTD, true);
 
 #endif
+#endif
+
+// empty tensor 模板
+    TILING_KEY_IS(100000000000000020);
+#if TILING_KEY_VAR == 100000000000000020
+    FiaKernelEmptyTensor<half> op;
+    FIA_COPY_TILING_DATA(FusedInferAttentionScoreEmptyTensorTilingData, tiling);
+    op.Init(attentionOut, softmaxLse, tiling_data, &tPipe);
+    op.Process();
 #endif
 
 #endif
