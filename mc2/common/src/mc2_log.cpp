@@ -82,6 +82,19 @@ void PrintMMV3TilingData(const std::string &opName,
   OP_LOGD(opName, " isHf32 %d", tiling.get_isHf32());
 }
 
+void PrintMMV3TilingData(const std::string &opName,
+                         Mc2Tiling::MC2MatmulV3TilingData &tiling) {
+  PrintTCubeTilingData(opName, tiling.matmulTiling);
+  OP_LOGD(opName, " mTailCnt %d", tiling.mTailCnt);
+  OP_LOGD(opName, " nTailCnt %d", tiling.nTailCnt);
+  OP_LOGD(opName, " kTailCnt %d", tiling.kTailCnt);
+  OP_LOGD(opName, " mBaseTailSplitCnt %d", tiling.mBaseTailSplitCnt);
+  OP_LOGD(opName, " nBaseTailSplitCnt %d", tiling.nBaseTailSplitCnt);
+  OP_LOGD(opName, " mTailMain %d", tiling.mTailMain);
+  OP_LOGD(opName, " nTailMain %d", tiling.nTailMain);
+  OP_LOGD(opName, " isHf32 %d", tiling.isHf32);
+}
+
 void PrintTCubeTilingData(const std::string &opName,
                           optiling::TCubeTiling &tiling) {
   OP_LOGD(opName, " tiling.usedCoreNum %d", tiling.get_usedCoreNum());
