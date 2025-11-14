@@ -374,7 +374,7 @@ namespace SplitFuse {
                                     kvSStartIdx,
                                     kvSEndIdx);
                             } else {
-                                uint32_t noMaskStackSeqNum = triUp / MAX_KV_STACK_LEN;
+                                uint32_t noMaskStackSeqNum = (triUp + 1) / MAX_KV_STACK_LEN;
                                 Arch::CrossCoreWaitFlag(qkReady);
                                 epilogueOnlineSoftmax(
                                     gP[gmOffsetP],
