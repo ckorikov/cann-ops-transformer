@@ -33,3 +33,8 @@ output/
 *.pyc
 __pycache__
 MANIFEST.in
+
+# temporary stuff
+installers/
+third_party/
+*.log
