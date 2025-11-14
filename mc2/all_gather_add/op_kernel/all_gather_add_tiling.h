@@ -22,11 +22,11 @@ struct AllGatherAddTilingData {
     Mc2InitTiling mc2InitTiling;
     Mc2CcTiling mc2CcTiling;
     uint32_t commTurn; // 通信轮次，本示例通信1次
-    uint32_t tileNum; // 计算切分轮次
-    uint32_t totalLength; // 总长度是参与Add操作的数据个数
-    uint32_t blockLength; // 每个核处理的数据个数
-    uint32_t tileLength; // 每个分片处理的数据个数
-    uint32_t gatherTileLength; // 待gather的数据个数
+    uint32_t tileNum; // 每个核需要参与Add计算的数据块个数
+    uint32_t totalLength; // 需要参与Add计算的数据总个数
+    uint32_t blockLength; // 每个核需要计算的数据个数
+    uint32_t tileLength; // 每个核内每个数据块的数据个数
+    uint32_t gatherTileLength; // 待allgather的数据个数
 };
 
 #endif //__ALL_GATHER_ADD_TILING_H__

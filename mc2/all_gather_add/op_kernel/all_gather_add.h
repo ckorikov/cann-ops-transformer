@@ -66,17 +66,17 @@ __aicore__ inline void AllGatherAdd::Init(GM_ADDR aGM, GM_ADDR bGM, GM_ADDR cGM,
     tPipe_ = tPipe;
     blockLength_ = tilingData->blockLength;
     tileLength_ = tilingData->tileLength;
-    // todo 考虑尾块 对齐的话：a :48 2048 b: 96 2048
+    tileNum_ = tilingData->tileNum;
 
     // 初始化hccl对象
-    hccl_.InitV2(contextGM, tilingData);
-    hccl_.SetCcTilingV2(offsetof(AllGatherAddTilingData, mc2CcTiling)); // 相对于Mc2InitTiling起始地址的偏移
+    // hccl_.InitV2(contextGM, tilingData);
+    // hccl_.SetCcTilingV2(offsetof(AllGatherAddTilingData, mc2CcTiling)); // 相对于Mc2InitTiling起始地址的偏移
 
-    inputAGM.SetGlobalBuffer((__gm__ half*)aGM, tilingData->gatherTileLength);
+    // inputAGM.SetGlobalBuffer((__gm__ half*)aGM, tilingData->gatherTileLength);
     gatherOutGM.SetGlobalBuffer((__gm__ half*)gatherGM + blockLength_ * AscendC::GetBlockIdx() * sizeof(half), blockLength_);
     inputBGM.SetGlobalBuffer((__gm__ half*)bGM + blockLength_ * AscendC::GetBlockIdx() * sizeof(half), blockLength_);
     outputCGM.SetGlobalBuffer((__gm__ half*)cGM + blockLength_ * AscendC::GetBlockIdx() * sizeof(half), blockLength_);
-
+    
     tPipe_->InitBuffer(inputQueueGather, ALLGATHER_ADD_BUFFER_NUM, tileLength_ * sizeof(half));
     tPipe_->InitBuffer(inputQueueB, ALLGATHER_ADD_BUFFER_NUM, tileLength_ * sizeof(half));
     tPipe_->InitBuffer(outputQueueC, ALLGATHER_ADD_BUFFER_NUM, tileLength_ * sizeof(half));
@@ -125,18 +125,16 @@ __aicore__ inline void AllGatherAdd::HcclFinalize()
 
 __aicore__ inline void AllGatherAdd::Process()
 {
-    HcclPrepare();
-    for (int i = 0; i < tilingData_->tileNum; i++) {
-        hccl_.Wait(handleId_);
-        for (int rankId = 0; rankId < hccl_.GetRankDim(); rankId++) {
-            if (rankId == hccl_.GetRankId()) {
+    // HcclPrepare();
+    // for (int i = 0; i < tilingData_->commTurn; i++) {
+    //     hccl_.Wait(handleId_);
+         for (int j = 0; j < tileNum_; j++) {
                 CopyIn(i);
                 Compute();
                 CopyOut(i);
-            }
-        }
-    }
-    HcclFinalize();
+         }
+    // }
+    // HcclFinalize();
 }
 }
 #endif
