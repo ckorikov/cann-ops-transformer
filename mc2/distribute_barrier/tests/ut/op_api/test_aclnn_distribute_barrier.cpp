@@ -24,7 +24,11 @@ using namespace std;
 
 class l2_aclnn_distribute_barrier_test : public testing::Test {
  protected:
-  static void SetUpTestCase() { cout << "l2_aclnn_distribute_barrier_test SetUp" << endl; }
+  static void SetUpTestCase()
+  {
+    op::SetPlatformSocVersion(op::SocVersion::ASCEND910_93);
+    cout << "l2_aclnn_distribute_barrier_test SetUp" << endl;
+  }
 
   static void TearDownTestCase() { cout << "l2_aclnn_distribute_barrier_test TearDown" << endl; }
 };

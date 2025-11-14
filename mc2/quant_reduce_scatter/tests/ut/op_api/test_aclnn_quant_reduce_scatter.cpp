@@ -23,7 +23,11 @@ using namespace std;
 
 class test_aclnn_quant_reduce_scatter : public testing::Test {
 protected:
-    static void SetUpTestCase() { cout << "test_aclnn_quant_reduce_scatter SetUp" << endl; }
+    static void SetUpTestCase()
+    {
+        op::SetPlatformSocVersion(op::SocVersion::ASCEND910_95);
+        cout << "test_aclnn_quant_reduce_scatter SetUp" << endl;
+    }
 
     static void TearDownTestCase() { cout << "test_aclnn_quant_reduce_scatter TearDown" << endl; }
 };

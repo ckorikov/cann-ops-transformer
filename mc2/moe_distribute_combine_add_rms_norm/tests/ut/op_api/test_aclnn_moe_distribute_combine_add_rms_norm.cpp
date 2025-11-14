@@ -26,6 +26,7 @@ class l2_moe_distribute_combine_add_rms_norm_test : public testing::Test
 protected:
     static void SetUpTestCase()
     {
+        op::SetPlatformSocVersion(op::SocVersion::ASCEND910_93);
         cout << "l2_moe_distribute_combine_add_rms_norm_test SetUp" << endl;
     }
 
@@ -37,7 +38,6 @@ protected:
 
 TEST_F(l2_moe_distribute_combine_add_rms_norm_test, test_moe_distribute_combine_add_rms_norm_1)
 {
-    op::SetPlatformSocVersion(op::SocVersion::ASCEND910_93);
     TensorDesc expandX = TensorDesc({32, 7168}, ACL_BF16, ACL_FORMAT_ND);
     TensorDesc expertIds = TensorDesc({32, 8}, ACL_INT32, ACL_FORMAT_ND);
     TensorDesc expandIdx = TensorDesc({32 * 8}, ACL_INT32, ACL_FORMAT_ND);

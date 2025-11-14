@@ -25,7 +25,11 @@ using namespace std;
 namespace AlltoAllvGroupedMatMulUT {
 class l2_allto_allv_grouped_mat_mul_test : public testing::Test {
  protected:
-  static void SetUpTestCase() { cout << "l2_allto_allv_grouped_mat_mul_test SetUp" << endl; }
+  static void SetUpTestCase()
+  {
+    op::SetPlatformSocVersion(op::SocVersion::ASCEND910_93);
+	cout << "l2_allto_allv_grouped_mat_mul_test SetUp" << endl;
+  }
 
   static void TearDownTestCase() { cout << "l2_allto_allv_grouped_mat_mul_test TearDown" << endl; }
 };

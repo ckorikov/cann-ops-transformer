@@ -11,7 +11,7 @@
 #include <array>
 #include <vector>
 
-#include <gtest/gtest.h>"
+#include <gtest/gtest.h>
 #include <gmock/gmock.h>
 #include "../../../op_api/aclnn_grouped_mat_mul_allto_allv.h"
 #include "op_api_ut_common/tensor_desc.h"
@@ -27,6 +27,7 @@ class l2_grouped_mat_mul_allto_allv_test : public testing::Test
 protected:
     static void SetUpTestCase()
     {
+        op::SetPlatformSocVersion(op::SocVersion::ASCEND910_93);
         cout << "l2_grouped_mat_mul_allto_allv_test SetUp" << endl;
     }
 

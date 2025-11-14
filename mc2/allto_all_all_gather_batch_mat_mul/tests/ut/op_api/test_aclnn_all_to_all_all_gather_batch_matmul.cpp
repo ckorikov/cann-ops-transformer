@@ -26,7 +26,11 @@ using namespace std;
 namespace AlltoAllAllGatherBatchMatmul{
 class l2_all_to_all_all_gather_batch_matmul_test : public testing::Test {
  protected:
-  static void SetUpTestCase() { cout << "l2_all_to_all_all_gather_batch_matmul_test SetUp" << endl; }
+  static void SetUpTestCase()
+  {
+    op::SetPlatformSocVersion(op::SocVersion::ASCEND910_93);
+    cout << "l2_all_to_all_all_gather_batch_matmul_test SetUp" << endl;
+  }
 
   static void TearDownTestCase() { cout << "l2_all_to_all_all_gather_batch_matmul_test TearDown" << endl; }
 };

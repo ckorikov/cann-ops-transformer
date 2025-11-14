@@ -23,7 +23,11 @@ using namespace std;
 namespace ElasticReceivableInfoCollect {
 class l2_aclnn_elastic_receivable_info_collect_test : public testing::Test {
  protected:
-  static void SetUpTestCase() { cout << "l2_aclnn_elastic_receivable_info_collect_test SetUp" << endl; }
+  static void SetUpTestCase()
+  {
+    op::SetPlatformSocVersion(op::SocVersion::ASCEND910_93);
+    cout << "l2_aclnn_elastic_receivable_info_collect_test SetUp" << endl;
+  }
 
   static void TearDownTestCase() { cout << "l2_aclnn_elastic_receivable_info_collect_test TearDown" << endl; }
 };

@@ -25,7 +25,11 @@ namespace BatchMatmulReduceScatterAlltoAll {
 // IFA aclnn ut for 910b has error in UT environment. Deleted.
 class l2_batch_matmul_reduce_scatter_all_to_all_test : public testing::Test {
  protected:
-  static void SetUpTestCase() { cout << "l2_batch_matmul_reduce_scatter_all_to_all_test SetUp" << endl; }
+  static void SetUpTestCase()
+  {
+    op::SetPlatformSocVersion(op::SocVersion::ASCEND910_93);
+    cout << "l2_batch_matmul_reduce_scatter_all_to_all_test SetUp" << endl;
+  }
 
   static void TearDownTestCase() { cout << "l2_batch_matmul_reduce_scatter_all_to_all_test TearDown" << endl; }
 };
