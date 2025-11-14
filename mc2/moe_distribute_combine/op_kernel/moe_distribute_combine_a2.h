@@ -162,7 +162,7 @@ private:
     uint32_t tokenNumPerCore_{0};
     uint32_t tokenIndex_{0};
     uint32_t performanceInfoSize_{0};
-    bool needPerformanceInfo_=false;
+    bool needPerformanceInfo_{false};
     TQueBind<QuePosition::VECIN, QuePosition::VECOUT, BUFFER_NUM> moeQueue_;
     TBuf<> expertIdsBuf_;
     TBuf<> expandScalesBuf_;
@@ -242,7 +242,6 @@ __aicore__ inline void MoeDistributeCombineA2<TemplateMC2TypeA2Func>::Init(GM_AD
         axisH_ * sizeof(uint16_t) + stateSizeMaxSize) * BUFFER_NUM; // 考虑负载极其不均衡时，HCCL BUFFSIZE需要开的大小
 
     BuffInit();
-    // init performanceInfo
     needPerformanceInfo_ = performanceInfo != nullptr;
     if (unlikely(needPerformanceInfo_)) {
         performanceInfoSize_ = worldSize_;
@@ -474,7 +473,7 @@ __aicore__ inline void MoeDistributeCombineA2<TemplateMC2TypeA2Func>::WaitDispat
         SyncAll<true>();
         return;
     }
- 
+    SyncFunc<AscendC::HardEvent::MTE2_S>();
     uint32_t waitFlagNum = 0;
     int64_t startTime = GetCurrentTimestampUs();
     while (waitFlagNum < sendRankNum_) {
@@ -490,9 +489,8 @@ __aicore__ inline void MoeDistributeCombineA2<TemplateMC2TypeA2Func>::WaitDispat
             }
             waitFlagNum++;
             flagGlobal_(0) = 0;
-            // 重要：要下DCCI保证清零写进去，避免下一次判断时又判断生效，重复累计recvFlagNum
+            // 重要：要下DCCI保证清零写进去，避免下一次判断时又判断生效，重复累计waitFlagNum
             DataCacheCleanAndInvalid<uint32_t, AscendC::CacheLine::SINGLE_CACHE_LINE, AscendC::DcciDst::CACHELINE_OUT>(flagGlobal_);
-            // 记录打点耗时
             if (unlikely(needPerformanceInfo_)) {
                 auto srcRankId = rankId;
                 RecordRankCommDuration(performanceInfoU32Tensor_, srcRankId, startTime);
@@ -505,7 +503,6 @@ __aicore__ inline void MoeDistributeCombineA2<TemplateMC2TypeA2Func>::WaitDispat
 template <TemplateMC2TypeA2Class>
 __aicore__ inline void MoeDistributeCombineA2<TemplateMC2TypeA2Func>::CopyPerformanceInfo()
 {
-    // copy local performance info to GMTensor
     if (unlikely(needPerformanceInfo_)) {
         AscendC::SetAtomicAdd<int32_t>();
         AscendC::DataCopy(performanceInfoU32GMTensor_, performanceInfoU32Tensor_, performanceInfoSize_ * sizeof(int64_t) / sizeof(int32_t));

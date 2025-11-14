@@ -165,7 +165,7 @@ private:
     uint32_t shareMemOffset_{0};
     uint32_t tokenUbSize_{0};
     uint32_t performanceInfoSize_{0};
-    bool needPerformanceInfo_ = false;
+    bool needPerformanceInfo_{false};
 
     // TokenStruck
     uint32_t tokenGapInStruct_{0};
@@ -319,7 +319,6 @@ __aicore__ inline void MoeDistributeDispatchA2Layered<TemplateMC2TypeA2layeredFu
 
     tpipe_->InitBuffer(tBuf, TBUF_SIZE);
 
-    // init performanceInfo
     needPerformanceInfo_ = performanceInfo != nullptr;
     if (unlikely(needPerformanceInfo_)) {
         performanceInfoSize_ = worldSize_;
@@ -984,8 +983,8 @@ __aicore__ inline void MoeDistributeDispatchA2Layered<TemplateMC2TypeA2layeredFu
             break;
         }
     } while (isSync);
-    // 记录打点耗时
-    if (unlikely(needPerformanceInfo_)){
+    // 本卡和本卡之间通信，在跨机部分已统计过，机内不需要统计
+    if (unlikely(needPerformanceInfo_ && (destRankIdx != localRankId))) {
         auto curServerId = rankId_ / SERVER_RANK_SIZE;
         auto srcRankId = curServerId * SERVER_RANK_SIZE + destRankIdx;
         RecordRankCommDuration(performanceInfoU32Tensor_, srcRankId, startTime);
@@ -1138,9 +1137,6 @@ __aicore__ inline void MoeDistributeDispatchA2Layered<TemplateMC2TypeA2layeredFu
             expInfoTensor = localUB_32[expOffsetInStruct_/ sizeof(int32_t)];
         }
 
-        int32_t cmpDuration = 0;
-        int32_t duration = 0;
-        auto curServerId = logicAivId / coresPerServer;
         for (int32_t expIndex = 0; expIndex < axisK_; ++expIndex) {
             uint32_t targetExpId = (uint32_t)(expInfoTensor(expIndex));
             if (targetExpId < expStartId || targetExpId >= expEndId) {
@@ -1168,9 +1164,9 @@ __aicore__ inline void MoeDistributeDispatchA2Layered<TemplateMC2TypeA2layeredFu
             PipeBarrier<PIPE_ALL>();
         }
         // 统计机间通信时间
-        // 找每张卡上的aiv time max
         // 多个核处理同一个server只有第一个核记录时间，其他核不记录保持0，不影响最后的atomicAdd
-        if (unlikely(needPerformanceInfo_) && (curServerId != serverId_) && (logicAivId % coresPerServer == 0)) { 
+        if (unlikely(needPerformanceInfo_ && (logicAivId % coresPerServer == 0))) { 
+            auto curServerId = logicAivId / coresPerServer;
             auto srcRankId = rankId_ % SERVER_RANK_SIZE + curServerId * SERVER_RANK_SIZE;
             RecordRankCommDuration(performanceInfoU32Tensor_, srcRankId, startTime);
         }
@@ -1387,7 +1383,6 @@ __aicore__ inline void MoeDistributeDispatchA2Layered<TemplateMC2TypeA2layeredFu
 template <TemplateMC2TypeA2layeredClass>
 __aicore__ inline void MoeDistributeDispatchA2Layered<TemplateMC2TypeA2layeredFunc>::CopyPerformanceInfo()
 {
-    // copy local performance info to GMTensor
     if (unlikely(needPerformanceInfo_)) {
         AscendC::SetAtomicAdd<int32_t>();
         AscendC::DataCopy(performanceInfoU32GMTensor_, performanceInfoU32Tensor_, performanceInfoSize_ * sizeof(int64_t) / sizeof(int32_t));

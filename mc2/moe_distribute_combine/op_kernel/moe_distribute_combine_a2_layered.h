@@ -207,7 +207,7 @@ private:
     uint64_t share_offset{0};
     uint32_t IPC_DATA_SIZE{0};
     uint32_t performanceInfoSize_{0};
-    bool needPerformanceInfo_=false;
+    bool needPerformanceInfo_{false};
     TBuf<QuePosition::VECCALC> tBuf;
     TBuf<TPosition::VECOUT> rdmaInBuf_;
     TBuf<TPosition::VECOUT> rdmaInBuf2_;
@@ -432,7 +432,6 @@ __aicore__ inline void MoeDistributeCombineA2Layered<TemplateMC2TypeA2layeredFun
 
     BuffInit();
 
-    // init performanceInfo
     needPerformanceInfo_ = performanceInfo != nullptr;
     if (unlikely(needPerformanceInfo_)) {
         performanceInfoSize_ = worldSize_;
@@ -608,7 +607,6 @@ __aicore__ inline void MoeDistributeCombineA2Layered<TemplateMC2TypeA2layeredFun
         PipeBarrier<PIPE_ALL>();
         DataCopy(shareFlagGlobal_[waitFlagAddr * 4], inUb, 4);  // *4是因为单次拷贝256byte = 4*int64
         PipeBarrier<PIPE_ALL>();
-        // 记录打点耗时
         if (unlikely(needPerformanceInfo_)) {
 	        auto srcRankId = (rankId_ / SERVER_RANK_SIZE) * SERVER_RANK_SIZE + coreIdx_;
             RecordRankCommDuration(performanceInfoU32Tensor_, srcRankId, startTime);
@@ -929,7 +927,6 @@ __aicore__ inline void MoeDistributeCombineA2Layered<TemplateMC2TypeA2layeredFun
                 break;
             }
         }
-        // 记录打点耗时
         if (unlikely(needPerformanceInfo_)) {
             auto srcRankId = targetRank;
             RecordRankCommDuration(performanceInfoU32Tensor_, srcRankId, startTime);

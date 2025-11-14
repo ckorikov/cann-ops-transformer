@@ -158,7 +158,7 @@ private:
     uint32_t totalSize_{0};
     uint32_t expertTokenNumsType_{0};
     uint32_t performanceInfoSize_{0};
-    bool needPerformanceInfo_ = false;
+    bool needPerformanceInfo_{false};
     bool isQuant_ = false;
     Hccl<HCCL_SERVER_TYPE_AICPU> hccl_;
     __gm__ HcclOpResParam *winContext_{nullptr};
@@ -242,7 +242,7 @@ __aicore__ inline void MoeDistributeDispatchA2<TemplateMC2TypeA2Func>::Init(
     if (isQuant_) {
         QuantInit(scales);
     }
-    // init performanceInfo
+
     needPerformanceInfo_ = performanceInfo != nullptr;
     if (unlikely(needPerformanceInfo_)) {
         performanceInfoSize_ = worldSize_;
@@ -785,7 +785,6 @@ __aicore__ inline void MoeDistributeDispatchA2<TemplateMC2TypeA2Func>::LocalWind
 template <TemplateMC2TypeA2Class>
 __aicore__ inline void MoeDistributeDispatchA2<TemplateMC2TypeA2Func>::CopyPerformanceInfo()
 {
-    // copy local performance info to GMTensor
     if (unlikely(needPerformanceInfo_)) {
         AscendC::SetAtomicAdd<int32_t>();
         AscendC::DataCopy(performanceInfoU32GMTensor_, performanceInfoU32Tensor_, performanceInfoSize_ * sizeof(int64_t) / sizeof(int32_t));
