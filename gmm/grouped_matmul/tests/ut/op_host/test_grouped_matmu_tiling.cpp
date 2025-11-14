@@ -89,7 +89,8 @@ TEST_F(GroupedMatmulTiling, test_tiling_fp16)
         0, // IS_STATIC_TILING_API
         GROUPED_MATMUL_A8W4_KERNEL_TEMPLATE_NONE, // A8W4_KERNEL_TEMPLATE
         GROUPED_MATMUL_A16W8_KERNEL_TEMPLATE_NONE, // A16W8_KERNEL_TEMPLATE
-        GROUPED_MATMUL_CUBE_ONLY // AIV_AIC_RATIO
+        GROUPED_MATMUL_CUBE_ONLY, // AIV_AIC_RATIO
+        false //IS_ENABLE_FIXED_AXIS
     ); // tilngkey
     string expectTilingData =
         "0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ";

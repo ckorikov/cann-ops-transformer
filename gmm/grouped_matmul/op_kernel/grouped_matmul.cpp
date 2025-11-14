@@ -76,6 +76,9 @@ static constexpr VecAntiQuantConfig VEC_ANTIQUANT_CONFIG_4 = {3, 512};
 #include "grouped_matmul_pre_tiling.h"
 #include "grouped_matmul_a4w4.h"
 #include "grouped_matmul_autotiling_a8w4.h"
+#ifndef __CCE_KT_TEST__
+#include "grouped_matmul_fixaxismove_interface.cpp"
+#endif
 #endif
 
 
@@ -489,7 +492,7 @@ extern "C" __global__ __aicore__ void grouped_matmul(GM_ADDR x, GM_ADDR weight, 
                                                      GM_ADDR workspace, GM_ADDR tiling)
 #else
 template <int D_T_A, int D_T_B, int D_T_Y, int TRANS_A, int TRANS_B, int GROUP_LIST_TYPE,
-          int IS_STATIC_TILING_API, int A8W4_KERNEL_TEMPLATE, int A16W8_KERNEL_TEMPLATE, int AIV_AIC_RATIO>
+          int IS_STATIC_TILING_API, int A8W4_KERNEL_TEMPLATE, int A16W8_KERNEL_TEMPLATE, int AIV_AIC_RATIO, bool IS_ENABLE_FIXED_AXIS>
 __global__ __aicore__ void grouped_matmul(GM_ADDR x, GM_ADDR weight, GM_ADDR bias, GM_ADDR scale,
                                                      GM_ADDR offset, GM_ADDR antiquantScale, GM_ADDR antiquantOffset,
                                                      GM_ADDR groupList, GM_ADDR perTokenScale, GM_ADDR y,
@@ -698,16 +701,34 @@ __global__ __aicore__ void grouped_matmul(GM_ADDR x, GM_ADDR weight, GM_ADDR bia
                   TRANS_A == 0 && A8W4_KERNEL_TEMPLATE == GROUPED_MATMUL_A8W4_KERNEL_TEMPLATE_NONE) {
         if constexpr (IS_STATIC_TILING_API == 0) {
             if constexpr (AIV_AIC_RATIO == GROUPED_MATMUL_AIV_AIC_RATIO_1) {
-                if constexpr (TRANS_B == 0 && GROUP_LIST_TYPE != GROUPED_MATMUL_GROUP_LIST_TYPE_SPARSEM) {
+                if constexpr(IS_ENABLE_FIXED_AXIS == 0) {
+                    if constexpr (TRANS_B == 0 && GROUP_LIST_TYPE != GROUPED_MATMUL_GROUP_LIST_TYPE_SPARSEM) {
                     GMM_CV_SPLIT_IMP(GMMQuantMixCoreCompute, GMMProcess, false, false, false, matmulCFG, xType, weightType, yType);
-                } else if constexpr (TRANS_B == 1 && GROUP_LIST_TYPE != GROUPED_MATMUL_GROUP_LIST_TYPE_SPARSEM) {
-                    GMM_CV_SPLIT_IMP(GMMQuantMixCoreCompute, GMMProcess, false, true, false, matmulCFG, xType, weightType, yType);
-                } else if constexpr(TRANS_B == 0 && GROUP_LIST_TYPE == GROUPED_MATMUL_GROUP_LIST_TYPE_SPARSEM) {
-                    GMM_CV_SPLIT_IMP(GMMQuantMixCoreCompute, GMMGroupMSparseProcess, false, false, false, matmulCFG, xType,
-                                weightType, yType);
-                } else if constexpr (TRANS_B == 1 && GROUP_LIST_TYPE == GROUPED_MATMUL_GROUP_LIST_TYPE_SPARSEM) {
-                    GMM_CV_SPLIT_IMP(GMMQuantMixCoreCompute, GMMGroupMSparseProcess, false, true, false, matmulCFG, xType,
-                                weightType, yType);
+                    } else if constexpr (TRANS_B == 1 && GROUP_LIST_TYPE != GROUPED_MATMUL_GROUP_LIST_TYPE_SPARSEM) {
+                        GMM_CV_SPLIT_IMP(GMMQuantMixCoreCompute, GMMProcess, false, true, false, matmulCFG, xType, weightType, yType);
+                    } else if constexpr(TRANS_B == 0 && GROUP_LIST_TYPE == GROUPED_MATMUL_GROUP_LIST_TYPE_SPARSEM) {
+                        GMM_CV_SPLIT_IMP(GMMQuantMixCoreCompute, GMMGroupMSparseProcess, false, false, false, matmulCFG, xType,
+                                    weightType, yType);
+                    } else if constexpr (TRANS_B == 1 && GROUP_LIST_TYPE == GROUPED_MATMUL_GROUP_LIST_TYPE_SPARSEM) {
+                        GMM_CV_SPLIT_IMP(GMMQuantMixCoreCompute, GMMGroupMSparseProcess, false, true, false, matmulCFG, xType,
+                                    weightType, yType);
+                    }
+                } else if constexpr(IS_ENABLE_FIXED_AXIS == 1 && TRANS_B == 0 && GROUP_LIST_TYPE == GROUPED_MATMUL_GROUP_LIST_TYPE_CUMSUM) {
+                    tPipe.Destroy();
+                    AscendC::SetMMLayoutTransform(true);
+                    GET_TILING_DATA_MEMBER(GMMTilingData, gmmBaseParams, gmmBaseParams_, tiling)
+                    using XDType = int8_t;
+                    using WeightDType = int8_t;
+                    using CDType = int32_t;
+                    using ScaleDType = float;
+                    using GrouplistDType = int64_t;
+                    using PerTokenScaleDType = float;
+                    using YDType = half;
+#ifndef __CCE_KT_TEST__
+                    Catlass::grouped_matmul_fixaxismove<XDType, WeightDType, CDType, ScaleDType, GrouplistDType, PerTokenScaleDType, YDType>(
+                        gmmBaseParams_.m, gmmBaseParams_.k, gmmBaseParams_.n, gmmBaseParams_.groupNum, 
+                        x, weight, scale, groupList, perTokenScale, y, user1, gmmBaseParams_.coreNum);
+#endif
                 }
             } else if constexpr (AIV_AIC_RATIO == GROUPED_MATMUL_AIV_AIC_RATIO_2) {
                 if constexpr (TRANS_B == 0) {
