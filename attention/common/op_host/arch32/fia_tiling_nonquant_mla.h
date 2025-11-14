@@ -68,7 +68,7 @@ private:
     bool splitKVFlag_ = false;
 
     uint32_t coreNum_ = 0;
-    IfaPerfMode perfMode_ = IfaPerfMode::NORMAL;
+    FiaTemplateId perfMode_ = FiaTemplateId::GENERAL_GQA;
     uint32_t kvSplitPart_ = 1;
     int64_t mm1ResSize_ = 0;
     int64_t mm2ResSize_ = 0;

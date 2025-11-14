@@ -154,6 +154,13 @@ enum class TilingKeyLayout : uint32_t {
     NTD = 5
 };
 
+enum class FiaTemplateId : uint32_t {
+    EMPTY_TENSOR = 0,
+    HIGH_PERFORMANCE_GQA = 3,
+    GENERAL_GQA = 4,
+    HIGH_PERFORMANCE_MLA = 5
+};
+
 std::string LayoutToSerialString(FiaLayout layout);
 std::string AxisToSerialString(FiaAxis axis);
 std::string QuantModeToSerialString(FiaQuantMode fiaQuantMode);

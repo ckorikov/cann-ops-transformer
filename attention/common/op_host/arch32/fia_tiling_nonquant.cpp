@@ -229,7 +229,13 @@ void FiaTilingNonQuant::ZeroTensorProcess()
 
 void FiaTilingNonQuant::InitParams()
 {
-    perfMode_ = IfaPerfMode::CUBE_VIEW_MM;
+    // 泛化 or 高性能
+    // 待泛化实现
+    if (false) {
+        perfMode_ = FiaTemplateId::GENERAL_GQA;
+    } else {
+        perfMode_ = FiaTemplateId::HIGH_PERFORMANCE_GQA;
+    }
     coreNum_ = aicNum_;
     blockDim_ = aicNum_; // Tiling下沉首次Tiling也会校验blockDim_是否为0，为避免拦截报错，将blockDim_设置为aicNum_，实际不生效
 
@@ -605,5 +611,5 @@ ge::graphStatus FiaTilingNonQuant::DoOpTiling()
 // 2. 十位表示gqa、mla、泛化，即: x0x-mla, x1x-gpa, x2x-泛化
 // 3. 个位代表特化模板到泛化模板的优先级排序
 REGISTER_TILING_TEMPLATE_FIA(FusedInferAttentionScore, FiaTilingNonQuant,
-    std::vector<int32_t>({(int32_t)platform_ascendc::SocVersion::ASCEND910B}), 19);
+    std::vector<int32_t>({(int32_t)platform_ascendc::SocVersion::ASCEND910B}), 29);
 } // namespace optiling
