@@ -65,26 +65,36 @@ static bool CheckNotNull(const aclTensor* x, const aclTensor* scales, const aclT
     return true;
 }
 
-// 检查x、scales、output的数据类型是否在算子的支持列表内
+// 检查x、scales、output的数据类型是否在算子的支持列表之内
 static bool CheckTGAllDtypesValid(const aclTensor* x, const aclTensor* scales, const aclTensor* output)
 {
-    OP_CHECK_DTYPE_NOT_SUPPORT(x, X_DTYPE_TG_SUPPORT_LIST, return false);
-    OP_CHECK_DTYPE_NOT_SUPPORT(scales, SCALES_DTYPE_TG_SUPPORT_LIST, return false);
-    OP_CHECK_DTYPE_NOT_SUPPORT(output, OUTPUT_DTYPE_SUPPORT_LIST, return false);
-    return true;
+    if (CheckType(x->GetDataType(), X_DTYPE_TG_SUPPORT_LIST) && CheckType(scales->GetDataType(), SCALES_DTYPE_TG_SUPPORT_LIST) &&
+        CheckType(output->GetDataType(), OUTPUT_DTYPE_SUPPORT_LIST)) {
+            return true;
+    } else {
+        return false;
+    }
 }
 
 static bool CheckMXAllDtypesValid(const aclTensor* x, const aclTensor* scales, const aclTensor* output)
 {
-    OP_CHECK_DTYPE_NOT_SUPPORT(x, X_DTYPE_MX_SUPPORT_LIST, return false);
-    OP_CHECK_DTYPE_NOT_SUPPORT(scales, SCALES_DTYPE_MX_SUPPORT_LIST, return false);
-    OP_CHECK_DTYPE_NOT_SUPPORT(output, OUTPUT_DTYPE_SUPPORT_LIST, return false);
-    return true;
+    if (CheckType(x->GetDataType(), X_DTYPE_MX_SUPPORT_LIST) && CheckType(scales->GetDataType(), SCALES_DTYPE_MX_SUPPORT_LIST) &&
+        CheckType(output->GetDataType(), OUTPUT_DTYPE_SUPPORT_LIST)) {
+            return true;
+    } else {
+        return false;
+    }
 }
 
 static bool CheckAllDtypesValid(const aclTensor* x, const aclTensor* scales, const aclTensor* output)
 {
-    return CheckTGAllDtypesValid(x, scales, output) || CheckMXAllDtypesValid(x, scales, output);
+    bool isAllDtypesValid = false;
+    isAllDtypesValid = CheckTGAllDtypesValid(x, scales, output) || CheckMXAllDtypesValid(x, scales, output);
+    if (!isAllDtypesValid) {
+        OP_LOGE(ACLNN_ERR_PARAM_INVALID, "Input tensors x:%s, scales:%s and output:%s are not simultaneously supported.", \
+            op::ToString(x->GetDataType()).GetString(), op::ToString(scales->GetDataType()).GetString(), op::ToString(output->GetDataType()).GetString()); \
+    }
+    return isAllDtypesValid;
 }
 
 static aclnnStatus CheckParams(const aclTensor* x, const aclTensor* scales, const aclTensor* output)
@@ -106,8 +116,8 @@ extern "C" aclnnStatus aclnnInnerQuantReduceScatter(void* workspace, uint64_t wo
 extern "C" void __attribute__((weak)) NnopbaseSetHcclServerType(void *executor, NnopbaseHcclServerType sType);
 
 extern "C" aclnnStatus aclnnQuantReduceScatterGetWorkspaceSize(const aclTensor* x, const aclTensor* scales, const char* group,
-                                                    const char* reduceOp, aclTensor* output, uint64_t* workspaceSize,
-                                                    aclOpExecutor** executor)
+                                                               const char* reduceOp, aclTensor* output, uint64_t* workspaceSize,
+                                                               aclOpExecutor** executor)
 {
     aclnnStatus retParam = CheckParams(x, scales, output);
     CHECK_RET(retParam == ACLNN_SUCCESS, retParam);
