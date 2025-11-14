@@ -197,6 +197,7 @@ __aicore__ inline void MoeDistributeDispatchA2<TemplateMC2TypeA2Func>::Init(
     aivId_ = GetBlockIdx();
     expertIdsCnt_ = axisBS_ * axisK_;
     localMoeExpertNumAlign_ = (localMoeExpertNum_ + BITS32_PER_BLOCK - 1) / BITS32_PER_BLOCK * BITS32_PER_BLOCK;
+    
     bufferChosenGlobal_.SetGlobalBuffer((__gm__ uint32_t*)(windowInGM_ + dataSize_));
     bufferChosen_ = bufferChosenGlobal_(0);
 

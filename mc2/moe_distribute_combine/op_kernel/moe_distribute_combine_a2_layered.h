@@ -1145,7 +1145,6 @@ __aicore__ inline void MoeDistributeCombineA2Layered<TemplateMC2TypeA2layeredFun
 template <TemplateMC2TypeA2layeredClass>
 __aicore__ inline void MoeDistributeCombineA2Layered<TemplateMC2TypeA2layeredFunc>::CopyPerformanceInfo()
 {
-    // copy local performance info to GMTensor
     if (unlikely(needPerformanceInfo_)) {
         AscendC::SetAtomicAdd<int32_t>();
         AscendC::DataCopy(performanceInfoI32GMTensor_, performanceInfoI32Tensor_, performanceInfoSize_ * sizeof(int64_t) / sizeof(int32_t));
