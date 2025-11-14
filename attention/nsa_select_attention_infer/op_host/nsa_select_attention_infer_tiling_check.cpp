@@ -9,7 +9,7 @@
  */
 
 /*!
- * \file nsa_select_attention_infer_tiling_check.cc
+ * \file nsa_select_attention_infer_tiling_check.cpp
  * \brief
  */
 
