@@ -418,8 +418,8 @@ aclnnStatus aclnnMoeDistributeDispatch(
     #include <vector>
     #include "acl/acl.h"
     #include "hccl/hccl.h"
-    #include "../../moe_distribute_dispatch/op_host/op_api/aclnn_moe_distribute_dispatch.h"
-    #include "../op_host/op_api/aclnn_moe_distribute_combine.h"
+    #include "aclnnop/aclnn_moe_distribute_dispatch.h"
+    #include "aclnnop/aclnn_moe_distribute_combine.h"
 
     #define CHECK_RET(cond, return_expr) \
         do {                             \
