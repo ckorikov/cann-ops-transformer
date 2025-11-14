@@ -147,10 +147,10 @@ aclnnStatus AclnnGroupedMatmulWeightQuant91095Checker::CheckQuantParams() const
 {
     if (!IsS8S4NZ()) {
         CHECK_COND(gmmParams_.scaleOptional == nullptr, ACLNN_ERR_PARAM_INVALID,
-                   "In WeightQuant case no-S8S4, scale must be null.");
+                   "In weight quant case, scale must be null when xDtype-weightDtype is not int8-int4.");
     } else {
         CHECK_COND(gmmParams_.scaleOptional != nullptr, ACLNN_ERR_PARAM_INVALID,
-                   "In WeightQuant case S8S4, scale must not be null");
+                   "In weight quant case, scale must not be null when xDtype-weightDtype is int8-int4.");
     }
 
     CHECK_COND(gmmParams_.offsetOptional == nullptr, ACLNN_ERR_PARAM_INVALID,
@@ -162,7 +162,8 @@ aclnnStatus AclnnGroupedMatmulWeightQuant91095Checker::CheckQuantParams() const
                    "float8_e4m3fn-float4_e2m1 or int8-int4.");
     } else {
         CHECK_COND(gmmParams_.perTokenScaleOptional != nullptr, ACLNN_ERR_PARAM_INVALID,
-                   "In MxA8W4/S8S4 weight quantization, perTokenScale must not be null. ");
+                   "In WeightQuant case, perTokenScale must not be null when xDtype-weightDtype is "
+                   "float8_e4m3fn-float4_e2m1 or int8-int4.");
     }
     return ACLNN_SUCCESS;
 }
@@ -373,16 +374,16 @@ aclnnStatus AclnnGroupedMatmulWeightQuant91095Checker::CheckQuantDtype() const
     if (IsMxA8W4NZ()) {
         auto pertokenScaleDtype = (*gmmParams_.perTokenScaleOptional)[0]->GetDataType();
         CHECK_COND(pertokenScaleDtype == ge::DT_FLOAT8_E8M0, ACLNN_ERR_PARAM_INVALID,
-                   "pertokenScaleDtype must be float8_e8m0 when quantMode is float8_e4m3fn-float4_e2m1.");
+                   "pertokenScaleDtype must be float8_e8m0 when xDtype-weightDtype is float8_e4m3fn-float4_e2m1.");
     }
 
     if (IsS8S4NZ()) {
         auto pertokenScaleDtype = (*gmmParams_.perTokenScaleOptional)[0]->GetDataType();
         CHECK_COND(pertokenScaleDtype == ge::DT_FLOAT, ACLNN_ERR_PARAM_INVALID,
-                   "pertokenScaleDtype must be DT_FLOAT when quantMode is int8-int4.");
+                   "pertokenScaleDtype must be DT_FLOAT when xDtype-weightDtype is int8-int4.");
         auto scaleDtype = (*gmmParams_.scaleOptional)[0]->GetDataType();
         CHECK_COND(scaleDtype == ge::DT_FLOAT, ACLNN_ERR_PARAM_INVALID,
-                   "scaleDtype must be DT_FLOAT when quantMode is int8-int4.");
+                   "scaleDtype must be DT_FLOAT when xDtype-weightDtype is int8-int4.");
     }
     return ACLNN_SUCCESS;
 }
@@ -447,7 +448,7 @@ aclnnStatus AclnnGroupedMatmulWeightQuant91095Checker::CheckUnsupportApi() const
                    "Only AclnnGroupedMatmulV4/V5 support fp16/bf16-fp8/hif8 for xDtype-weightDtype.");
     } else if (IsA16MxFp4NZ() || IsMxA8W4NZ() || IsS8S4NZ()) {
         CHECK_COND(gmmParams_.apiVersion == GMMApiVersion::WeightNz, ACLNN_ERR_PARAM_INVALID,
-                   "Only AclnnGroupedMatmulNz support fp16/bf16-fp4_e2m1, fp8_e4m3fn-fp4_e2m1 and int8-int4 for "
+                   "Only AclnnGroupedMatmulNz supports fp16/bf16-fp4_e2m1, fp8_e4m3fn-fp4_e2m1 and int8-int4 for "
                    "xDtype-weightDtype.");
     } else {
         OP_LOGE(ACLNN_ERR_PARAM_INVALID, "Weight quant case with x dtype [%s] and weight dtype [%s] is not supported.",

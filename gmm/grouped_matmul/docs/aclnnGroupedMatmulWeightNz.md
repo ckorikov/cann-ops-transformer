@@ -253,13 +253,15 @@
     - 伪量化场景支持的数据类型为：
       - 以下入参为空：scaleOptional、offsetOptional、antiquantOffsetOptional、perTokenScaleOptional、activationInputOptional、activationQuantScaleOptional、activationQuantOffsetOptional、actType、activationFeatureOutOptional
       - 不为空的参数支持的数据类型组合要满足下表
-        |groupType| x       |pertokenScale| weight  |antiquantScale|antiquantOffset| biasOptional | out     |
-        |:-------:|:-------:|:-------:| :-------:| :------ | :------     |:------ |:------ |
-        |0   |BFLOAT16     |null|FLOAT4_E2M1     |BFLOAT16 |null | BFLOAT16/FLOAT32/null    | BFLOAT16|
-        |0   |FLOAT16     |null|FLOAT4_E2M1     |FLOAT16|null |FLOAT16/null    | FLOAT16|
-        |0   |FLOAT8_E4M3FN     |FLOAT8_E8M0|FLOAT4_E2M1     |FLOAT16|null|FLOAT16/null    | FLOAT16|
-        |0   |FLOAT8_E4M3FN     |FLOAT8_E8M0|FLOAT4_E2M1     |BFLOAT16|null|BFLOAT16/null    | BFLOAT16|
-    - 伪量化场景下，A16MxFp4仅支持x、weight均不转置,MxA8W4仅支持x不转置且weight转置。
+        |groupType| x       |pertokenScale| weight  |antiquantScale|scaleOptional|antiquantOffset| biasOptional | out     |
+        |:-------:|:-------:|:-------:     | :-------:      | :------    | :------  |:------   |:------ |:------ |
+        |0   |BFLOAT16      |null          |FLOAT4_E2M1     |FLOAT8_E8M0 |null    |null | BFLOAT16/FLOAT32/null    | BFLOAT16|
+        |0   |FLOAT16       |null          |FLOAT4_E2M1     |FLOAT8_E8M0 |null    |null |FLOAT16/null              | FLOAT16|
+        |0   |FLOAT8_E4M3FN |FLOAT8_E8M0   |FLOAT4_E2M1     |FLOAT8_E8M0 |null    |null |FLOAT16/null              | FLOAT16|
+        |0   |FLOAT8_E4M3FN |FLOAT8_E8M0   |FLOAT4_E2M1     |FLOAT8_E8M0 |null    |null |BFLOAT16/null             | BFLOAT16|
+        |0   |INT8          |FLOAT32       |INT4            |FLOAT16     |FLOAT32 |null |FLOAT32/null              | BFLOAT16|
+        |0   |INT8          |FLOAT32       |INT4            |FLOAT16     |FLOAT32 |null |FLOAT32/null              | FLOAT16|
+    - 伪量化场景下，当x和weight的类型分别为BFLOAT16/FLOAT16和FLOAT4_E2M1时，或为INT8和INT4时，仅支持x、weight均不转置, 为FLOAT8_E4M3FN和FLOAT4_E2M1时仅支持x不转置且weight转置。
     - 不同groupType支持场景:
       - 支持场景中单表示单tensor，多表示多tensor，表示顺序为x，weight，out，例如单多单表示支持x为单tensor，weight多tensor，out单tensor的场景。
         | groupType | 支持场景 | 场景限制 |

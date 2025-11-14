@@ -53,8 +53,6 @@ private:
                                           const GMMInputParamsInfo &paramsInputInfo) const;
     ge::graphStatus CheckShapeForTensorList(const gert::InferShapeContext *context, size_t gmm_index,
                                         const std::string &tensorType) const;
-    ge::graphStatus CheckTensorListShapeButGroupAntiS(const gert::InferShapeContext *context, size_t gmm_index,
-                                                                     const std::string &tensorType) const;
     ge::graphStatus CheckScenarioValidForShape(const gert::InferShapeContext *context, const GMMAttrs &gmmAttrs) const;
     ge::graphStatus GetNumOfInputs(const gert::InferShapeContext *context, GMMInputParamsInfo &paramsInputInfo) const;
     ge::graphStatus CheckShapeForWeightQuantParamMultiScenario(const gert::InferShapeContext *context,
@@ -63,11 +61,16 @@ private:
     ge::graphStatus CheckShapeForWeightQuantParam(const gert::InferShapeContext *context) const;
     ge::graphStatus CheckShapeForGrouplist(const gert::InferShapeContext *context, const gert::Shape *groupListShape) const;
     ge::graphStatus UpdateShapeY(gert::InferShapeContext *context, size_t idxY, std::vector<int64_t> &yDims) const;
+    ge::graphStatus CheckGroupAntiS(const gert::Shape *tensorShape, const gert::InferShapeContext *context,
+                                    const std::string &tensorType) const;
+    ge::graphStatus CheckPertokenScaleForA8W4(const gert::Shape *tensorShape, const gert::InferShapeContext *context,
+                                              const std::string &tensorType) const;
     ge::graphStatus CheckGroupSize(const gert::InferShapeContext *context, const GMMAttrs &gmmAttrs) const;
     bool IsA16MxFp4NZ(const ge::DataType &xDtype, const ge::DataType &weightDtype) const;
     bool IsMxA8W4NZ(const ge::DataType &xDtype, const ge::DataType &weightDtype) const;
     bool IsS8S4NZ(const ge::DataType &xDtype, const ge::DataType &weightDtype) const;
     bool IsA16W8(const ge::DataType &xDtype, const ge::DataType &weightDtype) const;
+    bool IsA8W4(const ge::DataType &xDtype, const ge::DataType &weightDtype) const;
 
 private:
     int64_t groupNum_; //当前含义为M分组数g
