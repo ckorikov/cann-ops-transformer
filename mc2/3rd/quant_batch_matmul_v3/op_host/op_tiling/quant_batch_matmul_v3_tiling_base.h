@@ -13,8 +13,8 @@
  * \brief
  */
 
-#ifndef QUANT_BATCH_MATMUL_V3_TILING_BASE_H
-#define QUANT_BATCH_MATMUL_V3_TILING_BASE_H
+#ifndef MC2_QUANT_BATCH_MATMUL_V3_TILING_BASE_H
+#define MC2_QUANT_BATCH_MATMUL_V3_TILING_BASE_H
 #include <memory>
 #include "register/tilingdata_base.h"
 #include "tiling/tiling_api.h"

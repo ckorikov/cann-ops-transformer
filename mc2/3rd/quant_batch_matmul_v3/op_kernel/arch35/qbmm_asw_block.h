@@ -12,8 +12,8 @@
  * \file qbmm_asw_block.h
  * \brief
  */
-#ifndef QBMM_ASW_BLOCK_H
-#define QBMM_ASW_BLOCK_H
+#ifndef MC2_QBMM_ASW_BLOCK_H
+#define MC2_QBMM_ASW_BLOCK_H
 
 #include "quant_batch_matmul_v3_tiling_data.h"
 #include "../quant_batch_matmul_v3_base.h"

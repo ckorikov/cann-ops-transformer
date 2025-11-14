@@ -12,8 +12,8 @@
  * \file qbmm_api_utils.h
  * \brief
  */
-#ifndef QBMM_API_UTILS_H
-#define QBMM_API_UTILS_H
+#ifndef MC2_QBMM_API_UTILS_H
+#define MC2_QBMM_API_UTILS_H
 
 #include "../quant_batch_matmul_v3_base.h"
 #include "qbmm_asw_block.h"

@@ -12,8 +12,8 @@
  * \file quant_batch_matmul_v3_bf16_opt.h
  * \brief
  */
-#ifndef QUANT_BATCH_MATMUL_V3_BF16_OPT_H
-#define QUANT_BATCH_MATMUL_V3_BF16_OPT_H
+#ifndef MC2_QUANT_BATCH_MATMUL_V3_BF16_OPT_H
+#define MC2_QUANT_BATCH_MATMUL_V3_BF16_OPT_H
 
 #include "quant_batch_matmul_v3_base.h"
 

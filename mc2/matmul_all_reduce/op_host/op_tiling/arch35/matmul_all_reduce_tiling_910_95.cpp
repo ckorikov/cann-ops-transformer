@@ -170,7 +170,7 @@ ge::graphStatus MatmulAllReduceTilingA5::Do910Tiling()
 }
 
 ge::graphStatus MatmulAllReduceTilingA5::DoMatmulV3Tiling(Mc2MatmulHelper::NewMc2MatmulTilingCfg& tilingCfg,
-    Mc2MMRegisterCfg& registerCfg, MC2MatmulV3TilingData& tilingData)
+    Mc2MMRegisterCfg& registerCfg, optiling::MC2MatmulV3TilingData& tilingData)
 {
     tilingCfg.SetRankDim(args_.rankDim);
     tilingCfg.SetMatMulV3TilingData(tilingData);

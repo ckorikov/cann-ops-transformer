@@ -12,8 +12,8 @@
  * \file quant_batch_matmul_v3_base.h
  * \brief
  */
-#ifndef QUANT_BATCH_MATMUL_V3_BASE_H
-#define QUANT_BATCH_MATMUL_V3_BASE_H
+#ifndef MC2_QUANT_BATCH_MATMUL_V3_BASE_H
+#define MC2_QUANT_BATCH_MATMUL_V3_BASE_H
 
 #include <cstdint>
 #include "kernel_operator.h"

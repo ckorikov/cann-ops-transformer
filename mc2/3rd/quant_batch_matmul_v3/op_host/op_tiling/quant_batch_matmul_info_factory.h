@@ -12,8 +12,8 @@
  * \file quant_batch_matmul_info_factory.h
  * \brief
  */
-#ifndef QUANT_BATCH_MATMUL_INFO_FACTORY_H
-#define QUANT_BATCH_MATMUL_INFO_FACTORY_H
+#ifndef MC2_QUANT_BATCH_MATMUL_INFO_FACTORY_H
+#define MC2_QUANT_BATCH_MATMUL_INFO_FACTORY_H
 
 #include <pthread.h>
 

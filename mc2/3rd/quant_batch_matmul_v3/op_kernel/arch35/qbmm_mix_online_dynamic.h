@@ -12,8 +12,8 @@
  * \file qbmm_mix_online_dynamic.h
  * \brief
  */
-#ifndef QBMM_MIX_ONLINE_DYNAMIC_H
-#define QBMM_MIX_ONLINE_DYNAMIC_H
+#ifndef MC2_QBMM_MIX_ONLINE_DYNAMIC_H
+#define MC2_QBMM_MIX_ONLINE_DYNAMIC_H
 
 #include "../../../../inc/platform.h"
 #include "mm_extension_interface/qbmm_custom_mm_policy.h"

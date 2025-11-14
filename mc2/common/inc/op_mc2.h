@@ -129,7 +129,8 @@ enum class MmReduceScatterV2AttrIdx : size_t {
     K_BLOCK_SIZE,
     K_GROUP_SIZE,
     K_IS_AMAX_OUT,
-    K_Y_DTYPE
+    K_Y_DTYPE,
+    K_COMM_MODE
 };
 
 enum class MmAllReduceAttrIdx : size_t

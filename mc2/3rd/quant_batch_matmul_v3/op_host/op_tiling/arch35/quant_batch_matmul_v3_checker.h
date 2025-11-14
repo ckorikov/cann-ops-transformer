@@ -12,8 +12,8 @@
  * \file quant_batch_matmul_v3_checker.h
  * \brief
  */
-#ifndef QUANT_BATCH_MATMUL_V3_CHECKER_H
-#define QUANT_BATCH_MATMUL_V3_CHECKER_H
+#ifndef MC2_QUANT_BATCH_MATMUL_V3_CHECKER_H
+#define MC2_QUANT_BATCH_MATMUL_V3_CHECKER_H
 #include "tiling_base/tiling_base.h"
 #include "register/tilingdata_base.h"
 #include "tiling/tiling_api.h"

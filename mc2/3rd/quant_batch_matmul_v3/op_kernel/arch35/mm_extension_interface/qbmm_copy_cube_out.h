@@ -12,8 +12,8 @@
  * \file qbmm_copy_cube_out.h
  * \brief
  */
-#ifndef QBMM_COPY_CUBE_OUT_H
-#define QBMM_COPY_CUBE_OUT_H
+#ifndef MC2_QBMM_COPY_CUBE_OUT_H
+#define MC2_QBMM_COPY_CUBE_OUT_H
 #include "lib/matmul_intf.h"
 
 namespace AscendC {

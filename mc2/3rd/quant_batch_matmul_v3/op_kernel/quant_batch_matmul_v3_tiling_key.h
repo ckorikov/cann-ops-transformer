@@ -13,8 +13,8 @@
  * \brief
  */
 
-#ifndef QUANT_BATCH_MATMUL_V3_TILING_KEY_H
-#define QUANT_BATCH_MATMUL_V3_TILING_KEY_H
+#ifndef MC2_QUANT_BATCH_MATMUL_V3_TILING_KEY_H
+#define MC2_QUANT_BATCH_MATMUL_V3_TILING_KEY_H
 
 #include "ascendc/host_api/tiling/template_argument.h"
 

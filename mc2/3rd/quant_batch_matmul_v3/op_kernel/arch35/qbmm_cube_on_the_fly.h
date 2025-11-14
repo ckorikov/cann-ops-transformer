@@ -13,8 +13,8 @@
  * \brief
  */
 
-#ifndef QBMM_CUBE_ON_THE_FLY_H
-#define QBMM_CUBE_ON_THE_FLY_H
+#ifndef MC2_QBMM_CUBE_ON_THE_FLY_H
+#define MC2_QBMM_CUBE_ON_THE_FLY_H
 
 #include "../quant_batch_matmul_v3_base.h"
 #include "qbmm_asw_block.h"

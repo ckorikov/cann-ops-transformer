@@ -12,8 +12,8 @@
  * \file quant_batch_matmul_v4_compile_info.h
  * \brief
  */
-#ifndef __OP_HOST_QUANT_BATCH_MATMUL_V3_COMPILE_INFO_H__
-#define __OP_HOST_QUANT_BATCH_MATMUL_V3_COMPILE_INFO_H__
+#ifndef MC2_OP_HOST_QUANT_BATCH_MATMUL_V3_COMPILE_INFO_H__
+#define MC2_OP_HOST_QUANT_BATCH_MATMUL_V3_COMPILE_INFO_H__
 #include "tiling/platform/platform_ascendc.h"
 
 namespace optiling {

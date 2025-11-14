@@ -12,8 +12,8 @@
  * \file qbmm_cube_on_the_fly_al1_full_load.h
  * \brief
  */
-#ifndef QBMM_CUBE_ON_THE_FLY_AL1_FULL_LOAD_H
-#define QBMM_CUBE_ON_THE_FLY_AL1_FULL_LOAD_H
+#ifndef MC2_QBMM_CUBE_ON_THE_FLY_AL1_FULL_LOAD_H
+#define MC2_QBMM_CUBE_ON_THE_FLY_AL1_FULL_LOAD_H
 
 #include "qbmm_cube_on_the_fly.h"
 #include "qbmm_asw_block.h"

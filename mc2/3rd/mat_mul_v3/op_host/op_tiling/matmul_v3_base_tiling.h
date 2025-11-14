@@ -20,7 +20,7 @@
 #include "matmul_v3_compile_info.h"
 #include "tiling_base/tiling_base.h"
 #include "matmul_v3_tuning.h"
-#include "op_cache_tiling.h"
+#include "ops_legacy/op_tiling/op_cache_tiling.h"
 namespace optiling {
 namespace mc2_matmul_v3 {
 class Mc2MatmulV3BaseTiling : public Ops::Transformer::OpTiling::TilingBaseClass {

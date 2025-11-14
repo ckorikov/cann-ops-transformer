@@ -13,8 +13,8 @@
  * \brief
  */
 
-#ifndef QBMM_MIX_PERBLOCK_H
-#define QBMM_MIX_PERBLOCK_H
+#ifndef MC2_QBMM_MIX_PERBLOCK_H
+#define MC2_QBMM_MIX_PERBLOCK_H
 
 #include "qbmm_api_utils.h"
 #include "qbmm_perblock_api_utils.h"

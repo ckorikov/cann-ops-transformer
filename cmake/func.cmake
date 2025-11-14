@@ -345,6 +345,7 @@ function(add_ops_src_copy)
     endif ()
 
     set(MC2_OPS_LIST "matmul_reduce_scatter;"
+        "matmul_reduce_scatter_v2;"
         "grouped_mat_mul_allto_allv;"
         "grouped_mat_mul_all_reduce;"
         "batch_mat_mul_reduce_scatter_allto_all;"

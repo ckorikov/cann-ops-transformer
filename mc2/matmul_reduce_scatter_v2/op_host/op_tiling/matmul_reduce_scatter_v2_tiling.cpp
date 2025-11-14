@@ -1,0 +1,183 @@
+/**
+ * This program is free software, you can redistribute it and/or modify.
+ * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+ * This file is a part of the CANN Open Software.
+ * Licensed under CANN Open Software License Agreement Version 2.0 (the "License").
+ * Please refer to the License for details. You may not use this file except in compliance with the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
+ */
+
+/* !
+ * \file matmul_reduce_scatter_v2_tiling.cpp
+ * \brief
+ */
+#include <queue>
+#include <dlfcn.h>
+#include <fcntl.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <cmath>
+#include <cstdint>
+#include <vector>
+
+#include "mc2_hcom_topo_info.h"
+#include "mc2_log.h"
+#include "tiling/matmul_formulaic_tiling.h"
+#include "graph/utils/type_utils.h"
+#include "register/op_def_registry.h"
+#include "tiling/mc2_tiling_utils.h"
+#include "tiling/new_mc2_tiling_utils.h"
+#include "matmul_reduce_scatter_v2_tiling.h"
+
+using namespace AscendC;
+using namespace ge;
+using namespace Mc2Log;
+using namespace Mc2Tiling;
+
+namespace optiling {
+constexpr uint32_t X1SCALE_INDEX = 3;
+constexpr uint32_t X2SCALE_INDEX = 4;
+// 新功能从这里开始
+bool MatmulReduceScatterV2Tiling::IsCapable()
+{
+    if ((socVersion_ == platform_ascendc::SocVersion::ASCEND910_95) &&
+        ((args_.geAType == ge::DT_BF16) || (args_.geAType == ge::DT_FLOAT16))) {
+        OP_LOGI(opName_, "start with MatmulReduceScatterV2Tiling tiling.");
+        return true;
+    }
+
+    OP_LOGI(opName_, "skip MatmulReduceScatterV2Tiling tiling when inutDatatype is not fp16 or bf16.");
+    return false;
+}
+
+void MatmulReduceScatterV2Tiling::PrintAllTilingData()
+{
+    if (matmulReduceScatterV2TilingData_->param.rankID == 0) {
+        PrintRCSTilingData(context_->GetNodeName(), matmulReduceScatterV2TilingData_->param);
+        PrintMc2MsgData(context_->GetNodeName(), matmulReduceScatterV2TilingData_->msg);
+        OP_LOGD(opName_, "MutableMC2MmV3TileTilingData matmulTiling");
+        PrintMMV3TilingData(context_->GetNodeName(), matmulReduceScatterV2TilingData_->mC2Mmv3TileTilingData);
+        if (matmulReduceScatterV2TilingData_->param.tailM) {
+            OP_LOGD(opName_, "MutableMC2MmV3TileTilingData matmulTiling");
+            PrintMMV3TilingData(context_->GetNodeName(), matmulReduceScatterV2TilingData_->mC2Mmv3TailTilingData);
+        }
+    }
+}
+
+ge::graphStatus MatmulReduceScatterV2Tiling::CheckInput()
+{
+    auto x1ScaleShape = context_->GetOptionalInputShape(X1SCALE_INDEX);
+    OP_TILING_CHECK(x1ScaleShape != nullptr, CUBE_INNER_ERR_REPORT(opName_,
+                    "x1scale should be nullptr when x1 and x2 dtype is fp16 or bf16"),
+                    return ge::GRAPH_FAILED);
+    auto x2ScaleShape = context_->GetOptionalInputShape(X2SCALE_INDEX);
+    OP_TILING_CHECK(x2ScaleShape != nullptr, CUBE_INNER_ERR_REPORT(opName_,
+                    "x2scale should be nullptr when x1 and x2 dtype is fp16 or bf16"),
+                    return ge::GRAPH_FAILED);
+    return ge::GRAPH_SUCCESS;
+}
+
+void MatmulReduceScatterV2Tiling::SetMc2Hcomm(Mc2Tiling::RCSTiling &rcsCfg)
+{
+    matmulReduceScatterV2TilingData_->hcommCfg.opType = (
+        static_cast<uint32_t>(mc2tiling::AicpuComType::HCCL_CMD_REDUCE_SCATTER));
+    matmulReduceScatterV2TilingData_->hcommCfg.srcDataType = (
+        static_cast<uint32_t>(mc2tiling::ConvertGeTypeToHcclType(opName_, args_.geAType)));
+    matmulReduceScatterV2TilingData_->hcommCfg.dstDataType = (
+        static_cast<uint32_t>(mc2tiling::ConvertGeTypeToHcclType(opName_, args_.geAType)));
+    matmulReduceScatterV2TilingData_->version = mc2tiling::COMM_VERSION3;
+    matmulReduceScatterV2TilingData_->hcommCnt = static_cast<uint32_t>(1);
+    
+    const uint32_t opType = static_cast<uint32_t>(mc2tiling::AicpuComType::HCCL_CMD_REDUCE_SCATTER);
+    int index = 0;
+    auto group = context_->GetAttrs()->GetAttrPointer<char>(index++);
+    const std::string rsConfig = "ReduceScatter=level0:fullmesh";
+    AscendC::Mc2CcTilingConfig mc2CcTilingConfig(group, opType, rsConfig, 
+                                                matmulReduceScatterV2TilingData_->hcommCfg.reduceType,
+                                                matmulReduceScatterV2TilingData_->hcommCfg.dstDataType, 
+                                                matmulReduceScatterV2TilingData_->hcommCfg.srcDataType);
+    mc2CcTilingConfig.GetTiling(matmulReduceScatterV2TilingData_->mc2InitTiling);
+    mc2CcTilingConfig.GetTiling(matmulReduceScatterV2TilingData_->mc2CcTiling);
+}
+
+ge::graphStatus MatmulReduceScatterV2Tiling::DoMatmulV3Tiling(Mc2MatmulHelper::Mc2MatmulTilingCfg &tilingCfg, Mc2MMRegisterCfg &registerCfg,
+                                                              Mc2Tiling::MC2MatmulV3TilingData &tilingData)
+{
+    tilingCfg.SetRankDim(args_.rankDim);
+    OP_LOGD(opName_, "execte DoMatmulV3Tiling!");
+    tilingCfg.SetMatMulV3TilingData(tilingData);
+    OP_TILING_CHECK(Mc2MMTilingRegistry::GetInstance().DoTilingImpl(context_, tilingCfg, registerCfg) != ge::GRAPH_SUCCESS,
+                    VECTOR_INNER_ERR_REPORT_TILING(opName_, "do tiling failed"), return ge::GRAPH_FAILED);
+    return ge::GRAPH_SUCCESS;
+}
+
+ge::graphStatus MatmulReduceScatterV2Tiling::DoAllMatmulTiling()
+{
+    OP_LOGD(opName_, "excute DoAllMatmulTiling!");
+    // 获取芯片平台信息
+    auto platformInfo = context_->GetPlatformInfo();
+    OP_TILING_CHECK(platformInfo == nullptr, VECTOR_INNER_ERR_REPORT_TILING(opName_, "get platform info failed"),
+                    return ge::GRAPH_FAILED);
+    // 获取compileInfo
+    OP_TILING_CHECK(mc2_matmul_v3_advanced::InitCompileInfo(platformInfo, &compileInfo_) != ge::GRAPH_SUCCESS,
+                    VECTOR_INNER_ERR_REPORT_TILING(opName_, "init compile info failed"), return ge::GRAPH_FAILED);
+
+    // 根据芯片型号获取策略模板
+    std::vector<int32_t> priorities;
+    OP_TILING_CHECK(mc2tiling::GetMatmulV3PriorityPolicy(socVersion_, priorities, opName_) != ge::GRAPH_SUCCESS,
+                    VECTOR_INNER_ERR_REPORT_TILING(opName_, "get mmv3 priority policy failed"),
+                    return ge::GRAPH_FAILED);
+    Mc2MMRegisterCfg registerCfg {"Mc2MatMulV3", socVersion_, priorities};
+    mc2tiling::NewUpdateMatmulV3Args(mmV3Args_, args_, opName_);
+
+    // 获取tileTiling
+    mmV3Args_.mValue = tileMValue_ * args_.rankDim;
+    OP_LOGD(opName_, "Do Mc2MatMulV3 tile tiling!");
+    Mc2MatmulHelper::Mc2MatmulTilingCfg tileTilingCfg(reinterpret_cast<const void*>(&compileInfo_),
+                                     reinterpret_cast<const void*>(&mmV3Args_), tileMValue_);
+    GE_ASSERT_GRAPH_SUCCESS(DoMatmulV3Tiling(tileTilingCfg, registerCfg, MutableMC2MmV3TileTilingData()));
+    if (tailMValue_ != 0UL) {
+        mmV3Args_.mValue = tailMValue_ * args_.rankDim;
+        OP_LOGD(opName_, "Do Mc2MatMulV3 tail tiling!");
+        Mc2MatmulHelper::Mc2MatmulTilingCfg tailTilingCfg(reinterpret_cast<const void*>(&compileInfo_),
+                                         reinterpret_cast<const void*>(&mmV3Args_), tailMValue_);
+        GE_ASSERT_GRAPH_SUCCESS(DoMatmulV3Tiling(tileTilingCfg, registerCfg, MutableMC2MmV3TailTilingData()));
+    }
+    return ge::GRAPH_SUCCESS;
+}
+
+ge::graphStatus MatmulReduceScatterV2Tiling::DoOpTiling()
+{
+    GE_ASSERT_GRAPH_SUCCESS(CheckInput());
+    SetMc2Hcomm(matmulReduceScatterV2TilingData_->param);
+    SetRcsTilingData(matmulReduceScatterV2TilingData_->param);
+    DoSplitMTiling(matmulReduceScatterV2TilingData_->param);
+    GE_ASSERT_GRAPH_SUCCESS(DoAllMatmulTiling());
+    SetTilingResult(matmulReduceScatterV2TilingData_->param, MutableMC2MmV3TileTilingData().matmulTiling,
+                    MutableMC2MmV3TailTilingData().matmulTiling, matmulReduceScatterV2TilingData_->msg);
+    return ge::GRAPH_SUCCESS;
+}
+
+ge::graphStatus MatmulReduceScatterV2Tiling::PostTiling()
+{
+    auto rawTilingDataPtr = context_->GetRawTilingData();
+    OP_TILING_CHECK((rawTilingDataPtr == nullptr),
+                    CUBE_INNER_ERR_REPORT(opName_, "rawTilingDataPtr is nullptr"),
+                    return ge::GRAPH_FAILED);
+    OP_LOGD(opName_, "final tiling data size: %zu and context capacity size: %zu ",
+        sizeof(MatmulReduceScatterV2TilingData), rawTilingDataPtr->GetCapacity());
+    rawTilingDataPtr->SetDataSize(sizeof(MatmulReduceScatterV2TilingData));
+
+    OP_TILING_CHECK(sizeof(MatmulReduceScatterV2TilingData) % sizeof(uint64_t) != 0,
+        VECTOR_INNER_ERR_REPORT_TILING(opName_, "tiling data size[%zu] not aligned to 8",
+        sizeof(MatmulReduceScatterV2TilingData)),
+        return ge::GRAPH_FAILED);
+    PrintAllTilingData();
+    context_->SetBlockDim(args_.aicCoreNum);
+    return ge::GRAPH_SUCCESS;
+}
+}

@@ -26,6 +26,7 @@
 
 namespace optiling {
 using namespace mc2_matmul_v3_advanced;
+using namespace Mc2Tiling;
 
 BEGIN_TILING_DATA_DEF(MatmulAllReduce910TilingDataA5)
     TILING_DATA_FIELD_DEF(uint32_t, version);
@@ -50,7 +51,7 @@ public:
 
 protected:
     ge::graphStatus DoMatmulV3Tiling(Mc2MatmulHelper::NewMc2MatmulTilingCfg &tilingCfg, Mc2MMRegisterCfg &registerCfg,
-                                     MC2MatmulV3TilingData &tilingData);
+                                     optiling::MC2MatmulV3TilingData &tilingData);
     bool IsCapable() override;
 
     ge::graphStatus DoOpTiling() override;
@@ -77,12 +78,12 @@ protected:
         return matmulAllReduce910TilingData_.mC2Mmv3TailTilingData.matmulTiling;
     }
 
-    inline MC2MatmulV3TilingData &MutableMC2MmV3TileTilingData()
+    inline optiling::MC2MatmulV3TilingData &MutableMC2MmV3TileTilingData()
     {
         return matmulAllReduce910TilingData_.mC2Mmv3TileTilingData;
     }
 
-    inline MC2MatmulV3TilingData &MutableMC2MmV3TailTilingData()
+    inline optiling::MC2MatmulV3TilingData &MutableMC2MmV3TailTilingData()
     {
         return matmulAllReduce910TilingData_.mC2Mmv3TailTilingData;
     }

@@ -12,8 +12,8 @@
  * \file quant_batch_matmul_v3_update.h
  * \brief
  */
-#ifndef QUANT_BATCH_MATMUL_V3_UPDATE_H
-#define QUANT_BATCH_MATMUL_V3_UPDATE_H
+#ifndef MC2_QUANT_BATCH_MATMUL_V3_UPDATE_H
+#define MC2_QUANT_BATCH_MATMUL_V3_UPDATE_H
 
 #include "quant_batch_matmul_v3_base.h"
 

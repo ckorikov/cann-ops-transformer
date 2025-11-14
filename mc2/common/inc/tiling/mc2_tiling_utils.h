@@ -75,6 +75,7 @@ enum class Mc2QuantMode {
   DEFAULT = 0,
   PERTENSOR_MODE,
   PERBLOCK_MODE,
+  MXFP_MODE,
   INVALID_MODE,
 };
 
@@ -96,6 +97,9 @@ struct KFCNotify {
 constexpr std::initializer_list<ge::DataType> FP8DTYPE_SUPPORT_LIST = {
     ge::DataType::DT_FLOAT8_E4M3FN, ge::DataType::DT_FLOAT8_E5M2,
     ge::DataType::DT_HIFLOAT8};
+
+constexpr std::initializer_list<ge::DataType> MXFP8DTYPE_SUPPORT_LIST = { ge::DataType::DT_FLOAT8_E4M3FN,
+    ge::DataType::DT_FLOAT8_E5M2 };
 
 matmul_tiling::DataType ConvertGeTypeToMmType(const std::string &opName,
                                               ge::DataType type);

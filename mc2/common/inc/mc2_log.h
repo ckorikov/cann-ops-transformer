@@ -27,6 +27,7 @@
 #include "log/log.h"
 #include "securec.h"
 #include "tiling/mc2_tiling_struct.h"
+#include "kernel/mc2_tiling_struct.h"
 #include "tiling/tiling_api.h"
 
 template <typename T>
@@ -45,16 +46,18 @@ std::string ConcatString(T arg, Ts... arg_left) {
 }
 
 namespace Mc2Log {
-void PrintMMV3TilingData(const std::string &opName,
-                         optiling::MC2MatmulV3TilingData &tiling);
-void PrintTCubeTilingData(const std::string &opName,
-                          optiling::TCubeTiling &tiling);
-void PrintRCSTilingData(const std::string &opName,
-                        optiling::RCSTiling &rcsTiling);
-void PrintMc2MsgData(const std::string &opName, optiling::Mc2Msg &msg);
-void PrintTileL2TilingData(const std::string &opName,
-                           optiling::TileL2Tiling &tileL2Tiling);
 void PrintMMV3TilingData(const std::string &opName, optiling::MC2MatmulV3TilingData &tiling);
+void PrintTCubeTilingData(const std::string &opName, optiling::TCubeTiling &tiling);
+void PrintRCSTilingData(const std::string &opName, optiling::RCSTiling &rcsTiling);
+void PrintMc2MsgData(const std::string &opName, optiling::Mc2Msg &msg);
+void PrintTileL2TilingData(const std::string &opName, optiling::TileL2Tiling &tileL2Tiling);
+void PrintMMV3TilingData(const std::string &opName, optiling::MC2MatmulV3TilingData &tiling);
+
+void PrintMMV3TilingData(const std::string &opName, Mc2Tiling::MC2MatmulV3TilingData &tiling);
+void PrintRCSTilingData(const std::string &opName, Mc2Tiling::RCSTiling& rcsTiling);
+void PrintMc2MsgData(const std::string &opName, Mc2Tiling::Mc2Msg& msg);
+void PrintTileL2TilingData(const std::string &opName, Mc2Tiling::TileL2Tiling& tileL2Tiling);
+void PrintTCubeTilingData(const std::string &opName, ::TCubeTiling& tiling);
 }  // namespace Mc2Log
 
 struct ErrorResult {

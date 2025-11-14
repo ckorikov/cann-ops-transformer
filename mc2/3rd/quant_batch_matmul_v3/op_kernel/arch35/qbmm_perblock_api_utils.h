@@ -12,8 +12,8 @@
  * \brief
  */
 
-#ifndef QBMM_PERBLOCK_API_UTILS_H
-#define QBMM_PERBLOCK_API_UTILS_H
+#ifndef MC2_QBMM_PERBLOCK_API_UTILS_H
+#define MC2_QBMM_PERBLOCK_API_UTILS_H
 
 #include "qbmm_asw_block.h"
 #include "../quant_batch_matmul_v3_base.h"

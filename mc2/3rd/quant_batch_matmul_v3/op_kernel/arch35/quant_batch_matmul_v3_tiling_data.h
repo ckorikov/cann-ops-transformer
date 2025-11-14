@@ -11,8 +11,8 @@
  * \file quant_batch_matmul_v3_tiling_data.h
  * \brief
  */
-#ifndef QUANT_BATCH_MATMUL_V3_TILING_DATA_H
-#define QUANT_BATCH_MATMUL_V3_TILING_DATA_H
+#ifndef MC2_QUANT_BATCH_MATMUL_V3_TILING_DATA_H
+#define MC2_QUANT_BATCH_MATMUL_V3_TILING_DATA_H
 #include "kernel_tiling/kernel_tiling.h"
 
 #ifndef __CCE_AICORE__

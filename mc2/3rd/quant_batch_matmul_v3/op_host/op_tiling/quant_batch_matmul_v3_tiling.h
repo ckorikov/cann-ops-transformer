@@ -16,8 +16,8 @@
  * \brief
  */
 
-#ifndef QUANT_BATCH_MATMUL_V3_TILING_H
-#define QUANT_BATCH_MATMUL_V3_TILING_H
+#ifndef MC2_QUANT_BATCH_MATMUL_V3_TILING_H
+#define MC2_QUANT_BATCH_MATMUL_V3_TILING_H
 
 #include "quant_batch_matmul_v3_tiling_base.h"
 

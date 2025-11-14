@@ -385,6 +385,8 @@ macro(add_mc2_modules_sources)
       ${SOURCE_DIR}/op_tiling/*.cpp
       ${SOURCE_DIR}/../op_graph/fallback_*.cpp
       ${SOURCE_DIR}/../graph_plugin/fallback_*.cpp
+      ${SOURCE_DIR}/../../common/src/matmul_formulaic_tiling.cpp
+      ${SOURCE_DIR}/../../common/src/mc2_hcom_topo_info.cpp
       ${SOURCE_DIR}/../../common/src/mc2_matmul_tiling_cfg.cpp)
   if (OPTILING_SRCS)
     add_tiling_modules()

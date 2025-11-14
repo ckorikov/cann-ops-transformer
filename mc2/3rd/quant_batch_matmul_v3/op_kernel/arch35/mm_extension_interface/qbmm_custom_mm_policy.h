@@ -12,8 +12,8 @@
  * \file qbmm_custom_mm_policy.h
  * \brief
  */
-#ifndef QBMM_CUSTOM_MM_POLICY_H
-#define QBMM_CUSTOM_MM_POLICY_H
+#ifndef MC2_QBMM_CUSTOM_MM_POLICY_H
+#define MC2_QBMM_CUSTOM_MM_POLICY_H
 
 #include "lib/matmul_intf.h"
 #include "qbmm_copy_cube_out.h"

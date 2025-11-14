@@ -17,9 +17,9 @@
 
 #pragma once
 #include "graph/ge_error_codes.h"
-#include "../kernel/all_gather_matmul_tiling.h"
 #include "register/tilingdata_base.h"
 #include "mc2_tiling_struct.h"
+#include "../kernel/mc2_tiling_struct.h"
 #include "tiling/tiling_api.h"
  
 namespace mc2tiling {
@@ -278,7 +278,7 @@ class MatmulFormulaicTiling {
     socInfo_.socVersion = version;
   }
   ge::graphStatus GetCubeTiling(TilingArgs &args, ::TCubeTiling &cubeTiling,
-                                ::TileL2Tiling &tileL2Tiling);
+                                Mc2Tiling::TileL2Tiling &tileL2Tiling);
   ge::graphStatus GetCubeTiling(TilingArgs &args,
                                 optiling::TCubeTiling &cubeTiling,
                                 optiling::TileL2Tiling &tileL2Tiling);

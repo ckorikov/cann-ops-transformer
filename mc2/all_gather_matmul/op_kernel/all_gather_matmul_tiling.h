@@ -18,7 +18,8 @@
 
 #pragma once
 #include "kernel_tiling/kernel_tiling.h"
-#include "mc2_tiling_struct.h"
+#include "../common/inc/kernel/mc2_tiling_struct.h"
+using namespace Mc2Tiling;
 
 struct AllGatherSoc {
     uint32_t commAlg;

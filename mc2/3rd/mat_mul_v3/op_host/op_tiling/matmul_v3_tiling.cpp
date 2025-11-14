@@ -16,7 +16,7 @@
 
 #include <type_traits>
 
-#include "op_cache_tiling.h"
+#include "ops_legacy/op_tiling/op_cache_tiling.h"
 #include "arch35/matmul_v3_compile_info_advanced.h"
 #include "arch35/matmul_v3_tiling_advanced.h"
 #include "matmul_v3_base_tiling.h"

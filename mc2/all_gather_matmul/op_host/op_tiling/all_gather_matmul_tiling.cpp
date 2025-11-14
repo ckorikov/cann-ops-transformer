@@ -67,7 +67,7 @@ static void PrintTilingData(::TCubeTiling& tiling)
     OP_LOGD("AllGatherMatmul", " tiling.singleBatchN %d", tiling.singleBatchN);
 }
 
-static void PrintTilingData(::RCSTiling& rcsTiling)
+static void PrintTilingData(Mc2Tiling::RCSTiling& rcsTiling)
 {
     OP_LOGD("AllGatherMatmul", " rcsTiling.commtype %d", rcsTiling.commtype);
     OP_LOGD("AllGatherMatmul", " rcsTiling.subtype %d", rcsTiling.subtype);
@@ -87,7 +87,7 @@ static void PrintTilingData(::RCSTiling& rcsTiling)
     OP_LOGD("AllGatherMatmul", " rcsTiling.gatherLen %lu", rcsTiling.gatherLen);
 }
 
-static void PrintTilingData(::TileL2Tiling& tileL2Tiling)
+static void PrintTilingData(Mc2Tiling::TileL2Tiling& tileL2Tiling)
 {
     OP_LOGD("AllGatherMatmul", " tileL2Tiling.mL2TileCnt %d", tileL2Tiling.mL2TileCnt);
     OP_LOGD("AllGatherMatmul", " tileL2Tiling.nL2TileCnt %d", tileL2Tiling.nL2TileCnt);
@@ -103,7 +103,7 @@ static void PrintTilingData(::TileL2Tiling& tileL2Tiling)
 
 namespace optiling {
 
-static ge::graphStatus CalcMatmulTiling(mc2tiling::TilingArgs& args, ::TCubeTiling& cubeTiling, ::TileL2Tiling &l2Tiling);
+static ge::graphStatus CalcMatmulTiling(mc2tiling::TilingArgs& args, ::TCubeTiling& cubeTiling, Mc2Tiling::TileL2Tiling &l2Tiling);
 
 static ge::graphStatus MC2SetWorkspace(gert::TilingContext* context, AllGatherMatmulTilingData& tilingData, mc2tiling::TilingArgs& args);
 

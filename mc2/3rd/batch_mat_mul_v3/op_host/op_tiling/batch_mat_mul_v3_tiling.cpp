@@ -25,7 +25,7 @@
 #include "tiling_base/tiling_templates_registry.h"
 #include "register/op_def_registry.h"
 #include "platform/platform_infos_def.h"
-#include "op_cache_tiling.h"
+#include "ops_legacy/op_tiling/op_cache_tiling.h"
 
 using namespace optiling::Mc2batch_mat_mul_v3;
 using namespace optiling::mc2_matmul_v3;
