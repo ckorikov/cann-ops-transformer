@@ -2141,12 +2141,12 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
     uint64_t perChannelQuantOffset = n2Idx * this->constInfo.dSizeV * this->constInfo.gSize;
     // 融合处理: 尾块处理 + 非尾块处理
     for (uint32_t i = 0; i <= loopCount - 1; i++) {
-        uint32_t gSplitSizeTail = gSplitSize;
+        uint32_t gSplitSizeTail = gSplitSize; // 初始化为非尾块
         if (tailSplitSize > 0 && i == (loopCount - 1)) {
-            gSplitSizeTail = tailSplitSize;
+            gSplitSizeTail = tailSplitSize;// 判断是否是尾块
         }
         uint32_t startRow = i * gSplitSize;
-        CopyLseIn(bIdx, n2Idx, startRow, gSplitSize);
+        CopyLseIn(bIdx, n2Idx, startRow, gSplitSizeTail);
         LocalTensor<T> softmaxMaxLocal = softmaxMaxInputQue.DeQue<T>();
         // 内存复用，同时作为输出 scale 值
         LocalTensor<T> softmaxSumLocal = softmaxSumInputQue.DeQue<T>();
