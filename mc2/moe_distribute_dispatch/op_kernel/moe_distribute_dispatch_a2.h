@@ -624,15 +624,16 @@ __aicore__ inline void MoeDistributeDispatchA2<TemplateMC2TypeA2Func>::WaitDispa
             DataCopyPad(dataFlagLocal, windowInstatusTensor_[dataFlagOffset], copyFlagParams, padParams);
             SyncFunc<AscendC::HardEvent::MTE2_S>();
             int32_t dataFlag = dataFlagLocal(0);
-            if (dataFlag == FLAG_VALUE) {
-                recvFlagNum++;
-                windowInstatusTensor_(dataFlagOffset) = 0;
-                // 重要：要下DCCI保证清零写进去，避免下一次判断时又判断生效，重复累计recvFlagNum
-                DataCacheCleanAndInvalid<int32_t, AscendC::CacheLine::SINGLE_CACHE_LINE, AscendC::DcciDst::CACHELINE_OUT>(windowInstatusTensor_[dataFlagOffset]);
-                if (unlikely(needPerformanceInfo_)) {
-                    auto srcRankId = rankId;
-                    RecordRankCommDuration(performanceInfoU32Tensor_, srcRankId, startTime);
-                }
+            if (dataFlag != FLAG_VALUE) {
+                continue;
+            }
+            recvFlagNum++;
+            windowInstatusTensor_(dataFlagOffset) = 0;
+            // 重要：要下DCCI保证清零写进去，避免下一次判断时又判断生效，重复累计recvFlagNum
+            DataCacheCleanAndInvalid<int32_t, AscendC::CacheLine::SINGLE_CACHE_LINE, AscendC::DcciDst::CACHELINE_OUT>(windowInstatusTensor_[dataFlagOffset]);
+            if (unlikely(needPerformanceInfo_)) {
+                auto srcRankId = rankId;
+                RecordRankCommDuration(performanceInfoU32Tensor_, srcRankId, startTime);
             }
         }
     }

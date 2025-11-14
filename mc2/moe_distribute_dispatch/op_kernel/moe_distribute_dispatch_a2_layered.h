@@ -1085,7 +1085,6 @@ __aicore__ inline uint32_t MoeDistributeDispatchA2Layered<TemplateMC2TypeA2layer
 template <TemplateMC2TypeA2layeredClass>
 __aicore__ inline void MoeDistributeDispatchA2Layered<TemplateMC2TypeA2layeredFunc>::Win2Ipc()
 {
-    int32_t aivMaxTime = 0;
     int64_t startTime = GetCurrentTimestampUs();
     uint32_t coresPerServer = (aivNum_ - serverNum - 1) / serverNum;
     uint32_t logicAivId = aivId_ - serverNum - 1;
@@ -1173,8 +1172,6 @@ __aicore__ inline void MoeDistributeDispatchA2Layered<TemplateMC2TypeA2layeredFu
         // 多个核处理同一个server只有第一个核记录时间，其他核不记录保持0，不影响最后的atomicAdd
         if (unlikely(needPerformanceInfo_) && (curServerId != serverId_) && (logicAivId % coresPerServer == 0)) { 
             auto srcRankId = rankId_ % SERVER_RANK_SIZE + curServerId * SERVER_RANK_SIZE;
-            int32_t cmpaivMaxTime = performanceInfoU32Tensor_.GetValue(srcRankId * sizeof(int64_t) / sizeof(int32_t));
-            aivMaxTime = duration > cmpaivMaxTime ? duration : cmpaivMaxTime;
             RecordRankCommDuration(performanceInfoU32Tensor_, srcRankId, startTime);
         }
         tokenIdx += 1;
