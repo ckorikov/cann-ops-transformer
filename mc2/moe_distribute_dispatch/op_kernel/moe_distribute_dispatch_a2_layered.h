@@ -107,7 +107,7 @@ private:
     GlobalTensor<uint32_t> expertToServerGlobalTensor_;
     GlobalTensor<uint64_t> readStatusTensor_;
     GlobalTensor<uint64_t> tokenAddrFlagStructGlobalU64Tensor_;
-    GlobalTensor<int32_t> performanceInfoU32GMTensor_;
+    GlobalTensor<int32_t> performanceInfoI32GMTensor_;
 
     LocalTensor<int32_t> expertCountTensor_;
     LocalTensor<int16_t> expertIdsI16Tensor_;
@@ -117,7 +117,7 @@ private:
     LocalTensor<uint32_t> expertToServerIdxTensor_;
     LocalTensor<uint64_t> ubLocal;
     LocalTensor<uint32_t> ubLocalHead;
-    LocalTensor<int32_t> performanceInfoU32Tensor_;
+    LocalTensor<int32_t> performanceInfoI32Tensor_;
 
     TBuf<> statusBuf_;
     TBuf<> performanceInfoBuf_;
@@ -322,10 +322,10 @@ __aicore__ inline void MoeDistributeDispatchA2Layered<TemplateMC2TypeA2layeredFu
     needPerformanceInfo_ = performanceInfo != nullptr;
     if (unlikely(needPerformanceInfo_)) {
         performanceInfoSize_ = worldSize_;
-        performanceInfoU32GMTensor_.SetGlobalBuffer((__gm__ int32_t*)performanceInfo);
+        performanceInfoI32GMTensor_.SetGlobalBuffer((__gm__ int32_t*)performanceInfo);
         tpipe_->InitBuffer(performanceInfoBuf_, performanceInfoSize_ * sizeof(int64_t));
-        performanceInfoU32Tensor_ = performanceInfoBuf_.Get<int32_t>();
-        Duplicate<int32_t>(performanceInfoU32Tensor_, 0, performanceInfoSize_ * sizeof(int64_t) / sizeof(int32_t));
+        performanceInfoI32Tensor_ = performanceInfoBuf_.Get<int32_t>();
+        Duplicate<int32_t>(performanceInfoI32Tensor_, 0, performanceInfoSize_ * sizeof(int64_t) / sizeof(int32_t));
     }
 
     // The maximum value of expertIdsCnt_ is 256 * 16, so there is no integer wrap.
@@ -987,7 +987,7 @@ __aicore__ inline void MoeDistributeDispatchA2Layered<TemplateMC2TypeA2layeredFu
     if (unlikely(needPerformanceInfo_ && (destRankIdx != localRankId))) {
         auto curServerId = rankId_ / SERVER_RANK_SIZE;
         auto srcRankId = curServerId * SERVER_RANK_SIZE + destRankIdx;
-        RecordRankCommDuration(performanceInfoU32Tensor_, srcRankId, startTime);
+        RecordRankCommDuration(performanceInfoI32Tensor_, srcRankId, startTime);
     }
 }
 
@@ -1168,7 +1168,7 @@ __aicore__ inline void MoeDistributeDispatchA2Layered<TemplateMC2TypeA2layeredFu
         if (unlikely(needPerformanceInfo_ && (logicAivId % coresPerServer == 0))) { 
             auto curServerId = logicAivId / coresPerServer;
             auto srcRankId = rankId_ % SERVER_RANK_SIZE + curServerId * SERVER_RANK_SIZE;
-            RecordRankCommDuration(performanceInfoU32Tensor_, srcRankId, startTime);
+            RecordRankCommDuration(performanceInfoI32Tensor_, srcRankId, startTime);
         }
         tokenIdx += 1;
         justExpInfo = (tokenIdx % coresPerServer != logicAivId % coresPerServer);
@@ -1385,7 +1385,7 @@ __aicore__ inline void MoeDistributeDispatchA2Layered<TemplateMC2TypeA2layeredFu
 {
     if (unlikely(needPerformanceInfo_)) {
         AscendC::SetAtomicAdd<int32_t>();
-        AscendC::DataCopy(performanceInfoU32GMTensor_, performanceInfoU32Tensor_, performanceInfoSize_ * sizeof(int64_t) / sizeof(int32_t));
+        AscendC::DataCopy(performanceInfoI32GMTensor_, performanceInfoI32Tensor_, performanceInfoSize_ * sizeof(int64_t) / sizeof(int32_t));
         AscendC::SetAtomicNone();
     }
 }

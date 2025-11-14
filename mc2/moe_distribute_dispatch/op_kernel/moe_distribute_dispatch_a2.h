@@ -88,7 +88,7 @@ private:
     GlobalTensor<int32_t> sendStatusTensor_;
     GlobalTensor<uint32_t> bufferChosenGlobal_;
     GlobalTensor<int8_t> xActiveMaskGMTensor_;
-    GlobalTensor<int32_t> performanceInfoU32GMTensor_;
+    GlobalTensor<int32_t> performanceInfoI32GMTensor_;
 
     LocalTensor<ExpandXOutType> xTmpTensor_;
     LocalTensor<XType> xInTensor_;
@@ -109,7 +109,7 @@ private:
     LocalTensor<uint32_t> batchWriteU32Tensor_;
     LocalTensor<int32_t> expertTokenNumsW64Tensor_;
     LocalTensor<uint32_t> expertCumsumTensor_;
-    LocalTensor<int32_t> performanceInfoU32Tensor_;
+    LocalTensor<int32_t> performanceInfoI32Tensor_;
 
     TBuf<> dynamicScalesBuf_;
     TBuf<> expertCountBuf_;
@@ -246,10 +246,10 @@ __aicore__ inline void MoeDistributeDispatchA2<TemplateMC2TypeA2Func>::Init(
     needPerformanceInfo_ = performanceInfo != nullptr;
     if (unlikely(needPerformanceInfo_)) {
         performanceInfoSize_ = worldSize_;
-        performanceInfoU32GMTensor_.SetGlobalBuffer((__gm__ int32_t*)performanceInfo);
+        performanceInfoI32GMTensor_.SetGlobalBuffer((__gm__ int32_t*)performanceInfo);
         tpipe_->InitBuffer(performanceInfoBuf_, performanceInfoSize_ * sizeof(int64_t));
-        performanceInfoU32Tensor_ = performanceInfoBuf_.Get<int32_t>();
-        Duplicate<int32_t>(performanceInfoU32Tensor_, 0, performanceInfoSize_ * sizeof(int64_t) / sizeof(int32_t));
+        performanceInfoI32Tensor_ = performanceInfoBuf_.Get<int32_t>();
+        Duplicate<int32_t>(performanceInfoI32Tensor_, 0, performanceInfoSize_ * sizeof(int64_t) / sizeof(int32_t));
     }
 
     tpipe_->InitBuffer(batchWriteInfoBuf_, worldSize_ * BW_ITEM_SIZE);
@@ -633,7 +633,7 @@ __aicore__ inline void MoeDistributeDispatchA2<TemplateMC2TypeA2Func>::WaitDispa
             DataCacheCleanAndInvalid<int32_t, AscendC::CacheLine::SINGLE_CACHE_LINE, AscendC::DcciDst::CACHELINE_OUT>(windowInstatusTensor_[dataFlagOffset]);
             if (unlikely(needPerformanceInfo_)) {
                 auto srcRankId = rankId;
-                RecordRankCommDuration(performanceInfoU32Tensor_, srcRankId, startTime);
+                RecordRankCommDuration(performanceInfoI32Tensor_, srcRankId, startTime);
             }
         }
     }
@@ -787,7 +787,7 @@ __aicore__ inline void MoeDistributeDispatchA2<TemplateMC2TypeA2Func>::CopyPerfo
 {
     if (unlikely(needPerformanceInfo_)) {
         AscendC::SetAtomicAdd<int32_t>();
-        AscendC::DataCopy(performanceInfoU32GMTensor_, performanceInfoU32Tensor_, performanceInfoSize_ * sizeof(int64_t) / sizeof(int32_t));
+        AscendC::DataCopy(performanceInfoI32GMTensor_, performanceInfoI32Tensor_, performanceInfoSize_ * sizeof(int64_t) / sizeof(int32_t));
         AscendC::SetAtomicNone();
     }
 }

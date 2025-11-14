@@ -130,7 +130,7 @@ private:
     GlobalTensor<uint32_t> bufferIdGlobal_;     // 用于存对端状态window的变量
     GlobalTensor<int32_t> statusSpaceGlobal_;   // win区状态位置拷入相关参数
     GlobalTensor<int32_t> readStateGlobal_;
-    GlobalTensor<int32_t> performanceInfoU32GMTensor_;
+    GlobalTensor<int32_t> performanceInfoI32GMTensor_;
 
     uint64_t shareAddreRank[8];
 
@@ -229,7 +229,7 @@ private:
     LocalTensor<int32_t> countReduceLocal_;
     LocalTensor<uint64_t> ubLocal;
     LocalTensor<uint32_t> ubLocalHead;
-    LocalTensor<int32_t> performanceInfoU32Tensor_;
+    LocalTensor<int32_t> performanceInfoI32Tensor_;
     // 低精度相关
     uint32_t repeatNum{0};
     uint32_t scaleNum;
@@ -435,10 +435,10 @@ __aicore__ inline void MoeDistributeCombineA2Layered<TemplateMC2TypeA2layeredFun
     needPerformanceInfo_ = performanceInfo != nullptr;
     if (unlikely(needPerformanceInfo_)) {
         performanceInfoSize_ = worldSize_;
-        performanceInfoU32GMTensor_.SetGlobalBuffer((__gm__ int32_t*)performanceInfo);
+        performanceInfoI32GMTensor_.SetGlobalBuffer((__gm__ int32_t*)performanceInfo);
         tpipe_->InitBuffer(performanceInfoBuf_, performanceInfoSize_ * sizeof(int64_t));
-        performanceInfoU32Tensor_ = performanceInfoBuf_.Get<int32_t>();
-        Duplicate<int32_t>(performanceInfoU32Tensor_, 0, performanceInfoSize_ * sizeof(int64_t) / sizeof(int32_t));
+        performanceInfoI32Tensor_ = performanceInfoBuf_.Get<int32_t>();
+        Duplicate<int32_t>(performanceInfoI32Tensor_, 0, performanceInfoSize_ * sizeof(int64_t) / sizeof(int32_t));
     }
 
     SplitCoreCal();
@@ -609,7 +609,7 @@ __aicore__ inline void MoeDistributeCombineA2Layered<TemplateMC2TypeA2layeredFun
         PipeBarrier<PIPE_ALL>();
         if (unlikely(needPerformanceInfo_)) {
 	        auto srcRankId = (rankId_ / SERVER_RANK_SIZE) * SERVER_RANK_SIZE + coreIdx_;
-            RecordRankCommDuration(performanceInfoU32Tensor_, srcRankId, startTime);
+            RecordRankCommDuration(performanceInfoI32Tensor_, srcRankId, startTime);
         }
     }
     SyncAll<true>();
@@ -929,7 +929,7 @@ __aicore__ inline void MoeDistributeCombineA2Layered<TemplateMC2TypeA2layeredFun
         }
         if (unlikely(needPerformanceInfo_)) {
             auto srcRankId = targetRank;
-            RecordRankCommDuration(performanceInfoU32Tensor_, srcRankId, startTime);
+            RecordRankCommDuration(performanceInfoI32Tensor_, srcRankId, startTime);
         }
     }
     PipeBarrier<PIPE_ALL>();
@@ -1148,7 +1148,7 @@ __aicore__ inline void MoeDistributeCombineA2Layered<TemplateMC2TypeA2layeredFun
     // copy local performance info to GMTensor
     if (unlikely(needPerformanceInfo_)) {
         AscendC::SetAtomicAdd<int32_t>();
-        AscendC::DataCopy(performanceInfoU32GMTensor_, performanceInfoU32Tensor_, performanceInfoSize_ * sizeof(int64_t) / sizeof(int32_t));
+        AscendC::DataCopy(performanceInfoI32GMTensor_, performanceInfoI32Tensor_, performanceInfoSize_ * sizeof(int64_t) / sizeof(int32_t));
         AscendC::SetAtomicNone();
     }
 }
