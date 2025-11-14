@@ -55,7 +55,6 @@ static ge::graphStatus AllGatherParamsCheck(const gert::TilingContext* context)
 // 设置hccl高阶API Tiling结构体
 static void InitHcclParam(AllGatherAddTilingData* tilingData, const char* group)
 {
-
     std::string algConfig = "AllGather=level0:fullmesh";
     Mc2CcTilingConfig mc2CcTilingConfig(group, HCCL_CMD_ALLGATHER, algConfig);
     mc2CcTilingConfig.GetTiling(tilingData->mc2InitTiling);
@@ -79,12 +78,11 @@ static ge::graphStatus AllGatherAddTilingFunc(gert::TilingContext *context) {
     auto dataType = context->GetInputTensor(1)->GetDataType();
     tilingData->commTurn = COMM_TURN;
     tilingData->tileNum = TILE_NUM;
-    tilingData->totalLength = context->GetInputTensor(1)->GetShapeSize() / sizeof(dataType); // 总长度是参与Add操作的数据个数
-    tilingData->blockLength = tilingData->totalLength / context->GetBlockDim(); // 每个核处理的数据个数
-    tilingData->tileLength = tilingData->totalLength / context->GetBlockDim() / tilingData->tileNum; // 每个分片处理的数据个数
+    tilingData->totalLength = context->GetInputTensor(1)->GetShapeSize(); // 总长度是参与Add操作的数据个数
+    tilingData->blockLength = tilingData->totalLength / context->GetBlockDim(); // 每个核需要计算的数据个数
+    tilingData->tileLength = tilingData->blockLength / tilingData->tileNum; // 每个核内每个数据块的数据个数
     tilingData->gatherTileLength = tilingData->totalLength / 2; // 待gather的数据个数
     
-
     // 设置workspaceSize gather out需要额外的临时内存，大小=input b
     size_t* currentWorkspace = context->GetWorkspaceSizes(1);
     OP_CHECK_NULL_WITH_CONTEXT(context,currentWorkspace);
