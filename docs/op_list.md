@@ -261,7 +261,7 @@
     <td>√</td>
     <td>×</td>
     <td>AI Core</td>
-    <td>融合GroupedMatmul 、dquant、swiglu和quant。</td>
+    <td>融合GroupedMatmul 、dequant、swiglu和quant。</td>
   </tr>
   <tr>
     <td>gmm</td>
