@@ -20,7 +20,11 @@
 #include "exe_graph/runtime/op_execute_context.h"
 #include "exe_graph/runtime/tensor.h"
 #include "register/op_impl_registry.h"
+#if __has_include("runtime/base.h")
 #include "runtime/base.h"
+#else
+#include "runtime/rt_external_base.h"
+#endif
 
 #ifdef __cplusplus
 extern "C" {

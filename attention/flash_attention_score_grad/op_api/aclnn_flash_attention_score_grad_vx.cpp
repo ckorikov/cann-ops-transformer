@@ -28,7 +28,11 @@
 #include "opdev/shape_utils.h"
 #include "opdev/tensor_view_utils.h"
 #include "opdev/fast_vector.h"
+#if __has_include("runtime/context.h")
 #include "runtime/context.h"
+#else
+#include "acl/acl_rt.h"
+#endif
 
 using namespace op;
 #ifdef __cplusplus

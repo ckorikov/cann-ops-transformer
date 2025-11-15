@@ -1,4 +1,4 @@
-#
+#!/bin/bash\n"
 # This program is free software, you can redistribute it and/or modify.
 # Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is a part of the CANN Open Software.
@@ -8,31 +8,10 @@
 # See LICENSE in the root of the software repository for the full text of the License.
 # ======================================================================================================================
 
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/build)
 
-file(GLOB_RECURSE OP_API_FILES "*.cpp")
+ascend_install_dir=$1
+gen_file_dir=$2
 
-add_library(opapi SHARED ${OP_API_FILES})
-
-target_compile_definitions(opapi PRIVATE
-    _GLIBCXX_USE_CXX11_ABI=0
-    LOG_CPP
-)
-
-target_include_directories(opapi PRIVATE
-    ${OPAPI_INCLUDE}
-    ${ASCEND_CANN_PACKAGE_PATH}/pkg_inc
-)
-
-if(ENABLE_TEST)
-    add_library(opapi_stub SHARED ${OP_API_FILES})
-
-    target_compile_definitions(opapi_stub PRIVATE
-        _GLIBCXX_USE_CXX11_ABI=0
-        LOG_CPP
-    )
-
-    target_include_directories(opapi_stub PRIVATE
-        ${OPAPI_INCLUDE}
-    )
-endif()
+# create version.info
+compiler_version=$(grep "Version" -w ${ascend_install_dir}/compiler/version.info | awk -F = '{print $2}')
+echo "custom_opp_compiler_version=${compiler_version}" > ${gen_file_dir}/version.info

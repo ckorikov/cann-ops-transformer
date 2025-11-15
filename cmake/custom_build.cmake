@@ -756,9 +756,14 @@ if (NOT ENABLE_BUILT_IN AND BUILD_OPEN_PROJECT)
     )
 
     # modify VENDOR_NAME in install.sh and upgrade.sh
+    if (EXISTS ${ASCEND_PROJECT_DIR}/scripts)
+        set(ASCEND_PROJECT_DIR_SCRIPTS_PATH ${ASCEND_PROJECT_DIR}/scripts)
+    else()
+        set(ASCEND_PROJECT_DIR_SCRIPTS_PATH ${CMAKE_SOURCE_DIR}/cmake/scripts/custom)
+    endif()
     add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/scripts/install.sh ${CMAKE_CURRENT_BINARY_DIR}/scripts/upgrade.sh
             COMMAND mkdir -p ${CMAKE_CURRENT_BINARY_DIR}/scripts
-            COMMAND cp -r ${ASCEND_PROJECT_DIR}/scripts/* ${CMAKE_CURRENT_BINARY_DIR}/scripts/
+            COMMAND cp -r ${ASCEND_PROJECT_DIR_SCRIPTS_PATH}/* ${CMAKE_CURRENT_BINARY_DIR}/scripts/
             COMMAND chmod +w ${CMAKE_CURRENT_BINARY_DIR}/scripts/*
             COMMAND sed -i "s/vendor_name=customize/vendor_name=${VENDOR_NAME}_transformer/g" ${CMAKE_CURRENT_BINARY_DIR}/scripts/*
     )
@@ -803,7 +808,12 @@ if (NOT ENABLE_BUILT_IN AND BUILD_OPEN_PROJECT)
     set(CPACK_CMAKE_GENERATOR "Unix Makefiles")
     set(CPACK_EXTERNAL_ENABLE_STAGING TRUE)
     if (ENABLE_BUILD_PKG)
-      set(CPACK_EXTERNAL_PACKAGE_SCRIPT ${ASCEND_CMAKE_DIR}/makeself.cmake)
+      if (EXISTS ${ASCEND_CMAKE_DIR}/makeself.cmake)
+        set(CPACK_EXTERNAL_PACKAGE_SCRIPT ${ASCEND_CMAKE_DIR}/makeself.cmake)
+      else()
+        set(CPACK_MAKESELF_PATH ${OPS_TRANSFORMER_DIR}/third_party/makeself)
+        set(CPACK_EXTERNAL_PACKAGE_SCRIPT ${CMAKE_SOURCE_DIR}/cmake/makeself_custom.cmake)
+      endif()
     endif()
     set(CPACK_EXTERNAL_BUILT_PACKAGES ${CPACK_PACKAGE_DIRECTORY}/_CPack_Packages/Linux/External/${CPACK_PACKAGE_FILE_NAME}/${CPACK_PACKAGE_FILE_NAME})
     include(CPack)

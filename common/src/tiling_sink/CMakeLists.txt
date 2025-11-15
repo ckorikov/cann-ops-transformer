@@ -81,6 +81,7 @@ if (BUILD_OPEN_PROJECT)
     ${ASCEND_CANN_PACKAGE_PATH}/include/aicpu_common/context/utils
     ${ASCEND_CANN_PACKAGE_PATH}/include/aicpu_common/context/cpu_proto
     ${ASCEND_CANN_PACKAGE_PATH}/include/toolchain
+    ${ASCEND_CANN_PACKAGE_PATH}/pkg_inc/base
   )
 else ()
   target_include_directories(opmaster PRIVATE
@@ -102,6 +103,7 @@ endif ()
 if (BUILD_OPEN_PROJECT)
   target_link_directories(opmaster PRIVATE
     ${ASCEND_CANN_PACKAGE_PATH}/lib64/device/lib64
+    ${ASCEND_CANN_PACKAGE_PATH}/devlib/device
   )
 endif()
 

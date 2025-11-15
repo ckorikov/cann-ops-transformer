@@ -66,6 +66,10 @@ if (BUILD_OPEN_PROJECT)
       ${ASCEND_CANN_PACKAGE_PATH}/include/op_common
       ${ASCEND_CANN_PACKAGE_PATH}/pkg_inc
       ${ASCEND_CANN_PACKAGE_PATH}/pkg_inc/op_common
+      ${ASCEND_CANN_PACKAGE_PATH}/${SYSTEM_PREFIX}/pkg_inc/runtime
+      ${ASCEND_CANN_PACKAGE_PATH}/${SYSTEM_PREFIX}/pkg_inc
+      ${ASCEND_CANN_PACKAGE_PATH}/${SYSTEM_PREFIX}/pkg_inc/op_common
+      ${ASCEND_CANN_PACKAGE_PATH}/pkg_inc/profiling
     )
 
     target_link_libraries(${COMMON_NAME}_obj
