@@ -1053,11 +1053,11 @@ aclnnStatus aclnnFusedInferAttentionScoreV4(
 - <a id="INT8"></a>int8量化场景：
 
     - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：
-    <table style="undefined;table-layout: fixed;  width: 840px">
+    <table style="undefined;table-layout: fixed;  width: 1190px">
         <colgroup>
             <col style="width: 320px">
             <col style="width: 120px">
-            <col style="width: 500px">
+            <col style="width: 750px">
         </colgroup>
         <thead>
             <tr>
@@ -1070,19 +1070,19 @@ aclnnStatus aclnnFusedInferAttentionScoreV4(
             <tr>
                 <td rowspan="9">输入，输出为INT8的场景</td>
                 <td>query</td>
-                <td>类型为INT8</td>
+                <td>类型为INT8。</td>
             </tr>
             <tr>
                 <td>key</td>
-                <td>类型为INT8</td>
+                <td>类型为INT8。</td>
             </tr>
             <tr>
                 <td>value</td>
-                <td>类型为INT8</td>
+                <td>类型为INT8。</td>
             </tr>
             <tr>
                 <td>deqScale1</td>
-                <td rowspan="3">需要同时存在</td>
+                <td rowspan="3">需要同时存在。</td>
             </tr>
             <tr>
                 <td>quantScale1</td>
@@ -1092,7 +1092,7 @@ aclnnStatus aclnnFusedInferAttentionScoreV4(
             </tr>
             <tr>
                 <td>quantScale2</td>
-                <td>类型为FLOAT32/BFLOAT16,支持 per-tensor/per-channel 两种格式
+                <td>类型为FLOAT32/BFLOAT16,支持 per-tensor/per-channel 两种格式。
                 </td>
             </tr>
             <tr>
@@ -1102,24 +1102,24 @@ aclnnStatus aclnnFusedInferAttentionScoreV4(
             </tr>
             <tr>
                 <td>attentionOut</td>
-                <td>类型为INT8</td>
+                <td>类型为INT8。</td>
             </tr>
             <tr>
                 <td rowspan="9">输入INT8，输出为FLOAT16的场景</td>
                 <td>query</td>
-                <td>类型为INT8</td>
+                <td>类型为INT8。</td>
             </tr>
             <tr>
                 <td>key</td>
-                <td>类型为INT8</td>
+                <td>类型为INT8。</td>
             </tr>
             <tr>
                 <td>value</td>
-                <td>类型为INT8</td>
+                <td>类型为INT8。</td>
             </tr>
             <tr>
                 <td>deqScale1</td>
-                <td rowspan="3">需要同时存在</td>
+                <td rowspan="3">需要同时存在。</td>
             </tr>
             <tr>
                 <td>quantScale1</td>
@@ -1138,39 +1138,39 @@ aclnnStatus aclnnFusedInferAttentionScoreV4(
             </tr>
             <tr>
                 <td>attentionOut</td>
-                <td>类型为FLOAT16</td>
+                <td>类型为FLOAT16。</td>
             </tr>
             <tr>
                 <td rowspan="9">输入FLOAT16或BFLOAT16，输出为INT8的场景</td>
                 <td>query</td>
-                <td>类型为FLOAT16或BFLOAT16</td>
+                <td>类型为FLOAT16或BFLOAT16。</td>
             </tr>
             <tr>
                 <td>key</td>
-                <td>类型为FLOAT16或BFLOAT16</td>
+                <td>类型为FLOAT16或BFLOAT16。</td>
             </tr>
             <tr>
                 <td>value</td>
-                <td>类型为FLOAT16或BFLOAT16</td>
+                <td>类型为FLOAT16或BFLOAT16。</td>
             </tr>
             <tr>
                 <td>deqScale1</td>
-                <td>存在入参deqScale1则报错并返回</td>
+                <td>存在入参deqScale1则报错并返回。</td>
             </tr>
             <tr>
                 <td>quantScale1</td>
-                <td>存在入参quantScale1则报错并返回</td>
+                <td>存在入参quantScale1则报错并返回。</td>
             </tr>
             <tr>
                 <td>deqScale2</td>
-                <td>存在入参deqScale2则报错并返回</td>
+                <td>存在入参deqScale2则报错并返回。</td>
             </tr>
             <tr>
                 <td>quantScale2</td>
                 <td>支持 per-tensor/per-channel 两种格式和 FLOAT32/BFLOAT16 两种数据类型
                     <ul>
                     <li>当输入为BFLOAT16时，同时支持FLOAT32和BFLOAT16，否则仅支持FLOAT32。</li>
-                    <li>per-channel 格式：当输出layout为BSH时，要求 quantScale2 所有维度的乘积等于H；其他layout要求乘积等于N*D。（建议输出layout为BSH时，quantScale2 shape传入[1,1,H]或[H]；输出为BNSD时，建议传入[1,N,1,D]或[N,D]；输出为BSND时，建议传入[1,1,N,D]或[N,D]）</li>
+                    <li>per-channel 格式：当输出layout为BSH时，要求 quantScale2 所有维度的乘积等于H；其他layout要求乘积等于N*D。（建议输出layout为BSH时，quantScale2 shape传入[1,1,H]或[H]；输出为BNSD时，建议传入[1,N,1,D]或[N,D]；输出为BSND时，建议传入[1,1,N,D]或[N,D]）。</li>
                     </ul>
                 </td>
             </tr>
@@ -1181,7 +1181,7 @@ aclnnStatus aclnnFusedInferAttentionScoreV4(
             </tr>
             <tr>
                 <td>attentionOut</td>
-                <td>类型为INT8</td>
+                <td>类型为INT8。</td>
             </tr>
         </tbody>
     </table>
