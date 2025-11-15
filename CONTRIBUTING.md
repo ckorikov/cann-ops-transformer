@@ -35,9 +35,10 @@
   ```
   ${op_class}                                          # 算子分类
   ├── ${op_name}                                       # 算子名
-  │   ├── op_host                                      # 算子信息库、Tiling、InferShape相关实现
+  │   ├── op_host                                      # 算子信息库定义、Tiling、InferShape相关实现
   │   │   ├── ${op_name}_def.cpp                       # 算子信息库定义文件
   │   │   ├── ${op_name}_tiling.cpp                    # 算子Tiling实现文件
+  │   │   ├── ${op_name}_infershape.cpp                # 算子InferShape实现文件
   │   │   └── CMakeLists.txt
   │   ├── op_kernel                                    # 算子Kernel目录
   │   │   ├── ${op_name}.cpp
