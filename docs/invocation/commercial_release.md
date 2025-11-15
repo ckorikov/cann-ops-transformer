@@ -35,7 +35,7 @@
 - Gawk
 - googletest（仅执行UT时依赖，建议版本 [release-1.11.0](https://github.com/google/googletest/releases/tag/release-1.11.0)）
 
-上述依赖包可通过项目根目录install\_deps.sh安装，命令如下，若遇到不支持系统，请参考该文件自行适配。
+上述依赖包可通过项目根目录install\_deps.sh安装，命令如下，若遇到不支持的情况，请参考该文件自行适配。
 ```bash
 bash install_deps.sh
 ```
@@ -50,7 +50,7 @@ pip3 install -r requirements.txt
 # 源码下载，以master分支为例
 git clone https://gitcode.com/cann/${ops_project}.git
 ```
-\$\{ops\_project\}表示待修改项目（如ops-math、ops-nn等）。
+\$\{ops\_project\}表示待修改项目（如ops-transformer、ops-math、ops-nn等）。
 
 ## 配置环境变量
 
@@ -88,7 +88,7 @@ source ${install_path}/ascend-toolkit/set_env.sh
 
 2. **安装自定义算子包。**
     ```bash
-    ./cann-ops-transformer-${vendor_name}-linux.${arch}.run
+    ./cann-ops-transformer-${vendor_name}-linux-${arch}.run
     ```
 
     自定义算子包安装路径为`${ASCEND_HOME_PATH}/opp/vendors`，\$\{ASCEND\_HOME\_PATH\}已通过环境变量配置，表示CANN toolkit包安装路径，一般为\$\{install\_path\}/ascend-toolkit/latest。注意自定义算子包不支持卸载。

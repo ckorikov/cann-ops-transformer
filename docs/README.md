@@ -21,7 +21,7 @@
 │   ├── ...
 ├── op_api_list.md                     # 全量算子接口列表（aclnn）
 ├── op_list.md                         # 全量算子列表
-└── README
+└── README.md
 ```
 
 ## 文档说明
