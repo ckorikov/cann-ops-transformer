@@ -76,6 +76,14 @@ __aicore__ inline void MoeV3FullLoadUnquantized<T>::Process()
     if (this->blockIdx_ < this->needCoreNum_) {
         this->CopyIn();
         this->Compute();
+        // vaild expert equal zero
+        if (this->needCoreNum_ < 1) {
+            if (this->rowIdxType_ == GATHER) {
+                this->CopyOutDefaultGatherIdx();
+            }
+            this->CopyOutDefaultTokenCountOrCumsum();
+            return;
+        }
         if (this->blockIdx_ == 0) {
             this->CopyOutIdx();
         }

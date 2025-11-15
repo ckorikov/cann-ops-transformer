@@ -34,8 +34,9 @@ protected:
     __aicore__ inline void SortComputeWithRange();
     __aicore__ inline void SortCompute();
     __aicore__ inline void CopyOutIdx();
+    __aicore__ inline void CopyOutDefaultGatherIdx();
+    __aicore__ inline void CopyOutDefaultTokenCountOrCumsum();
     __aicore__ inline void ComputeExpertTokenCountOrCumsum();
-    __aicore__ inline void ProcessBase();
 
 protected:
     int64_t sortNum_;
@@ -132,6 +133,7 @@ __aicore__ inline void MoeV3FullLoadBase<T>::Init(GM_ADDR expertIdx, GM_ADDR exp
     if (this->expertTokensNumFlag_ > 0) {
         expertTokensCountOrCumsumGm_.SetGlobalBuffer((__gm__ int64_t *)expertTokensCountOrCumsum);
     }
+
     if (expertTokensNumType_ == EXERPT_TOKENS_KEY_VALUE) {
         expertCountElements_ = expertNum_ * EXERPT_TOKENS_KEY_VALUE;
     } else {
@@ -238,7 +240,11 @@ __aicore__ inline void MoeV3FullLoadBase<T>::SortComputeWithRange()
             totalLength_);
         PipeBarrier<PIPE_V>();
     }
-
+    // handle actual_idx_num_ == 0
+    if (actual_idx_num_ < 1) {
+        sortDataCopyInQueue_.FreeTensor(inLocal);
+        return;
+    }
     int64_t duplicateNum = actual_idx_num_ % ONE_REPEAT_SORT_NUM;
     if (duplicateNum > 0) {
         int duplicateIndex = actual_idx_num_ - duplicateNum;
@@ -350,6 +356,28 @@ __aicore__ inline void MoeV3FullLoadBase<T>::SortCompute()
     expandedRowIdxCopyOutQueue_.EnQue<uint32_t>(expandedRowIdx);
     expandDstToSrcRowQueue_.EnQue<uint32_t>(expandDstToSrcRowLocal);
     sortDataCopyInQueue_.FreeTensor(inLocal);
+}
+
+template <typename T>
+__aicore__ inline void MoeV3FullLoadBase<T>::CopyOutDefaultGatherIdx() {
+    LocalTensor<int32_t> expandedRowIdx = expandedRowIdxCopyOutQueue_.AllocTensor<int32_t>();
+    Duplicate(expandedRowIdx, static_cast<int32_t>(-1), static_cast<int32_t>(totalLength_));
+    SetWaitFlag<HardEvent::V_MTE3>(HardEvent::V_MTE3);
+    DataCopyExtParams copyParams{static_cast<uint16_t>(1), static_cast<uint32_t>(totalLength_ * sizeof(int32_t)), 0, 0, 0};
+    DataCopyPad(expandedRowIdxGm_, expandedRowIdx, copyParams);
+    expandedRowIdxCopyOutQueue_.FreeTensor(expandedRowIdx);
+}
+
+template <typename T>
+__aicore__ inline void MoeV3FullLoadBase<T>::CopyOutDefaultTokenCountOrCumsum() {
+    LocalTensor<int64_t> expertTokensOut = expertTokensCopyOutQueue_.AllocTensor<int64_t>();
+    Duplicate(expertTokensOut.ReinterpretCast<int32_t>(), static_cast<int32_t>(0),
+                  static_cast<int32_t>(expertCountElements_ * EXERPT_TOKENS_KEY_VALUE));
+    SetWaitFlag<HardEvent::V_MTE3>(HardEvent::V_MTE3);  
+    DataCopyExtParams copyParams{static_cast<uint16_t>(1),
+                                 static_cast<uint32_t>(expertCountElements_ * sizeof(int64_t)), 0, 0, 0};
+    DataCopyPad(expertTokensCountOrCumsumGm_, expertTokensOut, copyParams);
+    expertTokensCopyOutQueue_.FreeTensor(expertTokensOut);            
 }
 
 template <typename T>

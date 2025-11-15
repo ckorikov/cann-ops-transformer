@@ -97,7 +97,7 @@ const static int64_t PERFORMANCE_MODE_MAX_BATCH_SIZE_TOP_K = PERFORMANCE_MODE_BS
 const static int64_t PERFORMANCE_MODE_MAX_ONE_CORE_GATHER = 21845;
 
 const static int64_t gatherFirstN = 100;
-const static int64_t gatherFirstExpertRange = 20;
+const static int64_t gatherFirstScale = 8;
 const static int64_t oneDimScale = 1;
 const static int64_t twoDimScale = 2;
 const static int64_t ONE_REPEAT_SORT_NUM = 32;
@@ -522,7 +522,7 @@ int64_t MoeInitRountingV3TilingBase::IsGatherFirstFullLoad() {
     // 判断当前输入条件下，要不要先gather(剔除无效专家)再排序.
     if (epFullload_ == 0) {
         return 0;
-    } else if (n_ >= gatherFirstN && (expertEnd_-expertStart_) <= gatherFirstExpertRange) {
+    } else if (n_ >= gatherFirstN && (expertEnd_-expertStart_) * gatherFirstScale <= expertNum_) {
         return 1;
     }
     return 0;
