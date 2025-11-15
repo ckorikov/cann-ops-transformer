@@ -894,7 +894,7 @@ aclnnStatus aclnnFusedInferAttentionScoreV3(
         <thead>
             <tr>
                 <th>keyAntiquantMode</th>
-                <th>说明</th>
+                <th>描述</th>
             </tr>
         </thead>
         <tbody>
