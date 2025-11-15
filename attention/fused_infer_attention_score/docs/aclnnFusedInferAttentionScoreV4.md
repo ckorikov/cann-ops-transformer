@@ -772,10 +772,10 @@ aclnnStatus aclnnFusedInferAttentionScoreV4(
 
 - **参数说明：**
 
-    <table style="undefined;table-layout: fixed; width: 598px"><colgroup>
-    <col style="width: 144px">
-    <col style="width: 125px">
-    <col style="width: 700px">
+    <table style="undefined;table-layout: fixed; width: 900px"><colgroup>
+    <col style="width: 150px">
+    <col style="width: 100px">
+    <col style="width: 650px">
     </colgroup>
     <thead>
         <tr>
