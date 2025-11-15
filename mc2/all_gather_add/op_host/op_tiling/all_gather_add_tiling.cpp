@@ -75,7 +75,6 @@ static ge::graphStatus AllGatherAddTilingFunc(gert::TilingContext *context) {
     OP_CHECK_IF(
         memset_s(tilingData, sizeof(AllGatherAddTilingData), 0, sizeof(AllGatherAddTilingData)) != EOK,
         OP_LOGE(context, "set AllGatherAdd tiling data error"), return ge::GRAPH_FAILED);
-    auto dataType = context->GetInputTensor(1)->GetDataType();
     tilingData->commTurn = COMM_TURN;
     tilingData->tileNum = TILE_NUM;
     tilingData->totalLength = context->GetInputTensor(1)->GetShapeSize(); // 总长度是参与Add操作的数据个数
