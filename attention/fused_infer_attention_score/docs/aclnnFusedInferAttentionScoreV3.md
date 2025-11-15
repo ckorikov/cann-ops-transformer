@@ -95,8 +95,8 @@ aclnnStatus aclnnFusedInferAttentionScoreV3(
 - **参数说明**
 
     <div style="overflow-x: auto;">
-    <table style="undefined;table-layout: fixed; width: 1617px"><colgroup> 
-     <col style="width: 270px"> 
+    <table style="undefined;table-layout: fixed; width: 1497px"><colgroup> 
+     <col style="width: 150px"> 
      <col style="width: 120px"> 
      <col style="width: 300px"> 
      <col style="width: 330px"> 
@@ -280,7 +280,7 @@ aclnnStatus aclnnFusedInferAttentionScoreV3(
        <td>blockTableOptional</td>
         <td>输入</td>
         <td>PageAttention中KV存储使用的block映射表。</td>
-        <td><ul><li>不使用该功能时可传入nullptr。</li></ul></td>
+        <td>不使用该功能时可传入nullptr。</td>
         <td>INT32</td>
         <td>ND</td>
         <td>1</td>
@@ -301,8 +301,7 @@ aclnnStatus aclnnFusedInferAttentionScoreV3(
        <td>kvPaddingSizeOptional</td>
         <td>输入</td>
         <td>表示key/value中每个batch的数据是否右对齐，且右对齐的个数是多少。</td>
-        <td><ul>
-            <li>不使用该功能时可传入nullptr。</li></ul></td>
+        <td>不使用该功能时可传入nullptr。</td>
         <td>INT64</td>
         <td>ND</td>
         <td>1</td>
@@ -613,15 +612,15 @@ aclnnStatus aclnnFusedInferAttentionScoreV3(
 
   返回aclnnStatus状态码，具体参见[aclnn返回码](../../../docs/context/aclnn返回码.md)。
   
-  第一段接口完成入参校验，若出现以下错误码，则对应原因为：
+  第一段接口完成入参校验，出现以下场景时报错：
   
     <div style="overflow-x: auto;">
-    <table style="undefined;table-layout: fixed; width: 1030px">			<colgroup>
+    <table style="undefined;table-layout: fixed; width: 1000px">			<colgroup>
     <col style="width: 250px">
-    <col style="width: 130px">
+    <col style="width: 100px">
     <col style="width: 650px">
     </colgroup>
-    <table><thead>
+    <thead>
       <tr>
         <th>返回值</th>
         <th>错误码</th>
@@ -650,14 +649,13 @@ aclnnStatus aclnnFusedInferAttentionScoreV3(
 ## aclnnFusedInferAttentionScoreV3
 
 - **参数说明**
-  
   <div style="overflow-x: auto;">
-    <table style="undefined;table-layout: fixed; width: 1030px"><colgroup>
+    <table style="undefined;table-layout: fixed; width: 900px"><colgroup>
     <col style="width: 250px">
-    <col style="width: 130px">
+    <col style="width: 100px">
     <col style="width: 650px">
     </colgroup>
-    <table><thead>
+    <thead>
       <tr>
         <th>参数名</th>
         <th>输入/输出</th>
@@ -714,8 +712,8 @@ aclnnStatus aclnnFusedInferAttentionScoreV3(
 
   - 仅支持kv_dtype为int8的伪量化场景。
   - per-channel模式：两个参数的shape可支持\(2, N, 1, D\)，\(2, N, D\)，\(2, H\)，N为numKeyValueHeads。参数数据类型和query数据类型相同，antiquantMode置0。
-  - per-tensor模式:两个参数的shape均为(2)，数据类型和query数据类型相同, antiquantMode置0。
-  - per-token模式:两个参数的shape均为\(2, B, S\), 数据类型固定为FLOAT32, antiquantMode置1。
+  - per-tensor模式：两个参数的shape均为(2)，数据类型和query数据类型相同, antiquantMode置0。
+  - per-token模式：两个参数的shape均为\(2, B, S\), 数据类型固定为FLOAT32, antiquantMode置1。
   - 非对称量化模式下， antiquantScale和antiquantOffset参数需同时存在。
   - 对称量化模式下，antiquantOffset可以为空（即nullptr）；当antiquantOffset参数为空时，执行对称量化，否则执行非对称量化。
 
@@ -771,13 +769,79 @@ aclnnStatus aclnnFusedInferAttentionScoreV3(
 
 - sparseMode使用限制如下：
 
-  - Q_S为1且不带rope输入时该参数无效。
-  - sparseMode为0时，代表defaultMask模式，如果attenmask未传入则不做mask操作，忽略preTokens和nextTokens（内部赋值为INT\_MAX）；如果传入，则需要传入完整的attenmask矩阵（S1 \* S2），表示preTokens和nextTokens之间的部分需要计算。
-  - sparseMode为1时，代表allMask，必须传入完整的attenmask矩阵（S1 \* S2）。
-  - sparseMode为2时，代表leftUpCausal模式的mask，需要传入优化后的attenmask矩阵（2048\*2048）。
-  - sparseMode为3时，代表rightDownCausal模式的mask，对应以右顶点为划分的下三角场景，需要传入优化后的attenmask矩阵（2048\*2048）。
-  - sparseMode为4时，代表band模式的mask，需要传入优化后的attenmask矩阵（2048\*2048）。
-  - sparseMode为5、6、7、8时，分别代表prefix、global、dilated、block\_local，**均暂不支持**。用户不特意指定时建议传入0。
+  <div style="overflow-x: auto;">
+  <table style="table-layout: fixed; width: 1210px">
+      <colgroup>
+          <col style="width: 150px">
+          <col style="width: 210px">
+          <col style="width: 850px">
+      </colgroup>
+      <thead>
+          <tr>
+              <th>sparseMode</th>
+              <th>模式</th>
+              <th>描述</th>
+          </tr>
+      </thead>
+      <tbody>
+          <tr>
+              <td>0</td>
+              <td>defaultMask模式</td>
+              <td>
+                  <ul style="margin: 0; padding-left: 20px;">
+                      <li>未传入attenmask：不执行mask操作，忽略preTokens和nextTokens（内部赋值为INT_MAX）；</li>
+                      <li>传入attenmask：需要传入完整的attenmask矩阵（S1 * S2），表示preTokens和nextTokens之间的部分需要计算。</li>
+                  </ul>
+              </td>
+          </tr>
+          <tr>
+              <td>1</td>
+              <td>allMask模式</td>
+              <td>必须传入完整的attenmask矩阵（S1 * S2）。</td>
+          </tr>
+          <tr>
+              <td>2</td>
+              <td>leftUpCausal模式</td>
+              <td>需要传入优化后的attenmask矩阵（2048*2048）。</td>
+          </tr>
+          <tr>
+              <td>3</td>
+              <td>rightDownCausal模式</td>
+              <td>对应以右顶点为划分的下三角场景，需要传入优化后的attenmask矩阵（2048*2048）。</td>
+          </tr>
+          <tr>
+              <td>4</td>
+              <td>band模式</td>
+              <td>需要传入优化后的attenmask矩阵（2048*2048）。</td>
+          </tr>
+          <tr>
+              <td>5</td>
+              <td>prefix模式</td>
+              <td>暂不支持该模式，用户不特意指定时建议传入0。</td>
+          </tr>
+          <tr>
+              <td>6</td>
+              <td>global模式</td>
+              <td>暂不支持该模式，用户不特意指定时建议传入0。</td>
+          </tr>
+          <tr>
+              <td>7</td>
+              <td>dilated模式</td>
+              <td>暂不支持该模式，用户不特意指定时建议传入0。</td>
+          </tr>
+          <tr>
+              <td>8</td>
+              <td>block_local模式</td>
+              <td>暂不支持该模式，用户不特意指定时建议传入0。</td>
+          </tr>
+          <tr>
+              <td colspan="3" style="text-align: left; ">
+                  <strong>特殊约束：</strong>Q_S为1且不带rope输入时该参数无效。
+              </td>
+          </tr>
+          </tbody>
+      </table>
+  </div>
 
 - innerPrecise使用限制如下：
 
@@ -821,14 +885,55 @@ aclnnStatus aclnnFusedInferAttentionScoreV3(
 
 - keyAntiquantMode使用限制如下：
 
-  - 除了keyAntiquantMode为0并且valueAntiquantMode为1的场景外，需要与valueAntiquantMode一致。
-  - keyAntiquantMode为0时，代表per-channel模式（per-channel包含per-tensor）。
-  - keyAntiquantMode为1时，代表per-token模式。
-  - keyAntiquantMode为2时，代表per-tensor叠加per-head模式。
-  - keyAntiquantMode为3时，代表per-token叠加per-head模式。
-  - keyAntiquantMode为4时，代表per-token叠加使用page attention模式管理scale/offset模式。
-  - keyAntiquantMode为5时，代表per-token叠加per head并使用page attention模式管理scale/offset模式。
-  - keyAntiquantMode为6时，代表per-token-group模式。
+    <div style="overflow-x: auto;">
+    <table style="table-layout: fixed; width: 830px">
+        <colgroup>
+            <col style="width: 230px">
+            <col style="width: 600px">
+        </colgroup>
+        <thead>
+            <tr>
+                <th>keyAntiquantMode</th>
+                <th>说明</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>0</td>
+                <td>代表per-channel模式（per-channel包含per-tensor）。</td>
+            </tr>
+            <tr>
+                <td>1</td>
+                <td>代表per-token模式。</td>
+            </tr>
+            <tr>
+                <td>2</td>
+                <td>代表per-tensor叠加per-head模式。</td>
+            </tr>
+            <tr>
+                <td>3</td>
+                <td>代表per-token叠加per-head模式。</td>
+            </tr>
+            <tr>
+                <td>4</td>
+                <td>代表per-token叠加使用page attention模式管理scale/offset模式。</td>
+            </tr>
+            <tr>
+                <td>5</td>
+                <td>代表per-token叠加per-head并使用page attention模式管理scale/offset模式。</td>
+            </tr>
+            <tr>
+                <td>6</td>
+                <td>代表per-token-group模式。</td>
+            </tr>
+            <tr>
+                <td colspan="2" style="text-align: left; ">
+                    <strong>特殊约束：</strong>除了keyAntiquantMode为0并且valueAntiquantMode为1的场景外，需要与valueAntiquantMode一致。
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
   - Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件：Q_S等于1时传入0，1，2，3，4，5之外的其他值会执行异常。Q_S大于等于2时仅支持传入值为0、1，其他值会执行异常。
   
 
@@ -858,13 +963,13 @@ aclnnStatus aclnnFusedInferAttentionScoreV3(
   - S支持小于等于20971520（20M）。部分长序列场景下，如果计算量过大可能会导致pfa算子执行超时（aicore error类型报错，errorStr为:timeout or trap error），此场景下建议做S切分处理，注：这里计算量会受B、S、N、D等的影响，值越大计算量越大。典型的会超时的长序列(即B、S、N、D的乘积较大)场景包括但不限于：
 
     <div style="overflow-x: auto;">
-    <table style="undefined;table-layout: fixed; width: 550px"><colgroup>
-    <col style="width: 100px">
-    <col style="width: 100px">
-    <col style="width: 200px">
-    <col style="width: 100px">
-    <col style="width: 100px">
-    <col style="width: 150px">
+    <table style="undefined;table-layout: fixed; width: 930px"><colgroup>
+    <col style="width: 130px">
+    <col style="width: 130px">
+    <col style="width: 230px">
+    <col style="width: 130px">
+    <col style="width: 130px">
+    <col style="width: 180px">
     </colgroup><thead>
     <tr>
     <th>B</th>
@@ -947,18 +1052,18 @@ aclnnStatus aclnnFusedInferAttentionScoreV3(
      - 传入pseShift时，例如 pseShift shape为(B, N, Q_S, KV_S)
 - query左padding场景：
 
-  - query左padding场景query的搬运起点计算公式为：Q_S - queryPaddingSize - actualSeqLengths。query的搬运终点计算公式为：Q_S - queryPaddingSize。其中query的搬运起点不能小于0，终点不能大于Q_S，否则结果将不符合预期。
-   - query左padding场景kvPaddingSize小于0时将被置为0。
-   - query左padding场景需要与actualSeqLengths参数一起使能，否则默认为query右padding场景。
-   - query左padding场景不支持PageAttention，不能与blocktable参数一起使能。
-   - query左padding场景不支持Q为BF16/FP16、KV为INT4的场景。
+  - query的搬运起点计算公式为：Q_S - queryPaddingSize - actualSeqLengths。query的搬运终点计算公式为：Q_S - queryPaddingSize。其中query的搬运起点不能小于0，终点不能大于Q_S，否则结果将不符合预期。
+   - kvPaddingSize小于0时将被置为0。
+   - 需要与actualSeqLengths参数一起使能，否则默认为query右padding场景。
+   - 不支持PageAttention，不能与blocktable参数一起使能。
+   - 不支持Q为BF16/FP16、KV为INT4的场景。
 - kv左padding场景：
 
-  - kv左padding场景key和value的搬运起点计算公式为：KV_S - kvPaddingSize - actualSeqLengthsKv。key和value的搬运终点计算公式为：KV_S - kvPaddingSize。其中key和value的搬运起点不能小于0，终点不能大于KV_S，否则结果将不符合预期。
-   - kv左padding场景kvPaddingSize小于0时将被置为0。
-   - kv左padding场景需要与actualSeqLengthsKv参数一起使能，否则默认为kv右padding场景。
-   - kv左padding场景不支持PageAttention，不能与blocktable参数一起使能。
-   - kv左padding场景不支持Q为BF16/FP16、KV为INT4的场景。
+  - key和value的搬运起点计算公式为：KV_S - kvPaddingSize - actualSeqLengthsKv。key和value的搬运终点计算公式为：KV_S - kvPaddingSize。其中key和value的搬运起点不能小于0，终点不能大于KV_S，否则结果将不符合预期。
+   - kvPaddingSize小于0时将被置为0。
+   - 需要与actualSeqLengthsKv参数一起使能，否则默认为kv右padding场景。
+   - 不支持PageAttention，不能与blocktable参数一起使能。
+   - 不支持Q为BF16/FP16、KV为INT4的场景。
 - 输出为int8时，quantScale2 和 quantOffset2 为 per-channel 时，暂不支持左padding、Ring Attention或者D非32Byte对齐的场景。
 - 输出为int8时，暂不支持sparse为band且preTokens/nextTokens为负数。
 - pseShift功能使用限制如下：
@@ -1035,11 +1140,11 @@ aclnnStatus aclnnFusedInferAttentionScoreV3(
   - kv左padding场景：
     - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：不支持Q为BF16/FP16、KV为INT4（INT32）的场景。
     
-    - kv左padding场景中kvCache的搬运起点计算公式为：KV_S - kvPaddingSize - actualSeqLengths。kvCache的搬运终点计算公式为：KV_S - kvPaddingSize。其中kvCache的搬运起点或终点小于0时，返回数据结果为全0。
-    - kv左padding场景中kvPaddingSize小于0时将被置为0。
-    - kv左padding场景需要与actualSeqLengths参数一起使能，否则默认为kv右padding场景。
-    - kv左padding场景不支持PageAttention、tensorlist，否则默认为kv右padding场景。
-    - kv左padding场景与attenMask参数一起使能时，需要保证attenMask含义正确，即能够正确的对无效数据进行隐藏。否则将引入精度问题。
+    - 中kvCache的搬运起点计算公式为：KV_S - kvPaddingSize - actualSeqLengths。kvCache的搬运终点计算公式为：KV_S - kvPaddingSize。其中kvCache的搬运起点或终点小于0时，返回数据结果为全0。
+    - 中kvPaddingSize小于0时将被置为0。
+    - 需要与actualSeqLengths参数一起使能，否则默认为kv右padding场景。
+    - 不支持PageAttention、tensorlist，否则默认为kv右padding场景。
+    - 与attenMask参数一起使能时，需要保证attenMask含义正确，即能够正确的对无效数据进行隐藏。否则将引入精度问题。
   - pseShift功能使用限制如下：
     - pseShift数据类型需与query数据类型保持一致。
   - kv伪量化参数分离：
