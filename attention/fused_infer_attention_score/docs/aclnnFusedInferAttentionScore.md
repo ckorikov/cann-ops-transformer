@@ -602,7 +602,7 @@ aclnnStatus aclnnFusedInferAttentionScore(
             <tr>
                 <th>sparseMode</th>
                 <th>模式</th>
-                <th>说明</th>
+                <th>描述</th>
             </tr>
         </thead>
         <tbody>
