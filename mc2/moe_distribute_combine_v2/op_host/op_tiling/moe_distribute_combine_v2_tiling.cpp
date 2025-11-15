@@ -41,6 +41,7 @@ using namespace AscendC;
 using namespace ge;
 
 namespace {
+    constexpr uint32_t OP_VERSION_2 = 2;
     constexpr uint32_t EXPAND_X_INDEX = 0;
     constexpr uint32_t EXPERT_IDS_INDEX = 1;
     constexpr uint32_t ASSIST_INFO_INDEX = 2;
@@ -1517,7 +1518,7 @@ static ge::graphStatus MoeDistributeCombineV2TilingFunc(gert::TilingContext* con
     if (socVersion == "Ascend910B") {
         ret = MoeDistributeCombineA2TilingFuncImpl(context);
     } else if (socVersion == "Ascend910_95") {
-        ret = MoeDistributeCombineTilingImpl(context);
+        ret = MoeDistributeCombineTilingImpl(context, OP_VERSION_2);
     } else {
         ret = MoeDistributeCombineA3TilingFuncImpl(context);
     }

@@ -21,7 +21,7 @@
 
 namespace optiling {
 
-ge::graphStatus MoeDistributeCombineTilingImpl(gert::TilingContext* context);
+ge::graphStatus MoeDistributeCombineTilingImpl(gert::TilingContext* context, const uint32_t opVersion);
 
 BEGIN_TILING_DATA_DEF(MoeDistributeCombineInfo)
     TILING_DATA_FIELD_DEF(uint32_t, epWorldSize);
@@ -30,6 +30,7 @@ BEGIN_TILING_DATA_DEF(MoeDistributeCombineInfo)
     TILING_DATA_FIELD_DEF(uint32_t, tpRankId);
     TILING_DATA_FIELD_DEF(uint32_t, expertShardType);
     TILING_DATA_FIELD_DEF(uint32_t, sharedExpertRankNum);
+    TILING_DATA_FIELD_DEF(uint32_t, sharedExpertNum);
     TILING_DATA_FIELD_DEF(uint32_t, moeExpertNum);
     TILING_DATA_FIELD_DEF(uint32_t, moeExpertPerRankNum);
     TILING_DATA_FIELD_DEF(uint32_t, globalBs);
@@ -40,6 +41,10 @@ BEGIN_TILING_DATA_DEF(MoeDistributeCombineInfo)
     TILING_DATA_FIELD_DEF(uint64_t, totalUbSize);
     TILING_DATA_FIELD_DEF(uint64_t, totalWinSize);
     TILING_DATA_FIELD_DEF(uint32_t, hasSharedExpertX);
+    TILING_DATA_FIELD_DEF(bool, isTokenMask);
+    TILING_DATA_FIELD_DEF(bool, reserved1);
+    TILING_DATA_FIELD_DEF(bool, reserved2);
+    TILING_DATA_FIELD_DEF(bool, reserved3);
 END_TILING_DATA_DEF;
 REGISTER_TILING_DATA_CLASS(MoeDistributeCombineInfoOp, MoeDistributeCombineInfo);
 

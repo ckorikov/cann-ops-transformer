@@ -87,7 +87,7 @@ extern "C" __global__ __aicore__ void moe_distribute_combine_v2(GM_ADDR expandX,
 #ifdef __DAV_C310__
     if (TILING_KEY_IS(1000000000000000000)) {
         MoeDistributeCombineA5Impl::MoeDistributeCombineA5<DTYPE_EXPAND_X, int32_t> op;
-        op.Init(expandX, expertIds, assistInfoForCombine, epSendCount, tpSendCount, scales, sharedExpertX, XOut, workspaceGM, &pipe, &tilingData);
+        op.Init(expandX, expertIds, assistInfoForCombine, epSendCount, tpSendCount, xActiveMask, scales, sharedExpertX, XOut, workspaceGM, &pipe, &tilingData);
         op.Process();
     }
 #else

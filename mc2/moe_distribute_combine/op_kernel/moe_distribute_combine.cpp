@@ -29,9 +29,10 @@ using namespace AscendC;
 
 extern "C" __global__ __aicore__ void moe_distribute_combine(GM_ADDR expandX, GM_ADDR expertIds, GM_ADDR expandIdx,
                                                              GM_ADDR epSendCount, GM_ADDR scales, GM_ADDR tpSendCount,
-                                                             GM_ADDR xActiveMask, GM_ADDR activationScale, GM_ADDR weightScale,
-                                                             GM_ADDR groupList, GM_ADDR expandScales, GM_ADDR XOut,
-                                                             GM_ADDR workspaceGM, GM_ADDR tilingGM)
+                                                             GM_ADDR xActiveMask, GM_ADDR activationScale,
+                                                             GM_ADDR weightScale, GM_ADDR groupList,
+                                                             GM_ADDR expandScales, GM_ADDR XOut, GM_ADDR workspaceGM,
+                                                             GM_ADDR tilingGM)
 
 {
 #ifdef __DAV_C310__
@@ -47,7 +48,8 @@ extern "C" __global__ __aicore__ void moe_distribute_combine(GM_ADDR expandX, GM
 #ifdef __DAV_C310__
   if (TILING_KEY_IS(1000000000000000000)) {
     MoeDistributeCombineA5Impl::MoeDistributeCombineA5<DTYPE_EXPAND_X, int32_t> op;
-    op.Init(expandX, expertIds, expandIdx, epSendCount, tpSendCount, scales, nullptr, XOut, workspaceGM, &pipe, &tilingData);
+    op.Init(expandX, expertIds, expandIdx, epSendCount, tpSendCount, nullptr, scales, nullptr, XOut, workspaceGM,
+            &pipe, &tilingData);
     op.Process();
   }
 #else
