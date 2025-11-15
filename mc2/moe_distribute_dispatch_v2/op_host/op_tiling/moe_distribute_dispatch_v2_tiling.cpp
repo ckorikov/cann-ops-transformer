@@ -136,6 +136,9 @@ namespace {
     constexpr uint64_t TILING_KEY_BASE_A2 = 2000000000;
     constexpr uint64_t TILING_KEY_LAYERED_COMM_A2 = 100000000;
     constexpr uint64_t INIT_TILINGKEY_A2 = 1000;
+
+    // A5
+    constexpr uint32_t OP_VERSION_2 = 2;
 }
 
 namespace optiling {
@@ -1354,8 +1357,8 @@ static ge::graphStatus MoeDistributeDispatchV2TilingFunc(gert::TilingContext* co
     ge::graphStatus ret;
     if (socVersion == "Ascend910B") {
         ret = MoeDistributeDispatchA2TilingFuncImpl(context);
-    } else if(socVersion == "Ascend910_95"){
-        ret = MoeDistributeDispatchTilingImpl(context);
+    } else if (socVersion == "Ascend910_95") {
+        ret = MoeDistributeDispatchTilingImpl(context, OP_VERSION_2);   
     } else {
         ret = MoeDistributeDispatchA3TilingFuncImpl(context);
     }

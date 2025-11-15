@@ -21,7 +21,7 @@
 
 namespace optiling {
 
-ge::graphStatus MoeDistributeDispatchTilingImpl(gert::TilingContext* context);
+ge::graphStatus MoeDistributeDispatchTilingImpl(gert::TilingContext* context, uint32_t opVersion);
 
 BEGIN_TILING_DATA_DEF(MoeDistributeDispatchInfo)
     TILING_DATA_FIELD_DEF(uint32_t, epWorldSize);
@@ -29,6 +29,7 @@ BEGIN_TILING_DATA_DEF(MoeDistributeDispatchInfo)
     TILING_DATA_FIELD_DEF(uint32_t, epRankId);
     TILING_DATA_FIELD_DEF(uint32_t, tpRankId);
     TILING_DATA_FIELD_DEF(uint32_t, expertShardType);
+    TILING_DATA_FIELD_DEF(uint32_t, sharedExpertNum);
     TILING_DATA_FIELD_DEF(uint32_t, sharedExpertRankNum);               
     TILING_DATA_FIELD_DEF(uint32_t, moeExpertNum);
     TILING_DATA_FIELD_DEF(uint32_t, quantMode);
@@ -38,7 +39,7 @@ BEGIN_TILING_DATA_DEF(MoeDistributeDispatchInfo)
     TILING_DATA_FIELD_DEF(uint32_t, h);
     TILING_DATA_FIELD_DEF(uint32_t, aivNum);
     TILING_DATA_FIELD_DEF(bool, isQuant);
-    TILING_DATA_FIELD_DEF(bool, reserved1);
+    TILING_DATA_FIELD_DEF(bool, isTokenMask);
     TILING_DATA_FIELD_DEF(bool, reserved2);
     TILING_DATA_FIELD_DEF(bool, reserved3);
     TILING_DATA_FIELD_DEF(uint64_t, totalUbSize);
