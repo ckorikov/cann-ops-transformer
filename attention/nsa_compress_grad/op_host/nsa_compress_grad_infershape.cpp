@@ -9,7 +9,7 @@
  */
 
 /*!
- * \file nsa_compress_grad.cpp
+ * \file nsa_compress_grad_infershape.cpp
  * \brief
  */
 #include <graph/utils/type_utils.h>

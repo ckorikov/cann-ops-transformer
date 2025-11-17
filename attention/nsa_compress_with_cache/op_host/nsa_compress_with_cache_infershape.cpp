@@ -9,7 +9,7 @@
  */
 
 /*!
- * \file nsa_compress_with_cache_proto.cpp
+ * \file nsa_compress_with_cache_infershape.cpp
  * \brief
  */
 
