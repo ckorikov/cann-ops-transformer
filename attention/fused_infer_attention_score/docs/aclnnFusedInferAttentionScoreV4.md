@@ -10,7 +10,7 @@
 
 ## 功能说明
 
-- 算子功能：适配decode & prefill场景的FlashAttention算子，既可以支持prefill计算场景（PromptFlashAttention），也可支持decode计算场景（IncreFlashAttention）。相比于FusedInferAttentionScoreV3，本接口新增dequantScaleQueryOptional、queryQuantMode参数。
+- 接口功能：适配decode & prefill场景的FlashAttention算子，既可以支持prefill计算场景（PromptFlashAttention），也可支持decode计算场景（IncreFlashAttention）。相比于FusedInferAttentionScoreV3，本接口新增dequantScaleQueryOptional、queryQuantMode参数。
 
     **说明：** 
 decode场景下特有KV Cache：KV Cache是大模型推理性能优化的一个常用技术。采样时，Transformer模型会以给定的prompt/context作为初始输入进行推理（可以并行处理），随后逐一生成额外的token来继续完善生成的序列（体现了模型的自回归性质）。在采样过程中，Transformer会执行自注意力操作，为此需要给当前序列中的每个项目（无论是prompt/context还是生成的token）提取键值（KV）向量。这些向量存储在一个矩阵中，通常被称为kv缓存（KV Cache）。
@@ -941,12 +941,13 @@ aclnnStatus aclnnFusedInferAttentionScoreV4(
     如果算子可判断出存在无效行场景，会自动使能无效行计算，例如sparse_mode为3，Sq > Skv场景。
     </blockquote>
 
-    <table style="undefined;table-layout: fixed;  width: 820px">
+    <div style="overflow-x: auto;">
+    <table style="undefined;table-layout: fixed;  width: 1110px">
         <colgroup>
-            <col style="width: 80px">
-            <col style="width: 120px">
-            <col style="width: 300px">
+            <col style="width: 110px">
+            <col style="width: 150px">
             <col style="width: 350px">
+            <col style="width: 500px">
         </colgroup>
         <thead>
             <tr>
@@ -987,17 +988,18 @@ aclnnStatus aclnnFusedInferAttentionScoreV4(
                 <td>代表高性能模式，且做行无效修正。</td>
             </tr>
         </tbody>
-    </table>
+    </table></div>
 
 - <a id="pseShift"></a>pseShift：
-    <table style="undefined;table-layout: fixed;  width: 990px">
+    <div style="overflow-x: auto;">
+    <table style="undefined;table-layout: fixed;  width: 1460px">
         <colgroup>
-            <col style="width: 100px">
-            <col style="width: 160px">
-            <col style="width: 100px">
-            <col style="width: 150px">
-            <col style="width: 250px">
-            <col style="width: 500px">
+            <col style="width: 130px">
+            <col style="width: 190px">
+            <col style="width: 130px">
+            <col style="width: 180px">
+            <col style="width: 280px">
+            <col style="width: 550px">
         </colgroup>
         <thead>
         <tr>
@@ -1048,7 +1050,7 @@ aclnnStatus aclnnFusedInferAttentionScoreV4(
                 <td>BFLOAT16</td>
             </tr>
         </tbody>
-    </table>
+    </table></dive>
 
 - <a id="INT8"></a>int8量化场景：
 
@@ -1353,96 +1355,97 @@ aclnnStatus aclnnFusedInferAttentionScoreV4(
     - actualSeqLengths和actualSeqLengthsKv必须传入，长度<=4096 
 
     - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：
-    <table style="undefined;table-layout: fixed; width: 979px"><colgroup>
-        <col style="width: 180px">
-        <col style="width: 380px">
-        <col style="width: 171px">
-        <col style="width: 520px">
-        </colgroup>
-        <thead>
-        <tr>
-            <th colspan="2">场景</th>
-            <th>参数或者特性</th>
-            <th>约束</th>
-        </tr>
-        </thead>
-        <tbody>
-        <tr>
-            <td rowspan="8">当query的d等于512时</td>
-            <td rowspan="4">通用场景</td>
-            <td>inputLayout</td>
-            <td>支持TND、TND_NTD;</td>
-        </tr>
-        <tr>
-            <td>actualSeqLengths</td>
-            <td>支持query每个batch的s为1-16；</td>
-        </tr>
-        <tr>
-            <td>numHeads</td>
-            <td>32、64、128</td>
-        </tr>
-        <tr>
-            <td>numKeyValueHeads</td>
-            <td>1</td>
-        </tr>
-        <tr>
-            <td rowspan="2">PagedAttention(必须开启)</td>
-            <td>blocktable</td>
-            <td>不为nullptr</td>
-        </tr>
-        <tr>
-            <td>actualSeqLengthsKv</td>
-            <td>此时actualSeqLengthsKv长度等于key/value的batch值，代表每个batch的实际长度，值不大于KV_S</td>
-        </tr>
-        <tr>
-            <td>MLA（要求queryRope和keyRope不等于空）</td>
-            <td>queryRopeOptional和keyRopeOptional</td>
-            <td>queryRopeOptional和keyRopeOptional的d为64</td>
-        </tr>
-        <tr>
-            <td colspan="3">不支持开启SoftMaxLse、左padding、tensorlist、pse、prefix、伪量化、全量化、后量化。</td>
-        </tr>
-        <tr>
-            <td rowspan="7">当query的d不等于512时</td>
-            <td rowspan="2">通用场景</td>
-            <td>inputLayout</td>
-            <td>支持TND、NTD_TND</td>
-        </tr>
-        <tr>
-            <td>query，key，value</td>
-            <td>数据类型仅支持BFLOAT16</td>
-        </tr>
-        <tr>
-            <td>Mask</td>
-            <td>actualSeqLengths，actualSeqLengthsKv</td>
-            <td>当sparseMode=3时，要求每个batch单独的actualSeqLengths &lt; actualSeqLengthsKv；</td>
-        </tr>
-        <tr>
-            <td>PagedAttention</td>
-            <td>blockSize</td>
-            <td>仅支持128,512或1024</td>
-        </tr>
-        <tr>
-            <td>MLA（当queryRope和keyRope不为空时）</td>
-            <td>Q_D、K_D、V_D</td>
-            <td>要求Q_D、K_D、V_D等于128。</td>
-        </tr>
-        <tr>
-            <td>GQA/MHA/MQA场景（当queryRope和keyRope为空时）</td>
-            <td>Q_D、K_D、V_D</td>
-            <td>TND场景，要求Q_D、K_D、V_D等于128，或者Q_D、K_D等于192，V_D等于128/192；<br>NTD_TND场景，要求Q_D、K_D等于128/192，V_D等于128。<br>GQA和PA场景不支持V_D等于192。</td>
-        </tr>
-        <tr>
-            <td colspan="3">不支持左padding、tensorlist、pse、prefix、伪量化、全量化、后量化。</td>
-        </tr>
-        </tbody>
-    </table>
+        <div style="overflow-x: auto;">
+        <table style="undefined;table-layout: fixed; width: 1390px"><colgroup>
+            <col style="width: 210px">
+            <col style="width: 410px">
+            <col style="width: 250px">
+            <col style="width: 520px">
+            </colgroup>
+            <thead>
+            <tr>
+                <th colspan="2">场景</th>
+                <th>参数或者特性</th>
+                <th>约束</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td rowspan="8">当query的d等于512时</td>
+                <td rowspan="4">通用场景</td>
+                <td>inputLayout</td>
+                <td>支持TND、TND_NTD;</td>
+            </tr>
+            <tr>
+                <td>actualSeqLengths</td>
+                <td>支持query每个batch的s为1-16；</td>
+            </tr>
+            <tr>
+                <td>numHeads</td>
+                <td>32、64、128</td>
+            </tr>
+            <tr>
+                <td>numKeyValueHeads</td>
+                <td>1</td>
+            </tr>
+            <tr>
+                <td rowspan="2">PagedAttention(必须开启)</td>
+                <td>blocktable</td>
+                <td>不为nullptr</td>
+            </tr>
+            <tr>
+                <td>actualSeqLengthsKv</td>
+                <td>此时actualSeqLengthsKv长度等于key/value的batch值，代表每个batch的实际长度，值不大于KV_S</td>
+            </tr>
+            <tr>
+                <td>MLA（要求queryRope和keyRope不等于空）</td>
+                <td>queryRopeOptional和keyRopeOptional</td>
+                <td>queryRopeOptional和keyRopeOptional的d为64</td>
+            </tr>
+            <tr>
+                <td colspan="3">不支持开启SoftMaxLse、左padding、tensorlist、pse、prefix、伪量化、全量化、后量化。</td>
+            </tr>
+            <tr>
+                <td rowspan="7">当query的d不等于512时</td>
+                <td rowspan="2">通用场景</td>
+                <td>inputLayout</td>
+                <td>支持TND、NTD_TND</td>
+            </tr>
+            <tr>
+                <td>query，key，value</td>
+                <td>数据类型仅支持BFLOAT16</td>
+            </tr>
+            <tr>
+                <td>Mask</td>
+                <td>actualSeqLengths，actualSeqLengthsKv</td>
+                <td>当sparseMode=3时，要求每个batch单独的actualSeqLengths &lt; actualSeqLengthsKv；</td>
+            </tr>
+            <tr>
+                <td>PagedAttention</td>
+                <td>blockSize</td>
+                <td>仅支持128,512或1024</td>
+            </tr>
+            <tr>
+                <td>MLA（当queryRope和keyRope不为空时）</td>
+                <td>Q_D、K_D、V_D</td>
+                <td>要求Q_D、K_D、V_D等于128。</td>
+            </tr>
+            <tr>
+                <td>GQA/MHA/MQA场景（当queryRope和keyRope为空时）</td>
+                <td>Q_D、K_D、V_D</td>
+                <td>TND场景，要求Q_D、K_D、V_D等于128，或者Q_D、K_D等于192，V_D等于128/192；<br>NTD_TND场景，要求Q_D、K_D等于128/192，V_D等于128。<br>GQA和PA场景不支持V_D等于192。</td>
+            </tr>
+            <tr>
+                <td colspan="3">不支持左padding、tensorlist、pse、prefix、伪量化、全量化、后量化。</td>
+            </tr>
+            </tbody>
+        </table></div>
 
 - <a id="MLA"></a>MLA场景（queryRope和keyRope输入不为空时）
-    <table style="undefined;table-layout: fixed; width: 875px"><colgroup>
-        <col style="width: 128px">
-        <col style="width: 95px">
-        <col style="width: 196px">
+    <table style="undefined;table-layout: fixed; width: 1389px"><colgroup>
+        <col style="width: 158px">
+        <col style="width: 125px">
+        <col style="width: 226px">
         <col style="width: 520px">
         <col style="width: 360px">
         </colgroup>
@@ -1705,7 +1708,7 @@ aclnnStatus aclnnFusedInferAttentionScoreV4(
 
     - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：
 
-    <table style="undefined;table-layout: fixed; width: 983px"><colgroup>
+    <table style="undefined;table-layout: fixed; width: 1080px"><colgroup>
     <col style="width: 180px">
     <col style="width: 150px">
     <col style="width: 750px"></colgroup>
@@ -1877,10 +1880,11 @@ aclnnStatus aclnnFusedInferAttentionScoreV4(
 - **当Q_S等于1时（IFA非MTP场景）**：
 
     - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：
-    <table style="undefined;table-layout: fixed; width: 940px"><colgroup>
+    <div style="overflow-x: auto;">
+    <table style="undefined;table-layout: fixed; width: 1080px"><colgroup>
     <col style="width: 180px">
     <col style="width: 150px">
-    <col style="width: 700px"></colgroup>
+    <col style="width: 750px"></colgroup>
         <thead>
             <tr>
                 <th>场景</th>
@@ -1977,7 +1981,7 @@ aclnnStatus aclnnFusedInferAttentionScoreV4(
                 <td colspan="2">query、key、value输入类型均为INT8的场景暂不支持。</td>
             </tr>
         </tbody>
-    </table>
+    </table></div>
 
 ## 调用示例
 示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](../../../docs/context/编译与运行样例.md)。
