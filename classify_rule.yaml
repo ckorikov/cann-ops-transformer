@@ -274,6 +274,7 @@ moe:
       - moe/moe_finalize_routing_v2/README.md
     options:
       - moe_finalize_routing_v2
+      - moe_token_unpermute
   
   moe_compute_expert_tokens:
     module: True
@@ -394,6 +395,7 @@ moe:
       - moe/moe_init_routing_v2_grad/README.md
     options:
       - moe_init_routing_v2_grad
+      - moe_token_permute_grad
 
   moe_init_routing_v3:
     module: True
@@ -434,7 +436,7 @@ moe:
       - moe/moe_token_permute_grad/README.md
     options:
       - moe_token_permute_grad
-      - moe_token_unpermute
+      - moe_init_routing_v2_grad
 
   moe_token_permute_with_ep:
     module: True
@@ -486,8 +488,8 @@ moe:
       - moe/moe_token_unpermute/README.md
     options:
       - moe_token_unpermute
-      - moe_token_permute_grad
       - moe_token_permute_with_routing_map_grad
+      - moe_finalize_routing_v2
 
   moe_token_unpermute_grad:
     module: True
