@@ -47,7 +47,7 @@ namespace gmmTestUtils {
 #define GROUPED_MATMUL_AIV_AIC_RATIO_2 2
     inline uint64_t GMMEncodeTilingKey(int xDtype, int weightDtype, int yDtype, int transX, int transWeight,
                                 int groupListType, int isStaticTilingApi, int a8w4KernelTemplate,
-                                int a16w8KernelTemplate, int aivAicRatio, bool isEnableFixedAxis) {
+                                int a16w8KernelTemplate, int aivAicRatio) {
         uint64_t value = 0;
         int shift = 0;
 
@@ -79,11 +79,6 @@ namespace gmmTestUtils {
         shift += 2;
 
         value |= (uint64_t)(aivAicRatio & 0x3) << shift;
-        shift += 2;
-
-        value |= (uint64_t)(isEnableFixedAxis & 0x1) << shift;
-        shift += 1;
-
         return value;
     }
 
