@@ -88,7 +88,7 @@ aclnnStatus aclnnGroupedMatmulV5(
 |groupType|int64|输入|代表需要分组的轴。|取值范围-1、0、2。综合约束请参见[约束说明](#约束说明)。 | - | - | - |
 |groupListType|int64|输入|代表groupList输入的分组方式。|取值范围0-2。综合约束请参见[约束说明](#约束说明)。 | - | - | - |
 |actType|int64|输入|代表激活函数类型。|取值范围为0-5。综合约束请参见[约束说明](#约束说明)。 | - | - | - |
-|tuningConfigOptional|aclIntArray *|可选输入|代表各个专家处理的token数的预期值，用于优化tiling。|兼容历史版本，用户如不使用该参数，不传(即为nullptr)即可。 | INT64 | - | 1 |
+|tuningConfigOptional|aclIntArray *|可选输入|第一个数代表各个专家处理的token数的预期值，用于优化tiling。A8W4可选使能第二个数，详见[约束说明](#约束说明)。|兼容历史版本，用户如不使用该参数，不传(即为nullptr)即可。 | INT64 | - | 1 |
 |out|aclTensorList *|输出|公式中的输出`y`。|最多支持128个tensor。 | FLOAT、FLOAT16、INT32<sup>1</sup>、INT8<sup>1</sup>、BFLOAT16 | ND | 2 |
 |activationFeatureOutOptional|aclTensorList *|输出|激活函数的输入数据，当前只支持传入nullptr。|- | - | - | - |
 |dynQuantScaleOutOptional|aclTensorList *|输出|当前只支持传入nullptr。|- | - | - | - |
@@ -313,7 +313,7 @@ aclnnStatus aclnnGroupedMatmulV5(
     - 当前仅支持x、weight、out均为长度为1的TensorList
     - x不支持转置、weight不支持转置
     - x仅支持2维Tensor，Shape为（M，K）
-    - weight仅支持3维Tensor，Shape为（G，K，N）
+    - weight默认支持3维Tensor，Shape为（G，K，N）
     - Bias为计算过程中离线计算的辅助结果，值要求为$8\times weight \times scale$，并在第1维累加，shape要求为$[g, n]$。
     - 当weight传入数据类型为INT32时，会将每个INT32视为8个INT4。
     - offset为空时
@@ -325,6 +325,7 @@ aclnnStatus aclnnGroupedMatmulV5(
       - 该场景下{K, N}要求为{7168, 4096}或者{2048, 7168}。
       - scale为pergroup与perchannel离线融合后的结果，shape要求为$[g, 1, n]$。
       - 该场景下offsetOptional不为空。非对称量化offsetOptional为计算过程中离线计算辅助结果，即$antiquantOffset \times scale$，shape要求为$[g, 1, n]$，dtype为FLOAT32。
+    - tuningConfigOptional数组第二个数可选置1，使能A8W4-autotiling模板以优化算子性能(性能优势的shape范围参考:K >= 2048 && N >= 2048)。需要说明的是，该模板要求weight的shape为(G,N,K),然后再对其进行ND2NZ转换后作为算子输入。
 
   <a id="a16w4场景约束"></a>
 
