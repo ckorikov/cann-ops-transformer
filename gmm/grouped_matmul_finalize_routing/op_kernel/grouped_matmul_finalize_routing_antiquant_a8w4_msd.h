@@ -44,6 +44,7 @@ public:
 private:
     __aicore__ inline void InitUbBuffer();
     __aicore__ inline void PreProcess();
+    __aicore__ inline void PreProcessInit();
     __aicore__ inline void InitOutputWithZeros(uint64_t offset, uint64_t size);
     __aicore__ inline void MMCompute(uint32_t groupIdx, MNConfig& mnConfig);
     __aicore__ inline void VectorCompute(uint32_t groupIdx, MNConfig& mnConfig, SyncConfig& syncConfig);
@@ -64,7 +65,8 @@ private:
     __aicore__ inline void DataCopyAndBrcbOfRowSum(MNConfig& mnConfig, uint32_t curBaseM, uint32_t alignBaseN,
                                                         uint32_t offsetM);
     __aicore__ inline void FinalizeRoutingDeterministic(SyncConfig& syncConfig);
-    __aicore__ inline void VectorDeterSync(MNConfig& mnConfig, SyncConfig& syncConfig);                                        
+    __aicore__ inline void VectorDeterSync(MNConfig& mnConfig, SyncConfig& syncConfig);
+    __aicore__ inline void A8W4ConfigInit(MNConfig& mnConfig, SyncConfig& syncConfig);
 private:
     typename mmType::MT& mm;
     const uint32_t HALF_ALIGN = 16;
@@ -188,8 +190,8 @@ __aicore__ inline void GMMA8W4MSDCompute<mmType>::InitUbBuffer()
     scaleCalBuffer = tmpBuff.GetWithOffset<float>(tiling->ubCalSize, 0);
 }
 
-template <class P>
-__aicore__ inline void GMMA8W4MSDCompute<P>::InitOutputWithZeros(uint64_t offset, uint64_t size) {
+template <typename mmType>
+__aicore__ inline void GMMA8W4MSDCompute<mmType>::InitOutputWithZeros(uint64_t offset, uint64_t size) {
     uint64_t singelCount = Ceil(size, uint32_t(GetBlockNum() * GetTaskRation()));
     singelCount = Ceil(singelCount, 512) * 512;
     uint64_t baseOffset = GetBlockIdx() * singelCount;
@@ -208,13 +210,7 @@ __aicore__ inline void GMMA8W4MSDCompute<P>::InitOutputWithZeros(uint64_t offset
 }
 
 template <typename mmType>
-__aicore__ inline void GMMA8W4MSDCompute<mmType>::PreProcess() {
-    uint64_t totalOutput = (static_cast<uint64_t>(tiling->n)) * tiling->sharedInputLen;
-    uint64_t singeCount = Ceil(totalOutput, uint32_t(GetBlockNum() * GetTaskRation()));
-    uint64_t baseOffset;
-    uint64_t outOffset;
-    uint64_t curCount = tiling->ubCalSize;
-
+__aicore__ inline void GMMA8W4MSDCompute<mmType>::PreProcessInit() {
     if (tiling->sharedInputOffset > 0) {
         InitOutputWithZeros(0, (static_cast<uint64_t>(tiling->n)) * tiling->sharedInputOffset);
     }
@@ -222,7 +218,20 @@ __aicore__ inline void GMMA8W4MSDCompute<mmType>::PreProcess() {
     if (tail < tiling->batch) {
         InitOutputWithZeros(tail * (static_cast<uint64_t>(tiling->n)), tiling->n * (tiling->batch - tail));
     }
+}
 
+template <typename mmType>
+__aicore__ inline void GMMA8W4MSDCompute<mmType>::PreProcess() {
+    if constexpr (mmType::sharedInputIsNone) {
+        InitOutputWithZeros(0, tiling->n * tiling->batch);
+        return;
+    }
+    PreProcessInit();
+    uint64_t totalOutput = (static_cast<uint64_t>(tiling->n)) * tiling->sharedInputLen;
+    uint64_t singeCount = Ceil(totalOutput, uint32_t(GetBlockNum() * GetTaskRation()));
+    uint64_t baseOffset;
+    uint64_t outOffset;
+    uint64_t curCount = tiling->ubCalSize;
     singeCount = Ceil(singeCount, tiling->ubCalSize) * tiling->ubCalSize;
     baseOffset = GetBlockIdx() * singeCount;
     if (baseOffset >= totalOutput) {
@@ -261,14 +270,8 @@ __aicore__ inline void GMMA8W4MSDCompute<mmType>::PreProcess() {
 }
 
 template <typename mmType>
-__aicore__ inline void GMMA8W4MSDCompute<mmType>::Process()
+__aicore__ inline void GMMA8W4MSDCompute<mmType>::A8W4ConfigInit(MNConfig& mnConfig, SyncConfig& syncConfig)
 {
-    if ASCEND_IS_AIV {
-        PreProcess();
-        SyncAll();
-    }
-    MNConfig mnConfig;
-    SyncConfig syncConfig;
     mnConfig.baseM = tiling->matmulTiling.baseM;
     mnConfig.baseN = tiling->matmulTiling.baseN;
     mnConfig.singleM = mnConfig.baseM;
@@ -278,6 +281,18 @@ __aicore__ inline void GMMA8W4MSDCompute<mmType>::Process()
     syncConfig.lowBoundM = syncConfig.windowSize;
     uint64_t nTimes = Ceil(tiling->n, tiling->ubCalSize);
     syncConfig.baseN = Ceil(Ceil(tiling->n, nTimes), 128) * 128;  //  128: num int32_t in 512B align block
+}
+
+template <typename mmType>
+__aicore__ inline void GMMA8W4MSDCompute<mmType>::Process()
+{
+    if ASCEND_IS_AIV {
+        PreProcess();
+        SyncAll();
+    }
+    MNConfig mnConfig;
+    SyncConfig syncConfig;
+    A8W4ConfigInit(mnConfig, syncConfig);
     if ASCEND_IS_AIC {
         SyncAll<false>();
     }
@@ -285,6 +300,9 @@ __aicore__ inline void GMMA8W4MSDCompute<mmType>::Process()
         int32_t m = static_cast<int32_t>(groupTokensGm.GetValue(groupIdx));
         if (m <= 0) {
             continue;
+        }
+        if constexpr (mmType::groupListType) {
+            m -= mnConfig.offsetM / 2;
         }
         mnConfig.m = static_cast<uint32_t>(m) * 2;      // 2: int8 has been split in 2 int4
         mnConfig.blockDimM = Ceil(mnConfig.m, mnConfig.singleM);
@@ -641,6 +659,11 @@ __aicore__ inline void GMMA8W4MSDCompute<mmType>::VectorDeterSync(MNConfig& mnCo
     while (mnConfig.curBlockM > syncConfig.lowBoundM) {
         while (syncConfig.curGroup < tiling->groupNum) {
             uint32_t rowIdx = static_cast<uint32_t>(groupTokensGm.GetValue(syncConfig.curGroup));
+            if constexpr (mmType::groupListType){
+                if (syncConfig.curGroup > 0) {
+                    rowIdx -= static_cast<uint32_t>(groupTokensGm.GetValue(syncConfig.curGroup - 1));
+                }
+            }
             if(syncConfig.curGroupM + rowIdx <= syncConfig.lowBoundM){
                 syncConfig.curGroupM += rowIdx;
                 syncConfig.curM = syncConfig.curGroupM;

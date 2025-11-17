@@ -56,6 +56,7 @@ protected:
     ge::graphStatus W4A8TilingProcess();
     ge::graphStatus W8A8TilingProcess();
     void DeterministicTilingProcess();
+    void OtherSettingTilingProcess();
     void FillTilingData();
     void FillTilingDataL1Opt();
     void PrintTilingData();

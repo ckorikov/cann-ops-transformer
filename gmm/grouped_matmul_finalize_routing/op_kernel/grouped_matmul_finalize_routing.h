@@ -35,13 +35,16 @@ using MT = matmul::MatmulImpl<aT, bT, cT, BiasT, CFG_MDL>;
 constexpr uint32_t BROADCAST_DIM = 2;
 constexpr uint32_t BUFFER_NUM = 2;
 
-template <bool combine_, class ROW_INDEX_DTYPE_, class TILING_TYPE_, class SCALE_TYPE_, bool transpose_ = false>
+template <bool combine_, class ROW_INDEX_DTYPE_, class TILING_TYPE_, class SCALE_TYPE_, bool groupListType_ = false,
+          bool sharedInputIsNone_ = false, bool transpose_ = false>
 struct Param {
     static const bool combine = combine_;
     using ROW_INDEX_DTYPE = ROW_INDEX_DTYPE_;
     using TILING_TYPE = TILING_TYPE_;
     using SCALE_TYPE = SCALE_TYPE_;
+    static const bool groupListType = groupListType_;
     static const bool transpose = transpose_;
+    static const bool sharedInputIsNone = sharedInputIsNone_;
 };
 
 template <typename T>
@@ -81,6 +84,7 @@ public:
 
 private:
     __aicore__ inline void PreProcess();
+    __aicore__ inline void PreProcessInit();
     __aicore__ inline void InitUbBuffer();
     __aicore__ inline void InitOutputWithZeros(uint64_t offset, uint64_t size);
     __aicore__ inline void MMCompute(uint32_t groupIdx, MNConfig& mnConfig);
@@ -223,14 +227,26 @@ __aicore__ inline void QuantGroupMatmul<P>::InitOutputWithZeros(uint64_t offset,
 }
 
 template <class P>
-__aicore__ inline void QuantGroupMatmul<P>::PreProcess() {
+__aicore__ inline void QuantGroupMatmul<P>::PreProcessInit() {
+    // 从0到sharedInput起始地址初始化为0
     if (tiling->sharedInputOffset > 0) {
         InitOutputWithZeros(0, tiling->n * tiling->sharedInputOffset);
     }
+    // 初始化sharedInput地址
     uint64_t tail = tiling->sharedInputOffset + tiling->sharedInputLen;
     if (tail < tiling->batch) {
         InitOutputWithZeros(tail * tiling->n, tiling->n * (tiling->batch - tail));
     }
+}
+
+template <class P>
+__aicore__ inline void QuantGroupMatmul<P>::PreProcess() {
+    if (!P::combine || P::sharedInputIsNone || tiling->scatterAdd == 0) {
+        InitOutputWithZeros(0, tiling->n * tiling->batch);
+        return;
+    }
+    PreProcessInit();
+    // sharedInput总输出
     uint64_t totalOutput = static_cast<uint64_t>(tiling->n) * tiling->sharedInputLen;
     uint64_t singeCount = Ceil(totalOutput, uint32_t(GetBlockNum() * GetTaskRation()));
     singeCount = Ceil(singeCount, tiling->ubCalSize) * tiling->ubCalSize;
@@ -259,6 +275,7 @@ __aicore__ inline void QuantGroupMatmul<P>::PreProcess() {
         vecInQueue.FreeTensor(residualLocal);
         PipeBarrier<PIPE_V>();
         LocalTensor<DTYPE_OUT> yLocal = vecOutQueue.AllocTensor<DTYPE_OUT>();
+        // 缩放sharedInput
         Muls(yLocal, dequantMiddleResult, tiling->residualScale, curCount);
         vecOutQueue.EnQue(yLocal);
 
@@ -273,10 +290,8 @@ template <class P>
 __aicore__ inline void QuantGroupMatmul<P>::Process()
 {
     if ASCEND_IS_AIV {
-        if (P::combine && tiling->scatterAdd) {
-            PreProcess();
-            SyncAll();
-        }
+        PreProcess();
+        SyncAll();
     }
     MNConfig mnConfig;
     SyncConfig syncConfig;
@@ -293,6 +308,9 @@ __aicore__ inline void QuantGroupMatmul<P>::Process()
         uint32_t m = static_cast<uint32_t>(groupTokensGm.GetValue(groupIdx));
         if (m <= 0) {
             continue;
+        }
+        if constexpr (P::groupListType){
+            m -= mnConfig.offsetM;
         }
         mnConfig.m = static_cast<uint32_t>(m);
         mnConfig.blockDimM = Ceil(mnConfig.m, mnConfig.singleM);
@@ -617,9 +635,14 @@ __aicore__ inline void QuantGroupMatmul<P>::VectorSync(MNConfig& mnConfig, SyncC
     }
     while (mnConfig.curBlockM > syncConfig.lowBoundM) {
         while (syncConfig.curGroup < tiling->groupNum) {
-            uint32_t mi_ = static_cast<uint32_t>(groupTokensGm.GetValue(syncConfig.curGroup));
-            if (syncConfig.curGroupM + mi_ <= syncConfig.lowBoundM) {
-                syncConfig.curGroupM += mi_;
+            uint32_t mi = static_cast<uint32_t>(groupTokensGm.GetValue(syncConfig.curGroup));
+            if constexpr (P::groupListType){
+                if (syncConfig.curGroup > 0) {
+                    mi -= static_cast<uint32_t>(groupTokensGm.GetValue(syncConfig.curGroup - 1));
+                }
+            }
+            if (syncConfig.curGroupM + mi <= syncConfig.lowBoundM) {
+                syncConfig.curGroupM += mi;
                 syncConfig.curM = syncConfig.curGroupM;
                 syncConfig.curGroup++;
             } else {

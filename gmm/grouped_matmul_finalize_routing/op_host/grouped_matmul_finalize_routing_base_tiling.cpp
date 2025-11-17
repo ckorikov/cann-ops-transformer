@@ -63,6 +63,9 @@ constexpr uint32_t CV_PARALL_NUM = 4;
 constexpr uint32_t ONE_BLK_SIZE = 32;
 constexpr uint32_t ROW_INDEX_FACTOR = 10;
 constexpr uint32_t SCALE_FACTOR = 100;
+constexpr uint32_t SHARED_INPUT_FACTOR = 10000;
+constexpr uint32_t GROUP_LIST_TYPE_INDEX = 6;
+constexpr uint32_t GROUP_LIST_TYPE_FACTOR = 1000;
 
 constexpr uint32_t A8W4_L1OPT_MAX_K = 2048;
 constexpr uint32_t A8W4_L1OPT_SMALLM_BASE_M = 96;
@@ -133,11 +136,12 @@ ge::graphStatus GroupedMatmulFinalizeRoutingBaseTiling::ParseAttr()
     auto attrs = context_->GetAttrs();
     OP_CHECK_NULL_WITH_CONTEXT(context_, attrs);
 
-    if (attrs->GetAttrPointer<int>(SHARED_INPUT_OFFSET_INDEX) != nullptr) {
+    // 存在sharedInput为空的情况
+    if (context_->GetOptionalInputDesc(SHARE_INPUT_INDEX) != nullptr &&
+        attrs->GetAttrPointer<int>(SHARED_INPUT_OFFSET_INDEX) != nullptr) {
         sharedInputOffset_ = *attrs->GetAttrPointer<int>(SHARED_INPUT_OFFSET_INDEX);
     } else {
-        OP_LOGE(context_->GetNodeName(), "Attr SHARED_INPUT is None.");
-        return ge::GRAPH_FAILED;
+        sharedInputOffset_ = 0;
     }
     
     if (attrs->GetAttrPointer<float>(1) != nullptr) {
@@ -374,12 +378,8 @@ ge::graphStatus GroupedMatmulFinalizeRoutingBaseTiling::W8A8TilingProcess()
         return ge::GRAPH_FAILED;
     }
 
-    // 区分share_input logit为空
-    if (context_->GetOptionalInputDesc(SHARE_INPUT_INDEX) == nullptr && context_->GetOptionalInputDesc(LOGIT_INDEX) == nullptr) {
-        scatterAdd_ = 0; //支持scatter Add
-    } else {
-        scatterAdd_ = 1;
-    }
+    // logit 和 sharedInput 联动参数, 暂时赋值为1
+    scatterAdd_ = 1;
     
     // row_index类型
     auto rowIndexDesc = context_->GetOptionalInputDesc(ROW_INDEX_INDEX);
@@ -399,6 +399,18 @@ ge::graphStatus GroupedMatmulFinalizeRoutingBaseTiling::W8A8TilingProcess()
 
     workspaceSize_ = userWorkspaceSize + systemWorkspaceSize;
     return ge::GRAPH_SUCCESS;
+}
+
+void GroupedMatmulFinalizeRoutingBaseTiling::OtherSettingTilingProcess()
+{
+    // 判断sharedInput是否为空
+    if (context_->GetOptionalInputDesc(SHARE_INPUT_INDEX) == nullptr) {
+        tilingKey_ += SHARED_INPUT_FACTOR;
+    }
+    auto attrs = context_->GetAttrs();
+    if (*attrs->GetAttrPointer<int64_t>(GROUP_LIST_TYPE_INDEX) == 0) {
+        tilingKey_ += GROUP_LIST_TYPE_FACTOR;
+    }
 }
 
 void GroupedMatmulFinalizeRoutingBaseTiling::DeterministicTilingProcess()
@@ -502,12 +514,13 @@ ge::graphStatus GroupedMatmulFinalizeRoutingBaseTiling::DoOpTiling()
     }
 
     DeterministicTilingProcess();
+    OtherSettingTilingProcess();
 
     FillTilingData();
     if (inputXDesc->GetDataType() == ge::DT_INT8 && inputWDesc->GetDataType() == ge::DT_INT4 && useL1OptKernel_) {
         FillTilingDataL1Opt();
     }
-    PrintTilingData();    
+    PrintTilingData();
 
     return ge::GRAPH_SUCCESS;
 }

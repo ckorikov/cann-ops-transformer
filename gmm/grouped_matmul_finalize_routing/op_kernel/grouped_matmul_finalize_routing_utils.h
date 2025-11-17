@@ -55,14 +55,18 @@ struct SyncConfig {
     uint64_t baseN = 0;     // Finalize Routing BaseN
 };
 
-template<class AT_, class BT_, class CT_, class BiasT_, const auto& MM_CFG = CFG_MDL>
+template<class AT_, class BT_, class CT_, class BiasT_, const auto& MM_CFG = CFG_MDL,
+         bool groupListType_ = false, bool sharedInputIsNone_ = false>
 struct MMImplType {
   using AT = AT_;
   using BT = BT_;
   using CT = CT_;
   using BiasT = BiasT_;
   using MT = matmul::MatmulImpl<AT, BT, CT, BiasT, MM_CFG>;
+  static const bool groupListType = groupListType_;
+  static const bool sharedInputIsNone = sharedInputIsNone_;
 };
+
 
 struct DataCopy2DDimParams {
     uint32_t dim1;

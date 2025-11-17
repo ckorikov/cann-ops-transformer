@@ -568,7 +568,7 @@ static inline bool CheckShape(GroupedMatmulParams &params)
     OP_CHECK(outNDim == x2NDim, OP_LOGE(ACLNN_ERR_PARAM_INVALID,
         "Out 2nd dim should be equal to weight NDim, but out 2nd dim is %ld, weight NDim is %ld.", outNDim, x2NDim), return false);
     OP_CHECK(shareInputOffset >= 0, OP_LOGE(ACLNN_ERR_PARAM_INVALID, "sharedInputOffset should bigger than or equal to 0"), return false);
-    OP_CHECK(groupListType == 1, OP_LOGE(ACLNN_ERR_PARAM_INVALID, "groupListType is 1, but is %ld", groupListType), return false);
+    OP_CHECK(groupListType == 0 || groupListType == 1, OP_LOGE(ACLNN_ERR_PARAM_INVALID, "groupListType should be 0 or 1, but is %ld", groupListType), return false);
 
     CHECK_RET(CheckDimValue(params, x2EDim, x2NDim, x1MDim, outputBS, shareInputOffset, isWeightInt4), false);
 
@@ -807,7 +807,9 @@ static aclnnStatus aclnnGroupedMatmulFinalizeRoutingGetWorkspaceSizeCommonProces
     auto ret = PreMatmulCalcProcess(params, executor);
     CHECK_RET(ret == ACLNN_SUCCESS, ret);
     // shareInput格式转换
-    CHECK_RET(TensorContiguousProcess(params.shareInput, executor), ACLNN_ERR_INNER_NULLPTR);
+    if (params.shareInput != nullptr) {
+        CHECK_RET(TensorContiguousProcess(params.shareInput, executor), ACLNN_ERR_INNER_NULLPTR);
+    }
     CHECK_RET(TensorContiguousProcess(params.x1, executor), ACLNN_ERR_INNER_NULLPTR);
     if (ge::GetPrimaryFormat(params.x2->GetStorageFormat()) != op::Format::FORMAT_FRACTAL_NZ) {
         CHECK_RET(TensorContiguousProcess(params.x2, executor), ACLNN_ERR_INNER_NULLPTR);
@@ -930,13 +932,11 @@ static inline aclnnStatus CheckWeightNzFormat(const aclTensor *x1, const aclTens
 
 static inline aclnnStatus CheckSupportScene(const CheckSupportSceneParams& params, bool transposeX, bool transposeW)
 {
-    auto scene1 = params.x != nullptr && params.w != nullptr && params.scaleOptional != nullptr &&
-        params.groupListOptional != nullptr && params.sharedInputOptional != nullptr && params.logitOptional != nullptr &&
-        params.rowIndexOptional != nullptr;
-    auto scene2 = params.x != nullptr && params.w != nullptr && params.scaleOptional != nullptr &&
-        params.groupListOptional != nullptr && params.sharedInputOptional == nullptr && params.logitOptional == nullptr &&
-        params.rowIndexOptional != nullptr;
-    if (!(scene1 || scene2)) {
+    // 支持sharedInput和logit输入为空
+    auto scene = params.x != nullptr && params.w != nullptr && params.scaleOptional != nullptr &&
+        params.groupListOptional != nullptr && params.rowIndexOptional != nullptr;
+
+    if (!scene) {
         OP_LOGE(ACLNN_ERR_PARAM_NULLPTR, "GroupedMatmulFinalizeRoutingWeightNz do not support input nullptr.");
         return ACLNN_ERR_PARAM_NULLPTR;
     }
@@ -1110,9 +1110,9 @@ aclnnStatus aclnnGroupedMatmulFinalizeRoutingGetWorkspaceSize(const aclTensor *x
     L2_DFX_PHASE_1(aclnnGroupedMatmulFinalizeRouting,
         DFX_IN(x1, x2, scale, bias, pertokenScaleOptional, groupList, sharedInput, logit, rowIndex, dtype,
         sharedInputWeight, sharedInputOffset, transposeX1, transposeX2, groupListType), DFX_OUT(out));
-    auto scene1 = x1 != nullptr && x2 != nullptr && scale != nullptr && pertokenScaleOptional != nullptr &&
-        groupList != nullptr && sharedInput != nullptr && logit != nullptr && rowIndex != nullptr && bias != nullptr;
-    if (!(scene1)) {
+    auto scene = x1 != nullptr && x2 != nullptr && scale != nullptr && pertokenScaleOptional != nullptr &&
+        groupList != nullptr && logit != nullptr && rowIndex != nullptr && bias != nullptr;
+    if (!(scene)) {
         OP_LOGE(ACLNN_ERR_PARAM_NULLPTR, "GroupedMatmulFinalizeRouting weightNd do not support input nullptr.");
         return ACLNN_ERR_PARAM_NULLPTR;
     }
@@ -1179,10 +1179,10 @@ aclnnStatus aclnnGroupedMatmulFinalizeRoutingV2GetWorkspaceSize(const aclTensor 
     L2_DFX_PHASE_1(aclnnGroupedMatmulFinalizeRoutingV2,
         DFX_IN(x1, x2, scaleOptional, biasOptional, pertokenScaleOptional, groupListOptional, sharedInputOptional, logitOptional, rowIndexOptional, dtype,
         sharedInputWeight, sharedInputOffset, transposeX1, transposeX2, groupListType), DFX_OUT(out));
-    auto scene1 = x1 != nullptr && x2 != nullptr && scaleOptional != nullptr && pertokenScaleOptional != nullptr &&
-        groupListOptional != nullptr && sharedInputOptional != nullptr && logitOptional != nullptr && rowIndexOptional != nullptr && biasOptional != nullptr
+    auto scene = x1 != nullptr && x2 != nullptr && scaleOptional != nullptr && pertokenScaleOptional != nullptr &&
+        groupListOptional != nullptr && logitOptional != nullptr && rowIndexOptional != nullptr && biasOptional != nullptr
         && antiquantScaleOptional == nullptr && antiquantOffsetOptional == nullptr;
-    if (!(scene1)) {
+    if (!(scene)) {
         OP_LOGE(ACLNN_ERR_PARAM_NULLPTR, "GroupedMatmulFinalizeRoutingV2 weightNd do not support input nullptr.");
         return ACLNN_ERR_PARAM_NULLPTR;
     }
@@ -1247,10 +1247,10 @@ aclnnStatus aclnnGroupedMatmulFinalizeRoutingV3GetWorkspaceSize(const aclTensor 
     L2_DFX_PHASE_1(aclnnGroupedMatmulFinalizeRoutingV3,
         DFX_IN(x1, x2, scaleOptional, biasOptional, pertokenScaleOptional, groupListOptional, sharedInputOptional, logitOptional, rowIndexOptional, dtype,
         sharedInputWeight, sharedInputOffset, transposeX1, transposeX2, groupListType), DFX_OUT(out));
-    auto scene1 = x1 != nullptr && x2 != nullptr && scaleOptional != nullptr && groupListOptional != nullptr && pertokenScaleOptional != nullptr &&
-        sharedInputOptional != nullptr && logitOptional != nullptr && rowIndexOptional != nullptr && biasOptional != nullptr
+    auto scene = x1 != nullptr && x2 != nullptr && scaleOptional != nullptr && groupListOptional != nullptr && pertokenScaleOptional != nullptr &&
+        logitOptional != nullptr && rowIndexOptional != nullptr && biasOptional != nullptr
         && antiquantScaleOptional == nullptr && antiquantOffsetOptional == nullptr;
-    if (!(scene1)) {
+    if (!(scene)) {
         OP_LOGE(ACLNN_ERR_PARAM_NULLPTR, "aclnnGroupedMatmulFinalizeRoutingV3 weightNd do not support input nullptr.");
         return ACLNN_ERR_PARAM_NULLPTR;
     }

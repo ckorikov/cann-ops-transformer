@@ -41,6 +41,7 @@ private:
     __aicore__ inline void InitMMBuffer();
     __aicore__ inline void InitUbBuffer();
     __aicore__ inline void PreProcess();
+    __aicore__ inline void PreProcessInit();
     __aicore__ inline void InitOutputWithZeros(uint64_t offset, uint64_t size);
     __aicore__ inline void CopyInA1(uint64_t xOffset, uint32_t row, uint32_t col, LocalTensor<int4b_t> a1Local);
     __aicore__ inline void MMComputeSingleN(uint32_t groupIdx, MNConfig& mnConfig,
@@ -187,33 +188,27 @@ __aicore__ inline void GMMA8W4MSDL1OptCompute<mmType>::InitUbBuffer()
     scaleCalBuffer = tmpBuff.GetWithOffset<float>(tiling->ubCalSize, 0);
 }
 
-template <class P>
-__aicore__ inline void GMMA8W4MSDL1OptCompute<P>::InitOutputWithZeros(uint64_t offset, uint64_t size) {
+template <typename mmType>
+__aicore__ inline void GMMA8W4MSDL1OptCompute<mmType>::InitOutputWithZeros(uint64_t offset, uint64_t size) {
     uint64_t singelCount = Ceil(size, uint32_t(GetBlockNum() * GetTaskRation()));
     singelCount = Ceil(singelCount, 512) * 512;
-    uint64_t baseOffset = GetBlockIdx() * singelCount;
-    if (baseOffset >= size) {
+    uint64_t baseOffsetL1Opt = GetBlockIdx() * singelCount;
+    if (baseOffsetL1Opt >= size) {
         return;
     }
-    if (baseOffset + singelCount > size) {
-        singelCount = size - baseOffset;
+    if (baseOffsetL1Opt + singelCount > size) {
+        singelCount = size - baseOffsetL1Opt;
     }
-    baseOffset += offset;
+    baseOffsetL1Opt += offset;
 
     uint64_t times = (singelCount + UINT32_MAX - uint32_t(1)) / UINT32_MAX;
     for (uint32_t i = 0; i < times; i++) {
-        InitOutput<DTYPE_OUT>(yGm[baseOffset + (i * UINT32_MAX)], singelCount - (i * UINT32_MAX), 0);
+        InitOutput<DTYPE_OUT>(yGm[baseOffsetL1Opt + (i * UINT32_MAX)], singelCount - (i * UINT32_MAX), 0);
     }
 }
 
 template <typename mmType>
-__aicore__ inline void GMMA8W4MSDL1OptCompute<mmType>::PreProcess() {
-    uint64_t totalOutput = (static_cast<uint64_t>(tiling->n)) * tiling->sharedInputLen;
-    uint64_t singeCount = Ceil(totalOutput, uint32_t(GetBlockNum() * GetTaskRation()));
-    uint64_t baseOffset;
-    uint64_t outOffset;
-    uint64_t curCount = tiling->ubCalSize;
-
+__aicore__ inline void GMMA8W4MSDL1OptCompute<mmType>::PreProcessInit() {
     if (tiling->sharedInputOffset > 0) {
         InitOutputWithZeros(0, (static_cast<uint64_t>(tiling->n)) * tiling->sharedInputOffset);
     }
@@ -221,6 +216,20 @@ __aicore__ inline void GMMA8W4MSDL1OptCompute<mmType>::PreProcess() {
     if (tail < tiling->batch) {
         InitOutputWithZeros(tail * (static_cast<uint64_t>(tiling->n)), tiling->n * (tiling->batch - tail));
     }
+}
+
+template <typename mmType>
+__aicore__ inline void GMMA8W4MSDL1OptCompute<mmType>::PreProcess() {
+    if constexpr (mmType::sharedInputIsNone) {
+        InitOutputWithZeros(0, tiling->n * tiling->batch);
+        return;
+    }
+    PreProcessInit();
+    uint64_t totalOutput = (static_cast<uint64_t>(tiling->n)) * tiling->sharedInputLen;
+    uint64_t singeCount = Ceil(totalOutput, uint32_t(GetBlockNum() * GetTaskRation()));
+    uint64_t baseOffset;
+    uint64_t outOffset;
+    uint64_t curCount = tiling->ubCalSize;
 
     singeCount = Ceil(singeCount, tiling->ubCalSize) * tiling->ubCalSize;
     baseOffset = GetBlockIdx() * singeCount;
@@ -280,6 +289,9 @@ __aicore__ inline void GMMA8W4MSDL1OptCompute<mmType>::Process()
         int32_t m = static_cast<int32_t>(groupTokensGm.GetValue(groupIdx));
         if (m <= 0) {
             continue;
+        }
+        if constexpr (mmType::groupListType) {
+            m -= mnConfig.offsetM / 2;
         }
         mnConfig.m = static_cast<uint32_t>(m) * 2;      // 2: int8 has been split in 2 int4
         mnConfig.blockDimM = Ceil(mnConfig.m, mnConfig.singleM);
