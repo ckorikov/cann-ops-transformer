@@ -68,7 +68,7 @@ using namespace AttentionCommon;
 
 template<uint8_t Q_T, uint8_t KV_T, uint8_t OUT_T, uint8_t PAGE_ATTENTIOND, uint8_t LAYOUT_T, uint16_t KV_LAYOUT_T, uint16_t FLASH_DECODE, uint8_t ENABLE_PREFIX,
             uint8_t M_Q_QUANTMODE_P_MSD_MODE_I_ANTIQUANTMODE, uint8_t M_OUTLAYOUT_P_TAIL_MODE_I_ORIGIN_T, uint8_t M_K_QUANTMODE_P_NEWTILINGFLAH_I_AMLA, uint8_t M_V_QUANTMODE_P_PRECISION_MODE_I_BALANCE,
-            uint8_t M_FIAFLAG_P_MMTYPETMP_I_MODEVAL, uint8_t P_CVDIFF_BASE_FLAG, uint8_t P_CVDIFF_MLA_FLAG, uint8_t P_TEMPLATE_VERSION, uint8_t TEMPLATE_MODE>
+            uint8_t M_FIAFLAG_P_MMTYPETMP_I_MODEVAL, uint8_t M_TEMPLATE_TYPE_P_CVDIFF_BASE_FLAG, uint8_t M_SOFTMAXBRCB_P_CVDIFF_MLA_FLAG, uint8_t P_TEMPLATE_VERSION, uint8_t TEMPLATE_MODE>
 __global__ __aicore__ void fused_infer_attention(
     __gm__ uint8_t *query, __gm__ uint8_t *key, __gm__ uint8_t *value, __gm__ uint8_t *pseShift,
     __gm__ uint8_t *attenMask, __gm__ uint8_t *actualSeqLengthsQ, __gm__ uint8_t *actualSeqLengths,
@@ -96,13 +96,27 @@ __global__ __aicore__ void fused_infer_attention(
     KERNEL_TASK_TYPE_DEFAULT(KERNEL_TYPE_MIX_AIC_1_2);
 
 #if (ORIG_DTYPE_QUERY == DT_FLOAT16) && (ORIG_DTYPE_ATTENTION_OUT == DT_FLOAT16) && (ORIG_DTYPE_KEY == DT_FLOAT16)
-    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, half, half, half, half, PAGE_ATTENTIOND, FLASH_DECODE,
-            static_cast<FIA_LAYOUT>(LAYOUT_T), M_Q_QUANTMODE_P_MSD_MODE_I_ANTIQUANTMODE, ENABLE_PREFIX, static_cast<FIA_LAYOUT>(KV_LAYOUT_T));
+    #if (M_TEMPLATE_TYPE_P_CVDIFF_BASE_FLAG == 5)
+        INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, half, half, half, half, PAGE_ATTENTIOND, FLASH_DECODE,
+                static_cast<FIA_LAYOUT>(LAYOUT_T), M_Q_QUANTMODE_P_MSD_MODE_I_ANTIQUANTMODE, ENABLE_PREFIX, static_cast<FIA_LAYOUT>(KV_LAYOUT_T));
+    #elif (M_TEMPLATE_TYPE_P_CVDIFF_BASE_FLAG == 3) && (M_SOFTMAXBRCB_P_CVDIFF_MLA_FLAG == 0)
+        INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, PAGE_ATTENTIOND, FLASH_DECODE,
+                static_cast<FIA_LAYOUT>(LAYOUT_T), M_Q_QUANTMODE_P_MSD_MODE_I_ANTIQUANTMODE, ENABLE_PREFIX, static_cast<FIA_LAYOUT>(KV_LAYOUT_T), false);
+    #elif (M_TEMPLATE_TYPE_P_CVDIFF_BASE_FLAG == 3) && (M_SOFTMAXBRCB_P_CVDIFF_MLA_FLAG == 4)
+        INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, PAGE_ATTENTIOND, FLASH_DECODE,
+                static_cast<FIA_LAYOUT>(LAYOUT_T), M_Q_QUANTMODE_P_MSD_MODE_I_ANTIQUANTMODE, ENABLE_PREFIX, static_cast<FIA_LAYOUT>(KV_LAYOUT_T), true);
 #endif
 
 #if (ORIG_DTYPE_QUERY == DT_BF16) && (ORIG_DTYPE_ATTENTION_OUT == DT_BF16) && (ORIG_DTYPE_KEY == DT_BF16)
-    INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, bfloat16_t, bfloat16_t, bfloat16_t, bfloat16_t, PAGE_ATTENTIOND, FLASH_DECODE,
-            static_cast<FIA_LAYOUT>(LAYOUT_T), M_Q_QUANTMODE_P_MSD_MODE_I_ANTIQUANTMODE, ENABLE_PREFIX, static_cast<FIA_LAYOUT>(KV_LAYOUT_T));
+    #if (M_TEMPLATE_TYPE_P_CVDIFF_BASE_FLAG == 5)
+        INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, bfloat16_t, bfloat16_t, bfloat16_t, bfloat16_t, PAGE_ATTENTIOND, FLASH_DECODE,
+                static_cast<FIA_LAYOUT>(LAYOUT_T), M_Q_QUANTMODE_P_MSD_MODE_I_ANTIQUANTMODE, ENABLE_PREFIX, static_cast<FIA_LAYOUT>(KV_LAYOUT_T));
+    #elif (M_TEMPLATE_TYPE_P_CVDIFF_BASE_FLAG == 3) && (M_SOFTMAXBRCB_P_CVDIFF_MLA_FLAG == 0)
+        INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, bfloat16_t, bfloat16_t, bfloat16_t, bfloat16_t, PAGE_ATTENTIOND, FLASH_DECODE,
+                static_cast<FIA_LAYOUT>(LAYOUT_T), M_Q_QUANTMODE_P_MSD_MODE_I_ANTIQUANTMODE, ENABLE_PREFIX, static_cast<FIA_LAYOUT>(KV_LAYOUT_T), false);
+    #elif (M_TEMPLATE_TYPE_P_CVDIFF_BASE_FLAG == 3) && (M_SOFTMAXBRCB_P_CVDIFF_MLA_FLAG == 4)
+        INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, bfloat16_t, bfloat16_t, bfloat16_t, bfloat16_t, PAGE_ATTENTIOND, FLASH_DECODE,
+                static_cast<FIA_LAYOUT>(LAYOUT_T), M_Q_QUANTMODE_P_MSD_MODE_I_ANTIQUANTMODE, ENABLE_PREFIX, static_cast<FIA_LAYOUT>(KV_LAYOUT_T), true);
 #endif
 
 #endif
