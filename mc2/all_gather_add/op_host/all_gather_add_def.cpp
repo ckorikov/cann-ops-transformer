@@ -42,7 +42,6 @@ class AllGatherAdd : public OpDef {
 
     this->Attr("group").AttrType(REQUIRED).String(); // 通算融合算子属性，表示通信域名称
     this->Attr("rank_size").AttrType(OPTIONAL).Int(0);
-    this->Attr("is_gather_out").AttrType(OPTIONAL).Bool(true);
 
     OpAICoreConfig aicoreConfig;
     aicoreConfig.DynamicCompileStaticFlag(true)

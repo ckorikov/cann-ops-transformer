@@ -107,7 +107,7 @@ struct Args {
     aclrtStream stream;
   };
 
-int launchOneThread_AllGatherAdd(Args &args)
+int launchOneThread_AllGatherAdd(Args &args, TestData &testData)
 {
     int ret = aclrtSetDevice(args.rankId);
     CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("[ERROR] aclrtSetDevice failed. ret = %d \n", ret); return ret);
@@ -148,9 +148,9 @@ int launchOneThread_AllGatherAdd(Args &args)
     CHECK_RET(ret == ACL_SUCCESS, return ret);
     ret = CreateAclTensor(bHostData, bShape, &bDeviceAddr, aclDataType::ACL_FLOAT16, &b);
     CHECK_RET(ret == ACL_SUCCESS, return ret);
-    ret = CreateAclTensor(outHostData, outputShape, &outDeviceAddr, aclDataType::ACL_FLOAT16, &out);
+    ret = CreateAclTensor(outHostData, bShape, &outDeviceAddr, aclDataType::ACL_FLOAT16, &out);
     CHECK_RET(ret == ACL_SUCCESS, return ret);
-    ret = CreateAclTensor(gatherOutHostData, gatherOutShape, &gatherOutDeviceAddr,
+    ret = CreateAclTensor(gatherOutHostData, bShape, &gatherOutDeviceAddr,
         aclDataType::ACL_FLOAT16, &gatherOut);
     CHECK_RET(ret == ACL_SUCCESS, return ret);
 
@@ -297,7 +297,7 @@ int main(int argc, char *argv[])
 
         std::vector<op::fp16_t>(bShapeSize, 0.0f), // gatherOut
         std::vector<op::fp16_t>(bShapeSize, 0.0f), // rank0_c
-        std::vector<op::fp16_t>(bShapeSize, 0.0f), // rank1_c
+        std::vector<op::fp16_t>(bShapeSize, 0.0f) // rank1_c
     };
     int ret = GenerateTestData(testData);
     CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("[ERROR] GenerateTestData failed. ret = %d \n", ret);  return ret);
