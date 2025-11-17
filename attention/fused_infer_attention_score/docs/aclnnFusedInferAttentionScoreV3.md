@@ -1091,14 +1091,14 @@ aclnnStatus aclnnFusedInferAttentionScoreV3(
   - kv伪量化参数分离：
 
     - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：
-    - keyAntiquantMode 和 valueAntiquantMode需要保持一致
-    - keyAntiquantScale 和 valueAntiquantScale要么都为空，要么都不为空；keyAntiquantOffset 和 valueAntiquantOffset要么都为空，要么都不为空
-    - KeyAntiquantScale 和valueAntiquantScale都不为空时，其shape需要保持一致；keyAntiquantOffset 和 valueAntiquantOffset都不为空时，其shape需要保持一致
-    - 仅支持per-token和per-channel模式，per-token模式下要求两个参数的shape均为\(B, S\)，数据类型固定为FLOAT32；per-channel模式下要求两个参数的shape为(N, D\)，(N, 1, D\)或(H\)，数据类型固定为BF16。
-    - 当伪量化参数 和 KV分离量化参数同时传入时，以KV分离量化参数为准。
-    - keyAntiquantScale与valueAntiquantScale非空场景，要求query的s小于等于16。
-    - keyAntiquantScale与valueAntiquantScale非空场景，要求query的dtype为BFLOAT16,key、value的dtype为INT8，输出的dtype为BFLOAT16。
-    - keyAntiquantScale与valueAntiquantScale非空场景，不支持tensorlist、左padding、page attention特性。
+      - keyAntiquantMode 和 valueAntiquantMode需要保持一致
+      - keyAntiquantScale 和 valueAntiquantScale要么都为空，要么都不为空；keyAntiquantOffset 和 valueAntiquantOffset要么都为空，要么都不为空
+      - KeyAntiquantScale 和valueAntiquantScale都不为空时，其shape需要保持一致；keyAntiquantOffset 和 valueAntiquantOffset都不为空时，其shape需要保持一致
+      - 仅支持per-token和per-channel模式，per-token模式下要求两个参数的shape均为\(B, S\)，数据类型固定为FLOAT32；per-channel模式下要求两个参数的shape为(N, D\)，(N, 1, D\)或(H\)，数据类型固定为BF16。
+      - 当伪量化参数 和 KV分离量化参数同时传入时，以KV分离量化参数为准。
+      - keyAntiquantScale与valueAntiquantScale非空场景，要求query的s小于等于16。
+      - keyAntiquantScale与valueAntiquantScale非空场景，要求query的dtype为BFLOAT16,key、value的dtype为INT8，输出的dtype为BFLOAT16。
+      - keyAntiquantScale与valueAntiquantScale非空场景，不支持tensorlist、左padding、page attention特性。
   
 
 - **当Q_S等于1时**：
