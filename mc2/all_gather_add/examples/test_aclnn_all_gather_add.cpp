@@ -248,7 +248,7 @@ int GatherVectors(std::vector<op::fp16_t> &vec1, std::vector<op::fp16_t> &vec2, 
     vec3.clear();
     vec3.reserve(vec1.size() + vec2.size());
     vec3.insert(vec3.end(), vec1.begin(), vec1.end());
-    vec3.insert(vec3.end(), vec2.begin(), vec2.end())
+    vec3.insert(vec3.end(), vec2.begin(), vec2.end());
     return 0;
 }
 
@@ -268,11 +268,11 @@ int GenerateTestData(TestData &testData)
     // 随机生成输入
     int ret = RandomVectorGenerator(testData.rank0_a, testData.rank0_a.size());
     CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("[ERROR] RandomVectorGenerate rank0_a failed. ret = %d \n", ret);  return ret);
-    int ret = RandomVectorGenerator(testData.rank0_b, testData.rank0_b.size());
+    ret = RandomVectorGenerator(testData.rank0_b, testData.rank0_b.size());
     CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("[ERROR] RandomVectorGenerate rank0_b failed. ret = %d \n", ret);  return ret);
-    int ret = RandomVectorGenerator(testData.rank1_a, testData.rank1_a.size());
+    ret = RandomVectorGenerator(testData.rank1_a, testData.rank1_a.size());
     CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("[ERROR] RandomVectorGenerate rank1_a failed. ret = %d \n", ret);  return ret);
-    int ret = RandomVectorGenerator(testData.rank1_b, testData.rank1_b.size());
+    ret = RandomVectorGenerator(testData.rank1_b, testData.rank1_b.size());
     CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("[ERROR] RandomVectorGenerate rank1_b failed. ret = %d \n", ret);  return ret);
     
     // 计算golden数据
