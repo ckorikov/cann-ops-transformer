@@ -4,7 +4,7 @@
 
 |产品      | 是否支持 |
 |:----------------------------|:-----------:|
-|<term>昇腾910_95 AI处理器</term>|      ×     |
+|<term>昇腾910_95 AI处理器</term>|      √     |
 |<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>|      ×     |
 |<term>Atlas A2 训练系列产品</term>|      √     |
 |<term>Atlas 800I A2 推理产品</term>|      ×     |
@@ -86,28 +86,28 @@
       <td>query</td>
       <td>输入</td>
       <td>公式中的输入Q。</td>
-      <td>BFLOAT16、FLOAT16、FLOAT</td>
+      <td>FLOAT8_E5M2、FLOAT8_E4M3FN、FLOAT16、BFLOAT16、FLOAT32</td>
       <td>ND</td>
     </tr>
     <tr>
       <td>key</td>
       <td>输入</td>
       <td>公式中的输入K。</td>
-      <td>BFLOAT16、FLOAT16、FLOAT</td>
+      <td>FLOAT8_E5M2、FLOAT8_E4M3FN、FLOAT16、BFLOAT16、FLOAT32</td>
       <td>ND</td>
     </tr>
     <tr>
       <td>value</td>
       <td>输入</td>
       <td>公式中的输入V。</td>
-      <td>BFLOAT16、FLOAT16、FLOAT</td>
+      <td>FLOAT8_E5M2、FLOAT8_E4M3FN、FLOAT16、BFLOAT16、FLOAT32</td>
       <td>ND</td>
     </tr>
     <tr>
       <td>dy</td>
       <td>输入</td>
       <td>公式中的输入dY。</td>
-      <td>BFLOAT16、FLOAT16、FLOAT</td>
+      <td>FLOAT8_E5M2、FLOAT8_E4M3FN、FLOAT16、BFLOAT16、FLOAT32</td>
       <td>ND</td>
     </tr>
     <tr>
@@ -135,21 +135,84 @@
       <td>softmaxMaxOptional</td>
       <td>可选输入</td>
       <td>注意力正向计算的中间输出，参与反向公式P的计算。</td>
-      <td>FLOAT</td>
+      <td>FLOAT32</td>
       <td>ND</td>
     </tr>
     <tr>
       <td>softmaxSumOptional</td>
       <td>可选输入</td>
       <td>注意力正向计算的中间输出，参与反向公式P的计算。</td>
-      <td>FLOAT</td>
+      <td>FLOAT32</td>
       <td>ND</td>
+    </tr>
+    <tr>
+      <td>softmaxInOptional</td>
+      <td>可选输入</td>
+      <td>注意力正向计算的中间输出，预留参数暂未使用。</td>
+      <td>-</td>
+      <td>-</td>
     </tr>
     <tr>
       <td>attentionInOptional</td>
       <td>可选输入</td>
       <td>注意力正向计算的最终输出，公式中的Y。</td>
-      <td>BFLOAT16、FLOAT16、FLOAT</td>
+      <td>FLOAT8_E5M2、FLOAT8_E4M3FN、FLOAT16、BFLOAT16、FLOAT32</td>
+      <td>ND</td>
+    </tr>
+    <tr>
+      <td>dScaleQOptional</td>
+      <td>可选输入</td>
+      <td>query输入的反量化参数</td>
+      <td>FLOAT32</td>
+      <td>ND</td>
+    </tr>
+    <tr>
+      <td>dScaleKOptional</td>
+      <td>可选输入</td>
+      <td>key输入的反量化参数</td>
+      <td>FLOAT32</td>
+      <td>ND</td>
+    </tr>
+    <tr>
+      <td>dScaleVOptional</td>
+      <td>可选输入</td>
+      <td>value输入的反量化参数</td>
+      <td>FLOAT32</td>
+      <td>ND</td>
+    </tr>
+    <tr>
+      <td>dScaleDyOptional</td>
+      <td>可选输入</td>
+      <td>dy输入的反量化参数</td>
+      <td>FLOAT32</td>
+      <td>ND</td>
+    </tr>
+    <tr>
+      <td>dScaleOOptional</td>
+      <td>可选输入</td>
+      <td>attentionOptional输入的反量化参数</td>
+      <td>FLOAT32</td>
+      <td>ND</td>
+    </tr>
+    <tr>
+      <td>prefixOptional</td>
+      <td>可选属性</td>
+      <td>代表prefix稀疏计算场景每个Batch的N值</td>
+      <td>INT64</td>
+      <td>ND</td>
+    </tr>
+    <tr>
+      <td>actualSeqQLenOptional</td>
+      <td>输入</td>
+      <td>描述每个Batch对应的query S大小</td>
+      <td>INT64</td>
+      <td>ND</td>
+    </tr>
+    <tr>
+      <td>actualSeqKvLenOptional</td>
+      <td>输入</td>
+      <td>描述每个Batch对应的key/value S大小</td>
+      <td>INT64</td>
       <td>ND</td>
     </tr>
     <tr>
@@ -177,6 +240,48 @@
       <td>-</td>
     </tr>
     <tr>
+      <td>preTokensOptional</td>
+      <td>输入</td>
+      <td>用于稀疏计算的参数</td>
+      <td>INT64</td>
+      <td>ND</td>
+    </tr>
+    <tr>
+      <td>nextTokensOptional</td>
+      <td>输入</td>
+      <td>用于稀疏计算的参数</td>
+      <td>INT64</td>
+      <td>ND</td>
+    </tr>
+    <tr>
+      <td>headNum</td>
+      <td>输入</td>
+      <td>代表head个数</td>
+      <td>INT64</td>
+      <td>-</td>
+    </tr>
+    <tr>
+      <td>inputLayout</td>
+      <td>输入</td>
+      <td>代表输入query、keyIn、value的数据排布格式</td>
+      <td>char*</td>
+      <td>BSH、SBH、BSND、BNSD、TND</td>
+    </tr>
+    <tr>
+      <td>innerPreciseOptional</td>
+      <td>输入</td>
+      <td>预留参数暂未使用，调用时该参数需传空</td>
+      <td>-</td>
+      <td>-</td>
+    </tr>
+    <tr>
+      <td>sparseModeOptional</td>
+      <td>输入</td>
+      <td>表示sparse的模式</td>
+      <td>INT64</td>
+      <td>-</td>
+    </tr>
+    <tr>
       <td>pseType</td>
       <td>可选属性</td>
       <td>
@@ -189,33 +294,73 @@
       <td>-</td>
     </tr>
     <tr>
+      <td>seedOptional</td>
+      <td>输入</td>
+      <td>keepProbOptional小于1.0时，根据seedOptional和offsetOptional生成DropoutMask</td>
+      <td>INT64</td>
+      <td>-</td>
+    </tr>
+    <tr>
+      <td>offsetOptional</td>
+      <td>输入</td>
+      <td>-</td>
+      <td>INT64</td>
+      <td>-</td>
+    </tr>
+    <tr>
+      <td>outDtypeOptional</td>
+      <td>输入</td>
+      <td>为0表示dqOut等输出是FLOAT16类型，值为1表示dqOut等输出是BFLOAT16格式</td>
+      <td>INT64</td>
+      <td>-</td>
+    </tr>
+    <tr>
       <td>dqOut</td>
       <td>输出</td>
       <td>公式中的dQ，表示query的梯度。</td>
-      <td>BFLOAT16、FLOAT16、FLOAT</td>
+      <td>FLOAT16、BFLOAT16、FLOAT32</td>
       <td>ND</td>
     </tr>
     <tr>
       <td>dkOut</td>
       <td>输出</td>
       <td>公式中的dK，表示key的梯度。</td>
-      <td>BFLOAT16、FLOAT16、FLOAT</td>
+      <td>FLOAT16、BFLOAT16、FLOAT32</td>
       <td>ND</td>
     </tr>
     <tr>
       <td>dvOut</td>
       <td>输出</td>
       <td>公式中的dV，表示value的梯度。</td>
-      <td>BFLOAT16、FLOAT16、FLOAT</td>
+      <td>FLOAT16、BFLOAT16、FLOAT32</td>
       <td>ND</td>
+    </tr>
+    <tr>
+      <td>workspaceSize</td>
+      <td>输出参数</td>
+      <td>用户需要在Device侧申请的workspace大小。</td>
+      <td>-</td>
+      <td>-</td>
+    </tr>
+    <tr>
+      <td>executor</td>
+      <td>输出参数</td>
+      <td>op执行器，包含了算子计算流程。</td>
+      <td>-</td>
+      <td>-</td>
     </tr>
   </tbody>
 </table>
+<ul>
+  <li><term>Atlas训练产品</term>:不支持FLOAT8_E5M2、FLOAT8_E4M3FN。</li>
+  <li><term>Atlas训练产品</term>:不支持softmaxInOptional、dScaleQOptional、dScaleKOptional、dScaleVOptional、dScaleDyOptional、dScaleOOptional、innerPreciseOptional。
+  </li>
+</ul>
 
 ## 约束说明
 
 - 输入query、key、value、pseShiftOptional的数据类型必须一致。
-- 输入query、key、value、dy的inputLayout必须一致。
+- 输入query、key、value、dy的input_layout必须一致。
 - 关于数据shape的约束，以inputLayout的BSND、BNSD为例（BSH、SBH下H=N\*D），其中：
   -   B：取值范围为1\~2M。当prefixOptional的时候B最大支持2K。
   -   N：取值范围为1\~256。

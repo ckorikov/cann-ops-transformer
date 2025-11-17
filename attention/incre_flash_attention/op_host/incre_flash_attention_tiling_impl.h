@@ -29,7 +29,7 @@
 #include "incre_flash_attention_tiling_context.h"	
 #include "incre_flash_attention_tiling_base.h"
 #include "incre_flash_attention_tiling_struct.h"	
-#include "../../incre_flash_attention/op_host/incre_flash_attention_tiling.h"	
+#include "incre_flash_attention_tiling.h"	
 #include "../../prompt_flash_attention/op_host/prompt_flash_attention_tiling.h"
 #include "../../prompt_flash_attention/op_host/prompt_flash_attention_tiling_context.h"
 #ifdef ASCENDC_OP_TEST

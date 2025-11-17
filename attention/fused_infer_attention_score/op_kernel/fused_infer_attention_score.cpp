@@ -23,7 +23,7 @@
 #include "../incre_flash_attention/incre_flash_attention.cpp"
 #include "../prompt_flash_attention/prompt_flash_attention.cpp"
 #endif
-#include "fused_infer_attention_score_tilingkey.h"
+#include "arch32/fused_infer_attention_score_tilingkey.h"
 
 #if (__CCE_AICORE__ == 310) || (defined __DAV_310R6__)
 #else //__CCE_AICORE__ > 200

@@ -129,6 +129,130 @@ macro(add_modules_sources)
   endif()
 endmacro()
 
+macro(add_modules_sources_with_soc)
+  set(oneValueArgs OP_API_INDEPENDENT OP_API_DIR)
+  set(multiValueArgs OPTYPE ACLNNTYPE)
+
+  cmake_parse_arguments(MODULE "" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+  set(SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
+
+  # 该段代码作用为兼容op_api新旧目录结构(旧： 嵌套于op_host下； 新： 与op_host同级)
+  if (NOT DEFINED MODULE_OP_API_INDEPENDENT)
+    set(MODULE_OP_API_INDEPENDENT OFF)
+  endif()
+    if(MODULE_OP_API_INDEPENDENT)
+      # 新结构：op_api与op_host同级，需要指定有效路径
+      if (NOT DEFINED MODULE_OP_API_DIR OR NOT EXISTS "${MODULE_OP_API_DIR}")
+        message(FATAL_ERROR "OP_API_INDEPENDENT=ON时，必须传递有效的OP_API_DIR路径")
+      endif()
+      set(OP_API_SRC_DIR "${MODULE_OP_API_DIR}")
+    else()
+      # 旧结构：op_api嵌套在op_host目录下
+      set(OP_API_SRC_DIR "${SOURCE_DIR}/op_api")
+  endif()
+
+  # opapi 默认全部编译
+  file(GLOB OPAPI_SRCS ${OP_API_SRC_DIR}/*.cpp)
+  if (OPAPI_SRCS)
+    # aclnn
+    add_opapi_modules()
+    target_sources(${OPHOST_NAME}_opapi_obj PRIVATE ${OPAPI_SRCS})
+  else()
+    if (NOT TARGET ${OPHOST_NAME}_opapi_obj)
+      add_opapi_modules()
+      add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/opapi_stub.cpp
+          COMMAND touch ${CMAKE_CURRENT_BINARY_DIR}/opapi_stub.cpp
+      )
+      target_sources(${OPHOST_NAME}_opapi_obj PRIVATE
+            ${CMAKE_CURRENT_BINARY_DIR}/opapi_stub.cpp
+      )
+    endif()
+  endif()
+  file(GLOB OPAPI_HEADERS ${OP_API_SRC_DIR}/aclnn_*.h)
+  if (OPAPI_HEADERS)
+    target_sources(${OPHOST_NAME}_aclnn_exclude_headers INTERFACE ${OPAPI_HEADERS})
+  endif()
+
+  # 是否编译该算子已经由op_add_subdirectory和每个二级目录判断完毕，默认走到这里全编
+
+  file(GLOB OPINFER_SRCS ${SOURCE_DIR}/*_infershape*.cpp)
+  foreach(ARCH ${ARCH_DIRECTORY})
+    file(GLOB_RECURSE files ${SOURCE_DIR}/${ARCH}/*_infershape*.cpp)
+    list(APPEND OPINFER_SRCS ${files})
+  endforeach()
+
+  if (OPINFER_SRCS)
+    # proto
+    add_infer_modules()
+    target_sources(${OPHOST_NAME}_infer_obj PRIVATE ${OPINFER_SRCS})
+  else()
+    if (NOT TARGET ${OPHOST_NAME}_infer_obj)
+      add_library(${OPHOST_NAME}_infer_obj OBJECT)
+      add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/proto_stub.cpp
+          COMMAND touch ${CMAKE_CURRENT_BINARY_DIR}/proto_stub.cpp
+      )
+      target_sources(${OPHOST_NAME}_infer_obj PRIVATE
+            ${CMAKE_CURRENT_BINARY_DIR}/proto_stub.cpp
+      )
+    endif()
+  endif()
+
+  foreach(ARCH ${ARCH_DIRECTORY})
+    file(GLOB_RECURSE files ${SOURCE_DIR}/${ARCH}/*_tiling*.cpp)
+    list(APPEND SUB_OPTILING_SRC ${files})
+  endforeach()
+  file(GLOB OPTILING_SRCS
+      ${SOURCE_DIR}/*fallback*.cpp
+      ${SOURCE_DIR}/*_tiling*.cpp
+      ${SOURCE_DIR}/../op_graph/fallback_*.cpp
+      ${SOURCE_DIR}/../graph_plugin/fallback_*.cpp)
+  if (OPTILING_SRCS OR SUB_OPTILING_SRC)
+    # tiling
+    add_tiling_modules()
+    target_sources(${OPHOST_NAME}_tiling_obj PRIVATE ${OPTILING_SRCS} ${SUB_OPTILING_SRC})
+    # target_include_directories(${OPHOST_NAME}_tiling_obj PRIVATE ${SOURCE_DIR}/../../ ${SOURCE_DIR})
+  endif()
+
+  file(GLOB AICPU_SRCS ${SOURCE_DIR}/*_aicpu*.cpp)
+  if(AICPU_SRCS)
+    add_aicpu_kernel_modules()
+    target_sources(${OPHOST_NAME}_aicpu_obj PRIVATE ${AICPU_SRCS})
+  endif()
+
+  if (MODULE_OPTYPE)
+    list(LENGTH MODULE_OPTYPE OpTypeLen)
+    list(LENGTH MODULE_ACLNNTYPE AclnnTypeLen)
+    if(NOT ${OpTypeLen} EQUAL ${AclnnTypeLen})
+      message(FATAL_ERROR "OPTYPE AND ACLNNTYPE Should be One-to-One")
+    endif()
+    math(EXPR index "${OpTypeLen} - 1")
+    foreach(i RANGE ${index})
+      list(GET MODULE_OPTYPE ${i} OpType)
+      list(GET MODULE_ACLNNTYPE ${i} AclnnType)
+      if (${AclnnType} STREQUAL "aclnn" OR ${AclnnType} STREQUAL "aclnn_inner" OR ${AclnnType} STREQUAL "aclnn_exclude")
+        file(GLOB OPDEF_SRCS ${SOURCE_DIR}/${OpType}_def*.cpp)
+
+        if (OPDEF_SRCS)
+          target_sources(${OPHOST_NAME}_opdef_${AclnnType}_obj INTERFACE ${OPDEF_SRCS})
+        endif()
+      elseif(${AclnnType} STREQUAL "no_need_aclnn")
+        message(STATUS "aicpu or host aicpu no need aclnn.")
+      else()
+        message(FATAL_ERROR "ACLNN TYPE UNSPPORTED, ONLY SUPPORT aclnn/aclnn_inner/aclnn_exclude")
+      endif()
+    endforeach()
+  else()
+    file(GLOB OPDEF_SRCS ${SOURCE_DIR}/*_def*.cpp)
+    if(OPDEF_SRCS)
+      message(FATAL_ERROR
+      "Should Manually specify aclnn/aclnn_inner/aclnn_exclude\n"
+      "usage: add_modules_sources(OPTYPE optypes ACLNNTYPE aclnntypes)\n"
+      "example: add_modules_sources(OPTYPE add ACLNNTYPE aclnn_exclude)"
+      )
+    endif()
+  endif()
+endmacro()
+
 macro(add_mc2_modules_sources)
   set(multiValueArgs OPTYPE ACLNNTYPE)
 

@@ -14,34 +14,34 @@
  */
 
 #include "kernel_operator.h"
-#include "incre_flash_attention_tilingkey.h"
+#include "./arch32/incre_flash_attention_tilingkey.h"
 #if (__CCE_AICORE__ == 310) || (defined __DAV_310R6__)
 #ifdef NOT_DYNAMIC_COMPILE
-#include "../regbase/opkernel/incre_flash_attention_entry_regbase.h"
-#include "../../prompt_flash_attention/regbase/opkernel/prompt_flash_attention_entry_regbase.h"
+#include "./arch35/incre_flash_attention_entry_regbase.h"
+#include "../../prompt_flash_attention/op_kernel/arch35/prompt_flash_attention_entry_regbase.h"
 #else
-#include "./regbase/opkernel/incre_flash_attention_entry_regbase.h"
-#include "../prompt_flash_attention/regbase/opkernel/prompt_flash_attention_entry_regbase.h"
+#include "./arch35/incre_flash_attention_entry_regbase.h"
+#include "../prompt_flash_attention/op_kernel/arch35/prompt_flash_attention_entry_regbase.h"
 #endif
 #else
-#include "incre_flash_attention_allvec_new.h"
-#include "incre_flash_attention_cube_310P_kvquant.h"
+#include "./arch32/incre_flash_attention_allvec_new.h"
+#include "./arch20/incre_flash_attention_cube_310P_kvquant.h"
 #if (__CCE_AICORE__ > 200)
-#include "incre_flash_attention_split_Bbn2s2_Us2.h"
-#include "incre_flash_attention_preload.h"
-#include "incre_flash_attention_preload_dd.h"
-#include "paged_attention_antiquantkv.h"
+#include "./arch32/incre_flash_attention_split_Bbn2s2_Us2.h"
+#include "./arch32/incre_flash_attention_preload.h"
+#include "./arch32/incre_flash_attention_preload_dd.h"
+#include "./arch20/paged_attention_antiquantkv.h"
 
 #ifdef FIA_ENABLE_MLA
 // mla模板使用私有tiling结构，框架编译时根据一组DType预编译获取keylist，根据keylist找到对应的tiling结构
 // 在这组DType中，若没有mla模板的key，包含mla模板编译会报错：unknown type name 'IncreFlashAttentionTilingDataMla'
 #if ((ORIG_DTYPE_QUERY == DT_INT8) && (ORIG_DTYPE_ATTENTION_OUT == DT_BF16) && (ORIG_DTYPE_KEY == DT_INT8))
-#include "incre_flash_attention_preload_mla.h"
+#include "./arch32/incre_flash_attention_preload_mla.h"
 #endif
 #endif // FIA_ENABLE_MLA
 
 #else
-#include "unpad_paged_attention_decoder.h"
+#include "./arch20/unpad_paged_attention_decoder.h"
 #endif
 #endif // CCE_AICORE 310
 using namespace AscendC;

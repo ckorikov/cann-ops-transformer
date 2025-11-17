@@ -34,15 +34,11 @@ if (BUILD_OPS_RTY_KERNEL) # 回黄kernel
     endif()
     set(prompt_flash_attention_depends attention/flash_attention_score attention/common CACHE INTERNAL "Dependencies for prompt_flash_attention")
 else()
-    add_modules_sources(OPTYPE prompt_flash_attention ACLNNTYPE aclnn_inner)
+    set(prompt_flash_attention_depends attention/common CACHE INTERNAL "Dependencies for prompt_flash_attention")
+    add_modules_sources_with_soc(OPTYPE prompt_flash_attention ACLNNTYPE aclnn_inner)
 endif()
 
 if(NOT BUILD_OPS_RTY_KERNEL) #
-    target_sources(${OPHOST_NAME}_tiling_obj PRIVATE
-        prompt_flash_attention_tiling.cpp
-        ../regbase/ophost/prompt_flash_attention_tiling_v2.cpp
-        fallback_prompt_flash_attention.cpp
-    )
     if("${CONDITION_UNIT}" STREQUAL "ascend910_95")
         add_ops_compile_options(
             OP_NAME PromptFlashAttention

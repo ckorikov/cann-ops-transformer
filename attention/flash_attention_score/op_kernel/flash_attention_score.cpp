@@ -22,28 +22,25 @@
 
 #include "kernel_operator.h"
 #if __CCE_AICORE__ != 310
-#include "flash_attention_score_empty_tensor.h"
-#include "flash_attention_score_drop_mask_adapter.h"
-#include "flash_attention_score_s1s2_bn2gs1.h"
-#include "flash_attention_score_s1s2_bn2gs1_sab.h"
-#include "flash_attention_score_s1_bn2gs1.h"
-#include "flash_attention_score_bn2gs1s2_b.h"
-#include "flash_attention_var_len_score.h"
-#include "flash_attention_var_len_score_sab.h"
-#include "flash_attention_score_template_tiling_key.h"
-#include "flash_attention_score_tiling.h"
+#include "arch32/flash_attention_score_empty_tensor.h"
+#include "arch32/flash_attention_score_drop_mask_adapter.h"
+#include "arch32/flash_attention_score_s1s2_bn2gs1.h"
+#include "arch32/flash_attention_score_s1s2_bn2gs1_sab.h"
+#include "arch32/flash_attention_score_s1_bn2gs1.h"
+#include "arch32/flash_attention_score_bn2gs1s2_b.h"
+#include "arch32/flash_attention_var_len_score.h"
+#include "arch32/flash_attention_var_len_score_sab.h"
+#include "arch32/flash_attention_score_template_tiling_key.h"
+#include "arch32/flash_attention_score_tiling.h"
 
 #else
+#include "arch35/flash_attention_score_empty_tensor_regbase.h"
+#include "arch35/flash_attention_score_template_tiling_key.h"
+#include "arch35/flash_attention_score_entry_regbase.h"
 #ifdef NOT_DYNAMIC_COMPILE
-#include "../../common/op_kernel/arch-310/flash_attention_score_empty_tensor_regbase.h"
-#include "../../common/op_kernel/arch-310/flash_attention_score_template_tiling_key.h"
-#include "../../common/op_kernel/arch-310/flash_attention_score_tiling_regbase.h"
-#include "../../common/op_kernel/arch-310/flash_attention_score_entry_regbase.h"
+#include "../../common/op_kernel/arch35/flash_attention_score_tiling_regbase.h"
 #else
-#include "../common/arch-310/flash_attention_score_empty_tensor_regbase.h"
-#include "../common/arch-310/flash_attention_score_template_tiling_key.h"
-#include "../common/arch-310/flash_attention_score_tiling_regbase.h"
-#include "../common/arch-310/flash_attention_score_entry_regbase.h"
+#include "../common/arch35/flash_attention_score_tiling_regbase.h"
 #endif
 using namespace optiling;
 #endif

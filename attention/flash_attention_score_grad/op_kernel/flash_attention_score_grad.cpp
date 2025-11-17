@@ -22,31 +22,25 @@
 #include "kernel_operator.h"
 using namespace AscendC;
 #if __CCE_AICORE__ == 310
-#ifdef NOT_DYNAMIC_COMPILE
-#include "../../common/op_kernel/arch-310/flash_attention_score_grad_entry_regbase.h"
-#include "../../common/op_kernel/arch-310/flash_attention_score_grad_template_tiling_key.h"
-#include "../../common/op_kernel/arch-310/flash_attention_score_grad_tiling_data_regbase.h"
-#include "../../common/op_kernel/arch-310/flash_attention_score_grad_empty_tensor_regbase.h"
+#include "arch35/flash_attention_score_grad_entry_regbase.h"
+#include "arch35/flash_attention_score_grad_template_tiling_key.h"
+#include "arch35/flash_attention_score_grad_tiling_data_regbase.h"
+#include "arch35/flash_attention_score_grad_empty_tensor_regbase.h"
+
 #else
-#include "../common/arch-310/flash_attention_score_grad_entry_regbase.h"
-#include "../common/arch-310/flash_attention_score_grad_template_tiling_key.h"
-#include "../common/arch-310/flash_attention_score_grad_tiling_data_regbase.h"
-#include "../common/arch-310/flash_attention_score_grad_empty_tensor_regbase.h"
-#endif
-#else
-#include "flash_attention_score_grad_tiling.h"
-#include "flash_attention_score_grad_template_tiling_key.h"
-#include "flash_attention_score_grad_constant_propagation.h"
-#include "flash_attention_score_grad_empty_tensor.h"
-#include "flash_attention_score_grad_post.h"
-#include "flash_attention_score_grad_s1s2_bn2gs1s2.h"
-#include "flash_attention_score_grad_pre.h"
-#include "flash_attention_score_grad_sfmg.h"
-#include "flash_attention_score_grad_s1s2_bn2.h"
-#include "flash_attention_score_grad_ngs1s2_bn.h"
-#include "flash_attention_score_grad_bngs1s2_b.h"
-#include "flash_attention_score_grad_s1s2_bn2gs1s2_sab.h"
-#include "flash_attention_score_grad_s1s2_bn2gs1s2_basic.h"
+#include "arch32/flash_attention_score_grad_tiling.h"
+#include "arch32/flash_attention_score_grad_template_tiling_key.h"
+#include "arch32/flash_attention_score_grad_constant_propagation.h"
+#include "arch32/flash_attention_score_grad_empty_tensor.h"
+#include "arch32/flash_attention_score_grad_post.h"
+#include "arch32/flash_attention_score_grad_s1s2_bn2gs1s2.h"
+#include "arch32/flash_attention_score_grad_pre.h"
+#include "arch32/flash_attention_score_grad_sfmg.h"
+#include "arch32/flash_attention_score_grad_s1s2_bn2.h"
+#include "arch32/flash_attention_score_grad_ngs1s2_bn.h"
+#include "arch32/flash_attention_score_grad_bngs1s2_b.h"
+#include "arch32/flash_attention_score_grad_s1s2_bn2gs1s2_sab.h"
+#include "arch32/flash_attention_score_grad_s1s2_bn2gs1s2_basic.h"
 
 constexpr MatmulConfig MM_CFG_EXCEED = GetNormalConfig(true);
 constexpr MatmulConfig MM_CFG_NORMAL = GetNormalConfig(false);

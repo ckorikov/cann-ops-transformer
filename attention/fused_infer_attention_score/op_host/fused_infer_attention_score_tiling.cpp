@@ -14,16 +14,16 @@
  */
 
 #include "fused_infer_attention_score_tiling.h"
-#include "../regbase/ophost/fused_infer_attention_score_tiling_v2.h"
+#include "arch35/fused_infer_attention_score_tiling_v2.h"
 #include "../../incre_flash_attention/op_host/incre_flash_attention_tiling.h"
 #include "../../prompt_flash_attention/op_host/prompt_flash_attention_tiling.h"
-#include "../../prompt_flash_attention/regbase/ophost/prompt_flash_attention_tiling_v2.h"
+#include "../../prompt_flash_attention/op_host/prompt_flash_attention_tiling_v2.h"
 #include "log/log.h"
 #include "log/error_code.h"
 #include "err/ops_err.h"
 #include "tiling/tiling_api.h"
 #include "platform/platform_info.h"
-#include "fused_infer_attention_score_tiling_v3.h"
+#include "arch32/fused_infer_attention_score_tiling_v3.h"
 #include "flash_attention_infer_tiling.h"
 
 using namespace ge;

@@ -13,7 +13,7 @@
  * \brief
  */
 
-#include "../../incre_flash_attention/op_host/incre_flash_attention_tiling.h"
+#include "incre_flash_attention_tiling.h"
 #include <numeric>
 #include <algorithm>
 #include <vector>
@@ -21,12 +21,12 @@
 #include <graph/utils/type_utils.h>
 #include "incre_flash_attention_tiling_base.h"
 #include "incre_flash_attention_tiling_impl.h"
-#include "../regbase/ophost/incre_flash_attention_tiling_v2.h"
+#include "incre_flash_attention_tiling_v2.h"
 #include "log/log.h"
 #include "log/error_code.h"
 #include "err/ops_err.h"
 #include "register/op_def_registry.h"
-#include "../../prompt_flash_attention/regbase/ophost/prompt_flash_attention_tiling_v2.h"
+#include "../../prompt_flash_attention/op_host/prompt_flash_attention_tiling_v2.h"
 
 using namespace ge;
 using namespace AscendC;

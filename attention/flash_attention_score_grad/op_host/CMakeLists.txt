@@ -16,11 +16,12 @@ endif()
 
 set(CONDITION_UNIT ${ASCEND_COMPUTE_UNIT})
 if("${CONDITION_UNIT}" STREQUAL "ascend910_95")
-        add_ops_compile_options(
-            OP_NAME FlashAttentionScoreGrad
-            COMPUTE_UNIT ascend910_9599
-            OPTIONS -DENABLE_CV_COMM_VIA_SSBUF=true
-        )
+    set(flash_attention_score_grad_depends attention/common CACHE INTERNAL "Dependencies for flash_attention_score_grad")
+    add_ops_compile_options(
+        OP_NAME FlashAttentionScoreGrad
+        COMPUTE_UNIT ascend910_9599
+        OPTIONS -DENABLE_CV_COMM_VIA_SSBUF=true
+    )
 endif()
 
 if (BUILD_OPS_RTY_KERNEL)
@@ -30,7 +31,6 @@ if (BUILD_OPS_RTY_KERNEL)
                     -Wno-deprecated-declarations
                     -Werror
     )
-    set(flash_attention_score_grad_depends attention/common CACHE INTERNAL "Dependencies for flash_attention_score_grad")
 else()
     add_ops_compile_options(
             OP_NAME FlashAttentionScoreGrad
@@ -38,7 +38,7 @@ else()
                     -Wno-deprecated-declarations
                     -Werror
     )
-    add_modules_sources(
+    add_modules_sources_with_soc(
         # 该变量用于判断op_api目录是否从op_host移出
         OP_API_INDEPENDENT ON
         # op_api新的地址

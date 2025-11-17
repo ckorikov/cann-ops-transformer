@@ -18,12 +18,12 @@
 #include <cfloat>
 #include <register/op_impl_registry.h>
 #include "log/log.h"
-#include "../../common/op_kernel/arch-310/flash_attention_score_tiling_regbase.h"
-#include "../../common/op_kernel/arch-310/flash_attention_score_template_tiling_key.h"
+#include "../../common/op_kernel/arch35/flash_attention_score_tiling_regbase.h"
+#include "../op_kernel/arch35/flash_attention_score_template_tiling_key.h"
 #include "tiling_base/data_copy_transpose_tiling.h"
 #include "tiling_base/tiling_templates_registry.h"
 #include "flash_attention_score_tiling_common.h"
-#include "../op_kernel/flash_attention_score_tiling.h"
+#include "../op_kernel/arch32/flash_attention_score_tiling.h"
 
 using namespace ge;
 using namespace AscendC;
@@ -362,7 +362,10 @@ static bool IsEmptyInput(gert::TilingContext *context)
         emptyInputTiling.FlashAttentionScoreSetEmptyInputTilingData(context, emptyInputTiling.tilingData);
         emptyInputTiling.GetTilingKeyAttentionScore4EmptyInput(emptyArgs.tilingKey, context);
         context->SetTilingKey(emptyArgs.tilingKey);
-        context->SetBlockDim(optiling::CalcTschBlockDim(emptyArgs.aivActualNum, 0, compileInfoPtr->aivNum));
+        auto platformInfoPtr = context->GetPlatformInfo();
+        OP_CHECK_IF(platformInfoPtr == nullptr, OP_LOGE(context, "platformInfoPtr is null"), return false);
+        auto ascendcPlatform = platform_ascendc::PlatformAscendC(platformInfoPtr);
+        context->SetBlockDim(ascendcPlatform.CalcTschBlockDim(emptyArgs.aivActualNum, 0, compileInfoPtr->aivNum));
         size_t *workspaces = context->GetWorkspaceSizes(1);
         // workspace上预留100M
         workspaces[0] = VALUE_100 * VALUE_1024 * VALUE_1024;

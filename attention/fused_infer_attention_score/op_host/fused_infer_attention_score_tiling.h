@@ -20,7 +20,7 @@
 #include "register/tilingdata_base.h"
 #include "fused_infer_attention_score_tiling_compile_info.h"
 #include "fused_infer_attention_score_tiling_index.h"
-#include "../regbase/ophost/fused_infer_attention_score_tiling_v2.h"
+#include "arch35/fused_infer_attention_score_tiling_v2.h"
 
 #ifdef ASCENDC_OP_TEST
 #define FIA_EXTERN_C extern "C"

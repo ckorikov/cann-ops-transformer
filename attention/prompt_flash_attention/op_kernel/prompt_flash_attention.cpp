@@ -14,34 +14,34 @@
  */
 
 #include "kernel_operator.h"
-#include "prompt_flash_attention_tilingkey.h"
+#include "./arch32/prompt_flash_attention_tilingkey.h"
 #if (__CCE_AICORE__ == 310 || (defined __DAV_310R6__))
 #ifdef NOT_DYNAMIC_COMPILE
-#include "../regbase/opkernel/prompt_flash_attention_entry_regbase.h"
+#include "../op_kernel/arch35/prompt_flash_attention_entry_regbase.h"
 #else
-#include "./regbase/opkernel/prompt_flash_attention_entry_regbase.h"
+#include "./arch35/prompt_flash_attention_entry_regbase.h"
 #endif
 #elif (__CCE_AICORE__ > 200)
-#include "prompt_flash_attention_base.h"
-#include "prompt_flash_attention_bnstilling_n_s_no_tail.h"
-#include "prompt_flash_attention_bnstilling_n_s_tail.h"
-#include "prompt_flash_attention_bnstilling_n_s_no_tailWBNSD.h"
-#include "prompt_flash_attention_bnstilling_n_s_tailWBNSD.h"
-#include "prompt_flash_attention_s1s2_bns1_x910.h"
-#include "prompt_flash_attention_base_api.h"
-#include "prompt_flash_attention_base_api_high_precision_no_mask.h"
-#include "prompt_flash_attention_base_mla.h"
-#include "prompt_flash_attention_base_mla_high_precision.h"
-#include "prompt_flash_attention_s1s2_bns1_mla.h"
-#include "prompt_flash_attention_var_len_score_sab.h"
-#include "prompt_flash_attention_s1s2_bns1_mla_baseapi.h"
-#include "prompt_flash_attention_var_len_score_sab_baseapi.h"
-#include "prompt_flash_attention_empty_tensor.h"
+#include "./arch32/prompt_flash_attention_base.h"
+#include "./arch32/prompt_flash_attention_bnstilling_n_s_no_tail.h"
+#include "./arch32/prompt_flash_attention_bnstilling_n_s_tail.h"
+#include "./arch32/prompt_flash_attention_bnstilling_n_s_no_tailWBNSD.h"
+#include "./arch32/prompt_flash_attention_bnstilling_n_s_tailWBNSD.h"
+#include "./arch32/prompt_flash_attention_s1s2_bns1_x910.h"
+#include "./arch32/prompt_flash_attention_base_api.h"
+#include "./arch32/prompt_flash_attention_base_api_high_precision_no_mask.h"
+#include "./arch32/prompt_flash_attention_base_mla.h"
+#include "./arch32/prompt_flash_attention_base_mla_high_precision.h"
+#include "./arch32/prompt_flash_attention_s1s2_bns1_mla.h"
+#include "./arch32/prompt_flash_attention_var_len_score_sab.h"
+#include "./arch32/prompt_flash_attention_s1s2_bns1_mla_baseapi.h"
+#include "./arch32/prompt_flash_attention_var_len_score_sab_baseapi.h"
+#include "./arch32/prompt_flash_attention_empty_tensor.h"
 #else
-#include "unpad_flash_attention_common.h"
-#include "prompt_attention_prefill.h"
-#include "prompt_flash_attention_s1s2_bns1_x310_base.h"
-#include "prompt_flash_attention_s1s2_bns1_x310.h"
+#include "./arch32/unpad_flash_attention_common.h"
+#include "./arch32/prompt_attention_prefill.h"
+#include "./arch32/prompt_flash_attention_s1s2_bns1_x310_base.h"
+#include "./arch32/prompt_flash_attention_s1s2_bns1_x310.h"
 #endif
 
 #define INVOKE_PFA_GENERAL_OP_IMPL(templateClass, ...)                                                                  \

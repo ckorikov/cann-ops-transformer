@@ -32,15 +32,5 @@ add_ops_compile_options(
             -Werror
 )
 if(NOT BUILD_OPS_RTY_KERNEL)
-    add_modules_sources(OPTYPE incre_flash_attention ACLNNTYPE aclnn_inner)
-endif()
-
-if(NOT BUILD_OPS_RTY_KERNEL) #
-    target_sources(${OPHOST_NAME}_tiling_obj PRIVATE
-        incre_flash_attention_tiling.cpp
-        incre_flash_attention_tiling_check.cpp
-        ../regbase/ophost/incre_flash_attention_tiling_v2.cpp
-        fallback_incre_flash_attention.cpp
-    )
-    
+    add_modules_sources_with_soc(OPTYPE incre_flash_attention ACLNNTYPE aclnn_inner)
 endif()

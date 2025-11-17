@@ -12,18 +12,18 @@ set(src_files
   ${ATTENTION_SRC}/common/op_host/arch32/fia_tiling_empty_tensor.cpp
   ${ATTENTION_SRC}/common/op_host/fia_tiling_shape.cpp
   ${ATTENTION_SRC}/fused_infer_attention_score/op_host/fused_infer_attention_score_tiling.cpp
-  ${ATTENTION_SRC}/fused_infer_attention_score/op_host/fused_infer_attention_score_tiling_check.cpp
-  ${ATTENTION_SRC}/fused_infer_attention_score/op_host/fused_infer_attention_score_tiling_check_single_para.cpp
-  ${ATTENTION_SRC}/fused_infer_attention_score/op_host/fused_infer_attention_score_tiling_check_existence.cpp
-  ${ATTENTION_SRC}/fused_infer_attention_score/op_host/fused_infer_attention_score_tiling_check_feature.cpp
-  ${ATTENTION_SRC}/fused_infer_attention_score/op_host/fused_infer_attention_score_tiling_check_consistency.cpp
-  ${ATTENTION_SRC}/fused_infer_attention_score/op_host/fused_infer_attention_score_tiling_info_parser.cpp
-  ${ATTENTION_SRC}/fused_infer_attention_score/op_host/fused_infer_attention_score_tiling_v3.cpp
-  ${ATTENTION_SRC}/fused_infer_attention_score/regbase/ophost/fused_infer_attention_score_tiling_v2.cpp
+  ${ATTENTION_SRC}/fused_infer_attention_score/op_host/arch32/fused_infer_attention_score_tiling_check.cpp
+  ${ATTENTION_SRC}/fused_infer_attention_score/op_host/arch32/fused_infer_attention_score_tiling_check_single_para.cpp
+  ${ATTENTION_SRC}/fused_infer_attention_score/op_host/arch32/fused_infer_attention_score_tiling_check_existence.cpp
+  ${ATTENTION_SRC}/fused_infer_attention_score/op_host/arch32/fused_infer_attention_score_tiling_check_feature.cpp
+  ${ATTENTION_SRC}/fused_infer_attention_score/op_host/arch32/fused_infer_attention_score_tiling_check_consistency.cpp
+  ${ATTENTION_SRC}/fused_infer_attention_score/op_host/arch32/fused_infer_attention_score_tiling_info_parser.cpp
+  ${ATTENTION_SRC}/fused_infer_attention_score/op_host/arch32/fused_infer_attention_score_tiling_v3.cpp
+  ${ATTENTION_SRC}/fused_infer_attention_score/op_host/arch35/fused_infer_attention_score_tiling_v2.cpp
   ${ATTENTION_SRC}/prompt_flash_attention/op_host/prompt_flash_attention_tiling.cpp
-  ${ATTENTION_SRC}/prompt_flash_attention/regbase/ophost/prompt_flash_attention_tiling_v2.cpp
+  ${ATTENTION_SRC}/prompt_flash_attention/op_host/prompt_flash_attention_tiling_v2.cpp
   ${ATTENTION_SRC}/incre_flash_attention/op_host/incre_flash_attention_tiling.cpp
-  ${ATTENTION_SRC}/incre_flash_attention/regbase/ophost/incre_flash_attention_tiling_v2.cpp
+  ${ATTENTION_SRC}/incre_flash_attention/op_host/incre_flash_attention_tiling_v2.cpp
   ${ATTENTION_SRC}/incre_flash_attention/op_host/incre_flash_attention_tiling_check.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/device_op_impl_registry.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/tiling_sink_kernel.cpp
@@ -61,11 +61,8 @@ target_include_directories(opmaster PRIVATE
   ${ATTENTION_SRC}/common/op_host
   ${ATTENTION_SRC}/common/op_kernel
   ${ATTENTION_SRC}/fused_infer_attention_score/op_host
-  ${ATTENTION_SRC}/fused_infer_attention_score/regbase/ophost
   ${ATTENTION_SRC}/prompt_flash_attention/op_host
-  ${ATTENTION_SRC}/prompt_flash_attention/regbase/ophost
   ${ATTENTION_SRC}/incre_flash_attention/op_host
-  ${ATTENTION_SRC}/incre_flash_attention/regbase/ophost
   ${CMAKE_CURRENT_SOURCE_DIR}/../../include
   ${CMAKE_CURRENT_SOURCE_DIR}/../../include/tiling_sink
 )
