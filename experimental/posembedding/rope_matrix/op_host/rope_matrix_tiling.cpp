@@ -59,7 +59,7 @@ uint8_t *GenerateTiling(RopeMatrixTiling *ropeTiling)
     bool isBias = false;
     uint32_t aicRatio = 2;
 
-    uint32_t calSingleCoreM = Ceiling(M, usedCoreNum * aicRatio) * B * H * aicRatio;
+    uint32_t calSingleCoreM = Ceiling(M, usedCoreNum * aicRatio) * aicRatio;
     uint32_t baseM = baseSize;
     uint32_t baseN = baseSize;
 
@@ -73,8 +73,8 @@ uint8_t *GenerateTiling(RopeMatrixTiling *ropeTiling)
     tilingApi.SetBType(rightPosition, rightFormat, rightDtype, isTransB);
     tilingApi.SetCType(resultPosition, resultFormat, resultDtype);
 
-    tilingApi.SetOrgShape(M * B * H, N, K); // 完成的MNK大小，单位为元素个数
-    tilingApi.SetShape(M * B * H, N, K); // matmul计算形状的MNK，考虑脏数据
+    tilingApi.SetOrgShape(M, N, K); // 完成的MNK大小，单位为元素个数
+    tilingApi.SetShape(M, N, K); // matmul计算形状的MNK，考虑脏数据
     tilingApi.SetSingleShape(calSingleCoreM, baseSize, baseSize);
     tilingApi.SetFixSplit(baseM, baseN, -1);
     tilingApi.SetBias(isBias);
