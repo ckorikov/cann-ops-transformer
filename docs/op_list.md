@@ -145,7 +145,7 @@
   </tr>
   <tr>
     <td>attention</td>
-    <td><a href="../attention/nsa_select_attention_infer/README.md">nsa_select_attention_infer</a></td>
+    <td><a href="../attention/nsa_selected_attention_infer/README.md">nsa_selected_attention_infer</a></td>
     <td>√</td>
     <td>√</td>
     <td>√</td>
