@@ -77,13 +77,12 @@ aclnnStatus aclnnMoeDistributeDispatchV2(
 
 ### 参数说明
 
-<table style="undefined;table-layout: fixed; width: 1576px">
- <colgroup>
-  <col style="width: 170px">
-  <col style="width: 170px">
-  <col style="width: 800px">
-  <col style="width: 800px">
-  <col style="width: 200px">
+<table style="undefined;table-layout: fixed; width: 1392px"> <colgroup>
+ <col style="width: 120px">
+ <col style="width: 120px">
+ <col style="width: 160px">
+ <col style="width: 150px">
+ <col style="width: 80px">
  </colgroup>
  <thead>
   <tr>
@@ -329,11 +328,10 @@ aclnnStatus aclnnMoeDistributeDispatchV2(
 
 第一段接口完成入参校验，出现以下场景时报错：
 
-<table style="undefined;table-layout: fixed; width: 1576px">
- <colgroup>
-  <col style="width: 170px">
-  <col style="width: 170px">
-  <col style="width: 400px">
+<table style="undefined;table-layout: fixed; width: 1180px"> <colgroup>
+ <col style="width: 250px">
+ <col style="width: 130px">
+ <col style="width: 800px">
  </colgroup>
  <thead>
   <tr>
@@ -365,11 +363,10 @@ aclnnStatus aclnnMoeDistributeDispatchV2(
 
 ### 参数说明
 
-<table style="undefined;table-layout: fixed; width: 1576px">
- <colgroup>
-  <col style="width: 170px">
-  <col style="width: 170px">
-  <col style="width: 800px">
+<table style="undefined;table-layout: fixed; width: 1180px"> <colgroup>
+ <col style="width: 250px">
+ <col style="width: 130px">
+ <col style="width: 800px">
  </colgroup>
  <thead>
   <tr>
@@ -387,7 +384,7 @@ aclnnStatus aclnnMoeDistributeDispatchV2(
   <tr>
    <td>workspaceSize</td>
    <td>输入</td>
-   <td>在Device侧申请的workspace大小，由第一段接口`aclnnMoeDistributeDispatchV2GetWorkspaceSize`获取。</td>
+   <td>在Device侧申请的workspace大小，由第一段接口<code>aclnnMoeDistributeDispatchV2GetWorkspaceSize</code>获取。</td>
   </tr>
   <tr>
    <td>executor</td>
@@ -461,8 +458,8 @@ aclnnStatus aclnnMoeDistributeDispatchV2(
     #include <vector>
     #include "acl/acl.h"
     #include "hccl/hccl.h"
-    #include "../op_host/op_api/aclnn_moe_distribute_dispatch_v2.h"
-    #include "../../moe_distribute_combine_v2/op_host/op_api/aclnn_moe_distribute_combine_v2.h"
+    #include "aclnnop/aclnn_moe_distribute_dispatch_v2.h"
+    #include "aclnnop/aclnn_moe_distribute_combine_v2.h"
     #include <unistd.h>
 
     #define CHECK_RET(cond, return_expr) \
@@ -590,7 +587,7 @@ aclnnStatus aclnnMoeDistributeDispatchV2(
         std::vector<int64_t> expandIdxShape{A * 128};
         std::vector<int64_t> expertTokenNumsShape{localExpertNum};
         std::vector<int64_t> epRecvCountsShape{TP_WORLD_SIZE * localExpertNum * EP_WORLD_SIZE};
-        std::vector<int64_t> tpRecvCountsShape{TP_WORLD_SIZE * localExpertNum};
+        std::vector<int64_t> tpRecvCountsShape{TP_WORLD_SIZE};
         std::vector<int64_t> expandScalesShape{A};
 
         int64_t xShapeSize = GetShapeSize(xShape);
