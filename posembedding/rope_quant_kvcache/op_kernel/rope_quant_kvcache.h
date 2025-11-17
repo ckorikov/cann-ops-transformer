@@ -26,7 +26,7 @@ constexpr static int64_t FP16_ONE_REPEAT_NUM = 128;
 class RopeQuantKvcache
 {
 public:
-    __aicore__ inline RopeQuantKvcache(const RopeQuantKvcacheTilingData* tilingData)
+    __aicore__ inline RopeQuantKvcache(const RopeQuantKvcacheTilingData* __restrict tilingData)
     {
         this->cacheSeqlen = tilingData->cacheSeqlen;
         this->qHeadNum = tilingData->qHeadNum;
