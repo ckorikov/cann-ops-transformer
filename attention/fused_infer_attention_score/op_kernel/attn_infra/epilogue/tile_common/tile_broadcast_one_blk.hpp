@@ -42,11 +42,13 @@ struct TileBroadcastOneBlk {
         repeatParams.dstBlkStride = 1;
         repeatParams.dstRepStride = BLK_NUM_PER_VECTOR_FRACTAL;
 
-        constexpr uint32_t eleNumPerCompute = RoundDown<eleNumPerBlk>(maxRepeatNum * BLK_NUM_PER_VECTOR_FRACTAL);
+        constexpr uint32_t eleNumPerCompute =
+            NpuArch::Detail::Alignment::RoundDown<eleNumPerBlk>(maxRepeatNum * BLK_NUM_PER_VECTOR_FRACTAL);
         for (uint32_t offset = 0; offset < COMPUTE_LENGTH; offset += eleNumPerCompute) {
             uint32_t residueM = COMPUTE_LENGTH - offset;
             uint32_t computeM = (residueM > eleNumPerCompute) ? eleNumPerCompute : residueM;
-            uint8_t repeatTimes = static_cast<uint8_t>(CeilDiv<BLK_NUM_PER_VECTOR_FRACTAL>(computeM));
+            uint8_t repeatTimes =
+                static_cast<uint8_t>(NpuArch::Detail::Alignment::CeilDiv<BLK_NUM_PER_VECTOR_FRACTAL>(computeM));
             AscendC::Brcb(
                 ubOut[offset * eleNumPerBlk], ubIn[offset],
                 repeatTimes, repeatParams

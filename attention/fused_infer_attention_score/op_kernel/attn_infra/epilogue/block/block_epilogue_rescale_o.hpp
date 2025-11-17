@@ -167,7 +167,7 @@ public:
         uint32_t curRowNum = layoutInput.shape(0);
         uint32_t embed = layoutInput.shape(1);
         uint32_t embedRound = layoutInput.stride(0);
-        uint32_t curRowNumRound = RoundUp(curRowNum, FLOAT_BLOCK_SIZE);
+        uint32_t curRowNumRound = NpuArch::Detail::Alignment::RoundUp(curRowNum, FLOAT_BLOCK_SIZE);
         uint32_t qSBlockSize = layoutOutput.shape(0);
         uint32_t oHiddenSize = layoutOutput.shape(1);
         uint32_t qHeads = layoutLse.shape(1);
@@ -298,7 +298,7 @@ public:
                     AscendC::Ln<float, false>(
                         lse32_ubuf_tensor,
                         glUbTensor,
-                        (uint64_t)0, CeilDiv(totalRowNum, FLOAT_VECTOR_SIZE),
+                        (uint64_t)0, NpuArch::Detail::Alignment::CeilDiv(totalRowNum, FLOAT_VECTOR_SIZE),
                         AscendC::UnaryRepeatParams(1, 1, 8, 8));
 
                     AscendC::PipeBarrier<PIPE_V>();
@@ -306,7 +306,7 @@ public:
                         lse32_ubuf_tensor,
                         lse32_ubuf_tensor,
                         gmUbTensor,
-                        (uint64_t)0, CeilDiv(totalRowNum, FLOAT_VECTOR_SIZE),
+                        (uint64_t)0, NpuArch::Detail::Alignment::CeilDiv(totalRowNum, FLOAT_VECTOR_SIZE),
                         AscendC::BinaryRepeatParams(1, 1, 1, 8, 8, 8));
                     AscendC::PipeBarrier<PIPE_V>();
 
@@ -314,7 +314,7 @@ public:
                     AscendC::Brcb(
                         tvUbTensor.ReinterpretCast<uint32_t>(),
                         lse32_ubuf_tensor.ReinterpretCast<uint32_t>(),
-                        CeilDiv(totalRowNum, FLOAT_BLOCK_SIZE),
+                        NpuArch::Detail::Alignment::CeilDiv(totalRowNum, FLOAT_BLOCK_SIZE),
                         AscendC::BrcbRepeatParams(1, 8));
                     AscendC::PipeBarrier<PIPE_V>();
                     AscendC::SetFlag<AscendC::HardEvent::V_MTE3>(EVENT_ID4);
@@ -363,7 +363,7 @@ public:
         uint32_t rowNum = actualBlockShape.m();
         uint32_t embed = actualBlockShape.n();
         uint32_t maxRowNumPerLoop = MAX_UB_O_ELEM_NUM / embed;
-        uint32_t rowNumTile = RoundDown(maxRowNumPerLoop, FLOAT_BLOCK_SIZE);
+        uint32_t rowNumTile = NpuArch::Detail::Alignment::RoundDown(maxRowNumPerLoop, FLOAT_BLOCK_SIZE);
 
         uint32_t subBlockIdx = AscendC::GetSubBlockIdx();
         uint32_t subBlockNum = AscendC::GetSubBlockNum();
@@ -392,7 +392,7 @@ public:
         auto layoutOutLseThisSubBlock = layoutLse;
 
         if (inRowActualThisSubBlock > 0U) {
-            uint32_t rowLoop = CeilDiv(inRowActualThisSubBlock, rowNumTile);
+            uint32_t rowLoop = NpuArch::Detail::Alignment::CeilDiv(inRowActualThisSubBlock, rowNumTile);
             uint32_t needRowLoop = (rowLoop > 1U) ? 1 : 0;
 
             // The rows of each cycle consist of multiple heads with several tokens.

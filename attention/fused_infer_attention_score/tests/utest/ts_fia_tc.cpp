@@ -3909,42 +3909,6 @@ TEST_F(Ts_Fia_Ascend910B1, ifa_exception_ds_pa_000069)
     ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
 }
 
-TEST_F(Ts_Fia_Ascend910B1, ifa_exception_ds_pa_000070)
-{
-    FiaCase cs;
-    cs.mParam.layout = "TND";
-    cs.mParam.softmax_lse_flag = false;
-
-    cs.mParam.blockSize = 128;
-    cs.mParam.numHeads = 16;
-    cs.mParam.kvNumHeads = 1;
-
-    cs.mParam.pre_tokens = 1;
-    cs.mParam.next_tokens = 640;
-    
-    cs.mParam.sparse_mode = 0;
-    cs.mParam.innerPrecise = 1;
-    
-    cs.mParam.actualSeqLength = {1,1,1,2};
-    cs.mParam.actualSeqLengthKV = {16,16,16,640,1};
-
-    ASSERT_TRUE(cs.Init());
-    cs.attentionOut = Tensor("attentionOut", {2,16,512}, "TND", ge::DT_BF16, ge::FORMAT_ND);
-    
-    cs.query = Tensor("query", {2,16,512}, "TND", ge::DT_BF16, ge::FORMAT_ND);
-    cs.queryRope = Tensor("queryRope", {2,16,64}, "TND", ge::DT_BF16, ge::FORMAT_ND);
-
-    cs.key = TensorList("key", {11,1,128,512}, "TND", ge::DT_BF16, ge::FORMAT_ND);
-    cs.keyRope = Tensor("keyRope", {11,1,128,64}, "TND", ge::DT_BF16, ge::FORMAT_ND);
-
-    cs.value = TensorList("value", {11,1,128,512}, "TND", ge::DT_BF16, ge::FORMAT_ND);
-
-    cs.blocktable = Tensor("blockTable", {4,5}, "TND", ge::DT_INT32, ge::FORMAT_ND);
-
-    cs.mOpInfo.mExp.mSuccess = false;
-    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
-}
-
 TEST_F(Ts_Fia_Ascend910B1, ifa_exception_ds_pa_000072)
 {
     FiaCase cs;

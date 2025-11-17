@@ -64,7 +64,7 @@ struct CopyGmToL1IntervalDataCopy<Arch::AtlasA2, Gemm::GemmType<half, layout::Ro
     {
         for (int i = 0; i < layoutSrc.shape(0); ++i) {
             AscendC::DataCopyParams dataCopyParams(
-                CeilDiv(layoutSrc.shape(1), layoutDst.shape(2)),
+                NpuArch::Detail::Alignment::CeilDiv(layoutSrc.shape(1), layoutDst.shape(2)),
                 layoutDst.shape(2) / ELE_NUM_PER_C0,
                 0,
                 (layoutDst.stride(3) - layoutDst.shape(2)) / ELE_NUM_PER_C0
@@ -98,7 +98,7 @@ struct CopyGmToL1IntervalDataCopy<Arch::AtlasA2, Gemm::GemmType<half, layout::Pa
     {
         for (int i = 0; i < layoutSrc.orgShape(0); ++i) {
             AscendC::DataCopyParams dataCopyParams(
-                CeilDiv(layoutSrc.orgShape(1), layoutDst.shape(2)),
+                NpuArch::Detail::Alignment::CeilDiv(layoutSrc.orgShape(1), layoutDst.shape(2)),
                 layoutDst.shape(2) / ELE_NUM_PER_C0,
                 0,
                 (layoutDst.stride(3) - layoutDst.shape(2)) / ELE_NUM_PER_C0
@@ -132,7 +132,7 @@ struct CopyGmToL1IntervalDataCopy<Arch::AtlasA2, Gemm::GemmType<half, layout::Co
     {
         for (int i = 0; i < layoutSrc.shape(1); ++i) {
             AscendC::DataCopyParams dataCopyParams(
-                CeilDiv(layoutSrc.shape(0), layoutDst.shape(0)),
+                NpuArch::Detail::Alignment::CeilDiv(layoutSrc.shape(0), layoutDst.shape(0)),
                 layoutDst.shape(0) / ELE_NUM_PER_C0,
                 0,
                 (layoutDst.stride(1) - layoutDst.shape(0)) / ELE_NUM_PER_C0
@@ -166,7 +166,7 @@ struct CopyGmToL1IntervalDataCopy<Arch::AtlasA2, Gemm::GemmType<half, layout::Pa
     {
         for (int i = 0; i < layoutSrc.orgShape(1); ++i) {
             AscendC::DataCopyParams dataCopyParams(
-                CeilDiv(layoutSrc.orgShape(0), layoutDst.shape(0)),
+                NpuArch::Detail::Alignment::CeilDiv(layoutSrc.orgShape(0), layoutDst.shape(0)),
                 layoutDst.shape(0) / ELE_NUM_PER_C0,
                 0,
                 (layoutDst.stride(1) - layoutDst.shape(0)) / ELE_NUM_PER_C0
@@ -842,8 +842,8 @@ struct CopyGmToL1<ArchTag, Gemm::GemmType<Element, layout::zN>> {
         AscendC::GlobalTensor<Element> const &srcTensor,
         LayoutDst const &layoutDst, LayoutSrc const &layoutSrc)
     {
-        uint32_t blockCount = CeilDiv<ELE_NUM_PER_C0>(layoutSrc.orgShape(1));
-        uint32_t blockLen = RoundUp<C0_NUM_PER_FRACTAL>(layoutSrc.orgShape(0));
+        uint32_t blockCount = NpuArch::Detail::Alignment::CeilDiv<ELE_NUM_PER_C0>(layoutSrc.orgShape(1));
+        uint32_t blockLen = NpuArch::Detail::Alignment::RoundUp<C0_NUM_PER_FRACTAL>(layoutSrc.orgShape(0));
 
         AscendC::DataCopyParams repeatParams;
 
@@ -889,8 +889,8 @@ struct CopyGmToL1<ArchTag, Gemm::GemmType<Element, layout::nZ>> {
         AscendC::GlobalTensor<Element> const &srcTensor,
         LayoutDst const &layoutDst, LayoutSrc const &layoutSrc)
     {
-        uint32_t blockCount = CeilDiv<ELE_NUM_PER_C0>(layoutSrc.orgShape(0));
-        uint32_t blockLen = RoundUp<C0_NUM_PER_FRACTAL>(layoutSrc.orgShape(1));
+        uint32_t blockCount = NpuArch::Detail::Alignment::CeilDiv<ELE_NUM_PER_C0>(layoutSrc.orgShape(0));
+        uint32_t blockLen = NpuArch::Detail::Alignment::RoundUp<C0_NUM_PER_FRACTAL>(layoutSrc.orgShape(1));
 
         AscendC::DataCopyParams repeatParams;
 
@@ -1014,7 +1014,7 @@ struct CopyGmToL1<Arch::AtlasA2, Gemm::GemmType<Element, layout::RowMajor>,
         if ((layoutSrc.shape(1) == layoutSrc.stride(0)) && (layoutDst.shape(1) == layoutDst.stride(0))) {
             DataCopy(dstTensor, srcTensor, rows * cols);
         } else if (srcStride < STRIDE_LIMIT && dstStride < STRIDE_LIMIT && (cols / ELE_NUM_PER_BLK) < BLOCK_LEN_LIMIT) {
-            uint32_t rLoops = CeilDiv(rows, MAX_REPEAT);
+            uint32_t rLoops = NpuArch::Detail::Alignment::CeilDiv(rows, MAX_REPEAT);
             for (uint32_t i = 0; i < rLoops; ++i) {
                 uint32_t rActual = (i < rLoops - 1) ? MAX_REPEAT : rows - i * MAX_REPEAT;
                 AscendC::DataCopyParams dataCopyParams(

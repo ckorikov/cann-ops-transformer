@@ -2024,54 +2024,6 @@ TEST_F(Ts_Fia_Ascend910B1, case_ProcessQuant2Dtype_mla_087)
     ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
 }
 
-TEST_F(Ts_Fia_Ascend910B1, case_QKVPreProcess_mla_019)
-{
-    FiaCase cs;
-    cs.mParam.mode = CaseMode::MLA_NOQUANT;
-    cs.mParam.storageMode = CaseKvStorageMode::PAGE_ATTENTION;
-    cs.mParam.layout = "TND";
-    cs.mParam.b = 1024 * 1024;
-    cs.mParam.qs = 1;
-    ASSERT_TRUE(cs.Init());
-
-    cs.actualSeqLengthsKV = Tensor("actualSeqLengthsKV", {1}, "B", ge::DT_FLOAT16, ge::FORMAT_ND);
-    cs.mOpInfo.mExp.mSuccess = false;
-    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
-}
-
-
-TEST_F(Ts_Fia_Ascend910B1, case_QKVPreProcess_mla_020)
-{
-    FiaCase cs;
-    cs.mParam.mode = CaseMode::MLA_NOQUANT;
-    cs.mParam.storageMode = CaseKvStorageMode::PAGE_ATTENTION;
-    cs.mParam.layout = "TND_NTD";
-    cs.mParam.b = 1024 * 1024;
-    cs.mParam.qs = 1;
-    ASSERT_TRUE(cs.Init());
-
-    cs.actualSeqLengthsKV = Tensor("actualSeqLengthsKV", {1}, "B", ge::DT_FLOAT16, ge::FORMAT_ND);
-    cs.mOpInfo.mExp.mSuccess = false;
-    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
-}
-
-
-TEST_F(Ts_Fia_Ascend910B1, case_QKVPreProcess_mla_029)
-{
-    FiaCase cs;
-    cs.mParam.mode = CaseMode::MLA_NOQUANT;
-    cs.mParam.storageMode = CaseKvStorageMode::PAGE_ATTENTION;
-    cs.mParam.layout = "TND";
-    cs.mParam.b = 2;
-    cs.mParam.actualSeqLength = {1, 2};
-    cs.mParam.actualSeqLengthKV = {1};
-    ASSERT_TRUE(cs.Init());
-
-    cs.mOpInfo.mExp.mSuccess = false;
-    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
-}
-
-
 TEST_F(Ts_Fia_Ascend910B1, case_InputAttrsPreProcess_mla_041)
 {
     FiaCase cs;

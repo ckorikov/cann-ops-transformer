@@ -31,7 +31,7 @@ struct EpilogueIdentityTileSwizzle {
         blockShape(blockShape),
         tileShape(tileShape)
     {
-        loopsMN = CeilDiv(blockShape, tileShape);
+        loopsMN = NpuArch::Detail::Alignment::CeilDiv(blockShape, tileShape);
     }
 
     __aicore__ inline
@@ -66,7 +66,7 @@ struct EpilogueHorizontalTileSwizzle {
         blockShape(blockShape),
         tileShape(tileShape)
     {
-        loopsMN = CeilDiv(blockShape, tileShape);
+        loopsMN = NpuArch::Detail::Alignment::CeilDiv(blockShape, tileShape);
     }
 
     __aicore__ inline

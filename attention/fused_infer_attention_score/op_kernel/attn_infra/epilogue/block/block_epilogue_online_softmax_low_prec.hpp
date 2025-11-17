@@ -363,7 +363,8 @@ public:
     {
         AscendC::Cast<ElementMaskDst, ElementMaskSrc, false>(
             maskUbTensorDst, maskUbTensorSrc, AscendC::RoundMode::CAST_NONE, (uint64_t)0,
-            CeilDiv(rowNumCurLoop * columnNumRound, (uint32_t)(REPEAT_SIZE_IN_BYTE / sizeof(ElementMaskDst))),
+            NpuArch::Detail::Alignment::CeilDiv(
+                rowNumCurLoop * columnNumRound, (uint32_t)(REPEAT_SIZE_IN_BYTE / sizeof(ElementMaskDst))),
             AscendC::UnaryRepeatParams(1, 1, 8, 4));
         AscendC::PipeBarrier<PIPE_V>();
     }
@@ -592,7 +593,7 @@ public:
         AscendC::DataCopyParams repeatParams;
         repeatParams.blockCount = 1;
         repeatParams.srcStride = 0;
-        repeatParams.blockLen = CeilDiv(rowNumCurLoop * columnNumRound, BLOCK_SIZE);
+        repeatParams.blockLen = NpuArch::Detail::Alignment::CeilDiv(rowNumCurLoop * columnNumRound, BLOCK_SIZE);
         AscendC::DataCopy<half>(lpUbTensor, computeUbTensor, repeatParams);
         AscendC::PipeBarrier<PIPE_V>();
     }
@@ -615,7 +616,7 @@ public:
         uint32_t curStackTileMod)
     {
         uint32_t rowNumCurLoop = layoutOutput.shape(0);
-        uint32_t rowNumCurLoopRound = RoundUp(rowNumCurLoop, BLOCK_SIZE);
+        uint32_t rowNumCurLoopRound = NpuArch::Detail::Alignment::RoundUp(rowNumCurLoop, BLOCK_SIZE);
         uint32_t columnNum = layoutOutput.shape(1);
         uint32_t columnNumPad = layoutOutput.stride(0);
         uint32_t sUbOffset = pingpongFlag * MAX_UB_S_ELEM_NUM;
@@ -659,7 +660,7 @@ public:
     {
         uint32_t rowNum = actualBlockShape.m();
         uint32_t columnNum = actualBlockShape.n();
-        uint32_t columnNumRound = RoundUp(columnNum, BLOCK_SIZE);
+        uint32_t columnNumRound = NpuArch::Detail::Alignment::RoundUp(columnNum, BLOCK_SIZE);
         uint32_t columnNumPad = layoutInput.stride(0);
 
         uint32_t subBlockIdx = AscendC::GetSubBlockIdx();
@@ -672,9 +673,9 @@ public:
         uint32_t rowActualThisSubBlock = (subBlockIdx == 1U) ? (rowNum - rowSplitSubBlock) : rowSplitSubBlock;
         uint32_t rowOffsetThisSubBlock = subBlockIdx * rowSplitSubBlock;
         uint32_t maxRowNumPerLoop = MAX_UB_S_ELEM_NUM / columnNumRound;
-        uint32_t rowNumTile = RoundDown(maxRowNumPerLoop, BLOCK_SIZE);
+        uint32_t rowNumTile = NpuArch::Detail::Alignment::RoundDown(maxRowNumPerLoop, BLOCK_SIZE);
         rowNumTile = AscendC::Std::min(rowNumTile, HALF_VECTOR_SIZE);
-        uint32_t rowLoopNum = CeilDiv(rowActualThisSubBlock, rowNumTile);
+        uint32_t rowLoopNum = NpuArch::Detail::Alignment::CeilDiv(rowActualThisSubBlock, rowNumTile);
 
         for (uint32_t rowLoopIdx = 0; rowLoopIdx < rowLoopNum; rowLoopIdx++) {
             uint32_t pingpongFlag = rowLoopIdx % 2U;
@@ -717,7 +718,7 @@ public:
     {
         uint32_t rowNum = actualBlockShape.m();
         uint32_t columnNum = actualBlockShape.n();
-        uint32_t columnNumRound = RoundUp(columnNum, BLOCK_SIZE);
+        uint32_t columnNumRound = NpuArch::Detail::Alignment::RoundUp(columnNum, BLOCK_SIZE);
         uint32_t columnNumPad = layoutInput.stride(0);
         uint32_t maskStride = layoutMask.stride(0);
         uint32_t subBlockIdx = AscendC::GetSubBlockIdx();
@@ -739,7 +740,7 @@ public:
         uint32_t maskColumn;
         uint32_t addMaskUbOffset;
         if (triUp >= kvSStartIdx) {
-            uint32_t triUpRoundDown = RoundDown(triUp, BLOCK_SIZE);
+            uint32_t triUpRoundDown = NpuArch::Detail::Alignment::RoundDown(triUp, BLOCK_SIZE);
             gmOffsetMaskRow = triUp - triUpRoundDown;
             gmOffsetMaskColumn = 0U;
             maskColumn = kvSEndIdx - triUpRoundDown;
@@ -750,7 +751,7 @@ public:
             maskColumn = columnNum;
             addMaskUbOffset = 0U;
         }
-        uint32_t maskColumnRound = RoundUp(maskColumn, BLOCK_SIZE);
+        uint32_t maskColumnRound = NpuArch::Detail::Alignment::RoundUp(maskColumn, BLOCK_SIZE);
 
         int64_t offsetMask =
             layoutMask.GetOffset(MatrixCoord(gmOffsetMaskRow + maskOffsetThisSubBlock, gmOffsetMaskColumn));
@@ -758,9 +759,9 @@ public:
         auto layoutMaskThisSubBlock = layoutMask;
 
         uint32_t maxRowNumPerLoop = MAX_UB_S_ELEM_NUM / columnNumRound;
-        uint32_t rowNumTile = RoundDown(maxRowNumPerLoop, BLOCK_SIZE);
+        uint32_t rowNumTile = NpuArch::Detail::Alignment::RoundDown(maxRowNumPerLoop, BLOCK_SIZE);
         rowNumTile = AscendC::Std::min(rowNumTile, HALF_VECTOR_SIZE);
-        uint32_t rowLoopNum = CeilDiv(rowActualThisSubBlock, rowNumTile);
+        uint32_t rowLoopNum = NpuArch::Detail::Alignment::CeilDiv(rowActualThisSubBlock, rowNumTile);
 
         if (rowActualThisSubBlock == 0U) {
             Arch::CrossCoreWaitFlag(qkReady);

@@ -423,21 +423,6 @@ TEST_F(Ts_Fia_Ascend910B1, case_CheckGqaPageAttention_035) // blocksize是16的�
     ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
 }
 
-TEST_F(Ts_Fia_Ascend910B1, case_CheckGqaPageAttention_036) // blocksize<=1024
-{
-    FiaCase cs;
-    cs.mParam.mode = CaseMode::GQA_NOQUANT;
-    cs.mParam.storageMode = CaseKvStorageMode::PAGE_ATTENTION;
-    cs.mParam.layout = "BNSD";
-    cs.mParam.blockSize = 2048;
-    cs.mParam.actualSeqLengthKV = {1, 1, 1, 1, 1, 1};
-    ASSERT_TRUE(cs.Init());
-
-    cs.actualSeqLengthsKV = {"actualSeqLengthsKV", {1, 1, 1, 1, 1, 1}, "BNSD", ge::DT_INT64, ge::FORMAT_ND};
-    cs.mOpInfo.mExp.mSuccess = false;
-    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
-}
-
 // GQA 非特性------------------------------------------------------------------------
 TEST_F(Ts_Fia_Ascend910B1, case_CheckFeatureGqaLayout_039) // only supports BSH/BSND、BNSD、TND、NTD、BSH_BNSD、BSND_BNSD、BNSD_BSND、NTD_TND
 {

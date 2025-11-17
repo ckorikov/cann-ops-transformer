@@ -186,7 +186,7 @@ public:
         AscendC::BlockReduceSum<float, false>(
             rowsumUb,
             tvUbTensor[REDUCE_UB_SIZE],
-            CeilDiv(numRowsRound * FLOAT_BLOCK_SIZE, FLOAT_VECTOR_SIZE),
+            NpuArch::Detail::Alignment::CeilDiv(numRowsRound * FLOAT_BLOCK_SIZE, FLOAT_VECTOR_SIZE),
             0, 1, 1, 8);
         AscendC::PipeBarrier<PIPE_V>();
         AscendC::SetVectorMask<int8_t>((uint64_t)-1, (uint64_t)-1);
@@ -207,7 +207,7 @@ public:
             AscendC::BlockReduceSum<float, false>(
                 rowsumUb,
                 tvUbTensor,
-                CeilDiv(numRowsRound * FLOAT_BLOCK_SIZE, FLOAT_VECTOR_SIZE),
+                NpuArch::Detail::Alignment::CeilDiv(numRowsRound * FLOAT_BLOCK_SIZE, FLOAT_VECTOR_SIZE),
                 0, 1, 1, 8);
             AscendC::PipeBarrier<PIPE_V>();
             for (uint64_t rowSumIdx = 1; rowSumIdx < (uint64_t)numElems / FLOAT_VECTOR_SIZE; ++rowSumIdx) {
@@ -220,7 +220,7 @@ public:
                 AscendC::BlockReduceSum<float, false>(
                     tvUbTensor[REDUCE_UB_SIZE],
                     tvUbTensor,
-                    CeilDiv(numRowsRound * FLOAT_BLOCK_SIZE, FLOAT_VECTOR_SIZE),
+                    NpuArch::Detail::Alignment::CeilDiv(numRowsRound * FLOAT_BLOCK_SIZE, FLOAT_VECTOR_SIZE),
                     0, 1, 1, 8);
                 AscendC::PipeBarrier<PIPE_V>();
                 SetVecMask(numRowsRound);
@@ -243,19 +243,19 @@ public:
                 numRowsRound,
                 0, 1, 1, numElemsAligned / FLOAT_BLOCK_SIZE);
             AscendC::PipeBarrier<PIPE_V>();
-            SetBlockReduceMask(CeilDiv(numElems % FLOAT_VECTOR_SIZE, FLOAT_BLOCK_SIZE));
+            SetBlockReduceMask(NpuArch::Detail::Alignment::CeilDiv(numElems % FLOAT_VECTOR_SIZE, FLOAT_BLOCK_SIZE));
             if (numElems < FLOAT_VECTOR_SIZE) {
                 AscendC::BlockReduceSum<float, false>(
                     rowsumUb,
                     tvUbTensor,
-                    CeilDiv(numRowsRound * FLOAT_BLOCK_SIZE, FLOAT_VECTOR_SIZE),
+                    NpuArch::Detail::Alignment::CeilDiv(numRowsRound * FLOAT_BLOCK_SIZE, FLOAT_VECTOR_SIZE),
                     0, 1, 1, 8);
                 AscendC::PipeBarrier<PIPE_V>();
             } else {
                 AscendC::BlockReduceSum<float, false>(
                     tvUbTensor[REDUCE_UB_SIZE],
                     tvUbTensor,
-                    CeilDiv(numRowsRound * FLOAT_BLOCK_SIZE, FLOAT_VECTOR_SIZE),
+                    NpuArch::Detail::Alignment::CeilDiv(numRowsRound * FLOAT_BLOCK_SIZE, FLOAT_VECTOR_SIZE),
                     0, 1, 1, 8);
                 AscendC::PipeBarrier<PIPE_V>();
                 SetVecMask(numRowsRound);
@@ -319,7 +319,7 @@ public:
         AscendC::BlockReduceMax<float, false>(
             rowmaxUb,
             tvUbTensor[REDUCE_UB_SIZE],
-            CeilDiv(numRowsRound * FLOAT_BLOCK_SIZE, FLOAT_VECTOR_SIZE),
+            NpuArch::Detail::Alignment::CeilDiv(numRowsRound * FLOAT_BLOCK_SIZE, FLOAT_VECTOR_SIZE),
             0, 1, 1, 8);
         AscendC::PipeBarrier<PIPE_V>();
         AscendC::SetVectorMask<int8_t>((uint64_t)-1, (uint64_t)-1);
@@ -340,7 +340,7 @@ public:
             AscendC::BlockReduceMax<float, false>(
                 rowmaxUb,
                 tvUbTensor,
-                CeilDiv(numRowsRound * FLOAT_BLOCK_SIZE, FLOAT_VECTOR_SIZE),
+                NpuArch::Detail::Alignment::CeilDiv(numRowsRound * FLOAT_BLOCK_SIZE, FLOAT_VECTOR_SIZE),
                 0, 1, 1, 8);
             AscendC::PipeBarrier<PIPE_V>();
             for (uint64_t rowmax_idx = 1; rowmax_idx < (uint64_t)numElems / FLOAT_VECTOR_SIZE; ++rowmax_idx) {
@@ -353,7 +353,7 @@ public:
                 AscendC::BlockReduceMax<float, false>(
                     tvUbTensor[REDUCE_UB_SIZE],
                     tvUbTensor,
-                    CeilDiv(numRowsRound * FLOAT_BLOCK_SIZE, FLOAT_VECTOR_SIZE),
+                    NpuArch::Detail::Alignment::CeilDiv(numRowsRound * FLOAT_BLOCK_SIZE, FLOAT_VECTOR_SIZE),
                     0, 1, 1, 8);
                 AscendC::PipeBarrier<PIPE_V>();
                 SetVecMask(numRowsRound);
@@ -375,17 +375,17 @@ public:
                 numRowsRound,
                 0, 1, 1, numElemsAligned / FLOAT_BLOCK_SIZE);
             AscendC::PipeBarrier<PIPE_V>();
-            SetBlockReduceMask(CeilDiv(numElems % FLOAT_VECTOR_SIZE, FLOAT_BLOCK_SIZE));
+            SetBlockReduceMask(NpuArch::Detail::Alignment::CeilDiv(numElems % FLOAT_VECTOR_SIZE, FLOAT_BLOCK_SIZE));
             if (numElems < FLOAT_VECTOR_SIZE) {
                 AscendC::BlockReduceMax<float, false>(rowmaxUb,
                     tvUbTensor,
-                    CeilDiv(numRowsRound * FLOAT_BLOCK_SIZE, FLOAT_VECTOR_SIZE),
+                    NpuArch::Detail::Alignment::CeilDiv(numRowsRound * FLOAT_BLOCK_SIZE, FLOAT_VECTOR_SIZE),
                     0, 1, 1, 8);
                 AscendC::PipeBarrier<PIPE_V>();
             } else {
                 AscendC::BlockReduceMax<float, false>(tvUbTensor[REDUCE_UB_SIZE],
                     tvUbTensor,
-                    CeilDiv(numRowsRound * FLOAT_BLOCK_SIZE, FLOAT_VECTOR_SIZE),
+                    NpuArch::Detail::Alignment::CeilDiv(numRowsRound * FLOAT_BLOCK_SIZE, FLOAT_VECTOR_SIZE),
                     0, 1, 1, 8);
                 AscendC::PipeBarrier<PIPE_V>();
                 SetVecMask(numRowsRound);
@@ -462,7 +462,7 @@ public:
             lsUbTensor[sUbOffset],
             scaleValue,
             (uint64_t)0,
-            CeilDiv(rowNumCurLoop * columnNumRound, FLOAT_VECTOR_SIZE),
+            NpuArch::Detail::Alignment::CeilDiv(rowNumCurLoop * columnNumRound, FLOAT_VECTOR_SIZE),
             AscendC::UnaryRepeatParams(1, 1, 8, 8));
 
         AscendC::PipeBarrier<PIPE_V>();
@@ -478,7 +478,8 @@ public:
     {
         AscendC::Cast<ElementMaskDst, ElementMaskSrc, false>(
             maskUbTensorDst, maskUbTensorSrc, AscendC::RoundMode::CAST_NONE, (uint64_t)0,
-            CeilDiv(rowNumCurLoop * columnNumRound, (uint32_t)(REPEAT_SIZE_IN_BYTE / sizeof(ElementMaskDst))),
+            NpuArch::Detail::Alignment::CeilDiv(
+                rowNumCurLoop * columnNumRound, (uint32_t)(REPEAT_SIZE_IN_BYTE / sizeof(ElementMaskDst))),
             AscendC::UnaryRepeatParams(1, 1, 8, 4));
         AscendC::PipeBarrier<PIPE_V>();
     }
@@ -492,7 +493,7 @@ public:
             maskUbTensor32,
             (float)-3e38,
             (uint64_t)0,
-            CeilDiv(rowNumCurLoop * maskColumnRound, FLOAT_VECTOR_SIZE),
+            NpuArch::Detail::Alignment::CeilDiv(rowNumCurLoop * maskColumnRound, FLOAT_VECTOR_SIZE),
             AscendC::UnaryRepeatParams(1, 1, 8, 8));
         AscendC::PipeBarrier<PIPE_V>();
         if (maskColumnRound == columnNumRound) {
@@ -501,7 +502,7 @@ public:
                 lsUbTensor[sUbOffset],
                 maskUbTensor32,
                 (uint64_t)0,
-                CeilDiv(rowNumCurLoop * maskColumnRound, FLOAT_VECTOR_SIZE),
+                NpuArch::Detail::Alignment::CeilDiv(rowNumCurLoop * maskColumnRound, FLOAT_VECTOR_SIZE),
                 AscendC::BinaryRepeatParams(1, 1, 1, 8, 8, 8));
         } else {
             uint32_t loop = maskColumnRound / FLOAT_VECTOR_SIZE;
@@ -654,7 +655,7 @@ public:
             lsUbTensor[sUbOffset],
             lsUbTensor[sUbOffset],
             (uint64_t)0,
-            CeilDiv(rowNumCurLoop * columnNumRound, FLOAT_VECTOR_SIZE),
+            NpuArch::Detail::Alignment::CeilDiv(rowNumCurLoop * columnNumRound, FLOAT_VECTOR_SIZE),
             AscendC::UnaryRepeatParams(1, 1, 8, 8));
         AscendC::PipeBarrier<PIPE_V>();
     }
@@ -736,7 +737,7 @@ public:
                 lsUbTensor[sUbOffset],
                 AscendC::RoundMode::CAST_RINT,
                 (uint64_t)0,
-                CeilDiv(rowNumCurLoop * columnNumRound, FLOAT_VECTOR_SIZE),
+                NpuArch::Detail::Alignment::CeilDiv(rowNumCurLoop * columnNumRound, FLOAT_VECTOR_SIZE),
                 AscendC::UnaryRepeatParams(1, 1, 4, 8));
         } else {
             AscendC::Cast<ElementOutput, float, false>(
@@ -744,7 +745,7 @@ public:
                 lsUbTensor[sUbOffset],
                 AscendC::RoundMode::CAST_NONE,
                 (uint64_t)0,
-                CeilDiv(rowNumCurLoop * columnNumRound, FLOAT_VECTOR_SIZE),
+                NpuArch::Detail::Alignment::CeilDiv(rowNumCurLoop * columnNumRound, FLOAT_VECTOR_SIZE),
                 AscendC::UnaryRepeatParams(1, 1, 4, 8));
         }
     }
@@ -770,7 +771,7 @@ public:
         uint32_t curStackTileMod)
     {
         uint32_t rowNumCurLoop = layoutOutput.shape(0);
-        uint32_t rowNumCurLoopRound = RoundUp(rowNumCurLoop, FLOAT_BLOCK_SIZE);
+        uint32_t rowNumCurLoopRound = NpuArch::Detail::Alignment::RoundUp(rowNumCurLoop, FLOAT_BLOCK_SIZE);
         uint32_t columnNum = layoutOutput.shape(1);
         uint32_t columnNumPad = layoutOutput.stride(0);
         uint32_t sUbOffset = pingpongFlag * MAX_UB_S_ELEM_NUM;
@@ -824,7 +825,7 @@ public:
     {
         uint32_t rowNum = actualBlockShape.m();
         uint32_t columnNum = actualBlockShape.n();
-        uint32_t columnNumRound = RoundUp(columnNum, BLOCK_SIZE);
+        uint32_t columnNumRound = NpuArch::Detail::Alignment::RoundUp(columnNum, BLOCK_SIZE);
         uint32_t columnNumPad = layoutInput.stride(0);
 
         uint32_t subBlockIdx = AscendC::GetSubBlockIdx();
@@ -838,9 +839,9 @@ public:
         uint32_t rowActualThisSubBlock = (subBlockIdx == 1) ? (rowNum - rowSplitSubBlock) : rowSplitSubBlock;
         uint32_t rowOffsetThisSubBlock = subBlockIdx * rowSplitSubBlock;
         uint32_t maxRowNumPerLoop = MAX_UB_S_ELEM_NUM / columnNumRound;
-        uint32_t rowNumTile = RoundDown(maxRowNumPerLoop, FLOAT_BLOCK_SIZE);
+        uint32_t rowNumTile = NpuArch::Detail::Alignment::RoundDown(maxRowNumPerLoop, FLOAT_BLOCK_SIZE);
         rowNumTile = AscendC::Std::min(rowNumTile, FLOAT_VECTOR_SIZE);
-        uint32_t rowLoopNum = CeilDiv(rowActualThisSubBlock, rowNumTile);
+        uint32_t rowLoopNum = NpuArch::Detail::Alignment::CeilDiv(rowActualThisSubBlock, rowNumTile);
         uint32_t preLoad = 1;
 
         for (uint32_t rowLoopIdx = 0; rowLoopIdx < rowLoopNum + preLoad; rowLoopIdx++) {
@@ -896,7 +897,7 @@ public:
     {
         uint32_t rowNum = actualBlockShape.m();
         uint32_t columnNum = actualBlockShape.n();
-        uint32_t columnNumRound = RoundUp(columnNum, BLOCK_SIZE_IN_BYTE);
+        uint32_t columnNumRound = NpuArch::Detail::Alignment::RoundUp(columnNum, BLOCK_SIZE_IN_BYTE);
         uint32_t columnNumPad = layoutInput.stride(0);
         uint32_t maskStride = layoutMask.stride(0);
         uint32_t subBlockIdx = AscendC::GetSubBlockIdx();
@@ -921,7 +922,7 @@ public:
         uint32_t maskColumn;
         uint32_t addMaskUbOffset;
         if (triUp >= kvSStartIdx) {
-            uint32_t triUpRoundDown = RoundDown(triUp, BLOCK_SIZE_IN_BYTE);
+            uint32_t triUpRoundDown = NpuArch::Detail::Alignment::RoundDown(triUp, BLOCK_SIZE_IN_BYTE);
             gmOffsetMaskRow = triUp - triUpRoundDown;
             gmOffsetMaskColumn = 0;
             maskColumn = kvSEndIdx - triUpRoundDown;
@@ -932,7 +933,7 @@ public:
             maskColumn = columnNum;
             addMaskUbOffset = 0;
         }
-        uint32_t maskColumnRound = RoundUp(maskColumn, BLOCK_SIZE_IN_BYTE);
+        uint32_t maskColumnRound = NpuArch::Detail::Alignment::RoundUp(maskColumn, BLOCK_SIZE_IN_BYTE);
 
         int64_t offsetMask =
             layoutMask.GetOffset(MatrixCoord(gmOffsetMaskRow + maskOffsetThisSubBlock, gmOffsetMaskColumn));
@@ -940,9 +941,9 @@ public:
         auto layoutMaskThisSubBlock = layoutMask;
 
         uint32_t maxRowNumPerLoop = MAX_UB_S_ELEM_NUM / columnNumRound;
-        uint32_t rowNumTile = RoundDown(maxRowNumPerLoop, FLOAT_BLOCK_SIZE);
+        uint32_t rowNumTile = NpuArch::Detail::Alignment::RoundDown(maxRowNumPerLoop, FLOAT_BLOCK_SIZE);
         rowNumTile = AscendC::Std::min(rowNumTile, FLOAT_VECTOR_SIZE);
-        uint32_t rowLoopNum = CeilDiv(rowActualThisSubBlock, rowNumTile);
+        uint32_t rowLoopNum = NpuArch::Detail::Alignment::CeilDiv(rowActualThisSubBlock, rowNumTile);
         uint32_t preLoad = 1;
 
         if (rowActualThisSubBlock == 0) {

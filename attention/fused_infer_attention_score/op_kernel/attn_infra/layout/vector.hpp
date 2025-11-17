@@ -50,7 +50,7 @@ public:
     HOST_DEVICE
     static VectorLayout MakeLayoutInUb(TensorCoord const &tileShape)
     {
-        return VectorLayout{RoundUp<BYTE_PER_BLK / sizeof(Element)>(tileShape[0])};
+        return VectorLayout{NpuArch::Detail::Alignment::RoundUp<BYTE_PER_BLK / sizeof(Element)>(tileShape[0])};
     }
 
     HOST_DEVICE

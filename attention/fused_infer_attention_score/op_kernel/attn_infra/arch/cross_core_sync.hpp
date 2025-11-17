@@ -71,7 +71,12 @@ template <uint8_t MODE, pipe_t PIPE>
 __aicore__ inline
 void CrossCoreBarrier()
 {
-    constexpr FlagID flagId = BarrierFlag<MODE, g_coreType>::ID;
+    FlagID flagId;
+    if (g_coreType == AscendC::AIC) {
+        flagId = BarrierFlag<MODE, AscendC::AIC>::ID;
+    } else if (g_coreType == AscendC::AIV) {
+        flagId = BarrierFlag<MODE, AscendC::AIV>::ID;
+    }
     AscendC::CrossCoreSetFlag<MODE, PIPE>(flagId);
     AscendC::CrossCoreWaitFlag(flagId);
 }

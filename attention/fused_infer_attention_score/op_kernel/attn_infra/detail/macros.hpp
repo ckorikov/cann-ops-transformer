@@ -11,6 +11,6 @@
 #ifndef DETAIL_MACROS_HPP
 #define DETAIL_MACROS_HPP
 
-#define HOST_DEVICE __forceinline__ [host, aicore]
+#define HOST_DEVICE __host_aicore__ inline
 
 #endif  // DETAIL_MACROS_HPP

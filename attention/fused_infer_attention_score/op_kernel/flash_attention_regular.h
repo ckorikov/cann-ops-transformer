@@ -88,8 +88,8 @@ namespace SplitFuse {
 
             AscendC::GlobalTensor<ElementQ> gQ;
             gQ.SetGlobalBuffer((__gm__ ElementQ *)params.q);
-            ListTensorDesc keyListTensorDescInit((__gm__ void*)params.k);
-            ListTensorDesc valueListTensorDescInit((__gm__ void*)params.v);
+            AscendC::ListTensorDesc keyListTensorDescInit((__gm__ void*)params.k);
+            AscendC::ListTensorDesc valueListTensorDescInit((__gm__ void*)params.v);
             __gm__ uint8_t* currentKey = (__gm__ uint8_t*)keyListTensorDescInit.GetDataPtr<__gm__ uint8_t>(0);
             __gm__ uint8_t* currentValue = (__gm__ uint8_t*)valueListTensorDescInit.GetDataPtr<__gm__ uint8_t>(0);
             AscendC::GlobalTensor<ElementK> gK;
@@ -140,7 +140,7 @@ namespace SplitFuse {
             AscendC::SetFlag<AscendC::HardEvent::MTE1_MTE2>(EVENT_ID6);
             AscendC::SetFlag<AscendC::HardEvent::MTE1_MTE2>(EVENT_ID7);
             
-            uint32_t kDynNum = RoundUp(embed, NUM_128);
+            uint32_t kDynNum = NpuArch::Detail::Alignment::RoundUp(embed, NUM_128);
             kDynNum = kDynNum < NUM_256 ? NUM_256 : kDynNum;
             uint32_t maxQKPL1Size = L1_MAX_SIZE - embedV * MAX_KV_STACK_LEN * sizeof(ElementV);
             uint32_t maxQL1Size = Q_TILE_CEIL * kDynNum * sizeof(ElementQ);
@@ -148,7 +148,8 @@ namespace SplitFuse {
                 ((maxQKPL1Size - maxQL1Size) / kDynNum / sizeof(ElementV) / DOUBLE_BUFFER) / NUM_32 * NUM_32;
 
             uint32_t nDynNum = maxNDynNum < L1_MAX_N_NUM ? maxNDynNum : L1_MAX_N_NUM;
-            nDynNum = L1_MAX_N_NUM % nDynNum != 0 ? RoundDown((nDynNum - 1), NUM_32) : nDynNum;
+            nDynNum = L1_MAX_N_NUM % nDynNum != 0 ?
+                NpuArch::Detail::Alignment::RoundDown((nDynNum - 1), NUM_32) : nDynNum;
 
             uint32_t L1_QK_SIZE = BlockMmadQK::L1TileShape::M * kDynNum * sizeof(ElementQ);
             BlockMmadQK blockMmadQK(resource, nDynNum, kDynNum);
@@ -181,8 +182,8 @@ namespace SplitFuse {
             uint64_t strideO = static_cast<uint64_t>(qHeads * embedV);
             uint64_t strideK = static_cast<uint64_t>(kvHeads * embed);
             uint64_t strideV = static_cast<uint64_t>(kvHeads * embedV);
-            uint32_t embedRound = RoundUp(embed, FaiKenel::BLOCK_SIZE);
-            uint32_t embedRoundV = RoundUp(embedV, FaiKenel::BLOCK_SIZE);
+            uint32_t embedRound = NpuArch::Detail::Alignment::RoundUp(embed, FaiKenel::BLOCK_SIZE);
+            uint32_t embedRoundV = NpuArch::Detail::Alignment::RoundUp(embedV, FaiKenel::BLOCK_SIZE);
             uint32_t groupSize = qHeads / kvHeads;
 
             uint64_t qBOffset = 0;
@@ -208,10 +209,10 @@ namespace SplitFuse {
                 }
             }
             uint32_t curQNBlockTile = GetQNBlockTile(qSeqlen, groupSize);
-            uint32_t qNBlockNumPerGroup = CeilDiv(groupSize, curQNBlockTile);
+            uint32_t qNBlockNumPerGroup = NpuArch::Detail::Alignment::CeilDiv(groupSize, curQNBlockTile);
             uint32_t curQNBlockNum = qNBlockNumPerGroup * kvHeads;
             uint32_t curQSBlockTile = GetQSBlockTile(kvSeqlen);
-            uint32_t curQSBlockNum = CeilDiv(qSeqlen, curQSBlockTile);
+            uint32_t curQSBlockNum = NpuArch::Detail::Alignment::CeilDiv(qSeqlen, curQSBlockTile);
             uint32_t curTotalTaskNum = firstBatchTaskNum;
 
             // Go through each task.
@@ -243,10 +244,10 @@ namespace SplitFuse {
                         }
                     }
                     curQNBlockTile = GetQNBlockTile(qSeqlen, groupSize);
-                    qNBlockNumPerGroup = CeilDiv(groupSize, curQNBlockTile);
+                    qNBlockNumPerGroup = NpuArch::Detail::Alignment::CeilDiv(groupSize, curQNBlockTile);
                     curQNBlockNum = qNBlockNumPerGroup * kvHeads;
                     curQSBlockTile = GetQSBlockTile(kvSeqlen);
-                    curQSBlockNum = CeilDiv(qSeqlen, curQSBlockTile);
+                    curQSBlockNum = NpuArch::Detail::Alignment::CeilDiv(qSeqlen, curQSBlockTile);
                     curTotalTaskNum += curQNBlockNum * curQSBlockNum;
                 }
                 uint32_t taskIdxCurBatch = taskIdx - preTotalTaskNum;
@@ -274,7 +275,7 @@ namespace SplitFuse {
                 uint32_t qNBlockSize = (qNBlockIdxCurGroup == (qNBlockNumPerGroup - 1U)) ?
                     (groupSize - qNBlockIdxCurGroup * curQNBlockTile) : curQNBlockTile;
                 uint32_t rowNum = qSBlockSize * qNBlockSize;
-                uint32_t rowNumRound = RoundUp(rowNum, FaiKenel::BLOCK_SIZE);
+                uint32_t rowNumRound = NpuArch::Detail::Alignment::RoundUp(rowNum, FaiKenel::BLOCK_SIZE);
 
                 uint32_t noSkipKvS = kvSeqlen;
                 if (maskType != 0U) {
@@ -282,7 +283,7 @@ namespace SplitFuse {
                     noSkipKvS = (qSBlockIdx + 1U) * curQSBlockTile + diffS;
                     noSkipKvS = AscendC::Std::min((uint32_t)kvSeqlen, noSkipKvS);
                 }
-                uint32_t kvSLoopNumTotal = CeilDiv(noSkipKvS, pagedBlockSize);
+                uint32_t kvSLoopNumTotal = NpuArch::Detail::Alignment::CeilDiv(noSkipKvS, pagedBlockSize);
 
                 uint32_t blockStackNum = MAX_KV_STACK_LEN / pagedBlockSize;
                 uint32_t stackSeqTile;

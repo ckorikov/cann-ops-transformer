@@ -17,6 +17,31 @@
 #include "fused_infer_attention_score_tiling.h"
 
 namespace optiling{
+    BEGIN_TILING_DATA_DEF(FAInferTilingData)
+    TILING_DATA_FIELD_DEF(uint32_t, numHeads)
+    TILING_DATA_FIELD_DEF(uint32_t, embeddingSize)
+    TILING_DATA_FIELD_DEF(uint32_t, embeddingSizeV)
+    TILING_DATA_FIELD_DEF(uint32_t, numBlocks)
+    TILING_DATA_FIELD_DEF(uint32_t, blockSize)
+    TILING_DATA_FIELD_DEF(uint32_t, maxQSeqlen)
+    TILING_DATA_FIELD_DEF(uint32_t, maxKvSeqlen)
+    TILING_DATA_FIELD_DEF(uint32_t, kvHeads)
+    TILING_DATA_FIELD_DEF(uint32_t, batch)
+    TILING_DATA_FIELD_DEF(uint32_t, maxNumBlocksPerBatch)
+    TILING_DATA_FIELD_DEF(uint32_t, firstBatchTaskNum)
+    TILING_DATA_FIELD_DEF(uint32_t, totalTaskNum)
+    TILING_DATA_FIELD_DEF(uint32_t, maskType)
+    TILING_DATA_FIELD_DEF(uint64_t, mm1OutSize)
+    TILING_DATA_FIELD_DEF(uint64_t, smOnlineOutSize)
+    TILING_DATA_FIELD_DEF(uint64_t, mm2OutSize)
+    TILING_DATA_FIELD_DEF(uint64_t, UpdateSize)
+    TILING_DATA_FIELD_DEF(uint64_t, workSpaceSize)
+    TILING_DATA_FIELD_DEF(float, scaleValue)
+    TILING_DATA_FIELD_DEF(uint64_t, padding1)
+    TILING_DATA_FIELD_DEF(uint64_t, padding2)
+    TILING_DATA_FIELD_DEF(uint32_t, padding3)
+    END_TILING_DATA_DEF
+    
     const uint32_t SIZE_OF_16BIT = 2;
     const uint32_t SIZE_OF_32BIT = 4;
     const uint32_t N_SPLIT_HELPER = 2;

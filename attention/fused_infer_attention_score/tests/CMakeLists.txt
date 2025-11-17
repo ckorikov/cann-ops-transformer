@@ -39,6 +39,7 @@ set(_FIA_TilingSourcesExt
 
 set(_FIA_KernelTilingDataDefH
         ${OPS_TRANSFORMER_DIR}/common/include/tiling_base/data_copy_transpose_tiling_def.h
+        ${OPS_TRANSFORMER_DIR}/attention/fused_infer_attention_score/op_host/flash_attention_infer_tiling.h
         ${CMAKE_SOURCE_DIR}/attention/incre_flash_attention/op_host/incre_flash_attention_tiling.h
         ${CMAKE_SOURCE_DIR}/attention/prompt_flash_attention/op_host/prompt_flash_attention_tiling.h
 )

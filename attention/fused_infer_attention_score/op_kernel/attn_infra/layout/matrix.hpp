@@ -56,7 +56,7 @@ public:
     HOST_DEVICE
     static RowMajor MakeLayoutInUb(MatrixCoord const &shape)
     {
-        return RowMajor(shape.row(), shape.column(), RoundUp<BYTE_PER_C0 / sizeof(Element)>(shape.column()));
+        return RowMajor(shape.row(), shape.column(), NpuArch::Detail::Alignment::RoundUp<BYTE_PER_C0 / sizeof(Element)>(shape.column()));
     }
 
     /// Returns the offset of a coordinate in linear memory.
@@ -314,8 +314,8 @@ public:
     {
         constexpr uint32_t ELE_NUM_PER_C0 = static_cast<uint32_t>(BYTE_PER_C0) / static_cast<uint32_t>(sizeof(Element));
         constexpr uint32_t ELE_NUM_PER_FRACTAL = BYTE_PER_FRACTAL / sizeof(Element);
-        Index rowsRound = RoundUp<ELE_NUM_PER_C0>(orgRows);
-        Index colsRound = RoundUp<C0_NUM_PER_FRACTAL>(orgCols);
+        Index rowsRound = NpuArch::Detail::Alignment::RoundUp<ELE_NUM_PER_C0>(orgRows);
+        Index colsRound = NpuArch::Detail::Alignment::RoundUp<C0_NUM_PER_FRACTAL>(orgCols);
         return nZ(orgRows,
                   orgCols,
                   ELE_NUM_PER_C0,
@@ -342,8 +342,8 @@ public:
     nZ GetTileLayout(MatrixCoord const &tileOriShape) const
     {
         auto tileShape = MakeCoord(
-            shape(0), CeilDiv(tileOriShape.row(), shape(0)),
-            shape(2), CeilDiv(tileOriShape.column(), shape(2))
+            shape(0), NpuArch::Detail::Alignment::CeilDiv(tileOriShape.row(), shape(0)),
+            shape(2), NpuArch::Detail::Alignment::CeilDiv(tileOriShape.column(), shape(2))
         );
         return nZ(tileOriShape, tileShape, stride());
     }
@@ -483,8 +483,8 @@ public:
     {
         constexpr uint32_t ELE_NUM_PER_C0 = static_cast<uint32_t>(BYTE_PER_C0) / static_cast<uint32_t>(sizeof(Element));
         constexpr uint32_t ELE_NUM_PER_FRACTAL = BYTE_PER_FRACTAL / sizeof(Element);
-        Index rowsRound = RoundUp<C0_NUM_PER_FRACTAL>(orgRows);
-        Index colsRound = RoundUp<ELE_NUM_PER_C0>(orgCols);
+        Index rowsRound = NpuArch::Detail::Alignment::RoundUp<C0_NUM_PER_FRACTAL>(orgRows);
+        Index colsRound = NpuArch::Detail::Alignment::RoundUp<ELE_NUM_PER_C0>(orgCols);
         return zN(orgRows,
                   orgCols,
                   C0_NUM_PER_FRACTAL,
@@ -503,13 +503,13 @@ public:
         return zN(shape.row(),
                   shape.column(),
                   C0_NUM_PER_FRACTAL,
-                  CeilDiv<C0_NUM_PER_FRACTAL>(shape.row()),
+                  NpuArch::Detail::Alignment::CeilDiv<C0_NUM_PER_FRACTAL>(shape.row()),
                   C0_NUM_PER_FRACTAL,
-                  CeilDiv<C0_NUM_PER_FRACTAL>(shape.column()),
+                  NpuArch::Detail::Alignment::CeilDiv<C0_NUM_PER_FRACTAL>(shape.column()),
                   C0_NUM_PER_FRACTAL,
                   C0_NUM_PER_FRACTAL * C0_NUM_PER_FRACTAL,
                   1,
-                  RoundUp<C0_NUM_PER_FRACTAL>(shape.row()) * C0_NUM_PER_FRACTAL);
+                  NpuArch::Detail::Alignment::RoundUp<C0_NUM_PER_FRACTAL>(shape.row()) * C0_NUM_PER_FRACTAL);
     }
 
     /// Returns the offset of a coordinate in linear memory.
@@ -526,8 +526,8 @@ public:
     zN GetTileLayout(MatrixCoord const &tileOriShape) const
     {
         auto tileShape = MakeCoord(
-            shape(0), CeilDiv(tileOriShape.row(), shape(0)),
-            shape(2), CeilDiv(tileOriShape.column(), shape(2))
+            shape(0), NpuArch::Detail::Alignment::CeilDiv(tileOriShape.row(), shape(0)),
+            shape(2), NpuArch::Detail::Alignment::CeilDiv(tileOriShape.column(), shape(2))
         );
         return zN(tileOriShape, tileShape, stride());
     }
@@ -667,8 +667,8 @@ public:
     {
         constexpr uint32_t ELE_NUM_PER_C0 = static_cast<uint32_t>(BYTE_PER_C0) / static_cast<uint32_t>(sizeof(Element));
         constexpr uint32_t ELE_NUM_PER_FRACTAL = BYTE_PER_FRACTAL / sizeof(Element);
-        Index rowsRound = RoundUp<C0_NUM_PER_FRACTAL>(orgRows);
-        Index colsRound = RoundUp<ELE_NUM_PER_C0>(orgCols);
+        Index rowsRound = NpuArch::Detail::Alignment::RoundUp<C0_NUM_PER_FRACTAL>(orgRows);
+        Index colsRound = NpuArch::Detail::Alignment::RoundUp<ELE_NUM_PER_C0>(orgCols);
         return zZ(orgRows,
                   orgCols,
                   C0_NUM_PER_FRACTAL,
@@ -801,8 +801,10 @@ public:
     HOST_DEVICE
     PaddingRowMajor(Index orgRows = 0, Index orgCols = 0, Index blockRows = 0, Index blockCols = 0) :
         orgShape_(MakeCoord(orgRows, orgCols)),
-        shape_(MakeCoord(blockRows, CeilDiv(orgRows, blockRows), blockCols, CeilDiv(orgCols, blockCols))),
-        stride_(MakeCoord((LongIndex)blockCols, (LongIndex)blockRows * (LongIndex)RoundUp(orgCols, blockCols),
+        shape_(MakeCoord(blockRows, NpuArch::Detail::Alignment::CeilDiv(orgRows, blockRows),
+        blockCols, NpuArch::Detail::Alignment::CeilDiv(orgCols, blockCols))),
+        stride_(MakeCoord((LongIndex)blockCols,
+        (LongIndex)blockRows * (LongIndex)NpuArch::Detail::Alignment::RoundUp(orgCols, blockCols),
         (LongIndex)1, (LongIndex)blockRows * (LongIndex)blockCols)) {}
 
     /// Returns the offset of a coordinate in linear memory.
@@ -940,9 +942,10 @@ public:
     HOST_DEVICE
     PaddingColumnMajor(Index orgRows = 0, Index orgCols = 0, Index blockRows = 0, Index blockCols = 0) :
         orgShape_(MakeCoord(orgRows, orgCols)),
-        shape_(MakeCoord(blockRows, CeilDiv(orgRows, blockRows), blockCols, CeilDiv(orgCols, blockCols))),
+        shape_(MakeCoord(blockRows, NpuArch::Detail::Alignment::CeilDiv(orgRows, blockRows),
+        blockCols, NpuArch::Detail::Alignment::CeilDiv(orgCols, blockCols))),
         stride_(MakeCoord((LongIndex)1, (LongIndex)blockRows * (LongIndex)blockCols, (LongIndex)blockRows,
-        (LongIndex)RoundUp(orgRows, blockRows) * (LongIndex)blockCols)) {}
+        (LongIndex)NpuArch::Detail::Alignment::RoundUp(orgRows, blockRows) * (LongIndex)blockCols)) {}
 
     /// Returns the offset of a coordinate in linear memory.
     /// Assumes coordinate has convention (row, column)
@@ -1107,8 +1110,8 @@ public:
     HOST_DEVICE static nN MakeLayout(Index orgRows, Index orgCols) {
         static constexpr uint32_t ELE_NUM_PER_C0 = BYTE_PER_C0 / sizeof(Element);
         static constexpr uint32_t ELE_NUM_PER_FRACTAL = BYTE_PER_FRACTAL / sizeof(Element);
-        Index rowsRound = RoundUp<ELE_NUM_PER_C0>(orgRows);
-        Index colsRound = RoundUp<C0_NUM_PER_FRACTAL>(orgCols);
+        Index rowsRound = NpuArch::Detail::Alignment::RoundUp<ELE_NUM_PER_C0>(orgRows);
+        Index colsRound = NpuArch::Detail::Alignment::RoundUp<C0_NUM_PER_FRACTAL>(orgCols);
         return nN(orgRows,
                 orgCols,
 
