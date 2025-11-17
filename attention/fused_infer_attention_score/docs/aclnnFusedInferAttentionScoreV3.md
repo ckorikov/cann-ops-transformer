@@ -934,6 +934,7 @@ aclnnStatus aclnnFusedInferAttentionScoreV3(
             </tbody>
         </table>
     </div>
+    
   - Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件：Q_S等于1时传入0，1，2，3，4，5之外的其他值会执行异常。Q_S大于等于2时仅支持传入值为0、1，其他值会执行异常。
   
 
