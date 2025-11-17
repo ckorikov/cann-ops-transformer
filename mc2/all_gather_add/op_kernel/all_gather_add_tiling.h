@@ -26,7 +26,7 @@ struct AllGatherAddTilingData {
     uint32_t totalLength; // 需要参与Add计算的数据总个数
     uint32_t blockLength; // 每个核需要计算的数据个数
     uint32_t tileLength; // 每个核内每个数据块的数据个数
-    uint32_t gatherTileLength; // 待allgather的数据个数
+    uint32_t gatherTileLength; // 参与AllGather的数据个数
 };
 
 #endif //__ALL_GATHER_ADD_TILING_H__

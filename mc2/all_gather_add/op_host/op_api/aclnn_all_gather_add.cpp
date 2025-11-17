@@ -16,7 +16,6 @@
 #include "aclnn_kernels/common/op_error_check.h"
 #include "opdev/common_types.h"
 #include "opdev/make_op_executor.h"
-#include "opdev/op_dfx.h"
 #include "opdev/op_executor.h"
 #include "opdev/op_log.h"
 #include "opdev/platform.h"
@@ -28,11 +27,6 @@ using namespace op;
 extern "C" { 
 #endif
 static constexpr size_t TWO_DIMS = 2;
-typedef struct {
-  uint32_t id;
-  const char *funcName;
-  bool hasReg;
-} NnopbaseDfxId;
 
 extern aclnnStatus aclnnInnerAllGatherAddGetWorkspaceSize(const aclTensor *a, const aclTensor *b, char *group,
                                                           int64_t rankSize, bool isGatherOut, const aclTensor *cOut,
@@ -40,26 +34,17 @@ extern aclnnStatus aclnnInnerAllGatherAddGetWorkspaceSize(const aclTensor *a, co
                                                           aclOpExecutor **executor);
 extern aclnnStatus aclnnInnerAllGatherAdd(void *workspace, uint64_t workspaceSize, aclOpExecutor *executor,
                                           aclrtStream stream);
-extern "C" aclnnStatus NnopbaseGetAttrAddr(void *executor, const size_t index, void **attrAddr, size_t *attrLen);
-extern "C" void NnopbaseGetOutputTensorAddr(void *executor, const size_t index, void **addr);
-extern "C" void NnopbaseGetInputTensorAddr(void *executor, const size_t index, void **addr);
-extern "C" void NnopbaseSetInputTensorAddr(void *executor, const size_t index, const void *const addr);
-extern "C" void NnopbaseGetTilingData(void *executor, void **tilingData, uint64_t *dataLen);
-extern "C" void NnopbaseSetUserHandle(void *executor, void *handle);
-extern "C" void* NnopbaseGetUserHandle(void *executor);
-extern "C" uint64_t NnopbaseMsprofSysTime();
-extern "C" void NnopbaseReportApiInfo(const uint64_t beginTime, NnopbaseDfxId &dfxId);
-extern "C" void NnopbaseReportLaunchInfo(const uint64_t beginTime, const char *const opType);
-extern "C" aclnnStatus NnopbaseReportAicpuAdditionInfo(const uint64_t timeStamp, const char *const opType);
-extern "C" aclnnStatus __attribute__((weak)) NnopbaseDisableOptionalInput(void *executor, const size_t irIndex);
-static bool CheckNotNull(const aclTensor *a, const aclTensor *b, 
+extern "C" void __attribute__((weak))
+NnopbaseSetHcclServerType(void* executor, NnopbaseHcclServerType sType);
+
+static aclnnStatus CheckNotNull(const aclTensor *a, const aclTensor *b, 
                          const aclTensor *gatherout, const aclTensor *output)
 {
   OP_CHECK_NULL(a, return false);
   OP_CHECK_NULL(b, return false);
   OP_CHECK_NULL(gatherout, return false);
   OP_CHECK_NULL(output, return false);
-  return true;
+  return ACLNN_SUCCESS;
 }
 
 // 根据API定义，需要列出所能支持的所有dtype
@@ -67,13 +52,66 @@ static const std::initializer_list<op::DataType> DTYPE_SUPPORT_LIST = {
   op::DataType::DT_FLOAT16
 };
 
-static bool CheckDtypeValid(const aclTensor* a, const aclTensor* b, const aclTensor* gatherout, const aclTensor* output)
+static aclnnStatus CheckDtypeValid(const aclTensor* a, const aclTensor* b, const aclTensor* gatherout, const aclTensor* output)
 {
   OP_CHECK_DTYPE_NOT_SUPPORT(a, DTYPE_SUPPORT_LIST, return false);
   OP_CHECK_DTYPE_NOT_SUPPORT(b, DTYPE_SUPPORT_LIST, return false);
   OP_CHECK_DTYPE_NOT_SUPPORT(gatherout, DTYPE_SUPPORT_LIST, return false);
   OP_CHECK_DTYPE_NOT_SUPPORT(output, DTYPE_SUPPORT_LIST, return false);
-  return true;
+  return ACLNN_SUCCESS;
+}
+
+static aclnnStatus CheckShape(const aclTensor *a, const aclTensor *b, const aclTensor *gatherOut, const aclTensor *output)
+{
+  // TODO：需要检查当前输入的shape是否为本示例shape
+    OP_CHECK_WRONG_DIMENSION(a, TWO_DIMS, return false);
+    OP_CHECK_WRONG_DIMENSION(b, TWO_DIMS, return false);
+
+    if (a->GetViewShape().GetDim(0) != 240 || a->GetViewShape().GetDim(1) != 256
+        b->GetViewShape().GetDim(0) != 480 || a->GetViewShape().GetDim(1) != 256) {
+        OP_LOGE(ACLNN_ERR_PARAM_INVALID, 
+        "The current shape is not generalized, which may lead to functional or accuracy issues. Please use the shapes supported by the examples.");
+        return ACLNN_ERR_PARAM_INVALID;
+    }
+
+    auto bLen = b->GetViewShape().GetDim(0);
+    auto gatherOutLen = gatherOut->GetViewShape().GetDim(0);
+    auto outputLen = output->GetViewShape().GetDim(0);
+
+    OP_API_CHECK((bLen != gatherOutLen), {
+        OP_LOGE(ACLNN_ERR_PARAM_INVALID, 
+        "The length of opeator_b and gatherOut should be same, but opeator_b's length is: %ld and gatherOut's length is: %ld.",
+        bLen, gatherOutLen);
+        return ACLNN_ERR_PARAM_INVALID;
+    });
+
+    OP_API_CHECK((gatherOutLen != outputLen), {
+    OP_LOGE(ACLNN_ERR_PARAM_INVALID, 
+    "The length of output and gatherOut should be same, but outputLen's length is: %ld and gatherOut's length is: %ld.", gatherOutLen, outputLen);
+    return ACLNN_ERR_PARAM_INVALID;
+    });
+
+    return ACLNN_SUCCESS;
+}
+
+static bool IsFormatSupport(const aclTensor* input, Format format, const std::string& inputName)
+{
+    if (input != nullptr && input->GetStorageFormat() != format) {
+        OP_LOGE(
+            ACLNN_ERR_PARAM_INVALID, "%s's format should be ND. actual is [%s].", inputName.c_str(),
+            op::ToString(input->GetStorageFormat()).GetString());
+        return false;
+    }
+    return true;
+}
+
+static bool CheckFormatValid(const aclTensor *a, const aclTensor *b, const aclTensor *gatherOut, const aclTensor *output)
+{
+    CHECK_RET(IsFormatSupport(a, Format::FORMAT_ND, "a"), false);
+    CHECK_RET(IsFormatSupport(b, Format::FORMAT_ND, "b"), false);
+    CHECK_RET(IsFormatSupport(gatherOut, Format::FORMAT_ND, "gatherOut"), false);
+    CHECK_RET(IsFormatSupport(output, Format::FORMAT_ND, "output"), false);
+    return true;
 }
 
 static aclnnStatus CheckParams(const aclTensor *a, const aclTensor *b, const aclTensor *gatherout, const aclTensor *output)
@@ -82,42 +120,21 @@ static aclnnStatus CheckParams(const aclTensor *a, const aclTensor *b, const acl
 
   CHECK_RET(CheckDtypeValid(a, b, gatherout, output), ACLNN_ERR_PARAM_INVALID);
 
+  CHECK_RET(CheckShape(a, b, output, gatherout), ACLNN_ERR_PARAM_INVALID);
+
+  CHECK_RET(CheckFormatValid(a, b, output, gatherout), ACLNN_ERR_PARAM_INVALID);
+
   return ACLNN_SUCCESS;
 }
 
 static bool IsGatherOut(const aclTensor *gatherOut) {
   OP_CHECK_NULL(gatherOut, return false);
-  if (gatherOut->IsEmpty()) {//怎么算empty
-    OP_LOGD("AllGatherAdd, get gather out is false.");
+  if (gatherOut->IsEmpty()) {
+    // 检查tensor shape的某一维度是否为0，例如{0，16}
+    OP_LOGD("AllGatherAdd, get gatherOut is false.");
     return false;
   }
   return true;
-}
-
-static bool CheckShape(const aclTensor *a, const aclTensor *b, const aclTensor *gatherOut, const aclTensor *output)
-{
-    OP_CHECK_WRONG_DIMENSION(a, TWO_DIMS, return false);
-    OP_CHECK_WRONG_DIMENSION(b, TWO_DIMS, return false);
-
-    if (IsGatherOut(gatherOut)) {
-    auto bLen = b->GetViewShape().GetDim(0);
-    auto gatherOutLen = gatherOut->GetViewShape().GetDim(0);
-    OP_API_CHECK((bLen != gatherOutLen), {
-        OP_LOGE(ACLNN_ERR_PARAM_INVALID, 
-        "The length of opeator_b and gatherOut should be same, but opeator_b's length is: %ld and gatherOut's length is: %ld.",
-        bLen, gatherOutLen);
-        return false;
-    });
-    }
-    auto gatherOutLen = gatherOut->GetViewShape().GetDim(0);
-    auto outputLen = output->GetViewShape().GetDim(0);
-    OP_API_CHECK((gatherOutLen != outputLen), {
-    OP_LOGE(ACLNN_ERR_PARAM_INVALID, 
-    "The length of output and gatherOut should be same, but outputLen's length is: %ld and gatherOut's length is: %ld.", gatherOutLen, outputLen);
-    return false;
-    });
-
-    return true;
 }
 
 /*
@@ -131,41 +148,38 @@ aclnnStatus aclnnAllGatherAddGetWorkspaceSize(const aclTensor *a, const aclTenso
                                               const aclTensor *gatherOutOut, uint64_t *workspaceSize,
                                               aclOpExecutor **executor) 
 {
-  uint64_t timeStamp = NnopbaseMsprofSysTime();
   auto retParam = CheckParams(a, b, gatherOutOut, cOut);
   CHECK_RET(retParam == ACLNN_SUCCESS, retParam);
 
   OP_LOGD("A is %s, B is %s.", a->ToString().GetString(), b->ToString().GetString());
   OP_LOGD("Output is %s, gatherOut is %s.", cOut->ToString().GetString(), gatherOutOut->ToString().GetString());
 
-  CHECK_RET(CheckShape(a, b, cOut, gatherOutOut), ACLNN_ERR_PARAM_INVALID);
   bool isGatherOut = IsGatherOut(gatherOutOut);
   aclnnStatus ret = aclnnInnerAllGatherAddGetWorkspaceSize(a, b, group, rankSize, isGatherOut,
                                                            cOut, gatherOutOut, workspaceSize, executor);
   OP_LOGD("AllGatherAdd, aclnnInnerGetWorkspaceSize ret = %d.", ret);
-  static NnopbaseDfxId dfxId = {0x60000, __func__, false};
-  NnopbaseReportApiInfo(timeStamp, dfxId);
+
   return ret;
 }
 
 aclnnStatus aclnnAllGatherAdd(void *workspace, uint64_t workspaceSize, aclOpExecutor *executor,
-                              aclrtStream stream) {
+                              aclrtStream stream)
+{
+  if (NnopbaseSetHcclServerType) {
+    NnopbaseSetHcclServerType(executor, NNOPBASE_HCCL_SERVER_TYPE_AICPU);
+  }
   if (workspace == nullptr || workspaceSize == 0UL) {
     OP_LOGD("Skip the api for empty tensor, workspace size %lu.", workspaceSize);
     return ACLNN_SUCCESS;
   }
-  uint64_t timeStamp = NnopbaseMsprofSysTime();
   auto ret = aclnnInnerAllGatherAdd(workspace, workspaceSize, executor, stream);
   if (ret != 0) {
     OP_LOGE(ACLNN_ERR_INNER, "This is an error in launch aicore");
     return ACLNN_ERR_INNER;
   }
 
-  static NnopbaseDfxId dfxId = {0x60000, __func__, false};
-  NnopbaseReportApiInfo(timeStamp, dfxId);
   return ACLNN_SUCCESS;
 }
-
 
 #ifdef __cplusplus
 }

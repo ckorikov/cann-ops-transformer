@@ -70,12 +70,13 @@ __aicore__ inline void AllGatherAdd::Init(GM_ADDR aGM, GM_ADDR bGM, GM_ADDR cGM,
 
     // 初始化hccl对象
     hccl_.InitV2(contextGM, tilingData);
-    hccl_.SetCcTilingV2(offsetof(AllGatherAddTilingData, mc2CcTiling)); // 相对于Mc2InitTiling起始地址的偏移
+    hccl_.SetCcTilingV2(offsetof(AllGatherAddTilingData, mc2CcTiling));
 
-    inputAGM.SetGlobalBuffer((__gm__ half*)aGM, tilingData->gatherTileLength);
-    gatherOutGM.SetGlobalBuffer((__gm__ half*)gatherGM + blockLength_ * AscendC::GetBlockIdx() * sizeof(half), blockLength_);
-    inputBGM.SetGlobalBuffer((__gm__ half*)bGM + blockLength_ * AscendC::GetBlockIdx() * sizeof(half), blockLength_);
-    outputCGM.SetGlobalBuffer((__gm__ half*)cGM + blockLength_ * AscendC::GetBlockIdx() * sizeof(half), blockLength_);
+    // 传入全局数据的指针，并设置存储大小
+    inputAGM.SetGlobalBuffer((__gm__ half*)aGM, tilingData->gatherTileLength); // 非多轮切分AllGather场景，每张卡参与Gather的数据大小为{240，256}
+    gatherOutGM.SetGlobalBuffer((__gm__ half*)gatherGM + blockLength_ * AscendC::GetBlockIdx(), blockLength_);
+    inputBGM.SetGlobalBuffer((__gm__ half*)bGM + blockLength_ * AscendC::GetBlockIdx(), blockLength_);
+    outputCGM.SetGlobalBuffer((__gm__ half*)cGM + blockLength_ * AscendC::GetBlockIdx(), blockLength_);
     
     tPipe_->InitBuffer(inputQueueGather, ALLGATHER_ADD_BUFFER_NUM, tileLength_ * sizeof(half));
     tPipe_->InitBuffer(inputQueueB, ALLGATHER_ADD_BUFFER_NUM, tileLength_ * sizeof(half));
@@ -85,7 +86,6 @@ __aicore__ inline void AllGatherAdd::Init(GM_ADDR aGM, GM_ADDR bGM, GM_ADDR cGM,
 __aicore__ inline void AllGatherAdd::HcclPrepare()
 {
     // 下发通信任务
-    // sendBuf recvBuf(数据个数等于sendCount*rank size) sendCount（参与allgather的sendbuf的数据个数） dataType strideCount repeat
     handleId_ = hccl_.AllGather<true>((__gm__ uint8_t*)this->inputAGM.GetPhyAddr(), (__gm__ uint8_t*)this->gatherOutGM.GetPhyAddr(), tilingData_->gatherTileLength,
                                       HcclDataType::HCCL_DATA_TYPE_FP16, 0, tilingData_->commTurn);
 }

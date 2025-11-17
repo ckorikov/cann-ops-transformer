@@ -12,7 +12,6 @@
  * \file all_gather_add_tiling.cc
  * \brief
  */
-#include "vector"
 #include "mc2_hcom_topo_info.h"
 #include "mc2_log.h"
 #include "ops_utils.h"
@@ -36,10 +35,10 @@ static ge::graphStatus AllGatherParamsCheck(const gert::TilingContext* context)
         VECTOR_INNER_ERR_REPORT_TILING(context->GetNodeName(), "common check failed"), return ge::GRAPH_FAILED);
 
     const gert::StorageShape* aShape = context->GetInputShape(0);
-    uint64_t valueOne = aShape->GetStorageShape().GetDim(0);
-    uint64_t valueTwo = aShape->GetStorageShape().GetDim(1);
+    uint64_t inputDim0 = aShape->GetStorageShape().GetDim(0);
+    uint64_t inputDim1 = aShape->GetStorageShape().GetDim(1);
 
-    OP_TILING_CHECK(valueOne == 0 || valueTwo == 0,
+    OP_TILING_CHECK(inputDim0 == 0 || inputDim1 == 0,
         VECTOR_INNER_ERR_REPORT_TILING(context->GetNodeName(), "the value is invalid"), return ge::GRAPH_FAILED);
     
     if (context->GetAttrs() == nullptr) {
@@ -80,7 +79,8 @@ static ge::graphStatus AllGatherAddTilingFunc(gert::TilingContext *context) {
     tilingData->totalLength = context->GetInputTensor(1)->GetShapeSize(); // 总长度是参与Add操作的数据个数
     tilingData->blockLength = tilingData->totalLength / context->GetBlockDim(); // 每个核需要计算的数据个数
     tilingData->tileLength = tilingData->blockLength / tilingData->tileNum; // 每个核内每个数据块的数据个数
-    tilingData->gatherTileLength = tilingData->totalLength / 2; // 待gather的数据个数
+    uint32_t rank_size = context->GetAttrs()->GetAttrPointer<char>(static_cast<int>(1));
+    tilingData->gatherTileLength = tilingData->totalLength / rank_size; // 参与AllGather的数据个数
     
     // 设置workspaceSize gather out需要额外的临时内存，大小=input b
     size_t* currentWorkspace = context->GetWorkspaceSizes(1);

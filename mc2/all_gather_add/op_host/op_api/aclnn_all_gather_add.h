@@ -26,8 +26,8 @@ extern "C" {
  * 算子功能：实现allGather + add 融合计算
  * @brief aclnnAllGatherAdd的第一段接口，根据具体的计算流程，计算workspace大小。
  * @domain aclnn_ops_infer
- * @param [in] a: add左操作数，数据类型支持：float16, bf16。
- * @param [in] b: add右操作数，数据类型支持：float16, bf16。
+ * @param [in] a: add左操作数，数据类型支持：float16。
+ * @param [in] b: add右操作数，数据类型支持：float16。
  * @param [in] group: 标识列组的字符串。
  * @param [in] rankSize: rank数量。
  * @param [out] cOut: 计算+通信的结果，数据类型：同输入。

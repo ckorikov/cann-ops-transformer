@@ -15,7 +15,14 @@
 
 #include <thread>
 #include <iostream>
+#include <algorithm>
+#include <cmath>
+#include <random>
+#include <chrono>
+#include <iomanip>
+#include <string>
 #include <vector>
+#include "aclnn/opdev/fp16_t.h"
 #include "../op_host/op_api/aclnn_all_gather_add.h"
 
 #define CHECK_RET(cond, return_expr) \
@@ -31,6 +38,16 @@
     } while(0)
 
 constexpr int RANK_DIM = 2;
+typedef struct {
+    std::vector<op::fp16_t> rank0_a;
+    std::vector<op::fp16_t> rank0_b;
+    std::vector<op::fp16_t> rank1_a;
+    std::vector<op::fp16_t> rank1_b;
+
+    std::vector<op::fp16_t> gatherOut;
+    std::vector<op::fp16_t> rank0_c;
+    std::vector<op::fp16_t> rank1_c;
+} TestData;
 
 int64_t GetShapeSize(const std::vector<int64_t> &shape)
 {
@@ -40,6 +57,13 @@ int64_t GetShapeSize(const std::vector<int64_t> &shape)
     }
     return shape_size;
 }
+
+// 本示例固定shape
+const std::vector<int64_t> aShape = {240, 256};
+const std::vector<int64_t> bShape = {240 * RANK_DIM, 256};
+
+const long long aShapeSize = GetShapeSize(aShape);
+const long long bShapeSize = GetShapeSize(bShape);
 
 template<typename T>
 int CreateAclTensor(const std::vector<T> &hostData, const std::vector<int64_t> &shape, void **deviceAddr,
@@ -59,6 +83,24 @@ int CreateAclTensor(const std::vector<T> &hostData, const std::vector<int64_t> &
     return 0;
 }
 
+int CompareVector(std::vector<op::fp16_t> &vec1, std::vector<op::fp16_t> &vec2)
+{
+    const float tolerance = 0.001f; // 千分之一
+    for (size_t i = 0; i < vec1.size(); ++i) {
+        float a = static_cast<float>(vec1[i]);
+        float b = static_cast<float>(vec2[i]);
+
+        float diff = std::fabs(a - b);
+        float max_abs = std::max(std::fabs(a), std::fabs(b));
+        if (max_abs > 1e-6f) {
+            float relative_error = diff / max_abs;
+            return relative_error <= tolerance ? 0 : 1;
+        } else {
+            return diff <= tolerance ? 0 : 1;
+        }
+    }
+}
+
 struct Args {
     int rankId;
     HcclComm hcclComm;
@@ -74,10 +116,7 @@ int launchOneThread_AllGatherAdd(Args &args)
     ret = HcclGetCommName(args.hcclComm, hcomName);
     CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("[ERROR] HcclGetCommName failed. ret: %d\n", ret); return -1);
     LOG_PRINT("[INFO] rank = %d, hcomName = %s, stream = %p\n", args.rankId, hcomName, args.stream);
-    std::vector<int64_t> aShape = {240, 256};
-    std::vector<int64_t> gatherOutShape = {240 * RANK_DIM, 256};
-    std::vector<int64_t> bShape = {240 * RANK_DIM, 256};
-    std::vector<int64_t> outputShape = {240 * RANK_DIM, 256};
+
     void *aDeviceAddr = nullptr;
     void *bDeviceAddr = nullptr;
     void *outDeviceAddr = nullptr;
@@ -91,15 +130,19 @@ int launchOneThread_AllGatherAdd(Args &args)
     aclOpExecutor *executor = nullptr;
     void *workspaceAddr = nullptr;
 
-    long long aShapeSize = GetShapeSize(aShape);
-    long long bShapeSize = GetShapeSize(bShape);
-    long long outShapeSize = GetShapeSize(outputShape);
-    long long gatherOutShapeSize = GetShapeSize(gatherOutShape);
+    std::vector<op::fp16_t> aHostData(aShapeSize, 0);
+    std::vector<op::fp16_t> bHostData(bShapeSize, 0);
+    // 根据随机生成的测试数据填充host侧输入
+    if (args.rankId == 0) {
+        std::copy(testData.rank0_a.begin(), testData.rank0_a.end(), aHostData.begin());
+        std::copy(testData.rank0_b.begin(), testData.rank0_b.end(), bHostData.begin());
+    } else {
+        std::copy(testData.rank1_a.begin(), testData.rank1_a.end(), aHostData.begin());
+        std::copy(testData.rank1_b.begin(), testData.rank1_b.end(), bHostData.begin());
+    }
 
-    std::vector<int16_t> aHostData(aShapeSize, 0);
-    std::vector<int16_t> bHostData(bShapeSize, 0);
-    std::vector<int16_t> outHostData(outShapeSize, 0);
-    std::vector<int16_t> gatherOutHostData(gatherOutShapeSize, 0);
+    std::vector<op::fp16_t> outHostData(bShapeSize, 0);
+    std::vector<op::fp16_t> gatherOutHostData(bShapeSize, 0);
 
     ret = CreateAclTensor(aHostData, aShape, &aDeviceAddr, aclDataType::ACL_FLOAT16, &a);
     CHECK_RET(ret == ACL_SUCCESS, return ret);
@@ -129,6 +172,29 @@ int launchOneThread_AllGatherAdd(Args &args)
     CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("[ERROR] aclrtSynchronizeStreamWithTimeout failed. ret = %d \n",    ret);
         return ret);
     LOG_PRINT("[INFO] device_%d aclnnAllGatherAdd execute successfully.\n", args.rankId);
+
+    // 将算子计算结果与golden数据进行对比
+    std::vector<op::fp16_t> gatherOutData(bShapeSize, 0);
+    // 将计算结果从device侧拷贝到host侧进行比较
+    ret = aclrtMemcpy(gatherOutData.data(), bShapeSize * sizeof(gatherOutData[0]), gatherOutDeviceAddr,
+                      bShapeSize * sizeof(gatherOutData[0]), ACL_MEMCPY_DEVICE_TO_HOST);
+    ret = CompareVector(gatherOutData, testData.gatherOut);
+    CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("[ERROR] gatherOut compare failed. ret = %d \n", ret); return ret);
+
+    std::vector<op::fp16_t> outputData(bShapeSize, 0);
+    // 将计算结果从
+    ret = aclrtMemcpy(outputData.data(), bShapeSize * sizeof(outputData[0]), outDeviceAddr,
+                      bShapeSize * sizeof(outputData[0]), ACL_MEMCPY_DEVICE_TO_HOST);
+    // 根据随机生成的测试数据填充host侧输入
+    if (args.rankId == 0) {
+        ret = CompareVector(outputData, testData.rank0_c);
+        CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("[ERROR] output compare failed. ret = %d \n", ret); return ret);
+    } else {
+        ret = CompareVector(outputData, testData.rank1_c);
+        CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("[ERROR] output compare failed. ret = %d \n", ret); return ret);
+    }                  
+    LOG_PRINT("[INFO] device_%d aclnnAllGatherAdd golden compare successfully.\n", args.rankId);
+
     // 释放device资源，需要根据具体API的接口定义修改
     if (a != nullptr) {
         aclDestroyTensor(a);
@@ -164,11 +230,80 @@ int launchOneThread_AllGatherAdd(Args &args)
     return 0;
 }
 
+// 随机生成[-5, 5]之间的数据填充vector
+int RandomVectorGenerator(std::vector<op::fp16_t> &vec, long long size)
+{
+    unsigned seed = static_cast<unsigned>(std::chrono::system_clock::now().time_since_epoch().count());
+    std::mt19937 generator(seed);
+    std::uniform_real_distribution<float> distribution(-5.0f, 5.0f);
+    for (auto& elem : vec) {
+        elem = static_cast<op::fp16_t>(distribution(generator));
+    }
+    return 0;
+}
+
+// 拼接两个大小相同的vector
+int GatherVectors(std::vector<op::fp16_t> &vec1, std::vector<op::fp16_t> &vec2, std::vector<op::fp16_t> &vec3)
+{
+    vec3.clear();
+    vec3.reserve(vec1.size() + vec2.size());
+    vec3.insert(vec3.end(), vec1.begin(), vec1.end());
+    vec3.insert(vec3.end(), vec2.begin(), vec2.end())
+    return 0;
+}
+
+// 对两个大小相同的vector执行加法
+int AddVectors(std::vector<op::fp16_t> &vec1, std::vector<op::fp16_t> &vec2, std::vector<op::fp16_t> &vec3)
+{
+    vec3.clear();
+    vec3.resize(vec1.size());
+    for (size_t i = 0; i < vec1.size(); ++i) {
+        vec3[i] = vec1[i] + vec2[i];
+    }
+    return 0;
+}
+
+int GenerateTestData(TestData &testData)
+{
+    // 随机生成输入
+    int ret = RandomVectorGenerator(testData.rank0_a, testData.rank0_a.size());
+    CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("[ERROR] RandomVectorGenerate rank0_a failed. ret = %d \n", ret);  return ret);
+    int ret = RandomVectorGenerator(testData.rank0_b, testData.rank0_b.size());
+    CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("[ERROR] RandomVectorGenerate rank0_b failed. ret = %d \n", ret);  return ret);
+    int ret = RandomVectorGenerator(testData.rank1_a, testData.rank1_a.size());
+    CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("[ERROR] RandomVectorGenerate rank1_a failed. ret = %d \n", ret);  return ret);
+    int ret = RandomVectorGenerator(testData.rank1_b, testData.rank1_b.size());
+    CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("[ERROR] RandomVectorGenerate rank1_b failed. ret = %d \n", ret);  return ret);
+    
+    // 计算golden数据
+    ret = GatherVectors(testData.rank0_a, testData.rank1_a, testData.gatherOut);
+    CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("[ERROR] Generate gatherOut failed. ret = %d \n", ret);  return ret);
+    ret = AddVectors(testData.gatherOut, testData.rank0_b, testData.rank0_c);
+    CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("[ERROR] Generate rank0 output failed. ret = %d \n", ret);  return ret);
+    ret = AddVectors(testData.gatherOut, testData.rank1_b, testData.rank1_c);
+    CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("[ERROR] Generate rank1 output failed. ret = %d \n", ret);  return ret);
+
+    return 0;
+}
+
 int main(int argc, char *argv[])
 {
-    // 本样例基于Atlas A3实现，必须在Atlas A3上运行
+    // 生成测试数据
+    TestData testData = {
+        std::vector<op::fp16_t>(aShapeSize, 0.0f), // rank0_a
+        std::vector<op::fp16_t>(bShapeSize, 0.0f), // rank1_a
+        std::vector<op::fp16_t>(aShapeSize, 0.0f), // rank0_b
+        std::vector<op::fp16_t>(bShapeSize, 0.0f), // rank1_b
+
+        std::vector<op::fp16_t>(bShapeSize, 0.0f), // gatherOut
+        std::vector<op::fp16_t>(bShapeSize, 0.0f), // rank0_c
+        std::vector<op::fp16_t>(bShapeSize, 0.0f), // rank1_c
+    };
+    int ret = GenerateTestData(testData);
+    CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("[ERROR] GenerateTestData failed. ret = %d \n", ret);  return ret);
+    
     // AscendCL初始化
-    int ret = aclInit(nullptr);
+    ret = aclInit(nullptr);
     CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("[ERROR] aclInit failed. ret = %d \n", ret); return ret);
     aclrtStream stream[RANK_DIM];
     for (uint32_t rankId = 0; rankId < RANK_DIM; rankId++) {
@@ -193,7 +328,7 @@ int main(int argc, char *argv[])
         args[rankId].rankId = rankId;
         args[rankId].hcclComm = comms[rankId];
         args[rankId].stream = stream[rankId];
-        threads[rankId].reset(new(std::nothrow) std::thread(&launchOneThread_AllGatherAdd, std::ref(args [rankId])));    
+        threads[rankId].reset(new(std::nothrow) std::thread(&launchOneThread_AllGatherAdd, std::ref(args [rankId]), std::ref(testData)));    
     }
     for (uint32_t rankId = 0; rankId < RANK_DIM; rankId++) {
         threads[rankId]->join();
