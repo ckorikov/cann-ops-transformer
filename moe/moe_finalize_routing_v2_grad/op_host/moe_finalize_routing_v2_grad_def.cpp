@@ -15,7 +15,7 @@
 #include <cstdint>
 #include "register/op_def_registry.h"
 
-namespace ops {
+namespace ops { 
 class MoeFinalizeRoutingV2Grad : public OpDef
 {
 public:
