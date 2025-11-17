@@ -102,7 +102,7 @@
 
 ## 编译执行
 
-若基于社区版CANN包对算子源码修改，可使用[自定义算子包](#自定义算子包)和[ops-transformer包](#ops-transformer包)方式编译执行。
+若基于社区版CANN包对算子源码进行修改，可使用[自定义算子包](#自定义算子包)和[ops-transformer包](#ops-transformer包)方式编译执行。
 
 - 自定义算子包：选择部分算子编译生成的包称为自定义算子包，以**挂载**形式作用于CANN包，不改变原始包内容。注意自定义算子包优先级高于原始CANN包。
 - ops-transformer包：选择整个项目编译生成的包称为ops-transformer包，可**完整替换**CANN包对应部分。
@@ -122,7 +122,7 @@
     - --vendor_name（可选）：\$\{vendor\_name\}表示构建的自定义算子包名，默认名为custom。
     - --ops（可选）：\$\{op\_list\}表示待编译算子，不指定时默认编译所有算子（参见[算子列表](../op_list.md)）。格式形如"apply_rotary_pos_emb,rope_quant_kvcache,..."，多算子之间用英文逗号","分隔。
 
-    说明：若\$\{vendor\_name\}和\$\{op\_list\}都不传入编译的是built-in包；若编译所有算子的自定义算子包，需传入\$\{vendor\_name\}。
+    说明：若\$\{vendor\_name\}和\$\{op\_list\}都不传入编译的是ops-transformer包；若编译所有算子的自定义算子包，需传入\$\{vendor\_name\}。
      
     若提示如下信息，说明编译成功。
     ```bash
