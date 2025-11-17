@@ -27,11 +27,10 @@ extern "C" __global__ __aicore__ void all_gather_add(GM_ADDR aGM, GM_ADDR bGM, G
     __gm__ void* mc2InitTiling = (__gm__ void*)(&(tiling->mc2InitTiling));
     __gm__ void* mc2CcTiling = (__gm__ void*)(&(tiling->mc2CcTiling));
     GET_TILING_DATA(tilingData, tilingGM);
-    TPipe pipe;
 
+    TPipe pipe;
     GM_ADDR contextGM = GetHcclContext<HCCL_GROUP_ID_0>();
 
-    // 初始化Add对象并对本卡数据进行Add计算，固定shape
     AllGatherAdd allGatherAdd;
     allGatherAdd.Init(aGM, bGM, cGM, gatherGM, workspaceGM, contextGM, &tilingData, &pipe);
     allGatherAdd.Process();
