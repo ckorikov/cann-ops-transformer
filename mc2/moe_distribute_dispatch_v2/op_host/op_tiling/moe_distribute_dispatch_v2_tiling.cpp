@@ -933,6 +933,16 @@ static ge::graphStatus SetWorkSpace(gert::TilingContext *context, const char *no
     return ge::GRAPH_SUCCESS;
 }
 
+static ge::graphStatus CheckConstExpertAttr(gert::TilingContext *context, const char *nodeName)
+{
+    auto attrs = context->GetAttrs();
+    OP_TILING_CHECK(attrs == nullptr, OP_LOGE(nodeName, "attrs is null."), return ge::GRAPH_FAILED);
+    auto constExpertNumPtr = attrs->GetAttrPointer<int64_t>(static_cast<int>(ATTR_CONST_EXPERT_NUM_INDEX));
+    OP_TILING_CHECK(constExpertNumPtr == nullptr || *constExpertNumPtr != 0,
+        OP_LOGE(nodeName, "constExpertNum is invalid. Must be 0"), return GRAPH_FAILED);
+    return ge::GRAPH_SUCCESS;
+}
+
 static ge::graphStatus MoeDistributeDispatchA3TilingFuncImpl(gert::TilingContext *context)
 {
     const char *nodeName = context->GetNodeName();
@@ -948,6 +958,8 @@ static ge::graphStatus MoeDistributeDispatchA3TilingFuncImpl(gert::TilingContext
     uint32_t localMoeExpertNum = 1;
     OP_LOGI(nodeName, "Enter MoeDistributeDispatchV2 tiling check func.");
 
+    OP_TILING_CHECK(CheckConstExpertAttr(context, nodeName) == ge::GRAPH_FAILED,
+        OP_LOGE(nodeName, "CheckConstExpertAttr failed."), return ge::GRAPH_FAILED);
     // 获取入参属性
     OP_TILING_CHECK(GetAttrAndSetTilingData(context, nodeName, *tilingData, groupEp, groupTp, isSetCommAlg) != ge::GRAPH_SUCCESS,
         OP_LOGE(nodeName, "Get attr and set tiling data failed."), return ge::GRAPH_FAILED);

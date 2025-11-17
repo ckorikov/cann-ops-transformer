@@ -1146,6 +1146,28 @@ static void SetHCommCfg(const gert::TilingContext *context, MoeDistributeCombine
     mc2CcTilingConfig.GetTiling(tiling->mc2CcTiling2);
 }
 
+static ge::graphStatus CheckConstExpertAttr(const gert::TilingContext *context, const char *nodeName)
+{
+    auto attrs = context->GetAttrs();
+    OP_TILING_CHECK(attrs == nullptr, OP_LOGE(nodeName, "attrs is null."), return ge::GRAPH_FAILED);
+    auto constExpertNumPtr = attrs->GetAttrPointer<int64_t>(static_cast<int>(ATTR_CONST_EXPERT_NUM_INDEX));
+    OP_TILING_CHECK(constExpertNumPtr == nullptr || *constExpertNumPtr != 0,
+        OP_LOGE(nodeName, "constExpertNum is invalid. Must be 0"), return GRAPH_FAILED);
+
+    const gert::StorageShape* constExpertAlpha1StorageShape =
+        context->GetOptionalInputShape(CONST_EXPERT_ALPHA_1_INDEX);
+    OP_TILING_CHECK(constExpertAlpha1StorageShape != nullptr,
+        OP_LOGE(nodeName, "const_expert_alpha_1 Must be null"), return GRAPH_FAILED);
+    const gert::StorageShape* constExpertAlpha2StorageShape =
+        context->GetOptionalInputShape(CONST_EXPERT_ALPHA_2_INDEX);
+    OP_TILING_CHECK(constExpertAlpha2StorageShape != nullptr,
+        OP_LOGE(nodeName, "const_expert_alpha_2 Must be null"), return GRAPH_FAILED);
+    const gert::StorageShape* constExpertVStorageShape = context->GetOptionalInputShape(CONST_EXPERT_V_INDEX);
+    OP_TILING_CHECK(constExpertVStorageShape != nullptr,
+        OP_LOGE(nodeName, "const_expert_v Must be null"), return GRAPH_FAILED);
+    return ge::GRAPH_SUCCESS;
+}
+
 static ge::graphStatus MoeDistributeCombineAddRmsNormA3TilingFuncImpl(gert::TilingContext* context)
 {
     const char *nodeName = context->GetNodeName();
@@ -1160,6 +1182,8 @@ static ge::graphStatus MoeDistributeCombineAddRmsNormA3TilingFuncImpl(gert::Tili
     uint32_t commQuantMode = 0U;
     bool hasElasticInfo = false;
 
+    OP_TILING_CHECK(CheckConstExpertAttr(context, nodeName) == ge::GRAPH_FAILED,
+        OP_LOGE(nodeName, "CheckConstExpertAttr failed."), return ge::GRAPH_FAILED);
     // 获取入参属性
     OP_TILING_CHECK(GetAttrAndSetTilingData(context, *tilingData, nodeName, groupEp, groupTp, commQuantMode) == ge::GRAPH_FAILED,
         OP_LOGE(nodeName, "Getting attr failed."), return ge::GRAPH_FAILED);

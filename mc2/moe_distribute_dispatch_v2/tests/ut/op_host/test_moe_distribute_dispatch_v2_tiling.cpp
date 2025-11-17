@@ -755,7 +755,7 @@ TEST_F(MoeDistributeDispatchV2Tiling, moe_distribute_dispatch_test_zeroComputeEx
         {"comm_alg", Ops::Transformer::AnyValue::CreateFrom<std::string>("")},
         {"zero_expert_num", Ops::Transformer::AnyValue::CreateFrom<int64_t>(1)},
         {"copy_expert_num", Ops::Transformer::AnyValue::CreateFrom<int64_t>(2)},
-        {"const_expert_num", Ops::Transformer::AnyValue::CreateFrom<int64_t>(3)}},
+        {"const_expert_num", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)}},
         &compileInfo, "Ascend910_93", coreNum, ubSize);
     Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 8}};
     uint64_t expectTilingKey = 10000UL;

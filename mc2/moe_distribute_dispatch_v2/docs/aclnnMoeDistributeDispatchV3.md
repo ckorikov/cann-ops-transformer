@@ -266,7 +266,7 @@ aclnnStatus aclnnMoeDistributeDispatchV3(
   <tr>
    <td>constExpertNum</td>
    <td>输入</td>
-   <td>常量专家数量：<br><term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：当commAlg="fullmesh"时，取值范围:[0, MAX_INT32)，MAX_INT32 = 2^31 - 1, 合法的常量专家的ID的值是[<code>moeExpertNum + zeroExpertNum + copyExpertNum<code>, <code>moeExpertNum + zeroExpertNum + copyExpertNum + constExpertNum<code>)；<br><term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：取值范围:[0, MAX_INT32)，MAX_INT32 = 2^31 - 1，专家ID范围<code>[moeExpertNum + zeroExpertNum + copyExpertNum, moeExpertNum + zeroExpertNum + copyExpertNum + constExpertNum)</code>。</td>
+   <td>常量专家数量：<br><term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：当commAlg="fullmesh"时，取值范围:[0, MAX_INT32)，MAX_INT32 = 2^31 - 1, 合法的常量专家的ID的值是[<code>moeExpertNum + zeroExpertNum + copyExpertNum<code>, <code>moeExpertNum + zeroExpertNum + copyExpertNum + constExpertNum<code>)；<br><term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：当前版本不支持，传0即可。</td>
    <td>INT64</td>
    <td>-</td>
   </tr>
@@ -596,7 +596,7 @@ aclnnStatus aclnnMoeDistributeDispatchV3(
         int64_t A;
         int64_t zeroExpertNum = 1;
         int64_t copyExpertNum = 1;
-        int64_t constExpertNum = 1;
+        int64_t constExpertNum = 0;
         if (args.epRankId < sharedExpertRankNum) {
             localExpertNum = 1;
             A = globalBs / sharedExpertRankNum;
@@ -769,13 +769,6 @@ aclnnStatus aclnnMoeDistributeDispatchV3(
         CHECK_RET(ret == ACL_SUCCESS, return ret);
         ret = CreateAclTensor(oriXHostData, oriXShape, &oriXDeviceAddr, aclDataType::ACL_BF16, &oriX);
         CHECK_RET(ret == ACL_SUCCESS, return ret);
-        ret = CreateAclTensor(constExpertAlpha1HostData, constExpertAlpha1Shape, &constExpertAlpha1DeviceAddr, aclDataType::ACL_BF16, &constExpertAlpha1);
-        CHECK_RET(ret == ACL_SUCCESS, return ret);
-        ret = CreateAclTensor(constExpertAlpha2HostData, constExpertAlpha2Shape, &constExpertAlpha2DeviceAddr, aclDataType::ACL_BF16, &constExpertAlpha2);
-        CHECK_RET(ret == ACL_SUCCESS, return ret);
-        ret = CreateAclTensor(constExpertVHostData, constExpertVShape, &constExpertVDeviceAddr, aclDataType::ACL_BF16, &constExpertV);
-        CHECK_RET(ret == ACL_SUCCESS, return ret);
-
         ret = CreateAclTensor(xOutHostData, xOutShape, &xOutDeviceAddr, aclDataType::ACL_BF16, &xOut);
         CHECK_RET(ret == ACL_SUCCESS, return ret);
 
