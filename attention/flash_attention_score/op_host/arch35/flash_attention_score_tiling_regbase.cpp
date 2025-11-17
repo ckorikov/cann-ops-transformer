@@ -1954,38 +1954,35 @@ void FlashAttentionScoreConstTiling::SetOutputDtype() {
 ge::graphStatus FlashAttentionScoreConstTiling::SetQKVStartIdx() {
     inputParamsRegbase_->set_qStartIdx(0);
     inputParamsRegbase_->set_kvStartIdx(0);
-    if (inputParamsRegbase_->get_layoutType() == static_cast<uint8_t>(LayoutType::LAYOUT_TND) &&
-        inputParamsRegbase_->get_sparseType() == static_cast<uint8_t>(SparseEnum::BAND_LEFT_UP_CAUSAL)) {
-        auto qStartIdxTensor = context_->GetOptionalInputTensor(Q_START_IDX_INPUT_INDEX);
-        if (qStartIdxTensor != nullptr) {
-            auto &qStartIdxShape = qStartIdxTensor->GetShape().GetStorageShape();
-            if (qStartIdxShape.GetDimNum() >= 1) {
-                const int64_t *value = qStartIdxTensor->GetData<int64_t>();
-                if (value != nullptr) {
-                    qStartIdx = value[0];
-                    inputParamsRegbase_->set_qStartIdx(qStartIdx);
-                    OP_LOGD(context_, "[%s] SetQKVStartIdx qStartIdx:%ld", templateName, qStartIdx);
-                }
+    auto qStartIdxTensor = context_->GetOptionalInputTensor(Q_START_IDX_INPUT_INDEX);
+    if (qStartIdxTensor != nullptr) {
+        auto &qStartIdxShape = qStartIdxTensor->GetShape().GetStorageShape();
+        if (qStartIdxShape.GetDimNum() >= 1 && qStartIdxShape.GetDim(0) != 0) {
+            const int64_t *value = qStartIdxTensor->GetData<int64_t>();
+            if (value != nullptr) {
+                qStartIdx = value[0];
+                inputParamsRegbase_->set_qStartIdx(qStartIdx);
+                OP_LOGD(context_, "[%s] SetQKVStartIdx qStartIdx:%ld", templateName, qStartIdx);
             }
         }
-
-        auto kvStartIdxTensor = context_->GetOptionalInputTensor(KV_START_IDX_INPUT_INDEX);
-        if (kvStartIdxTensor != nullptr) {
-            auto &kvStartIdxShape = kvStartIdxTensor->GetShape().GetStorageShape();
-            if (kvStartIdxShape.GetDimNum() >= 1) {
-                const int64_t *kvValue = kvStartIdxTensor->GetData<int64_t>();
-                if (kvValue != nullptr) {
-                    kvStartIdx = kvValue[0];
-                    inputParamsRegbase_->set_kvStartIdx(kvStartIdx);
-                    OP_LOGD(context_, "[%s] SetQKVStartIdx kvStartIdx:%ld", templateName, kvStartIdx);
-                }
-            }
-        }
-        // 当kvStartIdx - qStartIdx超出范围后，由于编译器不支持大数值类型转换，kernel侧int_64转float类型时可能发生截断。
-        OP_CHECK_IF(kvStartIdx - qStartIdx > INT32_MAX || kvStartIdx - qStartIdx < INT32_MIN, OPS_REPORT_VECTOR_INNER_ERR(opName,
-            "kvStartIdx - qStartIdx should >= %d and <= %d, but qStartIdx = %ld, kvStartIdx = %ld.", INT32_MIN, INT32_MAX, qStartIdx, kvStartIdx),
-            return ge::GRAPH_FAILED);
     }
+
+    auto kvStartIdxTensor = context_->GetOptionalInputTensor(KV_START_IDX_INPUT_INDEX);
+    if (kvStartIdxTensor != nullptr) {
+        auto &kvStartIdxShape = kvStartIdxTensor->GetShape().GetStorageShape();
+        if (kvStartIdxShape.GetDimNum() >= 1 && kvStartIdxShape.GetDim(0) != 0) {
+            const int64_t *kvValue = kvStartIdxTensor->GetData<int64_t>();
+            if (kvValue != nullptr) {
+                kvStartIdx = kvValue[0];
+                inputParamsRegbase_->set_kvStartIdx(kvStartIdx);
+                OP_LOGD(context_, "[%s] SetQKVStartIdx kvStartIdx:%ld", templateName, kvStartIdx);
+            }
+        }
+    }
+    // 当kvStartIdx - qStartIdx超出范围后，由于编译器不支持大数值类型转换，kernel侧int_64转float类型时可能发生截断。
+    OP_CHECK_IF(kvStartIdx - qStartIdx > INT32_MAX || kvStartIdx - qStartIdx < INT32_MIN, OPS_REPORT_VECTOR_INNER_ERR(opName,
+        "kvStartIdx - qStartIdx should >= %d and <= %d, but qStartIdx = %ld, kvStartIdx = %ld.", INT32_MIN, INT32_MAX, qStartIdx, kvStartIdx),
+        return ge::GRAPH_FAILED);
     return ge::GRAPH_SUCCESS;
 }
 
