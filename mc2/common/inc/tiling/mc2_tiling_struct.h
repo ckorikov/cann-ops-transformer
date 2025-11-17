@@ -58,8 +58,7 @@ BEGIN_TILING_DATA_DEF(MC2HcommCfg)
     TILING_DATA_FIELD_DEF(uint8_t, skipBufferWindowCopy);  // 跳过hbm到window间搬运 0 不跳过， 1 跳过snd-window， 2 跳过 window-rcv
     TILING_DATA_FIELD_DEF(uint8_t, stepSize);              // 通信步长，粗粒度融合时填0 
                                                            // 细粒度融合时连续计算stepsize块数据再commit或wait通信
-    TILING_DATA_FIELD_DEF(uint8_t, communicationEngine);   // 通信引擎配置
-    TILING_DATA_FIELD_DEF_ARR(char, 12, reserved);         // 保留字段
+    TILING_DATA_FIELD_DEF_ARR(char, 13, reserved);         // 保留字段
     TILING_DATA_FIELD_DEF_ARR(char, 128, groupName);       // groupName
     TILING_DATA_FIELD_DEF_ARR(char, 128, algConfig);       // 算法配置
     TILING_DATA_FIELD_DEF(uint32_t, opType);               // tiling结构体版本号

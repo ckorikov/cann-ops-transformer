@@ -79,7 +79,6 @@ const int64_t MIN_SHARED_EXPERT_NUM_V2 = 0;
 const int64_t K_UPPER_BOUND_V1 = 8;
 const int64_t K_UPPER_BOUND_V2 = 16;
 const int64_t BUFFER_NUM = 2;
-const uint8_t COMM_ENGINE = 1;
 
 const std::string OP_NAME = "MoeDistributeCombineA5";
 } // namespace
@@ -672,7 +671,6 @@ static void SetHcclTiling(const gert::TilingContext *context, MoeDistributeCombi
     tilingData.hcommCfgATA.set_dstDataType(static_cast<uint32_t>(
         mc2tiling::ConvertGeTypeToHcclType(nodeName, ge::DT_INT8)));
     tilingData.hcommCfgATA.set_opType(static_cast<uint32_t>(mc2tiling::AicpuComType::HCCL_CMD_HALFALLTOALLV));
-    tilingData.hcommCfgATA.set_communicationEngine(COMM_ENGINE);
 }
 
 static void SetTilingData(gert::TilingContext *context, MoeDistributeCombineTilingDataA5 &tilingData)
