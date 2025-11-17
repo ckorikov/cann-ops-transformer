@@ -132,6 +132,7 @@ bool FiaTilingNonQuant::IsCapable()
 void FiaTilingNonQuant::GenTilingKey()
 {
     uint8_t inputQVal{0}, inputKvVal{0}, outputVal{0};
+    uint8_t softmaxBrcbFlagVal = static_cast<uint8_t>((softmaxWithBrcbFlag_) ? 1 * 4 : 0);
 
     const std::map<ge::DataType, uint8_t> typeMap = {
         {ge::DT_FLOAT16, 0U}, {ge::DT_BF16, 2U}, {ge::DT_INT8, 3U}, {ge::DT_INT4, 4U},
@@ -152,7 +153,7 @@ void FiaTilingNonQuant::GenTilingKey()
     tilingKey_ = GET_TPL_TILING_KEY(static_cast<uint8_t>(inputQVal), static_cast<uint8_t>(inputKvVal), static_cast<uint8_t>(outputVal), static_cast<uint8_t>(isPageAttention),
                                     static_cast<uint8_t>(fiaInfo_->inputLayout),
                                     static_cast<uint8_t>(fiaInfo_->inputKvLayout), static_cast<uint8_t>(isFlashDecode), static_cast<uint8_t>(fiaInfo_->sysPrefixFlag),
-                                    0, 0, 0, 0, 3, 0, 0, 0, 0);
+                                    0, 0, 0, 0, 3, 3, softmaxBrcbFlagVal, 0, 0);
 
     OP_LOGI(fiaInfo_->opName, "FIA tilingKey_: %lu.", tilingKey_);
 }
