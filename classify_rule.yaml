@@ -664,26 +664,6 @@ mc2:
     options:
       - distribute_barrier
 
-  elastic_receivable_info_collect:
-    module: True
-    src:
-      - mc2/elastic_receivable_info_collect
-    exclude:
-      - mc2/elastic_receivable_info_collect/docs
-      - mc2/elastic_receivable_info_collect/README.md
-    options:
-      - elastic_receivable_info_collect
-
-  elastic_receivable_test:
-    module: True
-    src:
-      - mc2/elastic_receivable_test
-    exclude:
-      - mc2/elastic_receivable_test/docs
-      - mc2/elastic_receivable_test/README.md
-    options:
-      - elastic_receivable_test
-
   grouped_mat_mul_all_reduce:
     module: True
     src:
@@ -713,6 +693,7 @@ mc2:
       - mc2/inplace_matmul_all_reduce_add_rms_norm/README.md
     options:
       - inplace_matmul_all_reduce_add_rms_norm
+      - matmul_all_reduce_add_rms_norm 
 
   matmul_all_reduce:
     module: True
@@ -743,26 +724,6 @@ mc2:
       - mc2/matmul_reduce_scatter/README.md
     options:
       - matmul_reduce_scatter
-
-  matmul_reduce_scatter_v2:
-    module: True
-    src:
-      - mc2/matmul_reduce_scatter_v2
-    exclude:
-      - mc2/matmul_reduce_scatter_v2/docs
-      - mc2/matmul_reduce_scatter_v2/README.md
-    options:
-      - matmul_reduce_scatter_v2
-
-  moe_distribute_buffer_reset:
-    module: True
-    src:
-      - mc2/moe_distribute_buffer_reset
-    exclude:
-      - mc2/moe_distribute_buffer_reset/docs
-      - mc2/moe_distribute_buffer_reset/README.md
-    options:
-      - moe_distribute_buffer_reset
 
   moe_distribute_combine:
     module: True
@@ -823,16 +784,6 @@ mc2:
       - mc2/moe_update_expert/README.md
     options:
       - moe_update_expert
-
-  quant_all_reduce:
-    module: True
-    src:
-      - mc2/quant_all_reduce
-    exclude:
-      - mc2/quant_all_reduce/docs
-      - mc2/quant_all_reduce/README.md
-    options:
-      - quant_all_reduce
 
   quant_reduce_scatter:
     module: True
