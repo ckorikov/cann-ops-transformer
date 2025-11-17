@@ -1239,7 +1239,7 @@ aclnnStatus aclnnFusedInferAttentionScoreV4(
                         <ul><li>
                         仅支持传入值为0、1，其他值会执行异常。
                         </li>
-                        <li>keyAntiquantMode 和 valueAntiquantMode需要保持一致；</li>
+                        <li>keyAntiquantMode 和 valueAntiquantMode需要保持一致。</li>
                         </ul>
                     </td>
                     <td rowspan="2">
@@ -1258,9 +1258,6 @@ aclnnStatus aclnnFusedInferAttentionScoreV4(
                         <ul>
                         <li>keyAntiquantOffset 和 valueAntiquantOffset要么都为空，要么都不为空</li>
                         <li>keyAntiquantOffset 和 valueAntiquantOffset都不为空时：其shape需要保持一致
-                            <ul>
-                            <li>shape需要保持一致；</li>
-                            </ul>
                         </li>
                         </ul>
                     </td>
@@ -1819,7 +1816,7 @@ aclnnStatus aclnnFusedInferAttentionScoreV4(
                 </tr>
                 <tr>
                     <td colspan="2">
-                    其它约束见 <a href="#PagedAttention">PagedAttention约束说明</a> 
+                    其它约束见 <a href="#PagedAttention">PagedAttention约束说明。</a> 
                     </td>
                 </tr>
                 <tr>
@@ -1941,7 +1938,7 @@ aclnnStatus aclnnFusedInferAttentionScoreV4(
                 </tr>
                 <tr>
                     <td colspan="2">
-                    其它约束见 <a href="#PagedAttention">PagedAttention约束说明</a> 
+                    其它约束见 <a href="#PagedAttention">PagedAttention约束说明。</a> 
                     </td>
                 </tr>
                 <tr>
