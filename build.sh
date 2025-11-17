@@ -589,6 +589,14 @@ set_ut_mode() {
   if [[ "$ENABLE_TEST" != "TRUE" ]]; then
     return
   fi
+  if [ -n "${PR_CHANGED_FILES}" ]; then
+    OP_HOST_UT=TRUE
+    OP_API_UT=TRUE
+    UT_TEST_ALL=FALSE
+    UT_TARGETS+=("${REPOSITORY_NAME}_op_host_ut")
+    UT_TARGETS+=("${REPOSITORY_NAME}_op_api_ut")
+    return
+  fi
   UT_TEST_ALL=TRUE
   if [[ "$OP_HOST" == "TRUE" ]]; then
     OP_HOST_UT=TRUE
@@ -1134,6 +1142,7 @@ else
         gen_bisheng ${ccache_system}
     fi
 fi
+
 build_ut() {
   CORE_NUMS=$(cat /proc/cpuinfo | grep "processor" | wc -l)
   dotted_line="----------------------------------------------------------------"
@@ -1155,11 +1164,22 @@ build_ut() {
   fi
 
   if [ $(cmake -LA -N . | grep 'UTEST_FRAMEWORK_NEW:BOOL=' | cut -d'=' -f2) == "TRUE" ]; then
-    cmake --build . --target ${UT_TARGES[@]} -j $CORE_NUMS
+    for UT_TARGET in ${UT_TARGETS[@]} ; do
+      if cmake --build . --target help | grep -w "$UT_TARGET"; then
+        echo "Building target: $UT_TARGET."
+        if ! cmake --build . --target ${UT_TARGET} -j $CORE_NUMS; then
+          echo "[ERROR] Build failed for target: $UT_TARGET."
+          exit 1
+        fi
+      else
+          echo "Target $UT_TARGET not found, skipping build." 
+      fi
+    done
     if [[ "$cov" =~ "TRUE" ]]; then
         cmake --build . --target generate_ops_cpp_cov -- -j $CORE_NUMS
     fi
   fi
+  exit 0
 }
 
 function build_pkg_for_single_soc() {
