@@ -95,7 +95,7 @@ __aicore__ inline void MatmulBatchKernel<A_T, B_T, C_T>::CalcGMOffset(int blockI
                                                                         int &tailM, int &tailN, int B, int H,
                                                                         int M, int N, int K, int Nindex)
 {
-    uint32_t aCoreInaS = Ceiling(tiling.singleCoreM, (B * H));
+    uint32_t aCoreInaS = tiling.singleCoreM;
     uint32_t aCoreMBlock = Ceiling(M, aCoreInaS);
     uint32_t mCoreIndx = blockIdx % aCoreMBlock;
     uint32_t nCoreIndx = blockIdx / aCoreMBlock;
