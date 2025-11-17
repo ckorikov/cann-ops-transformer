@@ -8,6 +8,10 @@
  * See LICENSE in the root of the software repository for the full text of the License.
  */
 
+/*!
+ * \file aclnn_matmul_reduce_scatter_v2.cpp
+ * \brief
+ */
 #include "aclnn_matmul_reduce_scatter_v2.h"
 #include "securec.h"
 
@@ -21,7 +25,7 @@
 #include "opdev/op_executor.h"
 #include "opdev/op_log.h"
 #include "opdev/platform.h"
-#include "matmul_util.h"
+#include "common/op_host/op_api/matmul_util.h"
 #include "hccl_util.h"
 
 using namespace op;
@@ -341,8 +345,8 @@ aclnnStatus matmulReduceScatterV2GetWorkSpaceSizeCcuMode(const aclTensor* x1, co
     }
     OP_LOGD("X1 is %s. X2 is %s.", x1->ToString().GetString(), x2->ToString().GetString());
 
-    bool transposeX1 = IsTransposeLastTwoDims(x1);
-    bool transposeX2 = IsTransposeLastTwoDims(x2);
+    bool transposeX1 = Ops::Transformer::IsTransposeLastTwoDims(x1);
+    bool transposeX2 = Ops::Transformer::IsTransposeLastTwoDims(x2);
     CHECK_RET(CheckShape(x1, x2, transposeX1), ACLNN_ERR_PARAM_INVALID);
     CaseOption caseIndex =
         CheckCase(x1, x2, bias, output, amaxOutOptional, x1Scale, x2Scale, quantScale);
@@ -360,7 +364,7 @@ aclnnStatus matmulReduceScatterV2GetWorkSpaceSizeCcuMode(const aclTensor* x1, co
     uint64_t yDtype = static_cast<uint64_t>(output->GetDataType());
     aclnnStatus ret = ACLNN_SUCCESS;
     auto transX2Scale = x2Scale;
-    if ((x2Scale != nullptr) && (IsTransposeLastTwoDims(x2Scale))) {
+    if ((x2Scale != nullptr) && (Ops::Transformer::IsTransposeLastTwoDims(x2Scale))) {
         transX2Scale = TransX2Tensor(x2Scale);
     }
     auto transX2 = x2;
@@ -409,8 +413,8 @@ aclnnStatus matmulReduceScatterV2GetWorkSpaceSizeAivMode(const aclTensor* x1, co
     auto ret_param = CheckAivModeParams(x1, x2, streamMode, output);
     CHECK_RET(ret_param == ACLNN_SUCCESS, ret_param);
 
-    bool transposeX1 = IsTransposeLastTwoDims(x1);
-    bool transposeX2 = IsTransposeLastTwoDims(x2);
+    bool transposeX1 = Ops::Transformer::IsTransposeLastTwoDims(x1);
+    bool transposeX2 = Ops::Transformer::IsTransposeLastTwoDims(x2);
     uint32_t rankSize = 0;
     bool isAmaxOut = false;
     uint64_t yDtype = static_cast<uint64_t>(output->GetDataType());

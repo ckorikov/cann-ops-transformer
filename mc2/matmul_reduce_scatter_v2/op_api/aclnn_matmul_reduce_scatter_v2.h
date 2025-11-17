@@ -8,6 +8,10 @@
  * See LICENSE in the root of the software repository for the full text of the License.
  */
 
+/*!
+ * \file aclnn_matmul_reduce_scatter_v2.h
+ * \brief
+ */
 #ifndef OP_API_INC_MATMUL_REDUCE_SCATTER_V2_
 #define OP_API_INC_MATMUL_REDUCE_SCATTER_V2_
 
