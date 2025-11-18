@@ -11,9 +11,7 @@ if (BUILD_OPEN_PROJECT)
     target_sources(op_host_aclnnInner PRIVATE
         all_gather_add_def.cpp
     )
-    add_mc2_modules_sources(OPTYPE all_gather_add all_gather_add ACLNNTYPE aclnn aclnn_inner)
-    set(MC2_OPT ON PARENT_SCOPE)
-    set(all_gather_add_depends mc2/common mc2/3rd PARENT_SCOPE)
+    add_modules_sources(OPTYPE all_gather_add ACLNNTYPE aclnn_inner) 
 else() 
-    add_mc2_modules_sources(OPTYPE all_gather_add all_gather_add ACLNNTYPE aclnn aclnn_inner) 
+    add_modules_sources(OPTYPE all_gather_add ACLNNTYPE aclnn_inner) 
 endif()

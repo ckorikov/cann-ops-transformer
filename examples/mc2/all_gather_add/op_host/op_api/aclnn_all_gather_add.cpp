@@ -11,8 +11,6 @@
 #include "aclnn_all_gather_add.h"
 #include "securec.h"
 #include "acl/acl.h"
-#include "op_mc2.h"
-#include "op_mc2_def.h"
 #include "aclnn_kernels/common/op_error_check.h"
 #include "opdev/common_types.h"
 #include "opdev/make_op_executor.h"
@@ -119,17 +117,12 @@ aclnnStatus aclnnAllGatherAdd(void *workspace, uint64_t workspaceSize, aclOpExec
     if (NnopbaseSetHcclServerType) {
         NnopbaseSetHcclServerType(executor, NNOPBASE_HCCL_SERVER_TYPE_AICPU);
     }
-    if (workspace == nullptr || workspaceSize == 0UL) {
-        OP_LOGD("Return early for empty tensors to avoid unnecessary computation, workspace size %lu.", workspaceSize);
-        return ACLNN_ERR_INNER;
-    }
     auto ret = aclnnInnerAllGatherAdd(workspace, workspaceSize, executor, stream);
     if (ret != 0) {
         OP_LOGE(ACLNN_ERR_INNER, "This is an error in launch aicore,ret = %d.", ret);
         return ACLNN_ERR_INNER;
     }
-
-    return ACLNN_SUCCESS;
+    return ret;
 }
 
 #ifdef __cplusplus

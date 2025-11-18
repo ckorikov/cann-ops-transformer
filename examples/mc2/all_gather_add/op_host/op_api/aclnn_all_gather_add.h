@@ -12,7 +12,6 @@
 #define OP_API_INC_ALL_GATHER_ADD
 
 #include <string>
-
 #include "aclnn/aclnn_base.h"
 #include "aclnn_util.h"
 #include "hccl/hccl.h"

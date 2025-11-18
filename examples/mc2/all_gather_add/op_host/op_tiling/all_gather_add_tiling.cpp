@@ -12,13 +12,14 @@
  * \file all_gather_add_tiling.cc
  * \brief
  */
+
+#include "../../op_kernel/all_gather_add_tiling.h"
 #include "log/log.h"
 #include "graph/utils/type_utils.h"
 #include "register/op_def_registry.h"
 #include "tiling/tiling_api.h"
-#include "hccl/hccl_types.h"
 #include "tiling/platform/platform_ascendc.h"
-#include "../../op_kernel/all_gather_add_tiling.h"
+#include "hccl/hccl_types.h"
 
 using namespace AscendC;
 using namespace ge;

@@ -12,8 +12,8 @@
  * \file all_gather_add.cpp
  * \brief
  */
-#include "kernel_operator.h"
 #include "all_gather_add.h"
+#include "kernel_operator.h"
 
 using namespace AscendC;
 
@@ -24,8 +24,6 @@ extern "C" __global__ __aicore__ void all_gather_add(GM_ADDR aGM, GM_ADDR bGM, G
     // 注册算子Tiling结构体
     REGISTER_TILING_DEFAULT(AllGatherAddTilingData);
     auto tiling = (__gm__ AllGatherAddTilingData*)tilingGM;
-    __gm__ void* mc2InitTiling = (__gm__ void*)(&(tiling->mc2InitTiling));
-    __gm__ void* mc2CcTiling = (__gm__ void*)(&(tiling->mc2CcTiling));
     GET_TILING_DATA(tilingData, tilingGM);
 
     TPipe pipe;

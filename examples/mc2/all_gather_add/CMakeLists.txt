@@ -19,5 +19,4 @@
 
  if (BUILD_OPEN_PROJECT)
     get_filename_component(CURRENT_DIR_NAME ${CMAKE_CURRENT_SOURCE_DIR} NAME)
-    set(${CURRENT_DIR_NAME}_depends mc2/common mc2/3rd PARENT_SCOPE)
 endif()
