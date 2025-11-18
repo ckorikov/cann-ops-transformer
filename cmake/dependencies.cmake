@@ -48,6 +48,7 @@ if(NOT "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
 #  string(APPEND OPS_TRANSFORMER_CXX_FLAGS " -Werror")   # TODO: add -Werror when fix all compile warnings
   string(APPEND OPS_TRANSFORMER_CXX_FLAGS " -Wformat-signedness")
   string(APPEND OPS_TRANSFORMER_CXX_FLAGS " -Wno-missing-include-dirs")
+  string(APPEND OPS_TRANSFORMER_CXX_FLAGS " -Wno-write-strings")
 endif()
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OPS_TRANSFORMER_CXX_FLAGS}")
 message(STATUS "compile option:${CMAKE_CXX_FLAGS}")
