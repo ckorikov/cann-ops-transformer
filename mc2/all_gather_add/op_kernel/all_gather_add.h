@@ -128,11 +128,11 @@ __aicore__ inline void AllGatherAdd::Process()
     HcclPrepare();
     for (int i = 0; i < tilingData_->commTurn; i++) {
         hccl_.Wait(handleId_);
-         for (int j = 0; j < tileNum_; j++) {
-                CopyIn(j);
-                Compute();
-                CopyOut(j);
-         }
+        for (int j = 0; j < tileNum_; j++) {
+            CopyIn(j);
+            Compute();
+            CopyOut(j);
+        }
     }
     HcclFinalize();
 }
