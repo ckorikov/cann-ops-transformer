@@ -52,6 +52,7 @@ class AllGatherAdd : public OpDef {
             .PrecisionReduceFlag(true)
             .ExtendCfgInfo("opFile.value", "all_gather_add");    // 这里制定的值会对应到kernel入口文件名.cpp
     this->AICore().AddConfig("ascend910b", aicoreConfig);
+    this->AICore().AddConfig("ascend910_93", aicoreConfig);
     this->MC2().HcclGroup("group"); // group 属性配置为该算子的通信域名称
   }
 };

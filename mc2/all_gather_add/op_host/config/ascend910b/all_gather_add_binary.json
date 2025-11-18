@@ -61,11 +61,6 @@
             "name": "rank_size",
             "dtype": "int",
             "value": 0
-          },
-          {
-            "name": "is_gather_out",
-            "dtype": "bool",
-            "value": null
           }
         ]
       }
