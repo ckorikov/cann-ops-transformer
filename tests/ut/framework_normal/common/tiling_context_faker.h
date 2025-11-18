@@ -123,6 +123,23 @@ public:
                       coreNum_(coreNum),
                       ubSize_(ubSize),
                       tilingDataSize_(tilingDataSize) {}
+    
+    TilingContextPara(const std::string& opName,
+                      const std::vector<TensorDescription>& inputTensorDesc,
+                      const std::vector<TensorDescription>& outputTensorDesc,
+                      const std::vector<OpAttr>& attrs,
+                      void* compileInfo,
+                      const std::string& socVersion,                   
+                      const std::string socInfoString,
+                      uint64_t tilingDataSize) : 
+                      opName_(opName),
+                      inputTensorDesc_(inputTensorDesc),
+                      outputTensorDesc_(outputTensorDesc),
+                      attrs_(attrs),
+                      compileInfo_(compileInfo),
+                      socVersion_(socVersion),
+                      socInfoString_(socInfoString),
+                      tilingDataSize_(tilingDataSize) {}
 
 public:
     std::string opName_;

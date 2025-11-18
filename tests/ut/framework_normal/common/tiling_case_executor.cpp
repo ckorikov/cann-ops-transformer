@@ -210,7 +210,7 @@ static void GetPlatFormInfos(const char* compileInfoStr, map<string, string>& so
 
 void ExecuteTestCase(const gert::TilingContextPara& tilingContextPara, 
                      ge::graphStatus                expectResult,
-                     uint64_t                       expectTilingKey, 
+                     uint64_t                       expectTilingKey,
                      const string&                  expectTilingData,
                      const std::vector<size_t>&     expectWorkspaces,
                      uint64_t                       tilingDataReservedLen)
