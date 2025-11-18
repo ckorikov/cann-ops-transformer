@@ -41,7 +41,7 @@ class AllGatherAdd : public OpDef {
         .UnknownShapeFormat({ge::FORMAT_ND});
 
     this->Attr("group").AttrType(REQUIRED).String(); // 通算融合算子属性，表示通信域名称
-    this->Attr("rank_size").AttrType(OPTIONAL).Int(0);
+    this->Attr("rank_size").AttrType(REQUIRED).Int(0);
 
     OpAICoreConfig aicoreConfig;
     aicoreConfig.DynamicCompileStaticFlag(true)

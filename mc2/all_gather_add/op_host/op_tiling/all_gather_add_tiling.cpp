@@ -12,12 +12,12 @@
  * \file all_gather_add_tiling.cc
  * \brief
  */
-#include "mc2_hcom_topo_info.h"
-#include "mc2_log.h"
-#include "ops_utils.h"
+#include "log/log.h"
 #include "graph/utils/type_utils.h"
 #include "register/op_def_registry.h"
-#include "tiling/mc2_tiling_utils.h"
+#include "tiling/tiling_api.h"
+#include "hccl/hccl_types.h"
+#include "tiling/platform/platform_ascendc.h"
 #include "../../op_kernel/all_gather_add_tiling.h"
 
 using namespace AscendC;
@@ -31,22 +31,20 @@ namespace optiling {
 
 static ge::graphStatus AllGatherParamsCheck(const gert::TilingContext* context)
 {
-    OP_TILING_CHECK(mc2tiling::Mc2TilingUtils::CommonParamCheck(context) != ge::GRAPH_SUCCESS,
-        VECTOR_INNER_ERR_REPORT_TILING(context->GetNodeName(), "common check failed"), return ge::GRAPH_FAILED);
-
     const gert::StorageShape* aShape = context->GetInputShape(0);
     uint64_t inputDim0 = aShape->GetStorageShape().GetDim(0);
     uint64_t inputDim1 = aShape->GetStorageShape().GetDim(1);
 
-    OP_TILING_CHECK(inputDim0 == 0 || inputDim1 == 0,
-        VECTOR_INNER_ERR_REPORT_TILING(context->GetNodeName(), "the value is invalid"), return ge::GRAPH_FAILED);
+    OP_CHECK_IF(inputDim0 == 0 || inputDim1 == 0,
+                OP_LOGE(context->GetNodeName(), "the value is invalid"), return ge::GRAPH_FAILED);
     
     if (context->GetAttrs() == nullptr) {
-        VECTOR_INNER_ERR_REPORT_TILING(context->GetNodeName(), "get attrs failed");
+        OP_LOGE(context->GetNodeName(), "get attrs failed");
+        return ge::GRAPH_FAILED;
     } 
     auto group = context->GetAttrs()->GetAttrPointer<char>(static_cast<int>(0));
-    OP_TILING_CHECK(group == nullptr, VECTOR_INNER_ERR_REPORT_TILING(context->GetNodeName(), "group is nullptr. "),
-                    return ge::GRAPH_FAILED);
+    OP_CHECK_IF(group == nullptr, OP_LOGE(context->GetNodeName(), "group is nullptr. "),
+                return ge::GRAPH_FAILED);
 
     return ge::GRAPH_SUCCESS;
 }
@@ -62,8 +60,8 @@ static void InitHcclParam(AllGatherAddTilingData* tilingData, const char* group)
 
 static ge::graphStatus AllGatherAddTilingFunc(gert::TilingContext *context) {
     // 对参数进行校验
-    OP_TILING_CHECK(AllGatherParamsCheck(context) != ge::GRAPH_SUCCESS,
-                    VECTOR_INNER_ERR_REPORT_TILING(context->GetNodeName(), "param is invalid"), return ge::GRAPH_FAILED);
+    OP_CHECK_IF(AllGatherParamsCheck(context) != ge::GRAPH_SUCCESS,
+                OP_LOGE(context->GetNodeName(), "param is invalid"), return ge::GRAPH_FAILED);
     
     auto ascendcPlatform = platform_ascendc::PlatformAscendC(context->GetPlatformInfo());
     context->SetBlockDim(ascendcPlatform.GetCoreNumAiv());
@@ -71,24 +69,23 @@ static ge::graphStatus AllGatherAddTilingFunc(gert::TilingContext *context) {
     // 设置TilingData
     AllGatherAddTilingData* tilingData = context->GetTilingData<AllGatherAddTilingData>();
     OP_CHECK_NULL_WITH_CONTEXT(context, tilingData);
-    OP_CHECK_IF(
-        memset_s(tilingData, sizeof(AllGatherAddTilingData), 0, sizeof(AllGatherAddTilingData)) != EOK,
-        OP_LOGE(context, "set AllGatherAdd tiling data error"), return ge::GRAPH_FAILED);
+
     tilingData->commTurn = COMM_TURN;
     tilingData->tileNum = TILE_NUM;
-    tilingData->totalLength = context->GetInputTensor(1)->GetShapeSize(); // 总长度是参与Add操作的数据个数
-    tilingData->blockLength = tilingData->totalLength / context->GetBlockDim(); // 每个核需要计算的数据个数
-    tilingData->tileLength = tilingData->blockLength / tilingData->tileNum; // 每个核内每个数据块的数据个数
-    uint32_t rank_size = context->GetAttrs()->GetAttrPointer<char>(static_cast<int>(1));
-    tilingData->gatherTileLength = tilingData->totalLength / rank_size; // 参与AllGather的数据个数
+    tilingData->totalElemNum = context->GetInputTensor(1)->GetShapeSize(); // 总长度是参与Add操作的数据个数
+    tilingData->blockElemNum = tilingData->totalElemNum / context->GetBlockDim(); // 每个核需要计算的数据个数
+    tilingData->addTileElemNum = tilingData->blockElemNum / tilingData->tileNum; // 每个核内每个数据块的数据个数
+    uint32_t rank_size = *context->GetAttrs()->GetAttrPointer<uint32_t>(static_cast<int>(1));
+    tilingData->gatherTileElemNum = tilingData->totalElemNum / rank_size; // 参与AllGather的数据个数
     
     // 设置workspaceSize gather out需要额外的临时内存，大小=input b
     size_t* currentWorkspace = context->GetWorkspaceSizes(1);
     OP_CHECK_NULL_WITH_CONTEXT(context,currentWorkspace);
     // 如需使用系统workspace需要调用GetLibApiWorkSpaceSize获取系统workspace大小
     uint32_t sysWorkSpaceSize = ascendcPlatform.GetLibApiWorkSpaceSize();
-    // 预留18M + gather_out, gather_out 大小跟x1输入一样
-    currentWorkspace[0] = sysWorkSpaceSize + tilingData->totalLength;
+    // 预留18M + gather_out, gather_out 大小跟a输入一样
+    auto dataType = context->GetInputTensor(0)->GetDataType();
+    currentWorkspace[0] = sysWorkSpaceSize + tilingData->totalElemNum * sizeof(dataType);
 
     auto group = context->GetAttrs()->GetAttrPointer<char>(static_cast<int>(0));
     InitHcclParam(tilingData, group);
