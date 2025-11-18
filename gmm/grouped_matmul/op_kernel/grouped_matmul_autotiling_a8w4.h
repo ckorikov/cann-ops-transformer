@@ -2688,7 +2688,7 @@ __aicore__ inline void dynamic_unisor_programming(GM_ADDR gmA, GM_ADDR gmB, GM_A
     int32_t UsageRate1024 = ceilINT(total_N, TOTAL_N_THRESHOLD_1024) * ceilINT(E_M_length, single_M) * true_group_num;
     int32_t virtualCoreNum1024 = ceilINT((uint32_t)UsageRate1024, numAic) * numAic;
     if ((float)UsageRate512/virtualCoreNum512 >= USAGE_RATE_THRESHOLD) {
-        single_N = UsageRate512;//single_N
+        single_N = TOTAL_N_THRESHOLD_512;//single_N
     }else if ((float)UsageRate1024/virtualCoreNum1024 >= USAGE_RATE_THRESHOLD) {
         single_N = TOTAL_N_THRESHOLD_1024;//single_N
     }
