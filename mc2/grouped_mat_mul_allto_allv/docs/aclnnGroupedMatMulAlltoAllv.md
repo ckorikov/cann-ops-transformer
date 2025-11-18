@@ -126,21 +126,21 @@ aclnnStatus aclnnGroupedMatMulAlltoAllv(
   <tr>
    <td>epWorldSize</td>
    <td>输入</td>
-   <td>ep通信域size：<br><term>Atlas A3系列产品</term>支持8、16、32、64。</td>
+   <td>ep通信域size：<br><term>Atlas A3系列产品</term>支持8、16、32、64、128。</td>
    <td>INT64</td>
    <td>ND</td>
   </tr>
   <tr>
    <td>sendCounts</td>
    <td>输入</td>
-   <td>表示发送给其他卡的token数，数据类型支持INT64，取值大小为e * epWorldSize，最大为256。</td>
+   <td>表示发送给其他卡的token数，数据类型支持INT64，取值大小为e * epWorldSize，最大为256。输入类型需为list。</td>
    <td>aclIntArray*（元素类型INT64）</td>
    <td>ND</td>
   </tr>
   <tr>
    <td>recvCounts</td>
    <td>输入</td>
-   <td>表示接收其他卡的token数，数据类型支持INT64，取值大小为e * epWorldSize，最大为256。</td>
+   <td>表示接收其他卡的token数，数据类型支持INT64，取值大小为e * epWorldSize，最大为256。输入类型需为list。</td>
    <td>aclIntArray*（元素类型INT64）</td>
    <td>ND</td>
   </tr>
@@ -285,7 +285,7 @@ aclnnStatus aclnnGroupedMatMulAlltoAllv(
     #include <vector>
     #include "acl/acl.h"
     #include "hccl/hccl.h"
-    #include "../op_host/op_api/aclnn_grouped_mat_mul_allto_allv.h"
+    #include "../op_api/aclnn_grouped_mat_mul_allto_allv.h"
 
     #define CHECK_RET(cond, return_expr) \
         do {                             \
