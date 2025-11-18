@@ -24,8 +24,8 @@
 #endif
 #include "../common.h"
 #include "mm_allreduce.h"
-#include "../3rd/mat_mul_v3/op_kernel/mat_mul_base_kernel.h"
-#include "../3rd/mat_mul_v3/op_kernel/mat_mul_unaligned_base_kernel.h"
+#include "../../3rd/mat_mul_v3/op_kernel/mat_mul_base_kernel.h"
+#include "../../3rd/mat_mul_v3/op_kernel/mat_mul_unaligned_base_kernel.h"
 
 namespace MatmulAllReduceImpl {
 using namespace AscendC;

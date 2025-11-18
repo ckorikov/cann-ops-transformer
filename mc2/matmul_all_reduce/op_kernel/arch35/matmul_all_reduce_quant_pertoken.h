@@ -22,7 +22,7 @@
 
 #include "kernel_operator_intf.h"
 #include "matmul_all_reduce_base.h"
-#include "../3rd/quant_batch_matmul_v3/op_kernel/arch35/qbmm_mix_online_dynamic.h"
+#include "../../3rd/quant_batch_matmul_v3/op_kernel/arch35/qbmm_mix_online_dynamic.h"
 #include "matmul_all_reduce_add_x3.h"
 
 namespace MatmulAllReduceImpl {

@@ -24,7 +24,7 @@
 #endif
 #include "../common.h"
 #include "mm_allreduce.h"
-#include "../3rd/quant_batch_matmul_v3/op_kernel/quant_batch_matmul_v3.h"
+#include "../../3rd/quant_batch_matmul_v3/op_kernel/quant_batch_matmul_v3.h"
 
 namespace MatmulAllReduceImpl {
 using namespace AscendC;

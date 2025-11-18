@@ -22,7 +22,7 @@
 
 #include "kernel_operator_intf.h"
 #include "matmul_all_reduce_base.h"
-#include "../3rd/quant_batch_matmul_v3/op_kernel/arch35/qbmm_cube_on_the_fly.h"
+#include "../../3rd/quant_batch_matmul_v3/op_kernel/arch35/qbmm_cube_on_the_fly.h"
 
 namespace MatmulAllReduceImpl {
 using namespace AscendC;
