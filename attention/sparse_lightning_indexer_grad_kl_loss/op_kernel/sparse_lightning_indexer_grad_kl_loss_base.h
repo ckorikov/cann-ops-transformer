@@ -358,13 +358,10 @@ __aicore__ inline void SparseLightningIndexerGradKLLossBase<SLIT>::CalcMultiCore
         bEndIdx = FindBIndex(bStartIdx, bS1EndIndex - 1, actualSum);
         s1EndIdx = bS1EndIndex - actualSum;
     } else {
-        bStartIdx = (bS1Index - 1) / constInfo.s1Size;
-        if (bStartIdx < 0) {
-            bStartIdx = 0;
-        }
+        bStartIdx = bS1Index / constInfo.s1Size;
         bEndIdx = (bS1EndIndex - 1) / constInfo.s1Size;
-        s1StartIdx = bS1Index % (constInfo.s1Size + 1);
-        s1EndIdx = bS1EndIndex % (constInfo.s1Size + 1);
+        s1StartIdx = bS1Index - bStartIdx * constInfo.s1Size;
+        s1EndIdx = bS1EndIndex - bEndIdx * constInfo.s1Size;
     }
 }
 
@@ -391,8 +388,8 @@ __aicore__ inline void SparseLightningIndexerGradKLLossBase<SLIT>::Process()
             s1StartIdxThisBatch = (bIdx == bStartIdx) ? s1StartIdx : 0;
             s1EndIdxThisBatch = (!lastB) ? GetEndS1Etx(bIdx, constInfo.s1Size, actualSeqLengthsQueryGm, LAYOUT_T) : s1EndIdx;
         } else if constexpr (LAYOUT_T == SLILayout::BSND) {
-            s1StartIdxThisBatch = s1StartIdx;
-            s1EndIdxThisBatch = s1EndIdx;      
+            s1StartIdxThisBatch = (bIdx == bStartIdx) ? s1StartIdx : 0;;
+            s1EndIdxThisBatch = (!lastB) ? constInfo.s1Size : s1EndIdx;      
         }
         if (lastB) {
             s1EndIdxThisBatch += 1;// 最后一个Batch需要额外循环两次，因为preload方式会产生尾巴
@@ -504,7 +501,7 @@ __aicore__ inline void SparseLightningIndexerGradKLLossBase<SLIT>::GetRunInfo(in
     } else if constexpr (LAYOUT_T == SLILayout::BSND) {
         runInfo.actS1Size = constInfo.s1Size;
         runInfo.actS2Size = constInfo.s2Size;
-        runInfo.accumS1Idx = bIdx * constInfo.bSize + s1Idx;
+        runInfo.accumS1Idx = bIdx * constInfo.s1Size + s1Idx;
         runInfo.accumS2Idx = bIdx * constInfo.s2Size;
     }
 

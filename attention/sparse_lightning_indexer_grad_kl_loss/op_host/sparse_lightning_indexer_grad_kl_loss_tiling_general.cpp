@@ -523,14 +523,14 @@ bool SparseLightningIndexerGradKLLossTilingBase::Balance4DLoad(std::vector<int64
         sumTmpArray += sparseValidArray[idx];
         if (sumTmpArray == balanceNum) {
             tmpIndex = (tmpIndex + 1 < tmpSparseValue.size()) ? tmpIndex + 1 : tmpSparseValue.size() - 1;
-            tmpSparseValue[tmpIndex] = idx; //刚好等于均值时核的末尾为idx
+            tmpSparseValue[tmpIndex] = idx + 1; //刚好等于均值时核的末尾为idx
             sumTmpArray = 0; // 重新计算总和
         } else if (sumTmpArray > balanceNum) {
             tmpIndex = (tmpIndex + 1 < tmpSparseValue.size()) ? tmpIndex + 1 : tmpSparseValue.size() - 1;
             // 第一次总和大于均值，判断前面一次和当前哪个更接近均值
             if (balanceNum - sumTmpArrayLast >= sumTmpArray - balanceNum) {
                 // 当前更接近，取当前值
-                tmpSparseValue[tmpIndex] = idx; //刚好等于均值时核的末尾为idx                
+                tmpSparseValue[tmpIndex] = idx + 1; //刚好等于均值时核的末尾为idx                
             }else {
                 // 上一次更接近， 取上一次值
                 tmpSparseValue[tmpIndex] = idx; //刚好等于均值时核的末尾为idx                
@@ -616,7 +616,7 @@ bool SparseLightningIndexerGradKLLossTilingBase::SetSparseStartIdx(const std::ve
         int64_t balanceNum = CeilDivision(sparseArraySum, validAicNum);
         std::vector<int64_t> tmpSparseValue(validAicNum, 0);
         Balance4DLoad(tmpSparseValue, sparseValidArray, balanceNum);
-        for (int64_t idx = 0; idx < static_cast<int64_t>(aicNum); ++idx) {
+        for (int64_t idx = 0; idx < static_cast<int64_t>(validAicNum); ++idx) {
             sparseStartIdx[idx] = tmpSparseValue[idx];
         }
     }
