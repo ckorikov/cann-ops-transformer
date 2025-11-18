@@ -57,6 +57,7 @@ constexpr uint32_t NUM_EIGHT = 8;
 constexpr uint32_t NUM_SIXTEEN = 16;
 constexpr uint32_t NUM_THIRTYTWO = 32;
 constexpr uint32_t NUM_SIXTYFOUR = 64;
+constexpr uint32_t NUM_ONEHUNDRED28 = 128;
 constexpr uint32_t MAX_EXPERT_NUM = 256;
 constexpr uint32_t MAX_BSK = 52428800;
 constexpr uint32_t MAX_SHAPE_SIZE = 65536;
@@ -403,11 +404,6 @@ ge::graphStatus AlltoAllvGmmTiling::CheckMKN(const gert::TilingContext* context)
 
 ge::graphStatus AlltoAllvGmmTiling::CheckSendRecvDataVolumn(const gert::TilingContext* context) const
 {
-    // 单卡之间通信数据 [2M,100M]
-    uint64_t E_ep = tilingData->commonTilingInfo.E_ep;
-    uint64_t epWorldSize = tilingData->commonTilingInfo.epWorldSize;
-    uint64_t recvSendMin = static_cast<uint64_t>(2U * 1024U * 1024U);
-    uint64_t recvSendMax = static_cast<uint64_t>((200U * 1024U * 1024U) / 2U); // 通信窗口的一半
     auto attrs = context->GetAttrs();
     OP_TILING_CHECK(attrs == nullptr, OP_LOGE(A_INNER_DEBUG, "GetAttrs returned null."), return ge::GRAPH_FAILED);
 
@@ -417,35 +413,6 @@ ge::graphStatus AlltoAllvGmmTiling::CheckSendRecvDataVolumn(const gert::TilingCo
         (sendCountsPtr == nullptr) || (recvCountsPtr == nullptr),
         OP_LOGE(A_INNER_DEBUG, "sendCountsPtr or recvCountsPtr is null."), return ge::GRAPH_FAILED);
 
-    const uint64_t* sendCounts = static_cast<const uint64_t*>(sendCountsPtr->GetData());
-    const uint64_t* recvCounts = static_cast<const uint64_t*>(recvCountsPtr->GetData());
-    uint64_t recvSum = 0U;
-    uint64_t sendSum = 0U;
-    uint64_t H1 = tilingData->commonTilingInfo.H1;
-    for (uint64_t i = 1U; i <= epWorldSize; i++) {
-        recvSum = 0U;
-        sendSum = 0U;
-        for (uint64_t j = (i - 1U) * E_ep; j <= i * E_ep - 1U; j++) {
-            recvSum += recvCounts[j] * H1 * 2U;
-            sendSum += sendCounts[j] * H1 * 2U; // /sizeof(gmmX) = 2U
-        }
-        OP_TILING_CHECK(
-            ((recvSum > recvSendMax) || (recvSum < recvSendMin)),
-            OP_LOGE(
-                A_INNER_DEBUG,
-                "rank %lu:sum(recvCounts[%lu, %lu]) * H1 * sizeof dtype(gmmx) should be [2MB, 100MB], "
-                "but got %lu Byte!",
-                i - 1U, (i - 1U) * E_ep, i * E_ep - 1U, recvSum),
-            return ge::GRAPH_FAILED);
-        OP_TILING_CHECK(
-            ((sendSum > recvSendMax) || (sendSum < recvSendMin)),
-            OP_LOGE(
-                A_INNER_DEBUG,
-                "rank %lu:sum(sendCounts[%lu, %lu]) * H1 * sizeof dtype(gmmx) should be [2MB, 100MB], "
-                "but got %lu Byte!",
-                i - 1U, (i - 1U) * E_ep, i * E_ep - 1U, sendSum),
-            return ge::GRAPH_FAILED);
-    }
     return ge::GRAPH_SUCCESS;
 }
 
@@ -509,8 +476,8 @@ ge::graphStatus AlltoAllvGmmTiling::CheckAttrsShapeSize(const gert::TilingContex
     }
     uint64_t epWorldSize = tilingData->commonTilingInfo.epWorldSize;
     if (epWorldSize != NUM_EIGHT && epWorldSize != NUM_SIXTEEN && epWorldSize != NUM_THIRTYTWO &&
-        epWorldSize != NUM_SIXTYFOUR) {
-        OP_LOGE(A_INNER_DEBUG, "epWorldSize error, valid=[8/16/32/64], but got %lu!.", epWorldSize);
+        epWorldSize != NUM_SIXTYFOUR && epWorldSize != NUM_ONEHUNDRED28) {
+        OP_LOGE(A_INNER_DEBUG, "epWorldSize error, valid=[8/16/32/64/128], but got %lu!.", epWorldSize);
         return ge::GRAPH_FAILED;
     }
     // 对sendCounts和recvCounts校验
