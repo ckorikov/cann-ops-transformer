@@ -39,7 +39,7 @@ constexpr uint8_t COMM_TP_IDX = 1;
 // 先写死这个偏移，如果TP固定为2，可直接往起始数据偏移开始读写
 constexpr uint64_t WIN_STATE_OFFSET = 500UL * 1024UL;
 constexpr uint64_t STATE_WIN_OFFSET = 950UL * 1024UL;
-constexpr uint64_t STATE_CHECK_OFFSET = 1000UL * 1024UL;
+constexpr uint64_t TIMEOUT_OFFSET = 1000UL * 1024UL;
 constexpr uint64_t TIMEOUT_DETECTION_THRESHOLD = 50000UL;
 constexpr uint64_t CYCLES_PER_US = 50UL;
 constexpr uint64_t TIMEOUT_DETECTION_TX_UNITS = 8UL;
@@ -699,8 +699,8 @@ __aicore__ inline void MoeDistributeDispatchV2<TemplateMC2TypeFunc>::SendToMoeEx
             xTmpTensor_ = xQueue_.AllocTensor<ExpandXOutType>();
             DataCopyPad(xTmpTensor_, xGMTensor_[tokenIndex * axisH_], xCopyParams_, copyPadExtParams);
             xQueue_.EnQue(xTmpTensor_);
-            FillTriple(xTmpTensor_, tokenIndex, topKIndex);
             xTmpTensor_ = xQueue_.DeQue<ExpandXOutType>();
+            FillTriple(xTmpTensor_, tokenIndex, topKIndex);
             DataCopyPad(dstWinGMTensor, xTmpTensor_, hCommuCopyOutParams_);
             xQueue_.FreeTensor<ExpandXOutType>(xTmpTensor_);
         }
@@ -1103,6 +1103,7 @@ template <TemplateMC2TypeClass>
 __aicore__ inline void MoeDistributeDispatchV2<TemplateMC2TypeFunc>::TimeOutDetection()
 {
     uint32_t toRankId;
+    uint64_t stateCheckOffset = (dataState_ == 0) ? TIMEOUT_OFFSET : (TIMEOUT_OFFSET - WIN_STATE_OFFSET);
     GlobalTensor<float> timeoutCheckGMTensor;
     for (uint32_t index = startStatusIndex_; index < startStatusIndex_ + recStatusNumPerCore_; index++) {
         if (isScalingDownFlag_) {
@@ -1111,7 +1112,7 @@ __aicore__ inline void MoeDistributeDispatchV2<TemplateMC2TypeFunc>::TimeOutDete
             toRankId = index % epWorldSize_;
         }
         GM_ADDR timeoutCheckGM = (__gm__ uint8_t*)(GetWindStateAddrByRankId(COMM_EP_IDX, toRankId)
-            + STATE_CHECK_OFFSET);
+            + stateCheckOffset);
         timeoutCheckGMTensor.SetGlobalBuffer((__gm__ float*)(timeoutCheckGM));
         DataCopy<float>(timeoutCheckGMTensor, statusFp32Tensor_, TIMEOUT_DETECTION_TX_UNITS);
     }
