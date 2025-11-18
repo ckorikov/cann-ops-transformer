@@ -23,6 +23,7 @@ constexpr uint64_t INPUT_COS_IDX = 1;
 constexpr uint64_t INPUT_SIN_IDX = 2;
 constexpr uint64_t INPUT_X_IDX = 3;
 constexpr uint64_t INPUT_DIM_NUM = 4;
+constexpr uint64_t TND_INPUT_DIM_NUM = 3;
 constexpr uint64_t NEED_BACKWARD_ATTR_IDX = 1;
 constexpr uint64_t LAYOUT_ATTR_IDX = 1;
 constexpr uint64_t INPUT_DIM_0 = 0;
@@ -76,7 +77,7 @@ uint64_t seqTailLen;
 uint64_t layout;
 uint64_t wholeBufferBytes;
 uint64_t tilingKey;
-
+bool isTndLayout = false;
 uint64_t GetDiv(uint64_t value1, uint64_t value2)
 {
     if (value2 == 0)
@@ -247,8 +248,18 @@ ge::graphStatus RopeCheckInputShape(
     size_t xShapeSize = xShape->GetStorageShape().GetDimNum();
     size_t cosShapeSize = cosShape->GetStorageShape().GetDimNum();
     size_t sinShapeSize = sinShape->GetStorageShape().GetDimNum();
+
+    uint64_t inputDimNum = INPUT_DIM_NUM;
+    uint64_t headDimIndex = INPUT_DIM_3;
+    if (xShapeSize == TND_INPUT_DIM_NUM) {
+        OP_LOGD(context->GetNodeName(), "Enter TND layout.");
+        isTndLayout = true;
+        inputDimNum = TND_INPUT_DIM_NUM;
+        headDimIndex = INPUT_DIM_2;
+    }
+
     OP_CHECK_IF(
-        xShapeSize != INPUT_DIM_NUM || cosShapeSize != INPUT_DIM_NUM || sinShapeSize != INPUT_DIM_NUM,
+        xShapeSize != inputDimNum || cosShapeSize != inputDimNum || sinShapeSize != inputDimNum,
         OP_LOGE(context->GetNodeName(), "Inconsistent dimensions of input shape."),
         return ge::GRAPH_FAILED);
     for (size_t i = 0; i < xShapeSize; ++i) {
@@ -258,9 +269,9 @@ ge::graphStatus RopeCheckInputShape(
                 context->GetNodeName(), "The shape of the input cos and sin is inconsistent."),
             return ge::GRAPH_FAILED);
     }
-    uint32_t xHeadDim = xShape->GetStorageShape().GetDim(INPUT_DIM_3);
-    uint32_t cosHeadDim = cosShape->GetStorageShape().GetDim(INPUT_DIM_3);
-    uint32_t sinHeadDim = sinShape->GetStorageShape().GetDim(INPUT_DIM_3);
+    uint32_t xHeadDim = xShape->GetStorageShape().GetDim(headDimIndex);
+    uint32_t cosHeadDim = cosShape->GetStorageShape().GetDim(headDimIndex);
+    uint32_t sinHeadDim = sinShape->GetStorageShape().GetDim(headDimIndex);
     OP_CHECK_IF(
         (xHeadDim != cosHeadDim) && (xHeadDim != sinHeadDim),
         OP_LOGE(context->GetNodeName(), "The last dim of inputs x, cos, sin is inconsistent."),
@@ -277,11 +288,7 @@ ge::graphStatus RopeCheckOptInputShape(gert::TilingContext* context)
         auto dyStorageShape = dyShape->GetStorageShape();
         auto xOptionalStorageShape = xOptionalShape->GetStorageShape();
         OP_CHECK_IF(
-            xOptionalStorageShape.GetDimNum() != INPUT_DIM_NUM ||
-            xOptionalStorageShape.GetDim(INPUT_DIM_0) != dyStorageShape.GetDim(INPUT_DIM_0) ||
-            xOptionalStorageShape.GetDim(INPUT_DIM_1) != dyStorageShape.GetDim(INPUT_DIM_1) ||
-            xOptionalStorageShape.GetDim(INPUT_DIM_2) != dyStorageShape.GetDim(INPUT_DIM_2) ||
-            xOptionalStorageShape.GetDim(INPUT_DIM_3) != dyStorageShape.GetDim(INPUT_DIM_3),
+            xOptionalStorageShape != dyStorageShape,
             OP_LOGE(context->GetNodeName(), "The shape of xOptional should be same with dy."),
             return ge::GRAPH_FAILED);
     }
@@ -347,13 +354,14 @@ ge::graphStatus TilingLayoutSplit(
     uint64_t ubSize;
     ascendcPlatform.GetCoreMemSize(platform_ascendc::CoreMemType::UB, ubSize);
 
-    uint64_t xShape0 = xShape->GetStorageShape().GetDim(INPUT_DIM_0);
-    uint64_t xShape1 = xShape->GetStorageShape().GetDim(INPUT_DIM_1);
-    uint64_t xShape2 = xShape->GetStorageShape().GetDim(INPUT_DIM_2);
-    uint64_t xHeadDim = xShape->GetStorageShape().GetDim(INPUT_DIM_3);
-    uint64_t cosShape0 = cosShape->GetStorageShape().GetDim(INPUT_DIM_0);
-    uint64_t cosShape1 = cosShape->GetStorageShape().GetDim(INPUT_DIM_1);
-    uint64_t cosShape2 = cosShape->GetStorageShape().GetDim(INPUT_DIM_2);
+    uint64_t indexOffset = isTndLayout ? 1UL : 0UL;
+    uint64_t xShape0 = isTndLayout ? 1UL : xShape->GetStorageShape().GetDim(INPUT_DIM_0);
+    uint64_t xShape1 = xShape->GetStorageShape().GetDim(INPUT_DIM_1 - indexOffset);
+    uint64_t xShape2 = xShape->GetStorageShape().GetDim(INPUT_DIM_2 - indexOffset);
+    uint64_t xHeadDim = xShape->GetStorageShape().GetDim(INPUT_DIM_3 - indexOffset);
+    uint64_t cosShape0 = isTndLayout ? 1UL : cosShape->GetStorageShape().GetDim(INPUT_DIM_0);
+    uint64_t cosShape1 = cosShape->GetStorageShape().GetDim(INPUT_DIM_1 - indexOffset);
+    uint64_t cosShape2 = cosShape->GetStorageShape().GetDim(INPUT_DIM_2 - indexOffset);
     if (cosShape0 == 1 && cosShape2 == 1 && xShape1 == cosShape1) {
         // BSND
         tiling.ropeInterleavedGradParams.set_batchSize(xShape0);
