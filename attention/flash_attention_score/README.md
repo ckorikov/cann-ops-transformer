@@ -4,7 +4,7 @@
 
 |产品      | 是否支持 |
 |:----------------------------|:-----------:|
-|<term>昇腾910_95 AI处理器</term>|      ×     |
+|<term>昇腾910_95 AI处理器</term>|      √     |
 |<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>|      ×     |
 |<term>Atlas A2 训练系列产品</term>|      √     |
 |<term>Atlas 800I A2 推理产品</term>|      ×     |
@@ -27,12 +27,12 @@
 
     - pseType=1时，公式如下：
       $$
-      attention\_out = Dropout(Softmax(Mask(scale*(pse+query*key^T), atten\_mask)), keep\_prob)*value
+      attention\_out=Dropout(Softmax(Mask(scale*(pse+(query*d\_scale\_q)*(key*d\_scale\_k)^T), atten\_mask)), keep\_prob)*(value*d\_scale\_v)
       $$
 
     - pseType≠1时，公式如下：
       $$
-      attention\_out=Dropout(Softmax(Mask(scale*(query*key^T) + pse),atten\_mask),keep\_prob)*value
+      attention\_out=Dropout(Softmax(Mask(scale*((query*d\_scale\_q)*(key*d\_scale\_k)^T) + pse),atten\_mask),keep\_prob)*(value*d\_scale\_v)
       $$
 
 ## 参数说明
@@ -57,21 +57,21 @@
       <td>query</td>
       <td>输入</td>
       <td>公式中的输入query。</td>
-      <td>BFLOAT16、FLOAT16、FLOAT</td>
+      <td>BFLOAT16、FLOAT16、FLOAT、FLOAT8_E5M2、FLOAT8_E4M3FN、HIFLOAT8</td>
       <td>ND</td>
     </tr>
     <tr>
       <td>key</td>
       <td>输入</td>
       <td>公式中的输入key。</td>
-      <td>BFLOAT16、FLOAT16、FLOAT</td>
+      <td>BFLOAT16、FLOAT16、FLOAT、FLOAT8_E5M2、FLOAT8_E4M3FN、HIFLOAT8</td>
       <td>ND</td>
     </tr>
     <tr>
       <td>value</td>
       <td>输入</td>
       <td>公式中的输入value。</td>
-      <td>BFLOAT16、FLOAT16、FLOAT</td>
+      <td>BFLOAT16、FLOAT16、FLOAT、FLOAT8_E5M2、FLOAT8_E4M3FN、HIFLOAT8</td>
       <td>ND</td>
     </tr>
     <tr>
@@ -93,6 +93,27 @@
       <td>可选输入</td>
       <td>公式中的atten_mask，表示注意力掩码，取值为1代表该位不参与计算（不生效），为0代表该位参与计算。</td>
       <td>BOOL、UINT8</td>
+      <td>ND</td>
+    </tr>
+    <tr>
+      <td>dScaleQOptional</td>
+      <td>可选输入</td>
+      <td>公式中的d_scale_q，FP8场景下query的全量化参数。</td>
+      <td>FLOAT</td>
+      <td>ND</td>
+    </tr>
+    <tr>
+      <td>dScaleKOptional</td>
+      <td>可选输入</td>
+      <td>公式中的d_scale_k，FP8场景下key的全量化参数。</td>
+      <td>FLOAT</td>
+      <td>ND</td>
+    </tr>
+    <tr>
+      <td>dScaleVOptional</td>
+      <td>可选输入</td>
+      <td>公式中的d_scale_v，FP8场景下value的全量化参数。</td>
+      <td>FLOAT</td>
       <td>ND</td>
     </tr>
     <tr>
@@ -154,6 +175,8 @@
     </tr>
   </tbody>
 </table>
+
+- FLOAT8_E5M2、FLOAT8_E4M3FN、HIFLOAT8三种数据类型仅昇腾910_95 AI处理器支持。
 
 ## 约束说明
 
