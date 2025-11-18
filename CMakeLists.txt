@@ -23,6 +23,7 @@ option(OP_HOST_UT                 "Enable ophost ut"                OFF)
 option(OP_API_UT                  "Enable opapi ut"                 OFF)
 option(OP_GRAPH_UT                "Enable graph ut"                 OFF)
 option(OP_KERNEL_UT               "Enable kernel ut"                OFF)
+option(OP_KERNEL_AICPU_UT 	  "Enable aicpu kernel ut"          OFF)
 option(UT_TEST_ALL                "Enable all ut"                   OFF)
 
 set(ASCEND_COMPUTE_UNIT           "ascend910b"                    CACHE   STRING   "soc that need to be compiled")

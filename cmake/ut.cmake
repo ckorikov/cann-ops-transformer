@@ -384,3 +384,70 @@ if(UT_TEST_ALL OR OP_KERNEL_UT)
     endforeach()
   endfunction()
 endif()
+
+if(UT_TEST_ALL OR OP_KERNEL_AICPU_UT)
+  include(${PROJECT_SOURCE_DIR}/cmake/third_party/gtest.cmake)
+  function(AddAicpuOpTestCase opName)
+    get_filename_component(UT_DIR ${CMAKE_CURRENT_SOURCE_DIR} DIRECTORY)
+    get_filename_component(OP_NAME ${UT_DIR} NAME)
+    list(FIND ASCEND_OP_NAME ${OP_NAME} INDEX)
+    # if "--ops" is not NULL, opName not include, jump over. if "--ops" is NULL, include all.
+    if(NOT "${ASCEND_OP_NAME}" STREQUAL "" AND INDEX EQUAL -1)
+      return()
+    endif()
+
+    ## find kernel file
+    file(GLOB KernelFile "${PROJECT_SOURCE_DIR}/*/${opName}/op_kernel_aicpu/${opName}_aicpu.cpp")
+
+    ## add object: ${opName}_cases_obj
+    file(GLOB OPKERNEL_CASES_SRC ${UT_DIR}/tests/ut/op_kernel_aicpu/test_${opName}*.cpp)
+    
+    message(STATUS "aicpu kernel info: ${opName}, ${KernelFile}, ${OPKERNEL_CASES_SRC}")
+
+    add_library(${opName}_cases_obj OBJECT
+            ${KernelFile}
+            ${OPKERNEL_CASES_SRC}
+            )
+    target_compile_options(${opName}_cases_obj PRIVATE 
+            -g
+            )
+    message(STATUS "111******************** ${AICPU_INCLUDE}")
+
+    ## add op_kernel_aicpu test header file search path, so that header files can be referenced based on relative path
+    target_include_directories(${opName}_cases_obj PRIVATE
+            ${AICPU_INCLUDE}
+            ${OPBASE_INC_DIRS}
+            ${AICPU_INC_DIRS}
+            ${PROJECT_SOURCE_DIR}/tests/ut/op_kernel_aicpu
+            )
+    target_link_libraries(${opName}_cases_obj PRIVATE
+            $<BUILD_INTERFACE:intf_llt_pub_asan_cxx17>
+            -ldl
+            gtest
+            c_sec
+            Eigen3::EigenMath
+            $<$<TARGET_EXISTS:opsbase>:opsbase>
+            )
+
+    ## add object: math_op_kernel_ut_cases_obj
+    if(NOT TARGET ${AICPU_OP_KERNEL_MODULE_NAME}_cases_obj)
+      add_library(
+        ${AICPU_OP_KERNEL_MODULE_NAME}_cases_obj OBJECT
+        $<TARGET_OBJECTS:${opName}_cases_obj>
+        )
+    else()
+      target_sources(${AICPU_OP_KERNEL_MODULE_NAME}_cases_obj PRIVATE $<TARGET_OBJECTS:${opName}_cases_obj>)
+    endif()
+
+    target_link_libraries(${AICPU_OP_KERNEL_MODULE_NAME}_cases_obj PRIVATE
+        $<BUILD_INTERFACE:intf_llt_pub_asan>
+            $<BUILD_INTERFACE:intf_llt_pub_asan_cxx17>
+            -ldl
+            $<TARGET_OBJECTS:${opName}_cases_obj>
+            gtest
+            c_sec
+            Eigen3::EigenMath
+      $<$<TARGET_EXISTS:opsbase>:opsbase>
+            )
+  endfunction()
+endif()

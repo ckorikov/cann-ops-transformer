@@ -260,7 +260,7 @@ set(AICPU_INCLUDE
   ${C_SEC_INCLUDE}
   ${NNOPBASE_INCLUDE_DIRS}
   ${HCCL_EXTERNAL_INCLUDE}
-  ${OPS_CV_DIR}/common/inc/common
+  ${OPS_TRANSFORMER_DIR}/common/inc/common
   ${METADEF_INCLUDE_DIRS}
 )
 
