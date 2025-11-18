@@ -488,7 +488,7 @@ __aicore__ inline void VecOp<SFAGT>::CalAttenMsk(const uint64_t indicesGmOffset,
         // 处于对角线上的block
         if (topkIdx * selectedBlockSize <= valid_col_end && (topkIdx + 1) * selectedBlockSize > valid_col_end) {
             attenMskRsv = valid_col_end - (topkIdx * selectedBlockSize) + 1;
-            attenMskEnd = (topkIdx + 1) * selectedBlockSize - valid_col_end;
+            attenMskEnd = selectedBlockSize;
             attenMskStartIdx = i * selectedBlockSize + attenMskRsv - blkCntOffset * selectedBlockSize;
         }
     }
