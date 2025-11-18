@@ -20,7 +20,7 @@ using namespace AscendC;
 extern "C" __global__ __aicore__ void all_gather_add(GM_ADDR aGM, GM_ADDR bGM, GM_ADDR cGM,
     GM_ADDR gatherGM, GM_ADDR workspaceGM, GM_ADDR tilingGM)
 {
-    KERNEL_TASK_TYPE_DEFAULT(KERNEL_TYPE_AIV_ONLY);
+    KERNEL_TASK_TYPE_DEFAULT(KERNEL_TYPE_MIX_AIV_1_0);
     // 注册算子Tiling结构体
     REGISTER_TILING_DEFAULT(AllGatherAddTilingData);
     auto tiling = (__gm__ AllGatherAddTilingData*)tilingGM;

@@ -120,6 +120,7 @@ __aicore__ inline void AllGatherAdd::CopyOut(int32_t progress)
 
 __aicore__ inline void AllGatherAdd::HcclFinalize()
 {
+    AscendC::SyncAll<true>();
     hccl_.Finalize();
 }
 
