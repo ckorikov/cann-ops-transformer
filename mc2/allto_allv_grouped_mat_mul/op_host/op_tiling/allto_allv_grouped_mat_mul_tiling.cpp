@@ -35,6 +35,7 @@ using namespace AscendC;
 using namespace Ops::Transformer::OpTiling;
 namespace optiling {
 constexpr uint32_t GMM_X_INDEX = 0U;
+constexpr uint32_t OUTPUT_Y_INDEX = 0U;
 constexpr uint32_t GMM_WEIGHT_INDEX = 1U;
 
 constexpr uint32_t SEND_COUNTS_TENSOR_INDEX = 2U;
