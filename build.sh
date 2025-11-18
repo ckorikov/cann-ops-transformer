@@ -379,8 +379,8 @@ function build_example()
     if [[ "${EXAMPLE_MODE}" == "eager" ]]; then
         files=$(find ../ -path "*/${EXAMPLE_NAME}/examples/*" -name test_aclnn_*.cpp)
         if [ -z "$files" ]; then
-            echo "ERROR: ${EXAMPLE_NAME} do not have eager example"
-            exit 1
+            echo "${EXAMPLE_NAME} do not have eager example"
+            return 2
         fi
         for file in $files; do
             echo "Start compile and run example file: $file"
@@ -400,25 +400,40 @@ function build_example()
             else
                 echo "Error: pkg_mode(${PKG_MODE}) must be cust."
                 help_info "run_example"
-                exit 1
+                return 1
             fi
             ./test_aclnn_${EXAMPLE_NAME}
+            run_result=$?
+            if [ $run_result -ne 0 ]; then
+                echo "ERROR: Example file: $file execution failed with exit code: $run_result"
+                return $run_result
+            else
+                echo "INFO: Example file: $file execution completed successfully"
+            fi
         done
     elif [[ "${EXAMPLE_MODE}" == "graph" ]]; then
         files=$(find ../ -path "*/${EXAMPLE_NAME}/examples/*" -name test_geir_*.cpp)
         if [ -z "$files" ]; then
-            echo "ERROR: ${EXAMPLE_NAME} do not have graph example"
-            exit 1
+            echo "${EXAMPLE_NAME} do not have graph example"
+            return 2
         fi
         for file in $files; do
             echo "Start compile and run example file: $file"
             g++ ${file} -I ${GRAPH_INCLUDE_PATH} -I ${GE_INCLUDE_PATH} -I ${LINUX_INCLUDE_PATH} -I ${INC_INCLUDE_PATH} -L ${GRAPH_LIBRARY_STUB_PATH} -L ${GRAPH_LIBRARY_PATH} -lgraph -lge_runner -lgraph_base -o test_geir_${EXAMPLE_NAME}
             ./test_geir_${EXAMPLE_NAME}
+            run_result=$?
+            if [ $run_result -ne 0 ]; then
+                echo "ERROR: Example file: $file execution failed with exit code: $run_result"
+                return $run_result
+            else
+                echo "INFO: Example file: $file execution completed successfully"
+            fi
         done
     else
         help_info "run_example"
-        exit 1
+        return 1
     fi
+    return 0
 }
 
 function gen_bisheng(){
@@ -1211,57 +1226,29 @@ if [[ "$ENABLE_GENOP" == "TRUE" ]]; then
     gen_op
 fi
 
-function build_example_group_eager()
+function build_example_for_ci()
 {
-    local example_name="$1"
-    EXAMPLE_MODE_GROUP="eager"
-    log "Start to run example,name:${example_name} mode:${EXAMPLE_MODE_GROUP}"
-    echo -e "\033[1;33m  RUNNING OPERATOR: \033[1;32m${example_name}\033[0m"
-    if [ ! -d "${BUILD_PATH}" ]; then
-    	mkdir -p ${BUILD_PATH}
-    fi
-    # 清理CMake缓存
-    # clean_cmake_cache
-    clean
-    cd "${BUILD_PATH}"
-    if [[ "${EXAMPLE_MODE_GROUP}" == "eager" ]]; then
-        files=$(find ../ -path "*/${example_name}/examples/*" -name test_aclnn_*.cpp)
-        if [ -z "$files" ]; then
-            echo "ERROR: ${example_name} do not have eager example"
-            exit 1
-        fi
-        for file in $files; do
-            echo "Start compile and run example file: $file"
-            if [[ "${PKG_MODE}" == "" ]]; then
-                if [[ "${ascend_compute_unit}" == "ascend910_93" ]]; then
-                    g++ ${file} -DASCEND910_93 -I ${INCLUDE_PATH} -I ${ACLNN_INCLUDE_PATH} -I ${EAGER_INCLUDE_OPP_ACLNNOP_PATH} -L ${EAGER_LIBRARY_OPP_PATH} -L ${EAGER_LIBRARY_PATH} -lopapi -lopapi_transformer -lascendcl -lnnopbase -lpthread -lhccl -o test_aclnn_${example_name}
-                else
-                    g++ ${file} -I ${INCLUDE_PATH} -I ${ACLNN_INCLUDE_PATH} -I ${EAGER_INCLUDE_OPP_ACLNNOP_PATH} -L ${EAGER_LIBRARY_OPP_PATH} -L ${EAGER_LIBRARY_PATH} -lopapi -lopapi_transformer -lascendcl -lnnopbase -lpthread -lhccl -o test_aclnn_${example_name}
-                fi
-            elif [[ "${PKG_MODE}" == "cust" ]]; then
-    
-                echo "pkg_mode:${PKG_MODE} vendor_name:${VENDOR}"
-                export CUST_LIBRARY_PATH="${ASCEND_OPP_PATH}/vendors/${VENDOR}_transformer/op_api/lib"     # 仅自定义算子需要
-                export CUST_INCLUDE_PATH="${ASCEND_OPP_PATH}/vendors/${VENDOR}_transformer/op_api/include" # 仅自定义算子需要
-                ABSOLUTE_MC2_PATH=$(realpath ${BUILD_PATH}/../mc2)
-                REAL_FILE_PATH=$(realpath "$file")
-                MC2_APPEND_INCLUDE_AND_LIBRARY=""
-                if [[ "$REAL_FILE_PATH" == "${ABSOLUTE_MC2_PATH}"* ]]; then
-                    MC2_APPEND_INCLUDE_AND_LIBRARY="-lpthread -lhccl"
-                fi
-                g++ ${file} -I ${INCLUDE_PATH} -I ${CUST_INCLUDE_PATH} -L ${CUST_LIBRARY_PATH} -L ${EAGER_LIBRARY_PATH} -lcust_opapi -lascendcl -lnnopbase -I ${EAGER_INCLUDE_OPP_ACLNNOP_PATH} ${MC2_APPEND_INCLUDE_AND_LIBRARY} -o test_aclnn_${example_name} -Wl,-rpath=${CUST_LIBRARY_PATH}
-            else
-                echo "Error: pkg_mode(${PKG_MODE}) must be cust."
-                help_info "run_example"
-                exit 1
-            fi
-            ./test_aclnn_${example_name}
-        done
-    else
-        echo "Error: This script only supports 'eager' mode."
-        exit 1
+    EXAMPLE_NAME="$1"
+    EXAMPLE_MODE="eager"
+    PKG_MODE="cust"
+    build_example || local eager_result=$?       # 避免函数随build_example一起退出
+    if [ $eager_result -ne 0 ] && [ $eager_result -ne 2 ]; then
+        echo "Error: Eager Example failed with exit code: $eager_result"
+        exit $eager_result
     fi
 
+    EXAMPLE_MODE="graph"
+    build_example || local geir_result=$?
+    if [ $geir_result -ne 0 ] && [ $geir_result -ne 2 ]; then
+        echo "Error: Graph Example failed with exit code: $geir_result"
+        exit $geir_result
+    fi
+
+    if [ $eager_result -eq 2 ] && [ $geir_result -eq 2 ]; then
+        echo "Error: Neither eager nor graph examples provided for $EXAMPLE_NAME"
+        exit $geir_result
+    fi
+    exit 0
 }
 
 # 冒烟任务只跑examples
@@ -1278,7 +1265,7 @@ function process_ci_smoke_with_changed_list()
         op=$(echo "$op" | xargs)
         echo "Running example test for operator: $op"
         if [[ -n "$op" ]];then
-            build_example_group_eager "$op"
+            build_example_for_ci "$op"
         fi
     done
 }
@@ -1336,7 +1323,16 @@ else
         CUSTOM_OPTION="${CUSTOM_OPTION}  -DENABLE_BUILT_IN=ON -DENABLE_OPS_HOST=ON -DENABLE_OPS_KERNEL=ON"
         build_package
     elif [[ "$ENABLE_RUN_EXAMPLE" == "TRUE" ]];then
-        build_example
+        build_example || example_result=$?
+        if [ $example_result -eq 2 ]; then
+            echo "Error: ${EXAMPLE_NAME} do not have ${EXAMPLE_MODE} example"
+            exit $example_result
+        elif [ $example_result -ne 0 ]; then
+            echo "Example failed with exit code: $example_result"
+            exit $example_result
+        else
+            echo "Example completed successfully"
+        fi
     elif [ -n "${BUILD}" ];then
         CUSTOM_OPTION="${CUSTOM_OPTION}  -DENABLE_OPS_HOST=ON -DENABLE_OPS_KERNEL=ON"
         cmake_config
