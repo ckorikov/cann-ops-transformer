@@ -210,12 +210,11 @@ static ge::graphStatus InferAttentionOutShape(std::string attentionOutLayout,
     int64_t d1 = 0;
     int64_t t = 0;
     if (attentionOutLayout == "BSH") {
-        if (valueShape->GetDim(FIA_LAYOUT_DIM2) != -1) { // 动态图两次infershape
+        if (valueShape->GetDim(FIA_LAYOUT_DIM2) != -1) { // 动态图
             attentionOutShape->SetDimNum(FIA_LAYOUT_DIM_NUMS_3);
             GetQueryBSND(queryShape, queryLayout, numHeadsPtr, b, s1, n1, d1);
             int64_t outH = (*numHeadsPtr) * valueD;
-            int64_t h1 = d1 * (*numHeadsPtr);
-            outH = (outH == 0 || h1 == 0) ? h1 : outH;
+            outH = (outH == 0 || (*queryShape)[FIA_LAYOUT_DIM2] == 0) ? (*queryShape)[FIA_LAYOUT_DIM2] : outH;
             *attentionOutShape = {b, s1, outH};
         }
     } else if (attentionOutLayout == "BSND") {
