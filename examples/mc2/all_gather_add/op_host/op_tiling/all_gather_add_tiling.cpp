@@ -17,8 +17,8 @@
 #include "graph/utils/type_utils.h"
 #include "register/op_def_registry.h"
 #include "tiling/tiling_api.h"
-#include "tiling/platform/platform_ascendc.h"
 #include "hccl/hccl_types.h"
+#include "tiling/platform/platform_ascendc.h"
 #include "../../op_kernel/all_gather_add_tiling.h"
 
 using namespace AscendC;

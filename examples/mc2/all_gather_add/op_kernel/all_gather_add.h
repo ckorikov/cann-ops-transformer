@@ -15,9 +15,9 @@
 #ifndef ALL_GATHER_ADD_H
 #define ALL_GATHER_ADD_H
 
-#include "all_gather_add_tiling.h"
 #include "kernel_operator.h"
 #include "kernel_tiling/kernel_tiling.h"
+#include "all_gather_add_tiling.h"
 
 constexpr int32_t ALLGATHER_ADD_BUFFER_NUM = 1;
 
