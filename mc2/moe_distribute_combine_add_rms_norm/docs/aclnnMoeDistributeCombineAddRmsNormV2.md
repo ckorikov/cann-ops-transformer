@@ -240,21 +240,21 @@ aclnnStatus aclnnMoeDistributeCombineAddRmsNormV2(
   <tr>
    <td>constExpertAlpha1Optional</td>
    <td>输入</td>
-   <td>constExpert场景的计算系数（公式中的constExpertAlpha1Optional），constExpertNum>0时必传；当前版本不支持，传空指针即可。</td>
+   <td>constExpert场景的计算系数（公式中的constExpertAlpha1Optional），constExpertNum>0时必传；传入时为2D Tensor（shape <code>constExpertNum, H</code>），数据类型与expandX一致。</td>
    <td>BFLOAT16</td>
    <td>ND（支持非连续Tensor）</td>
   </tr>
   <tr>
    <td>constExpertAlpha2Optional</td>
    <td>输入</td>
-   <td>constExpert场景的计算系数（公式中的constExpertAlpha2Optional），constExpertNum>0时必传；当前版本不支持，传空指针即可。</td>
+   <td>constExpert场景的计算系数（公式中的constExpertAlpha2Optional），constExpertNum>0时必传；传入时为2D Tensor（shape <code>constExpertNum, H</code>），数据类型与expandX一致。</td>
    <td>BFLOAT16</td>
    <td>ND（支持非连续Tensor）</td>
   </tr>
   <tr>
    <td>constExpertVOptional</td>
    <td>输入</td>
-   <td>constExpert场景的计算系数（公式中的constExpertVOptional），constExpertNum>0时必传；当前版本不支持，传空指针即可。</td>
+   <td>constExpert场景的计算系数（公式中的constExpertVOptional），constExpertNum>0时必传；传入时为2D Tensor（shape <code>constExpertNum, H</code>），数据类型与expandX一致。</td>
    <td>BFLOAT16</td>
    <td>ND（支持非连续Tensor）</td>
   </tr>
@@ -387,7 +387,7 @@ aclnnStatus aclnnMoeDistributeCombineAddRmsNormV2(
   <tr>
    <td>constExpertNum</td>
    <td>输入</td>
-   <td>常量专家数量，当前版本不支持，传0即可</code>。</td>
+   <td>常量专家数量，取值范围[0, MAX_INT32)，其中MAX_INT32值为2147483647，合法专家ID范围<code>[moeExpertNum+zeroExpertNum+copyExpertNum, moeExpertNum+zeroExpertNum+copyExpertNum+copyExpertNum)</code>。</td>
    <td>INT64</td>
    <td>-</td>
   </tr>
@@ -648,7 +648,7 @@ aclnnStatus aclnnMoeDistributeCombineAddRmsNormV2(
         int64_t A;
         int64_t zeroExpertNum = 7;
         int64_t copyExpertNum = 8;
-        int64_t constExpertNum = 0;
+        int64_t constExpertNum = 10;
         if (args.epRankId < sharedExpertRankNum) {
             // 共享专家卡
             localExpertNum = 1;
@@ -732,8 +732,8 @@ aclnnStatus aclnnMoeDistributeCombineAddRmsNormV2(
 
         std::vector<int64_t> elasticInfoShape{4 + 2 * EP_WORLD_SIZE};
         std::vector<int64_t> oriXShape{BS, H};
-        std::vector<int64_t> constExpertAlpha1Shape{constExpertNum};
-        std::vector<int64_t> constExpertAlpha2Shape{constExpertNum};
+        std::vector<int64_t> constExpertAlpha1Shape{constExpertNum, H};
+        std::vector<int64_t> constExpertAlpha2Shape{constExpertNum, H};
         std::vector<int64_t> constExpertVShape{constExpertNum, H};
         
         std::vector<int64_t> yOutShape{BS, 1, H};
@@ -859,6 +859,12 @@ aclnnStatus aclnnMoeDistributeCombineAddRmsNormV2(
         ret = CreateAclTensor(elasticInfoHostData, elasticInfoShape, &elasticInfoDeviceAddr, aclDataType::ACL_INT32, &elasticInfo);
         CHECK_RET(ret == ACL_SUCCESS, return ret);
         ret = CreateAclTensor(oriXHostData, oriXShape, &oriXDeviceAddr, aclDataType::ACL_BF16, &oriX);
+        CHECK_RET(ret == ACL_SUCCESS, return ret);
+        ret = CreateAclTensor(constExpertAlpha1HostData, constExpertAlpha1Shape, &constExpertAlpha1DeviceAddr, aclDataType::ACL_BF16, &constExpertAlpha1);
+        CHECK_RET(ret == ACL_SUCCESS, return ret);
+        ret = CreateAclTensor(constExpertAlpha2HostData, constExpertAlpha2Shape, &constExpertAlpha2DeviceAddr, aclDataType::ACL_BF16, &constExpertAlpha2);
+        CHECK_RET(ret == ACL_SUCCESS, return ret);
+        ret = CreateAclTensor(constExpertVHostData, constExpertVShape, &constExpertVDeviceAddr, aclDataType::ACL_BF16, &constExpertV);
         CHECK_RET(ret == ACL_SUCCESS, return ret);
         ret = CreateAclTensor(yOutHostData, yOutShape, &yOutDeviceAddr, aclDataType::ACL_BF16, &yOut);
         CHECK_RET(ret == ACL_SUCCESS, return ret);

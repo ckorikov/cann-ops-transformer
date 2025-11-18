@@ -205,28 +205,28 @@ aclnnStatus aclnnMoeDistributeCombineV3(
   <tr>
    <td>oriXOptional</td>
    <td>输入</td>
-   <td>Device侧的aclTensor，表示未经过FFN（Feed-Forward Neural network）的token数据，在使能copyExpert或使能constExpert的场景下需要本输入数据。：<br><term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：预留参数，当前版本不支持，传空指针即可。<br><term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：可选择传入有效数据或填空指针，当<code>copyExpertNum</code>不为0或<code>constExpertNum</code>不为0时必须传入有效输入；当传入有效数据时，要求是一个2D的Tensor，shape为 <code>(Bs, H)</code>，数据类型需跟expandX保持一致。</td>
+   <td>Device侧的aclTensor，表示未经过FFN（Feed-Forward Neural network）的token数据，在使能copyExpert或使能constExpert的场景下需要本输入数据：<br><term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：预留参数，当前版本不支持，传空指针即可。<br><term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：可选择传入有效数据或填空指针，当<code>copyExpertNum</code>不为0或<code>constExpertNum</code>不为0时必须传入有效输入；当传入有效数据时，要求是一个2D的Tensor，shape为 <code>(Bs, H)</code>，数据类型需跟expandX保持一致。</td>
    <td>FLOAT16、BFLOAT16</td>
    <td>ND（支持非连续Tensor）</td>
   </tr>
   <tr>
    <td>constExpertAlpha1Optional</td>
    <td>输入</td>
-   <td>Device侧的aclTensor，在使能constExpert的场景下需要输入的计算系数：当前版本不支持，传空指针即可。</td>
+   <td>Device侧的aclTensor，在使能constExpert的场景下需要输入的计算系数：<br><term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：预留参数，当前版本不支持，传空指针即可。<br><term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：可选择传入有效数据或填空指针，当constExpertNum不为0时必须传入有效输入；当传入有效数据时，要求是一个2D的Tensor，shape为<code>(constExpertNum, H)</code>，数据类型需跟expandX保持一致。</td>
    <td>FLOAT16、BFLOAT16</td>
    <td>ND（支持非连续Tensor）</td>
   </tr>
   <tr>
    <td>constExpertAlpha2Optional</td>
    <td>输入</td>
-   <td>Device侧的aclTensor，在使能constExpert的场景下需要输入的计算系数：当前版本不支持，传空指针即可。</td>
+   <td>Device侧的aclTensor，在使能constExpert的场景下需要输入的计算系数：<br><term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：预留参数，当前版本不支持，传空指针即可。<br><term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：可选择传入有效数据或填空指针，当constExpertNum不为0时必须传入有效输入；当传入有效数据时，要求是一个2D的Tensor，shape为<code>(constExpertNum, H)</code>，数据类型需跟expandX保持一致。</td>
    <td>FLOAT16、BFLOAT16</td>
    <td>ND（支持非连续Tensor）</td>
   </tr>
   <tr>
    <td>constExpertVOptional</td>
    <td>输入</td>
-   <td>Device侧的aclTensor，在使能constExpert的场景下需要输入的计算系数：当前版本不支持，传空指针即可。</td>
+   <td>Device侧的aclTensor，在使能constExpert的场景下需要输入的计算系数：<br><term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：预留参数，当前版本不支持，传空指针即可。<br><term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：可选择传入有效数据或填空指针，当constExpertNum不为0时必须传入有效输入；当传入有效数据时，要求是一个2D的Tensor，shape为 <code>(constExpertNum, H)</code>，数据类型需跟expandX保持一致。</td>
    <td>FLOAT16、BFLOAT16</td>
    <td>ND（支持非连续Tensor）</td>
   </tr>
@@ -642,7 +642,7 @@ aclnnStatus aclnnMoeDistributeCombineV3(
         int64_t A;
         int64_t zeroExpertNum = 1;
         int64_t copyExpertNum = 1;
-        int64_t constExpertNum = 0;
+        int64_t constExpertNum = 10;
         if (args.epRankId < sharedExpertRankNum) {
             localExpertNum = 1;
             A = globalBs / sharedExpertRankNum;
@@ -717,8 +717,8 @@ aclnnStatus aclnnMoeDistributeCombineV3(
 
         std::vector<int64_t> elasticInfoShape{4 + EP_WORLD_SIZE * 2};
         std::vector<int64_t> oriXShape{Bs, H};
-        std::vector<int64_t> constExpertAlpha1Shape{constExpertNum};
-        std::vector<int64_t> constExpertAlpha2Shape{constExpertNum};
+        std::vector<int64_t> constExpertAlpha1Shape{constExpertNum, H};
+        std::vector<int64_t> constExpertAlpha2Shape{constExpertNum, H};
         std::vector<int64_t> constExpertVShape{constExpertNum, H};
 
         std::vector<int64_t> xOutShape{Bs, H};
@@ -814,6 +814,12 @@ aclnnStatus aclnnMoeDistributeCombineV3(
         ret = CreateAclTensor(elasticInfoHostData, elasticInfoShape, &elasticInfoDeviceAddr, aclDataType::ACL_INT32, &elasticInfo);
         CHECK_RET(ret == ACL_SUCCESS, return ret);
         ret = CreateAclTensor(oriXHostData, oriXShape, &oriXDeviceAddr, aclDataType::ACL_BF16, &oriX);
+        CHECK_RET(ret == ACL_SUCCESS, return ret);
+        ret = CreateAclTensor(constExpertAlpha1HostData, constExpertAlpha1Shape, &constExpertAlpha1DeviceAddr, aclDataType::ACL_BF16, &constExpertAlpha1);
+        CHECK_RET(ret == ACL_SUCCESS, return ret);
+        ret = CreateAclTensor(constExpertAlpha2HostData, constExpertAlpha2Shape, &constExpertAlpha2DeviceAddr, aclDataType::ACL_BF16, &constExpertAlpha2);
+        CHECK_RET(ret == ACL_SUCCESS, return ret);
+        ret = CreateAclTensor(constExpertVHostData, constExpertVShape, &constExpertVDeviceAddr, aclDataType::ACL_BF16, &constExpertV);
         CHECK_RET(ret == ACL_SUCCESS, return ret);
         ret = CreateAclTensor(xOutHostData, xOutShape, &xOutDeviceAddr, aclDataType::ACL_BF16, &xOut);
         CHECK_RET(ret == ACL_SUCCESS, return ret);

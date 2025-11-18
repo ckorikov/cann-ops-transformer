@@ -350,9 +350,9 @@ static bool CheckOptionalInputTensorDim(const gert::TilingContext *context, cons
         context->GetOptionalInputShape(CONST_EXPERT_ALPHA_1_INDEX);
     if (constExpertAlpha1StorageShape != nullptr) {
         OP_TILING_CHECK(
-            constExpertAlpha1StorageShape->GetStorageShape().GetDimNum() != ONE_DIM,
+            constExpertAlpha1StorageShape->GetStorageShape().GetDimNum() != TWO_DIMS,
             OP_LOGE(
-                nodeName, "const_expert_alpha_1 must be 1-dimension, but got %lu dim",
+                nodeName, "const_expert_alpha_1 must be 2-dimension, but got %lu dim",
                 constExpertAlpha1StorageShape->GetStorageShape().GetDimNum()),
             return false);
     }
@@ -361,9 +361,9 @@ static bool CheckOptionalInputTensorDim(const gert::TilingContext *context, cons
         context->GetOptionalInputShape(CONST_EXPERT_ALPHA_2_INDEX);
     if (constExpertAlpha2StorageShape != nullptr) {
         OP_TILING_CHECK(
-            constExpertAlpha2StorageShape->GetStorageShape().GetDimNum() != ONE_DIM,
+            constExpertAlpha2StorageShape->GetStorageShape().GetDimNum() != TWO_DIMS,
             OP_LOGE(
-                nodeName, "const_expert_alpha_2 must be 1-dimension, but got %lu dim",
+                nodeName, "const_expert_alpha_2 must be 2-dimension, but got %lu dim",
                 constExpertAlpha2StorageShape->GetStorageShape().GetDimNum()),
             return false);
     }
@@ -795,12 +795,10 @@ static bool CheckTensorShape(const gert::TilingContext *context, MoeDistributeCo
     if (oriXShape != nullptr) {
         int64_t oriXDim0 = oriXShape->GetStorageShape().GetDim(0);
         int64_t oriXDim1 = oriXShape->GetStorageShape().GetDim(1);
-        OP_TILING_CHECK(
-            oriXDim0 != expertIdsDim0,
+        OP_TILING_CHECK(oriXDim0 != expertIdsDim0,
             OP_LOGE(nodeName, "ori_x's dim0 not equal to bs, ori_x's dim0 = %ld, bs = %ld", oriXDim0, expertIdsDim0),
             return false);
-        OP_TILING_CHECK(
-            oriXDim1 != expandXDim1,
+        OP_TILING_CHECK(oriXDim1 != expandXDim1,
             OP_LOGE(nodeName, "ori_x's dim1 not equal to h, ori_x's dim1 = %ld, h = %ld", oriXDim1, expandXDim1),
             return false);
     }
@@ -808,26 +806,36 @@ static bool CheckTensorShape(const gert::TilingContext *context, MoeDistributeCo
     const gert::StorageShape* constExpertAlpha1Shape = context->GetOptionalInputShape(CONST_EXPERT_ALPHA_1_INDEX);
     if (constExpertAlpha1Shape != nullptr) {
         int64_t constExpertAlpha1Dim0 = constExpertAlpha1Shape->GetStorageShape().GetDim(0);
+        int64_t constExpertAlpha1Dim1 = constExpertAlpha1Shape->GetStorageShape().GetDim(1);
         OP_TILING_CHECK(
             constExpertAlpha1Dim0 != static_cast<int64_t>(tilingData.moeDistributeCombineV2Info.constExpertNum),
-            OP_LOGE(
-                nodeName,
+            OP_LOGE(nodeName,
                 "const_expert_alpha_1's dim0 not equal to const_expert_num, const_expert_alpha_1's dim0 = %ld, "
                 "const_expert_num = %u",
                 constExpertAlpha1Dim0, tilingData.moeDistributeCombineV2Info.constExpertNum),
+            return false);
+        OP_TILING_CHECK(constExpertAlpha1Dim1 != expandXDim1,
+            OP_LOGE(nodeName,
+                "const_expert_alpha_1's dim1 not equal to h, const_expert_alpha_1's dim1 = %ld, h = %ld",
+                constExpertAlpha1Dim1, expandXDim1),
             return false);
     }
 
     const gert::StorageShape* constExpertAlpha2Shape = context->GetOptionalInputShape(CONST_EXPERT_ALPHA_2_INDEX);
     if (constExpertAlpha2Shape != nullptr) {
         int64_t constExpertAlpha2Dim0 = constExpertAlpha2Shape->GetStorageShape().GetDim(0);
+        int64_t constExpertAlpha2Dim1 = constExpertAlpha2Shape->GetStorageShape().GetDim(1);
         OP_TILING_CHECK(
             constExpertAlpha2Dim0 != static_cast<int64_t>(tilingData.moeDistributeCombineV2Info.constExpertNum),
-            OP_LOGE(
-                nodeName,
+            OP_LOGE(nodeName,
                 "const_expert_alpha_2's dim0 not equal to const_expert_num, const_expert_alpha_2's dim0 = %ld, "
                 "const_expert_num = %u",
                 constExpertAlpha2Dim0, tilingData.moeDistributeCombineV2Info.constExpertNum),
+            return false);
+        OP_TILING_CHECK(constExpertAlpha2Dim1 != expandXDim1,
+            OP_LOGE(nodeName,
+                "const_expert_alpha_2's dim1 not equal to h, const_expert_alpha_2's dim1 = %ld, h = %ld",
+                constExpertAlpha2Dim1, expandXDim1),
             return false);
     }
 
@@ -837,16 +845,12 @@ static bool CheckTensorShape(const gert::TilingContext *context, MoeDistributeCo
         int64_t constExpertVDim1 = constExpertVShape->GetStorageShape().GetDim(1);
         OP_TILING_CHECK(
             constExpertVDim0 != static_cast<int64_t>(tilingData.moeDistributeCombineV2Info.constExpertNum),
-            OP_LOGE(
-                nodeName,
-                "const_expert_v's dim0 not equal to const_expert_num, const_expert_v's dim0 = %ld, const_expert_num = "
-                "%u",
+            OP_LOGE(nodeName,
+                "const_expert_v's dim0 not equal to const_expert_num, const_expert_v's dim0 = %ld, const_expert_num = %u.",
                 constExpertVDim0, tilingData.moeDistributeCombineV2Info.constExpertNum),
             return false);
-        OP_TILING_CHECK(
-            constExpertVDim1 != expandXDim1,
-            OP_LOGE(
-                nodeName, "const_expert_v's dim1 not equal to h, const_expert_v's dim1 = %ld, h = %ld",
+        OP_TILING_CHECK(constExpertVDim1 != expandXDim1,
+            OP_LOGE(nodeName, "const_expert_v's dim1 not equal to h, const_expert_v's dim1 = %ld, h = %ld.",
                 constExpertVDim1, expandXDim1),
             return false);
     }
@@ -1008,29 +1012,6 @@ static void SetHCommCfg(const gert::TilingContext *context, MoeDistributeCombine
     mc2CcTilingConfig.GetTiling(tiling->mc2CcTiling2);
 }
 
-
-static ge::graphStatus CheckConstExpertAttr(const gert::TilingContext *context, const char *nodeName)
-{
-    auto attrs = context->GetAttrs();
-    OP_TILING_CHECK(attrs == nullptr, OP_LOGE(nodeName, "attrs is null."), return ge::GRAPH_FAILED);
-    auto constExpertNumPtr = attrs->GetAttrPointer<int64_t>(static_cast<int>(ATTR_CONST_EXPERT_NUM_INDEX));
-    OP_TILING_CHECK(constExpertNumPtr == nullptr || *constExpertNumPtr != 0,
-        OP_LOGE(nodeName, "constExpertNum is invalid. Must be 0"), return GRAPH_FAILED);
-
-    const gert::StorageShape* constExpertAlpha1StorageShape =
-        context->GetOptionalInputShape(CONST_EXPERT_ALPHA_1_INDEX);
-    OP_TILING_CHECK(constExpertAlpha1StorageShape != nullptr,
-        OP_LOGE(nodeName, "const_expert_alpha_1 Must be null"), return GRAPH_FAILED);
-    const gert::StorageShape* constExpertAlpha2StorageShape =
-        context->GetOptionalInputShape(CONST_EXPERT_ALPHA_2_INDEX);
-    OP_TILING_CHECK(constExpertAlpha2StorageShape != nullptr,
-        OP_LOGE(nodeName, "const_expert_alpha_2 Must be null"), return GRAPH_FAILED);
-    const gert::StorageShape* constExpertVStorageShape = context->GetOptionalInputShape(CONST_EXPERT_V_INDEX);
-    OP_TILING_CHECK(constExpertVStorageShape != nullptr,
-        OP_LOGE(nodeName, "const_expert_v Must be null"), return GRAPH_FAILED);
-    return ge::GRAPH_SUCCESS;
-}
-
 static ge::graphStatus MoeDistributeCombineA3TilingFuncImpl(gert::TilingContext* context)
 {
     const char *nodeName = context->GetNodeName();
@@ -1045,8 +1026,6 @@ static ge::graphStatus MoeDistributeCombineA3TilingFuncImpl(gert::TilingContext*
     uint32_t commQuantMode = 0U;
     bool hasElasticInfo = false;
 
-    OP_TILING_CHECK(CheckConstExpertAttr(context, nodeName) == ge::GRAPH_FAILED,
-        OP_LOGE(nodeName, "CheckConstExpertAttr failed!"), return ge::GRAPH_FAILED);
     // 获取入参属性
     OP_TILING_CHECK(GetAttrAndSetTilingData(context, *tilingData, nodeName, groupEp, groupTp, commQuantMode) == ge::GRAPH_FAILED,
         OP_LOGE(nodeName, "Getting attr failed."), return ge::GRAPH_FAILED);
