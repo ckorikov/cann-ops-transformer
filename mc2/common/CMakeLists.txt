@@ -67,7 +67,7 @@ endif()
 file(GLOB NEW_MC2_MM_SRC new_mc2_mm/*.cpp)
 # MC2_COMPILE used to avoid tefusion_llt
 # when blue use SUB_MC2_COMPILE when rty use MC2_COMPILE
-if(MC2_COMPILE OR SUB_MC2_COMPILE)
+if(MC2_COMPILE OR SUB_MC2_COMPILE OR UT_TEST OR OP_HOST_UT)
   add_tiling_modules()
   target_sources(${OPHOST_NAME}_tiling_obj PRIVATE ${NEW_MC2_MM_SRC})
 endif()
