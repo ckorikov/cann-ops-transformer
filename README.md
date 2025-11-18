@@ -31,7 +31,7 @@ ops-transformer是[CANN](https://hiascend.com/software/cann) （Compute Architec
 ├── cmake                          # 项目工程编译目录
 ├── common                         # 项目公共头文件和公共源码
 ├── attention                      # attention类算子
-│   ├── flash_attention_score      # flash_attention_score算子所有交付件，如Tiling、Kernel等
+│   ├── flash_attention_score      # flash_attention_score算子所有交付件
 │   │   ├── CMakeLists.txt         # 算子编译配置文件
 │   │   ├── docs                   # 算子说明文档
 │   │   ├── examples               # 算子使用示例
