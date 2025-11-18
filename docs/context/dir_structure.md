@@ -15,8 +15,9 @@
 │   └── ...
 ├── common                                              # 项目公共头文件和公共代码
 │   ├── CMakeLists.txt
-│   ├── inc                                             # 公共头文件目录
-│   └── src                                             # 公共代码目录
+│   ├── include                                         # 公共头文件目录
+│   ├── src                                             # 公共代码目录
+│   └── ...
 ├── experimental                                        # 用户自定义算子存放目录
 │   ├── attention                                       # 可选，用户开发的attention类算子目录
 │   │   └── CMakeLists.txt
