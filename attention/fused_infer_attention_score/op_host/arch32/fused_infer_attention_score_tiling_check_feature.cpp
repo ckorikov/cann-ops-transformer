@@ -189,9 +189,13 @@ ge::graphStatus FiaTilingCheck::CheckFeatureMlaNoquantMask() const
 
 ge::graphStatus FiaTilingCheck::CheckFeatureMlaNoquantLse() const
 {
-    OP_CHECK_IF(fiaInfo_.softmaxLseFlag && vHeadDim_ == 512U,
-        OP_LOGE(opName_, "In %s situation, rope exsists and query/key head dim = %u, value's head dim is %d, %s is not support",
-            QuantModeToSerialString(quantMode_).c_str(), qkHeadDim_, vHeadDim_, SOFTMAX_LSE_NAME.c_str()),
+    std::string layout = opParamInfo_.layOut;
+    const std::vector<std::string> unsupportedLayoutList = {"BSH_NBSD", "BSND_NBSD", "BNSD_NBSD, TND_NTD"};
+    OP_CHECK_IF(
+        std::find(unsupportedLayoutList.begin(), unsupportedLayoutList.end(), layout) != unsupportedLayoutList.end() &&
+            fiaInfo_.softmaxLseFlag && vHeadDim_ == 512U,
+        OP_LOGE(opName_, "In %s situation with softmax_lse, layout only supports BSH, BSND, BNSD, TND, but got %s",
+                QuantModeToSerialString(quantMode_).c_str(), layout.c_str()),
         return ge::GRAPH_FAILED);
 
     return ge::GRAPH_SUCCESS;
@@ -235,10 +239,6 @@ ge::graphStatus FiaTilingCheck::CheckFeatureMlaNoquantUnsupported() const
         if (CheckFeatureNoquantUnsupported() != ge::GRAPH_SUCCESS) {
             return ge::GRAPH_FAILED;
         }
-        OP_CHECK_IF(fiaInfo_.softmaxLseFlag,
-            OP_LOGE(opName_, "In %s situation, rope exsists and query/key head dim = %u, %s output is not supported.",
-                QuantModeToSerialString(quantMode_).c_str(), qkHeadDim_, SOFTMAX_LSE_NAME.c_str()),
-            return ge::GRAPH_FAILED);
         if (kvStorageMode_ == KvStorageMode::TENSOR_LIST) {
             OP_LOGE(opName_, "In %s situation, rope exsists and query/key head dim = %u, the key/value's storage mode not support tensor list",
                 QuantModeToSerialString(quantMode_).c_str(), qkHeadDim_);

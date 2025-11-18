@@ -212,6 +212,7 @@ __aicore__ inline void FiaKernelNonQuantMla<FIAT, CubeBlockType, VecBlockType, F
     constInfo.mBaseSize = tilingData->innerSplitParams.mBaseSize;
     constInfo.s2BaseSize = tilingData->innerSplitParams.s2BaseSize;
     constInfo.batchContinuous = tilingData->baseParams.batchContinuous;
+    constInfo.softmaxLseFlag = tilingData->baseParams.softmaxLseFlag;
 
     constInfo.headDim = tilingData->baseParams.headDim;
     constInfo.headDimRope = tilingData->baseParams.headDimRope;
