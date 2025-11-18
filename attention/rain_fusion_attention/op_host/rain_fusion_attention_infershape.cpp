@@ -1,0 +1,183 @@
+/**
+ * This program is free software, you can redistribute it and/or modify.
+ * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+ * This file is a part of the CANN Open Software.
+ * Licensed under CANN Open Software License Agreement Version 2.0 (the "License").
+ * Please refer to the License for details. You may not use this file except in compliance with the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
+ */
+
+#include <graph/utils/type_utils.h>
+#include <register/op_impl_registry.h>
+#include "log/log.h"
+#include "log/error_code.h"
+
+using namespace ge;
+
+namespace ops {
+
+static constexpr uint32_t QUERY_INDEX = 0;
+static constexpr uint32_t KEY_INDEX = 1;
+static constexpr uint32_t VALUE_INDEX = 2;
+static constexpr uint32_t ATTENTION_OUT_INDEX = 0;
+static constexpr uint32_t SOFTMAX_LSE_INDEX = 1;
+
+static constexpr uint32_t ATTR_Q_INPUT_LAYOUT_INDEX = 0;
+static constexpr uint32_t ATTR_KV_INPUT_LAYOUT_INDEX = 1;
+static constexpr uint32_t ATTR_NUM_KV_HEADS_INDEX = 2;
+
+static constexpr uint32_t DIM_BSH = 3;
+static constexpr uint32_t DIM_TND = 3;
+static constexpr uint32_t DIM_BNSD = 4;
+
+static constexpr uint32_t BSH_DIM_B = 0;
+static constexpr uint32_t BSH_DIM_S = 1;
+static constexpr uint32_t BSH_DIM_H = 2;
+
+static constexpr uint32_t TND_DIM_T = 0;
+static constexpr uint32_t TND_DIM_N = 1;
+static constexpr uint32_t TND_DIM_D = 2;
+
+static constexpr uint32_t BNSD_DIM_B = 0;
+static constexpr uint32_t BNSD_DIM_N = 1;
+static constexpr uint32_t BNSD_DIM_S = 2;
+static constexpr uint32_t BNSD_DIM_D = 3;
+
+static constexpr int32_t UNKNOWN_DIMS = -2;
+
+static ge::graphStatus InferShapeRainFusionAttention(gert::InferShapeContext *context)
+{
+    if (context == nullptr) {
+        OP_LOGE("RainFusionAttention", "context is nullptr!");
+        return ge::GRAPH_FAILED;
+    }
+    
+    OP_LOGD(context->GetNodeName(), "Enter RainFusionAttention InferShape impl.");
+    
+    // 获取Query shape
+    const gert::Shape *queryShape = context->GetInputShape(QUERY_INDEX);
+    OP_CHECK_NULL_WITH_CONTEXT(context, queryShape);
+    
+    // 获取Key shape
+    const gert::Shape *keyShape = context->GetInputShape(KEY_INDEX);
+    OP_CHECK_NULL_WITH_CONTEXT(context, keyShape);
+    
+    // 获取Value shape
+    const gert::Shape *valueShape = context->GetInputShape(VALUE_INDEX);
+    OP_CHECK_NULL_WITH_CONTEXT(context, valueShape);
+    
+    // 获取输出shape
+    gert::Shape *attentionOutShape = context->GetOutputShape(ATTENTION_OUT_INDEX);
+    OP_CHECK_NULL_WITH_CONTEXT(context, attentionOutShape);
+    
+    gert::Shape *softmaxLseShape = context->GetOutputShape(SOFTMAX_LSE_INDEX);
+    OP_CHECK_NULL_WITH_CONTEXT(context, softmaxLseShape);
+    
+    // 获取属性
+    auto attrs = context->GetAttrs();
+    OP_CHECK_NULL_WITH_CONTEXT(context, attrs);
+    
+    const char *qInputLayoutPtr = attrs->GetAttrPointer<char>(ATTR_Q_INPUT_LAYOUT_INDEX);
+    OP_CHECK_NULL_WITH_CONTEXT(context, qInputLayoutPtr);
+    
+    const char *kvInputLayoutPtr = attrs->GetAttrPointer<char>(ATTR_KV_INPUT_LAYOUT_INDEX);
+    OP_CHECK_NULL_WITH_CONTEXT(context, kvInputLayoutPtr);
+    
+    const int64_t *numKvHeadsPtr = attrs->GetInt(ATTR_NUM_KV_HEADS_INDEX);
+    OP_CHECK_NULL_WITH_CONTEXT(context, numKvHeadsPtr);
+    
+    // UNKNOWN DIM处理
+    if ((queryShape->GetDimNum() == 1 && queryShape->GetDim(0) == UNKNOWN_DIMS) ||
+        (keyShape->GetDimNum() == 1 && keyShape->GetDim(0) == UNKNOWN_DIMS) ||
+        (valueShape->GetDimNum() == 1 && valueShape->GetDim(0) == UNKNOWN_DIMS)) {
+        attentionOutShape->SetDimNum(1);
+        (*attentionOutShape)[0] = UNKNOWN_DIMS;
+        softmaxLseShape->SetDimNum(1);
+        (*softmaxLseShape)[0] = UNKNOWN_DIMS;
+        return ge::GRAPH_SUCCESS;
+    }
+    
+    // 设置AttentionOut shape (与Query shape相同)
+    *attentionOutShape = *queryShape;
+    
+    // 验证Q layout和KV layout
+    std::string qLayout(qInputLayoutPtr);
+    std::string kvLayout(kvInputLayoutPtr);
+    
+    // 验证Q layout (只支持BSH和TND)
+    if (qLayout == "BSH") {
+        if (queryShape->GetDimNum() != DIM_BSH) {
+            OP_LOGE(context->GetNodeName(), "Layout BSH, queryDims(%zu) must be 3!", queryShape->GetDimNum());
+            return ge::GRAPH_FAILED;
+        }
+    } else if (qLayout == "TND") {
+        if (queryShape->GetDimNum() != DIM_TND) {
+            OP_LOGE(context->GetNodeName(), "Layout TND, queryDims(%zu) must be 3!", queryShape->GetDimNum());
+            return ge::GRAPH_FAILED;
+        }
+    } else if (qLayout == "BNSD") {
+        OP_LOGE(context->GetNodeName(), "BNSD format for Query is not supported. Only BSH and TND are supported.");
+        return ge::GRAPH_FAILED;
+    } else {
+        OP_LOGE(context->GetNodeName(), "Unsupported Q layout: %s. Only BSH and TND are supported.", qInputLayoutPtr);
+        return ge::GRAPH_FAILED;
+    }
+    
+    // 验证KV layout (只支持TND)
+    if (kvLayout == "TND") {
+        if (keyShape->GetDimNum() != DIM_TND || valueShape->GetDimNum() != DIM_TND) {
+            OP_LOGE(context->GetNodeName(), "Layout TND, KV dims must be 3!");
+            return ge::GRAPH_FAILED;
+        }
+        
+        // TND格式: [T, N, D]
+        int64_t kvN = keyShape->GetDim(TND_DIM_N);
+        int64_t kvD = keyShape->GetDim(TND_DIM_D);
+        
+        if (*numKvHeadsPtr != 0 && kvN != *numKvHeadsPtr) {
+            OP_LOGE(context->GetNodeName(), "KV heads mismatch in TND format: %ld != %ld", kvN, *numKvHeadsPtr);
+            return ge::GRAPH_FAILED;
+        }
+        
+        if (valueShape->GetDim(TND_DIM_D) != kvD) {
+            OP_LOGE(context->GetNodeName(), "K and V head dimension mismatch in TND format");
+            return ge::GRAPH_FAILED;
+        }
+    } else if (kvLayout == "BNSD") {
+        OP_LOGE(context->GetNodeName(), "BNSD format for KV cache is not supported. Only TND format is supported. "
+                "Please convert BNSD [B,N,S,D] to TND [B*S,N,D] format.");
+        return ge::GRAPH_FAILED;
+    } else {
+        OP_LOGE(context->GetNodeName(), "Unsupported KV layout: %s. Only TND format is supported.", kvInputLayoutPtr);
+        return ge::GRAPH_FAILED;
+    }
+    
+    // 设置SoftmaxLse shape (如果需要)
+    // SoftmaxLse shape通常是 [batch, num_heads, q_seqlen] 或类似维度
+    if (qLayout == "BSH") {
+        softmaxLseShape->SetDimNum(3);
+        (*softmaxLseShape)[0] = queryShape->GetDim(BSH_DIM_B);
+        (*softmaxLseShape)[1] = 1;  // 简化处理
+        (*softmaxLseShape)[2] = queryShape->GetDim(BSH_DIM_S);
+    } else if (qLayout == "TND") {
+        // TND格式
+        softmaxLseShape->SetDimNum(2);
+        (*softmaxLseShape)[0] = queryShape->GetDim(TND_DIM_T);
+        (*softmaxLseShape)[1] = queryShape->GetDim(TND_DIM_N);
+    } else {
+        // 不应该到达这里（BNSD已被拒绝）
+        OP_LOGE(context->GetNodeName(), "Unexpected Q layout in softmaxLse shape calculation: %s", qInputLayoutPtr);
+        return ge::GRAPH_FAILED;
+    }
+    
+    OP_LOGD(context->GetNodeName(), "RainFusionAttention InferShape success.");
+    return ge::GRAPH_SUCCESS;
+}
+
+IMPL_OP_INFERSHAPE(RainFusionAttention)
+    .InferShape(InferShapeRainFusionAttention);
+
+}  // namespace ops
+
