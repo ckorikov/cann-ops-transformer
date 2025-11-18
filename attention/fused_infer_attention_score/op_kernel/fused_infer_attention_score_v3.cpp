@@ -23,13 +23,8 @@
 // 在这组DType中，若没有mla模板的key，包含mla模板编译会报错：unknown type name 'FusedInferAttentionScoreTilingData'
 #if ((ORIG_DTYPE_QUERY == DT_FLOAT16) && (ORIG_DTYPE_ATTENTION_OUT == DT_FLOAT16) && (ORIG_DTYPE_KEY == DT_FLOAT16)) || \
     ((ORIG_DTYPE_QUERY == DT_BF16) && (ORIG_DTYPE_ATTENTION_OUT == DT_BF16) && (ORIG_DTYPE_KEY == DT_BF16))
-#ifdef NOT_DYNAMIC_COMPILE
-#include "../../common/op_kernel/arch32/fia_kernel_nonquant_mla.h"
-#include "../../common/op_kernel/arch32/fia_kernel_nonquant.h"
-#else
 #include "../common/arch32/fia_kernel_nonquant_mla.h"
 #include "../common/arch32/fia_kernel_nonquant.h"
-#endif
 #endif
 #endif // FIA_ENABLE_MLA
 
@@ -40,18 +35,20 @@ using namespace AttentionCommon;
     do {                                                                                                               \
         templateClass<FIAType<__VA_ARGS__>> op;                                                                        \
         FIA_COPY_TILING_DATA(optiling::FusedInferAttentionScoreTilingData, tiling);                                              \
-        op.Init(query, key, value, pseShift, attenMask, actualSeqLengthsQ, actualSeqLengths, blocktable, kvPaddingSize,\
-            queryRope, keyRope, attentionOut, softmaxLse, user, tiling_data, tiling, &tPipe);                          \
-        op.InitQuant(deqScale1, quantScale1, deqScale2, quantScale2, quantOffset2, antiquantScale, antiquantOffset,    \
-                     keyAntiquantScale, keyAntiquantOffset, valueAntiquantScale, valueAntiquantOffset,                 \
-                     keyRopeAntiquantScale, user);                                                                     \
+        op.Init(query, key, value, pseShift, attenMask, actualSeqLengthsQ, actualSeqLengths,                           \
+            deqScale1, quantScale1, deqScale2, quantScale2, quantOffset2, antiquantScale, antiquantOffset,             \
+            blockTable, queryPaddingSize, kvPaddingSize,                                                               \
+            keyAntiquantScale, keyAntiquantOffset, valueAntiquantScale, valueAntiquantOffset,                          \
+            keySharedPrefix, valueSharedPrefix, actualSharedPrefixLen,                                                 \
+            queryRope, keyRope, keyRopeAntiquantScale, learnableSink,                                                  \
+            attentionOut, softmaxLse, user, tiling_data, tiling, &tPipe);                                                                     \
         op.Process();                                                                                                  \
     } while (0)
 
 #define INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(templateClass, ...)                                                            \
     do {                                                                                                               \
         templateClass<FIAType<__VA_ARGS__>> op;                                                                        \
-        FIA_COPY_TILING_DATA(FusedInferAttentionScoreTilingData, tiling);                                              \
+        FIA_COPY_TILING_DATA(optiling::FusedInferAttentionScoreTilingData, tiling);                                              \
         op.Init(query, key, value, pseShift, attenMask, actualSeqLengthsQ, actualSeqLengths,                           \
             deqScale1, quantScale1, deqScale2, quantScale2, quantOffset2, antiquantScale, antiquantOffset,             \
             blockTable, queryPaddingSize, kvPaddingSize,                                                               \
@@ -78,8 +75,8 @@ __global__ __aicore__ void fused_infer_attention(
     __gm__ uint8_t *keyAntiquantScale, __gm__ uint8_t *keyAntiquantOffset, __gm__ uint8_t *valueAntiquantScale,
     __gm__ uint8_t *valueAntiquantOffset, __gm__ uint8_t *keySharedPrefix, __gm__ uint8_t *valueSharedPrefix,
     __gm__ uint8_t *actualSharedPrefixLen, __gm__ uint8_t *queryRope, __gm__ uint8_t *keyRope,
-    __gm__ uint8_t *keyRopeAntiquantScale, __gm__ uint8_t *attentionOut, __gm__ uint8_t *softmaxLse,
-    __gm__ uint8_t *workspace, __gm__ uint8_t *tiling)
+    __gm__ uint8_t *keyRopeAntiquantScale, __gm__ uint8_t *learnableSink, __gm__ uint8_t *attentionOut,
+     __gm__ uint8_t *softmaxLse, __gm__ uint8_t *workspace, __gm__ uint8_t *tiling)
 {
 #if (__CCE_AICORE__ == 310) || (defined __DAV_310R6__)
 

@@ -21,6 +21,7 @@
 #include "../fia_tiling_info.h"
 #include "../split_core_v1.h"
 #include "../../../fused_infer_attention_score/op_host/fused_infer_attention_score_tiling.h"
+#include "../../../fused_infer_attention_score/op_kernel/fused_infer_attention_score_tilingdata.h"
 
 namespace optiling {
 
