@@ -116,7 +116,7 @@ static ge::graphStatus TilingParse(gert::TilingParseContext* context)
 // 2.Tiling计算主入口
 static ge::graphStatus TilingFunc(gert::TilingContext* context){
     // 2.1获取TilingParse中传递的环境信息
-    auto compileInfo = reinterpret_cast<const CompileInfo*>(tilingContext->GetCompileInfo());
+    auto compileInfo = reinterpret_cast<const CompileInfo*>(context->GetCompileInfo());
     
     // 2.2获取输入信息
     // 获取输入张量shape信息
@@ -376,7 +376,7 @@ __aicore__ inline void AddExample<T>::Process()
 
 1. **UT验证。**
 
-    算子开发过程中，可通过UT验证（如tiling/kernel UT）方式进行快速验证，方法请参考[算子调用->本地验证](../invocation/quick_op_invocation.md)。
+    算子开发过程中，可通过UT验证（如tiling）方式进行快速验证，方法请参考[算子调用->本地验证](../invocation/quick_op_invocation.md)。
 
 2. **aclnn调用验证。**
 
