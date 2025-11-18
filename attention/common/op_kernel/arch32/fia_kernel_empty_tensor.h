@@ -16,7 +16,6 @@
 #ifndef FIA_KERNEL_EMPTY_TENSOR_H
 #define FIA_KERNEL_EMPTY_TENSOR_H
 
-#include <math.h>
 #include "kernel_operator.h"
 #include "kernel_operator_list_tensor_intf.h"
 #include "kernel_tiling/kernel_tiling.h"
@@ -27,6 +26,7 @@
 #include "kernel_common.h"
 #include "../memory_copy.h"
 
+static constexpr float FLOAT_INF = 3e+99;
 
 template <typename T>
 class FiaKernelEmptyTensor {
@@ -71,7 +71,7 @@ __aicore__ inline void FiaKernelEmptyTensor<T>::Process()
         SetFlag<AscendC::HardEvent::MTE3_V>(initOutputEventId);
 
         if (tilingData->softmaxLseFlag) {
-            float lseInitValue = INFINITY;
+            float lseInitValue = FLOAT_INF;
             uint64_t totalLseSize = tilingData->totalLseSize;
             uint64_t singleCoreLseSize = tilingData->singleCoreLseSize;
             WaitFlag<AscendC::HardEvent::MTE3_V>(initOutputEventId);
