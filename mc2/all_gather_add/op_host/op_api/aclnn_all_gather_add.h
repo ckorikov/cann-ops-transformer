@@ -8,8 +8,8 @@
  * See LICENSE in the root of the software repository for the full text of the License.
  */
 
-#ifndef OP_API_INC_ALL_GATHER_ADD_
-#define OP_API_INC_ALL_GATHER_ADD_
+#ifndef OP_API_INC_ALL_GATHER_ADD
+#define OP_API_INC_ALL_GATHER_ADD
 
 #include <string>
 
@@ -29,7 +29,7 @@ extern "C" {
  * @param [in] a: add左操作数，数据类型支持：float16。
  * @param [in] b: add右操作数，数据类型支持：float16。
  * @param [in] group: 标识列组的字符串。
- * @param [in] rankSize: rank数量。
+ * @param [in] rankSize: 标识通信域内参与AllGather通信的npu卡数。
  * @param [out] cOut: 计算+通信的结果，数据类型：同输入。
  * @param [out] gatherOut: 仅gather通信操作的结果，数据类型：同输入。
  * @param [out] workspaceSize: 返回需要在npu device侧申请的workspace大小。
@@ -55,4 +55,4 @@ ACLNN_API aclnnStatus aclnnAllGatherAdd(void* workspace, uint64_t workspaceSize,
 }
 #endif
 
-#endif  // OP_API_INC_ALL_GATHER_ADD_
+#endif  // OP_API_INC_ALL_GATHER_ADD

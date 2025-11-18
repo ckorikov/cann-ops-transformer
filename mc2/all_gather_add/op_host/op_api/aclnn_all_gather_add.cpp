@@ -67,21 +67,21 @@ static bool CheckDtypeValid(const aclTensor* a, const aclTensor* b, const aclTen
 
 static aclnnStatus CheckShape(const aclTensor *a, const aclTensor *b, const aclTensor *gatherOut, const aclTensor *output, int64_t rankSize)
 {
-    OP_CHECK_WRONG_DIMENSION(a, DIMS_NUM, return false);
-    OP_CHECK_WRONG_DIMENSION(b, DIMS_NUM, return false);
-    
-    auto aLen = a->GetViewShape().GetDim(0);
-    auto bLen = b->GetViewShape().GetDim(0);
-    auto gatherOutLen = gatherOut->GetViewShape().GetDim(0);
-    auto outPutLen = output->GetViewShape().GetDim(0);
+  OP_CHECK_WRONG_DIMENSION(a, DIMS_NUM, return false);
+  OP_CHECK_WRONG_DIMENSION(b, DIMS_NUM, return false);
+  
+  auto aLen = a->GetViewShape().GetDim(0);
+  auto bLen = b->GetViewShape().GetDim(0);
+  auto gatherOutLen = gatherOut->GetViewShape().GetDim(0);
+  auto outPutLen = output->GetViewShape().GetDim(0);
 
-    OP_API_CHECK((aLen * rankSize != bLen || bLen != gatherOutLen || gatherOutLen != outPutLen), {
-        OP_LOGE(ACLNN_ERR_PARAM_INVALID, 
-        "The operand's shape should satisfy: aDim0 * rankSize = bDim0 = cDim0 = gatherOutDim0.");
-        return false;
-    });
+  OP_API_CHECK((aLen * rankSize != bLen || bLen != gatherOutLen || gatherOutLen != outPutLen), {
+      OP_LOGE(ACLNN_ERR_PARAM_INVALID, 
+      "The operand's shape should satisfy: aDim0 * rankSize = bDim0 = cDim0 = gatherOutDim0.");
+      return false;
+  });
 
-    return true;
+  return true;
 }
 
 static aclnnStatus CheckParams(const aclTensor *a, const aclTensor *b, const aclTensor *gatherout, const aclTensor *output, int64_t rankSize)
@@ -126,12 +126,12 @@ aclnnStatus aclnnAllGatherAdd(void *workspace, uint64_t workspaceSize, aclOpExec
     NnopbaseSetHcclServerType(executor, NNOPBASE_HCCL_SERVER_TYPE_AICPU);
   }
   if (workspace == nullptr || workspaceSize == 0UL) {
-    OP_LOGD("Skip the api for empty tensor, workspace size %lu.", workspaceSize);
+    OP_LOGD("Return early for empty tensors to avoid unnecessary computation, workspace size %lu.", workspaceSize);
     return ACLNN_SUCCESS;
   }
   auto ret = aclnnInnerAllGatherAdd(workspace, workspaceSize, executor, stream);
   if (ret != 0) {
-    OP_LOGE(ACLNN_ERR_INNER, "This is an error in launch aicore");
+    OP_LOGE(ACLNN_ERR_INNER, "This is an error in launch aicore,ret = %d.", ret);
     return ACLNN_ERR_INNER;
   }
 
