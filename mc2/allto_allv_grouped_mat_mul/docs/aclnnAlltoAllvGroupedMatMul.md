@@ -129,7 +129,7 @@ aclnnStatus aclnnAlltoAllvGroupedMatMul(
   <tr>
    <td>epWorldSize</td>
    <td>输入</td>
-   <td>ep通信域size：<br><term>Atlas A3系列产品</term>支持8、16、32、64；</td>
+   <td>ep通信域size：<br><term>Atlas A3系列产品</term>支持8、16、32、64、128；</td>
    <td>INT64</td>
    <td>ND</td>
   </tr>
