@@ -15,7 +15,7 @@
 #ifndef MATMUL_ALL_REDUCE_TILING_910_H
 #define MATMUL_ALL_REDUCE_TILING_910_H
 
-#include "matmul_all_reduce_tiling.h"
+#include "../matmul_all_reduce_tiling_base.h"
 #include "mat_mul_v3/op_host/op_tiling/matmul_v3_base_tiling.h"
 
 namespace optiling {

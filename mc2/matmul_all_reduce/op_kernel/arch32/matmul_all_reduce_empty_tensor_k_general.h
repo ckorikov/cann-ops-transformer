@@ -16,7 +16,7 @@
 #define MATMUL_ALL_REDUCE_EMPTY_TENSOR_K_GENERAL_H
 
 #include "kernel_operator.h"
-#include "common.h"
+#include "../common.h"
 #include "matmul_all_reduce_add_x3.h"
 
 constexpr uint32_t EMPTY_TENSOR_BIAS_UB_FACTOR = 1;

@@ -24,9 +24,6 @@ constexpr uint64_t WEIGHT_QUANT_EMPTY_TENSOR_KEY_A5 = 11000000000000000008UL;
 
 bool WeightQuantMatmulAllReduceTilingA5::IsCapable()
 {
-    if (socVersion_ != platform_ascendc::SocVersion::ASCEND910_95) {
-        return false;
-    }
     if (isA16W8_ || isA16W4_) {
         OP_LOGI(opName_, "Start with weight quant tiling.");
         return true;
@@ -506,5 +503,8 @@ WeightQuantMatmulAllReduceTilingA5::WeightQuantMatmulAllReduceTilingA5(gert::Til
     weightQuantMatmulAllReduceA5TilingData_.SetDataPtr(context_->GetRawTilingData()->GetData());
     weightQuantMatmulAllReduceA5Fp8TilingData_.SetDataPtr(context_->GetRawTilingData()->GetData());
 }
+
+//注册Tiling类
+REGISTER_TILING_TEMPLATE_WITH_SOCVERSION(MatmulAllReduce,WeightQuantMatmulAllReduceTilingA5,static_cast<int32_t>(platform_ascendc::SocVersion::ASCEND910_95),1);
 } // namespace optiling
 #endif // WEIGHT_QUANT_MATMUL_ALL_REDUCE_TILING_910_95_CC_

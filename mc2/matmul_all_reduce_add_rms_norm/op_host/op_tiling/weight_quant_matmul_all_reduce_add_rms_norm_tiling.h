@@ -15,7 +15,7 @@
 #ifndef _WEIGHT_QUANT_MATMUL_ALL_REDUCE_ADD_RMS_NORM_TILING_H_
 #define _WEIGHT_QUANT_MATMUL_ALL_REDUCE_ADD_RMS_NORM_TILING_H_
 #include <memory>
-#include "../../../matmul_all_reduce/op_host/op_tiling/weight_quant_matmul_all_reduce_tiling.h"
+#include "../../../matmul_all_reduce/op_host/op_tiling/arch32/weight_quant_matmul_all_reduce_tiling.h"
 #include "common_add_rms_norm_tiling.h"
 #include "context_transfer.h"
 namespace optiling {

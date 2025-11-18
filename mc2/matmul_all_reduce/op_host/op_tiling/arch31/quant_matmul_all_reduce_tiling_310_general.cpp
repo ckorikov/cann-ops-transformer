@@ -20,9 +20,6 @@ using namespace Mc2Log;
 namespace optiling {
 bool QuantMatmulAllReduceTiling310General::IsCapable()
 {
-    if (socVersion_ != platform_ascendc::SocVersion::ASCEND310P) {
-        return false;
-    }
     if (args_.aType == matmul_tiling::DataType::DT_INT8 && args_.bType == matmul_tiling::DataType::DT_INT8) {
         OP_LOGI(opName_, "start with 310p quant tiling.");
         return true;
@@ -118,4 +115,7 @@ ge::graphStatus QuantMatmulAllReduceTiling310General::DoQuantTiling()
         return mmTail.DoTiling();
     }
 }
+
+//注册tiling类
+REGISTER_TILING_TEMPLATE_WITH_SOCVERSION(MatmulAllReduce,QuantMatmulAllReduceTiling310General,static_cast<int32_t>(platform_ascendc::SocVersion::ASCEND310P),1);
 } // namespace optiling

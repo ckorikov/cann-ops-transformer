@@ -15,8 +15,8 @@
 #ifndef QUANT_MATMUL_ALL_REDUCE_TILING_310_GENERAL_H
 #define QUANT_MATMUL_ALL_REDUCE_TILING_310_GENERAL_H
 
-#include "../matmul_all_reduce_tiling.h"
-#include "../quant_matmul_all_reduce_tiling.h"
+#include "../matmul_all_reduce_tiling_base.h"
+#include "../arch32/quant_matmul_all_reduce_tiling.h"
 namespace optiling {
 class QuantMatmulAllReduceTiling310General : public MatmulAllReduceTilingBase
 {

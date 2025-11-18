@@ -18,10 +18,6 @@
 namespace optiling {
 bool MatmulAllReduceTiling910::IsCapable()
 {
-    if (socVersion_ != platform_ascendc::SocVersion::ASCEND910B) {
-        OP_LOGI(opName_, "skip A2 tiling when socVersion is not A2.");
-        return false;
-    }
     OP_LOGI(opName_, "start with MatmulAllReduceTiling910 tiling.");
     return true;
 }
@@ -299,4 +295,7 @@ ge::graphStatus TilingTransferHelper::PostTiling()
 TilingTransferHelper::TilingTransferHelper(MatmulAllReduceTiling910& matmulAllReduceTiling910, Mc2MatmulV3TilingData& data)
     : Mc2MatmulV3BaseTiling(matmulAllReduceTiling910.context_, &data), tilingProcesser_(matmulAllReduceTiling910)
 {}
+
+//注册Tiling类
+REGISTER_TILING_TEMPLATE_WITH_SOCVERSION(MatmulAllReduce,MatmulAllReduceTiling910,static_cast<int32_t>(platform_ascendc::SocVersion::ASCEND910B),2);
 } // namespace optiling

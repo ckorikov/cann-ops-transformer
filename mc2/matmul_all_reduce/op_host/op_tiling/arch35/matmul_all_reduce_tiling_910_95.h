@@ -15,7 +15,7 @@
 #ifndef MATMUL_ALL_REDUCE_TILING_910_95_H
 #define MATMUL_ALL_REDUCE_TILING_910_95_H
 
-#include "../matmul_all_reduce_tiling.h"
+#include "../matmul_all_reduce_tiling_base.h"
 #include "mat_mul_v3/op_host/op_tiling/matmul_v3_base_tiling.h"
 #include "mat_mul_v3/op_host/op_tiling/arch35/matmul_v3_compile_info_advanced.h"
 #include "mat_mul_v3/op_host/op_tiling/matmul_v3_compile_info.h"

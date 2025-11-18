@@ -15,7 +15,7 @@
 #ifndef QUANT_MATMUL_ALL_REDUCE_TILING_H
 #define QUANT_MATMUL_ALL_REDUCE_TILING_H
 
-#include "matmul_all_reduce_tiling.h"
+#include "../matmul_all_reduce_tiling_base.h"
 namespace optiling {
 BEGIN_TILING_DATA_DEF(QuantMatmulAllReduceTilingData)
 TILING_DATA_FIELD_DEF_STRUCT(Mc2Msg, msg);

@@ -14,7 +14,7 @@
  */
 #ifndef WEIGHT_QUANT_MATMUL_ALL_REDUCE_TILING_910_95_H
 #define WEIGHT_QUANT_MATMUL_ALL_REDUCE_TILING_910_95_H
-#include "../matmul_all_reduce_tiling.h"
+#include "../matmul_all_reduce_tiling_base.h"
 #include "weight_quant_batch_matmul_v2/op_host/op_tiling/weight_quant_batch_matmul_v2_tiling_custom.h"
 
 namespace optiling {

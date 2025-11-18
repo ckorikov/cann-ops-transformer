@@ -19,9 +19,6 @@
 namespace optiling {
 bool MatmulAllReduceTilingA5::IsCapable()
 {
-    if (socVersion_ != platform_ascendc::SocVersion::ASCEND910_95) {
-        return false;
-    }
     OP_LOGI(opName_, "Start with MatmulAllReduceTilingA5 tiling.");
     return true;
 }
@@ -305,4 +302,6 @@ MatmulAllReduceTilingA5::MatmulAllReduceTilingA5(
     : MatmulAllReduceTilingBase(context, mmrCtxInfo), matmulAllReduce910TilingData_(*out)
 {}
 
+//注册tiling类
+REGISTER_TILING_TEMPLATE_WITH_SOCVERSION(MatmulAllReduce,MatmulAllReduceTilingA5,static_cast<int32_t>(platform_ascendc::SocVersion::ASCEND910_95),2);
 } // namespace optiling

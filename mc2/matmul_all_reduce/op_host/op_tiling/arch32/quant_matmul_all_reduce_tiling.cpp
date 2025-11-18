@@ -24,10 +24,6 @@ const gert::StorageShape defaultStorageShape = gert::StorageShape();
 } // namespace
 bool QuantMatmulAllReduceTiling::IsCapable()
 {
-    if (socVersion_ != platform_ascendc::SocVersion::ASCEND910B) {
-        OP_LOGI(opName_, "skip quant tiling when input socVersion is not A2.");
-        return false;
-    }
     if (isA8W8_) {
         OP_LOGI(opName_, "start with quant tiling.");
         return true;
@@ -367,6 +363,8 @@ QuantTilingTransferHelper::QuantTilingTransferHelper(
     QuantMatmulAllReduceTiling& quantMatmulAllReduceTiling, Mc2QuantBatchMatmulV3TilingData& data)
     : Mc2QuantBatchMatmulV3Tiling(quantMatmulAllReduceTiling.context_, &data), tilingProcesser_(quantMatmulAllReduceTiling)
 {}
-} // namespace optiling
 
+//注册带SOC版本Tiling的类
+REGISTER_TILING_TEMPLATE_WITH_SOCVERSION(MatmulAllReduce,QuantMatmulAllReduceTiling,static_cast<int32_t>(platform_ascendc::SocVersion::ASCEND910B),0);
+} // namespace optiling
 #endif //_QUANT_MATMUL_ALL_REDUCE_TILING_CC_

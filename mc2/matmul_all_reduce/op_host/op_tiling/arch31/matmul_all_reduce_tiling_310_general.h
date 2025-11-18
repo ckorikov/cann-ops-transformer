@@ -14,7 +14,7 @@
  */
 #ifndef MATMUL_ALL_REDUCE_TILING_310_GENERAL_H
 #define MATMUL_ALL_REDUCE_TILING_310_GENERAL_H
-#include "../matmul_all_reduce_tiling.h"
+#include "../matmul_all_reduce_tiling_base.h"
 namespace optiling {
 class MatmulAllReduceTiling310General : public MatmulAllReduceTilingBase
 {

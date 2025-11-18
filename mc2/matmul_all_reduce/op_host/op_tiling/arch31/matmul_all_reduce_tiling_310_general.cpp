@@ -17,9 +17,6 @@
 namespace optiling {
 bool MatmulAllReduceTiling310General::IsCapable()
 {
-    if (socVersion_ != platform_ascendc::SocVersion::ASCEND310P) {
-        return false;
-    }
     OP_LOGI(opName_, "start with MatmulAllReduceTiling310General tiling.");
     return true;
 }
@@ -156,4 +153,7 @@ void MatmulAllReduceTiling310General::SetTransLength(matmul_tiling::MultiCoreMat
     cubeTiling.set_transLength(ubTransLen);
     cubeTiling.set_shareUbSize(0);
 }
+
+//注册Tiling类
+REGISTER_TILING_TEMPLATE_WITH_SOCVERSION(MatmulAllReduce,MatmulAllReduceTiling310General,static_cast<int32_t>(platform_ascendc::SocVersion::ASCEND310P),3);
 } // namespace optiling

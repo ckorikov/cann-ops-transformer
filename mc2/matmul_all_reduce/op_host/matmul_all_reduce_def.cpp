@@ -569,7 +569,8 @@ public:
             .PrecisionReduceFlag(true)
             .ExtendCfgInfo("aclnnSupport.value", "support_aclnn")
             .ExtendCfgInfo("jitCompile.flag", "static_false")
-            .ExtendCfgInfo("multiKernelSupportDynamicGraph.value", "multi_kernel");
+            .ExtendCfgInfo("multiKernelSupportDynamicGraph.value", "multi_kernel")
+            .ExtendCfgInfo("opFile.value", "matmul_all_reduce_apt");
         this->AICore().AddConfig("ascend910_95", aicore_config);
         this->MC2().HcclGroup("group");
 

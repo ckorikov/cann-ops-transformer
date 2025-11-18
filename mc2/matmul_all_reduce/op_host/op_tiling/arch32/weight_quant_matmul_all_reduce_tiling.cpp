@@ -82,10 +82,6 @@ ge::graphStatus WeightQuantTilingTransferHelper::PostTiling()
 
 bool WeightQuantMatmulAllReduceTiling::IsCapable()
 {
-    if (socVersion_ != platform_ascendc::SocVersion::ASCEND910B) {
-        OP_LOGI(opName_, "skip weight quant tiling when input socVersion is not A2.");
-        return false;
-    }
     if (isA16W8_ || isA16W4_) {
         OP_LOGI(opName_, "start with weight quant tiling.");
         return true;
@@ -294,4 +290,7 @@ WeightQuantMatmulAllReduceTiling::WeightQuantMatmulAllReduceTiling(
     gert::TilingContext* context, MMRCtxInfo* mmrCtxInfo, WeightQuantMatmulAllReduceTilingData* out)
     : MatmulAllReduceTilingBase(context, mmrCtxInfo), weightQuantMatmulAllReduceTilingData_(*out)
 {}
+
+//注册Tiling类
+REGISTER_TILING_TEMPLATE_WITH_SOCVERSION(MatmulAllReduce,WeightQuantMatmulAllReduceTiling,static_cast<int32_t>(platform_ascendc::SocVersion::ASCEND910B),1);
 } // namespace optiling

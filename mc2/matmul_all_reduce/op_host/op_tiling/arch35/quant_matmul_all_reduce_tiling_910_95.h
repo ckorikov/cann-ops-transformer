@@ -15,7 +15,7 @@
 #ifndef QUANT_MATMUL_ALL_REDUCE_TILING_910_95_H
 #define QUANT_MATMUL_ALL_REDUCE_TILING_910_95_H
 
-#include "../matmul_all_reduce_tiling.h"
+#include "../matmul_all_reduce_tiling_base.h"
 namespace optiling {
 BEGIN_TILING_DATA_DEF(QuantMatmulAllReduceTilingDataA5)
 TILING_DATA_FIELD_DEF(uint32_t, version);

@@ -20,9 +20,6 @@ using namespace Mc2Log;
 namespace optiling {
 bool UnQuantMatmulAllReduceTiling310::IsCapable()
 {
-    if (socVersion_ != platform_ascendc::SocVersion::ASCEND310P) {
-        return false;
-    }
     auto weightTensor = context_->GetInputDesc(static_cast<size_t>(ParamValue::WEIGHT));
     OP_TILING_CHECK(
         weightTensor == nullptr, VECTOR_INNER_ERR_REPORT_TILING(context_->GetNodeName(), "weight tensor is invalid"),
@@ -138,4 +135,7 @@ ge::graphStatus UnQuantMatmulAllReduceTiling310::DoUnQuantTiling()
         return mmTail.DoTiling();
     }
 }
+
+//注册Tiling
+REGISTER_TILING_TEMPLATE_WITH_SOCVERSION(MatmulAllReduce,UnQuantMatmulAllReduceTiling310,static_cast<int32_t>(platform_ascendc::SocVersion::ASCEND310P),2);
 } // namespace optiling

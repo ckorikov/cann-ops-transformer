@@ -14,7 +14,7 @@
  */
 #ifndef WEIGHT_QUANT_MATMUL_ALL_REDUCE_TILING_310P_H
 #define WEIGHT_QUANT_MATMUL_ALL_REDUCE_TILING_310P_H
-#include "../matmul_all_reduce_tiling.h"
+#include "../matmul_all_reduce_tiling_base.h"
 
 namespace optiling {
 class WeightQuantMatmulAllReduceTiling310P : public MatmulAllReduceTilingBase

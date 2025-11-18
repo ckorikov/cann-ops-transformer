@@ -17,7 +17,7 @@
 
 #include "kernel_operator.h"
 #include "lib/matmul_intf.h"
-#include "common.h"
+#include "../common.h"
 #include "matmul_all_reduce_add_x3.h"
 
 namespace MatmulAllReduceImpl {

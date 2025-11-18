@@ -40,9 +40,6 @@ gert::StorageShape defaultStorageShape = gert::StorageShape();
 } // namespace
 bool QuantMatmulAllReduceTilingA5::IsCapable()
 {
-    if (socVersion_ != platform_ascendc::SocVersion::ASCEND910_95) {
-        return false;
-    }
     if (isA8W8_ || (scenario_ == AllReduceScenario::FP8HIF8) || (scenario_ == AllReduceScenario::MXFP4) ||
         (scenario_ == AllReduceScenario::MXFP8)) {
         OP_LOGI(opName_, "Start with quant tiling.");
@@ -712,6 +709,8 @@ void QuantTilingTransferHelperA5::PrintTilingInputParam(Mc2QuantBatchMatmulInfo 
     OP_LOGD(tilingProcesser_.opName_, "Check isperTensor=%d.", static_cast<int32_t>(quantBatchMatmulInfo.isPerTensor));
 }
 
+//注册tiling类
+REGISTER_TILING_TEMPLATE_WITH_SOCVERSION(MatmulAllReduce,QuantMatmulAllReduceTilingA5,static_cast<int32_t>(platform_ascendc::SocVersion::ASCEND910_95),0);
 } // namespace optiling
 
 #endif //_QUANT_MATMUL_ALL_REDUCE_TILING_910_95_CC_

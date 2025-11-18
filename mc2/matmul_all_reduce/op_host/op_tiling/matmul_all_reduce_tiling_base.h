@@ -9,7 +9,7 @@
  */
 
 /*!
- * \file matmul_all_reduce_tiling.h
+ * \file matmul_all_reduce_tiling_base.h
  * \brief
  */
 #ifndef MC2_MM_ALLREDUCE_TILING_H
@@ -30,6 +30,7 @@
 #include "tiling/mc2_tiling_utils.h"
 #include "context_transfer.h"
 #include "tiling_base/tiling_base.h"
+#include "tiling_base/tiling_templates_registry.h"
 
 namespace optiling {
 

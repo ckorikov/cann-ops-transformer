@@ -880,7 +880,7 @@ ge::graphStatus Mc2QuantBatchMatmulV3Tiling::DoLibApiTiling()
  *  2.2 inplace_matmul_all_reduce_add_rms_norm.cpp
  *  2.3 matmul_all_reduce.cpp
  *  2.4 quant_matmul_all_reduce_tiling.h
- * 3.如何搜索：tiling文件搜索：quant_batch_matmul_v3_tiling.h, matmul_all_reduce_tiling.h
+ * 3.如何搜索：tiling文件搜索：quant_batch_matmul_v3_tiling.h, matmul_all_reduce_tiling_base.h
  */
 uint64_t Mc2QuantBatchMatmulV3Tiling::GetTilingKey(bool isBasicTiling) const
 {
