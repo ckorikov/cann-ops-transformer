@@ -263,30 +263,6 @@ static bool CheckSendCntAndRecvCnt(
     OP_TILING_CHECK(
         A != sendSum, OP_LOGE(C_INNER_DEBUG, "A[%ld] should be equal to the sum of sendCounts[%ld]!", A, sendSum),
         return false);
-    for (int64_t i = 1; i <= epWorldSize; i++) {
-        recvSum = 0;
-        sendSum = 0;
-        for (int64_t j = (i - 1) * E_ep; j <= i * E_ep - 1; j++) {
-            recvSum += recvArray[j] * H;
-            sendSum += sendArray[j] * H;
-        }
-        OP_TILING_CHECK(
-            (recvSum > RECV_SEND_MAX) || (recvSum < RECV_SEND_MIN),
-            OP_LOGE(
-                C_INNER_DEBUG,
-                "rank %ld:sum(recvCounts[%ld, %ld]) * H1 * sizeof dtype(gmmx) should be [2MB, 100MB], "
-                "but got %ld Byte!",
-                i - 1, (i - 1) * E_ep, i * E_ep - 1, 2 * recvSum),
-            return false);
-        OP_TILING_CHECK(
-            (sendSum > RECV_SEND_MAX) || (sendSum < RECV_SEND_MIN),
-            OP_LOGE(
-                C_INNER_DEBUG,
-                "rank %ld:sum(sendCounts[%ld, %ld]) * H1 * sizeof dtype(gmmx) should be [2MB, 100MB], "
-                "but got %ld Byte!",
-                i - 1, (i - 1) * E_ep, i * E_ep - 1, 2 * sendSum),
-            return false);
-    }
     return true;
 }
 
