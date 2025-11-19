@@ -185,7 +185,7 @@ aclnnStatus aclnnMoeDistributeCombineV2(
   <tr>
    <td>groupEp</td>
    <td>输入</td>
-   <td>EP通信域名称（专家并行通信域），字符串长度范围为[1, 128)，不能和groupTp相同。</td>
+   <td>EP通信域名称（专家并行通信域），字符串长度范围为[1, 128)。</td>
    <td>STRING</td>
    <td>ND</td>
   </tr>
