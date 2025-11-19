@@ -68,7 +68,7 @@
 
 ## 函数原型
 
-每个算子分为[两段式接口](common/两段式接口.md)，必须先调用“aclnnDequantRopeQuantKvcacheGetWorkspaceSize”接口获取入参并根据流程计算所需workspace大小，再调用“aclnnDequantRopeQuantKvcache”接口执行计算。
+每个算子分为[两段式接口](../../../docs/zh/context/两段式接口.md)，必须先调用“aclnnDequantRopeQuantKvcacheGetWorkspaceSize”接口获取入参并根据流程计算所需workspace大小，再调用“aclnnDequantRopeQuantKvcache”接口执行计算。
 
 * `aclnnStatus aclnnDequantRopeQuantKvcacheGetWorkspaceSize(const aclTensor *x, const aclTensor *cos, const aclTensor *sin, aclTensor *kCacheRef, aclTensor *vCacheRef, const aclTensor *indices, const aclTensor *scaleK, const aclTensor *scaleV, const aclTensor *offsetKOptional, const aclTensor *offsetVOptional, const aclTensor *weightScaleOptional, const aclTensor *activationScaleOptional, const aclTensor *biasOptional, const aclIntArray *sizeSplits, char *quantModeOptional, char *layoutOptional, bool kvOutput, char *cacheModeOptional, const aclTensor *qOut, const aclTensor *kOut, const aclTensor *vOut, uint64_t *workspaceSize, aclOpExecutor **executor)`
 * `aclnnStatus aclnnDequantRopeQuantKvcache(void* workspace, uint64_t workspaceSize, aclOpExecutor* executor, aclrtStream stream)`
@@ -77,32 +77,32 @@
 
 - **参数说明：**
   
-  * x(aclTensor\*，计算输入)：公式中的用于切分的输入`x`，Device侧的aclTensor，shape为[B，S，H]或[B，H]，H=(Nq+Nkv+Nkv)*D，数据类型支持FLOAT16、INT32、BFLOAT16。支持[非连续的Tensor](common/非连续的Tensor.md)，[数据格式](common/数据格式.md)支持ND，shape维度只支持2维或3维。
-  * cos(aclTensor\*，计算输入)：公式中的用于位置编码的输入`cos`，Device侧的aclTensor，`x`为3维时shape为[B，S，1，D]，`x`为二维时shape为[B，D]，数据类型支持FLOAT16、BFLOAT16，数据类型和`sin`保持一致。支持[非连续的Tensor](common/非连续的Tensor.md)，[数据格式](common/数据格式.md)支持ND，shape维度只支持2维或4维。
-  * sin(aclTensor\*，计算输入)：公式中的用于位置编码的输入`sin`，Device侧的aclTensor，`x`为3维时shape为[B，S，1，D]，`x`为二维时shape为[B，D]，数据类型支持FLOAT16、BFLOAT16，数据类型和`cos`保持一致。支持[非连续的Tensor](common/非连续的Tensor.md)，[数据格式](common/数据格式.md)支持ND，shape维度只支持2维或4维。
-  * kCacheRef(aclTensor\*，计算输入)：公式中用于缓存k的输入`kCacheRef`，Device侧的aclTensor，shape为[C_1，C_2，Nkv，D]，数据类型支持INT8。不支持[非连续的Tensor](common/非连续的Tensor.md)，[数据格式](common/数据格式.md)支持ND，shape维度只支持4维。
-  * vCacheRef(aclTensor\*，计算输入)：公式中用于缓存v的输入`vCacheRef`，Device侧的aclTensor，shape为[C_1，C_2，Nkv，D]，数据类型支持INT8。不支持[非连续的Tensor](common/非连续的Tensor.md)，[数据格式](common/数据格式.md)支持ND，shape维度只支持4维。
-  * indices(aclTensor\*，计算输入)：公式中表示Kvcache的token位置信息的输入`indices`，Device侧的aclTensor，当cache_mode为`page`且x为3维时shape为[B*S]，否则shape为[B]，数据类型支持INT32。支持[非连续的Tensor](common/非连续的Tensor.md)，[数据格式](common/数据格式.md)支持ND，shape维度只支持1维或2维。
-  * scaleK(aclTensor\*，计算输入)：公式中的输入`scaleK`用于量化`k`的scale因子，Device侧的aclTensor，shape为[Nkv，D]，数据类型支持FLOAT。支持[非连续的Tensor](common/非连续的Tensor.md)，[数据格式](common/数据格式.md)支持ND，shape维度只支持2维。
-  * scaleV(aclTensor\*，计算输入)：公式中的输入`scaleV`用于量化`v`的scale因子，Device侧的aclTensor，shape为[Nkv，D]，数据类型支持FLOAT。支持[非连续的Tensor](common/非连续的Tensor.md)，[数据格式](common/数据格式.md)支持ND，shape维度只支持2维。
-  * offsetKOptional(aclTensor\*，计算输入)：公式中的输入`offsetKoptional`用于量化k的offset因子，Device侧的aclTensor，shape为[Nkv，D]，数据类型支持FLOAT。支持[非连续的Tensor](common/非连续的Tensor.md)，[数据格式](common/数据格式.md)支持ND，shape维度只支持2维。
-  * offsetVOptional(aclTensor\*，计算输入)：公式中的输入`offsetVoptional`用于量化的offset因子，Device侧的aclTensor，shape为[Nkv，D]，数据类型支持FLOAT。支持[非连续的Tensor](common/非连续的Tensor.md)，[数据格式](common/数据格式.md)支持ND，shape维度只支持2维。
-  * weightScaleOptional(aclTensor\*，计算输入)：公式中的输入`weightScaleoptional`用于反量化的权重scale因子，Device侧的aclTensor，shape为[H]，数据类型支持FLOAT。支持[非连续的Tensor](common/非连续的Tensor.md)，[数据格式](common/数据格式.md)支持ND，shape维度只支持1维。
-  * activationScaleOptional(aclTensor\*，计算输入)：公式中的输入`activationScaleOptional`用于反量化的激活scale因子，Device侧的aclTensor，`x`为3维时shape为[B*S]，`x`为二维时shape为[B]，数据类型支持FLOAT。支持[非连续的Tensor](common/非连续的Tensor.md)，[数据格式](common/数据格式.md)支持ND，shape维度只支持1维。
-  * biasOptional(aclTensor\*，计算输入)：公式中的输入用于反量化的偏置`biasOptional`，Device侧的aclTensor，shape为[H]，数据类型支持FLOAT、FLOAT16(HALF)、INT32、BFLOAT16。支持[非连续的Tensor](common/非连续的Tensor.md)，[数据格式](common/数据格式.md)支持ND，shape维度只支持1维。
+  * x(aclTensor\*，计算输入)：公式中的用于切分的输入`x`，Device侧的aclTensor，shape为[B，S，H]或[B，H]，H=(Nq+Nkv+Nkv)*D，数据类型支持FLOAT16、INT32、BFLOAT16。支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)，[数据格式](../../../docs/zh/context/数据格式.md)支持ND，shape维度只支持2维或3维。
+  * cos(aclTensor\*，计算输入)：公式中的用于位置编码的输入`cos`，Device侧的aclTensor，`x`为3维时shape为[B，S，1，D]，`x`为二维时shape为[B，D]，数据类型支持FLOAT16、BFLOAT16，数据类型和`sin`保持一致。支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)，[数据格式](../../../docs/zh/context/数据格式.md)支持ND，shape维度只支持2维或4维。
+  * sin(aclTensor\*，计算输入)：公式中的用于位置编码的输入`sin`，Device侧的aclTensor，`x`为3维时shape为[B，S，1，D]，`x`为二维时shape为[B，D]，数据类型支持FLOAT16、BFLOAT16，数据类型和`cos`保持一致。支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)，[数据格式](../../../docs/zh/context/数据格式.md)支持ND，shape维度只支持2维或4维。
+  * kCacheRef(aclTensor\*，计算输入)：公式中用于缓存k的输入`kCacheRef`，Device侧的aclTensor，shape为[C_1，C_2，Nkv，D]，数据类型支持INT8。不支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)，[数据格式](../../../docs/zh/context/数据格式.md)支持ND，shape维度只支持4维。
+  * vCacheRef(aclTensor\*，计算输入)：公式中用于缓存v的输入`vCacheRef`，Device侧的aclTensor，shape为[C_1，C_2，Nkv，D]，数据类型支持INT8。不支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)，[数据格式](../../../docs/zh/context/数据格式.md)支持ND，shape维度只支持4维。
+  * indices(aclTensor\*，计算输入)：公式中表示Kvcache的token位置信息的输入`indices`，Device侧的aclTensor，当cache_mode为`page`且x为3维时shape为[B*S]，否则shape为[B]，数据类型支持INT32。支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)，[数据格式](../../../docs/zh/context/数据格式.md)支持ND，shape维度只支持1维或2维。
+  * scaleK(aclTensor\*，计算输入)：公式中的输入`scaleK`用于量化`k`的scale因子，Device侧的aclTensor，shape为[Nkv，D]，数据类型支持FLOAT。支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)，[数据格式](../../../docs/zh/context/数据格式.md)支持ND，shape维度只支持2维。
+  * scaleV(aclTensor\*，计算输入)：公式中的输入`scaleV`用于量化`v`的scale因子，Device侧的aclTensor，shape为[Nkv，D]，数据类型支持FLOAT。支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)，[数据格式](../../../docs/zh/context/数据格式.md)支持ND，shape维度只支持2维。
+  * offsetKOptional(aclTensor\*，计算输入)：公式中的输入`offsetKoptional`用于量化k的offset因子，Device侧的aclTensor，shape为[Nkv，D]，数据类型支持FLOAT。支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)，[数据格式](../../../docs/zh/context/数据格式.md)支持ND，shape维度只支持2维。
+  * offsetVOptional(aclTensor\*，计算输入)：公式中的输入`offsetVoptional`用于量化的offset因子，Device侧的aclTensor，shape为[Nkv，D]，数据类型支持FLOAT。支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)，[数据格式](../../../docs/zh/context/数据格式.md)支持ND，shape维度只支持2维。
+  * weightScaleOptional(aclTensor\*，计算输入)：公式中的输入`weightScaleoptional`用于反量化的权重scale因子，Device侧的aclTensor，shape为[H]，数据类型支持FLOAT。支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)，[数据格式](../../../docs/zh/context/数据格式.md)支持ND，shape维度只支持1维。
+  * activationScaleOptional(aclTensor\*，计算输入)：公式中的输入`activationScaleOptional`用于反量化的激活scale因子，Device侧的aclTensor，`x`为3维时shape为[B*S]，`x`为二维时shape为[B]，数据类型支持FLOAT。支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)，[数据格式](../../../docs/zh/context/数据格式.md)支持ND，shape维度只支持1维。
+  * biasOptional(aclTensor\*，计算输入)：公式中的输入用于反量化的偏置`biasOptional`，Device侧的aclTensor，shape为[H]，数据类型支持FLOAT、FLOAT16(HALF)、INT32、BFLOAT16。支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)，[数据格式](../../../docs/zh/context/数据格式.md)支持ND，shape维度只支持1维。
   * sizeSplits(aclIntArray \*，计算输入)：Host侧的aclIntArray，数据类型为int数组，size大小为3，值为[Nq * D，Nkv * D，Nkv * D]。表示输入的qkv进行切分的长度。
   * quantModeOptional(char\*，计算输入)：Host侧表达式字符串。表示支持的量化类型，目前仅支持`static`。
   * layoutOptional(char\*，计算输入)：Host侧表达式字符串。表示支持的数据格式，目前仅支持`BSND`。
   * kvOutput(bool，计算输入)：Host侧表达式布尔值。表示是否输出`kOut`和`vOut`。
   * cacheModeOptional(char\*，计算输入)：Host侧表达式字符串。表示`kCacheRef`的更新方式，目前仅支持`page`和`contiguous`，默认为`contiguous`。
-  * qOut(aclTensor\*，计算输出)：公式中的输出`qOut`，表示经过处理的q，Device侧的aclTensor，`x`为3维时shape为[B，S，Nq，D]，`x`为二维时shape为[B，Nq，D]，数据类型支持FLOAT16、BFLOAT16，数据类型和`sin`保持一致。不支持[非连续的Tensor](common/非连续的Tensor.md)，[数据格式](common/数据格式.md)支持ND。
-  * kOut(aclTensor\*，计算输出)：公式中的输出`kOut`，表示经过处理的k，Device侧的aclTensor，当`kvOutput`为false时`，kOut`为空；否则`x`为3维时shape为[B，S，Nkv，D]，`x`为2维时shape为[B，Nkv，D]。数据类型和`sin`保持一致。不支持[非连续的Tensor](common/非连续的Tensor.md)，[数据格式](common/数据格式.md)支持ND。
-  * vOut(aclTensor\*，计算输出)：公式中的输出`vOut`，表示经过处理的v，Device侧的aclTensor，当`kvOutput`为false时，`vOut`为空；否则`x`为3维时shape为[B，S，Nkv，D]，`x`为二维时shape为[B，Nkv，D]。数据类型和`sin`保持一致。不支持[非连续的Tensor](common/非连续的Tensor.md)，[数据格式](common/数据格式.md)支持ND。
+  * qOut(aclTensor\*，计算输出)：公式中的输出`qOut`，表示经过处理的q，Device侧的aclTensor，`x`为3维时shape为[B，S，Nq，D]，`x`为二维时shape为[B，Nq，D]，数据类型支持FLOAT16、BFLOAT16，数据类型和`sin`保持一致。不支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。
+  * kOut(aclTensor\*，计算输出)：公式中的输出`kOut`，表示经过处理的k，Device侧的aclTensor，当`kvOutput`为false时`，kOut`为空；否则`x`为3维时shape为[B，S，Nkv，D]，`x`为2维时shape为[B，Nkv，D]。数据类型和`sin`保持一致。不支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。
+  * vOut(aclTensor\*，计算输出)：公式中的输出`vOut`，表示经过处理的v，Device侧的aclTensor，当`kvOutput`为false时，`vOut`为空；否则`x`为3维时shape为[B，S，Nkv，D]，`x`为二维时shape为[B，Nkv，D]。数据类型和`sin`保持一致。不支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。
   * workspaceSize(uint64_t\*，出参)：返回需要在Device侧申请的workspace大小。
   * executor(aclOpExecutor\*\*，出参)：返回op执行器，包含了算子计算流程。
 - **返回值：**
   
-  aclnnStatus：返回状态码，具体参见[aclnn返回码](common/aclnn返回码.md)。
+  aclnnStatus：返回状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
   
   ```
   第一段接口完成入参校验，出现以下场景时报错：
@@ -120,7 +120,7 @@
   * stream(aclrtStream，入参)：指定执行任务的Stream。
 - **返回值：**
   
-  aclnnStatus：返回状态码，具体参见[aclnn返回码](common/aclnn返回码.md)。
+  aclnnStatus：返回状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
 
 ## 约束说明
 
@@ -130,7 +130,7 @@
 
 ## 调用示例
 
-示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](common/编译与运行样例.md)。
+示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](../../../docs/zh/context/编译与运行样例.md)。
 
 ```Cpp
 #include <iostream>

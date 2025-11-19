@@ -1,5 +1,7 @@
 # 商发版本说明
 
+> **说明**：本项目可调用的算子参见[算子列表](../op_list.md)，算子对应aclnn接口参见[aclnn列表](../op_api_list.md)。
+
 若您安装了**商发版**（**8.3.RC1**）CANN开发套件包`Ascend-cann-toolkit_${cann_version}_linux-${arch}.run`，需要对部分算子源码进行修改，可通过修改对应的开源项目源码，具体操作如下：
 
 - \$\{cann\_version\}：表示CANN包版本号。
@@ -11,7 +13,7 @@
 
 1. 前提条件。
 
-    参考《[CANN 软件安装指南](https://www.hiascend.com/document/redirect/CannCommercialInstSoftware)》，按要求完成NPU驱动和固件、`Ascend-cann-toolkit_${cann_version}_linux-${arch}.run`软件包的获取和安装。
+    参考《[CANN 软件安装指南](https://www.hiascend.com/document/redirect/CannCommunityInstSoftware)》，按要求完成NPU驱动和固件、`Ascend-cann-toolkit_${cann_version}_linux-${arch}.run`软件包的获取和安装。
 
 2. 安装`cann-opbase_${cann_version}_linux-${arch}.run`包。
 
@@ -76,7 +78,7 @@ source ${install_path}/ascend-toolkit/set_env.sh
     ```
     - --soc：Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件使用"ascend910b"（默认），Atlas A3 训练系列产品/Atlas A3 推理系列产品使用"ascend910_93"。
     - --vendor_name（可选）：\$\{vendor\_name\}表示构建的自定义算子包名，默认名为custom。
-    - --ops（可选）：\$\{op\_list\}表示待编译算子，不指定时默认编译所有算子（参见[算子列表](../op_list.md)）。格式形如"apply_rotary_pos_emb,rope_quant_kvcache,..."，多算子之间用英文逗号","分隔。
+    - --ops（可选）：\$\{op\_list\}表示待编译算子，不指定时默认编译所有算子。格式形如"apply_rotary_pos_emb,rope_quant_kvcache,..."，多算子之间用英文逗号","分隔。
     
     说明：若\$\{vendor\_name\}和\$\{op\_list\}都不传入编译的是built-in包；若编译所有算子的自定义算子包，需传入\$\{vendor\_name\}。
     

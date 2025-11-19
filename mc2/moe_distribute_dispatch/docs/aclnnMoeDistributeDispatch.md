@@ -324,7 +324,7 @@ aclnnStatus aclnnMoeDistributeDispatch(
   </tr>
  </tbody>
 </table>
-    
+​    
 
 ## aclnnMoeDistributeDispatch
 
@@ -365,7 +365,7 @@ aclnnStatus aclnnMoeDistributeDispatch(
   </tr>
  </tbody>
 </table>
-    
+
 -   **返回值：**
 
     返回aclnnStatus状态码，具体参见aclnn返回码。
@@ -448,14 +448,14 @@ aclnnStatus aclnnMoeDistributeDispatch(
 ## 调用示例
 
 - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：
-    
+  
     - 文件准备：
-        
+      
         1. 按照下方指导创建rank_table_m2.json文件并修改。
         
         2. 将项目拷贝到两台服务器中，并根据机器的device ip配置rank_table_m2.json文件内容。注意两机rank_table_m2.json文件保持一致。
         
-        3. 安装cann包，并根据[算子调用](../../../docs/invocation/quick_op_invocation.md)编译运行。
+        3. 安装cann包并参考下方指导编译运行。
 
     - 关于rankTable:
     
@@ -483,7 +483,7 @@ aclnnStatus aclnnMoeDistributeDispatch(
         单机16卡场景则无需修改。
 
 - <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：
-    
+  
     无需配置ranktable文件以及环境变量RANK_TABLE_FILE、FIRST_RANK_ID。
 
 示例代码如下，仅供参考，具体编译和执行过程请参考编译与运行样例。
@@ -973,7 +973,6 @@ aclnnStatus aclnnMoeDistributeDispatch(
         return 0;
     }
 
-
     int main(int argc, char *argv[])
     {
         const char* env_var_name = "RANK_TABLE_FILE and FIRST_RANK_ID";
@@ -1002,7 +1001,7 @@ aclnnStatus aclnnMoeDistributeDispatch(
         else {
             LOG_PRINT("[WARNING] Please check whether %s are set correctly.\n", env_var_name);
         }
-
+    
         return 0;
     }
     ```

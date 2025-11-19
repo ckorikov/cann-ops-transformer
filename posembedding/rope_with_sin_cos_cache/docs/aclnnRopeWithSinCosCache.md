@@ -162,7 +162,7 @@
 
 ## 函数原型
 
-每个算子分为[两段式接口](common/两段式接口.md)，必须先调用“aclnnRopeWithSinCosCacheGetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnRopeWithSinCosCache”接口执行计算。
+每个算子分为[两段式接口](../../../docs/zh/context/两段式接口.md)，必须先调用“aclnnRopeWithSinCosCacheGetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnRopeWithSinCosCache”接口执行计算。
 
 * `aclnnStatus aclnnRopeWithSinCosCacheGetWorkspaceSize(const aclTensor *positions, const aclTensor *queryIn, const aclTensor *keyIn, const aclTensor *cosSinCache, const aclIntArray *mropeSection, int64_t headSize, bool isNeoxStyle, aclTensor *queryOut, aclTensor *keyOut, uint64_t *workspaceSize, aclOpExecutor **executor)`
 * `aclnnStatus aclnnRopeWithSinCosCache(void *workspace, uint64_t workspaceSize, aclOpExecutor *executor, aclrtStream stream)`
@@ -171,15 +171,15 @@
 
 *   **参数说明**：
 
-    - positions（aclTensor\*，计算输入）：Device侧的aclTensor，输入索引，公式中的`positions`，用于选取位置编码张量。要求是一个维度为1D或2D的Tensor，shape为(numTokens)或(3, numTokens)，1D维度输入是rope模式，2D维度输入是mrope模式。numTokens表示一个序列中的token数量。支持[非连续的Tensor](common/非连续的Tensor.md)，支持空Tensor。mrope/rope模式下数据类型支持INT32、INT64，[数据格式](common/数据格式.md)支持ND。
-    - queryIn（aclTensor\*，计算输入）：Device侧的aclTensor，表示要执行旋转位置编码的第一个张量，公式中的`query`，要求是一个维度为2D的Tensor，shape为(numTokens,  numQHeads*headSize)。numQHeads表示`query`的注意力头数量。headSize表示每个注意力头维度大小。支持[非连续的Tensor](common/非连续的Tensor.md)，支持空Tensor。mrope/rope模式下数据类型支持BFLOAT16、FLOAT16、FLOAT32，[数据格式](common/数据格式.md)支持ND。
-    - keyIn（aclTensor\*，计算输入）：Device侧的aclTensor，表示要执行旋转位置编码的第二个张量，公式中的`key`，要求是一个维度为2D的Tensor，shape为(numTokens,  numKHeads*headSize)。numKHeads表示`key`的注意力头数量。headSize表示每个注意力头维度大小。支持[非连续的Tensor](common/非连续的Tensor.md)，支持空Tensor。mrope/rope模式下数据类型支持BFLOAT16、FLOAT16、FLOAT32，[数据格式](common/数据格式.md)支持ND。
-    - cosSinCache（aclTensor\*，计算输入）：Device侧的aclTensor，表示参与计算的位置编码张量，要求shape为一个2D的(maxSeqLen, rotaryDim)。maxSeqLen表示模型处理的序列的最大长度。rotaryDim表示旋转位置嵌入的维度大小。支持[非连续的Tensor](common/非连续的Tensor.md)，支持空Tensor。mrope/rope模式下数据类型支持BFLOAT16、FLOAT16、FLOAT32，[数据格式](common/数据格式.md)支持ND。
+    - positions（aclTensor\*，计算输入）：Device侧的aclTensor，输入索引，公式中的`positions`，用于选取位置编码张量。要求是一个维度为1D或2D的Tensor，shape为(numTokens)或(3, numTokens)，1D维度输入是rope模式，2D维度输入是mrope模式。numTokens表示一个序列中的token数量。支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)，支持空Tensor。mrope/rope模式下数据类型支持INT32、INT64，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。
+    - queryIn（aclTensor\*，计算输入）：Device侧的aclTensor，表示要执行旋转位置编码的第一个张量，公式中的`query`，要求是一个维度为2D的Tensor，shape为(numTokens,  numQHeads*headSize)。numQHeads表示`query`的注意力头数量。headSize表示每个注意力头维度大小。支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)，支持空Tensor。mrope/rope模式下数据类型支持BFLOAT16、FLOAT16、FLOAT32，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。
+    - keyIn（aclTensor\*，计算输入）：Device侧的aclTensor，表示要执行旋转位置编码的第二个张量，公式中的`key`，要求是一个维度为2D的Tensor，shape为(numTokens,  numKHeads*headSize)。numKHeads表示`key`的注意力头数量。headSize表示每个注意力头维度大小。支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)，支持空Tensor。mrope/rope模式下数据类型支持BFLOAT16、FLOAT16、FLOAT32，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。
+    - cosSinCache（aclTensor\*，计算输入）：Device侧的aclTensor，表示参与计算的位置编码张量，要求shape为一个2D的(maxSeqLen, rotaryDim)。maxSeqLen表示模型处理的序列的最大长度。rotaryDim表示旋转位置嵌入的维度大小。支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)，支持空Tensor。mrope/rope模式下数据类型支持BFLOAT16、FLOAT16、FLOAT32，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。
     - mropeSection（aclIntArray\*，计算输入）：mrope模式下用于整合输入的位置编码张量信息，公式中的`mropeSection`，输入mropeSection属性表示使能mrope模式。不使能mrope模式（即rope模式）输入为nullptr。
     - headSize（int64_t, 计算输入）：表示每个注意力头维度大小。数据类型int64。
     - isNeoxStyle（bool, 计算输入）：true表示rotate\_half（GPT-NeoX style）计算模式，false表示rotate\_interleaved（GPT-J style）计算模式。
-    - queryOut（aclTensor\*，计算输出）：输出query执行旋转位置编码后的结果，要求是一个2D的Tensor，shape为(numTokens,  numQHeads*headSize)。数据类型同query，mrope/rope模式下支持FLOAT、FLOAT16、BFLOAT16，[数据格式](common/数据格式.md)要求为ND。支持输出连续的Tensor。
-    - keyOut（aclTensor\*，计算输出）：输出key执行旋转位置编码后的结果，要求是一个2D的Tensor，shape为(numTokens,  numKvHeads*headSize)。数据类型同key，mrope/rope模式下支持FLOAT、FLOAT16、BFLOAT16，[数据格式](common/数据格式.md)要求为ND。输出连续的Tensor。
+    - queryOut（aclTensor\*，计算输出）：输出query执行旋转位置编码后的结果，要求是一个2D的Tensor，shape为(numTokens,  numQHeads*headSize)。数据类型同query，mrope/rope模式下支持FLOAT、FLOAT16、BFLOAT16，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND。支持输出连续的Tensor。
+    - keyOut（aclTensor\*，计算输出）：输出key执行旋转位置编码后的结果，要求是一个2D的Tensor，shape为(numTokens,  numKvHeads*headSize)。数据类型同key，mrope/rope模式下支持FLOAT、FLOAT16、BFLOAT16，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND。输出连续的Tensor。
     - workspaceSize（uint64\_t\*，出参）：返回用户需要在Device侧申请的workspace大小。
     - executor（aclOpExecutor\*\*，出参）：返回op执行器，包含了算子计算流程。
 
@@ -218,7 +218,7 @@
 - 当输入tensor positions中值域超过cosSinCache的0维maxSeqLen，会有越界报错。
 
 ## 调用示例
-示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](common/编译与运行样例.md)。
+示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](../../../docs/zh/context/编译与运行样例.md)。
 ```Cpp
 #include <iostream>
 #include <vector>

@@ -64,7 +64,7 @@
 
 ## 算子执行接口
 
-每个算子分为[两段式接口](common/两段式接口.md)，必须先调用 “aclnnMoeInitRoutingV2GetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnMoeInitRoutingV2”接口执行计算。
+每个算子分为[两段式接口](../../../docs/zh/context/两段式接口.md)，必须先调用 “aclnnMoeInitRoutingV2GetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnMoeInitRoutingV2”接口执行计算。
 
 * `aclnnStatus aclnnMoeInitRoutingV2GetWorkspaceSize(const aclTensor *x, const aclTensor *expertIdx, int64_t activeNum, int64_t expertCapacity, int64_t expertNum, int64_t dropPadMode, int64_t expertTokensCountOrCumsumFlag, bool expertTokensBeforeCapacityFlag, aclTensor *expandedXOut, aclTensor *expandedRowIdxOut, aclTensor *expertTokensCountOrCumsumOut, aclTensor *expertTokensBeforeCapacityOut, uint64_t *workspaceSize, aclOpExecutor **executor)`
 * `aclnnStatus aclnnMoeInitRoutingV2(void *workspace, uint64_t workspaceSize, aclOpExecutor *executor, aclrtStream stream)`
@@ -77,8 +77,8 @@
 ### aclnnMoeInitRoutingV2GetWorkspaceSize
 
 -   **参数说明**：
-    -   x（aclTensor\*，计算输入）：为MOE的输入，即token特征输入，要求为一个2D的Tensor，shape为[numRows, h]，numRows代表Token个数，h代表每个Token的长度，数据类型支持FLOAT16、BFLOAT16、FLOAT32，[数据格式](common/数据格式.md)要求为ND，支持[非连续的Tensor](common/非连续的Tensor.md)。
-    -   expertIdx （aclTensor\*，计算输入）：为每个Token对应的k个处理专家的序号，一般为aclnnMoeGatingTopKSoftmaxV2接口的输出。[数据格式](common/数据格式.md)要求为ND，支持[非连续的Tensor](common/非连续的Tensor.md)。在Drop/Pad场景下或者非Drop/Pad场景下且需要输出expertTokensCountOrCumsumOut时，要求值域范围是[0, expertNum - 1]， 其他场景要求大于等于0。
+    -   x（aclTensor\*，计算输入）：为MOE的输入，即token特征输入，要求为一个2D的Tensor，shape为[numRows, h]，numRows代表Token个数，h代表每个Token的长度，数据类型支持FLOAT16、BFLOAT16、FLOAT32，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND，支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)。
+    -   expertIdx （aclTensor\*，计算输入）：为每个Token对应的k个处理专家的序号，一般为aclnnMoeGatingTopKSoftmaxV2接口的输出。[数据格式](../../../docs/zh/context/数据格式.md)要求为ND，支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)。在Drop/Pad场景下或者非Drop/Pad场景下且需要输出expertTokensCountOrCumsumOut时，要求值域范围是[0, expertNum - 1]， 其他场景要求大于等于0。
         - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：数据类型支持INT32，要求是一个2D的shape [numRows, k]。
         - <term>昇腾910_95 AI处理器</term>：数据类型支持INT32、INT64，要求是一个2D的shape [numRows, k]或者1D的shape [numRows, ]，当shape为1D时表示k=1。
     -   activeNum（int64\_t，计算输入）：表示是否为Active场景，该属性在dropPadMode为0时生效，值范围大于等于0；0表示Dropless场景，大于0时表示Active场景，约束所有专家共同处理tokens总量
@@ -95,16 +95,16 @@
     -   expertTokensBeforeCapacityFlag（bool，计算输入）：取值为false和true。
         - false：表示不输出expertTokensBeforeCapacityOut。
         - true：表示输出的值为在drop之前各个专家处理的token数量。
-    -   expandedXOut（aclTensor\*，计算输出）：根据expertIdx进行扩展过的特征，在Dropless/Active场景下要求是一个2D的Tensor，Dropless场景shape为[numRows \* k, h]，Active场景shape为[min(activeNum, numRows \* k), h]，在Drop/Pad场景下要求是一个3D的Tensor，shape为[expertNum, expertCapacity, h]。数据类型同x，支持FLOAT16、BFLOAT16、FLOAT32，[数据格式](common/数据格式.md)要求为ND，不支持[非连续的Tensor](common/非连续的Tensor.md)。
-    -   expandedRowIdxOut（aclTensor\*，计算输出）：expandedXOut和x的索引映射关系， 要求是一个1D的Tensor，Shape为[numRows\*k, ]，数据类型支持int32，[数据格式](common/数据格式.md)要求为ND，不支持[非连续的Tensor](common/非连续的Tensor.md)。
-    -   expertTokensCountOrCumsumOut（aclTensor\*，计算输出）：输出每个专家处理的token数量的统计结果及累加值，通过expertTokensCountOrCumsumFlag参数控制是否输出，该值仅在非Drop/Pad场景下输出，要求是一个1D的Tensor，Shape为[expertNum, ]，数据类型支持int32，[数据格式](common/数据格式.md)要求为ND，不支持[非连续的Tensor](common/非连续的Tensor.md)。
-    -   expertTokensBeforeCapacityOut（aclTensor\*，计算输出）：输出drop之前每个专家处理的token数量的统计结果，通过expertTokensBeforeCapacityFlag参数控制是否输出，该值仅在Drop/Pad场景下输出，要求是一个1D的Tensor，Shape为[expertNum, ]，数据类型支持int32，[数据格式](common/数据格式.md)要求为ND，不支持[非连续的Tensor](common/非连续的Tensor.md)。
+    -   expandedXOut（aclTensor\*，计算输出）：根据expertIdx进行扩展过的特征，在Dropless/Active场景下要求是一个2D的Tensor，Dropless场景shape为[numRows \* k, h]，Active场景shape为[min(activeNum, numRows \* k), h]，在Drop/Pad场景下要求是一个3D的Tensor，shape为[expertNum, expertCapacity, h]。数据类型同x，支持FLOAT16、BFLOAT16、FLOAT32，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND，不支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)。
+    -   expandedRowIdxOut（aclTensor\*，计算输出）：expandedXOut和x的索引映射关系， 要求是一个1D的Tensor，Shape为[numRows\*k, ]，数据类型支持int32，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND，不支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)。
+    -   expertTokensCountOrCumsumOut（aclTensor\*，计算输出）：输出每个专家处理的token数量的统计结果及累加值，通过expertTokensCountOrCumsumFlag参数控制是否输出，该值仅在非Drop/Pad场景下输出，要求是一个1D的Tensor，Shape为[expertNum, ]，数据类型支持int32，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND，不支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)。
+    -   expertTokensBeforeCapacityOut（aclTensor\*，计算输出）：输出drop之前每个专家处理的token数量的统计结果，通过expertTokensBeforeCapacityFlag参数控制是否输出，该值仅在Drop/Pad场景下输出，要求是一个1D的Tensor，Shape为[expertNum, ]，数据类型支持int32，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND，不支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)。
     -   workspaceSize（uint64\_t\*，出参）：返回用户需要在Device侧申请的workspace大小。
     -   executor（aclOpExecutor\*\*，出参）：返回op执行器，包含了算子计算流程。
 
 -   **返回值**
 
-    返回aclnnStatus状态码，具体参见[aclnn返回码](common/aclnn返回码.md)。
+    返回aclnnStatus状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
     ```
     第一段接口完成入参校验，出现以下场景时报错：
     161001(ACLNN_ERR_PARAM_NULLPTR)：1. 计算输入和必选计算输出是空指针
@@ -122,11 +122,11 @@
     -   workspace（void\*，入参）：在Device侧申请的workspace内存地址。
     -   workspaceSize（uint64\_t，入参）：在Device侧申请的workspace大小，由第一段接口aclnnMoeInitRoutingV2GetWorkspaceSize获取。
     -   executor（aclOpExecutor\*，入参）：op执行器，包含了算子计算流程。
-    -   stream（aclrtStream，入参）：指定执行任务的AscendCL stream流。
+    -   stream（aclrtStream，入参）：指定执行任务的Stream。
 
 -   **返回值：**
 
-    返回aclnnStatus状态码，具体参见[aclnn返回码](common/aclnn返回码.md)。
+    返回aclnnStatus状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
 
 ## 约束说明
 
@@ -156,7 +156,7 @@ REG_OP(MoeInitRoutingV2)
 
 ## 调用示例
 
-aclnn单算子调用示例代码如下（以<term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>为例），仅供参考，具体编译和执行过程请参考[编译与运行样例](common/编译与运行样例.md)。
+aclnn单算子调用示例代码如下（以<term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>为例），仅供参考，具体编译和执行过程请参考[编译与运行样例](../../../docs/zh/context/编译与运行样例.md)。
 
 ```c++
 #include "acl/acl.h"
@@ -181,7 +181,7 @@ int64_t GetShapeSize(const std::vector<int64_t>& shape) {
     return shape_size;
 }
 int Init(int32_t deviceId, aclrtStream* stream) {
-    // 固定写法，AscendCL初始化
+    // 固定写法，资源初始化
     auto ret = aclInit(nullptr);
     CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclInit failed. ERROR: %d\n", ret); return ret);
     ret = aclrtSetDevice(deviceId);

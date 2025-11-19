@@ -3,7 +3,7 @@
 # 1 MoeInitRoutingV2算子设计介绍
 图1 计算流程图：
 
-![MOE图](../../../docs/figures/MoeInitRoutingV2.png)
+![MOE图](../../../docs/zh/figures/MoeInitRoutingV2.png)
 
 MoeInitRoutingV2算子的主体逻辑运行在VectorCore上，其核心计算过程如上图所示，主要包括以下步骤：
 1. 初始化：包括tiling初始化（将tiling数据从DDR内存拷贝到AiCore内存）、自定义对象实例化、初始化等；

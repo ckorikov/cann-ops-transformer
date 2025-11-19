@@ -50,7 +50,7 @@ $$
 
 ## 函数原型
 
-每个算子分为[两段式接口](common/两段式接口.md)，必须先调用“aclnnMoeTokenUnpermuteWithEpGetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnMoeTokenUnpermuteWithEp”接口执行计算。
+每个算子分为[两段式接口](../../../docs/zh/context/两段式接口.md)，必须先调用“aclnnMoeTokenUnpermuteWithEpGetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnMoeTokenUnpermuteWithEp”接口执行计算。
 
 * `aclnnStatus aclnnMoeTokenUnpermuteWithEpGetWorkspaceSize(const aclTensor *permutedTokens, const aclTensor *sortedIndices, const aclTensor *probsOptional, int64_t numTopk, const aclIntArray *rangeOptional, bool paddedMode, const aclIntArray *restoreShapeOptional, const aclTensor *out, uint64_t *workspaceSize, aclOpExecutor **executor)`
 
@@ -59,11 +59,11 @@ $$
 ## aclnnMoeTokenUnpermuteWithEpGetWorkspaceSize
 
 -   **参数说明：**
-    - permutedTokens（aclTensor \*，计算输入）：表示经过扩展并排序过的tokens，公式中的`permutedTokens`，Device侧的aclTensor。shape支持2D维度，shape为（（rangeOptional[1] - rangeOptional[0]）*topK_num，hidden_size）。数据类型支持BFLOAT16、FLOAT16、FLOAT32，[数据格式](common/数据格式.md)支持ND。支持[非连续的Tensor](common/非连续的Tensor.md)，不支持空Tensor。
+    - permutedTokens（aclTensor \*，计算输入）：表示经过扩展并排序过的tokens，公式中的`permutedTokens`，Device侧的aclTensor。shape支持2D维度，shape为（（rangeOptional[1] - rangeOptional[0]）*topK_num，hidden_size）。数据类型支持BFLOAT16、FLOAT16、FLOAT32，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)，不支持空Tensor。
 
-    - sortedIndices（aclTensor \*，计算输入）：表示需要计算的数据在permutedTokens中的位置，公式中的`sortedIndices`，Device侧的aclTensor。shape支持1D维度，shape为（num\_tokens * topK\_num），num\_tokens为原tokens的数目。要求元素值大于等于0小于2134372523。数据类型支持INT32，[数据格式](common/数据格式.md)支持ND。支持[非连续的Tensor](common/非连续的Tensor.md)，不支持空Tensor。
+    - sortedIndices（aclTensor \*，计算输入）：表示需要计算的数据在permutedTokens中的位置，公式中的`sortedIndices`，Device侧的aclTensor。shape支持1D维度，shape为（num\_tokens * topK\_num），num\_tokens为原tokens的数目。要求元素值大于等于0小于2134372523。数据类型支持INT32，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)，不支持空Tensor。
 
-    - probsOptional（aclTensor \*，计算输入）：表示输入tokens对应的专家概率，Device侧的aclTensor。可选输入，传入非空并合法的Tensor时，permutedTokens中的输入数据与probsOptional相乘；传入空时，permutedTokens中的输入数据不进行乘法。shape支持2D维度，shape为（num\_tokens，topK_num），num\_tokens为原tokens的数目。数据类型支持BFLOAT16、FLOAT16、FLOAT32，[数据格式](common/数据格式.md)支持ND。支持[非连续的Tensor](common/非连续的Tensor.md)。
+    - probsOptional（aclTensor \*，计算输入）：表示输入tokens对应的专家概率，Device侧的aclTensor。可选输入，传入非空并合法的Tensor时，permutedTokens中的输入数据与probsOptional相乘；传入空时，permutedTokens中的输入数据不进行乘法。shape支持2D维度，shape为（num\_tokens，topK_num），num\_tokens为原tokens的数目。数据类型支持BFLOAT16、FLOAT16、FLOAT32，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)。
 
     - numTopk（int64\_t，计算输入）：被选中的专家个数。
 
@@ -73,7 +73,7 @@ $$
 
     - restoreShapeOptional（aclIntArray \*，计算输入）：paddedMode=true时生效，否则不会对其进行操作。paddedMode=true时，out的shape将表征为restoreShapeOptional。目前仅支持nullptr。
 
-    - out（aclTensor \*，计算输出）：表示permutedTokens反重排的输出结果，公式中的`out`，Device侧的aclTensor。shape支持2D维度，paddedMode=false时，shape为（num\_tokens，hidden\_size），paddedMode=true时，shape与restoreShapeOptional保持一致。数据类型支持BFLOAT16、FLOAT16、FLOAT32，[数据格式](common/数据格式.md)支持ND。
+    - out（aclTensor \*，计算输出）：表示permutedTokens反重排的输出结果，公式中的`out`，Device侧的aclTensor。shape支持2D维度，paddedMode=false时，shape为（num\_tokens，hidden\_size），paddedMode=true时，shape与restoreShapeOptional保持一致。数据类型支持BFLOAT16、FLOAT16、FLOAT32，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。
 
     - workspaceSize（uint64\_t \*，出参）：返回需要在Device侧申请的workspace大小。
 
@@ -81,7 +81,7 @@ $$
 
 -   **返回值：**
 
-    aclnnStatus：返回状态码，具体参见[aclnn返回码](common/aclnn返回码.md)。
+    aclnnStatus：返回状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
     ```
     第一段接口完成入参校验，出现以下场景时报错：
     161001(ACLNN_ERR_PARAM_NULLPTR)：1. 输入和输出的Tensor是空指针。
@@ -98,7 +98,7 @@ $$
 
 -   **返回值：**
 
-    aclnnStatus：返回状态码，具体参见[aclnn返回码](common/aclnn返回码.md)。
+    aclnnStatus：返回状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
 
 
 ## 约束说明
@@ -109,7 +109,7 @@ $$
 
 ## 调用示例
 
-示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](common/编译与运行样例.md)。
+示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](../../../docs/zh/context/编译与运行样例.md)。
 
 ```Cpp
 

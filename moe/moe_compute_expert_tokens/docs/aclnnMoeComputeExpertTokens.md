@@ -27,7 +27,7 @@
 
 ## 函数原型
 
-每个算子分为[两段式接口](common/两段式接口.md)，必须先调用“aclnnMoeComputeExpertTokensGetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnMoeComputeExpertTokens”接口执行计算。
+每个算子分为[两段式接口](../../../docs/zh/context/两段式接口.md)，必须先调用“aclnnMoeComputeExpertTokensGetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnMoeComputeExpertTokens”接口执行计算。
 
 * `aclnnStatus aclnnMoeComputeExpertTokensGetWorkspaceSize(const aclTensor* sortedExperts, int64_t numExperts, const aclTensor* out, uint64_t *workspaceSize, aclOpExecutor **executor)`
 * `aclnnStatus aclnnMoeComputeExpertTokens(void* workspace, uint64_t workspaceSize, aclOpExecutor* executor, aclrtStream stream)`
@@ -35,7 +35,7 @@
 ## aclnnMoeComputeExpertTokensGetWorkspaceSize
 
 -   **参数说明：**
-    -   sortedExperts（aclTensor\*，计算输入）：Device侧的aclTensor，公式中的sortedExperts，排序后的专家数组，要求是一个1D的Tensor，Tensor中的值取值范围是[0, numExperts-1]，数据类型支持INT32，[数据格式](common/数据格式.md)要求为ND。
+    -   sortedExperts（aclTensor\*，计算输入）：Device侧的aclTensor，公式中的sortedExperts，排序后的专家数组，要求是一个1D的Tensor，Tensor中的值取值范围是[0, numExperts-1]，数据类型支持INT32，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND。
     -   numExperts（int64\_t，计算输入）：Host侧的int，总专家数。限制范围以[约束说明](#约束说明)为准。
     -   out（aclTensor\*，计算输出）：Device侧的aclTensor，公式中的输出，要求的是一个1D的Tensor，shape大小等于专家数，数据类型与sortedExperts保持一致。
     -   workspaceSize（uint64\_t\*，出参）：返回需要在Device侧申请的workspace大小。
@@ -43,7 +43,7 @@
 
 -   **返回值：**
 
-    返回aclnnStatus状态码，具体参见[aclnn返回码](common/aclnn返回码.md)。
+    返回aclnnStatus状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
 
     ```
     第一段接口完成入参校验，出现以下场景时报错:
@@ -63,7 +63,7 @@
 
 -   **返回值：**
 
-    返回aclnnStatus状态码，具体参见[aclnn返回码](common/aclnn返回码.md)。
+    返回aclnnStatus状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
 
 
 ## 约束说明
@@ -74,7 +74,7 @@
 
 ## 调用示例
 
-示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](common/编译与运行样例.md)。
+示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](../../../docs/zh/context/编译与运行样例.md)。
 ```Cpp
 #include <iostream>
 #include <vector>

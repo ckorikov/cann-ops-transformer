@@ -19,21 +19,21 @@
   其中，weight 是 Q、K、V 三个矩阵权重的拼接。
 
 ## 函数原型
-每个算子分为[两段式接口](../../../docs/context/两段式接口.md)，必须先调用“aclnnSwinTransformerLnQkvQuantGetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnSwinTransformerLnQkvQuant”接口执行计算。
+每个算子分为[两段式接口](../../../docs/zh/context/两段式接口.md)，必须先调用“aclnnSwinTransformerLnQkvQuantGetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnSwinTransformerLnQkvQuant”接口执行计算。
 
 - `aclnnStatus aclnnSwinTransformerLnQkvQuantGetWorkspaceSize(const aclTensor *x, const aclTensor *gamma, const aclTensor *beta, const aclTensor *weight, const aclTensor *bias, const aclTensor *quantScale, const aclTensor *quantOffset, const aclTensor *dequantScale, int64_t headNum, int64_t seqLength, double epsilon, int64_t oriHeight, int64_t oriWeight, int64_t hWinSize, int64_t wWinSize, bool weightTranspose, const aclTensor *queryOutputOut, const aclTensor *keyOutputOut, const aclTensor *valueOutputOut, uint64_t *workspaceSize, aclOpExecutor **executor)`
 - `aclnnStatus aclnnSwinTransformerLnQkvQuant(void *workspace, uint64_t workspaceSize, aclOpExecutor *executor, aclrtStream stream)`
 
 ## aclnnSwinTransformerLnQkvQuantGetWorkspaceSize
 - **参数说明**：
-  - x(aclTensor*,计算输入): 表示待进行归一化计算的目标张量，公式中的x， Device侧的aclTensor，数据类型支持FLOAT16。只支持维度为[B,S,H]，其中B为batch size且只支持[1,32],S为原始图像长宽的乘积，H为序列长度和通道数的乘积且小于等于1024，不支持[非连续的Tensor](../../../docs/context/非连续的Tensor.md)，[数据格式](../../../docs/context/数据格式.md)支持ND。
-  - gamma(aclTensor*,计算输入): 表示layernorm计算中尺度缩放的大小，维度只支持1维且为[H]，Device侧的aclTensor，数据类型支持FLOAT16，不支持[非连续的Tensor](../../../docs/context/非连续的Tensor.md)，[数据格式](../../../docs/context/数据格式.md)支持ND。
-  - beta(aclTensor*,计算输入): 表示layernorm计算中尺度偏移的大小，维度只支持1维且维度为[H]，Device侧的aclTensor，数据类型支持FLOAT16，不支持[非连续的Tensor](../../../docs/context/非连续的Tensor.md)，[数据格式](../../../docs/context/数据格式.md)支持ND。
-  - weight(aclTensor*,计算输入): 表示目标张量转换使用的权重矩阵，维度只支持2维且维度为[H, 3 * H],Device侧的aclTensor，数据类型支持INT8，不支持[非连续的Tensor](../../../docs/context/非连续的Tensor.md)，[数据格式](../../../docs/context/数据格式.md)支持ND。
-  - bias(aclTensor*,计算输入): 表示目标张量转换使用的偏移矩阵，维度只支持1维且维度为[3 * H]，Device侧的aclTensor，数据类型支持INT32，不支持[非连续的Tensor](../../../docs/context/非连续的Tensor.md)，[数据格式](../../../docs/context/数据格式.md)支持ND。
-  - quantScale(aclTensor*,计算输入):  表示目标张量量化使用的缩放参数，维度只支持1维且维度为[H]，Device侧的aclTensor，数据类型支持FLOAT16，不支持[非连续的Tensor](../../../docs/context/非连续的Tensor.md)，[数据格式](../../../docs/context/数据格式.md)支持ND。
-  - quantOffset(aclTensor*,计算输入): 表示目标张量量化使用的偏移参数，维度只支持1维且维度为[H]，Device侧的aclTensor，数据类型支持FLOAT16，不支持[非连续的Tensor](../../../docs/context/非连续的Tensor.md)，[数据格式](../../../docs/context/数据格式.md)支持ND。
-  - dequantScale(aclTensor*,计算输入): 表示目标张量乘以权重矩阵之后反量化使用的缩放参数，维度只支持1维且维度为[3 * H]，Device侧的aclTensor，数据类型支持UINT64，不支持[非连续的Tensor](../../../docs/context/非连续的Tensor.md)，[数据格式](../../../docs/context/数据格式.md)支持ND。
+  - x(aclTensor*,计算输入): 表示待进行归一化计算的目标张量，公式中的x， Device侧的aclTensor，数据类型支持FLOAT16。只支持维度为[B,S,H]，其中B为batch size且只支持[1,32],S为原始图像长宽的乘积，H为序列长度和通道数的乘积且小于等于1024，不支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。
+  - gamma(aclTensor*,计算输入): 表示layernorm计算中尺度缩放的大小，维度只支持1维且为[H]，Device侧的aclTensor，数据类型支持FLOAT16，不支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。
+  - beta(aclTensor*,计算输入): 表示layernorm计算中尺度偏移的大小，维度只支持1维且维度为[H]，Device侧的aclTensor，数据类型支持FLOAT16，不支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。
+  - weight(aclTensor*,计算输入): 表示目标张量转换使用的权重矩阵，维度只支持2维且维度为[H, 3 * H],Device侧的aclTensor，数据类型支持INT8，不支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。
+  - bias(aclTensor*,计算输入): 表示目标张量转换使用的偏移矩阵，维度只支持1维且维度为[3 * H]，Device侧的aclTensor，数据类型支持INT32，不支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。
+  - quantScale(aclTensor*,计算输入):  表示目标张量量化使用的缩放参数，维度只支持1维且维度为[H]，Device侧的aclTensor，数据类型支持FLOAT16，不支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。
+  - quantOffset(aclTensor*,计算输入): 表示目标张量量化使用的偏移参数，维度只支持1维且维度为[H]，Device侧的aclTensor，数据类型支持FLOAT16，不支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。
+  - dequantScale(aclTensor*,计算输入): 表示目标张量乘以权重矩阵之后反量化使用的缩放参数，维度只支持1维且维度为[3 * H]，Device侧的aclTensor，数据类型支持UINT64，不支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。
   - headNum(int，计算输入): 表示转换使用的通道数；支持范围[1,32]。
   - seqLength(int，计算输入): 表示转换使用的通道深度。只支持32/64两种。
   - epsilon(float,计算输入): layernorm 计算除0保护值；为了保证精度，建议小于等于1e-4。
@@ -42,13 +42,13 @@
   - hWinSize(int,计算输入): 使用的特征窗高度大小；支持范围[7,32]。
   - wWinSize(int,计算输入): 使用的特征窗宽度大小；支持范围[7,32]。
   - weightTranspose(bool,计算输入): weight矩阵需要转置，当前不支持不转置场景。
-  - queryOutputOut(aclTensor*, 计算输出)：表示转换之后的张量，公式中的Q，Device侧的aclTensor，数据类型支持FLOAT16，不支持[非连续的Tensor](../../../docs/context/非连续的Tensor.md)，[数据格式](../../../docs/context/数据格式.md)支持ND。
-  - keyOutputOut(aclTensor*, 计算输出)：表示转换之后的张量，公式中的K，Device侧的aclTensor，数据类型支持FLOAT16，不支持[非连续的Tensor](../../../docs/context/非连续的Tensor.md)，[数据格式](../../../docs/context/数据格式.md)支持ND。
-  - valueOutputOut(aclTensor*, 计算输出)：表示转换之后的张量，公式中的V，Device侧的aclTensor，数据类型支持FLOAT16，不支持[非连续的Tensor](../../../docs/context/非连续的Tensor.md)，[数据格式](../../../docs/context/数据格式.md)支持ND。
+  - queryOutputOut(aclTensor*, 计算输出)：表示转换之后的张量，公式中的Q，Device侧的aclTensor，数据类型支持FLOAT16，不支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。
+  - keyOutputOut(aclTensor*, 计算输出)：表示转换之后的张量，公式中的K，Device侧的aclTensor，数据类型支持FLOAT16，不支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。
+  - valueOutputOut(aclTensor*, 计算输出)：表示转换之后的张量，公式中的V，Device侧的aclTensor，数据类型支持FLOAT16，不支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。
   - workspaceSize(uint64_t*，出参)：返回需要在Device侧申请的workspace大小。
   - executor(aclOpExecutor**，出参)：返回op执行器，包含了算子计算流程。
 - **返回值**：
-  aclnnStatus：返回状态码，具体参见[aclnn返回码](../../../docs/context/aclnn返回码.md)。
+  aclnnStatus：返回状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
   ```
   第一段接口完成入参校验，若出现以下错误码，则对应原因为：
   161001(ACLNN_ERR_PARAM_NULLPTR)：1. 传入的输入tensor是空指针。
@@ -63,7 +63,7 @@
   - stream(aclrtStream, 入参)：指定执行任务的Stream。
 
 - **返回值**：
-  aclnnStatus：返回状态码，具体参见[aclnn返回码](../../../docs/context/aclnn返回码.md)。
+  aclnnStatus：返回状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
 
 ## 约束说明
 - seqLength只支持32/64。
@@ -73,7 +73,7 @@
 - weight需要转置。
 
 ## 调用示例
-示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](../../../docs/context/编译与运行样例.md)。
+示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](../../../docs/zh/context/编译与运行样例.md)。
 
 ```Cpp
 #include <iostream>

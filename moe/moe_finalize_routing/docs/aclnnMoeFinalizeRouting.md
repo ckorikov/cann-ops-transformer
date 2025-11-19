@@ -27,7 +27,7 @@
 
 ## 函数原型
 
-每个算子分为[两段式接口](common/两段式接口.md)，必须先调用“aclnnMoeFinalizeRoutingGetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnMoeFinalizeRouting”接口执行计算。
+每个算子分为[两段式接口](../../../docs/zh/context/两段式接口.md)，必须先调用“aclnnMoeFinalizeRoutingGetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnMoeFinalizeRouting”接口执行计算。
 
 * `aclnnStatus aclnnMoeFinalizeRoutingGetWorkspaceSize(const aclTensor* expandedX, const aclTensor* x1, const aclTensor* x2Optional, const aclTensor* bias, const aclTensor* scales, const aclTensor* expandedRowIdx, const aclTensor* expandedExpertIdx, const aclTensor* out, uint64_t* workspaceSize, aclOpExecutor** executor)`
 * `aclnnStatus aclnnMoeFinalizeRouting(void* workspace, uint64_t workspaceSize, aclOpExecutor* executor, aclrtStream stream)`
@@ -35,7 +35,7 @@
 ## aclnnMoeFinalizeRoutingGetWorkspaceSize
 
 -   **参数说明：**
-    -   expandedX （aclTensor\*，计算输入）：Device侧的aclTensor，公式中的expandedX ，MoE的FFN输出，要求是一个2D的Tensor，数据类型支持FLOAT16、BFLOAT16、FLOAT32，[数据格式](common/数据格式.md)要求为ND。限制：其shape支持（NUM\_ROWS \* K, H），NUM\_ROWS为行数，K为从总的专家E中选出K个专家，H为列数。
+    -   expandedX （aclTensor\*，计算输入）：Device侧的aclTensor，公式中的expandedX ，MoE的FFN输出，要求是一个2D的Tensor，数据类型支持FLOAT16、BFLOAT16、FLOAT32，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND。限制：其shape支持（NUM\_ROWS \* K, H），NUM\_ROWS为行数，K为从总的专家E中选出K个专家，H为列数。
     -   x1（aclTensor\*，计算输入）：Device侧的aclTensor，公式中的x1，要求是一个2D的Tensor，数据类型要求与expandedX一致 ，shape要求与out的shape一致。
     -   x2Optional（aclTensor\*，计算输入）：Device侧的aclTensor，公式中的x2Optional，要求是一个2D的Tensor，数据类型要求与expandedX一致 ，shape要求与out的shape一致。
     -   bias（aclTensor\*，计算输入）：Device侧的aclTensor，公式中的bias，要求是一个2D的Tensor，数据类型要求与expandedX一致。限制：其shape支持（E，H），E为总的专家个数，H为列数。
@@ -48,7 +48,7 @@
 
 -   **返回值：**
 
-    返回aclnnStatus状态码，具体参见[aclnn返回码](common/aclnn返回码.md)。
+    返回aclnnStatus状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
 
     ```
     第一段接口完成入参校验，出现以下场景时报错:
@@ -67,7 +67,7 @@
 
 -   **返回值：**
 
-    返回aclnnStatus状态码，具体参见[aclnn返回码](common/aclnn返回码.md)。
+    返回aclnnStatus状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
 
 
 ## 约束说明
@@ -76,7 +76,7 @@
 
 ## 调用示例
 
-示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](common/编译与运行样例.md)。
+示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](../../../docs/zh/context/编译与运行样例.md)。
 ```Cpp
 #include "acl/acl.h"
 #include "aclnnop/aclnn_moe_finalize_routing.h"

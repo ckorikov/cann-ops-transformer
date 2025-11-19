@@ -42,7 +42,7 @@
 
 图1 FFN float16推理计算流程图
 
-![FFN图](../../../docs/figures/FFN.png)
+![FFN图](../../../docs/zh/figures/FFN.png)
 
 FFN主要由两个matmul和一个激活函数组成，按遍历专家的方式进行计算，计算过程分为3步：
 
@@ -66,7 +66,7 @@ y = FFN(x, weight1, weight2, tokens, bias1, bias2, activateType)  # 具体参数
 
 ## 算子执行接口
 
-每个算子分为[两段式接口](common/两段式接口.md)，必须先调用“aclnnFFNV3GetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnFFNV3”接口执行计算。
+每个算子分为[两段式接口](../../../docs/zh/context/两段式接口.md)，必须先调用“aclnnFFNV3GetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnFFNV3”接口执行计算。
 
 * `aclnnStatus aclnnFFNV3GetWorkspaceSize(const aclTensor* x, const aclTensor* weight1, const aclTensor* weight2, const aclTensor* expertTokensOptional, const aclTensor* bias1Optional, const aclTensor* bias2Optional, const aclTensor* scaleOptional, const aclTensor* offsetOptional, const aclTensor* deqScale1Optional, const aclTensor* deqScale2Optional, const aclTensor* antiquantScale1Optional, const aclTensor* antiquantScale2Optional, const aclTensor* antiquantOffset1Optional, const aclTensor* antiquantOffset2Optional, const char* activation, int64_t innerPrecise, bool tokensIndexFlag, const aclTensor* y, uint64_t* workspaceSize, aclOpExecutor** executor)`
 * `aclnnStatus aclnnFFNV3(void* workspace, uint64_t workspaceSize, aclOpExecutor* executor, aclrtStream stream)`
@@ -90,46 +90,46 @@ y = FFN(x, weight1, weight2, tokens, bias1, bias2, activateType)  # 具体参数
     <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：E表示有专家场景的专家数；G表示伪量化per-group场景下，antiquantOffset、antiquantScale的组数。
 
 - **参数说明：**
-  - x（aclTensor\*，计算输入）：必选参数，Device侧的aclTensor，公式中的输入x，[数据格式](common/数据格式.md)支持ND。
+  - x（aclTensor\*，计算输入）：必选参数，Device侧的aclTensor，公式中的输入x，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。
       - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：数据类型支持FLOAT16、BFLOAT16、INT8，支持输入的维度最少是2维[M, K1]，最多是8维。
       - <term>Atlas 推理系列加速卡产品</term>：数据类型支持FLOAT16，支持输入的维度是2维[M, K1]。
-  - weight1（aclTensor\*，计算输入）：必选参数，Device侧的aclTensor，专家的权重数据，公式中的W1，[数据格式](common/数据格式.md)支持ND。
+  - weight1（aclTensor\*，计算输入）：必选参数，Device侧的aclTensor，专家的权重数据，公式中的W1，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。
       - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：数据类型支持FLOAT16、BFLOAT16、INT8、INT4，输入在有/无专家时分别为[E, K1, N1]/[K1, N1]。
       - <term>Atlas 推理系列加速卡产品</term>：数据类型支持FLOAT16，支持输入的维度是2维[K1, N1]。
-  - weight2（aclTensor\*，计算输入）：必选参数，Device侧的aclTensor，专家的权重数据，公式中的W2，[数据格式](common/数据格式.md)支持ND。
+  - weight2（aclTensor\*，计算输入）：必选参数，Device侧的aclTensor，专家的权重数据，公式中的W2，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。
       - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：数据类型支持FLOAT16、BFLOAT16、INT8、INT4，输入在有/无专家时分别为[E, K2, N2]/[K2, N2]。
       - <term>Atlas 推理系列加速卡产品</term>：数据类型支持FLOAT16，支持输入的维度是2维[K2, N2]。
-  - expertTokensOptional（aclTensor\*，计算输入）：可选参数，Device侧的aclTensor类型，代表各专家的token数，数据类型支持INT64，[数据格式](common/数据格式.md)支持ND。
+  - expertTokensOptional（aclTensor\*，计算输入）：可选参数，Device侧的aclTensor类型，代表各专家的token数，数据类型支持INT64，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。
       - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：若不为空时可支持的最大长度为256个。
       - <term>Atlas 推理系列加速卡产品</term>：只支持传空指针。
-  - bias1Optional（aclTensor\*，计算输入）：可选参数，Device侧的aclTensor，权重数据修正值，公式中的b1，[数据格式](common/数据格式.md)支持ND。
+  - bias1Optional（aclTensor\*，计算输入）：可选参数，Device侧的aclTensor，权重数据修正值，公式中的b1，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。
       - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>Atlas 800I A2推理产品：数据类型支持FLOAT16、FLOAT32、INT32，输入在有/无专家时分别为[E, N1]/[N1]。
       - <term>Atlas 推理系列加速卡产品</term>：数据类型支持FLOAT16，支持输入的维度是1维[N1]。
-  - bias2Optional（aclTensor\*，计算输入）：可选参数，Device侧的aclTensor，权重数据修正值，公式中的b2，[数据格式](common/数据格式.md)支持ND。
+  - bias2Optional（aclTensor\*，计算输入）：可选参数，Device侧的aclTensor，权重数据修正值，公式中的b2，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。
       - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：数据类型支持FLOAT16、FLOAT32、INT32，输入在有/无专家时分别为[E, N2]/[N2]。
       - <term>Atlas 推理系列加速卡产品</term>：数据类型支持FLOAT16，支持输入的维度是1维[N2]。
-  - scaleOptional（aclTensor\*，计算输入）：可选参数，Device侧的aclTensor，量化参数，量化缩放系数，[数据格式](common/数据格式.md)支持ND。
+  - scaleOptional（aclTensor\*，计算输入）：可选参数，Device侧的aclTensor，量化参数，量化缩放系数，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。
       - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：数据类型支持FLOAT32，per-tensor下输入在有/无专家时均为一维向量，输入元素个数在有/无专家时分别为[E]/[1]；per-channel下输入在有/无专家时为二维向量/一维向量，输入元素个数在有/无专家时分别为[E, N1]/[N1]。
       - <term>Atlas 推理系列加速卡产品</term>：只支持传空指针。
-  - offsetOptional（aclTensor\*，计算输入）：可选参数，Device侧的aclTensor，量化参数，量化偏移量，[数据格式](common/数据格式.md)支持ND。
+  - offsetOptional（aclTensor\*，计算输入）：可选参数，Device侧的aclTensor，量化参数，量化偏移量，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。
       - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：数据类型支持FLOAT32，一维向量，输入元素个数在有/无专家时分别为[E]/[1]。
       - <term>Atlas 推理系列加速卡产品</term>：只支持传空指针。
-  - deqScale1Optional（aclTensor\*，计算输入）：可选参数，Device侧的aclTensor，量化参数，第一个matmul的反量化缩放系数，[数据格式](common/数据格式.md)支持ND。
+  - deqScale1Optional（aclTensor\*，计算输入）：可选参数，Device侧的aclTensor，量化参数，第一个matmul的反量化缩放系数，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。
       - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：数据类型支持UINT64、INT64、FLOAT32、BFLOAT16，输入在有/无专家时分别为[E, N1]/[N1]。
       - <term>Atlas 推理系列加速卡产品</term>：只支持传空指针。
-  - deqScale2Optional（aclTensor\*，计算输入）：可选参数，Device侧的aclTensor，量化参数，第二个matmul的反量化缩放系数，[数据格式](common/数据格式.md)支持ND。
+  - deqScale2Optional（aclTensor\*，计算输入）：可选参数，Device侧的aclTensor，量化参数，第二个matmul的反量化缩放系数，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。
       - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：数据类型支持UINT64、INT64、FLOAT32、BFLOAT16，输入在有/无专家时分别为[E, N2]/[N2]。
       - <term>Atlas 推理系列加速卡产品</term>：只支持传空指针。
-  - antiquantScale1Optional（aclTensor\*，计算输入）：可选参数，Device侧的aclTensor，伪量化参数，第一个matmul的缩放系数，[数据格式](common/数据格式.md)支持ND。
+  - antiquantScale1Optional（aclTensor\*，计算输入）：可选参数，Device侧的aclTensor，伪量化参数，第一个matmul的缩放系数，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。
       - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：数据类型支持FLOAT16、BFLOAT16，per-channel下输入在有/无专家时分别为[E, N1]/[N1]，per-group下输入在有/无专家时分别为[E, G, N1]/[G, N1]。
       - <term>Atlas 推理系列加速卡产品</term>：只支持传空指针。
-  - antiquantScale2Optional（aclTensor\*，计算输入）：可选参数，Device侧的aclTensor，伪量化参数，第二个matmul的缩放系数，[数据格式](common/数据格式.md)支持ND。
+  - antiquantScale2Optional（aclTensor\*，计算输入）：可选参数，Device侧的aclTensor，伪量化参数，第二个matmul的缩放系数，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。
       - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：数据类型支持FLOAT16、BFLOAT16，per-channel下输入在有/无专家时分别为[E, N2]/[N2]，per-group下输入在有/无专家时分别为[E, G, N2]/[G, N2]。
       - <term>Atlas 推理系列加速卡产品</term>：只支持传空指针。
-  - antiquantOffset1Optional（aclTensor\*，计算输入）：可选参数，Device侧的aclTensor，伪量化参数，第一个matmul的偏移量，[数据格式](common/数据格式.md)支持ND。
+  - antiquantOffset1Optional（aclTensor\*，计算输入）：可选参数，Device侧的aclTensor，伪量化参数，第一个matmul的偏移量，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。
       - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：数据类型支持FLOAT16、BFLOAT16，per-channel下输入在有/无专家时分别为[E, N1]/[N1]，per-group下输入在有/无专家时分别为[E, G, N1]/[G, N1]。
       - <term>Atlas 推理系列加速卡产品</term>：只支持传空指针。
-  - antiquantOffset2Optional（aclTensor\*，计算输入）：可选参数，Device侧的aclTensor，伪量化参数，第二个matmul的偏移量，[数据格式](common/数据格式.md)支持ND。
+  - antiquantOffset2Optional（aclTensor\*，计算输入）：可选参数，Device侧的aclTensor，伪量化参数，第二个matmul的偏移量，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。
       - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：数据类型支持FLOAT16、BFLOAT16，per-channel下输入在有/无专家时分别为[E, N2]/[N2]，per-group下输入在有/无专家时分别为[E, G, N2]/[G, N2]。
       - <term>Atlas 推理系列加速卡产品</term>：只支持传空指针。
 
@@ -145,14 +145,14 @@ y = FFN(x, weight1, weight2, tokens, bias1, bias2, activateType)  # 具体参数
 
     - tokensIndexFlag为true时，表示expertTokens为索引值。
     - tokensIndexFlag为false时，表示expertTokens为各专家的token数。
-  - y（aclTensor\*，计算输出）：Device侧的aclTensor，公式中的输出y，[数据格式](common/数据格式.md)支持ND，输出维度与x一致。
+  - y（aclTensor\*，计算输出）：Device侧的aclTensor，公式中的输出y，[数据格式](../../../docs/zh/context/数据格式.md)支持ND，输出维度与x一致。
       - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：数据类型支持FLOAT16、BFLOAT16。
       - <term>Atlas 推理系列加速卡产品</term>：数据类型支持FLOAT16。
   - workspaceSize（uint64\_t\*，出参）：返回用户需要在Device侧申请的workspace大小。
   - executor（aclOpExecutor\*\*，出参）：返回op执行器，包含了算子计算流程。
 - **返回值：**
 
-  返回aclnnStatus状态码，具体参见[aclnn返回码](common/aclnn返回码.md)。
+  返回aclnnStatus状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
 
   ```
   第一段接口完成入参校验，若出现以下错误码，则对应原因为：
@@ -167,10 +167,10 @@ y = FFN(x, weight1, weight2, tokens, bias1, bias2, activateType)  # 具体参数
   - workspace（void\*，入参）：在Device侧申请的workspace内存地址。
   - workspaceSize（uint64\_t，入参）：在Device侧申请的workspace大小，由第一段接口aclnnFFNV3GetWorkspaceSize获取。
   - executor（aclOpExecutor\*，入参）：op执行器，包含了算子计算流程。
-  - stream（aclrtStream，入参）：指定执行任务的AscendCL stream流。
+  - stream（aclrtStream，入参）：指定执行任务的Stream。
 - **返回值：**
 
-  返回aclnnStatus状态码，具体参见[aclnn返回码](common/aclnn返回码.md)。
+  返回aclnnStatus状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
 
 ## 约束说明
 - 所有场景下需满足K1=N2, K1<65536, K2<65536, M轴在32Byte对齐后小于INT32的最大值。
@@ -230,7 +230,7 @@ REG_OP(FFN)
 
 ## 调用示例
 
-该融合算子接口只支持aclnn单算子调用方式，调用示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](common/编译与运行样例.md)。
+该融合算子接口只支持aclnn单算子调用方式，调用示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](../../../docs/zh/context/编译与运行样例.md)。
 
 ```c++
 #include <iostream>
@@ -259,7 +259,7 @@ int64_t GetShapeSize(const std::vector<int64_t>& shape) {
 }
 
 int Init(int32_t deviceId, aclrtStream* stream) {
-  // 固定写法，AscendCL初始化
+  // 固定写法，资源初始化
   auto ret = aclInit(nullptr);
   CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclInit failed. ERROR: %d\n", ret); return ret);
   ret = aclrtSetDevice(deviceId);

@@ -35,7 +35,7 @@
 
 ## 函数原型
 
-每个算子分为[两段式接口](common/两段式接口.md)，必须先调用“aclnnMoeGatingTopKSoftmaxGetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnMoeGatingTopKSoftmax”接口执行计算。
+每个算子分为[两段式接口](../../../docs/zh/context/两段式接口.md)，必须先调用“aclnnMoeGatingTopKSoftmaxGetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnMoeGatingTopKSoftmax”接口执行计算。
 
 * `aclnnStatus aclnnMoeGatingTopKSoftmaxGetWorkspaceSize(const aclTensor *x, const aclTensor *finishedOptional, int64_t k, const aclTensor *yOut, const aclTensor *expertIdxOut, const aclTensor *rowIdxOut, uint64_t *workspaceSize, aclOpExecutor **executor)`
 * `aclnnStatus aclnnMoeGatingTopKSoftmax(void* workspace, uint64_t workspaceSize, aclOpExecutor* executor, aclrtStream stream)`
@@ -43,19 +43,19 @@
 ## aclnnMoeGatingTopKSoftmaxGetWorkspaceSize
 
 -   **参数说明：**
-    -   x（aclTensor\*，计算输入）：待计算的输入，要求是一个2D/3D的Tensor，数据类型支持FLOAT16、BFLOAT16、FLOAT32，[数据格式](common/数据格式.md)要求为ND，支持[非连续的Tensor](common/非连续的Tensor.md)。
+    -   x（aclTensor\*，计算输入）：待计算的输入，要求是一个2D/3D的Tensor，数据类型支持FLOAT16、BFLOAT16、FLOAT32，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND，支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)。
         -  <term>昇腾910_95 AI处理器</term>：x最后一维的大小（即专家数）取值范围为[1, 2048]。
-    -   finishedOptional（aclTensor\*，可选计算输入）：要求是一个1D/2D的Tensor，数据类型支持bool，shape为x\_shape\[:-1\]，[数据格式](common/数据格式.md)要求为ND，支持[非连续的Tensor](common/非连续的Tensor.md)。
+    -   finishedOptional（aclTensor\*，可选计算输入）：要求是一个1D/2D的Tensor，数据类型支持bool，shape为x\_shape\[:-1\]，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND，支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)。
     -   k（int64\_t，计算输入）：topK的k值，大小为0 <= k <= x的-1轴大小，且k不大于1024。
-    -   yOut（aclTensor\*，计算输出）：对x做softmax后取的topK值，要求是一个2D/3D的Tensor，数据类型支持FLOAT16、BFLOAT16、FLOAT32，数据类型与x需要保持一致，其非-1轴要求与x的对应轴大小一致，其-1轴要求其大小同k值，[数据格式](common/数据格式.md)要求为ND，不支持[非连续的Tensor](common/非连续的Tensor.md)。
-    -   expertIdxOut（aclTensor\*，计算输出）：对x做softmax后取topK值的索引，即专家的序号，shape要求与yOut一致，数据类型支持int32，[数据格式](common/数据格式.md)要求为ND，不支持[非连续的Tensor](common/非连续的Tensor.md)。
-    -   rowIdxOut（aclTensor\*，计算输出）：指示每个位置对应的原始行位置（见示例），shape要求与yOut一致，数据类型支持int32，[数据格式](common/数据格式.md)要求为ND，不支持[非连续的Tensor](common/非连续的Tensor.md)。
+    -   yOut（aclTensor\*，计算输出）：对x做softmax后取的topK值，要求是一个2D/3D的Tensor，数据类型支持FLOAT16、BFLOAT16、FLOAT32，数据类型与x需要保持一致，其非-1轴要求与x的对应轴大小一致，其-1轴要求其大小同k值，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND，不支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)。
+    -   expertIdxOut（aclTensor\*，计算输出）：对x做softmax后取topK值的索引，即专家的序号，shape要求与yOut一致，数据类型支持int32，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND，不支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)。
+    -   rowIdxOut（aclTensor\*，计算输出）：指示每个位置对应的原始行位置（见示例），shape要求与yOut一致，数据类型支持int32，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND，不支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)。
     -   workspaceSize（uint64\_t\*，出参）：Device侧的整型，返回需要在Device侧申请的workspace大小。
     -   executor（aclOpExecutor\*\*，出参）：Device侧的aclOpExecutor，返回op执行器，包含了算子计算流程。
 
 -   **返回值：**
 
-    返回aclnnStatus状态码，具体参见[aclnn返回码](common/aclnn返回码.md)。
+    返回aclnnStatus状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
     ```
     第一段接口完成入参校验，出现以下场景时报错:
     161001(ACLNN_ERR_PARAM_NULLPTR): 1. 传入的x是空指针。
@@ -76,7 +76,7 @@
 
 -   **返回值：**
 
-    返回aclnnStatus状态码，具体参见[aclnn返回码](common/aclnn返回码.md)。
+    返回aclnnStatus状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
 
 ## 约束说明
 
@@ -87,7 +87,7 @@ x和finishedOptional的每一维大小应不大于int32的最大值2147483647。
 
 ## 调用示例
 
-示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](common/编译与运行样例.md)。
+示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](../../../docs/zh/context/编译与运行样例.md)。
 
 ```Cpp
 #include "acl/acl.h"

@@ -77,7 +77,7 @@
 
 ## 函数原型
 
-每个算子分为[两段式接口](common/两段式接口.md)，必须先调用 “aclnnMoeInitRoutingQuantV2GetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnMoeInitRoutingQuantV2”接口执行计算。
+每个算子分为[两段式接口](../../../docs/zh/context/两段式接口.md)，必须先调用 “aclnnMoeInitRoutingQuantV2GetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnMoeInitRoutingQuantV2”接口执行计算。
 
 * `aclnnStatus aclnnMoeInitRoutingQuantV2GetWorkspaceSize(const aclTensor *x, const aclTensor *expertIdx, const aclTensor *scaleOptional, const aclTensor *offsetOptional, int64_t activeNum, int64_t expertCapacity, int64_t expertNum, int64_t dropPadMode, int64_t expertTokensCountOrCumsumFlag, bool expertTokensBeforeCapacityFlag, int64_t quantMode, const aclTensor *expandedXOut, const aclTensor *expandedRowIdxOut, const aclTensor *expertTokensCountOrCumsumOutOptional, const aclTensor *expertTokensBeforeCapacityOutOptional, const aclTensor *dynamicQuantScaleOutOptional, uint64_t *workspaceSize, aclOpExecutor **executor)`
 * `aclnnStatus aclnnMoeInitRoutingQuantV2(void *workspace, uint64_t workspaceSize, aclOpExecutor *executor, aclrtStream stream)`
@@ -85,10 +85,10 @@
 ## aclnnMoeInitRoutingQuantV2GetWorkspaceSize
 
 -   **参数说明**：
-    -   x（aclTensor\*，计算输入）：MOE的输入即token特征输入，要求为一个2D的Tensor，shape为[NUM\_ROWS, H]，H代表每个Token的长度，数据类型支持FLOAT16、BFLOAT16、FLOAT32，[数据格式](common/数据格式.md)要求为ND，支持[非连续的Tensor](common/非连续的Tensor.md)。
-    -   expertIdx （aclTensor\*，计算输入）：[aclnnMoeGatingTopKSoftmaxV2](aclnnMoeGatingTopKSoftmaxV2.md)的输出每一行特征对应的K个处理专家，要求是一个2D的shape [NUM\_ROWS, K]。数据类型支持INT32，[数据格式](common/数据格式.md)要求为ND，支持[非连续的Tensor](common/非连续的Tensor.md)。在Drop/Pad场景下或者非Drop/Pad场景下且需要输出expertTokensCountOrCumsumOutOptional时，要求值域范围是[0, expertNum - 1]，其他场景要求大于等于0。
-    -   scaleOptional（aclTensor\*，计算输入）：表示用于计算quant结果的参数，可选输入，要求静态quant场景下必须输入，为一个1D的shape [1，]。动态quant场景下如果不输入，表示计算过程中不用scale；如果输入则要求为一个2D的Tensor，shape为 [expertNum，H]或者[1，H]。数据类型支持float32，[数据格式](common/数据格式.md)要求为ND，支持[非连续的Tensor](common/非连续的Tensor.md)。
-    -   offsetOptional（aclTensor\*，计算输入）：表示用于计算quant结果的偏移值，可选输入，要求在静态quant场景下必须输入，为一个1D的shape [1，]。数据类型支持FLOAT32，[数据格式](common/数据格式.md)要求为ND，支持[非连续的Tensor](common/非连续的Tensor.md)。
+    -   x（aclTensor\*，计算输入）：MOE的输入即token特征输入，要求为一个2D的Tensor，shape为[NUM\_ROWS, H]，H代表每个Token的长度，数据类型支持FLOAT16、BFLOAT16、FLOAT32，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND，支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)。
+    -   expertIdx （aclTensor\*，计算输入）：[aclnnMoeGatingTopKSoftmaxV2](aclnnMoeGatingTopKSoftmaxV2.md)的输出每一行特征对应的K个处理专家，要求是一个2D的shape [NUM\_ROWS, K]。数据类型支持INT32，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND，支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)。在Drop/Pad场景下或者非Drop/Pad场景下且需要输出expertTokensCountOrCumsumOutOptional时，要求值域范围是[0, expertNum - 1]，其他场景要求大于等于0。
+    -   scaleOptional（aclTensor\*，计算输入）：表示用于计算quant结果的参数，可选输入，要求静态quant场景下必须输入，为一个1D的shape [1，]。动态quant场景下如果不输入，表示计算过程中不用scale；如果输入则要求为一个2D的Tensor，shape为 [expertNum，H]或者[1，H]。数据类型支持float32，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND，支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)。
+    -   offsetOptional（aclTensor\*，计算输入）：表示用于计算quant结果的偏移值，可选输入，要求在静态quant场景下必须输入，为一个1D的shape [1，]。数据类型支持FLOAT32，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND，支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)。
     -   activeNum（int64\_t，计算输入）：表示是否为Active场景，该属性在dropPadMode为0时生效，值范围大于等于0；0表示Dropless场景，大于0时表示Active场景，约束所有专家共同处理tokens总量
     -   expertCapacity（int64\_t， 计算输入）：表示每个专家能够处理的tokens数，值范围大于等于0；Drop/Pad场景下值域范围\(0, NUM\_ROWS\]，此时各专家将超过capacity的tokens drop掉，不够capacity阈值时则pad全0 tokens；其他场景不关心该属性值。
     -   expertNum（int64\_t， 计算输入）：表示专家数，值范围大于等于0；Drop/Pad场景下或者expertTokensCountOrCumsumFlag大于0需要输出expertTokensCountOrCumsumOutOptional时，expertNum需大于0。
@@ -105,17 +105,17 @@
     -   quantMode（int64\_t， 计算输入）：取值为0和1。
         - 0：表示静态quant场景。
         - 1：表示动态quant场景。
-    -   expandedXOut（aclTensor\*，计算输出）：根据expertIdx进行扩展过的特征，在Dropless/Active场景下要求是一个2D的Tensor，Dropless场景shape为[NUM\_ROWS \* K, H]，Active场景shape为[min\(activeNum, NUM\_ROWS \* K\), H]，在Drop/Pad场景下要求是一个3D的Tensor，shape为[expertNum, expertCapacity, H]。数据类型支持INT8，[数据格式](common/数据格式.md)要求为ND，不支持[非连续的Tensor](common/非连续的Tensor.md)。
-    -   expandedRowIdxOut（aclTensor\*，计算输出）：expandedXOut和x的索引映射关系， 要求是一个1D的Tensor，Shape为[NUM\_ROWS\*K, ]，数据类型支持INT32，[数据格式](common/数据格式.md)要求为ND，不支持[非连续的Tensor](common/非连续的Tensor.md)。
-    -   expertTokensCountOrCumsumOutOptional（aclTensor\*，计算输出）：输出每个专家处理的token数量的统计结果及累加值，可选输出，通过expertTokensCountOrCumsumFlag参数控制是否输出，该值仅在非Drop/Pad场景下输出，要求是一个1D的Tensor，Shape为[expertNum, ]，数据类型支持INT32，[数据格式](common/数据格式.md)要求为ND，不支持[非连续的Tensor](common/非连续的Tensor.md)。
-    -   expertTokensBeforeCapacityOutOptional（aclTensor\*，计算输出）：输出drop之前每个专家处理的token数量的统计结果，可选输出，通过expertTokensBeforeCapacityFlag参数控制是否输出，该值仅在Drop/Pad场景下输出，要求是一个1D的Tensor，Shape为[expertNum, ]，数据类型支持INT32，[数据格式](common/数据格式.md)要求为ND，不支持[非连续的Tensor](common/非连续的Tensor.md)。
-    -   dynamicQuantScaleOutOptional（aclTensor\*，计算输出）：输出动态quant计算过程中的中间值，可选输出，该值仅在动态quant场景下输出，要求是一个1D的Tensor，Shape为expandedXOut的shape去掉最后一维之后所有维度的乘积，数据类型支持float32，[数据格式](common/数据格式.md)要求为ND，不支持[非连续的Tensor](common/非连续的Tensor.md)。
+    -   expandedXOut（aclTensor\*，计算输出）：根据expertIdx进行扩展过的特征，在Dropless/Active场景下要求是一个2D的Tensor，Dropless场景shape为[NUM\_ROWS \* K, H]，Active场景shape为[min\(activeNum, NUM\_ROWS \* K\), H]，在Drop/Pad场景下要求是一个3D的Tensor，shape为[expertNum, expertCapacity, H]。数据类型支持INT8，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND，不支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)。
+    -   expandedRowIdxOut（aclTensor\*，计算输出）：expandedXOut和x的索引映射关系， 要求是一个1D的Tensor，Shape为[NUM\_ROWS\*K, ]，数据类型支持INT32，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND，不支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)。
+    -   expertTokensCountOrCumsumOutOptional（aclTensor\*，计算输出）：输出每个专家处理的token数量的统计结果及累加值，可选输出，通过expertTokensCountOrCumsumFlag参数控制是否输出，该值仅在非Drop/Pad场景下输出，要求是一个1D的Tensor，Shape为[expertNum, ]，数据类型支持INT32，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND，不支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)。
+    -   expertTokensBeforeCapacityOutOptional（aclTensor\*，计算输出）：输出drop之前每个专家处理的token数量的统计结果，可选输出，通过expertTokensBeforeCapacityFlag参数控制是否输出，该值仅在Drop/Pad场景下输出，要求是一个1D的Tensor，Shape为[expertNum, ]，数据类型支持INT32，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND，不支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)。
+    -   dynamicQuantScaleOutOptional（aclTensor\*，计算输出）：输出动态quant计算过程中的中间值，可选输出，该值仅在动态quant场景下输出，要求是一个1D的Tensor，Shape为expandedXOut的shape去掉最后一维之后所有维度的乘积，数据类型支持float32，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND，不支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)。
     -   workspaceSize（uint64\_t\*，出参）：返回用户需要在Device侧申请的workspace大小。
     -   executor（aclOpExecutor\*\*，出参）：返回op执行器，包含了算子计算流程。
 
 -   **返回值**
 
-    返回aclnnStatus状态码，具体参见[aclnn返回码](common/aclnn返回码.md)。
+    返回aclnnStatus状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
     ```
     第一段接口完成入参校验，出现以下场景时报错：
     161001(ACLNN_ERR_PARAM_NULLPTR)：1. 计算输入和必选计算输出是空指针
@@ -138,7 +138,7 @@
 
 -   **返回值：**
 
-    返回aclnnStatus状态码，具体参见[aclnn返回码](common/aclnn返回码.md)。
+    返回aclnnStatus状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
 
 ## 约束说明
 
@@ -146,7 +146,7 @@
 
 ## 调用示例
 
-示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](common/编译与运行样例.md)。
+示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](../../../docs/zh/context/编译与运行样例.md)。
 
 ```Cpp
 #include "acl/acl.h"

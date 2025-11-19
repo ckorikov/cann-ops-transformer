@@ -22,7 +22,7 @@
     相较于[GroupedMatmulV4](GroupedMatmulV4.md)接口，**此接口变化：**
     - 输入输出参数类型均为aclTensor。
     - 在GroupedMatMul计算结束后增加了InplaceAdd计算。
-    - 仅支持量化场景（1.mx量化；2.T-C量化）。量化方式请参见[量化介绍](common/量化介绍.md)。
+    - 仅支持量化场景（1.mx量化；2.T-C量化）。量化方式请参见[量化介绍](../../../docs/zh/context/量化介绍.md)。
     - 仅支持x1、x2是FLOAT8_E5M2、FLOAT8_E4M3FN、HIFLOAT8的输入。
 
 -   计算公式：
@@ -44,7 +44,7 @@ GroupedMatmul的计算结果和输入y在内存中相加，将y输出；
 
 ## 算子执行接口
 
-每个算子分为[两段式接口](common/两段式接口.md)，必须先调用“aclnnQuantGroupedMatmulInplaceAddGetWorkspaceSize”接口获取入参并根据计算流程计算所需workspace大小，再调用“aclnnQuantGroupedMatmulInplaceAdd”接口执行计算。
+每个算子分为[两段式接口](../../../docs/zh/context/两段式接口.md)，必须先调用“aclnnQuantGroupedMatmulInplaceAddGetWorkspaceSize”接口获取入参并根据计算流程计算所需workspace大小，再调用“aclnnQuantGroupedMatmulInplaceAdd”接口执行计算。
 
 * `aclnnStatus aclnnQuantGroupedMatmulInplaceAddGetWorkspaceSize(const aclTensor *x1, const aclTensor *x2, const aclTensor *scale1Optional, const aclTensor *scale2, const aclTensor *groupList, aclTensor *yRef, int64_t groupListType, int64_t groupSize, uint64_t *workspaceSize, aclOpExecutor **executor)`
 * `aclnnStatus aclnnQuantGroupedMatmulInplaceAdd(void* workspace, uint64_t workspaceSize, aclOpExecutor* executor, aclrtStream stream)`
@@ -57,14 +57,14 @@ GroupedMatmul的计算结果和输入y在内存中相加，将y输出；
 ### aclnnQuantGroupedMatmulInplaceAddGetWorkspaceSize
 
 - **参数说明：**
-  -   x1（aclTensor *，计算输入）：Device侧的aclTensor，公式中的输入x1，2维tensor，shape为(K，M)，[数据格式](common/数据格式.md)支持ND，数据类型支持FLOAT8_E4M3FN、FLOAT8_E5M2、HIFLOAT8。
-  -   x2（aclTensor *，计算输入）：Device侧的aclTensor，公式中的输入x2，2维tensor，shape为(K，N)，[数据格式](common/数据格式.md)支持ND，数据类型支持FLOAT8_E4M3FN、FLOAT8_E5M2、HIFLOAT8。
-  -   scale1Optional（aclTensor *，计算输入）：可选参数，Device侧的aclTensor，代表量化参数中的由x1量化引入的缩放因子，[数据格式](common/数据格式.md)支持ND，数据类型支持FLOAT32、FLOAT8_E8M0。综合约束请参见[约束说明](#约束说明)。
-  -   scale2（aclTensor *，计算输入）：Device侧的aclTensor，代表量化参数中的由x2量化引入的缩放因子，[数据格式](common/数据格式.md)支持ND，数据类型支持FLOAT32、FLOAT8_E8M0。综合约束请参见[约束说明](#约束说明)。
-  -   groupList（aclTensor *，计算输入）：Device侧的aclTensor类型，代表输入和输出分组轴方向的matmul大小分布，数据类型支持INT64，1维tensor，shape为(g，)，[数据格式](common/数据格式.md)支持ND。需注意：
+  -   x1（aclTensor *，计算输入）：Device侧的aclTensor，公式中的输入x1，2维tensor，shape为(K，M)，[数据格式](../../../docs/zh/context/数据格式.md)支持ND，数据类型支持FLOAT8_E4M3FN、FLOAT8_E5M2、HIFLOAT8。
+  -   x2（aclTensor *，计算输入）：Device侧的aclTensor，公式中的输入x2，2维tensor，shape为(K，N)，[数据格式](../../../docs/zh/context/数据格式.md)支持ND，数据类型支持FLOAT8_E4M3FN、FLOAT8_E5M2、HIFLOAT8。
+  -   scale1Optional（aclTensor *，计算输入）：可选参数，Device侧的aclTensor，代表量化参数中的由x1量化引入的缩放因子，[数据格式](../../../docs/zh/context/数据格式.md)支持ND，数据类型支持FLOAT32、FLOAT8_E8M0。综合约束请参见[约束说明](#约束说明)。
+  -   scale2（aclTensor *，计算输入）：Device侧的aclTensor，代表量化参数中的由x2量化引入的缩放因子，[数据格式](../../../docs/zh/context/数据格式.md)支持ND，数据类型支持FLOAT32、FLOAT8_E8M0。综合约束请参见[约束说明](#约束说明)。
+  -   groupList（aclTensor *，计算输入）：Device侧的aclTensor类型，代表输入和输出分组轴方向的matmul大小分布，数据类型支持INT64，1维tensor，shape为(g，)，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。需注意：
         * 当groupListType为0时，groupList必须为非负单调非递减数列，当groupListType为1时，groupList必须为非负数列。
         * groupList中的最后一个值约束了输出数据的有效部分，groupList中未指定的部分将不会参与更新。
-  -   yRef（aclTensor *，计算输入输出）：Device侧的aclTensor，公式中的输入输出y，3维tensor，shape为(g，M，N)，[数据格式](common/数据格式.md)支持ND，数据类型支持FLOAT32。
+  -   yRef（aclTensor *，计算输入输出）：Device侧的aclTensor，公式中的输入输出y，3维tensor，shape为(g，M，N)，[数据格式](../../../docs/zh/context/数据格式.md)支持ND，数据类型支持FLOAT32。
   -   groupListType（int64\_t，计算输入）：整数型参数，支持的取值如下：
         * 0: groupList中数值为分组轴大小的cumsum结果（累积和）;
         * 1: groupList中数值为分组轴上每组大小；
@@ -75,7 +75,7 @@ GroupedMatmul的计算结果和输入y在内存中相加，将y输出；
 
 - **返回值：**
 
-  返回aclnnStatus状态码，具体参见[aclnn返回码](common/aclnn返回码.md)。
+  返回aclnnStatus状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
 
   ```
   第一段接口完成入参校验，若出现以下错误码，则对应原因为：
@@ -91,11 +91,11 @@ GroupedMatmul的计算结果和输入y在内存中相加，将y输出；
     -   workspace（void\*，入参）：在Device侧申请的workspace内存地址。
     -   workspaceSize（uint64\_t，入参）：在Device侧申请的workspace大小，由第一段接口aclnnQuantGroupedMatmulInplaceAddGetWorkspaceSize获取。
     -   executor（aclOpExecutor\*，入参）：op执行器，包含了算子计算流程。
-    -   stream（aclrtStream，入参）：指定执行任务的AscendCL stream流。
+    -   stream（aclrtStream，入参）：指定执行任务的Stream。
 
 -   **返回值：**
 
-    返回aclnnStatus状态码，具体参见[aclnn返回码](common/aclnn返回码.md)。
+    返回aclnnStatus状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
 
 ## 约束说明
   - x1和x2的每一维大小在32字节对齐后都应小于int32的最大值2147483647，且内轴大小需小于2097152。
@@ -139,7 +139,7 @@ REG_OP(QuantGroupedMatmulInplaceAdd)
 ## 调用示例
 - aclnn单算子调用方式
 
-  通过aclnn单算子调用示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](common/编译与运行样例.md)。
+  通过aclnn单算子调用示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](../../../docs/zh/context/编译与运行样例.md)。
 
     ```c++
   #include <iostream>
@@ -177,7 +177,7 @@ REG_OP(QuantGroupedMatmulInplaceAdd)
   }
 
   int Init(int32_t deviceId, aclrtStream* stream) {
-      // 固定写法，AscendCL初始化
+      // 固定写法，资源初始化
       auto ret = aclInit(nullptr);
       CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclInit failed. ERROR: %d\n", ret); return ret);
       ret = aclrtSetDevice(deviceId);

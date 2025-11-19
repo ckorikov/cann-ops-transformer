@@ -32,7 +32,7 @@
 
 ## 函数原型
 
-每个算子分为[两段式接口](common/两段式接口.md)，必须先调用 “aclnnMoeTokenPermuteGradGetWorkspaceSize” 接口获取入参并根据计算流程计算所需workspace大小以及包含了算子计算流程的执行器，再调用 “aclnnMoeTokenPermuteGrad” 接口执行计算。
+每个算子分为[两段式接口](../../../docs/zh/context/两段式接口.md)，必须先调用 “aclnnMoeTokenPermuteGradGetWorkspaceSize” 接口获取入参并根据计算流程计算所需workspace大小以及包含了算子计算流程的执行器，再调用 “aclnnMoeTokenPermuteGrad” 接口执行计算。
 
 * `aclnnStatus aclnnMoeTokenPermuteGradGetWorkspaceSize(const aclTensor *permutedOutputGrad, const aclTensor *sortedIndices, int64_t numTopk, bool paddedMode, aclTensor *out, uint64_t *workspaceSize, aclOpExecutor **executor)`
 * `aclnnStatus aclnnMoeTokenPermuteGrad(void *workspace, uint64_t workspaceSize, aclOpExecutor *executor, aclrtStream stream)`
@@ -40,18 +40,18 @@
 ## aclnnMoeTokenPermuteGradGetWorkspaceSize
 
 - **参数说明：**：
-  - permutedOutputGrad（aclTensor\*，计算输入）：Device侧的aclTensor，正向输出permutedTokens的梯度，要求为一个维度为2D的Tensor，shape为（tokens_num * topK_num，hidden_size），tokens_num为token数目，topK_num为numTopk的值，数据类型支持BFLOAT16、FLOAT16、FLOAT32，[数据格式](common/数据格式.md)要求为ND。
-  - sortedIndices （aclTensor\*，计算输入）：Device侧的aclTensor，shape为（tokens_num * topK_num），数据类型支持INT32，取值范围是[0, tokens_num \* topK_num - 1]，且没有重复索引。[数据格式](common/数据格式.md)要求为ND。
+  - permutedOutputGrad（aclTensor\*，计算输入）：Device侧的aclTensor，正向输出permutedTokens的梯度，要求为一个维度为2D的Tensor，shape为（tokens_num * topK_num，hidden_size），tokens_num为token数目，topK_num为numTopk的值，数据类型支持BFLOAT16、FLOAT16、FLOAT32，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND。
+  - sortedIndices （aclTensor\*，计算输入）：Device侧的aclTensor，shape为（tokens_num * topK_num），数据类型支持INT32，取值范围是[0, tokens_num \* topK_num - 1]，且没有重复索引。[数据格式](../../../docs/zh/context/数据格式.md)要求为ND。
   - numTopk（int64\_t，计算输入）：被选中的专家个数。
     - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：numTopk <= 512。
   - paddedMode（bool，计算输入）：true表示开启paddedMode，false表示关闭paddedMode，目前仅支持false。
-  - out（aclTensor\*，计算输出）：输入token的梯度，要求为一个维度为2D的Tensor，shape为（tokens_num，hidden_size），数据类型同permutedOutputGrad，支持BFLOAT16、FLOAT16、FLOAT32，[数据格式](common/数据格式.md)要求为ND。
+  - out（aclTensor\*，计算输出）：输入token的梯度，要求为一个维度为2D的Tensor，shape为（tokens_num，hidden_size），数据类型同permutedOutputGrad，支持BFLOAT16、FLOAT16、FLOAT32，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND。
   - workspaceSize（uint64\_t\*，出参）：返回需要在Device侧申请的workspace大小。
   - executor（aclOpExecutor\*\*，出参）：返回op执行器，包含了算子计算流程。
 
 - **返回值：**
 
-  返回aclnnStatus状态码，具体参见[aclnn返回码](common/aclnn返回码.md)。
+  返回aclnnStatus状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
   ```
   第一段接口完成入参校验，出现以下场景时报错：
   返回161001(ACLNN_ERR_PARAM_NULLPTR)：1. 输入和输出的Tensor是空指针。
@@ -68,7 +68,7 @@
 
 - **返回值：**
 
-  返回aclnnStatus状态码，具体参见[aclnn返回码](common/aclnn返回码.md)。
+  返回aclnnStatus状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
 
 ## 约束说明
 
@@ -83,7 +83,7 @@
 
 ## 调用示例
 
-示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](common/编译与运行样例.md)。
+示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](../../../docs/zh/context/编译与运行样例.md)。
 
 ```Cpp
 

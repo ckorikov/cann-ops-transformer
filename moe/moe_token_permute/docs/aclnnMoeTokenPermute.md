@@ -43,7 +43,7 @@
 
 ## 函数原型
 
-每个算子分为[两段式接口](common/两段式接口.md)，必须先调用 “aclnnMoeTokenPermuteGetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnMoeTokenPermute”接口执行计算。
+每个算子分为[两段式接口](../../../docs/zh/context/两段式接口.md)，必须先调用 “aclnnMoeTokenPermuteGetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnMoeTokenPermute”接口执行计算。
 
 * `aclnnStatus aclnnMoeTokenPermuteGetWorkspaceSize(const aclTensor *tokens, const aclTensor *indices, int64_t numOutTokens, bool paddedMode, const aclTensor *permuteTokensOut, const aclTensor *sortedIndicesOut, uint64_t *workspaceSize, aclOpExecutor **executor)`
 * `aclnnStatus aclnnMoeTokenPermute(void *workspace, uint64_t workspaceSize, aclOpExecutor *executor, aclrtStream stream)`
@@ -52,18 +52,18 @@
 
 - **参数说明：**
   
-  - tokens（aclTensor\*，计算输入）：输入token，要求为一个维度大于等于2的Tensor，第一维的大小为num\_tokens，数据类型支持FLOAT16、BFLOAT16、FLOAT32，支持[非连续的Tensor](common/非连续的Tensor.md)，[数据格式](common/数据格式.md)要求为ND。
-  - indices （aclTensor\*，计算输入）：输入indices，要求shape为2D或1D。paddedMode为false时表示每一个输入token对应的topK个处理专家索引，shape为（num\_tokens，topK）或（num\_tokens），paddedMode为true时表示每个专家选中的token索引（暂不支持），数据类型支持INT32、INT64，支持[非连续的Tensor](common/非连续的Tensor.md)，[数据格式](common/数据格式.md)要求为ND。要求元素个数小于16777215，值大于等于0小于16777215（单点支持int32或int64的最大或最小值）。
+  - tokens（aclTensor\*，计算输入）：输入token，要求为一个维度大于等于2的Tensor，第一维的大小为num\_tokens，数据类型支持FLOAT16、BFLOAT16、FLOAT32，支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND。
+  - indices （aclTensor\*，计算输入）：输入indices，要求shape为2D或1D。paddedMode为false时表示每一个输入token对应的topK个处理专家索引，shape为（num\_tokens，topK）或（num\_tokens），paddedMode为true时表示每个专家选中的token索引（暂不支持），数据类型支持INT32、INT64，支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND。要求元素个数小于16777215，值大于等于0小于16777215（单点支持int32或int64的最大或最小值）。
     - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：topK小于等于512。
   - numOutTokens（int64\_t，计算输入）：有效输出token数，设置为0时，表示不会删除任何token。不为0时，会按照numOutTokens进行切片丢弃按照indices排序好的token中超过numOutTokens的部分，为负数时按照切片索引为负数时处理。
   - paddedMode（bool，计算输入）：paddedMode为true时表示indices已被填充为代表每个专家选中的token索引，此时不对indices进行排序。目前仅支持paddedMode为false。
-  - permuteTokensOut（aclTensor\*，计算输出）：根据indices进行扩展并排序过的tokens，要求是一个维度大于等于2的Tensor，第一维的大小为min\(num\_tokens \* topK, numOutTokens\)，除第一维外其余维度大小乘积与tokens除第一维外其余维度大小乘积相同。数据类型同tokens，支持FLOAT16、BFLOAT16、FLOAT32，不支持[非连续的Tensor](common/非连续的Tensor.md)，[数据格式](common/数据格式.md)要求为ND。
-  - sortedIndicesOut（aclTensor\*，计算输出）：permuteTokensOut和tokens的映射关系， 要求是一个1D的Tensor，Shape为（num\_tokens\*topK，），数据类型支持INT32，不支持[非连续的Tensor](common/非连续的Tensor.md)，[数据格式](common/数据格式.md)要求为ND。
+  - permuteTokensOut（aclTensor\*，计算输出）：根据indices进行扩展并排序过的tokens，要求是一个维度大于等于2的Tensor，第一维的大小为min\(num\_tokens \* topK, numOutTokens\)，除第一维外其余维度大小乘积与tokens除第一维外其余维度大小乘积相同。数据类型同tokens，支持FLOAT16、BFLOAT16、FLOAT32，不支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND。
+  - sortedIndicesOut（aclTensor\*，计算输出）：permuteTokensOut和tokens的映射关系， 要求是一个1D的Tensor，Shape为（num\_tokens\*topK，），数据类型支持INT32，不支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND。
   - workspaceSize（uint64\_t\*，出参）：返回需要在Device侧申请的workspace大小。
   - executor（aclOpExecutor\*\*，出参）：返回op执行器，包含了算子计算流程。
 - **返回值：**
   
-  返回aclnnStatus状态码，具体参见[aclnn返回码](common/aclnn返回码.md)。
+  返回aclnnStatus状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
 
   ```
   第一段接口完成入参校验，出现以下场景时报错：
@@ -79,7 +79,7 @@
   - stream（aclrtStream，入参）：指定执行任务的Stream。
 - **返回值：**
   
-  返回aclnnStatus状态码，具体参见[aclnn返回码](common/aclnn返回码.md)。
+  返回aclnnStatus状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
 
 ## 约束说明
 
@@ -97,7 +97,7 @@
 
 ## 调用示例
 
-示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](common/编译与运行样例.md)。
+示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](../../../docs/zh/context/编译与运行样例.md)。
 
 ```Cpp
 #include "acl/acl.h"

@@ -66,7 +66,7 @@
 
 ## 函数原型
 
-每个算子分为[两段式接口](common/两段式接口.md)，必须先调用“aclnnMoeFinalizeRoutingV2GradGetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnMoeFinalizeRoutingV2Grad”接口执行计算。
+每个算子分为[两段式接口](../../../docs/zh/context/两段式接口.md)，必须先调用“aclnnMoeFinalizeRoutingV2GradGetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnMoeFinalizeRoutingV2Grad”接口执行计算。
 
 * `aclnnStatus aclnnMoeFinalizeRoutingV2GradGetWorkspaceSize(const aclTensor *gradY, const aclTensor *expandedRowIdx, const aclTensor *expandedXOptional, const aclTensor *scalesOptional, const aclTensor *expertIdxOptional, const aclTensor *biasOptional, int64_t dropPadMode, int64_t activeNum, int64_t expertNum, int64_t expertCapacity, const aclTensor *gradExpandedXOut, const aclTensor *gradScalesOut, uint64_t *workspaceSize, aclOpExecutor **executor)`
 * `aclnnStatus aclnnMoeFinalizeRoutingV2Grad(void *workspace, uint64_t workspaceSize, aclOpExecutor *executor, aclrtStream stream)`
@@ -74,26 +74,26 @@
 ## aclnnMoeFinalizeRoutingV2GradGetWorkspaceSize
 
 -   **参数说明：**
-    -   gradY（aclTensor*，计算输入）：Device侧的aclTensor，表示MoeFinalizeRoutingV2正向输出y的导数，要求是一个2D的Tensor，shape为(R, H)，数据类型支持FLOAT16、BFLOAT16、FLOAT32，[数据格式](common/数据格式.md)要求为ND，支持非连续输入。
-    -   expandedRowIdx（aclTensor*，计算输入）：Device侧的aclTensor，表示token按照专家序排序索引，要求是一个1D的Tensor，shape为(R * K)，当scalesOptional传入空指针的时候，K必须为1，当dropPadMode是0时，取值范围是[0, R * K - 1]，且没有重复索引；当dropPadMode是1时，取值范围是[-1, expertNum * expertCapacity - 1]，且除-1外，不允许有其它重复索引，数据类型支持INT32，[数据格式](common/数据格式.md)要求为ND，支持非连续输入。
-    -   expandedXOptional（aclTensor*，可选计算输入）：Device侧的aclTensor，表示根据expertIdx进行扩展过的特征，当scalesOptional非空指针时，其也不能是空指针，当dropPadMode是0时，要求是一个2D的Tensor，当activeNum大于0且小于R * K时，shape为(activeNum, H)，否则shape为(R * K, H)；当dropPadMode是1时，要求是一个3D的Tensor，shape为(expertNum, expertCapacity, H)，数据类型同gradY，支持FLOAT16、BFLOAT16、FLOAT32，[数据格式](common/数据格式.md)要求为ND，支持非连续输入。
-    -   scalesOptional（aclTensor*，可选计算输入）：Device侧的aclTensor，表示对特征进行的缩放，要求是一个2D的Tensor，shape为(R, K)，支持FLOAT16、BFLOAT16、FLOAT32，[数据格式](common/数据格式.md)要求为ND，支持非连续输入。
+    -   gradY（aclTensor*，计算输入）：Device侧的aclTensor，表示MoeFinalizeRoutingV2正向输出y的导数，要求是一个2D的Tensor，shape为(R, H)，数据类型支持FLOAT16、BFLOAT16、FLOAT32，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND，支持非连续输入。
+    -   expandedRowIdx（aclTensor*，计算输入）：Device侧的aclTensor，表示token按照专家序排序索引，要求是一个1D的Tensor，shape为(R * K)，当scalesOptional传入空指针的时候，K必须为1，当dropPadMode是0时，取值范围是[0, R * K - 1]，且没有重复索引；当dropPadMode是1时，取值范围是[-1, expertNum * expertCapacity - 1]，且除-1外，不允许有其它重复索引，数据类型支持INT32，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND，支持非连续输入。
+    -   expandedXOptional（aclTensor*，可选计算输入）：Device侧的aclTensor，表示根据expertIdx进行扩展过的特征，当scalesOptional非空指针时，其也不能是空指针，当dropPadMode是0时，要求是一个2D的Tensor，当activeNum大于0且小于R * K时，shape为(activeNum, H)，否则shape为(R * K, H)；当dropPadMode是1时，要求是一个3D的Tensor，shape为(expertNum, expertCapacity, H)，数据类型同gradY，支持FLOAT16、BFLOAT16、FLOAT32，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND，支持非连续输入。
+    -   scalesOptional（aclTensor*，可选计算输入）：Device侧的aclTensor，表示对特征进行的缩放，要求是一个2D的Tensor，shape为(R, K)，支持FLOAT16、BFLOAT16、FLOAT32，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND，支持非连续输入。
       -   <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：数据类型要求与gradY一致。
       -   <term>昇腾910_95 AI处理器</term>：数据类型可以与gradY不一致。
-    -   expertIdxOptional（aclTensor*，可选计算输入）：Device侧的aclTensor，表示每一个特征对应的处理专家索引，当biasOptional非空指针时，其也不能是空指针，要求是一个2D的Tensor，shape为(R, K)，取值范围是[0, E - 1], E >= 1, 允许有重复索引，数据类型同expandedRowIdx，支持INT32，[数据格式](common/数据格式.md)要求为ND，支持非连续输入。
-    -   biasOptional（aclTensor*，可选计算输入）：Device侧的aclTensor，表示对特征进行的偏移，要求是一个2D的Tensor，shape为(E, H)，数据类型同gradY，支持FLOAT16、BFLOAT16、FLOAT32，[数据格式](common/数据格式.md)要求为ND，支持非连续输入。
+    -   expertIdxOptional（aclTensor*，可选计算输入）：Device侧的aclTensor，表示每一个特征对应的处理专家索引，当biasOptional非空指针时，其也不能是空指针，要求是一个2D的Tensor，shape为(R, K)，取值范围是[0, E - 1], E >= 1, 允许有重复索引，数据类型同expandedRowIdx，支持INT32，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND，支持非连续输入。
+    -   biasOptional（aclTensor*，可选计算输入）：Device侧的aclTensor，表示对特征进行的偏移，要求是一个2D的Tensor，shape为(E, H)，数据类型同gradY，支持FLOAT16、BFLOAT16、FLOAT32，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND，支持非连续输入。
     -   dropPadMode（int64_t, 计算输入）：int64数据类型，表示使用不同的场景，取值为0和1，0代表dropless场景，不校验expertNum和expertCapacity；1代表drop场景，需要校验expertNum和expertCapacity，对于每个专家处理的超过和不足expertCapacity的值会做相应的处理。
     -   activeNum（int64_t, 计算输入）：int64数据类型，表示gradExpandedXOut最大输出行数，当dropPadMode是0时，只有当activeNum大于0且小于R * K时，该参数才生效；当dropPadMode是1时，该参数不生效。
     -   expertNum（int64_t, 计算输入）：int64数据类型，表示专家数，当dropPadMode是0时，该参数不生效；当dropPadMode是1时，当biasOptional非空指针时，expertNum必须等于E，当biasOptional是空指针时，expertNum必须大于0，否则会报错。
     -   expertCapacity（int64_t, 计算输入）：int64数据类型，表示每个专家能够处理的行数，当dropPadMode是0时，该参数不生效；当dropPadMode是1时，expertCapacity必须大于0，否则会报错。
-    -   gradExpandedXOut（aclTensor*，计算输出）：Device侧的aclTensor，MoeFinalizeRoutingV2正向输入expandedX的导数，当dropPadMode是0时，要求是一个2D的Tensor，当activeNum大于0且小于R * K时，shape为(activeNum, H)，否则shape为(R * K, H)；当dropPadMode是1时，要求是一个3D的Tensor，shape为(expertNum, expertCapacity, H)，数据类型同gradY，支持FLOAT16、BFLOAT16、FLOAT32，[数据格式](common/数据格式.md)要求为ND，不支持非连续输出。
-    -   gradScalesOut（aclTensor*，计算输出）：Device侧的aclTensor，MoeFinalizeRoutingV2正向输入scales的导数，当scalesOptional不是空指针时，此输出才有意义，要求是一个2D的Tensor，shape为(R, K)，数据类型同scalesOptional，支持FLOAT16、BFLOAT16、FLOAT32，[数据格式](common/数据格式.md)要求为ND，不支持非连续输出。
+    -   gradExpandedXOut（aclTensor*，计算输出）：Device侧的aclTensor，MoeFinalizeRoutingV2正向输入expandedX的导数，当dropPadMode是0时，要求是一个2D的Tensor，当activeNum大于0且小于R * K时，shape为(activeNum, H)，否则shape为(R * K, H)；当dropPadMode是1时，要求是一个3D的Tensor，shape为(expertNum, expertCapacity, H)，数据类型同gradY，支持FLOAT16、BFLOAT16、FLOAT32，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND，不支持非连续输出。
+    -   gradScalesOut（aclTensor*，计算输出）：Device侧的aclTensor，MoeFinalizeRoutingV2正向输入scales的导数，当scalesOptional不是空指针时，此输出才有意义，要求是一个2D的Tensor，shape为(R, K)，数据类型同scalesOptional，支持FLOAT16、BFLOAT16、FLOAT32，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND，不支持非连续输出。
     -   workspaceSize（uint64_t*，出参）：返回需要在Device侧申请的workspace大小。
     -   executor（aclOpExecutor**，出参）：返回op执行器，包含了算子计算流程。
 
 -   **返回值：**
 
-    返回aclnnStatus状态码，具体参见[aclnn返回码](common/aclnn返回码.md)。
+    返回aclnnStatus状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
     ```
     第一段接口完成入参校验，出现以下场景时报错:
     161001(ACLNN_ERR_PARAM_NULLPTR): 1. 必选输入和输出的Tensor是空指针。
@@ -118,7 +118,7 @@
 
 ## 调用示例
 
-示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](common/编译与运行样例.md)。
+示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](../../../docs/zh/context/编译与运行样例.md)。
 
 ```Cpp
 #include <iostream>

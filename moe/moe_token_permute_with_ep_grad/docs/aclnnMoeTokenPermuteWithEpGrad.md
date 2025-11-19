@@ -36,7 +36,7 @@
 
 ## 函数原型
 
-每个算子分为[两段式接口](common/两段式接口.md)，必须先调用 “aclnnMoeTokenPermuteWithEpGradGetWorkspaceSize” 接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用 “aclnnMoeTokenPermuteWithEpGrad” 接口执行计算。
+每个算子分为[两段式接口](../../../docs/zh/context/两段式接口.md)，必须先调用 “aclnnMoeTokenPermuteWithEpGradGetWorkspaceSize” 接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用 “aclnnMoeTokenPermuteWithEpGrad” 接口执行计算。
 
 * `aclnnStatus aclnnMoeTokenPermuteWithEpGradGetWorkspaceSize(const aclTensor *permutedTokensOutputGrad, const aclTensor *sortedIndices, const aclTensor *permutedProbsOutputGradOptional, int64_t numTopk, const aclIntArray *rangeOptional, bool paddedMode, const aclTensor *tokenGradOut, const aclTensor *probsGradOut, uint64_t *workspaceSize, aclOpExecutor **executor)`
 * `aclnnStatus aclnnMoeTokenPermuteWithEpGrad(void *workspace, uint64_t workspaceSize, aclOpExecutor *executor, aclrtStream stream)`
@@ -44,20 +44,20 @@
 ## aclnnMoeTokenPermuteWithEpGradGetWorkspaceSize
 
 - **参数说明：**：
-  - permutedTokensOutputGrad（aclTensor \*，计算输入）：表示正向输出permutedTokens的梯度，公式中的`permutedTokensOutputGrad`，Device侧的aclTensor。shape支持2D维度，shape为（（rangeOptional[1] - rangeOptional[0]）* topK\_num，hidden\_size），topK\_num为numTopk的值。数据类型支持BFLOAT16、FLOAT16、FLOAT32，[数据格式](common/数据格式.md)支持ND。支持[非连续的Tensor](common/非连续的Tensor.md)，不支持空Tensor。
-  - sortedIndices（aclTensor \*，计算输入）：表示正向输出的permuteTokensOut和正向输入的tokens的映射关系，公式中的`sortedIndices`，Device侧的aclTensor。shape支持1D维度，shape为（num\_tokens * topK\_num），num\_tokens为token数目。数据类型支持INT32，[数据格式](common/数据格式.md)支持ND。支持非连续输入，不支持空Tensor。
-  - permutedProbsOutputGradOptional（aclTensor\*，计算输入）：表示正向输出permutedProbs的梯度Device侧的aclTensor。可选计算输入，与计算输出probsGradOut对应，传入空则不输出probsGradOut。shape支持1D维度，shape为（（rangeOptional[1] - rangeOptional[0]） * topK\_num），topK\_num为numTopk的值。数据类型支持BFLOAT16、FLOAT16、FLOAT32，[数据格式](common/数据格式.md)支持ND。支持非连续输入。
+  - permutedTokensOutputGrad（aclTensor \*，计算输入）：表示正向输出permutedTokens的梯度，公式中的`permutedTokensOutputGrad`，Device侧的aclTensor。shape支持2D维度，shape为（（rangeOptional[1] - rangeOptional[0]）* topK\_num，hidden\_size），topK\_num为numTopk的值。数据类型支持BFLOAT16、FLOAT16、FLOAT32，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)，不支持空Tensor。
+  - sortedIndices（aclTensor \*，计算输入）：表示正向输出的permuteTokensOut和正向输入的tokens的映射关系，公式中的`sortedIndices`，Device侧的aclTensor。shape支持1D维度，shape为（num\_tokens * topK\_num），num\_tokens为token数目。数据类型支持INT32，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。支持非连续输入，不支持空Tensor。
+  - permutedProbsOutputGradOptional（aclTensor\*，计算输入）：表示正向输出permutedProbs的梯度Device侧的aclTensor。可选计算输入，与计算输出probsGradOut对应，传入空则不输出probsGradOut。shape支持1D维度，shape为（（rangeOptional[1] - rangeOptional[0]） * topK\_num），topK\_num为numTopk的值。数据类型支持BFLOAT16、FLOAT16、FLOAT32，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。支持非连续输入。
   - numTopk（int64\_t，计算输入）：被选中的专家个数。
   - rangeOptional（aclIntArray \*，计算输入）：ep切分的有效范围，size为2。为空时，忽略permutedProbsOutputGradOptional和probsGradOut，执行逻辑回退到[aclnnMoeTokenPermuteGrad](aclnnMoeTokenPermuteGrad.md)。
   - paddedMode（bool，计算输入）：true表示开启paddedMode，false表示关闭paddedMode，目前仅支持false。
-  - tokenGradOut（aclTensor \*，计算输出）：输入token的梯度，要求为一个维度为2D的Tensor，shape为（num\_tokens，hidden_size），数据类型支持FLOAT、FLOAT16、BFLOAT16，[数据格式](common/数据格式.md)支持ND。
-  - probsGradOut（aclTensor \*，计算输出）：输入probs的梯度，要求为一个维度为2D的Tensor，shape为（num\_tokens，topK\_num），数据类型支持FLOAT、FLOAT16、BFLOAT16，[数据格式](common/数据格式.md)支持ND。
+  - tokenGradOut（aclTensor \*，计算输出）：输入token的梯度，要求为一个维度为2D的Tensor，shape为（num\_tokens，hidden_size），数据类型支持FLOAT、FLOAT16、BFLOAT16，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。
+  - probsGradOut（aclTensor \*，计算输出）：输入probs的梯度，要求为一个维度为2D的Tensor，shape为（num\_tokens，topK\_num），数据类型支持FLOAT、FLOAT16、BFLOAT16，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。
   - workspaceSize（uint64\_t \*，出参）：返回需要在Device侧申请的workspace大小。
   - executor（aclOpExecutor \*\*，出参）：返回op执行器，包含了算子计算流程。
 
 - **返回值：**
 
-  aclnnStatus：返回状态码，具体参见[aclnn返回码](common/aclnn返回码.md)。
+  aclnnStatus：返回状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
   ```
   第一段接口完成入参校验，出现以下场景时报错：
   返回161001(ACLNN_ERR_PARAM_NULLPTR)：1. 输入和输出的Tensor是空指针。
@@ -73,7 +73,7 @@
 
 - **返回值：**
 
-  aclnnStatus：返回状态码，具体参见[aclnn返回码](common/aclnn返回码.md)。
+  aclnnStatus：返回状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
 
 ## 约束说明
 
@@ -83,7 +83,7 @@
 
 ## 调用示例
 
-示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](common/编译与运行样例.md)。
+示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](../../../docs/zh/context/编译与运行样例.md)。
 
 ```Cpp
 

@@ -24,7 +24,7 @@
 
 ## 函数原型
 
-每个算子分为[两段式接口](common/两段式接口.md)，必须先调用 “aclnnMoeInitRoutingV2GradGetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnMoeInitRoutingV2Grad”接口执行计算。
+每个算子分为[两段式接口](../../../docs/zh/context/两段式接口.md)，必须先调用 “aclnnMoeInitRoutingV2GradGetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnMoeInitRoutingV2Grad”接口执行计算。
 
 * `aclnnStatus aclnnMoeInitRoutingV2GradGetWorkspaceSize(const aclTensor *gradExpandedX, const aclTensor *expandedRowIdx, int64_t topK, int64_t dropPadMode, int64_t activeNum, const aclTensor *out, uint64_t *workspaceSize, aclOpExecutor **executor)`
 * `aclnnStatus aclnnMoeInitRoutingV2Grad(void *workspace, uint64_t workspaceSize, aclOpExecutor *executor, aclrtStream stream)`
@@ -32,12 +32,12 @@
 ## aclnnMoeInitRoutingV2GradGetWorkspaceSize
 
 -   **参数说明**：
-    - gradExpandedX（aclTensor\*，计算输入）：表示Routing过后的目标张量，要求为一个2D/3D的Tensor，2D shape为Dropless场景的[B\*S\*K, H]或者Active场景下的[A, H]，3D shape为Drop/Pad场景下的[E, C, H]，数据类型支持FLOAT16、BFLOAT16、FLOAT32，[数据格式](common/数据格式.md)要求为ND，支持[非连续的Tensor](common/非连续的Tensor.md)。
-    - expandedRowIdx（aclTensor\*，计算输入）：表示token按照专家序排序索引，一维Tensor，shape为[B\*S\*K]；元素值在Drop/Pad场景下范围为[-1, E\*C)，其他场景范围为[0, B\*S\*K)，且值除-1外唯一不重复，数据类型支持INT32，[数据格式](common/数据格式.md)要求为ND，支持[非连续的Tensor](common/非连续的Tensor.md)。
+    - gradExpandedX（aclTensor\*，计算输入）：表示Routing过后的目标张量，要求为一个2D/3D的Tensor，2D shape为Dropless场景的[B\*S\*K, H]或者Active场景下的[A, H]，3D shape为Drop/Pad场景下的[E, C, H]，数据类型支持FLOAT16、BFLOAT16、FLOAT32，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND，支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)。
+    - expandedRowIdx（aclTensor\*，计算输入）：表示token按照专家序排序索引，一维Tensor，shape为[B\*S\*K]；元素值在Drop/Pad场景下范围为[-1, E\*C)，其他场景范围为[0, B\*S\*K)，且值除-1外唯一不重复，数据类型支持INT32，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND，支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)。
     - topK（int64\_t，计算输入）：topK值，Host侧的整型，必须大于0，且能被expandedRowIdx的0轴大小整除。
     - dropPadMode（int64\_t，计算输入）：表示场景是否为Drop类，Host侧整型，取值范围为[0, 1]，0表示Dropless场景，1表示Drop/Pad场景。
     - activeNum（int64\_t，计算输入）：表示场景是否为Active场景，Host侧整型，值范围大于等于0，当dropPadMode为0时生效，0表示非Active场景，大于0表示Active场景，Active场景下gradExpandedX的0轴大小必须等于activeNum值。
-    - out（aclTensor\*，计算输出）：表示Routing反向输出，2D的Tensor，shape为[B\*S, H]；数据类型支持FLOAT16、BFLOAT16、FLOAT32，输出类型与输入gradExpandedX一致，[数据格式](common/数据格式.md)要求为ND，不支持[非连续的Tensor](common/非连续的Tensor.md)。
+    - out（aclTensor\*，计算输出）：表示Routing反向输出，2D的Tensor，shape为[B\*S, H]；数据类型支持FLOAT16、BFLOAT16、FLOAT32，输出类型与输入gradExpandedX一致，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND，不支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)。
     - workspaceSize（uint64\_t\*，出参）：返回需要在Device侧申请的workspace大小。
     - executor（aclOpExecutor\*\*，出参）：返回op执行器，包含了算子计算流程。
 
@@ -48,7 +48,7 @@
 
 -   **返回值**
 
-    返回aclnnStatus状态码，具体参见[aclnn返回码](common/aclnn返回码.md)。
+    返回aclnnStatus状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
     ```
     第一段接口完成入参校验，出现以下场景时报错:
     161001(ACLNN_ERR_PARAM_NULLPTR): 输入和输出的Tensor是空指针。
@@ -73,7 +73,7 @@
 
 -   **返回值：**
 
-    返回aclnnStatus状态码，具体参见[aclnn返回码](common/aclnn返回码.md)。
+    返回aclnnStatus状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
 
 ## 约束说明
 
@@ -81,7 +81,7 @@
 
 ## 调用示例
 
-示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](common/编译与运行样例.md)。
+示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](../../../docs/zh/context/编译与运行样例.md)。
 
 ```Cpp
 #include "acl/acl.h"

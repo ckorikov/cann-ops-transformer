@@ -1,14 +1,14 @@
 # 项目目录
 
-## 详细目录层级介绍如下：
 
-> ### 本章罗列的部分目录是可选的，请以实际交付件为准。尤其**单算子目录**，不同场景下交付件有差异，具体说明如下：
+> 本章部分目录是可选的，请以实际交付件为准。尤其**单算子目录**，不同场景下交付件有差异，具体说明如下：
 >
-> - 若缺少op_host目录，可能是调用了其他算子op_host实现，调用逻辑参见该算子op_api或op_graph目录下源码实现；也可能是Kernel暂无Ascend C实现，如有需要，欢迎开发者参考[贡献指南](../../CONTRIBUTING.md)补充贡献该算子。
-> - 若缺少op_kernel目录，可能是调用了其他算子op_kernel实现，调用逻辑参见该算子op_api或op_graph目录下源码实现；也可能是Kernel暂无Ascend C实现，如有需要，欢迎开发者参考[贡献指南](../../CONTRIBUTING.md)补充贡献该算子。
+> - 若缺少op_host目录，可能是调用了其他算子op_host实现，调用逻辑参见该算子op_api或op_graph目录下源码实现；也可能是Kernel暂无Ascend C实现，如有需要，欢迎开发者参考[贡献指南](../../../CONTRIBUTING.md)补充贡献该算子。
+> - 若缺少op_kernel目录，可能是调用了其他算子op_kernel实现，调用逻辑参见该算子op_api或op_graph目录下源码实现；也可能是Kernel暂无Ascend C实现，如有需要，欢迎开发者参考[贡献指南](../../../CONTRIBUTING.md)补充贡献该算子。
 > - 若缺少op_api目录，说明该算子暂不支持aclnn调用。
 > - 若缺少op_graph目录，说明该算子暂不支持图模式调用。
 
+项目全量目录层级介绍如下：
 ```
 ├── cmake                                               # 项目工程编译目录
 │   ├── aclnn_ops_transfomer.h.in                       # aclnn汇总头文件模板
@@ -16,8 +16,9 @@
 ├── common                                              # 项目公共头文件和公共代码
 │   ├── CMakeLists.txt
 │   ├── include                                         # 公共头文件目录
-│   ├── src                                             # 公共代码目录
-│   └── ...
+│   ├── src 
+│   └── ... 
+# 公共代码目录
 ├── experimental                                        # 用户自定义算子存放目录
 │   ├── attention                                       # 可选，用户开发的attention类算子目录
 │   │   └── CMakeLists.txt
@@ -68,7 +69,7 @@
 │   │       ├── CMakeLists.txt
 │   │       └── ut                                      # 可选，UT测试用例，根据实际情况开发相应的用例
 │   └── ...
-├── docs                                                # 项目相关文档目录
+├── docs                                                # 项目相关文档目录（zh为中文，en为英文）
 ├── examples                                            # 端到端算子开发和调用示例
 │   ├── add_example                                     # AI Core算子示例目录
 │   │   ├── CMakeLists.txt                              # 算子编译配置文件 

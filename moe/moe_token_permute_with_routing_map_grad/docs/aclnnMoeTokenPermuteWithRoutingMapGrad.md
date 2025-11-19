@@ -54,7 +54,7 @@ $$
 
 ## 函数原型
 
-每个算子分为[两段式接口](common/两段式接口.md)，必须先调用“aclnnMoeTokenPermuteWithRoutingMapGradGetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnMoeTokenPermuteWithRoutingMapGrad”接口执行计算。
+每个算子分为[两段式接口](../../../docs/zh/context/两段式接口.md)，必须先调用“aclnnMoeTokenPermuteWithRoutingMapGradGetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnMoeTokenPermuteWithRoutingMapGrad”接口执行计算。
 
 * `aclnnStatus aclnnMoeTokenPermuteWithRoutingMapGradGetWorkspaceSize(const aclTensor *permutedTokenOutputGrad, const aclTensor *permutedProbsOutputGradOptional, const aclTensor *sortedIndices, const aclTensor *routingMapOptional, int64_t experts_num, int64_t tokens_num, bool dropAndPad, aclTensor *tokensGradOut, aclTensor *probsGradOutOptional, uint64_t *workspaceSize, aclOpExecutor **executor)`
 * `aclnnStatus aclnnMoeTokenPermuteWithRoutingMapGrad(void *workspace, uint64_t workspaceSize, aclOpExecutor *executor, aclrtStream stream)`
@@ -63,20 +63,20 @@ $$
 
 - **参数说明：**
   
-  - permutedTokenOutputGrad（aclTensor \*，计算输入）：Device侧的aclTensor，正向输出permutedTokens的梯度，要求为一个维度为2D的Tensor，非droppad模式要求shape为一个2D的（tokens_num \* topK_num，hidden_size），droppad模式要求shape为一个2D的（experts_num \* capacity，hidden_size），其中topK_num表示每个token选中的专家数量，capacity表示每个专家选中的token数量。数据类型支持BFLOAT16、FLOAT16、FLOAT32，[数据格式](common/数据格式.md)要求为ND。支持[非连续的Tensor](common/非连续的Tensor.md)，不支持空tensor。
-  - permutedProbsOutputGradOptional（aclTensor \*，计算输入）：Device侧的aclTensor，可选输入，不传则表示不需要计算probsGradOutOptional，非droppad模式要求shape为一个1D的（tokens_num \* topK_num），droppad模式要求shape为一个1D的（experts_num \* capacity），其中topK_num表示每个token选中的专家数量，capacity表示每个专家选中的token数量。数据类型支持BFLOAT16、FLOAT16、FLOAT32，[数据格式](common/数据格式.md)要求为ND。支持[非连续的Tensor](common/非连续的Tensor.md)。
-  - sortedIndices（aclTensor \*，计算输入）：Device侧的aclTensor，非droppad模式要求shape为一个1D的（tokens_num \* topK_num，），数据类型支持INT32，[数据格式](common/数据格式.md)要求为ND。索引取值范围[0，tokens_num \* topK_num - 1], droppad模式要求shape为一个1D的（experts_num \* capacity），数据类型支持INT32，[数据格式](common/数据格式.md)要求为ND。索引取值范围[0，experts_num \* capacity - 1]。支持[非连续的Tensor](common/非连续的Tensor.md)。
-  - routingMap（aclTensor \*，计算输入）：Device侧的aclTensor，代表token到expert的映射关系，要求shape为一个2D的（tokens_num，experts_num），数据类型支持INT8、bool。当数据类型为INT8，取值支持0、1，当数据类型为bool，取值支持true、false，[数据格式](common/数据格式.md)要求为ND。支持[非连续的Tensor](common/非连续的Tensor.md)。非droppad模式要求每行中包含topK个true 或 1。
+  - permutedTokenOutputGrad（aclTensor \*，计算输入）：Device侧的aclTensor，正向输出permutedTokens的梯度，要求为一个维度为2D的Tensor，非droppad模式要求shape为一个2D的（tokens_num \* topK_num，hidden_size），droppad模式要求shape为一个2D的（experts_num \* capacity，hidden_size），其中topK_num表示每个token选中的专家数量，capacity表示每个专家选中的token数量。数据类型支持BFLOAT16、FLOAT16、FLOAT32，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND。支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)，不支持空tensor。
+  - permutedProbsOutputGradOptional（aclTensor \*，计算输入）：Device侧的aclTensor，可选输入，不传则表示不需要计算probsGradOutOptional，非droppad模式要求shape为一个1D的（tokens_num \* topK_num），droppad模式要求shape为一个1D的（experts_num \* capacity），其中topK_num表示每个token选中的专家数量，capacity表示每个专家选中的token数量。数据类型支持BFLOAT16、FLOAT16、FLOAT32，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND。支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)。
+  - sortedIndices（aclTensor \*，计算输入）：Device侧的aclTensor，非droppad模式要求shape为一个1D的（tokens_num \* topK_num，），数据类型支持INT32，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND。索引取值范围[0，tokens_num \* topK_num - 1], droppad模式要求shape为一个1D的（experts_num \* capacity），数据类型支持INT32，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND。索引取值范围[0，experts_num \* capacity - 1]。支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)。
+  - routingMap（aclTensor \*，计算输入）：Device侧的aclTensor，代表token到expert的映射关系，要求shape为一个2D的（tokens_num，experts_num），数据类型支持INT8、bool。当数据类型为INT8，取值支持0、1，当数据类型为bool，取值支持true、false，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND。支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)。非droppad模式要求每行中包含topK个true 或 1。
   - experts_num（int64\_t，计算输入）：表示参与运算的专家个数。
   - tokens_num（int64\_t，计算输入）：表示参与运算的token个数。
   - dropAndPad（bool, 计算输入）：true表示开启dropPaddedMode，false表示关闭dropPaddedMode。
-  - tokensGradOut（aclTensor\*，计算输出）：输入permutedTokens的梯度，要求是一个2D的Tensor，shape为（tokens_num ，hidden_size）。数据类型同permutedTokenOutputGrad，支持BFLOAT16、FLOAT16、FLOAT32，[数据格式](common/数据格式.md)要求为ND。不支持[非连续的Tensor](common/非连续的Tensor.md)。
-  - probsGradOutOptional（aclTensor\*，计算输出）：输入probs的梯度，可选输出，要求是一个2D的Tensor，shape为（tokens_num，experts_num）。数据类型同permutedProbsOutputGradOptional，支持BFLOAT16、FLOAT16、FLOAT32，[数据格式](common/数据格式.md)要求为ND。不支持[非连续的Tensor](common/非连续的Tensor.md)。
+  - tokensGradOut（aclTensor\*，计算输出）：输入permutedTokens的梯度，要求是一个2D的Tensor，shape为（tokens_num ，hidden_size）。数据类型同permutedTokenOutputGrad，支持BFLOAT16、FLOAT16、FLOAT32，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND。不支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)。
+  - probsGradOutOptional（aclTensor\*，计算输出）：输入probs的梯度，可选输出，要求是一个2D的Tensor，shape为（tokens_num，experts_num）。数据类型同permutedProbsOutputGradOptional，支持BFLOAT16、FLOAT16、FLOAT32，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND。不支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)。
   - workspaceSize（uint64\_t\*，出参）：返回需要在Device侧申请的workspace大小。
   - executor（aclOpExecutor\*\*，出参）：返回op执行器，包含了算子计算流程。
 - **返回值：**
   
-  返回aclnnStatus状态码，具体参见[aclnn返回码](common/aclnn返回码.md)。
+  返回aclnnStatus状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
 ```
   第一段接口完成入参校验，出现以下场景时报错：
   161001(ACLNN_ERR_PARAM_NULLPTR): 1. 输入和输出的Tensor是空指针。
@@ -103,7 +103,7 @@ $$
 
 ## 调用示例
 
-示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](common/编译与运行样例.md)。
+示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](../../../docs/zh/context/编译与运行样例.md)。
 
 ```Cpp
 #include "aclnnop/aclnn_moe_token_permute_with_routing_map_grad.h"

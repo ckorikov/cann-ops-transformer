@@ -25,7 +25,7 @@
 <tbody>
   <tr>
     <td>attention</td>
-    <td><a href="../attention/flash_attention_score/README.md">flash_attention_score</a></td>
+    <td><a href="../../attention/flash_attention_score/README.md">flash_attention_score</a></td>
     <td>√</td>
     <td>√</td>
     <td>√</td>
@@ -35,7 +35,7 @@
   </tr>
   <tr>
     <td>attention</td>
-    <td><a href="../attention/flash_attention_score_grad/README.md">flash_attention_score_grad</a></td>
+    <td><a href="../../attention/flash_attention_score_grad/README.md">flash_attention_score_grad</a></td>
     <td>√</td>
     <td>√</td>
     <td>√</td>
@@ -45,7 +45,7 @@
   </tr>
   <tr>
     <td>attention</td>
-    <td><a href="../attention/fused_infer_attention_score/README.md">fused_infer_attention_score</a></td>
+    <td><a href="../../attention/fused_infer_attention_score/README.md">fused_infer_attention_score</a></td>
     <td>√</td>
     <td>√</td>
     <td>√</td>
@@ -55,7 +55,7 @@
   </tr>
   <tr>
     <td>attention</td>
-    <td><a href="../attention/incre_flash_attention/README.md">incre_flash_attention</a></td>
+    <td><a href="../../attention/incre_flash_attention/README.md">incre_flash_attention</a></td>
     <td>√</td>
     <td>√</td>
     <td>√</td>
@@ -65,7 +65,7 @@
   </tr>
   <tr>
     <td>attention</td>
-    <td><a href="../attention/mla_prolog/README.md">mla_prolog</a></td>
+    <td><a href="../../attention/mla_prolog/README.md">mla_prolog</a></td>
     <td>√</td>
     <td>√</td>
     <td>×</td>
@@ -75,7 +75,7 @@
   </tr>
   <tr>
     <td>attention</td>
-    <td><a href="../attention/mla_prolog_v2/README.md">mla_prolog_v2</a></td>
+    <td><a href="../../attention/mla_prolog_v2/README.md">mla_prolog_v2</a></td>
     <td>√</td>
     <td>√</td>
     <td>√</td>
@@ -85,7 +85,7 @@
   </tr>
   <tr>
     <td>attention</td>
-    <td><a href="../attention/mla_prolog_v3/README.md">mla_prolog_v3</a></td>
+    <td><a href="../../attention/mla_prolog_v3/README.md">mla_prolog_v3</a></td>
     <td>√</td>
     <td>√</td>
     <td>√</td>
@@ -95,7 +95,7 @@
   </tr>
   <tr>
     <td>attention</td>
-    <td><a href="../attention/nsa_compress/README.md">nsa_compress</a></td>
+    <td><a href="../../attention/nsa_compress/README.md">nsa_compress</a></td>
     <td>√</td>
     <td>√</td>
     <td>√</td>
@@ -105,7 +105,7 @@
   </tr>
   <tr>
     <td>attention</td>
-    <td><a href="../attention/nsa_compress_attention/README.md">nsa_compress_attention</a></td>
+    <td><a href="../../attention/nsa_compress_attention/README.md">nsa_compress_attention</a></td>
     <td>√</td>
     <td>√</td>
     <td>√</td>
@@ -115,7 +115,7 @@
   </tr>
   <tr>
     <td>attention</td>
-    <td><a href="../attention/nsa_compress_attention_infer/README.md">nsa_compress_attention_infer</a></td>
+    <td><a href="../../attention/nsa_compress_attention_infer/README.md">nsa_compress_attention_infer</a></td>
     <td>√</td>
     <td>√</td>
     <td>√</td>
@@ -125,7 +125,7 @@
   </tr>
   <tr>
     <td>attention</td>
-    <td><a href="../attention/nsa_compress_grad/README.md">nsa_compress_grad</a></td>
+    <td><a href="../../attention/nsa_compress_grad/README.md">nsa_compress_grad</a></td>
     <td>√</td>
     <td>√</td>
     <td>×</td>
@@ -135,7 +135,7 @@
   </tr>
   <tr>
     <td>attention</td>
-    <td><a href="../attention/nsa_compress_with_cache/README.md">nsa_compress_with_cache</a></td>
+    <td><a href="../../attention/nsa_compress_with_cache/README.md">nsa_compress_with_cache</a></td>
     <td>√</td>
     <td>√</td>
     <td>√</td>
@@ -145,7 +145,7 @@
   </tr>
   <tr>
     <td>attention</td>
-    <td><a href="../attention/nsa_selected_attention_infer/README.md">nsa_selected_attention_infer</a></td>
+    <td><a href="../../attention/nsa_selected_attention_infer/README.md">nsa_selected_attention_infer</a></td>
     <td>√</td>
     <td>√</td>
     <td>√</td>
@@ -155,7 +155,7 @@
   </tr>
   <tr>
     <td>attention</td>
-    <td><a href="../attention/nsa_selected_attention/README.md">nsa_selected_attention</a></td>
+    <td><a href="../../attention/nsa_selected_attention/README.md">nsa_selected_attention</a></td>
     <td>√</td>
     <td>√</td>
     <td>√</td>
@@ -165,7 +165,7 @@
   </tr>
   <tr>
     <td>attention</td>
-    <td><a href="../attention/nsa_selected_attention_grad/README.md">nsa_selected_attention_grad</a></td>
+    <td><a href="../../attention/nsa_selected_attention_grad/README.md">nsa_selected_attention_grad</a></td>
     <td>√</td>
     <td>√</td>
     <td>√</td>
@@ -175,7 +175,7 @@
   </tr>
   <tr>
     <td>attention</td>
-    <td><a href="../attention/prompt_flash_attention/README.md">prompt_flash_attention</a></td>
+    <td><a href="../../attention/prompt_flash_attention/README.md">prompt_flash_attention</a></td>
     <td>√</td>
     <td>√</td>
     <td>√</td>
@@ -185,7 +185,7 @@
   </tr>
   <tr>
     <td>ffn</td>
-    <td><a href="../ffn/ffn/README.md">ffn</a></td>
+    <td><a href="../../ffn/ffn/README.md">ffn</a></td>
     <td>√</td>
     <td>√</td>
     <td>√</td>
@@ -195,7 +195,7 @@
   </tr>
   <tr>
     <td>ffn</td>
-    <td><a href="../ffn/swin_attention_ffn/README.md">swin_attention_ffn</a></td>
+    <td><a href="../../ffn/swin_attention_ffn/README.md">swin_attention_ffn</a></td>
     <td>√</td>
     <td>√</td>
     <td>×</td>
@@ -205,7 +205,7 @@
   </tr>
   <tr>
     <td>ffn</td>
-    <td><a href="../ffn/swin_transformer_ln_qkv/README.md">swin_transformer_ln_qkv</a></td>
+    <td><a href="../../ffn/swin_transformer_ln_qkv/README.md">swin_transformer_ln_qkv</a></td>
     <td>√</td>
     <td>√</td>
     <td>×</td>
@@ -215,7 +215,7 @@
   </tr>
   <tr>
     <td>ffn</td>
-    <td><a href="../ffn/swin_transformer_ln_qkv_quant/README.md">swin_transformer_ln_qkv_quant</a></td>
+    <td><a href="../../ffn/swin_transformer_ln_qkv_quant/README.md">swin_transformer_ln_qkv_quant</a></td>
     <td>√</td>
     <td>√</td>
     <td>×</td>
@@ -225,7 +225,7 @@
   </tr>
   <tr>
     <td>gmm</td>
-    <td><a href="../gmm/grouped_matmul/README.md">grouped_matmul</a></td>
+    <td><a href="../../gmm/grouped_matmul/README.md">grouped_matmul</a></td>
     <td>√</td>
     <td>√</td>
     <td>√</td>
@@ -235,7 +235,7 @@
   </tr>
   <tr>
     <td>gmm</td>
-    <td><a href="../gmm/grouped_matmul_add/README.md">grouped_matmul_add</a></td>
+    <td><a href="../../gmm/grouped_matmul_add/README.md">grouped_matmul_add</a></td>
     <td>√</td>
     <td>√</td>
     <td>√</td>
@@ -245,7 +245,7 @@
   </tr>
   <tr>
     <td>gmm</td>
-    <td><a href="../gmm/grouped_matmul_finalize_routing/README.md">grouped_matmul_finalize_routing</a></td>
+    <td><a href="../../gmm/grouped_matmul_finalize_routing/README.md">grouped_matmul_finalize_routing</a></td>
     <td>√</td>
     <td>√</td>
     <td>√</td>
@@ -255,7 +255,7 @@
   </tr>
   <tr>
     <td>gmm</td>
-    <td><a href="../gmm/grouped_matmul_swiglu_quant/README.md">grouped_matmul_swiglu_quant</a></td>
+    <td><a href="../../gmm/grouped_matmul_swiglu_quant/README.md">grouped_matmul_swiglu_quant</a></td>
     <td>√</td>
     <td>√</td>
     <td>√</td>
@@ -265,7 +265,7 @@
   </tr>
   <tr>
     <td>gmm</td>
-    <td><a href="../gmm/quant_grouped_matmul_inplace_add/README.md">quant_grouped_matmul_inplace_add</a></td>
+    <td><a href="../../gmm/quant_grouped_matmul_inplace_add/README.md">quant_grouped_matmul_inplace_add</a></td>
     <td>√</td>
     <td>√</td>
     <td>√</td>
@@ -275,7 +275,7 @@
   </tr>
   <tr>
     <td>mc2</td>
-    <td><a href="../mc2/all_gather_matmul/README.md">all_gather_matmul</a></td>
+    <td><a href="../../mc2/all_gather_matmul/README.md">all_gather_matmul</a></td>
     <td>√</td>
     <td>√</td>
     <td>√</td>
@@ -285,7 +285,7 @@
   </tr>
   <tr>
     <td>mc2</td>
-    <td><a href="../mc2/allto_all_all_gather_batch_mat_mul/README.md">allto_all_all_gather_batch_mat_mul</a></td>
+    <td><a href="../../mc2/allto_all_all_gather_batch_mat_mul/README.md">allto_all_all_gather_batch_mat_mul</a></td>
     <td>√</td>
     <td>√</td>
     <td>√</td>
@@ -295,7 +295,7 @@
   </tr>
   <tr>
     <td>mc2</td>
-    <td><a href="../mc2/allto_allv_grouped_mat_mul/README.md">allto_allv_grouped_mat_mul</a></td>
+    <td><a href="../../mc2/allto_allv_grouped_mat_mul/README.md">allto_allv_grouped_mat_mul</a></td>
     <td>√</td>
     <td>√</td>
     <td>√</td>
@@ -305,7 +305,7 @@
   </tr>
   <tr>
     <td>mc2</td>
-    <td><a href="../mc2/batch_mat_mul_reduce_scatter_allto_all/README.md">pad_vbatch_mat_mul_reduce_scatter_allto_all4_grad</a></td>
+    <td><a href="../../mc2/batch_mat_mul_reduce_scatter_allto_all/README.md">pad_vbatch_mat_mul_reduce_scatter_allto_all4_grad</a></td>
     <td>√</td>
     <td>√</td>
     <td>√</td>
@@ -315,7 +315,7 @@
   </tr>
   <tr>
     <td>mc2</td>
-    <td><a href="../mc2/distribute_barrier/README.md">distribute_barrier</a></td>
+    <td><a href="../../mc2/distribute_barrier/README.md">distribute_barrier</a></td>
     <td>√</td>
     <td>√</td>
     <td>√</td>
@@ -325,7 +325,7 @@
   </tr>
   <tr>
     <td>mc2</td>
-    <td><a href="../mc2/elastic_receivable_info_collect/README.md">elastic_receivable_info_collect</a></td>
+    <td><a href="../../mc2/elastic_receivable_info_collect/README.md">elastic_receivable_info_collect</a></td>
     <td>√</td>
     <td>√</td>
     <td>√</td>
@@ -335,7 +335,7 @@
   </tr>
   <tr>
     <td>mc2</td>
-    <td><a href="../mc2/elastic_receivable_test/README.md">elastic_receivable_test</a></td>
+    <td><a href="../../mc2/elastic_receivable_test/README.md">elastic_receivable_test</a></td>
     <td>√</td>
     <td>√</td>
     <td>√</td>
@@ -345,7 +345,7 @@
   </tr>
   <tr>
     <td>mc2</td>
-    <td><a href="../mc2/grouped_mat_mul_all_reduce/README.md">grouped_mat_mul_all_reduce</a></td>
+    <td><a href="../../mc2/grouped_mat_mul_all_reduce/README.md">grouped_mat_mul_all_reduce</a></td>
     <td>√</td>
     <td>√</td>
     <td>√</td>
@@ -355,7 +355,7 @@
   </tr>
   <tr>
     <td>mc2</td>
-    <td><a href="../mc2/grouped_mat_mul_allto_allv/README.md">grouped_mat_mul_allto_allv</a></td>
+    <td><a href="../../mc2/grouped_mat_mul_allto_allv/README.md">grouped_mat_mul_allto_allv</a></td>
     <td>√</td>
     <td>√</td>
     <td>√</td>
@@ -365,7 +365,7 @@
   </tr>
   <tr>
     <td>mc2</td>
-    <td><a href="../mc2/inplace_matmul_all_reduce_add_rms_norm/README.md">inplace_matmul_all_reduce_add_rms_norm</a></td>
+    <td><a href="../../mc2/inplace_matmul_all_reduce_add_rms_norm/README.md">inplace_matmul_all_reduce_add_rms_norm</a></td>
     <td>√</td>
     <td>√</td>
     <td>√</td>
@@ -375,7 +375,7 @@
   </tr>
   <tr>
     <td>mc2</td>
-    <td><a href="../mc2/matmul_all_reduce/README.md">matmul_all_reduce</a></td>
+    <td><a href="../../mc2/matmul_all_reduce/README.md">matmul_all_reduce</a></td>
     <td>√</td>
     <td>√</td>
     <td>√</td>
@@ -385,7 +385,7 @@
   </tr>
   <tr>
     <td>mc2</td>
-    <td><a href="../mc2/matmul_all_reduce_add_rms_norm/README.md">matmul_all_reduce_add_rms_norm</a></td>
+    <td><a href="../../mc2/matmul_all_reduce_add_rms_norm/README.md">matmul_all_reduce_add_rms_norm</a></td>
     <td>√</td>
     <td>√</td>
     <td>√</td>
@@ -395,7 +395,7 @@
   </tr>
   <tr>
     <td>mc2</td>
-    <td><a href="../mc2/matmul_reduce_scatter/README.md">matmul_reduce_scatter</a></td>
+    <td><a href="../../mc2/matmul_reduce_scatter/README.md">matmul_reduce_scatter</a></td>
     <td>√</td>
     <td>√</td>
     <td>√</td>
@@ -405,7 +405,7 @@
   </tr>
   <tr>
     <td>mc2</td>
-    <td><a href="../mc2/moe_distribute_combine/README.md">moe_distribute_combine</a></td>
+    <td><a href="../../mc2/moe_distribute_combine/README.md">moe_distribute_combine</a></td>
     <td>√</td>
     <td>√</td>
     <td>√</td>
@@ -415,7 +415,7 @@
   </tr>
   <tr>
     <td>mc2</td>
-    <td><a href="../mc2/moe_distribute_combine_add_rms_norm/README.md">moe_distribute_combine_add_rms_norm</a></td>
+    <td><a href="../../mc2/moe_distribute_combine_add_rms_norm/README.md">moe_distribute_combine_add_rms_norm</a></td>
     <td>√</td>
     <td>√</td>
     <td>√</td>
@@ -425,7 +425,7 @@
   </tr>
   <tr>
     <td>mc2</td>
-    <td><a href="../mc2/moe_distribute_combine_v2/README.md">moe_distribute_combine_v2</a></td>
+    <td><a href="../../mc2/moe_distribute_combine_v2/README.md">moe_distribute_combine_v2</a></td>
     <td>√</td>
     <td>√</td>
     <td>√</td>
@@ -435,7 +435,7 @@
   </tr>
   <tr>
     <td>mc2</td>
-    <td><a href="../mc2/moe_distribute_dispatch/README.md">moe_distribute_dispatch</a></td>
+    <td><a href="../../mc2/moe_distribute_dispatch/README.md">moe_distribute_dispatch</a></td>
     <td>√</td>
     <td>√</td>
     <td>√</td>
@@ -445,7 +445,7 @@
   </tr>
   <tr>
     <td>mc2</td>
-    <td><a href="../mc2/moe_distribute_dispatch_v2/README.md">moe_distribute_dispatch_v2</a></td>
+    <td><a href="../../mc2/moe_distribute_dispatch_v2/README.md">moe_distribute_dispatch_v2</a></td>
     <td>√</td>
     <td>√</td>
     <td>√</td>
@@ -455,7 +455,7 @@
   </tr>
   <tr>
     <td>mc2</td>
-    <td><a href="../mc2/moe_distribute_buffer_reset/README.md">moe_distribute_buffer_reset</a></td>
+    <td><a href="../../mc2/moe_distribute_buffer_reset/README.md">moe_distribute_buffer_reset</a></td>
     <td>√</td>
     <td>√</td>
     <td>√</td>
@@ -465,7 +465,7 @@
   </tr>
   <tr>
     <td>mc2</td>
-    <td><a href="../mc2/moe_update_expert/README.md">moe_update_expert</a></td>
+    <td><a href="../../mc2/moe_update_expert/README.md">moe_update_expert</a></td>
     <td>√</td>
     <td>√</td>
     <td>√</td>
@@ -475,7 +475,7 @@
   </tr>
   <tr>
     <td>moe</td>
-    <td><a href="../moe/moe_compute_expert_tokens/README.md">moe_compute_expert_tokens</a></td>
+    <td><a href="../../moe/moe_compute_expert_tokens/README.md">moe_compute_expert_tokens</a></td>
     <td>√</td>
     <td>√</td>
     <td>×</td>
@@ -485,7 +485,7 @@
   </tr>
   <tr>
     <td>moe</td>
-    <td><a href="../moe/moe_finalize_routing/README.md">moe_finalize_routing</a></td>
+    <td><a href="../../moe/moe_finalize_routing/README.md">moe_finalize_routing</a></td>
     <td>√</td>
     <td>√</td>
     <td>×</td>
@@ -495,7 +495,7 @@
   </tr>
   <tr>
     <td>moe</td>
-    <td><a href="../moe/moe_finalize_routing_v2/README.md">moe_finalize_routing_v2</a></td>
+    <td><a href="../../moe/moe_finalize_routing_v2/README.md">moe_finalize_routing_v2</a></td>
     <td>√</td>
     <td>√</td>
     <td>√</td>
@@ -505,7 +505,7 @@
   </tr>
   <tr>
     <td>moe</td>
-    <td><a href="../moe/moe_finalize_routing_v2_grad/README.md">moe_finalize_routing_v2_grad</a></td>
+    <td><a href="../../moe/moe_finalize_routing_v2_grad/README.md">moe_finalize_routing_v2_grad</a></td>
     <td>√</td>
     <td>√</td>
     <td>√</td>
@@ -515,7 +515,7 @@
   </tr>
   <tr>
     <td>moe</td>
-    <td><a href="../moe/moe_gating_top_k/README.md">moe_gating_top_k</a></td>
+    <td><a href="../../moe/moe_gating_top_k/README.md">moe_gating_top_k</a></td>
     <td>√</td>
     <td>√</td>
     <td>×</td>
@@ -525,7 +525,7 @@
   </tr>
   <tr>
     <td>moe</td>
-    <td><a href="../moe/moe_gating_top_k_softmax/README.md">moe_gating_top_k_softmax</a></td>
+    <td><a href="../../moe/moe_gating_top_k_softmax/README.md">moe_gating_top_k_softmax</a></td>
     <td>√</td>
     <td>√</td>
     <td>×</td>
@@ -535,7 +535,7 @@
   </tr>
   <tr>
     <td>moe</td>
-    <td><a href="../moe/moe_gating_top_k_softmax_v2/README.md">moe_gating_top_k_softmax_v2</a></td>
+    <td><a href="../../moe/moe_gating_top_k_softmax_v2/README.md">moe_gating_top_k_softmax_v2</a></td>
     <td>√</td>
     <td>√</td>
     <td>×</td>
@@ -545,37 +545,37 @@
   </tr>
   <tr>
     <td>moe</td>
-    <td><a href="../moe/moe_init_routing/README.md">moe_init_routing</a></td>
+    <td><a href="../../moe/moe_init_routing/README.md">moe_init_routing</a></td>
     <td>√</td>
     <td>√</td>
     <td>×</td>
     <td>√</td>
     <td>AI Core</td>
-    <td>MoE的routing计算，根据<a href="../moe/moe_gating_top_k_softmax/docs/aclnnMoeGatingTopKSoftmax.md">aclnnMoeGatingTopKSoftmax</a>的计算结果做routing处理。</td>
+    <td>MoE的routing计算，根据<a href="../../moe/moe_gating_top_k_softmax/docs/aclnnMoeGatingTopKSoftmax.md">aclnnMoeGatingTopKSoftmax</a>的计算结果做routing处理。</td>
   </tr>
   <tr>
     <td>moe</td>
-    <td><a href="../moe/moe_init_routing_quant/README.md">moe_init_routing_quant</a></td>
+    <td><a href="../../moe/moe_init_routing_quant/README.md">moe_init_routing_quant</a></td>
     <td>√</td>
     <td>√</td>
     <td>×</td>
     <td>√</td>
     <td>AI Core</td>
-    <td>MoE的routing计算，根据<a href="../moe/moe_gating_top_k_softmax/docs/aclnnMoeGatingTopKSoftmax.md">aclnnMoeGatingTopKSoftmax</a>的计算结果做routing处理，并对结果进行量化。</td>
+    <td>MoE的routing计算，根据<a href="../../moe/moe_gating_top_k_softmax/docs/aclnnMoeGatingTopKSoftmax.md">aclnnMoeGatingTopKSoftmax</a>的计算结果做routing处理，并对结果进行量化。</td>
   </tr>
   <tr>
     <td>moe</td>
-    <td><a href="../moe/moe_init_routing_quant_v2/README.md">moe_init_routing_quant_v2</a></td>
+    <td><a href="../../moe/moe_init_routing_quant_v2/README.md">moe_init_routing_quant_v2</a></td>
     <td>√</td>
     <td>√</td>
     <td>×</td>
     <td>√</td>
     <td>AI Core</td>
-    <td>MoE的routing计算，根据<a href="../moe/moe_gating_top_k_softmax_v2/docs/aclnnMoeGatingTopKSoftmaxV2.md">aclnnMoeGatingTopKSoftmaxV2</a>的计算结果做routing处理。</td>
+    <td>MoE的routing计算，根据<a href="../../moe/moe_gating_top_k_softmax_v2/docs/aclnnMoeGatingTopKSoftmaxV2.md">aclnnMoeGatingTopKSoftmaxV2</a>的计算结果做routing处理。</td>
   </tr>
   <tr>
     <td>moe</td>
-    <td><a href="../moe/moe_init_routing_v2/README.md">moe_init_routing_v2</a></td>
+    <td><a href="../../moe/moe_init_routing_v2/README.md">moe_init_routing_v2</a></td>
     <td>√</td>
     <td>√</td>
     <td>√</td>
@@ -585,27 +585,27 @@
   </tr>
   <tr>
     <td>moe</td>
-    <td><a href="../moe/moe_init_routing_v2_grad/README.md">moe_init_routing_v2_grad</a></td>
+    <td><a href="../../moe/moe_init_routing_v2_grad/README.md">moe_init_routing_v2_grad</a></td>
     <td>√</td>
     <td>√</td>
     <td>√</td>
     <td>√</td>
     <td>AI Core</td>
-    <td><a href="../moe/moe_init_routing_v2/docs/aclnnMoeInitRoutingV2.md">aclnnMoeInitRoutingV2</a>的反向传播，完成tokens的加权求和。</td>
+    <td><a href="../../moe/moe_init_routing_v2/docs/aclnnMoeInitRoutingV2.md">aclnnMoeInitRoutingV2</a>的反向传播，完成tokens的加权求和。</td>
   </tr>
   <tr>
     <td>moe</td>
-    <td><a href="../moe/moe_init_routing_v3/README.md">moe_init_routing_v3</a></td>
+    <td><a href="../../moe/moe_init_routing_v3/README.md">moe_init_routing_v3</a></td>
     <td>√</td>
     <td>√</td>
     <td>√</td>
     <td>√</td>
     <td>AI Core</td>
-    <td>MoE的routing计算，根据<a href="../moe/moe_gating_top_k_softmax_v2/docs/aclnnMoeGatingTopKSoftmaxV2.md">aclnnMoeGatingTopKSoftmaxV2</a>的计算结果做routing处理，支持不量化和动态量化模式。</td>
+    <td>MoE的routing计算，根据<a href="../../moe/moe_gating_top_k_softmax_v2/docs/aclnnMoeGatingTopKSoftmaxV2.md">aclnnMoeGatingTopKSoftmaxV2</a>的计算结果做routing处理，支持不量化和动态量化模式。</td>
   </tr>
   <tr>
     <td>moe</td>
-    <td><a href="../moe/moe_re_routing/README.md">moe_re_routing</a></td>
+    <td><a href="../../moe/moe_re_routing/README.md">moe_re_routing</a></td>
     <td>√</td>
     <td>√</td>
     <td>×</td>
@@ -615,7 +615,7 @@
   </tr>
   <tr>
     <td>moe</td>
-    <td><a href="../moe/moe_token_permute/README.md">moe_token_permute</a></td>
+    <td><a href="../../moe/moe_token_permute/README.md">moe_token_permute</a></td>
     <td>√</td>
     <td>√</td>
     <td>√</td>
@@ -625,7 +625,7 @@
   </tr>
   <tr>
     <td>moe</td>
-    <td><a href="../moe/moe_token_permute_grad/README.md">moe_token_permute_grad</a></td>
+    <td><a href="../../moe/moe_token_permute_grad/README.md">moe_token_permute_grad</a></td>
     <td>√</td>
     <td>√</td>
     <td>√</td>
@@ -635,7 +635,7 @@
   </tr>
   <tr>
     <td>moe</td>
-    <td><a href="../moe/moe_token_permute_with_ep/README.md">moe_token_permute_with_ep</a></td>
+    <td><a href="../../moe/moe_token_permute_with_ep/README.md">moe_token_permute_with_ep</a></td>
     <td>√</td>
     <td>√</td>
     <td>×</td>
@@ -645,7 +645,7 @@
   </tr>
   <tr>
     <td>moe</td>
-    <td><a href="../moe/moe_token_permute_with_ep_grad/README.md">moe_token_permute_with_ep_grad</a></td>
+    <td><a href="../../moe/moe_token_permute_with_ep_grad/README.md">moe_token_permute_with_ep_grad</a></td>
     <td>√</td>
     <td>√</td>
     <td>×</td>
@@ -655,7 +655,7 @@
   </tr>
   <tr>
     <td>moe</td>
-    <td><a href="../moe/moe_token_permute_with_routing_map/README.md">moe_token_permute_with_routing_map</a></td>
+    <td><a href="../../moe/moe_token_permute_with_routing_map/README.md">moe_token_permute_with_routing_map</a></td>
     <td>√</td>
     <td>√</td>
     <td>√</td>
@@ -665,7 +665,7 @@
   </tr>
   <tr>
     <td>moe</td>
-    <td><a href="../moe/moe_token_permute_with_routing_map_grad/README.md">moe_token_permute_with_routing_map_grad</a></td>
+    <td><a href="../../moe/moe_token_permute_with_routing_map_grad/README.md">moe_token_permute_with_routing_map_grad</a></td>
     <td>√</td>
     <td>√</td>
     <td>√</td>
@@ -675,7 +675,7 @@
   </tr>
   <tr>
     <td>moe</td>
-    <td><a href="../moe/moe_token_unpermute/README.md">moe_token_unpermute</a></td>
+    <td><a href="../../moe/moe_token_unpermute/README.md">moe_token_unpermute</a></td>
     <td>√</td>
     <td>√</td>
     <td>√</td>
@@ -685,7 +685,7 @@
   </tr>
   <tr>
     <td>moe</td>
-    <td><a href="../moe/moe_token_unpermute_grad/README.md">moe_token_unpermute_grad</a></td>
+    <td><a href="../../moe/moe_token_unpermute_grad/README.md">moe_token_unpermute_grad</a></td>
     <td>√</td>
     <td>√</td>
     <td>√</td>
@@ -695,7 +695,7 @@
   </tr>
   <tr>
     <td>moe</td>
-    <td><a href="../moe/moe_token_unpermute_with_ep/README.md">moe_token_unpermute_with_ep</a></td>
+    <td><a href="../../moe/moe_token_unpermute_with_ep/README.md">moe_token_unpermute_with_ep</a></td>
     <td>√</td>
     <td>√</td>
     <td>×</td>
@@ -705,7 +705,7 @@
   </tr>
   <tr>
     <td>moe</td>
-    <td><a href="../moe/moe_token_unpermute_with_ep_grad/README.md">moe_token_unpermute_with_ep_grad</a></td>
+    <td><a href="../../moe/moe_token_unpermute_with_ep_grad/README.md">moe_token_unpermute_with_ep_grad</a></td>
     <td>√</td>
     <td>√</td>
     <td>×</td>
@@ -715,7 +715,7 @@
   </tr>
   <tr>
     <td>moe</td>
-    <td><a href="../moe/moe_token_unpermute_with_routing_map/README.md">moe_token_unpermute_with_routing_map</a></td>
+    <td><a href="../../moe/moe_token_unpermute_with_routing_map/README.md">moe_token_unpermute_with_routing_map</a></td>
     <td>√</td>
     <td>√</td>
     <td>√</td>
@@ -725,7 +725,7 @@
   </tr>
   <tr>
     <td>moe</td>
-    <td><a href="../moe/moe_token_unpermute_with_routing_map_grad/README.md">moe_token_unpermute_with_routing_map_grad</a></td>
+    <td><a href="../../moe/moe_token_unpermute_with_routing_map_grad/README.md">moe_token_unpermute_with_routing_map_grad</a></td>
     <td>√</td>
     <td>√</td>
     <td>×</td>
@@ -735,7 +735,7 @@
   </tr>
   <tr>
     <td>posembedding</td>
-    <td><a href="../posembedding/apply_rotary_pos_emb/README.md">apply_rotary_pos_emb</a></td>
+    <td><a href="../../posembedding/apply_rotary_pos_emb/README.md">apply_rotary_pos_emb</a></td>
     <td>√</td>
     <td>√</td>
     <td>√</td>
@@ -745,7 +745,7 @@
   </tr>
   <tr>
     <td>posembedding</td>
-    <td><a href="../posembedding/dequant_rope_quant_kvcache/README.md">dequant_rope_quant_kvcache</a></td>
+    <td><a href="../../posembedding/dequant_rope_quant_kvcache/README.md">dequant_rope_quant_kvcache</a></td>
     <td>√</td>
     <td>√</td>
     <td>×</td>
@@ -755,7 +755,7 @@
   </tr>
   <tr>
     <td>posembedding</td>
-    <td><a href="../posembedding/interleave_rope/README.md">interleave_rope</a></td>
+    <td><a href="../../posembedding/interleave_rope/README.md">interleave_rope</a></td>
     <td>√</td>
     <td>√</td>
     <td>√</td>
@@ -765,7 +765,7 @@
   </tr>
   <tr>
     <td>posembedding</td>
-    <td><a href="../posembedding/rope_quant_kvcache/README.md">rope_quant_kvcache</a></td>
+    <td><a href="../../posembedding/rope_quant_kvcache/README.md">rope_quant_kvcache</a></td>
     <td>√</td>
     <td>√</td>
     <td>×</td>
@@ -775,7 +775,7 @@
   </tr>
   <tr>
     <td>posembedding</td>
-    <td><a href="../posembedding/rope_with_sin_cos_cache/README.md">rope_with_sin_cos_cache</a></td>
+    <td><a href="../../posembedding/rope_with_sin_cos_cache/README.md">rope_with_sin_cos_cache</a></td>
     <td>√</td>
     <td>√</td>
     <td>√</td>
@@ -785,7 +785,7 @@
   </tr>
   <tr>
     <td>posembedding</td>
-    <td><a href="../posembedding/rotary_position_embedding/README.md">rotary_position_embedding</a></td>
+    <td><a href="../../posembedding/rotary_position_embedding/README.md">rotary_position_embedding</a></td>
     <td>√</td>
     <td>√</td>
     <td>√</td>
@@ -795,7 +795,7 @@
   </tr>
   <tr>
     <td>posembedding</td>
-    <td><a href="../posembedding/rotary_position_embedding_grad/README.md">rotary_position_embedding_grad</a></td>
+    <td><a href="../../posembedding/rotary_position_embedding_grad/README.md">rotary_position_embedding_grad</a></td>
     <td>√</td>
     <td>√</td>
     <td>×</td>

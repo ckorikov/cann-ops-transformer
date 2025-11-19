@@ -31,7 +31,7 @@
 
 ## 函数原型
 
-每个算子分为[两段式接口](common/两段式接口.md)，必须先调用 “aclnnMoeInitRoutingGetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnMoeInitRouting”接口执行计算。
+每个算子分为[两段式接口](../../../docs/zh/context/两段式接口.md)，必须先调用 “aclnnMoeInitRoutingGetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnMoeInitRouting”接口执行计算。
 
 * `aclnnStatus aclnnMoeInitRoutingGetWorkspaceSize(const aclTensor *x, const aclTensor *rowIdx, const aclTensor *expertIdx, int64_t activeNum, const aclTensor *expandedXOut, const aclTensor *expandedRowIdxOut, const aclTensor *expandedExpertIdxOut, uint64_t *workspaceSize, aclOpExecutor **executor)`
 * `aclnnStatus aclnnMoeInitRouting(void *workspace, uint64_t workspaceSize, aclOpExecutor *executor, aclrtStream stream)`
@@ -39,19 +39,19 @@
 ## aclnnMoeInitRoutingGetWorkspaceSize
 
 -   **参数说明**：
-    -   x（aclTensor\*，计算输入）：MOE的输入即token特征输入，要求为一个2D的Tensor，shape为 \(NUM\_ROWS, H\)，数据类型支持FLOAT16、BFLOAT16、FLOAT32，[数据格式](common/数据格式.md)要求为ND，支持[非连续的Tensor](common/非连续的Tensor.md)。
-    -   rowIdx（aclTensor\*，计算输入）：指示每个位置对应的原始行位置，shape要求与expertIdx 一致, 数值从0开始，沿着1维递增。数据类型支持int32，[数据格式](common/数据格式.md)要求为ND，支持[非连续的Tensor](common/非连续的Tensor.md)。
-    -   expertIdx （aclTensor\*，计算输入）：[aclnnMoeGatingTopKSoftmax](aclnnMoeGatingTopKSoftmax.md)的输出每一行特征对应的K个处理专家，要求是一个2D的shape \(NUM\_ROWS, K\)。数据类型支持int32，[数据格式](common/数据格式.md)要求为ND，支持[非连续的Tensor](common/非连续的Tensor.md)。
+    -   x（aclTensor\*，计算输入）：MOE的输入即token特征输入，要求为一个2D的Tensor，shape为 \(NUM\_ROWS, H\)，数据类型支持FLOAT16、BFLOAT16、FLOAT32，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND，支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)。
+    -   rowIdx（aclTensor\*，计算输入）：指示每个位置对应的原始行位置，shape要求与expertIdx 一致, 数值从0开始，沿着1维递增。数据类型支持int32，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND，支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)。
+    -   expertIdx （aclTensor\*，计算输入）：[aclnnMoeGatingTopKSoftmax](aclnnMoeGatingTopKSoftmax.md)的输出每一行特征对应的K个处理专家，要求是一个2D的shape \(NUM\_ROWS, K\)。数据类型支持int32，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND，支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)。
     -   activeNum（int64\_t，计算输入）：表示总的最大处理row数且大于等于0，expandedXOut只有这么多行是有效的。
-    -   expandedXOut（aclTensor\*，计算输出）：根据expertIdx进行扩展过的特征，要求是一个2D的Tensor，shape \(min\(NUM\_ROWS, activeNum\) \* k, H\)。数据类型同x，支持FLOAT16、BFLOAT16、FLOAT32，[数据格式](common/数据格式.md)要求为ND，不支持[非连续的Tensor](common/非连续的Tensor.md)。
-    -   expandedRowIdxOut（aclTensor\*，计算输出）：expandedX和x的映射关系， 要求是一个1D的Tensor，Shape为\(NUM\_ROWS\*K, \)，数据类型支持int32，[数据格式](common/数据格式.md)要求为ND，不支持[非连续的Tensor](common/非连续的Tensor.md)。
-    -   expandedExpertIdxOut（aclTensor\*，计算输出）：输出expertIdx排序后的结果，数据类型支持int32，[数据格式](common/数据格式.md)要求为ND，不支持[非连续的Tensor](common/非连续的Tensor.md)。
+    -   expandedXOut（aclTensor\*，计算输出）：根据expertIdx进行扩展过的特征，要求是一个2D的Tensor，shape \(min\(NUM\_ROWS, activeNum\) \* k, H\)。数据类型同x，支持FLOAT16、BFLOAT16、FLOAT32，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND，不支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)。
+    -   expandedRowIdxOut（aclTensor\*，计算输出）：expandedX和x的映射关系， 要求是一个1D的Tensor，Shape为\(NUM\_ROWS\*K, \)，数据类型支持int32，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND，不支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)。
+    -   expandedExpertIdxOut（aclTensor\*，计算输出）：输出expertIdx排序后的结果，数据类型支持int32，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND，不支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)。
     -   workspaceSize（uint64\_t\*，出参）：返回需要在Device侧申请的workspace大小。
     -   executor（aclOpExecutor\*\*，出参）：返回op执行器，包含了算子计算流程。
 
 -   **返回值**
 
-    返回aclnnStatus状态码，具体参见[aclnn返回码](common/aclnn返回码.md)。
+    返回aclnnStatus状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
     ```
     第一段接口完成入参校验，出现以下场景时报错:
     161001(ACLNN_ERR_PARAM_NULLPTR): 1. 输入和输出的Tensor是空指针。
@@ -73,7 +73,7 @@
 
 -   **返回值：**
 
-    返回aclnnStatus状态码，具体参见[aclnn返回码](common/aclnn返回码.md)。
+    返回aclnnStatus状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
 
 ## 约束说明
 
@@ -81,7 +81,7 @@
 
 ## 调用示例
 
-示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](common/编译与运行样例.md)。
+示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](../../../docs/zh/context/编译与运行样例.md)。
 
 ```Cpp
 #include "acl/acl.h"

@@ -25,7 +25,7 @@
 
 ## 函数原型
 
-每个算子分为[两段式接口](common/两段式接口.md)，必须先调用“aclnnGroupedMatmulAddGetWorkspaceSize”接口获取入参并根据计算流程计算所需workspace大小，再调用“aclnnGroupedMatmulAdd”接口执行计算。
+每个算子分为[两段式接口](../../../docs/zh/context/两段式接口.md)，必须先调用“aclnnGroupedMatmulAddGetWorkspaceSize”接口获取入参并根据计算流程计算所需workspace大小，再调用“aclnnGroupedMatmulAdd”接口执行计算。
 
 - `aclnnStatus aclnnGroupedMatmulAddGetWorkspaceSize(const aclTensor *x, const aclTensor *weight, const aclTensor *groupList, aclTensor *yRef, bool transposeX, bool transposeWeight, int64_t groupType, uint64_t *workspaceSize, aclOpExecutor **executor)`
 - `aclnnStatus aclnnGroupedMatmulAdd(void *workspace, uint64_t workspaceSize, aclOpExecutor *executor, aclrtStream stream)`
@@ -34,11 +34,11 @@
 
 - **参数说明：**
 
-  - x（aclTensor\*，计算输入）：表示输入，Device侧的aclTensor类型，公式中的输入x，x必须转置，[数据格式](common/数据格式.md)支持ND，支持[非连续的Tensor](common/非连续的Tensor.md)，不支持空Tensor，数据类型支持FLOAT16、BFLOAT16。
-  - weight（aclTensor\*，计算输入）：表示权重，Device侧的aclTensor类型，公式中的weight，weight不支持转置，[数据格式](common/数据格式.md)支持ND，支持[非连续的Tensor](common/非连续的Tensor.md)，不支持空Tensor，数据类型支持FLOAT16、BFLOAT16。
-  - groupList（aclTensor\*，计算输入）：表示输入K轴方向的matmul大小分布的cumsum结果（累积和），必须为非负单调非递减数列，Device侧的aclTensor类型，数据类型支持INT64，[数据格式](common/数据格式.md)支持ND。
-  - y（aclTensor\*，计算输入）：表示原地累加的输入矩阵，Device侧的aclTensor类型，公式中的y，[数据格式](common/数据格式.md)支持ND，数据类型支持FLOAT32。
-  - yRef（aclTensor\*，计算输出）：表示原地累加的输入矩阵y的引用（与y完全相同），Device侧的aclTensor类型，公式中的yRef，[数据格式](common/数据格式.md)支持ND，数据类型支持FLOAT32。
+  - x（aclTensor\*，计算输入）：表示输入，Device侧的aclTensor类型，公式中的输入x，x必须转置，[数据格式](../../../docs/zh/context/数据格式.md)支持ND，支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)，不支持空Tensor，数据类型支持FLOAT16、BFLOAT16。
+  - weight（aclTensor\*，计算输入）：表示权重，Device侧的aclTensor类型，公式中的weight，weight不支持转置，[数据格式](../../../docs/zh/context/数据格式.md)支持ND，支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)，不支持空Tensor，数据类型支持FLOAT16、BFLOAT16。
+  - groupList（aclTensor\*，计算输入）：表示输入K轴方向的matmul大小分布的cumsum结果（累积和），必须为非负单调非递减数列，Device侧的aclTensor类型，数据类型支持INT64，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。
+  - y（aclTensor\*，计算输入）：表示原地累加的输入矩阵，Device侧的aclTensor类型，公式中的y，[数据格式](../../../docs/zh/context/数据格式.md)支持ND，数据类型支持FLOAT32。
+  - yRef（aclTensor\*，计算输出）：表示原地累加的输入矩阵y的引用（与y完全相同），Device侧的aclTensor类型，公式中的yRef，[数据格式](../../../docs/zh/context/数据格式.md)支持ND，数据类型支持FLOAT32。
   - transposeX（bool，计算输入）：表示x矩阵是否转置，Host侧的布尔值，当前仅支持True。
   - transposeWeight（bool，计算输入）：表示weight矩阵是否转置，Host侧的布尔值，当前仅支持False。
   - groupType(int64\_t，计算输入)：表示分组类型，Host侧的整型，当前仅支持2（K轴分组）。
@@ -46,7 +46,7 @@
   - executor（aclOpExecutor\*\*，出参）：返回op执行器，包含了算子计算流程。
 - **返回值：**
 
-  返回aclnnStatus状态码，具体参见[aclnn返回码](common/aclnn返回码.md)。
+  返回aclnnStatus状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
 
 ## aclnnGroupedMatmulAdd
 
@@ -58,7 +58,7 @@
   - stream（aclrtStream，入参）：指定执行任务的Stream。
 - **返回值：**
 
-    返回aclnnStatus状态码，具体参见[aclnn返回码](common/aclnn返回码.md)。
+    返回aclnnStatus状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
 
     ```
     第一段接口完成入参校验，出现以下场景时报错：
@@ -79,7 +79,7 @@
 
 - aclnn单算子调用方式
 
-  通过aclnn单算子调用示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](common/编译与运行样例.md)。
+  通过aclnn单算子调用示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](../../../docs/zh/context/编译与运行样例.md)。
 
 ```c++
 #include <iostream>

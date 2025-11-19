@@ -45,7 +45,7 @@
 
 ## 函数原型
 
-每个算子分为[两段式接口](../../../docs/context/两段式接口.md)，必须先调用“aclnnMoeFusedTopkGetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnMoeFusedTopk”接口执行计算。
+每个算子分为[两段式接口](../../../docs/zh/context/两段式接口.md)，必须先调用“aclnnMoeFusedTopkGetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnMoeFusedTopk”接口执行计算。
 
 - `aclnnMoeFusedTopkGetWorkspaceSize(const aclTensor* x, const aclTensor* addNum, const aclTensor* mappingNum, const aclTensor* mappingTable, uint32_t groupNum, uint32_t groupTopk, uint32_t topN, uint32_t topK, uint32_t activateType, bool isNorm, float scale, bool enableExpertMapping, aclTensor* y, aclTensor* indices, uint64_t* workspaceSize, aclOpExecutor** executor)`
 
@@ -54,10 +54,10 @@
 ## aclnnMoeFusedTopkGetWorkspaceSize
 
 - **参数说明**：
-  - x（aclTensor\*，计算输入）：Device侧的aclTensor，每个token对应各个专家的分数，shape为(numToken, expertNum)，数据类型支持FLOAT16、BFLOAT16、FLOAT32，[数据格式](../../../docs/context/数据格式.md)要求为ND，支持[非连续的Tensor](../../../docs/context/非连续的Tensor.md)。
-  - addNum（aclTensor\*，计算输入）：Device侧的aclTensor，与输入x进行计算的偏置值，shape为(expertNum)，数据类型要求与`x`一致，[数据格式](../../../docs/context/数据格式.md)要求为ND，支持[非连续的Tensor](../../../docs/context/非连续的Tensor.md)。
-  - mappingNum（aclTensor\*，计算输入）：Device侧的aclTensor，`enableExpertMapping`为false时不启用，shape为(expertNum)，每个物理专家被实际映射到的逻辑专家数量，数据类型支持INT32，[数据格式](../../../docs/context/数据格式.md)要求为ND，支持[非连续的Tensor](../../../docs/context/非连续的Tensor.md)。
-  - mappingTable（aclTensor\*，计算输入）：Device侧的aclTensor，`enableExpertMapping`为false时不启用，shape为(expertNum, maxMappingNum)，每个物理专家/逻辑专家映射表，maxMappingNum小于等于128，数据类型支持INT32，[数据格式](../../../docs/context/数据格式.md)要求为ND，支持[非连续的Tensor](../../../docs/context/非连续的Tensor.md)。
+  - x（aclTensor\*，计算输入）：Device侧的aclTensor，每个token对应各个专家的分数，shape为(numToken, expertNum)，数据类型支持FLOAT16、BFLOAT16、FLOAT32，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND，支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)。
+  - addNum（aclTensor\*，计算输入）：Device侧的aclTensor，与输入x进行计算的偏置值，shape为(expertNum)，数据类型要求与`x`一致，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND，支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)。
+  - mappingNum（aclTensor\*，计算输入）：Device侧的aclTensor，`enableExpertMapping`为false时不启用，shape为(expertNum)，每个物理专家被实际映射到的逻辑专家数量，数据类型支持INT32，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND，支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)。
+  - mappingTable（aclTensor\*，计算输入）：Device侧的aclTensor，`enableExpertMapping`为false时不启用，shape为(expertNum, maxMappingNum)，每个物理专家/逻辑专家映射表，maxMappingNum小于等于128，数据类型支持INT32，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND，支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)。
   - groupNum (uint32_t，计算输入)：分组数量，必须大于0。
   - groupTopk (uint32_t，计算输入)：被选择的组的数量，必须大于0。
   - topN (uint32_t，计算输入)：组内选取的用于求和的专家数量，必须大于0。
@@ -66,14 +66,14 @@
   - isNorm (bool，计算输入)：是否对输出进行归一化。
   - scale (float，计算输入)：归一化后的系数乘。
   - enableExpertMapping (bool，计算输入)：是否使能物理专家到逻辑专家的映射。
-  - y (aclTensor\*，计算输出)：Device侧的aclTensor，shape为(numToken, topK)，数据类型支持FLOAT32，[数据格式](../../../docs/context/数据格式.md)要求为ND，支持[非连续的Tensor](../../../docs/context/非连续的Tensor.md)。
-  - indices (aclTensor\*，计算输出)：Device侧的aclTensor，shape为(numToken, topK)，数据类型支持INT32，[数据格式](../../../docs/context/数据格式.md)要求为ND，支持[非连续的Tensor](../../../docs/context/非连续的Tensor.md)。
+  - y (aclTensor\*，计算输出)：Device侧的aclTensor，shape为(numToken, topK)，数据类型支持FLOAT32，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND，支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)。
+  - indices (aclTensor\*，计算输出)：Device侧的aclTensor，shape为(numToken, topK)，数据类型支持INT32，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND，支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)。
   - workspaceSize（uint64_t\*，出参）：返回需要在Device侧申请的workspace大小。
   - executor（aclOpExecutor\*\*，出参）：返回op执行器，包含了算子计算流程。
 
 - **返回值**：
 
-  aclnnStatus：返回状态码，具体参见[aclnn返回码](../../../docs/context/aclnn返回码.md)。
+  aclnnStatus：返回状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
 
   ```
   第一段接口完成入参校验，出现以下场景时报错：
@@ -96,7 +96,7 @@
 
 - **返回值：**
 
-  aclnnStatus：返回状态码，具体参见[aclnn返回码](../../../docs/context/aclnn返回码.md)。
+  aclnnStatus：返回状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
 
 ## 约束说明
 - expertNum必须为groupNum的整数倍。
@@ -108,7 +108,7 @@
 - groupNum小于等于256。
 
 ## 调用示例
-示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](../../../docs/context/编译与运行样例.md)。
+示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](../../../docs/zh/context/编译与运行样例.md)。
 ```Cpp
 #include <iostream>
 #include <memory>

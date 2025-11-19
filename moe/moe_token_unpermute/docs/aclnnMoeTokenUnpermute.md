@@ -49,7 +49,7 @@
 
 ## 函数原型
 
-每个算子分为[两段式接口](common/两段式接口.md)，必须先调用“aclnnMoeTokenUnpermuteGetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnMoeTokenUnpermute”接口执行计算。
+每个算子分为[两段式接口](../../../docs/zh/context/两段式接口.md)，必须先调用“aclnnMoeTokenUnpermuteGetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnMoeTokenUnpermute”接口执行计算。
 
 * `aclnnStatus aclnnMoeTokenUnpermuteGetWorkspaceSize(const aclTensor *permutedTokens, const aclTensor *sortedIndices, const aclTensor *probsOptional, bool paddedMode, const aclIntArray *restoreShapeOptional, aclTensor *out, uint64_t *workspaceSize, aclOpExecutor **executor)`
 
@@ -58,17 +58,17 @@
 ## aclnnMoeTokenUnpermuteGetWorkspaceSize
 
 -   **参数说明：**
-    -   permutedTokens（aclTensor*，计算输入）：输入数据。shape为（tokens_num * topK_num，hidden_size）。支持的数据类型BFLOAT16、FLOAT16、FLOAT32。[数据格式](common/数据格式.md)支持ND。支持非连续输入。
+    -   permutedTokens（aclTensor*，计算输入）：输入数据。shape为（tokens_num * topK_num，hidden_size）。支持的数据类型BFLOAT16、FLOAT16、FLOAT32。[数据格式](../../../docs/zh/context/数据格式.md)支持ND。支持非连续输入。
 
-    -   sortedIndices（aclTensor*，计算输入）：表示需要计算的数据在permutedTokens中的位置。shape为（tokens_num * topK_num），取值范围是[0, tokens_num \* topK_num - 1]，且没有重复索引。支持的数据类型int32，[数据格式](common/数据格式.md)支持ND。支持非连续输入。
+    -   sortedIndices（aclTensor*，计算输入）：表示需要计算的数据在permutedTokens中的位置。shape为（tokens_num * topK_num），取值范围是[0, tokens_num \* topK_num - 1]，且没有重复索引。支持的数据类型int32，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。支持非连续输入。
 
-    -   probsOptional（aclTensor*，可选计算输入）：可选输入。当probs传时，topK_num等于probs的第二维；当probs不传时，topK_num=1。shape为（tokens_num，topK_num），支持的数据类型BFLOAT16、FLOAT16、FLOAT32。[数据格式](common/数据格式.md)支持ND。支持非连续输入。
+    -   probsOptional（aclTensor*，可选计算输入）：可选输入。当probs传时，topK_num等于probs的第二维；当probs不传时，topK_num=1。shape为（tokens_num，topK_num），支持的数据类型BFLOAT16、FLOAT16、FLOAT32。[数据格式](../../../docs/zh/context/数据格式.md)支持ND。支持非连续输入。
 
     -   paddedMode（bool，计算输入）：true表示开启paddedMode，false表示关闭paddedMode，paddedMode解释见restoreShapeOptional参数。目前仅支持false。
 
     -   restoreShapeOptional（aclIntArray*，计算输入）：paddedMode=true时生效，否则不会对其进行操作。paddedMode=true时，out的shape将表征为restoreShapeOptional。目前仅支持nullptr。
 
-    -   out（aclTensor*，计算输出）：输出结果。paddedMode=false时，shape为（tokens_num，hidden_size）。paddedMode=true时，shape与restoreShapeOptional保持一致。数据类型同permutedTokens，支持BFLOAT16、FLOAT16、FLOAT32。[数据格式](common/数据格式.md)支持ND。不支持非连续输出。
+    -   out（aclTensor*，计算输出）：输出结果。paddedMode=false时，shape为（tokens_num，hidden_size）。paddedMode=true时，shape与restoreShapeOptional保持一致。数据类型同permutedTokens，支持BFLOAT16、FLOAT16、FLOAT32。[数据格式](../../../docs/zh/context/数据格式.md)支持ND。不支持非连续输出。
 
     -   workspaceSize（uint64\_t\*，出参）：返回需要在Device侧申请的workspace大小。
 
@@ -76,7 +76,7 @@
 
 -   **返回值：**
 
-    返回aclnnStatus状态码，具体参见[aclnn返回码](common/aclnn返回码.md)。
+    返回aclnnStatus状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
     ```
     第一段接口完成入参校验，出现以下场景时报错：
     161001(ACLNN_ERR_PARAM_NULLPTR): 1. 输入和输出的Tensor是空指针。
@@ -93,7 +93,7 @@
 
 -   **返回值：**
 
-    返回aclnnStatus状态码，具体参见[aclnn返回码](common/aclnn返回码.md)。
+    返回aclnnStatus状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
 
 ## 约束说明
 
@@ -112,7 +112,7 @@
 
 ## 调用示例
 
-示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](common/编译与运行样例.md)。
+示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](../../../docs/zh/context/编译与运行样例.md)。
 
 ```Cpp
 

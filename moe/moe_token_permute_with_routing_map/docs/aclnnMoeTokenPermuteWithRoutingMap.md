@@ -87,7 +87,7 @@
 
 ## 函数原型
 
-每个算子分为[两段式接口](common/两段式接口.md)，必须先调用 “aclnnMoeTokenPermuteWithRoutingMapGetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnMoeTokenPermuteWithRoutingMap”接口执行计算。
+每个算子分为[两段式接口](../../../docs/zh/context/两段式接口.md)，必须先调用 “aclnnMoeTokenPermuteWithRoutingMapGetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnMoeTokenPermuteWithRoutingMap”接口执行计算。
 
 * `aclnnStatus aclnnMoeTokenPermuteWithRoutingMapGetWorkspaceSize(const aclTensor *tokens, const aclTensor *routingMap, const aclTensor *probsOptional,  int64_t numOutTokens,  bool dropAndPad, aclTensor *permuteTokensOut, aclTensor *permuteProbsOutOptional, aclTensor *sortedIndicesOut, uint64_t *workspaceSize, aclOpExecutor **executor)`
 * `aclnnStatus aclnnMoeTokenPermuteWithRoutingMap(void *workspace, uint64_t workspaceSize, aclOpExecutor *executor, aclrtStream stream)`
@@ -95,19 +95,19 @@
 
 - **参数说明：**
   
-  - tokens（aclTensor \*，计算输入）：Device侧的aclTensor，输入token，公式中的tokens，要求为一个维度为2D的Tensor，shape为 \(tokens\_num, hidden\_size)，数据类型支持BFLOAT16，FLOAT16，FLOAT，[数据格式](common/数据格式.md)要求为ND。支持[非连续的Tensor](common/非连续的Tensor.md)。
-  - routingMap（aclTensor \*，计算输入）：Device侧的aclTensor，公式中的routingMap，代表token到expert的映射关系，要求shape为一个2D的（tokens_num，experts_num），数据类型支持INT8、BOOL。当数据类型为INT8，取值支持0、1，当数据类型为bool，取值支持true、false，[数据格式](common/数据格式.md)要求为ND。支持[非连续的Tensor](common/非连续的Tensor.md)。非droppad模式要求每行中包含topK个true 或 1。
-  - probsOptional（aclTensor \*，计算输入）：Device侧的aclTensor，可选输入probsOptional，公式中的probsOptional，要求元素个数与routingMap相同，当probsOptional为空时，可选输出permuteProbsOutOptional为空，数据类型同tokens。[数据格式](common/数据格式.md)要求为ND。支持[非连续的Tensor](common/非连续的Tensor.md)。
+  - tokens（aclTensor \*，计算输入）：Device侧的aclTensor，输入token，公式中的tokens，要求为一个维度为2D的Tensor，shape为 \(tokens\_num, hidden\_size)，数据类型支持BFLOAT16，FLOAT16，FLOAT，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND。支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)。
+  - routingMap（aclTensor \*，计算输入）：Device侧的aclTensor，公式中的routingMap，代表token到expert的映射关系，要求shape为一个2D的（tokens_num，experts_num），数据类型支持INT8、BOOL。当数据类型为INT8，取值支持0、1，当数据类型为bool，取值支持true、false，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND。支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)。非droppad模式要求每行中包含topK个true 或 1。
+  - probsOptional（aclTensor \*，计算输入）：Device侧的aclTensor，可选输入probsOptional，公式中的probsOptional，要求元素个数与routingMap相同，当probsOptional为空时，可选输出permuteProbsOutOptional为空，数据类型同tokens。[数据格式](../../../docs/zh/context/数据格式.md)要求为ND。支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)。
   - numOutTokens（int64\_t，计算输入）：公式中的numOutTokens，用于计算公式中topK 和capacity 的有效输出token数。
   - dropAndPad（bool，计算输入）：公式中的dropAndPad，表示是否开启dropAndPad模式。
-  - permutedTokensOut（aclTensor \*，计算输出）：Device侧的aclTensor，公式中的permutedTokensOut，根据indices进行扩展并排序筛选过的tokens，要求是一个2D的Tensor，shape为\(outToken, hidden\_size)，即公式中的outToken。数据类型同tokens，[数据格式](common/数据格式.md)要求为ND。支持[非连续的Tensor](common/非连续的Tensor.md)。
-  - sortedIndicesOut（aclTensor \*，计算输出）：Device侧的aclTensor，公式中的sortedIndicesOut，permute_tokens和tokens的映射关系， 要求是一个1D的Tensor，Shape为\(outToken\)，即公式中的outToken，数据类型支持INT32，[数据格式](common/数据格式.md)要求为ND。支持[非连续的Tensor](common/非连续的Tensor.md)。
-  - permuteProbsOutOptional（aclTensor \*，计算输出）：Device侧的aclTensor，公式中的permuteProbsOutOptional，根据indices进行排序并筛选过的probsOptional，Shape为\(outToken\)，即公式中的outToken，数据类型同probsOptional，[数据格式](common/数据格式.md)要求为ND。支持[非连续的Tensor](common/非连续的Tensor.md)。
+  - permutedTokensOut（aclTensor \*，计算输出）：Device侧的aclTensor，公式中的permutedTokensOut，根据indices进行扩展并排序筛选过的tokens，要求是一个2D的Tensor，shape为\(outToken, hidden\_size)，即公式中的outToken。数据类型同tokens，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND。支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)。
+  - sortedIndicesOut（aclTensor \*，计算输出）：Device侧的aclTensor，公式中的sortedIndicesOut，permute_tokens和tokens的映射关系， 要求是一个1D的Tensor，Shape为\(outToken\)，即公式中的outToken，数据类型支持INT32，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND。支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)。
+  - permuteProbsOutOptional（aclTensor \*，计算输出）：Device侧的aclTensor，公式中的permuteProbsOutOptional，根据indices进行排序并筛选过的probsOptional，Shape为\(outToken\)，即公式中的outToken，数据类型同probsOptional，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND。支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)。
   - workspaceSize（uint64\_t \*，出参）：返回用户需要在Device侧申请的workspace大小。
   - executor（aclOpExecutor \*\*，出参）：返回op执行器，包含了算子计算流程。
 - **返回值：**
   
-  aclnnStatus：返回状态码，具体参见[aclnn返回码](common/aclnn返回码.md)。
+  aclnnStatus：返回状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
 
   
   ```
@@ -137,7 +137,7 @@ tokens_num和experts_num要求小于`16777215`，pad模式为false时routingMap 
 
 ## 调用示例
 
-示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](common/编译与运行样例.md)。
+示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](../../../docs/zh/context/编译与运行样例.md)。
 
 ```Cpp
 #include "acl/acl.h"

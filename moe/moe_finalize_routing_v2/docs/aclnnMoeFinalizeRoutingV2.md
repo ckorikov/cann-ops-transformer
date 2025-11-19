@@ -27,7 +27,7 @@
 
 ## 函数原型
 
-每个算子分为[两段式接口](common/两段式接口.md)，必须先调用“aclnnMoeFinalizeRoutingV2GetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnMoeFinalizeRoutingV2”接口执行计算。
+每个算子分为[两段式接口](../../../docs/zh/context/两段式接口.md)，必须先调用“aclnnMoeFinalizeRoutingV2GetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnMoeFinalizeRoutingV2”接口执行计算。
 
 * `aclnnStatus aclnnMoeFinalizeRoutingV2GetWorkspaceSize(const aclTensor* expandedX, const aclTensor* expandedRowIdx, const aclTensor* x1Optional, const aclTensor* x2Optional, const aclTensor* biasOptional, const aclTensor* scalesOptional,const aclTensor* expertIdxOptional, int64_t dropPadMode, const aclTensor* out, uint64_t* workspaceSize, aclOpExecutor** executor)`
 * `aclnnStatus aclnnMoeFinalizeRoutingV2(void* workspace, uint64_t workspaceSize, aclOpExecutor* executor, aclrtStream stream)`
@@ -35,25 +35,25 @@
 ## aclnnMoeFinalizeRoutingV2GetWorkspaceSize
 
 -   **参数说明：**
-    -   expandedX （aclTensor\*，计算输入）：Device侧的aclTensor，公式中的expandedX ，MoE的FFN输出，要求是一个2D/3D的Tensor，数据类型支持FLOAT16、BFLOAT16、FLOAT32，[数据格式](common/数据格式.md)要求为ND，支持[非连续的Tensor](common/非连续的Tensor.md)。限制：drop less 场景shape为（NUM\_ROWS \* K, H）drop pad场景shape为（E, C, H）。NUM\_ROWS为行数；K: 为从总的专家E中选出K个专家；H: hidden size，即每个token序列长度，为列数；E: expert num，即专家数，E需要大于等于K；C: expert capacity，表示专家处理token数量的能力阈值。
+    -   expandedX （aclTensor\*，计算输入）：Device侧的aclTensor，公式中的expandedX ，MoE的FFN输出，要求是一个2D/3D的Tensor，数据类型支持FLOAT16、BFLOAT16、FLOAT32，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND，支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)。限制：drop less 场景shape为（NUM\_ROWS \* K, H）drop pad场景shape为（E, C, H）。NUM\_ROWS为行数；K: 为从总的专家E中选出K个专家；H: hidden size，即每个token序列长度，为列数；E: expert num，即专家数，E需要大于等于K；C: expert capacity，表示专家处理token数量的能力阈值。
         - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>、<term>昇腾910_95 AI处理器</term>：要求是一个2D/3D的Tensor，支持的数据类型为FLOAT16、BFLOAT16、FLOAT32，支持drop less和drop pad场景。
         - <term>Atlas 推理系列产品 </term>：要求是一个2D的Tensor，数据类型支持FLOAT16、FLOAT32，shape要求尾轴H为32对齐。
-    -   expandedRowIdx（aclTensor\*，计算输入）：Device侧的aclTensor，公式中的expandedRowIdx，要求是一个1D的Tensor，数据类型支持INT32, [数据格式](common/数据格式.md)要求为ND，支持[非连续的Tensor](common/非连续的Tensor.md)。限制：其shape支持（NUM\_ROWS \* K），dropPadMode参数值为0、2时，Tensor中的值取值范围是[0,NUM\_ROWS \* K-1]; dropPadMode参数值为1、3时，Tensor中的值取值范围是[-1, E\*C - 1]。
+    -   expandedRowIdx（aclTensor\*，计算输入）：Device侧的aclTensor，公式中的expandedRowIdx，要求是一个1D的Tensor，数据类型支持INT32, [数据格式](../../../docs/zh/context/数据格式.md)要求为ND，支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)。限制：其shape支持（NUM\_ROWS \* K），dropPadMode参数值为0、2时，Tensor中的值取值范围是[0,NUM\_ROWS \* K-1]; dropPadMode参数值为1、3时，Tensor中的值取值范围是[-1, E\*C - 1]。
     -   x1Optional（aclTensor\*，可选计算输入）：Device侧的aclTensor，公式中的x1。
-        - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>、<term>昇腾910_95 AI处理器</term>：要求是一个2D的Tensor，数据类型要求与expandedX一致，shape要求与out的shape一致，[数据格式](common/数据格式.md)要求为ND，支持[非连续的Tensor](common/非连续的Tensor.md)。
+        - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>、<term>昇腾910_95 AI处理器</term>：要求是一个2D的Tensor，数据类型要求与expandedX一致，shape要求与out的shape一致，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND，支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)。
         - <term>Atlas 推理系列产品 </term>：仅支持传入nullptr。
     -   x2Optional（aclTensor\*，可选计算输入）：Device侧的aclTensor，公式中的x2。
-        - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>、<term>昇腾910_95 AI处理器</term>：要求是一个2D的Tensor，数据类型要求与expandedX一致，shape要求与out的shape一致，[数据格式](common/数据格式.md)要求为ND，支持[非连续的Tensor](common/非连续的Tensor.md)。在x1Optional参数未输入的情况下，x2Optional参数也不能输入
+        - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>、<term>昇腾910_95 AI处理器</term>：要求是一个2D的Tensor，数据类型要求与expandedX一致，shape要求与out的shape一致，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND，支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)。在x1Optional参数未输入的情况下，x2Optional参数也不能输入
         - <term>Atlas 推理系列产品 </term>：仅支持传入nullptr。
     -   biasOptional（aclTensor\*，可选计算输入）：Device侧的aclTensor，公式中的bias。
-        - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>、<term>昇腾910_95 AI处理器</term>：要求是一个2D的Tensor，数据类型要求与expandedX一致，[数据格式](common/数据格式.md)要求为ND，支持[非连续的Tensor](common/非连续的Tensor.md)。限制：其shape支持（E，H）。
+        - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>、<term>昇腾910_95 AI处理器</term>：要求是一个2D的Tensor，数据类型要求与expandedX一致，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND，支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)。限制：其shape支持（E，H）。
         - <term>Atlas 推理系列产品 </term>：仅支持传入nullptr。
-    -   scalesOptional（aclTensor\*，可选计算输入）：Device侧的aclTensor，公式中的scales，要求是一个2D的Tensor，数据类型支持FLOAT16、BFLOAT16、FLOAT32，[数据格式](common/数据格式.md)要求为ND，支持[非连续的Tensor](common/非连续的Tensor.md)。限制：其shape支持（NUM\_ROWS，K），scalesOptional 不存在时，K为1。
+    -   scalesOptional（aclTensor\*，可选计算输入）：Device侧的aclTensor，公式中的scales，要求是一个2D的Tensor，数据类型支持FLOAT16、BFLOAT16、FLOAT32，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND，支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)。限制：其shape支持（NUM\_ROWS，K），scalesOptional 不存在时，K为1。
         - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：混合精度模式下，支持 expandedX 为 BFLOAT16 时 scalesOptional 为 FLOAT32；非混合精度模式下，数据类型要求与expandedX一致。
         - <term>昇腾910_95 AI处理器</term>：数据类型可以与expandedX不一致。
         - <term>Atlas 推理系列产品 </term>：数据类型支持FLOAT16、FLOAT32，且需要与expandedX一致。
     -   expertIdxOptional（aclTensor\*，可选计算输入）：Device侧的aclTensor，公式中的expertIdx。
-        - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>、<term>昇腾910_95 AI处理器</term>：要求是一个2D的Tensor，数据类型支持INT32，[数据格式](common/数据格式.md)要求为ND，支持[非连续的Tensor](common/非连续的Tensor.md)。限制：其shape支持（NUM\_ROWS，K），Tensor中的值取值范围是[0, E-1]，biasOptional 存在时，expertIdxOptional 必须同时存在。
+        - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>、<term>昇腾910_95 AI处理器</term>：要求是一个2D的Tensor，数据类型支持INT32，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND，支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)。限制：其shape支持（NUM\_ROWS，K），Tensor中的值取值范围是[0, E-1]，biasOptional 存在时，expertIdxOptional 必须同时存在。
         - <term>Atlas 推理系列产品 </term>：仅支持传入nullptr。
     -   dropPadMode（int64_t，计算输入）: int64数据类型，表示是否支持丢弃模式,expandedRowIdx的排列方式。取值范围为[0,3]。
         - 0：drop less 场景，expandedRowIdx 按**列**排列（与[aclnnMoeInitRouting](./aclnnMoeInitRouting.md)输出格式对应）。
@@ -62,13 +62,13 @@
         - 3：drop pad 场景，expandedRowIdx 按**行**排列（与[aclnnMoeInitRoutingV2](./aclnnMoeInitRoutingV2.md)输出格式对应）。
         - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>、<term>昇腾910_95 AI处理器</term>：支持dropPadMode取值范围[0,3]。
         - <term>Atlas 推理系列产品 </term>：仅支持dropPadMode传入2。
-    -   out（aclTensor\*，计算输出）：Device侧的aclTensor，公式中的输出，要求是一个2D的Tensor，数据类型与expandedX 需要保持一致, [数据格式](common/数据格式.md)要求为ND，不支持非连续输出。限制：其shape支持（NUM\_ROWS, H）。
+    -   out（aclTensor\*，计算输出）：Device侧的aclTensor，公式中的输出，要求是一个2D的Tensor，数据类型与expandedX 需要保持一致, [数据格式](../../../docs/zh/context/数据格式.md)要求为ND，不支持非连续输出。限制：其shape支持（NUM\_ROWS, H）。
     -   workspaceSize（uint64\_t\*，出参）：返回需要在Device侧申请的workspace大小。
     -   executor（aclOpExecutor\*\*，出参）：返回op执行器，包含了算子计算流程。
 
 -   **返回值：**
 
-    返回aclnnStatus状态码，具体参见[aclnn返回码](common/aclnn返回码.md)。
+    返回aclnnStatus状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
 
     ```
     第一段接口完成入参校验，出现以下场景时报错:
@@ -87,7 +87,7 @@
 
 -   **返回值：**
 
-    返回aclnnStatus状态码，具体参见[aclnn返回码](common/aclnn返回码.md)。
+    返回aclnnStatus状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
 
 
 ## 约束说明
@@ -95,7 +95,7 @@
 
 ## 调用示例
 
-示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](common/编译与运行样例.md)。
+示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](../../../docs/zh/context/编译与运行样例.md)。
 ```cpp
 #include "acl/acl.h"
 #include "aclnnop/aclnn_moe_finalize_routing_v2.h"

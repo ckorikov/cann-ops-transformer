@@ -50,7 +50,7 @@
 
 ## 函数原型
 
-每个算子分为[两段式接口](common/两段式接口.md)，必须先调用“aclnnMoeTokenUnpermuteWithEpGradGetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnMoeTokenUnpermuteWithEpGrad”接口执行计算。
+每个算子分为[两段式接口](../../../docs/zh/context/两段式接口.md)，必须先调用“aclnnMoeTokenUnpermuteWithEpGradGetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnMoeTokenUnpermuteWithEpGrad”接口执行计算。
 
 * `aclnnStatus aclnnMoeTokenUnpermuteWithEpGradGetWorkspaceSize(const aclTensor *unpermutedTokensGrad, const aclTensor *sortedIndices, const aclTensor *permutedTokensOptional, const aclTensor *probsOptional, bool paddedMode, const aclIntArray *restoreShapeOptional, const aclIntArray *rangeOptional, int64_t topkNum, const aclTensor *permutedTokensGradOut, const aclTensor *probsGradOut, uint64_t *workspaceSize, aclOpExecutor **executor)`
 * `aclnnStatus aclnnMoeTokenUnpermuteWithEpGrad(void *workspace, uint64_t workspaceSize, aclOpExecutor *executor, aclrtStream stream)`
@@ -59,21 +59,21 @@
 
 - **参数说明：**
   
-  -   unpermutedTokensGrad（aclTensor \*，计算输入）：Device侧的aclTensor，公式中的unpermutedTokensGrad，正向输出unpermutedTokens的梯度，要求为一个维度为2D的Tensor，shape为（tokens_num，hidden_size），tokens_num代表token个数，hidden_size代表token的维度大小，数据类型支持BFLOAT16、FLOAT16、FLOAT32，[数据格式](common/数据格式.md)要求为ND。支持[非连续的Tensor](common/非连续的Tensor.md)。
-  -   sortedIndices（aclTensor \*，计算输入）：Device侧的aclTensor，公式中的sortedIndices，要求shape为一个1D的（tokens_num \* topkNum），数据类型支持INT32，[数据格式](common/数据格式.md)要求为ND。索引取值范围[0，tokens_num \* topkNum - 1]。支持[非连续的Tensor](common/非连续的Tensor.md)
-  -   permutedTokensOptional（aclTensor \*，计算输入）：Device侧的aclTensor，可选输入，公式中的permutedTokensOptional，要求为一个维度为2D的Tensor，shape为（tokens_num \* topkNum，hidden_size），其中topkNum <= 512，数据类型支持同unpermutedTokensGrad，[数据格式](common/数据格式.md)要求为ND。支持[非连续的Tensor](common/非连续的Tensor.md)
-  -   probsOptional（aclTensor \*，计算输入）：Device侧的aclTensor，可选输入，公式中的probsOptional，要求shape为一个2D的（tokens_num，topkNum），数据类型支持BFLOAT16、FLOAT16、FLOAT32，[数据格式](common/数据格式.md)要求为ND。当probs传时，topkNum等于probs第2维；当probs不传时，topkNum=1。支持[非连续的Tensor](common/非连续的Tensor.md)
+  -   unpermutedTokensGrad（aclTensor \*，计算输入）：Device侧的aclTensor，公式中的unpermutedTokensGrad，正向输出unpermutedTokens的梯度，要求为一个维度为2D的Tensor，shape为（tokens_num，hidden_size），tokens_num代表token个数，hidden_size代表token的维度大小，数据类型支持BFLOAT16、FLOAT16、FLOAT32，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND。支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)。
+  -   sortedIndices（aclTensor \*，计算输入）：Device侧的aclTensor，公式中的sortedIndices，要求shape为一个1D的（tokens_num \* topkNum），数据类型支持INT32，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND。索引取值范围[0，tokens_num \* topkNum - 1]。支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)
+  -   permutedTokensOptional（aclTensor \*，计算输入）：Device侧的aclTensor，可选输入，公式中的permutedTokensOptional，要求为一个维度为2D的Tensor，shape为（tokens_num \* topkNum，hidden_size），其中topkNum <= 512，数据类型支持同unpermutedTokensGrad，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND。支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)
+  -   probsOptional（aclTensor \*，计算输入）：Device侧的aclTensor，可选输入，公式中的probsOptional，要求shape为一个2D的（tokens_num，topkNum），数据类型支持BFLOAT16、FLOAT16、FLOAT32，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND。当probs传时，topkNum等于probs第2维；当probs不传时，topkNum=1。支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)
   -   paddedMode（bool, 计算输入）：公式中的paddedMode，true表示开启paddedMode，false表示关闭paddedMode，paddedMode解释见restoreShapeOptional参数。目前仅支持false。
   -   restoreShapeOptional（aclIntArray\*，计算输入）：公式中的restoreShapeOptional，当paddedMode为true后生效，否则不会对其进行操作。当paddedMode为true以后，此为unpermutedTokens的shape。当前仅支持nullptr。
   -   rangeOptional（aclIntArray \*，计算输入）：公式中的rangeOptional，ep切分的有效范围，要求rangeOptional[0]代表的起始位置小于rangeOptional[1]代表的结束位置，size为2，为空时不生效。
   -   topkNum（int64\_t，计算输入）：公式中的topkNum，每个token被选中的专家个数。
-  -   permutedTokensGradOut（aclTensor \*，计算输出）：输入permutedTokens的梯度，公式中的permutedTokensGradOut，要求是一个2D的Tensor，shape为（tokens_num \* topkNum，hidden_size）。数据类型同permutedTokensOptional，支持BFLOAT16、FLOAT16、FLOAT32，[数据格式](common/数据格式.md)要求为ND。不支持非连续输出。
-  -   probsGradOut（aclTensor \*，计算输出）：可选输出，公式中的probsGradOut，输入probs的梯度，要求是一个2D的Tensor，shape为（tokens_num，topkNum）。数据类型同probsOptional，支持BFLOAT16、FLOAT16、FLOAT32，[数据格式](common/数据格式.md)要求为ND。不支持非连续输出。
+  -   permutedTokensGradOut（aclTensor \*，计算输出）：输入permutedTokens的梯度，公式中的permutedTokensGradOut，要求是一个2D的Tensor，shape为（tokens_num \* topkNum，hidden_size）。数据类型同permutedTokensOptional，支持BFLOAT16、FLOAT16、FLOAT32，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND。不支持非连续输出。
+  -   probsGradOut（aclTensor \*，计算输出）：可选输出，公式中的probsGradOut，输入probs的梯度，要求是一个2D的Tensor，shape为（tokens_num，topkNum）。数据类型同probsOptional，支持BFLOAT16、FLOAT16、FLOAT32，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND。不支持非连续输出。
   -   workspaceSize（uint64\_t \*，出参）：返回需要在Device侧申请的workspace大小。
   -   executor（aclOpExecutor \*\*，出参）：返回op执行器，包含了算子计算流程。
 - **返回值：**
   
-  aclnnStatus：返回状态码，具体参见[aclnn返回码](common/aclnn返回码.md)。
+  aclnnStatus：返回状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
   
   ```
   第一段接口完成入参校验，出现以下场景时报错：
@@ -102,7 +102,7 @@ topkNum <= 512
 
 ## 调用示例
 
-示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](common/编译与运行样例.md)。
+示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](../../../docs/zh/context/编译与运行样例.md)。
 
 ```Cpp
 #include <iostream>

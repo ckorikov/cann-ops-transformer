@@ -62,7 +62,7 @@
 
 ## 函数原型
 
-每个算子分为[两段式接口](common/两段式接口.md)，必须先调用“aclnnNormRopeConcatGetWorkspaceSize”接口获取入参并根据计算流程计算所需workspace大小，再调用“aclnnNormRopeConcat”接口执行计算。
+每个算子分为[两段式接口](../../../docs/zh/context/两段式接口.md)，必须先调用“aclnnNormRopeConcatGetWorkspaceSize”接口获取入参并根据计算流程计算所需workspace大小，再调用“aclnnNormRopeConcat”接口执行计算。
 
 ```cpp
 aclnnStatus aclnnNormRopeConcatGetWorkspaceSize(const aclTensor *query, const aclTensor *key, const aclTensor *value, const aclTensor *encoderQuery, const aclTensor *encoderKey, const aclTensor *encoderValue, const aclTensor *normQueryWeight, const aclTensor *normQueryBias, const aclTensor *normKeyWeight, const aclTensor *normKeyBias, const aclTensor *normAddedQueryWeight, const aclTensor *normAddedQueryBias, const aclTensor *normAddedKeyWeight, const aclTensor *normAddedKeyBias, const aclTensor *ropeSin, const aclTensor *ropeCos, int64_t normType, int64_t normAddedType, int64_t ropeType, int64_t concatOrder, double eps, bool isTraining, const aclTensor *queryOutput, const aclTensor *keyOutput, const aclTensor *valueOutput, const aclTensor *normQueryMean, const aclTensor *normQueryRstd, const aclTensor *normKeyMean, const aclTensor *normKeyRstd, const aclTensor *normAddedQueryMean, const aclTensor *normAddedQueryRstd, const aclTensor *normAddedKeyMean, const aclTensor *normAddedKeyRstd, uint64_t *workspaceSize, aclOpExecutor **executor)
@@ -324,7 +324,7 @@ aclnnStatus aclnnNormRopeConcat(void *workspace, uint64_t workspaceSize, aclOpEx
 
 - **返回值：**
 
-  aclnnStatus：返回状态码，具体参见[aclnn返回码](../../../docs/context/aclnn返回码.md)。
+  aclnnStatus：返回状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
 
   <table>
   <tr>
@@ -380,7 +380,7 @@ aclnnStatus aclnnNormRopeConcat(void *workspace, uint64_t workspaceSize, aclOpEx
 
 - **返回值：**
 
-  aclnnStatus：返回状态码，具体参见[aclnn返回码](../../../docs/context/aclnn返回码.md)。
+  aclnnStatus：返回状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
 
 ## 约束说明
 - headDim长度在[1~1024]间，且为偶数。
@@ -388,7 +388,7 @@ aclnnStatus aclnnNormRopeConcat(void *workspace, uint64_t workspaceSize, aclOpEx
 
 ## 调用示例
 
-示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](../../../docs/context/编译与运行样例.md)。
+示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](../../../docs/zh/context/编译与运行样例.md)。
 
   ```c++
   #include <algorithm>
