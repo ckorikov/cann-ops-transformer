@@ -82,7 +82,6 @@ constexpr int64_t MAX_EXPERT_NUM_PER_RANK = 32;
 constexpr int64_t MAX_DIM_VALUE = 65536;
 constexpr uint32_t MAX_SHARED_H_SHAPE_SIZE = 12288;
 constexpr int64_t MAX_BSK_VALUE = 52428800;
-constexpr int64_t RECV_SEND_MAX = static_cast<int64_t>((200 * 1024 * 1024) / (2 * 2)); // 200M / (2 * sizeof(gmmX))
 constexpr int64_t RECV_SEND_MIN = static_cast<int64_t>((2 * 1024 * 1024) / 2);         // 2M / sizeof(gmmX)
 
 const char* C_INNER_DEBUG = "GroupedMatMulAlltoAllv Tiling Debug";
@@ -228,7 +227,7 @@ static bool CheckDimRelationship(
 }
 
 static bool CheckSendCntAndRecvCnt(
-    const gert::RuntimeAttrs* attrs, int64_t BsK, int64_t A, int64_t H, int64_t E_ep, int64_t epWorldSize, 
+    const gert::RuntimeAttrs* attrs, int64_t BsK, int64_t A, int64_t H, int64_t eExpert, int64_t epWorldSize, 
     gert::TilingContext* context)
 {
     auto recvCountsPtr = attrs->GetAttrPointer<gert::ContinuousVector>(ATTR_RECV_COUNTS_INDEX);
@@ -238,16 +237,16 @@ static bool CheckSendCntAndRecvCnt(
     size_t sendSize = sendCountsPtr->GetSize();
     const int64_t* sendArray = static_cast<const int64_t*>(sendCountsPtr->GetData());
     OP_TILING_CHECK(
-        static_cast<int64_t>(recvSize) != epWorldSize * E_ep,
+        static_cast<int64_t>(recvSize) != epWorldSize * eExpert,
         OP_LOGE(
-            C_INNER_DEBUG, "The length of recvCnts[%lu] should be equal to E_ep * epworldSize[%ld]", recvSize,
-            epWorldSize * E_ep),
+            C_INNER_DEBUG, "The length of recvCnts[%lu] should be equal to eExpert * epworldSize[%ld]", recvSize,
+            epWorldSize * eExpert),
         return false);
     OP_TILING_CHECK(
-        static_cast<int64_t>(sendSize) != epWorldSize * E_ep,
+        static_cast<int64_t>(sendSize) != epWorldSize * eExpert,
         OP_LOGE(
-            C_INNER_DEBUG, "The length of sendCnts[%lu] should be equal to E_ep * epworldSize[%ld]", sendSize,
-            epWorldSize * E_ep),
+            C_INNER_DEBUG, "The length of sendCnts[%lu] should be equal to eExpert * epworldSize[%ld]", sendSize,
+            epWorldSize * eExpert),
         return false);
 
     int64_t recvSum = 0;
@@ -265,6 +264,41 @@ static bool CheckSendCntAndRecvCnt(
     OP_TILING_CHECK(
         A != sendSum, OP_LOGE(C_INNER_DEBUG, "A[%ld] should be equal to the sum of sendCounts[%ld]!", A, sendSum),
         return false);
+
+    auto platformInfo = context->GetPlatformInfo();
+    platform_ascendc::PlatformAscendC ascendcPlatform(platformInfo);
+    if (ascendcPlatform.GetSocVersion() == platform_ascendc::SocVersion::ASCEND910_93) {
+        for (int64_t i = 1; i <= epWorldSize; i++) {
+            recvSum = 0;
+            sendSum = 0;
+            for (int64_t j = (i - 1) * eExpert; j <= i * eExpert - 1; j++) {
+                OP_TILING_CHECK(
+                    (sendArray[j] < NUM_ZERO) || (sendArray[j] > A),
+                    OP_LOGE(C_INNER_DEBUG, "sendCounts[%ld] should be in [0, a[%ld]], but get %ld",j, A, sendArray[j]),
+                    return false);
+                OP_TILING_CHECK(
+                    (recvArray[j] < NUM_ZERO) || (recvArray[j] > BsK),
+                    OP_LOGE(C_INNER_DEBUG, "recvCounts[%ld] should be in [0, bsK[%ld]], but get %ld",j, BsK, recvArray[j]),
+                    return false);
+                recvSum += recvArray[j] * H;
+                sendSum += sendArray[j] * H;
+            }
+            OP_TILING_CHECK(recvSum < RECV_SEND_MIN,
+                OP_LOGE(
+                    C_INNER_DEBUG,
+                    "rank %ld:sum(recvCounts[%ld, %ld]) * H1 * sizeof dtype(gmmx) should be greater than or equal to 2MB,"
+                    "but got %ld Byte!",
+                    i - 1, (i - 1) * eExpert, i * eExpert - 1, 2 * recvSum),
+                return false);
+            OP_TILING_CHECK(sendSum < RECV_SEND_MIN,
+                OP_LOGE(
+                    C_INNER_DEBUG,
+                    "rank %ld:sum(sendCounts[%ld, %ld]) * H1 * sizeof dtype(gmmx) should be greater than or equal to 2MB,"
+                    "but got %ld Byte!",
+                    i - 1, (i - 1) * eExpert, i * eExpert - 1, 2 * sendSum),
+                return false);
+        }
+    }
     return true;
 }
 
