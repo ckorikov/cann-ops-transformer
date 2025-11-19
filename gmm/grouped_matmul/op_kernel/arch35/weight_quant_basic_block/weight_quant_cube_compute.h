@@ -280,8 +280,8 @@ __aicore__ inline void WQBMM_CUBE_COMPUTE_CLASS::CopyAAndBiasGmToL1(const BasicB
 
     // bias仅与n有关，与k无关，所以只需要拷贝一次
     if (isBias_ && kaGmOffset == 0) {
-        DataCopy(biasL1_[(cvLoopIdx & 1) * biasL1DbOffset_], biasGlobal_[param.nOffset],
-                 CeilAlign(biasRealN, static_cast<int64_t>(BLOCK_CUBE)));
+        DataCopyPad2D(biasL1_[(cvLoopIdx & 1) * biasL1DbOffset_], biasGlobal_[param.nOffset], 1, biasRealN, biasRealN,
+                      biasRealN);
     }
 
     SetFlag<HardEvent::MTE2_MTE1>(cubeEventIdMte2ToMte1_);
