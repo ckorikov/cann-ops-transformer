@@ -55,7 +55,29 @@ constexpr uint32_t BIAS_IDX = 3;
 QGMM_BLOCK_EPILOGUE_CLASS_LOCAL_PARAMS
 class BlockEpiloguePerTile {
 public:
-    __aicore__ inline BlockEpiloguePerTile() {}
+    __aicore__ inline BlockEpiloguePerTile()
+    {
+        if ASCEND_IS_AIV {
+            AscendC::SetFlag<AscendC::HardEvent::V_MTE2>(0);
+            AscendC::SetFlag<AscendC::HardEvent::V_MTE2>(1);
+            if constexpr (!AscendC::IsSameType<CType, YType>::value) {
+                AscendC::SetFlag<AscendC::HardEvent::MTE3_V>(0);
+                AscendC::SetFlag<AscendC::HardEvent::MTE3_V>(1);
+            }
+        }
+    }
+
+    __aicore__ inline ~BlockEpiloguePerTile()
+    {
+        AscendC::WaitFlag<AscendC::HardEvent::V_MTE2>(0);
+        AscendC::WaitFlag<AscendC::HardEvent::V_MTE2>(1);
+        if ASCEND_IS_AIV {
+            if constexpr (!AscendC::IsSameType<CType, YType>::value) {
+                AscendC::WaitFlag<AscendC::HardEvent::MTE3_V>(0);
+                AscendC::WaitFlag<AscendC::HardEvent::MTE3_V>(1);
+            }
+        }
+    }
 
     struct Arguments {
         GM_ADDR outGmAddr{nullptr};
@@ -102,7 +124,7 @@ private:
 
     __aicore__ inline void ProcessAivSingleKPerBlock(int64_t x1ScaleOffset,
                                                      __gm__ X2ScaleType* x2ScaleAddr[UB_SUB_BANK_NUM]);
-    template <class T, bool isFirst>
+    template <class T>
     __aicore__ inline __ubuf__ T* CopyInX1Scale(uint64_t srcOffset, uint64_t m, uint64_t k);
     template <class T>
     __aicore__ inline T CopyInX1ScalePerblock(__gm__ T* src, uint64_t offset);
@@ -264,7 +286,7 @@ __aicore__ inline void BlockEpiloguePerTile<QGMM_BLOCK_EPILOGUE_FUNC_LOCAL_PARAM
 }
 
 QGMM_BLOCK_EPILOGUE_CLASS_LOCAL_PARAMS
-template <class T, bool isFirst>
+template <class T>
 __aicore__ inline __ubuf__ T*
 BlockEpiloguePerTile<QGMM_BLOCK_EPILOGUE_FUNC_LOCAL_PARAMS>::CopyInX1Scale(uint64_t srcOffset, uint64_t m, uint64_t k)
 {
@@ -280,12 +302,10 @@ BlockEpiloguePerTile<QGMM_BLOCK_EPILOGUE_FUNC_LOCAL_PARAMS>::CopyInX1Scale(uint6
         x1ScaleGm2UbParams.srcStride = (scaleK_ - k) * sizeof(T);
     }
     auto x1ScaleUb = x1ScalePingPongID_ == 0 ? &x1ScaleUbPing_ : &x1ScaleUbPong_;
-    AscendC::SetFlag<AscendC::HardEvent::V_MTE2>(x1ScalePingPongID_);
     AscendC::WaitFlag<AscendC::HardEvent::V_MTE2>(x1ScalePingPongID_);
     AscendC::DataCopyPad(*x1ScaleUb, x1ScaleGlobal_[srcOffset], x1ScaleGm2UbParams, padParams);
     AscendC::SetFlag<AscendC::HardEvent::MTE2_V>(x1ScalePingPongID_);
     AscendC::WaitFlag<AscendC::HardEvent::MTE2_V>(x1ScalePingPongID_);
-    x1ScalePingPongID_ = x1ScalePingPongID_ ^ 1;
     return reinterpret_cast<__ubuf__ T*>(x1ScaleUb->GetPhyAddr());
 }
 
@@ -414,11 +434,7 @@ BlockEpiloguePerTile<QGMM_BLOCK_EPILOGUE_FUNC_LOCAL_PARAMS>::GetX1ScaleUbAddrPer
     } else {
         scaleX1GmOffset = x1ScaleOffset + kOffset;
     }
-    if (kOffset == 0) {
-        return CopyInX1Scale<X1ScaleType, true>(scaleX1GmOffset, ubParams_.validM, kElem);
-    } else {
-        return CopyInX1Scale<X1ScaleType, false>(scaleX1GmOffset, ubParams_.validM, kElem);
-    }
+    return CopyInX1Scale<X1ScaleType>(scaleX1GmOffset, ubParams_.validM, kElem);
 }
 
 QGMM_BLOCK_EPILOGUE_CLASS_LOCAL_PARAMS
@@ -461,6 +477,10 @@ __aicore__ inline void BlockEpiloguePerTile<QGMM_BLOCK_EPILOGUE_FUNC_LOCAL_PARAM
                                         ubParams_.validM, ubParams_.validN[0], ubParams_.validN[1], kElem, x2Scale[0],
                                         x2Scale[1], x1ScaleKRem);
             }
+        }
+        if (x1ScaleKRem == x1ScaleKElem - 1 || kOffset == scaleK_ - 1) {
+            AscendC::SetFlag<AscendC::HardEvent::V_MTE2>(x1ScalePingPongID_);
+            x1ScalePingPongID_ = (x1ScalePingPongID_ + 1) & 1;
         }
         NotifyCube(crossPingPongID_);
         crossPingPongID_ = (crossPingPongID_ + 1) & 1;
@@ -647,6 +667,8 @@ BlockEpiloguePerTile<QGMM_BLOCK_EPILOGUE_FUNC_LOCAL_PARAMS>::AivPostProcess(cons
     }
     if constexpr (AscendC::IsSameType<YType, CType>::value) {
         // mov optimize in splitM, 0~63 + 64 ~127 -> 0~127
+        AscendC::SetFlag<AscendC::HardEvent::V_MTE3>(0);
+        AscendC::WaitFlag<AscendC::HardEvent::V_MTE3>(0);
         if (ubParams_.ndNum == 2 && !ubParams_.CopyOutWithSplitN) { // 2: 2ND, opt branch with splitM
             uint32_t sumN = ubParams_.validN[0] + ubParams_.validN[1];
             CopyOut(mmAddUb, 0, ubParams_.validM, sumN, UB_TWO_BANK_ELEMS_B32 - sumN, Get<MNK_N>(problemShape_) - sumN,
@@ -660,6 +682,8 @@ BlockEpiloguePerTile<QGMM_BLOCK_EPILOGUE_FUNC_LOCAL_PARAMS>::AivPostProcess(cons
                 }
             }
         }
+        AscendC::SetFlag<AscendC::HardEvent::MTE3_V>(0);
+        AscendC::WaitFlag<AscendC::HardEvent::MTE3_V>(0);
     } else {
         AscendC::PipeBarrier<PIPE_V>();
         CastAndCopyOut(mmAddUb);
@@ -668,22 +692,18 @@ BlockEpiloguePerTile<QGMM_BLOCK_EPILOGUE_FUNC_LOCAL_PARAMS>::AivPostProcess(cons
 
 QGMM_BLOCK_EPILOGUE_CLASS_LOCAL_PARAMS
 __aicore__ inline void BlockEpiloguePerTile<QGMM_BLOCK_EPILOGUE_FUNC_LOCAL_PARAMS>::CopyOut(
-    const AscendC::LocalTensor<YType>& ubRes, uint16_t eventId, uint16_t blkCount, uint32_t blkLen, uint32_t srcStride,
+    const AscendC::LocalTensor<YType> &ubRes, uint16_t eventId, uint16_t blkCount, uint32_t blkLen, uint32_t srcStride,
     uint32_t dstStride, uint64_t yOffset)
 {
-    AscendC::SetFlag<AscendC::HardEvent::V_MTE3>(eventId);
     AscendC::DataCopyExtParams copyParams{blkCount, static_cast<uint32_t>(blkLen * sizeof(YType)),
                                           static_cast<uint32_t>(srcStride * sizeof(YType) / AscendC::ONE_BLK_SIZE),
                                           static_cast<uint32_t>(dstStride * sizeof(YType)), 0};
-    AscendC::WaitFlag<AscendC::HardEvent::V_MTE3>(eventId);
     AscendC::DataCopyPad<YType>(cGlobal_[yOffset], ubRes, copyParams);
-    AscendC::SetFlag<AscendC::HardEvent::MTE3_V>(eventId);
-    AscendC::WaitFlag<AscendC::HardEvent::MTE3_V>(eventId);
 }
 
 QGMM_BLOCK_EPILOGUE_CLASS_LOCAL_PARAMS
 __aicore__ inline void
-BlockEpiloguePerTile<QGMM_BLOCK_EPILOGUE_FUNC_LOCAL_PARAMS>::CastAndCopyOut(const AscendC::LocalTensor<CType>& mmAddUb)
+BlockEpiloguePerTile<QGMM_BLOCK_EPILOGUE_FUNC_LOCAL_PARAMS>::CastAndCopyOut(const AscendC::LocalTensor<CType> &mmAddUb)
 {
     if (ubParams_.ndNum == 2 && !ubParams_.CopyOutWithSplitN) { // 2: 2ND, opt branch with splitM
         uint32_t sumN = ubParams_.validN[0] + ubParams_.validN[1];
@@ -692,11 +712,15 @@ BlockEpiloguePerTile<QGMM_BLOCK_EPILOGUE_FUNC_LOCAL_PARAMS>::CastAndCopyOut(cons
         for (uint32_t mDbIdx = 0; mDbIdx < GMM_BUFFER_NUM; ++mDbIdx) {
             if (mSize[mDbIdx] > 0 && sumN > 0) {
                 auto ubRes = mDbIdx == 0 ? &ubResPing_ : &ubResPong_;
+                AscendC::WaitFlag<AscendC::HardEvent::MTE3_V>(mDbIdx);
                 AscendC::Cast(*ubRes, mmAddUb[mDbIdx * mSizePing * UB_TWO_BANK_ELEMS_B32],
                               AscendC::RoundMode::CAST_RINT, mSize[mDbIdx] * UB_TWO_BANK_ELEMS_B32);
+                AscendC::SetFlag<AscendC::HardEvent::V_MTE3>(mDbIdx);
+                AscendC::WaitFlag<AscendC::HardEvent::V_MTE3>(mDbIdx);
                 CopyOut(*ubRes, mDbIdx, mSize[mDbIdx], sumN, UB_TWO_BANK_ELEMS_B32 - sumN,
                         Get<MNK_N>(problemShape_) - sumN,
                         ubParams_.offsetY[0] + mDbIdx * mSizePing * Get<MNK_N>(problemShape_));
+                AscendC::SetFlag<AscendC::HardEvent::MTE3_V>(mDbIdx);
             }
         }
     } else {
@@ -710,11 +734,15 @@ BlockEpiloguePerTile<QGMM_BLOCK_EPILOGUE_FUNC_LOCAL_PARAMS>::CastAndCopyOut(cons
                 repeatParam.dstRepStride = CeilDiv(ubParams_.singleN, AscendC::ONE_BLK_SIZE / sizeof(YType));
                 // srcStride is 16(512B / 32B), subBank0 256B one repeat
                 repeatParam.srcRepStride = GMM_BMM_BLOCK_NUM;
+                AscendC::WaitFlag<AscendC::HardEvent::MTE3_V>(ndIdx);
                 AscendC::Cast(*ubRes, mmAddUb[ubParams_.validN[0] * ndIdx], AscendC::RoundMode::CAST_RINT,
                               ubParams_.validN[ndIdx], ubParams_.validM, repeatParam);
+                AscendC::SetFlag<AscendC::HardEvent::V_MTE3>(ndIdx);
+                AscendC::WaitFlag<AscendC::HardEvent::V_MTE3>(ndIdx);
                 CopyOut(*ubRes, ndIdx, ubParams_.validM, ubParams_.validN[ndIdx],
                         ubParams_.singleN - ubParams_.validN[ndIdx],
                         Get<MNK_N>(problemShape_) - ubParams_.validN[ndIdx], ubParams_.offsetY[ndIdx]);
+                AscendC::SetFlag<AscendC::HardEvent::MTE3_V>(ndIdx);
             }
         }
     }
