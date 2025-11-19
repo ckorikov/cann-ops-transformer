@@ -8,6 +8,7 @@
 # ======================================================================================================================
 
 if (BUILD_OPEN_PROJECT)
+    set(grouped_matmul_swiglu_quant_v2_depends gmm/grouped_matmul CACHE INTERNAL "Dependencies for grouped_matmul_swiglu_quant_v2")
     target_sources(op_host_aclnnExc PRIVATE
     grouped_matmul_swiglu_quant_v2_def.cpp
     )
