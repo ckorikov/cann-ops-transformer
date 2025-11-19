@@ -974,7 +974,7 @@ __aicore__ inline bool IsSkipAttentionmask(MaskInfo &info)
         nextToken = info.nextToken + static_cast<int64_t>(info.s2Size) - static_cast<int64_t>(info.s1Size);
     }
 
-    if (static_cast<int64_t>(info.s2StartIdx + info.s2dealNum) <= static_cast<uint64_t>(s1StartIdx) + nextToken) {
+    if (static_cast<int64_t>(info.s2StartIdx + info.s2dealNum) <= static_cast<int64_t>(s1StartIdx) + nextToken) {
         return true;
     }
     return false;
@@ -994,7 +994,7 @@ __aicore__ inline bool IsSkipAttentionmaskForPre(MaskInfo &info)
     int64_t preToken = info.preToken + static_cast<uint64_t>(info.s1Size)-static_cast<uint64_t>(info.s2Size); // 统一以左上角为原点计算Token
     int32_t s1EndIdx = info.layout == GS ? s1StartIdx + info.gs1dealNum : (info.gs1StartIdx + info.gs1dealNum) / info.gSize;
 
-    if (static_cast<int64_t>(info.s2StartIdx) + preToken >= s1EndIdx ) {
+    if (static_cast<int64_t>(info.s2StartIdx) + preToken >= static_cast<int64_t>(s1EndIdx)) {
         return true;
     }
     return false;
