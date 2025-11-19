@@ -1,22 +1,18 @@
 # aclnnMoeInitRoutingV2
-
 ## 产品支持情况
-
-|产品      | 是否支持 |
-|:----------------------------|:-----------:|
-|<term>昇腾910_95 AI处理器</term>|      √     |
-|<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>|      √     |
-|<term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>|      √     |
-|<term>Atlas 200I/500 A2 推理产品</term>|      ×     |
-|<term>Atlas 推理系列产品</term>|       √     |
-|<term>Atlas 训练系列产品</term>|      ×     |
-|<term>Atlas 200/300/500 推理产品</term>|      ×     |
-
-产品形态详细说明请参见[昇腾产品形态说明](https://www.hiascend.com/document/redirect/CannCommunityProductForm)。
+|产品             |  是否支持  |
+|:-------------------------|:----------:|
+|  <term>昇腾910_95 AI处理器</term>   |     √    |
+|  <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>   |     √    |
+|  <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>     |     √    |
+|  <term>Atlas 200I/500 A2 推理产品</term>    |     ×    |
+|  <term>Atlas 推理系列产品 </term>    |     √    |
+|  <term>Atlas 训练系列产品</term>    |     ×    |
+|  <term>Atlas 200/300/500 推理产品</term>       |     ×    |
 
 ## 功能说明
 
-- 算子功能：该算子对应MoE（Mixture of Experts，混合专家模型）中的**Routing计算**，以MoeGatingTopKSoftmax算子的输出x和expert_idx作为输入，并输出Routing矩阵expanded_x等结果供后续计算使用。本接口针对V1接口（MoeInitRouting，源码未开放）做了如下功能变更，请根据实际情况选择合适的接口：
+-   **接口功能**：该算子对应MoE（Mixture of Experts，混合专家模型）中的**Routing计算**，以MoeGatingTopKSoftmax算子的输出x和expert_idx作为输入，并输出Routing矩阵expanded_x等结果供后续计算使用。本接口针对V1接口（MoeInitRouting，源码未开放）做了如下功能变更，请根据实际情况选择合适的接口：
 
     - 新增Drop模式，在该模式下输出内容会将每个专家需要处理的Token个数对齐为expertCapacity个，超过expertCapacity个的Token会被Drop，不足的会用0填充。
     - 新增Dropless模式下expertTokensCountOrCumsumOut可选输出，输出每个专家需要处理的累积Token个数（Cumsum），或每个专家需要处理的Token数（Count）。
@@ -25,13 +21,12 @@
 
     **说明：**
     Routing计算是MoE模型中的一个环节。MoE模型主要由一组专家模型和一个门控模型组成，在计算时，输入的数据会先根据门控网络（Gating Network，包含MoeGatingTopKSoftmax算子）计算出每个数据元素对应权重最高的k个专家，然后该结果会输入MoeInitRouting算子，生成Routing矩阵。在后续，模型中的每个专家会根据Routing矩阵处理其应处理的数据，产生相应的输出。各专家的输出最后与权重加权求和，形成最终的预测结果。
+-   **计算公式**：
 
-- 计算公式：  
-
-    1.对输入expertIdx做排序，得出排序后的结果sortedExpertIdx和对应的序号sortedRowIdx：
+    1.将输入shape为[numRows, k]或[numRows]的expertIdx展平为一行做排序，得出排序后的结果sortedExpertIdx和对应的序号sortedRowIdx，其中numRows为token个数，k为专家个数，当expertIdx为1维时记k为1：
     
     $$
-    sortedExpertIdx, sortedRowIdx=keyValueSort(expertIdx)
+    sortedExpertIdx, sortedRowIdx=keyValueSort(\text{flatten}(expertIdx))
     $$
 
     2.以sortedRowIdx做位置映射得出expandedRowIdxOut：
@@ -40,10 +35,10 @@
     expandedRowIdxOut[sortedRowIdx[i]]=i
     $$
     
-    3.对x取前numRows个sortedRowIdx的对应位置的值，得出expandedXOut：
+    3.按照sortedRowIdx将token按专家顺序排列，在dropPadMode为1时将每个专家需要处理的Token个数对齐为expertCapacity个，超过expertCapacity个的Token会被Drop，不足的会用0填充。得出expandedXOut：
     
     $$
-    expandedXOut[i]=x[sortedRowIdx[i]\%numRows]
+    expandedXOut[i]=x[sortedRowIdx[i]//k]
     $$
     
     4.对sortedExpertIdx的每个专家统计直方图结果，再进行Cumsum，得出expertTokensCountOrCumsumOut：
@@ -57,106 +52,303 @@
     $$
     expertTokensBeforeCapacityOut[i]=Histogram(sortedExpertIdx)
     $$
-
 ## 实现原理
 
 详细实现原理参考[MoeInitRoutingV2算子设计介绍](./MoeInitRoutingV2算子设计介绍.md)。
 
-## 算子执行接口
+## 函数原型
 
-每个算子分为[两段式接口](../../../docs/zh/context/两段式接口.md)，必须先调用 “aclnnMoeInitRoutingV2GetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnMoeInitRoutingV2”接口执行计算。
+每个算子分为[两段式接口](../../../docs/zh/context/两段式接口.md)，必须先调用“aclnnMoeInitRoutingV2GetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnMoeInitRoutingV2”接口执行计算。
+```cpp
+aclnnStatus aclnnMoeInitRoutingV2GetWorkspaceSize(
+    const aclTensor *x, 
+    const aclTensor *expertIdx, 
+    int64_t          activeNum, 
+    int64_t          expertCapacity, 
+    int64_t          expertNum, 
+    int64_t          dropPadMode, 
+    int64_t          expertTokensCountOrCumsumFlag, 
+    bool             expertTokensBeforeCapacityFlag, 
+    const aclTensor *expandedXOut, 
+    const aclTensor *expandedRowIdxOut, 
+    const aclTensor *expertTokensCountOrCumsumOut, 
+    const aclTensor *expertTokensBeforeCapacityOut, 
+    uint64_t        *workspaceSize, 
+    aclOpExecutor   **executor)
+```
+```cpp
+aclnnStatus aclnnMoeInitRoutingV2(
+    void            *workspace, 
+    uint64_t         workspaceSize, 
+    aclOpExecutor   *executor, 
+    aclrtStream      stream)
+```
 
-* `aclnnStatus aclnnMoeInitRoutingV2GetWorkspaceSize(const aclTensor *x, const aclTensor *expertIdx, int64_t activeNum, int64_t expertCapacity, int64_t expertNum, int64_t dropPadMode, int64_t expertTokensCountOrCumsumFlag, bool expertTokensBeforeCapacityFlag, aclTensor *expandedXOut, aclTensor *expandedRowIdxOut, aclTensor *expertTokensCountOrCumsumOut, aclTensor *expertTokensBeforeCapacityOut, uint64_t *workspaceSize, aclOpExecutor **executor)`
-* `aclnnStatus aclnnMoeInitRoutingV2(void *workspace, uint64_t workspaceSize, aclOpExecutor *executor, aclrtStream stream)`
-
-**说明**：
-
-- 算子执行接口对外屏蔽了算子内部实现逻辑以及不同代际NPU的差异，且开发者无需编译算子，实现了算子的精简调用。
-- 若开发者不使用算子执行接口的调用算子，也可以定义基于Ascend IR的算子描述文件，通过ATC工具编译获得算子om文件，然后加载模型文件执行算子，详细调用方法可参见《应用开发指南》的[单算子调用 > 单算子模型执行](https://hiascend.com/document/redirect/CannCommunityCppOpcall)章节。
-
-### aclnnMoeInitRoutingV2GetWorkspaceSize
-
--   **参数说明**：
-    -   x（aclTensor\*，计算输入）：为MOE的输入，即token特征输入，要求为一个2D的Tensor，shape为[numRows, h]，numRows代表Token个数，h代表每个Token的长度，数据类型支持FLOAT16、BFLOAT16、FLOAT32，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND，支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)。
-    -   expertIdx （aclTensor\*，计算输入）：为每个Token对应的k个处理专家的序号，一般为aclnnMoeGatingTopKSoftmaxV2接口的输出。[数据格式](../../../docs/zh/context/数据格式.md)要求为ND，支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)。在Drop/Pad场景下或者非Drop/Pad场景下且需要输出expertTokensCountOrCumsumOut时，要求值域范围是[0, expertNum - 1]， 其他场景要求大于等于0。
-        - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：数据类型支持INT32，要求是一个2D的shape [numRows, k]。
-        - <term>昇腾910_95 AI处理器</term>：数据类型支持INT32、INT64，要求是一个2D的shape [numRows, k]或者1D的shape [numRows, ]，当shape为1D时表示k=1。
-    -   activeNum（int64\_t，计算输入）：表示是否为Active场景，该属性在dropPadMode为0时生效，值范围大于等于0；0表示Dropless场景，大于0时表示Active场景，约束所有专家共同处理tokens总量
-    -   expertCapacity（int64\_t， 计算输入）：表示每个专家能够处理的tokens数，值范围大于等于0；Drop/Pad场景下值域范围\(0, numRows\]，此时各专家将超过capacity的tokens drop掉，不够capacity阈值时则pad全0 tokens；其他场景不关心该属性值。
-    -   expertNum（int64\_t， 计算输入）：表示专家数，值范围大于等于0；Drop/Pad场景下或者expertTokensCountOrCumsumFlag大于0需要输出expertTokensCountOrCumsumOut时，expertNum需大于0。
-    -   dropPadMode（int64\_t， 计算输入）：表示是否为Drop/Pad场景，取值为0和1。
-        - 0：表示非Drop/Pad场景，该场景下不校验expertCapacity。
-        - 1：表示Drop/Pad场景，需要校验expertNum和expertCapacity，对于每个专家处理的超过和不足expertCapacity的值会做相应的处理。<term>Atlas 推理系列产品</term>：不支持此场景。
-
-    -   expertTokensCountOrCumsumFlag（int64\_t， 计算输入）：取值为0、1和2。
-        - 0：表示不输出expertTokensCountOrCumsumOut。
-        - 1：表示输出的值为各个专家处理的token数量的累计值。
-        - 2：表示输出的值为各个专家处理的token数量。
-    -   expertTokensBeforeCapacityFlag（bool，计算输入）：取值为false和true。
-        - false：表示不输出expertTokensBeforeCapacityOut。
-        - true：表示输出的值为在drop之前各个专家处理的token数量。
-    -   expandedXOut（aclTensor\*，计算输出）：根据expertIdx进行扩展过的特征，在Dropless/Active场景下要求是一个2D的Tensor，Dropless场景shape为[numRows \* k, h]，Active场景shape为[min(activeNum, numRows \* k), h]，在Drop/Pad场景下要求是一个3D的Tensor，shape为[expertNum, expertCapacity, h]。数据类型同x，支持FLOAT16、BFLOAT16、FLOAT32，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND，不支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)。
-    -   expandedRowIdxOut（aclTensor\*，计算输出）：expandedXOut和x的索引映射关系， 要求是一个1D的Tensor，Shape为[numRows\*k, ]，数据类型支持int32，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND，不支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)。
-    -   expertTokensCountOrCumsumOut（aclTensor\*，计算输出）：输出每个专家处理的token数量的统计结果及累加值，通过expertTokensCountOrCumsumFlag参数控制是否输出，该值仅在非Drop/Pad场景下输出，要求是一个1D的Tensor，Shape为[expertNum, ]，数据类型支持int32，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND，不支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)。
-    -   expertTokensBeforeCapacityOut（aclTensor\*，计算输出）：输出drop之前每个专家处理的token数量的统计结果，通过expertTokensBeforeCapacityFlag参数控制是否输出，该值仅在Drop/Pad场景下输出，要求是一个1D的Tensor，Shape为[expertNum, ]，数据类型支持int32，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND，不支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)。
-    -   workspaceSize（uint64\_t\*，出参）：返回用户需要在Device侧申请的workspace大小。
-    -   executor（aclOpExecutor\*\*，出参）：返回op执行器，包含了算子计算流程。
-
--   **返回值**
-
-    返回aclnnStatus状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
-    ```
-    第一段接口完成入参校验，出现以下场景时报错：
-    161001(ACLNN_ERR_PARAM_NULLPTR)：1. 计算输入和必选计算输出是空指针
-    161002(ACLNN_ERR_PARAM_INVALID)：1. 计算输入和输出的数据类型和格式不在支持的范围内
-    561002(ACLNN_ERR_INNER_TILING_ERROR): 1. x和expertIdx的shape维度不等于2,且第一维不相等
-                                          2. activeNum、expertNum、expertCapacity的值小于0
-                                          3. dropPadMode、expertTokensCountOrCumsumFlag、expertTokensBeforeCapacityFlag不在取值范围内
-                                          4. dropPadMode等于1时，expertCapacity和expertNum等于0
-                                          5. expertTokensCountOrCumsumOut需要输出时，expertNum等于0
-    ```
-
-### aclnnMoeInitRoutingV2    
+## aclnnMoeInitRoutingV2GetWorkspaceSize
 
 -   **参数说明：**
-    -   workspace（void\*，入参）：在Device侧申请的workspace内存地址。
-    -   workspaceSize（uint64\_t，入参）：在Device侧申请的workspace大小，由第一段接口aclnnMoeInitRoutingV2GetWorkspaceSize获取。
-    -   executor（aclOpExecutor\*，入参）：op执行器，包含了算子计算流程。
-    -   stream（aclrtStream，入参）：指定执行任务的Stream。
+    <table style="undefined;table-layout: fixed; width: 1550px"><colgroup>
+      <col style="width: 170px">
+      <col style="width: 120px">
+      <col style="width: 300px">  
+      <col style="width: 550px">  
+      <col style="width: 212px">  
+      <col style="width: 100px"> 
+      <col style="width: 190px">
+      <col style="width: 145px">
+      </colgroup>
+    <thead>
+      <tr>
+        <th>参数名</th>
+        <th>输入/输出</th>
+        <th>描述</th>
+        <th>使用说明</th>
+        <th>数据类型</th>
+        <th>数据格式</th>
+        <th>维度(shape)</th>
+        <th>非连续Tensor</th>
+      </tr></thead>
+    <tbody>
+      <tr>
+        <td>x</td>
+        <td>输入</td>
+        <td>MOE的输入，即token特征输入。</td>
+        <td><ul><li>支持空tensor。</li><li>要求为一个2D的Tensor，shape为[numRows, h],numRows代表Token个数，h代表每个Token的长度。</li></ul></td>
+        <td>FLOAT16、BFLOAT16、FLOAT32</td>
+        <td>ND</td>
+        <td>2</td>
+        <td>√</td>
+      </tr>
+      <tr>
+        <td>expertIdx</td>
+        <td>输入</td>
+        <td>为每个Token对应的k个处理专家的序号。</td>
+        <td><ul><li>支持空tensor。</li><li>在Drop/Pad场景下或者非Drop/Pad场景下且需要输出expertTokensCountOrCumsumOut时，要求值域范围是[0, expertNum - 1]，其他场景要求大于等于0。</li></ul></td>
+        <td>INT32、INT64</td>
+        <td>ND</td>
+        <td>1或2</td>
+        <td>√</td>
+      </tr>
+      <tr>
+        <td>activeNum</td>
+        <td>输入</td>
+        <td>表示是否为Active场景。</td>
+        <td>该属性在dropPadMode为0时生效，值范围大于等于0，0表示Dropless场景，大于0时表示Active场景，约束所有专家共同处理tokens总量。</td>
+        <td>INT64</td>
+        <td>-</td>
+        <td>-</td>
+        <td>-</td>
+      </tr>
+      <tr>
+        <td>expertCapacity</td>
+        <td>输入</td>
+        <td>表示每个专家能够处理的tokens数。</td>
+        <td>值范围大于等于0，Drop/Pad场景下值域范围(0, numRows]，此时各专家将超过capacity的tokens drop掉，不够capacity阈值时则pad全0 tokens，其他场景不关心该属性值。</td>
+        <td>INT64</td>
+        <td>-</td>
+        <td>-</td>
+        <td>-</td>
+      </tr>
+      <tr>
+        <td>expertNum</td>
+        <td>输入</td>
+        <td>表示专家数。</td>
+        <td>值范围大于等于0，Drop/Pad场景下或者expertTokensCountOrCumsumFlag大于0需要输出expertTokensCountOrCumsumOut时，expertNum需大于0。</td>
+        <td>INT64</td>
+        <td>-</td>
+        <td>-</td>
+        <td>-</td>
+      </tr>
+      <tr>
+        <td>dropPadMode</td>
+        <td>输入</td>
+        <td>表示是否为Drop/Pad场景。</td>
+        <td>取值为0或1。<ul><li>0：表示非Drop/Pad场景，该场景下不校验expertCapacity。</li><li>1：表示Drop/Pad场景，需要校验expertNum和expertCapacity，对于每个专家处理的超过和不足expertCapacity的值会做相应的处理。</li></ul></td>
+        <td>INT64</td>
+        <td>-</td>
+        <td>-</td>
+        <td>-</td>
+      </tr>
+      <tr>
+        <td>expertTokensCountOrCumsumFlag</td>
+        <td>输入</td>
+        <td>控制是否输出expertTokensCountOrCumsumOut。</td>
+        <td>取值为0、1和2。<ul><li>0：表示不输出expertTokensCountOrCumsumOut。</li><li>1：表示输出的值为各个专家处理的token数量的累计值。</li><li>2：表示输出的值为各个专家处理的token数量。</li></ul></td>
+        <td>INT64</td>
+        <td>-</td>
+        <td>-</td>
+        <td>-</td>
+      </tr>
+      <tr>
+        <td>expertTokensBeforeCapacityFlag</td>
+        <td>输入</td>
+        <td>控制是否输出expertTokensBeforeCapacityOut。</td>
+        <td>取值为false和true<ul><li>false：表示不输出expertTokensBeforeCapacityOut。</li><li>true：表示输出expertTokensBeforeCapacityOut，值为在drop之前各个专家处理的token数量。</li></ul></td>
+        <td>BOOL</td>
+        <td>-</td>
+        <td>-</td>
+        <td>-</td>
+      </tr>
+      <tr>
+        <td>expandedXOut</td>
+        <td>输出</td>
+        <td>根据expertIdx进行扩展过的特征。</td>
+        <td><ul><li>支持空tensor。</li><li>数据类型需与x相同。</li><li>在Dropless/Active场景下要求是一个2D的Tensor，Dropless场景shape为[numRows * k, h]，Active场景shape为[min(activeNum, numRows * k), h]<br>在Drop/Pad场景下要求是一个3D的Tensor，shape为[expertNum, expertCapacity, h]。</li></ul>
+        </td>
+        <td>FLOAT16、BFLOAT16、FLOAT32</td>
+        <td>ND</td>
+        <td>2或3</td>
+        <td>×</td>
+      </tr>
+      <tr>
+        <td>expandedRowIdxOut</td>
+        <td>输出</td>
+        <td>expandedXOut和x的索引映射关系。</td>
+        <td><ul><li>支持空tensor</li><li>要求是一个1D的Tensor，Shape为[numRows*k]。</li></ul></td>
+        <td>INT32</td>
+        <td>ND</td>
+        <td>1</td>
+        <td>×</td>
+      </tr>
+      <tr>
+        <td>expertTokensCountOrCumsumOut</td>
+        <td>输出</td>
+        <td>输出每个专家处理的token数量的统计结果及累加值。</td>
+        <td><ul><li>支持空tensor</li><li>通过expertTokensCountOrCumsumFlag参数控制是否输出，该值仅在非Drop/Pad场景下输出，要求是一个1D的Tensor，Shape为[expertNum]。</li></ul></td>
+        <td>INT32</td>
+        <td>ND</td>
+        <td>1</td>
+        <td>×</td>
+      </tr>
+      <tr>
+        <td>expertTokensBeforeCapacityOut</td>
+        <td>输出</td>
+        <td>输出drop之前每个专家处理的token数量的统计结果。</td>
+        <td><ul><li>支持空tensor</li><li>通过expertTokensBeforeCapacityFlag参数控制是否输出，该值仅在Drop/Pad场景下输出，要求是一个1D的Tensor，Shape为[expertNum]。</li></ul></td>
+        <td>INT32</td>
+        <td>ND</td>
+        <td>1</td>
+        <td>×</td>
+      </tr>
+      <tr>
+        <td>workspaceSize</td>
+        <td>输出</td>
+        <td>返回用户需要在Device侧申请的workspace大小。</td>
+        <td>-</td>
+        <td>-</td>
+        <td>-</td>
+        <td>-</td>
+        <td>-</td>
+      </tr>
+      <tr>
+        <td>executor</td>
+        <td>输出</td>
+        <td>返回op执行器，包含了算子计算流程。</td>
+        <td>-</td>
+        <td>-</td>
+        <td>-</td>
+        <td>-</td>
+        <td>-</td>
+      </tr>
+    </tbody></table>
 
+    -   <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：输入expertIdx数据类型支持INT32，要求是一个2D的shape [numRows, k]。
+    -   <term>昇腾910_95 AI处理器</term> ：输入expertIdx数据类型支持INT32、INT64，要求是一个2D的shape [numRows, k]或者1D的shape [numRows]，当shape为1D时表示k=1。
+    -   <term>Atlas 推理系列产品 </term>：输入expertIdx数据类型支持INT32，要求是一个2D的shape [numRows, k]，dropPadMode仅支持0。
+
+- **返回值：**
+
+    `aclnnStatus`：返回状态码，具体参见 <a href="../../../docs/zh/context/aclnn返回码.md">aclnn 返回码</a>。
+
+    一段接口完成入参校验，出现以下场景时报错：
+    <table style="undefined;table-layout: fixed; width: 1180px"> 
+      <colgroup>
+        <col style="width: 250px">
+        <col style="width: 130px">
+        <col style="width: 800px">
+      </colgroup>
+      <thead>
+        <tr>
+          <th>返回值</th>
+          <th>错误码</th>
+          <th>描述</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>ACLNN_ERR_PARAM_NULLPTR</td>
+          <td>161001</td>
+          <td>计算输入和必选计算输出是空指针。</td>
+        </tr>
+        <tr>
+          <td>ACLNN_ERR_PARAM_INVALID</td>
+          <td>161002</td>
+          <td>计算输入和输出的数据类型和格式不在支持的范围内。</td>
+        </tr>
+        <tr>
+          <td rowspan="5">ACLNN_ERR_INNER_TILING_ERROR</td>
+          <td rowspan="5">561002</td>
+          <td>expertTokensCountOrCumsumOut需要输出时，expertNum等于0。</td>
+        </tr>
+        <tr>
+          <td>x和expertIdx的shape维度不等于2，且第一维不相等。</td>
+        </tr>
+        <tr>
+          <td>activeNum、expertNum、expertCapacity的值小于0。</td>
+        </tr>
+        <tr>
+          <td>dropPadMode、expertTokensCountOrCumsumFlag、expertTokensBeforeCapacityFlag不在取值范围内。</td>
+        </tr>
+        <tr>
+          <td>dropPadMode等于1时，expertCapacity和expertNum等于0。</td>
+        </tr>
+      </tbody>
+    </table>
+
+## aclnnMoeInitRoutingV2
+-   **参数说明：**
+    <table style="undefined;table-layout: fixed; width: 1180px"> <colgroup>
+    <col style="width: 250px">
+    <col style="width: 130px">
+    <col style="width: 800px">
+    <thead>
+    <tr>
+        <th>参数名</th>
+        <th>输入/输出</th>
+        <th>描述</th>
+    </tr></thead>
+    <tbody>
+    <tr>
+        <td>workspace</td>
+        <td>输入</td>
+        <td>在Device侧申请的workspace内存地址。</td>
+    </tr>
+    <tr>
+        <td>workspaceSize</td>
+        <td>输入</td>
+        <td>在Device侧申请的workspace大小，由第一段接口<code>aclnnMoeInitRoutingV2GetWorkspaceSize</code>获取。</td>
+    </tr>
+    <tr>
+        <td>executor</td>
+        <td>输入</td>
+        <td>op执行器，包含了算子计算流程。</td>
+    </tr>
+    <tr>
+        <td>stream</td>
+        <td>输入</td>
+        <td>指定执行任务的Stream。</td>
+    </tr>
+    </tbody></table>
 -   **返回值：**
 
-    返回aclnnStatus状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
-
+    aclnnStatus：返回状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
 ## 约束说明
 
--   输入x都必须为2维，且x的numRows等于expertIdx的numRows。
--   dropPadMode为1时，expertNum和expertCapacity必须大于0。
--   x的numRows轴必须大于expertCapacity。
-
-## 算子原型
-
-```c++
-REG_OP(MoeInitRoutingV2)
-    .INPUT(x, TensorType({DT_FLOAT, DT_FLOAT16, DT_BF16}))
-    .INPUT(expert_idx, TensorType({DT_INT32, DT_INT64}))
-    .OUTPUT(expanded_x, TensorType({DT_FLOAT, DT_FLOAT16, DT_BF16}))
-    .OUTPUT(expanded_row_idx, TensorType({DT_INT32}))
-    .OUTPUT(expert_tokens_count_or_cumsum, TensorType({DT_INT32}))
-    .OUTPUT(expert_tokens_before_capacity, TensorType({DT_INT32}))
-    .ATTR(active_num, Int, 0)
-    .ATTR(expert_capacity, Int, 0)
-    .ATTR(expert_num, Int, 0)
-    .ATTR(drop_pad_mode, Int, 0)
-    .ATTR(expert_tokens_count_or_cumsum_flag, Int, 0)
-    .ATTR(expert_tokens_before_capacity_flag, Bool, false)
-    .OP_END_FACTORY_REG(MoeInitRoutingV2)
-```
-参数解释请参见**算子执行接口**。
+aclnnMoeInitRoutingV2默认确定性实现。
 
 ## 调用示例
 
-aclnn单算子调用示例代码如下（以<term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>为例），仅供参考，具体编译和执行过程请参考[编译与运行样例](../../../docs/zh/context/编译与运行样例.md)。
+示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](../../../docs/zh/context/编译与运行样例.md)。
 
 ```c++
 #include "acl/acl.h"
@@ -181,7 +373,7 @@ int64_t GetShapeSize(const std::vector<int64_t>& shape) {
     return shape_size;
 }
 int Init(int32_t deviceId, aclrtStream* stream) {
-    // 固定写法，资源初始化
+    // 固定写法，AscendCL初始化
     auto ret = aclInit(nullptr);
     CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclInit failed. ERROR: %d\n", ret); return ret);
     ret = aclrtSetDevice(deviceId);
