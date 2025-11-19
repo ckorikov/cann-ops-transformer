@@ -14,9 +14,7 @@
 #include <vector>
 
 #include "acl/acl.h"
-#include "aclnnop/aclnn_permute.h"
 #include "aclnnop/aclnn_grouped_matmul_finalize_routing_v3.h"
-#include "aclnnop/aclnn_trans_matmul_weight.h"
 
 #define CHECK_RET(cond, return_expr) \
     do {                             \

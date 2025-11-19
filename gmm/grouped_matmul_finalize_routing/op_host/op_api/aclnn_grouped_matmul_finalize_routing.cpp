@@ -285,7 +285,7 @@ static inline bool CheckDtypeValid(const GroupedMatmulParams &params)
         OP_CHECK_DTYPE_NOT_SUPPORT(params.logit, LOGIT_TYPE_SUPPORT_LIST, return false);
     }
     
-    OP_CHECK_DTYPE_NOT_SUPPORT(params.out, OUT_TYPE_SUPPORT_LIST, return false)
+    OP_CHECK_DTYPE_NOT_SUPPORT(params.out, OUT_TYPE_SUPPORT_LIST, return false);
     if (params.shareInput != nullptr && params.logit != nullptr && params.out->GetDataType() != DataType::DT_FLOAT) {
         OP_LOGE(ACLNN_ERR_PARAM_INVALID,
             "when shareInput is not null and logit is not null, y's dtype should be [DT_FLOAT], actual is [%s].",
