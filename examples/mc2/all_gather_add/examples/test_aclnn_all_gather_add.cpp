@@ -94,11 +94,16 @@ int CompareVector(std::vector<op::fp16_t> &vec1, std::vector<op::fp16_t> &vec2)
         float max_abs = std::max(std::fabs(a), std::fabs(b));
         if (max_abs > 1e-6f) {
             float relative_error = diff / max_abs;
-            return relative_error <= tolerance ? 0 : 1;
+            if (relative_error > tolerance) {
+                return 1;
+            }
         } else {
-            return diff <= tolerance ? 0 : 1;
+            if (diff > tolerance) {
+                return 1;
+            }
         }
     }
+    return 0;
 }
 
 struct Args {
