@@ -209,6 +209,9 @@ public:
     ge::graphStatus A8W4Tiling(gert::TilingContext *context, const GMMCompileInfo *compileInfoPtr);
 
 protected:
+    bool IsAivAicRatioTwoRequired();
+    bool IsFixedAxisMoveCondition();
+    bool IsIntDataType();
     ge::graphStatus CalMMTiling(const gert::TilingContext *context, const GMMCompileInfo *compileInfoPtr);
     ge::graphStatus GMMSetMMTiling(const gert::TilingContext *context, const GMMCompileInfo *compileInfoPtr);
     ge::graphStatus GMMGetAttrs(const gert::TilingContext *context);
@@ -289,14 +292,18 @@ private:
     uint32_t actType_ = 0;
     uint32_t usedCoreNum_ = 0;
     int64_t tuningConfig_ = 0L;
+    int64_t tuningConfigWorkspace_ = 0L;
+    uint64_t FixedAxisMoveWorkspace_ = 0L;
     bool isA4W4_ = false;
     bool isA8W4FakeA8W8_ = false;
+    bool isFixedAxisMove_ = false;
     uint64_t A8W4noMsdSpace_ = 0;
 
     ge::DataType xDType_ = ge::DT_UNDEFINED;
     ge::DataType mmDType_ = ge::DT_UNDEFINED;
     ge::DataType weightDtype_ = ge::DT_UNDEFINED;
     ge::DataType scaleDtype_ = ge::DT_UNDEFINED;
+    ge::DataType perTokenScaleDtype_ = ge::DT_UNDEFINED;
     ge::DataType yDtype_ = ge::DT_UNDEFINED;
     bool isA8W8_ = false;
     // in quant case, it indicates pertoken flag; in antiquant case, it represents pergroup size
