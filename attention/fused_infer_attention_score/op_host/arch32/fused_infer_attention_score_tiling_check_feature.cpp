@@ -62,7 +62,7 @@ ge::graphStatus FiaTilingCheck::CheckFeatureMlaNoQuantShape() const
         OP_CHECK_IF(ropeHeadDim_ != 64,
             OP_LOGE(opName_, "In %s situation, rope exsists and query/key head dim = %u, the rope's head dim should be 64, but got %u",
                 QuantModeToSerialString(quantMode_).c_str(), qkHeadDim_, ropeHeadDim_), return ge::GRAPH_FAILED);
-    } else if (vHeadDim_ == 128U) {
+    } else {
         return CheckFeatureGqaNoQuantShape();
     }
 
@@ -80,7 +80,7 @@ ge::graphStatus FiaTilingCheck::CheckFeatureMlaNoQuantLayout() const
             OP_LOGE(opName_, "In %s situation, rope exsists and query/key head dim = %u, layout only supports BSH, BSND, BNSD, TND, BSH_NBSD, BSND_NBSD, BNSD_NBSD, TND_NTD, but got %s",
                 QuantModeToSerialString(quantMode_).c_str(), qkHeadDim_, layout.c_str()),
             return ge::GRAPH_FAILED);
-    } else if (vHeadDim_ == 128U) {
+    } else {
         return CheckFeatureGqaNoQuantLayout();
     }
 
@@ -181,7 +181,7 @@ ge::graphStatus FiaTilingCheck::CheckFeatureMlaNoquantMask() const
                         QuantModeToSerialString(quantMode_).c_str(), qkHeadDim_, QUERY_NAME.c_str(), ATTEN_MASK_NAME.c_str()),
                 return ge::GRAPH_FAILED);
         }
-    } else if (vHeadDim_ == 128U) {
+    } else {
         return CheckFeatureGqaNoquantMask();
     }
     return ge::GRAPH_SUCCESS;
@@ -244,7 +244,7 @@ ge::graphStatus FiaTilingCheck::CheckFeatureMlaNoquantUnsupported() const
                 QuantModeToSerialString(quantMode_).c_str(), qkHeadDim_);
             return ge::GRAPH_FAILED;
         }
-    } else if (vHeadDim_ == 128U) {
+    } else {
         return CheckFeatureGqaNoquantUnsupported();
     }
 
@@ -319,6 +319,11 @@ ge::graphStatus FiaTilingCheck::CheckFeatureGqaNoquantUnsupported() const
     pair<uint32_t, uint32_t> qkvD = {qkHeadDim_, vHeadDim_};
     OP_CHECK_IF(valueDimNum == DIM_NUM_FIVE && !qkvDList.count(qkvD),
         OP_LOGE(opName_, "In %s %s situation and kv is NZ(valuedim = 5), only support (qkHeadDim, vHeadDim):(64, 64),(192, 128),(128, 128), but got (%d, %d).",
+            QuantModeToSerialString(quantMode_).c_str(), SituationToSerialString(ropeMode_).c_str(), qkHeadDim_, vHeadDim_),
+        return ge::GRAPH_FAILED);
+
+    OP_CHECK_IF((qkHeadDim_ != 128 || vHeadDim_ != 128) && (opParamInfo_.queryRope.tensor != nullptr || opParamInfo_.keyRope.tensor != nullptr),
+        OP_LOGE(opName_, "In %s %s situation and (qkHeadDim(%d), vHeadDim(%d)) != (128, 128), rope should be null.",
             QuantModeToSerialString(quantMode_).c_str(), SituationToSerialString(ropeMode_).c_str(), qkHeadDim_, vHeadDim_),
         return ge::GRAPH_FAILED);
     return ge::GRAPH_SUCCESS;
@@ -505,7 +510,7 @@ ge::graphStatus FiaTilingCheck::CheckFeatureActualSeqLensExistence() const
                 ACTUAL_SEQ_Q_LEN_NAME.c_str()),
             return ge::GRAPH_FAILED);
         OP_CHECK_IF(opParamInfo_.actualSeqLengths.tensor == nullptr,
-            OP_LOGE(opName_, "when %s's layout is %s, %s should not be null.", QUERY_NAME.c_str(), LayoutToSerialString(qLayout_).c_str(),
+            OP_LOGE(opName_, "when %s's layout is %s, %s should not be null.", KEY_NAME.c_str(), LayoutToSerialString(qLayout_).c_str(),
                 ACTUAL_SEQ_KV_LEN_NAME.c_str()),
             return ge::GRAPH_FAILED);
 
@@ -515,7 +520,7 @@ ge::graphStatus FiaTilingCheck::CheckFeatureActualSeqLensExistence() const
                     ACTUAL_SEQ_Q_LEN_NAME.c_str()),
                 return ge::GRAPH_FAILED);
             OP_CHECK_IF(opParamInfo_.actualSeqLengths.tensor->GetData<int64_t>() == nullptr,
-                OP_LOGE(opName_, "when %s's layout is %s, %s data should not be null.", QUERY_NAME.c_str(), LayoutToSerialString(qLayout_).c_str(),
+                OP_LOGE(opName_, "when %s's layout is %s, %s data should not be null.", KEY_NAME.c_str(), LayoutToSerialString(qLayout_).c_str(),
                     ACTUAL_SEQ_KV_LEN_NAME.c_str()),
                 return ge::GRAPH_FAILED);
         }
