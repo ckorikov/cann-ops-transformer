@@ -43,8 +43,8 @@
 <table style="undefined;table-layout: fixed; width: 1392px"> <colgroup>
  <col style="width: 120px">
  <col style="width: 120px">
- <col style="width: 240px">
- <col style="width: 240px">
+ <col style="width: 380px">
+ <col style="width: 120px">
  <col style="width: 80px">
   </colgroup>
   <thead>
