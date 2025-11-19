@@ -315,6 +315,9 @@ __aicore__ inline void ComputeSouterParam(RunParamStr<isInfer>& runParam, const 
         runParam.halfS1RealSize = runParam.s1RealSize <= 16 ? runParam.s1RealSize : runParam.s1RealSizeAlign32 / 2;
     } else {
         runParam.halfS1RealSize = (runParam.s1RealSize + 1) >> 1;
+        if (constInfo.s1Size > 1 && constInfo.isGqa && layout == LayOutTypeEnum::LAYOUT_BSH) {
+            runParam.halfS1RealSize = (runParam.halfS1RealSize + constInfo.gSize - 1) / constInfo.gSize * constInfo.gSize;
+        }
     }
 #endif
     runParam.firstHalfS1RealSize = runParam.halfS1RealSize;
@@ -382,9 +385,17 @@ __aicore__ inline void LoopSOuterOffsetInit(RunParamStr<isInfer>& runParam, cons
             runParam.attentionOutOffset = attentionOutSeqOffset + runParam.n2oIdx * constInfo.gDv * actualSeqLen +
                 runParam.sOuterOffset * constInfo.dSizeV;
         } else {
-            if (constInfo.isGqa) {
-                runParam.attentionOutOffset = attentionOutSeqOffset + runParam.n2oIdx * constInfo.gDv * actualSeqLen +
-                    runParam.sOuterOffset * constInfo.dSizeV;
+            if (constInfo.isGqa && constInfo.s1Size > 1) { // PFA
+                if constexpr (layout == LayOutTypeEnum::LAYOUT_BSH){
+                    runParam.attentionOutOffset = attentionOutSeqOffset + runParam.queryLeftPaddingSize * constInfo.n2GDv +
+                        runParam.sOuterOffset / constInfo.gSize * constInfo.n2GDv + runParam.n2oIdx * constInfo.gDv;
+                } else {
+                    runParam.attentionOutOffset = attentionOutSeqOffset + runParam.n2oIdx * constInfo.gDv * actualSeqLen +
+                        runParam.sOuterOffset * constInfo.dSizeV;
+                }
+            } else if(constInfo.isGqa) { //IFA
+                    runParam.attentionOutOffset = attentionOutSeqOffset + runParam.n2oIdx * constInfo.gDv * actualSeqLen +	
+                        runParam.sOuterOffset * constInfo.dSizeV;
             } else {
                 if (constInfo.isBSNDOut == 1 || layout == LayOutTypeEnum::LAYOUT_BSH || layout == LayOutTypeEnum::LAYOUT_TND) {
                     runParam.attentionOutOffset = attentionOutSeqOffset + runParam.queryLeftPaddingSize * constInfo.n2GDv +

@@ -544,6 +544,7 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
     this->constInfo.isRowInvalid = inputParamsRegbase.isRowInvalid;
     this->constInfo.headNumRatio = inputParamsRegbase.headNumRatio;
     this->constInfo.isGqa = inputParamsRegbase.isGqa;
+    this->constInfo.isPfaGS1Merge = 0;
     this->constInfo.isKvContinuous = inputParamsRegbase.isKvContinuous;
     this->constInfo.actualSeqLenSize = inputParamsRegbase.actualSeqLengthsSize;
     this->constInfo.actualSeqLenKVSize = inputParamsRegbase.actualSeqLengthsKVSize;

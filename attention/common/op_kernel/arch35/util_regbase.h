@@ -301,6 +301,7 @@ struct RunInfo<false> {
     bool isActualLenDimsNull; /* 判断是否有actualseq */ \
     bool isActualLenDimsKVNull; /* 判断是否有actualseq_kv */ \
     bool isGqa; \
+    bool isPfaGS1Merge; /* 判断是否为PFA GS1合轴 */\
     \
     uint32_t actualSeqLenSize; /* 用户输入的actualseq的长度 */ \
     uint32_t actualSeqLenKVSize; /* 用户输入的actualseq_kv的长度 */ \
@@ -415,6 +416,7 @@ struct CVSharedParams<true, false> {
     CV_SHARED_PARAMS;
     uint32_t fromFused : 1;
     uint32_t isGqa : 1;
+    uint32_t isPfaGS1Merge : 1;
     uint32_t isKvContinuous : 1;
     uint32_t isRowInvalid : 1;
     uint32_t isActualSeqLengthsNull : 1;
@@ -443,6 +445,7 @@ struct CVSharedParams<true, true> {
     CV_SHARED_PARAMS;
     uint32_t fromFused : 1;
     uint32_t isGqa : 1;
+    uint32_t isPfaGS1Merge : 1;
     uint32_t isKvContinuous : 1;
     uint32_t isRowInvalid : 1;
     uint32_t isActualSeqLengthsNull : 1;

@@ -271,6 +271,7 @@ inline __aicore__ void prompt_flash_attention_FIAS_regbase(__gm__ uint8_t* query
     TILING_KEY_IS(1002312000001001612);
     TILING_KEY_IS(1002122000001001612);
     TILING_KEY_IS(1002122010001001612);
+    TILING_KEY_IS(1003123000001101612);
     TILING_KEY_IS(1003313000001001612);
     TILING_KEY_IS(1003313000041001612);
     TILING_KEY_IS(1003313010041001612);
@@ -1382,6 +1383,13 @@ inline __aicore__ void prompt_flash_attention_FIAS_regbase(__gm__ uint8_t* query
         INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, half, ImplModeEnum::AA_HIGH_PRECISION,
             LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned64, S2TemplateType::Aligned256,
             DTemplateType::Aligned128, DTemplateType::Aligned128, PseTypeEnum::PSE_NONE_TYPE, false, false, false, true, false);
+    #elif TILING_KEY_VAR == 1003123000001101612
+        // BSH layout HighPrecision, No mask, No pse, Cube split, 常量化, D256
+        constexpr uint64_t vec1ResultSize = SOUTER_CONST_64 * SINNER_CONST_256 * 2;
+        constexpr uint64_t qkvSizeRsv2 = MAX(MAX(SOUTER_CONST_64, SINNER_CONST_256) * DSIZE_CONST_256, SINNER_CONST_256 * DSIZE_CONST_256) * 2;
+        INVOKE_PFA_GENERAL_OP_IMPL_ASCEND910_95_FA_BASEAPI(BaseApi::FlashAttentionScoreKernelInfer, vec1ResultSize, qkvSizeRsv2, half, float, half, ImplModeEnum::AA_HIGH_PRECISION,
+            LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned64, S2TemplateType::Aligned256,
+            DTemplateType::Aligned256, DTemplateType::Aligned256, PseTypeEnum::PSE_NONE_TYPE, false, false, false, true, false);
     #elif TILING_KEY_VAR == 1002122010001101612
         // BSH layout HighPrecision, No mask, No pse, Cube split, 常量化, D128, FD
         constexpr uint64_t vec1ResultSize = SOUTER_CONST_64 * SINNER_CONST_256 * 2;

@@ -1239,13 +1239,15 @@ bool PromptFlashAttentionTilingV2::CheckMaskShapeCrossSparse(ContextParamsForPFA
 
 bool PromptFlashAttentionTilingV2::CheckPFAMerge(ContextParamsForPFATiling& contextKeyParams,
     PFAShapeInfo& queryShapeInfo) {
-    if ((queryShapeInfo.s <= 1U) || (queryShapeInfo.s > pfaMergeQsLimit)) {
+    const int32_t pfaMergeGSLimit = pfaMergeQsLimit * pfaMergeGLimit;
+
+    if (queryShapeInfo.s <= 1U) {
         return false;
     }
 
     const int32_t nQ = *contextKeyParams.headsNumber;
     const int32_t nKV = *contextKeyParams.numKeyValueHeads;
-    if ((nKV > 0) && (static_cast<uint32_t>(nQ / nKV) > pfaMergeGLimit)) {
+    if ((nKV > 0) && (static_cast<uint32_t>(nQ / nKV) * queryShapeInfo.s > pfaMergeGSLimit)) {
         return false;
     }
 
@@ -2568,11 +2570,17 @@ bool PromptFlashAttentionTilingV2::AdjustCVTilingCVDiff(const ContextParamsForPF
             minFactor = SOUTER_FACTOR_SUB;
             rectangleFactor = SINNER_FACTOR_DOUBLE;
             softmaxSOuterFactor = SOUTER_FACTOR_SUB;
+        } else if(((inputLayout == InputLayout::BSH) || (inputLayout == InputLayout::BSND)) && enablePFAMerge) {
+            minFactor = SOUTER_FACTOR_SUB;
+            rectangleFactor = SINNER_FACTOR_DOUBLE;
         }
     } else if (tilingData.promptAttentionBaseParams.get_vHeadSize() > 128 && !enableIFAMLA && !enableIFA) { // 128 : D size
         if (!faRunFlag_) {
             minFactor = SOUTER_FACTOR_SUB;
             rectangleFactor = SINNER_FACTOR_SUB;
+        } else if(((inputLayout == InputLayout::BSH) || (inputLayout == InputLayout::BSND)) && enablePFAMerge && tilingData.promptAttentionBaseParams.get_vHeadSize() <= 256) { // 256 : D size
+            minFactor = SOUTER_FACTOR_SUB;
+            rectangleFactor = SINNER_FACTOR_DOUBLE;
         } else {
             minFactor = SOUTER_FACTOR_DEFAULT;
             rectangleFactor = SINNER_FACTOR_DEFAULT;
