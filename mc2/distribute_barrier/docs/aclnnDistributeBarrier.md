@@ -36,12 +36,12 @@ aclnnStatus aclnnDistributeBarrier(
 
 **参数说明**
 
-<table style="undefined;table-layout: fixed; width: 1576px"> <colgroup>
- <col style="width: 170px">
- <col style="width: 170px">
- <col style="width: 800px">
- <col style="width: 800px">
- <col style="width: 200px">
+<table style="undefined;table-layout: fixed; width: 1392px"> <colgroup>
+ <col style="width: 120px">
+ <col style="width: 120px">
+ <col style="width: 160px">
+ <col style="width: 150px">
+ <col style="width: 80px">
  </colgroup>
  <thead>
   <tr>
@@ -93,10 +93,10 @@ aclnnStatus aclnnDistributeBarrier(
 **返回值**
 第一段接口完成入参校验，出现以下场景时报错：
 
-<table style="undefined;table-layout: fixed; width: 1576px"> <colgroup>
- <col style="width: 170px">
- <col style="width: 170px">
- <col style="width: 400px">
+<table style="undefined;table-layout: fixed; width: 1180px"> <colgroup>
+ <col style="width: 250px">
+ <col style="width: 130px">
+ <col style="width: 800px">
  </colgroup>
  <thead>
   <tr>
@@ -122,9 +122,9 @@ aclnnStatus aclnnDistributeBarrier(
 
 **参数说明**
 
-<table style="undefined;table-layout: fixed; width: 1576px"> <colgroup>
- <col style="width: 170px">
- <col style="width: 170px">
+<table style="undefined;table-layout: fixed; width: 1180px"> <colgroup>
+ <col style="width: 250px">
+ <col style="width: 130px">
  <col style="width: 800px">
  </colgroup>
  <thead>
@@ -142,7 +142,7 @@ aclnnStatus aclnnDistributeBarrier(
   <tr>
    <td>workspaceSize</td>
    <td>输入</td>
-   <td>在Device侧申请的workspace大小，由第一段接口aclnnDistributeBarrierGetWorkspaceSize获取。</td>
+   <td>在Device侧申请的workspace大小，由第一段接口<code>aclnnDistributeBarrierGetWorkspaceSize</code>获取。</td>
   </tr>
   <tr>
    <td>executor</td>
@@ -182,9 +182,9 @@ aclnnStatus aclnnDistributeBarrier(
     #include <vector>
     #include "acl/acl.h"
     #include "hccl/hccl.h"
-    #include "../../moe_distribute_dispatch_v2/op_host/op_api/aclnn_moe_distribute_dispatch_v2.h"
-    #include "../op_host/op_api/aclnn_distribute_barrier.h"
-    #include "../../moe_distribute_combine_v2/op_host/op_api/aclnn_moe_distribute_combine_v2.h"
+    #include "../../moe_distribute_dispatch_v2/op_api/aclnn_moe_distribute_dispatch_v2.h"
+    #include "../op_api/aclnn_distribute_barrier.h"
+    #include "../../moe_distribute_combine_v2/op_api/aclnn_moe_distribute_combine_v2.h"
     
     #define CHECK_RET(cond, return_expr) \
         do {                             \
@@ -256,9 +256,6 @@ aclnnStatus aclnnDistributeBarrier(
         char hcomTpName[128] = {0};
         ret = HcclGetCommName(args.hcclTpComm, hcomTpName);
         CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("[ERROR] HcclGetTpCommName failed, ret %d\n", ret); return -1);
-        LOG_PRINT("[INFO] rank = %d, hcomEpName = %s, hcomTpName = %s, hcomEpBarrierName = %s, dispatchStream = %p, combineStream = %p, \
-                  context = %p\n", args.rankId, hcomEpName, hcomTpName, hcomEpBarrierName, args.dispatchStream, args.barrierStream, \
-                  args.combineStream, args.context);
     
         int64_t Bs = 8;
         int64_t H = 7168;

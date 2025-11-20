@@ -13,13 +13,29 @@
 
 # 用于custom自定算子包host侧obj生成
 macro(add_modules_sources)
+  set(oneValueArgs OP_API_INDEPENDENT OP_API_DIR)
   set(multiValueArgs OPTYPE ACLNNTYPE)
 
   cmake_parse_arguments(MODULE "" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
   set(SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 
+    # 该段代码作用为兼容op_api新旧目录结构(旧： 嵌套于op_host下； 新： 与op_host同级)
+  if (NOT DEFINED MODULE_OP_API_INDEPENDENT)
+    set(MODULE_OP_API_INDEPENDENT OFF)
+  endif()
+  if(MODULE_OP_API_INDEPENDENT)
+    # 新结构：op_api与op_host同级，需要指定有效路径
+    if (NOT DEFINED MODULE_OP_API_DIR OR NOT EXISTS "${MODULE_OP_API_DIR}")
+      message(FATAL_ERROR "OP_API_INDEPENDENT=ON时，必须传递有效的OP_API_DIR路径")
+    endif()
+    set(OP_API_SRC_DIR "${MODULE_OP_API_DIR}")
+  else()
+    # 旧结构：op_api嵌套在op_host目录下
+    set(OP_API_SRC_DIR "${SOURCE_DIR}/op_api")
+  endif()
+
   # opapi 默认全部编译
-  file(GLOB OPAPI_SRCS ${SOURCE_DIR}/op_api/*.cpp)
+  file(GLOB OPAPI_SRCS ${OP_API_SRC_DIR}/*.cpp)
   if (OPAPI_SRCS)
     # aclnn
     add_opapi_modules()
@@ -35,18 +51,12 @@ macro(add_modules_sources)
       )
     endif()
   endif()
-  file(GLOB OPAPI_HEADERS ${SOURCE_DIR}/op_api/aclnn_*.h)
+  file(GLOB OPAPI_HEADERS ${OP_API_SRC_DIR}/aclnn_*.h)
   if (OPAPI_HEADERS)
     target_sources(${OPHOST_NAME}_aclnn_exclude_headers INTERFACE ${OPAPI_HEADERS})
   endif()
 
-  # 获取算子层级目录名称，判断是否编译该算子
-  get_filename_component(PARENT_DIR ${SOURCE_DIR} DIRECTORY)
-  get_filename_component(OP_NAME ${PARENT_DIR} NAME)
-  list(FIND ASCEND_OP_NAME ${OP_NAME} INDEX)
-  # 记录全局的COMPILED_OPS和COMPILED_OP_DIRS，其中COMPILED_OP_DIRS只记录到算子名，例如moe/moe_token_permute_with_routing_map_grad
-  set(COMPILED_OPS ${COMPILED_OPS} ${OP_NAME} CACHE STRING "Compiled Ops" FORCE)
-  set(COMPILED_OP_DIRS ${COMPILED_OP_DIRS} ${PARENT_DIR} CACHE STRING "Compiled Ops Dirs" FORCE)
+  # 是否编译该算子已经由op_add_subdirectory和每个二级目录判断完毕，默认走到这里全编
 
   file(GLOB OPINFER_SRCS ${SOURCE_DIR}/*_infershape*.cpp)
   if (OPINFER_SRCS)
@@ -100,7 +110,7 @@ macro(add_modules_sources)
         if (OPDEF_SRCS)
           target_sources(${OPHOST_NAME}_opdef_${AclnnType}_obj INTERFACE ${OPDEF_SRCS})
         endif()
-      elseif(${AclnnType} STREQUAL "no_need_alcnn")
+      elseif(${AclnnType} STREQUAL "no_need_aclnn")
         message(STATUS "aicpu or host aicpu no need aclnn.")
       else()
         message(FATAL_ERROR "ACLNN TYPE UNSPPORTED, ONLY SUPPORT aclnn/aclnn_inner/aclnn_exclude")
@@ -125,7 +135,7 @@ macro(add_mc2_modules_sources)
   set(SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 
   #opapi 默认全部编译
-  file(GLOB OPAPI_SRCS ${SOURCE_DIR}/op_api/*.cpp)
+  file(GLOB OPAPI_SRCS ${SOURCE_DIR}/../op_api/*.cpp)
   if (OPAPI_SRCS)
     # aclnn
     add_opapi_modules()
@@ -195,7 +205,7 @@ macro(add_mc2_modules_sources)
         if (OPDEF_SRCS)
           target_sources(${OPHOST_NAME}_opdef_${AclnnType}_obj INTERFACE ${OPDEF_SRCS})
         endif()
-      elseif(${AclnnType} STREQUAL "no_need_alcnn")
+      elseif(${AclnnType} STREQUAL "no_need_aclnn")
         message(STATUS "aicpu or host aicpu no need aclnn.")
       else()
         message(FATAL_ERROR "ACLNN TYPE UNSPPORTED, ONLY SUPPORT aclnn/aclnn_inner/aclnn_exclude")
