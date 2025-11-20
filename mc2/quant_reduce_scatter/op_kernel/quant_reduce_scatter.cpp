@@ -1,11 +1,10 @@
 /**
- * This program is free software, you can redistribute it and/or modify.
- * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
  * This file is a part of the CANN Open Software.
  * Licensed under CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING
-BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
 
@@ -13,27 +12,28 @@ BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULA
  * \file quant_reduce_scatter.cpp
  * \brief
  */
-#include <kernel_operator.h>
-#include <lib/matmul_intf.h>
+
+#include "kernel_operator.h"
 #include "quant_reduce_scatter_tiling_data.h"
 #include "quant_reduce_scatter_tiling_key.h"
-#include "quant_reduce_scatter.h"
+#include "quant_reduce_scatter_mte.h"
 
 using namespace AscendC;
 using namespace QuantReduceScatterImpl;
 #if defined(__DAV_C310__)
 #endif
 
-template<uint32_t quantReduceScatterTemplateId>
-__global__ __aicore__ void quant_reduce_scatter(GM_ADDR x, GM_ADDR scales, GM_ADDR xOut, GM_ADDR workspaceGM,
+template<uint32_t quantReduceScatterCommMode>
+__global__ __aicore__ void quant_reduce_scatter(GM_ADDR x, GM_ADDR scales, GM_ADDR output, GM_ADDR workspaceGM,
                                                            GM_ADDR tilingGM)
 {
+    KERNEL_TASK_TYPE_DEFAULT(KERNEL_TYPE_AIV_ONLY);
     REGISTER_TILING_DEFAULT(QuantReduceScatterTilingData);
     GET_TILING_DATA_WITH_STRUCT(QuantReduceScatterTilingData, tilingData, tilingGM);
     TPipe pipe;
-    if (quantReduceScatterTemplateId == MTE_COMM) {
-        QuantReduceScatter<true, true, true> op;
-        op.Init(x, scales, xOut, workspaceGM, &pipe, &tilingData);
+    if constexpr (quantReduceScatterCommMode == MTE_COMM) {
+        QuantReduceScatterMte<DTYPE_X, DTYPE_SCALES, DTYPE_OUT_PUT> op;
+        op.Init(x, scales, output, &pipe, &tilingData);
         op.Process();
     }
 }

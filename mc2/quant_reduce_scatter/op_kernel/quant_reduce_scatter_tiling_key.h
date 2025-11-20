@@ -1,5 +1,5 @@
 /**
- * Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
  * This file is a part of the CANN Open Software.
  * Licensed under CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
@@ -19,14 +19,14 @@
 #define MTE_COMM 1
 // 模板参数
 ASCENDC_TPL_ARGS_DECL(QuantReduceScatter,
-    ASCENDC_TPL_UINT_DECL(quantReduceScatterTemplateId, ASCENDC_TPL_8_BW, ASCENDC_TPL_UI_LIST, MTE_COMM),
+    ASCENDC_TPL_UINT_DECL(quantReduceScatterCommMode, ASCENDC_TPL_8_BW, ASCENDC_TPL_UI_LIST, MTE_COMM),
 );
 
 // 模板参数组合
 // 用于调用GET_TPL_TILING_KEY获取TilingKey时，接口内部校验TilingKey是否合法
 ASCENDC_TPL_SEL(
     ASCENDC_TPL_ARGS_SEL(
-        ASCENDC_TPL_UINT_SEL(quantReduceScatterTemplateId, ASCENDC_TPL_UI_LIST, MTE_COMM),
+        ASCENDC_TPL_UINT_SEL(quantReduceScatterCommMode, ASCENDC_TPL_UI_LIST, MTE_COMM),
     ),
 );
 

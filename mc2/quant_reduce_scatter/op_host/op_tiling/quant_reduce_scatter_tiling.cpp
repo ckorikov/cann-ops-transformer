@@ -33,7 +33,7 @@ constexpr uint32_t RANK_SIZE_NUMBER_EIGHT = 8;
 constexpr uint32_t DEFAULT_BLOCK_DIM = 1U;
 const std::string OP_NAME = "QuantReduceScatter";
 constexpr uint32_t SYSTEM_NEED_WORKSPACE = 16U * 1024 * 1024;
-constexpr uint32_t AIV_TYPE = 2;
+constexpr uint32_t AIV_TYPE = 3;
 
 static ge::graphStatus CheckSocVersion(const gert::TilingContext *context)
 {
