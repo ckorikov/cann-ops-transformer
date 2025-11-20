@@ -247,14 +247,14 @@ aclnnStatus aclnnMoeDistributeDispatchV3(
   <tr>
    <td>zeroExpertNum</td>
    <td>输入</td>
-   <td>零专家数量：<br><term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：当前版本不支持，传0即可；<br><term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：取值范围:[0, MAX_INT32)，MAX_INT32 = 2^31 - 1, 合法的零专家的ID的值是<code>[moeExpertNum, moeExpertNum+zeroExpertNum)</code>。</td>
+   <td>零专家数量：<br><term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：当前版本不支持，传0即可；<br><term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：取值范围:[0, MAX_INT32)，MAX_INT32 = 2^31 - 1, 合法的零专家的ID的值是<code>[moeExpertNum, moeExpertNum + zeroExpertNum)</code>。</td>
    <td>INT64</td>
    <td>-</td>
   </tr>
   <tr>
    <td>copyExpertNum</td>
    <td>输入</td>
-   <td>拷贝专家数量：<br><term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：当前版本不支持，传0即可；<br><term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：取值范围:[0, MAX_INT32)，MAX_INT32 = 2^31 - 1，专家ID范围<code>[moeExpertNum+zeroExpertNum, moeExpertNum+zeroExpertNum+copyExpertNum)</code>。</td>
+   <td>拷贝专家数量：<br><term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：当前版本不支持，传0即可；<br><term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：取值范围:[0, MAX_INT32)，MAX_INT32 = 2^31 - 1，专家ID范围<code>[moeExpertNum+zeroExpertNum, moeExpertNum + zeroExpertNum + copyExpertNum)</code>。</td>
    <td>INT64</td>
    <td>-</td>
   </tr>
@@ -362,7 +362,7 @@ aclnnStatus aclnnMoeDistributeDispatchV3(
   <tr>
    <td>ACLNN_ERR_INNER_TILING_ERROR</td>
    <td>561002</td>
-   <td>输入和输出的shape不在支持的范围内；<br>参数的取值不在支持的范围。</td>
+   <td>输入和输出的shape不在支持的范围内；<br>参数的取值不在支持的范围内。</td>
   </tr>
  </tbody>
 </table>
@@ -666,8 +666,8 @@ aclnnStatus aclnnMoeDistributeDispatchV3(
 
         std::vector<int64_t> elasticInfoShape{4 + EP_WORLD_SIZE * 2};
         std::vector<int64_t> oriXShape{Bs, H};
-        std::vector<int64_t> constExpertAlpha1Shape{constExpertNum};
-        std::vector<int64_t> constExpertAlpha2Shape{constExpertNum};
+        std::vector<int64_t> constExpertAlpha1Shape{constExpertNum, H};
+        std::vector<int64_t> constExpertAlpha2Shape{constExpertNum, H};
         std::vector<int64_t> constExpertVShape{constExpertNum, H};
 
         std::vector<int64_t> xOutShape{Bs, H};
@@ -770,7 +770,6 @@ aclnnStatus aclnnMoeDistributeDispatchV3(
         CHECK_RET(ret == ACL_SUCCESS, return ret);
         ret = CreateAclTensor(constExpertVHostData, constExpertVShape, &constExpertVDeviceAddr, aclDataType::ACL_BF16, &constExpertV);
         CHECK_RET(ret == ACL_SUCCESS, return ret);
-
         ret = CreateAclTensor(xOutHostData, xOutShape, &xOutDeviceAddr, aclDataType::ACL_BF16, &xOut);
         CHECK_RET(ret == ACL_SUCCESS, return ret);
 
