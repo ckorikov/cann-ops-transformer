@@ -274,6 +274,7 @@ $$
     * 仅支持EP域，无TP域，不支持`groupTp`、`tpWorldSize`、`tpRankId`属性，且`tpRecvCounts`输出无有效内容。
     * 不支持`elasticInfoOptional`。
     * 当`commAlg` = "hierarchy"，`expandScalesOut`内容有效。
+    * 不支持常量专家场景，不支持`constExpertNum`，使用默认值即可。
 * <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：
     * 不支持`expandScalesOut`。
 ## 约束说明
@@ -316,7 +317,7 @@ $$
             -  还需满足`moeExpertNum` / `epWorldSize` <= 24，`commAlg` = "hierarchy"无此约束。
         - `epRecvCountsOut`：要求shape为 (`moeExpertNum` + 2 * `globalBs` * `K` * `serverNum`, )，前`moeExpertNum`个数表示从EP通信域各卡接收的token数，2 * `globalBs` * `K` * `serverNum`存储了机间机内做通信前combine可以提前做reduce的token个数和token在通信区中的偏移，`globalBs`传入0时在此处应当按照`Bs` * `epWorldSize`计算。
     - `HCCL_INTRA_PCIE_ENABLE`和`HCCL_INTRA_ROCE_ENABLE`：不推荐使用该环境变量控制通信算法，原`HCCL_INTRA_PCIE_ENABLE`=1&&`HCCL_INTRA_ROCE_ENABLE`=0场景，下文均通过`commAlg` = "hierarchy"替代，默认场景使用`commAlg` = "fullmesh"替代。
-    - `commAlg`配置"hierarchy"时，不支持`scalesOptional`、`xActiveMaskOptional`、`oriXOptional`、`zeroExpertNum`、`copyExpertNum`、`constExpertNum`。
+    - `commAlg`配置"hierarchy"时，不支持`scalesOptional`、`xActiveMaskOptional`、`oriXOptional`、`zeroExpertNum`、`copyExpertNum`。
     - 参数说明里shape格式说明：
         - `H`：表示hidden size隐藏层大小。
             - `commAlg` = "fullmesh"：取值范围(0, 7168]，且保证是32的整数倍。

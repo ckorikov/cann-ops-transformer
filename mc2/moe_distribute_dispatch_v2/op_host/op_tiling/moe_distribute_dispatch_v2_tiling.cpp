@@ -1082,14 +1082,14 @@ static ge::graphStatus MoeDistributeDispatchA2CheckAttrAndSetTiling(const gert::
         return ge::GRAPH_FAILED);
     OP_TILING_CHECK(copyExpertNumPtr == nullptr, OP_LOGE(K_INNER_DEBUG, "copyExpertNumPtr is null."),
         return ge::GRAPH_FAILED);
-    OP_TILING_CHECK(constExpertNumPtr == nullptr, OP_LOGE(K_INNER_DEBUG, "constExpertNumPtr is null."),
-        return ge::GRAPH_FAILED);
+    OP_TILING_CHECK(constExpertNumPtr == nullptr || *constExpertNumPtr != 0,
+        OP_LOGE(K_INNER_DEBUG, "constExpertNum is invalid. Must be 0."), return ge::GRAPH_FAILED);
 
     // 判断是否满足uint32_t及其他限制
     int64_t moeExpertNum = static_cast<int64_t>(*moeExpertNumPtr);
     int64_t zeroExpertNum = *zeroExpertNumPtr;
     int64_t copyExpertNum = *copyExpertNumPtr;
-    int64_t constExpertNum = *constExpertNumPtr;
+    int64_t constExpertNum = 0LL;
     int64_t zeroComputeExpertNum = zeroExpertNum + copyExpertNum + constExpertNum;
 
     OP_LOGD(K_INNER_DEBUG, "zeroExpertNum=%ld,copyExpertNum= %ld, constExpertNum=%ld", zeroExpertNum, copyExpertNum,
@@ -1178,12 +1178,11 @@ static ge::graphStatus MoeDistributeDispatchA2CheckShapeAndSetTiling(const gert:
     auto moeExpertNumPtr = attrs->GetAttrPointer<int>(ATTR_MOE_EXPERT_NUM_INDEX);
     auto zeroExpertNumPtr = attrs->GetAttrPointer<int64_t>(static_cast<int>(ATTR_ZERO_EXPERT_NUM_INDEX));
     auto copyExpertNumPtr = attrs->GetAttrPointer<int64_t>(static_cast<int>(ATTR_COPY_EXPERT_NUM_INDEX));
-    auto constExpertNumPtr = attrs->GetAttrPointer<int64_t>(static_cast<int>(ATTR_CONST_EXPERT_NUM_INDEX));
     // 判断是否满足uint32_t及其他限制
     int32_t moeExpertNum = *moeExpertNumPtr;
     int32_t zeroExpertNum = static_cast<int32_t>(*zeroExpertNumPtr);
     int32_t copyExpertNum = static_cast<int32_t>(*copyExpertNumPtr);
-    int32_t constExpertNum = static_cast<int32_t>(*constExpertNumPtr);
+    int32_t constExpertNum = 0;
     int32_t zeroComputeExpertNum = zeroExpertNum + copyExpertNum + constExpertNum;
     OP_TILING_CHECK(k == 0 || k > MAX_K_VALUE_A2 || k > moeExpertNum + zeroComputeExpertNum,
         OP_LOGE(K_INNER_DEBUG, "k is invalid."), return GRAPH_FAILED);

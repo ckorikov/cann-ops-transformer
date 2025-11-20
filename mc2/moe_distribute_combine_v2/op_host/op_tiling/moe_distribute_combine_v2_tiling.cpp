@@ -1211,7 +1211,8 @@ static ge::graphStatus MoeDistributeCombineA2CheckAttrAndSetTiling(const gert::T
 
     OP_TILING_CHECK(zeroExpertNumPtr == nullptr, OP_LOGE(K_INNER_DEBUG, "zeroExpertNum is invalid."), return GRAPH_FAILED);
     OP_TILING_CHECK(copyExpertNumPtr == nullptr, OP_LOGE(K_INNER_DEBUG, "copyExpertNum is invalid."), return GRAPH_FAILED);
-    OP_TILING_CHECK(constExpertNumPtr == nullptr, OP_LOGE(K_INNER_DEBUG, "constExpertNum is invalid."), return GRAPH_FAILED);
+    OP_TILING_CHECK(constExpertNumPtr == nullptr || *constExpertNumPtr != 0,
+        OP_LOGE(K_INNER_DEBUG, "constExpertNum is invalid. Must be 0."), return ge::GRAPH_FAILED);
 
     OP_TILING_CHECK((groupEpPtr == nullptr) || (strnlen(groupEpPtr, MAX_GROUP_NAME_LENGTH) == 0) ||
         (strnlen(groupEpPtr, MAX_GROUP_NAME_LENGTH) == MAX_GROUP_NAME_LENGTH),
@@ -1244,7 +1245,7 @@ static ge::graphStatus MoeDistributeCombineA2CheckAttrAndSetTiling(const gert::T
     int64_t moeExpertNum = static_cast<int64_t>(*moeExpertNumPtr);
     int64_t zeroExpertNum = *zeroExpertNumPtr;
     int64_t copyExpertNum = *copyExpertNumPtr;
-    int64_t constExpertNum = *constExpertNumPtr;
+    int64_t constExpertNum = 0LL;
     OP_TILING_CHECK(
         (moeExpertNum + zeroExpertNum + copyExpertNum + constExpertNum) > INT32_MAX,
         OP_LOGE(K_INNER_DEBUG, "moeExpertNum + zeroExpertNum + copyExpertNum + constExpertNum exceeds MAX_INT32."),
@@ -1310,12 +1311,12 @@ static ge::graphStatus MoeDistributeCombineA2CheckShapeAndSetTiling(const gert::
     int32_t moeExpertNum = *moeExpertNumPtr;
     int32_t zeroExpertNum = static_cast<int32_t>(*zeroExpertNumPtr);
     int32_t copyExpertNum = static_cast<int32_t>(*copyExpertNumPtr);
-    int32_t constExpertNum = static_cast<int32_t>(*constExpertNumPtr);
+    int32_t constExpertNum = 0;
     OP_TILING_CHECK(k == 0 || k > MAX_K_VALUE_A2 || k > moeExpertNum
         + zeroExpertNum + copyExpertNum + constExpertNum,
         OP_LOGE(K_INNER_DEBUG, "k is invalid."), return GRAPH_FAILED);
 
-    bool  isActiveMask = (xActiveMaskStorageShape != nullptr);
+    bool isActiveMask = (xActiveMaskStorageShape != nullptr);
     if (isActiveMask) {
         const int64_t xActiveMaskDimNums = xActiveMaskStorageShape->GetStorageShape().GetDimNum();
         OP_TILING_CHECK(((xActiveMaskDimNums != ONE_DIM) && (xActiveMaskDimNums != TWO_DIMS)),
@@ -1339,6 +1340,10 @@ static ge::graphStatus MoeDistributeCombineA2CheckShapeAndSetTiling(const gert::
     OP_TILING_CHECK(constExpertNum > 0 && (oriXStorageShape == nullptr || constExpertAlpha1StorageShape == nullptr ||
                     constExpertAlpha2StorageShape == nullptr || constExpertVStorageShape == nullptr),
         OP_LOGE(K_INNER_DEBUG, "oriX、alpha1、alpha2、V must be exist when constExpertNum > 0"), return GRAPH_FAILED);
+
+    OP_TILING_CHECK(constExpertAlpha1StorageShape != nullptr || constExpertAlpha2StorageShape != nullptr || constExpertVStorageShape != nullptr,
+        OP_LOGE(K_INNER_DEBUG, "current version does not support const_expert_alpha_1, const_expert_alpha_2, and const_expert_v."),
+        return GRAPH_FAILED);
 
     if (oriXStorageShape != nullptr) {
         // 必须是2维
