@@ -222,18 +222,13 @@ static bool CheckEmptyOptionalTensor(const aclTensor* tensor, const char* tensor
 }
 
 static enum CaseOption CheckHighAccuracyCase(const aclTensor* x1, const aclTensor* x2, const aclTensor* bias,
-                                             const aclTensor* y, const aclTensor* amax)
+                                             const aclTensor* y)
 {
     // 高精度场景须数据类型相同
     OP_CHECK_DTYPE_NOT_SAME(x1, x2, return CaseOption::INVALID);
     OP_CHECK_DTYPE_NOT_SAME(x1, y, return CaseOption::INVALID);
     if (CheckEmptyOptionalTensor(bias, "bias")) {
         OP_CHECK_DTYPE_NOT_SAME(x1, bias, return CaseOption::INVALID);
-    }
-
-    if (amax != nullptr) {
-        OP_LOGE(ACLNN_ERR_PARAM_INVALID, "Does not support non-nullptr amaxOutOptional.");
-        return CaseOption::INVALID;
     }
     return CaseOption::HIGH_ACCURACY;
 }
@@ -269,17 +264,21 @@ static enum CaseOption CheckLowAccuracyCase(const aclTensor* x1, const aclTensor
 static enum CaseOption CheckCase(const aclTensor* x1, const aclTensor* x2, const aclTensor* bias, const aclTensor* y,
                                  const aclTensor* amax, const aclTensor* x1Scale, const aclTensor* x2Scale)
 {
+    if (amax != nullptr) {
+        OP_LOGE(ACLNN_ERR_PARAM_INVALID, "Does not support non-nullptr amaxOutOptional.");
+        return CaseOption::INVALID;
+    }
     if (CheckType(x1->GetDataType(), INPUT_SUPPORT_TYPE_HIGH_ACCURACY) &&
         CheckType(x2->GetDataType(), INPUT_SUPPORT_TYPE_HIGH_ACCURACY)) {  // 高精度场景
-        return CheckHighAccuracyCase(x1, x2, bias, y, amax);
+        return CheckHighAccuracyCase(x1, x2, bias, y);
     } else if (CheckType(x1->GetDataType(), INPUT_SUPPORT_TYPE_LOW_ACCURACY) &&
                CheckType(x2->GetDataType(), INPUT_SUPPORT_TYPE_LOW_ACCURACY)) {  // 低精度场景 
         return CheckLowAccuracyCase(x1, x2, x1Scale, x2Scale);
     } 
     else {
-        OP_LOGE(ACLNN_ERR_PARAM_INVALID, 
-            "Does not match any available case. x1 datatpye is %d, x2 datatype is %d", 
-            static_cast<int32_t>(x1->GetDataType()), static_cast<int32_t>(x2->GetDataType()));
+        OP_LOGE(ACLNN_ERR_PARAM_INVALID, "Does not match any available case, "
+                "x1 datatype is %s, x1 datatype is %s, please read the documents and check the input.",
+                op::ToString(x1->GetDataType()).GetString(), op::ToString(x2->GetDataType()).GetString());
         return CaseOption::INVALID;
     }
 }

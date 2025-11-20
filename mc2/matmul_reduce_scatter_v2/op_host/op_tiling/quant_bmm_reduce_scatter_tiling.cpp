@@ -59,6 +59,7 @@ constexpr uint32_t YDTYPE_INDEX = 9;
 constexpr uint32_t OUTPUT_TYPE_FLOAT = 2;
 constexpr uint32_t BLOCKSIZE_INDEX = 6;
 constexpr uint32_t GROUPSIZE_INDEX = 7;
+constexpr uint32_t TRANSPOSEB_INDEX = 3;
 }  // namespace
 
 bool QuantBmmReduceScatterTiling::IsCapable()
@@ -83,12 +84,12 @@ bool QuantBmmReduceScatterTiling::CommonParamCheck()
     auto quantscale = context_->GetOptionalInputShape(QUANTSCALE_INDEX);
     OP_TILING_CHECK(
         quantscale != nullptr,
-        CUBE_INNER_ERR_REPORT(opName_, "in pertensor without amaxout or perblock scene, quantscale must be nullptr"),
+        CUBE_INNER_ERR_REPORT(opName_, "in pertensor without amaxout or perblock or mxfp scene, quantscale must be nullptr"),
         return false);
 
     auto amaxShape = context_->GetOutputShape(AMAX_INDEX);
     OP_TILING_CHECK(amaxShape != nullptr,
-        CUBE_INNER_ERR_REPORT(opName_, "in pertensor without amaxout or perblock scene, amax must be nullptr"),
+        CUBE_INNER_ERR_REPORT(opName_, "in pertensor without amaxout or perblock or mxfp scene, amax must be nullptr"),
         return false);
     return true;
 }
@@ -161,25 +162,31 @@ ge::graphStatus QuantBmmReduceScatterTiling::CheckMxScaleDim(const gert::Storage
             "Expected Shape of x1Scale = (%lu, %lu, %lu), Actual Shape of x1Scale = (%lu, %lu, %lu).",
             x1Dim0, x1Dim1, MX_SCALE_OFFSET, MX_SCALE_OFFSET, x1Dim0, x1Dim1DivMxFp8Size, EVEN_ALIGN, x1ScaleDim0,
             x1ScaleDim1, x1ScaleDim2), return ge::GRAPH_FAILED);
-    if (x1Dim1 != x2Dim0) {
-        OP_TILING_CHECK((x2ScaleDim0 != x2Dim0) ||
-                        (x2ScaleDim1 != x2Dim1DivMxFp8Size) || (x2ScaleDim2 != EVEN_ALIGN),
-        CUBE_INNER_ERR_REPORT(opName_, "In the Transposed Scenario, Wrong shape of x2Scale! "
-            "x2scaleDim0 should be equal to x2Dim0(%lu), "
-            "x2scaleDim1 should be equal to (x2Dim1(%lu) + MX_SCALE_OFFSET(%lu) - 1) / MX_SCALE_OFFSET(%lu), "
-            "x2scaleDim2 should be equal to 2, "
-            "Expected Shape of x2Scale = (%lu, %lu, %lu), Actual Shape of x2Scale = (%lu, %lu, %lu).",
-            x2Dim0, x2Dim1, MX_SCALE_OFFSET, MX_SCALE_OFFSET, x2Dim0, x2Dim1DivMxFp8Size, EVEN_ALIGN, x2ScaleDim0,
-            x2ScaleDim1, x2ScaleDim2), return ge::GRAPH_FAILED);
-    } else {
-        OP_TILING_CHECK((x2ScaleDim0 != x2Dim0DivMxFp8Size) ||
-                        (x2ScaleDim1 != x2Dim1) || (x2ScaleDim2 != EVEN_ALIGN),
-        CUBE_INNER_ERR_REPORT(opName_, "In the Non-Transposed Scenario, Wrong shape of x2Scale! "
-            "x2scaleDim0 should be equal to (x2Dim0(%lu) + MX_SCALE_OFFSET(%lu) - 1) / MX_SCALE_OFFSET(%lu), "
-            "x2scaleDim1 should be equal to x2Dim0(%lu), x2scaleDim2 should be equal to 2, "
-            "Expected Shape of x2Scale = (%lu, %lu, %lu), Actual Shape of x2Scale = (%lu, %lu, %lu).",
-            x2Dim0, MX_SCALE_OFFSET, MX_SCALE_OFFSET, x2Dim0,  x2Dim0DivMxFp8Size, x2Dim1, EVEN_ALIGN, x2ScaleDim0,
-            x2ScaleDim1, x2ScaleDim2), return ge::GRAPH_FAILED);
+
+    bool isTransposeB = *context_->GetAttrs()->GetAttrPointer<bool>(TRANSPOSEB_INDEX);
+    bool nIsOne = (x1Dim1 == x2Dim0)? (x2Dim1 == 1) : (x2Dim0 == 1);
+    if(!nIsOne) {
+        // Transposed Scenario
+        if (isTransposeB) {
+            OP_TILING_CHECK((x2ScaleDim0 != x2Dim0) ||
+                            (x2ScaleDim1 != x2Dim1DivMxFp8Size) || (x2ScaleDim2 != EVEN_ALIGN),
+            CUBE_INNER_ERR_REPORT(opName_, "In the Transposed Scenario, Wrong shape of x2Scale! "
+                "x2scaleDim0 should be equal to x2Dim0(%lu), "
+                "x2scaleDim1 should be equal to (x2Dim1(%lu) + MX_SCALE_OFFSET(%lu) - 1) / MX_SCALE_OFFSET(%lu), "
+                "x2scaleDim2 should be equal to 2, "
+                "Expected Shape of x2Scale = (%lu, %lu, %lu), Actual Shape of x2Scale = (%lu, %lu, %lu).",
+                x2Dim0, x2Dim1, MX_SCALE_OFFSET, MX_SCALE_OFFSET, x2Dim0, x2Dim1DivMxFp8Size, EVEN_ALIGN, x2ScaleDim0,
+                x2ScaleDim1, x2ScaleDim2), return ge::GRAPH_FAILED);
+        } else {
+            OP_TILING_CHECK((x2ScaleDim0 != x2Dim0DivMxFp8Size) ||
+                            (x2ScaleDim1 != x2Dim1) || (x2ScaleDim2 != EVEN_ALIGN),
+            CUBE_INNER_ERR_REPORT(opName_, "In the Non-Transposed Scenario, Wrong shape of x2Scale! "
+                "x2scaleDim0 should be equal to (x2Dim0(%lu) + MX_SCALE_OFFSET(%lu) - 1) / MX_SCALE_OFFSET(%lu), "
+                "x2scaleDim1 should be equal to x2Dim0(%lu), x2scaleDim2 should be equal to 2, "
+                "Expected Shape of x2Scale = (%lu, %lu, %lu), Actual Shape of x2Scale = (%lu, %lu, %lu).",
+                x2Dim0, MX_SCALE_OFFSET, MX_SCALE_OFFSET, x2Dim0,  x2Dim0DivMxFp8Size, x2Dim1, EVEN_ALIGN, x2ScaleDim0,
+                x2ScaleDim1, x2ScaleDim2), return ge::GRAPH_FAILED);
+        }
     }
     return ge::GRAPH_SUCCESS;
 }
@@ -196,8 +203,8 @@ bool QuantBmmReduceScatterTiling::PertensorSceneParamCheck(const gert::StorageSh
     auto biasShape = context_->GetInputShape(static_cast<size_t>(BIAS_INDEX));
     if ((biasDesc != nullptr) && (biasShape != nullptr)) {
         OP_TILING_CHECK(biasDesc->GetDataType() != ge::DataType::DT_FLOAT,
-                        CUBE_INNER_ERR_REPORT(opName_, "bias dtype should be float32, but got %d", 
-                            static_cast<int32_t>(biasDesc->GetDataType())), return false);
+                        CUBE_INNER_ERR_REPORT(opName_, "bias dtype should be DT_FLOAT, but got %s",
+                        Ops::Base::ToString(biasDesc->GetDataType()).c_str()), return false);
         OP_TILING_CHECK(biasShape->GetStorageShape().GetDimNum() != 1,
                         CUBE_INNER_ERR_REPORT(opName_, "dim num of bias should be 1"), return false);
         uint64_t biasDimValue = static_cast<uint64_t>(biasShape->GetStorageShape().GetDim(0));
@@ -254,7 +261,8 @@ bool QuantBmmReduceScatterTiling::MxfpSceneParamCheck(const gert::StorageShape* 
 {
     OP_TILING_CHECK(!mc2tiling::CheckDataTypeVaild(args_.geAType, mc2tiling::MXFP8DTYPE_SUPPORT_LIST) ||
                     !mc2tiling::CheckDataTypeVaild(args_.geBType, mc2tiling::MXFP8DTYPE_SUPPORT_LIST),
-                    CUBE_INNER_ERR_REPORT(opName_, "mfxp8 x dtype should be right, but got x1 dtype: %s, x2 dtype: %s",
+                    CUBE_INNER_ERR_REPORT(opName_, "mfxp8 x dtype should be float8_e4m3fn or float8_e5m2, "
+                    "but got x1 dtype: %s, x2 dtype: %s",
                     Ops::Base::ToString(args_.geAType).c_str(), Ops::Base::ToString(args_.geBType).c_str()), return false);
     OP_TILING_CHECK(CheckMxScaleDim(x1ScaleShape, x2ScaleShape) == ge::GRAPH_FAILED,
                     CUBE_INNER_ERR_REPORT(opName_, "Check CheckMxScaleDim failed!"), return false);
