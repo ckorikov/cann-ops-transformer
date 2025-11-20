@@ -274,12 +274,14 @@ ge::graphStatus QuantGroupedInplaceAddTiling::DoLibApiTiling()
     tilingData_.mmTilingData.dbL0B = 2; // db switch, 1: off, 2: on
     tilingData_.mmTilingData.dbL0C = basicTiling_.dbL0c;
     if (inputParams_.bQuantMode == optiling::QuantMode::MX_PERGROUP_MODE) {
+        tilingData_.mmTilingData.mxTypePara =
+            (SCALER_FACTOR_MIN << SCALER_FACTOR_N_BIT) + (SCALER_FACTOR_MIN << SCALER_FACTOR_M_BIT);
         if (basicTiling_.scaleFactorA >= SCALER_FACTOR_MIN && basicTiling_.scaleFactorA <= SCALER_FACTOR_MAX &&
             basicTiling_.scaleFactorB >= SCALER_FACTOR_MIN && basicTiling_.scaleFactorB <= SCALER_FACTOR_MAX) {
-            tilingData_.mmTilingData.mxTypePara =
+            tilingData_.mmTilingData.mxTypePara +=
                 (basicTiling_.scaleFactorB << SCALER_FACTOR_B_BIT) + basicTiling_.scaleFactorA;
         } else {
-            tilingData_.mmTilingData.mxTypePara =
+            tilingData_.mmTilingData.mxTypePara +=
                 (SCALER_FACTOR_DEFAULT << SCALER_FACTOR_B_BIT) + SCALER_FACTOR_DEFAULT;
         }
     }

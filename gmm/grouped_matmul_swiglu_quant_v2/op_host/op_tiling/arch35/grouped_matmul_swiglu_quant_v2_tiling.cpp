@@ -69,7 +69,7 @@ bool GroupedMatmulSwigluQuantDavidV2Tiling::CheckDtype()
                        inputParams_.opName,
                                             "With DT_FLOAT8_E4M3FN/DT_FLOAT8_E5M2 inputs, \
             the expected dtype of xscale and weightscale should be DT_FLOAT8_E8M0, but actual dtype is %s, %s.",
-                       ge::TypeUtils::DataTypeToSerialString(inputParams_.scaleDtype).c_str(), 
+                       ge::TypeUtils::DataTypeToSerialString(inputParams_.scaleDtype).c_str(),
                        ge::TypeUtils::DataTypeToSerialString(inputParams_.perTokenScaleDtype).c_str()),
                    return false);
     } else {
@@ -87,7 +87,7 @@ bool GroupedMatmulSwigluQuantDavidV2Tiling::SetQuantModeForGMMSwigluQuant()
         inputParams_.bQuantMode = optiling::QuantMode::MX_PERGROUP_MODE;
         inputParams_.aQuantMode = optiling::QuantMode::MX_PERGROUP_MODE;
         return true;
-    } 
+    }
     return false;
 }
 
@@ -168,10 +168,12 @@ ge::graphStatus GroupedMatmulSwigluQuantDavidV2Tiling::DoLibApiTiling()
         if (basicTiling_.scaleFactorA >= SCALER_FACTOR_MIN && basicTiling_.scaleFactorA <= SCALER_FACTOR_MAX &&
             basicTiling_.scaleFactorB >= SCALER_FACTOR_MIN && basicTiling_.scaleFactorB <= SCALER_FACTOR_MAX) {
             tilingData_.mmTilingData.set_mxTypePara(
+                (SCALER_FACTOR_DEFAULT << SCALER_FACTOR_N_BIT) + (SCALER_FACTOR_DEFAULT << SCALER_FACTOR_M_BIT) +
                 (basicTiling_.scaleFactorB << SCALER_FACTOR_B_BIT) + basicTiling_.scaleFactorA);
         } else {
             tilingData_.mmTilingData.set_mxTypePara(
-                ((SCALER_FACTOR_DEFAULT << SCALER_FACTOR_B_BIT) + SCALER_FACTOR_DEFAULT));
+                (SCALER_FACTOR_DEFAULT << SCALER_FACTOR_N_BIT) + (SCALER_FACTOR_DEFAULT << SCALER_FACTOR_M_BIT) +
+                (SCALER_FACTOR_DEFAULT << SCALER_FACTOR_B_BIT) + SCALER_FACTOR_DEFAULT);
         }
     }
 

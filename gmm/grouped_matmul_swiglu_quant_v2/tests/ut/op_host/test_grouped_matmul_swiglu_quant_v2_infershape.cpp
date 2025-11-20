@@ -15,18 +15,18 @@
 #include "infer_shape_case_executor.h"
 #include "base/registry/op_impl_space_registry_v2.h"
 
- 
+
  class GroupedMatmulSwigluQuantV2 : public testing::Test {
  protected:
      static void SetUpTestCase() {
          std::cout << "GroupedMatmulSwigluQuantV2 Proto Test SetUp" << std::endl;
      }
- 
+
      static void TearDownTestCase() {
          std::cout << "GroupedMatmulSwigluQuantV2 Proto Test TearDown" << std::endl;
      }
  };
- 
+
  TEST_F(GroupedMatmulSwigluQuantV2, test_infershape_w8a8_normal_1) {
     int m = 1024;
     int k = 2048;
@@ -37,7 +37,7 @@
     gert::StorageShape wScaleShape = {{e, n}, {e, n}};
     gert::StorageShape xScaleShape = {{m}, {m}};
     gert::StorageShape groupListShape = {{e}, {e}};
- 
+
     gert::InfershapeContextPara infershapeContextPara("GroupedMatmulSwigluQuantV2",
         {
             {xShape, ge::DT_INT8, ge::FORMAT_ND},
@@ -77,7 +77,7 @@
     gert::StorageShape wScaleShape = {{e, k / 64, n, 2}, {e, k / 64, n, 2}};
     gert::StorageShape xScaleShape = {{m, k / 64, 2}, {m, k / 64, 2}};
     gert::StorageShape groupListShape = {{e}, {e}};
- 
+
     gert::InfershapeContextPara infershapeContextPara("GroupedMatmulSwigluQuantV2",
         {
             {xShape, ge::DT_FLOAT8_E5M2, ge::FORMAT_ND},
