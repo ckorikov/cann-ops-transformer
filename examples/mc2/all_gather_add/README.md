@@ -92,15 +92,15 @@
     </tr>
     <tr>
       <td>commTurn</td>
-      <td>可选属性</td>
-      <td><li>通信数据切分数，即总数据量/单次通信量。</li><li>commTurn当前版本仅支持输入1。</li></td>
+      <td>属性</td>
+      <td>通信数据切分数，即总数据量/单次通信量。</td>
       <td>INT64</td>
       <td>-</td>
     </tr>
     <tr>
       <td>rank_size</td>
-      <td>可选属性</td>
-      <td><li>通信域里面的卡数。</li><li>默认值为0。</li></td>
+      <td>属性</td>
+      <td>通信域里面的卡数。</td>
       <td>INT64</td>
       <td>-</td>
     </tr>
