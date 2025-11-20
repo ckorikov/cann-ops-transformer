@@ -41,13 +41,13 @@ class MatmulReduceScatterTilingData {
 public:
     Mc2InitTiling mc2InitTiling;
     Mc2CcTiling mc2CcTiling;
-    RCSTiling param;
+    Mc2Tiling::RCSTiling param;
     TCubeTiling tileTiling;
     TCubeTiling tailTiling;
     TCubeTiling localTiling;
-    TileL2Tiling tileL2Tiling;
-    TileL2Tiling tailL2Tiling;
-    TileL2Tiling localL2Tiling;
+    Mc2Tiling::TileL2Tiling tileL2Tiling;
+    Mc2Tiling::TileL2Tiling tailL2Tiling;
+    Mc2Tiling::TileL2Tiling localL2Tiling;
 	ReduceScatterSoc socParam;
     Mc2L2cacheUseInfo l2cacheUseInfo;
 };

@@ -49,12 +49,12 @@ protected:
     void PrintAllTilingData(); // done
     void SetMc2Hcomm(Mc2Tiling::RCSTiling &rcsCfg);
     ge::graphStatus DoMatmulV3Tiling(Mc2MatmulHelper::Mc2MatmulTilingCfg &tilingCfg, Mc2MMRegisterCfg &registerCfg,
-                                     Mc2Tiling::MC2MatmulV3TilingData &tilingData);
-    inline Mc2Tiling::MC2MatmulV3TilingData &MutableMC2MmV3TileTilingData()
+                                     Mc2MatMulV3TilingData &tilingData);
+    inline Mc2MatMulV3TilingData &MutableMC2MmV3TileTilingData()
     {
         return matmulReduceScatterV2TilingData_->mC2Mmv3TileTilingData;
     }
-    inline Mc2Tiling::MC2MatmulV3TilingData &MutableMC2MmV3TailTilingData()
+    inline Mc2MatMulV3TilingData &MutableMC2MmV3TailTilingData()
     {
         return matmulReduceScatterV2TilingData_->mC2Mmv3TailTilingData;
     }

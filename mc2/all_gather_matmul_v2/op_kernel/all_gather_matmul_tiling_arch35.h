@@ -9,13 +9,12 @@
  */
 
 /*!
- * \file matmul_reduce_scatter_v2_c_tiling.h
+ * \file all_gather_matmul_tiling_arch35.h
  * \brief
  */
-#ifndef _MATMUL_REDUCE_SCATTER_V2_C_TILING_H_
-#define _MATMUL_REDUCE_SCATTER_V2_C_TILING_H_
+#ifndef __ALL_GATHER_MATMUL_TILING_arch35_H_
+#define __ALL_GATHER_MATMUL_TILING_arch35_H_
 
-#include <cstdint>
 #include "kernel_tiling/kernel_tiling.h"
 #include "../common/inc/kernel/mc2_tiling_struct.h"
 #include "../3rd/quant_batch_matmul_v3/op_kernel/arch35/quant_batch_matmul_v3_tiling_data.h"
@@ -23,10 +22,7 @@
 
 namespace Mc2Tiling {
 
-constexpr uint32_t MAX_EXPERT_SIZE = 256U;  // 最大通信域专家的数量
-constexpr uint32_t MAX_EP_RANK_SIZE = 64U;  // 最大通信域内卡的数量
-
-struct MatmulReduceScatterV2TilingData {
+struct AllGatherMatmulTilingDataV2 {
     Mc2InitTiling mc2InitTiling;
     Mc2CcTiling mc2CcTiling;
     uint32_t version;
@@ -35,11 +31,12 @@ struct MatmulReduceScatterV2TilingData {
     MC2HcommCfg hcommCfg;
     Mc2Msg msg;
     RCSTiling param;
-    Mc2MatMulV3TilingData mC2Mmv3TileTilingData;
-    Mc2MatMulV3TilingData mC2Mmv3TailTilingData;
+    Mc2MatMulV3TilingData mc2MmV3LocalTilingData;
+    Mc2MatMulV3TilingData mc2MmV3TileTilingData;
+    Mc2MatMulV3TilingData mc2MmV3TailTilingData;
 };
 
-struct QuantBatchMatmulV3ReduceScatterTilingData {
+struct AllGatherMatmulTilingDataFp8 {
     Mc2InitTiling mc2InitTiling;
     Mc2CcTiling mc2CcTiling;
     uint32_t version;
@@ -48,8 +45,21 @@ struct QuantBatchMatmulV3ReduceScatterTilingData {
     MC2HcommCfg hcommCfg;
     Mc2Msg msg;
     RCSTiling param;
-    DequantBmm::Mc2QuantBatchMatmulV3TilingDataParams quantBmmV3TileTiling;
-    DequantBmm::Mc2QuantBatchMatmulV3TilingDataParams quantBmmV3TailTiling;
+    DequantBmm::Mc2QuantBatchMatmulV3TilingDataParams quantBmmv3LocalTiling;
+    DequantBmm::Mc2QuantBatchMatmulV3TilingDataParams quantBmmv3TileTiling;
+    DequantBmm::Mc2QuantBatchMatmulV3TilingDataParams quantBmmv3TailTiling;
 };
+
+#if (((ORIG_DTYPE_X1 == ORIG_DTYPE_X2) && (ORIG_DTYPE_X1 == DT_HIFLOAT8)) ||       \
+     ((ORIG_DTYPE_X1 == DT_FLOAT8_E4M3FN) || (ORIG_DTYPE_X1 == DT_FLOAT8_E5M2)) && \
+         ((ORIG_DTYPE_X2 == DT_FLOAT8_E4M3FN) || (ORIG_DTYPE_X2 == DT_FLOAT8_E5M2)))
+struct MC2TileInfo {
+    DequantBmm::Mc2QuantBatchMatmulV3TilingDataParams* mmTiling;
+    uint64_t aOffset;
+    uint64_t aAddrOffset;
+    uint64_t cOffset;
+    uint64_t cAddrOffset;
+};
+#endif
 }
 #endif

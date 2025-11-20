@@ -39,10 +39,10 @@ class AllGatherMatmulTilingData {
         TCubeTiling tileTiling;
         TCubeTiling tailTiling;
         TCubeTiling localTiling;
-        TileL2Tiling tileL2Tiling;
-        TileL2Tiling tailL2Tiling;
-        TileL2Tiling localL2Tiling;
-        RCSTiling param;
+        Mc2Tiling::TileL2Tiling tileL2Tiling;
+        Mc2Tiling::TileL2Tiling tailL2Tiling;
+        Mc2Tiling::TileL2Tiling localL2Tiling;
+        Mc2Tiling::RCSTiling param;
         AllGatherSoc socParam;
 };
 

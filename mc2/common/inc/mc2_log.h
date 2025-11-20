@@ -33,10 +33,12 @@
 #else
 #include "err_mgr.h"
 #endif
+#include "quant_batch_matmul_v3/op_kernel/arch35/quant_batch_matmul_v3_tiling_data.h"
+#include "mat_mul_v3/op_kernel/arch35/mat_mul_tiling_data.h"
 
 template <typename T>
 std::string ConcatString(const T &arg) {
-  std::ostringstream oss;
+  std::ostringstream oss; 
   oss << arg;
   return oss.str();
 }
@@ -50,17 +52,25 @@ std::string ConcatString(T arg, Ts... arg_left) {
 }
 
 namespace Mc2Log {
-void PrintMMV3TilingData(const std::string &opName, optiling::MC2MatmulV3TilingData &tiling);
-void PrintTCubeTilingData(const std::string &opName, optiling::TCubeTiling &tiling);
-void PrintRCSTilingData(const std::string &opName, optiling::RCSTiling &rcsTiling);
+void PrintMMV3TilingData(const std::string &opName,
+                         optiling::MC2MatmulV3TilingData &tiling);
+void PrintTCubeTilingData(const std::string &opName,
+                          optiling::TCubeTiling &tiling);
+void PrintRCSTilingData(const std::string &opName,
+                        optiling::RCSTiling &rcsTiling);
 void PrintMc2MsgData(const std::string &opName, optiling::Mc2Msg &msg);
 void PrintTileL2TilingData(const std::string &opName, optiling::TileL2Tiling &tileL2Tiling);
 
 void PrintMMV3TilingData(const std::string &opName, Mc2Tiling::MC2MatmulV3TilingData &tiling);
+
 void PrintRCSTilingData(const std::string &opName, Mc2Tiling::RCSTiling& rcsTiling);
-void PrintMc2MsgData(const std::string &opName, Mc2Tiling::Mc2Msg& msg);
 void PrintTileL2TilingData(const std::string &opName, Mc2Tiling::TileL2Tiling& tileL2Tiling);
-void PrintTCubeTilingData(const std::string &opName, ::TCubeTiling& tiling);
+void PrintMc2MsgData(const std::string &opName, Mc2Tiling::Mc2Msg& msg);
+void PrintTCubeTilingData(const std::string &opName, ::TCubeTiling &tiling);
+void PrintTCubeTilingWindowParam(const std::string &opName, DequantBmm::Mc2SlidingWindowParams &tiling);
+void PrintTCubeTilingL2cache(const std::string &opName, DequantBmm::Mc2L2cacheTileParams &tiling);
+void PrintTCubeTilingParams(const std::string &opName, DequantBmm::Mc2QuantBatchMatmulV3DataParams &tiling);
+void PrintMMV3TilingData(const std::string &opName, Mc2MatMulV3TilingData &tiling);
 }  // namespace Mc2Log
 
 struct ErrorResult {
@@ -175,6 +185,7 @@ inline const char *ConvertStringToCstr(const std::string &str) { return str.c_st
       return ::ErrorResult();                                   \
     }                                                           \
   } while (false)
+#define CUBE_CALL_ERR_REPORT(op_name, err_msg, ...)
 
 namespace ops {
 #define OPS_CHECK_NULL_WITH_CONTEXT(context, ptr)                         \
@@ -255,6 +266,7 @@ namespace optiling {
 #define GE_ASSERT_NOTNULL(v, ...)
 #define OPS_REPORT_VECTOR_INNER_ERR(opName, ...)
 #define OPS_REPORT_CUBE_INNER_ERR(opName, ...)
+#define CUBE_CALL_ERR_REPORT(op_name, err_msg, ...)
 namespace optiling {
 #define VECTOR_INNER_ERR_REPORT_TILING(opName, err_msg, ...)
 #define OP_TILING_CHECK(cond, log_func, expr)

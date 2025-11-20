@@ -31,7 +31,7 @@
 #include "register/tilingdata_base.h"
 #include "tiling/tiling_api.h"
 #include "mc2_log.h"
-#include "kernel/mc2_tiling_struct.h"
+#include "mat_mul_v3/op_kernel/arch35/mat_mul_tiling_data.h"
 
 namespace Mc2MatmulHelper {
 class Mc2MatmulTilingCfg : public optiling::Mc2MatMulTilingCfg
@@ -42,7 +42,7 @@ public:
     {
     }
 
-    void SetMatMulV3TilingData(Mc2Tiling::MC2MatmulV3TilingData& tilingData);
+    void SetMatMulV3TilingData(Mc2MatMulV3TilingData& tilingData);
     void Update(const optiling::Mc2TilingResult& result) override;
     void SetRankDim(uint64_t rankDim);
     void SetCommCnt(uint64_t commCnt);
@@ -55,7 +55,7 @@ private:
     int32_t baseMLimit_{0};
     uint64_t rankDim_{0};
     uint64_t commCnt_{0};
-    Mc2Tiling::MC2MatmulV3TilingData* mc2MmV3TilingData_{nullptr};
+    Mc2MatMulV3TilingData* mc2MmV3TilingData_{nullptr};
     Mc2MatMulV3TilingData* mmv3TilingData_{nullptr};
 };
 

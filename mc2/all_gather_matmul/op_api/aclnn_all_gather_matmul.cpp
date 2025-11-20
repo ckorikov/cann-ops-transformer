@@ -9,7 +9,7 @@
  */
 
 #include "aclnn_all_gather_matmul.h"
-#include "all_gather_matmul_v2/op_host/op_api/aclnn_all_gather_matmul_v2.h"
+#include "all_gather_matmul_v2/op_api/aclnn_all_gather_matmul_v2.h"
 #include "securec.h"
 #include "acl/acl.h"
 #include "op_mc2.h"

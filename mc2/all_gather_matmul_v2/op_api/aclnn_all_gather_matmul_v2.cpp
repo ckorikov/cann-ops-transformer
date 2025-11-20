@@ -1,10 +1,10 @@
 /**
- * Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
+ * This program is free software, you can redistribute it and/or modify.
+ * Copyright (c) 2025 Huawei Technologies Co., Ltd.
  * This file is a part of the CANN Open Software.
  * Licensed under CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
- * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
 
@@ -20,11 +20,11 @@
 #include "opdev/op_executor.h"
 #include "opdev/op_log.h"
 #include "opdev/platform.h"
-#include "hccl_util.h"
 #include "common/op_host/op_api/matmul_util.h"
+#include "hccl_util.h"
 
-using namespace Ops::Transformer;
 using namespace op;
+using namespace Ops::Transformer;
 
 #ifdef __cplusplus
 extern "C" {
@@ -41,6 +41,13 @@ typedef struct {
   bool hasReg;
 } NnopbaseDfxId;
 
+enum class NnopbaseHcclServerType : uint32_t {
+    NNOPBASE_HCCL_SERVER_TYPE_AICPU = 0,
+    NNOPBASE_HCCL_SERVER_TYPE_MTE,
+    NNOPBASE_HCCL_SERVER_TYPE_CCU,
+    NNOPBASE_HCCL_SERVER_TYPE_END
+};
+
 extern aclnnStatus aclnnInnerAllGatherMatmulV2GetWorkspaceSize(const aclTensor *x1, const aclTensor *x2,
                                                                const aclTensor *bias, const aclTensor *x1Scale,
                                                                const aclTensor *x2Scale, const aclTensor *quantScale,
@@ -50,15 +57,12 @@ extern aclnnStatus aclnnInnerAllGatherMatmulV2GetWorkspaceSize(const aclTensor *
                                                                bool isGatherOut, bool isAMaxOut, int64_t yDtype,
                                                                aclTensor *output, aclTensor *gatherOut,
                                                                aclTensor *amaxOut, uint64_t *workspaceSize,
-                                                               aclOpExecutor **executor){
-                                                                return ACLNN_SUCCESS;
-                                                               };
+                                                               aclOpExecutor **executor);
 extern aclnnStatus aclnnInnerAllGatherMatmulV2(void *workspace, uint64_t workspaceSize, aclOpExecutor *executor,
-                                             aclrtStream stream){
-                                              return ACLNN_SUCCESS;
-                                             };
+                                             aclrtStream stream);
 extern "C" uint64_t NnopbaseMsprofSysTime();
 extern "C" void NnopbaseReportApiInfo(const uint64_t beginTime, NnopbaseDfxId &dfxId);
+extern "C" void __attribute__((weak)) NnopbaseSetHcclServerType(void *executor, NnopbaseHcclServerType sType);
 
 // check nullptr
 static bool CheckNotNull(const aclTensor* x1, const aclTensor* x2, const aclTensor* output)
@@ -158,13 +162,13 @@ static bool IsGatherOut(const aclTensor *gatherOut)
 {
   OP_CHECK_NULL(gatherOut, return false);
   if (gatherOut->IsEmpty()) {
-    OP_LOGD("AllGatherMatmulV2, get gather out is false.");
+    OP_LOGD("AllGahterMatmulV2, get gather out is false.");
     return false;
   }
   return true;
 }
 
-static bool CheckShape(const aclTensor *x1, const aclTensor *x2, const aclTensor *output, [[maybe_unused]] const aclTensor *gatherOut,
+static bool CheckShape(const aclTensor *x1, const aclTensor *x2, const aclTensor *output, const aclTensor *gatherOut,
                        bool isTransA)
 {
   OP_CHECK_WRONG_DIMENSION(x1, TWO_DIMS, return false);
@@ -229,16 +233,14 @@ static aclnnStatus CheckScale(const aclTensor* x1Scale, const aclTensor* x2Scale
   // 如果scaleInV1 和 scaleInV2都不为空指针则为scalar类型数据
   auto x1ScaleLen = x1Scale->GetViewShape().GetDim(0);
   auto x2ScaleLen = x2Scale->GetViewShape().GetDim(0);
-  OP_LOGD("AllGatherMatmulV2, x1ScaleLen is %ld.", x1ScaleLen);
-  OP_LOGD("AllGatherMatmulV2, x2ScaleLen is %ld.", x2ScaleLen);
-  CHECK_RET(CheckParamDtypeFP8Vaild(x1Scale), ACLNN_ERR_PARAM_INVALID);
-  CHECK_RET(CheckParamDtypeFP8Vaild(x2Scale), ACLNN_ERR_PARAM_INVALID);
+  OP_LOGD("AllGahterMatmulV2, x1ScaleLen is %ld.", x1ScaleLen);
+  OP_LOGD("AllGahterMatmulV2, x2ScaleLen is %ld.", x2ScaleLen);
 
   // scale不为空指针为则scalar类型
   if (quantScale != nullptr) {
     OP_CHECK_WRONG_DIMENSION(quantScale, ONE_DIMS, return ACLNN_ERR_PARAM_INVALID);
     auto scaleLen = quantScale->GetViewShape().GetDim(0);
-    OP_LOGD("AllGatherMatmulV2, scaleLen is %ld.", scaleLen);
+    OP_LOGD("AllGahterMatmulV2, scaleLen is %ld.", scaleLen);
     if (scaleLen != SCALAR) {
       OP_LOGE(ACLNN_ERR_PARAM_INVALID, "quantScale len should be 1, but actual is %ld.", scaleLen);
       return ACLNN_ERR_PARAM_INVALID;
@@ -254,7 +256,7 @@ static bool IsAMaxOut(const aclTensor *amaxOut)
     return false;
   }
   if (amaxOut->IsEmpty()) {
-    OP_LOGD("AllGatherMatmulV2, get amax out is false.");
+    OP_LOGD("AllGahterMatmulV2, get amax out is false.");
     return false;
   }
   return true;
@@ -285,13 +287,13 @@ static bool DealEmptyTensor(const aclTensor* x1, const aclTensor* x2)
 {
   if (x1->IsEmpty()) {
     OP_LOGE(ACLNN_ERR_PARAM_INVALID,
-            "AllGatherMatmulV2 not support empty tensor x1 when input datatype is fp8/hif8.");
+            "AllGahterMatmulV2 not support empty tensor x1 when input datatype is fp8/hif8.");
     return false;
   }
 
   if (x2->IsEmpty()) {
     OP_LOGE(ACLNN_ERR_PARAM_INVALID,
-            "AllGatherMatmulV2 not support empty tensor x2 when input datatype is fp8/hif8.");
+            "AllGahterMatmulV2 not support empty tensor x2 when input datatype is fp8/hif8.");
     return false;
   }
   return true;
@@ -327,7 +329,11 @@ static const aclTensor *TransX2Tensor(const aclTensor *x2)
 
   aclDataType dataType = aclDataType::ACL_DT_UNDEFINED;
   aclGetDataType(x2, &dataType);
-  auto stride = x2->GetViewStrides();
+  std::vector<int64_t> stride(viewDimsNum);
+  auto transStride = x2->GetViewStrides();
+  //transpose the two dimensions
+  stride[0] = transStride[1];
+  stride[1] = transStride[0];
   auto offset = x2->GetViewOffset();
   aclFormat format = aclFormat::ACL_FORMAT_ND;
 
@@ -376,6 +382,7 @@ aclnnStatus aclnnAllGatherMatmulV2GetWorkspaceSize(const aclTensor* x1, const ac
   uint64_t outDtype = static_cast<uint64_t>(output->GetDataType());
   CHECK_RET(CheckOutDtypeValid(outDtype, OUT_DTYPE_SUPPORT_LIST), ACLNN_ERR_PARAM_INVALID);
   auto transX2 = x2;
+  auto transX2Scale = x2Scale;
   if (transposeX2) {
     // x2转置时将两轴shape调换
     if(x2->GetTensor() == nullptr){
@@ -384,7 +391,10 @@ aclnnStatus aclnnAllGatherMatmulV2GetWorkspaceSize(const aclTensor* x1, const ac
     }
     transX2 = TransX2Tensor(x2);
   }
-  aclnnStatus ret = aclnnInnerAllGatherMatmulV2GetWorkspaceSize(x1, transX2, bias, x1Scale, x2Scale, quantScale, group,
+  if ((x2Scale != nullptr) && (IsTransposeLastTwoDims(x2Scale))) {
+    transX2Scale = TransX2Tensor(x2Scale);
+  }
+  aclnnStatus ret = aclnnInnerAllGatherMatmulV2GetWorkspaceSize(x1, transX2, bias, x1Scale, transX2Scale, quantScale, group,
                                                                 transposeX1, transposeX2, gatherIndex, commTurn,
                                                                 rankSize, blockSize, groupSize, isGatherOut, isAMaxOut,
                                                                 outDtype, output, gatherOut, amaxOut, workspaceSize,
@@ -402,6 +412,13 @@ aclnnStatus aclnnAllGatherMatmulV2(void* workspace, uint64_t workspaceSize, aclO
     OP_LOGD("Skip the api for empty tensor, workspace size %lu.", workspaceSize);
     return ACLNN_SUCCESS;
   }
+
+  if (NnopbaseSetHcclServerType) {
+    if (GetCurrentPlatformInfo().GetSocVersion() == SocVersion::ASCEND910_95) {
+      NnopbaseSetHcclServerType(executor, NnopbaseHcclServerType::NNOPBASE_HCCL_SERVER_TYPE_CCU);
+    }
+  }
+
   return aclnnInnerAllGatherMatmulV2(workspace, workspaceSize, executor, stream);
 }
 

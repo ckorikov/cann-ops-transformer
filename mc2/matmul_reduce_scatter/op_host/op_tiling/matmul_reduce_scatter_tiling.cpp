@@ -29,7 +29,6 @@ using namespace ge;
 using namespace optiling;
 using namespace matmul_tiling;
 using namespace Ops;
-using namespace Mc2Tiling;
 
 namespace {
 constexpr char HCCL_DETERMINISTIC[] = "HCCL_DETERMINISTIC";

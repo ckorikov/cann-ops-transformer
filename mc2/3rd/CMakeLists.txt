@@ -10,9 +10,7 @@
 
  if(BUILD_OPEN_PROJECT)
     #打桩文件
-    file(GLOB MC2_DZ 
-        ${CMAKE_CURRENT_SOURCE_DIR}/all_gather_matmul_v2/op_host/op_api/aclnn_all_gather_matmul_v2.cpp
-    )
+    file(GLOB MC2_DZ)
     if(MC2_DZ)
         add_opapi_modules()
         target_sources(${OPHOST_NAME}_opapi_obj PRIVATE ${MC2_DZ})

@@ -54,6 +54,20 @@ bool MatmulReduceScatterV2Tiling::IsCapable()
     return false;
 }
 
+void PrintMMV3TilingData(const std::string &opName, Mc2MatMulV3TilingData &tiling) 
+{
+    PrintTCubeTilingData(opName, tiling.tCubeTiling);
+    OP_LOGD(opName, " tiling.mTailCnt %d", tiling.mTailCnt);
+    OP_LOGD(opName, " tiling.nTailCnt %d", tiling.nTailCnt);
+    OP_LOGD(opName, " tiling.kTailCnt %d", tiling.kTailCnt);
+    OP_LOGD(opName, " tiling.isHf32 %d", tiling.isHf32);
+    OP_LOGD(opName, " tiling.mBaseTailSpiltCnt %d", tiling.mBaseTailSplitCnt);
+    OP_LOGD(opName, " tiling.nBaseTailSpiltCnt %d", tiling.nBaseTailSplitCnt);
+    OP_LOGD(opName, " tiling.mTailMain %d", tiling.mTailMain);
+    OP_LOGD(opName, " tiling.nTailMain %d", tiling.nTailMain);
+    OP_LOGD(opName, " tiling.aswWindowLen %d", tiling.aswWindowLen);
+}
+
 void MatmulReduceScatterV2Tiling::PrintAllTilingData()
 {
     if (matmulReduceScatterV2TilingData_->param.rankID == 0) {
@@ -105,7 +119,7 @@ void MatmulReduceScatterV2Tiling::SetMc2Hcomm(Mc2Tiling::RCSTiling &rcsCfg)
 }
 
 ge::graphStatus MatmulReduceScatterV2Tiling::DoMatmulV3Tiling(Mc2MatmulHelper::Mc2MatmulTilingCfg &tilingCfg, Mc2MMRegisterCfg &registerCfg,
-                                                              Mc2Tiling::MC2MatmulV3TilingData &tilingData)
+                                                              Mc2MatMulV3TilingData &tilingData)
 {
     tilingCfg.SetRankDim(args_.rankDim);
     OP_LOGD(opName_, "execte DoMatmulV3Tiling!");
@@ -157,8 +171,8 @@ ge::graphStatus MatmulReduceScatterV2Tiling::DoOpTiling()
     SetRcsTilingData(matmulReduceScatterV2TilingData_->param);
     DoSplitMTiling(matmulReduceScatterV2TilingData_->param);
     GE_ASSERT_GRAPH_SUCCESS(DoAllMatmulTiling());
-    SetTilingResult(matmulReduceScatterV2TilingData_->param, MutableMC2MmV3TileTilingData().matmulTiling,
-                    MutableMC2MmV3TailTilingData().matmulTiling, matmulReduceScatterV2TilingData_->msg);
+    SetTilingResult(matmulReduceScatterV2TilingData_->param, MutableMC2MmV3TileTilingData().tCubeTiling,
+                    MutableMC2MmV3TailTilingData().tCubeTiling, matmulReduceScatterV2TilingData_->msg);
     return ge::GRAPH_SUCCESS;
 }
 
