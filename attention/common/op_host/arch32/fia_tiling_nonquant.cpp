@@ -139,7 +139,7 @@ void FiaTilingNonQuant::GenTilingKey()
     uint8_t paVal = static_cast<uint8_t>((fiaInfo_->pageAttentionFlag && fiaInfo_->s2Size != 0) ? 1 * 2 : 0);
     uint8_t softmaxBrcbFlagVal = static_cast<uint8_t>((softmaxWithBrcbFlag_) ? 1 * 4 : 0);
     uint8_t antiquantModeVal = 0;
-    uint64_t modeVal = static_cast<uint64_t>(fiaInfo_->sysPrefixFlag ? 2 : 1);
+    uint64_t modeVal = 1;
     uint8_t kvLayoutVal = 0;
     
     const std::map<TilingKeyLayout, uint8_t> kvLayoutMap = {
@@ -229,13 +229,16 @@ void FiaTilingNonQuant::ZeroTensorProcess()
 
 void FiaTilingNonQuant::InitParams()
 {
-    // 泛化 or 高性能
-    // 待泛化实现
-    if (false) {
-        perfMode_ = FiaTemplateId::GENERAL_GQA;
-    } else {
-        perfMode_ = FiaTemplateId::HIGH_PERFORMANCE_GQA;
+    perfMode_ = FiaTemplateId::GENERAL_GQA;
+    if ((fiaInfo_->qkHeadDim  == QK_HEAD_DIM_128 && fiaInfo_->ropeHeadDim  == ROPE_HEAD_DIM_0 && fiaInfo_->vHeadDim == V_HEAD_DIM_128) || 
+        (fiaInfo_->qkHeadDim  == QK_HEAD_DIM_64 && fiaInfo_->ropeHeadDim  == ROPE_HEAD_DIM_0 && fiaInfo_->vHeadDim == V_HEAD_DIM_64) ||
+        (fiaInfo_->qkHeadDim  == QK_HEAD_DIM_192 && fiaInfo_->ropeHeadDim  == ROPE_HEAD_DIM_64 && fiaInfo_->vHeadDim == V_HEAD_DIM_128) ||
+        (fiaInfo_->qkHeadDim  == QK_HEAD_DIM_128 && fiaInfo_->ropeHeadDim  == ROPE_HEAD_DIM_64 && fiaInfo_->vHeadDim == V_HEAD_DIM_128)) {
+        if (!(fiaInfo_->sysPrefixFlag || fiaInfo_->pseShiftFlag || fiaInfo_->kvPaddingSizeFlag || fiaInfo_->qPaddingSizeFlag)) {
+            perfMode_ = FiaTemplateId::HIGH_PERFORMANCE_GQA;
+        }
     }
+
     coreNum_ = aicNum_;
     blockDim_ = aicNum_; // Tiling下沉首次Tiling也会校验blockDim_是否为0，为避免拦截报错，将blockDim_设置为aicNum_，实际不生效
 
@@ -338,6 +341,14 @@ void FiaTilingNonQuant::CreateSplitInput(BaseInfo &baseInfo)
     if (fiaInfo_->opParamInfo.actualSeqLengths.tensor != nullptr) {
         baseInfo.actualSeqS2Size = fiaInfo_->opParamInfo.actualSeqLengths.tensor->GetData<int64_t>();
         baseInfo.isAccumSeqS2 = fiaInfo_->isAccumKVSeq;
+    } else {
+        if (fiaInfo_->kvStorageMode == KvStorageMode::TENSOR_LIST && fiaInfo_->kvListSeqLens.size()) {
+            baseInfo.actualSeqS2Size = fiaInfo_->kvListSeqLens.data();
+            baseInfo.isAccumSeqS2 = fiaInfo_->isAccumKVSeq;
+        }
+    }
+    if (fiaInfo_->sysPrefixFlag) {
+        baseInfo.actualSeqPrefixSize = fiaInfo_->systemPrefixLen;
     }
 }
 
@@ -481,6 +492,12 @@ void FiaTilingNonQuant::FillTilingMaskParams()
     tilingData_.maskParams.set_isRowInvalid(isRowInvalid);
 }
 
+void FiaTilingNonQuant::FillTilingLeftPaddingParams()
+{
+    tilingData_.leftPaddingParams.set_qPaddingFlag(fiaInfo_->qPaddingSizeFlag ? 1 : 0);
+    tilingData_.leftPaddingParams.set_kvPaddingFlag(fiaInfo_->kvPaddingSizeFlag ? 1 : 0);
+}
+
 // for flash decode
 void FiaTilingNonQuant::FillTilingWorkspaceParams()
 {
@@ -492,6 +509,16 @@ void FiaTilingNonQuant::FillTilingWorkspaceParams()
     tilingData_.workspaceParams.set_mm2ResSize(mm2ResSize_);
 }
 
+void FiaTilingNonQuant::FillTilingFeatureParams()
+{
+    tilingData_.prefixParams.set_prefixMaxLen(fiaInfo_->systemPrefixMaxLen);
+    tilingData_.prefixParams.set_prefixLen(fiaInfo_->systemPrefixLen);
+    tilingData_.prefixParams.set_prefixFlag(fiaInfo_->sysPrefixFlag);
+    tilingData_.pseParams.set_pseShiftFlag(fiaInfo_->pseShiftFlag);
+    tilingData_.pseParams.set_pseShiftByBatch(fiaInfo_->pseShiftByBatch);
+    tilingData_.pseParams.set_pseShiftS1(fiaInfo_->pseShiftS1);
+    tilingData_.pseParams.set_pseShiftS2(fiaInfo_->pseShiftS2);
+}
 void FiaTilingNonQuant::CalcMmResSize()
 {
     int64_t mSize = std::min(fiaInfo_->gSize * fiaInfo_->s1Size, mBaseSize_);
@@ -511,7 +538,9 @@ void FiaTilingNonQuant::FillTiling()
     FillTilingBaseParams();
     FillTilingPageAttenParams();
     FillTilingMaskParams();
+    FillTilingLeftPaddingParams();
     FillTilingWorkspaceParams();
+    FillTilingFeatureParams();
 }
 
 uint32_t FiaTilingNonQuant::CalcFlashDecodeParamNums(const uint32_t coreNum) const

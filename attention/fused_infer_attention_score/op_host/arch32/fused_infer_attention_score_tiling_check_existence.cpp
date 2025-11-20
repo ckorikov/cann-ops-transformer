@@ -479,7 +479,8 @@ ge::graphStatus FiaTilingCheck::CheckParaExistenceGqaNoquant() const
         {QUERY_QUANT_MODE_NAME, {opParamInfo_.queryQuantMode, QUERY_QUANT_MODE_DEFAULT_VALUE}},
     };
     if (CheckExistenceByMap(gqaNoquantParamExistMap, gqaNoquantParamNotExistMap) != ge::GRAPH_SUCCESS ||
-        CheckAttrValueByMap(attrDefaultValueMap) != ge::GRAPH_SUCCESS) {
+        CheckAttrValueByMap(attrDefaultValueMap) != ge::GRAPH_SUCCESS ||
+        CheckExistenceSystemPrefix() != ge::GRAPH_SUCCESS) {
         return ge::GRAPH_FAILED;
     }
 
@@ -623,6 +624,10 @@ ge::graphStatus FiaTilingCheck::CheckParaExistenceGqaFullquant() const
         {VALUE_ANTIQUANT_SCALE_NAME, opParamInfo_.valueAntiquantScale.tensor},
         // fullquantParam
         {DEQUANT_SCALE_QUERY_NAME, opParamInfo_.dequantScaleQuery.tensor},
+        // syetemprefix
+        {KEY_SHARED_PREFIX_NAME, opParamInfo_.keySharedPrefix.tensor},
+        {VALUE_SHARED_PREFIX_NAME, opParamInfo_.valueSharedPrefix.tensor},
+        {ACTUAL_SHARED_PREFIX_LEN_NAME, opParamInfo_.actualSharedPrefixLen.tensor}
     };
 
     std::map<std::string, std::pair<const int64_t *, int64_t>> attrDefaultValueMap = {
@@ -634,6 +639,21 @@ ge::graphStatus FiaTilingCheck::CheckParaExistenceGqaFullquant() const
     if (CheckExistenceByMap(gqaFullquantParamExistMap, gqaFullquantParamNotExistMap) != ge::GRAPH_SUCCESS ||
         CheckAttrValueByMap(attrDefaultValueMap) != ge::GRAPH_SUCCESS) {
         return ge::GRAPH_FAILED;
+    }
+    return ge::GRAPH_SUCCESS;
+}
+
+ge::graphStatus FiaTilingCheck::CheckExistenceSystemPrefix() const
+{
+    if (!fiaInfo_.sysPrefixFlag && (opParamInfo_.keySharedPrefix.tensor != nullptr || opParamInfo_.valueSharedPrefix.tensor != nullptr)) {
+        if (opParamInfo_.keySharedPrefix.tensor == nullptr) {
+            OP_LOGE(opName_, "When valueSharedPrefix exists, keySharedPrefix should also exist.");
+            return ge::GRAPH_FAILED;
+        }
+        if (opParamInfo_.valueSharedPrefix.tensor == nullptr) {
+            OP_LOGE(opName_, "When keySharedPrefix exists, valueSharedPrefix should also exist.");
+            return ge::GRAPH_FAILED;
+        }
     }
     return ge::GRAPH_SUCCESS;
 }

@@ -408,7 +408,7 @@ __aicore__ inline void FiaBlockVecFlashDecode<FIAT>::Bmm2DataCopyOutTrans(LocalT
         FaGmTensor<OUT_T, OUT_FORMAT> outGmTensor;
         outGmTensor.gmTensor = attentionOutGm;
         outGmTensor.offsetCalculator.Init(constInfo.batchSize, constInfo.kvHeadNum, constInfo.gSize, constInfo.qSeqSize,
-                                          constInfo.headDim, actualSeqLengthsGmQ, constInfo.actualLenQDims);
+                                          constInfo.headDim, actualSeqLengthsGmQ, constInfo.actualLenQDims, constInfo.isQHasLeftPadding, constInfo.qLeftPaddingSize);
         CopyAttenOutUbToGm<OUT_T, OUT_FORMAT, GetOutUbFormat<LAYOUT_T>()> copyAttenOutUbToGm;
         copyAttenOutUbToGm(outGmTensor, ubTensor, gmCoord);
     } else if (constInfo.outputLayout == FIA_LAYOUT::BNSD) {
@@ -416,7 +416,7 @@ __aicore__ inline void FiaBlockVecFlashDecode<FIAT>::Bmm2DataCopyOutTrans(LocalT
         FaGmTensor<OUT_T, OUT_FORMAT> outGmTensor;
         outGmTensor.gmTensor = attentionOutGm;
         outGmTensor.offsetCalculator.Init(constInfo.batchSize, constInfo.kvHeadNum, constInfo.gSize, constInfo.qSeqSize,
-                                          constInfo.headDim, actualSeqLengthsGmQ, constInfo.actualLenQDims);
+                                          constInfo.headDim, actualSeqLengthsGmQ, constInfo.actualLenQDims, constInfo.isQHasLeftPadding, constInfo.qLeftPaddingSize);
         CopyAttenOutUbToGm<OUT_T, OUT_FORMAT, GetOutUbFormat<LAYOUT_T>()> copyAttenOutUbToGm;
         copyAttenOutUbToGm(outGmTensor, ubTensor, gmCoord);
     } else if (constInfo.outputLayout == FIA_LAYOUT::NBSD) {
@@ -613,7 +613,7 @@ FiaBlockVecFlashDecode<FIAT>::FlashDecode(FDparams &fd)
                     DataCopySoftmaxLseNTD(softmaxLseGm, lseftMaxLseUb, bN2Offset, mOffset, actualGSplitSize, constInfo, s1Size);
                 } else if (LAYOUT_T == FIA_LAYOUT::BSND || LAYOUT_T == FIA_LAYOUT::BSH) {
                     uint64_t bN2Offset = taskInfo.bIdx * constInfo.qHeadNum * constInfo.qSeqSize + taskInfo.n2Idx * constInfo.gSize * constInfo.qSeqSize;
-                    DataCopySoftmaxLseBSND(softmaxLseGm, lseftMaxLseUb, bN2Offset, mOffset, actualGSplitSize, constInfo);
+                    DataCopySoftmaxLseBSND(softmaxLseGm, lseftMaxLseUb, bN2Offset, mOffset, actualGSplitSize, constInfo, qActSeqLensParser, taskInfo.bIdx);
                 } else { // BNSD
                     uint64_t bN2Offset = taskInfo.bIdx * constInfo.qHeadNum * constInfo.qSeqSize + taskInfo.n2Idx * constInfo.gSize * constInfo.qSeqSize;
                     DataCopySoftmaxLseBNSD<T, Q_MODE>(softmaxLseGm, lseftMaxLseUb, bN2Offset, mOffset, actualGSplitSize, constInfo, qActSeqLensParser, taskInfo.bIdx);

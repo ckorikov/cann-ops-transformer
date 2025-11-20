@@ -28,7 +28,7 @@ using namespace AscendC;
 namespace optiling {
 
 constexpr uint64_t PRE_LOAD_NUM_MLA = 2;
-constexpr uint32_t QK_HEAD_DIM_512 = 512;
+constexpr uint32_t QK_HEAD_DIM_512 = 512U;
 
 constexpr uint64_t FIA_TILINGKEYOFFSET = uint64_t(100000000000000000UL); // 10^17
 constexpr uint64_t FIA_PERF_MODE_TILINGKEYOFFSET = uint64_t(1000000000000000UL); // 10^15

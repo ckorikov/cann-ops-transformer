@@ -114,6 +114,29 @@ TILING_DATA_FIELD_DEF_ARR(uint32_t, FIA_MAX_AIC_CORE_NUM * 2, gS1IdxEndOfFdHeadS
 END_TILING_DATA_DEF
 REGISTER_TILING_DATA_CLASS(FusedInferAttentionFlashDecodeParamsOp, FusedInferAttentionFlashDecodeParams)
 
+// 公共前缀
+BEGIN_TILING_DATA_DEF(FusedInferAttentionPrefixParams)
+TILING_DATA_FIELD_DEF(uint64_t, prefixMaxLen)
+TILING_DATA_FIELD_DEF(uint64_t, prefixLen)
+TILING_DATA_FIELD_DEF(bool, prefixFlag)
+END_TILING_DATA_DEF
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionPrefixParamsOp, FusedInferAttentionPrefixParams)
+// Pse 注册参数
+BEGIN_TILING_DATA_DEF(FusedInferAttentionPseParams)
+TILING_DATA_FIELD_DEF(uint32_t, pseShiftFlag)
+TILING_DATA_FIELD_DEF(uint32_t, pseShiftByBatch)
+TILING_DATA_FIELD_DEF(uint32_t, pseShiftS1)
+TILING_DATA_FIELD_DEF(uint32_t, pseShiftS2)
+END_TILING_DATA_DEF
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionPseParamsOp, FusedInferAttentionPseParams)
+
+// Left Padding 参数
+BEGIN_TILING_DATA_DEF(FusedInferAttentionLeftPaddingParams)
+TILING_DATA_FIELD_DEF(uint32_t, qPaddingFlag)
+TILING_DATA_FIELD_DEF(uint32_t, kvPaddingFlag)
+END_TILING_DATA_DEF
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionLeftPaddingParamsOp, FusedInferAttentionLeftPaddingParams)
+
 //MLA非量化模板TilingData
 BEGIN_TILING_DATA_DEF(FusedInferAttentionScoreTilingData)
 TILING_DATA_FIELD_DEF_STRUCT(FusedInferAttentionBaseParams, baseParams);
@@ -123,6 +146,9 @@ TILING_DATA_FIELD_DEF_STRUCT(FusedInferAttentionWorkspaceParams, workspaceParams
 TILING_DATA_FIELD_DEF_STRUCT(FusedInferAttentionInnerSplitParams, innerSplitParams);
 TILING_DATA_FIELD_DEF_STRUCT(FusedInferAttentionOuterSplitParams, outerSplitParams);
 TILING_DATA_FIELD_DEF_STRUCT(FusedInferAttentionFlashDecodeParams, fdParams);
+TILING_DATA_FIELD_DEF_STRUCT(FusedInferAttentionPrefixParams, prefixParams);
+TILING_DATA_FIELD_DEF_STRUCT(FusedInferAttentionPseParams, pseParams);
+TILING_DATA_FIELD_DEF_STRUCT(FusedInferAttentionLeftPaddingParams, leftPaddingParams);
 END_TILING_DATA_DEF
 
 // empty tenmsor 模板TilingData
@@ -136,40 +162,12 @@ TILING_DATA_FIELD_DEF(uint32_t, softmaxLseFlag)
 TILING_DATA_FIELD_DEF(uint32_t, headDim)
 END_TILING_DATA_DEF
 
-// Left Padding 参数
-BEGIN_TILING_DATA_DEF(FusedInferAttentionLeftPaddingParams)
-TILING_DATA_FIELD_DEF(uint32_t, qPaddingFlag)
-TILING_DATA_FIELD_DEF(uint32_t, kvPaddingFlag)
-END_TILING_DATA_DEF
-REGISTER_TILING_DATA_CLASS(FusedInferAttentionLeftPaddingParamsOp, FusedInferAttentionLeftPaddingParams)
-
-// Pse 参数
-BEGIN_TILING_DATA_DEF(FusedInferAttentionPseParams)
-TILING_DATA_FIELD_DEF(uint32_t, pseShiftFlag)
-TILING_DATA_FIELD_DEF(uint32_t, pseShiftB)
-TILING_DATA_FIELD_DEF(uint32_t, pseShiftS)
-END_TILING_DATA_DEF
-REGISTER_TILING_DATA_CLASS(FusedInferAttentionPseParamsOp, FusedInferAttentionPseParams)
-
 // 后量化 参数
 BEGIN_TILING_DATA_DEF(FusedInferAttentionPostQuantParams)
 TILING_DATA_FIELD_DEF(uint32_t, isPerChnOut)
 TILING_DATA_FIELD_DEF(uint32_t, isOutQuantTypeBf16)
 END_TILING_DATA_DEF
 REGISTER_TILING_DATA_CLASS(FusedInferAttentionPostQuantParamsOp, FusedInferAttentionPostQuantParams)
-
-// 公共前缀 
-BEGIN_TILING_DATA_DEF(FusedInferAttentionPrefixParams)
-TILING_DATA_FIELD_DEF(uint64_t, prefixAttenOutOffset) //临时输出偏移
-TILING_DATA_FIELD_DEF(uint64_t, userPromptAttenOutOffset)
-TILING_DATA_FIELD_DEF(uint64_t, tmpLseOffset)
-TILING_DATA_FIELD_DEF(uint64_t, prefixLen)
-TILING_DATA_FIELD_DEF(uint32_t, formerCoreNum)
-TILING_DATA_FIELD_DEF(uint32_t, blockSplitBn2Range)
-TILING_DATA_FIELD_DEF(uint32_t, tailSplitedBatchRange)
-TILING_DATA_FIELD_DEF(uint32_t, batchSizeQ)
-END_TILING_DATA_DEF
-REGISTER_TILING_DATA_CLASS(FusedInferAttentionPrefixParamsOp, FusedInferAttentionPrefixParams)
 
 // 全量化 参数 当前无
 BEGIN_TILING_DATA_DEF(FusedInferAttentionFullQuantParams)

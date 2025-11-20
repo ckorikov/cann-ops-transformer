@@ -270,9 +270,8 @@ public:
 
     // SysTem Prefix
     bool sysPrefixFlag = false;
-    uint32_t actualLenDimsPrefix = 0;
-    uint32_t sMaxPrefix = 0;
-    uint32_t maxActualPrefixLen = 0;
+    uint32_t systemPrefixMaxLen = 0;
+    uint32_t systemPrefixLen = 0;
 
     // Q actual_seq_lens
     uint32_t actualLenQDims = 0;
@@ -289,8 +288,9 @@ public:
 
     // PSE
     bool pseShiftFlag = false;
-    uint32_t pseShiftBatch = 0U;
+    bool pseShiftByBatch = false;
     uint32_t pseShiftS1 = 0U;
+    uint32_t pseShiftS2 = 0U;
 
     // Mask
     bool attenMaskFlag = false;

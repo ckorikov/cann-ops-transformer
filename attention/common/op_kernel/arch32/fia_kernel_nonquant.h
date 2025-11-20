@@ -126,9 +126,6 @@ protected:
     GlobalTensor<float> quantOffset2Gm;
     GlobalTensor<bfloat16_t> quantScale2Bf16Gm;
     GlobalTensor<bfloat16_t> quantOffset2Bf16Gm;
-    // left padding
-    GlobalTensor<int64_t> queryPaddingSizeGm;
-    GlobalTensor<int64_t> kvPaddingSizeGm;
     // block table
     GlobalTensor<int32_t> blockTableGm;
     // share prefix
@@ -230,7 +227,6 @@ __aicore__ inline void FiaKernelNonQuant<FIAT, CubeBlockType, VecBlockType, FdBl
     constInfo.qHeadNum = constInfo.gSize * constInfo.kvHeadNum;
     constInfo.kvSeqSize = tilingData->baseParams.s2Size;
     constInfo.qSeqSize = tilingData->baseParams.s1Size;
-
     constInfo.attenMaskFlag = (tilingData->maskParams.attenMaskFlag != 0) ? true : false;
     constInfo.attenMaskSize = tilingData->maskParams.attenMaskSize;
     constInfo.attenMaskStride = tilingData->maskParams.attenMaskStride;
@@ -240,6 +236,11 @@ __aicore__ inline void FiaKernelNonQuant<FIAT, CubeBlockType, VecBlockType, FdBl
     constInfo.isRowInvalid = (tilingData->maskParams.isRowInvalid != 0);
 
     constInfo.softmaxLseFlag = tilingData->baseParams.softmaxLseFlag;
+
+    constInfo.pseShiftFlag = tilingData->pseParams.pseShiftFlag;
+    constInfo.pseShiftByBatch = tilingData->pseParams.pseShiftByBatch;
+    constInfo.pseShiftS1 = tilingData->pseParams.pseShiftS1;
+    constInfo.pseShiftS2 = tilingData->pseParams.pseShiftS2;
 
     constInfo.maxBlockNumPerBatch = tilingData->pageAttenParams.maxBlockNumPerBatch;
     constInfo.kvCacheBlockSize = tilingData->pageAttenParams.blockSize;
@@ -265,6 +266,11 @@ __aicore__ inline void FiaKernelNonQuant<FIAT, CubeBlockType, VecBlockType, FdBl
     constInfo.syncC2V2 = SYNC_C2_V2_FLAG;
     constInfo.syncC2V1 = SYNC_C2_V1_FLAG;
     constInfo.syncV1NupdateC2 = SYNC_V1_NUPDATE_C2_FLAG;
+    constInfo.isQHasLeftPadding = (tilingData->leftPaddingParams.qPaddingFlag != 0) ? true : false;
+    constInfo.isKVHasLeftPadding = (tilingData->leftPaddingParams.kvPaddingFlag != 0) ? true : false;
+    constInfo.systemPrefixMaxLen = tilingData->prefixParams.prefixMaxLen;
+    constInfo.systemPrefixFlag = tilingData->prefixParams.prefixFlag;
+    constInfo.systemPrefixLen = tilingData->prefixParams.prefixLen;
 }
 
 template <typename FIAT, typename CubeBlockType, typename VecBlockType, typename FdBlockType>
@@ -402,6 +408,20 @@ __aicore__ inline void FiaKernelNonQuant<FIAT, CubeBlockType, VecBlockType, FdBl
     attentionOutGm.SetGlobalBuffer((__gm__ OUT_T *)attentionOut);
     if (constInfo.softmaxLseFlag) {
         softmaxLseGm.SetGlobalBuffer((__gm__ float *)softmaxLse);
+    }
+
+    if (constInfo.isQHasLeftPadding) {
+        // left padding
+        GlobalTensor<int64_t> queryPaddingSizeGm;
+        queryPaddingSizeGm.SetGlobalBuffer((__gm__ int64_t *)queryPaddingSize);
+        int64_t qPaddingSize = queryPaddingSizeGm.GetValue(0);
+        constInfo.qLeftPaddingSize = (qPaddingSize >= 0) ? qPaddingSize : 0;
+    }
+    if (constInfo.isKVHasLeftPadding) {
+        GlobalTensor<int64_t> kvPaddingSizeGm;
+        kvPaddingSizeGm.SetGlobalBuffer((__gm__ int64_t *)kvPaddingSize);
+        int64_t kvPaddingSize = kvPaddingSizeGm.GetValue(0);
+        constInfo.kvLeftPaddingSize = (kvPaddingSize >= 0) ? kvPaddingSize : 0;
     }
 
     if ASCEND_IS_AIV {
@@ -542,8 +562,8 @@ __aicore__ inline void FiaKernelNonQuant<FIAT, CubeBlockType, VecBlockType, FdBl
 }
 
 template <typename FIAT, typename CubeBlockType, typename VecBlockType, typename FdBlockType>
-__aicore__ inline void FiaKernelNonQuant<FIAT, CubeBlockType, VecBlockType, FdBlockType>::CalcParams(uint64_t loop, uint32_t bN2Cur, uint32_t gS1Cur, uint32_t s2Cur,
-                                                      RunInfo &info)
+__aicore__ inline void FiaKernelNonQuant<FIAT, CubeBlockType, VecBlockType, FdBlockType>::CalcParams(
+    uint64_t loop, uint32_t bN2Cur, uint32_t gS1Cur, uint32_t s2Cur, RunInfo &info)
 {
     info.loop = loop;
 
@@ -566,6 +586,13 @@ __aicore__ inline void FiaKernelNonQuant<FIAT, CubeBlockType, VecBlockType, FdBl
     }
     info.actualSingleProcessSInnerSizeAlign =
         Align((uint32_t)info.actualSingleProcessSInnerSize, (uint32_t)fa_base_vector::BYTE_BLOCK);
+
+    if (constInfo.isQHasLeftPadding) {
+        info.qPaddingBeginOffset = constInfo.qSeqSize - actSeqLensQ - constInfo.qLeftPaddingSize;
+    }
+    if (constInfo.isKVHasLeftPadding) {
+        info.kvPaddingBeginOffset = constInfo.kvSeqSize - actSeqLensKv - constInfo.kvLeftPaddingSize;
+    }
 
     if (constInfo.batchContinuous) {
         info.isChangeBatch = false;
@@ -842,6 +869,7 @@ __aicore__ inline TASK_DEAL_MODE FiaKernelNonQuant<FIAT, CubeBlockType, VecBlock
     } else {
         actSeqLensKv = kvActSeqLensParser.GetActualSeqLength(bIdx);
     }
+    actSeqLensKv += constInfo.systemPrefixLen;
     uint64_t s2LoopTimes = (actSeqLensKv + constInfo.s2BaseSize - 1) / constInfo.s2BaseSize;
 
     actSeqLensQ = qActSeqLensParser.GetActualSeqLength(bIdx);
@@ -853,6 +881,12 @@ __aicore__ inline TASK_DEAL_MODE FiaKernelNonQuant<FIAT, CubeBlockType, VecBlock
             return TASK_DEAL_MODE::DEAL_ZERO;
         }
         return TASK_DEAL_MODE::SKIP;
+    }
+
+    // 对paddingSize设置不合理的任务结果置0
+    if ((constInfo.isQHasLeftPadding && (actSeqLensQ + constInfo.qLeftPaddingSize > constInfo.qSeqSize)) || 
+        (constInfo.isKVHasLeftPadding && (actSeqLensKv + constInfo.kvLeftPaddingSize > constInfo.kvSeqSize))) {
+        return TASK_DEAL_MODE::DEAL_ZERO;
     }
 
     CalcCurS2StartEnd(bN2Cur, gS1Cur, s2Cur);
