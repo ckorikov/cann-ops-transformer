@@ -105,6 +105,9 @@ __aicore__ inline void GetSingleCoreParam(RunParamStr<isInfer>& runParam,
         } else {
             actualS1Size = (constInfo.actualSeqLenSize == actualSeqMin) ? actualSeqQlenAddr[0] :
                 actualSeqQlenAddr[sIdx];
+            if (constInfo.isGqa) {
+                actualS1Size *= constInfo.gSize;
+            }
         }
     }
     if (constInfo.isActualLenDimsKVNull) {
@@ -450,6 +453,18 @@ __aicore__ inline bool ComputeParamS1(RunParamStr<isInfer>& runParam, const Cons
     }
 
     LoopSOuterOffsetInit<TEMPLATE_INTF_ARGS>(runParam, constInfo, runParam.boIdx, actualSeqQlenAddr, pseInfo);
+    return false;
+}
+
+TEMPLATE_INTF
+__aicore__ inline bool ComputeLastBN(RunParamStr<isInfer>& runParam, __gm__ int64_t *actualSeqQlenAddr) 
+{
+    if constexpr (layout == LayOutTypeEnum::LAYOUT_TND) {
+        // TND格式下 相邻Batch中当actualSeqQlen相等时则返回true
+        if (runParam.boIdx > 0 && actualSeqQlenAddr[runParam.boIdx] - actualSeqQlenAddr[runParam.boIdx - 1] == 0) {
+            return true;
+        }
+    }
     return false;
 }
 
