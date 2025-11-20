@@ -535,6 +535,16 @@ ge::graphStatus FiaTilingCheck::CheckFeatureGqaPrefix() const
     if (!fiaInfo_.sysPrefixFlag) {
         return ge::GRAPH_SUCCESS;
     }
+    const std::vector<std::string> layoutSupportList = {
+        "BSND", "BNSD", "BSH", "BNSD_BSND",
+    };
+    std::string layout = opParamInfo_.layOut;
+    if (std::find(layoutSupportList.begin(), layoutSupportList.end(), layout) == layoutSupportList.end()) {
+        OP_LOGE(opName_,
+                "when system prefix exists, input_layout only supports BSH, BSND, BNSD, and BNSD_BSND, but got %s",
+                layout.c_str());
+        return ge::GRAPH_FAILED;
+    }
     int32_t sparseMode = *opParamInfo_.sparseMode;
     auto *maskTensor = opParamInfo_.attenMask.tensor;
     if (attenMaskFlag_ && (sparseMode == SPARSE_MODE_NO_MASK || sparseMode == SPARSE_MODE_ALL_MASK)) {
