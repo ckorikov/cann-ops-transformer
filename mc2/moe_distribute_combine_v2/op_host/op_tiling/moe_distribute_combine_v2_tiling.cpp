@@ -129,7 +129,7 @@ namespace {
     constexpr uint64_t UB_ALIGN = 32UL;
     constexpr int64_t ELASTIC_METAINFO_OFFSET = 4;
     // A2
-    constexpr int32_t MAX_EP_WORLD_SIZE_A2 = 256;
+    constexpr int32_t MAX_EP_WORLD_SIZE_A2 = 384;
     constexpr int32_t MAX_MOE_EXPERT_NUMS_A2 = 512;
     constexpr uint32_t MAX_HIDDEN_SIZE_A2 = 7168;
     constexpr uint32_t LAYERED_MAX_HIDDEN_SIZE_A2 = 10240;

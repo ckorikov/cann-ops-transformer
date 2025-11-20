@@ -128,7 +128,7 @@ namespace {
     constexpr uint32_t MAX_K_VALUE_A2 = 16;
     constexpr uint32_t MAX_HIDDEN_SIZE_A2 = 7168;
     constexpr uint32_t LAYERED_MAX_HIDDEN_SIZE_A2 = 10240;
-    constexpr int32_t MAX_EP_WORLD_SIZE_A2 = 256;
+    constexpr int32_t MAX_EP_WORLD_SIZE_A2 = 384;
     constexpr int32_t MAX_MOE_EXPERT_NUMS_A2 = 512;
     constexpr int32_t UNLAYERED_EXP_NUM_PER_RANK_A2 = 24;
     constexpr uint32_t MAX_BATCH_SIZE_A2 = 256;
