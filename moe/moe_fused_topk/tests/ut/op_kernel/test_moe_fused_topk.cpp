@@ -18,7 +18,7 @@
 
 #include "gtest/gtest.h"
 #include "tikicpulib.h"
-#include "../data_utils.h"
+#include "data_utils.h"
 #include "moe_fused_topk_tiling.h"
 
 using namespace std;
