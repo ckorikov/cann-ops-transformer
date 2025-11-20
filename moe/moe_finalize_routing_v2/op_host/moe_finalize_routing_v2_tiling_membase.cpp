@@ -860,7 +860,7 @@ ge::graphStatus MoeFinalizeRoutingV2Membase::Check310pParams()
     int64_t dropPadMode = *(attrsPtr->GetAttrPointer<int64_t>(0));
     OP_CHECK_IF(
         dropPadMode != DROP_MODE_VALUE_2,
-        OP_LOGE(context_->GetNodeName(), "310p only support dropPadMode being 2."),
+        OP_LOGE(context_->GetNodeName(), "310p only supports dropPadMode being 2."),
         return ge::GRAPH_FAILED);
     
     // check hidden size
@@ -870,8 +870,19 @@ ge::graphStatus MoeFinalizeRoutingV2Membase::Check310pParams()
     OP_CHECK_IF(
         hiddenSize % ONE_BLK_SIZE_V2 != 0,
         OP_LOGE(context_->GetNodeName(), 
-            "310p only support h, which means the trailing axis of expanded_x[num_rows * k, h], is 32-aligned."),
+            "310p only supports h, which means the trailing axis of expanded_x[num_rows * k, h], is 32-aligned."),
         return ge::GRAPH_FAILED);
+
+    // check scale dtype
+    auto expandedXInputDesc = context_->GetInputDesc(INDEX_IN_EXPAND_PERMUTED_ROWS_V2);
+    auto expandedXDtype = expandedXInputDesc->GetDataType();
+    auto scaleInputDesc = context_->GetOptionalInputDesc(INDEX_IN_SCALES_V2);
+    auto scaleDtype = scaleInputDesc->GetDataType();
+    OP_CHECK_IF(
+        scaleDtype != expandedXDtype,
+        OP_LOGE(context_->GetNodeName(), "310p only supports scale and expanded_x having the same data type."),
+        return ge::GRAPH_FAILED);
+
     return ge::GRAPH_SUCCESS;
 }
 
