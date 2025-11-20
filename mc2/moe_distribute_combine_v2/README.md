@@ -368,7 +368,7 @@ $$
             - `commAlg` = "hierarchy"并且驱动版本≥25.0.RC1.1时支持(0, 10*1024]且为32的整数倍。
         - `Bs`：表示batch sequence size，即本卡最终输出的token数量，取值范围为[1, 256]。
     - 属性约束：
-        - `epWorldSize`：取值支持[16, 256]，且保证是8的整数倍。
+        - `epWorldSize`：取值支持[16, 384]，且保证是8的整数倍。
             - `commAlg` = "hierarchy"：最大值为64。
         - `moeExpertNum`：取值范围(0, 512]。
             -  还需满足`moeExpertNum` / `epWorldSize` <= 24，`commAlg` = "hierarchy"无此约束。
