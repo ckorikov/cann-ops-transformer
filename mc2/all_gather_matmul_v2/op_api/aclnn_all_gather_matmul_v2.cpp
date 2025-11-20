@@ -22,6 +22,7 @@
 #include "opdev/platform.h"
 #include "common/op_host/op_api/matmul_util.h"
 #include "hccl_util.h"
+#include "mc2_aclnn_util.h"
 
 using namespace op;
 using namespace Ops::Transformer;
@@ -391,7 +392,7 @@ aclnnStatus aclnnAllGatherMatmulV2GetWorkspaceSize(const aclTensor* x1, const ac
     }
     transX2 = TransX2Tensor(x2);
   }
-  if ((x2Scale != nullptr) && (IsTransposeLastTwoDims(x2Scale))) {
+  if ((x2Scale != nullptr) && MC2Aclnn::IsNeedScaleTrans(x2Scale)) {
     transX2Scale = TransX2Tensor(x2Scale);
   }
   aclnnStatus ret = aclnnInnerAllGatherMatmulV2GetWorkspaceSize(x1, transX2, bias, x1Scale, transX2Scale, quantScale, group,
