@@ -765,7 +765,8 @@ aclnnStatus aclnnFusedInferAttentionScoreV3(
       - 支持query每个batch的s为1-16；
       - 要求query的n为32/64/128，key、value的n为1；
       - 要求queryRope和keyRope不等于空，queryRope和keyRope的d为64；
-      - 不支持开启SoftMaxLse、左padding、tensorlist、pse、prefix、伪量化、全量化、后量化。
+      - 不支持左padding、tensorlist、pse、prefix、伪量化、全量化、后量化；
+      - TND_NTD、NTD_TND场景，不支持开启SoftMaxLse。
     - 当query的d不等于512时：
       - 当queryRope和keyRope为空时：TND场景，要求Q_D、K_D、V_D小于等于128，且是16的整数倍，或者Q_D、K_D等于192，V_D等于128/192；NTD_TND场景，要求Q_D、K_D等于128/192，V_D等于128。当queryRope和keyRope不为空时，要求Q_D、K_D、V_D等于128；
       - 支持TND、NTD_TND；
@@ -800,7 +801,8 @@ aclnnStatus aclnnFusedInferAttentionScoreV3(
         - key&value&keyRope支持ND和NZ输入，当输入NZ时，输入格式为[blockNum, N, D/16, blockSize, 16]；
         - inputLayout：BSH、BSND、BNSD、BNSD_NBSD、BSND_NBSD、BSH_NBSD、TND、TND_NTD，其中NZ输入不支持BNSD、BNSD_NBSD；
         - 必须开启page attention：blockSize支持16、128，其中NZ输入不支持配置16；
-        - 不支持开启SoftMaxLse、左padding、tensorlist、pse、prefix、伪量化、全量化、后量化。
+        - 不支持左padding、tensorlist、pse、prefix、伪量化、全量化、后量化；
+        - BNSD_NBSD、BSND_NBSD、BSH_NBSD、TND_NTD场景，不支持开启SoftMaxLse。
       - 当query的d等于128时：
         - inputLayout：TND、NTD_TND；
         - queryRope配置时要求queryRope的shape中d为64，其余维度与query一致；
