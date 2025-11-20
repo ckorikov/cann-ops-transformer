@@ -30,16 +30,20 @@ set(ASCEND_COMPUTE_UNIT           "ascend910b"                    CACHE   STRING
 set(ASCEND_OP_NAME                "ALL"                           CACHE   STRING   "operators that need to be compiled")
 set(ARCH_DIRECTORY                ""                           CACHE   STRING   "arch directory that need to be compiled")
 set(VENDOR_NAME                   "custom"                     CACHE   STRING   "vendor name")
-set(ASCEND_ALL_COMPUTE_UNIT       "ascend310p;ascend910;ascend910b;ascend910_93;ascend910_95" CACHE STRING "all soc list")
+set(ASCEND_ALL_COMPUTE_UNIT       "ascend310p;ascend910b;ascend910_93;ascend910_95" CACHE STRING "all soc list")
 
-set(SOC_VERSION_LIST ascend910 ascend310p ascend910b ascend910_93 ascend910_95)
-set(ARCH_DIRECTORY_LIST arch20 arch20 arch32 arch32 arch35)
+set(SOC_VERSION_LIST ascend310p ascend910b ascend910_93 ascend910_95)
+set(ARCH_DIRECTORY_LIST arch20 arch32 arch32 arch35)
 
 foreach(SOC_VERSION ${ASCEND_COMPUTE_UNIT})
   list(FIND SOC_VERSION_LIST ${SOC_VERSION} INDEX)
   if(NOT INDEX EQUAL -1)
     list(GET ARCH_DIRECTORY_LIST ${INDEX} VAL)
     list(APPEND ARCH_DIRECTORY ${VAL})
+  else()
+    include(cmake/build_empty_package.cmake)
+    cpack_empty_package()
+    return()
   endif()
 endforeach()
 
