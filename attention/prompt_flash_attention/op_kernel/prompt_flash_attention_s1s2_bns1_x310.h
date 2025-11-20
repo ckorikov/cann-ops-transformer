@@ -114,9 +114,6 @@ __aicore__ inline void PromptFlashAttentionS1s2Bns1X310<PFAT>::ComputeEachCoreSI
         // L1 residency SetTensorA to Obtain L1
         this->CopyND2NZOnTheFly(this->a1Local_, this->queryGm[this->tensorACoreOffset], outerSize, 
             this->tilingData->promptAttentionBaseParams.headSize, this->queryStride, true);
-        // this->CopyND2NZOnTheFly(this->a1Local_, this->queryGm[this->tensorACoreOffset], outerSize, 
-        //     this->tilingData->promptAttentionBaseParams.headSize, this->queryStride, true);
-        
         this->isInnerLoopLast_ = (startIndex == endIndex - 1);
         innerSize = this->isInnerLoopLast_ ? this->singleProcessSInnerSizeTail : this->singleProcessSInnerSize;
         this->CopyND2NZOnTheFly(this->b1Local_, this->keyGm[this->tensorBCoreOffset], innerSize, 
@@ -132,7 +129,10 @@ __aicore__ inline void PromptFlashAttentionS1s2Bns1X310<PFAT>::ComputeEachCoreSI
             this->CopyND2NZOnTheFly(this->b1Local_[qkDstOffset], this->keyRopeGM[this->tensorKRopeCoreOffset], innerSize, 
                 this->tilingData->promptAttentionBaseParams.headSize, this->kRopeStride, true);
         }       
-        this->Bmm1Compute(this->a1Local_, this->b1Local_, outerSize, innerSize, this->tilingData->promptAttentionBaseParams.headSize);
+        this->Bmm1Compute(this->a1Local_, this->b1Local_, outerSize, innerSize,
+                          this->tilingData->promptAttentionBaseParams.headSize +
+                          this->tilingData->promptAttentionBaseParams.ropeHeadSize);
+        // AscendC::DumpTensor(x, 2, 64, shapeInfo);
     }
     this->isSoftmaxResNeedUpdate = this->tilingData->promptAttentionBaseParams.isRowInvalid;
     for (int64_t sInnerLoopIdx = startIndex; sInnerLoopIdx < endIndex; sInnerLoopIdx++) {
@@ -229,7 +229,9 @@ __aicore__ inline void PromptFlashAttentionS1s2Bns1X310<PFAT>::ComputeEachCoreSI
                 this->CopyND2NZOnTheFly(this->b1Local_[qkDstOffset], this->keyRopeGM[this->tensorKRopeOffset], innerSize, 
                     this->tilingData->promptAttentionBaseParams.ropeHeadSize, this->kRopeStride, true);
             }   
-            this->Bmm1Compute(this->a1Local_, this->b1Local_, this->fetchOuterSize_, innerSize, this->tilingData->promptAttentionBaseParams.headSize);
+            this->Bmm1Compute(this->a1Local_, this->b1Local_, this->fetchOuterSize_, innerSize,
+                              this->tilingData->promptAttentionBaseParams.headSize +
+                              this->tilingData->promptAttentionBaseParams.ropeHeadSize);
         }
         /* Step 6: bmm2 update and copyout */
         if (!isInnerLoopStart) {
@@ -268,7 +270,6 @@ __aicore__ inline void PromptFlashAttentionS1s2Bns1X310<PFAT>::ComputeEachCore(u
     this->bmm2ResUbSize = this->tilingData->promptAttentionTensorSizeRect.bmm2ResUbSize;
 
     int actualCoreNums = this->tilingData->promptAttentionSingleCoreParams.actualCoreNums;
-    AscendC::printf("actualCoreNums is %d",actualCoreNums);
     if (coreIdx >= actualCoreNums) {
         return;
     }

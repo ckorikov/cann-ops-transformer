@@ -550,7 +550,7 @@ ge::graphStatus PromptFlashAttentionTiling::TilingGetTilingKeyAttentionAscendC(u
         if (contextKeyParams.queryRope != nullptr) {
             tilingKey += 1000U;
         } // have queryrope and keyrope, add 1000
-
+        std::cout<<"tilingkey is++++++"<<tilingKey<<std::endl;
         return ge::GRAPH_SUCCESS;
     }
     tilingKey = 0U;
@@ -3385,7 +3385,6 @@ void PromptFlashAttentionTiling::SetSoftMaxTiling()
 bool PromptFlashAttentionTiling::SetBmm1TilingInput(int64_t tmpS1BasicBlock, int64_t tmpS2BasicBlock,
     matmul_tiling::MatmulApiTiling &bmm1)
 {
-    std::cout<<"enter SetBmm1TilingInput"<<std::endl;
     bmm1.SetAType(matmul_tiling::TPosition::GM, matmul_tiling::CubeFormat::ND, matmul_tiling::DataType::DT_BF16, false);
     bmm1.SetBType(matmul_tiling::TPosition::GM, matmul_tiling::CubeFormat::ND, matmul_tiling::DataType::DT_BF16, true);
     bmm1.SetCType(matmul_tiling::TPosition::GM, matmul_tiling::CubeFormat::ND, matmul_tiling::DataType::DT_FLOAT);
@@ -3401,7 +3400,6 @@ bool PromptFlashAttentionTiling::SetBmm1TilingInput(int64_t tmpS1BasicBlock, int
         return true;
     } else {
         bmm1.SetOrgShape(s1Size, tmpS2BasicBlock * mlaTilingData.PFAcoreParams.get_nRatio(), dSize, dSize);
-        std::cout<<"dSize"<<dSize<<std::endl;
         bmm1.SetBias(false);
         if (bmm1.SetBufferSpace(ascendPlatformInfo.l1Size, ascendPlatformInfo.l0CSize) != 0) {
             return false;
@@ -5856,11 +5854,11 @@ ge::graphStatus PromptFlashAttentionTiling::CheckShape(ContextParamsForPFATiling
                 "BSND, BNSD, BNSD_BSND, TND, NTD_TND."),
                 return ge::GRAPH_FAILED);
 
-    OP_CHECK_IF((inputLayout != InputLayout::NTD_TND) && (inputLayout != InputLayout::TND) &&
-        (contextKeyParams.queryRope != nullptr || contextKeyParams.keyRope != nullptr),
-            OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName,
-                "Only layout TND, NTD_TND support query/key D = 128, queryRopr/keyRope D = 64!"),
-        return ge::GRAPH_FAILED);
+    // OP_CHECK_IF((inputLayout != InputLayout::NTD_TND) && (inputLayout != InputLayout::TND) &&
+    //     (contextKeyParams.queryRope != nullptr || contextKeyParams.keyRope != nullptr),
+    //         OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName,
+    //             "Only layout TND, NTD_TND support query/key D = 128, queryRopr/keyRope D = 64!"),
+    //     return ge::GRAPH_FAILED);
 
     OP_CHECK_IF(((contextKeyParams.fromFused == 0) && (inputLayout == InputLayout::NTD_TND)),
                 OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName, "NTD_TND layout is only supported in FIA, not in PFA."),

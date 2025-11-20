@@ -17,6 +17,7 @@
 
 #include "kernel_tiling/kernel_tiling.h"
 #include "kernel_operator.h"
+#include "kernel_operator_list_tensor_intf.h"
 #include "lib/matmul_intf.h"
 // #include "kernel_data_copy_transpose.h"
 #include "kernel_operator_softmax_compute_nz.h"
@@ -376,14 +377,21 @@ __aicore__ inline void PromptFlashAttentionS1s2Bns1X310Base<PFAT>::InitPFABuffer
     tmp_block_idx = GetBlockIdx();
     // init global buffer
     queryGm.SetGlobalBuffer((__gm__ T*)query);
-    keyGm.SetGlobalBuffer((__gm__ T*)key);
-    valueGm.SetGlobalBuffer((__gm__ T*)value);
     uint64_t qkL1Size = tilingData->promptAttentionTensorSizeRect.scmTmpSize * sizeof(mmInputType);
-    if (queryRope != nullptr) {
+    if (tilingData->promptAttentionBaseParams.fromFused) {
+        ListTensorDesc keyListTensorDescInit((__gm__ void*)key);
+        ListTensorDesc valueListTensorDescInit((__gm__ void*)value);
+        __gm__ uint8_t* currentKey = (__gm__ uint8_t*)keyListTensorDescInit.GetDataPtr<__gm__ uint8_t>(0);
+        __gm__ uint8_t* currentValue = (__gm__ uint8_t*)valueListTensorDescInit.GetDataPtr<__gm__ uint8_t>(0);
+        keyGm.SetGlobalBuffer((__gm__ T*)currentKey);
+        valueGm.SetGlobalBuffer((__gm__ T*)currentValue);
         queryRopeGM.SetGlobalBuffer((__gm__ T*)queryRope);
         keyRopeGM.SetGlobalBuffer((__gm__ T*)keyRope);
         qkL1Size = (tilingData->promptAttentionTensorSizeRect.scmTmpSize / tilingData->promptAttentionBaseParams.headSize) *
                    (tilingData->promptAttentionBaseParams.headSize + tilingData->promptAttentionBaseParams.ropeHeadSize);
+    } else {
+        keyGm.SetGlobalBuffer((__gm__ T*)key);
+        valueGm.SetGlobalBuffer((__gm__ T*)value);
     }
     attentionOutGm.SetGlobalBuffer((__gm__ O*)attentionOut);
     workspaceGm.SetGlobalBuffer((__gm__ softmaxType*)workspace);
@@ -1051,34 +1059,5 @@ __aicore__ inline void PromptFlashAttentionS1s2Bns1X310Base<PFAT>::CopyND2NZOnTh
     SetFlag<HardEvent::MTE2_MTE1>(EVENT_ID3);
     WaitFlag<HardEvent::MTE2_MTE1>(EVENT_ID3);
 }
-    // uint32_t calcQKWidth = tilingData->promptAttentionBaseParams.headSize / BLOCK_CUBE;
-    // uint64_t qkDstOffset = calcQKWidth * calcHeightAlign * CUBE_MAX_SIZE;
-
-// template<typename PFAT>
-// __aicore__ inline void PromptFlashAttentionS1s2Bns1X310Base<PFAT>::CopyND2NZOnTheFly(
-//     const LocalTensor<mmOutputType>& dst,  const GlobalTensor<mmOutputType>& src, const int height,
-//     const int width, const int gCol, const bool isA1) {
-
-
-//     int32_t dstOffset = 0;
-//     int32_t srcOffset = 0;
-//     int32_t calcWidth = width / BLOCK_CUBE; // cube block numbers that do not need to be pad zero
-//     int32_t calcHeightAlign = (height + BLOCK_CUBE - 1) / BLOCK_CUBE;
-//     if (height % BLOCK_CUBE != 0) {
-//         int64_t repeat = calcWidth * calcHeightAlign;
-//         create_cbuf_matrix((__cbuf__ void*)dst.GetPhyAddr(), repeat, 0);
-//         pipe_barrier(PIPE_MTE2);
-//     }
-//     // gCol unaligned ,can not use dma copy repeat stride
-//     int src_gap = gCol * sizeof(mmOutputType) / UB_ALIGN_NZ - 1;
-//     for (int i = 0; i < calcWidth; i++) {
-//         dstOffset = i * calcHeightAlign * CUBE_MAX_SIZE;
-//         srcOffset = i * BLOCK_CUBE;
-//         DataCopy(dst[dstOffset], src[srcOffset],
-//                  { static_cast<uint16_t>(height), 1, static_cast<uint16_t>(src_gap), 0});
-//     }
-//     SetFlag<HardEvent::MTE2_MTE1>(EVENT_ID3);
-//     WaitFlag<HardEvent::MTE2_MTE1>(EVENT_ID3);
-// }
 
 #endif  // PROMPT_FLASH_ATTENTION_S1S2_BNS1_X310_BASE_H
