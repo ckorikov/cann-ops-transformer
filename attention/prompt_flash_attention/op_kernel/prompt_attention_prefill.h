@@ -19,7 +19,7 @@
 #include "iterator.h"
 #include "mma.h"
 #include "kernel_operator.h"
-#include "unpad_flash_attention_common.h"
+// #include "unpad_flash_attention_common.h"
 
 #ifdef __CCE_KT_TEST__
 #define __aicore__

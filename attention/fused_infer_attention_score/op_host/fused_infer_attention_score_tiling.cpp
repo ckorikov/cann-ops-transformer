@@ -185,6 +185,10 @@ REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_4000000000010000003, MLAGene
 REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_4000000000010100002, MLAGeneralTilingData)
 REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_4000000000010100003, MLAGeneralTilingData)
 
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_1000000000000022288, PromptFlashAttentionTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_1000000000000023288, PromptFlashAttentionTilingData)
+REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_30000000000200000, IncreFlashAttentionTilingAtbDataV2)
+
 static void ConvertDataTypePFA(gert::TilingContext &context, ContextParamsForPFATiling &contextKeyParams)
 {
     contextKeyParams.inputDataType = context.GetInputDesc(QUERY_INDEX)->GetDataType();
