@@ -14,12 +14,13 @@
 
 ## 功能说明
 
--   **算子功能**：MoE计算中，通过二分查找的方式查找每个专家处理的最后一行的位置。
+-   **接口功能**：MoE计算中，通过二分查找的方式查找每个专家处理的最后一行的位置。
 -   **计算公式**：
 
     $$
-    for i in range(numExperts)
+    for\: i\: in\: range(numExperts)
     $$
+
     $$
     out_{i}=BinarySearch(sortedExperts, i)
     $$
@@ -29,48 +30,163 @@
 
 每个算子分为[两段式接口](../../../docs/zh/context/两段式接口.md)，必须先调用“aclnnMoeComputeExpertTokensGetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnMoeComputeExpertTokens”接口执行计算。
 
-* `aclnnStatus aclnnMoeComputeExpertTokensGetWorkspaceSize(const aclTensor* sortedExperts, int64_t numExperts, const aclTensor* out, uint64_t *workspaceSize, aclOpExecutor **executor)`
-* `aclnnStatus aclnnMoeComputeExpertTokens(void* workspace, uint64_t workspaceSize, aclOpExecutor* executor, aclrtStream stream)`
+```c++
+aclnnStatus aclnnMoeComputeExpertTokensGetWorkspaceSize(
+    const aclTensor *sortedExperts,
+    int64_t          numExperts,
+    const aclTensor *out,
+    uint64_t        *workspaceSize,
+    aclOpExecutor  **executor)
+```
+```c++
+aclnnStatus aclnnMoeComputeExpertTokens(
+    void          *workspace,
+    uint64_t       workspaceSize,
+    aclOpExecutor *executor,
+    aclrtStream    stream)
+```
 
 ## aclnnMoeComputeExpertTokensGetWorkspaceSize
 
 -   **参数说明：**
-    -   sortedExperts（aclTensor\*，计算输入）：Device侧的aclTensor，公式中的sortedExperts，排序后的专家数组，要求是一个1D的Tensor，Tensor中的值取值范围是[0, numExperts-1]，数据类型支持INT32，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND。
-    -   numExperts（int64\_t，计算输入）：Host侧的int，总专家数。限制范围以[约束说明](#约束说明)为准。
-    -   out（aclTensor\*，计算输出）：Device侧的aclTensor，公式中的输出，要求的是一个1D的Tensor，shape大小等于专家数，数据类型与sortedExperts保持一致。
-    -   workspaceSize（uint64\_t\*，出参）：返回需要在Device侧申请的workspace大小。
-    -   executor（aclOpExecutor\*\*，出参）：返回op执行器，包含了算子计算流程。
+
+    <table style="undefined;table-layout: fixed; width: 1550px"><colgroup>
+    <col style="width: 187px">
+    <col style="width: 121px">
+    <col style="width: 287px">
+    <col style="width: 387px">
+    <col style="width: 187px">
+    <col style="width: 187px">
+    <col style="width: 187px">
+    <col style="width: 146px">
+    </colgroup>
+    <thead>
+    <tr>
+        <th>参数名</th>
+        <th>输入/输出</th>
+        <th>描述</th>
+        <th>使用说明</th>
+        <th>数据类型</th>
+        <th>数据格式</th>
+        <th>维度(shape)</th>
+        <th>非连续Tensor</th>
+    </tr></thead>
+    <tbody>
+    <tr>
+        <td>sortedExperts</td>
+        <td>输入</td>
+        <td>公式中的sortedExperts，排序后的专家数组。</td>
+        <td>Tensor中的值取值范围是[0, numExperts-1]，shape大小需要小于2**24。</td>
+        <td>INT32</td>
+        <td>ND</td>
+        <td>1</td>
+        <td>√</td>
+    </tr>
+    <tr>
+        <td>numExperts</td>
+        <td>输入</td>
+        <td>表示总专家数。</td>
+        <td>需要大于0，但不能超过2048。</td>
+        <td>-</td>
+        <td>-</td>
+        <td>-</td>
+        <td>-</td>
+    </tr>
+    <tr>
+        <td>out</td>
+        <td>输出</td>
+        <td>公式中的输出。</td>
+        <td>Shape大小等于专家数。</td>
+        <td>与sortedExperts保持一致。</td>
+        <td>ND</td>
+        <td>1</td>
+        <td>×</td>
+    </tr>
+    <tr>
+        <td>workspaceSize</td>
+        <td>输出</td>
+        <td>返回需要在Device侧申请的workspace大小。</td>
+        <td>-</td>
+        <td>-</td>
+        <td>-</td>
+        <td>-</td>
+        <td>-</td>
+    </tr>
+    <tr>
+        <td>executor</td>
+        <td>输出</td>
+        <td>返回op执行器，包含了算子计算流程。</td>
+        <td>-</td>
+        <td>-</td>
+        <td>-</td>
+        <td>-</td>
+        <td>-</td>
+    </tr>
+    </tbody></table>
 
 -   **返回值：**
 
-    返回aclnnStatus状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
+    aclnnStatus：返回状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
 
-    ```
-    第一段接口完成入参校验，出现以下场景时报错:
-    161001 (ACLNN_ERR_PARAM_NULLPTR): 1. 传入的sortedExperts是空指针时。
-    161002 (ACLNN_ERR_PARAM_INVALID): 1. sortedExperts的数据类型不在支持的范围之内。
-                                      2. sortedExperts的format格式不在支持的范围之内。
-    561002(ACLNN_ERR_INNER_TILING_ERROR): 1. sortedExperts和out的shape不等于1D的tensor。
-    ```
+    第一段接口完成入参校验，出现以下场景时报错：
+
+    <table style="undefined;table-layout: fixed; width: 1155px"><colgroup>
+    <col style="width: 253px">
+    <col style="width: 140px">
+    <col style="width: 762px">
+    </colgroup>
+    <thead>
+        <tr>
+        <th>返回值</th>
+        <th>错误码</th>
+        <th>描述</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+        <td> ACLNN_ERR_PARAM_NULLPTR </td>
+        <td> 161001 </td>
+        <td>传入的sortedExperts是空指针。</td>
+        </tr>
+        <tr>
+        <td rowspan="2"> ACLNN_ERR_PARAM_INVALID </td>
+        <td rowspan="2"> 161002 </td>
+        <td>sortedExperts的数据类型不在支持的范围之内。</td>
+        </tr>
+        <tr>
+        <td>sortedExperts的format格式不在支持的范围之内。</td>
+        </tr>
+        <tr>
+        <td> ACLNN_ERR_INNER_TILING_ERROR </td>
+        <td> 561002 </td>
+        <td>sortedExperts和out的shape不等于1D的tensor。</td>
+        </tr>
+    </tbody></table>
 
 ## aclnnMoeComputeExpertTokens
 
 -   **参数说明：**
-    -   workspace（void\*，入参）：在Device侧申请的workspace内存地址。
-    -   workspaceSize（uint64\_t，入参）：在Device侧申请的workspace大小，由第一段接口aclnnMoeComputeExpertTokensGetWorkspaceSize获取。
-    -   executor（aclOpExecutor\*，入参）：op执行器，包含了算子计算流程。
-    -   stream（aclrtStream，入参）：指定执行任务的Stream。
 
--   **返回值：**
+    <table>
+            <thead>
+                <tr><th>参数名</th><th>输入/输出</th><th>描述</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>workspace</td><td>输入</td><td>在Device侧申请的workspace内存地址。</td></tr>
+                <tr><td>workspaceSize</td><td>输入</td><td>在Device侧申请的workspace大小，由第一段接口aclnnInplaceAddGetWorkspaceSize获取。</td></tr>
+                <tr><td>executor</td><td>输入</td><td> op执行器，包含了算子计算流程。 </td></tr>
+                <tr><td>stream</td><td>输入</td><td> 指定执行任务的Stream。 </td></tr>
+            </tbody>
+    </table>
 
-    返回aclnnStatus状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
-
+- **返回值**
+  
+  aclnnStatus：返回状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
 
 ## 约束说明
 
-* sortedExperts的shape大小需要小于2\*\*24。
-* numExperts的输入常值需要大于0，但不能超过2048。
-* 输入shape大小不要超过device可分配的内存上限，否则会导致异常终止。
+1. 确定性计算：默认确定性实现。
+2. 输入shape大小不要超过device可分配的内存上限，否则会导致异常终止。
 
 ## 调用示例
 
@@ -183,7 +299,7 @@ int main()
     // 调用CANN算子库API
     uint64_t workspaceSize = 0;
     aclOpExecutor* executor;
-    // 调用aclnnMoeComputeExpertTokens第一段接口
+    // 3. 调用aclnnMoeComputeExpertTokens第一段接口
     ret = aclnnMoeComputeExpertTokensGetWorkspaceSize(
         sortedExperts, numExperts, out, &workspaceSize, &executor);
     CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclnnMoeComputeExpertTokensGetWorkspaceSize failed. ERROR: %d\n", ret);

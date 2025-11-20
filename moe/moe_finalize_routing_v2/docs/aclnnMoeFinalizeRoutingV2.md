@@ -14,7 +14,7 @@
 
 ## 功能说明
 
--   **算子功能**：MoE计算中，最后处理合并MoE FFN的输出结果。
+-   **接口功能**：MoE计算中，最后处理合并MoE FFN的输出结果。
 -   **计算公式**：
 
     $$
@@ -22,76 +22,267 @@
     $$
     
     $$
-    out(i,j)=x1_{i,j}+x2_{i,j}+\sum_{k=0}^{K}(scales_{i,k}*(expandedX_{expandedRowIdx_{i+k*num_rows},j}+bias_{expertid,j}))
+    out(i,j)=x1_{i,j}+x2_{i,j}+\sum_{k=0}^{K}(scales_{i,k}*(expandedX_{expandedRowIdx_{i+k*num\_rows},j}+bias_{expertid,j}))
     $$
 
 ## 函数原型
 
 每个算子分为[两段式接口](../../../docs/zh/context/两段式接口.md)，必须先调用“aclnnMoeFinalizeRoutingV2GetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnMoeFinalizeRoutingV2”接口执行计算。
 
-* `aclnnStatus aclnnMoeFinalizeRoutingV2GetWorkspaceSize(const aclTensor* expandedX, const aclTensor* expandedRowIdx, const aclTensor* x1Optional, const aclTensor* x2Optional, const aclTensor* biasOptional, const aclTensor* scalesOptional,const aclTensor* expertIdxOptional, int64_t dropPadMode, const aclTensor* out, uint64_t* workspaceSize, aclOpExecutor** executor)`
-* `aclnnStatus aclnnMoeFinalizeRoutingV2(void* workspace, uint64_t workspaceSize, aclOpExecutor* executor, aclrtStream stream)`
+```c++
+aclnnStatus aclnnMoeFinalizeRoutingV2GetWorkspaceSize(
+    const aclTensor *expandedX,
+    const aclTensor *expandedRowIdx,
+    const aclTensor *x1Optional,
+    const aclTensor *x2Optional,
+    const aclTensor *biasOptional,
+    const aclTensor *scalesOptional,
+    const aclTensor *expertIdxOptional,
+    int64_t          dropPadMode,
+    const aclTensor *out,
+    uint64_t        *workspaceSize,
+    aclOpExecutor  **executor)
+```
+
+```c++
+aclnnStatus aclnnMoeFinalizeRoutingV2(
+    void          *workspace,
+    uint64_t       workspaceSize,
+    aclOpExecutor *executor,
+    aclrtStream    stream)
+```
 
 ## aclnnMoeFinalizeRoutingV2GetWorkspaceSize
 
 -   **参数说明：**
-    -   expandedX （aclTensor\*，计算输入）：Device侧的aclTensor，公式中的expandedX ，MoE的FFN输出，要求是一个2D/3D的Tensor，数据类型支持FLOAT16、BFLOAT16、FLOAT32，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND，支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)。限制：drop less 场景shape为（NUM\_ROWS \* K, H）drop pad场景shape为（E, C, H）。NUM\_ROWS为行数；K: 为从总的专家E中选出K个专家；H: hidden size，即每个token序列长度，为列数；E: expert num，即专家数，E需要大于等于K；C: expert capacity，表示专家处理token数量的能力阈值。
-        - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>、<term>昇腾910_95 AI处理器</term>：要求是一个2D/3D的Tensor，支持的数据类型为FLOAT16、BFLOAT16、FLOAT32，支持drop less和drop pad场景。
-        - <term>Atlas 推理系列产品 </term>：要求是一个2D的Tensor，数据类型支持FLOAT16、FLOAT32，shape要求尾轴H为32对齐。
-    -   expandedRowIdx（aclTensor\*，计算输入）：Device侧的aclTensor，公式中的expandedRowIdx，要求是一个1D的Tensor，数据类型支持INT32, [数据格式](../../../docs/zh/context/数据格式.md)要求为ND，支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)。限制：其shape支持（NUM\_ROWS \* K），dropPadMode参数值为0、2时，Tensor中的值取值范围是[0,NUM\_ROWS \* K-1]; dropPadMode参数值为1、3时，Tensor中的值取值范围是[-1, E\*C - 1]。
-    -   x1Optional（aclTensor\*，可选计算输入）：Device侧的aclTensor，公式中的x1。
-        - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>、<term>昇腾910_95 AI处理器</term>：要求是一个2D的Tensor，数据类型要求与expandedX一致，shape要求与out的shape一致，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND，支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)。
-        - <term>Atlas 推理系列产品 </term>：仅支持传入nullptr。
-    -   x2Optional（aclTensor\*，可选计算输入）：Device侧的aclTensor，公式中的x2。
-        - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>、<term>昇腾910_95 AI处理器</term>：要求是一个2D的Tensor，数据类型要求与expandedX一致，shape要求与out的shape一致，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND，支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)。在x1Optional参数未输入的情况下，x2Optional参数也不能输入
-        - <term>Atlas 推理系列产品 </term>：仅支持传入nullptr。
-    -   biasOptional（aclTensor\*，可选计算输入）：Device侧的aclTensor，公式中的bias。
-        - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>、<term>昇腾910_95 AI处理器</term>：要求是一个2D的Tensor，数据类型要求与expandedX一致，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND，支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)。限制：其shape支持（E，H）。
-        - <term>Atlas 推理系列产品 </term>：仅支持传入nullptr。
-    -   scalesOptional（aclTensor\*，可选计算输入）：Device侧的aclTensor，公式中的scales，要求是一个2D的Tensor，数据类型支持FLOAT16、BFLOAT16、FLOAT32，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND，支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)。限制：其shape支持（NUM\_ROWS，K），scalesOptional 不存在时，K为1。
-        - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：混合精度模式下，支持 expandedX 为 BFLOAT16 时 scalesOptional 为 FLOAT32；非混合精度模式下，数据类型要求与expandedX一致。
-        - <term>昇腾910_95 AI处理器</term>：数据类型可以与expandedX不一致。
-        - <term>Atlas 推理系列产品 </term>：数据类型支持FLOAT16、FLOAT32，且需要与expandedX一致。
-    -   expertIdxOptional（aclTensor\*，可选计算输入）：Device侧的aclTensor，公式中的expertIdx。
-        - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>、<term>昇腾910_95 AI处理器</term>：要求是一个2D的Tensor，数据类型支持INT32，[数据格式](../../../docs/zh/context/数据格式.md)要求为ND，支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)。限制：其shape支持（NUM\_ROWS，K），Tensor中的值取值范围是[0, E-1]，biasOptional 存在时，expertIdxOptional 必须同时存在。
-        - <term>Atlas 推理系列产品 </term>：仅支持传入nullptr。
-    -   dropPadMode（int64_t，计算输入）: int64数据类型，表示是否支持丢弃模式,expandedRowIdx的排列方式。取值范围为[0,3]。
-        - 0：drop less 场景，expandedRowIdx 按**列**排列（与[aclnnMoeInitRouting](./aclnnMoeInitRouting.md)输出格式对应）。
-        - 1：drop pad 场景，expandedRowIdx 按**列**排列（与[aclnnMoeInitRouting](./aclnnMoeInitRouting.md)输出格式对应）。
-        - 2：drop less 场景，expandedRowIdx 按**行**排列（与[aclnnMoeInitRoutingV2](./aclnnMoeInitRoutingV2.md)输出格式对应）。
-        - 3：drop pad 场景，expandedRowIdx 按**行**排列（与[aclnnMoeInitRoutingV2](./aclnnMoeInitRoutingV2.md)输出格式对应）。
-        - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>、<term>昇腾910_95 AI处理器</term>：支持dropPadMode取值范围[0,3]。
-        - <term>Atlas 推理系列产品 </term>：仅支持dropPadMode传入2。
-    -   out（aclTensor\*，计算输出）：Device侧的aclTensor，公式中的输出，要求是一个2D的Tensor，数据类型与expandedX 需要保持一致, [数据格式](../../../docs/zh/context/数据格式.md)要求为ND，不支持非连续输出。限制：其shape支持（NUM\_ROWS, H）。
-    -   workspaceSize（uint64\_t\*，出参）：返回需要在Device侧申请的workspace大小。
-    -   executor（aclOpExecutor\*\*，出参）：返回op执行器，包含了算子计算流程。
+
+    <table style="undefined;table-layout: fixed; width: 1550px"><colgroup>
+    <col style="width: 187px">
+    <col style="width: 121px">
+    <col style="width: 287px">
+    <col style="width: 387px">
+    <col style="width: 187px">
+    <col style="width: 187px">
+    <col style="width: 187px">
+    <col style="width: 146px">
+    </colgroup>
+    <thead>
+    <tr>
+        <th>参数名</th>
+        <th>输入/输出</th>
+        <th>描述</th>
+        <th>使用说明</th>
+        <th>数据类型</th>
+        <th>数据格式</th>
+        <th>维度(shape)</th>
+        <th>非连续Tensor</th>
+    </tr></thead>
+    <tbody>
+    <tr>
+        <td>expandedX</td>
+        <td>输入</td>
+        <td>公式中的expandedX ，MoE的FFN输出。</td>
+        <td>-</td>
+        <td>FLOAT16、BFLOAT16、FLOAT32</td>
+        <td>ND</td>
+        <td>drop less场景：(NUM_ROWS * K, H)，<br>drop pad场景：(E, C, H)。</td>
+        <td>√</td>
+    </tr>
+    <tr>
+        <td>expandedRowIdx</td>
+        <td>输入</td>
+        <td>公式中的expandedRowIdx。</td>
+        <td>-</td>
+        <td>INT32</td>
+        <td>ND</td>
+        <td>(NUM_ROWS * K)</td>
+        <td>√</td>
+    </tr>
+    <tr>
+        <td>x1Optional</td>
+        <td>输入</td>
+        <td>公式中的x1，表示第一个共享专家。</td>
+        <td>-</td>
+        <td>与expandedX一致。</td>
+        <td>ND</td>
+        <td>与out一致。</td>
+        <td>√</td>
+    </tr>
+    <tr>
+        <td>x2Optional</td>
+        <td>输入</td>
+        <td>公式中的x2，表示第二个共享专家。</td>
+        <td>-</td>
+        <td>与expandedX一致。</td>
+        <td>ND</td>
+        <td>与out一致。</td>
+        <td>√</td>
+    </tr>
+    <tr>
+        <td>biasOptional</td>
+        <td>输入</td>
+        <td>公式中的bias，表示偏置量。</td>
+        <td>-</td>
+        <td>与expandedX一致。</td>
+        <td>ND</td>
+        <td>(E, H)</td>
+        <td>√</td>
+    </tr>
+    <tr>
+        <td>scalesOptional</td>
+        <td>输入</td>
+        <td>公式中的scales。</td>
+        <td>-</td>
+        <td>FLOAT16、BFLOAT16、FLOAT32</td>
+        <td>ND</td>
+        <td>(NUM_ROWS, K)</td>
+        <td>√</td>
+    </tr>
+    <tr>
+        <td>expertIdxOptional</td>
+        <td>输入</td>
+        <td>公式中的expertIdx。</td>
+        <td>Tensor中的值取值范围是[0, E-1]。</td>
+        <td>INT32</td>
+        <td>ND</td>
+        <td>(NUM_ROWS, K)</td>
+        <td>√</td>
+    </tr>
+    <tr>
+        <td>dropPadMode</td>
+        <td>输入</td>
+        <td>表示是否支持丢弃模式,expandedRowIdx的排列方式。</td>
+        <td>取值范围为[0, 3]。</td>
+        <td>-</td>
+        <td>-</td>
+        <td>-</td>
+        <td>-</td>
+    </tr>
+    <tr>
+        <td>out</td>
+        <td>输出</td>
+        <td>公式中的输出。</td>
+        <td>-</td>
+        <td>与expandedX一致。</td>
+        <td>ND</td>
+        <td>(NUM_ROWS, H)</td>
+        <td>×</td>
+    </tr>
+    <tr>
+        <td>workspaceSize</td>
+        <td>输出</td>
+        <td>返回需要在Device侧申请的workspace大小。</td>
+        <td>-</td>
+        <td>-</td>
+        <td>-</td>
+        <td>-</td>
+        <td>-</td>
+    </tr>
+    <tr>
+        <td>executor</td>
+        <td>输出</td>
+        <td>返回op执行器，包含了算子计算流程。</td>
+        <td>-</td>
+        <td>-</td>
+        <td>-</td>
+        <td>-</td>
+        <td>-</td>
+    </tr>
+    </tbody></table>
+
+    - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：
+      - expandedX要求是一个2D/3D的Tensor，支持的数据类型为FLOAT16、BFLOAT16、FLOAT32，支持drop less和drop pad场景。
+      - scalesOptional：混合精度模式下，支持 expandedX 为 BFLOAT16 时 scalesOptional 为 FLOAT32；非混合精度模式下，数据类型要求与expandedX一致。
+    - <term>昇腾910_95 AI处理器</term>：
+      - expandedX要求是一个2D/3D的Tensor，支持的数据类型为FLOAT16、BFLOAT16、FLOAT32，支持drop less和drop pad场景。
+      - scalesOptional数据类型可以与expandedX不一致。
+    - <term>Atlas 推理系列产品 </term>：
+      - expandedX要求是一个2D的Tensor，数据类型支持FLOAT16、FLOAT32，shape要求尾轴H为32对齐。
+      - x1Optional、x2Optional、biasOptional、expertIdxOptional仅支持传入nullptr
+      - 仅支持dropPadMode传入2。
+      - scalesOptional数据类型支持FLOAT16、FLOAT32，且需要与expandedX一致。
 
 -   **返回值：**
 
-    返回aclnnStatus状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
+    aclnnStatus：返回状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
 
-    ```
-    第一段接口完成入参校验，出现以下场景时报错:
-    返回161001（ACLNN_ERR_PARAM_NULLPTR）：传入的必选输入、必选输出或者必选属性，是空指针。
-    返回161002（ACLNN_ERR_PARAM_INVALID）：输入和输出的数据类型和数据格式不在支持的范围之内。
-    返回561002（ACLNN_ERR_INNER_TILING_ERROR）：多个输入tensor之间的shape信息不匹配，或输入属性和输入tensor之间的shape信息不匹配（详见参数说明）。
-    ```
+    第一段接口完成入参校验，出现以下场景时报错：
+
+    <table style="undefined;table-layout: fixed; width: 1155px"><colgroup>
+    <col style="width: 253px">
+    <col style="width: 140px">
+    <col style="width: 762px">
+    </colgroup>
+    <thead>
+        <tr>
+        <th>返回值</th>
+        <th>错误码</th>
+        <th>描述</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+        <td> ACLNN_ERR_PARAM_NULLPTR </td>
+        <td> 161001 </td>
+        <td>传入的必选输入、必选输出或者必选属性，是空指针。</td>
+        </tr>
+        <tr>
+        <td> ACLNN_ERR_PARAM_INVALID </td>
+        <td> 161002 </td>
+        <td>输入和输出的数据类型和数据格式不在支持的范围之内。</td>
+        </tr>
+        <tr>
+        <td rowspan="2"> ACLNN_ERR_INNER_TILING_ERROR </td>
+        <td rowspan="2"> 561002 </td>
+        <td>多个输入tensor之间的shape信息不匹配。</td>
+        </tr>
+        <tr>
+        <td>输入属性和输入tensor之间的shape信息不匹配。</td>
+        </tr>
+    </tbody></table>
 
 ## aclnnMoeFinalizeRoutingV2
 
 -   **参数说明：**
-    -   workspace（void\*，入参）：在Device侧申请的workspace内存地址。
-    -   workspaceSize（uint64\_t，入参）：在Device侧申请的workspace大小，由第一段接口aclnnMoeFinalizeRoutingV2GetWorkspaceSize获取。
-    -   executor（aclOpExecutor\*，入参）：op执行器，包含了算子计算流程。
-    -   stream（aclrtStream,入参）：指定执行任务的Stream。
 
--   **返回值：**
+    <table>
+            <thead>
+                <tr><th>参数名</th><th>输入/输出</th><th>描述</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>workspace</td><td>输入</td><td>在Device侧申请的workspace内存地址。</td></tr>
+                <tr><td>workspaceSize</td><td>输入</td><td>在Device侧申请的workspace大小，由第一段接口aclnnInplaceAddGetWorkspaceSize获取。</td></tr>
+                <tr><td>executor</td><td>输入</td><td> op执行器，包含了算子计算流程。 </td></tr>
+                <tr><td>stream</td><td>输入</td><td> 指定执行任务的Stream。 </td></tr>
+            </tbody>
+        </table>
 
-    返回aclnnStatus状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
-
+- **返回值**
+  
+  aclnnStatus：返回状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
 
 ## 约束说明
-  无
+1. 确定性计算：默认确定性实现。
+
+2. NUM\_ROWS：表示行数；
+K：表示从总的专家E中选出K个专家；
+H：表示hidden size，即每个token序列长度，为列数；
+E：表示expert num，即专家数，E需要大于等于K；
+C：表示expert capacity，即专家处理token数量的能力阈值。
+
+3. expandedRowIdx：当dropPadMode参数值为0、2时，Tensor中的值取值范围是[0,NUM_ROWS * K-1]；当dropPadMode参数值为1、3时，Tensor中的值取值范围是[-1, E\*C - 1]。
+
+4. 在x1Optional参数未输入的情况下，x2Optional参数也不能输入。
+
+5. scalesOptional不存在时，K为1。
+
+6. biasOptional存在时，expertIdxOptional必须同时存在。
+
+7. dropPadMode的取值与含义对应如下：
+     - 0：drop less 场景，expandedRowIdx按**列**排列（与[aclnnMoeInitRouting](../../moe_init_routing/docs/aclnnMoeInitRouting.md)输出格式对应）。
+     - 1：drop pad 场景，expandedRowIdx按**列**排列（与[aclnnMoeInitRouting](../../moe_init_routing/docs/aclnnMoeInitRouting.md)输出格式对应）。
+     - 2：drop less 场景，expandedRowIdx按**行**排列（与[aclnnMoeInitRoutingV2](../../moe_init_routing_v2/docs/aclnnMoeInitRoutingV2.md)输出格式对应）。
+     - 3：drop pad 场景，expandedRowIdx按**行**排列（与[aclnnMoeInitRoutingV2](../../moe_init_routing_v2/docs/aclnnMoeInitRoutingV2.md)输出格式对应）。
 
 ## 调用示例
 
