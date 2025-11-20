@@ -109,19 +109,9 @@ private:
     __aicore__ inline void VectorBufferInit();
     __aicore__ inline void UpdateStepBatchParams(int64_t curStepBatchSize);
     __aicore__ inline void ComputeAicOffset(AicOffset &aicOffset, int64_t numHeadOffset);
-    __aicore__ inline void GetBatchTokenIndex(int64_t &batchTokenIndex,
-                                              int64_t &batchIndex, int64_t &batchSeqSize,
-                                              int64_t &batchIndexOffset, int64_t tokenIndex);
-    __aicore__ inline void GetCacheOffset(GlobalTensor<int64_t> indexGm,
-                                          int64_t batchIndex,
-                                          int64_t batchTokenIndex,
-                                          int64_t batchSeqSize,
-                                          int64_t batchIndexOffset,
-                                          int64_t rows,
-                                          int64_t headSize,
-                                          int64_t &rowsInCurBatch,
-                                          int64_t &cacheOffset,
-                                          int64_t &nextBatchOffset);
+    __aicore__ inline void ComputeBlkScatterOffsets(GlobalTensor<int64_t> indexGm, int64_t tokenIndex, int64_t rows, 
+                                                    CkvkrParams &rmsNormAndScatterCkvParams, 
+                                                    CkvkrParams &ropeAndScatterKrParams);
     __aicore__ inline void ComputeAivOffset(AivOffset &aivOffset, int64_t batchOffset);
     template<bool needQnDynamicQuant>
     __aicore__ inline void AicProcess(AicOffset &aicOffset,
@@ -272,7 +262,8 @@ private:
         int64_t curPrefix = 0;      // prefix sum of seq lengths up to curBatch (exclusive high bound)
         int64_t prevIndexOffset = 0;   // prefix sum of blocks up to (curBatch - 1)
         int64_t curIndexOffset = 0;    // prefix sum of blocks up to curBatch
-    } actSeqState_;
+    };
+    ActSeqState actSeqState_;
     int64_t blockSpanPerBatch_ = 0; // blockNum * blockSize
 
     TBuf<TPosition::A1> aBufL1_;
@@ -1256,60 +1247,65 @@ __aicore__ inline void MlaPrologVecS1CubS2<MLAPT>::RmsNormCq(int64_t tokenIndex,
 }
 
 template<typename MLAPT>
-__aicore__ inline void MlaPrologVecS1CubS2<MLAPT>::GetBatchTokenIndex(int64_t &batchTokenIndex,
-    int64_t &batchIndex, int64_t &batchSeqSize, int64_t &batchIndexOffset, int64_t tokenIndex)
+__aicore__ inline void MlaPrologVecS1CubS2<MLAPT>::ComputeBlkScatterOffsets(
+    GlobalTensor<int64_t> indexGm, 
+    int64_t tokenIndex, 
+    int64_t rows, 
+    CkvkrParams &rmsNormAndScatterCkvParams,
+    CkvkrParams &ropeAndScatterKrParams)
 {
-    if constexpr (MLAPT::actualSeqMode == ACTUAL_SEQ_MODE::DISABLED) {
-        batchIndex = tokenIndex / baseParams_->seq1Size;
-        batchTokenIndex = tokenIndex % baseParams_->seq1Size;
-        batchSeqSize = baseParams_->seq1Size;
-        batchIndexOffset = batchIndex * batchSeqSize;    // cacheIndex的offset
-    }
+    int64_t batchTokenIndex = 0;
+    int64_t batchSeqSize = 0;
+    int64_t batchIndexOffset = 0;
+    int64_t rowsThisStep = 0;
+    int64_t nextPageId = 0;
+    bool spill = false;
+
     // Advance batch cursor until the token index falls in [prevPrefix, curPrefix)
     // curPrefix is an exclusive upper bound for the current batch
-    else {
-        while (actSeqState_.curBatch + 1 < static_cast<int64_t>(baseParams_->batchSize) &&
-            tokenIndex >= actSeqState_.curPrefix) {
+    if constexpr (MLAPT::actualSeqMode == ACTUAL_SEQ_MODE::DISABLED) {
+        const int64_t batchIndex = tokenIndex / baseParams_->seq1Size;
+        batchTokenIndex = tokenIndex % baseParams_->seq1Size;
+        batchSeqSize = baseParams_->seq1Size;
+        batchIndexOffset = batchIndex * CeilDivT(batchSeqSize, static_cast<int64_t>(baseParams_->blockSize));    // cacheIndex的offset
+    } else {
+        while (actSeqState_.curBatch + 1 < static_cast<int64_t>(baseParams_->batchSize) && tokenIndex >= actSeqState_.curPrefix) {
             actSeqState_.curBatch += 1;
             actSeqState_.prevPrefix = actSeqState_.curPrefix;
             actSeqState_.curPrefix = actualSeqLenGm_(actSeqState_.curBatch);
             actSeqState_.prevIndexOffset = actSeqState_.curIndexOffset;
-            actSeqState_.curIndexOffset += CeilDivT(actSeqState_.curPrefix -
-                actSeqState_.prevPrefix, static_cast<int64_t>(baseParams_->blockSize));
+            actSeqState_.curIndexOffset += CeilDivT(actSeqState_.curPrefix - actSeqState_.prevPrefix, static_cast<int64_t>(baseParams_->blockSize));
         }
-        batchIndex = actSeqState_.curBatch;
         batchTokenIndex = tokenIndex - actSeqState_.prevPrefix;
         batchSeqSize = actSeqState_.curPrefix - actSeqState_.prevPrefix;
-        batchIndexOffset =  actSeqState_.prevIndexOffset;
+        batchIndexOffset = actSeqState_.prevIndexOffset;
     }
-}
 
-
-template<typename MLAPT>
-__aicore__ inline void MlaPrologVecS1CubS2<MLAPT>::GetCacheOffset(GlobalTensor<int64_t> indexGm,
-                                                                    int64_t batchIndex,
-                                                                    int64_t batchTokenIndex,
-                                                                    int64_t batchSeqSize,
-                                                                    int64_t batchIndexOffset,
-                                                                    int64_t rows,
-                                                                    int64_t headSize,
-                                                                    int64_t &rowsInCurBatch,
-                                                                    int64_t &cacheOffset,
-                                                                    int64_t &nextBatchOffset)
-{
     int64_t indexOffset = batchIndexOffset + batchTokenIndex / baseParams_->blockSize;
     int64_t paBlkId = indexGm(indexOffset); // 取cacheIdx
-    int64_t tokenOffsetInCurrentPage = batchTokenIndex % baseParams_->blockSize;
-    cacheOffset = paBlkId * baseParams_->blockSize * headSize + tokenOffsetInCurrentPage * headSize;
-    int64_t leftRowsInCurBatch = batchSeqSize - batchTokenIndex;
-    if (leftRowsInCurBatch >= rows) {
-        rowsInCurBatch = rows;
+
+    int64_t pageTokenOffset = paBlkId * baseParams_->blockSize;
+    int64_t tokenOffsetInPage = batchTokenIndex % baseParams_->blockSize;
+
+    int64_t leftRowsInPage = baseParams_->blockSize - tokenOffsetInPage;
+    if (leftRowsInPage >= rows) {
+        rowsThisStep = rows;
+        spill = false;
+        nextPageId = -1;
     } else {
-        rowsInCurBatch = rows - leftRowsInCurBatch;
-        indexOffset++;
-        paBlkId = indexGm(indexOffset);
-        nextBatchOffset = paBlkId * headSize;
+        rowsThisStep = rows - leftRowsInPage;
+        spill = true;
+        nextPageId = indexGm(indexOffset + 1);
     }
+
+    // --- Materialize for RMSNorm/CKV ---
+    MaterializeOffsetsWithHeadSize<kvCacheType, (MLAPT::cacheMode == CACHE_MODE::PA_BLK_NZ)>(
+        pageTokenOffset, tokenOffsetInPage, rowsThisStep, spill, nextPageId, baseParams_->headSizeCkv,
+        rmsNormAndScatterCkvParams);
+
+    MaterializeOffsetsWithHeadSize<krCacheType, (MLAPT::cacheMode == CACHE_MODE::PA_BLK_NZ)>(
+        pageTokenOffset, tokenOffsetInPage, rowsThisStep, spill, nextPageId, baseParams_->dimHeadRope,
+        ropeAndScatterKrParams);
 }
 
 template<typename MLAPT>
@@ -1431,32 +1427,10 @@ __aicore__ inline void MlaPrologVecS1CubS2<MLAPT>::RmsNormAndScatterCkv(LocalTen
                 static_cast<int64_t>(tileNum * sizeof(float)), baseParams_->dtileSize});
         }
     } else {
-        int64_t batchTokenIndex = 0;
-        int64_t batchIndex = 0;
-        int64_t batchSeqSize = 0;
-        int64_t batchIndexOffset = 0;
-        int64_t rowsInCurBatch = 0;
-        int64_t cacheOffset = 0;
-        int64_t nextBatchOffset = 0;
-        GetBatchTokenIndex(batchTokenIndex,
-                           batchIndex,
-                           batchSeqSize,
-                           batchIndexOffset,
-                           rmsNormAndScatterCkvParams.tokenIndex);
-        GetCacheOffset(cacheIndexGm_,
-                       batchIndex,
-                       batchTokenIndex,
-                       batchSeqSize,
-                       batchIndexOffset,
-                       vectorRow_,
-                       baseParams_->headSizeCkv,
-                       rowsInCurBatch,
-                       cacheOffset, nextBatchOffset);
-
         ScatterCacheMultiRows<kvCacheType, (MLAPT::cacheMode == CACHE_MODE::PA_BLK_NZ)>(kvCacheGm_, outputLocal,
-            ScatterCacheParams{baseParams_->blockSize, cacheOffset, vectorRow_, baseParams_->headSizeCkv,
-                               baseParams_->seq1Size, rmsNormAndScatterCkvParams.tokenIndex},
-                               rowsInCurBatch, cacheOffset, nextBatchOffset);
+            ScatterCacheParams{baseParams_->blockSize, rmsNormAndScatterCkvParams.cacheOffset, vectorRow_, baseParams_->headSizeCkv, baseParams_->headSizeCkv, 
+                        baseParams_->seq1Size, rmsNormAndScatterCkvParams.tokenIndex}, rmsNormAndScatterCkvParams.rowsInCurBatch,
+                        rmsNormAndScatterCkvParams.cacheOffset, rmsNormAndScatterCkvParams.nextBatchOffset);
     }
     
     SetFlag<HardEvent::MTE3_V>(EVENT_ID0);
@@ -1537,13 +1511,10 @@ __aicore__ inline void MlaPrologVecS1CubS2<MLAPT>::RopeAndScatterKr(
                     vectorRow_, baseParams_->dimHeadRope, baseParams_->dimHeadRope});
         }
     } else {
-        int64_t batchTokenIndex = 0;
-        int64_t batchIndex = 0;
-        int64_t batchSeqSize = 0;
-        int64_t batchIndexOffset = 0;
-        int64_t rowsInCurBatch = 0;
-        int64_t cacheOffset = 0;
-        int64_t nextBatchOffset = 0;
+        ScatterCacheMultiRows<krCacheType, (MLAPT::cacheMode == CACHE_MODE::PA_BLK_NZ)>(krCacheGm_, outputKrLocal,
+            ScatterCacheParams{baseParams_->blockSize, ropeAndScatterKrParams.cacheOffset, vectorRow_, baseParams_->dimHeadRope, baseParams_->dimHeadRope, 
+                baseParams_->seq1Size, ropeAndScatterKrParams.tokenIndex}, ropeAndScatterKrParams.rowsInCurBatch,
+                    ropeAndScatterKrParams.cacheOffset, ropeAndScatterKrParams.nextBatchOffset);
     }
 
     SetFlag<HardEvent::MTE3_V>(EVENT_ID0);
@@ -1583,22 +1554,21 @@ __aicore__ inline void MlaPrologVecS1CubS2<MLAPT>::RmsNormRopeScatterCkvKr(int64
             DataCopyPad(dequantScaleXLocal, dequantScaleXGm_[tokenIndex], {1, sizeof(float), 0, 0}, {false, 0, 0, 0});
         }
 
-        CkvkrParams rmsNormAndScatterCkvParams {
-            tokenIndex,
-            rmsNormCkvOffset, 
-            curVecTokenIdx
-        };
+        CkvkrParams rmsNormAndScatterCkvParams {tokenIndex, rmsNormCkvOffset, curVecTokenIdx, 0, 0, 0};
+
+        CkvkrParams ropeAndScatterKrParams {tokenIndex, ropeKrOffset, curVecTokenIdx, 0, 0, 0};
+
+        if constexpr ((MLAPT::cacheMode == CACHE_MODE::PA_BLK_BSND) || (MLAPT::cacheMode == CACHE_MODE::PA_BLK_NZ)) {
+            // --- Compute headSize-independent variables once --- 
+            ComputeBlkScatterOffsets(cacheIndexGm_, tokenIndex, vectorRow_, 
+                                     rmsNormAndScatterCkvParams, ropeAndScatterKrParams);
+        }
 
         RmsNormAndScatterCkv(dequantScaleXLocal, shareTmpUb, cosLocalCkvKr, sinLocalCkvKr, rmsNormAndScatterCkvParams);
 
         SetFlag<HardEvent::MTE3_MTE2>(EVENT_ID0);
         WaitFlag<HardEvent::MTE3_MTE2>(EVENT_ID0);
         
-        CkvkrParams ropeAndScatterKrParams {
-            tokenIndex,
-            ropeKrOffset, 
-            curVecTokenIdx
-        };
         RopeAndScatterKr(dequantScaleXLocal, shareTmpUb, cosLocalCkvKr, sinLocalCkvKr, ropeAndScatterKrParams);
 
         tokenIndex += 1;

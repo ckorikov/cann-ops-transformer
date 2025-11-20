@@ -60,7 +60,55 @@ std::string ConvertContainerToString(const C &container, Func func = ElemToStrin
     return ss.str();
 }
 
+template <typename T>
+inline auto CeilDiv(T a, T b) -> T
+{
+    if (b == 0) {
+        return b;
+    }
+    return (a + b - 1) / b;
+}
+
 // =================================全量参数校验=================================
+ge::graphStatus MlaPrologTilingCheck::CheckAttrs() const
+{
+    OP_CHECK_IF(context_.rmsNormEspilonCq == nullptr,
+        OP_LOGE(context_.opName, "Get rmsNormEspilonCq is nullptr."), return ge::GRAPH_FAILED);
+
+    OP_CHECK_IF(context_.rmsNormEspilonCkv == nullptr,
+        OP_LOGE(context_.opName, "Get rmsNormEspilonCkv is nullptr."), return ge::GRAPH_FAILED);
+
+    if (std::strncmp(context_.opType, V3_OP_NAME, OP_NAME_LEN) == 0) {
+        OP_CHECK_IF(context_.queryNormFlag == nullptr,
+            OP_LOGE(context_.opName, "Get queryNormFlag is nullptr."), return ge::GRAPH_FAILED);
+
+        OP_CHECK_IF(context_.weightQuantMode == nullptr,
+            OP_LOGE(context_.opName, "Get weightQuantMode is nullptr."), return ge::GRAPH_FAILED);
+
+        OP_CHECK_IF(context_.kvQuantMode == nullptr,
+            OP_LOGE(context_.opName, "Get kvQuantMode is nullptr."), return ge::GRAPH_FAILED);
+
+        OP_CHECK_IF(context_.queryQuantMode == nullptr,
+            OP_LOGE(context_.opName, "Get queryQuantMode is nullptr."), return ge::GRAPH_FAILED);
+
+        OP_CHECK_IF(context_.ckvkrRepoMode == nullptr,
+            OP_LOGE(context_.opName, "Get ckvkrRepoMode is nullptr."), return ge::GRAPH_FAILED);
+
+        OP_CHECK_IF(context_.quantScaleRepoMode == nullptr,
+            OP_LOGE(context_.opName, "Get quantScaleRepoMode is nullptr."), return ge::GRAPH_FAILED);
+
+        OP_CHECK_IF(context_.tileSize == nullptr,
+            OP_LOGE(context_.opName, "Get tileSize is nullptr."), return ge::GRAPH_FAILED);
+
+        OP_CHECK_IF(context_.qcQrScale == nullptr,
+            OP_LOGE(context_.opName, "Get qcQrScale is nullptr."), return ge::GRAPH_FAILED);
+
+        OP_CHECK_IF(context_.kcScale == nullptr,
+            OP_LOGE(context_.opName, "Get kcScale is nullptr."), return ge::GRAPH_FAILED);
+    }
+    return ge::GRAPH_SUCCESS;
+}
+
 ge::graphStatus MlaPrologTilingCheck::CheckDims() const
 {
     OP_CHECK_IF(context_.platformInfo == nullptr,
@@ -84,11 +132,6 @@ ge::graphStatus MlaPrologTilingCheck::CheckDims() const
     if (socShortName == platform_ascendc::SocVersion::ASCEND910_95) {
         OP_CHECK_IF(baseShapeInfo_.s1Size != 1 && baseShapeInfo_.s1Size != 0,
             OP_LOGE(context_.opName, "S allows only {0,1}, got %u.", baseShapeInfo_.s1Size),
-            return ge::GRAPH_FAILED);
-    } else {
-        OP_CHECK_IF(baseShapeInfo_.s1Size > MAX_S1_SIZE,
-            OP_LOGE(context_.opName, "S should not be greater than %u, got %u.",
-                MAX_S1_SIZE, baseShapeInfo_.s1Size),
             return ge::GRAPH_FAILED);
     }
     if (socShortName == platform_ascendc::SocVersion::ASCEND910_95) {
@@ -196,9 +239,14 @@ void MlaPrologTilingCheck::FillCommonParamInfo()
     expectedParamInfo_[WEIGHT_DKV_KR_NAME].format = ge::FORMAT_FRACTAL_NZ;
 
     if (scenarioInfo_.cacheMode_ == CACHE_MODE::PA_BLK_BSND || scenarioInfo_.cacheMode_ == CACHE_MODE::PA_BLK_NZ) {
-        expectedParamInfo_.emplace(ACTUAL_SEQ_LEN_NAME, std::vector<uint32_t>{baseShapeInfo_.bSize});
-        expectedParamInfo_[ACTUAL_SEQ_LEN_NAME].dtype = ge::DT_INT32;
-        expectedParamInfo_[ACTUAL_SEQ_LEN_NAME].format = ge::FORMAT_ND;
+        if (scenarioInfo_.batchSeqFusedFlag_) {
+            expectedParamInfo_.emplace(ACTUAL_SEQ_LEN_NAME, std::vector<uint32_t>{baseShapeInfo_.bSize});
+            expectedParamInfo_[ACTUAL_SEQ_LEN_NAME].dtype = ge::DT_INT32;
+            expectedParamInfo_[ACTUAL_SEQ_LEN_NAME].format = ge::FORMAT_ND;
+            expectedParamInfo_[CACHE_INDEX_NAME].shape = std::vector<int64_t>{context_.actualSeqLen.shape->GetStorageShape().GetDim(MLA_PROLOG_DIM_INDEX_0)};
+        } else {
+            expectedParamInfo_[CACHE_INDEX_NAME].shape = std::vector<int64_t>{baseShapeInfo_.bSize, CeilDiv(baseShapeInfo_.s1Size, baseShapeInfo_.blockSize)};
+        }
     }
 }
 
@@ -439,8 +487,8 @@ void MlaPrologTilingCheck::GenActualParamInfo()
 
 ge::graphStatus MlaPrologTilingCheck::CheckParamByScenario()
 {
-    GenExpectedParamInfo();
     GenActualParamInfo();
+    GenExpectedParamInfo();
     ge::graphStatus isCorrect {ge::GRAPH_SUCCESS};
     for (const auto &it : actualParamInfo_) {
         const auto &expectedParam {expectedParamInfo_[it.first]};

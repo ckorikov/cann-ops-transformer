@@ -97,19 +97,39 @@ __aicore__ inline void ScatterCacheMultiRows(GlobalTensor<T>& cacheGm, const Loc
         DataCopy(cacheGm[cacheOffset], inputLocal, copyCnt);
         if (rowsInCurBatch != scatterCacheParams.row) {
             DataCopy(cacheGm[nextBatchOffset],
-                    inputLocal[copyCnt], (scatterCacheParams.row - rowsInCurBatch)*scatterCacheParams.col);
+                inputLocal[copyCnt], (scatterCacheParams.row - rowsInCurBatch) * scatterCacheParams.col);
         }
     } else {
         constexpr uint8_t col0 = ALIGN_BLOCK_SIZE / sizeof(T);
-        DataCopyParams copyParams {static_cast<uint16_t>(copyCnt / col0),
-                                1, 0, static_cast<uint16_t>(scatterCacheParams.blockSize - 1)};
+        DataCopyParams copyParams {static_cast<uint16_t>(scatterCacheParams.col / col0),
+                                   1, 0, static_cast<uint16_t>(scatterCacheParams.blockSize - 1)};
         DataCopy(cacheGm[cacheOffset], inputLocal, copyParams);
         if (rowsInCurBatch != scatterCacheParams.row) {
-            copyParams.blockCount = (scatterCacheParams.row - rowsInCurBatch)*scatterCacheParams.col / col0;
-            DataCopy(cacheGm[nextBatchOffset], inputLocal[copyCnt],
-                     (scatterCacheParams.row - rowsInCurBatch) * scatterCacheParams.col);
+            for (int row = 0; row < scatterCacheParams.row - rowsInCurBatch; ++row) {
+                DataCopy(cacheGm[nextBatchOffset + row * col0], inputLocal[copyCnt + row * col0], copyParams);
+            }
         }
     }
+}
+
+template <typename T, bool isNz>
+__aicore__ inline void MaterializeOffsetsWithHeadSize(
+    int64_t pageTokenOffset,
+    int64_t tokenOffsetInPage,
+    int64_t rowsThisStep,
+    bool spill,
+    int64_t nextPageId,
+    int64_t headSize,
+    CkvkrParams &ckvkrParams
+) {
+    ckvkrParams.rowsInCurBatch = rowsThisStep;
+    if constexpr (isNz) {
+        constexpr uint8_t col0 = ALIGN_BLOCK_SIZE / sizeof(T);
+        ckvkrParams.cacheOffset = pageTokenOffset * headSize + tokenOffsetInPage * col0;
+    } else {
+        ckvkrParams.cacheOffset = (pageTokenOffset + tokenOffsetInPage) * headSize;
+    }
+    ckvkrParams.nextBatchOffset = (spill && nextPageId >= 0) ? nextPageId * headSize : 0;
 }
 
 }

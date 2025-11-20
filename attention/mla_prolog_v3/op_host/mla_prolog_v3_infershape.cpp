@@ -14,7 +14,7 @@ using namespace ge;
 
 namespace ops {
 
-ge::graphStatus GetMlaPrologV3ShapeDim(const gert::InferShapeContext* context, MlaPrologProtoShapeParam &shapeParam)
+ge::graphStatus GetMlaPrologV3ShapeDim(const gert::InferShapeContext *context, MlaPrologProtoShapeParam &shapeParam)
 {
     auto apiRet = GetMlaPrologShapeDim(context, shapeParam);
     OP_CHECK_IF((apiRet != GRAPH_SUCCESS), OP_LOGE(context->GetNodeName(), "Context get input shape failed"), return ge::GRAPH_FAILED);
@@ -24,7 +24,7 @@ ge::graphStatus GetMlaPrologV3ShapeDim(const gert::InferShapeContext* context, M
     return GRAPH_SUCCESS;
 }
 
-ge::graphStatus SetMlaPrologV3ShapeDim(const MlaPrologProtoShapeParam &shapeParam, gert::InferShapeContext* context)
+ge::graphStatus SetMlaPrologV3ShapeDim(const MlaPrologProtoShapeParam &shapeParam, gert::InferShapeContext *context)
 {
     auto apiRet = SetMlaPrologShapeDim(shapeParam, context);
     OP_CHECK_IF((apiRet != GRAPH_SUCCESS), OP_LOGE(context->GetNodeName(), "SetMlaPrologShapeDim failed"), return ge::GRAPH_FAILED);
@@ -93,7 +93,7 @@ ge::graphStatus SetMlaPrologV3ShapeDim(const MlaPrologProtoShapeParam &shapePara
     return GRAPH_SUCCESS;
 }
 
-ge::graphStatus InferShapeMlaPrologV3(gert::InferShapeContext* context) {
+ge::graphStatus InferShapeMlaPrologV3(gert::InferShapeContext *context) {
     OP_LOGI(context->GetNodeName(), "Enter MlaPrologV3 infershape impl.");
 
     MlaPrologProtoShapeParam shapeParam {};
@@ -106,7 +106,7 @@ ge::graphStatus InferShapeMlaPrologV3(gert::InferShapeContext* context) {
     return GRAPH_SUCCESS;
 }
 
-ge::graphStatus InferDataTypeMlaPrologV3(gert::InferDataTypeContext* context)
+ge::graphStatus InferDataTypeMlaPrologV3(gert::InferDataTypeContext *context)
 {
     OP_LOGI(context->GetNodeName(), "Enter MlaPrologV3 infershape impl.");
 

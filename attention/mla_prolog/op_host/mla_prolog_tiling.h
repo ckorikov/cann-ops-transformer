@@ -301,7 +301,7 @@ public:
     MlaPrologTiling() = default;
     ~MlaPrologTiling() = default;
 
-    ge::graphStatus RunBigKernelTiling(MlaPrologContext &context, MlaPrologTilingData* tilingData);
+    ge::graphStatus RunBigKernelTiling(MlaPrologContext &context, MlaPrologTilingData *tilingData);
     static ge::graphStatus ConvertContext(gert::TilingContext &context, MlaPrologContext &mlaPrologContext);
 
 private:

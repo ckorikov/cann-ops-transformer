@@ -196,7 +196,9 @@ ge::graphStatus MlaPrologTiling::SetScenarioInfo()
         scenarioInfo_.emptyTensorMode_ = EMPTY_TENSOR_MODE::NON_EMPTY;
     }
 
-    if (scenarioInfo_.cacheMode_ == CACHE_MODE::PA_BLK_BSND || scenarioInfo_.cacheMode_ == CACHE_MODE::PA_BLK_NZ) {
+    if (scenarioInfo_.batchSeqFusedFlag_ && 
+        (scenarioInfo_.cacheMode_ == CACHE_MODE::PA_BLK_BSND || scenarioInfo_.cacheMode_ == CACHE_MODE::PA_BLK_NZ)) {
+        baseShapeInfo_.bSize = context_->actualSeqLen.shape->GetStorageShape().GetDim(MLA_PROLOG_DIM_INDEX_0);
         scenarioInfo_.actualSeqMode_ = ACTUAL_SEQ_MODE::EN_Q_LEN;
     } else {
         scenarioInfo_.actualSeqMode_ = ACTUAL_SEQ_MODE::DISABLED;
@@ -524,6 +526,7 @@ ge::graphStatus MlaPrologTiling::RunBigKernelTiling(MlaPrologContext &context, M
     using StatusFunction = std::function<ge::graphStatus()>;
     std::vector<StatusFunction> requiredTilingFuncs {
         std::bind(&MlaPrologTiling::GetNpuInfo, this),
+        std::bind(&MlaPrologTilingCheck::CheckAttrs, &tilingCheck_),
         std::bind(&MlaPrologTilingCheck::CheckSingleRequiredParam, &tilingCheck_),
         std::bind(&MlaPrologTilingCheck::CheckCacheMode, &tilingCheck_),
         std::bind(&MlaPrologTiling::SetShapeInfo, this),
@@ -591,7 +594,6 @@ ge::graphStatus MlaPrologTiling::ConvertContext(gert::TilingContext &context, Ml
     mlaPrologContext.rmsNormEspilonCq = attrs->GetAttrPointer<float>(RMS_NORM_EPSILON_CQ_ATTR_INDEX);
     mlaPrologContext.rmsNormEspilonCkv = attrs->GetAttrPointer<float>(RMS_NORM_EPSILON_CKV_ATTR_INDEX);
     mlaPrologContext.cacheMode = attrs->GetStr(CACHE_MODE_ATTR_INDEX);
-
     if (std::strncmp(mlaPrologContext.opType, V3_OP_NAME, OP_NAME_LEN) == 0) {
         mlaPrologContext.queryNormFlag = attrs->GetAttrPointer<bool>(QUERY_NORM_FLAG_ATTR_INDEX);
         mlaPrologContext.weightQuantMode = attrs->GetAttrPointer<int>(WEIGHT_QUANT_MODE_ATTR_INDEX);

@@ -44,9 +44,9 @@ ASCENDC_TPL_ARGS_DECL(mla_prolog, // 算子唯一标识，与opType保持一致
                       ASCENDC_TPL_UINT_DECL(CACHE_MODE, ASCENDC_TPL_4_BW, ASCENDC_TPL_UI_LIST, 0, 1, 2, 3, 4),
                       // bit:4-5 场景标识：0-FP16(预留) 1-BF16  2-量化场景
                       ASCENDC_TPL_UINT_DECL(SCENARIO, ASCENDC_TPL_2_BW, ASCENDC_TPL_UI_LIST, 0, 1, 2),
-                      // bit:6-9 量化场景：0-MMQcQr量化 1-MMQcQr量化+KVcache量化 2-MMcqCkvKr量化+MMQcQr量化
-                      // 3-MMCqCkvkr量化+MMQcQr量化+KVcache量化 4-MMQcQr量化+KVcache pertile量化
-                      // 5-MMCqCkvkr量化+MMQcQr量化+KVcache pertile量化
+                      // bit:6-9 量化场景：0-非量化 1-MMQcQr量化 2-MMQcQr量化+KVcache量化 3-MMcqCkvKr量化+MMQcQr量化
+                      // 4-MMCqCkvkr量化+MMQcQr量化+KVcache量化 5-MMQcQr量化+KVcache pertile量化
+                      // 6-MMCqCkvkr量化+MMQcQr量化+KVcache pertile量化
                       ASCENDC_TPL_UINT_DECL(QUANT_MODE, ASCENDC_TPL_4_BW, ASCENDC_TPL_UI_LIST, 0, 1, 2, 3, 4, 5, 6),
                       // bit:10 反量化使能：0-关闭 1-开启
                       ASCENDC_TPL_BOOL_DECL(ENABLE_DEQUANT_OPTIONAL, 0, 1),

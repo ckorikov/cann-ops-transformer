@@ -295,6 +295,9 @@ struct CkvkrParams {
   int64_t tokenIndex;
   int64_t offset; 
   int64_t curVecTokenIdx;
+  int64_t rowsInCurBatch;
+  int64_t cacheOffset;
+  int64_t nextBatchOffset;
 };
 
 

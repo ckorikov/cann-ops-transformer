@@ -131,6 +131,7 @@ public:
     ge::graphStatus CheckDims() const;
     ge::graphStatus CheckParamByScenario();
     ge::graphStatus CheckScenarParam();
+    ge::graphStatus CheckAttrs() const;
 
 private:
     // ==================================单参数校验==================================
