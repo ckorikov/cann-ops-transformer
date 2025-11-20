@@ -442,6 +442,7 @@ function(add_bin_compile_target)
     foreach(_op_info ${BINARY_OP_INFO})
         get_filename_component(_op_name "${_op_info}" NAME)
         set(${_op_name}_dir ${_op_info})
+        set(${_op_name}_apt_dir ${_op_info})
     endforeach()
 
     set(_ops_target_list)

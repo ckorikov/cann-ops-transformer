@@ -165,6 +165,7 @@ public:
             .PrecisionReduceFlag(true)
             .ExtendCfgInfo("prebuildPattern.value", "Opaque")
             .ExtendCfgInfo("coreType.value", "AiCore")
+            .ExtendCfgInfo("opFile.value", "flash_attention_score_apt")
             .ExtendCfgInfo("jitCompile.flag", "static_false,dynamic_false");
 
         this->AICore().AddConfig("ascend910_95", aicore_config_95);
@@ -301,6 +302,7 @@ public:
             .PrecisionReduceFlag(true)
             .ExtendCfgInfo("prebuildPattern.value", "Opaque")
             .ExtendCfgInfo("coreType.value", "AiCore")
+            .ExtendCfgInfo("opFile.value", "flash_attention_score")
             .ExtendCfgInfo("jitCompile.flag", "static_false,dynamic_false");
 
         this->AICore().AddConfig("ascend910b", aicore_config);
