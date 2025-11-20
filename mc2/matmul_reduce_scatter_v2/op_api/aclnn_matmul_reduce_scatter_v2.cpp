@@ -27,6 +27,7 @@
 #include "opdev/platform.h"
 #include "common/op_host/op_api/matmul_util.h"
 #include "hccl_util.h"
+#include "mc2_aclnn_util.h"
 
 using namespace op;
 
@@ -237,10 +238,8 @@ static enum CaseOption CheckHighAccuracyCase(const aclTensor* x1, const aclTenso
     return CaseOption::HIGH_ACCURACY;
 }
 
-static enum CaseOption CheckLowAccuracyCase(const aclTensor* x1, const aclTensor* x2, const aclTensor* bias,
-                                            const aclTensor* y, const aclTensor* amax,
-                                            const aclTensor* x1Scale, const aclTensor* x2Scale,
-                                            const aclTensor* quantScale)
+static enum CaseOption CheckLowAccuracyCase(const aclTensor* x1, const aclTensor* x2,
+                                            const aclTensor* x1Scale, const aclTensor* x2Scale)
 {
     //先x1 x2指针判空
     if(!CheckEmptyTensor(x1, "x1")||!CheckEmptyTensor(x2, "x2")){
@@ -268,15 +267,14 @@ static enum CaseOption CheckLowAccuracyCase(const aclTensor* x1, const aclTensor
 }
 
 static enum CaseOption CheckCase(const aclTensor* x1, const aclTensor* x2, const aclTensor* bias, const aclTensor* y,
-                                 const aclTensor* amax, const aclTensor* x1Scale, const aclTensor* x2Scale,
-                                 const aclTensor* quantScale)
+                                 const aclTensor* amax, const aclTensor* x1Scale, const aclTensor* x2Scale)
 {
     if (CheckType(x1->GetDataType(), INPUT_SUPPORT_TYPE_HIGH_ACCURACY) &&
         CheckType(x2->GetDataType(), INPUT_SUPPORT_TYPE_HIGH_ACCURACY)) {  // 高精度场景
         return CheckHighAccuracyCase(x1, x2, bias, y, amax);
     } else if (CheckType(x1->GetDataType(), INPUT_SUPPORT_TYPE_LOW_ACCURACY) &&
                CheckType(x2->GetDataType(), INPUT_SUPPORT_TYPE_LOW_ACCURACY)) {  // 低精度场景 
-        return CheckLowAccuracyCase(x1, x2, bias, y, amax, x1Scale, x2Scale, quantScale);
+        return CheckLowAccuracyCase(x1, x2, x1Scale, x2Scale);
     } 
     else {
         OP_LOGE(ACLNN_ERR_PARAM_INVALID, 
@@ -349,7 +347,7 @@ aclnnStatus matmulReduceScatterV2GetWorkSpaceSizeCcuMode(const aclTensor* x1, co
     bool transposeX2 = Ops::Transformer::IsTransposeLastTwoDims(x2);
     CHECK_RET(CheckShape(x1, x2, transposeX1), ACLNN_ERR_PARAM_INVALID);
     CaseOption caseIndex =
-        CheckCase(x1, x2, bias, output, amaxOutOptional, x1Scale, x2Scale, quantScale);
+        CheckCase(x1, x2, bias, output, amaxOutOptional, x1Scale, x2Scale);
     if (caseIndex >= CaseOption::INVALID) {
         OP_LOGE(ACLNN_ERR_PARAM_INVALID, "Does not match any available case, "
                 "please read the documents and check the input.");
@@ -364,7 +362,7 @@ aclnnStatus matmulReduceScatterV2GetWorkSpaceSizeCcuMode(const aclTensor* x1, co
     uint64_t yDtype = static_cast<uint64_t>(output->GetDataType());
     aclnnStatus ret = ACLNN_SUCCESS;
     auto transX2Scale = x2Scale;
-    if ((x2Scale != nullptr) && (Ops::Transformer::IsTransposeLastTwoDims(x2Scale))) {
+    if ((x2Scale != nullptr) && MC2Aclnn::IsNeedScaleTrans(x2Scale)) {
         transX2Scale = TransX2Tensor(x2Scale);
     }
     auto transX2 = x2;
