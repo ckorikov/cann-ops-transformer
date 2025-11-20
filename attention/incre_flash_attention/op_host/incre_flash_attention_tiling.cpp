@@ -2278,7 +2278,7 @@ ge::graphStatus IFATiling::CalcInnerSize(uint32_t seqSize)
      *                          因此，cube发小块，期望vector尽量被cube的mte2掩盖。sInnerSize=1024
      */
     sInnerSize_ = MAX_SPLIT_SIZE; // 8192
-    if (antiQuantFlag_ && nNumOfQInOneGroup_ > 1U) {
+    if (antiQuantFlag_ && nNumOfQInOneGroup_ >= 1U) {
         if (perfMode_ == IfaPerfMode::CUBE_VIEW_MM || perfMode_ == IfaPerfMode::CUBE_VIEW_MM_FULL_LOAD) {
             sInnerSize_ = 2048U;
         } else {
