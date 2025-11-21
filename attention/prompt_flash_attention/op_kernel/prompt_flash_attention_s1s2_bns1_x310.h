@@ -132,7 +132,6 @@ __aicore__ inline void PromptFlashAttentionS1s2Bns1X310<PFAT>::ComputeEachCoreSI
         this->Bmm1Compute(this->a1Local_, this->b1Local_, outerSize, innerSize,
                           this->tilingData->promptAttentionBaseParams.headSize +
                           this->tilingData->promptAttentionBaseParams.ropeHeadSize);
-        // AscendC::DumpTensor(x, 2, 64, shapeInfo);
     }
     this->isSoftmaxResNeedUpdate = this->tilingData->promptAttentionBaseParams.isRowInvalid;
     for (int64_t sInnerLoopIdx = startIndex; sInnerLoopIdx < endIndex; sInnerLoopIdx++) {

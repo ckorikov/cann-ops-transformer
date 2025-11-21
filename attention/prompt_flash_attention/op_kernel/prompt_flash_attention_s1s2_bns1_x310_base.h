@@ -19,7 +19,6 @@
 #include "kernel_operator.h"
 #include "kernel_operator_list_tensor_intf.h"
 #include "lib/matmul_intf.h"
-// #include "kernel_data_copy_transpose.h"
 #include "kernel_operator_softmax_compute_nz.h"
 
 using namespace matmul;
@@ -238,7 +237,6 @@ protected:
 
     SoftMaxTiling softmaxTilingData;
     SoftMaxTiling softmaxFlashTilingData;
-    // CopyTransposeTiling transposeTilingData;
     uint32_t MultiHeadQ;
     uint32_t MultiHeadKV;
     uint32_t startInBlock;
@@ -385,10 +383,12 @@ __aicore__ inline void PromptFlashAttentionS1s2Bns1X310Base<PFAT>::InitPFABuffer
         __gm__ uint8_t* currentValue = (__gm__ uint8_t*)valueListTensorDescInit.GetDataPtr<__gm__ uint8_t>(0);
         keyGm.SetGlobalBuffer((__gm__ T*)currentKey);
         valueGm.SetGlobalBuffer((__gm__ T*)currentValue);
-        queryRopeGM.SetGlobalBuffer((__gm__ T*)queryRope);
-        keyRopeGM.SetGlobalBuffer((__gm__ T*)keyRope);
-        qkL1Size = (tilingData->promptAttentionTensorSizeRect.scmTmpSize / tilingData->promptAttentionBaseParams.headSize) *
-                   (tilingData->promptAttentionBaseParams.headSize + tilingData->promptAttentionBaseParams.ropeHeadSize);
+        if (queryRope != nullptr) {
+            queryRopeGM.SetGlobalBuffer((__gm__ T*)queryRope);
+            keyRopeGM.SetGlobalBuffer((__gm__ T*)keyRope);
+            qkL1Size = (tilingData->promptAttentionTensorSizeRect.scmTmpSize / tilingData->promptAttentionBaseParams.headSize) *
+                       (tilingData->promptAttentionBaseParams.headSize + tilingData->promptAttentionBaseParams.ropeHeadSize);
+        }
     } else {
         keyGm.SetGlobalBuffer((__gm__ T*)key);
         valueGm.SetGlobalBuffer((__gm__ T*)value);
@@ -459,7 +459,7 @@ __aicore__ inline void PromptFlashAttentionS1s2Bns1X310Base<PFAT>::InitParams() 
 
     if constexpr (PFAT::layout == PFALayoutNZ::BSH) {
         // MultiHeadQ
-        queryStride = tilingData->promptAttentionBaseParams.headSize * tilingData->promptAttentionBaseParams.headNumSize; // 这里不用改，仅用做query gm-》l1的搬运
+        queryStride = tilingData->promptAttentionBaseParams.headSize * tilingData->promptAttentionBaseParams.headNumSize;
         // MultiHeadKV
         keyValueStride = queryStride / headNumRatio;
         qRopeStride = tilingData->promptAttentionBaseParams.ropeHeadSize * tilingData->promptAttentionBaseParams.headNumSize;
@@ -473,7 +473,7 @@ __aicore__ inline void PromptFlashAttentionS1s2Bns1X310Base<PFAT>::InitParams() 
 template<typename PFAT>
 __aicore__ inline void PromptFlashAttentionS1s2Bns1X310Base<PFAT>::InitActualSeqParams() {
     uint32_t preAccumSOuter = 0;
-    uint32_t h = tilingData->promptAttentionBaseParams.headNumSize * tilingData->promptAttentionBaseParams.headSize; // 这里不用改，仅用做actualSeqOffsets计算
+    uint32_t h = tilingData->promptAttentionBaseParams.headNumSize * tilingData->promptAttentionBaseParams.headSize;
     uint32_t s = tilingData->promptAttentionBaseParams.seqSize;
     uint32_t middle_actualSeqLengths = 0;
     uint32_t actualSeqLengthsIdx = 0;
@@ -542,7 +542,7 @@ __aicore__ inline void PromptFlashAttentionS1s2Bns1X310Base<PFATypeNZ<PFALayoutN
 template<typename PFAT>
 __aicore__ inline void PromptFlashAttentionS1s2Bns1X310Base<PFAT>::initOffset() {
     offsetSS = tilingData->promptAttentionBaseParams.seqSize * tilingData->promptAttentionBaseParams.seqSize;
-    offsetSH = tilingData->promptAttentionBaseParams.seqSize * tilingData->promptAttentionBaseParams.headSize; // 不用改，后面没用到
+    offsetSH = tilingData->promptAttentionBaseParams.seqSize * tilingData->promptAttentionBaseParams.headSize;
     offsetSTypeNum = tilingData->promptAttentionBaseParams.seqSize * typeByteNum;
     offsetNSTypeNum = tilingData->promptAttentionBaseParams.headNumSize * offsetSTypeNum;
     offsetNSS = tilingData->promptAttentionBaseParams.headNumSize * offsetSS;
@@ -716,7 +716,7 @@ __aicore__ inline void PromptFlashAttentionS1s2Bns1X310Base<PFAT>::SoftmaxBasicC
 template<typename PFAT>
 __aicore__ inline void PromptFlashAttentionS1s2Bns1X310Base<PFAT>::Bmm2UpdateDivNoTail310P(LocalTensor<mmOutputType>& bmm2ResPreUb,
                                             LocalTensor<float>& softmaxSumUb, LocalTensor<softmaxType>& softmaxExpUb) {
-    int32_t headLoop = tilingData->promptAttentionBaseParams.headSize / softmaxTypeByteNum; // 不用改，后面没用到这个变量
+    int32_t headLoop = tilingData->promptAttentionBaseParams.headSize / softmaxTypeByteNum;
     constexpr int32_t REPEAT_DATA_NUM = 256 / sizeof(softmaxType);
     BinaryRepeatParams repeatParams;
     // Default values of continuous calculation
@@ -728,7 +728,7 @@ __aicore__ inline void PromptFlashAttentionS1s2Bns1X310Base<PFAT>::Bmm2UpdateDiv
     repeatParams.src1RepStride = 8;
 
 
-    int32_t loop = tilingData->promptAttentionBaseParams.headSize / BLOCK_CUBE; // 不用改，matmul2使用此变量
+    int32_t loop = tilingData->promptAttentionBaseParams.headSize / BLOCK_CUBE;
     int32_t outerSize = isOuterTail_ ? singleProcessSOuterSizeTailAlign : singleProcessSOuterSize;
     int32_t repeat = 16 * outerSize * sizeof(mmOutputType) / 256;
 	
@@ -764,7 +764,7 @@ __aicore__ inline void PromptFlashAttentionS1s2Bns1X310Base<PFAT>::Bmm2UpdateDiv
 template<typename PFAT>
 __aicore__ inline void PromptFlashAttentionS1s2Bns1X310Base<PFAT>::Bmm2UpdateDivNoTail310PTmp(LocalTensor<mmOutputType>& bmm2ResPreUb,
                                             LocalTensor<mmOutputType>& softmaxSumUb, LocalTensor<softmaxType>& softmaxExpUb) {
-    int32_t headLoop = tilingData->promptAttentionBaseParams.headSize / softmaxTypeByteNum; // 不用改，后面没用到这个变量
+    int32_t headLoop = tilingData->promptAttentionBaseParams.headSize / softmaxTypeByteNum;
     constexpr int32_t REPEAT_DATA_NUM = 256 / sizeof(softmaxType);
     BinaryRepeatParams repeatParams;
     // Default values of continuous calculation
@@ -776,7 +776,7 @@ __aicore__ inline void PromptFlashAttentionS1s2Bns1X310Base<PFAT>::Bmm2UpdateDiv
     repeatParams.src1RepStride = 8;
     repeatParams.dstRepStride = 8;
 
-    int32_t loop = tilingData->promptAttentionBaseParams.headSize / BLOCK_CUBE; // 不用改，matmul2使用此变量
+    int32_t loop = tilingData->promptAttentionBaseParams.headSize / BLOCK_CUBE;
     int32_t outerSize = isOuterTail_ ? singleProcessSOuterSizeTailAlign : singleProcessSOuterSize;
     int32_t repeat = 16 * outerSize * sizeof(mmOutputType) / 256;
     if constexpr (IsSameType<softmaxType, half>::value) {
@@ -795,7 +795,7 @@ __aicore__ inline void PromptFlashAttentionS1s2Bns1X310Base<PFAT>::Bmm2Compute(L
     bmm2.SetTensorB(c1Local_);
 
     int32_t singleM = isOuterTail_ ? singleProcessSOuterSizeTailAlign : singleProcessSOuterSize;
-    int32_t singleN = tilingData->promptAttentionBaseParams.headSize; // 不用改，matmul2使用此变量
+    int32_t singleN = tilingData->promptAttentionBaseParams.headSize;
     int32_t singleK = isInnerLoopLast_ ? singleProcessSInnerSizeTailAlign : singleProcessSInnerSize;
 
     bmm2.SetOrgShape(singleM, singleN, singleK);
@@ -816,7 +816,7 @@ __aicore__ inline void PromptFlashAttentionS1s2Bns1X310Base<PFAT>::UpdateVmul(Lo
     int32_t repeat = 16 * outerSize * sizeof(mmOutputType) / 256;
     // only support singleProcessSOuterSize <=255, headsize 32B align
     int32_t numOneRep = 256 / sizeof(softmaxType);
-    int32_t loop = tilingData->promptAttentionBaseParams.headSize / BLOCK_CUBE; // 不用改，matmul2使用此变量
+    int32_t loop = tilingData->promptAttentionBaseParams.headSize / BLOCK_CUBE;
 
     if constexpr (IsSameType<softmaxType, float>::value) {
         constexpr int32_t FP32_BLOCK_NUM = 8;
@@ -867,7 +867,7 @@ __aicore__ inline void PromptFlashAttentionS1s2Bns1X310Base<PFAT>::ComputeOffset
         tensorQRopeOffset = tensorQRopeCoreOffset;
     } else { // BNSD
         int sInnerOffsetDataSize = sInnerLoopIdx * singleProcessSInnerSize;
-        valueOffset = valueCoreOffset + sInnerOffsetDataSize * tilingData->promptAttentionBaseParams.headSize; // 不用改，matmul2使用此变量
+        valueOffset = valueCoreOffset + sInnerOffsetDataSize * tilingData->promptAttentionBaseParams.headSize;
         ComputeAttenMaskOffset(sInnerLoopIdx, isLast);
     }
 }
@@ -883,12 +883,12 @@ __aicore__ inline void PromptFlashAttentionS1s2Bns1X310Base<PFAT>::DataCopyTrans
         dataCopyParams.blockLen = 1;
         dataCopyParams.srcStride = 0;
         dataCopyParams.dstStride = MultiHeadQ / BLOCK_CUBE - 1;
-        int32_t loop = tilingData->promptAttentionBaseParams.headSize / BLOCK_CUBE;  // 不用改，matmul2使用此变量
+        int32_t loop = tilingData->promptAttentionBaseParams.headSize / BLOCK_CUBE;
         event_t enQueEvtID = static_cast<event_t>(GetTPipePtr()->FetchEventID(HardEvent::V_MTE3));
         SetFlag<HardEvent::V_MTE3>(enQueEvtID);
         WaitFlag<HardEvent::V_MTE3>(enQueEvtID);
         int64_t startAddr = this->multiSeqOffset + batchNOffset * tilingData->promptAttentionBaseParams.headSize +
-            sOuterOffset * MultiHeadQ; // 不用改，matmul2使用此变量
+            sOuterOffset * MultiHeadQ;
         for(int i = 0; i < loop; i++) {
             DataCopy(attentionOutGm[startAddr + i * BLOCK_CUBE], bmm2ResUb[i * BLOCK_CUBE * outerSize], dataCopyParams);
         }
@@ -898,8 +898,8 @@ __aicore__ inline void PromptFlashAttentionS1s2Bns1X310Base<PFAT>::DataCopyTrans
         dataCopyParams.blockCount = isOuterTail_ ? singleProcessSOuterSizeTail : singleProcessSOuterSize;;
         dataCopyParams.blockLen = 1;
         dataCopyParams.srcStride = 0;
-        dataCopyParams.dstStride = tilingData->promptAttentionBaseParams.headSize / BLOCK_CUBE - 1; // 不用改，matmul2使用此变量
-        int32_t loop = tilingData->promptAttentionBaseParams.headSize / BLOCK_CUBE; // 不用改，matmul2使用此变量
+        dataCopyParams.dstStride = tilingData->promptAttentionBaseParams.headSize / BLOCK_CUBE - 1;
+        int32_t loop = tilingData->promptAttentionBaseParams.headSize / BLOCK_CUBE;
         event_t enQueEvtID = static_cast<event_t>(GetTPipePtr()->FetchEventID(HardEvent::V_MTE3));
         SetFlag<HardEvent::V_MTE3>(enQueEvtID);
         WaitFlag<HardEvent::V_MTE3>(enQueEvtID);
@@ -935,13 +935,13 @@ __aicore__ inline void PromptFlashAttentionS1s2Bns1X310Base<PFAT>::LoopSOuterOff
 
     tensorACoreOffset = seqListOffsetSize +
                         sOuterOffset * MultiHeadQ +
-                        batchNOffset * tilingData->promptAttentionBaseParams.headSize; // 如果query和queryRope分开搬运的话，这里可以不用改，tensorACoreOffset用在搬运query gm-》l1
+                        batchNOffset * tilingData->promptAttentionBaseParams.headSize;
     uint32_t seqInnerOffsetSize =
         tilingData->promptAttentionBaseParams.seqSize == tilingData->promptAttentionBaseParams.seqInnerSize ?
         seqListOffsetSize / headNumRatio : sIdx * tilingData->promptAttentionBaseParams.seqInnerSize * MultiHeadKV;
     // calculate the offset for tensor B (key or value tensor).
     tensorBCoreOffset = seqInnerOffsetSize +
-                        batchNOffset / headNumRatio * tilingData->promptAttentionBaseParams.headSize; // tensorB 同理
+                        batchNOffset / headNumRatio * tilingData->promptAttentionBaseParams.headSize;
     if constexpr (PFAT::isMLAScence) {
         uint32_t multiHeadQRope = tilingData->promptAttentionBaseParams.ropeHeadSize * tilingData->promptAttentionBaseParams.headNumSize;
         uint32_t multiHeadKRope = multiHeadQRope / headNumRatio;
@@ -962,10 +962,10 @@ template<typename PFAT>
 __aicore__ inline void PromptFlashAttentionS1s2Bns1X310Base<PFAT>::LoopSOuterOffsetInitWithBNSD(uint32_t seqListOffsetSize,
                                                                                     int sIdx) {
     uint32_t head_stride_q = tilingData->promptAttentionBaseParams.headSize *
-                             tilingData->promptAttentionBaseParams.seqSize; // 不用改，本次不涉及BNSD
+                             tilingData->promptAttentionBaseParams.seqSize;
     uint32_t head_stride_kv = tilingData->promptAttentionBaseParams.headSize *
-                              tilingData->promptAttentionBaseParams.seqInnerSize; // 不用改，本次不涉及BNSD
-    uint32_t seq_stride = tilingData->promptAttentionBaseParams.headSize; // 不用改，本次不涉及BNSD
+                              tilingData->promptAttentionBaseParams.seqInnerSize;
+    uint32_t seq_stride = tilingData->promptAttentionBaseParams.headSize;
 
     uint64_t attenMaskBatchOffset = 0;
     if (attenMaskBatch != 1) {
@@ -1007,7 +1007,7 @@ template<typename PFAT>
 __aicore__ inline void PromptFlashAttentionS1s2Bns1X310Base<PFAT>::GetSingleCoreParam(int sIdx) {
     singleProcessSInnerSize = tilingData->promptAttentionSingleCoreParams.singleProcessSInnerSize;
     singleProcessSOuterSize = tilingData->promptAttentionSingleCoreParams.singleProcessSOuterSize;
-    MultiHeadQ = tilingData->promptAttentionBaseParams.headSize * tilingData->promptAttentionBaseParams.headNumSize;// 不用改，MultiHeadQ未用到和rope相关的搬运
+    MultiHeadQ = tilingData->promptAttentionBaseParams.headSize * tilingData->promptAttentionBaseParams.headNumSize;
     MultiHeadKV = MultiHeadQ / headNumRatio;
 
     actualSeqLengthPerBatch = isActualLenDimsNull ? tilingData->promptAttentionBaseParams.seqSize :
@@ -1029,7 +1029,6 @@ __aicore__ inline void PromptFlashAttentionS1s2Bns1X310Base<PFAT>::GetSingleCore
     padSize = maskInnerTailAlign - singleProcessSInnerSizeTail;
 
     InitTensorSize(&tilingData->promptAttentionTensorSizeRect);
-    // transposeTilingData = tilingData->transposeTilingDataRect;
     softmaxTilingData = tilingData->softmaxTilingDataRect;
     softmaxFlashTilingData = tilingData->softmaxFlashTilingDataRect;
 }

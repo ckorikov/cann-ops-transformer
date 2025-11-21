@@ -550,7 +550,6 @@ ge::graphStatus PromptFlashAttentionTiling::TilingGetTilingKeyAttentionAscendC(u
         if (contextKeyParams.queryRope != nullptr) {
             tilingKey += 1000U;
         } // have queryrope and keyrope, add 1000
-        std::cout<<"tilingkey is++++++"<<tilingKey<<std::endl;
         return ge::GRAPH_SUCCESS;
     }
     tilingKey = 0U;
