@@ -3483,7 +3483,7 @@ ge::graphStatus PromptFlashAttentionTilingV2::CheckSingleAttribute(ContextParams
         return ge::GRAPH_FAILED;
     }
     if (enableIFAMLA && (!CheckIFAMLA(contextKeyParams, queryShapeInfo))) {
-        return false;
+        return ge::GRAPH_FAILED;
     }
     // print shape info
     OP_LOGI(contextKeyParams.opName,
