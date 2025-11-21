@@ -164,9 +164,10 @@ static ge::graphStatus TilingCompute(gert::TilingContext *context, TilingParams 
 
     uint64_t numHeadsMax = numQheads > numKheads ? numQheads : numKheads;
     uint64_t allSize = params.isNeoxStyle == 1UL ?
-                           static_cast<uint64_t>(numHeadsMax * (rotaryDim * 8UL + headSize) * dataTypeSize) :
-                           static_cast<uint64_t>(numHeadsMax * (rotaryDim * 10UL + headSize) * dataTypeSize);
-    uint64_t maxNPerLoopForUb = maxUbSize / allSize; // ub每次能载入最大行数（包括所有计算数据）;
+                           static_cast<uint64_t>(numHeadsMax * (rotaryDim * 5UL + headSize * 2UL) * dataTypeSize) :
+                           static_cast<uint64_t>(numHeadsMax * (rotaryDim * 6UL + headSize * 2UL) * dataTypeSize);
+    uint64_t maxNPerLoopForUb =
+        (maxUbSize - rotaryDim * 10UL * dataTypeSize) / allSize; // ub每次能载入最大行数（包括所有计算数据）;
 
     uint64_t num_tokens_each_front_core = (totalDataNum + coreNum - 1) / coreNum;
     uint64_t loop_time_each_front_core =
@@ -187,8 +188,10 @@ static ge::graphStatus TilingCompute(gert::TilingContext *context, TilingParams 
             0 :
             num_tokens_each_tail_core - num_tokens_tail_core_each_loop * (loop_time_each_tail_core - 1UL);
 
-    uint64_t numHeadsForUb = params.isNeoxStyle == 1UL ? maxUbSize / ((rotaryDim * 8UL + headSize) * dataTypeSize) :
-                                                         maxUbSize / ((rotaryDim * 10UL + headSize) * dataTypeSize);
+    uint64_t numHeadsForUb =
+        params.isNeoxStyle == 1UL ?
+            (maxUbSize - rotaryDim * 10UL * dataTypeSize) / ((rotaryDim * 5UL + headSize * 2UL) * dataTypeSize) :
+            (maxUbSize - rotaryDim * 10UL * dataTypeSize) / ((rotaryDim * 6UL + headSize * 2UL) * dataTypeSize);
 
     uint64_t loop_for_one_token = numHeadsMax > numHeadsForUb ? 1UL : 0UL; // 取1时，对numheads循环，maxNPerLoopForUb == 0
     uint64_t loop_along_qheads = (numQheads + numHeadsForUb - 1UL) / numHeadsForUb;
