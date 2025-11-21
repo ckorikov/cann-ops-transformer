@@ -89,7 +89,7 @@ public:
     __aicore__ inline void Init(__gm__ uint8_t *query, __gm__ uint8_t *queryRope, __gm__ uint8_t *key,  __gm__ uint8_t *keyRope,
                                 __gm__ uint8_t *value, __gm__ uint8_t *pse,
                                 __gm__ uint8_t *dropMask, __gm__ uint8_t *paddingMask, __gm__ uint8_t *prefix,
-                                __gm__ uint8_t *attenMask, __gm__ uint8_t *sink, __gm__ uint8_t *softmaxMax, __gm__ uint8_t *softmaxSum,
+                                __gm__ uint8_t *attenMask, __gm__ uint8_t *softmaxMax, __gm__ uint8_t *softmaxSum,
                                 __gm__ uint8_t *softmaxOut, __gm__ uint8_t *attentionOut, __gm__ uint8_t *workspace,
                                 const FlashAttentionScoreGeneralTilingData *__restrict tiling, TPipe *tPipe);
     __aicore__ inline void Process();
@@ -122,7 +122,7 @@ protected:
     __aicore__ inline void InitInput(__gm__ uint8_t *query, __gm__ uint8_t *queryRope, __gm__ uint8_t *key,  __gm__ uint8_t *keyRope,
                                      __gm__ uint8_t *value,
                                      __gm__ uint8_t *pse, __gm__ uint8_t *dropMask, __gm__ uint8_t *paddingMask,
-                                     __gm__ uint8_t *prefix, __gm__ uint8_t *attenMask, __gm__ uint8_t *sink, __gm__ uint8_t *softmaxMax,
+                                     __gm__ uint8_t *prefix, __gm__ uint8_t *attenMask, __gm__ uint8_t *softmaxMax,
                                      __gm__ uint8_t *softmaxSum, __gm__ uint8_t *softmaxOut,
                                      __gm__ uint8_t *attentionOut, __gm__ uint8_t *workspace,
                                      const FlashAttentionScoreGeneralTilingData *__restrict tiling, TPipe *tPipe);
@@ -323,7 +323,6 @@ protected:
     GlobalTensor<float> softmaxSumGm;
     GlobalTensor<uint8_t> dropMaskGm;
     GlobalTensor<uint8_t> attenMaskGmInt;
-    GlobalTensor<float> sinkGm;
 
     bool dropMaskUnAligned;
     int64_t attenMaskOffsetPre = 0;
@@ -340,13 +339,13 @@ FlashAttentionScoreS1s2Bn2gs1<implMode, layOutType, hasPse, hasAtten, hasDrop, I
                                                    __gm__ uint8_t *value,
                                                    __gm__ uint8_t *pse, __gm__ uint8_t *dropMask,
                                                    __gm__ uint8_t *paddingMask, __gm__ uint8_t *prefix,
-                                                   __gm__ uint8_t *attenMask, __gm__ uint8_t *sink, __gm__ uint8_t *softmaxMax,
+                                                   __gm__ uint8_t *attenMask, __gm__ uint8_t *softmaxMax,
                                                    __gm__ uint8_t *softmaxSum, __gm__ uint8_t *softmaxOut,
                                                    __gm__ uint8_t *attentionOut, __gm__ uint8_t *workspace,
                                                    const FlashAttentionScoreGeneralTilingData *__restrict tiling,
                                                    TPipe *tPipe)
 {
-    this->InitInput(query, queryRope, key, keyRope, value, pse, dropMask, paddingMask, prefix, attenMask, sink, softmaxMax, softmaxSum,
+    this->InitInput(query, queryRope, key, keyRope, value, pse, dropMask, paddingMask, prefix, attenMask, softmaxMax, softmaxSum,
                     softmaxOut, attentionOut, workspace, tiling, tPipe); // gm设置
 
     this->ComputeConstexpr();
@@ -368,7 +367,7 @@ FlashAttentionScoreS1s2Bn2gs1<implMode, layOutType, hasPse, hasAtten, hasDrop, I
                                                         __gm__ uint8_t *key,  __gm__ uint8_t *keyRope,
                                                         __gm__ uint8_t *value, __gm__ uint8_t *pse,
                                                         __gm__ uint8_t *dropMask, __gm__ uint8_t *paddingMask,
-                                                        __gm__ uint8_t *prefix, __gm__ uint8_t *attenMask, __gm__ uint8_t *sink,
+                                                        __gm__ uint8_t *prefix, __gm__ uint8_t *attenMask,
                                                         __gm__ uint8_t *softmaxMax, __gm__ uint8_t *softmaxSum,
                                                         __gm__ uint8_t *softmaxOut, __gm__ uint8_t *attentionOut,
                                                         __gm__ uint8_t *workspace,
@@ -408,7 +407,6 @@ FlashAttentionScoreS1s2Bn2gs1<implMode, layOutType, hasPse, hasAtten, hasDrop, I
     this->attenMaskGmInt.SetGlobalBuffer((__gm__ uint8_t *)attenMask);
     this->softmaxMaxGm.SetGlobalBuffer((__gm__ float *)softmaxMax);
     this->softmaxSumGm.SetGlobalBuffer((__gm__ float *)softmaxSum);
-    this->sinkGm.SetGlobalBuffer((__gm__ float *)sink);
     this->attentionOutGm.SetGlobalBuffer((__gm__ INPUT_T *)attentionOut);
 
     // 补齐到512， 统一按T处理
@@ -1933,18 +1931,6 @@ FlashAttentionScoreS1s2Bn2gs1<implMode, layOutType, hasPse, hasAtten, hasDrop, I
 
     sumUb.SetShapeInfo(ShapeInfo(2, maxSumShape, DataFormat::ND));
     maxUb.SetShapeInfo(ShapeInfo(2, maxSumShape, DataFormat::ND));
-
-    bool hasSink = this->tilingData->inputParams.needSinkOp;
-    if (hasSink && extraInfo.s2LoopCount == 0) {
-        float inMax = sinkGm.GetValue(extraInfo.n2oIdx * this->tilingData->inputParams.gSize + extraInfo.goIdx);
-        float inSum = 1.0;
-        event_t eventIdSToV = static_cast<event_t>(GetTPipePtr()->FetchEventID(HardEvent::S_V));
-        SetFlag<HardEvent::S_V>(eventIdSToV);
-        WaitFlag<HardEvent::S_V>(eventIdSToV);
-        Duplicate(sumUb, static_cast<T>(inSum), extraInfo.vec1S1RealSize * this->softmaxReduceSize);
-        Duplicate(maxUb, static_cast<T>(inMax), extraInfo.vec1S1RealSize * this->softmaxReduceSize);
-    }
-
     LocalTensor<T> expUb;
     expUb = this->softmaxExpBuf[extraInfo.taskIdMod2]
                 .template Get<T>()[loopIdx * extraInfo.vec1S1BaseSize * this->softmaxReduceSize];
@@ -1952,7 +1938,7 @@ FlashAttentionScoreS1s2Bn2gs1<implMode, layOutType, hasPse, hasAtten, hasDrop, I
     expUb.SetShapeInfo(ShapeInfo(2, maxSumShape, DataFormat::ND));
     LocalTensor<uint8_t> apiTmpBuffer = this->commonTBuf.template Get<uint8_t>();
     AscendC::PipeBarrier<PIPE_V>();
-    if (unlikely(extraInfo.s2LoopCount == 0 && !hasSink)) {
+    if (unlikely(extraInfo.s2LoopCount == 0)) {
         if (IsBasicBlockInSoftMax(extraInfo.vec1S1RealSize, extraInfo.s2RealSize)) {
             if (this->softmaxReduceSize == 1) {
                 SoftMaxTiling newTiling = AscendC::SoftMaxFlashV2TilingFuncImpl(extraInfo.vec1S1RealSize,
