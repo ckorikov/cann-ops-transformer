@@ -71,10 +71,10 @@
 
         $Q\_scale_{i} = \frac{max(|S_{i}|)}{127}$
 
-        $Q_{i} = \left \lfloor \frac{S_{i}}{Q\_scale_{i}}\right \rceil $
+        $Q_{i} = \lfloor \frac{S_{i}}{Q\_scale_{i}} \rceil$
 
   ----
-  - MSD伪量化场景（A8W4）：
+  - MSD场景（A8W4）：
     - **定义**：
       * **⋅** 表示矩阵乘法。
       * **⊙** 表示逐元素乘法。
@@ -136,12 +136,12 @@
 
         $Q\_scale_{i} = \frac{max(|S_{i}|)}{127}$
 
-        $Q_{i} = \left \lfloor \frac{S_{i}}{Q\_scale_{i}}\right \rceil $
+        $Q_{i} = \lfloor \frac{S_{i}}{Q\_scale_{i}} \rceil$
 
 
 ## 函数原型
 
-每个算子分为[两段式接口](./common/两段式接口.md)，必须先调用“aclnnGroupedMatmulSwigluQuantGetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnGroupedMatmulSwigluQuant”接口执行计算。
+每个算子分为[两段式接口](../../../docs/zh/context/两段式接口.md)，必须先调用“aclnnGroupedMatmulSwigluQuantGetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnGroupedMatmulSwigluQuant”接口执行计算。
 
 - `aclnnStatus aclnnGroupedMatmulSwigluQuantGetWorkspaceSize(const aclTensor *x, const aclTensor *weight, const aclTensor *bias, const aclTensor *offset,  const aclTensor *weightScale, const aclTensor *xScale, const aclTensor *groupList,  aclTensor *output, aclTensor *outputScale, aclTensor *outputOffset, uint64_t *workspaceSize, aclOpExecutor **executor)`
 - `aclnnStatus aclnnGroupedMatmulSwigluQuant(void *workspace, uint64_t workspaceSize, aclOpExecutor *executor, aclrtStream stream)`
@@ -150,25 +150,27 @@
 
 - **参数说明：**
   
-  - x（aclTensor*，计算输入）：左矩阵，公式中的$X$，Device侧的aclTensor。shape支持2维，假设shape为[M,K]，则K必须小于65536，数据类型支持INT8，[数据格式](./common/数据格式.md)支持ND，支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)。
+  - x（aclTensor*，计算输入）：左矩阵，公式中的$X$，Device侧的aclTensor。shape支持2维，假设shape为[M,K]，则K必须小于65536，数据类型支持INT8，[数据格式](../../../docs/zh/context/数据格式.md)支持ND，支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)。
 
-  - weight（aclTensor*，计算输入）：权重矩阵，公式中的$W$，Device侧的aclTensor。shape支持3维，数据类型支持INT8、INT4、INT32（INT32为适配用途，实际1个INT32会被解释为8个INT4数据），[数据格式](./common/数据格式.md)支持FRACTAL\_NZ，支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)。
+  - weight（aclTensor*，计算输入）：权重矩阵，公式中的$W$，Device侧的aclTensor。数据类型支持INT8、INT4、INT32（INT32为适配用途，实际1个INT32会被解释为8个INT4数据），支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)。
+    - A8W4场景：shape支持3或5维，分别对应[数据格式](../../../docs/zh/context/数据格式.md)ND、FRACTAL\_NZ。
+    - A8W8场景：shape支持5维，[数据格式](../../../docs/zh/context/数据格式.md)支持FRACTAL\_NZ。
 
   - bias（aclTensor*，计算输入）：计算矩阵乘时的辅助矩阵，公式中的$bias$，shape支持2维，数据类型支持fp32，仅A8W4场景生效，A8W8场景需传空指针。
 
   - offset（aclTensor*，计算输入）：per-channel非对称反量化的偏移，公式中的$offset$，shape支持2维，数据类型支持Float，预留输入，暂不支持，需要传空指针。
 
-  - weightScale（aclTensor*，计算输入）：右矩阵的量化因子，公式中的$w\_scale$，Device侧的aclTensor。首轴长度需与`weight`的首轴维度相等，尾轴长度需要与weight还原为ND格式的尾轴相同，[数据格式](./common/数据格式.md)支持ND，支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)。
+  - weightScale（aclTensor*，计算输入）：右矩阵的量化因子，公式中的$w\_scale$，Device侧的aclTensor。首轴长度需与`weight`的首轴维度相等，尾轴长度需要与weight还原为ND格式的尾轴相同，[数据格式](../../../docs/zh/context/数据格式.md)支持ND，支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)。
     - A8W4场景：shape支持2或3维，数据类型支持UINT64。
     - A8W8场景：shape支持2维，数据类型支持FLOAT、FLOAT16、BFLOAT16。
     
-  - xScale（aclTensor*，计算输入）：左矩阵的量化因子，公式中的$x\_scale$，Device侧的aclTensor。shape支持1维，长度需与`x`的首轴维度相等，数据类型支持FLOAT，[数据格式](./common/数据格式.md)支持ND，支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)。
+  - xScale（aclTensor*，计算输入）：左矩阵的量化因子，公式中的$x\_scale$，Device侧的aclTensor。shape支持1维，长度需与`x`的首轴维度相等，数据类型支持FLOAT，[数据格式](../../../docs/zh/context/数据格式.md)支持ND，支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)。
 
-  - groupList（aclTensor*，计算输入）：指示每个分组参与计算的Token个数，公式中的$grouplist$，Device侧的aclTensor。shape支持1维，长度需与`weight`的首轴维度相等，数据类型支持INT64，[数据格式](./common/数据格式.md)支持ND，支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)，grouplist中的最后一个值约束了输出数据的有效部分，详见功能说明中的计算过程部分。
+  - groupList（aclTensor*，计算输入）：指示每个分组参与计算的Token个数，公式中的$grouplist$，Device侧的aclTensor。shape支持1维，长度需与`weight`的首轴维度相等，数据类型支持INT64，[数据格式](../../../docs/zh/context/数据格式.md)支持ND，支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)，grouplist中的最后一个值约束了输出数据的有效部分，详见功能说明中的计算过程部分。
 
-  - output（aclTensor*，计算输出）：输出的量化结果，公式中的$Q$，Device侧的aclTensor。数据类型支持INT8，shape支持2维，Device侧的aclTensor。[数据格式](./common/数据格式.md)支持ND，支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)。
+  - output（aclTensor*，计算输出）：输出的量化结果，公式中的$Q$，Device侧的aclTensor。数据类型支持INT8，shape支持2维，Device侧的aclTensor。[数据格式](../../../docs/zh/context/数据格式.md)支持ND，支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)。
 
-  - outputScale（aclTensor*，计算输出）：输出的量化因子，公式中的$Q\_scale$，Device侧的aclTensor。数据类型支持FLOAT，shape支持1维，Device侧的aclTensor。[数据格式](./common/数据格式.md)支持ND，支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)。
+  - outputScale（aclTensor*，计算输出）：输出的量化因子，公式中的$Q\_scale$，Device侧的aclTensor。数据类型支持FLOAT，shape支持1维，Device侧的aclTensor。[数据格式](../../../docs/zh/context/数据格式.md)支持ND，支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)。
 
   - outputOffset（aclTensor*，计算输出）：输出的非对称量化的偏移，公式中的$Q\_offset$，Device侧的aclTensor，shape支持1维，数据类型支持FLOAT，预留输入，暂不支持，需要传空指针。
 
@@ -177,7 +179,7 @@
   - executor（aclOpExecutor**，计算输出）：返回op执行器，包含了算子计算流程。
 - **返回值：**
   
-  aclnnStatus：返回状态码，具体参见[aclnn返回码](./common/aclnn返回码.md)。
+  aclnnStatus：返回状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
   ```
   第一段接口完成入参校验，出现以下场景时报错：
   返回161001（ACLNN_ERR_PARAM_NULLPTR）： 1. 传入的x、weight、weightScale、xScale、groupList、output、outputScale是空指针时。
@@ -188,6 +190,7 @@
                                          5. N轴长度超过10240。
                                          6. A8W8场景，x的尾轴长度大于等于65536。
                                          7. A8W4场景，x的尾轴长度大于等于20000。
+                                         8. A8W8场景，weight的数据格式不为FRACTAL_NZ。
   ```
 
 ## aclnnGroupedMatmulSwigluQuant
@@ -200,7 +203,7 @@
     - stream（aclrtStream，入参）：指定执行任务的Stream。
 - **返回值：**
 
-    aclnnStatus：返回状态码，具体参见[aclnn返回码](./common/aclnn返回码.md)。
+    aclnnStatus：返回状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
 
 ## 约束说明
 
