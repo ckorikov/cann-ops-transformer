@@ -817,8 +817,7 @@ static bool CheckGroupInfoShape(const gert::TilingContext *context, MoeDistribut
     }
     
     const gert::StorageShape *expertIdsStorageShape = context->GetInputShape(EXPERT_IDS_INDEX);
-    int64_t expertIdsDim1 = expertIdsStorageShape->GetStorageShape().GetDim(1);
-    
+    int64_t expertIdsDim1 = expertIdsStorageShape->GetStorageShape().GetDim(1);   
     A = isShared ? (maxBs * maxSharedGroupNum) : (globalBs * std::min(static_cast<int64_t>(localMoeExpertNum), expertIdsDim1));
 
     const int64_t epWorldSize = static_cast<int64_t>(tilingData.moeDistributeCombineV2Info.epWorldSize);
@@ -917,34 +916,10 @@ static bool CheckSharedAttrs(const char *nodeName, const MoeDistributeCombineV2T
     return true;
 }
 
-static bool CheckAttrs(const gert::TilingContext *context, MoeDistributeCombineV2TilingData &tilingData,
-    const char *nodeName, uint32_t &localMoeExpertNum, bool isActiveMask)
+static bool CheckBsAttrs(const gert::TilingContext *context, MoeDistributeCombineV2TilingData &tilingData,
+    const char *nodeName, bool isActiveMask)
 {
     uint32_t epWorldSize = tilingData.moeDistributeCombineV2Info.epWorldSize;
-    uint32_t tpWorldSize = tilingData.moeDistributeCombineV2Info.tpWorldSize;
-    uint32_t moeExpertNum = tilingData.moeDistributeCombineV2Info.moeExpertNum;
-    uint32_t sharedExpertRankNum = tilingData.moeDistributeCombineV2Info.sharedExpertRankNum;
-
-    OP_TILING_CHECK(!CheckSharedAttrs(nodeName, tilingData),
-        OP_LOGE(nodeName, "Check shared expert related attributes failed."), return false);
-
-    // 校验moe专家数量能否均分给多机
-    OP_TILING_CHECK(moeExpertNum % (epWorldSize - sharedExpertRankNum) != 0,
-        OP_LOGE(nodeName, "moeExpertNum should be divisible by (epWorldSize - sharedExpertRankNum), "
-        "but got moeExpertNum=%u, epWorldSize=%u, sharedExpertRankNum=%u.", moeExpertNum, epWorldSize,
-        sharedExpertRankNum), return false);
-    localMoeExpertNum = moeExpertNum / (epWorldSize - sharedExpertRankNum);
-    OP_TILING_CHECK((localMoeExpertNum <= 0) || (localMoeExpertNum * epWorldSize > LOCAL_EXPERT_MAX_SIZE),OP_LOGE(nodeName, "localMoeExpertNum is invalid, "
-        "localMoeExpertNum * epWorldSize must be less than or equal to 2048, and localMoeExpertNum must be greater than 0, "
-        "but got localMoeExpertNum * epWorldSize = %u, localMoeExpertNum = %u", localMoeExpertNum * epWorldSize, localMoeExpertNum), return false);
-    // 校验tp=2时单个moe卡上专家数是否等于1
-    OP_TILING_CHECK((localMoeExpertNum > 1) && (tpWorldSize > 1),
-        OP_LOGE(nodeName, "Cannot support multi-moeExpert %u in a rank when tpWorldSize = %u > 1",
-        localMoeExpertNum, tpWorldSize), return false);
-    // 校验tp=2时是否没有动态缩容参数
-    OP_TILING_CHECK((tpWorldSize > 1) && (tilingData.moeDistributeCombineV2Info.hasElasticInfo), OP_LOGE(nodeName, "Cannot support elasticInfo "
-        "when tpWorldSize = %u > 1", tpWorldSize), return false);
-    tilingData.moeDistributeCombineV2Info.moeExpertPerRankNum = localMoeExpertNum;
 
     // 校验输入expertIds的维度0并设bs
     const gert::StorageShape *expertIdsStorageShape = context->GetInputShape(EXPERT_IDS_INDEX);
@@ -974,6 +949,42 @@ static bool CheckAttrs(const gert::TilingContext *context, MoeDistributeCombineV
     if (*globalBsPtr == 0) {
         tilingData.moeDistributeCombineV2Info.globalBs = static_cast<uint32_t>(expertIdsDim0) * epWorldSize;
     }
+
+    return true;
+}
+
+static bool CheckAttrs(const gert::TilingContext *context, MoeDistributeCombineV2TilingData &tilingData,
+    const char *nodeName, uint32_t &localMoeExpertNum, bool isActiveMask)
+{
+    uint32_t epWorldSize = tilingData.moeDistributeCombineV2Info.epWorldSize;
+    uint32_t tpWorldSize = tilingData.moeDistributeCombineV2Info.tpWorldSize;
+    uint32_t moeExpertNum = tilingData.moeDistributeCombineV2Info.moeExpertNum;
+    uint32_t sharedExpertRankNum = tilingData.moeDistributeCombineV2Info.sharedExpertRankNum;
+
+    OP_TILING_CHECK(!CheckSharedAttrs(nodeName, tilingData),
+        OP_LOGE(nodeName, "Check shared expert related attributes failed."), return false);
+
+    // 校验moe专家数量能否均分给多机
+    OP_TILING_CHECK(moeExpertNum % (epWorldSize - sharedExpertRankNum) != 0,
+        OP_LOGE(nodeName, "moeExpertNum should be divisible by (epWorldSize - sharedExpertRankNum), "
+        "but got moeExpertNum=%u, epWorldSize=%u, sharedExpertRankNum=%u.", moeExpertNum, epWorldSize,
+        sharedExpertRankNum), return false);
+    localMoeExpertNum = moeExpertNum / (epWorldSize - sharedExpertRankNum);
+    OP_TILING_CHECK((localMoeExpertNum <= 0) || (localMoeExpertNum * epWorldSize > LOCAL_EXPERT_MAX_SIZE),OP_LOGE(nodeName, "localMoeExpertNum is invalid, "
+        "localMoeExpertNum * epWorldSize must be less than or equal to 2048, and localMoeExpertNum must be greater than 0, "
+        "but got localMoeExpertNum * epWorldSize = %u, localMoeExpertNum = %u", localMoeExpertNum * epWorldSize, localMoeExpertNum), return false);
+    // 校验tp=2时单个moe卡上专家数是否等于1
+    OP_TILING_CHECK((localMoeExpertNum > 1) && (tpWorldSize > 1),
+        OP_LOGE(nodeName, "Cannot support multi-moeExpert %u in a rank when tpWorldSize = %u > 1",
+        localMoeExpertNum, tpWorldSize), return false);
+    // 校验tp=2时是否没有动态缩容参数
+    OP_TILING_CHECK((tpWorldSize > 1) && (tilingData.moeDistributeCombineV2Info.hasElasticInfo), OP_LOGE(nodeName, "Cannot support elasticInfo "
+        "when tpWorldSize = %u > 1", tpWorldSize), return false);
+    tilingData.moeDistributeCombineV2Info.moeExpertPerRankNum = localMoeExpertNum;
+
+    // 校验xDim0和globalBS
+    OP_TILING_CHECK(!CheckBsAttrs(context, tilingData, nodeName, isActiveMask),
+        OP_LOGE(nodeName, "Check xDim0 and globalBS attributes failed."), return false);
 
     uint32_t copyExpertNum = tilingData.moeDistributeCombineV2Info.copyExpertNum;
     uint32_t constExpertNum = tilingData.moeDistributeCombineV2Info.constExpertNum;
