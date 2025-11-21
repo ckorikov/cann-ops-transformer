@@ -20,12 +20,12 @@
 #endif
 
 #include "kernel_operator.h"
+using namespace AscendC;
 
 #include "arch35/flash_attention_score_grad_entry_regbase.h"
 #include "arch35/flash_attention_score_grad_template_tiling_key.h"
 #include "arch35/flash_attention_score_grad_tiling_data_regbase.h"
 #include "arch35/flash_attention_score_grad_empty_tensor_regbase.h"
-using namespace AscendC;
 
 // implementation of kernel function
 template<uint8_t IsEmptyTensor, uint8_t SplitAxis, uint8_t InputDType, bool IsTnd, bool IsDrop, bool IsPse, bool IsAttenMask, uint16_t S1TemplateNum,
