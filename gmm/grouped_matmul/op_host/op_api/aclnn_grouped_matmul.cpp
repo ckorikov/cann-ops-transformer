@@ -618,15 +618,33 @@ static aclnnStatus CheckMatmulDataType(const gmm::GroupedMatmulParams &gmmParams
   return ACLNN_SUCCESS;
 }
 
+static aclnnStatus CheckNoQuantUnusedParams(const gmm::GroupedMatmulParams &gmmParams) {
+  // Check currently disabled parameters when case is no quant
+  CHECK_COND(gmmParams.scaleOptional == nullptr, ACLNN_ERR_PARAM_INVALID,
+             "scaleOptional must be nullptr in no quant case.");
+  CHECK_COND(gmmParams.offsetOptional == nullptr, ACLNN_ERR_PARAM_INVALID,
+             "offsetOptional must be nullptr in no quant case.");
+  CHECK_COND(gmmParams.antiquantScaleOptional == nullptr, ACLNN_ERR_PARAM_INVALID,
+             "antiquantScaleOptional must be nullptr in no quant case.");
+  CHECK_COND(gmmParams.antiquantOffsetOptional == nullptr, ACLNN_ERR_PARAM_INVALID,
+             "antiquantOffsetOptional must be nullptr in no quant case.");
+  CHECK_COND(gmmParams.perTokenScaleOptional == nullptr, ACLNN_ERR_PARAM_INVALID,
+             "perTokenScaleOptional must be nullptr in no quant case.");
+  return ACLNN_SUCCESS;
+}
+
 static aclnnStatus CheckNonQuantMatmulDataType(const gmm::GroupedMatmulParams &gmmParams, const DataType weightDtype) {
   DataType biasDtype = gmmParams.xDtype == DataType::DT_BF16 ? DataType::DT_FLOAT : gmmParams.xDtype;
   // 910_95支持bf16的bias
   if (GetCurrentPlatformInfo().GetSocVersion() == SocVersion::ASCEND910_95) {
-    CHECK_COND(gmmParams.xDtype != DataType::DT_FLOAT, ACLNN_ERR_PARAM_INVALID, "float32 do not supported on Ascend910_95");
+    CHECK_COND(gmmParams.xDtype != DataType::DT_FLOAT, ACLNN_ERR_PARAM_INVALID,
+               "float32 do not supported on Ascend910_95");
     if (gmmParams.biasOptional != nullptr) {
       biasDtype = (*gmmParams.biasOptional)[0]->GetDataType();
-      CHECK_COND(std::find(gmm::DTYPE_SUPPORT_LIST.begin(), gmm::DTYPE_SUPPORT_LIST.end(), biasDtype) != gmm::DTYPE_SUPPORT_LIST.end(), ACLNN_ERR_PARAM_INVALID,
-                "non quant case bias only support dtype float16, bfloat16 and float32");
+      CHECK_COND(biasDtype == gmmParams.xDtype || biasDtype == DataType::DT_FLOAT, ACLNN_ERR_PARAM_INVALID,
+                 "non quant case biasDtype should same as xDtype or float32");
+      CHECK_COND(CheckNoQuantUnusedParams(gmmParams) == ACLNN_SUCCESS, ACLNN_ERR_PARAM_INVALID,
+                 "invalid unused params");
     }
   }
   CHECK_RET(CheckMatmulDataType(gmmParams, gmmParams.xDtype, weightDtype, gmmParams.xDtype, biasDtype) == ACLNN_SUCCESS,

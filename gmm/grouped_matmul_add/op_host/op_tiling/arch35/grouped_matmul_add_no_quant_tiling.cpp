@@ -250,11 +250,20 @@ bool GroupedMatmulAddNoQuantTiling::SplitKSingleXSingleWeightSingleY(const gert:
                                                                      const gert::Shape xShape, const gert::Shape wShape)
 {
     auto groupListTensor = context->GetDynamicInputTensor(INDEX_GROUPLIST, 0);
-    if (groupListTensor == nullptr) {
-        OP_LOGE(context->GetNodeName(), "groupListTensor is nullptr");
-        return false;
-    }
+    auto yTensor = context->GetDynamicInputTensor(INDEX_YREF, 0);
+    OP_CHECK_IF(groupListTensor == nullptr || yTensor == nullptr,
+                OP_LOGE(context->GetNodeName(), "groupListTensor or yTensor is nullptr"), return false);
     gert::Shape groupListShape = groupListTensor->GetStorageShape();
+    gert::Shape yShape = yTensor->GetStorageShape();
+    uint32_t groupListNum = static_cast<uint32_t>(groupListShape.GetDim(0));
+    uint32_t yNum = static_cast<uint32_t>(yShape.GetDim(0));
+    OP_CHECK_IF(groupListNum != yNum,
+                OP_LOGE(context->GetNodeName(),
+                        "groupNum should be equal between groupListTensor and yTensor when group_type is 2, but "
+                        "groupListTensor[%u], yTensor[%u].",
+                        groupListNum, yNum),
+                return false);
+    groupNum_ = groupListNum;
     groupNum_ = static_cast<int32_t>(groupListShape.GetDim(0)); // 0: the first dim of groupList is groupNum
     m_ = static_cast<uint64_t>(xShape.GetDim(1));
     k_ = static_cast<uint64_t>(xShape.GetDim(xKDim_));

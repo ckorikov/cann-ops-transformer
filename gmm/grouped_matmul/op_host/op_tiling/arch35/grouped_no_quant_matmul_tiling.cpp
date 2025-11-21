@@ -4,7 +4,8 @@
  * This file is a part of the CANN Open Software.
  * Licensed under CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING
+BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
 
@@ -23,38 +24,33 @@ bool GroupedNoQuantMatmulTiling::SetTiling(gert::TilingContext *context)
     usedCoreNum_ = compileInfoPtr->aicNum;
     OP_CHECK_IF(!Init(context), OP_LOGE(context->GetNodeName(), "Init failed"), return false);
     OP_CHECK_IF(!CalMatMulTiling(context, compileInfoPtr),
-        OP_LOGE(context->GetNodeName(), "Unable to calculate matmul-tiling"), return false);
+                OP_LOGE(context->GetNodeName(), "Unable to calculate matmul-tiling"), return false);
     SetGMMTiling();
     SetMatMulTiling();
     SetTilingKey(context);
-    OP_CHECK_IF(!SetCustomParam(context),
-        OP_LOGE(context->GetNodeName(), "Unable to set custom param"), return false);
+    OP_CHECK_IF(!SetCustomParam(context), OP_LOGE(context->GetNodeName(), "Unable to set custom param"), return false);
     PrintTilingResult(context);
     return true;
 }
 
-bool GroupedNoQuantMatmulTiling::CalBaseMMTiling(const gert::TilingContext* context, const GMMCompileInfo* compileInfoPtr)
+bool GroupedNoQuantMatmulTiling::CalBaseMMTiling(const gert::TilingContext *context,
+                                                 const GMMCompileInfo *compileInfoPtr)
 {
     // according to the double buffer enabled L0B, compute baseK
     baseK_ = (compileInfoPtr->l0BSize / DB_SIZE) / (baseN_ * GetSizeByDataType(xDType_));
     baseK_ = baseK_ & ~ALIGN_DOWN_16; // 16 bytes down-align
-    OP_CHECK_IF(baseK_ == 0,
-               OP_LOGE(context->GetNodeName(), "baseK_ cannot be 0."),
-               return false);
+    OP_CHECK_IF(baseK_ == 0, OP_LOGE(context->GetNodeName(), "baseK_ cannot be 0."), return false);
     // according to the double buffer enabled L0A/L0C, compute baseM(cube)
     uint32_t maxBaseM = static_cast<uint32_t>(compileInfoPtr->l0CSize / (baseN_ * FP32_DTYPE_SIZE));
-    baseM_ = std::min<uint32_t>((compileInfoPtr->l0ASize / DB_SIZE) / (baseK_ * GetSizeByDataType(xDType_)),
-                                maxBaseM);
+    baseM_ = std::min<uint32_t>((compileInfoPtr->l0ASize / DB_SIZE) / (baseK_ * GetSizeByDataType(xDType_)), maxBaseM);
     if (baseM_ > BASE_M_DEFAULT) {
-      baseM_ = BASE_M_DEFAULT;
+        baseM_ = BASE_M_DEFAULT;
     }
-    OP_CHECK_IF(baseM_ == 0,
-               OP_LOGE(context->GetNodeName(), "baseM_ cannot be 0."),
-               return false);
+    OP_CHECK_IF(baseM_ == 0, OP_LOGE(context->GetNodeName(), "baseM_ cannot be 0."), return false);
     return CalL1Tiling(context, compileInfoPtr);
 }
 
-void GroupedNoQuantMatmulTiling::FormulateBasicBlock(const GMMCompileInfo* compileInfoPtr, uint32_t remainCoreNum)
+void GroupedNoQuantMatmulTiling::FormulateBasicBlock(const GMMCompileInfo *compileInfoPtr, uint32_t remainCoreNum)
 {
     uint64_t mCnt = GroupedMatmul::CeilDiv(m_, baseM_);
     uint64_t nCnt = GroupedMatmul::CeilDiv(n_, baseN_);
@@ -93,18 +89,19 @@ void GroupedNoQuantMatmulTiling::FormulateBasicBlock(const GMMCompileInfo* compi
     mCnt = GroupedMatmul::CeilDiv(m_, baseM_);
     nCnt = GroupedMatmul::CeilDiv(n_, baseN_);
     uint64_t kValueAlign = GroupedMatmul::CeilAlign(k_, BASIC_BLOCK_SIZE_16);
-    uint64_t kValueMax = GroupedMatmul::FloorAlign(
-        static_cast<uint64_t>(compileInfoPtr->l0ASize / DB_SIZE / GetSizeByDataType(xDType_) / std::max(baseM_, baseN_)),
-        BASIC_BLOCK_SIZE_16);
+    uint64_t kValueMax =
+        GroupedMatmul::FloorAlign(static_cast<uint64_t>(compileInfoPtr->l0ASize / DB_SIZE / GetSizeByDataType(xDType_) /
+                                                        std::max(baseM_, baseN_)),
+                                  BASIC_BLOCK_SIZE_16);
     baseK_ = std::min(kValueAlign, kValueMax);
     usedCoreNum_ = std::min(static_cast<uint32_t>(mCnt * nCnt * groupNum_), compileInfoPtr->aicNum);
 }
 
-void GroupedNoQuantMatmulTiling::CalAswtL1Tiling(const GMMCompileInfo* compileInfoPtr)
+void GroupedNoQuantMatmulTiling::CalAswtL1Tiling(const GMMCompileInfo *compileInfoPtr)
 {
     uint64_t totalL1Size = compileInfoPtr->l1Size + 256UL; // 256B为预留给rpc使用，单算子不涉及
     uint64_t reserveBTSize = hasBias_ ? BIAS_TABLE_NUM * DATA_SIZE_FP32 : 0UL;
-    depthA1_ = totalL1Size / NUM_TWO / baseM_ / baseK_ / GetSizeByDataType(xDType_); // 2: half of l1
+    depthA1_ = totalL1Size / NUM_TWO / baseM_ / baseK_ / GetSizeByDataType(xDType_);      // 2: half of l1
     depthB1_ = totalL1Size / NUM_TWO / baseN_ / baseK_ / GetSizeByDataType(weightDtype_); // 2: half of l1
 
     uint64_t depthASize = depthA1_ * baseM_ * baseK_ * GetSizeByDataType(xDType_);
@@ -128,18 +125,17 @@ void GroupedNoQuantMatmulTiling::CalAswtL1Tiling(const GMMCompileInfo* compileIn
     return;
 }
 
-bool GroupedNoQuantMatmulTiling::CalL1Tiling(const gert::TilingContext* context, const GMMCompileInfo* compileInfoPtr)
+bool GroupedNoQuantMatmulTiling::CalL1Tiling(const gert::TilingContext *context, const GMMCompileInfo *compileInfoPtr)
 {
     uint64_t reserveBTSize = hasBias_ ? BIAS_TABLE_NUM * DATA_SIZE_FP32 : 0UL;
     uint64_t totalL1Size = hasBias_ ? compileInfoPtr->l1Size - reserveBTSize : compileInfoPtr->l1Size;
     uint64_t l1ASize = baseM_ > baseN_ ? PARTA_L1_SIZE : totalL1Size - PARTA_L1_SIZE;
     uint64_t l1BSize = totalL1Size - l1ASize;
-    stepKa_ = l1ASize / NUM_TWO / baseM_ / baseK_ / GetSizeByDataType(xDType_); // 2: half of l1
+    stepKa_ = l1ASize / NUM_TWO / baseM_ / baseK_ / GetSizeByDataType(xDType_);      // 2: half of l1
     stepKb_ = l1BSize / NUM_TWO / baseN_ / baseK_ / GetSizeByDataType(weightDtype_); // 2: half of l1
 
-    OP_CHECK_IF(stepKa_ == 0 || stepKb_ == 0,
-           OP_LOGE(context->GetNodeName(), "stepka or stepkb cannot be 0"),
-           return false);
+    OP_CHECK_IF(stepKa_ == 0 || stepKb_ == 0, OP_LOGE(context->GetNodeName(), "stepka or stepkb cannot be 0"),
+                return false);
     if (stepKa_ >= stepKb_) {
         stepKa_ = stepKa_ / stepKb_ * stepKb_;
     } else {
@@ -150,7 +146,7 @@ bool GroupedNoQuantMatmulTiling::CalL1Tiling(const gert::TilingContext* context,
     return true;
 }
 
-void GroupedNoQuantMatmulTiling::CalcTailBasicBlock(const GMMCompileInfo* compileInfoPtr)
+void GroupedNoQuantMatmulTiling::CalcTailBasicBlock(const GMMCompileInfo *compileInfoPtr)
 {
     uint64_t mCnt = GroupedMatmul::CeilDiv(m_, baseM_);
     uint64_t nCnt = GroupedMatmul::CeilDiv(n_, baseN_);
@@ -167,7 +163,7 @@ void GroupedNoQuantMatmulTiling::CalcTailBasicBlock(const GMMCompileInfo* compil
     }
 }
 
-bool GroupedNoQuantMatmulTiling::CheckWeightNzShape(const gert::TilingContext* context, int64_t c0)
+bool GroupedNoQuantMatmulTiling::CheckWeightNzShape(const gert::TilingContext *context, int64_t c0)
 {
     int i = 0;
     while (true) {
@@ -177,17 +173,18 @@ bool GroupedNoQuantMatmulTiling::CheckWeightNzShape(const gert::TilingContext* c
         }
         gert::Shape wOriginShape = wTensor->GetOriginShape();
         int64_t lastDimValue = wOriginShape.GetDim(wOriginShape.GetDimNum() - 1);
-        OP_CHECK_IF(lastDimValue % c0 != 0, OP_LOGE(context->GetNodeName(),
-            "the inner axis size of nz weight is expected to be a multiple of 32B, but now is %ld", lastDimValue),
-            return false);
+        OP_CHECK_IF(lastDimValue % c0 != 0,
+                    OP_LOGE(context->GetNodeName(),
+                            "the inner axis size of nz weight is expected to be a multiple of 32B, but now is %ld",
+                            lastDimValue),
+                    return false);
     }
     return true;
 }
 
-bool GroupedNoQuantMatmulTiling::Init(const gert::TilingContext* context)
+bool GroupedNoQuantMatmulTiling::Init(const gert::TilingContext *context)
 {
-    OP_CHECK_IF(!GetAttrs(context),
-        OP_LOGE(context->GetNodeName(), "Unable to calculate matmul-tiling"), return false);
+    OP_CHECK_IF(!GetAttrs(context), OP_LOGE(context->GetNodeName(), "Unable to calculate matmul-tiling"), return false);
 
     auto xTensor = context->GetDynamicInputTensor(INDEX_X, 0);
     OP_CHECK_IF(xTensor == nullptr, OP_LOGE(context->GetNodeName(), "xTensor is nullptr."), return false);
@@ -200,13 +197,11 @@ bool GroupedNoQuantMatmulTiling::Init(const gert::TilingContext* context)
     uint32_t wDimNum = static_cast<uint32_t>(wShape.GetDimNum());
 
     OP_CHECK_IF(wDimNum < MIN_DIM || xDimNum_ < MIN_DIM,
-           OP_LOGE(context->GetNodeName(),
-                                     "The dimension of x or weight should be at least 2"),
-                                     return false);
+                OP_LOGE(context->GetNodeName(), "The dimension of x or weight should be at least 2"), return false);
     xKDim_ = transposeX_ ? 0U : xDimNum_ - 1U;
     weightNDim_ = transposeWeight_ ? wDimNum - DIM_TWO : wDimNum - DIM_ONE;
 
-    auto biasPtr = context->GetDynamicInputTensor(INDEX_BIAS, 0);  // 0: obtain the first tensor of the tensorList
+    auto biasPtr = context->GetDynamicInputTensor(INDEX_BIAS, 0); // 0: obtain the first tensor of the tensorList
     hasBias_ = !(biasPtr == nullptr || biasPtr->GetStorageShape().GetShapeSize() == 0);
 
     isSingleWeight_ = (context->GetDynamicInputTensor(INDEX_WEIGHT, 1) == nullptr);
@@ -220,37 +215,38 @@ bool GroupedNoQuantMatmulTiling::Init(const gert::TilingContext* context)
             nzFactor_ = transposeWeight_ ? BASIC_BLOCK_SIZE_16 : static_cast<int64_t>(c0);
         } else {
             OP_CHECK_IF(!CheckWeightNzShape(context, static_cast<int64_t>(c0)),
-                OP_LOGE(context->GetNodeName(), "the size of nz weight is invaild."),
-                return false);
+                        OP_LOGE(context->GetNodeName(), "the size of nz weight is invaild."), return false);
         }
     }
 
     if (groupType_ == SPLIT_K) {
-      return GMMGetTensorShapeSplitK(context, xShape, wShape);
+        return GMMGetTensorShapeSplitK(context, xShape, wShape);
     }
     if (groupType_ == SPLIT_M) {
-      return GMMGetTensorShapeSplitM(context, xShape, wShape);
+        return GMMGetTensorShapeSplitM(context, xShape, wShape);
     }
-    if (groupType_ == NO_SPLIT) {  // not split any axis
-      if (isSingleWeight_ && wDimNum > 2U) {  // 2: dim of splited weight tensor
-        return SeparatedXSingleWeight(context, wShape);
-      }
-      return SeparatedXSeparatedWeight(context);
+    if (groupType_ == NO_SPLIT) {              // not split any axis
+        if (isSingleWeight_ && wDimNum > 2U) { // 2: dim of splited weight tensor
+            return SeparatedXSingleWeight(context, wShape);
+        }
+        return SeparatedXSeparatedWeight(context);
     }
-    OP_LOGE(context->GetNodeName(), "GMM_tiling: not support groupType_=%d, isSingleWeight_=%d, isSingleX_=%d, isSingleY_=%d",
-              groupType_, isSingleWeight_, isSingleX_, isSingleY_);
+    OP_LOGE(context->GetNodeName(),
+            "GMM_tiling: not support groupType_=%d, isSingleWeight_=%d, isSingleX_=%d, isSingleY_=%d", groupType_,
+            isSingleWeight_, isSingleX_, isSingleY_);
     return false;
 }
 
-bool GroupedNoQuantMatmulTiling::GetAttrs(const gert::TilingContext* context)
+bool GroupedNoQuantMatmulTiling::GetAttrs(const gert::TilingContext *context)
 {
     auto attr = context->GetAttrs();
-    OP_CHECK_IF(attr == nullptr, OP_LOGE(context->GetNodeName(), "attr is nullptr."), return false);  // check attr is not null
-    const bool* transposeWeightPtr = attr->GetAttrPointer<bool>(ATTR_IDX_TRANS_W);
-    const bool* transposeXPtr = attr->GetAttrPointer<bool>(ATTR_IDX_TRANS_X);
-    const int32_t* groupTypePtr = attr->GetAttrPointer<int32_t>(ATTR_IDX_GROUPTYPE);
-    const int64_t* splitItemPtr = attr->GetAttrPointer<int64_t>(ATTR_IDX_SPLIT_ITEM);
-    const uint32_t* groupListTypePtr = attr->GetAttrPointer<uint32_t>(ATTR_IDX_GROUP_LIST_TYPE);
+    OP_CHECK_IF(attr == nullptr, OP_LOGE(context->GetNodeName(), "attr is nullptr."),
+                return false); // check attr is not null
+    const bool *transposeWeightPtr = attr->GetAttrPointer<bool>(ATTR_IDX_TRANS_W);
+    const bool *transposeXPtr = attr->GetAttrPointer<bool>(ATTR_IDX_TRANS_X);
+    const int32_t *groupTypePtr = attr->GetAttrPointer<int32_t>(ATTR_IDX_GROUPTYPE);
+    const int64_t *splitItemPtr = attr->GetAttrPointer<int64_t>(ATTR_IDX_SPLIT_ITEM);
+    const uint32_t *groupListTypePtr = attr->GetAttrPointer<uint32_t>(ATTR_IDX_GROUP_LIST_TYPE);
     transposeWeight_ = transposeWeightPtr != nullptr ? *transposeWeightPtr : false;
     transposeX_ = transposeXPtr != nullptr ? *transposeXPtr : false;
     groupType_ = groupTypePtr != nullptr ? *groupTypePtr : NO_SPLIT;
@@ -269,7 +265,8 @@ bool GroupedNoQuantMatmulTiling::GetAttrs(const gert::TilingContext* context)
     return true;
 }
 
-bool GroupedNoQuantMatmulTiling::CalMatMulTiling(const gert::TilingContext* context, const GMMCompileInfo* compileInfoPtr)
+bool GroupedNoQuantMatmulTiling::CalMatMulTiling(const gert::TilingContext *context,
+                                                 const GMMCompileInfo *compileInfoPtr)
 {
     if (groupNum_ == 0U) {
         OP_LOGE(context->GetNodeName(), "gmm no quant groupNum_ cannot be 0");
@@ -335,12 +332,14 @@ void GroupedNoQuantMatmulTiling::SetMatMulTiling()
 
 bool GroupedNoQuantMatmulTiling::SetCustomParam(gert::TilingContext *context)
 {
-    size_t *workspaces = context->GetWorkspaceSizes(1);    // get second variable
-    OP_CHECK_IF(workspaces == nullptr, OP_LOGE(context->GetNodeName(), "workspaces is nullptr."), return false);  // check workspaces is not null
-    workspaces[0] = 32U;                                   // 32: default workspace size
+    size_t *workspaces = context->GetWorkspaceSizes(1); // get second variable
+    OP_CHECK_IF(workspaces == nullptr, OP_LOGE(context->GetNodeName(), "workspaces is nullptr."),
+                return false); // check workspaces is not null
+    workspaces[0] = 32U;       // 32: default workspace size
 
     context->SetBlockDim(usedCoreNum_);
-    OP_CHECK_IF(context->GetRawTilingData() == nullptr, OP_LOGE(context->GetNodeName(), "RawTilingData is nullptr."), return false);
+    OP_CHECK_IF(context->GetRawTilingData() == nullptr, OP_LOGE(context->GetNodeName(), "RawTilingData is nullptr."),
+                return false);
     tilingData_.SaveToBuffer(context->GetRawTilingData()->GetData(), context->GetRawTilingData()->GetCapacity());
     context->GetRawTilingData()->SetDataSize(tilingData_.GetDataSize());
     return true;
@@ -348,60 +347,58 @@ bool GroupedNoQuantMatmulTiling::SetCustomParam(gert::TilingContext *context)
 
 void GroupedNoQuantMatmulTiling::SetTilingKey(gert::TilingContext *context)
 {
-    tilingKeyBuilder_.gmmTrans = static_cast<uint8_t>(transposeX_) | (static_cast<uint8_t>(transposeWeight_) << 1) ;
-    OP_LOGI(
-        context->GetNodeName(),
-        "GMM Tiling key: gmmTrans %u, tilingkey: %lu",
-        tilingKeyBuilder_.gmmTrans, tilingKeyBuilder_.GenTilingKey());
+    tilingKeyBuilder_.gmmTrans = static_cast<uint8_t>(transposeX_) | (static_cast<uint8_t>(transposeWeight_) << 1);
     context->SetTilingKey(tilingKeyBuilder_.GenTilingKey());
 }
 
-bool GroupedNoQuantMatmulTiling::GMMGetTensorShapeSplitM(const gert::TilingContext* context, const gert::Shape xShape,
-    const gert::Shape wShape)
+bool GroupedNoQuantMatmulTiling::GMMGetTensorShapeSplitM(const gert::TilingContext *context, const gert::Shape xShape,
+                                                         const gert::Shape wShape)
 {
-    if (isSingleX_ && isSingleWeight_ && isSingleY_) {  // split M, s-s-s
-      return SplitMSingleXSingleWeightSingleY(xShape, wShape);
+    if (isSingleX_ && isSingleWeight_ && isSingleY_) { // split M, s-s-s
+        return SplitMSingleXSingleWeightSingleY(xShape, wShape);
     }
-    if (!isSingleX_ && !isSingleWeight_ && isSingleY_) {  // split M, m-m-s
-      return SeparatedXSeparatedWeight(context);
+    if (!isSingleX_ && !isSingleWeight_ && isSingleY_) { // split M, m-m-s
+        return SeparatedXSeparatedWeight(context);
     }
-    if (isSingleX_ && !isSingleWeight_ && !isSingleY_) {  // splitM, s-m-m
-      return SplitMSingleXSeparatedWeight(context, xShape);
+    if (isSingleX_ && !isSingleWeight_ && !isSingleY_) { // splitM, s-m-m
+        return SplitMSingleXSeparatedWeight(context, xShape);
     }
-    if (isSingleX_ && !isSingleWeight_ && isSingleY_) {  // split M, s-m-s
-      return SplitMSingleXSeparatedWeight(context, xShape);
+    if (isSingleX_ && !isSingleWeight_ && isSingleY_) { // split M, s-m-s
+        return SplitMSingleXSeparatedWeight(context, xShape);
     }
-    if (!isSingleX_ && !isSingleWeight_ && !isSingleY_) {  // split M, m-m-m
-      return SeparatedXSeparatedWeight(context);
+    if (!isSingleX_ && !isSingleWeight_ && !isSingleY_) { // split M, m-m-m
+        return SeparatedXSeparatedWeight(context);
     }
-    if (!isSingleX_ && isSingleWeight_) {  // split M, m-s-m/m-s-s
-      return SeparatedXSingleWeight(context, wShape);
+    if (!isSingleX_ && isSingleWeight_) { // split M, m-s-m/m-s-s
+        return SeparatedXSingleWeight(context, wShape);
     }
-    OP_LOGE(context->GetNodeName(), "GMM_tiling: not support groupType_=%d, isSingleWeight_=%d, isSingleX_=%d, isSingleY_=%d",
-              groupType_, isSingleWeight_, isSingleX_, isSingleY_);
+    OP_LOGE(context->GetNodeName(),
+            "GMM_tiling: not support groupType_=%d, isSingleWeight_=%d, isSingleX_=%d, isSingleY_=%d", groupType_,
+            isSingleWeight_, isSingleX_, isSingleY_);
     return false;
 }
 
-bool GroupedNoQuantMatmulTiling::GMMGetTensorShapeSplitK(const gert::TilingContext* context, const gert::Shape xShape,
-    const gert::Shape wShape)
+bool GroupedNoQuantMatmulTiling::GMMGetTensorShapeSplitK(const gert::TilingContext *context, const gert::Shape xShape,
+                                                         const gert::Shape wShape)
 {
-    if (isSingleX_ && isSingleWeight_ && isSingleY_) {  // splitK, s-s-s
-      return SplitKSingleXSingleWeightSingleY(context, xShape, wShape);
+    if (isSingleX_ && isSingleWeight_ && isSingleY_) { // splitK, s-s-s
+        return SplitKSingleXSingleWeightSingleY(context, xShape, wShape);
     }
-    OP_LOGE(context->GetNodeName(), "GMM_tiling: not support groupType_=%d, isSingleWeight_=%d, isSingleX_=%d, isSingleY_=%d",
-              groupType_, isSingleWeight_, isSingleX_, isSingleY_);
+    OP_LOGE(context->GetNodeName(),
+            "GMM_tiling: not support groupType_=%d, isSingleWeight_=%d, isSingleX_=%d, isSingleY_=%d", groupType_,
+            isSingleWeight_, isSingleX_, isSingleY_);
     return false;
 }
 
 /** @brief split M：single-single-single(s-s-s)
-*/
+ */
 bool GroupedNoQuantMatmulTiling::SplitMSingleXSingleWeightSingleY(const gert::Shape xShape, const gert::Shape wShape)
 {
     groupNum_ = static_cast<int32_t>(wShape.GetDim(0));
     int64_t m = xShape.GetDim(0);
     int64_t k = xShape.GetDim(xKDim_);
     int64_t n = wShape.GetDim(weightNDim_) * nzFactor_;
-    kList_[0] = static_cast<int32_t>(k);  // if split M axis, the K axis values of x tensorList are all the same.
+    kList_[0] = static_cast<int32_t>(k); // if split M axis, the K axis values of x tensorList are all the same.
     nList_[0] = static_cast<int32_t>(n);
     mList_[0] = -1;
     m_ = static_cast<uint64_t>(m);
@@ -411,70 +408,77 @@ bool GroupedNoQuantMatmulTiling::SplitMSingleXSingleWeightSingleY(const gert::Sh
 }
 
 /** @brief split M：single-multi-single(s-m-s)/single-multi-multi(s-m-m), share the same function.
-*/
-bool GroupedNoQuantMatmulTiling::SplitMSingleXSeparatedWeight(const gert::TilingContext* context, const gert::Shape xShape)
+ */
+bool GroupedNoQuantMatmulTiling::SplitMSingleXSeparatedWeight(const gert::TilingContext *context,
+                                                              const gert::Shape xShape)
 {
     int64_t m = xShape.GetDim(0);
     int64_t k = xShape.GetDim(xKDim_);
     for (uint32_t i = 0; i < MAX_TENSOR; i++) {
-      auto wTensor = context->GetDynamicInputTensor(INDEX_WEIGHT, i);
-      if (wTensor == nullptr) { break; }  // when x has multi tensors, xTensor is allowed to be empty
-      auto wShape = wTensor->GetOriginShape();
+        auto wTensor = context->GetDynamicInputTensor(INDEX_WEIGHT, i);
+        if (wTensor == nullptr) {
+            break;
+        } // when x has multi tensors, xTensor is allowed to be empty
+        auto wShape = wTensor->GetOriginShape();
 
-      groupNum_ += 1U;
-      kList_[i] = static_cast<int32_t>(k);
-      int64_t n = wShape.GetDim(weightNDim_) * nzFactor_;
-      nList_[i] = static_cast<int32_t>(n);
-      n_ = std::max(n_, static_cast<uint64_t>(n));
+        groupNum_ += 1U;
+        kList_[i] = static_cast<int32_t>(k);
+        int64_t n = wShape.GetDim(weightNDim_) * nzFactor_;
+        nList_[i] = static_cast<int32_t>(n);
+        n_ = std::max(n_, static_cast<uint64_t>(n));
     }
-    mList_[0] = -1;  // mList is unknown right now
+    mList_[0] = -1; // mList is unknown right now
     m_ = static_cast<uint64_t>(m);
     k_ = static_cast<uint64_t>(k);
     return true;
 }
 
 /** @brief split M：multi-multi-single(m-m-s); no split: multi-multi-multi(m-m-m), share the same function
-*/
-bool GroupedNoQuantMatmulTiling::SeparatedXSeparatedWeight(const gert::TilingContext* context)
+ */
+bool GroupedNoQuantMatmulTiling::SeparatedXSeparatedWeight(const gert::TilingContext *context)
 {
     for (uint32_t i = 0; i < MAX_TENSOR; i++) {
-      auto wTensor = context->GetDynamicInputTensor(INDEX_WEIGHT, i);
-      auto xTensor = context->GetDynamicInputTensor(INDEX_X, i);
-      if (wTensor == nullptr || xTensor == nullptr) { break; }
-      auto wShape = wTensor->GetOriginShape();
-      auto xShape = xTensor->GetStorageShape();
-      groupNum_ += 1U;
-      int64_t m = xShape.GetDim(0);
-      int64_t k = xShape.GetDim(xKDim_);
-      int64_t n = wShape.GetDim(weightNDim_) * nzFactor_;
-      mList_[i] = static_cast<int32_t>(m);
-      kList_[i] = static_cast<int32_t>(k);
-      nList_[i] = static_cast<int32_t>(n);
-      m_ = std::max(m_, static_cast<uint64_t>(m));
-      k_ = std::max(k_, static_cast<uint64_t>(k));
-      n_ = std::max(n_, static_cast<uint64_t>(n));
+        auto wTensor = context->GetDynamicInputTensor(INDEX_WEIGHT, i);
+        auto xTensor = context->GetDynamicInputTensor(INDEX_X, i);
+        if (wTensor == nullptr || xTensor == nullptr) {
+            break;
+        }
+        auto wShape = wTensor->GetOriginShape();
+        auto xShape = xTensor->GetStorageShape();
+        groupNum_ += 1U;
+        int64_t m = xShape.GetDim(0);
+        int64_t k = xShape.GetDim(xKDim_);
+        int64_t n = wShape.GetDim(weightNDim_) * nzFactor_;
+        mList_[i] = static_cast<int32_t>(m);
+        kList_[i] = static_cast<int32_t>(k);
+        nList_[i] = static_cast<int32_t>(n);
+        m_ = std::max(m_, static_cast<uint64_t>(m));
+        k_ = std::max(k_, static_cast<uint64_t>(k));
+        n_ = std::max(n_, static_cast<uint64_t>(n));
     }
     groupType_ = NO_SPLIT;
     return true;
 }
 
 /** @brief split M : multi-single-multi(m-s-m), split K : multi-single-multi(m-s-m), share the same function
-*/
-bool GroupedNoQuantMatmulTiling::SeparatedXSingleWeight(const gert::TilingContext* context, const gert::Shape wShape)
+ */
+bool GroupedNoQuantMatmulTiling::SeparatedXSingleWeight(const gert::TilingContext *context, const gert::Shape wShape)
 {
     int64_t n = wShape.GetDim(weightNDim_) * nzFactor_;
     for (uint32_t i = 0; i < MAX_TENSOR; i++) {
-      auto xTensor = context->GetDynamicInputTensor(INDEX_X, i);
-      if (xTensor == nullptr) { break; }  // when x has multi tensors, xTensor is allowed to be empty
-      auto xShape = xTensor->GetStorageShape();
-      groupNum_ += 1U;
-      int64_t m = xShape.GetDim(0);
-      int64_t k = xShape.GetDim(xKDim_);
-      mList_[i] = static_cast<int32_t>(m);
-      kList_[i] = static_cast<int32_t>(k);
-      nList_[i] = static_cast<int32_t>(n);
-      m_ = std::max(m_, static_cast<uint64_t>(m));
-      k_ = std::max(k_, static_cast<uint64_t>(k));
+        auto xTensor = context->GetDynamicInputTensor(INDEX_X, i);
+        if (xTensor == nullptr) {
+            break;
+        } // when x has multi tensors, xTensor is allowed to be empty
+        auto xShape = xTensor->GetStorageShape();
+        groupNum_ += 1U;
+        int64_t m = xShape.GetDim(0);
+        int64_t k = xShape.GetDim(xKDim_);
+        mList_[i] = static_cast<int32_t>(m);
+        kList_[i] = static_cast<int32_t>(k);
+        nList_[i] = static_cast<int32_t>(n);
+        m_ = std::max(m_, static_cast<uint64_t>(m));
+        k_ = std::max(k_, static_cast<uint64_t>(k));
     }
     n_ = static_cast<uint64_t>(n);
     groupType_ = NO_SPLIT;
@@ -482,9 +486,9 @@ bool GroupedNoQuantMatmulTiling::SeparatedXSingleWeight(const gert::TilingContex
 }
 
 /** @brief split K single-single-single
-*/
-bool GroupedNoQuantMatmulTiling::SplitKSingleXSingleWeightSingleY(const gert::TilingContext* context,
-    const gert::Shape xShape, const gert::Shape wShape)
+ */
+bool GroupedNoQuantMatmulTiling::SplitKSingleXSingleWeightSingleY(const gert::TilingContext *context,
+                                                                  const gert::Shape xShape, const gert::Shape wShape)
 {
     int64_t m = xShape.GetDim(1);
     int64_t k = xShape.GetDim(xKDim_);
@@ -492,11 +496,11 @@ bool GroupedNoQuantMatmulTiling::SplitKSingleXSingleWeightSingleY(const gert::Ti
 
     auto groupListTensor = context->GetDynamicInputTensor(INDEX_GROUPLIST, 0);
     if (groupListTensor == nullptr) {
-      OP_LOGE(context->GetNodeName(), "groupListTensor is nullptr");
-      return false;
+        OP_LOGE(context->GetNodeName(), "groupListTensor is nullptr");
+        return false;
     }
     gert::Shape groupListShape = groupListTensor->GetStorageShape();
-    groupNum_ = static_cast<int32_t>(groupListShape.GetDim(0));  // 0: the first dim of groupList is groupNum
+    groupNum_ = static_cast<int32_t>(groupListShape.GetDim(0)); // 0: the first dim of groupList is groupNum
     mList_[0] = static_cast<int32_t>(m);
     nList_[0] = static_cast<int32_t>(n);
     kList_[0] = -1;
@@ -508,24 +512,22 @@ bool GroupedNoQuantMatmulTiling::SplitKSingleXSingleWeightSingleY(const gert::Ti
 
 void GroupedNoQuantMatmulTiling::PrintTilingResult(const gert::TilingContext *context)
 {
-    OP_LOGI(
-        context->GetNodeName(),
-        "GMM Tiling result: groupNum: %u, singleX: %u, singleWeight: %u, singleY: %u,"
-        "groupType: %d, groupListType: %u, hasBias: %u, mTailCnt: %u, nTailCnt: %u",
-        tilingData_.gmmNoQuantParam.get_groupNum(), tilingData_.gmmNoQuantParam.get_singleX(),
-        tilingData_.gmmNoQuantParam.get_singleWeight(), tilingData_.gmmNoQuantParam.get_singleY(),
-        tilingData_.gmmNoQuantParam.get_groupType(), tilingData_.gmmNoQuantParam.get_groupListType(),
-        tilingData_.gmmNoQuantParam.get_hasBias(), tilingData_.gmmNoQuantParam.get_mTailCnt(),
-        tilingData_.gmmNoQuantParam.get_nTailCnt());
+    OP_LOGI(context->GetNodeName(),
+            "GMM Tiling result: groupNum: %u, singleX: %u, singleWeight: %u, singleY: %u,"
+            "groupType: %d, groupListType: %u, hasBias: %u, mTailCnt: %u, nTailCnt: %u",
+            tilingData_.gmmNoQuantParam.get_groupNum(), tilingData_.gmmNoQuantParam.get_singleX(),
+            tilingData_.gmmNoQuantParam.get_singleWeight(), tilingData_.gmmNoQuantParam.get_singleY(),
+            tilingData_.gmmNoQuantParam.get_groupType(), tilingData_.gmmNoQuantParam.get_groupListType(),
+            tilingData_.gmmNoQuantParam.get_hasBias(), tilingData_.gmmNoQuantParam.get_mTailCnt(),
+            tilingData_.gmmNoQuantParam.get_nTailCnt());
 
-    OP_LOGI(
-        context->GetNodeName(),
-        "GMM MatMul Tiling result: usedCoreNum: %d, baseM: %d, baseN: %d, baseK: %d, stepKa: %d,"
-        "stepKb: %d, depthA1: %d, depthB1: %d",
-        tilingData_.mmTilingData.get_usedCoreNum(), tilingData_.mmTilingData.get_baseM(),
-        tilingData_.mmTilingData.get_baseN(), tilingData_.mmTilingData.get_baseK(),
-        tilingData_.mmTilingData.get_stepKa(), tilingData_.mmTilingData.get_stepKb(),
-        tilingData_.mmTilingData.get_depthA1(), tilingData_.mmTilingData.get_depthB1());
+    OP_LOGI(context->GetNodeName(),
+            "GMM MatMul Tiling result: usedCoreNum: %d, baseM: %d, baseN: %d, baseK: %d, stepKa: %d,"
+            "stepKb: %d, depthA1: %d, depthB1: %d",
+            tilingData_.mmTilingData.get_usedCoreNum(), tilingData_.mmTilingData.get_baseM(),
+            tilingData_.mmTilingData.get_baseN(), tilingData_.mmTilingData.get_baseK(),
+            tilingData_.mmTilingData.get_stepKa(), tilingData_.mmTilingData.get_stepKb(),
+            tilingData_.mmTilingData.get_depthA1(), tilingData_.mmTilingData.get_depthB1());
 }
 
-}  // namespace optiling
+} // namespace optiling
