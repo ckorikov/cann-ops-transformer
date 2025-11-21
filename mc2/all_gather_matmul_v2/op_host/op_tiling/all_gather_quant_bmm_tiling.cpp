@@ -84,7 +84,7 @@ ge::graphStatus AllGatherQuantBmmTiling::CheckGroupSize()
             groupSize != 0,
             CUBE_INNER_ERR_REPORT(opName_, "groupSize 0 in pertensor scene,"
             " but actual is groupSize = %ld", groupSize), return ge::GRAPH_FAILED);
-    } else if((quantMmMode_ == mc2tiling::Mc2QuantMode::PERTENSOR_MODE) &&
+    } else if ((quantMmMode_ == mc2tiling::Mc2QuantMode::PERTENSOR_MODE) &&
         (scaleInv1Desc->GetDataType() == ge::DataType::DT_FLOAT8_E8M0)) {
         // MX
         uint64_t groupSizeK = groupSize & GROUP_MNK_BIT_SIZE;
@@ -161,43 +161,70 @@ ge::graphStatus AllGatherQuantBmmTiling::CheckPerBlockScaleInput()
     return ge::GRAPH_SUCCESS;
 }
 
+ge::graphStatus AllGatherQuantBmmTiling::CheckMXFPScaleInput()
+{
+    auto scaleInv1Shape = context_->GetOptionalInputShape(SCALE_INV1);
+    auto scaleInv2Shape = context_->GetOptionalInputShape(SCALE_INV2);
+    const gert::StorageShape* x2Shape = context_->GetInputShape(INPUT_X2);
+    uint64_t x2Dim0 = x2Shape->GetStorageShape().GetDim(0);
+    uint64_t x2Dim1 = x2Shape->GetStorageShape().GetDim(1);
+    uint64_t scale1FirstDim = scaleInv1Shape->GetStorageShape().GetDim(0);
+    uint64_t scale1SecondDim = scaleInv1Shape->GetStorageShape().GetDim(1);
+    uint64_t scale1ThirdDim = scaleInv1Shape->GetStorageShape().GetDim(2);
+    uint64_t scale2FirstDim = scaleInv2Shape->GetStorageShape().GetDim(0);
+    uint64_t scale2SecondDim = scaleInv2Shape->GetStorageShape().GetDim(1);
+    uint64_t scale2ThirdDim = scaleInv2Shape->GetStorageShape().GetDim(2);
+    uint64_t ceilKAlign = (args_.kValue + MX_SCALE_OFFSET) / MX_SCALE_ALIGN;
+    OP_LOGI(
+        opName_,
+        "scale1FirstDim=%lu, scale1SecondDim=%lu, scale1ThirdDim=%lu, "
+        "scale2FirstDim=%lu, scale2SecondDim=%lu, scale2ThirdDim=%lu, mValue=%lu, ceilKAlign=%lu, nValue=%lu.",
+        scale1FirstDim, scale1SecondDim, scale1ThirdDim, scale2FirstDim, scale2SecondDim, scale2ThirdDim,
+        args_.mValue, ceilKAlign, args_.nValue);
+    OP_TILING_CHECK(
+        (scale1FirstDim != args_.mValue) || (scale1SecondDim != ceilKAlign) || (scale1ThirdDim != EVEN_ALIGN),
+        CUBE_INNER_ERR_REPORT(
+            opName_, "Wrong shape of scaleInv1Shape! "
+            "Expected scaleInv1Shape: [x1Dim0, Ceil(x1Dim1, 64), 2] = [%ld, %ld, %ld], actual: [%ld, %ld, %ld]",
+            args_.mValue, ceilKAlign, EVEN_ALIGN, scale1FirstDim, scale1SecondDim, scale1ThirdDim),
+            return ge::GRAPH_FAILED);
+    bool isTransB = *context_->GetAttrs()->GetAttrPointer<bool>(IS_TRANS_B);
+    bool nIsOne = (isTransB) ? (x2Dim0 == 1) : (x2Dim1 == 1);
+    if (!nIsOne) {
+        if (isTransB) {
+            OP_TILING_CHECK(
+                (scale2FirstDim != args_.nValue) || (scale2SecondDim != ceilKAlign) || (scale2ThirdDim != EVEN_ALIGN),
+                CUBE_INNER_ERR_REPORT(
+                    opName_, "Wrong shape of scaleInv2Shape! "
+                    "Expected scaleInv2Shape: [x2Dim0, Ceil(x2Dim1, 64), 2] = [%ld, %ld, %ld], actual: [%ld, %ld, %ld]",
+                    args_.nValue, ceilKAlign, EVEN_ALIGN, scale2FirstDim, scale2SecondDim, scale2ThirdDim),
+                    return ge::GRAPH_FAILED);
+            scale1kSpaceSize_ = args_.rankDim * scale1FirstDim * scale1SecondDim * sizeof(ge::DT_FLOAT8_E8M0);
+            OP_LOGI(opName_, "scale1kSpaceSize_=%lu.", scale1kSpaceSize_);
+        } else {
+            OP_TILING_CHECK(
+                (scale2FirstDim != ceilKAlign) || (scale2SecondDim != args_.nValue) || (scale2ThirdDim != EVEN_ALIGN),
+                CUBE_INNER_ERR_REPORT(
+                    opName_, "Wrong shape of scaleInv2Shape! "
+                    "Expected scaleInv2Shape: [Ceil(x2Dim0, 64), x2Dim1, 2] = [%ld, %ld, %ld], actual: [%ld, %ld, %ld]",
+                    ceilKAlign, args_.nValue, EVEN_ALIGN, scale2FirstDim, scale2SecondDim, scale2ThirdDim),
+                    return ge::GRAPH_FAILED);
+            scale1kSpaceSize_ = args_.rankDim * scale1FirstDim * scale1SecondDim * sizeof(ge::DT_FLOAT8_E8M0);
+            OP_LOGI(opName_, "scale1kSpaceSize_=%lu.", scale1kSpaceSize_);
+        }
+    }
+    return ge::GRAPH_SUCCESS;
+}
+
 ge::graphStatus AllGatherQuantBmmTiling::CheckPerTensorScaleInput()
 {
     auto scaleInv1Shape = context_->GetOptionalInputShape(SCALE_INV1);
     auto scaleInv2Shape = context_->GetOptionalInputShape(SCALE_INV2);
     auto scaleInv1Desc = context_->GetOptionalInputDesc(SCALE_INV1);
-    uint64_t scale1FirstDim = scaleInv1Shape->GetStorageShape().GetDim(0);
-    uint64_t scale2FirstDim = scaleInv2Shape->GetStorageShape().GetDim(0);
     if (scaleInv1Desc->GetDataType() == ge::DataType::DT_FLOAT8_E8M0) {
         // MX
-        uint64_t scale1SecondDim = scaleInv1Shape->GetStorageShape().GetDim(1);
-        uint64_t scale2SecondDim = scaleInv2Shape->GetStorageShape().GetDim(1);
-        uint64_t scale1ThirdDim = scaleInv1Shape->GetStorageShape().GetDim(2);
-        uint64_t scale2ThirdDim = scaleInv2Shape->GetStorageShape().GetDim(2);
-        uint64_t ceilKAlign = (args_.kValue + MX_SCALE_OFFSET) / MX_SCALE_ALIGN;
-        OP_LOGI(
-            opName_,
-            "scale1FirstDim=%lu, scale1SecondDim=%lu, scale1ThirdDim=%lu, "
-            "scale2FirstDim=%lu, scale2SecondDim=%lu, scale1ThirdDim=%lu, mValue=%lu, ceilKAlign=%lu, nValue=%lu.",
-            scale1FirstDim, scale1SecondDim, scale1ThirdDim, scale2FirstDim, scale2SecondDim, scale2ThirdDim,
-            args_.mValue, ceilKAlign, args_.nValue);
-        OP_TILING_CHECK(
-            (scale1FirstDim != args_.mValue) || (scale1SecondDim != ceilKAlign) || (scale1ThirdDim != EVEN_ALIGN),
-            CUBE_INNER_ERR_REPORT(
-                opName_, "Wrong shape of scaleInv1Shape! "
-                "The expected scaleInv1Shape is [x1Dim0, Ceil(x1Dim1, 64), 2] = [%ld, %ld, %ld], but got [%ld, %ld, %ld]",
-                args_.mValue, ceilKAlign, EVEN_ALIGN, scale1FirstDim, scale1SecondDim, scale1ThirdDim),
-                return ge::GRAPH_FAILED);
-        OP_TILING_CHECK(
-            (scale2FirstDim != args_.nValue) || (scale2SecondDim != ceilKAlign) || (scale2ThirdDim != EVEN_ALIGN),
-            CUBE_INNER_ERR_REPORT(
-                opName_, "Wrong shape of scaleInv2Shape! "
-                "The expected scaleInv2Shape is [x2Dim1, Ceil(x2Dim0, 64), 2] = [%ld, %ld, %ld], but got [%ld, %ld, %ld]",
-                ceilKAlign, args_.nValue, EVEN_ALIGN, scale2FirstDim, scale2SecondDim, scale2ThirdDim),
-                return ge::GRAPH_FAILED);
-        
-        scale1kSpaceSize_ = args_.rankDim * scale1FirstDim * scale1SecondDim * sizeof(ge::DT_FLOAT8_E8M0);
-        OP_LOGI(opName_, "scale1kSpaceSize_=%lu.", scale1kSpaceSize_);
+        OP_TILING_CHECK(CheckMXFPScaleInput() == ge::GRAPH_FAILED,
+                        CUBE_INNER_ERR_REPORT(opName_, "Check mxfp scale input failed"), return ge::GRAPH_FAILED); 
     } else {
         OP_TILING_CHECK(
             (scaleInv1Shape->GetStorageShape().GetDim(0) != DIM_IS_ONE) ||

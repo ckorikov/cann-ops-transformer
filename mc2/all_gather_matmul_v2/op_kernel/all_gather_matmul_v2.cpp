@@ -91,6 +91,8 @@ extern "C" __global__ __aicore__ void all_gather_matmul_v2(GM_ADDR aGM, GM_ADDR 
         #if (ORIG_DTYPE_X1 != DT_HIFLOAT8)
             if (TILING_KEY_IS(1000000000012001100UL) || TILING_KEY_IS(1000000000012021100UL)) {
                 INVOKE_ALL_GATHER_QUANT_BATCHMATMUL_MX_OP_IMPL(AllGatherQuantBmm, false, true);
+            } else if (TILING_KEY_IS(1000000000010001100UL) || TILING_KEY_IS(1000000000010021100UL)) {
+                INVOKE_ALL_GATHER_QUANT_BATCHMATMUL_MX_OP_IMPL(AllGatherQuantBmm, false, false);
             }
         #endif
     if (TILING_KEY_IS(1000000000000001100UL)) {

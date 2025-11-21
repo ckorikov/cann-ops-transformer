@@ -65,6 +65,7 @@ protected:
     void SetTilingKeyParams();
     ge::graphStatus CheckGroupSize();
     ge::graphStatus CheckPerBlockScaleInput();
+    ge::graphStatus CheckMXFPScaleInput();
     ge::graphStatus CheckPerTensorScaleInput();
     ge::graphStatus CheckBiasInput();
     ge::graphStatus SetQuantScene();
