@@ -7,8 +7,8 @@
  * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
-#ifndef OP_API_INC_GROUPED_MATMUL_SWIGLU_QUANT_WEIGHT_NZ_V2_H
-#define OP_API_INC_GROUPED_MATMUL_SWIGLU_QUANT_WEIGHT_NZ_V2_H
+#ifndef OP__HOST_OP_API_ACLNN_GROUPED_MATMUL_SWIGLU_QUANT_WEIGHT_NZ_V2_H
+#define OP__HOST_OP_API_ACLNN_GROUPED_MATMUL_SWIGLU_QUANT_WEIGHT_NZ_V2_H
 #include "aclnn/aclnn_base.h"
 
 #ifdef __cplusplus
@@ -23,7 +23,7 @@ extern "C" {
  * @param [in] weight:
  * 表示公式中的weight，数据类型支持INT8数据类型，数据格式支持NZ。
  * @param [in] weightScale:
- * 表示量化参数，数据类型支持FLOAT32数据类型，数据格式支持ND。 
+ * 表示量化参数，数据类型支持FLOAT32数据类型，数据格式支持ND。
  * @param [in] weightAssistMatrix:
  * 表示weight辅助矩阵，数据类型支持FLOAT32数据类型。 
   * @param [in] weightScale:
@@ -55,16 +55,18 @@ aclnnStatus aclnnGroupedMatmulSwigluQuantWeightNzV2GetWorkspaceSize(const aclTen
         uint64_t *workspaceSize, aclOpExecutor **executor);
 
 /**
- * @brief aclnnGroupedMatmulSwigluQuantV2的第二段接口，用于执行计算。
+ * @brief aclnnGroupedMatmulSwigluQuantWeightNzV2的第二段接口，用于执行计算。
  * @param [in] workspace: 在npu device侧申请的workspace内存起址。
  * @param [in] workspaceSize: 在npu
- * device侧申请的workspace大小，由第一段接口aclnnGroupedMatmulSwigluQuantV2GetWorkspaceSize获取。
+ * device侧申请的workspace大小，由第一段接口aclnnGroupedMatmulSwigluQuantWeightNzV2GetWorkspaceSize获取。
  * @param [in] stream: acl stream流。
  * @param [in] executor: op执行器，包含了算子计算流程。
  * @return aclnnStatus: 返回状态码。
  */
-__attribute__((visibility("default"))) aclnnStatus aclnnGroupedMatmulSwigluQuantWeightNzV2(void *workspace, uint64_t workspaceSize,
-    aclOpExecutor *executor, aclrtStream stream);
+__attribute__((visibility("default"))) aclnnStatus aclnnGroupedMatmulSwigluQuantWeightNzV2(void *workspace,
+                                                                                           uint64_t workspaceSize,
+                                                                                           aclOpExecutor *executor,
+                                                                                           aclrtStream stream);
 
 #ifdef __cplusplus
 }

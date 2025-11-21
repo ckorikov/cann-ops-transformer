@@ -20,6 +20,10 @@ using namespace matmul_tiling;
 
 namespace optiling {
 namespace GroupedMatmulSwigluQuantV2Tiling {
+
+constexpr int64_t ND_WEIGHT_MULTI_TENSOR_DIM = 2;
+constexpr int64_t NZ_WEIGHT_MULTI_TENSOR_DIM = 4;
+
 template <typename T>
 static inline auto AlignUp(T a, T base) -> T
 {
@@ -41,19 +45,20 @@ int64_t GroupedMatmulSwigluQuantV2BaseTiling::CalMaxRowInUbA8W4(const uint64_t u
     // 表达式：8.5 * row * n + 4 * alignUp(row, 8) + 6n + 64 <= ubSize
 
     // 忽略对齐项的初始估计
-    int64_t maxRowEstimate = (ubSize - CONSTANT_TERM - LINEAR_TERM_FACTOR * n) / static_cast<int64_t>(WEIGHT_FACTOR * n);
+    int64_t maxRowEstimate =
+        (ubSize - CONSTANT_TERM - LINEAR_TERM_FACTOR * n) / static_cast<int64_t>(WEIGHT_FACTOR * n);
 
     // 考虑对齐影响
     uint64_t alignedRow = (maxRowEstimate + ALIGNMENT - 1) / ALIGNMENT * ALIGNMENT;
-    uint64_t totalSize = static_cast<uint64_t>(WEIGHT_FACTOR * maxRowEstimate * n) + ALIGNMENT_TERM_FACTOR * alignedRow +
-                         LINEAR_TERM_FACTOR * n + CONSTANT_TERM;
+    uint64_t totalSize = static_cast<uint64_t>(WEIGHT_FACTOR * maxRowEstimate * n) +
+                         ALIGNMENT_TERM_FACTOR * alignedRow + LINEAR_TERM_FACTOR * n + CONSTANT_TERM;
 
     // 如果超过UB大小，逐步减少row直到满足条件
     while (totalSize > ubSize && maxRowEstimate > 0) {
         maxRowEstimate--;
         alignedRow = (maxRowEstimate + ALIGNMENT - 1) / ALIGNMENT * ALIGNMENT;
-        totalSize = static_cast<uint64_t>(WEIGHT_FACTOR * maxRowEstimate * n) + ALIGNMENT_TERM_FACTOR * alignedRow + LINEAR_TERM_FACTOR * n +
-                    CONSTANT_TERM;
+        totalSize = static_cast<uint64_t>(WEIGHT_FACTOR * maxRowEstimate * n) + ALIGNMENT_TERM_FACTOR * alignedRow +
+                    LINEAR_TERM_FACTOR * n + CONSTANT_TERM;
     }
 
     if (maxRowEstimate < MIN_ROW_THRESHOLD) {
@@ -83,9 +88,31 @@ int64_t GroupedMatmulSwigluQuantV2BaseTiling::CalMaxRowInUb(const uint64_t ubSiz
     }
     if (maxRowInUb < 1) {
         // when n > (ubSize - 72) / 19 = 10330, maxRowInUb < 1
-        OP_LOGE(context_->GetNodeName(), "GMM_SWIGLU_QUANT TILING: n should not be greater than 10240, now is %lu\n", n);
+        OP_LOGE(context_->GetNodeName(), "GMM_SWIGLU_QUANT TILING: n should not be greater than 10240, now is %lu\n",
+                n);
     }
     return maxRowInUb;
+}
+
+bool GroupedMatmulSwigluQuantV2BaseTiling::IsCapable()
+{
+    auto weightDesc = context_->GetInputDesc(WEIGHT_INDEX);
+    OP_CHECK_NULL_WITH_CONTEXT(context_, weightDesc);
+    ge::DataType weightDType = weightDesc->GetDataType();
+    if (weightDType != ge::DataType::DT_INT4) {
+        return false;
+    }
+
+    auto wTensor = context_->GetDynamicInputTensor(WEIGHT_INDEX, 0);
+    OP_CHECK_NULL_WITH_CONTEXT(context_, wTensor);
+    if (!(wTensor->GetStorageShape().GetDimNum() == ND_WEIGHT_DIM_LIMIT ||
+          wTensor->GetStorageShape().GetDimNum() == ND_WEIGHT_MULTI_TENSOR_DIM ||
+          wTensor->GetStorageShape().GetDimNum() == NZ_WEIGHT_DIM_LIMIT ||
+          wTensor->GetStorageShape().GetDimNum() == NZ_WEIGHT_MULTI_TENSOR_DIM)) {
+        return false;
+    }
+
+    return true;
 }
 
 ge::graphStatus GroupedMatmulSwigluQuantV2BaseTiling::ParseInputAndAttr()
@@ -103,26 +130,47 @@ ge::graphStatus GroupedMatmulSwigluQuantV2BaseTiling::ParseInputAndAttr()
     auto groupListTensor = context_->GetDynamicInputTensor(GROUPLIST_INDEX, 0);
     OP_CHECK_NULL_WITH_CONTEXT(context_, groupListTensor);
 
+    auto wDimNum = wTensor->GetStorageShape().GetDimNum();
+    if (wDimNum == ND_WEIGHT_DIM_LIMIT || wDimNum == NZ_WEIGHT_DIM_LIMIT) {
+        isSingleTensor_ = 1;
+    } else {
+        isSingleTensor_ = 0;
+    }
+
+    auto attr = context_->GetAttrs();
+    OP_CHECK_NULL_WITH_CONTEXT(context_, attr); // check attr is not null
+    const uint32_t *dequantModePtr = attr->GetAttrPointer<uint32_t>(ATTR_INDEX_DEQUANT_MODE);
+    auto dequantMode = dequantModePtr != nullptr ? *dequantModePtr : 0;
+
     ge::DataType xDType = xDesc->GetDataType();
     ge::DataType weightDType = weightDesc->GetDataType();
 
     isA8W4MSD_ = (xDType == ge::DataType::DT_INT8 && weightDType == ge::DataType::DT_INT4);
     auto compileInfoPtr = context_->GetCompileInfo<GMMSwigluV2CompileInfo>();
-    OP_CHECK_IF(compileInfoPtr == nullptr,
-        OP_LOGE(context_->GetNodeName(), "CompileInfo is nullptr"), return ge::GRAPH_FAILED);
+    OP_CHECK_IF(compileInfoPtr == nullptr, OP_LOGE(context_->GetNodeName(), "CompileInfo is nullptr"),
+                return ge::GRAPH_FAILED);
 
     m_ = xTensor->GetStorageShape().GetDim(0);
     k_ = xTensor->GetStorageShape().GetDim(1);
-    if (wTensor->GetStorageShape().GetDimNum() == ND_WEIGHT_DIM_LIMIT) { // ND
+    if (wTensor->GetStorageShape().GetDimNum() == ND_WEIGHT_DIM_LIMIT) {
+        // ND SingleTensor [E, K, N]
         n_ = wTensor->GetStorageShape().GetDim(DIM_2);
-    } else if (wTensor->GetStorageShape().GetDimNum() == NZ_WEIGHT_DIM_LIMIT) { // NZ
+    } else if (wTensor->GetStorageShape().GetDimNum() == NZ_WEIGHT_DIM_LIMIT) {
+        // NZ SingleTensor [E, N // 64, K // 16, 16, 64]
         n_ = wTensor->GetStorageShape().GetDim(DIM_1) * wTensor->GetStorageShape().GetDim(DIM_4);
+    } else if (wTensor->GetStorageShape().GetDimNum() == ND_WEIGHT_MULTI_TENSOR_DIM) {
+        // ND MultiTensor [K, N]
+        n_ = wTensor->GetStorageShape().GetDim(DIM_1);
+    } else if (wTensor->GetStorageShape().GetDimNum() == NZ_WEIGHT_MULTI_TENSOR_DIM) {
+        // NZ MultiTensor [N // 64, K // 16, 16, 64]
+        n_ = wTensor->GetStorageShape().GetDim(DIM_0) * wTensor->GetStorageShape().GetDim(DIM_3);
     }
 
-    if (wScaleTensor->GetStorageShape().GetDimNum() == PERCHANNEL_WSCALE_DIM_LIMIT) { // perChannel
+    auto wScaleDimNum = wScaleTensor->GetStorageShape().GetDimNum();
+    if (dequantMode == 1) { // perGroup量化模式：单tensor场景[E, KGroupCount, N]，多tensor场景[KGroupCount, N]
+        quantGroupNum_ = wScaleTensor->GetStorageShape().GetDim(wScaleDimNum - 1);
+    } else { // perChannel量化模式
         quantGroupNum_ = 1;
-    } else if (wScaleTensor->GetStorageShape().GetDimNum() == PERGROUP_WSCALE_DIM_LIMIT) { // perGroup
-        quantGroupNum_ = wScaleTensor->GetStorageShape().GetDim(1);
     }
 
     groupNum_ = groupListTensor->GetStorageShape().GetDim(0);
@@ -134,8 +182,6 @@ ge::graphStatus GroupedMatmulSwigluQuantV2BaseTiling::ParseInputAndAttr()
     }
 
     blockDim_ = compileInfoPtr->aicNum_;
-    baseM_ = compileInfoPtr->baseM_;
-    baseM_ = compileInfoPtr->baseN_;
     return ge::GRAPH_SUCCESS;
 }
 
@@ -153,35 +199,53 @@ ge::graphStatus GroupedMatmulSwigluQuantV2BaseTiling::DoOpTiling()
     tiling.SetBType(TPosition::GM, CubeFormat::ND, matmul_tiling::DataType::DT_INT4);
     tiling.SetCType(TPosition::GM, CubeFormat::ND, matmul_tiling::DataType::DT_FLOAT16);
     tiling.SetBias(false);
-    tiling.SetShape(baseM_, baseN_, k_);
+    tiling.SetShape(A8W4_BASEM, A8W4_BASEN, k_);
+    tiling.SetFixSplit(A8W4_BASEM, A8W4_BASEN, A8W4_BASEK);
     tiling.SetOrgShape(m_, n_, k_);
     tiling.SetBufferSpace(-1, -1, -1);
-    OP_CHECK_IF(
-        tiling.GetTiling(tilingData_.mmTilingData) == -1,
-        OPS_REPORT_VECTOR_INNER_ERR(context_->GetNodeName(), "grouped_matmul_swiglu_quant_tiling, get tiling failed"),
-        return ge::GRAPH_FAILED);
+    OP_CHECK_IF(tiling.GetTiling(tilingData_.mmTilingData) == -1,
+                OPS_REPORT_VECTOR_INNER_ERR(context_->GetNodeName(),
+                                            "grouped_matmul_swiglu_quant_base_tiling, get tiling failed"),
+                return ge::GRAPH_FAILED);
+    if (isA8W4MSD_) {
+        tilingData_.mmTilingData.set_baseM(A8W4_BASEM);
+        tilingData_.mmTilingData.set_baseN(A8W4_BASEN);
+        tilingData_.mmTilingData.set_baseK(A8W4_BASEK);
+        tilingData_.mmTilingData.set_dbL0B(DOUBLE_BUFFER);
+        tilingData_.mmTilingData.set_stepKa(NUM_FOUR);
+        tilingData_.mmTilingData.set_stepKb(NUM_FOUR);
+        tilingData_.mmTilingData.set_depthA1(NUM_EIGHT);
+        tilingData_.mmTilingData.set_depthB1(NUM_EIGHT);
+        tilingData_.mmTilingData.set_stepM(1);
+        tilingData_.mmTilingData.set_stepN(1);
+    }
 
-    usrWorkspaceLimut_ = USER_WORKSPACE_LIMIT;
+    usrWorkspaceLimit_ = USER_WORKSPACE_LIMIT;
     mLimit_ = 0;
     if (isA8W4MSD_) {
-        mLimit_ = ((usrWorkspaceLimut_ / DOUBLE_WORKSPACE_SPLIT) / (k_ * sizeof(int8_t) + 0x2 * n_ * sizeof(half)));
+        mLimit_ =
+            ((usrWorkspaceLimit_ / DOUBLE_WORKSPACE_SPLIT) / (k_ * sizeof(int8_t) + DOUBLE_ROW * n_ * sizeof(half)));
     } else {
-        mLimit_ = ((usrWorkspaceLimut_ / DOUBLE_WORKSPACE_SPLIT) / INT32_DTYPE_SIZE) / n_;
+        mLimit_ = ((usrWorkspaceLimit_ / DOUBLE_WORKSPACE_SPLIT) / INT32_DTYPE_SIZE) / n_;
     }
 
     OP_CHECK_IF(mLimit_ <= 0,
                 OPS_REPORT_VECTOR_INNER_ERR(context_->GetNodeName(), "mLimit_ is %ld must over then 0.", mLimit_),
                 return ge::GRAPH_FAILED);
-    tilingData_.set_mLimit(mLimit_);
-    int workSpaceMTemp = (mLimit_ * DOUBLE_WORKSPACE_SPLIT > m_ ? m_ : mLimit_ * DOUBLE_WORKSPACE_SPLIT);
-    tilingData_.set_workSpaceOffset1(workSpaceMTemp * k_ * sizeof(int8_t));
-    tilingData_.set_workSpaceOffset2(DOUBLE_ROW * workSpaceMTemp * n_ * sizeof(half));
+    tilingData_.gmmSwigluQuantV2BaseParams.set_mLimit(mLimit_);
     if (isA8W4MSD_) {
-        workspaceSize_ = SYS_WORKSPACE_SIZE +        // 系统预留16MB
+        int workSpaceMTemp = mLimit_ * DOUBLE_WORKSPACE_SPLIT;
+        tilingData_.gmmSwigluQuantV2BaseParams.set_workSpaceOffset1(workSpaceMTemp * k_ * sizeof(int8_t));
+        tilingData_.gmmSwigluQuantV2BaseParams.set_workSpaceOffset2(DOUBLE_ROW * workSpaceMTemp * n_ * sizeof(half));
+        workspaceSize_ =
+            SYS_WORKSPACE_SIZE +                     // 系统预留16MB
             (workSpaceMTemp * k_ * sizeof(int8_t)) + // 第一阶段 预处理左矩阵 (mLimit_, K) * int8 * 2(double WorkSpace)
             (DOUBLE_ROW * workSpaceMTemp * n_ *
              sizeof(half)); // 第二阶段 矩阵乘结果 (2 * mLimit_, N) * fp16 * 2(double WorkSpace)
     } else {
+        int workSpaceMTemp = (mLimit_ * DOUBLE_WORKSPACE_SPLIT > m_ ? m_ : mLimit_ * DOUBLE_WORKSPACE_SPLIT);
+        tilingData_.gmmSwigluQuantV2BaseParams.set_workSpaceOffset1(0);
+        tilingData_.gmmSwigluQuantV2BaseParams.set_workSpaceOffset2(0);
         workspaceSize_ = SYS_WORKSPACE_SIZE + (workSpaceMTemp * n_ * sizeof(int32_t));
     }
 
@@ -200,48 +264,42 @@ uint64_t GroupedMatmulSwigluQuantV2BaseTiling::GetTilingKey() const
 
 void GroupedMatmulSwigluQuantV2BaseTiling::FillTilingData()
 {
-    tilingData_.set_groupNum(groupNum_);
-    tilingData_.set_coreNum(blockDim_);
-    tilingData_.set_K(k_);
-    tilingData_.set_N(n_);
-    tilingData_.set_M(m_);
-    tilingData_.set_maxProcessRowNum(maxProcessRowNum_);
-    tilingData_.set_groupListLen(groupNum_);
-    tilingData_.set_tokenLen(n_);
-
-    tilingData_.set_quantGroupNum(quantGroupNum_);
+    tilingData_.gmmSwigluQuantV2BaseParams.set_groupNum(groupNum_);
+    tilingData_.gmmSwigluQuantV2BaseParams.set_coreNum(blockDim_);
+    tilingData_.gmmSwigluQuantV2BaseParams.set_K(k_);
+    tilingData_.gmmSwigluQuantV2BaseParams.set_N(n_);
+    tilingData_.gmmSwigluQuantV2BaseParams.set_M(m_);
+    tilingData_.gmmSwigluQuantV2BaseParams.set_quantGroupNum(quantGroupNum_);
+    tilingData_.gmmSwigluQuantV2BaseParams.set_isSingleTensor(isSingleTensor_);
+    tilingData_.gmmSwigluQuantV2.set_maxProcessRowNum(maxProcessRowNum_);
+    tilingData_.gmmSwigluQuantV2.set_groupListLen(groupNum_);
+    tilingData_.gmmSwigluQuantV2.set_tokenLen(n_);
 }
 
 void GroupedMatmulSwigluQuantV2BaseTiling::PrintTilingData()
 {
-    OP_LOGD(context_->GetNodeName(), "grouped_matmul_swiglu_quant_tiling.");
-    OP_LOGD(context_->GetNodeName(), "groupNum:  %ld",
-        tilingData_.get_groupNum());
-    OP_LOGD(context_->GetNodeName(), "coreNum:   %u ",
-        tilingData_.get_coreNum());
-    OP_LOGD(context_->GetNodeName(), "M:         %ld",
-        tilingData_.get_M());
-    OP_LOGD(context_->GetNodeName(), "K:         %ld",
-        tilingData_.get_K());
-    OP_LOGD(context_->GetNodeName(), "N:         %ld",
-        tilingData_.get_N());
-    OP_LOGD(context_->GetNodeName(), "maxProcessRowNum:    %ld",
-        tilingData_.get_maxProcessRowNum());
-    OP_LOGD(context_->GetNodeName(), "groupListLen:        %ld",
-        tilingData_.get_groupListLen());
-    OP_LOGD(context_->GetNodeName(), "tokenLen:            %ld",
-        tilingData_.get_tokenLen());
-    OP_LOGD(context_->GetNodeName(), "quantGroupNum:       %ld",
-        tilingData_.get_quantGroupNum());
-    OP_LOGD(context_->GetNodeName(), "USER_WORKSPACE_LIMIT:         %ld", usrWorkspaceLimut_);
-    OP_LOGD(context_->GetNodeName(), "mLimit_:                      %ld", mLimit_);
-    OP_LOGD(context_->GetNodeName(), "workspaceSizes:               %lu", workspaceSize_);
-    OP_LOGD(context_->GetNodeName(), "isSplitWorkSpace:             %s", isSplitWorkSpace_ ? "true" : "false");
+    OP_LOGD(context_->GetNodeName(), "grouped_matmul_swiglu_quant_base_tiling.");
+    OP_LOGD(context_->GetNodeName(), "groupNum:      %ld", tilingData_.gmmSwigluQuantV2BaseParams.get_groupNum());
+    OP_LOGD(context_->GetNodeName(), "coreNum:       %ld", tilingData_.gmmSwigluQuantV2BaseParams.get_coreNum());
+    OP_LOGD(context_->GetNodeName(), "M:             %ld", tilingData_.gmmSwigluQuantV2BaseParams.get_M());
+    OP_LOGD(context_->GetNodeName(), "K:             %ld", tilingData_.gmmSwigluQuantV2BaseParams.get_K());
+    OP_LOGD(context_->GetNodeName(), "N:             %ld", tilingData_.gmmSwigluQuantV2BaseParams.get_N());
+    OP_LOGD(context_->GetNodeName(), "quantGroupNum: %ld", tilingData_.gmmSwigluQuantV2BaseParams.get_quantGroupNum());
+    OP_LOGD(context_->GetNodeName(), "isSingleTensor:%ld", tilingData_.gmmSwigluQuantV2BaseParams.get_isSingleTensor());
+    OP_LOGD(context_->GetNodeName(), "maxProcessRowNum:      %ld", tilingData_.gmmSwigluQuantV2.get_maxProcessRowNum());
+    OP_LOGD(context_->GetNodeName(), "groupListLen:          %ld", tilingData_.gmmSwigluQuantV2.get_groupListLen());
+    OP_LOGD(context_->GetNodeName(), "tokenLen:              %ld", tilingData_.gmmSwigluQuantV2.get_tokenLen());
+    OP_LOGD(context_->GetNodeName(), "USER_WORKSPACE_LIMIT:  %ld", usrWorkspaceLimit_);
+    OP_LOGD(context_->GetNodeName(), "mLimit_:               %ld", mLimit_);
+    OP_LOGD(context_->GetNodeName(), "workspaceSizes:        %lu", workspaceSize_);
+    OP_LOGD(context_->GetNodeName(), "isSplitWorkSpace:      %s", isSplitWorkSpace_ ? "true" : "false");
+    OP_LOGD(context_->GetNodeName(), "baseM:                 %ld", A8W4_BASEM);
+    OP_LOGD(context_->GetNodeName(), "baseN:                 %ld", A8W4_BASEN);
 }
 
 void GroupedMatmulSwigluQuantV2BaseTiling::SetTilingKeyAndScheMode()
 {
-    if (isA8W4MSD_) { // A8W4 MSD tiling_key使用4
+    if (isA8W4MSD_) { // A8W4 MSD tiling_key
         tilingKey_ = A8W4_MSD_TILING_KEY_MODE;
         context_->SetScheduleMode(BATCH_MODE_SCHEDULE);
     } else if (isSplitWorkSpace_) {
@@ -262,11 +320,11 @@ ge::graphStatus GroupedMatmulSwigluQuantV2BaseTiling::PostTiling()
 
     size_t *workspaces = context_->GetWorkspaceSizes(1); // set workspace
     OP_CHECK_IF(workspaces == nullptr, OPS_REPORT_CUBE_INNER_ERR(context_->GetNodeName(), "workspaces is null"),
-        return ge::GRAPH_FAILED);
+                return ge::GRAPH_FAILED);
     workspaces[0] = workspaceSize_;
 
     return ge::GRAPH_SUCCESS;
 }
 
-}
-}
+} // namespace GroupedMatmulSwigluQuantV2Tiling
+} // namespace optiling

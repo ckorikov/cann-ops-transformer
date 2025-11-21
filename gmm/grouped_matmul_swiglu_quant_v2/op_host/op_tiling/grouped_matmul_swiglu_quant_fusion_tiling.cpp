@@ -24,8 +24,7 @@ constexpr int64_t BASE_K = 256;
 constexpr int64_t BASE_N = 128;
 constexpr int64_t UB_Y_FACTOR = 2;
 constexpr int64_t EXTEND_WORKSPACE_SIZE = (20 * 1024 * 1024);
-constexpr int64_t NZ_WEIGHT_SINGLE_TENSOR_DIM = 4;
-constexpr int64_t NZ_WEIGHT_MULTI_TENSOR_DIM = 5;
+constexpr int64_t NZ_WEIGHT_MULTI_TENSOR_DIM = 4;
 
 using namespace matmul_tiling;
 
@@ -38,15 +37,16 @@ bool GroupedMatmulSwigluQuantV2FusionTiling::IsCapable()
         return false;
     }
 
-    auto wTensor = context_->GetInputTensor(WEIGHT_INDEX);
+    auto wTensor = context_->GetDynamicInputTensor(WEIGHT_INDEX, 0);
     OP_CHECK_NULL_WITH_CONTEXT(context_, wTensor);
-    if (!(wTensor->GetStorageShape().GetDimNum() == NZ_WEIGHT_DIM_LIMIT
-        || wTensor->GetStorageShape().GetDimNum() == NZ_WEIGHT_MULTI_TENSOR_DIM)) {
+    if (!(wTensor->GetStorageShape().GetDimNum() == NZ_WEIGHT_DIM_LIMIT ||
+          wTensor->GetStorageShape().GetDimNum() == NZ_WEIGHT_MULTI_TENSOR_DIM)) {
         return false;
     }
 
     return true;
 }
+
 ge::graphStatus GroupedMatmulSwigluQuantV2FusionTiling::ParseInputAndAttr()
 {
     auto xTensor = context_->GetDynamicInputTensor(X_INDEX, 0);
@@ -57,7 +57,7 @@ ge::graphStatus GroupedMatmulSwigluQuantV2FusionTiling::ParseInputAndAttr()
     OP_CHECK_NULL_WITH_CONTEXT(context_, groupListTensor);
     groupNum_ = groupListTensor->GetStorageShape().GetDim(0);
     auto wDimNum = wTensor->GetStorageShape().GetDimNum();
-    if (wDimNum == NZ_WEIGHT_MULTI_TENSOR_DIM) {
+    if (wDimNum == NZ_WEIGHT_DIM_LIMIT) {
         isSingleTensor_ = 1;
     } else {
         isSingleTensor_ = 0;
@@ -70,8 +70,8 @@ ge::graphStatus GroupedMatmulSwigluQuantV2FusionTiling::ParseInputAndAttr()
     auto platformInfo = context_->GetPlatformInfo();
     if (platformInfo == nullptr) {
         auto compileInfoPtr = context_->GetCompileInfo<GMMSwigluV2CompileInfo>();
-        OP_CHECK_IF(compileInfoPtr == nullptr,
-            OP_LOGE(context_->GetNodeName(), "CompileInfo is nullptr"), return ge::GRAPH_FAILED);
+        OP_CHECK_IF(compileInfoPtr == nullptr, OP_LOGE(context_->GetNodeName(), "CompileInfo is nullptr"),
+                    return ge::GRAPH_FAILED);
         aicCoreNum_ = compileInfoPtr->aicNum_;
         aivCoreNum_ = compileInfoPtr->aivNum_;
     } else {
@@ -145,8 +145,8 @@ void GroupedMatmulSwigluQuantV2FusionTiling::FillTilingData()
     tilingData_.matmulTiling.set_shareMode(0);
     tilingData_.matmulTiling.set_dbL0C(1);
     tilingData_.matmulTiling.set_baseM(BASE_M);
-    tilingData_.matmulTiling.set_baseN(BASE_K);
-    tilingData_.matmulTiling.set_baseK(BASE_N);
+    tilingData_.matmulTiling.set_baseN(BASE_N);
+    tilingData_.matmulTiling.set_baseK(BASE_K);
     tilingData_.matmulTiling.set_stepKa(0x4);  // 4: L1中左矩阵单次搬运基于baseK的4倍数据
     tilingData_.matmulTiling.set_stepKb(0x4);  // 4: L1中右矩阵单次搬运基于baseK的4倍数据
     tilingData_.matmulTiling.set_depthA1(0x8);  // 8: stepKa的两倍，开启double buffer
@@ -163,11 +163,12 @@ ge::graphStatus GroupedMatmulSwigluQuantV2FusionTiling::PostTiling()
     context_->GetRawTilingData()->SetDataSize(tilingData_.GetDataSize());
 
     size_t *workspaces = context_->GetWorkspaceSizes(1); // set workspace
-    OP_CHECK_IF(workspaces == nullptr, OPS_REPORT_CUBE_INNER_ERR(context_->GetNodeName(), "fusion tiling workspaces is null"),
-        return ge::GRAPH_FAILED);
+    OP_CHECK_IF(workspaces == nullptr,
+                OPS_REPORT_CUBE_INNER_ERR(context_->GetNodeName(), "fusion tiling workspaces is null"),
+                return ge::GRAPH_FAILED);
     workspaces[0] = workspaceSize_;
 
     return ge::GRAPH_SUCCESS;
 }
-}
-}
+} // namespace GroupedMatmulSwigluQuantV2Tiling
+} // namespace optiling

@@ -13,8 +13,8 @@
  * \brief
  */
 
-#ifndef GROUPED_MATMUL_DEQUANT_SWIGLU_QUANT_FUSION_H
-#define GROUPED_MATMUL_DEQUANT_SWIGLU_QUANT_FUSION_H
+#ifndef OP_KERNEL_GROUPED_MATMUL_SWIGLU_QUANT_SPLIT_FUSION_H
+#define OP_KERNEL_GROUPED_MATMUL_SWIGLU_QUANT_SPLIT_FUSION_H
 
 #include "kernel_tiling/kernel_tiling.h"
 #include "lib/matmul_intf.h"
@@ -30,7 +30,7 @@ constexpr uint64_t MAX_CALC_NUM = 64;
 constexpr uint64_t REDUCEMAX_CALC_NUM = 64;
 constexpr uint64_t SPILI_NUM = 2;
 
-class GroupedMatmulDequantSwilguQuantFusion {
+class GroupedMatmulDequantSwigluQuantFusion {
 public:
     using aType = MatmulType<TPosition::GM, CubeFormat::ND, int8_t>;
     using bType = MatmulType<TPosition::GM, CubeFormat::NZ, int8_t>;
@@ -39,7 +39,7 @@ public:
     using matmulType = MMImplType<aType, bType, cType, biasType, matmulCFGUnitFlag>;
     matmulType::MT mm;
 
-    __aicore__ inline GroupedMatmulDequantSwilguQuantFusion(
+    __aicore__ inline GroupedMatmulDequantSwigluQuantFusion(
         TPipe* pipe, const GMMSwigluQuantV2TilingFusionData* __restrict tiling,
         const TCubeTiling* __restrict matmulTilingData)
         : pipe_(pipe), tilingData_(tiling), matmulTilingData_(matmulTilingData) {   

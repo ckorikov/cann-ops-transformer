@@ -12,8 +12,8 @@
  * \file grouped_matmul_swiglu_quant_base_tiling.h
  * \brief
  */
-#ifndef __OP_HOST_GROUPED_MATMULSWIGLU_QUANT_BASE_TILING_H__
-#define __OP_HOST_GROUPED_MATMULSWIGLU_QUANT_BASE_TILING_H__
+#ifndef __OP_HOST_OP_TILING_GROUPED_MATMUL_SWIGLU_QUANT_BASE_TILING_H__
+#define __OP_HOST_OP_TILING_GROUPED_MATMUL_SWIGLU_QUANT_BASE_TILING_H__
 
 #include "grouped_matmul_swiglu_quant_tiling.h"
 #include "tiling_base/tiling_base.h"
@@ -29,10 +29,7 @@ public:
     ~GroupedMatmulSwigluQuantV2BaseTiling() override = default;
 
 protected:
-    bool IsCapable() override
-    {
-        return true;
-    }
+    bool IsCapable() override;
 
     ge::graphStatus DoOpTiling() override;
 
@@ -49,22 +46,21 @@ protected:
 
 private:
     GMMSwigluQuantV2TilingData tilingData_;
-    uint32_t blockDim_;
-    bool isA8W4MSD_;
-    bool isSplitWorkSpace_;
-    uint32_t groupNum_;
-    int64_t k_;
-    int64_t m_;
-    int64_t n_;
-    uint32_t maxProcessRowNum_;
-    int64_t quantGroupNum_;
-    uint32_t baseM_;
-    uint32_t baseN_;
-    uint64_t workspaceSize_;
-    int64_t mLimit_;
-    int64_t usrWorkspaceLimut_;
+    int64_t k_ = 0;
+    int64_t m_ = 0;
+    int64_t n_ = 0;
+    int64_t quantGroupNum_ = 0;
+    int64_t mLimit_ = 0;
+    int64_t blockDim_ = 0;
+    int64_t maxProcessRowNum_ = 0;
+    int64_t groupNum_ = 0;
+    int64_t isSingleTensor_ = 1;
+    int64_t usrWorkspaceLimit_ = 0;
+    uint64_t workspaceSize_ = 0;
+    bool isA8W4MSD_ = true;
+    bool isSplitWorkSpace_ = false;
 };
 
 }
 }
-#endif // __OP_HOST_GROUPED_MATMUL_FINALIZE_ROUTING_BASE_TILING_H__
+#endif // __OP_HOST_OP_TILING_GROUPED_MATMUL_SWIGLU_QUANT_BASE_TILING_H__

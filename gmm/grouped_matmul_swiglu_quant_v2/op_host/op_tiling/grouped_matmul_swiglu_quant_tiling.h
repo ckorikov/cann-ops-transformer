@@ -12,8 +12,8 @@
  * \file grouped_matmul_swiglu_quant_tiling.h
  * \brief
  */
-#ifndef AIR_CXX_RUNTIME_V2_OP_IMPL_GROUPED_MATMUL_SWIGLU_QUANT_H
-#define AIR_CXX_RUNTIME_V2_OP_IMPL_GROUPED_MATMUL_SWIGLU_QUANT_H
+#ifndef __OP_HOST_OP_TILING_GROUPED_MATMUL_SWIGLU_QUANT_TILING_H__
+#define __OP_HOST_OP_TILING_GROUPED_MATMUL_SWIGLU_QUANT_TILING_H__
 
 #include <set>
 #include "tiling_base/tiling_base.h"
@@ -21,20 +21,35 @@
 
 namespace optiling {
 
+// GMM 基本信息
+BEGIN_TILING_DATA_DEF(GMMSwigluQuantV2BaseParams)
+TILING_DATA_FIELD_DEF(int64_t, groupNum);
+TILING_DATA_FIELD_DEF(int64_t, coreNum);
+TILING_DATA_FIELD_DEF(int64_t, K);
+TILING_DATA_FIELD_DEF(int64_t, N);
+TILING_DATA_FIELD_DEF(int64_t, M);
+TILING_DATA_FIELD_DEF(int64_t, baseM);
+TILING_DATA_FIELD_DEF(int64_t, baseN);
+TILING_DATA_FIELD_DEF(int64_t, mLimit);
+TILING_DATA_FIELD_DEF(int64_t, workSpaceOffset1);
+TILING_DATA_FIELD_DEF(int64_t, workSpaceOffset2);
+TILING_DATA_FIELD_DEF(int64_t, quantGroupNum);
+TILING_DATA_FIELD_DEF(int64_t, isSingleTensor);
+END_TILING_DATA_DEF;
+REGISTER_TILING_DATA_CLASS(GMMSwigluQuantV2BaseParamsOp, GMMSwigluQuantV2BaseParams)
+
+// SwigluQuant部分tiling 基本信息
+BEGIN_TILING_DATA_DEF(GMMSwigluQuantV2)
+TILING_DATA_FIELD_DEF(int64_t, maxProcessRowNum);
+TILING_DATA_FIELD_DEF(int64_t, groupListLen);
+TILING_DATA_FIELD_DEF(int64_t, tokenLen);
+END_TILING_DATA_DEF;
+REGISTER_TILING_DATA_CLASS(GMMSwigluQuantV2Op, GMMSwigluQuantV2)
+
 // 结构体集合
 BEGIN_TILING_DATA_DEF(GMMSwigluQuantV2TilingData)
-TILING_DATA_FIELD_DEF(uint32_t, groupNum);
-TILING_DATA_FIELD_DEF(uint32_t, coreNum);
-TILING_DATA_FIELD_DEF(uint32_t, K);
-TILING_DATA_FIELD_DEF(uint32_t, N);
-TILING_DATA_FIELD_DEF(uint32_t, M);
-TILING_DATA_FIELD_DEF(uint32_t, mLimit);
-TILING_DATA_FIELD_DEF(uint32_t, workSpaceOffset1);
-TILING_DATA_FIELD_DEF(uint32_t, workSpaceOffset2);
-TILING_DATA_FIELD_DEF(uint32_t, quantGroupNum);
-TILING_DATA_FIELD_DEF(uint32_t, maxProcessRowNum);
-TILING_DATA_FIELD_DEF(uint32_t, groupListLen);
-TILING_DATA_FIELD_DEF(uint32_t, tokenLen);
+TILING_DATA_FIELD_DEF_STRUCT(GMMSwigluQuantV2BaseParams, gmmSwigluQuantV2BaseParams);
+TILING_DATA_FIELD_DEF_STRUCT(GMMSwigluQuantV2, gmmSwigluQuantV2);
 TILING_DATA_FIELD_DEF_STRUCT(TCubeTiling, mmTilingData);
 END_TILING_DATA_DEF;
 
@@ -87,11 +102,14 @@ constexpr uint32_t WEIGHT_INDEX = 3;
 constexpr uint32_t WEIGHT_SCALE_INDEX = 4;
 constexpr uint32_t GROUPLIST_INDEX = 2;
 constexpr uint32_t BATCH_MODE_SCHEDULE = 1;
+constexpr uint32_t ATTR_INDEX_DEQUANT_MODE = 0;
 constexpr uint32_t DIM_0 = 0;
 constexpr uint32_t DIM_1 = 1;
 constexpr uint32_t DIM_2 = 2;
 constexpr uint32_t DIM_3 = 3;
 constexpr uint32_t DIM_4 = 4;
+constexpr uint32_t NUM_FOUR = 4;
+constexpr uint32_t NUM_EIGHT = 8;
 constexpr uint32_t SYS_WORKSPACE_SIZE = static_cast<uint32_t>(16 * 1024 * 1024);
 constexpr int64_t USER_WORKSPACE_LIMIT = static_cast<int64_t>(64 * 1024 * 1024);
 constexpr int64_t DOUBLE_WORKSPACE_SPLIT = 2;
@@ -110,6 +128,9 @@ constexpr int64_t A8W8_FUSION_KEY_MODE = 3;
 constexpr int64_t A8W4_MSD_TILING_KEY_MODE = 2;
 constexpr int64_t SPLITWORKSPACE_TILING_KEY_MODE = 1;
 constexpr int64_t COMMON_TILING_KEY_MODE = 0;
+constexpr int64_t A8W4_BASEM = 128;
+constexpr int64_t A8W4_BASEK = 256;
+constexpr int64_t A8W4_BASEN = 256;
 
 class GroupedMatmulSwigluQuantV2Tiling : public Ops::Transformer::OpTiling::TilingBaseClass {
 public:
@@ -133,4 +154,4 @@ protected:
 } // namespace GroupedMatmulSwigluQuantV2Tiling
 } // namespace optiling
 
-#endif // AIR_CXX_RUNTIME_V2_OP_IMPL_GROUPED_MATMUL_SWIGLU_QUANT_H
+#endif // __OP_HOST_OP_TILING_GROUPED_MATMUL_SWIGLU_QUANT_TILING_H__
