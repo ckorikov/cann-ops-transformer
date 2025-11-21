@@ -116,7 +116,7 @@ namespace {
     constexpr uint32_t HCOMMCNT_2 = 2;
     constexpr uint32_t RANK_LIST_NUM = 2;
     constexpr int64_t MOE_EXPERT_MAX_NUM = 1024;
-    constexpr int64_t MOE_LOCAL_EXPERT_MAX_NUM = 128;
+    constexpr int64_t LOCAL_EXPERT_MAX_SIZE = 2048;
     constexpr int64_t K_MAX = 16;
     constexpr int64_t H_MIN = 1024;
     constexpr int64_t H_MAX = 8192;
@@ -903,8 +903,9 @@ static bool CheckAttrs(const gert::TilingContext *context, MoeDistributeCombineV
         "but got moeExpertNum=%u, epWorldSize=%u, sharedExpertRankNum=%u.", moeExpertNum, epWorldSize,
         sharedExpertRankNum), return false);
     localMoeExpertNum = moeExpertNum / (epWorldSize - sharedExpertRankNum);
-    OP_TILING_CHECK((localMoeExpertNum <= 0) || (localMoeExpertNum > MOE_LOCAL_EXPERT_MAX_NUM),
-        OP_LOGE(nodeName, "localMoeExpertNum is invalid, localMoeExpertNum = %u", localMoeExpertNum), return false);
+    OP_TILING_CHECK((localMoeExpertNum <= 0) || (localMoeExpertNum * epWorldSize > LOCAL_EXPERT_MAX_SIZE),OP_LOGE(nodeName, "localMoeExpertNum is invalid, "
+        "localMoeExpertNum * epWorldSize must be less than or equal to 2048, and localMoeExpertNum must be greater than 0, "
+        "but got localMoeExpertNum * epWorldSize = %u, localMoeExpertNum = %u", localMoeExpertNum * epWorldSize, localMoeExpertNum), return false);
     // 校验tp=2时单个moe卡上专家数是否等于1
     OP_TILING_CHECK((localMoeExpertNum > 1) && (tpWorldSize > 1),
         OP_LOGE(nodeName, "Cannot support multi-moeExpert %u in a rank when tpWorldSize = %u > 1",
