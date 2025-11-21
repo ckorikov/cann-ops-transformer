@@ -547,7 +547,9 @@ ge::graphStatus PromptFlashAttentionTiling::TilingGetTilingKeyAttentionAscendC(u
         if ((inputDataType == ge::DT_FLOAT16) && (innerPrecise == HIGH_PRECISION)) {
             tilingKey += 600U;
         } // innerPrecise 0, add 600
-
+        if (contextKeyParams.queryRope != nullptr) {
+            tilingKey += 1000U;
+        } // have queryrope and keyrope, add 1000
         return ge::GRAPH_SUCCESS;
     }
     tilingKey = 0U;
@@ -1110,8 +1112,10 @@ bool PromptFlashAttentionTiling::PromptFlashAttentionCheckBmm1(PromptFlashAttent
     uint32_t sOuterFactor, uint32_t sInnerFactor, bool allGM, bool autoBaseMNK) {
     int32_t ret = 0;
     matmul_tiling::MatmulApiTiling bmm1(ascendPlatformInfo);
+    uint32_t bmm1Headsize = tilingData.promptAttentionBaseParams.get_headSize();
     if (curShortSocName == platform_ascendc::SocVersion::ASCEND310P) {
         PromptFlashAttention310PSetBmm1(bmm1);
+        bmm1Headsize = tilingData.promptAttentionBaseParams.get_headSize() + tilingData.promptAttentionBaseParams.get_ropeHeadSize();
     } else { // 910b
         matmul_tiling::DataType bmm1InputType = matmul_tiling::DataType::DT_FLOAT16;
         matmul_tiling::DataType bmm1OutputType = matmul_tiling::DataType::DT_FLOAT16;
@@ -1121,7 +1125,7 @@ bool PromptFlashAttentionTiling::PromptFlashAttentionCheckBmm1(PromptFlashAttent
         bmm1.SetBType(matmul_tiling::TPosition::GM, matmul_tiling::CubeFormat::ND, bmm1InputType, true);
         bmm1.SetCType(cPosition, matmul_tiling::CubeFormat::ND, bmm1OutputType);
     }
-    ret = bmm1.SetShape(sOuterFactor, sInnerFactor, tilingData.promptAttentionBaseParams.get_headSize());
+    ret = bmm1.SetShape(sOuterFactor, sInnerFactor, bmm1Headsize);
     OP_CHECK_IF(ret != 0,
                     OPS_REPORT_VECTOR_INNER_ERR(contextKeyParamsPtr->opName, "bmm1 SetShape failed, ret = %d!", ret),
                     return false);
@@ -1129,7 +1133,7 @@ bool PromptFlashAttentionTiling::PromptFlashAttentionCheckBmm1(PromptFlashAttent
     if (ratio == 0) {
         return false;
     }
-    int32_t strideQ = tilingData.promptAttentionBaseParams.get_headSize() *
+    int32_t strideQ = bmm1Headsize *
                         tilingData.promptAttentionBaseParams.get_headNumSize();
     int32_t strideK = strideQ / ratio;
     if ((inputLayout == InputLayout::BSH) || (inputLayout == InputLayout::SH) ||
@@ -1141,22 +1145,22 @@ bool PromptFlashAttentionTiling::PromptFlashAttentionCheckBmm1(PromptFlashAttent
         if (enableKvAntiquant) {
             bmm1.SetOrgShape(tilingData.promptAttentionBaseParams.get_seqSize(),
                              tilingData.promptAttentionBaseParams.get_seqInnerSize(),
-                             strideQ, tilingData.promptAttentionBaseParams.get_headSize());
+                             strideQ, bmm1Headsize);
         } else if (enableMsd) {
             // Left input BNSD, right input BSH
             bmm1.SetOrgShape(tilingData.promptAttentionBaseParams.get_seqSize(),
                              tilingData.promptAttentionBaseParams.get_seqInnerSize(),
-                             tilingData.promptAttentionBaseParams.get_headSize(), strideK);
+                             bmm1Headsize, strideK);
         }
     } else if ((inputLayout == InputLayout::BNSD) || (inputLayout == InputLayout::NSD)) {
         if (enablePA && PAlayoutType == 1U) {  // The left matrix of PA is BNSD, and the right matrix is BSH.
             bmm1.SetOrgShape(tilingData.promptAttentionBaseParams.get_seqSize(),
                      tilingData.promptAttentionBaseParams.get_seqInnerSize(),
-                     tilingData.promptAttentionBaseParams.get_headSize(), strideK);
+                     bmm1Headsize, strideK);
         } else {
             bmm1.SetOrgShape(tilingData.promptAttentionBaseParams.get_seqSize(),
                      tilingData.promptAttentionBaseParams.get_seqInnerSize(),
-                     tilingData.promptAttentionBaseParams.get_headSize());
+                     bmm1Headsize);
         }
     }
 
@@ -1758,10 +1762,10 @@ bool PromptFlashAttentionTiling::SetTilingHeadNumRatio(ContextParamsForPFATiling
         OP_LOGE(contextKeyParams.opName, "numHeads(%d) must be divisible by numKeyValueHeads(%d)!", nQ, nKV);
         return false;
     } else {
-        if (nQ / nKV > 64) {   // G cannot be greater than 64.
-            OP_LOGE(contextKeyParams.opName, "numHeads / numKeyValueHeads = %d, cannot be larger than 64", nQ / nKV);
-            return false;
-        }
+        // if (nQ / nKV > 64) {   // G cannot be greater than 64.
+        //     OP_LOGE(contextKeyParams.opName, "numHeads / numKeyValueHeads = %d, cannot be larger than 64", nQ / nKV);
+        //     return false;
+        // }
         tilingData.promptAttentionBaseParams.set_headNumRatio(nQ / nKV);
         return true;
     }
@@ -4717,6 +4721,11 @@ ge::graphStatus PromptFlashAttentionTiling::RunBigKernelTilingWithParams(Context
     tilingData.promptAttentionBaseParams.set_dimNumOfseq(lenDims);
     tilingData.promptAttentionBaseParams.set_scaleValue(*scaleValue);
     tilingData.promptAttentionBaseParams.set_headSize(hDivN);
+    uint32_t ropeHeadSize = 0;
+    if (contextKeyParams.queryRope != nullptr) {
+        ropeHeadSize = 64;
+    }
+    tilingData.promptAttentionBaseParams.set_ropeHeadSize(ropeHeadSize);
     if (enablePA) {
         tilingData.promptAttentionBaseParams.set_blockSize(*curBlockSize);
     } else {
@@ -5844,11 +5853,11 @@ ge::graphStatus PromptFlashAttentionTiling::CheckShape(ContextParamsForPFATiling
                 "BSND, BNSD, BNSD_BSND, TND, NTD_TND."),
                 return ge::GRAPH_FAILED);
 
-    OP_CHECK_IF((inputLayout != InputLayout::NTD_TND) && (inputLayout != InputLayout::TND) &&
-        (contextKeyParams.queryRope != nullptr || contextKeyParams.keyRope != nullptr),
-            OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName,
-                "Only layout TND, NTD_TND support query/key D = 128, queryRopr/keyRope D = 64!"),
-        return ge::GRAPH_FAILED);
+    // OP_CHECK_IF((inputLayout != InputLayout::NTD_TND) && (inputLayout != InputLayout::TND) &&
+    //     (contextKeyParams.queryRope != nullptr || contextKeyParams.keyRope != nullptr),
+    //         OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName,
+    //             "Only layout TND, NTD_TND support query/key D = 128, queryRopr/keyRope D = 64!"),
+    //     return ge::GRAPH_FAILED);
 
     OP_CHECK_IF(((contextKeyParams.fromFused == 0) && (inputLayout == InputLayout::NTD_TND)),
                 OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName, "NTD_TND layout is only supported in FIA, not in PFA."),

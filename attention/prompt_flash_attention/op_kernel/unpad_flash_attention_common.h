@@ -41,10 +41,10 @@ constexpr int32_t UB_FLOAT_BUF_SIZE = 8192;
 constexpr int32_t FLOAT_BLOCK_SIZE = 8;
 constexpr int32_t CUBE_MATRIX_SIZE = 256;
 constexpr int32_t BASE_MASK_SIZE = 128;
-constexpr int32_t STRIDE_UPPER_BOUND = 65535;
-constexpr int64_t L1_UINT8_BLOCK_SIZE = 131072;   // 128K
+constexpr int32_t DATACOPY_STRIDE_UPPER_BOUND = 65535;
+constexpr int64_t L1_UINT8_BUFFER_SIZE = 131072;   // 128K
 constexpr int64_t UB_UINT8_BLOCK_SIZE = 32768;    // 128 * 128 * 2 = 32K
-constexpr int32_t DEC_UB_UINT8_BLOCK_SIZE = 8192; // 16 * 128 * 2
+constexpr int32_t DEC_UB_UINT8_BUFFER_SIZE = 8192; // 16 * 128 * 2
 constexpr int64_t UB_UINT8_LINE_SIZE = 1024;
 constexpr int64_t UB_FLOAT_LINE_SIZE = 256;
 constexpr int64_t UB_HALF_LINE_SIZE = 512;
@@ -288,12 +288,12 @@ public:
 
     const uint32_t lq_buf_offset = 0;
     const uint32_t lk_buf_offset = 2 * UB_UINT8_BLOCK_SIZE;
-    const uint32_t lv_buf_offset = 2 * (L1_UINT8_BLOCK_SIZE + UB_UINT8_BLOCK_SIZE);
-    const uint32_t lp_buf_offset = 2 * L1_UINT8_BLOCK_SIZE;
-    const uint32_t lmask_buf_offset = 4 * L1_UINT8_BLOCK_SIZE;
-    const uint32_t lalibi_coeff_buf_offset = 4 * (L1_UINT8_BLOCK_SIZE + UB_UINT8_BLOCK_SIZE);
-    const uint32_t ldiag_buf_offset = 5 * L1_UINT8_BLOCK_SIZE; // 128 * 128 * 2(fp16) * 2(PingPong) = 64k
-    const uint32_t lo_buf_offset = 6 * L1_UINT8_BLOCK_SIZE;    // 128(qSeqStep) * 128(embedDim) * 2(fp16) = 32k
+    const uint32_t lv_buf_offset = 2 * (L1_UINT8_BUFFER_SIZE + UB_UINT8_BLOCK_SIZE);
+    const uint32_t lp_buf_offset = 2 * L1_UINT8_BUFFER_SIZE;
+    const uint32_t lmask_buf_offset = 4 * L1_UINT8_BUFFER_SIZE;
+    const uint32_t lalibi_coeff_buf_offset = 4 * (L1_UINT8_BUFFER_SIZE + UB_UINT8_BLOCK_SIZE);
+    const uint32_t ldiag_buf_offset = 5 * L1_UINT8_BUFFER_SIZE; // 128 * 128 * 2(fp16) * 2(PingPong) = 64k
+    const uint32_t lo_buf_offset = 6 * L1_UINT8_BUFFER_SIZE;    // 128(qSeqStep) * 128(embedDim) * 2(fp16) = 32k
 
     const uint32_t ls_ubuf_offset = 0;
     const uint32_t lp_ubuf_offset = 0;
@@ -309,7 +309,7 @@ public:
     const uint32_t logn_ub_offset = 4 * UB_UINT8_BLOCK_SIZE + 31 * UB_UINT8_LINE_SIZE;
     const uint32_t tv_ubuf_offset = 5 * UB_UINT8_BLOCK_SIZE;
     const uint32_t go_ubuf_offset = 6 * UB_UINT8_BLOCK_SIZE;
-    const uint32_t mask_ubuf_offset = DEC_UB_UINT8_BLOCK_SIZE * 8;
+    const uint32_t mask_ubuf_offset = DEC_UB_UINT8_BUFFER_SIZE * 8;
 
     __cbuf__ uint8_t *l1qBufAddr;
     __cbuf__ uint8_t *l1kBufAddr;
@@ -634,7 +634,7 @@ __aicore__ inline void UnpadFlashAttentionCommon<T, SType, prec_type1, prec_type
         WAIT_FLAG(V, MTE3, EVENT_ID2);
 
         // move O to gm
-        if (ntokensQ <= STRIDE_UPPER_BOUND + fm) {
+        if (ntokensQ <= DATACOPY_STRIDE_UPPER_BOUND + fm) {
 
             ub_to_gm<ArchType::ASCEND_V200, half>(gmDsto_tensor[(int64_t)dstoOffset],
                                                   goUbuf_tensor.template ReinterpretCast<half>(), 0,
@@ -1417,7 +1417,7 @@ __aicore__ inline void UnpadFlashAttentionCommon<T, SType, prec_type1, prec_type
     int32_t Pongflag = 1;
 
     const uint32_t l1q_buf_addr_offset = 0;
-    const uint32_t l1kpv_buf_addr_offset = 4 * L1_UINT8_BLOCK_SIZE;
+    const uint32_t l1kpv_buf_addr_offset = 4 * L1_UINT8_BUFFER_SIZE;
     const uint32_t l1diag_buf_addr_offset = UB_UINT8_BLOCK_SIZE; // 32k
 
     AscendC::LocalTensor<half> l1qBuf_tensor =
@@ -1449,14 +1449,14 @@ __aicore__ inline void UnpadFlashAttentionCommon<T, SType, prec_type1, prec_type
     // 4 for ping-pong memory offset in L1
     __cbuf__ uint8_t *l1qBuf = l1qBufAddr;
     // 4 for ping-pong memory offset in L1
-    __cbuf__ uint8_t *l1kPingBuf = l1kBufAddr + Pingflag * 4 * L1_UINT8_BLOCK_SIZE;
-    __cbuf__ uint8_t *l1kPongBuf = l1kBufAddr + Pongflag * 4 * L1_UINT8_BLOCK_SIZE;
+    __cbuf__ uint8_t *l1kPingBuf = l1kBufAddr + Pingflag * 4 * L1_UINT8_BUFFER_SIZE;
+    __cbuf__ uint8_t *l1kPongBuf = l1kBufAddr + Pongflag * 4 * L1_UINT8_BUFFER_SIZE;
     // 4 for ping-pong memory offset in L1
-    __cbuf__ uint8_t *l1vPingBuf = l1vBufAddr + Pingflag * 4 * L1_UINT8_BLOCK_SIZE;
-    __cbuf__ uint8_t *l1vPongBuf = l1vBufAddr + Pongflag * 4 * L1_UINT8_BLOCK_SIZE;
+    __cbuf__ uint8_t *l1vPingBuf = l1vBufAddr + Pingflag * 4 * L1_UINT8_BUFFER_SIZE;
+    __cbuf__ uint8_t *l1vPongBuf = l1vBufAddr + Pongflag * 4 * L1_UINT8_BUFFER_SIZE;
     // 4 for ping-pong memory offset in L1
-    __cbuf__ uint8_t *l1pPingBuf = l1pBufAddr + Pingflag * 4 * L1_UINT8_BLOCK_SIZE;
-    __cbuf__ uint8_t *l1pPongBuf = l1pBufAddr + Pongflag * 4 * L1_UINT8_BLOCK_SIZE;
+    __cbuf__ uint8_t *l1pPingBuf = l1pBufAddr + Pingflag * 4 * L1_UINT8_BUFFER_SIZE;
+    __cbuf__ uint8_t *l1pPongBuf = l1pBufAddr + Pongflag * 4 * L1_UINT8_BUFFER_SIZE;
 
     int32_t oSize = fm * fk;
     int32_t mD64 = (fm + FLOAT_VECTOR_SIZE - 1) / FLOAT_VECTOR_SIZE;
@@ -1475,7 +1475,7 @@ __aicore__ inline void UnpadFlashAttentionCommon<T, SType, prec_type1, prec_type
         if (__m0 == 1) {
             gm_to_l1<ArchType::ASCEND_V200, half, DataFormatT::NZ, DataFormatT::NZ>(
                 l1qBuf_tensor, gmSrcq_tensor[(int64_t)srcqOffset], 1, ntokensQ, 1, fk, fk, fk);
-        } else if (ntokensQ <= STRIDE_UPPER_BOUND + fm) { // (fm, fk)
+        } else if (ntokensQ <= DATACOPY_STRIDE_UPPER_BOUND + fm) { // (fm, fk)
             gm_to_l1<ArchType::ASCEND_V200, half, DataFormatT::NZ, DataFormatT::NZ>(
                 l1qBuf_tensor, gmSrcq_tensor[(int64_t)srcqOffset], fm, ntokensQ, fm, fk, fk, fk);
         } else {
@@ -1554,7 +1554,7 @@ __aicore__ inline void UnpadFlashAttentionCommon<T, SType, prec_type1, prec_type
     SET_FLAG(MTE1, M, Pingflag);
     WAIT_FLAG(MTE1, MTE2, Pingflag + 4);
 
-    if (kvCopyStride <= STRIDE_UPPER_BOUND + fn) {
+    if (kvCopyStride <= DATACOPY_STRIDE_UPPER_BOUND + fn) {
         gm_to_l1<ArchType::ASCEND_V200, half, DataFormatT::NZ, DataFormatT::NZ>(
             l1kPingBuf_tensor, gmSrck_tensor[(int64_t)srckOffset], fn, kvCopyStride, fn, fk, fk, fk);
     } else {
@@ -1581,7 +1581,7 @@ __aicore__ inline void UnpadFlashAttentionCommon<T, SType, prec_type1, prec_type
     SET_FLAG(MTE1, M, Pingflag + 2);
 
     WAIT_FLAG(MTE1, MTE2, Pingflag + 6);
-    if (kvCopyStride <= STRIDE_UPPER_BOUND + fn) {
+    if (kvCopyStride <= DATACOPY_STRIDE_UPPER_BOUND + fn) {
         gm_to_l1<ArchType::ASCEND_V200, half, DataFormatT::NZ, DataFormatT::NZ>(
             l1vPingBuf_tensor, gmSrcv_tensor[(int64_t)srcvOffset], fn, kvCopyStride, fn, fk, fk, fk);
     } else {
@@ -1647,7 +1647,7 @@ __aicore__ inline void UnpadFlashAttentionCommon<T, SType, prec_type1, prec_type
         }
         SET_FLAG(MTE1, M, Pongflag);
         WAIT_FLAG(MTE1, MTE2, Pongflag + 4);
-        if (kvCopyStride <= STRIDE_UPPER_BOUND + bn) {
+        if (kvCopyStride <= DATACOPY_STRIDE_UPPER_BOUND + bn) {
             gm_to_l1<ArchType::ASCEND_V200, half, DataFormatT::NZ, DataFormatT::NZ>(
                 l1kPongBuf_tensor, gmSrck_tensor[(int64_t)srckOffset + Pongflag * pp_n_scalar * BLOCK_SIZE], bn,
                 kvCopyStride, bn, fk, fk, fk);
@@ -1675,7 +1675,7 @@ __aicore__ inline void UnpadFlashAttentionCommon<T, SType, prec_type1, prec_type
         SET_FLAG(MTE1, M, Pongflag + 2);
 
         WAIT_FLAG(MTE1, MTE2, Pongflag + 6);
-        if (kvCopyStride <= STRIDE_UPPER_BOUND + bn) {
+        if (kvCopyStride <= DATACOPY_STRIDE_UPPER_BOUND + bn) {
             gm_to_l1<ArchType::ASCEND_V200, half, DataFormatT::NZ, DataFormatT::NZ>(
                 l1vPongBuf_tensor, gmSrcv_tensor[(int64_t)srcvOffset + Pongflag * pp_n_scalar * BLOCK_SIZE], bn,
                 kvCopyStride, bn, fk, fk, fk);

@@ -17,8 +17,8 @@
 
 #include "kernel_tiling/kernel_tiling.h"
 #include "kernel_operator.h"
+#include "kernel_operator_list_tensor_intf.h"
 #include "lib/matmul_intf.h"
-#include "kernel_data_copy_transpose.h"
 #include "kernel_operator_softmax_compute_nz.h"
 
 using namespace matmul;
@@ -36,7 +36,7 @@ enum class PFALayoutNZ {
     BNSD,
 };
 
-template <PFALayoutNZ L, typename T, typename U, typename O = T, typename KV_T = T, ModeNZ M = ModeNZ::HighPerformanceNZ, typename...Args>
+template <PFALayoutNZ L, typename T, typename U, typename O = T, typename KV_T = T, ModeNZ M = ModeNZ::HighPerformanceNZ, bool isMLA = false, typename...Args>
 struct PFATypeNZ {
     using inputType = T;
     using maskType = U;
@@ -44,6 +44,7 @@ struct PFATypeNZ {
     using kvInputType = KV_T;
     static constexpr PFALayoutNZ layout = L;
     static constexpr ModeNZ calcMode = M;
+    static constexpr bool isMLAScence = isMLA;
 };
 
 template<typename T, ModeNZ M = ModeNZ::HighPerformanceNZ>
@@ -71,6 +72,16 @@ public:
                                 __gm__ uint8_t* keySharedPrefix, __gm__ uint8_t* valueSharedPrefix, __gm__ uint8_t* actualSharedPrefixLen,
                                 __gm__ uint8_t* attentionOut, __gm__ uint8_t* softmaxLse, __gm__ uint8_t* workspace,
                                 const PromptFlashAttentionTilingData* __restrict tiling, __gm__ uint8_t* gmTiling, TPipe* tPipe);
+    __aicore__ inline void InitKVDIFF(__gm__ uint8_t* query, __gm__ uint8_t* key,
+                                        __gm__ uint8_t* value, __gm__ uint8_t* pseShift,
+                                        __gm__ uint8_t* attenMask, __gm__ uint8_t* actualSeqLengths,
+                                        __gm__ uint8_t* actualSeqLengthsKV, __gm__ uint8_t* blocktable,
+                                        __gm__ uint8_t* queryPaddingSize, __gm__ uint8_t* kvPaddingSize,
+                                        __gm__ uint8_t* keySharedPrefix, __gm__ uint8_t* valueSharedPrefix, __gm__ uint8_t* actualSharedPrefixLen,
+                                        __gm__ uint8_t * queryRope, __gm__ uint8_t * keyRope,
+                                        __gm__ uint8_t* attentionOut, __gm__ uint8_t* softmaxLse, __gm__ uint8_t* workspace,
+                                        const PromptFlashAttentionTilingData* __restrict tiling, __gm__ uint8_t* gmTiling,
+                                        TPipe* tPipe);
     __aicore__ inline void InitMsd(__gm__ uint8_t* key_antiquant_scale, __gm__ uint8_t* key_antiquant_offset, __gm__ uint8_t* value_antiquant_scale, __gm__ uint8_t* value_antiquant_offset);
     using T = typename PFAT::inputType;
     using U = typename PFAT::maskType;
@@ -133,6 +144,8 @@ protected:
     GlobalTensor<T> keyGm;
     GlobalTensor<T> valueGm;
     GlobalTensor<U> attenMaskGm;
+    GlobalTensor<T> queryRopeGM;
+    GlobalTensor<T> keyRopeGM;
     GlobalTensor<O> attentionOutGm;
     GlobalTensor<O> attentionSingleCoreOutGm;
     GlobalTensor<int64_t> actualSeqLengthsGm;
@@ -170,8 +183,12 @@ protected:
     uint64_t attenMaskOffset;
     uint32_t tensorAOffset;
     uint32_t tensorBOffset;
+    uint64_t tensorQRopeOffset;
+    uint64_t tensorKRopeOffset;
     uint32_t tensorACoreOffset;
     uint32_t tensorBCoreOffset;
+    uint64_t tensorQRopeCoreOffset;
+    uint64_t tensorKRopeCoreOffset;
     uint32_t attentionOutOffset;
     uint32_t offsetSS;
     uint32_t offsetSH;
@@ -220,7 +237,6 @@ protected:
 
     SoftMaxTiling softmaxTilingData;
     SoftMaxTiling softmaxFlashTilingData;
-    CopyTransposeTiling transposeTilingData;
     uint32_t MultiHeadQ;
     uint32_t MultiHeadKV;
     uint32_t startInBlock;
@@ -241,6 +257,16 @@ protected:
 
     uint32_t queryStride;
     uint32_t keyValueStride;
+    uint32_t qRopeStride;
+    uint32_t kRopeStride;
+
+    __aicore__ inline void InitParams();
+    __aicore__ inline void InitActualSeqParams();
+    __aicore__ inline void InitPFABuffer(__gm__ uint8_t* query, __gm__ uint8_t* key,
+                                         __gm__ uint8_t* value, __gm__ uint8_t* attenMask,
+                                         __gm__ uint8_t* actualSeqLengths, __gm__ uint8_t* actualSeqLengthsKV,
+                                         __gm__ uint8_t * queryRope, __gm__ uint8_t * keyRope, __gm__ uint8_t* attentionOut,
+                                         __gm__ uint8_t* workspace, TPipe* tPipe);
 
     __aicore__ inline void ElewiseCompute310P(LocalTensor<mm1OutputType>& mmResUb, uint32_t SInnerSize, uint32_t SOuterSize);
 
@@ -314,26 +340,61 @@ __aicore__ inline void PromptFlashAttentionS1s2Bns1X310Base<PFAT>::Init(__gm__ u
                                         __gm__ uint8_t* attentionOut, __gm__ uint8_t* softmaxLse, __gm__ uint8_t* workspace,
                                         const PromptFlashAttentionTilingData* __restrict tiling, __gm__ uint8_t* gmTiling,
                                         TPipe* tPipe) {
-    tmp_block_idx = GetBlockIdx();
     // init global buffer
     tilingData = tiling;
+    InitParams();
+    initOffset();
+    InitPFABuffer(query, key, value, attenMask, actualSeqLengths, actualSeqLengthsKV, nullptr, nullptr, attentionOut, workspace, tPipe);
+    InitActualSeqParams();
+}
+
+template<typename PFAT>
+__aicore__ inline void PromptFlashAttentionS1s2Bns1X310Base<PFAT>::InitKVDIFF(__gm__ uint8_t* query, __gm__ uint8_t* key,
+                                        __gm__ uint8_t* value, __gm__ uint8_t* pseShift,
+                                        __gm__ uint8_t* attenMask, __gm__ uint8_t* actualSeqLengths,
+                                        __gm__ uint8_t* actualSeqLengthsKV, __gm__ uint8_t* blocktable,
+                                        __gm__ uint8_t* queryPaddingSize, __gm__ uint8_t* kvPaddingSize,
+                                        __gm__ uint8_t* keySharedPrefix, __gm__ uint8_t* valueSharedPrefix, __gm__ uint8_t* actualSharedPrefixLen,
+                                        __gm__ uint8_t * queryRope, __gm__ uint8_t * keyRope,
+                                        __gm__ uint8_t* attentionOut, __gm__ uint8_t* softmaxLse, __gm__ uint8_t* workspace,
+                                        const PromptFlashAttentionTilingData* __restrict tiling, __gm__ uint8_t* gmTiling,
+                                        TPipe* tPipe) {
+    tilingData = tiling;
+    InitParams();
+    initOffset();
+    InitPFABuffer(query, key, value, attenMask, actualSeqLengths, actualSeqLengthsKV, queryRope, keyRope, attentionOut, workspace, tPipe);
+    InitActualSeqParams();
+}
+
+template<typename PFAT>
+__aicore__ inline void PromptFlashAttentionS1s2Bns1X310Base<PFAT>::InitPFABuffer(__gm__ uint8_t* query, __gm__ uint8_t* key,
+                                        __gm__ uint8_t* value, __gm__ uint8_t* attenMask,
+                                        __gm__ uint8_t* actualSeqLengths, __gm__ uint8_t* actualSeqLengthsKV,
+                                        __gm__ uint8_t * queryRope, __gm__ uint8_t * keyRope,
+                                        __gm__ uint8_t* attentionOut, __gm__ uint8_t* workspace, TPipe* tPipe) {
+    tmp_block_idx = GetBlockIdx();
+    // init global buffer
     queryGm.SetGlobalBuffer((__gm__ T*)query);
-    keyGm.SetGlobalBuffer((__gm__ T*)key);
-    valueGm.SetGlobalBuffer((__gm__ T*)value);
+    uint64_t qkL1Size = tilingData->promptAttentionTensorSizeRect.scmTmpSize * sizeof(mmInputType);
+    if (tilingData->promptAttentionBaseParams.fromFused) {
+        ListTensorDesc keyListTensorDescInit((__gm__ void*)key);
+        ListTensorDesc valueListTensorDescInit((__gm__ void*)value);
+        __gm__ uint8_t* currentKey = (__gm__ uint8_t*)keyListTensorDescInit.GetDataPtr<__gm__ uint8_t>(0);
+        __gm__ uint8_t* currentValue = (__gm__ uint8_t*)valueListTensorDescInit.GetDataPtr<__gm__ uint8_t>(0);
+        keyGm.SetGlobalBuffer((__gm__ T*)currentKey);
+        valueGm.SetGlobalBuffer((__gm__ T*)currentValue);
+        if (queryRope != nullptr) {
+            queryRopeGM.SetGlobalBuffer((__gm__ T*)queryRope);
+            keyRopeGM.SetGlobalBuffer((__gm__ T*)keyRope);
+            qkL1Size = (tilingData->promptAttentionTensorSizeRect.scmTmpSize / tilingData->promptAttentionBaseParams.headSize) *
+                       (tilingData->promptAttentionBaseParams.headSize + tilingData->promptAttentionBaseParams.ropeHeadSize);
+        }
+    } else {
+        keyGm.SetGlobalBuffer((__gm__ T*)key);
+        valueGm.SetGlobalBuffer((__gm__ T*)value);
+    }
     attentionOutGm.SetGlobalBuffer((__gm__ O*)attentionOut);
     workspaceGm.SetGlobalBuffer((__gm__ softmaxType*)workspace);
-
-    pipe = tPipe;
-    typeByteNum = tilingData->promptAttentionBaseParams.typeByteNum;
-    outputTypeByteNum = tilingData->promptAttentionBaseParams.outputTypeByteNum;
-    softmaxTypeByteNum = tilingData->promptAttentionBaseParams.softmaxTypeByteNum;
-    headNumRatio = tilingData->promptAttentionBaseParams.headNumRatio;
-    maskDataType = tilingData->promptAttentionBaseParams.attenMaskElemType;
-    maskTypeByteNum = tilingData->promptAttentionBaseParams.maskTypeByteNum;
-    attenMaskBatch = tilingData->promptAttentionSingleCoreParams.attenMaskBatch;
-    layoutType = tilingData->promptAttentionBaseParams.layoutType;
-    initOffset();
-
     isActualLenDimsNull = true;
     isActualLenDimsKVNull = true;
     if (!tilingData->promptAttentionBaseParams.isActualSeqLengthsNull) { // actual seq length is null
@@ -344,51 +405,9 @@ __aicore__ inline void PromptFlashAttentionS1s2Bns1X310Base<PFAT>::Init(__gm__ u
         actualSeqLengthsKVGm.SetGlobalBuffer((__gm__ int64_t*)actualSeqLengthsKV, tilingData->promptAttentionBaseParams.batchSize);
         isActualLenDimsKVNull = false;
     }
-
-    uint32_t preAccumSOuter = 0;
-    uint32_t h = tilingData->promptAttentionBaseParams.headNumSize * tilingData->promptAttentionBaseParams.headSize;
-    uint32_t s = tilingData->promptAttentionBaseParams.seqSize;
-    uint32_t middle_actualSeqLengths = 0;
-    uint32_t actualSeqLengthsIdx = 0;
-
-    if constexpr (IsSameType<T, half>::value) {
-        this->negativeScalar = NEGATIVE_MIN_VAULE_FP16;
-    }
-
-    for (int i = 0; i < tilingData->promptAttentionBaseParams.batchSize; i++) {
-        actualSeqLengthsIdx = isActualLenDimsNull ? tilingData->promptAttentionBaseParams.seqSize : actualSeqLengthsGm.GetValue(i);
-        if (tilingData->promptAttentionBaseParams.isActualSeqLengthsNull) {
-            actualSeqOffsets[i] = i * s * h;
-        } else {
-            if (tilingData->promptAttentionBaseParams.isLayoutSH) {
-                actualSeqOffsets[i] = middle_actualSeqLengths * h;
-                middle_actualSeqLengths += actualSeqLengthsIdx;
-            } else {
-                actualSeqOffsets[i] = i * s * h;
-            }
-        }
-
-        actualSeqLengthsIdx = ((int64_t)actualSeqLengthsIdx >
-                               (int64_t)tilingData->promptAttentionBaseParams.seqInnerSize +
-                               (int64_t)tilingData->promptAttentionBaseParams.preTokens) ?
-                               tilingData->promptAttentionBaseParams.seqInnerSize + tilingData->promptAttentionBaseParams.preTokens :
-                               actualSeqLengthsIdx;
-        accumSOuterTilingNums[i] = (((actualSeqLengthsIdx + tilingData->promptAttentionSingleCoreParams.singleProcessSOuterSize - 1) /
-                            tilingData->promptAttentionSingleCoreParams.singleProcessSOuterSize) *
-                            tilingData->promptAttentionBaseParams.headNumSize) +
-                            preAccumSOuter;
-        preAccumSOuter = accumSOuterTilingNums[i];
-    }
-    accumSOuterTilingNums[0] = (headNumRatio != 1 ||
-                                tilingData->promptAttentionInitOutputParams.needInit ||
-                                tilingData->promptAttentionBaseParams.batchSize != 1) ?
-                                0 : accumSOuterTilingNums[0];
-
-    if (tilingData->promptAttentionBaseParams.sparseMode == 99 && PFAT::calcMode == ModeNZ::HighPerformanceNZ) { // approximate calculation
-        isHighPrecision_ = false;
-    }
-    pipe->InitBuffer(a1Buf_, tilingData->promptAttentionTensorSizeRect.scmTmpSize * sizeof(mmInputType));
-    pipe->InitBuffer(b1Buf_, tilingData->promptAttentionTensorSizeRect.scmTmpSize * sizeof(mmInputType));
+    pipe = tPipe;
+    pipe->InitBuffer(a1Buf_, qkL1Size);
+    pipe->InitBuffer(b1Buf_, qkL1Size);
     pipe->InitBuffer(c1Buf_, tilingData->promptAttentionTensorSizeRect.scmTmpSize * sizeof(mmInputType));
     pipe->InitBuffer(attenMaskUb_, 2 * (tilingData->promptAttentionTensorSizeRect.attenMaskUbSize) * sizeof(U));
     if (!isHighPrecision_) {
@@ -418,16 +437,75 @@ __aicore__ inline void PromptFlashAttentionS1s2Bns1X310Base<PFAT>::Init(__gm__ u
     if (tilingData->promptAttentionInitOutputParams.needInit == 1) {
         InitOutputSingleCore(attentionOut);
     }
+}
+
+template<typename PFAT>
+__aicore__ inline void PromptFlashAttentionS1s2Bns1X310Base<PFAT>::InitParams() {
+    typeByteNum = tilingData->promptAttentionBaseParams.typeByteNum;
+    outputTypeByteNum = tilingData->promptAttentionBaseParams.outputTypeByteNum;
+    softmaxTypeByteNum = tilingData->promptAttentionBaseParams.softmaxTypeByteNum;
+    headNumRatio = tilingData->promptAttentionBaseParams.headNumRatio;
+    maskDataType = tilingData->promptAttentionBaseParams.attenMaskElemType;
+    maskTypeByteNum = tilingData->promptAttentionBaseParams.maskTypeByteNum;
+    attenMaskBatch = tilingData->promptAttentionSingleCoreParams.attenMaskBatch;
+    layoutType = tilingData->promptAttentionBaseParams.layoutType;
+    if constexpr (IsSameType<T, half>::value) {
+        this->negativeScalar = NEGATIVE_MIN_VAULE_FP16;
+    }
+
+    if (tilingData->promptAttentionBaseParams.sparseMode == 99 && PFAT::calcMode == ModeNZ::HighPerformanceNZ) { // approximate calculation
+        isHighPrecision_ = false;
+    }
 
     if constexpr (PFAT::layout == PFALayoutNZ::BSH) {
         // MultiHeadQ
         queryStride = tilingData->promptAttentionBaseParams.headSize * tilingData->promptAttentionBaseParams.headNumSize;
         // MultiHeadKV
         keyValueStride = queryStride / headNumRatio;
+        qRopeStride = tilingData->promptAttentionBaseParams.ropeHeadSize * tilingData->promptAttentionBaseParams.headNumSize;
+        kRopeStride = qRopeStride / headNumRatio;
     } else { // BNSD
         queryStride = tilingData->promptAttentionBaseParams.headSize;
         keyValueStride = tilingData->promptAttentionBaseParams.headSize;
     }
+}
+
+template<typename PFAT>
+__aicore__ inline void PromptFlashAttentionS1s2Bns1X310Base<PFAT>::InitActualSeqParams() {
+    uint32_t preAccumSOuter = 0;
+    uint32_t h = tilingData->promptAttentionBaseParams.headNumSize * tilingData->promptAttentionBaseParams.headSize;
+    uint32_t s = tilingData->promptAttentionBaseParams.seqSize;
+    uint32_t middle_actualSeqLengths = 0;
+    uint32_t actualSeqLengthsIdx = 0;
+
+    for (int i = 0; i < tilingData->promptAttentionBaseParams.batchSize; i++) {
+        actualSeqLengthsIdx = isActualLenDimsNull ? tilingData->promptAttentionBaseParams.seqSize : actualSeqLengthsGm.GetValue(i);
+        if (tilingData->promptAttentionBaseParams.isActualSeqLengthsNull) {
+            actualSeqOffsets[i] = i * s * h;
+        } else {
+            if (tilingData->promptAttentionBaseParams.isLayoutSH) {
+                actualSeqOffsets[i] = middle_actualSeqLengths * h;
+                middle_actualSeqLengths += actualSeqLengthsIdx;
+            } else {
+                actualSeqOffsets[i] = i * s * h;
+            }
+        }
+
+        actualSeqLengthsIdx = ((int64_t)actualSeqLengthsIdx >
+                               (int64_t)tilingData->promptAttentionBaseParams.seqInnerSize +
+                               (int64_t)tilingData->promptAttentionBaseParams.preTokens) ?
+                               tilingData->promptAttentionBaseParams.seqInnerSize + tilingData->promptAttentionBaseParams.preTokens :
+                               actualSeqLengthsIdx;
+        accumSOuterTilingNums[i] = (((actualSeqLengthsIdx + tilingData->promptAttentionSingleCoreParams.singleProcessSOuterSize - 1) /
+                            tilingData->promptAttentionSingleCoreParams.singleProcessSOuterSize) *
+                            tilingData->promptAttentionBaseParams.headNumSize) +
+                            preAccumSOuter;
+        preAccumSOuter = accumSOuterTilingNums[i];
+    }
+    accumSOuterTilingNums[0] = (headNumRatio != 1 ||
+                                tilingData->promptAttentionInitOutputParams.needInit ||
+                                tilingData->promptAttentionBaseParams.batchSize != 1) ?
+                                0 : accumSOuterTilingNums[0];
 }
 
 template<typename PFAT>
@@ -786,6 +864,7 @@ __aicore__ inline void PromptFlashAttentionS1s2Bns1X310Base<PFAT>::ComputeOffset
         // tensorBOffset cannot be updated here, as it will erase the previously set values
         valueOffset = valueCoreOffset + sInnerOffsetDataSize * MultiHeadKV;
         tensorAOffset = tensorACoreOffset;
+        tensorQRopeOffset = tensorQRopeCoreOffset;
     } else { // BNSD
         int sInnerOffsetDataSize = sInnerLoopIdx * singleProcessSInnerSize;
         valueOffset = valueCoreOffset + sInnerOffsetDataSize * tilingData->promptAttentionBaseParams.headSize;
@@ -857,14 +936,25 @@ __aicore__ inline void PromptFlashAttentionS1s2Bns1X310Base<PFAT>::LoopSOuterOff
     tensorACoreOffset = seqListOffsetSize +
                         sOuterOffset * MultiHeadQ +
                         batchNOffset * tilingData->promptAttentionBaseParams.headSize;
-
     uint32_t seqInnerOffsetSize =
         tilingData->promptAttentionBaseParams.seqSize == tilingData->promptAttentionBaseParams.seqInnerSize ?
         seqListOffsetSize / headNumRatio : sIdx * tilingData->promptAttentionBaseParams.seqInnerSize * MultiHeadKV;
     // calculate the offset for tensor B (key or value tensor).
     tensorBCoreOffset = seqInnerOffsetSize +
                         batchNOffset / headNumRatio * tilingData->promptAttentionBaseParams.headSize;
+    if constexpr (PFAT::isMLAScence) {
+        uint32_t multiHeadQRope = tilingData->promptAttentionBaseParams.ropeHeadSize * tilingData->promptAttentionBaseParams.headNumSize;
+        uint32_t multiHeadKRope = multiHeadQRope / headNumRatio;
+        uint64_t ropeSeqListOffsetSize = (seqListOffsetSize / tilingData->promptAttentionBaseParams.headSize) * tilingData->promptAttentionBaseParams.ropeHeadSize;
+        tensorQRopeCoreOffset = ropeSeqListOffsetSize + sOuterOffset * multiHeadQRope + batchNOffset * tilingData->promptAttentionBaseParams.ropeHeadSize;
 
+        uint32_t ropeSeqInnerOffsetSize =
+            tilingData->promptAttentionBaseParams.seqSize == tilingData->promptAttentionBaseParams.seqInnerSize ?
+            ropeSeqListOffsetSize / headNumRatio : sIdx * tilingData->promptAttentionBaseParams.seqInnerSize * multiHeadKRope;
+        
+        tensorKRopeCoreOffset = ropeSeqInnerOffsetSize +
+                                         batchNOffset / headNumRatio * tilingData->promptAttentionBaseParams.ropeHeadSize;
+    }
     valueCoreOffset = tensorBCoreOffset;
 }
 
@@ -939,7 +1029,6 @@ __aicore__ inline void PromptFlashAttentionS1s2Bns1X310Base<PFAT>::GetSingleCore
     padSize = maskInnerTailAlign - singleProcessSInnerSizeTail;
 
     InitTensorSize(&tilingData->promptAttentionTensorSizeRect);
-    transposeTilingData = tilingData->transposeTilingDataRect;
     softmaxTilingData = tilingData->softmaxTilingDataRect;
     softmaxFlashTilingData = tilingData->softmaxFlashTilingDataRect;
 }

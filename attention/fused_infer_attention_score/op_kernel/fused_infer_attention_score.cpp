@@ -42,12 +42,14 @@ extern "C" __global__ __aicore__ void fused_infer_attention_score(__gm__ uint8_t
   if(TILING_KEY_VAR >= PFA_FlAG_TILING) { // 10^18
       prompt_flash_attention_FIAS(query, key, value, pse_shift, attenMask, actualSeqLengths, 
                                   actualSeqLengthsKV, deq_scale1, quant_scale1,
-                                  deq_scale2, quant_scale2, quant_offset2, antiquantScale, 
+                                  deq_scale2, quant_scale2, quant_offset2, 
+                                  antiquantScale, 
                                   antiquantOffset, blocktable, queryPaddingSize, kvPaddingSize, 
                                   keyAntiquantScale, keyAntiquantOffset, valueAntiquantScale, 
                                   valueAntiquantOffset, keySharedPrefix, valueSharedPrefix, 
                                   actualSharedPrefixLen, queryRope, keyRope, learnableSink, 
                                   attentionOut, softmaxLse, workspace, tiling);
+
   } else if (TILING_KEY_VAR >= FIA_FLAG_TILING) { // 10^17
     fused_infer_attention(query, key, value, pse_shift, attenMask, actualSeqLengths,
                           actualSeqLengthsKV, deq_scale1, quant_scale1, deq_scale2, quant_scale2,
