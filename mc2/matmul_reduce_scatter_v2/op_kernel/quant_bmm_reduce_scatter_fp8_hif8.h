@@ -213,11 +213,17 @@ QuantBMMReduceScatter<TEMPLATE_FUNC_PARAMS>::MatMulComputReduceScatterPertensor(
         }
         return;
     }
-
+    // 如果尾块的当前核数大于主块使用核数，计算尾块当前核的preCoreNum_
+    if (isTail && (GetBlockIdx() >= tilingData_->quantBmmV3TileTiling.matmulTiling.usedCoreNum)) {
+        auto&& tileTiling = tilingData_->quantBmmV3TileTiling.matmulTiling;
+        uint64_t headSliceM = (cfg.rankM / cfg.rankDim - cfg.tailM * cfg.tailCnt) / cfg.tileCnt;
+        uint64_t mCnt = DequantBmm::CeilDiv(headSliceM, tileTiling.baseM) * cfg.rankDim;
+        uint64_t nCnt = DequantBmm::CeilDiv(tileTiling.N, tileTiling.baseN);
+        preCoreNum_ = (mCnt * nCnt * cfg.tileCnt) % tileTiling.usedCoreNum;
+    }
     auto recvCount = static_cast<uint64_t>(tiling.M) * static_cast<uint64_t>(tiling.N) / cfg.rankDim;
     auto cOffset = recvCount * sizeof(CType);
     // 归一化Matmul计算类，负责MC2的Matmul计算
-
     auto cWork = (debugMode_ == MC2_DEBUG_ONLY_CUBE) ? cGM : gmToFloat;
     auto recvBuffer = (debugMode_ == MC2_DEBUG_ONLY_CUBE) ? gmToFloat : cGM;
     auto shift = isTail ? cfg.tileCnt : 0;
