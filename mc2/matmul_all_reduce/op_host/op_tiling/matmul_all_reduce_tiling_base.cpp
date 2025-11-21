@@ -294,7 +294,10 @@ void MatmulAllReduceTilingBase::SetMCutSocVersion(SocVersion& inputSocVersion)
 void MatmulAllReduceTilingBase::DoSplitMTiling()
 {
     auto&& param = MutableRCSTilingData();
-    if (args_.enableSplitK || isKZero_) {
+    bool isNotBatchOne = (args_.batchValue != 1ULL);
+    bool is128Aligned = ((args_.orgMValue / args_.batchValue) & 127ULL) == 0; // 判断原始输入m是否128对齐,batch默认值为1
+    if (args_.enableSplitK || isKZero_ || (isPerBlock_ && isNotBatchOne && !is128Aligned)) {
+        tileMValue_ = args_.orgMValue;
         param.set_tileCnt(1);
         param.set_tailCnt(0);
         param.set_tailM(0);
@@ -943,6 +946,7 @@ AllReduceScenario MatmulAllReduceTilingBase::GetAllReduceScenario(
 bool MatmulAllReduceTilingBase::SetArgs(
     ge::DataType aType, ge::DataType bType, ge::DataType cType, ge::DataType biasType, bool isBias)
 {
+    uint64_t batchValue = GetBatchValue();
     uint64_t mValue = GetMValue();
     uint64_t kValue = GetKValue();
     uint64_t nValue = GetNValue();
@@ -954,6 +958,7 @@ bool MatmulAllReduceTilingBase::SetArgs(
     args_.orgNValue = nValue;
     args_.orgKValue = kValue;
     isKZero_ = args_.orgKValue == 0;
+    args_.batchValue = batchValue;
     args_.mValue = mValue;
     args_.nValue = nValue;
     args_.kValue = kValue;

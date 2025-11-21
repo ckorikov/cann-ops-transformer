@@ -584,12 +584,18 @@ QuantMatmulAllReduceTilingA5::QuantMatmulAllReduceTilingA5(
 const gert::Shape QuantTilingTransferHelperA5::GetX1Shape(const size_t index)
 {
     (void)index;
-    if (tilingProcesser_.args_.isATrans) {
+    // 判断原始的m是否128对齐,对于perblock三维场景m轴非128对齐按照3维传值，和matmul保持一致
+    bool isNotBatchOne = (tilingProcesser_.args_.batchValue != 1ULL);
+    bool is128Aligned = ((tilingProcesser_.args_.orgMValue / tilingProcesser_.args_.batchValue) & 127ULL) == 0;
+    if (tilingProcesser_.isPerBlock_ && isNotBatchOne && !is128Aligned) {
         return gert::Shape(
-            {static_cast<int64_t>(tilingProcesser_.args_.kValue), static_cast<int64_t>(tilingProcesser_.args_.mValue)});
+            {static_cast<int64_t>(tilingProcesser_.args_.batchValue),
+            static_cast<int64_t>(tilingProcesser_.args_.mValue) / static_cast<int64_t>(tilingProcesser_.args_.batchValue), 
+            static_cast<int64_t>(tilingProcesser_.args_.kValue)});
+    } else {
+        return gert::Shape(
+            {static_cast<int64_t>(tilingProcesser_.args_.mValue), static_cast<int64_t>(tilingProcesser_.args_.kValue)});
     }
-    return gert::Shape(
-        {static_cast<int64_t>(tilingProcesser_.args_.mValue), static_cast<int64_t>(tilingProcesser_.args_.kValue)});
 }
 const gert::Shape QuantTilingTransferHelperA5::GetX2Shape(const size_t index)
 {

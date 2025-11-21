@@ -55,10 +55,12 @@ public:
 #endif
         addFlag_ = (paramInTiling_->isAdd != 0U);
         tailFlag_ = (paramInTiling_->tailCnt != 0U);
+        isOneTileFlag_ = (paramInTiling_->tileCnt == 1U) && (paramInTiling_->tailCnt == 0U);
+        const uint64_t mVal = isOneTileFlag_ ? ((uint64_t)paramInTiling_->rankM) : (uint64_t)tileInfo_.mmTiling->M;
 
-        tileInfo_.aOffset = (uint64_t)tileInfo_.mmTiling->M * (uint64_t)tileInfo_.mmTiling->Ka;
+        tileInfo_.aOffset = mVal * (uint64_t)tileInfo_.mmTiling->Ka;
         tileInfo_.aAddrOffset = tileInfo_.aOffset * sizeof(XType);
-        tileInfo_.cOffset = (uint64_t)tileInfo_.mmTiling->M * (uint64_t)tileInfo_.mmTiling->N;
+        tileInfo_.cOffset = mVal * (uint64_t)tileInfo_.mmTiling->N;
         tileInfo_.cAddrOffset = tileInfo_.cOffset * sizeof(YType);
         if (tailFlag_) {
             tailInfo_.aOffset = (uint64_t)tailInfo_.mmTiling->M * (uint64_t)tailInfo_.mmTiling->Ka;
@@ -146,6 +148,7 @@ protected:
     bool notifyFlag_;
     bool addFlag_;
     bool tailFlag_;
+    bool isOneTileFlag_;
 };
 } // namespace MatmulAllReduceImpl
 #endif // MATMUL_ALL_REDUCE_BASE_H

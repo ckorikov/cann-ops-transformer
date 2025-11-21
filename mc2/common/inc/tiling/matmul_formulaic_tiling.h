@@ -162,6 +162,7 @@ struct TilingArgs {
   uint64_t orgMValue;
   uint64_t orgNValue;
   uint64_t orgKValue;
+  uint64_t batchValue;
   uint64_t mValue;
   uint64_t kValue;
   uint64_t nValue;
