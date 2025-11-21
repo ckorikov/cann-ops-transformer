@@ -387,7 +387,7 @@ aclnnStatus aclnnMoeDistributeCombineAddRmsNormV2(
   <tr>
    <td>constExpertNum</td>
    <td>输入</td>
-   <td>常量专家数量，取值范围[0, MAX_INT32)，其中MAX_INT32值为2147483647，合法专家ID范围<code>[moeExpertNum+zeroExpertNum+copyExpertNum, moeExpertNum+zeroExpertNum+copyExpertNum+copyExpertNum)</code>。</td>
+   <td>常量专家数量，取值范围[0, MAX_INT32)，其中MAX_INT32值为2147483647，合法专家ID范围<code>[moeExpertNum+zeroExpertNum+copyExpertNum, moeExpertNum+zeroExpertNum+copyExpertNum+constExpertNum)</code>。</td>
    <td>INT64</td>
    <td>-</td>
   </tr>

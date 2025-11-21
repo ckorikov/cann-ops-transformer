@@ -212,21 +212,21 @@ aclnnStatus aclnnMoeDistributeCombineV3(
   <tr>
    <td>constExpertAlpha1Optional</td>
    <td>输入</td>
-   <td>在使能constExpert的场景下需要输入的计算系数，可选择传入有效数据或填空指针，当constExpertNum不为0时必须传入有效输入，当传入有效数据时，要求是一个2D的Tensor，shape为<code>(constExpertNum, H)</code>，数据类型需跟expandX保持一致。<br><term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：预留参数，当前版本不支持，传空指针即可。</td>
+   <td>Device侧的aclTensor，在使能constExpert的场景下需要输入的计算系数：<br><term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：预留参数，当前版本不支持，传空指针即可。<br><term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：可选择传入有效数据或填空指针，当constExpertNum不为0时必须传入有效输入；当传入有效数据时，要求是一个2D的Tensor，shape为<code>(constExpertNum, H)</code>，数据类型需跟expandX保持一致。</td>
    <td>FLOAT16、BFLOAT16</td>
    <td>ND（支持非连续Tensor）</td>
   </tr>
   <tr>
    <td>constExpertAlpha2Optional</td>
    <td>输入</td>
-   <td>在使能constExpert的场景下需要输入的计算系数，可选择传入有效数据或填空指针，当constExpertNum不为0时必须传入有效输入，当传入有效数据时，要求是一个2D的Tensor，shape为<code>(constExpertNum, H)</code>，数据类型需跟expandX保持一致。<br><term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：预留参数，当前版本不支持，传空指针即可。</td>
+   <td>Device侧的aclTensor，在使能constExpert的场景下需要输入的计算系数：<br><term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：预留参数，当前版本不支持，传空指针即可。<br><term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：可选择传入有效数据或填空指针，当constExpertNum不为0时必须传入有效输入；当传入有效数据时，要求是一个2D的Tensor，shape为<code>(constExpertNum, H)</code>，数据类型需跟expandX保持一致。</td>
    <td>FLOAT16、BFLOAT16</td>
    <td>ND（支持非连续Tensor）</td>
   </tr>
   <tr>
    <td>constExpertVOptional</td>
    <td>输入</td>
-   <td>在使能constExpert的场景下需要输入的计算系数，可选择传入有效数据或填空指针，当constExpertNum不为0时必须传入有效输入，当传入有效数据时，要求是一个2D的Tensor，shape为 <code>(constExpertNum, H)</code>，数据类型需跟expandX保持一致。<br><term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：预留参数，当前版本不支持，传空指针即可。</td>
+   <td>Device侧的aclTensor，在使能constExpert的场景下需要输入的计算系数：<br><term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：预留参数，当前版本不支持，传空指针即可。<br><term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：可选择传入有效数据或填空指针，当constExpertNum不为0时必须传入有效输入；当传入有效数据时，要求是一个2D的Tensor，shape为 <code>(constExpertNum, H)</code>，数据类型需跟expandX保持一致。</td>
    <td>FLOAT16、BFLOAT16</td>
    <td>ND（支持非连续Tensor）</td>
   </tr>
