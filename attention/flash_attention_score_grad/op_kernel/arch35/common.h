@@ -226,6 +226,8 @@ struct FagRunInfo {
     int64_t s2oIdx;
     int64_t s2CvBegin;
     int64_t s2CvEnd;
+    int64_t kGmS2SplitOffset = 0;
+    int64_t vGmS2SplitOffset = 0;
     uint8_t kvPingPong;
     int32_t s1RealSizeAlign2;
     int32_t s2RealSizeAlign2;

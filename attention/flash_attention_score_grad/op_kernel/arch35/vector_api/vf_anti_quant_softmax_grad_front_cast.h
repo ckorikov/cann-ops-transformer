@@ -577,7 +577,7 @@ __aicore__ inline void MyAntiQuantSoftmaxGradFrontCast(const LocalTensor<T> &dst
             }
             vstas(uregReduceSum, ((__ubuf__ float *&)dstLocalInt), 0, POST_UPDATE);
         }
-    } else if constexpr (srcN <= 512) {
+    } else if constexpr (srcN <= 768) {
         const uint32_t fullExeSize = 128;
         uint64_t srcLocalInt1 = srcTensor.GetPhyAddr() + fullExeSize * 2 * sizeof(T1);
         uint64_t srcLocalIntTail = srcTensor.GetPhyAddr() + fullExeSize * 4 * sizeof(T1);

@@ -166,10 +166,10 @@ uint32_t FlashAttentionScoreGradTilingUs1s2Bs2Regbase::GetDTemplateType()
         fBaseParams.dTemplateType = ConstAxisTemplateNum::NUM256;
         return static_cast<uint32_t>(ConstAxisTemplateNum::NUM256);
     } else if (fBaseParams.d <= static_cast<uint32_t>(ConstAxisTemplateNum::NUM768)) {
-        fBaseParams.dTemplateType = ConstAxisTemplateNum::NUM512;
-        return static_cast<uint32_t>(ConstAxisTemplateNum::NUM512);
+        fBaseParams.dTemplateType = ConstAxisTemplateNum::NUM768;
+        return static_cast<uint32_t>(ConstAxisTemplateNum::NUM768);
     }
-    return static_cast<uint32_t>(ConstAxisTemplateNum::NUM512);
+    return static_cast<uint32_t>(ConstAxisTemplateNum::NUM768);
 }
 
 void FlashAttentionScoreGradTilingUs1s2Bs2Regbase::SetQKVStartIdx()
@@ -1142,6 +1142,9 @@ uint32_t FlashAttentionScoreGradTilingUs1s2Bs2Regbase::GetDeterSparseTilingKey()
 
     if (fBaseParams.layoutType == INPUT_FROAMT_TND && fBaseParams.n1 != fBaseParams.n2 && fBaseParams.d <= static_cast<uint32_t>(ConstAxisTemplateNum::NUM512)) {
         return static_cast<uint32_t>(DeterSparseType::DETER_OLD);
+    }
+    else if (fBaseParams.layoutType == INPUT_FROAMT_TND && fBaseParams.n1 != fBaseParams.n2 && fBaseParams.d > static_cast<uint32_t>(ConstAxisTemplateNum::NUM512)) {
+        return static_cast<uint32_t>(DeterSparseType::NO_DETER);
     }
 
     if (!fBaseParams.isSparse || (fBaseParams.sparseMode == static_cast<uint32_t>(SparseMode::ALL_MASK)) ||

@@ -1130,19 +1130,35 @@ FlashAttentionScoreGradKernelBase<ChildClass, CubeBlockType, VecBlockType>::GetK
         bOffset = bOffsetTmp;
         s2Offset = runInfo.s2CvBegin * n2D;
         n2Offset = runInfo.commonRunInfo.n2oIdx * dSize;
+        if constexpr (IS_FP32_INPUT && HEAD_DIM_ALIGN > 512) {
+            runInfo.kGmS2SplitOffset = CUBE_BASEN / 2 * n2D;
+            runInfo.vGmS2SplitOffset = CUBE_BASEN / 2 * n2D;
+        }
     } else {
         if (constInfo.commonConstInfo.layoutType == BNGSD) {
             bOffset = runInfo.commonRunInfo.boIdx * n2S2D;
             n2Offset = runInfo.commonRunInfo.n2oIdx * s2D;
             s2Offset = runInfo.s2CvBegin * dSize;
+            if constexpr (IS_FP32_INPUT && HEAD_DIM_ALIGN > 512) {
+            runInfo.kGmS2SplitOffset = CUBE_BASEN / 2 * dSize;
+            runInfo.vGmS2SplitOffset = CUBE_BASEN / 2 * dSize;
+            }
         } else if (constInfo.commonConstInfo.layoutType == SBNGD) {
             s2Offset = runInfo.s2CvBegin * bN2D;
             bOffset = runInfo.commonRunInfo.boIdx * n2D;
             n2Offset = runInfo.commonRunInfo.n2oIdx * dSize;
+            if constexpr (IS_FP32_INPUT && HEAD_DIM_ALIGN > 512) {
+            runInfo.kGmS2SplitOffset = CUBE_BASEN / 2 * bN2D;
+            runInfo.vGmS2SplitOffset = CUBE_BASEN / 2 * bN2D;
+            }
         } else if (constInfo.commonConstInfo.layoutType == BSNGD) {
             bOffset = runInfo.commonRunInfo.boIdx * n2S2D;
             s2Offset = runInfo.s2CvBegin * n2D;
             n2Offset = runInfo.commonRunInfo.n2oIdx * dSize;
+            if constexpr (IS_FP32_INPUT && HEAD_DIM_ALIGN > 512) {
+            runInfo.kGmS2SplitOffset = CUBE_BASEN / 2 * n2D;
+            runInfo.vGmS2SplitOffset = CUBE_BASEN / 2 * n2D;
+            }
         }
     }
     rightMatrixOffset = bOffset + n2Offset + s2Offset;
@@ -1196,19 +1212,31 @@ FlashAttentionScoreGradKernelBase<ChildClass, CubeBlockType, VecBlockType>::GetV
         bOffset = runInfo.lastBatchTotalS2BOffsetForDv;
         s2Offset = runInfo.s2CvBegin * constInfo.commonConstInfo.n2Dv;
         n2Offset = runInfo.commonRunInfo.n2oIdx * constInfo.commonConstInfo.dSizeV;
+        if constexpr (IS_FP32_INPUT && HEAD_DIM_ALIGN > 512) {
+            runInfo.vGmS2SplitOffset = CUBE_BASEN / 2 * constInfo.commonConstInfo.n2Dv;
+        }
     } else {
         if (constInfo.commonConstInfo.layoutType == BNGSD) {
             bOffset = runInfo.commonRunInfo.boIdx * constInfo.commonConstInfo.n2S2Dv;
             n2Offset = runInfo.commonRunInfo.n2oIdx * constInfo.commonConstInfo.s2Dv;
             s2Offset = runInfo.s2CvBegin * constInfo.commonConstInfo.dSizeV;
+            if constexpr (IS_FP32_INPUT && HEAD_DIM_ALIGN > 512) {
+                runInfo.vGmS2SplitOffset = CUBE_BASEN / 2 * constInfo.commonConstInfo.dSizeV;
+            }
         } else if (constInfo.commonConstInfo.layoutType == SBNGD) {
             s2Offset = runInfo.s2CvBegin * constInfo.commonConstInfo.bN2Dv;
             bOffset = runInfo.commonRunInfo.boIdx * constInfo.commonConstInfo.n2Dv;
             n2Offset = runInfo.commonRunInfo.n2oIdx * constInfo.commonConstInfo.dSizeV;
+            if constexpr (IS_FP32_INPUT && HEAD_DIM_ALIGN > 512) {
+                runInfo.vGmS2SplitOffset = CUBE_BASEN / 2 * constInfo.commonConstInfo.bN2Dv;
+            }
         } else if (constInfo.commonConstInfo.layoutType == BSNGD) {
             bOffset = runInfo.commonRunInfo.boIdx * constInfo.commonConstInfo.n2S2Dv;
             s2Offset = runInfo.s2CvBegin * constInfo.commonConstInfo.n2Dv;
             n2Offset = runInfo.commonRunInfo.n2oIdx * constInfo.commonConstInfo.dSizeV;
+            if constexpr (IS_FP32_INPUT && HEAD_DIM_ALIGN > 512) {
+                runInfo.vGmS2SplitOffset = CUBE_BASEN / 2 * constInfo.commonConstInfo.n2Dv;
+            }
         }
     }
     rightMatrixOffset = bOffset + n2Offset + s2Offset;

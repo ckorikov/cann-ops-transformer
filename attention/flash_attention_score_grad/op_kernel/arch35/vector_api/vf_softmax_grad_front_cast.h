@@ -41,7 +41,7 @@ param [out] dstTensor output LocalTensor
 param [in] gradTensor input grad LocalTensor
 param [in] srcTensor input src LocalTensor
 */
-template <typename T1, typename T, uint32_t srcN>
+template <typename T1, typename T, uint32_t srcN, uint32_t HEAD_DIM_ALIGN>
 __aicore__ inline void MySoftmaxGradFrontCast(const LocalTensor<T> &dstTensor, const LocalTensor<T1> &gradTensor,
                                               const LocalTensor<T1> &srcTensor, uint32_t srcM, uint32_t realN = srcN)
 {
@@ -268,16 +268,16 @@ __aicore__ inline void MySoftmaxGradFrontCast(const LocalTensor<T> &dstTensor, c
 
                 for (uint16_t m = 0; m < static_cast<uint16_t>(srcM); m++) {
                     // 手动unroll 128个数分64个数做mul和add
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc, ((__ubuf__ T1 *&)srcLocalInt), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad, ((__ubuf__ T1 *&)gradLocalInt), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc1, ((__ubuf__ T1 *&)srcLocalInt1), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad1, ((__ubuf__ T1 *&)gradLocalInt1), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc2, ((__ubuf__ T1 *&)srcLocalInt2), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad2, ((__ubuf__ T1 *&)gradLocalInt2), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc3, ((__ubuf__ T1 *&)srcLocalInt3), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad3, ((__ubuf__ T1 *&)gradLocalInt3), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcTail, ((__ubuf__ T1 *&)srcLocalIntTail), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGradTail, ((__ubuf__ T1 *&)gradLocalIntTail), 512);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc, ((__ubuf__ T1 *&)srcLocalInt), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad, ((__ubuf__ T1 *&)gradLocalInt), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc1, ((__ubuf__ T1 *&)srcLocalInt1), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad1, ((__ubuf__ T1 *&)gradLocalInt1), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc2, ((__ubuf__ T1 *&)srcLocalInt2), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad2, ((__ubuf__ T1 *&)gradLocalInt2), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc3, ((__ubuf__ T1 *&)srcLocalInt3), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad3, ((__ubuf__ T1 *&)gradLocalInt3), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcTail, ((__ubuf__ T1 *&)srcLocalIntTail), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGradTail, ((__ubuf__ T1 *&)gradLocalIntTail), HEAD_DIM_ALIGN);
                     Mul(vregMul, vregGrad, vregSrc, pregFullExe);
                     Mul(vregMul1, vregGrad1, vregSrc1, pregFullExe);
                     Mul(vregMul2, vregGrad2, vregSrc2, pregFullExe);
@@ -345,18 +345,18 @@ __aicore__ inline void MySoftmaxGradFrontCast(const LocalTensor<T> &dstTensor, c
  
                 for (uint16_t m = 0; m < static_cast<uint16_t>(srcM); m++) {
                     // 手动unroll 128个数分64个数做mul和add
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc, ((__ubuf__ T1 *&)srcLocalInt), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad, ((__ubuf__ T1 *&)gradLocalInt), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc1, ((__ubuf__ T1 *&)srcLocalInt1), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad1, ((__ubuf__ T1 *&)gradLocalInt1), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc2, ((__ubuf__ T1 *&)srcLocalInt2), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad2, ((__ubuf__ T1 *&)gradLocalInt2), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc3, ((__ubuf__ T1 *&)srcLocalInt3), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad3, ((__ubuf__ T1 *&)gradLocalInt3), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc4, ((__ubuf__ T1 *&)srcLocalInt4), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad4, ((__ubuf__ T1 *&)gradLocalInt4), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcTail, ((__ubuf__ T1 *&)srcLocalIntTail), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGradTail, ((__ubuf__ T1 *&)gradLocalIntTail), 512);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc, ((__ubuf__ T1 *&)srcLocalInt), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad, ((__ubuf__ T1 *&)gradLocalInt), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc1, ((__ubuf__ T1 *&)srcLocalInt1), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad1, ((__ubuf__ T1 *&)gradLocalInt1), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc2, ((__ubuf__ T1 *&)srcLocalInt2), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad2, ((__ubuf__ T1 *&)gradLocalInt2), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc3, ((__ubuf__ T1 *&)srcLocalInt3), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad3, ((__ubuf__ T1 *&)gradLocalInt3), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc4, ((__ubuf__ T1 *&)srcLocalInt4), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad4, ((__ubuf__ T1 *&)gradLocalInt4), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcTail, ((__ubuf__ T1 *&)srcLocalIntTail), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGradTail, ((__ubuf__ T1 *&)gradLocalIntTail), HEAD_DIM_ALIGN);
                     Mul(vregMul, vregGrad, vregSrc, pregFullExe);
                     Mul(vregMul1, vregGrad1, vregSrc1, pregFullExe);
                     Mul(vregMul2, vregGrad2, vregSrc2, pregFullExe);
@@ -434,20 +434,20 @@ __aicore__ inline void MySoftmaxGradFrontCast(const LocalTensor<T> &dstTensor, c
  
                 for (uint16_t m = 0; m < static_cast<uint16_t>(srcM); m++) {
                     // 手动unroll 128个数分64个数做mul和add
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc, ((__ubuf__ T1 *&)srcLocalInt), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad, ((__ubuf__ T1 *&)gradLocalInt), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc1, ((__ubuf__ T1 *&)srcLocalInt1), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad1, ((__ubuf__ T1 *&)gradLocalInt1), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc2, ((__ubuf__ T1 *&)srcLocalInt2), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad2, ((__ubuf__ T1 *&)gradLocalInt2), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc3, ((__ubuf__ T1 *&)srcLocalInt3), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad3, ((__ubuf__ T1 *&)gradLocalInt3), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc4, ((__ubuf__ T1 *&)srcLocalInt4), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad4, ((__ubuf__ T1 *&)gradLocalInt4), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc5, ((__ubuf__ T1 *&)srcLocalInt5), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad5, ((__ubuf__ T1 *&)gradLocalInt5), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcTail, ((__ubuf__ T1 *&)srcLocalIntTail), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGradTail, ((__ubuf__ T1 *&)gradLocalIntTail), 512);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc, ((__ubuf__ T1 *&)srcLocalInt), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad, ((__ubuf__ T1 *&)gradLocalInt), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc1, ((__ubuf__ T1 *&)srcLocalInt1), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad1, ((__ubuf__ T1 *&)gradLocalInt1), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc2, ((__ubuf__ T1 *&)srcLocalInt2), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad2, ((__ubuf__ T1 *&)gradLocalInt2), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc3, ((__ubuf__ T1 *&)srcLocalInt3), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad3, ((__ubuf__ T1 *&)gradLocalInt3), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc4, ((__ubuf__ T1 *&)srcLocalInt4), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad4, ((__ubuf__ T1 *&)gradLocalInt4), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc5, ((__ubuf__ T1 *&)srcLocalInt5), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad5, ((__ubuf__ T1 *&)gradLocalInt5), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcTail, ((__ubuf__ T1 *&)srcLocalIntTail), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGradTail, ((__ubuf__ T1 *&)gradLocalIntTail), HEAD_DIM_ALIGN);
                     Mul(vregMul, vregGrad, vregSrc, pregFullExe);
                     Mul(vregMul1, vregGrad1, vregSrc1, pregFullExe);
                     Mul(vregMul2, vregGrad2, vregSrc2, pregFullExe);
@@ -533,22 +533,22 @@ __aicore__ inline void MySoftmaxGradFrontCast(const LocalTensor<T> &dstTensor, c
  
                 for (uint16_t m = 0; m < static_cast<uint16_t>(srcM); m++) {
                     // 手动unroll 128个数分64个数做mul和add
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc, ((__ubuf__ T1 *&)srcLocalInt), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad, ((__ubuf__ T1 *&)gradLocalInt), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc1, ((__ubuf__ T1 *&)srcLocalInt1), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad1, ((__ubuf__ T1 *&)gradLocalInt1), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc2, ((__ubuf__ T1 *&)srcLocalInt2), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad2, ((__ubuf__ T1 *&)gradLocalInt2), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc3, ((__ubuf__ T1 *&)srcLocalInt3), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad3, ((__ubuf__ T1 *&)gradLocalInt3), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc4, ((__ubuf__ T1 *&)srcLocalInt4), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad4, ((__ubuf__ T1 *&)gradLocalInt4), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc5, ((__ubuf__ T1 *&)srcLocalInt5), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad5, ((__ubuf__ T1 *&)gradLocalInt5), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc6, ((__ubuf__ T1 *&)srcLocalInt6), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad6, ((__ubuf__ T1 *&)gradLocalInt6), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcTail, ((__ubuf__ T1 *&)srcLocalIntTail), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGradTail, ((__ubuf__ T1 *&)gradLocalIntTail), 512);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc, ((__ubuf__ T1 *&)srcLocalInt), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad, ((__ubuf__ T1 *&)gradLocalInt), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc1, ((__ubuf__ T1 *&)srcLocalInt1), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad1, ((__ubuf__ T1 *&)gradLocalInt1), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc2, ((__ubuf__ T1 *&)srcLocalInt2), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad2, ((__ubuf__ T1 *&)gradLocalInt2), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc3, ((__ubuf__ T1 *&)srcLocalInt3), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad3, ((__ubuf__ T1 *&)gradLocalInt3), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc4, ((__ubuf__ T1 *&)srcLocalInt4), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad4, ((__ubuf__ T1 *&)gradLocalInt4), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc5, ((__ubuf__ T1 *&)srcLocalInt5), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad5, ((__ubuf__ T1 *&)gradLocalInt5), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc6, ((__ubuf__ T1 *&)srcLocalInt6), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad6, ((__ubuf__ T1 *&)gradLocalInt6), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcTail, ((__ubuf__ T1 *&)srcLocalIntTail), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGradTail, ((__ubuf__ T1 *&)gradLocalIntTail), HEAD_DIM_ALIGN);
                     Mul(vregMul, vregGrad, vregSrc, pregFullExe);
                     Mul(vregMul1, vregGrad1, vregSrc1, pregFullExe);
                     Mul(vregMul2, vregGrad2, vregSrc2, pregFullExe);
@@ -644,24 +644,24 @@ __aicore__ inline void MySoftmaxGradFrontCast(const LocalTensor<T> &dstTensor, c
  
                 for (uint16_t m = 0; m < static_cast<uint16_t>(srcM); m++) {
                     // 手动unroll 128个数分64个数做mul和add
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc, ((__ubuf__ T1 *&)srcLocalInt), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad, ((__ubuf__ T1 *&)gradLocalInt), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc1, ((__ubuf__ T1 *&)srcLocalInt1), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad1, ((__ubuf__ T1 *&)gradLocalInt1), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc2, ((__ubuf__ T1 *&)srcLocalInt2), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad2, ((__ubuf__ T1 *&)gradLocalInt2), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc3, ((__ubuf__ T1 *&)srcLocalInt3), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad3, ((__ubuf__ T1 *&)gradLocalInt3), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc4, ((__ubuf__ T1 *&)srcLocalInt4), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad4, ((__ubuf__ T1 *&)gradLocalInt4), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc5, ((__ubuf__ T1 *&)srcLocalInt5), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad5, ((__ubuf__ T1 *&)gradLocalInt5), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc6, ((__ubuf__ T1 *&)srcLocalInt6), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad6, ((__ubuf__ T1 *&)gradLocalInt6), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc7, ((__ubuf__ T1 *&)srcLocalInt7), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad7, ((__ubuf__ T1 *&)gradLocalInt7), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcTail, ((__ubuf__ T1 *&)srcLocalIntTail), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGradTail, ((__ubuf__ T1 *&)gradLocalIntTail), 512);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc, ((__ubuf__ T1 *&)srcLocalInt), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad, ((__ubuf__ T1 *&)gradLocalInt), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc1, ((__ubuf__ T1 *&)srcLocalInt1), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad1, ((__ubuf__ T1 *&)gradLocalInt1), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc2, ((__ubuf__ T1 *&)srcLocalInt2), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad2, ((__ubuf__ T1 *&)gradLocalInt2), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc3, ((__ubuf__ T1 *&)srcLocalInt3), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad3, ((__ubuf__ T1 *&)gradLocalInt3), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc4, ((__ubuf__ T1 *&)srcLocalInt4), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad4, ((__ubuf__ T1 *&)gradLocalInt4), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc5, ((__ubuf__ T1 *&)srcLocalInt5), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad5, ((__ubuf__ T1 *&)gradLocalInt5), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc6, ((__ubuf__ T1 *&)srcLocalInt6), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad6, ((__ubuf__ T1 *&)gradLocalInt6), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc7, ((__ubuf__ T1 *&)srcLocalInt7), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad7, ((__ubuf__ T1 *&)gradLocalInt7), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcTail, ((__ubuf__ T1 *&)srcLocalIntTail), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGradTail, ((__ubuf__ T1 *&)gradLocalIntTail), HEAD_DIM_ALIGN);
                     Mul(vregMul, vregGrad, vregSrc, pregFullExe);
                     Mul(vregMul1, vregGrad1, vregSrc1, pregFullExe);
                     Mul(vregMul2, vregGrad2, vregSrc2, pregFullExe);
@@ -766,25 +766,25 @@ __aicore__ inline void MySoftmaxGradFrontCast(const LocalTensor<T> &dstTensor, c
  
                 for (uint16_t m = 0; m < static_cast<uint16_t>(srcM); m++) {
                     // 手动unroll 128个数分64个数做mul和add
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc, ((__ubuf__ T1 *&)srcLocalInt), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad, ((__ubuf__ T1 *&)gradLocalInt), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc1, ((__ubuf__ T1 *&)srcLocalInt1), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad1, ((__ubuf__ T1 *&)gradLocalInt1), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc2, ((__ubuf__ T1 *&)srcLocalInt2), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad2, ((__ubuf__ T1 *&)gradLocalInt2), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc3, ((__ubuf__ T1 *&)srcLocalInt3), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad3, ((__ubuf__ T1 *&)gradLocalInt3), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc4, ((__ubuf__ T1 *&)srcLocalInt4), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad4, ((__ubuf__ T1 *&)gradLocalInt4), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc5, ((__ubuf__ T1 *&)srcLocalInt5), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad5, ((__ubuf__ T1 *&)gradLocalInt5), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc6, ((__ubuf__ T1 *&)srcLocalInt6), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad6, ((__ubuf__ T1 *&)gradLocalInt6), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc7, ((__ubuf__ T1 *&)srcLocalInt7), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad7, ((__ubuf__ T1 *&)gradLocalInt7), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc8, ((__ubuf__ T1 *&)srcLocalInt8), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad8, ((__ubuf__ T1 *&)gradLocalInt8), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcTail, ((__ubuf__ T1 *&)srcLocalIntTail), 512);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc, ((__ubuf__ T1 *&)srcLocalInt), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad, ((__ubuf__ T1 *&)gradLocalInt), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc1, ((__ubuf__ T1 *&)srcLocalInt1), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad1, ((__ubuf__ T1 *&)gradLocalInt1), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc2, ((__ubuf__ T1 *&)srcLocalInt2), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad2, ((__ubuf__ T1 *&)gradLocalInt2), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc3, ((__ubuf__ T1 *&)srcLocalInt3), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad3, ((__ubuf__ T1 *&)gradLocalInt3), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc4, ((__ubuf__ T1 *&)srcLocalInt4), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad4, ((__ubuf__ T1 *&)gradLocalInt4), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc5, ((__ubuf__ T1 *&)srcLocalInt5), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad5, ((__ubuf__ T1 *&)gradLocalInt5), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc6, ((__ubuf__ T1 *&)srcLocalInt6), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad6, ((__ubuf__ T1 *&)gradLocalInt6), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc7, ((__ubuf__ T1 *&)srcLocalInt7), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad7, ((__ubuf__ T1 *&)gradLocalInt7), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc8, ((__ubuf__ T1 *&)srcLocalInt8), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad8, ((__ubuf__ T1 *&)gradLocalInt8), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcTail, ((__ubuf__ T1 *&)srcLocalIntTail), HEAD_DIM_ALIGN);
                     DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGradTail, ((__ubuf__ T1 *&)gradLocalIntTail), srcN);
                     Mul(vregMul, vregGrad, vregSrc, pregFullExe);
                     Mul(vregMul1, vregGrad1, vregSrc1, pregFullExe);
@@ -899,28 +899,28 @@ __aicore__ inline void MySoftmaxGradFrontCast(const LocalTensor<T> &dstTensor, c
  
                 for (uint16_t m = 0; m < static_cast<uint16_t>(srcM); m++) {
                     // 手动unroll 128个数分64个数做mul和add
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc, ((__ubuf__ T1 *&)srcLocalInt), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad, ((__ubuf__ T1 *&)gradLocalInt), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc1, ((__ubuf__ T1 *&)srcLocalInt1), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad1, ((__ubuf__ T1 *&)gradLocalInt1), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc2, ((__ubuf__ T1 *&)srcLocalInt2), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad2, ((__ubuf__ T1 *&)gradLocalInt2), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc3, ((__ubuf__ T1 *&)srcLocalInt3), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad3, ((__ubuf__ T1 *&)gradLocalInt3), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc4, ((__ubuf__ T1 *&)srcLocalInt4), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad4, ((__ubuf__ T1 *&)gradLocalInt4), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc5, ((__ubuf__ T1 *&)srcLocalInt5), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad5, ((__ubuf__ T1 *&)gradLocalInt5), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc6, ((__ubuf__ T1 *&)srcLocalInt6), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad6, ((__ubuf__ T1 *&)gradLocalInt6), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc7, ((__ubuf__ T1 *&)srcLocalInt7), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad7, ((__ubuf__ T1 *&)gradLocalInt7), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc8, ((__ubuf__ T1 *&)srcLocalInt8), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad8, ((__ubuf__ T1 *&)gradLocalInt8), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc9, ((__ubuf__ T1 *&)srcLocalInt9), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad9, ((__ubuf__ T1 *&)gradLocalInt9), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcTail, ((__ubuf__ T1 *&)srcLocalIntTail), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGradTail, ((__ubuf__ T1 *&)gradLocalIntTail), 512);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc, ((__ubuf__ T1 *&)srcLocalInt), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad, ((__ubuf__ T1 *&)gradLocalInt), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc1, ((__ubuf__ T1 *&)srcLocalInt1), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad1, ((__ubuf__ T1 *&)gradLocalInt1), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc2, ((__ubuf__ T1 *&)srcLocalInt2), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad2, ((__ubuf__ T1 *&)gradLocalInt2), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc3, ((__ubuf__ T1 *&)srcLocalInt3), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad3, ((__ubuf__ T1 *&)gradLocalInt3), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc4, ((__ubuf__ T1 *&)srcLocalInt4), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad4, ((__ubuf__ T1 *&)gradLocalInt4), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc5, ((__ubuf__ T1 *&)srcLocalInt5), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad5, ((__ubuf__ T1 *&)gradLocalInt5), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc6, ((__ubuf__ T1 *&)srcLocalInt6), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad6, ((__ubuf__ T1 *&)gradLocalInt6), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc7, ((__ubuf__ T1 *&)srcLocalInt7), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad7, ((__ubuf__ T1 *&)gradLocalInt7), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc8, ((__ubuf__ T1 *&)srcLocalInt8), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad8, ((__ubuf__ T1 *&)gradLocalInt8), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc9, ((__ubuf__ T1 *&)srcLocalInt9), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad9, ((__ubuf__ T1 *&)gradLocalInt9), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcTail, ((__ubuf__ T1 *&)srcLocalIntTail), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGradTail, ((__ubuf__ T1 *&)gradLocalIntTail), HEAD_DIM_ALIGN);
                     Mul(vregMul, vregGrad, vregSrc, pregFullExe);
                     Mul(vregMul1, vregGrad1, vregSrc1, pregFullExe);
                     Mul(vregMul2, vregGrad2, vregSrc2, pregFullExe);
@@ -948,7 +948,7 @@ __aicore__ inline void MySoftmaxGradFrontCast(const LocalTensor<T> &dstTensor, c
                 }
                 vstas(uregReduceSum, ((__ubuf__ float *&)dstLocalInt), 0, POST_UPDATE);
             }
-        } else if constexpr (srcN == 512) {
+        } else if constexpr (srcN == 768) {
             // D=576 unroll11次
             const uint32_t fullExeSize = 64;
             uint64_t srcLocalInt1 = srcTensor.GetPhyAddr() + fullExeSize * sizeof(T1);
@@ -1043,30 +1043,32 @@ __aicore__ inline void MySoftmaxGradFrontCast(const LocalTensor<T> &dstTensor, c
  
                 for (uint16_t m = 0; m < static_cast<uint16_t>(srcM); m++) {
                     // 手动unroll 128个数分64个数做mul和add
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc, ((__ubuf__ T1 *&)srcLocalInt), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad, ((__ubuf__ T1 *&)gradLocalInt), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc1, ((__ubuf__ T1 *&)srcLocalInt1), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad1, ((__ubuf__ T1 *&)gradLocalInt1), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc2, ((__ubuf__ T1 *&)srcLocalInt2), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad2, ((__ubuf__ T1 *&)gradLocalInt2), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc3, ((__ubuf__ T1 *&)srcLocalInt3), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad3, ((__ubuf__ T1 *&)gradLocalInt3), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc4, ((__ubuf__ T1 *&)srcLocalInt4), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad4, ((__ubuf__ T1 *&)gradLocalInt4), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc5, ((__ubuf__ T1 *&)srcLocalInt5), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad5, ((__ubuf__ T1 *&)gradLocalInt5), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc6, ((__ubuf__ T1 *&)srcLocalInt6), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad6, ((__ubuf__ T1 *&)gradLocalInt6), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc7, ((__ubuf__ T1 *&)srcLocalInt7), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad7, ((__ubuf__ T1 *&)gradLocalInt7), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc8, ((__ubuf__ T1 *&)srcLocalInt8), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad8, ((__ubuf__ T1 *&)gradLocalInt8), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc9, ((__ubuf__ T1 *&)srcLocalInt9), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad9, ((__ubuf__ T1 *&)gradLocalInt9), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc10, ((__ubuf__ T1 *&)srcLocalInt10), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad10, ((__ubuf__ T1 *&)gradLocalInt10), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcTail, ((__ubuf__ T1 *&)srcLocalIntTail), 512);
-                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGradTail, ((__ubuf__ T1 *&)gradLocalIntTail), 512);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc, ((__ubuf__ T1 *&)srcLocalInt), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad, ((__ubuf__ T1 *&)gradLocalInt), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc1, ((__ubuf__ T1 *&)srcLocalInt1), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad1, ((__ubuf__ T1 *&)gradLocalInt1), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc2, ((__ubuf__ T1 *&)srcLocalInt2), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad2, ((__ubuf__ T1 *&)gradLocalInt2), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc3, ((__ubuf__ T1 *&)srcLocalInt3), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad3, ((__ubuf__ T1 *&)gradLocalInt3), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc4, ((__ubuf__ T1 *&)srcLocalInt4), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad4, ((__ubuf__ T1 *&)gradLocalInt4), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc5, ((__ubuf__ T1 *&)srcLocalInt5), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad5, ((__ubuf__ T1 *&)gradLocalInt5), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc6, ((__ubuf__ T1 *&)srcLocalInt6), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad6, ((__ubuf__ T1 *&)gradLocalInt6), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc7, ((__ubuf__ T1 *&)srcLocalInt7), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad7, ((__ubuf__ T1 *&)gradLocalInt7), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc8, ((__ubuf__ T1 *&)srcLocalInt8), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad8, ((__ubuf__ T1 *&)gradLocalInt8), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc9, ((__ubuf__ T1 *&)srcLocalInt9), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad9, ((__ubuf__ T1 *&)gradLocalInt9), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrc10, ((__ubuf__ T1 *&)srcLocalInt10), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGrad10, ((__ubuf__ T1 *&)gradLocalInt10), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcTail, ((__ubuf__ T1 *&)srcLocalIntTail), HEAD_DIM_ALIGN);
+                    DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGradTail, ((__ubuf__ T1 *&)gradLocalIntTail), HEAD_DIM_ALIGN);
+
+                    
                     Mul(vregMul, vregGrad, vregSrc, pregFullExe);
                     Mul(vregMul1, vregGrad1, vregSrc1, pregFullExe);
                     Mul(vregMul2, vregGrad2, vregSrc2, pregFullExe);
@@ -1084,7 +1086,7 @@ __aicore__ inline void MySoftmaxGradFrontCast(const LocalTensor<T> &dstTensor, c
                     Add(vregAdd2, vregMul2, vregMul9, pregFullExe);
                     Add(vregAdd3, vregMul3, vregMul8, pregFullExe);
                     Add(vregAdd4, vregMul4, vregMul7, pregFullExe);
-                    Add(vregAdd5, vregAdd5, vregMul6, pregFullExe);
+                    Add(vregAdd5, vregMul5, vregMul6, pregFullExe);
                     Add(vregAdd6, vregAdd, vregAdd5, pregFullExe);
                     Add(vregAdd7, vregAdd1, vregAdd4, pregFullExe);
                     Add(vregAdd8, vregAdd2, vregAdd3, pregFullExe);
@@ -1307,12 +1309,12 @@ __aicore__ inline void MySoftmaxGradFrontCast(const LocalTensor<T> &dstTensor, c
                 for (uint16_t m = 0; m < static_cast<uint16_t>(srcM); m++) {
                     // 手动unroll 128个数分64个数做mul和add
                     if constexpr (IsSameType<T1, half>::value) {
-                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcHalf, ((__ubuf__ T1 *&)srcLocalInt), 512);
-                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGradHalf, ((__ubuf__ T1 *&)gradLocalInt), 512);
-                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcHalf1, ((__ubuf__ T1 *&)srcLocalInt1), 512);
-                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGradHalf1, ((__ubuf__ T1 *&)gradLocalInt1), 512);
-                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcHalfTail, ((__ubuf__ T1 *&)srcLocalIntTail), 512);
-                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGradHalfTail, ((__ubuf__ T1 *&)gradLocalIntTail), 512);
+                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcHalf, ((__ubuf__ T1 *&)srcLocalInt), HEAD_DIM_ALIGN);
+                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGradHalf, ((__ubuf__ T1 *&)gradLocalInt), HEAD_DIM_ALIGN);
+                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcHalf1, ((__ubuf__ T1 *&)srcLocalInt1), HEAD_DIM_ALIGN);
+                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGradHalf1, ((__ubuf__ T1 *&)gradLocalInt1), HEAD_DIM_ALIGN);
+                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcHalfTail, ((__ubuf__ T1 *&)srcLocalIntTail), HEAD_DIM_ALIGN);
+                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGradHalfTail, ((__ubuf__ T1 *&)gradLocalIntTail), HEAD_DIM_ALIGN);
                         Cast<float, T1, castTraitB162B32Even>(vregSrc, vregSrcHalf, pregFullExeB16);
                         Cast<float, T1, castTraitB162B32Odd>(vregSrc1, vregSrcHalf, pregFullExeB16);
                         Cast<float, T1, castTraitB162B32Even>(vregGrad, vregGradHalf, pregFullExeB16);
@@ -1326,12 +1328,12 @@ __aicore__ inline void MySoftmaxGradFrontCast(const LocalTensor<T> &dstTensor, c
                         Cast<float, T1, castTraitB162B32Even>(vregGradTail, vregGradHalfTail, pregFullExeB16);
                         Cast<float, T1, castTraitB162B32Odd>(vregGrad1Tail, vregGradHalfTail, pregFullExeB16);
                     } else if constexpr (IsSameType<T1, bfloat16_t>::value) {
-                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcBf, ((__ubuf__ T1 *&)srcLocalInt), 512);
-                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGradBf, ((__ubuf__ T1 *&)gradLocalInt), 512);
-                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcBf1, ((__ubuf__ T1 *&)srcLocalInt1), 512);
-                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGradBf1, ((__ubuf__ T1 *&)gradLocalInt1), 512);
-                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcBfTail, ((__ubuf__ T1 *&)srcLocalIntTail), 512);
-                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGradBfTail, ((__ubuf__ T1 *&)gradLocalIntTail), 512);
+                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcBf, ((__ubuf__ T1 *&)srcLocalInt), HEAD_DIM_ALIGN);
+                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGradBf, ((__ubuf__ T1 *&)gradLocalInt), HEAD_DIM_ALIGN);
+                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcBf1, ((__ubuf__ T1 *&)srcLocalInt1), HEAD_DIM_ALIGN);
+                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGradBf1, ((__ubuf__ T1 *&)gradLocalInt1), HEAD_DIM_ALIGN);
+                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcBfTail, ((__ubuf__ T1 *&)srcLocalIntTail), HEAD_DIM_ALIGN);
+                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGradBfTail, ((__ubuf__ T1 *&)gradLocalIntTail), HEAD_DIM_ALIGN);
                         Cast<float, T1, castTraitB162B32Even>(vregSrc, vregSrcBf, pregFullExeB16);
                         Cast<float, T1, castTraitB162B32Even>(vregGrad, vregGradBf, pregFullExeB16);
                         Cast<float, T1, castTraitB162B32Odd>(vregSrc1, vregSrcBf, pregFullExeB16);
@@ -1440,14 +1442,14 @@ __aicore__ inline void MySoftmaxGradFrontCast(const LocalTensor<T> &dstTensor, c
                 for (uint16_t m = 0; m < static_cast<uint16_t>(srcM); m++) {
                     // 手动unroll 128个数分64个数做mul和add
                     if constexpr (IsSameType<T1, half>::value) {
-                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcHalf, ((__ubuf__ T1 *&)srcLocalInt), 512);
-                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGradHalf, ((__ubuf__ T1 *&)gradLocalInt), 512);
-                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcHalf1, ((__ubuf__ T1 *&)srcLocalInt1), 512);
-                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGradHalf1, ((__ubuf__ T1 *&)gradLocalInt1), 512);
-                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcHalf2, ((__ubuf__ T1 *&)srcLocalInt2), 512);
-                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGradHalf2, ((__ubuf__ T1 *&)gradLocalInt2), 512);
-                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcHalfTail, ((__ubuf__ T1 *&)srcLocalIntTail), 512);
-                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGradHalfTail, ((__ubuf__ T1 *&)gradLocalIntTail), 512);
+                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcHalf, ((__ubuf__ T1 *&)srcLocalInt), HEAD_DIM_ALIGN);
+                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGradHalf, ((__ubuf__ T1 *&)gradLocalInt), HEAD_DIM_ALIGN);
+                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcHalf1, ((__ubuf__ T1 *&)srcLocalInt1), HEAD_DIM_ALIGN);
+                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGradHalf1, ((__ubuf__ T1 *&)gradLocalInt1), HEAD_DIM_ALIGN);
+                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcHalf2, ((__ubuf__ T1 *&)srcLocalInt2), HEAD_DIM_ALIGN);
+                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGradHalf2, ((__ubuf__ T1 *&)gradLocalInt2), HEAD_DIM_ALIGN);
+                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcHalfTail, ((__ubuf__ T1 *&)srcLocalIntTail), HEAD_DIM_ALIGN);
+                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGradHalfTail, ((__ubuf__ T1 *&)gradLocalIntTail), HEAD_DIM_ALIGN);
                         Cast<float, T1, castTraitB162B32Even>(vregSrc, vregSrcHalf, pregFullExeB16);
                         Cast<float, T1, castTraitB162B32Odd>(vregSrc1, vregSrcHalf, pregFullExeB16);
                         Cast<float, T1, castTraitB162B32Even>(vregGrad, vregGradHalf, pregFullExeB16);
@@ -1465,14 +1467,14 @@ __aicore__ inline void MySoftmaxGradFrontCast(const LocalTensor<T> &dstTensor, c
                         Cast<float, T1, castTraitB162B32Even>(vregGradTail, vregGradHalfTail, pregFullExeB16);
                         Cast<float, T1, castTraitB162B32Odd>(vregGrad1Tail, vregGradHalfTail, pregFullExeB16);
                     } else if constexpr (IsSameType<T1, bfloat16_t>::value) {
-                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcBf, ((__ubuf__ T1 *&)srcLocalInt), 512);
-                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGradBf, ((__ubuf__ T1 *&)gradLocalInt), 512);
-                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcBf1, ((__ubuf__ T1 *&)srcLocalInt1), 512);
-                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGradBf1, ((__ubuf__ T1 *&)gradLocalInt1), 512);
-                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcBf2, ((__ubuf__ T1 *&)srcLocalInt2), 512);
-                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGradBf2, ((__ubuf__ T1 *&)gradLocalInt2), 512);
-                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcBfTail, ((__ubuf__ T1 *&)srcLocalIntTail), 512);
-                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGradBfTail, ((__ubuf__ T1 *&)gradLocalIntTail), 512);
+                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcBf, ((__ubuf__ T1 *&)srcLocalInt), HEAD_DIM_ALIGN);
+                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGradBf, ((__ubuf__ T1 *&)gradLocalInt), HEAD_DIM_ALIGN);
+                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcBf1, ((__ubuf__ T1 *&)srcLocalInt1), HEAD_DIM_ALIGN);
+                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGradBf1, ((__ubuf__ T1 *&)gradLocalInt1), HEAD_DIM_ALIGN);
+                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcBf2, ((__ubuf__ T1 *&)srcLocalInt2), HEAD_DIM_ALIGN);
+                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGradBf2, ((__ubuf__ T1 *&)gradLocalInt2), HEAD_DIM_ALIGN);
+                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcBfTail, ((__ubuf__ T1 *&)srcLocalIntTail), HEAD_DIM_ALIGN);
+                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGradBfTail, ((__ubuf__ T1 *&)gradLocalIntTail), HEAD_DIM_ALIGN);
                         Cast<float, T1, castTraitB162B32Even>(vregSrc, vregSrcBf, pregFullExeB16);
                         Cast<float, T1, castTraitB162B32Even>(vregGrad, vregGradBf, pregFullExeB16);
                         Cast<float, T1, castTraitB162B32Odd>(vregSrc1, vregSrcBf, pregFullExeB16);
@@ -1606,16 +1608,16 @@ __aicore__ inline void MySoftmaxGradFrontCast(const LocalTensor<T> &dstTensor, c
                 for (uint16_t m = 0; m < static_cast<uint16_t>(srcM); m++) {
                     // 手动unroll 128个数分64个数做mul和add
                     if constexpr (IsSameType<T1, half>::value) {
-                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcHalf, ((__ubuf__ T1 *&)srcLocalInt), 512);
-                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGradHalf, ((__ubuf__ T1 *&)gradLocalInt), 512);
-                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcHalf1, ((__ubuf__ T1 *&)srcLocalInt1), 512);
-                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGradHalf1, ((__ubuf__ T1 *&)gradLocalInt1), 512);
-                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcHalf2, ((__ubuf__ T1 *&)srcLocalInt2), 512);
-                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGradHalf2, ((__ubuf__ T1 *&)gradLocalInt2), 512);
-                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcHalf3, ((__ubuf__ T1 *&)srcLocalInt3), 512);
-                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGradHalf3, ((__ubuf__ T1 *&)gradLocalInt3), 512);
-                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcHalfTail, ((__ubuf__ T1 *&)srcLocalIntTail), 512);
-                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGradHalfTail, ((__ubuf__ T1 *&)gradLocalIntTail), 512);
+                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcHalf, ((__ubuf__ T1 *&)srcLocalInt), HEAD_DIM_ALIGN);
+                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGradHalf, ((__ubuf__ T1 *&)gradLocalInt), HEAD_DIM_ALIGN);
+                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcHalf1, ((__ubuf__ T1 *&)srcLocalInt1), HEAD_DIM_ALIGN);
+                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGradHalf1, ((__ubuf__ T1 *&)gradLocalInt1), HEAD_DIM_ALIGN);
+                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcHalf2, ((__ubuf__ T1 *&)srcLocalInt2), HEAD_DIM_ALIGN);
+                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGradHalf2, ((__ubuf__ T1 *&)gradLocalInt2), HEAD_DIM_ALIGN);
+                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcHalf3, ((__ubuf__ T1 *&)srcLocalInt3), HEAD_DIM_ALIGN);
+                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGradHalf3, ((__ubuf__ T1 *&)gradLocalInt3), HEAD_DIM_ALIGN);
+                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcHalfTail, ((__ubuf__ T1 *&)srcLocalIntTail), HEAD_DIM_ALIGN);
+                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGradHalfTail, ((__ubuf__ T1 *&)gradLocalIntTail), HEAD_DIM_ALIGN);
                         Cast<float, T1, castTraitB162B32Even>(vregSrc, vregSrcHalf, pregFullExeB16);
                         Cast<float, T1, castTraitB162B32Odd>(vregSrc1, vregSrcHalf, pregFullExeB16);
                         Cast<float, T1, castTraitB162B32Even>(vregGrad, vregGradHalf, pregFullExeB16);
@@ -1637,16 +1639,16 @@ __aicore__ inline void MySoftmaxGradFrontCast(const LocalTensor<T> &dstTensor, c
                         Cast<float, T1, castTraitB162B32Even>(vregGradTail, vregGradHalfTail, pregFullExeB16);
                         Cast<float, T1, castTraitB162B32Odd>(vregGrad1Tail, vregGradHalfTail, pregFullExeB16);
                     } else if constexpr (IsSameType<T1, bfloat16_t>::value) {
-                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcBf, ((__ubuf__ T1 *&)srcLocalInt), 512);
-                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGradBf, ((__ubuf__ T1 *&)gradLocalInt), 512);
-                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcBf1, ((__ubuf__ T1 *&)srcLocalInt1), 512);
-                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGradBf1, ((__ubuf__ T1 *&)gradLocalInt1), 512);
-                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcBf2, ((__ubuf__ T1 *&)srcLocalInt2), 512);
-                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGradBf2, ((__ubuf__ T1 *&)gradLocalInt2), 512);
-                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcBf3, ((__ubuf__ T1 *&)srcLocalInt3), 512);
-                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGradBf3, ((__ubuf__ T1 *&)gradLocalInt3), 512);
-                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcBfTail, ((__ubuf__ T1 *&)srcLocalIntTail), 512);
-                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGradBfTail, ((__ubuf__ T1 *&)gradLocalIntTail), 512);
+                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcBf, ((__ubuf__ T1 *&)srcLocalInt), HEAD_DIM_ALIGN);
+                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGradBf, ((__ubuf__ T1 *&)gradLocalInt), HEAD_DIM_ALIGN);
+                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcBf1, ((__ubuf__ T1 *&)srcLocalInt1), HEAD_DIM_ALIGN);
+                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGradBf1, ((__ubuf__ T1 *&)gradLocalInt1), HEAD_DIM_ALIGN);
+                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcBf2, ((__ubuf__ T1 *&)srcLocalInt2), HEAD_DIM_ALIGN);
+                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGradBf2, ((__ubuf__ T1 *&)gradLocalInt2), HEAD_DIM_ALIGN);
+                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcBf3, ((__ubuf__ T1 *&)srcLocalInt3), HEAD_DIM_ALIGN);
+                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGradBf3, ((__ubuf__ T1 *&)gradLocalInt3), HEAD_DIM_ALIGN);
+                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcBfTail, ((__ubuf__ T1 *&)srcLocalIntTail), HEAD_DIM_ALIGN);
+                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGradBfTail, ((__ubuf__ T1 *&)gradLocalIntTail), HEAD_DIM_ALIGN);
                         Cast<float, T1, castTraitB162B32Even>(vregSrc, vregSrcBf, pregFullExeB16);
                         Cast<float, T1, castTraitB162B32Even>(vregGrad, vregGradBf, pregFullExeB16);
                         Cast<float, T1, castTraitB162B32Odd>(vregSrc1, vregSrcBf, pregFullExeB16);
@@ -1693,7 +1695,7 @@ __aicore__ inline void MySoftmaxGradFrontCast(const LocalTensor<T> &dstTensor, c
                 }
                 vstas(uregReduceSum, ((__ubuf__ float *&)dstLocalInt), 0, POST_UPDATE);
             }
-        } else if constexpr (srcN == 512) {
+        } else if constexpr (srcN == 768) {
             const uint32_t fullExeSize = 128;
             uint64_t srcLocalInt1 = srcTensor.GetPhyAddr() + fullExeSize * sizeof(T1);
             uint64_t gradLocalInt1 = gradTensor.GetPhyAddr() + fullExeSize * sizeof(T1);
@@ -1798,18 +1800,18 @@ __aicore__ inline void MySoftmaxGradFrontCast(const LocalTensor<T> &dstTensor, c
                 for (uint16_t m = 0; m < static_cast<uint16_t>(srcM); m++) {
                     // 手动unroll 128个数分64个数做mul和add
                     if constexpr (IsSameType<T1, half>::value) {
-                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcHalf, ((__ubuf__ T1 *&)srcLocalInt), 512);
-                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGradHalf, ((__ubuf__ T1 *&)gradLocalInt), 512);
-                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcHalf1, ((__ubuf__ T1 *&)srcLocalInt1), 512);
-                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGradHalf1, ((__ubuf__ T1 *&)gradLocalInt1), 512);
-                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcHalf2, ((__ubuf__ T1 *&)srcLocalInt2), 512);
-                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGradHalf2, ((__ubuf__ T1 *&)gradLocalInt2), 512);
-                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcHalf3, ((__ubuf__ T1 *&)srcLocalInt3), 512);
-                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGradHalf3, ((__ubuf__ T1 *&)gradLocalInt3), 512);
-                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcHalf4, ((__ubuf__ T1 *&)srcLocalInt4), 512);
-                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGradHalf4, ((__ubuf__ T1 *&)gradLocalInt4), 512);
-                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcHalfTail, ((__ubuf__ T1 *&)srcLocalIntTail), 512);
-                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGradHalfTail, ((__ubuf__ T1 *&)gradLocalIntTail), 512);
+                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcHalf, ((__ubuf__ T1 *&)srcLocalInt), HEAD_DIM_ALIGN);
+                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGradHalf, ((__ubuf__ T1 *&)gradLocalInt), HEAD_DIM_ALIGN);
+                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcHalf1, ((__ubuf__ T1 *&)srcLocalInt1), HEAD_DIM_ALIGN);
+                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGradHalf1, ((__ubuf__ T1 *&)gradLocalInt1), HEAD_DIM_ALIGN);
+                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcHalf2, ((__ubuf__ T1 *&)srcLocalInt2), HEAD_DIM_ALIGN);
+                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGradHalf2, ((__ubuf__ T1 *&)gradLocalInt2), HEAD_DIM_ALIGN);
+                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcHalf3, ((__ubuf__ T1 *&)srcLocalInt3), HEAD_DIM_ALIGN);
+                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGradHalf3, ((__ubuf__ T1 *&)gradLocalInt3), HEAD_DIM_ALIGN);
+                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcHalf4, ((__ubuf__ T1 *&)srcLocalInt4), HEAD_DIM_ALIGN);
+                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGradHalf4, ((__ubuf__ T1 *&)gradLocalInt4), HEAD_DIM_ALIGN);
+                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcHalfTail, ((__ubuf__ T1 *&)srcLocalIntTail), HEAD_DIM_ALIGN);
+                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGradHalfTail, ((__ubuf__ T1 *&)gradLocalIntTail), HEAD_DIM_ALIGN);
                         Cast<float, T1, castTraitB162B32Even>(vregSrc, vregSrcHalf, pregFullExeB16);
                         Cast<float, T1, castTraitB162B32Odd>(vregSrc1, vregSrcHalf, pregFullExeB16);
                         Cast<float, T1, castTraitB162B32Even>(vregGrad, vregGradHalf, pregFullExeB16);
@@ -1835,18 +1837,18 @@ __aicore__ inline void MySoftmaxGradFrontCast(const LocalTensor<T> &dstTensor, c
                         Cast<float, T1, castTraitB162B32Even>(vregGradTail, vregGradHalfTail, pregFullExeB16);
                         Cast<float, T1, castTraitB162B32Odd>(vregGrad1Tail, vregGradHalfTail, pregFullExeB16);
                     } else if constexpr (IsSameType<T1, bfloat16_t>::value) {
-                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcBf, ((__ubuf__ T1 *&)srcLocalInt), 512);
-                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGradBf, ((__ubuf__ T1 *&)gradLocalInt), 512);
-                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcBf1, ((__ubuf__ T1 *&)srcLocalInt1), 512);
-                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGradBf1, ((__ubuf__ T1 *&)gradLocalInt1), 512);
-                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcBf2, ((__ubuf__ T1 *&)srcLocalInt2), 512);
-                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGradBf2, ((__ubuf__ T1 *&)gradLocalInt2), 512);
-                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcBf3, ((__ubuf__ T1 *&)srcLocalInt3), 512);
-                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGradBf3, ((__ubuf__ T1 *&)gradLocalInt3), 512);
-                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcBf4, ((__ubuf__ T1 *&)srcLocalInt4), 512);
-                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGradBf4, ((__ubuf__ T1 *&)gradLocalInt4), 512);
-                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcBfTail, ((__ubuf__ T1 *&)srcLocalIntTail), 512);
-                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGradBfTail, ((__ubuf__ T1 *&)gradLocalIntTail), 512);
+                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcBf, ((__ubuf__ T1 *&)srcLocalInt), HEAD_DIM_ALIGN);
+                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGradBf, ((__ubuf__ T1 *&)gradLocalInt), HEAD_DIM_ALIGN);
+                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcBf1, ((__ubuf__ T1 *&)srcLocalInt1), HEAD_DIM_ALIGN);
+                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGradBf1, ((__ubuf__ T1 *&)gradLocalInt1), HEAD_DIM_ALIGN);
+                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcBf2, ((__ubuf__ T1 *&)srcLocalInt2), HEAD_DIM_ALIGN);
+                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGradBf2, ((__ubuf__ T1 *&)gradLocalInt2), HEAD_DIM_ALIGN);
+                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcBf3, ((__ubuf__ T1 *&)srcLocalInt3), HEAD_DIM_ALIGN);
+                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGradBf3, ((__ubuf__ T1 *&)gradLocalInt3), HEAD_DIM_ALIGN);
+                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcBf4, ((__ubuf__ T1 *&)srcLocalInt4), HEAD_DIM_ALIGN);
+                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGradBf4, ((__ubuf__ T1 *&)gradLocalInt4), HEAD_DIM_ALIGN);
+                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregSrcBfTail, ((__ubuf__ T1 *&)srcLocalIntTail), HEAD_DIM_ALIGN);
+                        DataCopy<T1, MicroAPI::PostLiteral::POST_MODE_UPDATE>(vregGradBfTail, ((__ubuf__ T1 *&)gradLocalIntTail), HEAD_DIM_ALIGN);
                         Cast<float, T1, castTraitB162B32Even>(vregSrc, vregSrcBf, pregFullExeB16);
                         Cast<float, T1, castTraitB162B32Even>(vregGrad, vregGradBf, pregFullExeB16);
                         Cast<float, T1, castTraitB162B32Odd>(vregSrc1, vregSrcBf, pregFullExeB16);
@@ -1906,7 +1908,7 @@ __aicore__ inline void MySoftmaxGradFrontCast(const LocalTensor<T> &dstTensor, c
     }
 }                                         
 #else
-template <typename T1, typename T, uint32_t srcN>
+template <typename T1, typename T, uint32_t srcN, uint32_t HEAD_DIM_ALIGN>
 __aicore__ inline void MySoftmaxGradFrontCast(const LocalTensor<T> &dstTensor, const LocalTensor<T1> &gradTensor,
                                               const LocalTensor<T1> &srcTensor, uint32_t srcM, uint32_t realN = srcN)
 {
