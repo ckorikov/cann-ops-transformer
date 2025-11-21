@@ -58,7 +58,23 @@ __aicore__ inline bool IsExistInvalidRows(int64_t nextTokensPerBatch, int64_t pr
     }
     return false;
 }
- 
+
+__aicore__ inline void GetSafeActToken(int64_t actSeqLensQ, int64_t actSeqLensKv,
+                                              int64_t &safePreToken, int64_t &safeNextToken, uint32_t mode)
+{
+    if (mode == DEFAULT_MASK) {
+        safePreToken = Max(-actSeqLensKv, safePreToken);
+        safePreToken = Min(safePreToken, actSeqLensQ);
+        safeNextToken = Max(-actSeqLensQ, safeNextToken);
+        safeNextToken = Min(safeNextToken, actSeqLensKv);
+    } else if (mode == BAND) {
+        safePreToken = Max(-actSeqLensQ, safePreToken);
+        safePreToken = Min(safePreToken, actSeqLensKv);
+        safeNextToken = Max(-actSeqLensKv, safeNextToken);
+        safeNextToken = Min(safeNextToken, actSeqLensQ);
+    }
+}
+
 __aicore__ inline void VecMulMat(LocalTensor<float> dstUb, LocalTensor<float> src0Ub, LocalTensor<float> src1Ub,
                                  uint32_t dealRowCount, uint32_t columnCount, uint32_t actualColumnCount)
 {

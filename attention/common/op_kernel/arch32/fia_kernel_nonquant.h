@@ -192,8 +192,6 @@ protected:
     // ================================Tool============================================
     __aicore__ inline uint32_t GetBIdx(uint32_t bN2Idx);
     __aicore__ inline uint32_t GetN2Idx(uint32_t bN2Idx);
-    __aicore__ inline void GetSafeActToken(int64_t actSeqLensQ, int64_t actSeqLensKv, int64_t &safePreToken,
-                                           int64_t &safeNextToken);
     // ================================Process functions================================
     __aicore__ inline void FlashAttention();
     __aicore__ inline void CalcParams(uint64_t loop, uint32_t bN2Cur, uint32_t gS1Cur, uint32_t s2Cur, RunInfo &info);
@@ -545,23 +543,6 @@ __aicore__ inline void FiaKernelNonQuant<FIAT, CubeBlockType, VecBlockType, FdBl
 }
 
 template <typename FIAT, typename CubeBlockType, typename VecBlockType, typename FdBlockType>
-__aicore__ inline void FiaKernelNonQuant<FIAT, CubeBlockType, VecBlockType, FdBlockType>::GetSafeActToken(int64_t actSeqLensQ, int64_t actSeqLensKv,
-                                                           int64_t &safePreToken, int64_t &safeNextToken) 
-{
-    if (constInfo.sparseMode == fa_base_vector::DEFAULT_MASK) {
-        safePreToken = Max(-actSeqLensKv, safePreToken);
-        safePreToken = Min(safePreToken, actSeqLensQ);
-        safeNextToken = Max(-actSeqLensQ, safeNextToken);
-        safeNextToken = Min(safeNextToken, actSeqLensKv);
-    } else if (constInfo.sparseMode == fa_base_vector::BAND) {
-        safePreToken = Max(-actSeqLensQ, safePreToken);
-        safePreToken = Min(safePreToken, actSeqLensKv);
-        safeNextToken = Max(-actSeqLensKv, safeNextToken);
-        safeNextToken = Min(safeNextToken, actSeqLensQ);
-    }
-}
-
-template <typename FIAT, typename CubeBlockType, typename VecBlockType, typename FdBlockType>
 __aicore__ inline void FiaKernelNonQuant<FIAT, CubeBlockType, VecBlockType, FdBlockType>::CalcParams(
     uint64_t loop, uint32_t bN2Cur, uint32_t gS1Cur, uint32_t s2Cur, RunInfo &info)
 {
@@ -606,7 +587,7 @@ __aicore__ inline void FiaKernelNonQuant<FIAT, CubeBlockType, VecBlockType, FdBl
 
     int64_t safePreToken = constInfo.preToken;
     int64_t safeNextToken = constInfo.nextToken;
-    GetSafeActToken(info.actS1Size, info.actS2Size, safePreToken, safeNextToken);
+    fa_base_vector::GetSafeActToken(info.actS1Size, info.actS2Size, safePreToken, safeNextToken, constInfo.sparseMode);
     if (constInfo.sparseMode == fa_base_vector::BAND) {
         info.preTokensPerBatch = safePreToken;
         info.nextTokensPerBatch =
@@ -932,7 +913,7 @@ __aicore__ inline void FiaKernelNonQuant<FIAT, CubeBlockType, VecBlockType, FdBl
     uint32_t s2Start = bN2Cur == constInfo.bN2Start ? constInfo.s2Start : 0;
     int64_t safePreToken = constInfo.preToken;
     int64_t safeNextToken = constInfo.nextToken;
-    GetSafeActToken(actSeqLensQ, actSeqLensKv, safePreToken, safeNextToken);
+    fa_base_vector::GetSafeActToken(actSeqLensQ, actSeqLensKv, safePreToken, safeNextToken, constInfo.sparseMode);
 
     int64_t preTokenLeftUp = (constInfo.sparseMode != fa_base_vector::BAND) ? safePreToken :
         (static_cast<int64_t>(actSeqLensQ) - static_cast<int64_t>(actSeqLensKv) + safePreToken);
