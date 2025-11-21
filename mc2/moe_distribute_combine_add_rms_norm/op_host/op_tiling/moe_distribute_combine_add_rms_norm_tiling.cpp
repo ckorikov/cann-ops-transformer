@@ -912,6 +912,7 @@ static bool CheckXInputTensorShape(const gert::TilingContext *context, MoeDistri
         }
     }
 
+    // 校验oriX的维度
     const gert::StorageShape* oriXShape = context->GetOptionalInputShape(ORI_X_INDEX);
     if (oriXShape != nullptr) {
         OP_TILING_CHECK(oriXShape->GetStorageShape().GetDim(0) != expertIdsDim0, OP_LOGE(nodeName,
@@ -986,8 +987,8 @@ static bool CheckARNTensorShape(const gert::TilingContext *context, MoeDistribut
     const char *nodeName)
 {
     const gert::StorageShape *expertIdsStorageShape = context->GetInputShape(EXPERT_IDS_INDEX);
-    int64_t expertIdsDim0 = expertIdsStorageShape->GetStorageShape().GetDim(0);
     const gert::StorageShape *expandXStorageShape = context->GetInputShape(EXPAND_X_INDEX);
+    int64_t expertIdsDim0 = expertIdsStorageShape->GetStorageShape().GetDim(0);
     int64_t expandXDim1 = expandXStorageShape->GetStorageShape().GetDim(1);
 
     // 校验residualX的维度
@@ -1019,9 +1020,8 @@ static bool CheckARNTensorShape(const gert::TilingContext *context, MoeDistribut
 }
 
 static bool CheckTensorShape(const gert::TilingContext *context, MoeDistributeCombineV2TilingData &tilingData,
-    bool isShared, bool isActiveMask)
+    const char *nodeName, bool isShared, bool isActiveMask)
 {
-    const char *nodeName = context->GetNodeName();
     // 校验Expert相关输入的维度并设k
     OP_TILING_CHECK(!CheckExpertInputShape(context, tilingData, nodeName, isActiveMask),
         OP_LOGE(nodeName, "expert input param dim check failed."), return ge::GRAPH_FAILED);
