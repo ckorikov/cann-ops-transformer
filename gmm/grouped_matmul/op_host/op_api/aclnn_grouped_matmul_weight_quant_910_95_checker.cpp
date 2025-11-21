@@ -114,7 +114,7 @@ aclnnStatus AclnnGroupedMatmulWeightQuant91095Checker::CheckTensorShape(const ac
         uint64_t groupNum = wShape.GetDim(0);
         uint64_t batchSize = tensorShape.GetDim(0);
         CHECK_COND(batchSize == groupNum, ACLNN_ERR_PARAM_INVALID,
-                   "%s batch size[%lu] should be euqal with groupList length[%lu].", tensorType.c_str(), batchSize,
+                   "%s batch size[%llu] should be equal with groupList length[%llu].", tensorType.c_str(), batchSize,
                    groupNum);
     }
 
@@ -237,7 +237,7 @@ aclnnStatus AclnnGroupedMatmulWeightQuant91095Checker::CheckDimValue(size_t idx)
         size_t xDimValue = (*gmmParams_.x)[idx]->GetViewShape().GetDim(dimIdx);
         size_t yDimValue = (*gmmParams_.y)[idx]->GetViewShape().GetDim(dimIdx);
         CHECK_COND(xDimValue == yDimValue, ACLNN_ERR_PARAM_INVALID,
-                   "y[%lu] dim %lu value %lu should equal to x[%lu] dim %lu value %lu.", idx, dimIdx, xDimValue, idx,
+                   "y[%zu] dim %zu value %zu should equal to x[%zu] dim %zu value %zu.", idx, dimIdx, xDimValue, idx,
                    dimIdx, yDimValue);
     }
 
@@ -248,22 +248,22 @@ aclnnStatus AclnnGroupedMatmulWeightQuant91095Checker::CheckDimValue(size_t idx)
     size_t weightNDim = (*gmmParams_.weight)[idx]->GetViewShape().GetDim(weightNIdx);
 
     CHECK_COND(xKDim == weightKDim, ACLNN_ERR_PARAM_INVALID,
-               "x[%lu] dim k value %lu should equal to weight[%lu] dim k value %lu.", idx, xKDim, idx, weightKDim);
+               "x[%zu] dim k value %zu should equal to weight[%zu] dim k value %zu.", idx, xKDim, idx, weightKDim);
     // check y[n] = weight[n]
     size_t yNDim = (*gmmParams_.y)[idx]->GetViewShape().GetDim(xDimNum - 1);
     CHECK_COND(yNDim == weightNDim, ACLNN_ERR_PARAM_INVALID,
-               "y[%lu] dim n value %lu should equal to weight[%lu] dim n value %lu.", idx, yNDim, idx, weightNDim);
+               "y[%zu] dim n value %zu should equal to weight[%zu] dim n value %zu.", idx, yNDim, idx, weightNDim);
 
     CHECK_COND(weightNDim > 0, ACLNN_ERR_PARAM_INVALID,
-               "The n dim value should be positive, but the actual value is [%ld].", weightNDim);
+               "The n dim value should be positive, but the actual value is [%zu].", weightNDim);
     CHECK_COND(weightKDim > 0, ACLNN_ERR_PARAM_INVALID,
-               "The k dim value should be positive, but the actual value is [%ld].", weightKDim);
+               "The k dim value should be positive, but the actual value is [%zu].", weightKDim);
 
     if (IsA16MxFp4NZ() || IsMxA8W4NZ() || IsS8S4NZ()) {
         CHECK_COND((weightNDim % N_K_ALIGN_VALUE_WEIGHT_QUANT_4BIT == 0) &&
                        (weightKDim % N_K_ALIGN_VALUE_WEIGHT_QUANT_4BIT == 0),
                    ACLNN_ERR_PARAM_INVALID,
-                   "The value of dim n, k should be an integer multiple of [%ld], but actual n is [%ld], k is [%ld].",
+                   "The value of dim n, k should be an integer multiple of [%lld], but actual n is [%zu], k is [%zu].",
                    N_K_ALIGN_VALUE_WEIGHT_QUANT_4BIT, weightNDim, weightKDim);
     }
 
@@ -410,7 +410,7 @@ aclnnStatus AclnnGroupedMatmulWeightQuant91095Checker::CheckScaleAndPerTokenScal
         auto perTokenScaleShape = (*gmmParams_.perTokenScaleOptional)[0]->GetViewShape();
         auto perTokenScaleShapeDimNum = perTokenScaleShape.GetDimNum();
         CHECK_COND(perTokenScaleShapeDimNum == 1, ACLNN_ERR_PARAM_INVALID,
-                   "The dim of pertokenscale must be 2!");  // 仅支持perTokenScale维度为1
+                   "The dim of pertokenscale must be 1!");  // 仅支持perTokenScale维度为1
         auto xShape = (*gmmParams_.x)[0]->GetViewShape();
         auto weightShape = (*gmmParams_.weight)[0]->GetViewShape();
         auto xShapeMDim = xShape.GetDim(0);
