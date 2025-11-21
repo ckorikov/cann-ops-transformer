@@ -292,7 +292,7 @@
     - <a id="groupType-constraints"></a>不同groupType支持场景：
       - 伪量化仅支持groupType为-1和0场景。
       - 量化仅支持groupType为0场景。
-      - x、weight、y的输入类型为aclTensorList，表示一个aclTensor类型的数组对象。下面表格支持场景用"单"表示由一个aclTensor组成的aclTensorList，"多"表示由多个aclTensor组成的aclTensorList。例如"单多单"，分别表示x为单tensor、weight为多tensor、y为单tensor。
+      - x、weight、y的输入类型为aclTensorList，表示一个aclTensor类型的数组对象。下面表格支持场景用“单”表示由一个aclTensor组成的aclTensorList，“多”表示由多个aclTensor组成的aclTensorList。例如“单多单”，分别表示x为单tensor、weight为多tensor、y为单tensor。
 
       | groupType | 支持场景 | splitItem| groupListOptional | 转置 | 其余场景限制 |
       |:---------:|:-------:|:--------:|:------------------|:--------| :-------|

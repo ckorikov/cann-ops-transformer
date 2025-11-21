@@ -96,7 +96,7 @@
   * kvOutput(bool，计算输入)：Host侧表达式布尔值。表示是否输出`kOut`和`vOut`。
   * cacheModeOptional(char\*，计算输入)：Host侧表达式字符串。表示`kCacheRef`的更新方式，目前仅支持`page`和`contiguous`，默认为`contiguous`。
   * qOut(aclTensor\*，计算输出)：公式中的输出`qOut`，表示经过处理的q，Device侧的aclTensor，`x`为3维时shape为[B，S，Nq，D]，`x`为二维时shape为[B，Nq，D]，数据类型支持FLOAT16、BFLOAT16，数据类型和`sin`保持一致。不支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。
-  * kOut(aclTensor\*，计算输出)：公式中的输出`kOut`，表示经过处理的k，Device侧的aclTensor，当`kvOutput`为false时`，kOut`为空；否则`x`为3维时shape为[B，S，Nkv，D]，`x`为2维时shape为[B，Nkv，D]。数据类型和`sin`保持一致。不支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。
+  * kOut(aclTensor\*，计算输出)：公式中的输出`kOut`，表示经过处理的k，Device侧的aclTensor，当`kvOutput`为false时，`kOut`为空；否则`x`为3维时shape为[B，S，Nkv，D]，`x`为2维时shape为[B，Nkv，D]。数据类型和`sin`保持一致。不支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。
   * vOut(aclTensor\*，计算输出)：公式中的输出`vOut`，表示经过处理的v，Device侧的aclTensor，当`kvOutput`为false时，`vOut`为空；否则`x`为3维时shape为[B，S，Nkv，D]，`x`为二维时shape为[B，Nkv，D]。数据类型和`sin`保持一致。不支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。
   * workspaceSize(uint64_t\*，出参)：返回需要在Device侧申请的workspace大小。
   * executor(aclOpExecutor\*\*，出参)：返回op执行器，包含了算子计算流程。

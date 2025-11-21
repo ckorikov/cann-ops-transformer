@@ -85,7 +85,7 @@
     - **输入**：
       * $X∈\mathbb{Z_8}^{M \times K}$：输入矩阵（左矩阵），M是总token 数，K是特征维度。
       * $W∈\mathbb{Z_4}^{E \times K \times N}$：分组权重矩阵（右矩阵），E是专家个数，K是特征维度，N是输出维度。
-      * $bias∈\mathbb{R}^{E \times N}$：计算矩阵乘时的辅助矩阵（生成辅助矩阵的计算过程间下文）。
+      * $bias∈\mathbb{R}^{E \times N}$：计算矩阵乘时的辅助矩阵（生成辅助矩阵的计算过程见下文）。
       * $w\_scale∈\mathbb{R}^{E \times K\_group\_num \times N}$：分组权重矩阵（右矩阵）的逐通道缩放因子，E是专家个数，K\_group\_num 是在K轴维度上的分组数，N是输出维度。
       * $x\_scale∈\mathbb{R}^{M}$：输入矩阵（左矩阵）的逐token缩放因子，M是总token 数。
       * $grouplist∈\mathbb{N}^{E}$：前缀和的分组索引列表。

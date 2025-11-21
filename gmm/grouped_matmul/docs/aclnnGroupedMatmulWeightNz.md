@@ -140,7 +140,7 @@
           * 4：GMMActType::GMM_ACT_TYPE_FAST_GELU；
           * 5：GMMActType::GMM_ACT_TYPE_SILU；
       - <term>Atlas 推理系列产品</term>、<term>昇腾910_95 AI处理器</term>：当前只支持传入0，表示GMMActType::GMM_ACT_TYPE_NONE。
-  -   tuningConfigOptional（aclIntArray*，计算输入）：可选参数，Host侧的aclIntArray，数组里面存储INT64的元素, 要求是非负数且不大于x矩阵的行数。数组中第一个元素表示各个专家处理的token数的预期值，算子tiling时会按照数组中第一个元素进行最优tiling，性能更优。从第二个元素开始预留，用户无须填写，未来会进行扩展。兼容历史版本，用户如不适用该参数，不传(即为nullptr)即可。
+  -   tuningConfigOptional（aclIntArray*，计算输入）：可选参数，Host侧的aclIntArray，数组里面存储INT64的元素, 要求是非负数且不大于x矩阵的行数。数组中第一个元素表示各个专家处理的token数的预期值，算子tiling时会按照数组中第一个元素进行最优tiling，性能更优。从第二个元素开始预留，用户无须填写，未来会进行扩展。兼容历史版本，用户如不适用该参数，不传（即为nullptr）即可。
       - <term>Atlas 推理系列产品</term>、<term>昇腾910_95 AI处理器</term>：不支持此参数。
       - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：适用于量化场景（x和weight为int8类型，输出为int8/fp16/bf16/int32类型），且为单tensor单专家的场景。
   -   out（aclTensorList *，计算输出）：Device侧的aclTensorList，公式中的输出y，[数据格式](../../../docs/zh/context/数据格式.md)支持ND，支持的最大长度为128个。

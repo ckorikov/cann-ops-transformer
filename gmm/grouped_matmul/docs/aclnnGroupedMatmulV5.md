@@ -28,7 +28,7 @@
 |版本变化      | Atlas A2 训练系列产品<br />Atlas 800I A2 推理产品<br />A200I A2 Box 异构组件 |昇腾910_95 AI处理器|Atlas 推理系列产品 |
 |---------|---------|----------------|----------------|
 |V4 -> V5|  增加可选参数tuningConfigOptional，调优参数。数组中第一个值表示各个专家处理的token数的预期值，算子tiling时会按照该预期值进行最优tiling。   |  /  | / |
-|V1 -> V4|     支持不同分组轴，由groupType表示。<br />非量化场景，支持x，weight转置（转置指若shape为[M,K]时，则stride为[1, M],数据排布为[K,M]的场景）。<br />量化、伪量化场景，支持weight转置，支持weight为单tensor。<br />x、weight、y都为单tensor非量化场景，支持x，weight输入都为float32类型。<br />支持静态量化（pertensor+perchannel）（量化方式请参见[量化介绍](../../../docs/zh/context/量化介绍.md)，下同）BFLOAT16和FLOAT16输出，带激活及不带激活场景。<br />支持动态量化（pertoken+perchannel）BFLOAT16和FLOAT16输出，带激活及不带激活场景。<br />支持伪量化weight是INT4的输入，不带激活场景，支持perchannel和pergroup两种模式。     |支持不同分组轴，由groupType表示。<br />非量化场景，支持x，weight转置（转置指若shape为[M,K]时，则stride为[1, M],数据排布为[K,M]的场景）。<br />支持伪量化weight是INT8的输入,仅支持perchannel模式。<br />支持静态量化（1.pertensor-perchannel；2.pertensor-pertensor）BFLOAT16，FLOAT16和FLOAT32输出，带bias，不带激活场景。<br />支持动态量化（1.pertoken-perchannel；2.pertoken-pertensor；3.pertensor-pertensor；4.mx量化；5.pergroup-perblock）BFLOAT16，FLOAT16和FLOAT32输出，带bias，不带激活场景。<br />支持伪量化weight是FLOAT8_E5M2、FLOAT8_E4M3FN、HIFLOAT8的输入，不带激活场景，仅支持perchannel模式。| / |
+|V1 -> V4|     支持不同分组轴，由groupType表示。<br />非量化场景，支持x，weight转置（转置指若shape为[M,K]时，则stride为[1, M],数据排布为[K,M]的场景）。<br />量化、伪量化场景，支持weight转置，支持weight为单tensor。<br />x、weight、y都为单tensor非量化场景，支持x，weight输入都为float32类型。<br />支持静态量化（pertensor+perchannel）（量化方式请参见[量化介绍](../../../docs/zh/context/量化介绍.md)，下同）BFLOAT16和FLOAT16输出，带激活及不带激活场景。<br />支持动态量化（pertoken+perchannel）BFLOAT16和FLOAT16输出，带激活及不带激活场景。<br />支持伪量化weight是INT4的输入，不带激活场景，支持perchannel和pergroup两种模式。     |支持不同分组轴，由groupType表示。<br />非量化场景，支持x，weight转置（转置指若shape为[M,K]时，则stride为[1, M],数据排布为[K,M]的场景）。<br />支持伪量化weight是INT8的输入，仅支持perchannel模式。<br />支持静态量化（1.pertensor-perchannel；2.pertensor-pertensor）BFLOAT16，FLOAT16和FLOAT32输出，带bias，不带激活场景。<br />支持动态量化（1.pertoken-perchannel；2.pertoken-pertensor；3.pertensor-pertensor；4.mx量化；5.pergroup-perblock）BFLOAT16，FLOAT16和FLOAT32输出，带bias，不带激活场景。<br />支持伪量化weight是FLOAT8_E5M2、FLOAT8_E4M3FN、HIFLOAT8的输入，不带激活场景，仅支持perchannel模式。| / |
 
 ## 函数原型
 
@@ -88,7 +88,7 @@ aclnnStatus aclnnGroupedMatmulV5(
 |groupType|int64|输入|代表需要分组的轴。|取值范围-1、0、2。综合约束请参见[约束说明](#约束说明)。 | - | - | - |
 |groupListType|int64|输入|代表groupList输入的分组方式。|取值范围0-2。综合约束请参见[约束说明](#约束说明)。 | - | - | - |
 |actType|int64|输入|代表激活函数类型。|取值范围为0-5。综合约束请参见[约束说明](#约束说明)。 | - | - | - |
-|tuningConfigOptional|aclIntArray *|可选输入|第一个数代表各个专家处理的token数的预期值，用于优化tiling。A8W4可选使能第二个数，详见[约束说明](#约束说明)。|兼容历史版本，用户如不使用该参数，不传(即为nullptr)即可。 | INT64 | - | 1 |
+|tuningConfigOptional|aclIntArray *|可选输入|第一个数代表各个专家处理的token数的预期值，用于优化tiling。A8W4可选使能第二个数，详见[约束说明](#约束说明)。|兼容历史版本，用户如不使用该参数，不传（即为nullptr）即可。 | INT64 | - | 1 |
 |out|aclTensorList *|输出|公式中的输出`y`。|最多支持128个tensor。 | FLOAT、FLOAT16、INT32<sup>1</sup>、INT8<sup>1</sup>、BFLOAT16 | ND | 2 |
 |activationFeatureOutOptional|aclTensorList *|输出|激活函数的输入数据，当前只支持传入nullptr。|- | - | - | - |
 |dynQuantScaleOutOptional|aclTensorList *|输出|当前只支持传入nullptr。|- | - | - | - |
@@ -308,7 +308,7 @@ aclnnStatus aclnnGroupedMatmulV5(
   | INT8    | INT4 (ND/NZ)    | FLOAT        | UINT64 | null       | null           | null            | FLOAT         | INT64     | null            | null                 | null                  | BFLOAT16|
   | INT8    | INT4 (ND/NZ)    | FLOAT        | UINT64 | FLOAT/null | null           | null            | FLOAT         | INT64     | null            | null                 | null                  | FLOAT16 |
 
-  - 除[公共约束](#公共约束)外,其余约束如下
+  - 除[公共约束](#公共约束)外，其余约束如下
     - 仅支持GroupType=0（M轴分组），actType=0
     - 当前仅支持x、weight、out均为长度为1的TensorList
     - x不支持转置、weight不支持转置
@@ -443,7 +443,7 @@ aclnnStatus aclnnGroupedMatmulV5(
     - groupListType为2时groupList配置如下
 
       - groupListOptional在该模式会将所有非0的group移动到前面，适用于非激活专家较多场景。
-      - groupListOptional：`[[0, 123]，[2, 333]，[5, 333]，[1, 0]，[3, 0]，[4, 0]，[6, 0]，[7, 0]，[8, 0]]`
+      - groupListOptional：`[[0, 123], [2, 333], [5, 333], [1, 0], [3, 0], [4, 0], [6, 0], [7, 0], [8, 0]]`
         <a id="atlas推理系列产品"></a>
 - <term>Atlas 推理系列产品</term>：
 

@@ -17,7 +17,7 @@ GroupedMatmul算子实现时还需要考虑如下两个方面：
 3.tilingData：如tiling中isPerTokenQuant表示是否为per token量化。
 说明：
 - 非量化指x、weight、y均为浮点数类型，如float16/bfloat16/float32，非量化为纯cube场景，其计算过程由matmul高阶api实现；
-- 量化指x和weight为低精度整数类型，GroupMatmul支持A8W8场景，包括重量化、per tensor + per channel量化和per token + per channel量化(简称per token量化)；
+- 量化指x和weight为低精度整数类型，GroupMatmul支持A8W8场景，包括重量化、per tensor + per channel量化和per token + per channel量化（简称per token量化）；
 - 伪量化指x为浮点数类型，weight为低精度整数类型，GroupedMatmul支持A16W8和A16W4场景。
 
 ## 2.1 per token量化
@@ -37,13 +37,13 @@ graph LR
     D[(group_list:G)] --> B([GroupedMatmul:group_type=M])
     B([GroupedMatmul:group_type=M]) --> E[(y:GM,N)]
 ```
-- k轴分组：$k_i$各不相同，但$m_i/n_i$每组相同，此时$x_i/weight_i$可以在$k_i$上拼接。k轴分组仅用于非量化训练场景，用于求损失关于weight的梯度，由于求weight梯度时需要对x进行转置，因此转置后就从x就从m轴分组变为k轴分组。
+- k轴分组：$k_i$各不相同，但$m_i/n_i$每组相同，此时$x_i/weight_i$可以在$k_i$上拼接。k轴分组仅用于非量化训练场景，用于求损失关于weight的梯度，由于求weight梯度时需要对x进行转置，因此转置后x就从m轴分组变为k轴分组。
 ```mermaid
 graph LR
-    A[(x:GM,K)] --> B([GroupedMatmul:group_type=K,transpsoe_x:True])
-    E[(dy:GM,N)] --> B([GroupedMatmul:group_type=K,transpsoe_x:True])
-    D[(group_list:G)] --> B([GroupedMatmul:group_type=K,transpsoe_x:True])
-    B([GroupedMatmul:group_type=K,transpsoe_x:True]) --> C[(dw:G,K,N)]
+    A[(x:GM,K)] --> B([GroupedMatmul:group_type=K,transpose_x:True])
+    E[(dy:GM,N)] --> B([GroupedMatmul:group_type=K,transpose_x:True])
+    D[(group_list:G)] --> B([GroupedMatmul:group_type=K,transpose_x:True])
+    B([GroupedMatmul:group_type=K,transpose_x:True]) --> C[(dw:G,K,N)]
 ```
 ## 2.3 多tensor/单tensor支持
 GroupedMatmul算子支持输入输出为多tensor、单tensor。
@@ -99,7 +99,7 @@ GroupedMatmul实现时需要考虑输入为多个tensor的情况，即每组matm
 
 ![对角线分核](../../../docs/zh/figures/GMM对角线分核方案.png)
 
-对于适合对角线优化的场景，在基本块方案上输入数据会存在多次访问，当nDim/mDim很大时，"对角线"不能直接任意往下延伸，否则在k值比较大的场景下，对角线上对应的输入数据均为不同的数据，已经加载过一次的数据被新数据从L2 cache中替换掉，后续需要加载时还是从DDR内存中加载，导致性能劣化。因此需要限制对角线范围，以充分利用L2 cache中缓存的数据。
+对于适合对角线优化的场景，在基本块方案上输入数据会存在多次访问，当nDim/mDim很大时，“对角线”不能直接任意往下延伸，否则在k值比较大的场景下，对角线上对应的输入数据均为不同的数据，已经加载过一次的数据被新数据从L2 cache中替换掉，后续需要加载时还是从DDR内存中加载，导致性能劣化。因此需要限制对角线范围，以充分利用L2 cache中缓存的数据。
 
 ![对角线分组](../../../docs/zh/figures/GMM对角线分组方案.png)
 

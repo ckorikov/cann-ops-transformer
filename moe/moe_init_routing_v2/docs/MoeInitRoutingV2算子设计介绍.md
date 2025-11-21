@@ -35,7 +35,7 @@ b. drop&pad模板：在转换的同时，统计每个专家处理的token数量�
 以x为输入，expandedRowIdx为index，做Scatter操作，输出得到expandedX。
 ## 2.2 性能模板
 在算子输入shape较小的场景，操作间的多核同步时间占比较高，成为性能瓶颈。因此，针对这种特化场景，添加性能模板。
-性能模板要求数据量小到每个核能够处理全量expandedRowIdx的计算。在本模板中，只对输入中的x进行分核处理，即每个核先进行独立的冗余expandedRowIdx计算，再根据各自计算出的expandedRowIdx独立处理对应的的scatter任务，这样就不再需要各步骤之间的多核同步，提升算子性能。
+性能模板要求数据量小到每个核能够处理全量expandedRowIdx的计算。在本模板中，只对输入中的x进行分核处理，即每个核先进行独立的冗余expandedRowIdx计算，再根据各自计算出的expandedRowIdx独立处理对应的scatter任务，这样就不再需要各步骤之间的多核同步，提升算子性能。
 
 ## 3 TilingKey设计
 TilingKey为uint64类型，通常每个模板参数对应TilingKey中的一个十进制位。
