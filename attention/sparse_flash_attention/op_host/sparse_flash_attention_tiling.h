@@ -454,6 +454,9 @@ private:
     ge::graphStatus CheckFeatureMla() const;
     ge::graphStatus CheckFeature() const;
 
+    ge::graphStatus CheckSingleParaPreTokens() const;
+    ge::graphStatus CheckSingleParaNextTokens() const;
+
 private:
     const char *opName_;
     fe::PlatFormInfos *platformInfo_;

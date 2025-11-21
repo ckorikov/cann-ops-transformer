@@ -151,7 +151,7 @@ void QLIInfoParser::GetOutputParaInfo()
 ge::graphStatus QLIInfoParser::GetAttrParaInfo()
 {
     auto attrs = context_->GetAttrs();
-    OP_CHECK_IF(attrs == nullptr, OPS_REPORT_VECTOR_INNER_ERR(context_->GetNodeName(), "attrs got from ge is nullptr"),
+    OP_CHECK_IF(attrs == nullptr, OP_LOGE(context_->GetNodeName(), "attrs got from ge is nullptr"),
                return ge::GRAPH_FAILED);
 
     OP_LOGI(context_->GetNodeName(), "GetAttrParaInfo start");
@@ -164,6 +164,8 @@ ge::graphStatus QLIInfoParser::GetAttrParaInfo()
     opParamInfo_.layOutKey = attrs->GetStr(ATTR_KEY_LAYOUT_INDEX);
     opParamInfo_.sparseCount = attrs->GetAttrPointer<int32_t>(ATTR_SPARSE_COUNT_INDEX);
     opParamInfo_.sparseMode = attrs->GetAttrPointer<int32_t>(ATTR_SPARSE_MODE_INDEX);
+    opParamInfo_.preTokens = attrs->GetAttrPointer<int64_t>(ATTR_PRE_TOKENS_INDEX);
+    opParamInfo_.nextTokens = attrs->GetAttrPointer<int64_t>(ATTR_NEXT_TOKENS_INDEX);
 
     if (opParamInfo_.layOutQuery != nullptr) {
         OP_LOGI(context_->GetNodeName(), "layout_query is:%s", opParamInfo_.layOutQuery);
@@ -176,6 +178,12 @@ ge::graphStatus QLIInfoParser::GetAttrParaInfo()
     }
     if (opParamInfo_.sparseMode != nullptr) {
         OP_LOGI(context_->GetNodeName(), "sparse mode is:%d", *opParamInfo_.sparseMode);
+    }
+    if (opParamInfo_.preTokens != nullptr) {
+        OP_LOGI(context_->GetNodeName(), "preTokens is:%d", *opParamInfo_.preTokens);
+    }
+    if (opParamInfo_.nextTokens != nullptr) {
+        OP_LOGI(context_->GetNodeName(), "nextTokens is:%d", *opParamInfo_.nextTokens);
     }
     if (opParamInfo_.queryQuantMode != nullptr) {
         OP_LOGI(context_->GetNodeName(), "query_quant_mode mode is:%d", *opParamInfo_.queryQuantMode);
@@ -206,9 +214,17 @@ ge::graphStatus QLIInfoParser::CheckAttrParaInfo()
                   "but now layout_key is %s, layout_query is %s.",
          layout_key.c_str(),  layout_query.c_str()), return ge::GRAPH_FAILED);
     OP_CHECK_IF(!((*opParamInfo_.sparseCount > 0) && (*opParamInfo_.sparseCount <= SPARSE_LIMIT)),
-               OP_LOGE(opName_, "input attr sparse_count must > 0 and <= 2048."), return ge::GRAPH_FAILED);
+               OP_LOGE(opName_, "input attr sparse_count must > 0 and <= 2048, but now sparse_count is %u",
+                       *opParamInfo_.sparseCount),return ge::GRAPH_FAILED);
     OP_CHECK_IF(!((*opParamInfo_.sparseMode == 0) || (*opParamInfo_.sparseMode == SPARSE_MODE_LOWER)),
-               OP_LOGE(opName_, "input attr sparse_mode only supported 0 or 3."), return ge::GRAPH_FAILED);
+               OP_LOGE(opName_, "input attr sparse_mode only supported 0 or 3, but now sparseMode is %u.",
+                       *opParamInfo_.sparseMode), return ge::GRAPH_FAILED);
+    OP_CHECK_IF(*opParamInfo_.preTokens != 9223372036854775807,
+               OP_LOGE(opName_, "input attr preTokens only supported 9223372036854775807, but now preTokens is %ld.",
+               *opParamInfo_.preTokens), return ge::GRAPH_FAILED);
+    OP_CHECK_IF(*opParamInfo_.nextTokens != 9223372036854775807,
+               OP_LOGE(opName_, "input attr preTokens only supported 9223372036854775807, but now nextTokens is %ld.",
+                *opParamInfo_.nextTokens), return ge::GRAPH_FAILED);
 
     OP_CHECK_IF(*opParamInfo_.queryQuantMode != 0, OP_LOGE(opName_, "input attr query_quant_mode only supported 0."),
                return ge::GRAPH_FAILED);
@@ -472,7 +488,7 @@ ge::graphStatus QLIInfoParser::GetAndCheckBlockSize()
 
     OP_CHECK_IF(
         ((blockSize_ % BLOCK_SIZE_FACTOR != 0) || (blockSize_ == 0) || (blockSize_ > BLOCK_SIZE_LIMIT)),
-        OPS_REPORT_VECTOR_INNER_ERR(opName_, "input key's block_size must be a multiple of 16 and belong to (0, 1024], but now is %d.", blockSize_),
+        OP_LOGE(opName_, "input key's block_size must be a multiple of 16 and belong to (0, 1024], but now is %d.", blockSize_),
         return ge::GRAPH_FAILED);
 
     return ge::GRAPH_SUCCESS;
@@ -503,7 +519,7 @@ ge::graphStatus QLIInfoParser::GetS2SizeForBatchContinuous()
         s2Size_ = opParamInfo_.key.shape->GetStorageShape().GetDim(DIM_IDX_ZERO);
     }
     OP_CHECK_IF((kLayout_ != DataLayout::BSND) && (kLayout_ != DataLayout::TND),
-        OPS_REPORT_VECTOR_INNER_ERR(opName_, "the layout of key is %s, it is unsupported.", layout_key.c_str()),
+        OP_LOGE(opName_, "the layout of key is %s, it is unsupported.", layout_key.c_str()),
         return ge::GRAPH_FAILED);
     return ge::GRAPH_SUCCESS;
 }
@@ -550,38 +566,30 @@ ge::graphStatus QLIInfoParser::ValidateInputShapesMatch()
                 ((opParamInfo_.actualSeqLengthsK.tensor->GetShapeSize() != bSize_) ||
                 (opParamInfo_.blockTable.tensor != nullptr &&
                 opParamInfo_.blockTable.tensor->GetStorageShape().GetDim(0) != bSize_)),
-            // OP_LOGE(
-            //     opName_,
-            //     "TND case input actual_seq_lengths_query, actual_seq_lengths_key, block_table dim 0 are %u, %u, %u "
-            //     "respectively, they must be same.",
-            //     bSize_, opParamInfo_.actualSeqLengthsK.tensor->GetShapeSize(),
-            //     opParamInfo_.blockTable.tensor->GetStorageShape().GetDim(0)),
-            // return ge::GRAPH_FAILED);
-            OPS_REPORT_VECTOR_INNER_ERR(
+            OP_LOGE(
                 opName_,
-                "TND case input actual_seq_lengths_query, actual_seq_lengths_key, block_table dim must be same."), return ge::GRAPH_FAILED);
+                "TND case input actual_seq_lengths_query, actual_seq_lengths_key, block_table dim 0 are %u, %u, %u "
+                "respectively, they must be same.",
+                bSize_, opParamInfo_.actualSeqLengthsK.tensor->GetShapeSize(),
+                opParamInfo_.blockTable.tensor->GetStorageShape().GetDim(0)),
+            return ge::GRAPH_FAILED);
         OP_CHECK_IF((kLayout_ != DataLayout::PA_BSND) &&
                    (opParamInfo_.actualSeqLengthsK.tensor->GetShapeSize() != bSize_),
-            // OPS_REPORT_VECTOR_INNER_ERR(
-            //     opName_,
-            //     "TND case input actual_seq_lengths_query, actual_seq_lengths_key, are %u, %u "
-            //     "respectively, they must be same.",
-            //     bSize_, opParamInfo_.actualSeqLengthsK.tensor->GetShapeSize()),
-            OPS_REPORT_VECTOR_INNER_ERR(
+            OP_LOGE(
                 opName_,
-                "TND case input actual_seq_lengths_query, actual_seq_lengths_key must be same."),
+                "TND case input actual_seq_lengths_query, actual_seq_lengths_key, are %u, %u "
+                "respectively, they must be same.",
+                bSize_, opParamInfo_.actualSeqLengthsK.tensor->GetShapeSize()),
             return ge::GRAPH_FAILED);
         // -----------------------check T-------------------
         uint32_t qTsize = opParamInfo_.query.shape->GetStorageShape().GetDim(0);
         OP_CHECK_IF((opParamInfo_.weights.shape->GetStorageShape().GetDim(0) != qTsize) ||
                        (opParamInfo_.attenOut.shape->GetStorageShape().GetDim(0) != qTsize),
-                //    OPS_REPORT_VECTOR_INNER_ERR(opName_,
-                //              "TND case input query, weights, sparse_indices dim 0 are %u, %u, %u "
-                //              "respectively, they must be same.",
-                //              qTsize, opParamInfo_.weights.shape->GetStorageShape().GetDim(0),
-                //              opParamInfo_.attenOut.shape->GetStorageShape().GetDim(0)),
-                OP_LOGE(opName_,
-                             "TND case input query, weights, sparse_indices dim 0 must be same."),
+                   OP_LOGE(opName_,
+                             "TND case input query, weights, sparse_indices dim 0 are %u, %u, %u "
+                             "respectively, they must be same.",
+                             qTsize, opParamInfo_.weights.shape->GetStorageShape().GetDim(0),
+                             opParamInfo_.attenOut.shape->GetStorageShape().GetDim(0)),
                    return ge::GRAPH_FAILED);
     } else {
         // -----------------------check BatchSize-------------------
@@ -593,16 +601,14 @@ ge::graphStatus QLIInfoParser::ValidateInputShapesMatch()
                     (opParamInfo_.actualSeqLengthsK.tensor->GetShapeSize() != bSize_) ||
                     (opParamInfo_.attenOut.shape->GetStorageShape().GetDim(0) != bSize_)),
                    OP_LOGE(opName_,
-                             "BSND case input query, weight, "
-                             "actual_seq_lengths_key, block_table, sparse_indices dim 0 must be same."),
+                             "BSND case input query, weight, actual_seq_lengths_key, block_table, sparse_indices dim 0 must be same."),
                    return ge::GRAPH_FAILED);
         OP_CHECK_IF((kLayout_ != DataLayout::PA_BSND) &&
                     ((opParamInfo_.weights.shape->GetStorageShape().GetDim(0) != bSize_) ||
                     (opParamInfo_.actualSeqLengthsK.tensor->GetShapeSize() != bSize_) ||
                     (opParamInfo_.attenOut.shape->GetStorageShape().GetDim(0) != bSize_)),
                    OP_LOGE(opName_,
-                             "BSND case input query, weight, "
-                             "actual_seq_lengths_key, sparse_indices dim 0 must be same."),
+                             "BSND case input query, weight, actual_seq_lengths_key, sparse_indices dim 0 must be same."),
                    return ge::GRAPH_FAILED);
         OP_CHECK_IF(
             (opParamInfo_.actualSeqLengthsQ.tensor != nullptr) &&
@@ -616,10 +622,9 @@ ge::graphStatus QLIInfoParser::ValidateInputShapesMatch()
         OP_CHECK_IF(
             (opParamInfo_.weights.shape->GetStorageShape().GetDim(1) != s1Size_) ||
                 (opParamInfo_.attenOut.shape->GetStorageShape().GetDim(1) != s1Size_),
-            // OPS_REPORT_VECTOR_INNER_ERR(opName_, "BSND case input query, weight, sparse_indices dim 1 are %u, %u, %u, they must be same.",
-            //           s1Size_, opParamInfo_.weights.shape->GetStorageShape().GetDim(1),
-            //           opParamInfo_.attenOut.shape->GetStorageShape().GetDim(1)),
-            OPS_REPORT_VECTOR_INNER_ERR(opName_, "BSND case input query, weight, sparse_indices dim 1 must be same."),
+            OP_LOGE(opName_, "BSND case input query, weight, sparse_indices dim 1 are %u, %u, %u, they must be same.",
+                      s1Size_, opParamInfo_.weights.shape->GetStorageShape().GetDim(1),
+                      opParamInfo_.attenOut.shape->GetStorageShape().GetDim(1)),
             return ge::GRAPH_FAILED);
         queryWeightsN1Dim = DIM_IDX_TWO;
         outN2Dim = DIM_IDX_TWO;
@@ -651,11 +656,11 @@ ge::graphStatus QLIInfoParser::CheckScaleShape()
     uint32_t qDequantScaleShapeDim = opParamInfo_.query_dequant_scale.shape->GetStorageShape().GetDimNum();
     uint32_t kDequantScaleShapeDim = opParamInfo_.key_dequant_scale.shape->GetStorageShape().GetDimNum();
     OP_CHECK_IF(qDequantScaleShapeDim != (qShapeDim - 1),
-               OPS_REPORT_VECTOR_INNER_ERR(opName_, "the dim num of query_dequant_scale's shape should be %u, but now is %u",
+               OP_LOGE(opName_, "the dim num of query_dequant_scale's shape should be %u, but now is %u",
                          qShapeDim - 1, qDequantScaleShapeDim),
                return ge::GRAPH_FAILED);
     OP_CHECK_IF(kDequantScaleShapeDim != (kShapeDim - 1),
-               OPS_REPORT_VECTOR_INNER_ERR(opName_, "the dim num of key_dequant_scale's shape should be %u, but now is %u", kShapeDim - 1,
+               OP_LOGE(opName_, "the dim num of key_dequant_scale's shape should be %u, but now is %u", kShapeDim - 1,
                          kDequantScaleShapeDim),
                return ge::GRAPH_FAILED);
     // check q scale
@@ -663,7 +668,7 @@ ge::graphStatus QLIInfoParser::CheckScaleShape()
         uint32_t dimValueQueryScale = opParamInfo_.query_dequant_scale.shape->GetStorageShape().GetDim(i);
         uint32_t dimValueQuery = opParamInfo_.query.shape->GetStorageShape().GetDim(i);
         OP_CHECK_IF(dimValueQueryScale != dimValueQuery,
-                   OPS_REPORT_VECTOR_INNER_ERR(opName_, "query_dequant_scale's shape[%u] %u and query's shape[%u] %u is not same", i,
+                   OP_LOGE(opName_, "query_dequant_scale's shape[%u] %u and query's shape[%u] %u is not same", i,
                              dimValueQueryScale, i, dimValueQuery),
                    return ge::GRAPH_FAILED);
     }
@@ -672,7 +677,7 @@ ge::graphStatus QLIInfoParser::CheckScaleShape()
         uint32_t dimValueKeyScale = opParamInfo_.key_dequant_scale.shape->GetStorageShape().GetDim(i);
         uint32_t dimValueKey = opParamInfo_.key.shape->GetStorageShape().GetDim(i);
         OP_CHECK_IF(dimValueKeyScale != dimValueKey,
-                   OPS_REPORT_VECTOR_INNER_ERR(opName_, "key_dequant_scale's shape[%u] %u and key's shape[%u] %u is not same", i,
+                   OP_LOGE(opName_, "key_dequant_scale's shape[%u] %u and key's shape[%u] %u is not same", i,
                              dimValueKeyScale, i, dimValueKey),
                    return ge::GRAPH_FAILED);
     }
@@ -704,6 +709,8 @@ void QLIInfoParser::GenerateInfo(QLITilingInfo &QLIInfo)
     QLIInfo.pageAttentionFlag = (kLayout_ == DataLayout::PA_BSND);
     QLIInfo.sparseMode = *opParamInfo_.sparseMode;
     QLIInfo.sparseCount = *opParamInfo_.sparseCount;
+    QLIInfo.preTokens = *opParamInfo_.preTokens;
+    QLIInfo.nextTokens = *opParamInfo_.nextTokens;
 
     QLIInfo.inputQLayout = qLayout_;
     QLIInfo.inputKLayout = kLayout_;
@@ -810,7 +817,7 @@ ge::graphStatus QuantLightningIndexerTiling::DoTiling(QLITilingInfo *tilingInfo)
 // --------------------------Tiling函数定义---------------------------
 ge::graphStatus TilingForQuantLightningIndexer(gert::TilingContext *context)
 {
-    OP_CHECK_IF(context == nullptr, OPS_REPORT_VECTOR_INNER_ERR("QuantLightningIndexer", "Tiling context is null."),
+    OP_CHECK_IF(context == nullptr, OP_LOGE("QuantLightningIndexer", "Tiling context is null."),
                return ge::GRAPH_FAILED);
     QLITilingInfo QLIInfo;
     QLIInfoParser QLIInfoParser(context);

@@ -27,9 +27,9 @@ custom.npu_sparse_flash_attention(Tensor query, Tensor key, Tensor value, Tensor
 >- query、key、value参数维度含义：B（Batch Size）表示输入样本批量大小、S（Sequence Length）表示输入样本序列长度、H（Head Size）表示hidden层的大小、N（Head Num）表示多头数、D（Head Dim）表示hidden层最小的单元尺寸，且满足D=H/N、T表示所有Batch输入样本序列长度的累加和。
 >- Q\_S和S1表示query shape中的S，KV\_S和S2表示key shape中的S，Q\_N表示num\_query\_heads，KV\_N表示num\_key\_value\_heads。
 -   **query**（`Tensor`）：必选参数，不支持非连续，数据格式支持ND，数据类型支持`bfloat16`和`float16`。 
--   **key**（`Tensor`）：必选参数，不支持非连续，数据格式支持ND，数据类型支持`bfloat16`，layout\_kv为PA\_BSND时shape为[block\_num, block\_size, KV\_N, D]，其中block\_num为PageAttention时block总数，block\_size为一个block的token数。
+-   **key**（`Tensor`）：必选参数，不支持非连续，数据格式支持ND，数据类型支持`bfloat16`和`float16`，layout\_kv为PA\_BSND时shape为[block\_num, block\_size, KV\_N, D]，其中block\_num为PageAttention时block总数，block\_size为一个block的token数。
 
--   **value**（`Tensor`）：必选参数，不支持非连续，数据格式支持ND，数据类型支持`bfloat16`。
+-   **value**（`Tensor`）：必选参数，不支持非连续，数据格式支持ND，数据类型支持`bfloat16`和`float16`。
     
 -   **sparse\_indices**（`Tensor`）：必选参数，代表离散取kvCache的索引，不支持非连续，数据格式支持ND,数据类型支持`int32`。当query的layout为BSND时，shape需要传入[B, Q\_S, KV\_N, sparse\_size]，当query的layout为TND时，shape需要传入[Q\_T, KV\_N, sparse\_size]，其中sparse\_size为一次离散选取的token数，需要保证每行有效值均在前半部分，无效值均在后半部分。
 
@@ -47,9 +47,9 @@ custom.npu_sparse_flash_attention(Tensor query, Tensor key, Tensor value, Tensor
 -   **actual\_seq\_lengths\_kv**（`Tensor`）：可选参数，表示不同Batch中`key`和`value`的有效token数，数据类型支持`int32`。如果不指定None，表示和key的shape的S长度相同。
     >该入参中每个Batch的有效token数不超过`key/value`中的维度S大小且不小于0。支持长度为B的一维tensor。
 
--   **query\_rope**（`Tensor`）：可选参数，表示MLA结构中的query的rope信息，不支持非连续，数据格式支持ND,数据类型支持`bfloat16`。
+-   **query\_rope**（`Tensor`）：可选参数，表示MLA结构中的query的rope信息，不支持非连续，数据格式支持ND,数据类型支持`bfloat16`和`float16`。
     
--   **key\_rope**（`Tensor`）：可选参数，表示MLA结构中的key的rope信息，不支持非连续，数据格式支持ND,数据类型支持`bfloat16`。
+-   **key\_rope**（`Tensor`）：可选参数，表示MLA结构中的key的rope信息，不支持非连续，数据格式支持ND,数据类型支持`bfloat16`和`float16`。
 
 -   **layout\_query**（`str`）：可选参数，用于标识输入`query`的数据排布格式，用户不特意指定时可传入默认值"BSND"，支持传入BSND和TND。
 
@@ -75,7 +75,4 @@ custom.npu_sparse_flash_attention(Tensor query, Tensor key, Tensor value, Tensor
 - 参数query中的D和key、value的D值相等为512，参数query\_rope中的D和key\_rope的D值相等为64。
 - 支持block\_size取值为16的整数倍，最大支持到1024。
 - 支持sparse\_block\_size整除block\_size。
-- layout\_query为TND且layout\_kv为BSND场景不支持，在非PageAttention场景下，该参数值应于layout_query值保持一致。
-## 调用示例<a name="zh-cn_topic_0000001832267082_section14459801435"></a>
-
--   详见[test_npu_sparse_flash_attention.py](../examples/test_npu_sparse_flash_attention.py)
+- layout\_query为TND且layout\_kv为BSND场景不支持，在非PageAttention场景下，该参数值应与layout_query值保持一致。

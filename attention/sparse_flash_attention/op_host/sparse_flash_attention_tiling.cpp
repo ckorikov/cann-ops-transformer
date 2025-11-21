@@ -51,7 +51,8 @@ const std::map<std::string, std::vector<ge::DataType>> DTYPE_SUPPORT_MAP = {
     {QUERY_ROPE_NAME,             {ge::DT_FLOAT16, ge::DT_BF16}},
     {KEY_ROPE_NAME,               {ge::DT_FLOAT16, ge::DT_BF16}},
     {ATTEN_OUT_NAME,              {ge::DT_FLOAT16, ge::DT_BF16}},
-    {SPARSE_INDICES_NAME,         {ge::DT_INT32}}
+    {SPARSE_INDICES_NAME,         {ge::DT_INT32}},
+    {BLOCK_TABLE_NAME,            {ge::DT_INT32}},
 };
 
 const std::map<std::string, std::vector<SFALayout>> LAYOUT_SUPPORT_MAP = {
@@ -701,6 +702,9 @@ ge::graphStatus SFATilingCheck::CheckSingleParaSparseBlockSize() const
     OP_CHECK_IF((*opParamInfo_.sparseBlockSize <= 0),
         OP_LOGE(opName_, "sparseBlockSize should be greater than 0, but got: %ld.", *opParamInfo_.sparseBlockSize),
         return ge::GRAPH_FAILED);
+    OP_CHECK_IF((*opParamInfo_.sparseBlockSize > 128),
+        OP_LOGE(opName_, "sparseBlockSize should not be greater than 128, but got: %ld.", *opParamInfo_.sparseBlockSize),
+        return ge::GRAPH_FAILED);
     return ge::GRAPH_SUCCESS;
 }
 
@@ -712,6 +716,22 @@ ge::graphStatus SFATilingCheck::CheckSingleParaSparseIndices() const
     return ge::GRAPH_SUCCESS;
 }
 
+ge::graphStatus SFATilingCheck::CheckSingleParaPreTokens() const
+{
+    OP_CHECK_IF((*opParamInfo_.preTokens != INT64_MAX),
+        OP_LOGE(opName_, "preTokens should be 9223372036854775807, but got: %ld.", *opParamInfo_.preTokens),
+        return ge::GRAPH_FAILED);
+    return ge::GRAPH_SUCCESS;
+}
+
+ge::graphStatus SFATilingCheck::CheckSingleParaNextTokens() const
+{
+    OP_CHECK_IF((*opParamInfo_.nextTokens != INT64_MAX),
+        OP_LOGE(opName_, "nextTokens should be 9223372036854775807, but got: %ld.", *opParamInfo_.nextTokens),
+        return ge::GRAPH_FAILED);
+    return ge::GRAPH_SUCCESS;
+}
+
 ge::graphStatus SFATilingCheck::CheckSinglePara() const
 {
     if (ge::GRAPH_SUCCESS != CheckSingleParaQuery() ||
@@ -720,7 +740,9 @@ ge::graphStatus SFATilingCheck::CheckSinglePara() const
         ge::GRAPH_SUCCESS != CheckSingleParaNumHeads() ||
         ge::GRAPH_SUCCESS != CheckSingleParaKvHeadNums() ||
         ge::GRAPH_SUCCESS != CheckSingleParaSparseMode() ||
-        ge::GRAPH_SUCCESS != CheckSingleParaSparseBlockSize()) {
+        ge::GRAPH_SUCCESS != CheckSingleParaSparseBlockSize() ||
+        ge::GRAPH_SUCCESS != CheckSingleParaPreTokens() ||
+        ge::GRAPH_SUCCESS != CheckSingleParaNextTokens()) {
         return ge::GRAPH_FAILED;
     }
 
@@ -729,6 +751,13 @@ ge::graphStatus SFATilingCheck::CheckSinglePara() const
 
 ge::graphStatus SFATilingCheck::CheckRopeExistence()
 {
+    OP_CHECK_IF((opParamInfo_.queryRope.tensor != nullptr || opParamInfo_.keyRope.tensor != nullptr)
+        && *opParamInfo_.attentionMode == 0,
+        OP_LOGE(opName_, "In MHA/GQA situation(attentionMode=0), queryRope and keyRope should be null."),
+        return ge::GRAPH_FAILED);
+    OP_CHECK_IF(*opParamInfo_.attentionMode != 2,
+        OP_LOGE(opName_, "attentionMode only support 2."),
+        return ge::GRAPH_FAILED);
     OP_CHECK_IF((opParamInfo_.queryRope.tensor != nullptr && opParamInfo_.keyRope.tensor == nullptr),
         OP_LOGE(opName_, "KeyRope is null, but queryRope exists, they should be both null or exist."),
         return ge::GRAPH_FAILED);
@@ -886,7 +915,9 @@ ge::graphStatus SFATilingCheck::CheckBlockTable() const
             return ge::GRAPH_FAILED);
         return ge::GRAPH_SUCCESS;
     }
-    
+    if (ge::GRAPH_SUCCESS != CheckDtypeSupport(opParamInfo_.blockTable.desc, BLOCK_TABLE_NAME)) {
+        return ge::GRAPH_FAILED;
+    }
     uint32_t blockTableBatch = opParamInfo_.blockTable.tensor->GetStorageShape().GetDim(0);
     OP_CHECK_IF(blockTableBatch != bSize_,
         OP_LOGE(opName_, "%s's first dimension(%u) should be equal to batch size(%u)",

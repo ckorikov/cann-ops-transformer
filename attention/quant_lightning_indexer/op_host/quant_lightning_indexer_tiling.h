@@ -60,6 +60,8 @@ constexpr uint32_t ATTR_QUERY_LAYOUT_INDEX = 2;
 constexpr uint32_t ATTR_KEY_LAYOUT_INDEX = 3;
 constexpr uint32_t ATTR_SPARSE_COUNT_INDEX = 4;
 constexpr uint32_t ATTR_SPARSE_MODE_INDEX = 5;
+constexpr uint32_t ATTR_PRE_TOKENS_INDEX = 6;
+constexpr uint32_t ATTR_NEXT_TOKENS_INDEX = 7;
 // Dim Index
 constexpr uint32_t DIM_IDX_ZERO = 0;
 constexpr uint32_t DIM_IDX_ONE = 1;
@@ -114,6 +116,8 @@ struct QLIParaInfo {
     const int32_t *blockSize = nullptr;
     const int32_t *sparseMode = nullptr;
     const int32_t *sparseCount = nullptr;
+    const int64_t *preTokens = nullptr;
+    const int64_t *nextTokens = nullptr;
 };
 
 // -----------算子Tiling入参信息类---------------
@@ -139,6 +143,8 @@ public:
     int32_t sparseMode = 0;
     // Others Flag
     uint32_t sparseCount = 0;
+    int64_t preTokens = 0;
+    int64_t nextTokens = 0;
     // DType
     ge::DataType inputQType = ge::DT_FLOAT16;
     ge::DataType inputKType = ge::DT_FLOAT16;
