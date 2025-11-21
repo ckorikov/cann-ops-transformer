@@ -292,7 +292,7 @@ private:
     TBuf<> xScaleMulBuf_;
 
     LocalTensor<int8_t> castLocalTensor_;
-    LocalTensor<half> fp16CastTensor_;
+    LocalTensor<half> fp16CastLocalTensor_;
     LocalTensor<float> absFloatTensor_;
     LocalTensor<float> reduceMaxFloatTensor_;
     LocalTensor<XType> scaleDivLocalTensor_;
@@ -595,7 +595,7 @@ __aicore__ inline void MoeDistributeCombineAddRmsNorm<TemplateMC2TypeFunc>::Buff
             absFloatTensor_ = xAbsBuf_.Get<float>();
             reduceMaxFloatTensor_ = xMaxBuf_.Get<float>();
             scaleDupLocalTensor_ = xScaleMulBuf_.Get<float>();
-            fp16CastTensor_ = xAbsBuf_.Get<half>();
+            fp16CastLocalTensor_ = xAbsBuf_.Get<half>();
             Duplicate(absFloatTensor_, float(0), hFloatAlign256Cnt);  // 统一写0
         }
         if (isScalingDownFlag_) {
@@ -743,7 +743,7 @@ __aicore__ inline void MoeDistributeCombineAddRmsNorm<TemplateMC2TypeFunc>::Allt
     if constexpr (IsInt8Quant) {
         scaleNumAlignSize_ = Ceil(scaleNum_ * sizeof(float), UB_ALIGN) * UB_ALIGN;
         tpipe_->InitBuffer(xAbsBuf_, scaleNumAlignSize_);  // 2K
-        fp16CastTensor_ = mulBuf_.Get<half>();
+        fp16CastLocalTensor_ = mulBuf_.Get<half>();
         absFloatTensor_ = rowTmpFloatBuf_.Get<float>();
         scaleDupLocalTensor_ = mulBuf_.Get<float>();
         scaleDivFloatTensor_ = xAbsBuf_.Get<float>();
@@ -933,9 +933,9 @@ __aicore__ inline void MoeDistributeCombineAddRmsNorm<TemplateMC2TypeFunc>::Int8
     PipeBarrier<PIPE_V>();
     Div(winTpSendCountFloatTensor_, winTpSendCountFloatTensor_, scaleDupLocalTensor_, axisH_);  // 有效个数
     PipeBarrier<PIPE_V>();
-    Cast(fp16CastTensor_, winTpSendCountFloatTensor_, RoundMode::CAST_RINT, axisH_);
+    Cast(fp16CastLocalTensor_, winTpSendCountFloatTensor_, RoundMode::CAST_RINT, axisH_);
     PipeBarrier<PIPE_V>();
-    Cast(castLocalTensor_, fp16CastTensor_, RoundMode::CAST_RINT, axisH_);
+    Cast(castLocalTensor_, fp16CastLocalTensor_, RoundMode::CAST_RINT, axisH_);
     SyncFunc<AscendC::HardEvent::V_MTE3>();
 }
 
@@ -1113,9 +1113,9 @@ __aicore__ inline void MoeDistributeCombineAddRmsNorm<TemplateMC2TypeFunc>::Int8
 
     SyncFunc<AscendC::HardEvent::S_V>();
     Cast(scaleDivFloatTensor_, scaleDivLocalTensor_, RoundMode::CAST_NONE, scaleNum_);
-    Cast(fp16CastTensor_, castLocalTensor_, RoundMode::CAST_NONE, axisH_);
+    Cast(fp16CastLocalTensor_, castLocalTensor_, RoundMode::CAST_NONE, axisH_);
     PipeBarrier<PIPE_V>();
-    Cast(absFloatTensor_, fp16CastTensor_, RoundMode::CAST_NONE, axisH_);
+    Cast(absFloatTensor_, fp16CastLocalTensor_, RoundMode::CAST_NONE, axisH_);
     Brcb(scaleDupLocalTensor_, scaleDivFloatTensor_, repeatNum_, {1, BLOCK_NUM});
     PipeBarrier<PIPE_V>();
     Mul(absFloatTensor_, absFloatTensor_, scaleDupLocalTensor_, axisH_);
