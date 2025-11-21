@@ -144,6 +144,8 @@ struct QSFAParaInfo {
     const int64_t *quantScaleRepoMode = nullptr;
     const int64_t *tileSize = nullptr;
     const int64_t *ropeHeadDim = nullptr;
+    const int64_t *preTokens = nullptr;
+    const int64_t *nextTokens = nullptr;
 };
 
 struct InnerSplitParams {
@@ -280,6 +282,8 @@ struct QSFATilingInfo {
     int64_t valueQuantMode = 0;
     int64_t quantScaleRepoMode = 0;
     int64_t tileSize = 0;
+    int64_t preTokens = 0;
+    int64_t nextTokens = 0;
 
     ge::DataType inputQType = ge::DT_FLOAT16;
     ge::DataType inputKvType = ge::DT_FLOAT16;
@@ -488,6 +492,8 @@ private:
     int32_t valueQuantMode_ = 0;
     int32_t quantScaleRepoMode_ = 0;
     int64_t tileSize_ = 0;
+    int64_t preTokens_ = 0;
+    int64_t nextTokens_ = 0;
 
     QSFALayout qLayout_ = QSFALayout::BSND;
     QSFALayout topkLayout_ = QSFALayout::BSND;

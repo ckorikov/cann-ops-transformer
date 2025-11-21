@@ -162,6 +162,8 @@ public:
     void GetOutputParaInfo();
     ge::graphStatus GetAndCheckAttrParaInfo();
     ge::graphStatus GetOpParaInfo();
+    ge::graphStatus ValidateInputShapesMatchQbsnd();
+    ge::graphStatus ValidateInputShapesMatchQtnd();
     ge::graphStatus ValidateInputShapesMatch();
     ge::graphStatus GetAndCheckInOutDataType();
     ge::graphStatus GetBatchSize();

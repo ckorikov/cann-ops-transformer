@@ -44,8 +44,8 @@ static const std::string ATTEN_OUT_NAME = "attention_out";
 
 const std::map<std::string, std::vector<ge::DataType>> DTYPE_SUPPORT_MAP = {
     {QUERY_NAME,                  {ge::DT_FLOAT16, ge::DT_BF16}},
-    {KEY_NAME,                    {ge::DT_INT8, ge::DT_INT8}},
-    {VALUE_NAME,                  {ge::DT_INT8, ge::DT_INT8}},
+    {KEY_NAME,                    {ge::DT_INT8}},
+    {VALUE_NAME,                  {ge::DT_INT8}},
     {ATTEN_OUT_NAME,              {ge::DT_FLOAT16, ge::DT_BF16}},
     {SPARSE_INDICES_NAME,         {ge::DT_INT32}}
 };
@@ -680,8 +680,8 @@ ge::graphStatus QSFATilingCheck::CheckSingleParaSparseMode() const
 
 ge::graphStatus QSFATilingCheck::CheckSingleParaSparseBlockSize() const
 {
-    OP_CHECK_IF((*opParamInfo_.sparseBlockSize <= 0),
-        OP_LOGE(opName_, "sparseBlockSize should be greater than 0, but got: %ld.", *opParamInfo_.sparseBlockSize),
+    OP_CHECK_IF((*opParamInfo_.sparseBlockSize <= 0 || *opParamInfo_.sparseBlockSize > 16),
+        OP_LOGE(opName_, "sparseBlockSize should be in range [1, 16], but got: %ld.", *opParamInfo_.sparseBlockSize),
         return ge::GRAPH_FAILED);
     return ge::GRAPH_SUCCESS;
 }
@@ -1128,8 +1128,8 @@ ge::graphStatus QSFATilingCheck::CheckFeatureMlaAntiquantShape() const
         OP_LOGE(opName_, "group num should be in 1, 2, 4, 8, 16, 32, 64, 128, but got %u", gSize_),
         return ge::GRAPH_FAILED);
 
-    OP_CHECK_IF(qkHeadDim_ != 576,
-        OP_LOGE(opName_, "qk_head_dim only support 576, but got %u", qkHeadDim_),
+    OP_CHECK_IF(qkHeadDim_ - ropeHeadDim_ != 512, // 512:当前不泛化
+        OP_LOGE(opName_, "qk_head_dim only support 512, but got %u", qkHeadDim_),
         return ge::GRAPH_FAILED);
 
     return ge::GRAPH_SUCCESS;
@@ -1180,6 +1180,16 @@ ge::graphStatus QSFATilingCheck::CheckFeatureMlaAntiquantAttr() const
         quantScaleRepoMode_),
         return ge::GRAPH_FAILED);
 
+    OP_CHECK_IF(preTokens_ != INT64_MAX,
+        OP_LOGE(opName_, "preTokens_ should be INT64_MAX, but got %ld",
+        preTokens_),
+        return ge::GRAPH_FAILED);
+
+    OP_CHECK_IF(nextTokens_ != INT64_MAX,
+        OP_LOGE(opName_, "nextTokens_ should be INT64_MAX, but got %ld",
+        nextTokens_),
+        return ge::GRAPH_FAILED);
+
     OP_CHECK_IF(tileSize_ != 128, // 128:当前不泛化
         OP_LOGE(opName_, "tile_size should be 128, but got %ld",
         tileSize_),
@@ -1217,7 +1227,8 @@ ge::graphStatus QSFATilingCheck::CheckFeatureMlaAntiquantPa() const
 
 ge::graphStatus QSFATilingCheck::CheckFeatureMlaAntiquant() const
 {
-    if (ge::GRAPH_SUCCESS != CheckFeatureMlaAntiquantShape() ||
+    if (ge::GRAPH_SUCCESS != CheckFeatureMlaAntiquantAttr() ||
+        ge::GRAPH_SUCCESS != CheckFeatureMlaAntiquantShape() ||
         ge::GRAPH_SUCCESS != CheckFeatureMlaAntiquantLayout() ||
         ge::GRAPH_SUCCESS != CheckFeatureMlaAntiquantDtype() ||
         ge::GRAPH_SUCCESS != CheckFeatureMlaAntiquantPa()) {
@@ -1264,6 +1275,8 @@ void QSFATilingCheck::Init()
     valueQuantMode_ = sfaaInfo_.valueQuantMode;
     quantScaleRepoMode_ = sfaaInfo_.quantScaleRepoMode;
     tileSize_ = sfaaInfo_.tileSize;
+    preTokens_ = sfaaInfo_.preTokens;
+    nextTokens_ = sfaaInfo_.nextTokens;
 
     inputQType_ = sfaaInfo_.inputQType;
     inputKvType_ = sfaaInfo_.inputKvType;
@@ -1475,6 +1488,8 @@ ge::graphStatus QSFAInfoParser::GetAttrParaInfo()
     opParamInfo_.keyQuantMode = attrs->GetAttrPointer<int64_t>(KEY_QUANT_MODE_ATTR_INDEX);
     opParamInfo_.valueQuantMode = attrs->GetAttrPointer<int64_t>(VALUE_QUANT_MODE_ATTR_INDEX);
     opParamInfo_.attentionMode = attrs->GetAttrPointer<int64_t>(ATTENTION_MODE_ATTR_INDEX);
+    opParamInfo_.preTokens = attrs->GetAttrPointer<int64_t>(PRE_TOKENS_ATTR_INDEX);
+    opParamInfo_.nextTokens = attrs->GetAttrPointer<int64_t>(NEXT_TOKENS_ATTR_INDEX);
     opParamInfo_.quantScaleRepoMode = attrs->GetAttrPointer<int64_t>(QUANT_SCALE_REPO_MODE_ATTR_INDEX);
     opParamInfo_.tileSize = attrs->GetAttrPointer<int64_t>(TILE_SIZE_ATTR_INDEX);
     opParamInfo_.ropeHeadDim = attrs->GetAttrPointer<int64_t>(ROPE_HEAD_DIM_ATTR_INDEX);
@@ -1777,6 +1792,8 @@ void QSFAInfoParser::GenerateInfo(QSFATilingInfo &sfaaInfo)
     sfaaInfo.keyQuantMode = *opParamInfo_.keyQuantMode;
     sfaaInfo.valueQuantMode = *opParamInfo_.valueQuantMode;
     sfaaInfo.quantScaleRepoMode = *opParamInfo_.quantScaleRepoMode;
+    sfaaInfo.preTokens = *opParamInfo_.preTokens;
+    sfaaInfo.nextTokens = *opParamInfo_.nextTokens;
     sfaaInfo.tileSize = *opParamInfo_.tileSize;
     sfaaInfo.ropeHeadDim = *opParamInfo_.ropeHeadDim;
 
