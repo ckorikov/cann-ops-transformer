@@ -734,6 +734,9 @@ static bool CheckTensorFormat(gert::TilingContext *context, const char *nodeName
 static bool CheckConstExpertTensorShape(const gert::TilingContext *context, MoeDistributeCombineV2TilingData &tilingData,
     const char *nodeName)
 {
+    const gert::StorageShape *expandXStorageShape = context->GetInputShape(EXPAND_X_INDEX);
+    int64_t expandXDim1 = expandXStorageShape->GetStorageShape().GetDim(1);
+
     const gert::StorageShape* constExpertAlpha1Shape = context->GetOptionalInputShape(CONST_EXPERT_ALPHA_1_INDEX);
     if (constExpertAlpha1Shape != nullptr) {
         int64_t constExpertAlpha1Dim0 = constExpertAlpha1Shape->GetStorageShape().GetDim(0);
