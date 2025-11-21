@@ -308,10 +308,6 @@ protected:
         attenMaskCompressMode = static_cast<uint8_t>(AttenMaskCompressMode::NO_COMPRESS_MODE);
         isHighPercision = true;
 
-        alignedS1 = 0LL;
-        alignedS2 = 0LL;
-        alignedD = 0LL;
-
         s1BasicBlock = std::numeric_limits<int64_t>::max();
         s2BasicBlock = std::numeric_limits<int64_t>::max();
         dBasicBlock = std::numeric_limits<int64_t>::max();
@@ -450,10 +446,6 @@ protected:
     float scaleValue;
     uint8_t attenMaskCompressMode;
 
-    int64_t alignedS1;
-    int64_t alignedS2;
-    int64_t alignedD;
-
     int64_t s1BasicBlock;
     int64_t s2BasicBlock;
     int64_t dBasicBlock;
@@ -471,7 +463,6 @@ protected:
     bool hasAttenMask = false;
     bool hasDropOut = false;
     bool dropMaskOuter = false;
-    bool splitS2 = true;
     bool regbase = false;
     bool hasRope = false;
 
@@ -980,17 +971,6 @@ ge::graphStatus FlashAttentionScoreConstTiling::GetShapeAttrsInfo()
         return ge::GRAPH_FAILED;
     }
 
-    alignedS1 = AlignUp(s1Size, FRACTAL_NUM);
-    alignedS2 = AlignUp(s2Size, FRACTAL_NUM);
-    alignedD = AlignUp(dSize, FRACTAL_NUM);
-
-    OP_CHECK_IF(alignedS1 <= 0, OPS_REPORT_VECTOR_INNER_ERR(opName, "invalid alignedS1 %ld.", alignedS1),
-               return ge::GRAPH_FAILED);
-    OP_CHECK_IF(alignedS2 <= 0, OPS_REPORT_VECTOR_INNER_ERR(opName, "invalid alignedS2 %ld.", alignedS2),
-               return ge::GRAPH_FAILED);
-    OP_CHECK_IF(alignedD <= 0, OPS_REPORT_VECTOR_INNER_ERR(opName, "invalid alignedD %ld.", alignedD),
-               return ge::GRAPH_FAILED);
-
     inputParamsRegbase_->set_bSize(bSize);
     inputParamsRegbase_->set_n2Size(n2Size);
     inputParamsRegbase_->set_gSize(gSize);
@@ -1001,7 +981,6 @@ ge::graphStatus FlashAttentionScoreConstTiling::GetShapeAttrsInfo()
     inputParamsRegbase_->set_dSizeRope(dSizeRope);
     inputParamsRegbase_->set_keepProb(keepProb);
     inputParamsRegbase_->set_scaleValue(scaleValue);
-    inputParamsRegbase_->set_alignedS2(alignedS2);
     inputParamsRegbase_->set_pseType(static_cast<uint32_t>(pseType));
     inputParamsRegbase_->set_keepProbUint8(keepProbUint8);
     inputParamsRegbase_->set_seed(seed);
@@ -1356,14 +1335,6 @@ void FlashAttentionScoreConstTiling::SetMultiCoreParamsRegbase(int64_t totalSize
 void FlashAttentionScoreConstTiling::SetSparseParamsRegbase(int64_t maxCoreNum)
 {
     if (inputParamsRegbase_->get_sparseType() == static_cast<uint8_t>(SparseEnum::ALL)) {
-        return;
-    }
-
-    if (!splitS2) {
-        OP_LOGI(context_, "[%s]match not split S2 template, close sparse feature", templateName);
-        inputParamsRegbase_->set_sparseType(static_cast<uint8_t>(SparseEnum::ALL));
-        inputParamsRegbase_->set_qStartIdx(0);
-        inputParamsRegbase_->set_kvStartIdx(0);
         return;
     }
 
@@ -2051,7 +2022,6 @@ public:
     explicit FlashAttentionScoreTilingS1S2Const(gert::TilingContext *context) :
         FlashAttentionScoreConstTiling(context)
     {
-        this->splitS2 = true;
         this->templateName = "S1S2Const";
         this->regbase = true;
     }
@@ -2240,7 +2210,6 @@ public:
     explicit FlashAttentionScoreTilingVarLenConst(gert::TilingContext *context) :
         FlashAttentionScoreConstTiling(context)
     {
-        this->splitS2 = true;
         this->templateName = "VarLenConst";
         this->regbase = true;
     }
