@@ -744,6 +744,13 @@ bool PromptFlashAttentionTilingV2::CheckPerblockQuantParams(const ContextParamsF
     const size_t dequeryDim = dequantScaleQueryShape->GetStorageShape().GetDimNum();
     const size_t dekeyDim = keyAntiquantScaleShape->GetStorageShape().GetDimNum();
     const size_t devalueDim = valueAntiquantScaleshape->GetStorageShape().GetDimNum();
+    // When PA and tensorlist are enable, they may affect the shape parsing of query, key and value,
+    OP_CHECK_IF(enablePA, OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName,
+            "PA is not supported in per-block quant scenario!"),
+        return false);
+    OP_CHECK_IF(enableTensorList, OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName,
+            "tensorlist is not supported in per-block quant scenario!"),
+        return false);
     OP_CHECK_IF((contextKeyParams.inputDataType != ge::DT_FLOAT8_E5M2) && (contextKeyParams.inputDataType != ge::DT_FLOAT8_E4M3FN),
         OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName,
                 "inputType must be FLOAT8_E5M2 or FLOAT8_E4M3FN in per-block quant scenario, now is %s.", 
@@ -2201,11 +2208,8 @@ bool PromptFlashAttentionTilingV2::CheckPerblockCrossover(ContextParamsForPFATil
         OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName,
             "innerPrecise must be 0 or 1 in per-block quant scenario, now is %ld", innerPrecise),
             return false);
-    OP_CHECK_IF(enablePA, OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName,
-            "PA is not supported in per-block quant scenario!"),
-        return false);
-    OP_CHECK_IF(enableTensorList, OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName,
-            "tensorlist is not supported in per-block quant scenario!"),
+    OP_CHECK_IF(contextKeyParams.isSoftMaxLseEnable, OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName,
+            "LSE is not supported in per-block quant scenario!"),
         return false);
     OP_CHECK_IF(enableLeftPadding, OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName,
             "leftpadding is not supported in per-block quant scenario!"),
