@@ -128,6 +128,7 @@ static const int64_t D_SIZE_L1CARRY_MAX = 256L;
 static const int64_t D2_SIZE_L1CARRY_MAX = 256L;
 static const int64_t SOFTMAX_OUT_LAYOUT_INDEX = 12L;
 static const int64_t B4_SEQ_LIMIT = 48000L;
+static const int64_t SINK_INPUT_INDEX = 17L;
 
 enum LayoutType : uint8_t {
     None = 0,
@@ -500,6 +501,7 @@ protected:
     uint8_t attenMaskCompressMode;
     uint8_t pseExistFlag;
     uint8_t attenMaskExistFlag;
+    uint8_t sinkExistFlag;
     uint8_t dropMaskExistFlag;
     uint8_t matmulPolicyType = MATMUL_POLICY_NORMAL;
 
@@ -954,6 +956,7 @@ void FlashAttentionScoreTilingBase::Reset()
     attenMaskCompressMode = NO_COMPRESS_MODE;
     attenMaskExistFlag = static_cast<uint8_t>(0);
     dropMaskExistFlag = static_cast<uint8_t>(0);
+    sinkExistFlag = static_cast<uint8_t>(0);
     isHighPercision = true;
 
     alignedS1 = 0LL;
@@ -1690,8 +1693,41 @@ bool FlashAttentionScoreTilingBase::AnalyzeOptionalInput()
         tilingData->inputParams.set_needDropMaskOp(static_cast<uint8_t>(needDropMaskOp));
     }
 
-    OP_LOGD(context_, "pseExistFlag: %d, attenMaskExistFlag: %d, dropMaskExistFlag: %d.", pseExistFlag,
-              attenMaskExistFlag, dropMaskExistFlag);
+    auto sinkShapePtr = context_->GetOptionalInputShape(SINK_INPUT_INDEX);
+    auto sinkInputPtr = context_->GetOptionalInputDesc(SINK_INPUT_INDEX);
+    if (sinkInputPtr != nullptr && sinkShapePtr != nullptr && sinkShapePtr->GetStorageShape().GetDimNum() != 0) {
+        auto shape = sinkShapePtr->GetStorageShape();
+        int64_t dimNum = shape.GetDimNum();
+        auto sinkDtype = sinkInputPtr->GetDataType();
+        OP_CHECK_IF(sinkDtype != ge::DT_FLOAT,
+                OP_LOGE(opName, "invalid sink dtype[%s], only support float.",
+                        ge::TypeUtils::DataTypeToSerialString(sinkDtype).c_str()),
+                return false);
+
+        std::string sinkShape = "";
+        for (int i = 0; i < dimNum; ++i) {
+            sinkShape += std::to_string(shape.GetDim(i));
+            if (i < dimNum - 1) {
+                sinkShape += ", ";
+            }
+        }
+        OP_CHECK_IF(dimNum != 1, OP_LOGE(opName, "invalid sink shape [%s], sink shape only support [n,].",sinkShape.c_str()),return false);
+
+        int64_t expectShapeSize = n1Size;
+        auto actualSinkShapeSize = shape.GetShapeSize();
+
+        if (actualSinkShapeSize != expectShapeSize) {
+            OP_LOGE(context_, "Input sink shapeSize is invalid, it should be %ld, but got %ld",
+                    expectShapeSize, actualSinkShapeSize);
+            return false;
+        }
+        sinkExistFlag = static_cast<uint8_t>(1);
+    }
+
+    tilingData->inputParams.set_needSinkOp(sinkExistFlag);
+
+    OP_LOGD(context_, "pseExistFlag: %d, attenMaskExistFlag: %d, dropMaskExistFlag: %d, sinkExistFlag: %d.", pseExistFlag,
+            attenMaskExistFlag, dropMaskExistFlag, sinkExistFlag);
     return true;
 }
 
