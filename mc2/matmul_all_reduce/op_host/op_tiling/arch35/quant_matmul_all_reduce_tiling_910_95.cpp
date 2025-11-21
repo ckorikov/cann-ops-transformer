@@ -24,10 +24,16 @@ using namespace Mc2Log;
 namespace optiling {
 constexpr uint64_t HCOMM_CNT = 2;
 constexpr uint64_t INT8_WORKSPACE_CNT = 3;
+constexpr uint64_t PERTILE_FP8_WORKSPACE_CNT = 3;
+constexpr uint64_t PERTILE_FP32_WORKSPACE_CNT = 2;
 constexpr uint64_t GROUP_M_OFFSET = 32;
 constexpr uint64_t GROUP_N_OFFSET = 16;
 constexpr uint64_t GROUP_MNK_BIT_SIZE = 0xFFFF;
 constexpr uint64_t GROUP_MAX_BIT_SIZE = 0xFFFFFFFFFFFF;
+constexpr uint64_t PERTILE_TILELEN = 128;
+constexpr uint64_t DOUBLE_BUFFER = 2;
+constexpr uint64_t QUANT_MODE_FP8 = 2;
+constexpr uint32_t ALIGN_DATA_SIZE = 32;
 
 static const std::initializer_list<std::tuple<int, int, int>> MXFP_GROUPSIZE_SUPPORT_LIST = {
     std::make_tuple(0, 0, 32), std::make_tuple(1, 1, 32)};
@@ -71,6 +77,20 @@ void QuantMatmulAllReduceTilingA5::SetMc2Hcomm()
         quantMatmulAllReduceTilingData_.hcommInt8Cfg.set_dstDataType(
             static_cast<uint32_t>(mc2tiling::ConvertGeTypeToHcclType(opName_, ge::DataType::DT_INT8)));
         quantMatmulAllReduceTilingData_.set_hcommCnt(HCOMM_CNT);
+    } else if (MutableRCSTilingData().get_isInputCommQuantScale() == QUANT_MODE_FP8) {
+        quantMatmulAllReduceTilingData_.hcommCfg.set_opType(
+            static_cast<uint32_t>(mc2tiling::AicpuComType::HCCL_CMD_ALLTOALL));
+        quantMatmulAllReduceTilingData_.hcommCfg.set_srcDataType(
+            static_cast<uint32_t>(mc2tiling::ConvertGeTypeToHcclType(opName_, args_.geAType)));
+        quantMatmulAllReduceTilingData_.hcommCfg.set_dstDataType(
+            static_cast<uint32_t>(mc2tiling::ConvertGeTypeToHcclType(opName_, args_.geAType)));
+        quantMatmulAllReduceTilingData_.hcommInt8Cfg.set_opType(
+            static_cast<uint32_t>(mc2tiling::AicpuComType::HCCL_CMD_ALLGATHER));
+        quantMatmulAllReduceTilingData_.hcommInt8Cfg.set_srcDataType(
+            static_cast<uint32_t>(mc2tiling::ConvertGeTypeToHcclType(opName_, args_.geAType)));
+        quantMatmulAllReduceTilingData_.hcommInt8Cfg.set_dstDataType(
+            static_cast<uint32_t>(mc2tiling::ConvertGeTypeToHcclType(opName_, args_.geAType)));
+        quantMatmulAllReduceTilingData_.set_hcommCnt(HCOMM_CNT);
     } else {
         quantMatmulAllReduceTilingData_.hcommCfg.set_opType(
             static_cast<uint32_t>(mc2tiling::AicpuComType::HCCL_CMD_ALLREDUCE));
@@ -94,6 +114,53 @@ ge::graphStatus QuantMatmulAllReduceTilingA5::DoOpTiling()
     }
     SetMc2Hcomm();
     DoAllReduceTiling(true);
+    if (MutableRCSTilingData().get_isInputCommQuantScale() == QUANT_MODE_FP8) {
+        isCommFp8Enable_ = true;
+        GE_ASSERT_GRAPH_SUCCESS(GetDynamicQuantTempBuffSize());
+    }
+    return ge::GRAPH_SUCCESS;
+}
+
+ge::graphStatus QuantMatmulAllReduceTilingA5::GetDynamicQuantTempBuffSize()
+{
+    auto ascendcPlatform = platform_ascendc::PlatformAscendC(context_->GetPlatformInfo());
+    OP_TILING_CHECK(ascendcPlatform.GetCoreNumAiv() == 0,
+                    VECTOR_INNER_ERR_REPORT_TILING(opName_, "GetCoreNumAiv Failed! Invalid AivNum."),
+                    return ge::GRAPH_FAILED);
+    auto aivNum = ascendcPlatform.GetCoreNumAiv() > 0 ? ascendcPlatform.GetCoreNumAiv() : 1;
+    int64_t procRowsRaw =
+        MutableTCubeTileTilingData().get_M() < aivNum ? 1 : MutableTCubeTileTilingData().get_M() / aivNum;
+    uint64_t ubSize = static_cast<uint64_t>(aicoreParams_.ubSize);
+    uint64_t fp8Size = 1;
+    uint64_t outSize = args_.geCType == ge::DataType::DT_FLOAT ? sizeof(float) : 2;
+    uint64_t ubDenomQuant =
+        3 * PERTILE_TILELEN * sizeof(float) + PERTILE_TILELEN * fp8Size + sizeof(float) + sizeof(uint8_t);
+    ubDenomQuant *= DOUBLE_BUFFER;
+    int64_t procRows = ubSize / ubDenomQuant < procRowsRaw ? ubSize / ubDenomQuant : procRowsRaw;
+    int64_t procRowTileCnt = (ubSize / ubDenomQuant) / procRows;
+    std::vector<int64_t> srcShapeVec = {procRowTileCnt, 1};
+    std::vector<int64_t> dstShapeVec = {procRowTileCnt, PERTILE_TILELEN};
+    ge::Shape srcShape(srcShapeVec);
+    ge::Shape dstShape(dstShapeVec);
+    uint32_t maxValBroadCast{0};
+    uint32_t minValBroadCast{0};
+    AscendC::GetBroadCastMaxMinTmpSize(ascendcPlatform, srcShape, dstShape, sizeof(float), false, maxValBroadCast,
+                                       minValBroadCast); // Quant 广播Scale计算量化结果时需要的额外空间
+    uint32_t minValBroadCastDequant{0};
+    uint64_t ubDenomDeQuant =
+        PERTILE_TILELEN * fp8Size + sizeof(float) + PERTILE_TILELEN * outSize + 2 * PERTILE_TILELEN * sizeof(float);
+    ubDenomDeQuant *= DOUBLE_BUFFER;
+    procRows = ubSize / ubDenomDeQuant < procRowsRaw ? ubSize / ubDenomDeQuant : procRowsRaw;
+    procRowTileCnt =  (ubSize / ubDenomQuant) / procRows;
+    std::vector<int64_t> srcShapeDequantVec = {procRowTileCnt, 1};
+    std::vector<int64_t> dstShapeDequantVec = {procRowTileCnt, PERTILE_TILELEN};
+    ge::Shape srcShapeDequant(srcShapeDequantVec);
+    ge::Shape dstShapeDequant(dstShapeDequantVec);
+    AscendC::GetBroadCastMaxMinTmpSize(ascendcPlatform, srcShapeDequant, dstShapeDequant, sizeof(float), false,
+                                       maxValBroadCast, minValBroadCastDequant); // Dequant 广播Scale计算反量化
+    uint32_t tempBuffSize = std::max(minValBroadCast, minValBroadCastDequant);
+    tempBuffSize = Ops::Base::CeilDiv(tempBuffSize, ALIGN_DATA_SIZE) * ALIGN_DATA_SIZE;
+    MutableRCSTilingData().set_dynamicQuantTempBuffSize(tempBuffSize);
     return ge::GRAPH_SUCCESS;
 }
 
@@ -106,6 +173,9 @@ uint64_t QuantMatmulAllReduceTilingA5::GetTilingKey() const
     }
     // david上的tilingKey暂时用第18位区分
     tilingKey += mc2tiling::MC2_TILINGKEY_OFFSET;
+    if (isCommFp8Enable_ == true) {
+        tilingKey += 50100010UL;
+    }
     OP_LOGI(opName_, "TilingKey=%lu.", tilingKey);
     return tilingKey;
 }
@@ -166,8 +236,11 @@ ge::graphStatus QuantMatmulAllReduceTilingA5::GetWorkspaceSize()
     size_t* workspaces = context_->GetWorkspaceSizes(1); // set workspace
     uint64_t commInt8WorkSpace = 0UL;
     uint64_t commFp32WorkSpace = 0UL;
-    uint64_t gmcFloat = 0UL;
-    if (MutableRCSTilingData().get_isInputCommQuantScale() == 1) {
+    uint64_t gmcFloat = static_cast<uint64_t>(MutableRCSTilingData().get_rankM()) *
+                        static_cast<uint64_t>(MutableRCSTilingData().get_rankN()) *
+                        static_cast<uint64_t>(args_.outputDtypeSize);
+    bool isFp8 = MutableRCSTilingData().get_isInputCommQuantScale() == QUANT_MODE_FP8;
+    if (MutableRCSTilingData().get_isInputCommQuantScale() == 1 || isFp8) {
         uint64_t padTileM = MutableTCubeTileTilingData().get_M();
         uint64_t padTailM = MutableTCubeTailTilingData().get_M();
         if (padTileM % args_.rankDim != 0) {
@@ -178,23 +251,32 @@ ge::graphStatus QuantMatmulAllReduceTilingA5::GetWorkspaceSize()
             padTailM += args_.rankDim - (padTailM % args_.rankDim); // args_.rankDim :1/2/4/8 不会为0
         }
         uint64_t tempPadTailM = padTailM * MutableTCubeTailTilingData().get_N() * sizeof(int8_t);
-        commInt8WorkSpace = (tempPadTileM * MutableRCSTilingData().get_tileCnt() +
-                             tempPadTailM * MutableRCSTilingData().get_tailCnt()) *
-                            sizeof(int8_t);
         commFp32WorkSpace = (tempPadTileM * MutableRCSTilingData().get_tileCnt() +
-                             tempPadTailM * MutableRCSTilingData().get_tailCnt()) *
-                            sizeof(float);
-        OP_LOGI(
-            opName_, "Set commInt8WorkSpace size=%lu, commFp32WorkSpace size=%lu to context.", commInt8WorkSpace,
-            commFp32WorkSpace);
+                             tempPadTailM * MutableRCSTilingData().get_tailCnt()) * sizeof(float);
+        if (isFp8) {
+            uint64_t tileN = MutableTCubeTileTilingData().get_N();
+            uint64_t tailN = MutableTCubeTailTilingData().get_N();
+            tileN += Ops::Base::CeilDiv(tileN, PERTILE_TILELEN);
+            tailN += Ops::Base::CeilDiv(tailN, PERTILE_TILELEN);
+            tempPadTileM = padTileM * tileN;
+            tempPadTailM = padTailM * tailN;
+        }
+        commInt8WorkSpace =
+            tempPadTileM * MutableRCSTilingData().get_tileCnt() + tempPadTailM * MutableRCSTilingData().get_tailCnt();
+        commInt8WorkSpace *= isFp8 ? sizeof(float) : sizeof(int8_t);
+        OP_LOGI(opName_, "Set commInt8WorkSpace size=%lu, commFp32WorkSpace size=%lu to context.", commInt8WorkSpace,
+                commFp32WorkSpace);
     }
-    gmcFloat = static_cast<uint64_t>(MutableRCSTilingData().get_rankM()) *
-               static_cast<uint64_t>(MutableRCSTilingData().get_rankN()) * static_cast<uint64_t>(args_.outputDtypeSize);
     uint64_t commWorkSpace = myWorkSpaceSize_ - libApiWorkSpaceSize_;
     MutableRCSTilingData().set_commWorkSpaceSize(commWorkSpace); // myWorkSpaceSize_去除系统空间后剩余大小
-    MutableRCSTilingData().set_commInt8WorkSpace(
-        commInt8WorkSpace); // int8 通信用于存放reduceScatter输入 workspace 的开销
-    myWorkSpaceSize_ = myWorkSpaceSize_ + gmcFloat + INT8_WORKSPACE_CNT * commInt8WorkSpace + commFp32WorkSpace;
+    MutableRCSTilingData().set_commInt8WorkSpace(commInt8WorkSpace); // int8 通信用于存放reduceScatter输入 workspace 的开销
+    if (isFp8) {
+        // 存放Matmul输出+quant输出+alltoall输出+(dequant+reduce+quant)混合输出+allgather输出+dequant输出
+        myWorkSpaceSize_ = myWorkSpaceSize_ + PERTILE_FP8_WORKSPACE_CNT * commInt8WorkSpace +
+                           commInt8WorkSpace / args_.rankDim + PERTILE_FP32_WORKSPACE_CNT * commFp32WorkSpace;
+    } else {
+        myWorkSpaceSize_ = myWorkSpaceSize_ + gmcFloat + INT8_WORKSPACE_CNT * commInt8WorkSpace + commFp32WorkSpace;
+    }
     OP_LOGI(opName_, "Set max workspace size=%lu to context.", myWorkSpaceSize_);
     workspaces[0] = myWorkSpaceSize_;
     return ge::GRAPH_SUCCESS;

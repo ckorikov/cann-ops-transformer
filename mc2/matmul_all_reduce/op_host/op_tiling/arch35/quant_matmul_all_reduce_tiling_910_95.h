@@ -84,6 +84,7 @@ protected:
     ge::graphStatus CheckA8W8ScenarioScaleType();
     ge::graphStatus CheckMXFPScenarioScaleType();
     ge::graphStatus CheckQuantGroupSize();
+    ge::graphStatus GetDynamicQuantTempBuffSize();
 
 private:
     ge::graphStatus CheckAxisSize();
@@ -91,6 +92,7 @@ private:
     QuantMatmulAllReduceTilingDataA5& quantMatmulAllReduceTilingData_;
     uint64_t myWorkSpaceSize_{0U};
     bool isCommInt8Enable_ = false;
+    bool isCommFp8Enable_ = false;
 };
 
 class QuantTilingTransferHelperA5 : public Mc2AdaptiveSlidingWindowTiling
