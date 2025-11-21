@@ -58,12 +58,12 @@ aclnnStatus aclnnGroupedMatMulAlltoAllv(
 
 **参数说明**
 
-<table style="undefined;table-layout: fixed; width: 1576px"> <colgroup>
- <col style="width: 170px">
- <col style="width: 170px">
- <col style="width: 800px">
- <col style="width: 800px">
- <col style="width: 200px">
+<table style="undefined;table-layout: fixed; width: 1392px"> <colgroup>
+ <col style="width: 120px">
+ <col style="width: 120px">
+ <col style="width: 160px">
+ <col style="width: 150px">
+ <col style="width: 80px">
  </colgroup>
  <thead>
   <tr>
@@ -105,14 +105,14 @@ aclnnStatus aclnnGroupedMatMulAlltoAllv(
   <tr>
    <td>mmXOptional</td>
    <td>输入</td>
-   <td>可选输入，共享专家MatMul计算中的左矩阵，需与mmWeightOptional同时传入/为nullptr，数据类型与gmmX保持一致，支持2维，shape为(BS, H2)。</td>
+   <td>可选输入，共享专家MatMul计算中的左矩阵，需与mmWeightOptional同时传入或同为nullptr，数据类型与gmmX保持一致，支持2维，shape为(BS, H2)。</td>
    <td>FLOAT16、BFLOAT16</td>
    <td>ND</td>
   </tr>
   <tr>
    <td>mmWeightOptional</td>
    <td>输入</td>
-   <td>可选输入，共享专家MatMul计算中的右矩阵，需与mmXOptional同时传入/为nullptr，数据类型与gmmX保持一致，支持2维，shape为(H2, N2)。</td>
+   <td>可选输入，共享专家MatMul计算中的右矩阵，需与mmXOptional同时传入或同为nullptr，数据类型与gmmX保持一致，支持2维，shape为(H2, N2)。</td>
    <td>FLOAT16、BFLOAT16</td>
    <td>ND</td>
   </tr>
@@ -126,21 +126,21 @@ aclnnStatus aclnnGroupedMatMulAlltoAllv(
   <tr>
    <td>epWorldSize</td>
    <td>输入</td>
-   <td>ep通信域size：<br><term>Atlas A3系列产品</term>支持8、16、32、64。</td>
+   <td>ep通信域size：<br><term>Atlas A3系列产品</term>支持8、16、32、64、128。</td>
    <td>INT64</td>
    <td>ND</td>
   </tr>
   <tr>
    <td>sendCounts</td>
    <td>输入</td>
-   <td>表示发送给其他卡的token数，数据类型支持INT64，取值大小为e * epWorldSize，最大为256。</td>
+   <td>表示发送给其他卡的token数，数据类型支持INT64，取值大小为e * epWorldSize，最大为256。输入类型需为list。</td>
    <td>aclIntArray*（元素类型INT64）</td>
    <td>ND</td>
   </tr>
   <tr>
    <td>recvCounts</td>
    <td>输入</td>
-   <td>表示接收其他卡的token数，数据类型支持INT64，取值大小为e * epWorldSize，最大为256。</td>
+   <td>表示接收其他卡的token数，数据类型支持INT64，取值大小为e * epWorldSize，最大为256。输入类型需为list。</td>
    <td>aclIntArray*（元素类型INT64）</td>
    <td>ND</td>
   </tr>
@@ -191,10 +191,10 @@ aclnnStatus aclnnGroupedMatMulAlltoAllv(
 **返回值**
 第一段接口完成入参校验，出现以下场景时报错：
 
-<table style="undefined;table-layout: fixed; width: 1576px"> <colgroup>
- <col style="width: 170px">
- <col style="width: 170px">
- <col style="width: 400px">
+<table style="undefined;table-layout: fixed; width: 1180px"> <colgroup>
+ <col style="width: 250px">
+ <col style="width: 130px">
+ <col style="width: 800px">
  </colgroup>
  <thead>
   <tr>
@@ -220,9 +220,9 @@ aclnnStatus aclnnGroupedMatMulAlltoAllv(
 
 **参数说明**
 
-<table style="undefined;table-layout: fixed; width: 1576px"> <colgroup>
- <col style="width: 170px">
- <col style="width: 170px">
+<table style="undefined;table-layout: fixed; width: 1180px"> <colgroup>
+ <col style="width: 250px">
+ <col style="width: 130px">
  <col style="width: 800px">
  </colgroup>
  <thead>
@@ -240,7 +240,7 @@ aclnnStatus aclnnGroupedMatMulAlltoAllv(
   <tr>
    <td>workspaceSize</td>
    <td>输入</td>
-   <td>在Device侧申请的workspace大小，由第一段接口aclnnGroupedMatMulAlltoAllvGetWorkspaceSize获取。</td>
+   <td>在Device侧申请的workspace大小，由第一段接口<code>aclnnGroupedMatMulAlltoAllvGetWorkspaceSize</code>获取。</td>
   </tr>
   <tr>
    <td>executor</td>
@@ -272,7 +272,7 @@ aclnnStatus aclnnGroupedMatMulAlltoAllv(
   - A：本卡发送的token数，是sendCounts参数累加之和。
   - ep通信域内所有卡的 A 参数的累加和等于所有卡上的 BSK 参数的累加和。
 
-- <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>: 单卡通信量取值范围[2MB，100MB]。
+- <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>: 单卡通信量取值需大于等于2MB。
 
 ## 调用示例
 示例代码如下，仅供参考，具体编译和执行过程请参考编译与运行样例。本示例代码仅支持Atlas A3。
@@ -285,7 +285,7 @@ aclnnStatus aclnnGroupedMatMulAlltoAllv(
     #include <vector>
     #include "acl/acl.h"
     #include "hccl/hccl.h"
-    #include "../op_host/op_api/aclnn_grouped_mat_mul_allto_allv.h"
+    #include "../op_api/aclnn_grouped_mat_mul_allto_allv.h"
 
     #define CHECK_RET(cond, return_expr) \
         do {                             \

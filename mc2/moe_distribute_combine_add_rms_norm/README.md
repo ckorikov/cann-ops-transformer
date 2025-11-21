@@ -9,7 +9,7 @@
 
 ## 功能说明
 
-**算子功能**：当存在TP域通信时，先进行ReduceScatterV通信，再进行AlltoAllV通信，最后将接收的数据整合（乘权重再相加）；当不存在TP域通信时，进行AlltoAllV通信，最后将接收的数据整合（乘权重再相加），之后完成Add + RmsNorm融合。
+**算子功能**：当存在TP域通信时，先进行ReduceScatterV通信，再进行AllToAllV通信，最后将接收的数据整合（乘权重再相加）；当不存在TP域通信时，进行AllToAllV通信，最后将接收的数据整合（乘权重再相加），之后完成Add + RmsNorm融合。
 
 **计算公式**：
 $$
@@ -25,13 +25,12 @@ $$
 
 ## 参数说明
 
-<table style="undefined;table-layout: fixed; width: 1576px">
- <colgroup>
-  <col style="width: 170px">
-  <col style="width: 170px">
-  <col style="width: 800px">
-  <col style="width: 800px">
-  <col style="width: 200px">
+<table style="undefined;table-layout: fixed; width: 1392px"> <colgroup>
+ <col style="width: 120px">
+ <col style="width: 120px">
+ <col style="width: 160px">
+ <col style="width: 150px">
+ <col style="width: 80px">
  </colgroup>
  <thead>
   <tr>

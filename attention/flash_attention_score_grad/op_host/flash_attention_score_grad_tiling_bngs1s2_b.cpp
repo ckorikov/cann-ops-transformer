@@ -9,7 +9,7 @@
  */
 
 /*!
- * \file flash_attention_score_grad_tiling_bngs1s2_b.cc
+ * \file flash_attention_score_grad_tiling_bngs1s2_b.cpp
  * \brief
  */
 
@@ -206,7 +206,6 @@ public:
 
     bool IsCapable() override
     {
-        std::cout << "enter B template check condition " << std::endl;
         const char *tndSoftmaxIn = context_->GetAttrs()->GetAttrNum() > static_cast<size_t>(TND_SOFTMAX_IN) ? context_->GetAttrs()->GetAttrPointer<char>(TND_SOFTMAX_IN) : "";
         if (strcmp(tndSoftmaxIn, "") != 0) {
             return false;

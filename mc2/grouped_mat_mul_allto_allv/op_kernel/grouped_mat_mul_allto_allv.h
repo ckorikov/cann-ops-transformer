@@ -18,7 +18,12 @@
 #include "kernel_operator.h"
 #include "kernel_operator_intf.h"
 #include "lib/matmul_intf.h"
+
+#if __has_include("../../allto_allv_grouped_mat_mul/op_kernel/allto_allv_gmm.h")
+#include "../../allto_allv_grouped_mat_mul/op_kernel/allto_allv_gmm.h"
+#else
 #include "../allto_allv_grouped_mat_mul/allto_allv_gmm.h"
+#endif
 #include "grouped_mat_mul_allto_allv_tiling.h"
 
 namespace AscendC {
@@ -81,7 +86,7 @@ private:
     uint64_t workSpaceOffset = 0U;
 
     // alltoallv 流程数据结构
-    static constexpr uint64_t MAX_EP_RANK_SIZE = 64U;
+    static constexpr uint64_t MAX_EP_RANK_SIZE = 128U;
     static constexpr uint64_t TOTAL_UBSIZE = static_cast<uint64_t>(190U * 1024U / 2U);
     static constexpr uint64_t MAX_AIV_NUM = 48U;
     static constexpr uint64_t MAX_HANDLE_ID_NUM = 64U;

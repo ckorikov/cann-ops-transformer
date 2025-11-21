@@ -390,13 +390,14 @@ function build_example()
                 echo "pkg_mode:${PKG_MODE} vendor_name:${VENDOR}"
                 export CUST_LIBRARY_PATH="${ASCEND_OPP_PATH}/vendors/${VENDOR}_transformer/op_api/lib"     # 仅自定义算子需要
                 export CUST_INCLUDE_PATH="${ASCEND_OPP_PATH}/vendors/${VENDOR}_transformer/op_api/include" # 仅自定义算子需要
+                ABSOLUTE_EXAMPLES_PATH=$(realpath ${BUILD_PATH}/../examples/mc2)
                 ABSOLUTE_MC2_PATH=$(realpath ${BUILD_PATH}/../mc2)
                 REAL_FILE_PATH=$(realpath "$file")
                 MC2_APPEND_INCLUDE_AND_LIBRARY=""
-                if [[ "$REAL_FILE_PATH" == "${ABSOLUTE_MC2_PATH}"* ]]; then
-                    MC2_APPEND_INCLUDE_AND_LIBRARY="-I ${EAGER_INCLUDE_OPP_ACLNNOP_PATH} -lpthread -lhccl"
+                if [[ "$REAL_FILE_PATH" == "${ABSOLUTE_MC2_PATH}"* || "$REAL_FILE_PATH" == "${ABSOLUTE_EXAMPLES_PATH}"* ]]; then
+                    MC2_APPEND_INCLUDE_AND_LIBRARY="-lpthread -lhccl"
                 fi
-                g++ ${file} -I ${INCLUDE_PATH} -I ${CUST_INCLUDE_PATH} -L ${CUST_LIBRARY_PATH} -L ${EAGER_LIBRARY_PATH} -lcust_opapi -lascendcl -lnnopbase ${MC2_APPEND_INCLUDE_AND_LIBRARY} -o test_aclnn_${EXAMPLE_NAME} -Wl,-rpath=${CUST_LIBRARY_PATH}
+                g++ ${file} -I ${INCLUDE_PATH} -I ${CUST_INCLUDE_PATH} -L ${CUST_LIBRARY_PATH} -L ${EAGER_LIBRARY_PATH} -I ${EAGER_INCLUDE_OPP_ACLNNOP_PATH} -lcust_opapi -lascendcl -lnnopbase ${MC2_APPEND_INCLUDE_AND_LIBRARY} -o test_aclnn_${EXAMPLE_NAME} -Wl,-rpath=${CUST_LIBRARY_PATH}
             else
                 echo "Error: pkg_mode(${PKG_MODE}) must be cust."
                 help_info "run_example"
@@ -485,67 +486,103 @@ function process_soc_input(){
     ASCEND_SOC_UNITS="${value_part//,/;}"
 }
 
-function process_genop() {
+  process_genop() {
     local opt_name=$1
     local genop_value=$2
 
     if [[ "$opt_name" == "genop" ]]; then
       ENABLE_GENOP=TRUE
+    elif [[ "$opt_name" == "genop_aicpu" ]]; then
+      ENABLE_GENOP_AICPU=TRUE
     else
-      help_info "genop"
+      usage "genop"
       exit 1
     fi
 
-    if [[ "$genop_value" != *"/"* ]] || [[ "$genop_value" == *"/"*"/"* ]]; then
-      help_info "$opt_name"
+    if [[ "$genop_value" != *"/"* ]] || [[ "$genop_value" == *"/" ]]; then
+      usage "$opt_name"
       exit 1
     fi
 
-    GENOP_TYPE=$(echo "$genop_value" | cut -d'/' -f1)
-    GENOP_NAME=$(echo "$genop_value" | cut -d'/' -f2)
-}
+    GENOP_NAME=${genop_value##*/}
+    local remaining=${genop_value%/*}
 
-function gen_op() {
+    if [[ "$remaining" != *"/"* ]]; then
+      GENOP_TYPE=$remaining
+      GENOP_BASE=${BASE_PATH}
+    else
+      GENOP_TYPE=${remaining##*/}
+      GENOP_BASE=${remaining%/*}
+      if [[ ! "$GENOP_BASE" =~ ^/ && ! "$GENOP_BASE" =~ ^[a-zA-Z]: ]]; then
+        GENOP_BASE="${BASE_PATH}/${GENOP_BASE}"
+      fi
+    fi
+  }
+
+gen_op() {
   if [[ -z "$GENOP_NAME" ]] || [[ -z "$GENOP_TYPE" ]]; then
     echo "Error: op_class or op_name is not set."
-    help_info "genop"
+    usage "genop"
   fi
 
   echo $dotted_line
   echo "Start to create the initial directory for ${GENOP_NAME} under ${GENOP_TYPE}"
 
-  if [ ! -d "${GENOP_TYPE}" ]; then
-    mkdir -p "${GENOP_TYPE}"
-    cp examples/CMakeLists.txt "${GENOP_TYPE}/CMakeLists.txt"
-    sed -i '/list(APPEND OP_DIR_LIST ${CMAKE_CURRENT_SOURCE_DIR}\/ffn\/ffn)/a add_subdirectory('"${GENOP_TYPE}"')' CMakeLists.txt
+  # 检查 python 或 python3 是否存在
+  local python_cmd=""
+  if command -v python3 &> /dev/null; then
+      python_cmd="python3"
+  elif command -v python &> /dev/null; then
+      python_cmd="python"
   fi
-
-  BASE_DIR=${GENOP_TYPE}/${GENOP_NAME}
-  mkdir -p "${BASE_DIR}"
-
-  cp -r examples/add_example/* "${BASE_DIR}/"
-
-  rm -rf "${BASE_DIR}/examples"
-  rm -rf "${BASE_DIR}/op_host/config"
-
-  for file in $(find "${BASE_DIR}" -name "*.h" -o -name "*.cpp"); do
-    head -n 14 "$file" >"${file}.tmp"
-    cat "${file}.tmp" >"$file"
-    rm "${file}.tmp"
-  done
-
-  for file in $(find "${BASE_DIR}" -type f); do
-    sed -i "s/add_example/${GENOP_NAME}/g" "$file"
-  done
-
-  cd ${BASE_DIR}
-  for file in $(find ./ -name "add_example*"); do
-    new_file=$(echo "$file" | sed "s/add_example/${GENOP_NAME}/g")
-    mv "$file" "$new_file"
-  done
-
-  echo "Create the initial directory for ${GENOP_NAME} under ${GENOP_TYPE} success"
+  
+  if [ -n "${python_cmd}" ]; then
+    ${python_cmd} "${BASE_PATH}/scripts/opgen/opgen_standalone.py" -t ${GENOP_TYPE} -n ${GENOP_NAME} -p ${GENOP_BASE}
+    return $?
+  fi
 }
+
+# function gen_op() {
+#   if [[ -z "$GENOP_NAME" ]] || [[ -z "$GENOP_TYPE" ]]; then
+#     echo "Error: op_class or op_name is not set."
+#     help_info "genop"
+#   fi
+
+#   echo $dotted_line
+#   echo "Start to create the initial directory for ${GENOP_NAME} under ${GENOP_TYPE}"
+
+#   if [ ! -d "${GENOP_TYPE}" ]; then
+#     mkdir -p "${GENOP_TYPE}"
+#     cp examples/CMakeLists.txt "${GENOP_TYPE}/CMakeLists.txt"
+#     sed -i '/list(APPEND OP_DIR_LIST ${CMAKE_CURRENT_SOURCE_DIR}\/ffn\/ffn)/a add_subdirectory('"${GENOP_TYPE}"')' CMakeLists.txt
+#   fi
+
+#   BASE_DIR=${GENOP_TYPE}/${GENOP_NAME}
+#   mkdir -p "${BASE_DIR}"
+
+#   cp -r examples/add_example/* "${BASE_DIR}/"
+
+#   rm -rf "${BASE_DIR}/examples"
+#   rm -rf "${BASE_DIR}/op_host/config"
+
+#   for file in $(find "${BASE_DIR}" -name "*.h" -o -name "*.cpp"); do
+#     head -n 14 "$file" >"${file}.tmp"
+#     cat "${file}.tmp" >"$file"
+#     rm "${file}.tmp"
+#   done
+
+#   for file in $(find "${BASE_DIR}" -type f); do
+#     sed -i "s/add_example/${GENOP_NAME}/g" "$file"
+#   done
+
+#   cd ${BASE_DIR}
+#   for file in $(find ./ -name "add_example*"); do
+#     new_file=$(echo "$file" | sed "s/add_example/${GENOP_NAME}/g")
+#     mv "$file" "$new_file"
+#   done
+
+#   echo "Create the initial directory for ${GENOP_NAME} under ${GENOP_TYPE} success"
+# }
 
 
 set_ut_mode() {
@@ -705,6 +742,31 @@ while [[ $# -gt 0 ]]; do
         ;;
     -f|--changed_list)
         PR_CHANGED_FILES="$2"
+        ENABLE_SMOKE=TRUE
+        PKG_MODE="cust"
+        VENDOR="custom"     
+        shift 2
+        ;;
+    --PR_UT)
+        PR_CHANGED_FILES="$2"
+        ENABLE_TEST=TRUE 
+        shift 2
+        ;;
+    --PR_PKG)
+        PR_CHANGED_FILES="$2"
+        ops_names=$(python3 "$CURRENT_DIR"/cmake/scripts/parse_changed_files.py -c "$CURRENT_DIR"/classify_rule.yaml -f "$PR_CHANGED_FILES" get_related_ut)
+        echo "Operators that need custom package compilation:$ops_names"
+        if [ -z "${ops_names}" ];then
+            log "Info: No custom packages to build for this PR."
+            ops_names="incre_flash_attention"
+            #exit 0
+        fi 
+        ops_names="${ops_names%;}"
+        ops_names="${ops_names//;/,}"
+        ascend_op_name="$ops_names"
+        ENABLE_BUILD_PKG=TRUE
+        ENABLE_BUILT_CUSTOM=TRUE
+        ENABLE_BUILT_IN=FALSE
         shift 2
         ;;
     --parent_job)
@@ -913,14 +975,20 @@ fi
 if [ -n "${TEST}" ];then
     if [ -n "${PR_CHANGED_FILES}" ];then
         TEST=$(python3 "$CURRENT_DIR"/cmake/scripts/parse_changed_files.py -c "$CURRENT_DIR"/classify_rule.yaml -f "$PR_CHANGED_FILES" get_related_ut)
-        if [ -z "${TEST}" ]; then
+        echo "Operators that need to run UT: $TEST"
+        if [ -z "${TEST}" ];then
             log "Info: This PR didn't trigger any UTest."
-            exit 200
+            TEST="incre_flash_attention"
+            #exit 0
+        fi
+        if [ "$TEST" != "all" ];then
+            TEST="${TEST%;}"
+            TEST="${TEST//;/,}"
+            CUSTOM_OPTION="${CUSTOM_OPTION} -DASCEND_OP_NAME=${TEST}"
         fi
         CUSTOM_OPTION="${CUSTOM_OPTION} -DTESTS_UT_OPS_TEST_CI_PR=ON"
     fi
     CUSTOM_OPTION="${CUSTOM_OPTION} -DTESTS_UT_OPS_TEST=${TEST}"
-
     if [ "${CLANG}" == "true" ];then
         CLANG_C_COMPILER="$(which clang)"
         if [ ! -f "${CLANG_C_COMPILER}" ];then
@@ -1113,6 +1181,82 @@ function build_pkg_for_single_soc() {
 
 if [[ "$ENABLE_GENOP" == "TRUE" ]]; then
     gen_op
+fi
+
+function build_example_group_eager()
+{
+    local example_name="$1"
+    EXAMPLE_MODE_GROUP="eager"
+    log "Start to run example,name:${example_name} mode:${EXAMPLE_MODE_GROUP}"
+    echo -e "\033[1;33m  RUNNING OPERATOR: \033[1;32m${example_name}\033[0m"
+    if [ ! -d "${BUILD_PATH}" ]; then
+    	mkdir -p ${BUILD_PATH}
+    fi
+    # 清理CMake缓存
+    # clean_cmake_cache
+    clean
+    cd "${BUILD_PATH}"
+    if [[ "${EXAMPLE_MODE_GROUP}" == "eager" ]]; then
+        files=$(find ../ -path "*/${example_name}/examples/*" -name test_aclnn_*.cpp)
+        if [ -z "$files" ]; then
+            echo "ERROR: ${example_name} do not have eager example"
+            exit 1
+        fi
+        for file in $files; do
+            echo "Start compile and run example file: $file"
+            if [[ "${PKG_MODE}" == "" ]]; then
+                if [[ "${ascend_compute_unit}" == "ascend910_93" ]]; then
+                    g++ ${file} -DASCEND910_93 -I ${INCLUDE_PATH} -I ${ACLNN_INCLUDE_PATH} -I ${EAGER_INCLUDE_OPP_ACLNNOP_PATH} -L ${EAGER_LIBRARY_OPP_PATH} -L ${EAGER_LIBRARY_PATH} -lopapi -lopapi_transformer -lascendcl -lnnopbase -lpthread -lhccl -o test_aclnn_${example_name}
+                else
+                    g++ ${file} -I ${INCLUDE_PATH} -I ${ACLNN_INCLUDE_PATH} -I ${EAGER_INCLUDE_OPP_ACLNNOP_PATH} -L ${EAGER_LIBRARY_OPP_PATH} -L ${EAGER_LIBRARY_PATH} -lopapi -lopapi_transformer -lascendcl -lnnopbase -lpthread -lhccl -o test_aclnn_${example_name}
+                fi
+            elif [[ "${PKG_MODE}" == "cust" ]]; then
+    
+                echo "pkg_mode:${PKG_MODE} vendor_name:${VENDOR}"
+                export CUST_LIBRARY_PATH="${ASCEND_OPP_PATH}/vendors/${VENDOR}_transformer/op_api/lib"     # 仅自定义算子需要
+                export CUST_INCLUDE_PATH="${ASCEND_OPP_PATH}/vendors/${VENDOR}_transformer/op_api/include" # 仅自定义算子需要
+                ABSOLUTE_EXAMPLES_PATH=$(realpath ${BUILD_PATH}/../examples/mc2)
+                ABSOLUTE_MC2_PATH=$(realpath ${BUILD_PATH}/../mc2)
+                REAL_FILE_PATH=$(realpath "$file")
+                MC2_APPEND_INCLUDE_AND_LIBRARY=""
+                if [[ "$REAL_FILE_PATH" == "${ABSOLUTE_MC2_PATH}"* || "$REAL_FILE_PATH" == "${ABSOLUTE_EXAMPLES_PATH}"* ]]; then
+                    MC2_APPEND_INCLUDE_AND_LIBRARY="-lpthread -lhccl"
+                fi
+                g++ ${file} -I ${INCLUDE_PATH} -I ${CUST_INCLUDE_PATH} -L ${CUST_LIBRARY_PATH} -L ${EAGER_LIBRARY_PATH} -I ${EAGER_INCLUDE_OPP_ACLNNOP_PATH} -lcust_opapi -lascendcl -lnnopbase ${MC2_APPEND_INCLUDE_AND_LIBRARY} -o test_aclnn_${example_name} -Wl,-rpath=${CUST_LIBRARY_PATH}
+            else
+                echo "Error: pkg_mode(${PKG_MODE}) must be cust."
+                help_info "run_example"
+                exit 1
+            fi
+            ./test_aclnn_${example_name}
+        done
+    else
+        echo "Error: This script only supports 'eager' mode."
+        exit 1
+    fi
+
+}
+
+# 冒烟任务只跑examples
+function process_ci_smoke_with_changed_list()
+{
+    TEST=$(python3 "$CURRENT_DIR"/cmake/scripts/parse_changed_files.py -c "$CURRENT_DIR"/classify_rule.yaml -f "$PR_CHANGED_FILES" get_related_examples)
+    echo "Operators that need to run examples: $TEST"
+    if [[ -z "$TEST" ]];then
+        echo "No related unit tests found. Skipping CI test execution."
+        TEST="incre_flash_attention"
+    fi
+    IFS=';' read -ra OPS_ARRAY <<< "$TEST"
+    for op in "${OPS_ARRAY[@]}";do
+        op=$(echo "$op" | xargs)
+        echo "Running example test for operator: $op"
+        if [[ -n "$op" ]];then
+            build_example_group_eager "$op"
+        fi
+    done
+}
+if [[ "$ENABLE_SMOKE" == "TRUE" ]]; then
+    process_ci_smoke_with_changed_list
 fi
 
 cd ${BUILD_DIR}

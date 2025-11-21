@@ -21,7 +21,7 @@
 
 3. 将$W^{DKV}$和$W^{KR}$矩阵进行拼接，对输入序列x实现降秩和映射计算，对运算结果再进行split拆分，分别做Rope位置编码和$C^{KV}$的归一化处理，最终得到KR Cache和KV Cache
 
-4. 在输出Query量化的情况下，会对Query做Rowmax动态量化，最终得到量化后的Query和对应量化参数DequantScaleQNope
+4. 在输出Query量化的情况下，会对Query做Rowmax动态量化，最终得到量化后的Query和对应量化参数
 
 具体的计算公式，参见[完整计算公式](#完整计算公式)章节
 
@@ -55,7 +55,7 @@ MlaPrologV2融合算子包含了Vector计算和Cube计算，Vector侧和Cube侧�
 ![MlaProlog流水控制图](../../../docs/figures/MlaProlog流水控制.png)
 
 1、MatmulCq计算的时候，对Hcq进行了分核，单核没有计算一个完整的token，所以在RmsNormCq计算前，
-需要做AIC与AIV之间的同步控制（SYNC_MMCQ_NOMRCQ）
+需要做AIC与AIV之间的同步控制（SYNC_MMCQ_NORMCQ）
 
 2、MatmulCkvKr计算的时候，也是对Hcq进行了分核，单核没有计算一个完整的token，所以在RmsNormCkv计算前，也
 需要做AIC与AIV之间的同步控制（SYNC_MMCKVKR_NOMRCKV)
@@ -64,7 +64,7 @@ MlaPrologV2融合算子包含了Vector计算和Cube计算，Vector侧和Cube侧�
 
 4、由于和RopeQr的分核策略不同，因此RopeQr计算前，也需要AIC和AIV之间的同步控制（SYNC_MMQCQR_ROPEQR)
 
-5、由于MatmulQcQr和MatmulQn的分核策略不同，MatmulQn依赖于MatmulQcQrde shuchu ,因此需要做Cube的全核同步（SYNC_ALL_CUBE)
+5、由于MatmulQcQr和MatmulQn的分核策略不同，MatmulQn依赖于MatmulQcQrde的输出 ,因此需要做Cube的全核同步（SYNC_ALL_CUBE)
 
 6、Vector核运算前，需要做Vector的全核同步（SYNC_ALL_VECTOR），确保数据流水搬运
 
@@ -89,15 +89,15 @@ void Process() {
     for (i = 0; i < loops; i++) {
         updateCurrentStepSize(i, stepSize, allTokenSize);  //刷新当前轮的计算的M轴大小
         if ASCEND_IS_AIC {
-            MatmulCq(tokenXOffset, weightDqOffset, cqResOffset);
-            CrossCoreSetFlag<0x2, PIPE_FIX>(SYNC_MMCQ_NORMSCQ_FLG);       //cube与vector同步
+            MatmulCq(tokenXOffset, weightDqOffset, cqResOffset);  // 计算MatmulCq; tokenXOffset, weightDqOffset, cqResOffset为当前核的起始偏移
+            CrossCoreSetFlag<0x2, PIPE_FIX>(SYNC_MMCQ_NORMCQ_FLG);       //cube与vector同步
 
-            MatmulCkvKr(tokenXOffset, weightDkvKrOffset, ckvKrResOffset);
+            MatmulCkvKr(tokenXOffset, weightDkvKrOffset, ckvKrResOffset);  // 计算MatmulCkvKr; tokenXOffset, weightDkvKrOffset, ckvKrResOffset为当前核的起始偏移
             CrossCoreSetFlag<0x2, PIPE_FIX>(SYNC_MMCKVKR_NORMROPE_FLG);   //cube与vector同步
 
-            CrossCoreWaitFlag(SYNC_MMCQ_NORMSCQ_FLG);                     // MatmulQcQr依赖RmsNormCq的输出，需要插入CV核间同步
+            CrossCoreWaitFlag(SYNC_MMCQ_NORMCQ_FLG);                     // MatmulQcQr依赖RmsNormCq的输出，需要插入CV核间同步
       
-            MatmulQcQr(weightUqQrOffset, qcQrResOffset);
+            MatmulQcQr(weightUqQrOffset, qcQrResOffset);  // 计算MatmulQcQr; weightUqQrOffset, qcQrResOffset为当前核的起始偏移
             CrossCoreSetFlag<0x2, PIPE_FIX>(SYNC_MMQCQR_ROPEQR_FLG);      //cube与vector同步
 
             // 由于 MatmulQn 和 MatmulQcQr的分核策略不一样，MatmulQn又依赖MatmulQcQr的输出
@@ -111,28 +111,28 @@ void Process() {
         if ASCEND_IS_AIV {
             GetSinCos(tokenIndex);
 
-            CrossCoreWaitFlag(SYNC_MMCQ_NORMSCQ_FLG);  // wait MatmulCq
+            CrossCoreWaitFlag(SYNC_MMCQ_NORMCQ_FLG);  // wait MatmulCq
             CrossCoreSetFlag<0x0, PIPE_MTE3>(SYNC_ALL_VECTOR_FLG);
             CrossCoreWaitFlag(SYNC_ALL_VECTOR_FLG);
 
-            RmsNormCq(rmsNormCqOffset);
+            RmsNormCq(rmsNormCqOffset); // 计算RmsNormCq; rmsNormCqOffset为当前核的起始偏移
 
             // 由于RmsNormCq和MatmulQcQr的分核策略不一样，需要等所有vector上的RmsNormCq执行完成后才能启动 MatmulQcQr
             // 需要所有vector核上的RmsNormCq执行完成后，才发起MatmulQcQr的执行
             CrossCoreSetFlag<0x0, PIPE_MTE3>(SYNC_ALL_VECTOR_FLG);
             CrossCoreWaitFlag(SYNC_ALL_VECTOR_FLG);
 
-            CrossCoreSetFlag<0x2, PIPE_MTE3>(SYNC_MMCQ_NORMSCQ_FLG);        // 保障MatmulQcQr等 RmsNormCq
+            CrossCoreSetFlag<0x2, PIPE_MTE3>(SYNC_MMCQ_NORMCQ_FLG);        // 保障MatmulQcQr等 RmsNormCq
             CrossCoreWaitFlag(SYNC_MMCKVKR_NORMROPE_FLG);                   // wait MatmulCkvKr
             CrossCoreSetFlag<0x0, PIPE_MTE3>(SYNC_ALL_VECTOR_FLG);
             CrossCoreWaitFlag(SYNC_ALL_VECTOR_FLG);
 
-            RmsNormRopeScatterCkvKr(tokenIndex, rmsNormCkvOffset, ropeKrOffset);
+            RmsNormRopeScatterCkvKr(tokenIndex, rmsNormCkvOffset, ropeKrOffset);  // 计算RmsNormRopeScatterCkvKr; tokenIndex, rmsNormCkvOffset, ropeKrOffset为当前核的起始偏移
             CrossCoreWaitFlag(SYNC_MMQCQR_ROPEQR_FLG);  // wait MatmulQcQr
 
             CrossCoreSetFlag<0x0, PIPE_MTE3>(SYNC_ALL_VECTOR_FLG);
             CrossCoreWaitFlag(SYNC_ALL_VECTOR_FLG);
-            RopeQr(ropeQrOffset, ropeQrResOffset);
+            RopeQr(ropeQrOffset, ropeQrResOffset);  // 计算RopeQr; ropeQrOffset, ropeQrResOffset为当前核的起始偏移
         }
     }
 }
