@@ -271,7 +271,7 @@ actual is %zu", xScaleDimNum), return false);
     auto wScaleNDim = static_cast<uint64_t>(
         inputParams_.transB ? wScaleShape.GetDim(0) : wScaleShape.GetDim(wScaleDimNum - LAST_SECOND_DIM_INDEX));
     auto wScaleKDim = static_cast<uint64_t>(
-        inputParams_.transB ? xScaleShape.GetDim(xScaleDimNum - LAST_SECOND_DIM_INDEX) : xScaleShape.GetDim(0));
+        inputParams_.transB ? wScaleShape.GetDim(wScaleDimNum - LAST_SECOND_DIM_INDEX) : wScaleShape.GetDim(0));
     auto expectedKDimValue = inputParams_.kSize / MXFP_BASEK_FACTOR + inputParams_.groupNum;
     OP_CHECK_IF(!inputParams_.transA || inputParams_.transB,
                OP_LOGE(inputParams_.opName,
@@ -895,9 +895,9 @@ void GroupedQbmmTiling::CalScaleFactors()
         GetSizeWithDataType(CeilDiv(basicTiling_.baseK, MX_GROUP_SIZE) * basicTiling_.baseN, inputParams_.scaleDtype);
     uint64_t biasDtypeSize = ge::GetSizeByDataType(inputParams_.biasDtype);
     uint64_t baseBiasSize = inputParams_.hasBias ? basicTiling_.baseN * biasDtypeSize : 0;
-    uint64_t leftL1sie =
+    uint64_t leftL1Size =
         aicoreParams_.l1Size - (basicTiling_.depthA1 * baseASize + basicTiling_.depthB1 * baseBSize + baseBiasSize);
-    uint32_t scaleInit = static_cast<uint32_t>(leftL1sie / (basicTiling_.depthA1 * baseScaleASize +
+    uint32_t scaleInit = static_cast<uint32_t>(leftL1Size / (basicTiling_.depthA1 * baseScaleASize +
                                                             basicTiling_.depthB1 * baseScaleBSize));
 
     // 计算scaleFactorA, scaleFactorB
@@ -915,19 +915,19 @@ void GroupedQbmmTiling::CalScaleFactors()
 
     // 来自L1 size 的约束
     if (basicTiling_.scaleFactorA <= scaleInit && basicTiling_.scaleFactorB > scaleInit) {
-        leftL1sie -= (basicTiling_.scaleFactorA * basicTiling_.depthA1 * baseScaleASize);
-        basicTiling_.scaleFactorB = std::min(static_cast<uint32_t>(leftL1sie / (basicTiling_.depthB1 * baseScaleBSize)),
+        leftL1Size -= (basicTiling_.scaleFactorA * basicTiling_.depthA1 * baseScaleASize);
+        basicTiling_.scaleFactorB = std::min(static_cast<uint32_t>(leftL1Size / (basicTiling_.depthB1 * baseScaleBSize)),
                                              basicTiling_.scaleFactorB);
     } else if (basicTiling_.scaleFactorB <= scaleInit && basicTiling_.scaleFactorA > scaleInit) {
-        leftL1sie -= (basicTiling_.scaleFactorB * basicTiling_.depthB1 * baseScaleBSize);
-        basicTiling_.scaleFactorA = std::min(static_cast<uint32_t>(leftL1sie / (basicTiling_.depthA1 * baseScaleASize)),
+        leftL1Size -= (basicTiling_.scaleFactorB * basicTiling_.depthB1 * baseScaleBSize);
+        basicTiling_.scaleFactorA = std::min(static_cast<uint32_t>(leftL1Size / (basicTiling_.depthA1 * baseScaleASize)),
                                              basicTiling_.scaleFactorA);
     } else if (basicTiling_.scaleFactorA > scaleInit && basicTiling_.scaleFactorB > scaleInit) {
-        leftL1sie -=
+        leftL1Size -=
             (scaleInit * basicTiling_.depthB1 * baseScaleBSize + scaleInit * basicTiling_.depthA1 * baseScaleASize);
-        uint32_t scaleASec = std::min(static_cast<uint32_t>(leftL1sie / (basicTiling_.depthA1 * baseScaleASize)),
+        uint32_t scaleASec = std::min(static_cast<uint32_t>(leftL1Size / (basicTiling_.depthA1 * baseScaleASize)),
                                       basicTiling_.scaleFactorA - scaleInit);
-        uint32_t scaleBSec = std::min(static_cast<uint32_t>(leftL1sie / (basicTiling_.depthB1 * baseScaleBSize)),
+        uint32_t scaleBSec = std::min(static_cast<uint32_t>(leftL1Size / (basicTiling_.depthB1 * baseScaleBSize)),
                                       basicTiling_.scaleFactorB - scaleInit);
         basicTiling_.scaleFactorA = scaleASec >= scaleBSec ? (scaleASec + scaleInit) : scaleInit;
         basicTiling_.scaleFactorB = scaleASec < scaleBSec ? (scaleBSec + scaleInit) : scaleInit;

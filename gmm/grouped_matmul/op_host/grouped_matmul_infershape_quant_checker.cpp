@@ -206,7 +206,7 @@ ge::graphStatus GroupedMatmulQuantChecker::CheckFormatValid(const gert::InferSha
     const auto weightDesc = context->GetDynamicInputDesc(GMM_INDEX_IN_WEIGHT, 0);
     OP_CHECK_NULL_WITH_CONTEXT(context, weightDesc);
     const auto weightFormat = weightDesc->GetOriginFormat();
-    OP_CHECK_IF(xFormat != ge::FORMAT_ND && xFormat != ge::FORMAT_NCL && xFormat != ge::FORMAT_NCHW,
+    OP_CHECK_IF(weightFormat != ge::FORMAT_ND && weightFormat != ge::FORMAT_NCL && weightFormat != ge::FORMAT_NCHW,
                 OP_LOGE(context->GetNodeName(),
                         "Format of weight only supports ND, NCL or NCHW for now, but it is [%s].",
                         ge::TypeUtils::FormatToAscendString(weightFormat).GetString()),
@@ -462,7 +462,7 @@ ge::graphStatus GroupedMatmulQuantChecker::CheckShapeForQuantParam(const gert::I
                     return ge::GRAPH_FAILED);
     } else {
         OP_CHECK_IF(
-            scaleShape->GetDim(0) != groupNum_ && (scaleShape->GetDim(1) != 1 || scaleShape->GetDim(1) != weightNDim_),
+            scaleShape->GetDim(0) != groupNum_ || (scaleShape->GetDim(1) != 1 && scaleShape->GetDim(1) != weightNDim_),
             OP_LOGE(context->GetNodeName(),
                     "The 1st dim value of scale should be g[%ld] and 2nd dim value of scale should be 1 or n[%ld] \
 , but the actual 1st dim value is [%ld], and the 2nd dim value is [%ld].",
