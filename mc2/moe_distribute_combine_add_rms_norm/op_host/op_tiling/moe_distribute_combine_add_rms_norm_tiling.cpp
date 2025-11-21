@@ -387,8 +387,7 @@ static bool CheckOptionalInputTensorDim(const gert::TilingContext *context, cons
     const gert::StorageShape* oriXStorageShape = context->GetOptionalInputShape(ORI_X_INDEX);
     if (oriXStorageShape != nullptr) {
         OP_TILING_CHECK(oriXStorageShape->GetStorageShape().GetDimNum() != TWO_DIMS,
-            OP_LOGE(nodeName, "ori_x must be 2-dimension, but got %lu dim",
-                oriXStorageShape->GetStorageShape().GetDimNum()),
+            OP_LOGE(nodeName, "ori_x must be 2-dimension, but got %lu dim", oriXStorageShape->GetStorageShape().GetDimNum()),
             return false);
     }
 
@@ -937,15 +936,17 @@ static bool CheckGroupInfoShape(const gert::TilingContext *context, MoeDistribut
     uint32_t localMoeExpertNum = tilingData.moeDistributeCombineV2Info.moeExpertPerRankNum;
     int64_t tpWorldSize = static_cast<int64_t>(tilingData.moeDistributeCombineV2Info.tpWorldSize);
     bool hasElasticInfo = tilingData.moeDistributeCombineV2Info.hasElasticInfo;
+    
     if ((sharedExpertNum != 0U) && (sharedExpertRankNum != 0U)) { // 除零保护
         rankNumPerSharedExpert = sharedExpertRankNum / sharedExpertNum;
         maxSharedGroupNum = (epWorldSizeU32 + rankNumPerSharedExpert - 1U) / rankNumPerSharedExpert;
     } 
-    if (isShared) { // 本卡为共享专家
-        A = maxBs * maxSharedGroupNum;
-    } else { // 本卡为moe专家
-        A = globalBs * std::min(static_cast<int64_t>(localMoeExpertNum), expertIdsDim1);
-    }
+
+    const gert::StorageShape *expertIdsStorageShape = context->GetInputShape(EXPERT_IDS_INDEX);
+    int64_t expertIdsDim1 = expertIdsStorageShape->GetStorageShape().GetDim(1);
+    
+    A = isShared ? (maxBs * maxSharedGroupNum) : (globalBs * std::min(static_cast<int64_t>(localMoeExpertNum), expertIdsDim1));
+    
     if (hasElasticInfo) {
         const gert::StorageShape *elasticInfoStorageShape = context->GetOptionalInputShape(ELASTIC_INFO_INDEX);
         const int64_t elasticInfoDim0 = elasticInfoStorageShape->GetStorageShape().GetDim(0);
