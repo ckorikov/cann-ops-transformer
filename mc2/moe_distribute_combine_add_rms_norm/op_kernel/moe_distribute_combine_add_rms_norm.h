@@ -295,7 +295,7 @@ private:
     LocalTensor<half> fp16CastTensor_;
     LocalTensor<float> absFloatTensor_;
     LocalTensor<float> reduceMaxFloatTensor_;
-    LocalTensor<XType> scaleDivTensor_;
+    LocalTensor<XType> scaleDivLocalTensor_;
     LocalTensor<float> scaleDivFloatTensor_;
     LocalTensor<float> scaleDupLocalTensor_;
     LocalTensor<XType> sendLocalTensor_;
@@ -917,7 +917,7 @@ __aicore__ inline void MoeDistributeCombineAddRmsNorm<TemplateMC2TypeFunc>::Int8
 {
     SyncFunc<AscendC::HardEvent::MTE2_V>();
     castLocalTensor_ = sendLocalTensor_.template ReinterpretCast<int8_t>();  // 长度为int8H_Align + scaleNum
-    scaleDivTensor_ = castLocalTensor_[hAlign32Size_].template ReinterpretCast<XType>();  // 偏移前面的int8
+    scaleDivLocalTensor_ = castLocalTensor_[hAlign32Size_].template ReinterpretCast<XType>();  // 偏移前面的int8
 
     Cast(winTpSendCountFloatTensor_, gmTpSendCountTensor_, RoundMode::CAST_NONE, axisH_);
     PipeBarrier<PIPE_V>();
@@ -927,7 +927,7 @@ __aicore__ inline void MoeDistributeCombineAddRmsNorm<TemplateMC2TypeFunc>::Int8
     PipeBarrier<PIPE_V>();
     Muls(reduceMaxFloatTensor_, reduceMaxFloatTensor_, scaleValFloat_, scaleNum_);  // 有效个数
     PipeBarrier<PIPE_V>();
-    Cast(scaleDivTensor_, reduceMaxFloatTensor_, RoundMode::CAST_RINT, scaleNum_);  // 有效个数
+    Cast(scaleDivLocalTensor_, reduceMaxFloatTensor_, RoundMode::CAST_RINT, scaleNum_);  // 有效个数
     PipeBarrier<PIPE_V>();
     Brcb(scaleDupLocalTensor_, reduceMaxFloatTensor_, repeatNum_, {1, BLOCK_NUM});  // 一次256
     PipeBarrier<PIPE_V>();
@@ -1107,20 +1107,20 @@ __aicore__ inline void MoeDistributeCombineAddRmsNorm<TemplateMC2TypeFunc>::AddR
 template <TemplateMC2TypeClass>
 __aicore__ inline void MoeDistributeCombineAddRmsNorm<TemplateMC2TypeFunc>::Int8DequantProcess(LocalTensor<XType>& src)
 {
-    SyncFunc<AscendC::HardEvent::MTE2_V>(); // 流水同步
+    SyncFunc<AscendC::HardEvent::MTE2_V>();
     castLocalTensor_ = src.template ReinterpretCast<int8_t>();
-    scaleDivTensor_ = src[hAlign32Size_ / 2];
+    scaleDivLocalTensor_ = src[hAlign32Size_ / 2];
 
     SyncFunc<AscendC::HardEvent::S_V>();
-    Cast(scaleDivFloatTensor_, scaleDivTensor_, RoundMode::CAST_NONE, scaleNum_); // 数据类型转换
+    Cast(scaleDivFloatTensor_, scaleDivLocalTensor_, RoundMode::CAST_NONE, scaleNum_);
     Cast(fp16CastTensor_, castLocalTensor_, RoundMode::CAST_NONE, axisH_);
     PipeBarrier<PIPE_V>();
     Cast(absFloatTensor_, fp16CastTensor_, RoundMode::CAST_NONE, axisH_);
-    Brcb(scaleDupLocalTensor_, scaleDivFloatTensor_, repeatNum_, {1, BLOCK_NUM}); // 一次256
+    Brcb(scaleDupLocalTensor_, scaleDivFloatTensor_, repeatNum_, {1, BLOCK_NUM});
     PipeBarrier<PIPE_V>();
     Mul(absFloatTensor_, absFloatTensor_, scaleDupLocalTensor_, axisH_);
     PipeBarrier<PIPE_V>();
-    Cast(src, absFloatTensor_, RoundMode::CAST_RINT, axisH_); // 数据类型转换
+    Cast(src, absFloatTensor_, RoundMode::CAST_RINT, axisH_);
     PipeBarrier<PIPE_V>();
 }
 

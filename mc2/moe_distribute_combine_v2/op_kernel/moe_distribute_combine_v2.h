@@ -1015,20 +1015,20 @@ __aicore__ inline void MoeDistributeCombineV2<TemplateMC2TypeFunc>::WaitDispatch
 template <TemplateMC2TypeClass>
 __aicore__ inline void MoeDistributeCombineV2<TemplateMC2TypeFunc>::Int8DequantProcess(LocalTensor<XType>& src)
 {
-    SyncFunc<AscendC::HardEvent::MTE2_V>();  // 流水同步
+    SyncFunc<AscendC::HardEvent::MTE2_V>();
     castLocalTensor_ = src.template ReinterpretCast<int8_t>();
     scaleDivTensor_ = src[hAlign32Size_ / 2];
 
     SyncFunc<AscendC::HardEvent::S_V>();
-    Cast(scaleDivFloatTensor_, scaleDivTensor_, RoundMode::CAST_NONE, scaleNum_);  // 数据类型转换
+    Cast(scaleDivFloatTensor_, scaleDivTensor_, RoundMode::CAST_NONE, scaleNum_);
     Cast(fp16CastTensor_, castLocalTensor_, RoundMode::CAST_NONE, axisH_);
     PipeBarrier<PIPE_V>();
     Cast(absFloatTensor_, fp16CastTensor_, RoundMode::CAST_NONE, axisH_);
-    Brcb(scaleDupLocalTensor_, scaleDivFloatTensor_, repeatNum_, {1, BLOCK_NUM});  // 一次256
+    Brcb(scaleDupLocalTensor_, scaleDivFloatTensor_, repeatNum_, {1, BLOCK_NUM});
     PipeBarrier<PIPE_V>();
     Mul(absFloatTensor_, absFloatTensor_, scaleDupLocalTensor_, axisH_);
     PipeBarrier<PIPE_V>();
-    Cast(src, absFloatTensor_, RoundMode::CAST_RINT, axisH_);  // 数据类型转换
+    Cast(src, absFloatTensor_, RoundMode::CAST_RINT, axisH_);
     PipeBarrier<PIPE_V>();
 }
 
