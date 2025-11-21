@@ -23,7 +23,7 @@ $$
 > `aclnnMoeDistributeCombineV4`、`aclnnMoeDistributeCombineAddRmsNormV2`算子在后续文档中统称为**CombineV3系列算子**。
 
 相较于`aclnnMoeDistributeDispatchV2`接口，该接口变更如下：
-- 新增采集通信耗时工具，记录每张卡的通信时间，通过传入`performanceInfoOptional`参数使能该特性。
+- 新增采集通信耗时工具，记录每张卡的通信时间，通过传入`performanceInfoOptional`参数使能该特性。该功能推荐结合[DeepXTrace](https://github.com/antgroup/DeepXTrace)工具使用。单次算子调用各卡通信耗时会累加到该Tensor上，用户使用前按需清零。
 
 ## 函数原型
 
@@ -141,7 +141,7 @@ aclnnStatus aclnnMoeDistributeDispatchV4(
   <tr>
    <td>performanceInfoOptional</td>
    <td>输入</td>
-   <td>可选参数，表示通信打点信息。结合DeepXtrace工具使用，可动态记录卡间通信时间。<br><term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：可选择传入有效数据或填空指针，传入空指针时表示不使能动态缩容功能；当传入有效数据时，要求是一个1D的Tensor，shape为(ep\_world\_size,)，数据类型支持int64；数据格式要求为ND，支持非连续的Tensor。<br><term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：预留参数，当前版本不支持，传空指针即可。</td>
+   <td>表示各卡通信耗时打点信息。结合DeepXTrace工具使用，可动态记录各卡通信时间。单次算子调用各卡通信耗时会累加到该Tensor上，用户使用前按需清零。<br><term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：可选择传入有效数据或填空指针，传入空指针时表示不使能记录通信耗时功能；当传入有效数据时，要求是一个1D的Tensor，shape为(ep\_world\_size,)，数据类型支持int64；数据格式要求为ND，支持非连续的Tensor。<br><term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：预留参数，当前版本不支持，传空指针即可。</td>
    <td>INT64</td>
    <td>ND（支持非连续Tensor）</td>
   </tr>
