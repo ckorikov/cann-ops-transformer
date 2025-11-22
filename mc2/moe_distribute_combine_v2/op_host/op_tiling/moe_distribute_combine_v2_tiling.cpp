@@ -826,7 +826,7 @@ static bool CheckGroupInfoShape(const gert::TilingContext *context, MoeDistribut
         const int64_t elasticInfoDim0 = elasticInfoStorageShape->GetStorageShape().GetDim(0);
         OP_TILING_CHECK(elasticInfoDim0 != (ELASTIC_METAINFO_OFFSET + RANK_LIST_NUM * epWorldSize),
             OP_LOGE(nodeName, "elasticInfo's dim0 not equal to 4 + 2 * epWorldSize, "
-            "elasticInfo's dim0 is %ld, epWorldSize is %ld.", elasticInfoDim0, epWorldSize), return ge::GRAPH_FAILED);
+            "elasticInfo's dim0 is %ld, epWorldSize is %ld.", elasticInfoDim0, epWorldSize), return false);
         A = std::max( static_cast<int64_t>(maxBs * maxSharedGroupNum) , globalBs * std::min(static_cast<int64_t>(localMoeExpertNum), expertIdsDim1));
     }
 
@@ -862,16 +862,16 @@ static bool CheckTensorShape(const gert::TilingContext *context, MoeDistributeCo
 {
     // 校验Expert相关输入的维度并设k
     OP_TILING_CHECK(!CheckExpertInputShape(context, tilingData, nodeName, isActiveMask),
-        OP_LOGE(nodeName, "expert input param dim check failed."), return ge::GRAPH_FAILED);
+        OP_LOGE(nodeName, "expert input param dim check failed."), return false);
 
     // 校验GroupInfo的维度
     uint32_t A = 0U;
     OP_TILING_CHECK(!CheckGroupInfoShape(context, tilingData, nodeName, isShared, A),
-        OP_LOGE(nodeName, "group info param dim check failed."), return ge::GRAPH_FAILED);
+        OP_LOGE(nodeName, "group info param dim check failed."), return false);
     
     // 校验X相关输入的维度并设h
     OP_TILING_CHECK(!CheckXInputTensorShape(context, tilingData, nodeName, A),
-        OP_LOGE(nodeName, "x input param dim check failed."), return ge::GRAPH_FAILED);
+        OP_LOGE(nodeName, "x input param dim check failed."), return false);
 
     // 校验输出x的维度
     const gert::StorageShape *xStorageShape = context->GetOutputShape(OUTPUT_X_INDEX);
@@ -888,7 +888,7 @@ static bool CheckTensorShape(const gert::TilingContext *context, MoeDistributeCo
 
     // 检查常量专家输入shape各维度
     OP_TILING_CHECK(!CheckConstExpertTensorShape(context, tilingData, nodeName),
-        OP_LOGE(nodeName, "const expert param dim check failed."), return ge::GRAPH_FAILED);
+        OP_LOGE(nodeName, "const expert param dim check failed."), return false);
 
     return true;
 }

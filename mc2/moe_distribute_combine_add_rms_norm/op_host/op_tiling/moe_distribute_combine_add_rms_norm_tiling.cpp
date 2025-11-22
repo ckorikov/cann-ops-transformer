@@ -1025,28 +1025,28 @@ static bool CheckTensorShape(const gert::TilingContext *context, MoeDistributeCo
 {
     // 校验Expert相关输入的维度并设k
     OP_TILING_CHECK(!CheckExpertInputShape(context, tilingData, nodeName, isActiveMask),
-        OP_LOGE(nodeName, "expert input param dim check failed."), return ge::GRAPH_FAILED);
+        OP_LOGE(nodeName, "expert input param dim check failed."), return false);
 
     // 校验GroupInfo的维度
     uint32_t A = 0U;
     OP_TILING_CHECK(!CheckGroupInfoShape(context, tilingData, nodeName, isShared, A),
-        OP_LOGE(nodeName, "group info param dim check failed."), return ge::GRAPH_FAILED);
+        OP_LOGE(nodeName, "group info param dim check failed."), return false);
     
     // 校验X相关输入的维度并设h
     OP_TILING_CHECK(!CheckXInputTensorShape(context, tilingData, nodeName, A),
-        OP_LOGE(nodeName, "x input param dim check failed."), return ge::GRAPH_FAILED);
+        OP_LOGE(nodeName, "x input param dim check failed."), return false);
     
     // 校验AddRmsNorm相关输入的维度
     OP_TILING_CHECK(!CheckARNTensorShape(context, tilingData, nodeName),
-        OP_LOGE(nodeName, "AddRmsNorm input param dim check failed."), return ge::GRAPH_FAILED);
+        OP_LOGE(nodeName, "AddRmsNorm input param dim check failed."), return false);
 
     // 校验输出Tensor的维度
     OP_TILING_CHECK(!CheckOutputTensorShape(context, tilingData, nodeName),
-        OP_LOGE(nodeName, "output param dim check failed."), return ge::GRAPH_FAILED);
+        OP_LOGE(nodeName, "output param dim check failed."), return false);
 
     // 检查常量专家输入shape各维度
     OP_TILING_CHECK(!CheckConstExpertTensorShape(context, tilingData, nodeName),
-        OP_LOGE(nodeName, "const expert param dim check failed."), return ge::GRAPH_FAILED);
+        OP_LOGE(nodeName, "const expert param dim check failed."), return false);
    
     return true;
 }
