@@ -22,13 +22,6 @@
             file_type="shared"
             install_softlink="$(TARGET_ENV)/lib64/libophost_transformer.so"/>
     </file_info>
-    <file_info value="ops_common_transformer_lib" copy_type="delivery" src_path="build/"
-        dst_path="lib/"
-        install_path="ops_transformer/$(TARGET_ENV)/lib64" install_mod="555">
-        <file value="libcommon_transformer.so"
-            file_type="shared"
-            install_softlink="$(TARGET_ENV)/lib64/libcommon_transformer.so"/>
-    </file_info>
     <file_info value="rtkb" copy_type="source" src_path="" dst_path="built-in/data" install_path="ops_transformer/built-in/data">
         <file value="op" entity="true" optional="true"/>
     </file_info>

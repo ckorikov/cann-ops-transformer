@@ -9,23 +9,6 @@
 # ----------------------------------------------------------------------------
 
 function(gen_common_symbol)
-  add_library(${COMMON_NAME} SHARED
-    $<$<TARGET_EXISTS:${COMMON_NAME}_obj>:$<TARGET_OBJECTS:${COMMON_NAME}_obj>>
-  )
-
-  target_link_libraries(${COMMON_NAME}
-    PRIVATE
-    c_sec
-    -Wl,--no-as-needed
-    register
-    -Wl,--as-needed
-    exe_graph
-    tiling_api
-  )
-
-  install(TARGETS ${COMMON_NAME}
-    LIBRARY DESTINATION ${COMMON_LIB_INSTALL_DIR}
-  )
   install(DIRECTORY ${OPS_TRANSFORMER_COMMON_INC_HEADERS}
     DESTINATION ${COMMON_INC_INSTALL_DIR}
   )

@@ -11,6 +11,12 @@
         install_path="ops_transformer/built-in/op_impl/ai_core/" install_type="all">
         <file value="tbe" install_mod="555" entity="true"/>
     </file_info>
+    <file_info copy_type="delivery" src_path=""
+        dst_path="built-in/op_impl/aicpu/"
+        install_path="ops_transformer/built-in/op_impl/aicpu/" install_type="all" optional="true">
+        <file value="config" install_mod="755" entity="true"/>
+        <file value="kernel" install_mod="755" entity="true"/>
+    </file_info>
     <file_info copy_type="delivery" src_path="build/autogen/"
         dst_path="built-in/op_graph/inc"
         install_path="ops_transformer/built-in/op_graph/inc" install_type="all">

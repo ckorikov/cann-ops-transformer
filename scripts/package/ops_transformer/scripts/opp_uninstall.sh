@@ -29,10 +29,14 @@ OPP_PLATFORM_DIR=ops_transformer
 OPP_PLATFORM_UPPER=$(echo "${OPP_PLATFORM_DIR}" | tr '[:lower:]' '[:upper:]')
 FILELIST_FILE="${CURR_PATH}/filelist.csv"
 COMMON_PARSER_FILE="${CURR_PATH}/install_common_parser.sh"
+
+TRANSFORMER_INSTALL_FILES="ops_transformer_files.txt"
 TARGET_INSTALL_PATH=""
 TARGET_VERSION_DIR="${CURR_PATH}/../.."
 TARGET_VERSION_DIR=$(readlink -f ${TARGET_VERSION_DIR})     # TARGET_INSTALL_PATH + PKG_VERSION_DIR
 TARGET_MOULDE_DIR=${TARGET_VERSION_DIR}/${OPP_PLATFORM_DIR} # TARGET_INSTALL_PATH + PKG_VERSION_DIR + OPP_PLATFORM_DIR
+TARGET_INSTALL_FILES=${TARGET_MOULDE_DIR}/${TRANSFORMER_INSTALL_FILES}
+
 ASCEND_INSTALL_INFO="ascend_install.info"
 # init log file path
 INSTALL_INFO_FILE="${TARGET_MOULDE_DIR}/${ASCEND_INSTALL_INFO}"
@@ -118,6 +122,8 @@ check_installed_files() {
 
   check_file_exist "${TARGET_MOULDE_DIR}/bin/setenv.fish"
 
+  check_file_exist "${TARGET_INSTALL_FILES}"
+
   check_directory_exist "${TARGET_MOULDE_DIR}"
 }
 
@@ -195,10 +201,21 @@ remove_module() {
 }
 
 remove_opp() {
+  while read line; do
+    if [ -f $line ]; then
+      rm -f ${line}
+    fi
+  done < ${TARGET_INSTALL_FILES}
+  rm -f ${TARGET_INSTALL_FILES}
+}
+
+remove_ops_transformer() {
   local ori_mod=$(stat -c %a ${TARGET_MOULDE_DIR})
   if [ "$(id -u)" != 0 ] && [ ! -w "${TARGET_MOULDE_DIR}" ]; then
-    chmod u+w "${TARGET_MOULDE_DIR}" 2>/dev/null
+    chmod u+w -R "${TARGET_MOULDE_DIR}" 2>/dev/null
   fi
+
+  remove_opp
 
   remove_module
 
@@ -212,7 +229,7 @@ remove_opp() {
     logandprint "[WARNING]: ${file}, has files changed by users, cannot be delete."
   done
 
-  chmod ${ori_mod} ${TARGET_MOULDE_DIR}
+  chmod ${ori_mod} -R ${TARGET_MOULDE_DIR}
 }
 
 remote_all_soft_link() {
@@ -222,7 +239,7 @@ remote_all_soft_link() {
     chmod u+w "${lib_dir}" 2>/dev/null
   fi
 
-  local ops_transformer_lib_files="opapi_transformer opgraph_transformer ophost_transformer common_transformer"
+  local ops_transformer_lib_files="opapi_transformer opgraph_transformer ophost_transformer"
   for lib_name in ${ops_transformer_lib_files}; do
     local so_name=${lib_dir}/lib${lib_name}.so
     remove_softlink "${so_name}"
@@ -237,7 +254,7 @@ remote_all_soft_link() {
   fi
   [ -d ${arch_include_dir}/aclnn_kernels ] && rm -rf "${arch_include_dir}/aclnn_kernels"
   # remove all softlink
-  find ${TARGET_INSTALL_PATH}/latest/ -type l -lname "*/${OPP_PLATFORM_DIR}/*" -delete
+  find ${TARGET_INSTALL_PATH}/latest/ -type l -lname "*/${OPP_PLATFORM_DIR}/*" -delete 2>/dev/null
 }
 
 logandprint "[INFO]: Begin uninstall the opp module."
@@ -255,7 +272,7 @@ main() {
 
   unsetenv
 
-  remove_opp
+  remove_ops_transformer
 
   remote_all_soft_link
 
