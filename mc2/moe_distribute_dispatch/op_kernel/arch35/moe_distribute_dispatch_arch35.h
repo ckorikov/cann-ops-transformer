@@ -1075,6 +1075,7 @@ __aicore__ inline void MoeDistributeDispatchA5<TemplateMC2TypeFunc>::TokenGather
     DataCopyParams tokenOutParams = {1U, static_cast<uint16_t>(perTokenOutSize_), 0U, 0U};
 
     GlobalTensor<ExpandXOutType> tokenGT;
+    tokenGT.SetL2CacheHint(CacheMode::CACHE_MODE_DISABLE);
     uint32_t alignWorldSize = Align32<uint32_t>(epWorldSize_ * sizeof(int32_t)) / sizeof(int32_t);
     uint32_t outPreExpertCount = 0;
     for (int k = 0; k < localExpertNum; ++k) {
