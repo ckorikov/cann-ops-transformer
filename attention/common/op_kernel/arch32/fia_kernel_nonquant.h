@@ -30,6 +30,7 @@
 #include "fia_block_vec_nonquant.h"
 #include "fia_block_vec_flashdecode.h"
 
+using namespace optiling;
 using namespace matmul;
 using namespace AttentionCommon;
 using AscendC::CacheMode;
