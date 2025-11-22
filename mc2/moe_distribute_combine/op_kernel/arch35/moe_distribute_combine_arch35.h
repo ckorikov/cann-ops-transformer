@@ -24,6 +24,7 @@ namespace MoeDistributeCombineA5Impl {
 constexpr uint8_t BUFFER_NUM = 2;               // 多buf
 constexpr uint32_t UB_ALIGN = 32;                 // UB按32字节对齐
 constexpr uint32_t COUNT_OFFSET = 512;
+constexpr uint32_t COMM_ALIGN = 512;
 
 constexpr uint32_t ALIGN_DOWN_TO_32_MASK = 31;
 constexpr uint32_t NEED_THIRTY_FIRST = 31;
@@ -230,7 +231,7 @@ __aicore__ inline void MoeDistributeCombineA5<TemplateMC2TypeFunc>::Init(GM_ADDR
     localExpertNum_ = moeExpertNum_ / moeExpertRankNum_;
     isShareExpertRank_ = epRankId_ < sharedExpertRankNum_;
     bskNum_ = axisMaxBS_ * axisK_;
-    perTokenSize_ = axisH_ * sizeof(ExpandXType);
+    perTokenSize_ = Ceil(axisH_ * sizeof(ExpandXType), COMM_ALIGN) * COMM_ALIGN;
     perRankDataSize_ = perTokenSize_ * axisMaxBS_ * localExpertNum_;
 
     expandXGT_.SetGlobalBuffer((__gm__ ExpandXType *)expandX);
@@ -364,7 +365,7 @@ __aicore__ inline void MoeDistributeCombineA5<TemplateMC2TypeFunc>::SharedAndMoe
     LocalTensor<int32_t> sizeI32LT = sizeLT.ReinterpretCast<int32_t>();
     Duplicate(sizeI32LT, 0, DUAL_DATA * eachCnt * (sizeof(uint64_t) / sizeof(int32_t)) + rankNum);
 
-    SyncFunc<AscendC::HardEvent::V_S>();
+    PipeBarrier<PIPE_ALL>();
 
     HandleSharedAndMoeRank(startRank, sizeLT, eachCnt, rankNum, offsetLT, sendOffsetLT);
 

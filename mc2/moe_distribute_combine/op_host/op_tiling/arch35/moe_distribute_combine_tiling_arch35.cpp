@@ -58,6 +58,8 @@ const size_t MAX_GROUP_NAME_LENGTH = 128UL;
 const int64_t MAX_EP_WORLD_SIZE = 288;
 const int64_t MAX_TP_WORLD_SIZE = 2;
 const int64_t BS_UPPER_BOUND = 512;
+const uint64_t COMM_ALIGN = 512U;
+const uint64_t STATUS_SIZE = 512U;
 
 constexpr int64_t MOE_EXPERT_MAX_NUM_V1 = 512;
 constexpr int64_t MOE_EXPERT_MAX_NUM_V2 = 1024;
@@ -656,7 +658,7 @@ static ge::graphStatus SetWorkSpace(gert::TilingContext *context, MoeDistributeC
     uint64_t maxBs = static_cast<uint64_t>(tilingData.combineTilingInfo.get_globalBs()) / epWorldSize;
     auto expandXDesc = context->GetInputDesc(EXPAND_X_INDEX);
     workspace[0] = SYSTEM_NEED_WORKSPACE + epWorldSize * sizeof(uint64_t) * BUFFER_NUM * BUFFER_NUM +
-                   epWorldSize * (maxBs * h * localMoeExpertNum * ge::GetSizeByDataType(expandXDesc->GetDataType()));
+                   epWorldSize * (maxBs * ops::CeilAlign(h * ge::GetSizeByDataType(expandXDesc->GetDataType()), COMM_ALIGN) * localMoeExpertNum);
     OP_LOGD(nodeName, "workspace[0] size is %ld", workspace[0]);
     return ge::GRAPH_SUCCESS;
 }
@@ -684,13 +686,14 @@ inline ge::graphStatus CheckCommAttrs(const char *nodeName, MoeDistributeCombine
 {
     uint64_t maxWindowSize = mc2tiling::Mc2TilingUtils::GetMaxWindowSize();
     uint64_t h = static_cast<uint64_t>(tilingData.combineTilingInfo.get_h());
+    uint64_t aivNum = tilingData.combineTilingInfo.get_aivNum();
     uint64_t epWorldSize = static_cast<uint64_t>(tilingData.combineTilingInfo.get_epWorldSize());
     uint64_t maxBs = static_cast<uint64_t>(tilingData.combineTilingInfo.get_globalBs()) / epWorldSize;
-    uint64_t actualSize = epWorldSize * maxBs * h * 2UL * 2UL * static_cast<uint64_t>(localMoeExpertNum);
+    uint64_t actualSize = aivNum * STATUS_SIZE + epWorldSize * maxBs * ops::CeilAlign(h * 2UL, COMM_ALIGN) * 2UL * static_cast<uint64_t>(localMoeExpertNum);
     if (actualSize > maxWindowSize) {
         OP_LOGE(nodeName,
                 "HCCL_BUFFSIZE is too SMALL, maxBs = %lu, h = %lu, epWorldSize = %lu, localMoeExpertNum = %u,"
-                "ep_worldsize * maxBs * h * 2 * 2 * localMoeExpertNum = %luMB, HCCL_BUFFSIZE=%luMB.",
+                "ep_worldsize * maxBs * Align512(h * 2) * 2 * localMoeExpertNum = %luMB, HCCL_BUFFSIZE=%luMB.",
                 maxBs, h, epWorldSize, localMoeExpertNum, actualSize / MB_SIZE + 1UL, maxWindowSize / MB_SIZE);
         return ge::GRAPH_FAILED;
     }

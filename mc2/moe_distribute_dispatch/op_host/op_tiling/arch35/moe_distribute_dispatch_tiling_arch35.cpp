@@ -54,7 +54,7 @@ const int64_t BS_UPPER_BOUND = 512;
 const int64_t COUNT_OFFSET = 512;
 const uint64_t BUFFER_NUM = 2;
 const uint64_t EVEN_ALIGN = 2;
-const uint64_t COMM_ALIGN = 2;
+const uint64_t COMM_ALIGN = 512U;
 const uint8_t COMM_ENGINE = 1;
 
 constexpr uint32_t HCCL_CMD_ALLGATHER = 6U;
@@ -77,6 +77,7 @@ constexpr uint64_t UB_ALIGN = 32U;
 constexpr uint64_t MX_PAD_ALIGN = 256U;
 constexpr uint64_t PERGROUP_BLOCK_SIZE = 128U;
 constexpr uint64_t PERGROUP_PAD_ALIGN = 128U;
+constexpr uint64_t STATUS_SIZE = 512U;
 
 constexpr uint64_t STATIC_SCALE_DIM_0 = 1;
 constexpr uint64_t HIF8_SCALE_DIM_0 = 1;
@@ -818,6 +819,7 @@ inline ge::graphStatus CheckCommAttrs(const char *nodeName,
     uint64_t maxWindowSize = mc2tiling::Mc2TilingUtils::GetMaxWindowSize();
     uint64_t alignCnt =  UB_ALIGN;
     uint32_t quantMode = tilingData.dispatchTilingInfo.get_quantMode();
+    uint32_t aivNum = tilingData.dispatchTilingInfo.get_aivNum();
     if (quantMode == static_cast<uint32_t>(QuantModeA5::MX_QUANT)) {
         alignCnt = MX_PAD_ALIGN;
     } else if (quantMode == static_cast<uint32_t>(QuantModeA5::PERGROUP_DYNAMIC_QUANT)){
@@ -827,12 +829,12 @@ inline ge::graphStatus CheckCommAttrs(const char *nodeName,
     uint64_t alignedH = ops::CeilAlign(h, alignCnt);
     uint64_t epWorldSize = static_cast<uint64_t>(tilingData.dispatchTilingInfo.get_epWorldSize());
     uint64_t maxBs = static_cast<uint64_t>(tilingData.dispatchTilingInfo.get_globalBs()) / epWorldSize;
-    uint64_t actualSize = epWorldSize * maxBs * alignedH * 2UL * 2UL * static_cast<uint64_t>(localMoeExpertNum);
+    uint64_t actualSize = aivNum * STATUS_SIZE + 2UL * epWorldSize * (maxBs * ops::CeilAlign(alignedH * 2UL, COMM_ALIGN) * static_cast<uint64_t>(localMoeExpertNum) + COUNT_OFFSET);
     if (actualSize > maxWindowSize) {
         OP_LOGE(nodeName,
                 "HCCL_BUFFSIZE is too SMALL, maxBs=%lu, epWorldSize=%lu, localMoeExpertNum=%u,"
                 "h=%lu, alignedH=%lu,"
-                "ep_worldsize * maxBs * alignedH * 2 * 2 * localMoeExpertNum=%luMB, HCCL_BUFFSIZE=%luMB.",
+                "aivNum * STATUS_SIZE + 2 * epWorldSize * (maxBs * Align512(alignedH * 2) * localMoeExpertNum + COUNT_OFFSET)=%luMB, HCCL_BUFFSIZE=%luMB.",
                 maxBs, epWorldSize, localMoeExpertNum, h, alignedH, actualSize / MB_SIZE + 1UL,
                 maxWindowSize / MB_SIZE);
         return ge::GRAPH_FAILED;
