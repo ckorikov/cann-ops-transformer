@@ -42,6 +42,7 @@ if(NOT BUILD_OPS_RTY_KERNEL) #
     target_sources(${OPHOST_NAME}_tiling_obj PRIVATE
     ../../common/op_host/fia_tiling_shape.cpp
     ../../common/op_host/fia_tiling_info.cpp
+    ../../common/op_host/split_core.cpp
     ../../common/op_host/arch32/fia_tiling_nonquant_mla.cpp
     ../../common/op_host/arch32/fia_tiling_nonquant.cpp
     ../../common/op_host/arch32/fia_tiling_empty_tensor.cpp

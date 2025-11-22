@@ -1,6 +1,6 @@
 /**
- * This program is free software, you can redistribute it and/or modify.
- * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+ * This program is free software, you can redistribute it and/or modify.
+ * Copyright (c) 2025 Huawei Technologies Co., Ltd.
  * This file is a part of the CANN Open Software.
  * Licensed under CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@
 #include "exe_graph/runtime/tiling_context.h"
 #include "../fia_tiling_base.h"
 #include "../fia_tiling_info.h"
-#include "../split_core_v1.h"
+#include "../split_core.h"
 #include "../../../fused_infer_attention_score/op_host/fused_infer_attention_score_tiling.h"
 
 namespace optiling {
@@ -43,12 +43,13 @@ private:
     void InitParams();
 
     void Split();
-    void CreateSplitInput(BaseInfo &baseInfo);
-    void CreateSplitOutput(OuterSplitParams &outerSplitParams, FlashDecodeParams &fDParams, SplitCoreRes &res);
-    void CalcInnerSize(uint32_t seqSize);
+    void CreateSplitInput(BaseInfo &baseInfo, SplitParam &splitParam);
+    void SetSplitOutput(const SplitResult &res);
+
+    void CalcInnerSize(uint32_t s2Size);
     void CalcMBaseSize();
 
-    bool IsFlashDecode(uint32_t coreNum);
+    bool IsFlashDecode();
 
     void CalcMmResSize();
     void CalcMaxMmResSize();

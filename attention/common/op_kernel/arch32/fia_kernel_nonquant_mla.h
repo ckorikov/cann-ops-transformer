@@ -140,6 +140,8 @@ public:
 
     uint32_t curS2Start;
     uint32_t curS2End;
+    uint32_t lastBN2;
+    uint32_t lastGS1;
     // ================================Util functions==================================
     template <typename T> __aicore__ inline T Align(T num, T rnd)
     {
@@ -164,10 +166,13 @@ public:
     // ================================Tool============================================
     __aicore__ inline uint32_t GetBIdx(uint32_t bN2Idx);
     __aicore__ inline uint32_t GetN2Idx(uint32_t bN2Idx);
+    __aicore__ inline void GetPreNextTokenLeftUp(int64_t actSeqLensQ, int64_t actSeqLensKv, int64_t &preToken,
+                                           int64_t &nextToken);
     // ================================Process functions================================
     __aicore__ inline void FlashAttention();
     __aicore__ inline void CalcParams(uint64_t loop, uint32_t bN2Cur, uint32_t gS1Cur, uint32_t s2Cur, RunInfo &info);
-    __aicore__ inline void CalcCurS2StartEnd(uint32_t bN2Cur, uint32_t gS1Cur, uint32_t s2Cur);
+    __aicore__ inline void CalcCurS2StartEndNoSparse(uint32_t bN2Cur, uint32_t gS1Cur);
+    __aicore__ inline void CalcCurS2StartEndWithSparse(uint32_t bN2Cur, uint32_t gS1Cur);
     __aicore__ inline TASK_DEAL_MODE GetTaskDealMode(uint32_t bN2Cur, uint32_t gS1Cur, uint32_t s2Cur);
     __aicore__ inline void ComputeMm1(const RunInfo &info);
     __aicore__ inline void ComputeMm2(const RunInfo &info);
@@ -446,8 +451,8 @@ __aicore__ inline void FiaKernelNonQuantMla<FIAT, CubeBlockType, VecBlockType, F
     constInfo.s2End = s2End[aiCoreIdx];
 
     // 首个S1G块、最后一个S1G块的S2是否被切分
-    constInfo.headS2Split = (constInfo.s2Start != 0);
-    constInfo.tailS2Split = (constInfo.s2End != 0);
+    constInfo.headS2Split = false;
+    constInfo.tailS2Split = false;
 
     constInfo.coreStartKVSplitPos = s2SplitStartIdxOfCore[aiCoreIdx];
 }
@@ -811,7 +816,17 @@ __aicore__ inline TASK_DEAL_MODE FiaKernelNonQuantMla<FIAT, CubeBlockType, VecBl
         return TASK_DEAL_MODE::SKIP;
     }
 
-    CalcCurS2StartEnd(bN2Cur, gS1Cur, s2Cur);
+    bool isFirstTask = (bN2Cur == constInfo.bN2Start) && (gS1Cur == constInfo.gS1Start) && (s2Cur == constInfo.s2Start);
+    if (isFirstTask || bN2Cur != lastBN2 || gS1Cur != lastGS1) {
+        if (constInfo.attenMaskFlag == 0U) {
+            CalcCurS2StartEndNoSparse(bN2Cur, gS1Cur);
+        } else {
+            CalcCurS2StartEndWithSparse(bN2Cur, gS1Cur);
+        }
+        lastBN2 = bN2Cur;
+        lastGS1 = gS1Cur;
+    }
+
     if (s2Cur < curS2Start || s2Cur >= curS2End) {
         return TASK_DEAL_MODE::SKIP;
     }
@@ -821,60 +836,89 @@ __aicore__ inline TASK_DEAL_MODE FiaKernelNonQuantMla<FIAT, CubeBlockType, VecBl
 
 template <typename FIAT, typename CubeBlockType, typename VecBlockType, typename FdBlockType> 
 __aicore__ inline void FiaKernelNonQuantMla<FIAT, CubeBlockType, VecBlockType, FdBlockType>::
-    CalcCurS2StartEnd(uint32_t bN2Cur, uint32_t gS1Cur, uint32_t s2Cur)
+    GetPreNextTokenLeftUp(int64_t actSeqLensQ, int64_t actSeqLensKv, int64_t &preTokenLeftUp, int64_t &nextTokenLeftUp)
 {
-    uint32_t s2End;
-    if ((bN2Cur == constInfo.bN2End) && (gS1Cur == constInfo.gS1End)) { // 当前任务属于最后一个S1G
-        s2End = constInfo.s2End;
-    } else {
-        s2End = (actSeqLensKv + constInfo.s2BaseSize - 1) / constInfo.s2BaseSize;
+    preTokenLeftUp = constInfo.preToken;
+    nextTokenLeftUp = constInfo.nextToken;
+    fa_base_vector::GetSafeActToken(actSeqLensQ, actSeqLensKv, preTokenLeftUp, nextTokenLeftUp, constInfo.sparseMode);
+
+    if (constInfo.sparseMode == fa_base_vector::BAND) {
+        preTokenLeftUp = static_cast<int64_t>(actSeqLensQ) - static_cast<int64_t>(actSeqLensKv) + preTokenLeftUp;
     }
 
-    if (constInfo.attenMaskFlag == 0 || FLASH_DECODE) {
-        curS2Start = 0;
-        curS2End = s2End;
-        return;
+    if (constInfo.sparseMode == fa_base_vector::RIGHT_DOWN_CAUSAL) {
+        nextTokenLeftUp = static_cast<int64_t>(actSeqLensKv) - static_cast<int64_t>(actSeqLensQ);
+    } else if (constInfo.sparseMode == fa_base_vector::BAND) {
+        nextTokenLeftUp = static_cast<int64_t>(actSeqLensKv) - static_cast<int64_t>(actSeqLensQ) + nextTokenLeftUp;
+    }
+}
+
+template <typename FIAT, typename CubeBlockType, typename VecBlockType, typename FdBlockType>
+__aicore__ inline void FiaKernelNonQuantMla<FIAT, CubeBlockType, VecBlockType, FdBlockType>::
+    CalcCurS2StartEndNoSparse(uint32_t bN2Cur, uint32_t gS1Cur)
+{
+    curS2Start = 0U;
+    curS2End = (static_cast<uint32_t>(actSeqLensKv) + constInfo.s2BaseSize - 1) / constInfo.s2BaseSize;
+
+    if ((bN2Cur == constInfo.bN2Start) && (gS1Cur == constInfo.gS1Start)) {
+        constInfo.headS2Split = constInfo.s2Start != 0U;
+        curS2Start = constInfo.s2Start;
     }
 
+    if ((bN2Cur == constInfo.bN2End) && (gS1Cur == constInfo.gS1End)) {
+        constInfo.tailS2Split = constInfo.s2End != 0U;
+        curS2End = constInfo.s2End;
+    }
+}
+
+template <typename FIAT, typename CubeBlockType, typename VecBlockType, typename FdBlockType>
+__aicore__ inline void FiaKernelNonQuantMla<FIAT, CubeBlockType, VecBlockType, FdBlockType>::
+    CalcCurS2StartEndWithSparse(uint32_t bN2Cur, uint32_t gS1Cur)
+{  
+    // 1. Calc preTokenLeftUp, nextTokenLeftUp
+    int64_t preTokenLeftUp = 0;
+    int64_t nextTokenLeftUp = 0;
+    GetPreNextTokenLeftUp(actSeqLensQ, actSeqLensKv, preTokenLeftUp, nextTokenLeftUp);
+
+    // 2. Calc sIdx, s1BaseSize
     uint32_t gs1Idx = gS1Cur * constInfo.mBaseSize;
-    int64_t sIdx;
-    uint32_t s1BaseSize;
+    int64_t sIdx = 0;
+    uint32_t s1BaseSize = 0U;
     if constexpr (GetOutUbFormat<LAYOUT_T>() == UbFormat::S1G) {
         sIdx = static_cast<int64_t>(gs1Idx / constInfo.gSize);
         s1BaseSize = constInfo.mBaseSize / constInfo.gSize + 1;
     } else {
         sIdx = static_cast<int64_t>(gs1Idx % actSeqLensQ);
-        s1BaseSize = constInfo.mBaseSize;
+        s1BaseSize = actSeqLensQ > constInfo.mBaseSize ? constInfo.mBaseSize : actSeqLensQ;
     }
 
+    // 3. Calc s2StartWithSparse, s2EndWithSparse
+    uint32_t s2StartWithSparse = 0U;
+    uint32_t s2EndWithSparse = 0U;
     if (sIdx + static_cast<int64_t>(s1BaseSize) > static_cast<int64_t>(actSeqLensQ)) {
-        curS2Start = 0;
-        curS2End = s2End;
-        return;
-    }
-
-    uint32_t s2Start = bN2Cur == constInfo.bN2Start ? constInfo.s2Start : 0;
-    int64_t safePreToken = constInfo.preToken;
-    int64_t safeNextToken = constInfo.nextToken;
-    fa_base_vector::GetSafeActToken(actSeqLensQ, actSeqLensKv, safePreToken, safeNextToken, constInfo.sparseMode);
-
-    int64_t preTokenLeftUp = (constInfo.sparseMode != fa_base_vector::BAND) ? safePreToken :
-        (static_cast<int64_t>(actSeqLensQ) - static_cast<int64_t>(actSeqLensKv) + safePreToken);
-    int64_t nextTokenLeftUp;
-    if (constInfo.sparseMode == fa_base_vector::DEFAULT_MASK || constInfo.sparseMode == fa_base_vector::ALL_MASK 
-        || constInfo.sparseMode == fa_base_vector::LEFT_UP_CAUSAL) {
-        nextTokenLeftUp = safeNextToken;
-    } else if (constInfo.sparseMode == fa_base_vector::RIGHT_DOWN_CAUSAL) {
-        nextTokenLeftUp = static_cast<int64_t>(actSeqLensKv) - static_cast<int64_t>(actSeqLensQ);
+        s2StartWithSparse = 0;
+        s2EndWithSparse = (static_cast<uint32_t>(actSeqLensKv) + constInfo.s2BaseSize - 1) / constInfo.s2BaseSize;
     } else {
-        nextTokenLeftUp = static_cast<int64_t>(actSeqLensKv) - static_cast<int64_t>(actSeqLensQ) + safeNextToken;
+        int64_t s2FirstToken = ClipSInnerToken(sIdx - preTokenLeftUp, 0, static_cast<int64_t>(actSeqLensKv));
+        s2StartWithSparse = static_cast<uint32_t>(s2FirstToken) / constInfo.s2BaseSize;
+
+        int64_t s2LastToken = ClipSInnerToken(sIdx + nextTokenLeftUp + static_cast<int64_t>(s1BaseSize), 0, 
+            static_cast<int64_t>(actSeqLensKv));
+        s2EndWithSparse = (static_cast<uint32_t>(s2LastToken) + constInfo.s2BaseSize - 1) / constInfo.s2BaseSize;
     }
 
-    int64_t s2FirstToken = ClipSInnerToken(sIdx - preTokenLeftUp, static_cast<int64_t>(s2Start), static_cast<int64_t>(actSeqLensKv));
-    curS2Start = static_cast<uint32_t>(s2FirstToken / constInfo.s2BaseSize);
-
-    int64_t s2LastToken = ClipSInnerToken(sIdx + nextTokenLeftUp + static_cast<int64_t>(s1BaseSize), 0, static_cast<int64_t>(s2End * constInfo.s2BaseSize));
-    curS2End = static_cast<uint32_t>((s2LastToken + constInfo.s2BaseSize - 1) / constInfo.s2BaseSize);
+    // 4. Calc curS2Start, curS2End
+    curS2Start = s2StartWithSparse;
+    curS2End = s2EndWithSparse;
+    if (bN2Cur == constInfo.bN2Start && gS1Cur == constInfo.gS1Start) {
+        constInfo.headS2Split = constInfo.s2Start > curS2Start ? true : false;
+        curS2Start = Max(s2StartWithSparse, constInfo.s2Start);
+    }
+    if (bN2Cur == constInfo.bN2End && gS1Cur == constInfo.gS1End) {
+        constInfo.tailS2Split = constInfo.s2End > 0U ? true : false;
+        curS2End = constInfo.s2End > 0U ? Min(s2EndWithSparse, constInfo.s2End) : s2EndWithSparse;
+    }
+    return;
 }
 
 template <typename FIAT, typename CubeBlockType, typename VecBlockType, typename FdBlockType> 
@@ -886,6 +930,8 @@ __aicore__ inline void FiaKernelNonQuantMla<FIAT, CubeBlockType, VecBlockType, F
     uint32_t bN2Cur = constInfo.bN2Start;
     uint32_t gS1Cur = constInfo.gS1Start;
     uint32_t s2Cur = constInfo.s2Start;
+    lastBN2 = bN2Cur;
+    lastGS1 = gS1Cur;
 
     uint64_t createdTaskCount = 0;
     uint64_t executedTaskCount = 0;

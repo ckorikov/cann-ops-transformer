@@ -1,6 +1,6 @@
 /**
- * This program is free software, you can redistribute it and/or modify.
- * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+ * This program is free software, you can redistribute it and/or modify.
+ * Copyright (c) 2025 Huawei Technologies Co., Ltd.
  * This file is a part of the CANN Open Software.
  * Licensed under CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
@@ -21,7 +21,6 @@
 #include <graph/utils/type_utils.h>
 #include "log/log.h"
 #include "../fia_tiling_templates_registry.h"
-#include "../split_core_v1.h"
 
 using namespace ge;
 using namespace AscendC;
@@ -179,27 +178,10 @@ void FiaTilingNonQuant::GenTilingKey()
     OP_LOGI(fiaInfo_->opName, "FIA tilingKey_: %lu.", tilingKey_);
 }
 
-bool FiaTilingNonQuant::IsFlashDecode(uint32_t coreNum)
+bool FiaTilingNonQuant::IsFlashDecode()
 {
     uint32_t tndFDCoreArrLen = tilingData_.fdParams.get_numOfFdHead();
     return tndFDCoreArrLen > static_cast<uint32_t>(0);
-
-    if ((fiaInfo_->s1Size > static_cast<uint32_t>(1) || fiaInfo_->gSize > G_SIZE_128)) {
-        return false;
-    }
-
-    float flashDecodeBNRatio = static_cast<float>(0.5); // 0.5, 经验值
-    bool coreOkFlag = (static_cast<float>(fiaInfo_->bSize) * static_cast<float>(fiaInfo_->n2Size) <= flashDecodeBNRatio * static_cast<float>(coreNum));
-    if (coreOkFlag && (fiaInfo_->gSize == static_cast<uint32_t>(1))) {
-        OP_LOGD(fiaInfo_->opName, "flash decode split key/value."); 
-        return true;
-    }
-    if (coreOkFlag && (fiaInfo_->maxActualseq >= 2048)) { 
-        OP_LOGD(fiaInfo_->opName, "flash decode and GQA split key/value.");
-        return true;
-    }
-
-    return false;
 }
 
 bool FiaTilingNonQuant::DealSameSeqEachBatch()
@@ -323,7 +305,7 @@ void FiaTilingNonQuant::CalcMBaseSize()
         sInnerSize_, sInnerSizeAlign_, mBaseSize_, softmaxWithBrcbFlag_);
 }
 
-void FiaTilingNonQuant::CreateSplitInput(BaseInfo &baseInfo)
+void FiaTilingNonQuant::CreateSplitInput(BaseInfo &baseInfo, SplitParam &splitParam)
 {
     //构造分核输入参数
     baseInfo.bSize = fiaInfo_->bSize;
@@ -333,45 +315,77 @@ void FiaTilingNonQuant::CreateSplitInput(BaseInfo &baseInfo)
     baseInfo.s1Size = fiaInfo_->s1Size;
     baseInfo.actualLenQDims = fiaInfo_->actualLenQDims;
     baseInfo.actualLenKvDims = fiaInfo_->actualLenDims;
+    baseInfo.preToken = fiaInfo_->preToken;
+    baseInfo.nextToken = fiaInfo_->nextToken;
+    baseInfo.isS1G = fiaInfo_->inputLayout == TilingKeyLayout::TND || fiaInfo_->inputLayout == TilingKeyLayout::BSH_BSND; // 使用枚举映射
+    baseInfo.sparseMode = fiaInfo_->sparseMode;
+    baseInfo.attenMaskFlag = fiaInfo_->attenMaskFlag;
 
     if (fiaInfo_->opParamInfo.actualSeqLengthsQ.tensor != nullptr) {
-        baseInfo.actualSeqS1Size = fiaInfo_->opParamInfo.actualSeqLengthsQ.tensor->GetData<int64_t>();
         baseInfo.isAccumSeqS1 = fiaInfo_->isAccumQSeq;
+        baseInfo.actualSeqS1Size.reserve(fiaInfo_->bSize);
+        const int64_t *s1Ptr = fiaInfo_->opParamInfo.actualSeqLengthsQ.tensor->GetData<int64_t>();
+        for (uint32_t i = 0; i < fiaInfo_->bSize; ++i) {
+            baseInfo.actualSeqS1Size.emplace_back(s1Ptr[i]);
+        }
     }
     if (fiaInfo_->opParamInfo.actualSeqLengths.tensor != nullptr) {
-        baseInfo.actualSeqS2Size = fiaInfo_->opParamInfo.actualSeqLengths.tensor->GetData<int64_t>();
         baseInfo.isAccumSeqS2 = fiaInfo_->isAccumKVSeq;
+        const int64_t *s2Ptr = fiaInfo_->opParamInfo.actualSeqLengths.tensor->GetData<int64_t>();
+        for (uint32_t i = 0; i < fiaInfo_->bSize; ++i) {
+            baseInfo.actualSeqS2Size.emplace_back(s2Ptr[i]);
+        }
     } else {
         if (fiaInfo_->kvStorageMode == KvStorageMode::TENSOR_LIST && fiaInfo_->kvListSeqLens.size()) {
-            baseInfo.actualSeqS2Size = fiaInfo_->kvListSeqLens.data();
             baseInfo.isAccumSeqS2 = fiaInfo_->isAccumKVSeq;
+            baseInfo.actualSeqS2Size = fiaInfo_->kvListSeqLens;
         }
     }
     if (fiaInfo_->sysPrefixFlag) {
         baseInfo.actualSeqPrefixSize = fiaInfo_->systemPrefixLen;
     }
+
+    splitParam.mBaseSize = mBaseSize_;
+    splitParam.s2BaseSize = sInnerSize_;
+    splitParam.gS1BaseSizeOfFd = mFdBaseSize_;
 }
 
-void FiaTilingNonQuant::CreateSplitOutput(OuterSplitParams &outerSplitParams, FlashDecodeParams &fDParams, SplitCoreRes &res)
-{   
-    outerSplitParams.bN2End = tilingData_.outerSplitParams.get_bN2End();
-    outerSplitParams.gS1End = tilingData_.outerSplitParams.get_gS1End();
-    outerSplitParams.s2End = tilingData_.outerSplitParams.get_s2End();
-    
+void FiaTilingNonQuant::SetSplitOutput(const SplitResult &res)
+{
+    uint32_t *bN2EndPtr = tilingData_.outerSplitParams.get_bN2End();
+    uint32_t *gS1EndPtr = tilingData_.outerSplitParams.get_gS1End();
+    uint32_t *s2EndPtr = tilingData_.outerSplitParams.get_s2End();
+    uint32_t *bN2IdxOfFdHead = tilingData_.fdParams.get_bN2IdxOfFdHead();
+    uint32_t *gS1IdxOfFdHead = tilingData_.fdParams.get_gS1IdxOfFdHead();
+    uint32_t *s2SplitNumOfFdHead = tilingData_.fdParams.get_s2SplitNumOfFdHead();
+    uint32_t *s2SplitStartIdxOfCore = tilingData_.fdParams.get_s2SplitStartIdxOfCore();
+    uint32_t *gS1SplitNumOfFdHead = tilingData_.fdParams.get_gS1SplitNumOfFdHead();
+    uint32_t *gS1LastPartSizeOfFdHead = tilingData_.fdParams.get_gS1LastPartSizeOfFdHead();
+    uint32_t *gS1IdxEndOfFdHead = tilingData_.fdParams.get_gS1IdxEndOfFdHead();
+    uint32_t *gS1IdxEndOfFdHeadSplit = tilingData_.fdParams.get_gS1IdxEndOfFdHeadSplit();
+
+    for (uint32_t i = 0; i < res.usedCoreNum; ++i) {
+        bN2EndPtr[i] = res.bN2End[i];
+        gS1EndPtr[i] = res.gS1End[i];
+        s2EndPtr[i] = res.s2End[i];
+        bN2IdxOfFdHead[i] = res.fdRes.bN2IdxOfFdHead[i];
+        gS1IdxOfFdHead[i] = res.fdRes.gS1IdxOfFdHead[i];
+        s2SplitNumOfFdHead[i] = res.fdRes.s2SplitNumOfFdHead[i];
+        s2SplitStartIdxOfCore[i] = res.fdRes.s2SplitStartIdxOfCore[i];
+        gS1SplitNumOfFdHead[i] = res.fdRes.gS1SplitNumOfFdHead[i];
+        gS1LastPartSizeOfFdHead[i] = res.fdRes.gS1LastPartSizeOfFdHead[i];
+    }
+
+    for (uint32_t i = 0; i < res.usedCoreNum * 2; ++i) { // 2: cube : vector = 1:2
+        gS1IdxEndOfFdHead[i] = res.fdRes.gS1IdxEndOfFdHead[i];
+        gS1IdxEndOfFdHeadSplit[i] = res.fdRes.gS1IdxEndOfFdHeadSplit[i];
+    }
+
+    tilingData_.innerSplitParams.set_mBaseSize(mBaseSize_);
+    tilingData_.innerSplitParams.set_s2BaseSize(sInnerSize_);
     tilingData_.fdParams.set_gS1BaseSizeOfFd(mFdBaseSize_);
-    fDParams.bN2IdxOfFdHead = tilingData_.fdParams.get_bN2IdxOfFdHead();
-    fDParams.gS1IdxOfFdHead = tilingData_.fdParams.get_gS1IdxOfFdHead();
-    fDParams.s2SplitNumOfFdHead = tilingData_.fdParams.get_s2SplitNumOfFdHead();
-    fDParams.s2SplitStartIdxOfCore = tilingData_.fdParams.get_s2SplitStartIdxOfCore();
-    fDParams.gS1BaseSizeOfFd = tilingData_.fdParams.get_gS1BaseSizeOfFd();
-    fDParams.gS1SplitNumOfFdHead = tilingData_.fdParams.get_gS1SplitNumOfFdHead();
-    fDParams.gS1LastPartSizeOfFdHead = tilingData_.fdParams.get_gS1LastPartSizeOfFdHead();
-    fDParams.gS1IdxEndOfFdHead = tilingData_.fdParams.get_gS1IdxEndOfFdHead();
-    fDParams.gS1IdxEndOfFdHeadSplit = tilingData_.fdParams.get_gS1IdxEndOfFdHeadSplit();
-    
-    res.numOfFdHead = 0;
-    res.maxS2SplitNum = 1;
-    res.usedCoreNum = aicNum_;
+    tilingData_.fdParams.set_numOfFdHead(res.numOfFdHead);
+    usedCoreNum_ = res.usedCoreNum;
 }
 
 void FiaTilingNonQuant::Split()
@@ -379,34 +393,22 @@ void FiaTilingNonQuant::Split()
     uint32_t s2SizeInput = static_cast<uint32_t>(fiaInfo_->s2Size);
     CalcInnerSize(s2SizeInput);
 
-    BaseInfo baseInfo;
-    CreateSplitInput(baseInfo);
+    BaseInfo baseInfo {};
+    SplitParam splitParam {};
+    CreateSplitInput(baseInfo, splitParam);
 
-    InnerSplitParams innerSplitParams;
-    innerSplitParams.s1GBaseSize = mBaseSize_;
-    innerSplitParams.s2BaseSize = sInnerSize_;
-    tilingData_.innerSplitParams.set_mBaseSize(innerSplitParams.s1GBaseSize);
-    tilingData_.innerSplitParams.set_s2BaseSize(innerSplitParams.s2BaseSize);
-
-    OuterSplitParams outerSplitParams;
-    FlashDecodeParams fDParams;
-    SplitCoreRes res;
-    CreateSplitOutput(outerSplitParams, fDParams, res);
-
-    SplitCore(baseInfo, innerSplitParams, aicNum_, outerSplitParams, fDParams, res);
+    SplitResult res { aicNum_ };
+    SplitCore(aicNum_, baseInfo, splitParam, res);
     if (res.numOfFdHead > aicNum_ || res.usedCoreNum > aicNum_ || res.maxS2SplitNum > aicNum_ + 1) {
         OP_LOGE(fiaInfo_->opName, "used_core_num: %u, num_of_fd_head: %u, max_s2_split_num: %u, aic_num: %u", 
             res.usedCoreNum, res.numOfFdHead, res.maxS2SplitNum, aicNum_);
     }
+    SetSplitOutput(res);
 
-    tilingData_.fdParams.set_numOfFdHead(res.numOfFdHead);
-    usedCoreNum_ = res.usedCoreNum;
-
-    if (IsFlashDecode(coreNum_)) {
+    if (IsFlashDecode()) {
         splitKVFlag_ = true;
         kvSplit_++;
         kvSplitPart_ = res.maxS2SplitNum; // kvSplitPart_, 用于lse out workspace计算
-        SplitFD(res, fDParams, usedCoreNum_);
         tilingData_.fdParams.set_usedVecNumOfFd(res.usedVecNumOfFd);
     }
     CalcMmResSize();

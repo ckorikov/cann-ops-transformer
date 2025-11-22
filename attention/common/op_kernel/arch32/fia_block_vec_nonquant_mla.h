@@ -866,7 +866,8 @@ __aicore__ inline uint64_t FiaBlockVecNonQuantMla<FIAT>::CalcAccumOffset(uint32_
 #endif
     uint64_t accumTmpOutNum = 0;
     int taskId = 0;
-    while (bN2IdxOfFdHead[taskId] != bN2Idx || gS1IdxOfFdHead[taskId] * constInfo.mBaseSize != gS1Idx) {
+    uint32_t usedCoreNum = tilingData->baseParams.usedCoreNum;
+    while (taskId < usedCoreNum && (bN2IdxOfFdHead[taskId] != bN2Idx || gS1IdxOfFdHead[taskId] * constInfo.mBaseSize != gS1Idx)) {
         accumTmpOutNum += s2SplitNumOfFdHead[taskId]; // 计算前面的workspace数
         taskId++;
     }

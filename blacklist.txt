@@ -340,6 +340,7 @@ attention/fused_infer_attention_score/common/op_host/fia_tiling_nonquant_mla.cpp
 attention/fused_infer_attention_score/common/op_host/fia_tiling_nonquant.h
 attention/fused_infer_attention_score/common/op_host/fia_tiling_nonquant.cpp
 attention/fused_infer_attention_score/common/op_host/split_core.h
+attention/fused_infer_attention_score/common/op_host/split_core.cpp
 attention/fused_infer_attention_score/common/op_kernel/buffer.h
 attention/fused_infer_attention_score/common/op_kernel/buffers_policy.h
 attention/fused_infer_attention_score/common/op_kernel/buffer_manager.h
