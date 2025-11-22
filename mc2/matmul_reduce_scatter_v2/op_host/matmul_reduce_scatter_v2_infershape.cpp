@@ -27,6 +27,17 @@ static ge::graphStatus InferShapeMatmulReduceScatterV2(gert::InferShapeContext* 
     OP_LOGE_IF(
         InferMatmulReduceScatterCommon(context) != GRAPH_SUCCESS, GRAPH_FAILED, context->GetNodeName(),
         "infer shape excute failed.");
+    const bool* isAmaxOut = context->GetAttrs()->GetAttrPointer<bool>(RS_IS_AMAX_OUT);
+    OPS_CHECK_NULL_WITH_CONTEXT(context, isAmaxOut);
+    gert::Shape* amaxOutShape = context->GetOutputShape(1);
+    OPS_CHECK_NULL_WITH_CONTEXT(context, amaxOutShape);
+    if (*isAmaxOut) {
+        amaxOutShape->SetDimNum(1);
+        amaxOutShape->SetDim(0, 1);
+    } else {
+        amaxOutShape->SetDimNum(1);
+        amaxOutShape->SetDim(0, 0);
+    }
     return GRAPH_SUCCESS;
 }
 

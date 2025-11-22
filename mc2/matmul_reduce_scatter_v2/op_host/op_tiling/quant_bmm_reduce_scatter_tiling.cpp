@@ -88,8 +88,12 @@ bool QuantBmmReduceScatterTiling::CommonParamCheck()
         return false);
 
     auto amaxShape = context_->GetOutputShape(AMAX_INDEX);
-    OP_TILING_CHECK(amaxShape != nullptr,
-        CUBE_INNER_ERR_REPORT(opName_, "in pertensor without amaxout or perblock or mxfp scene, amax must be nullptr"),
+    if (amaxShape != nullptr) {
+        OP_LOGI(opName_, "amaxShapeDim0 is %lu", amaxShape->GetStorageShape().GetDim(0));
+    }
+    OP_TILING_CHECK((amaxShape != nullptr) && (amaxShape->GetStorageShape().GetDim(0) != 0),
+        CUBE_INNER_ERR_REPORT(opName_, "in pertensor without amaxout or perblock scene, amax must be nullptr or empty tensor, but amax is %lu", 
+                              amaxShape->GetStorageShape().GetDim(0)),
         return false);
     return true;
 }
@@ -699,8 +703,8 @@ ge::graphStatus QuantBmmReduceScatterHelper::GetShapeAttrsInfo()
     inputParams_.outDtype = static_cast<int64_t>(yDType);
     OP_LOGI(inputParams_.opName, "yDType is %ld", inputParams_.outDtype);
     inputParams_.biasDtype = tilingArgs_.isBias ? tilingArgs_.geBiasType : ge::DT_FLOAT;
-    auto scaleTensorDesc = context_->GetInputDesc(X2SCALE_INDEX);
-    auto perTokenScaleTensorDesc = context_->GetInputDesc(X1SCALE_INDEX);
+    auto scaleTensorDesc = context_->GetOptionalInputDesc(X2SCALE_INDEX);
+    auto perTokenScaleTensorDesc = context_->GetOptionalInputDesc(X1SCALE_INDEX);
     OP_TILING_CHECK((scaleTensorDesc == nullptr),
                     VECTOR_INNER_ERR_REPORT_TILING(inputParams_.opName, "the scale tensor is invalid"),
                     return ge::GRAPH_FAILED);

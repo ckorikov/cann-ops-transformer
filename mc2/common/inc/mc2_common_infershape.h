@@ -30,6 +30,8 @@ const size_t GATHER_OUT_V2 = 8;
 const size_t SUPPORT_DIM_SIZE = 2;
 const size_t RS_IS_TRANS_A = 2;
 const size_t RS_IS_TRANS_B = 3;
+const size_t RS_IS_AMAX_OUT = 8;
+const size_t AG_IS_AMAX_OUT = 9;
 
 struct CommParas {
     const gert::Shape* x1MatrixShape;

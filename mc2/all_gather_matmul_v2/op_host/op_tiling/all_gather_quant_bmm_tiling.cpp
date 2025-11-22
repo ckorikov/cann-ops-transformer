@@ -61,8 +61,12 @@ bool AllGatherQuantBmmTiling::IsCapable()
         CUBE_INNER_ERR_REPORT(opName_, "Skip quant tiling when version is not 910_95."), return false);
     // geAType 和 geBType 为fp8/hif8时且amax为空时做tiling
     auto amaxShape = context_->GetOutputShape(OUTPUT_AMAX);
-    OP_TILING_CHECK(amaxShape != nullptr,
-        CUBE_INNER_ERR_REPORT(opName_, "Skip quant tiling when amax is not null."), return false);
+    if (amaxShape != nullptr) {
+        OP_LOGI(opName_, "amaxShapeDim0 is %lu", amaxShape->GetStorageShape().GetDim(0));
+    }
+    OP_TILING_CHECK((amaxShape != nullptr) && (amaxShape->GetStorageShape().GetDim(0) != 0),
+        CUBE_INNER_ERR_REPORT(opName_, "Skip quant tiling when amax is not null, but amax is %lu", 
+                              amaxShape->GetStorageShape().GetDim(0)), return false);
     // geAType 和 geBType 为fp8/hif8时做tiling
     if (mc2tiling::CheckDataTypeVaild(args_.geAType, mc2tiling::FP8DTYPE_SUPPORT_LIST) &&
         mc2tiling::CheckDataTypeVaild(args_.geBType, mc2tiling::FP8DTYPE_SUPPORT_LIST)) {
@@ -708,8 +712,8 @@ ge::graphStatus AllGatherQuantBmmHelper::GetShapeAttrsInfo()
     inputParams_.aDtype = tilingArgs.geAType;
     inputParams_.bDtype = tilingArgs.geBType;
     int yDType = *context_->GetAttrs()->GetAttrPointer<uint64_t>(Y_DTYPE);
-    auto scaleTensorDesc = context_->GetInputDesc(SCALE_INV1);
-    auto perTokenScaleTensorDesc = context_->GetInputDesc(SCALE_INV2);
+    auto scaleTensorDesc = context_->GetOptionalInputDesc(SCALE_INV1);
+    auto perTokenScaleTensorDesc = context_->GetOptionalInputDesc(SCALE_INV2);
     OP_TILING_CHECK((scaleTensorDesc == nullptr),
                     VECTOR_INNER_ERR_REPORT_TILING(tilingProcesser_.opName_, "the scale tensor is invalid"),
                     return ge::GRAPH_FAILED);

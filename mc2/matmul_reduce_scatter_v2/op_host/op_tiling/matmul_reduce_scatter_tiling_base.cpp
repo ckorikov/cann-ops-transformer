@@ -219,7 +219,7 @@ bool MatmulReduceScatterTilingBase::CheckBias() const
 {
     const gert::StorageShape* aShape = context_->GetInputShape(INPUT_X1);
     const gert::StorageShape* bShape = context_->GetInputShape(INPUT_X2);
-    const gert::StorageShape* biasShape = context_->GetInputShape(BIAS);
+    const gert::StorageShape* biasShape = context_->GetOptionalInputShape(BIAS);
     if (biasShape != nullptr) {
         uint64_t biasShapeDimNum = biasShape->GetStorageShape().GetDimNum();
         OP_TILING_CHECK(

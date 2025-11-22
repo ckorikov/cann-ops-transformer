@@ -76,7 +76,7 @@
     -   output（aclTensor\*，计算输出）：Device侧的aclTensor，MatMul计算+ReduceScatter通信的结果。
         -   <term>昇腾910_95 AI处理器</term>：数据类型支持FLOAT16、BFLOAT16、FLOAT，数据格式支持ND。如果x1数据类型为FLOAT16、BFLOAT16时，output数据类型与x1一致。
         -   <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>、<term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：数据类型支持FLOAT16、BFLOAT16，数据格式支持ND。如果x1数据类型为FLOAT16、BFLOAT16时，output数据类型与x1一致。
-    -   amaxOutOptional（aclTensor\*，计算输出）：Device侧的一维aclTensor，MatMul计算的最大值结果。**当前版本仅支持nullptr**。
+    -   amaxOutOptional（aclTensor\*，计算输出）：Device侧的一维aclTensor，MatMul计算的最大值结果。**当前版本仅支持nullptr或空tensor**。
     -   workspaceSize（uint64\_t\*，出参）：Device侧的整型，返回需要在Device侧申请的workspace大小。
     -   executor（aclOpExecutor\*\*，出参）：Device侧的aclOpExecutor，返回op执行器，包含了算子计算流程。
 

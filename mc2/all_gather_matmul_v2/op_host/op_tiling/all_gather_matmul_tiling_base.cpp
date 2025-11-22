@@ -56,8 +56,12 @@ bool AllGatherMatmulTilingBase::CheckInputParaEmptyPointer()
                     VECTOR_INNER_ERR_REPORT_TILING(opName_, "the tensor is invalid"), return false);
     OP_TILING_CHECK((scaleShape != nullptr),
                     VECTOR_INNER_ERR_REPORT_TILING(opName_, "the quantscale tensor should be nullptr"), return false);
-    OP_TILING_CHECK((amaxOutShape != nullptr),
-                    VECTOR_INNER_ERR_REPORT_TILING(opName_, "the amaxOut tensor should be nullptr"), return false);
+    if (amaxOutShape != nullptr) {
+        OP_LOGI(opName_, "amaxOutShapeDim0 is %lu", amaxOutShape->GetStorageShape().GetDim(0));
+    }
+    OP_TILING_CHECK((amaxOutShape != nullptr) && (amaxOutShape->GetStorageShape().GetDim(0) != 0),
+                    VECTOR_INNER_ERR_REPORT_TILING(opName_, "the amaxOut tensor should be nullptr or empty tensor, but amaxOut is %lu", 
+                                                    amaxOutShape->GetStorageShape().GetDim(0)), return false);
     auto attrs = context_->GetAttrs();
     OP_TILING_CHECK((attrs == nullptr), VECTOR_INNER_ERR_REPORT_TILING(opName_, "failed to get attrs"), return false);
     auto outputShape = context_->GetOutputShape(OUTPUT_Y);

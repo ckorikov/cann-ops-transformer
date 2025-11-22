@@ -80,5 +80,5 @@ REG_OP(MatmulReduceScatterV2)
     .ATTR(y_dtype, Int, 0)
     .ATTR(comm_mode, String, "aicpu")
     .OP_END_FACTORY_REG(MatmulReduceScatterV2)
-
+}
 #endif  // REDUCE_SCATTER_V2_PROTO_H

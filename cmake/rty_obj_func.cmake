@@ -505,6 +505,7 @@ macro(add_mc2_modules_sources)
 
   file(GLOB GENTASK_SRCS
       ${SOURCE_DIR}/../op_graph/*_gen_task*.cpp
+      ${SOURCE_DIR}/../../common/src/mc2_a5_gen_task_utils.cpp
   )
   if(GENTASK_SRCS)
     add_opmaster_ct_gentask_modules()

@@ -95,7 +95,7 @@
     -   groupSize（int64_t，计算输入）：用于表示反量化中x1Scale/x2Scale输入的一个数在其所在的对应维度方向上可以用于该方向x1/x2输入的多少个数的反量化。groupSize输入由3个方向的groupSizeM、groupSizeN、groupSizeK三个值拼接组成，每个值占16位，计算公式为groupSize = groupSizeK | groupSizeN << 16 | groupSizeM << 32。当x1Scale/x2Scale输入都是2维，且数据类型都为FLOAT32时，[groupSizeM, groupSizeN, groupSizeK]取值组合仅支持[128, 128, 128]，对应groupSize的值为549764202624；**其他场景输入，当前版本仅支持输入0**。
     -   output（aclTensor\*，计算输出）：Device侧的aclTensor，all\_gather+MM计算的结果。即公式中的ouput。如果x1类型为FLOAT16、BFLOAT16，则output类型与x1保持一致。如果x1类型为FLOAT8_E4M3FN、FLOAT8_E5M2、HIFLOAT8，则数据类型支持FLOAT16、BFLOAT16、FLOAT。数据格式支持ND。
     -   gatherOut（aclTensor\*，计算输出）：Device侧的aclTensor，仅输出all\_gather通信后的结果。即公式中的gatherOut。数据类型支持FLOAT16、BFLOAT16、FLOAT8_E4M3FN、FLOAT8_E5M2、HIFLOAT8，且数据类型与x1保持一致。数据格式支持ND。
-    -   amaxOut (aclTensor\*，计算输出) ：Device侧的一维aclTensor，MM计算的最大值结果，即公式中的amaxOut，shape为[1]，数据类型支持FLOAT。**当前版本仅支持nullptr**。
+    -   amaxOut (aclTensor\*，计算输出) ：Device侧的一维aclTensor，MM计算的最大值结果，即公式中的amaxOut，shape为[1]，数据类型支持FLOAT。**当前版本仅支持nullptr或空tensor**。
     -   workspaceSize（uint64\_t\*，出参）：Device侧的整型，返回需要在Device侧申请的workspace大小。
 	-   executor（aclOpExecutor\*\*，出参）：Device侧的aclOpExecutor，返回op执行器，包含了算子计算流程。
     
