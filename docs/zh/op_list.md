@@ -184,6 +184,16 @@
     <td>全量推理场景的FlashAttention算子。</td>
   </tr>
   <tr>
+    <td>attention</td>
+    <td><a href="../../attention/recurrent_gated_delta_rule/README.md">recurrent_gated_delta_rule</a></td>
+    <td>√</td>
+    <td>√</td>
+    <td>√</td>
+    <td>√</td>
+    <td>AI Core</td>
+    <td>增量推理场景的Recurrent Gated Delta Rule算子。</td>
+  </tr>
+  <tr>
     <td>ffn</td>
     <td><a href="../../ffn/ffn/README.md">ffn</a></td>
     <td>√</td>
