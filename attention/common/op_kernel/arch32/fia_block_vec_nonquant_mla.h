@@ -64,7 +64,7 @@ public:
         __gm__ uint8_t *valueAntiquantOffset, __gm__ uint8_t *keySharedPrefix, __gm__ uint8_t *valueSharedPrefix,
         __gm__ uint8_t *actualSharedPrefixLen, __gm__ uint8_t *queryRope, __gm__ uint8_t *keyRope,
         __gm__ uint8_t *keyRopeAntiquantScale, __gm__ uint8_t *attentionOut, __gm__ uint8_t *softmaxLse,
-            const FusedInferAttentionScoreTilingData *__restrict tilingData);
+            const optiling::FusedInferAttentionScoreTilingData *__restrict tilingData);
     __aicore__ inline void InitParams(const struct AttentionCommon::ConstInfo &constInfo);
     __aicore__ inline void InitVec1GlobalTensor(GlobalTensor<MM1_OUT_T> mm1ResGm, GlobalTensor<KV_T> vec1ResGm, GlobalTensor<int32_t> mm2ResInt32Gm);
     __aicore__ inline void InitVec2GlobalTensor(GlobalTensor<UPDATE_T> vec2ResGm,
@@ -200,7 +200,7 @@ private:
     // attention mask
     uint32_t attenMaskSizeAlign = 0U;
 
-    const FusedInferAttentionScoreTilingData *__restrict tilingData = nullptr;
+    const optiling::FusedInferAttentionScoreTilingData *__restrict tilingData = nullptr;
 };
 
 template <typename FIAT> __aicore__ inline void FiaBlockVecNonQuantMla<FIAT>::Init(
@@ -213,7 +213,7 @@ template <typename FIAT> __aicore__ inline void FiaBlockVecNonQuantMla<FIAT>::In
         __gm__ uint8_t *valueAntiquantOffset, __gm__ uint8_t *keySharedPrefix, __gm__ uint8_t *valueSharedPrefix,
         __gm__ uint8_t *actualSharedPrefixLen, __gm__ uint8_t *queryRope, __gm__ uint8_t *keyRope,
         __gm__ uint8_t *keyRopeAntiquantScale, __gm__ uint8_t *attentionOut, __gm__ uint8_t *softmaxLse,
-        const FusedInferAttentionScoreTilingData *__restrict tilingData)
+        const optiling::FusedInferAttentionScoreTilingData *__restrict tilingData)
 {
     attentionOutGm.SetGlobalBuffer((__gm__ OUT_T *)attentionOut);
     // attenMaskBoolGm.SetGlobalBuffer((__gm__ bool *)attenMask); // 差异

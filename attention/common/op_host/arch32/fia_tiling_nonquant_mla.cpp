@@ -316,11 +316,11 @@ void FiaTilingNonQuantMla::FillTilingBaseParams()
     tilingData_->baseParams.set_headDimRope(fiaInfo_->ropeHeadDim);
     tilingData_->baseParams.set_scaleValue(fiaInfo_->scaleValue);
     tilingData_->baseParams.set_gSize(fiaInfo_->n1Size / fiaInfo_->n2Size);
-    tilingData_->baseParams.set_batchContinuous((fiaInfo_->kvStorageMode == KvStorageMode::TENSOR_LIST) ? 0 : 1);
+    tilingData_->baseParams.set_batchContinuous((fiaInfo_->kvStorageMode == KvStorageMode::TENSOR_LIST) ? 0U : 1U);
     tilingData_->baseParams.set_actualSeqS1Dims(fiaInfo_->actualLenQDims);
     tilingData_->baseParams.set_actualSeqS2Dims(fiaInfo_->actualLenDims);
-    tilingData_->baseParams.set_accumQSeqFlag(fiaInfo_->isAccumQSeq ? 1 : 0);
-    tilingData_->baseParams.set_accumKVSeqFlag(fiaInfo_->isAccumKVSeq ? 1 : 0);
+    tilingData_->baseParams.set_accumQSeqFlag(fiaInfo_->isAccumQSeq ? 1U : 0U);
+    tilingData_->baseParams.set_accumKVSeqFlag(fiaInfo_->isAccumKVSeq ? 1U : 0U);
     tilingData_->baseParams.set_outputLayout(static_cast<uint32_t>(fiaInfo_->outputLayout));
     tilingData_->baseParams.set_slidingFlag(fiaInfo_->slidingFlag);
     tilingData_->baseParams.set_needInit(fiaInfo_->needInit);
@@ -335,7 +335,7 @@ void FiaTilingNonQuantMla::FillTilingPageAttenParams()
 
 void FiaTilingNonQuantMla::FillTilingMaskParams()
 {
-    tilingData_->maskParams.set_attenMaskFlag(fiaInfo_->attenMaskFlag ? 1 : 0);
+    tilingData_->maskParams.set_attenMaskFlag(fiaInfo_->attenMaskFlag ? 1U : 0U);
     tilingData_->maskParams.set_attenMaskSize(fiaInfo_->attenMaskSize);
     tilingData_->maskParams.set_attenMaskStride(fiaInfo_->attenMaskStride);
     tilingData_->maskParams.set_sparseMode(fiaInfo_->sparseMode);

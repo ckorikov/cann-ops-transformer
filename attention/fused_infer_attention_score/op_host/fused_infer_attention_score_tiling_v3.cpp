@@ -281,12 +281,12 @@ bool CheckGqaFeatureSupport(gert::TilingContext *context)
 
 bool CheckGqaConstrain(gert::TilingContext *context)
 {
-    if (CheckGqaInputLayoutSupport(context) && 
-        !IsEmptyTensor(context) && 
-        CheckGqaDSupport(context) && 
-        CheckGqaFeatureSupport(context)) { 
-            return true;
-    }
+    // if (CheckGqaInputLayoutSupport(context) && 
+    //     !IsEmptyTensor(context) && 
+    //     CheckGqaDSupport(context) && 
+    //     CheckGqaFeatureSupport(context)) { 
+    //         return true;
+    // }
 
     return false;
 }
@@ -327,10 +327,10 @@ bool CheckMlaDSupport(gert::TilingContext *context)
 
 bool CheckMlaConstrain(gert::TilingContext *context)
 {
-    if (CheckMlaInputLayoutSupport(context) &&
-        CheckMlaDSupport(context)) {
-        return true;
-    }
+    // if (CheckMlaInputLayoutSupport(context) &&
+    //     CheckMlaDSupport(context)) {
+    //     return true;
+    // }
 
     return false;
 }
