@@ -304,7 +304,7 @@ __aicore__ inline void GMMQuantCompute<mmType, sync>::PerTokenQuant(MNConfig& mn
         perchannelResOffset += FP16_PER_REPEAT;
     }
     if (tailNum != 0) {
-        Mul(yLocalInUb, mmOutLocalFp16, pertokenBrcbLocal, tailNum, curBaseM, {1, 1, 0, repeatStride, repeatStride, 1});
+        Mul(yLocalInUb[alignedN], mmOutLocalFp16[alignedN], pertokenBrcbLocal, tailNum, curBaseM, {1, 1, 0, repeatStride, repeatStride, 1});
     }
 
     PipeBarrier<PIPE_V>();
@@ -397,7 +397,7 @@ __aicore__ inline void GMMQuantCompute<mmType, sync>::SetPerTokenQuantStaticBuff
     this->mm.SetLocalWorkspace(buf);
 
     if (isPerTokenQuant) {
-        uint32_t pertokenBrcbSize = gmmBaseParams->ubBaseK * 16;
+        uint32_t pertokenBrcbSize = gmmBaseParams->ubBaseK * 32;
         uint32_t offsetByte = gmmBaseParams->ubRestBytes - pertokenBrcbSize * 2;
         pertokenBrcbLocal = ubBuf.GetWithOffset<half>(pertokenBrcbSize, offsetByte);
     }

@@ -1361,7 +1361,7 @@ uint32_t GMMTiling::CalUbRestBytes(uint32_t baseM, uint32_t baseK, uint32_t base
   uint32_t pertokenBrcbLocalSize = 0;
   uint32_t biasSize = 0;
   if (perTokenOrPerGroupSize_) {
-    pertokenBrcbLocalSize = ubBaseM * 32;
+    pertokenBrcbLocalSize = ubBaseM * 32 * 2;
   }
 
   if (hasBias_) {
