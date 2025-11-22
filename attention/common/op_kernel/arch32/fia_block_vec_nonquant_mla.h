@@ -811,6 +811,10 @@ __aicore__ inline void FiaBlockVecNonQuantMla<FIAT>::ProcessVec1L(const Attentio
                     ComputeLogSumExpAndCopyToGm(info, mSplitInfo, sumTensor, maxTensor);
                 }
             } else if (constInfo.softmaxLseFlag) {
+                if (mSplitInfo.vecDealM == 0) {
+                    continue;
+                }
+
                 LocalTensor<COMPUTE_T> totalLseUb = tmpBuff1.Get<COMPUTE_T>(LSE_TMP_BUFFER_SIZE);
                 if constexpr (!SOFTMAX_WITH_BRC) {
                     LocalTensor<COMPUTE_T> lseSumUb =
