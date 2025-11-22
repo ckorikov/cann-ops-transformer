@@ -685,26 +685,26 @@ static bool CheckBsAttrs(const gert::TilingContext *context, const char *nodeNam
     const int64_t xDim0 = xStorageShape->GetStorageShape().GetDim(0);
     OP_TILING_CHECK((xDim0 > BS_UPPER_BOUND) || (xDim0 <= 0),
         OP_LOGE(nodeName, "xDim0(BS) is invalid. Should be between [1, %ld], but got xDim0=%ld.", BS_UPPER_BOUND,
-                xDim0), return ge::GRAPH_FAILED);
+                xDim0), return false);
     tilingData.moeDistributeDispatchV2Info.bs = static_cast<uint32_t>(xDim0);
 
     // 校验globalBS
     auto attrs = context->GetAttrs();
-    OP_TILING_CHECK(attrs == nullptr, OP_LOGE(nodeName, "attrs is nullptr."), return ge::GRAPH_FAILED);
+    OP_TILING_CHECK(attrs == nullptr, OP_LOGE(nodeName, "attrs is nullptr."), return false);
     auto globalBsPtr = attrs->GetAttrPointer<int64_t>(ATTR_GLOBAL_BS_INDEX);
-    OP_TILING_CHECK(globalBsPtr == nullptr, OP_LOGE(nodeName, "globalBsPtr is nullptr."), return ge::GRAPH_FAILED);
+    OP_TILING_CHECK(globalBsPtr == nullptr, OP_LOGE(nodeName, "globalBsPtr is nullptr."), return false);
     OP_LOGD(nodeName, "MoeDistributeDispatchV2 *globalBsPtr = %ld, bs = %ld, epWorldSize = %u\n",
         *globalBsPtr, xDim0, epWorldSize);
     OP_TILING_CHECK((*globalBsPtr != 0) && ((*globalBsPtr < xDim0 * static_cast<int64_t>(epWorldSize)) ||
         ((*globalBsPtr) % (static_cast<int64_t>(epWorldSize)) != 0)), OP_LOGE(nodeName, "globalBS is invalid, only "
         "support 0 or maxBs(maxBs is the largest bs on all ranks) * epWorldSize, but got globalBS=%ld, "
-        "bs=%ld, epWorldSize=%u.", *globalBsPtr, xDim0, epWorldSize), return ge::GRAPH_FAILED);
+        "bs=%ld, epWorldSize=%u.", *globalBsPtr, xDim0, epWorldSize), return false);
     OP_TILING_CHECK(((*globalBsPtr > (xDim0 * static_cast<int64_t>(epWorldSize))) && isActiveMask),
         OP_LOGE(nodeName, "Different bs on different rank cannot work when isActiveMask=true, globalBS=%ld, "
-        "bs=%ld, epWorldSize=%u.", *globalBsPtr, xDim0, epWorldSize), return ge::GRAPH_FAILED);
+        "bs=%ld, epWorldSize=%u.", *globalBsPtr, xDim0, epWorldSize), return false);
     OP_TILING_CHECK(((*globalBsPtr > (xDim0 * static_cast<int64_t>(epWorldSize))) && isSetCommAlg),
         OP_LOGE(nodeName, "Different bs on different rank cannot work when comm_alg = fullmesh_v2, globalBS=%ld, "
-        "bs=%ld, epWorldSize=%u.", *globalBsPtr, xDim0, epWorldSize), return ge::GRAPH_FAILED);
+        "bs=%ld, epWorldSize=%u.", *globalBsPtr, xDim0, epWorldSize), return false);
     if (*globalBsPtr == 0) {
         tilingData.moeDistributeDispatchV2Info.globalBs = static_cast<uint32_t>(xDim0) * epWorldSize;
     } else {
