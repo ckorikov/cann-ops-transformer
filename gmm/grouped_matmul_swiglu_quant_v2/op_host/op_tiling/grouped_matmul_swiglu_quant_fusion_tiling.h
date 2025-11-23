@@ -49,6 +49,7 @@ private:
     int32_t groupNum_;
     int32_t aicCoreNum_;
     int32_t aivCoreNum_;
+    int64_t ubFactorDimx_;
     int8_t isSingleTensor_;
 };
 

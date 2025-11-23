@@ -20,11 +20,14 @@ namespace optiling {
 namespace GroupedMatmulSwigluQuantV2Tiling {
 
 constexpr int64_t BASE_M = 128;
-constexpr int64_t BASE_K = 256;
-constexpr int64_t BASE_N = 128;
+constexpr int64_t BASE_K = 128;
+constexpr int64_t BASE_N = 256;
 constexpr int64_t UB_Y_FACTOR = 2;
 constexpr int64_t EXTEND_WORKSPACE_SIZE = (20 * 1024 * 1024);
-constexpr int64_t NZ_WEIGHT_MULTI_TENSOR_DIM = 4;
+constexpr int64_t NZ_WEIGHT_SINGLE_TENSOR_DIM = 4;
+constexpr int64_t NZ_WEIGHT_MULTI_TENSOR_DIM = 5;
+constexpr int64_t MIN_UB_FACTOR_DIM_X_N = 4600;
+constexpr int64_t MID_UB_FACTOR_DIM_X_N = 8192;
 
 using namespace matmul_tiling;
 
@@ -66,6 +69,13 @@ ge::graphStatus GroupedMatmulSwigluQuantV2FusionTiling::ParseInputAndAttr()
     m_ = xTensor->GetStorageShape().GetDim(0);
     k_ = xTensor->GetStorageShape().GetDim(1);
     n_ = wTensor->GetStorageShape().GetDim(DIM_1) * wTensor->GetStorageShape().GetDim(DIM_4);
+    if (n_ < MIN_UB_FACTOR_DIM_X_N) {
+        ubFactorDimx_ = 0x4;
+    } else if (n_ >= MIN_UB_FACTOR_DIM_X_N && n_ < MID_UB_FACTOR_DIM_X_N) {
+        ubFactorDimx_ = 0x2;
+    } else {
+        ubFactorDimx_ = 1;
+    }
 
     auto platformInfo = context_->GetPlatformInfo();
     if (platformInfo == nullptr) {
@@ -96,7 +106,7 @@ ge::graphStatus GroupedMatmulSwigluQuantV2FusionTiling::DoOpTiling()
     tiling.SetBType(TPosition::GM, CubeFormat::NZ, matmul_tiling::DataType::DT_INT8);
     tiling.SetCType(TPosition::GM, CubeFormat::ND, matmul_tiling::DataType::DT_INT32);
     tiling.SetBias(false);
-    tiling.SetShape(m_, BASE_K, k_);
+    tiling.SetShape(m_, BASE_N, k_);
     tiling.SetOrgShape(m_, n_, k_);
     tiling.SetBufferSpace(-1, -1, -1);
     OP_CHECK_IF(
@@ -131,12 +141,12 @@ void GroupedMatmulSwigluQuantV2FusionTiling::PrintTilingData()
 void GroupedMatmulSwigluQuantV2FusionTiling::FillTilingData()
 {
     tilingData_.set_cubeBlockDim(aicCoreNum_);
-    tilingData_.set_vectorBlockDim(aicCoreNum_);
+    tilingData_.set_vectorBlockDim(aivCoreNum_);
     tilingData_.set_groupNum(groupNum_);
     tilingData_.set_K(k_);
     tilingData_.set_N(n_);
     tilingData_.set_M(m_);
-    tilingData_.set_ubFactorDimx(0x4);
+    tilingData_.set_ubFactorDimx(ubFactorDimx_);
     tilingData_.set_ubFactorDimy(n_ / UB_Y_FACTOR);
     tilingData_.set_isSingleTensor(isSingleTensor_);
 

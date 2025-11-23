@@ -45,6 +45,8 @@ constexpr size_t GROUP_LIST_DIM_LIMIT = 1UL;
 constexpr size_t QUANTOUT_DIM_LIMIT = 2UL;
 constexpr size_t QUANTSCALEOUT_DIM_LIMIT = 1UL;
 constexpr size_t INT4_PER_INT32 = 8UL;
+constexpr size_t NZ_ALIGN_K = 16UL;
+constexpr size_t NZ_ALIGN_N = 32UL;
 
 const std::initializer_list<DataType> X_DTYPE_SUPPORT_LIST = {DataType::DT_INT8};
 const std::initializer_list<DataType> WEIGHT_DTYPE_SUPPORT_LIST = {DataType::DT_INT8, DataType::DT_INT4};
@@ -66,8 +68,8 @@ protected:
         for (size_t i = 0; i < wLength; i++) {
             const aclTensor* w = (*gmmDsqParams_.weight)[i];
             const aclTensor* wScale = (*gmmDsqParams_.weightScale)[i];
-            op::Format weightViewFormat = w->GetViewFormat();
-            if (IsPrivateFormat(weightViewFormat)) {
+            op::Format wFormat = w->GetViewFormat();
+            if (IsPrivateFormat(wFormat)) {
                 OP_CHECK_WRONG_DIMENSION(w, WEIGHT_NZ_DIM_LIMIT, return false);
             } else {
                 OP_CHECK_WRONG_DIMENSION(w, WEIGHT_ND_DIM_LIMIT, return false);
@@ -145,8 +147,9 @@ protected:
         const aclTensor* w = (*gmmDsqParams_.weight)[0]; 
         const aclTensor* wScale = (*gmmDsqParams_.weightScale)[0];
 
-        op::Format weightViewFormat = w->GetViewFormat();
-        if (IsPrivateFormat(weightViewFormat)) {
+        op::Format wFormat = w->GetViewFormat();
+        op::Format storageFormat = w->GetStorageFormat();
+        if (IsPrivateFormat(wFormat)) {
             if (!(w->GetViewShape() == weightNZExpectShape1 || w->GetViewShape() == weightNZExpectShape2)) {
                 OP_LOGE(ACLNN_ERR_PARAM_INVALID, "Expected tensor for weight to have same size as %s or %s, but got %s.",
                         op::ToString(weightNZExpectShape1).GetString(),
@@ -160,6 +163,11 @@ protected:
                         op::ToString(weightNDExpectShape1).GetString(),
                         op::ToString(weightNDExpectShape2).GetString(),
                         op::ToString(w->GetViewShape()).GetString());
+                return false;
+            }
+
+            if (IsPrivateFormat(storageFormat) && (k % NZ_ALIGN_K != 0 || n % NZ_ALIGN_N != 0)) {
+                OP_LOGE(ACLNN_ERR_PARAM_INVALID, "In W8a8 Nz mode, k should align to 16, n align to 32");
                 return false;
             }
         }
@@ -187,13 +195,18 @@ protected:
         size_t wLength = gmmDsqParams_.weight->Size();
 
         for (size_t i = 0; i < wLength; i++) {
-            const aclTensor* w = (*gmmDsqParams_.weight)[i]; 
-            const aclTensor* wScale = (*gmmDsqParams_.weightScale)[i];
-            op::Format weightViewFormat = w->GetViewFormat();
-            if (IsPrivateFormat(weightViewFormat)) {
+            const aclTensor* w = (*gmmDsqParams_.weight)[0]; 
+            const aclTensor* wScale = (*gmmDsqParams_.weightScale)[0];
+            op::Format wFormat = w->GetViewFormat();
+            op::Format storageFormat = w->GetStorageFormat();
+            if (IsPrivateFormat(wFormat)) {
                 OP_CHECK_SHAPE_NOT_EQUAL_WITH_EXPECTED_SIZE(w, weightNZExpectShape, return false);
             } else {
                 OP_CHECK_SHAPE_NOT_EQUAL_WITH_EXPECTED_SIZE(w, weightNDExpectShape, return false);
+                if (IsPrivateFormat(storageFormat) && (k % NZ_ALIGN_K != 0 || n % NZ_ALIGN_N != 0)) {
+                    OP_LOGE(ACLNN_ERR_PARAM_INVALID, "In W8a8 Nz mode, k should align to 16, n align to 32");
+                    return false;
+                }
             }
             OP_CHECK_SHAPE_NOT_EQUAL_WITH_EXPECTED_SIZE(wScale, weightScaleExpectShape, return false);
         }

@@ -29,6 +29,7 @@ constexpr float DYNAMIC_QUANT_FACTOR = 1.0 / static_cast<float>(127.0);
 constexpr uint64_t MAX_CALC_NUM = 64;
 constexpr uint64_t REDUCEMAX_CALC_NUM = 64;
 constexpr uint64_t SPILI_NUM = 2;
+constexpr uint64_t VC_SYNC_MAX_TIMES = 15;
 
 class GroupedMatmulDequantSwigluQuantFusion {
 public:
@@ -72,14 +73,6 @@ public:
         }
 
         totalSyncTimes = CeilDiv(totalBasicBlocks, tilingData_->cubeBlockDim);
-
-        if ASCEND_IS_AIC {
-            currentCoreBasicBlockNum = totalBasicBlocks / tilingData_->cubeBlockDim;
-            if (GetBlockIdx() < totalBasicBlocks % tilingData_->cubeBlockDim) {
-                currentCoreBasicBlockNum += 1;
-            }
-        }
-
         if ASCEND_IS_AIV {
             pipe_->InitBuffer(xActQueue_, 1, (tilingData_->ubFactorDimx * (tilingData_->N / SPILI_NUM) * SWI_FACTOR + tilingData_->ubFactorDimx * BLOCK_ELEM) * sizeof(int32_t));
             pipe_->InitBuffer(inScaleQueue_, 1, ((tilingData_->N / SPILI_NUM) * SWI_FACTOR + (tilingData_->N / SPILI_NUM)) * sizeof(float));
@@ -88,112 +81,183 @@ public:
         }
     }
 
-    __aicore__ inline void CubeProcess() {
-        if ASCEND_IS_AIC {
-            for (int syncId = 0; syncId < totalSyncTimes; syncId++) {
-                if (syncId >= currentCoreBasicBlockNum) {
-                    AscendC::CrossCoreSetFlag<0x2, PIPE_FIX>(0x8);
-                    continue;
-                }
-                int basicBlockIdxInGlobal = syncId * tilingData_->cubeBlockDim + GetBlockIdx();
-                if (basicBlockIdxInGlobal >= totalBasicBlocks) {
-                    AscendC::CrossCoreSetFlag<0x2, PIPE_FIX>(0x8);
-                    continue;
-                }
-
-                int processedBasicBlock = 0;
-                int currentGroupId = 0;
-                int globalMOffset = 0;
-                for (int groupId = 0; groupId < tilingData_->groupNum; groupId++) {
-                    int tokens = groupListGm_.GetValue(groupId);
-                    int mBasicBlocks = CeilDiv(tokens, matmulTilingData_->baseM);
-                    if (processedBasicBlock + mBasicBlocks * nBasicsBlocks > basicBlockIdxInGlobal) {
-                        currentGroupId = groupId;
-                        break;
-                    } else {
-                        globalMOffset += tokens;
-                        processedBasicBlock += mBasicBlocks * nBasicsBlocks;
-                    }
-                }
-
-                int tokens = groupListGm_.GetValue(currentGroupId);
-                int basicBlockIdxInCurrentGroup = basicBlockIdxInGlobal - processedBasicBlock;
-                int mBasicBlocks = CeilDiv(tokens, matmulTilingData_->baseM);
-                int currentBasicBlockMId = basicBlockIdxInCurrentGroup / nBasicsBlocks;
-                int currentBasicBlockNId = basicBlockIdxInCurrentGroup % nBasicsBlocks;
-
-                int realMSize = matmulTilingData_->baseM;
-                if (currentBasicBlockMId * matmulTilingData_->baseM + realMSize > tokens) {
-                    realMSize = tokens - currentBasicBlockMId * matmulTilingData_->baseM;
-                }
-
-                int realNSize = matmulTilingData_->baseN;
-                if (currentBasicBlockNId * matmulTilingData_->baseN + realMSize > tilingData_->N) {
-                    realNSize = tilingData_->N - currentBasicBlockNId * matmulTilingData_->baseN;
-                }
-
-                mm.SetOrgShape(tokens, tilingData_->N, tilingData_->K);
-                mm.SetSingleShape(realMSize, realNSize, tilingData_->K);
-                mm.SetTensorA(xGm_[currentBasicBlockMId * matmulTilingData_->baseM * tilingData_->K + globalMOffset * tilingData_->K]);
-                if (tilingData_->isSingleTensor == 0) {
-                    weightGm_.SetGlobalBuffer(GetTensorAddr<int8_t>(currentGroupId, weightTensorPtr_));
-                    mm.SetTensorB(weightGm_[0x8 * currentBasicBlockNId * tilingData_->K * 0x20]);
-                } else {
-                    mm.SetTensorB(weightGm_[currentGroupId * tilingData_->K * tilingData_->N + 0x8 * currentBasicBlockNId * tilingData_->K * 0x20]);
-                }
-
-                mm.template IterateAll<false>(workspaceGm_[globalMOffset * tilingData_->N + currentBasicBlockMId * matmulTilingData_->baseM * tilingData_->N
-                    + currentBasicBlockNId * matmulTilingData_->baseN]);
-                AscendC::CrossCoreSetFlag<0x2, PIPE_FIX>(0x8);
+    __aicore__ inline void FindCurrentGroup(uint32_t basicBlockIdxInGlobal, uint32_t& currentGroupId,
+        uint32_t& globalMOffset, uint32_t& processedBasicBlock) {
+        for (int groupId = currentGroupId; groupId < tilingData_->groupNum; groupId++) {
+            int tokens = groupListGm_.GetValue(groupId);
+            int mBasicBlocks = CeilDiv(tokens, matmulTilingData_->baseM);
+            if (processedBasicBlock + mBasicBlocks * nBasicsBlocks > basicBlockIdxInGlobal) {
+                currentGroupId = groupId;
+                break;
+            } else {
+                globalMOffset += tokens;
+                processedBasicBlock += mBasicBlocks * nBasicsBlocks;
             }
         }
+    }
+
+    __aicore__ inline void CalculateBlockSizes(int tokens, int currentBasicBlockMId, int currentBasicBlockNId,
+        int& realMSize, int& realNSize) {
+        realMSize = matmulTilingData_->baseM;
+        if (currentBasicBlockMId * matmulTilingData_->baseM + realMSize > tokens) {
+            realMSize = tokens - currentBasicBlockMId * matmulTilingData_->baseM;
+        }
+        realNSize = matmulTilingData_->baseN;
+        if (currentBasicBlockNId * matmulTilingData_->baseN + realMSize > tilingData_->N) {
+            realNSize = tilingData_->N - currentBasicBlockNId * matmulTilingData_->baseN;
+        }
+    }
+
+    __aicore__ inline void SetupMatmulShape(int tokens, int realMSize, int realNSize) {
+        mm.SetOrgShape(tokens, tilingData_->N, tilingData_->K);
+        mm.SetSingleShape(realMSize, realNSize, tilingData_->K);
+    }
+
+    __aicore__ inline void SetupMatmulWeight(int currentGroupId, int currentBasicBlockNId) {
+        if (tilingData_->isSingleTensor == 0) {
+            weightGm_.SetGlobalBuffer(GetTensorAddr<int8_t>(currentGroupId, weightTensorPtr_));
+            mm.SetTensorB(weightGm_[0x8 * currentBasicBlockNId * tilingData_->K * 0x20]);
+        } else {
+            int64_t tensorBOffset = currentGroupId * tilingData_->K * tilingData_->N + 0x8 * currentBasicBlockNId * tilingData_->K * 0x20;
+            mm.SetTensorB(weightGm_[tensorBOffset]);
+        }
+    }
+
+    __aicore__ inline void ProcessCubeBlock(uint32_t basicBlockIdxInGlobal, uint32_t& currentGroupId,
+        uint32_t& globalMOffset, uint32_t& processedBasicBlock) {
+        FindCurrentGroup(basicBlockIdxInGlobal, currentGroupId, globalMOffset, processedBasicBlock);
+        int tokens = groupListGm_.GetValue(currentGroupId);
+        int basicBlockIdxInCurrentGroup = basicBlockIdxInGlobal - processedBasicBlock;
+        int mBasicBlocks = CeilDiv(tokens, matmulTilingData_->baseM);
+        int currentBasicBlockMId = basicBlockIdxInCurrentGroup / nBasicsBlocks;
+        int currentBasicBlockNId = basicBlockIdxInCurrentGroup % nBasicsBlocks;
+        int realMSize = 0;
+        int realNSize = 0;
+        CalculateBlockSizes(tokens, currentBasicBlockMId, currentBasicBlockNId, realMSize, realNSize);
+        SetupMatmulShape(tokens, realMSize, realNSize);
+        int64_t tensorAOffset = currentBasicBlockMId * matmulTilingData_->baseM * tilingData_->K + globalMOffset * tilingData_->K;
+        mm.SetTensorA(xGm_[tensorAOffset]);
+        SetupMatmulWeight(currentGroupId, currentBasicBlockNId);
+        int64_t workspaceOffset = globalMOffset * tilingData_->N + currentBasicBlockMId * matmulTilingData_->baseM * tilingData_->N
+            + currentBasicBlockNId * matmulTilingData_->baseN;
+        mm.template IterateAll<false>(workspaceGm_[workspaceOffset]);
+    }
+
+    __aicore__ inline void FinalizeCubeSync(uint32_t& syncId) {
+        while (syncId < totalSyncTimes) {
+            AscendC::CrossCoreSetFlag<0x2, PIPE_FIX>(0x8);
+            syncId += 1;
+        }
+    }
+
+    __aicore__ inline void CubeProcess() {
+        if ASCEND_IS_AIC {
+            uint32_t currentBlockId = GetBlockIdx();
+            uint32_t rsvBlockNum = 0;
+            uint32_t calcBlockNum = 0;
+            uint32_t cvTimes = 0;
+            uint32_t syncId = 0;
+            uint32_t globalMOffset = 0;
+            uint32_t processedBasicBlock = 0;
+            uint32_t currentGroupId = 0;
+            while (currentBlockId < totalBasicBlocks) {
+                cvTimes = CeilDiv(nBasicsBlocks - rsvBlockNum, tilingData_->cubeBlockDim);
+                calcBlockNum += cvTimes * tilingData_->cubeBlockDim;
+                rsvBlockNum = calcBlockNum % nBasicsBlocks;
+
+                for (uint32_t cvId = 0; cvId < cvTimes; cvId++) {
+                    if (syncId > 0 && syncId % VC_SYNC_MAX_TIMES == 0) {
+                        AscendC::CrossCoreWaitFlag(0x9);
+                    }
+                    uint32_t basicBlockIdxInGlobal = currentBlockId;
+                    if (basicBlockIdxInGlobal >= totalBasicBlocks) {
+                        break;
+                    }
+                    ProcessCubeBlock(basicBlockIdxInGlobal, currentGroupId, globalMOffset, processedBasicBlock);
+                    currentBlockId += tilingData_->cubeBlockDim;
+                    syncId += 1;
+                }
+                AscendC::CrossCoreSetFlag<0x2, PIPE_FIX>(0x8);
+            }
+            FinalizeCubeSync(syncId);
+        }
+    }
+
+    __aicore__ inline void CalculateEndGroupInfo(int endBasicBlockId, int endGroupId, int& endGroupMOffset,
+        int& basicBlockCountBeforeEndGroup) {
+        endGroupMOffset = 0;
+        basicBlockCountBeforeEndGroup = 0;
+        for (int gId = 0; gId < endGroupId; gId++) {
+            int tokens = groupListGm_(gId);
+            int mBasicBlocks = CeilDiv(tokens, matmulTilingData_->baseM);
+            basicBlockCountBeforeEndGroup += mBasicBlocks * nBasicsBlocks;
+            endGroupMOffset += tokens;
+        }
+        int basicBlockIdxInCurrentGroup = endBasicBlockId - basicBlockCountBeforeEndGroup;
+        int currentBasicBlockMId = basicBlockIdxInCurrentGroup / nBasicsBlocks;
+        endGroupMOffset += currentBasicBlockMId * matmulTilingData_->baseM;
+    }
+
+    __aicore__ inline void ProcessGroupRange(int startGroupId, int endGroupId, int endGroupMOffset,
+        uint32_t& globalMOffset, bool &isSyncAll) {
+        int currentGroupMOffset = 0;
+        for (int gId = 0; gId < startGroupId; gId++) {
+            currentGroupMOffset += groupListGm_(gId);
+        }
+        for (int groupId = startGroupId; groupId <= endGroupId; groupId++) {
+            currentGroupMOffset += groupListGm_(groupId);
+            int calcCount = 0;
+            if (currentGroupMOffset <= endGroupMOffset) {
+                calcCount = currentGroupMOffset - globalMOffset;
+            } else {
+                calcCount = endGroupMOffset - globalMOffset;
+            }
+            ProcessDSQ(groupId, globalMOffset, calcCount, isSyncAll);
+            globalMOffset += calcCount;
+        }
+    }
+
+    __aicore__ inline void ProcessVectorBlock(uint32_t syncId, bool& isSyncAll, uint32_t& globalMOffset) {
+        if (syncId > 0 && (syncId % VC_SYNC_MAX_TIMES == 0)) {
+            AscendC::CrossCoreSetFlag<0x2, PIPE_MTE2>(0x9);
+        }
+
+        int startBasicBlockId = syncId * tilingData_->cubeBlockDim;
+        int endBasicBlockId = startBasicBlockId + tilingData_->cubeBlockDim;
+        if (totalBasicBlocks < endBasicBlockId) {
+            endBasicBlockId = totalBasicBlocks;
+        }
+        int startGroupId = GetGroupId(startBasicBlockId);
+        int endGroupId = GetGroupId(endBasicBlockId);
+        int endGroupMOffset = 0;
+        int basicBlockCountBeforeEndGroup = 0;
+        CalculateEndGroupInfo(endBasicBlockId, endGroupId, endGroupMOffset, basicBlockCountBeforeEndGroup);
+        ProcessGroupRange(startGroupId, endGroupId, endGroupMOffset, globalMOffset, isSyncAll);
     }
 
     __aicore__ inline void VectorProcess() {
         if ASCEND_IS_AIV {
             weightCacheGroupId_ = -1;
-            bool isSyncAll = true;
-            int globalMOffset = 0;
-            for (int syncId = 0; syncId < totalSyncTimes; syncId++) {
-                int startBasicBlockId = syncId * tilingData_->cubeBlockDim;
-                int endBasicBlockId = startBasicBlockId + tilingData_->cubeBlockDim;
-                if (totalBasicBlocks < endBasicBlockId) {
-                    endBasicBlockId = totalBasicBlocks;
-                }
-
-                int startGroupId = GetGroupId(startBasicBlockId);
-                int endGroupId = GetGroupId(endBasicBlockId);
-                int endGroupMOffset = 0;
-                int basicBlockCountBeforeEndGroup = 0;
-                for (int gId = 0; gId < endGroupId; gId++) {
-                    int tokens = groupListGm_(gId);
-                    int mBasicBlocks = CeilDiv(tokens, matmulTilingData_->baseM);
-                    basicBlockCountBeforeEndGroup += mBasicBlocks * nBasicsBlocks;
-                    endGroupMOffset += tokens;
-                }
-
-                int basicBlockIdxInCurrentGroup = endBasicBlockId - basicBlockCountBeforeEndGroup;
-                int currentBasicBlockMId = basicBlockIdxInCurrentGroup / nBasicsBlocks;
-                int currentBasicBlockNId = basicBlockIdxInCurrentGroup % nBasicsBlocks;
-                endGroupMOffset += currentBasicBlockMId * matmulTilingData_->baseM;
-
-                for (int groupId = startGroupId; groupId <= endGroupId; groupId++) {
-                    int calcCount = 0;
-                    int currentGroupMOffset = 0;
-                    for (int gId = 0; gId <= groupId; gId++) {
-                        currentGroupMOffset += groupListGm_(gId);
-                    }
-
-                    if (currentGroupMOffset <= endGroupMOffset) {
-                        calcCount = currentGroupMOffset - globalMOffset;
-                    } else {
-                        calcCount = endGroupMOffset - globalMOffset;
-                    }
-
-                    ProcessDSQ(groupId, globalMOffset, calcCount, isSyncAll);
-                    globalMOffset += calcCount;
-                }
+            uint32_t currentBlockId = GetBlockIdx() / 2;
+            uint32_t rsvBlockNum = 0;
+            uint32_t calcBlockNum = 0;
+            uint32_t cvTimes = 0;
+            uint32_t syncId = 0;
+            uint32_t globalMOffset = 0;
+            uint32_t processedBasicBlock = 0;
+            uint32_t currentGroupId = 0;
+            bool isSyncAll = false;
+            while (syncId < totalSyncTimes) {
+                cvTimes = CeilDiv(nBasicsBlocks - rsvBlockNum, tilingData_->cubeBlockDim);
+                calcBlockNum += cvTimes * tilingData_->cubeBlockDim;
+                rsvBlockNum = calcBlockNum % nBasicsBlocks;
                 isSyncAll = true;
+
+                for (uint32_t cvId = 0; cvId < cvTimes; cvId++) {
+                    ProcessVectorBlock(syncId, isSyncAll, globalMOffset);
+                    currentBlockId += tilingData_->cubeBlockDim;
+                    syncId += 1;
+                }
             }
         }
     }
@@ -461,10 +525,8 @@ private:
     GlobalTensor<float> scaleGm_;
     GlobalTensor<int64_t> groupListGm_;
     int nBasicsBlocks = 0;
-    int currentCoreBasicBlockNum = 0;
-    int totalSyncTimes = 0;
     int totalBasicBlocks = 0;
-
+    int totalSyncTimes = 0;
     int32_t weightCacheGroupId_ = -1;
 
     TQue<TPosition::VECIN, 1> inQue_;
