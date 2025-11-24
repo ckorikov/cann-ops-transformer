@@ -482,7 +482,6 @@ __aicore__ inline void FABlockVecBase<TEMPLATE_BASE_ARGS>::ProcessVec1Dn(
                 static_cast<T>(constInfo.scaleValue), descaleQK,
                 negativeFloatScalar, constInfo.keepProb);
         }
- 
     } else {
         if constexpr (isFp8) {
             fa::ProcessVec1VfDn<T, INPUT_T, true, s2BaseSize>(
