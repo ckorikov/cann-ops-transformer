@@ -15,7 +15,8 @@
 #include <thread>
 #include <iostream>
 #include <vector>
-#include "../op_host/op_api/aclnn_quant_reduce_scatter.h"
+#include <getopt.h>
+#include "../op_api/aclnn_quant_reduce_scatter.h"
  
 #define CHECK_RET(cond, return_expr) \
     do {                             \
@@ -113,7 +114,6 @@ int LaunchOneThreadQtReduceScatter(Args &args)
     aclTensor *x = nullptr;
     aclTensor *scales = nullptr;
     aclTensor *output = nullptr;
-    string reduceOp = "sum";
     uint64_t workspaceSize = 0;
     aclOpExecutor *executor = nullptr;
 
@@ -135,7 +135,7 @@ int LaunchOneThreadQtReduceScatter(Args &args)
 
     // 调用第一阶段接口
     ret = aclnnQuantReduceScatterGetWorkspaceSize(
-        x, scales, hcomName, reduceOp, output, &workspaceSize, &executor);
+        x, scales, hcomName, "sum", output, &workspaceSize, &executor);
     CHECK_RET(ret == ACL_SUCCESS,
         LOG_PRINT("[ERROR] aclnnQuantReduceScatterGetWorkspaceSize failed. ret = %d \n", ret);
                   return ret);

@@ -1,15 +1,193 @@
 /**
- * This program is free software, you can redistribute it and/or modify.
- * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+ * This program is free software, you can redistribute it and/or modify.
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025-2025. All rights reserved.
  * This file is a part of the CANN Open Software.
  * Licensed under CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING
- * BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE. See LICENSE in the root of
- * the software repository for the full text of the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
  */
 
 /*!
  * \file test_aclnn_quant_all_reduce.cpp
  * \brief aclnn ut
  */
+
+#include <float.h>
+#include <array>
+#include <vector>
+#include <gtest/gtest.h>
+#include <gmock/gmock.h>
+#include "../../../op_api/aclnn_quant_all_reduce.h"
+#include "op_api_ut_common/tensor_desc.h"
+#include "op_api_ut_common/op_api_ut.h"
+#include "opdev/platform.h"
+
+using namespace op;
+using namespace std;
+
+namespace QuantAllReduceUT {
+class test_aclnn_quant_all_reduce : public testing::Test {
+protected:
+    static void SetUpTestCase()
+    {
+        op::SetPlatformSocVersion(op::SocVersion::ASCEND910_95);
+        cout << "test_aclnn_quant_all_reduce SetUp" << endl;
+    }
+
+    static void TearDownTestCase() { cout << "test_aclnn_quant_all_reduce TearDown" << endl; }
+};
+
+struct QuantAllReduceAclnnTestParam {
+    string case_name;
+    vector<int64_t> x_shape; // x数据shape
+    vector<int64_t> scales_shape; // scales数据shape
+    vector<int64_t> output_shape; // output数据shape
+    aclDataType x_dtype; // x数据dtype
+    aclDataType scales_dtype; // scales数据dtype
+    aclDataType output_dtype; // 输出数据dtype
+    aclnnStatus aclnn_status; // 检查项，返回aclnnStatus
+};
+
+static QuantAllReduceAclnnTestParam cases_params[] = {
+    // mx正常用例
+    {"test_aclnn_quant_all_reduce_mx_BS96_H7168_FLOAT8E4M3FN_FLOAT8E8M0_FLOAT_true",
+        {96, 7168}, {96, 112, 2}, {96, 7168},
+        ACL_FLOAT8_E4M3FN, ACL_FLOAT8_E8M0, ACL_FLOAT, ACLNN_SUCCESS},
+    {"test_aclnn_quant_all_reduce_mx_BS96_H7168_FLOAT8E5M2_FLOAT8E8M0_FLOAT16_true",
+        {96, 7168}, {96, 112, 2}, {96, 7168},
+        ACL_FLOAT8_E5M2, ACL_FLOAT8_E8M0, ACL_FLOAT16, ACLNN_SUCCESS},
+    {"test_aclnn_quant_all_reduce_mx_B1_S96_H7168_FLOAT8E4M3FN_FLOAT8E8M0_FLOAT_true",
+        {1, 96, 7168}, {1, 96, 112, 2}, {1, 96, 7168},
+        ACL_FLOAT8_E4M3FN, ACL_FLOAT8_E8M0, ACL_FLOAT, ACLNN_SUCCESS},
+    {"test_aclnn_quant_all_reduce_mx_B1_S96_H7168_FLOAT8E5M2_FLOAT8E8M0_BF16_true",
+        {1, 96, 7168}, {1, 96, 112, 2}, {1, 96, 7168},
+        ACL_FLOAT8_E5M2, ACL_FLOAT8_E8M0, ACL_BF16, ACLNN_SUCCESS},
+    {"test_aclnn_quant_all_reduce_mx_BS96_H4096_FLOAT8E4M3FN_FLOAT8E8M0_FLOAT_true",
+        {96, 4096}, {96, 64, 2}, {96, 4096},
+        ACL_FLOAT8_E4M3FN, ACL_FLOAT8_E8M0, ACL_FLOAT, ACLNN_SUCCESS},
+    {"test_aclnn_quant_all_reduce_mx_BS96_H4096_FLOAT8E5M2_FLOAT8E8M0_FLOAT16_true",
+        {96, 4096}, {96, 64, 2}, {96, 4096},
+        ACL_FLOAT8_E5M2, ACL_FLOAT8_E8M0, ACL_FLOAT16, ACLNN_SUCCESS},
+    {"test_aclnn_quant_all_reduce_mx_B1_S96_H4096_FLOAT8E4M3FN_FLOAT8E8M0_FLOAT16_true",
+        {1, 96, 4096}, {1, 96, 64, 2}, {1, 96, 4096},
+        ACL_FLOAT8_E4M3FN, ACL_FLOAT8_E8M0, ACL_FLOAT16, ACLNN_SUCCESS},
+    {"test_aclnn_quant_all_reduce_mx_B1_S96_H4096_FLOAT8E5M2_FLOAT8E8M0_FLOAT_true",
+        {1, 96, 4096}, {1, 96, 64, 2}, {1, 96, 4096},
+        ACL_FLOAT8_E5M2, ACL_FLOAT8_E8M0, ACL_FLOAT, ACLNN_SUCCESS},
+
+    // T-G正常用例
+    {"test_aclnn_quant_all_reduce_tg_BS96_H7168_INT8_FLOAT_FLOAT_true",
+        {96, 7168}, {96, 56}, {96, 7168},
+        ACL_INT8, ACL_FLOAT, ACL_FLOAT, ACLNN_SUCCESS},
+    {"test_aclnn_quant_all_reduce_tg_BS96_H7168_HIFLOAT8_FLOAT_FLOAT_true",
+        {96, 7168}, {96, 56}, {96, 7168},
+        ACL_HIFLOAT8, ACL_FLOAT, ACL_FLOAT, ACLNN_SUCCESS},
+    {"test_aclnn_quant_all_reduce_tg_BS96_H7168_FLOAT8E4M3FN_FLOAT_FLOAT_true",
+        {96, 7168}, {96, 56}, {96, 7168},
+        ACL_FLOAT8_E4M3FN, ACL_FLOAT, ACL_FLOAT, ACLNN_SUCCESS},
+    {"test_aclnn_quant_all_reduce_tg_BS96_H7168_FLOAT8E5M2_FLOAT_FLOAT_true",
+        {96, 7168}, {96, 56}, {96, 7168},
+        ACL_FLOAT8_E5M2, ACL_FLOAT, ACL_FLOAT, ACLNN_SUCCESS},
+
+    {"test_aclnn_quant_all_reduce_tg_B1_S96_H7168_INT8_FLOAT_BF16_true",
+        {1, 96, 7168}, {1, 96, 56}, {1, 96, 7168},
+        ACL_INT8, ACL_FLOAT, ACL_BF16, ACLNN_SUCCESS},
+    {"test_aclnn_quant_all_reduce_tg_B1_S96_H7168_HIFLOAT8_FLOAT_FLOAT_true",
+        {1, 96, 7168}, {1, 96, 56}, {1, 96, 7168},
+        ACL_HIFLOAT8, ACL_FLOAT, ACL_FLOAT, ACLNN_SUCCESS},
+    {"test_aclnn_quant_all_reduce_tg_B1_S96_H7168_FLOAT8E4M3FN_FLOAT_BF16_true",
+        {1, 96, 7168}, {1, 96, 56}, {1, 96, 7168},
+        ACL_FLOAT8_E4M3FN, ACL_FLOAT, ACL_BF16, ACLNN_SUCCESS},
+    {"test_aclnn_quant_all_reduce_tg_B1_S96_H7168_FLOAT8E5M2_FLOAT_BF16_true",
+        {1, 96, 7168}, {1, 96, 56}, {1, 96, 7168},
+        ACL_FLOAT8_E5M2, ACL_FLOAT, ACL_BF16, ACLNN_SUCCESS},
+
+    {"test_aclnn_quant_all_reduce_tg_BS96_H4096_INT8_FLOAT_FLOAT16_true",
+        {96, 4096}, {96, 32}, {96, 4096},
+        ACL_INT8, ACL_FLOAT, ACL_FLOAT16, ACLNN_SUCCESS},
+    {"test_aclnn_quant_all_reduce_tg_BS96_H4096_HIFLOAT8_FLOAT_BF16_true",
+        {96, 4096}, {96, 32}, {96, 4096},
+        ACL_HIFLOAT8, ACL_FLOAT, ACL_BF16, ACLNN_SUCCESS},
+    {"test_aclnn_quant_all_reduce_tg_BS96_H4096_FLOAT8E4M3FN_FLOAT_BF16_true",
+        {96, 4096}, {96, 32}, {96, 4096},
+        ACL_FLOAT8_E4M3FN, ACL_FLOAT, ACL_BF16, ACLNN_SUCCESS},
+    {"test_aclnn_quant_all_reduce_tg_BS96_H4096_FLOAT8E5M2_FLOAT_FLOAT16_true",
+        {96, 4096}, {96, 32}, {96, 4096},
+        ACL_FLOAT8_E5M2, ACL_FLOAT, ACL_FLOAT16, ACLNN_SUCCESS},
+
+    {"test_aclnn_quant_all_reduce_tg_B1_S96_H4096_INT8_FLOAT_BF16_true",
+        {1, 96, 4096}, {1, 96, 32}, {1, 96, 4096},
+        ACL_INT8, ACL_FLOAT, ACL_BF16, ACLNN_SUCCESS},
+    {"test_aclnn_quant_all_reduce_tg_B1_S96_H4096_HIFLOAT8_FLOAT_BF16_true",
+        {1, 96, 4096}, {1, 96, 32}, {1, 96, 4096},
+        ACL_HIFLOAT8, ACL_FLOAT, ACL_BF16, ACLNN_SUCCESS},
+    {"test_aclnn_quant_all_reduce_tg_B1_S96_H4096_FLOAT8E4M3FN_FLOAT_BF16_true",
+        {1, 96, 4096}, {1, 96, 32}, {1, 96, 4096},
+        ACL_FLOAT8_E4M3FN, ACL_FLOAT, ACL_BF16, ACLNN_SUCCESS},
+    {"test_aclnn_quant_all_reduce_tg_B1_S96_H4096_FLOAT8E5M2_FLOAT_FLOAT16_true",
+        {1, 96, 4096}, {1, 96, 32}, {1, 96, 4096},
+        ACL_FLOAT8_E5M2, ACL_FLOAT, ACL_FLOAT16, ACLNN_SUCCESS},
+
+    // 异常用例-组合异常与类型异常
+    {"test_aclnn_quant_all_reduce_mx_B1_S96_H4096_INT8_FLOAT8E8M0_BF16_false",
+        {1, 96, 4096}, {1, 96, 64, 2}, {1, 96, 4096},
+        ACL_INT8, ACL_FLOAT8_E8M0, ACL_BF16, ACLNN_ERR_PARAM_INVALID}, // 组合异常mx量化
+    {"test_aclnn_quant_all_reduce_mx_BS96_H4096_HIFLOAT8_FLOAT8E8M0_FLOAT16_false",
+        {96, 4096}, {96, 64, 2}, {96, 4096},
+        ACL_HIFLOAT8, ACL_FLOAT8_E8M0, ACL_FLOAT16, ACLNN_ERR_PARAM_INVALID}, // 组合异常mx量化
+
+    {"test_aclnn_quant_all_reduce_mx_B1_S96_H4096_FLOAT16_FLOAT8E8M0_BF16_false",
+        {1, 96, 4096}, {1, 96, 64, 2}, {1, 96, 4096},
+        ACL_FLOAT16, ACL_FLOAT8_E8M0, ACL_BF16, ACLNN_ERR_PARAM_INVALID}, // x类型异常mx量化
+    {"test_aclnn_quant_all_reduce_mx_BS96_H4096_FLOAT8E4M3FN_FLOAT16_FLOAT_false",
+        {96, 4096}, {96, 64, 2}, {96, 4096},
+        ACL_FLOAT8_E4M3FN, ACL_FLOAT16, ACL_FLOAT, ACLNN_ERR_PARAM_INVALID}, // scales类型异常mx量化
+    {"test_aclnn_quant_all_reduce_mx_BS96_H4096_FLOAT_FLOAT8E8M0_INT8_false",
+        {96, 4096}, {96, 64, 2}, {96, 4096},
+        ACL_FLOAT8_E5M2, ACL_FLOAT8_E8M0, ACL_INT8, ACLNN_ERR_PARAM_INVALID}, // output类型异常mx量化
+
+    {"test_aclnn_quant_all_reduce_tg_B1_S96_H4096_FLOAT16_FLOAT_BF16_false",
+        {1, 96, 4096}, {1, 96, 32}, {1, 96, 4096},
+        ACL_FLOAT16, ACL_FLOAT, ACL_BF16, ACLNN_ERR_PARAM_INVALID}, // x类型异常T-G量化
+    {"test_aclnn_quant_all_reduce_tg_B1_S96_H4096_INT8_FLOAT_FLOAT_false",
+        {1, 96, 4096}, {1, 96, 32}, {1, 96, 4096},
+        ACL_INT8, ACL_FLOAT16, ACL_FLOAT, ACLNN_ERR_PARAM_INVALID}, // scales类型异常T-G量化
+    {"test_aclnn_quant_all_reduce_tg_BS96_H4096_HIFLOAT8_FLOAT_INT8_false",
+        {96, 4096}, {96, 32}, {96, 4096},
+        ACL_HIFLOAT8, ACL_FLOAT, ACL_INT8, ACLNN_ERR_PARAM_INVALID}, // output类型异常T-G量化
+};
+
+static void TestOneParamCase(const QuantAllReduceAclnnTestParam& param)
+{
+    std::cout << "run case " << param.case_name << std::endl;
+    vector<int64_t> xShape = param.x_shape;
+    vector<int64_t> scalesShape = param.scales_shape;
+    vector<int64_t> outputShape = param.output_shape;
+    aclDataType xDtype = param.x_dtype;
+    aclDataType scalesDtype = param.scales_dtype;
+    aclDataType outputDtype = param.output_dtype;
+    aclnnStatus retStatus = param.aclnn_status;
+    TensorDesc x = TensorDesc(xShape, xDtype, ACL_FORMAT_ND);
+    TensorDesc scales = TensorDesc(scalesShape, scalesDtype, ACL_FORMAT_ND);
+    TensorDesc output = TensorDesc(outputShape, outputDtype, ACL_FORMAT_ND);
+    const char* reduceOp = "sum";
+    auto ut = OP_API_UT(aclnnQuantAllReduce,
+                        INPUT(x, scales, "test_quant_all_reduce", reduceOp),
+                        OUTPUT(output));
+    uint64_t workspace_size = 0;
+    aclOpExecutor* executor = nullptr;
+    aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
+    EXPECT_EQ(aclRet, retStatus);
+}
+
+TEST_F(test_aclnn_quant_all_reduce, cases_params)
+{
+    if (std::size(cases_params) != 0) {
+        uint64_t numCases = sizeof(cases_params) / sizeof(cases_params[0]);
+        for (size_t idx = 0; idx < numCases; idx += 1) {
+            TestOneParamCase(cases_params[idx]);
+        }
+    }
+}
+}
