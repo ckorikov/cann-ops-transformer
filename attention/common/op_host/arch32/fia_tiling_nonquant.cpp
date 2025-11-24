@@ -433,7 +433,6 @@ void FiaTilingNonQuant::FillTilingBaseParams()
     tilingData_->baseParams.set_usedCoreNum(usedCoreNum_);
     l2CacheOffFlag_ = GetL2CacheOffFlag();
     tilingData_->baseParams.set_l2CacheOffFlag(l2CacheOffFlag_);
-    
 }
  
 void FiaTilingNonQuant::FillTilingPageAttenParams()
@@ -457,10 +456,11 @@ void FiaTilingNonQuant::FillTilingMaskParams()
 // for flash decode
 void FiaTilingNonQuant::FillTilingWorkspaceParams()
 {
+    uint32_t maxConventNum = 2;
     // 每个核可能有头规约和尾规约，一共两份规约信息
-    tilingData_->workspaceParams.set_fdAccumOutSize(aicNum_ * 2 * mBaseSize_ * headDimAlign_);
+    tilingData_->workspaceParams.set_fdAccumOutSize(aicNum_ * maxConventNum * mBaseSize_ * headDimAlign_);
     // 每个核可能有头规约和尾规约，一共两份规约信息; 另外sum和max各一份
-    tilingData_->workspaceParams.set_fdLogSumExpSize(2 * aicNum_ * 2 * mBaseSize_ * (BYTE_BLOCK / BLOCK_TABLE_ELEM_BYTE));
+    tilingData_->workspaceParams.set_fdLogSumExpSize(2 * aicNum_ * maxConventNum * mBaseSize_ * (BYTE_BLOCK / BLOCK_TABLE_ELEM_BYTE));
     tilingData_->workspaceParams.set_mm1ResSize(mm1ResSize_);
     tilingData_->workspaceParams.set_mm2ResSize(mm2ResSize_);
 }

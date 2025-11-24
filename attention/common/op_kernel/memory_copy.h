@@ -20,6 +20,12 @@
 #include "fia_public_define.h"
 
 constexpr uint32_t HALF_SIZE_DIVISOR = 2;
+
+constexpr uint32_t AXIS_ZERO = 0;
+constexpr uint32_t AXIS_ONE = 1;
+constexpr uint32_t AXIS_TWO = 2;
+constexpr uint32_t AXIS_THREE = 3;
+constexpr uint32_t AXIS_FOUR = 4;
 // ----------------------------------------------GmLayout--------------------------------
 enum class GmFormat {
     BSNGD = 0,
@@ -618,53 +624,53 @@ struct OffsetCalculatorImpl<FORMAT, FormatCategory::GM_Q_OUT_BNGSD> {
     // Get Stride
     __aicore__ inline uint64_t GetStrideB()
     {
-        return AscendC::Std::get<0>(gmLayout.stride);
+        return AscendC::Std::get<AXIS_ZERO>(gmLayout.stride);
     }
 
     __aicore__ inline uint64_t GetStrideN2()
     {
-        return AscendC::Std::get<1>(gmLayout.stride);
+        return AscendC::Std::get<AXIS_ONE>(gmLayout.stride);
     }
 
     __aicore__ inline uint64_t GetStrideG()
     {
-        return AscendC::Std::get<2>(gmLayout.stride);
+        return AscendC::Std::get<AXIS_TWO>(gmLayout.stride);
     }
 
     __aicore__ inline uint64_t GetStrideS1()
     {
-        return AscendC::Std::get<3>(gmLayout.stride);
+        return AscendC::Std::get<AXIS_THREE>(gmLayout.stride);
     }
 
     __aicore__ inline uint64_t GetStrideD()
     {
-        return AscendC::Std::get<4>(gmLayout.stride);
+        return AscendC::Std::get<AXIS_FOUR>(gmLayout.stride);
     }
 
     // Get Dim
     __aicore__ inline uint64_t GetDimB()
     {
-        return AscendC::Std::get<0>(gmLayout.shape);
+        return AscendC::Std::get<AXIS_ZERO>(gmLayout.shape);
     }
 
     __aicore__ inline uint64_t GetDimN2()
     {
-        return AscendC::Std::get<1>(gmLayout.shape);
+        return AscendC::Std::get<AXIS_ONE>(gmLayout.shape);
     }
 
     __aicore__ inline uint64_t GetDimG()
     {
-        return AscendC::Std::get<2>(gmLayout.shape);
+        return AscendC::Std::get<AXIS_TWO>(gmLayout.shape);
     }
 
     __aicore__ inline uint64_t GetDimS1()
     {
-        return AscendC::Std::get<3>(gmLayout.shape);
+        return AscendC::Std::get<AXIS_THREE>(gmLayout.shape);
     }
 
     __aicore__ inline uint64_t GetDimD()
     {
-        return AscendC::Std::get<4>(gmLayout.shape);
+        return AscendC::Std::get<AXIS_FOUR>(gmLayout.shape);
     }
 };
 
@@ -692,22 +698,22 @@ struct OffsetCalculatorImpl<FORMAT, FormatCategory::GM_Q_OUT_TND> {
     // Get Stride
     __aicore__ inline uint64_t GetStrideT()
     {
-        return AscendC::Std::get<0>(gmLayout.stride);
+        return AscendC::Std::get<AXIS_ZERO>(gmLayout.stride);
     }
 
     __aicore__ inline uint64_t GetStrideN2()
     {
-        return AscendC::Std::get<1>(gmLayout.stride);
+        return AscendC::Std::get<AXIS_ONE>(gmLayout.stride);
     }
 
     __aicore__ inline uint64_t GetStrideG()
     {
-        return AscendC::Std::get<2>(gmLayout.stride);
+        return AscendC::Std::get<AXIS_TWO>(gmLayout.stride);
     }
 
     __aicore__ inline uint64_t GetStrideD()
     {
-        return AscendC::Std::get<3>(gmLayout.stride);
+        return AscendC::Std::get<AXIS_THREE>(gmLayout.stride);
     }
 
     __aicore__ inline uint64_t GetStrideS1()
@@ -718,22 +724,22 @@ struct OffsetCalculatorImpl<FORMAT, FormatCategory::GM_Q_OUT_TND> {
     // Get Dim
     __aicore__ inline uint64_t GetDimT()
     {
-        return AscendC::Std::get<0>(gmLayout.shape);
+        return AscendC::Std::get<AXIS_ZERO>(gmLayout.shape);
     }
 
     __aicore__ inline uint64_t GetDimN2()
     {
-        return AscendC::Std::get<1>(gmLayout.shape);
+        return AscendC::Std::get<AXIS_ONE>(gmLayout.shape);
     }
 
     __aicore__ inline uint64_t GetDimG()
     {
-        return AscendC::Std::get<2>(gmLayout.shape);
+        return AscendC::Std::get<AXIS_TWO>(gmLayout.shape);
     }
 
     __aicore__ inline uint64_t GetDimD()
     {
-        return AscendC::Std::get<3>(gmLayout.shape);
+        return AscendC::Std::get<AXIS_THREE>(gmLayout.shape);
     }
 };
 
@@ -757,43 +763,43 @@ struct OffsetCalculatorImpl<FORMAT, FormatCategory::GM_KV_BNSD> {
     // Get Stride
     __aicore__ inline uint64_t GetStrideB()
     {
-        return AscendC::Std::get<0>(gmLayout.stride);
+        return AscendC::Std::get<AXIS_ZERO>(gmLayout.stride);
     }
 
     __aicore__ inline uint64_t GetStrideN2()
     {
-        return AscendC::Std::get<1>(gmLayout.stride);
+        return AscendC::Std::get<AXIS_ONE>(gmLayout.stride);
     }
 
     __aicore__ inline uint64_t GetStrideS2()
     {
-        return AscendC::Std::get<2>(gmLayout.stride);
+        return AscendC::Std::get<AXIS_TWO>(gmLayout.stride);
     }
 
     __aicore__ inline uint64_t GetStrideD()
     {
-        return AscendC::Std::get<3>(gmLayout.stride);
+        return AscendC::Std::get<AXIS_THREE>(gmLayout.stride);
     }
 
     // Get Dim
     __aicore__ inline uint64_t GetDimB()
     {
-        return AscendC::Std::get<0>(gmLayout.shape);
+        return AscendC::Std::get<AXIS_ZERO>(gmLayout.shape);
     }
 
     __aicore__ inline uint64_t GetDimN2()
     {
-        return AscendC::Std::get<1>(gmLayout.shape);
+        return AscendC::Std::get<AXIS_ONE>(gmLayout.shape);
     }
 
     __aicore__ inline uint64_t GetDimS2()
     {
-        return AscendC::Std::get<2>(gmLayout.shape);
+        return AscendC::Std::get<AXIS_TWO>(gmLayout.shape);
     }
 
     __aicore__ inline uint64_t GetDimD()
     {
-        return AscendC::Std::get<3>(gmLayout.shape);
+        return AscendC::Std::get<AXIS_THREE>(gmLayout.shape);
     }
 };
 
@@ -821,17 +827,17 @@ struct OffsetCalculatorImpl<FORMAT, FormatCategory::GM_KV_TND> {
     // Get Stride
     __aicore__ inline uint64_t GetStrideT()
     {
-        return AscendC::Std::get<0>(gmLayout.stride);
+        return AscendC::Std::get<AXIS_ZERO>(gmLayout.stride);
     }
 
     __aicore__ inline uint64_t GetStrideN2()
     {
-        return AscendC::Std::get<1>(gmLayout.stride);
+        return AscendC::Std::get<AXIS_ONE>(gmLayout.stride);
     }
 
     __aicore__ inline uint64_t GetStrideD()
     {
-        return AscendC::Std::get<2>(gmLayout.stride);
+        return AscendC::Std::get<AXIS_TWO>(gmLayout.stride);
     }
 
     __aicore__ inline uint64_t GetStrideS2()
@@ -842,17 +848,17 @@ struct OffsetCalculatorImpl<FORMAT, FormatCategory::GM_KV_TND> {
     // Get Dim
     __aicore__ inline uint64_t GetDimT()
     {
-        return AscendC::Std::get<0>(gmLayout.shape);
+        return AscendC::Std::get<AXIS_ZERO>(gmLayout.shape);
     }
 
     __aicore__ inline uint64_t GetDimN2()
     {
-        return AscendC::Std::get<1>(gmLayout.shape);
+        return AscendC::Std::get<AXIS_ONE>(gmLayout.shape);
     }
 
     __aicore__ inline uint64_t GetDimD()
     {
-        return AscendC::Std::get<2>(gmLayout.shape);
+        return AscendC::Std::get<AXIS_TWO>(gmLayout.shape);
     }
 };
 
@@ -883,38 +889,38 @@ struct OffsetCalculatorImpl<FORMAT, FormatCategory::GM_KV_PA_BNBD> {
     // Get Stride
     __aicore__ inline uint64_t GetStrideBlockNum()
     {
-        return AscendC::Std::get<0>(gmLayout.stride);
+        return AscendC::Std::get<AXIS_ZERO>(gmLayout.stride);
     }
 
     __aicore__ inline uint64_t GetStrideN2()
     {
-        return AscendC::Std::get<1>(gmLayout.stride);
+        return AscendC::Std::get<AXIS_ONE>(gmLayout.stride);
     }
 
     __aicore__ inline uint64_t GetStrideBlockSize()
     {
-        return AscendC::Std::get<2>(gmLayout.stride);
+        return AscendC::Std::get<AXIS_TWO>(gmLayout.stride);
     }
 
     __aicore__ inline uint64_t GetStrideD()
     {
-        return AscendC::Std::get<3>(gmLayout.stride);
+        return AscendC::Std::get<AXIS_THREE>(gmLayout.stride);
     }
 
     // Get Dim
     __aicore__ inline uint64_t GetN2()
     {
-        return AscendC::Std::get<0>(gmLayout.shape);
+        return AscendC::Std::get<AXIS_ZERO>(gmLayout.shape);
     }
 
     __aicore__ inline uint64_t GetBlockSize()
     {
-        return AscendC::Std::get<1>(gmLayout.shape);
+        return AscendC::Std::get<AXIS_ONE>(gmLayout.shape);
     }
 
     __aicore__ inline uint64_t GetD()
     {
-        return AscendC::Std::get<2>(gmLayout.shape);
+        return AscendC::Std::get<AXIS_TWO>(gmLayout.shape);
     }
 };
 
@@ -948,48 +954,48 @@ struct OffsetCalculatorImpl<FORMAT, FormatCategory::GM_KV_PA_NZ> {
     // Get Stride
     __aicore__ inline uint64_t GetStrideBlockNum()
     {
-        return AscendC::Std::get<0>(gmLayout.stride);
+        return AscendC::Std::get<AXIS_ZERO>(gmLayout.stride);
     }
 
     __aicore__ inline uint64_t GetStrideN2()
     {
-        return AscendC::Std::get<1>(gmLayout.stride);
+        return AscendC::Std::get<AXIS_ONE>(gmLayout.stride);
     }
 
     __aicore__ inline uint64_t GetStrideD1()
     {
-        return AscendC::Std::get<2>(gmLayout.stride);
+        return AscendC::Std::get<AXIS_TWO>(gmLayout.stride);
     }
 
     __aicore__ inline uint64_t GetStrideBlockSize()
     {
-        return AscendC::Std::get<3>(gmLayout.stride);
+        return AscendC::Std::get<AXIS_THREE>(gmLayout.stride);
     }
 
     __aicore__ inline uint64_t GetStrideD0()
     {
-        return AscendC::Std::get<4>(gmLayout.stride);
+        return AscendC::Std::get<AXIS_FOUR>(gmLayout.stride);
     }
 
     // Get Dim
     __aicore__ inline uint64_t GetN2()
     {
-        return AscendC::Std::get<0>(gmLayout.shape);
+        return AscendC::Std::get<AXIS_ZERO>(gmLayout.shape);
     }
 
     __aicore__ inline uint64_t GetD1()
     {
-        return AscendC::Std::get<1>(gmLayout.shape);
+        return AscendC::Std::get<AXIS_ONE>(gmLayout.shape);
     }
 
     __aicore__ inline uint64_t GetBlockSize()
     {
-        return AscendC::Std::get<2>(gmLayout.shape);
+        return AscendC::Std::get<AXIS_TWO>(gmLayout.shape);
     }
 
     __aicore__ inline uint64_t GetD0()
     {
-        return AscendC::Std::get<3>(gmLayout.shape);
+        return AscendC::Std::get<AXIS_THREE>(gmLayout.shape);
     }
 };
 
@@ -1014,33 +1020,33 @@ struct OffsetCalculatorImpl<FORMAT, FormatCategory::GM_POST_QUANT_NGD> {
     // Get Stride
     __aicore__ inline uint64_t GetStrideN2()
     {
-        return AscendC::Std::get<0>(gmLayout.stride);
+        return AscendC::Std::get<AXIS_ZERO>(gmLayout.stride);
     }
 
     __aicore__ inline uint64_t GetStrideG()
     {
-        return AscendC::Std::get<1>(gmLayout.stride);
+        return AscendC::Std::get<AXIS_ONE>(gmLayout.stride);
     }
 
     __aicore__ inline uint64_t GetStrideD()
     {
-        return AscendC::Std::get<2>(gmLayout.stride);
+        return AscendC::Std::get<AXIS_TWO>(gmLayout.stride);
     }
 
     // Get Dim
     __aicore__ inline uint32_t GetDimN2()
     {
-        return AscendC::Std::get<0>(gmLayout.shape);
+        return AscendC::Std::get<AXIS_ZERO>(gmLayout.shape);
     }
 
     __aicore__ inline uint32_t GetDimG()
     {
-        return AscendC::Std::get<1>(gmLayout.shape);
+        return AscendC::Std::get<AXIS_ONE>(gmLayout.shape);
     }
 
     __aicore__ inline uint32_t GetDimD()
     {
-        return AscendC::Std::get<2>(gmLayout.shape);
+        return AscendC::Std::get<AXIS_TWO>(gmLayout.shape);
     }
 };
 
@@ -1065,23 +1071,23 @@ struct OffsetCalculatorImpl<FORMAT, FormatCategory::GM_ANTIQ_ND> {
     // Get Stride
     __aicore__ inline uint64_t GetStrideN2()
     {
-        return AscendC::Std::get<0>(gmLayout.stride);
+        return AscendC::Std::get<AXIS_ZERO>(gmLayout.stride);
     }
 
     __aicore__ inline uint64_t GetStrideD()
     {
-        return AscendC::Std::get<1>(gmLayout.stride);
+        return AscendC::Std::get<AXIS_ONE>(gmLayout.stride);
     }
 
     // Get Dim
     __aicore__ inline uint32_t GetDimN2()
     {
-        return AscendC::Std::get<0>(gmLayout.shape);
+        return AscendC::Std::get<AXIS_ZERO>(gmLayout.shape);
     }
 
     __aicore__ inline uint32_t GetDimD()
     {
-        return AscendC::Std::get<1>(gmLayout.shape);
+        return AscendC::Std::get<AXIS_ONE>(gmLayout.shape);
     }
 };
 
@@ -1105,23 +1111,23 @@ struct OffsetCalculatorImpl<FORMAT, FormatCategory::GM_ANTIQ_BS> {
     // Get Stride
     __aicore__ inline uint64_t GetStrideB()
     {
-        return AscendC::Std::get<0>(gmLayout.stride);
+        return AscendC::Std::get<AXIS_ZERO>(gmLayout.stride);
     }
 
     __aicore__ inline uint64_t GetStrideS2()
     {
-        return AscendC::Std::get<1>(gmLayout.stride);
+        return AscendC::Std::get<AXIS_ONE>(gmLayout.stride);
     }
 
     // Get Dim
     __aicore__ inline uint32_t GetDimB()
     {
-        return AscendC::Std::get<0>(gmLayout.shape);
+        return AscendC::Std::get<AXIS_ZERO>(gmLayout.shape);
     }
 
     __aicore__ inline uint32_t GetDimS2()
     {
-        return AscendC::Std::get<1>(gmLayout.shape);
+        return AscendC::Std::get<AXIS_ONE>(gmLayout.shape);
     }
 };
 
@@ -1145,33 +1151,33 @@ struct OffsetCalculatorImpl<FORMAT, FormatCategory::GM_ANTIQ_BNS> {
     // Get Stride
     __aicore__ inline uint64_t GetStrideB()
     {
-        return AscendC::Std::get<0>(gmLayout.stride);
+        return AscendC::Std::get<AXIS_ZERO>(gmLayout.stride);
     }
 
     __aicore__ inline uint64_t GetStrideN2()
     {
-        return AscendC::Std::get<1>(gmLayout.stride);
+        return AscendC::Std::get<AXIS_ONE>(gmLayout.stride);
     }
 
     __aicore__ inline uint64_t GetStrideS2()
     {
-        return AscendC::Std::get<2>(gmLayout.stride);
+        return AscendC::Std::get<AXIS_TWO>(gmLayout.stride);
     }
 
     // Get Dim
     __aicore__ inline uint32_t GetDimB()
     {
-        return AscendC::Std::get<0>(gmLayout.shape);
+        return AscendC::Std::get<AXIS_ZERO>(gmLayout.shape);
     }
 
     __aicore__ inline uint32_t GetDimN2()
     {
-        return AscendC::Std::get<1>(gmLayout.shape);
+        return AscendC::Std::get<AXIS_ONE>(gmLayout.shape);
     }
 
     __aicore__ inline uint32_t GetDimS2()
     {
-        return AscendC::Std::get<2>(gmLayout.shape);
+        return AscendC::Std::get<AXIS_TWO>(gmLayout.shape);
     }
 };
 
@@ -1204,18 +1210,18 @@ struct OffsetCalculatorImpl<FORMAT, FormatCategory::GM_ANTIQ_BnBs> {
 
     __aicore__ inline uint64_t GetStrideBlockNum()
     {
-        return AscendC::Std::get<0>(gmLayout.stride);
+        return AscendC::Std::get<AXIS_ZERO>(gmLayout.stride);
     }
 
     __aicore__ inline uint64_t GetStrideBlockSize()
     {
-        return AscendC::Std::get<1>(gmLayout.stride);
+        return AscendC::Std::get<AXIS_ONE>(gmLayout.stride);
     }
 
     // Get Dim
     __aicore__ inline uint32_t GetDimBlockSize()
     {
-        return AscendC::Std::get<0>(gmLayout.shape);
+        return AscendC::Std::get<AXIS_ZERO>(gmLayout.shape);
     }
 };
 
@@ -1248,28 +1254,28 @@ struct OffsetCalculatorImpl<FORMAT, FormatCategory::GM_ANTIQ_BnNBs> {
 
     __aicore__ inline uint64_t GetStrideBlockNum()
     {
-        return AscendC::Std::get<0>(gmLayout.stride);
+        return AscendC::Std::get<AXIS_ZERO>(gmLayout.stride);
     }
 
     __aicore__ inline uint64_t GetStrideN()
     {
-        return AscendC::Std::get<1>(gmLayout.stride);
+        return AscendC::Std::get<AXIS_ONE>(gmLayout.stride);
     }
 
     __aicore__ inline uint64_t GetStrideBlockSize()
     {
-        return AscendC::Std::get<2>(gmLayout.stride);
+        return AscendC::Std::get<AXIS_TWO>(gmLayout.stride);
     }
 
     // Get Dim
     __aicore__ inline uint32_t GetDimN()
     {
-        return AscendC::Std::get<0>(gmLayout.shape);
+        return AscendC::Std::get<AXIS_ZERO>(gmLayout.shape);
     }
 
     __aicore__ inline uint32_t GetDimBlockSize()
     {
-        return AscendC::Std::get<1>(gmLayout.shape);
+        return AscendC::Std::get<AXIS_ONE>(gmLayout.shape);
     }
 };
 
@@ -1295,53 +1301,53 @@ struct OffsetCalculatorImpl<FORMAT, FormatCategory::GM_PSE_BN2GS1S2> {
     // Get Stride
     __aicore__ inline uint64_t GetStrideB()
     {
-        return AscendC::Std::get<0>(gmLayout.stride);
+        return AscendC::Std::get<AXIS_ZERO>(gmLayout.stride);
     }
 
     __aicore__ inline uint64_t GetStrideN2()
     {
-        return AscendC::Std::get<1>(gmLayout.stride);
+        return AscendC::Std::get<AXIS_ONE>(gmLayout.stride);
     }
 
     __aicore__ inline uint64_t GetStrideG()
     {
-        return AscendC::Std::get<2>(gmLayout.stride);
+        return AscendC::Std::get<AXIS_TWO>(gmLayout.stride);
     }
 
     __aicore__ inline uint64_t GetStrideS1()
     {
-        return AscendC::Std::get<3>(gmLayout.stride);
+        return AscendC::Std::get<AXIS_THREE>(gmLayout.stride);
     }
 
     __aicore__ inline uint64_t GetStrideS2()
     {
-        return AscendC::Std::get<4>(gmLayout.stride);
+        return AscendC::Std::get<AXIS_FOUR>(gmLayout.stride);
     }
 
     // Get Dim
     __aicore__ inline uint32_t GetDimB()
     {
-        return AscendC::Std::get<0>(gmLayout.shape);
+        return AscendC::Std::get<AXIS_ZERO>(gmLayout.shape);
     }
 
     __aicore__ inline uint32_t GetDimN2()
     {
-        return AscendC::Std::get<1>(gmLayout.shape);
+        return AscendC::Std::get<AXIS_ONE>(gmLayout.shape);
     }
 
     __aicore__ inline uint32_t GetDimG()
     {
-        return AscendC::Std::get<2>(gmLayout.shape);
+        return AscendC::Std::get<AXIS_TWO>(gmLayout.shape);
     }
 
     __aicore__ inline uint32_t GetDimS1()
     {
-        return AscendC::Std::get<3>(gmLayout.shape);
+        return AscendC::Std::get<AXIS_THREE>(gmLayout.shape);
     }
 
     __aicore__ inline uint32_t GetDimS2()
     {
-        return AscendC::Std::get<4>(gmLayout.shape);
+        return AscendC::Std::get<AXIS_FOUR>(gmLayout.shape);
     }
 };
 
@@ -1493,11 +1499,12 @@ private:
                 s1Size = offsetCalculator.GetDimS1();
             }
         }
-
-        uint32_t gIdxStart = gmCoord.gS1Idx / s1Size;
-        uint32_t s1IdxStart = gmCoord.gS1Idx % s1Size;
-        uint32_t gIdxEnd = (gmCoord.gS1Idx + gmCoord.gS1DealSize) / s1Size;
-        uint32_t s1IdxEnd = (gmCoord.gS1Idx + gmCoord.gS1DealSize) % s1Size;
+        if (s1Size != 0) {
+            uint32_t gIdxStart = gmCoord.gS1Idx / s1Size;
+            uint32_t s1IdxStart = gmCoord.gS1Idx % s1Size;
+            uint32_t gIdxEnd = (gmCoord.gS1Idx + gmCoord.gS1DealSize) / s1Size;
+            uint32_t s1IdxEnd = (gmCoord.gS1Idx + gmCoord.gS1DealSize) % s1Size;
+        }
 
         uint64_t queryGmbaseOffset =
             offsetCalculator.GetOffset(gmCoord.bIdx, gmCoord.n2Idx, gIdxStart, 0, gmCoord.dIdx);
