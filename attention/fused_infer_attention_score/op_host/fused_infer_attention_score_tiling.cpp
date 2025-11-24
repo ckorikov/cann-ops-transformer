@@ -1015,9 +1015,9 @@ ge::graphStatus CheckFAISinglePara(gert::TilingContext *context, bool isPageAtte
     OP_CHECK_IF((tempQD != tempKD) || (tempQD != tempVD),
         OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "HeadDim of Q, K, and V must be consistent"),
             return ge::GRAPH_FAILED);
-    OP_CHECK_IF((tempQD > 256U) || (tempQD % 16U != 0),
+    OP_CHECK_IF(tempQD > 256U,
         OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(),
-            "When input layout is TND, headDim shall not exceed 256, and must be a multiple of 16"),
+            "When input layout is TND, headDim shall not exceed 256"),
             return ge::GRAPH_FAILED);
     return ge::GRAPH_SUCCESS;
 }
@@ -1190,8 +1190,8 @@ static bool IsUsingFAI(gert::TilingContext &context, const string inputLayoutStr
         if (!isPageAttention) {
             int64_t tempKD = tempK->GetStorageShape().GetDim(DIM_2);
             int64_t tempVD = tempV->GetStorageShape().GetDim(DIM_2);
-            bool isFAIDSize = (tempD <= 128U && tempKD <= 128 && tempVD <= 128) ||
-                    (tempD == 256 && tempKD == 256 && tempVD == 256);
+            bool isFAIDSize = (tempD <= 256U && tempKD <= 256 && tempVD <= 256) ||
+                    (tempD == tempKD && tempD == tempVD);
             if (isFAIDSize) {
                 usingFAI = true;
             }
@@ -1199,8 +1199,8 @@ static bool IsUsingFAI(gert::TilingContext &context, const string inputLayoutStr
             int64_t tempKD = (tempK->GetStorageShape().GetDim(DIM_2)) / kvHeadNum;
             int64_t tempVD = (tempV->GetStorageShape().GetDim(DIM_2)) / kvHeadNum;
             int64_t blockSize = tempK->GetStorageShape().GetDim(DIM_1);
-            bool isFAIDSize = (tempD <= 128U && tempKD <= 128 && tempVD <= 128) ||
-                    (tempD == 256 && tempKD == 256 && tempVD == 256);
+            bool isFAIDSize = (tempD <= 256U && tempKD <= 256 && tempVD <= 256) ||
+                    (tempD == tempKD && tempD == tempVD);
             if (isFAIDSize && blockSize == 128U) {
                 usingFAI = true;
             }

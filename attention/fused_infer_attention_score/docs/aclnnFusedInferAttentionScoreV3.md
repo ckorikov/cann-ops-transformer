@@ -768,13 +768,19 @@ aclnnStatus aclnnFusedInferAttentionScoreV3(
       - 不支持左padding、tensorlist、pse、prefix、伪量化、全量化、后量化；
       - TND_NTD、NTD_TND场景，不支持开启SoftMaxLse。
     - 当query的d不等于512时：
-      - 当queryRope和keyRope为空时：TND场景，要求Q_D、K_D、V_D小于等于128，且是16的整数倍，或者Q_D、K_D等于192，V_D等于128/192；NTD_TND场景，要求Q_D、K_D等于128/192，V_D等于128。当queryRope和keyRope不为空时，要求Q_D、K_D、V_D等于128；
+      - 当queryRope和keyRope为空时：TND场景，要求Q_D、K_D、V_D相等且小于等于256，或者Q_D、K_D等于192，V_D等于128/192；NTD_TND场景，要求Q_D、K_D等于128/192，V_D等于128。当queryRope和keyRope不为空时，要求Q_D、K_D、V_D等于128；
       - 支持TND、NTD_TND；
       - TND场景，数据类型仅支持FLOAT16、BFLOAT16；NTD_TND场景，数据类型仅支持BFLOAT16；
-      - TND场景，仅支持innerPrecise=0, 1；当innerPrecise=1时，数据类型仅支持FLOAT16；
-      - TND场景，当innerPrecise=0时，仅支持GQA、MQA，即必须完整传入numHeads和numKeyValueHeads参数，且numHeads是numKeyValueHeads的整数倍，且二者不相等；当innerPrecise=1时，仅支持MHA;
-      - TND场景，当innerPrecise=0时，支持sparse=0,3,4；当innerPrecise=1时，仅支持sparse=0;
-      - TND场景，当innerPrecise=0时，支持page attention，kv cache排布格式支持BnBsH（blocknum, blocksize, H），H不大于65535，blockSize仅支持128；当innerPrecise=1时，不支持page attention;
+      - TND场景，当head配比为GQA/MQA时（即必须完整传入numHeads和numKeyValueHeads参数，且numHeads是numKeyValueHeads的整数倍，且二者不相等），有如下约束：
+        - 当数据类型为FLOAT16时，支持sparse=0且不传mask，或sparse=3且传入优化后的attentionMask；
+        - 当数据类型为BFLOAT16时，支持sparse=0且不传mask，或sparse=3，4且传入优化后的attentionMask；
+        - 仅支持innerPrecise=0，即不带行无效的高精度模式；
+        - 支持page attention，kv cache排布格式支持BnBsH（blocknum, blocksize, H），H不大于65535，blockSize仅支持128；
+      - TND场景，当head配比为MHA时，有如下约束：
+        - 当数据类型为FLOAT16时，仅支持sparse=0且不传mask；
+        - 当数据类型为FLOAT16时，仅支持innerPrecise=1；
+        - 当数据类型为FLOAT16时，不支持page attention；
+        - 当数据类型为BFLOAT16时，支持sparse=0且不传mask，或sparse=3，4且传入优化后的attentionMask；
       - NTD_TND场景，不支持page attention；
       - 当sparse=3时，要求每个batch单独的actualSeqLengths < actualSeqLengthsKv；
       - sparse模式支持sparse=4且传入mask；当sparse=4时，要求preTokens >= -actualSeqLengths、nextTokens >= -actualSeqLengthsKv、preTokens + nextTokens >= 0；
