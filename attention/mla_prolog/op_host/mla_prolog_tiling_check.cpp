@@ -178,10 +178,6 @@ ge::graphStatus MlaPrologTilingCheck::CheckDims() const
                 MIN_BLOCK_SIZE, MAX_BLOCK_SIZE, ALIGN_BLOCK_SIZE, baseShapeInfo_.blockSize),
             return ge::GRAPH_FAILED);
     }
-    OP_CHECK_IF(baseShapeInfo_.tSize > MAX_T_SIZE,
-        OP_LOGE(context_.opName, "T should not be greater than %u, got %u.",
-            MAX_T_SIZE, baseShapeInfo_.tSize),
-        return ge::GRAPH_FAILED);
     if (std::strncmp(context_.opType, V3_OP_NAME, OP_NAME_LEN) == 0) {
         uint32_t supportedDtileSize = baseShapeInfo_.hckvSize;
         if (*(context_.ckvkrRepoMode) == static_cast<int>(CKVKR_REPO_MODE::COMBINE)) {
