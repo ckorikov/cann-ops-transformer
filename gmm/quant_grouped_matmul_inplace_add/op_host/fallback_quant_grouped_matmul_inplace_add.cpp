@@ -30,6 +30,7 @@ constexpr size_t INDEX_INPUT_Y = 4;
 constexpr size_t INDEX_INPUT_SCALE1 = 5;
 constexpr size_t INDEX_OUTPUT_Y = 0;
 constexpr size_t INDEX_ATTR_GROUP_LIST_TYPE = 0;
+constexpr size_t DIM_TWO = 2;
 
 static inline aclTensor *GeTensor2AclTensor(const gert::Tensor *geTensor, bool enableTranspose, size_t index)
 {
@@ -62,6 +63,11 @@ static inline aclTensor *GeTensor2AclTensor(const gert::Tensor *geTensor, bool e
     }
     std::vector<int64_t> strides(viewShape.size(), 1);
     // Compute the strides of contiguous tensor
+    OP_CHECK_IF(viewShape.size() < DIM_TWO,
+                OP_LOGE("QuantGroupedMatmulInplaceAdd aclnnfallback",
+                        "The dim num of viewshape should be greater than or equal to 2, but the actual is %zu.",
+                        viewShape.size()),
+                return nullptr);
     for (int64_t i = viewShape.size() - 2; i >= 0; i--) {
         strides[i] = viewShape[i + 1] * strides[i + 1];
     }
