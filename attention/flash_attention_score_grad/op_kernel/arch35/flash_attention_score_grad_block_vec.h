@@ -23,6 +23,9 @@
 #include "vector_api/vf_broadcast_sub_mul.h"
 #include "vector_api/vf_cast_transdata_deconflict.h"
 namespace FagBaseApi {
+constexpr uint32_t NUM_TWO = 2;
+constexpr uint32_t SYNC_V0_V1_DS_A_MAX_DONE_FLAG = 10;
+constexpr uint32_t BIT_MASK_NUM = 8;
 
 TEMPLATES_DEF
 class FAGBlockVec {
@@ -186,11 +189,11 @@ __aicore__ inline void FAGBlockVec<TEMPLATE_ARGS>::InitUbBuffer()
     pipe->InitBuffer(attenMaskOrYInQue, 1, VECTOR_BASEM * VECTOR_BASEN * sizeof(CALC_TYPE));
     pipe->InitBuffer(pseOrDyInQue, 1, VECTOR_BASEM * VECTOR_BASEN * sizeof(OUTDTYPE));
     pipe->InitBuffer(softmaxGradResBuf, VECTOR_BASEM * sizeof(CALC_TYPE));
-    pipe->InitBuffer(maxSumQue[0], 1, VECTOR_BASEM * MAX_SUM_REDUCE_AXIS_SIZE * 2);
-    pipe->InitBuffer(maxSumQue[1], 1, VECTOR_BASEM * MAX_SUM_REDUCE_AXIS_SIZE * 2);
+    pipe->InitBuffer(maxSumQue[0], 1, VECTOR_BASEM * MAX_SUM_REDUCE_AXIS_SIZE * NUM_TWO);
+    pipe->InitBuffer(maxSumQue[1], 1, VECTOR_BASEM * MAX_SUM_REDUCE_AXIS_SIZE * NUM_TWO);
     if constexpr (IS_DROP) {
-        pipe->InitBuffer(dropMaskBuf, VECTOR_BASEM * VECTOR_BASEN * sizeof(uint8_t) / 8);          // 1k
-        pipe->InitBuffer(dropmaskIndexVecBuf, VECTOR_BASEM * VECTOR_BASEN / 16 * sizeof(int32_t)); // 2k
+        pipe->InitBuffer(dropMaskBuf, VECTOR_BASEM * VECTOR_BASEN * sizeof(uint8_t) / BIT_MASK_NUM);          // 1k
+        pipe->InitBuffer(dropmaskIndexVecBuf, VECTOR_BASEM * VECTOR_BASEN / (NUM_TWO * BIT_MASK_NUM) * sizeof(int32_t)); // 2k
     }
     if constexpr (IS_DETER_OLD(DETER_SPARSE_TYPE)) {
         pipe->InitBuffer(deterInOutQue, 1, DETER_DQ_UB_SIZE);
@@ -200,9 +203,9 @@ __aicore__ inline void FAGBlockVec<TEMPLATE_ARGS>::InitUbBuffer()
         pipe->InitBuffer(vselrIndexesBuf, VECTOR_BASEN);
         LocalTensor<uint8_t> selrIndexesTensor = vselrIndexesBuf.Get<uint8_t>();
         for (int i = 0; i < VECTOR_BASEN; i++) {
-            selrIndexesTensor.SetValue(i, i * 2);
+            selrIndexesTensor.SetValue(i, i * NUM_TWO);
         }
-        pipe->InitBuffer(dsAmaxOutQue, 1, VREG_SIZE / 2);
+        pipe->InitBuffer(dsAmaxOutQue, 1, VREG_SIZE / NUM_TWO);
     }
     if constexpr (!IS_FP32_INPUT) {
         pipe->InitBuffer(dSOutQue, 1, VECTOR_BASEM * VREG_SIZE + VREG_SIZE);
@@ -370,15 +373,15 @@ __aicore__ inline void FAGBlockVec<TEMPLATE_ARGS>::ProcessVec3(Buffer<BufferType
  
     LocalTensor<CALC_TYPE> softmaxGradResTensor = softmaxGradResBuf.Get<CALC_TYPE>();
     LocalTensor<INPUT_TYPE> vecOutBuffer = dSOutQue.AllocTensor<INPUT_TYPE>();
-    if (runInfo.commonRunInfo.s2RealSize > 64) {
-        BroadcastSubMul<CALC_TYPE, 128, 0>(mm1ResTensor, mm1ResTensor, softmaxGradResTensor, mm2ResTensor,
-                                           runInfo.commonRunInfo.halfS1RealSize, runInfo.commonRunInfo.s2RealSize);
+    if (runInfo.commonRunInfo.s2RealSize > static_cast<uint32_t>(S2TemplateType::Aligned64)) {
+        BroadcastSubMul<CALC_TYPE, static_cast<uint32_t>(S2TemplateType::Aligned128), 0>(mm1ResTensor, mm1ResTensor,
+            softmaxGradResTensor, mm2ResTensor, runInfo.commonRunInfo.halfS1RealSize, runInfo.commonRunInfo.s2RealSize);
     } else {
         if (constInfo.deterConstInfo.noNeedDeter) {
-            BroadcastSubMul<CALC_TYPE, 64, 0>(mm1ResTensor, mm1ResTensor, softmaxGradResTensor, mm2ResTensor,
-                                              runInfo.commonRunInfo.halfS1RealSize, runInfo.commonRunInfo.s2RealSize);
+            BroadcastSubMul<CALC_TYPE, static_cast<uint32_t>(S2TemplateType::Aligned64), 0>(mm1ResTensor, mm1ResTensor,
+                softmaxGradResTensor, mm2ResTensor, runInfo.commonRunInfo.halfS1RealSize, runInfo.commonRunInfo.s2RealSize);
         } else { // 64~128的脏数据需要清零，避免后面的mm有脏数据参与计算
-            BroadcastSubMul<CALC_TYPE, 64, IS_DETER_OLD(DETER_SPARSE_TYPE)>(
+            BroadcastSubMul<CALC_TYPE, static_cast<uint32_t>(S2TemplateType::Aligned64), IS_DETER_OLD(DETER_SPARSE_TYPE)>(
                 mm1ResTensor, mm1ResTensor, softmaxGradResTensor, mm2ResTensor, runInfo.commonRunInfo.halfS1RealSize,
                 runInfo.commonRunInfo.s2RealSize);
         }
@@ -402,12 +405,12 @@ __aicore__ inline void FAGBlockVec<TEMPLATE_ARGS>::ProcessVec3(Buffer<BufferType
     float qScaleDs = 1.0;
     if constexpr (IS_FP8_INPUT) {
         LocalTensor<float> dsAmaxTensor = dsAmaxOutQue.AllocTensor<float>();
-        if (runInfo.commonRunInfo.s2RealSize > 64) {
-            DsAbsReduceMax<CALC_TYPE, 128>(dsAmaxTensor, mm1ResTensor, runInfo.commonRunInfo.halfS1RealSize,
-                                           runInfo.commonRunInfo.s2RealSize);
+        if (runInfo.commonRunInfo.s2RealSize > static_cast<uint32_t>(S2TemplateType::Aligned64)) {
+            DsAbsReduceMax<CALC_TYPE, static_cast<uint32_t>(S2TemplateType::Aligned128)>(dsAmaxTensor, mm1ResTensor,
+                runInfo.commonRunInfo.halfS1RealSize, runInfo.commonRunInfo.s2RealSize);
         } else {
-            DsAbsReduceMax<CALC_TYPE, 64>(dsAmaxTensor, mm1ResTensor, runInfo.commonRunInfo.halfS1RealSize,
-                                          runInfo.commonRunInfo.s2RealSize);
+            DsAbsReduceMax<CALC_TYPE, static_cast<uint32_t>(S2TemplateType::Aligned64)>(dsAmaxTensor, mm1ResTensor,
+                runInfo.commonRunInfo.halfS1RealSize, runInfo.commonRunInfo.s2RealSize);
         }
         event_t eventIDVToS = static_cast<event_t>(GetTPipePtr()->FetchEventID(HardEvent::V_S));
         SetFlag<HardEvent::V_S>(eventIDVToS);
@@ -418,8 +421,8 @@ __aicore__ inline void FAGBlockVec<TEMPLATE_ARGS>::ProcessVec3(Buffer<BufferType
         dsAmaxOutQue.DeQue<float>();
         DataCopyPad(dsAmaxWorkSpaceGm[vBlockIdx * 128], dsAmaxTensor, {1, 4, 0, 0});
  
-        CrossCoreSetFlag<1, PIPE_MTE3>(10);
-        CrossCoreWaitFlag<1, PIPE_MTE3>(10);
+        CrossCoreSetFlag<1, PIPE_MTE3>(SYNC_V0_V1_DS_A_MAX_DONE_FLAG);
+        CrossCoreWaitFlag<1, PIPE_MTE3>(SYNC_V0_V1_DS_A_MAX_DONE_FLAG);
         event_t eventIDMTE3ToS = static_cast<event_t>(GetTPipePtr()->FetchEventID(HardEvent::MTE3_S));
         SetFlag<HardEvent::MTE3_S>(eventIDMTE3ToS);
         WaitFlag<HardEvent::MTE3_S>(eventIDMTE3ToS);

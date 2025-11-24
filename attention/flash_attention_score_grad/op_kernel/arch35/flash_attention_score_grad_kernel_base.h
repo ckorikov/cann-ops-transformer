@@ -942,7 +942,7 @@ FlashAttentionScoreGradKernelBase<ChildClass, CubeBlockType, VecBlockType>::GetN
         } else {
             float sqrt_delta = sqrt(((constInfo.s1Outer << 1) - 1) * (((constInfo.s1Outer << 1) - 1)) +
                                          ((constInfo.s1Outer - 1 - gDimTail) << 3));
-            s2Idx = Ceil<int64_t>(((constInfo.s1Outer << 1) - 1) - sqrt_delta, 2);
+            s2Idx = Ceil<int64_t>(((constInfo.s1Outer << 1) - 1) - sqrt_delta, NUM_TWO);
             s1Idx = gDimTail - ((((constInfo.s1Outer << 1) - 1 - s2Idx) * s2Idx) >> 1);
         }
     }

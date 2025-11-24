@@ -2074,7 +2074,7 @@ ge::graphStatus FlashAttentionScoreGradTilingUs1s2Bs2Regbase::GetWorkspaceSize()
         workspaceSize += (fBaseParams.s2Inner * fBaseParams.sfmgdInner * CORE_LIST_NUM * FP32_BYTES + GM_ALIGN) / GM_ALIGN * GM_ALIGN;
     } else if (fBaseParams.isBn2) {
         postTilingData_->set_dqWorkSpaceOffset(workspaceSize);
-        workspaceSize += (fBaseParams.s2Inner * fBaseParams.sfmgdInner * 2 * CORE_LIST_NUM * FP32_BYTES + GM_ALIGN) / GM_ALIGN * GM_ALIGN;
+        workspaceSize += (fBaseParams.s2Inner * fBaseParams.sfmgdInner * NUM_TWO * CORE_LIST_NUM * FP32_BYTES + GM_ALIGN) / GM_ALIGN * GM_ALIGN;
     } else {
         if (fBaseParams.queryType != ge::DT_FLOAT) {
             postTilingData_->set_dqWorkSpaceOffset(workspaceSize);

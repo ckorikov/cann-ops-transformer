@@ -602,11 +602,11 @@ __aicore__ inline void CalGQACausalIndex(int64_t k, int64_t m, int64_t n, int64_
             int64_t N1_id = wSub% g;
             N1_id = N1_id != 0 ? N1_id : g;
             if (xSub - ySub <= m - t * k) {
-                b_id = 2 * b_id - 1;
+                b_id = NUM_TWO * b_id - 1;
                 x = m + 1 - xSub;
                 y = t * k + 1 - ySub;
             } else {
-                b_id = 2 * b_id;
+                b_id = NUM_TWO * b_id;
                 x = xSub - m + t * k - 1;
                 y = ySub;
             }
@@ -871,17 +871,17 @@ __aicore__ inline void GenGQABandInfo(int64_t k, int64_t m, int64_t n, int64_t p
         bandInfo.R2 = m * bandInfo.L2;
     } else {
         bandInfo.L1 = q - 1;
-        bandInfo.L2 = Min(n - q + 1, m + 2 - p - q);
-        bandInfo.L3 = Max(0, Min(p + n - m - 1, p + q - 2));
+        bandInfo.L2 = Min(n - q + 1, m + NUM_TWO - p - q);
+        bandInfo.L3 = Max(0, Min(p + n - m - 1, p + q - NUM_TWO));
         // redefine m, n
         if (bandInfo.L3 == 0) {
-            m = p + q + bandInfo.L2 - 2;
+            m = p + q + bandInfo.L2 - NUM_TWO;
         }
         n = bandInfo.L1 + bandInfo.L2 + bandInfo.L3;
     }
 
     // Rm_group内有列的轮次约束
-    bandInfo.Rm = m * n - (m-p)*(m-p+1)/2 - (n-q)*(n-q+1)/2;
+    bandInfo.Rm = m * n - (m - p) * (m - p + 1) / NUM_TWO - (n - q) * (n - q + 1) / NUM_TWO;
     int64_t Rm_group = bandInfo.Rm * g;
     bandInfo.rm = bandInfo.b1 * Rm_group;
 
@@ -1870,24 +1870,24 @@ __aicore__ inline void CalGQABandIndex(const BandInfo &bandInfo, int64_t j, int6
         int64_t R1 = bandInfo.R1;
         int64_t R2 = bandInfo.R2;
         // 对称性好的情况特殊处理
-        if (2*b2 == k && L1==L3) {
-            b_id = (j+1)/2;
-            if (L2 % 2==1) {
-                int64_t R0 = Max(2*p, m);
+        if (NUM_TWO * b2 == k && L1 == L3) {
+            b_id = (j + 1) / NUM_TWO;
+            if (L2 % NUM_TWO == 1) {
+                int64_t R0 = Max(NUM_TWO * p, m);
                 R0 = m == 1 ? 1 : R0;
                 //此处1-R0的轮次优先处理
                 if (a<=R0*N1) {
                     int64_t N1_id = Ceil<int64_t>(a, R0);
                     a = a%R0;
                     a = a != 0 ? a : R0;
-                    if (j % 2 ==1) {
-                        if (n >= 3) {
+                    if (j % NUM_TWO == 1) {
+                        if (n >= NUM_THREE) {
                             if (a<=p) {
                                 coordinate.batchId = b1 * k * N1 + (b_id-1) * N1 + N1_id;
                                 coordinate.s1Idx = a;
                                 coordinate.s2Idx = 1;
                                 return;
-                            } else if (p<a<=2*p) {
+                            } else if (p < a && a <= NUM_TWO * p) {
                                 coordinate.batchId = b1 * k * N1 + (b_id-1) * N1 + N1_id;
                                 coordinate.s1Idx = L3+a-p;
                                 coordinate.s2Idx = n;
@@ -1896,7 +1896,7 @@ __aicore__ inline void CalGQABandIndex(const BandInfo &bandInfo, int64_t j, int6
                             return;
                         }
                     } else {
-                        y = (n+1)/2;
+                        y = (n + 1) / NUM_TWO;
                         if (a<=p) {
                             coordinate.batchId = b1 * k * N1 + (b_id-1) * N1 + N1_id;
                             coordinate.s1Idx = a + m - p;
@@ -1921,7 +1921,7 @@ __aicore__ inline void CalGQABandIndex(const BandInfo &bandInfo, int64_t j, int6
             }
 
             if (a <= R1 * N1) {
-                if (L2 % 2==1) {
+                if (L2 % NUM_TWO == 1) {
                     N1_id = Ceil<int64_t>((a-p*N1), (R1-p));
                     a = (a-p*N1)%(R1-p);
                     a = a != 0 ? a : (R1-p);
@@ -1950,7 +1950,7 @@ __aicore__ inline void CalGQABandIndex(const BandInfo &bandInfo, int64_t j, int6
                     x = a - local_round;
                     y = L1;
                 }
-            } else if (a <= (R1 + (R2/2)) * N1) {
+            } else if (a <= (R1 + (R2 / NUM_TWO)) * N1) {
                 a -= R1 * N1;
                 int64_t R_local = R2/2;
                 N1_id = Ceil<int64_t>(a, R_local);
@@ -1967,7 +1967,7 @@ __aicore__ inline void CalGQABandIndex(const BandInfo &bandInfo, int64_t j, int6
                 return;
             }
 
-            if (j % 2 == 0) {
+            if (j % NUM_TWO == 0) {
                 y = n + 1 - y;
                 if (y<=q) {
                     x = x + 1;

@@ -78,9 +78,9 @@ struct DyL1BuffSelector {
 template <uint32_t HEAD_DIM_ALIGN>
 struct mm1Mm2Mm3L0CBuffSelector {
     using TYPE = std::conditional_t<
-        HEAD_DIM_ALIGN <= 128,
-        std::conditional_t<HEAD_DIM_ALIGN <= 64, BuffersPolicy3buff<BufferType::L0C>, BuffersPolicyDB<BufferType::L0C>>,
-        BuffersPolicySingleBuffer<BufferType::L0C>>;
+        HEAD_DIM_ALIGN <= static_cast<uint16_t>(DTemplateType::Aligned128),
+        std::conditional_t<HEAD_DIM_ALIGN <= static_cast<uint16_t>(DTemplateType::Aligned64), BuffersPolicy3buff<BufferType::L0C>,
+        BuffersPolicyDB<BufferType::L0C>>, BuffersPolicySingleBuffer<BufferType::L0C>>;
 };
  
 /* ============DKV不驻留L0C场景下开几块L0C buffer============= */
@@ -94,7 +94,8 @@ template<typename T, const int64_t CUBE_BASEM, const int64_t HEAD_DIM_ALIGN>
 static constexpr uint32_t GET_DQ_L0_SPLIT_K() {
     if constexpr (IsSameType<T, float>::value) {
         int64_t splitD = HEAD_DIM_ALIGN > 512 ? 512 : HEAD_DIM_ALIGN;
-        return (std::min(L0_SINGLE_BUFFER_SIZE / (CUBE_BASEM * sizeof(float)), L0_SINGLE_BUFFER_SIZE / (splitD * sizeof(float))) >> 4) << 4;
+        return (std::min(L0_SINGLE_BUFFER_SIZE / (CUBE_BASEM * sizeof(float)),
+            L0_SINGLE_BUFFER_SIZE / (splitD * sizeof(float))) / C0_SIZE) * C0_SIZE;
     } else {
         return static_cast<uint16_t>(S2TemplateType::Aligned128);
     }
@@ -104,7 +105,8 @@ template<typename T, const int64_t CUBE_BASEN, const int64_t HEAD_DIM_ALIGN>
 static constexpr uint32_t GET_DKV_L0_SPLIT_K() {
     if constexpr (IsSameType<T, float>::value) {
         int64_t splitD = HEAD_DIM_ALIGN > 512 ? 512 : HEAD_DIM_ALIGN;
-        return (std::min(L0_SINGLE_BUFFER_SIZE / (splitD * sizeof(float)), L0_SINGLE_BUFFER_SIZE / (CUBE_BASEN * sizeof(float))) >> 4) << 4;
+        return (std::min(L0_SINGLE_BUFFER_SIZE / (splitD * sizeof(float)),
+            L0_SINGLE_BUFFER_SIZE / (CUBE_BASEN * sizeof(float))) / C0_SIZE) * C0_SIZE;
     } else {
         return static_cast<uint16_t>(S1TemplateType::Aligned128);
     }
@@ -256,15 +258,15 @@ __aicore__ inline void FAGBlockCube<TEMPLATE_ARGS>::InitGlobalBuffer(GM_ADDR que
 TEMPLATES_DEF_NO_DEFAULT
 __aicore__ inline void FAGBlockCube<TEMPLATE_ARGS>::InitCubeBuffer(FagConstInfo &constInfo)
 {
-    isDkvL0CResidentForD192Dv128 = (SPLIT_AXIS == BN2GS1S2 &&
-                                   (HEAD_DIM_ALIGN == 192 && constInfo.commonConstInfo.dSizeV <= 128)) || IS_ROPE;
+    isDkvL0CResidentForD192Dv128 = (SPLIT_AXIS == BN2GS1S2 && (HEAD_DIM_ALIGN == static_cast<uint32_t>(DTemplateType::Aligned192)
+                                    && constInfo.commonConstInfo.dSizeV <= static_cast<uint32_t>(DTemplateType::Aligned128))) || IS_ROPE;
     // init l1 buffer
     if constexpr (IS_L1_REUSE || IS_L1_PRELOAD) {
         if constexpr (IS_L1_PRELOAD) {vL1BufMutexId = AllocMutexID();}
         if constexpr (IS_ROPE) {
             // rope场景mm1 headDim固定为128
-            dYL1Buf.Init(*l1BufferManagerPtr, CUBE_BASEM * 128 * sizeof(INPUT_TYPE));
-            vL1Buf.Init(*l1BufferManagerPtr, CUBE_BASEN * 128 * sizeof(INPUT_TYPE));
+            dYL1Buf.Init(*l1BufferManagerPtr, CUBE_BASEM * ROPE_D_128 * sizeof(INPUT_TYPE));
+            vL1Buf.Init(*l1BufferManagerPtr, CUBE_BASEN * ROPE_D_128 * sizeof(INPUT_TYPE));
         } else {
             dYL1Buf.Init(*l1BufferManagerPtr, CUBE_BASEM * HEAD_DIM_ALIGN * sizeof(INPUT_TYPE));
             vL1Buf.Init(*l1BufferManagerPtr, CUBE_BASEN * HEAD_DIM_ALIGN * sizeof(INPUT_TYPE));
@@ -301,7 +303,7 @@ __aicore__ inline void FAGBlockCube<TEMPLATE_ARGS>::InitCubeBuffer(FagConstInfo 
             dvL0CSpecialBuf.Init(l0cBufferManager, CUBE_BASEN * static_cast<uint16_t>(DTemplateType::Aligned128) * sizeof(float)); // 65536
         } else {
             if constexpr (HEAD_DIM_ALIGN <= 256) {
-                commonl0CBuf.Init(l0cBufferManager, L0C_MAX_SIZE / 2);
+                commonl0CBuf.Init(l0cBufferManager, L0C_MAX_SIZE / NUM_TWO);
             } else {
                 commonl0CBuf.Init(l0cBufferManager, L0C_MAX_SIZE);
             }
@@ -349,9 +351,9 @@ __aicore__ inline void FAGBlockCube<TEMPLATE_ARGS>::IterateMmDyV(LocalTensor<CAL
         nd2NzParams.srcDValue = constInfo.commonConstInfo.mm1Ka;
         // L1->L0A，L1上的src stride为C0对齐后的SingleM
         if constexpr (IS_FP8_INPUT) {
-            nd2NzParams.dstNzC0Stride = (runInfo.commonRunInfo.s1RealSize + 32 - 1) >> 5 << 5;
+            nd2NzParams.dstNzC0Stride = AlignTo32(runInfo.commonRunInfo.s1RealSize);
         } else {
-            nd2NzParams.dstNzC0Stride = (runInfo.commonRunInfo.s1RealSize + C0_SIZE - 1) >> 4 << 4;
+            nd2NzParams.dstNzC0Stride = AlignTo16(runInfo.commonRunInfo.s1RealSize);
         }
         nd2NzParams.dstNzNStride = 1;
         nd2NzParams.dstNzMatrixStride = 0;
@@ -399,9 +401,9 @@ __aicore__ inline void FAGBlockCube<TEMPLATE_ARGS>::IterateMmDyV(LocalTensor<CAL
             nd2NzParams.srcNdMatrixStride = 0;
             nd2NzParams.srcDValue = constInfo.commonConstInfo.mm1Kb;
             if constexpr (IS_FP8_INPUT) {
-                nd2NzParams.dstNzC0Stride = (runInfo.commonRunInfo.s2RealSize + 32 - 1) >> 5 << 5;
+                nd2NzParams.dstNzC0Stride = AlignTo32(runInfo.commonRunInfo.s2RealSize);
             } else {
-                nd2NzParams.dstNzC0Stride = (realN + C0_SIZE - 1) >> 4 << 4; //64
+                nd2NzParams.dstNzC0Stride = AlignTo16(realN); //64
             }
             nd2NzParams.dstNzNStride = 1;
             nd2NzParams.dstNzMatrixStride = 0;
@@ -424,10 +426,10 @@ __aicore__ inline void FAGBlockCube<TEMPLATE_ARGS>::IterateMmDyV(LocalTensor<CAL
                 nd2NzParams.srcNdMatrixStride = 0;
                 nd2NzParams.srcDValue = constInfo.commonConstInfo.mm1Ka;
                 if constexpr (IS_FP8_INPUT) {
-                    nd2NzParams.dstNzC0Stride = (preloadArgs.nextMOrN + 32 - 1) >> 5 << 5;
+                    nd2NzParams.dstNzC0Stride = AlignTo32(preloadArgs.nextMOrN);
                 } else {
                     // L1->L0A，L1上的src stride为C0对齐后的SingleM
-                    nd2NzParams.dstNzC0Stride = (preloadArgs.nextMOrN + C0_SIZE - 1) >> 4 << 4;
+                    nd2NzParams.dstNzC0Stride = AlignTo16(preloadArgs.nextMOrN);
                 }
 
                 nd2NzParams.dstNzNStride = 1;
@@ -485,7 +487,7 @@ __aicore__ inline void FAGBlockCube<TEMPLATE_ARGS>::IterateMmDyV(LocalTensor<CAL
         FixpipeParamsC310<CO2Layout::ROW_MAJOR> fixpipeParams;
         fixpipeParams.nSize = realN;
         fixpipeParams.mSize = (runInfo.commonRunInfo.s1RealSize + 1) >> 1 << 1;
-        fixpipeParams.srcStride = ((fixpipeParams.mSize + 15) / 16) * 16;
+        fixpipeParams.srcStride = AlignTo16(fixpipeParams.mSize);
         fixpipeParams.dstStride = CUBE_BASEN;
         fixpipeParams.dualDstCtl = 1;
         fixpipeParams.params.ndNum = 1;
@@ -534,21 +536,21 @@ __aicore__ inline void FAGBlockCube<TEMPLATE_ARGS>::IterateMmQK(LocalTensor<CALC
         if constexpr (IS_ROPE) {
             nd2NzParams.ndNum = 1;
             nd2NzParams.nValue = runInfo.commonRunInfo.s1RealSize;
-            nd2NzParams.dValue = 128;
+            nd2NzParams.dValue = ROPE_D_128;
             nd2NzParams.srcNdMatrixStride = 0;
             nd2NzParams.srcDValue = constInfo.mm2Ka;
             if constexpr (IS_FP8_INPUT) {
-                nd2NzParams.dstNzC0Stride = (runInfo.commonRunInfo.s1RealSize + 32 - 1) >> 5 << 5;
+                nd2NzParams.dstNzC0Stride = AlignTo32(runInfo.commonRunInfo.s1RealSize);
             } else {
                 // L1->L0A，L1上的src stride为C0对齐后的SingleM
-                nd2NzParams.dstNzC0Stride = (runInfo.commonRunInfo.s1RealSize + C0_SIZE - 1) >> 4 << 4;
+                nd2NzParams.dstNzC0Stride = AlignTo16(runInfo.commonRunInfo.s1RealSize);
             }
  
             nd2NzParams.dstNzNStride = 1;
             nd2NzParams.dstNzMatrixStride = 0;
             DataCopy(qL1Tensor, this->queryGm[runInfo.queryOffsetWithRopeForMm12], nd2NzParams);
-            nd2NzParams.dValue = 64;
-            nd2NzParams.srcDValue = constInfo.mm2Ka / 2;
+            nd2NzParams.dValue = ROPE_D_64;
+            nd2NzParams.srcDValue = constInfo.mm2Ka / NUM_TWO;
             DataCopy(qL1Tensor[nd2NzParams.dstNzC0Stride * 128], this->queryRopeGm[runInfo.commonRunInfo.qRopeOffset], nd2NzParams);
         } else {
             nd2NzParams.ndNum = 1;
@@ -557,10 +559,10 @@ __aicore__ inline void FAGBlockCube<TEMPLATE_ARGS>::IterateMmQK(LocalTensor<CALC
             nd2NzParams.srcNdMatrixStride = 0;
             nd2NzParams.srcDValue = constInfo.mm2Ka;
             if constexpr (IS_FP8_INPUT) {
-                nd2NzParams.dstNzC0Stride = (runInfo.commonRunInfo.s1RealSize + 32 - 1) >> 5 << 5; 
+                nd2NzParams.dstNzC0Stride = AlignTo32(runInfo.commonRunInfo.s1RealSize); 
             } else {
                 // L1->L0A，L1上的src stride为C0对齐后的SingleM
-                nd2NzParams.dstNzC0Stride = (runInfo.commonRunInfo.s1RealSize + C0_SIZE - 1) >> 4 << 4; // todo: fp8 adapt
+                nd2NzParams.dstNzC0Stride = AlignTo16(runInfo.commonRunInfo.s1RealSize); // todo: fp8 adapt
             }
             nd2NzParams.dstNzNStride = 1;
             nd2NzParams.dstNzMatrixStride = 0;
@@ -604,15 +606,15 @@ __aicore__ inline void FAGBlockCube<TEMPLATE_ARGS>::IterateMmQK(LocalTensor<CALC
             if constexpr (IS_ROPE) {
                 nd2NzParams.ndNum = 1;
                 nd2NzParams.nValue = runInfo.commonRunInfo.s2RealSize;
-                nd2NzParams.dValue = 128;
+                nd2NzParams.dValue = ROPE_D_128;
                 nd2NzParams.srcNdMatrixStride = 0;
                 nd2NzParams.srcDValue = constInfo.mm2Kb;
-                nd2NzParams.dstNzC0Stride = (runInfo.commonRunInfo.s2RealSize + C0_SIZE - 1) >> 4 << 4;
+                nd2NzParams.dstNzC0Stride = AlignTo16(runInfo.commonRunInfo.s2RealSize);
                 nd2NzParams.dstNzNStride = 1;
                 nd2NzParams.dstNzMatrixStride = 0;
                 DataCopy(kL1Tensor, this->keyGm[runInfo.keyOffsetWithRopeForMm12], nd2NzParams);
-                nd2NzParams.dValue = 64;
-                nd2NzParams.srcDValue = constInfo.mm2Kb / 2;
+                nd2NzParams.dValue = ROPE_D_64;
+                nd2NzParams.srcDValue = constInfo.mm2Kb / NUM_TWO;
                 DataCopy(kL1Tensor[nd2NzParams.dstNzC0Stride * 128], this->keyRopeGm[runInfo.commonRunInfo.kRopeOffset], nd2NzParams);
             } else {
                 nd2NzParams.ndNum = 1;
@@ -622,9 +624,9 @@ __aicore__ inline void FAGBlockCube<TEMPLATE_ARGS>::IterateMmQK(LocalTensor<CALC
                 nd2NzParams.srcDValue = constInfo.mm2Kb;
                 if constexpr (IS_FP8_INPUT) {
                     // nd2NzParams.dstNzC0Stride = (runInfo.commonRunInfo.s2RealSize + 32 - 1) >> 5 << 5;
-                    nd2NzParams.dstNzC0Stride = (runInfo.commonRunInfo.s2RealSize + 32 - 1) >> 5 << 5;
+                    nd2NzParams.dstNzC0Stride = AlignTo32(runInfo.commonRunInfo.s2RealSize);
                 } else {
-                    nd2NzParams.dstNzC0Stride = (realN + C0_SIZE - 1) >> 4 << 4;
+                    nd2NzParams.dstNzC0Stride = AlignTo16(realN);
                 }
                 nd2NzParams.dstNzNStride = 1;
                 nd2NzParams.dstNzMatrixStride = 0;
@@ -642,24 +644,24 @@ __aicore__ inline void FAGBlockCube<TEMPLATE_ARGS>::IterateMmQK(LocalTensor<CALC
                 nd2NzParams.ndNum = 1;
                 nd2NzParams.nValue = preloadArgs.nextMOrN;
                 if constexpr (IS_ROPE) {
-                    nd2NzParams.dValue = 128;
+                    nd2NzParams.dValue = ROPE_D_128;
                 } else {
                     nd2NzParams.dValue = constInfo.commonConstInfo.dSize;
                 }
                 nd2NzParams.srcNdMatrixStride = 0;
                 nd2NzParams.srcDValue = constInfo.mm2Ka;
                 if constexpr (IS_FP8_INPUT) {
-                    nd2NzParams.dstNzC0Stride = (preloadArgs.nextMOrN + 32 - 1) >> 5 << 5;
+                    nd2NzParams.dstNzC0Stride = AlignTo32(preloadArgs.nextMOrN);
                 } else {
                     // L1->L0A，L1上的src stride为C0对齐后的SingleM
-                    nd2NzParams.dstNzC0Stride = (preloadArgs.nextMOrN + C0_SIZE - 1) >> 4 << 4; // todo: fp8 adapt
+                    nd2NzParams.dstNzC0Stride = AlignTo16(preloadArgs.nextMOrN); // todo: fp8 adapt
                 }
                 nd2NzParams.dstNzNStride = 1;
                 nd2NzParams.dstNzMatrixStride = 0;
                 DataCopy(qL1Tensor, this->queryGm[preloadArgs.nextQueryOffset], nd2NzParams);
                 if constexpr (IS_ROPE) {
-                    nd2NzParams.dValue = 64;
-                    nd2NzParams.srcDValue = constInfo.mm2Ka / 2;
+                    nd2NzParams.dValue = ROPE_D_64;
+                    nd2NzParams.srcDValue = constInfo.mm2Ka / NUM_TWO;
                     DataCopy(qL1Tensor[nd2NzParams.dstNzC0Stride * 128], this->queryRopeGm[preloadArgs.nextQueryRopeOffset], nd2NzParams);
                 }
                 // current loop no matched wait, will wait in next loop
@@ -711,7 +713,7 @@ __aicore__ inline void FAGBlockCube<TEMPLATE_ARGS>::IterateMmQK(LocalTensor<CALC
         fixpipeParams.mSize = (runInfo.commonRunInfo.s1RealSize + 1) >> 1 << 1;
         // L0C上bmm1结果相邻连续数据片段间隔(前面一个数据块的头与后面数据块的头的间隔), 单位为16*sizeof(T)
         // 源Nz矩阵中相邻大Z排布的起始地址偏移
-        fixpipeParams.srcStride = ((fixpipeParams.mSize + 15) / 16) * 16;
+        fixpipeParams.srcStride = AlignTo16(fixpipeParams.mSize);
         // mmResUb上两行之间的间隔，单位：element。
         fixpipeParams.dstStride = CUBE_BASEN;
         // 双目标模式，按M维度拆分，M / 2 * N写入每个UB, M必须为2的倍数
@@ -768,9 +770,9 @@ FAGBlockCube<TEMPLATE_ARGS>::IterateMmDsKNormal(typename DqkvResPos<T, IS_WRITE_
             nd2NzParams.srcNdMatrixStride = 0;
             nd2NzParams.srcDValue = constInfo.mm2Kb;
             if constexpr (IS_FP8_INPUT) {
-                nd2NzParams.dstNzC0Stride = (runInfo.commonRunInfo.s2RealSize + 32 - 1) >> 5 << 5;
+                nd2NzParams.dstNzC0Stride = AlignTo32(runInfo.commonRunInfo.s2RealSize);
             } else {
-                nd2NzParams.dstNzC0Stride = (runInfo.commonRunInfo.s2RealSize + C0_SIZE - 1) >> 4 << 4;
+                nd2NzParams.dstNzC0Stride = AlignTo16(runInfo.commonRunInfo.s2RealSize);
             }
             nd2NzParams.dstNzNStride = 1;
             nd2NzParams.dstNzMatrixStride = 0;
@@ -824,9 +826,9 @@ FAGBlockCube<TEMPLATE_ARGS>::IterateMmDsKNormal(typename DqkvResPos<T, IS_WRITE_
             fixpipeParams.mSize = (runInfo.commonRunInfo.s1RealSize + 1) >> 1 << 1;
             // L0C上bmm1结果相邻连续数据片段间隔(前面一个数据块的头与后面数据块的头的间隔), 单位为16*sizeof(T)
             // 源Nz矩阵中相邻大Z排布的起始地址偏移
-            fixpipeParams.srcStride = ((fixpipeParams.mSize + 15) / 16) * 16;
+            fixpipeParams.srcStride = AlignTo16(fixpipeParams.mSize);
             // mmResUb上两行之间的间隔，单位：element。
-            fixpipeParams.dstStride = ((constInfo.commonConstInfo.dSize + 15) / 16) * 16;
+            fixpipeParams.dstStride = AlignTo16(constInfo.commonConstInfo.dSize);
             // 双目标模式，按M维度拆分，M / 2 * N写入每个UB, M必须为2的倍数
             fixpipeParams.dualDstCtl = 1;
             fixpipeParams.params.ndNum = 1;
@@ -842,9 +844,9 @@ FAGBlockCube<TEMPLATE_ARGS>::IterateMmDsKNormal(typename DqkvResPos<T, IS_WRITE_
             fixpipeParams.mSize = runInfo.commonRunInfo.s1RealSize;
             // L0C上bmm1结果相邻连续数据片段间隔(前面一个数据块的头与后面数据块的头的间隔), 单位为16*sizeof(T)
             // 源Nz矩阵中相邻大Z排布的起始地址偏移
-            fixpipeParams.srcStride = ((fixpipeParams.mSize + 15) / 16) * 16;
+            fixpipeParams.srcStride = AlignTo16(fixpipeParams.mSize);
             // mmResUb上两行之间的间隔，单位：element。
-            fixpipeParams.dstStride = SPLIT_AXIS == BN2 ? ((constInfo.commonConstInfo.dSize + 15) / 16) * 16 : constInfo.mm3Ka;
+            fixpipeParams.dstStride = SPLIT_AXIS == BN2 ? AlignTo16(constInfo.commonConstInfo.dSize) : constInfo.mm3Ka;
             // 双目标模式，按M维度拆分，M / 2 * N写入每个UB, M必须为2的倍数
             fixpipeParams.dualDstCtl = 0;
             if constexpr (IS_FP8_INPUT) {
@@ -918,9 +920,9 @@ FAGBlockCube<TEMPLATE_ARGS>::IterateMmDsQNormal(typename DqkvResPos<T, IS_WRITE_
             nd2NzParams.srcNdMatrixStride = 0;
             nd2NzParams.srcDValue = constInfo.mm2Ka;
             if constexpr (IS_FP8_INPUT) {
-                nd2NzParams.dstNzC0Stride = (runInfo.commonRunInfo.s1RealSize + 32 - 1) >> 5 << 5;
+                nd2NzParams.dstNzC0Stride = AlignTo32(runInfo.commonRunInfo.s1RealSize);
             } else {
-                nd2NzParams.dstNzC0Stride = (runInfo.commonRunInfo.s1RealSize + C0_SIZE - 1) >> 4 << 4;
+                nd2NzParams.dstNzC0Stride = AlignTo16(runInfo.commonRunInfo.s1RealSize);
             }
             nd2NzParams.dstNzNStride = 1;
             nd2NzParams.dstNzMatrixStride = 0;
@@ -971,8 +973,8 @@ FAGBlockCube<TEMPLATE_ARGS>::IterateMmDsQNormal(typename DqkvResPos<T, IS_WRITE_
             FixpipeParamsC310<CO2Layout::ROW_MAJOR> fixpipeParams;
             fixpipeParams.nSize = (realN + 7) >> 3 << 3;
             fixpipeParams.mSize = (runInfo.commonRunInfo.s2RealSize + 1) >> 1 << 1;
-            fixpipeParams.srcStride = ((fixpipeParams.mSize + 15) / 16) * 16;
-            fixpipeParams.dstStride = ((constInfo.commonConstInfo.dSize + 15) / 16) * 16;
+            fixpipeParams.srcStride = AlignTo16(fixpipeParams.mSize);
+            fixpipeParams.dstStride = AlignTo16(constInfo.commonConstInfo.dSize);
             fixpipeParams.dualDstCtl = 1;
             fixpipeParams.params.ndNum = 1;
             fixpipeParams.params.srcNdStride = 0;
@@ -986,8 +988,8 @@ FAGBlockCube<TEMPLATE_ARGS>::IterateMmDsQNormal(typename DqkvResPos<T, IS_WRITE_
                 FixpipeParamsC310<CO2Layout::ROW_MAJOR> fixpipeParams;
                 fixpipeParams.nSize = realN;
                 fixpipeParams.mSize = (runInfo.commonRunInfo.s2RealSize + 1) >> 1 << 1;
-                fixpipeParams.srcStride = ((fixpipeParams.mSize + 15) / 16) * 16;
-                fixpipeParams.dstStride = SPLIT_AXIS != BN2GS1S2 ? ((constInfo.commonConstInfo.dSize + 15) / 16) * 16 : constInfo.mm4Kb;
+                fixpipeParams.srcStride = AlignTo16(fixpipeParams.mSize);
+                fixpipeParams.dstStride = SPLIT_AXIS != BN2GS1S2 ? AlignTo16(constInfo.commonConstInfo.dSize) : constInfo.mm4Kb;
                 fixpipeParams.dualDstCtl = 0;
                 if constexpr (IS_FP8_INPUT) {
                     fixpipeParams.quantPre = QuantMode_t::QF322F32_PRE;
@@ -1058,9 +1060,9 @@ FAGBlockCube<TEMPLATE_ARGS>::IterateMmPDyNormal(typename DqkvResPos<T, IS_WRITE_
             nd2NzParams.srcNdMatrixStride = 0;
             nd2NzParams.srcDValue = constInfo.commonConstInfo.mm1Ka;
             if constexpr (IS_FP8_INPUT) {
-                nd2NzParams.dstNzC0Stride = (runInfo.commonRunInfo.s1RealSize + 32 - 1) >> 5 << 5;
+                nd2NzParams.dstNzC0Stride = AlignTo32(runInfo.commonRunInfo.s1RealSize);
             } else {
-                nd2NzParams.dstNzC0Stride = (runInfo.commonRunInfo.s1RealSize + C0_SIZE - 1) >> 4 << 4;
+                nd2NzParams.dstNzC0Stride = AlignTo16(runInfo.commonRunInfo.s1RealSize);
             }
             nd2NzParams.dstNzNStride = 1;
             nd2NzParams.dstNzMatrixStride = 0;
@@ -1114,8 +1116,8 @@ FAGBlockCube<TEMPLATE_ARGS>::IterateMmPDyNormal(typename DqkvResPos<T, IS_WRITE_
             fixpipeParams.mSize = (runInfo.commonRunInfo.s2RealSize + 1) >> 1 << 1;
             fixpipeParams.nSize = realN;
         }    
-        fixpipeParams.srcStride = ((fixpipeParams.mSize + 15) / 16) * 16;
-        fixpipeParams.dstStride = SPLIT_AXIS == BN2S2 ? ((constInfo.commonConstInfo.dSizeV + 15) / 16) * 16 : constInfo.commonConstInfo.mm1Kb;
+        fixpipeParams.srcStride = AlignTo16(fixpipeParams.mSize);
+        fixpipeParams.dstStride = SPLIT_AXIS == BN2S2 ? AlignTo16(constInfo.commonConstInfo.dSizeV) : constInfo.commonConstInfo.mm1Kb;
         fixpipeParams.dualDstCtl = 1;
         if constexpr (IS_FP8_INPUT) {
             fixpipeParams.quantPre = QuantMode_t::QF322F32_PRE;
