@@ -251,19 +251,19 @@ protected:
 
     __aicore__ inline void SoftmaxBasicComputeFirstTail(LocalTensor<mm1OutputType>& mmResUb,
                                                           LocalTensor<float>& softmaxMaxUb, LocalTensor<float>& softmaxSumUb,
-                                                          LocalTensor<softmaxType>& softmaxExpUb, LocalTensor<uint8_t>& sharedTmpUb,
+                                                          LocalTensor<softmaxType>& softmaxExponentUb, LocalTensor<uint8_t>& sharedTmpUb,
                                                           const SoftMaxShapeInfo &softmaxShapeInfo);
     __aicore__ inline void SoftmaxBasicComputeTail(LocalTensor<mm1OutputType>& mmResUb,
                                                      LocalTensor<float>& softmaxMaxUb, LocalTensor<float>& softmaxSumUb,
-                                                     LocalTensor<softmaxType>& softmaxExpUb, LocalTensor<uint8_t>& sharedTmpUb,
+                                                     LocalTensor<softmaxType>& softmaxExponentUb, LocalTensor<uint8_t>& sharedTmpUb,
                                                      const SoftMaxShapeInfo &softmaxShapeInfo);
     __aicore__ inline void SoftmaxBasicComputeFirstTailTmp(LocalTensor<mmOutputType>& mmResUb,
                                                           LocalTensor<mmOutputType>& softmaxMaxUb, LocalTensor<mmOutputType>& softmaxSumUb,
-                                                          LocalTensor<mmOutputType>& softmaxExpUb, LocalTensor<uint8_t>& sharedTmpUb,
+                                                          LocalTensor<mmOutputType>& softmaxExponentUb, LocalTensor<uint8_t>& sharedTmpUb,
                                                           const SoftMaxShapeInfo &softmaxShapeInfo);
     __aicore__ inline void SoftmaxBasicComputeTailTmp(LocalTensor<mmOutputType>& mmResUb,
                                                      LocalTensor<mmOutputType>& softmaxMaxUb, LocalTensor<mmOutputType>& softmaxSumUb,
-                                                     LocalTensor<mmOutputType>& softmaxExpUb, LocalTensor<uint8_t>& sharedTmpUb,
+                                                     LocalTensor<mmOutputType>& softmaxExponentUb, LocalTensor<uint8_t>& sharedTmpUb,
                                                      const SoftMaxShapeInfo &softmaxShapeInfo);
     __aicore__ inline void QuantCompute(LocalTensor<int8_t> quantResUb, LocalTensor<mmOutputType> mmResUb, float scale, float offset, uint32_t computeSize);
 
@@ -271,14 +271,14 @@ protected:
         const int height, const int width, const int gCol, const bool isA1);
 
     __aicore__ inline void Bmm2UpdateDivNoTail310P(LocalTensor<mmOutputType>& bmm2ResPreUb,
-                                               LocalTensor<float>& softmaxSumUb, LocalTensor<softmaxType>& softmaxExpUb);
+                                               LocalTensor<float>& softmaxSumUb, LocalTensor<softmaxType>& softmaxExponentUb);
 
     __aicore__ inline void Bmm2UpdateDivNoTail310PTmp(LocalTensor<mmOutputType>& bmm2ResPreUb,
-                                               LocalTensor<mmOutputType>& softmaxSumUb, LocalTensor<softmaxType>& softmaxExpUb);
+                                               LocalTensor<mmOutputType>& softmaxSumUb, LocalTensor<softmaxType>& softmaxExponentUb);
 
     __aicore__ inline void Bmm2Compute(LocalTensor<mmOutputType>& bmm2ResL1);
 
-    __aicore__ inline void UpdateVmul(LocalTensor<softmaxType>& softmaxExpUb);
+    __aicore__ inline void UpdateVmul(LocalTensor<softmaxType>& softmaxExponentUb);
 
     __aicore__ inline void Bmm2UpdateAdd(LocalTensor<mmOutputType>& bmm2ResUb);
 
@@ -558,10 +558,10 @@ __aicore__ inline void PromptFlashAttentionS1s2Bns1X310Base<PFAT>::ElewiseComput
 template<typename PFAT>
 __aicore__ inline void PromptFlashAttentionS1s2Bns1X310Base<PFAT>::SoftmaxBasicComputeFirstTail(LocalTensor<mm1OutputType>& mmResUb,
                                                         LocalTensor<float>& softmaxMaxUb, LocalTensor<float>& softmaxSumUb,
-                                                        LocalTensor<softmaxType>& softmaxExpUb, LocalTensor<uint8_t>& sharedTmpUb,
+                                                        LocalTensor<softmaxType>& softmaxExponentUb, LocalTensor<uint8_t>& sharedTmpUb,
                                                         const SoftMaxShapeInfo &softmaxShapeInfo) {
     SoftmaxFlashV2<softmaxType, false, true, true, true>(mmResUb, softmaxSumUb, softmaxMaxUb,
-                                         mmResUb, softmaxExpUb, softmaxSumUb, softmaxMaxUb, sharedTmpUb, softmaxFlashTilingData, softmaxShapeInfo);
+                                         mmResUb, softmaxExponentUb, softmaxSumUb, softmaxMaxUb, sharedTmpUb, softmaxFlashTilingData, softmaxShapeInfo);
     if (this->isSoftmaxResNeedUpdate) {
         SoftMaxShapeInfo softmaxShapeInfo{
             static_cast<uint32_t>(tilingData->promptAttentionSingleCoreParams.singleProcessSOuterSize),
@@ -577,10 +577,10 @@ __aicore__ inline void PromptFlashAttentionS1s2Bns1X310Base<PFAT>::SoftmaxBasicC
 template<typename PFAT>
 __aicore__ inline void PromptFlashAttentionS1s2Bns1X310Base<PFAT>::SoftmaxBasicComputeTail(LocalTensor<mm1OutputType>& mmResUb,
                                                     LocalTensor<float>& softmaxMaxUb, LocalTensor<float>& softmaxSumUb,
-                                                    LocalTensor<softmaxType>& softmaxExpUb, LocalTensor<uint8_t>& sharedTmpUb,
+                                                    LocalTensor<softmaxType>& softmaxExponentUb, LocalTensor<uint8_t>& sharedTmpUb,
                                                     const SoftMaxShapeInfo &softmaxShapeInfo) {
     SoftmaxFlashV2<softmaxType, true, true, true, true>(mmResUb, softmaxSumUb, softmaxMaxUb,
-                                        mmResUb, softmaxExpUb, softmaxSumUb, softmaxMaxUb, sharedTmpUb, softmaxFlashTilingData, softmaxShapeInfo);
+                                        mmResUb, softmaxExponentUb, softmaxSumUb, softmaxMaxUb, sharedTmpUb, softmaxFlashTilingData, softmaxShapeInfo);
     if (this->isSoftmaxResNeedUpdate) {
         // Updates the softmaxSapeInfo using parameters from tilingData
         SoftMaxShapeInfo softmaxShapeInfo{
@@ -597,10 +597,10 @@ __aicore__ inline void PromptFlashAttentionS1s2Bns1X310Base<PFAT>::SoftmaxBasicC
 template<typename PFAT>
 __aicore__ inline void PromptFlashAttentionS1s2Bns1X310Base<PFAT>::SoftmaxBasicComputeFirstTailTmp(LocalTensor<mmOutputType>& mmResUb,
                                                         LocalTensor<mmOutputType>& softmaxMaxUb, LocalTensor<mmOutputType>& softmaxSumUb,
-                                                        LocalTensor<mmOutputType>& softmaxExpUb, LocalTensor<uint8_t>& sharedTmpUb,
+                                                        LocalTensor<mmOutputType>& softmaxExponentUb, LocalTensor<uint8_t>& sharedTmpUb,
                                                         const SoftMaxShapeInfo &softmaxShapeInfo) {
     SoftmaxFlashV2Tmp<mmOutputType, false, true, true, true>(mmResUb, softmaxSumUb, softmaxMaxUb,
-                                         mmResUb, softmaxExpUb, softmaxSumUb, softmaxMaxUb, sharedTmpUb, softmaxFlashTilingData, softmaxShapeInfo);
+                                         mmResUb, softmaxExponentUb, softmaxSumUb, softmaxMaxUb, sharedTmpUb, softmaxFlashTilingData, softmaxShapeInfo);
     if (this->isSoftmaxResNeedUpdate) {
         SoftMaxShapeInfo softmaxShapeInfo{
             static_cast<uint32_t>(tilingData->promptAttentionSingleCoreParams.singleProcessSOuterSize),
@@ -619,10 +619,10 @@ __aicore__ inline void PromptFlashAttentionS1s2Bns1X310Base<PFAT>::SoftmaxBasicC
 template<typename PFAT>
 __aicore__ inline void PromptFlashAttentionS1s2Bns1X310Base<PFAT>::SoftmaxBasicComputeTailTmp(LocalTensor<mmOutputType>& mmResUb,
                                                     LocalTensor<mmOutputType>& softmaxMaxUb, LocalTensor<mmOutputType>& softmaxSumUb,
-                                                    LocalTensor<mmOutputType>& softmaxExpUb, LocalTensor<uint8_t>& sharedTmpUb,
+                                                    LocalTensor<mmOutputType>& softmaxExponentUb, LocalTensor<uint8_t>& sharedTmpUb,
                                                     const SoftMaxShapeInfo &softmaxShapeInfo) {
     SoftmaxFlashV2Tmp<mmOutputType, true, true, true, true>(mmResUb, softmaxSumUb, softmaxMaxUb,
-                                        mmResUb, softmaxExpUb, softmaxSumUb, softmaxMaxUb, sharedTmpUb, softmaxFlashTilingData, softmaxShapeInfo);
+                                        mmResUb, softmaxExponentUb, softmaxSumUb, softmaxMaxUb, sharedTmpUb, softmaxFlashTilingData, softmaxShapeInfo);
     if (this->isSoftmaxResNeedUpdate) {
         SoftMaxShapeInfo softmaxShapeInfo{
             static_cast<uint32_t>(tilingData->promptAttentionSingleCoreParams.singleProcessSOuterSize),
@@ -637,7 +637,7 @@ __aicore__ inline void PromptFlashAttentionS1s2Bns1X310Base<PFAT>::SoftmaxBasicC
 
 template<typename PFAT>
 __aicore__ inline void PromptFlashAttentionS1s2Bns1X310Base<PFAT>::Bmm2UpdateDivNoTail310P(LocalTensor<mmOutputType>& bmm2ResPreUb,
-                                            LocalTensor<float>& softmaxSumUb, LocalTensor<softmaxType>& softmaxExpUb) {
+                                            LocalTensor<float>& softmaxSumUb, LocalTensor<softmaxType>& softmaxExponentUb) {
     int32_t headLoop = tilingData->promptAttentionBaseParams.headSize / softmaxTypeByteNum;
     constexpr int32_t REPEAT_DATA_NUM = 256 / sizeof(softmaxType);
     BinaryRepeatParams repeatParams;
@@ -661,12 +661,12 @@ __aicore__ inline void PromptFlashAttentionS1s2Bns1X310Base<PFAT>::Bmm2UpdateDiv
     DataCopy(tmpBuffer[FP32_BLOCK_NUM], softmaxSumUb, {static_cast<uint16_t>(outerSize), 1, 0, 1});    
     PipeBarrier<PIPE_V>();
 	if constexpr (IsSameType<softmaxType, half>::value) {
-        Cast(softmaxExpUb, tmpBuffer, RoundMode::CAST_ODD, calcSize * 2);
+        Cast(softmaxExponentUb, tmpBuffer, RoundMode::CAST_ODD, calcSize * 2);
         PipeBarrier<PIPE_V>();
 
         for (int i = 0; i < loop; i++) {
             PipeBarrier<PIPE_V>();
-            Div(bmm2ResPreUb[i * BLOCK_CUBE * outerSize], bmm2ResPreUb[i * BLOCK_CUBE * outerSize], softmaxExpUb,
+            Div(bmm2ResPreUb[i * BLOCK_CUBE * outerSize], bmm2ResPreUb[i * BLOCK_CUBE * outerSize], softmaxExponentUb,
                 REPEAT_DATA_NUM, repeat, repeatParams);
             PipeBarrier<PIPE_V>();
         }
@@ -685,7 +685,7 @@ __aicore__ inline void PromptFlashAttentionS1s2Bns1X310Base<PFAT>::Bmm2UpdateDiv
 
 template<typename PFAT>
 __aicore__ inline void PromptFlashAttentionS1s2Bns1X310Base<PFAT>::Bmm2UpdateDivNoTail310PTmp(LocalTensor<mmOutputType>& bmm2ResPreUb,
-                                            LocalTensor<mmOutputType>& softmaxSumUb, LocalTensor<softmaxType>& softmaxExpUb) {
+                                            LocalTensor<mmOutputType>& softmaxSumUb, LocalTensor<softmaxType>& softmaxExponentUb) {
     int32_t headLoop = tilingData->promptAttentionBaseParams.headSize / softmaxTypeByteNum;
     constexpr int32_t REPEAT_DATA_NUM = 256 / sizeof(softmaxType);
     BinaryRepeatParams repeatParams;
@@ -725,7 +725,7 @@ __aicore__ inline void PromptFlashAttentionS1s2Bns1X310Base<PFAT>::Bmm2Compute(L
 }
 
 template<typename PFAT>
-__aicore__ inline void PromptFlashAttentionS1s2Bns1X310Base<PFAT>::UpdateVmul(LocalTensor<softmaxType>& softmaxExpUb) {
+__aicore__ inline void PromptFlashAttentionS1s2Bns1X310Base<PFAT>::UpdateVmul(LocalTensor<softmaxType>& softmaxExponentUb) {
     LocalTensor<mmOutputType> bmm2ResPreUb = tempBmm2Ub.Get<mmOutputType>(bmm2ResUbSize);
     BinaryRepeatParams repeatParams;
     repeatParams.src0RepStride = 8;
@@ -745,8 +745,8 @@ __aicore__ inline void PromptFlashAttentionS1s2Bns1X310Base<PFAT>::UpdateVmul(Lo
         int32_t calcSize = outerSize * FP32_BLOCK_NUM;
         LocalTensor<float> tmpBuffer = tmpmm2Ub_.template Get<float>();
         LocalTensor<half> tmpSoftmaxExp = tmpmm2Ub_.template Get<half>(); 
-        DataCopy(tmpBuffer, softmaxExpUb, {static_cast<uint16_t>(outerSize), 1, 0, 1});
-        DataCopy(tmpBuffer[FP32_BLOCK_NUM], softmaxExpUb, {static_cast<uint16_t>(outerSize), 1, 0, 1});
+        DataCopy(tmpBuffer, softmaxExponentUb, {static_cast<uint16_t>(outerSize), 1, 0, 1});
+        DataCopy(tmpBuffer[FP32_BLOCK_NUM], softmaxExponentUb, {static_cast<uint16_t>(outerSize), 1, 0, 1});
         PipeBarrier<PIPE_V>();
         Cast(tmpSoftmaxExp, tmpBuffer, RoundMode::CAST_ODD, calcSize * 2);
         PipeBarrier<PIPE_V>();
@@ -760,7 +760,7 @@ __aicore__ inline void PromptFlashAttentionS1s2Bns1X310Base<PFAT>::UpdateVmul(Lo
     } else {
         for (int i = 0; i < loop; i++) {
             PipeBarrier<PIPE_V>();
-            Mul(bmm2ResPreUb[i * BLOCK_CUBE * outerSize], softmaxExpUb, bmm2ResPreUb[i * BLOCK_CUBE * outerSize],
+            Mul(bmm2ResPreUb[i * BLOCK_CUBE * outerSize], softmaxExponentUb, bmm2ResPreUb[i * BLOCK_CUBE * outerSize],
                 REPEAT_DATA_NUM, repeat, repeatParams);
             PipeBarrier<PIPE_V>();
         }
