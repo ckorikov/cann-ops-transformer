@@ -440,8 +440,11 @@ aclnnStatus aclnnMoeDistributeCombineAddRmsNorm(
       - 对于共享专家卡，(localExpertNum = 1)。
       - 对于MoE专家卡，(localExpertNum = moeExpertNum / (epWorldSize - sharedExpertRankNum))；当(localExpertNum > 1)时，不支持TP域通信。
 
-5. **HCCL_BUFFSIZE**：
-   调用本接口前需检查`HCCL_BUFFSIZE`环境变量取值是否合理，该环境变量表示单个通信域占用内存大小，单位MB，不配置时默认为200MB。要求 (≥ 2) 且满足 (1024^2 * (HCCL_BUFFSIZE - 2) / 2 ≥ BS * 2 * (H + 128) * (epWorldSize * localExpertNum + K + 1))，其中`localExpertNum`需使用MoE专家卡的本卡专家数。
+5. **HCCL通信域缓存区大小**：
+
+    调用本接口前需检查`HCCL_BUFFSIZE`环境变量取值是否合理，该环境变量表示单个通信域占用内存大小，单位MB，不配置时默认为200MB。该场景通信域缓存区大小支持通过环境变量HCCL\_BUFFSIZE配置，也支持通过hccl_buffer_size配置（参考《PyTorch训练模型迁移调优》中“性能调优>性能调优方法>通信优化>优化方法>hccl_buffer_size”章节）。
+    -   ep通信域内： (≥ 2) 且满足 (1024^2 * (HCCL_BUFFSIZE - 2) / 2 ≥ BS * 2 * (H + 128) * (epWorldSize * localExpertNum + K + 1))，其中`localExpertNum`需使用MoE专家卡的本卡专家数。
+    -   tp通信域内：设置大小要求 \>= (A \* Align512(Align32(h \* 2) + 44) + A \* Align512(h \* 2)) \* 2。
 
 6. 通信域使用约束：
    - 一个模型中的`aclnnMoeDistributeCombineAddRmsNorm`和`aclnnMoeDistributeDispatchV2`仅支持相同EP通信域，且该通信域中不允许有其他算子。
