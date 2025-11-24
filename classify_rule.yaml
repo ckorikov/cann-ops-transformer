@@ -450,7 +450,6 @@ moe:
       - moe/moe_token_unpermute_grad/README.md
     options:
       - moe_token_unpermute_grad
-      - moe_finalize_routing_v2_grad
 
   moe_token_unpermute_with_ep:
     module: True
