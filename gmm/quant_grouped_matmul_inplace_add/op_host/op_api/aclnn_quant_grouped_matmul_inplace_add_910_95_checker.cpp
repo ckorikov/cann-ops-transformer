@@ -126,7 +126,7 @@ aclnnStatus AclnnQuantGroupedMatmulInplaceAdd91095Checker<T>::IsGmmInplaceAddTCQ
         auto scaleNDim = GetInputTensor(gmmParams_.scaleOptional, i)->GetViewShape().GetDim(scaleDimNumber - 1);
         auto scaleGDim = GetInputTensor(gmmParams_.scaleOptional, i)
                              ->GetViewShape()
-                             .GetDim(scaleDimNumber - gmm::LAST_TOW_DIM_INDEX);
+                             .GetDim(scaleDimNumber - gmm::LAST_TWO_DIM_INDEX);
         auto weightNDim = GetInputTensor(gmmParams_.weight, i)->GetViewShape().GetDim(weightDimNumber - 1);
         auto perTokenMDim = GetInputTensor(gmmParams_.perTokenScaleOptional, i)->GetViewShape().GetDim(0);
         CHECK_COND(scaleGDim == groupNum && scaleNDim == weightNDim, ACLNN_ERR_PARAM_INVALID,

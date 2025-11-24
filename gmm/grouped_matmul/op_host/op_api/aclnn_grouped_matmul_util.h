@@ -46,7 +46,7 @@ constexpr int64_t PERTILE_GROUP_SIZE = 128L;
 constexpr int64_t MXFP_DIVISOR_SIZE = 64L;
 constexpr int64_t MXFP_MULTI_BASE_SIZE = 2L;
 constexpr int64_t EVEN_FACTOR = 2L;
-constexpr int64_t LAST_TOW_DIM_INDEX = 2L;
+constexpr int64_t LAST_TWO_DIM_INDEX = 2L;
 
 constexpr int64_t N_K_MAX_VALUE_WEIGHT_QUANT = 65535L;
 constexpr int64_t N_K_ALIGN_VALUE_WEIGHT_QUANT_4BIT = 64L;

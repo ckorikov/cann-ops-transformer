@@ -73,7 +73,7 @@ bool AclnnGroupedMatmul91095Checker<T>::LastTwoDimValueIsOne(const aclTensor *te
         return false;
     }
     auto dim1 = tensor->GetViewShape().GetDimNum() - 1;
-    auto dim2 = tensor->GetViewShape().GetDimNum() - LAST_TOW_DIM_INDEX;
+    auto dim2 = tensor->GetViewShape().GetDimNum() - LAST_TWO_DIM_INDEX;
     if (tensor->GetViewShape().GetDim(dim1) == 1 && tensor->GetViewShape().GetDim(dim2) == 1) {
         return true;
     }
@@ -696,10 +696,10 @@ bool AclnnGroupedMatmul91095Checker<T>::IsPerTileQuantMode() const
         bool transposePerTokenScale = IsTransposeLastTwoDims(GetInputTensor(gmmParams_.perTokenScaleOptional, i));
         auto scaleNDim = GetInputTensor(gmmParams_.scaleOptional, i)->GetViewShape().GetDim(scaleDimNumber - 1);
         auto scaleKDim =
-            GetInputTensor(gmmParams_.scaleOptional, i)->GetViewShape().GetDim(scaleDimNumber - LAST_TOW_DIM_INDEX);
+            GetInputTensor(gmmParams_.scaleOptional, i)->GetViewShape().GetDim(scaleDimNumber - LAST_TWO_DIM_INDEX);
         auto weightNDim = GetInputTensor(gmmParams_.weight, i)->GetViewShape().GetDim(weightDimNumber - 1);
         auto weightKDim =
-            GetInputTensor(gmmParams_.weight, i)->GetViewShape().GetDim(weightDimNumber - LAST_TOW_DIM_INDEX);
+            GetInputTensor(gmmParams_.weight, i)->GetViewShape().GetDim(weightDimNumber - LAST_TWO_DIM_INDEX);
         auto xMDim = GetInputTensor(gmmParams_.x, i)->GetViewShape().GetDim(0);
         auto perTokenMDim = GetInputTensor(gmmParams_.perTokenScaleOptional, i)->GetViewShape().GetDim(0);
         // m轴分组通过校验weight与scale是否维度一致可区分开其他场景，这里仅通过判断k分组时x与perToken的转置是否一致区分其他场景
@@ -727,7 +727,7 @@ aclnnStatus AclnnGroupedMatmul91095Checker<T>::CheckGroupedMatmulPerTileShape() 
         auto xMIndex = 0;
         auto weightNIndex = GetInputTensor(gmmParams_.weight, i)->GetViewShape().GetDimNum() - 1;
         auto xKIndex = 1;
-        auto weightKIndex = GetInputTensor(gmmParams_.weight, i)->GetViewShape().GetDimNum() - LAST_TOW_DIM_INDEX;
+        auto weightKIndex = GetInputTensor(gmmParams_.weight, i)->GetViewShape().GetDimNum() - LAST_TWO_DIM_INDEX;
         auto weightKDim = GetInputTensor(gmmParams_.weight, i)->GetViewShape().GetDim(weightKIndex);
         auto xMDim = GetInputTensor(gmmParams_.x, i)->GetViewShape().GetDim(xMIndex);
         auto weightNDim = GetInputTensor(gmmParams_.weight, i)->GetViewShape().GetDim(weightNIndex);
@@ -780,7 +780,7 @@ but actual transpositions are %s/%s.",
         auto weightDimNumber = GetInputTensor(gmmParams_.weight, i)->GetViewShape().GetDimNum();
         auto groupNum = gmmParams_.groupTensorOptional->GetViewShape().GetDim(0);
         auto weightKDim =
-            GetInputTensor(gmmParams_.weight, i)->GetViewShape().GetDim(weightDimNumber - LAST_TOW_DIM_INDEX);
+            GetInputTensor(gmmParams_.weight, i)->GetViewShape().GetDim(weightDimNumber - LAST_TWO_DIM_INDEX);
         auto weightNDim = GetInputTensor(gmmParams_.weight, i)->GetViewShape().GetDim(weightDimNumber - 1);
         auto perTokenMDim = GetInputTensor(gmmParams_.perTokenScaleOptional, i)->GetViewShape().GetDim(0);
         auto xMDim = GetInputTensor(gmmParams_.x, i)->GetViewShape().GetDim(0);
