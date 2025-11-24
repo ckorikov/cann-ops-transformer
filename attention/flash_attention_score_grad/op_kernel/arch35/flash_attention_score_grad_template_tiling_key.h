@@ -106,7 +106,6 @@
      #if (ORIG_DTYPE_QUERY == -1) || (ORIG_DTYPE_QUERY == DT_FLOAT16)
          // FP16
          ASCENDC_TPL_ARGS_SEL(
-             ASCENDC_TPL_DETERMINISTIC_SEL(false),
              ASCENDC_TPL_BOOL_SEL(IsEmptyTensor, 0),
              ASCENDC_TPL_UINT_SEL(SplitAxis, ASCENDC_TPL_UI_LIST, 0),
              ASCENDC_TPL_UINT_SEL(InputDType, ASCENDC_TPL_UI_LIST, 3),
@@ -128,7 +127,6 @@
              ASCENDC_TPL_TILING_STRUCT_SEL(optiling::fag::FlashAttentionScoreGradTilingDataUs1s2Bbn2gs1s2Regbase<false>)
          ),
          ASCENDC_TPL_ARGS_SEL(
-             ASCENDC_TPL_DETERMINISTIC_SEL(true),
              ASCENDC_TPL_BOOL_SEL(IsEmptyTensor, 0),
              ASCENDC_TPL_UINT_SEL(SplitAxis, ASCENDC_TPL_UI_LIST, 0),
              ASCENDC_TPL_UINT_SEL(InputDType, ASCENDC_TPL_UI_LIST, 3),
@@ -150,7 +148,6 @@
              ASCENDC_TPL_TILING_STRUCT_SEL(optiling::fag::FlashAttentionScoreGradTilingDataUs1s2Bbn2gs1s2Regbase<false>)
          ),
          ASCENDC_TPL_ARGS_SEL(
-             ASCENDC_TPL_DETERMINISTIC_SEL(true),
              ASCENDC_TPL_BOOL_SEL(IsEmptyTensor, 0),
              ASCENDC_TPL_UINT_SEL(SplitAxis, ASCENDC_TPL_UI_LIST, 0),
              ASCENDC_TPL_UINT_SEL(InputDType, ASCENDC_TPL_UI_LIST, 3),
@@ -172,7 +169,6 @@
              ASCENDC_TPL_TILING_STRUCT_SEL(optiling::fag::FlashAttentionScoreGradTilingDataUs1s2Bbn2gs1s2Regbase<false>)
          ),
          ASCENDC_TPL_ARGS_SEL(
-             ASCENDC_TPL_DETERMINISTIC_SEL(true),
              ASCENDC_TPL_BOOL_SEL(IsEmptyTensor, 0),
              ASCENDC_TPL_UINT_SEL(SplitAxis, ASCENDC_TPL_UI_LIST, 0),
              ASCENDC_TPL_UINT_SEL(InputDType, ASCENDC_TPL_UI_LIST, 3),
@@ -194,7 +190,6 @@
              ASCENDC_TPL_TILING_STRUCT_SEL(optiling::fag::FlashAttentionScoreGradTilingDataUs1s2Bbn2gs1s2Regbase<true>)
          ),
          ASCENDC_TPL_ARGS_SEL(
-             ASCENDC_TPL_DETERMINISTIC_SEL(true),
              ASCENDC_TPL_BOOL_SEL(IsEmptyTensor, 0),
              ASCENDC_TPL_UINT_SEL(SplitAxis, ASCENDC_TPL_UI_LIST, 5),
              ASCENDC_TPL_UINT_SEL(InputDType, ASCENDC_TPL_UI_LIST, 3),
@@ -216,7 +211,6 @@
              ASCENDC_TPL_TILING_STRUCT_SEL(optiling::fag::FlashAttentionScoreGradTilingDataUs1s2Bbn2gs1s2Regbase<true>)
          ),
          ASCENDC_TPL_ARGS_SEL(
-             ASCENDC_TPL_DETERMINISTIC_SEL(false),
              ASCENDC_TPL_BOOL_SEL(IsEmptyTensor, 0),
              ASCENDC_TPL_UINT_SEL(SplitAxis, ASCENDC_TPL_UI_LIST, 0),
              ASCENDC_TPL_UINT_SEL(InputDType, ASCENDC_TPL_UI_LIST, 3),
@@ -238,7 +232,6 @@
              ASCENDC_TPL_TILING_STRUCT_SEL(optiling::fag::FlashAttentionScoreGradTilingDataUs1s2Bbn2gs1s2Regbase<false>)
          ),
          ASCENDC_TPL_ARGS_SEL(
-             ASCENDC_TPL_DETERMINISTIC_SEL(true),
              ASCENDC_TPL_BOOL_SEL(IsEmptyTensor, 0),
              ASCENDC_TPL_UINT_SEL(SplitAxis, ASCENDC_TPL_UI_LIST, 0),
              ASCENDC_TPL_UINT_SEL(InputDType, ASCENDC_TPL_UI_LIST, 3),
@@ -260,7 +253,6 @@
              ASCENDC_TPL_TILING_STRUCT_SEL(optiling::fag::FlashAttentionScoreGradTilingDataUs1s2Bbn2gs1s2Regbase<false>)
          ),
          ASCENDC_TPL_ARGS_SEL(
-             ASCENDC_TPL_DETERMINISTIC_SEL(true),
              ASCENDC_TPL_BOOL_SEL(IsEmptyTensor, 0),
              ASCENDC_TPL_UINT_SEL(SplitAxis, ASCENDC_TPL_UI_LIST, 0),
              ASCENDC_TPL_UINT_SEL(InputDType, ASCENDC_TPL_UI_LIST, 3),
@@ -282,7 +274,6 @@
              ASCENDC_TPL_TILING_STRUCT_SEL(optiling::fag::FlashAttentionScoreGradTilingDataUs1s2Bbn2gs1s2Regbase<false>)
          ),
          ASCENDC_TPL_ARGS_SEL(
-             ASCENDC_TPL_DETERMINISTIC_SEL(true),
              ASCENDC_TPL_BOOL_SEL(IsEmptyTensor, 0),
              ASCENDC_TPL_UINT_SEL(SplitAxis, ASCENDC_TPL_UI_LIST, 0),
              ASCENDC_TPL_UINT_SEL(InputDType, ASCENDC_TPL_UI_LIST, 3),
@@ -304,7 +295,6 @@
              ASCENDC_TPL_TILING_STRUCT_SEL(optiling::fag::FlashAttentionScoreGradTilingDataUs1s2Bbn2gs1s2Regbase<true>)
          ),
          ASCENDC_TPL_ARGS_SEL(
-             ASCENDC_TPL_DETERMINISTIC_SEL(false),
              ASCENDC_TPL_BOOL_SEL(IsEmptyTensor, 0),
              ASCENDC_TPL_UINT_SEL(SplitAxis, ASCENDC_TPL_UI_LIST, 1),
              ASCENDC_TPL_UINT_SEL(InputDType, ASCENDC_TPL_UI_LIST, 3),
@@ -326,7 +316,6 @@
              ASCENDC_TPL_TILING_STRUCT_SEL(optiling::fag::FlashAttentionScoreGradTilingDataUs1s2Bbn2gs1s2Regbase<false>)
          ),
          ASCENDC_TPL_ARGS_SEL(
-             ASCENDC_TPL_DETERMINISTIC_SEL(false),
              ASCENDC_TPL_BOOL_SEL(IsEmptyTensor, 0),
              ASCENDC_TPL_UINT_SEL(SplitAxis, ASCENDC_TPL_UI_LIST, 5),
              ASCENDC_TPL_UINT_SEL(InputDType, ASCENDC_TPL_UI_LIST, 3),
@@ -351,7 +340,6 @@
      #if (ORIG_DTYPE_QUERY == -1) || (ORIG_DTYPE_QUERY == DT_BF16) 
          // BF16
          ASCENDC_TPL_ARGS_SEL(
-             ASCENDC_TPL_DETERMINISTIC_SEL(false),
              ASCENDC_TPL_BOOL_SEL(IsEmptyTensor, 0),
              ASCENDC_TPL_UINT_SEL(SplitAxis, ASCENDC_TPL_UI_LIST, 0),
              ASCENDC_TPL_UINT_SEL(InputDType, ASCENDC_TPL_UI_LIST, 2),
@@ -373,7 +361,6 @@
              ASCENDC_TPL_TILING_STRUCT_SEL(optiling::fag::FlashAttentionScoreGradTilingDataUs1s2Bbn2gs1s2Regbase<false>)
          ),
          ASCENDC_TPL_ARGS_SEL(
-             ASCENDC_TPL_DETERMINISTIC_SEL(true),
              ASCENDC_TPL_BOOL_SEL(IsEmptyTensor, 0),
              ASCENDC_TPL_UINT_SEL(SplitAxis, ASCENDC_TPL_UI_LIST, 0),
              ASCENDC_TPL_UINT_SEL(InputDType, ASCENDC_TPL_UI_LIST, 2),
@@ -395,7 +382,6 @@
              ASCENDC_TPL_TILING_STRUCT_SEL(optiling::fag::FlashAttentionScoreGradTilingDataUs1s2Bbn2gs1s2Regbase<false>)
          ),
          ASCENDC_TPL_ARGS_SEL(
-             ASCENDC_TPL_DETERMINISTIC_SEL(true),
              ASCENDC_TPL_BOOL_SEL(IsEmptyTensor, 0),
              ASCENDC_TPL_UINT_SEL(SplitAxis, ASCENDC_TPL_UI_LIST, 0),
              ASCENDC_TPL_UINT_SEL(InputDType, ASCENDC_TPL_UI_LIST, 2),
@@ -417,7 +403,6 @@
              ASCENDC_TPL_TILING_STRUCT_SEL(optiling::fag::FlashAttentionScoreGradTilingDataUs1s2Bbn2gs1s2Regbase<false>)
          ),
          ASCENDC_TPL_ARGS_SEL(
-             ASCENDC_TPL_DETERMINISTIC_SEL(true),
              ASCENDC_TPL_BOOL_SEL(IsEmptyTensor, 0),
              ASCENDC_TPL_UINT_SEL(SplitAxis, ASCENDC_TPL_UI_LIST, 0),
              ASCENDC_TPL_UINT_SEL(InputDType, ASCENDC_TPL_UI_LIST, 2),
@@ -439,7 +424,6 @@
              ASCENDC_TPL_TILING_STRUCT_SEL(optiling::fag::FlashAttentionScoreGradTilingDataUs1s2Bbn2gs1s2Regbase<true>)
          ),
          ASCENDC_TPL_ARGS_SEL(
-             ASCENDC_TPL_DETERMINISTIC_SEL(true),
              ASCENDC_TPL_BOOL_SEL(IsEmptyTensor, 0),
              ASCENDC_TPL_UINT_SEL(SplitAxis, ASCENDC_TPL_UI_LIST, 5),
              ASCENDC_TPL_UINT_SEL(InputDType, ASCENDC_TPL_UI_LIST, 2),
@@ -461,7 +445,6 @@
              ASCENDC_TPL_TILING_STRUCT_SEL(optiling::fag::FlashAttentionScoreGradTilingDataUs1s2Bbn2gs1s2Regbase<true>)
          ),
          ASCENDC_TPL_ARGS_SEL(
-             ASCENDC_TPL_DETERMINISTIC_SEL(false),
              ASCENDC_TPL_BOOL_SEL(IsEmptyTensor, 0),
              ASCENDC_TPL_UINT_SEL(SplitAxis, ASCENDC_TPL_UI_LIST, 0),
              ASCENDC_TPL_UINT_SEL(InputDType, ASCENDC_TPL_UI_LIST, 2),
@@ -483,7 +466,6 @@
              ASCENDC_TPL_TILING_STRUCT_SEL(optiling::fag::FlashAttentionScoreGradTilingDataUs1s2Bbn2gs1s2Regbase<false>)
          ),
          ASCENDC_TPL_ARGS_SEL(
-             ASCENDC_TPL_DETERMINISTIC_SEL(true),
              ASCENDC_TPL_BOOL_SEL(IsEmptyTensor, 0),
              ASCENDC_TPL_UINT_SEL(SplitAxis, ASCENDC_TPL_UI_LIST, 0),
              ASCENDC_TPL_UINT_SEL(InputDType, ASCENDC_TPL_UI_LIST, 2),
@@ -505,7 +487,6 @@
              ASCENDC_TPL_TILING_STRUCT_SEL(optiling::fag::FlashAttentionScoreGradTilingDataUs1s2Bbn2gs1s2Regbase<false>)
          ),
          ASCENDC_TPL_ARGS_SEL(
-             ASCENDC_TPL_DETERMINISTIC_SEL(true),
              ASCENDC_TPL_BOOL_SEL(IsEmptyTensor, 0),
              ASCENDC_TPL_UINT_SEL(SplitAxis, ASCENDC_TPL_UI_LIST, 0),
              ASCENDC_TPL_UINT_SEL(InputDType, ASCENDC_TPL_UI_LIST, 2),
@@ -527,7 +508,6 @@
              ASCENDC_TPL_TILING_STRUCT_SEL(optiling::fag::FlashAttentionScoreGradTilingDataUs1s2Bbn2gs1s2Regbase<false>)
          ),
          ASCENDC_TPL_ARGS_SEL(
-             ASCENDC_TPL_DETERMINISTIC_SEL(true),
              ASCENDC_TPL_BOOL_SEL(IsEmptyTensor, 0),
              ASCENDC_TPL_UINT_SEL(SplitAxis, ASCENDC_TPL_UI_LIST, 0),
              ASCENDC_TPL_UINT_SEL(InputDType, ASCENDC_TPL_UI_LIST, 2),
@@ -549,7 +529,6 @@
              ASCENDC_TPL_TILING_STRUCT_SEL(optiling::fag::FlashAttentionScoreGradTilingDataUs1s2Bbn2gs1s2Regbase<true>)
          ),
          ASCENDC_TPL_ARGS_SEL(
-             ASCENDC_TPL_DETERMINISTIC_SEL(false),
              ASCENDC_TPL_BOOL_SEL(IsEmptyTensor, 0),
              ASCENDC_TPL_UINT_SEL(SplitAxis, ASCENDC_TPL_UI_LIST, 1),
              ASCENDC_TPL_UINT_SEL(InputDType, ASCENDC_TPL_UI_LIST, 2),
@@ -571,7 +550,6 @@
              ASCENDC_TPL_TILING_STRUCT_SEL(optiling::fag::FlashAttentionScoreGradTilingDataUs1s2Bbn2gs1s2Regbase<false>)
          ),
          ASCENDC_TPL_ARGS_SEL(
-             ASCENDC_TPL_DETERMINISTIC_SEL(false),
              ASCENDC_TPL_BOOL_SEL(IsEmptyTensor, 0),
              ASCENDC_TPL_UINT_SEL(SplitAxis, ASCENDC_TPL_UI_LIST, 5),
              ASCENDC_TPL_UINT_SEL(InputDType, ASCENDC_TPL_UI_LIST, 2),
@@ -597,7 +575,6 @@
      #if (ORIG_DTYPE_QUERY == -1) || (ORIG_DTYPE_QUERY == DT_FLOAT)
          // FP32
          ASCENDC_TPL_ARGS_SEL(
-             ASCENDC_TPL_DETERMINISTIC_SEL(false),
              ASCENDC_TPL_BOOL_SEL(IsEmptyTensor, 0),
              ASCENDC_TPL_UINT_SEL(SplitAxis, ASCENDC_TPL_UI_LIST, 0),
              ASCENDC_TPL_UINT_SEL(InputDType, ASCENDC_TPL_UI_LIST, 1),
@@ -619,7 +596,6 @@
              ASCENDC_TPL_TILING_STRUCT_SEL(optiling::fag::FlashAttentionScoreGradTilingDataUs1s2Bbn2gs1s2Regbase<false>)
          ),
          ASCENDC_TPL_ARGS_SEL(
-             ASCENDC_TPL_DETERMINISTIC_SEL(true),
              ASCENDC_TPL_BOOL_SEL(IsEmptyTensor, 0),
              ASCENDC_TPL_UINT_SEL(SplitAxis, ASCENDC_TPL_UI_LIST, 0),
              ASCENDC_TPL_UINT_SEL(InputDType, ASCENDC_TPL_UI_LIST, 1),
@@ -641,7 +617,6 @@
              ASCENDC_TPL_TILING_STRUCT_SEL(optiling::fag::FlashAttentionScoreGradTilingDataUs1s2Bbn2gs1s2Regbase<false>)
          ),
          ASCENDC_TPL_ARGS_SEL(
-             ASCENDC_TPL_DETERMINISTIC_SEL(true),
              ASCENDC_TPL_BOOL_SEL(IsEmptyTensor, 0),
              ASCENDC_TPL_UINT_SEL(SplitAxis, ASCENDC_TPL_UI_LIST, 0),
              ASCENDC_TPL_UINT_SEL(InputDType, ASCENDC_TPL_UI_LIST, 1),
@@ -663,7 +638,6 @@
              ASCENDC_TPL_TILING_STRUCT_SEL(optiling::fag::FlashAttentionScoreGradTilingDataUs1s2Bbn2gs1s2Regbase<false>)
          ),
          ASCENDC_TPL_ARGS_SEL(
-             ASCENDC_TPL_DETERMINISTIC_SEL(true),
              ASCENDC_TPL_BOOL_SEL(IsEmptyTensor, 0),
              ASCENDC_TPL_UINT_SEL(SplitAxis, ASCENDC_TPL_UI_LIST, 0),
              ASCENDC_TPL_UINT_SEL(InputDType, ASCENDC_TPL_UI_LIST, 1),
@@ -685,7 +659,6 @@
              ASCENDC_TPL_TILING_STRUCT_SEL(optiling::fag::FlashAttentionScoreGradTilingDataUs1s2Bbn2gs1s2Regbase<true>)
          ),
          ASCENDC_TPL_ARGS_SEL(
-             ASCENDC_TPL_DETERMINISTIC_SEL(false),
              ASCENDC_TPL_BOOL_SEL(IsEmptyTensor, 0),
              ASCENDC_TPL_UINT_SEL(SplitAxis, ASCENDC_TPL_UI_LIST, 0),
              ASCENDC_TPL_UINT_SEL(InputDType, ASCENDC_TPL_UI_LIST, 1),
@@ -707,7 +680,6 @@
              ASCENDC_TPL_TILING_STRUCT_SEL(optiling::fag::FlashAttentionScoreGradTilingDataUs1s2Bbn2gs1s2Regbase<false>)
          ),
          ASCENDC_TPL_ARGS_SEL(
-             ASCENDC_TPL_DETERMINISTIC_SEL(true),
              ASCENDC_TPL_BOOL_SEL(IsEmptyTensor, 0),
              ASCENDC_TPL_UINT_SEL(SplitAxis, ASCENDC_TPL_UI_LIST, 0),
              ASCENDC_TPL_UINT_SEL(InputDType, ASCENDC_TPL_UI_LIST, 1),
@@ -729,7 +701,6 @@
             ASCENDC_TPL_TILING_STRUCT_SEL(optiling::fag::FlashAttentionScoreGradTilingDataUs1s2Bbn2gs1s2Regbase<false>)
          ), 
          ASCENDC_TPL_ARGS_SEL(
-             ASCENDC_TPL_DETERMINISTIC_SEL(true),
              ASCENDC_TPL_BOOL_SEL(IsEmptyTensor, 0),
              ASCENDC_TPL_UINT_SEL(SplitAxis, ASCENDC_TPL_UI_LIST, 0),
              ASCENDC_TPL_UINT_SEL(InputDType, ASCENDC_TPL_UI_LIST, 1),
@@ -751,7 +722,6 @@
              ASCENDC_TPL_TILING_STRUCT_SEL(optiling::fag::FlashAttentionScoreGradTilingDataUs1s2Bbn2gs1s2Regbase<false>)
          ),
          ASCENDC_TPL_ARGS_SEL(
-             ASCENDC_TPL_DETERMINISTIC_SEL(true),
              ASCENDC_TPL_BOOL_SEL(IsEmptyTensor, 0),
              ASCENDC_TPL_UINT_SEL(SplitAxis, ASCENDC_TPL_UI_LIST, 0),
              ASCENDC_TPL_UINT_SEL(InputDType, ASCENDC_TPL_UI_LIST, 1),
@@ -777,7 +747,6 @@
      #if (ORIG_DTYPE_QUERY == -1) || (ORIG_DTYPE_QUERY == DT_FLOAT8_E5M2)
          // FP8_E5M2
          ASCENDC_TPL_ARGS_SEL(
-             ASCENDC_TPL_DETERMINISTIC_SEL(false),
              ASCENDC_TPL_BOOL_SEL(IsEmptyTensor, 0),
              ASCENDC_TPL_UINT_SEL(SplitAxis, ASCENDC_TPL_UI_LIST, 0),
              ASCENDC_TPL_UINT_SEL(InputDType, ASCENDC_TPL_UI_LIST, 4),
@@ -803,7 +772,6 @@
      #if (ORIG_DTYPE_QUERY == -1) || (ORIG_DTYPE_QUERY == DT_FLOAT8_E4M3FN)
          // FP8_E4M3
          ASCENDC_TPL_ARGS_SEL(
-             ASCENDC_TPL_DETERMINISTIC_SEL(false),
              ASCENDC_TPL_BOOL_SEL(IsEmptyTensor, 0),
              ASCENDC_TPL_UINT_SEL(SplitAxis, ASCENDC_TPL_UI_LIST, 0),
              ASCENDC_TPL_UINT_SEL(InputDType, ASCENDC_TPL_UI_LIST, 5),
@@ -828,7 +796,6 @@
  
      // 空tensor
      ASCENDC_TPL_ARGS_SEL(
-         ASCENDC_TPL_DETERMINISTIC_SEL(false),
          ASCENDC_TPL_BOOL_SEL(IsEmptyTensor, 1),
          ASCENDC_TPL_UINT_SEL(SplitAxis, ASCENDC_TPL_UI_LIST, 0),
          ASCENDC_TPL_UINT_SEL(InputDType, ASCENDC_TPL_UI_LIST, 0),

@@ -848,13 +848,10 @@ static aclnnStatus PostFlashAttentionScoreGrad(std::array<const aclTensor *, l0o
     auto dvOutViewCopyRes = l0op::ViewCopy(fagOut[DV_OUT_IDX], *dvOut, executor);
     CHECK_RET(dvOutViewCopyRes != nullptr, ACLNN_ERR_INNER_NULLPTR);
 
-    if (*dpseOut == nullptr || (*dpseOut)->GetDataType() == ge::DataType::DT_FLOAT) {
-        return ACLNN_SUCCESS;
+    if (*dpseOut != nullptr && (*dpseOut)->GetDataType() != ge::DataType::DT_FLOAT) {
+        auto dpseOutViewCopyRes = l0op::ViewCopy(fagOut[3], *dpseOut, executor);
+        CHECK_RET(dpseOutViewCopyRes != nullptr, ACLNN_ERR_INNER_NULLPTR);
     }
-
-    auto dpseOutViewCopyRes = l0op::ViewCopy(fagOut[3], *dpseOut, executor);
-    CHECK_RET(dpseOutViewCopyRes != nullptr, ACLNN_ERR_INNER_NULLPTR);
-
     if (dqRopeOut != nullptr && *dqRopeOut != nullptr) {
         auto dqRopeOutViewCopyRes = l0op::ViewCopy(fagOut[4], *dqRopeOut, executor);
         CHECK_RET(dqRopeOutViewCopyRes != nullptr, ACLNN_ERR_PARAM_NULLPTR);
