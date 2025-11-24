@@ -94,7 +94,7 @@ public:
     __aicore__ inline void Process();
 
     template <typename VEC2_RES_T>
-    __aicore__ inline void PostQuant(ConstInfo<isInfer, hasRope> &constInfo, RunInfo<isInfer> &runInfo, LocalTensor<OUTPUT_T> &attenOut, LocalTensor<VEC2_RES_T> &vec2ResUb, int64_t vec2S1Idx, int64_t dSizeAligned64);
+    __aicore__ inline void PostQuant(ConstInfo<isInfer, hasRope> &constInfo, const RunInfo<isInfer> &runInfo, LocalTensor<OUTPUT_T> &attenOut, LocalTensor<VEC2_RES_T> &vec2ResUb, int64_t vec2S1Idx, int64_t dSizeAligned64);
 
     __aicore__ inline void FDPostQuant(ConstInfo<isInfer, hasRope> &constInfo, LocalTensor<OUTPUT_T> &attenOut, LocalTensor<T> &accumOutLocal, uint64_t perChannelQuantOffset, uint32_t dealRowCount, uint32_t dSizeAligned64);
 
@@ -539,7 +539,9 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
     if constexpr (isFd) {
         this->constInfo.splitKVNum = inputParamsRegbase.kvSplitPart;
         this->constInfo.sInnerLoopSize = CeilDivision(this->constInfo.s2Size, this->constInfo.splitKVNum);
-        this->constInfo.actualCombineLoopSize = CeilDivision(this->constInfo.s2Size, this->constInfo.sInnerLoopSize);
+        if constexpr (PAGE_ATTENTION_ANTIQUANT) {
+            this->constInfo.sInnerLoopSize = AlignUp32((uint64_t)this->constInfo.sInnerLoopSize);
+        }
     }
     this->constInfo.isRowInvalid = inputParamsRegbase.isRowInvalid;
     this->constInfo.headNumRatio = inputParamsRegbase.headNumRatio;
@@ -1727,7 +1729,7 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
 CHILD_SPEC_TEMPLATE_ANTI
 template <typename VEC2_RES_T>
 __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_ARGS_ANTI>::PostQuant(ConstInfo<isInfer, hasRope> &constInfo,
-                                                                        RunInfo<isInfer> &runInfo, LocalTensor<OUTPUT_T> &attenOut,
+                                                                        const RunInfo<isInfer> &runInfo, LocalTensor<OUTPUT_T> &attenOut,
                                                                         LocalTensor<VEC2_RES_T> &vec2ResUb,
                                                                         int64_t vec2S1Idx, int64_t dSizeAligned64)
 {

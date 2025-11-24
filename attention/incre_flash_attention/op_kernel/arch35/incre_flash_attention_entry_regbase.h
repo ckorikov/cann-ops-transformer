@@ -175,6 +175,16 @@ inline __aicore__ void incre_flash_attention_FIAS_regbase(__gm__ uint8_t *query,
   KERNEL_TASK_TYPE_DEFAULT(KERNEL_TYPE_MIX_AIC_1_1);
 #endif
 
+#if (ORIG_DTYPE_QUERY == DT_BF16 && ORIG_DTYPE_KEY == DT_INT8 && ORIG_DTYPE_ATTENTION_OUT == DT_INT8)
+  KERNEL_TASK_TYPE_DEFAULT(KERNEL_TYPE_MIX_AIC_1_2);
+  TILING_KEY_IS(10000000531323321);
+  #if TILING_KEY_VAR == 10000000531323321  // ptokhpa,pageAttention + flash decoding BSH int8
+    INVOKE_FA_OP_IMPL_ASCEND910_95_ANTIQUANT_BASEAPI(BaseApi::FlashAttentionScoreAntiquantKernel, bfloat16_t, int8_t, float, int8_t, ImplModeEnum::AA_HIGH_PRECISION,
+    LayOutTypeEnum::LAYOUT_BSH, S1TemplateType::Aligned16, S2TemplateType::Aligned256, DTemplateType::Aligned256, DTemplateType::Aligned256,
+    PseTypeEnum::PSE_NONE_TYPE, AntiquantTypeEnum::PER_TOKEN_HEAD_PAGE_ATTENTION, true, false, false, true, true, true);
+  #endif
+#endif
+
 #if (ORIG_DTYPE_QUERY == DT_FLOAT16 && ORIG_DTYPE_KEY == DT_FLOAT16 && ORIG_DTYPE_ATTENTION_OUT == DT_FLOAT16)
   TPipe tPipe;
   KERNEL_TASK_TYPE_DEFAULT(KERNEL_TYPE_MIX_AIC_1_2);

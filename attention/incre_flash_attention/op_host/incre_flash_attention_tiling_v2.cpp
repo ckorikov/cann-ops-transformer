@@ -1958,6 +1958,10 @@ ge::graphStatus IFATilingV2::CheckAntiQuantParam(const int64_t antiquantMode, co
             OP_LOGE(context_->opName, "When antiquantMode of key/value is 4 or 5, input key/value type should be int8, "
                       "but now is %s.", DataTypeToSerialString(inputKvType_).c_str()),
             return ge::GRAPH_FAILED);
+  OP_CHECK_IF((antiquantMode == PER_TOKEN_GROUP_MODE && !(inputKvType_ == ge::DT_FLOAT4_E1M2 || inputKvType_ == ge::DT_FLOAT4_E2M1)),
+            OP_LOGE(context_->opName, "When antiquantMode of key/value is PER_TOKEN_GROUP(6), input key/value type should be fp4_e2m1 or fp4_e1m2, "
+                      "but now is %s.", DataTypeToSerialString(inputKvType_).c_str()),
+            return ge::GRAPH_FAILED);
   OP_CHECK_IF((antiquantOffsetTensor != nullptr && (!ShapeEqual(antiquantScaleTensor->GetStorageShape(), antiquantOffsetTensor->GetStorageShape()))),
             OP_LOGE(context_->opName, "antiquantScaleTensor and antiquantOffsetTensor should have the same shape"),
             return ge::GRAPH_FAILED);
