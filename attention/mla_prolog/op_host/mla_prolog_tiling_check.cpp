@@ -28,7 +28,7 @@ const std::unordered_map<ge::DataType, uint32_t> DTYPE_TO_SIZE {
     {ge::DT_INT8, 1},
     {ge::DT_INT32, 4},
     {ge::DT_FLOAT, 4}};
-    
+
 template <typename E>
 std::string ElemToString(const E &elem)
 {
@@ -172,7 +172,7 @@ ge::graphStatus MlaPrologTilingCheck::CheckDims() const
         OP_LOGE(context_.opName, "Nkv allows only %u, got %u.",
             NKV_SIZE, baseShapeInfo_.nkvSize),
         return ge::GRAPH_FAILED);
-    if (scenarioInfo_.cacheMode_ != CACHE_MODE::BSND && scenarioInfo_.cacheMode_ != CACHE_MODE::TND) {        
+    if (scenarioInfo_.cacheMode_ != CACHE_MODE::BSND && scenarioInfo_.cacheMode_ != CACHE_MODE::TND) {
         OP_CHECK_IF(baseShapeInfo_.blockSize < MIN_BLOCK_SIZE || baseShapeInfo_.blockSize > MAX_BLOCK_SIZE || baseShapeInfo_.blockSize % ALIGN_BLOCK_SIZE != 0,
             OP_LOGE(context_.opName, "BlockSize must be within [%u, %u] and a multiple of %u, got %u.",
                 MIN_BLOCK_SIZE, MAX_BLOCK_SIZE, ALIGN_BLOCK_SIZE, baseShapeInfo_.blockSize),
@@ -211,6 +211,7 @@ void MlaPrologTilingCheck::GenExpectedParamInfo()
 void MlaPrologTilingCheck::FillCommonParamInfo()
 {
     FillRequiredParamShapeWithDims();
+    FillOptionalOutputParamShapeWithDims();
 
     if (context_.weightDq.shape->GetStorageShape().GetDimNum() == MLA_PROLOG_DIM_NUM_4) {
         expectedParamInfo_[WEIGHT_DQ_NAME].dimNum = MLA_PROLOG_DIM_NUM_4;
@@ -301,6 +302,39 @@ void MlaPrologTilingCheck::FillRequiredParamShapeWithDims()
     expectedParamInfo_.emplace(KR_CACHE_OUT_NAME, expectedParamInfo_[KR_CACHE_NAME]);
 }
 
+void MlaPrologTilingCheck::FillOptionalOutputParamShapeWithDims()
+{
+    if (std::strncmp(context_.opType, V1_OP_NAME, OP_NAME_LEN) != 0) {
+        // 仅校验dequantScaleQNope有传入
+        expectedParamInfo_.emplace(DEQUANT_SCALE_Q_NOPE_NAME, context_.dequantScaleQNope);
+    }
+
+    if (std::strncmp(context_.opType, V3_OP_NAME, OP_NAME_LEN) == 0) {
+        if (*(context_.queryNormFlag)) {
+            if (scenarioInfo_.batchSeqFusedFlag_) {
+                expectedParamInfo_.emplace(QUERY_NORM_NAME,
+                    std::vector<uint32_t>{baseShapeInfo_.tSize, baseShapeInfo_.hcqSize});
+            } else {
+                expectedParamInfo_.emplace(QUERY_NORM_NAME,
+                    std::vector<uint32_t>{baseShapeInfo_.bSize, baseShapeInfo_.s1Size, baseShapeInfo_.hcqSize});
+            }
+
+            if (scenarioInfo_.quantMode_ == QUANT_MODE::NO_QUANT) {
+                expectedParamInfo_[QUERY_NORM_NAME].dtype = ge::DT_BF16;
+                expectedParamInfo_.emplace(DEQUANT_SCALE_Q_NORM_NAME, context_.dequantScaleQNorm);
+            } else {
+                expectedParamInfo_[QUERY_NORM_NAME].dtype = ge::DT_INT8;
+                expectedParamInfo_.emplace(DEQUANT_SCALE_Q_NORM_NAME, std::vector<uint32_t>{baseShapeInfo_.tSize});
+                expectedParamInfo_[DEQUANT_SCALE_Q_NORM_NAME].dtype = ge::DT_FLOAT;
+            }
+        } else {
+            // 仅校验queryNorm和dequantScaleQNorm有传入
+            expectedParamInfo_.emplace(QUERY_NORM_NAME, context_.queryNorm);
+            expectedParamInfo_.emplace(DEQUANT_SCALE_Q_NORM_NAME, context_.dequantScaleQNorm);
+        }
+    }
+}
+
 void MlaPrologTilingCheck::FillScenarioParamInfo()
 {
     switch (scenarioInfo_.quantMode_) {
@@ -347,12 +381,6 @@ void MlaPrologTilingCheck::FillNonQuantParamInfo()
     expectedParamInfo_[QUERY_ROPE_NAME].dtype = ge::DT_BF16;
     expectedParamInfo_[KV_CACHE_OUT_NAME].dtype = ge::DT_BF16;
     expectedParamInfo_[KR_CACHE_OUT_NAME].dtype = ge::DT_BF16;
-
-    if (!scenarioInfo_.isV1Flag_) {
-        // 仅校验dequantScaleQNope有传入
-        expectedParamInfo_.emplace(DEQUANT_SCALE_Q_NOPE_NAME, context_.dequantScaleQNope);
-        expectedParamInfo_[DEQUANT_SCALE_Q_NOPE_NAME].isValid = true;
-    }
 }
 
 void MlaPrologTilingCheck::FillPartialQuantParamInfo()
@@ -440,7 +468,7 @@ void MlaPrologTilingCheck::FillFullKVQuantParamInfo()
 void MlaPrologTilingCheck::FillFullKVPertileQuantParamInfo()
 {
     FillFullQuantParamInfo();
-    
+
     expectedParamInfo_.emplace(K_NOPE_CLIP_ALPHA_NAME, std::vector<uint32_t>{1});
     expectedParamInfo_[KV_CACHE_NAME].dtype = ge::DT_INT8;
     expectedParamInfo_[KV_CACHE_OUT_NAME].dtype = ge::DT_INT8;
@@ -478,6 +506,8 @@ void MlaPrologTilingCheck::GenActualParamInfo()
     actualParamInfo_.emplace(KV_CACHE_OUT_NAME, context_.kvCacheOut);
     actualParamInfo_.emplace(KR_CACHE_OUT_NAME, context_.krCacheOut);
     actualParamInfo_.emplace(DEQUANT_SCALE_Q_NOPE_NAME, context_.dequantScaleQNope);
+    actualParamInfo_.emplace(QUERY_NORM_NAME, context_.queryNorm);
+    actualParamInfo_.emplace(DEQUANT_SCALE_Q_NORM_NAME, context_.dequantScaleQNorm);
     if (scenarioInfo_.quantMode_ == QUANT_MODE::PARTIAL_QUANT_KV_QUANT_PER_TILE ||
         scenarioInfo_.quantMode_ == QUANT_MODE::FULL_QUANT_KV_QUANT_PER_TILE) {
         actualParamInfo_.erase(KR_CACHE_NAME);
@@ -530,7 +560,7 @@ ge::graphStatus MlaPrologTilingCheck::CheckScenarParam()
         return ge::GRAPH_SUCCESS;
     }
 
-    if (scenarioInfo_.quantMode_ == QUANT_MODE::PARTIAL_QUANT_KV_QUANT_PER_TILE || 
+    if (scenarioInfo_.quantMode_ == QUANT_MODE::PARTIAL_QUANT_KV_QUANT_PER_TILE ||
         scenarioInfo_.quantMode_ == QUANT_MODE::FULL_QUANT_KV_QUANT_PER_TILE) {
         if (*(context_.ckvkrRepoMode) != static_cast<int>(CKVKR_REPO_MODE::COMBINE) ||
             *(context_.quantScaleRepoMode) != static_cast<int>(QUANT_SCALE_REPO_MODE::COMBINE)) {
@@ -665,7 +695,7 @@ bool MlaPrologTilingCheck::CheckKvCache() const
 bool MlaPrologTilingCheck::CheckKrCache() const
 {
     return scenarioInfo_.quantMode_ == QUANT_MODE::PARTIAL_QUANT_KV_QUANT_PER_TILE ||
-           scenarioInfo_.quantMode_ == QUANT_MODE::FULL_QUANT_KV_QUANT_PER_TILE || 
+           scenarioInfo_.quantMode_ == QUANT_MODE::FULL_QUANT_KV_QUANT_PER_TILE ||
            IsSingleParamValid(context_.krCache, KR_CACHE_NAME, {ge::DT_BF16, ge::DT_INT8}, {ge::FORMAT_ND, ge::FORMAT_NCHW}, {3, 4});
 }
 
@@ -736,7 +766,7 @@ ge::graphStatus MlaPrologTilingCheck::CheckPANZPerTile() const
         return ge::GRAPH_SUCCESS;
     }
 
-    if (*(context_.kvQuantMode) == static_cast<int>(KV_QUANT_MODE::PER_TILE) && 
+    if (*(context_.kvQuantMode) == static_cast<int>(KV_QUANT_MODE::PER_TILE) &&
        (std::strncmp(context_.cacheMode, CACHE_MODE_PA_NZ, CACHE_MODE_LEN) == 0) &&
        (std::strncmp(context_.cacheMode, CACHE_MODE_PA_BLK_BSND, CACHE_MODE_LEN) == 0) &&
        (std::strncmp(context_.cacheMode, CACHE_MODE_PA_BLK_NZ, CACHE_MODE_LEN) == 0)) {

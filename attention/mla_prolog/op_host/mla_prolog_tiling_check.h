@@ -60,6 +60,8 @@ constexpr char QUERY_ROPE_NAME[] {"queryRope"};
 constexpr char KV_CACHE_OUT_NAME[] {"kvCacheOut"};
 constexpr char KR_CACHE_OUT_NAME[] {"krCacheOut"};
 constexpr char DEQUANT_SCALE_Q_NOPE_NAME[] {"dequantScaleQNope"};
+constexpr char QUERY_NORM_NAME[] {"queryNorm"};
+constexpr char DEQUANT_SCALE_Q_NORM_NAME[] {"dequantScaleQNorm"};
 
 constexpr uint32_t PARAM_MAP_INIT_RESERVE_NUM = 24;  // 预分配所有key的个数，避免使用时动态扩容
 
@@ -158,6 +160,7 @@ private:
     void GenExpectedParamInfo();
     void FillCommonParamInfo();
     void FillRequiredParamShapeWithDims();
+    void FillOptionalOutputParamShapeWithDims();
     void FillScenarioParamInfo();
     void FillNonQuantParamInfo();
     void FillPartialQuantParamInfo();
