@@ -1,0 +1,748 @@
+# aclnnScatterPaKvCache
+
+## 产品支持情况
+
+| 产品                                                         | 是否支持 |
+| :----------------------------------------------------------- | :------: |
+| <term>昇腾910_95 AI处理器</term>                             |    √     |
+| <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>     |    √     |
+| <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term> |    √     |
+| <term>Atlas 200I/500 A2 推理产品</term>                      |    ×     |
+| <term>Atlas 推理系列产品 </term>                             |    ×     |
+| <term>Atlas 训练系列产品</term>                              |    ×     |
+| <term>Atlas 200/300/500 推理产品</term>                      |    ×     |
+
+## 功能说明
+
+- 更新KvCache中指定位置的key和value。
+
+- 输入输出场景根据构造的参数来区别，输入输出支持以下场景，其中场景一、场景二、场景六没有compressLensOptional、seqLensOptional、compressSeqOffsetOptional这三个可选参数，场景四没有compressSeqOffsetOptional可选参数：
+
+  - 场景一：
+    ```
+    key:[batch * seq_len, num_head, k_head_size]
+    value:[batch, num_head, v_head_size]
+    keyCache:[num_blocks, num_head * k_head_size // last_dim_k, block_size, last_dim_k]
+    valueCache:[num_blocks, num_head * v_head_size // last_dim_k, block_size, last_dim_k]
+    slotMapping:[batch * seq_len]
+    cacheMode:"PA_NZ"
+    scatter_mode:"None"
+    ```  
+    
+  - 场景二：
+    ```
+    key:[batch * seq_len, num_head, k_head_size]
+    value:[batch * seq_len, num_head, v_head_size]
+    keyCache:[num_blocks, block_size, num_head, k_head_size]
+    valueCache:[num_blocks, block_size, num_head, v_head_size]
+    slotMapping:[batch * seq_len]
+    cacheMode:"Norm"
+    scatter_mode:"None"/"Nct"
+    ```
+    其中k_head_size与v_head_size可以不同，也可以相同。
+
+  - 场景三：
+    ```
+    key:[batch, seq_len, num_head, k_head_size]
+    value:[batch, seq_len, num_head, v_head_size]
+    keyCache:[num_blocks, block_size, 1, k_head_size]
+    valueCache:[num_blocks, block_size, 1, k_head_size]
+    slotMapping:[batch, num_head]
+    compressLensOptional:[batch, num_head]
+    seqLensOptional:[batch]
+    compressSeqOffsetOptional:[batch * num_head]
+    cacheMode:"Norm"
+    ```
+
+  - 场景四：
+    ```
+    key:[num_tokens, num_head, k_head_size]
+    value:[num_tokens, num_head, v_head_size]
+    keyCache:[num_blocks, block_size, 1, k_head_size]
+    valueCache:[num_blocks, block_size, 1, k_head_size]
+    slotMapping:[batch * num_head]
+    compressLensOptional:[batch * num_head]
+    seqLensOptional:[batch]
+    cacheMode:"Norm"
+    scatter_mode:"Alibi"
+    ```
+
+  - 场景五：
+    ```
+    key:[num_tokens, num_head, k_head_size]
+    value:[num_tokens, num_head, v_head_size]
+    keyCache:[num_blocks, block_size, 1, k_head_size]
+    valueCache:[num_blocks, block_size, 1, k_head_size]
+    slotMapping:[batch * num_head]
+    compressLensOptional:[batch * num_head]
+    seqLensOptional:[batch]
+    compressSeqOffsetOptional:[batch * num_head]
+    cacheMode:"Norm"
+    scatter_mode:"Rope"/"Omni"
+    ```
+
+  - 场景六：
+    ```
+    key:[batch * seq_len, num_head, k_head_size]
+    value:[]
+    keyCache:[num_blocks, block_size, num_head, k_head_size]
+    valueCache:[]
+    slotMapping:[batch * seq_len]
+    cacheMode:"Norm"
+    scatter_mode:"None"/"Nct"
+    ```
+
+- <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>、<term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：仅支持场景一、二、四、五、六。
+- <term>昇腾910_95 AI处理器</term>：仅支持场景二、三。
+
+## 函数原型
+
+每个算子分为[两段式接口](../../../docs/context/两段式接口.md)，必须先调用“aclnnScatterPaKvCacheGetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnScatterPaKvCache”接口执行计算。
+```Cpp
+aclnnStatus aclnnScatterPaKvCacheGetWorkspaceSize(
+  const aclTensor *key, 
+  const aclTensor *keyCacheRef, 
+  const aclTensor *slotMapping, 
+  const aclTensor *value, 
+  const aclTensor *valueCacheRef, 
+  const aclTensor *compressLensOptional, 
+  const aclTensor *compressSeqOffsetOptional, 
+  const aclTensor *seqLensOptional, 
+  char            *cacheModeOptional,
+  char            *scatterModeOptional,
+  const aclIntArray *stridesOptional, 
+  const aclIntArray *offsetsOptional, 
+  uint64_t        *workspaceSize, 
+  aclOpExecutor  **executor)
+```
+```Cpp
+aclnnStatus aclnnScatterPaKvCache(
+  void          *workspace, 
+  uint64_t       workspaceSize, 
+  aclOpExecutor *executor, 
+  aclrtStream    stream)
+```
+
+## aclnnScatterPaKvCacheGetWorkspaceSize
+
+-  **参数说明：**
+
+    <table style="undefined;table-layout: fixed; width: 1494px"><colgroup>
+    <col style="width: 146px">
+    <col style="width: 110px">
+    <col style="width: 301px">
+    <col style="width: 219px">
+    <col style="width: 328px">
+    <col style="width: 101px">
+    <col style="width: 143px">
+    <col style="width: 146px">
+    </colgroup>
+    <thead>
+      <tr>
+        <th>参数名</th>
+        <th>输入/输出</th>
+        <th>描述</th>
+        <th>使用说明</th>
+        <th>数据类型</th>
+        <th>数据格式</th>
+        <th>维度(shape)</th>
+        <th>非连续Tensor</th>
+      </tr></thead>
+    <tbody>
+      <tr>
+        <td>key</td>
+        <td>输入</td>
+        <td>Device侧的aclTensor，支持3维或4维，待更新的key值，当前step多个token的key。</td>
+        <td>无</td>
+        <td>FLOAT16、FLOAT、BFLOAT16、INT8、UINT8、INT16、UINT16、INT32、UINT32、HIFLOAT8、FLOAT8_E5M2、FLOAT8_E4M3FN</td>
+        <td>ND</td>
+        <td>3-4</td>
+        <td>√</td>
+      </tr>
+      <tr>
+        <td>keyCacheRef</td>
+        <td>输入/输出</td>
+        <td>Device侧的aclTensor，只支持4维，需要更新的key cache，当前layer的key cache，数据类型和格式与key一致。</td>
+        <td>无</td>
+        <td>FLOAT16、FLOAT、BFLOAT16、INT8、UINT8、INT16、UINT16、INT32、UINT32、HIFLOAT8、FLOAT8_E5M2、FLOAT8_E4M3FN</td>
+        <td>ND</td>
+        <td>4</td>
+        <td>-</td>
+      </tr>
+      <tr>
+        <td>slotMapping</td>
+        <td>输入</td>
+        <td>Device侧的aclTensor，每个token key或value在cache中的存储偏移。</td>
+        <td>无</td>
+        <td>INT32、INT64</td>
+        <td>ND</td>
+        <td>0-8</td>
+        <td>√</td>
+      </tr>
+      <tr>
+        <td>value</td>
+        <td>输入</td>
+        <td>Device侧的aclTensor，支持0维、3维或4维，非0维下shape与key一致，待更新的value值，当前step多个token的value。</td>
+        <td>非0维下shape与key一致</td>
+        <td>FLOAT16、FLOAT、BFLOAT16、INT8、UINT8、INT16、UINT16、INT32、UINT32、HIFLOAT8、FLOAT8_E5M2、FLOAT8_E4M3FN</td>
+        <td>ND</td>
+        <td>0,3-4</td>
+        <td>√</td>
+      </tr>
+      <tr>
+        <td>valueCacheRef</td>
+        <td>输入/输出</td>
+        <td>Device侧的aclTensor，支持0维或4维，非0维下shape与keyCacheRef一致，需要更新的value cache，当前layer的value cache，数据类型和格式与key一致。</td>
+        <td>非0维下shape与keyCacheRef一致</td>
+        <td>FLOAT16、FLOAT、BFLOAT16、INT8、UINT8、INT16、UINT16、INT32、UINT32、HIFLOAT8、FLOAT8_E5M2、FLOAT8_E4M3FN</td>
+        <td>ND</td>
+        <td>0,4</td>
+        <td>-</td>
+      </tr>
+      <tr>
+        <td>compressLensOptional</td>
+        <td>输入</td>
+        <td>Device侧的aclTensor，压缩量。</td>
+        <td>可选输入；数据类型与slotMapping一致</td>
+        <td>INT32、INT64</td>
+        <td>ND</td>
+        <td>0-8</td>
+        <td>√</td>
+      </tr>
+      <tr>
+        <td>compressSeqOffsetOptional</td>
+        <td>输入</td>
+        <td>Device侧的aclTensor，每个batch每个head的压缩起点。</td>
+        <td>可选输入；数据类型与slotMapping一致</td>
+        <td>INT32、INT64</td>
+        <td>ND</td>
+        <td>0-8</td>
+        <td>√</td>
+      </tr>
+      <tr>
+        <td>seqLensOptional</td>
+        <td>输入</td>
+        <td>Device侧的aclTensor，每个batch的实际seqLens。</td>
+        <td>可选输入；数据类型与slotMapping一致</td>
+        <td>INT32、INT64</td>
+        <td>ND</td>
+        <td>0-8</td>
+        <td>√</td>
+      </tr>
+      <tr>
+        <td>cacheModeOptional</td>
+        <td>输入</td>
+        <td>表示keyCacheRef和valueCacheRef的内存排布格式。</td>
+        <td>无</td>
+        <td>STRING</td>
+        <td>-</td>
+        <td>-</td>
+        <td>-</td>
+      </tr>
+      <tr>
+        <td>scatterModeOptional</td>
+        <td>输入</td>
+        <td>表示更新的key和value的状态。</td>
+        <td>无</td>
+        <td>STRING</td>
+        <td>-</td>
+        <td>-</td>
+        <td>-</td>
+      </tr>
+      <tr>
+      <td>stridesOptional</td>
+        <td>输入</td>
+        <td>key和value在非连续状态下的步长，数组长度为2。其值应该大于0。</td>
+        <td>仅当scatterModeOptional为"Nct"时生效</td>
+        <td>INT64</td>
+        <td>-</td>
+        <td>-</td>
+        <td>-</td>
+      </tr>
+      <tr>
+        <td>offsetsOptional</td>
+        <td>输入</td>
+        <td>key和value在非连续状态下的偏移，数组长度为2。其值应该大于0。</td>
+        <td>仅当scatterMode为"Nct"时生效</td>
+        <td>INT64</td>
+        <td>-</td>
+        <td>-</td>
+        <td>-</td>
+      </tr>
+    </tbody>
+    </table> 
+
+-   **返回值：**
+
+    <p>aclnnStatus：返回状态码，具体参见<a href="../../../docs/context/aclnn返回码.md">aclnn返回码</a>。</p>
+    <p>第一段接口完成入参校验，出现以下场景报错：</p>
+    <table style="undefined;table-layout: fixed;width: 1155px"><colgroup>
+    <col style="width: 319px">
+    <col style="width: 144px">
+    <col style="width: 671px">
+    </colgroup>
+    <thead>
+      <tr>
+        <th>返回值</th>
+        <th>错误码</th>
+        <th>描述</th>
+      </tr>
+    </thead>
+    
+      <tr>
+        <td>ACLNN_ERR_PARAM_NULLPTR</td>
+        <td>161001</td>
+        <td>1. 传入的key、keyCacheRef、slotMapping、value、valueCacheRef是空指针。</td>
+      </tr>
+      <tr>
+        <td>ACLNN_ERR_PARAM_NULLPTR</td>
+        <td>161002</td>
+        <td>1. 参数key、value的数据类型不在支持的范围之内。<br />
+            2. key、keyCacheRef、value、valueCacheRef的数据类型不一致。<br />
+            3. slotMapping、compressLensOptional、compressSeqOffsetOptional、seqLensOptional的数据类型不一致。<br />
+        </td>
+      </tr>
+      <tr>
+        <td>ACLNN_ERR_PARAM_INVALID</td>
+        <td>561002</td>
+        <td>1. key的维数不等于3维或4维，value的维数不等于0维、3维或4维。
+        </td>
+      </tr>
+    </tbody></table> 
+
+## aclnnScatterPaKvCache
+
+-   **参数说明：**
+    <table style="undefined;table-layout: fixed; width: 953px"><colgroup>
+    <col style="width: 173px">
+    <col style="width: 112px">
+    <col style="width: 668px">
+    </colgroup>
+    <thead>
+      <tr>
+        <th>参数名</th>
+        <th>输入/输出</th>
+        <th>描述</th>
+      </tr></thead>
+    <tbody>
+      <tr>
+        <td>workspace</td>
+        <td>输入</td>
+        <td>在Device侧申请的workspace内存地址。</td>
+      </tr>
+      <tr>
+        <td>workspaceSize</td>
+        <td>输入</td>
+        <td>在Device侧申请的workspace大小，由第一段接口aclnnScatterPaKvCacheGetWorkspaceSize获取。</td>
+      </tr>
+      <tr>
+        <td>executor</td>
+        <td>输入</td>
+        <td>op执行器，包含了算子计算流程。</td>
+      </tr>
+      <tr>
+        <td>stream</td>
+        <td>输入</td>
+        <td>指定执行任务的Stream。</td>
+      </tr>
+    </tbody>
+    </table>
+
+-   **返回值：**
+    返回aclnnStatus状态码，具体参见[aclnn返回码](../../../docs/context/aclnn返回码.md)。
+
+## 约束说明
+  * 输入shape限制：
+      * 除了key和value，输入参数不支持非连续。
+      * 当key和value都是3维，则key和value的前两维shape必须相同。
+      * 当key和value都是4维，则key和value的前三维shape必须相同，且keyCacheRef和valueCacheRef的第三维必须是1。
+      * 当key和value是4维时，compressLensOptional、seqLensOptional为必选参数；当key和value是3维时，compressLensOptional、compressSeqOffsetOptional、seqLensOptional为可选参数。
+  * 输入值域限制：
+      * slotMapping的值范围[0,num_blocks*block_size-1]，且slotMapping内的元素值保证不重复，重复时不保证正确性。
+      * 当key和value都是4维时，slotMapping是二维，且slotMapping的第一维值等于key的第一维为batch，slotMapping的第二维值等于key的第三维为num_head(对应场景三)。
+      * 当key和value都是4维时，seqLensOptional是一维，且seqLensOptional的值等于key的第一维为batch(对应场景三)。
+      * 当key和value是3维且存在seqLensOptional时，seqLensOptional中所有值的和等于key的第一维为num_blocks(对应场景四、五)。
+      * seqLensOptional和compressLensOptional里面的每个元素值必须满足公式：reduceSum(seqLensOptional[i] - compressLensOptional[i]) <= num_blocks * block_size (对应场景三、四、五)。
+  * 输入属性限制：
+      * key、value、keyCacheRef、valueCacheRef的数据类型必须一致。
+      * slotMapping、compressLensOptional、compressSeqOffsetOptional、seqLensOptional的数据类型必须一致。
+
+## 调用示例
+
+示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](../../../docs/context/编译与运行样例.md)。
+- <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>、<term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：
+
+  ```c++
+  #include <iostream>
+  #include <vector>
+  #include "acl/acl.h"
+  #include "aclnnop/aclnn_scatter_pa_kv_cache.h"
+
+  #define CHECK_RET(cond, return_expr) \
+    do {                               \
+      if (!(cond)) {                   \
+        return_expr;                   \
+      }                                \
+    } while (0)
+
+  #define LOG_PRINT(message, ...)     \
+    do {                              \
+      printf(message, ##__VA_ARGS__); \
+    } while (0)
+
+  int64_t GetShapeSize(const std::vector<int64_t>& shape) {
+    int64_t shapeSize = 1;
+    for (auto i : shape) {
+      shapeSize *= i;
+    }
+    return shapeSize;
+  }
+
+  int Init(int32_t deviceId, aclrtStream* stream) {
+  // 固定写法，资源初始化
+    auto ret = aclInit(nullptr);
+    CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclInit failed. ERROR: %d\n", ret); return ret);
+    ret = aclrtSetDevice(deviceId);
+    CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclrtSetDevice failed. ERROR: %d\n", ret); return ret);
+    ret = aclrtCreateStream(stream);
+    CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclrtCreateStream failed. ERROR: %d\n", ret); return ret);
+    return 0;
+  }
+
+  template <typename T>
+  int CreateAclTensor(const std::vector<T>& hostData, const std::vector<int64_t>& shape, void** deviceAddr, aclDataType dataType, aclTensor** tensor, aclFormat format) {
+    auto size = GetShapeSize(shape) * sizeof(T);
+    // 调用aclrtMalloc申请device侧内存
+    auto ret = aclrtMalloc(deviceAddr, size, ACL_MEM_MALLOC_HUGE_FIRST);
+    CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclrtMalloc failed. ERROR: %d\n", ret); return ret);
+    // 调用aclrtMemcpy将host侧数据拷贝到device侧内存上
+    ret = aclrtMemcpy(*deviceAddr, size, hostData.data(), size, ACL_MEMCPY_HOST_TO_DEVICE);
+    CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclrtMemcpy failed. ERROR: %d\n", ret); return ret);
+
+    // 计算连续tensor的strides
+    std::vector<int64_t> strides(shape.size(), 1);
+    for (int64_t i = shape.size() - 2; i >= 0; i--) {
+      strides[i] = shape[i + 1] * strides[i + 1];
+    }
+
+    // 调用aclCreateTensor接口创建aclTensor
+    *tensor = aclCreateTensor(shape.data(), shape.size(), dataType, strides.data(), 0, format,
+                              shape.data(), shape.size(), *deviceAddr);
+    return 0;
+  }
+
+  int main() {
+    // 1. （固定写法）device/stream初始化，参考acl API手册
+    // 根据自己的实际device填写deviceId
+    int32_t deviceId = 0;
+    aclrtStream stream;
+    auto ret = Init(deviceId, &stream);
+    CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("Init acl failed. ERROR: %d\n", ret); return ret);
+
+    // 2. 构造输入与输出，需要根据API的接口自定义构造
+    std::vector<int64_t> keyShape = {2, 2, 32};
+    std::vector<int64_t> keyCacheShape = {1, 4, 32, 16};
+    std::vector<int64_t> slotMappingShape = {2};
+    std::vector<int64_t> valueShape = {2, 2, 32};
+    std::vector<int64_t> valueCacheShape = {1, 4, 32, 16};
+
+    void* keyDeviceAddr = nullptr;
+    void* valueDeviceAddr = nullptr;
+    void* slotMappingDeviceAddr = nullptr;
+    void* keyCacheDeviceAddr = nullptr;
+    void* valueCacheDeviceAddr = nullptr;
+    void* compressLensDeviceAddr = nullptr;
+    void* compressSeqOffsetDeviceAddr = nullptr;
+    void* seqLensDeviceAddr = nullptr;
+
+    aclTensor* key = nullptr;
+    aclTensor* value = nullptr;
+    aclTensor* slotMapping = nullptr;
+    aclTensor* keyCache = nullptr;
+    aclTensor* valueCache = nullptr;
+    aclTensor* compressLens = nullptr;
+    aclTensor* compressSeqOffset = nullptr;
+    aclTensor* seqLens = nullptr;
+    char * cacheMode = "PA_NZ";
+    char * scatterMode = "None";
+
+    std::vector<int16_t> hostKey(128, 1);
+    std::vector<int16_t> hostValue(128, 1);
+    std::vector<int32_t> hostSlotMapping(2, 1);
+    std::vector<int16_t> hostKeyCacheRef(2048, 1);
+    std::vector<int16_t> hostValueCacheRef(2048, 1);
+    std::vector<int64_t> hostStrides(2, 1);
+    std::vector<int64_t> hostOffsets(2, 0);
+
+    // 创建key aclTensor
+    ret = CreateAclTensor(hostKey, keyShape, &keyDeviceAddr, aclDataType::ACL_FLOAT16, &key, aclFormat::ACL_FORMAT_ND);
+    CHECK_RET(ret == ACL_SUCCESS, return ret);
+    // 创建value aclTensor
+    ret = CreateAclTensor(hostValue, valueShape, &valueDeviceAddr, aclDataType::ACL_FLOAT16, &value, aclFormat::ACL_FORMAT_ND);
+    CHECK_RET(ret == ACL_SUCCESS, return ret);
+    // 创建slotMappitng aclTensor
+    ret = CreateAclTensor(hostSlotMapping, slotMappingShape, &slotMappingDeviceAddr, aclDataType::ACL_INT32, &slotMapping, aclFormat::ACL_FORMAT_ND);
+    CHECK_RET(ret == ACL_SUCCESS, return ret);
+    // 创建keyCache aclTensor
+    ret = CreateAclTensor(hostKeyCacheRef, keyCacheShape, &keyCacheDeviceAddr, aclDataType::ACL_FLOAT16, &keyCache, aclFormat::ACL_FORMAT_ND);
+    CHECK_RET(ret == ACL_SUCCESS, return ret);
+    // 创建valueCache aclTensor
+    ret = CreateAclTensor(hostValueCacheRef, valueCacheShape, &valueCacheDeviceAddr, aclDataType::ACL_FLOAT16, &valueCache, aclFormat::ACL_FORMAT_ND);
+    CHECK_RET(ret == ACL_SUCCESS, return ret);
+    aclIntArray *strides = aclCreateIntArray(hostStrides.data(), 2);
+    CHECK_FREE_RET(strides != nullptr, return ACL_ERROR_INTERNAL_ERROR);
+    aclIntArray *offsets = aclCreateIntArray(hostOffsets.data(), 2);
+    CHECK_FREE_RET(offsets != nullptr, return ACL_ERROR_INTERNAL_ERROR);
+
+    // 3. 调用CANN算子库API，需要修改为具体的Api名称
+    uint64_t workspaceSize = 0;
+    aclOpExecutor* executor;
+    // 调用aclnnScatterPaKvCache第一段接口
+    ret = aclnnScatterPaKvCacheGetWorkspaceSize(key, keyCache, slotMapping, value, valueCache, compressLens, compressSeqOffset, seqLens, cacheMode, scatterMode, strides, offsets, &workspaceSize, &executor);
+    CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclnnScatterPaKvCacheGetWorkspaceSize failed. ERROR: %d\n", ret); return ret);
+    // 根据第一段接口计算出的workspaceSize申请device内存
+    void* workspaceAddr = nullptr;
+    if (workspaceSize > 0) {
+      ret = aclrtMalloc(&workspaceAddr, workspaceSize, ACL_MEM_MALLOC_HUGE_FIRST);
+      CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("allocate workspace failed. ERROR: %d\n", ret); return ret);
+    }
+    // 调用aclnnScatterPaKvCache第二段接口
+    ret = aclnnScatterPaKvCache(workspaceAddr, workspaceSize, executor, stream);
+    CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclnnScatterPaKvCache failed. ERROR: %d\n", ret); return ret);
+
+    // 4. （固定写法）同步等待任务执行结束
+    ret = aclrtSynchronizeStream(stream);
+    CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclrtSynchronizeStream failed. ERROR: %d\n", ret); return ret);
+
+    // 5. 获取输出的值，将device侧内存上的结果拷贝至host侧，需要根据具体API的接口定义修改
+    auto size = GetShapeSize(keyShape);
+    std::vector<float> resultData(size, 0);
+    ret = aclrtMemcpy(resultData.data(), resultData.size() * sizeof(resultData[0]), keyDeviceAddr,
+                      size * sizeof(resultData[0]), ACL_MEMCPY_DEVICE_TO_HOST);
+    CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("copy result from device to host failed. ERROR: %d\n", ret); return ret);
+    for (int64_t i = 0; i < size; i++) {
+      LOG_PRINT("result[%ld] is: %f\n", i, resultData[i]);
+    }
+
+    // 6. 释放aclTensor和aclScalar，需要根据具体API的接口定义修改
+    aclDestroyTensor(key);
+    aclDestroyTensor(value);
+    aclDestroyTensor(slotMapping);
+    aclDestroyTensor(keyCache);
+    aclDestroyTensor(valueCache);
+    aclDestroyTensor(compressLens);
+    aclDestroyTensor(compressSeqOffset);
+    aclDestroyTensor(seqLens);
+    // 7. 释放device资源，需要根据具体API的接口定义参数
+    aclrtFree(keyDeviceAddr);
+    aclrtFree(valueDeviceAddr);
+    aclrtFree(slotMappingDeviceAddr);
+    aclrtFree(keyCacheDeviceAddr);
+    aclrtFree(valueCacheDeviceAddr);
+    if (workspaceSize > 0) {
+      aclrtFree(workspaceAddr);
+    }
+    aclrtDestroyStream(stream);
+    aclrtResetDevice(deviceId);
+    aclFinalize();
+    return 0;
+  }
+  ```
+
+- <term>昇腾910_95 AI处理器</term> ：
+
+  ```c++
+  #include <iostream>
+  #include <vector>
+  #include "acl/acl.h"
+  #include "aclnnop/aclnn_scatter_pa_kv_cache.h"
+
+  #define CHECK_RET(cond, return_expr) \
+    do {                               \
+      if (!(cond)) {                   \
+        return_expr;                   \
+      }                                \
+    } while (0)
+
+  #define LOG_PRINT(message, ...)     \
+    do {                              \
+      printf(message, ##__VA_ARGS__); \
+    } while (0)
+
+  int64_t GetShapeSize(const std::vector<int64_t>& shape) {
+    int64_t shapeSize = 1;
+    for (auto i : shape) {
+      shapeSize *= i;
+    }
+    return shapeSize;
+  }
+
+  int Init(int32_t deviceId, aclrtStream* stream) {
+    // 固定写法，资源初始化
+    auto ret = aclInit(nullptr);
+    CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclInit failed. ERROR: %d\n", ret); return ret);
+    ret = aclrtSetDevice(deviceId);
+    CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclrtSetDevice failed. ERROR: %d\n", ret); return ret);
+    ret = aclrtCreateStream(stream);
+    CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclrtCreateStream failed. ERROR: %d\n", ret); return ret);
+    return 0;
+  }
+
+  template <typename T>
+  int CreateAclTensor(const std::vector<T>& hostData, const std::vector<int64_t>& shape, void** deviceAddr,
+                      aclDataType dataType, aclTensor** tensor) {
+    auto size = GetShapeSize(shape) * sizeof(T);
+    // 调用aclrtMalloc申请device侧内存
+    auto ret = aclrtMalloc(deviceAddr, size, ACL_MEM_MALLOC_HUGE_FIRST);
+    CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclrtMalloc failed. ERROR: %d\n", ret); return ret);
+    // 调用aclrtMemcpy将host侧数据拷贝到device侧内存上
+    ret = aclrtMemcpy(*deviceAddr, size, hostData.data(), size, ACL_MEMCPY_HOST_TO_DEVICE);
+    CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclrtMemcpy failed. ERROR: %d\n", ret); return ret);
+
+    // 计算连续tensor的strides
+    std::vector<int64_t> strides(shape.size(), 1);
+    for (int64_t i = shape.size() - 2; i >= 0; i--) {
+      strides[i] = shape[i + 1] * strides[i + 1];
+    }
+
+    // 调用aclCreateTensor接口创建aclTensor
+    *tensor = aclCreateTensor(shape.data(), shape.size(), dataType, strides.data(), 0, aclFormat::ACL_FORMAT_ND,
+                              shape.data(), shape.size(), *deviceAddr);
+    return 0;
+  }
+
+  int main() {
+    // 1. （固定写法）device/stream初始化，参考acl API手册
+    // 根据自己的实际device填写deviceId
+    int32_t deviceId = 0;
+    aclrtStream stream;
+    auto ret = Init(deviceId, &stream);
+    CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("Init acl failed. ERROR: %d\n", ret); return ret);
+
+    // 2. 构造输入与输出，需要根据API的接口自定义构造
+    std::vector<int64_t> keyShape = {2, 2, 3, 7};
+    std::vector<int64_t> keyCacheShape = {2, 2, 1, 7};
+    std::vector<int64_t> slotMappingShape = {2, 3};
+    std::vector<int64_t> valueShape = {2, 2, 3, 7};
+    std::vector<int64_t> valueCacheShape = {2, 2, 1, 7};
+
+    std::vector<int64_t> compressLensShape = {2, 3};
+    std::vector<int64_t> compressSeqOffsetShape = {6};
+    std::vector<int64_t> seqLensShape = {2};
+    void* keyDeviceAddr = nullptr;
+    void* valueDeviceAddr = nullptr;
+    void* slotMappingDeviceAddr = nullptr;
+    void* keyCacheDeviceAddr = nullptr;
+    void* valueCacheDeviceAddr = nullptr;
+    void* compressLensDeviceAddr = nullptr;
+    void* compressSeqOffsetDeviceAddr = nullptr;
+    void* seqLensDeviceAddr = nullptr;
+
+    aclTensor* key = nullptr;
+    aclTensor* value = nullptr;
+    aclTensor* slotMapping = nullptr;
+    aclTensor* keyCache = nullptr;
+    aclTensor* valueCache = nullptr;
+    aclTensor* compressLens = nullptr;
+    aclTensor* compressSeqOffset = nullptr;
+    aclTensor* seqLens = nullptr;
+    char * cacheMode = "Norm";
+    char * scatterMode = "None";
+
+    std::vector<float> hostKey = {1};
+    std::vector<float> hostValue = {1};
+    std::vector<int32_t> hostSlotMapping = {0, 3, 6, 9, 12, 15};
+    std::vector<float> hostKeyCacheRef = {1};
+    std::vector<float> hostValueCacheRef = {1};
+    std::vector<int32_t> hostCompressLens = {1, 0, 0, 0, 1, 0};
+    std::vector<int32_t> hostCompressSeqOffset = {0, 0, 1, 0, 1, 1};
+    std::vector<int32_t> hostSeqLens = {2, 1};
+    std::vector<int64_t> hostStrides(2, 1);
+    std::vector<int64_t> hostOffsets(2, 0);
+
+    // 创建key aclTensor
+    ret = CreateAclTensor(hostKey, keyShape, &keyDeviceAddr, aclDataType::ACL_FLOAT, &key);
+    CHECK_RET(ret == ACL_SUCCESS, return ret);
+    // 创建value aclTensor
+    ret = CreateAclTensor(hostValue, valueShape, &valueDeviceAddr, aclDataType::ACL_FLOAT, &value);
+    CHECK_RET(ret == ACL_SUCCESS, return ret);
+    // 创建slotMappitng aclTensor
+    ret = CreateAclTensor(hostSlotMapping, slotMappingShape, &slotMappingDeviceAddr, aclDataType::ACL_INT32, &slotMapping);
+    CHECK_RET(ret == ACL_SUCCESS, return ret);
+    // 创建keyCache aclTensor
+    ret = CreateAclTensor(hostKeyCacheRef, keyCacheShape, &keyCacheDeviceAddr, aclDataType::ACL_FLOAT, &keyCache);
+    CHECK_RET(ret == ACL_SUCCESS, return ret);
+    // 创建valueCache aclTensor
+    ret = CreateAclTensor(hostValueCacheRef, valueCacheShape, &valueCacheDeviceAddr, aclDataType::ACL_FLOAT, &valueCache);
+    CHECK_RET(ret == ACL_SUCCESS, return ret);
+    // 创建compressLens aclTensor
+    ret = CreateAclTensor(hostCompressLens, compressLensShape, &compressLensDeviceAddr, aclDataType::ACL_INT32, &compressLens);
+    CHECK_RET(ret == ACL_SUCCESS, return ret);
+    // 创建compressSeqOffset aclTensor
+    ret = CreateAclTensor(hostCompressSeqOffset, compressSeqOffsetShape, &compressSeqOffsetDeviceAddr, aclDataType::ACL_INT32, &compressSeqOffset);
+    CHECK_RET(ret == ACL_SUCCESS, return ret);
+    // 创建seqLens aclTensor
+    ret = CreateAclTensor(hostSeqLens, seqLensShape, &seqLensDeviceAddr, aclDataType::ACL_INT32, &seqLens);
+    CHECK_RET(ret == ACL_SUCCESS, return ret);
+    aclIntArray *strides = aclCreateIntArray(hostStrides.data(), 2);
+    CHECK_FREE_RET(strides != nullptr, return ACL_ERROR_INTERNAL_ERROR);
+    aclIntArray *offsets = aclCreateIntArray(hostOffsets.data(), 2);
+    CHECK_FREE_RET(offsets != nullptr, return ACL_ERROR_INTERNAL_ERROR);
+
+    // 3. 调用CANN算子库API，需要修改为具体的Api名称
+    uint64_t workspaceSize = 0;
+    aclOpExecutor* executor;
+    // 调用aclnnScatterPaKvCache第一段接口
+    ret = aclnnScatterPaKvCacheGetWorkspaceSize(key, keyCache, slotMapping, value, valueCache, compressLens, compressSeqOffset, seqLens, cacheMode, scatterMode, strides, offsets, &workspaceSize, &executor);
+    CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclnnScatterPaKvCacheGetWorkspaceSize failed. ERROR: %d\n", ret); return ret);
+    // 根据第一段接口计算出的workspaceSize申请device内存
+    void* workspaceAddr = nullptr;
+    if (workspaceSize > 0) {
+      ret = aclrtMalloc(&workspaceAddr, workspaceSize, ACL_MEM_MALLOC_HUGE_FIRST);
+      CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("allocate workspace failed. ERROR: %d\n", ret); return ret);
+    }
+    // 调用aclnnScatterPaKvCache第二段接口
+    ret = aclnnScatterPaKvCache(workspaceAddr, workspaceSize, executor, stream);
+    CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclnnScatterPaKvCache failed. ERROR: %d\n", ret); return ret);
+
+    // 4. （固定写法）同步等待任务执行结束
+    ret = aclrtSynchronizeStream(stream);
+    CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclrtSynchronizeStream failed. ERROR: %d\n", ret); return ret);
+
+    // 5. 获取输出的值，将device侧内存上的结果拷贝至host侧，需要根据具体API的接口定义修改
+    auto size = GetShapeSize(keyShape);
+    std::vector<float> resultData(size, 0);
+    ret = aclrtMemcpy(resultData.data(), resultData.size() * sizeof(resultData[0]), keyDeviceAddr,
+                      size * sizeof(resultData[0]), ACL_MEMCPY_DEVICE_TO_HOST);
+    CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("copy result from device to host failed. ERROR: %d\n", ret); return ret);
+    for (int64_t i = 0; i < size; i++) {
+      LOG_PRINT("result[%ld] is: %f\n", i, resultData[i]);
+    }
+
+    // 6. 释放aclTensor和aclScalar，需要根据具体API的接口定义修改
+    aclDestroyTensor(key);
+    aclDestroyTensor(value);
+    aclDestroyTensor(slotMapping);
+    aclDestroyTensor(keyCache);
+    aclDestroyTensor(valueCache);
+    aclDestroyTensor(compressLens);
+    aclDestroyTensor(compressSeqOffset);
+    aclDestroyTensor(seqLens);
+    // 7. 释放device资源，需要根据具体API的接口定义参数
+    aclrtFree(keyDeviceAddr);
+    aclrtFree(valueDeviceAddr);
+    aclrtFree(slotMappingDeviceAddr);
+    aclrtFree(keyCacheDeviceAddr);
+    aclrtFree(valueCacheDeviceAddr);
+    aclrtFree(compressLensDeviceAddr);
+    aclrtFree(compressSeqOffsetDeviceAddr);
+    aclrtFree(seqLensDeviceAddr);
+    if (workspaceSize > 0) {
+      aclrtFree(workspaceAddr);
+    }
+    aclrtDestroyStream(stream);
+    aclrtResetDevice(deviceId);
+    aclFinalize();
+    return 0;
+  }
+  ```
