@@ -13,7 +13,7 @@ if (BUILD_OPEN_PROJECT)  # custom
     )
     add_mc2_modules_sources(OPTYPE quant_all_reduce quant_all_reduce ACLNNTYPE aclnn aclnn_inner)
     set(MC2_OPT ON PARENT_SCOPE)
-    set(quant_all_reduce_depends mc2/common mc2/3rd PARENT_SCOPE)
+    set(quant_all_reduce_depends mc2/common mc2/3rd mc2/quant_reduce_scatter PARENT_SCOPE)
     set(SUB_MC2_COMPILE TRUE PARENT_SCOPE)
 else() # 回黄host
     add_mc2_modules_sources(OPTYPE quant_all_reduce quant_all_reduce ACLNNTYPE aclnn aclnn_inner)

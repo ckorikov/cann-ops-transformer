@@ -16,6 +16,8 @@
 #ifndef QUANT_REDUCE_SCATTER_TILING_DATA_H
 #define QUANT_REDUCE_SCATTER_TILING_DATA_H
 
+#include <kernel_tiling/kernel_tiling.h>
+
 struct QuantReduceScatterTilingInfo {
     uint64_t bs;
     uint64_t hiddenSize;

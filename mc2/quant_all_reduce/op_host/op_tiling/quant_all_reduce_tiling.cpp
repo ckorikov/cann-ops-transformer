@@ -16,25 +16,114 @@ BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULA
 #include <register/op_def_registry.h>
 #include "../../op_kernel/quant_all_reduce_tiling_data.h"
 #include "../../op_kernel/quant_all_reduce_tiling_key.h"
-#include "mc2_log.h"
+#include "mc2/quant_reduce_scatter/op_host/op_tiling/common/quant_reduce_scatter_util_tiling.h"
+
+namespace MC2Tiling {
 
 using namespace AscendC;
 using namespace ge;
 
-namespace optiling {
-
-static ge::graphStatus QuantAllReduceTilingFunc(gert::TilingContext *context)
+/**
+ * @brief 打印tilingData
+ * @param context: 框架根据input，output，attrs等信息生成tiling需要的context
+ * @param tilingData: 框架根据context的opName匹配tiling模板，计算产生的tilingData
+ * @return
+ */
+static void PrintTilingDataInfo(gert::TilingContext *context, QuantAllReduceTilingData &tilingData)
 {
-    fe::PlatFormInfos *platformInfoPtr = context->GetPlatformInfo();
-    fe::PlatFormInfos &platformInfo = *platformInfoPtr;
-    return GRAPH_SUCCESS;
+    const char *nodeName = context->GetNodeName();
+    OP_LOGD(nodeName, "bs is %lu in quant_all_reduce.", tilingData.quantAllReduceTilingInfo.bs);
+    OP_LOGD(nodeName, "hiddenSize is %u in quant_all_reduce.", tilingData.quantAllReduceTilingInfo.hiddenSize);
+    OP_LOGD(nodeName, "scaleHiddenSize is %lu in quant_all_reduce.",
+            tilingData.quantAllReduceTilingInfo.scaleHiddenSize);
+    OP_LOGD(nodeName, "aivNum is %u in quant_all_reduce.", tilingData.quantAllReduceTilingInfo.aivNum);
 }
 
-static ge::graphStatus TilingParseForQuantAllReduce(gert::TilingParseContext *context)
+/**
+ * @brief 设置hcomm参数
+ * @param context: 框架根据input，output，attrs等信息生成tiling需要的context
+ * @param tilingData: 框架根据context的opName匹配tiling模板，计算产生的tilingData
+ * @param runInfo: 封装的doTiling所需要的参数
+ * @return
+ */
+static void SetHcommCfg(const gert::TilingContext *context, QuantAllReduceTilingData *tilingData,
+                        const TilingRunInfo &runInfo)
 {
+    const char *nodeName = context->GetNodeName();
+    OP_LOGD(nodeName, "group is %s in quant_all_reduce.", runInfo.group.c_str());
+    AscendC::Mc2CcTilingConfig mc2CcTilingConfig(runInfo.group, OP_TYPE_ALL_TO_ALL,
+                                                 "AlltoAll=level0:fullmesh;level1:pairwise");
+    mc2CcTilingConfig.GetTiling(tilingData->mc2InitTiling);
+    mc2CcTilingConfig.GetTiling(tilingData->mc2CcTiling);
+    // MTE方式必要适配
+    mc2CcTilingConfig.SetCommEngine(AIV_TYPE);
+}
+
+/**
+ * @brief 设置tilingData
+ * @param context: 框架根据input，output，attrs等信息生成tiling需要的context
+ * @param tilingData: 框架根据context的opName匹配tiling模板，计算产生的tilingData
+ * @return
+ */
+static void SetTilingData(gert::TilingContext *context, QuantAllReduceTilingData &tilingData)
+{
+    fe::PlatFormInfos *platformInfoPtr = context->GetPlatformInfo();
+    platform_ascendc::PlatformAscendC ascendcPlatform = platform_ascendc::PlatformAscendC(platformInfoPtr);
+    // set tilingData
+    uint32_t aivNum = ascendcPlatform.GetCoreNumAiv();
+    context->SetBlockDim(ascendcPlatform.CalcTschBlockDim(aivNum, 0, aivNum));
+    tilingData.quantAllReduceTilingInfo.aivNum = aivNum;
+    tilingData.quantAllReduceTilingInfo.bs = context->GetInputShape(X_INDEX)->GetStorageShape().GetDim(DIM_ZERO);
+    tilingData.quantAllReduceTilingInfo.hiddenSize = context->GetInputShape(X_INDEX)->GetStorageShape().GetDim(DIM_ONE);
+    tilingData.quantAllReduceTilingInfo.scaleHiddenSize =
+        context->GetInputShape(SCALES_INDEX)->GetStorageShape().GetDim(DIM_ONE);
+}
+
+/**
+ * @brief 设置tilingKey
+ * @param context: 框架根据input，output，attrs等信息生成tiling需要的context
+ * @return
+ */
+static void SetTilingKey(gert::TilingContext *context)
+{
+    const char *nodeName = context->GetNodeName();
+    const uint64_t tilingKey = GET_TPL_TILING_KEY(MTE_COMM);
+    OP_LOGD(nodeName, "tilingKey is [%lu] in quant_all_reduce.", tilingKey);
+    context->SetTilingKey(tilingKey);
+}
+
+/**
+ * @brief quant_all_reduce算子的tiling函数
+ * @param context: 框架根据input，output，attrs等信息生成tiling需要的context
+ * @return
+ */
+static ge::graphStatus QuantAllReduceTilingFunc(gert::TilingContext *context)
+{
+    OP_TILING_CHECK(context == nullptr,
+                    OP_LOGE("quant_all_reduce", "failed to get tiling context in quant_all_reduce."),
+                    return ge::GRAPH_FAILED);
+    const char *nodeName = context->GetNodeName();
+    OP_TILING_CHECK(nodeName == nullptr, OP_LOGE("quant_all_reduce", "failed to get nodeName in quant_all_reduce."),
+                    return ge::GRAPH_FAILED);
+
+    QuantAllReduceTilingData *tilingData = context->GetTilingData<QuantAllReduceTilingData>();
+    OP_TILING_CHECK(tilingData == nullptr, OP_LOGE(nodeName, "tilingData is nullptr in quant_all_reduce."),
+                    return ge::GRAPH_FAILED);
+
+    TilingRunInfo runInfo = {};
+    OP_TILING_CHECK(QuantReduceScatterUtilTiling::CheckSocVersion(context) != ge::GRAPH_SUCCESS,
+                    OP_LOGE(nodeName, "socVersion is invalid in quant_all_reduce."), return ge::GRAPH_FAILED);
+    OP_TILING_CHECK(QuantReduceScatterUtilTiling::CheckTilingFunc(context, runInfo, OpType::OP_QUANT_ALL_REDUCE) !=
+                        ge::GRAPH_SUCCESS,
+                    OP_LOGE(nodeName, "tiling check failed in quant_all_reduce."), return ge::GRAPH_FAILED);
+
+    SetHcommCfg(context, tilingData, runInfo);
+    SetTilingData(context, *tilingData);
+    SetTilingKey(context);
+    PrintTilingDataInfo(context, *tilingData);
     return ge::GRAPH_SUCCESS;
 }
 
-IMPL_OP_OPTILING(QuantAllReduce)
-    .Tiling(QuantAllReduceTilingFunc);
-} // namespace optiling
+IMPL_OP_OPTILING(QuantAllReduce).Tiling(QuantAllReduceTilingFunc);
+
+} // namespace MC2Tiling

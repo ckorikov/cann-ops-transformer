@@ -20,15 +20,15 @@ BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULA
 #include <kernel_tiling/kernel_tiling.h>
 
 struct QuantAllReduceTilingInfo {
-    uint64_t aivNum;
-    uint64_t bs;
-    uint64_t hiddenSize;
-    uint64_t scaleHiddenSize;
+    uint64_t bs;              // bs轴
+    uint64_t hiddenSize;      // x的h轴
+    uint64_t scaleHiddenSize; // scales的h轴
+    uint64_t aivNum;          // aiv数
 };
 
 struct QuantAllReduceTilingData {
-    Mc2InitTiling mc2InitTiling;  // 初始化通信任务配置
-    Mc2CcTiling mc2CcTiling;  // 具体每个通信任务的参数配置
+    Mc2InitTiling mc2InitTiling; // 初始化通信任务配置
+    Mc2CcTiling mc2CcTiling;     // 具体每个通信任务的参数配置
     QuantAllReduceTilingInfo quantAllReduceTilingInfo;
 };
 
