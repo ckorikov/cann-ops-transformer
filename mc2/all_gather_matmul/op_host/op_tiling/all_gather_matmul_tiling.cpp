@@ -21,19 +21,19 @@
 #include "graph/utils/type_utils.h"
 #include "register/op_def_registry.h"
 #include "tiling/mc2_tiling_utils.h"
+
+#include "../../op_kernel/all_gather_matmul_tiling_key.h"
 #include "../../op_kernel/all_gather_matmul_tiling.h"
 
 using namespace AscendC;
 using namespace ge;
+using namespace all_gather_matmul_tiling_key;
 
 namespace {
 const std::map<uint32_t, std::vector<uint32_t>> VALID_RANK = {
     {0, {2, 4, 8}},
     {1, {2, 4, 8, 16, 32}}
     };
-constexpr uint32_t TILINGKEY_BIAS = 1U;
-constexpr uint32_t TILINGKEY_ND2NZ = 10U;
-constexpr uint32_t TILINGKEY_FULL_MESH = 100U;
 
 static void PrintTilingData(::TCubeTiling& tiling)
 {
@@ -242,11 +242,34 @@ static ge::graphStatus MCSpliteM(gert::TilingContext* ctx, AllGatherMatmulTiling
     return ge::GRAPH_SUCCESS;
 }
 
-static void UpdateTilingKey(uint32_t& tilingKey, AllGatherMatmulTilingData& tilingData, bool isBias)
+static void UpdateTilingKey(uint64_t& tilingKey, AllGatherMatmulTilingData& tilingData, bool isBias)
 {
-    tilingKey += isBias ? TILINGKEY_BIAS : 0;
-    tilingKey += (tilingData.socParam.isND2NZ == 1) ? TILINGKEY_ND2NZ : 0;
-    tilingKey += (tilingData.socParam.commAlg == COMM_ALG_FULL_MESH) ? TILINGKEY_FULL_MESH : 0;
+    bool allGatherMatmulFullMesh = true;
+    bool allGatherMatmulNd2nzOpt = false;
+    bool allGatherMatmulBiasCast = false;
+
+    if(isBias) {
+        allGatherMatmulBiasCast = true;
+    }
+    else {
+        allGatherMatmulBiasCast = false;
+    }
+
+    if(tilingData.socParam.isND2NZ == 1) {
+        allGatherMatmulNd2nzOpt = true;
+    }
+    else {
+        allGatherMatmulNd2nzOpt = false;
+    }
+
+    if (tilingData.socParam.commAlg == COMM_ALG_FULL_MESH){
+        allGatherMatmulFullMesh = true;
+    }
+    else {
+        allGatherMatmulFullMesh = false;
+    }
+
+    tilingKey = GET_TPL_TILING_KEY(allGatherMatmulFullMesh, allGatherMatmulNd2nzOpt, allGatherMatmulBiasCast);
 }
 
 static ge::graphStatus SetMatmulTilingAllGatherMatmul(gert::TilingContext* context,
@@ -337,7 +360,7 @@ static ge::graphStatus SetMatmulTilingAllGatherMatmul(gert::TilingContext* conte
 
     MCSpliteM(context, tilingData, args);
 
-    uint32_t tilingKey = 0U;
+    uint64_t tilingKey = 0U;
     UpdateTilingKey(tilingKey, tilingData, isBias);     // 当前GetTilingKey函数中使用了Mc2Msg结构体，因而无法归一化，此处使用自己的tilingkey计算函数，确保计算逻辑与旧的key保持一致
     OP_LOGD(context->GetNodeName(), "tilingKey is %u, aicCoreNum is %lu.", tilingKey, args.aicCoreNum);
     context->SetTilingKey(tilingKey);

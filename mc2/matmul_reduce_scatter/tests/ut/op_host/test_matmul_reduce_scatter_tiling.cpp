@@ -50,7 +50,7 @@ TEST_F(MatmulReduceScatterTiling, matmul_reduce_scatter_test_tiling_float16_1)
             {"comm_turn", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)},
         },
         &compileInfo, "Ascend910_93", coreNum, ubSize);
-    uint64_t expectTilingKey = 110;
+    uint64_t expectTilingKey = 3;
     ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey);
 }
 
@@ -75,7 +75,7 @@ TEST_F(MatmulReduceScatterTiling, matmul_reduce_scatter_test_tiling_float16_2)
             {"comm_turn", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)},
         },
         &compileInfo, "Ascend910_93", coreNum, ubSize);
-    uint64_t expectTilingKey = 110;
+    uint64_t expectTilingKey = 3;
     ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey);
 }
 
@@ -100,7 +100,7 @@ TEST_F(MatmulReduceScatterTiling, matmul_reduce_scatter_test_tiling_float16_3)
             {"comm_turn", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)},
         },
         &compileInfo, "Ascend910_93", coreNum, ubSize);
-    uint64_t expectTilingKey = 110;
+    uint64_t expectTilingKey = 3;
     ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey);
 }
 
@@ -125,7 +125,7 @@ TEST_F(MatmulReduceScatterTiling, matmul_reduce_scatter_test_tiling_float16_4)
             {"comm_turn", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)},
         },
         &compileInfo, "Ascend910_93", coreNum, ubSize);
-    uint64_t expectTilingKey = 110;
+    uint64_t expectTilingKey = 3;
     ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey);
 }
 
@@ -150,7 +150,7 @@ TEST_F(MatmulReduceScatterTiling, matmul_reduce_scatter_test_tiling_float16_5)
             {"comm_turn", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)},
         },
         &compileInfo, "Ascend910_93", coreNum, ubSize);
-    uint64_t expectTilingKey = 110;
+    uint64_t expectTilingKey = 3;
     ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey);
 }
 
@@ -175,7 +175,7 @@ TEST_F(MatmulReduceScatterTiling, matmul_reduce_scatter_test_tiling_float16_6)
             {"comm_turn", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)},
         },
         &compileInfo, "Ascend910_93", coreNum, ubSize);
-    uint64_t expectTilingKey = 110;
+    uint64_t expectTilingKey = 3;
     ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey);
 }
 
@@ -200,6 +200,6 @@ TEST_F(MatmulReduceScatterTiling, matmul_reduce_scatter_test_tiling_bfloat16)
             {"comm_turn", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)},
         },
         &compileInfo, "Ascend910_93", coreNum, ubSize);
-    uint64_t expectTilingKey = 111;
+    uint64_t expectTilingKey = 7;
     ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey);
 }
