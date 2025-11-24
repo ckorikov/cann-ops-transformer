@@ -292,6 +292,7 @@ protected:
         accumS2 = 0LL;
         bandIndex = 0LL;
         dropTotalSize = 0LL;
+        realT1Size = 0LL;
 
         s1StrideSize = 0LL;
         s2StrideSize = 0LL;
@@ -436,6 +437,7 @@ protected:
     int64_t dropTotalSize;
     int64_t accumS2;
     int64_t bandIndex;
+    int64_t realT1Size;
     std::vector<int64_t> actualSeqLenData;
     std::vector<int64_t> actualSeqLenKvData;
     float keepProb;
@@ -758,7 +760,8 @@ bool FlashAttentionScoreConstTiling::GetActualSeqLenData(
     res.emplace_back(value[0]);
     actualLen++;
     for (auto i = 1; i < seqLen; ++i) {
-        res.emplace_back(value[i] - value[i - 1]);
+        auto qLen = value[i] - value[i - 1];
+        res.emplace_back(qLen < 0 ? 0 : qLen);
         actualLen++;
     }
     return true;
@@ -771,6 +774,7 @@ bool FlashAttentionScoreConstTiling::AnalyzeTndLayout(const gert::Shape &querySh
     int64_t actualSeqKVLen = 0;
     int64_t t1Size = queryShape.GetDim(0);
     int64_t t2Size = keyShape.GetDim(0);
+    realT1Size = t1Size;
     std::fill(actualSeqLenData.begin(), actualSeqLenData.end(), 0);
     std::fill(actualSeqLenKvData.begin(), actualSeqLenKvData.end(), 0);
     if (!GetActualSeqLenData(ACTUAL_SEQ_LENGTH_INPUT_INDEX, actualSeqLenData, actualSeqQLen)) {
@@ -787,10 +791,10 @@ bool FlashAttentionScoreConstTiling::AnalyzeTndLayout(const gert::Shape &querySh
     accumS1 = std::accumulate(actualSeqLenData.begin(), actualSeqLenData.end(), 0LL);
     accumS2 = std::accumulate(actualSeqLenKvData.begin(), actualSeqLenKvData.end(), 0LL);
     OP_CHECK_IF(
-        t1Size != accumS1 || t2Size != accumS2,
+        t1Size < accumS1 || t2Size < accumS2,
         OPS_REPORT_VECTOR_INNER_ERR(
             opName,
-            "Query T(%ld) and key T(%ld) need equal to respectively sum of seqLen(%ld) and sekvLen(%ld).",
+            "Query T(%ld) and key T(%ld) need larger than respectively sum of seqLen(%ld) and sekvLen(%ld).",
             t1Size, t2Size, accumS1, accumS2),
         return false);
     uint32_t firstValidIndex = 0;
@@ -2885,6 +2889,7 @@ protected:
         InitSparseValidArray(sparseValidArray, 0);
         SetSparseStartIdx(sparseValidArray, *multiCoreParamsRegbase_, maxCoreNum);
 
+        inputParamsRegbase_->set_s1Size(realT1Size);
         inputParamsRegbase_->set_s1SparseValidSize(s1SparseValidSize);
         inputParamsRegbase_->set_s2SparseValidSize(s2SparseValidSize);
     }

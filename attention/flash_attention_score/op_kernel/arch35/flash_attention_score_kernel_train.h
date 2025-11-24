@@ -228,17 +228,6 @@ __aicore__ inline void FlashAttentionScoreKernelTrain<CubeBlockType, VecBlockTyp
             runParam.boIdx++;
             continue;
         }
-        if ASCEND_IS_AIV {
-            if (actualS2Len == 0 && actualS1Len != 0) {
-                int64_t accumSize = (i == 0) ? 0 : ((__gm__ int64_t *)this->actualSeqQlenAddr)[i - 1];
-                AscendC::InitOutput<OUTPUT_T>(this->vecBlock.attentionOutGm[accumSize * this->constInfo.n2GDv],
-                                              actualS1Len * this->constInfo.n2GDv, static_cast<OUTPUT_T>(0.0));
-                AscendC::InitOutput<float>(this->vecBlock.softmaxMaxGm[accumSize * this->constInfo.n2G * 8],
-                                           actualS1Len * this->constInfo.n2G * 8, static_cast<float>(0.0));
-                AscendC::InitOutput<float>(this->vecBlock.softmaxSumGm[accumSize * this->constInfo.n2G * 8],
-                                           actualS1Len * this->constInfo.n2G * 8, static_cast<float>(0.0));
-            }
-        }
         break;
     }
 }

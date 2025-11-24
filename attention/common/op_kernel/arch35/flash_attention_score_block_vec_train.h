@@ -173,7 +173,7 @@ __aicore__ inline void FABlockVecTrain<TEMPLATE_ARGS>::GetS1LoopRange(CVSharedPa
  
     // TND/Sparse 场景下负载均衡后每个核获取的结果
     sharedParams.multiCoreInnerOffset = this->tilingData->multiCoreParamsRegbase.sparseStartIdx[aicIdx];
-    if (likely((this->tilingData->multiCoreParamsRegbase.coreNum - 1) > aicIdx)) {
+    if (likely(this->tilingData->multiCoreParamsRegbase.coreNum - 1 > aicIdx)) {
         sharedParams.multiCoreInnerLimit = this->tilingData->multiCoreParamsRegbase.sparseStartIdx[aicIdx + 1];
     } else {
         sharedParams.multiCoreInnerLimit = this->tilingData->multiCoreParamsRegbase.totalSize;
