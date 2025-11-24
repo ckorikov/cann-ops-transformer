@@ -9,7 +9,7 @@
  */
 
 /*!
- * \file block_epilogue_swiglu_quant.h
+ * \file block_epilogue_swiglu_mx_quant.h
  * \brief
  */
 

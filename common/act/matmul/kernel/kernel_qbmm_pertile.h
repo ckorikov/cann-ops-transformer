@@ -31,7 +31,7 @@ namespace Act {
 namespace Gemm {
 namespace Kernel {
 
-// ====== 模版参数定义 =======
+
 #define QBMM_PERTILE_KERNEL_CLASS_TEM_PARAMS \
     template <class ProblemShape, class BlockMmad, class BlockEpilogue, class BlockScheduler>
 #define QBMM_PERTILE_KERNEL_FUN_TEM_PARAMS ProblemShape, BlockMmad, BlockEpilogue, BlockScheduler
@@ -50,9 +50,8 @@ constexpr uint64_t IDX_N_TILEIDX = 1UL;
 constexpr uint64_t IDX_M_TAIL_SPLIT_TILEIDX = 2UL;
 constexpr uint64_t IDX_N_TAIL_SPLIT_TILEIDX = 3UL;
 constexpr uint32_t PER_BLOCK_SIZE = 128;
-} // namespace
+}
 
-// ====== 核心类定义 =======
 QBMM_PERTILE_KERNEL_CLASS_TEM_PARAMS
 class QuantMmBatchPertile {
 public:
@@ -177,7 +176,8 @@ public:
     }
 
 private:
-    __aicore__ inline void ProcessSingleBatch(const Params& params, BlockSchedulerOp& bs, bool isLastBatch);
+    __aicore__ inline void ProcessWithoutBatch(const Params& params, BlockSchedulerOp& bs, bool isLastBatch);
+    __aicore__ inline void ProcessWithBatch(const Params& params, BlockSchedulerOp& bs);
     __aicore__ inline void UpdateOffset(uint64_t batchA4Offset, uint64_t batchB4Offset, uint64_t batchC4Offset);
     __aicore__ inline void UpdateMMGlobalAddr();
     __aicore__ inline void Iterate(int64_t singleCoreM, int64_t singleCoreN);
@@ -219,71 +219,12 @@ __aicore__ inline void QuantMmBatchPertile<QBMM_PERTILE_KERNEL_FUN_TEM_PARAMS>::
     BlockSchedulerOp bs(params.qbmmParams.baseM, params.qbmmParams.baseN, params.qbmmParams.baseK);
 
     if (params.qbmmParams.batchC == 1UL) {
-        ProcessSingleBatch(params, bs, 1);
+        ProcessWithoutBatch(params, bs, true);
         End();
         return;
     }
 
-    const auto& p = params.qbmmParams;
-
-    const uint64_t batchC3C4 = static_cast<uint64_t>(p.batchC3) * p.batchC4;
-    const uint64_t batchC2C3C4 = static_cast<uint64_t>(p.batchC2) * batchC3C4;
-    const uint64_t batchB3B4 = static_cast<uint64_t>(p.batchB3) * p.batchB4;
-    const uint64_t batchB2B3B4 = static_cast<uint64_t>(p.batchB2) * batchB3B4;
-    const uint64_t batchA3A4 = static_cast<uint64_t>(p.batchA3) * p.batchA4;
-    const uint64_t batchA2A3A4 = static_cast<uint64_t>(p.batchA2) * batchA3A4;
-
-    uint32_t multiA1C1 = p.batchA1 / p.batchC1;
-    uint32_t multiA2C2 = p.batchA2 / p.batchC2;
-    uint32_t multiA3C3 = p.batchA3 / p.batchC3;
-    uint32_t multiA4C4 = p.batchA4 / p.batchC4;
-    uint32_t multiB1C1 = p.batchB1 / p.batchC1;
-    uint32_t multiB2C2 = p.batchB2 / p.batchC2;
-    uint32_t multiB3C3 = p.batchB3 / p.batchC3;
-    uint32_t multiB4C4 = p.batchB4 / p.batchC4;
-
-    uint64_t batchC1Offset = 0;
-    uint64_t batchA1Offset = 0;
-    uint64_t batchB1Offset = 0;
-
-    for (uint64_t b1Index = 0; b1Index < p.batchC1; ++b1Index) {
-        uint64_t batchC2Offset = batchC1Offset;
-        uint64_t batchA2Offset = batchA1Offset;
-        uint64_t batchB2Offset = batchB1Offset;
-
-        for (uint64_t b2Index = 0; b2Index < p.batchC2; ++b2Index) {
-            uint64_t batchC3Offset = batchC2Offset;
-            uint64_t batchA3Offset = batchA2Offset;
-            uint64_t batchB3Offset = batchB2Offset;
-
-            for (uint64_t b3Index = 0; b3Index < p.batchC3; ++b3Index) {
-                uint64_t batchC4Offset = batchC3Offset;
-                uint64_t batchA4Offset = batchA3Offset;
-                uint64_t batchB4Offset = batchB3Offset;
-
-                for (uint64_t b4Index = 0; b4Index < p.batchC4; ++b4Index) {
-                    UpdateOffset(batchA4Offset, batchB4Offset, batchC4Offset);
-                    bool isLastBatch = (b1Index == p.batchC1 - 1) && (b2Index == p.batchC2 - 1) &&
-                                       (b3Index == p.batchC3 - 1) && (b4Index == p.batchC4 - 1);
-                    ProcessSingleBatch(params, bs, isLastBatch);
-
-                    batchC4Offset += 1;
-                    batchA4Offset += multiA4C4;
-                    batchB4Offset += multiB4C4;
-                }
-
-                batchC3Offset += p.batchC4;
-                batchA3Offset += p.batchA4 * static_cast<uint64_t>(multiA3C3);
-                batchB3Offset += p.batchB4 * static_cast<uint64_t>(multiB3C3);
-            }
-            batchC2Offset += batchC3C4;
-            batchA2Offset += batchA3A4 * multiA2C2;
-            batchB2Offset += batchB3B4 * multiB2C2;
-        }
-        batchC1Offset += batchC2C3C4;
-        batchA1Offset += batchA2A3A4 * multiA1C1;
-        batchB1Offset += batchB2B3B4 * multiB1C1;
-    }
+    ProcessWithBatch(params, bs);
     End();
 }
 
@@ -327,12 +268,9 @@ QBMM_PERTILE_KERNEL_CLASS_TEM_PARAMS
 __aicore__ inline void QuantMmBatchPertile<QBMM_PERTILE_KERNEL_FUN_TEM_PARAMS>::UpdateOffset(
     uint64_t batchA4Offset, uint64_t batchB4Offset, uint64_t batchC4Offset)
 {
-    Get<IDX_A_OFFSET>(baseOffset_) =
-        batchA4Offset * static_cast<uint64_t>(Get<MNK_M>(problemShape_)) * Get<MNK_K>(problemShape_);
-    Get<IDX_B_OFFSET>(baseOffset_) =
-        batchB4Offset * static_cast<uint64_t>(Get<MNK_N>(problemShape_)) * Get<MNK_K>(problemShape_);
-    Get<IDX_C_OFFSET>(baseOffset_) =
-        batchC4Offset * static_cast<uint64_t>(Get<MNK_M>(problemShape_)) * Get<MNK_N>(problemShape_);
+    Get<IDX_A_OFFSET>(baseOffset_) = batchA4Offset * Get<MNK_M>(problemShape_) * Get<MNK_K>(problemShape_);
+    Get<IDX_B_OFFSET>(baseOffset_) = batchB4Offset * Get<MNK_N>(problemShape_) * Get<MNK_K>(problemShape_);
+    Get<IDX_C_OFFSET>(baseOffset_) = batchC4Offset * Get<MNK_M>(problemShape_) * Get<MNK_N>(problemShape_);
 
     if (isPertile_) {
         Get<IDX_X1SCALE_OFFSET>(baseOffset_) = batchA4Offset * static_cast<uint64_t>(Get<MNK_M>(problemShape_)) *
@@ -347,7 +285,72 @@ __aicore__ inline void QuantMmBatchPertile<QBMM_PERTILE_KERNEL_FUN_TEM_PARAMS>::
 }
 
 QBMM_PERTILE_KERNEL_CLASS_TEM_PARAMS
-__aicore__ inline void QuantMmBatchPertile<QBMM_PERTILE_KERNEL_FUN_TEM_PARAMS>::ProcessSingleBatch(
+__aicore__ inline void QuantMmBatchPertile<QBMM_PERTILE_KERNEL_FUN_TEM_PARAMS>::ProcessWithBatch(
+    const Params& params, BlockSchedulerOp& bs)
+{
+    const auto& p = params.qbmmParams;
+
+    const uint64_t batchC3C4 = static_cast<uint64_t>(p.batchC3) * p.batchC4;
+    const uint64_t batchC2C3C4 = static_cast<uint64_t>(p.batchC2) * batchC3C4;
+    const uint64_t batchB3B4 = static_cast<uint64_t>(p.batchB3) * p.batchB4;
+    const uint64_t batchB2B3B4 = static_cast<uint64_t>(p.batchB2) * batchB3B4;
+    const uint64_t batchA3A4 = static_cast<uint64_t>(p.batchA3) * p.batchA4;
+    const uint64_t batchA2A3A4 = static_cast<uint64_t>(p.batchA2) * batchA3A4;
+
+    uint32_t multiA1C1 = p.batchA1 / p.batchC1;
+    uint32_t multiA2C2 = p.batchA2 / p.batchC2;
+    uint32_t multiA3C3 = p.batchA3 / p.batchC3;
+    uint32_t multiA4C4 = p.batchA4 / p.batchC4;
+    uint32_t multiB1C1 = p.batchB1 / p.batchC1;
+    uint32_t multiB2C2 = p.batchB2 / p.batchC2;
+    uint32_t multiB3C3 = p.batchB3 / p.batchC3;
+    uint32_t multiB4C4 = p.batchB4 / p.batchC4;
+
+    uint64_t batchC1Offset = 0;
+    uint64_t batchA1Offset = 0;
+    uint64_t batchB1Offset = 0;
+
+    for (uint64_t b1Index = 0; b1Index < p.batchC1; ++b1Index) {
+        uint64_t batchC2Offset = batchC1Offset;
+        uint64_t batchA2Offset = batchA1Offset;
+        uint64_t batchB2Offset = batchB1Offset;
+
+        for (uint64_t b2Index = 0; b2Index < p.batchC2; ++b2Index) {
+            uint64_t batchC3Offset = batchC2Offset;
+            uint64_t batchA3Offset = batchA2Offset;
+            uint64_t batchB3Offset = batchB2Offset;
+
+            for (uint64_t b3Index = 0; b3Index < p.batchC3; ++b3Index) {
+                uint64_t batchC4Offset = batchC3Offset;
+                uint64_t batchA4Offset = batchA3Offset;
+                uint64_t batchB4Offset = batchB3Offset;
+
+                for (uint64_t b4Index = 0; b4Index < p.batchC4; ++b4Index) {
+                    UpdateOffset(batchA4Offset, batchB4Offset, batchC4Offset);
+                    bool isLastBatch = (b1Index == p.batchC1 - 1) && (b2Index == p.batchC2 - 1) &&
+                                       (b3Index == p.batchC3 - 1) && (b4Index == p.batchC4 - 1);
+                    ProcessWithoutBatch(params, bs, isLastBatch);
+
+                    batchC4Offset += 1;
+                    batchA4Offset += multiA4C4;
+                    batchB4Offset += multiB4C4;
+                }
+                batchC3Offset += p.batchC4;
+                batchA3Offset += p.batchA4 * static_cast<uint64_t>(multiA3C3);
+                batchB3Offset += p.batchB4 * static_cast<uint64_t>(multiB3C3);
+            }
+            batchC2Offset += batchC3C4;
+            batchA2Offset += batchA3A4 * multiA2C2;
+            batchB2Offset += batchB3B4 * multiB2C2;
+        }
+        batchC1Offset += batchC2C3C4;
+        batchA1Offset += batchA2A3A4 * multiA1C1;
+        batchB1Offset += batchB2B3B4 * multiB1C1;
+    }
+}
+
+QBMM_PERTILE_KERNEL_CLASS_TEM_PARAMS
+__aicore__ inline void QuantMmBatchPertile<QBMM_PERTILE_KERNEL_FUN_TEM_PARAMS>::ProcessWithoutBatch(
     const Params& params, BlockSchedulerOp& bs, bool isLastBatch)
 {
     if ASCEND_IS_AIV {
