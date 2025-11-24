@@ -123,6 +123,16 @@ if (BUILD_OPEN_PROJECT)
     #           1. 单配置生成器(Single-configuration generator)场景下，如果构建类型(CMAKE_BUILD_TYPE)未指定，则默认为 Debug ;
     #           2. 多配置生成器(Multi-configuration generator)场景下，如果构建阶段可选的构建类型(CMAKE_CONFIGURATION_TYPES)未指定，
     #              则默认将其指定为CMake允许的构建类型全集 [Debug;Release;MinSizeRel;RelWithDebInfo]
+    if (NOT BUILD_OPS_RTY_KERNEL)
+        if (ENABLE_TEST)
+            set(DEFAULT_BUILD_TYPE "Debug")
+        else()
+            set(DEFAULT_BUILD_TYPE "Release")
+        endif()
+        if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+            set(CMAKE_BUILD_TYPE "${DEFAULT_BUILD_TYPE}" CACHE STRING "Choose the build type: Release/Debug" FORCE)
+        endif()
+    endif()  
     get_property(GENERATOR_IS_MULTI_CONFIG GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
     if (GENERATOR_IS_MULTI_CONFIG)
         if (NOT CMAKE_CONFIGURATION_TYPES)
@@ -179,6 +189,8 @@ if (BUILD_OPEN_PROJECT)
     message(STATUS "TILING_KEY=${TILING_KEY}")
     message(STATUS "TESTS_UT_OPS_TEST=${TESTS_UT_OPS_TEST}")
     message(STATUS "TESTS_EXAMPLE_OPS_TEST=${TESTS_EXAMPLE_OPS_TEST}")
+    message(STATUS "CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}")
+    message(STATUS "VERSION=${VERSION}")
 endif ()
 
 ########################################################################################################################
@@ -247,6 +259,8 @@ if (BUILD_OPEN_PROJECT)
                 --enable_built_in ${ENABLE_BUILT_IN}
                 --enable_ccache ${ENABLE_CCACHE}
                 --cann_3rd_lib_path ${CANN_3RD_LIB_PATH}
+                --build_type ${BUILD_TYPE}
+                --version ${VERSION}
                 RESULT_VARIABLE result
                 OUTPUT_STRIP_TRAILING_WHITESPACE
                 OUTPUT_VARIABLE PREPARE_BUILD_OUTPUT_VARIABLE)

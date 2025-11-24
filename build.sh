@@ -40,7 +40,8 @@ ASCEND_SOC_UNITS="ascend910b"
 SUPPORT_COMPUTE_UNIT_SHORT=("ascend031" "ascend035" "ascend310b" "ascend610lite" "ascend910_55" "mc62cm12a"
                             "ascend910b" "ascend910_93" "ascend910_95" "ascend310p" "ascend910")
 CMAKE_BUILD_MODE=""
-ENABLE_DEBUG=FALSE
+BUILD_TYPE=""
+VERSION=""
 BUILD_LIBS=()
 OP_API_UT=FALSE
 OP_HOST_UT=FALSE
@@ -88,14 +89,13 @@ function help_info() {
                 echo "    --ops=op1,op2,...      Compile specified operators (comma-separated for multiple)"
                 echo "    -j[n]                  Compile thread nums, default is 8, eg: -j8"
                 echo "    -O[n]                  Compile optimization options, support [O0 O1 O2 O3], eg:-O3"
-                echo "    --debug                Build with debug mode"
                 echo "    --experimental         Build experimental version"
                 echo "    --cann_3rd_lib_path=<PATH>"
                 echo "                           Set ascend third_party package install path, default ./third_party"
                 echo $dotted_line
                 echo "Examples:"
                 echo "    bash build.sh --pkg --soc=ascend910b --vendor_name=customize -j16 -O3"
-                echo "    bash build.sh --pkg --ops=add,sub --debug"
+                echo "    bash build.sh --pkg --ops=add,sub"
                 echo "    bash build.sh --pkg --experimental --soc=ascend910b"
                 return
                 ;;
@@ -133,11 +133,9 @@ function help_info() {
                 echo "    --ophost               Build ophost library"
                 echo "    -j[n]                  Compile thread nums, default is 8, eg: -j8"
                 echo "    -O[n]                  Compile optimization options, support [O0 O1 O2 O3], eg:-O3"
-                echo "    --debug                Build with debug mode"
                 echo $dotted_line
                 echo "Examples:"
                 echo "    bash build.sh --ophost -j16 -O3"
-                echo "    bash build.sh --ophost --debug"
                 return
                 ;;
             opapi)
@@ -146,11 +144,9 @@ function help_info() {
                 echo "    --opapi                Build opapi library"
                 echo "    -j[n]                  Compile thread nums, default is 8, eg: -j8"
                 echo "    -O[n]                  Compile optimization options, support [O0 O1 O2 O3], eg:-O3"
-                echo "    --debug                Build with debug mode"
                 echo $dotted_line
                 echo "Examples:"
                 echo "    bash build.sh --opapi -j16 -O3"
-                echo "    bash build.sh --opapi --debug"
                 return
                 ;;
             opgraph)
@@ -159,11 +155,9 @@ function help_info() {
                 echo "    --opgraph              Build opgraph library"
                 echo "    -j[n]                  Compile thread nums, default is 8, eg: -j8"
                 echo "    -O[n]                  Compile optimization options, support [O0 O1 O2 O3], eg:-O3"
-                echo "    --debug                Build with debug mode"
                 echo $dotted_line
                 echo "Examples:"
                 echo "    bash build.sh --opgraph -j16 -O3"
-                echo "    bash build.sh --opgraph --debug"
                 return
                 ;;
             opkernel)
@@ -259,7 +253,8 @@ function help_info() {
     echo $dotted_line
     echo "    The following are all supported arguments:"
     echo $dotted_line
-    echo "    --debug build with debug mode"
+    echo "    --build-type=<TYPE> Specify build type (TYPE options:Release/Debug), Default: Release"
+    echo "    --version Specify version"
     echo "    --cov When building uTest locally, count the coverage."
     echo "    --noexec Only compile ut, do not execute the compiled executable file"
     echo "    --make_clean Clean build artifacts"
@@ -919,8 +914,14 @@ while [[ $# -gt 0 ]]; do
         fi
         shift 1
         ;;
-    --debug)
-        ENABLE_DEBUG=TRUE
+    --build-type=*)
+        OPTARG=$1
+        BUILD_TYPE=${OPTARG#*=}
+        shift
+        ;;
+    --version=*)
+        OPTARG=$1
+        VERSION=${OPTARG#*=}
         shift
         ;;
     -O[0-3])
@@ -1083,6 +1084,14 @@ fi
 
 if [ "${ENABLE_DEBUG}" == "TRUE" ];then
     CUSTOM_OPTION="${CUSTOM_OPTION} -DENABLE_DEBUG=ON"
+fi
+
+if [ -n "${BUILD_TYPE}" ];then
+    CUSTOM_OPTION="${CUSTOM_OPTION} -DCMAKE_BUILD_TYPE=${BUILD_TYPE}"
+fi
+
+if [ -n "${VERSION}" ];then
+    CUSTOM_OPTION="${CUSTOM_OPTION} -DVERSION=${VERSION}"
 fi
 
 if [ -n "${CMAKE_BUILD_MODE}" ];then

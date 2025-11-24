@@ -1050,7 +1050,11 @@ def parse_xml_config(filepath: str,
     default_config = xml_root.attrib.copy()
 
     package_attr = parse_package_attr(xml_root, args)
-    version, version_dir = read_version_info()
+    if args.version_dir:
+        version = args.version_dir
+        version_dir = args.version_dir
+    else:
+        version, version_dir = read_version_info()
     if args.disable_multi_version:
         version_dir = None
     timestamp = get_timestamp(args)

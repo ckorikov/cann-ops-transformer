@@ -73,6 +73,14 @@ while [[ $# -gt 0 ]]; do
         OP_DEBUG_CONFIG="$2"
         shift 2
         ;;
+    --build_type)
+        BUILD_TYPE="$2"
+        shift 2
+        ;;
+    --version)
+        VERSION="$2"
+        shift 2
+        ;;
     --build_ops_rty_kernel)
         BUILD_OPS_RTY_KERNEL="$2"
         shift 2
@@ -138,7 +146,9 @@ function build() {
         -DBUILD_OPS_RTY_KERNEL=${BUILD_OPS_RTY_KERNEL} \
         -DENABLE_BUILT_IN=${ENABLE_BUILT_IN} \
         -DOP_DEBUG_CONFIG=${OP_DEBUG_CONFIG} \
-        -DCANN_3RD_LIB_PATH=${CANN_3RD_LIB_PATH}
+        -DCANN_3RD_LIB_PATH=${CANN_3RD_LIB_PATH} \
+        -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
+        -DVERSION=${VERSION}
 
     make ${JOB_NUM} prepare_build
 }
