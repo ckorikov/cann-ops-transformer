@@ -25,7 +25,7 @@ namespace {
 static const uint64_t DIM_NUM_4 = 4;
 static const uint64_t DIM_NUM_3 = 3;
 static const uint64_t DIM_NUM_2 = 2;
-static const int64_t HEAD_DIM_MAX = 512;
+static const int64_t HEAD_DIM_MAX = 768;
 static const int64_t PSE_TYPE_V1 = 1; // add and mul
 static const int64_t PSE_INNER_MUL_ADD = 2;
 static const int64_t PSE_INNER_MUL_ADD_SQRT = 3;
@@ -249,7 +249,7 @@ static aclnnStatus AnalysisInput(FaTensorInput &faTensorInput, char *inputLayout
         AnalysisAxis(faTensorInput, inputLayout, headNum, shapeInfo) == ACLNN_SUCCESS, ACLNN_ERR_PARAM_INVALID);
 
     if (shapeInfo.axes.d > HEAD_DIM_MAX) {
-        OP_LOGE(ACLNN_ERR_PARAM_INVALID, "Head dim must <= 512, but got %ld", shapeInfo.axes.d);
+        OP_LOGE(ACLNN_ERR_PARAM_INVALID, "Head dim must <= 768, but got %ld", shapeInfo.axes.d);
         return ACLNN_ERR_PARAM_INVALID;
     }
 

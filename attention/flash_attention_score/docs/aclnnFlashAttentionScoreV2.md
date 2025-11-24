@@ -408,7 +408,7 @@ aclnnStatus aclnnFlashAttentionScoreV2(
     -   B：取值范围为1\~2M。带prefixOptional的时候B最大支持2K。
     -   N：取值范围为1\~256。
     -   S：取值范围为1\~1M。
-    -   D：取值范围为1\~512。
+    -   D：取值范围为1\~768。
 - keepProb的取值范围为(0, 1]。
 - query、key、value数据排布格式支持从多种维度解读，其中B（Batch）表示输入样本批量大小、S（Seq-Length）表示输入样本序列长度、H（Head-Size）表示隐藏层的大小、N（Head-Num）表示多头数、D（Head-Dim）表示隐藏层最小的单元尺寸，且满足D=H/N。
 - innerPrecise: 当前0、1为保留配置值，2为使能无效行计算，其功能是避免在计算过程中存在整行mask进而导致精度有损失，但是该配置会导致性能下降。 如果算子可判断出存在无效行场景，会自动使能无效行计算，例如sparseMode为3，Sq > Skv场景。

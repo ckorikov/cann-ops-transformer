@@ -35,7 +35,7 @@ static const int64_t NUM_256 = 256L;
 static const int64_t NUM_320 = 320L;
 static const int64_t NUM_384 = 384L;
 static const int64_t NUM_448 = 448L;
-static const int64_t NUM_512 = 512L;
+static const int64_t NUM_768 = 768L;
 static const int64_t NUM_1024 = 1024L;
 static const int64_t MIN_DN_S2 = 256L;
 static const int64_t MIN_D_TO_USE_WORKSPACE = 128L;
@@ -48,7 +48,7 @@ static const int64_t GM_ALIGN = 512;
 static const int64_t FRACTAL_NUM = 16L;
 static const int64_t PSE_DIM_NUM = 4L;
 static const int64_t BYTE_BIT_NUM = 8UL;
-static const int64_t HEAD_DIM_MAX_VALUE = 512L;
+static const int64_t HEAD_DIM_MAX_VALUE = 768L;
 static const size_t PSE_INPUT_INDEX = 3UL;
 static const size_t DROP_MASK_INPUT_INDEX = 4UL;
 static const size_t ATTENTION_MASK_INPUT_INDEX = 6UL;
@@ -163,7 +163,7 @@ enum class DTemplateType : uint32_t {
     ALIGNED_320 = 320,
     ALIGNED_384 = 384,
     ALIGNED_448 = 448,
-    ALIGNED_512 = 512,
+    ALIGNED_768 = 768,
     DTEMPLATEBOTTOM
 };
 
@@ -1363,9 +1363,9 @@ ge::graphStatus FlashAttentionScoreConstTiling::DoOpTiling()
 {
     OP_LOGD(context_, "try template[%s]", templateName);
     OP_CHECK_IF(dSize > HEAD_DIM_MAX_VALUE,
-               OPS_REPORT_VECTOR_INNER_ERR(opName, "query or key dSize is not in range:(0, 512]"), return ge::GRAPH_FAILED);
+               OPS_REPORT_VECTOR_INNER_ERR(opName, "query or key dSize is not in range:(0, 768]"), return ge::GRAPH_FAILED);
     OP_CHECK_IF(dSizeV > HEAD_DIM_MAX_VALUE,
-               OPS_REPORT_VECTOR_INNER_ERR(opName, "value dSize is not in range:(0, 512]"), return ge::GRAPH_FAILED);
+               OPS_REPORT_VECTOR_INNER_ERR(opName, "value dSize is not in range:(0, 768]"), return ge::GRAPH_FAILED);
     CalcDBasicBlock();
     CalcDVBasicBlock();
     CalcS1S2BasicBlock();
@@ -2059,6 +2059,12 @@ protected:
     void CalcDBasicBlock() override {
         /* 先确定D的基本块，确定的逻辑是按照64来分档 */
         dBasicBlock = AlignUp(dSize + dSizeRope, D_TEMPLATE_SPLIT_SIZE);
+        /* dBasicBlock > 256 直接令D轴大小为768 */
+        if (dBasicBlock > NUM_256) {
+            dTemplateType = DTemplateType::ALIGNED_768;
+            return ; // 直接返回不往下走
+        }
+        /* dBasicBlock <= 256, 根据对齐大小选择*/
         switch (dBasicBlock) {
             case NUM_64:
                 dTemplateType = DTemplateType::ALIGNED_64;
@@ -2072,14 +2078,9 @@ protected:
             case NUM_256:
                 dTemplateType = DTemplateType::ALIGNED_256;
                 break;
-            case NUM_320:
-            case NUM_384:
-            case NUM_448:
-            case NUM_512:
-                dTemplateType = DTemplateType::ALIGNED_512;
-                break;
             default:
                 dTemplateType = DTemplateType::DTEMPLATEBOTTOM;
+                OPS_REPORT_VECTOR_INNER_ERR(opName, "Query or Key dSize is not in range:(0, 768]"); 
         }
     }
 
@@ -2184,7 +2185,7 @@ protected:
         int64_t vec2Bytes = 0;
         int64_t bmm2ResBlockSize = dVBasicBlock;
         if (dTemplateType > DTemplateType::ALIGNED_256) {
-            bmm2ResBlockSize = 512L;
+            bmm2ResBlockSize = static_cast<int64_t>(dVTemplateType);
         }
         bool useDn = (!hasPse && !hasAttenMask && !hasDropOut && s1BasicBlock != NUM_64
                       && dVBasicBlock <= NUM_256 && !hasRope);
@@ -2249,6 +2250,12 @@ protected:
     void CalcDBasicBlock() override {
         /* 先确定D的基本块，确定的逻辑是按照64来分档 */
         dBasicBlock = AlignUp(dSize + dSizeRope, D_TEMPLATE_SPLIT_SIZE);
+        /* dBasicBlock > 256 直接令D轴大小为768 */
+        if (dBasicBlock > NUM_256) {
+            dTemplateType = DTemplateType::ALIGNED_768;
+            return ; // 直接返回不往下走
+        }
+        /* dBasicBlock <= 256, 根据对齐大小选择*/
         switch (dBasicBlock) {
             case NUM_64:
                 dTemplateType = DTemplateType::ALIGNED_64;
@@ -2262,14 +2269,9 @@ protected:
             case NUM_256:
                 dTemplateType = DTemplateType::ALIGNED_256;
                 break;
-            case NUM_320:
-            case NUM_384:
-            case NUM_448:
-            case NUM_512:
-                dTemplateType = DTemplateType::ALIGNED_512;
-                break;
             default:
                 dTemplateType = DTemplateType::DTEMPLATEBOTTOM;
+                OPS_REPORT_VECTOR_INNER_ERR(opName, "Query or Key dSize is not in range:(0, 768]"); 
         }
     }
 
@@ -2420,7 +2422,7 @@ protected:
         int64_t vec2Bytes = 0;
         int64_t bmm2ResBlockSize = dBasicBlock;
         if (dTemplateType > DTemplateType::ALIGNED_256) {
-            bmm2ResBlockSize = 512L;
+            bmm2ResBlockSize = static_cast<int64_t>(dVTemplateType);
         }
         if (dSize > MIN_D_TO_USE_WORKSPACE) {
             bmm2Bytes = s1BasicBlock * bmm2ResBlockSize * calcTypeSize;
