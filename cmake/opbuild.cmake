@@ -147,6 +147,13 @@ function(gen_aclnn_with_opdef)
     install(FILES ${aclnn_master_header} DESTINATION ${ACLNN_INC_LEVEL2_INSTALL_DIR} OPTIONAL)
   endif()
 
+  if (ENABLE_STATIC)
+    install(FILES ${opbuild_out_headers} DESTINATION ${CMAKE_BINARY_DIR}/static_library_files/include/aclnnop OPTIONAL)
+    install(FILES ${aclnn_master_header} DESTINATION ${CMAKE_BINARY_DIR}/static_library_files/include/aclnnop OPTIONAL)
+    install(FILES ${opbuild_out_headers} DESTINATION ${CMAKE_BINARY_DIR}/static_library_files/include/aclnnop/level2 OPTIONAL)
+    install(FILES ${aclnn_master_header} DESTINATION ${CMAKE_BINARY_DIR}/static_library_files/include/aclnnop/level2 OPTIONAL)
+  endif()
+
   # ascendc_impl_gen depends opbuild_custom_gen_aclnn_all, for opbuild will generate .ini
   set(dependency_list)
   if(TARGET opbuild_gen_aclnn)

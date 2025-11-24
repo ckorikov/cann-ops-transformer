@@ -35,6 +35,7 @@ ENABLE_BUILD_PKG=FALSE
 ENABLE_BUILT_IN=FALSE
 ENABLE_BUILT_JIT=FALSE
 ENABLE_BUILT_CUSTOM=FALSE
+ENABLE_STATIC=FALSE
 ENABLE_EXPERIMENTAL=FALSE
 ASCEND_SOC_UNITS="ascend910b"
 SUPPORT_COMPUTE_UNIT_SHORT=("ascend031" "ascend035" "ascend310b" "ascend610lite" "ascend910_55" "mc62cm12a"
@@ -490,6 +491,103 @@ build_lib() {
   echo $dotted_line
 }
 
+build_static_lib() {
+    local unit="$1"
+    echo $dotted_line
+    echo "Start to build static lib."
+
+    git submodule init && git submodule update
+    cd "${BUILD_PATH}" && cmake ${CUSTOM_OPTION} .. -DENABLE_STATIC=ON -DASCEND_COMPUTE_UNIT=${unit}
+    local all_targets=$(cmake --build . --target help)
+    rm -fr ${BUILD_PATH}/bin_tmp
+    mkdir -p ${BUILD_PATH}/bin_tmp
+    if echo "${all_targets}" | grep -wq "ophost_transformer_static"; then
+        cmake --build . --target ophost_transformer_static ${JOB_NUM}
+    fi
+    cmake --build . --target opapi_transformer_static ${JOB_NUM}
+
+    rm -fr ${BUILD_PATH}/autogen/${unit}
+    python3 "${BASE_PATH}/scripts/util/build_opp_kernel_static.py" GenStaticOpResourceIni -s ${unit} -b ${BUILD_PATH}    
+    python3 "${BASE_PATH}/scripts/util/build_opp_kernel_static.py" StaticCompile -s ${unit} -b ${BUILD_PATH} -n=0 -a=${ARCH_INFO}
+
+    cd "${BUILD_PATH}" && cmake ${CUSTOM_OPTION} .. -DENABLE_STATIC=ON -DASCEND_COMPUTE_UNIT=${unit}
+    cmake --build . --target cann_transformer_static ${JOB_NUM}
+    echo "Build static lib success!"
+}
+
+package_static() {
+    local unit="$1"
+    if [[ "$ENABLE_BUILT_CUSTOM" == "TRUE" ]]; then
+        CUSTOM_OPTION="${CUSTOM_OPTION} -DENABLE_BUILT_IN=OFF -DENABLE_OPS_HOST=ON -DENABLE_OPS_KERNEL=ON -DENABLE_BUILD_PKG=ON"
+    else
+        CUSTOM_OPTION="${CUSTOM_OPTION} -DENABLE_BUILT_IN=ON -DENABLE_OPS_HOST=ON -DENABLE_OPS_KERNEL=ON -DENABLE_BUILD_PKG=ON"
+    fi
+    cmake_config -DASCEND_COMPUTE_UNIT=${unit}
+    build_package
+    # Check weather BUILD_OUT_DIR directory exists
+    if [ ! -d "$BUILD_OUT_DIR" ]; then
+        echo "Error: Directory $BUILD_OUT_DIR does not exist."
+        return 1
+    fi
+
+    # Check weather *.run is exists and verify the file numbers
+    local run_files=("$BUILD_OUT_DIR"/*.run)
+    if [ ${#run_files[@]} -eq 0 ]; then
+        echo "Error: No .run files found in $BUILD_OUT_DIR directory."
+        return 1
+    fi
+    if [ ${#run_files[@]} -gt 1 ]; then
+        echo "Error: Multiple .run files found in $BUILD_OUT_DIR directory."
+        printf '%s\n' "${run_files[@]}"
+        return 1
+    fi
+    # Get filename of *.run file and set new directory name
+    local run_file=$(basename "${run_files[0]}")
+    echo "Found .run file: $run_file"
+    if [[ "$run_file" != *"ops-transformer"* ]]; then
+        echo "Error: Filename '$run_file' does not contain 'ops-transformer'."
+        return 1
+    fi
+    local static_name="${run_file/ops-transformer/ops-transformer-static}"
+    static_name="${static_name%.run}"
+
+    # Check weather $BUILD_PATH/static_library_files directory exists and not empty
+    local static_files_dir="$BUILD_PATH/static_library_files"
+    if [ ! -d "$static_files_dir" ]; then
+        echo "Error: Directory $static_files_dir does not exist."
+        return 1
+    fi
+    if [ -z "$(ls -A "$static_files_dir")" ]; then
+        echo "Error: Directory $static_files_dir is empty."
+        return 1
+    fi
+
+    # Rename directory
+    local new_dir_path="$BUILD_PATH/$static_name"
+    if mv "$static_files_dir" "$new_dir_path"; then
+        echo "Preparing for packaging: renamed $static_files_dir to $new_dir_path"
+    else
+        echo "Packaging preparation failed: directory rename failed ($static_files_dir -> $new_dir_path)"
+        return 1
+    fi
+
+    # Create compressed package and restore directory name
+    local new_filename="${static_name}.tar.gz"
+    if tar -czf "$BUILD_OUT_DIR/$new_filename" -C "$BUILD_PATH" "$static_name"; then
+        echo "Successfully created compressed package: $BUILD_OUT_DIR/$new_filename"
+        # Restore original directory name
+        echo "Restoring original directory name: $new_dir_path -> $static_files_dir"
+        mv "$new_dir_path" "$static_files_dir"
+        return 0
+    else
+        echo "Error: Failed to create compressed package."
+        # Attempt to restore original directory name
+        mv "$new_dir_path" "$static_files_dir"
+        return 1
+    fi
+    make clean
+}
+
 function process_soc_input(){
     local input_string="$1"
     local value_part="${input_string#*=}"
@@ -681,6 +779,10 @@ while [[ $# -gt 0 ]]; do
     --pkg)
         ENABLE_BUILD_PKG=TRUE
         ENABLE_BUILT_IN=TRUE            # 只输入--pkg时编builtin包
+        shift
+        ;;
+    --static)
+        ENABLE_STATIC=TRUE
         shift
         ;;
     --jit)
@@ -1099,6 +1201,10 @@ if [ -n "${CMAKE_BUILD_MODE}" ];then
 fi
 CUSTOM_OPTION="${CUSTOM_OPTION} -DCANN_3RD_LIB_PATH=${CANN_3RD_LIB_PATH}"
 
+if [[ "$ENABLE_STATIC" == "TRUE" ]]; then
+    CUSTOM_OPTION="${CUSTOM_OPTION} -DENABLE_STATIC=${ENABLE_STATIC}"
+fi
+
 if [ -n "${ascend_package_path}" ];then
     ASCEND_CANN_PACKAGE_PATH=${ascend_package_path}
 elif [ -n "${ASCEND_HOME_PATH}" ];then
@@ -1288,6 +1394,19 @@ if [[ "$ENABLE_TEST" == "TRUE" ]]; then
     build_ut ${BUILD}
 elif [[ "$ENABLE_CREATE_LIB" == "TRUE" ]]; then
     build_lib
+elif [[ "$ENABLE_STATIC" == "TRUE" ]]; then
+    IFS=';' read -ra SOC_ARRAY <<< "$ASCEND_SOC_UNITS"  # 分割字符串为数组
+    for soc in "${SOC_ARRAY[@]}"; do
+        soc=$(echo "${soc}" | xargs)  # 去除前后空格
+        if [[ -n "${soc}" ]]; then  # 检查非空
+            cmake_config -DASCEND_COMPUTE_UNIT=${soc}
+            build_kernel
+            build_static_lib ${soc}
+            if [[ "$ENABLE_BUILD_PKG" == "TRUE" ]]; then
+                package_static ${soc}
+            fi
+        fi
+    done
 elif [[ "$ENABLE_OPKERNEL" == "TRUE" ]]; then
     set_compute_unit_option
     cmake_config -DENABLE_HOST_TILING=ON

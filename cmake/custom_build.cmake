@@ -422,13 +422,24 @@ if (BUILD_OPEN_PROJECT)
     add_library(ops_aclnn STATIC
             ${ops_aclnn_src}
     )
+    target_include_directories(ops_aclnn PRIVATE
+            ${PROJECT_SOURCE_DIR}/common/include/common
+    )
     target_compile_options(ops_aclnn PRIVATE
             $<$<COMPILE_LANGUAGE:CXX>:-std=gnu++1z>
     )
     target_link_libraries(ops_aclnn PRIVATE
             $<BUILD_INTERFACE:intf_pub>
     )
-    add_dependencies(ops_aclnn opbuild_gen_default opbuild_gen_inner)
+    if (ENABLE_STATIC)
+        add_custom_target(opbuild_gen_aclnn_static
+                COMMAND python3 ${PROJECT_SOURCE_DIR}/scripts/util/modify_gen_aclnn.py ${CMAKE_BINARY_DIR}
+                DEPENDS opbuild_gen_default opbuild_gen_inner opbuild_gen_exc
+        )
+        add_dependencies(ops_aclnn opbuild_gen_default opbuild_gen_inner opbuild_gen_aclnn_static)
+    else()
+        add_dependencies(ops_aclnn opbuild_gen_default opbuild_gen_inner)
+    endif()
 
     set_source_files_properties(${generate_proto_srcs}
             PROPERTIES GENERATED TRUE
@@ -572,12 +583,14 @@ endif ()
 
 # ------------------------------------------------ opbuild ------------------------------------------------
 if (BUILD_OPEN_PROJECT)
+    string(REPLACE ";" "\;" OPS_PRODUCT_NAME "${ASCEND_COMPUTE_UNIT}")
     if (generate_aclnn_srcs)
         add_custom_command(OUTPUT ${generate_aclnn_srcs} ${generate_aclnn_headers}
                 COMMAND mkdir -p ${base_aclnn_binary_dir}
                 COMMAND OPS_PROTO_SEPARATE=1
                 OPS_ACLNN_GEN=1
                 OPS_PROJECT_NAME=aclnn
+                OPS_PRODUCT_NAME=\"${OPS_PRODUCT_NAME}\"
                 ${OP_BUILD_TOOL}
                 $<TARGET_FILE:op_host_aclnn>
                 ${base_aclnn_binary_dir}
@@ -594,6 +607,7 @@ if (BUILD_OPEN_PROJECT)
                 COMMAND OPS_PROTO_SEPARATE=1
                 OPS_ACLNN_GEN=1
                 OPS_PROJECT_NAME=aclnnInner
+                OPS_PRODUCT_NAME=\"${OPS_PRODUCT_NAME}\"
                 ${OP_BUILD_TOOL}
                 $<TARGET_FILE:op_host_aclnnInner>
                 ${base_aclnn_binary_dir}/inner
@@ -610,6 +624,7 @@ if (BUILD_OPEN_PROJECT)
                 COMMAND OPS_PROTO_SEPARATE=1
                 OPS_ACLNN_GEN=0
                 OPS_PROJECT_NAME=aclnnExc
+                OPS_PRODUCT_NAME=\"${OPS_PRODUCT_NAME}\"
                 ${OP_BUILD_TOOL}
                 $<TARGET_FILE:op_host_aclnnExc>
                 ${base_aclnn_binary_dir}/exc
