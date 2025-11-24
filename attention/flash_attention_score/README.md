@@ -176,7 +176,7 @@
   </tbody>
 </table>
 
-- FLOAT8_E5M2、FLOAT8_E4M3FN、HIFLOAT8三种数据类型仅昇腾910_95 AI处理器支持。
+- <term>Atlas A2 训练系列产品</term>：不支持FLOAT8_E5M2、FLOAT8_E4M3FN、HIFLOAT8三种数据类型。
 
 ## 约束说明
 
@@ -196,3 +196,6 @@
 | 调用方式           | 调用样例                                                                                    | 说明                                                                                                  |
 |----------------|-----------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------|
 | aclnn调用 | [test_aclnn_flash_attention_score](./examples/test_aclnn_flash_attention_score.cpp) | 非TND场景，通过[aclnnFlashAttentionScore](./docs/aclnnFlashAttentionScoreV2.md)接口方式调用FlashAttention算子。             |
+
+## 参考资源
+- [算子设计原理](./docs/FA算子设计介绍.md)
