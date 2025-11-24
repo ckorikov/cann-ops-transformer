@@ -427,7 +427,7 @@ aclnnStatus aclnnMoeDistributeDispatch(
         - `BS`：表示batch sequence size，即本卡最终输出的token数量，取值范围为[1, 512]。
         - `K`：表示选取topK个专家，需满足0 < `K` ≤ moeExpertNum，取值范围为[1, 8]。
     - `epWorldSize`：取值支持4、8、16、32、64、128、144、256、288。
-    - `HCCL_BUFFSIZE`：调用本算子前需检查`HCCL_BUFFSIZE`环境变量取值是否合理，该环境变量表示单个通信域占用内存大小，单位MB，不配置时默认为200MB，要求 >= `aivNum` * 32 + 2 * `epWorldSize` * (`BS` * `H` * 2 * `localExpertNum` + 512)，`aivNum`表示核数，`localExpertNum`需使用MoE专家卡的本卡专家数。
+    - `HCCL_BUFFSIZE`：调用本算子前需检查`HCCL_BUFFSIZE`环境变量取值是否合理，该环境变量表示单个通信域占用内存大小，单位MB，不配置时默认为200MB，要求 >= `aivNum` * 512 + 2 * `epWorldSize` * (`BS` * `H` * 2 * `localExpertNum` + 512)，`aivNum`表示核数，`localExpertNum`需使用MoE专家卡的本卡专家数。
     - `quantMode`相关约束：
         - `quantMode`取值为0时，表示非量化场景，`expandX`的数据类型支持`FLOAT16`、`BFLOAT16`、`FLOAT8_E4M3FN`、`FLOAT8_E5M2`、`HIFLOAT8`。
             - `expandX`的数据类型为`FLOAT16`、`BFLOAT16`时，输入`scales`必须传入空指针。
