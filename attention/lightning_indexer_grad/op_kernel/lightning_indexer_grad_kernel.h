@@ -433,7 +433,7 @@ __aicore__ inline void LIGKernel<LIGT>::Process()
     SplitCore(beginPos, length, totalLoops, aiCoreIdx, usedCubeCoreNum);
     InitRunInfo(beginPos, length, runInfo);
 
-    for (uint32_t i = 0; i < runInfo.loopTimes + 3; i++) {
+    for (uint32_t i = 0; runInfo.loopTimes > 0 && i < runInfo.loopTimes + 3; i++) {
 
         // pre1
         if (i == 0) {

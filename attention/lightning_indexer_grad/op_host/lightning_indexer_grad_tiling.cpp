@@ -72,6 +72,7 @@ ge::graphStatus LightningIndexerGradTiling::DoTiling()
     opParamInfo.nextTokens = *attrs->GetInt(ATTR_NEXTTOKENS_INDEX);
     opParamInfo.determinstic = *attrs->GetBool(ATTR_DETERMINSTIC_INDEX);
 
+    uint32_t dyShapeDim = opParamInfo.dy.shape->GetStorageShape().GetDimNum();
     uint32_t dataType = static_cast<uint32_t>(queryDataType);
     uint32_t inputLayout = -1;
     if (std::string(opParamInfo.layout) == "BSND") {
@@ -82,7 +83,7 @@ ge::graphStatus LightningIndexerGradTiling::DoTiling()
         seqlenK = static_cast<uint32_t>(opParamInfo.key.shape->GetStorageShape().GetDim(DIM_IDX_TWO));
         headNumK = static_cast<uint32_t>(opParamInfo.key.shape->GetStorageShape().GetDim(DIM_IDX_THREE));
         groupNum = headNumQ / headNumK;
-        topK = static_cast<uint32_t>(opParamInfo.dy.shape->GetStorageShape().GetDim(DIM_IDX_THREE));
+        topK = static_cast<uint32_t>(opParamInfo.dy.shape->GetStorageShape().GetDim(dyShapeDim - 1));
         dkSize = batch * seqlenK * headNumK * headDim;        
         inputLayout = LAYOUT_BSND;
     } else if (std::string(opParamInfo.layout) == "TND") {
@@ -98,7 +99,7 @@ ge::graphStatus LightningIndexerGradTiling::DoTiling()
         seqlenK = static_cast<uint32_t>(opParamInfo.key.shape->GetStorageShape().GetDim(DIM_IDX_ONE));
         headNumK = static_cast<uint32_t>(opParamInfo.key.shape->GetStorageShape().GetDim(DIM_IDX_TWO));
         groupNum = headNumQ / headNumK;
-        topK = static_cast<uint32_t>(opParamInfo.dy.shape->GetStorageShape().GetDim(DIM_IDX_TWO));
+        topK = static_cast<uint32_t>(opParamInfo.dy.shape->GetStorageShape().GetDim(dyShapeDim - 1));
         dkSize = seqlenK * headNumK * headDim;
         inputLayout = LAYOUT_TND;
     } else {
