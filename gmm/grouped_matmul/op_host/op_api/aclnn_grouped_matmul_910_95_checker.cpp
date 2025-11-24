@@ -452,6 +452,8 @@ aclnnStatus AclnnGroupedMatmul91095Checker<T>::CheckGroupedMatmulFp4MxDimValue()
         auto weightNIndex = GetInputTensor(gmmParams_.weight, i)->GetViewShape().GetDimNum() - 1;
         auto xKDimValue = GetInputTensor(gmmParams_.x, i)->GetViewShape().GetDim(1);
         auto weightNDimValue = GetInputTensor(gmmParams_.weight, i)->GetViewShape().GetDim(weightNIndex);
+        auto weightKIndex = GetInputTensor(gmmParams_.weight, i)->GetViewShape().GetDimNum() - LAST_TOW_DIM_INDEX;
+        auto weightKDimValue = GetInputTensor(gmmParams_.weight, i)->GetViewShape().GetDim(weightKIndex);
         //2：检查N是否为偶数
         auto weightNDimModValue = weightNDimValue % 2;
         //2：检查K是否为偶数
@@ -466,6 +468,11 @@ value is %lu",
                    "When the dtypes of x and weight inputs are fp4 , the dim K value of %s should be even, but actual dim \
 value is %lu",
                    xName_.c_str(), xKDimValue);
+        // 2: mxfp4场景下不支持k轴为2
+        CHECK_COND(xKDimValue != 2 && weightKDimValue != 2, ACLNN_ERR_PARAM_INVALID,
+                   "When the dtypes of x and weight inputs are fp4, the dim K value should not be 2, but actual dim K \
+value of %s is %lu and dim K value of %s is %lu",
+                   xName_.c_str(), xKDimValue, weightName_.c_str(), weightKDimValue);
     }
     return ACLNN_SUCCESS;
 }

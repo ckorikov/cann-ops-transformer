@@ -303,7 +303,7 @@
         |:---------:|:---------:| :------ |
         |0|x单tensor|每个tensor 3维，shape为（M, ceil(K / 64), 2）|
         |2|x单tensor|每个tensor 3维，shape为((K / 64) + g, M, 2), 起始地址偏移与scale同理|
-      - 对于mx量化中输入x为FLOAT4_E2M1/FLOAT4_E1M2时，需要满足K为偶数。当weight非转置时还需满足N为偶数。
+      - 对于mx量化中输入x为FLOAT4_E2M1/FLOAT4_E1M2时，需要满足K为偶数且K不为2。当weight非转置时还需满足N为偶数。
     - 动态量化（G-B量化）场景支持的数据类型为：
       - 以下入参为空：biasOptional、offsetOptional、antiquantScaleOptional、antiquantOffsetOptional、activationInputOptional
       - 计算公式量化block size为：当前仅支持gsM = 1， gsN = gsK = 128。
