@@ -32,7 +32,7 @@ __global__ __aicore__ void quant_all_reduce(GM_ADDR x, GM_ADDR scales, GM_ADDR o
     REGISTER_TILING_DEFAULT(QuantAllReduceTilingData);
     GET_TILING_DATA_WITH_STRUCT(QuantAllReduceTilingData, tilingData, tilingGM);
     TPipe pipe;
-    if (quantAllReduceTemplateId == MET_COMM) {
+    if (quantAllReduceTemplateId == MTE_COMM) {
         QuantAllReduce<true, true, true> op;
         op.Init(x, scales, output, workspaceGM, &pipe, &tilingData);
         op.Process();
