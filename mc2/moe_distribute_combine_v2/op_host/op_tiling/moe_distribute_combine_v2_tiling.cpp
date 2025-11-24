@@ -698,7 +698,7 @@ static bool CheckTensorShape(const gert::TilingContext *context, MoeDistributeCo
         OP_TILING_CHECK(elasticInfoDim0 != (ELASTIC_METAINFO_OFFSET + RANK_LIST_NUM * epWorldSize),
             OP_LOGE(nodeName, "elasticInfo's dim0 not equal to 4 + 2 * epWorldSize, "
             "elasticInfo's dim0 is %ld, epWorldSize is %ld.",
-            elasticInfoDim0, epWorldSize), return ge::GRAPH_FAILED);
+            elasticInfoDim0, epWorldSize), return false);
         A = std::max( static_cast<int64_t>(maxBs * maxSharedGroupNum) , globalBs * std::min(static_cast<int64_t>(localMoeExpertNum), expertIdsDim1));
     }
     // 校验expandX的维度并设h
