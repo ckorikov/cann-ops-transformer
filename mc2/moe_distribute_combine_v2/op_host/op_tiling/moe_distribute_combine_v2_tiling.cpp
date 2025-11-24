@@ -1144,7 +1144,7 @@ static ge::graphStatus MoeDistributeCombineA2CheckAttrAndSetTiling(const gert::T
     OP_TILING_CHECK(zeroExpertNumPtr == nullptr, OP_LOGE(K_INNER_DEBUG, "zeroExpertNum is invalid."), return GRAPH_FAILED);
     OP_TILING_CHECK(copyExpertNumPtr == nullptr, OP_LOGE(K_INNER_DEBUG, "copyExpertNum is invalid."), return GRAPH_FAILED);
     OP_TILING_CHECK(constExpertNumPtr == nullptr || *constExpertNumPtr != 0,
-        OP_LOGE(K_INNER_DEBUG, "constExpertNum is invalid. Must be 0."), return ge::GRAPH_FAILED);
+        OP_LOGE(K_INNER_DEBUG, "constExpertNum is invalid. Must be 0."), return GRAPH_FAILED);
 
     OP_TILING_CHECK((groupEpPtr == nullptr) || (strnlen(groupEpPtr, MAX_GROUP_NAME_LENGTH) == 0) ||
         (strnlen(groupEpPtr, MAX_GROUP_NAME_LENGTH) == MAX_GROUP_NAME_LENGTH),
@@ -1181,7 +1181,7 @@ static ge::graphStatus MoeDistributeCombineA2CheckAttrAndSetTiling(const gert::T
     OP_TILING_CHECK(
         (moeExpertNum + zeroExpertNum + copyExpertNum + constExpertNum) > INT32_MAX,
         OP_LOGE(K_INNER_DEBUG, "moeExpertNum + zeroExpertNum + copyExpertNum + constExpertNum exceeds MAX_INT32."),
-        return ge::GRAPH_FAILED);
+        return GRAPH_FAILED);
     info.epWorldSize = *epWorldSizePtr;
     info.tpWorldSize = static_cast<uint32_t>(0);
     info.epRankId = *epRankIdPtr;
@@ -1222,6 +1222,15 @@ static ge::graphStatus MoeDistributeCombineA2CheckShapeAndSetTiling(const gert::
     const gert::StorageShape* constExpertAlpha2StorageShape = context->GetOptionalInputShape(CONST_EXPERT_ALPHA_2_INDEX);
     const gert::StorageShape* constExpertVStorageShape = context->GetOptionalInputShape(CONST_EXPERT_V_INDEX);
 
+    if (constExpertAlpha1StorageShape != nullptr ||
+        constExpertAlpha2StorageShape != nullptr || constExpertVStorageShape != nullptr) {
+        OP_LOGE(
+            K_INNER_DEBUG,
+            "current version does not support const_expert_alpha_1, const_expert_alpha_2, and const_expert_v "
+            "inputs.");
+        return ge::GRAPH_FAILED;
+    }
+
     OP_TILING_CHECK(expandXStorageShape->GetStorageShape().GetDimNum() != TWO_DIMS,
         OP_LOGE(K_INNER_DEBUG, "expandXshape is invalid"), return GRAPH_FAILED);
     uint32_t h = expandXStorageShape->GetStorageShape().GetDim(1);
@@ -1247,19 +1256,6 @@ static ge::graphStatus MoeDistributeCombineA2CheckShapeAndSetTiling(const gert::
         + zeroExpertNum + copyExpertNum + constExpertNum,
         OP_LOGE(K_INNER_DEBUG, "k is invalid."), return GRAPH_FAILED);
 
-    OP_TILING_CHECK(performanceInfoStorageShape != nullptr && performanceInfoStorageShape->GetStorageShape().GetDimNum() != ONE_DIM,
-        OP_LOGE(K_INNER_DEBUG, "When performanceInfo is not null, it needs to be one-dimensional."), return GRAPH_FAILED);
-    auto attrs = context->GetAttrs();
-    OP_TILING_CHECK(attrs == nullptr, OP_LOGE(K_INNER_DEBUG, "attrs is null."), return ge::GRAPH_FAILED);
-    auto epWorldSizePtr = attrs->GetAttrPointer<int>(ATTR_EP_WORLD_SIZE_INDEX);
-    OP_TILING_CHECK(performanceInfoStorageShape != nullptr && performanceInfoStorageShape->GetStorageShape().GetDim(0) != static_cast<int64_t>(*epWorldSizePtr),
-        OP_LOGE(
-            K_INNER_DEBUG,
-            "The Size of performanceInfo should be equal to epWorldSize when performanceInfo is not null,"
-            "but performanceInfo Size is %ld and epWorldSize is %d.",
-            performanceInfoStorageShape->GetStorageShape().GetDim(0), *epWorldSizePtr),
-        return GRAPH_FAILED);
-
     bool isActiveMask = (xActiveMaskStorageShape != nullptr);
     if (isActiveMask) {
         const int64_t xActiveMaskDimNums = xActiveMaskStorageShape->GetStorageShape().GetDimNum();
@@ -1278,13 +1274,22 @@ static ge::graphStatus MoeDistributeCombineA2CheckShapeAndSetTiling(const gert::
             "expertIds's dim1 is %ld", xActiveMaskStorageShape->GetStorageShape().GetDim(1), k), return GRAPH_FAILED);
     }
 
+    OP_TILING_CHECK(performanceInfoStorageShape != nullptr && performanceInfoStorageShape->GetStorageShape().GetDimNum() != ONE_DIM,
+        OP_LOGE(K_INNER_DEBUG, "When performanceInfo is not null, it needs to be one-dimensional."), return GRAPH_FAILED);
+    auto attrs = context->GetAttrs();
+    OP_TILING_CHECK(attrs == nullptr, OP_LOGE(K_INNER_DEBUG, "attrs is null."), return ge::GRAPH_FAILED);
+    auto epWorldSizePtr = attrs->GetAttrPointer<int>(ATTR_EP_WORLD_SIZE_INDEX);
+    OP_TILING_CHECK(performanceInfoStorageShape != nullptr && performanceInfoStorageShape->GetStorageShape().GetDim(0) != static_cast<int64_t>(*epWorldSizePtr),
+        OP_LOGE(
+            K_INNER_DEBUG,
+            "The Size of performanceInfo should be equal to epWorldSize when performanceInfo is not null,"
+            "but performanceInfo Size is %ld and epWorldSize is %d.",
+            performanceInfoStorageShape->GetStorageShape().GetDim(0), *epWorldSizePtr),
+        return GRAPH_FAILED);
+
     // copy expert
     OP_TILING_CHECK(copyExpertNum > 0 && oriXStorageShape == nullptr,
         OP_LOGE(K_INNER_DEBUG, "oriX must be exist when copyExpertNum > 0"), return GRAPH_FAILED);
-
-    OP_TILING_CHECK(constExpertAlpha1StorageShape != nullptr || constExpertAlpha2StorageShape != nullptr || constExpertVStorageShape != nullptr,
-        OP_LOGE(K_INNER_DEBUG, "current version does not support const_expert_alpha_1, const_expert_alpha_2, and const_expert_v."),
-        return GRAPH_FAILED);
 
     if (oriXStorageShape != nullptr) {
         // 必须是2维

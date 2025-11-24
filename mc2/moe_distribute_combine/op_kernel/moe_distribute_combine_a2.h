@@ -19,11 +19,10 @@
 #if __has_include("../../moe_distribute_dispatch/op_kernel/moe_distribute_base.h")
 #include "../../moe_distribute_dispatch/op_kernel/moe_distribute_base.h"
 #else
-#if __has_include("../../moe_distribute_dispatch/op_kernel/moe_distribute_base.h")
-#include "../../moe_distribute_dispatch/op_kernel/moe_distribute_base.h"
-#else
 #include "../moe_distribute_dispatch/moe_distribute_base.h"
-namespace {
+#endif
+
+namespace MoeDistributeCombineA2Impl {
 constexpr uint8_t BUFFER_NUM = 2;                       // 多buf
 constexpr uint32_t STATE_OFFSET = 512;                  // 状态空间偏移地址
 constexpr uint32_t STATE_SPACE_SIZE = 1024 * 1024;      // 1M
@@ -178,7 +177,6 @@ private:
     uint32_t dataSpaceSize_{0};
     uint32_t bufferId_{0};
     uint32_t tokenNumPerCore_{0};
-    uint32_t tokenIndex_{0};
     uint32_t performanceInfoSize_{0};
     bool needPerformanceInfo_{false};
     // 分核片上相对偏移
