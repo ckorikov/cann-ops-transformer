@@ -1143,7 +1143,8 @@ static ge::graphStatus MoeDistributeCombineA2CheckAttrAndSetTiling(const gert::T
 
     OP_TILING_CHECK(zeroExpertNumPtr == nullptr, OP_LOGE(K_INNER_DEBUG, "zeroExpertNum is invalid."), return GRAPH_FAILED);
     OP_TILING_CHECK(copyExpertNumPtr == nullptr, OP_LOGE(K_INNER_DEBUG, "copyExpertNum is invalid."), return GRAPH_FAILED);
-    OP_TILING_CHECK(constExpertNumPtr == nullptr, OP_LOGE(K_INNER_DEBUG, "constExpertNum is invalid."), return GRAPH_FAILED);
+    OP_TILING_CHECK(constExpertNumPtr == nullptr || *constExpertNumPtr != 0,
+        OP_LOGE(K_INNER_DEBUG, "constExpertNum is invalid. Must be 0."), return ge::GRAPH_FAILED);
 
     OP_TILING_CHECK((groupEpPtr == nullptr) || (strnlen(groupEpPtr, MAX_GROUP_NAME_LENGTH) == 0) ||
         (strnlen(groupEpPtr, MAX_GROUP_NAME_LENGTH) == MAX_GROUP_NAME_LENGTH),
@@ -1176,7 +1177,7 @@ static ge::graphStatus MoeDistributeCombineA2CheckAttrAndSetTiling(const gert::T
     int64_t moeExpertNum = static_cast<int64_t>(*moeExpertNumPtr);
     int64_t zeroExpertNum = *zeroExpertNumPtr;
     int64_t copyExpertNum = *copyExpertNumPtr;
-    int64_t constExpertNum = *constExpertNumPtr;
+    int64_t constExpertNum = 0LL;
     OP_TILING_CHECK(
         (moeExpertNum + zeroExpertNum + copyExpertNum + constExpertNum) > INT32_MAX,
         OP_LOGE(K_INNER_DEBUG, "moeExpertNum + zeroExpertNum + copyExpertNum + constExpertNum exceeds MAX_INT32."),
@@ -1237,12 +1238,11 @@ static ge::graphStatus MoeDistributeCombineA2CheckShapeAndSetTiling(const gert::
     auto moeExpertNumPtr = attrs->GetAttrPointer<int>(ATTR_MOE_EXPERT_NUM_INDEX);
     auto zeroExpertNumPtr = attrs->GetAttrPointer<int64_t>(static_cast<int>(ATTR_ZERO_EXPERT_NUM_INDEX));
     auto copyExpertNumPtr = attrs->GetAttrPointer<int64_t>(static_cast<int>(ATTR_COPY_EXPERT_NUM_INDEX));
-    auto constExpertNumPtr = attrs->GetAttrPointer<int64_t>(static_cast<int>(ATTR_CONST_EXPERT_NUM_INDEX));
     // 判断是否满足uint32_t及其他限制
     int32_t moeExpertNum = *moeExpertNumPtr;
     int32_t zeroExpertNum = static_cast<int32_t>(*zeroExpertNumPtr);
     int32_t copyExpertNum = static_cast<int32_t>(*copyExpertNumPtr);
-    int32_t constExpertNum = static_cast<int32_t>(*constExpertNumPtr);
+    int32_t constExpertNum = 0;
     OP_TILING_CHECK(k == 0 || k > MAX_K_VALUE_A2 || k > moeExpertNum
         + zeroExpertNum + copyExpertNum + constExpertNum,
         OP_LOGE(K_INNER_DEBUG, "k is invalid."), return GRAPH_FAILED);
@@ -1278,12 +1278,13 @@ static ge::graphStatus MoeDistributeCombineA2CheckShapeAndSetTiling(const gert::
             "expertIds's dim1 is %ld", xActiveMaskStorageShape->GetStorageShape().GetDim(1), k), return GRAPH_FAILED);
     }
 
-    // copy expert and const expert
+    // copy expert
     OP_TILING_CHECK(copyExpertNum > 0 && oriXStorageShape == nullptr,
         OP_LOGE(K_INNER_DEBUG, "oriX must be exist when copyExpertNum > 0"), return GRAPH_FAILED);
-    OP_TILING_CHECK(constExpertNum > 0 && (oriXStorageShape == nullptr || constExpertAlpha1StorageShape == nullptr ||
-                    constExpertAlpha2StorageShape == nullptr || constExpertVStorageShape == nullptr),
-        OP_LOGE(K_INNER_DEBUG, "oriX、alpha1、alpha2、V must be exist when constExpertNum > 0"), return GRAPH_FAILED);
+
+    OP_TILING_CHECK(constExpertAlpha1StorageShape != nullptr || constExpertAlpha2StorageShape != nullptr || constExpertVStorageShape != nullptr,
+        OP_LOGE(K_INNER_DEBUG, "current version does not support const_expert_alpha_1, const_expert_alpha_2, and const_expert_v."),
+        return GRAPH_FAILED);
 
     if (oriXStorageShape != nullptr) {
         // 必须是2维
@@ -1306,71 +1307,6 @@ static ge::graphStatus MoeDistributeCombineA2CheckShapeAndSetTiling(const gert::
             oriXDim1 != static_cast<int64_t>(h),
             OP_LOGE(K_INNER_DEBUG, "ori_x's dim1 not equal to h, ori_x's dim1 = %ld, h = %ld",
                     oriXDim1, static_cast<int64_t>(h)),
-            return GRAPH_FAILED);
-    }
-
-    if (constExpertAlpha1StorageShape != nullptr) {
-        // 必须是1维
-        OP_TILING_CHECK(
-            constExpertAlpha1StorageShape->GetStorageShape().GetDimNum() != ONE_DIM,
-            OP_LOGE(
-                K_INNER_DEBUG, "const_expert_alpha_1 must be 1-dimension, but got %lu dim",
-                constExpertAlpha1StorageShape->GetStorageShape().GetDimNum()),
-            return GRAPH_FAILED);
-
-        // shape为(constExpertNum)
-        int64_t constExpertAlpha1Dim0 = constExpertAlpha1StorageShape->GetStorageShape().GetDim(0);
-        OP_TILING_CHECK(
-            constExpertAlpha1Dim0 != *constExpertNumPtr,
-            OP_LOGE(
-                K_INNER_DEBUG,
-                "const_expert_alpha_1's dim0 not equal to const_expert_num, const_expert_alpha_1's dim0 = %ld, "
-                "const_expert_num = %ld",
-                constExpertAlpha1Dim0, *constExpertNumPtr),
-            return GRAPH_FAILED);
-    }
-
-    if (constExpertAlpha2StorageShape != nullptr) {
-        // 必须是1维
-        OP_TILING_CHECK(
-            constExpertAlpha2StorageShape->GetStorageShape().GetDimNum() != ONE_DIM,
-            OP_LOGE(
-                K_INNER_DEBUG, "const_expert_alpha_2 must be 1-dimension, but got %lu dim",
-                constExpertAlpha2StorageShape->GetStorageShape().GetDimNum()),
-            return GRAPH_FAILED);
-
-        // shape为(constExpertNum)
-        int64_t constExpertAlpha2Dim0 = constExpertAlpha2StorageShape->GetStorageShape().GetDim(0);
-        OP_TILING_CHECK(
-            constExpertAlpha2Dim0 != *constExpertNumPtr,
-            OP_LOGE(
-                K_INNER_DEBUG,
-                "const_expert_alpha_2's dim0 not equal to const_expert_num, const_expert_alpha_2's dim0 = %ld, "
-                "const_expert_num = %ld", constExpertAlpha2Dim0, *constExpertNumPtr),
-            return GRAPH_FAILED);
-    }
-
-    if (constExpertVStorageShape != nullptr) {
-        // 必须是2维
-        OP_TILING_CHECK(
-            constExpertVStorageShape->GetStorageShape().GetDimNum() != TWO_DIMS,
-            OP_LOGE(
-                K_INNER_DEBUG, "const_expert_v must be 2-dimension, but got %lu dim",
-                constExpertVStorageShape->GetStorageShape().GetDimNum()),
-            return GRAPH_FAILED);
-        // 必须是2维(constExpertNum, H)
-        int64_t constExpertVDim0 = constExpertVStorageShape->GetStorageShape().GetDim(0);
-        int64_t constExpertVDim1 = constExpertVStorageShape->GetStorageShape().GetDim(1);
-        OP_TILING_CHECK(constExpertVDim0 != *constExpertNumPtr,
-            OP_LOGE(
-                K_INNER_DEBUG,
-                "const_expert_v's dim0 not equal to const_expert_num, const_expert_v's dim0 = %ld, const_expert_num = %ld",
-                constExpertVDim0, *constExpertNumPtr), return GRAPH_FAILED);
-        OP_TILING_CHECK(
-            constExpertVDim1 != static_cast<int64_t>(h),
-            OP_LOGE(
-                K_INNER_DEBUG, "const_expert_v's dim1 not equal to h, const_expert_v's dim1 = %ld, h = %ld",
-                constExpertVDim1, static_cast<int64_t>(h)),
             return GRAPH_FAILED);
     }
 
