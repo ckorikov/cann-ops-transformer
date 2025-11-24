@@ -452,7 +452,7 @@ aclnnStatus AclnnGroupedMatmul91095Checker<T>::CheckGroupedMatmulFp4MxDimValue()
         auto weightNIndex = GetInputTensor(gmmParams_.weight, i)->GetViewShape().GetDimNum() - 1;
         auto xKDimValue = GetInputTensor(gmmParams_.x, i)->GetViewShape().GetDim(1);
         auto weightNDimValue = GetInputTensor(gmmParams_.weight, i)->GetViewShape().GetDim(weightNIndex);
-        auto weightKIndex = GetInputTensor(gmmParams_.weight, i)->GetViewShape().GetDimNum() - LAST_TOW_DIM_INDEX;
+        auto weightKIndex = GetInputTensor(gmmParams_.weight, i)->GetViewShape().GetDimNum() - LAST_TWO_DIM_INDEX;
         auto weightKDimValue = GetInputTensor(gmmParams_.weight, i)->GetViewShape().GetDim(weightKIndex);
         //2：检查N是否为偶数
         auto weightNDimModValue = weightNDimValue % 2;
