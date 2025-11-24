@@ -51,7 +51,7 @@ TEST_F(AllGatherMatmulTiling, all_gather_matmul_test_tiling_float16_1) {
         &compileInfo
     );
 
-    uint64_t expectTilingKey = 110UL;
+    uint64_t expectTilingKey = 3UL;
     ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey);
 }
 
@@ -79,7 +79,7 @@ TEST_F(AllGatherMatmulTiling, all_gather_matmul_test_tiling_float16_2) {
         &compileInfo
     );
 
-    uint64_t expectTilingKey = 110UL;
+    uint64_t expectTilingKey = 3UL;
     ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey);
 }
 
@@ -107,7 +107,7 @@ TEST_F(AllGatherMatmulTiling, all_gather_matmul_test_tiling_float16_3) {
         &compileInfo
     );
 
-    uint64_t expectTilingKey = 110UL;
+    uint64_t expectTilingKey = 3UL;
     ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey);
 }
 
@@ -136,7 +136,7 @@ TEST_F(AllGatherMatmulTiling, all_gather_matmul_test_tiling_bfloat16) {
         &compileInfo
     );
 
-    uint64_t expectTilingKey = 111UL;
+    uint64_t expectTilingKey = 7UL;
     ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey);
 }
 
@@ -165,7 +165,7 @@ TEST_F(AllGatherMatmulTiling, all_gather_matmul_test_tiling_float16_l2cache) {
         &compileInfo
     );
 
-    uint64_t expectTilingKey = 111UL;
+    uint64_t expectTilingKey = 7UL;
     ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey);
 }
 
@@ -193,7 +193,7 @@ TEST_F(AllGatherMatmulTiling, all_gather_matmul_test_tiling_n_0) {
         &compileInfo
     );
 
-    uint64_t expectTilingKey = 110UL;
+    uint64_t expectTilingKey = 3UL;
     ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey);
 }
 
