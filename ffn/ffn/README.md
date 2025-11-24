@@ -18,7 +18,7 @@
 - 计算公式：
 
   - **非量化场景：**
-  
+
 	$$
     y=activation(x * W1 + b1) * W2 + b2
 	$$
@@ -80,7 +80,7 @@
     <td>可选参数，Host侧的aclIntArray类型，代表各专家的token数，若不为空时可支持的最大长度为256个。</td>
     <td>INT64</td>
     <td>ND</td>
-  </tr>  
+  </tr>
   <tr>
     <td>bias1</td>
     <td>输入</td>
@@ -181,4 +181,4 @@
 
 | 调用方式      | 调用样例                 | 说明                                                         |
 |--------------|-------------------------|--------------------------------------------------------------|
-| aclnn调用 | [test_aclnn_ffn.cpp](examples/test_aclnn_ffn.cpp) | 通过接口方式调用[ffn](docs/aclnnFFN.md)算子。 |
+| aclnn调用 | [test_aclnn_ffn.cpp](examples/test_aclnn_ffn.cpp) | 通过接口方式调用[FFN](docs/aclnnFFN.md)算子。 |

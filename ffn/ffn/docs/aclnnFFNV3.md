@@ -48,7 +48,7 @@ FFN主要由两个matmul和一个激活函数组成，按遍历专家的方式�
 
 1. temp1 = Matmul(x[offset], weight1[i]) + bias1[i]，执行第i个专家的第一个matmul，该计算在Cube上进行，计算结果保存在临时内存中；其中bias1为可选参数；offset在循环开始初始化为0，循环末尾更新为offset=offset+tokens[i]，再进入下一轮循环，tokens[i]为分配给第i个专家的token数量；x[offset]表示分配给第i个专家的token在输入x中的起始位置；
 2. temp2 = Activate(temp1)，执行第i个专家的激活函数，该计算在Vector上进行，计算结果保存在临时内存中，其中Activate激活函数类型参考activation参数说明；
-3. y[offset] = Matmul(temp2, weight2[i]) + bias2[i]，执行第i个专家的第二个matmul，该计算在Cube上进行，计算结果保存在该融合算子分配的输出内存中；其中bias2为可选参数；其中y[offset]表示根据分配给第i个专家的token在输出y中的起始位置；
+3. y[offset] = Matmul(temp2, weight2[i]) + bias2[i]，执行第i个专家的第二个matmul，该计算在Cube上进行，计算结果保存在该融合算子分配的输出内存中；其中bias2为可选参数；其中y[offset]表示分配给第i个专家的token在输出y中的起始位置；
 
 如下代码示例给出小算子和FFN融合算子的对应关系：
 

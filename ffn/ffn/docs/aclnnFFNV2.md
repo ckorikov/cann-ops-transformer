@@ -74,7 +74,7 @@ y = FFN(x, weight1, weight2, tokens, bias1, bias2, activateType)  # 具体参数
 **说明**：
 
 - 算子执行接口对外屏蔽了算子内部实现逻辑以及不同代际NPU的差异，且开发者无需编译算子，实现了算子的精简调用。
-- 若开发者不使用算子执行接口的调用算子，也可以定义基于Ascend IR的算子描述文件，通过ATC工具编译获得算子om文件，然后加载模型文件执行算子，详细调用方法可参见《应用开发指南》的[单算子调用 > 单算子模型执行](https://hiascend.com/document/redirect/CannCommunityCppOpcall)章节。
+- 若开发者不使用算子执行接口调用算子，也可以定义基于Ascend IR的算子描述文件，通过ATC工具编译获得算子om文件，然后加载模型文件执行算子，详细调用方法可参见《应用开发指南》的[单算子调用 > 单算子模型执行](https://hiascend.com/document/redirect/CannCommunityCppOpcall)章节。
 
 ### aclnnFFNV2GetWorkspaceSize
     参数说明中涉及到的公共变量说明：
@@ -130,7 +130,7 @@ y = FFN(x, weight1, weight2, tokens, bias1, bias2, activateType)  # 具体参数
   - antiquantOffset2（aclTensor\*，计算输入）：可选参数，Device侧的aclTensor，伪量化参数，第二个matmul的偏移量，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。
       - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：数据类型支持FLOAT16、BFLOAT16，per-channel下输入在有/无专家时分别为[E, N2]/[N2]，per-group下输入在有/无专家时分别为[E, G, N2]/[G, N2]。
       - <term>Atlas 推理系列加速卡产品</term>：只支持传空指针。
-    
+
   - activation（char\*，计算输入）：必选参数，Host侧的属性值，代表使用的激活函数，公式中的activation。
       - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：当前支持fastgelu/gelu/relu/silu以及geglu/swiglu/reglu。
       - <term>Atlas 推理系列加速卡产品</term>：当前支持fastgelu/gelu/relu/silu。
@@ -192,7 +192,7 @@ y = FFN(x, weight1, weight2, tokens, bias1, bias2, activateType)  # 具体参数
   - 伪量化场景，per-group下，antiquantScale1和antiquantOffset1中的组数G要能被K1整除，antiquantScale2和antiquantOffset2中的组数G要能被K2整除。
   - innerPrecise参数在BFLOAT16非量化场景，只能配置为0；FLOAT16非量化场景，可以配置为0或者1；量化或者伪量化场景，0和1都可配置，但是配置后不生效。
   - tokensIndexFlag为true且有专家（expertTokens不为空）时，expertTokens中的数值必须满足：如果i和j都是expertTokens中有效的数组索引，且j大于i，那么expertTokens中第j个元素的数值大于或者等于expertTokens中第i个元素的数值。
-  
+
 - <term>Atlas 推理系列加速卡产品</term>：
   - 只支持无专家场景。
   - 需满足N1=K2。
