@@ -43,10 +43,15 @@ unset(_cmake_targets_defined)
 unset(_cmake_targets_not_defined)
 unset(_cmake_expected_targets)
 
+set(ALOG_HEAD_SEARCH_PATHS
+  ${ASCEND_DIR}/pkg_inc
+)
+
 find_path(_INCLUDE_DIR
     NAMES base/alog_pub.h
     NO_CMAKE_SYSTEM_PATH
-    NO_CMAKE_FIND_ROOT_PATH)
+    NO_CMAKE_FIND_ROOT_PATH
+    PATHS ${ALOG_HEAD_SEARCH_PATHS})
 
 find_library(slog_a_SHARED_LIBRARY
     NAMES libascendalog.so

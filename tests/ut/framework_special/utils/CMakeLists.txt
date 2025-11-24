@@ -17,6 +17,14 @@ target_include_directories(${_Target}
             inc
         PRIVATE
             src
+            ${ASCEND_CANN_PACKAGE_PATH}/tools/tikicpulib/lib/include
+            ${ASCEND_CANN_PACKAGE_PATH}/asc/include/basic_api
+            ${ASCEND_CANN_PACKAGE_PATH}/asc/impl/basic_api
+            ${ASCEND_CANN_PACKAGE_PATH}/asc/include/utils/std
+            ${ASCEND_CANN_PACKAGE_PATH}/asc/impl/utils/std/tuple
+            ${ASCEND_CANN_PACKAGE_PATH}/asc/impl/utils/std/type_traits
+            ${ASCEND_CANN_PACKAGE_PATH}/asc/
+            ${ASCEND_CANN_PACKAGE_PATH}/asc/include
 )
 target_compile_definitions(${_Target}
         PUBLIC

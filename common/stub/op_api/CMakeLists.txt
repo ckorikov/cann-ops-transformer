@@ -34,5 +34,7 @@ if(ENABLE_TEST)
 
     target_include_directories(opapi_stub PRIVATE
         ${OPAPI_INCLUDE}
+        ${ASCEND_CANN_PACKAGE_PATH}/pkg_inc
+        ${ASCEND_CANN_PACKAGE_PATH}/include/ascendc/basic_api
     )
 endif()

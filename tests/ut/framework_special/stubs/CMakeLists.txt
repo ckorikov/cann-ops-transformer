@@ -23,6 +23,12 @@ set(_Sources
 )
 add_library(${_Target} SHARED)
 target_sources(${_Target} PRIVATE ${_Sources})
+
+target_include_directories(${_Target} PRIVATE
+        ${ASCEND_CANN_PACKAGE_PATH}/pkg_inc/runtime
+        ${ASCEND_CANN_PACKAGE_PATH}/pkg_inc/profiling
+)
+
 target_link_libraries(${_Target}
         PRIVATE
             $<BUILD_INTERFACE:intf_pub_utest>

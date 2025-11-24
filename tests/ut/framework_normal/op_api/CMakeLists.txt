@@ -75,6 +75,8 @@ if(UT_TEST_ALL OR OP_API_UT)
   target_compile_options(${OP_API_UT_EXE} PUBLIC -fPIE -fno-access-control)
   target_include_directories(
     ${OP_API_UT_EXE} PRIVATE  ${OPAPI_INCLUDE}
+    ${ASCEND_DIR}/pkg_inc
+    ${ASCEND_DIR}/pkg_inc/profiling
     )
   target_link_directories(${OP_API_UT_EXE} PRIVATE
           ${ASCEND_DIR}/${SYSTEM_PREFIX}/lib64

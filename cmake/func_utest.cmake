@@ -159,6 +159,8 @@ function(OpsTest_AddOpApiShared)
             PRIVATE
                 ${OPAPI_INCLUDE}
                 ${_OpsTestUt_OpApiPrivateIncludesExt}
+                ${ASCEND_CANN_PACKAGE_PATH}/runtime/pkg_inc
+                ${ASCEND_CANN_PACKAGE_PATH}/runtime/pkg_inc/profiling
     )
     target_compile_options(${_Target}
             PRIVATE
@@ -448,6 +450,14 @@ function(OpsTest_Level1_AddOpKernelStatic)
     set(_PrivateIncludeDirectories
             ${_OpsTest_GenDirInc}
             ${TMP_PRIVATE_INCLUDES_EXT}
+            <ASCEND_CANN_PACKAGE_PATH>/${SYSTEM_PREFIX}/ascendc/include/basic_api
+            <ASCEND_CANN_PACKAGE_PATH>/${SYSTEM_PREFIX}/ascendc/include/basic_api/impl
+            <ASCEND_CANN_PACKAGE_PATH>/${SYSTEM_PREFIX}/ascendc/include/basic_api/interface
+            <ASCEND_CANN_PACKAGE_PATH>/tools/tikicpulib/lib/include
+            <ASCEND_CANN_PACKAGE_PATH>/include/ascendc
+            <ASCEND_CANN_PACKAGE_PATH>/x86_64-linux/include/ascendc/highlevel_api
+            <ASCEND_CANN_PACKAGE_PATH>/pkg_inc/runtime/runtime
+            <ASCEND_CANN_PACKAGE_PATH>/runtime/pkg_inc
     )
     get_filename_component(_Inc "${OPS_ADV_DIR}/${TMP_SUB_SYSTEM}/${TMP_SNAKE}" REALPATH)
     if (EXISTS "${_Inc}")
