@@ -519,6 +519,11 @@ bool SparseLightningIndexerGradKLLossTilingBase::Balance4DLoad(std::vector<int64
     int64_t sumTmpArray = 0;
     int64_t sumTmpArrayLast = 0; // 记录上次的总和值
     for (int64_t idx = 0; idx < sparseValidArray.size(); ++idx) {
+        // 第一次分到最后一块后就没必须计算，剩余的直接分给最后一个核即可
+        if (tmpIndex == static_cast<int64_t>(tmpSparseValue.size()) - 1) {
+            break; 
+        }
+
         sumTmpArrayLast = sumTmpArray;
         sumTmpArray += sparseValidArray[idx];
         if (sumTmpArray == balanceNum) {
@@ -537,10 +542,6 @@ bool SparseLightningIndexerGradKLLossTilingBase::Balance4DLoad(std::vector<int64
                 idx--; // 记录的上一个值，重新计算时也需要从上一个值开始计算                 
             }
             sumTmpArray = 0; // 重新计算总和
-        }
-        // 第一次分到最后一块后就没必须计算，剩余的直接分给最后一个核即可
-        if (tmpIndex == tmpSparseValue.size() - 1) {
-            break; 
         }
     }
     return true;
