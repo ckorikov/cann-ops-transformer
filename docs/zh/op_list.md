@@ -55,6 +55,16 @@
   </tr>
   <tr>
     <td>attention</td>
+    <td><a href="../attention/gather_pa_kv_cache/README.md">gather_pa_kv_cache</a></td>
+    <td>√</td>
+    <td>√</td>
+    <td>√</td>
+    <td>√</td>
+    <td>AI Core</td>
+    <td>根据blockTables中的blockId值、seqLens中key/value的seqLen从keyCache/valueCache中将内存不连续的token搬运、拼接成连续的key/value序列。</td>
+  </tr>
+  <tr>
+    <td>attention</td>
     <td><a href="../../attention/incre_flash_attention/README.md">incre_flash_attention</a></td>
     <td>√</td>
     <td>√</td>
