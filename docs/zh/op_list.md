@@ -214,16 +214,6 @@
     <td>增量推理场景的Recurrent Gated Delta Rule算子。</td>
   </tr>
   <tr>
-    <td>attention</td>
-    <td><a href="../attention/scatter_pa_kv_cache/README.md">scatter_pa_kv_cache</a></td>
-    <td>√</td>
-    <td>√</td>
-    <td>√</td>
-    <td>√</td>
-    <td>AI Core</td>
-    <td>更新KvCache中指定位置的key和value</td>
-  </tr>
-  <tr>
     <td>ffn</td>
     <td><a href="../../ffn/ffn/README.md">ffn</a></td>
     <td>√</td>
