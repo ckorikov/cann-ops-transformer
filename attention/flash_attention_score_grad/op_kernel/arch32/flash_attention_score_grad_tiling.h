@@ -48,6 +48,7 @@ public:
     uint32_t attenMaskShapeType = 0;
     uint32_t pad = 0;
     uint8_t tndSoftmaxIn = 0;
+    uint32_t sink = 0;
     uint8_t FlashAttentionScoreGradS1S2BNGS1S2SABBaseParamsPH[7] = {};
 
     int64_t get_b() const
@@ -320,6 +321,16 @@ public:
         this->tndSoftmaxIn = tndSoftmaxIn_val;
     }
 
+    uint32_t get_sink() const
+    {
+        return sink;
+    }
+
+    void set_sink(uint32_t sink)
+    {
+        this->sink = sink;
+    }
+
     void reset()
     {
         b = 0;
@@ -352,6 +363,7 @@ public:
         attenMaskShapeType = 0;
         pad = 0;
         tndSoftmaxIn = 0;
+        sink = 0;
     }
 };
 
@@ -1099,6 +1111,9 @@ public:
     int64_t d = 0;
     int64_t rope_d = 0;
     int64_t value_d = 0;
+    uint64_t dsinksumWorkSpaceOffset = 0;
+    uint64_t dsinksumDataSizeOffset = 0;
+    uint32_t baseMN = 0;
 
     uint32_t get_coreNum() const
     {
@@ -1487,6 +1502,31 @@ public:
         this->value_d = value_d_val;
     }
 
+    uint64_t get_dsinksumWorkSpaceOffset()
+    {
+        return this->dsinksumWorkSpaceOffset;
+    }
+    void set_dsinksumWorkSpaceOffset(uint64_t dsinksumWorkSpaceOffset_val)
+    {
+        this->dsinksumWorkSpaceOffset = dsinksumWorkSpaceOffset_val;
+    }
+    uint64_t get_dsinksumDataSizeOffset()
+    {
+        return this->dsinksumDataSizeOffset;
+    }
+    void set_dsinksumDataSizeOffset(uint64_t dsinksumDataSizeOffset_val)
+    {
+        this->dsinksumDataSizeOffset = dsinksumDataSizeOffset_val;
+    }
+    uint32_t get_baseMN()
+    {
+        return this->baseMN;
+    }
+    void set_baseMN(uint32_t baseMN_val)
+    {
+        this->baseMN = baseMN_val;
+    }
+
     void reset()
     {
         coreNum = 0;
@@ -1532,6 +1572,9 @@ public:
         d = 0;
         rope_d = 0;
         value_d = 0;
+        dsinksumWorkSpaceOffset = 0;
+        dsinksumDataSizeOffset = 0;
+        baseMN = 0;
     }
 };
 

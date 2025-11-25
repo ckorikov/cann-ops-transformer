@@ -33,7 +33,7 @@ public:
     TQue<QuePosition::VECIN, 1> castQue;
     TQue<QuePosition::VECOUT, 1> outQue;
 
-    GlobalTensor<float> dqWorkSpaceGm, dkWorkSpaceGm, dvWorkSpaceGm, dvGm;
+    GlobalTensor<float> dqWorkSpaceGm, dkWorkSpaceGm, dvWorkSpaceGm, dsinksumWorkSpaceGm, dvGm;
     GlobalTensor<uint8_t> maskWorkSpaceGm;
     GlobalTensor<uint8_t> drop_maskGm;
     GlobalTensor<float> dqRopeWorkSpaceGm;
@@ -135,6 +135,8 @@ __aicore__ inline void FlashAttentionScoreGradPre<T1, T2, TILING_TYPE, INIT_OUTP
         }
         dvWorkSpaceGm.SetGlobalBuffer((__gm__ float *)workspace +
                                   TilingData->postTilingData.dvWorkSpaceOffset / sizeof(float));
+        dsinksumWorkSpaceGm.SetGlobalBuffer((__gm__ float *)workspace +
+                TilingData->postTilingData.dsinksumWorkSpaceOffset / sizeof(float));
 
         initdqSize = cBlockIdx == qPreBlockTotal - 1 ? qPreBlockTail : qPreBlockFactor;
         dqOffset = ((int64_t)cBlockIdx) * qPreBlockFactor;
@@ -333,6 +335,8 @@ public:
             }
             dvWorkSpaceGm.SetGlobalBuffer((__gm__ float *)workspace +
                                     TilingData->postTilingData.dvWorkSpaceOffset / sizeof(float));
+            dsinksumWorkSpaceGm.SetGlobalBuffer((__gm__ float *)workspace +
+                TilingData->postTilingData.dsinksumWorkSpaceOffset / sizeof(float));
 
             initdqRopeSize = cBlockIdx == qRopePreBlockTotal - 1 ? qRopePreBlockTail : qRopePreBlockFactor;
             dqRopeOffset = ((int64_t)cBlockIdx) * qRopePreBlockFactor;
@@ -413,6 +417,13 @@ public:
             }
         }
 
+        if (TilingData->s1s2BNGS1S2BaseParams.sink == 1) {
+        int s1Pad = (TilingData->postTilingData.s1 + 255)/256*256;
+        int s2Pad = (TilingData->postTilingData.s2 + 255)/256*256; 
+        size_t dsinksumSize = TilingData->postTilingData.b * TilingData->postTilingData.n2 * TilingData->postTilingData.g * s1Pad * s2Pad / TilingData->postTilingData.baseMN;
+        InitOutput<float>(dsinksumWorkSpaceGm[dkRopeOffset], dsinksumSize, 0);
+        }
+
         if (g_coreType == AIV && cBlockIdx < TilingData->preTilingData.maskCoreNum) {
             if (!isDropBoolMode) {
                 return;
@@ -482,7 +493,7 @@ public:
     TQue<QuePosition::VECIN, 1> castQue;
     TQue<QuePosition::VECOUT, 1> outQue;
 
-    GlobalTensor<float> dqWorkSpaceGm, dkWorkSpaceGm, dvWorkSpaceGm, dvGm;
+    GlobalTensor<float> dqWorkSpaceGm, dkWorkSpaceGm, dvWorkSpaceGm, dsinksumWorkSpaceGm, dvGm;
     GlobalTensor<uint8_t> maskWorkSpaceGm;
     GlobalTensor<uint8_t> drop_maskGm;
     GlobalTensor<float> dqRopeWorkSpaceGm, dkRopeWorkSpaceGm;
@@ -603,6 +614,9 @@ public:
             dvWorkSpaceGm.SetGlobalBuffer((__gm__ float *)workspace +
                                     TilingData->postTilingData.dvWorkSpaceOffset / sizeof(float));
 
+            dsinksumWorkSpaceGm.SetGlobalBuffer((__gm__ float *)workspace +
+                            TilingData->postTilingData.dsinksumWorkSpaceOffset / sizeof(float));
+
             initdqRopeSize = cBlockIdx == qRopePreBlockTotal - 1 ? qRopePreBlockTail : qRopePreBlockFactor;
             dqRopeOffset = ((int64_t)cBlockIdx) * qRopePreBlockFactor;
             initdkRopeSize = cBlockIdx == kRopePreBlockTotal - 1 ? kRopePreBlockTail : kRopePreBlockFactor;
@@ -751,7 +765,7 @@ public:
     TQue<QuePosition::VECIN, 1> castQue;
     TQue<QuePosition::VECOUT, 1> outQue;
 
-    GlobalTensor<float> dqWorkSpaceGm, dkWorkSpaceGm, dvWorkSpaceGm, dvGm;
+    GlobalTensor<float> dqWorkSpaceGm, dkWorkSpaceGm, dvWorkSpaceGm, dsinksumWorkSpaceGm, dvGm;
     GlobalTensor<uint8_t> maskWorkSpaceGm;
     GlobalTensor<uint8_t> drop_maskGm;
     GlobalTensor<float> dqRopeWorkSpaceGm, dkRopeWorkSpaceGm;

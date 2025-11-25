@@ -168,6 +168,10 @@ bool FlashAttentionScoreGraTilingMla::IsCapable()
      * 5. PSE
      * 6. Drop mask
      */
+    auto sinkShape = context_->GetOptionalInputShape(SINK_IN);
+    if (sinkShape != nullptr && sinkShape->GetStorageShape().GetDimNum() == 1 ) {
+        return false;
+    }
     if (fBaseParams.queryType == ge::DT_FLOAT) {
         OP_LOGI(context_, "FlashAttentionScoreGradMla does not support float32.");
         return false;

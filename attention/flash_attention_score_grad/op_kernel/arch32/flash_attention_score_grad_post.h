@@ -38,7 +38,7 @@ class FlashAttentionScoreGradPost {
 public:
     __aicore__ inline FlashAttentionScoreGradPost(){};
     __aicore__ inline void Init(__gm__ uint8_t *dq, __gm__ uint8_t *dqRope, __gm__ uint8_t *dk, __gm__ uint8_t *dkRope, __gm__ uint8_t *dv,
-                         __gm__ uint8_t *actual_seq_qlen, __gm__ uint8_t *actual_seq_kvlen,
+                         __gm__ uint8_t *actual_seq_qlen, __gm__ uint8_t *actual_seq_kvlen, __gm__ uint8_t *dsink,
                          __gm__ uint8_t *workspace, const TILING_TYPE *__restrict ordTilingData, TPipe *pipe_in);
     __aicore__ inline void Process();
     __aicore__ inline void InitIndex(uint64_t startIdx, int64_t curG, int64_t &curS, GM_ADDR seqS, int64_t d, int64_t dAlign);
@@ -141,7 +141,7 @@ template <typename OUT_TYPE, class TILING_TYPE, const bool CAST_DV, const uint32
           const uint32_t INPUT_FORMAT, const uint32_t HAS_ROPE>
 __aicore__ inline void FlashAttentionScoreGradPost<OUT_TYPE, TILING_TYPE, CAST_DV, LAYOUT, INPUT_FORMAT, HAS_ROPE>::Init(
     __gm__ uint8_t *dq, __gm__ uint8_t *dqRope, __gm__ uint8_t *dk, __gm__ uint8_t *dkRope, __gm__ uint8_t *dv, __gm__ uint8_t *actual_seq_qlen,
-    __gm__ uint8_t *actual_seq_kvlen, __gm__ uint8_t *workspace, const TILING_TYPE *__restrict ordTilingData,
+    __gm__ uint8_t *actual_seq_kvlen,__gm__ uint8_t *dsink, __gm__ uint8_t *workspace, const TILING_TYPE *__restrict ordTilingData,
     TPipe *pipe_in)
 {
     cBlockIdx = GetBlockIdx();
@@ -715,7 +715,7 @@ class FlashAttentionScoreGradPost<OUT_TYPE, FlashAttentionScoreGradTilingDataS1s
 public:
     __aicore__ inline FlashAttentionScoreGradPost(){}
     __aicore__ inline void Init(__gm__ uint8_t *dq, __gm__ uint8_t *dqRope, __gm__ uint8_t *dk, __gm__ uint8_t *dkRope, __gm__ uint8_t *dv,
-                         __gm__ uint8_t *actual_seq_qlen, __gm__ uint8_t *actual_seq_kvlen,
+                         __gm__ uint8_t *actual_seq_qlen, __gm__ uint8_t *actual_seq_kvlen, __gm__ uint8_t *dsink, 
                          __gm__ uint8_t *workspace, const FlashAttentionScoreGradTilingDataS1s2Bn2gs1s2SameAb *__restrict ordTilingData, TPipe *pipe_in)
     {
         cBlockIdx = GetBlockIdx();
@@ -732,6 +732,9 @@ public:
             dkRopeGm.SetGlobalBuffer((__gm__ OUT_TYPE *)dkRope);
         }
         dvGm.SetGlobalBuffer((__gm__ OUT_TYPE *)dv);
+
+        dsinkGm.SetGlobalBuffer((__gm__ float *)dsink);
+
 
         // tiling_data
         usedCoreNum = tilingData->postTilingData.coreNum;
@@ -800,6 +803,11 @@ public:
             dvWorkSpaceGm.SetGlobalBuffer((__gm__ float *)workspace +
                                         tilingData->postTilingData.dvWorkSpaceOffset / sizeof(float));
         }
+
+        dsinksumWorkSpaceGm.SetGlobalBuffer((__gm__ float *)workspace +
+                    tilingData->postTilingData.dsinksumWorkSpaceOffset / sizeof(float));
+        dsinksumDataSizeGm.SetGlobalBuffer((__gm__ uint32_t *)workspace +
+                    tilingData->postTilingData.dsinksumDataSizeOffset / sizeof(uint32_t));
 
         if constexpr (INPUT_FORMAT == NZ) {
             pipe->InitBuffer(inQueuePing, 1, ubBaseSize * 2 + nzReservedSize);
@@ -1014,6 +1022,45 @@ public:
                 inQueue.FreeTensor(vecIn);
                 outQueue.FreeTensor(vecOut);
             }
+        }
+
+        // reduce dsinksum
+
+        if (tilingData->s1s2BNGS1S2BaseParams.sink == 1) {
+            AscendC::LocalTensor<float> vecIn = inQueue.template AllocTensor<float>();
+            AscendC::LocalTensor<float> vecOut = outQueue.template AllocTensor<float>();
+            int s1Pad = (tilingData->postTilingData.s1 + 255)/256*256;
+            int s2Pad = (tilingData->postTilingData.s2 + 255)/256*256; 
+            int dataSizePerN1 = tilingData->postTilingData.b *s1Pad * s2Pad / tilingData->postTilingData.baseMN;
+            
+            int N1 = tilingData->postTilingData.n2 * tilingData->postTilingData.g;
+            AscendC::PipeBarrier<PIPE_ALL>();
+            DataCopy(vecIn, dsinksumWorkSpaceGm, dataSizePerN1 * N1 * sizeof(float));
+            AscendC::PipeBarrier<PIPE_ALL>();
+
+            for (int n1temp = 0; n1temp < N1; n1temp++)
+            {
+                inQueue.EnQue(vecIn);
+                inQueue.template DeQue<float>();
+
+                AscendC::PipeBarrier<PIPE_ALL>();
+
+                AscendC::ReduceSum<float>(vecOut, vecIn[dataSizePerN1*n1temp], vecIn[dataSizePerN1*n1temp], dataSizePerN1);
+                AscendC::PipeBarrier<PIPE_ALL>();
+
+                outQueue.EnQue(vecOut);
+                outQueue.template DeQue<float>();
+
+                AscendC::PipeBarrier<PIPE_ALL>();
+                float dsinkCalc = - vecOut.GetValue(0);
+                AscendC::PipeBarrier<PIPE_ALL>();
+                dsinkGm.SetValue(n1temp, dsinkCalc);
+                AscendC::PipeBarrier<PIPE_ALL>();
+            }
+
+
+            inQueue.FreeTensor(vecIn);
+            outQueue.FreeTensor(vecOut);
         }
     }
     __aicore__ inline void NZ2ND(LocalTensor<float> &dstTensor, LocalTensor<float> &srcTensor, uint64_t sLen,
@@ -1300,10 +1347,14 @@ public:
     TBuf<> tmpBufPong;
 
     AscendC::GlobalTensor<OUT_TYPE> dqGm, dkGm, dvGm;
+    AscendC::GlobalTensor<float> dsinkGm;
+
     AscendC::GlobalTensor<OUT_TYPE> dqRopeGm, dkRopeGm;
     // input
     AscendC::GlobalTensor<float> dqWorkSpaceGm, dkWorkSpaceGm, dvWorkSpaceGm;
     AscendC::GlobalTensor<float> dqRopeWorkSpaceGm, dkRopeWorkSpaceGm;
+    AscendC::GlobalTensor<float> dsinksumWorkSpaceGm;
+    AscendC::GlobalTensor<uint32_t> dsinksumDataSizeGm;
 
     const FlashAttentionScoreGradTilingDataS1s2Bn2gs1s2SameAb *__restrict tilingData;
     constexpr static uint32_t SYNC_GLOBAL_WORKSPACE_SIZE = 16 * 1024;
@@ -1389,7 +1440,7 @@ class FlashAttentionScoreGradPost<OUT_TYPE, FlashAttentionScoreGradTilingDataS1s
 public:
     __aicore__ inline FlashAttentionScoreGradPost(){}
     __aicore__ inline void Init(__gm__ uint8_t *dq, __gm__ uint8_t *dqRope, __gm__ uint8_t *dk, __gm__ uint8_t *dkRope, __gm__ uint8_t *dv,
-                         __gm__ uint8_t *actual_seq_qlen, __gm__ uint8_t *actual_seq_kvlen,
+                         __gm__ uint8_t *actual_seq_qlen, __gm__ uint8_t *actual_seq_kvlen,__gm__ uint8_t *dsink,
                          __gm__ uint8_t *workspace, const FlashAttentionScoreGradTilingDataS1s2Bn2gs1s2 *__restrict ordTilingData, TPipe *pipe_in)
     {
         cBlockIdx = GetBlockIdx();

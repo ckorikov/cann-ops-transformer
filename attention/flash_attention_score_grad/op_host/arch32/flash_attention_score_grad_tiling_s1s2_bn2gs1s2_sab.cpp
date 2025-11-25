@@ -107,14 +107,16 @@ enum class DTemplateTypeSab {
 };
 
 bool FlashAttentionScoreGradTilingS1s2Bn2gs1s2SameAb::IsCapable()
-{
-    // fp32不支持
-    if (fBaseParams.queryType == ge::DT_FLOAT) {
-        OP_LOGI(context_, "FlashAttentionScoreGradTilingS1s2Bn2gs1s2SameAb not support fp32.");
+{   
+    if (context_->GetDeterministic() == 1 && context_->GetOptionalInputShape(QUERY_ROPE) != nullptr) {
         return false;
     }
-
-    if (context_->GetDeterministic() == 1 && context_->GetOptionalInputShape(QUERY_ROPE) != nullptr) {
+    auto sinkShape = context_->GetOptionalInputShape(SINK_IN);
+    if (sinkShape != nullptr && sinkShape->GetStorageShape().GetDimNum() == 1 ) {
+        return true;
+    }
+    if (fBaseParams.queryType == ge::DT_FLOAT) {
+        OP_LOGI(context_, "FlashAttentionScoreGradTilingS1s2Bn2gs1s2SameAb not support fp32.");
         return false;
     }
 
@@ -160,7 +162,12 @@ bool FlashAttentionScoreGradTilingSameABDeterministic::IsCapable()
     if (context_->GetDeterministic() != 1) {
         return false;
     }
-
+    
+    auto sinkShape = context_->GetOptionalInputShape(SINK_IN);
+    if (sinkShape != nullptr && sinkShape->GetStorageShape().GetDimNum() == 1 ) {
+        return true;
+    }
+    
     if (context_->GetOptionalInputShape(QUERY_ROPE) != nullptr) {
         return false;
     }
@@ -888,7 +895,7 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2gs1s2SameAb::GetShapeAttrsIn
                return ge::GRAPH_FAILED);
     OP_CHECK_IF(context_->GetAttrs() == nullptr, OP_LOGE(context_, "GetAttrs is nullptr."),
                return ge::GRAPH_FAILED);
-
+    ProcessSinkInfo();
     auto ret = GetBaseShapeInfo();
     if (ret != ge::GRAPH_SUCCESS) {
         PrintShapeInfo();
@@ -1466,6 +1473,23 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2gs1s2SameAb::GetWorkspaceSiz
     workspaceSize += WORKSPACE_BUFFER;
     workspaces[0] = workspaceSize;
 
+    // dsink sum workspace size
+    size_t s1Pad = (fBaseParams.s1 + 255)/256 * 256;
+    size_t s2Pad = (fBaseParams.s2 + 255)/256 * 256;
+    
+    workspaceSize =
+        (workspaceSize + fBaseParams.b * fBaseParams.n2 *  fBaseParams.g * s1Pad * s2Pad / fBaseParams.baseMN * FP32_BYTES +
+         GM_ALIGN) /
+        GM_ALIGN * GM_ALIGN;
+
+    workspaceSize += WORKSPACE_BUFFER;
+    workspaces[0] = workspaceSize;
+
+        // dsink sum data size
+    workspaceSize = (workspaceSize + sizeof(int32_t) + GM_ALIGN) / GM_ALIGN * GM_ALIGN;
+    workspaceSize += WORKSPACE_BUFFER;
+    workspaces[0] = workspaceSize;
+
     if (fBaseParams.pseType == PSE_INNER_MUL_ADD_TYPE || fBaseParams.pseType == PSE_INNER_MUL_ADD_SQRT_TYPE) {
         fBaseParams.pseAlibiBaseS2 = PSE_ALIBI_S2_LIMIT_SIZE;
         int64_t s2Tail = fBaseParams.s2 % PSE_ALIBI_S2_LIMIT_SIZE;
@@ -1549,6 +1573,7 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2gs1s2SameAb::SaveToTilingDat
     tilingData->s1s2BNGS1S2BaseParams.set_attenMaskDtype(fBaseParams.attenMaskDtype);
     tilingData->s1s2BNGS1S2BaseParams.set_scaleValue(fBaseParams.scaleValue);
     tilingData->s1s2BNGS1S2BaseParams.set_keepProb(fBaseParams.keepProb);
+    tilingData->s1s2BNGS1S2BaseParams.set_sink(fBaseParams.sink);
 
     // fBaseParams.s1Token int64_t类型   tilingData->s1s2BNGS1S2BaseParams.s1Token  int32_t类型 防止溢出
     tilingData->s1s2BNGS1S2BaseParams.set_s1Token(fBaseParams.s1Token > INT32_MAX ? INT32_MAX : fBaseParams.s1Token);
@@ -1573,7 +1598,7 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2gs1s2SameAb::SaveToTilingDat
     tilingData->s1s2BNGS1S2SplitCoreParams.set_baseMN(fBaseParams.baseMN);
     tilingData->s1s2BNGS1S2SplitCoreParams.set_bandIdx(fBaseParams.bandIdx);
     tilingData->s1s2BNGS1S2SplitCoreParams.set_blockOuter(fBaseParams.blockOuter);
-
+    tilingData->postTilingData.set_baseMN(fBaseParams.baseMN);
     fBaseParams.tndSoftmaxIn ? tilingData->s1s2BNGS1S2BaseParams.set_tndSoftmaxIn(1) : tilingData->s1s2BNGS1S2BaseParams.set_tndSoftmaxIn(0);
     if (fBaseParams.pseType == PSE_INNER_MUL_ADD_TYPE || fBaseParams.pseType == PSE_INNER_MUL_ADD_SQRT_TYPE) {
         tilingData->s1s2BNGS1S2BaseParams.set_pseAlibiBaseS1(fBaseParams.pseAlibiBaseS1);
@@ -1680,6 +1705,18 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2gs1s2SameAb::ProcessTokensIn
     }
 
     return ge::GRAPH_SUCCESS;
+}
+
+void FlashAttentionScoreGradTilingS1s2Bn2gs1s2SameAb::ProcessSinkInfo() {
+    OP_LOGD(context_, "Before correction ,the value of sink %ld.",
+            fBaseParams.sink);
+    auto sinkShape = context_->GetOptionalInputShape(SINK_IN);
+    if (sinkShape != nullptr && sinkShape->GetStorageShape().GetDimNum() == 1 ) {
+        fBaseParams.sink = 1;
+        OP_LOGD(context_, "Sink is in use, the value of sink now sink=%ld.",fBaseParams.sink);
+    }else{
+        OP_LOGD(context_, "Sink is nullptr");
+    }
 }
 
 int64_t FlashAttentionScoreGradTilingS1s2Bn2gs1s2SameAb::FindBandIdx()
@@ -1965,6 +2002,36 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2gs1s2SameAb::DoPostTiling()
     }
     tilingData->postTilingData.set_dvWorkSpaceOffset(workspaceOffsets);
 
+    // matmal3 v
+    workspaceOffsets =
+        (workspaceOffsets + static_cast<size_t>(fBaseParams.vSizeAlign) * FP32_BYTES + GM_ALIGN) / GM_ALIGN * GM_ALIGN;
+    // mask bool workspace size
+    if (fBaseParams.dropoutIsDivisibleBy8 == 0) {
+        workspaceOffsets =
+            (workspaceOffsets + static_cast<size_t>(fBaseParams.dropMaskSize) + GM_ALIGN) / GM_ALIGN * GM_ALIGN;
+    }
+    // sfmg workspace
+    workspaceOffsets = workspaceOffsets + static_cast<size_t>(AlignTo(
+        fBaseParams.sfmgNormalAxisSize * SOFTMAX_REDUCE_SIZE * FP32_BYTES, static_cast<int64_t>(GM_ALIGN)));
+
+    // matmal1/matmal2 workspace size
+    size_t vectorCoreNum = fBaseParams.coreNum;
+    workspaceOffsets =
+        (workspaceOffsets + vectorCoreNum * fBaseParams.s1CvInner * fBaseParams.s2CvInner * FP32_BYTES * MATMUL_INPUT_NUM +
+         GM_ALIGN) /
+        GM_ALIGN * GM_ALIGN;
+    tilingData->postTilingData.set_dsinksumWorkSpaceOffset(workspaceOffsets);
+
+
+    size_t s1Pad = (fBaseParams.s1 + 255)/256 * 256;
+    size_t s2Pad = (fBaseParams.s2 + 255)/256 * 256;
+    workspaceOffsets =
+        (workspaceOffsets + fBaseParams.b * fBaseParams.n2 *  fBaseParams.g * s1Pad * s2Pad / fBaseParams.baseMN * FP32_BYTES +
+         GM_ALIGN) /
+        GM_ALIGN * GM_ALIGN;
+
+    tilingData->postTilingData.set_dsinksumDataSizeOffset(workspaceOffsets);
+
     tilingData->postTilingData.set_b(fBaseParams.b);
     tilingData->postTilingData.set_n2(fBaseParams.n2);
     tilingData->postTilingData.set_g(fBaseParams.g);
@@ -2050,7 +2117,6 @@ void FlashAttentionScoreGradTilingS1s2Bn2gs1s2SameAb::DetermineMode()
         fBaseParams.mode = FP16;
     }
 }
-
 
 REGISTER_TILING_TEMPLATE_WITH_SOCVERSION(
     FlashAttentionScoreGrad, FlashAttentionScoreGradTilingS1s2Bn2gs1s2SameAb,

@@ -911,6 +911,7 @@ static aclnnStatus FlashAttentionScoreGradVXGetWorkspace(
     const aclTensor *dScaleVOptionalCngs = nullptr;
     const aclTensor *dScaleDyOptionalCngs = nullptr;
     const aclTensor *dScaleOOptionalCngs = nullptr;
+    const aclTensor *dsink = nullptr;
     FagTensorInput tensorInput = {query, key, value, dy, attentionInOptional, &queryCngs, &keyCngs, &valueCngs, &dyCngs,
                                 &attentionInOptionalCngs};
     ret = ContiguousInputTensor(tensorInput, executor);
@@ -942,7 +943,7 @@ static aclnnStatus FlashAttentionScoreGradVXGetWorkspace(
         attenMaskOptionalCngs, softmaxMaxOptionalCngs, softmaxSumOptionalCngs, softmaxInOptionalCngs,
         attentionInOptionalCngs, prefixOptional, actualSeqQLenOptional, actualSeqKvLenOptional, qStartIdxOptional,
         kvStartIdxOptional, dScaleQOptionalCngs, dScaleKOptionalCngs, dScaleVOptionalCngs, dScaleDyOptionalCngs,
-        dScaleOOptionalCngs, queryRopeOptionalCngs, keyRopeOptionalCngs, scaleValue, keepProb, preTokens, nextTokens,
+        dScaleOOptionalCngs, queryRopeOptionalCngs, keyRopeOptionalCngs, dsink, scaleValue, keepProb, preTokens, nextTokens,
         headNum, inputLayoutUnderTrans, innerPrecise, sparseMode, pseType, seed, offset,  outDtypeOptional, defaultSoftmaxInLayoutRegbase, executor);
     CHECK_RET(fagRes[0] != nullptr && fagRes[1] != nullptr && fagRes[2] != nullptr,  // 0: dqOut 1: dkOut 2:dvOut
               ACLNN_ERR_INNER_NULLPTR);

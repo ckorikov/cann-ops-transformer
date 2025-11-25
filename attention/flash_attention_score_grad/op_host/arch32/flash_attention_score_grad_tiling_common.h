@@ -125,7 +125,8 @@ enum InputIndex {
     D_SCALE_DY,
     D_SCALE_0,
     QUERY_ROPE,
-    KEY_ROPE
+    KEY_ROPE,
+    SINK_IN
 };
 
 enum AttenMaskCompressMode {

@@ -100,6 +100,7 @@ struct SameAbFuzzyBaseInfoParams { // 频繁使用的基础参数
     int64_t kRopeSizeAlign = 0;
     int64_t vSizeAlign;
     int64_t dropMaskSize;
+    uint32_t sink = 0; // 判断是否有sink，默认没有传入
 
     uint32_t baseMN;
     uint32_t sparseMode;
@@ -151,6 +152,7 @@ protected:
     ge::graphStatus ProcessPseNormal(const char *inputLayout);
     ge::graphStatus ProcessSparseModeInfo();
     ge::graphStatus ProcessTokensInfo();
+    void ProcessSinkInfo();
     ge::graphStatus SaveToTilingData();
     int64_t FindBandIdx();
     bool SetSparseParams();
