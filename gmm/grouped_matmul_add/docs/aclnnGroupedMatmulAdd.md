@@ -70,7 +70,7 @@
 
 ## 约束说明
 
-- x和weight中每一组tensor的每一维大小在32字节对齐后都应小于int32的最大值2147483647。
+- x和weight中每一组tensor的每一维大小在32字节对齐后都应小于INT32的最大值2147483647。
 - 支持的输入类型为：
   - x为FLOAT16、weight为FLOAT16、y为FLOAT32。
   - x为BFLOAT16、weight为BFLOAT16、y为FLOAT32。
