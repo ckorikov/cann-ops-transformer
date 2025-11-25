@@ -35,7 +35,7 @@ public:
     __aicore__ inline void
     UnpackInit(__gm__ uint8_t *query, __gm__ uint8_t *queryRope, __gm__ uint8_t *key, __gm__ uint8_t *keyRope,
                __gm__ uint8_t *value, __gm__ uint8_t *pse,
-               __gm__ uint8_t *dropMask, __gm__ uint8_t *paddingMask, __gm__ uint8_t *prefix, __gm__ uint8_t *attenMask,
+               __gm__ uint8_t *dropMask, __gm__ uint8_t *paddingMask, __gm__ uint8_t *prefix, __gm__ uint8_t *attenMask, __gm__ uint8_t *sink,
                __gm__ uint8_t *actualSeqLengths, __gm__ uint8_t *actualSeqLengthsKv, __gm__ uint8_t *softmaxMax,
                __gm__ uint8_t *softmaxSum, __gm__ uint8_t *softmaxOut, __gm__ uint8_t *attentionOut,
                __gm__ uint8_t *workspace, const FlashAttentionScoreGeneralTilingData *__restrict tiling, TPipe *tPipe);
@@ -123,6 +123,7 @@ protected:
     // Unpack 用参数
     GM_ADDR actualSeqQlenAddr;
     GM_ADDR actualSeqKvlenAddr;
+    GM_ADDR sinkAddr;
     GM_ADDR prefixNAddr;
     uint64_t s1OuterSizeAcc;
     uint64_t s1SizeAcc;
@@ -131,6 +132,7 @@ protected:
     uint64_t softmaxPingPongCnt = 0;
     GlobalTensor<int64_t> qListGm;
     GlobalTensor<int64_t> kvListGm;
+    GlobalTensor<float> sinkGm;
 
     static constexpr uint32_t S1_BASE_SIZE_L1CARRY_MAX = 128;
     static constexpr uint32_t D_SIZE_L1CARRY_MAX = 256;
@@ -176,12 +178,12 @@ __aicore__ inline void FlashAttentionVarLenScore<implMode, layOutType, hasPse, h
                                                  isBasicBlock, bmm1Format, hasRope>::UnpackInit(
     __gm__ uint8_t *query, __gm__ uint8_t *queryRope, __gm__ uint8_t *key, __gm__ uint8_t *keyRope,
     __gm__ uint8_t *value, __gm__ uint8_t *pse, __gm__ uint8_t *dropMask,
-    __gm__ uint8_t *paddingMask, __gm__ uint8_t *prefix, __gm__ uint8_t *attenMask, __gm__ uint8_t *actualSeqLengths,
+    __gm__ uint8_t *paddingMask, __gm__ uint8_t *prefix, __gm__ uint8_t *attenMask, __gm__ uint8_t *sink, __gm__ uint8_t *actualSeqLengths,
     __gm__ uint8_t *actualSeqLengthsKv, __gm__ uint8_t *softmaxMax, __gm__ uint8_t *softmaxSum,
     __gm__ uint8_t *softmaxOut, __gm__ uint8_t *attentionOut, __gm__ uint8_t *workspace,
     const FlashAttentionScoreGeneralTilingData *__restrict tiling, TPipe *tPipe)
 {
-    this->InitInput(query, queryRope, key, keyRope, value, pse, dropMask, paddingMask, prefix, attenMask, softmaxMax, softmaxSum,
+    this->InitInput(query, queryRope, key, keyRope, value, pse, dropMask, paddingMask, prefix, attenMask, sink, softmaxMax, softmaxSum,
                     softmaxOut, attentionOut, workspace, tiling, tPipe); // gm设置
     if ASCEND_IS_AIC {
         if (this->tilingData->inputParams.needL1Carry) {
@@ -199,9 +201,11 @@ __aicore__ inline void FlashAttentionVarLenScore<implMode, layOutType, hasPse, h
     this->ComputeConstexpr();
     qListGm.SetGlobalBuffer((__gm__ int64_t *)actualSeqLengths);
     kvListGm.SetGlobalBuffer((__gm__ int64_t *)actualSeqLengthsKv);
+    sinkGm.SetGlobalBuffer((__gm__ float *)sink);
     // 初始化unpack
     actualSeqQlenAddr = actualSeqLengths;
     actualSeqKvlenAddr = actualSeqLengthsKv;
+    sinkAddr = sink;
     int64_t actualS1Len;
     int64_t actualS2Len;
     for (int64_t i = 0; i < this->tilingData->inputParams.bSize; ++i) {

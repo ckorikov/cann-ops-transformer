@@ -373,7 +373,7 @@ aclnnStatus aclnnFlashAttentionScoreVXGetWorkspaceSize(
 
     auto l0FlashAttentionScoreOuts = l0op::FlashAttentionScore(
         faTensorInput.query, faTensorInput.key, faTensorInput.value, faTensorInput.realShiftOptional,
-        faTensorInput.dropMaskOptional, faTensorInput.paddingMaskOptional, faTensorInput.attenMaskOptional,
+        faTensorInput.dropMaskOptional, faTensorInput.paddingMaskOptional, faTensorInput.attenMaskOptional, nullptr,
         prefixOptional, actualSeqQLenOptional, actualSeqKvLenOptional, qStartIdxOptional, kvStartIdxOptional,
         faTensorInput.dScaleQOptional, faTensorInput.dScaleKOptional, faTensorInput.dScaleVOptional,
         faTensorInput.queryRopeOptional, faTensorInput.keyRopeOptional,

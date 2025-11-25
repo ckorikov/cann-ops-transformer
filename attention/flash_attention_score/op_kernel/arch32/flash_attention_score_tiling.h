@@ -629,6 +629,7 @@ public:
     uint8_t implMode = 0;
     uint8_t sparseType = 0;
     uint8_t needDropMaskOp = 0;
+    uint8_t needSinkOp = 0;
     uint8_t pseEncodeType = 0;
     uint8_t rsv = 0;
     uint8_t needL1Carry = 0;
@@ -717,6 +718,9 @@ public:
     uint8_t get_needDropMaskOp() const { return needDropMaskOp; }
     void set_needDropMaskOp(uint8_t value) { this->needDropMaskOp = value; }
 
+    uint8_t get_needSinkOp() const { return needSinkOp; }
+    void set_needSinkOp(uint8_t value) { this->needSinkOp = value; }
+
     uint8_t get_pseEncodeType() const { return pseEncodeType; }
     void set_pseEncodeType(uint8_t value) { this->pseEncodeType = value; }
 
@@ -782,6 +786,7 @@ public:
         set_qStartIdx(0);
         set_kvStartIdx(0);
         set_tndSoftmaxOut(0);
+        set_needSinkOp(0);
     }
 };
 
