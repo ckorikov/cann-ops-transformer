@@ -187,20 +187,6 @@ ge::graphStatus FiaTilingCheck::CheckFeatureMlaNoquantMask() const
     return ge::GRAPH_SUCCESS;
 }
 
-ge::graphStatus FiaTilingCheck::CheckFeatureMlaNoquantLse() const
-{
-    std::string layout = opParamInfo_.layOut;
-    const std::vector<std::string> unsupportedLayoutList = {"BSH_NBSD", "BSND_NBSD", "BNSD_NBSD, TND_NTD"};
-    OP_CHECK_IF(
-        std::find(unsupportedLayoutList.begin(), unsupportedLayoutList.end(), layout) != unsupportedLayoutList.end() &&
-            fiaInfo_.softmaxLseFlag && vHeadDim_ == 512U,
-        OP_LOGE(opName_, "In %s situation with softmax_lse, layout only supports BSH, BSND, BNSD, TND, but got %s",
-                QuantModeToSerialString(quantMode_).c_str(), layout.c_str()),
-        return ge::GRAPH_FAILED);
-
-    return ge::GRAPH_SUCCESS;
-}
-
 ge::graphStatus FiaTilingCheck::CheckFeatureMlaSink() const
 {
     // sink功能不支持MLA vD=512的场景
@@ -251,7 +237,6 @@ ge::graphStatus FiaTilingCheck::CheckFeatureMlaNoquant()
         ge::GRAPH_SUCCESS != CheckFeatureActualSeqLens() ||
         ge::GRAPH_SUCCESS != CheckFeatureMlaNoquantMask() ||
         ge::GRAPH_SUCCESS != CheckFeatureMlaNoQuantDtype() ||
-        ge::GRAPH_SUCCESS != CheckFeatureMlaNoquantLse() ||
         ge::GRAPH_SUCCESS != CheckFeatureMlaNoQuantLayout() ||
         ge::GRAPH_SUCCESS != CheckFeatureMlaNoQuantShape() ||
         ge::GRAPH_SUCCESS != CheckFeatureMlaSink()) {

@@ -764,6 +764,12 @@ FiaBlockVecNonQuantMla<FIAT>::CopySoftmaxLseToGmByLayout(const AttentionCommon::
                              static_cast<uint64_t>(info.n2Idx) * constInfo.gSize * constInfo.qSeqSize;
         DataCopySoftmaxLseBSND(softmaxLseGm, lseSrc, bN2Offset, mOffset, mSplitInfo.vecDealM, constInfo,
                                qActSeqLensParser, info.bIdx);
+    } else if (constInfo.outputLayout == FIA_LAYOUT::NBSD) {
+        uint64_t n2BOffset =
+            static_cast<uint64_t>(info.bIdx) * constInfo.qSeqSize +
+            static_cast<uint64_t>(info.n2Idx) * constInfo.gSize * constInfo.qSeqSize * constInfo.batchSize;
+        DataCopySoftmaxLseNBSD<COMPUTE_T, Q_MODE>(softmaxLseGm, lseSrc, n2BOffset, mOffset, mSplitInfo.vecDealM,
+                                                  constInfo, qActSeqLensParser, info.bIdx);
     } else {
         uint64_t bN2Offset = static_cast<uint64_t>(info.bIdx) * constInfo.qHeadNum * constInfo.qSeqSize +
                              static_cast<uint64_t>(info.n2Idx) * constInfo.gSize * constInfo.qSeqSize;

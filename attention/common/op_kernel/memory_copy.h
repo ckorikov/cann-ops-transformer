@@ -2560,6 +2560,56 @@ __aicore__ inline void DataCopySoftmaxLseBNSD(GlobalTensor<float> softmaxLseGm, 
     }
 }
 
+template <typename T, ActualSeqLensMode Q_MODE>
+__aicore__ inline void DataCopySoftmaxLseNBSD(GlobalTensor<float> softmaxLseGm, LocalTensor<T> lseSrc,
+                                              uint64_t n2BOffset, uint32_t mOffset, uint32_t dealCount,
+                                              const ConstInfo &constInfo, ActualSeqLensParser<Q_MODE> qActSeqLensParser,
+                                              uint64_t bIdx)
+{
+    uint64_t gOffset = mOffset / qActSeqLensParser.GetActualSeqLength(bIdx) * constInfo.qSeqSize * constInfo.batchSize;
+    uint64_t seqOffset = mOffset % qActSeqLensParser.GetActualSeqLength(bIdx);
+    uint64_t outOffset = n2BOffset + gOffset + seqOffset;
+    uint64_t ubOffset = 0;
+    if ((qActSeqLensParser.GetActualSeqLength(bIdx) - seqOffset) >= dealCount) {
+        DataCopyExtParams dataCopyParams;
+        dataCopyParams.blockCount = dealCount;
+        dataCopyParams.blockLen = sizeof(float);
+        dataCopyParams.srcStride = 0;
+        dataCopyParams.dstStride = 0;
+        DataCopyPad(softmaxLseGm[outOffset], lseSrc[ubOffset], dataCopyParams);
+        return;
+    }
+    uint64_t headActSeq = qActSeqLensParser.GetActualSeqLength(bIdx) - seqOffset;
+    DataCopyExtParams dataCopyParams;
+    dataCopyParams.blockCount = headActSeq;
+    dataCopyParams.blockLen = sizeof(float);
+    dataCopyParams.srcStride = 0;
+    dataCopyParams.dstStride = 0;
+    DataCopyPad(softmaxLseGm[outOffset], lseSrc[ubOffset], dataCopyParams);
+    outOffset += constInfo.qSeqSize * constInfo.batchSize - seqOffset;
+    ubOffset += headActSeq * fa_base_vector::FP32_BLOCK_ELEMENT_NUM;
+    uint64_t pendingCount = dealCount - headActSeq;
+    while (pendingCount > qActSeqLensParser.GetActualSeqLength(bIdx)) {
+        DataCopyExtParams dataCopyParams;
+        dataCopyParams.blockCount = qActSeqLensParser.GetActualSeqLength(bIdx);
+        dataCopyParams.blockLen = sizeof(float);
+        dataCopyParams.srcStride = 0;
+        dataCopyParams.dstStride = 0;
+        DataCopyPad(softmaxLseGm[outOffset], lseSrc[ubOffset], dataCopyParams);
+        outOffset += constInfo.qSeqSize * constInfo.batchSize;
+        ubOffset += qActSeqLensParser.GetActualSeqLength(bIdx) * fa_base_vector::FP32_BLOCK_ELEMENT_NUM;
+        pendingCount -= qActSeqLensParser.GetActualSeqLength(bIdx);
+    }
+    if (pendingCount > 0) {
+        DataCopyExtParams dataCopyParams;
+        dataCopyParams.blockCount = pendingCount;
+        dataCopyParams.blockLen = sizeof(float);
+        dataCopyParams.srcStride = 0;
+        dataCopyParams.dstStride = 0;
+        DataCopyPad(softmaxLseGm[outOffset], lseSrc[ubOffset], dataCopyParams);
+    }
+}
+
 template <typename T>
 __aicore__ inline void DataCopySoftmaxLseTND(GlobalTensor<float> softmaxLseGm, LocalTensor<T> lseSrc, 
                                                 uint64_t bN2Offset, uint32_t mOffset, uint32_t dealCount, 
