@@ -293,8 +293,7 @@ private:
 
     static constexpr uint32_t L1_Q_BUFCNT = 2;
     static constexpr uint32_t L1_V_BUFCNT = CFG::S2_BASICSIZE_IS_1024 ? 4 : 2;
-    static constexpr uint32_t L1_KP_BUFCNT = CFG::S2_BASICSIZE_IS_1024 ? 2 : 3;
-
+    static constexpr uint32_t L1_KP_BUFCNT = CFG::S2_BASICSIZE_IS_1024 ? 2 : 3;    
     Array<LocalTensor<Q_T>, L1_Q_BUFCNT, L1_Q_SIZE> qL1Tensor;
     Array<LocalTensor<KV_T>, L1_V_BUFCNT, L1_V_SIZE> vL1Tensor;
     Array<LocalTensor<KV_T>, L1_KP_BUFCNT, L1_KP_SIZE> kpL1Tensor;
@@ -315,9 +314,13 @@ private:
     static constexpr uint32_t L0B_PP_SIZE = 128 * 128;  // 32KB
     static constexpr uint32_t L0C_PP_SIZE = 128 * 128;  // 64KB
 
-    Array<LocalTensor<Q_T>, 2, L0A_PP_SIZE> aL0Tensor;
-    Array<LocalTensor<KV_T>, 2, L0B_PP_SIZE> bL0Tensor;
-    Array<LocalTensor<T>, 2, L0C_PP_SIZE> cL0Tensor;
+    static constexpr uint32_t L0A_PP_BUFCNT = 2;
+    static constexpr uint32_t L0B_PP_BUFCNT = 2;
+    static constexpr uint32_t L0C_PP_BUFCNT = 2;
+
+    Array<LocalTensor<Q_T>, L0A_PP_BUFCNT, L0A_PP_SIZE> aL0Tensor;
+    Array<LocalTensor<KV_T>, L0B_PP_BUFCNT, L0B_PP_SIZE> bL0Tensor;
+    Array<LocalTensor<T>, 2, L0C_PP_BUFCNT> cL0Tensor;
 
     uint32_t aL0BufIter = 0;
     uint32_t bL0BufIter = 0;

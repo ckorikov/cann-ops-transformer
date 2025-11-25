@@ -273,7 +273,6 @@ __aicore__ inline void FiaBlockCubeNonQuant<FIAT>::Init(
         InitValueGm(0);
         InitKVBuffer(constInfo.batchSize, constInfo.kvSeqSize, actualSeqLengthsGm, constInfo.actualLenDims, constInfo.kvHeadNum, constInfo.kvCacheBlockSize,
                     constInfo.headDim, valueGmTensor, valueGm);
-
     }
 
     if (constInfo.actualLenQDims != 0) {

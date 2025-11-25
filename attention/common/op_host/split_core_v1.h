@@ -113,7 +113,9 @@ static void SplitCore(const BaseInfo &baseInfo, const InnerSplitParams &innerSpl
 
     uint32_t avgBaseNum = 1;
     if (totalBaseNum > coreNum) {
-        avgBaseNum = (totalBaseNum + coreNum - 1) / coreNum;
+        if (coreNum != 0) {
+            avgBaseNum = (totalBaseNum + coreNum - 1) / coreNum;
+        }
     }
 
     uint32_t accumBaseNum = 0;       // 当前累积的基本块数
@@ -235,8 +237,9 @@ static void SplitFD(SplitCoreRes &res, FlashDecodeParams fDParams, uint32_t core
         uint32_t fDKVSplitNum = fDParams.s2SplitNumOfFdHead[i];
         for (uint32_t gS1SplitIdx = 0; gS1SplitIdx < fDParams.gS1SplitNumOfFdHead[i]; gS1SplitIdx++) {
             double remainSpace = loadThrOfVector - loadOfCurVector;  // 计算当前vector剩余负载空间
-            // 判断师傅放在当前vector的标准是剩余空间是否能容纳一半当前归约块
-            if (fDKVSplitNum > remainSpace * 2) {
+            // 判断是否放在当前vector的标准是剩余空间是否能容纳一半当前归约块
+            uint32_t spaceMulti = 2;
+            if (fDKVSplitNum > remainSpace * spaceMulti) {
                 fDParams.gS1IdxEndOfFdHead[curCoreIndex] = preTmpFDIndexEndOfFdHead;
                 fDParams.gS1IdxEndOfFdHeadSplit[curCoreIndex] = preTmpFDIndexEndOfFdHeadSplit;
                 curCoreIndex += 1;

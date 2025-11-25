@@ -253,8 +253,10 @@ void FiaTilingNonQuant::CalcInnerSize(uint32_t s2Size)
             sInnerSize_ = (sInnerSize_ / blockSize) * blockSize;
         }
     }
-    sInnerLoopTimes_ = (s2Size + sInnerSize_ - static_cast<uint32_t>(1)) / sInnerSize_;
-    sInnerSizeTail_ = s2Size - (sInnerLoopTimes_ - static_cast<uint32_t>(1)) * sInnerSize_;
+    if (sInnerSize_ != 0) {
+        sInnerLoopTimes_ = (s2Size + sInnerSize_ - static_cast<uint32_t>(1)) / sInnerSize_;
+        sInnerSizeTail_ = s2Size - (sInnerLoopTimes_ - static_cast<uint32_t>(1)) * sInnerSize_;
+    }
     // tiling下沉 && flash decoder场景时，sInnerSize_基块大小不按照真实值修改
     // 否则会导致 tiling下沉 && flash decoder 场景时开辟workspace空间大小小于真实运行时所需的workspace大小
     if (sInnerSize_ > s2Size) {
@@ -457,10 +459,11 @@ void FiaTilingNonQuant::FillTilingMaskParams()
 void FiaTilingNonQuant::FillTilingWorkspaceParams()
 {
     uint32_t maxConventNum = 2;
+    uint32_t numOfFdSumMax = 2;
     // 每个核可能有头规约和尾规约，一共两份规约信息
     tilingData_->workspaceParams.set_fdAccumOutSize(aicNum_ * maxConventNum * mBaseSize_ * headDimAlign_);
     // 每个核可能有头规约和尾规约，一共两份规约信息; 另外sum和max各一份
-    tilingData_->workspaceParams.set_fdLogSumExpSize(2 * aicNum_ * maxConventNum * mBaseSize_ * (BYTE_BLOCK / BLOCK_TABLE_ELEM_BYTE));
+    tilingData_->workspaceParams.set_fdLogSumExpSize(numOfFdSumMax * aicNum_ * maxConventNum * mBaseSize_ * (BYTE_BLOCK / BLOCK_TABLE_ELEM_BYTE));
     tilingData_->workspaceParams.set_mm1ResSize(mm1ResSize_);
     tilingData_->workspaceParams.set_mm2ResSize(mm2ResSize_);
 }
