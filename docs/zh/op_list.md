@@ -73,6 +73,16 @@
     <td>AI Core</td>
     <td>增量推理场景的FlashAttention算子。</td>
   </tr>
+    <tr>
+    <td>attention</td>
+    <td><a href="../../attention/mla_preprocess/README.md">mla_preprocess</a></td>
+    <td>√</td>
+    <td>√</td>
+    <td>×</td>
+    <td>×</td>
+    <td>AI Core</td>
+    <td>推理MlaPreprocess算子</td>
+  </tr>
   <tr>
     <td>attention</td>
     <td><a href="../../attention/mla_prolog/README.md">mla_prolog</a></td>
