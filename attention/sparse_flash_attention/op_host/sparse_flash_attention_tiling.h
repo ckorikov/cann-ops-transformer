@@ -265,8 +265,8 @@ struct SFATilingInfo {
     std::vector<int64_t> kvListSeqLens {};
 
     uint32_t sparseMode = 0;
-    int64_t preTokens = 9223372036854775807;
-    int64_t nextTokens = 9223372036854775807;
+    int64_t preTokens = INT64_MAX;
+    int64_t nextTokens = INT64_MAX;
     uint32_t attentionMode = 0;
     bool returnSoftmaxLse = false;
 

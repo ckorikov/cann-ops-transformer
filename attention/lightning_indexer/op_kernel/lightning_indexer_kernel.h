@@ -56,8 +56,8 @@ public:
     __aicore__ inline LIPreload(){};
     __aicore__ inline void Init(__gm__ uint8_t *query, __gm__ uint8_t *key, __gm__ uint8_t *weights,
                                 __gm__ uint8_t *actualSeqLengthsQ, __gm__ uint8_t *actualSeqLengths,
-                                __gm__ uint8_t *blockTable, __gm__ uint8_t *sparseIndices, __gm__ uint8_t *workspace,
-                                const LITilingData *__restrict tiling, TPipe *tPipe);
+                                __gm__ uint8_t *blockTable, __gm__ uint8_t *sparseIndices, __gm__ uint8_t *sparseValues, 
+                                __gm__ uint8_t *workspace, const LITilingData *__restrict tiling, TPipe *tPipe);
     __aicore__ inline void Process();
 
     // =================================类型定义区=================================
@@ -102,6 +102,7 @@ protected:
     GlobalTensor<K_T> weightsGm;
 
     GlobalTensor<int32_t> indiceOutGm;
+    GlobalTensor<K_T> valueOutGm;
     GlobalTensor<int32_t> blockTableGm;
 
     GlobalTensor<uint32_t> actualSeqLengthsGmQ;
@@ -157,6 +158,10 @@ __aicore__ inline void LIPreload<LIT>::InitTilingData(const LITilingData *__rest
     constInfo.kCacheBlockSize = tilingData->blockSize;
     constInfo.maxBlockNumPerBatch = tilingData->maxBlockNumPerBatch;
     constInfo.sparseCount = tilingData->sparseCount;
+    constInfo.preTokens = tilingData->preTokens;
+    constInfo.nextTokens = tilingData->nextTokens;
+    constInfo.returnValue = tilingData->returnValue;
+
     constInfo.outputLayout = LAYOUT_T; // 输出和输入形状一致
     if (LAYOUT_T == LI_LAYOUT::TND) {
         constInfo.isAccumSeqS1 = true;
@@ -167,10 +172,10 @@ __aicore__ inline void LIPreload<LIT>::InitTilingData(const LITilingData *__rest
 
     constInfo.kHeadNum = K_HEAD_NUM;
     constInfo.headDim = HEAD_DIM;
-
-    constInfo.mBaseSize = M_BASE_SIZE;
     constInfo.s2BaseSize = S2_BASE_SIZE;
-    constInfo.s1BaseSize = (constInfo.mBaseSize + constInfo.gSize - 1) / constInfo.gSize;
+
+    constInfo.s1BaseSize = 8;
+    constInfo.mBaseSize = constInfo.s1BaseSize * constInfo.gSize;
 }
 
 template <typename LIT>
@@ -369,7 +374,7 @@ __aicore__ inline void LIPreload<LIT>::DealActSeqLenIsZero(uint32_t bIdx, uint32
 template <typename LIT>
 __aicore__ inline void LIPreload<LIT>::Init(__gm__ uint8_t *query, __gm__ uint8_t *key, __gm__ uint8_t *weights,
                                             __gm__ uint8_t *actualSeqLengthsQ, __gm__ uint8_t *actualSeqLengths,
-                                            __gm__ uint8_t *blockTable, __gm__ uint8_t *sparseIndices,
+                                            __gm__ uint8_t *blockTable, __gm__ uint8_t *sparseIndices, __gm__ uint8_t *sparseValues,
                                             __gm__ uint8_t *workspace, const LITilingData *__restrict tiling,
                                             TPipe *tPipe)
 {
@@ -412,8 +417,9 @@ __aicore__ inline void LIPreload<LIT>::Init(__gm__ uint8_t *query, __gm__ uint8_
     if ASCEND_IS_AIV {
         vectorService.InitParams(constInfo, tiling);
         indiceOutGm.SetGlobalBuffer((__gm__ int32_t *)sparseIndices);
+        valueOutGm.SetGlobalBuffer((__gm__ K_T *)sparseValues);
         weightsGm.SetGlobalBuffer((__gm__ K_T *)weights);
-        vectorService.InitVec1GlobalTensor(mm1ResGm, vec1ResGm, vec1ParamGm, weightsGm, indiceOutGm);
+        vectorService.InitVec1GlobalTensor(mm1ResGm, vec1ResGm, vec1ParamGm, weightsGm, indiceOutGm, valueOutGm);
     } else {
         matmulService.InitParams(constInfo);
         queryGm.SetGlobalBuffer((__gm__ Q_T *)query);
@@ -561,6 +567,11 @@ __aicore__ inline void LIPreload<LIT>::ProcessInvalid()
                 (baseSize + singleCoreSize > totalOutputSize) ? singleCoreSize : totalOutputSize - baseSize;
             GlobalTensor<OUT_T> output = indiceOutGm[baseSize];
             AscendC::InitGlobalMemory(output, dealSize, constInfo.INVALID_IDX);
+            if (constInfo.returnValue) {
+                GlobalTensor<K_T> valueOut = valueOutGm[baseSize];
+                K_T invalidValue = 0;
+                AscendC::InitGlobalMemory(valueOut, dealSize, invalidValue);
+            }
         }
     }
 }

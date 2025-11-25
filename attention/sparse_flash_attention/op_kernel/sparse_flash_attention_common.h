@@ -157,8 +157,8 @@ struct ConstInfo {
     uint32_t splitKVNum = 0U;         // S2核间切分的切分份数
     SFA_LAYOUT outputLayout;          // 输出的Transpose格式
     uint32_t sparseMode = 0;
-    int64_t preTokens = 9223372036854775807;
-    int64_t nextTokens = 9223372036854775807;
+    int64_t preTokens = INT64_MAX;
+    int64_t nextTokens = INT64_MAX;
     uint32_t attentionMode = 0;
     bool returnSoftmaxLse = false;
     bool needInit = false;

@@ -48,7 +48,7 @@ public:
                                       const LITilingData *__restrict tilingData);
     __aicore__ inline void InitVec1GlobalTensor(GlobalTensor<MM1_OUT_T> mm1ResGm, GlobalTensor<float> vec1ResGm,
                                                 GlobalTensor<int64_t> vec1ParamGm, GlobalTensor<K_T> weightsGm,
-                                                GlobalTensor<int32_t> indiceOutGm);
+                                                GlobalTensor<int32_t> indiceOutGm, GlobalTensor<K_T> valueOutGm);
     __aicore__ inline void CleanInvalidOutput(int64_t invalidS1offset);
     __aicore__ inline void AllocEventID();
     __aicore__ inline void FreeEventID();
@@ -60,6 +60,7 @@ protected:
     GlobalTensor<int64_t> vec1ParamGm;
     GlobalTensor<K_T> weightsGm;
     GlobalTensor<int32_t> indiceOutGm;
+    GlobalTensor<K_T> valueOutGm;
     // =================================常量区=================================
 
 private:
@@ -180,13 +181,14 @@ template <typename LIT>
 __aicore__ inline void
 LIVector<LIT>::InitVec1GlobalTensor(GlobalTensor<MM1_OUT_T> mm1ResGm, GlobalTensor<float> vec1ResGm,
                                     GlobalTensor<int64_t> vec1ParamGm, GlobalTensor<K_T> weightsGm,
-                                    GlobalTensor<int32_t> indiceOutGm)
+                                    GlobalTensor<int32_t> indiceOutGm, GlobalTensor<K_T> valueOutGm)
 {
     this->mm1ResGm = mm1ResGm;
     this->vec1ResGm = vec1ResGm;
     this->vec1ParamGm = vec1ParamGm;
     this->weightsGm = weightsGm;
     this->indiceOutGm = indiceOutGm;
+    this->valueOutGm = valueOutGm;
 }
 
 template <typename LIT>
@@ -210,6 +212,17 @@ __aicore__ inline void LIVector<LIT>::CleanInvalidOutput(int64_t invalidS1offset
     valueULocal = outQueue_.DeQue<float>();
     LIServiceVec::CopyOut(indiceOutGm[invalidS1offset], idxULocal1, constInfo_.sparseCount);
     outQueue_.FreeTensor(valueULocal);
+
+    if (constInfo_.returnValue) {
+        K_T invalidValue = 0;
+        LocalTensor<float> valueULocal = outQueue_.AllocTensor<float>();
+        LocalTensor<K_T> valULocal1 = valueULocal.template ReinterpretCast<K_T>();
+        Duplicate(valULocal1, invalidValue, constInfo_.sparseCount);
+        outQueue_.EnQue<float>(valueULocal);
+        valueULocal = outQueue_.DeQue<float>();
+        LIServiceVec::CopyOut(valueOutGm[invalidS1offset], valULocal1, constInfo_.sparseCount);
+        outQueue_.FreeTensor(valueULocal);
+    }
 }
 
 template <typename LIT>
@@ -359,18 +372,36 @@ __aicore__ inline void LIVector<LIT>::ProcessVec(const LICommon::RunInfo &info)
             bool needCopyWsGm = info.isAllLoopEnd || isS2End;
 
             if (needCopyOutGm) {
-                LocalTensor<float> valueULocal = outQueue_.AllocTensor<float>();
-                LocalTensor<uint32_t> idxULocal = valueULocal.template ReinterpretCast<uint32_t>()[BASE_TOPK];
-                ExtractIndex(idxULocal, globalTopkUb_[innerS1Idx * BASE_TOPK * 2].template ReinterpretCast<uint32_t>(),
-                             BASE_TOPK);
-                PipeBarrier<PIPE_V>();
-                InitSortOutBuf(globalTopkUb_[innerS1Idx * BASE_TOPK * 2], BASE_TOPK * 2);
-                outQueue_.EnQue<float>(valueULocal);
-                valueULocal = outQueue_.DeQue<float>();
-                LocalTensor<int32_t> idxULocal1 = valueULocal.template ReinterpretCast<int32_t>()[BASE_TOPK];
-                LIServiceVec::CopyOut(indiceOutGm[info.indiceOutOffset + cuS1Idx * constInfo_.sparseCount],
-                                      idxULocal1, constInfo_.sparseCount);
-                outQueue_.FreeTensor(valueULocal);
+                if (!constInfo_.returnValue) {
+                    LocalTensor<float> valueULocal = outQueue_.AllocTensor<float>();
+                    LocalTensor<uint32_t> idxULocal = valueULocal.template ReinterpretCast<uint32_t>()[BASE_TOPK];
+                    ExtractIndex(idxULocal, globalTopkUb_[innerS1Idx * BASE_TOPK * 2].template ReinterpretCast<uint32_t>(),
+                                BASE_TOPK);
+                    PipeBarrier<PIPE_V>();
+                    InitSortOutBuf(globalTopkUb_[innerS1Idx * BASE_TOPK * 2], BASE_TOPK * 2);
+                    outQueue_.EnQue<float>(valueULocal);
+                    valueULocal = outQueue_.DeQue<float>();
+                    LocalTensor<int32_t> idxULocal1 = valueULocal.template ReinterpretCast<int32_t>()[BASE_TOPK];
+                    LIServiceVec::CopyOut(indiceOutGm[info.indiceOutOffset + cuS1Idx * constInfo_.sparseCount],
+                                        idxULocal1, constInfo_.sparseCount);
+                    outQueue_.FreeTensor(valueULocal);
+                } else {
+                    LocalTensor<float> outValueUb = outQueue_.AllocTensor<float>();
+                    LocalTensor<uint32_t> outIdxUb = outValueUb[BASE_TOPK].template ReinterpretCast<uint32_t>();
+                    Extract(outValueUb, outIdxUb, globalTopkUb_[innerS1Idx * BASE_TOPK * 2], (BASE_TOPK / 32));
+                    PipeBarrier<PIPE_V>();
+                    LocalTensor<K_T> valueULocal1 = outValueUb.template ReinterpretCast<K_T>();
+                    Cast(valueULocal1, outValueUb, RoundMode::CAST_ROUND, constInfo_.sparseCount);
+                    PipeBarrier<PIPE_V>();
+                    outQueue_.EnQue<float>(outValueUb);
+                    outValueUb = outQueue_.DeQue<float>();
+                    LocalTensor<int32_t> idxULocal1 = outValueUb[BASE_TOPK].template ReinterpretCast<int32_t>();
+                    LIServiceVec::CopyOut(indiceOutGm[info.indiceOutOffset + cuS1Idx * constInfo_.sparseCount],
+                                        idxULocal1, constInfo_.sparseCount);
+                    LIServiceVec::CopyOut(valueOutGm[info.indiceOutOffset + cuS1Idx * constInfo_.sparseCount],
+                                        valueULocal1, constInfo_.sparseCount);
+                    outQueue_.FreeTensor(outValueUb);
+                }
             } else if (needCopyWsGm) {
                 // vec1Res Gm = [aic, s1BaseSize_, 2, 2, topkOut_] float32
                 // vec1Param Gm = [aic, s1BaseSize_, 2, 16] int64
@@ -599,14 +630,29 @@ __aicore__ inline void LIVector<LIT>::ProcessLD()
         // 搬出
         LocalTensor<float> outValueUb = ldOutValueBuf_.Get<float>();
         LocalTensor<uint32_t> outIdxUb = ldOutIdxBuf_.Get<uint32_t>();
-
-        Extract(outValueUb, outIdxUb, curValueIdxUb, (BASE_TOPK / 32));
-        LocalTensor<int32_t> idxULocal1 = outIdxUb.template ReinterpretCast<int32_t>();
-        SetWaitFlag<HardEvent::V_MTE3>(HardEvent::V_MTE3);
-        SetWaitFlag<HardEvent::S_MTE3>(HardEvent::S_MTE3);
-        DataCopyPad(indiceOutGm[outOffset], idxULocal1,
-                    {1, static_cast<uint16_t>(constInfo_.sparseCount * sizeof(int32_t)), 0, 0});
-        SetWaitFlag<HardEvent::MTE3_V>(HardEvent::MTE3_V);
+        if (!constInfo_.returnValue) {
+            Extract(outValueUb, outIdxUb, curValueIdxUb, (BASE_TOPK / 32));
+            LocalTensor<int32_t> idxULocal1 = outIdxUb.template ReinterpretCast<int32_t>();
+            SetWaitFlag<HardEvent::V_MTE3>(HardEvent::V_MTE3);
+            SetWaitFlag<HardEvent::S_MTE3>(HardEvent::S_MTE3);
+            DataCopyPad(indiceOutGm[outOffset], idxULocal1,
+                        {1, static_cast<uint16_t>(constInfo_.sparseCount * sizeof(int32_t)), 0, 0});
+            SetWaitFlag<HardEvent::MTE3_V>(HardEvent::MTE3_V);
+        } else {
+            Extract(outValueUb, outIdxUb, curValueIdxUb, (BASE_TOPK / 32));
+            PipeBarrier<PIPE_V>();
+            LocalTensor<int32_t> idxULocal1 = outIdxUb.template ReinterpretCast<int32_t>();
+            LocalTensor<K_T> valueULocal1 = outValueUb.template ReinterpretCast<K_T>();
+            Cast(valueULocal1, outValueUb, RoundMode::CAST_ROUND, constInfo_.sparseCount);
+            PipeBarrier<PIPE_V>();
+            SetWaitFlag<HardEvent::V_MTE3>(HardEvent::V_MTE3);
+            SetWaitFlag<HardEvent::S_MTE3>(HardEvent::S_MTE3);
+            DataCopyPad(indiceOutGm[outOffset], idxULocal1,
+                        {1, static_cast<uint16_t>(constInfo_.sparseCount * sizeof(int32_t)), 0, 0});
+            DataCopyPad(valueOutGm[outOffset], valueULocal1,
+                        {1, static_cast<uint16_t>(constInfo_.sparseCount * sizeof(K_T)), 0, 0});
+            SetWaitFlag<HardEvent::MTE3_V>(HardEvent::MTE3_V);
+        }
     }
 }
 } // namespace LIKernel

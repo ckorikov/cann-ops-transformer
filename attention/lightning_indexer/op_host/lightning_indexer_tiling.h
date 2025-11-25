@@ -50,7 +50,9 @@ constexpr uint32_t WEIGTHS_INDEX = 2;
 constexpr uint32_t ACTUAL_SEQ_Q_INDEX = 3;
 constexpr uint32_t ACTUAL_SEQ_K_INDEX = 4;
 constexpr uint32_t BLOCK_TABLE_INDEX = 5;
+//Outputs Index
 constexpr uint32_t LIGHTNING_INDEXER = 0;
+constexpr uint32_t LIGHTNING_VALUES = 1;
 // Attributes Index
 constexpr uint32_t ATTR_QUERY_LAYOUT_INDEX = 0;
 constexpr uint32_t ATTR_KEY_LAYOUT_INDEX = 1;
@@ -84,6 +86,9 @@ TILING_DATA_FIELD_DEF(uint32_t, usedCoreNum)
 TILING_DATA_FIELD_DEF(uint32_t, blockSize)
 TILING_DATA_FIELD_DEF(uint32_t, maxBlockNumPerBatch)
 TILING_DATA_FIELD_DEF(uint32_t, sparseMode)
+TILING_DATA_FIELD_DEF(int64_t, preTokens)
+TILING_DATA_FIELD_DEF(int64_t, nextTokens)
+TILING_DATA_FIELD_DEF(bool, returnValue)
 END_TILING_DATA_DEF
 REGISTER_TILING_DATA_CLASS(LightningIndexer, LITilingData)
 
@@ -99,6 +104,7 @@ struct LiParaInfo {
     TilingOptionalParaInfo actualSeqLengths = {nullptr, nullptr};
     TilingOptionalParaInfo blockTable = {nullptr, nullptr};
     TilingRequiredParaInfo attenOut = {nullptr, nullptr};
+    TilingRequiredParaInfo valuesOut = {nullptr, nullptr};
 
     const char *layOut = nullptr;
     const char *layOutKey = nullptr;
@@ -133,6 +139,9 @@ public:
     int32_t sparseMode = 0;
     // Others Flag
     uint32_t sparseCount = 0;
+    int64_t preTokens = INT64_MAX;
+    int64_t nextTokens = INT64_MAX;
+    bool returnValue = false;
     // DType
     ge::DataType inputQType = ge::DT_FLOAT16;
     ge::DataType inputKType = ge::DT_FLOAT16;
@@ -211,6 +220,7 @@ public:
     ge::DataType blockTableType_ = ge::DT_FLOAT16;
     ge::DataType inputKRopeType_ = ge::DT_FLOAT16;
     ge::DataType outputType_ = ge::DT_FLOAT16;
+    ge::DataType valuesOutType_ = ge::DT_FLOAT16;
 };
 
 // ---------------算子Tiling类---------------

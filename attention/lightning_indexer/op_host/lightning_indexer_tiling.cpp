@@ -130,6 +130,8 @@ void LIInfoParser::GetOutputParaInfo()
 {
     opParamInfo_.attenOut.desc = context_->GetOutputDesc(LIGHTNING_INDEXER);
     opParamInfo_.attenOut.shape = context_->GetOutputShape(LIGHTNING_INDEXER);
+    opParamInfo_.valuesOut.desc = context_->GetOutputDesc(LIGHTNING_VALUES);
+    opParamInfo_.valuesOut.shape = context_->GetOutputShape(LIGHTNING_VALUES);
 }
 
 ge::graphStatus LIInfoParser::GetAndCheckAttrParaInfo()
@@ -137,7 +139,6 @@ ge::graphStatus LIInfoParser::GetAndCheckAttrParaInfo()
     auto attrs = context_->GetAttrs();
     OP_CHECK_IF(attrs == nullptr, OPS_REPORT_VECTOR_INNER_ERR(context_->GetNodeName(), "attrs got from ge is nullptr"),
                return ge::GRAPH_FAILED);
-
     OP_LOGI(context_->GetNodeName(), "GetAndCheckAttrParaInfo start");
     opParamInfo_.layOut = attrs->GetStr(ATTR_QUERY_LAYOUT_INDEX);
     opParamInfo_.layOutKey = attrs->GetStr(ATTR_KEY_LAYOUT_INDEX);
@@ -146,7 +147,6 @@ ge::graphStatus LIInfoParser::GetAndCheckAttrParaInfo()
     opParamInfo_.preTokens = attrs->GetAttrPointer<int64_t>(ATTR_PRE_TOKENS_INDEX);
     opParamInfo_.nextTokens = attrs->GetAttrPointer<int64_t>(ATTR_NEXT_TOKENS_INDEX);
     opParamInfo_.returnValue = attrs->GetAttrPointer<bool>(ATTR_RETURN_VALUE_INDEX);
-
     if (opParamInfo_.layOut != nullptr) {
         OP_LOGI(context_->GetNodeName(), "layout_query is:%s", opParamInfo_.layOut);
     }
@@ -159,8 +159,16 @@ ge::graphStatus LIInfoParser::GetAndCheckAttrParaInfo()
     if (opParamInfo_.sparseMode != nullptr) {
         OP_LOGI(context_->GetNodeName(), "sparse mode is:%d", *opParamInfo_.sparseMode);
     }
+    if (opParamInfo_.preTokens != nullptr) {
+        OP_LOGI(context_->GetNodeName(), "pre tokens is:%d", *opParamInfo_.preTokens);
+    }
+    if (opParamInfo_.nextTokens != nullptr) {
+        OP_LOGI(context_->GetNodeName(), "next tokens is:%d", *opParamInfo_.nextTokens);
+    }
+    if (opParamInfo_.returnValue != nullptr) {
+        OP_LOGI(context_->GetNodeName(), "return value is:%d", *opParamInfo_.returnValue);
+    }
     OP_LOGI(context_->GetNodeName(), "GetAndCheckAttrParaInfo end");
-
     OP_CHECK_IF(
         ((std::string(opParamInfo_.layOutKey) != "PA_BSND")
         && (std::string(opParamInfo_.layOut) != std::string(opParamInfo_.layOutKey))),
@@ -200,6 +208,7 @@ ge::graphStatus LIInfoParser::GetAndCheckInOutDataType()
     inputKType_ = opParamInfo_.key.desc->GetDataType();
     weightsType_ = opParamInfo_.weights.desc->GetDataType();
     outputType_ = opParamInfo_.attenOut.desc->GetDataType();
+    valuesOutType_ = opParamInfo_.valuesOut.desc->GetDataType();
 
     bool inDTypeAllEqual = (inputQType_ == inputKType_) && (inputKType_ == weightsType_);
     OP_CHECK_IF(!inDTypeAllEqual,
@@ -212,6 +221,9 @@ ge::graphStatus LIInfoParser::GetAndCheckInOutDataType()
 
     OP_CHECK_IF(outputType_ != ge::DT_INT32,
                OP_LOGE(opName_, "The data types of the output sparse_indices must be int32."),
+               return ge::GRAPH_FAILED);
+    OP_CHECK_IF(valuesOutType_ != inputQType_,
+               OP_LOGE(opName_, "The data types of the output sparse_values must be same as inputQType."),
                return ge::GRAPH_FAILED);
 
     return ge::GRAPH_SUCCESS;
@@ -358,8 +370,6 @@ ge::graphStatus LIInfoParser::GetGSize()
         return ge::GRAPH_FAILED;
     }
     gSize_ = n1Size_ / n2Size_;
-    OP_CHECK_IF(gSize_ != 64, OP_LOGE(opName_, "N1 is %u, N2 is %u, N1 divided by N2 must equal 64.",
-        n1Size_, n2Size_), return ge::GRAPH_FAILED);
 
     return ge::GRAPH_SUCCESS;
 }
@@ -615,6 +625,9 @@ void LIInfoParser::GenerateInfo(LITilingInfo &liInfo)
     liInfo.pageAttentionFlag = layOutKeyStr == "PA_BSND" ? true : false;
     liInfo.sparseMode = *opParamInfo_.sparseMode;
     liInfo.sparseCount = *opParamInfo_.sparseCount;
+    liInfo.preTokens = *opParamInfo_.preTokens;
+    liInfo.nextTokens = *opParamInfo_.nextTokens;
+    liInfo.returnValue = *opParamInfo_.returnValue;
 
     liInfo.inputQLayout = qLayout_;
     liInfo.inputKLayout = kLayout_;
@@ -699,6 +712,9 @@ ge::graphStatus LightningIndexerTiling::DoTiling(LITilingInfo *tilingInfo)
     tilingData_.set_blockSize(tilingInfo->blockSize);
     tilingData_.set_maxBlockNumPerBatch(tilingInfo->maxBlockNumPerBatch);
     tilingData_.set_sparseMode(tilingInfo->sparseMode);
+    tilingData_.set_preTokens(tilingInfo->preTokens);
+    tilingData_.set_nextTokens(tilingInfo->nextTokens);
+    tilingData_.set_returnValue(tilingInfo->returnValue);
     tilingData_.set_usedCoreNum(blockDim);
     tilingData_.SaveToBuffer(context_->GetRawTilingData()->GetData(), context_->GetRawTilingData()->GetCapacity());
     context_->GetRawTilingData()->SetDataSize(tilingData_.GetDataSize());

@@ -25,7 +25,7 @@ using namespace LIKernel;
         templateClass<LIType<__VA_ARGS__>> op;                                                                         \
         GET_TILING_DATA_WITH_STRUCT(LITilingData, tiling_data_in, tiling);                                             \
         const LITilingData *__restrict tiling_data = &tiling_data_in;                                                  \
-        op.Init(query, key, weights, actualSeqLengthsQ, actualSeqLengths, blocktable, sparseIndices, user,             \
+        op.Init(query, key, weights, actualSeqLengthsQ, actualSeqLengths, blocktable, sparseIndices, sparseValues, user,             \
                 tiling_data, &tPipe);                                                                                  \
         op.Process();                                                                                                  \
     } while (0)
