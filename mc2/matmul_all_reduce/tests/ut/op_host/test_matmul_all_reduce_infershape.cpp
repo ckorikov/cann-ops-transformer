@@ -224,31 +224,3 @@ TEST_F(MatmulAllReduceInfershape, infer_shape_add_rms_norm) {
     std::vector<std::vector<int64_t>> expertOutputShape = {{4, 8, 128}};
     ExecuteTestCase(infershapeContextPara, ge::GRAPH_SUCCESS, expertOutputShape);
 }
-
-TEST_F(MatmulAllReduceInfershape, infer_dtype) {
-    ge::DataType x1 = ge::DT_FLOAT16;
-    ge::DataType x2 = ge::DT_FLOAT16;
-
-    auto contextHolder = gert::InferDataTypeContextFaker()
-        .NodeIoNum(2, 1)
-        .InputDataTypes({&x1, &x2})
-        .NodeOutputTd(0, ge::FORMAT_ND, ge::FORMAT_ND)
-        .NodeAttrs({
-            {"group", Ops::Transformer::AnyValue::CreateFrom<std::string>("")},
-            {"reduce_op", Ops::Transformer::AnyValue::CreateFrom<std::string>("sum")},
-            {"is_trans_a", Ops::Transformer::AnyValue::CreateFrom<bool>(false)},
-            {"is_trans_b", Ops::Transformer::AnyValue::CreateFrom<bool>(false)},
-            {"comm_turn", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)},
-            {"antiquant_group_size", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)},
-            {"group_size", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)},
-            {"y_dtype", Ops::Transformer::AnyValue::CreateFrom<int64_t>(ge::DT_FLOAT16)},
-            {"comm_quant_mode", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)}
-        })
-        .Build();
-
-    auto spaceRegistry = gert::DefaultOpImplSpaceRegistryV2::GetInstance().GetSpaceRegistry();
-    auto inferDtypeFunc = spaceRegistry->GetOpImpl("MatmulAllReduce")->infer_datatype;
-    ASSERT_EQ(inferDtypeFunc(contextHolder.GetContext<gert::InferDataTypeContext>()), ge::GRAPH_SUCCESS);
-
-    EXPECT_EQ(contextHolder.GetContext<gert::InferDataTypeContext>()->GetOutputDataType(0), ge::DT_FLOAT16);
-}

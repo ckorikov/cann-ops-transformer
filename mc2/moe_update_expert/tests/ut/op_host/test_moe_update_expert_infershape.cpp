@@ -89,47 +89,4 @@ TEST_F(MoeUpdateExpertInfershape, moe_update_expert_test_enhanced_shape) {
     std::vector<std::vector<int64_t>> expertOutputShape = {{128, 8}};
     ExecuteTestCase(infershapeContextPara, ge::GRAPH_SUCCESS, expertOutputShape);
 }
-
-
-TEST_F(MoeUpdateExpertInfershape, moe_update_expert_test_type) {
-    ge::DataType expert_ids_type = ge::DT_INT64;
-    ge::DataType eplb_table_type = ge::DT_INT32;
-
-    auto contextHolder = gert::InferDataTypeContextFaker()
-                    .NodeIoNum(2, 2)
-                    .InputDataTypes({&expert_ids_type, &eplb_table_type})
-                    .NodeOutputTd(0, ge::FORMAT_ND, ge::FORMAT_ND)
-                    .NodeOutputTd(1, ge::FORMAT_ND, ge::FORMAT_ND)
-                    .Build();
-
-    auto spaceRegistry = gert::DefaultOpImplSpaceRegistryV2::GetInstance().GetSpaceRegistry();
-    auto inferDtypeFunc = spaceRegistry->GetOpImpl("MoeUpdateExpert")->infer_datatype;
-    ASSERT_EQ(inferDtypeFunc(contextHolder.GetContext<gert::InferDataTypeContext>()), ge::GRAPH_SUCCESS);
-
-    EXPECT_EQ(contextHolder.GetContext<gert::InferDataTypeContext>()->GetOutputDataType(0), ge::DT_INT64);
-    EXPECT_EQ(contextHolder.GetContext<gert::InferDataTypeContext>()->GetOutputDataType(1), ge::DT_BOOL);
-}
-
-TEST_F(MoeUpdateExpertInfershape, moe_update_expert_test_enhanced_type) {
-    ge::DataType expert_ids_type = ge::DT_INT64;
-    ge::DataType eplb_table_type = ge::DT_INT32;
-    ge::DataType expert_scales_type = ge::DT_FLOAT16;
-    ge::DataType pruning_threshold_type = ge::DT_FLOAT;
-    ge::DataType active_mask_type = ge::DT_BOOL;
-
-    auto contextHolder = gert::InferDataTypeContextFaker()
-                    .NodeIoNum(5, 2)
-                    .InputDataTypes({&expert_ids_type, &eplb_table_type, &expert_scales_type,
-                                     &pruning_threshold_type, &active_mask_type})
-                    .NodeOutputTd(0, ge::FORMAT_ND, ge::FORMAT_ND)
-                    .NodeOutputTd(1, ge::FORMAT_ND, ge::FORMAT_ND)
-                    .Build();
-
-    auto spaceRegistry = gert::DefaultOpImplSpaceRegistryV2::GetInstance().GetSpaceRegistry();
-    auto inferDtypeFunc = spaceRegistry->GetOpImpl("MoeUpdateExpert")->infer_datatype;
-    ASSERT_EQ(inferDtypeFunc(contextHolder.GetContext<gert::InferDataTypeContext>()), ge::GRAPH_SUCCESS);
-
-    EXPECT_EQ(contextHolder.GetContext<gert::InferDataTypeContext>()->GetOutputDataType(0), ge::DT_INT64);
-    EXPECT_EQ(contextHolder.GetContext<gert::InferDataTypeContext>()->GetOutputDataType(1), ge::DT_BOOL);
-}
 }

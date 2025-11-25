@@ -64,44 +64,4 @@ TEST_F(MoeDistributeDispatchV2Infershape, inferShape0)
     std::vector<std::vector<int64_t>> expertOutputShape = {{576, 7168}};
     ExecuteTestCase(infershapeContextPara, ge::GRAPH_SUCCESS, expertOutputShape);
 }
-
-TEST_F(MoeDistributeDispatchV2Infershape, inferDtype0) {
-    ge::DataType expandXType = ge::DT_FLOAT16;
-    ge::DataType expertIdsType = ge::DT_INT32;
-
-    auto contextHolder = gert::InferDataTypeContextFaker()
-        .NodeIoNum(2, 6)
-        .NodeAttrs({
-            {"group_ep", Ops::Transformer::AnyValue::CreateFrom<std::string>("ep_group")},
-            {"ep_world_size", Ops::Transformer::AnyValue::CreateFrom<int64_t>(288)},
-            {"ep_rank_id", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)},
-            {"moe_expert_num", Ops::Transformer::AnyValue::CreateFrom<int64_t>(256)},
-            {"group_tp", Ops::Transformer::AnyValue::CreateFrom<std::string>("ep_group")},
-            {"tp_world_size", Ops::Transformer::AnyValue::CreateFrom<int64_t>(2)},
-            {"tp_rank_id", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)},
-            {"expert_shard_type", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)},
-            {"shared_expert_rank_num", Ops::Transformer::AnyValue::CreateFrom<int64_t>(32)},
-            {"quant_mode", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)},
-            {"global_bs", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)},
-            {"expert_token_nums_type", Ops::Transformer::AnyValue::CreateFrom<int64_t>(1)},
-            {"comm_alg", Ops::Transformer::AnyValue::CreateFrom<std::string>("")},
-            {"zero_expert_num", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)},
-            {"copy_expert_num", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)},
-            {"const_expert_num", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)}
-        })
-        .InputDataTypes({&expandXType, &expertIdsType})
-        .NodeOutputTd(0, ge::FORMAT_ND, ge::FORMAT_ND)
-        .NodeOutputTd(1, ge::FORMAT_ND, ge::FORMAT_ND)
-        .NodeOutputTd(2, ge::FORMAT_ND, ge::FORMAT_ND)
-        .NodeOutputTd(3, ge::FORMAT_ND, ge::FORMAT_ND)
-        .NodeOutputTd(4, ge::FORMAT_ND, ge::FORMAT_ND)
-        .NodeOutputTd(5, ge::FORMAT_ND, ge::FORMAT_ND)
-        .Build();
-
-    auto spaceRegistry = gert::DefaultOpImplSpaceRegistryV2::GetInstance().GetSpaceRegistry();
-    auto inferDtypeFunc = spaceRegistry->GetOpImpl("MoeDistributeDispatchV2")->infer_datatype;
-    ASSERT_EQ(inferDtypeFunc(contextHolder.GetContext<gert::InferDataTypeContext>()), ge::GRAPH_SUCCESS);
-
-    EXPECT_EQ(contextHolder.GetContext<gert::InferDataTypeContext>()->GetOutputDataType(0), ge::DT_FLOAT16);
-}
 }

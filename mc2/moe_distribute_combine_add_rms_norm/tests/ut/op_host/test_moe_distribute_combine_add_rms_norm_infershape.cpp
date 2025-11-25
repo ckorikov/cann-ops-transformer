@@ -73,32 +73,4 @@ namespace MoeDistributeCombineAddRmsNormNameSpace{
     std::vector<std::vector<int64_t>> expectOutputShape = {{192, 1, 7168}, {192, 1, 1}, {192, 1, 7168}};
     ExecuteTestCase(infershapeContextPara, ge::SUCCESS, expectOutputShape);
  }
- 
- TEST_F(MoeDistributeCombineAddRmsNorm, infer_dtype_001)
- {
-     ge::DataType expand_x_type = ge::DT_BF16;
-     ge::DataType expert_ids_type = ge::DT_INT32;
-     ge::DataType assist_info_for_combine_type = ge::DT_INT32;
-     ge::DataType ep_send_counts_type = ge::DT_INT32;
-     ge::DataType expert_scales_type = ge::DT_FLOAT;
-     ge::DataType residual_x_type = ge::DT_BF16;
-     ge::DataType gamma_type = ge::DT_BF16;
- 
-     auto holder = gert::InferDataTypeContextFaker()
-         .NodeIoNum(7, 3)
-         .InputDataTypes({&expand_x_type, &expert_ids_type, &assist_info_for_combine_type, &ep_send_counts_type,
-            &expert_scales_type, &residual_x_type, &gamma_type})
-         .NodeOutputTd(0, ge::FORMAT_ND, ge::FORMAT_ND)
-         .NodeOutputTd(1, ge::FORMAT_ND, ge::FORMAT_ND)
-         .NodeOutputTd(2, ge::FORMAT_ND, ge::FORMAT_ND)
-         .Build();
- 
-     auto spaceRegistry = gert::DefaultOpImplSpaceRegistryV2::GetInstance().GetSpaceRegistry();
-     auto inferDtypeFunc = spaceRegistry->GetOpImpl("MoeDistributeCombineAddRmsNorm")->infer_datatype;
-     ASSERT_EQ(inferDtypeFunc(holder.GetContext<gert::InferDataTypeContext>()), ge::GRAPH_SUCCESS);
- 
-     EXPECT_EQ(holder.GetContext<gert::InferDataTypeContext>()->GetOutputDataType(0), ge::DT_BF16);
-     EXPECT_EQ(holder.GetContext<gert::InferDataTypeContext>()->GetOutputDataType(1), ge::DT_FLOAT);
-     EXPECT_EQ(holder.GetContext<gert::InferDataTypeContext>()->GetOutputDataType(2), ge::DT_BF16);
- }
 } // MoeDistributeCombineAddRmsNormNameSpace

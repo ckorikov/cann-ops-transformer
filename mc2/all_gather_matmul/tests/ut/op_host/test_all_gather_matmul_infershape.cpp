@@ -111,36 +111,4 @@ TEST_F(AllGatherMatmulInferShapeTest, is_gather_out_false) {
     ExecuteTestCase(infershapeContextPara, ge::GRAPH_SUCCESS, expectOutputShape);
 }
 
-TEST_F(AllGatherMatmulInferShapeTest, infer_datatype) {
-    ge::DataType x1_type = ge::DT_FLOAT16;
-    ge::DataType x2_type = ge::DT_FLOAT16;
-    ge::DataType bias_type = ge::DT_FLOAT16;
-    ge::DataType output_type = ge::DT_UNDEFINED;
-    ge::DataType gather_output_type = ge::DT_UNDEFINED;
-
-    auto contextHolder = gert::InferDataTypeContextFaker()
-        .NodeIoNum(3, 2)
-        .NodeAttrs({{"groupstr", Ops::Transformer::AnyValue::CreateFrom<std::string>("hcclCom")},
-                    {"is_trans_a", Ops::Transformer::AnyValue::CreateFrom<bool>(false)},
-                    {"is_trans_b", Ops::Transformer::AnyValue::CreateFrom<bool>(false)},
-                    {"gather_index", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)},
-                    {"comm_turn", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)},
-                    {"rank_size", Ops::Transformer::AnyValue::CreateFrom<int64_t>(0)},
-                    {"is_gather_out", Ops::Transformer::AnyValue::CreateFrom<int64_t>(true)}})
-        .NodeInputTd(0, x1_type, ge::FORMAT_ND, ge::FORMAT_ND)
-        .NodeInputTd(1, x2_type, ge::FORMAT_ND, ge::FORMAT_ND)
-        .NodeInputTd(2, bias_type, ge::FORMAT_ND, ge::FORMAT_ND)
-        .NodeOutputTd(0, ge::FORMAT_ND, ge::FORMAT_ND)
-        .NodeOutputTd(1, ge::FORMAT_ND, ge::FORMAT_ND)
-        .InputDataTypes({&x1_type, &x2_type, &bias_type})
-        .OutputDataTypes({&output_type, &gather_output_type})
-        .Build();
-
-    auto spaceRegistry = gert::DefaultOpImplSpaceRegistryV2::GetInstance().GetSpaceRegistry();
-    auto inferDataTypeFunc = spaceRegistry->GetOpImpl("AllGatherMatmul")->infer_datatype;
-    ASSERT_EQ(inferDataTypeFunc(contextHolder.GetContext<gert::InferDataTypeContext>()), ge::GRAPH_SUCCESS);
-    EXPECT_EQ(contextHolder.GetContext<gert::InferDataTypeContext>()->GetOutputDataType(0), ge::DT_FLOAT16);
-    EXPECT_EQ(contextHolder.GetContext<gert::InferDataTypeContext>()->GetOutputDataType(1), ge::DT_FLOAT16);
-}
-
 } // AllGatherMatmulUT

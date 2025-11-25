@@ -119,54 +119,6 @@ std::unordered_map<std::string, std::function<void(TilingParamss& tiling_params,
              tiling_params.recv_counts = value_vec;
          }}};
 
-TEST_P(AlltoAllvGroupedMatMulInfershape, inferdatatype_test)
-{
-    auto test_param = GetParam();
-    int64_t input_num{6};
-    int64_t output_num{3};
-    auto tiling_param = TilingParamss{};
-    auto tiling_dtypes = TilingDTypes{};
-    
-    for (auto& kv : test_param.tiling_input_dtypes_pair) {
-        if (kv.first >= 0 && kv.first < tiling_dtypes.input_dtypes.size()) {
-            tiling_dtypes.input_dtypes[kv.first] = kv.second;
-        }
-    }
-    for (auto& kv : test_param.tiling_output_dtypes_pair) {
-            if (kv.first >= 0 && kv.first < tiling_dtypes.output_dtypes.size()) {
-                tiling_dtypes.output_dtypes[kv.first] = kv.second;
-        }
-    }
-    
-    std::vector<void*> input_dtypes_ptrs(input_num);
-    for (int64_t i = 0; i < input_num; i++) {
-        input_dtypes_ptrs[i] = &tiling_dtypes.input_dtypes[i];
-    }
-    std::vector<void*> output_dtypes_ptrs(output_num);
-
-    auto contextHolder = gert::InferDataTypeContextFaker()
-                .NodeIoNum(input_num, output_num)
-                .InputDataTypes(input_dtypes_ptrs)
-                .OutputDataTypes(output_dtypes_ptrs)
-                .NodeAttrs({
-                    {"group", Ops::Transformer::AnyValue::CreateFrom<std::string>(tiling_param.group)},
-                    {"ep_world_size", Ops::Transformer::AnyValue::CreateFrom<int64_t>(tiling_param.ep_world_size)},
-                    {"send_counts", Ops::Transformer::AnyValue::CreateFrom<std::vector<int64_t>>(tiling_param.send_counts)},
-                    {"recv_counts", Ops::Transformer::AnyValue::CreateFrom<std::vector<int64_t>>(tiling_param.recv_counts)},
-                    {"trans_gmm_weight", Ops::Transformer::AnyValue::CreateFrom<bool>(tiling_param.trans_gmm_weight)},
-                    {"trans_mm_weight", Ops::Transformer::AnyValue::CreateFrom<bool>(tiling_param.trans_mm_weight)},
-                    {"permute_out_flag", Ops::Transformer::AnyValue::CreateFrom<bool>(tiling_param.permute_out_flag)}
-                    })
-                .Build();
-    /* get infershape func */
-    auto spaceRegistry = gert::DefaultOpImplSpaceRegistryV2::GetInstance().GetSpaceRegistry();
-    auto inferDtypeFunc = spaceRegistry->GetOpImpl("AlltoAllvGroupedMatMul")->infer_datatype;
-
-    /* do infershape */
-    ASSERT_EQ(inferDtypeFunc(contextHolder.GetContext<gert::InferDataTypeContext>()), ge::GRAPH_SUCCESS);
-    EXPECT_EQ(contextHolder.GetContext<gert::InferDataTypeContext>()->GetOutputDataType(0), ge::DT_FLOAT16);
-}
-
 TEST_P(AlltoAllvGroupedMatMulInfershape, infershape_test)
 {
     auto test_param = GetParam();

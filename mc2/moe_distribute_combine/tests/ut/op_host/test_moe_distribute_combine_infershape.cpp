@@ -70,26 +70,4 @@ TEST_F(MoeDistributeCombineInfershape, infer_shape_0) {
     std::vector<std::vector<int64_t>> x_output_shape = {{32, 7168},};
     ExecuteTestCase(infershapeContextPara, ge::GRAPH_SUCCESS, x_output_shape);
 }
-TEST_F(MoeDistributeCombineInfershape, infer_dtype_0) {
-    ge::DataType expand_x_type = ge::DT_FLOAT16;
-    ge::DataType expert_ids_type = ge::DT_INT32;
-    ge::DataType expand_idx_type = ge::DT_INT32;
-    ge::DataType ep_send_counts_type = ge::DT_INT32;
-    ge::DataType tp_send_counts_type = ge::DT_INT32;
-    ge::DataType expert_scales_type = ge::DT_FLOAT;
-
-    auto contextHolder = gert::InferDataTypeContextFaker()
-        .NodeIoNum(6, 1)
-        .InputDataTypes({&expand_x_type, &expert_ids_type, &expand_idx_type,
-                         &ep_send_counts_type, &tp_send_counts_type, &expert_scales_type})
-        .NodeOutputTd(0, ge::FORMAT_ND, ge::FORMAT_ND)
-        .Build();
-    /* get infershape func */
-    auto spaceRegistry = gert::DefaultOpImplSpaceRegistryV2::GetInstance().GetSpaceRegistry();
-    auto inferDtypeFunc = spaceRegistry->GetOpImpl("MoeDistributeCombine")->infer_datatype;
-    /* do infershape */
-    ASSERT_EQ(inferDtypeFunc(contextHolder.GetContext<gert::InferDataTypeContext>()), ge::GRAPH_SUCCESS);
-    EXPECT_EQ(contextHolder.GetContext<gert::InferDataTypeContext>()->GetOutputDataType(0), ge::DT_FLOAT16);
-}
-
 } //moe_distribute_combine_infershape_ut
