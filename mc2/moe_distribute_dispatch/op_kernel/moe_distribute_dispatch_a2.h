@@ -663,25 +663,18 @@ __aicore__ inline void MoeDistributeDispatchA2<TemplateMC2TypeA2Func>::MaskZeroC
     LocalTensor<uint32_t> maskTensorInt32 = tBuf_.GetWithOffset<uint32_t>(RoundUp(tmpTokenCnt, UB_ALIGN), baseBuffOffset);
     LocalTensor<uint8_t> maskTensorInt8 = maskTensorInt32.template ReinterpretCast<uint8_t>();
     baseBuffOffset += RoundUp(tmpTokenCnt, UB_ALIGN) * sizeof(uint32_t);
-    LocalTensor<half> expertIdsTensorCast = tBuf_.GetWithOffset<half>(RoundUp(tmpTokenCnt, BITS16_PER_BLOCK), baseBuffOffset);
-    baseBuffOffset += RoundUp(tmpTokenCnt, BITS16_PER_BLOCK) * sizeof(half);
     int32_t moeExpertNumInt32 = static_cast<int32_t>(moeExpertNum_);
 
     DataCopyExtParams expertIdsCntParams = {1U, static_cast<uint32_t>(RoundUp(tmpTokenCnt, BITS32_PER_BLOCK) * sizeof(uint32_t)), 0U, 0U, 0U};
     DataCopyPadExtParams<int32_t> expertIdsCntCopyPadParams{false, 0U, 0U, 0U};
     DataCopyPad(expertIdsTensor_, expertIdsGMTensor_, expertIdsCntParams, expertIdsCntCopyPadParams);
     SyncFunc<AscendC::HardEvent::MTE2_V>();
-    PipeBarrier<PIPE_V>();
-    SetDeqScale((half)1.000000e+00f);
-    PipeBarrier<PIPE_V>();
-    Cast(expertIdsTensorCast, expertIdsTensor_, RoundMode::CAST_NONE, RoundUp(tmpTokenCnt, BITS32_PER_BLOCK));
-    PipeBarrier<PIPE_V>();
     Duplicate<uint32_t>(maskTensorInt32, 0, Ceil(tmpTokenCnt, UB_ALIGN));
     PipeBarrier<PIPE_V>();
     // CompareScalar需要保证元素所占空间256字节对齐。
-    uint32_t calcCnt = Ceil(sendToMoeExpTokenCnt_ * sizeof(half), ALIGNED_LEN_256) * ALIGNED_LEN_256 / sizeof(half);
+    uint32_t calcCnt = Ceil(sendToMoeExpTokenCnt_ * sizeof(int32_t), ALIGNED_LEN_256) * ALIGNED_LEN_256 / sizeof(int32_t);
     // 逐元素比较一个tensor中的元素和另一个Scalar的大小，如果比较后的结果为真，则输出结果的对应比特位为1，否则为0。筛掉零计算量专家
-    CompareScalar(maskTensorInt8, expertIdsTensorCast, static_cast<half>(moeExpertNumInt32), AscendC::CMPMODE::LT, calcCnt);
+    CompareScalar(maskTensorInt8, expertIdsTensor_, moeExpertNumInt32, AscendC::CMPMODE::LT, calcCnt);
     PipeBarrier<PIPE_V>();
     LocalTensor<uint16_t> maskTensorInt16 = maskTensorInt32.template ReinterpretCast<uint16_t>(); // 空间bs*k*1
     LocalTensor<uint16_t> gatherMaskTensorint16 = gatherMaskTensor_.template ReinterpretCast<uint16_t>(); // 空间bs*k*4
