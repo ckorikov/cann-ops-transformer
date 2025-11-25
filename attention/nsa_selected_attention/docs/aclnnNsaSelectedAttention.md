@@ -307,7 +307,7 @@ aclnnStatus aclnnNsaSelectedAttention(
     <td>query、key、value、attenMaskOptional、softmaxMaxOut、softmaxSumOut、attentionOut的数据类型和数据格式不在支持的范围内。</td>
   </tr>
   <tr>
-    <td>input_layout输入的类型不在支持的范围内。</td>
+    <td>inputLayout输入的类型不在支持的范围内。</td>
   </tr>
 </tbody>
 </table>
@@ -363,7 +363,7 @@ aclnnStatus aclnnNsaSelectedAttention(
 - 输入query、key、value的batchsize必须相等，即要求传入的actualSeqQLenOptional和actualSeqKvLenOptional具有相同的长度。
 - 输入query、key、value的D：Head-Dim必须满足（D_q == D_k && D_k >= D_v）。
 - 输入query、key、value的数据类型必须一致。
-- 输入query、key、value的input_layout必须一致。
+- 输入query、key、value的inputLayout必须一致。
 - sparseMode目前支持0和2。
 - selectedBlockSize支持<=128且满足16的整数倍。
 - selectBlockCount：支持[1~128]。 总计选择的大小`selectBlockCount * selctBlockSize` < 128*64(8K)

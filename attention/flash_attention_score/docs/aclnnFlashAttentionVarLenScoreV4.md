@@ -420,7 +420,7 @@ aclnnStatus aclnnFlashAttentionVarLenScoreV4(
 - 该接口与PyTorch配合使用时，需要保证CANN相关包与PyTorch相关包的版本匹配。
 - 输入query、key、value的B：batchsize必须相等。
 - 输入query、key、value的D：Head-Dim必须满足（qD == kD && kD >= vD）。
-- 输入query、key、value的input_layout必须一致。
+- 输入query、key、value的inputLayout必须一致。
 - 输入query、key、value、realShiftOptional的数据类型必须一致。
 - 支持输入query的N和key/value的N不相等，但必须成比例关系，即Nq/Nkv必须是非0整数，Nq取值范围1~256。当Nq/Nkv > 1时，即为GQA（grouped-query attention）；当Nkv=1时，即为MQA（multi-query attention）。本文如无特殊说明，N表示的是Nq。
 - 关于数据shape的约束，其中：
@@ -439,10 +439,10 @@ aclnnStatus aclnnFlashAttentionVarLenScoreV4(
 - sparseMode配置为1、2、3、6时，用户配置的preTokens、nextTokens不会生效；sparseMode配置为0、4、7、8时，须保证attenMaskOptional与preTokens、nextTokens的范围一致。
 - sparseMode为1、2、3、4、6、7、8时，应传入对应正确的attenMaskOptional，否则将导致计算结果错误。当attenMaskOptional输入为None时，sparseMode、preTokens、nextTokens参数不生效，固定为全计算。
 - attenMaskOptional输入不支持补pad，即attenMaskOptional中不能存在某一行全1的场景。
-- sparse_mode=3时，不支持无效行计算，需要满足每个batch的Sq<=Skv。
+- sparseMode=3时，不支持无效行计算，需要满足每个batch的Sq<=Skv。
 - actualSeqQLenOptional输入支持某个Batch上的S长度为0，此时不支持可选输入realShiftOptional，假设真实的S长度为\[2,2,0,2,2\]，则传入的actualSeqQLenOptional为\[2,4,4,6,8\]。
-- sparse_mode=7时，不支持可选输入realShiftOptional。
-- sparse_mode=8时，当每个sequence的q、kv等长时支持可选输入realShiftOptional，针对全局做pse生成。支持q方向进行外切，需要外切前每个sequence的q、kv等长，外切后传入的actualSeqQLenOptional[0] - actualSeqKvLenOptional[0] + qStartIdxOptional - kvStartIdxOptional == 0（本功能属实验性功能）。
+- sparseMode=7时，不支持可选输入realShiftOptional。
+- sparseMode=8时，当每个sequence的q、kv等长时支持可选输入realShiftOptional，针对全局做pse生成。支持q方向进行外切，需要外切前每个sequence的q、kv等长，外切后传入的actualSeqQLenOptional[0] - actualSeqKvLenOptional[0] + qStartIdxOptional - kvStartIdxOptional == 0（本功能属实验性功能）。
 - softmaxOutLayout支持传入：空字符串、"same_as_input"。
 
 

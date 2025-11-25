@@ -535,7 +535,7 @@ aclnnStatus aclnnFlashAttentionScoreVX(
 - 该接口与PyTorch配合使用时，需要保证CANN相关包与PyTorch相关包的版本匹配。
 - 输入query、key、value的B：batchsize必须相等。
 - 输入query、key、value的D：Head-Dim必须满足(qD == kD && kD >= vD)。
-- 输入query、key、value的input_layout必须一致。
+- 输入query、key、value的inputLayout必须一致。
 - 输入queryRopeOptional与query的输入shape仅在D维度不同，其他shape参数应该相同
 - 输入keyRopeOptional与key的输入shape仅在D维度不同，其他shape参数应该相同
 - 关于数据shape的约束，以inputLayout的TND、BSND、BNSD为例（BSH、SBH下H=N\*D），其中：
@@ -560,8 +560,8 @@ aclnnStatus aclnnFlashAttentionScoreVX(
 - band场景，preTokens和nextTokens之间必须要有交集。
 - prefixOptional稀疏计算场景，场景包括sequence长度相等的场景下sparseMode=5、sparseMode=6；sequence长度不相等的场景下sparseMode=6。这两种场景下，当Sq > Skv时，prefix的N值取值范围\[0, Skv\]；当Sq <= Skv时，prefix的N值取值范围\[Skv-Sq, Skv\]。当sparseModeOptional=5、prefix的N > Skv时，执行全计算。
 - realShiftOptional Sq大于1024时如果配置BNHS、1NHS，需要Sq和Skv等长。
-- sparse_mode=7时，不支持可选输入realShiftOptional。
-- sparse_mode=8时，当每个sequence的q、kv等长时支持可选输入realShiftOptional，针对全局做pse生成。支持q方向进行外切，需要外切前每个sequence的q、kv等长，外切后传入的actualSeqQLenOptional[0] - actualSeqKvLenOptional[0] + qStartIdxOptional - kvStartIdxOptional == 0（本功能属实验性功能）。
+- sparseMode=7时，不支持可选输入realShiftOptional。
+- sparseMode=8时，当每个sequence的q、kv等长时支持可选输入realShiftOptional，针对全局做pse生成。支持q方向进行外切，需要外切前每个sequence的q、kv等长，外切后传入的actualSeqQLenOptional[0] - actualSeqKvLenOptional[0] + qStartIdxOptional - kvStartIdxOptional == 0（本功能属实验性功能）。
 - actualSeqQLenOptional输入支持某个Batch上的S长度为0，此时不支持可选输入realShiftOptional。
 - attenMaskOptional输入不支持补pad，即attenMaskOptional中不能存在某一行全1的场景。
 - 支持actualSeqQLenOptional中某个Batch上的S长度为0；如果存在S为0的情况，不支持pse输入，

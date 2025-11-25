@@ -515,7 +515,7 @@ aclnnStatus aclnnFlashAttentionScoreGradV3(
 - 该接口与PyTorch配合使用时，需要保证CANN相关包与PyTorch相关包的版本匹配。
 - 输入query、key、value、dy的B：batchsize必须相等。
 - 输入query、key、value的D：Head-Dim必须满足(qD == kD && kD >= vD)。
-- 输入query、key、value、dy的input_layout必须一致。
+- 输入query、key、value、dy的inputLayout必须一致。
 - 输入key/value的shape除D外必须一致，在query/key/value的D大小相同的情况下，query/dy的shape必须一致。
 - 支持输入query/dy的N和key/value的N不相等，但必须成比例关系，即Nq/Nkv必须是非0整数，Nq取值范围1~256。
 - 关于数据shape的约束，以inputLayout的BSND、BNSD为例（BSH、SBH下H=N\*D），其中：
