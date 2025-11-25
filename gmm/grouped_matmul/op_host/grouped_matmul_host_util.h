@@ -124,6 +124,7 @@ constexpr int32_t STATIC_TILING_STEP_KA_KB = 4;
 constexpr int32_t STATIC_TILING_MAX_K = 8192;
 constexpr uint32_t DB_ON = 2;
 constexpr uint32_t SPACE_FOR_HELP_TENSOR = 256;
+constexpr uint32_t DOUBLE_SPACE = 2;
 
 constexpr uint64_t RecursiveSum()
 {

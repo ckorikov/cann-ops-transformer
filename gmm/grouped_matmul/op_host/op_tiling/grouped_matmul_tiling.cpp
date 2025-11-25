@@ -404,7 +404,6 @@ ge::graphStatus GMMTiling::Init(const gert::TilingContext* context) {
   if (isA8W4FakeA8W8_) {
     hasBias_ = false;
   }
-
   tilingData.gmmArray.set_mList(mList_);
   tilingData.gmmArray.set_kList(kList_);
   tilingData.gmmArray.set_nList(nList_);
@@ -1336,7 +1335,7 @@ ge::graphStatus GMMTiling::CalMMTiling(const gert::TilingContext* context, const
 }
 
 uint32_t NdWithNzNeedSpace(uint32_t baseM, uint32_t baseK, uint32_t baseN) {
-  return std::max(baseM * baseK * 2, baseM * baseN * FP32_DATATYPE_SIZE);
+  return std::max(baseM * baseK * DOUBLE_SPACE, baseM * baseN * FP32_DATATYPE_SIZE);
 }
 
 uint32_t GMMTiling::CalDequantUseUbSize(GMMTilingData& tilingData, uint32_t ubBaseM, uint32_t ubBaseN) {
@@ -1357,11 +1356,11 @@ uint32_t GMMTiling::CalDequantUseUbSize(GMMTilingData& tilingData, uint32_t ubBa
 uint32_t GMMTiling::CalUbRestBytes(uint32_t baseM, uint32_t baseK, uint32_t baseN,
                                    uint32_t ubBaseM) {
   uint32_t localTensorSize = NdWithNzNeedSpace(baseM, baseK, baseN);
-  constexpr uint32_t helpTensorOneSize = SPACE_FOR_HELP_TENSOR * 2;
+  constexpr uint32_t helpTensorOneSize = SPACE_FOR_HELP_TENSOR * DOUBLE_SPACE;
   uint32_t pertokenBrcbLocalSize = 0;
   uint32_t biasSize = 0;
   if (perTokenOrPerGroupSize_) {
-    pertokenBrcbLocalSize = ubBaseM * 32 * 2;
+    pertokenBrcbLocalSize = ubBaseM * UB_BLOCK_UNIT_SIZE * DOUBLE_SPACE;
   }
 
   if (hasBias_) {
@@ -1378,10 +1377,10 @@ void GMMTiling::CalDequantUbTiling(GMMTilingData& tilingData, const GMMCompileIn
   // make sure baseM baseK baseN can be load by ub
   while(CalDequantUseUbSize(tilingData, 1, baseN) > compileInfoPtr->ubSize) {
     if (baseM >= baseN) {
-      baseM /= 2;
+      baseM /= DOUBLE_SPACE;
       tilingData.mmTilingData.set_baseM(baseM);
     } else {
-      baseN /= 2;
+      baseN /= DOUBLE_SPACE;
       tilingData.mmTilingData.set_baseN(baseN);
     }
   }
@@ -1389,9 +1388,9 @@ void GMMTiling::CalDequantUbTiling(GMMTilingData& tilingData, const GMMCompileIn
   uint32_t ubBaseM = baseM;
   while(CalDequantUseUbSize(tilingData, ubBaseM, ubBaseN) > compileInfoPtr->ubSize) {
       if (ubBaseM > 1) {
-        ubBaseM /= 2;
+        ubBaseM /= DOUBLE_SPACE;
       } else {
-        ubBaseN /= 2;
+        ubBaseN /= DOUBLE_SPACE;
       }
   }
 
@@ -1440,25 +1439,6 @@ ge::graphStatus GMMTiling::CalDequantTiling(gert::TilingContext* context) {
   CalDequantUbTiling(tilingData, compileInfoPtr);
 
   GMMSetTplTilingKey(context);
-  // printf("fhp test ---------------------\n");
-  // printf("M: %u\n", tilingData.mmTilingData.get_M());
-  // printf("K: %u %u\n", tilingData.mmTilingData.get_Ka(), tilingData.mmTilingData.get_Kb());
-  // printf("N: %u\n", tilingData.mmTilingData.get_N());
-  // printf("baseM: %u\n", tilingData.mmTilingData.get_baseM());
-  // printf("baseK: %u\n", tilingData.mmTilingData.get_baseK());
-  // printf("baseN: %u\n", tilingData.mmTilingData.get_baseN());
-  // printf("stepKa: %u\n", tilingData.mmTilingData.get_stepKa());
-  // printf("stepKb: %u\n", tilingData.mmTilingData.get_stepKb());
-  // printf("stepM: %u\n", tilingData.mmTilingData.get_stepM());
-  // printf("stepN: %u\n", tilingData.mmTilingData.get_stepN());
-  // printf("singleCoreM: %u\n", tilingData.mmTilingData.get_singleCoreM());
-  // printf("singleCoreK: %u\n", tilingData.mmTilingData.get_singleCoreK());
-  // printf("singleCoreN: %u\n", tilingData.mmTilingData.get_singleCoreN());
-  // printf("groupNum: %u\n", tilingData.gmmBaseParams.get_groupNum());
-  // printf("usedCoreNum: %u\n", tilingData.mmTilingData.get_usedCoreNum());
-  // printf("aicNum: %u\n", compileInfoPtr->aicNum);
-  // printf("fhp test ---------------------\n");
-  // std::cout << "fhp test tilingKey:" << context->GetTilingKey() << std::endl;
 
   size_t* workspaces = context->GetWorkspaceSizes(1);  // get second variable
   OP_CHECK_NULL_WITH_CONTEXT(context, workspaces);
@@ -1467,9 +1447,6 @@ ge::graphStatus GMMTiling::CalDequantTiling(gert::TilingContext* context) {
   tilingData.gmmBaseParams.set_coreNum(compileInfoPtr->aicNum);
   tilingData.mmTilingData.set_usedCoreNum(compileInfoPtr->aicNum);
   context->SetBlockDim(compileInfoPtr->aicNum);
-  // tilingData.gmmBaseParams.set_coreNum(1);
-  // tilingData.mmTilingData.set_usedCoreNum(1);
-  // context->SetBlockDim(1);
   tilingData.SaveToBuffer(context->GetRawTilingData()->GetData(), context->GetRawTilingData()->GetCapacity());
   context->GetRawTilingData()->SetDataSize(tilingData.GetDataSize());
 

@@ -27,7 +27,6 @@
     #define MM_DTYPE_Y int32_t
   #else
     #define GMM_FLOAT
-    // #define MM_DTYPE_Y float
   #endif
 #endif
 

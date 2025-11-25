@@ -96,8 +96,6 @@ class GMMQuantCompute : public GMMCompute<mmType, sync> {
     TQue<QuePosition::VECOUT, 1> vecOutQueue;
     TQue<QuePosition::VECIN, 1> scaleInQueue;
     TBuf<TPosition::VECCALC> ubBuf;
-    // LocalTensor<CT> mmOutInUb;
-    // LocalTensor<DTYPE_SCALE> scaleInUb;
     LocalTensor<float> dequantMiddleResult;
     LocalTensor<float> mulsResultLocal;
     LocalTensor<half> pertokenBrcbLocal;
@@ -120,7 +118,6 @@ __aicore__ inline void GMMQuantCompute<mmType, sync>::Init(GM_ADDR x, GM_ADDR we
     this->GMMCompute<mmType, sync>::Init(x, weight, bias, scale, offset, antiquantScale, antiquantOffset, groupList,
         perTokenScale, y, workspace, gmmBaseParams, mmTilingData, tPipe);
     isPerTokenQuant = gmmBaseParams->quantParam == 1;
-    // sequentialWrite = gmmBaseParams->singleN == 0;
     scaleTensorPtr = scale;
     perTokenScaleTensorPtr = perTokenScale;
     cubeNum = 0;
@@ -169,32 +166,8 @@ __aicore__ inline void GMMQuantCompute<mmType, sync>::MMCompute(uint32_t groupId
 
 template <typename mmType, bool sync>
 __aicore__ inline void GMMQuantCompute<mmType, sync>::VectorCompute(MNConfig& mnConfig) {
-    // PipeBarrier<PIPE_ALL>();
     SetPerTokenQuantRefreshedBuffer(mnConfig);
     Dequant(mnConfig);
-
-    // LocalTensor<CT> mmOutLocal = vecInQueue.DeQue<CT>();
-    // LocalTensor<float> yOutFp32 = mmOutLocal.template ReinterpretCast<float>();
-    // LocalTensor<DTYPE_Y> yLocalInUb = vecOutQueue.AllocTensor<DTYPE_Y>();
-    // // PipeBarrier<PIPE_V>();
-    // Cast(yOutFp32, mmOutLocal, RoundMode::CAST_NONE, mnConfig.baseM * mnConfig.baseN);
-    // // PipeBarrier<PIPE_V>();
-    // Cast(yLocalInUb, yOutFp32, RoundMode::CAST_NONE, mnConfig.baseM * mnConfig.baseN);
-    // // PipeBarrier<PIPE_V>();
-    // uint32_t offsetM = 0;
-    // uint32_t offsetN = 0;
-    // uint64_t outOffset = (mnConfig.mIdx * mnConfig.singleM + offsetM) * mnConfig.n + mnConfig.nIdx * mnConfig.singleN + offsetN;
-    // // PipeBarrier<PIPE_ALL>();
-    // DataCopyParams params;
-    // params.blockCount = ubBaseM_;
-    // params.blockLen = ubBaseN_ * sizeof(DTYPE_Y) / UB_BLOCK_UNIT_SIZE;
-    // params.srcStride = 0;
-    // params.dstStride = (mnConfig.n - ubBaseN_) * sizeof(DTYPE_Y) / UB_BLOCK_UNIT_SIZE;
-    // DataCopy(this->yGm[outOffset], yLocalInUb, params);
-    // // PipeBarrier<PIPE_ALL>();
-    // vecInQueue.FreeTensor(mmOutLocal);
-    // vecOutQueue.FreeTensor(yLocalInUb);
-    // // PipeBarrier<PIPE_ALL>();
 }
 
 template <typename mmType, bool sync>
@@ -310,7 +283,6 @@ __aicore__ inline void GMMQuantCompute<mmType, sync>::PerTokenQuant(MNConfig& mn
     PipeBarrier<PIPE_V>();
     scaleInQueue.EnQue(scaleInUb);
     vecOutQueue.EnQue(yLocalInUb);
-    // perTokenInQueue.FreeTensor(perTokenScaleLocal);
 }
 
 template <typename mmType, bool sync>
@@ -322,7 +294,6 @@ __aicore__ inline void GMMQuantCompute<mmType, sync>::VectorTilingCalc(
     curCubeSingleM = mnConfig.mIdx == mnConfig.blockDimM - 1 ?
                               mnConfig.m - mnConfig.mIdx * mnConfig.singleM : mnConfig.singleM;
     vecBaseN = Min(ubBaseN_, curCubeSingleN);
-    // vecBaseM = this->ubCalSize / AlignUp(vecBaseN, static_cast<uint32_t>(UB_BLOCK_DOUBLE_UNIT_SIZE / sizeof(int32_t)));
     vecBaseM = Min(ubBaseM_, curCubeSingleM);
 }
 
@@ -349,7 +320,6 @@ __aicore__ inline void GMMQuantCompute<mmType, sync>::Dequant(MNConfig& mnConfig
                 curVecBaseM = curCubeSingleM - offsetM; 
             }
             // use AscendDequant interface to do perchannel dequant
-            // uint64_t mmOutOffset = mnConfig.workSpaceOffset + offsetM * static_cast<uint64_t>(rowLength) + offsetN;
             ComputeDequantAndActivate(mnConfig, mmOutInUb, curVecBaseM, alignBaseN, curVecBaseN, offsetM);
             uint64_t outOffset = (mnConfig.mIdx * mnConfig.singleM + offsetM) * mnConfig.n + \
                                   mnConfig.nIdx * mnConfig.singleN + offsetN;
