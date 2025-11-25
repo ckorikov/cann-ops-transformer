@@ -8,9 +8,9 @@
  * See LICENSE in the root of the software repository for the full text of the License.
  */
 
- /* !
+/*!
  * \file vf_rms_norm.h
- * \brief 
+ * \brief
  */
 
 #ifndef VF_RMS_NORM_H
@@ -89,5 +89,4 @@ __aicore__ inline void RmsNorm_VF(const LocalTensor<OutType> &outputLocal, const
     }
 }
 }
-
 #endif 

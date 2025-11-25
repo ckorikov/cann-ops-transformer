@@ -2809,8 +2809,8 @@ const auto Tc_MlaProlog_Case = ::testing::Values(
                       {},                                             /* quantScaleCkv */
                       {},                                             /* quantScaleCkr */
                       {})                                             /* smoothScalesCq */
-              )
-       // 非量化kernel
+              ),
+       // Non-quantized kernel
        MlaPrologCase("MlaProlog_Tc_049", true,                    /* CaseName, Enable */
        "",                                                     /* DebugInfo */
        OpInfo(ControlInfo(true, true),                        /* RunTiling, RunKernel */

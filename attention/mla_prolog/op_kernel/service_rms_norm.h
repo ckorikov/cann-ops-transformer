@@ -20,7 +20,9 @@
 #include "mla_prolog_vector_comm.h"
 
 #if __CCE_AICORE__ == 310
-#include "../regbase/opkernel/vf/vf_rms_norm.h"
+#include "arch35/vf/vf_rms_norm.h"
+#else
+#include "arch32/rms_norm.h"
 #endif
 
 namespace MlaProlog {

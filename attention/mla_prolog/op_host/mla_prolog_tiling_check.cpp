@@ -117,12 +117,12 @@ ge::graphStatus MlaPrologTilingCheck::CheckDims() const
     auto socShortName = ascendcPlatform.GetSocVersion();
     if (socShortName == platform_ascendc::SocVersion::ASCEND910_95) {
         OP_CHECK_IF(context_.tokenX.shape->GetStorageShape().GetDimNum() != MLA_PROLOG_DIM_NUM_3,
-            OP_LOGE(context_.opName, "tokenX shape dim num allows only %u, got %u.",
+            OP_LOGE(context_.opName, "tokenX shape dim num allows only %u, got %zu.",
                 MLA_PROLOG_DIM_NUM_3, context_.tokenX.shape->GetStorageShape().GetDimNum()),
             return ge::GRAPH_FAILED);
         OP_CHECK_IF(scenarioInfo_.quantMode_ != QUANT_MODE::NO_QUANT,
-            OP_LOGE(context_.opName, "QUANT_MODE allows only %u, got %u.",
-                QUANT_MODE::NO_QUANT, scenarioInfo_.quantMode_),
+            OP_LOGE(context_.opName, "QUANT_MODE allows only %d, got %d.",
+                static_cast<int>(QUANT_MODE::NO_QUANT), static_cast<int>(scenarioInfo_.quantMode_)),
             return ge::GRAPH_FAILED);
     }
     OP_CHECK_IF(baseShapeInfo_.bSize > MAX_B_SIZE,
@@ -185,7 +185,7 @@ ge::graphStatus MlaPrologTilingCheck::CheckDims() const
         }
         if (*(context_.quantScaleRepoMode) == static_cast<int>(QUANT_SCALE_REPO_MODE::COMBINE)) {
             OP_CHECK_IF(*(context_.tileSize) <= 0,
-                OP_LOGE(context_.opName, "tileSize must > 0, got %u.",
+                OP_LOGE(context_.opName, "tileSize must > 0, got %d.",
                     *(context_.tileSize)),
                 return ge::GRAPH_FAILED);
             supportedDtileSize += baseShapeInfo_.hckvSize / static_cast<uint32_t>(*(context_.tileSize)) * (DTYPE_TO_SIZE.at(ge::DT_FLOAT) / DTYPE_TO_SIZE.at(ge::DT_INT8));

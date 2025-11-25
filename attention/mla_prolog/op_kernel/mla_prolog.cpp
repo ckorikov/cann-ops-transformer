@@ -64,6 +64,7 @@ mla_prolog(__gm__ uint8_t *tokenX,
     const optiling::MlaPrologBaseParams *__restrict tilingDataBaseParams = &tilingDataIn.baseParams;
 
         TPipe pipe;
+    
     if constexpr (static_cast<SCENARIO>(Scenario) == SCENARIO::NO_QUANT) {
         MlaPrologVecS1CubS2<MLAPType<bfloat16_t, bfloat16_t, bfloat16_t, cacheMode,
             EnableDequantOpt, EnableGroupComputeOpt, 

@@ -17,6 +17,8 @@
 #define VF_ROPE_H
 #include "kernel_tensor.h"
 
+#if __CCE_AICORE__ == 310
+
 namespace MlaProlog {
 constexpr uint64_t FLOAT_VF_SIZE = 64;
 
@@ -80,5 +82,28 @@ __aicore__ inline void Rope_VF(const LocalTensor<T>& sinTensor, const LocalTenso
         }
     }
 }
+
+template <typename C>
+__aicore__ inline void RotaryPosEmbVF(const LocalTensor<C> &outputLocal, const LocalTensor<C> &inputLocal, const LocalTensor<C> &cosLocal,
+                                    const LocalTensor<C> &sinLocal, const LocalTensor<uint8_t> &shareTmpUb, uint64_t row, uint64_t col) {
+    uint64_t cnt = row * col;
+    uint32_t offsetByBytes = 0;
+    constexpr uint32_t halfReg = 32;
+
+    LocalTensor<uint32_t> gatherTensor1 = shareTmpUb.ReinterpretCast<uint32_t>()[offsetByBytes / sizeof(uint32_t)];
+    offsetByBytes += col * sizeof(uint32_t); // 偏移col
+    LocalTensor<uint32_t> gatherTensor2 = shareTmpUb.ReinterpretCast<uint32_t>()[offsetByBytes / sizeof(uint32_t)];
+    offsetByBytes += col * sizeof(uint32_t); // 偏移col
+
+    for(int i = 0; i < halfReg; ++i) {
+        gatherTensor1.SetValue(i, i * 2 + 1); // 奇数在前面32
+        gatherTensor1.SetValue(i + halfReg, i * 2); // 偶数在后面32
+        gatherTensor2.SetValue(i, i * 2); // 偶数在前面32
+        gatherTensor2.SetValue(i + halfReg, i * 2 + 1); // 奇数在后面32
+    }
+    Rope_VF<C>(sinLocal, cosLocal, inputLocal, gatherTensor1, gatherTensor2, outputLocal, static_cast<uint16_t>(row));
+}
+
 } // namespace MlaProlog
-#endif
+#endif // __CCE_AICORE__ == 310
+#endif // VF_ROPE_H

@@ -18,10 +18,9 @@
 
 #include "mla_prolog_comm.h"
 #include "mla_prolog_vector_comm.h"
+#include "arch32/rope.h"
 
 namespace MlaProlog {
-
-
 /**
  * @brief RotaryPosEmbPerTensor 对一个tensor进行RotartPosEmb，tensor的维度为[row * col]
           行与行之间sin/cos公用；
@@ -188,7 +187,5 @@ __aicore__ inline void RopePostQuantPerChannel(LocalTensor<O> &outputLocal, Loca
     CastFP32ToINT8(outputLocal, inFp32, shareTmpUb, cnt);
     AscendC::PipeBarrier<PIPE_V>();
 }
-
 }
-
 #endif
