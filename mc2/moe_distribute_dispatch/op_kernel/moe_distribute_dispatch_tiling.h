@@ -40,7 +40,7 @@ struct MoeDistributeDispatchA2Info {
     bool reserved3;                      // reserved
     uint64_t totalUbSize;                // epWorldSize
     uint32_t expertTokenNumsType;        // expert token nums type, support 0: cumsum mode, 1: count mode
-    int32_t zeroComputeExpertNum;       // sum of zero、copy and const expert nums
+    int32_t zeroComputeExpertNum;        // sum of zero, copy and const expert nums
 };
 
 struct MoeDistributeDispatchA2TilingData {

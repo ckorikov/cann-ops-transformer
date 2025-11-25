@@ -181,12 +181,12 @@ private:
     bool needPerformanceInfo_{false};
     // 分核片上相对偏移
     uint32_t tokenBeginIndex_{0};
-    uint32_t expertIdsSegBaseOffset_ {0};
-    uint32_t expandScalesSegBaseOffset_ {0};
-    uint32_t indexCountsSegBaseOffset_ {0};
+    uint32_t expertIdsSegBaseOffset_{0};
+    uint32_t expandScalesSegBaseOffset_{0};
+    uint32_t indexCountsSegBaseOffset_{0};
 
-    bool isInputTokenMaskFlag_ = false;
-    bool isInputExpertMaskFlag_ = false;
+    bool isInputTokenMaskFlag_{false};
+    bool isInputExpertMaskFlag_{false};
     TQueBind<QuePosition::VECIN, QuePosition::VECOUT, BUFFER_NUM> moeQueue_;
     TBuf<> expertIdsBuf_;
     TBuf<> expandScalesBuf_;
@@ -259,11 +259,11 @@ __aicore__ inline void MoeDistributeCombineA2<TemplateMC2TypeA2Func>::Init(GM_AD
 
     expertRecvCountGlobal_.SetGlobalBuffer((__gm__ uint32_t *)workspaceGM);
     expertWindowOffsetGlobal_.SetGlobalBuffer((__gm__ uint32_t *)(workspaceGM + moeExpertNum_ * sizeof(uint32_t)));
-    xActiveMaskGlobal_.SetGlobalBuffer((__gm__ bool*)xActiveMask);
-    oriXGlobal_.SetGlobalBuffer((__gm__ ExpandXType*)oriX);
-    constExpertAlpha1Global_.SetGlobalBuffer((__gm__ ExpandXType*)constExpertAlpha1);
-    constExpertAlpha2Global_.SetGlobalBuffer((__gm__ ExpandXType*)constExpertAlpha2);
-    constExpertVGlobal_.SetGlobalBuffer((__gm__ ExpandXType*)constExpertV);
+    xActiveMaskGlobal_.SetGlobalBuffer((__gm__ bool *)xActiveMask);
+    oriXGlobal_.SetGlobalBuffer((__gm__ ExpandXType *)oriX);
+    constExpertAlpha1Global_.SetGlobalBuffer((__gm__ ExpandXType *)constExpertAlpha1);
+    constExpertAlpha2Global_.SetGlobalBuffer((__gm__ ExpandXType *)constExpertAlpha2);
+    constExpertVGlobal_.SetGlobalBuffer((__gm__ ExpandXType *)constExpertV);
     localMoeExpertNum_ = moeExpertNum_ / worldSize_;
     rankSizeOnWin_ = dataSpaceSize_ / worldSize_ / BLOCK_SIZE * BLOCK_SIZE;
     dataOffsetOnWin_ = rankId_ * rankSizeOnWin_;

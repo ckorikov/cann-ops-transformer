@@ -178,9 +178,9 @@ private:
     uint32_t leftUbSize_{TBUF_SIZE};
     uint32_t baseBuffOffset_{0};
     uint32_t xActiveMaskSize_{0};
-    bool isTokenMaskFlag_ = false;
-    bool isExpertMaskFlag_ = false;
-    bool isQuant_ = false;
+    bool isTokenMaskFlag_{false};
+    bool isExpertMaskFlag_{false};
+    bool isQuant_{false};
     Hccl<HCCL_SERVER_TYPE_AICPU> hccl_;
     __gm__ HcclOpResParam *winContext_{nullptr};
 };
