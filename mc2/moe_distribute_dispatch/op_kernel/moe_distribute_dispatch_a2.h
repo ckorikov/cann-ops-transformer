@@ -746,10 +746,11 @@ template <TemplateMC2TypeA2Class>
 __aicore__ inline void MoeDistributeDispatchA2<TemplateMC2TypeA2Func>::LocalWindowCopy()
 {
     GlobalTensor<ExpandXOutType> currRankWindowGlobal;
-    uint32_t dynamicScalesAddr = AscendC::TOTAL_UB_SIZE - RoundUp(expertIdsCnt_ * sizeof(float), UB_ALIGN);
-    auto dynamicScalesTensor = LocalTensor<float>{TPosition::LCM, dynamicScalesAddr, expertIdsCnt_};
     uint32_t xOutTensor0Addr = epRecvCountsOutLocal_.GetPhyAddr() + epRecvCountsOutLocal_.GetSize() * sizeof(int32_t);
     uint32_t xOutTensor1Addr = xOutTensor0Addr + axisHCommu_ * sizeof(ExpandXOutType);
+    uint32_t dynamicScalesAddr = xOutTensor1Addr + axisHCommu_ * sizeof(ExpandXOutType);
+    uint32_t tokenNum = epRecvCountsOutLocal_(localMoeExpertNum_ * worldSize_ - 1);
+    auto dynamicScalesTensor = LocalTensor<float>{TPosition::LCM, dynamicScalesAddr, tokenNum};
     xOutTensor_[0] = LocalTensor<ExpandXOutType>{TPosition::LCM, xOutTensor0Addr, axisHCommu_};
     xOutTensor_[1] = LocalTensor<ExpandXOutType>{TPosition::LCM, xOutTensor1Addr, axisHCommu_};
     for (uint32_t rankId = worldTaskInfo_.startTaskId; rankId < worldTaskInfo_.endTaskId; rankId++) {
