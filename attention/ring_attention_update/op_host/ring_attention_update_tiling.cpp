@@ -53,6 +53,7 @@ constexpr uint64_t BUFFER_NUM_IN_QUE = 2;
 constexpr uint64_t SEQ_NUM_LOOP_EACH_TND = 1;
 constexpr uint64_t MAX_HEAD_NUM_LIMIT_SIZE = 256;
 constexpr uint64_t MAX_HEAD_DIM_LIMIT_SIZE = 768;
+constexpr uint64_t SOFTMAX_LAYOUT_INDEX = 1;
 
 static void InitTilingData(RingAttentionUpdateTilingData& tiling) {
   // init param
@@ -450,6 +451,21 @@ static ge::graphStatus Tiling4RingAttentionUpdateTND(const gert::TilingContext* 
   tiling.set_headNum(headNum);
   tiling.set_headDim(headDim);
   tiling.set_softmaxTailSize(softmaxTailSize);
+
+  // get attr
+  uint8_t tndSoftmaxLayout = 0;
+  auto attrs = context->GetAttrs();
+  OP_CHECK_NULL_WITH_CONTEXT(context, attrs);
+  const char* softmaxInputLayout = attrs->GetAttrPointer<char>(SOFTMAX_LAYOUT_INDEX);
+  if (softmaxInputLayout == nullptr || strcmp(softmaxInputLayout, "") == 0 || strcmp(softmaxInputLayout, "SBH") == 0) {
+      tndSoftmaxLayout = 0;
+  } else if (strcmp(softmaxInputLayout, "TND") == 0) {
+      tndSoftmaxLayout = 1;
+  } else {
+      OP_LOGE(context->GetNodeName(), "SoftmaxLayout only support \"\" or \"SBH\" or \"TND\".");
+      return ge::GRAPH_FAILED;
+  }
+  tiling.set_tndSoftmaxLayout(tndSoftmaxLayout);
 
   const auto ascendcPlatform = platform_ascendc::PlatformAscendC(context->GetPlatformInfo());
   auto maxCoreNum = ascendcPlatform.GetCoreNumAiv();

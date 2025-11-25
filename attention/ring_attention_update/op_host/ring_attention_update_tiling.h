@@ -40,6 +40,7 @@ BEGIN_TILING_DATA_DEF(RingAttentionUpdateTilingData)
     TILING_DATA_FIELD_DEF(int64_t, batchSizeCoreTail);
     TILING_DATA_FIELD_DEF(int64_t, dimTCoreEach);
     TILING_DATA_FIELD_DEF(int64_t, dimTCoreTail);
+    TILING_DATA_FIELD_DEF(uint8_t , tndSoftmaxLayout);
 END_TILING_DATA_DEF;
 
 REGISTER_TILING_DATA_CLASS(RingAttentionUpdate, RingAttentionUpdateTilingData)

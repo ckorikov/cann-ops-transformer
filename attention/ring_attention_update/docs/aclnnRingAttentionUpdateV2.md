@@ -1,4 +1,4 @@
-# aclnnRingAttentionUpdate
+# aclnnRingAttentionUpdateV2
 
 ## 产品支持情况
 
@@ -14,8 +14,7 @@
 
 ## 功能说明
 
-- 接口功能：RingAttentionUpdate算子功能是将两次FlashAttention的输出根据其不同的softmax的max和sum更新。
-
+- 算子功能：将两次FlashAttention的输出根据其不同的softmax的max和sum更新。**与[RingAttentionUpdate](./aclnnRingAttentionUpdate.md)接口的区别是：在输入排布为TND的场景下，原RingAttentionUpdate接口中的softmax相关输入的数据排布为BNS8，RingAttentionUpdateV2 接口支持传入字符串参数 inputSoftmaxLayout，用于控制 softmax 相关输入的数据排布是否与attention保持一致（即采用 TND 排布）。**
 - 计算公式：
 
 $$
@@ -32,57 +31,95 @@ $$
 
 ## 函数原型
 
-每个算子分为[两段式接口](../../../docs/zh/context/两段式接口.md)，必须先调用“aclnnRingAttentionUpdateGetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnRingAttentionUpdate”接口执行计算。
+- 每个算子分为[两段式接口](../../../docs/zh/context/两段式接口.md)，必须先调用“aclnnRingAttentionUpdateV2GetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnRingAttentionUpdateV2”接口执行计算。
 
+```cpp
+aclnnStatus aclnnRingAttentionUpdateV2GetWorkspaceSize(
+  const aclTensor *prevAttnOut, 
+  const aclTensor *prevSoftmaxMax, 
+  const aclTensor *prevSoftmaxSum, 
+  const aclTensor *curAttnOut, 
+  const aclTensor *curSoftmaxMax, 
+  const aclTensor *curSoftmaxSum, 
+  const aclTensor *actualSeqQlenOptional, 
+  char *inputLayoutOptional, 
+  char *inputSoftmaxLayoutOptional, 
+  const aclTensor *attnOutOut, 
+  const aclTensor *softmaxMaxOut, 
+  const aclTensor *softmaxSumOut, 
+  uint64_t *workspaceSize, 
+  aclOpExecutor **executor)
+```
 
-- `aclnnStatus aclnnRingAttentionUpdateGetWorkspaceSize(const aclTensor *prevAttnOut, const aclTensor *prevSoftmaxMax, const aclTensor *prevSoftmaxSum, const aclTensor *curAttnOut, const aclTensor *curSoftmaxMax, const aclTensor *curSoftmaxSum, const aclTensor *actualSeqQlenOptional, char *inputLayoutOptional, const aclTensor *attnOutOut, const aclTensor *softmaxMaxOut, const aclTensor *softmaxSumOut, uint64_t *workspaceSize, aclOpExecutor **executor)`
-- `aclnnStatus aclnnRingAttentionUpdate(void *workspace, uint64_t workspaceSize, aclOpExecutor *executor, aclrtStream stream)`
+```cpp
+aclnnRingAttentionUpdateV2(
+  void *workspace, 
+  uint64_t workspaceSize, 
+  aclOpExecutor *executor, 
+  aclrtStream stream)
+```
 
-## aclnnRingAttentionUpdateGetWorkspaceSize
+## aclnnRingAttentionUpdateV2GetWorkspaceSize
 
 - **参数说明：**
-  - prevAttnOut（aclTensor*,计算输入）：Device侧的aclTensor，公式中的prev_attn_out，第一次FlashAttention的输出，数据类型支持FLOAT16、FLOAT、BFLOAT16，输入shape和inputLayoutOptional属性保持一致，支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。当输入数据排布inputLayoutOptional为TND时，D限制为64的倍数。
-  - prevSoftmaxMax（aclTensor*,计算输入）：Device侧的aclTensor，公式中的prev_softmax_max，第一次FlashAttention的softmax的max结果，数据类型支持FLOAT，输入shape为(B,N,S,8)或(T,N,8)，最后一维8个数字相同，且需要为正数，支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。此处B为batch size，N为head number，S为sequence length，T为time。
-  - prevSoftmaxSum（aclTensor*,计算输入）：Device侧的aclTensor，公式中的prev_softmax_sum，第一次FlashAttention的softmax的sum结果，数据类型支持FLOAT，输入shape和prevSoftmaxMax保持一致，最后一维8个数字相同，且需要为正数，支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。
-  - curAttnOut（aclTensor*,计算输入）：Device侧的aclTensor，公式中的cur_attn_out，第二次FlashAttention的输出，数据类型支持FLOAT16、FLOAT、BFLOAT16，数据类型和输入shape和prevAttnOut保持一致，支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。当输入数据排布inputLayoutOptional为TND时，D限制为64的倍数。
-  - curSoftmaxMax（aclTensor*,计算输入）：Device侧的aclTensor，公式中的cur_softmax_max，第二次FlashAttention的softmax的max结果，数据类型支持FLOAT，输入shape和prevSoftmaxMax保持一致，最后一维8个数字相同，且需要为正数，支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。
-  - curSoftmaxSum（aclTensor*,计算输入）：Device侧的aclTensor，公式中的cur_softmax_sum，第二次FlashAttention的softmax的sum结果，数据类型支持FLOAT，输入shape和prevSoftmaxMax保持一致，最后一维8个数字相同，且需要为正数，支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。
-  - actualSeqQlenOptional（aclTensor*,计算输入）：Device侧的aclTensor，从0开始的sequence length的累加，数据类型支持INT64。当数据排布inputLayoutOptional为TND时，需要传入该参数，这是一个从0开始递增至T的整数aclTensor。
-  - inputLayoutOptional（char*,计算输入）：Host侧的char*常量，attn_out相关输入的数据排布。当前支持“TND”和“SBH”。
-  - attnOutOut（aclTensor*,计算输出）：Device侧的aclTensor，公式中的attn_out，通过两次结果更新后的输出，数据类型支持FLOAT16、FLOAT、BFLOAT16，数据类型和输出shape和prevAttnOut保持一致，支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。
-  - softmaxMaxOut（aclTensor*,计算输出）：Device侧的aclTensor，公式中的softmax_max，通过两次结果更新后的softmax的max，数据类型支持FLOAT，输出shape和prevSoftmaxMax保持一致，支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。
-  - softmaxSumOut（aclTensor*,计算输出）：Device侧的aclTensor，公式中的softmax_sum，通过两次结果更新后的softmax的sum，数据类型支持FLOAT，输出shape和prevSoftmaxMax保持一致，支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。
-  - workspaceSize（uint64_t*, 出参）：返回需要在Device侧申请的workspace大小。
-  - executor（aclOpExecutor\**, 出参）：返回op执行器，包含算子计算流程。
-  
+
+    - prevAttnOut(aclTensor*,计算输入)：Device侧的aclTensor，公式中的prev_attn_out，第一次FlashAttention的输出，输入shape和inputLayoutOptional属性保持一致，支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。当输入数据排布inputLayoutOptional为TND时，D限制为64的倍数。
+        * <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：数据类型支持FLOAT16、FLOAT、BFLOAT16
+    - prevSoftmaxMax(aclTensor*,计算输入)：Device侧的aclTensor，公式中的prev_softmax_max，第一次FlashAttention的softmax的max结果，输入shape为(B,N,S,8)或(T,N,8)，最后一维8个数字相同，且需要为正数，支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。此处B为batch size，N为head number，S为sequence length，T为time。
+        * <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：数据类型支持FLOAT
+    - prevSoftmaxSum(aclTensor*,计算输入)：Device侧的aclTensor，公式中的prev_softmax_sum，第一次FlashAttention的softmax的sum结果，输入shape和prevSoftmaxMax保持一致，最后一维8个数字相同，且需要为正数，支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。
+        * <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：数据类型支持FLOAT
+    - curAttnOut(aclTensor*,计算输入)：Device侧的aclTensor，公式中的cur_attn_out，第二次FlashAttention的输出，数据类型和输入shape和prevAttnOut保持一致，支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。当输入数据排布inputLayoutOptional为TND时，D限制为64的倍数。
+        * <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：数据类型支持FLOAT16、FLOAT、BFLOAT16
+    - curSoftmaxMax(aclTensor*,计算输入)：Device侧的aclTensor，公式中的cur_softmax_max，第二次FlashAttention的softmax的max结果，输入shape和prevSoftmaxMax保持一致，最后一维8个数字相同，且需要为正数，支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。
+        * <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：数据类型支持FLOAT
+    - curSoftmaxSum(aclTensor*,计算输入)：Device侧的aclTensor，公式中的cur_softmax_sum，第二次FlashAttention的softmax的sum结果，输入shape和prevSoftmaxMax保持一致，最后一维8个数字相同，且需要为正数，支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。
+        * <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：数据类型支持FLOAT
+    - actualSeqQlenOptional(aclTensor*,计算输入)：Device侧的aclTensor，从0开始的sequence length的累加。当数据排布inputLayoutOptional为TND时，需要传入该参数，这是一个从0开始递增至T的整数aclTensor。
+        * <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：数据类型支持INT64
+    - inputLayoutOptional(char*,计算输入)：Host侧的char*常量，prevAttnOut和curAttnOut的数据排布。当前支持“TND”和“SBH”。
+    - inputSoftmaxLayoutOptional(char*,计算输入)：Host侧的char*常量，prevSoftmaxMax、prevSoftmaxSum、curSoftmaxMax和curSoftmaxSum数据排布。当输入数据排布inputLayoutOptional为TND时生效，当前支持空字符串、“SBH”和“TND”。通过此开关控制是否对softmaxMax相关输入做转置操作。
+    - attnOutOut(aclTensor*,计算输出)：Device侧的aclTensor，公式中的attn_out，通过两次结果更新后的输出，数据类型和输出shape和prevAttnOut保持一致，支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。
+        * <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：数据类型支持FLOAT16、FLOAT、BFLOAT16
+    - softmaxMaxOut(aclTensor*,计算输出)：Device侧的aclTensor，公式中的softmax_max，通过两次结果更新后的softmax的max，输出shape和prevSoftmaxMax保持一致，支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。
+        * <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：数据类型支持FLOAT
+    - softmaxSumOut(aclTensor*,计算输出)：Device侧的aclTensor，公式中的softmax_sum，通过两次结果更新后的softmax的sum，输出shape和prevSoftmaxMax保持一致，支持[非连续的Tensor](../../../docs/zh/context/非连续的Tensor.md)，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。
+        * <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：数据类型支持FLOAT
+    - workspaceSize(uint64_t*, 出参)：返回需要在Device侧申请的workspace大小。
+    - executor(aclOpExecutor**, 出参)：返回op执行器，包含了算子计算流程。
 - **返回值：**
 
-  aclnnStatus: 返回状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
+  aclnnStatus：返回状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
 
   ```
   第一段接口完成入参校验，出现以下场景时报错：
-  返回161001(ACLNN_ERR_PARAM_NULLPTR)：1. 传入的 prevAttnOut、prevSoftmaxMax、prevSoftmaxSum、curAttnOut、curSoftmaxMax、curSoftmaxSum、attnOutOut、softmaxMaxOut、softmaxSumOut是空指针时。
-  返回161002(ACLNN_ERR_PARAM_INVALID)：1. prevAttnOut、prevSoftmaxMax、prevSoftmaxSum、curAttnOut、curSoftmaxMax、curSoftmaxSum、attnOutOut、softmaxMaxOut、softmaxSumOut数据类型不在支持的范围之内。
-  返回561002 (ACLNN_ERR_INNER_TILING_ERROR)：1. 当actualSeqQlenOptional有输入时，输入数据格式不在支持的范围之内。
-                                            2. prevAttnOut、prevSoftmaxMax、prevSoftmaxSum、curAttnOut、curSoftmaxMax、curSoftmaxSum、attnOutOut、softmaxMaxOut、softmaxSumOut的shape为空。
-                                            3. prevAttnOut、prevSoftmaxMax、prevSoftmaxSum、curAttnOut、curSoftmaxMax、curSoftmaxSum、attnOutOut、softmaxMaxOut、softmaxSumOut的shape不支持。
+  161001(ACLNN_ERR_PARAM_NULLPTR)：1. 传入的prevAttnOut、prevSoftmaxMax、prevSoftmaxSum、curAttnOut、curSoftmaxMax、curSoftmaxSum、attnOutOut、softmaxMaxOut、softmaxSumOut是空指针。
+  161002(ACLNN_ERR_PARAM_INVALID)：1. prevAttnOut、prevSoftmaxMax、prevSoftmaxSum、curAttnOut、curSoftmaxMax、curSoftmaxSum、attnOutOut、softmaxMaxOut、softmaxSumOut数据类型不在支持的范围之内。
+                                   2. prevAttnOut、prevSoftmaxMax、prevSoftmaxSum、curAttnOut、curSoftmaxMax、curSoftmaxSum、attnOutOut、softmaxMaxOut、softmaxSumOut的shape不支持。
+  561002 (ACLNN_ERR_INNER_TILING_ERROR)：1. 当actualSeqQlenOptional有输入时，输入数据格式不在支持的范围之内。
+                                         2. 当inputSoftmaxLayoutOptional输入值不在支持范围之内。
   ```
 
-## aclnnRingAttentionUpdate
+## aclnnRingAttentionUpdateV2
 
-- **参数说明**：
-  - workspace(void \*, 入参)：在Device侧申请的workspace内存地址。
-  - workspaceSize(uint64_t, 入参)：在Device侧申请的workspace大小，由第一段接口aclnnRingAttentionUpdateGetWorkspaceSize获取。
-  - executor(aclOpExecutor*, 入参)：op执行器，包含了算子计算流程。
-  - stream(aclrtStream, 入参)：指定执行任务的Stream。
+- **参数说明：**
 
-- **返回值**：
+| 参数名                      | 输入/输出 | 描述                                                                             |
+| ----------------------------- | ----------- | ---------------------------------------------------------------------------------- |
+| workspace（void*）         | 输入      | 在Device侧申请的workspace内存地址。                                              |
+| workspaceSize（uint64_t）  | 输入      | 在Device侧申请的workspace大小，由第一段接口aclnnInplaceAddGetWorkspaceSize获取。 |
+| executor（aclOpExecutor*） | 输入      | op执行器，包含了算子计算流程。                                                   |
+| stream（aclrtStream）       | 输入      | 指定执行任务的Stream。                                                           |
+
+- **返回值：**
   aclnnStatus：返回状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
 
 ## 约束说明
-  - 当inputLayoutOptional为“TND”时，prevAttnOut的最后一个维度需要为64的倍数。
-  - 当inputLayoutOptional为“TND”时，actualSeqQlenOptional为必填。
-  - 当inputLayoutOptional为“TND”时，请注意N和D的大小，限制为：N<=256, D<=768。
+
+- 当inputLayoutOptional为“TND”时，prevAttnOut的最后一个维度需要为64的倍数。
+- 当inputLayoutOptional为“TND”时，actualSeqQlenOptional为必填。
+- 当inputLayoutOptional为“TND”时，请注意N和D的大小，限制为：N<=256, D<=768。
+- **当inputLayoutOptional为“TND”时，inputSoftmaxLayoutOptional才生效。inputSoftmaxLayoutOptional只支持三种输入：空字符串、“SBH”、“TND”**
 
 ## 调用示例
 
@@ -107,11 +144,11 @@ $$
   } while (0)
 
 int64_t GetShapeSize(const std::vector<int64_t>& shape) {
-  int64_t shape_size = 1;
+  int64_t shapeSize = 1;
   for (auto i : shape) {
-    shape_size *= i;
+    shapeSize *= i;
   }
-  return shape_size;
+  return shapeSize;
 }
 
 int Init(int32_t deviceId, aclrtStream* stream) {
@@ -155,26 +192,25 @@ int main() {
   int32_t deviceId = 0;
   aclrtStream stream;
   auto ret = Init(deviceId, &stream);
-  // check根据自己的需要处理
-  CHECK_RET(ret == 0, LOG_PRINT("Init acl failed. ERROR: %d\n", ret); return ret);
+  CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("Init acl failed. ERROR: %d\n", ret); return ret);
   // 2. 构造输入与输出，需要根据API的接口自定义构造
   int64_t batchNum = 1;
   int64_t headNum = 1;
   int64_t seqSize = 2;
   int64_t headDim = 4;
   int64_t headSize = headNum * headDim;
- 
+
   std::vector<int64_t> prevAttnOutShape = {seqSize, batchNum, headSize};
-  std::vector<int64_t> prevSoftmaxMaxShape = {batchNum, headNum, seqSize, 8};
-  std::vector<int64_t> prevSoftmaxSumShape = {batchNum, headNum, seqSize, 8};
+  std::vector<int64_t> prevSoftmaxMaxShape = {batchNum * seqSize, headNum, 8};
+  std::vector<int64_t> prevSoftmaxSumShape = {batchNum * seqSize, headNum, 8};
   std::vector<int64_t> curAttnOutShape = {seqSize, batchNum, headSize};
-  std::vector<int64_t> curSoftmaxMaxShape = {batchNum, headNum, seqSize, 8};
-  std::vector<int64_t> curSoftmaxSumShape = {batchNum, headNum, seqSize, 8};
+  std::vector<int64_t> curSoftmaxMaxShape = {batchNum * seqSize, headNum, 8};
+  std::vector<int64_t> curSoftmaxSumShape = {batchNum * seqSize, headNum, 8};
   std::vector<int64_t> actualSeqQlenOptionalShape = {batchNum, headNum};
-  
+
   std::vector<int64_t> attnOutShape = {seqSize, batchNum, headSize};
-  std::vector<int64_t> softmaxMaxShape = {batchNum, headNum, seqSize, 8};
-  std::vector<int64_t> softmaxSumShape = {batchNum, headNum, seqSize, 8};
+  std::vector<int64_t> softmaxMaxShape = {batchNum * seqSize, headNum, 8};
+  std::vector<int64_t> softmaxSumShape = {batchNum * seqSize, headNum, 8};
 
   void* prevAttnOutDeviceAddr = nullptr;
   void* prevSoftmaxMaxDeviceAddr = nullptr;
@@ -199,7 +235,7 @@ int main() {
   aclTensor* attnOut = nullptr;
   aclTensor* softmaxMax = nullptr;
   aclTensor* softmaxSum = nullptr;
-  
+
   std::vector<float> prevAttnOutHostData(seqSize * batchNum * headSize, 1);
   std::vector<float> prevSoftmaxMaxHostData(batchNum * headNum * seqSize * 8, 1);
   std::vector<float> prevSoftmaxSumHostData(batchNum * headNum * seqSize * 8, 1);
@@ -212,7 +248,8 @@ int main() {
   std::vector<float> softmaxMaxHostData(batchNum * headNum * seqSize * 8, 1);
   std::vector<float> softmaxSumHostData(batchNum * headNum * seqSize * 8, 1);
 
-  char* inputLayoutOptional = "SBH";
+  char* inputLayoutOptional = "TND";
+  char* inputSoftmaxLayoutOptional = "TND";
   // 创建prevAttnOut aclTensor
   ret = CreateAclTensor(prevAttnOutHostData, prevAttnOutShape, &prevAttnOutDeviceAddr, aclDataType::ACL_FLOAT, &prevAttnOut);
   CHECK_RET(ret == ACL_SUCCESS, return ret);
@@ -234,7 +271,7 @@ int main() {
   // 创建actualSeqQlenOptional aclTensor
   ret = CreateAclTensor(actualSeqQlenOptionalHostData, actualSeqQlenOptionalShape, &actualSeqQlenOptionalDeviceAddr, aclDataType::ACL_INT64, &actualSeqQlenOptional);
   CHECK_RET(ret == ACL_SUCCESS, return ret);
-  
+
   // 创建attnOut aclTensor
   ret = CreateAclTensor(attnOutHostData, attnOutShape, &attnOutDeviceAddr, aclDataType::ACL_FLOAT, &attnOut);
   CHECK_RET(ret == ACL_SUCCESS, return ret);
@@ -245,24 +282,24 @@ int main() {
   ret = CreateAclTensor(softmaxSumHostData, softmaxSumShape, &softmaxSumDeviceAddr, aclDataType::ACL_FLOAT, &softmaxSum);
   CHECK_RET(ret == ACL_SUCCESS, return ret);
 
-  // 3. 调用CANN算子库API，需要修改为具体的API
+  // 3. 调用CANN算子库API，需要修改为具体的API名称
   uint64_t workspaceSize = 0;
   aclOpExecutor* executor;
-  // 调用aclnnRingAttentionUpdate第一段接口
-  ret = aclnnRingAttentionUpdateGetWorkspaceSize(prevAttnOut, prevSoftmaxMax, prevSoftmaxSum, 
+  // 调用aclnnRingAttentionUpdateV2第一段接口
+  ret = aclnnRingAttentionUpdateV2GetWorkspaceSize(prevAttnOut, prevSoftmaxMax, prevSoftmaxSum, 
                                                  curAttnOut, curSoftmaxMax, curSoftmaxSum, 
-                                                 actualSeqQlenOptional, inputLayoutOptional, 
+                                                 actualSeqQlenOptional, inputLayoutOptional, inputSoftmaxLayoutOptional,
                                                  attnOut, softmaxMax, softmaxSum, &workspaceSize, &executor);
-  CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclnnRingAttentionUpdateGetWorkspaceSize failed. ERROR: %d\n", ret); return ret);
+  CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclnnRingAttentionUpdateV2GetWorkspaceSize failed. ERROR: %d\n", ret); return ret);
   // 根据第一段接口计算出的workspaceSize申请device内存
   void* workspaceAddr = nullptr;
   if (workspaceSize > 0) {
     ret = aclrtMalloc(&workspaceAddr, workspaceSize, ACL_MEM_MALLOC_HUGE_FIRST);
     CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("allocate workspace failed. ERROR: %d\n", ret); return ret;);
   }
-  // 调用aclnnRingAttentionUpdate第二段接口
-  ret = aclnnRingAttentionUpdate(workspaceAddr, workspaceSize, executor, stream);
-  CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclnnRingAttentionUpdate failed. ERROR: %d\n", ret); return ret);
+  // 调用aclnnRingAttentionUpdateV2第二段接口
+  ret = aclnnRingAttentionUpdateV2(workspaceAddr, workspaceSize, executor, stream);
+  CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclnnRingAttentionUpdateV2 failed. ERROR: %d\n", ret); return ret);
   // 4. (固定写法)同步等待任务执行结束
   ret = aclrtSynchronizeStream(stream);
   CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclrtSynchronizeStream failed. ERROR: %d\n", ret); return ret);
@@ -284,7 +321,7 @@ int main() {
   for (int64_t i = 0; i < softmaxMaxSize; i++) {
     LOG_PRINT("softmaxMaxResultData[%ld] is: %f\n", i, softmaxMaxResultData[i]);
   }
-  
+
   auto softmaxSumSize = GetShapeSize(softmaxSumShape);
   std::vector<float> softmaxSumResultData(softmaxSumSize, 0);
   ret = aclrtMemcpy(softmaxSumResultData.data(), softmaxSumResultData.size() * sizeof(softmaxSumResultData[0]), softmaxSumDeviceAddr, softmaxSumSize * sizeof(float),

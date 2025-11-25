@@ -78,6 +78,7 @@ public:
             .Format({ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND})
             .UnknownShapeFormat({ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND});
         this->Attr("input_layout").AttrType(OPTIONAL).String("SBH");
+        this->Attr("input_softmax_layout").AttrType(OPTIONAL).String("");
         this->AICore().AddConfig("ascend910b");
         this->AICore().AddConfig("ascend910_93");
     }

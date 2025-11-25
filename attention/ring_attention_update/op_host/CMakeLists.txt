@@ -12,7 +12,7 @@
 add_op_to_compiled_list()
 
 if (BUILD_OPEN_PROJECT)
-    target_sources(op_host_aclnn PRIVATE
+    target_sources(op_host_aclnnExc PRIVATE
         ring_attention_update_def.cpp
     )
 endif()
@@ -32,5 +32,5 @@ else()
                     -Wno-deprecated-declarations
                     -Werror
     )
-    add_modules_sources(OPTYPE ring_attention_update ACLNNTYPE aclnn)
+    add_modules_sources(OPTYPE ring_attention_update ACLNNTYPE aclnn_exclude)
 endif()

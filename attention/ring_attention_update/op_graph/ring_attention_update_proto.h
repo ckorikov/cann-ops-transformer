@@ -55,6 +55,7 @@ REG_OP(RingAttentionUpdate)
     .OUTPUT(softmax_max, TensorType({DT_FLOAT32}))
     .OUTPUT(softmax_sum, TensorType({DT_FLOAT32}))
     .ATTR(input_layout, String, "SBH")
+    .ATTR(input_softmax_layout, String, "")
     .OP_END_FACTORY_REG(RingAttentionUpdate)
 
 } // namespace ge

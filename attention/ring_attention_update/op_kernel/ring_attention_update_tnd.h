@@ -60,20 +60,26 @@ public:
     tPipe->InitBuffer(tempFp32Buf, (attnEleNumLoop * attnBufferNum + softmaxEleNumLoop * softmaxBufferNum) * floatDataSize);
     InitTempBuffer();
   }
-
   __aicore__ inline void Process() {
-    for (int64_t batchSizeIndex = 0; batchSizeIndex < batchSize; batchSizeIndex++) {
-        seqNumBatchEndIndex = actualSeqQlenGm.GetValue(batchSizeIndex + 1);
-        if (dimTIndexCore < seqNumBatchEndIndex) {
-            curBatchIndex = batchSizeIndex;
-            seqNumBatchStartIndex = actualSeqQlenGm.GetValue(batchSizeIndex);
-            seqNumBatch = seqNumBatchEndIndex - seqNumBatchStartIndex;
-            seqNumBatchTail = dimTIndexCore - seqNumBatchStartIndex;
-            startTCount = 0 - seqNumBatchTail;
-            break;
-        }
+    if (tndSoftmaxLayout == 1) {
+      ProcessSoftmaxTnd();
+    } else {
+      ProcessTnd();
     }
+  }
 
+  __aicore__ inline void ProcessTnd() {
+    for (int64_t batchSizeIndex = 0; batchSizeIndex < batchSize; batchSizeIndex++) {
+      seqNumBatchEndIndex = actualSeqQlenGm.GetValue(batchSizeIndex + 1);
+      if (dimTIndexCore < seqNumBatchEndIndex) {
+        curBatchIndex = batchSizeIndex;
+        seqNumBatchStartIndex = actualSeqQlenGm.GetValue(batchSizeIndex);
+        seqNumBatch = seqNumBatchEndIndex - seqNumBatchStartIndex;
+        seqNumBatchTail = dimTIndexCore - seqNumBatchStartIndex;
+        startTCount = 0 - seqNumBatchTail;
+        break;
+      }
+    }
     softmaxGmOffsetLoop = seqNumBatchStartIndex * headNum * softmaxTailSize;
     attnGmOffsetLoop = dimTIndexCore * headNum * headDim;
 
@@ -114,6 +120,37 @@ public:
     }
   }
 
+  __aicore__ inline void ProcessSoftmaxTnd() {
+    softmaxGmOffsetLoop = dimTIndexCore * headNum * softmaxTailSize;
+    attnGmOffsetLoop = dimTIndexCore * headNum * headDim;
+    softmaxGmStride = 0;
+
+    for (int64_t seqNumLoopIndex = 0; seqNumLoopIndex < dimTCore; seqNumLoopIndex++) {
+      softmaxGmOffset = softmaxGmOffsetLoop + seqNumLoopIndex * headNum * softmaxTailSize;
+      attnGmOffset = attnGmOffsetLoop + seqNumLoopIndex * headNum * headDim;
+
+      for (int64_t headNumLoopIndex = 0; headNumLoopIndex < headNumLoopTimes; headNumLoopIndex++) {
+        softmaxBlockCount = headNumLoopEach;
+        attnBlockLen = headNumLoopEach * headDim * inputDataSize;
+
+        if (headNumLoopIndex != 0 && headNumLoopIndex == headNumLoopTimes - 1) {
+          softmaxBlockCount = headNumLoopTail;
+          attnBlockLen = headNumLoopTail * headDim * inputDataSize;
+        }
+
+        SoftmaxDataMoveIn();
+        AttnDataMoveIn();
+        SoftmaxCompute();
+        AttnCompute();
+        SoftmaxDataMoveOut();
+        AttnDataMoveOut();
+
+        softmaxGmOffset += headNumLoopEach * softmaxTailSize;
+        attnGmOffset += headNumLoopEach * headDim;
+      }
+    }
+  }
+
 private:
   __aicore__ inline void InitComputeInfo(const RingAttentionUpdateTilingData* __restrict tiling) {
     curBlockIdx = GetBlockIdx();
@@ -121,6 +158,7 @@ private:
     headNum = tiling->headNum;
     headDim = tiling->headDim;
     softmaxTailSize = tiling->softmaxTailSize;
+    tndSoftmaxLayout = tiling->tndSoftmaxLayout;
 
     inputDataSize = sizeof(T);
     floatDataSize = sizeof(float);
@@ -398,5 +436,6 @@ private:
   uint32_t blockNumInput;
   uint32_t blockNumB32;
   uint32_t repeatNumB32;
+  uint8_t tndSoftmaxLayout;
 };
 #endif // _RING_ATTENTION_UPDATE_TND_H_
