@@ -147,7 +147,6 @@ protected:
     static constexpr uint32_t LSE_TMP_BUFFER_SIZE = ConstInfo::BUFFER_SIZE_BYTE_8K;
     static constexpr uint32_t DATA_BLOCK_NUM = 8;
 
-
     ConstInfo constInfo = {};
     MSplitInfo mSplitInfo = {};
     
@@ -436,10 +435,6 @@ __aicore__ inline void FiaBlockVecNonQuant<FIAT>::ElewiseCompute(
     uint32_t dealRowCount, uint32_t columnCount, uint32_t actualColumnCount)
 {
     Muls(mmResUb, mmResUb, static_cast<MM1_OUT_T>(constInfo.scaleValue), dealRowCount * columnCount);
-
-    // if (constInfo.pseShiftFlag) {
-    //     // TODO: PSE
-    // }
 
     if (constInfo.attenMaskFlag == 1) {
         AscendC::PipeBarrier<PIPE_V>();

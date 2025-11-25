@@ -1599,10 +1599,12 @@ public:
                     s1Size = offsetCalculator.GetDimS1();
                 }
             }
-            uint32_t gIdxStart = gmCoord.gS1Idx / s1Size;
-            uint32_t s1IdxStart = gmCoord.gS1Idx % s1Size;
-            uint32_t gIdxEnd = (gmCoord.gS1Idx + gmCoord.gS1DealSize) / s1Size;
-            uint32_t s1IdxEnd = (gmCoord.gS1Idx + gmCoord.gS1DealSize) % s1Size;
+            if (s1Size != 0) {
+                uint32_t gIdxStart = gmCoord.gS1Idx / s1Size;
+                uint32_t s1IdxStart = gmCoord.gS1Idx % s1Size;
+                uint32_t gIdxEnd = (gmCoord.gS1Idx + gmCoord.gS1DealSize) / s1Size;
+                uint32_t s1IdxEnd = (gmCoord.gS1Idx + gmCoord.gS1DealSize) % s1Size;
+            }
 
             uint64_t attenOutGmbaseOffset = offsetCalculator.GetOffset(gmCoord.bIdx, gmCoord.n2Idx, gIdxStart, 0, 0);
 
@@ -2030,11 +2032,12 @@ private:
                 s1Size = offsetCalculator.GetDimS1();
             }
         }
-        uint32_t gIdxStart = gmCoord.gS1Idx / s1Size;
-        uint32_t s1IdxStart = gmCoord.gS1Idx % s1Size;
-        uint32_t gIdxEnd = (gmCoord.gS1Idx + gmCoord.gS1DealSize) / s1Size;
-        uint32_t s1IdxEnd = (gmCoord.gS1Idx + gmCoord.gS1DealSize) % s1Size;
-
+        if (s1Size != 0) {
+            uint32_t gIdxStart = gmCoord.gS1Idx / s1Size;
+            uint32_t s1IdxStart = gmCoord.gS1Idx % s1Size;
+            uint32_t gIdxEnd = (gmCoord.gS1Idx + gmCoord.gS1DealSize) / s1Size;
+            uint32_t s1IdxEnd = (gmCoord.gS1Idx + gmCoord.gS1DealSize) % s1Size;
+        }
         uint64_t queryGmbaseOffset = offsetCalculator.GetOffset(gmCoord.bIdx, gmCoord.n2Idx, gIdxStart, 0, gmCoord.dIdx);
 
         // 处理 首行

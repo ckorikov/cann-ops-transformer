@@ -234,7 +234,7 @@ bool IsEmptyTensor(gert::TilingContext *context)
 
     uint32_t keyBIdx = 0;
     while ((context->GetDynamicInputShape(KEY_INDEX, keyBIdx)) != nullptr) {
-        const gert::StorageShape * keyShape =
+        const gert::StorageShape *keyShape =
             const_cast<gert::StorageShape *>(context->GetDynamicInputShape(KEY_INDEX, keyBIdx));
         if (keyShape->GetStorageShape().GetShapeSize() == 0) {
             return true;
