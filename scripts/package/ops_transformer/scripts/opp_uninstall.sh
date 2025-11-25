@@ -138,7 +138,7 @@ check_installed_type() {
 }
 
 unsetenv() {
-  logandprint "[INFO]: Unset the environment path [ export ASCEND_OPS_TRANSFORMER_PATH=${relative_path_val}/${OPP_PLATFORM_DIR}]."
+  logandprint "[INFO]: Unset the environment path [ export ASCEND_OPP_PATH=${relative_path_val}/opp ]."
   if [ "${IS_DOCKER_INSTALL}" = y ]; then
     UNINSTALL_OPTION="--docker-root=${DOCKER_ROOT}"
   else

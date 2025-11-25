@@ -34,7 +34,5 @@
     <dir_info value="ops_transformer" install_path="ops_transformer" install_type="all">
         <path value="ops_transformer/script" install_mod="555"/>
         <path value="ops_transformer/bin" install_mod="555"/>
-        <path value="ops_transformer/lib64" install_mod="555"/>
-        <path value="ops_transformer/include" install_mod="555"/>
     </dir_info>
 </config>

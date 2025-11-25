@@ -205,7 +205,7 @@ get_install_path() {
 }
 
 setenv() {
-  logandprint "[INFO]: Set the environment path [ export ASCEND_OPS_TRANSFORMER_PATH=${relative_path_val}/${OPP_PLATFORM_DIR} ]."
+  logandprint "[INFO]: Set the environment path [ export ASCEND_OPP_PATH=${relative_path_val}/opp ]."
   if [ "${IS_DOCKER_INSTALL}" = y ]; then
     INSTALL_OPTION="--docker-root=${DOCKER_ROOT}"
   else
@@ -348,27 +348,6 @@ create_softlink_for_files_and_dirs() {
   done
 
   create_softlink_for_files ${src_dir} ${dst_dir}
-}
-
-#create softlink for TARGET_MOULDE_DIR include
-create_module_include_softlink() {
-  local dir_mode=""
-  local dst_path=${TARGET_MOULDE_DIR}/include
-  if [ -d "${dst_path}" ]; then
-    dir_mode=$(stat -c %a ${dst_path})
-    if [ "$(id -u)" != 0 ] && [ ! -w "${dir_mode}" ]; then
-      chmod u+w "${dst_path}" 2>/dev/null
-    fi
-  fi
-  comm_create_dir "${dst_path}" "${CREATE_DIR_PERM}" "${TARGET_USERNAME}:${TARGET_USERGROUP}" "${IS_FOR_ALL}"
-
-  local aclnnop_src_dir=${TARGET_MOULDE_DIR}/built-in/op_impl/ai_core/tbe/op_api/include/aclnnop
-  local aclnnop_dst_dir=${TARGET_MOULDE_DIR}/include/aclnnop
-  create_softlink_for_files_and_dirs "${aclnnop_src_dir}" "${aclnnop_dst_dir}"
-
-  if [ -n "$dir_mode" ]; then
-    chmod ${dir_mode} ${dst_path} 2>/dev/null
-  fi
 }
 
 #create latest [x86-64|aarch64]/lib64
@@ -930,8 +909,6 @@ install_opp() {
 
   logandprint "[INFO]: upgradePercentage:30%"
 
-  create_module_include_softlink
-
   create_latest_softlink
 
   logandprint "[INFO]: Copying version.info"
@@ -1005,8 +982,8 @@ main() {
 
   if [ "${IS_SETENV}" != "y" ]; then
     logandprint "[INFO]: Using requirements: when opp module install finished or \
- before you run the opp module, execute the command \
- [ export ASCEND_OPS_TRANSFORMER_PATH=${TARGET_INSTALL_PATH}/latest/${OPP_PLATFORM_DIR} ] to set the environment path."
+    before you run the opp module, execute the command \
+    [ export ASCEND_OPP_PATH=${TARGET_INSTALL_PATH}/latest/opp ] to set the environment path."
   fi
 
   logandprint "[INFO]: Opp package installed successfully! The new version takes effect immediately."
