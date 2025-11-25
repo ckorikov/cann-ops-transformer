@@ -700,7 +700,7 @@ aclnnStatus aclnnFusedInferAttentionScoreV2(
 
 - 该接口与PyTorch配合使用时，需要保证CANN相关包与PyTorch相关包的版本匹配。
 
-- 入参为空的处理：算子内部需要判断参数query是否为空，如果是空则直接返回。参数query不为空Tensor，参数key、value为空tensor（即S2为0），则attentionOut填充为全零。attentionOut为空Tensor时，AscendCLNN框架会处理。其余在上述参数说明中标注了"可传入nullptr"的入参为空指针时，不进行处理。
+- 入参为空的处理：算子内部需要判断参数query是否为空，如果是空则直接返回。参数query不为空Tensor，参数key、value为空tensor（即S2为0），则attentionOut填充为全零。attentionOut为空Tensor时，AscendCLNN框架会处理。其余在上述参数说明中标注了“可传入nullptr”的入参为空指针时，不进行处理。
 
 - 参数key、value中对应tensor的shape需要完全一致；非连续场景下 key、value的tensorlist中的batch只能为1，个数等于query的B，N和D需要相等。由于tensorlist限制, 非连续场景下B不能大于256。
 
@@ -955,7 +955,7 @@ aclnnStatus aclnnFusedInferAttentionScoreV2(
 
     - 支持N轴小于等于256，支持D轴小于等于512。inputLayout为BSH或者BSND时，建议N*D小于65535。
 
-    - S支持小于等于20971520（20M）。部分长序列场景下，如果计算量过大可能会导致pfa算子执行超时（aicore error类型报错，errorStr为:timeout or trap error），此场景下建议做S切分处理，注：这里计算量会受B、S、N、D等的影响，值越大计算量越大。典型的会超时的长序列(即B、S、N、D的乘积较大)场景包括但不限于：
+    - S支持小于等于20971520（20M）。部分长序列场景下，如果计算量过大可能会导致pfa算子执行超时（aicore error类型报错，errorStr为:timeout or trap error），此场景下建议做S切分处理，注：这里计算量会受B、S、N、D等的影响，值越大计算量越大。典型的会超时的长序列（即B、S、N、D的乘积较大）场景包括但不限于：
 
       <div style="overflow-x: auto;">
       <table style="undefined;table-layout: fixed; width: 900px"><colgroup>
@@ -1021,7 +1021,7 @@ aclnnStatus aclnnFusedInferAttentionScoreV2(
 
   - 参数sparseMode当前仅支持值为0、1、2、3、4的场景，取其它值时会报错。
 
-    - sparseMode = 0时，attenMask如果为空指针,或者在左padding场景传入attenMask，则忽略入参preTokens、nextTokens。
+    - sparseMode = 0时，attenMask如果为空指针，或者在左padding场景传入attenMask，则忽略入参preTokens、nextTokens。
     - sparseMode = 2、3、4时，attenMask的shape需要为S,S或1,S,S或1,1,S,S,其中S的值需要固定为2048，且需要用户保证传入的attenMask为下三角，不传入attenMask或者传入的shape不正确报错。
     - sparseMode = 1、2、3的场景忽略入参preTokens、nextTokens并按照相关规则赋值。
   - kvCache反量化的合成参数场景仅支持query为FLOAT16时，将INT8类型的key和value反量化到FLOAT16。入参key/value的datarange与入参antiquantScale的datarange乘积范围在（-1，1）范围内，高性能模式可以保证精度，否则需要开启高精度模式来保证精度。
@@ -1066,7 +1066,7 @@ aclnnStatus aclnnFusedInferAttentionScoreV2(
     - query数据类型为FLOAT16且pseShift存在时，强制走高精度模式，对应的限制继承自高精度模式的限制。
     - Q_S需大于等于query的S长度，KV_S需大于等于key的S长度。prefix场景KV_S需大于等于actualSharedPrefixLen与key的S长度之和。
     - <term>昇腾910_95 AI处理器</term>：非量化，全量化场景：无对齐限制。
-  - 输出为INT8时，入参quantOffset2传入非空指针和非空tensor值，并且sparseMode、preTokens和nextTokens满足以下条件，矩阵会存在某几行不参与计算的情况，导致计算结果误差，该场景会拦截(解决方案：如果希望该场景不被拦截，需要在FIA接口外部做后量化操作，不在FIA接口内部使能)：
+  - 输出为INT8时，入参quantOffset2传入非空指针和非空tensor值，并且sparseMode、preTokens和nextTokens满足以下条件，矩阵会存在某几行不参与计算的情况，导致计算结果误差，该场景会拦截（解决方案：如果希望该场景不被拦截，需要在FIA接口外部做后量化操作，不在FIA接口内部使能）：
 
     - sparseMode = 0，attenMask如果非空指针，每个batch actualSeqLengths — actualSeqLengthsKV - actualSharedPrefixLen - preTokens > 0 或 nextTokens < 0 时，满足拦截条件
     - sparseMode = 1 或 2，不会出现满足拦截条件的情况
@@ -1122,7 +1122,7 @@ aclnnStatus aclnnFusedInferAttentionScoreV2(
     - query、key、value输入类型均为INT8的场景暂不支持。
     - 在INT4（INT32）伪量化场景下，aclnn单算子调用支持KV INT4输入或者INT4拼接成INT32输入（建议通过dynamicQuant生成INT4格式的数据，因为dynamicQuant就是一个INT32包括8个INT4）。
     - 在INT4（INT32）伪量化场景下，若KV INT4拼接成INT32输入，那么KV的N、D或者H是实际值的八分之一（prefix同理）。
-    - key、value在特定数据数据类型下存在对于D轴的限制
+    - key、value在特定数据类型下存在对于D轴的限制
       - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：key、value输入类型为INT4（INT32）时，D轴需要64对齐（INT32仅支持D 8对齐）。
       - <term>昇腾910_95 AI处理器</term>：key、value输入类型为FLOAT4_E1M2/FLOAT4_E2M1/INT4（INT32）时，query的D轴以及key、value的D轴需要64对齐（INT32仅支持key、value的D 8对齐）。
   - page attention场景：

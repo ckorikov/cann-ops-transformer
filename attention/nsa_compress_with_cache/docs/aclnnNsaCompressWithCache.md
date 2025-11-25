@@ -19,7 +19,7 @@
 
 $$
 compressIdx=(s-compressBlockSize)/stride\\ 
-ouputCacheRef[slotMapping[i]] = input[compressIdx*stride : compressIdx*stride+compressBlockSize]*weight[:]
+outputCacheRef[slotMapping[i]] = input[compressIdx*stride : compressIdx*stride+compressBlockSize]*weight[:]
 $$
 
 ## 函数原型

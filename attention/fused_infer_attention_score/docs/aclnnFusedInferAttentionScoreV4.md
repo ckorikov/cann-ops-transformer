@@ -706,7 +706,7 @@ aclnnStatus aclnnFusedInferAttentionScoreV4(
             RingAttention算法对query乘key的结果，先取max得到softmax_max。query乘key的结果减去softmax_max, 再取exp，接着求sum，得到softmax_sum。最后对softmax_sum取log，再加上softmax_max得到的结果。</td>
             <td>
             <ul>    
-                <li>softmaxLseFlag为True时,数据为inf的代表无效数据。</li>
+                <li>softmaxLseFlag为True时，数据为inf的代表无效数据。</li>
                 <li>softmaxLseFlag为False时，如果softmaxLse传入的Tensor非空，则直接返回该Tensor数据，如果softmaxLse传入的是nullptr，则返回shape为{1}全0的Tensor。</li>
             </ul>
             </td>
@@ -824,7 +824,7 @@ aclnnStatus aclnnFusedInferAttentionScoreV4(
         - query为空Tensor：直接返回
         - 参数query不为空Tensor，参数key、value为空tensor（即S2为0）：attentionOut填充为全零
         - attentionOut为空Tensor：AscendCLNN框架会处理
-        - 上述参数说明中标注了"可传入nullptr"的入参为空指针时：不进行处理
+        - 上述参数说明中标注了“可传入nullptr”的入参为空指针时：不进行处理
 
 - <a id="Mask"></a>Mask
     <table style="undefined;table-layout: fixed; width: 942px"><colgroup>
@@ -1716,7 +1716,7 @@ aclnnStatus aclnnFusedInferAttentionScoreV4(
                             </ul>
                         </li>
                         <li>N和D：支持N轴小于等于256，支持D轴小于等于512。inputLayout为BSH或者BSND时，建议N*D小于65535。</li>
-                        <li>S：支持小于等于20971520（20M）。部分长序列场景下，如果计算量过大可能会导致pfa算子执行超时（aicore error类型报错，errorStr为：timeout or trap error），此场景下建议做S切分处理，注：这里计算量会受B、S、N、D等的影响，值越大计算量越大。典型的会超时的长序列(即B、S、N、D的乘积较大)场景包括但不限于：
+                        <li>S：支持小于等于20971520（20M）。部分长序列场景下，如果计算量过大可能会导致pfa算子执行超时（aicore error类型报错，errorStr为：timeout or trap error），此场景下建议做S切分处理，注：这里计算量会受B、S、N、D等的影响，值越大计算量越大。典型的会超时的长序列（即B、S、N、D的乘积较大）场景包括但不限于：
                             <ol>
                             <li>B=1, Q_N=20, Q_S=2097152, D = 256, KV_N=1, KV_S=2097152;</li>
                             <li>B=1, Q_N=2, Q_S=20971520, D = 256, KV_N=2, KV_S=20971520;</li>
@@ -1789,7 +1789,7 @@ aclnnStatus aclnnFusedInferAttentionScoreV4(
                     <td>sparseMode</td>
                     <td>
                     <ul>
-                    <li>sparseMode = 0时，attenMaskOptional如果为空指针,或者在左padding场景传入attenMaskOptional，则忽略入参preTokens、nextTokens。</li>
+                    <li>sparseMode = 0时，attenMaskOptional如果为空指针，或者在左padding场景传入attenMaskOptional，则忽略入参preTokens、nextTokens。</li>
                     <li>sparseMode = 2、3、4时，attenMaskOptional的shape需要为（2048,2048）或（1,2048,2048）或（1,1,2048,2048），且需要用户保证传入的attenMaskOptional为下三角，不传入attenMaskOptional或者传入的shape不正确报错。</li>
                     <li>sparseMode = 1、2、3的场景忽略入参preTokens、nextTokens并按照相关规则赋值。</li>
                     <li>sparseMode取其它值时会报错</li>
@@ -1849,7 +1849,7 @@ aclnnStatus aclnnFusedInferAttentionScoreV4(
                     <td>
                         <ul>
                         <li>输出为int8时，暂不支持sparse为band且preTokens/nextTokens为负数。</li>
-                        <li>输出为INT8时，入参quantOffset2传入非空指针和非空tensor值，并且sparseMode、preTokens和nextTokens满足以下条件，矩阵会存在某几行不参与计算的情况，导致计算结果误差，该场景会拦截(解决方案：如果希望该场景不被拦截，需要在FIA接口外部做后量化操作，不在FIA接口内部使能)：</li>
+                        <li>输出为INT8时，入参quantOffset2传入非空指针和非空tensor值，并且sparseMode、preTokens和nextTokens满足以下条件，矩阵会存在某几行不参与计算的情况，导致计算结果误差，该场景会拦截（解决方案：如果希望该场景不被拦截，需要在FIA接口外部做后量化操作，不在FIA接口内部使能）：</li>
                             <ul>
                             <li>sparseMode = 0，attenMaskOptional如果非空指针，每个batch actualSeqLengths — actualSeqLengthsKV - actualSharedPrefixLen - preTokens > 0 或 nextTokens < 0 时，满足拦截条件</li>
                             <li>sparseMode = 1 或 2，不会出现满足拦截条件的情况</li>

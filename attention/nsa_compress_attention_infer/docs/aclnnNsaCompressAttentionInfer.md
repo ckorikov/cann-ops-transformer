@@ -105,7 +105,7 @@ aclnnStatus aclnnNsaCompressAttentionInfer(
       <td>attention结构的Query输入。</td>
       <td>
         <ul style="list-style-type: circle;">
-          <li>query中的B是[1, 10000]区间内的整数，且与blockTableOptional中的B与actualCmpKvSeqLenOptional数组的长度相等。</li>
+          <li>query中的B是[1, 10000]区间内的整数，且与blockTableOptional中的B以及actualCmpKvSeqLenOptional数组的长度相等。</li>
           <li>query的S轴小于等于4。</li>
           <li>query中的N和numHeads值相等，且N轴必须是key/value的N轴（H/D）的整数倍，此外，query的N轴与key/value的N轴（H/D）的比值（即GQA中的group大小）小于等于128，且128是group的整数倍。</li>
           <li>query中的D和key的D(H/numKeyValueHeads)值相等，小于等于192且大于等于value的D轴。</li>
