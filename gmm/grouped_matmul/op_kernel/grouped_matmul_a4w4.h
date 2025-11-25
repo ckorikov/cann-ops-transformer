@@ -16,6 +16,7 @@
  #ifndef ASCENDC_GROUPED_MATMUL_A4W4_H
  #define ASCENDC_GROUPED_MATMUL_A4W4_H
  
+ 
  #include "grouped_matmul_utils.h"
  #include "grouped_matmul.h"
  
