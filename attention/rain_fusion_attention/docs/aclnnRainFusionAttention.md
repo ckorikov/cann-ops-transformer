@@ -13,7 +13,6 @@
 |<term>Atlas 200I/300/500 推理产品</term>|      ×     |
 
 
-
 ## 功能说明
 
 -   **算子功能**：RainFusionAttention稀疏注意力计算，支持灵活的块级稀疏模式，通过selectIdx指定每个Q块选择的KV块，实现高效的稀疏注意力计算。
@@ -135,8 +134,8 @@ aclnnStatus aclnnRainFusionAttention(
       <td>Device侧的aclTensor，稀疏块索引数组，指定每个Q块选择的KV块索引。</td>
       <td>
         <ul>
-          <li>shape为[T, headNum, maxKvBlockNum]。</li>
-          <li>T为所有batch中Q方向切块的总数。</li>
+          <li>shape为[QBlockNum, headNum, maxKvBlockNum]。</li>
+          <li>QBlockNum为所有batch中Q方向切块的总数。</li>
           <li>存储每个Q块选择的KV块索引，无效位置用-1填充。</li>
         </ul>
       </td>
@@ -151,7 +150,7 @@ aclnnStatus aclnnRainFusionAttention(
       <td>Device侧的aclTensor，每个Q块实际选择的KV块数量。</td>
       <td>
         <ul>
-          <li>shape为[T, headNum]。</li>
+          <li>shape为[QBlockNum, headNum]。</li>
           <li>存储每个Q块实际选择的KV块数量。</li>
         </ul>
       </td>
@@ -180,12 +179,7 @@ aclnnStatus aclnnRainFusionAttention(
       <td>attenMaskOptional</td>
       <td>输入</td>
       <td>Device侧的aclTensor，公式中的atten_mask。</td>
-      <td>
-        <ul>
-          <li>如不使用可传nullptr。</li>
-          <li>支持causal mask等mask类型。</li>
-        </ul>
-      </td>
+      <td>当前不支持，传入nullptr。</td>
       <td>BOOL</td>
       <td>ND</td>
       <td>2</td>
@@ -225,12 +219,7 @@ aclnnStatus aclnnRainFusionAttention(
       <td>blockTableOptional</td>
       <td>输入</td>
       <td>Device侧的aclTensor，Block表用于PagedAttention。</td>
-      <td>
-        <ul>
-          <li>如不使用可传nullptr。</li>
-          <li>用于PagedAttention场景。</li>
-        </ul>
-      </td>
+      <td>当前不支持，传入nullptr。</td>
       <td>INT32</td>
       <td>ND</td>
       <td>2</td>
@@ -320,12 +309,7 @@ aclnnStatus aclnnRainFusionAttention(
       <td>softmaxLseOptional</td>
       <td>输出</td>
       <td>Device侧的aclTensor，Softmax计算的log-sum-exp中间结果。</td>
-      <td>
-        <ul>
-          <li>如不需要可传nullptr。</li>
-          <li>用于反向计算。</li>
-        </ul>
-      </td>
+      <td>当前不支持，传入nullptr。</td>
       <td>FLOAT</td>
       <td>ND</td>
       <td>3</td>
@@ -449,6 +433,7 @@ aclnnStatus aclnnRainFusionAttention(
 - selectNumIdx的shape必须为[T, headNum]。
 - innerPrecise必须为0（float32 softmax）或1（fp16 softmax）。
 - qSeqlen和kvSeqlen不需要被blockShape整除，支持非对齐场景，实际分块数通过向上取整计算。
+- qSeqlen在qInputLayout为“TND”时必选；kvSeqlen在kvInputLayout为“TND”时必选。
 - 稀疏块索引必须在有效范围内，无效位置用-1填充。
 - 输入query的headNum为N1，输入key和value的headNum为N2，则N1 >= N2 && N1 % N2 == 0。
 - 设G = N1 / N2，G需要满足以下约束：G < 128 && 128 % G == 0。
@@ -515,7 +500,7 @@ int CreateAclTensor(const std::vector<T>& hostData, const std::vector<int64_t>& 
             return -1;
         }
     }
-    
+
     auto size = GetShapeSize(shape) * sizeof(T);
     
     // 检查hostData大小是否匹配
@@ -574,7 +559,7 @@ int main() {
     int32_t qBlockNum = (qSeqlen + blockShapeX - 1) / blockShapeX;  // Q块的X维度数量
     int32_t kvBlockNum = (kvSeqlen + blockShapeY - 1) / blockShapeY;  // KV块的Y维度数量
     // totalQBlocks = qBlockNum * numHeads (每个Q块对应一个head)
-    int32_t totalQBlocks = qBlockNum * numHeads;
+    int32_t totalQBlocks = qBlockNum * batch;
     int32_t maxKvBlockNum = kvBlockNum;
     
     
