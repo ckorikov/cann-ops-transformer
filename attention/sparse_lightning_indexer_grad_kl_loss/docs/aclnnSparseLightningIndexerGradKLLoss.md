@@ -5,47 +5,59 @@
 |产品      | 是否支持 |
 |:----------------------------|:-----------:|
 |<term>昇腾910_95 AI处理器</term>|      ×     |
-|<term>Atlas A3 训练系列产品</term>|      √     |
-|<term>Atlas A2 训练系列产品 </term>|      √     |
+|<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>|    √     |
+|<term>Atlas A2 训练系列产品/Atlas A2 推理系列产品</term>|    √     |
 |<term>Atlas 200I/500 A2 推理产品</term>|      ×     |
 |<term>Atlas 推理系列产品</term>|      ×     |
 |<term>Atlas 训练系列产品</term>|      ×     |
-|<term>Atlas 200I/300/500 推理产品</term>|      ×     |
+|<term>Atlas 200/300/500 推理产品</term>|      ×     |
 
 ## 功能说明
 
-- 算子功能：SparselightningIndexerGradKlLoss算子是LightningIndexer的反向算子，再额外融合了Loss计算功能。LightningIndexer算子将QueryToken和KeyToken之间的最高内在联系的TopK个筛选出来，存放在SparseIndices中，从而减少长序列场景下Attention的计算量，加速长序列的网络的推理和训练的性能。
+- 接口功能：SparselightningIndexerGradKlLoss算子是LightningIndexer的反向算子，再额外融合了Loss计算功能。LightningIndexer算子将QueryToken和KeyToken之间的最高内在联系的TopK个筛选出来，存放在SparseIndices中，从而减少长序列场景下Attention的计算量，加速长序列的网络的推理和训练的性能。
 
 
 - 计算公式：
    用于取Top-k的value的计算公式可以表示为：
+
    $$
    I_{t,:}=W_{t,:}@ReLU(q_{t,:}@(K_{:t,:})^T)
    $$
+
    其中，$W$是第$t$个token对应的weights，$q$是第$t$个token对应的$G$个query头合轴后的矩阵，$K$为$t$行$K$矩阵。
 
    LightningIndexer会单独训练，对应的loss function为：
+
    $$
    L(I){=}\sum_tD_{KL}(p_{t,:}||Softmax(I_{t,:}))
    $$
+
    其中，$p$是target distribution，通过对main attention score 进行所有的head的求和，然后把求和结果沿着上下文方向进行L1正则化得到。$D_{KL}$为KL散度，其表达式为：
+   
    $$
    D_{KL}(a||b){=}\sum_ia_i\mathrm{log}{\left(\frac{a_i}{b_i}\right)}
    $$
+
    通过求导可得Loss的梯度表达式：
+   
    $$
    dI\mathop{{}}\nolimits_{{t,:}}=Softmax \left( I\mathop{{}}\nolimits_{{t,:}} \left) -p\mathop{{}}\nolimits_{{t,:}}\right. \right. 
    $$
+
    利用链式法则可以进行weights，query和key矩阵的梯度计算：
+   
    $$
    dW\mathop{{}}\nolimits_{{t,:}}=dI\mathop{{}}\nolimits_{{t,:}}\text{@} \left( ReLU \left( S\mathop{{}}\nolimits_{{t,:}} \left)  \left) \mathop{{}}\nolimits^{{T}}\right. \right. \right. \right. 
    $$
+
    $$
    d\mathop{{q}}\nolimits_{{t,:}}=dS\mathop{{}}\nolimits_{{t,:}}@K\mathop{{}}\nolimits_{{:t,:}}
    $$
+
    $$
    dK\mathop{{}}\nolimits_{{:t,:}}= \left( dS\mathop{{}}\nolimits_{{t,:}} \left) \mathop{{}}\nolimits^{{T}}@q\mathop{{}}\nolimits_{{:t,:}}\right. \right. 
    $$
+
    其中，S为QK矩阵softmax的结果。
 
 
@@ -55,7 +67,7 @@
 
 ## 函数原型
 
-算子执行接口为两段式接口，必须先调用“aclnnSparseLightningIndexerGradKLLossGetWorkspaceSize”接口获取入参并根据计算流程计算所需workspace大小，再调用“aclnnSparseLightningIndexerGradKLLoss”接口执行计算。
+每个算子分为[两段式接口](../../../docs/zh/context/两段式接口.md)，必须先调用“aclnnSparseLightningIndexerGradKLLossGetWorkspaceSize”接口获取入参并根据计算流程计算所需workspace大小，再调用“aclnnSparseLightningIndexerGradKLLoss”接口执行计算。
 
 ```c++
 aclnnStatus aclnnSparseLightningIndexerGradKLLossGetWorkspaceSize(
@@ -116,149 +128,88 @@ aclnnStatus aclnnSparseLightningIndexerGradKLLoss(
             <th>使用说明</th>
             <th>数据类型</th>
             <th>数据格式</th>
-            <th>layout</th>
+            <th>维度(shape)</th>
             <th>非连续Tensor</th>
         </tr></thead>
         <tbody>
         <tr>
             <td>query</td>
             <td>输入</td>
-            <td>attention结构的输入Q</td>
-            <td>
-            <ul>
-                <li>B: 支持泛化。</li>
-                <li>S1: 支持泛化，不能为Matmul的M轴。</li>
-                <li>N1: 支持128、64、32、16、8。</li>
-                <li>D: 512。</li>
-                <li>T1: 多个Batch的S1累加。</li>
-            </ul>
-            </td>
+            <td>attention结构的输入Q。</td>
+            <td>数据类型与key/queryIndex/keyIndex保持一致。</td>
             <td>FLOAT16、BFLOAT16 </td>
             <td>ND</td>
-            <td>(B,S1,N1,D);(T1,N1,D)</td>
+            <td>(B,S1,N1,D)、(T1,N1,D)</td>
             <td>√</td>
         </tr>
         <tr>
             <td>key</td>
             <td>输入</td>
-            <td>attention结构的输入K</td>
-            <td>
-            <ul>
-                <li>B: 支持泛化且与query的B保持一致。</li>
-                <li>S2: 支持泛化。</li>
-                <li>N2: 1。</li>
-                <li>D: 512。</li>
-                <li>T2: 多个Batch的S2累加。</li>                
-            </ul>
-            </td>
+            <td>attention结构的输入K。</td>
+            <td>数据类型与query/queryIndex/keyIndex保持一致。</td>
             <td>FLOAT16、BFLOAT16 </td>
             <td>ND</td>
-            <td>(B,S2,N2,D);(T2,N2,D)</td>
+            <td>(B,S2,N2,D)、(T2,N2,D)</td>
             <td>√</td>
         </tr>
         <tr>
             <td>queryIndex</td>
             <td>输入</td>
             <td>lightingIndexer结构的输入queryIndex。</td>
-            <td>
-            <ul>
-                <li>B: 支持泛化且与query的B保持一致。</li>
-                <li>S1: 支持泛化，不能为Matmul的M轴。</li>
-                <li>Nidx1: 64、32、16、8。</li>
-                <li>D: 512。</li>
-                <li>T2: 多个Batch的S2累加。</li>
-            </ul>
-            </td>
+            <td>数据类型与query/key/keyIndex保持一致。</td>
             <td>FLOAT16、BFLOAT16</td>
             <td>ND</td>
-            <td>(B,S1,Nidx1,D);(T1,Nidx1,D)</td>
+            <td>(B,S1,Nidx1,D)、(T1,Nidx1,D)</td>
             <td>√</td>
         </tr>
         <tr>
             <td>keyIndex</td>
             <td>输入</td>
             <td>lightingIndexer结构的输入keyIndex。</td>
-            <td>
-            <ul>
-                <li>B: 支持泛化且与query的B保持一致。</li> 
-                <li>S2: 支持泛化。</li>
-                <li>Nidx2: 1。</li>
-                <li>D: 512。</li>
-                <li>T2: 多个Batch的S2累加。</li>
-            </ul>
-            </td>
+            <td>数据类型与query/key/queryIndex保持一致。</td>
             <td>FLOAT16、BFLOAT16</td>
             <td>ND</td>
-            <td>(B,S2,Nidx2,D);(T2,Nidx2,D)</td>
+            <td>(B,S2,Nidx2,D)、(T2,Nidx2,D)</td>
             <td>√</td>
         </tr>
         <tr>
             <td>weights</td>
             <td>输入</td>
-            <td>权重</td>
-            <td>
-            <ul>
-                <li>B: 支持泛化且与query的B保持一致。</li>
-                <li>S1: 支持泛化且与query的S1保持一致。</li>
-                <li>Nidx1: 64、32、16、8。</li>
-                <li>T1: 多个Batch的S1累加。</li>
-            </ul>
-            </td>
+            <td>权重。</td>
+            <td>-</td>
             <td>FLOAT16、BFLOAT16</td>
             <td>ND</td>
-            <td>(B,S1,Nidx1);(T1,Nidx1)</td>
+            <td>(B,S1,Nidx1)、(T1,Nidx1)</td>
             <td>√</td>
         </tr>
         <tr>
             <td>sparseIndices</td>
             <td>输入</td>
-            <td>topk_index，用来选择每个query对应的key和value</td>
-            <td>
-            <ul>
-                <li>B: 支持泛化且。</li>
-                <li>S1: 支持泛化且与query的S1保持一致。</li>
-                <li>Nidx1: 64、32、16、8。</li>
-                <li>K: 2048。</li>
-                <li>T1: 多个Batch的S1累加。</li>
-            </ul>
-            </td>
+            <td>topk_index，用来选择每个query对应的key和value。</td>
+            <td>-</td>
             <td>INT32</td>
             <td>ND</td>
-            <td>(B,S1,Nidx2,K);(T1,Nidx2,K)</td>
+            <td>(B,S1,Nidx2,K)、(T1,Nidx2,K)</td>
             <td>√</td>
         </tr>
         <tr>
-            <td>softmaxMax</td>与query的B保持一致
+            <td>softmaxMax</td>
             <td>输入</td>
-            <td>Device侧的aclTensor，注意力正向计算的中间输出</td>
-            <td>
-            <ul>
-                <li>B: 支持泛化与query的B保持一致。</li>
-                <li>N2: 1。</li>
-                <li>S1: 支持泛化且与query的S1保持一致。</li>
-                <li>G: N1/N2。</li>
-                <li>T1: 多个Batch的S1累加。</li>
-            </ul>
+            <td>Device侧的aclTensor，注意力正向计算的中间输出。</td>
+            <td>-</td>
             <td>FLOAT32</td>
             <td>ND</td>
-            <td>(B,N2,S1,G);(N2,T1,G)</td>
+            <td>(B,N2,S1,G)、(N2,T1,G)</td>
             <td>√</td>
         </tr>
         <tr>
             <td>softmaxSum</td>
             <td>输入</td>
-            <td>Device侧的aclTensor，注意力正向计算的中间输出</td>
-            <td>
-            <ul>
-                <li>B: 支持泛化与query的B保持一致。</li>
-                <li>N2: 1。</li>
-                <li>S1: 支持泛化且与query的S1保持一致。</li>
-                <li>G: N1/N2。</li>
-                <li>T1: 多个Batch的S1累加。</li>
-            </ul>
+            <td>Device侧的aclTensor，注意力正向计算的中间输出。</td>
+            <td>-</td>
             <td>FLOAT32</td>
             <td>ND</td>
-            <td>(B,N2,S1,G);(N2,T1,G)</td>
+            <td>(B,N2,S1,G)、(N2,T1,G)</td>
             <td>√</td>
         </tr>
         <tr>
@@ -266,43 +217,29 @@ aclnnStatus aclnnSparseLightningIndexerGradKLLoss(
             <td>输入</td>
             <td>MLA rope部分：Query位置编码的输出。</td>
             <td>
-            <ul>
-                <li>与query的layout维度保持一致。</li>
-                <li>B: 支持泛化与query的B保持一致。</li>
-                <li>S1: 支持泛化且与query的S1保持一致。</li>
-                <li>N1: 128、64、32、16、8。</li>
-                <li>Dr: 64。</li>
-                <li>T1: 多个Batch的S1累加。</li>
-            </ul>
+            与query的layout维度保持一致。
             </td>
             <td>FLOAT16、BFLOAT16</td>
             <td>ND</td>
-            <td>(B,S1,N1,Dr);(T1,N1,Dr)</td>
+            <td>(B,S1,N1,Dr)、(T1,N1,Dr)</td>
             <td>√</td>
         </tr>
         <tr>
             <td>keyRope</td>
             <td>输入</td>
-            <td>MLA rope部分：Key位置编码的输出</<td>
+            <td>MLA rope部分：Key位置编码的输出。</td>
             <td>
-            <ul>
-                <li>与key的layout维度保持一致。</li>
-                <li>B: 支持泛化与query的B保持一致。</li>
-                <li>S2: 支持泛化且与key的S1保持一致。</li>
-                <li>N2: 1。</li>
-                <li>Dr: 64。</li>
-                <li>T2: 多个Batch的S2累加。</li>
-            </ul>
+            与key的layout维度保持一致。
             </td>
             <td>FLOAT16、BFLOAT16</td>
             <td>ND</td>
-            <td>(B,S2,N2,Dr);(T2,N2,Dr)</td>
+            <td>(B,S2,N2,Dr)、(T2,N2,Dr)</td>
             <td>√</td>
         </tr>    
         <tr>
             <td>actualSeqLengthsQuery</td>
             <td>输入</td>
-            <td>每个Batch中，Query的有效token数</td>
+            <td>每个Batch中，Query的有效token数。</td>
             <td>
             <ul>
                 <li>值依赖。</li>
@@ -318,7 +255,7 @@ aclnnStatus aclnnSparseLightningIndexerGradKLLoss(
         <tr>
             <td>actualSeqLengthsKey</td>
             <td>输入</td>
-            <td>每个Batch中，Key的有效token数</td>
+            <td>每个Batch中，Key的有效token数。</td>
             <td>
             <ul>
                 <li>值依赖。</li>
@@ -334,20 +271,20 @@ aclnnStatus aclnnSparseLightningIndexerGradKLLoss(
         <tr>
             <td>scaleValue</td>
             <td>输入</td>
-            <td>缩放系数</td>
+            <td>缩放系数。</td>
             <td>
-            <ul>
-                <li>建议值：公式中d开根号的倒数。</li>
-            </ul>
+            建议值：公式中d开根号的倒数。
             </td>
+            <td>-</td>
+            <td>-</td>
+            <td>-</td>
+            <td>-</td>
         <tr>
             <td>layout</td>
             <td>输入</td>
-            <td>layout格式</td>
+            <td>layout格式。</td>
             <td>
-            <ul>
-                <li>仅支持BSND和TND格式。</li>
-            </ul>
+            仅支持BSND和TND格式。
             </td>
             <td>STRING</td>
             <td>-</td>
@@ -357,7 +294,7 @@ aclnnStatus aclnnSparseLightningIndexerGradKLLoss(
         <tr>
             <td>sparseMode</td>
             <td>输入</td>
-            <td>sparse的模式</td>
+            <td>sparse的模式。</td>
         <td>
               <ul>
                 <li>表示sparse的模式。sparse不同模式的详细说明请参见<a href="#约束说明">约束说明</a>。</li>
@@ -372,11 +309,9 @@ aclnnStatus aclnnSparseLightningIndexerGradKLLoss(
         <tr>
         <td>deterministic</td>
             <td>输入</td>
-            <td>确定性计算</td>
+            <td>确定性计算。</td>
             <td>
-            <ul>
-                <li>优先使用整网确定性配置，该参数不产生任何效果</li>
-            </ul>
+            优先使用整网确定性配置，该参数不产生任何效果。
             </td>
             <td>BOOL</td>
             <td>-</td>
@@ -386,65 +321,38 @@ aclnnStatus aclnnSparseLightningIndexerGradKLLoss(
         <tr>
             <td>dQueryIndex</td>
             <td>输出</td>
-            <td>QueryIndex的梯度</td>
-            <td>
-            <ul>
-                <li>B: 支持泛化与query的B保持一致。</li>
-                <li>S1:支持泛化，且与query的S1保持一致。</li>
-                <li>Nidx1: 64、32、16、8。</li>
-                <li>D: 512。</li>
-                <li>T1: 多个Batch的S1累加。</li>
-            </ul>
-            </td>
+            <td>QueryIndex的梯度。</td>
+            <td>-</td>
             <td>FLOAT16、BFLOAT16</td>
             <td>ND</td>
-            <td>(B,S1,Nidx1,D);(T1,Nidx1,D)</td>
+            <td>(B,S1,Nidx1,D)、(T1,Nidx1,D)</td>
             <td>√</td>
         </tr>
         <tr>
             <td>dKeyIndex</td>
             <td>输出</td>
-            <td>KeyIndex的梯度</td>
-            <td>
-            <ul>
-                <li>B: 支持泛化与query的B保持一致。</li>
-                <li>S2: 支持泛化，且与key的S2保持一致。</li>
-                <li>Nidx2: 1。</li>
-                <li>D: 512。</li>
-                <li>T2: 多个Batch的S2累加。</li>
-            </ul>
-            </td>
+            <td>KeyIndex的梯度。</td>
+            <td>-</td>
             <td>FLOAT16、BFLOAT16</td>
             <td>ND</td>
-            <td>(B,S2,Nidx2,D);(T2,Nidx2,D)</td>
+            <td>(B,S2,Nidx2,D)、(T2,Nidx2,D)</td>
             <td>√</td>
         </tr>
         <tr>
             <td>dWeights</td>
             <td>输出</td>
-            <td>Weights的梯度</td>
-            <td>
-            <ul>
-                <li>B: 支持泛化。</li>
-                <li>S1: 支持泛化，不能为Matmul的M轴。</li>
-                <li>Nidx1: 44、32、16、8。</li>
-                <li>T1: 多个Batch的S1累加。</li>
-            </ul>
-            </td>
+            <td>Weights的梯度。</td>
+            <td>-</td>
             <td>FLOAT16、BFLOAT16</td>
             <td>ND</td>
-            <td>(B,S1,Nidx1);(T1,Nidx1)</td>
+            <td>(B,S1,Nidx1)、(T1,Nidx1)</td>
             <td>√</td>
         </tr>
         <tr>
             <td>loss</td>
             <td>输出</td>
-            <td>损失函数值</td>
-            <td>
-            <ul>
-                <li></li>
-            </ul>
-            </td>
+            <td>损失函数值。</td>
+            <td>-</td>
             <td>FLOAT32</td>
             <td>ND</td>
             <td>(1,)</td>
@@ -522,7 +430,7 @@ aclnnStatus aclnnSparseLightningIndexerGradKLLoss(
         <tr>
         <td>stream</td>
         <td>输入</td>
-        <td>指定执行任务的AscendCL stream流。</td>
+        <td>指定执行任务的Stream。</td>
         </tr>
     </tbody>
     </table>
@@ -667,7 +575,7 @@ aclnnStatus aclnnSparseLightningIndexerGradKLLoss(
 - 典型值
     <table style="undefined;table-layout: fixed; width: 942px"><colgroup>
         <col style="width: 100px">
-        <col style="width: 660px">
+        <col style="width: 300px">
         </colgroup>
         <thead>
             <tr>
@@ -678,7 +586,7 @@ aclnnStatus aclnnSparseLightningIndexerGradKLLoss(
         <tbody>
         <tr>
             <td>query</td>
-            <td>N1=128/64; D =512<td>
+            <td>N1=128/64; D =512</td>
         </tr>
         <tr>
             <td>queryIndex</td>
@@ -699,100 +607,9 @@ aclnnStatus aclnnSparseLightningIndexerGradKLLoss(
         </tbody>
     </table>
 
-## 计算图
-
-
-算子可分为四个模块：计算P、计算S',Y、计算KL Loss和计算dW，dQ，dK。具体模块的流程图的变量传递如所示。
-
-
-- 计算P
-```mermaid
-graph LR
-    subgraph 子图1 ["<div style='font-size:12px;padding:19px;'></div>"]
-    direction LR
-        
-        A["key<br>[B,S2,1,D]"] --> parm1("Gather<br>[B,S1,K,D]")
-        B["topk_index<br>[B,S1,K]"] --> parm1
-        C["query<br>[B,S1,N,D]"] --> parm2("BatchMatnul<br>[B,S1,N,K]")
-        parm1 --> parm2
-        parm2 --> parm3("Muls<br>[B,S1,N,K]")
-        D["sqrt_d<br>(scalar)"] --> parm3
-        E["max<br>[B,N,S1]"] --> parm4("SimpleSoftmax<br>[B,S1,N,K]")
-        F["sum<br>[B,N,S1]"] --> parm4
-        parm3 -->parm4
-        parm4 --> parm5("ReduceSum<br>[B,S1,K]")
-        G["1/G<br>(scalar)"] --> parm6("Muls<br>[B,S1,K]")
-        parm5 --> parm6("Muls<br>[B,S1,K]")
-    end
-    classDef niceBox fill:#fff0f5,stroke:none,stroke-width:0px,rx:15px,ry:15px,padding:1px, width:1400px ,height:510px
-    class 子图1 niceBox
-```
-- 计算S',Y
-```mermaid
-graph LR
-    subgraph 子图2 ["<div style='font-size:12px;padding:19px;'></div>"]
-        direction LR
-        A2["key_index<br>[B,S2,1,D]"] --> parm11("Gather<br>[B,S1,K,D]")
-        B2["topk_index<br>[B,S1,K]"] --> parm11
-        C2["query_index<br>[B,S1,N,D]"] --> parm22("BatchMatnul<br>[B,S1,N,K]")
-        parm11 --> parm22
-        parm22 --> parm333("ReLU<br>[B,S1,N,K]")
-        parm333 --> parm44("Mul<br>[B,S1,N,K]")
-        D2["weights<br>[B,S1,N]"] -->parm44
-        parm44 --> pram55("ReduceSum<br>[B,S1,K]")
-        pram55 --> pram66("Softmax<br>[B,S1,K]")
-    end
-    classDef niceBox fill:#fff0f5,stroke:none,stroke-width:0px,rx:15px,ry:15px,padding:1px, width:1400px ,height:410px
-    class 子图2 niceBox
-```
-
-- 计算KL Loss
-```mermaid
-graph LR
-    subgraph 子图3 ["<div style='font-size:12px;padding:19px;'></div>"]
-        direction LR
-        parm30(("计算P<br>[B,S1,K]")) -->parm31("Log<br>[B,S1,K]")
-        parm38(("计算S'Y<br>[B,S1,K]")) --> parm32("Clip<br>[B,S1,K]")
-        parm32 --> parm33("Log<br>[B,S1,K]")
-        parm33 -->parm34("Sub<br>[B,S1,K]")
-        parm31 -->parm34
-        parm34 -->parm35("Mul<br>[B,S1,K]")
-        
-        parm35 --> parm36("Sum<br>[1]")
-        parm36 --> parm37("loss<br>[1]")
-    end
-    classDef niceBox fill:#fff0f5,stroke:none,stroke-width:0px,rx:15px,ry:15px,padding:1px, width:1400px ,height:260px
-    class 子图3 niceBox
-```
-
-- 计算dW，dQ，dK（ReLU和Gather为计算S',Y模块对应输出结果。）
-```mermaid
-graph LR
-    subgraph 子图4 ["<div style='font-size:12px;padding:19px;'></div>"]
-        direction LR
-        parm412(("计算S'Y<br>[B,S1,K]")) --> parm41("Sub<br>[B,S1,K]")
-        parm413(("计算P<br>[B,S1,K]")) -->parm41("Sub<br>[B,S1,K]")
-        parm414(("ReLU<br>[B,S1,K]")) --> parm42("Mul<br>[B,S1,N,K]")
-        parm41 --> parm42("Mul<br>[B,S1,N,K]")
-        parm41 --> parm43("Mul<br>[B,S1,N,K]")
-        D4["weights<br>[B,S1,N]"] --> parm43("Mul<br>[B,S1,N,K]")
-        parm42 --> parm44("ReduceSum<br>[B,S1,N]")
-        parm44 --> parm45("d_weights<br>[B,S1,N]")
-        parm43 --> parm46("ReLUgrad<br>[B,S1,N,K]")
-        D5["query_index<br>[B,S1,N,D]"] -->parm47("BatchMatnul<br>[B,S1,K,D]")
-        parm46 --> parm47
-        B2["topk_index<br>[B,S1,K]"] --> parm49("ScatterAdd<br>[B,S1,1,D]")
-        parm47 --> parm49("ScatterAdd<br>[B,S2,1,D]")
-        parm49 --> parm410("d_key_index<br>[B,S2,1,D]")
-        parm46 --> parm48("BatchMatnul<br>[B,S1,N,D]")
-        parm415(("Gather<br>[B,S1,K,D]")) --> parm48("BatchMatnul<br>[B,S1,N,D]")
-        parm48 --> parm411("d_query_index<br>[B,S1,N,D]")
-    end
-    classDef niceBox fill:#fff0f5,stroke:none,stroke-width:0px,rx:15px,ry:15px,padding:1px, width:1400px ,height:600px
-    class 子图4 niceBox
-```
-
 ## 调用示例
+
+调用示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](../../../docs/zh/context/编译与运行样例.md)。
 
 ```c++
 #include <iostream>
