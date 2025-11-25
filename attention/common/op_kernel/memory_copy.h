@@ -636,17 +636,17 @@ struct OffsetCalculatorImpl<FORMAT, FormatCategory::GM_Q_OUT_BNGSD> {
 
     __aicore__ inline uint64_t GetStrideG()
     {
-        return AscendC::Std::get<2>(gmLayout.stride);
+        return AscendC::Std::get<2>(gmLayout.stride); // 2:代表第3个维度，索引从0开始
     }
 
     __aicore__ inline uint64_t GetStrideS1()
     {
-        return AscendC::Std::get<3>(gmLayout.stride);
+        return AscendC::Std::get<3>(gmLayout.stride); // 3:代表第4个维度，索引从0开始
     }
 
     __aicore__ inline uint64_t GetStrideD()
     {
-        return AscendC::Std::get<4>(gmLayout.stride);
+        return AscendC::Std::get<4>(gmLayout.stride); // 4:代表第5个维度，索引从0开始
     }
 
     // Get Dim
@@ -662,17 +662,17 @@ struct OffsetCalculatorImpl<FORMAT, FormatCategory::GM_Q_OUT_BNGSD> {
 
     __aicore__ inline uint64_t GetDimG()
     {
-        return AscendC::Std::get<2>(gmLayout.shape);
+        return AscendC::Std::get<2>(gmLayout.shape); // 2:代表第3个维度，索引从0开始
     }
 
     __aicore__ inline uint64_t GetDimS1()
     {
-        return AscendC::Std::get<3>(gmLayout.shape);
+        return AscendC::Std::get<3>(gmLayout.shape); // 3:代表第4个维度，索引从0开始
     }
 
     __aicore__ inline uint64_t GetDimD()
     {
-        return AscendC::Std::get<4>(gmLayout.shape);
+        return AscendC::Std::get<4>(gmLayout.shape); // 4:代表第5个维度，索引从0开始
     }
 };
 
@@ -710,12 +710,12 @@ struct OffsetCalculatorImpl<FORMAT, FormatCategory::GM_Q_OUT_TND> {
 
     __aicore__ inline uint64_t GetStrideG()
     {
-        return AscendC::Std::get<2>(gmLayout.stride);
+        return AscendC::Std::get<2>(gmLayout.stride); // 2:代表第3个维度，索引从0开始
     }
 
     __aicore__ inline uint64_t GetStrideD()
     {
-        return AscendC::Std::get<3>(gmLayout.stride);
+        return AscendC::Std::get<3>(gmLayout.stride); // 3:代表第4个维度，索引从0开始
     }
 
     __aicore__ inline uint64_t GetStrideS1()
@@ -736,12 +736,12 @@ struct OffsetCalculatorImpl<FORMAT, FormatCategory::GM_Q_OUT_TND> {
 
     __aicore__ inline uint64_t GetDimG()
     {
-        return AscendC::Std::get<2>(gmLayout.shape);
+        return AscendC::Std::get<2>(gmLayout.shape); // 2:代表第3个维度，索引从0开始
     }
 
     __aicore__ inline uint64_t GetDimD()
     {
-        return AscendC::Std::get<3>(gmLayout.shape);
+        return AscendC::Std::get<3>(gmLayout.shape); // 3:代表第4个维度，索引从0开始
     }
 };
 
@@ -793,12 +793,12 @@ struct OffsetCalculatorImpl<FORMAT, FormatCategory::GM_KV_BNSD> {
 
     __aicore__ inline uint64_t GetStrideS2()
     {
-        return AscendC::Std::get<2>(gmLayout.stride);
+        return AscendC::Std::get<2>(gmLayout.stride); // 2:代表第3个维度，索引从0开始
     }
 
     __aicore__ inline uint64_t GetStrideD()
     {
-        return AscendC::Std::get<3>(gmLayout.stride);
+        return AscendC::Std::get<3>(gmLayout.stride); // 3:代表第4个维度，索引从0开始
     }
 
     // Get Dim
@@ -814,12 +814,12 @@ struct OffsetCalculatorImpl<FORMAT, FormatCategory::GM_KV_BNSD> {
 
     __aicore__ inline uint64_t GetDimS2()
     {
-        return AscendC::Std::get<2>(gmLayout.shape);
+        return AscendC::Std::get<2>(gmLayout.shape); // 2:代表第3个维度，索引从0开始
     }
 
     __aicore__ inline uint64_t GetDimD()
     {
-        return AscendC::Std::get<3>(gmLayout.shape);
+        return AscendC::Std::get<3>(gmLayout.shape); // 3:代表第4个维度，索引从0开始
     }
 };
 
@@ -857,7 +857,7 @@ struct OffsetCalculatorImpl<FORMAT, FormatCategory::GM_KV_TND> {
 
     __aicore__ inline uint64_t GetStrideD()
     {
-        return AscendC::Std::get<2>(gmLayout.stride);
+        return AscendC::Std::get<2>(gmLayout.stride); // 2:代表第3个维度，索引从0开始
     }
 
     __aicore__ inline uint64_t GetStrideS2()
@@ -878,7 +878,7 @@ struct OffsetCalculatorImpl<FORMAT, FormatCategory::GM_KV_TND> {
 
     __aicore__ inline uint64_t GetDimD()
     {
-        return AscendC::Std::get<2>(gmLayout.shape);
+        return AscendC::Std::get<2>(gmLayout.shape); // 2:代表第3个维度，索引从0开始
     }
 };
 
@@ -919,12 +919,12 @@ struct OffsetCalculatorImpl<FORMAT, FormatCategory::GM_KV_PA_BNBD> {
 
     __aicore__ inline uint64_t GetStrideBlockSize()
     {
-        return AscendC::Std::get<2>(gmLayout.stride);
+        return AscendC::Std::get<2>(gmLayout.stride); // 2:代表第3个维度，索引从0开始
     }
 
     __aicore__ inline uint64_t GetStrideD()
     {
-        return AscendC::Std::get<3>(gmLayout.stride);
+        return AscendC::Std::get<3>(gmLayout.stride); // 3:代表第4个维度，索引从0开始
     }
 
     // Get Dim
@@ -940,7 +940,7 @@ struct OffsetCalculatorImpl<FORMAT, FormatCategory::GM_KV_PA_BNBD> {
 
     __aicore__ inline uint64_t GetD()
     {
-        return AscendC::Std::get<2>(gmLayout.shape);
+        return AscendC::Std::get<2>(gmLayout.shape); // 2:代表第3个维度，索引从0开始
     }
 };
 
@@ -984,17 +984,17 @@ struct OffsetCalculatorImpl<FORMAT, FormatCategory::GM_KV_PA_NZ> {
 
     __aicore__ inline uint64_t GetStrideD1()
     {
-        return AscendC::Std::get<2>(gmLayout.stride);
+        return AscendC::Std::get<2>(gmLayout.stride); // 2:代表第3个维度，索引从0开始
     }
 
     __aicore__ inline uint64_t GetStrideBlockSize()
     {
-        return AscendC::Std::get<3>(gmLayout.stride);
+        return AscendC::Std::get<3>(gmLayout.stride); // 3:代表第4个维度，索引从0开始
     }
 
     __aicore__ inline uint64_t GetStrideD0()
     {
-        return AscendC::Std::get<4>(gmLayout.stride);
+        return AscendC::Std::get<4>(gmLayout.stride); // 4:代表第5个维度，索引从0开始
     }
 
     // Get Dim
@@ -1010,12 +1010,12 @@ struct OffsetCalculatorImpl<FORMAT, FormatCategory::GM_KV_PA_NZ> {
 
     __aicore__ inline uint64_t GetBlockSize()
     {
-        return AscendC::Std::get<2>(gmLayout.shape);
+        return AscendC::Std::get<2>(gmLayout.shape); // 2:代表第3个维度，索引从0开始
     }
 
     __aicore__ inline uint64_t GetD0()
     {
-        return AscendC::Std::get<3>(gmLayout.shape);
+        return AscendC::Std::get<3>(gmLayout.shape); // 3:代表第4个维度，索引从0开始
     }
 };
 
@@ -1050,7 +1050,7 @@ struct OffsetCalculatorImpl<FORMAT, FormatCategory::GM_POST_QUANT_NGD> {
 
     __aicore__ inline uint64_t GetStrideD()
     {
-        return AscendC::Std::get<2>(gmLayout.stride);
+        return AscendC::Std::get<2>(gmLayout.stride); // 2:代表第3个维度，索引从0开始
     }
 
     // Get Dim
@@ -1066,7 +1066,7 @@ struct OffsetCalculatorImpl<FORMAT, FormatCategory::GM_POST_QUANT_NGD> {
 
     __aicore__ inline uint32_t GetDimD()
     {
-        return AscendC::Std::get<2>(gmLayout.shape);
+        return AscendC::Std::get<2>(gmLayout.shape); // 2:代表第3个维度，索引从0开始
     }
 };
 
@@ -1181,7 +1181,7 @@ struct OffsetCalculatorImpl<FORMAT, FormatCategory::GM_ANTIQ_BNS> {
 
     __aicore__ inline uint64_t GetStrideS2()
     {
-        return AscendC::Std::get<2>(gmLayout.stride);
+        return AscendC::Std::get<2>(gmLayout.stride); // 2:代表第3个维度，索引从0开始
     }
 
     // Get Dim
@@ -1197,7 +1197,7 @@ struct OffsetCalculatorImpl<FORMAT, FormatCategory::GM_ANTIQ_BNS> {
 
     __aicore__ inline uint32_t GetDimS2()
     {
-        return AscendC::Std::get<2>(gmLayout.shape);
+        return AscendC::Std::get<2>(gmLayout.shape); // 2:代表第3个维度，索引从0开始
     }
 };
 
@@ -1284,7 +1284,7 @@ struct OffsetCalculatorImpl<FORMAT, FormatCategory::GM_ANTIQ_BnNBs> {
 
     __aicore__ inline uint64_t GetStrideBlockSize()
     {
-        return AscendC::Std::get<2>(gmLayout.stride);
+        return AscendC::Std::get<2>(gmLayout.stride); // 2:代表第3个维度，索引从0开始
     }
 
     // Get Dim
@@ -1331,17 +1331,17 @@ struct OffsetCalculatorImpl<FORMAT, FormatCategory::GM_PSE_BN2GS1S2> {
 
     __aicore__ inline uint64_t GetStrideG()
     {
-        return AscendC::Std::get<2>(gmLayout.stride);
+        return AscendC::Std::get<2>(gmLayout.stride); // 2:代表第3个维度，索引从0开始
     }
 
     __aicore__ inline uint64_t GetStrideS1()
     {
-        return AscendC::Std::get<3>(gmLayout.stride);
+        return AscendC::Std::get<3>(gmLayout.stride); // 3:代表第4个维度，索引从0开始
     }
 
     __aicore__ inline uint64_t GetStrideS2()
     {
-        return AscendC::Std::get<4>(gmLayout.stride);
+        return AscendC::Std::get<4>(gmLayout.stride); // 4:代表第5个维度，索引从0开始
     }
 
     // Get Dim
@@ -1357,17 +1357,17 @@ struct OffsetCalculatorImpl<FORMAT, FormatCategory::GM_PSE_BN2GS1S2> {
 
     __aicore__ inline uint32_t GetDimG()
     {
-        return AscendC::Std::get<2>(gmLayout.shape);
+        return AscendC::Std::get<2>(gmLayout.shape); // 2:代表第3个维度，索引从0开始
     }
 
     __aicore__ inline uint32_t GetDimS1()
     {
-        return AscendC::Std::get<3>(gmLayout.shape);
+        return AscendC::Std::get<3>(gmLayout.shape); // 3:代表第4个维度，索引从0开始
     }
 
     __aicore__ inline uint32_t GetDimS2()
     {
-        return AscendC::Std::get<4>(gmLayout.shape);
+        return AscendC::Std::get<4>(gmLayout.shape); // 4:代表第5个维度，索引从0开始
     }
 };
 
@@ -1888,7 +1888,6 @@ template <typename T>
 __aicore__ inline void CopySingleMatrixNDToND(LocalTensor<T> ubTensor, const GlobalTensor<T> gmTensor, 
                                             uint32_t blockCount, uint32_t blockLen, uint32_t srcStride, uint32_t dstStride, uint32_t rightPadding)
 {
-
     DataCopyExtParams dataCopyParams;
     dataCopyParams.blockCount = static_cast<uint16_t>(blockCount); // 外部传入
     dataCopyParams.blockLen = blockLen;
@@ -1901,7 +1900,6 @@ __aicore__ inline void CopySingleMatrixNDToND(LocalTensor<T> ubTensor, const Glo
     dataCopyPadParams.rightPadding = rightPadding;
     dataCopyPadParams.paddingValue = 0;
     DataCopyPad(ubTensor, gmTensor, dataCopyParams, dataCopyPadParams);
-
 }
 
 template <typename POST_QUANT_T, GmFormat GM_FORMAT>
