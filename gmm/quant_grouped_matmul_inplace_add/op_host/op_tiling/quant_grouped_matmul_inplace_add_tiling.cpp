@@ -346,13 +346,13 @@ ASCENDC_EXTERN_C ge::graphStatus TilingPrepareForGMMInplaceAdd(gert::TilingParse
 
     OP_CHECK_IF((compileInfoPtr->aicNum == 0 || compileInfoPtr->aivNum == 0 || compileInfoPtr->ubSize == 0 ||
                 compileInfoPtr->l1Size == 0 || compileInfoPtr->l0CSize == 0 || compileInfoPtr->l0ASize == 0 ||
-                compileInfoPtr->l0BSize == 0),
+                compileInfoPtr->l0BSize == 0 || compileInfoPtr->l2Size == 0),
                OP_LOGE(context->GetNodeName(),
                                            "Platform info is invalid, aicNum=%u, aivNum=%u, ubSize=%lu, l1Size=%lu, "
-                                           "l0CSize=%lu, l0ASize=%lu, l0BSize=%lu",
+                                           "l0CSize=%lu, l0ASize=%lu, l0BSize=%lu, l2Size=%lu",
                                            compileInfoPtr->aicNum, compileInfoPtr->aivNum, compileInfoPtr->ubSize,
                                            compileInfoPtr->l1Size, compileInfoPtr->l0CSize, compileInfoPtr->l0ASize,
-                                           compileInfoPtr->l0BSize),
+                                           compileInfoPtr->l0BSize, compileInfoPtr->l2Size),
                return ge::GRAPH_FAILED);
 
     OP_LOGI(context->GetNodeName(), "Parse compile info success, soc: %d",

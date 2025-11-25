@@ -18,10 +18,26 @@ template class AclnnQuantGroupedMatmulInplaceAdd91095Checker<aclTensor>;
 }
 
 namespace {
+const aclTensor *GetInputTensor(const aclTensorList *input, size_t index = 0)
+{
+    if (input == nullptr || index >= input->Size()) {
+        return nullptr;
+    }
+    return (*input)[index];
+}
+
 const aclTensor *GetInputTensor(const aclTensor *input, size_t index = 0)
 {
     (void)index;
     return input;
+}
+
+size_t GetInputTensorSize(const aclTensorList *input)
+{
+    if (input == nullptr) {
+        return 0;
+    }
+    return input->Size();
 }
 
 size_t GetInputTensorSize(const aclTensor *input)
@@ -163,6 +179,7 @@ aclnnStatus AclnnQuantGroupedMatmulInplaceAdd91095Checker<T>::CheckHif8QuantPara
                    "The %s dtype should be float32 in hifloat8 case, but actual dtype is %s",
                    perTokenScaleName_.c_str(), op::ToString(perTokenScaleDtype).GetString());
     }
+    CHECK_COND(gmmParams_.y != nullptr, ACLNN_ERR_PARAM_NULLPTR, "Hifloat8 case y not be null.");
     DataType yDtype = GetInputTensor(gmmParams_.y)->GetDataType();
     CHECK_COND(yDtype == DataType::DT_FLOAT, ACLNN_ERR_PARAM_INVALID,
                "Expect yDtype to be float32 in hifloat8 quant case, but actual dtype is %s",
@@ -175,6 +192,7 @@ template <typename T>
 aclnnStatus AclnnQuantGroupedMatmulInplaceAdd91095Checker<T>::CheckQuantGroupedMatmulInplaceAdd91095() const
 {
     DataType xDtype = gmmParams_.xDtype;
+    CHECK_COND(gmmParams_.weight != nullptr, ACLNN_ERR_PARAM_NULLPTR, "In quant case, weight should not be nullptr.");
     DataType weightDtype = GetInputTensor(gmmParams_.weight)->GetDataType();
     CHECK_COND(gmmParams_.scaleOptional != nullptr, ACLNN_ERR_PARAM_NULLPTR,
                "In quant case, scaleOptional should not be nullptr.");
