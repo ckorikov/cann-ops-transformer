@@ -394,8 +394,10 @@ aclnnStatus AclnnGroupedMatmulWeightQuant91095Checker::CheckScaleAndPerTokenScal
         // check pertokenscale shape for MxA8W4
         auto perTokenScaleShape = (*gmmParams_.perTokenScaleOptional)[0]->GetViewShape();
         auto perTokenScaleShapeDimNum = perTokenScaleShape.GetDimNum();
-        CHECK_COND(perTokenScaleShapeDimNum == 2, ACLNN_ERR_PARAM_INVALID,
-                   "The dim of pertokenscale must be 2!");  // 仅支持perTokenScale维度为2
+        // MxA8W4NZ仅支持perTokenScale维度为2
+        size_t perTokenScaleSupportDimNum = 2;
+        CHECK_COND(perTokenScaleShapeDimNum == perTokenScaleSupportDimNum, ACLNN_ERR_PARAM_INVALID,
+                   "The dim of pertokenscale must be 2!");
         auto xShape = (*gmmParams_.x)[0]->GetViewShape();
         auto perTokenScaleShapeMDim = perTokenScaleShape.GetDim(0);
         auto perTokenScaleShapeKDim = perTokenScaleShape.GetDim(1);
