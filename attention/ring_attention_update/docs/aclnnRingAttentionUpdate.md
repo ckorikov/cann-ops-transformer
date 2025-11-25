@@ -63,8 +63,9 @@ $$
   第一段接口完成入参校验，出现以下场景时报错：
   返回161001(ACLNN_ERR_PARAM_NULLPTR)：1. 传入的 prevAttnOut、prevSoftmaxMax、prevSoftmaxSum、curAttnOut、curSoftmaxMax、curSoftmaxSum、attnOutOut、softmaxMaxOut、softmaxSumOut是空指针时。
   返回161002(ACLNN_ERR_PARAM_INVALID)：1. prevAttnOut、prevSoftmaxMax、prevSoftmaxSum、curAttnOut、curSoftmaxMax、curSoftmaxSum、attnOutOut、softmaxMaxOut、softmaxSumOut数据类型不在支持的范围之内。
-                                      2. prevAttnOut、prevSoftmaxMax、prevSoftmaxSum、curAttnOut、curSoftmaxMax、curSoftmaxSum、attnOutOut、softmaxMaxOut、softmaxSumOut的shape不支持。
-  返回561002 (ACLNN_ERR_INNER_TILING_ERROR)：1. 当actualSeqQlenOptional有输入时，输入数据格式不在支持的范围之内。                          
+  返回561002 (ACLNN_ERR_INNER_TILING_ERROR)：1. 当actualSeqQlenOptional有输入时，输入数据格式不在支持的范围之内。
+                                            2. prevAttnOut、prevSoftmaxMax、prevSoftmaxSum、curAttnOut、curSoftmaxMax、curSoftmaxSum、attnOutOut、softmaxMaxOut、softmaxSumOut的shape为空。
+                                            3. prevAttnOut、prevSoftmaxMax、prevSoftmaxSum、curAttnOut、curSoftmaxMax、curSoftmaxSum、attnOutOut、softmaxMaxOut、softmaxSumOut的shape不支持。
   ```
 
 ## aclnnRingAttentionUpdate
