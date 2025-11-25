@@ -70,7 +70,7 @@ ge::graphStatus MlaPrologTiling::GetNpuInfo()
 
     aivNum_ = ascendcPlatform.GetCoreNumAiv();
     aicNum_ = ascendcPlatform.GetCoreNumAic();
-    
+
     OP_CHECK_IF(aicNum_ == 0 || aivNum_ == 0,
         OPS_REPORT_VECTOR_INNER_ERR(context_->opName, "num of core obtained is 0."), return GRAPH_FAILED);
 
@@ -354,16 +354,13 @@ ge::graphStatus MlaPrologTiling::ProcessBaseInputs()
     }
     vectorBlockNum_ = std::min(stepBatchSize_, aivNum_);
 
-    uint32_t cvRatio = aivNum_ / aicNum_;
     // 算力分组开关，仅当半量化场景，BS=1，G=8，可用核数大于等于16时进入分支
-    // CV1:1时不支持分组计算场景
     if ((scenarioInfo_.quantMode_ == QUANT_MODE::PARTIAL_QUANT_KV_NO_QUANT ||
          scenarioInfo_.quantMode_ == QUANT_MODE::PARTIAL_QUANT_KV_QUANT_PER_CHANNEL) &&
         baseShapeInfo_.tSize == GROUP_COMPUTE_T_SIZE &&
-        baseShapeInfo_.nSize == GROUP_COMPUTE_N_SIZE &&
+        baseShapeInfo_.nkvSize == GROUP_COMPUTE_NKV_SIZE &&
         aivNum_ >= GROUP_COMPUTE_MIN_AIV_NUM &&
-        aicNum_ >= GROUP_COMPUTE_MIN_AIC_NUM &&
-        cvRatio != 1) {
+        aicNum_ >= GROUP_COMPUTE_MIN_AIC_NUM) {
         enableGroupComputeOpt_ = true;
         aivNum_ = 32U;
         aicNum_ = 16U;
@@ -491,11 +488,6 @@ ge::graphStatus MlaPrologTiling::GenTilingKey() const
         quantType = static_cast<uint8_t>(scenarioInfo_.quantMode_);
     }
 
-    uint8_t cvMode = ASCENDC_TPL_MIX_AIC_1_2; // 默认cv 1:2模式
-    if (aivNum_ == aicNum_) {
-        cvMode = ASCENDC_TPL_MIX_AIC_1_1; // cv 1:1模式
-    }
-
     if (scenarioInfo_.emptyTensorMode_ == EMPTY_TENSOR_MODE::EMPTY_QUERY) {
         context_->tilingKey = GET_TPL_TILING_KEY(
             0,
@@ -505,8 +497,7 @@ ge::graphStatus MlaPrologTiling::GenTilingKey() const
             false,
             static_cast<uint8_t>(scenarioInfo_.emptyTensorMode_),
             0,
-            0,
-            cvMode
+            0
         );
     } else {
         uint8_t cacheMode = scenarioInfo_.cacheMode_ == CACHE_MODE::TND ? 0 : static_cast<uint8_t>(scenarioInfo_.cacheMode_);
@@ -518,8 +509,7 @@ ge::graphStatus MlaPrologTiling::GenTilingKey() const
             enableGroupComputeOpt_,
             static_cast<uint8_t>(scenarioInfo_.emptyTensorMode_),
             static_cast<uint8_t>(scenarioInfo_.actualSeqMode_),
-            static_cast<uint8_t>(scenarioInfo_.splitMFlag_),
-            cvMode
+            static_cast<uint8_t>(scenarioInfo_.splitMFlag_)
         );
     }
     OP_LOGI(context_->opName, "MlaProlog tilingKey:%lu", context_->tilingKey);
