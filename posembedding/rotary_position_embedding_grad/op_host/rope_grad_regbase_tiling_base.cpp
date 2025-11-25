@@ -189,13 +189,9 @@ ge::graphStatus RopeGradRegBaseTilingClass::JudgeLayoutByShape(const gert::Shape
     } else if (cosShape1 == 1 && xShape2 == cosShape2 && (cosShape0 == 1 || cosShape0 == xShape0)) { // BNSD (11SD,
                                                                                                      // B1SD)
         layout_ = RopeLayout::BNSD;
-    } else if (cosShape0 == 1 && xShape1 == cosShape1 && xShape2 == cosShape2) { // 1SND 不支持
-        OP_LOGE(
-            context_->GetNodeName(),
-            "Broadcasting only the first dim is not allowed, meaning the first dim of cos and sin expect %lu, "
-            "actual %lu.",
-            xShape0, cosShape0);
-        return ge::GRAPH_FAILED;
+    } else if (cosShape0 == 1 && xShape1 == cosShape1 && xShape2 == cosShape2) { // 1SND
+        layout_ = RopeLayout::BNSD;
+        is1snd_ = true;
     } else {
         OP_LOGE(context_->GetNodeName(), "the shape of dy and cos/sin not satisfy the broadcast.");
         return ge::GRAPH_FAILED;
@@ -467,6 +463,11 @@ ge::graphStatus RopeGradRegBaseTilingClass::GetShapeAttrsInfo()
         cosb_ = cosShape_.GetDim(DIM_0);
         n_ = dyShape_.GetDim(DIM_1);
         s_ = dyShape_.GetDim(DIM_2);
+        // 1XXX情况下，reshape成11XX
+        if (is1snd_ == true) {
+            s_ = s_ * n_;
+            n_ = 1;
+        }
     } else if (layout_ == RopeLayout::SBND) {
         s_ = dyShape_.GetDim(DIM_0);
         b_ = dyShape_.GetDim(DIM_1);
