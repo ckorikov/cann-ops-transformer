@@ -15,13 +15,13 @@
 #ifndef MOE_V2_QUANT_EXPERT_TOKEN_OUT_REGBASE_H
 #define MOE_V2_QUANT_EXPERT_TOKEN_OUT_REGBASE_H
 
-#include "../inc/platform.h"
+#include "op_kernel/platform_util.h"
 #include "moe_v2_common.h"
 
 namespace MoeInitRoutingQuantV2 {
 using namespace AscendC;
 
-constexpr static uint32_t VL_INT32 = static_cast<uint32_t>(platform::GetVRegSize()) / sizeof(int32_t);
+constexpr static uint32_t VL_INT32 = static_cast<uint32_t>(Ops::Base::GetVRegSize()) / sizeof(int32_t);
 constexpr static int64_t EXPERT_NUM = 256;
 constexpr static uint32_t FOUR = 4;
 
