@@ -18,6 +18,7 @@
 #include <dlfcn.h>
 #include "log/log.h"
 #include "mc2_hcom_topo_info.h"
+#include "tiling/mc2_tiling_utils.h"
 #ifndef BUILD_OPEN_PROJECT
 #include "hcom/hcom_topo_info.h"
 #endif
@@ -154,6 +155,13 @@ HcclResult MC2HcomTopology::CommGetCclBufferSizeByGroup(const char *group, uint6
 }
 
 #ifdef BUILD_OPEN_PROJECT
+HcclResult MC2HcomTopology::CommGetGroupLocalWindowSize(const char *group, uint64_t *cclBufferSize)
+{
+    *cclBufferSize = mc2tiling::Mc2TilingUtils::GetMaxWindowSize();
+    OP_LOGD("", "Get winSize from GetMaxWindowSize");
+    return HCCL_SUCCESS;
+}
+
 HcclResult MC2HcomTopology::CommGetInstSizeByGroup(const char *group, uint32_t *rankNum)
 {
     HcclComm hcclComm = nullptr;
@@ -208,6 +216,16 @@ HcclResult MC2HcomTopology::TryGetGroupTopoType(const char *group, uint32_t *top
     return HCCL_SUCCESS;
 }
 #else
+HcclResult MC2HcomTopology::CommGetGroupLocalWindowSize(const char *group, uint64_t* cclBufferSize)
+{
+    uint32_t ret = ge::HcomTopoInfo::Instance().GetGroupLocalWindowSize(group, *cclBufferSize);
+    if (ret != ge::GRAPH_SUCCESS) {
+        OP_LOGE("", "cclBufferSize not set.");
+        return HCCL_E_NOT_FOUND;
+    }
+    return HCCL_SUCCESS;
+}
+
 HcclResult MC2HcomTopology::CommGetInstSizeByGroup(const char *group, uint32_t *rankNum)
 {
     int64_t rankSize = *rankNum;

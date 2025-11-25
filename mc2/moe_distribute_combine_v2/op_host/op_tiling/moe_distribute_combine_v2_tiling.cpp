@@ -37,7 +37,6 @@
 #include "../../../moe_distribute_combine/op_host/op_tiling/arch35/moe_distribute_combine_tiling_arch35.h"
 #include "../../op_kernel/moe_distribute_combine_v2_tiling.h"
 #include "mc2_hcom_topo_info.h"
-#include "hcom/hcom_topo_info.h"
 
 using namespace AscendC;
 using namespace ge;
@@ -1029,7 +1028,7 @@ static ge::graphStatus GetCclBufferSize(const char* groupStr, uint64_t* cclBuffe
     OP_TILING_CHECK(Mc2Hcom::MC2HcomTopology::CommGetCclBufferSizeByGroup(groupStr, cclBufferSize, &hcclComm)
         != HCCL_SUCCESS, OP_LOGE(nodeName, "CommGetCclBufferSizeByGroup failed"), return ge::GRAPH_FAILED);
     if (hcclComm == nullptr) {
-        OP_TILING_CHECK(ge::HcomTopoInfo::Instance().GetGroupLocalWindowSize(groupStr, *cclBufferSize) != ge::GRAPH_SUCCESS,
+        OP_TILING_CHECK(Mc2Hcom::MC2HcomTopology::CommGetGroupLocalWindowSize(groupStr, cclBufferSize) != HCCL_SUCCESS,
             OP_LOGE(nodeName, "GetGroupLocalWindowSize failed"), return ge::GRAPH_FAILED);
         OP_LOGD(nodeName, "Get cclBufferSize by topoInfo");
     } else {

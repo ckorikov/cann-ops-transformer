@@ -30,6 +30,7 @@ public:
     static HcclResult CommGetInstSizeByGroup(const char *group, uint32_t *rankNum);
     static HcclResult TryGetGroupTopoType(const char *group, uint32_t *topoType);
     static HcclResult CommGetCclBufferSizeByGroup(const char *group, uint64_t *cclBufferSize, HcclComm *hcclComm);
+    static HcclResult CommGetGroupLocalWindowSize(const char *group, uint64_t* cclBufferSize);
 
 private:
     static MC2HcomTopology &GetInstance();
