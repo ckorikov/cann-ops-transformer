@@ -19,10 +19,12 @@
 #include "include/matmul/kernel/kernel_grouped_matmul.h"
 #include "include/matmul/block/block_grouped_matmul_builder.h"
 #include "include/matmul/block/block_scheduler_grouped_matmul_aswt.h"
+#include "../grouped_matmul_tiling_data_apt.h"
 #include "../../grouped_matmul_utils.h"
 
 using namespace Act::Gemm;
 using namespace Act::Gemm::Kernel;
+using GMMNoQuantTilingData = GroupedMatmulTilingData::GMMNoQuantTilingData;
 
 namespace GROUPED_MATMUL {
 

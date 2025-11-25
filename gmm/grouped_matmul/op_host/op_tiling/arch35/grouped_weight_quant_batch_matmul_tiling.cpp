@@ -22,7 +22,11 @@ bool GroupedWeightQuantBatchMatmulTiling::SetTiling(gert::TilingContext *context
                return false);
     OP_CHECK_IF(!CalcResplitTiling(context),
                OP_LOGE(context->GetNodeName(), "Unable to calculate resplit-tiling"), return false);
-    SetBaseTiling();
+    auto ret = SetBaseTiling();
+    if (!ret) {
+        OP_LOGE(context->GetNodeName(), "Set Base Tiling Failed");
+        return false;
+    }
     SetMatMulTiling();
     SetTilingKey(context);
     OP_CHECK_IF(!SetCustomParam(context),
@@ -158,69 +162,79 @@ bool GroupedWeightQuantBatchMatmulTiling::CalcResplitTiling(const gert::TilingCo
     return true;
 }
 
-void GroupedWeightQuantBatchMatmulTiling::SetBaseTiling()
+bool GroupedWeightQuantBatchMatmulTiling::SetBaseTiling()
 {
-    tilingData_.gmmWeightQuantParam.set_groupNum(groupNum_);
-    tilingData_.gmmWeightQuantParam.set_coreNum(coreNum_);
-    tilingData_.gmmWeightQuantParam.set_kSize(kSize_);
-    tilingData_.gmmWeightQuantParam.set_nSize(nSizeOri_);
-    tilingData_.gmmWeightQuantParam.set_singleX(static_cast<uint8_t>(isSingleX_));
-    tilingData_.gmmWeightQuantParam.set_singleWeight(static_cast<uint8_t>(isSingleWeight_));
-    tilingData_.gmmWeightQuantParam.set_singleY(static_cast<uint8_t>(isSingleY_));
-    tilingData_.gmmWeightQuantParam.set_groupType(static_cast<int8_t>(groupType_));
-    tilingData_.gmmWeightQuantParam.set_groupListType(static_cast<uint8_t>(groupListType_));
-    tilingData_.gmmWeightQuantParam.set_hasBias(static_cast<uint8_t>(hasBias_));
-    tilingData_.gmmWeightQuantParam.set_cubeBlockDimN(cubeBlockDimN_);
-    tilingData_.gmmWeightQuantParam.set_groupSize(groupSize_);
-    tilingData_.gmmWeightQuantParam.set_mainBlockSize(resplitParam_.mainBlockSize);
-    tilingData_.gmmWeightQuantParam.set_mainBlockCount(resplitParam_.mainBlockCount * coreNum_);
-    tilingData_.gmmWeightQuantParam.set_firstTailBlockSize(resplitParam_.firstTailBlockSize);
-    tilingData_.gmmWeightQuantParam.set_secondTailBlockSize(resplitParam_.secondTailBlockSize);
-    tilingData_.gmmWeightQuantParam.set_firstTailBlockCount(resplitParam_.firstTailBlockCount);
-    tilingData_.gmmWeightQuantParam.set_secondTailBlockCount(resplitParam_.secondTailBlockCount);
-    tilingData_.gmmArray.set_mList(mList_);
-    tilingData_.gmmArray.set_kList(kList_);
-    tilingData_.gmmArray.set_nList(nList_);
+    tilingData_.gmmWeightQuantParam.groupNum = groupNum_;
+    tilingData_.gmmWeightQuantParam.coreNum = coreNum_;
+    tilingData_.gmmWeightQuantParam.kSize = kSize_;
+    tilingData_.gmmWeightQuantParam.nSize = nSizeOri_;
+    tilingData_.gmmWeightQuantParam.singleX = static_cast<uint8_t>(isSingleX_);
+    tilingData_.gmmWeightQuantParam.singleWeight = static_cast<uint8_t>(isSingleWeight_);
+    tilingData_.gmmWeightQuantParam.singleY = static_cast<uint8_t>(isSingleY_);
+    tilingData_.gmmWeightQuantParam.groupType = static_cast<int8_t>(groupType_);
+    tilingData_.gmmWeightQuantParam.groupListType = static_cast<uint8_t>(groupListType_);
+    tilingData_.gmmWeightQuantParam.hasBias = static_cast<uint8_t>(hasBias_);
+    tilingData_.gmmWeightQuantParam.cubeBlockDimN = cubeBlockDimN_;
+    tilingData_.gmmWeightQuantParam.groupSize = groupSize_;
+    tilingData_.gmmWeightQuantParam.mainBlockSize = resplitParam_.mainBlockSize;
+    tilingData_.gmmWeightQuantParam.mainBlockCount = resplitParam_.mainBlockCount * coreNum_;
+    tilingData_.gmmWeightQuantParam.firstTailBlockSize = resplitParam_.firstTailBlockSize;
+    tilingData_.gmmWeightQuantParam.secondTailBlockSize = resplitParam_.secondTailBlockSize;
+    tilingData_.gmmWeightQuantParam.firstTailBlockCount = resplitParam_.firstTailBlockCount;
+    tilingData_.gmmWeightQuantParam.secondTailBlockCount = resplitParam_.secondTailBlockCount;
+    errno_t retM = memcpy_s(tilingData_.gmmArray.mList, sizeof(tilingData_.gmmArray.mList), mList_, sizeof(mList_));
+    if (retM != EOK) {
+        return false;
+    }
+    errno_t retK = memcpy_s(tilingData_.gmmArray.kList, sizeof(tilingData_.gmmArray.kList), kList_, sizeof(kList_));
+    if (retK != EOK) {
+        return false;
+    }
+    errno_t retN = memcpy_s(tilingData_.gmmArray.nList, sizeof(tilingData_.gmmArray.nList), nList_, sizeof(nList_));
+    if (retN != EOK) {
+        return false;
+    }
+    return true;
 }
 
 void GroupedWeightQuantBatchMatmulTiling::SetMatMulTiling()
 {
-    tilingData_.mmTilingData.set_baseM(BASIC_BLOCK_BASE_M);
-    tilingData_.mmTilingData.set_singleCoreM(BASIC_BLOCK_BASE_M);
-    tilingData_.mmTilingData.set_isBias(static_cast<int32_t>(hasBias_));
-    tilingData_.mmTilingData.set_M(mSize_);
-    tilingData_.mmTilingData.set_N(nSize_);
-    tilingData_.mmTilingData.set_Ka(kSize_);
-    tilingData_.mmTilingData.set_Kb(kSize_);
-    tilingData_.mmTilingData.set_singleCoreN(BASIC_BLOCK_BASE_N);
-    tilingData_.mmTilingData.set_singleCoreK(kSize_);
-    tilingData_.mmTilingData.set_dbL0A(BUFFER_NUM_2);
-    tilingData_.mmTilingData.set_dbL0B(BUFFER_NUM_2);
-    tilingData_.mmTilingData.set_dbL0C(1);
-    tilingData_.mmTilingData.set_shareL0CSize(BASIC_BLOCK_BASE_M * BASIC_BLOCK_BASE_N * sizeof(float));
+    tilingData_.mmTilingData.baseM = BASIC_BLOCK_BASE_M;
+    tilingData_.mmTilingData.singleCoreM = BASIC_BLOCK_BASE_M;
+    tilingData_.mmTilingData.isBias = static_cast<int32_t>(hasBias_);
+    tilingData_.mmTilingData.M = mSize_;
+    tilingData_.mmTilingData.N = nSize_;
+    tilingData_.mmTilingData.Ka = kSize_;
+    tilingData_.mmTilingData.Kb = kSize_;
+    tilingData_.mmTilingData.singleCoreN = BASIC_BLOCK_BASE_N;
+    tilingData_.mmTilingData.singleCoreK = kSize_;
+    tilingData_.mmTilingData.dbL0A = BUFFER_NUM_2;
+    tilingData_.mmTilingData.dbL0B = BUFFER_NUM_2;
+    tilingData_.mmTilingData.dbL0C = 1;
+    tilingData_.mmTilingData.shareL0CSize = BASIC_BLOCK_BASE_M * BASIC_BLOCK_BASE_N * sizeof(float);
 
-    tilingData_.mmTilingData.set_baseN(BASIC_BLOCK_BASE_N);
-    tilingData_.mmTilingData.set_baseK(BASIC_BLOCK_BASE_K);
-    tilingData_.mmTilingData.set_stepKa(STEP_K_4);
-    tilingData_.mmTilingData.set_stepKb(STEP_K_4);
-    tilingData_.mmTilingData.set_depthA1(DEPTH_8);
-    tilingData_.mmTilingData.set_depthB1(DEPTH_8);
-    tilingData_.mmTilingData.set_stepM(1);
-    tilingData_.mmTilingData.set_stepN(1);
-    tilingData_.mmTilingData.set_usedCoreNum(coreNum_);
+    tilingData_.mmTilingData.baseN = BASIC_BLOCK_BASE_N;
+    tilingData_.mmTilingData.baseK = BASIC_BLOCK_BASE_K;
+    tilingData_.mmTilingData.stepKa = STEP_K_4;
+    tilingData_.mmTilingData.stepKb = STEP_K_4;
+    tilingData_.mmTilingData.depthA1 = DEPTH_8;
+    tilingData_.mmTilingData.depthB1 = DEPTH_8;
+    tilingData_.mmTilingData.stepM = 1;
+    tilingData_.mmTilingData.stepN = 1;
+    tilingData_.mmTilingData.usedCoreNum = coreNum_;
 
     if (xDType_ == ge::DT_INT8 && weightDtype_ == ge::DT_INT4) {
         // 2含义：S8S4场景，MAD采用S8类型，baseK需要放大2倍
-        tilingData_.mmTilingData.set_baseK(BASIC_BLOCK_BASE_K * 2);
+        tilingData_.mmTilingData.baseK = BASIC_BLOCK_BASE_K * 2;
         // A8W4场景在UB中处理bias，mm api默认无bias
-        tilingData_.mmTilingData.set_isBias(0);
+        tilingData_.mmTilingData.isBias = 0;
     } else if (xDType_ == ge::DT_FLOAT8_E4M3FN && weightDtype_ == ge::DT_FLOAT4_E2M1 &&
                antiquantScaleDtype_ == ge::DT_FLOAT8_E8M0) {
         // MxA8W4场景配置mxTypePara
-        tilingData_.mmTilingData.set_mxTypePara((SCALE_FACTOR_MIN << SCALE_FACTOR_B_BIT) + SCALE_FACTOR_MIN);
+        tilingData_.mmTilingData.mxTypePara = (SCALE_FACTOR_MIN << SCALE_FACTOR_B_BIT) + SCALE_FACTOR_MIN;
     } else if (hasBias_) {
-        tilingData_.mmTilingData.set_baseM(BASIC_BLOCK_BASE_M_WITH_BIAS);
-        tilingData_.mmTilingData.set_singleCoreM(BASIC_BLOCK_BASE_M_WITH_BIAS);
+        tilingData_.mmTilingData.baseM = BASIC_BLOCK_BASE_M_WITH_BIAS;
+        tilingData_.mmTilingData.singleCoreM = BASIC_BLOCK_BASE_M_WITH_BIAS;
     }
 }
 
@@ -269,8 +283,12 @@ bool GroupedWeightQuantBatchMatmulTiling::SetCustomParam(gert::TilingContext *co
     context->SetBlockDim(coreNum_);
     OP_CHECK_IF(context->GetRawTilingData() == nullptr, OP_LOGE(context->GetNodeName(), "RawTilingData is nullptr."),
                 return false);
-    tilingData_.SaveToBuffer(context->GetRawTilingData()->GetData(), context->GetRawTilingData()->GetCapacity());
-    context->GetRawTilingData()->SetDataSize(tilingData_.GetDataSize());
+    errno_t ret = memcpy_s(context->GetRawTilingData()->GetData(), context->GetRawTilingData()->GetCapacity(), reinterpret_cast<void *>(&tilingData_), sizeof(tilingData_));
+    if (ret != EOK) {
+        OP_LOGE(context->GetNodeName(), "memcpy_s failed, ret = %d", ret);
+        return false;
+    }
+    context->GetRawTilingData()->SetDataSize(sizeof(tilingData_));
     return true;
 }
 
@@ -567,15 +585,15 @@ void GroupedWeightQuantBatchMatmulTiling::PrintTilingResult(const gert::TilingCo
         "Tiling result: groupNum: %u, coreNum: %u, kSize: %lu, nSize: %lu, singleX: %u, singleWeight: %u, singleY: %u, "
         "groupType: %d, groupListType: %u, hasBias: %u, groupSize: %u, mainBlockSize: %u, mainBlockCount: %lu, "
         "firstTailBlockSize: %u, secondTailBlockSize: %u, firstTailBlockCount: %u, secondTailBlockCount: %u",
-        tilingData_.gmmWeightQuantParam.get_groupNum(), tilingData_.gmmWeightQuantParam.get_coreNum(),
-        tilingData_.gmmWeightQuantParam.get_kSize(), tilingData_.gmmWeightQuantParam.get_nSize(),
-        tilingData_.gmmWeightQuantParam.get_singleX(), tilingData_.gmmWeightQuantParam.get_singleWeight(),
-        tilingData_.gmmWeightQuantParam.get_singleY(), tilingData_.gmmWeightQuantParam.get_groupType(),
-        tilingData_.gmmWeightQuantParam.get_groupListType(), tilingData_.gmmWeightQuantParam.get_hasBias(),
-        tilingData_.gmmWeightQuantParam.get_groupSize(), tilingData_.gmmWeightQuantParam.get_mainBlockSize(),
-        tilingData_.gmmWeightQuantParam.get_mainBlockCount(), tilingData_.gmmWeightQuantParam.get_firstTailBlockSize(),
-        tilingData_.gmmWeightQuantParam.get_secondTailBlockSize(),
-        tilingData_.gmmWeightQuantParam.get_firstTailBlockCount(),
-        tilingData_.gmmWeightQuantParam.get_secondTailBlockCount());
+        tilingData_.gmmWeightQuantParam.groupNum, tilingData_.gmmWeightQuantParam.coreNum,
+        tilingData_.gmmWeightQuantParam.kSize, tilingData_.gmmWeightQuantParam.nSize,
+        tilingData_.gmmWeightQuantParam.singleX, tilingData_.gmmWeightQuantParam.singleWeight,
+        tilingData_.gmmWeightQuantParam.singleY, tilingData_.gmmWeightQuantParam.groupType,
+        tilingData_.gmmWeightQuantParam.groupListType, tilingData_.gmmWeightQuantParam.hasBias,
+        tilingData_.gmmWeightQuantParam.groupSize, tilingData_.gmmWeightQuantParam.mainBlockSize,
+        tilingData_.gmmWeightQuantParam.mainBlockCount, tilingData_.gmmWeightQuantParam.firstTailBlockSize,
+        tilingData_.gmmWeightQuantParam.secondTailBlockSize,
+        tilingData_.gmmWeightQuantParam.firstTailBlockCount,
+        tilingData_.gmmWeightQuantParam.secondTailBlockCount);
 }
 }  // namespace optiling

@@ -15,8 +15,8 @@
 #ifndef GROUPED_MATMUL_WEIGHT_QUANT_RESPLIT_CONTROLLER_H
 #define GROUPED_MATMUL_WEIGHT_QUANT_RESPLIT_CONTROLLER_H
 
-#include "../../grouped_matmul.h"
 #include "weight_quant_vcv_basic_block_base.h"
+#include "../grouped_matmul_tiling_data_apt.h"
 
 using WeightQuantBatchMatmulV2::Arch35::A_L1_MAX_SIZE_WITH_BIAS_QUANT;
 using WeightQuantBatchMatmulV2::Arch35::BASIC_BLOCK_PROCESS_NUM;
@@ -31,6 +31,7 @@ using WeightQuantBatchMatmulV2::Arch35::SCALE_FACTOR_B_BIT;
 using WeightQuantBatchMatmulV2::Arch35::VecAntiQuantConfig;
 using WeightQuantBatchMatmulV2::Arch35::WeightQuantVcvMatmulBasicBlockBaseClass;
 using WeightQuantBatchMatmulV2::Arch35::WqmmConfig;
+using GMMWeightQuantParam = GroupedMatmulTilingData::GMMWeightQuantParam;
 
 namespace GROUPED_MATMUL {
 #define GMM_WQ_BASIC_BLOCK_TEMPLATE_CLASS                                                                      \

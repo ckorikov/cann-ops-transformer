@@ -17,6 +17,8 @@
 using namespace Ops::Transformer::OpTiling;
 using namespace GroupedMatmul;
 using namespace optiling::GmmConstant;
+using GMMQuantTilingData = GroupedMatmulTilingData::GMMQuantTilingData;
+using GMMQuantParams = GroupedMatmulTilingData::GMMQuantParams;
 namespace optiling {
 
 bool GroupedQbmmTiling::IsCapable()
@@ -26,7 +28,7 @@ bool GroupedQbmmTiling::IsCapable()
 
 void GroupedQbmmTiling::Reset()
 {
-    tilingData_.SetDataPtr(context_->GetRawTilingData()->GetData());
+    tilingData_ = GMMQuantTilingData();
 }
 
 ge::graphStatus GroupedQbmmTiling::GetPlatformInfo()
@@ -575,19 +577,31 @@ ge::graphStatus GroupedQbmmTiling::GetShapeAttrsInfo()
 
 ge::graphStatus GroupedQbmmTiling::DoOpTiling()
 {
-    tilingData_.gmmQuantParams.set_groupNum(inputParams_.groupNum);
-    tilingData_.gmmQuantParams.set_activeType(inputParams_.actType);
-    tilingData_.gmmQuantParams.set_aQuantMode(static_cast<uint32_t>(inputParams_.aQuantMode));
-    tilingData_.gmmQuantParams.set_bQuantMode(static_cast<uint32_t>(inputParams_.bQuantMode));
-    tilingData_.gmmQuantParams.set_singleX(static_cast<uint8_t>(inputParams_.isSingleX));
-    tilingData_.gmmQuantParams.set_singleW(static_cast<uint8_t>(inputParams_.isSingleW));
-    tilingData_.gmmQuantParams.set_singleY(static_cast<uint8_t>(inputParams_.isSingleY));
-    tilingData_.gmmQuantParams.set_groupType(static_cast<int8_t>(inputParams_.groupType));
-    tilingData_.gmmQuantParams.set_groupListType(static_cast<uint8_t>(inputParams_.groupListType));
-    tilingData_.gmmQuantParams.set_hasBias(static_cast<uint8_t>(inputParams_.hasBias));
-    tilingData_.gmmArray.set_mList(mList_);
-    tilingData_.gmmArray.set_kList(kList_);
-    tilingData_.gmmArray.set_nList(nList_);
+    tilingData_.gmmQuantParams.groupNum = inputParams_.groupNum;
+    tilingData_.gmmQuantParams.activeType = inputParams_.actType;
+    tilingData_.gmmQuantParams.aQuantMode = static_cast<uint32_t>(inputParams_.aQuantMode);
+    tilingData_.gmmQuantParams.bQuantMode = static_cast<uint32_t>(inputParams_.bQuantMode);
+    tilingData_.gmmQuantParams.singleX = static_cast<uint8_t>(inputParams_.isSingleX);
+    tilingData_.gmmQuantParams.singleW = static_cast<uint8_t>(inputParams_.isSingleW);
+    tilingData_.gmmQuantParams.singleY = static_cast<uint8_t>(inputParams_.isSingleY);
+    tilingData_.gmmQuantParams.groupType = static_cast<int8_t>(inputParams_.groupType);
+    tilingData_.gmmQuantParams.groupListType = static_cast<uint8_t>(inputParams_.groupListType);
+    tilingData_.gmmQuantParams.hasBias = static_cast<uint8_t>(inputParams_.hasBias);
+    errno_t retM = memcpy_s(tilingData_.gmmArray.mList, sizeof(tilingData_.gmmArray.mList), mList_, sizeof(mList_));
+    if (retM != EOK) {
+        OP_LOGE(context_->GetNodeName(), "memcpy_s failed, ret = %d", retM);
+        return ge::GRAPH_FAILED;
+    }
+    errno_t retK = memcpy_s(tilingData_.gmmArray.kList, sizeof(tilingData_.gmmArray.kList), kList_, sizeof(kList_));
+    if (retK!= EOK) {
+        OP_LOGE(context_->GetNodeName(), "memcpy_s failed, ret = %d", retK);
+        return ge::GRAPH_FAILED;
+    }
+    errno_t retN = memcpy_s(tilingData_.gmmArray.nList, sizeof(tilingData_.gmmArray.nList), nList_, sizeof(nList_));
+    if (retN != EOK) {
+        OP_LOGE(context_->GetNodeName(), "memcpy_s failed, ret = %d", retN);
+        return ge::GRAPH_FAILED;
+    }
     PrintQuantParams();
     return ge::GRAPH_SUCCESS;
 }
@@ -597,38 +611,36 @@ ge::graphStatus GroupedQbmmTiling::DoLibApiTiling()
     CalBasicBlock();
     OP_CHECK_IF(CalL1Tiling() != ge::GRAPH_SUCCESS,
                OP_LOGE(context_->GetNodeName(), "CalL1Tiling failed"), return ge::GRAPH_FAILED);
-    tilingData_.mmTilingData.set_M(inputParams_.mSize);
-    tilingData_.mmTilingData.set_N(inputParams_.nSize);
-    tilingData_.mmTilingData.set_Ka(inputParams_.kSize);
-    tilingData_.mmTilingData.set_Kb(inputParams_.kSize);
-    tilingData_.mmTilingData.set_usedCoreNum(aicoreParams_.aicNum);
-    tilingData_.mmTilingData.set_baseM(basicTiling_.baseM);
-    tilingData_.mmTilingData.set_baseN(basicTiling_.baseN);
-    tilingData_.mmTilingData.set_baseK(basicTiling_.baseK);
-    tilingData_.mmTilingData.set_singleCoreM(basicTiling_.singleCoreM);
-    tilingData_.mmTilingData.set_singleCoreN(basicTiling_.singleCoreN);
-    tilingData_.mmTilingData.set_singleCoreK(basicTiling_.singleCoreK);
-    tilingData_.mmTilingData.set_depthA1(basicTiling_.depthA1);
-    tilingData_.mmTilingData.set_depthB1(basicTiling_.depthB1);
-    tilingData_.mmTilingData.set_stepM(basicTiling_.stepM);
-    tilingData_.mmTilingData.set_stepN(basicTiling_.stepN);
-    tilingData_.mmTilingData.set_stepKa(basicTiling_.stepKa);
-    tilingData_.mmTilingData.set_stepKb(basicTiling_.stepKb);
-    tilingData_.mmTilingData.set_isBias(inputParams_.hasBias ? 1 : 0);
-    tilingData_.mmTilingData.set_iterateOrder(basicTiling_.iterateOrder);
-    tilingData_.mmTilingData.set_dbL0A(2); // db switch, 1: off, 2: on
-    tilingData_.mmTilingData.set_dbL0B(2); // db switch, 1: off, 2: on
-    tilingData_.mmTilingData.set_dbL0C(basicTiling_.dbL0c);
+    tilingData_.mmTilingData.M = inputParams_.mSize;
+    tilingData_.mmTilingData.N = inputParams_.nSize;
+    tilingData_.mmTilingData.Ka = inputParams_.kSize;
+    tilingData_.mmTilingData.Kb = inputParams_.kSize;
+    tilingData_.mmTilingData.usedCoreNum = aicoreParams_.aicNum;
+    tilingData_.mmTilingData.baseM = basicTiling_.baseM;
+    tilingData_.mmTilingData.baseN = basicTiling_.baseN;
+    tilingData_.mmTilingData.baseK = basicTiling_.baseK;
+    tilingData_.mmTilingData.singleCoreM = basicTiling_.singleCoreM;
+    tilingData_.mmTilingData.singleCoreN = basicTiling_.singleCoreN;
+    tilingData_.mmTilingData.singleCoreK = basicTiling_.singleCoreK;
+    tilingData_.mmTilingData.depthA1 = basicTiling_.depthA1;
+    tilingData_.mmTilingData.depthB1 = basicTiling_.depthB1;
+    tilingData_.mmTilingData.stepM = basicTiling_.stepM;
+    tilingData_.mmTilingData.stepN = basicTiling_.stepN;
+    tilingData_.mmTilingData.stepKa = basicTiling_.stepKa;
+    tilingData_.mmTilingData.stepKb = basicTiling_.stepKb;
+    tilingData_.mmTilingData.isBias = inputParams_.hasBias ? 1 : 0;
+    tilingData_.mmTilingData.iterateOrder = basicTiling_.iterateOrder;
+    tilingData_.mmTilingData.dbL0A = 2; // db switch, 1: off, 2: on
+    tilingData_.mmTilingData.dbL0B = 2; // db switch, 1: off, 2: on
+    tilingData_.mmTilingData.dbL0C = basicTiling_.dbL0c;
     if (inputParams_.bQuantMode == optiling::QuantMode::MX_PERGROUP_MODE) {
         if (basicTiling_.scaleFactorA >= SCALER_FACTOR_MIN && basicTiling_.scaleFactorA <= SCALER_FACTOR_MAX &&
             basicTiling_.scaleFactorB >= SCALER_FACTOR_MIN && basicTiling_.scaleFactorB <= SCALER_FACTOR_MAX) {
-            tilingData_.mmTilingData.set_mxTypePara(
-                (SCALER_FACTOR_DEFAULT << SCALER_FACTOR_N_BIT) + (SCALER_FACTOR_DEFAULT << SCALER_FACTOR_M_BIT) +
-                (basicTiling_.scaleFactorB << SCALER_FACTOR_B_BIT) + basicTiling_.scaleFactorA);
+            tilingData_.mmTilingData.mxTypePara = (SCALER_FACTOR_DEFAULT << SCALER_FACTOR_N_BIT) + (SCALER_FACTOR_DEFAULT << SCALER_FACTOR_M_BIT) +
+                (basicTiling_.scaleFactorB << SCALER_FACTOR_B_BIT) + basicTiling_.scaleFactorA;
         } else {
-            tilingData_.mmTilingData.set_mxTypePara(
-                (SCALER_FACTOR_DEFAULT << SCALER_FACTOR_N_BIT) + (SCALER_FACTOR_DEFAULT << SCALER_FACTOR_M_BIT) +
-                (SCALER_FACTOR_DEFAULT << SCALER_FACTOR_B_BIT) + SCALER_FACTOR_DEFAULT);
+            tilingData_.mmTilingData.mxTypePara = (SCALER_FACTOR_DEFAULT << SCALER_FACTOR_N_BIT) + (SCALER_FACTOR_DEFAULT << SCALER_FACTOR_M_BIT) +
+                (SCALER_FACTOR_DEFAULT << SCALER_FACTOR_B_BIT) + SCALER_FACTOR_DEFAULT;
         }
     }
 
@@ -683,12 +695,16 @@ ge::graphStatus GroupedQbmmTiling::GetWorkspaceSize()
 ge::graphStatus GroupedQbmmTiling::PostTiling()
 {
     context_->SetBlockDim(aicoreParams_.aicNum);
-    OP_CHECK_IF(tilingData_.GetDataSize() % sizeof(uint64_t) != 0,
+    OP_CHECK_IF(sizeof(tilingData_) % sizeof(uint64_t) != 0,
                OP_LOGE(context_->GetNodeName(), "Tiling data size[%zu] is not aligned to 8",
-                                         tilingData_.GetDataSize()),
+                                         sizeof(tilingData_)),
                return ge::GRAPH_FAILED);
-    tilingData_.SaveToBuffer(context_->GetRawTilingData()->GetData(), context_->GetRawTilingData()->GetCapacity());
-    context_->GetRawTilingData()->SetDataSize(tilingData_.GetDataSize());
+    errno_t ret = memcpy_s(context_->GetRawTilingData()->GetData(), context_->GetRawTilingData()->GetCapacity(), reinterpret_cast<void *>(&tilingData_), sizeof(tilingData_));
+    if (ret != EOK) {
+        OP_LOGE(context_->GetNodeName(), "memcpy_s failed, ret = %d", ret);
+        return ge::GRAPH_FAILED;
+    }
+    context_->GetRawTilingData()->SetDataSize(sizeof(tilingData_));
     return ge::GRAPH_SUCCESS;
 }
 
@@ -698,16 +714,16 @@ void GroupedQbmmTiling::PrintQuantParams()
     if (enable != 1) {
         return;
     }
-    optiling::GMMQuantParams &params = tilingData_.gmmQuantParams;
+    GMMQuantParams &params = tilingData_.gmmQuantParams;
     std::ostringstream oss;
-    oss << "GMMQuantParams: groupNum = " << params.get_groupNum() << ", activeType = " << params.get_activeType()
-        << ", aQuantMode = " << params.get_aQuantMode() << ", bQuantMode = " << params.get_bQuantMode()
-        << ", singleX=" << static_cast<int32_t>(params.get_singleX())
-        << ", singleW = " << static_cast<int32_t>(params.get_singleW())
-        << ", singleY = " << static_cast<int32_t>(params.get_singleY())
-        << ", groupType = " << static_cast<int32_t>(params.get_groupType())
-        << ", groupListType = " << static_cast<uint32_t>(params.get_groupListType())
-        << ", hasBias = " << static_cast<int32_t>(params.get_hasBias());
+    oss << "GMMQuantParams: groupNum = " << params.groupNum << ", activeType = " << params.activeType
+        << ", aQuantMode = " << params.aQuantMode << ", bQuantMode = " << params.bQuantMode
+        << ", singleX=" << static_cast<int32_t>(params.singleX)
+        << ", singleW = " << static_cast<int32_t>(params.singleW)
+        << ", singleY = " << static_cast<int32_t>(params.singleY)
+        << ", groupType = " << static_cast<int32_t>(params.groupType)
+        << ", groupListType = " << static_cast<uint32_t>(params.groupListType)
+        << ", hasBias = " << static_cast<int32_t>(params.hasBias);
     OP_LOGD(inputParams_.opName, "%s", oss.str().c_str());
 }
 

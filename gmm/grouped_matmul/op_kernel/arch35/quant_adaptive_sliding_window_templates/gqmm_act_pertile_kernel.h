@@ -22,7 +22,9 @@
 #include "act/matmul/kernel/kernel_qgmm_pertile.h"
 #include "act/matmul/policy/dispatch_policy.h"
 #include "../../grouped_matmul_utils.h"
+#include "../grouped_matmul_tiling_data_apt.h"
 #include "quant_utils.h"
+using GMMQuantParams = GroupedMatmulTilingData::GMMQuantParams;
 
 template <class xType, class wType, class biasType, class scaleType, class ptScaleType, class yType, class xLayout,
           class wLayout, class yLayout, class l0cType>

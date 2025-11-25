@@ -25,7 +25,11 @@ bool GroupedNoQuantMatmulTiling::SetTiling(gert::TilingContext *context)
     OP_CHECK_IF(!Init(context), OP_LOGE(context->GetNodeName(), "Init failed"), return false);
     OP_CHECK_IF(!CalMatMulTiling(context, compileInfoPtr),
                 OP_LOGE(context->GetNodeName(), "Unable to calculate matmul-tiling"), return false);
-    SetGMMTiling();
+    auto ret = SetGMMTiling();
+    if (!ret) {
+        OP_LOGE(context->GetNodeName(), "Unable to set GMM tiling data");
+        return false;
+    }
     SetMatMulTiling();
     SetTilingKey(context);
     OP_CHECK_IF(!SetCustomParam(context), OP_LOGE(context->GetNodeName(), "Unable to set custom param"), return false);
@@ -288,46 +292,56 @@ bool GroupedNoQuantMatmulTiling::CalMatMulTiling(const gert::TilingContext *cont
     return false;
 }
 
-void GroupedNoQuantMatmulTiling::SetGMMTiling()
+bool GroupedNoQuantMatmulTiling::SetGMMTiling()
 {
-    tilingData_.gmmArray.set_mList(mList_);
-    tilingData_.gmmArray.set_kList(kList_);
-    tilingData_.gmmArray.set_nList(nList_);
-    tilingData_.gmmNoQuantParam.set_groupNum(groupNum_);
-    tilingData_.gmmNoQuantParam.set_hasBias(static_cast<uint32_t>(hasBias_));
-    tilingData_.gmmNoQuantParam.set_groupType(groupType_);
-    tilingData_.gmmNoQuantParam.set_groupListType(groupListType_);
-    tilingData_.gmmNoQuantParam.set_singleWeight(static_cast<uint32_t>(isSingleWeight_));
-    tilingData_.gmmNoQuantParam.set_singleX(static_cast<uint32_t>(isSingleX_));
-    tilingData_.gmmNoQuantParam.set_singleY(static_cast<uint32_t>(isSingleY_));
-    tilingData_.gmmNoQuantParam.set_coreNum(usedCoreNum_);
-    tilingData_.gmmNoQuantParam.set_mTailCnt(static_cast<uint32_t>(mTailCnt_));
-    tilingData_.gmmNoQuantParam.set_nTailCnt(static_cast<uint32_t>(nTailCnt_));
+    errno_t retM = memcpy_s(tilingData_.gmmArray.mList, sizeof(tilingData_.gmmArray.mList), mList_, sizeof(mList_));
+    if (retM != EOK) {
+        return false;
+    }
+    errno_t retK = memcpy_s(tilingData_.gmmArray.kList, sizeof(tilingData_.gmmArray.kList), kList_, sizeof(kList_));
+    if (retK != EOK) {
+        return false;
+    }
+    errno_t retN = memcpy_s(tilingData_.gmmArray.nList, sizeof(tilingData_.gmmArray.nList), nList_, sizeof(nList_));
+    if (retN != EOK) {
+        return false;
+    }
+    tilingData_.gmmNoQuantParam.groupNum = groupNum_;
+    tilingData_.gmmNoQuantParam.hasBias = static_cast<uint32_t>(hasBias_);
+    tilingData_.gmmNoQuantParam.groupType = groupType_;
+    tilingData_.gmmNoQuantParam.groupListType = groupListType_;
+    tilingData_.gmmNoQuantParam.singleWeight = static_cast<uint32_t>(isSingleWeight_);
+    tilingData_.gmmNoQuantParam.singleX = static_cast<uint32_t>(isSingleX_);
+    tilingData_.gmmNoQuantParam.singleY = static_cast<uint32_t>(isSingleY_);
+    tilingData_.gmmNoQuantParam.coreNum = usedCoreNum_;
+    tilingData_.gmmNoQuantParam.mTailCnt = static_cast<uint32_t>(mTailCnt_);
+    tilingData_.gmmNoQuantParam.nTailCnt = static_cast<uint32_t>(nTailCnt_);
+    return true;
 }
 
 void GroupedNoQuantMatmulTiling::SetMatMulTiling()
 {
-    tilingData_.mmTilingData.set_isBias(static_cast<int32_t>(hasBias_));
-    tilingData_.mmTilingData.set_M(m_);
-    tilingData_.mmTilingData.set_N(n_);
-    tilingData_.mmTilingData.set_Ka(k_);
-    tilingData_.mmTilingData.set_Kb(k_);
-    tilingData_.mmTilingData.set_singleCoreM(m_);
-    tilingData_.mmTilingData.set_singleCoreN(baseN_);
-    tilingData_.mmTilingData.set_singleCoreK(k_);
-    tilingData_.mmTilingData.set_dbL0A(DB_SIZE);
-    tilingData_.mmTilingData.set_dbL0B(DB_SIZE);
-    tilingData_.mmTilingData.set_dbL0C(1);
-    tilingData_.mmTilingData.set_baseM(baseM_);
-    tilingData_.mmTilingData.set_baseN(baseN_);
-    tilingData_.mmTilingData.set_baseK(baseK_);
-    tilingData_.mmTilingData.set_stepKa(stepKa_);
-    tilingData_.mmTilingData.set_stepKb(stepKb_);
-    tilingData_.mmTilingData.set_depthA1(depthA1_);
-    tilingData_.mmTilingData.set_depthB1(depthB1_);
-    tilingData_.mmTilingData.set_stepM(1);
-    tilingData_.mmTilingData.set_stepN(1);
-    tilingData_.mmTilingData.set_usedCoreNum(usedCoreNum_);
+    tilingData_.mmTilingData.isBias = static_cast<int32_t>(hasBias_);
+    tilingData_.mmTilingData.M = m_;
+    tilingData_.mmTilingData.N = n_;
+    tilingData_.mmTilingData.Ka = k_;
+    tilingData_.mmTilingData.Kb = k_;
+    tilingData_.mmTilingData.singleCoreM = m_;
+    tilingData_.mmTilingData.singleCoreN = baseN_;
+    tilingData_.mmTilingData.singleCoreK = k_;
+    tilingData_.mmTilingData.dbL0A = DB_SIZE;
+    tilingData_.mmTilingData.dbL0B = DB_SIZE;
+    tilingData_.mmTilingData.dbL0C = 1;
+    tilingData_.mmTilingData.baseM = baseM_;
+    tilingData_.mmTilingData.baseN = baseN_;
+    tilingData_.mmTilingData.baseK = baseK_;
+    tilingData_.mmTilingData.stepKa = stepKa_;
+    tilingData_.mmTilingData.stepKb = stepKb_;
+    tilingData_.mmTilingData.depthA1 = depthA1_;
+    tilingData_.mmTilingData.depthB1 = depthB1_;
+    tilingData_.mmTilingData.stepM = 1;
+    tilingData_.mmTilingData.stepN = 1;
+    tilingData_.mmTilingData.usedCoreNum = usedCoreNum_;
 }
 
 bool GroupedNoQuantMatmulTiling::SetCustomParam(gert::TilingContext *context)
@@ -340,8 +354,12 @@ bool GroupedNoQuantMatmulTiling::SetCustomParam(gert::TilingContext *context)
     context->SetBlockDim(usedCoreNum_);
     OP_CHECK_IF(context->GetRawTilingData() == nullptr, OP_LOGE(context->GetNodeName(), "RawTilingData is nullptr."),
                 return false);
-    tilingData_.SaveToBuffer(context->GetRawTilingData()->GetData(), context->GetRawTilingData()->GetCapacity());
-    context->GetRawTilingData()->SetDataSize(tilingData_.GetDataSize());
+    errno_t ret = memcpy_s(context->GetRawTilingData()->GetData(), context->GetRawTilingData()->GetCapacity(), reinterpret_cast<void *>(&tilingData_), sizeof(tilingData_));
+    if (ret != EOK) {
+        OP_LOGE(context->GetNodeName(), "memcpy_s failed, ret = %d", ret);
+        return false;
+    }
+    context->GetRawTilingData()->SetDataSize(sizeof(tilingData_));
     return true;
 }
 
@@ -515,19 +533,19 @@ void GroupedNoQuantMatmulTiling::PrintTilingResult(const gert::TilingContext *co
     OP_LOGI(context->GetNodeName(),
             "GMM Tiling result: groupNum: %u, singleX: %u, singleWeight: %u, singleY: %u,"
             "groupType: %d, groupListType: %u, hasBias: %u, mTailCnt: %u, nTailCnt: %u",
-            tilingData_.gmmNoQuantParam.get_groupNum(), tilingData_.gmmNoQuantParam.get_singleX(),
-            tilingData_.gmmNoQuantParam.get_singleWeight(), tilingData_.gmmNoQuantParam.get_singleY(),
-            tilingData_.gmmNoQuantParam.get_groupType(), tilingData_.gmmNoQuantParam.get_groupListType(),
-            tilingData_.gmmNoQuantParam.get_hasBias(), tilingData_.gmmNoQuantParam.get_mTailCnt(),
-            tilingData_.gmmNoQuantParam.get_nTailCnt());
+            tilingData_.gmmNoQuantParam.groupNum, tilingData_.gmmNoQuantParam.singleX,
+            tilingData_.gmmNoQuantParam.singleWeight, tilingData_.gmmNoQuantParam.singleY,
+            tilingData_.gmmNoQuantParam.groupType, tilingData_.gmmNoQuantParam.groupListType,
+            tilingData_.gmmNoQuantParam.hasBias, tilingData_.gmmNoQuantParam.mTailCnt,
+            tilingData_.gmmNoQuantParam.nTailCnt);
 
     OP_LOGI(context->GetNodeName(),
             "GMM MatMul Tiling result: usedCoreNum: %d, baseM: %d, baseN: %d, baseK: %d, stepKa: %d,"
             "stepKb: %d, depthA1: %d, depthB1: %d",
-            tilingData_.mmTilingData.get_usedCoreNum(), tilingData_.mmTilingData.get_baseM(),
-            tilingData_.mmTilingData.get_baseN(), tilingData_.mmTilingData.get_baseK(),
-            tilingData_.mmTilingData.get_stepKa(), tilingData_.mmTilingData.get_stepKb(),
-            tilingData_.mmTilingData.get_depthA1(), tilingData_.mmTilingData.get_depthB1());
+            tilingData_.mmTilingData.usedCoreNum, tilingData_.mmTilingData.baseM,
+            tilingData_.mmTilingData.baseN, tilingData_.mmTilingData.baseK,
+            tilingData_.mmTilingData.stepKa, tilingData_.mmTilingData.stepKb,
+            tilingData_.mmTilingData.depthA1, tilingData_.mmTilingData.depthB1);
 }
 
 } // namespace optiling

@@ -556,5 +556,4 @@ __aicore__ inline void GMMCompute<mmType, sync>::MMCompute(uint32_t groupIdx, MN
 }
 
 }  // namespace GROUPED_MATMUL
-
 #endif  // ASCENDC_GROUPED_MATMUL_H

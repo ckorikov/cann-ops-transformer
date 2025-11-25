@@ -16,8 +16,8 @@
 #define GROUPED_QUANT_MATMUL_TILING_H
 
 #include "../grouped_matmul_tiling.h"
+#include "../../../op_kernel/arch35/grouped_matmul_tiling_data_apt.h"
 #include "tiling_base/tiling_base.h"
-
 namespace optiling {
 namespace GmmConstant {
 constexpr uint64_t MX_GROUP_SIZE = 32;
@@ -184,7 +184,7 @@ private:
     bool SetMKNList();
     bool IsBiasInL1() const;
 
-    GMMQuantTilingData tilingData_;
+    GroupedMatmulTilingData::GMMQuantTilingData tilingData_;
 
     int32_t mList_[GroupedMatmul::MAX_TENSOR_CONT] = {0};
     int32_t kList_[GroupedMatmul::MAX_TENSOR_CONT] = {0};

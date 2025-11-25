@@ -15,8 +15,9 @@
 #ifndef GROUPED_MATMUL_WEIGHT_QUANT_BASIC_CONTROLLER_H
 #define GROUPED_MATMUL_WEIGHT_QUANT_BASIC_CONTROLLER_H
 
-#include "../../grouped_matmul.h"
 #include "weight_quant_basic_block.h"
+#include "../grouped_matmul_tiling_data_apt.h"
+
 
 using WeightQuantBatchMatmulV2::Arch35::BasicBlockOffsetParam;
 using WeightQuantBatchMatmulV2::Arch35::CeilDiv;
@@ -25,6 +26,7 @@ using WeightQuantBatchMatmulV2::Arch35::QUADRUPLE_BUFFER_NUM;
 using WeightQuantBatchMatmulV2::Arch35::VecAntiQuantConfig;
 using WeightQuantBatchMatmulV2::Arch35::WeightQuantMatmulBasicBlock;
 using WeightQuantBatchMatmulV2::Arch35::WqmmConfig;
+using GMMWeightQuantParam = GroupedMatmulTilingData::GMMWeightQuantParam;
 
 namespace GROUPED_MATMUL {
 template <typename xType, typename wType, typename biasType, typename yType, const WqmmConfig &wqmmConfig,

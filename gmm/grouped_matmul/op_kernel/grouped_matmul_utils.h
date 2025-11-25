@@ -289,6 +289,7 @@ __aicore__ inline __gm__ T* GetTensorAddr(uint16_t index, GM_ADDR tensorPtr) {
     return reinterpret_cast<__gm__ T*>(*(retPtr + index));
 }
 
+#if defined(__CCE_AICORE__) && __CCE_AICORE__ != 310
 __aicore__ inline int32_t GetSplitValueFromGroupList(uint32_t groupIdx, int32_t &preOffset,
                                                      const GMMBaseParams* __restrict &gmmBaseParams,
                                                      const GlobalTensor<int64_t> &groupListGm) {
@@ -304,6 +305,7 @@ __aicore__ inline int32_t GetSplitValueFromGroupList(uint32_t groupIdx, int32_t 
     }
     return splitValue;
 }
+#endif
 
 template <typename T>
 __aicore__ inline constexpr uint32_t GetTypeBits() {

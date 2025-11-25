@@ -14,6 +14,10 @@
  */
 #include "grouped_matmul_utils.h"
 #if defined(__CCE_AICORE__) && __CCE_AICORE__ == 310
+#include "arch35/grouped_matmul_tiling_data_apt.h"
+using GMMWeightQuantTilingData = GroupedMatmulTilingData::GMMWeightQuantTilingData;
+using GMMNoQuantTilingData = GroupedMatmulTilingData::GMMNoQuantTilingData;
+using GMMQuantTilingData = GroupedMatmulTilingData::GMMQuantTilingData;
 #if defined(V310_GMM_QUANT)
 #if defined(V310_GMM_QUANT_MX) || defined(V310_GMM_QUANT_CUBE) || defined(V310_GMM_QUANT_PERTENSOR_CUBE)
 #include "arch35/quant_adaptive_sliding_window_templates/gqmm_cube_on_the_fly.h"
@@ -507,6 +511,7 @@ __global__ __aicore__ void grouped_matmul(GM_ADDR x, GM_ADDR weight, GM_ADDR bia
 #if defined(__CCE_AICORE__) && __CCE_AICORE__ == 310
 #ifndef __CCE_KT_TEST__
 #if defined(V310_GMM_QUANT) // Quant: A8W8
+    REGISTER_TILING_DEFAULT(GMMQuantTilingData);
 #if defined(V310_GMM_QUANT_MX) // mxfpx
     if (TILING_KEY_IS(20000000000)) { // transX = false, transW = false, groupType = 0
         KERNEL_TASK_TYPE(20000000000, KERNEL_TYPE_AIC_ONLY);
@@ -559,6 +564,7 @@ __global__ __aicore__ void grouped_matmul(GM_ADDR x, GM_ADDR weight, GM_ADDR bia
     }
 #endif
 #elif defined(V310_GMM_ANTI_QUANT)
+    REGISTER_TILING_DEFAULT(GMMWeightQuantTilingData);
     KERNEL_TASK_TYPE_DEFAULT(KERNEL_TYPE_MIX_AIC_1_2);
     #if ORIG_DTYPE_X == DT_INT8
         if (TILING_KEY_IS(2000020004000002001UL)) {
@@ -609,6 +615,7 @@ __global__ __aicore__ void grouped_matmul(GM_ADDR x, GM_ADDR weight, GM_ADDR bia
         }
     #endif
 #else
+    REGISTER_TILING_DEFAULT(GMMNoQuantTilingData);
     if (TILING_KEY_IS(10000900009000090000UL)) {
         if constexpr (wFormat == CubeFormat::NZ) {
             GmmNoQuantAswt<layout::RowMajor, layout::Nz>(x, weight, bias, groupList, y, tiling);

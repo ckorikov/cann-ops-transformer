@@ -16,6 +16,8 @@
 #define GQMM_INIT_OUTPUT_H
 
 #include "quant_utils.h"
+#include "../grouped_matmul_tiling_data_apt.h"
+using GMMQuantParams = GroupedMatmulTilingData::GMMQuantParams;
 
 namespace AscendC {
 template <typename T>

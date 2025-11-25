@@ -16,6 +16,7 @@
 #define GROUPED_NO_QUANT_MATMUL_TILING_H
 
 #include "../grouped_matmul_tiling.h"
+#include "../../../op_kernel/arch35/grouped_matmul_tiling_data_apt.h"
 #include "log/log.h"
 #include "log/error_code.h"
 #include "register/op_impl_registry.h"
@@ -105,7 +106,7 @@ protected:
     bool SetCustomParam(gert::TilingContext *context);
     bool GetAttrs(const gert::TilingContext* context);
     bool CalMatMulTiling(const gert::TilingContext* context, const GMMCompileInfo* compileInfoPtr);
-    void SetGMMTiling();
+    bool SetGMMTiling();
     void SetMatMulTiling();
     void SetTilingKey(gert::TilingContext *context);
     bool GMMGetTensorShapeSplitM(const gert::TilingContext* context, const gert::Shape xShape, const gert::Shape wShape);
@@ -159,7 +160,7 @@ private:
     ge::DataType weightDtype_ = ge::DT_UNDEFINED;
 
     TilingKeyBuilder tilingKeyBuilder_;
-    GMMNoQuantTilingData tilingData_;
+    GroupedMatmulTilingData::GMMNoQuantTilingData tilingData_;
 };
 }  // namespace optiling
 

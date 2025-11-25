@@ -19,6 +19,7 @@
 #include <sstream>
 
 #include "../grouped_matmul_tiling.h"
+#include "../../../op_kernel/arch35/grouped_matmul_tiling_data_apt.h"
 #include "log/log.h"
 #include "register/op_impl_registry.h"
 
@@ -235,7 +236,7 @@ protected:
     bool AnalyzeAttr(const gert::TilingContext *context);
     bool AnalyzeInput(const gert::TilingContext *context);
     bool CalcResplitTiling(const gert::TilingContext *context);
-    void SetBaseTiling();
+    bool SetBaseTiling();
     void SetMatMulTiling();
     void SetTilingKey(gert::TilingContext *context);
     bool SetCustomParam(gert::TilingContext *context);
@@ -283,7 +284,7 @@ private:
 
     TailBlockResplitParam resplitParam_;
     TilingKeyConfigure tilingKeyConfig_;
-    GMMWeightQuantTilingData tilingData_;
+    GroupedMatmulTilingData::GMMWeightQuantTilingData tilingData_;
 };
 }  // namespace optiling
 

@@ -19,6 +19,8 @@
 #include "quant_block_sch.h"
 #include "quant_utils.h"
 #include "../../grouped_matmul_utils.h"
+#include "../grouped_matmul_tiling_data_apt.h"
+using GMMQuantParams = GroupedMatmulTilingData::GMMQuantParams;
 
 #define LOCAL_TEMPLATE_CLASS_MIX_PARAMS                                                                                \
     template <class xType, class wType, class biasType, class scaleType, class ptScaleType, class yType,               \
