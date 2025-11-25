@@ -22,6 +22,7 @@
 #include "util/math_util.h"
 #include "tiling/matmul_formulaic_tiling.h"
 #include "matmul_reduce_scatter_v2/op_host/op_tiling/reduce_scatter_formulaic_tiling.h"
+#include "../../op_kernel/matmul_reduce_scatter_tiling_key.h"
 #include "../../op_kernel/matmul_reduce_scatter_tiling.h"
 
 using namespace AscendC;
@@ -29,6 +30,7 @@ using namespace ge;
 using namespace optiling;
 using namespace matmul_tiling;
 using namespace Ops;
+using namespace matmul_reduce_scatter_tiling_key;
 
 namespace {
 constexpr char HCCL_DETERMINISTIC[] = "HCCL_DETERMINISTIC";
@@ -37,9 +39,6 @@ const std::map<uint32_t, std::vector<uint32_t>> VALID_RANK = {
 	{1, {2, 4, 8, 16, 32}}
     };
 
-constexpr uint32_t TILINGKEY_BIAS = 1U;
-constexpr uint32_t TILINGKEY_ND2NZ = 10U;
-constexpr uint32_t TILINGKEY_FULL_MESH = 100U;
 constexpr uint32_t BIAS_INDEX = 2;
 
 const std::vector<uint64_t> CALC_ND_BASIC = {6144, 4096, 2048};
@@ -477,15 +476,34 @@ struct KFCMsgBody {
     HcclAicpuOpParam msgRcvArea[mc2tiling::AC_MAX_AIV][mc2tiling::AC_MSG_CNT];
 };
 
-static void GetTilingKey(uint32_t& tilingKey, MatmulReduceScatterTilingData& tilingData)  
+static void GetTilingKey(uint64_t& tilingKey, MatmulReduceScatterTilingData& tilingData)  
 { 
-	tilingKey += (tilingData.socParam.isND2NZ == 1) ? TILINGKEY_ND2NZ : 0;
-    tilingKey += (tilingData.socParam.commAlg == COMM_ALG_FULL_MESH) ? TILINGKEY_FULL_MESH : 0;
-	uint64_t castBias = tilingData.param.biasLen == 0 ? 0 : TILINGKEY_BIAS;
-    tilingKey += castBias; 
+    bool mmReduceScatterFullMesh = true;
+    bool mmReduceScatterNd2nzOpt = false;
+    bool mmReduceScatterBiasCast = false;
     
-    OP_LOGD("MatmulReduceScatterTilingData", "The final tiling Key is: %u!", tilingKey);
-    return;
+    if(tilingData.param.biasLen == 0) {
+        mmReduceScatterBiasCast = false;
+    }
+    else {
+        mmReduceScatterBiasCast = true;
+    }
+
+    if(tilingData.socParam.isND2NZ == 1) {
+        mmReduceScatterNd2nzOpt = true;
+    }
+    else {
+        mmReduceScatterNd2nzOpt = false;
+    }
+
+    if (tilingData.socParam.commAlg == COMM_ALG_FULL_MESH){
+        mmReduceScatterFullMesh = true;
+    }
+    else {
+        mmReduceScatterFullMesh = false;
+    } 
+    
+    tilingKey = GET_TPL_TILING_KEY(mmReduceScatterFullMesh, mmReduceScatterNd2nzOpt, mmReduceScatterBiasCast);
 }
 
 static ge::graphStatus SetMatmulTilingMatmulReduceScatter(gert::TilingContext* context, MatmulReduceScatterTilingData& tilingData,
@@ -529,7 +547,7 @@ static ge::graphStatus SetMatmulTilingMatmulReduceScatter(gert::TilingContext* c
 
     MCSpliteMReduceScatter(context, tilingData, args);
 
-	uint32_t tilingKey = 0U;
+	uint64_t tilingKey = 0U;
     GetTilingKey(tilingKey, tilingData);
     OP_LOGD(context->GetNodeName(), "tilingKey is %u, aicCoreNum is %lu.", tilingKey, args.aicCoreNum);
     context->SetTilingKey(tilingKey);

@@ -50,7 +50,7 @@ TEST_F(MatmulReduceScatterTiling, matmul_reduce_scatter_test_tiling_float16_1)
         },
         &compileInfo, "Ascend910_93", coreNum, ubSize);
     Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 8}};
-    uint64_t expectTilingKey = 110;
+    uint64_t expectTilingKey = 3;
     Mc2ExecuteTestCase(tilingContextPara, hcomTopologyMockValues, ge::GRAPH_SUCCESS, expectTilingKey);
 }
 
@@ -76,7 +76,7 @@ TEST_F(MatmulReduceScatterTiling, matmul_reduce_scatter_test_tiling_float16_2)
         },
         &compileInfo, "Ascend910_93", coreNum, ubSize);
     Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 8}};
-    uint64_t expectTilingKey = 110;
+    uint64_t expectTilingKey = 3;
     Mc2ExecuteTestCase(tilingContextPara, hcomTopologyMockValues, ge::GRAPH_SUCCESS, expectTilingKey);
 }
 
@@ -102,7 +102,7 @@ TEST_F(MatmulReduceScatterTiling, matmul_reduce_scatter_test_tiling_float16_3)
         },
         &compileInfo, "Ascend910_93", coreNum, ubSize);
     Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 8}};
-    uint64_t expectTilingKey = 110;
+    uint64_t expectTilingKey = 3;
     Mc2ExecuteTestCase(tilingContextPara, hcomTopologyMockValues, ge::GRAPH_SUCCESS, expectTilingKey);
 }
 
@@ -128,7 +128,7 @@ TEST_F(MatmulReduceScatterTiling, matmul_reduce_scatter_test_tiling_float16_4)
         },
         &compileInfo, "Ascend910_93", coreNum, ubSize);
     Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 8}};
-    uint64_t expectTilingKey = 110;
+    uint64_t expectTilingKey = 3;
     Mc2ExecuteTestCase(tilingContextPara, hcomTopologyMockValues, ge::GRAPH_SUCCESS, expectTilingKey);
 }
 
@@ -154,7 +154,7 @@ TEST_F(MatmulReduceScatterTiling, matmul_reduce_scatter_test_tiling_float16_5)
         },
         &compileInfo, "Ascend910_93", coreNum, ubSize);
     Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 8}};
-    uint64_t expectTilingKey = 110;
+    uint64_t expectTilingKey = 3;
     Mc2ExecuteTestCase(tilingContextPara, hcomTopologyMockValues, ge::GRAPH_SUCCESS, expectTilingKey);
 }
 
@@ -180,7 +180,7 @@ TEST_F(MatmulReduceScatterTiling, matmul_reduce_scatter_test_tiling_float16_6)
         },
         &compileInfo, "Ascend910_93", coreNum, ubSize);
     Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 8}};
-    uint64_t expectTilingKey = 110;
+    uint64_t expectTilingKey = 3;
     Mc2ExecuteTestCase(tilingContextPara, hcomTopologyMockValues, ge::GRAPH_SUCCESS, expectTilingKey);
 }
 
@@ -206,6 +206,6 @@ TEST_F(MatmulReduceScatterTiling, matmul_reduce_scatter_test_tiling_bfloat16)
         },
         &compileInfo, "Ascend910_93", coreNum, ubSize);
     Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 8}};
-    uint64_t expectTilingKey = 111;
+    uint64_t expectTilingKey = 7;
     Mc2ExecuteTestCase(tilingContextPara, hcomTopologyMockValues, ge::GRAPH_SUCCESS, expectTilingKey);
 }
