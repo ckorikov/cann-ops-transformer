@@ -10,8 +10,7 @@
  
 #include <iostream>
 #include <gtest/gtest.h>
-#include "tiling_context_faker.h"
-#include "tiling_case_executor.h"
+#include "mc2_tiling_case_executor.h"
 using namespace std;
 
 class MoeUpdateExpertTiling : public testing::Test {
@@ -61,8 +60,9 @@ TEST_F(MoeUpdateExpertTiling, moe_update_expert_test_tiling_no_tailor)
     uint64_t mc2TilingDataReservedLen = 0; // 根据实际情况设置
 
     // 执行测试用例
-    ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey, expectTilingData, expectWorkspaces,
-                    mc2TilingDataReservedLen);
+    Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 8}};
+    Mc2ExecuteTestCase(tilingContextPara, hcomTopologyMockValues, ge::GRAPH_SUCCESS, expectTilingKey,
+                       expectTilingData, expectWorkspaces, mc2TilingDataReservedLen);
 }
 
 TEST_F(MoeUpdateExpertTiling, moe_update_expert_test_tiling_expert_tailor)
@@ -105,8 +105,9 @@ TEST_F(MoeUpdateExpertTiling, moe_update_expert_test_tiling_expert_tailor)
     std::vector<size_t> expectWorkspaces = {4294967295}; // 根据实际情况设置
     uint64_t mc2TilingDataReservedLen = 0; // 根据实际情况设置
 
-    ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey, expectTilingData, expectWorkspaces,
-                    mc2TilingDataReservedLen);
+    Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 8}};
+    Mc2ExecuteTestCase(tilingContextPara, hcomTopologyMockValues, ge::GRAPH_SUCCESS, expectTilingKey,
+                       expectTilingData, expectWorkspaces, mc2TilingDataReservedLen);
 }
 
 TEST_F(MoeUpdateExpertTiling, moe_update_expert_test_tiling_wrongDim_expertIds)
@@ -147,8 +148,9 @@ TEST_F(MoeUpdateExpertTiling, moe_update_expert_test_tiling_wrongDim_expertIds)
     std::vector<size_t> expectWorkspaces = {0}; // 根据实际情况设置
     uint64_t mc2TilingDataReservedLen = 0; // 根据实际情况设置
 
-    ExecuteTestCase(tilingContextPara, ge::GRAPH_FAILED, expectTilingKey, expectTilingData, expectWorkspaces,
-                    mc2TilingDataReservedLen);
+    Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 8}};
+    Mc2ExecuteTestCase(tilingContextPara, hcomTopologyMockValues, ge::GRAPH_FAILED, expectTilingKey, 
+                       expectTilingData, expectWorkspaces, mc2TilingDataReservedLen);
 }
 
 TEST_F(MoeUpdateExpertTiling, moe_update_expert_test_tiling_wrongDim_expert_scales)
@@ -190,8 +192,9 @@ TEST_F(MoeUpdateExpertTiling, moe_update_expert_test_tiling_wrongDim_expert_scal
     std::vector<size_t> expectWorkspaces = {0};
     uint64_t mc2TilingDataReservedLen = 0;
 
-    ExecuteTestCase(tilingContextPara, ge::GRAPH_FAILED, expectTilingKey, expectTilingData, expectWorkspaces,
-                    mc2TilingDataReservedLen);
+    Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 8}};
+    Mc2ExecuteTestCase(tilingContextPara, hcomTopologyMockValues, ge::GRAPH_FAILED, expectTilingKey, 
+                       expectTilingData, expectWorkspaces, mc2TilingDataReservedLen);
 }
 
 TEST_F(MoeUpdateExpertTiling, moe_update_expert_test_tiling_wrongDim_pruning_threshold)
@@ -232,8 +235,9 @@ TEST_F(MoeUpdateExpertTiling, moe_update_expert_test_tiling_wrongDim_pruning_thr
     std::vector<size_t> expectWorkspaces = {0};
     uint64_t mc2TilingDataReservedLen = 0;
 
-    ExecuteTestCase(tilingContextPara, ge::GRAPH_FAILED, expectTilingKey, expectTilingData, expectWorkspaces,
-                    mc2TilingDataReservedLen);
+    Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 8}};
+    Mc2ExecuteTestCase(tilingContextPara, hcomTopologyMockValues, ge::GRAPH_FAILED, expectTilingKey, 
+                       expectTilingData, expectWorkspaces, mc2TilingDataReservedLen);
 }
 
 TEST_F(MoeUpdateExpertTiling, moe_update_expert_test_tiling_wrongDim_active_mask)
@@ -274,8 +278,9 @@ TEST_F(MoeUpdateExpertTiling, moe_update_expert_test_tiling_wrongDim_active_mask
     std::vector<size_t> expectWorkspaces = {0};
     uint64_t mc2TilingDataReservedLen = 0;
 
-    ExecuteTestCase(tilingContextPara, ge::GRAPH_FAILED, expectTilingKey, expectTilingData, expectWorkspaces,
-                    mc2TilingDataReservedLen);
+    Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 8}};
+    Mc2ExecuteTestCase(tilingContextPara, hcomTopologyMockValues, ge::GRAPH_FAILED, expectTilingKey, 
+                       expectTilingData, expectWorkspaces, mc2TilingDataReservedLen);
 }
 
 TEST_F(MoeUpdateExpertTiling, moe_update_expert_test_tiling_wrongDim_balancedExpertIds)
@@ -317,8 +322,9 @@ TEST_F(MoeUpdateExpertTiling, moe_update_expert_test_tiling_wrongDim_balancedExp
     std::vector<size_t> expectWorkspaces = {0};
     uint64_t mc2TilingDataReservedLen = 0;
 
-    ExecuteTestCase(tilingContextPara, ge::GRAPH_FAILED, expectTilingKey, expectTilingData, expectWorkspaces,
-                    mc2TilingDataReservedLen);
+    Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 8}};
+    Mc2ExecuteTestCase(tilingContextPara, hcomTopologyMockValues, ge::GRAPH_FAILED, expectTilingKey, 
+                       expectTilingData, expectWorkspaces, mc2TilingDataReservedLen);
 }
 
 TEST_F(MoeUpdateExpertTiling, moe_update_expert_test_tiling_wrongDim_balanced_active_mask)
@@ -360,6 +366,7 @@ TEST_F(MoeUpdateExpertTiling, moe_update_expert_test_tiling_wrongDim_balanced_ac
     std::vector<size_t> expectWorkspaces = {0};
     uint64_t mc2TilingDataReservedLen = 0;
 
-    ExecuteTestCase(tilingContextPara, ge::GRAPH_FAILED, expectTilingKey, expectTilingData, expectWorkspaces,
-                    mc2TilingDataReservedLen);
+    Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 8}};
+    Mc2ExecuteTestCase(tilingContextPara, hcomTopologyMockValues, ge::GRAPH_FAILED, expectTilingKey, 
+                       expectTilingData, expectWorkspaces, mc2TilingDataReservedLen);
 }
