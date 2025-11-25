@@ -302,7 +302,7 @@ aclnnStatus aclnnMoeDistributeDispatchV2(
     - commAlg为"hierarchy"或HCCL_INTRA_PCIE_ENABLE=1且HCCL_INTRA_ROCE_ENABLE=0时，scalesOptional 需传nullptr。
     - xActiveMaskOptional 依commAlg取值，"fullmesh"要求为1D Tensor，shape为(Bs, )；true需排在false前（例：{true, false, true}非法）；"hierarchy"当前版本不支持，传空指针即可。
     - expertScalesOptional 要求为2D Tensor，shape为(Bs, K)。
-    - epWorldSize 依commAlg取值，"fullmesh"支持取值范围[16, 384]，"hierarchy"支持取值范围[16, 64]，且都需保证是8的整数倍。
+    - epWorldSize 依commAlg取值，"fullmesh"支持16、32、64、128、192、256、384；"hierarchy"支持16、32、64。
     - moeExpertNum 取值范围(0, 512]，还需满足moeExpertNum / (epWorldSize - sharedExpertRankNum) <= 24。
     - groupTp 当前版本不支持，传空字符即可。
     - tpWorldSize、tpRankId、expertShardType、sharedExpertNum、sharedExpertRankNum 当前版本不支持，传0即可。
