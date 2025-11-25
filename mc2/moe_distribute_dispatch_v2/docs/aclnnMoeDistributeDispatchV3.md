@@ -247,22 +247,14 @@ aclnnStatus aclnnMoeDistributeDispatchV3(
   <tr>
    <td>zeroExpertNum</td>
    <td>输入</td>
-<<<<<<< HEAD
-   <td>零专家数量：<br><term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：当前版本不支持，传0即可；<br><term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：取值范围:[0, MAX_INT32)，MAX_INT32 = 2^31 - 1, 合法的零专家的ID的值是<code>[moeExpertNum, moeExpertNum + zeroExpertNum)</code>。</td>
-=======
    <td>零专家数量：<br><term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：当commAlg="fullmesh"时，取值范围:[0, MAX_INT32)，MAX_INT32 = 2^31 - 1, 合法的零专家的ID的值是[<code>moeExpertNum</code>, <code>moeExpertNum + zeroExpertNum</code>)；<br><term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：取值范围:[0, MAX_INT32)，MAX_INT32 = 2^31 - 1, 合法的零专家的ID的值是<code>[moeExpertNum, moeExpertNum + zeroExpertNum)</code>。</td>
->>>>>>> aacfe87f (A2 MoeDistributeDispatchV2和MoeDistributeCombineV2新增AclnnV3接口，支撑零专家新特性，包含二维xActiveMask、零专家和拷贝专家。)
    <td>INT64</td>
    <td>-</td>
   </tr>
   <tr>
    <td>copyExpertNum</td>
    <td>输入</td>
-<<<<<<< HEAD
-   <td>拷贝专家数量：<br><term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：当前版本不支持，传0即可；<br><term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：取值范围:[0, MAX_INT32)，MAX_INT32 = 2^31 - 1，专家ID范围<code>[moeExpertNum+zeroExpertNum, moeExpertNum + zeroExpertNum + copyExpertNum)</code>。</td>
-=======
    <td>拷贝专家数量：<br><term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：当commAlg="fullmesh"时，取值范围:[0, MAX_INT32)，MAX_INT32 = 2^31 - 1, 合法的拷贝专家的ID的值是[<code>moeExpertNum + zeroExpertNum</code>, <code>moeExpertNum + zeroExpertNum + copyExpertNum</code>)；<br><term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：取值范围:[0, MAX_INT32)，MAX_INT32 = 2^31 - 1，专家ID范围<code>[moeExpertNum + zeroExpertNum, moeExpertNum + zeroExpertNum + copyExpertNum)</code>。</td>
->>>>>>> aacfe87f (A2 MoeDistributeDispatchV2和MoeDistributeCombineV2新增AclnnV3接口，支撑零专家新特性，包含二维xActiveMask、零专家和拷贝专家。)
    <td>INT64</td>
    <td>-</td>
   </tr>
