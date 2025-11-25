@@ -386,7 +386,6 @@ moe:
       - moe/moe_token_permute_grad/README.md
     options:
       - moe_token_permute_grad
-      - moe_init_routing_v2_grad
 
   moe_token_permute_with_ep:
     module: True
@@ -439,7 +438,6 @@ moe:
     options:
       - moe_token_unpermute
       - moe_token_permute_with_routing_map_grad
-      - moe_finalize_routing_v2
 
   moe_token_unpermute_grad:
     module: True
