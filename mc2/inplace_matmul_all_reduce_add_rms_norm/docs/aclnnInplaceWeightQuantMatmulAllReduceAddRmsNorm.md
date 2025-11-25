@@ -19,7 +19,7 @@
 - **计算公式**：
 
   $$
-  mm\_out = allReduce(x1 @ (x2*antiquantScale + antiquantOffset) + bias)
+  mm\_out = AllReduce(x1 @ (x2*antiquantScale + antiquantOffset) + bias)
   $$
 
   $$

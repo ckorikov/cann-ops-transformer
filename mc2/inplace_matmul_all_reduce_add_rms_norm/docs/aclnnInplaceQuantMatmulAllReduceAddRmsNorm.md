@@ -35,7 +35,7 @@
 - aclnnQuantMatmulAllReduceAddRmsNorm和aclnnInplaceQuantMatmulAllReduceAddRmsNorm实现相同的功能，使用区别如下，请根据自身实际场景选择合适的算子。
 
   - aclnnQuantMatmulAllReduceAddRmsNorm：需新建两个输出张量normOut和张量y对象存储计算结果。
-  - aclnnInplaceQuantMatmulAllReduceAddRmsNorm：需新建一个输出张量normOut，原非Inplace场景中新建的输出张量y存储的结果直接存储到输入张量residual的内存中。
+  - aclnnInplaceQuantMatmulAllReduceAddRmsNorm：需新建一个输出张量normOut，在非Inplace场景中新建的输出张量y存储的结果直接存储到输入张量residual的内存中。
 
 - 每个算子分为两段式接口，必须先调用“aclnnInplaceQuantMatmulAllReduceAddRmsNormGetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnInplaceQuantMatmulAllReduceAddRmsNorm”接口执行计算。
 
@@ -103,7 +103,7 @@ aclnnStatus aclnnInplaceQuantMatmulAllReduceAddRmsNorm(
           <td>x2</td>
           <td>输入</td>
           <td>Device侧的aclTensor，MatMul计算的右矩阵，即计算公式中的x2。</td>
-          <td><li>支持空Tensor。</li><li>与x1的数据类型保持一致。</li><li>当前版本仅支持两维输入，支持转置/不转置场景。</li><li>支持转置场景下的非连续的tensor</li></td>
+          <td><li>支持空Tensor。</li><li>与x1的数据类型保持一致。</li><li>当前版本仅支持二维输入，支持转置/不转置场景。</li><li>支持转置场景下的非连续的tensor</li></td>
           <td>INT8</td>
           <td>ND</td>
           <td>2</td>

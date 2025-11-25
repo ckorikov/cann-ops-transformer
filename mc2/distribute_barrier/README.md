@@ -53,7 +53,7 @@
   <tr>
    <td>elasticInfoOptional</td>
    <td>输入</td>
-   <td>EP通信域动态缩容信息：<br><term>Atlas A2系列产品</term>：不支持，传空指针；<br><term>Atlas A3系列产品</term>：1D Tensor（shape <code>4 + 2 * epWoldSize,</code>），INT32类型，前4位为缩容配置，后2*epWoldSize为rank映射表。</td>
+   <td>EP通信域动态缩容信息：<br><term>Atlas A2系列产品</term>：不支持，传空指针；<br><term>Atlas A3系列产品</term>：1D Tensor（shape <code>4 + 2 * epWorldSize,</code>），INT32类型，前4位为缩容配置，后2*epWorldSize为rank映射表。</td>
    <td>INT32</td>
    <td>ND（支持非连续Tensor）</td>
   </tr>

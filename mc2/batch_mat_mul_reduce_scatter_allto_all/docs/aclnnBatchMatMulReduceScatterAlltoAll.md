@@ -101,14 +101,14 @@ aclnnStatus aclnnBatchMatMulReduceScatterAlltoAll(
   <tr>
    <td>groupEp</td>
    <td>输入</td>
-   <td>专家并行的通信域名，字符串长度需大于0且小于128。</td>
+   <td>专家并行的通信域名称，字符串长度需大于0且小于128。</td>
    <td>STRING</td>
    <td>ND</td>
   </tr>
   <tr>
    <td>groupTp</td>
    <td>输入</td>
-   <td>Tensor并行的通信域名，字符串长度需大于0且小于128。</td>
+   <td>Tensor并行的通信域名称，字符串长度需大于0且小于128。</td>
    <td>STRING</td>
    <td>ND</td>
   </tr>

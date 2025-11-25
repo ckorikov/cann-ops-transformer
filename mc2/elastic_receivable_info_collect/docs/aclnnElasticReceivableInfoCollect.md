@@ -78,7 +78,7 @@ aclnnStatus aclnnElasticReceivableInfoCollect(
        <td>worldSize</td>
        <td>输入</td>
        <td>通信域大小。</td>
-       <td>取值支持[16, 128]内16整数倍的数值</td>
+       <td>取值支持[16, 128]内16的整数倍的数值</td>
        <td>INT64</td>
        <td>-</td>
        <td>-</td>

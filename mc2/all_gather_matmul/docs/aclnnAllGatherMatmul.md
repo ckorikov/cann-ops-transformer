@@ -260,7 +260,7 @@ aclnnStatus aclnnAllGatherMatmul(
     </tbody></table>
 -   **返回值：**
 
-    返回aclnnStatus状态码，具体参见aclnn返回码。。
+    返回aclnnStatus状态码，具体参见aclnn返回码。
 
 ## 约束说明
 

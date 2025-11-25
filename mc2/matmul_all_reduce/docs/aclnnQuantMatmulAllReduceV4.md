@@ -160,7 +160,7 @@ aclnnStatus aclnnQuantMatmulAllReduceV4(
           <td>x1ScaleOptional</td>
           <td>输入</td>
           <td>Device侧的aclTensor，MatMul计算后的pertoken去量化系数，即计算公式中的x1ScaleOptional。</td>
-          <td>x1为(b, s, k)时shape为(b*s)，x1为(m, k)时shape为(m)。perblock场景下，x1为(b, s, k)时shape为[b, ceilDiv(s, 128), ceilDiv(k, 128)]，x1为(m, k)时shape为[ceilDiv(m, 128), ceilDiv(k, 128)]。数据类型为FLOAT8_E8M0时，shape为[m, ceilDiv(k, 64), 2], x1为LOAT4_E2M1、FLOAT4_E1M2时，必须保证ceilDiv(k, 32)为偶数。</td>
+          <td>x1为(b, s, k)时shape为(b*s)，x1为(m, k)时shape为(m)。perblock场景下，x1为(b, s, k)时shape为[b, ceilDiv(s, 128), ceilDiv(k, 128)]，x1为(m, k)时shape为[ceilDiv(m, 128), ceilDiv(k, 128)]。数据类型为FLOAT8_E8M0时，shape为[m, ceilDiv(k, 64), 2], x1为FLOAT4_E2M1、FLOAT4_E1M2时，必须保证ceilDiv(k, 32)为偶数。</td>
           <td>FLOAT32、FLOAT8_E8M0</td>
           <td>ND</td>
           <td>2</td>
@@ -170,7 +170,7 @@ aclnnStatus aclnnQuantMatmulAllReduceV4(
           <td>x2Scale</td>
           <td>输入</td>
           <td>Device侧的aclTensor，MatMul计算后的去量化系数，即计算公式中的x2Scale。</td>
-          <td><li>shape在pertensor场景为(1)，perchannel场景为(n)/(1, n)。</li><li>输出为BFLOAT16时，直接将BFLOAT16类型的dequantScale传入本接口。</li><li>输出为FLOAT16且输入为INT8时，x1ScaleOptional不为空，可直接将FLOAT32类型的x2Scale传入本接口，如果x1ScaleOptional为空，则需提前调用TransQuantParamV2算子的aclnn接口来将x2Scale转成INT64/UINT64数据类型。数据类型为FLOAT8_E8M0时，仅支持转置，shape为[n, ceilDiv(k, 64), 2], x2为LOAT4_E2M1、FLOAT4_E1M2时，必须保证ceilDiv(k, 32)为偶数。perblock场景下，x2的shape为[ceilDiv(k, 128), ceilDiv(n, 128)]，x2转置时，x2Scale的shape为[ceilDiv(n, 128), ceilDiv(k, 128)]。</li></td>
+          <td><li>shape在pertensor场景为(1)，perchannel场景为(n)/(1, n)。</li><li>输出为BFLOAT16时，直接将BFLOAT16类型的dequantScale传入本接口。</li><li>输出为FLOAT16且输入为INT8时，x1ScaleOptional不为空，可直接将FLOAT32类型的x2Scale传入本接口，如果x1ScaleOptional为空，则需提前调用TransQuantParamV2算子的aclnn接口来将x2Scale转成INT64/UINT64数据类型。数据类型为FLOAT8_E8M0时，仅支持转置，shape为[n, ceilDiv(k, 64), 2], x2为FLOAT4_E2M1、FLOAT4_E1M2时，必须保证ceilDiv(k, 32)为偶数。perblock场景下，x2的shape为[ceilDiv(k, 128), ceilDiv(n, 128)]，x2转置时，x2Scale的shape为[ceilDiv(n, 128), ceilDiv(k, 128)]。</li></td>
           <td>ND</td>
           <td>1-2</td>
           <td>√</td>
