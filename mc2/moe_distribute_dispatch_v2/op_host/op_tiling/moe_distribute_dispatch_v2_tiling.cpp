@@ -1165,8 +1165,7 @@ static ge::graphStatus MoeDistributeDispatchA2CheckAttrAndSetTiling(const gert::
     OP_TILING_CHECK(copyExpertNumPtr == nullptr, OP_LOGE(K_INNER_DEBUG, "copyExpertNum is null."),
         return GRAPH_FAILED);
     OP_TILING_CHECK(constExpertNumPtr == nullptr, OP_LOGE(K_INNER_DEBUG, "constExpertNum is null."), return GRAPH_FAILED);
-    OP_TILING_CHECK(*constExpertNumPtr != 0,
-        OP_LOGE(K_INNER_DEBUG, "Expected value 0 for constExpertNum, but got %ld.", *constExpertNumPtr), return GRAPH_FAILED);
+    OP_TILING_CHECK(*constExpertNumPtr != 0, OP_LOGE(K_INNER_DEBUG, "Invalid constExpertNum value: %ld (expected 0).", *constExpertNumPtr), return GRAPH_FAILED);
 
     // 判断是否满足uint32_t及其他限制
     int64_t moeExpertNum = static_cast<int64_t>(*moeExpertNumPtr);
