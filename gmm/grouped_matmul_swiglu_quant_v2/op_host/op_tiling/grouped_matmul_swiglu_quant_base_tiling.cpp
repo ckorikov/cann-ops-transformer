@@ -168,7 +168,7 @@ ge::graphStatus GroupedMatmulSwigluQuantV2BaseTiling::ParseInputAndAttr()
 
     auto wScaleDimNum = wScaleTensor->GetStorageShape().GetDimNum();
     if (dequantMode == 1) { // perGroup量化模式：单tensor场景[E, KGroupCount, N]，多tensor场景[KGroupCount, N]
-        quantGroupNum_ = wScaleTensor->GetStorageShape().GetDim(wScaleDimNum - 1);
+        quantGroupNum_ = wScaleTensor->GetStorageShape().GetDim(wScaleDimNum - 2);
     } else { // perChannel量化模式
         quantGroupNum_ = 1;
     }
@@ -196,7 +196,7 @@ ge::graphStatus GroupedMatmulSwigluQuantV2BaseTiling::DoOpTiling()
     auto ascendcPlatform = platform_ascendc::PlatformAscendC(context_->GetPlatformInfo());
     MatmulApiTiling tiling(ascendcPlatform);
     tiling.SetAType(TPosition::GM, CubeFormat::ND, matmul_tiling::DataType::DT_INT4);
-    tiling.SetBType(TPosition::GM, CubeFormat::ND, matmul_tiling::DataType::DT_INT4);
+    tiling.SetBType(TPosition::GM, CubeFormat::NZ, matmul_tiling::DataType::DT_INT4);
     tiling.SetCType(TPosition::GM, CubeFormat::ND, matmul_tiling::DataType::DT_FLOAT16);
     tiling.SetBias(false);
     tiling.SetShape(A8W4_BASEM, A8W4_BASEN, k_);
@@ -269,6 +269,8 @@ void GroupedMatmulSwigluQuantV2BaseTiling::FillTilingData()
     tilingData_.gmmSwigluQuantV2BaseParams.set_K(k_);
     tilingData_.gmmSwigluQuantV2BaseParams.set_N(n_);
     tilingData_.gmmSwigluQuantV2BaseParams.set_M(m_);
+    tilingData_.gmmSwigluQuantV2BaseParams.set_baseM(A8W4_BASEM);
+    tilingData_.gmmSwigluQuantV2BaseParams.set_baseN(A8W4_BASEN);
     tilingData_.gmmSwigluQuantV2BaseParams.set_quantGroupNum(quantGroupNum_);
     tilingData_.gmmSwigluQuantV2BaseParams.set_isSingleTensor(isSingleTensor_);
     tilingData_.gmmSwigluQuantV2.set_maxProcessRowNum(maxProcessRowNum_);
