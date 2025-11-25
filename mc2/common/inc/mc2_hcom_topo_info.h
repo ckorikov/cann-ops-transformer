@@ -29,6 +29,7 @@ class MC2HcomTopology {
 public:
     static HcclResult CommGetInstSizeByGroup(const char *group, uint32_t *rankNum);
     static HcclResult TryGetGroupTopoType(const char *group, uint32_t *topoType);
+    static HcclResult CommGetCclBufferSizeByGroup(const char *group, uint64_t *cclBufferSize, HcclComm *hcclComm);
 
 private:
     static MC2HcomTopology &GetInstance();
@@ -37,6 +38,7 @@ private:
     HcclResult CallCommGetNetLayers(HcclComm comm, uint32_t **netLayers, uint32_t *netLayerNum);
     HcclResult CallCommGetInstTopoTypeByNetLayer(HcclComm comm, uint32_t netLayers, uint32_t *topoType);
     HcclResult CallCommGetInstSizeByNetLayer(HcclComm comm, uint32_t netLayers, uint32_t *rankNum);
+    HcclResult CallCommGetCCLBufSizeCfg(HcclComm comm, uint64_t *cclBufferSize);
 
     void *handle_ = nullptr;
     bool isNewHcclLib = true;
@@ -45,11 +47,13 @@ private:
     using FuncGetNetLayers = HcclResult (*)(HcclComm, uint32_t **, uint32_t *);
     using FuncGetTopoType = HcclResult (*)(HcclComm, uint32_t, uint32_t *);
     using FuncGetInstSize = HcclResult (*)(HcclComm, uint32_t, uint32_t *);
+    using FuncGetCclBufferSize = HcclResult (*)(HcclComm, uint64_t *);
     void *hcclHandle_ = nullptr;
     FuncGetHandle getCommHandle_ = nullptr;
     FuncGetNetLayers getNetLayers_ = nullptr;
     FuncGetTopoType getTopoType_ = nullptr;
     FuncGetInstSize getInstSize_ = nullptr;
+    FuncGetCclBufferSize getCclBufferSize_ = nullptr;
 };
 }  // namespace Mc2Hcom
 #endif
