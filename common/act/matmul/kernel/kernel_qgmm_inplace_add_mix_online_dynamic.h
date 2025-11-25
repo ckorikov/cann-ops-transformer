@@ -59,19 +59,19 @@ constexpr uint16_t AIV_SYNC_AIC_FLAG = 6;
 
 template <class ProblemShape_, class BlockMmadBuilder_, class BlockEpilogue_, class BlockScheduler_,
           typename Enable_ = void>
-class KernelQGmmInpaceAddMixOnlineDynamic {
+class KernelQGmmInplaceAddMixOnlineDynamic {
     static_assert(AscendC::Std::always_false_v<BlockScheduler_>,
-                  "KernelQGmmInpaceAddMixOnlineDynamic is not implemented for this scheduler");
+                  "KernelQGmmInplaceAddMixOnlineDynamic is not implemented for this scheduler");
 };
 
 template <class ProblemShape_, class BlockMmadBuilder_, class BlockEpilogue_, class BlockScheduler_>
-class KernelQGmmInpaceAddMixOnlineDynamic<
+class KernelQGmmInplaceAddMixOnlineDynamic<
     ProblemShape_, BlockMmadBuilder_, BlockEpilogue_, BlockScheduler_,
     AscendC::Std::enable_if_t<AscendC::Std::is_same_v<BlockScheduler_, GroupedMatmulAswtWithTailSplitScheduler>>> {
 public:
-    __aicore__ inline KernelQGmmInpaceAddMixOnlineDynamic() {}
+    __aicore__ inline KernelQGmmInplaceAddMixOnlineDynamic() {}
 
-    __aicore__ inline ~KernelQGmmInpaceAddMixOnlineDynamic() {}
+    __aicore__ inline ~KernelQGmmInplaceAddMixOnlineDynamic() {}
 
     using BlockEpilogue = BlockEpilogue_;
     using BlockMmadBuilder = BlockMmadBuilder_;

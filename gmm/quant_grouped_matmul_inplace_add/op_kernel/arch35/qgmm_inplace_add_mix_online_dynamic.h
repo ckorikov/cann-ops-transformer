@@ -26,7 +26,7 @@ using namespace Act::Gemm;
 using namespace Act::Gemm::Kernel;
 
 template <typename layoutA, typename layoutB>
-__aicore__ inline void QGmmInpalceAddMixAswt(GM_ADDR x1, GM_ADDR x2, GM_ADDR scale2, GM_ADDR groupList, GM_ADDR scale1,
+__aicore__ inline void QGmmInplaceAddMixAswt(GM_ADDR x1, GM_ADDR x2, GM_ADDR scale2, GM_ADDR groupList, GM_ADDR scale1,
                                              GM_ADDR y, GM_ADDR tiling)
 {
     GET_TILING_DATA_MEMBER(QuantGroupedMatmulInplaceAdd::QGmmInplaceAddTilingDataParams, quantGmmInplaceAddParams,
@@ -56,7 +56,7 @@ __aicore__ inline void QGmmInpalceAddMixAswt(GM_ADDR x1, GM_ADDR x2, GM_ADDR sca
     using ProblemShape = MatmulShape;
     // 定义Kernel类型
     using QGmmKernel =
-        Kernel::KernelQGmmInpaceAddMixOnlineDynamic<ProblemShape, BlockMmad, BlockEpilogue, BlockScheduler>;
+        Kernel::KernelQGmmInplaceAddMixOnlineDynamic<ProblemShape, BlockMmad, BlockEpilogue, BlockScheduler>;
     using Params = typename QGmmKernel::Params;
     using GMMTiling = typename QGmmKernel::GMMTiling;
     GMMTiling gmmParams{gmmBaseParams_.groupNum, gmmBaseParams_.groupListType, mmTilingData_.baseM, mmTilingData_.baseN,

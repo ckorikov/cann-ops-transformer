@@ -26,7 +26,7 @@ using namespace Act::Gemm;
 using namespace Act::Gemm::Kernel;
 
 template <typename layoutA, typename layoutB>
-__aicore__ inline void QGmmInpalceAddAswt(GM_ADDR x1, GM_ADDR x2, GM_ADDR scale2, GM_ADDR groupList, GM_ADDR scale1,
+__aicore__ inline void QGmmInplaceAddAswt(GM_ADDR x1, GM_ADDR x2, GM_ADDR scale2, GM_ADDR groupList, GM_ADDR scale1,
                                           GM_ADDR y, GM_ADDR tiling)
 {
     GET_TILING_DATA_MEMBER(QuantGroupedMatmulInplaceAdd::QGmmInplaceAddTilingDataParams, quantGmmInplaceAddParams,
@@ -53,7 +53,7 @@ __aicore__ inline void QGmmInpalceAddAswt(GM_ADDR x1, GM_ADDR x2, GM_ADDR scale2
     // 定义shape的形状，tuple保存 m n k batch
     using ProblemShape = MatmulShape;
     // 定义Kernel类型
-    using QGmmKernel = Kernel::KernelQGmmInpaceAdd<ProblemShape, BlockMmad, BlockEpilogue, BlockScheduler>;
+    using QGmmKernel = Kernel::KernelQGmmInplaceAdd<ProblemShape, BlockMmad, BlockEpilogue, BlockScheduler>;
     using Params = typename QGmmKernel::Params;
     using GMMTiling = typename QGmmKernel::GMMTiling;
     GMMTiling gmmParams{gmmBaseParams_.groupNum, gmmBaseParams_.groupListType, mmTilingData_.baseM, mmTilingData_.baseN,

@@ -50,7 +50,7 @@ static ge::graphStatus InferShape4QuantGroupedMatmulInplaceAdd(gert::InferShapeC
     int64_t n = yRefShape->GetDim(2);
     auto outShape = context->GetOutputShape(0);
     OP_CHECK_NULL_WITH_CONTEXT(context, outShape);
-    outShape->SetDimNum(3); // 3: shape is (G，M，N)
+    outShape->SetDimNum(3); // 3: shape is (G, M, N)
     outShape->SetDim(0, g);
     outShape->SetDim(1, m); // 1: the sceond element
     outShape->SetDim(2, n); // 2: the third element

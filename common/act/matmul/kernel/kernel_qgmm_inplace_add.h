@@ -57,19 +57,19 @@ constexpr int64_t MATRIX_INNER_DIM_LIMIT_SIZE_V35 = 2097151L; // 21bits
 
 template <class ProblemShape_, class BlockMmadBuilder_, class BlockEpilogue_, class BlockScheduler_,
           typename Enable_ = void>
-class KernelQGmmInpaceAdd {
+class KernelQGmmInplaceAdd {
     static_assert(AscendC::Std::always_false_v<BlockScheduler_>,
-                  "KernelQGmmInpaceAdd is not implemented for this scheduler");
+                  "KernelQGmmInplaceAdd is not implemented for this scheduler");
 };
 
 template <class ProblemShape_, class BlockMmadBuilder_, class BlockEpilogue_, class BlockScheduler_>
-class KernelQGmmInpaceAdd<
+class KernelQGmmInplaceAdd<
     ProblemShape_, BlockMmadBuilder_, BlockEpilogue_, BlockScheduler_,
     AscendC::Std::enable_if_t<AscendC::Std::is_same_v<BlockScheduler_, GroupedMatmulAswtWithTailSplitScheduler>>> {
 public:
-    __aicore__ inline KernelQGmmInpaceAdd() {}
+    __aicore__ inline KernelQGmmInplaceAdd() {}
 
-    __aicore__ inline ~KernelQGmmInpaceAdd() {}
+    __aicore__ inline ~KernelQGmmInplaceAdd() {}
 
     using BlockEpilogue = BlockEpilogue_;
     using BlockMmadBuilder = BlockMmadBuilder_;
