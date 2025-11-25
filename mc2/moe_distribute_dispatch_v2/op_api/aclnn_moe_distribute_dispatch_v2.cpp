@@ -33,7 +33,7 @@ enum NnopbaseHcclServerType {
 
 extern aclnnStatus aclnnInnerMoeDistributeDispatchV2GetWorkspaceSize(const aclTensor* x, const aclTensor* expertIds, const aclTensor* scales,
                                                                    const aclTensor* xActiveMask, const aclTensor* expertScales,  const aclTensor* elasticInfo,
-                                                                   const char* groupEp, int64_t epWorldSize,
+                                                                   const aclTensor* performanceInfo, const char* groupEp, int64_t epWorldSize,
                                                                    int64_t epRankId, int64_t moeExpertNum, const char* groupTp, int64_t tpWorldSize,
                                                                    int64_t tpRankId, int64_t expertShardType, int64_t sharedExpertNum, int64_t shareExpertRankNum,
                                                                    int64_t quantMode, int64_t globalBs, int64_t expertTokenNumsType, const char* commAlg,
@@ -111,7 +111,7 @@ aclnnStatus aclnnMoeDistributeDispatchV2GetWorkspaceSize(const aclTensor* x, con
 
     if (is910B) {
         return aclnnInnerMoeDistributeDispatchV2GetWorkspaceSize(x, expertIds, scalesOptional, xActiveMaskOptional, expertScalesOptional,
-                                                                 nullptr, groupEp, epWorldSize, epRankId, moeExpertNum,
+                                                                 nullptr, nullptr, groupEp, epWorldSize, epRankId, moeExpertNum,
                                                                  "", tpWorldSize, tpRankId, expertShardType, sharedExpertNum,
                                                                  sharedExpertRankNum, quantMode, globalBs, expertTokenNumsType, commAlg, 0, 0, 0, expandXOut,
                                                                  dynamicScalesOut, assistInfoForCombineOut, expertTokenNumsOut, epRecvCountsOut, tpRecvCountsOut,
@@ -119,7 +119,7 @@ aclnnStatus aclnnMoeDistributeDispatchV2GetWorkspaceSize(const aclTensor* x, con
     }
 
     return aclnnInnerMoeDistributeDispatchV2GetWorkspaceSize(x, expertIds, scalesOptional, xActiveMaskOptional, expertScalesOptional,
-                                                                        nullptr, groupEp, epWorldSize, epRankId, moeExpertNum,
+                                                                        nullptr, nullptr, groupEp, epWorldSize, epRankId, moeExpertNum,
                                                                         groupTp, tpWorldSize, tpRankId, expertShardType, sharedExpertNum,
                                                                         sharedExpertRankNum, quantMode, globalBs, expertTokenNumsType, commAlg, 0, 0, 0, expandXOut,
                                                                         dynamicScalesOut, assistInfoForCombineOut, expertTokenNumsOut, epRecvCountsOut, tpRecvCountsOut,

@@ -152,7 +152,7 @@ extern "C" __global__ __aicore__ void moe_distribute_dispatch(
     } else if (TILING_KEY_IS(2000001000)) {
         GET_TILING_DATA_WITH_STRUCT(MoeDistributeDispatchA2TilingData, tilingData, tilingGM);
         MoeDistributeDispatchA2<DTYPE_X, DTYPE_EXPAND_X, false, false, false> op;
-        op.Init(x, expertIds, scales, xActiveMask, expandXOut, dynamicScalesOut, expandIdxOut, expertTokenNumsOut, epSendCountsOut,
+        op.Init(x, expertIds, scales, xActiveMask, nullptr, expandXOut, dynamicScalesOut, expandIdxOut, expertTokenNumsOut, epSendCountsOut,
                 workspaceGM, &pipe, tilingGM);
         op.Process();
     } else if (TILING_KEY_IS(2100001000)) {
@@ -166,7 +166,7 @@ extern "C" __global__ __aicore__ void moe_distribute_dispatch(
             op.Process();
         } else if (dataplaneMode == DataplaneMode::AIV) {
             MoeDistributeDispatchA2Layered<DTYPE_X, DTYPE_EXPAND_X, false, false, false> op;
-            op.Init(x, expertIds, scales, expertScales, expandXOut, dynamicScalesOut, expandIdxOut, expertTokenNumsOut, 
+            op.Init(x, expertIds, scales, expertScales, nullptr, expandXOut, dynamicScalesOut, expandIdxOut, expertTokenNumsOut, 
                     epSendCountsOut, expandScalesOut, workspaceGM, &pipe, tilingGM, contextGM0);
             op.Process();
         }
@@ -211,13 +211,13 @@ extern "C" __global__ __aicore__ void moe_distribute_dispatch(
     } else if (TILING_KEY_IS(2000001002)) {
         GET_TILING_DATA_WITH_STRUCT(MoeDistributeDispatchA2TilingData, tilingData, tilingGM);
         MoeDistributeDispatchA2<DTYPE_X, DTYPE_EXPAND_X, false, true, false> op;
-        op.Init(x, expertIds, scales, xActiveMask, expandXOut, dynamicScalesOut, expandIdxOut, expertTokenNumsOut, epSendCountsOut,
+        op.Init(x, expertIds, scales, xActiveMask, nullptr, expandXOut, dynamicScalesOut, expandIdxOut, expertTokenNumsOut, epSendCountsOut,
                 workspaceGM, &pipe, tilingGM);
         op.Process();
     } else if (TILING_KEY_IS(2000001012)) {
         GET_TILING_DATA_WITH_STRUCT(MoeDistributeDispatchA2TilingData, tilingData, tilingGM);
         MoeDistributeDispatchA2<DTYPE_X, DTYPE_EXPAND_X, false, true, true> op;
-        op.Init(x, expertIds, scales, xActiveMask, expandXOut, dynamicScalesOut, expandIdxOut, expertTokenNumsOut, epSendCountsOut,
+        op.Init(x, expertIds, scales, xActiveMask, nullptr, expandXOut, dynamicScalesOut, expandIdxOut, expertTokenNumsOut, epSendCountsOut,
                 workspaceGM, &pipe, tilingGM);
         op.Process();
     } else if (TILING_KEY_IS(2100001002)) {
@@ -231,7 +231,7 @@ extern "C" __global__ __aicore__ void moe_distribute_dispatch(
             op.Process();
         } else if (dataplaneMode == DataplaneMode::AIV) {
             MoeDistributeDispatchA2Layered<DTYPE_X, DTYPE_EXPAND_X, false, true, false> op;
-            op.Init(x, expertIds, scales, expertScales, expandXOut, dynamicScalesOut, expandIdxOut, expertTokenNumsOut, 
+            op.Init(x, expertIds, scales, expertScales, nullptr, expandXOut, dynamicScalesOut, expandIdxOut, expertTokenNumsOut, 
                     epSendCountsOut, expandScalesOut, workspaceGM, &pipe, tilingGM, contextGM0);
             op.Process();
         }
@@ -246,7 +246,7 @@ extern "C" __global__ __aicore__ void moe_distribute_dispatch(
             op.Process();
         } else if (dataplaneMode == DataplaneMode::AIV) {
             MoeDistributeDispatchA2Layered<DTYPE_X, DTYPE_EXPAND_X, false, true, true> op;
-            op.Init(x, expertIds, scales, expertScales, expandXOut, dynamicScalesOut, expandIdxOut, expertTokenNumsOut, 
+            op.Init(x, expertIds, scales, expertScales, nullptr, expandXOut, dynamicScalesOut, expandIdxOut, expertTokenNumsOut, 
                     epSendCountsOut, expandScalesOut, workspaceGM, &pipe, tilingGM, contextGM0);
             op.Process();
         }

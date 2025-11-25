@@ -79,8 +79,8 @@ template <TemplateMC2TypeA2Class>
 class MoeDistributeDispatchA2 {
 public:
     __aicore__ inline MoeDistributeDispatchA2() {};
-    __aicore__ inline void Init(GM_ADDR x, GM_ADDR expertIds, GM_ADDR scales, GM_ADDR xActiveMask, GM_ADDR expandXOut,
-        GM_ADDR dynamicScalesOut, GM_ADDR expandIdxOut, GM_ADDR expertTokenNumsOut, GM_ADDR epRecvCountsOut,
+    __aicore__ inline void Init(GM_ADDR x, GM_ADDR expertIds, GM_ADDR scales, GM_ADDR xActiveMask, GM_ADDR performanceInfo,
+        GM_ADDR expandXOut, GM_ADDR dynamicScalesOut, GM_ADDR expandIdxOut, GM_ADDR expertTokenNumsOut, GM_ADDR epRecvCountsOut,
         GM_ADDR workspaceGM, TPipe *pipe, GM_ADDR tilingGM);
     __aicore__ inline void Process();
 private:
@@ -99,6 +99,7 @@ private:
     __aicore__ inline void ZeroComputeExpertMaskCal();
     __aicore__ inline void CalValidTokenCount();
     __aicore__ inline void CleanUpFlags();
+    __aicore__ inline void CopyPerformanceInfo();
     TPipe *tpipe_{nullptr};
     GlobalTensor<XType> xGMTensor_;
     GlobalTensor<int32_t> expertIdsGMTensor_;
@@ -110,6 +111,7 @@ private:
     GlobalTensor<int32_t> sendStatusTensor_;
     GlobalTensor<uint32_t> bufferChosenGlobal_;
     GlobalTensor<int8_t> xActiveMaskGMTensor_;
+    GlobalTensor<int32_t> performanceInfoI32GMTensor_;
 
     LocalTensor<XType> xTensor_[BUFFER_NUM];
     LocalTensor<ExpandXOutType> xOutTensor_[BUFFER_NUM];
@@ -128,6 +130,7 @@ private:
     LocalTensor<half> xActiveMaskHalfTensor_;
     LocalTensor<int32_t> epRecvCountsTempLocal_;
     LocalTensor<int32_t> epRecvCountsOutLocal_;
+    LocalTensor<int32_t> performanceInfoI32Tensor_;
 
     GM_ADDR expandIdxOutGM_;
     GM_ADDR expertTokenNumsOutGM_;
@@ -161,6 +164,8 @@ private:
     uint32_t statusEntryCount_{0};
     bool isTokenMaskFlag_{false};
     bool isExpertMaskFlag_{false};
+    uint32_t performanceInfoSize_{0};
+    bool needPerformanceInfo_{false};
     TaskInfo worldTaskInfo_;
     Hccl<HCCL_SERVER_TYPE_AICPU> hccl_;
     __gm__ HcclOpResParam *winContext_{nullptr};
@@ -168,7 +173,7 @@ private:
 
 template <TemplateMC2TypeA2Class>
 __aicore__ inline void MoeDistributeDispatchA2<TemplateMC2TypeA2Func>::Init(
-    GM_ADDR x, GM_ADDR expertIds, GM_ADDR scales, GM_ADDR xActiveMask, GM_ADDR expandXOut,
+    GM_ADDR x, GM_ADDR expertIds, GM_ADDR scales, GM_ADDR xActiveMask, GM_ADDR performanceInfo, GM_ADDR expandXOut,
     GM_ADDR dynamicScalesOut, GM_ADDR expandIdxOut, GM_ADDR expertTokenNumsOut, GM_ADDR epRecvCountsOut,
     GM_ADDR workspaceGM, TPipe *pipe, GM_ADDR tilingGM)
 {
@@ -231,6 +236,12 @@ __aicore__ inline void MoeDistributeDispatchA2<TemplateMC2TypeA2Func>::Init(
         scalesGMTensor_.SetGlobalBuffer((__gm__ float*)scales);
     }
 
+    needPerformanceInfo_ = performanceInfo != nullptr;
+    if (unlikely(needPerformanceInfo_)) {
+        performanceInfoSize_ = worldSize_;
+        performanceInfoI32GMTensor_.SetGlobalBuffer((__gm__ int32_t*)performanceInfo);
+    }
+
     uint64_t stateSizeMaxSize = 2 * STATE_SIZE; // 2: 实际上是(DATA_OFFSET+SKIP_OFFSET+sizeof(uint32)) + STATE_SIZE，近似计算使用2 * STATE_SIZE
     uint64_t winSizeMin = (axisBS_ * worldSize_ * (localMoeExpertNum_ > axisK_ ? axisK_ : localMoeExpertNum_) *
         axisH_ * sizeof(uint16_t) + stateSizeMaxSize) * BUFFER_NUM; // 考虑负载极其不均衡时，HCCL BUFFSIZE需要开的大小
@@ -277,6 +288,11 @@ __aicore__ inline void MoeDistributeDispatchA2<TemplateMC2TypeA2Func>::AllocTens
 
     uint32_t smoothScalesAddr = xfloatOrFlagAddr + axisH_ * sizeof(float);
     smoothScalesTensor_ = LocalTensor<float>{TPosition::LCM, smoothScalesAddr, axisH_};
+
+    if (unlikely(needPerformanceInfo_)) {
+        uint32_t performanceInfoI32Addr = smoothScalesAddr + axisH_;
+        performanceInfoI32Tensor_ = LocalTensor<int32_t>{TPosition::LCM, performanceInfoI32Addr, performanceInfoSize_ * sizeof(int64_t) / sizeof(int32_t)};
+    }
 
     uint32_t validExpIndexAddr = AscendC::TOTAL_UB_SIZE - expertIdsLength;
     validExpIndexTensor_ = LocalTensor<int32_t>{TPosition::LCM, validExpIndexAddr, expertIdsSize};
@@ -606,27 +622,36 @@ __aicore__ inline void MoeDistributeDispatchA2<TemplateMC2TypeA2Func>::WaitDispa
         LocalTensor<int32_t>{TPosition::LCM, statusTensor_.GetSize() * sizeof(int32_t), BITS32_PER_BLOCK};
     SyncFunc<AscendC::HardEvent::S_MTE2>();
 
-    for (uint32_t rankId = worldTaskInfo_.startTaskId; rankId < worldTaskInfo_.endTaskId; rankId++) {
-        int32_t statusFlag = 0;
-        int32_t dataFlag = 0;
-        while (statusFlag != FLAG_VALUE) {
+    uint32_t recvFlagNum = 0;
+    int64_t startTime = GetCurrentTimestampUs();
+    while (recvFlagNum < worldTaskInfo_.taskNum) {
+        for (uint32_t rankId = worldTaskInfo_.startTaskId; rankId < worldTaskInfo_.endTaskId; rankId++) {
             DataCopy(statusTensor_[rankId * statusEntryCount_], windowInstatusTensor_[rankId * dataSizePerRank_ / sizeof(int32_t)], statusEntryCount_);
             SyncFunc<AscendC::HardEvent::MTE2_S>();
-            statusFlag = statusTensor_(rankId * statusEntryCount_ + statusEntryCount_ - 1);
-            PipeBarrier<PIPE_MTE2>();
-        }
-        uint32_t tokenCount = 0;
-        for (int32_t expertOffset = 0; expertOffset < localMoeExpertNum_; expertOffset++) {
-            tokenCount += statusTensor_(rankId * statusEntryCount_ + expertOffset);
-        }
-        uint64_t dataFlagOffset = (rankId * dataSizePerRank_ + DATA_OFFSET + tokenCount * hCommuSize_ + SKIP_OFFSET) / sizeof(int32_t);
-        while (dataFlag != FLAG_VALUE) {
+            int32_t statusFlag = statusTensor_(rankId * statusEntryCount_ + statusEntryCount_ - 1);
+            if (statusFlag != FLAG_VALUE) {
+                continue;
+            }
+            uint32_t tokenCount = 0;
+            for (int32_t expertOffset = 0; expertOffset < localMoeExpertNum_; expertOffset++) {
+                tokenCount += statusTensor_(rankId * statusEntryCount_ + expertOffset);
+            }
+            uint64_t dataFlagOffset = (rankId * dataSizePerRank_ + DATA_OFFSET + tokenCount * hCommuSize_ + SKIP_OFFSET) / sizeof(int32_t);
             DataCopyPad(dataFlagLocal, windowInstatusTensor_[dataFlagOffset], copyFlagParams, padParams);
             SyncFunc<AscendC::HardEvent::MTE2_S>();
-            dataFlag = dataFlagLocal(0);
-            PipeBarrier<PIPE_MTE2>();
+            int32_t dataFlag = dataFlagLocal(0);
+            if (dataFlag != FLAG_VALUE) {
+                continue;
+            }
+            recvFlagNum++;
+            windowInstatusTensor_(dataFlagOffset) = 0;
+            // 重要：要下DCCI保证清零写进去，避免下一次判断时又判断生效，重复累计recvFlagNum
+            DataCacheCleanAndInvalid<int32_t, AscendC::CacheLine::SINGLE_CACHE_LINE, AscendC::DcciDst::CACHELINE_OUT>(windowInstatusTensor_[dataFlagOffset]);
+            if (unlikely(needPerformanceInfo_)) {
+                auto srcRankId = rankId;
+                RecordRankCommDuration(performanceInfoI32Tensor_, srcRankId, startTime);
+            }
         }
-        windowInstatusTensor_(dataFlagOffset) = 0;
     }
     SyncAll<true>();
 }
@@ -781,6 +806,16 @@ __aicore__ inline void MoeDistributeDispatchA2<TemplateMC2TypeA2Func>::CleanUpFl
 }
 
 template <TemplateMC2TypeA2Class>
+__aicore__ inline void MoeDistributeDispatchA2<TemplateMC2TypeA2Func>::CopyPerformanceInfo()
+{
+    if (unlikely(needPerformanceInfo_)) {
+        AscendC::SetAtomicAdd<int32_t>();
+        AscendC::DataCopy(performanceInfoI32GMTensor_, performanceInfoI32Tensor_, performanceInfoSize_ * sizeof(int64_t) / sizeof(int32_t));
+        AscendC::SetAtomicNone();
+    }
+}
+
+template <TemplateMC2TypeA2Class>
 __aicore__ inline void MoeDistributeDispatchA2<TemplateMC2TypeA2Func>::Process()
 {
     if ASCEND_IS_AIV {
@@ -796,6 +831,7 @@ __aicore__ inline void MoeDistributeDispatchA2<TemplateMC2TypeA2Func>::Process()
         LocalWindowCopy();
         SyncAll<true>();
         CleanUpFlags();
+        CopyPerformanceInfo();
         hccl_.Finalize();
     }
 }
