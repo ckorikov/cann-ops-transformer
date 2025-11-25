@@ -1200,7 +1200,7 @@ static ge::graphStatus MoeDistributeCombineA2CheckAttrAndSetTiling(const gert::T
     OP_TILING_CHECK(copyExpertNumPtr == nullptr, OP_LOGE(K_INNER_DEBUG, "copyExpertNum is null."), return GRAPH_FAILED);
     OP_TILING_CHECK(constExpertNumPtr == nullptr, OP_LOGE(K_INNER_DEBUG, "constExpertNum is null."), return GRAPH_FAILED);
     OP_TILING_CHECK(*constExpertNumPtr != 0,
-        OP_LOGE(K_INNER_DEBUG, "constExpertNum must be 0 but given %ld.", *constExpertNumPtr), return GRAPH_FAILED);
+        OP_LOGE(K_INNER_DEBUG, "Invalid constExpertNum value: %ld. Must be 0.", *constExpertNumPtr), return ge::GRAPH_FAILED);
 
     OP_TILING_CHECK((groupEpPtr == nullptr) || (strnlen(groupEpPtr, MAX_GROUP_NAME_LENGTH) == 0) ||
         (strnlen(groupEpPtr, MAX_GROUP_NAME_LENGTH) == MAX_GROUP_NAME_LENGTH),
