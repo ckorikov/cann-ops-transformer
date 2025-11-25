@@ -940,13 +940,13 @@ __aicore__ inline void MoeDistributeDispatchA2<TemplateMC2TypeA2Func>::LocalWind
 
         for (uint32_t j = 0; j < localMoeExpertNum_; j++) {
             // 将数据从Window拷贝到UB
-            uint32_t currTokensCount = statusTensor_(currRankStatusOffset + j);
-            uint32_t currTokensOffset = epRecvCountsOutLocal(j * worldSize_ + index) - currTokensCount;
+            uint64_t currTokensCount = statusTensor_(currRankStatusOffset + j);
+            uint64_t currTokensOffset = static_cast<uint64_t>(epRecvCountsOutLocal(j * worldSize_ + index)) - currTokensCount;
             dynamicScalesLocalIdx = 0;
             SyncFunc<AscendC::HardEvent::S_MTE2>();
             SetFlag<HardEvent::MTE3_MTE2>(EVENT_ID0);
             SetFlag<HardEvent::MTE3_MTE2>(EVENT_ID1);
-            for (uint32_t k = 0; k < currTokensCount; k++) {
+            for (uint64_t k = 0; k < currTokensCount; k++) {
                 TEventID eventId = (k & 1) ? EVENT_ID0 : EVENT_ID1;
                 xTmpTensor_ = (eventId & 1) ? xOutPingTensor : xOutPongTensor;
                 WaitFlag<HardEvent::MTE3_MTE2>(eventId);
