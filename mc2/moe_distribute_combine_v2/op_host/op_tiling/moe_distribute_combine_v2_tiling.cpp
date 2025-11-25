@@ -1196,9 +1196,9 @@ static ge::graphStatus MoeDistributeCombineA2CheckAttrAndSetTiling(const gert::T
     auto copyExpertNumPtr = attrs->GetAttrPointer<int64_t>(static_cast<int>(ATTR_COPY_EXPERT_NUM_INDEX));
     auto constExpertNumPtr = attrs->GetAttrPointer<int64_t>(static_cast<int>(ATTR_CONST_EXPERT_NUM_INDEX));
 
-    OP_TILING_CHECK(zeroExpertNumPtr == nullptr, OP_LOGE(K_INNER_DEBUG, "zeroExpertNum is nullptr."), return GRAPH_FAILED);
-    OP_TILING_CHECK(copyExpertNumPtr == nullptr, OP_LOGE(K_INNER_DEBUG, "copyExpertNum is nullptr."), return GRAPH_FAILED);
-    OP_TILING_CHECK(constExpertNumPtr == nullptr, OP_LOGE(K_INNER_DEBUG, "constExpertNum is nullptr."), return GRAPH_FAILED);
+    OP_TILING_CHECK(zeroExpertNumPtr == nullptr, OP_LOGE(K_INNER_DEBUG, "zeroExpertNum is null."), return GRAPH_FAILED);
+    OP_TILING_CHECK(copyExpertNumPtr == nullptr, OP_LOGE(K_INNER_DEBUG, "copyExpertNum is null."), return GRAPH_FAILED);
+    OP_TILING_CHECK(constExpertNumPtr == nullptr, OP_LOGE(K_INNER_DEBUG, "constExpertNum is null."), return GRAPH_FAILED);
     OP_TILING_CHECK(*constExpertNumPtr != 0,
         OP_LOGE(K_INNER_DEBUG, "constExpertNum must be 0 but given %ld.", *constExpertNumPtr), return GRAPH_FAILED);
 
