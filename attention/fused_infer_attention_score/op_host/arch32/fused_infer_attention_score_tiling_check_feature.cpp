@@ -534,7 +534,7 @@ ge::graphStatus FiaTilingCheck::CheckFeatureGqaPrefix() const
     auto *maskTensor = opParamInfo_.attenMask.tensor;
     if (attenMaskFlag_ && (sparseMode == SPARSE_MODE_NO_MASK || sparseMode == SPARSE_MODE_ALL_MASK)) {
         uint32_t maskS2 = maskTensor->GetStorageShape().GetDim(maskTensor->GetStorageShape().GetDimNum() - 1);
-        uint32_t totalLen = fiaInfo_.systemPrefixLen + fiaInfo_.s2Size;
+        uint32_t totalLen = fiaInfo_.systemPrefixLen + fiaInfo_.maxActualseq;
         if (totalLen > maskS2) {
             OP_LOGE(opName_, "s2Size + systemPrefix (%u) is greater than mask s2 size (%u)", totalLen, maskS2);
             return ge::GRAPH_FAILED;

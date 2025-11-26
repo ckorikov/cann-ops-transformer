@@ -873,7 +873,7 @@ ge::graphStatus FiaInfoParser::GetSystemPrefix()
 
 ge::graphStatus FiaInfoParser::GetActualSeqInfo()
 {
-    maxActualseq_ = s2Size_;
+    maxActualseq_ = 0;
     if (opParamInfo_.actualSeqLengths.tensor != nullptr) {
         actualLenDims_ = opParamInfo_.actualSeqLengths.tensor->GetShapeSize();
         if ((kvLayout_ == FiaLayout::TND) || (kvLayout_ == FiaLayout::NTD)) {
@@ -893,6 +893,8 @@ ge::graphStatus FiaInfoParser::GetActualSeqInfo()
                 }
             }
         }
+    } else {
+        maxActualseq_ = s2Size_;
     }
 
     if (opParamInfo_.actualSeqLengthsQ.tensor != nullptr) {
