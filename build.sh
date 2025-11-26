@@ -1391,6 +1391,7 @@ fi
 
 cd ${BUILD_DIR}
 if [[ "$ENABLE_TEST" == "TRUE" ]]; then
+    set_compute_unit_option
     build_ut ${BUILD}
 elif [[ "$ENABLE_CREATE_LIB" == "TRUE" ]]; then
     build_lib

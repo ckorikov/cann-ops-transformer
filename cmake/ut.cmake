@@ -202,42 +202,99 @@ if(UT_TEST_ALL
     set(multiValueArgs MULIT_RESERVED)
     cmake_parse_arguments(MODULE "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
-    if("${MODULE_UT_NAME}" STREQUAL "${OP_TILING_MODULE_NAME}")
-      get_filename_component(UT_DIR ${MODULE_DIR} DIRECTORY)
-      get_filename_component(TESTS_DIR ${UT_DIR} DIRECTORY)
-      get_filename_component(OP_NAME_DIR ${TESTS_DIR} DIRECTORY)
-      get_filename_component(OP_NAME ${OP_NAME_DIR} NAME)
-      list(FIND ASCEND_OP_NAME ${OP_NAME} INDEX)
-      # if "--ops" is not NULL, opName not include, jump over. if "--ops" is NULL, include all.
-      if(NOT "${ASCEND_OP_NAME}" STREQUAL "ALL" AND INDEX EQUAL -1)
+    get_filename_component(ARCH_NAME ${MODULE_DIR} NAME)
+    if(${ARCH_NAME} STREQUAL "op_host")
+      # tiling.cpp, infershape.cpp under op_host/
+      if("${MODULE_UT_NAME}" STREQUAL "${OP_TILING_MODULE_NAME}")
+        get_filename_component(UT_DIR ${MODULE_DIR} DIRECTORY)
+        get_filename_component(TESTS_DIR ${UT_DIR} DIRECTORY)
+        get_filename_component(OP_NAME_DIR ${TESTS_DIR} DIRECTORY)
+        get_filename_component(OP_NAME ${OP_NAME_DIR} NAME)
+        list(FIND ASCEND_OP_NAME ${OP_NAME} INDEX)
+        # if "--ops" is not NULL, opName not include, jump over. if "--ops" is NULL, include all.
+        if(NOT "${ASCEND_OP_NAME}" STREQUAL "ALL" AND INDEX EQUAL -1)
+          return()
+        endif()
+
+        # add op_tiling ut common object: transformer_op_tiling_ut_cases_obj
+        if(NOT TARGET ${MODULE_UT_NAME}_cases_obj)
+          add_library(${MODULE_UT_NAME}_cases_obj OBJECT)
+        endif()
+        file(GLOB OPHOST_TILING_CASES_SRC ${MODULE_DIR}/test_*_tiling.cpp)
+        target_sources(${MODULE_UT_NAME}_cases_obj ${MODULE_MODE} ${OPHOST_TILING_CASES_SRC})
+      endif()
+
+      if("${MODULE_UT_NAME}" STREQUAL "${OP_INFERSHAPE_MODULE_NAME}")
+        get_filename_component(UT_DIR ${MODULE_DIR} DIRECTORY)
+        get_filename_component(TESTS_DIR ${UT_DIR} DIRECTORY)
+        get_filename_component(OP_NAME_DIR ${TESTS_DIR} DIRECTORY)
+        get_filename_component(OP_NAME ${OP_NAME_DIR} NAME)
+        list(FIND ASCEND_OP_NAME ${OP_NAME} INDEX)
+        # if "--ops" is not NULL, opName not include, jump over. if "--ops" is NULL, include all.
+        if(NOT "${ASCEND_OP_NAME}" STREQUAL "ALL" AND INDEX EQUAL -1)
+          return()
+        endif()
+
+        # add op_infershape ut common object: transformer_op_infershape_ut_cases_obj
+        if(NOT TARGET ${MODULE_UT_NAME}_cases_obj)
+          add_library(${MODULE_UT_NAME}_cases_obj OBJECT)
+        endif()
+        file(GLOB OPHOST_INFERSHAPE_CASES_SRC ${MODULE_DIR}/test_*_infershape.cpp)
+        target_sources(${MODULE_UT_NAME}_cases_obj ${MODULE_MODE} ${OPHOST_INFERSHAPE_CASES_SRC})
+      endif()
+    endif()
+
+    # tiling.cpp, infershape.cpp under arch*/
+    if(${ARCH_NAME} MATCHES "^arch")
+      # if "--soc" not include current soc, jump over
+      list(FIND ARCH_DIRECTORY ${ARCH_NAME} INDEX)
+      if(INDEX EQUAL -1)
         return()
       endif()
 
-      if(NOT TARGET ${MODULE_UT_NAME}_cases_obj)
-        add_library(${MODULE_UT_NAME}_cases_obj OBJECT)
+      if("${MODULE_UT_NAME}" STREQUAL "${OP_TILING_MODULE_NAME}")
+        get_filename_component(UT_TYPE_DIR ${MODULE_DIR} DIRECTORY)
+        get_filename_component(UT_DIR ${UT_TYPE_DIR} DIRECTORY)
+        get_filename_component(TESTS_DIR ${UT_DIR} DIRECTORY)
+        get_filename_component(OP_NAME_DIR ${TESTS_DIR} DIRECTORY)
+        get_filename_component(OP_NAME ${OP_NAME_DIR} NAME)
+        list(FIND ASCEND_OP_NAME ${OP_NAME} INDEX)
+        # if "--ops" is not NULL, opName not include, jump over. if "--ops" is NULL, include all.
+        if(NOT "${ASCEND_OP_NAME}" STREQUAL "ALL" AND INDEX EQUAL -1)
+          return()
+        endif()
+
+        # add op_tiling ut common object: transformer_op_tiling_ut_cases_obj
+        if(NOT TARGET ${MODULE_UT_NAME}_cases_obj)
+          add_library(${MODULE_UT_NAME}_cases_obj OBJECT)
+        endif()
+        file(GLOB OPHOST_TILING_CASES_SRC ${MODULE_DIR}/test_*_tiling.cpp)
+        target_sources(${MODULE_UT_NAME}_cases_obj ${MODULE_MODE} ${OPHOST_TILING_CASES_SRC})
       endif()
-      file(GLOB OPHOST_TILING_CASES_SRC ${MODULE_DIR}/test_*_tiling.cpp)
-      target_sources(${MODULE_UT_NAME}_cases_obj ${MODULE_MODE} ${OPHOST_TILING_CASES_SRC})
+
+      if("${MODULE_UT_NAME}" STREQUAL "${OP_INFERSHAPE_MODULE_NAME}")
+        get_filename_component(UT_TYPE_DIR ${MODULE_DIR} DIRECTORY)
+        get_filename_component(UT_DIR ${UT_TYPE_DIR} DIRECTORY)
+        get_filename_component(TESTS_DIR ${UT_DIR} DIRECTORY)
+        get_filename_component(OP_NAME_DIR ${TESTS_DIR} DIRECTORY)
+        get_filename_component(OP_NAME ${OP_NAME_DIR} NAME)
+
+        list(FIND ASCEND_OP_NAME ${OP_NAME} INDEX)
+        # if "--ops" is not NULL, opName not include, jump over. if "--ops" is NULL, include all.
+        if(NOT "${ASCEND_OP_NAME}" STREQUAL "ALL" AND INDEX EQUAL -1)
+          return()
+        endif()
+
+        # add op_infershape ut common object: transformer_op_infershape_ut_cases_obj
+        if(NOT TARGET ${MODULE_UT_NAME}_cases_obj)
+          add_library(${MODULE_UT_NAME}_cases_obj OBJECT)
+        endif()
+        file(GLOB OPHOST_INFERSHAPE_CASES_SRC ${MODULE_DIR}/test_*_infershape.cpp)
+        target_sources(${MODULE_UT_NAME}_cases_obj ${MODULE_MODE} ${OPHOST_INFERSHAPE_CASES_SRC})
+      endif()
     endif()
 
-    if("${MODULE_UT_NAME}" STREQUAL "${OP_INFERSHAPE_MODULE_NAME}")
-      get_filename_component(UT_DIR ${MODULE_DIR} DIRECTORY)
-      get_filename_component(TESTS_DIR ${UT_DIR} DIRECTORY)
-      get_filename_component(OP_NAME_DIR ${TESTS_DIR} DIRECTORY)
-      get_filename_component(OP_NAME ${OP_NAME_DIR} NAME)
-      list(FIND ASCEND_OP_NAME ${OP_NAME} INDEX)
-      # if "--ops" is not NULL, opName not include, jump over. if "--ops" is NULL, include all.
-      if(NOT "${ASCEND_OP_NAME}" STREQUAL "ALL" AND INDEX EQUAL -1)
-        return()
-      endif()
-
-      if(NOT TARGET ${MODULE_UT_NAME}_cases_obj)
-        add_library(${MODULE_UT_NAME}_cases_obj OBJECT)
-      endif()
-      file(GLOB OPHOST_INFERSHAPE_CASES_SRC ${MODULE_DIR}/test_*_infershape.cpp)
-      target_sources(${MODULE_UT_NAME}_cases_obj ${MODULE_MODE} ${OPHOST_INFERSHAPE_CASES_SRC})
-    endif()
-
+    # op_api ut
     if("${MODULE_UT_NAME}" STREQUAL "${OP_API_MODULE_NAME}")
       get_filename_component(OP_HOST_DIR ${MODULE_DIR} DIRECTORY)
       get_filename_component(OP_HOST_NAME ${OP_HOST_DIR} NAME)
@@ -255,6 +312,7 @@ if(UT_TEST_ALL
         return()
       endif()
 
+      # add op_api ut common object: transformer_op_api_ut_cases_obj
       register_op_name(${OP_NAME})
       if(NOT TARGET ${MODULE_UT_NAME}_cases_obj)
         add_library(${MODULE_UT_NAME}_cases_obj OBJECT)
