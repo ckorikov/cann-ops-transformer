@@ -67,7 +67,7 @@ static aclnnStatus CheckParams(const aclTensor *elasticInfo, const char *groupEp
 }
 
 aclnnStatus aclnnMoeDistributeBufferResetGetWorkspaceSize(const aclTensor *elasticInfo, const char *groupEp,
-                                                          int64_t epWorldSize, int64_t needSync,
+                                                          int32_t epWorldSize, int32_t needSync,
                                                           uint64_t *workspaceSize, aclOpExecutor **executor)
 
 {

@@ -29,7 +29,6 @@
 #include "tiling/mc2_tiling_utils.h"
 #include "register/tilingdata_base.h"
 #include "tiling/tiling_api.h"
-#include "mc2_log.h"
 #include "graph/utils/type_utils.h"
 #include "register/op_def_registry.h"
 #include "platform/platform_infos_def.h"
@@ -66,7 +65,7 @@ static void PrintTilingDataInfo(const char *nodeName, ElasticReceivableInfoColle
     OP_LOGD(nodeName, "totalUbSize is %lu.", tilingData.elasticReceivableInfoCollectInfo.totalUbSize);
 }
 
-static bool CheckTensorDim(gert::TilingContext *context, const char *nodeName)
+static bool CheckTensorDim(const gert::TilingContext *context, const char *nodeName)
 {
     auto attrs = context->GetAttrs();
     auto worldSizePtr = attrs->GetAttrPointer<int>(ATTR_WORLD_SIZE_INDEX);

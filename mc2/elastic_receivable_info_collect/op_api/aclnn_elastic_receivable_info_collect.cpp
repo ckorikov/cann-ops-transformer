@@ -26,9 +26,11 @@ enum NnopbaseHcclServerType:uint32_t {
 };
 
 
-extern aclnnStatus aclnnInnerElasticReceivableInfoCollectGetWorkspaceSize(const char* group, int64_t worldSize, const aclTensor* y,
-                                                   uint64_t* workspaceSize, aclOpExecutor** executor);
-extern aclnnStatus aclnnInnerElasticReceivableInfoCollect(void *workspace, uint64_t workspaceSize, aclOpExecutor *executor, aclrtStream stream);
+extern aclnnStatus aclnnInnerElasticReceivableInfoCollectGetWorkspaceSize(const char *group, int64_t worldSize,
+                                                                          const aclTensor *y, uint64_t *workspaceSize,
+                                                                          aclOpExecutor **executor);
+extern aclnnStatus aclnnInnerElasticReceivableInfoCollect(void *workspace, uint64_t workspaceSize,
+                                                          aclOpExecutor *executor, aclrtStream stream);
 extern "C" void __attribute__((weak)) NnopbaseSetHcclServerType(void *executor, NnopbaseHcclServerType sType);
 
 // check nullptr
@@ -45,7 +47,7 @@ static bool CheckNullStatus(const aclTensor* y, const char* group)
 }
 
 // 入参校验
-static aclnnStatus CheckParams(aclTensor* y, const char* group)
+static aclnnStatus CheckParams(const aclTensor* y, const char* group)
 {
     CHECK_RET(CheckNullStatus(y, group), ACLNN_ERR_PARAM_NULLPTR);
     auto groupStrnLen = strnlen(group, HCCL_GROUP_NAME_MAX);
@@ -58,8 +60,8 @@ static aclnnStatus CheckParams(aclTensor* y, const char* group)
     return ACLNN_SUCCESS;
 }
 
-aclnnStatus aclnnElasticReceivableInfoCollectGetWorkspaceSize(const char* group, int64_t worldSize, aclTensor* y,
-                                                   uint64_t* workspaceSize, aclOpExecutor** executor)
+aclnnStatus aclnnElasticReceivableInfoCollectGetWorkspaceSize(const char *group, int64_t worldSize, const aclTensor *y,
+                                                              uint64_t *workspaceSize, aclOpExecutor **executor)
 {
     auto retParam = CheckParams(y, group);
     CHECK_RET(retParam == ACLNN_SUCCESS, retParam);

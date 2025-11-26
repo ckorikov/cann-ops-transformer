@@ -23,7 +23,6 @@
 #include <cmath>
 #include <cstdint>
 #include <string>
-#include "mc2_log.h"
 #include "mc2_hcom_topo_info.h"
 #include "graph/utils/type_utils.h"
 #include "register/op_def_registry.h"
@@ -183,7 +182,7 @@ ge::graphStatus MoeDistributeBufferResetTilingFunc(gert::TilingContext* context)
 }
 
 struct MoeDistributeBufferResetCompileInfo {};
-ge::graphStatus TilingParseForMoeDistributeBufferReset(gert::TilingParseContext *context) { 
+ge::graphStatus TilingParseForMoeDistributeBufferReset(gert::TilingParseContext *context) {
     const gert::TilingParseContext* const_context = context;
     //避免未使用变量警告
     (void)const_context;
