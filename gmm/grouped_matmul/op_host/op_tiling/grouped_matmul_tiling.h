@@ -248,10 +248,14 @@ protected:
     void PrintTilingInfo(gert::TilingContext *context);
     ge::graphStatus CalDequantTiling(gert::TilingContext* context);
     void CalDequantUbTiling(GMMTilingData& tilingData, const GMMCompileInfo* compileInfoPtr);
-    uint32_t CalDequantUseUbSize(GMMTilingData& tilingData, uint32_t ubBaseM, uint32_t ubBaseN);
+    uint32_t CalDequantUseUbSize(GMMTilingData& tilingData, uint32_t ubBaseM, uint32_t ubBaseN, uint32_t baseK);
     uint32_t CalUbRestBytes(uint32_t baseM, uint32_t baseK, uint32_t baseN, uint32_t ubBaseM);
     void GMMSetTplTilingKey(gert::TilingContext *context);
     uint32_t GetTplDataType(const ge::DataType &dtype);
+    void CalBaseKTiling(uint32_t baseM, uint32_t baseN, uint32_t& baseK, uint32_t ubBaseN, uint32_t ubBaseM,
+                        GMMTilingData& tilingData, const GMMCompileInfo* compileInfoPtr);
+    bool CheckCubeBufferSizeDequant(uint32_t baseM, uint32_t baseN, uint32_t baseK,
+                                    GMMTilingData& tilingData, const GMMCompileInfo* compileInfoPtr);
 private:
     int32_t mList_[GroupedMatmul::MAX_TENSOR_CONT] = {0};
     int32_t kList_[GroupedMatmul::MAX_TENSOR_CONT] = {0};

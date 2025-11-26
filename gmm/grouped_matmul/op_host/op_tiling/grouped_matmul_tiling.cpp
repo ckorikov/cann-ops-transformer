@@ -1338,9 +1338,8 @@ uint32_t NdWithNzNeedSpace(uint32_t baseM, uint32_t baseK, uint32_t baseN) {
   return std::max(baseM * baseK * DOUBLE_SPACE, baseM * baseN * FP32_DATATYPE_SIZE);
 }
 
-uint32_t GMMTiling::CalDequantUseUbSize(GMMTilingData& tilingData, uint32_t ubBaseM, uint32_t ubBaseN) {
+uint32_t GMMTiling::CalDequantUseUbSize(GMMTilingData& tilingData, uint32_t ubBaseM, uint32_t ubBaseN, uint32_t baseK) {
   uint32_t baseM = tilingData.mmTilingData.get_baseM();
-  uint32_t baseK = tilingData.mmTilingData.get_baseK();
   uint32_t baseN = tilingData.mmTilingData.get_baseN();
   uint32_t restBytes = CalUbRestBytes(baseM, baseK, baseN, ubBaseM);
   uint32_t mmToUbInSize = baseM * baseN * FP32_DATATYPE_SIZE;
@@ -1369,13 +1368,49 @@ uint32_t GMMTiling::CalUbRestBytes(uint32_t baseM, uint32_t baseK, uint32_t base
   return localTensorSize + helpTensorOneSize + pertokenBrcbLocalSize + biasSize;
 }
 
+bool GMMTiling::CheckCubeBufferSizeDequant(uint32_t baseM, uint32_t baseN, uint32_t baseK,
+                                           GMMTilingData& tilingData, const GMMCompileInfo* compileInfoPtr) {
+  uint32_t dbL0A = tilingData.mmTilingData.get_dbL0A();
+  uint32_t useL0ASize = baseM * baseK * dbL0A;
+
+  uint32_t dbL0B = tilingData.mmTilingData.get_dbL0B();
+  uint32_t useL0BSize = baseN * baseK * dbL0B;
+
+  uint32_t dbL0C = tilingData.mmTilingData.get_dbL0C();
+  uint32_t useL0CSize = baseM * baseN * dbL0C * FP32_DATATYPE_SIZE;
+
+  uint32_t useL1Size = baseM * baseK * tilingData.mmTilingData.get_depthA1() +
+                       baseN * baseK * tilingData.mmTilingData.get_depthB1();
+
+  return (useL0ASize <= compileInfoPtr->l0ASize) &&
+         (useL0BSize <= compileInfoPtr->l0BSize) &&
+         (useL0CSize <= compileInfoPtr->l0CSize) &&
+         (useL1Size <= compileInfoPtr->l1Size);
+}
+
+// 尝试取一个更大的baseK来提升性能
+void GMMTiling::CalBaseKTiling(uint32_t baseM, uint32_t baseN, uint32_t& baseK, uint32_t ubBaseN, uint32_t ubBaseM,
+                               GMMTilingData& tilingData, const GMMCompileInfo* compileInfoPtr) {
+
+  uint32_t multiBaseK = 2;
+  while (CalDequantUseUbSize(tilingData, ubBaseM, ubBaseN, baseK * multiBaseK) <= compileInfoPtr->ubSize &&
+         CheckCubeBufferSizeDequant(baseM, baseN, baseK * multiBaseK, tilingData, compileInfoPtr)) {
+    if (baseK * multiBaseK > maxK_) {
+      break;
+    }
+    baseK = baseK * multiBaseK;
+  }
+  tilingData.mmTilingData.set_baseK(baseK);
+}
+
 void GMMTiling::CalDequantUbTiling(GMMTilingData& tilingData, const GMMCompileInfo* compileInfoPtr) {
   uint32_t baseM = tilingData.mmTilingData.get_baseM();
   uint32_t baseK = tilingData.mmTilingData.get_baseK();
   uint32_t baseN = tilingData.mmTilingData.get_baseN();
 
+  // 为了让ub的空间能容纳多份tensor，我们牺牲了M或N方向的base Tiling，会导致性能变差
   // make sure baseM baseK baseN can be load by ub
-  while(CalDequantUseUbSize(tilingData, 1, baseN) > compileInfoPtr->ubSize) {
+  while(CalDequantUseUbSize(tilingData, 1, baseN, baseK) > compileInfoPtr->ubSize) {
     if (baseM >= baseN) {
       baseM /= DOUBLE_SPACE;
       tilingData.mmTilingData.set_baseM(baseM);
@@ -1386,13 +1421,14 @@ void GMMTiling::CalDequantUbTiling(GMMTilingData& tilingData, const GMMCompileIn
   }
   uint32_t ubBaseN = baseN;
   uint32_t ubBaseM = baseM;
-  while(CalDequantUseUbSize(tilingData, ubBaseM, ubBaseN) > compileInfoPtr->ubSize) {
+  while(CalDequantUseUbSize(tilingData, ubBaseM, ubBaseN, baseK) > compileInfoPtr->ubSize) {
       if (ubBaseM > 1) {
         ubBaseM /= DOUBLE_SPACE;
       } else {
         ubBaseN /= DOUBLE_SPACE;
       }
   }
+  CalBaseKTiling(baseM, baseN, baseK, ubBaseN, ubBaseM, tilingData, compileInfoPtr);
 
   uint32_t ubRestBytes = CalUbRestBytes(baseM, baseK, baseN, ubBaseM);
 
