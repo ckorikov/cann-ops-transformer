@@ -320,7 +320,7 @@ private:
 
     Array<LocalTensor<Q_T>, L0A_PP_BUFCNT, L0A_PP_SIZE> aL0Tensor;
     Array<LocalTensor<KV_T>, L0B_PP_BUFCNT, L0B_PP_SIZE> bL0Tensor;
-    Array<LocalTensor<T>, 2, L0C_PP_BUFCNT> cL0Tensor;
+    Array<LocalTensor<T>, L0C_PP_BUFCNT, L0C_PP_SIZE> cL0Tensor;
 
     uint32_t aL0BufIter = 0;
     uint32_t bL0BufIter = 0;
