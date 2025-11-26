@@ -345,7 +345,7 @@
   </tr>
   <tr>
     <td>mc2</td>
-    <td><a href="../../mc2/batch_mat_mul_reduce_scatter_allto_all/README.md">pad_vbatch_mat_mul_reduce_scatter_allto_all4_grad</a></td>
+    <td><a href="../../mc2/batch_mat_mul_reduce_scatter_allto_all/README.md">batch_mat_mul_reduce_scatter_allto_all</a></td>
     <td>√</td>
     <td>√</td>
     <td>√</td>
