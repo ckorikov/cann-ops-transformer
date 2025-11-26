@@ -8,6 +8,9 @@
  * See LICENSE in the root of the software repository for the full text of the License.
  */
 
+ #ifndef ARCH35_FLASH_ATTENTION_SCORE_TILING_REGBASE_H_
+ #define ARCH35_FLASH_ATTENTION_SCORE_TILING_REGBASE_H_
+
 #include <numeric>
 #include <alog_pub.h>
 #include <tiling/tiling_api.h>
@@ -489,3 +492,5 @@ protected:
 };
 } // namespace FA
 } // namespace optiling
+
+#endif // ARCH35_FLASH_ATTENTION_SCORE_TILING_REGBASE_H_
