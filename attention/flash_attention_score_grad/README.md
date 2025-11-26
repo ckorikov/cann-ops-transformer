@@ -5,7 +5,8 @@
 |产品      | 是否支持 |
 |:----------------------------|:-----------:|
 |<term>昇腾910_95 AI处理器</term>|      √     |
-|<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>|      ×     |
+|<term>Atlas A3 训练系列产品</term>|      √     |
+|<term>Atlas A3 推理系列产品</term>|      ×     |
 |<term>Atlas A2 训练系列产品</term>|      √     |
 |<term>Atlas 800I A2 推理产品</term>|      ×     |
 |<term>A200I A2 Box 异构组件</term>|      ×     |
@@ -66,7 +67,8 @@
 
 ## 参数说明
 
-<table style="undefined;table-layout: fixed; width: 1576px"><colgroup>
+<table style="undefined;table-layout: fixed; width: 1576px">
+  <colgroup>
   <col style="width: 170px">
   <col style="width: 170px">
   <col style="width: 310px">
@@ -80,7 +82,8 @@
       <th>描述</th>
       <th>数据类型</th>
       <th>数据格式</th>
-    </tr></thead>
+    </tr>
+  </thead>
   <tbody>
     <tr>
       <td>query</td>
@@ -132,90 +135,6 @@
       <td>ND</td>
     </tr>
     <tr>
-      <td>softmaxMaxOptional</td>
-      <td>可选输入</td>
-      <td>注意力正向计算的中间输出，参与反向公式P的计算。</td>
-      <td>FLOAT32</td>
-      <td>ND</td>
-    </tr>
-    <tr>
-      <td>softmaxSumOptional</td>
-      <td>可选输入</td>
-      <td>注意力正向计算的中间输出，参与反向公式P的计算。</td>
-      <td>FLOAT32</td>
-      <td>ND</td>
-    </tr>
-    <tr>
-      <td>softmaxInOptional</td>
-      <td>可选输入</td>
-      <td>注意力正向计算的中间输出，预留参数暂未使用。</td>
-      <td>-</td>
-      <td>-</td>
-    </tr>
-    <tr>
-      <td>attentionInOptional</td>
-      <td>可选输入</td>
-      <td>注意力正向计算的最终输出，公式中的Y。</td>
-      <td>FLOAT8_E5M2、FLOAT8_E4M3FN、FLOAT16、BFLOAT16、FLOAT32</td>
-      <td>ND</td>
-    </tr>
-    <tr>
-      <td>dScaleQOptional</td>
-      <td>可选输入</td>
-      <td>query输入的反量化参数</td>
-      <td>FLOAT32</td>
-      <td>ND</td>
-    </tr>
-    <tr>
-      <td>dScaleKOptional</td>
-      <td>可选输入</td>
-      <td>key输入的反量化参数</td>
-      <td>FLOAT32</td>
-      <td>ND</td>
-    </tr>
-    <tr>
-      <td>dScaleVOptional</td>
-      <td>可选输入</td>
-      <td>value输入的反量化参数</td>
-      <td>FLOAT32</td>
-      <td>ND</td>
-    </tr>
-    <tr>
-      <td>dScaleDyOptional</td>
-      <td>可选输入</td>
-      <td>dy输入的反量化参数</td>
-      <td>FLOAT32</td>
-      <td>ND</td>
-    </tr>
-    <tr>
-      <td>dScaleOOptional</td>
-      <td>可选输入</td>
-      <td>attentionOptional输入的反量化参数</td>
-      <td>FLOAT32</td>
-      <td>ND</td>
-    </tr>
-    <tr>
-      <td>prefixOptional</td>
-      <td>可选属性</td>
-      <td>代表prefix稀疏计算场景每个Batch的N值</td>
-      <td>INT64</td>
-      <td>ND</td>
-    </tr>
-    <tr>
-      <td>actualSeqQLenOptional</td>
-      <td>输入</td>
-      <td>描述每个Batch对应的query S大小</td>
-      <td>INT64</td>
-      <td>ND</td>
-    </tr>
-    <tr>
-      <td>actualSeqKvLenOptional</td>
-      <td>输入</td>
-      <td>描述每个Batch对应的key/value S大小</td>
-      <td>INT64</td>
-      <td>ND</td>
-    </tr>
-    <tr>
       <td>scaleValue</td>
       <td>可选属性</td>
       <td>
@@ -240,81 +159,6 @@
       <td>-</td>
     </tr>
     <tr>
-      <td>preTokensOptional</td>
-      <td>输入</td>
-      <td>用于稀疏计算的参数</td>
-      <td>INT64</td>
-      <td>ND</td>
-    </tr>
-    <tr>
-      <td>nextTokensOptional</td>
-      <td>输入</td>
-      <td>用于稀疏计算的参数</td>
-      <td>INT64</td>
-      <td>ND</td>
-    </tr>
-    <tr>
-      <td>headNum</td>
-      <td>输入</td>
-      <td>代表head个数</td>
-      <td>INT64</td>
-      <td>-</td>
-    </tr>
-    <tr>
-      <td>inputLayout</td>
-      <td>输入</td>
-      <td>代表输入query、keyIn、value的数据排布格式</td>
-      <td>char*</td>
-      <td>BSH、SBH、BSND、BNSD、TND</td>
-    </tr>
-    <tr>
-      <td>innerPreciseOptional</td>
-      <td>输入</td>
-      <td>预留参数暂未使用，调用时该参数需传空</td>
-      <td>-</td>
-      <td>-</td>
-    </tr>
-    <tr>
-      <td>sparseModeOptional</td>
-      <td>输入</td>
-      <td>表示sparse的模式</td>
-      <td>INT64</td>
-      <td>-</td>
-    </tr>
-    <tr>
-      <td>pseType</td>
-      <td>可选属性</td>
-      <td>
-        <ul>
-          <li>控制add与mul的执行次序，支持配置值为0、1、2、3。</li>
-          <li>默认值为1。</li>
-        </ul>
-      </td>
-      <td>INT64</td>
-      <td>-</td>
-    </tr>
-    <tr>
-      <td>seedOptional</td>
-      <td>输入</td>
-      <td>keepProbOptional小于1.0时，根据seedOptional和offsetOptional生成DropoutMask</td>
-      <td>INT64</td>
-      <td>-</td>
-    </tr>
-    <tr>
-      <td>offsetOptional</td>
-      <td>输入</td>
-      <td>-</td>
-      <td>INT64</td>
-      <td>-</td>
-    </tr>
-    <tr>
-      <td>outDtypeOptional</td>
-      <td>输入</td>
-      <td>为0表示dqOut等输出是FLOAT16类型，值为1表示dqOut等输出是BFLOAT16格式</td>
-      <td>INT64</td>
-      <td>-</td>
-    </tr>
-    <tr>
       <td>dqOut</td>
       <td>输出</td>
       <td>公式中的dQ，表示query的梯度。</td>
@@ -335,26 +179,11 @@
       <td>FLOAT16、BFLOAT16、FLOAT32</td>
       <td>ND</td>
     </tr>
-    <tr>
-      <td>workspaceSize</td>
-      <td>输出参数</td>
-      <td>用户需要在Device侧申请的workspace大小。</td>
-      <td>-</td>
-      <td>-</td>
-    </tr>
-    <tr>
-      <td>executor</td>
-      <td>输出参数</td>
-      <td>op执行器，包含了算子计算流程。</td>
-      <td>-</td>
-      <td>-</td>
-    </tr>
   </tbody>
 </table>
 <ul>
-  <li><term>Atlas训练产品</term>:不支持FLOAT8_E5M2、FLOAT8_E4M3FN。</li>
-  <li><term>Atlas训练产品</term>:不支持softmaxInOptional、dScaleQOptional、dScaleKOptional、dScaleVOptional、dScaleDyOptional、dScaleOOptional、innerPreciseOptional。
-  </li>
+  <li><term>Atlas A2 训练产品</term>:不支持FLOAT8_E5M2、FLOAT8_E4M3FN。</li>
+  <li><term>Atlas A3 训练产品</term>:不支持FLOAT8_E5M2、FLOAT8_E4M3FN。</li>
 </ul>
 
 ## 约束说明
@@ -365,7 +194,10 @@
   -   B：取值范围为1\~2M。当prefixOptional的时候B最大支持2K。
   -   N：取值范围为1\~256。
   -   S：取值范围为1\~1M。
-  -   D：取值范围为1\~512。
+  -   D：
+      -   Atlas A2 训练系列产品:取值范围为1\~512。
+      -   Atlas A3 训练系列产品:取值范围为1\~512。
+      -   昇腾910_95 AI处理器:取值范围为1\~768。
 - keepProb的取值范围为(0, 1]。
 - 部分场景下，如果计算量过大可能会导致算子执行超时(aicore error类型报错，errorStr为：timeout or trap error)，此时建议做轴切分处理，注：这里的计算量会受B、S、N、D等参数的影响，值越大计算量越大。
 - pseType为2或3的时候，当前只支持Sq和Skv等长。
@@ -375,3 +207,7 @@
 | 调用方式           | 调用样例                                                                                                              | 说明                                                                                                                    |
 |----------------|-------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------|
 | aclnn调用 | [test_aclnn_flash_attention_score_grad](./examples/test_aclnn_flash_attention_score_grad.cpp)                     | 非TND场景，通过[aclnnFlashAttentionScoreGrad](./docs/aclnnFlashAttentionScoreGradV2.md)接口方式调用FlashAttentionGrad算子。                   |
+
+## 参考资源
+
+- [FAG算子设计介绍](./docs/FAG算子设计介绍.md)
