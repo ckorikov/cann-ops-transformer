@@ -306,8 +306,7 @@ $$
             - nullptr和""：仅在此场景下，`HCCL_INTRA_PCIE_ENABLE`和`HCCL_INTRA_ROCE_ENABLE`配置生效。当`HCCL_INTRA_PCIE_ENABLE`=1&&`HCCL_INTRA_ROCE_ENABLE`=0时，调用"hierarchy"算法，否则调用"fullmesh"算法。不推荐使用该方式。
             - "fullmesh"：token数据直接通过RDMA方式发往topk个目标专家所在的卡。
             - "hierarchy"：token数据经过跨机、机内两次发送，仅不同server同号卡之间使用RDMA通信，server内使用HCCS通信。
-        - `epWorldSize`：取值范围[16, 256]，且保证是8的整数倍。
-            - `commAlg` = "hierarchy"：最大值为64。
+        - `epWorldSize`：依commAlg取值，"fullmesh"支持16、32、64、128、192、256、384；"hierarchy"支持16、32、64。
         - `moeExpertNum`：取值范围(0, 512]。
             -  还需满足`moeExpertNum` / `epWorldSize` <= 24，`commAlg` = "hierarchy"无此约束。
         - `epRecvCountsOut`：要求shape为 (`moeExpertNum` + 2 * `globalBs` * `K` * `serverNum`, )，前`moeExpertNum`个数表示从EP通信域各卡接收的token数，2 * `globalBs` * `K` * `serverNum`存储了机间机内做通信前combine可以提前做reduce的token个数和token在通信区中的偏移，`globalBs`传入0时在此处应当按照`Bs` * `epWorldSize`计算。
