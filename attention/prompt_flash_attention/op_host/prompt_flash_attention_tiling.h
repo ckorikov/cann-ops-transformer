@@ -32,6 +32,16 @@
 #include "prompt_flash_attention_tiling_struct.h"
 
 namespace optiling {
+
+struct PFAShapeInfo {
+    uint32_t b = 0;
+    uint32_t n = 0;
+    uint32_t s = 0;
+    uint32_t d = 0;
+    uint32_t h = 0;
+    uint32_t t = 0;
+};
+
 BEGIN_TILING_DATA_DEF(PromptAttentionBaseParams)
     TILING_DATA_FIELD_DEF(uint32_t, batchSize);
     TILING_DATA_FIELD_DEF(uint32_t, headNumSize);
@@ -513,6 +523,10 @@ BEGIN_TILING_DATA_DEF(FlashAttentionScoreSimplifiedTilingData)
 END_TILING_DATA_DEF;
 REGISTER_TILING_DATA_CLASS(PromptFlashAttention_1000000000000000090, FlashAttentionScoreSimplifiedTilingData)
 REGISTER_TILING_DATA_CLASS(PromptFlashAttention_10000000000000090, FlashAttentionScoreSimplifiedTilingData)
+REGISTER_TILING_DATA_CLASS(PromptFlashAttention_1002312000040001212, FlashAttentionScoreSimplifiedTilingData)
+REGISTER_TILING_DATA_CLASS(PromptFlashAttention_1002312000040021212, FlashAttentionScoreSimplifiedTilingData)
+REGISTER_TILING_DATA_CLASS(PromptFlashAttention_1001311000000001212, FlashAttentionScoreSimplifiedTilingData)
+REGISTER_TILING_DATA_CLASS(PromptFlashAttention_1001311000000021212, FlashAttentionScoreSimplifiedTilingData)
 
 class BufferNum {
 public:

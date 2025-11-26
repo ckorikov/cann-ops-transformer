@@ -33,6 +33,7 @@
 #include "tiling_base/data_copy_transpose_tiling.h"
 #include "log/log.h"
 #include "err/ops_err.h"
+#include "./prompt_flash_attention_tiling_arch38.h"
 #include "./prompt_flash_attention_tiling_v2.h"
 #include "../../prompt_flash_attention/op_host/prompt_flash_attention_tiling.h"
 #include "register/tilingdata_base.h"
@@ -337,10 +338,19 @@ static ge::DataType ValidPfaDataType(ge::DataType type)
     return (g_strDataTypePfa.find(type) == g_strDataTypePfa.end()) ? ge::DT_UNDEFINED : type;
 }
 
+namespace v2 {
 std::string GetPfaDataTypeStr(ge::DataType type) {
     ge::DataType findDype = (g_strDataTypePfa.find(type) == g_strDataTypePfa.end()) ? ge::DT_UNDEFINED : type;
     return g_strDataTypePfa.at(findDype);
 }
+} // namespace v2
+
+namespace arch38 {
+std::string GetPfaDataTypeStr(ge::DataType type) {
+    ge::DataType findDype = (g_strDataTypePfa.find(type) == g_strDataTypePfa.end()) ? ge::DT_UNDEFINED : type;
+    return g_strDataTypePfa.at(findDype);
+}
+} // namespace arch38
 
 static ge::graphStatus ConvertContextToPFAParams(gert::TilingContext* context, ContextParamsForPFATiling& contextKeyParams)
 {
@@ -6519,12 +6529,22 @@ PFA_EXTERN_C ge::graphStatus TilingPromptFlashAttention(gert::TilingContext* con
         return ge::GRAPH_FAILED);
     if ((contextParamsForPFATiling.compileInfoPtr->socShortName == platform_ascendc::SocVersion::ASCEND910_95) ||
         (contextParamsForPFATiling.compileInfoPtr->socShortName == platform_ascendc::SocVersion::ASCEND910_55)) {
+        using v2::PromptFlashAttentionTilingV2;
         PromptFlashAttentionTilingV2 flashTilingV2(nullptr);
         ret = flashTilingV2.RunBigKernelTilingWithParams(contextParamsForPFATiling, tilingKey, blockDimToBeSet, tilingData);
         tilingKey += BENCHMARK_TILING_KEY;
         context->SetTilingKey(tilingKey);
         context->SetBlockDim(blockDimToBeSet);
         flashTilingV2.PromptFlashAttentionSetTilingData(context, tilingData);
+        return ret;
+    } else if (contextParamsForPFATiling.compileInfoPtr->socShortName == platform_ascendc::SocVersion::MC62CM12A) {
+        using arch38::PromptFlashAttentionTilingArch38;
+        PromptFlashAttentionTilingArch38 flashTilingArch38(nullptr);
+        ret = flashTilingArch38.RunBigKernelTilingWithParams(contextParamsForPFATiling, tilingKey, blockDimToBeSet, tilingData);
+        tilingKey += BENCHMARK_TILING_KEY;
+        context->SetTilingKey(tilingKey);
+        context->SetBlockDim(blockDimToBeSet);
+        flashTilingArch38.PromptFlashAttentionSetTilingData(context, tilingData);
         return ret;
     } else {
         PromptFlashAttentionTiling flashTiling(nullptr);

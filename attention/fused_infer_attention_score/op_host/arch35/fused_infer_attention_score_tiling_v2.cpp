@@ -344,7 +344,7 @@ static ge::graphStatus ConvertContextToParamsPFA(gert::TilingContext* context, C
         (context->GetOptionalInputDesc(ATTEN_MASK_INDEX)->GetDataType() != ge::DT_UINT8),
         OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), 
         "Invalid attention mask datatype(%s)! Only support BOOL, INT8 and UINT8",
-        GetPfaDataTypeStr(context->GetOptionalInputDesc(ATTEN_MASK_INDEX)->GetDataType()).c_str()),
+        v2::GetPfaDataTypeStr(context->GetOptionalInputDesc(ATTEN_MASK_INDEX)->GetDataType()).c_str()),
         return ge::GRAPH_FAILED);
 #endif
     contextKeyParams.actualSequenceLengthQ = context->GetOptionalInputTensor(ACTUAL_SEQ_Q_INDEX);
@@ -880,6 +880,7 @@ ge::graphStatus TilingFusedInferAttentionScoreV2(gert::TilingContext* context) {
         uint64_t tilingKey = 7U;
         uint32_t blockDimToBeSet = 0;
 
+        using v2::PromptFlashAttentionTilingV2;
         PromptFlashAttentionTilingV2 flashTilingV2(nullptr);
         ret = flashTilingV2.RunBigKernelTilingWithParams(contextParamsForPFATiling, tilingKey, blockDimToBeSet, pfaTilingData);
         tilingKey += BENCHMARK_TILING_KEY;

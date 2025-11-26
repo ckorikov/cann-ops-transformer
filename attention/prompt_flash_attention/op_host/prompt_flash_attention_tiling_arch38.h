@@ -12,21 +12,21 @@
  * \file prompt_flash_attention_tiling_v2.h
  * \brief
  */
-#ifndef AIR_CXX_RUNTIME_V2_OP_IMPL_PROMPTFLASHATTENTION_V2_H_
-#define AIR_CXX_RUNTIME_V2_OP_IMPL_PROMPTFLASHATTENTION_V2_H_
+#ifndef AIR_CXX_RUNTIME_V2_OP_IMPL_PROMPTFLASHATTENTION_ARCH38_H_
+#define AIR_CXX_RUNTIME_V2_OP_IMPL_PROMPTFLASHATTENTION_ARCH38_H_
 #include "tiling_base/data_copy_transpose_tiling_def.h"
 #include "tiling_base/data_copy_transpose_tiling.h"
 #include "register/tilingdata_base.h"
 #include "./prompt_flash_attention_tiling.h"
 
 namespace optiling {
-namespace v2 {
+namespace arch38 {
 
 std::string GetPfaDataTypeStr(ge::DataType type);
-class PromptFlashAttentionTilingV2 {
+class PromptFlashAttentionTilingArch38 {
 public:
     platform_ascendc::PlatformAscendC ascendcPlatform;
-    PromptFlashAttentionTilingV2(fe::PlatFormInfos* platFormInfo): ascendcPlatform(platFormInfo) {}
+    PromptFlashAttentionTilingArch38(fe::PlatFormInfos* platFormInfo): ascendcPlatform(platFormInfo) {}
     ge::graphStatus RunBigKernelTilingWithParams(ContextParamsForPFATiling& contextKeyParams,
         uint64_t& tilingKey, uint32_t& blockDimToBeSet, PromptFlashAttentionTilingData& tilingData);
     ge::graphStatus PromptFlashAttentionSetTilingData(gert::TilingContext* context,
@@ -280,7 +280,7 @@ protected:
     FlashAttentionScoreSimplifiedTilingData faTilingAdapter;
 #endif
 };
-} // namespace v2
+} // namespace arch38
 } // namespace optiling
 
-#endif  // AIR_CXX_RUNTIME_V2_OP_IMPL_PROMPTFLASHATTENTION_V2_H_
+#endif  // AIR_CXX_RUNTIME_V2_OP_IMPL_PROMPTFLASHATTENTION_ARCH38_H_

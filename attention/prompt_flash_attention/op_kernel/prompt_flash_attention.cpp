@@ -21,6 +21,12 @@
 #else
 #include "./arch35/prompt_flash_attention_entry_regbase.h"
 #endif
+#elif (__NPU_ARCH__ == 5102)
+#ifdef NOT_DYNAMIC_COMPILE
+#include "../op_kernel/arch38/prompt_flash_attention_entry_regbase.h"
+#else
+#include "./arch38/prompt_flash_attention_entry_regbase.h"
+#endif
 #elif (__CCE_AICORE__ > 200)
 #include "./arch32/prompt_flash_attention_base.h"
 #include "./arch32/prompt_flash_attention_bnstilling_n_s_no_tail.h"
@@ -200,6 +206,12 @@ extern "C" __global__ __aicore__ void prompt_flash_attention_FIAS(__gm__ uint8_t
 {
     {
     #if (__CCE_AICORE__ == 310) || (defined __DAV_310R6__)
+        prompt_flash_attention_FIAS_regbase(query, key, value, pseShift, attenMask, actualSeqLengths, actualSeqLengthsKV,
+            deq_scale1, quant_scale1, deq_scale2, quant_scale2, quant_offset2, antiquant_scale, antiquant_offset,
+            blocktable, queryPaddingSize, kvPaddingSize, key_antiquant_scale, key_antiquant_offset, value_antiquant_scale, 
+            value_antiquant_offset, keySharedPrefix, valueSharedPrefix, actualSharedPrefixLen, queryRope, keyRope, dequantScaleQuery, attentionOut,
+            softmaxLse, workspace, tiling);
+    #elif (__NPU_ARCH__ == 5102)
         prompt_flash_attention_FIAS_regbase(query, key, value, pseShift, attenMask, actualSeqLengths, actualSeqLengthsKV,
             deq_scale1, quant_scale1, deq_scale2, quant_scale2, quant_offset2, antiquant_scale, antiquant_offset,
             blocktable, queryPaddingSize, kvPaddingSize, key_antiquant_scale, key_antiquant_offset, value_antiquant_scale, 

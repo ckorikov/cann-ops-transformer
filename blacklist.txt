@@ -316,6 +316,9 @@ attention/prompt_flash_attention/op_kernel/arch35/matmul_modules/copy_cube_in/pf
 attention/prompt_flash_attention/op_kernel/arch35/matmul_modules/copy_cube_in/fa_pa_copy_cube_in/fa_pa_mm1_copy_left.h
 attention/prompt_flash_attention/op_kernel/arch35/matmul_modules/copy_cube_in/fa_pa_copy_cube_in/fa_pa_mm1_copy_right.h
 attention/prompt_flash_attention/op_kernel/arch35/matmul_modules/copy_cube_in/fa_pa_copy_cube_in/fa_pa_mm2_copy_right.h
+attention/prompt_flash_attention/op_kernel/arch38/prompt_flash_attention_entry_regbase.h
+attention/prompt_flash_attention/op_kernel/arch38/prompt_flash_attention_zero_output.h
+attention/prompt_flash_attention/op_kernel/arch38/prompt_flash_attention_dummy.h
 commom/inc/kernel/common_func.h
 commom/inc/kernel/mem.h
 commom/inc/kernel/hardware.h

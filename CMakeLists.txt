@@ -34,7 +34,7 @@ set(VENDOR_NAME                   "custom"                     CACHE   STRING   
 set(ASCEND_ALL_COMPUTE_UNIT       "ascend310p;ascend910b;ascend910_93;ascend910_95" CACHE STRING "all soc list")
 
 set(SOC_VERSION_LIST ascend310p ascend910b ascend910_93 ascend910_95)
-set(ARCH_DIRECTORY_LIST arch20 arch32 arch32 arch35)
+set(ARCH_DIRECTORY_LIST arch20 arch32 arch32 arch35 arch38)
 
 foreach(SOC_VERSION ${ASCEND_COMPUTE_UNIT})
   list(FIND SOC_VERSION_LIST ${SOC_VERSION} INDEX)
@@ -535,6 +535,11 @@ if (BUILD_OPS_RTY_KERNEL)
         )
 
         install(DIRECTORY ${op_dir}/arch35
+                DESTINATION ${IMPL_INSTALL_DIR}/ascendc/${_op_name}
+                OPTIONAL
+        )
+
+        install(DIRECTORY ${op_dir}/arch38
                 DESTINATION ${IMPL_INSTALL_DIR}/ascendc/${_op_name}
                 OPTIONAL
         )

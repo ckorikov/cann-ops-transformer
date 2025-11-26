@@ -158,6 +158,32 @@ public:
         }
     }
 
+    __aicore__ inline Buffer<bufferType, syncType> &GetVec() { // mixcore architecture
+        if (flag1_vec1_ == 0) {
+            flag1_vec1_ = 1;
+            return a_;
+        } else if (flag1_vec1_ == 1) {
+            flag1_vec1_ = NUM_2;
+            return b_;
+        } else {
+            flag1_vec1_ = 0;
+            return c_;
+        }
+    }
+
+    __aicore__ inline Buffer<bufferType, syncType> &GetCube() { // mixcore architecture
+        if (flag1_bmm2_ == 0) {
+            flag1_bmm2_ = 1;
+            return a_;
+        } else if (flag1_bmm2_ == 1) {
+            flag1_bmm2_ = NUM_2;
+            return b_;
+        } else {
+            flag1_bmm2_ = 0;
+            return c_;
+        }
+    }
+
     // Q复用
     __aicore__ inline Buffer<bufferType, syncType> &GetPre() {
         if (flag1_ == 0) {
@@ -187,6 +213,8 @@ private:
     Buffer<bufferType, syncType> b_;
     Buffer<bufferType, syncType> c_;
     uint32_t flag1_ = 0;
+    uint32_t flag1_vec1_ = 0;
+    uint32_t flag1_bmm2_ = 0;
     uint32_t flag2_ = 0;
 };
 

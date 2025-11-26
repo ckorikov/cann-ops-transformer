@@ -27,6 +27,7 @@
 #include "err/ops_err.h"
 #include "register/op_def_registry.h"
 #include "../../prompt_flash_attention/op_host/prompt_flash_attention_tiling_v2.h"
+#include "../../prompt_flash_attention/op_host/prompt_flash_attention_tiling_arch38.h"
 
 using namespace ge;
 using namespace AscendC;
@@ -3545,10 +3546,8 @@ ge::graphStatus TilingIncreFlashAttentionAdapter(gert::TilingContext *context, I
     auto ascendcPlatform = platform_ascendc::PlatformAscendC(platformInfoPtr);
 
     auto socShortName = ascendcPlatform.GetSocVersion();
-    if (socShortName != platform_ascendc::SocVersion::ASCEND910_95 && socShortName != platform_ascendc::SocVersion::ASCEND910_55) {
-        IFATiling ifaTilingNew;
-        return IfaStartSimpleTiling(ifaTilingNew, ifaContext, ifaTilingData, context);
-    } else {
+    if ((socShortName == platform_ascendc::SocVersion::ASCEND910_95) ||
+        (socShortName == platform_ascendc::SocVersion::ASCEND910_55)) {
         if (ifaContext.key.desc->GetDataType() == ge::DT_FLOAT16 || ifaContext.key.desc->GetDataType() == ge::DT_BF16) {
             PromptFlashAttentionCompileInfo compileInfo = {0, 0, 0, 0, 0, 0, 0, 0,
                 platform_ascendc::SocVersion::ASCEND310P};
@@ -3561,6 +3560,7 @@ ge::graphStatus TilingIncreFlashAttentionAdapter(gert::TilingContext *context, I
                 return ge::GRAPH_FAILED);
             uint64_t tilingKey = 7U;
             uint32_t blockDimToBeSet;
+            using v2::PromptFlashAttentionTilingV2;
             PromptFlashAttentionTilingV2 flashTilingV2(nullptr);
             PromptFlashAttentionTilingData tilingData;
             ret = flashTilingV2.RunBigKernelTilingWithParams(contextParamsForPFATiling, tilingKey, blockDimToBeSet, tilingData);
@@ -3573,6 +3573,30 @@ ge::graphStatus TilingIncreFlashAttentionAdapter(gert::TilingContext *context, I
             IFATilingV2 ifaTilingNewV2;
             return IfaStartSimpleTiling(ifaTilingNewV2, ifaContext, ifaTilingData, context);
         }
+    } else if (socShortName == platform_ascendc::SocVersion::MC62CM12A) {
+        PromptFlashAttentionCompileInfo compileInfo = {0, 0, 0, 0, 0, 0, 0, 0,
+            platform_ascendc::SocVersion::ASCEND310P};
+        TilingGetTempCompileInfo(ascendcPlatform, compileInfo);
+        
+        ContextParamsForPFATiling contextParamsForPFATiling;
+        auto ret = PFAConvertContext(contextParamsForPFATiling, context);
+        contextParamsForPFATiling.compileInfoPtr = &compileInfo;
+        OP_CHECK_IF(ret == ge::GRAPH_FAILED, OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "fail to convert to PFAParams"),
+            return ge::GRAPH_FAILED);
+        uint64_t tilingKey = 7U;
+        uint32_t blockDimToBeSet;
+        using arch38::PromptFlashAttentionTilingArch38;
+        PromptFlashAttentionTilingArch38 flashTilingArch38(nullptr);
+        PromptFlashAttentionTilingData tilingData;
+        ret = flashTilingArch38.RunBigKernelTilingWithParams(contextParamsForPFATiling, tilingKey, blockDimToBeSet, tilingData);
+        tilingKey += PFA_BENCHMARK_TILING_KEY;
+        context->SetTilingKey(tilingKey);
+        context->SetBlockDim(blockDimToBeSet);
+        flashTilingArch38.PromptFlashAttentionSetTilingData(context, tilingData);
+        return ret;
+    } else {
+        IFATiling ifaTilingNew;
+        return IfaStartSimpleTiling(ifaTilingNew, ifaContext, ifaTilingData, context);
     }
     return ge::GRAPH_FAILED;
 }

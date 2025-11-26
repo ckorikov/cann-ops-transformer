@@ -23,6 +23,12 @@
 #include "./arch35/incre_flash_attention_entry_regbase.h"
 #include "../prompt_flash_attention/op_kernel/arch35/prompt_flash_attention_entry_regbase.h"
 #endif
+#elif (__NPU_ARCH__ == 5102)
+#ifdef NOT_DYNAMIC_COMPILE
+#include "../../prompt_flash_attention/op_kernel/arch38/prompt_flash_attention_entry_regbase.h"
+#else
+#include "../prompt_flash_attention/op_kernel/arch38/prompt_flash_attention_entry_regbase.h"
+#endif
 #else
 #include "./arch32/incre_flash_attention_allvec_new.h"
 #include "./arch20/incre_flash_attention_cube_310P_kvquant.h"
@@ -2108,7 +2114,7 @@ incre_flash_attention(__gm__ uint8_t *query, __gm__ uint8_t *key, __gm__ uint8_t
                       __gm__ uint8_t *blocktable, __gm__ uint8_t *kvPaddingSize, __gm__ uint8_t *attentionOut,
                       __gm__ uint8_t *workspace, __gm__ uint8_t *tiling)
 {
-    #if (__CCE_AICORE__ == 310)
+    #if ((__CCE_AICORE__ == 310) || (__NPU_ARCH__ == 5102))
         if (TILING_KEY_VAR >= PFA_FlAG_IN_TILING) {
             prompt_flash_attention_FIAS_regbase(query, key, value, pseShift, attenMask, nullptr, actualSeqLengths, deqScale1,
                                                 quantScale1, deqScale2, quantScale2, quantOffset2, antiquantScale, antiquantOffset, blocktable, nullptr,

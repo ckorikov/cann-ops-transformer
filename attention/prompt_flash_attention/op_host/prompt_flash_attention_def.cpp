@@ -113,6 +113,7 @@ public:
         this->AICore().AddConfig("ascend910b", aicore_config);
         this->AICore().AddConfig("ascend910_93", aicore_config);
         this->AICore().AddConfig("ascend910_95", aicore_config);
+        this->AICore().AddConfig("mc62cm12a", aicore_config);
 
         OpAICoreConfig config_310p;
         config_310p.Input("query")
