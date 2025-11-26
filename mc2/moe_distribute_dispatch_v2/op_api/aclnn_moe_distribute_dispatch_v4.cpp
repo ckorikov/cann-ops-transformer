@@ -120,7 +120,7 @@ aclnnStatus aclnnMoeDistributeDispatchV4GetWorkspaceSize(const aclTensor* x, con
     }
 
     return aclnnInnerMoeDistributeDispatchV2GetWorkspaceSize(x, expertIds, scalesOptional, xActiveMaskOptional, expertScalesOptional,
-                                                                        elasticInfoOptional, performanceInfoOptional, groupEp, epWorldSize, epRankId, moeExpertNum,
+                                                                        elasticInfoOptional, nullptr, groupEp, epWorldSize, epRankId, moeExpertNum,
                                                                         groupTp, tpWorldSize, tpRankId, expertShardType, sharedExpertNum,
                                                                         sharedExpertRankNum, quantMode, globalBs, expertTokenNumsType, commAlg,
                                                                         zeroExpertNum, copyExpertNum, constExpertNum, expandXOut,

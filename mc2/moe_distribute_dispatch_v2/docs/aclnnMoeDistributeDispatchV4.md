@@ -163,7 +163,7 @@ aclnnStatus aclnnMoeDistributeDispatchV4(
   <tr>
    <td>epWorldSize</td>
    <td>输入</td>
-   <td>EP通信域大小：<br><term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：依commAlg取值，"fullmesh"支持取值范围[16, 384]，"hierarchy"支持取值范围[16, 64]，且都需保证是8的整数倍。<br><term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：取值区间[2, 768]。</td>
+   <td>EP通信域大小：<br><term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：依commAlg取值，"fullmesh"支持16、32、64、128、192、256、384；"hierarchy"支持16、32、64。<br><term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：取值区间[2, 768]。</td>
    <td>INT64</td>
    <td>-</td>
   </tr>

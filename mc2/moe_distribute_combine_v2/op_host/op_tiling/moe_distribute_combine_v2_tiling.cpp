@@ -864,6 +864,11 @@ static bool CheckTensorShape(const gert::TilingContext *context, MoeDistributeCo
                 constExpertVDim1, expandXDim1),
             return false);
     }
+
+    const gert::StorageShape *performanceInfoStorageShape = context->GetOptionalInputShape(PERFORMANCE_INFO_INDEX);
+    OP_TILING_CHECK(performanceInfoStorageShape != nullptr,
+        OP_LOGE(K_INNER_DEBUG, "This input is not support, performanceInfo should be nullptr."), return false);
+
     return true;
 }
 

@@ -72,7 +72,7 @@
             },
             {
                 "name": "performance_info",
-                "index": 17,
+                "index": 6,
                 "dtype": "int64",
                 "format": "ND",
                 "paramType": "optional",
@@ -320,7 +320,7 @@
             },
             {
                 "name": "performance_info",
-                "index": 17,
+                "index": 6,
                 "dtype": "int64",
                 "format": "ND",
                 "paramType": "optional",
@@ -568,7 +568,7 @@
             },
             {
                 "name": "performance_info",
-                "index": 17,
+                "index": 6,
                 "dtype": "int64",
                 "format": "ND",
                 "paramType": "optional",
@@ -816,7 +816,7 @@
             },
             {
                 "name": "performance_info",
-                "index": 17,
+                "index": 6,
                 "dtype": "int64",
                 "format": "ND",
                 "paramType": "optional",
