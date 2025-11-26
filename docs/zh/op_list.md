@@ -25,6 +25,16 @@
 <tbody>
   <tr>
     <td>attention</td>
+    <td><a href="../../attention/attention_update/README.md">attention_update</a></td>
+    <td>√</td>
+    <td>√</td>
+    <td>√</td>
+    <td>×</td>
+    <td>AI Core</td>
+    <td>将各SP域PA算子的输出的中间结果lse，localOut两个局部变量结果更新成全局结果。</td>
+  </tr>
+  <tr>
+    <td>attention</td>
     <td><a href="../../attention/flash_attention_score/README.md">flash_attention_score</a></td>
     <td>√</td>
     <td>√</td>

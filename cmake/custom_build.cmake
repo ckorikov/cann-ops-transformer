@@ -270,6 +270,7 @@ foreach (OP_DIR ${OP_DIR_LIST})
         add_subdirectory(${OP_DIR})
     endif()
 endforeach ()
+
 add_subdirectory(attention)
 if("${ASCEND_OP_NAME}" STREQUAL "add_example")
     add_subdirectory(examples)
