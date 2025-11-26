@@ -190,13 +190,12 @@ def {}({}, kernel_name="{}"{}):
     options.append("-I" + os.path.join(tikcpp_path, "tikcfw", "interface"))
     options.append("-I" + os.path.join(tikcpp_path, "..", "ascendc", "act"))
     options.append("-I" + os.path.join(PYF_PATH, "..", "ascendc", "common"))
-
     toolkit_path = os.environ.get('ASCEND_HOME_PATH')
     if toolkit_path is None:
         toolkit_path = os.path.realpath("/usr/local/Ascend/latest/")
+    options.append("-I" + toolkit_path + os.path.join("/", os.uname().machine +"-linux", "asc", "atcos"))
     op_common_path = os.path.realpath(toolkit_path + "/pkg_inc/op_common/")
     options.append("-I" + op_common_path)
-
     if "impl_mode" in locals():
         if impl_mode == "high_performance":
             options.append("-DHIGH_PERFORMANCE=1")
