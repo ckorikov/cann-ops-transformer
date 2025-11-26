@@ -7,6 +7,56 @@
 # See LICENSE in the root of the software repository for the full text of the License.
 # ======================================================================================================================
 
+set(A5_OPS_BLACK_LIST
+
+    "mla_prolog;"
+    "mla_prolog_v2;"
+    "mla_prolog_v3;"
+
+    "grouped_matmul;"
+    "grouped_matmul_add;"
+    "grouped_matmul_swiglu_quant_v2;"
+    "quant_grouped_matmul_inplace_add;"
+
+    "all_gather_matmul;"
+    "all_gather_matmul_v2;"
+    "allto_all_all_gather_batch_mat_mul;"
+    "allto_allv_grouped_mat_mul;"
+    "batch_mat_mul_reduce_scatter_allto_all;"
+    "distribute_barrier;"
+    "elastic_receivable_info_collect;"
+    "elastic_receivable_test;"
+    "grouped_mat_mul_all_reduce;"
+    "grouped_mat_mul_allto_allv;"
+    "inplace_matmul_all_reduce_add_rms_norm;"
+    "matmul_all_reduce;"
+    "matmul_all_reduce_add_rms_norm;"
+    "matmul_reduce_scatter;"
+    "matmul_reduce_scatter_v2;"
+    "moe_distribute_buffer_reset;"
+    "moe_distribute_combine;"
+    "moe_distribute_combine_add_rms_norm;"
+    "moe_distribute_combine_v2;"
+    "moe_distribute_dispatch;"
+    "moe_distribute_dispatch_v2;"
+    "moe_update_expert;"
+    "quant_all_reduce;"
+    "quant_reduce_scatter;"
+
+    "moe_finalize_routing_v2;"
+    "moe_finalize_routing_v2_grad;"
+    "moe_gating_top_k;"
+    "moe_gating_top_k_softmax;"
+    "moe_gating_top_k_softmax_v2;"
+    "moe_init_routing;"
+    "moe_init_routing_quant_v2;"
+    "moe_init_routing_v2;"
+    "moe_init_routing_v2_grad;"
+    "moe_init_routing_v3;"
+    "moe_re_routing;"
+    "moe_token_permute_with_routing_map;"
+) # A5算子黑名单
+
 function(add_target_source)
     cmake_parse_arguments(ADD "" "BASE_TARGET;SRC_DIR" "TARGET_NAME" ${ARGN})
 
@@ -77,6 +127,13 @@ function(op_add_subdirectory OP_LIST OP_DIR_LIST)
             get_filename_component(OP_DIR "${OP_CMAKE_FILE}" DIRECTORY)
         endif()
         get_filename_component(OP_NAME "${OP_DIR}" NAME)
+
+        if ("ascend910_95" IN_LIST ASCEND_COMPUTE_UNIT AND ENABLE_BUILT_IN)
+            list(FIND A5_OPS_BLACK_LIST "${OP_NAME}" INDEX)
+            if(NOT INDEX EQUAL -1)
+                continue()
+            endif()            
+        endif()
 
         if (NOT BUILD_OPEN_PROJECT)
             if (EXISTS ${TOP_DIR}/asl/ops/cann/ops/built-in/tbe/impl/ascendc/${OP_NAME})
