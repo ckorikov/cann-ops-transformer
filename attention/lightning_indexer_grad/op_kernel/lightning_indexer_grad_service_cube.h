@@ -37,13 +37,13 @@ public:
     __aicore__ inline void AllocEventID();
     __aicore__ inline void FreeEventID();
     __aicore__ inline void Cube1(GlobalTensor<dataType> leftMatrixGmTensor, GlobalTensor<dataType> rightMatrixGmTensor,
-                                    GlobalTensor<float> outputMatrixGmTensor, ConstInfo constInfo, RunInfo runInfo);
+                                 GlobalTensor<float> outputMatrixGmTensor, ConstInfo constInfo, RunInfo runInfo);
     __aicore__ inline void Cube2(GlobalTensor<dataType> leftMatrixGmTensor, GlobalTensor<dataType> rightMatrixGmTensor, 
-                                    GlobalTensor<dataType> outputMatrixGmTensor, ConstInfo constInfo, RunInfo runInfo);
+                                 GlobalTensor<dataType> outputMatrixGmTensor, ConstInfo constInfo, RunInfo runInfo);
     __aicore__ inline void Cube3(GlobalTensor<dataType> leftMatrixGmTensor, GlobalTensor<dataType> rightMatrixGmTensor, 
-                                    GlobalTensor<dataType> outputMatrixGmTensor, ConstInfo constInfo, RunInfo runInfo);
+                                 GlobalTensor<dataType> outputMatrixGmTensor, ConstInfo constInfo, RunInfo runInfo);
     __aicore__ inline void Cube4(GlobalTensor<dataType> leftMatrixGmTensor, GlobalTensor<dataType> rightMatrixGmTensor, 
-                                    GlobalTensor<float> outputMatrixGmTensor, ConstInfo constInfo, RunInfo runInfo);
+                                 GlobalTensor<float> outputMatrixGmTensor, ConstInfo constInfo, RunInfo runInfo);
 
     static constexpr uint32_t BASIC_BLOCK_LENGTH = 128;
     static constexpr uint32_t DB = 2;
@@ -211,11 +211,10 @@ __aicore__ inline void LIGMatmul<LIGT>::Cube1(GlobalTensor<dataType> leftMatrixG
     uint64_t leftMatrixGmOffset = 0;
     if constexpr (LIGT::layout == LIG_LAYOUT::BSND) {
         leftMatrixGmOffset = runInfo.bIdx * constInfo.seqlenQ * constInfo.headNumQ * constInfo.headDim + 
-                                runInfo.s1Idx * constInfo.headNumQ * constInfo.headDim + 
-                                runInfo.n2Idx * constInfo.groupNum * constInfo.headDim;
+            runInfo.s1Idx * constInfo.headNumQ * constInfo.headDim + runInfo.n2Idx * constInfo.groupNum * constInfo.headDim;
     } else if constexpr (LIGT::layout == LIG_LAYOUT::TND) {
         leftMatrixGmOffset = (runInfo.prefixSumS1 + runInfo.s1Idx) * constInfo.headNumQ * constInfo.headDim +
-                                runInfo.n2Idx * constInfo.groupNum * constInfo.headDim;
+            runInfo.n2Idx * constInfo.groupNum * constInfo.headDim;
     }
     
     // load A matrix(query) from gm to L1
@@ -323,7 +322,7 @@ __aicore__ inline void LIGMatmul<LIGT>::Cube1(GlobalTensor<dataType> leftMatrixG
 // (G, 1) @ (1, 2048) -> (G, 2048) 
 template <typename LIGT>
 __aicore__ inline void LIGMatmul<LIGT>::Cube2(GlobalTensor<dataType> leftMatrixGmTensor, GlobalTensor<dataType> rightMatrixGmTensor, 
-                                                GlobalTensor<dataType> outputMatrixGmTensor, ConstInfo constInfo, RunInfo runInfo)
+                                              GlobalTensor<dataType> outputMatrixGmTensor, ConstInfo constInfo, RunInfo runInfo)
 {
     uint32_t singleM = constInfo.groupNum;
     uint32_t singleK = 1;
@@ -453,7 +452,6 @@ __aicore__ inline void LIGMatmul<LIGT>::Cube2(GlobalTensor<dataType> leftMatrixG
             outputMatrixL0CTensor, 
             commonFixpipeParamsV220
         );
-
         rightMatrixPingPong = 1 - rightMatrixPingPong;
     }
 }
@@ -462,7 +460,7 @@ __aicore__ inline void LIGMatmul<LIGT>::Cube2(GlobalTensor<dataType> leftMatrixG
 // L0C one buffer to add
 template <typename LIGT>
 __aicore__ inline void LIGMatmul<LIGT>::Cube3(GlobalTensor<dataType> leftMatrixGmTensor, GlobalTensor<dataType> rightMatrixGmTensor, 
-                                                GlobalTensor<dataType> outputMatrixGmTensor, ConstInfo constInfo, RunInfo runInfo)
+                                              GlobalTensor<dataType> outputMatrixGmTensor, ConstInfo constInfo, RunInfo runInfo)
 {
     uint32_t singleM = constInfo.groupNum;
     uint32_t singleK = constInfo.topK;
@@ -477,8 +475,7 @@ __aicore__ inline void LIGMatmul<LIGT>::Cube3(GlobalTensor<dataType> leftMatrixG
     uint64_t outputMatrixGmOffset = 0;
     if constexpr (LIGT::layout == LIG_LAYOUT::BSND) {
         outputMatrixGmOffset = runInfo.bIdx * constInfo.seqlenQ * constInfo.headNumQ * constInfo.headDim +
-                                runInfo.s1Idx * constInfo.headNumQ * constInfo.headDim +
-                                runInfo.n2Idx * constInfo.groupNum * constInfo.headDim;
+            runInfo.s1Idx * constInfo.headNumQ * constInfo.headDim + runInfo.n2Idx * constInfo.groupNum * constInfo.headDim;
     } else if constexpr (LIGT::layout == LIG_LAYOUT::TND) {
         outputMatrixGmOffset = (runInfo.prefixSumS1 + runInfo.s1Idx) * constInfo.headNumQ * constInfo.headDim +
                                 runInfo.n2Idx * constInfo.groupNum * constInfo.headDim;
@@ -593,7 +590,7 @@ __aicore__ inline void LIGMatmul<LIGT>::Cube3(GlobalTensor<dataType> leftMatrixG
 // L0B will always stay in L0B buffer
 template <typename LIGT>
 __aicore__ inline void LIGMatmul<LIGT>::Cube4(GlobalTensor<dataType> leftMatrixGmTensor, GlobalTensor<dataType> rightMatrixGmTensor, 
-                                                GlobalTensor<float> outputMatrixGmTensor, ConstInfo constInfo, RunInfo runInfo)
+                                              GlobalTensor<float> outputMatrixGmTensor, ConstInfo constInfo, RunInfo runInfo)
 {
     uint32_t singleM = constInfo.topK;
     uint32_t singleK = constInfo.groupNum;
@@ -607,11 +604,10 @@ __aicore__ inline void LIGMatmul<LIGT>::Cube4(GlobalTensor<dataType> leftMatrixG
     uint64_t rightMatrixGmOffset = 0;
     if constexpr (LIGT::layout == LIG_LAYOUT::BSND) {
         rightMatrixGmOffset = runInfo.bIdx * constInfo.seqlenQ * constInfo.headNumQ * constInfo.headDim +
-                                runInfo.s1Idx * constInfo.headNumQ * constInfo.headDim +
-                                runInfo.n2Idx * constInfo.groupNum * constInfo.headDim;
+            runInfo.s1Idx * constInfo.headNumQ * constInfo.headDim + runInfo.n2Idx * constInfo.groupNum * constInfo.headDim;
     } else if constexpr (LIGT::layout == LIG_LAYOUT::TND) {
         rightMatrixGmOffset = (runInfo.prefixSumS1 + runInfo.s1Idx) * constInfo.headNumQ * constInfo.headDim +
-                                runInfo.n2Idx * constInfo.groupNum * constInfo.headDim;
+            runInfo.n2Idx * constInfo.groupNum * constInfo.headDim;
     }
 
     // load B matrix(query) from GM to L1
@@ -708,7 +704,6 @@ __aicore__ inline void LIGMatmul<LIGT>::Cube4(GlobalTensor<dataType> leftMatrixG
             outputMatrixL0CTensor, 
             commonFixpipeParamsV220
         );
-
         leftMatrixPingPong = 1 - leftMatrixPingPong;
     }
 }

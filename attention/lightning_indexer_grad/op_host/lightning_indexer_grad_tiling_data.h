@@ -1,6 +1,6 @@
 /**
- * This program is free software, you can redistribute it and/or modify it.
- * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+ * This program is free software, you can redistribute it and/or modify.
+ * Copyright (c) 2025 Huawei Technologies Co., Ltd.
  * This file is a part of the CANN Open Software.
  * Licensed under CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
@@ -9,12 +9,12 @@
  */
 
 /*!
- * \file lightning_indexer_grad_tiling.h
+ * \file lightning_indexer_grad_tiling_data.h
  * \brief
  */
 
-#ifndef LIGHTNING_INDEXER_GRAD_TILING_H_
-#define LIGHTNING_INDEXER_GRAD_TILING_H_
+#ifndef LIGHTNING_INDEXER_GRAD_TILING_DATA_H_
+#define LIGHTNING_INDEXER_GRAD_TILING_DATA_H_
 
 #include "exe_graph/runtime/tiling_context.h"
 #include "tiling/platform/platform_ascendc.h"
@@ -24,7 +24,7 @@
 #include "log/log.h"
 #include "err/ops_err.h"
 #include "platform/platform_info.h"
-
+#include "../op_kernel/lightning_indexer_grad_tiling.h"
 namespace optiling {
 // ------------------公共定义--------------------------
 struct TilingRequiredParaInfo {
@@ -102,26 +102,6 @@ constexpr uint32_t HEAD_DIM_LIMIT = 128;
 constexpr uint32_t SPARSE_LIMIT = 2048;
 constexpr uint32_t SPARSE_MODE_LOWER = 3;
 
-// -----------算子TilingData定义---------------
-BEGIN_TILING_DATA_DEF(LIGTilingData)
-TILING_DATA_FIELD_DEF(uint32_t, batch)
-TILING_DATA_FIELD_DEF(uint32_t, seqlenQ)
-TILING_DATA_FIELD_DEF(uint32_t, seqlenK)
-TILING_DATA_FIELD_DEF(uint32_t, topK)
-TILING_DATA_FIELD_DEF(uint32_t, headNumQ)
-TILING_DATA_FIELD_DEF(uint32_t, headNumK)
-TILING_DATA_FIELD_DEF(uint32_t, groupNum)
-TILING_DATA_FIELD_DEF(uint32_t, headDim)
-TILING_DATA_FIELD_DEF(uint32_t, usedCoreNum)
-TILING_DATA_FIELD_DEF(int64_t, dkSize)
-TILING_DATA_FIELD_DEF(int64_t, dkWorkSpaceOffset)
-TILING_DATA_FIELD_DEF(int64_t, keyGatherWorkspaceOffset)
-TILING_DATA_FIELD_DEF(int64_t, reluInWorkspaceOffset)
-TILING_DATA_FIELD_DEF(int64_t, reluGradWorkspaceOffset)
-TILING_DATA_FIELD_DEF(int64_t, scatterAddWorkspaceOffset)
-END_TILING_DATA_DEF
-REGISTER_TILING_DATA_CLASS(LightningIndexerGrad, LIGTilingData)
-
 // -----------算子CompileInfo定义-------------------
 struct LIGCompileInfo {};
 
@@ -152,9 +132,9 @@ private:
     fe::PlatFormInfos *platformInfo_;
     const char *opName_;
     gert::TilingContext *context_ = nullptr;
-    LIGTilingData tilingData_;
+    LIGTilingData *tilingData_ = context_->GetTilingData<LIGTilingData>();
+
     LigParaInfo opParamInfo;
 };
-
 } // namespace optiling
-#endif // LIGHTNING_INDEXER_GRAD_TILING_H_
+#endif // LIGHTNING_INDEXER_GRAD_TILING_DATA_H_

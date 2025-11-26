@@ -19,46 +19,46 @@
 #include "lightning_indexer_grad_kernel_pre.h"
 #include "lightning_indexer_grad_kernel.h"
 #include "lightning_indexer_grad_kernel_post.h"
+#include "lightning_indexer_grad_tiling.h"
 
 using namespace LigKernel;
-
 #define INVOKE_LIG_NO_KFC_OP_IMPL( ...)                                                                                \
     do {                                                                                                               \
-        LIG_COPY_TILING_DATA(LIGTilingData, tiling);                                                                   \
+        LIG_COPY_TILING_DATA(tiling);                                                                                  \
         TPipe pipePre;                                                                                                 \
         LIGVectorPre<LIGType<__VA_ARGS__>> opPre;                                                                      \
-        opPre.Init(&pipePre, dk, user, tiling_data);                                                                   \
+        opPre.Init(&pipePre, dk, user, tilingData);                                                                    \
         opPre.Process();                                                                                               \
         opPre.SyncALLCores();                                                                                          \
         pipePre.Destroy();                                                                                             \
         LIGKernel<LIGType<__VA_ARGS__>> op;                                                                            \
         TPipe pipeOp;                                                                                                  \
         op.Init(query, key, dy, sparse_indices, weights, actual_seq_lengths_query, actual_seq_lengths_key,             \
-                dq, dk, dweights, user, tiling_data, &pipeOp);                                                         \
+                dq, dk, dweights, user, tilingData, &pipeOp);                                                          \
         op.Process();                                                                                                  \
         pipeOp.Destroy();                                                                                              \
         TPipe pipePost;                                                                                                \
         LIGVectorPost<LIGType<__VA_ARGS__>> opPost;                                                                    \
-        opPost.Init(&pipePost, dk, user, tiling_data);                                                                 \
+        opPost.Init(&pipePost, dk, user, tilingData);                                                                  \
         opPost.Process();                                                                                              \
         pipePost.Destroy();                                                                                            \
     } while (0)
 
-#define LIG_COPY_TILING_DATA(tilingDataStruct, tiling)                                                                 \
-    GET_TILING_DATA_WITH_STRUCT(tilingDataStruct, tiling_data_in, tiling);                                             \
-    const tilingDataStruct *__restrict tiling_data = &tiling_data_in;
+#define LIG_COPY_TILING_DATA(tiling)                                                                                     \
+    REGISTER_TILING_DEFAULT(optiling::LIGTilingData);                                                                    \
+    GET_TILING_DATA_WITH_STRUCT(optiling::LIGTilingData, tilingDataIn, tiling);                                          \
+    const optiling::LIGTilingData *__restrict tilingData = &tilingDataIn;                                 
 
 
 template <int DATATYPE, int LAYOUT>
 __global__ __aicore__ void lightning_indexer_grad(__gm__ uint8_t *query, __gm__ uint8_t *key, __gm__ uint8_t *dy, __gm__ uint8_t *sparse_indices,
-                                             __gm__ uint8_t *weights, __gm__ uint8_t *actual_seq_lengths_query, __gm__ uint8_t *actual_seq_lengths_key,
-                                             __gm__ uint8_t *dq, __gm__ uint8_t *dk, __gm__ uint8_t *dweights,
-                                             __gm__ uint8_t *workspace, __gm__ uint8_t *tiling)
+    __gm__ uint8_t *weights, __gm__ uint8_t *actual_seq_lengths_query, __gm__ uint8_t *actual_seq_lengths_key, __gm__ uint8_t *dq,
+    __gm__ uint8_t *dk, __gm__ uint8_t *dweights, __gm__ uint8_t *workspace, __gm__ uint8_t *tiling)
 {
 #if (__CCE_AICORE__ == 310) || (defined __DAV_310R6__) || (__CCE_AICORE__ == 200)
-
 #else
     __gm__ uint8_t *user = GetUserWorkspace(workspace);
+    REGISTER_TILING_DEFAULT(optiling::LIGTilingData);
     KERNEL_TASK_TYPE_DEFAULT(KERNEL_TYPE_MIX_AIC_1_2);
 
     if constexpr (DATATYPE == LIG_TPL_FP16 && LAYOUT == LIG_LAYOUT_BSND) {

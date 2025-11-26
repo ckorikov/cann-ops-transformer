@@ -21,7 +21,6 @@
 #include "lib/matmul_intf.h"
 #include "lib/matrix/matmul/tiling.h"
 #include "lightning_indexer_grad_common.h"
-
 namespace LigKernel {
 using namespace LIGCommon;
 using namespace AscendC;
@@ -39,12 +38,13 @@ public:
     __aicore__ inline void InitBuffers();
     __aicore__ inline void AllocEvents();
     __aicore__ inline void ReleaseEvents();
-    __aicore__ inline void GatherTopk(GlobalTensor<int32_t> sparseIndicesTensor, GlobalTensor<dataType> keyTensor, GlobalTensor<dataType> gatherKTensor, 
-                                        LIGCommon::ConstInfo constInfo, LIGCommon::RunInfo runInfo);
-    __aicore__ inline void ScatterAdd(GlobalTensor<int32_t> sparseIndicesTensor, GlobalTensor<float> scatterAddTensor, GlobalTensor<float> dkWorkSpaceGmTensor, 
-                                        LIGCommon::ConstInfo constInfo, LIGCommon::RunInfo runInfo);
-    __aicore__ inline void ReluGrad(GlobalTensor<float> reluInGmTensor, GlobalTensor<dataType> reluGradInGmTensor, GlobalTensor<dataType> dyGmTensor, 
-                                        GlobalTensor<dataType> reluGradOutGmTensor, GlobalTensor<dataType> dweightsGmTensor, LIGCommon::ConstInfo constInfo, LIGCommon::RunInfo runInfo);
+    __aicore__ inline void GatherTopk(GlobalTensor<int32_t> sparseIndicesTensor, GlobalTensor<dataType> keyTensor,
+        GlobalTensor<dataType> gatherKTensor, LIGCommon::ConstInfo constInfo, LIGCommon::RunInfo runInfo);
+    __aicore__ inline void ScatterAdd(GlobalTensor<int32_t> sparseIndicesTensor, GlobalTensor<float> scatterAddTensor,
+        GlobalTensor<float> dkWorkSpaceGmTensor, LIGCommon::ConstInfo constInfo, LIGCommon::RunInfo runInfo);
+    __aicore__ inline void ReluGrad(GlobalTensor<float> reluInGmTensor, GlobalTensor<dataType> reluGradInGmTensor,
+        GlobalTensor<dataType> dyGmTensor, GlobalTensor<dataType> reluGradOutGmTensor, GlobalTensor<dataType> dweightsGmTensor,
+        LIGCommon::ConstInfo constInfo, LIGCommon::RunInfo runInfo);
 
 protected:
     constexpr static int64_t TOTAL_SIZE = 189 * 1024;
@@ -117,7 +117,6 @@ protected:
     event_t eventIdMte2ToMTE3Pong;
     event_t eventIdMte3ToMTE2Ping;
     event_t eventIdMte3ToMTE2Pong;
-
 };
 
 template <typename LIGT>
@@ -173,14 +172,14 @@ template <typename LIGT>
 __aicore__ inline void LIGVector<LIGT>::InitBuffers()
 {
     pipe->InitBuffer(unifiedBuffer, TOTAL_SIZE);
-    uint64_t ubSize = gatherPingUbSize + gatherPongUbSize + indicesUbSize + reluInPingUbSize + reluInPongUbSize + 
-                        maskPingUbSize + maskPongUbSize + reluGradPingUbSize + reluGradOutPingUbSize + dyUbSize + 
-                        dyFloatUbSize + zeroFloatUbSize + reduceFloatUbSize + reduceUbSize;
+    uint64_t ubSize = gatherPingUbSize + gatherPongUbSize + indicesUbSize + reluInPingUbSize + reluInPongUbSize +
+        maskPingUbSize + maskPongUbSize + reluGradPingUbSize + reluGradOutPingUbSize + dyUbSize + dyFloatUbSize +
+        zeroFloatUbSize + reduceFloatUbSize + reduceUbSize;
 }
 
 template <typename LIGT>
-__aicore__ inline void LIGVector<LIGT>::GatherTopk(GlobalTensor<int32_t> sparseIndicesTensor, GlobalTensor<dataType> keyTensor, GlobalTensor<dataType> gatherKTensor, 
-                                                    LIGCommon::ConstInfo constInfo, LIGCommon::RunInfo runInfo)
+__aicore__ inline void LIGVector<LIGT>::GatherTopk(GlobalTensor<int32_t> sparseIndicesTensor, GlobalTensor<dataType> keyTensor,
+    GlobalTensor<dataType> gatherKTensor, LIGCommon::ConstInfo constInfo, LIGCommon::RunInfo runInfo)
 {
     LocalTensor<int32_t> indiceUb = unifiedBuffer.GetWithOffset<int32_t>(indicesUbSize / sizeof(int32_t), indicesUbOffset);
     LocalTensor<dataType> gatherPingUb = unifiedBuffer.GetWithOffset<dataType>(gatherPingUbSize / sizeof(dataType), gatherPingUbOffset);
@@ -215,12 +214,10 @@ __aicore__ inline void LIGVector<LIGT>::GatherTopk(GlobalTensor<int32_t> sparseI
         uint64_t keyOffset = 0;
         if constexpr (LIGT::layout == LIG_LAYOUT::BSND) {
             keyOffset = runInfo.bIdx * constInfo.seqlenK * constInfo.headNumK * constInfo.headDim +
-                            singleIndice * constInfo.headNumK * constInfo.headDim +
-                            runInfo.n2Idx * constInfo.headDim;
+                singleIndice * constInfo.headNumK * constInfo.headDim + runInfo.n2Idx * constInfo.headDim;
         } else if constexpr (LIGT::layout == LIG_LAYOUT::TND) {
             keyOffset = runInfo.prefixSumS2 * constInfo.headNumK * constInfo.headDim +
-                            singleIndice * constInfo.headNumK * constInfo.headDim +
-                            runInfo.n2Idx * constInfo.headDim;
+                singleIndice * constInfo.headNumK * constInfo.headDim + runInfo.n2Idx * constInfo.headDim;
         }
         pingPongOffset = i % splitDataCopyLen * constInfo.headDim;
         if (i % splitDataCopyLen == 0) {
@@ -240,8 +237,8 @@ __aicore__ inline void LIGVector<LIGT>::GatherTopk(GlobalTensor<int32_t> sparseI
 }
 
 template <typename LIGT>
-__aicore__ inline void LIGVector<LIGT>::ScatterAdd(GlobalTensor<int32_t> sparseIndicesTensor, GlobalTensor<float> scatterAddTensor, GlobalTensor<float> dkWorkSpaceGmTensor, 
-                                                    LIGCommon::ConstInfo constInfo, LIGCommon::RunInfo runInfo)
+__aicore__ inline void LIGVector<LIGT>::ScatterAdd(GlobalTensor<int32_t> sparseIndicesTensor, GlobalTensor<float> scatterAddTensor,
+    GlobalTensor<float> dkWorkSpaceGmTensor, LIGCommon::ConstInfo constInfo, LIGCommon::RunInfo runInfo)
 {
     LocalTensor<int32_t> indiceUb = unifiedBuffer.GetWithOffset<int32_t>(indicesUbSize / sizeof(int32_t), indicesUbOffset);
     LocalTensor<float> gatherPingUb = unifiedBuffer.GetWithOffset<float>(gatherPingUbSize / sizeof(float), gatherPingUbOffset);
@@ -274,12 +271,10 @@ __aicore__ inline void LIGVector<LIGT>::ScatterAdd(GlobalTensor<int32_t> sparseI
         // [B, S2, N2, D]
         if constexpr (LIGT::layout == LIG_LAYOUT::BSND) {
             dkeyOffset = runInfo.bIdx * constInfo.seqlenK * constInfo.headNumK * constInfo.headDim +
-                            singleIndice * constInfo.headNumK * constInfo.headDim +
-                            runInfo.n2Idx * constInfo.headDim;
+                singleIndice * constInfo.headNumK * constInfo.headDim + runInfo.n2Idx * constInfo.headDim;
         } else if constexpr (LIGT::layout == LIG_LAYOUT::TND) {
             dkeyOffset = runInfo.prefixSumS2 * constInfo.headNumK * constInfo.headDim +
-                            singleIndice * constInfo.headNumK * constInfo.headDim +
-                            runInfo.n2Idx * constInfo.headDim;
+                singleIndice * constInfo.headNumK * constInfo.headDim + runInfo.n2Idx * constInfo.headDim;
         }
         AscendC::WaitFlag<HardEvent::MTE3_MTE2>(eventIdMte3ToMTE2PingPong);
         DataCopy(gatherPingPongUb, scatterAddTensor[scatterAddOffset], constInfo.headDim);
@@ -296,8 +291,8 @@ __aicore__ inline void LIGVector<LIGT>::ScatterAdd(GlobalTensor<int32_t> sparseI
 
 // reluGrad calc elements num should be devided by two block in groupNum axis
 template <typename LIGT>
-__aicore__ inline void LIGVector<LIGT>::ReluGrad(GlobalTensor<float> reluInGmTensor, GlobalTensor<dataType> reluGradInGmTensor, GlobalTensor<dataType> dyGmTensor, 
-                                                    GlobalTensor<dataType> reluGradOutGmTensor, GlobalTensor<dataType> dweightsGmTensor, LIGCommon::ConstInfo constInfo, LIGCommon::RunInfo runInfo)
+__aicore__ inline void LIGVector<LIGT>::ReluGrad(GlobalTensor<float> reluInGmTensor, GlobalTensor<dataType> reluGradInGmTensor, GlobalTensor<dataType> dyGmTensor,
+    GlobalTensor<dataType> reluGradOutGmTensor, GlobalTensor<dataType> dweightsGmTensor, LIGCommon::ConstInfo constInfo, LIGCommon::RunInfo runInfo)
 {
     LocalTensor<float> reluInPingTensor = unifiedBuffer.GetWithOffset<float>(reluInPingUbSize / sizeof(float), reluInPingUbOffset);
     LocalTensor<float> reluInPongTensor = unifiedBuffer.GetWithOffset<float>(reluInPongUbSize / sizeof(float), reluInPongUbOffset);
@@ -377,7 +372,7 @@ __aicore__ inline void LIGVector<LIGT>::ReluGrad(GlobalTensor<float> reluInGmTen
         AscendC::Compare(maskTensor, reluInTensor, zeroFloatTensor, CMPMODE::GT, floatMask, compareRepeatTimes, repeatParamsCompare);
         AscendC::PipeBarrier<PIPE_V>();
         AscendC::Select(reluGradOutTensor.template ReinterpretCast<half>(), maskTensor, reluGradTensor.template ReinterpretCast<half>(), static_cast<half>(0.0), 
-                            SELMODE::VSEL_TENSOR_SCALAR_MODE, halfMask, selectRepeatTimes, repeatParamsSelect);
+                        SELMODE::VSEL_TENSOR_SCALAR_MODE, halfMask, selectRepeatTimes, repeatParamsSelect);
         AscendC::PipeBarrier<PIPE_V>();
         // compute broadcastMul
         for (uint32_t j = 0; j < currentGroupNum; j++) {
@@ -414,17 +409,15 @@ __aicore__ inline void LIGVector<LIGT>::ReluGrad(GlobalTensor<float> reluInGmTen
     // [B, S1, N1]
     uint64_t dweightOffset = 0;
     if constexpr (LIGT::layout == LIG_LAYOUT::BSND) {
-        dweightOffset = runInfo.bIdx * constInfo.seqlenQ * constInfo.headNumQ + 
-                            runInfo.s1Idx * constInfo.headNumQ + runInfo.n2Idx * constInfo.groupNum + blockGroupBegin;
+        dweightOffset = runInfo.bIdx * constInfo.seqlenQ * constInfo.headNumQ + runInfo.s1Idx *
+            constInfo.headNumQ + runInfo.n2Idx * constInfo.groupNum + blockGroupBegin;
     } else if constexpr (LIGT::layout == LIG_LAYOUT::TND) {
-        dweightOffset = (runInfo.prefixSumS1 + runInfo.s1Idx) * constInfo.headNumQ +
-                            runInfo.n2Idx * constInfo.groupNum + blockGroupBegin;
+        dweightOffset = (runInfo.prefixSumS1 + runInfo.s1Idx) * constInfo.headNumQ + runInfo.n2Idx *
+            constInfo.groupNum + blockGroupBegin;
     }
     DataCopy(dweightsGmTensor[dweightOffset], reduceTensor, blockGroupNum);
     AscendC::SetFlag<HardEvent::MTE3_MTE2>(eventIdMte3ToMte2);
     AscendC::WaitFlag<HardEvent::MTE3_MTE2>(eventIdMte3ToMte2);
-
 }
-
 } // namespace LigKernel
 #endif

@@ -12,8 +12,8 @@
  * \file lightning_indexer_grad_tiling.cpp
  * \brief
  */
-
-#include "lightning_indexer_grad_tiling.h"
+#include "../op_kernel/lightning_indexer_grad_tiling.h"
+#include "lightning_indexer_grad_tiling_data.h"
 #include "../op_kernel/lightning_indexer_grad_template_tiling_key.h"
 
 using namespace ge;
@@ -115,57 +115,52 @@ ge::graphStatus LightningIndexerGradTiling::DoTiling()
             return ge::GRAPH_FAILED);
 
     // set tilingData
-    tilingData_.set_batch(batch);
-    tilingData_.set_seqlenQ(seqlenQ);
-    tilingData_.set_headNumQ(headNumQ);
-    tilingData_.set_headDim(headDim);
-    tilingData_.set_seqlenK(seqlenK);
-    tilingData_.set_headNumK(headNumK);
-    tilingData_.set_groupNum(groupNum);
-    tilingData_.set_topK(topK);
-    tilingData_.set_usedCoreNum(blockDim * 2);
-    tilingData_.set_dkSize(dkSize);
+    tilingData_->set_batch(batch);
+    tilingData_->set_seqlenQ(seqlenQ);
+    tilingData_->set_headNumQ(headNumQ);
+    tilingData_->set_headDim(headDim);
+    tilingData_->set_seqlenK(seqlenK);
+    tilingData_->set_headNumK(headNumK);
+    tilingData_->set_groupNum(groupNum);
+    tilingData_->set_topK(topK);
+    tilingData_->set_usedCoreNum(blockDim * 2);
+    tilingData_->set_dkSize(dkSize);
 
     // set workspace 
-    tilingData_.set_dkWorkSpaceOffset(workspaceOffset);
+    tilingData_->set_dkWorkSpaceOffset(workspaceOffset);
     workspaceOffset = (workspaceOffset + dkSize * sizeof(float) + GM_ALIGN) / GM_ALIGN * GM_ALIGN;
 
     uint64_t keyGatherWorkspaceSize = MAX_HEADIM * MAX_TOPK * sizeof(uint16_t) * DOUBLE_BUFFER;
-    tilingData_.set_keyGatherWorkspaceOffset(workspaceOffset);
+    tilingData_->set_keyGatherWorkspaceOffset(workspaceOffset);
     workspaceOffset = (workspaceOffset + aicNum * keyGatherWorkspaceSize + GM_ALIGN) / GM_ALIGN * GM_ALIGN;
 
     uint64_t reluInWorkspaceSize = MAX_GROUPNUM * MAX_TOPK * sizeof(float) * DOUBLE_BUFFER;
-    tilingData_.set_reluInWorkspaceOffset(workspaceOffset);
+    tilingData_->set_reluInWorkspaceOffset(workspaceOffset);
     workspaceOffset = (workspaceOffset + aicNum * reluInWorkspaceSize + GM_ALIGN) / GM_ALIGN * GM_ALIGN;
 
     uint64_t reluGradWorkspaceSize = MAX_GROUPNUM * MAX_TOPK * sizeof(uint16_t) * DOUBLE_BUFFER;
-    tilingData_.set_reluGradWorkspaceOffset(workspaceOffset);
+    tilingData_->set_reluGradWorkspaceOffset(workspaceOffset);
     workspaceOffset = (workspaceOffset + aicNum * reluGradWorkspaceSize + GM_ALIGN) / GM_ALIGN * GM_ALIGN;
 
     uint64_t scatterAddWorkspaceSize = MAX_HEADIM * MAX_TOPK * sizeof(float) * DOUBLE_BUFFER;
-    tilingData_.set_scatterAddWorkspaceOffset(workspaceOffset);
+    tilingData_->set_scatterAddWorkspaceOffset(workspaceOffset);
     workspaceOffset = (workspaceOffset + aicNum * scatterAddWorkspaceSize + GM_ALIGN) / GM_ALIGN * GM_ALIGN;
 
     workspaceOffset += WORKSPACE_RSV_BYTE;
     workSpaces[0] = (workspaceOffset - 0);
 
-    tilingData_.SaveToBuffer(context_->GetRawTilingData()->GetData(), context_->GetRawTilingData()->GetCapacity());
-    context_->GetRawTilingData()->SetDataSize(tilingData_.GetDataSize());
-
     // -------------set tilingkey-----------------
     uint32_t tilingKey = GET_TPL_TILING_KEY(dataType, inputLayout);
     context_->SetTilingKey(tilingKey);
-
     return ge::GRAPH_SUCCESS;
 }
-
 
 static ge::graphStatus TilingPrepareForLightningIndexerGrad(gert::TilingParseContext * /* context */)
 {
     return ge::GRAPH_SUCCESS;
 }
 
-ge::graphStatus TilingForLightningIndexerGrad(gert::TilingContext *context)
+extern "C" ge::graphStatus TilingForLightningIndexerGrad(gert::TilingContext *context)
 {
     OP_CHECK_IF(context == nullptr, OPS_REPORT_VECTOR_INNER_ERR("LightningIndexerGrad", "Tiling context is null."),
                return ge::GRAPH_FAILED);

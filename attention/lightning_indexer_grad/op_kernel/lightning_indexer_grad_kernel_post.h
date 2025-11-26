@@ -44,7 +44,7 @@ public:
     // output
     AscendC::GlobalTensor<dataType> dkGm;
 
-    const LIGTilingData *tilingData;
+    const LIGTilingData *__restrict tilingData;
 
     // key
     int64_t cBlockIdx;
@@ -101,7 +101,7 @@ __aicore__ inline void LIGVectorPost<LIGT>::Process()
         if (((cBlockIdx + 1) * kPostBlockFactor * kPostBaseNum) > kPostBlockTotal) {
             kvEnd = kPostBlockTotal;
         }
-        
+
         for (uint64_t i = kvBegin; i < kvEnd; i = i + kPostBaseNum) {
             AscendC::LocalTensor<float> vecIn = inQueue.template AllocTensor<float>();
             AscendC::LocalTensor<dataType> vecOut = outQueue.template AllocTensor<dataType>();
@@ -119,6 +119,5 @@ __aicore__ inline void LIGVectorPost<LIGT>::Process()
         AscendC::PipeBarrier<PIPE_ALL>();
     }
 }
-
 } // namespace LigKernel
 #endif // _FLASH_ATTENTION_SCORE_GRAD_POST_H_

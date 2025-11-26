@@ -125,7 +125,6 @@ protected:
 
 };
 
-
 template <typename LIGT>
 __aicore__ inline void LIGKernel<LIGT>::InitTilingData(const LIGTilingData *__restrict tilingData)
 {
@@ -417,7 +416,6 @@ __aicore__ inline void LIGKernel<LIGT>::ProcessCube2(uint64_t taskId)
     AscendC::CrossCoreSetFlag<2, PIPE_FIX>(SYNC_C2_V3_FLAG);
 }
 
-
 template <typename LIGT>
 __aicore__ inline void LIGKernel<LIGT>::Process()
 {
@@ -530,9 +528,7 @@ __aicore__ inline void LIGKernel<LIGT>::Process()
         vectorService.ReleaseEvents();
         SyncAll();
     }
-    
     return;
 }
-
 } // namespace LIGKernel
 #endif // LIGHTNING_INDEXER_GRAD_KERNEL_H

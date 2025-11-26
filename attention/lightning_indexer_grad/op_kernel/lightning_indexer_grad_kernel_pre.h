@@ -21,10 +21,12 @@
 #include "lib/matmul_intf.h"
 #include "lib/matrix/matmul/tiling.h"
 #include "lightning_indexer_grad_common.h"
+#include "lightning_indexer_grad_tiling.h"
 
 namespace LigKernel {
 using namespace LIGCommon;
 using namespace AscendC;
+using namespace optiling;
 
 template <typename LIGT>
 class LIGVectorPre {
@@ -39,7 +41,7 @@ public:
 protected:
     TPipe *pipe;
     GlobalTensor<float> dkWorkSpaceGm;
-    const LIGTilingData *tilingData;
+    const LIGTilingData *__restrict tilingData;
 
     uint32_t cBlockIdx;
     uint32_t kPreBlockFactor;
@@ -82,6 +84,5 @@ __aicore__ inline void LIGVectorPre<LIGT>::SyncALLCores()
 {
     SyncAll();
 }
-
 } // namespace LigKernel
 #endif
