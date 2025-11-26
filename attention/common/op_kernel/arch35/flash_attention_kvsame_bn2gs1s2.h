@@ -460,7 +460,11 @@ __aicore__ inline void FlashAttentionKvsameBN2GS1S2<CHILD_SPEC_TEMPLATE_ARGS>::I
         this->blockTableGm.SetGlobalBuffer((__gm__ int32_t *)blockTable);
         this->kvCacheBlockSize = this->tilingData->inputParamsRegbase.blockSize;
         this->maxBlockNumPerBatch = this->tilingData->inputParamsRegbase.blockTableDim2;
-        kvLayout = this->tilingData->inputParamsRegbase.paLayoutType == 1 ? KVLAYOUT::BBH : KVLAYOUT::BNBD;
+        if (this->tilingData->inputParamsRegbase.paLayoutType == 2) { // NZ下paLayoutType == 2
+            kvLayout = KVLAYOUT::NZ;
+        } else {
+            kvLayout = this->tilingData->inputParamsRegbase.paLayoutType == 1 ? KVLAYOUT::BBH : KVLAYOUT::BNBD;
+        }
     }
     this->pseGm.SetGlobalBuffer((__gm__ pseShiftType *)pse);
     this->pseSlope = pse;

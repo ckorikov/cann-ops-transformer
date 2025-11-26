@@ -36,7 +36,7 @@ using namespace matmul_tiling;
 namespace optiling {
 namespace v2 {
 constexpr uint32_t INPUT_QKV_SHAPE_MIN_DIMS = 3;
-constexpr uint32_t INPUT_QKV_SHAPE_MAX_DIMS = 4;
+constexpr uint32_t INPUT_QKV_SHAPE_MAX_DIMS = 5;
 #ifndef ASCEND_OPTILING_UT
 constexpr uint32_t BYTE_BLOCK = 32; // The block size of datacopy, which moves data at the block granularity.
 
@@ -45,12 +45,14 @@ constexpr uint32_t MASKDIM_3 = 3;
 constexpr uint32_t MASKDIM_4 = 4;
 constexpr uint32_t PSESHIFTDIM_4 = 4;
 
+constexpr uint32_t KV_CACHE_DIM_NUMS_5 = 5;
 constexpr uint32_t KV_CACHE_DIM_NUMS_4 = 4;
 constexpr uint32_t KV_CACHE_DIM_NUMS_3 = 3;
 constexpr uint32_t KV_CACHE_DIM_0 = 0;
 constexpr uint32_t KV_CACHE_DIM_1 = 1;
 constexpr uint32_t KV_CACHE_DIM_2 = 2;
 constexpr uint32_t KV_CACHE_DIM_3 = 3;
+constexpr uint32_t KV_CACHE_DIM_4 = 4;
 
 constexpr uint64_t EMPTY_KV_TILING_KEY = 20;
 constexpr uint32_t LOOP_BEGIN_NUM = 0;
@@ -303,11 +305,17 @@ bool PromptFlashAttentionTilingV2::SetShape(ContextParamsForPFATiling& contextKe
             n = static_cast<int64_t>(*contextKeyParams.numKeyValueHeads);
             n = n > 0 ? n : static_cast<int64_t>(*contextKeyParams.headsNumber);
             d = n > 0 ? h / n : 0;
-        } else {
+        } else if (shape->GetStorageShape().GetDimNum() == 4) { // 4 for dim num
             b = shape->GetStorageShape().GetDim(0);
             n = shape->GetStorageShape().GetDim(1);
             s = shape->GetStorageShape().GetDim(2); // 2 for Sequence length
             d = shape->GetStorageShape().GetDim(3); // 3 for D dim
+            h = n * d;
+        } else {
+            b = shape->GetStorageShape().GetDim(0);
+            n = shape->GetStorageShape().GetDim(1);
+            s = shape->GetStorageShape().GetDim(3); // 3 for Sequence length
+            d = shape->GetStorageShape().GetDim(2) * shape->GetStorageShape().GetDim(4); // 2 for D1 dim，4 for D0 dim
             h = n * d;
         }
     } else if ((inputLayout == InputLayout::BNSD)) {
@@ -544,7 +552,8 @@ bool PromptFlashAttentionTilingV2::CheckKeyValueParamsConsistency(ContextParamsF
             keyDimNum, INPUT_QKV_SHAPE_MIN_DIMS, INPUT_QKV_SHAPE_MAX_DIMS),
         return false);
     for (uint32_t i = 0; i < keyDimNum; ++i) {
-        if ((i == keyDimNum - 1) && enablePFAMLA) {
+        if (((keyDimNum != KV_CACHE_DIM_NUMS_5 && i == keyDimNum - 1) || (keyDimNum == KV_CACHE_DIM_NUMS_5 && i == KV_CACHE_DIM_2)) 
+            && enablePFAMLA) { // 使能PFAMLA时，k和v的最后一维，或Nz时k和v的第三维允许不一致
             continue;
         }
         int64_t tmpKeyDim = keyShape->GetStorageShape().GetDim(i);
@@ -951,14 +960,29 @@ bool PromptFlashAttentionTilingV2::CheckPAKeyValueShape(ContextParamsForPFATilin
     int64_t keyDim2 = keyShape->GetStorageShape().GetDim(KV_CACHE_DIM_1);
     int64_t keyDim3 = keyShape->GetStorageShape().GetDim(KV_CACHE_DIM_2);
     int64_t keyDim4 = 0;
+    int64_t keyDim5 = 0;
     int64_t valueDim1 = valueShape->GetStorageShape().GetDim(KV_CACHE_DIM_0);
     int64_t valueDim2 = valueShape->GetStorageShape().GetDim(KV_CACHE_DIM_1);
     int64_t valueDim3 = valueShape->GetStorageShape().GetDim(KV_CACHE_DIM_2);
     int64_t valueDim4 = 0;
+    int64_t valueDim5 = 0;
     if (keyDim == KV_CACHE_DIM_NUMS_4) {
         keyDim4 = keyShape->GetStorageShape().GetDim(KV_CACHE_DIM_3);
         valueDim4 = valueShape->GetStorageShape().GetDim(KV_CACHE_DIM_3);
     }
+    if (keyDim == KV_CACHE_DIM_NUMS_5) {
+        keyDim4 = keyShape->GetStorageShape().GetDim(KV_CACHE_DIM_3);
+        valueDim4 = valueShape->GetStorageShape().GetDim(KV_CACHE_DIM_3);
+        keyDim5 = keyShape->GetStorageShape().GetDim(KV_CACHE_DIM_4);
+        valueDim5 = valueShape->GetStorageShape().GetDim(KV_CACHE_DIM_4);
+    }
+    OP_CHECK_IF((keyDim == KV_CACHE_DIM_NUMS_5) && ((keyDim1 != valueDim1) || (keyDim2 != valueDim2) || 
+        ((keyDim3 != valueDim3) && (!enablePFAMLA)) || (keyDim4 != valueDim4) || ((keyDim5 != valueDim5) && (!enablePFAMLA))), 
+        OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName,
+            "The dim num of key and value are inconsistent when PA enable. key shape [%ld, %ld, %ld, %ld, %ld],"
+            " value shape [%ld, %ld, %ld, %ld, %ld].",
+            keyDim1, keyDim2, keyDim3, keyDim4, keyDim5, valueDim1, valueDim2, valueDim3, valueDim4, valueDim5),
+        return false);
     OP_CHECK_IF((keyDim == KV_CACHE_DIM_NUMS_4) && ((keyDim1 != valueDim1) || (keyDim2 != valueDim2) || 
         (keyDim3 != valueDim3) || ((keyDim4 != valueDim4) && (!enablePFAMLA))), 
         OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName,
@@ -972,18 +996,32 @@ bool PromptFlashAttentionTilingV2::CheckPAKeyValueShape(ContextParamsForPFATilin
             keyDim1, keyDim2, keyDim3, valueDim1, valueDim2, valueDim3),
         return false);
     std::string layoutStr(contextKeyParams.layout);
+
+    uint32_t dataTypeSize;
+    std::vector<ge::DataType> allowedDtypes = {ge::DT_FLOAT16, ge::DT_BF16, ge::DT_INT8, ge::DT_HIFLOAT8, ge::DT_FLOAT8_E5M2, ge::DT_FLOAT8_E4M3FN};
+    std::vector<uint32_t> dataTypeSizeArray = {FLOAT16SIZE, BFLOAT16SIZE, INT8SIZE, FLOAT8SIZE, FLOAT8SIZE, FLOAT8SIZE};
+
+    auto inputTypeCheck = std::find(allowedDtypes.begin(), allowedDtypes.end(), inputType);
+    if (inputTypeCheck != allowedDtypes.end()){
+        uint32_t inputTypeIndex = std::distance(allowedDtypes.begin(), inputTypeCheck);
+        dataTypeSize = dataTypeSizeArray[inputTypeIndex];
+    }
+
     if (inputLayout == InputLayout::BNSD || inputLayout == InputLayout::TND) {
-        OP_CHECK_IF(((keyDim != KV_CACHE_DIM_NUMS_3) && (keyDim != KV_CACHE_DIM_NUMS_4)), 
+        OP_CHECK_IF(((keyDim != KV_CACHE_DIM_NUMS_3) && (keyDim != KV_CACHE_DIM_NUMS_4) && (keyDim != KV_CACHE_DIM_NUMS_5)), 
             OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName, // dim num: 3/4
-            "the layout of query is %s, key and value layout should be [>=%ld, %d, %u] or [>=%ld, %u, %d, %u] when PA enable.",
-                layoutStr.c_str(), blockNumValid, *blockSize, queryShapeInfo.h / headNumRatio, blockNumValid,
-                queryShapeInfo.n / headNumRatio, *blockSize, (queryShapeInfo.h / queryShapeInfo.n)),
+            "the layout of query is %s, key and value layout should be [>=%ld, %d, %u] or [>=%ld, %u, %d, %u] or [>=%ld, %u, %u, %d, %d] when PA enable.",
+                layoutStr.c_str(), blockNumValid, *blockSize, queryShapeInfo.h / headNumRatio, 
+                blockNumValid, queryShapeInfo.n / headNumRatio, *blockSize, (queryShapeInfo.h / queryShapeInfo.n), 
+                blockNumValid, queryShapeInfo.n / headNumRatio, (queryShapeInfo.h / queryShapeInfo.n) * dataTypeSize / BYTE_BLOCK, *blockSize, BYTE_BLOCK / dataTypeSize),
             return false);
     } else if (inputLayout == InputLayout::BSH || inputLayout == InputLayout::BSND) {
-        OP_CHECK_IF(keyDim != 3, OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName,
-            "the layout of query is %s, key and value layout should be [>=%ld, %d, %u] when PA enable."
+        OP_CHECK_IF(((keyDim != KV_CACHE_DIM_NUMS_3) && (keyDim != KV_CACHE_DIM_NUMS_5)), OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName,
+            "the layout of query is %s, key and value layout should be [>=%ld, %d, %u] or [>=%ld, %u, %u, %d, %d] when PA enable."
             " now key and value shape [%ld, %ld, %ld, %ld].",
-                layoutStr.c_str(), blockNumValid, *blockSize, queryShapeInfo.h / headNumRatio, keyDim1, keyDim2, keyDim3, keyDim4),
+                layoutStr.c_str(), blockNumValid, *blockSize, queryShapeInfo.h / headNumRatio, 
+                blockNumValid, queryShapeInfo.n / headNumRatio, (queryShapeInfo.h / queryShapeInfo.n) * dataTypeSize / BYTE_BLOCK, *blockSize, BYTE_BLOCK / dataTypeSize, 
+                keyDim1, keyDim2, keyDim3, keyDim4),
             return false);
     }
     return true;
@@ -996,10 +1034,13 @@ bool PromptFlashAttentionTilingV2::CheckPACacheShape(ContextParamsForPFATiling& 
     int64_t dim2 = shape->GetStorageShape().GetDim(KV_CACHE_DIM_1);
     int64_t dim3 = shape->GetStorageShape().GetDim(KV_CACHE_DIM_2);
     int64_t dim4 = 0;
+    int64_t dim5 = 0;
     int64_t tempBlockSize = dim2;
     int64_t tempH = dim3;
     int64_t tempN = 0;
     int64_t tempD = 0;
+    int64_t tempD0 = 0;
+    int64_t tempD1 = 0;
     if (keyDim == 3) {    // dim num: 3
         paLayoutType = 1; // If it is three-dimensional, paLayoutType = 1
         OP_CHECK_IF(
@@ -1011,7 +1052,7 @@ bool PromptFlashAttentionTilingV2::CheckPACacheShape(ContextParamsForPFATiling& 
         OP_CHECK_IF(dim3 > HLIMIT, OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName,
             "layout of key/value is BSH, the %s h(%ld) should not > 65535 when PA enable", sName.c_str(), dim3),
             return false);
-    } else {
+    } else if (keyDim == 4) {    // dim num: 4
         dim4 = shape->GetStorageShape().GetDim(3);  // 3: The third dimension.
         tempN = dim2;
         tempBlockSize = dim3;
@@ -1021,6 +1062,29 @@ bool PromptFlashAttentionTilingV2::CheckPACacheShape(ContextParamsForPFATiling& 
             (tempD != (shapeInfo.h / shapeInfo.n))), OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName, "the dim of %s [%ld, %ld, %ld, %ld] is wrong, which should be [>=%ld, %u, %d, %u] when PA enable!",
                 sName.c_str(), dim1, dim2, dim3, dim4, blockNumValid, shapeInfo.n / headNumRatio, *blockSize,
                 (shapeInfo.h / shapeInfo.n)),
+            return false);
+    } else {
+        dim4 = shape->GetStorageShape().GetDim(KV_CACHE_DIM_3);
+        dim5 = shape->GetStorageShape().GetDim(KV_CACHE_DIM_4);
+        tempN = dim2;
+        tempD1 = dim3;
+        tempBlockSize = dim4;
+        tempD0 = dim5;
+        paLayoutType = 2; // If it is five-dimensional, paLayoutType = 2
+
+        uint32_t dataTypeSize;
+        std::vector<ge::DataType> allowedDtypes = {ge::DT_FLOAT16, ge::DT_BF16, ge::DT_INT8, ge::DT_HIFLOAT8, ge::DT_FLOAT8_E5M2, ge::DT_FLOAT8_E4M3FN};
+        std::vector<uint32_t> dataTypeSizeArray = {FLOAT16SIZE, BFLOAT16SIZE, INT8SIZE, FLOAT8SIZE, FLOAT8SIZE, FLOAT8SIZE};
+
+        auto inputTypeCheck = std::find(allowedDtypes.begin(), allowedDtypes.end(), inputType);
+        if (inputTypeCheck != allowedDtypes.end()){
+            uint32_t inputTypeIndex = std::distance(allowedDtypes.begin(), inputTypeCheck);
+            dataTypeSize = dataTypeSizeArray[inputTypeIndex];
+        }
+
+        OP_CHECK_IF(((dim1 < blockNumValid) || (tempN * headNumRatio != shapeInfo.n) || (tempBlockSize != *blockSize) || (tempD1 * tempD0 != shapeInfo.d) || tempD0 != (BYTE_BLOCK / dataTypeSize)), 
+                OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName, "the dim of %s [%ld, %ld, %ld, %ld, %ld] is wrong, which should be [>=%ld, %u, %u, %d, %d] when PA enable!",
+                sName.c_str(), dim1, dim2, dim3, dim4, dim5, blockNumValid, shapeInfo.n / headNumRatio, shapeInfo.d * dataTypeSize / BYTE_BLOCK, *blockSize, BYTE_BLOCK / dataTypeSize),
             return false);
     }
     return true;

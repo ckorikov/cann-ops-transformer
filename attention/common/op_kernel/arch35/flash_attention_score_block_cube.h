@@ -294,7 +294,11 @@ __aicore__ inline void FABlockCube<TEMPLATE_ARGS>::InitCubeInput(
                 this->blockTableGm.SetGlobalBuffer((__gm__ int32_t *)blocktablePtr);
                 this->kvCacheBlockSize = sharedParams->blockSize;
                 this->maxBlockNumPerBatch = sharedParams->blockTableDim2;
-                kvLayout = sharedParams->paLayoutType == 1 ? KVLAYOUT::BBH : KVLAYOUT::BNBD;
+                if (sharedParams->paLayoutType == 2) { // NZ下paLayoutType == 2
+                    kvLayout = KVLAYOUT::NZ;
+                } else {
+                    kvLayout = sharedParams->paLayoutType == 1 ? KVLAYOUT::BBH : KVLAYOUT::BNBD;
+                }
             }
         }
         InitGmTensor(sharedParams, actualSeqQlenAddr, actualSeqKvlenAddr);
