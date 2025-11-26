@@ -16,7 +16,6 @@
 #ifndef AIR_CXX_RUNTIME_V2_OP_IMPL_FUSEDINFERATTENTIONSCORE_V2_H_
 #define AIR_CXX_RUNTIME_V2_OP_IMPL_FUSEDINFERATTENTIONSCORE_V2_H_
 #include "../../../prompt_flash_attention/op_host/prompt_flash_attention_tiling.h"
-#include "../../../prompt_flash_attention/op_host/prompt_flash_attention_tiling_v2.h"
 #include "../../../incre_flash_attention/op_host/incre_flash_attention_tiling.h"
 #include "register/tilingdata_base.h"
 

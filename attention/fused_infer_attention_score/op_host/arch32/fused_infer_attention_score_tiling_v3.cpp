@@ -375,6 +375,7 @@ constexpr size_t DIM_NZ = 5;
 constexpr uint32_t NZ_D1_IDX = 2;
 constexpr uint32_t NZ_D0_IDX = 4;
 constexpr uint32_t TND_NTD_D_IDX = 2;
+constexpr int64_t HEAD_DIM_192 = 192;
 
 
 FIA_EXTERN_C ge::graphStatus TilingFusedInferAttentionScoreV3(gert::TilingContext *context)
@@ -393,7 +394,7 @@ FIA_EXTERN_C ge::graphStatus TilingFusedInferAttentionScoreV3(gert::TilingContex
     return FiaTilingRegistry::GetInstance().DoTilingImpl(context, &fiaInfo);
 }
 
-bool GetPaValueD(gert::TilingContext *context, int64_t &valueD)
+bool GetPaValueD(const gert::TilingContext *context, int64_t &valueD)
 {
     auto attrs = context->GetAttrs();
     int64_t numHeads = static_cast<int64_t>(*attrs->GetAttrPointer<uint32_t>(ATTR_N_INDEX));
@@ -540,7 +541,7 @@ bool CheckGqaDSupport(gert::TilingContext *context)
     return false;
 }
 
-bool CheckGqaInputLayoutSupport(gert::TilingContext *context)
+bool CheckGqaInputLayoutSupport(const gert::TilingContext *context)
 {
     const std::string inputLayoutStr = std::string(context->GetAttrs()->GetAttrPointer<char>(ATTR_INPUT_LAYOUT_INDEX));
     if (inputLayoutStr == "BNSD_BSND" ||
@@ -558,7 +559,7 @@ bool CheckGqaInputLayoutSupport(gert::TilingContext *context)
     return false;
 }
 
-bool IsEmptyTensor(gert::TilingContext *context)
+bool IsEmptyTensor(const gert::TilingContext *context)
 {
     auto qShape = context->GetInputShape(QUERY_INDEX);
     if ((qShape != nullptr) && (qShape->GetStorageShape().GetShapeSize() == 0)) {
@@ -580,8 +581,7 @@ bool IsEmptyTensor(gert::TilingContext *context)
 
     uint32_t keyBIdx = 0;
     while ((context->GetDynamicInputShape(KEY_INDEX, keyBIdx)) != nullptr) {
-        const gert::StorageShape * keyShape =
-            const_cast<gert::StorageShape *>(context->GetDynamicInputShape(KEY_INDEX, keyBIdx));
+        const gert::StorageShape *keyShape = context->GetDynamicInputShape(KEY_INDEX, keyBIdx);
         if (keyShape->GetStorageShape().GetShapeSize() == 0) {
             return true;
         }
@@ -590,8 +590,7 @@ bool IsEmptyTensor(gert::TilingContext *context)
 
     uint32_t valueBIdx = 0;
     while ((context->GetDynamicInputShape(VALUE_INDEX, valueBIdx)) != nullptr) {
-        const gert::StorageShape * valueShape =
-            const_cast<gert::StorageShape *>(context->GetDynamicInputShape(VALUE_INDEX, valueBIdx));
+        const gert::StorageShape *valueShape = context->GetDynamicInputShape(VALUE_INDEX, valueBIdx);
         if (valueShape->GetStorageShape().GetShapeSize() == 0) {
             return true;
         }
@@ -601,7 +600,7 @@ bool IsEmptyTensor(gert::TilingContext *context)
     return false;
 }
 
-bool CheckGqaFeatureSupport(gert::TilingContext *context)
+bool CheckGqaFeatureSupport(const gert::TilingContext *context)
 {
     auto quantScale2 = context->GetOptionalInputTensor(QUANT_SCALE2_INDEX);
     auto quantOffset2 = context->GetOptionalInputTensor(QUANT_OFFSET2_INDEX);
@@ -613,7 +612,7 @@ bool CheckGqaFeatureSupport(gert::TilingContext *context)
     return true;
 }
 
-bool CheckSpecConditions(gert::TilingContext *context)
+bool CheckSpecConditions(const gert::TilingContext *context)
 {
     auto tempQ = context->GetInputShape(QUERY_INDEX);
     auto tempK = context->GetInputShape(KEY_INDEX);
@@ -692,7 +691,7 @@ bool isNotLegacyGQA(gert::TilingContext *context)
         return true;
     }
 
-    if (inputLayoutStr == "TND" && valueD == 192) {
+    if (inputLayoutStr == "TND" && valueD == HEAD_DIM_192) {
         return false;
     }
 
@@ -722,7 +721,7 @@ bool CheckGqaConstrain(gert::TilingContext *context)
 }
 
 
-bool CheckMlaInputLayoutSupport(gert::TilingContext *context)
+bool CheckMlaInputLayoutSupport(const gert::TilingContext *context)
 {
     const std::string inputLayoutStr = std::string(context->GetAttrs()->GetAttrPointer<char>(ATTR_INPUT_LAYOUT_INDEX));
     if (inputLayoutStr == "BSH" ||

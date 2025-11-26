@@ -34,7 +34,7 @@ namespace {
 extern "C" aclnnStatus __attribute__((weak)) NnopbaseDisableOptionalInput(void *executor, const size_t irIndex);
 
 __attribute__((visibility("default"))) aclnnStatus aclnnFusedInferAttentionScoreV2GetMaxWorkspaceSize(
-    const aclTensor *query, const aclTensorList *key, const aclTensorList *value, const aclTensor *pseShiftOptional,
+    const aclTensor *query, const aclTensorList *tensorListKey, const aclTensorList *tensorListValue, const aclTensor *pseShiftOptional,
     const aclTensor *attenMaskOptional, const aclIntArray *actualSeqLengthsOptional,
     const aclIntArray *actualSeqLengthsKvOptional,const aclTensor *deqScale1Optional,
     const aclTensor *quantScale1Optional, const aclTensor *deqScale2Optional, const aclTensor *quantScale2Optional,
@@ -43,7 +43,7 @@ __attribute__((visibility("default"))) aclnnStatus aclnnFusedInferAttentionScore
     const aclTensor *queryPaddingSizeOptional, const aclTensor *kvPaddingSizeOptional,
     const aclTensor *keyAntiquantScaleOptional, const aclTensor *keyAntiquantOffsetOptional,
     const aclTensor *valueAntiquantScaleOptional, const aclTensor *valueAntiquantOffsetOptional,
-    const aclTensor *keySharedPrefixOptional, const aclTensor *valueSharedPrefixOptional,
+    const aclTensor *tensorKeySharedPrefixOptional, const aclTensor *tensorValueSharedPrefixOptional,
     const aclIntArray *actualSharedPrefixLenOptional,
     int64_t numHeads, double scaleValue, int64_t preTokens,
     int64_t nextTokens, char *inputLayout, int64_t numKeyValueHeads,

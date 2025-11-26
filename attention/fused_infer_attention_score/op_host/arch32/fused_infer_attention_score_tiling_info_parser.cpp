@@ -843,8 +843,8 @@ ge::graphStatus FiaInfoParser::GetPseShiftFlag()
     } else {
         pseShiftFlag_ = true;
         pseShiftByBatch_ = (pseShiftShape->GetStorageShape().GetDim(0) != 1U);
-        pseShiftS1_ = pseShiftShape->GetStorageShape().GetDim(2);
-        pseShiftS2_ = pseShiftShape->GetStorageShape().GetDim(3);
+        pseShiftS1_ = pseShiftShape->GetStorageShape().GetDim(PSE_SHIFT_S1_INDEX);
+        pseShiftS2_ = pseShiftShape->GetStorageShape().GetDim(PSE_SHIFT_S2_INDEX);
     }
     return ge::GRAPH_SUCCESS;
 }

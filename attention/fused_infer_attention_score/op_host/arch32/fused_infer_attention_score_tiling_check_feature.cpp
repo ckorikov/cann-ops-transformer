@@ -290,7 +290,7 @@ ge::graphStatus FiaTilingCheck::CheckFeatureGqaNoquantUnsupported() const
         {64, 64}, {128, 128}, {192, 128}
     };
     pair<uint32_t, uint32_t> qkvD = {qkHeadDim_, vHeadDim_};
-    OP_CHECK_IF(valueDimNum == DIM_NUM_FIVE && !qkvDList.count(qkvD),
+    OP_CHECK_IF(valueDimNum == DIM_NUM_FIVE && !(qkvDList.count(qkvD) != 0U),
         OP_LOGE(opName_, "In %s %s situation and kv is NZ(valuedim = 5), only support (qkHeadDim, vHeadDim):(64, 64),(192, 128),(128, 128), but got (%d, %d).",
             QuantModeToSerialString(quantMode_).c_str(), SituationToSerialString(ropeMode_).c_str(), qkHeadDim_, vHeadDim_),
         return ge::GRAPH_FAILED);
@@ -377,13 +377,13 @@ ge::graphStatus FiaTilingCheck::CheckFeatureLeftPadding() const
                     s1Size_),
             return ge::GRAPH_FAILED);
 
-        OP_CHECK_IF(!fiaInfo_.actualLenQDims,
+        OP_CHECK_IF(!(fiaInfo_.actualLenQDims != 0U),
             OP_LOGE(opName_, "when query_padding_size exists, the query's actual sequence lengths are required."),
             return ge::GRAPH_FAILED);
     }
 
     if (fiaInfo_.kvPaddingSizeFlag) {
-        OP_CHECK_IF(!fiaInfo_.actualLenDims,
+        OP_CHECK_IF(!(fiaInfo_.actualLenDims != 0U),
             OP_LOGE(opName_, "when kv_padding_size exists, the key/value's actual sequence lengths are required."),
             return ge::GRAPH_FAILED);
     }

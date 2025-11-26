@@ -295,7 +295,7 @@ static bool CheckKVPaddingCrossover(gert::TilingContext* context, ContextParamsF
     return true;
 }
 
-ge::graphStatus ConvertQuantOptionalInputs(gert::TilingContext* context, ContextParamsForPFATiling& contextKeyParams) {
+ge::graphStatus ConvertQuantOptionalInputs(const gert::TilingContext* context, ContextParamsForPFATiling& contextKeyParams) {
     contextKeyParams.deqScale1Shape = context->GetOptionalInputShape(DEQUANT_SCALE1_INDEX);
     contextKeyParams.scale1Shape = context->GetOptionalInputShape(QUANT_SCALE1_INDEX);
     contextKeyParams.deqScale2Shape = context->GetOptionalInputShape(DEQUANT_SCALE2_INDEX);

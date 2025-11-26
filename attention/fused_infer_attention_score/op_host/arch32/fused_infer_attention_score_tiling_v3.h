@@ -16,7 +16,6 @@
 #define FUSED_INFER_ATTENTION_SCORE_TILING_V3
 
 #include <exe_graph/runtime/tiling_context.h>
-#include "../../../incre_flash_attention/op_host/incre_flash_attention_tiling_context.h"
 
 #ifdef ASCENDC_OP_TEST
 #define FIA_EXTERN_C extern "C"

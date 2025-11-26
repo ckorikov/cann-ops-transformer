@@ -17,7 +17,6 @@
 #include "arch35/fused_infer_attention_score_tiling_v2.h"
 #include "../../incre_flash_attention/op_host/incre_flash_attention_tiling.h"
 #include "../../prompt_flash_attention/op_host/prompt_flash_attention_tiling.h"
-#include "../../prompt_flash_attention/op_host/prompt_flash_attention_tiling_v2.h"
 #include "log/log.h"
 #include "log/error_code.h"
 #include "err/ops_err.h"
@@ -865,7 +864,7 @@ static ge::graphStatus TilingProcess4PFA(gert::TilingContext *context, const uin
 }
 
 ge::graphStatus CheckFAISeqlenDataInTND(
-    gert::TilingContext *context, bool isPageAttention, int64_t actSeqLenDims, int64_t actSeqLenKVDims)
+    const gert::TilingContext *context, bool isPageAttention, int64_t actSeqLenDims, int64_t actSeqLenKVDims)
 {
     auto actSeqLenData = context->GetOptionalInputTensor(ACTUAL_SEQ_Q_INDEX);
     auto actSeqLenDataKV = context->GetOptionalInputTensor(ACTUAL_SEQ_KV_INDEX);
@@ -985,7 +984,7 @@ ge::graphStatus CheckFAIQKV(gert::TilingContext *context, bool isPageAttention)
     return ge::GRAPH_SUCCESS;
 }
 
-ge::graphStatus CheckFAISinglePara(gert::TilingContext *context, bool isPageAttention)
+ge::graphStatus CheckFAISinglePara(const gert::TilingContext *context, bool isPageAttention)
 {
     auto attrs = context->GetAttrs();
     auto tempQ = context->GetInputShape(QUERY_INDEX);
@@ -1022,7 +1021,7 @@ ge::graphStatus CheckFAISinglePara(gert::TilingContext *context, bool isPageAtte
     return ge::GRAPH_SUCCESS;
 }
 
-ge::graphStatus CheckFAIMaskShape(gert::TilingContext *context)
+ge::graphStatus CheckFAIMaskShape(const gert::TilingContext *context)
 {
     auto tempAttnMaskShape = context->GetOptionalInputShape(ATTEN_MASK_INDEX);
     auto maskDimNum = tempAttnMaskShape->GetStorageShape().GetDimNum();
@@ -1079,7 +1078,7 @@ ge::graphStatus CheckFAIMask(gert::TilingContext *context)
     return ge::GRAPH_SUCCESS;
 }
 
-static ge::graphStatus CheckFAILseOutput(gert::TilingContext *context)
+static ge::graphStatus CheckFAILseOutput(const gert::TilingContext *context)
 {
     bool lseFlag = *(context->GetAttrs()->GetAttrPointer<bool>(SOFTMAX_LSE_FLAG_INDEX));
     auto lseShape = context->GetOutputShape(SOFTMAX_LSE_INDEX);
@@ -1402,7 +1401,7 @@ static ge::graphStatus CheckQKV(gert::TilingContext &context)
     return ge::GRAPH_SUCCESS;
 }
 
-static ge::graphStatus CheckOutShapeInDim3(gert::TilingContext *context, const string &outputLayoutStr, const gert::Shape outShape,
+static ge::graphStatus CheckOutShapeInDim3(const gert::TilingContext *context, const string &outputLayoutStr, const gert::Shape outShape,
     const gert::Shape exceptOutShape)
 {
     OP_CHECK_IF((outShape.GetDimNum() != DIM_NUM_3),
@@ -1425,7 +1424,7 @@ static ge::graphStatus CheckOutShapeInDim3(gert::TilingContext *context, const s
     return ge::GRAPH_SUCCESS;
 }
 
-static ge::graphStatus CheckOutShapeInDim4(gert::TilingContext *context, const string &outputLayoutStr, const gert::Shape outShape,
+static ge::graphStatus CheckOutShapeInDim4(const gert::TilingContext *context, const string &outputLayoutStr, const gert::Shape outShape,
     const gert::Shape exceptOutShape)
 {
     OP_CHECK_IF((outShape.GetDimNum() != DIM_NUM_4),
@@ -1480,7 +1479,7 @@ static ge::graphStatus CheckOutShape(gert::TilingContext *context, const string 
     return ret;
 }
 
-static ge::graphStatus GetB(gert::TilingContext *context, const string inputLayoutStr, int64_t &b)
+static ge::graphStatus GetB(const gert::TilingContext *context, const string inputLayoutStr, int64_t &b)
 {
     auto tempQ = context->GetInputShape(QUERY_INDEX);
     if (inputLayoutStr == "NSD") {
@@ -1491,7 +1490,7 @@ static ge::graphStatus GetB(gert::TilingContext *context, const string inputLayo
     return ge::GRAPH_SUCCESS;
 }
 
-static ge::graphStatus GetQueryN(gert::TilingContext *context, const string inputLayoutStr, int64_t &queryN)
+static ge::graphStatus GetQueryN(const gert::TilingContext *context, const string inputLayoutStr, int64_t &queryN)
 {
     auto tempQ = context->GetInputShape(QUERY_INDEX);
     if (inputLayoutStr == "NSD" || 
@@ -1513,7 +1512,7 @@ static ge::graphStatus GetQueryN(gert::TilingContext *context, const string inpu
     return ge::GRAPH_SUCCESS;
 }
 
-static ge::graphStatus GetQueryS(gert::TilingContext *context, const string inputLayoutStr, int64_t &queryS)
+static ge::graphStatus GetQueryS(const gert::TilingContext *context, const string inputLayoutStr, int64_t &queryS)
 {
     auto tempQ = context->GetInputShape(QUERY_INDEX);
     if (inputLayoutStr == "NSD" || 
@@ -1538,7 +1537,7 @@ static ge::graphStatus GetQueryS(gert::TilingContext *context, const string inpu
     return ge::GRAPH_SUCCESS;
 }
 
-static ge::graphStatus GetQueryT(gert::TilingContext *context, const string inputLayoutStr, int64_t &queryT)
+static ge::graphStatus GetQueryT(const gert::TilingContext *context, const string inputLayoutStr, int64_t &queryT)
 {
     auto tempQ = context->GetInputShape(QUERY_INDEX);
     if (inputLayoutStr == "TND" || 
@@ -1550,7 +1549,7 @@ static ge::graphStatus GetQueryT(gert::TilingContext *context, const string inpu
     return ge::GRAPH_SUCCESS;
 }
 
-static ge::graphStatus GetQueryD(gert::TilingContext *context, const string inputLayoutStr, int64_t &queryD)
+static ge::graphStatus GetQueryD(const gert::TilingContext *context, const string inputLayoutStr, int64_t &queryD)
 {
     auto tempQ = context->GetInputShape(QUERY_INDEX);
     if (inputLayoutStr == "NSD" || 
@@ -1578,7 +1577,7 @@ static ge::graphStatus GetQueryD(gert::TilingContext *context, const string inpu
     return ge::GRAPH_SUCCESS;
 }
 
-static ge::graphStatus GetPAValueD(gert::TilingContext *context, int64_t &valueD)
+static ge::graphStatus GetPAValueD(const gert::TilingContext *context, int64_t &valueD)
 {
     auto tempV = context->GetInputShape(VALUE_INDEX);
     if (tempV->GetStorageShape().GetDimNum() == DIM_BSH) { // BnBsH
@@ -1638,7 +1637,7 @@ string GetOutputLayoutStr(const string &inputLayoutStr)
     return inputLayoutStr.substr(underLinePos + 1);
 }
 
-static ge::graphStatus IsMla(gert::TilingContext *context)
+static ge::graphStatus IsMla(const gert::TilingContext *context)
 {
     auto qRope = context->GetOptionalInputTensor(QUERY_ROPE_INDEX);
     auto kRope = context->GetOptionalInputTensor(KEY_ROPE_INDEX);
@@ -1651,7 +1650,7 @@ static ge::graphStatus IsMla(gert::TilingContext *context)
     return ge::GRAPH_SUCCESS;
 }
 
-static ge::graphStatus CheckInputLayoutMla(gert::TilingContext *context, const string inputLayoutStr, const int64_t queryD, const bool isPageAttention)
+static ge::graphStatus CheckInputLayoutMla(const gert::TilingContext *context, const string inputLayoutStr, const int64_t queryD, const bool isPageAttention)
 {
     // MLA support layout
     bool isIfaMlaLayout = (inputLayoutStr == "BSH") || (inputLayoutStr == "BNSD") ||
