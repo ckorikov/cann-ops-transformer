@@ -51,7 +51,7 @@ constexpr uint32_t MASKDIM_SS = 2;
 constexpr uint32_t MASKDIM_BSS = 3;
 constexpr uint32_t MASKDIM_B1SS = 4;
 constexpr uint32_t SPARSE_OPTIMIZE_ATTENTION_SIZE = 2048;
-
+constexpr int64_t SLOPE_N_DIM_NUM = 1L;
 
 class IFATilingV2 {
  public:
@@ -145,6 +145,13 @@ class IFATilingV2 {
   bool ShapeEqual(const gert::Shape &aShape, const gert::Shape &bShape) const;
   void AdjustPABmm1Tiling(uint32_t& bmm1BaseN) const;
   void AdjustPABmm2Tiling() const;
+
+  bool CheckAlibiPseShift();
+  bool CheckAlibiPseShiftTypeAndShape();
+  bool SetQKVStartIdx();
+  bool AlibiCheckSeqLength();
+  bool CheckPseShiftShape(const gert::Tensor* pseShiftInput);
+
   std::string GetShapeStr(const gert::Shape &aShape) const;
 
   ge::graphStatus Split();
@@ -271,6 +278,11 @@ class IFATilingV2 {
   uint32_t pseShiftBatch_ = 0U;
   uint32_t pseShiftS0_ = 0U;
   uint32_t pseShiftS1_ = 0U;
+  bool enableAlibiPse_ = false;
+  int64_t pseType_ = static_cast<int64_t>(IfaPseType::PSE_OUTER_MUL_ADD_TYPE);
+  int64_t qStartIdx_ = 0;
+  int64_t kvStartIdx_ = 0;
+  IfaPseShapeType pseShapeType = IfaPseShapeType::PSE_B_N2_G_S1_S2;
 
   bool attenMaskFlag_ = false;
   uint32_t attenMaskBatch_ = 1;

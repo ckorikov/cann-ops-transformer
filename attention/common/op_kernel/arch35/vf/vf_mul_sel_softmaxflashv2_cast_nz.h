@@ -1371,6 +1371,15 @@ __aicore__ inline void ProcessVec1NoUpdateGeneralImpl512(
         RegTensor<float> vreg_pse7;
         RegTensor<float> vreg_pse8;
 
+        RegTensor<float> vreg_alibi1;
+        RegTensor<float> vreg_alibi2;
+        RegTensor<float> vreg_alibi3;
+        RegTensor<float> vreg_alibi4;
+        RegTensor<float> vreg_alibi5;
+        RegTensor<float> vreg_alibi6;
+        RegTensor<float> vreg_alibi7;
+        RegTensor<float> vreg_alibi8;
+
         RegTensor<bfloat16_t> vreg_exp_even1_bf16;
         RegTensor<bfloat16_t> vreg_exp_odd1_bf16;
         RegTensor<bfloat16_t> vreg_exp_even2_bf16;
@@ -1457,6 +1466,17 @@ __aicore__ inline void ProcessVec1NoUpdateGeneralImpl512(
         MaskReg preg_compare8;
 
         Duplicate(vreg_min, minValue);
+        if constexpr (pseMode == PseTypeEnum::PSE_INNER_MUL_ADD_TYPE ||
+                      pseMode == PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE) {
+            Arange(vreg_alibi1, posShift);
+            Adds(vreg_alibi2, vreg_alibi1, floatRepSize, preg_all);
+            Adds(vreg_alibi3, vreg_alibi2, floatRepSize, preg_all);
+            Adds(vreg_alibi4, vreg_alibi3, floatRepSize, preg_all);
+            Adds(vreg_alibi5, vreg_alibi4, floatRepSize, preg_all);
+            Adds(vreg_alibi6, vreg_alibi5, floatRepSize, preg_all);
+            Adds(vreg_alibi7, vreg_alibi6, floatRepSize, preg_all);
+            Adds(vreg_alibi8, vreg_alibi7, floatRepSize, preg_all);
+        }
         for (uint16_t i = 0; i < m; ++i) {
             DataCopy(vreg_input_x1, srcUb + i * s2BaseSize);
             DataCopy(vreg_input_x2, srcUb + floatRepSize + i * s2BaseSize);
@@ -1479,44 +1499,82 @@ __aicore__ inline void ProcessVec1NoUpdateGeneralImpl512(
                 Muls(vreg_input_x8, vreg_input_x8, scale, preg_ori_tail_n4);
             }
             if constexpr (pseMode != PseTypeEnum::PSE_NONE_TYPE) {
-                if constexpr (IsSameType<T2, bfloat16_t>::value) {
-                    DataCopy(vreg_pse_bf16_src1, pseUb + i * pseStride);
-                    DataCopy(vreg_pse_bf16_src2, pseUb + floatRepSize * 2 + i * pseStride);
-                    DataCopy(vreg_pse_bf16_src3, pseUb + floatRepSize * 4 + i * pseStride);
-                    DataCopy(vreg_pse_bf16_src4, pseUb + floatRepSize * 6 + i * pseStride);
+                if constexpr (pseMode == PseTypeEnum::PSE_INNER_MUL_ADD_TYPE ||
+                    pseMode == PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE) {
+                    Abs(vreg_pse1, vreg_alibi1, preg_all);
+                    Abs(vreg_pse2, vreg_alibi2, preg_all);
+                    Abs(vreg_pse3, vreg_alibi3, preg_all);
+                    Abs(vreg_pse4, vreg_alibi4, preg_all);
+                    Abs(vreg_pse5, vreg_alibi5, preg_all);
+                    Abs(vreg_pse6, vreg_alibi6, preg_all);
+                    Abs(vreg_pse7, vreg_alibi7, preg_all);
+                    Abs(vreg_pse8, vreg_alibi8, preg_all);
+                    if constexpr (pseMode == PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE) {
+                        Sqrt(vreg_pse1, vreg_pse1, preg_all);
+                        Sqrt(vreg_pse2, vreg_pse2, preg_all);
+                        Sqrt(vreg_pse3, vreg_pse3, preg_all);
+                        Sqrt(vreg_pse4, vreg_pse4, preg_all);
+                        Sqrt(vreg_pse5, vreg_pse5, preg_all);
+                        Sqrt(vreg_pse6, vreg_pse6, preg_all);
+                        Sqrt(vreg_pse7, vreg_pse7, preg_all);
+                        Sqrt(vreg_pse8, vreg_pse8, preg_all);
+                    }
+                    Muls(vreg_pse1, vreg_pse1, slopes, preg_all);
+                    Muls(vreg_pse2, vreg_pse2, slopes, preg_all);
+                    Muls(vreg_pse3, vreg_pse3, slopes, preg_all);
+                    Muls(vreg_pse4, vreg_pse4, slopes, preg_all);
+                    Muls(vreg_pse5, vreg_pse5, slopes, preg_all);
+                    Muls(vreg_pse6, vreg_pse6, slopes, preg_all);
+                    Muls(vreg_pse7, vreg_pse7, slopes, preg_all);
+                    Muls(vreg_pse8, vreg_pse8, slopes, preg_all);
+                    Adds(vreg_alibi1, vreg_alibi1, -1.0f, preg_all);
+                    Adds(vreg_alibi2, vreg_alibi2, -1.0f, preg_all);
+                    Adds(vreg_alibi3, vreg_alibi3, -1.0f, preg_all);
+                    Adds(vreg_alibi4, vreg_alibi4, -1.0f, preg_all);
+                    Adds(vreg_alibi5, vreg_alibi5, -1.0f, preg_all);
+                    Adds(vreg_alibi6, vreg_alibi6, -1.0f, preg_all);
+                    Adds(vreg_alibi7, vreg_alibi7, -1.0f, preg_all);
+                    Adds(vreg_alibi8, vreg_alibi8, -1.0f, preg_all);
+                } else {
+                    if constexpr (IsSameType<T2, bfloat16_t>::value) {
+                        DataCopy(vreg_pse_bf16_src1, pseUb + i * pseStride);
+                        DataCopy(vreg_pse_bf16_src2, pseUb + floatRepSize * 2 + i * pseStride);
+                        DataCopy(vreg_pse_bf16_src3, pseUb + floatRepSize * 4 + i * pseStride);
+                        DataCopy(vreg_pse_bf16_src4, pseUb + floatRepSize * 6 + i * pseStride);
 
-                    Interleave(vreg_pse1_bf16, vreg_pse2_bf16, vreg_pse_bf16_src1, vreg_pse_bf16_src1);
-                    Interleave(vreg_pse3_bf16, vreg_pse4_bf16, vreg_pse_bf16_src2, vreg_pse_bf16_src2);
-                    Interleave(vreg_pse5_bf16, vreg_pse6_bf16, vreg_pse_bf16_src3, vreg_pse_bf16_src3);
-                    Interleave(vreg_pse7_bf16, vreg_pse8_bf16, vreg_pse_bf16_src4, vreg_pse_bf16_src4);
+                        Interleave(vreg_pse1_bf16, vreg_pse2_bf16, vreg_pse_bf16_src1, vreg_pse_bf16_src1);
+                        Interleave(vreg_pse3_bf16, vreg_pse4_bf16, vreg_pse_bf16_src2, vreg_pse_bf16_src2);
+                        Interleave(vreg_pse5_bf16, vreg_pse6_bf16, vreg_pse_bf16_src3, vreg_pse_bf16_src3);
+                        Interleave(vreg_pse7_bf16, vreg_pse8_bf16, vreg_pse_bf16_src4, vreg_pse_bf16_src4);
 
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse1, vreg_pse1_bf16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse2, vreg_pse2_bf16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse3, vreg_pse3_bf16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse4, vreg_pse4_bf16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse5, vreg_pse5_bf16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse6, vreg_pse6_bf16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse7, vreg_pse7_bf16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse8, vreg_pse8_bf16, preg_all_b16);
-                } else if constexpr (IsSameType<T2, half>::value) {
-                    DataCopy(vreg_pse_f16_src1, pseUb + i * pseStride);
-                    DataCopy(vreg_pse_f16_src2, pseUb + floatRepSize * 2 + i * pseStride);
-                    DataCopy(vreg_pse_f16_src3, pseUb + floatRepSize * 4 + i * pseStride);
-                    DataCopy(vreg_pse_f16_src4, pseUb + floatRepSize * 6 + i * pseStride);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse1, vreg_pse1_bf16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse2, vreg_pse2_bf16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse3, vreg_pse3_bf16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse4, vreg_pse4_bf16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse5, vreg_pse5_bf16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse6, vreg_pse6_bf16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse7, vreg_pse7_bf16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse8, vreg_pse8_bf16, preg_all_b16);
+                    } else if constexpr (IsSameType<T2, half>::value) {
+                        DataCopy(vreg_pse_f16_src1, pseUb + i * pseStride);
+                        DataCopy(vreg_pse_f16_src2, pseUb + floatRepSize * 2 + i * pseStride);
+                        DataCopy(vreg_pse_f16_src3, pseUb + floatRepSize * 4 + i * pseStride);
+                        DataCopy(vreg_pse_f16_src4, pseUb + floatRepSize * 6 + i * pseStride);
 
-                    Interleave(vreg_pse1_f16, vreg_pse2_f16, vreg_pse_f16_src1, vreg_pse_f16_src1);
-                    Interleave(vreg_pse3_f16, vreg_pse4_f16, vreg_pse_f16_src2, vreg_pse_f16_src2);
-                    Interleave(vreg_pse5_f16, vreg_pse6_f16, vreg_pse_f16_src3, vreg_pse_f16_src3);
-                    Interleave(vreg_pse7_f16, vreg_pse8_f16, vreg_pse_f16_src4, vreg_pse_f16_src4);
+                        Interleave(vreg_pse1_f16, vreg_pse2_f16, vreg_pse_f16_src1, vreg_pse_f16_src1);
+                        Interleave(vreg_pse3_f16, vreg_pse4_f16, vreg_pse_f16_src2, vreg_pse_f16_src2);
+                        Interleave(vreg_pse5_f16, vreg_pse6_f16, vreg_pse_f16_src3, vreg_pse_f16_src3);
+                        Interleave(vreg_pse7_f16, vreg_pse8_f16, vreg_pse_f16_src4, vreg_pse_f16_src4);
 
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse1, vreg_pse1_f16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse2, vreg_pse2_f16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse3, vreg_pse3_f16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse4, vreg_pse4_f16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse5, vreg_pse5_f16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse6, vreg_pse6_f16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse7, vreg_pse7_f16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse8, vreg_pse8_f16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse1, vreg_pse1_f16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse2, vreg_pse2_f16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse3, vreg_pse3_f16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse4, vreg_pse4_f16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse5, vreg_pse5_f16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse6, vreg_pse6_f16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse7, vreg_pse7_f16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse8, vreg_pse8_f16, preg_all_b16);
+                    }
                 }
                 Add(vreg_input_x1, vreg_input_x1, vreg_pse1, preg_all);
                 Add(vreg_input_x2, vreg_input_x2, vreg_pse2, preg_all);
@@ -1930,6 +1988,23 @@ __aicore__ inline void ProcessVec1NoUpdateGeneralImpl1024(
         RegTensor<float> vreg_pse15;
         RegTensor<float> vreg_pse16;
 
+        RegTensor<float> vreg_alibi1;
+        RegTensor<float> vreg_alibi2;
+        RegTensor<float> vreg_alibi3;
+        RegTensor<float> vreg_alibi4;
+        RegTensor<float> vreg_alibi5;
+        RegTensor<float> vreg_alibi6;
+        RegTensor<float> vreg_alibi7;
+        RegTensor<float> vreg_alibi8;
+        RegTensor<float> vreg_alibi9;
+        RegTensor<float> vreg_alibi10;
+        RegTensor<float> vreg_alibi11;
+        RegTensor<float> vreg_alibi12;
+        RegTensor<float> vreg_alibi13;
+        RegTensor<float> vreg_alibi14;
+        RegTensor<float> vreg_alibi15;
+        RegTensor<float> vreg_alibi16;
+
         RegTensor<bfloat16_t> vreg_exp_even1_bf16;
         RegTensor<bfloat16_t> vreg_exp_odd1_bf16;
         RegTensor<bfloat16_t> vreg_exp_even2_bf16;
@@ -2084,6 +2159,25 @@ __aicore__ inline void ProcessVec1NoUpdateGeneralImpl1024(
         MaskReg preg_compare16;
 
         Duplicate(vreg_min, minValue);
+        if constexpr (pseMode == PseTypeEnum::PSE_INNER_MUL_ADD_TYPE ||
+                      pseMode == PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE) {
+            Arange(vreg_alibi1, posShift);
+            Adds(vreg_alibi2, vreg_alibi1, floatRepSize, preg_all);
+            Adds(vreg_alibi3, vreg_alibi2, floatRepSize, preg_all);
+            Adds(vreg_alibi4, vreg_alibi3, floatRepSize, preg_all);
+            Adds(vreg_alibi5, vreg_alibi4, floatRepSize, preg_all);
+            Adds(vreg_alibi6, vreg_alibi5, floatRepSize, preg_all);
+            Adds(vreg_alibi7, vreg_alibi6, floatRepSize, preg_all);
+            Adds(vreg_alibi8, vreg_alibi7, floatRepSize, preg_all);
+            Adds(vreg_alibi9, vreg_alibi8, floatRepSize, preg_all);
+            Adds(vreg_alibi10, vreg_alibi9, floatRepSize, preg_all);
+            Adds(vreg_alibi11, vreg_alibi10, floatRepSize, preg_all);
+            Adds(vreg_alibi12, vreg_alibi11, floatRepSize, preg_all);
+            Adds(vreg_alibi13, vreg_alibi12, floatRepSize, preg_all);
+            Adds(vreg_alibi14, vreg_alibi13, floatRepSize, preg_all);
+            Adds(vreg_alibi15, vreg_alibi14, floatRepSize, preg_all);
+            Adds(vreg_alibi16, vreg_alibi15, floatRepSize, preg_all);
+        }
         for (uint16_t i = 0; i < m; ++i) {
             DataCopy(vreg_input_x1, srcUb + i * s2BaseSize);
             DataCopy(vreg_input_x2, srcUb + floatRepSize + i * s2BaseSize);
@@ -2123,78 +2217,148 @@ __aicore__ inline void ProcessVec1NoUpdateGeneralImpl1024(
                 Muls(vreg_input_x16, vreg_input_x16, scale, preg_ori_tail_n8);
             }
             if constexpr (pseMode != PseTypeEnum::PSE_NONE_TYPE) {
-                if constexpr (IsSameType<T2, bfloat16_t>::value) {
-                    DataCopy(vreg_pse_bf16_src1, pseUb + i * pseStride);
-                    DataCopy(vreg_pse_bf16_src2, pseUb + floatRepSize * 2 + i * pseStride);
-                    DataCopy(vreg_pse_bf16_src3, pseUb + floatRepSize * 4 + i * pseStride);
-                    DataCopy(vreg_pse_bf16_src4, pseUb + floatRepSize * 6 + i * pseStride);
-                    DataCopy(vreg_pse_bf16_src5, pseUb + floatRepSize * 8 + i * pseStride);
-                    DataCopy(vreg_pse_bf16_src6, pseUb + floatRepSize * 10 + i * pseStride);
-                    DataCopy(vreg_pse_bf16_src7, pseUb + floatRepSize * 12 + i * pseStride);
-                    DataCopy(vreg_pse_bf16_src8, pseUb + floatRepSize * 14 + i * pseStride);
+                if constexpr (pseMode == PseTypeEnum::PSE_INNER_MUL_ADD_TYPE ||
+                    pseMode == PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE) {
+                    Abs(vreg_pse1, vreg_alibi1, preg_all);
+                    Abs(vreg_pse2, vreg_alibi2, preg_all);
+                    Abs(vreg_pse3, vreg_alibi3, preg_all);
+                    Abs(vreg_pse4, vreg_alibi4, preg_all);
+                    Abs(vreg_pse5, vreg_alibi5, preg_all);
+                    Abs(vreg_pse6, vreg_alibi6, preg_all);
+                    Abs(vreg_pse7, vreg_alibi7, preg_all);
+                    Abs(vreg_pse8, vreg_alibi8, preg_all);
+                    Abs(vreg_pse9, vreg_alibi9, preg_all);
+                    Abs(vreg_pse10, vreg_alibi10, preg_all);
+                    Abs(vreg_pse11, vreg_alibi11, preg_all);
+                    Abs(vreg_pse12, vreg_alibi12, preg_all);
+                    Abs(vreg_pse13, vreg_alibi13, preg_all);
+                    Abs(vreg_pse14, vreg_alibi14, preg_all);
+                    Abs(vreg_pse15, vreg_alibi15, preg_all);
+                    Abs(vreg_pse16, vreg_alibi16, preg_all);
+                    if constexpr (pseMode == PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE) {
+                        Sqrt(vreg_pse1, vreg_pse1, preg_all);
+                        Sqrt(vreg_pse2, vreg_pse2, preg_all);
+                        Sqrt(vreg_pse3, vreg_pse3, preg_all);
+                        Sqrt(vreg_pse4, vreg_pse4, preg_all);
+                        Sqrt(vreg_pse5, vreg_pse5, preg_all);
+                        Sqrt(vreg_pse6, vreg_pse6, preg_all);
+                        Sqrt(vreg_pse7, vreg_pse7, preg_all);
+                        Sqrt(vreg_pse8, vreg_pse8, preg_all);
+                        Sqrt(vreg_pse9, vreg_pse9, preg_all);
+                        Sqrt(vreg_pse10, vreg_pse10, preg_all);
+                        Sqrt(vreg_pse11, vreg_pse11, preg_all);
+                        Sqrt(vreg_pse12, vreg_pse12, preg_all);
+                        Sqrt(vreg_pse13, vreg_pse13, preg_all);
+                        Sqrt(vreg_pse14, vreg_pse14, preg_all);
+                        Sqrt(vreg_pse15, vreg_pse15, preg_all);
+                        Sqrt(vreg_pse16, vreg_pse16, preg_all);
+                    }
+                    Muls(vreg_pse1, vreg_pse1, slopes, preg_all);
+                    Muls(vreg_pse2, vreg_pse2, slopes, preg_all);
+                    Muls(vreg_pse3, vreg_pse3, slopes, preg_all);
+                    Muls(vreg_pse4, vreg_pse4, slopes, preg_all);
+                    Muls(vreg_pse5, vreg_pse5, slopes, preg_all);
+                    Muls(vreg_pse6, vreg_pse6, slopes, preg_all);
+                    Muls(vreg_pse7, vreg_pse7, slopes, preg_all);
+                    Muls(vreg_pse8, vreg_pse8, slopes, preg_all);
+                    Muls(vreg_pse9, vreg_pse9, slopes, preg_all);
+                    Muls(vreg_pse10, vreg_pse10, slopes, preg_all);
+                    Muls(vreg_pse11, vreg_pse11, slopes, preg_all);
+                    Muls(vreg_pse12, vreg_pse12, slopes, preg_all);
+                    Muls(vreg_pse13, vreg_pse13, slopes, preg_all);
+                    Muls(vreg_pse14, vreg_pse14, slopes, preg_all);
+                    Muls(vreg_pse15, vreg_pse15, slopes, preg_all);
+                    Muls(vreg_pse16, vreg_pse16, slopes, preg_all);
+                    Adds(vreg_alibi1, vreg_alibi1, -1.0f, preg_all);
+                    Adds(vreg_alibi2, vreg_alibi2, -1.0f, preg_all);
+                    Adds(vreg_alibi3, vreg_alibi3, -1.0f, preg_all);
+                    Adds(vreg_alibi4, vreg_alibi4, -1.0f, preg_all);
+                    Adds(vreg_alibi5, vreg_alibi5, -1.0f, preg_all);
+                    Adds(vreg_alibi6, vreg_alibi6, -1.0f, preg_all);
+                    Adds(vreg_alibi7, vreg_alibi7, -1.0f, preg_all);
+                    Adds(vreg_alibi8, vreg_alibi8, -1.0f, preg_all);
+                    Adds(vreg_alibi9, vreg_alibi9, -1.0f, preg_all);
+                    Adds(vreg_alibi10, vreg_alibi10, -1.0f, preg_all);
+                    Adds(vreg_alibi11, vreg_alibi11, -1.0f, preg_all);
+                    Adds(vreg_alibi12, vreg_alibi12, -1.0f, preg_all);
+                    Adds(vreg_alibi13, vreg_alibi13, -1.0f, preg_all);
+                    Adds(vreg_alibi14, vreg_alibi14, -1.0f, preg_all);
+                    Adds(vreg_alibi15, vreg_alibi15, -1.0f, preg_all);
+                    Adds(vreg_alibi16, vreg_alibi16, -1.0f, preg_all);
+                } else {
+                    if constexpr (IsSameType<T2, bfloat16_t>::value) {
+                        DataCopy(vreg_pse_bf16_src1, pseUb + i * pseStride);
+                        DataCopy(vreg_pse_bf16_src2, pseUb + floatRepSize * 2 + i * pseStride);
+                        DataCopy(vreg_pse_bf16_src3, pseUb + floatRepSize * 4 + i * pseStride);
+                        DataCopy(vreg_pse_bf16_src4, pseUb + floatRepSize * 6 + i * pseStride);
+                        DataCopy(vreg_pse_bf16_src5, pseUb + floatRepSize * 8 + i * pseStride);
+                        DataCopy(vreg_pse_bf16_src6, pseUb + floatRepSize * 10 + i * pseStride);
+                        DataCopy(vreg_pse_bf16_src7, pseUb + floatRepSize * 12 + i * pseStride);
+                        DataCopy(vreg_pse_bf16_src8, pseUb + floatRepSize * 14 + i * pseStride);
 
-                    Interleave(vreg_pse1_bf16, vreg_pse2_bf16, vreg_pse_bf16_src1, vreg_pse_bf16_src1);
-                    Interleave(vreg_pse3_bf16, vreg_pse4_bf16, vreg_pse_bf16_src2, vreg_pse_bf16_src2);
-                    Interleave(vreg_pse5_bf16, vreg_pse6_bf16, vreg_pse_bf16_src3, vreg_pse_bf16_src3);
-                    Interleave(vreg_pse7_bf16, vreg_pse8_bf16, vreg_pse_bf16_src4, vreg_pse_bf16_src4);
-                    Interleave(vreg_pse9_bf16, vreg_pse10_bf16, vreg_pse_bf16_src5, vreg_pse_bf16_src5);
-                    Interleave(vreg_pse11_bf16, vreg_pse12_bf16, vreg_pse_bf16_src6, vreg_pse_bf16_src6);
-                    Interleave(vreg_pse13_bf16, vreg_pse14_bf16, vreg_pse_bf16_src7, vreg_pse_bf16_src7);
-                    Interleave(vreg_pse15_bf16, vreg_pse16_bf16, vreg_pse_bf16_src8, vreg_pse_bf16_src8);
+                        Interleave(vreg_pse1_bf16, vreg_pse2_bf16, vreg_pse_bf16_src1, vreg_pse_bf16_src1);
+                        Interleave(vreg_pse3_bf16, vreg_pse4_bf16, vreg_pse_bf16_src2, vreg_pse_bf16_src2);
+                        Interleave(vreg_pse5_bf16, vreg_pse6_bf16, vreg_pse_bf16_src3, vreg_pse_bf16_src3);
+                        Interleave(vreg_pse7_bf16, vreg_pse8_bf16, vreg_pse_bf16_src4, vreg_pse_bf16_src4);
+                        Interleave(vreg_pse9_bf16, vreg_pse10_bf16, vreg_pse_bf16_src5, vreg_pse_bf16_src5);
+                        Interleave(vreg_pse11_bf16, vreg_pse12_bf16, vreg_pse_bf16_src6, vreg_pse_bf16_src6);
+                        Interleave(vreg_pse13_bf16, vreg_pse14_bf16, vreg_pse_bf16_src7, vreg_pse_bf16_src7);
+                        Interleave(vreg_pse15_bf16, vreg_pse16_bf16, vreg_pse_bf16_src8, vreg_pse_bf16_src8);
 
 
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse1, vreg_pse1_bf16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse2, vreg_pse2_bf16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse3, vreg_pse3_bf16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse4, vreg_pse4_bf16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse5, vreg_pse5_bf16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse6, vreg_pse6_bf16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse7, vreg_pse7_bf16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse8, vreg_pse8_bf16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse9, vreg_pse9_bf16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse10, vreg_pse10_bf16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse11, vreg_pse11_bf16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse12, vreg_pse12_bf16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse13, vreg_pse13_bf16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse14, vreg_pse14_bf16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse15, vreg_pse15_bf16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse16, vreg_pse16_bf16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse1, vreg_pse1_bf16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse2, vreg_pse2_bf16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse3, vreg_pse3_bf16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse4, vreg_pse4_bf16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse5, vreg_pse5_bf16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse6, vreg_pse6_bf16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse7, vreg_pse7_bf16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse8, vreg_pse8_bf16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse9, vreg_pse9_bf16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse10, vreg_pse10_bf16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse11, vreg_pse11_bf16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse12, vreg_pse12_bf16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse13, vreg_pse13_bf16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse14, vreg_pse14_bf16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse15, vreg_pse15_bf16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse16, vreg_pse16_bf16, preg_all_b16);
 
-                } else if constexpr (IsSameType<T2, half>::value) {
-                    DataCopy(vreg_pse_f16_src1, pseUb + i * pseStride);
-                    DataCopy(vreg_pse_f16_src2, pseUb + floatRepSize * 2 + i * pseStride);
-                    DataCopy(vreg_pse_f16_src3, pseUb + floatRepSize * 4 + i * pseStride);
-                    DataCopy(vreg_pse_f16_src4, pseUb + floatRepSize * 6 + i * pseStride);
-                    DataCopy(vreg_pse_f16_src5, pseUb + floatRepSize * 8 + i * pseStride);
-                    DataCopy(vreg_pse_f16_src6, pseUb + floatRepSize * 10 + i * pseStride);
-                    DataCopy(vreg_pse_f16_src7, pseUb + floatRepSize * 12 + i * pseStride);
-                    DataCopy(vreg_pse_f16_src8, pseUb + floatRepSize * 14 + i * pseStride);
+                    } else if constexpr (IsSameType<T2, half>::value) {
+                        DataCopy(vreg_pse_f16_src1, pseUb + i * pseStride);
+                        DataCopy(vreg_pse_f16_src2, pseUb + floatRepSize * 2 + i * pseStride);
+                        DataCopy(vreg_pse_f16_src3, pseUb + floatRepSize * 4 + i * pseStride);
+                        DataCopy(vreg_pse_f16_src4, pseUb + floatRepSize * 6 + i * pseStride);
+                        DataCopy(vreg_pse_f16_src5, pseUb + floatRepSize * 8 + i * pseStride);
+                        DataCopy(vreg_pse_f16_src6, pseUb + floatRepSize * 10 + i * pseStride);
+                        DataCopy(vreg_pse_f16_src7, pseUb + floatRepSize * 12 + i * pseStride);
+                        DataCopy(vreg_pse_f16_src8, pseUb + floatRepSize * 14 + i * pseStride);
 
-                    Interleave(vreg_pse1_f16, vreg_pse2_f16, vreg_pse_f16_src1, vreg_pse_f16_src1);
-                    Interleave(vreg_pse3_f16, vreg_pse4_f16, vreg_pse_f16_src2, vreg_pse_f16_src2);
-                    Interleave(vreg_pse5_f16, vreg_pse6_f16, vreg_pse_f16_src3, vreg_pse_f16_src3);
-                    Interleave(vreg_pse7_f16, vreg_pse8_f16, vreg_pse_f16_src4, vreg_pse_f16_src4);
-                    Interleave(vreg_pse9_f16, vreg_pse10_f16, vreg_pse_f16_src5, vreg_pse_f16_src5);
-                    Interleave(vreg_pse11_f16, vreg_pse12_f16, vreg_pse_f16_src6, vreg_pse_f16_src6);
-                    Interleave(vreg_pse13_f16, vreg_pse14_f16, vreg_pse_f16_src7, vreg_pse_f16_src7);
-                    Interleave(vreg_pse15_f16, vreg_pse16_f16, vreg_pse_f16_src8, vreg_pse_f16_src8);
+                        Interleave(vreg_pse1_f16, vreg_pse2_f16, vreg_pse_f16_src1, vreg_pse_f16_src1);
+                        Interleave(vreg_pse3_f16, vreg_pse4_f16, vreg_pse_f16_src2, vreg_pse_f16_src2);
+                        Interleave(vreg_pse5_f16, vreg_pse6_f16, vreg_pse_f16_src3, vreg_pse_f16_src3);
+                        Interleave(vreg_pse7_f16, vreg_pse8_f16, vreg_pse_f16_src4, vreg_pse_f16_src4);
+                        Interleave(vreg_pse9_f16, vreg_pse10_f16, vreg_pse_f16_src5, vreg_pse_f16_src5);
+                        Interleave(vreg_pse11_f16, vreg_pse12_f16, vreg_pse_f16_src6, vreg_pse_f16_src6);
+                        Interleave(vreg_pse13_f16, vreg_pse14_f16, vreg_pse_f16_src7, vreg_pse_f16_src7);
+                        Interleave(vreg_pse15_f16, vreg_pse16_f16, vreg_pse_f16_src8, vreg_pse_f16_src8);
 
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse1, vreg_pse1_f16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse2, vreg_pse2_f16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse3, vreg_pse3_f16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse4, vreg_pse4_f16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse5, vreg_pse5_f16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse6, vreg_pse6_f16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse7, vreg_pse7_f16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse8, vreg_pse8_f16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse9, vreg_pse9_f16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse10, vreg_pse10_f16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse11, vreg_pse11_f16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse12, vreg_pse12_f16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse13, vreg_pse13_f16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse14, vreg_pse14_f16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse15, vreg_pse15_f16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse16, vreg_pse16_f16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse1, vreg_pse1_f16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse2, vreg_pse2_f16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse3, vreg_pse3_f16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse4, vreg_pse4_f16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse5, vreg_pse5_f16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse6, vreg_pse6_f16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse7, vreg_pse7_f16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse8, vreg_pse8_f16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse9, vreg_pse9_f16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse10, vreg_pse10_f16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse11, vreg_pse11_f16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse12, vreg_pse12_f16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse13, vreg_pse13_f16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse14, vreg_pse14_f16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse15, vreg_pse15_f16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse16, vreg_pse16_f16, preg_all_b16);
+                    }
                 }
                 Add(vreg_input_x1, vreg_input_x1, vreg_pse1, preg_all);
                 Add(vreg_input_x2, vreg_input_x2, vreg_pse2, preg_all);
@@ -4082,6 +4246,23 @@ __aicore__ inline void ProcessVec1UpdateGeneralImpl1024(
         RegTensor<float> vreg_pse15;
         RegTensor<float> vreg_pse16;
 
+        RegTensor<float> vreg_alibi1;
+        RegTensor<float> vreg_alibi2;
+        RegTensor<float> vreg_alibi3;
+        RegTensor<float> vreg_alibi4;
+        RegTensor<float> vreg_alibi5;
+        RegTensor<float> vreg_alibi6;
+        RegTensor<float> vreg_alibi7;
+        RegTensor<float> vreg_alibi8;
+        RegTensor<float> vreg_alibi9;
+        RegTensor<float> vreg_alibi10;
+        RegTensor<float> vreg_alibi11;
+        RegTensor<float> vreg_alibi12;
+        RegTensor<float> vreg_alibi13;
+        RegTensor<float> vreg_alibi14;
+        RegTensor<float> vreg_alibi15;
+        RegTensor<float> vreg_alibi16;
+
         // bfloat16_t
         RegTensor<bfloat16_t> vreg_exp_even1_bf16;
         RegTensor<bfloat16_t> vreg_exp_odd1_bf16;
@@ -4231,6 +4412,25 @@ __aicore__ inline void ProcessVec1UpdateGeneralImpl1024(
         MaskReg preg_compare16;
 
         Duplicate(vreg_min, minValue);
+        if constexpr (pseMode == PseTypeEnum::PSE_INNER_MUL_ADD_TYPE ||
+                      pseMode == PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE) {
+            Arange(vreg_alibi1, posShift);
+            Adds(vreg_alibi2, vreg_alibi1, floatRepSize, preg_all);
+            Adds(vreg_alibi3, vreg_alibi2, floatRepSize, preg_all);
+            Adds(vreg_alibi4, vreg_alibi3, floatRepSize, preg_all);
+            Adds(vreg_alibi5, vreg_alibi4, floatRepSize, preg_all);
+            Adds(vreg_alibi6, vreg_alibi5, floatRepSize, preg_all);
+            Adds(vreg_alibi7, vreg_alibi6, floatRepSize, preg_all);
+            Adds(vreg_alibi8, vreg_alibi7, floatRepSize, preg_all);
+            Adds(vreg_alibi9, vreg_alibi8, floatRepSize, preg_all);
+            Adds(vreg_alibi10, vreg_alibi9, floatRepSize, preg_all);
+            Adds(vreg_alibi11, vreg_alibi10, floatRepSize, preg_all);
+            Adds(vreg_alibi12, vreg_alibi11, floatRepSize, preg_all);
+            Adds(vreg_alibi13, vreg_alibi12, floatRepSize, preg_all);
+            Adds(vreg_alibi14, vreg_alibi13, floatRepSize, preg_all);
+            Adds(vreg_alibi15, vreg_alibi14, floatRepSize, preg_all);
+            Adds(vreg_alibi16, vreg_alibi15, floatRepSize, preg_all);
+        }
         for (uint16_t i = 0; i < m; ++i) {
             DataCopy(vreg_input_x1, srcUb + i * s2BaseSize);
             DataCopy(vreg_input_x2, srcUb + floatRepSize + i * s2BaseSize);
@@ -4269,76 +4469,148 @@ __aicore__ inline void ProcessVec1UpdateGeneralImpl1024(
                 Muls(vreg_input_x16, vreg_input_x16, scale, preg_ori_tail_n8);
             }
             if constexpr (pseMode != PseTypeEnum::PSE_NONE_TYPE) {
-                if constexpr (IsSameType<T2, bfloat16_t>::value) {
-                    DataCopy(vreg_pse_bf16_src1, pseUb + i * pseStride);
-                    DataCopy(vreg_pse_bf16_src2, pseUb + floatRepSize * 2 + i * pseStride);
-                    DataCopy(vreg_pse_bf16_src3, pseUb + floatRepSize * 4 + i * pseStride);
-                    DataCopy(vreg_pse_bf16_src4, pseUb + floatRepSize * 6 + i * pseStride);
-                    DataCopy(vreg_pse_bf16_src5, pseUb + floatRepSize * 8 + i * pseStride);
-                    DataCopy(vreg_pse_bf16_src6, pseUb + floatRepSize * 10 + i * pseStride);
-                    DataCopy(vreg_pse_bf16_src7, pseUb + floatRepSize * 12 + i * pseStride);
-                    DataCopy(vreg_pse_bf16_src8, pseUb + floatRepSize * 14 + i * pseStride);
+                if constexpr (pseMode == PseTypeEnum::PSE_INNER_MUL_ADD_TYPE ||
+                              pseMode == PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE) {
+                    Abs(vreg_pse1, vreg_alibi1, preg_all);
+                    Abs(vreg_pse2, vreg_alibi2, preg_all);
+                    Abs(vreg_pse3, vreg_alibi3, preg_all);
+                    Abs(vreg_pse4, vreg_alibi4, preg_all);
+                    Abs(vreg_pse5, vreg_alibi5, preg_all);
+                    Abs(vreg_pse6, vreg_alibi6, preg_all);
+                    Abs(vreg_pse7, vreg_alibi7, preg_all);
+                    Abs(vreg_pse8, vreg_alibi8, preg_all);
+                    Abs(vreg_pse9, vreg_alibi9, preg_all);
+                    Abs(vreg_pse10, vreg_alibi10, preg_all);
+                    Abs(vreg_pse11, vreg_alibi11, preg_all);
+                    Abs(vreg_pse12, vreg_alibi12, preg_all);
+                    Abs(vreg_pse13, vreg_alibi13, preg_all);
+                    Abs(vreg_pse14, vreg_alibi14, preg_all);
+                    Abs(vreg_pse15, vreg_alibi15, preg_all);
+                    Abs(vreg_pse16, vreg_alibi16, preg_all);
+                    if constexpr (pseMode == PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE) {
+                        Sqrt(vreg_pse1, vreg_pse1, preg_all);
+                        Sqrt(vreg_pse2, vreg_pse2, preg_all);
+                        Sqrt(vreg_pse3, vreg_pse3, preg_all);
+                        Sqrt(vreg_pse4, vreg_pse4, preg_all);
+                        Sqrt(vreg_pse5, vreg_pse5, preg_all);
+                        Sqrt(vreg_pse6, vreg_pse6, preg_all);
+                        Sqrt(vreg_pse7, vreg_pse7, preg_all);
+                        Sqrt(vreg_pse8, vreg_pse8, preg_all);
+                        Sqrt(vreg_pse9, vreg_pse9, preg_all);
+                        Sqrt(vreg_pse10, vreg_pse10, preg_all);
+                        Sqrt(vreg_pse11, vreg_pse11, preg_all);
+                        Sqrt(vreg_pse12, vreg_pse12, preg_all);
+                        Sqrt(vreg_pse13, vreg_pse13, preg_all);
+                        Sqrt(vreg_pse14, vreg_pse14, preg_all);
+                        Sqrt(vreg_pse15, vreg_pse15, preg_all);
+                        Sqrt(vreg_pse16, vreg_pse16, preg_all);
+                    }
+                    Muls(vreg_pse1, vreg_pse1, slopes, preg_all);
+                    Muls(vreg_pse2, vreg_pse2, slopes, preg_all);
+                    Muls(vreg_pse3, vreg_pse3, slopes, preg_all);
+                    Muls(vreg_pse4, vreg_pse4, slopes, preg_all);
+                    Muls(vreg_pse5, vreg_pse5, slopes, preg_all);
+                    Muls(vreg_pse6, vreg_pse6, slopes, preg_all);
+                    Muls(vreg_pse7, vreg_pse7, slopes, preg_all);
+                    Muls(vreg_pse8, vreg_pse8, slopes, preg_all);
+                    Muls(vreg_pse9, vreg_pse9, slopes, preg_all);
+                    Muls(vreg_pse10, vreg_pse10, slopes, preg_all);
+                    Muls(vreg_pse11, vreg_pse11, slopes, preg_all);
+                    Muls(vreg_pse12, vreg_pse12, slopes, preg_all);
+                    Muls(vreg_pse13, vreg_pse13, slopes, preg_all);
+                    Muls(vreg_pse14, vreg_pse14, slopes, preg_all);
+                    Muls(vreg_pse15, vreg_pse15, slopes, preg_all);
+                    Muls(vreg_pse16, vreg_pse16, slopes, preg_all);
+                    Adds(vreg_alibi1, vreg_alibi1, -1.0f, preg_all);
+                    Adds(vreg_alibi2, vreg_alibi2, -1.0f, preg_all);
+                    Adds(vreg_alibi3, vreg_alibi3, -1.0f, preg_all);
+                    Adds(vreg_alibi4, vreg_alibi4, -1.0f, preg_all);
+                    Adds(vreg_alibi5, vreg_alibi5, -1.0f, preg_all);
+                    Adds(vreg_alibi6, vreg_alibi6, -1.0f, preg_all);
+                    Adds(vreg_alibi7, vreg_alibi7, -1.0f, preg_all);
+                    Adds(vreg_alibi8, vreg_alibi8, -1.0f, preg_all);
+                    Adds(vreg_alibi9, vreg_alibi9, -1.0f, preg_all);
+                    Adds(vreg_alibi10, vreg_alibi10, -1.0f, preg_all);
+                    Adds(vreg_alibi11, vreg_alibi11, -1.0f, preg_all);
+                    Adds(vreg_alibi12, vreg_alibi12, -1.0f, preg_all);
+                    Adds(vreg_alibi13, vreg_alibi13, -1.0f, preg_all);
+                    Adds(vreg_alibi14, vreg_alibi14, -1.0f, preg_all);
+                    Adds(vreg_alibi15, vreg_alibi15, -1.0f, preg_all);
+                    Adds(vreg_alibi16, vreg_alibi16, -1.0f, preg_all);
+                } else {
+                    if constexpr (IsSameType<T2, bfloat16_t>::value) {
+                        DataCopy(vreg_pse_bf16_src1, pseUb + i * pseStride);
+                        DataCopy(vreg_pse_bf16_src2, pseUb + floatRepSize * 2 + i * pseStride);
+                        DataCopy(vreg_pse_bf16_src3, pseUb + floatRepSize * 4 + i * pseStride);
+                        DataCopy(vreg_pse_bf16_src4, pseUb + floatRepSize * 6 + i * pseStride);
+                        DataCopy(vreg_pse_bf16_src5, pseUb + floatRepSize * 8 + i * pseStride);
+                        DataCopy(vreg_pse_bf16_src6, pseUb + floatRepSize * 10 + i * pseStride);
+                        DataCopy(vreg_pse_bf16_src7, pseUb + floatRepSize * 12 + i * pseStride);
+                        DataCopy(vreg_pse_bf16_src8, pseUb + floatRepSize * 14 + i * pseStride);
 
-                    Interleave(vreg_pse1_bf16, vreg_pse2_bf16, vreg_pse_bf16_src1, vreg_pse_bf16_src1);
-                    Interleave(vreg_pse3_bf16, vreg_pse4_bf16, vreg_pse_bf16_src2, vreg_pse_bf16_src2);
-                    Interleave(vreg_pse5_bf16, vreg_pse6_bf16, vreg_pse_bf16_src3, vreg_pse_bf16_src3);
-                    Interleave(vreg_pse7_bf16, vreg_pse8_bf16, vreg_pse_bf16_src4, vreg_pse_bf16_src4);
-                    Interleave(vreg_pse9_bf16, vreg_pse10_bf16, vreg_pse_bf16_src5, vreg_pse_bf16_src5);
-                    Interleave(vreg_pse11_bf16, vreg_pse12_bf16, vreg_pse_bf16_src6, vreg_pse_bf16_src6);
-                    Interleave(vreg_pse13_bf16, vreg_pse14_bf16, vreg_pse_bf16_src7, vreg_pse_bf16_src7);
-                    Interleave(vreg_pse15_bf16, vreg_pse16_bf16, vreg_pse_bf16_src8, vreg_pse_bf16_src8);
+                        Interleave(vreg_pse1_bf16, vreg_pse2_bf16, vreg_pse_bf16_src1, vreg_pse_bf16_src1);
+                        Interleave(vreg_pse3_bf16, vreg_pse4_bf16, vreg_pse_bf16_src2, vreg_pse_bf16_src2);
+                        Interleave(vreg_pse5_bf16, vreg_pse6_bf16, vreg_pse_bf16_src3, vreg_pse_bf16_src3);
+                        Interleave(vreg_pse7_bf16, vreg_pse8_bf16, vreg_pse_bf16_src4, vreg_pse_bf16_src4);
+                        Interleave(vreg_pse9_bf16, vreg_pse10_bf16, vreg_pse_bf16_src5, vreg_pse_bf16_src5);
+                        Interleave(vreg_pse11_bf16, vreg_pse12_bf16, vreg_pse_bf16_src6, vreg_pse_bf16_src6);
+                        Interleave(vreg_pse13_bf16, vreg_pse14_bf16, vreg_pse_bf16_src7, vreg_pse_bf16_src7);
+                        Interleave(vreg_pse15_bf16, vreg_pse16_bf16, vreg_pse_bf16_src8, vreg_pse_bf16_src8);
 
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse1, vreg_pse1_bf16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse2, vreg_pse2_bf16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse3, vreg_pse3_bf16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse4, vreg_pse4_bf16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse5, vreg_pse5_bf16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse6, vreg_pse6_bf16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse7, vreg_pse7_bf16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse8, vreg_pse8_bf16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse9, vreg_pse9_bf16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse10, vreg_pse10_bf16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse11, vreg_pse11_bf16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse12, vreg_pse12_bf16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse13, vreg_pse13_bf16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse14, vreg_pse14_bf16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse15, vreg_pse15_bf16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse16, vreg_pse16_bf16, preg_all_b16);
-                } else if constexpr (IsSameType<T2, half>::value) {
-                    DataCopy(vreg_pse_f16_src1, pseUb + i * pseStride);
-                    DataCopy(vreg_pse_f16_src2, pseUb + floatRepSize * 2 + i * pseStride);
-                    DataCopy(vreg_pse_f16_src3, pseUb + floatRepSize * 4 + i * pseStride);
-                    DataCopy(vreg_pse_f16_src4, pseUb + floatRepSize * 6 + i * pseStride);
-                    DataCopy(vreg_pse_f16_src5, pseUb + floatRepSize * 8 + i * pseStride);
-                    DataCopy(vreg_pse_f16_src6, pseUb + floatRepSize * 10 + i * pseStride);
-                    DataCopy(vreg_pse_f16_src7, pseUb + floatRepSize * 12 + i * pseStride);
-                    DataCopy(vreg_pse_f16_src8, pseUb + floatRepSize * 14 + i * pseStride);
 
-                    Interleave(vreg_pse1_f16, vreg_pse2_f16, vreg_pse_f16_src1, vreg_pse_f16_src1);
-                    Interleave(vreg_pse3_f16, vreg_pse4_f16, vreg_pse_f16_src2, vreg_pse_f16_src2);
-                    Interleave(vreg_pse5_f16, vreg_pse6_f16, vreg_pse_f16_src3, vreg_pse_f16_src3);
-                    Interleave(vreg_pse7_f16, vreg_pse8_f16, vreg_pse_f16_src4, vreg_pse_f16_src4);
-                    Interleave(vreg_pse9_f16, vreg_pse10_f16, vreg_pse_f16_src5, vreg_pse_f16_src5);
-                    Interleave(vreg_pse11_f16, vreg_pse12_f16, vreg_pse_f16_src6, vreg_pse_f16_src6);
-                    Interleave(vreg_pse13_f16, vreg_pse14_f16, vreg_pse_f16_src7, vreg_pse_f16_src7);
-                    Interleave(vreg_pse15_f16, vreg_pse16_f16, vreg_pse_f16_src8, vreg_pse_f16_src8);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse1, vreg_pse1_bf16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse2, vreg_pse2_bf16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse3, vreg_pse3_bf16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse4, vreg_pse4_bf16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse5, vreg_pse5_bf16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse6, vreg_pse6_bf16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse7, vreg_pse7_bf16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse8, vreg_pse8_bf16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse9, vreg_pse9_bf16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse10, vreg_pse10_bf16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse11, vreg_pse11_bf16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse12, vreg_pse12_bf16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse13, vreg_pse13_bf16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse14, vreg_pse14_bf16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse15, vreg_pse15_bf16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse16, vreg_pse16_bf16, preg_all_b16);
 
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse1, vreg_pse1_f16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse2, vreg_pse2_f16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse3, vreg_pse3_f16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse4, vreg_pse4_f16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse5, vreg_pse5_f16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse6, vreg_pse6_f16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse7, vreg_pse7_f16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse8, vreg_pse8_f16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse9, vreg_pse9_f16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse10, vreg_pse10_f16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse11, vreg_pse11_f16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse12, vreg_pse12_f16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse13, vreg_pse13_f16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse14, vreg_pse14_f16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse15, vreg_pse15_f16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse16, vreg_pse16_f16, preg_all_b16);
+                    } else if constexpr (IsSameType<T2, half>::value) {
+                        DataCopy(vreg_pse_f16_src1, pseUb + i * pseStride);
+                        DataCopy(vreg_pse_f16_src2, pseUb + floatRepSize * 2 + i * pseStride);
+                        DataCopy(vreg_pse_f16_src3, pseUb + floatRepSize * 4 + i * pseStride);
+                        DataCopy(vreg_pse_f16_src4, pseUb + floatRepSize * 6 + i * pseStride);
+                        DataCopy(vreg_pse_f16_src5, pseUb + floatRepSize * 8 + i * pseStride);
+                        DataCopy(vreg_pse_f16_src6, pseUb + floatRepSize * 10 + i * pseStride);
+                        DataCopy(vreg_pse_f16_src7, pseUb + floatRepSize * 12 + i * pseStride);
+                        DataCopy(vreg_pse_f16_src8, pseUb + floatRepSize * 14 + i * pseStride);
+
+                        Interleave(vreg_pse1_f16, vreg_pse2_f16, vreg_pse_f16_src1, vreg_pse_f16_src1);
+                        Interleave(vreg_pse3_f16, vreg_pse4_f16, vreg_pse_f16_src2, vreg_pse_f16_src2);
+                        Interleave(vreg_pse5_f16, vreg_pse6_f16, vreg_pse_f16_src3, vreg_pse_f16_src3);
+                        Interleave(vreg_pse7_f16, vreg_pse8_f16, vreg_pse_f16_src4, vreg_pse_f16_src4);
+                        Interleave(vreg_pse9_f16, vreg_pse10_f16, vreg_pse_f16_src5, vreg_pse_f16_src5);
+                        Interleave(vreg_pse11_f16, vreg_pse12_f16, vreg_pse_f16_src6, vreg_pse_f16_src6);
+                        Interleave(vreg_pse13_f16, vreg_pse14_f16, vreg_pse_f16_src7, vreg_pse_f16_src7);
+                        Interleave(vreg_pse15_f16, vreg_pse16_f16, vreg_pse_f16_src8, vreg_pse_f16_src8);
+
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse1, vreg_pse1_f16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse2, vreg_pse2_f16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse3, vreg_pse3_f16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse4, vreg_pse4_f16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse5, vreg_pse5_f16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse6, vreg_pse6_f16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse7, vreg_pse7_f16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse8, vreg_pse8_f16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse9, vreg_pse9_f16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse10, vreg_pse10_f16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse11, vreg_pse11_f16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse12, vreg_pse12_f16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse13, vreg_pse13_f16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse14, vreg_pse14_f16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse15, vreg_pse15_f16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse16, vreg_pse16_f16, preg_all_b16);
+                    }
                 }
                 Add(vreg_input_x1, vreg_input_x1, vreg_pse1, preg_all);
                 Add(vreg_input_x2, vreg_input_x2, vreg_pse2, preg_all);
@@ -4851,6 +5123,15 @@ __aicore__ inline void ProcessVec1UpdateGeneralImpl512(
         RegTensor<float> vreg_pse7;
         RegTensor<float> vreg_pse8;
 
+        RegTensor<float> vreg_alibi1;
+        RegTensor<float> vreg_alibi2;
+        RegTensor<float> vreg_alibi3;
+        RegTensor<float> vreg_alibi4;
+        RegTensor<float> vreg_alibi5;
+        RegTensor<float> vreg_alibi6;
+        RegTensor<float> vreg_alibi7;
+        RegTensor<float> vreg_alibi8;
+
         RegTensor<bfloat16_t> vreg_exp_even1_bf16;
         RegTensor<bfloat16_t> vreg_exp_odd1_bf16;
         RegTensor<bfloat16_t> vreg_exp_even2_bf16;
@@ -4935,6 +5216,17 @@ __aicore__ inline void ProcessVec1UpdateGeneralImpl512(
         MaskReg preg_compare8;
 
         Duplicate(vreg_min, minValue);
+        if constexpr (pseMode == PseTypeEnum::PSE_INNER_MUL_ADD_TYPE ||
+                      pseMode == PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE) {
+            Arange(vreg_alibi1, posShift);
+            Adds(vreg_alibi2, vreg_alibi1, floatRepSize, preg_all);
+            Adds(vreg_alibi3, vreg_alibi2, floatRepSize, preg_all);
+            Adds(vreg_alibi4, vreg_alibi3, floatRepSize, preg_all);
+            Adds(vreg_alibi5, vreg_alibi4, floatRepSize, preg_all);
+            Adds(vreg_alibi6, vreg_alibi5, floatRepSize, preg_all);
+            Adds(vreg_alibi7, vreg_alibi6, floatRepSize, preg_all);
+            Adds(vreg_alibi8, vreg_alibi7, floatRepSize, preg_all);
+        }
         for (uint16_t i = 0; i < m; ++i) {
             DataCopy(vreg_input_x1, srcUb + i * s2BaseSize);
             DataCopy(vreg_input_x2, srcUb + floatRepSize + i * s2BaseSize);
@@ -4957,44 +5249,82 @@ __aicore__ inline void ProcessVec1UpdateGeneralImpl512(
                 Muls(vreg_input_x8, vreg_input_x8, scale, preg_ori_tail_n4);
             }
             if constexpr (pseMode != PseTypeEnum::PSE_NONE_TYPE) {
-                if constexpr (IsSameType<T2, bfloat16_t>::value) {
-                    DataCopy(vreg_pse_bf16_src1, pseUb + i * pseStride);
-                    DataCopy(vreg_pse_bf16_src2, pseUb + floatRepSize * 2 + i * pseStride);
-                    DataCopy(vreg_pse_bf16_src3, pseUb + floatRepSize * 4 + i * pseStride);
-                    DataCopy(vreg_pse_bf16_src4, pseUb + floatRepSize * 6 + i * pseStride);
+                if constexpr (pseMode == PseTypeEnum::PSE_INNER_MUL_ADD_TYPE ||
+                              pseMode == PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE) {
+                    Abs(vreg_pse1, vreg_alibi1, preg_all);
+                    Abs(vreg_pse2, vreg_alibi2, preg_all);
+                    Abs(vreg_pse3, vreg_alibi3, preg_all);
+                    Abs(vreg_pse4, vreg_alibi4, preg_all);
+                    Abs(vreg_pse5, vreg_alibi5, preg_all);
+                    Abs(vreg_pse6, vreg_alibi6, preg_all);
+                    Abs(vreg_pse7, vreg_alibi7, preg_all);
+                    Abs(vreg_pse8, vreg_alibi8, preg_all);
+                    if constexpr (pseMode == PseTypeEnum::PSE_INNER_MUL_ADD_SQRT_TYPE) {
+                        Sqrt(vreg_pse1, vreg_pse1, preg_all);
+                        Sqrt(vreg_pse2, vreg_pse2, preg_all);
+                        Sqrt(vreg_pse3, vreg_pse3, preg_all);
+                        Sqrt(vreg_pse4, vreg_pse4, preg_all);
+                        Sqrt(vreg_pse5, vreg_pse5, preg_all);
+                        Sqrt(vreg_pse6, vreg_pse6, preg_all);
+                        Sqrt(vreg_pse7, vreg_pse7, preg_all);
+                        Sqrt(vreg_pse8, vreg_pse8, preg_all);
+                    }
+                    Muls(vreg_pse1, vreg_pse1, slopes, preg_all);
+                    Muls(vreg_pse2, vreg_pse2, slopes, preg_all);
+                    Muls(vreg_pse3, vreg_pse3, slopes, preg_all);
+                    Muls(vreg_pse4, vreg_pse4, slopes, preg_all);
+                    Muls(vreg_pse5, vreg_pse5, slopes, preg_all);
+                    Muls(vreg_pse6, vreg_pse6, slopes, preg_all);
+                    Muls(vreg_pse7, vreg_pse7, slopes, preg_all);
+                    Muls(vreg_pse8, vreg_pse8, slopes, preg_all);
+                    Adds(vreg_alibi1, vreg_alibi1, -1.0f, preg_all);
+                    Adds(vreg_alibi2, vreg_alibi2, -1.0f, preg_all);
+                    Adds(vreg_alibi3, vreg_alibi3, -1.0f, preg_all);
+                    Adds(vreg_alibi4, vreg_alibi4, -1.0f, preg_all);
+                    Adds(vreg_alibi5, vreg_alibi5, -1.0f, preg_all);
+                    Adds(vreg_alibi6, vreg_alibi6, -1.0f, preg_all);
+                    Adds(vreg_alibi7, vreg_alibi7, -1.0f, preg_all);
+                    Adds(vreg_alibi8, vreg_alibi8, -1.0f, preg_all);
+                } else {
+                    if constexpr (IsSameType<T2, bfloat16_t>::value) {
+                        DataCopy(vreg_pse_bf16_src1, pseUb + i * pseStride);
+                        DataCopy(vreg_pse_bf16_src2, pseUb + floatRepSize * 2 + i * pseStride);
+                        DataCopy(vreg_pse_bf16_src3, pseUb + floatRepSize * 4 + i * pseStride);
+                        DataCopy(vreg_pse_bf16_src4, pseUb + floatRepSize * 6 + i * pseStride);
 
-                    Interleave(vreg_pse1_bf16, vreg_pse2_bf16, vreg_pse_bf16_src1, vreg_pse_bf16_src1);
-                    Interleave(vreg_pse3_bf16, vreg_pse4_bf16, vreg_pse_bf16_src2, vreg_pse_bf16_src2);
-                    Interleave(vreg_pse5_bf16, vreg_pse6_bf16, vreg_pse_bf16_src3, vreg_pse_bf16_src3);
-                    Interleave(vreg_pse7_bf16, vreg_pse8_bf16, vreg_pse_bf16_src4, vreg_pse_bf16_src4);
+                        Interleave(vreg_pse1_bf16, vreg_pse2_bf16, vreg_pse_bf16_src1, vreg_pse_bf16_src1);
+                        Interleave(vreg_pse3_bf16, vreg_pse4_bf16, vreg_pse_bf16_src2, vreg_pse_bf16_src2);
+                        Interleave(vreg_pse5_bf16, vreg_pse6_bf16, vreg_pse_bf16_src3, vreg_pse_bf16_src3);
+                        Interleave(vreg_pse7_bf16, vreg_pse8_bf16, vreg_pse_bf16_src4, vreg_pse_bf16_src4);
 
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse1, vreg_pse1_bf16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse2, vreg_pse2_bf16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse3, vreg_pse3_bf16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse4, vreg_pse4_bf16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse5, vreg_pse5_bf16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse6, vreg_pse6_bf16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse7, vreg_pse7_bf16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse8, vreg_pse8_bf16, preg_all_b16);
-                } else if constexpr (IsSameType<T2, half>::value) {
-                    DataCopy(vreg_pse_f16_src1, pseUb + i * pseStride);
-                    DataCopy(vreg_pse_f16_src2, pseUb + floatRepSize * 2 + i * pseStride);
-                    DataCopy(vreg_pse_f16_src3, pseUb + floatRepSize * 4 + i * pseStride);
-                    DataCopy(vreg_pse_f16_src4, pseUb + floatRepSize * 6 + i * pseStride);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse1, vreg_pse1_bf16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse2, vreg_pse2_bf16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse3, vreg_pse3_bf16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse4, vreg_pse4_bf16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse5, vreg_pse5_bf16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse6, vreg_pse6_bf16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse7, vreg_pse7_bf16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse8, vreg_pse8_bf16, preg_all_b16);
+                    } else if constexpr (IsSameType<T2, half>::value) {
+                        DataCopy(vreg_pse_f16_src1, pseUb + i * pseStride);
+                        DataCopy(vreg_pse_f16_src2, pseUb + floatRepSize * 2 + i * pseStride);
+                        DataCopy(vreg_pse_f16_src3, pseUb + floatRepSize * 4 + i * pseStride);
+                        DataCopy(vreg_pse_f16_src4, pseUb + floatRepSize * 6 + i * pseStride);
 
-                    Interleave(vreg_pse1_f16, vreg_pse2_f16, vreg_pse_f16_src1, vreg_pse_f16_src1);
-                    Interleave(vreg_pse3_f16, vreg_pse4_f16, vreg_pse_f16_src2, vreg_pse_f16_src2);
-                    Interleave(vreg_pse5_f16, vreg_pse6_f16, vreg_pse_f16_src3, vreg_pse_f16_src3);
-                    Interleave(vreg_pse7_f16, vreg_pse8_f16, vreg_pse_f16_src4, vreg_pse_f16_src4);
+                        Interleave(vreg_pse1_f16, vreg_pse2_f16, vreg_pse_f16_src1, vreg_pse_f16_src1);
+                        Interleave(vreg_pse3_f16, vreg_pse4_f16, vreg_pse_f16_src2, vreg_pse_f16_src2);
+                        Interleave(vreg_pse5_f16, vreg_pse6_f16, vreg_pse_f16_src3, vreg_pse_f16_src3);
+                        Interleave(vreg_pse7_f16, vreg_pse8_f16, vreg_pse_f16_src4, vreg_pse_f16_src4);
 
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse1, vreg_pse1_f16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse2, vreg_pse2_f16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse3, vreg_pse3_f16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse4, vreg_pse4_f16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse5, vreg_pse5_f16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse6, vreg_pse6_f16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse7, vreg_pse7_f16, preg_all_b16);
-                    Cast<T, OUTPUT_T, castTraitZero>(vreg_pse8, vreg_pse8_f16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse1, vreg_pse1_f16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse2, vreg_pse2_f16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse3, vreg_pse3_f16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse4, vreg_pse4_f16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse5, vreg_pse5_f16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse6, vreg_pse6_f16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse7, vreg_pse7_f16, preg_all_b16);
+                        Cast<T, OUTPUT_T, castTraitZero>(vreg_pse8, vreg_pse8_f16, preg_all_b16);
+                    }
                 }
                 Add(vreg_input_x1, vreg_input_x1, vreg_pse1, preg_all);
                 Add(vreg_input_x2, vreg_input_x2, vreg_pse2, preg_all);

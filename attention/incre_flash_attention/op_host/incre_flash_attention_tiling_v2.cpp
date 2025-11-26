@@ -974,7 +974,7 @@ ge::graphStatus IFATilingV2::ProcessOptionalTensors() {
 void IFATilingV2::SetfaRunFlag() {
   if (antiQuantFlag_) {
     faRunFlagAntiq_ = true;
-    if(sOfQuery_ == NUM1) {
+    if(sOfQuery_ == NUM1 && !enableAlibiPse_) {
       faRunGS_ = true;
       isGqa_ = 1;
     } else {
@@ -1031,20 +1031,127 @@ void IFATilingV2::SetPFASparseType(uint32_t qS)
   }
 }
 
+bool IFATilingV2::SetQKVStartIdx()
+{
+    auto qStartIdxTensor = context_->qStartIdx.tensor;
+    if (qStartIdxTensor != nullptr) {
+        if (qStartIdxTensor->GetShapeSize() >= 1) {
+            const int64_t *value = qStartIdxTensor->GetData<int64_t>();
+            if (value != nullptr) {
+                qStartIdx_ = value[0];
+                OP_CHECK_IF(qStartIdx_ > INT32_MAX || qStartIdx_ < INT32_MIN,
+                            OP_LOGE(context_->opName, "qStartIdx should >= %d and <= %d, but qStartIdx = %ld.",
+                                    INT32_MIN, INT32_MAX, qStartIdx_),
+                            return false);
+            }
+        }
+    }
+
+    auto kvStartIdxTensor = context_->kvStartIdx.tensor;
+    if (kvStartIdxTensor != nullptr) {
+        if (kvStartIdxTensor->GetShapeSize() >= 1) {
+            const int64_t *kvValue = kvStartIdxTensor->GetData<int64_t>();
+            if (kvValue != nullptr) {
+                kvStartIdx_ = kvValue[0];
+                OP_CHECK_IF(kvStartIdx_ > INT32_MAX || kvStartIdx_ < INT32_MIN,
+                            OP_LOGE(context_->opName, "kvStartIdx should >= %d and <= %d, but kvStartIdx = %ld.",
+                                    INT32_MIN, INT32_MAX, kvStartIdx_),
+                            return false);
+            }
+        }
+    }
+    // 当kvStartIdx - qStartIdx超出范围后，由于编译器不支持大数值类型转换，kernel侧int_64转float类型时可能发生截断。
+    OP_CHECK_IF(kvStartIdx_ - qStartIdx_ > INT32_MAX || kvStartIdx_ - qStartIdx_ < INT32_MIN,
+                OP_LOGE(context_->opName,
+                        "kvStartIdx - qStartIdx should >= %d and <= %d, but qStartIdx = %ld, kvStartIdx = %ld.",
+                        INT32_MIN, INT32_MAX, qStartIdx_, kvStartIdx_),
+                return false);
+    return true;
+}
+
+bool IFATilingV2::CheckAlibiPseShiftTypeAndShape()
+{
+    auto pseShape = context_->pseShift.tensor;
+    auto pseShiftDataType = context_->pseShift.desc->GetDataType();
+
+    OP_CHECK_IF((pseShiftDataType != ge::DT_FLOAT),
+                OP_LOGE(context_->opName, "When pseType = 2/3, pse shift type must be float, but pse shift type = %s",
+                        DataTypeToSerialString(pseShiftDataType).c_str()),
+                return false);
+
+    if (pseShape->GetStorageShape().GetDimNum() != 0) {
+        auto &pseShapeDims = pseShape->GetStorageShape();
+        int64_t pseDimNum = pseShapeDims.GetDimNum();
+        OP_CHECK_IF(pseDimNum != SLOPE_N_DIM_NUM,
+                    OP_LOGE(context_->opName, "The dim of pseShift(%ld) must be 1, when pseType = 2/3.", pseDimNum),
+                    return false);
+        int64_t pseShiftN = pseShape->GetStorageShape().GetDim(0); // 0: The first dimension is N.
+        OP_CHECK_IF(pseShiftN != numHeads_,
+                    OP_LOGE(context_->opName,
+                            "The length of pseShift(%ld) must be equal to query head number, when pseType = 2/3.",
+                            pseShiftN),
+                    return false);
+        pseShapeType = IfaPseShapeType::PSE_1_N2_G_SLOPE;
+        pseShiftBatch_ = 1;
+    }
+    return true;
+}
+
+bool IFATilingV2::AlibiCheckSeqLength()
+{
+    int64_t actSeqLenData;
+    int64_t actSeqLenDataKV;
+    for (uint32_t i = 0; i < batchSize_; i++) {
+        GetActualSeqLength(actSeqLenData, actSeqLenDataKV, i);
+        OP_CHECK_IF(actSeqLenData != actSeqLenDataKV,
+                    OP_LOGE(context_->opName,
+                            "When pseType = 2/3, actualSeqLengths[%u](seq size of query)=%ld must be equal to \
+                            actualSeqLengthsKv[%u](seq size of key)=%ld",
+                            i, actSeqLenData, i, actSeqLenDataKV),
+                    return false);
+    }
+    return true;
+}
+
+bool IFATilingV2::CheckAlibiPseShift()
+{
+    if (!CheckAlibiPseShiftTypeAndShape() || !SetQKVStartIdx() || !AlibiCheckSeqLength()) {
+        return false;
+    }
+    return true;
+}
+
 ge::graphStatus IFATilingV2::ProcessPseShift() {
   // get pse shift data
   auto pseShiftInput = context_->pseShift.tensor;
   if (pseShiftInput == nullptr) {
     return ge::GRAPH_SUCCESS;
   }
-  
+  OP_CHECK_IF(context_->pseShift.desc == nullptr, OP_LOGE(context_->opName, "Desc of pseShift tensor is null."),
+              return ge::GRAPH_FAILED);
+
+  auto pseShiftDataType = context_->pseShift.desc->GetDataType();
+  auto pseType = context_->pseType;
+  if (pseType != nullptr) {
+      pseType_ = *pseType;
+      OP_CHECK_IF((pseType_ != static_cast<int64_t>(IfaPseType::PSE_OUTER_MUL_ADD_TYPE)) &&
+                      (pseType_ != static_cast<int64_t>(IfaPseType::PSE_INNER_MUL_ADD_TYPE)) &&
+                      (pseType_ != static_cast<int64_t>(IfaPseType::PSE_INNER_MUL_ADD_SQRT_TYPE)),
+                  OP_LOGE(context_->opName, "PseType(%ld) is not support, pseType must be 0/2/3.", pseType_),
+                  return ge::GRAPH_FAILED);
+      if (pseType_ == static_cast<int64_t>(IfaPseType::PSE_INNER_MUL_ADD_TYPE) ||
+          pseType_ == static_cast<int64_t>(IfaPseType::PSE_INNER_MUL_ADD_SQRT_TYPE)) {
+          enableAlibiPse_ = true;
+          pseShiftFlag_ = false;
+          if (!CheckAlibiPseShift()) {
+              return ge::GRAPH_FAILED;
+          }
+          return ge::GRAPH_SUCCESS;
+      }
+  }
   OP_CHECK_IF(inputLayout_ == IfaLayout::TND, OP_LOGE(context_->opName,
              "TND not support pse."), return ge::GRAPH_FAILED);
 
-  OP_CHECK_IF(context_->pseShift.desc == nullptr, OP_LOGE(context_->opName,
-             "Desc of pseShift tensor is null."), return ge::GRAPH_FAILED);
-  
-  auto pseShiftDataType = context_->pseShift.desc->GetDataType();
   switch (pseShiftDataType) {
     case ge::DT_FLOAT16:
     case ge::DT_BF16:
@@ -1061,11 +1168,20 @@ ge::graphStatus IFATilingV2::ProcessPseShift() {
   }
 
   // check pse shift shape (B/1, N, S0, Si)
+  if (!CheckPseShiftShape(pseShiftInput)) {
+    return ge::GRAPH_FAILED;
+  }
+  pseShiftFlag_ = true;
+  return ge::GRAPH_SUCCESS;
+}
+
+bool IFATilingV2::CheckPseShiftShape(const gert::Tensor* pseShiftInput)
+{
   const gert::Shape pseShiftShape = pseShiftInput->GetStorageShape();
   uint32_t pseShiftDimNum = pseShiftShape.GetDimNum();
   OP_CHECK_IF(pseShiftDimNum != 4, OP_LOGE(context_->opName,
              "The dimension of pseShift must be 4, current dimension num is %u.", pseShiftDimNum),
-             return GRAPH_FAILED);
+             return false);
   pseShiftBatch_ = pseShiftShape.GetDim(PSE_SHIFT_B);
   uint32_t pseShiftN = pseShiftShape.GetDim(PSE_SHIFT_N);
   pseShiftS0_ = pseShiftShape.GetDim(PSE_SHIFT_S0);
@@ -1074,20 +1190,18 @@ ge::graphStatus IFATilingV2::ProcessPseShift() {
               OP_LOGE(context_->opName,
               "The shape of pseShift is (%u, %u, %u, %u), which does not match (B, N, 1, S) or (1, N, 1, S).",
               pseShiftBatch_, pseShiftN, pseShiftS0_, pseShiftS1_),
-              return ge::GRAPH_FAILED);
+              return false);
   OP_CHECK_IF(isPFAFlag_ && ((pseShiftBatch_ != NUM1 && pseShiftBatch_ != batchSize_) || (pseShiftN != numHeads_) || (pseShiftS0_ < sOfQuery_) ||
              (pseShiftS1_ < seqSize_)), OP_LOGE(context_->opName,
              "pseShift shape must be (1 or %u, %u, >=%u, >=%u), but now it is (%u, %u, %u, %u)",
              pseShiftBatch_, pseShiftN, sOfQuery_, seqSize_, pseShiftBatch_, pseShiftN, pseShiftS0_, pseShiftS1_),
-             return ge::GRAPH_FAILED);
+             return false);
   OP_CHECK_IF(pseShiftS1_ < seqSize_,
     OP_LOGE(context_->opName, "The shape of pseShift is (%u, %u, %u, %u), pseShiftS[%u] shouldn't be less than sMax[%u]. "
               "When page attention is enabled, sMax is the second dimension of blockTable * blockSize.",
               pseShiftBatch_, pseShiftN, pseShiftS0_, pseShiftS1_, pseShiftS1_, seqSize_),
-              return GRAPH_FAILED);
-
-  pseShiftFlag_ = true;
-  return ge::GRAPH_SUCCESS;
+              return false);
+  return true;
 }
 
 ge::graphStatus IFATilingV2::ProcessAttenMaskSparsePFA() {
@@ -2181,6 +2295,10 @@ ge::graphStatus IFATilingV2::ProcessQPaddingSize() {
     return ge::GRAPH_SUCCESS;
   }
 
+  OP_CHECK_IF(enableAlibiPse_,
+    OP_LOGE(context_->opName, "When pseType = 2/3, left padding is not supported!"),
+    return ge::GRAPH_FAILED);
+
   if (pageAttentionFlag_) {
     OP_LOGE(context_->opName, "When page attention is used, left padding is not supported!");
     return ge::GRAPH_FAILED;
@@ -2223,6 +2341,10 @@ ge::graphStatus IFATilingV2::ProcessKVPaddingSize() {
     OP_LOGE(context_->opName, "When page attention is used, left padding is not supported!");
     return ge::GRAPH_FAILED;
   }
+
+  OP_CHECK_IF(enableAlibiPse_,
+    OP_LOGE(context_->opName, "When pseType = 2/3, left padding is not supported!"),
+    return ge::GRAPH_FAILED);
 
   if (kvPaddingSize->GetStorageShape().GetShapeSize() == 0) {
     OP_LOGD(context_->opName, "KVLeftPadding illegal condition: kvPaddingSize.tensor shape is empty: %d.",
@@ -3339,7 +3461,7 @@ ge::graphStatus IFATilingV2::GenTilingKey() {
   uint8_t attenMaskBandVal = (sparseMode_ == SPARSE_MODE_BAND && headDim_ <= NUM64 && pseShiftFlag_ == false) ?
                               static_cast<uint8_t>(1U * 4U) : 0U; // d64非pse且band模式下需减小基本块大小，额外增加tilingkey
   uint8_t headDimProfileVal = GenHeadDimProfileVal();
-
+  uint8_t pseTypeVal = pseType_;
   // page attention 新模板上线后删除这里的特殊处理
   if (pageAttentionFlag_ && sMax_ == NUM0) {
     paVal = NUM0;
@@ -3448,7 +3570,7 @@ ge::graphStatus IFATilingV2::GenTilingKey() {
     baseOffset += (static_cast<uint64_t>(perfMode_)) * IFA_PERF_MODE_TILINGKEYOFFSET;
   }
   context_->tilingKey = baseOffset + IFA_GET_TILINGKEY(layoutVal, inputQVal, inputKvVal, outputVal, originVal,
-    (paVal + splitKvVal), (pseShiftVal + attenMaskVal + attenMaskBandVal), headDimProfileVal, antiquantModeVal);
+    (paVal + splitKvVal), (pseShiftVal + attenMaskVal + attenMaskBandVal), headDimProfileVal, antiquantModeVal, pseTypeVal);
   OP_LOGD(context_->opName, "IFA tilingKey:%lu.", context_->tilingKey);
 
   return ge::GRAPH_SUCCESS;
@@ -3775,8 +3897,6 @@ void IFATilingV2::IFATilingDataconvert() {
   inputParams.set_pseS1Size(pseShiftS0_);
   inputParams.set_pseS2Size(pseShiftS1_);
   inputParams.set_pseBSize(pseShiftBatch_);
-  inputParams.set_pseShapeType(0); // 对应训练 PSE_B_N2_G_S1_S2
-  inputParams.set_pseType(0); // 对应训练 PSE_OUTER_MUL_ADD_TYPE
   inputParams.set_bandIndex(0); // 训练代码中在TND场景生效，用于计算s2方向循环的起始位置
   inputParams.set_pseEncodeType(0); // 默认值
   inputParams.set_pseAlibiBaseS1(0); // 默认值
@@ -3797,8 +3917,10 @@ void IFATilingV2::IFATilingDataconvert() {
   inputParams.set_s2SparseValidSize(0); // 临时默认值
   inputParams.set_seed(0); // 默认值
   inputParams.set_offset(0); // 默认值
-  inputParams.set_qStartIdx(0);
-  inputParams.set_kvStartIdx(0);  //暂不支持
+  inputParams.set_pseShapeType(static_cast<uint8_t>(pseShapeType)); // 对应训练 PSE_B_N2_G_S1_S2
+  inputParams.set_pseType(pseType_); // 对应训练 PSE_OUTER_MUL_ADD_TYPE
+  inputParams.set_qStartIdx(qStartIdx_);
+  inputParams.set_kvStartIdx(kvStartIdx_);  //暂不支持
 
   // PFA
   // 伪量化用到的PA相关的有

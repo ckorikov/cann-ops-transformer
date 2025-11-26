@@ -148,5 +148,18 @@ enum class IfaMaskType : uint32_t {
     MASK_SWA_COMPRESS = 3,
 };
 
+enum class IfaPseShapeType : uint8_t {
+    PSE_B_N2_G_S1_S2 = 0,
+    PSE_B_N2_G_1_S2 = 1,
+    PSE_B_N2_G_SLOPE = 2,
+    PSE_1_N2_G_SLOPE = 3
+};
+
+enum class IfaPseType : int64_t {
+    PSE_OUTER_MUL_ADD_TYPE = 0,
+    PSE_INNER_MUL_ADD_TYPE = 2,
+    PSE_INNER_MUL_ADD_SQRT_TYPE = 3,
+};
+
 } // namespace optiling
 #endif

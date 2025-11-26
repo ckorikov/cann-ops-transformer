@@ -527,6 +527,10 @@ static ge::graphStatus ConvertContextToParamsIFA(gert::TilingContext& context,
   ifaContext.valueAntiquantScale.desc = context.GetOptionalInputDesc(VALUE_ANTIQUANT_SCALE_INDEX);
   ifaContext.valueAntiquantOffset.tensor = context.GetOptionalInputTensor(VALUE_ANTIQUANT_OFFSET_INDEX);
   ifaContext.valueAntiquantOffset.desc = context.GetOptionalInputDesc(VALUE_ANTIQUANT_OFFSET_INDEX);
+  ifaContext.qStartIdx.tensor = context.GetOptionalInputTensor(Q_START_IDX_INDEX);
+  ifaContext.qStartIdx.desc = context.GetOptionalInputDesc(Q_START_IDX_INDEX);
+  ifaContext.kvStartIdx.tensor = context.GetOptionalInputTensor(KV_START_IDX_INDEX);
+  ifaContext.kvStartIdx.desc = context.GetOptionalInputDesc(KV_START_IDX_INDEX);
 
   auto attrs = context.GetAttrs();
   OP_CHECK_IF(attrs == nullptr,
@@ -546,6 +550,7 @@ static ge::graphStatus ConvertContextToParamsIFA(gert::TilingContext& context,
   ifaContext.softmaxLseFlag = attrs->GetAttrPointer<bool>(SOFTMAX_LSE_FLAG_INDEX);
   ifaContext.keyAntiquantMode = attrs->GetAttrPointer<int64_t>(KEY_ANTIQUANT_MODE_INDEX);
   ifaContext.valueAntiquantMode = attrs->GetAttrPointer<int64_t>(VALUE_ANTIQUANT_MODE_INDEX);
+  ifaContext.pseType = attrs->GetAttrPointer<int64_t>(PSE_TYPE_INDEX);
 
   auto batchOfQuery = ifaContext.query.shape->GetStorageShape().GetDim(0);
   auto batchOfKey = ifaContext.key.shape->GetStorageShape().GetDim(0);
