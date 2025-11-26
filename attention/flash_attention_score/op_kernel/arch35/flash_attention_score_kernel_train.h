@@ -65,12 +65,35 @@ FlashAttentionScoreKernelTrain<CubeBlockType, VecBlockType>::InitUniqueRunInfo(
     runInfo.vecCoreOffset = this->constInfo.subBlockIdx * runInfo.firstHalfS1RealSize;
 }
 
+/*
+ * 新分核方式（提高L2上数据的复用）：
+ * 一、顺序分核：将每个S1的基本块，依次分发给各个核计算；
+ *      s1基本块1 -- core1
+ *      s1基本块2 -- core2
+ *      s1基本块3 -- core3
+ *      s1基本块4 -- core1
+ *      ...
+ * 二、两两配对：为了让Sparse场景更好的负载均衡，偶数(N)采用顺序分核，奇数(N')与其对应的偶数(N'-1)对称分核
+ *      偶数N
+ *      s1基本块1 -- core1
+ *      s1基本块2 -- core2
+ *      奇数N’
+ *      s1基本块3 -- core2
+ *      s1基本块4 -- core1
+ */
 template <typename CubeBlockType, typename VecBlockType>
 __aicore__ inline void FlashAttentionScoreKernelTrain<CubeBlockType, VecBlockType>::Process()
 {
     // 确定核内切分起点
-    int64_t multiCoreInnerOffset = this->sharedParams.multiCoreInnerOffset;
-    int64_t multiCoreInnerLimit = this->sharedParams.multiCoreInnerLimit;
+    int64_t multiCoreInnerOffset = 0;
+    int64_t multiCoreInnerLimit = 0;
+    if (this->sharedParams.splitCoreMode == 1) {
+        multiCoreInnerOffset = 0;
+        multiCoreInnerLimit = this->sharedParams.totalSize;
+    } else {
+        multiCoreInnerOffset = this->sharedParams.multiCoreInnerOffset;
+        multiCoreInnerLimit = this->sharedParams.multiCoreInnerLimit;
+    }
     // 初始化AxisIdx
     RunParamStr<isInfer> runParam;
     if constexpr (layout == LayOutTypeEnum::LAYOUT_TND) {
@@ -85,6 +108,10 @@ __aicore__ inline void FlashAttentionScoreKernelTrain<CubeBlockType, VecBlockTyp
     int64_t thirdLast = multiCoreInnerLimit;
     int64_t secondLast = multiCoreInnerLimit + 1;
     int64_t last = multiCoreInnerLimit + 2;
+    int64_t fullLoadIndex = -1;     // 表示第一块全载的S1方向上基本块的索引；如果是非Sparse场景为-1
+    int64_t evenLoopIndex = -1;     // 两两配对分核中，统计偶数N上的S1方向上基本块个数（从0开始，用索引表示）；
+    int64_t oddLoopIndex = -1;      // 两两配对分核中，统计奇数N'上的S1方向上基本块个数（从0开始，用索引表示）；
+    int64_t realHandledIndex = 0;   // 每个核实际计算的S1方向上基本块个数（从0开始，用索引表示）；
     multiCoreInnerLimit += 3;
     for (int64_t multiCoreInnerIdx = multiCoreInnerOffset; multiCoreInnerIdx < multiCoreInnerLimit;
          multiCoreInnerIdx++) {
@@ -94,6 +121,32 @@ __aicore__ inline void FlashAttentionScoreKernelTrain<CubeBlockType, VecBlockTyp
             notLast = false;
         } else if (multiCoreInnerIdx == thirdLast) {
             notThirdLast = false;
+        } else if (this->sharedParams.splitCoreMode == 1) {
+            int64_t s1oIdx = multiCoreInnerIdx % this->constInfo.s1OuterSize;
+            if (s1oIdx > this->sharedParams.firstFullLoadS1OuterIdx) {
+                // 顺序分配
+                fullLoadIndex++;
+                if (fullLoadIndex % this->sharedParams.coreNum != this->aicIdx) {
+                    continue;
+                }
+            } else {
+                // 两两配对
+                int64_t n1oIdx = multiCoreInnerIdx / this->constInfo.s1OuterSize;
+                // 非最后三次伪循环，当S2非全载时，需要区分N是奇数还是偶数
+                if (n1oIdx % 2 == 0) {
+                    evenLoopIndex++;
+                    if (evenLoopIndex % this->sharedParams.coreNum != this->aicIdx) {
+                        continue;
+                    }
+                } else {
+                    oddLoopIndex++;
+                    // 从后往前分核
+                    int64_t gap = this->sharedParams.firstFullLoadS1OuterIdx - s1oIdx;
+                    if ((oddLoopIndex - s1oIdx + gap) % this->sharedParams.coreNum != this->aicIdx) {
+                        continue;
+                    }
+                }
+            }
         }
 
         int64_t s2LoopLimit = 0;
@@ -120,6 +173,9 @@ __aicore__ inline void FlashAttentionScoreKernelTrain<CubeBlockType, VecBlockTyp
             if (notLastThreeLoop) {
                 RunInfo<isInfer> &runInfo1 = runInfo[taskId & 3];
                 this->SetRunInfo(runInfo1, runParam, taskId, s2LoopCount, s2LoopLimit, multiCoreInnerIdx);
+                if (this->sharedParams.splitCoreMode == 1) {
+                    runInfo1.multiCoreIdxMod3 = realHandledIndex % 3;
+                }
                 if ASCEND_IS_AIC {
                     this->cubeBlock.IterateBmm1(this->bmm1Buffers.Get(), runInfo1, this->constInfo);
                 }
@@ -155,6 +211,7 @@ __aicore__ inline void FlashAttentionScoreKernelTrain<CubeBlockType, VecBlockTyp
             }
             taskId++;
         }
+        realHandledIndex++;
     }
 }
 

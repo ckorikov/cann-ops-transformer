@@ -142,6 +142,10 @@ __aicore__ inline void FABlockVecTrain<TEMPLATE_ARGS>::InitCubeVecSharedParams(
     if (multiCoreParamsRegbase.totalSize < sharedParams.multiCoreInnerLimit) {
         sharedParams.multiCoreInnerLimit = multiCoreParamsRegbase.totalSize;
     }
+    sharedParams.splitCoreMode = multiCoreParamsRegbase.splitCoreMode;
+    sharedParams.firstFullLoadS1OuterIdx = multiCoreParamsRegbase.firstFullLoadS1OuterIdx;
+    sharedParams.totalSize = multiCoreParamsRegbase.totalSize;
+    sharedParams.coreNum = multiCoreParamsRegbase.coreNum;
     // 计算sparse场景下s1的循环范围
     GetS1LoopRange(sharedParams, aicIdx);
     /* ssbuf send message */

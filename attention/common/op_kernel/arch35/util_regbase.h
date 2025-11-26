@@ -408,6 +408,9 @@ struct CVSharedParams;
 template<>
 struct CVSharedParams<false, false> {
     CV_SHARED_PARAMS;
+    int64_t firstFullLoadS1OuterIdx;
+    int64_t totalSize;
+    uint8_t splitCoreMode;
 };
 
 /* CVSharedParams需要小于等于CacheLine的大小：128Bytes */

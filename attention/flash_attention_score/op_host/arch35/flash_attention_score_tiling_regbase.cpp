@@ -869,6 +869,8 @@ void FlashAttentionScoreTilingRegbase::SetMultiCoreParamsRegbase(int64_t totalSi
     multiCoreParamsRegbase_->set_totalSize(totalSize);
     multiCoreParamsRegbase_->set_splitFactorSize(CeilDivision(totalSize, actualUsedCoreNum));
     multiCoreParamsRegbase_->set_splitFactorTailSize(CalcTailSize(totalSize, multiCoreParamsRegbase_->get_splitFactorSize()));
+    multiCoreParamsRegbase_->set_splitCoreMode(static_cast<uint8_t>(splitCoreMode));
+    multiCoreParamsRegbase_->set_firstFullLoadS1OuterIdx(firstFullLoadS1OuterIdx);
 }
 
 void FlashAttentionScoreTilingRegbase::SetSparseParamsRegbase(int64_t maxCoreNum)
@@ -920,12 +922,71 @@ ge::graphStatus FlashAttentionScoreTilingRegbase::DoOpTiling()
     SetOutputDtype();
     multiCoreParamsRegbase_->set_s1OuterSize(CeilDivision(s1Size, s1BasicBlock));
     int64_t totalSize = CalcTotalSize();
+    SetSplitCoreModeParam(totalSize);
     SetMultiCoreParamsRegbase(totalSize, static_cast<int64_t>(aicNum));
     SetSparseParamsRegbase(static_cast<int64_t>(aicNum));
     OP_CHECK_IF(!SetPseAlibiParamsRegbase(), OPS_REPORT_VECTOR_INNER_ERR(opName, "fail to set pse alibi info."),
                return ge::GRAPH_FAILED);
 
     return ge::GRAPH_SUCCESS;
+}
+
+void FlashAttentionScoreTilingRegbase::CalcThresholdForS2Size() {
+    int64_t l2CacheSizeForKandV = L2_CACHE_SIZE * NUM_1024 * NUM_1024;
+    if (bSize == 0 || n2Size == 0 || dBasicBlock == 0 || dVBasicBlock == 0) {
+        OP_LOGE(context_, "The product of bSize[%ld], nSize[%ld] and dSize[%ld] and dVSzie[%ld] cannot be zero.",
+            bSize, n1Size, dBasicBlock, dVBasicBlock);
+        thresholdS2Size = std::numeric_limits<int64_t>::max();
+        return;
+    }
+
+    int64_t typeSize = ge::GetSizeByDataType(inputDtype);
+    thresholdS2Size = l2CacheSizeForKandV / (bSize * n2Size * (dBasicBlock + dVBasicBlock) * typeSize);
+}
+
+bool FlashAttentionScoreTilingRegbase::IsUseSpliteCoreMode(SparseMode sparseMode) {
+    if (sparseMode == SparseMode::LEFT_UP_CAUSAL) {
+        return std::min(s1Size, s2Size) >= thresholdS2Size;
+    } else if (sparseMode == SparseMode::RIGHT_DOWN_CAUSAL) {
+        if (s1Size <= s2Size) {
+            return s2Size >= thresholdS2Size;
+        }
+    } else {
+        return false;
+    }
+}
+
+void FlashAttentionScoreTilingRegbase::SetSplitCoreModeParam(int64_t totalSize)
+{
+    if (tilingKeyLayout == LayoutType::LAYOUT_TND) {
+        return;
+    }
+
+    CalcThresholdForS2Size();
+    // 如果两个核存在不完全复用右矩阵的情况，则考虑新分核方式
+    if (2 * totalSize > static_cast<int64_t>(aicNum) * multiCoreParamsRegbase_->get_s1OuterSize()) {
+        // 索引从0开始，需要将基本块个数减1
+        if ((sparseMode == static_cast<int64_t>(SparseMode::LEFT_UP_CAUSAL)) &&
+            IsUseSpliteCoreMode(SparseMode::LEFT_UP_CAUSAL)) {
+            firstFullLoadS1OuterIdx = CeilDivision(std::min(s1Size, s2Size), s1BasicBlock) - 1;
+            splitCoreMode = SplitCoreMode::SQ_MULTI_CORE_FIRST;
+        } else if ((sparseMode == static_cast<int64_t>(SparseMode::RIGHT_DOWN_CAUSAL)) &&
+            IsUseSpliteCoreMode(SparseMode::RIGHT_DOWN_CAUSAL)) {
+            firstFullLoadS1OuterIdx = multiCoreParamsRegbase_->get_s1OuterSize() - 1;
+            splitCoreMode = SplitCoreMode::SQ_MULTI_CORE_FIRST;
+        } else if (sparseMode == static_cast<int64_t>(SparseMode::NO_MASK)) {
+            if (!hasAttenMask && s2Size >= thresholdS2Size) {
+                firstFullLoadS1OuterIdx = -1;
+                splitCoreMode = SplitCoreMode::SQ_MULTI_CORE_FIRST;
+            } else if (preTokens >= s1Size && nextTokens == 0 && IsUseSpliteCoreMode(SparseMode::LEFT_UP_CAUSAL)) {
+                firstFullLoadS1OuterIdx = CeilDivision(std::min(s1Size, s2Size), s1BasicBlock) - 1;
+                splitCoreMode = SplitCoreMode::SQ_MULTI_CORE_FIRST;
+            }
+        }
+    }
+
+    OP_LOGD(context_, "sparseMode: %ld, firstFullLoadS1OuterIdx: %ld, splitCoreMode: %d, s2SizeThreshold: %d.",
+        sparseMode, firstFullLoadS1OuterIdx, splitCoreMode, thresholdS2Size);
 }
 
 void FlashAttentionScoreTilingRegbase::SetSparseTilingInfo(SparseEnum &sparseType)

@@ -416,6 +416,8 @@ public:
     int64_t splitFactorTailSize;
     uint32_t bnStartIdx[48];
     int64_t sparseStartIdx[48];
+    int64_t firstFullLoadS1OuterIdx;
+    uint8_t splitCoreMode;
 
     int32_t get_coreNum() const {return coreNum;}
 
@@ -440,6 +442,15 @@ public:
     uint32_t *get_bnStartIdxPtr() {return bnStartIdx;}
 
     int64_t *get_sparseStartIdxPtr() {return sparseStartIdx;}
+
+    int64_t get_firstFullLoadS1OuterIdx() const {return firstFullLoadS1OuterIdx;}
+
+    void set_firstFullLoadS1OuterIdx(int64_t firstFullLoadS1OuterIdxParam) {this->firstFullLoadS1OuterIdx =
+        firstFullLoadS1OuterIdxParam;}
+
+    uint8_t get_splitCoreMode() const {return splitCoreMode;}
+
+    void set_splitCoreMode(uint8_t splitCoreModeParam) {this->splitCoreMode = splitCoreModeParam;}
 };
 
 class DropmaskParamsRegbase {

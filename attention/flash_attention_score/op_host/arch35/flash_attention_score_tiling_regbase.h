@@ -81,6 +81,7 @@ static const int64_t D_SCALE_DIM_NUM_2 = 2L;
 static const int64_t D_SCALE_DIM_NUM_3 = 3L;
 static const int64_t QUANT_BLOCK_SIZE = 128L;
 static const int64_t QUANT_KV_BLOCK_SIZE = 128L;
+static const int64_t L2_CACHE_SIZE = 128L;
 
 enum class LayoutType : uint8_t {
     NONE = 0,
@@ -202,6 +203,11 @@ struct FACompileInfoCommon {
     int64_t coreNum;
     platform_ascendc::SocVersion socVersion;
     uint32_t rsvd;
+};
+
+enum class SplitCoreMode : uint8_t {
+    SQ_SINGLE_CORE_FIRST = 0,   // 传统分核
+    SQ_MULTI_CORE_FIRST = 1,    // 全新分核：对于N和S较大场景，采取顺序分配或者两两配对的分核方式；
 };
 
 template <typename T>
@@ -380,6 +386,9 @@ protected:
 
     virtual ge::graphStatus SetQKVStartIdx();
     virtual void SetOutputDtype();
+    virtual void SetSplitCoreModeParam(int64_t totalSize);
+    virtual void CalcThresholdForS2Size();
+    virtual bool IsUseSpliteCoreMode(SparseMode sparseMode);
     virtual void SetMultiCoreParamsRegbase(int64_t totalSize, int64_t coreNum);
     virtual void SetSparseParamsRegbase(int64_t maxCoreNum);
     virtual bool SetPseAlibiParamsRegbase();
@@ -454,6 +463,9 @@ protected:
     int64_t dVBasicBlock;
 
     int64_t maxValidS2Len;
+    int64_t thresholdS2Size = 0;        // S2最大长度，使得当前shape下，K和V能够占满L2Cache
+    int64_t firstFullLoadS1OuterIdx = -1;
+    SplitCoreMode splitCoreMode = SplitCoreMode::SQ_SINGLE_CORE_FIRST;
 
     const char *templateName = "base";
     const char *opName;
