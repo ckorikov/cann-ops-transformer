@@ -667,7 +667,8 @@ static ge::graphStatus CheckGroupedMatmulAntiQuantForShape(gert::InferShapeConte
         for (size_t i = 0; ; ++i) {
             auto antiquantScaleShape = context->GetDynamicInputShape(GMM_INDEX_IN_ANTIQUANT_SCALE, i);
             auto antiquantOffsetShape = context->GetDynamicInputShape(GMM_INDEX_IN_ANTIQUANT_OFFSET, i);
-            if (antiquantScaleShape == nullptr || antiquantOffsetShape == nullptr) {
+            auto wShape = context->GetDynamicInputShape(GMM_INDEX_IN_WEIGHT, i);
+            if (antiquantScaleShape == nullptr || antiquantOffsetShape == nullptr || wShape == nullptr) {
                 break;
             }
             size_t antiquantScaleDimNum = antiquantScaleShape->GetDimNum();
@@ -675,7 +676,6 @@ static ge::graphStatus CheckGroupedMatmulAntiQuantForShape(gert::InferShapeConte
             OP_CHECK_IF(antiquantScaleDimNum != dimNum || antiquantOffsetDimNum != dimNum,
                       OP_LOGE(context->GetNodeName(), "antiquantScale[%zu] dim num[%zu] or antiquantOffset[%zu] dim num[%zu] is not equal with %zu",
                       i, antiquantScaleDimNum, i, antiquantOffsetDimNum, dimNum), return GRAPH_FAILED);
-            auto wShape = context->GetDynamicInputShape(GMM_INDEX_IN_WEIGHT, i);
             int64_t pergroupSizeOfScale = GetPergroupSize(gmmAttrs, isSingleWeight, wShape, antiquantScaleShape);
             int64_t pergroupSizeOfOffset = GetPergroupSize(gmmAttrs, isSingleWeight, wShape, antiquantOffsetShape);
             OP_CHECK_IF(pergroupSizeOfScale != pergroupSize || pergroupSizeOfOffset != pergroupSize,
@@ -824,7 +824,7 @@ static ge::graphStatus CheckDimNum(gert::InferShapeContext* context, uint64_t te
     return GRAPH_SUCCESS;
 }
 
-static ge::graphStatus CheckWeightShapeInnerAxisEven(const gert::InferShapeContext* context, const size_t weightSize,
+static ge::graphStatus CheckI4WeightShapeLastAxisEven(const gert::InferShapeContext* context, const size_t weightSize,
                                                      const int64_t innerAxisDimId) {
     auto w0Desc = context->GetDynamicInputDesc(GMM_INDEX_IN_WEIGHT, 0);
     OP_CHECK_NULL_WITH_CONTEXT(context, w0Desc);
@@ -944,7 +944,7 @@ static ge::graphStatus CheckShapeSameLengthTensorList(gert::InferShapeContext* c
         OP_CHECK_NULL_WITH_CONTEXT(context, shape);
         int64_t dimValue1 = shape->GetDim(dimIds[0]);
         // tensorType[2] indicates whether check tensorList0's inner axis(innerAxisDimId)
-        if (tensorType[2] == "true" && innerAxisDimId > -1) {
+        if (tensorType.size() >= LIMIT_DIM_THREE && tensorType[DIM_INDEX_TWO] == "true" && innerAxisDimId > -1) {
             auto shape0 = context->GetDynamicInputShape(nodeIdx[0], i);
             OP_CHECK_NULL_WITH_CONTEXT(context, shape0);
             int64_t innerAxisValue = shape0->GetDim(innerAxisDimId);
@@ -953,7 +953,7 @@ static ge::graphStatus CheckShapeSameLengthTensorList(gert::InferShapeContext* c
                 "but now is %ld.", dimIds[0], tensorType[0].c_str(), i, GMM_MAX_INNER_AXIS, innerAxisValue);
             }
         }
-        if (tensorType[1] == "y") {
+        if (tensorType.size() >= LIMIT_DIM_TWO && tensorType[DIM_INDEX_ONE] == "y") {
             shape = context->GetOutputShape(nodeIdx[1] + i);
         } else {
             shape = context->GetDynamicInputShape(nodeIdx[1], i);
@@ -1068,7 +1068,8 @@ static ge::graphStatus SplitMSingleXSingleWeightSingleY(gert::InferShapeContext*
     OP_CHECK_IF(CheckInnerAxisOfTensorList(context, GMM_INDEX_IN_WEIGHT, innerAxisDimId, paramsInfo.numWeight) != GRAPH_SUCCESS,
               OP_LOGE(context->GetNodeName(), "inner axis size of weight is larger than %ld!", GMM_MAX_INNER_AXIS),
               return GRAPH_FAILED);
-    OP_CHECK_IF(CheckWeightShapeInnerAxisEven(context, paramsInfo.numWeight, 2) != GRAPH_SUCCESS,
+    int64_t lastAxisDimId = 2;
+    OP_CHECK_IF(CheckI4WeightShapeLastAxisEven(context, paramsInfo.numWeight, lastAxisDimId) != GRAPH_SUCCESS,
               OP_LOGE(context->GetNodeName(), "weight's N axis size should be even when it is int4 dtype."),
               return GRAPH_FAILED);
     // check groupList
@@ -1098,7 +1099,8 @@ static ge::graphStatus SplitMSingleXSeparatedWeightSingleY(gert::InferShapeConte
     OP_CHECK_IF(CheckInnerAxisOfTensorList(context, GMM_INDEX_IN_WEIGHT, innerAxisDimId, 1) != GRAPH_SUCCESS,
               OP_LOGE(context->GetNodeName(), "inner axis size of weight is larger than %ld!", GMM_MAX_INNER_AXIS),
               return GRAPH_FAILED);
-    OP_CHECK_IF(CheckWeightShapeInnerAxisEven(context, paramsInfo.numWeight, 1) != GRAPH_SUCCESS,
+    int64_t lastAxisDimId = 1;
+    OP_CHECK_IF(CheckI4WeightShapeLastAxisEven(context, paramsInfo.numWeight, lastAxisDimId) != GRAPH_SUCCESS,
               OP_LOGE(context->GetNodeName(), "weight's N axis size should be even when it is int4 dtype."),
               return GRAPH_FAILED);
     // check groupList
@@ -1135,7 +1137,9 @@ static ge::graphStatus SplitMSeparatedXSeparatedWeightSingleY(gert::InferShapeCo
     OP_CHECK_IF(CheckInnerAxisOfTensorList(context, GMM_INDEX_IN_X, innerAxisDimId, 1) != GRAPH_SUCCESS,
               OP_LOGE(context->GetNodeName(), "inner axis size of x is larger than %ld!", GMM_MAX_INNER_AXIS),
               return GRAPH_FAILED);
-    OP_CHECK_IF(CheckWeightShapeInnerAxisEven(context, weightSize, 1) != GRAPH_SUCCESS,
+    // Check WeightShapeInnerAxisEven
+    int64_t lastAxisDimId = 1;
+    OP_CHECK_IF(CheckI4WeightShapeLastAxisEven(context, weightSize, lastAxisDimId) != GRAPH_SUCCESS,
               OP_LOGE(context->GetNodeName(), "weight's N axis size should be even when it is int4 dtype."),
               return GRAPH_FAILED);
     // check groupList
@@ -1414,6 +1418,20 @@ static graphStatus IsDavidQuantGMMByShape(T context) {
     return (GetSizeByDataType(xDtype) == 1 && GetSizeByDataType(weightDtype) == 1) ? GRAPH_SUCCESS : GRAPH_FAILED;
 }
 
+static bool IsUnknownShape(const gert::Shape *shape)
+{
+    if (IsNonEmpty(shape)) {
+        size_t size = shape->GetDimNum();
+        for (size_t i = 0; i < size; i++) {
+            if (shape->GetDim(i) == UNKNOWN_SHAPE_VALUE || shape->GetDim(i) == SHAPE_UNKNOWN_DIM_NUM) {
+                return true;
+            }
+        }
+        return false;
+    }
+    return false;
+}
+
 static ge::graphStatus InferShape4GroupedMatmul(gert::InferShapeContext* context) {
     OP_CHECK_NULL_WITH_CONTEXT(context, context);
     fe::PlatformInfo platformInfo;
@@ -1460,8 +1478,14 @@ static ge::graphStatus InferShape4GroupedMatmul(gert::InferShapeContext* context
     size_t weightDimNum = w0Shape->GetDimNum();
     bool isSingleX = (numX == 1UL) && (gmmAttrs.groupType != GMM_NO_SPLIT);
     bool isSingleY = (numY == 1UL) && (gmmAttrs.groupType != GMM_NO_SPLIT);
-    size_t xDimM = gmmAttrs.transposeX ? xDimNum - 1UL : xDimNum - 2UL;
-    size_t weightDimN = gmmAttrs.transposeWeight ? weightDimNum - 2UL : weightDimNum - 1UL;
+    size_t xDimM = 0UL;
+    size_t weightDimN = 0UL;
+    if(!IsUnknownShape(x0Shape) && xDimNum >= LIMIT_DIM_TWO){
+        xDimM = gmmAttrs.transposeX ? xDimNum - 1UL : xDimNum - 2UL;
+    }
+    if(!IsUnknownShape(w0Shape) && weightDimNum >= LIMIT_DIM_TWO){
+        weightDimN = gmmAttrs.transposeWeight ? weightDimNum - 2UL : weightDimNum - 1UL;
+    }
 
     GMMSetOutputParams outputParams;
     outputParams.isSingleX = isSingleX;
