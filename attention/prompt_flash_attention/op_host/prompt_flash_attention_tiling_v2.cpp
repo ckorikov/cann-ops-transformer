@@ -1270,7 +1270,7 @@ bool PromptFlashAttentionTilingV2::CheckPFAMerge(ContextParamsForPFATiling& cont
         return false;
     }
 
-    if (enableMask || enablePseShift || enablePA || enableAlibiPse) {
+    if (enableMask || enablePseShift || enablePA || enableAlibiPse || enablePFARope || enablePerblockQuant || enablePertensorQuant) {
         return false;
     }
     return true;
