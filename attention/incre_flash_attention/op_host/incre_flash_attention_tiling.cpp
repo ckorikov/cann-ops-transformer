@@ -2277,13 +2277,13 @@ ge::graphStatus IFATiling::CalcInnerSize(uint32_t seqSize)
      *                          因此，cube发小块，期望vector尽量被cube的mte2掩盖。sInnerSize=1024
      */
     sInnerSize_ = MAX_SPLIT_SIZE; // 8192
-    if (antiQuantFlag_ && nNumOfQInOneGroup_ >= 1U) {
-        if (perfMode_ == IfaPerfMode::CUBE_VIEW_MM || perfMode_ == IfaPerfMode::CUBE_VIEW_MM_FULL_LOAD) {
+    if (antiQuantFlag_) {
+        if (nNumOfQInOneGroup_ > 1U && (perfMode_ == IfaPerfMode::CUBE_VIEW_MM || perfMode_ == IfaPerfMode::CUBE_VIEW_MM_FULL_LOAD)) {
             sInnerSize_ = 2048U;
-        } else {
+        } else if (nNumOfQInOneGroup_ > 1 || (nNumOfQInOneGroup_ == 1U && perfMode_ == IfaPerfMode::CUBE_VIEW_MM_DD)) {
             sInnerSize_ = 1024U;
         }
-    } else if (!antiQuantFlag_) {
+    } else {
         /** 当前版本限制workspace大小不超过32MB，否则会影响网络中前后算子性能，
          *  GQA场景下 nNumOfQInOneGroup_和sInnerSize_切分大小直接影响workspace大小,
          *  具体计算参考CalcWorkSpace函数，这里根据nNumOfQInOneGroup_将sInnerSize_
