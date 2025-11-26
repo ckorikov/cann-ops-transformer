@@ -539,6 +539,7 @@ posembedding:
       - posembedding/interleave_rope/README.md
     options:
       - interleave_rope
+      - rotary_position_embedding
 
   rope_quant_kvcache:
     module: True
