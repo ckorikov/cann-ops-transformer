@@ -85,6 +85,17 @@ static aclnnStatus CheckShape(gmm_add_advanced::GroupedMatmulAddParams params)
 
     CHECK_COND(aKDim == bKDim, ACLNN_ERR_PARAM_INVALID,
                "The kDim of x/weight should be equal, but the actual is %ld/%ld.", aKDim, bKDim);
+    if (GetCurrentPlatformInfo().GetSocVersion() == SocVersion::ASCEND910_95) {
+        auto groupNum = params.groupList->GetViewShape().GetDim(0);
+        auto yDimNum = params.yRef->GetViewShape().GetDimNum();
+        CHECK_COND(yDimNum == 3, ACLNN_ERR_PARAM_INVALID, // 910_95 y tensor need 3 dim
+                   "The dimension of y should be 3 , but actual is %zu.", yDimNum);
+        auto groupNumY = params.yRef->GetViewShape().GetDim(0);
+        CHECK_COND(groupNum == groupNumY, ACLNN_ERR_PARAM_INVALID,
+                   "groupNum should be equal between groupListTensor and yTensor when group_type is 2, but actual "
+                   "groupListTensor[%ld], yTensor[%ld].",
+                   groupNum, groupNumY);
+    }
     return ACLNN_SUCCESS;
 }
 

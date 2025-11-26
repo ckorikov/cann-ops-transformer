@@ -16,7 +16,6 @@
 #define __GROUPED_MATMUL_ADD_NO_QUANT_TILING_H
 
 #include "log/log.h"
-#include "log/error_code.h"
 #include "register/op_impl_registry.h"
 #include "../../../op_kernel/arch35/grouped_matmul_add_tiling_data.h"
 #include "grouped_matmul_add_utils_advanced.h"
@@ -40,7 +39,7 @@ protected:
     void CalAswtL1Tiling(const GMMCompileInfo* compileInfoPtr);
     void CalcTailBasicBlock(const GMMCompileInfo* compileInfoPtr);
     bool SetCustomParam(gert::TilingContext *context);
-    void SetTilingKey(gert::TilingContext *context);
+    void SetTilingKey(gert::TilingContext *context) const;
     bool SplitKSingleXSingleWeightSingleY(const gert::TilingContext* context, const gert::Shape xShape, const gert::Shape wShape);
 
 private:

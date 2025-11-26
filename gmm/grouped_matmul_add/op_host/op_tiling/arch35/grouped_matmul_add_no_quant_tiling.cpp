@@ -250,20 +250,10 @@ bool GroupedMatmulAddNoQuantTiling::SplitKSingleXSingleWeightSingleY(const gert:
                                                                      const gert::Shape xShape, const gert::Shape wShape)
 {
     auto groupListTensor = context->GetDynamicInputTensor(INDEX_GROUPLIST, 0);
-    auto yTensor = context->GetDynamicInputTensor(INDEX_YREF, 0);
-    OP_CHECK_IF(groupListTensor == nullptr || yTensor == nullptr,
-                OP_LOGE(context->GetNodeName(), "groupListTensor or yTensor is nullptr"), return false);
+    OP_CHECK_IF(groupListTensor == nullptr,
+                OP_LOGE(context->GetNodeName(), "groupListTensor is nullptr"), return false);
     gert::Shape groupListShape = groupListTensor->GetStorageShape();
-    gert::Shape yShape = yTensor->GetStorageShape();
-    uint32_t groupListNum = static_cast<uint32_t>(groupListShape.GetDim(0));
-    uint32_t yNum = static_cast<uint32_t>(yShape.GetDim(0));
-    OP_CHECK_IF(groupListNum != yNum,
-                OP_LOGE(context->GetNodeName(),
-                        "groupNum should be equal between groupListTensor and yTensor when group_type is 2, but "
-                        "groupListTensor[%u], yTensor[%u].",
-                        groupListNum, yNum),
-                return false);
-    groupNum_ = groupListNum;
+    groupNum_ = static_cast<uint32_t>(groupListShape.GetDim(0));
     groupNum_ = static_cast<int32_t>(groupListShape.GetDim(0)); // 0: the first dim of groupList is groupNum
     m_ = static_cast<uint64_t>(xShape.GetDim(1));
     k_ = static_cast<uint64_t>(xShape.GetDim(xKDim_));
@@ -291,7 +281,7 @@ bool GroupedMatmulAddNoQuantTiling::SetCustomParam(gert::TilingContext *context)
     return true;
 }
 
-void GroupedMatmulAddNoQuantTiling::SetTilingKey(gert::TilingContext *context)
+void GroupedMatmulAddNoQuantTiling::SetTilingKey(gert::TilingContext *context) const
 {
     uint8_t gmmTrans = static_cast<uint8_t>(transposeX_) | (static_cast<uint8_t>(transposeWeight_) << 1);
     constexpr uint64_t TILINGKEYOFFSETGMM = 10000900009000090000UL; // means base tiling template
