@@ -377,9 +377,6 @@ ge::graphStatus GroupedMatmulFinalizeRoutingBaseTiling::W8A8TilingProcess()
         OP_LOGE(context_->GetNodeName(), "GroupedMatmulFinalizeRoutingBaseTiling Get Tiling Failed!, m, n, k: %lu, %lu, %lu", m_, n_, k_);
         return ge::GRAPH_FAILED;
     }
-
-    // logit 和 sharedInput 联动参数, 暂时赋值为1
-    scatterAdd_ = 1;
     
     // row_index类型
     auto rowIndexDesc = context_->GetOptionalInputDesc(ROW_INDEX_INDEX);
@@ -449,7 +446,6 @@ void GroupedMatmulFinalizeRoutingBaseTiling::FillTilingData()
     tilingData_.set_sharedInputOffset(sharedInputOffset_);
     tilingData_.set_sharedInputLen(sharedInputLen_);
     tilingData_.set_residualScale(residualScale_);
-    tilingData_.set_scatterAdd(scatterAdd_);
     tilingData_.set_quantGroupNum(quantGroupNum_);
     tilingData_.set_ubRestBytes(ubRestBytes_);  // 126976: 除分配给TQue外剩余给TBuf的大小为126976
     tilingData_.set_withOffset(withOffset_);
@@ -484,7 +480,6 @@ void GroupedMatmulFinalizeRoutingBaseTiling::PrintTilingData()
     OP_LOGD(context_->GetNodeName(), "sharedInputOffset: [%u]", tilingData_.get_sharedInputOffset());
     OP_LOGD(context_->GetNodeName(), "sharedInputLen: [%u]", tilingData_.get_sharedInputLen());
     OP_LOGD(context_->GetNodeName(), "residualScale: [%.2f]", tilingData_.get_residualScale());
-    OP_LOGD(context_->GetNodeName(), "scatterAdd: [%u]", tilingData_.get_scatterAdd());
     OP_LOGD(context_->GetNodeName(), "quantGroupNum: [%u]", tilingData_.get_quantGroupNum());
     OP_LOGD(context_->GetNodeName(), "ubRestBytes: [%u]", tilingData_.get_ubRestBytes());
     OP_LOGD(context_->GetNodeName(), "hasPertokenScale: [%u]", tilingData_.get_hasPertokenScale());

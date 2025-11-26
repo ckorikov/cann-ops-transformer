@@ -74,7 +74,6 @@ private:
     uint64_t vBaseM_;
     uint32_t sharedInputOffset_;
     uint32_t sharedInputLen_;
-    uint32_t scatterAdd_;
     float residualScale_;
     uint32_t quantGroupNum_;
     uint32_t withOffset_;

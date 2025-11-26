@@ -131,7 +131,6 @@ TEST_F(grouped_matmul_finalize_routing_test, test_grouped_matmul_finalize_routin
     tilingData->ubCalSize = 4096;
     tilingData->ubRestBytes = 126976;
     tilingData->parallNum = 4;
-    tilingData->scatterAdd = 1;
     tilingData->sharedInputOffset = 36;
     tilingData->sharedInputLen = 18;
     tilingData->residualScale = 1.0;
@@ -276,7 +275,6 @@ TEST_F(grouped_matmul_finalize_routing_test, test_grouped_matmul_finalize_routin
     tilingData->ubCalSize = 4096;
     tilingData->ubRestBytes = 126976;
     tilingData->parallNum = 4;
-    tilingData->scatterAdd = 0;
     tilingData->sharedInputOffset = 0;
     tilingData->sharedInputLen = 0;
     tilingData->residualScale = 1.0;
@@ -428,7 +426,6 @@ TEST_F(grouped_matmul_finalize_routing_test, test_grouped_matmul_finalize_routin
     tilingData->ubCalSize = 4096;
     tilingData->ubRestBytes = 126976;
     tilingData->parallNum = 4;
-    tilingData->scatterAdd = 1;
     tilingData->sharedInputOffset = 36;
     tilingData->sharedInputLen = 18;
     tilingData->residualScale = 1.0;
@@ -586,7 +583,6 @@ TEST_F(grouped_matmul_finalize_routing_test, test_grouped_matmul_finalize_routin
     tilingData->ubCalSize = 4096;
     tilingData->ubRestBytes = 126976;
     tilingData->parallNum = 4;
-    tilingData->scatterAdd = 1;
     tilingData->sharedInputOffset = 36;
     tilingData->sharedInputLen = 18;
     tilingData->residualScale = 1.0;
@@ -750,7 +746,6 @@ TEST_F(grouped_matmul_finalize_routing_test, test_grouped_matmul_finalize_routin
     tilingData->ubCalSize = 4096;
     tilingData->ubRestBytes = 126976;
     tilingData->parallNum = 4;
-    tilingData->scatterAdd = 1;
     tilingData->sharedInputOffset = 36;
     tilingData->sharedInputLen = 18;
     tilingData->residualScale = 1.0;

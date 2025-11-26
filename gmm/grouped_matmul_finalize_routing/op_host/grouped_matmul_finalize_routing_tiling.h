@@ -48,7 +48,6 @@ BEGIN_TILING_DATA_DEF(GroupMatmulFRTilingData)
   TILING_DATA_FIELD_DEF(uint32_t, ubCalSize);
   TILING_DATA_FIELD_DEF(uint32_t, ubRestBytes);
   TILING_DATA_FIELD_DEF(uint32_t, parallNum);
-  TILING_DATA_FIELD_DEF(uint32_t, scatterAdd);
   TILING_DATA_FIELD_DEF(uint32_t, sharedInputOffset);
   TILING_DATA_FIELD_DEF(uint32_t, sharedInputLen);
   TILING_DATA_FIELD_DEF(float, residualScale);

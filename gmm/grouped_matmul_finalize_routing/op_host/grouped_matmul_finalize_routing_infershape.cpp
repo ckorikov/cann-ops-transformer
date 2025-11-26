@@ -248,7 +248,7 @@ static ge::graphStatus InferShapeGroupedMatmulFinalizeRouting(InferShapeContext 
     return ge::GRAPH_SUCCESS;
 }
 
-static ge::graphStatus ValidateFailedDataType(gert::InferDataTypeContext *context)
+static ge::graphStatus ValidateFailedDataType(const gert::InferDataTypeContext *context)
 {
     // 先判断a8w4还是a8w8出问题
     if (context->GetInputDataType(xIndex) == ge::DT_INT8 && context->GetInputDataType(wIndex) == ge::DT_INT8) {
@@ -267,19 +267,19 @@ static ge::graphStatus ValidateFailedDataType(gert::InferDataTypeContext *contex
     
     if (context->GetInputDataType(xIndex) == ge::DT_INT8 && context->GetInputDataType(wIndex) == ge::DT_INT4) {
         OP_CHECK_IF((context->GetOptionalInputDataType(scaleOptionIndex) != ge::DT_INT64),
-                     OPS_REPORT_CUBE_INNER_ERR(context->GetNodeName(), "The W8A8 InputDataType of scale is wrong."),
+                     OPS_REPORT_CUBE_INNER_ERR(context->GetNodeName(), "The W4A8 InputDataType of scale is wrong."),
                      return ge::GRAPH_FAILED);
         OP_CHECK_IF((context->GetOptionalInputDataType(biasOptionIndex) != ge::DT_FLOAT),
-                     OPS_REPORT_CUBE_INNER_ERR(context->GetNodeName(), "The W8A8 InputDataType of bias is wrong."),
+                     OPS_REPORT_CUBE_INNER_ERR(context->GetNodeName(), "The W4A8 InputDataType of bias is wrong."),
                      return ge::GRAPH_FAILED);
         OP_CHECK_IF((context->GetOptionalInputDataType(groupListOptionIndex) != ge::DT_INT64),
-                     OPS_REPORT_CUBE_INNER_ERR(context->GetNodeName(), "The W8A8 InputDataType of groupList is wrong."),
+                     OPS_REPORT_CUBE_INNER_ERR(context->GetNodeName(), "The W4A8 InputDataType of groupList is wrong."),
                      return ge::GRAPH_FAILED);
         OP_CHECK_IF((context->GetOptionalInputDataType(rowIndexOptionIndex) != ge::DT_INT64),
-                     OPS_REPORT_CUBE_INNER_ERR(context->GetNodeName(), "The W8A8 InputDataType of rowIndex is wrong."),
+                     OPS_REPORT_CUBE_INNER_ERR(context->GetNodeName(), "The W4A8 InputDataType of rowIndex is wrong."),
                      return ge::GRAPH_FAILED);                     
         OP_CHECK_IF((context->GetOptionalInputDataType(logitOptionIndex) != ge::DT_FLOAT),
-                     OPS_REPORT_CUBE_INNER_ERR(context->GetNodeName(), "The W8A8 InputDataType of logit is wrong."),
+                     OPS_REPORT_CUBE_INNER_ERR(context->GetNodeName(), "The W4A8 InputDataType of logit is wrong."),
                      return ge::GRAPH_FAILED);  
     }
 

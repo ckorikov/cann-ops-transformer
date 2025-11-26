@@ -186,7 +186,7 @@ __aicore__ inline void QuantGroupMatmul<P>::InitUbBuffer()
     if (tiling->deterministicFlag == 1) {
         pipe->InitBuffer(queBind, BUFFER_NUM, DETER_UB_SIZE);
     }
-    if (P::combine && tiling->scatterAdd) {
+    if constexpr (P::combine) {
         // 2: pertoken scale和logits般到一块buffer上
         uint32_t perTokenScalebufferNum = (hasPertokenScale != 0) ? 2 : 1;
         pipe->InitBuffer(perTokenScaleInQueue, BUFFER_NUM,
@@ -241,7 +241,7 @@ __aicore__ inline void QuantGroupMatmul<P>::PreProcessInit() {
 
 template <class P>
 __aicore__ inline void QuantGroupMatmul<P>::PreProcess() {
-    if (!P::combine || P::sharedInputIsNone || tiling->scatterAdd == 0) {
+    if constexpr (!P::combine || P::sharedInputIsNone) {
         InitOutputWithZeros(0, tiling->n * tiling->batch);
         return;
     }
@@ -378,17 +378,14 @@ __aicore__ inline void QuantGroupMatmul<P>::VectorAtomicProcess(const VectorAtom
 {
     LocalTensor<DTYPE_OUT> yLocal = vecOutQueue.DeQue<DTYPE_OUT>();
     if constexpr (P::combine) {
-        if (tiling->scatterAdd) {
-            if (tiling->deterministicFlag == 1) {
-                DataCopy2DDimParams dimParams{vecAParams.curVecBaseM, vecAParams.curVecBaseN, vecAParams.alignBaseN};
-                DataCopyPad2D(mmQuantOutGm[vecAParams.yGmOffset1 - (syncConfig.lowBoundM - syncConfig.windowSize) * tiling->n], 
-                              yLocal, dimParams, tiling->n);
-                vecOutQueue.FreeTensor(yLocal);
-                return;
-            }
-            SetAtomicAdd<float>();
+        if (tiling->deterministicFlag == 1) {
+            DataCopy2DDimParams dimParams{vecAParams.curVecBaseM, vecAParams.curVecBaseN, vecAParams.alignBaseN};
+            DataCopyPad2D(mmQuantOutGm[vecAParams.yGmOffset1 - (syncConfig.lowBoundM - syncConfig.windowSize) * tiling->n], 
+                yLocal, dimParams, tiling->n);
+            vecOutQueue.FreeTensor(yLocal);
+            return;
         }
-
+        SetAtomicAdd<float>();
         DataCopyExtParams paramsOut{1, static_cast<uint32_t>(vecAParams.curVecBaseN * sizeof(float)), 1, 1, 0};
         for (uint32_t i = 0; i < vecAParams.curVecBaseM; i++) {
                 auto outRow = static_cast<uint64_t>(
@@ -396,10 +393,7 @@ __aicore__ inline void QuantGroupMatmul<P>::VectorAtomicProcess(const VectorAtom
                 DataCopyPad(yGm[outRow * tiling->n + vecAParams.yGmOffset0],
                             yLocal[i * vecAParams.alignBaseN], paramsOut);
         }
-
-        if (tiling->scatterAdd) {
-            SetAtomicNone();
-        }
+        SetAtomicNone();
     } else {
         DataCopy2DDimParams dimParams{vecAParams.curVecBaseM, vecAParams.curVecBaseN, vecAParams.alignBaseN};
         DataCopyPad2D(yGm[vecAParams.yGmOffset1], yLocal, dimParams, tiling->n);
@@ -610,12 +604,12 @@ __aicore__ inline void QuantGroupMatmul<P>::DataCopyPerTokenScale(MNConfig& mnCo
         // GM拷贝per token scale
         DataCopyPad(perTokenScaleLocal[alignBaseM], perTokenScaleGm[vecBaseMOffset], perTokenScaleParams, padParams);
     }
-    if (P::combine && tiling->scatterAdd) {
+    if (P::combine) {
         DataCopyPad(perTokenScaleLocal, logitsGm[vecBaseMOffset], perTokenScaleParams, padParams);
     }
     perTokenScaleInQueue.EnQue(perTokenScaleLocal);
     perTokenScaleInUb = perTokenScaleInQueue.DeQue<float>();
-    if (P::combine && tiling->scatterAdd) {
+    if (P::combine) {
         if (hasPertokenScale) {
             Mul(perTokenScaleInUb[alignBaseM], perTokenScaleInUb, perTokenScaleInUb[alignBaseM], curBaseM);
         }
