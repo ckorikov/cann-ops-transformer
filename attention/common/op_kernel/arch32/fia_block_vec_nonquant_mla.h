@@ -164,7 +164,7 @@ protected:
     AttentionCommon::ConstInfo constInfo = {};
     uint16_t brcbNum = (fa_base_vector::BYTE_BLOCK / sizeof(COMPUTE_T));
 
-    static constexpr T SOFTMAX_MIN_NUM = -2e38;
+    T SOFTMAX_MIN_NUM = T(-1.0/0.0); // -inf
     static constexpr uint64_t headDim = 512ULL;
     static constexpr uint64_t headDimAlign = 512ULL;
     static constexpr uint64_t headDimRope = 64ULL;
