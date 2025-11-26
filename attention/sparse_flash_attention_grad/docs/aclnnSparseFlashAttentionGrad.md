@@ -16,32 +16,53 @@
 
 ## 功能说明
 
--   **算子功能**：根据topkIndices对key和value选取大小为selectedBlockSize的数据重排，接着进行训练场景下计算注意力的反向输出。
+-   **接口功能**：根据topkIndices对key和value选取大小为selectedBlockSize的数据重排，接着进行训练场景下计算注意力的反向输出。
 
 -   **计算公式**：根据传入的topkIndice对keyIn和value选取数量为selectedBlockCount个大小为selectedBlockSize的数据重排，公式如下：
 
   $$
    selectedKey\text{ }=\text{ }Gather \left( key,topkIndices \left[ i \left]  \left) ,\text{ }0\text{ } < =i < \text{ }selectBlockCount\right. \right. \right. \right.
   $$
+
   $$
    selectedValue\text{ }=\text{ }Gather \left( value,topkIndices \left[ i \left]  \left) ,\text{ }0\text{ } < =i < \text{ }selectBlockCount\right. \right. \right. \right.
   $$
 
+<div style="padding-left:40px;">
+
   阶段1：根据矩阵乘法导数规则，计算$dP$和$dV$:
+
+</div>
+
   $$
    dP\mathop{{}}\nolimits_{{t,:}}=dO\mathop{{}}\nolimits_{{t,:}}\text{@}V\mathop{{}}\nolimits^{{T}}
   $$
+
   $$
    dV \left[ u \left] =P\mathop{{}}\nolimits_{{T}}^{{t,:}}\text{@}dO\mathop{{}}\nolimits_{{t,:}}\right. \right.
   $$
+
+<div style="padding-left:40px;">
+
    阶段2：计算$dS$:
+
+</div>
+
   $$
    d\mathop{{S}}\nolimits_{{t,:}}= \left[ P\mathop{{}}\nolimits_{{t,:}}@ \left( dP\mathop{{}}\nolimits_{{t,:}}-FlashSoftmaxGrad \left( dO,O \left)  \left)  \right] \right. \right. \right. \right.
   $$
+
+
+<div style="padding-left:40px;">
+
    阶段3：计算$dQ$与$dK$:
+
+</div>
+
   $$
    d\mathop{{Q}}\nolimits_{{t,:}}=d\mathop{{S}}\nolimits_{{t,:}}@K \left[ u \left] \mathop{{}}\nolimits_{{:t,:}}/\sqrt{{d\mathop{{}}\nolimits_{{k,:}}}}\right. \right.
   $$
+
   $$
    dK \left[ u \left] \mathop{{}}\nolimits_{{:t,:}}=dS\mathop{{}}\nolimits_{{t,:t}}\mathop{{}}\nolimits^{{T}}\text{@}Q/\sqrt{{d\mathop{{}}\nolimits_{{t,:}}}}\right. \right. 
   $$
@@ -78,7 +99,7 @@ aclnnStatus aclnnSparseFlashAttentionGradGetWorkspaceSize(
     const aclTensor     *dQueryRopeOutOptional,
     const aclTensor     *dKeyRopeOutOptional,
     uint64_t            *workspaceSize,
-    aclOpExecutor       **executor)
+    aclOpExecutor      **executor)
 ```
 ```c++
 aclnnStatus aclnnSparseFlashAttentionGrad(
@@ -88,7 +109,7 @@ aclnnStatus aclnnSparseFlashAttentionGrad(
     const aclrtStream stream)
 ```
 
-### aclnnSparseFlashAttentionGradGetWorkspaceSize
+## aclnnSparseFlashAttentionGradGetWorkspaceSize
 
 - **参数说明：**
 
@@ -96,11 +117,11 @@ aclnnStatus aclnnSparseFlashAttentionGrad(
         <colgroup>
             <col style="width: 220px">
             <col style="width: 120px">
-            <col style="width: 300px">  
+            <col style="width: 200px">  
             <col style="width: 400px">  
             <col style="width: 212px">  
             <col style="width: 100px">
-            <col style="width: 190px">
+            <col style="width: 290px">
             <col style="width: 145px">
             </colgroup>
         <thead>
@@ -111,157 +132,122 @@ aclnnStatus aclnnSparseFlashAttentionGrad(
             <th>使用说明</th>
             <th>数据类型</th>
             <th>数据格式</th>
-            <th>layout</th>
+            <th>维度(shape)</th>
             <th>非连续Tensor</th>
         </tr></thead>
         <tbody>
         <tr>
             <td>query</td>
             <td>输入</td>
-            <td>attention结构的输入Q</td>
+            <td>attention结构的输入Q。</td>
             <td>
-            <ul>
-                <li>query、key、value、sparseIndices、dOut、out、softmaxMax、softmaxSum的Shape维度保持一致。</li>
-                <li>B: 支持泛化。</li>
-                <li>S1: 支持泛化。</li>
-                <li>N1: 支持128,64,32,16,8,4,2,1。</li>
-                <li>D: 512。</li>
-                <li>T1: B × S1。</li>
-            </ul>
+            query、key、value、sparseIndices、dOut、out、softmaxMax、softmaxSum的Shape维度保持一致。
             </td>
             <td>BFLOAT16、FLOAT16</td>
             <td>ND</td>
-            <td>(B,S1,N1,D);(T1,N1,D)</td>
+            <td>(B,S1,N1,D)、(T1,N1,D)<br>
+            B：支持泛化；S1：支持泛化；N1：支持128、64、32、16、8、4、2、1；D：512；T2：B × S2
+            </td>
             <td>√</td>
         </tr>
         <tr>
             <td>key</td>
             <td>输入</td>
-            <td>attention结构的输入K</td>
-            <td>
-            <ul>
-                <li>B: 支持泛化</li>
-                <li>S2: 支持泛化。</li>
-                <li>N2: 1。</li>
-                <li>D: 512。</li>
-                <li>T2: B × S2。</li>  
-            </ul>
-            </td>
+            <td>attention结构的输入K。</td>
+            <td>-</td>
             <td>BFLOAT16、FLOAT16</td>
             <td>ND</td>
-            <td>(B,S2,N2,D);(T2,N2,D)</td>
+            <td>(B,S2,N2,D)、(T2,N2,D)<br>
+            B：支持泛化；N2：1；D：512；T2：B × S2
+            </td>
             <td>√</td>
         </tr>
         <tr>
             <td>value</td>
             <td>输入</td>
-            <td>attention结构的输入v</td>
+            <td>attention结构的输入v。</td>
             <td>
-            <ul>
-                <li>B: 支持泛化，且与query的B保持一致。</li>
-                <li>S2: 支持泛化，且与value的S2保持一致。</li>
-                <li>N2: 1。</li>
-                <li>D: 512。</li>
-                <li>T2: B × S2。</li>  
-            </ul>
+            -
             </td>
             <td>BFLOAT16、FLOAT16</td>
             <td>ND</td>
-            <td>(B,S2,N2,D);(T2,N2,D)</td>
+            <td>(B,S2,N2,D)、(T2,N2,D)<br>
+            B：支持泛化，且与query的B保持一致；S2：支持泛化，且与value的S2保持一致；N2：1；D：512；T2：B × S2
+            </td>
             <td>√</td>
         </tr>
         <tr>
             <td>sparseIndices</td>
             <td>输入</td>
-            <td>稀疏场景下选择的权重较高的注意力索引</td>
+            <td>稀疏场景下选择的权重较高的注意力索引。</td>
             <td>
-            <ul>
-                <li>B: 支持泛化，且与query的B保持一致。</li>
-                <li>S2: 支持泛化，且与value的S2保持一致。</li>
-                <li>N2: 1。</li>
-                <li>K：2048。</li>
-                <li>T1: B × S1。</li>  
-            </ul>
+            -
             </td>
             <td>INT64</td>
             <td>ND</td>
-            <td>(B,S1,N2,K);(T1,N2,K)</td>
+            <td>(B,S1,N2,K)、(T1,N2,K)<br>
+            B：支持泛化，且与query的B保持一致；S2：支持泛化，且与value的S2保持一致；N2：1；K：2048；T1：B × S1
+            </td>
             <td>-</td>
         </tr>
         <tr>
             <td>dOut</td>
             <td>输入</td>
-            <td>Device侧的aclTensor，注意力输出矩阵的梯度</td>
+            <td>注意力输出矩阵的梯度。</td>
             <td>
-            <ul>
-                <li>B: 支持泛化，且与query的B保持一致。</li>
-                <li>S1: 支持泛化，且与query的S1保持一致。</li>
-                <li>N1: 支持128,64,32,16,8,4,2,1。</li>
-                <li>D: 512。</li>
-                <li>T1: B × S1。</li>
-            </ul>
+            -
             </td>
             <td>BFLOAT16、FLOAT16</td>
             <td>ND</td>
-            <td>(B,S1,N1,D);(T1,N1,D)</td>
+            <td>(B,S1,N1,D)、(T1,N1,D)<br>
+            B：支持泛化，且与query的B保持一致；S1：支持泛化，且与query的S1保持一致；D：512；T1：B × S1
+            </td>
             <td>√</td>
         </tr>
         <tr>
             <td>out</td>
             <td>输入</td>
-            <td>Device侧的aclTensor，注意力输出矩阵</td>
+            <td>注意力输出矩阵。</td>
             <td>
-            <ul>
-                <li>B: 支持泛化，且与query的B保持一致。</li>
-                <li>S1: 支持泛化，且与query的S1保持一致。</li>
-                <li>N1: 支持128,64,32,16,8,4,2,1。</li>
-                <li>D: 512。</li>
-                <li>T1: B × S1。</li>
-            </ul>
+            -
             </td>
             <td>BFLOAT16、FLOAT16</td>
             <td>ND</td>
-            <td>(B,S1,N1,D);(T1,N1,D)</td>
+            <td>(B,S1,N1,D)、(T1,N1,D)<br>
+            B：支持泛化，且与query的B保持一致；S1：支持泛化，且与query的S1保持一致；N1：支持128、64、32、16、8、4、2、1；D：512；T1：B × S1
+            </td>
             <td>√</td>
         </tr>
         <tr>
             <td>softmaxMax</td>
             <td>输入</td>
-            <td>Device侧的aclTensor，注意力正向计算的中间输出</td>
+            <td>注意力正向计算的中间输出。</td>
             <td>
-            <ul>
-                <li>B: 支持泛化，且与query的B保持一致。</li>
-                <li>N2：1。</li>
-                <li>S1：支持泛化，且与query的S1保持一致。</li>
-                <li>G：N1/N2。</li>
-                <li>T1: B × S1。</li>
-            </ul>
+            -
             <td>FLOAT32</td>
             <td>ND</td>
-            <td>(B,N2,S1,G);(N2,T1,G)</td>
+            <td>(B,N2,S1,G)、(N2,T1,G)<br>
+            B：支持泛化，且与query的B保持一致；N2：1；S1：支持泛化，且与query的S1保持一致；G：N1/N2；T1：B × S1
+            </td>
             <td>√</td>
         </tr>
         <tr>
             <td>softmaxSum</td>
             <td>输入</td>
-            <td>Device侧的aclTensor，注意力正向计算的中间输出</td>
+            <td>注意力正向计算的中间输出。</td>
             <td>
-            <ul>
-                <li>B: 支持泛化，且与query的B保持一致。</li>
-                <li>N2：1。</li>
-                <li>S1：支持泛化，且与query的S1保持一致。</li>
-                <li>G：N1/N2。</li>
-                <li>T1: B × S1。</li>
-            </ul>
+            -
             <td>FLOAT32</td>
             <td>ND</td>
-            <td>(B,N2,S1,G);(N2,T1,G) </td>
+            <td>(B,N2,S1,G)、(N2,T1,G)<br>
+            B：支持泛化，且与query的B保持一致；N2：1；S1：支持泛化，且与query的S1保持一致；G：N1/N2；T1:：B × S1
+            </td>
             <td>√</td>
         </tr>
   <tr>
             <td>actualSeqLengthsQueryOptional</td>
             <td>输入</td>
-            <td>每个Batch中，Query的有效token数</td>
+            <td>每个Batch中，Query的有效token数。</td>
             <td>
             <ul>
                 <li>可选项：当layout为TND，该变量存在。</li>
@@ -277,7 +263,7 @@ aclnnStatus aclnnSparseFlashAttentionGrad(
         <tr>
             <td>actualSeqLengthskvOptional</td>
             <td>输入</td>
-            <td>每个Batch中，Key、value的有效token数</td>
+            <td>每个Batch中，Key、value的有效token数。</td>
             <td>
             <ul>
                 <li>可选项：当layout为TND，该变量存在。</li>
@@ -293,51 +279,36 @@ aclnnStatus aclnnSparseFlashAttentionGrad(
         <tr>
             <td>queryRopeOptional</td>
             <td>输入</td>
-            <td>MLA rope部分：Query位置编码的输出</td>
+            <td>MLA rope部分：Query位置编码的输出。</td>
             <td>
-            <ul>
-                <li>可选项，且与dQueryRope同时存在。</li>
-                <li>与query的layout维度保持一致</li>
-                <li>B: 支持泛化，且与query的B保持一致。</li>
-                <li>S1：支持泛化，且与query的S1保持一致。</li>
-                <li>N1：支持128,64,32,16,8,4,2,1。</li>
-                <li>Dr：64。</li>
-                <li>T1: B × S1。</li>
-            </ul>
+            -
             </td>
             <td>BFLOAT16、FLOAT16</td>
             <td>ND</td>
-            <td>(B,S1,N1,Dr);(T1,N1,Dr)</td>
+            <td>(B,S1,N1,Dr)、(T1,N1,Dr)<br>
+            B: 支持泛化，且与query的B保持一致；S1：支持泛化，且与query的S1保持一致；N1：支持128、64、32、16、8、4、2、1；Dr：64；T1: B × S1
+            </td>
             <td>√</td>
         </tr>
         <tr>
             <td>keyRopeOptional</td>
             <td>输入</td>
-            <td>MLA rope部分：Key位置编码的输出</td>
+            <td>MLA rope部分：Key位置编码的输出。</td>
             <td>
-            <ul>
-                <li>可选项，且与dKeyRope同时存在。</li>
-                <li>与key的layout维度保持一致。</li>
-                <li>B: 支持泛化，且与query的B保持一致。</li>
-                <li>S2：支持泛化，且与value的S2保持一致。</li>
-                <li>N2：1</li>
-                <li>Dr：64。</li>
-                <li>T2: B × S2。</li>
-            </ul>
+            -
             </td>
             <td>BFLOAT16、FLOAT16</td>
             <td>ND</td>
-            <td>(B,S2,N2,Dr);(T2,N2,Dr)</td>
+            <td>(B,S2,N2,Dr)、(T2,N2,Dr)<br>
+            B: 支持泛化，且与query的B保持一致；S2：支持泛化，且与value的S2保持一致；N2：1；Dr：64；T2: B × S2</td>
             <td>√</td>
         </tr>
         <tr>
             <td>scaleValue</td>
             <td>输入</td>
-            <td>缩放系数</td>
+            <td>缩放系数。</td>
             <td>
-            <ul>
-                <li>建议值：公式中d开根号的倒数</li>
-            </ul>
+            建议值：公式中d开根号的倒数</li>
             </td>
             <td>FLOAT32</td>
             <td>N/A</td>
@@ -347,11 +318,9 @@ aclnnStatus aclnnSparseFlashAttentionGrad(
         <tr>
             <td>sparseBlockSize</td>
             <td>输入</td>
-            <td>选择的块的大小</td>
+            <td>选择的块的大小。</td>
             <td>
-            <ul>
-                <li>目前支持1、8、16、32、64。</li>
-            </ul>
+            目前支持1、8、16、32、64。
             </td>
             <td>INT32</td>
             <td>N/A</td>
@@ -361,11 +330,9 @@ aclnnStatus aclnnSparseFlashAttentionGrad(
         <tr>
             <td>layout</td>
             <td>输入</td>
-            <td>layout格式</td>
+            <td>layout格式。</td>
             <td>
-            <ul>
-                <li>支持BSND、TND。</li>
-            </ul>
+            支持BSND、TND。
             </td>
             <td>STRING</td>
             <td>N/A</td>
@@ -375,7 +342,7 @@ aclnnStatus aclnnSparseFlashAttentionGrad(
         <tr>
             <td>sparseMode</td>
             <td>输入</td>
-            <td>sparse的模式</td>
+            <td>sparse的模式。</td>
         <td>
               <ul>
                 <li>表示sparse的模式。sparse不同模式的详细说明请参见<a href="#约束说明">约束说明</a>。</li>
@@ -390,11 +357,11 @@ aclnnStatus aclnnSparseFlashAttentionGrad(
         <tr>
         <td>preTokens</td>
             <td>输入</td>
-            <td>Attention算子里, 对S矩阵的滑窗起始位置</td>
+            <td>Attention算子里, 对S矩阵的滑窗起始位置。</td>
             <td>
             <ul>
                 <li>sparse_mode=4时，pre_tokens生效。</li>
-                <li>默认值为：2147483647</li>
+                <li>仅支持取值：2147483647</li>
             </ul>
             </td>
             <td>INT64</td>
@@ -405,11 +372,11 @@ aclnnStatus aclnnSparseFlashAttentionGrad(
         <tr>
         <td>nextTokens</td>
             <td>输入</td>
-            <td>Attention算子里, 对S矩阵的滑窗终止位置</td>
+            <td>Attention算子里, 对S矩阵的滑窗终止位置。</td>
             <td>
             <ul>
                 <li>sparse_mode=4时，next_tokens生效。</li>
-                <li>默认值为：2147483647</li>
+                <li>仅支持取值：2147483647</li>
             </ul>
             </td>
             <td>INT64</td>
@@ -420,11 +387,9 @@ aclnnStatus aclnnSparseFlashAttentionGrad(
         <tr>
         <td>deterministic</td>
             <td>输入</td>
-            <td>确定性计算</td>
+            <td>确定性计算。</td>
             <td>
-            <ul>
-                <li>与整网确定性参数use_deterministic_algorithms保持一致</li>
-            </ul>
+            与整网确定性参数use_deterministic_algorithms保持一致
             </td>
             <td>BOOL</td>
             <td>-</td>
@@ -434,96 +399,73 @@ aclnnStatus aclnnSparseFlashAttentionGrad(
         <tr>
             <td>dQuery</td>
             <td>输出</td>
-            <td>表示query的梯度</td>
+            <td>表示query的梯度。</td>
             <td>
-            <ul>
-                <li>与输入query的Shape维度保持一致</li>
-                <li>B: 支持泛化，且与query的B保持一致。</li>
-                <li>S1: 支持泛化，且与query的S1保持一致。</li>
-                <li>N1: 支持128,64,32,16,8,4,2,1。</li>
-                <li>D: 512。</li>
-                <li>T1: B × S1。</li>
-            </ul>
+            与输入query的Shape维度保持一致
             </td>
             <td>BFLOAT16、FLOAT16</td>
             <td>ND</td>
-            <td>(B,S1,N1,D);(T1,N1,D)</td>
+            <td>(B,S1,N1,D)、(T1,N1,D)<br>
+            B：支持泛化，且与query的B保持一致；S1：支持泛化，且与query的S1保持一致；N1：支持128、64、32、16、8、4、2、1；D：512；T1: B × S1
+            </td>
             <td>√</td>
         </tr>
         <tr>
             <td>dKey</td>
             <td>输出</td>
-            <td>表示key的梯度</td>
+            <td>表示key的梯度。</td>
             <td>
-            <ul>
-                <li>B: 支持泛化，且与query的B保持一致。</li>
-                <li>S2: 支持泛化，且与value的S2保持一致。</li>
-                <li>N2: 1。</li>
-                <li>D: 512。</li>
-                <li>T2: B × S2。</li> 
-            </ul>
+            -
             </td>
             <td>BFLOAT16、FLOAT16</td>
             <td>ND</td>
-            <td>(B,S2,N2,D);(T2,N2,D)</td>
+            <td>(B,S2,N2,D)、(T2,N2,D)<br>
+            B：支持泛化，且与query的B保持一致；S2：支持泛化，且与value的S2保持一致；N2：1；D：512；T2：B × S2
+            </td>
             <td>√</td>
         </tr>
         <tr>  
             <td>dValue</td>
             <td>输出</td>
-            <td>表示value的梯度</td>
+            <td>表示value的梯度。</td>
             <td>
-            <ul>
-                <li>与输入value的Shape维度保持一致。</li>
-                <li>B: 支持泛化，且与query的B保持一致。</li>
-                <li>S2: 支持泛化，且与value的S2保持一致。</li>
-                <li>N2: 1。</li>
-                <li>D: 512。</li>
-                <li>T2: B × S2。</li> 
-            </ul>
+            与输入value的Shape维度保持一致。
             </td>
             <td>BFLOAT16、FLOAT16</td>
             <td>ND</td>
-            <td>(B,S2,N2,D);(T2,N2,D)</td>
+            <td>(B,S2,N2,D)、(T2,N2,D)<br>
+            B：支持泛化，且与query的B保持一致；S2：支持泛化，且与value的S2保持一致；N2：1；D：512；T2: B × S2</td>
             <td>√</td>
         </tr>
           <tr>
             <td>dQueryRopeOptional</td>
             <td>输出</td>
-            <td>表示queryRope的梯度</td>
+            <td>表示queryRope的梯度。</td>
             <td>
             <ul>
                 <li>当输入queryRope存在，此变量才会输出。</li>
                 <li>与输入query的Shape维度保持一致。</li>
-                <li>B: 支持泛化，且与query的B保持一致。</li>
-                <li>S1: 支持泛化，且与query的S1保持一致。</li>
-                <li>N1: 支持128,64,32,16,8,4,2,1。</li>
-                <li>Dr: 64</li>
-                <li>T1: B × S1。</li>
             </ul>
             </td>
             <td>BFLOAT16、FLOAT16</td>
             <td>ND</td>
-            <td>(B,S1,N1,Dr);(T1,N1,Dr)</td>
+            <td>(B,S1,N1,Dr)、(T1,N1,Dr)<br>
+            B：支持泛化，且与query的B保持一致；S1：支持泛化，且与query的S1保持一致；N1：支持128、64、32、16、8、4、2、1；Dr：64；T1：B × S1
+            </td>
             <td>√</td>
         </tr>
         <tr>
             <td>dKeyRopeOptional</td>
             <td>输出</td>
-            <td>表示keyRope的梯度</td>
+            <td>表示keyRope的梯度。</td>
             <td>
-            <ul>
-                <li>当输入keyRope存在，此变量才会输出。</li>
-                <li>B: 支持泛化，且与query的B保持一致。</li>
-                <li>S2: 支持泛化，且与value的S2保持一致。</li>
-                <li>N2: 1。</li>
-                <li>Dr: 64</li>
-                <li>T2: B × S2。</li> 
-            </ul>
+            当输入keyRope存在，此变量才会输出。
             </td>
             <td>BFLOAT16、FLOAT16</td>
             <td>ND</td>
-            <td>(B,S2,N2,Dr);(T2,N2,Dr)</td>
+            <td>(B,S2,N2,Dr)、(T2,N2,Dr)<br>
+            B：支持泛化，且与query的B保持一致；S2：支持泛化，且与value的S2保持一致；N2：1；Dr：64；T2：B × S2
+            </td>
             <td>√</td>
         </tr>
         </tbody>
@@ -565,7 +507,7 @@ aclnnStatus aclnnSparseFlashAttentionGrad(
     </table>
 
 
-### aclnnSparseFlashAttentionGrad
+## aclnnSparseFlashAttentionGrad
 
 - **参数说明：**
 
@@ -599,7 +541,7 @@ aclnnStatus aclnnSparseFlashAttentionGrad(
         <tr>
         <td>stream</td>
         <td>输入</td>
-        <td>指定执行任务的AscendCL stream流。</td>
+        <td>指定执行任务的Stream流。</td>
         </tr>
     </tbody>
     </table>
