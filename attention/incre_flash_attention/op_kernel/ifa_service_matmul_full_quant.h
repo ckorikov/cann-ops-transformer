@@ -77,7 +77,7 @@ protected:
             return (s + 63) / 64 * 64;
         }
         size_t n = (32 / sizeof(KV_T));
-        return (s + n - 1) / n * n;
+        return (s + n - 1) / n * n; 
     }
 
     template <typename DT>
