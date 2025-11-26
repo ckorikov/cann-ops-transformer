@@ -144,7 +144,7 @@ ge::graphStatus MlaPrologTilingCheck::CheckDims() const
                 ConvertContainerToString(supportedHeSize).c_str(), baseShapeInfo_.heSize),
             return ge::GRAPH_FAILED);
     } else {
-        const std::set<uint32_t> supportedHeSize {7168U, 7680U, 6144U};
+        const std::set<uint32_t> supportedHeSize {1024U, 2048U, 3072U, 4096U, 5120U, 6144U, 7168U, 7680U, 8192U};
         OP_CHECK_IF(supportedHeSize.find(baseShapeInfo_.heSize) == supportedHeSize.end(),
             OP_LOGE(context_.opName, "He allows only %s, got %u.",
                 ConvertContainerToString(supportedHeSize).c_str(), baseShapeInfo_.heSize),
