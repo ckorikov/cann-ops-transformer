@@ -63,7 +63,7 @@ constexpr char DEQUANT_SCALE_Q_NOPE_NAME[] {"dequantScaleQNope"};
 constexpr char QUERY_NORM_NAME[] {"queryNorm"};
 constexpr char DEQUANT_SCALE_Q_NORM_NAME[] {"dequantScaleQNorm"};
 
-constexpr uint32_t PARAM_MAP_INIT_RESERVE_NUM = 24;  // 预分配所有key的个数，避免使用时动态扩容
+constexpr uint32_t PARAM_MAP_INIT_RESERVE_NUM = 28;  // 预分配所有key的个数，避免使用时动态扩容
 
 struct ParamInfo {
     ParamInfo() = default;
@@ -129,13 +129,13 @@ public:
         : context_(context), baseShapeInfo_(baseShapeInfo), scenarioInfo_(scenarioInfo) {}
     ge::graphStatus CheckSingleRequiredParam() const;
     ge::graphStatus CheckCacheMode() const;
-    ge::graphStatus CheckPANZPerTile() const;
     ge::graphStatus CheckDims() const;
     ge::graphStatus CheckParamByScenario();
     ge::graphStatus CheckScenarParam();
     ge::graphStatus CheckAttrs() const;
 
 private:
+    bool CheckCacheModeParamShape() const;
     // ==================================单参数校验==================================
     bool IsSingleParamValid(const BaseParaInfo &param, const std::string &paramName,
                             const std::set<ge::DataType> &expectedDtype,
@@ -169,7 +169,6 @@ private:
     void FillFullQuantParamInfo();
     void FillFullKVQuantParamInfo();
     void FillFullKVPertileQuantParamInfo();
-
     void GenActualParamInfo();
     // =================================全量参数校验=================================
 

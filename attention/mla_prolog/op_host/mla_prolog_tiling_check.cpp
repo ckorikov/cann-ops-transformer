@@ -78,6 +78,9 @@ ge::graphStatus MlaPrologTilingCheck::CheckAttrs() const
     OP_CHECK_IF(context_.rmsNormEspilonCkv == nullptr,
         OP_LOGE(context_.opName, "Get rmsNormEspilonCkv is nullptr."), return ge::GRAPH_FAILED);
 
+    OP_CHECK_IF(context_.cacheMode== nullptr,
+        OP_LOGE(context_.opName, "Get cacheMode is nullptr."), return ge::GRAPH_FAILED);
+
     if (std::strncmp(context_.opType, V3_OP_NAME, OP_NAME_LEN) == 0) {
         OP_CHECK_IF(context_.queryNormFlag == nullptr,
             OP_LOGE(context_.opName, "Get queryNormFlag is nullptr."), return ge::GRAPH_FAILED);
@@ -184,8 +187,8 @@ ge::graphStatus MlaPrologTilingCheck::CheckDims() const
             supportedDtileSize += baseShapeInfo_.drSize * (DTYPE_TO_SIZE.at(ge::DT_BF16) / DTYPE_TO_SIZE.at(ge::DT_INT8));
         }
         if (*(context_.quantScaleRepoMode) == static_cast<int>(QUANT_SCALE_REPO_MODE::COMBINE)) {
-            OP_CHECK_IF(*(context_.tileSize) <= 0,
-                OP_LOGE(context_.opName, "tileSize must > 0, got %d.",
+            OP_CHECK_IF(*(context_.tileSize) != 128,
+                OP_LOGE(context_.opName, "tileSize must == 128, got %d.",
                     *(context_.tileSize)),
                 return ge::GRAPH_FAILED);
             supportedDtileSize += baseShapeInfo_.hckvSize / static_cast<uint32_t>(*(context_.tileSize)) * (DTYPE_TO_SIZE.at(ge::DT_FLOAT) / DTYPE_TO_SIZE.at(ge::DT_INT8));
@@ -240,7 +243,7 @@ void MlaPrologTilingCheck::FillCommonParamInfo()
             expectedParamInfo_.emplace(ACTUAL_SEQ_LEN_NAME, std::vector<uint32_t>{baseShapeInfo_.bSize});
             expectedParamInfo_[ACTUAL_SEQ_LEN_NAME].dtype = ge::DT_INT32;
             expectedParamInfo_[ACTUAL_SEQ_LEN_NAME].format = ge::FORMAT_ND;
-            expectedParamInfo_[CACHE_INDEX_NAME].shape = std::vector<int64_t>{context_.actualSeqLen.shape->GetStorageShape().GetDim(MLA_PROLOG_DIM_INDEX_0)};
+            expectedParamInfo_[CACHE_INDEX_NAME].shape = actualParamInfo_[CACHE_INDEX_NAME].shape;
         } else {
             expectedParamInfo_[CACHE_INDEX_NAME].shape = std::vector<int64_t>{baseShapeInfo_.bSize, CeilDiv(baseShapeInfo_.s1Size, baseShapeInfo_.blockSize)};
         }
@@ -556,32 +559,46 @@ ge::graphStatus MlaPrologTilingCheck::CheckScenarParam()
         return ge::GRAPH_SUCCESS;
     }
 
+    ge::graphStatus isCorrect {ge::GRAPH_SUCCESS};
     if (scenarioInfo_.quantMode_ == QUANT_MODE::PARTIAL_QUANT_KV_QUANT_PER_TILE ||
         scenarioInfo_.quantMode_ == QUANT_MODE::FULL_QUANT_KV_QUANT_PER_TILE) {
-        if (*(context_.ckvkrRepoMode) != static_cast<int>(CKVKR_REPO_MODE::COMBINE) ||
-            *(context_.quantScaleRepoMode) != static_cast<int>(QUANT_SCALE_REPO_MODE::COMBINE)) {
-            OP_LOGE(context_.opName, "The parameters for Scene PARTIAL are incorrect.");
-            return ge::GRAPH_FAILED;
+        if (*(context_.ckvkrRepoMode) != static_cast<int>(CKVKR_REPO_MODE::COMBINE)) {
+            OP_LOGE(context_.opName, "The ckvkrRepoMode expected %d, but got %d.",
+                static_cast<int>(CKVKR_REPO_MODE::COMBINE), *(context_.ckvkrRepoMode));
+            isCorrect = ge::GRAPH_FAILED;
         }
-    } else if (scenarioInfo_.quantMode_ != QUANT_MODE::PARTIAL_QUANT_KV_QUANT_PER_TILE &&
-               scenarioInfo_.quantMode_ != QUANT_MODE::FULL_QUANT_KV_QUANT_PER_TILE) {
-            if (*(context_.ckvkrRepoMode) != static_cast<int>(CKVKR_REPO_MODE::DIVIDE) ||
-                *(context_.quantScaleRepoMode) != static_cast<int>(QUANT_SCALE_REPO_MODE::DIVIDE)) {
-                OP_LOGE(context_.opName, "The parameters value are illegal scenario.");
-                return ge::GRAPH_FAILED;
-            }
-    } else if (scenarioInfo_.quantMode_ == QUANT_MODE::PARTIAL_QUANT_KV_QUANT_PER_CHANNEL) {
-        if (*(context_.queryQuantMode) != static_cast<int>(QUERY_QUANT_MODE::PER_TOKEN_HEAD)) {
-            OP_LOGE(context_.opName, "The parameters value are illegal scenario.");
-            return ge::GRAPH_FAILED;
+        if (*(context_.quantScaleRepoMode) != static_cast<int>(QUANT_SCALE_REPO_MODE::COMBINE)) {
+            OP_LOGE(context_.opName, "The quantScaleRepoMode expected %d, but got %d.",
+                static_cast<int>(QUANT_SCALE_REPO_MODE::COMBINE), *(context_.quantScaleRepoMode));
+
+            isCorrect = ge::GRAPH_FAILED;
         }
-    } else if (scenarioInfo_.quantMode_ != QUANT_MODE::PARTIAL_QUANT_KV_QUANT_PER_CHANNEL) {
-        if (*(context_.queryQuantMode) != static_cast<int>(QUERY_QUANT_MODE::NO_QUANT)) {
-            OP_LOGE(context_.opName, "The parameters value are illegal scenario.");
-            return ge::GRAPH_FAILED;
+    } else {
+        if (*(context_.ckvkrRepoMode) != static_cast<int>(CKVKR_REPO_MODE::DIVIDE)) {
+            OP_LOGE(context_.opName, "The ckvkrRepoMode expected %d, but got %d.",
+                static_cast<int>(CKVKR_REPO_MODE::DIVIDE), *(context_.ckvkrRepoMode));
+            isCorrect = ge::GRAPH_FAILED;
+        }
+        if (*(context_.quantScaleRepoMode) != static_cast<int>(QUANT_SCALE_REPO_MODE::DIVIDE)) {
+            OP_LOGE(context_.opName, "The quantScaleRepoMode expected %d, but got %d.",
+                static_cast<int>(QUANT_SCALE_REPO_MODE::DIVIDE), *(context_.quantScaleRepoMode));
+            isCorrect = ge::GRAPH_FAILED;
         }
     }
-    return ge::GRAPH_SUCCESS;
+    if (scenarioInfo_.quantMode_ == QUANT_MODE::FULL_QUANT_KV_QUANT_PER_TENSOR) {
+        if (*(context_.queryQuantMode) != static_cast<int>(QUERY_QUANT_MODE::PER_TOKEN_HEAD)) {
+            OP_LOGE(context_.opName, "The queryQuantMode expected %d, but got %d.",
+                static_cast<int>(QUERY_QUANT_MODE::PER_TOKEN_HEAD), *(context_.queryQuantMode));
+            isCorrect = ge::GRAPH_FAILED;
+        }
+    } else {
+        if (*(context_.queryQuantMode) != static_cast<int>(QUERY_QUANT_MODE::NO_QUANT)) {
+            OP_LOGE(context_.opName, "The queryQuantMode expected %d, but got %d.",
+                static_cast<int>(QUERY_QUANT_MODE::NO_QUANT), *(context_.queryQuantMode));
+            isCorrect = ge::GRAPH_FAILED;
+        }
+    }
+    return isCorrect;
 }
 // =================================全量参数校验=================================
 
@@ -709,6 +726,38 @@ bool MlaPrologTilingCheck::CheckActSeqLen() const
     return true;
 }
 
+bool MlaPrologTilingCheck::CheckCacheModeParamShape() const
+{
+    if (std::strncmp(context_.cacheMode, CACHE_MODE_TND, CACHE_MODE_LEN) == 0) {
+        if (context_.tokenX.shape->GetStorageShape().GetDimNum() == MLA_PROLOG_DIM_NUM_3) {
+            OP_LOGE(context_.opName, "When tokenX dim is 3, Only support cacheMode {BSND, PA_BSND, PA_NZ, PA_BLK_BSND, PA_BLK_NZ}, actually is %s.",
+                context_.cacheMode);
+            return false;
+        }
+        if (context_.kvCache.shape->GetStorageShape().GetDimNum() == MLA_PROLOG_DIM_NUM_4) {
+            OP_LOGE(context_.opName,
+                    "When KVCache dim is 4, Only support cacheMode {BSND, PA_BSND, PA_NZ, PA_BLK_BSND, PA_BLK_NZ}, actually is %s.",
+                    context_.cacheMode);
+            return false;
+        }
+    }
+    if (std::strncmp(context_.cacheMode, CACHE_MODE_BSND, CACHE_MODE_LEN) == 0) {
+        if (context_.tokenX.shape->GetStorageShape().GetDimNum() == MLA_PROLOG_DIM_NUM_2) {
+            OP_LOGE(context_.opName,
+                    "When tokenX dim is 2, Only support cacheMode {TND, PA_BSND, PA_NZ, PA_BLK_BSND, PA_BLK_NZ}, actually is %s.",
+                    context_.cacheMode);
+            return false;
+        }
+        if (context_.kvCache.shape->GetStorageShape().GetDimNum() == MLA_PROLOG_DIM_NUM_3) {
+            OP_LOGE(context_.opName,
+                    "When KVCache dim is 3, Only support cacheMode {TND, PA_BSND, PA_NZ, PA_BLK_BSND, PA_BLK_NZ}, actually is %s.",
+                    context_.cacheMode);
+            return false;
+        }
+    }
+    return true;
+}
+
 ge::graphStatus MlaPrologTilingCheck::CheckCacheMode() const
 {
     OP_CHECK_IF(context_.platformInfo == nullptr,
@@ -719,57 +768,37 @@ ge::graphStatus MlaPrologTilingCheck::CheckCacheMode() const
         if ((std::strcmp(context_.cacheMode, CACHE_MODE_PA_BSND) == 0)) {
             return ge::GRAPH_SUCCESS;
         }
-        OP_LOGE(context_.opName, "Only support cacheMode (PA_BSND), actually is %s.", context_.cacheMode);
+        OP_LOGE(context_.opName, "Only support cacheMode {PA_BSND}, actually is %s.", context_.cacheMode);
         return ge::GRAPH_FAILED;
     } else {
-        if ((context_.tokenX.shape->GetStorageShape().GetDimNum() == MLA_PROLOG_DIM_NUM_3) &&
-            (std::strncmp(context_.cacheMode, CACHE_MODE_TND, CACHE_MODE_LEN) == 0)) {
-            OP_LOGE(context_.opName, "When tokenX dim is 3, Only support cacheMode (BSND, PA_BSND, PA_NZ, PA_BLK_BSND, PA_BLK_NZ), actually is %s.",
+        if ((std::strncmp(context_.cacheMode, CACHE_MODE_BSND, CACHE_MODE_LEN) != 0) &&
+            (std::strncmp(context_.cacheMode, CACHE_MODE_TND, CACHE_MODE_LEN) != 0) &&
+            (std::strncmp(context_.cacheMode, CACHE_MODE_PA_BSND, CACHE_MODE_LEN) != 0) &&
+            (std::strncmp(context_.cacheMode, CACHE_MODE_PA_NZ, CACHE_MODE_LEN) != 0) &&
+            (std::strncmp(context_.cacheMode, CACHE_MODE_PA_BLK_BSND, CACHE_MODE_LEN) != 0) &&
+            (std::strncmp(context_.cacheMode, CACHE_MODE_PA_BLK_NZ, CACHE_MODE_LEN) != 0)) {
+            OP_LOGE(context_.opName,
+                "Only support cacheMode {BSND, TND, PA_BSND, PA_NZ, PA_BLK_BSND, PA_BLK_NZ}, actually is %s.",
                 context_.cacheMode);
             return ge::GRAPH_FAILED;
         }
-        if ((context_.tokenX.shape->GetStorageShape().GetDimNum() == MLA_PROLOG_DIM_NUM_2) &&
-            (std::strncmp(context_.cacheMode, CACHE_MODE_BSND, CACHE_MODE_LEN) == 0)) {
-            OP_LOGE(context_.opName, "When tokenX dim is 2, Only support cacheMode (TND, PA_BSND, PA_NZ, PA_BLK_BSND, PA_BLK_NZ), actually is %s.",
-                context_.cacheMode);
+        if (!CheckCacheModeParamShape()) {
             return ge::GRAPH_FAILED;
         }
-        if (std::strncmp(context_.opType, V3_OP_NAME, OP_NAME_LEN) != 0 &&
-            (std::strncmp(context_.cacheMode, CACHE_MODE_PA_BLK_BSND, CACHE_MODE_LEN) == 0 ||
-             std::strncmp(context_.cacheMode, CACHE_MODE_PA_BLK_NZ, CACHE_MODE_LEN) == 0)) {
-            OP_LOGE(context_.opName, "When opType is %s, Not support cacheMode (PA_BLK_BSND, PA_BLK_NZ), actually is %s.",
-                context_.opType, context_.cacheMode);
-            return ge::GRAPH_FAILED;
-        }
-        if ((std::strncmp(context_.cacheMode, CACHE_MODE_BSND, CACHE_MODE_LEN) == 0) ||
-            (std::strncmp(context_.cacheMode, CACHE_MODE_TND, CACHE_MODE_LEN) == 0) ||
-            (std::strncmp(context_.cacheMode, CACHE_MODE_PA_BSND, CACHE_MODE_LEN) == 0) ||
-            (std::strncmp(context_.cacheMode, CACHE_MODE_PA_NZ, CACHE_MODE_LEN) == 0) ||
-            (std::strncmp(context_.cacheMode, CACHE_MODE_PA_BLK_BSND, CACHE_MODE_LEN) == 0) ||
-            (std::strncmp(context_.cacheMode, CACHE_MODE_PA_BLK_NZ, CACHE_MODE_LEN) == 0)) {
+        if (std::strncmp(context_.opType, V3_OP_NAME, OP_NAME_LEN) != 0) {
             return ge::GRAPH_SUCCESS;
         }
-        OP_LOGE(context_.opName,
-            "Only support cacheMode (BSND, TND, PA_BSND, PA_NZ, PA_BLK_BSND, PA_BLK_NZ), actually is %s.",
-            context_.cacheMode);
-        return ge::GRAPH_FAILED;
-    }
-}
-
-ge::graphStatus MlaPrologTilingCheck::CheckPANZPerTile() const
-{
-    if (std::strncmp(context_.opType, V3_OP_NAME, OP_NAME_LEN) != 0) {
+        if (*(context_.kvQuantMode) != static_cast<int>(KV_QUANT_MODE::PER_TILE)) {
+            return ge::GRAPH_SUCCESS;
+        }
+        if ((std::strncmp(context_.cacheMode, CACHE_MODE_PA_NZ, CACHE_MODE_LEN) == 0) ||
+            (std::strncmp(context_.cacheMode, CACHE_MODE_PA_BLK_BSND, CACHE_MODE_LEN) == 0) ||
+            (std::strncmp(context_.cacheMode, CACHE_MODE_PA_BLK_NZ, CACHE_MODE_LEN) == 0))  {
+            OP_LOGE(context_.opName, "Not support both cacheMode {PA_NZ, PA_BLK_BSND, PA_BLK_NZ} and pertile effective.");
+            return ge::GRAPH_FAILED;
+        }        
         return ge::GRAPH_SUCCESS;
     }
-
-    if (*(context_.kvQuantMode) == static_cast<int>(KV_QUANT_MODE::PER_TILE) &&
-       (std::strncmp(context_.cacheMode, CACHE_MODE_PA_NZ, CACHE_MODE_LEN) == 0) &&
-       (std::strncmp(context_.cacheMode, CACHE_MODE_PA_BLK_BSND, CACHE_MODE_LEN) == 0) &&
-       (std::strncmp(context_.cacheMode, CACHE_MODE_PA_BLK_NZ, CACHE_MODE_LEN) == 0)) {
-        OP_LOGE(context_.opName, "Not support both cacheMode (PA_NZ, PA_BLK_BSND, PA_BLK_NZ) and pertile effective.");
-        return ge::GRAPH_FAILED;
-    }
-    return ge::GRAPH_SUCCESS;
 }
 
 // ==================================单参数校验==================================

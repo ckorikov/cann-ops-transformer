@@ -167,6 +167,7 @@ enum class ACTUAL_SEQ_MODE:uint8_t {
 };
 
 enum class QUANT_MODE:int8_t {
+    ERROR_MODE = -1,
     NO_QUANT = 0,
     PARTIAL_QUANT_KV_NO_QUANT = 1,
     PARTIAL_QUANT_KV_QUANT_PER_CHANNEL = 2,
@@ -311,6 +312,7 @@ private:
     ge::graphStatus SetScenarioInfo();
     ge::graphStatus SetAttrInfo();
     QUANT_MODE GetQuantizationMode() const;
+    QUANT_MODE GetQuantizationModeV3() const;
     ge::graphStatus SetShapeInfo();
     ge::graphStatus ProcessBaseInputs();
     ge::graphStatus FillTiling();
