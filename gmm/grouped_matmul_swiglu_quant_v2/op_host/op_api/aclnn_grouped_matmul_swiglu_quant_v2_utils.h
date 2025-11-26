@@ -40,7 +40,7 @@ const std::initializer_list<DataType> QUANTSCALEOUT_DTYPE_SUPPORT_LIST = {DataTy
 class GroupedMatmulSwigluQuantBaseHandler : public GroupedMatmulSwigluQuantHandler {
 protected:
 
-    bool IsTransposeForMxShape(const aclTensor *tensor)
+    bool IsTransposeForMxShape(const aclTensor *tensor) const
     {
         auto shape = tensor->GetViewShape();
         if (shape.GetDimNum() < MX_SPLIT_K_PER_TOKEN_SCALE_DIM) {
@@ -57,7 +57,7 @@ protected:
         return false;
     }
 
-    bool IsTransposeLastTwoDims(const aclTensor *tensor)
+    bool IsTransposeLastTwoDims(const aclTensor *tensor) const
     {
         auto shape = tensor->GetViewShape();
         int64_t dim1 = shape.GetDimNum() - 1;
@@ -77,7 +77,7 @@ protected:
     }
 
     void CreateContiguousTensorListForMXTypeMScale(const aclTensorList *tensorList, std::vector<aclTensor *> &newTensorList,
-                                                aclOpExecutor *executor)
+                                                aclOpExecutor *executor) const
     {
         op::Shape shape;
         for (uint64_t idx = 0; idx < (*tensorList).Size(); idx++) {
@@ -99,7 +99,7 @@ protected:
     }
 
     void CreateContiguousTensorList(const aclTensorList *tensorList, std::vector<aclTensor *> &newTensorList,
-                                    aclOpExecutor *executor)
+                                    aclOpExecutor *executor) const
     {
         op::Shape shape;
         for (uint64_t idx = 0; idx < (*tensorList).Size(); idx++) {
