@@ -257,9 +257,21 @@ __aicore__ inline void GMMA8W4PostProcess::UpdateVecConfig(uint32_t blockIdx, Ve
     vecConfig.curOffset = vecConfig.startOffset;
     int64_t curStartIdx = vecConfig.startIdx;
     int64_t prevM = workspaceSplitLoopIdx * workspaceSplitConfig.notLastTaskSize;
+    int64_t totalTmp = 0;
+    if (gmmSwigluQuantV2BaseParams->groupListType == 1) {
+        for (uint32_t i = 0; i < workspaceSplitConfig.rightMatrixExpertStartIndex; i++) {
+            totalTmp += groupListGM.GetValue(i);
+        }
+    }
     for (uint32_t groupIdx = workspaceSplitConfig.rightMatrixExpertStartIndex;
          groupIdx <= workspaceSplitConfig.rightMatrixExpertEndIndex; groupIdx++) {
-        int64_t currM = groupListGM.GetValue(groupIdx);
+        int64_t currM = 0;
+        if (gmmSwigluQuantV2BaseParams->groupListType == 0) {
+            currM = groupListGM.GetValue(groupIdx);
+        } else {
+            totalTmp += groupListGM.GetValue(groupIdx);
+            currM = totalTmp;
+        }
         int64_t tempM = currM - prevM;
         prevM = currM;
         if (curStartIdx >= 0 && curStartIdx - tempM < 0) {
@@ -315,12 +327,21 @@ __aicore__ inline void GMMA8W4PostProcess::UpdateAuxiliaryMatrix(uint32_t loopId
     if (unlikely(vecConfig.nextUpdateInterVal == 0)) {
         int64_t loop = gmmSwigluQuantV2->groupListLen - vecConfig.curGroupIdx;
         while (loop--) {
-            int64_t curTemp = groupListGM.GetValue(vecConfig.curGroupIdx);
-            vecConfig.curGroupIdx++;
-            int64_t nextTemp = groupListGM.GetValue(vecConfig.curGroupIdx);
-            if (nextTemp != curTemp) {
-                vecConfig.nextUpdateInterVal = nextTemp - curTemp;
-                break;
+            if (gmmSwigluQuantV2BaseParams->groupListType == 0) {
+                int64_t curTemp = groupListGM.GetValue(vecConfig.curGroupIdx);
+                vecConfig.curGroupIdx++;
+                int64_t nextTemp = groupListGM.GetValue(vecConfig.curGroupIdx);
+                if (nextTemp != curTemp) {
+                    vecConfig.nextUpdateInterVal = nextTemp - curTemp;
+                    break;
+                }
+            } else {
+                vecConfig.curGroupIdx++;
+                int64_t nextUpdateInterValTmp = groupListGM.GetValue(vecConfig.curGroupIdx);
+                if (nextUpdateInterValTmp != 0) {
+                    vecConfig.nextUpdateInterVal = nextUpdateInterValTmp;
+                    break;
+                }
             }
         }
         LocalTensor<float> weightAuxiliaryMatrixLocal = weightAuxiliaryMatrixInQueue.DeQue<float>();

@@ -55,15 +55,12 @@ private:
     LocalTensor<int4b_t> xHighI4Tensor;
     LocalTensor<int4b_t> xLowI4Tensor;
     LocalTensor<int16_t> xLowI16Tensor;
-    LocalTensor<int64_t> groupListTensor;
-    LocalTensor<float> groupListFTensor;
     LocalTensor<float> xRowSumTensor;
 
     GlobalTensor<int8_t> xGM;
     GlobalTensor<int8_t> yGm;
     GlobalTensor<int8_t> yGm1;
     GlobalTensor<int8_t> yGm2;
-    GlobalTensor<int64_t> groupListGM;
 
     uint32_t vK{0};
     uint32_t vKAlign{0};
@@ -85,7 +82,6 @@ GMMA8W4PreProcess::Init(const GMAddrParams gmAddrParams,
         xGM.SetGlobalBuffer((__gm__ int8_t *)gmAddrParams.xGM);
         yGm1.SetGlobalBuffer((__gm__ int8_t *)gmAddrParams.workSpaceGM);
         yGm2.SetGlobalBuffer((__gm__ int8_t *)gmAddrParams.workSpaceGM + gmAddrParams.workSpaceOffset1);
-        groupListGM.SetGlobalBuffer((__gm__ int64_t *)gmAddrParams.groupListGM);
         gmmSwigluQuantV2BaseParams = gmmSwigluQuantV2BaseParamsIN;
         vK = gmmSwigluQuantV2BaseParams->K;
         groupNum = static_cast<uint32_t>(gmmSwigluQuantV2BaseParams->groupNum);

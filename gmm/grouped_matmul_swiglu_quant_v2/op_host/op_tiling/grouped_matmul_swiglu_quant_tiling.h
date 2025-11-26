@@ -35,6 +35,7 @@ TILING_DATA_FIELD_DEF(int64_t, workSpaceOffset1);
 TILING_DATA_FIELD_DEF(int64_t, workSpaceOffset2);
 TILING_DATA_FIELD_DEF(int64_t, quantGroupNum);
 TILING_DATA_FIELD_DEF(int64_t, isSingleTensor);
+TILING_DATA_FIELD_DEF(int64_t, groupListType);
 END_TILING_DATA_DEF;
 REGISTER_TILING_DATA_CLASS(GMMSwigluQuantV2BaseParamsOp, GMMSwigluQuantV2BaseParams)
 
@@ -103,6 +104,7 @@ constexpr uint32_t WEIGHT_SCALE_INDEX = 4;
 constexpr uint32_t GROUPLIST_INDEX = 2;
 constexpr uint32_t BATCH_MODE_SCHEDULE = 1;
 constexpr uint32_t ATTR_INDEX_DEQUANT_MODE = 0;
+constexpr uint32_t ATTR_INDEX_GROUPLIST_TYPE = 5;
 constexpr uint32_t DIM_0 = 0;
 constexpr uint32_t DIM_1 = 1;
 constexpr uint32_t DIM_2 = 2;

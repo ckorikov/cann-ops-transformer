@@ -182,10 +182,22 @@ __aicore__ inline void GMMA8W4MidProcess<mmType>::Process(WorkSpaceSplitConfig &
         mnConfig.n = gmmSwigluQuantV2BaseParams->N; // tilingData
         mnConfig.blockDimN = Ceil(mnConfig.n, mnConfig.singleN);
         int32_t prevSplitValue = workspaceSplitLoopIdx * workspaceSplitConfig.notLastTaskSize;
+        int32_t totalTmp = 0;
+        if (gmmSwigluQuantV2BaseParams->groupListType == 1) {
+            for (uint32_t i = 0; i < workspaceSplitConfig.rightMatrixExpertStartIndex; i++) {
+                totalTmp += groupListGM.GetValue(i);
+            }
+        }
         for (uint32_t groupIdx = workspaceSplitConfig.rightMatrixExpertStartIndex, preCount = 0;
              groupIdx <= workspaceSplitConfig.rightMatrixExpertEndIndex; ++groupIdx) {
             UpdateMnConfig(mnConfig);
-            int32_t currSplitValue = static_cast<int32_t>(groupListGM.GetValue(groupIdx));
+            int32_t currSplitValue = 0;
+            if (gmmSwigluQuantV2BaseParams->groupListType == 0) {
+                currSplitValue = static_cast<int32_t>(groupListGM.GetValue(groupIdx));
+            } else {
+                totalTmp += static_cast<int32_t>(groupListGM.GetValue(groupIdx));
+                currSplitValue = totalTmp;
+            }
             currSplitValue = currSplitValue > (workspaceSplitLoopIdx + 1) * gmmSwigluQuantV2BaseParams->mLimit ?
                                  (workspaceSplitLoopIdx + 1) * gmmSwigluQuantV2BaseParams->mLimit :
                                  currSplitValue;

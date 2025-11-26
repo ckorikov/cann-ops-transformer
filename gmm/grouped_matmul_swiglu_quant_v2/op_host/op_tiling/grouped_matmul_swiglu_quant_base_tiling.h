@@ -55,6 +55,7 @@ private:
     int64_t maxProcessRowNum_ = 0;
     int64_t groupNum_ = 0;
     int64_t isSingleTensor_ = 1;
+    int64_t groupListType_ = 0;
     int64_t usrWorkspaceLimit_ = 0;
     uint64_t workspaceSize_ = 0;
     bool isA8W4MSD_ = true;
