@@ -406,6 +406,7 @@ __aicore__ inline void FAGBlockVec<TEMPLATE_ARGS>::ProcessVec3(Buffer<BufferType
  
     LocalTensor<uint8_t> selrIndexesTensor;
     float qScaleDs = 1.0;
+    constexpr uint32_t dsAmaxGmStride = 128;
     if constexpr (IS_FP8_INPUT) {
         LocalTensor<float> dsAmaxTensor = dsAmaxOutQue.AllocTensor<float>();
         if (runInfo.commonRunInfo.s2RealSize > static_cast<uint32_t>(S2TemplateType::Aligned64)) {
@@ -422,7 +423,7 @@ __aicore__ inline void FAGBlockVec<TEMPLATE_ARGS>::ProcessVec3(Buffer<BufferType
  
         dsAmaxOutQue.EnQue(dsAmaxTensor);
         dsAmaxOutQue.DeQue<float>();
-        DataCopyPad(dsAmaxWorkSpaceGm[vBlockIdx * 128], dsAmaxTensor, {1, 4, 0, 0});
+        DataCopyPad(dsAmaxWorkSpaceGm[vBlockIdx * dsAmaxGmStride], dsAmaxTensor, {1, 4, 0, 0});
  
         CrossCoreSetFlag<1, PIPE_MTE3>(SYNC_V0_V1_DS_A_MAX_DONE_FLAG);
         CrossCoreWaitFlag<1, PIPE_MTE3>(SYNC_V0_V1_DS_A_MAX_DONE_FLAG);
@@ -432,8 +433,8 @@ __aicore__ inline void FAGBlockVec<TEMPLATE_ARGS>::ProcessVec3(Buffer<BufferType
  
         int64_t anotherVBlockIdx = vSubBlockIdx == 0 ? (vBlockIdx + 1) : (vBlockIdx - 1);
         DataCacheCleanAndInvalid<float, CacheLine::SINGLE_CACHE_LINE, DcciDst::CACHELINE_OUT>(
-            dsAmaxWorkSpaceGm[anotherVBlockIdx * 128]);
-        float dsAmax = Max<float>(curDsMax, dsAmaxWorkSpaceGm.GetValue(anotherVBlockIdx * 128));
+            dsAmaxWorkSpaceGm[anotherVBlockIdx * dsAmaxGmStride]);
+        float dsAmax = Max<float>(curDsMax, dsAmaxWorkSpaceGm.GetValue(anotherVBlockIdx * dsAmaxGmStride));
         if (dsAmax > 1e-6f) {
             qScaleDs = FP8_MAX / dsAmax;
             Muls(mm1ResTensor, mm1ResTensor, qScaleDs, VECTOR_BASEM * VECTOR_BASEN);
