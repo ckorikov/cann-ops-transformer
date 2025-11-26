@@ -250,9 +250,7 @@ void FiaTilingNonQuant::CalcInnerSize(uint32_t s2Size)
             uint32_t idx = std::min(fiaInfo_->gSize / 5U, 2U);
             sInnerSize_ = sInnerSize[idx];
         } else {
-            bool highPreciseFlag = ((fiaInfo_->innerPrecise & 1) == 0) ? true : false;
-            sInnerSize_ = ((highPreciseFlag && fiaInfo_->inputQType == ge::DT_FLOAT16) ||
-                fiaInfo_->inputQType == ge::DT_BF16) ? S_INNER_SIZE_512 : S_INNER_SIZE_1024;
+            sInnerSize_ = S_INNER_SIZE_512;
         }
     }
     if (fiaInfo_->attenMaskFlag && (fiaInfo_->sparseMode == SPARSE_MODE_2 || fiaInfo_->sparseMode == SPARSE_MODE_3 || fiaInfo_->sparseMode == SPARSE_MODE_4)) {
@@ -294,9 +292,7 @@ void FiaTilingNonQuant::CalcMBaseSize()
                 mBaseSize_ = M_BASE_SIZE_32;
             }
         } else {
-            bool highPreciseFlag = (fiaInfo_->innerPrecise & 1 == 0) ? true : false;
-            mBaseSize_ = ((highPreciseFlag && fiaInfo_->inputQType == ge::DT_FLOAT16) ||
-                           fiaInfo_->inputQType == ge::DT_BF16) ? M_BASE_SIZE_256 : M_BASE_SIZE_512;
+            mBaseSize_ = M_BASE_SIZE_512;
         }
     }
     softmaxWithBrcbFlag_ = (mBaseSize_ <= M_BASE_SIZE_128);
