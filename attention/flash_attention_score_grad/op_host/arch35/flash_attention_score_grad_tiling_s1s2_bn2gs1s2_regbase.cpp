@@ -89,6 +89,7 @@ constexpr int64_t BN2_MAX_S = 128;
 constexpr int64_t BN2_MAX_D = 512;
 constexpr int64_t ROPE_D_192 = 192;
 constexpr int64_t ROPE_D_64 = 64;
+constexpr int64_t NEGATIVE_128 = -128;
 
 constexpr uint32_t PRE_BUFFER_SIZE = static_cast<uint32_t>(112 * 1024);
 constexpr uint32_t REGBASE_POST_BASE = static_cast<uint32_t>(128 * 128);
@@ -1152,7 +1153,7 @@ uint32_t FlashAttentionScoreGradTilingUs1s2Bs2Regbase::GetDeterSparseTilingKey()
         return static_cast<uint32_t>(DeterSparseType::DETER_DENSE);
     } else if (fBaseParams.sparseMode == static_cast<uint32_t>(SparseMode::LEFT_UP_CAUSAL) ||
                (fBaseParams.sparseMode == static_cast<uint32_t>(SparseMode::NO_MASK) &&
-                fBaseParams.s1Token >= fBaseParams.s1 && fBaseParams.s2Token == 0)) {
+                fBaseParams.s1Token >= fBaseParams.s1 && (fBaseParams.s2Token > NEGATIVE_128 && fBaseParams.s2Token <= 0))) {
         return static_cast<uint32_t>(DeterSparseType::DETER_CAUSAL);
     } else if (fBaseParams.sparseMode == static_cast<uint32_t>(SparseMode::BAND) ||
                // RIGHT_DOWN_CAUSAL场景和Band类似，直接走Band分支
@@ -1281,7 +1282,7 @@ void FlashAttentionScoreGradTilingUs1s2Bs2Regbase::CalcleTNDDenseDeterParam()
     }
     int64_t totalArea = deterPrefixData.prefix0.back() * fBaseParams.n1;
     if (fBaseParams.g == 1) {
-        fBaseParams.deterMaxRound = std::max(CeilDivideBy(totalArea, static_cast<int64_t>(fBaseParams.aicNum)), s1Max * fBaseParams.n1);
+        fBaseParams.deterMaxRound = std::max(CeilDivideBy(totalArea, static_cast<int64_t>(fBaseParams.aicNum)), s1Max);
     } else {
         fBaseParams.deterMaxRound = std::max({CeilDivideBy(totalArea, static_cast<int64_t>(fBaseParams.aicNum)), s1Max * fBaseParams.g, s2Max});
     }
@@ -1421,7 +1422,7 @@ void FlashAttentionScoreGradTilingUs1s2Bs2Regbase::CalcleTNDBandDeterPrefix(
             int64_t L1{q - 1}, L2{std::min(n - q + 1, m + NUM_TWO - p - q)}, L3{std::max(static_cast<int64_t>(0), std::min(p + n - m - 1, p + q - NUM_TWO))};
             mNew = L3 == 0 ? p + q + L2 - NUM_TWO : m;
             nNew = L1 + L2 + L3;
-            mnMax = std::max({mnMax, p + q - 1, std::min(mNew, nNew)});
+            mnMax = std::max({mnMax, p + q - 1});
             deterPrefixData.prefix1.push_back(deterPrefixData.prefix1.back() + std::min(mNew, nNew) * (p + q - 1));
         } else {
             mNew = m;
@@ -1650,7 +1651,6 @@ void FlashAttentionScoreGradTilingUs1s2Bs2Regbase::CalcleTNDBandDeterParam()
     if (fBaseParams.deterSparseType != static_cast<uint32_t>(DeterSparseType::DETER_BAND)) {
         return;
     }
-    fBaseParams.splitAxis = SplitAxisEnum::BN2GS1S2;
     int64_t N11 = fBaseParams.n1 / fBaseParams.aicNum;
     int64_t N12 = fBaseParams.n1 % fBaseParams.aicNum;
     int64_t mnMax = 0;

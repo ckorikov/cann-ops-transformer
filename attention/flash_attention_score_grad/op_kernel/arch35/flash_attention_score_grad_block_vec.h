@@ -69,6 +69,9 @@ public:
                                      LocalTensor<INPUT_TYPE> &srcTensor);
     __aicore__ inline void CopyUB2L1Deter(FagRunInfo &runInfo, LocalTensor<INPUT_TYPE> &dstTensor,
                                           LocalTensor<INPUT_TYPE> &srcTensor);
+    template <const bool IS_DK>
+    __aicore__ inline void ProcessPostDeter(FagConstInfo &constInfo, GlobalTensor<float> dkvWorkSpaceTensor, GlobalTensor<INPUT_TYPE> &dkvGmTensor,
+        int64_t specialHalfS2RealSize, int64_t specialFirstHalfS2RealSize, uint64_t dAlign16, uint64_t dvAlign16, int64_t specialDkGmOffset, int64_t specialDvGmOffset);
  
     constexpr static bool IS_FP8_INPUT =
         IsSameType<INPUT_TYPE, fp8_e5m2_t>::value || IsSameType<INPUT_TYPE, fp8_e4m3fn_t>::value;
@@ -563,11 +566,11 @@ __aicore__ inline void FAGBlockVec<TEMPLATE_ARGS>::DqkvMulsAndCastFromGM(FagCons
     uint64_t halfSRealSize = 0;
     uint64_t firsthalfSRealSize = 0;
     if constexpr (SPLIT_AXIS == BN2) {
-    halfSRealSize = (MM_IDX == DQ_IDX) ? runInfo.commonRunInfo.halfS1RealSize : runInfo.halfS2RealSize;
-    firsthalfSRealSize = (MM_IDX == DQ_IDX) ? runInfo.commonRunInfo.firstHalfS1RealSize : runInfo.firstHalfS2RealSize;
-    }else {
-    halfSRealSize = runInfo.halfS2RealSize;
-    firsthalfSRealSize = runInfo.firstHalfS2RealSize;
+        halfSRealSize = (MM_IDX == DQ_IDX) ? runInfo.commonRunInfo.halfS1RealSize : runInfo.halfS2RealSize;
+        firsthalfSRealSize = (MM_IDX == DQ_IDX) ? runInfo.commonRunInfo.firstHalfS1RealSize : runInfo.firstHalfS2RealSize;
+    } else {
+        halfSRealSize = runInfo.halfS2RealSize;
+        firsthalfSRealSize = runInfo.firstHalfS2RealSize;
     }
  
     uint32_t maxLoopSize = VECTOR_BASEM * VECTOR_BASEN / curDAlign; 
@@ -644,6 +647,69 @@ __aicore__ inline void FAGBlockVec<TEMPLATE_ARGS>::DqkvMulsAndCastFromGM(FagCons
         }
     }
 }
+
+TEMPLATES_DEF_NO_DEFAULT
+template <const bool IS_DK>
+__aicore__ inline void FAGBlockVec<TEMPLATE_ARGS>::ProcessPostDeter(FagConstInfo &constInfo, GlobalTensor<float> dkvWorkSpaceTensor,
+    GlobalTensor<INPUT_TYPE> &dkvGmTensor, int64_t specialHalfS2RealSize, int64_t specialFirstHalfS2RealSize, uint64_t dAlign16, uint64_t dvAlign16, int64_t specialDkGmOffset, int64_t specialDvGmOffset)
+{
+    TQue outQue = IS_DK ? dSOutQue : pOutQue;
+    if (specialHalfS2RealSize == 0) {
+        return;
+    }
+    uint32_t dSize = constInfo.commonConstInfo.dSize;
+    uint32_t curDAlign = dAlign16;
+    int64_t dkvGmOffset = IS_DK ? specialDkGmOffset : specialDvGmOffset;
+    
+    if constexpr (!IS_DK && IS_D_NO_EQUAL) {
+        dSize = constInfo.commonConstInfo.dSizeV;
+        curDAlign = dvAlign16;
+    }
+ 
+    uint32_t maxLoopSize = this->VECTOR_BASEM * this->VECTOR_BASEN / curDAlign; 
+    uint32_t loopNum = Ceil<uint32_t>(specialHalfS2RealSize, maxLoopSize);
+    if (loopNum == 0) {
+        return;
+    }
+ 
+    uint32_t loopSize = Ceil<uint32_t>(specialHalfS2RealSize, loopNum);
+    uint32_t tailLoopSize = specialHalfS2RealSize - (loopNum - 1) * loopSize;
+    uint32_t curLoopSize = loopSize;
+    DataCopyExtParams intriParamsOut;
+    intriParamsOut.srcStride = 0;
+    intriParamsOut.dstStride = static_cast<uint32_t>((constInfo.commonConstInfo.n2G - 1) * dSize * sizeof(INPUT_TYPE));
+    dkvGmOffset += this->vSubBlockIdx * specialFirstHalfS2RealSize * dSize * constInfo.commonConstInfo.n2G;
+ 
+    uint32_t data_size = curLoopSize * curDAlign;
+    for (uint32_t loopIdx = 0; loopIdx < loopNum; loopIdx++) {
+        if (loopIdx == loopNum - 1) {
+            curLoopSize = tailLoopSize;
+            data_size = curLoopSize * curDAlign;
+        }
+ 
+        LocalTensor<CALC_TYPE> dkvTensor = attenMaskOrYInQue.AllocTensor<CALC_TYPE>();
+        DataCopy(dkvTensor, dkvWorkSpaceTensor[this->vSubBlockIdx * specialFirstHalfS2RealSize * curDAlign + loopIdx * loopSize * curDAlign],
+                 data_size);
+        
+        attenMaskOrYInQue.EnQue(dkvTensor);
+        attenMaskOrYInQue.DeQue();
+        if constexpr (IS_DK) {
+            Muls(dkvTensor, dkvTensor, constInfo.scaleValue, data_size);
+        }
+        LocalTensor<INPUT_TYPE> dkvCastTensor = outQue.template AllocTensor<INPUT_TYPE>();
+        Cast(dkvCastTensor, dkvTensor, RoundMode::CAST_ROUND, data_size);
+        attenMaskOrYInQue.FreeTensor(dkvTensor);
+        outQue.EnQue(dkvCastTensor);
+        outQue.template DeQue<INPUT_TYPE>();
+ 
+        intriParamsOut.blockCount = curLoopSize;
+        intriParamsOut.blockLen = dSize * sizeof(INPUT_TYPE);
+ 
+        DataCopyPad(dkvGmTensor[dkvGmOffset], dkvCastTensor, intriParamsOut);
+        outQue.FreeTensor(dkvCastTensor);
+        dkvGmOffset += loopSize * dSize * constInfo.commonConstInfo.n2G;
+    }
+}
  
 TEMPLATES_DEF_NO_DEFAULT
 __aicore__ inline void FAGBlockVec<TEMPLATE_ARGS>::InitCubeVecSharedParams(
@@ -688,6 +754,9 @@ public:
                                               FagConstInfo &constInfo, FagRunInfo &runInfo){};
     __aicore__ inline void CopyMaxSum(FagConstInfo &constInfo, FagRunInfo &runInfo, int64_t taskId){};
     __aicore__ inline void InitCubeVecSharedParams(FagCVSharedParams &sharedParams, int32_t aicIdx, uint8_t subBlockIdx, float qScaleDs){};
+    template <const bool IS_DK>
+    __aicore__ inline void ProcessPostDeter(FagConstInfo &constInfo, GlobalTensor<float> dkvWorkSpaceTensor, GlobalTensor<INPUT_TYPE> &dkvGmTensor,
+        int64_t specialHalfS2RealSize, int64_t specialFirstHalfS2RealSize, uint64_t dAlign16, uint64_t dvAlign16, int64_t specialDkGmOffset, int64_t specialDvGmOffset){};
 };
  
 } // namespace FagBaseApi

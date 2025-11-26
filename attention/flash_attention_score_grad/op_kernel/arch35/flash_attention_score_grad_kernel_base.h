@@ -221,13 +221,13 @@ FlashAttentionScoreGradKernelBase<ChildClass, CubeBlockType, VecBlockType>::Init
     // init workspace address
     if constexpr (!IS_FP32_INPUT) {
         if constexpr (SPLIT_AXIS == BN2) {
-        uint64_t qPostBlockTotal = CUBE_BASEM * HEAD_DIM_ALIGN * MAX_CUBE_CORE_NUM;
-        uint64_t kPostBlockTotal = CUBE_BASEN * HEAD_DIM_ALIGN * MAX_CUBE_CORE_NUM;
-        uint64_t workspaceOffsets = RESERVED_WORKSPACE_SIZE;
-        dqWorkSpaceGm.SetGlobalBuffer((__gm__ float *)workspace + workspaceOffsets / sizeof(CALC_TYPE));
-        workspaceOffsets = workspaceOffsets + qPostBlockTotal * sizeof(float);
-        dkWorkSpaceGm.SetGlobalBuffer((__gm__ float *)workspace + workspaceOffsets / sizeof(CALC_TYPE));
-        workspaceOffsets = workspaceOffsets + kPostBlockTotal * sizeof(float);
+            uint64_t qPostBlockTotal = CUBE_BASEM * HEAD_DIM_ALIGN * MAX_CUBE_CORE_NUM;
+            uint64_t kPostBlockTotal = CUBE_BASEN * HEAD_DIM_ALIGN * MAX_CUBE_CORE_NUM;
+            uint64_t workspaceOffsets = RESERVED_WORKSPACE_SIZE;
+            dqWorkSpaceGm.SetGlobalBuffer((__gm__ float *)workspace + workspaceOffsets / sizeof(CALC_TYPE));
+            workspaceOffsets = workspaceOffsets + qPostBlockTotal * sizeof(float);
+            dkWorkSpaceGm.SetGlobalBuffer((__gm__ float *)workspace + workspaceOffsets / sizeof(CALC_TYPE));
+            workspaceOffsets = workspaceOffsets + kPostBlockTotal * sizeof(float);
         } else {
             dqWorkSpaceGm.SetGlobalBuffer((__gm__ float *)workspace +
                                           tilingData->postTilingData.dqWorkSpaceOffset / sizeof(float));

@@ -257,6 +257,8 @@ struct FagRunInfo {
     int64_t keyOffsetWithRope;
     int64_t queryOffsetWithRopeForMm12;
     int64_t keyOffsetWithRopeForMm12;
+    int8_t specialS2Index = -1;
+    bool isFirstBlock = true;
 };
 
 constexpr SyncAllConfig syncAllConfigMte2ToMte2 = {PIPE_MTE2, PIPE_MTE2};

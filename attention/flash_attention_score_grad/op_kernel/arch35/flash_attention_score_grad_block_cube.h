@@ -984,7 +984,8 @@ FAGBlockCube<TEMPLATE_ARGS>::IterateMmDsQNormal(typename DqkvResPos<T, IS_WRITE_
         } else {
             // fixp2gm
             if (isFixpOut) {
-                bool needAtomic = SPLIT_AXIS == BN2GS1S2 || (!IS_DKV_RESIDENT_L0C && runInfo.isS2IdxNoChange);
+                bool needAtomic = SPLIT_AXIS == BN2GS1S2 || (!IS_DKV_RESIDENT_L0C && runInfo.isS2IdxNoChange) ||
+                                    (SPLIT_AXIS == BN2S2 && !runInfo.isFirstBlock && (runInfo.specialS2Index != -1));
                 FixpipeParamsC310<CO2Layout::ROW_MAJOR> fixpipeParams;
                 fixpipeParams.nSize = realN;
                 fixpipeParams.mSize = (runInfo.commonRunInfo.s2RealSize + 1) >> 1 << 1;
@@ -1008,7 +1009,18 @@ FAGBlockCube<TEMPLATE_ARGS>::IterateMmDsQNormal(typename DqkvResPos<T, IS_WRITE_
                     Fixpipe<T, CALC_TYPE, DK_FIXPIPE_CONFIG>(outTensor[runInfo.keyOffsetWithRope],
                                                             dkL0CBuffer.GetTensor<CALC_TYPE>(), fixpipeParams);
                 } else {
-                    int64_t offset = SPLIT_AXIS != BN2GS1S2 ? GetBlockIdx() * CUBE_BASEM * HEAD_DIM_ALIGN : runInfo.commonRunInfo.keyOffset;
+                    int64_t offset = 0;
+                    if constexpr (SPLIT_AXIS == BN2S2) {
+                        if (runInfo.specialS2Index != -1) {
+                            offset = runInfo.specialS2Index * CUBE_BASEM * HEAD_DIM_ALIGN * NUM_TWO;
+                        } else {
+                            offset = GetBlockIdx() * CUBE_BASEM * HEAD_DIM_ALIGN;
+                        }
+                    } else if constexpr (SPLIT_AXIS == BN2) {
+                        offset = GetBlockIdx() * CUBE_BASEM * HEAD_DIM_ALIGN;
+                    } else {
+                        offset = runInfo.commonRunInfo.keyOffset;
+                    }
                     Fixpipe<T, CALC_TYPE, DK_FIXPIPE_CONFIG>(outTensor[offset + gmNOffset],
                                                             dkL0CBuffer.GetTensor<CALC_TYPE>(), fixpipeParams);
                 }
@@ -1147,11 +1159,14 @@ FAGBlockCube<TEMPLATE_ARGS>::IterateMmPDyNormal(typename DqkvResPos<T, IS_WRITE_
                 }
             } else { // BNS2
                 if (isFixpOut) {
-                    bool needAtomic = (!IS_DKV_RESIDENT_L0C) && runInfo.isS2IdxNoChange;
+                    bool needAtomic = ((!IS_DKV_RESIDENT_L0C) && runInfo.isS2IdxNoChange) ||
+                        (!runInfo.isFirstBlock && (runInfo.specialS2Index != -1));
                     if (needAtomic) {
                         SetAtomicAdd<CALC_TYPE>();
                     }
-                    Fixpipe<T, CALC_TYPE, DV_FIXPIPE_CONFIG>(outTensor[GetBlockIdx() * CUBE_BASEM * HEAD_DIM_ALIGN],
+                    int64_t offset = (runInfo.specialS2Index != -1) ? (runInfo.specialS2Index * CUBE_BASEN * HEAD_DIM_ALIGN * NUM_TWO + CUBE_BASEN * HEAD_DIM_ALIGN) :
+                        GetBlockIdx() * CUBE_BASEM * HEAD_DIM_ALIGN;
+                    Fixpipe<T, CALC_TYPE, DV_FIXPIPE_CONFIG>(outTensor[offset],
                                                             dvL0CBuffer.GetTensor<CALC_TYPE>(), fixpipeParams);
                     if (needAtomic) {
                         SetAtomicNone();

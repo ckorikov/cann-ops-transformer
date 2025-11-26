@@ -32,6 +32,12 @@ public:
     ARGS_TRAITS;
     using BaseClass = FlashAttentionScoreGradKernelBase<FlashAttentionScoreGradKernelDeter<CubeBlockType, VecBlockType>,
                                                         CubeBlockType, VecBlockType>;
+    __aicore__ inline void Init(
+            GM_ADDR key, GM_ADDR value, GM_ADDR dy, GM_ADDR query, GM_ADDR pseShift, GM_ADDR dropMask, GM_ADDR attenMask,
+            GM_ADDR y, GM_ADDR softmaxMax, GM_ADDR softmaxSum, GM_ADDR prefixN, GM_ADDR actualSeqQlen, GM_ADDR actualSeqKvlen,
+            GM_ADDR deqScaleQ, GM_ADDR deqScaleK, GM_ADDR deqScaleV, GM_ADDR deqScaleDy, GM_ADDR queryRope, GM_ADDR keyRope,
+            GM_ADDR dq, GM_ADDR dk, GM_ADDR dv, GM_ADDR dpse, GM_ADDR dqRope, GM_ADDR dkRope, GM_ADDR workspace,
+            FagTilingType ordTilingData, TPipe *pipeIn);
     __aicore__ inline void SetUniqueRunInfo(FagRunInfo &runInfo);
     __aicore__ inline void SetUniqueConstInfo(FagConstInfo &constInfo);
     __aicore__ inline void SetRunInfoDeterForTND(FagRunInfo &runInfo, int64_t taskId, int64_t index, CoordinateInfo &coordinateInfo,int64_t nextIndex);
@@ -43,10 +49,23 @@ public:
     __aicore__ inline bool IsValidDeterForTnd(FagRunInfo &runInfo, int64_t index, CoordinateInfo &coordinateInfo);
     __aicore__ inline void GetNextDxAndQueryOffsetTND(FagRunInfo &runInfo, int64_t nextIndex, PreloadArgs<IS_ROPE>& preloadArgs);
     __aicore__ inline void Process();
+    __aicore__ inline void DeterSync(int64_t loopIdx);
+    __aicore__ inline int64_t SpecialS2Index(int64_t dkvGmOffset);
  
 protected:
+GlobalTensor<float> deterGm;
+    uint64_t dkvWorkSpaceOffet{0};
+    uint64_t dAlign16 = 0;
+    uint64_t dvAlign16 = 0;
+    int64_t specialDkGmOffset = 0;
+    int64_t specialDvGmOffset = 0;
     int16_t deterPpFlag = 1;
-    bool isFirstDeter = true;
+    int64_t deterGmOffset = 0;
+    int64_t specialHalfS2RealSize = 0;
+    int64_t specialFirstHalfS2RealSize = 0;
+    int8_t specialS2Index = -1;
+    bool isFirstBlock = true;
+    bool deterNeedWait = false;
     typename std::conditional<IS_DETER_OLD(DETER_SPARSE_TYPE), int64_t[36], std::nullptr_t>::type dqOffset;
     typename std::conditional<IS_DETER_OLD(DETER_SPARSE_TYPE), int64_t[36], std::nullptr_t>::type dkOffset;
     typename std::conditional<IS_DETER_OLD(DETER_SPARSE_TYPE), int64_t[36], std::nullptr_t>::type dvOffset;
@@ -56,7 +75,26 @@ protected:
     typename std::conditional<DETER_SPARSE_TYPE == DETER_BAND, BandInfo, std::nullptr_t>::type bandInfo;
     bool isMm3NeedWait = false;
 };
+
+template <typename CubeBlockType, typename VecBlockType>
+__aicore__ inline void FlashAttentionScoreGradKernelDeter<CubeBlockType, VecBlockType>::Init(
+    GM_ADDR key, GM_ADDR value, GM_ADDR dy, GM_ADDR query, GM_ADDR pseShift, GM_ADDR dropMask, GM_ADDR attenMask,
+    GM_ADDR y, GM_ADDR softmaxMax, GM_ADDR softmaxSum, GM_ADDR prefixN, GM_ADDR actualSeqQlen, GM_ADDR actualSeqKvlen,
+    GM_ADDR deqScaleQ, GM_ADDR deqScaleK, GM_ADDR deqScaleV, GM_ADDR deqScaleDy, GM_ADDR queryRope, GM_ADDR keyRope,
+    GM_ADDR dq, GM_ADDR dk, GM_ADDR dv, GM_ADDR dpse, GM_ADDR dqRope, GM_ADDR dkRope, GM_ADDR workspace,
+    FagTilingType ordTilingData, TPipe *pipeIn)
+{
+    BaseClass::Init(key, value, dy, query, pseShift, dropMask, attenMask, y, softmaxMax, softmaxSum, prefixN, actualSeqQlen, actualSeqKvlen,
+        deqScaleQ, deqScaleK, deqScaleV, deqScaleDy, queryRope, keyRope, dq, dk, dv, dpse, dqRope, dkRope, workspace, ordTilingData, pipeIn);
  
+    dkvWorkSpaceOffet = this->cBlockIdx * this->CUBE_BASEN * this->HEAD_DIM_ALIGN;
+    dAlign16 = AlignTo16(this->constInfo.commonConstInfo.dSize);
+    dvAlign16 = AlignTo16(this->constInfo.commonConstInfo.dSizeV);
+ 
+    deterGm.SetGlobalBuffer((__gm__ float *)workspace + this->tilingData->postTilingData.deterGmOffset / sizeof(CALC_TYPE));
+    deterGmOffset = this->cBlockIdx * this->CUBE_BASEN * this->HEAD_DIM_ALIGN * NUM_TWO; 
+}
+
 template <typename CubeBlockType, typename VecBlockType>
 __aicore__ inline void FlashAttentionScoreGradKernelDeter<CubeBlockType, VecBlockType>::SetUniqueRunInfo(FagRunInfo &runInfo)
 {
@@ -275,6 +313,8 @@ FlashAttentionScoreGradKernelDeter<CubeBlockType, VecBlockType>::SetRunInfoDeter
         }
     }
 //----------------------------------------------PART
+    runInfo.specialS2Index = SpecialS2Index(runInfo.commonRunInfo.keyOffset);
+    runInfo.isFirstBlock = isFirstBlock;
 }
  
 template <typename CubeBlockType, typename VecBlockType>
@@ -493,6 +533,19 @@ FlashAttentionScoreGradKernelDeter<CubeBlockType, VecBlockType>::CalDeterMaxLoop
     }
     return loopMax;
 }
+
+template <typename CubeBlockType, typename VecBlockType>
+__aicore__ inline int64_t
+FlashAttentionScoreGradKernelDeter<CubeBlockType, VecBlockType>::SpecialS2Index(int64_t dkvGmOffset) {
+    if constexpr (IS_DETER_NEW(DETER_SPARSE_TYPE)) {
+        for (int8_t i = 0; i < MAX_CUBE_CORE_NUM; i++) {
+            if (this->tilingData->deterParam.deterPrefix2[i] == dkvGmOffset) {
+                return i;
+            }
+        }
+    }
+    return -1;
+}
  
 template <typename CubeBlockType, typename VecBlockType>
 __aicore__ inline void
@@ -523,16 +576,43 @@ FlashAttentionScoreGradKernelDeter<CubeBlockType, VecBlockType>::CalDeterIndex(
     nextValidIndex = -1;
     nextValidRoundId = maxLoopNum;
 }
+
+template <typename CubeBlockType, typename VecBlockType>
+__aicore__ inline void
+FlashAttentionScoreGradKernelDeter<CubeBlockType, VecBlockType>::DeterSync(int64_t loopIdx) {
+    if (loopIdx == 0) {
+        return;
+    }
+ 
+    // 此处复用dqIsNeedDeter和dkDvIsNeedDeter装载需要同步的轮次范围
+    for (int8_t i = 0; i < MAX_CUBE_CORE_NUM; i++) {
+        if (this->tilingData->s1s2BNGS1S2SplitCoreParams.dkDvIsNeedDeter[i] == 0) {
+            return;
+        }
+        if (static_cast<uint64_t>(loopIdx) >= this->tilingData->s1s2BNGS1S2SplitCoreParams.dqIsNeedDeter[i] && 
+            static_cast<uint64_t>(loopIdx) <= this->tilingData->s1s2BNGS1S2SplitCoreParams.dkDvIsNeedDeter[i]) {
+            CrossCoreSetFlag<0, PIPE_FIX>(SYNC_DETER_FIX_FLAG);
+            CrossCoreWaitFlag<0, PIPE_FIX>(SYNC_DETER_FIX_FLAG);
+            return;
+        }
+    }
+}
  
 template <typename CubeBlockType, typename VecBlockType>
 __aicore__ inline void FlashAttentionScoreGradKernelDeter<CubeBlockType, VecBlockType>::Process()
 {
+    if constexpr (SPLIT_AXIS == BN2S2) {
+        InitOutput<float>(this->deterGm[deterGmOffset + this->vSubBlockIdx * this->CUBE_BASEN * this->HEAD_DIM_ALIGN], this->CUBE_BASEN * this->HEAD_DIM_ALIGN, 0);
+    }
     int64_t loopMax = CalDeterMaxLoopNum();
     int64_t blockInnerIdx = 0;
     int64_t taskId = 0;
     int64_t nextValidLoopIdx;
     int64_t nextblockIdx;
     bool needSyncDkMM = false;
+    dkvWorkSpaceOffet = this->cBlockIdx * this->CUBE_BASEN * this->HEAD_DIM_ALIGN;
+    dAlign16 = AlignTo16(this->constInfo.commonConstInfo.dSize);
+    dvAlign16 = AlignTo16(this->constInfo.commonConstInfo.dSizeV);
     LocalTensor<CALC_TYPE> mm1ResTensor;
     LocalTensor<CALC_TYPE> mm2ResTensor;
  
@@ -564,10 +644,11 @@ __aicore__ inline void FlashAttentionScoreGradKernelDeter<CubeBlockType, VecBloc
             }
         }
         if (isValidBlock) {
+ 
             runInfos[taskId & 1].s2CvBegin = this->s2CvBegin;
             runInfos[taskId & 1].s2CvEnd = this->s2CvEnd;
             if constexpr (BaseClass::IS_TND) {
-                SetRunInfoDeterForTND(runInfos[taskId & 1], taskId, blockInnerIdx, coordinateInfos[taskId & 1],nextblockIdx);
+                SetRunInfoDeterForTND(runInfos[taskId & 1], taskId, blockInnerIdx, coordinateInfos[taskId & 1], nextblockIdx);
             } else {
                 this->SetRunInfo(runInfos[taskId & 1], taskId, blockInnerIdx, nextblockIdx);
             }
@@ -599,11 +680,9 @@ __aicore__ inline void FlashAttentionScoreGradKernelDeter<CubeBlockType, VecBloc
  
             this->vecBlock.ProcessVec2(mm2ResTensor, this->constInfo,
                                        runInfos[(taskId + 1) & 1]); // v2: pse + attenMask + simpleSoftmax
-            if constexpr (SPLIT_AXIS == BN2GS1S2) {
-                if ASCEND_IS_AIV {
-                    if (needSyncDkMM) {
-                        CrossCoreWaitFlag<SYNC_MODE, PIPE_MTE3>(SYNC_C4_TO_V3_FLAG);
-                    }
+            if ASCEND_IS_AIV {
+                if (needSyncDkMM) {
+                    CrossCoreWaitFlag<SYNC_MODE, PIPE_MTE3>(SYNC_C4_TO_V3_FLAG);
                 }
             }
             
@@ -634,6 +713,73 @@ __aicore__ inline void FlashAttentionScoreGradKernelDeter<CubeBlockType, VecBloc
             }
  
             if constexpr (SPLIT_AXIS == BN2S2) {
+                this->cubeBlock.template IterateMmDsK<CALC_TYPE, BaseClass::IS_DQ_WRITE_UB>(
+                    this->dqWorkSpaceGm, this->dSL1Buf, this->constInfo,
+                    runInfos[(taskId + 1) & 1]); // c3
+                // compute dk
+                if (runInfos[(taskId + 1) & 1].specialS2Index != -1) {
+                    this->cubeBlock.template IterateMmDsQ<CALC_TYPE, BaseClass::IS_DK_WRITE_UB>(
+                        this->deterGm, this->dSL1Buf, this->constInfo,
+                        runInfos[(taskId + 1) & 1]); // c4
+                } else {
+                    this->cubeBlock.template IterateMmDsQ<CALC_TYPE, BaseClass::IS_DK_WRITE_UB>(
+                        this->dkWorkSpaceGm, this->dSL1Buf, this->constInfo,
+                        runInfos[(taskId + 1) & 1]); // c4
+                }
+                if (runInfos[(taskId + 1) & 1].specialS2Index == -1 && !runInfos[(taskId + 1) & 1].isNextS2IdxNoChange) {
+                    if ASCEND_IS_AIC {
+                        CrossCoreSetFlag<SYNC_MODE, PIPE_FIX>(SYNC_C4_TO_V6_FLAG);
+                        CrossCoreSetFlag<SYNC_MODE, PIPE_FIX>(16 + SYNC_C4_TO_V6_FLAG);
+                    } else {
+                        CrossCoreWaitFlag<SYNC_MODE, PIPE_MTE2>(SYNC_C4_TO_V6_FLAG);
+                    }
+                    this->vecBlock.template ProcessMulsAndCast<CALC_TYPE, BaseClass::IS_DK_WRITE_UB, DK_IDX>(
+                        this->dkWorkSpaceGm, this->constInfo, runInfos[(taskId + 1) & 1]); // v5: dk muls + cast
+                }
+                if ASCEND_IS_AIC {
+                    CrossCoreSetFlag<SYNC_MODE, PIPE_MTE1>(SYNC_C4_TO_V3_FLAG);
+                    CrossCoreSetFlag<SYNC_MODE, PIPE_MTE1>(16 + SYNC_C4_TO_V3_FLAG);
+                }
+                // ------ deter 特殊部分 START ------
+                if (specialS2Index != -1) {
+                    deterNeedWait = nextblockIdx == -1;
+                }
+                if (this->cBlockIdx == specialS2Index) {
+                    specialDkGmOffset = runInfos[(taskId + 1) & 1].commonRunInfo.keyOffset;
+                    specialHalfS2RealSize = runInfos[(taskId + 1) & 1].halfS2RealSize;
+                    specialFirstHalfS2RealSize = runInfos[(taskId + 1) & 1].firstHalfS2RealSize;
+                }
+                // ------ deter 特殊部分 END ------
+                // compute dv
+                if (runInfos[(taskId + 1) & 1].specialS2Index != -1) {
+                    this->cubeBlock.template IterateMmPDy<CALC_TYPE, BaseClass::IS_DV_WRITE_UB>(
+                        this->deterGm, this->pL1Buf, this->constInfo, runInfos[(taskId + 1) & 1]); // c5
+                } else {
+                    this->cubeBlock.template IterateMmPDy<CALC_TYPE, BaseClass::IS_DV_WRITE_UB>(
+                        this->dvWorkSpaceGm, this->pL1Buf, this->constInfo, runInfos[(taskId + 1) & 1]); // c5
+                }
+ 
+                if (!runInfos[(taskId + 1) & 1].isNextS2IdxNoChange) {
+                    if ASCEND_IS_AIC {
+                        CrossCoreSetFlag<SYNC_MODE, PIPE_FIX>(SYNC_C3_TO_V5_FLAG);
+                        CrossCoreSetFlag<SYNC_MODE, PIPE_FIX>(16 + SYNC_C3_TO_V5_FLAG);
+                    } else {
+                        CrossCoreWaitFlag<SYNC_MODE, PIPE_MTE2>(SYNC_C3_TO_V5_FLAG);
+                    }
+                    this->vecBlock.template ProcessMulsAndCast<CALC_TYPE, BaseClass::IS_DV_WRITE_UB, DV_IDX>(
+                        this->dvWorkSpaceGm, this->constInfo, runInfos[(taskId + 1) & 1]); // v6: dv muls + cast
+                }
+                if ASCEND_IS_AIC {
+                    CrossCoreSetFlag<SYNC_MODE, PIPE_MTE1>(SYNC_C5_TO_V4_FLAG);
+                    CrossCoreSetFlag<SYNC_MODE, PIPE_MTE1>(16 + SYNC_C5_TO_V4_FLAG);
+                }
+                needSyncDkMM = true;
+                // ------ deter 特殊部分 START ------
+                isFirstBlock = false;
+                if (this->cBlockIdx == specialS2Index) {
+                    specialDvGmOffset = runInfos[(taskId + 1) & 1].commonRunInfo.valueOffset;
+                }
+                // ------ deter 特殊部分 END ------
             } else {
                 if ASCEND_IS_AIC {
                     CrossCoreWaitFlag<0, PIPE_FIX>(SYNC_DETER_FIX_FLAG);
@@ -665,20 +811,35 @@ __aicore__ inline void FlashAttentionScoreGradKernelDeter<CubeBlockType, VecBloc
             }
             runInfos[(taskId + 1) & 1].completed = true;
         } else {
-            if ASCEND_IS_AIC {
-                if (loopIdx > 0) {
-                    CrossCoreWaitFlag<0, PIPE_FIX>(SYNC_DETER_FIX_FLAG);
+            if constexpr (SPLIT_AXIS != BN2S2) {
+                if ASCEND_IS_AIC {
+                    if (loopIdx > 0) {
+                        CrossCoreWaitFlag<0, PIPE_FIX>(SYNC_DETER_FIX_FLAG);
+                    }
+                    CrossCoreSetFlag<0, PIPE_FIX>(SYNC_DETER_FIX_FLAG);
                 }
-                CrossCoreSetFlag<0, PIPE_FIX>(SYNC_DETER_FIX_FLAG);
             }
         }
- 
+         if constexpr (SPLIT_AXIS == BN2S2) {
+            if ASCEND_IS_AIC {
+                DeterSync(loopIdx);
+            }
+        }
         if (isValidBlock) {
             taskId++;
         }
     }
-    if ASCEND_IS_AIC {
-        CrossCoreWaitFlag<0, PIPE_FIX>(SYNC_DETER_FIX_FLAG);
+    if constexpr (SPLIT_AXIS != BN2S2) {
+        if ASCEND_IS_AIC {
+            CrossCoreWaitFlag<0, PIPE_FIX>(SYNC_DETER_FIX_FLAG); //这里为啥加
+        }
+    }
+    if constexpr (SPLIT_AXIS == BN2S2) {
+        SyncAll<false>();
+        this->vecBlock.template ProcessPostDeter<true>(this->constInfo, this->deterGm[deterGmOffset], this->dkGm, specialHalfS2RealSize, 
+            specialFirstHalfS2RealSize, dAlign16, dvAlign16, specialDkGmOffset, specialDvGmOffset);
+        this->vecBlock.template ProcessPostDeter<false>(this->constInfo, this->deterGm[deterGmOffset + this->CUBE_BASEN * this->HEAD_DIM_ALIGN], 
+            this->dvGm,  specialHalfS2RealSize, specialFirstHalfS2RealSize, dAlign16, dvAlign16, specialDkGmOffset, specialDvGmOffset);
     }
 }
  
