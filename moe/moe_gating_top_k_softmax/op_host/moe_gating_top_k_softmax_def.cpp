@@ -20,7 +20,7 @@ class MoeGatingTopKSoftmax : public OpDef
 public:
     explicit MoeGatingTopKSoftmax(const char* name) : OpDef(name)
     {
-        this->Input("x")
+        this->Input("x") 
             .ParamType(REQUIRED)
             .DataType({ge::DT_FLOAT16, ge::DT_FLOAT, ge::DT_BF16})
             .Format({ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND})
