@@ -9,28 +9,19 @@
 # See LICENSE in the root of the software repository for the full text of the License.
 # ----------------------------------------------------------------------------
 
-add_op_to_compiled_list()
-
 if (BUILD_OPEN_PROJECT)
     target_sources(op_host_aclnnExc PRIVATE
         ring_attention_update_def.cpp
     )
+    add_ops_compile_options(
+        OP_NAME RingAttentionUpdate
+        OPTIONS --cce-auto-sync=off
+                -Wno-deprecated-declarations
+                -Werror
+    )
 endif()
 
-if (BUILD_OPS_RTY_KERNEL)
-    add_ops_compile_options(
-            OP_NAME RingAttentionUpdate
-            OPTIONS --cce-auto-sync=off
-                    -Wno-deprecated-declarations
-                    -Werror
-    )
-    set(ring_attention_update_depends attention/common CACHE INTERNAL "Dependencies for ring_attention_update")
-else()
-    add_ops_compile_options(
-            OP_NAME RingAttentionUpdate
-            OPTIONS --cce-auto-sync=off
-                    -Wno-deprecated-declarations
-                    -Werror
-    )
+if(NOT BUILD_OPS_RTY_KERNEL)
+    add_op_to_compiled_list()
     add_modules_sources(OPTYPE ring_attention_update ACLNNTYPE aclnn_exclude)
 endif()

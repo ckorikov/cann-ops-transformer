@@ -112,6 +112,11 @@
             "name": "input_layout",
             "dtype": "string",
             "value": "ALL"
+          },
+          {
+            "name": "input_softmax_layout",
+            "dtype": "string",
+            "value": "ALL"
           }
         ]
       },
@@ -226,6 +231,11 @@
             "name": "input_layout",
             "dtype": "string",
             "value": "ALL"
+          },
+          {
+            "name": "input_softmax_layout",
+            "dtype": "string",
+            "value": "ALL"
           }
         ]
       },
@@ -338,6 +348,11 @@
         "attrs": [
           {
             "name": "input_layout",
+            "dtype": "string",
+            "value": "ALL"
+          },
+          {
+            "name": "input_softmax_layout",
             "dtype": "string",
             "value": "ALL"
           }
