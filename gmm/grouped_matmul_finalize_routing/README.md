@@ -40,14 +40,14 @@
     </tr></thead>
   <tbody>
     <tr>
-      <td>x</td>
+      <td>x1</td>
       <td>输入</td>
       <td>输入x(左矩阵)。</td>
       <td>INT8</td>
       <td>ND</td>
     </tr>
     <tr>
-      <td>w</td>
+      <td>x2</td>
       <td>输入</td>
       <td>输入weight(右矩阵)</td>
       <td>INT4、INT8</td>
@@ -173,7 +173,7 @@
       <td></td>
     </tr>
     <tr>
-      <td>y</td>
+      <td>out</td>
       <td>输出</td>
       <td>输出结果。</td>
       <td>FLOAT32</td>
@@ -196,9 +196,21 @@
   </tbody>
   </table>
 
+
 ## 约束说明
 
-如果计算量过大可能会导致算子执行超时（aicore error类型报错，errorStr为：timeout or trap error），场景为最后2轴合轴小于16，前面的轴合轴超大。
+输入和输出支持以下数据类型组合：
+
+| x1   | x2         | scaleOptional | biasOptional | offsetOptional | antiquantScaleOptional | antiquantOffsetOptional | pertokenScaleOptional | groupListOptional | sharedInputOptional | logitOptional | rowIndexOptional | out     |
+| ---- | ---------- | ------------- | ------------ | -------------- | ---------------------- | ----------------------- | --------------------- | ----------------- | ------------------- | ------------- | ---------------- | ------- |
+| INT8 | INT4       | INT64         | FLOAT32      | FLOAT32        | null                   | null                    | FLOAT32               | INT64             | BFLOAT16            | FLOAT32       | INT64            | FLOAT32 |
+| INT8 | INT4       | INT64         | FLOAT32      | null           | null                   | null                    | FLOAT32               | INT64             | BFLOAT16            | FLOAT32       | INT64            | FLOAT32 |
+| INT8 | INT8（NZ） | FLOAT32       | null         | null           | null                   | null                    | FLOAT32               | INT64             | BFLOAT16            | FLOAT32       | INT64            | FLOAT   |
+| INT8 | INT8（NZ） | FLOAT32       | null         | null           | null                   | null                    | FLOAT32               | INT64             | BFLOAT16            | FLOAT32       | INT64            | FLOAT   |
+| INT8 | INT4（NZ） | INT64         | FLOAT32      | FLOAT32        | null                   | null                    | FLOAT32               | INT64             | BFLOAT16            | FLOAT32       | INT64            | FLOAT   |
+| INT8 | INT4（NZ） | INT64         | FLOAT32      | null           | null                   | null                    | FLOAT32               | INT64             | BFLOAT16            | FLOAT32       | INT64            | FLOAT   |
+
+
 
 ## 调用说明
 
