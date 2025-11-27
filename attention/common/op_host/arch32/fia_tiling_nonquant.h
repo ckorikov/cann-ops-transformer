@@ -37,13 +37,13 @@ protected:
 private:
     ge::graphStatus GetPlatformInfo();
     void GenTilingKey();
-    bool DealSameSeqEachBatch();
+    bool DealSameSeqEachBatch() const;
 
-    void ZeroTensorProcess();
+    void ZeroTensorProcess() const;
     void InitParams();
 
     void Split();
-    void CreateSplitInput(BaseInfo &baseInfo, SplitParam &splitParam);
+    void CreateSplitInput(BaseInfo &baseInfo, SplitParam &splitParam) const;
     void SetSplitOutput(const SplitResult &res);
 
     void CalcInnerSize(uint32_t s2Size);

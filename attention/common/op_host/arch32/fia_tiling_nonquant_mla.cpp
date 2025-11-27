@@ -264,7 +264,7 @@ void FiaTilingNonQuantMla::CalcMBaseSize()
     mBaseSize_ = mBaseSizeTmp;  // 满足以上条件则更新mBaseSize
 }
 
-void FiaTilingNonQuantMla::CreateSplitInput(BaseInfo &baseInfo, SplitParam &splitParam)
+void FiaTilingNonQuantMla::CreateSplitInput(BaseInfo &baseInfo, SplitParam &splitParam) const
 {
     //构造分核输入参数
     baseInfo.bSize = fiaInfo_->bSize;

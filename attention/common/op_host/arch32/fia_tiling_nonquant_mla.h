@@ -42,7 +42,7 @@ private:
     void ZeroTensorProcess() const;
     void InitParams();
 
-    void CreateSplitInput(BaseInfo &baseInfo, SplitParam &splitParam);
+    void CreateSplitInput(BaseInfo &baseInfo, SplitParam &splitParam) const;
     void SetSplitOutput(SplitResult &res);
     void Split();
     void CalcInnerSize(uint32_t seqSize);

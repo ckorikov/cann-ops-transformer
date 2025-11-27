@@ -184,7 +184,7 @@ bool FiaTilingNonQuant::IsFlashDecode()
     return tndFDCoreArrLen > static_cast<uint32_t>(0);
 }
 
-bool FiaTilingNonQuant::DealSameSeqEachBatch()
+bool FiaTilingNonQuant::DealSameSeqEachBatch() const
 {
     if (!fiaInfo_->batchContinuousFlag){
         if (fiaInfo_->actualSeqLenFlag){
@@ -197,7 +197,7 @@ bool FiaTilingNonQuant::DealSameSeqEachBatch()
     }
 }
 
-void FiaTilingNonQuant::ZeroTensorProcess()
+void FiaTilingNonQuant::ZeroTensorProcess() const
 {
     if (fiaInfo_->s2Size == 0) {
         /*
@@ -301,7 +301,7 @@ void FiaTilingNonQuant::CalcMBaseSize()
         sInnerSize_, sInnerSizeAlign_, mBaseSize_, softmaxWithBrcbFlag_);
 }
 
-void FiaTilingNonQuant::CreateSplitInput(BaseInfo &baseInfo, SplitParam &splitParam)
+void FiaTilingNonQuant::CreateSplitInput(BaseInfo &baseInfo, SplitParam &splitParam) const
 {
     //构造分核输入参数
     baseInfo.bSize = fiaInfo_->bSize;
@@ -332,7 +332,7 @@ void FiaTilingNonQuant::CreateSplitInput(BaseInfo &baseInfo, SplitParam &splitPa
             baseInfo.actualSeqS2Size.emplace_back(s2Ptr[i]);
         }
     } else {
-        if (fiaInfo_->kvStorageMode == KvStorageMode::TENSOR_LIST && fiaInfo_->kvListSeqLens.size()) {
+        if ((fiaInfo_->kvStorageMode == KvStorageMode::TENSOR_LIST) && (fiaInfo_->kvListSeqLens.size() != 0)) {
             baseInfo.isAccumSeqS2 = fiaInfo_->isAccumKVSeq;
             baseInfo.actualSeqS2Size = fiaInfo_->kvListSeqLens;
         }
@@ -430,12 +430,12 @@ uint32_t FiaTilingNonQuant::GetL2CacheOffFlag()
     ascendcPlatform.GetCoreMemSize(platform_ascendc::CoreMemType::L2, l2CacheSize);
 
     // 之前路由到IFA的GQA场景才需要考虑关闭L2Cache
-    if ((fiaInfo_->ropeMode == RopeMode::NO_ROPE) && (fiaInfo_->s1Size == 1) && (fiaInfo_->gSize <= 64)) {
+    if ((fiaInfo_->ropeMode == RopeMode::NO_ROPE) && (fiaInfo_->s1Size == 1) && (fiaInfo_->gSize <= 64)) {  // 1:qs=1 64:qg=64 GQA场景 
         // 1. 连续访存时, 即KV的layout为BNSD或者BnNBsD, 不涉及数据预取, 可以直接关闭L2Cache
         // 2. 考虑K和V数据的总大小超过一定值后, 关闭L2Cache, 当前系数确定为1.2
         if (fiaInfo_->kvLayout == FiaLayout::BNSD || fiaInfo_->kvLayout == FiaLayout::BnNBsD) {
             l2CacheOffFlag_ = 1U;
-        } else if (static_cast<double>(kvSize) * kvTypeSize * 2.0f >= l2CacheSize * 1.2) {
+        } else if (static_cast<double>(kvSize) * kvTypeSize * 2.0f >= l2CacheSize * 1.2) { // 2:K和V数据的总大小    1.2:阈值系数
             l2CacheOffFlag_ = 1U;
         } else {
             l2CacheOffFlag_ = 0;
@@ -469,7 +469,6 @@ void FiaTilingNonQuant::FillTilingBaseParams()
     tilingData_.baseParams.set_usedCoreNum(usedCoreNum_);
     l2CacheOffFlag_ = GetL2CacheOffFlag();
     tilingData_.baseParams.set_l2CacheOffFlag(l2CacheOffFlag_);
-    
 }
  
 void FiaTilingNonQuant::FillTilingPageAttenParams()
@@ -486,7 +485,7 @@ void FiaTilingNonQuant::FillTilingMaskParams()
     tilingData_.maskParams.set_sparseMode(fiaInfo_->sparseMode);
     tilingData_.maskParams.set_preToken(fiaInfo_->preToken);
     tilingData_.maskParams.set_nextToken(fiaInfo_->nextToken);
-    uint32_t isRowInvalid = fiaInfo_->innerPrecise >> 1;
+    uint32_t isRowInvalid = static_cast<uint32_t>(fiaInfo_->innerPrecise) >> 1;
     tilingData_.maskParams.set_isRowInvalid(isRowInvalid);
 }
 
@@ -499,10 +498,8 @@ void FiaTilingNonQuant::FillTilingLeftPaddingParams()
 // for flash decode
 void FiaTilingNonQuant::FillTilingWorkspaceParams()
 {
-    // 每个核可能有头规约和尾规约，一共两份规约信息
-    tilingData_.workspaceParams.set_fdAccumOutSize(aicNum_ * 2 * mBaseSize_ * headDimAlign_);
-    // 每个核可能有头规约和尾规约，一共两份规约信息; 另外sum和max各一份
-    tilingData_.workspaceParams.set_fdLogSumExpSize(2 * aicNum_ * 2 * mBaseSize_ * (BYTE_BLOCK / BLOCK_TABLE_ELEM_BYTE));
+    tilingData_.workspaceParams.set_fdAccumOutSize(aicNum_ * 2 * mBaseSize_ * headDimAlign_); // 2:每个核可能有头规约和尾规约，一共两份规约信息
+    tilingData_.workspaceParams.set_fdLogSumExpSize(2 * aicNum_ * 2 * mBaseSize_ * (BYTE_BLOCK / BLOCK_TABLE_ELEM_BYTE)); // 2:每个核可能有头规约和尾规约，一共两份规约信息; 另外sum和max各一份
     tilingData_.workspaceParams.set_mm1ResSize(mm1ResSize_);
     tilingData_.workspaceParams.set_mm2ResSize(mm2ResSize_);
 }
@@ -638,5 +635,5 @@ ge::graphStatus FiaTilingNonQuant::DoOpTiling()
 // 2. 十位表示gqa、mla、泛化，即: x0x-mla, x1x-gpa, x2x-泛化
 // 3. 个位代表特化模板到泛化模板的优先级排序
 REGISTER_TILING_TEMPLATE_FIA(FusedInferAttentionScore, FiaTilingNonQuant,
-    std::vector<int32_t>({(int32_t)platform_ascendc::SocVersion::ASCEND910B}), 29);
+    std::vector<int32_t>({static_cast<int32_t>(platform_ascendc::SocVersion::ASCEND910B)}), 29);
 } // namespace optiling

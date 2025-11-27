@@ -315,9 +315,9 @@ private:
     static constexpr uint32_t L0B_PP_SIZE = 128 * 128;  // 32KB
     static constexpr uint32_t L0C_PP_SIZE = 128 * 128;  // 64KB
 
-    Array<LocalTensor<Q_T>, 2, L0A_PP_SIZE> aL0Tensor;
-    Array<LocalTensor<KV_T>, 2, L0B_PP_SIZE> bL0Tensor;
-    Array<LocalTensor<T>, 2, L0C_PP_SIZE> cL0Tensor;
+    Array<LocalTensor<Q_T>, 2, L0A_PP_SIZE> aL0Tensor;  // 2:L0_a_BUFCNT
+    Array<LocalTensor<KV_T>, 2, L0B_PP_SIZE> bL0Tensor; // 2:L0_b_BUFCNT
+    Array<LocalTensor<T>, 2, L0C_PP_SIZE> cL0Tensor;    // 2:L0_c_BUFCNT
 
     uint32_t aL0BufIter = 0;
     uint32_t bL0BufIter = 0;

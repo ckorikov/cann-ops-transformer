@@ -73,6 +73,8 @@ static bool not_equal_to(const int64_t& a, const int64_t& b)
 
 static bool ignore_input(const int64_t& a, const int64_t& b)
 {
+    (void)a;
+    (void)b;
     return true;
 }
 
