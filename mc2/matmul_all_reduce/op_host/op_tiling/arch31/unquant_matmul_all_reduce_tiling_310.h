@@ -27,8 +27,13 @@ TILING_DATA_FIELD_DEF_STRUCT(Mc2MatmulV3TilingData, tilematmulTiling);
 TILING_DATA_FIELD_DEF_STRUCT(Mc2MatmulV3TilingData, tailmatmulTiling);
 END_TILING_DATA_DEF;
 
-REGISTER_TILING_DATA_CLASS(MatmulAllReduce_2000, UnQuantMatmulAllReduceTilingData);
-REGISTER_TILING_DATA_CLASS(MatmulAllReduce_67536, UnQuantMatmulAllReduceTilingData);
+REGISTER_TILING_DATA_CLASS(MatmulAllReduce_134217729, UnQuantMatmulAllReduceTilingData);
+REGISTER_TILING_DATA_CLASS(MatmulAllReduce_134217985, UnQuantMatmulAllReduceTilingData);
+REGISTER_TILING_DATA_CLASS(MatmulAllReduce_134217745, UnQuantMatmulAllReduceTilingData);
+
+struct Matmul310TPLParam{
+    uint64_t disableMixNd2nz{65535};
+};
 
 class UnQuantMatmulAllReduceTiling310 : public MatmulAllReduceTilingBase
 {
@@ -82,6 +87,13 @@ class UnQuantMatmulAllReduceTiling310 : public MatmulAllReduceTilingBase
             return ge::GRAPH_SUCCESS;
         }
 
+        Matmul310TPLParam GetMatmulTPLParam()
+        {
+            Matmul310TPLParam param;
+            param.disableMixNd2nz = static_cast<uint64_t>(GetMixNd2nzType());
+            // 1: disable mix nd2nz 0: enable mix nd2nz
+            return param;
+        }
     private:
         UnQuantMatmulAllReduceTiling310& tilingProcesser_;
     };
@@ -117,6 +129,7 @@ protected:
 private:
     UnQuantMatmulAllReduceTilingData unquantMatmulAllReduceTilingData_;
     uint64_t myWorkSpaceSize_{0U};
+    Matmul310TPLParam matmulTPLParam_;
 };
 } // namespace optiling
 #endif // UNQUANT_MATMUL_ALL_REDUCE_TILING_310_H

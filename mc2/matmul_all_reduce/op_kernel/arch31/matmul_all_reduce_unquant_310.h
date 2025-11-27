@@ -24,12 +24,13 @@
 #endif
 #include "../common.h"
 #include "mm_allreduce.h"
+#include "../matmul_all_reduce_tiling_key.h"
 #include "../../3rd/mat_mul_v3/op_kernel/mat_mul_base_kernel.h"
 #include "../../3rd/mat_mul_v3/op_kernel/mat_mul_unaligned_base_kernel.h"
 
 namespace MatmulAllReduceImpl {
 using namespace AscendC;
-template <typename aType, typename bType, typename biasType, typename cType>
+template <typename aType, typename bType, typename biasType, typename cType, bool mixNdNz>
 class MatmulAllReduceUnquant310
 {
 public:
@@ -55,8 +56,8 @@ private:
     TBuf<TPosition::VECCALC> tmpBuf_;
 };
 
-template <typename aType, typename bType, typename biasType, typename cType>
-__aicore__ inline void MatmulAllReduceUnquant310<aType, bType, biasType, cType>::Init(
+template <typename aType, typename bType, typename biasType, typename cType, bool mixNdNz>
+__aicore__ inline void MatmulAllReduceUnquant310<aType, bType, biasType, cType, mixNdNz>::Init(
     GM_ADDR aGM, GM_ADDR bGM, GM_ADDR biasGM, GM_ADDR cGM, GM_ADDR workspaceGM,
     UnQuantMatmulAllReduceTilingData* tilingData, TPipe* tPipe, HcclServer* hcclServer)
 {
@@ -83,8 +84,8 @@ __aicore__ inline void MatmulAllReduceUnquant310<aType, bType, biasType, cType>:
     workspaceGM_ = workspaceGM;
 }
 
-template <typename aType, typename bType, typename biasType, typename cType>
-__aicore__ inline void MatmulAllReduceUnquant310<aType, bType, biasType, cType>::Process()
+template <typename aType, typename bType, typename biasType, typename cType, bool mixNdNz>
+__aicore__ inline void MatmulAllReduceUnquant310<aType, bType, biasType, cType, mixNdNz>::Process()
 {
     auto&& cfg = tilingData_->param;
     if (g_coreType == AIV) {
@@ -116,8 +117,8 @@ __aicore__ inline void MatmulAllReduceUnquant310<aType, bType, biasType, cType>:
         cGM_ += cOffset;                                                                                      \
     }
 
-template <typename aType, typename bType, typename biasType, typename cType>
-__aicore__ inline void MatmulAllReduceUnquant310<aType, bType, biasType, cType>::InnerProcess(
+template <typename aType, typename bType, typename biasType, typename cType, bool mixNdNz>
+__aicore__ inline void MatmulAllReduceUnquant310<aType, bType, biasType, cType, mixNdNz>::InnerProcess(
     uint32_t tileCnt, Mc2MatmulV3TilingData& mm_tiling, uint32_t shift)
 {
     const uint64_t aOffset = CalcShapeOffset(sizeof(aType), mm_tiling.matmulTiling.M, mm_tiling.matmulTiling.Ka);
@@ -127,14 +128,14 @@ __aicore__ inline void MatmulAllReduceUnquant310<aType, bType, biasType, cType>:
     using biasMatmulType = MatmulType<AscendC::TPosition::GM, CubeFormat::ND, biasType>;
     if (tilingData_->param.isTransposeB == 0) {
         using bMatmulType = MatmulType<AscendC::TPosition::GM, CubeFormat::NZ, bType, false>;
-        if (TILING_KEY_IS(2000UL)) {
+        if constexpr (mixNdNz == MAT_MUL_V3_MIXND2NZ_TRUE) {
             Mc2MatmulBaseUnAlignedKernel<
                 aMatmulType, bMatmulType, cMatmulType, biasMatmulType, Mc2MatmulBaseBlock, MM_CFG_VEC_ND2NZ>
                 mmop;
             MATMUL_ALL_REDUCE_TEMPLATE(
                 mmop, tileCnt, tPipe_, aGM_, bGM_, cGM_, biasGM_, workspaceGM_, mm_tiling, hcclServer_, shift, aOffset,
                 cOffset);
-        } else if (TILING_KEY_IS(67536UL)) {
+        } else if constexpr (mixNdNz == MAT_MUL_V3_MIXND2NZ_FALSE) {
             Mc2MatmulBaseKernel<aMatmulType, bMatmulType, cMatmulType, biasMatmulType, Mc2MatmulBaseBlock, MM_CFG_VEC_ND2NZ>
                 mmop;
             MATMUL_ALL_REDUCE_TEMPLATE(
@@ -143,14 +144,14 @@ __aicore__ inline void MatmulAllReduceUnquant310<aType, bType, biasType, cType>:
         }
     } else {
         using bMatmulType = MatmulType<AscendC::TPosition::GM, CubeFormat::NZ, bType, true>;
-        if (TILING_KEY_IS(2000UL)) {
+        if constexpr (mixNdNz == MAT_MUL_V3_MIXND2NZ_TRUE) {
             Mc2MatmulBaseUnAlignedKernel<
                 aMatmulType, bMatmulType, cMatmulType, biasMatmulType, Mc2MatmulBaseBlock, MM_CFG_VEC_ND2NZ>
                 mmop;
             MATMUL_ALL_REDUCE_TEMPLATE(
                 mmop, tileCnt, tPipe_, aGM_, bGM_, cGM_, biasGM_, workspaceGM_, mm_tiling, hcclServer_, shift, aOffset,
                 cOffset);
-        } else if (TILING_KEY_IS(67536UL)) {
+        } else if constexpr (mixNdNz == MAT_MUL_V3_MIXND2NZ_FALSE) {
             Mc2MatmulBaseKernel<aMatmulType, bMatmulType, cMatmulType, biasMatmulType, Mc2MatmulBaseBlock, MM_CFG_VEC_ND2NZ>
                 mmop;
             MATMUL_ALL_REDUCE_TEMPLATE(
@@ -238,7 +239,7 @@ __aicore__ inline void MatMulEmptyTensorKernelUnquantNz(
             continue;                                                                        \
         }                                                                                    \
         GET_TILING_DATA_WITH_STRUCT(UnQuantMatmulAllReduceTilingData, tilingData, tilingGM); \
-        templateClass<DTYPE_X1, DTYPE_X2, DTYPE_Y, DTYPE_Y> op;                              \
+        templateClass<DTYPE_X1, DTYPE_X2, DTYPE_Y, DTYPE_Y, MIXND2NZ> op;                              \
         op.Init(aGM, bGM, biasGM, cGM, userWS, &tilingData, &tPipe, &hcclServer);            \
         op.Process();                                                                        \
     } while (0)

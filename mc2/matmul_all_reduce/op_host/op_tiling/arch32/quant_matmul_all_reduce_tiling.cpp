@@ -46,10 +46,17 @@ ge::graphStatus QuantMatmulAllReduceTiling::DoOpTiling()
 }
 uint64_t QuantMatmulAllReduceTiling::GetTilingKey() const
 {
-    uint64_t tilingKey = context_->GetTilingKey();
-    if (isCommInt8Enable_ == true) {
-        tilingKey += 10UL; // 适配int8 通信tilingKey
-    }
+    uint64_t tilingKey = GET_TPL_TILING_KEY(
+        static_cast<uint64_t>(ASCEND_910B),
+        static_cast<uint64_t>(MATMUL_ALLREDUCE_MM_TYPE_QUANT_MATMUL),
+        MATMUL_ALLREDUCE_EMPTY_INPUT_F,
+        isCommInt8Enable_,
+        0UL,    // ENABLE_L2_CACHE
+        0UL,    // SHARE_MM
+        SET_NOT_USE_FM_MM_TPL_TILING,
+        quantMatmulTPLParam_.trans,
+        quantMatmulTPLParam_.kernelTemplateType,
+        SET_NOT_USE_WEIGHT_QUANT_MM_TPL_TILING);
     OP_LOGI(opName_, " tilingKey %lu", tilingKey);
     return tilingKey;
 }
@@ -118,15 +125,19 @@ ge::graphStatus QuantMatmulAllReduceTiling::DoQuantTiling()
     QuantTilingTransferHelper mmTile(*this, quantMatmulAllReduceTilingData_.tilematmulTiling);
     if (args_.enableSplitK) {
         OP_LOGD(opName_, "Enable SplitK Tiling.");
-        return mmTile.DoTiling();
+        auto res = mmTile.DoTiling();
+        quantMatmulTPLParam_ = mmTile.GetQuantMatmulTPLParam();
+        return res;
     } else {
         GE_ASSERT_GRAPH_SUCCESS(mmTile.DoTiling());
         if (MutableRCSTilingData().get_tailCnt() == 0) {
+            quantMatmulTPLParam_ = mmTile.GetQuantMatmulTPLParam();
             return ge::GRAPH_SUCCESS;
         }
         args_.mValue = tailMValue_;
         QuantTilingTransferHelper mmTail(*this, quantMatmulAllReduceTilingData_.tailmatmulTiling);
         auto res = mmTail.DoTiling();
+        quantMatmulTPLParam_ = mmTail.GetQuantMatmulTPLParam();
         return res;
     }
 }
@@ -359,6 +370,16 @@ void QuantTilingTransferHelper::PrintTilingInputParam(Mc2QuantBatchMatmulInfo qu
         quantBatchMatmulInfo.batchB4, quantBatchMatmulInfo.batchC, quantBatchMatmulInfo.batchBias);
     OP_LOGD(tilingProcesser_.opName_, "isPerTensor %d", static_cast<int32_t>(quantBatchMatmulInfo.isPerTensor));
 }
+
+QuantMatmulTPLParam QuantTilingTransferHelper::GetQuantMatmulTPLParam()
+{
+    QuantMatmulTPLParam param;
+    bool isBasicTiling = false;
+    param.trans = (static_cast<uint64_t>(inputParams_.transA) << 1) | static_cast<uint64_t>(inputParams_.transB);
+    param.kernelTemplateType = (static_cast<uint64_t>(isBf16Opt_) << 1) | static_cast<uint64_t>(isBasicTiling);
+    return param;
+}
+
 QuantTilingTransferHelper::QuantTilingTransferHelper(
     QuantMatmulAllReduceTiling& quantMatmulAllReduceTiling, Mc2QuantBatchMatmulV3TilingData& data)
     : Mc2QuantBatchMatmulV3Tiling(quantMatmulAllReduceTiling.context_, &data), tilingProcesser_(quantMatmulAllReduceTiling)

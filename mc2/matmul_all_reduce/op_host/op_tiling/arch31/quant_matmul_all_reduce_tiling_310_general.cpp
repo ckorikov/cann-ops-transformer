@@ -13,6 +13,7 @@
  * \brief
  */
 #include "quant_matmul_all_reduce_tiling_310_general.h"
+#include "../../../op_kernel/matmul_all_reduce_tiling_key.h"
 #include "mc2_log.h"
 #include "op_mc2.h"
 using namespace Mc2Log;
@@ -40,7 +41,17 @@ ge::graphStatus QuantMatmulAllReduceTiling310General::DoOpTiling()
 
 uint64_t QuantMatmulAllReduceTiling310General::GetTilingKey() const
 {
-    uint64_t tilingKey = context_->GetTilingKey();
+    const uint64_t tilingKey = GET_TPL_TILING_KEY(
+        static_cast<uint64_t>(ASCEND_310P),
+        static_cast<uint64_t>(MATMUL_ALLREDUCE_MM_TYPE_QUANT_MATMUL),
+        MATMUL_ALLREDUCE_EMPTY_INPUT_F,
+        MATMUL_ALLREDUCE_INT8_COMM_F,
+        static_cast<uint64_t>(SET_NOT_USE_PARAM),
+        static_cast<uint64_t>(SET_NOT_USE_PARAM),
+        SET_NOT_USE_FM_MM_TPL_TILING,
+        SET_NOT_USE_QUANT_MM_TPL_TILING,
+        SET_NOT_USE_WEIGHT_QUANT_MM_TPL_TILING);
+
     OP_LOGI(opName_, "QuantMatmulAllReduceTiling310General get tilingKey %lu", tilingKey);
     return tilingKey;
 }

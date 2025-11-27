@@ -16,6 +16,7 @@
 #define MATMUL_ALL_REDUCE_TILING_910_H
 
 #include "../matmul_all_reduce_tiling_base.h"
+#include "../../../op_kernel/matmul_all_reduce_tiling_key.h"
 #include "mat_mul_v3/op_host/op_tiling/matmul_v3_base_tiling.h"
 
 namespace optiling {
@@ -25,11 +26,15 @@ TILING_DATA_FIELD_DEF_STRUCT(RCSTiling, param);
 TILING_DATA_FIELD_DEF_STRUCT(Mc2MatmulV3TilingData, tilematmulTiling);
 TILING_DATA_FIELD_DEF_STRUCT(Mc2MatmulV3TilingData, tailmatmulTiling);
 END_TILING_DATA_DEF;
-REGISTER_TILING_DATA_CLASS(MatmulAllReduce_10000000000000001100, MatmulAllReduce910TilingData);
-REGISTER_TILING_DATA_CLASS(MatmulAllReduce_10000000000000000009, MatmulAllReduce910TilingData);
+REGISTER_TILING_DATA_CLASS(MatmulAllReduce_16, MatmulAllReduce910TilingData);
+REGISTER_TILING_DATA_CLASS(MatmulAllReduce_260, MatmulAllReduce910TilingData);
 REGISTER_TILING_DATA_CLASS(MatmulAllReduce_0, MatmulAllReduce910TilingData);
-REGISTER_TILING_DATA_CLASS(MatmulAllReduce_65536, MatmulAllReduce910TilingData);
+REGISTER_TILING_DATA_CLASS(MatmulAllReduce_256, MatmulAllReduce910TilingData);
 REGISTER_TILING_DATA_CLASS(MatmulAllReduce910TilingDataOp, MatmulAllReduce910TilingData);
+
+struct MatmulTPLParam{
+    uint64_t disableMixNd2nz{65535};
+};
 
 class MatmulAllReduceTiling910 : public MatmulAllReduceTilingBase
 {
@@ -75,6 +80,7 @@ private:
     MatmulAllReduce910TilingData matmulAllReduce910TilingDataSelf_;
     MatmulAllReduce910TilingData& matmulAllReduce910TilingData_;
     uint64_t myWorkSpaceSize_{0U};
+    MatmulTPLParam matmulTPLParam_;
 };
 
 class TilingTransferHelper : public mc2_matmul_v3::Mc2MatmulV3BaseTiling
@@ -84,6 +90,7 @@ public:
 
     ge::graphStatus GetShapeAttrsInfo() override;
     ge::graphStatus PostTiling() override;
+    MatmulTPLParam GetMatmulTPLParam();
 
 private:
     MatmulAllReduceTiling910& tilingProcesser_;
