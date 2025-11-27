@@ -72,6 +72,12 @@ ge::graphStatus FiaTilingNonQuantMla::GetPlatformInfo()
 
     OP_CHECK_IF(aicNum_ == 0 || aivNum_ == 0,
         OPS_REPORT_VECTOR_INNER_ERR(fiaInfo_->opName, "num of core obtained is 0."), return GRAPH_FAILED);
+    OP_CHECK_IF((aicNum_ != aivNum_) && (aicNum_ * 2 != aivNum_),
+        OPS_REPORT_VECTOR_INNER_ERR(fiaInfo_->opName, "aicNum(%u):aivNum(%u) only support 1:1 or 1:2.", aicNum_, aivNum_), return GRAPH_FAILED);
+
+    // 设置CV1:1模式
+    cvRatio_ = aivNum_ / aicNum_;
+    OP_LOGI(fiaInfo_->opName, "FIA aicNum: %u, aivNum:%u, cvRatio:%u.", aicNum_, aivNum_, cvRatio_);
 
     return ge::GRAPH_SUCCESS;
 }
@@ -114,10 +120,11 @@ void FiaTilingNonQuantMla::GenTilingKey()
 
     bool isFlashDecode = (kvSplit_ > 0);
     bool isPageAttention = (fiaInfo_->pageAttentionFlag && fiaInfo_->s2Size != 0);
+    uint8_t cvRatioVal = (cvRatio_ == 1U) ? 1U : 0U;
     tilingKey_ = GET_TPL_TILING_KEY(static_cast<uint8_t>(inputQVal), static_cast<uint8_t>(inputKvVal), static_cast<uint8_t>(outputVal), static_cast<uint8_t>(isPageAttention),
                                     static_cast<uint8_t>(fiaInfo_->inputLayout),
                                     static_cast<uint8_t>(fiaInfo_->inputKvLayout), static_cast<uint8_t>(isFlashDecode), static_cast<uint8_t>(fiaInfo_->sysPrefixFlag),
-                                    0, 0, 0, 0, 3, 0, 0, 0, 0);
+                                    cvRatioVal, 0, 0, 0, 3, 0, 0, 0, 0);
     OP_LOGI(fiaInfo_->opName, "FIA tilingKey_: %lu.", tilingKey_);
 }
 
@@ -308,7 +315,7 @@ void FiaTilingNonQuantMla::Split()
         splitKVFlag_ = true;
         kvSplit_++;
         kvSplitPart_ = res.maxS2SplitNum;
-        SplitFD(res, fDParams, usedCoreNum_);
+        SplitFD(res, fDParams, usedCoreNum_ * cvRatio_);
         tilingData_->fdParams.set_usedVecNumOfFd(res.usedVecNumOfFd);
     }
     CalcMmResSize();
@@ -440,7 +447,7 @@ void FiaTilingNonQuantMla::CalcBlockDim(uint32_t coreNum)
 {
     auto ascendcPlatform = platform_ascendc::PlatformAscendC(fiaInfo_->platformInfo);
     auto aicNum = coreNum;
-    auto aivNum = 2U * coreNum;  // vec核数量是cube核数量的两倍
+    auto aivNum = coreNum * cvRatio_;
 
     blockDim_ = ascendcPlatform.CalcTschBlockDim(aivNum, aicNum, aivNum); // 暂时与当前代码一致
     OP_LOGI(fiaInfo_->opName, "FIA block dim: %u aiv Num: %u aic Num: %u.", blockDim_, aivNum, aicNum);

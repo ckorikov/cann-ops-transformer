@@ -494,7 +494,7 @@ __aicore__ inline void FiaKernelNonQuantMla<FIAT>::Init(
 {
     if ASCEND_IS_AIV {
         tmpBlockIdx = GetBlockIdx(); // vec:0-47
-        aiCoreIdx = tmpBlockIdx / 2;
+        aiCoreIdx = tmpBlockIdx / cvRatio;
     } else {
         tmpBlockIdx = GetBlockIdx(); // cube:0-23
         aiCoreIdx = tmpBlockIdx;

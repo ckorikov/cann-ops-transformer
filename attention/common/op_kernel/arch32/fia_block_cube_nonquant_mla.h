@@ -39,6 +39,7 @@ public:
     static constexpr bool PAGE_ATTENTION = FIAT::pageAttention;
     static constexpr FIA_LAYOUT LAYOUT_T = FIAT::layout;
     static constexpr FIA_LAYOUT KV_LAYOUT_T = FIAT::kvLayout;
+    static constexpr uint32_t cvRatio = FIAT::cvRatio;
 
     static constexpr bool KVINT4 = IsSameType<KV_T, int4b_t>::value;
     using MM_OUT_T = T;

@@ -224,7 +224,7 @@ struct TNDFDSplitInfo {
 template <typename Q_T, typename KV_T, typename OUT_T, typename ORIGIN_T, const bool PAGE_ATTENTION = false,
           const bool FLASH_DECODE = false, LAYOUT LAYOUT_T = LAYOUT::BSH, const uint8_t ANTIQUANT_MODE = 0,
           const bool SHARED_PREFIX = false, LAYOUT KV_LAYOUT_T = LAYOUT::BSH, const AMLAMODE AMLA = AMLAMODE::NORMAL,
-          const bool BALANCE = false, typename TILING_T = IncreFlashAttentionTilingDataV2, typename... Args>
+          const bool BALANCE = false, const uint8_t CV_RATIO = 2, typename TILING_T = IncreFlashAttentionTilingDataV2, typename... Args>
 struct IFAType {
     using queryType = Q_T;
     using kvType = KV_T;
@@ -239,6 +239,7 @@ struct IFAType {
     static constexpr LAYOUT kvLayout = KV_LAYOUT_T;
     static constexpr AMLAMODE isAMla = AMLA;
     static constexpr bool isBalance = BALANCE;
+    static constexpr bool cvRatio = CV_RATIO;
 };
 
 constexpr uint32_t FP32_BLOCK_ELEMENT_NUM = BYTE_BLOCK / sizeof(float);

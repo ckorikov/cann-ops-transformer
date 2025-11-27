@@ -126,14 +126,16 @@ ge::graphStatus IFATiling::GetNpuInfo()
 
     aivNum_ = ascendcPlatform.GetCoreNumAiv();
     aicNum_ = ascendcPlatform.GetCoreNumAic();
+    
+    OP_CHECK_IF(aicNum_ == 0 || aivNum_ == 0,
+        OPS_REPORT_VECTOR_INNER_ERR(context_->opName, "num of core obtained is 0."), return GRAPH_FAILED);
+
     if (ascendcPlatform.GetSocVersion() == platform_ascendc::SocVersion::ASCEND310P) {
         socVersion_ = IfaSocVersion::SOC_ASCEND_310P;
     } else {
         socVersion_ = IfaSocVersion::SOC_ASCEND_910B;
+        cvRatio_ = aivNum_ / aicNum_;
     }
-
-    OP_CHECK_IF(aicNum_ == 0 || aivNum_ == 0,
-        OPS_REPORT_VECTOR_INNER_ERR(context_->opName, "num of core obtained is 0."), return GRAPH_FAILED);
 
     return ge::GRAPH_SUCCESS;
 }
@@ -765,6 +767,7 @@ ge::graphStatus IFATiling::ProcessOptionalTensors()
         (ProcessBlockTable() != ge::GRAPH_SUCCESS) ||
         (ProcessKVPaddingSize() != ge::GRAPH_SUCCESS) ||
         (ProcessMlaRope() != ge::GRAPH_SUCCESS) ||
+        (ProcessCvRatio() != ge::GRAPH_SUCCESS) ||
         (ProcessGqaKvNz() != ge::GRAPH_SUCCESS)) {
         return ge::GRAPH_FAILED;
     }
@@ -1768,6 +1771,16 @@ ge::graphStatus IFATiling::ProcessMlaRope()
         return ge::GRAPH_FAILED;
     }
     return CheckMlaMisc();
+}
+
+ge::graphStatus IFATiling::ProcessCvRatio(){
+    // CV1:1 只支持全量化
+    if ((cvRatio_ == 1) && (!quantFlag_ || !ropeFlag_)) {
+        OP_LOGE(context_->opName, "when CV 1:1, the dtype of query should be int8");
+        return ge::GRAPH_FAILED;
+    }
+
+    return ge::GRAPH_SUCCESS;
 }
 
 ge::graphStatus IFATiling::Split()
@@ -3127,9 +3140,10 @@ ge::graphStatus IFATiling::GenTilingKey() const
        (modeVal == 1 && perfMode_ == IfaPerfMode::CUBE_VIEW_MM)){
             kvLayoutInfo.kvLayoutVal = 1U;
        }
+    uint8_t cvRatioVal = (cvRatio_ == 1) ? 1 : 0;
     context_->tilingKey = GET_TPL_TILING_KEY(static_cast<uint8_t>(inputQVal),
             static_cast<uint8_t>(inputKvVal), static_cast<uint8_t>(outputVal), static_cast<uint8_t>(paVal), static_cast<uint8_t>(layoutVal),
-            static_cast<uint8_t>(kvLayoutInfo.kvLayoutVal), static_cast<uint8_t>(splitKvVal), 0, 
+            static_cast<uint8_t>(kvLayoutInfo.kvLayoutVal), static_cast<uint8_t>(splitKvVal), 0, cvRatioVal,
             static_cast<uint8_t>(antiquantMode_), static_cast<uint8_t>(originVal), static_cast<uint8_t>(kvLayoutInfo.amlaMode),
             static_cast<uint8_t>(balanceMode), static_cast<uint8_t>(modeVal), static_cast<uint8_t>(perfMode_), 0, 0, 1);
 
@@ -3153,7 +3167,7 @@ ge::graphStatus IFATiling::CalcBlockDim()
                 aicNum = aivNum;
             } else if (perfMode_ == IfaPerfMode::CUBE_VIEW_MM || perfMode_ == IfaPerfMode::CUBE_VIEW_MM_FULL_LOAD ||
                 perfMode_ == IfaPerfMode::CUBE_VIEW_MM_MLA || perfMode_ == IfaPerfMode::CUBE_VIEW_MM_DD) {
-                aivNum = 2U * usedCoreNum_;
+                aivNum = usedCoreNum_ * cvRatio_;
                 aicNum = usedCoreNum_;
             } else {
                 aivNum = Align(usedCoreNum_, 2U); // aivNum必须为偶数达成CV 1:2
