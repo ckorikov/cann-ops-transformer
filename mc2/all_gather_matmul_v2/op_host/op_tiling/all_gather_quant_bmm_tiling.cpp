@@ -224,21 +224,14 @@ ge::graphStatus AllGatherQuantBmmTiling::CheckPerTensorScaleInput()
 {
     auto scaleInv1Shape = context_->GetOptionalInputShape(SCALE_INV1);
     auto scaleInv2Shape = context_->GetOptionalInputShape(SCALE_INV2);
-    auto scaleInv1Desc = context_->GetOptionalInputDesc(SCALE_INV1);
-    if (scaleInv1Desc->GetDataType() == ge::DataType::DT_FLOAT8_E8M0) {
-        // MX
-        OP_TILING_CHECK(CheckMXFPScaleInput() == ge::GRAPH_FAILED,
-                        CUBE_INNER_ERR_REPORT(opName_, "Check mxfp scale input failed"), return ge::GRAPH_FAILED); 
-    } else {
-        OP_TILING_CHECK(
-            (scaleInv1Shape->GetStorageShape().GetDim(0) != DIM_IS_ONE) ||
-                (scaleInv2Shape->GetStorageShape().GetDim(0) != DIM_IS_ONE),
-            CUBE_INNER_ERR_REPORT(
-                opName_,
-                "ScaleInv1Shape and scaleInv2Shape should be scalar! scaleInv1Shape dim=%ld, scaleInv2Shape dim=%ld",
-                scaleInv1Shape->GetStorageShape().GetDim(0), scaleInv2Shape->GetStorageShape().GetDim(0)),
-            return ge::GRAPH_FAILED);
-    }
+    OP_TILING_CHECK(
+        (scaleInv1Shape->GetStorageShape().GetDim(0) != DIM_IS_ONE) ||
+            (scaleInv2Shape->GetStorageShape().GetDim(0) != DIM_IS_ONE),
+        CUBE_INNER_ERR_REPORT(
+            opName_,
+            "ScaleInv1Shape and scaleInv2Shape should be scalar! scaleInv1Shape dim=%ld, scaleInv2Shape dim=%ld",
+            scaleInv1Shape->GetStorageShape().GetDim(0), scaleInv2Shape->GetStorageShape().GetDim(0)),
+        return ge::GRAPH_FAILED);
     return ge::GRAPH_SUCCESS;
 }
 
@@ -247,6 +240,11 @@ ge::graphStatus AllGatherQuantBmmTiling::SetQuantScene()
     auto scaleInv1Shape = context_->GetOptionalInputShape(SCALE_INV1);
     auto scaleInv2Shape = context_->GetOptionalInputShape(SCALE_INV2);
     auto scaleInv1Desc = context_->GetOptionalInputDesc(SCALE_INV1);
+    auto scaleInv2Desc = context_->GetOptionalInputDesc(SCALE_INV2);
+    OP_TILING_CHECK((scaleInv1Shape->GetStorageShape().GetDimNum() != scaleInv2Shape->GetStorageShape().GetDimNum()),
+                    CUBE_INNER_ERR_REPORT(opName_, "Expected both scale shapes to be equal, but got x1Scale is %ld and x2Scale is %ld",
+                    scaleInv1Shape->GetStorageShape().GetDimNum(), scaleInv2Shape->GetStorageShape().GetDimNum()),
+                    return ge::GRAPH_FAILED);
     if ((scaleInv1Shape->GetStorageShape().GetDimNum() == DIM_NUM_IS_ONE) &&
         (scaleInv2Shape->GetStorageShape().GetDimNum() == DIM_NUM_IS_ONE)) {
         quantMmMode_ = mc2tiling::Mc2QuantMode::PERTENSOR_MODE;
@@ -263,7 +261,8 @@ ge::graphStatus AllGatherQuantBmmTiling::SetQuantScene()
         return ge::GRAPH_SUCCESS;
     } else {
         quantMmMode_ = mc2tiling::Mc2QuantMode::INVALID_MODE;
-        OP_LOGE(opName_, "Current quant mode is invalid! Currently support: { PERTENSOR_MODE, PERBLOCK_MODE }");
+        OP_LOGE(opName_, "Quantmode must be pertensor or mxfp or perblock, actually x1ScaleDtype is %s and x2ScaleDtype is %s",
+                Ops::Base::ToString(scaleInv1Desc->GetDataType()).c_str(), Ops::Base::ToString(scaleInv2Desc->GetDataType()).c_str());
     }
 
     return ge::GRAPH_FAILED;
@@ -276,16 +275,23 @@ mc2tiling::Mc2QuantMode AllGatherQuantBmmTiling::GetQuantScene()
 
 ge::graphStatus AllGatherQuantBmmTiling::CheckScaleInvShape()
 {
-    if (quantMmMode_ == mc2tiling::Mc2QuantMode::PERTENSOR_MODE) {
+    auto scaleInv1Desc = context_->GetOptionalInputDesc(SCALE_INV1);
+    if ((quantMmMode_ == mc2tiling::Mc2QuantMode::PERTENSOR_MODE) &&
+        (scaleInv1Desc->GetDataType() == ge::DataType::DT_FLOAT)) {
         OP_LOGI(opName_, "Check pertensor scale input!");
         OP_TILING_CHECK(CheckPerTensorScaleInput() == ge::GRAPH_FAILED,
                         CUBE_INNER_ERR_REPORT(opName_, "Check pertensor scale input failed"), return ge::GRAPH_FAILED);
+    } else if ((quantMmMode_ == mc2tiling::Mc2QuantMode::PERTENSOR_MODE) &&
+        (scaleInv1Desc->GetDataType() == ge::DataType::DT_FLOAT8_E8M0)) {
+        OP_LOGI(opName_, "Check mxfp scale input!");
+        OP_TILING_CHECK(CheckMXFPScaleInput() == ge::GRAPH_FAILED,
+                        CUBE_INNER_ERR_REPORT(opName_, "Check mxfp scale input failed"), return ge::GRAPH_FAILED);
     } else if (quantMmMode_ == mc2tiling::Mc2QuantMode::PERBLOCK_MODE) {
         OP_LOGI(opName_, "Check perblock scale input!");
         OP_TILING_CHECK(CheckPerBlockScaleInput() == ge::GRAPH_FAILED,
                         CUBE_INNER_ERR_REPORT(opName_, "Check perblock scale input failed"), return ge::GRAPH_FAILED);
     } else {
-        OP_LOGE(opName_, "Quant mode should be pertensor or perblock!");
+        OP_LOGE(opName_, "Quant mode should be pertensor or mxfp or perblock!");
         return ge::GRAPH_FAILED;
     }
 
@@ -307,7 +313,7 @@ ge::graphStatus AllGatherQuantBmmTiling::CheckInputValid()
 
     OP_TILING_CHECK(
         scaleInv1Desc->GetDataType() != scaleInv2Desc->GetDataType(),
-        CUBE_CALL_ERR_REPORT(
+        CUBE_INNER_ERR_REPORT(
             opName_,
             "The type of scaleInv1Dtype and scaleInv2Dtype should be equal!"
             "Current scaleInv1Dtype=%s, scaleInv2Dtype=%s.",
@@ -315,7 +321,7 @@ ge::graphStatus AllGatherQuantBmmTiling::CheckInputValid()
         return ge::GRAPH_FAILED);
     OP_TILING_CHECK(
         (args_.geAType == ge::DataType::DT_HIFLOAT8) && (scaleInv1Desc->GetDataType() != ge::DataType::DT_FLOAT),
-        CUBE_CALL_ERR_REPORT(
+        CUBE_INNER_ERR_REPORT(
             opName_, "The type of scaleInv1Dtype and scaleInv2Dtype should be float32 when AType is hifp8!"),
         return ge::GRAPH_FAILED);
 

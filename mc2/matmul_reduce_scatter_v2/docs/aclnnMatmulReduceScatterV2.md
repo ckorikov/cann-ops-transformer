@@ -56,10 +56,10 @@
         -   <term>昇腾910_95 AI处理器</term>：数据类型支持FLOAT16、BFLOAT16、FLOAT。[数据格式](../../../docs/zh/context/数据格式.md)支持ND。如果x1的数据类型是FLOAT16、BFLOAT16，则bias的数据类型必须为FLOAT16、BFLOAT16。如果x1的数据类型是FLOAT8_E4M3FN、FLOAT8_E5M2、HIFLOAT8时，在pertensor场景下，bias的数据类型必须为FLOAT，在perblock场景下，仅支持输入为nullptr。
         -   <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>、<term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：在commMode为aicpu时，数据类型支持FLOAT16、BFLOAT16，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。且当前版本仅支持为0的输入。在commMode为aiv时，当前版本仅支持输入nullptr。
     -   x1Scale（aclTensor\*，计算输入）：Device侧的aclTensor，mm左矩阵反量化参数。
-        -   <term>昇腾910_95 AI处理器</term>：数据类型支持FLOAT，FLOAT8_E8M0。当x1和x2数据类型为FLOAT16/BFLOAT16时，仅支持输入为nullptr。在pertensor场景下，shape为[1]。在perblock场景下，shape为[ceildiv(m, 128), ceildiv(k, 128)]。[数据格式](../../../docs/zh/context/数据格式.md)支持ND。数据类型为FLOAT8_E8M0且x1不转置，shape为(m, CeilDiv(k, 64), 2)。
+        -   <term>昇腾910_95 AI处理器</term>：数据类型支持FLOAT，FLOAT8_E8M0。当x1和x2数据类型为FLOAT16/BFLOAT16时，仅支持输入为nullptr。在pertensor场景下，shape为[1]。在perblock场景下，shape为[ceildiv(m, 128), ceildiv(k, 128)]。[数据格式](../../../docs/zh/context/数据格式.md)支持ND。数据类型为FLOAT8_E8M0且x1不转置，shape为(m, CeilDiv(k, 64), 2)。mx场景下，数据类型为FLOAT8_E8M0，shape为(m, CeilDiv(k, 64), 2)。
         -   <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>、<term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：在commMode为aicpu时，仅支持输入nullptr。在commMode为aiv时，数据类型支持FLOAT,，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。当x1和x2数据类型为FLOAT16/BFLOAT16时，仅支持输入为nullptr。在pertoken场景，shape为(m, 1)。
     -   x2Scale（aclTensor\*，计算输入）：Device侧的aclTensor，mm右矩阵反量化参数。
-        -   <term>昇腾910_95 AI处理器</term>：数据类型支持FLOAT，FLOAT8_E8M0。当x1和x2数据类型为FLOAT16/BFLOAT16时，仅支持输入为nullptr。在pertensor场景下，shape为[1]。在perblock场景下，shape为[ceildiv(k, 128), ceildiv(n, 128)]。数据格式支持ND。数据类型为FLOAT8_E8M0且x1不转置，x2转置时，shape为(n, CeilDiv(k, 64), 2)。数据类型为FLOAT8_E8M0且x1不转置，x2不转置时，shape为(CeilDiv(k, 64), n, 2)。
+        -   <term>昇腾910_95 AI处理器</term>：数据类型支持FLOAT，FLOAT8_E8M0。当x1和x2数据类型为FLOAT16/BFLOAT16时，仅支持输入为nullptr。在pertensor场景下，shape为[1]。在perblock场景下，shape为[ceildiv(k, 128), ceildiv(n, 128)]。数据格式支持ND。数据类型为FLOAT8_E8M0且x1不转置，x2转置时，shape为(n, CeilDiv(k, 64), 2)。数据类型为FLOAT8_E8M0且x1不转置，x2不转置时，shape为(CeilDiv(k, 64), n, 2)。mx场景下，数据类型为FLOAT8_E8M0，shape为(m, CeilDiv(k, 64), 2)。
         -   <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>、<term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：在commMode为aicpu时，仅支持输入nullptr。在commMode为aiv时，数据类型支持FLOAT、INT64，数据格式支持ND。INT64数据类型仅在output数据类型为FLOAT16场景支持。当x1和x2数据类型为FLOAT16/BFLOAT16时，仅支持输入为nullptr。在perchannel场景，shape为(1, n)。
     -   quantScale（aclTensor\*，计算输入）：Device侧的一维aclTensor，mm输出矩阵量化参数。数据类型支持FLOAT。**当前版本仅支持nullptr**。
     -   blockSize （int64\_t，计算输入）：Host侧的整型，用于表示mm输出矩阵在M轴方向上和N轴方向上可以用于对应方向上的多少个数的量化。blockSize由blockSizeM， blockSizeN，blockSizeK三个值拼接而成，每个值占16位，计算公式为：blockSize = blockSizeK | blockSizeN << 16 | blockSizeM << 32，mm输出矩阵不涉及K轴，blockSizeK固定为0。**当前版本只支持blockSizeM = blockSizeN = 0**。
@@ -68,7 +68,7 @@
     -   commTurn（int64\_t，计算输入）：Host侧的整型，通信数据切分数，即总数据量/单次通信量。数据类型支持INT64。**当前版本仅支持输入0**。
     -   streamMode（int64\_t，计算输入）：Host侧的整型，流模式的枚举，当前只支持枚举值1，数据类型支持INT64。
     -   groupSize（int64_t，计算输入）：用于表示反量化中x1Scale/x2Scale输入的一个数在其所在的对应维度方向上可以用于该方向x1/x2输入的多少个数的反量化。groupSize输入由3个方向的groupSizeM，groupSizeN，groupSizeK三个值拼接组成，每个值占16位，计算公式为：groupSize = groupSizeK | groupSizeN << 16 | groupSizeM << 32。
-        -   <term>昇腾910_95 AI处理器</term>：当x1Scale/x2Scale输入都是2维，且数据类型都为FLOAT32时，[groupSizeM，groupSizeN，groupSizeK]取值组合仅支持[128, 128, 128]，对应groupSize的值为549764202624；其他场景输入，当前版本仅支持输入0。
+        -   <term>昇腾910_95 AI处理器</term>：当x1Scale/x2Scale输入都是2维，且数据类型都为FLOAT32时，[groupSizeM，groupSizeN，groupSizeK]取值组合仅支持[128, 128, 128]，对应groupSize的值为549764202624；当x1Scale/x2Scale输入都是3维，且数据类型都为FLOAT8_E8M0时，[groupSizeM, groupSizeN, groupSizeK]取值组合仅支持[1, 1, 32]，对应groupSize的值为4295032864；其他场景输入，当前版本仅支持输入0。
         -   <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>、<term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：当前版本仅支持输入为0。
     -   commMode (char\*，计算输入)：Host侧的整型，通信模式。
         -   <term>昇腾910_95 AI处理器</term>：当前仅支持ccu模式，该模式下使用集合通信单元完成通信任务。
