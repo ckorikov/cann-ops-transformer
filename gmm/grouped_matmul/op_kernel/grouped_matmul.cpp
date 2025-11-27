@@ -588,6 +588,8 @@ __global__ __aicore__ void grouped_matmul(GM_ADDR x, GM_ADDR weight, GM_ADDR bia
     if constexpr (TRANS_A == 0 && TRANS_B == 0) {
         GMM_CUBE_IMP(GMMProcess, false, false, false, matmulCFG);
     } else if constexpr (TRANS_A == 0 && TRANS_B == 1) {
+        GMM_CUBE_IMP(GMMProcess, false, true, false, matmulCFG);
+    } else if constexpr (TRANS_A == 1 && TRANS_B == 0) {
         if ASCEND_IS_AIV {
             GET_TILING_DATA(tilingData, tiling);
             EmptyTensorCompute<DTYPE_Y>(groupList, y, &tilingData);
@@ -595,8 +597,6 @@ __global__ __aicore__ void grouped_matmul(GM_ADDR x, GM_ADDR weight, GM_ADDR bia
         if ASCEND_IS_AIC {
             GMM_CUBE_IMP(GMMProcess, true, false, false, matmulCFG);
         }
-    } else if constexpr (TRANS_A == 1 && TRANS_B == 0) {
-        GMM_CUBE_IMP(GMMProcess, false, true, false, matmulCFG);
     }
 #endif
 #endif
