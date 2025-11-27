@@ -233,13 +233,14 @@ struct MLAPType {
     static constexpr EMPTY_TENSOR_MODE emptyMode = EMPTY_MODE;
     static constexpr ACTUAL_SEQ_MODE actualSeqMode = SEQ_MODE;
     static constexpr bool isPertile = IS_PERTILE;
+    static constexpr uint32_t cvRatio = CV_RATIO; // 默认C:V 1:2
 };
 
 // 类模板特化，支持fp8全量化
 template <typename C_T, CACHE_MODE C_M, bool ENABLE_DEQUANT_OPT,bool ENABLE_GROUP_COMPUTE_OPT,
-          EMPTY_TENSOR_MODE EMPTY_MODE, ACTUAL_SEQ_MODE SEQ_MODE, bool IS_PERTILE, typename... Args>
+          EMPTY_TENSOR_MODE EMPTY_MODE, ACTUAL_SEQ_MODE SEQ_MODE, bool IS_PERTILE, uint32_t CV_RATIO, typename... Args>
 struct MLAPType<FP8E4M3, FP8E4M3, C_T, C_M, ENABLE_DEQUANT_OPT,
-                ENABLE_GROUP_COMPUTE_OPT, EMPTY_MODE, SEQ_MODE, IS_PERTILE, Args...> {
+                ENABLE_GROUP_COMPUTE_OPT, EMPTY_MODE, SEQ_MODE, IS_PERTILE, CV_RATIO, Args...> {
     using mmInputType = FP8E4M3;           // tokenX的类型与weight的类型一致
     using mmQcQrInputType = FP8E4M3;
     using mmQnInputType = bfloat16_t;         // matmul计算Qn的输入类型

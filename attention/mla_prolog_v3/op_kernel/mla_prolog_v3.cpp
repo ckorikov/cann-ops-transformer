@@ -152,7 +152,7 @@ __global__ __aicore__ void mla_prolog_v3(
                          static_cast<QUANT_MODE>(QuantMode) == QUANT_MODE::MXFP8_FULL_QUANT_KV_NO_QUANT) {
         MlaPrologVecS1CubS2<MLAPType<FP8E4M3, FP8E4M3, bfloat16_t, cacheMode,
             EnableDequantOpt, EnableGroupComputeOpt, 
-            emptyMode, actualSeqLenMode>> op(&pipe, tilingData, tilingDataBaseParams);
+            emptyMode, actualSeqLenMode, false, cvRatio>> op(&pipe, tilingData, tilingDataBaseParams);
         op.Init(tokenX, weightDq, weightUqQr, weightUk, weightDkvKr, rmsnormGammaCq, rmsnormGammaCkv, ropeSin,
                 ropeCos, cacheIndex, kvCacheOut, krCacheOut, dequantScaleX, dequantScaleWDq, dequantScaleWUqQr,
                 dequantScaleWDkvKr, quantScaleCkv, quantScaleCkr, smoothScalesCq, nullptr, nullptr,
@@ -162,7 +162,7 @@ __global__ __aicore__ void mla_prolog_v3(
                          static_cast<QUANT_MODE>(QuantMode) == QUANT_MODE::MXFP8_FULL_QUANT_KV_QUANT_PER_TENSOR) {
         MlaPrologVecS1CubS2<MLAPType<FP8E4M3, FP8E4M3, FP8E4M3, cacheMode,
             EnableDequantOpt, EnableGroupComputeOpt, 
-            emptyMode, actualSeqLenMode>> op(&pipe, tilingData, tilingDataBaseParams);
+            emptyMode, actualSeqLenMode, false, cvRatio>> op(&pipe, tilingData, tilingDataBaseParams);
         op.Init(tokenX, weightDq, weightUqQr, weightUk, weightDkvKr, rmsnormGammaCq, rmsnormGammaCkv, ropeSin,
                 ropeCos, cacheIndex, kvCacheOut, krCacheOut, dequantScaleX, dequantScaleWDq, dequantScaleWUqQr,
                 dequantScaleWDkvKr, quantScaleCkv, quantScaleCkr, smoothScalesCq, nullptr, nullptr,
