@@ -93,6 +93,7 @@ private:
     ge::graphStatus ProcessSharedPrefix();
     ge::graphStatus ProcessSharedPrefixLen();
     ge::graphStatus ProcessMlaRope();
+    ge::graphStatus ProcessCvMode();
     ge::graphStatus ProcessCheckAtbFormat();
     ge::graphStatus AtbTilingProcess();
     ge::graphStatus AtbTilingCheck();
@@ -354,6 +355,7 @@ private:
     uint32_t coreNum_ = 0;
     uint32_t aicNum_ = 0;
     uint32_t aivNum_ = 0;
+    uint32_t cvRatio_ = 0; // 2表示CV1:2; 1表示CV 1:1
     IfaSocVersion socVersion_ = IfaSocVersion::SOC_ASCEND_910B;
     size_t libapiSize_ = 0;
 

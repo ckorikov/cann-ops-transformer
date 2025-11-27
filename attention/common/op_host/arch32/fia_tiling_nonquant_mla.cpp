@@ -71,6 +71,12 @@ ge::graphStatus FiaTilingNonQuantMla::GetPlatformInfo()
 
     OP_CHECK_IF(aicNum_ == 0 || aivNum_ == 0,
         OPS_REPORT_VECTOR_INNER_ERR(fiaInfo_->opName, "num of core obtained is 0."), return GRAPH_FAILED);
+    OP_CHECK_IF((aicNum_ != aivNum_) && (aicNum_ * 2 != aivNum_),
+        OPS_REPORT_VECTOR_INNER_ERR(fiaInfo_->opName, "aicNum(%u):aivNum(%u) only support 1:1 or 1:2.", aicNum_, aivNum_), return GRAPH_FAILED);
+
+    // 设置CV1:1模式
+    cvRatio_ = aivNum_ / aicNum_;
+    OP_LOGI(fiaInfo_->opName, "FIA aicNum: %u, aivNum:%u, cvRatio:%u.", aicNum_, aivNum_, cvRatio_);
 
     return ge::GRAPH_SUCCESS;
 }
@@ -106,6 +112,7 @@ void FiaTilingNonQuantMla::GenTilingKey()
     uint8_t antiquantModeVal = 0;
     uint64_t modeVal = fiaInfo_->sysPrefixFlag ? 2U : 1U;
     uint8_t kvLayoutVal = 0;
+    uint8_t cvRatioVal = (cvRatio_ == 1) ? 1 : 0; // CV1:1场景为1，其他场景为0
 
     const std::map<TilingKeyLayout, uint8_t> kvLayoutMap = {
         {TilingKeyLayout::BNSD, 0U}, {TilingKeyLayout::BSH_BSND, 1U}, {TilingKeyLayout::NZ, 2U}, {TilingKeyLayout::TND, 3U}
@@ -139,7 +146,7 @@ void FiaTilingNonQuantMla::GenTilingKey()
     uint64_t baseOffset =
         modeVal * FIA_TILINGKEYOFFSET + (static_cast<uint64_t>(perfMode_)) * FIA_PERF_MODE_TILINGKEYOFFSET;
     tilingKey_ = baseOffset + FIA_GET_TILINGKEY(layoutVal, inputQVal, inputKvVal, outputVal, originVal,
-        (paVal + splitKvVal), antiquantModeVal, kvLayoutVal);
+        (paVal + splitKvVal), antiquantModeVal, kvLayoutVal, cvRatioVal);
 
     OP_LOGI(fiaInfo_->opName, "FIA tilingKey_: %lu.", tilingKey_);
 }
@@ -336,7 +343,7 @@ void FiaTilingNonQuantMla::Split()
     CreateSplitInput(baseInfo, splitParam);
 
     //构造分核输出参数
-    SplitResult res { aicNum_ };
+    SplitResult res {aicNum_, cvRatio_};
     SplitCore(aicNum_, baseInfo, splitParam, res);
     if (res.numOfFdHead > aicNum_ || res.usedCoreNum > aicNum_ || res.maxS2SplitNum > aicNum_ + 1U) {
         OP_LOGE(fiaInfo_->opName, "used_core_num: %u, num_of_fd_head: %u, max_s2_split_num: %u, aic_num: %u", 
@@ -490,7 +497,7 @@ void FiaTilingNonQuantMla::CalcBlockDim(uint32_t coreNum)
 {
     auto ascendcPlatform = platform_ascendc::PlatformAscendC(fiaInfo_->platformInfo);
     auto aicNum = coreNum;
-    auto aivNum = 2U * coreNum;  // vec核数量是cube核数量的两倍
+    auto aivNum = aicNum * cvRatio_;
 
     blockDim_ = ascendcPlatform.CalcTschBlockDim(aivNum, aicNum, aivNum); // 暂时与当前代码一致
     OP_LOGI(fiaInfo_->opName, "FIA block dim: %u aiv Num: %u aic Num: %u.", blockDim_, aivNum, aicNum);

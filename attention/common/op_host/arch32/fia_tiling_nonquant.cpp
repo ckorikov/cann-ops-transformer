@@ -393,7 +393,7 @@ void FiaTilingNonQuant::Split()
     SplitParam splitParam {};
     CreateSplitInput(baseInfo, splitParam);
 
-    SplitResult res { aicNum_ };
+    SplitResult res {aicNum_, aivNum_ / aicNum_ };
     SplitCore(aicNum_, baseInfo, splitParam, res);
     if (res.numOfFdHead > aicNum_ || res.usedCoreNum > aicNum_ || res.maxS2SplitNum > aicNum_ + 1) {
         OP_LOGE(fiaInfo_->opName, "used_core_num: %u, num_of_fd_head: %u, max_s2_split_num: %u, aic_num: %u", 
@@ -592,7 +592,7 @@ void FiaTilingNonQuant::CalcBlockDim(uint32_t coreNum)
 {
     auto ascendcPlatform = platform_ascendc::PlatformAscendC(fiaInfo_->platformInfo);
     auto aicNum = coreNum;
-    auto aivNum = 2U * coreNum;  // vec核数量是cube核数量的两倍
+    auto aivNum = aicNum * (aivNum_ / aicNum_);
 
     blockDim_ = ascendcPlatform.CalcTschBlockDim(aivNum, aicNum, aivNum); 
     OP_LOGI(fiaInfo_->opName, "FIA block dim: %u aiv Num: %u aic Num: %u.", blockDim_, aivNum, aicNum);

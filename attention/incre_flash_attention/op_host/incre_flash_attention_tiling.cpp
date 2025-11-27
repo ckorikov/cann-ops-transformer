@@ -134,6 +134,9 @@ ge::graphStatus IFATiling::GetNpuInfo()
     OP_CHECK_IF(aicNum_ == 0 || aivNum_ == 0,
         OPS_REPORT_VECTOR_INNER_ERR(context_->opName, "num of core obtained is 0."), return GRAPH_FAILED);
 
+    cvRatio_ = aivNum_ / aicNum_;
+    OP_LOGI(context_->opName, "FIA aicNum: %u, aivNum:%u, cvRatio:%u.", aicNum_, aivNum_, cvRatio_);
+
     return ge::GRAPH_SUCCESS;
 }
 
@@ -764,6 +767,7 @@ ge::graphStatus IFATiling::ProcessOptionalTensors()
         (ProcessBlockTable() != ge::GRAPH_SUCCESS) ||
         (ProcessKVPaddingSize() != ge::GRAPH_SUCCESS) ||
         (ProcessMlaRope() != ge::GRAPH_SUCCESS) ||
+        (ProcessCvMode() != ge::GRAPH_SUCCESS) ||
         (ProcessGqaKvNz() != ge::GRAPH_SUCCESS)) {
         return ge::GRAPH_FAILED;
     }
@@ -1752,6 +1756,16 @@ ge::graphStatus IFATiling::ProcessSharedPrefixLen()
                              "total kv S Size (with shared prefix)[%u] bigger than antiquant perToken size[%u]", totalS,
                              perTokenSize),
                    return ge::GRAPH_FAILED);
+    }
+
+    return ge::GRAPH_SUCCESS;
+}
+
+ge::graphStatus IFATiling::ProcessCvMode(){
+    // CV1:1 只支持全量化
+    if ((cvRatio_ == 1) && (!quantFlag_ || !ropeFlag_)) {
+        OP_LOGE(context_->opName, "when CV 1:1, the dtype of query should be int8");
+        return ge::GRAPH_FAILED;
     }
 
     return ge::GRAPH_SUCCESS;
@@ -3079,6 +3093,7 @@ ge::graphStatus IFATiling::GenTilingKey() const
     uint8_t inputKvVal = 0U;
     uint8_t outputVal = 0U;
     uint8_t originVal = 0U;
+    uint8_t cvRatioVal = 0U;
     uint8_t splitKvVal = kvSplit_ > 0U ? 1U : 0U;
     uint8_t paVal = pageAttentionFlag_ == true ? 1U * 2U : 0U;
     uint8_t antiquantModeVal = antiquantMode_ == PER_TOKEN_MODE ? 1U * 4U : 0U;
@@ -3117,16 +3132,17 @@ ge::graphStatus IFATiling::GenTilingKey() const
     originVal = inputQVal;
     if (ropeFlag_ && quantFlag_) {
         originVal = outputVal; // 此处应该获取ROPE的类型，需要修改
+        cvRatioVal = (cvRatio_ == 1) ? 1 : 0; // CV1:1场景为1，其他场景为0
     }
 
     uint64_t baseOffset =
         modeVal * IFA_TILINGKEYOFFSET + (static_cast<uint64_t>(perfMode_)) * IFA_PERF_MODE_TILINGKEYOFFSET;
     if (antiquantMode_ == PER_TOKEN_MODE || antiquantMode_ == PER_CHANNEL_MODE){
         context_->tilingKey = baseOffset + IFA_GET_TILINGKEY(layoutVal, inputQVal, inputKvVal, outputVal, originVal,
-            (paVal + splitKvVal + antiquantModeVal), 0, kvLayoutInfo.kvLayoutVal, kvLayoutInfo.amlaMode, balanceMode);
+            (paVal + splitKvVal + antiquantModeVal), 0, kvLayoutInfo.kvLayoutVal, kvLayoutInfo.amlaMode, balanceMode, cvRatioVal);
     } else {
         context_->tilingKey = baseOffset + IFA_GET_TILINGKEY(layoutVal, inputQVal, inputKvVal, outputVal, originVal,
-            (paVal + splitKvVal), antiquantMode_, kvLayoutInfo.kvLayoutVal, kvLayoutInfo.amlaMode, balanceMode);
+            (paVal + splitKvVal), antiquantMode_, kvLayoutInfo.kvLayoutVal, kvLayoutInfo.amlaMode, balanceMode, cvRatioVal);
     }
 
     OP_LOGI(context_->opName, "IFA tilingKey: %lu.", context_->tilingKey);
@@ -3149,7 +3165,7 @@ ge::graphStatus IFATiling::CalcBlockDim()
                 aicNum = aivNum;
             } else if (perfMode_ == IfaPerfMode::CUBE_VIEW_MM || perfMode_ == IfaPerfMode::CUBE_VIEW_MM_FULL_LOAD ||
                 perfMode_ == IfaPerfMode::CUBE_VIEW_MM_MLA || perfMode_ == IfaPerfMode::CUBE_VIEW_MM_DD) {
-                aivNum = 2U * usedCoreNum_;
+                aivNum = (2U * usedCoreNum_ > aivNum_) ? aivNum_ : (2U * usedCoreNum_);
                 aicNum = usedCoreNum_;
             } else {
                 aivNum = Align(usedCoreNum_, 2U); // aivNum必须为偶数达成CV 1:2

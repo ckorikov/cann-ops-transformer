@@ -22,7 +22,6 @@
 #include <algorithm>
 
 namespace optiling {
-constexpr uint32_t VEC_CUBE_RATIO = 2;
 constexpr int64_t FA_TOLERANCE_RATIO = 2;
 constexpr uint32_t FD_TOLERANCE_RATIO = 2U;
 
@@ -108,20 +107,21 @@ struct FlashDecodeResult {
     // 3、每个core处理的第1个归约任务的数据应存放的workspace位置
     std::vector<uint32_t> s2SplitStartIdxOfCore {};
 
-    explicit FlashDecodeResult(uint32_t coreNum) :
+    FlashDecodeResult(uint32_t coreNum, uint32_t vecCubeRatio) :
         bN2IdxOfFdHead(coreNum),
         gS1IdxOfFdHead(coreNum),
         s2SplitNumOfFdHead(coreNum),
         gS1SplitNumOfFdHead(coreNum),
         gS1LastPartSizeOfFdHead(coreNum),
-        gS1IdxEndOfFdHead(coreNum * VEC_CUBE_RATIO),
-        gS1IdxEndOfFdHeadSplit(coreNum * VEC_CUBE_RATIO),
+        gS1IdxEndOfFdHead(coreNum * vecCubeRatio),
+        gS1IdxEndOfFdHeadSplit(coreNum * vecCubeRatio),
         s2SplitStartIdxOfCore(coreNum) {}
 };
 
 // 分核功能模块输出：FA阶段的核间分核信息
 struct SplitResult {
     uint32_t usedCoreNum { 0U };        // 使用的核数量
+    uint32_t vecCubeRatio { 0U };        // vec 与 cube 核数比例
     std::vector<uint32_t> bN2End {};    // 每个核处理数据的BN2结束点
     std::vector<uint32_t> gS1End {};    // 每个核处理数据的GS1结束点
     std::vector<uint32_t> s2End {};     // 每个核处理数据的S2结束点
@@ -129,13 +129,14 @@ struct SplitResult {
     uint32_t numOfFdHead { 0U };        // 归约任务数量
     uint32_t maxS2SplitNum { 0U };      // 单个归约任务最大分核数量
     uint32_t usedVecNumOfFd { 0U };     // 归约过程使用的vector数量
-    FlashDecodeResult fdRes { 0U };     // FD信息
+    FlashDecodeResult fdRes { 0U, 0U };     // FD信息
 
-    explicit SplitResult(uint32_t coreNum) :
+    SplitResult(uint32_t coreNum, uint32_t ratio) :
         bN2End(coreNum),
+        vecCubeRatio(ratio),
         gS1End(coreNum),
         s2End(coreNum),
-        fdRes(coreNum) {};
+        fdRes(coreNum, ratio) {};
 };
 
 

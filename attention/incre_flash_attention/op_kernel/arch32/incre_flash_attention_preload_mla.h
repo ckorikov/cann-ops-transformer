@@ -285,6 +285,7 @@ protected:
 
     uint32_t tmpBlockIdx = 0U;
     uint32_t aiCoreIdx = 0U;
+    uint32_t subBlockNum = 2U; // AICORE 上AIC与AIV的数量默认是1:2
 
     // tilingdata
     uint64_t singleProcessSInnerSize = 0U;
@@ -792,8 +793,9 @@ __aicore__ inline void IncreFlashAttentionAttenPreloadMla<IFAT>::Init(
     const IncreFlashAttentionTilingDataMla *__restrict tiling, __gm__ uint8_t *gmTiling, TPipe *tPipe, bool isPrefix)
 {
     if ASCEND_IS_AIV {
+        subBlockNum = GetSubBlockNum(); // CV1:2场景,返回值为2，其他场景返回值为1
         tmpBlockIdx = GetBlockIdx(); // vec:0-47
-        aiCoreIdx = tmpBlockIdx / 2;
+        aiCoreIdx = tmpBlockIdx / subBlockNum;
     } else {
         tmpBlockIdx = GetBlockIdx(); // cube:0-23
         aiCoreIdx = tmpBlockIdx;
@@ -3130,7 +3132,9 @@ __aicore__ inline void IncreFlashAttentionAttenPreloadMla<IFAT>::CalcParams(uint
             info.mSizeV = (info.mSize + 1) / 2;
         }
         info.mSizeVStart = 0;
-        if (tmpBlockIdx % 2 == 1) {
+        if (subBlockNum == 1) { // CV 1:1
+            info.mSizeV = info.mSize;
+        } else if (tmpBlockIdx % 2 == 1) {
             info.mSizeVStart = info.mSizeV;
             info.mSizeV = info.mSize - info.mSizeV;
         }

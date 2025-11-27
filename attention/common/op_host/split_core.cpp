@@ -590,7 +590,7 @@ void SplitFD(SplitResult &result)
 
     // 基于FA开核数量，计算每个Vector需要计算的FD数据量
     // FD均衡的最小单位为一个归约任务的一个split，所以最多占用totalFDHeadSplit个vector
-    uint32_t maxVectorNum = std::min(totalFDHeadSplit, result.usedCoreNum * VEC_CUBE_RATIO);
+    uint32_t maxVectorNum = std::min(totalFDHeadSplit, result.usedCoreNum * result.vecCubeRatio);
     double loadThrOfVector = static_cast<double>(totalFDLoad) / static_cast<double>(maxVectorNum);  // 初始化vector的负载上限
     int64_t loadOfCurVector = 0;
     uint32_t curCoreIndex = 0;
@@ -637,7 +637,7 @@ void SplitCore(uint32_t coreNum, const BaseInfo &baseInfo, const SplitParam &par
     result.maxCost = INT64_MAX;
     result.usedCoreNum = 1U;
 
-    SplitResult tmpResult { coreNum };
+    SplitResult tmpResult {coreNum, result.vecCubeRatio};
     for (uint32_t i = minCore; i <= maxCore; ++i) {
         CalcSplitPlan(i, result.maxCost, splitContext, tmpResult);
         if (tmpResult.maxCost < result.maxCost) {
