@@ -750,15 +750,15 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
 {
     this->pipe->InitBuffer(this->softmaxSumBuf[0], 256); // [64, 1] SOFTMAXSUMBUF_SIZE:256
     this->pipe->InitBuffer(this->softmaxSumBuf[1], 256); // [64, 1] 1 is second buffer,
-    this->pipe->InitBuffer(this->softmaxSumBuf[2], 256); // [64, 1] 2 is third buffer
+    this->pipe->InitBuffer(this->softmaxSumBuf[2], 256); // 256:缓冲区大小,字节为单位; [64, 1] 2 is third buffer
     this->pipe->InitBuffer(this->maxBrdcst, 1, 2048); // [64, 8] SUMBRDCST_SIZE:2048
     this->pipe->InitBuffer(this->sumBrdcst, 1, 2048); // [64, 8] SUMBRDCST_SIZE:2048
     this->pipe->InitBuffer(this->softmaxMaxBuf[0], 256); // [64, 1] SOFTMAXMAXBUF_SIZE:256
     this->pipe->InitBuffer(this->softmaxMaxBuf[1], 256); // [64, 1] 1 is second buffer
-    this->pipe->InitBuffer(this->softmaxMaxBuf[2], 256); // [64, 1] 2 is third buffer
+    this->pipe->InitBuffer(this->softmaxMaxBuf[2], 256); // 256:缓冲区大小,字节为单位; [64, 1] 2 is third buffer
     this->pipe->InitBuffer(this->softmaxExpBuf[0], 256); // [64, 1] SOFTMAXEXPBUF_SIZE:256
     this->pipe->InitBuffer(this->softmaxExpBuf[1], 256); // [64, 1] 1 is second buffer
-    this->pipe->InitBuffer(this->softmaxExpBuf[2], 256); // [64, 1] 2 is third buffer
+    this->pipe->InitBuffer(this->softmaxExpBuf[2], 256); // 256:缓冲区大小,字节为单位; [64, 1] 2 is third buffer
 }
 
 CHILD_SPEC_TEMPLATE_ANTI
@@ -768,7 +768,7 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
     uint32_t tailSize = initParams.totalOutputSize - constInfo.aivIdx * initParams.singleCoreSize;
     uint32_t singleInitOutputSize = tailSize < initParams.singleCoreSize ? tailSize : initParams.singleCoreSize;
     if constexpr (POST_QUANT) {
-        InitOutput<half>(this->attentionOutInitGm[constInfo.aivIdx * initParams.singleCoreSize / 2], singleInitOutputSize / 2, 0.0);
+        InitOutput<half>(this->attentionOutInitGm[constInfo.aivIdx * initParams.singleCoreSize / 2], singleInitOutputSize / 2, 0.0); // 2:数据大小减半
     } else {
         InitOutput<OUTPUT_T>(this->attentionOutGm[constInfo.aivIdx * initParams.singleCoreSize], singleInitOutputSize, 0.0);
     }
@@ -1945,7 +1945,7 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
     CrossCoreWaitFlag<SYNC_MODE, PIPE_FIX>(16 + VC_MM2RES_EVENT[runInfo.taskIdMod2]); // 16 is Vec num
 
     FixpipeParamsC310<CO2Layout::ROW_MAJOR> fixpipeParams; // L0C->UB
-    fixpipeParams.nSize = (constInfo.dSizeV +7) >> 3 << 3;
+    fixpipeParams.nSize = (constInfo.dSizeV +7) >> 3 << 3; // 7:向上对齐到下一个8的倍数; 3:位移操作
     fixpipeParams.mSize = s1BaseSize; // 有效数据不足16行，只需输出部分行即可;L0C上的bmm1结果矩阵M方向的size大小必须是偶数
     fixpipeParams.srcStride = ((fixpipeParams.mSize + 15) / 16) * 16; // L0C上matmul结果相邻连续数据片断间隔（前面一个数据块的头与后面数据块的头的间隔），单位为16 *sizeof(T) 15 is align
     fixpipeParams.dstStride = ((uint32_t)dVTemplateType + 15) >> 4 << 4; // mmResUb上两行之间的间隔，单位：element。 // 128：根据比对dump文件得到，ND方案(S1 * S2)时脏数据用mask剔除 15 >> 4 << 4 is align
