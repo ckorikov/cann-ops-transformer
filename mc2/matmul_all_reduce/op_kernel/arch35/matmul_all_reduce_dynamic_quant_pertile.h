@@ -115,19 +115,19 @@ public:
                 return;
             }
         }
-        if ((this->procRowsFirstTail_ != 0) && (this->outLoopNum_ >= OUT_LOOP_TWO) &&
-            (outerIdx == this->outLoopNum_ - OUT_LOOP_TWO)) {
-            curRows = this->procRowsFirstTail_;
-            isFirstTail = true;
+        if (this->procRowsFirstTail_ != 0) {
+            isFirstTail = ((this->tailUsedCoreNum_ != 0) && (outerIdx == (this->outLoopNum_ - OUT_LOOP_TWO))) ||
+                          ((this->tailUsedCoreNum_ == 0) && (outerIdx == (this->outLoopNum_ - 1)));
+            curRows = isFirstTail ? this->procRowsFirstTail_ : curRows;
         }
         pipe_->Reset();
         if (isQuant) {
-            InnerInitQuant(outerIdx, tileN, coreNum, totalNandSLen, curRows, isFirstTail, isSecondTail);
+            InnerInitQuant(outerIdx, tileN, coreNum, totalNandSLen, curRows);
             for (uint64_t i = 0; i < this->innerLoopNum_; i++) {
                 ProcessQuant(i, curRows, tileN, totalNandSLen);
             }
         } else {
-            InnerInitDequant(outerIdx, tileN, coreNum, totalNandSLen, curRows, isFirstTail, isSecondTail);
+            InnerInitDequant(outerIdx, tileN, coreNum, totalNandSLen, curRows);
             for (uint64_t i = 0; i < this->innerLoopNum_; i++) {
                 ProcessDequant(i, curRows, tileN, totalNandSLen);
             }
@@ -135,7 +135,7 @@ public:
     }
 
     __aicore__ inline void InnerInitQuant(uint64_t outerIdx, uint32_t tileN, uint32_t coreNum, uint32_t totalNandSLen,
-                                          uint64_t curRows, bool isFirstTail, bool isSecondTail)
+                                          uint64_t curRows)
     {
         uint64_t bufDataCnt = curRows * this->procRowTileCnt_ * TILELEN;
         uint64_t inputBlockSize = curRows * tileN;
@@ -144,7 +144,8 @@ public:
         uint64_t outputScaleSize = Ceil(outputBlockLen, sizeof(float));
         uint64_t inputOffset = this->procRows_ * tileN * outerIdx * coreNum;
         uint64_t outputOffset = this->procRows_ * totalNandSLen * outerIdx * coreNum;
-        if (isSecondTail && (outerIdx > 1) && (this->procRowsFirstTail_ != 0)) {
+        if ((outerIdx > 0) && (outerIdx == (this->outLoopNum_ - 1)) && (this->procRowsFirstTail_ != 0) &&
+            (this->tailUsedCoreNum_ != 0)) {
             inputOffset = this->procRows_ * tileN * (outerIdx - 1) * coreNum;
             inputOffset += this->procRowsFirstTail_ * tileN * coreNum;
             outputOffset = this->procRows_ * totalNandSLen * (outerIdx - 1) * coreNum;
@@ -169,7 +170,7 @@ public:
     }
 
     __aicore__ inline void InnerInitDequant(uint64_t outerIdx, uint32_t tileN, uint32_t coreNum, uint32_t totalNandSLen,
-                                          uint64_t curRows, bool isFirstTail, bool isSecondTail)
+                                            uint64_t curRows)
     {
         uint64_t bufDataCnt = curRows * this->procRowTileCnt_ * TILELEN;
         uint64_t inputBlockLen = curRows * totalNandSLen;
@@ -178,7 +179,8 @@ public:
         uint64_t scaleBlockSize = Ceil(inputBlockLen, sizeof(float));
         uint64_t inputOffset = this->procRows_ * totalNandSLen * outerIdx * coreNum;
         uint64_t outputOffset = this->procRows_ * tileN * outerIdx * coreNum;
-        if (isSecondTail && (outerIdx > 1) && (this->procRowsFirstTail_ != 0)) {
+        if ((outerIdx > 0) && (outerIdx == (this->outLoopNum_ - 1)) && (this->procRowsFirstTail_ != 0) &&
+            (this->tailUsedCoreNum_ != 0)) {
             inputOffset = this->procRows_ * totalNandSLen * (outerIdx - 1) * coreNum;
             inputOffset += this->procRowsFirstTail_ * totalNandSLen * coreNum;
             outputOffset = this->procRows_ * tileN * (outerIdx - 1) * coreNum;

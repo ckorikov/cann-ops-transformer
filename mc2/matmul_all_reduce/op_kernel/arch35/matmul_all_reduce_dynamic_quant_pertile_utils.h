@@ -66,7 +66,7 @@ __aicore__ inline void DynamicDequant(uint32_t curScaleCnt, uint32_t padCalCnt, 
         Div(tempOut, tempOut, tempScale, padCalCnt);
         Cast(outLocal, tempOut, RoundMode::CAST_RINT, padCalCnt);
     } else {
-        Div(outLocal, tempOut.template ReinterpretCast<U>(), tempScale.template ReinterpretCast<U>(), padCalCnt);
+        Div(outLocal.template ReinterpretCast<float>(), tempOut, tempScale, padCalCnt);
     }
 }
 

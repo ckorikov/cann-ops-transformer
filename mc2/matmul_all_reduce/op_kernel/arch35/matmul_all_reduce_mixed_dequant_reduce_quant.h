@@ -18,13 +18,13 @@
 
 #include "kernel_operator.h"
 #include "matmul_all_reduce_dynamic_quant_pertile_utils.h"
+#include "../common.h"
 
 namespace MatmulAllReduceMixedDequantReduceQuantImpl {
 using namespace AscendC;
 
 constexpr uint32_t DOUBLE_BUFFER = 2;
 constexpr uint32_t OUT_LOOP_TWO = 2;
-constexpr uint32_t PROCROWS_THRESHOLD = 4;
 
 template <class T>
 class MatmulAllReduceMixedDequantReduceQuant {
@@ -68,11 +68,6 @@ public:
         pipe_ = tPipe;
         uint64_t procRows = tileMPerRank / coreNum;
         this->tailUsedCoreNum_ = tileMPerRank - procRows * coreNum;
-        if (procRows < PROCROWS_THRESHOLD) {
-            // 72核场景下procRows为2或者3时会出现精度问题，等待定位原因
-            procRows = 1;
-            this->tailUsedCoreNum_ = tileMPerRank % coreNum;
-        }
         this->procRows_ = (procRows == 0) ? 1 : procRows;
         // m超长场景处理
         if (maxProcRows < this->procRows_) {
@@ -118,21 +113,22 @@ public:
                 return;
             }
         }
-        if ((this->procRowsFirstTail_ != 0) && (this->outLoopNum_ >= OUT_LOOP_TWO) &&
-            (outerIdx == this->outLoopNum_ - OUT_LOOP_TWO)) {
-            curRows = this->procRowsFirstTail_;
-            isFirstTail = true;
+        if (this->procRowsFirstTail_ != 0) {
+            isFirstTail = ((this->tailUsedCoreNum_ != 0) && (outerIdx == (this->outLoopNum_ - OUT_LOOP_TWO))) ||
+                          ((this->tailUsedCoreNum_ == 0) && (outerIdx == (this->outLoopNum_ - 1)));
+            curRows = isFirstTail ? this->procRowsFirstTail_ : curRows;
         }
         pipe_->Reset();
         uint64_t inputBlockLen = curRows * totalNandSLen;
         uint64_t inputBlockSize = totalNandSLen / sizeof(T);
         uint64_t scaleBlockSize = Ceil(totalNandSLen, sizeof(float));
         uint64_t inputOffset = this->procRows_ * totalNandSLen * outerIdx * this->coreNum_;
-        uint64_t inputGmOffset = inputBlockLen * GetBlockIdx() + inputOffset;
-        if (isSecondTail && (outerIdx > 1) && (this->procRowsFirstTail_ != 0)) {
+        if ((outerIdx > 0) && (outerIdx == (this->outLoopNum_ - 1)) && (this->procRowsFirstTail_ != 0) &&
+            (this->tailUsedCoreNum_ != 0)) {
             inputOffset = this->procRows_ * totalNandSLen * (outerIdx - 1) * this->coreNum_;
             inputOffset += this->procRowsFirstTail_ * totalNandSLen * this->coreNum_;
         }
+        uint64_t inputGmOffset = inputBlockLen * GetBlockIdx() + inputOffset;
         InitLocalBuffer(curRows);
         InitOutputGM(inputGmOffset, tileN, inputBlockSize, scaleBlockSize);
         for (uint64_t i = 0; i < this->innerLoopNum_; i++) {
@@ -203,6 +199,10 @@ public:
         DataCopyPadExtParams<T> padParamsFp8 = {false, 0, 0, *(reinterpret_cast<T *>(uint8_t(0)))};
         LocalTensor<T> curTiles = inTilesQ_.AllocTensor<T>();
         LocalTensor<float> curScales = inScalesQ_.AllocTensor<float>();
+        if (curRowDataCnt != (curRowScaleCnt * TILELEN)) {
+            Duplicate(curTiles, *(reinterpret_cast<T *>(uint8_t(0))), padCalCnt);
+            SyncFunc<AscendC::HardEvent::V_MTE2>();
+        }
         DataCopyPad<T, PaddingMode::Normal>(curTiles, dequantInputGM_[innerIdx * this->procRowTileCnt_ * TILELEN],
                                             gToLNCopyParams, padParamsFp8);
         DataCopyPad<float, PaddingMode::Compact>(curScales, scaleInputGM_[innerIdx * this->procRowTileCnt_],
