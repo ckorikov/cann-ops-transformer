@@ -17,25 +17,31 @@
 
 #ifndef BUILD_OPEN_PROJECT
 
+#include <set>
 #include "runtime/rt_model.h"
 #include "proto/task.pb.h"
 #include "exe_graph/runtime/exe_res_generation_context.h"
 #include "graph/utils/args_format_desc_utils.h"
+#include "platform/platform_info.h"
 
 namespace ops {
-
+const std::set<std::string> PLATFORM_A5 = {"Ascend910_95"};
+const std::string COMM_ALG_MTE = "mte";
+const std::string COMM_ALG_CCU = "ccu";
 class Mc2A5GenTaskUtils {
 public:
   static void DeleteTaskIdxByType(
     const gert::ExeResGenerationContext *context, const std::vector<domi::TaskDef> &tasks, rtModelTaskType_t type);
-  static ge::Status CreateCcuFusionTask(const gert::ExeResGenerationContext *context, domi::TaskDef &notify_task,
+  static ge::Status CreateCcuFusionTask(const gert::ExeResGenerationContext *context, domi::TaskDef &ccu_fusion_task,
                                         rtModelTaskType_t type, bool is_attached_stream);
   static ge::Status InsertContextForCcuFusion(const gert::ExeResGenerationContext *context,
-    domi::TaskDef &fusion_task, std::vector<ge::ArgDesc> args, bool isAllKernel);
+    domi::TaskDef &task_def, std::vector<ge::ArgDesc> args, bool isAllKernel);
   static ge::Status Mc2GenTaskCallBack910A5(const gert::ExeResGenerationContext *context,
                                             std::vector<domi::TaskDef> &tasks);
   static ge::Status GetArgsFormat(const gert::ExeResGenerationContext *context, domi::TaskDef &aicoreTask,
     std::vector<ge::ArgDesc> &argDescs);
+  static bool IsTargetPlatform(const char *nodeName, const std::set<std::string> &targetPlatform);
+  static const std::string GetCommAlg(const gert::ExeResGenerationContext *context, const size_t commAlgIdx);
 };
 }
 #endif

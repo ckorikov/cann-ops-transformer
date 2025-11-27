@@ -272,6 +272,45 @@ ge::Status Mc2A5GenTaskUtils::GetArgsFormat(const gert::ExeResGenerationContext 
   return ge::GRAPH_SUCCESS;
 }
 
+bool Mc2A5GenTaskUtils::IsTargetPlatform(const char *nodeName, const std::set<std::string> &targetPlatform)
+{
+    fe::PlatFormInfos platform_info;
+    fe::OptionalInfos optional_info;
+    if (fe::PlatformInfoManager::Instance().GetPlatformInfoWithOutSocVersion(platform_info, optional_info) !=
+        ge::GRAPH_SUCCESS) {
+        OPS_LOG_E(nodeName, "Cannot get platform info!");
+        return false;
+    }
+    std::string short_soc_version;
+    if (!platform_info.GetPlatformRes("version", "Short_SoC_version", short_soc_version) || short_soc_version.empty()) {
+        OPS_LOG_E(nodeName, "Cannot get short soc version!");
+        return false;
+    }
+    OPS_LOG_D(nodeName, "Get soc version: %s", short_soc_version.c_str());
+    return targetPlatform.count(short_soc_version) > 0;
+}
+
+const std::string Mc2A5GenTaskUtils::GetCommAlg(const gert::ExeResGenerationContext *context, const size_t commAlgIdx)
+{
+    auto *attrs = context->GetAttrs();
+    if (attrs == nullptr) {
+        OPS_LOG_E(context->GetNodeName(), "Attrs pointer is null.");
+        return "";
+    }
+    const char *commAlgPtr = attrs->GetStr(commAlgIdx);
+    if (commAlgPtr == nullptr) {
+        OPS_LOG_E(context->GetNodeName(), "Comm alg pointer is null.");
+        return "";
+    }
+    const std::string commAlg = commAlgPtr;
+    if (commAlg.empty()) {
+        OPS_LOG_W(context->GetNodeName(), "Comm alg is empty, will use mte alg.");
+        return "mte";
+    }
+    OPS_LOG_D(context->GetNodeName(), "Comm alg is %s.", commAlg.c_str());
+    return commAlg;
+}
+
 } // namespace ops
 
 #endif

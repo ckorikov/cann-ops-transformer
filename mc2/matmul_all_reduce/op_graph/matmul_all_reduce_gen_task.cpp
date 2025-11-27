@@ -27,6 +27,7 @@
 #else
 #include "matmul_all_reduce_gen_task_utils.h" //in canndev
 #include "mc2_gen_task_utils.h"
+#include "mc2_a5_gen_task_utils.h"
 #include "register/op_ct_impl_registry.h"
 #endif
 
@@ -51,6 +52,9 @@ IMPL_OP(MatmulAllReduce).CalcOpParam(MatmulAllReduceCalcParamFunc).GenerateTask(
 #else // mc2 gen task utils
 ge::Status MatmulAllReduceCalcParamFunc(gert::ExeResGenerationContext *context)
 {
+    if (Mc2A5GenTaskUtils::IsTargetPlatform(context->GetNodeName(), PLATFORM_A5)) {
+        return Mc2GenTaskUtils::CommonKFCMc2CalcParamFunc(context, "ccu server", "ccu_stream");
+    }
     const ge::AscendString name = "aicpu kfc server";
     const ge::AscendString reuseKey = "kfc_stream";
     return Mc2GenTaskUtils::CommonKFCMc2CalcParamFunc(context, name, reuseKey);
@@ -59,6 +63,9 @@ ge::Status MatmulAllReduceCalcParamFunc(gert::ExeResGenerationContext *context)
 ge::Status MatmulAllReduceGenTaskFunc(const gert::ExeResGenerationContext *context,
                                       std::vector<std::vector<uint8_t>> &tasks)
 {
+    if (Mc2A5GenTaskUtils::IsTargetPlatform(context->GetNodeName(), PLATFORM_A5)) {
+        return Mc2GenTaskUtils::CommonKFCMc2GenTask(context, tasks, Mc2A5GenTaskUtils::Mc2GenTaskCallBack910A5);
+    }
     return Mc2GenTaskUtils::CommonKFCMc2GenTask(context, tasks,
                                                 MatmulAllReduceGenTaskUtils::MatmulAllReduceGenTaskCallback);
 }
