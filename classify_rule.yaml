@@ -8,50 +8,747 @@
 # ======================================================================================================================
 
 attention:
-  incre_flash_attention:
-    module: True
-    src:
-      - attention/incre_flash_attention
-    options:
-      - incre_flash_attention
+  # flash_attention_score:
+  #   module: True
+  #   src:
+  #     - attention/flash_attention_score
+  #   exclude:
+  #     - attention/flash_attention_score/docs
+  #     - attention/flash_attention_score/README.md
+  #   options:
+  #     - flash_attention_score
 
-  
-  prompt_flash_attention:
+  flash_attention_score_grad:
     module: True
     src:
-      - attention/prompt_flash_attention
+      - attention/flash_attention_score_grad
+    exclude:
+      - attention/flash_attention_score_grad/docs
+      - attention/flash_attention_score_grad/README.md
     options:
-      # - prompt_flash_attention
-      # - fused_infer_attention_score
+      - flash_attention_score_grad
 
   fused_infer_attention_score:
     module: True
     src:
       - attention/fused_infer_attention_score
+    exclude:
+      - attention/fused_infer_attention_score/docs
+      - attention/fused_infer_attention_score/README.md
     options:
       - incre_flash_attention
       # - fused_infer_attention_score
-      # - prompt_flash_attention
+      - prompt_flash_attention
+
+  incre_flash_attention:
+    module: True
+    src:
+      - attention/incre_flash_attention
+    exclude:
+      - attention/incre_flash_attention/docs
+      - attention/incre_flash_attention/README.md
+    options:
+      - incre_flash_attention
+      # - fused_infer_attention_score
+
+  nsa_compress:
+    module: True
+    src:
+      - attention/nsa_compress
+    exclude:
+      - attention/nsa_compress/docs
+      - attention/nsa_compress/README.md
+    options:
+      - nsa_compress
+
+  nsa_compress_attention:
+    module: True
+    src:
+      - attention/nsa_compress_attention
+    exclude:
+      - attention/nsa_compress_attention/docs
+      - attention/nsa_compress_attention/README.md
+    options:
+      - nsa_compress_attention
+
+  nsa_compress_attention_infer:
+    module: True
+    src:
+      - attention/nsa_compress_attention_infer
+    exclude:
+      - attention/nsa_compress_attention_infer/docs
+      - attention/nsa_compress_attention_infer/README.md
+    options:
+      - nsa_compress_attention_infer
+
+  nsa_compress_grad:
+    module: True
+    src:
+      - attention/nsa_compress_grad
+    exclude:
+      - attention/nsa_compress_grad/docs
+      - attention/nsa_compress_grad/README.md
+    options:
+      - nsa_compress_grad
 
   nsa_compress_with_cache:
     module: True
     src:
       - attention/nsa_compress_with_cache
+    exclude:
+      - attention/nsa_compress_with_cache/docs
+      - attention/nsa_compress_with_cache/README.md
     options:
       - nsa_compress_with_cache
+
+  nsa_selected_attention:
+    module: True
+    src:
+      - attention/nsa_selected_attention
+    exclude:
+      - attention/nsa_selected_attention/docs
+      - attention/nsa_selected_attention/README.md
+    options:
+      - nsa_selected_attention
+
+  nsa_selected_attention_grad:
+    module: True
+    src:
+      - attention/nsa_selected_attention_grad
+    exclude:
+      - attention/nsa_selected_attention_grad/docs
+      - attention/nsa_selected_attention_grad/README.md
+    options:
+      - nsa_selected_attention_grad
+
+  nsa_selected_attention_infer:
+    module: True
+    src:
+      - attention/nsa_selected_attention_infer
+    exclude:
+      - attention/nsa_selected_attention_infer/docs
+      - attention/nsa_selected_attention_infer/README.md
+    options:
+      - nsa_selected_attention_infer
+
+  prompt_flash_attention:
+    module: True
+    src:
+      - attention/prompt_flash_attention
+    exclude:
+      - attention/prompt_flash_attention/docs
+      - attention/prompt_flash_attention/README.md
+    options:
+      - prompt_flash_attention
+      # - fused_infer_attention_score
 
 gmm:
   grouped_matmul:
     module: True
     src:
       - gmm/grouped_matmul
+    exclude:
+      - gmm/grouped_matmul/docs
+      - gmm/grouped_matmul/README.md
     options:
       - grouped_matmul
+
+  grouped_matmul_swiglu_quant:
+    module: True
+    src:
+      - gmm/grouped_matmul_swiglu_quant
+    exclude:
+      - gmm/grouped_matmul_swiglu_quant/docs
+      - gmm/grouped_matmul_swiglu_quant/README.md
+    options:
+      - grouped_matmul_swiglu_quant
+
+  grouped_matmul_swiglu_quant_v2:
+    module: True
+    src:
+      - gmm/grouped_matmul_swiglu_quant_v2
+    exclude:
+      - gmm/grouped_matmul_swiglu_quant_v2/docs
+      - gmm/grouped_matmul_swiglu_quant_v2/README.md
+    options:
+      - grouped_matmul_swiglu_quant_v2
+
+  grouped_matmul_add:
+    module: True
+    src:
+      - gmm/grouped_matmul_add
+    exclude:
+      - gmm/grouped_matmul_add/docs
+      - gmm/grouped_matmul_add/README.md
+    options:
+      - grouped_matmul_add
+
+  grouped_matmul_finalize_routing:
+    module: True
+    src:
+      - gmm/grouped_matmul_finalize_routing
+    exclude:
+      - gmm/grouped_matmul_finalize_routing/docs
+      - gmm/grouped_matmul_finalize_routing/README.md
+    options:
+      - grouped_matmul_finalize_routing
 
 ffn:
   ffn:
     module: True
     src:
       - ffn/ffn
+    exclude:
+      - ffn/ffn/docs
+      - ffn/ffn/README.md
     options:
       - ffn
+
+  swin_attention_ffn:
+    module: True
+    src:
+      - ffn/swin_attention_ffn
+    exclude:
+      - ffn/swin_attention_ffn/docs
+      - ffn/swin_attention_ffn/README.md
+    options:
+      - swin_attention_ffn
+
+  swin_transformer_ln_qkv:
+    module: True
+    src:
+      - ffn/swin_transformer_ln_qkv
+    exclude:
+      - ffn/swin_transformer_ln_qkv/docs
+      - ffn/swin_transformer_ln_qkv/README.md
+    options:
+      - swin_transformer_ln_qkv
+
+moe:
+  moe_finalize_routing_v2:
+    module: True
+    src:
+      - moe/moe_finalize_routing_v2
+    exclude:
+      - moe/moe_finalize_routing_v2/docs
+      - moe/moe_finalize_routing_v2/README.md
+    options:
+      - moe_finalize_routing_v2
+      - moe_token_unpermute
+  
+  moe_compute_expert_tokens:
+    module: True
+    src:
+      - moe/moe_compute_expert_tokens
+    exclude:
+      - moe/moe_compute_expert_tokens/docs
+      - moe/moe_compute_expert_tokens/README.md
+    options:
+      - moe_compute_expert_tokens
+
+  moe_finalize_routing:
+    module: True
+    src:
+      - moe/moe_finalize_routing
+    exclude:
+      - moe/moe_finalize_routing/docs
+      - moe/moe_finalize_routing/README.md
+    options:
+      - moe_finalize_routing
+
+  moe_finalize_routing_v2_grad:
+    module: True
+    src:
+      - moe/moe_finalize_routing_v2_grad
+    exclude:
+      - moe/moe_finalize_routing_v2_grad/docs
+      - moe/moe_finalize_routing_v2_grad/README.md
+    options:
+      - moe_finalize_routing_v2_grad
+
+  moe_fused_topk:
+    module: True
+    src:
+      - moe/moe_fused_topk
+    exclude:
+      - moe/moe_fused_topk/docs
+      - moe/moe_fused_topk/README.md
+    options:
+      - moe_fused_topk
+
+  moe_gating_top_k:
+    module: True
+    src:
+      - moe/moe_gating_top_k
+    exclude:
+      - moe/moe_gating_top_k/docs
+      - moe/moe_gating_top_k/README.md
+    options:
+      - moe_gating_top_k
+
+  moe_gating_top_k_softmax:
+    module: True
+    src:
+      - moe/moe_gating_top_k_softmax
+    exclude:
+      - moe/moe_gating_top_k_softmax/docs
+      - moe/moe_gating_top_k_softmax/README.md
+    options:
+      - moe_gating_top_k_softmax
+
+  moe_gating_top_k_softmax_v2:
+    module: True
+    src:
+      - moe/moe_gating_top_k_softmax_v2
+    exclude:
+      - moe/moe_gating_top_k_softmax_v2/docs
+      - moe/moe_gating_top_k_softmax_v2/README.md
+    options:
+      - moe_gating_top_k_softmax_v2
+
+  moe_init_routing:
+    module: True
+    src:
+      - moe/moe_init_routing
+    exclude:
+      - moe/moe_init_routing/docs
+      - moe/moe_init_routing/README.md
+    options:
+      - moe_init_routing
+
+  moe_init_routing_quant:
+    module: True
+    src:
+      - moe/moe_init_routing_quant
+    exclude:
+      - moe/moe_init_routing_quant/docs
+      - moe/moe_init_routing_quant/README.md
+    options:
+      - moe_init_routing_quant
+
+  moe_init_routing_quant_v2:
+    module: True
+    src:
+      - moe/moe_init_routing_quant_v2
+    exclude:
+      - moe/moe_init_routing_quant_v2/docs
+      - moe/moe_init_routing_quant_v2/README.md
+    options:
+      - moe_init_routing_quant_v2
+
+  moe_init_routing_v2:
+    module: True
+    src:
+      - moe/moe_init_routing_v2
+    exclude:
+      - moe/moe_init_routing_v2/docs
+      - moe/moe_init_routing_v2/README.md
+    options:
+      - moe_init_routing_v2
+
+  moe_init_routing_v2_grad:
+    module: True
+    src:
+      - moe/moe_init_routing_v2_grad
+    exclude:
+      - moe/moe_init_routing_v2_grad/docs
+      - moe/moe_init_routing_v2_grad/README.md
+    options:
+      - moe_init_routing_v2_grad
+      - moe_token_permute_grad
+
+  moe_init_routing_v3:
+    module: True
+    src:
+      - moe/moe_init_routing_v3
+    exclude:
+      - moe/moe_init_routing_v3/docs
+      - moe/moe_init_routing_v3/README.md
+    options:
+      - moe_init_routing_v3
+
+  moe_re_routing:
+    module: True
+    src:
+      - moe/moe_re_routing
+    exclude:
+      - moe/moe_re_routing/docs
+      - moe/moe_re_routing/README.md
+    options:
+      - moe_re_routing
+
+  moe_token_permute:
+    module: True
+    src:
+      - moe/moe_token_permute
+    exclude:
+      - moe/moe_token_permute/docs
+      - moe/moe_token_permute/README.md
+    options:
+      - moe_token_permute
+
+  moe_token_permute_grad:
+    module: True
+    src:
+      - moe/moe_token_permute_grad
+    exclude:
+      - moe/moe_token_permute_grad/docs
+      - moe/moe_token_permute_grad/README.md
+    options:
+      - moe_token_permute_grad
+
+  moe_token_permute_with_ep:
+    module: True
+    src:
+      - moe/moe_token_permute_with_ep
+    exclude:
+      - moe/moe_token_permute_with_ep/docs
+      - moe/moe_token_permute_with_ep/README.md
+    options:
+      - moe_token_permute_with_ep
+
+  moe_token_permute_with_ep_grad:
+    module: True
+    src:
+      - moe/moe_token_permute_with_ep_grad
+    exclude:
+      - moe/moe_token_permute_with_ep_grad/docs
+      - moe/moe_token_permute_with_ep_grad/README.md
+    options:
+      - moe_token_permute_with_ep_grad
+
+  moe_token_permute_with_routing_map:
+    module: True
+    src:
+      - moe/moe_token_permute_with_routing_map
+    exclude:
+      - moe/moe_token_permute_with_routing_map/docs
+      - moe/moe_token_permute_with_routing_map/README.md
+    options:
+      - moe_token_permute_with_routing_map
+
+  moe_token_permute_with_routing_map_grad:
+    module: True
+    src:
+      - moe/moe_token_permute_with_routing_map_grad
+    exclude:
+      - moe/moe_token_permute_with_routing_map_grad/docs
+      - moe/moe_token_permute_with_routing_map_grad/README.md
+    options:
+      - moe_token_permute_with_routing_map_grad
+      - moe_token_unpermute
+
+  moe_token_unpermute:
+    module: True
+    src:
+      - moe/moe_token_unpermute
+    exclude:
+      - moe/moe_token_unpermute/docs
+      - moe/moe_token_unpermute/README.md
+    options:
+      - moe_token_unpermute
+      - moe_token_permute_with_routing_map_grad
+
+  moe_token_unpermute_grad:
+    module: True
+    src:
+      - moe/moe_token_unpermute_grad
+    exclude:
+      - moe/moe_token_unpermute_grad/docs
+      - moe/moe_token_unpermute_grad/README.md
+    options:
+      - moe_token_unpermute_grad
+
+  moe_token_unpermute_with_ep:
+    module: True
+    src:
+      - moe/moe_token_unpermute_with_ep
+    exclude:
+      - moe/moe_token_unpermute_with_ep/docs
+      - moe/moe_token_unpermute_with_ep/README.md
+    options:
+      - moe_token_unpermute_with_ep
+
+  moe_token_unpermute_with_ep_grad:
+    module: True
+    src:
+      - moe/moe_token_unpermute_with_ep_grad
+    exclude:
+      - moe/moe_token_unpermute_with_ep_grad/docs
+      - moe/moe_token_unpermute_with_ep_grad/README.md
+    options:
+      - moe_token_unpermute_with_ep_grad
+
+  moe_token_unpermute_with_routing_map:
+    module: True
+    src:
+      - moe/moe_token_unpermute_with_routing_map
+    exclude:
+      - moe/moe_token_unpermute_with_routing_map/docs
+      - moe/moe_token_unpermute_with_routing_map/README.md
+    options:
+      - moe_token_unpermute_with_routing_map
+
+  moe_token_unpermute_with_routing_map_grad:
+    module: True
+    src:
+      - moe/moe_token_unpermute_with_routing_map_grad
+    exclude:
+      - moe/moe_token_unpermute_with_routing_map_grad/docs
+      - moe/moe_token_unpermute_with_routing_map_grad/README.md
+    options:
+      - moe_token_unpermute_with_routing_map_grad
+
+posembedding:
+  apply_rotary_pos_emb:
+    module: True
+    src:
+      - posembedding/apply_rotary_pos_emb
+    exclude:
+      - posembedding/apply_rotary_pos_emb/docs
+      - posembedding/apply_rotary_pos_emb/README.md
+    options:
+      - apply_rotary_pos_emb
+
+  dequant_rope_quant_kvcache:
+    module: True
+    src:
+      - posembedding/dequant_rope_quant_kvcache
+    exclude:
+      - posembedding/dequant_rope_quant_kvcache/docs
+      - posembedding/dequant_rope_quant_kvcache/README.md
+    options:
+      - dequant_rope_quant_kvcache
+
+  interleave_rope:
+    module: True
+    src:
+      - posembedding/interleave_rope
+    exclude:
+      - posembedding/interleave_rope/docs
+      - posembedding/interleave_rope/README.md
+    options:
+      - interleave_rope
+      - rotary_position_embedding
+
+  rope_quant_kvcache:
+    module: True
+    src:
+      - posembedding/rope_quant_kvcache
+    exclude:
+      - posembedding/rope_quant_kvcache/docs
+      - posembedding/rope_quant_kvcache/README.md
+    options:
+      - rope_quant_kvcache
+
+  rope_with_sin_cos_cache:
+    module: True
+    src:
+      - posembedding/rope_with_sin_cos_cache
+    exclude:
+      - posembedding/rope_with_sin_cos_cache/docs
+      - posembedding/rope_with_sin_cos_cache/README.md
+    options:
+      - rope_with_sin_cos_cache
+
+  rotary_position_embedding:
+    module: True
+    src:
+      - posembedding/rotary_position_embedding
+    exclude:
+      - posembedding/rotary_position_embedding/docs
+      - posembedding/rotary_position_embedding/README.md
+    options:
+      - rotary_position_embedding
+
+  rotary_position_embedding_grad:
+    module: True
+    src:
+      - posembedding/rotary_position_embedding_grad
+    exclude:
+      - posembedding/rotary_position_embedding_grad/docs
+      - posembedding/rotary_position_embedding_grad/README.md
+    options:
+      - rotary_position_embedding_grad
+  
+mc2:
+  all_gather_matmul:
+    module: True
+    src:
+      - mc2/all_gather_matmul
+    exclude:
+      - mc2/all_gather_matmul/docs
+      - mc2/all_gather_matmul/README.md
+    # options:
+    #   - all_gather_matmul
+
+  allto_all_all_gather_batch_mat_mul:
+    module: True
+    src:
+      - mc2/allto_all_all_gather_batch_mat_mul
+    exclude:
+      - mc2/allto_all_all_gather_batch_mat_mul/docs
+      - mc2/allto_all_all_gather_batch_mat_mul/README.md
+    # options:
+    #   - allto_all_all_gather_batch_mat_mul
+
+  allto_allv_grouped_mat_mul:
+    module: True
+    src:
+      - mc2/allto_allv_grouped_mat_mul
+    exclude:
+      - mc2/allto_allv_grouped_mat_mul/docs
+      - mc2/allto_allv_grouped_mat_mul/README.md
+    # options:
+    #   - allto_allv_grouped_mat_mul
+
+  batch_mat_mul_reduce_scatter_allto_all:
+    module: True
+    src:
+      - mc2/batch_mat_mul_reduce_scatter_allto_all
+    exclude:
+      - mc2/batch_mat_mul_reduce_scatter_allto_all/docs
+      - mc2/batch_mat_mul_reduce_scatter_allto_all/README.md
+    # options:
+    #   - batch_mat_mul_reduce_scatter_allto_all
+
+  distribute_barrier:
+    module: True
+    src:
+      - mc2/distribute_barrier
+    exclude:
+      - mc2/distribute_barrier/docs
+      - mc2/distribute_barrier/README.md
+    # options:
+    #   - distribute_barrier
+
+  grouped_mat_mul_all_reduce:
+    module: True
+    src:
+      - mc2/grouped_mat_mul_all_reduce
+    exclude:
+      - mc2/grouped_mat_mul_all_reduce/docs
+      - mc2/grouped_mat_mul_all_reduce/README.md
+    # options:
+    #   - grouped_mat_mul_all_reduce
+
+  grouped_mat_mul_allto_allv:
+    module: True
+    src:
+      - mc2/grouped_mat_mul_allto_allv
+    exclude:
+      - mc2/grouped_mat_mul_allto_allv/docs
+      - mc2/grouped_mat_mul_allto_allv/README.md
+    # options:
+    #   - grouped_mat_mul_allto_allv
+
+  inplace_matmul_all_reduce_add_rms_norm:
+    module: True
+    src:
+      - mc2/inplace_matmul_all_reduce_add_rms_norm
+    exclude:
+      - mc2/inplace_matmul_all_reduce_add_rms_norm/docs
+      - mc2/inplace_matmul_all_reduce_add_rms_norm/README.md
+    # options:
+    #   - inplace_matmul_all_reduce_add_rms_norm
+    #   - matmul_all_reduce_add_rms_norm
+
+  matmul_all_reduce:
+    module: True
+    src:
+      - mc2/matmul_all_reduce
+    exclude:
+      - mc2/matmul_all_reduce/docs
+      - mc2/matmul_all_reduce/README.md
+    # options:
+    #   - matmul_all_reduce
+
+  matmul_all_reduce_add_rms_norm:
+    module: True
+    src:
+      - mc2/matmul_all_reduce_add_rms_norm
+    exclude:
+      - mc2/matmul_all_reduce_add_rms_norm/docs
+      - mc2/matmul_all_reduce_add_rms_norm/README.md
+    # options:
+    #   - matmul_all_reduce_add_rms_norm
+
+  matmul_reduce_scatter:
+    module: True
+    src:
+      - mc2/matmul_reduce_scatter
+    exclude:
+      - mc2/matmul_reduce_scatter/docs
+      - mc2/matmul_reduce_scatter/README.md
+    # options:
+    #   - matmul_reduce_scatter
+
+  moe_distribute_combine:
+    module: True
+    src:
+      - mc2/moe_distribute_combine
+    exclude:
+      - mc2/moe_distribute_combine/docs
+      - mc2/moe_distribute_combine/README.md
+    # options:
+    #   - moe_distribute_combine
+
+  moe_distribute_combine_add_rms_norm:
+    module: True
+    src:
+      - mc2/moe_distribute_combine_add_rms_norm
+    exclude:
+      - mc2/moe_distribute_combine_add_rms_norm/docs
+      - mc2/moe_distribute_combine_add_rms_norm/README.md
+    # options:
+    #   - moe_distribute_combine_add_rms_norm
+
+  moe_distribute_combine_v2:
+    module: True
+    src:
+      - mc2/moe_distribute_combine_v2
+    exclude:
+      - mc2/moe_distribute_combine_v2/docs
+      - mc2/moe_distribute_combine_v2/README.md
+    # options:
+    #   - moe_distribute_combine_v2
+
+  moe_distribute_dispatch:
+    module: True
+    src:
+      - mc2/moe_distribute_dispatch
+    exclude:
+      - mc2/moe_distribute_dispatch/docs
+      - mc2/moe_distribute_dispatch/README.md
+    # options:
+    #   - moe_distribute_dispatch
+
+  moe_distribute_dispatch_v2:
+    module: True
+    src:
+      - mc2/moe_distribute_dispatch_v2
+    exclude:
+      - mc2/moe_distribute_dispatch_v2/docs
+      - mc2/moe_distribute_dispatch_v2/README.md
+    # options:
+    #   - moe_distribute_dispatch_v2
+
+  moe_update_expert:
+    module: True
+    src:
+      - mc2/moe_update_expert
+    exclude:
+      - mc2/moe_update_expert/docs
+      - mc2/moe_update_expert/README.md
+    # options:
+    #   - moe_update_expert
+
+  quant_reduce_scatter:
+    module: True
+    src:
+      - mc2/quant_reduce_scatter
+    exclude:
+      - mc2/quant_reduce_scatter/docs
+      - mc2/quant_reduce_scatter/README.md
+    # options:
+    #   - quant_reduce_scatter
