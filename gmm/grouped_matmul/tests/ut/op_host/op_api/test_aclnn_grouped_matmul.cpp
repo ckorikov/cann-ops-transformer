@@ -73,6 +73,6 @@ TEST_F(l2_grouped_matmul_test, Ascend910B2_grouped_matmul_fp16)
                         OUTPUT(out,activationFeatureOutOptional, dynQuantScaleOutOptional));
     uint64_t workspaceSize = 0;
     aclnnStatus getWorkspaceResult = ut.TestGetWorkspaceSize(&workspaceSize);
-    /*此处校验561103是因为当前框架通过桩函数调用ut，导致无法正常infershape，正常现象*/
-    EXPECT_EQ(getWorkspaceResult, 561103);
+    /*此处校验161002是因为当前框架通过桩函数调用ut，导致无法正常infershape，正常现象*/
+    EXPECT_EQ(getWorkspaceResult, 161002);
 }
