@@ -551,7 +551,7 @@ __aicore__ inline void FAGBlockCube<TEMPLATE_ARGS>::IterateMmQK(LocalTensor<CALC
             DataCopy(qL1Tensor, this->queryGm[runInfo.queryOffsetWithRopeForMm12], nd2NzParams);
             nd2NzParams.dValue = ROPE_D_64;
             nd2NzParams.srcDValue = constInfo.mm2Ka / NUM_TWO;
-            DataCopy(qL1Tensor[nd2NzParams.dstNzC0Stride * 128], this->queryRopeGm[runInfo.commonRunInfo.qRopeOffset], nd2NzParams);
+            DataCopy(qL1Tensor[nd2NzParams.dstNzC0Stride * ROPE_D_128], this->queryRopeGm[runInfo.commonRunInfo.qRopeOffset], nd2NzParams);
         } else {
             nd2NzParams.ndNum = 1;
             nd2NzParams.nValue = runInfo.commonRunInfo.s1RealSize;
@@ -615,7 +615,7 @@ __aicore__ inline void FAGBlockCube<TEMPLATE_ARGS>::IterateMmQK(LocalTensor<CALC
                 DataCopy(kL1Tensor, this->keyGm[runInfo.keyOffsetWithRopeForMm12], nd2NzParams);
                 nd2NzParams.dValue = ROPE_D_64;
                 nd2NzParams.srcDValue = constInfo.mm2Kb / NUM_TWO;
-                DataCopy(kL1Tensor[nd2NzParams.dstNzC0Stride * 128], this->keyRopeGm[runInfo.commonRunInfo.kRopeOffset], nd2NzParams);
+                DataCopy(kL1Tensor[nd2NzParams.dstNzC0Stride * ROPE_D_128], this->keyRopeGm[runInfo.commonRunInfo.kRopeOffset], nd2NzParams);
             } else {
                 nd2NzParams.ndNum = 1;
                 nd2NzParams.nValue =  realN; 
@@ -662,7 +662,7 @@ __aicore__ inline void FAGBlockCube<TEMPLATE_ARGS>::IterateMmQK(LocalTensor<CALC
                 if constexpr (IS_ROPE) {
                     nd2NzParams.dValue = ROPE_D_64;
                     nd2NzParams.srcDValue = constInfo.mm2Ka / NUM_TWO;
-                    DataCopy(qL1Tensor[nd2NzParams.dstNzC0Stride * 128], this->queryRopeGm[preloadArgs.nextQueryRopeOffset], nd2NzParams);
+                    DataCopy(qL1Tensor[nd2NzParams.dstNzC0Stride * ROPE_D_128], this->queryRopeGm[preloadArgs.nextQueryRopeOffset], nd2NzParams);
                 }
                 // current loop no matched wait, will wait in next loop
                 qL1NextBuffer.Set<HardEvent::MTE2_MTE1>();

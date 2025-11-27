@@ -18,15 +18,15 @@ attention:
   #   options:
   #     - flash_attention_score
 
-  flash_attention_score_grad:
-    module: True
-    src:
-      - attention/flash_attention_score_grad
-    exclude:
-      - attention/flash_attention_score_grad/docs
-      - attention/flash_attention_score_grad/README.md
-    options:
-      - flash_attention_score_grad
+  # flash_attention_score_grad:
+  #   module: True
+  #   src:
+  #     - attention/flash_attention_score_grad
+  #   exclude:
+  #     - attention/flash_attention_score_grad/docs
+  #     - attention/flash_attention_score_grad/README.md
+  #   options:
+  #     - flash_attention_score_grad
 
   fused_infer_attention_score:
     module: True
