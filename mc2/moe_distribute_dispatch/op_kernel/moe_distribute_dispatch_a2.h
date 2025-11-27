@@ -814,6 +814,7 @@ __aicore__ inline void MoeDistributeDispatchA2<TemplateMC2TypeA2Func>::CopyPerfo
         AscendC::SetAtomicAdd<int32_t>();
         AscendC::DataCopy(performanceInfoI32GMTensor_, performanceInfoI32Tensor_, performanceInfoSize_ * sizeof(int64_t) / sizeof(int32_t));
         AscendC::SetAtomicNone();
+        PipeBarrier<PIPE_ALL>();
     }
 }
 
@@ -829,11 +830,11 @@ __aicore__ inline void MoeDistributeDispatchA2<TemplateMC2TypeA2Func>::Process()
         SyncAll<true>();
         SendToMoeExpert();
         WaitDispatch();
+        CopyPerformanceInfo(); // 避免performanceInfoI32Tensor_被复用，提前搬出性能打点数据
         GetStatusCumSum();
         LocalWindowCopy();
         SyncAll<true>();
         CleanUpFlags();
-        CopyPerformanceInfo();
         hccl_.Finalize();
     }
 }
