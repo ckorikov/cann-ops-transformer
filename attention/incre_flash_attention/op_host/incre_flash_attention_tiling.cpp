@@ -125,16 +125,17 @@ ge::graphStatus IFATiling::GetNpuInfo()
 
     aivNum_ = ascendcPlatform.GetCoreNumAiv();
     aicNum_ = ascendcPlatform.GetCoreNumAic();
-    if (ascendcPlatform.GetSocVersion() == platform_ascendc::SocVersion::ASCEND310P) {
-        socVersion_ = IfaSocVersion::SOC_ASCEND_310P;
-    } else {
-        socVersion_ = IfaSocVersion::SOC_ASCEND_910B;
-    }
 
     OP_CHECK_IF(aicNum_ == 0 || aivNum_ == 0,
         OPS_REPORT_VECTOR_INNER_ERR(context_->opName, "num of core obtained is 0."), return GRAPH_FAILED);
 
-    cvRatio_ = aivNum_ / aicNum_;
+    if (ascendcPlatform.GetSocVersion() == platform_ascendc::SocVersion::ASCEND310P) {
+        socVersion_ = IfaSocVersion::SOC_ASCEND_310P;
+    } else {
+        socVersion_ = IfaSocVersion::SOC_ASCEND_910B;
+        cvRatio_ = aivNum_ / aicNum_;
+    }
+
     OP_LOGI(context_->opName, "FIA aicNum: %u, aivNum:%u, cvRatio:%u.", aicNum_, aivNum_, cvRatio_);
 
     return ge::GRAPH_SUCCESS;
@@ -767,7 +768,7 @@ ge::graphStatus IFATiling::ProcessOptionalTensors()
         (ProcessBlockTable() != ge::GRAPH_SUCCESS) ||
         (ProcessKVPaddingSize() != ge::GRAPH_SUCCESS) ||
         (ProcessMlaRope() != ge::GRAPH_SUCCESS) ||
-        (ProcessCvMode() != ge::GRAPH_SUCCESS) ||
+        (ProcessCvRatio() != ge::GRAPH_SUCCESS) ||
         (ProcessGqaKvNz() != ge::GRAPH_SUCCESS)) {
         return ge::GRAPH_FAILED;
     }
@@ -1761,7 +1762,7 @@ ge::graphStatus IFATiling::ProcessSharedPrefixLen()
     return ge::GRAPH_SUCCESS;
 }
 
-ge::graphStatus IFATiling::ProcessCvMode(){
+ge::graphStatus IFATiling::ProcessCvRatio(){
     // CV1:1 只支持全量化
     if ((cvRatio_ == 1) && (!quantFlag_ || !ropeFlag_)) {
         OP_LOGE(context_->opName, "when CV 1:1, the dtype of query should be int8");

@@ -93,7 +93,7 @@ private:
     ge::graphStatus ProcessSharedPrefix();
     ge::graphStatus ProcessSharedPrefixLen();
     ge::graphStatus ProcessMlaRope();
-    ge::graphStatus ProcessCvMode();
+    ge::graphStatus ProcessCvRatio();
     ge::graphStatus ProcessCheckAtbFormat();
     ge::graphStatus AtbTilingProcess();
     ge::graphStatus AtbTilingCheck();

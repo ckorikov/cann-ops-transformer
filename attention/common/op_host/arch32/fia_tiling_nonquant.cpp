@@ -104,6 +104,10 @@ ge::graphStatus FiaTilingNonQuant::GetPlatformInfo()
     OP_CHECK_IF(aicNum_ == 0 || aivNum_ == 0,
         OPS_REPORT_VECTOR_INNER_ERR(fiaInfo_->opName, "num of core obtained is 0."), return GRAPH_FAILED);
 
+    // 设置CV1:1模式
+    cvRatio_ = aivNum_ / aicNum_;
+    OP_LOGI(fiaInfo_->opName, "FIA aicNum: %u, aivNum:%u, cvRatio:%u.", aicNum_, aivNum_, cvRatio_);
+
     return ge::GRAPH_SUCCESS;
 }
 
@@ -393,7 +397,7 @@ void FiaTilingNonQuant::Split()
     SplitParam splitParam {};
     CreateSplitInput(baseInfo, splitParam);
 
-    SplitResult res {aicNum_, aivNum_ / aicNum_ };
+    SplitResult res {aicNum_, cvRatio_ };
     SplitCore(aicNum_, baseInfo, splitParam, res);
     if (res.numOfFdHead > aicNum_ || res.usedCoreNum > aicNum_ || res.maxS2SplitNum > aicNum_ + 1) {
         OP_LOGE(fiaInfo_->opName, "used_core_num: %u, num_of_fd_head: %u, max_s2_split_num: %u, aic_num: %u", 
@@ -589,7 +593,7 @@ void FiaTilingNonQuant::CalcBlockDim(uint32_t coreNum)
 {
     auto ascendcPlatform = platform_ascendc::PlatformAscendC(fiaInfo_->platformInfo);
     auto aicNum = coreNum;
-    auto aivNum = aicNum * (aivNum_ / aicNum_);
+    auto aivNum = aicNum * cvRatio_;
 
     blockDim_ = ascendcPlatform.CalcTschBlockDim(aivNum, aicNum, aivNum); 
     OP_LOGI(fiaInfo_->opName, "FIA block dim: %u aiv Num: %u aic Num: %u.", blockDim_, aivNum, aicNum);
