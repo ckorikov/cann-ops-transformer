@@ -15,14 +15,24 @@ if (BUILD_OPEN_PROJECT)
         mla_prolog_v2_def.cpp
     )
 
-    add_ops_compile_options(
-        OP_NAME MlaPrologV2
-        OPTIONS --cce-auto-sync=off
-                -Wno-deprecated-declarations
-                -Werror
-                -mllvm -cce-aicore-hoist-movemask=false
-                --op_relocatable_kernel_binary=true
-    )
+    if (ENABLE_STATIC)
+        add_ops_compile_options(
+            OP_NAME MlaPrologV2
+            OPTIONS --cce-auto-sync=off
+                    -Wno-deprecated-declarations
+                    -Werror
+                    -mllvm -cce-aicore-hoist-movemask=false
+        )
+    else()
+        add_ops_compile_options(
+            OP_NAME MlaPrologV2
+            OPTIONS --cce-auto-sync=off
+                    -Wno-deprecated-declarations
+                    -Werror
+                    -mllvm -cce-aicore-hoist-movemask=false
+                    --op_relocatable_kernel_binary=true
+        )
+    endif()
 endif()
 
 if (NOT BUILD_OPS_RTY_KERNEL)
