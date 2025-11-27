@@ -15,7 +15,7 @@
 #ifndef FLASH_ATTENTION_SCORE_GRAD_S1S2_BN2GS1S2_REGBASE_H_
 #define FLASH_ATTENTION_SCORE_GRAD_S1S2_BN2GS1S2_REGBASE_H_
 
-#include <math.h>
+#include <algorithm>
 #include "kernel_operator.h"
 #include "lib/matmul_intf.h"
 #include "matmul_modules/fag_custom_matmul_policy.h"

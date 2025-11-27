@@ -19,7 +19,7 @@
 #include "kernel_operator.h"
 #include "common.h"
 
-#include <math.h>
+#include <algorithm>
 
 namespace commondef {
 constexpr uint32_t NUM_TWO = 2;
