@@ -92,6 +92,8 @@ TILING_DATA_FIELD_DEF(int64_t, esqColTail);
 // workspace的参数配置
 TILING_DATA_FIELD_DEF(int64_t, maxWorkspaceSize);
 TILING_DATA_FIELD_DEF(float, epsilon);
+// others
+TILING_DATA_FIELD_DEF(bool, doRmsNorm);
 END_TILING_DATA_DEF;
 REGISTER_TILING_DATA_CLASS(MlaPreprocess, MlaTilingData)
 

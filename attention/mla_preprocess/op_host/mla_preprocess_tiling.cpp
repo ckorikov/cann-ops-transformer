@@ -58,6 +58,7 @@ constexpr uint64_t DIM_2 = 2;
 constexpr uint64_t ATTR_EPSILON_IDX = 3;
 constexpr uint64_t ATTR_CACHE_MODE_IDX = 9;
 constexpr uint64_t ATTR_QUANT_MODE_IDX = 10;
+constexpr uint64_t ATTR_DO_RMS_NORM_IDX = 11;
 
 inline uint64_t CeilDiv(const uint64_t dividend, const uint64_t divisor)
 {
@@ -626,6 +627,9 @@ void MlaPreprocessTiling::PrintLastTilingData(gert::TilingContext *context)
 ge::graphStatus MlaPreprocessTiling::Init(gert::TilingContext *context)
 {
     OpParam::MlaPreprocessParam param = MlaPreprocessTiling::GetParam(context);
+
+    bool doRmsNorm = *(context->GetAttrs()->GetAttrPointer<bool>(ATTR_DO_RMS_NORM_IDX));
+    mlaTilingData.set_doRmsNorm(doRmsNorm);
 
     uint64_t hiddtenState = static_cast<uint64_t>(context->GetInputShape(INDEX_INPUT)->GetStorageShape().GetDim(DIM_1)); //hiddtenState
     mlaTilingData.set_hiddtenState(hiddtenState);
