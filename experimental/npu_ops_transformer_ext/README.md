@@ -195,7 +195,3 @@ NpuOpsTransformerExt 是一个轻量级，高性能的算子开发工程模板�
     ```python
     torch.ops.npu_ops_transformer_ext.my_ops(x)
     ```
-## 约束说明 | Constraint Description
-1. 在使用matmul高阶API Tiling需要在tiling的头文件之前重定义uint8_t为char_t；
-2. experimental工程所需的npu_ops_transformer_ext以及自定义工程的namespace都需要包含二级namespace；
-3. using namespace matmul_tiling、using namespace matmul、using namespace AscendC不能同时使用，内部会有重名文件。
