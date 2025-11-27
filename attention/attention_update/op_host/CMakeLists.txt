@@ -8,7 +8,7 @@
 # ======================================================================================================================
 
 if (BUILD_OPEN_PROJECT)
-    target_sources(op_host_aclnnInner PRIVATE
+    target_sources(op_host_aclnnExc PRIVATE
     attention_update_def.cpp
     )
     if("${ASCEND_COMPUTE_UNIT}" STREQUAL "ascend910_95")
@@ -33,5 +33,5 @@ endif()
 
 if(NOT BUILD_OPS_RTY_KERNEL)
     add_op_to_compiled_list()
-    add_modules_sources(OPTYPE attention_update ACLNNTYPE aclnn_inner)
+    add_modules_sources(OPTYPE attention_update ACLNNTYPE aclnn_exclude)
 endif()
