@@ -185,18 +185,7 @@ def extract_ai_core_configs(file_path):
         return []
 
 
-def main():
-    if len(sys.argv) > 1:
-        repository_path = sys.argv[1]
-    else:
-        repository_path = input("请输入仓库路径: ").strip()
-    
-    if not os.path.exists(repository_path):
-        print("错误：路径不存在！")
-        return
-    
-    print(f"扫描 {repository_path} 中的 _def.cpp 文件...")
-    
+def main(repository_path):
     result = []
     for root, dirs, files in os.walk(repository_path):
         # 过滤掉不需要的目录
@@ -215,16 +204,4 @@ def main():
                     op_name: ai_core_configs
                 }
                 result.append(op_dict)
-    
-    # 输出结果
-    print(f"\n找到 {len(result)} 个操作：")
-    for item in result:
-        for op_name, configs in item.items():
-            if configs:
-                print(f"{op_name}: {configs}")
-            else:
-                print(f"{op_name}: 未找到 AICore 配置")
-
-
-if __name__ == "__main__":
-    main()
+    return result
