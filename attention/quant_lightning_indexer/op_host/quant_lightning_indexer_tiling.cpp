@@ -605,7 +605,8 @@ ge::graphStatus QLIInfoParser::ValidateInputShapesMatch()
                    return ge::GRAPH_FAILED);
         OP_CHECK_IF((kLayout_ != DataLayout::PA_BSND) &&
                     ((opParamInfo_.weights.shape->GetStorageShape().GetDim(0) != bSize_) ||
-                    (opParamInfo_.actualSeqLengthsK.tensor->GetShapeSize() != bSize_) ||
+                    (opParamInfo_.actualSeqLengthsK.tensor != nullptr &&
+                    opParamInfo_.actualSeqLengthsK.tensor->GetShapeSize() != bSize_) ||
                     (opParamInfo_.attenOut.shape->GetStorageShape().GetDim(0) != bSize_)),
                    OP_LOGE(opName_,
                              "BSND case input query, weight, actual_seq_lengths_key, sparse_indices dim 0 must be same."),
