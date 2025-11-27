@@ -22,7 +22,7 @@ MC2HcomTopologyMocker& MC2HcomTopologyMocker::GetInstance()
     return instance;
 }
 
-void MC2HcomTopologyMocker::SetValue(const char* key, uint32_t value)
+void MC2HcomTopologyMocker::SetValue(const char* key, uint64_t value)
 {
     mockValue_[key] = value;
 }
@@ -34,7 +34,7 @@ void MC2HcomTopologyMocker::SetValues(const MockValues& values)
     }
 }
 
-uint32_t MC2HcomTopologyMocker::GetValue(const char* key, uint32_t defaultValue) const
+uint64_t MC2HcomTopologyMocker::GetValue(const char* key, uint64_t defaultValue) const
 {
     auto it = mockValue_.find(key);
     if (it == mockValue_.end()) {
@@ -48,14 +48,44 @@ void MC2HcomTopologyMocker::Reset()
     mockValue_.clear();
 }
 
-MC2HcomTopology::MC2HcomTopology(const char *libPath)
+// mock mc2/common/inc/mc2_hcom_topo_info.h ----------------------------------------------------------------------------
+constexpr static uint64_t DEFAULT_RANK_NUM = 8;
+constexpr static uint64_t DEFAULT_CCL_BUFFER_SIZE = 6000ULL * 1024ULL * 1024ULL;
+
+// class MC2HcomTopology
+// public:
+HcclResult MC2HcomTopology::CommGetInstSizeByGroup(const char *group, uint32_t *rankNum)
 {
+    *rankNum = static_cast<uint32_t>(MC2HcomTopologyMocker::GetInstance().GetValue("rankNum", DEFAULT_RANK_NUM));
+    return HCCL_SUCCESS;
 }
 
+HcclResult MC2HcomTopology::TryGetGroupTopoType(const char *group, uint32_t *topoType)
+{
+    return HCCL_SUCCESS;
+}
+
+HcclResult MC2HcomTopology::CommGetCclBufferSizeByGroup(const char *group, uint64_t *cclBufferSize, HcclComm *hcclComm)
+{
+    *cclBufferSize = MC2HcomTopologyMocker::GetInstance().GetValue("cclBufferSize", DEFAULT_CCL_BUFFER_SIZE);
+    return HCCL_SUCCESS;
+}
+
+HcclResult MC2HcomTopology::CommGetGroupLocalWindowSize(const char *group, uint64_t* cclBufferSize)
+{
+    *cclBufferSize = MC2HcomTopologyMocker::GetInstance().GetValue("cclBufferSize", DEFAULT_CCL_BUFFER_SIZE);
+    return HCCL_SUCCESS;
+}
+
+// private:
 MC2HcomTopology &MC2HcomTopology::GetInstance()
 {
     static MC2HcomTopology instance("");
     return instance;
+}
+
+MC2HcomTopology::MC2HcomTopology(const char *libPath)
+{
 }
 
 HcclResult MC2HcomTopology::CallHcomGetCommHandleByGroup(const char *group, HcclComm *commHandle)
@@ -78,15 +108,10 @@ HcclResult MC2HcomTopology::CallCommGetInstSizeByNetLayer(HcclComm comm, uint32_
     return HCCL_SUCCESS;
 }
 
-HcclResult MC2HcomTopology::CommGetInstSizeByGroup(const char *group, uint32_t *rankNum)
+HcclResult MC2HcomTopology::CallCommGetCCLBufSizeCfg(HcclComm comm, uint64_t *cclBufferSize)
 {
-    constexpr static uint32_t DEFAULT_RANK_NUM = 8;
-    *rankNum = MC2HcomTopologyMocker::GetInstance().GetValue("rankNum", DEFAULT_RANK_NUM);
+    *cclBufferSize = MC2HcomTopologyMocker::GetInstance().GetValue("cclBufferSize", DEFAULT_CCL_BUFFER_SIZE);
     return HCCL_SUCCESS;
 }
 
-HcclResult MC2HcomTopology::TryGetGroupTopoType(const char *group, uint32_t *topoType)
-{
-    return HCCL_SUCCESS;
-}
 }  // namespace Mc2Hcom

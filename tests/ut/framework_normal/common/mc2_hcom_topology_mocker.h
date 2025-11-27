@@ -18,19 +18,19 @@
 #include <unordered_map>
 
 namespace Mc2Hcom {
-using MockValues = std::vector<std::pair<const char*, uint32_t>>;
+using MockValues = std::vector<std::pair<const char*, uint64_t>>;
 
 class MC2HcomTopologyMocker {
 public:
     static MC2HcomTopologyMocker& GetInstance();
-    void SetValue(const char* key, uint32_t value);
+    void SetValue(const char* key, uint64_t value);
     void SetValues(const MockValues& values);
-    uint32_t GetValue(const char* key, uint32_t defaultValue) const;
+    uint64_t GetValue(const char* key, uint64_t defaultValue) const;
     void Reset();
 
 private:
     MC2HcomTopologyMocker() = default;
-    std::unordered_map<std::string, uint32_t> mockValue_;
+    std::unordered_map<std::string, uint64_t> mockValue_;
 };
 
 }
