@@ -106,6 +106,14 @@ QUANT_MODE MlaPrologTiling::GetQuantizationModeV3() const
         } else {
             OP_LOGE(context_->opName, "When weightQuantMode == 2, kvQuantMode must be within {0, 1, 3}, actually is %d", *(context_->kvQuantMode)); 
         }
+    } else if (*(context_->weightQuantMode) == static_cast<int>(WEIGHT_QUANT_MODE::MXFP8_FULL_QUANT)) {
+        if (*(context_->kvQuantMode) == static_cast<int>(KV_QUANT_MODE::NO_QUANT)) {
+                return QUANT_MODE::MXFP8_FULL_QUANT_KV_NO_QUANT;
+        } else if (*(context_->kvQuantMode) == static_cast<int>(KV_QUANT_MODE::PER_TENSOR)) {
+                return QUANT_MODE::MXFP8_FULL_QUANT_KV_QUANT_PER_TENSOR;
+        } else {
+            OP_LOGE(context_->opName, "When weightQuantMode == 3, kvQuantMode must be within {0, 1}, actually is %d", *(context_->kvQuantMode)); 
+        }
     } else {
         OP_LOGE(context_->opName, "weightQuantMode must be within {0, 1, 2}, actually is %d", *(context_->weightQuantMode));
     }
@@ -124,7 +132,7 @@ QUANT_MODE MlaPrologTiling::GetQuantizationMode() const
                 return QUANT_MODE::FULL_QUANT_KV_NO_QUANT;
             }
         }
-        if (context_->weightUqQr.desc->GetDataType() == ge::DT_INT8) {
+        if (context_->tokenX.desc->GetDataType() == ge::DT_BF16 && context_->weightUqQr.desc->GetDataType() == ge::DT_INT8) {
             if (context_->kvCache.desc->GetDataType() == ge::DT_INT8) {
                 return QUANT_MODE::PARTIAL_QUANT_KV_QUANT_PER_CHANNEL;
             } else {

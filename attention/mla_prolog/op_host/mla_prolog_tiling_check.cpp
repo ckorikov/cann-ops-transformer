@@ -123,9 +123,10 @@ ge::graphStatus MlaPrologTilingCheck::CheckDims() const
             OP_LOGE(context_.opName, "tokenX shape dim num allows only %u, got %zu.",
                 MLA_PROLOG_DIM_NUM_3, context_.tokenX.shape->GetStorageShape().GetDimNum()),
             return ge::GRAPH_FAILED);
-        OP_CHECK_IF(scenarioInfo_.quantMode_ != QUANT_MODE::NO_QUANT,
-            OP_LOGE(context_.opName, "QUANT_MODE allows only %d, got %d.",
-                static_cast<int>(QUANT_MODE::NO_QUANT), static_cast<int>(scenarioInfo_.quantMode_)),
+        OP_CHECK_IF(scenarioInfo_.quantMode_ != QUANT_MODE::NO_QUANT && scenarioInfo_.quantMode_ != QUANT_MODE::MXFP8_FULL_QUANT_KV_QUANT_PER_TENSOR &&
+            scenarioInfo_.quantMode_ != QUANT_MODE::MXFP8_FULL_QUANT_KV_NO_QUANT,
+            OP_LOGE(context_.opName, "QUANT_MODE allows only %u, %u, %u, got %u.",
+                QUANT_MODE::NO_QUANT, QUANT_MODE::MXFP8_FULL_QUANT_KV_QUANT_PER_TENSOR, QUANT_MODE::MXFP8_FULL_QUANT_KV_NO_QUANT, scenarioInfo_.quantMode_),
             return ge::GRAPH_FAILED);
     }
     OP_CHECK_IF(baseShapeInfo_.bSize > MAX_B_SIZE,
@@ -358,6 +359,12 @@ void MlaPrologTilingCheck::FillScenarioParamInfo()
         case QUANT_MODE::FULL_QUANT_KV_QUANT_PER_TILE:
             FillFullKVPertileQuantParamInfo();
             break;
+        case QUANT_MODE::MXFP8_FULL_QUANT_KV_NO_QUANT:
+            FillMxfp8FullQuantParamInfo();
+            break;
+        case QUANT_MODE::MXFP8_FULL_QUANT_KV_QUANT_PER_TENSOR:
+            FillMxfp8FullKVQuantParamInfo();
+            break;
         default:
             break;
     }
@@ -475,6 +482,44 @@ void MlaPrologTilingCheck::FillFullKVPertileQuantParamInfo()
 
     expectedParamInfo_.erase(KR_CACHE_NAME);
     expectedParamInfo_.erase(KR_CACHE_OUT_NAME);
+}
+
+void MlaPrologTilingCheck::FillMxfp8FullQuantParamInfo()
+{
+    FillFullQuantParamInfo();
+
+    expectedParamInfo_.emplace(DEQUANT_SCALE_X_NAME, std::vector<uint32_t>{baseShapeInfo_.tSize, baseShapeInfo_.heSize / 32});
+    expectedParamInfo_.emplace(DEQUANT_SCALE_W_DQ_NAME, std::vector<uint32_t>{baseShapeInfo_.hcqSize, baseShapeInfo_.heSize / 32});
+    expectedParamInfo_.emplace(DEQUANT_SCALE_W_UQ_QR_NAME, std::vector<uint32_t>{baseShapeInfo_.headSizeUqQr, baseShapeInfo_.hcqSize / 32});
+    expectedParamInfo_.emplace(DEQUANT_SCALE_W_DKV_KR_NAME,
+        std::vector<uint32_t>{baseShapeInfo_.hckvSize + baseShapeInfo_.drSize, baseShapeInfo_.heSize / 32});
+
+    expectedParamInfo_[TOKEN_X_NAME].dtype = ge::DT_FLOAT8_E4M3FN;
+    expectedParamInfo_[WEIGHT_DQ_NAME].dtype = ge::DT_FLOAT8_E4M3FN;
+    expectedParamInfo_[WEIGHT_UQ_QR_NAME].dtype = ge::DT_FLOAT8_E4M3FN;
+    expectedParamInfo_[WEIGHT_DKV_KR_NAME].dtype = ge::DT_FLOAT8_E4M3FN;
+    expectedParamInfo_[DEQUANT_SCALE_X_NAME].dtype = ge::DT_FLOAT8_E8M0;
+    expectedParamInfo_[DEQUANT_SCALE_W_DQ_NAME].dtype = ge::DT_FLOAT8_E8M0;
+    expectedParamInfo_[DEQUANT_SCALE_W_UQ_QR_NAME].dtype = ge::DT_FLOAT8_E8M0;
+    expectedParamInfo_[DEQUANT_SCALE_W_DKV_KR_NAME].dtype = ge::DT_FLOAT8_E8M0;
+
+    expectedParamInfo_.erase(SMOOTH_SCALES_CQ_NAME);
+}
+
+void MlaPrologTilingCheck::FillMxfp8FullKVQuantParamInfo()
+{
+    FillMxfp8FullQuantParamInfo();
+
+    expectedParamInfo_.emplace(QUANT_SCALE_CKV_NAME, std::vector<uint32_t>{1, baseShapeInfo_.hckvSize});
+    expectedParamInfo_[DEQUANT_SCALE_Q_NOPE_NAME] =
+        ParamInfo(std::vector<uint32_t>{baseShapeInfo_.tSize, baseShapeInfo_.nSize, 1});
+
+    expectedParamInfo_[KV_CACHE_NAME].dtype = ge::DT_FLOAT8_E4M3FN;
+    expectedParamInfo_[QUANT_SCALE_CKV_NAME].dtype = ge::DT_FLOAT;
+    expectedParamInfo_[QUERY_NAME].dtype = ge::DT_FLOAT8_E4M3FN;
+    expectedParamInfo_[DEQUANT_SCALE_Q_NOPE_NAME].dtype = ge::DT_FLOAT;
+
+    expectedParamInfo_[DEQUANT_SCALE_Q_NOPE_NAME].isValid = true;
 }
 
 void MlaPrologTilingCheck::GenActualParamInfo()
@@ -647,30 +692,73 @@ ge::graphStatus MlaPrologTilingCheck::CheckSingleRequiredParam() const
 
 bool MlaPrologTilingCheck::CheckTokenX() const
 {
-    return IsSingleParamValid(context_.tokenX, TOKEN_X_NAME, {ge::DT_BF16, ge::DT_INT8}, {ge::FORMAT_ND, ge::FORMAT_NCHW}, {2, 3});
+    OP_CHECK_IF(context_.platformInfo == nullptr,
+        OP_LOGE(context_.opName, "GetPlatformInfo is nullptr."), return ge::GRAPH_FAILED);
+    auto ascendcPlatform = platform_ascendc::PlatformAscendC(context_.platformInfo);
+    auto socShortName = ascendcPlatform.GetSocVersion();
+    if (socShortName == platform_ascendc::SocVersion::ASCEND910_95) {
+        return IsSingleParamValid(context_.tokenX, TOKEN_X_NAME, {ge::DT_BF16, ge::DT_INT8, ge::DT_FLOAT8_E4M3FN}, {ge::FORMAT_ND, ge::FORMAT_NCHW}, {2, 3});
+    } else {
+        return IsSingleParamValid(context_.tokenX, TOKEN_X_NAME, {ge::DT_BF16, ge::DT_INT8}, {ge::FORMAT_ND, ge::FORMAT_NCHW}, {2, 3});
+    }
 }
 
 bool MlaPrologTilingCheck::CheckWDq() const
 {
-    return IsSingleParamValid(context_.weightDq, WEIGHT_DQ_NAME, {ge::DT_BF16, ge::DT_INT8}, {ge::FORMAT_FRACTAL_NZ},
-                              {2, 4});
+    OP_CHECK_IF(context_.platformInfo == nullptr,
+        OP_LOGE(context_.opName, "GetPlatformInfo is nullptr."), return ge::GRAPH_FAILED);
+    auto ascendcPlatform = platform_ascendc::PlatformAscendC(context_.platformInfo);
+    auto socShortName = ascendcPlatform.GetSocVersion();
+    if (socShortName == platform_ascendc::SocVersion::ASCEND910_95) {
+        return IsSingleParamValid(context_.weightDq, WEIGHT_DQ_NAME, {ge::DT_BF16, ge::DT_INT8, ge::DT_FLOAT8_E4M3FN}, {ge::FORMAT_FRACTAL_NZ},
+                                {2, 4});
+    } else {
+        return IsSingleParamValid(context_.weightDq, WEIGHT_DQ_NAME, {ge::DT_BF16, ge::DT_INT8}, {ge::FORMAT_FRACTAL_NZ},
+                                {2, 4});
+    }
 }
 
 bool MlaPrologTilingCheck::CheckWUqQr() const
 {
-    return IsSingleParamValid(context_.weightUqQr, WEIGHT_UQ_QR_NAME, {ge::DT_BF16, ge::DT_INT8}, {ge::FORMAT_FRACTAL_NZ},
-                              {2, 4});
+    OP_CHECK_IF(context_.platformInfo == nullptr,
+        OP_LOGE(context_.opName, "GetPlatformInfo is nullptr."), return ge::GRAPH_FAILED);
+    auto ascendcPlatform = platform_ascendc::PlatformAscendC(context_.platformInfo);
+    auto socShortName = ascendcPlatform.GetSocVersion();
+    if (socShortName == platform_ascendc::SocVersion::ASCEND910_95) {
+        return IsSingleParamValid(context_.weightUqQr, WEIGHT_UQ_QR_NAME, {ge::DT_BF16, ge::DT_INT8, ge::DT_FLOAT8_E4M3FN}, {ge::FORMAT_FRACTAL_NZ},
+                                {2, 4});
+    } else {
+        return IsSingleParamValid(context_.weightUqQr, WEIGHT_UQ_QR_NAME, {ge::DT_BF16, ge::DT_INT8}, {ge::FORMAT_FRACTAL_NZ},
+                                {2, 4});
+    }
 }
 
 bool MlaPrologTilingCheck::CheckWUk() const
 {
-    return IsSingleParamValid(context_.weightUk, WEIGHT_UK_NAME, {ge::DT_BF16, ge::DT_INT8}, {ge::FORMAT_ND, ge::FORMAT_NCHW}, {3});
+    OP_CHECK_IF(context_.platformInfo == nullptr,
+        OP_LOGE(context_.opName, "GetPlatformInfo is nullptr."), return ge::GRAPH_FAILED);
+    auto ascendcPlatform = platform_ascendc::PlatformAscendC(context_.platformInfo);
+    auto socShortName = ascendcPlatform.GetSocVersion();
+    if (socShortName == platform_ascendc::SocVersion::ASCEND910_95) {
+        return IsSingleParamValid(context_.weightUk, WEIGHT_UK_NAME, {ge::DT_BF16}, {ge::FORMAT_ND, ge::FORMAT_NCHW}, {3});
+    } else {
+        return IsSingleParamValid(context_.weightUk, WEIGHT_UK_NAME, {ge::DT_BF16, ge::DT_INT8}, {ge::FORMAT_ND, ge::FORMAT_NCHW}, {3});
+    }
 }
 
 bool MlaPrologTilingCheck::CheckWDkvKr() const
 {
-    return IsSingleParamValid(context_.weightDkvKr, WEIGHT_DKV_KR_NAME, {ge::DT_BF16, ge::DT_INT8},
-                              {ge::FORMAT_FRACTAL_NZ}, {2, 4});
+    OP_CHECK_IF(context_.platformInfo == nullptr,
+        OP_LOGE(context_.opName, "GetPlatformInfo is nullptr."), return ge::GRAPH_FAILED);
+    auto ascendcPlatform = platform_ascendc::PlatformAscendC(context_.platformInfo);
+    auto socShortName = ascendcPlatform.GetSocVersion();
+    if (socShortName == platform_ascendc::SocVersion::ASCEND910_95) {
+        return IsSingleParamValid(context_.weightDkvKr, WEIGHT_DKV_KR_NAME, {ge::DT_BF16, ge::DT_INT8, ge::DT_FLOAT8_E4M3FN},
+                                {ge::FORMAT_FRACTAL_NZ}, {2, 4});
+    } else {
+        return IsSingleParamValid(context_.weightDkvKr, WEIGHT_DKV_KR_NAME, {ge::DT_BF16, ge::DT_INT8},
+                                {ge::FORMAT_FRACTAL_NZ}, {2, 4});
+    }
 }
 
 bool MlaPrologTilingCheck::CheckRmsnormGammaCq() const
@@ -702,7 +790,15 @@ bool MlaPrologTilingCheck::CheckCacheIndex() const
 
 bool MlaPrologTilingCheck::CheckKvCache() const
 {
-    return IsSingleParamValid(context_.kvCache, KV_CACHE_NAME, {ge::DT_BF16, ge::DT_INT8}, {ge::FORMAT_ND, ge::FORMAT_NCHW}, {3, 4});
+    OP_CHECK_IF(context_.platformInfo == nullptr,
+        OP_LOGE(context_.opName, "GetPlatformInfo is nullptr."), return ge::GRAPH_FAILED);
+    auto ascendcPlatform = platform_ascendc::PlatformAscendC(context_.platformInfo);
+    auto socShortName = ascendcPlatform.GetSocVersion();
+    if (socShortName == platform_ascendc::SocVersion::ASCEND910_95) {
+        return IsSingleParamValid(context_.kvCache, KV_CACHE_NAME, {ge::DT_BF16, ge::DT_INT8, ge::DT_FLOAT8_E4M3FN}, {ge::FORMAT_ND, ge::FORMAT_NCHW}, {3, 4});
+    } else {
+        return IsSingleParamValid(context_.kvCache, KV_CACHE_NAME, {ge::DT_BF16, ge::DT_INT8}, {ge::FORMAT_ND, ge::FORMAT_NCHW}, {3, 4});
+    }
 }
 
 bool MlaPrologTilingCheck::CheckKrCache() const

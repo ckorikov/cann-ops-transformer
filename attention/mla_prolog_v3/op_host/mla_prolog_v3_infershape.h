@@ -24,6 +24,8 @@ namespace ops {
 // INPUT
 constexpr uint32_t WEIGHT_DQ_INDEX = 1;
 constexpr uint32_t WEIGHT_UQ_QR_INDEX = 2;
+constexpr uint32_t WEIGHT_DKV_KR_INDEX = 4;
+constexpr uint32_t QUANT_SCALE_CKV_INDEX = 16;
 // OUTPUT
 constexpr uint32_t DEQUANT_SCALE_Q_NOPE_INDEX = 4;
 constexpr uint32_t QUERY_NORM_INDEX = 5;
@@ -36,6 +38,7 @@ constexpr uint32_t ATTR_KV_QUANT_MODE_FLAG_INDEX = 5;
 constexpr uint32_t WEIGHT_QUANT_MODE_NO_QUANT = 0;
 constexpr uint32_t WEIGHT_QUANT_MODE_PARTIAL_QUANT = 1;
 constexpr uint32_t WEIGHT_QUANT_MODE_FULL_QUANT = 2;
+constexpr uint32_t WEIGHT_QUANT_MODE_MXFP8_FULL_QUANT = 3;
 constexpr uint32_t KV_QUANT_MODE_NO_QUANT = 0;
 constexpr uint32_t KV_QUANT_MODE_PER_TENSOR = 1;
 constexpr uint32_t KV_QUANT_MODE_PER_CHANNEL = 2;
