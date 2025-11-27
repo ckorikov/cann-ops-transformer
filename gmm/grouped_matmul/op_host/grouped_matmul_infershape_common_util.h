@@ -63,19 +63,11 @@ constexpr size_t PENULTIMATE_DIM = 2UL;
 constexpr int64_t PERTILE_GROUP_SIZE = 128UL;
 constexpr size_t GMM_A8W4_OFFSET_DIM_NUM = 3UL;
 constexpr size_t GMM_A8W4_BIAS_DIM_NUM = 2UL;
-constexpr uint32_t LIMIT_DIM_ONE = 1;
-constexpr uint32_t LIMIT_DIM_TWO = 2;
-constexpr uint32_t LIMIT_DIM_THREE = 3;
-constexpr int32_t DIM_INDEX_ZERO = 0;
-constexpr int32_t DIM_INDEX_ONE = 1;
-constexpr int32_t DIM_INDEX_TWO = 2;
+
 constexpr int64_t MXFP_DIVISOR_SIZE = 64;
 constexpr int64_t MXFP_MULTI_BASE_SIZE = 2;
 constexpr int64_t MXFP_TYPEM_SCALE_DIM_NUM = 4;
 constexpr int64_t MXFP_TYPEK_SCALE_DIM_NUM = 3;
-constexpr int64_t UNKNOWN_SHAPE_VALUE = -1;
-constexpr int64_t SHAPE_UNKNOWN_DIM_NUM = -2;
-
 struct GMMAttrs {
     int64_t splitItem;
     int64_t outputDtype;

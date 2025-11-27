@@ -95,12 +95,6 @@ constexpr int32_t FIXAXISMOVE_GROUP_TYPE = 0;
 constexpr size_t TUNING_CONFIG_TOKEN_PER_EXPECT_INDEX = 0;
 constexpr size_t TUNING_CONFIG_A8W4_SPEC_SCENARIO_INDEX = 1;
 constexpr size_t TUNING_CONFIG_ALLOW_WORKSPACE_INDEX = 2;
-constexpr int32_t LIMIT_DIM_ONE = 1;
-constexpr int32_t LIMIT_DIM_TWO = 2;
-constexpr int32_t LIMIT_DIM_THREE = 3;
-constexpr int32_t DIM_INDEX_ZERO = 0;
-constexpr int32_t DIM_INDEX_ONE = 1;
-constexpr int32_t DIM_INDEX_TWO = 2;
 
 ge::graphStatus GMMTiling::CheckWeightNZShape(const gert::TilingContext* context, int64_t numInOneBlk) const {
   OP_CHECK_IF(numInOneBlk <= 0, OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "numInOneBlk, the "
@@ -1029,55 +1023,6 @@ void GMMTiling::GMMSetTplTilingKey(gert::TilingContext* context) {
   }
 }
 
-static bool CheckTensorDimension(const gert::TilingContext* context, const gert::Tensor *tensor,
-                                 const char* tensor_name, int required_dims, int check_dim) {
-    if (!tensor) {
-        OP_LOGE(context->GetNodeName(),"%s tensor is null", tensor_name);
-        return false;
-    }
-    
-    const auto& shape = tensor->GetStorageShape();
-    if (shape.GetDimNum() < required_dims) {
-        OP_LOGE(context->GetNodeName(),"%s tensor must have at least %d dimensions, but got %zu", 
-                     tensor_name, required_dims, shape.GetDimNum());
-        return false;
-    }
-    
-    // 可选：检查特定维度是否为零
-    if (check_dim >= 0 && shape.GetDim(check_dim) == 0) {
-        OP_LOGE(context->GetNodeName(),"%s tensor dimension %d cannot be zero", tensor_name, check_dim);
-        return false;
-    }
-    return true;
-}
-
-
-static bool GetGroupedMatmulDimensions(const gert::TilingContext* context, 
-                                      uint64_t* n, uint64_t* k, 
-                                      uint64_t* groupNum, uint64_t* quantGroupNum) {
-    // 获取各个tensor
-    const auto& scale_tensor = context->GetDynamicInputTensor(SCALE_INDEX, 0);
-    const auto& x_tensor = context->GetDynamicInputTensor(X_INDEX, 0);
-    const auto& weight_tensor = context->GetDynamicInputTensor(WEIGHT_INDEX, 0);
-    // 检查各个tensor的维度
-    if (!CheckTensorDimension(context, scale_tensor, "Scale", LIMIT_DIM_THREE, DIM_INDEX_TWO)) {
-        return false;
-    }
-    if (!CheckTensorDimension(context, x_tensor, "X", LIMIT_DIM_TWO, DIM_INDEX_ONE)) {
-        return false;
-    }
-    if (!CheckTensorDimension(context, weight_tensor, "Weight", LIMIT_DIM_THREE, DIM_INDEX_ZERO)) {
-        return false;
-    }
-    // 安全获取维度值
-    *n = scale_tensor->GetStorageShape().GetDim(DIM_INDEX_TWO);
-    *k = x_tensor->GetStorageShape().GetDim(DIM_INDEX_ONE);
-    *groupNum = weight_tensor->GetStorageShape().GetDim(DIM_INDEX_ZERO);
-    *quantGroupNum = scale_tensor->GetStorageShape().GetDim(1);
-    
-    return true;
-}
-
 ge::graphStatus GMMTiling::GMMGetAttrs(const gert::TilingContext* context) {
   auto attr = context->GetAttrs();
   OP_CHECK_NULL_WITH_CONTEXT(context, attr);  // check attr is not null
@@ -1102,14 +1047,10 @@ ge::graphStatus GMMTiling::GMMGetAttrs(const gert::TilingContext* context) {
   OP_CHECK_NULL_WITH_CONTEXT(context, w0Desc);
   weightDtype_ = w0Desc->GetDataType();
   if (xDType_ == ge::DT_INT8 && weightDtype_ == ge::DT_INT4) {
-    uint64_t n_val, k_val, groupNum_val, quantGroupNum_val;
-    OP_CHECK_IF(!GetGroupedMatmulDimensions(context, &n_val, &k_val, &groupNum_val, &quantGroupNum_val),
-                OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "A8W4, GetTensorDimensions fail."),
-                return ge::GRAPH_FAILED);
-    const uint64_t n = n_val;
-    const uint64_t k = k_val;
-    const uint64_t groupNum = groupNum_val;
-    const uint64_t quantGroupNum = quantGroupNum_val;
+    const uint64_t n = context->GetDynamicInputTensor(SCALE_INDEX, 0)->GetStorageShape().GetDim(2);
+    const uint64_t k = context->GetDynamicInputTensor(X_INDEX, 0)->GetStorageShape().GetDim(1);
+    const uint64_t groupNum = context->GetDynamicInputTensor(WEIGHT_INDEX, 0)->GetStorageShape().GetDim(0);
+    const uint64_t quantGroupNum = context->GetDynamicInputTensor(SCALE_INDEX, 0)->GetStorageShape().GetDim(1);
     isA8W4FakeA8W8_ = true;
     A8W4noMsdSpace_ = groupNum * k * n * sizeof(int8_t) + groupNum * n * sizeof(float);
     tilingData.gmmBaseParams.set_groupNum(groupNum);

@@ -27,6 +27,8 @@ static const std::map<ge::DataType, std::unordered_set<ge::DataType>> BIAS_TYPE_
     {ge::DT_INT8, {ge::DT_FLOAT}},
     {ge::DT_FLOAT8_E4M3FN, {ge::DT_BF16, ge::DT_FLOAT16}}};
 static const std::unordered_set<ge::DataType> FP8_SUPPORT_SET = {ge::DT_FLOAT8_E4M3FN, ge::DT_FLOAT8_E5M2, ge::DT_HIFLOAT8};
+const int64_t UNKNOWN_SHAPE_VALUE = -1;
+const int64_t SHAPE_UNKNOWN_DIM_NUM = -2;
 const int64_t B4_NUMS_IN_B32 = 8;
 
 static bool inline IsNonEmpty(const gert::Shape *shape)
