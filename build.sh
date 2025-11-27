@@ -403,10 +403,10 @@ function build_example()
             ./test_aclnn_${EXAMPLE_NAME}
             run_result=$?
             if [ $run_result -ne 0 ]; then
-                echo "ERROR: Example file: $file execution failed with exit code: $run_result"
+                echo "run test_aclnn_${EXAMPLE_NAME}, execute samples failed"
                 return $run_result
             else
-                echo "INFO: Example file: $file execution completed successfully"
+                echo "run test_aclnn_${EXAMPLE_NAME}, execute samples success"
             fi
         done
     elif [[ "${EXAMPLE_MODE}" == "graph" ]]; then
@@ -421,10 +421,10 @@ function build_example()
             ./test_geir_${EXAMPLE_NAME}
             run_result=$?
             if [ $run_result -ne 0 ]; then
-                echo "ERROR: Example file: $file execution failed with exit code: $run_result"
+                echo "run test_geir_${EXAMPLE_NAME}, execute samples failed"
                 return $run_result
             else
-                echo "INFO: Example file: $file execution completed successfully"
+                echo "run test_geir_${EXAMPLE_NAME}, execute samples success"
             fi
         done
     else
