@@ -324,7 +324,7 @@ void MlaPrologTilingCheck::FillOptionalOutputParamShapeWithDims()
                 expectedParamInfo_.emplace(DEQUANT_SCALE_Q_NORM_NAME, context_.dequantScaleQNorm);
             } else {
                 expectedParamInfo_[QUERY_NORM_NAME].dtype = ge::DT_INT8;
-                expectedParamInfo_.emplace(DEQUANT_SCALE_Q_NORM_NAME, std::vector<uint32_t>{baseShapeInfo_.tSize});
+                expectedParamInfo_.emplace(DEQUANT_SCALE_Q_NORM_NAME, std::vector<uint32_t>{baseShapeInfo_.tSize, 1});
                 expectedParamInfo_[DEQUANT_SCALE_Q_NORM_NAME].dtype = ge::DT_FLOAT;
             }
         } else {
