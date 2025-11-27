@@ -582,13 +582,21 @@ function(add_bin_compile_target)
                     DEPENDS ${OP_BIN_OUT_DIR}
             )
 
-            install(DIRECTORY ${OP_BIN_OUT_DIR}
-                    DESTINATION ${_INSTALL_DIR}/${BINARY_COMPUTE_UNIT} OPTIONAL
-            )
-
-            install(FILES ${BIN_OUT_DIR}/${op_file}.json
-                    DESTINATION ${_INSTALL_DIR}/config/${BINARY_COMPUTE_UNIT} OPTIONAL
-            )
+            if (ENABLE_BUILT_IN)
+                install(DIRECTORY ${OP_BIN_OUT_DIR}
+                        DESTINATION ${_INSTALL_DIR}/${BINARY_COMPUTE_UNIT}/ops_transformer OPTIONAL
+                )
+                install(FILES ${BIN_OUT_DIR}/${op_file}.json
+                        DESTINATION ${_INSTALL_DIR}/config/${BINARY_COMPUTE_UNIT}/ops_transformer OPTIONAL
+                )
+            else()
+                install(DIRECTORY ${OP_BIN_OUT_DIR}
+                        DESTINATION ${_INSTALL_DIR}/${BINARY_COMPUTE_UNIT} OPTIONAL
+                )
+                install(FILES ${BIN_OUT_DIR}/${op_file}.json
+                        DESTINATION ${_INSTALL_DIR}/config/${BINARY_COMPUTE_UNIT} OPTIONAL
+                )
+            endif()
         endif ()
 
         set(_group "1-0")
@@ -680,9 +688,15 @@ function(add_bin_compile_target)
             add_dependencies(${OPS_CONFIG_TARGET} ${_op_target})
         endforeach()
 
-        install(FILES ${BINARY_INFO_CONFIG_FILE}
-                DESTINATION ${_INSTALL_DIR}/config/${BINARY_COMPUTE_UNIT} OPTIONAL
-        )
+        if (ENABLE_BUILT_IN)
+            install(FILES ${BINARY_INFO_CONFIG_FILE}
+                    DESTINATION ${_INSTALL_DIR}/config/${BINARY_COMPUTE_UNIT}/ops_transformer OPTIONAL
+            )
+        else()
+            install(FILES ${BINARY_INFO_CONFIG_FILE}
+                    DESTINATION ${_INSTALL_DIR}/config/${BINARY_COMPUTE_UNIT} OPTIONAL
+            )
+        endif()
     endif ()
 endfunction()
 

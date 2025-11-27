@@ -8,7 +8,6 @@
         <install_script>ops_transformer/script/install.sh</install_script>
         <help>ops_transformer/script/help.info</help>
         <cleanup>ops_transformer/script/cleanup.sh</cleanup>
-        <parallel>true</parallel>
         <check_features>true</check_features>
     </package_info>
     <generate_info value="ops_transformer_version.h" dst_path="ops_transformer" install_path="$(TARGET_ENV)/include/version" install_mod="440" install_type="devel" generator="version_header">
@@ -32,7 +31,13 @@
         <block name="OpsTransformerInc"/>
     </block_info>
     <dir_info value="ops_transformer" install_path="ops_transformer" install_type="all">
-        <path value="ops_transformer/script" install_mod="555"/>
-        <path value="ops_transformer/bin" install_mod="555"/>
+        <path value="ops_transformer/script" install_mod="550"/>
+        <path value="ops_transformer/bin" install_mod="550"/>
+    </dir_info>
+    <dir_info value="opp" install_path="opp" install_type="all">
+        <path value="opp/script" install_mod="550"/>
+        <path value="opp/bin" install_mod="550"/>
+        <path value="opp/include" install_mod="550"/>
+        <path value="opp/lib64" install_mod="550"/>
     </dir_info>
 </config>

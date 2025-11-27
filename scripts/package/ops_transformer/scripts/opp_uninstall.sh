@@ -30,12 +30,11 @@ OPP_PLATFORM_UPPER=$(echo "${OPP_PLATFORM_DIR}" | tr '[:lower:]' '[:upper:]')
 FILELIST_FILE="${CURR_PATH}/filelist.csv"
 COMMON_PARSER_FILE="${CURR_PATH}/install_common_parser.sh"
 
-TRANSFORMER_INSTALL_FILES="ops_transformer_files.txt"
 TARGET_INSTALL_PATH=""
 TARGET_VERSION_DIR="${CURR_PATH}/../.."
 TARGET_VERSION_DIR=$(readlink -f ${TARGET_VERSION_DIR})     # TARGET_INSTALL_PATH + PKG_VERSION_DIR
 TARGET_MOULDE_DIR=${TARGET_VERSION_DIR}/${OPP_PLATFORM_DIR} # TARGET_INSTALL_PATH + PKG_VERSION_DIR + OPP_PLATFORM_DIR
-TARGET_INSTALL_FILES=${TARGET_MOULDE_DIR}/${TRANSFORMER_INSTALL_FILES}
+TARGET_OPP_BUILT_IN=${TARGET_VERSION_DIR}/opp/built-in
 
 ASCEND_INSTALL_INFO="ascend_install.info"
 # init log file path
@@ -122,8 +121,6 @@ check_installed_files() {
 
   check_file_exist "${TARGET_MOULDE_DIR}/bin/setenv.fish"
 
-  check_file_exist "${TARGET_INSTALL_FILES}"
-
   check_directory_exist "${TARGET_MOULDE_DIR}"
 }
 
@@ -170,12 +167,6 @@ get_installed_param() {
 }
 
 remove_module() {
-  local module_sub_dir_list="built-in script lib64 bin include"
-  for module_sub_dir in ${module_sub_dir_list}; do
-    if [ "$(id -u)" != 0 ] && [ ! -w "${TARGET_MOULDE_DIR}/${module_sub_dir}" ]; then
-      chmod u+w -R "${TARGET_MOULDE_DIR}/${module_sub_dir}" 2>/dev/null
-    fi
-  done
   chmod u+w ${TARGET_MOULDE_DIR}/scene.info
 
   logandprint "[INFO]: Delete the installed opp source files in (${TARGET_VERSION_DIR})."
@@ -198,24 +189,21 @@ remove_module() {
       rm -rf ${remain_dir}
     fi
   done
-}
-
-remove_opp() {
-  while read line; do
-    if [ -f $line ]; then
-      rm -f ${line}
+ local remain_opp_dir_list=$(find ${TARGET_OPP_BUILT_IN} -mindepth 1 -maxdepth 1 -type d)
+  for remain_dir in ${remain_opp_dir_list}; do
+    if [ "$(find "${remain_dir}" -type f 2>&1)" = "" ]; then
+      rm -rf ${remain_dir}
     fi
-  done < ${TARGET_INSTALL_FILES}
-  rm -f ${TARGET_INSTALL_FILES}
+  done
 }
 
 remove_ops_transformer() {
-  local ori_mod=$(stat -c %a ${TARGET_MOULDE_DIR})
   if [ "$(id -u)" != 0 ] && [ ! -w "${TARGET_MOULDE_DIR}" ]; then
     chmod u+w -R "${TARGET_MOULDE_DIR}" 2>/dev/null
   fi
-
-  remove_opp
+  if [ "$(id -u)" != 0 ] && [ ! -w "${TARGET_OPP_BUILT_IN}" ]; then
+    chmod u+w -R "${TARGET_OPP_BUILT_IN}" 2>/dev/null
+  fi
 
   remove_module
 
@@ -228,8 +216,6 @@ remove_ops_transformer() {
   for file in $(ls -A ${TARGET_MOULDE_DIR}/* 2>/dev/null); do
     logandprint "[WARNING]: ${file}, has files changed by users, cannot be delete."
   done
-
-  chmod ${ori_mod} -R ${TARGET_MOULDE_DIR}
 }
 
 remote_all_soft_link() {
