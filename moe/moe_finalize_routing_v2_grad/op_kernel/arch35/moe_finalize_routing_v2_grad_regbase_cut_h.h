@@ -361,7 +361,7 @@ __aicore__ inline void MoeFinalizeRoutingV2GradRegBaseCutH<T1, T2, T3, IsBiasExi
         DataCopy(expandedXUb, this->expandedXGm_[xMainOffset], foldFactor_);
         DataCopy(
             expandedXUb[foldFactor_], this->expandedXGm_[xFoldOffset],
-            Ops::Base::CeilAlign(foldTailFactor, typeAlignFactor_));
+            ops::CeilAlign(foldTailFactor, typeAlignFactor_));
         this->expandedXInQueue_.template EnQue<T1>(expandedXUb);
         expandedXUb = this->expandedXInQueue_.template DeQue<T1>();
         if constexpr (IsBiasExist) {
