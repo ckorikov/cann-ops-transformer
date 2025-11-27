@@ -342,6 +342,7 @@ function build()
     export LD_LIBRARY_PATH=${BUILD_DIR}:$LD_LIBRARY_PATH
     
     cmake --build . --target ${target} ${JOB_NUM} ${option}
+    if [ $? -ne 0 ]; then echo "[ERROR] build failed!" && exit 1; fi
 }
 
 ARCH_INFO=$(uname -m)
