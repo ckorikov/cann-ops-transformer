@@ -544,7 +544,7 @@ __global__ __aicore__ void matmul_all_reduce(
         using cType = MatmulType<AscendC::TPosition::GM, CubeFormat::ND, C_DTYPE>;
         using biasType = MatmulType<AscendC::TPosition::GM, CubeFormat::ND, half>;
         INVOKE_MATMUL_ALL_REDUCE_OP_IMPL(MatmulAllReduce310General, true, true, AntiQuantType::PER_CHANNEL, true);
-    } else if constexpr (EMPTY_INPUT == MATMUL_ALLREDUCE_EMPTY_INPUT_T && M_TYPE == MATMUL_ALLREDUCE_MM_TYPE_FP_MM && 
+    } else if constexpr (EMPTY_INPUT == MATMUL_ALLREDUCE_EMPTY_INPUT_T && MM_TYPE == MATMUL_ALLREDUCE_MM_TYPE_FP_MM && 
         FORMAT_B == FORMAT_B_ND) {
         // k==0 伪量化ND
         GET_TILING_DATA(tilingData, tilingGM);
