@@ -179,19 +179,19 @@ std::string QSFALayoutToSerialString(QSFALayout layout)
     }
 }
 
-ge::graphStatus QSFAMlaTiling::SetBlockDim(uint32_t blockDim)
+ge::graphStatus QSFAMlaTiling::SetBlockDim(uint32_t blockDim) const
 {
     context_->SetBlockDim(blockDim);
     return ge::GRAPH_SUCCESS;
 }
 
-ge::graphStatus QSFAMlaTiling::SetTilingKey(uint64_t tilingKey)
+ge::graphStatus QSFAMlaTiling::SetTilingKey(uint64_t tilingKey) const
 {
     context_->SetTilingKey(tilingKey);
     return ge::GRAPH_SUCCESS;
 }
 
-ge::graphStatus QSFAMlaTiling::SetWorkspaceSize(uint64_t workspaceSize)
+ge::graphStatus QSFAMlaTiling::SetWorkspaceSize(uint64_t workspaceSize) const
 {
     OP_CHECK_IF(context_->GetWorkspaceSizes(1) == nullptr,
         OPS_REPORT_VECTOR_INNER_ERR(context_->GetNodeName(), "workSpaceSize got from ge is nullptr"),
@@ -201,7 +201,7 @@ ge::graphStatus QSFAMlaTiling::SetWorkspaceSize(uint64_t workspaceSize)
     return ge::GRAPH_SUCCESS;
 }
 
-ge::graphStatus QSFAMlaTiling::SetTilingData(TilingDef &tilingData)
+ge::graphStatus QSFAMlaTiling::SetTilingData(TilingDef &tilingData) const
 {
     OP_CHECK_IF(context_->GetRawTilingData() == nullptr,
         OPS_REPORT_VECTOR_INNER_ERR(context_->GetNodeName(), "RawTilingData got from GE context is nullptr."),
@@ -239,7 +239,7 @@ void QSFAMlaTiling::GenTilingKey()
     OP_LOGI(sfaaInfo_->opName, "QSFA tilingKey_: %lu.", tilingKey_);
 }
 
-void QSFAMlaTiling::ZeroTensorProcess()
+void QSFAMlaTiling::ZeroTensorProcess() const
 {
     if (sfaaInfo_->s2Size == 0) {
         /*
@@ -369,7 +369,7 @@ void QSFAMlaTiling::FillTiling()
     FillTilingSingleCoreTensorSizeMla();
 }
 
-uint32_t QSFAMlaTiling::CalcBalanceFDParamNums(const uint32_t actCoreNum)
+uint32_t QSFAMlaTiling::CalcBalanceFDParamNums(const uint32_t actCoreNum) const
 {
     return actCoreNum * 2 * sfaaInfo_->n2Size * mBaseSize_; // 2:每个核可能有头规约和尾规约，一共两份规约信息
 }
@@ -826,11 +826,11 @@ ge::graphStatus QSFATilingCheck::CheckParaExistence()
 }
 
 ge::graphStatus QSFATilingCheck::GetActualSeqLenSize(uint32_t &size, const gert::Tensor *tensor,
-    const QSFALayout &layoutQuery, const std::string &name)
+    const QSFALayout &layout, const std::string &name) const
 {
     if (tensor == nullptr) {
         OP_LOGE(opName_, "when layout of query is %s, %s must be provided.",
-            QSFALayoutToSerialString(layoutQuery).c_str(), name.c_str());
+            QSFALayoutToSerialString(layout).c_str(), name.c_str());
         return ge::GRAPH_FAILED;
     }
     int64_t shapeSize = tensor->GetShapeSize();
@@ -1389,7 +1389,7 @@ ge::graphStatus QSFAInfoParser::CheckRequiredParaExistence() const
 }
 
 ge::graphStatus QSFAInfoParser::GetActualSeqLenSize(uint32_t &size, const gert::Tensor *tensor,
-    QSFALayout &layout, const std::string &name)
+    QSFALayout &layout, const std::string &name) const
 {
     if ((tensor == nullptr)) {
         OP_LOGE(opName_, "when layout of query is %s, %s must be provided.",
@@ -1435,7 +1435,7 @@ ge::graphStatus QSFAInfoParser::GetNpuInfo()
 
     socVersion_ = ascendcPlatform.GetSocVersion();
     if (socVersion_ != platform_ascendc::SocVersion::ASCEND910B) {
-        OPS_REPORT_VECTOR_INNER_ERR(opName_, "SOC Version[%d] is not support.", (int32_t)socVersion_);
+        OPS_REPORT_VECTOR_INNER_ERR(opName_, "SOC Version[%d] is not support.", static_cast<int32_t>(socVersion_));
         return GRAPH_FAILED;
     }
 

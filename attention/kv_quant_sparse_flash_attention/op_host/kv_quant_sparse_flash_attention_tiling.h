@@ -22,10 +22,6 @@
 #include "register/tilingdata_base.h"
 #include "exe_graph/runtime/tiling_context.h"
 
-using std::map;
-using std::string;
-using std::pair;
-
 namespace optiling {
 // ------------------算子原型索引常量定义----------------
 // Inputs Index
@@ -231,8 +227,8 @@ std::string QSFAShape2String(const T &shape)
 
 static std::string GetShapeStr(gert::Shape shape);
 static std::string QSFADataTypeToSerialString(ge::DataType type);
-string QSFATensorDesc2String(const gert::StorageShape *shape, const gert::CompileTimeTensorDesc *tensor);
-string QSFADebugTilingContext(const gert::TilingContext *context);
+std::string QSFATensorDesc2String(const gert::StorageShape *shape, const gert::CompileTimeTensorDesc *tensor);
+std::string QSFADebugTilingContext(const gert::TilingContext *context);
 std::string QSFALayoutToSerialString(QSFALayout layout);
 
 // -----------算子Tiling入参信息类---------------
@@ -309,16 +305,16 @@ public:
     ge::graphStatus DoOpTiling(QSFATilingInfo *sfaaInfo);
 
 private:
-    ge::graphStatus SetBlockDim(uint32_t blockDim);
-    ge::graphStatus SetTilingKey(uint64_t tilingKey);
-    ge::graphStatus SetWorkspaceSize(uint64_t workspaceSize);
-    ge::graphStatus SetTilingData(TilingDef &tilingData);
+    ge::graphStatus SetBlockDim(uint32_t blockDim) const;
+    ge::graphStatus SetTilingKey(uint64_t tilingKey) const;
+    ge::graphStatus SetWorkspaceSize(uint64_t workspaceSize) const;
+    ge::graphStatus SetTilingData(TilingDef &tilingData) const;
     gert::TilingContext *context_ = nullptr;
     ge::graphStatus GetPlatformInfo();
     void GenTilingKey();
     bool DealSameSeqEachBatch();
 
-    void ZeroTensorProcess();
+    void ZeroTensorProcess() const;
     void InitParams();
 
     void Split();
@@ -342,7 +338,7 @@ private:
     void CalcFDWorkSpace(const uint32_t actCoreNum);
     void GetWorkspaceSize();
 
-    uint32_t CalcBalanceFDParamNums(const uint32_t actCoreNum);
+    uint32_t CalcBalanceFDParamNums(const uint32_t actCoreNum) const;
 
     void CalcBlockDim();
 
@@ -434,7 +430,7 @@ private:
     ge::graphStatus CheckParaExistenceMla() const;
     ge::graphStatus CheckParaExistence();
     ge::graphStatus GetActualSeqLenSize(uint32_t &size, const gert::Tensor *tensor,
-        const QSFALayout &layout, const std::string &name);
+        const QSFALayout &layout, const std::string &name) const;
     void SetQSFAShapeCompare();
     ge::graphStatus CheckKVDType();
     ge::graphStatus CheckKVShapeForBatchContinuous();
@@ -529,7 +525,7 @@ public:
     ge::graphStatus CheckRequiredParaExistence() const;
 
     ge::graphStatus GetActualSeqLenSize(uint32_t &size, const gert::Tensor *tensor,
-        QSFALayout &layout, const std::string &name);
+        QSFALayout &layout, const std::string &name) const;
     ge::graphStatus GetActualSeqLenQSize(uint32_t &size);
     ge::graphStatus GetOpName();
     ge::graphStatus GetNpuInfo();
