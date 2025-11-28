@@ -20,7 +20,7 @@ extern "C" {
  * @domain aclnn_ops_infer
  *
  * @param [in] x: 表示公式中的输入x，数据类型支持FLOAT16、BFLOAT16、INT8、FLOAT8_E4M3FN，数据格式支持ND，支持的最大长度为128个。
- * @param [in] weight：表示公式中的weight，数据类型支持FLOAT16、BFLOAT16、INT8、INT4、FLOAT4_E2M1，数据格式支持NZ，支持的最大长度为128个。
+ * @param [in] weight：表示公式中的weight，数据类型支持FLOAT16、BFLOAT16、INT8、INT4、FLOAT4_E2M1、INT32、FLOAT32，数据格式支持NZ，支持的最大长度为128个。
  * @param [in] biasOptional：表示公式中的bias，数据类型支持FLOAT16、BFLOAT16、FLOAT32、INT32，数据格式支持ND，长度与weight相同。
  * @param [in] scaleOptional：代表量化参数中的缩放因子，数据类型支持BFLOAT16、FLOAT32、UINT64，数据格式支持ND，长度与weight相同。
  * @param [in] offsetOptional：代表量化参数中的偏移量，数据类型支持FLOAT32，数据格式支持ND，长度与weight相同。

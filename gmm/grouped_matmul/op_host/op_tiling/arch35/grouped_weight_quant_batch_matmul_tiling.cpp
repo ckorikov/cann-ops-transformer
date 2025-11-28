@@ -93,7 +93,7 @@ bool GroupedWeightQuantBatchMatmulTiling::AnalyzeInput(const gert::TilingContext
     weightDtype_ = wDesc->GetDataType();
     auto wFormat = static_cast<ge::Format>(ge::GetPrimaryFormat(wDesc->GetStorageFormat()));
     if (wFormat == ge::FORMAT_FRACTAL_NZ_C0_16 || wFormat == ge::FORMAT_FRACTAL_NZ_C0_32 ||
-        wFormat == ge::FORMAT_FRACTAL_NZ_C0_4) {
+        wFormat == ge::FORMAT_FRACTAL_NZ_C0_4 || wFormat == ge::FORMAT_FRACTAL_NZ_C0_2) {
         wFormat = ge::FORMAT_FRACTAL_NZ;
     }
     weightNzFlag_ = wFormat == ge::FORMAT_FRACTAL_NZ;

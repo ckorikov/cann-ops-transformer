@@ -61,7 +61,7 @@ namespace {
   static constexpr size_t ALIGN_NZ_INT8_N = 32UL;
   static constexpr size_t ALIGN_NZ_K = 16UL;
 
-  static constexpr uint64_t INT4_PER_INT32 = 8UL;
+  static constexpr uint64_t B4_PER_B32 = 8UL;
 
   static constexpr size_t WEIGHT_DIM_A8W4 = 3UL;
   static constexpr size_t OFFSET_DIM_A8W4 = 3UL;
@@ -70,18 +70,90 @@ namespace {
   static constexpr size_t PER_GROUP_SCALE_DIM = 3UL;
   static constexpr size_t DIMS_THREE_FOR_GMM = 3UL;
 
-  static void UnpackInt32ToInt4(const aclTensorList *&tensorListS32, const std::string& tensorListType)
+  static bool IsFormatNZWithC0(const aclTensor* tensor) {
+    return ge::GetPrimaryFormat(tensor->GetStorageFormat()) == op::Format::FORMAT_FRACTAL_NZ_C0_2 ||
+           ge::GetPrimaryFormat(tensor->GetStorageFormat()) == op::Format::FORMAT_FRACTAL_NZ_C0_4;
+  }
+
+  static bool IsFormatNZ(const aclTensor* tensor) {
+    return ge::GetPrimaryFormat(tensor->GetStorageFormat()) == op::Format::FORMAT_FRACTAL_NZ ||
+           IsFormatNZWithC0(tensor);
+  }
+
+  static aclnnStatus SetSpecialNZTensorToNormalNZFormat(const aclTensorList *&tensorListInput) {
+      if (tensorListInput->Size() <= 0 || !IsFormatNZWithC0((*tensorListInput)[0])) {
+          return ACLNN_SUCCESS;
+      }
+
+      OP_LOGD("set NZ_C0 format to NZ format begin.");
+      auto tensorList = const_cast<aclTensorList *>(tensorListInput);
+      for (size_t i = 0; i < tensorList->Size();++i) {
+        (*tensorList)[i]->SetViewFormat(op::Format::FORMAT_ND);
+        (*tensorList)[i]->SetOriginalFormat(op::Format::FORMAT_ND);
+        (*tensorList)[i]->SetStorageFormat(op::Format::FORMAT_FRACTAL_NZ);
+      }
+      OP_LOGD("set NZ_C0 format to NZ format finish.");
+      return ACLNN_SUCCESS;
+  }
+
+  static void SetStorageShapeForNZ(aclTensor* tensor) {
+      // storageShape的倒数第一维要放大8倍， 比如(n/64,k/16,16,8) -> (n/64,k/16,16,64)
+      auto storageShape = tensor->GetStorageShape();
+      auto storageShapeDim = storageShape.GetDimNum();
+      storageShape[storageShapeDim - 1] *= B4_PER_B32;
+      tensor->SetStorageShape(storageShape);
+  }
+
+  static void UnpackB32ToB4(const aclTensorList *&tensorListB32, const std::string& tensorListType)
   {
-    OP_LOGD("Unpack %s from int32 to int4 start.", tensorListType.c_str());
-    auto tensorListS4 = const_cast<aclTensorList *>(tensorListS32);
-    for (size_t i = 0; i < tensorListS4->Size();++i) {
-      op::Shape tensorShape = (*tensorListS4)[i]->GetViewShape();
-      auto viewShapeDim = tensorShape.GetDimNum();
-      tensorShape[viewShapeDim - 1] = tensorShape[viewShapeDim - 1] * INT4_PER_INT32;
-      (*tensorListS4)[i]->SetViewShape(tensorShape);
-      (*tensorListS4)[i]->SetDataType(DataType::DT_INT4);
+    if (tensorListB32->Size() <= 0) {
+      return;
     }
-    OP_LOGD("Unpack %s from int32 to int4 finished.", tensorListType.c_str());
+
+    DataType b32Dtype = (*tensorListB32)[0]->GetDataType();
+    DataType b4Dtype = DataType::DT_INT4;
+    if (b32Dtype == DataType::DT_FLOAT) {
+      b4Dtype = DataType::DT_FLOAT4_E2M1;  
+    }
+
+    OP_LOGD("Unpack %s from %s to %s start.", tensorListType.c_str(), gmm::dTypeToString(b32Dtype),
+            gmm::dTypeToString(b4Dtype));
+    auto tensorListB4 = const_cast<aclTensorList *>(tensorListB32);
+    for (size_t i = 0; i < tensorListB4->Size();++i) {
+      op::Shape tensorShape = (*tensorListB4)[i]->GetViewShape();
+      op::Strides newStride = (*tensorListB4)[i]->GetViewStrides();
+      auto viewShapeDim = tensorShape.GetDimNum();
+      bool transposeTensor = false;
+      auto changeDimIdx = viewShapeDim - 1;
+      // 轴大于2才判断是否转置
+      if (viewShapeDim >= 2 && gmm::IsTransposeLastTwoDims((*tensorListB4)[i])) {
+        transposeTensor = true;
+        // 转置场景扩大倒数第2维
+        changeDimIdx = viewShapeDim - 2;
+      }
+      tensorShape[changeDimIdx] = tensorShape[changeDimIdx] * B4_PER_B32;
+      (*tensorListB4)[i]->SetViewShape(tensorShape);
+      (*tensorListB4)[i]->SetDataType(b4Dtype);
+
+      if (IsFormatNZ((*tensorListB4)[i])) {
+        SetStorageShapeForNZ((*tensorListB4)[i]);
+      }
+
+      if (transposeTensor) {
+        auto strideSize = newStride.size();
+        // 转置场景，B32承载B4时strides缩小了8倍，需要放大， 即（k*n/8, 1，k/8）->(k*n, 1, k)
+        newStride[strideSize - 1] *= B4_PER_B32;
+        // 转置的轴大于等于3维，扩大0到strideSize-3维
+        for (int64_t batchDim = strideSize - 3; batchDim >= 0; batchDim--) {
+          newStride[batchDim] *= B4_PER_B32;
+        }
+
+        (*tensorListB4)[i]->SetViewStrides(newStride);
+      }
+      OP_LOGD("Current tensorlist dim : %zu, transpose status: %d.", i, transposeTensor);
+    }
+    OP_LOGD("Unpack %s from %s to %s finished.", tensorListType.c_str(), gmm::dTypeToString(b32Dtype),
+            gmm::dTypeToString(b4Dtype));
   }
 
   bool IsQuant(const DataType &xDtype, const DataType &weightDtype)
@@ -2061,11 +2133,23 @@ aclnnStatus aclnnGroupedMatmulWeightNzGetWorkspaceSize(const aclTensorList *x, c
                  DFX_OUT(out, activationFeatureOutOptional, dynQuantScaleOutOptional));
   if ((*weight)[0]->GetDataType() == DataType::DT_INT32) {
     // convert weight from int32 to int4
-    UnpackInt32ToInt4(weight, "weight");
+    UnpackB32ToB4(weight, "weight");
+    if (GetCurrentPlatformInfo().GetSocVersion() == SocVersion::ASCEND910_95 &&
+        IsWeightQuant((*x)[0]->GetDataType(), (*weight)[0]->GetDataType())) {
+      SetSpecialNZTensorToNormalNZFormat(weight);
+    }
+  }
+
+  if ((*weight)[0]->GetDataType() == DataType::DT_FLOAT) {
+    if (GetCurrentPlatformInfo().GetSocVersion() == SocVersion::ASCEND910_95 &&
+        IsWeightQuant((*x)[0]->GetDataType(), (*weight)[0]->GetDataType())) {
+      UnpackB32ToB4(weight, "weight");
+      SetSpecialNZTensorToNormalNZFormat(weight);
+    }
   }
   if ((*x)[0]->GetDataType() == DataType::DT_INT32) {
     // convert x from int32 to int4
-    UnpackInt32ToInt4(x, "x");
+    UnpackB32ToB4(x, "x");
   }
   // aclnnGroupedMatmulWeightNz dont support split K dim.
   CHECK_COND(groupType != gmm::SPLIT_K, ACLNN_ERR_PARAM_INVALID, "Not support split k dim now, groupType can not be 2.");
@@ -2101,11 +2185,11 @@ aclnnStatus aclnnGroupedMatmulV5GetWorkspaceSize(const aclTensorList *x, const a
   CHECK_COND(weight->Size() != 0, ACLNN_ERR_PARAM_INVALID, "weight should not be null tensorlist ");
   if ((*weight)[0]->GetDataType() == DataType::DT_INT32) {
     // convert weight from int32 to int4
-    UnpackInt32ToInt4(weight, "weight");
+    UnpackB32ToB4(weight, "weight");
   }
   if ((*x)[0]->GetDataType() == DataType::DT_INT32) {
     // convert x from int32 to int4
-    UnpackInt32ToInt4(x, "x");
+    UnpackB32ToB4(x, "x");
   }
   CHECK_COND(CheckCommonParam(x, weight, groupListOptional, splitItem, groupType, groupListType, actType, out)
              == ACLNN_SUCCESS, ACLNN_ERR_PARAM_INVALID, "one of required inputs does not meet the requirement.");
@@ -2137,11 +2221,11 @@ aclnnStatus aclnnGroupedMatmulV4GetWorkspaceSize(const aclTensorList *x, const a
                  DFX_OUT(out, activationFeatureOutOptional, dynQuantScaleOutOptional));
   if ((*weight)[0]->GetDataType() == DataType::DT_INT32) {
     // convert weight from int32 to int4
-    UnpackInt32ToInt4(weight, "weight");
+    UnpackB32ToB4(weight, "weight");
   }
   if ((*x)[0]->GetDataType() == DataType::DT_INT32) {
     // convert x from int32 to int4
-    UnpackInt32ToInt4(x, "x");
+    UnpackB32ToB4(x, "x");
   }
   CHECK_COND(CheckCommonParam(x, weight, groupListOptional, splitItem, groupType, groupListType, actType, out)
              == ACLNN_SUCCESS, ACLNN_ERR_PARAM_INVALID, "one of required inputs does not meet the requirement.");

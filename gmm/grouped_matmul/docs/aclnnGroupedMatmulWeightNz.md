@@ -90,7 +90,7 @@
   -   weight（aclTensorList *，计算输入）：Device侧的aclTensorList，公式中的weight，[数据格式](../../../docs/zh/context/数据格式.md)支持AI处理器亲和数据排布格式(nz)，支持的最大长度为128个。
       - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：数据类型支持FLOAT16、BFLOAT16、INT8、INT4，[数据格式](../../../docs/zh/context/数据格式.md)支持ND和FRACTAL_NZ格式。可使用aclnnCalculateMatmulWeightSizeV2接口以及aclnnTransMatmulWeight接口完成输入Format从ND到AI处理器亲和数据排布格式（NZ）的转换，具体使用限制请参考这两个接口的接口说明书。
       - <term>Atlas 推理系列产品</term>：数据类型支持FLOAT16，[数据格式](../../../docs/zh/context/数据格式.md)仅支持FRACTAL_NZ格式。可使用aclnnCalculateMatmulWeightSizeV2接口以及aclnnTransMatmulWeight接口完成输入Format从ND到AI处理器亲和数据排布格式（NZ）的转换，具体使用限制请参考这两个接口的接口说明书。
-      - <term>昇腾910_95 AI处理器</term>：数据类型支持FLOAT16、BFLOAT16、FLOAT4_E2M1、INT4,[数据格式](../../../docs/zh/context/数据格式.md)支持ND和FRACTAL_NZ格式。可使用aclnnNpuFormatCast接口完成输入Format从ND到AI处理器亲和数据排布格式（NZ）的转换。当数据类型为FLOAT4_E2M1时，还需要在aclnnNpuFormatCast调用后，调用aclnnCast接口将FLOAT32表示的FLOAT4_E2M1转换为正确的类型。但当为INT4类型时，需要使用aclnnConvertWeightToInt4Pack接口完成数据格式从ND到NZ和数据类型从INT32到INT4的转换。具体使用限制请参考该接口的接口说明书。
+      - <term>昇腾910_95 AI处理器</term>：数据类型支持FLOAT16、BFLOAT16、FLOAT4_E2M1、INT4、FLOAT32、INT32,[数据格式](../../../docs/zh/context/数据格式.md)支持ND和FRACTAL_NZ格式。可使用aclnnNpuFormatCast接口完成输入Format从ND到AI处理器亲和数据排布格式（NZ）的转换。当数据类型为FLOAT4_E2M1时，还需要在aclnnNpuFormatCast调用后，调用aclnnCast接口将FLOAT32表示的FLOAT4_E2M1转换为正确的类型。但当为INT4类型时，需要使用aclnnConvertWeightToInt4Pack接口完成数据格式从ND到NZ和数据类型从INT32到INT4的转换。当传入FLOAT32或者INT32时，接口内部每个FLOAT32/INT32识别成8个FLOAT4_E2M1/INT4。具体使用限制请参考该接口的接口说明书。
   -   biasOptional（aclTensorList *，计算输入）：可选参数，Device侧的aclTensorList，公式中的bias，[数据格式](../../../docs/zh/context/数据格式.md)支持ND，长度与weight相同。
       - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：数据类型支持FLOAT16、FLOAT32、INT32。
       - <term>Atlas 推理系列产品</term>：数据类型支持FLOAT16。
@@ -261,7 +261,13 @@
         |0   |FLOAT8_E4M3FN |FLOAT8_E8M0   |FLOAT4_E2M1     |FLOAT8_E8M0 |null    |null |BFLOAT16/null             | BFLOAT16|
         |0   |INT8          |FLOAT32       |INT4            |FLOAT16     |FLOAT32 |null |FLOAT32/null              | BFLOAT16|
         |0   |INT8          |FLOAT32       |INT4            |FLOAT16     |FLOAT32 |null |FLOAT32/null              | FLOAT16|
-    - 伪量化场景下，当x和weight的类型分别为BFLOAT16/FLOAT16和FLOAT4_E2M1时，或为INT8和INT4时，仅支持x、weight均不转置, 为FLOAT8_E4M3FN和FLOAT4_E2M1时仅支持x不转置且weight转置。
+        |0   |BFLOAT16      |null          |FLOAT32         |FLOAT8_E8M0 |null    |null | BFLOAT16/FLOAT32/null    | BFLOAT16|
+        |0   |FLOAT16       |null          |FLOAT32         |FLOAT8_E8M0 |null    |null |FLOAT16/null              | FLOAT16|
+        |0   |FLOAT8_E4M3FN |FLOAT8_E8M0   |FLOAT32         |FLOAT8_E8M0 |null    |null |FLOAT16/null              | FLOAT16|
+        |0   |FLOAT8_E4M3FN |FLOAT8_E8M0   |FLOAT32         |FLOAT8_E8M0 |null    |null |BFLOAT16/null             | BFLOAT16|
+        |0   |INT8          |FLOAT32       |INT32           |FLOAT16     |FLOAT32 |null |FLOAT32/null              | BFLOAT16|
+        |0   |INT8          |FLOAT32       |INT32           |FLOAT16     |FLOAT32 |null |FLOAT32/null              | FLOAT16|
+    - 伪量化场景下，当x和weight的类型分别为BFLOAT16/FLOAT16和FLOAT4_E2M1/FLOAT32时，或为INT8和INT4/INT32时，仅支持x、weight均不转置, 为FLOAT8_E4M3FN和FLOAT4_E2M1/FLOAT32时仅支持x不转置且weight转置。
     - 不同groupType支持场景:
       - 支持场景中单表示单tensor，多表示多tensor，表示顺序为x，weight，out，例如单多单表示支持x为单tensor，weight多tensor，out单tensor的场景。
         | groupType | 支持场景 | 场景限制 |
