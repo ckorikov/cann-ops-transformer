@@ -291,6 +291,7 @@ __aicore__ inline void AllGatherQuantBmm<AType, BType, BiasType,
     if (GetBlockIdx() < tilingData_->quantBmmv3LocalTiling.matmulTiling.usedCoreNum) {
         QuantMatmulLocalCompute();
     }
+    Mc2SyncAll<Mc2CoreType::ON_CUBE>();
 
     // 只做本卡计算时，aGM_从本地获取；计算远端卡数据时，aGM_为gather来的数据
     if (debugMode_ != MC2_DEBUG_ONLY_CUBE) {
@@ -341,8 +342,7 @@ template <typename AType, typename BType, typename BiasType,
 __aicore__ inline void AllGatherQuantBmm<AType, BType, BiasType, X2ScaleType, CType, ATrans, BTrans>::PostProcess() {
     // 在最后一次计算完成后，单核清除状态位置，避免核间读写依赖
     // 防止某一个核执行过快清空RcvCnt, 增加全核同步
-    AscendC::CrossCoreSetFlag<0, PIPE_FIX>(3);
-    AscendC::CrossCoreWaitFlag(3);
+    Mc2SyncAll<Mc2CoreType::ON_CUBE>();
     if (debugMode_ != MC2_DEBUG_ONLY_CUBE) {
         hcclAllgather_.Finalize();
     }
