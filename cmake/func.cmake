@@ -52,7 +52,6 @@ if(ENABLE_EXPERIMENTAL)
         "${CMAKE_CURRENT_SOURCE_DIR}/experimental/mc2/**/op_host/CMakeLists.txt"
         "${CMAKE_CURRENT_SOURCE_DIR}/experimental/moe/**/op_host/CMakeLists.txt"
         "${CMAKE_CURRENT_SOURCE_DIR}/experimental/posembedding/**/op_host/CMakeLists.txt"
-        "${CMAKE_CURRENT_SOURCE_DIR}/experimental/examples/**/op_host/CMakeLists.txt"
         )
     else()
         file(GLOB OP_HOST_CMAKE_FILES 
@@ -65,7 +64,6 @@ if(ENABLE_EXPERIMENTAL)
                 "${CMAKE_CURRENT_SOURCE_DIR}/moe/**/op_host/CMakeLists.txt"
                 "${CMAKE_CURRENT_SOURCE_DIR}/ffn/**/op_host/CMakeLists.txt"
                 "${CMAKE_CURRENT_SOURCE_DIR}/mc2/**/op_host/CMakeLists.txt"
-                "${CMAKE_CURRENT_SOURCE_DIR}/examples/mc2/**/op_host/CMakeLists.txt"
             )
             List(APPEND OP_HOST_CMAKE_FILES ${CANNDEV_OPS_HOST_CMAKE_FILES})
         endif()
