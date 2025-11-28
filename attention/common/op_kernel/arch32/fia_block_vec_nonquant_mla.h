@@ -747,37 +747,22 @@ __aicore__ inline void FiaBlockVecNonQuantMla<FIAT>::ProcessVec1SingleBuf(const 
 }
 
 template <typename FIAT>
-__aicore__ inline void
-FiaBlockVecNonQuantMla<FIAT>::CopySoftmaxLseToGmByLayout(const AttentionCommon::RunInfo &info, LocalTensor<T> &lseSrc,
+__aicore__ inline void FiaBlockVecNonQuantMla<FIAT>::CopySoftmaxLseToGmByLayout(const AttentionCommon::RunInfo &info, LocalTensor<T> &lseSrc,
                                                          uint32_t mOffset, const MSplitInfo &mSplitInfo)
 {
     if (mSplitInfo.vecDealM == 0) {
         return;
     }
-    if (constInfo.outputLayout == FIA_LAYOUT::TND) {
+    if (LAYOUT_T == FIA_LAYOUT::TND) {
         uint32_t prefixBS1 = info.bIdx == 0U ? 0U : actualSeqLengthsGmQ.GetValue(info.bIdx - 1);
         uint64_t bN2Offset =
             static_cast<uint64_t>(prefixBS1) * constInfo.qHeadNum + static_cast<uint64_t>(info.n2Idx) * constInfo.gSize;
         DataCopySoftmaxLseTND(softmaxLseGm, lseSrc, bN2Offset, mOffset, mSplitInfo.vecDealM, constInfo);
-    } else if (constInfo.outputLayout == FIA_LAYOUT::NTD) {
-        uint32_t prefixBS1 = info.bIdx == 0U ? 0U : actualSeqLengthsGmQ.GetValue(info.bIdx - 1);
-        uint32_t s1Size = info.bIdx == 0U ?
-                              actualSeqLengthsGmQ.GetValue(0U) :
-                              actualSeqLengthsGmQ.GetValue(info.bIdx) - actualSeqLengthsGmQ.GetValue(info.bIdx - 1U);
-        uint64_t bN2Offset =
-            static_cast<uint64_t>(prefixBS1) * constInfo.qHeadNum + static_cast<uint64_t>(info.n2Idx) * constInfo.gSize;
-        DataCopySoftmaxLseNTD(softmaxLseGm, lseSrc, bN2Offset, mOffset, mSplitInfo.vecDealM, constInfo, s1Size);
-    } else if (constInfo.outputLayout == FIA_LAYOUT::BSND || constInfo.outputLayout == FIA_LAYOUT::BSH) {
+    } else if (LAYOUT_T == FIA_LAYOUT::BSND || LAYOUT_T == FIA_LAYOUT::BSH) {
         uint64_t bN2Offset = static_cast<uint64_t>(info.bIdx) * constInfo.qHeadNum * constInfo.qSeqSize +
                              static_cast<uint64_t>(info.n2Idx) * constInfo.gSize * constInfo.qSeqSize;
         DataCopySoftmaxLseBSND(softmaxLseGm, lseSrc, bN2Offset, mOffset, mSplitInfo.vecDealM, constInfo,
                                qActSeqLensParser, info.bIdx);
-    } else if (constInfo.outputLayout == FIA_LAYOUT::NBSD) {
-        uint64_t n2BOffset =
-            static_cast<uint64_t>(info.bIdx) * constInfo.qSeqSize +
-            static_cast<uint64_t>(info.n2Idx) * constInfo.gSize * constInfo.qSeqSize * constInfo.batchSize;
-        DataCopySoftmaxLseNBSD<COMPUTE_T, Q_MODE>(softmaxLseGm, lseSrc, n2BOffset, mOffset, mSplitInfo.vecDealM,
-                                                  constInfo, qActSeqLensParser, info.bIdx);
     } else {
         uint64_t bN2Offset = static_cast<uint64_t>(info.bIdx) * constInfo.qHeadNum * constInfo.qSeqSize +
                              static_cast<uint64_t>(info.n2Idx) * constInfo.gSize * constInfo.qSeqSize;
