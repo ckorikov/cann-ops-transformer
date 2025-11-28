@@ -190,3 +190,123 @@ TEST_F(l2_moe_fused_topk_test, ascend910B2_test_moe_fused_topk_4) {
     aclnnStatus aclRet = ut.TestGetWorkspaceSize(&workspace_size); // check op graph
     EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_INVALID);
 }
+
+TEST_F(l2_moe_fused_topk_test, ascend910B2_test_moe_fused_topk_5) {
+
+    int64_t num_token = 256;
+    int64_t expert_num = 256;
+    int64_t max_mapping_num = 128;
+
+    uint32_t group_num = 4;
+    uint32_t group_topk = 2;
+    uint32_t topk = 2;
+    uint32_t topn = 2;
+    uint32_t activate_type = 0;
+    bool is_norm = true;
+    float scale = 1.0;
+    bool enable_expert_mapping = true;
+
+    vector<int64_t> x_dims = {num_token, expert_num};
+    vector<int64_t> add_num_dims = {expert_num};
+    vector<int64_t> mapping_num_dims = {expert_num};
+    vector<int64_t> mapping_table_dims = {expert_num, max_mapping_num};
+    vector<int64_t> y_dims = {num_token, topk};
+    vector<int64_t> indices_dims = {num_token, topk};
+
+    auto x_desc = TensorDesc(x_dims, ACL_FLOAT, ACL_FORMAT_ND).ValueRange(-1, 1);
+    auto add_num_desc = TensorDesc(add_num_dims, ACL_FLOAT, ACL_FORMAT_ND).ValueRange(-1, 1);
+
+    auto mapping_num_desc = TensorDesc(mapping_num_dims, ACL_INT32, ACL_FORMAT_ND).ValueRange(1L, max_mapping_num);
+    auto mapping_table_desc = TensorDesc(mapping_table_dims, ACL_INT32, ACL_FORMAT_ND).ValueRange(1L, max_mapping_num);
+
+    auto y_desc = TensorDesc(y_dims, ACL_FLOAT, ACL_FORMAT_ND);
+    auto indices_desc = TensorDesc(indices_dims, ACL_INT32, ACL_FORMAT_ND);
+
+    auto ut = OP_API_UT(aclnnMoeFusedTopk,  // host api第二段接口名称
+                        INPUT(x_desc, add_num_desc, mapping_num_desc, mapping_table_desc, group_num, group_topk, topn,
+                        topk, activate_type, is_norm, scale, enable_expert_mapping),  // host api输入
+                        OUTPUT(y_desc, indices_desc));
+    // SAMPLE: only test GetWorkspaceSize
+    uint64_t workspace_size = 0;
+    aclnnStatus aclRet = ut.TestGetWorkspaceSize(&workspace_size); // check op graph
+    EXPECT_EQ(aclRet, ACLNN_SUCCESS);
+}
+
+TEST_F(l2_moe_fused_topk_test, ascend910B2_test_moe_fused_topk_6) {
+
+    int64_t num_token = 256;
+    int64_t expert_num = 256;
+    int64_t max_mapping_num = 128;
+
+    uint32_t group_num = 4;
+    uint32_t group_topk = 2;
+    uint32_t topk = 2;
+    uint32_t topn = 2;
+    uint32_t activate_type = 0;
+    bool is_norm = true;
+    float scale = 1.0;
+    bool enable_expert_mapping = false;
+
+    vector<int64_t> x_dims = {num_token, expert_num};
+    vector<int64_t> add_num_dims = {expert_num};
+    vector<int64_t> mapping_num_dims = {expert_num};
+    vector<int64_t> mapping_table_dims = {expert_num, max_mapping_num};
+    vector<int64_t> y_dims = {num_token, topk};
+    vector<int64_t> indices_dims = {num_token, topk};
+
+    auto x_desc = TensorDesc(x_dims, ACL_FLOAT, ACL_FORMAT_ND).ValueRange(-1, 1);
+    auto add_num_desc = TensorDesc(add_num_dims, ACL_FLOAT, ACL_FORMAT_ND).ValueRange(-1, 1);
+
+    auto mapping_num_desc = TensorDesc(mapping_num_dims, ACL_INT32, ACL_FORMAT_ND).ValueRange(1L, max_mapping_num);
+    auto mapping_table_desc = TensorDesc(mapping_table_dims, ACL_INT32, ACL_FORMAT_ND).ValueRange(1L, max_mapping_num);
+
+    auto y_desc = TensorDesc(y_dims, ACL_FLOAT, ACL_FORMAT_ND);
+    auto indices_desc = TensorDesc(indices_dims, ACL_INT32, ACL_FORMAT_ND);
+
+    auto ut = OP_API_UT(aclnnMoeFusedTopk,  // host api第二段接口名称
+                        INPUT(x_desc, add_num_desc, mapping_num_desc, mapping_table_desc, group_num, group_topk, topn,
+                        topk, activate_type, is_norm, scale, enable_expert_mapping),  // host api输入
+                        OUTPUT(y_desc, indices_desc));
+    // SAMPLE: only test GetWorkspaceSize
+    uint64_t workspace_size = 0;
+    aclnnStatus aclRet = ut.TestGetWorkspaceSize(&workspace_size); // check op graph
+    EXPECT_EQ(aclRet, ACLNN_SUCCESS);
+}
+
+TEST_F(l2_moe_fused_topk_test, ascend910B2_test_moe_fused_topk_7) {
+
+    int64_t num_token = 256;
+    int64_t expert_num = 256;
+    int64_t max_mapping_num = 128;
+
+    uint32_t group_num = 4;
+    uint32_t group_topk = 2;
+    uint32_t topk = 2;
+    uint32_t topn = 2;
+    uint32_t activate_type = 0;
+    bool is_norm = true;
+    float scale = 1.0;
+    bool enable_expert_mapping = false;
+
+    vector<int64_t> x_dims = {num_token, expert_num};
+    vector<int64_t> add_num_dims = {expert_num};
+    vector<int64_t> mapping_num_dims = {expert_num};
+    vector<int64_t> mapping_table_dims = {expert_num, max_mapping_num};
+    vector<int64_t> y_dims = {num_token, topk};
+    vector<int64_t> indices_dims = {num_token, topk};
+
+    auto x_desc = TensorDesc(x_dims, ACL_FLOAT, ACL_FORMAT_ND).ValueRange(-1, 1);
+    auto add_num_desc = TensorDesc(add_num_dims, ACL_FLOAT, ACL_FORMAT_ND).ValueRange(-1, 1);
+
+    auto y_desc = TensorDesc(y_dims, ACL_FLOAT, ACL_FORMAT_ND);
+    auto indices_desc = TensorDesc(indices_dims, ACL_INT32, ACL_FORMAT_ND);
+
+    auto ut = OP_API_UT(aclnnMoeFusedTopk,  // host api第二段接口名称
+                        INPUT(x_desc, add_num_desc, nullptr, nullptr, group_num, group_topk, topn,
+                        topk, activate_type, is_norm, scale, enable_expert_mapping),  // host api输入
+                        OUTPUT(y_desc, indices_desc));
+    // SAMPLE: only test GetWorkspaceSize
+    uint64_t workspace_size = 0;
+    aclnnStatus aclRet = ut.TestGetWorkspaceSize(&workspace_size); // check op graph
+    EXPECT_EQ(aclRet, ACLNN_SUCCESS);
+}

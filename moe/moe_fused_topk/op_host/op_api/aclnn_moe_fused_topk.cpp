@@ -87,8 +87,11 @@ static inline bool CheckDtypeValid(const aclTensor* x, const aclTensor* addNum, 
         OP_LOGE(ACLNN_ERR_PARAM_INVALID, "x dtype %s and addNum dtype %s should be same.",
           op::ToString(x->GetDataType()).GetString(), op::ToString(addNum->GetDataType()).GetString()),
         return false);
-    OP_CHECK_DTYPE_NOT_SUPPORT(mappingNum, INT_DTYPE_SUPPORT_LIST, return false);
-    OP_CHECK_DTYPE_NOT_SUPPORT(mappingTable, INT_DTYPE_SUPPORT_LIST, return false);
+
+    if (enableExpertMapping) {
+        OP_CHECK_DTYPE_NOT_SUPPORT(mappingNum, INT_DTYPE_SUPPORT_LIST, return false);
+        OP_CHECK_DTYPE_NOT_SUPPORT(mappingTable, INT_DTYPE_SUPPORT_LIST, return false);
+    }
     OP_CHECK_DTYPE_NOT_SUPPORT(indices, INT_DTYPE_SUPPORT_LIST, return false);
     OP_CHECK_DTYPE_NOT_SUPPORT(y, Y_DTYPE_SUPPORT_LIST, return false);
 
