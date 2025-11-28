@@ -235,12 +235,24 @@ function(gen_cust_aicpu_kernel_symbol)
   message(STATUS "Objects: ${ALL_OBJECTS}")
   message(STATUS "Output: ${ARM_SO_OUTPUT}")
 
+  if(EXISTS ${ASCEND_DIR}/ops_base/lib64/libaicpu_context.a)
+    set(LIBAICPU_CONTEXT_PATH ${ASCEND_DIR}/ops_base/lib64/libaicpu_context.a)
+  else()
+    set(LIBAICPU_CONTEXT_PATH ${ASCEND_DIR}/lib64/libaicpu_context.a)
+  endif()
+
+  if(EXISTS ${ASCEND_DIR}/ops_base/lib64/libbase_ascend_protobuf.a)
+    set(LIBBASE_ASCEND_PROTOBUF_PATH ${ASCEND_DIR}/ops_base/lib64/libbase_ascend_protobuf.a)
+  else()
+    set(LIBBASE_ASCEND_PROTOBUF_PATH ${ASCEND_DIR}/lib64/libbase_ascend_protobuf.a)
+  endif()
+
   add_custom_command(
     OUTPUT ${ARM_SO_OUTPUT}
     COMMAND ${ARM_CXX_COMPILER} -shared ${ALL_OBJECTS}
       -Wl,--whole-archive
-      ${ASCEND_DIR}/ops_base/lib64/libaicpu_context.a
-      ${ASCEND_DIR}/ops_base/lib64/libbase_ascend_protobuf.a
+      ${LIBAICPU_CONTEXT_PATH}
+      ${LIBBASE_ASCEND_PROTOBUF_PATH}
       -Wl,--no-whole-archive
       -Wl,-Bsymbolic
       -Wl,--exclude-libs=libbase_ascend_protobuf.a
