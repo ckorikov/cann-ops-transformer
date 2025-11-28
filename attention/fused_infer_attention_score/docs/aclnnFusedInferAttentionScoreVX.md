@@ -218,8 +218,12 @@
 -   参数key、value中对应tensor的shape需要完全一致；非连续场景下 key、value的tensorlist中的batch只能为1，个数等于query的B，N和D需要相等。由于tensorlist限制, 非连续场景下B不能大于256。
 -   当attenMask数据类型取INT8、UINT8时，其tensor中的值需要为0或1。
 - pseType为2或3时约束如下：
-    - 当前只支持每个batch中qs和kvs等长。
-    -  <term>昇腾910_95 AI处理器</term>：若qStartIdxOptional或kvStartIdxOptional非空，则取列表中第一个数据作为qStartIdx或kvStartIdx，同时qStartIdx、kvStartIdx和kvStartIdx-qStartIdx的取值范围需要满足[-2147483648, 2147483647]。
+    -  <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>： 不支持此功能
+    -  <term>昇腾910_95 AI处理器</term>：
+        - 若qStartIdxOptional或kvStartIdxOptional非空，则取列表中第一个数据作为qStartIdx或kvStartIdx，同时qStartIdx、kvStartIdx和kvStartIdx-qStartIdx的取值范围需要满足[-2147483648, 2147483647]。
+        - 当前只支持每个batch中qs和kvs等长。
+        - 不支持MLA、左padding场景。
+        - 只支持非量化、伪量化场景，不支持全量化场景。
 - int8量化相关入参数量与输入、输出[数据格式](common/数据格式.md)的综合限制：
     - 输出为INT8/FP8(FLOAT8_E4M3FN/FLOAT8_E5M2/HIFLOAT8)的场景：入参deqScale1、quantScale1、deqScale2、quantScale2需要同时存在，quantOffset2可选，不传时按照0处理。
     - 输出为FLOAT16的场景：入参deqScale1、quantScale1、deqScale2需要同时存在，若存在入参quantOffset2 或 quantScale2（即不为nullptr），则报错并返回。
