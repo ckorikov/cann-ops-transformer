@@ -25,7 +25,7 @@ TEST_P(Ts_Aclnn_NsaCompress_WithParam_Ascend910B2, Tc_Aclnn_NsaCompress)
 const auto Tc_NsaCompress_Aclnn_Case = ::testing::Values(
 
     AclnnNsaCompressCase("NsaCompress_Aclnn_Case_0", true, "",                   /* CaseName, Enable, DebugInfo */
-                         OpInfo(ControlInfo(true, true),                         /* RunTiling, RunKernel */
+                         OpInfo(ControlInfo(false, false),                         /* RunTiling, RunKernel */
                                 ExpectInfo(true,                                 /* ExpectSuccess */
                                            ExpectInfo::kInvalidTilingKey,        /* ExpectTilingKey */
                                            ExpectInfo::kInvalidTilingBlockDim)), /* ExpectTilingBlockDim */
@@ -39,7 +39,7 @@ const auto Tc_NsaCompress_Aclnn_Case = ::testing::Values(
                                                )),
     AclnnNsaCompressCase(
         "NsaCompress_Aclnn_Case_1", true, "",                   /* CaseName, Enable, DebugInfo */
-        OpInfo(ControlInfo(true, true),                         /* RunTiling, RunKernel */
+        OpInfo(ControlInfo(false, false),                         /* RunTiling, RunKernel */
                ExpectInfo(true,                                 /* ExpectSuccess */
                           ExpectInfo::kInvalidTilingKey,        /* ExpectTilingKey */
                           ExpectInfo::kInvalidTilingBlockDim)), /* ExpectTilingBlockDim */

@@ -482,7 +482,7 @@ NsaCompressAttentionS1s2Bn2gs1SameAB<layOutType, hasAtten, hasTopkMask, INPUT_T,
             extraInfo.vec1S1RealSize = extraInfo.vec1MaxG;
             if (gLoopIdx == extraInfo.vec1LoopCountG - 1) {
                 extraInfo.vec1S1RealSize = this->gSize - gLoopIdx * extraInfo.vec1MaxG;
-            }
+            }          
             AscendC::WaitFlag<HardEvent::V_MTE2>(eventIdVToMte2);
             this->GetBmm1Result(extraInfo, mm1ResultLocal, s1LoopIdx, gLoopIdx);
             this->CopyInAttenMask(extraInfo, attenMaskLocal, s1LoopIdx);
