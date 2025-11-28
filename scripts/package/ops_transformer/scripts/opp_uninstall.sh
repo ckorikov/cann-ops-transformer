@@ -31,16 +31,17 @@ FILELIST_FILE="${CURR_PATH}/filelist.csv"
 COMMON_PARSER_FILE="${CURR_PATH}/install_common_parser.sh"
 
 TARGET_INSTALL_PATH=""
-TARGET_VERSION_DIR="${CURR_PATH}/../.."
+TARGET_VERSION_DIR="${CURR_PATH}/../../../.."
 TARGET_VERSION_DIR=$(readlink -f ${TARGET_VERSION_DIR})     # TARGET_INSTALL_PATH + PKG_VERSION_DIR
 TARGET_MOULDE_DIR=${TARGET_VERSION_DIR}/${OPP_PLATFORM_DIR} # TARGET_INSTALL_PATH + PKG_VERSION_DIR + OPP_PLATFORM_DIR
 TARGET_OPP_BUILT_IN=${TARGET_VERSION_DIR}/opp/built-in
+TARGET_SHARED_INFO_DIR=${TARGET_VERSION_DIR}/share/info
 
 ASCEND_INSTALL_INFO="ascend_install.info"
 # init log file path
-INSTALL_INFO_FILE="${TARGET_MOULDE_DIR}/${ASCEND_INSTALL_INFO}"
+INSTALL_INFO_FILE="${TARGET_SHARED_INFO_DIR}/${OPP_PLATFORM_DIR}/${ASCEND_INSTALL_INFO}"
 
-VERSION_INFO_FILE="${TARGET_MOULDE_DIR}/version.info"
+VERSION_INFO_FILE="${TARGET_SHARED_INFO_DIR}/${OPP_PLATFORM_DIR}/version.info"
 
 # keys of infos in ascend_install.info
 KEY_INSTALLED_UNAME="USERNAME"
@@ -115,11 +116,11 @@ check_installed_files() {
 
   check_file_exist "${COMMON_PARSER_FILE}"
 
-  check_file_exist "${TARGET_MOULDE_DIR}/bin/setenv.bash"
+  check_file_exist "${TARGET_SHARED_INFO_DIR}/${OPP_PLATFORM_DIR}/bin/setenv.bash"
 
-  check_file_exist "${TARGET_MOULDE_DIR}/bin/setenv.csh"
+  check_file_exist "${TARGET_SHARED_INFO_DIR}/${OPP_PLATFORM_DIR}/bin/setenv.csh"
 
-  check_file_exist "${TARGET_MOULDE_DIR}/bin/setenv.fish"
+  check_file_exist "${TARGET_SHARED_INFO_DIR}/${OPP_PLATFORM_DIR}/bin/setenv.fish"
 
   check_directory_exist "${TARGET_MOULDE_DIR}"
 }
@@ -167,13 +168,13 @@ get_installed_param() {
 }
 
 remove_module() {
-  chmod u+w ${TARGET_MOULDE_DIR}/scene.info
+  chmod u+w ${TARGET_SHARED_INFO_DIR}/${OPP_PLATFORM_DIR}/scene.info
 
   logandprint "[INFO]: Delete the installed opp source files in (${TARGET_VERSION_DIR})."
 
   bash "${COMMON_PARSER_FILE}" --package="${OPP_PLATFORM_DIR}" --uninstall --recreate-softlink \
     --username="${TARGET_USERNAME}" --usergroup="${TARGET_USERGROUP}" --version=$RUN_PKG_VERSION \
-    --version-dir=$PKG_VERSION_DIR ${UNINSTALL_OPTION} "${INSTALLED_TYPE}" "${TARGET_INSTALL_PATH}" \
+    --use-share-info --version-dir=$PKG_VERSION_DIR ${UNINSTALL_OPTION} "${INSTALLED_TYPE}" "${TARGET_INSTALL_PATH}" \
     "${FILELIST_FILE}" "${IN_FEATURE}" --recreate-softlink
   log_with_errorlevel "$?" "error" "[ERROR]: ERR_NO:${OPERATE_FAILED};ERR_DES:Uninstall opp module failed."
 
@@ -209,6 +210,7 @@ remove_ops_transformer() {
 
   if [ "${UNINSTALL_MODE}" != "upgrade" ]; then
     logandprint "[INFO]: Delete the install info file (${INSTALL_INFO_FILE})."
+    chmod u+w -R "${TARGET_SHARED_INFO_DIR}/${OPP_PLATFORM_DIR}"
     rm -f "${INSTALL_INFO_FILE}"
     log_with_errorlevel "$?" "warn" "[WARNING] Delete ops install info file failed, please delete it by yourself."
   fi
@@ -232,15 +234,20 @@ remote_all_soft_link() {
   done
 
   chmod ${ori_mod} ${lib_dir}
-  # remove aclnn_kernels
+
+  # remove include
   local arch_include_dir=${TARGET_INSTALL_PATH}/latest/${ARCH_INFO}-linux/include
   ori_mod=$(stat -c %a ${arch_include_dir})
   if [ "$(id -u)" != 0 ] && [ ! -w "${arch_include_dir}" ]; then
     chmod u+w -R "${arch_include_dir}" 2>/dev/null
   fi
   [ -d ${arch_include_dir}/aclnn_kernels ] && rm -rf "${arch_include_dir}/aclnn_kernels"
-  # remove all softlink
-  find ${TARGET_INSTALL_PATH}/latest/ -type l -lname "*/${OPP_PLATFORM_DIR}/*" -delete 2>/dev/null
+
+  [ -d ${arch_include_dir}/aclnnop ] && rm -rf "${arch_include_dir}/aclnnop"
+
+  [ -L ${arch_include_dir}/es/es_math ] && rm -rf "${arch_include_dir}/es/es_math"
+
+  chmod ${ori_mod} ${arch_include_dir}
 }
 
 logandprint "[INFO]: Begin uninstall the opp module."

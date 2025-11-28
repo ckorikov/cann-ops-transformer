@@ -12,17 +12,13 @@
 
 REAL_SHELL_PATH=`realpath ${BASH_SOURCE[0]}`
 MULTI_VERSION=$1
-CANN_PATH=$(cd $(dirname ${REAL_SHELL_PATH})/../../ && pwd)
-if [ -d "${CANN_PATH}/opp" ] && [ -d "${CANN_PATH}/../latest" ]; then
-    INSATLL_PATH=$(cd $(dirname ${REAL_SHELL_PATH})/../../../ && pwd)
-    if [ -L "${INSATLL_PATH}/latest/opp" ]; then
-        _ASCEND_OPP_PATH=`cd ${CANN_PATH}/opp && pwd`
-        if [ "$MULTI_VERSION" = "multi_version" ]; then
-            _ASCEND_OPP_PATH=`cd ${INSATLL_PATH}/latest/opp && pwd`
-        fi
+CANN_PATH=$(cd $(dirname ${REAL_SHELL_PATH})/../../../../ && pwd)
+if [ -d "${CANN_PATH}/opp" ]; then
+    INSATLL_PATH=$(cd $(dirname ${REAL_SHELL_PATH})/../../../../../ && pwd)
+    _ASCEND_OPP_PATH="${CANN_PATH}/opp"
+    if [ "$MULTI_VERSION" = "multi_version" ]; then
+        _ASCEND_OPP_PATH="${INSATLL_PATH}/latest/opp"
     fi
-elif [ -d "${CANN_PATH}/opp" ]; then
-    _ASCEND_OPP_PATH=`cd ${CANN_PATH}/opp && pwd`
 fi  
 
 export ASCEND_OPP_PATH=${_ASCEND_OPP_PATH}
@@ -32,7 +28,7 @@ if [ -d ${pylib_path} ];then
     export PYTHONPATH=$PYTHONPATH:${pylib_path}
 fi
 
-library_path="${_ASCEND_OPP_PATH}/lib64"
+library_path="${_ASCEND_OPP_PATH}/latest/lib64"
 ld_library_path="${LD_LIBRARY_PATH}"
 num=$(echo ":${ld_library_path}:" | grep ":${library_path}:" | wc -l)
 if [ "${num}" -eq 0 ]; then

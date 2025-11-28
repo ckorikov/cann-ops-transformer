@@ -11,17 +11,14 @@
 
 set REAL_SHELL_PATH (realpath (command -v $argv[0]))
 set MULTI_VERSION $argv[1]
-set CANN_PATH (cd (dirname $REAL_SHELL_PATH)/../../ && pwd)
-if test -d "$CANN_PATH/opp" -a test -d "$CANN_PATH/../latest"
-    set INSATLL_PATH (cd (dirname $REAL_SHELL_PATH)/../../../ && pwd)
-    if test -L "$INSATLL_PATH/latest/opp"
-        set _ASCEND_OPP_PATH (cd $CANN_PATH/opp && pwd)
-        if test "$MULTI_VERSION" = "multi_version"
-            set _ASCEND_OPP_PATH (cd $INSATLL_PATH/latest/opp && pwd)
-        end
+set CANN_PATH (cd (dirname $REAL_SHELL_PATH)/../../../../ && pwd)
+
+if test -d "$CANN_PATH/opp"
+    set INSATLL_PATH `cd $(dirname $REAL_SHELL_PATH)/../../../../../ && pwd`
+    set _ASCEND_OPP_PATH "${CANN_PATH}/opp"
+    if test "$MULTI_VERSION" = "multi_version"
+        set _ASCEND_OPP_PATH "${INSATLL_PATH}/latest/opp"
     end
-elseif test -d "$CANN_PATH/opp"
-    set _ASCEND_OPP_PATH (cd $CANN_PATH/opp && pwd)
 end
 
 set -x ASCEND_OPP_PATH $_ASCEND_OPP_PATH

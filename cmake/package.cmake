@@ -69,7 +69,7 @@ function(pack_built_in)
 
   set(script_prefix ${CMAKE_SOURCE_DIR}/scripts/package/ops_transformer/scripts)
   install(DIRECTORY ${script_prefix}/
-      DESTINATION ops_transformer/script
+      DESTINATION share/info/ops_transformer/script
       FILE_PERMISSIONS
       OWNER_READ OWNER_WRITE OWNER_EXECUTE  # 文件权限
       GROUP_READ GROUP_EXECUTE
@@ -92,7 +92,7 @@ function(pack_built_in)
   )
 
   install(FILES ${SCRIPTS_FILES}
-      DESTINATION ops_transformer/script
+      DESTINATION share/info/ops_transformer/script
   )
   set(COMMON_FILES
       ${CMAKE_SOURCE_DIR}/scripts/package/common/sh/install_common_parser.sh
@@ -116,13 +116,13 @@ function(pack_built_in)
       ${CMAKE_SOURCE_DIR}/scripts/package/common/cfg/path.cfg
   )
   install(FILES ${CMAKE_SOURCE_DIR}/version.info
-      DESTINATION .
+      DESTINATION share/info/ops_transformer
   )
   install(FILES ${CONF_FILES}
       DESTINATION ops_transformer/conf
   )
   install(FILES ${PACKAGE_FILES}
-      DESTINATION ops_transformer/script
+      DESTINATION share/info/ops_transformer/script
   )
   install(FILES ${LATEST_MANGER_FILES}
       DESTINATION latest_manager
@@ -139,7 +139,7 @@ function(pack_built_in)
       ${CMAKE_SOURCE_DIR}/scripts/package/ops_transformer/scripts/setenv.fish
   )
   install(FILES ${BIN_FILES}
-      DESTINATION ops_transformer/bin
+      DESTINATION share/info/ops_transformer/bin
   )
 
   string(FIND "${ASCEND_COMPUTE_UNIT}" ";" SEMICOLON_INDEX)
