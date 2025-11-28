@@ -148,7 +148,7 @@ ge::graphStatus AllGatherMatmulTilingV2::DoVersion2Tiling()
     platform_ascendc::SocVersion socVersion = ascendcPlatForm.GetSocVersion();
 
     std::vector<int32_t> priorities;
-    GE_ASSERT_GRAPH_SUCCESS(mc2tiling::GetMatmulV3PriorityPolicy(socVersion, priorities, opName_));
+    GE_ASSERT_GRAPH_SUCCESS(mc2tiling::NewGetMatmulV3PriorityPolicy(socVersion, priorities, opName_));
 
     Mc2MMRegisterCfg registerCfg{"Mc2MatMulV3", socVersion, priorities};
 

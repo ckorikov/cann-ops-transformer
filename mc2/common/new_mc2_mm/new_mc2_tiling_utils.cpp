@@ -60,4 +60,25 @@ void NewUpdateMatmulV3Args(optiling::mc2_matmul_v3_advanced::Mc2MatMulV3Args &mm
   mmV3Args.aDtypeSize = NewGetDataTypeSize(opName, mmV3Args.aType);
   mmV3Args.bDtypeSize = NewGetDataTypeSize(opName, mmV3Args.bType);
 }
+
+ge::graphStatus NewGetMatmulV3PriorityPolicy(
+    const platform_ascendc::SocVersion socVersion,
+    std::vector<int32_t> &priorities, const char *opName) {
+  const static std::map<platform_ascendc::SocVersion, std::vector<int32_t>>
+      MATMUL_V3_PRIOR_MAP = {
+          {platform_ascendc::SocVersion::ASCEND910_95,
+           {optiling::mc2_matmul_v3_advanced::strategy::BASE}},
+      };
+  if (MATMUL_V3_PRIOR_MAP.find(socVersion) != MATMUL_V3_PRIOR_MAP.end()) {
+    priorities = MATMUL_V3_PRIOR_MAP.at(socVersion);
+  }
+
+  if (priorities.empty()) {
+    OP_LOGE(opName, "version %u can't find suitable matmul priorities",
+            static_cast<uint32_t>(socVersion));
+    return ge::GRAPH_FAILED;
+  }
+  return ge::GRAPH_SUCCESS;
+}
+
 }  // namespace mc2tiling
