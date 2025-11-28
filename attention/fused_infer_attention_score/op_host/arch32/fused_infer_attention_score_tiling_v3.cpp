@@ -712,7 +712,7 @@ bool CheckSpecConditions(const gert::TilingContext *context)
         if (!isPageAttention) {
             int64_t tempKD = tempK->GetStorageShape().GetDim(DIM_2);
             int64_t tempVD = tempV->GetStorageShape().GetDim(DIM_2);
-            bool isFAIDSize = (tempQD <= 256 && tempKD <= 256 && tempVD <= 256) ||
+            bool isFAIDSize = (tempQD <= 256 && tempKD <= 256 && tempVD <= 256) &&
                     (tempQD == tempKD && tempQD == tempVD);
             if (isFAIDSize) {
                 specConditionFlag = true;
@@ -721,7 +721,7 @@ bool CheckSpecConditions(const gert::TilingContext *context)
             int64_t tempKD = (tempK->GetStorageShape().GetDim(DIM_2)) / kvHeadNum;
             int64_t tempVD = (tempV->GetStorageShape().GetDim(DIM_2)) / kvHeadNum;
             int64_t blockSize = tempK->GetStorageShape().GetDim(DIM_1);
-            bool isFAIDSize = (tempQD <= 256 && tempKD <= 256 && tempVD <= 256) ||
+            bool isFAIDSize = (tempQD <= 256 && tempKD <= 256 && tempVD <= 256) &&
                     (tempQD == tempKD && tempQD == tempVD);
             if (isFAIDSize && blockSize == 128U) {
                 specConditionFlag = true;

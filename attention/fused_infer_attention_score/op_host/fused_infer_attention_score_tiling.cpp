@@ -1196,7 +1196,7 @@ static bool IsUsingFAI(gert::TilingContext &context, const string inputLayoutStr
         if (!isPageAttention) {
             int64_t tempKD = tempK->GetStorageShape().GetDim(DIM_2);
             int64_t tempVD = tempV->GetStorageShape().GetDim(DIM_2);
-            bool isFAIDSize = (tempD <= 256U && tempKD <= 256 && tempVD <= 256) ||
+            bool isFAIDSize = (tempD <= 256U && tempKD <= 256 && tempVD <= 256) &&
                     (tempD == tempKD && tempD == tempVD);
             if (isFAIDSize) {
                 usingFAI = true;
@@ -1205,7 +1205,7 @@ static bool IsUsingFAI(gert::TilingContext &context, const string inputLayoutStr
             int64_t tempKD = (tempK->GetStorageShape().GetDim(DIM_2)) / kvHeadNum;
             int64_t tempVD = (tempV->GetStorageShape().GetDim(DIM_2)) / kvHeadNum;
             int64_t blockSize = tempK->GetStorageShape().GetDim(DIM_1);
-            bool isFAIDSize = (tempD <= 256U && tempKD <= 256 && tempVD <= 256) ||
+            bool isFAIDSize = (tempD <= 256U && tempKD <= 256 && tempVD <= 256) &&
                     (tempD == tempKD && tempD == tempVD);
             if (isFAIDSize && blockSize == 128U) {
                 usingFAI = true;
