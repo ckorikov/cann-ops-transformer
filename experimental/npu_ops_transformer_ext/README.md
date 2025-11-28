@@ -67,7 +67,7 @@ NpuOpsTransformerExt 是一个轻量级，高性能的算子开发工程模板�
     pip install torch-${torch_version}+cpu-${python_version}-linux_${arch}.whl
     ```
 
-   根据实际环境，安装对应torch-npu包: `torch_npu-${torch_version}-${python_version}-linux_${arch}.whl`，下载链接为:[官网地址](https://gitcode.com/Ascend/pytorch/releases)
+   根据实际环境，安装对应torch-npu包: `torch_npu-${torch_version}-${python_version}-linux_${arch}.whl` 下载链接为:[官网地址](https://gitcode.com/Ascend/pytorch/releases)
 
    安装命令如下：
 
