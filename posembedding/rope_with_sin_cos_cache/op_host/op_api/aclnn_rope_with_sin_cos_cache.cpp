@@ -46,10 +46,16 @@ static const int64_t DIM_TWO = 1;
 static const int64_t DIM_MUM = 2;
 
 static const std::initializer_list<op::DataType> ASCEND910B_DTYPE_SUPPORT_LIST = {
-    op::DataType::DT_FLOAT16, op::DataType::DT_BF16,  op::DataType::DT_FLOAT,
-    op::DataType::DT_INT32,   op::DataType::DT_INT64, op::DataType::DT_BOOL};
+    op::DataType::DT_FLOAT16,
+    op::DataType::DT_BF16,
+    op::DataType::DT_FLOAT,
+};
+
+static const std::initializer_list<op::DataType> positions_dtype_list = {op::DataType::DT_INT64};
 
 static const std::initializer_list<op::DataType> emptyDtypes = {};
+
+static const std::initializer_list<std::vector<int64_t>> mrope_support_list = {{16, 24, 24}}; // 支持的mrope输入
 
 static const std::initializer_list<DataType>& GetSupportDtypeList()
 {
@@ -84,7 +90,7 @@ static bool CheckDtypeValid(
     if (supportList.size() == 0) {
         OP_LOGE(ACLNN_ERR_PARAM_INVALID, "support for %s is not implemented", ToString(socVersion).GetString());
     }
-    OP_CHECK_DTYPE_NOT_SUPPORT(positions, supportList, return false);
+    OP_CHECK_DTYPE_NOT_SUPPORT(positions, positions_dtype_list, return false);
     OP_CHECK_DTYPE_NOT_SUPPORT(queryIn, supportList, return false);
 
     // keyIn, cosSinCache, queryOut, keyOut的数据类型是否与out一致
@@ -140,9 +146,18 @@ static bool CheckShape(
     return true;
 }
 
-static aclnnStatus CheckParams(
-    const aclTensor* positions, const aclTensor* queryIn, const aclTensor* keyIn, const aclTensor* cosSinCache,
-    aclTensor* queryOut, aclTensor* keyOut)
+static bool CheckMropeSection(const std::vector<int64_t> &target, const std::vector<std::vector<int64_t>> &support)
+{
+    for (const auto &vec : support) {
+        if (vec == target)
+            return true;
+    }
+    return false;
+}
+
+static aclnnStatus CheckParams(const aclTensor *positions, const aclTensor *queryIn, const aclTensor *keyIn,
+                               const aclTensor *cosSinCache, const aclIntArray *mropeSection, aclTensor *queryOut,
+                               aclTensor *keyOut)
 {
     // 1. 检查参数是否为空指针
     CHECK_RET(CheckNotNull(positions, queryIn, keyIn, cosSinCache, queryOut, keyOut), ACLNN_ERR_PARAM_NULLPTR);
@@ -153,6 +168,20 @@ static aclnnStatus CheckParams(
     // 3. 检查shape是否支持
     CHECK_RET(CheckShape(queryIn, keyIn, cosSinCache, queryOut, keyOut), ACLNN_ERR_PARAM_INVALID);
 
+    // 4. 检查mrope模式下是否满足mropeSection[0] + mropeSection[1] + mropeSection[2] == rotaryDim/2
+    if (mropeSection != nullptr) {
+        int64_t mrope_section0 = static_cast<int64_t>((*mropeSection)[0]);
+        int64_t mrope_section1 = static_cast<int64_t>((*mropeSection)[1]);
+        int64_t mrope_section2 = static_cast<int64_t>((*mropeSection)[2]);
+        std::vector<int64_t> mrope_in = {mrope_section0, mrope_section1, mrope_section2};
+        int64_t rotary_dim = cosSinCache->GetViewShape()[1];
+        OP_CHECK(mrope_section0 <= 0 ||
+                     (mrope_section0 + mrope_section1 + mrope_section2 == rotary_dim / 2 &&
+                      CheckMropeSection(mrope_in, mrope_support_list)), // kernel中mropesection[0]>0为mrope模式，否则rope模式
+                 OP_LOGE(ACLNN_ERR_PARAM_INVALID, "Expected mropeSection[0] + mropeSection[1] + mropeSection[2] "
+                                                  "==rotaryDim/2 to be true and the input mropeSection in the supported list, but got false."),
+                 return ACLNN_ERR_PARAM_INVALID);
+    }
     return ACLNN_SUCCESS;
 }
 
@@ -173,8 +202,7 @@ aclnnStatus aclnnRopeWithSinCosCacheGetWorkspaceSize(
     CHECK_RET(cosSinCacheContiguous != nullptr, ACLNN_ERR_INNER_NULLPTR);
 
     // 固定写法，参数检查
-    auto ret =
-        CheckParams(positions, queryIn, keyIn, cosSinCache, queryOut, keyOut);
+    auto ret = CheckParams(positions, queryIn, keyIn, cosSinCache, mropeSection, queryOut, keyOut);
     CHECK_RET(ret == ACLNN_SUCCESS, ret);
     CHECK_RET(headSize != 0, ACLNN_ERR_PARAM_INVALID);
     int64_t numQheads = queryIn->GetViewShape()[1] / headSize;
