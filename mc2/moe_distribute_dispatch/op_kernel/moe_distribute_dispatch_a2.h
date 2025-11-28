@@ -292,7 +292,6 @@ __aicore__ inline void MoeDistributeDispatchA2<TemplateMC2TypeA2Func>::AllocTens
     if (unlikely(needPerformanceInfo_)) {
         uint32_t performanceInfoI32Addr = smoothScalesAddr + axisH_;
         performanceInfoI32Tensor_ = LocalTensor<int32_t>{TPosition::LCM, performanceInfoI32Addr, performanceInfoSize_ * sizeof(int64_t) / sizeof(int32_t)};
-        Duplicate<int32_t>(performanceInfoI32Tensor_, 0, performanceInfoSize_ * sizeof(int64_t) / sizeof(int32_t));
     }
 
     uint32_t validExpIndexAddr = AscendC::TOTAL_UB_SIZE - expertIdsLength;
@@ -615,6 +614,11 @@ __aicore__ inline void MoeDistributeDispatchA2<TemplateMC2TypeA2Func>::WaitDispa
     if (worldTaskInfo_.taskNum == 0) {
         SyncAll<true>();
         return;
+    }
+
+    if (unlikely(needPerformanceInfo_)) {
+        Duplicate<int32_t>(performanceInfoI32Tensor_, 0, performanceInfoSize_ * sizeof(int64_t) / sizeof(int32_t));
+        SyncFunc<AscendC::HardEvent::V_S>();
     }
 
     DataCopyExtParams copyFlagParams{1, static_cast<uint32_t>(sizeof(int32_t)), 0, 0, 0};
