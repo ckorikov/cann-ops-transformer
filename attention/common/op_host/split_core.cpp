@@ -131,17 +131,16 @@ Range<uint32_t> CalcS2Range(uint32_t s1GIdx, const BaseInfo &baseInfo, const Spl
     }
 
     if (s1Idx + static_cast<int64_t>(s1BaseSize) > static_cast<int64_t>(batchCache.s1Size)) {
-        s2Start = 0;
-        s2End = (batchCache.s2Size + splitParam.s2BaseSize - 1U) / splitParam.s2BaseSize;
-    } else {
-        int64_t s2FirstToken = Clip(s1Idx - batchCache.preTokenLeftUp, static_cast<int64_t>(0),
-            static_cast<int64_t>(batchCache.s2Size));
-        s2Start = static_cast<uint32_t>(s2FirstToken) / splitParam.s2BaseSize;
-
-        int64_t s2LastToken = Clip(s1Idx + batchCache.nextTokenLeftUp + static_cast<int64_t>(s1BaseSize),
-            static_cast<int64_t>(0), static_cast<int64_t>(batchCache.s2Size));
-        s2End = (static_cast<uint32_t>(s2LastToken) + splitParam.s2BaseSize - 1U) / splitParam.s2BaseSize;
+        s1Idx = 0;
+        s1BaseSize = batchCache.s1Size;
     }
+    int64_t s2FirstToken = Clip(s1Idx - batchCache.preTokenLeftUp, static_cast<int64_t>(0),
+        static_cast<int64_t>(batchCache.s2Size));
+    s2Start = static_cast<uint32_t>(s2FirstToken) / splitParam.s2BaseSize;
+
+    int64_t s2LastToken = Clip(s1Idx + batchCache.nextTokenLeftUp + static_cast<int64_t>(s1BaseSize),
+        static_cast<int64_t>(0), static_cast<int64_t>(batchCache.s2Size));
+    s2End = (static_cast<uint32_t>(s2LastToken) + splitParam.s2BaseSize - 1U) / splitParam.s2BaseSize;
 
     return std::make_pair(s2Start, s2End);
 }
@@ -534,8 +533,11 @@ void CalcSplitPlan(uint32_t coreNum, int64_t costLimit, const SplitContext &spli
     assignContext.curS2Idx = assignContext.s1GCache.s2Start;
 
     for (uint32_t i = 0; i < coreNum; ++i) {
-        if (assignContext.isFinished || assignContext.unassignedCost <= 0 || result.maxCost >= costLimit) {
+        if (result.maxCost >= costLimit) {
             return;
+        }
+        if (assignContext.isFinished || assignContext.unassignedCost <= 0) {
+            break;
         }
 
         assignContext.curCoreIdx = i;

@@ -902,16 +902,15 @@ __aicore__ inline void FiaKernelNonQuantMla<FIAT, CubeBlockType, VecBlockType, F
     uint32_t s2StartWithSparse = 0U;
     uint32_t s2EndWithSparse = 0U;
     if (sIdx + static_cast<int64_t>(s1BaseSize) > static_cast<int64_t>(actSeqLensQ)) {
-        s2StartWithSparse = 0;
-        s2EndWithSparse = (static_cast<uint32_t>(actSeqLensKv) + constInfo.s2BaseSize - 1) / constInfo.s2BaseSize;
-    } else {
-        int64_t s2FirstToken = ClipSInnerToken(sIdx - preTokenLeftUp, 0, static_cast<int64_t>(actSeqLensKv));
-        s2StartWithSparse = static_cast<uint32_t>(s2FirstToken) / constInfo.s2BaseSize;
-
-        int64_t s2LastToken = ClipSInnerToken(sIdx + nextTokenLeftUp + static_cast<int64_t>(s1BaseSize), 0, 
-            static_cast<int64_t>(actSeqLensKv));
-        s2EndWithSparse = (static_cast<uint32_t>(s2LastToken) + constInfo.s2BaseSize - 1) / constInfo.s2BaseSize;
+        sIdx = 0;
+        s1BaseSize = static_cast<uint32_t>(actSeqLensQ);
     }
+    int64_t s2FirstToken = ClipSInnerToken(sIdx - preTokenLeftUp, 0, static_cast<int64_t>(actSeqLensKv));
+    s2StartWithSparse = static_cast<uint32_t>(s2FirstToken) / constInfo.s2BaseSize;
+
+    int64_t s2LastToken = ClipSInnerToken(sIdx + nextTokenLeftUp + static_cast<int64_t>(s1BaseSize), 0, 
+        static_cast<int64_t>(actSeqLensKv));
+    s2EndWithSparse = (static_cast<uint32_t>(s2LastToken) + constInfo.s2BaseSize - 1) / constInfo.s2BaseSize;
 
     // 4. Calc curS2Start, curS2End
     curS2Start = s2StartWithSparse;
