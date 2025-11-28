@@ -32,7 +32,10 @@ using namespace Mc2Tiling;
 #include "kernel_operator.h"
 #include "matmul_reduce_scatter_aiv_mode.h"
 #include "matmul_reduce_scatter_v2_aiv_mode_tiling.h"
+#include "matmul_reduce_scatter_v2_aiv_tiling_key.h"
+
 using namespace matmulReduceScatterV2_aivmode_tiling;
+using namespace MatmulReduceScatterv2TilingKey;
 #endif
 
 using namespace AscendC;
@@ -101,7 +104,8 @@ using namespace MatmulReduceScatterV2Impl;
         }                                                                                                             \
     } while (0)
 
-extern "C" __global__ __aicore__ void matmul_reduce_scatter_v2(GM_ADDR aGM, GM_ADDR bGM, GM_ADDR biasGM,
+template<bool IsBias, bool IsTransposeA, bool IsTransposeB>
+__global__ __aicore__ void matmul_reduce_scatter_v2(GM_ADDR aGM, GM_ADDR bGM, GM_ADDR biasGM,
                                                                GM_ADDR x1ScaleGM, GM_ADDR x2ScaleGM,
                                                                GM_ADDR quantScaleGM, GM_ADDR cGM, GM_ADDR amaxOutGM,
                                                                GM_ADDR workspaceGM, GM_ADDR tilingGM)
@@ -154,7 +158,6 @@ extern "C" __global__ __aicore__ void matmul_reduce_scatter_v2(GM_ADDR aGM, GM_A
 
 #else
 //aiv算子模板
-
     #define INVOKE_MMREDUCESCATTER_AIV_MODE_OP_IMPL(templateClass, ...)                                              \
         do {                                                                                                    \
             GET_TILING_DATA_WITH_STRUCT(MatmulReduceScatterV2AivModeTilingData, tilingData, tilingGM);          \
@@ -165,10 +168,10 @@ extern "C" __global__ __aicore__ void matmul_reduce_scatter_v2(GM_ADDR aGM, GM_A
 
     KERNEL_TASK_TYPE_DEFAULT(KERNEL_TYPE_MIX_AIC_1_2);
     REGISTER_TILING_DEFAULT(MatmulReduceScatterV2AivModeTilingData);
-    if (TILING_KEY_IS(10000)) {
+    if constexpr (!IsBias && !IsTransposeA && !IsTransposeB) {
         //aivMode，非transB
         INVOKE_MMREDUCESCATTER_AIV_MODE_OP_IMPL(MatmulReduceScatterAivMode, FORMAT_X2 == FORMAT_FRACTAL_NZ, false, false);
-    } else if (TILING_KEY_IS(10010)) {
+    } else if constexpr (!IsBias && !IsTransposeA && IsTransposeB) {
         //aivMode，transB
         INVOKE_MMREDUCESCATTER_AIV_MODE_OP_IMPL(MatmulReduceScatterAivMode, FORMAT_X2 == FORMAT_FRACTAL_NZ, false, true);
     }
