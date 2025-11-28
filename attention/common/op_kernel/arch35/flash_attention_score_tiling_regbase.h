@@ -418,6 +418,7 @@ public:
     int64_t sparseStartIdx[48];
     int64_t firstFullLoadS1OuterIdx;
     uint8_t splitCoreMode;
+    uint8_t reserve[3];
 
     int32_t get_coreNum() const {return coreNum;}
 
