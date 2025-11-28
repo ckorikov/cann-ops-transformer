@@ -85,6 +85,7 @@ aclnnStatus AclnnQuantGroupedMatmulInplaceAdd91095Checker<T>::CheckGeneralQuantS
     auto groupNum = gmmParams_.groupTensorOptional->GetViewShape().GetDim(0);
     for (size_t i = 0; i < GetInputTensorSize(gmmParams_.x); i++) {
         auto weightNIndex = GetInputTensor(gmmParams_.weight, i)->GetViewShape().GetDimNum() - 1;
+        auto yNIndex = GetInputTensor(gmmParams_.y, i)->GetViewShape().GetDimNum() - 1;
         CHECK_COND(GetInputTensor(gmmParams_.weight, i)->GetViewShape().GetDim(weightNIndex) > 0,
                    ACLNN_ERR_PARAM_INVALID, "In quant case, the N value[%ld] should be positive.",
                    GetInputTensor(gmmParams_.weight, i)->GetViewShape().GetDim(weightNIndex));
@@ -96,6 +97,24 @@ aclnnStatus AclnnQuantGroupedMatmulInplaceAdd91095Checker<T>::CheckGeneralQuantS
                     %s[%ld].",
                    yName_.c_str(), GetInputTensor(gmmParams_.y, i)->GetViewShape().GetDim(0), groupTensorName_.c_str(),
                    groupNum);
+        // y shape dim num must 3
+        CHECK_COND(GetInputTensor(gmmParams_.y, i)->GetViewShape().GetDimNum() == 3, ACLNN_ERR_PARAM_INVALID,
+                   "The %s dim num should be equal 3, but actual dim num is [%zu]", yName_.c_str(),
+                   GetInputTensor(gmmParams_.y, i)->GetViewShape().GetDimNum());
+        CHECK_COND(GetInputTensor(gmmParams_.y, i)->GetViewShape().GetDim(1) ==
+                       GetInputTensor(gmmParams_.x, i)->GetViewShape().GetDim(0),
+                   ACLNN_ERR_PARAM_INVALID,
+                   "The m dim of %s should be equal %s m dim, but actual %s m dim is [%ld], %s m dim is [%ld]",
+                   yName_.c_str(), xName_.c_str(), yName_.c_str(),
+                   GetInputTensor(gmmParams_.y, i)->GetViewShape().GetDim(1), xName_.c_str(),
+                   GetInputTensor(gmmParams_.x, i)->GetViewShape().GetDim(0));
+        CHECK_COND(GetInputTensor(gmmParams_.y, i)->GetViewShape().GetDim(yNIndex) ==
+                       GetInputTensor(gmmParams_.weight, i)->GetViewShape().GetDim(weightNIndex),
+                   ACLNN_ERR_PARAM_INVALID,
+                   "The n dim of %s should be equal %s n dim, but actual %s n dim is [%ld], %s n dim is [%ld]",
+                   yName_.c_str(), weightName_.c_str(), yName_.c_str(),
+                   GetInputTensor(gmmParams_.y, i)->GetViewShape().GetDim(yNIndex), weightName_.c_str(),
+                   GetInputTensor(gmmParams_.weight, i)->GetViewShape().GetDim(weightNIndex));
     }
     return ACLNN_SUCCESS;
 }
@@ -173,12 +192,10 @@ aclnnStatus AclnnQuantGroupedMatmulInplaceAdd91095Checker<T>::CheckHif8QuantPara
     CHECK_COND(gmmParams_.biasOptional == nullptr, ACLNN_ERR_PARAM_INVALID, "Hifloat8 case does not support bias.");
     CHECK_COND(gmmParams_.perTokenScaleOptional != nullptr, ACLNN_ERR_PARAM_NULLPTR,
                "Hifloat8 case perTokenScaleOptional not be null.");
-    if (gmmParams_.perTokenScaleOptional != nullptr) {
-        DataType perTokenScaleDtype = GetInputTensor(gmmParams_.perTokenScaleOptional)->GetDataType();
-        CHECK_COND(perTokenScaleDtype == DataType::DT_FLOAT, ACLNN_ERR_PARAM_INVALID,
-                   "The %s dtype should be float32 in hifloat8 case, but actual dtype is %s",
-                   perTokenScaleName_.c_str(), op::ToString(perTokenScaleDtype).GetString());
-    }
+    DataType perTokenScaleDtype = GetInputTensor(gmmParams_.perTokenScaleOptional)->GetDataType();
+    CHECK_COND(perTokenScaleDtype == DataType::DT_FLOAT, ACLNN_ERR_PARAM_INVALID,
+               "The %s dtype should be float32 in hifloat8 case, but actual dtype is %s", perTokenScaleName_.c_str(),
+               op::ToString(perTokenScaleDtype).GetString());
     CHECK_COND(gmmParams_.y != nullptr, ACLNN_ERR_PARAM_NULLPTR, "Hifloat8 case y not be null.");
     DataType yDtype = GetInputTensor(gmmParams_.y)->GetDataType();
     CHECK_COND(yDtype == DataType::DT_FLOAT, ACLNN_ERR_PARAM_INVALID,
@@ -219,5 +236,4 @@ aclnnStatus AclnnQuantGroupedMatmulInplaceAdd91095Checker<T>::CheckQuantGroupedM
                 op::ToString(xDtype).GetString(), op::ToString(weightDtype).GetString());
         return ACLNN_ERR_PARAM_INVALID;
     }
-    return ACLNN_SUCCESS;
 }

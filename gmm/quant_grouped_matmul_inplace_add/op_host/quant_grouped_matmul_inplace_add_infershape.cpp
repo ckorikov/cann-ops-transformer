@@ -45,15 +45,10 @@ static ge::graphStatus InferShape4QuantGroupedMatmulInplaceAdd(gert::InferShapeC
     OP_CHECK_IF(IsInputTensorNull(context) != GRAPH_SUCCESS,
               OP_LOGE(context->GetNodeName(), "Some of the required inputs are null."), return GRAPH_FAILED);
     auto yRefShape = context->GetInputShape(YREF_INDEX);
-    int64_t g = yRefShape->GetDim(0);
-    int64_t m = yRefShape->GetDim(1);
-    int64_t n = yRefShape->GetDim(2);
+    OP_CHECK_NULL_WITH_CONTEXT(context, yRefShape);
     auto outShape = context->GetOutputShape(0);
     OP_CHECK_NULL_WITH_CONTEXT(context, outShape);
-    outShape->SetDimNum(3); // 3: shape is (G, M, N)
-    outShape->SetDim(0, g);
-    outShape->SetDim(1, m); // 1: the sceond element
-    outShape->SetDim(2, n); // 2: the third element
+    *outShape = *yRefShape;
     return GRAPH_SUCCESS;
 }
 
