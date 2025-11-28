@@ -244,7 +244,7 @@
     -   B：取值范围为1\~2K。带prefixOptional的时候B最大支持1K。
     -   N：取值范围为1\~256。
     -   S：取值范围为1\~1M。
-    -   D：取值范围为1\~512。
+    -   D：取值范围为1\~768。
     -   KeepProb：取值范围为(0, 1]。
 - 部分场景下，如果计算量过大可能会导致算子执行超时(aicore error类型报错，errorStr为：timeout or trap error)，此时建议做轴切分处理，注：这里的计算量会受B、S、N、D等参数的影响，值越大计算量越大。
 - prefixOptional稀疏计算仅支持压缩场景，sparseModeOptional=6，当Sq > Skv时，prefix的N值取值范围\[0, Skv\]，当Sq <= Skv时，prefix的N值取值范围\[Skv-Sq, Skv\]。
