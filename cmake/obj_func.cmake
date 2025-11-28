@@ -286,6 +286,7 @@ macro(add_mc2_modules_sources)
   file(GLOB_RECURSE OPTILING_SRCS
       ${SOURCE_DIR}/op_tiling/*.cpp
       ${SOURCE_DIR}/op_tiling/arch35/*.cpp
+      ${SOURCE_DIR}/op_tiling/common/*.cpp
       ${SOURCE_DIR}/../op_graph/fallback*.cpp
   )
   if (OPTILING_SRCS)
