@@ -72,45 +72,45 @@ extern "C" __global__ __aicore__ void inplace_matmul_all_reduce_add_rms_norm(
     TPipe tPipe;
     KERNEL_TASK_TYPE_DEFAULT(KERNEL_TYPE_MIX_AIC_1_2);
 #if defined(MC2_QUANT_FP16)
-    if (TILING_KEY_IS(8)) {
+    if (TILING_KEY_IS(0)) {
         INVOKE_MC2_ARN_QUANT_910_OP_IMPL(
             BmmDequant, Mc2CoreType::ON_CUBE_AND_VECTOR, REG_NO_MM_OBJ, int32_t, uint64_t, DTYPE_Y, false, false);
-    } else if (TILING_KEY_IS(4104)) {
+    } else if (TILING_KEY_IS(1)) {
         INVOKE_MC2_ARN_QUANT_910_OP_IMPL(
             BmmDequant, Mc2CoreType::ON_CUBE_AND_VECTOR, REG_NO_MM_OBJ, int32_t, uint64_t, DTYPE_Y, false, true);
     }
 #elif defined(MC2_QUANT_BF16)
-    if (TILING_KEY_IS(8)) {
+    if (TILING_KEY_IS(0)) {
         INVOKE_MC2_ARN_QUANT_910_OP_IMPL(
             BmmDequantBf16, Mc2CoreType::ON_VECTOR, REG_MM_OBJ_FOR_ARN, DTYPE_Y, DTYPE_Y, false, false, true);
-    } else if (TILING_KEY_IS(4104)) {
+    } else if (TILING_KEY_IS(1)) {
         INVOKE_MC2_ARN_QUANT_910_OP_IMPL(
             BmmDequantBf16, Mc2CoreType::ON_VECTOR, REG_MM_OBJ_FOR_ARN, DTYPE_Y, DTYPE_Y, false, true, true);
     }
 #elif defined(MC2_WEIGHT_QUANT)
-    if (TILING_KEY_IS(2293772)) {
+    if (TILING_KEY_IS(310100UL)) {
         INVOKE_MC2_ARN_WEIGHT_QUANT_910_OP_IMPL(false, Mc2QuantType::PER_TENSOR, false);
-    } else if (TILING_KEY_IS(3342348)) {
+    } else if (TILING_KEY_IS(311100UL)) {
         INVOKE_MC2_ARN_WEIGHT_QUANT_910_OP_IMPL(false, Mc2QuantType::PER_TENSOR, true);
-    } else if (TILING_KEY_IS(69402636)) {
+    } else if (TILING_KEY_IS(310110UL)) {
         INVOKE_MC2_ARN_WEIGHT_QUANT_910_OP_IMPL(true, Mc2QuantType::PER_TENSOR, false);
-    } else if (TILING_KEY_IS(70451212)) {
+    } else if (TILING_KEY_IS(311110UL)) {
         INVOKE_MC2_ARN_WEIGHT_QUANT_910_OP_IMPL(true, Mc2QuantType::PER_TENSOR, true);
-    } else if (TILING_KEY_IS(4390924)) {
+    } else if (TILING_KEY_IS(310200UL)) {
         INVOKE_MC2_ARN_WEIGHT_QUANT_910_OP_IMPL(false, Mc2QuantType::PER_CHANNEL, false);
-    } else if (TILING_KEY_IS(5439500)) {
+    } else if (TILING_KEY_IS(311200UL)) {
         INVOKE_MC2_ARN_WEIGHT_QUANT_910_OP_IMPL(false, Mc2QuantType::PER_CHANNEL, true);
-    } else if (TILING_KEY_IS(71499788)) {
+    } else if (TILING_KEY_IS(310210UL)) {
         INVOKE_MC2_ARN_WEIGHT_QUANT_910_OP_IMPL(true, Mc2QuantType::PER_CHANNEL, false);
-    } else if (TILING_KEY_IS(72548364)) {
+    } else if (TILING_KEY_IS(311210UL)) {
         INVOKE_MC2_ARN_WEIGHT_QUANT_910_OP_IMPL(true, Mc2QuantType::PER_CHANNEL, true);
-    } else if (TILING_KEY_IS(6488076)) {
+    } else if (TILING_KEY_IS(310300UL)) {
         INVOKE_MC2_ARN_WEIGHT_QUANT_910_OP_IMPL(false, Mc2QuantType::PER_GROUP, false);
-    } else if (TILING_KEY_IS(73596940)) {
+    } else if (TILING_KEY_IS(310310UL)) {
         INVOKE_MC2_ARN_WEIGHT_QUANT_910_OP_IMPL(true, Mc2QuantType::PER_GROUP, false);
-    } else if (TILING_KEY_IS(7536652)) {
+    } else if (TILING_KEY_IS(311300UL)) {
         INVOKE_MC2_ARN_WEIGHT_QUANT_910_OP_IMPL(false, Mc2QuantType::PER_GROUP, true);
-    } else if (TILING_KEY_IS(74645516)) {
+    } else if (TILING_KEY_IS(311310UL)) {
         INVOKE_MC2_ARN_WEIGHT_QUANT_910_OP_IMPL(true, Mc2QuantType::PER_GROUP, true);
     }
 #else

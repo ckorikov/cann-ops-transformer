@@ -13,7 +13,6 @@
  * \brief
  */
 #include "weight_quant_matmul_all_reduce_tiling_310p.h"
-#include "../../../op_kernel/matmul_all_reduce_tiling_key.h"
 #include "mc2_log.h"
 #include "op_mc2.h"
 using namespace Mc2Log;
@@ -85,45 +84,14 @@ ge::graphStatus WeightQuantMatmulAllReduceTiling310P::DoOpTiling()
 uint64_t WeightQuantMatmulAllReduceTiling310P::GetTilingKey() const
 {
     if (isKZero_) {
-        const uint64_t emptyTensorKey = GET_TPL_TILING_KEY(
-            static_cast<uint64_t>(ASCEND_310P),
-            static_cast<uint64_t>(MATMUL_ALLREDUCE_MM_TYPE_WEIGHT_QUANT_MATMUL),
-            static_cast<uint64_t>(isKZero_),
-            MATMUL_ALLREDUCE_INT8_COMM_F,
-            static_cast<uint64_t>(SET_NOT_USE_PARAM),
-            static_cast<uint64_t>(SET_NOT_USE_PARAM),
-            SET_NOT_USE_FM_MM_TPL_TILING,
-            SET_NOT_USE_QUANT_MM_TPL_TILING,
-            static_cast<uint64_t>(SET_NOT_USE_PARAM),
-            static_cast<uint64_t>(SET_NOT_USE_PARAM),
-            static_cast<uint64_t>(SET_NOT_USE_PARAM),
-            static_cast<uint64_t>(SET_NOT_USE_PARAM),
-            static_cast<uint64_t>(SET_NOT_USE_PARAM),
-            static_cast<uint64_t>(FORMAT_B_NZ));
-
-        OP_LOGI(opName_, "WeightQuantMatmulAllReduceTiling310P get tilingKey %lu. isKZero_ %lu.", emptyTensorKey, isKZero_);
+        const uint64_t emptyTensorKey = 2100000;
+        OP_LOGI(opName_, "WeightQuantMatmulAllReduceTiling310P get tilingKey %lu", emptyTensorKey);
         return emptyTensorKey;
     }
-
-    const uint64_t tilingKey = GET_TPL_TILING_KEY(
-        static_cast<uint64_t>(ASCEND_310P),
-        static_cast<uint64_t>(MATMUL_ALLREDUCE_MM_TYPE_WEIGHT_QUANT_MATMUL),
-        MATMUL_ALLREDUCE_EMPTY_INPUT_F,
-        MATMUL_ALLREDUCE_INT8_COMM_F,
-        static_cast<uint64_t>(SET_NOT_USE_PARAM),
-        static_cast<uint64_t>(SET_NOT_USE_PARAM),
-        SET_NOT_USE_FM_MM_TPL_TILING,
-        SET_NOT_USE_QUANT_MM_TPL_TILING,
-        static_cast<uint64_t>(SET_NOT_USE_PARAM),
-        weightQuantMatmul310TPLParam_.hasAntiquantOffset,
-        weightQuantMatmul310TPLParam_.antiQuantType,
-        weightQuantMatmul310TPLParam_.transA,
-        static_cast<uint64_t>(SET_NOT_USE_PARAM),
-        static_cast<uint64_t>(FORMAT_B_NZ));
-
-    OP_LOGI(opName_, "WeightQuantMatmulAllReduceTiling310P get tilingKey %lu. AntiQuantType %lu, hasAntiquantOffset %lu, transA %lu.", tilingKey,
-        weightQuantMatmul310TPLParam_.antiQuantType, weightQuantMatmul310TPLParam_.hasAntiquantOffset, weightQuantMatmul310TPLParam_.transA);
-    return tilingKey;
+    uint64_t tilingKey = context_->GetTilingKey();
+    OP_LOGI(opName_, "WeightQuantMatmulAllReduceTiling310P get tilingKey %lu", tilingKey);
+    const uint64_t perfKey = 80000;
+    return (tileTilingKey_ != tilingKey && tilingKey == perfKey) ? tileTilingKey_ : tilingKey;
 }
 
 ge::graphStatus WeightQuantMatmulAllReduceTiling310P::GetWorkspaceSize()
@@ -197,38 +165,18 @@ ge::graphStatus WeightQuantMatmulAllReduceTiling310P::DoWeightQuantTiling()
     WeightQuantTilingTransferHelper mmTile(*this, weightQuantMatmulAllReduceTilingData_.tilematmulTiling);
     OP_LOGI(opName_, "DoWeightQuantTiling enableSplitK:%d", args_.enableSplitK);
     if (args_.enableSplitK) {
-        auto res = mmTile.DoTiling();
-        weightQuantMatmul310TPLParam_ = mmTile.GetWeightQuantMatmul310TPLParam();
-        return res;
+        return mmTile.DoTiling();
     } else {
         OP_LOGI(opName_, "DoWeightQuantTiling tailMValue_:%lu", tailMValue_);
         GE_ASSERT_GRAPH_SUCCESS(mmTile.DoTiling());
-        weightQuantMatmul310TPLParam_ = mmTile.GetWeightQuantMatmul310TPLParam();
-        tileTilingKey_ = GET_TPL_TILING_KEY(
-            static_cast<uint64_t>(ASCEND_310P),
-            static_cast<uint64_t>(MATMUL_ALLREDUCE_MM_TYPE_WEIGHT_QUANT_MATMUL),
-            MATMUL_ALLREDUCE_EMPTY_INPUT_F,
-            MATMUL_ALLREDUCE_INT8_COMM_F,
-            static_cast<uint64_t>(SET_NOT_USE_PARAM),
-            static_cast<uint64_t>(SET_NOT_USE_PARAM),
-            SET_NOT_USE_FM_MM_TPL_TILING,
-            SET_NOT_USE_QUANT_MM_TPL_TILING,
-            static_cast<uint64_t>(SET_NOT_USE_PARAM),
-            weightQuantMatmul310TPLParam_.hasAntiquantOffset,
-            weightQuantMatmul310TPLParam_.antiQuantType,
-            weightQuantMatmul310TPLParam_.transA,
-            static_cast<uint64_t>(SET_NOT_USE_PARAM),
-            static_cast<uint64_t>(FORMAT_B_NZ));
-        OP_LOGI(opName_, " tilematmulTiling tilingKey %lu. AntiQuantType %lu, hasAntiquantOffset %lu, transA %lu.", tileTilingKey_,
-            weightQuantMatmul310TPLParam_.antiQuantType, weightQuantMatmul310TPLParam_.hasAntiquantOffset, weightQuantMatmul310TPLParam_.transA);
+        tileTilingKey_ = context_->GetTilingKey();
+        OP_LOGI(opName_, " tilematmulTiling tilingKey %lu", tileTilingKey_);
         if (MutableRCSTilingData().get_tailCnt() == 0) {
             return ge::GRAPH_SUCCESS;
         }
         args_.mValue = tailMValue_;
         WeightQuantTilingTransferHelper mmTail(*this, weightQuantMatmulAllReduceTilingData_.tailmatmulTiling);
-        auto res = mmTail.DoTiling();
-        weightQuantMatmul310TPLParam_ = mmTile.GetWeightQuantMatmul310TPLParam();
-        return res;
+        return mmTail.DoTiling();
     }
 }
 

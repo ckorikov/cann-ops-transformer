@@ -14,7 +14,6 @@
  */
 #include "matmul_all_reduce_tiling_310_general.h"
 #include "op_mc2.h"
-#include "../../../op_kernel/matmul_all_reduce_tiling_key.h"
 namespace optiling {
 bool MatmulAllReduceTiling310General::IsCapable()
 {
@@ -74,41 +73,15 @@ ge::graphStatus MatmulAllReduceTiling310General::DoOpTiling()
 uint64_t MatmulAllReduceTiling310General::GetTilingKey() const
 {
     if (isKZero_) {
-        const uint64_t emptyTensorKey = GET_TPL_TILING_KEY(
-            static_cast<uint64_t>(ASCEND_310P),
-            static_cast<uint64_t>(MATMUL_ALLREDUCE_MM_TYPE_FP_MM),
-            static_cast<uint64_t>(isKZero_),
-            MATMUL_ALLREDUCE_INT8_COMM_F,
-            static_cast<uint64_t>(SET_NOT_USE_PARAM),
-            static_cast<uint64_t>(SET_NOT_USE_PARAM),
-            SET_NOT_USE_FM_MM_TPL_TILING,
-            SET_NOT_USE_QUANT_MM_TPL_TILING,
-            SET_NOT_USE_WEIGHT_QUANT_MM_TPL_TILING);
-        OP_LOGI(opName_, "MatmulAllReduceTiling310General get tilingKey %lu, isKZero_ %lu", emptyTensorKey, isKZero_);
+        const uint64_t emptyTensorKey = 2100000;
+        OP_LOGI(opName_, "MatmulAllReduceTiling310General get tilingKey %lu", emptyTensorKey);
         return emptyTensorKey;
     }
-
-    uint64_t matmulAllReduceType = isWeightQuant_ ?
-        MATMUL_ALLREDUCE_MM_TYPE_WEIGHT_QUANT_MATMUL : MATMUL_ALLREDUCE_MM_TYPE_FP_MM;
-    const uint64_t tilingKey = GET_TPL_TILING_KEY(
-        static_cast<uint64_t>(ASCEND_310P),
-        static_cast<uint64_t>(matmulAllReduceType),
-        MATMUL_ALLREDUCE_EMPTY_INPUT_F,
-        MATMUL_ALLREDUCE_INT8_COMM_F,
-        static_cast<uint64_t>(enableL2Cache_),
-        static_cast<uint64_t>(SET_NOT_USE_PARAM),
-        SET_NOT_USE_FM_MM_TPL_TILING,
-        SET_NOT_USE_QUANT_MM_TPL_TILING,
-        static_cast<uint64_t>(SET_NOT_USE_PARAM),
-        static_cast<uint64_t>(hasAntiQuantOffset_),
-        static_cast<uint64_t>(antiQuantT_),
-        1UL,
-        static_cast<uint64_t>(isTransB_),
-        static_cast<uint64_t>(FORMAT_B_ND));
-
-    OP_LOGI(opName_, "MatmulAllReduceTiling310General get tilingKey %lu. antiQuantT_ %lu, hasAntiQuantOffset_ %lu, isTransB_ %lu,     \
-        enableL2Cache_ %lu, isWeightQuant_ %lu, isKZero_ %lu", tilingKey, antiQuantT_, hasAntiQuantOffset_, isTransB_, enableL2Cache_,\
-        isWeightQuant_, isKZero_);
+    // L2cache, transB, isWeightQuant, AntiQuantType, hasAntiQuantOffset, 310Version
+    const uint64_t tilingKey = RecursiveSum(
+        enableL2Cache_, isTransB_, isWeightQuant_, static_cast<int32_t>(antiQuantT_), hasAntiQuantOffset_, isKZero_,
+        static_cast<uint64_t>(MatmulAllReduceTiling::ALL_REDUCE_GENERAL_310));
+    OP_LOGI(opName_, "MatmulAllReduceTiling310General get tilingKey %lu", tilingKey);
     return tilingKey;
 }
 

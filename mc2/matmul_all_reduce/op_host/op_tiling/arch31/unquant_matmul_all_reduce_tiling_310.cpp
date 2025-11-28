@@ -13,7 +13,6 @@
  * \brief
  */
 #include "unquant_matmul_all_reduce_tiling_310.h"
-#include "../../../op_kernel/matmul_all_reduce_tiling_key.h"
 #include "mc2_log.h"
 #include "op_mc2.h"
 using namespace Mc2Log;
@@ -57,43 +56,12 @@ ge::graphStatus UnQuantMatmulAllReduceTiling310::DoOpTiling()
 uint64_t UnQuantMatmulAllReduceTiling310::GetTilingKey() const
 {
     if (isKZero_) {
-        const uint64_t emptyTensorKey = GET_TPL_TILING_KEY(
-            static_cast<uint64_t>(ASCEND_310P),
-            static_cast<uint64_t>(MATMUL_ALLREDUCE_MM_TYPE_FP_MM),
-            static_cast<uint64_t>(isKZero_),
-            MATMUL_ALLREDUCE_INT8_COMM_F,
-            static_cast<uint64_t>(SET_NOT_USE_PARAM),
-            static_cast<uint64_t>(SET_NOT_USE_PARAM),
-            SET_NOT_USE_FM_MM_TPL_TILING,
-            SET_NOT_USE_QUANT_MM_TPL_TILING,
-            static_cast<uint64_t>(SET_NOT_USE_PARAM),
-            static_cast<uint64_t>(SET_NOT_USE_PARAM),
-            static_cast<uint64_t>(SET_NOT_USE_PARAM),
-            static_cast<uint64_t>(SET_NOT_USE_PARAM),
-            static_cast<uint64_t>(SET_NOT_USE_PARAM),
-            static_cast<uint64_t>(FORMAT_B_NZ));
-
-        OP_LOGI(opName_, "UnQuantMatmulAllReduceTiling310 get tilingKey %lu. isKZero_ %lu", emptyTensorKey, isKZero_);
+        const uint64_t emptyTensorKey = 2100000UL;
+        OP_LOGI(opName_, "UnQuantMatmulAllReduceTiling310 get tilingKey %lu", emptyTensorKey);
         return emptyTensorKey;
     }
-
-    const uint64_t tilingKey = GET_TPL_TILING_KEY(
-        static_cast<uint64_t>(ASCEND_310P),
-        static_cast<uint64_t>(MATMUL_ALLREDUCE_MM_TYPE_FP_MM),
-        MATMUL_ALLREDUCE_EMPTY_INPUT_F,
-        MATMUL_ALLREDUCE_INT8_COMM_F,
-        static_cast<uint64_t>(SET_NOT_USE_PARAM),
-        static_cast<uint64_t>(SET_NOT_USE_PARAM),
-        matmulTPLParam_.disableMixNd2nz,
-        SET_NOT_USE_QUANT_MM_TPL_TILING,
-        static_cast<uint64_t>(SET_NOT_USE_PARAM),
-        static_cast<uint64_t>(SET_NOT_USE_PARAM),
-        static_cast<uint64_t>(SET_NOT_USE_PARAM),
-        static_cast<uint64_t>(SET_NOT_USE_PARAM),
-        static_cast<uint64_t>(SET_NOT_USE_PARAM),
-        static_cast<uint64_t>(FORMAT_B_NZ));
-
-    OP_LOGI(opName_, "UnQuantMatmulAllReduceTiling310 get tilingKey %lu. disableMixNd2nz %lu", tilingKey, matmulTPLParam_.disableMixNd2nz);
+    uint64_t tilingKey = context_->GetTilingKey() + 2000U;
+    OP_LOGI(opName_, "UnQuantMatmulAllReduceTiling310 get tilingKey %lu", tilingKey);
     return tilingKey;
 }
 
@@ -156,20 +124,15 @@ ge::graphStatus UnQuantMatmulAllReduceTiling310::DoUnQuantTiling()
     args_.mValue = tileMValue_;
     UnQuantTilingTransferHelper mmTile(*this, unquantMatmulAllReduceTilingData_.tilematmulTiling);
     if (args_.enableSplitK) {
-        auto res = mmTile.DoTiling();
-        matmulTPLParam_ = mmTile.GetMatmulTPLParam();
-        return res;
+        return mmTile.DoTiling();
     } else {
         GE_ASSERT_GRAPH_SUCCESS(mmTile.DoTiling());
         if (MutableRCSTilingData().get_tailCnt() == 0) {
-            matmulTPLParam_ = mmTile.GetMatmulTPLParam();
             return ge::GRAPH_SUCCESS;
         }
         args_.mValue = tailMValue_;
         UnQuantTilingTransferHelper mmTail(*this, unquantMatmulAllReduceTilingData_.tailmatmulTiling);
-        auto res = mmTail.DoTiling();
-        matmulTPLParam_ = mmTail.GetMatmulTPLParam();
-        return res;
+        return mmTail.DoTiling();
     }
 }
 

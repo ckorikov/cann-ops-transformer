@@ -17,14 +17,6 @@
 #include "../matmul_all_reduce_tiling_base.h"
 
 namespace optiling {
-
-struct WeightQuantMatmul310TPLParam{
-    uint64_t hasAntiquantOffset{65535};
-    uint64_t antiQuantType{65535};
-    uint64_t transA{65535};
-    uint64_t transB{65535};
-};
-
 class WeightQuantMatmulAllReduceTiling310P : public MatmulAllReduceTilingBase
 {
     class WeightQuantTilingTransferHelper : public Mc2WeightQuantBatchMatmulV2WeightNz
@@ -134,16 +126,6 @@ class WeightQuantMatmulAllReduceTiling310P : public MatmulAllReduceTilingBase
             return ge::GRAPH_SUCCESS;
         }
 
-        WeightQuantMatmul310TPLParam GetWeightQuantMatmul310TPLParam()
-        {
-            WeightQuantMatmul310TPLParam param;
-            param.hasAntiquantOffset = inputParams_.hasAntiQuantOffset;
-            param.antiQuantType = static_cast<uint64_t>(inputParams_.antiQuantType);
-            param.transA = inputParams_.transA;
-            param.transB = inputParams_.transB;
-            return param;
-        }
-
     private:
         WeightQuantMatmulAllReduceTiling310P& tilingProcesser_;
     };
@@ -183,7 +165,6 @@ private:
     WeightQuantMatmulAllReduceNzTilingData weightQuantMatmulAllReduceTilingData_;
     uint64_t myWorkSpaceSize_{0U};
     uint64_t tileTilingKey_{0U};
-    WeightQuantMatmul310TPLParam weightQuantMatmul310TPLParam_;
 };
 } // namespace optiling
 #endif // WEIGHT_QUANT_MATMUL_ALL_REDUCE_TILING_310P_H

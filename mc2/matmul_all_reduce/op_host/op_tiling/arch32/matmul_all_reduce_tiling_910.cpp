@@ -48,39 +48,19 @@ ge::graphStatus MatmulAllReduceTiling910::DoOpTiling()
 uint64_t MatmulAllReduceTiling910::GetTilingKey() const
 {
     if (unlikely(isKZero_)) {
-        uint64_t tilingKey = GET_TPL_TILING_KEY(
-            static_cast<uint64_t>(ASCEND_910B),
-            static_cast<uint64_t>(MATMUL_ALLREDUCE_MM_TYPE_FP_MM),
-            isKZero_,
-            MATMUL_ALLREDUCE_INT8_COMM_F,
-            0UL,    // ENABLE_L2_CACHE
-            0UL,    // SHARE_MM
-            SET_NOT_USE_FM_MM_TPL_TILING,
-            SET_NOT_USE_QUANT_MM_TPL_TILING,
-            SET_NOT_USE_WEIGHT_QUANT_MM_TPL_TILING);
-        OP_LOGI(opName_, "Get tiling key %lu for empty tensor.", tilingKey);
-
-        return tilingKey;
+        OP_LOGI(opName_, "Get tiling key %lu for empty tensor.", EMPTY_TENSOR_KEY);
+        return EMPTY_TENSOR_KEY;
     }
 
-    uint64_t MM_type = (matmulTPLParam_.disableMixNd2nz == MAT_MUL_V3_MIXND2NZ_FALSE &&
-        !enableBiasConvert_ && !matmulAllReduce910TilingData_.param.get_isAdd()) ?
-        MATMUL_ALLREDUCE_MM_TYPE_FP_MM_CUBE_ONLY :
-        MATMUL_ALLREDUCE_MM_TYPE_FP_MM;
+    const uint64_t tilingKeyInCtx = context_->GetTilingKey();
+    if (tilingKeyInCtx == MM_ALINGNED_TILING_KEY_A2 && !enableBiasConvert_ &&
+        !matmulAllReduce910TilingData_.param.get_isAdd()) {
+        OP_LOGI(opName_, "Get tiling key %lu for cube only case.", CUBE_ONLY_KEY);
+        return CUBE_ONLY_KEY;
+    }
 
-    uint64_t tilingKey = GET_TPL_TILING_KEY(
-        static_cast<uint64_t>(ASCEND_910B),
-        MM_type,
-        MATMUL_ALLREDUCE_EMPTY_INPUT_F,
-        MATMUL_ALLREDUCE_INT8_COMM_F,
-        0UL,    // ENABLE_L2_CACHE
-        0UL,    // SHARE_MM
-        matmulTPLParam_.disableMixNd2nz,
-        SET_NOT_USE_QUANT_MM_TPL_TILING,
-        SET_NOT_USE_WEIGHT_QUANT_MM_TPL_TILING);
-    OP_LOGI(opName_, "Get tiling key %lu. Cube only flag is %lu", tilingKey, MM_type);
-
-    return tilingKey;
+    OP_LOGI(opName_, "Get tiling key %lu.", tilingKeyInCtx);
+    return tilingKeyInCtx;
 }
 
 ge::graphStatus MatmulAllReduceTiling910::GetWorkspaceSize()
@@ -118,20 +98,15 @@ ge::graphStatus MatmulAllReduceTiling910::Do910Tiling()
     TilingTransferHelper mmTile(*this, matmulAllReduce910TilingData_.tilematmulTiling);
     if (args_.enableSplitK) {
         OP_LOGD(opName_, "Enable SplitK Tiling.");
-        auto res = mmTile.DoTiling();
-        matmulTPLParam_ = mmTile.GetMatmulTPLParam();
-        return res;
+        return mmTile.DoTiling();
     } else {
         GE_ASSERT_GRAPH_SUCCESS(mmTile.DoTiling());
         if (MutableRCSTilingData().get_tailCnt() == 0) {
-            matmulTPLParam_ = mmTile.GetMatmulTPLParam();
             return ge::GRAPH_SUCCESS;
         }
         args_.mValue = tailMValue_;
         TilingTransferHelper mmTail(*this, matmulAllReduce910TilingData_.tailmatmulTiling);
-        auto res = mmTail.DoTiling();
-        matmulTPLParam_ = mmTail.GetMatmulTPLParam();
-        return res;
+        return mmTail.DoTiling();
     }
 }
 
@@ -315,14 +290,6 @@ ge::graphStatus TilingTransferHelper::PostTiling()
     tilingProcesser_.myWorkSpaceSize_ = std::max(tilingProcesser_.myWorkSpaceSize_, workspaceSize_);
     OP_LOGI(tilingProcesser_.opName_, " set mm workspace size %lu to mc2", tilingProcesser_.myWorkSpaceSize_);
     return ge::GRAPH_SUCCESS;
-}
-
-MatmulTPLParam TilingTransferHelper::GetMatmulTPLParam()
-{
-    MatmulTPLParam param;
-    param.disableMixNd2nz = static_cast<uint64_t>(GetMixNd2nzType());
-    // 1: disable mix nd2nz 0: enable mix nd2nz
-    return param;
 }
 
 TilingTransferHelper::TilingTransferHelper(MatmulAllReduceTiling910& matmulAllReduceTiling910, Mc2MatmulV3TilingData& data)

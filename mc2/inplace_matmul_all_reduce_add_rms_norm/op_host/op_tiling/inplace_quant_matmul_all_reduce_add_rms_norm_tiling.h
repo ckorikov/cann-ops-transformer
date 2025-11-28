@@ -17,7 +17,7 @@
 #include "../../../matmul_all_reduce_add_rms_norm/op_host/op_tiling/quant_matmul_all_reduce_add_rms_norm_tiling.h"
 
 namespace optiling {
-REGISTER_TILING_DATA_CLASS(InplaceMatmulAllReduceAddRmsNorm_8, QuantMatmulAllReduceAddRmsNormTilingData);
-REGISTER_TILING_DATA_CLASS(InplaceMatmulAllReduceAddRmsNorm_4104, QuantMatmulAllReduceAddRmsNormTilingData);
+REGISTER_TILING_DATA_CLASS(InplaceMatmulAllReduceAddRmsNorm_0, QuantMatmulAllReduceAddRmsNormTilingData);
+REGISTER_TILING_DATA_CLASS(InplaceMatmulAllReduceAddRmsNorm_1, QuantMatmulAllReduceAddRmsNormTilingData);
 } // namespace optiling
 #endif // _INPLACE_QUANT_MATMUL_ALL_REDUCE_ADD_RMS_NORM_TILING_H_
