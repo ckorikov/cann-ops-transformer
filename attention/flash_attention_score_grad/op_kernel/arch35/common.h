@@ -207,8 +207,6 @@ struct FagConstInfo {
     int64_t mm3Ka;
     int64_t mm4Kb;
     int64_t dRopeSize = 64; // rope旋转的维度
-    int64_t dAlign8;
-    int64_t dvAlign8;
 };
 
 // fp8反量化因子

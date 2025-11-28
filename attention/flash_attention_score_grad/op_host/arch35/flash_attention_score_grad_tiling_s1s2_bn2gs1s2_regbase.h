@@ -88,6 +88,13 @@
      pseSlopeBn = 2,
      pseSlopeN = 3
  };
+
+ enum class SparseType : uint8_t {
+     DENSE = 0,
+     CASUAL = 1,
+     BAND = 2,
+     UNSUPPORTED = 3    // 超L2优化暂不支持sparse的场景
+ };
  
  enum class DeterSparseType : uint32_t {
      NO_DETER = 0, // 非确定性
@@ -266,6 +273,8 @@
      virtual ge::graphStatus DoSparse();
      bool DoBn2s2Sparse();
      uint32_t GetDeterSparseTilingKey();
+     uint8_t GetSparseType();
+     int64_t GetTotalPerBatchNum(uint8_t sparseType);
      void CalcleDeterParam();
      void CalcleCausalDeterParam();
      void CalcleTNDDeterParam();

@@ -39,6 +39,7 @@ constexpr uint32_t ATTEN_MASK_SHAPE_DIMS_1 = 1;
 
 constexpr uint32_t ATTEN_MASK_DIM_LENGTH_2 = 2;
 constexpr uint32_t ATTEN_MASK_DIM_LENGTH_4 = 4;
+constexpr int64_t COMPRESS_ATTEN_MASK_SIZE = 2048 * 2048;
 
 constexpr uint32_t INPUT_FROAMT_BN2GS2D = 3; // BNSD
 constexpr uint32_t INPUT_FROAMT_S2BN2GD = 2; // SBH
@@ -101,6 +102,7 @@ constexpr int64_t ALIGN64 = 64;
 constexpr int64_t INT64_NUM = 32;
 constexpr uint32_t DKDV_OUT = 2;
 constexpr uint32_t NUM_TWO = 2;
+constexpr uint32_t NUM_THREE = 3;
 
 template <class T>
 inline auto CeilDivideBy(T num1, T num2) -> T
@@ -1164,6 +1166,58 @@ uint32_t FlashAttentionScoreGradTilingUs1s2Bs2Regbase::GetDeterSparseTilingKey()
     return fBaseParams.d <= static_cast<uint32_t>(ConstAxisTemplateNum::NUM512) ? static_cast<uint32_t>(DeterSparseType::DETER_OLD) : static_cast<uint32_t>(DeterSparseType::NO_DETER);
 }
 
+uint8_t FlashAttentionScoreGradTilingUs1s2Bs2Regbase::GetSparseType()
+{
+    if (!fBaseParams.isSparse || (fBaseParams.sparseMode == static_cast<uint32_t>(SparseMode::ALL_MASK)) ||
+        (fBaseParams.sparseMode == static_cast<uint32_t>(SparseMode::NO_MASK) &&
+         fBaseParams.s1Token >= fBaseParams.s1 && fBaseParams.s2Token >= fBaseParams.s2)) {
+        // DENSE: 1）非sparse；2）ALL_MASK；3）NO_MASK & preToken>=Sq & nextToken>=Skv
+        return static_cast<uint8_t>(SparseType::DENSE);
+    } else if ((fBaseParams.sparseMode == static_cast<uint32_t>(SparseMode::LEFT_UP_CAUSAL) &&
+                fBaseParams.s1 <= fBaseParams.s2) ||
+               (fBaseParams.sparseMode == static_cast<uint32_t>(SparseMode::NO_MASK) &&
+                fBaseParams.s1Token >= fBaseParams.s1 && fBaseParams.s2Token == 0) ||
+                (fBaseParams.sparseMode == static_cast<uint32_t>(SparseMode::RIGHT_DOWN_CAUSAL) &&
+                fBaseParams.s1 >= fBaseParams.s2) ||
+                (fBaseParams.sparseMode == static_cast<uint32_t>(SparseMode::BAND) &&
+                fBaseParams.s1Token >= fBaseParams.s1 && fBaseParams.s2Token == 0)) {
+        // CASUAL: 1）LEFT_UP_CASUAL；2）RIGHT_DOWN_CASUAL；3）NO_MASK & preToken>=Sq & nextToken=0；4）BAND & preToken>=Sq & nextToken=0
+        return static_cast<uint8_t>(SparseType::CASUAL);
+    } else if (fBaseParams.sparseMode == static_cast<uint32_t>(SparseMode::NO_MASK) ||
+        // BAND: 1）NO_MASK剩余场景；2）BAND剩余场景；3）LEFT_UP_CAUSAL剩余场景；4）RIGHT_DOWN_CAUSAL剩余场景
+        fBaseParams.sparseMode == static_cast<uint32_t>(SparseMode::BAND) ||
+        fBaseParams.sparseMode == static_cast<uint32_t>(SparseMode::LEFT_UP_CAUSAL) ||
+        fBaseParams.sparseMode == static_cast<uint32_t>(SparseMode::RIGHT_DOWN_CAUSAL)) {
+        return static_cast<uint8_t>(SparseType::BAND);
+    } else {
+        // 超L2优化暂不支持的sparse场景
+        return static_cast<uint8_t>(SparseType::UNSUPPORTED);
+    }
+}
+
+int64_t FlashAttentionScoreGradTilingUs1s2Bs2Regbase::GetTotalPerBatchNum(uint8_t sparseType)
+{
+    int64_t totalPerBatchNum = 0;
+    if (sparseType == static_cast<uint8_t>(SparseType::DENSE)) {
+        totalPerBatchNum =  fBaseParams.s1Outer * fBaseParams.s2Outer;
+    } else if (sparseType == static_cast<uint8_t>(SparseType::CASUAL)) {
+        if (fBaseParams.s1 < fBaseParams.s2) {
+            totalPerBatchNum = (((fBaseParams.s1Outer << 1) - fBaseParams.s1Outer + 1) * fBaseParams.s1Outer) >> 1;
+        } else {
+            totalPerBatchNum = (((fBaseParams.s1Outer << 1) - fBaseParams.s2Outer + 1) * fBaseParams.s2Outer) >> 1;
+        }
+    } else if (sparseType == static_cast<uint8_t>(SparseType::BAND)) {
+        int64_t p = CeilDivideBy(fBaseParams.s1Token, static_cast<int64_t>(fBaseParams.s1TemplateType));
+        int64_t q = CeilDivideBy(fBaseParams.s2Token, static_cast<int64_t>(fBaseParams.s2TemplateType));
+        for (int64_t s2oIdx = 0; s2oIdx < fBaseParams.s2Outer; s2oIdx++) {
+            int64_t xMin = (s2oIdx - q) > 0 ? (s2oIdx - q) : 0;
+            int64_t xMax = (fBaseParams.s1Outer - 1) > (s2oIdx + p) ? (s2oIdx + p) : (fBaseParams.s1Outer - 1);
+            totalPerBatchNum += (xMax - xMin + 1);
+        }
+    }
+    return totalPerBatchNum;
+}
+
 void FlashAttentionScoreGradTilingUs1s2Bs2Regbase::CalcleDeterParam()
 {
     if (!fBaseParams.isDeterministic ||
@@ -1905,8 +1959,8 @@ bool FlashAttentionScoreGradTilingUs1s2Bs2Regbase::CheckExceedL2Cache()
 
             if (dqOffsetSet.find(dqOffset[cBlockIdx]) == dqOffsetSet.end()) {
                 dqOffsetSet.insert(dqOffset[cBlockIdx]);
-                // qSize + dxSize + dqSize(btyes)，2 means q and dx
-                usedl2CacheSize += (fBaseParams.s1Inner * S1CV_RATIO_DEFAULT * fBaseParams.d * inputSize * NUM_TWO +
+                // qSize + dxSize + dqSize(btyes) + ySize，3 means q, dx and y
+                usedl2CacheSize += (fBaseParams.s1Inner * S1CV_RATIO_DEFAULT * fBaseParams.d * inputSize * NUM_THREE +
                                     fBaseParams.s1Inner * S1CV_RATIO_DEFAULT * fBaseParams.d * FP32_BYTES);
             }
             if (dkDvOffsetSet.find(dkDvOffset[cBlockIdx]) == dkDvOffsetSet.end()) {
@@ -1925,6 +1979,24 @@ bool FlashAttentionScoreGradTilingUs1s2Bs2Regbase::CheckExceedL2Cache()
         }
         calcNum++;
     }
+    if (!isExceed) {
+        if (fBaseParams.sparseMode == static_cast<uint32_t>(SparseMode::ALL_MASK) ||
+            fBaseParams.sparseMode == static_cast<uint32_t>(SparseMode::NO_MASK)) {
+            if (fBaseParams.attenMaskShapeType ==static_cast<uint32_t>(AttenMaskShapeType::ATTENMASKBN2GS1S2)) {
+                usedl2CacheSize += (fBaseParams.b * fBaseParams.n2 * fBaseParams.g * fBaseParams.s1 * fBaseParams.s2);
+            } else if (fBaseParams.attenMaskShapeType ==static_cast<uint32_t>(AttenMaskShapeType::ATTENMASKBS1S2)) {
+                usedl2CacheSize += (fBaseParams.b * fBaseParams.s1 * fBaseParams.s2);
+            } else if (fBaseParams.attenMaskShapeType ==static_cast<uint32_t>(AttenMaskShapeType::ATTENMASKS1S2)) {
+                usedl2CacheSize += (fBaseParams.s1 * fBaseParams.s2);
+            }
+        } else if (fBaseParams.sparseMode == static_cast<uint32_t>(SparseMode::LEFT_UP_CAUSAL) ||
+            fBaseParams.sparseMode == static_cast<uint32_t>(SparseMode::RIGHT_DOWN_CAUSAL) ||
+            fBaseParams.sparseMode == static_cast<uint32_t>(SparseMode::BAND)) {
+            usedl2CacheSize += COMPRESS_ATTEN_MASK_SIZE;
+        }
+        isExceed = usedl2CacheSize > fBaseParams.l2CacheSize;
+    }
+
     return isExceed;
 }
 
@@ -3432,19 +3504,19 @@ ge::graphStatus FlashAttentionScoreGradTilingUs1s2Bs2Regbase::SaveToTilingData()
     s1s2BNGS1S2BaseParams_->set_dropMaskOuter(fBaseParams.dropMaskOuter);
     // 分核优化，对于超出l2 cache的case优先多个核处理BN下的S1S2
     bool isExceedL2Cache = CheckExceedL2Cache();
-    bool isNoMaskCasual = fBaseParams.sparseMode == static_cast<uint32_t>(SparseMode::NO_MASK) &&
-                          fBaseParams.s1Token >= fBaseParams.s1 && fBaseParams.s2Token == 0;
-    bool isBandCasual = fBaseParams.sparseMode == static_cast<uint32_t>(SparseMode::BAND) &&
-                        fBaseParams.s1Token >= fBaseParams.s1 && fBaseParams.s2Token == 0;
-    bool isNoMask = fBaseParams.sparseMode == static_cast<uint32_t>(SparseMode::NO_MASK) &&
-                    fBaseParams.s1Token >= fBaseParams.s1 && fBaseParams.s2Token >= fBaseParams.s2;
-    s1s2BNGS1S2BaseParams_->set_isSplitByBlockIdx(
-        isExceedL2Cache && fBaseParams.splitAxis == SplitAxisEnum::BN2GS1S2 &&
-        fBaseParams.layoutType != INPUT_FROAMT_TND && fBaseParams.s1 >= fBaseParams.s2 &&
+    uint8_t sparseType = GetSparseType();
+    bool isSplitByBlockIdx = CheckExceedL2Cache() && fBaseParams.splitAxis == SplitAxisEnum::BN2GS1S2 &&
+        fBaseParams.layoutType != INPUT_FROAMT_TND &&
+        !fBaseParams.isDeterministic &&
         fBaseParams.blockOuter == fBaseParams.aicNum &&
-        (isBandCasual || isNoMaskCasual || isNoMask ||
-         (fBaseParams.sparseMode == static_cast<uint32_t>(SparseMode::LEFT_UP_CAUSAL)) ||
-         (fBaseParams.sparseMode == static_cast<uint32_t>(SparseMode::RIGHT_DOWN_CAUSAL))));
+        (sparseType != static_cast<uint8_t>(SparseType::UNSUPPORTED));
+    OP_LOGI(context_, "Determine whether to enter splitByBlock core-splitting plan, get isSplitByBlockIdx=[%d], isExceedL2Cache=[%d] and sparseType=[%d].",
+        static_cast<int>(isSplitByBlockIdx), static_cast<int>(isExceedL2Cache), static_cast<int>(sparseType));
+    s1s2BNGS1S2BaseParams_->set_isSplitByBlockIdx(isSplitByBlockIdx);
+    if (isSplitByBlockIdx) {
+        s1s2BNGS1S2BaseParams_->set_totalPerBatchNum(GetTotalPerBatchNum(sparseType));
+        s1s2BNGS1S2BaseParams_->set_sparseType(sparseType);
+    }
     // s1/s2 split
     s1s2BNGS1S2SplitCoreParams_->set_s1Outer(fBaseParams.s1Outer);
     s1s2BNGS1S2SplitCoreParams_->set_s1Inner(fBaseParams.s1Inner);

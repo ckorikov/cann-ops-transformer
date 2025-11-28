@@ -37,7 +37,6 @@ public:
     __aicore__ inline void SetRunInfo(FagRunInfo &runInfo, int64_t taskId, int64_t index, int64_t nextIndex = -1);
     __aicore__ inline void Process();
     __aicore__ inline bool IsValid(FagRunInfo &runInfo, int64_t index);
-    __aicore__ inline bool IsValidDeterForTnd(FagRunInfo &runInfo, int64_t index, CoordinateInfo &coordinateInfo);
     __aicore__ inline void UpdateToken(FagRunInfo &runInfo, int64_t bIdx);
     __aicore__ inline bool CheckIsValidBlock(FagRunInfo &runInfo, int64_t baseIdx, int64_t s1oDimIdx,
                                              int64_t s2oDimIdx);
@@ -274,26 +273,28 @@ __aicore__ inline void FlashAttentionScoreGradKernelBase<ChildClass, CubeBlockTy
         attenMaskInfo.bandIndex = tilingData->s1s2BNGS1S2SplitCoreParams.bandIdx;
     }
  
-    if constexpr (IS_PSE) {
-        uint32_t pseShapeType = tilingData->s1s2BNGS1S2BaseParams.pseShapeType;
-        pseInfo.pseBSize =
-            (pseShapeType == PSE_SHAPE_TYPE_1NSS || pseShapeType == PSE_SHAPE_TYPE_1NHS) ? 1 : constInfo.bSize;
-        pseInfo.pseS1Size = PSE_COMPRESS_H; // 1024
-        pseInfo.pseS2Size = constInfo.commonConstInfo.s2Size;
-        pseInfo.pseLayoutType = tilingData->s1s2BNGS1S2BaseParams.pseLayoutType;
-        pseInfo.pseEncodeType =
-            (pseShapeType == PSE_SHAPE_TYPE_BNHS || pseShapeType == PSE_SHAPE_TYPE_1NHS) ? pseEncodeALibiS2Full : 0;
-        pseInfo.pseType = tilingData->s1s2BNGS1S2BaseParams.pseType;
-        pseInfo.qStartIdx = tilingData->s1s2BNGS1S2BaseParams.qStartIdx;
-        pseInfo.kvStartIdx = tilingData->s1s2BNGS1S2BaseParams.kvStartIdx;
-    }
- 
-    if constexpr (IS_DROP) {
-        dropInfo.seed = tilingData->s1s2BNGS1S2BaseParams.seed;
-        dropInfo.offset = tilingData->s1s2BNGS1S2BaseParams.offset;
-        dropInfo.keepProbUint8 = static_cast<uint8_t>(tilingData->s1s2BNGS1S2BaseParams.keepProbUint8);
-        dropInfo.dropMaskOuter = tilingData->s1s2BNGS1S2BaseParams.dropMaskOuter;
-        dropInfo.boolMode = tilingData->preTilingData.dropoutIsDivisibleBy8 == 0 ? true : false;
+    if ASCEND_IS_AIV {
+        if constexpr (IS_PSE) {
+            uint32_t pseShapeType = tilingData->s1s2BNGS1S2BaseParams.pseShapeType;
+            pseInfo.pseBSize =
+                (pseShapeType == PSE_SHAPE_TYPE_1NSS || pseShapeType == PSE_SHAPE_TYPE_1NHS) ? 1 : constInfo.bSize;
+            pseInfo.pseS1Size = PSE_COMPRESS_H; // 1024
+            pseInfo.pseS2Size = constInfo.commonConstInfo.s2Size;
+            pseInfo.pseLayoutType = tilingData->s1s2BNGS1S2BaseParams.pseLayoutType;
+            pseInfo.pseEncodeType =
+                (pseShapeType == PSE_SHAPE_TYPE_BNHS || pseShapeType == PSE_SHAPE_TYPE_1NHS) ? pseEncodeALibiS2Full : 0;
+            pseInfo.pseType = tilingData->s1s2BNGS1S2BaseParams.pseType;
+            pseInfo.qStartIdx = tilingData->s1s2BNGS1S2BaseParams.qStartIdx;
+            pseInfo.kvStartIdx = tilingData->s1s2BNGS1S2BaseParams.kvStartIdx;
+        }
+    
+        if constexpr (IS_DROP) {
+            dropInfo.seed = tilingData->s1s2BNGS1S2BaseParams.seed;
+            dropInfo.offset = tilingData->s1s2BNGS1S2BaseParams.offset;
+            dropInfo.keepProbUint8 = static_cast<uint8_t>(tilingData->s1s2BNGS1S2BaseParams.keepProbUint8);
+            dropInfo.dropMaskOuter = tilingData->s1s2BNGS1S2BaseParams.dropMaskOuter;
+            dropInfo.boolMode = tilingData->preTilingData.dropoutIsDivisibleBy8 == 0 ? true : false;
+        }  
     }
 }
  
@@ -465,47 +466,48 @@ __aicore__ inline void FlashAttentionScoreGradKernelBase<ChildClass, CubeBlockTy
             constInfo.mm2Kb = constInfo.mm2Kb / 3 << 1;
         }
     } else {
-        if constexpr (IS_TND) {
-            constInfo.commonConstInfo.mm1Ka = constInfo.commonConstInfo.n2GDv;
-            constInfo.commonConstInfo.mm1Kb = constInfo.commonConstInfo.n2Dv;
-            constInfo.mm2Ka = constInfo.commonConstInfo.n2GD;
-            constInfo.mm2Kb = constInfo.commonConstInfo.n2D;
-        } else {
-            if (constInfo.commonConstInfo.layoutType == BNGSD) {
-                constInfo.commonConstInfo.mm1Ka = constInfo.commonConstInfo.dSizeV;
-                constInfo.commonConstInfo.mm1Kb = constInfo.commonConstInfo.dSizeV;
-                constInfo.mm2Ka = constInfo.commonConstInfo.dSize;
-                constInfo.mm2Kb = constInfo.commonConstInfo.dSize;
-            } else if (constInfo.commonConstInfo.layoutType == SBNGD) {
-                constInfo.commonConstInfo.mm1Ka = constInfo.commonConstInfo.bN2GDv;
-                constInfo.commonConstInfo.mm1Kb = constInfo.commonConstInfo.bN2Dv;
-                constInfo.mm2Ka = constInfo.commonConstInfo.bN2GD;
-                constInfo.mm2Kb = constInfo.commonConstInfo.bN2D;
-            } else if (constInfo.commonConstInfo.layoutType == BSNGD) {
+        if ASCEND_IS_AIC {
+            if constexpr (IS_TND) {
                 constInfo.commonConstInfo.mm1Ka = constInfo.commonConstInfo.n2GDv;
                 constInfo.commonConstInfo.mm1Kb = constInfo.commonConstInfo.n2Dv;
                 constInfo.mm2Ka = constInfo.commonConstInfo.n2GD;
                 constInfo.mm2Kb = constInfo.commonConstInfo.n2D;
+            } else {
+                if (constInfo.commonConstInfo.layoutType == BNGSD) {
+                    constInfo.commonConstInfo.mm1Ka = constInfo.commonConstInfo.dSizeV;
+                    constInfo.commonConstInfo.mm1Kb = constInfo.commonConstInfo.dSizeV;
+                    constInfo.mm2Ka = constInfo.commonConstInfo.dSize;
+                    constInfo.mm2Kb = constInfo.commonConstInfo.dSize;
+                } else if (constInfo.commonConstInfo.layoutType == SBNGD) {
+                    constInfo.commonConstInfo.mm1Ka = constInfo.commonConstInfo.bN2GDv;
+                    constInfo.commonConstInfo.mm1Kb = constInfo.commonConstInfo.bN2Dv;
+                    constInfo.mm2Ka = constInfo.commonConstInfo.bN2GD;
+                    constInfo.mm2Kb = constInfo.commonConstInfo.bN2D;
+                } else if (constInfo.commonConstInfo.layoutType == BSNGD) {
+                    constInfo.commonConstInfo.mm1Ka = constInfo.commonConstInfo.n2GDv;
+                    constInfo.commonConstInfo.mm1Kb = constInfo.commonConstInfo.n2Dv;
+                    constInfo.mm2Ka = constInfo.commonConstInfo.n2GD;
+                    constInfo.mm2Kb = constInfo.commonConstInfo.n2D;
+                }
             }
-        }
-        constInfo.mm3Ka = constInfo.mm2Ka;
-        constInfo.mm4Kb = constInfo.mm2Kb;
-        if constexpr (IS_ROPE) {
-            constInfo.mm2Ka = constInfo.mm2Ka / 3 << 1;
-            constInfo.mm2Kb = constInfo.mm2Kb / 3 << 1;
+            constInfo.mm3Ka = constInfo.mm2Ka;
+            constInfo.mm4Kb = constInfo.mm2Kb;
+            if constexpr (IS_ROPE) {
+                constInfo.mm2Ka = constInfo.mm2Ka / 3 << 1;
+                constInfo.mm2Kb = constInfo.mm2Kb / 3 << 1;
+            } 
         }
     }
     constInfo.commonConstInfo.subBlockIdx = vSubBlockIdx;
  
     uint32_t tmp = 0xFF7FFFFF;
-    constInfo.attenMaskMinValue = *((float *)&tmp);
-    constInfo.commonConstInfo.keepProb = tilingData->s1s2BNGS1S2BaseParams.keepProb;
- 
-    constInfo.sfmgMaxLoopSize = VECTOR_BASEM * VECTOR_BASEN / HEAD_DIM_ALIGN; // softmaxGrad每次最大能处理的m轴大小
-    constInfo.dAlignToBlock = AlignTo(constInfo.commonConstInfo.dSizeV, INPUT_BLOCK_NUM);
-    constInfo.dAlignToBlockForFp8 = AlignTo(constInfo.commonConstInfo.dSizeV, INPUT_BLOCK_NUM_FOR_FP8);
-    constInfo.dAlign8 = AlignTo(constInfo.commonConstInfo.dSize, 8);
-    constInfo.dvAlign8 = AlignTo(constInfo.commonConstInfo.dSizeV, 8);
+    if ASCEND_IS_AIV {
+        constInfo.attenMaskMinValue = *((float *)&tmp);
+        constInfo.commonConstInfo.keepProb = tilingData->s1s2BNGS1S2BaseParams.keepProb;
+        constInfo.sfmgMaxLoopSize = VECTOR_BASEM * VECTOR_BASEN / HEAD_DIM_ALIGN; // softmaxGrad每次最大能处理的m轴大小
+        constInfo.dAlignToBlock = AlignTo(constInfo.commonConstInfo.dSizeV, INPUT_BLOCK_NUM);
+        constInfo.dAlignToBlockForFp8 = AlignTo(constInfo.commonConstInfo.dSizeV, INPUT_BLOCK_NUM_FOR_FP8);
+    }
     GetDerived()->SetUniqueConstInfo(constInfo);
 }
  
@@ -715,6 +717,12 @@ FlashAttentionScoreGradKernelBase<ChildClass, CubeBlockType, VecBlockType>::SetR
         runInfo.quantScaleInfo.deqScaleDyValue = deqScaleDyGm.GetValue(deqScaleQGmOffset);
     }
     GetDerived()->SetUniqueRunInfo(runInfo);
+
+    if constexpr (SPLIT_AXIS == BN2GS1S2) {
+        if ASCEND_IS_AIV {
+            return;
+        }
+    }
  
     // preload next query and dy offset for l1 preload
     if (taskId == 0) {
@@ -911,17 +919,8 @@ FlashAttentionScoreGradKernelBase<ChildClass, CubeBlockType, VecBlockType>::GetN
  
     int64_t globalIdx = (tilingData->s1s2BNGS1S2BaseParams.coreNum >> 1) * continuousBlockNum * blockGroupIdx +
                         cBlockIdx * continuousBlockNum + blockGroupInnerIdx;
-    int64_t totalPerBatchNum = 0;
-    if constexpr (!IS_ATTEN_MASK) {
-        totalPerBatchNum = constInfo.s1Outer * constInfo.s2Outer;
-    } else {
-        if (constInfo.s1Token >= constInfo.commonConstInfo.s1Size &&
-            constInfo.s2Token >= constInfo.commonConstInfo.s2Size) {
-            totalPerBatchNum = constInfo.s1Outer * constInfo.s2Outer;
-        } else {
-            totalPerBatchNum = (((constInfo.s1Outer << 1) - constInfo.s2Outer + 1) * constInfo.s2Outer) >> 1;
-        }
-    }
+    int64_t totalPerBatchNum = static_cast<int64_t>(tilingData->s1s2BNGS1S2BaseParams.totalPerBatchNum);
+    uint8_t sparseType = static_cast<uint8_t>(tilingData->s1s2BNGS1S2BaseParams.sparseType);
  
     int64_t bIdx = globalIdx / totalPerBatchNum;
     if (bIdx >= constInfo.bSize * constInfo.n2Size * constInfo.commonConstInfo.gSize) {
@@ -935,15 +934,30 @@ FlashAttentionScoreGradKernelBase<ChildClass, CubeBlockType, VecBlockType>::GetN
         s2Idx = gDimTail / constInfo.s1Outer;
         s1Idx = gDimTail % constInfo.s1Outer;
     } else {
-        if (constInfo.s1Token >= constInfo.commonConstInfo.s1Size &&
-            constInfo.s2Token >= constInfo.commonConstInfo.s2Size) {
+        if (sparseType == static_cast<uint8_t>(SparseType::DENSE)) {
             s2Idx = gDimTail / constInfo.s1Outer;
             s1Idx = gDimTail % constInfo.s1Outer;
-        } else {
+        } else if (sparseType == static_cast<uint8_t>(SparseType::CASUAL)) {
             float sqrt_delta = sqrt(((constInfo.s1Outer << 1) - 1) * (((constInfo.s1Outer << 1) - 1)) +
                                          ((constInfo.s1Outer - 1 - gDimTail) << 3));
             s2Idx = Ceil<int64_t>(((constInfo.s1Outer << 1) - 1) - sqrt_delta, NUM_TWO);
             s1Idx = gDimTail - ((((constInfo.s1Outer << 1) - 1 - s2Idx) * s2Idx) >> 1);
+        } else {
+            int64_t cum = 0;
+            int64_t p = Ceil<int64_t>(constInfo.s1Token, CUBE_BASEM);
+            int64_t q = Ceil<int64_t>(constInfo.s2Token, CUBE_BASEN);
+            // Band分支，需要靠for循环去获取s1Idx与s2Idx
+            for (int64_t s2oIdx = 0; s2oIdx < constInfo.s2Outer; s2oIdx++) {
+                int64_t xMin = (s2oIdx - q) > 0 ? (s2oIdx - q) : 0;
+                int64_t xMax = (constInfo.s1Outer - 1) > (s2oIdx + p) ? (s2oIdx + p) : (constInfo.s1Outer - 1);
+                int64_t length = xMax - xMin + 1;
+                if (cum + length > gDimTail) {
+                    s1Idx = xMin + (gDimTail - cum);
+                    s2Idx = s2oIdx;
+                    break;
+                }
+                cum += length;
+            }
         }
     }
  

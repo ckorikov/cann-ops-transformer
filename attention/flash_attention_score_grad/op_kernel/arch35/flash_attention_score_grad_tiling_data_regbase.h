@@ -78,7 +78,11 @@
      float scaleValue;
      float keepProb;
      int64_t keepProbUint8;
-     uint8_t dropMaskOuter;
+     int64_t s1Token;
+     int64_t s2Token;
+     int64_t seed;
+     int64_t offset;
+     int64_t totalPerBatchNum;
      uint32_t layout;
      uint32_t pseOptional;
      uint32_t pseType;
@@ -90,14 +94,14 @@
      uint32_t attenMaskOptional;
      uint32_t attenMaskDtype;
      uint32_t attenMaskShapeType;
-     int64_t s1Token;
-     int64_t s2Token;
      uint32_t sparseMode;
-     int64_t seed;
-     int64_t offset;
      uint32_t attenMaskCompressMode;
      uint32_t attenMaskS2Size;
+     uint32_t reserved1;    // tilingData需要8字节对齐
      uint8_t isSplitByBlockIdx;
+     uint8_t dropMaskOuter;
+     uint8_t sparseType;
+     uint8_t reserved2;  // tilingData需要8字节对齐
  
      int64_t get_coreNum() const {return coreNum;}
      int64_t get_b() const {return b;}
@@ -127,6 +131,8 @@
      uint32_t get_attenMaskCompressMode() const {return attenMaskCompressMode;}
      uint32_t get_attenMaskS2Size() const {return attenMaskS2Size;}
      uint8_t get_isSplitByBlockIdx() const {return isSplitByBlockIdx;}
+     int64_t get_totalPerBatchNum() const {return totalPerBatchNum;}
+     uint8_t get_sparseType() const {return sparseType;}
  
      void set_coreNum(int64_t coreNumParam) { this->coreNum = coreNumParam; }
      void set_b(int64_t bParam) { this->b = bParam; }
@@ -159,6 +165,8 @@
      void set_attenMaskCompressMode(uint32_t attenMaskCompressModeParam) { this->attenMaskCompressMode = attenMaskCompressModeParam; }
      void set_attenMaskS2Size(uint32_t attenMaskS2SizeParam) { this->attenMaskS2Size = attenMaskS2SizeParam; }
      void set_isSplitByBlockIdx(uint8_t isSplitByBlockIdxParam) { this->isSplitByBlockIdx = isSplitByBlockIdxParam; }
+     void set_totalPerBatchNum(int64_t totalPerBatchNumParam) { this->totalPerBatchNum = totalPerBatchNumParam; }
+     void set_sparseType(uint8_t sparseTypeParam) { this->sparseType = sparseTypeParam; }
  };
  
  class FlashAttentionScoreGradS1S2BNGS1S2SplitCoreParamsRegbase {

@@ -60,6 +60,13 @@ enum class S2TemplateType {
     Aligned1024 = 1024,
     NotAligned,
 };
+
+enum class SparseType : uint8_t {
+    DENSE = 0,
+    CASUAL = 1,
+    BAND = 2,
+    UNSUPPORTED = 3    // 超L2优化暂不支持sparse的场景
+};
 template<bool isInfer = false>
 struct RunParamStr;
 
