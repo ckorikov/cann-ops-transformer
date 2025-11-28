@@ -317,79 +317,6 @@ create_softlink_for_files_and_dirs() {
   create_softlink_for_files ${src_dir} ${dst_dir}
 }
 
-#create latest [x86-64|aarch64]/lib64
-create_arch_lib_softlink() {
-  local dir_mode=""
-  local dst_lib_path="${TARGET_INSTALL_PATH}/latest/${ARCH_INFO}-linux/lib64"
-  if [ -d "${dst_lib_path}" ]; then
-    dir_mode=$(stat -c %a ${dst_lib_path})
-    if [ "$(id -u)" != 0 ] && [ ! -w "${dir_mode}" ]; then
-      chmod u+w "${dst_lib_path}" 2>/dev/null
-    fi
-  fi
-
-  local ophost_transformer_lib_src_path=${TARGET_MOULDE_DIR}/built-in/op_impl/ai_core/tbe/op_host/lib/linux/${ARCH_INFO}/libophost_transformer.so
-  local ophost_transformer_lib_dst_path=${dst_lib_path}/libophost_transformer.so
-  create_file_softlink "${ophost_transformer_lib_src_path}" "${ophost_transformer_lib_dst_path}"
-
-  local opapi_transformer_lib_src_path=${TARGET_MOULDE_DIR}/built-in/op_impl/ai_core/tbe/op_api/lib/linux/${ARCH_INFO}/libopapi_transformer.so
-  local opapi_transformer_lib_dst_path=${dst_lib_path}/libopapi_transformer.so
-  create_file_softlink "${opapi_transformer_lib_src_path}" "${opapi_transformer_lib_dst_path}"
-
-  local opgraph_transformer_lib_src_path=${TARGET_MOULDE_DIR}/built-in/op_graph/lib/linux/${ARCH_INFO}/libopgraph_transformer.so
-  local opgraph_transformer_lib_dst_path=${dst_lib_path}/libopgraph_transformer.so
-  create_file_softlink "${opgraph_transformer_lib_src_path}" "${opgraph_transformer_lib_dst_path}"
-
-  if [ -n "$dir_mode" ]; then
-    chmod ${dir_mode} ${dst_lib_path} 2>/dev/null
-  fi
-}
-
-#create latest [x86-64|aarch64]/include
-create_arch_include_softlink() {
-  local dir_mode=""
-  local dst_path=${TARGET_INSTALL_PATH}/latest/${ARCH_INFO}-linux/include
-  if [ -d "${dst_path}" ]; then
-    dir_mode=$(stat -c %a ${dst_path})
-    if [ "$(id -u)" != 0 ] && [ ! -w "${dir_mode}" ]; then
-      chmod u+w "${dst_path}" 2>/dev/null
-    fi
-  fi
-  comm_create_dir "${dst_path}" "${CREATE_DIR_PERM}" "${TARGET_USERNAME}:${TARGET_USERGROUP}" "${IS_FOR_ALL}"
-
-  local aclnnop_src_dir=${TARGET_MOULDE_DIR}/built-in/op_impl/ai_core/tbe/op_api/include/aclnnop
-  local aclnnop_dst_dir=${dst_path}/aclnnop
-  create_softlink_for_files_and_dirs "${aclnnop_src_dir}" "${aclnnop_dst_dir}"
-
-  local aclnn_kernels_src_dir=${TARGET_MOULDE_DIR}/${ARCH_INFO}-linux/include/aclnn_kernels
-  local aclnn_kernels_dst_dir=${dst_path}/aclnn_kernels
-  create_softlink_for_files_and_dirs "${aclnn_kernels_src_dir}" "${aclnn_kernels_dst_dir}"
-
-  if [ -n "$dir_mode" ]; then
-    chmod ${dir_mode} ${dst_path} 2>/dev/null
-  fi
-}
-
-create_latest_softlink() {
-  local dir_mode=""
-  local dst_path=${TARGET_INSTALL_PATH}/latest
-  if [ -d "${dst_path}" ]; then
-    dir_mode=$(stat -c %a ${dst_path})
-    if [ "$(id -u)" != 0 ] && [ ! -w "${dir_mode}" ]; then
-      chmod u+w "${dst_path}" 2>/dev/null
-    fi
-  fi
-  comm_create_dir "${dst_path}" "${CREATE_DIR_PERM}" "${TARGET_USERNAME}:${TARGET_USERGROUP}" "${IS_FOR_ALL}"
-
-  create_arch_lib_softlink
-
-  create_arch_include_softlink
-
-  if [ -n "$dir_mode" ]; then
-    chmod ${dir_mode} ${dst_path} 2>/dev/null
-  fi
-}
-
 install_opp() {
   logandprint "[INFO]: Begin install opp module."
   local version_mod=""
@@ -431,8 +358,6 @@ install_opp() {
   log_with_errorlevel "$?" "error" "[ERROR]: ERR_NO:${INSTALL_FAILED};ERR_DES:Install opp module files failed."
 
   logandprint "[INFO]: upgradePercentage:30%"
-
-  create_latest_softlink
 
   logandprint "[INFO]: Copying version.info"
   cp -f "${VERSION_INFO_FILE}" "${TARGET_MOULDE_DIR}"

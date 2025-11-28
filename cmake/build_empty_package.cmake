@@ -21,17 +21,17 @@ function(cpack_empty_package)
 
   # CPack config
   install(FILES ${CMAKE_SOURCE_DIR}/version.info
-      DESTINATION .
+      DESTINATION share/info/ops_transformer
   )
   install(FILES ${CMAKE_SOURCE_DIR}/scripts/package/ops_transformer/scripts/help.info
-      DESTINATION ops_transformer/script
+      DESTINATION share/info/ops_transformer/script
   )
   install(FILES ${CMAKE_SOURCE_DIR}/scripts/package/ops_transformer/scripts/empty_package_scripts/install.sh
-      DESTINATION ops_transformer/script
+      DESTINATION share/info/ops_transformer/script
       PERMISSIONS OWNER_EXECUTE OWNER_READ OWNER_WRITE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
   )
   install(FILES ${CMAKE_SOURCE_DIR}/scripts/package/ops_transformer/scripts/empty_package_scripts/cleanup.sh
-      DESTINATION ops_transformer/script
+      DESTINATION share/info/ops_transformer/script
       PERMISSIONS OWNER_EXECUTE OWNER_READ OWNER_WRITE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
   )
   string(FIND "${ASCEND_COMPUTE_UNIT}" ";" SEMICOLON_INDEX)

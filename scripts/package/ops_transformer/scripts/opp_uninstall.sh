@@ -220,36 +220,6 @@ remove_ops_transformer() {
   done
 }
 
-remote_all_soft_link() {
-  local lib_dir=${TARGET_INSTALL_PATH}/latest/${ARCH_INFO}-linux/lib64/
-  local ori_mod=$(stat -c %a ${lib_dir})
-  if [ "$(id -u)" != 0 ] && [ ! -w "${lib_dir}" ]; then
-    chmod u+w "${lib_dir}" 2>/dev/null
-  fi
-
-  local ops_transformer_lib_files="opapi_transformer opgraph_transformer ophost_transformer"
-  for lib_name in ${ops_transformer_lib_files}; do
-    local so_name=${lib_dir}/lib${lib_name}.so
-    remove_softlink "${so_name}"
-  done
-
-  chmod ${ori_mod} ${lib_dir}
-
-  # remove include
-  local arch_include_dir=${TARGET_INSTALL_PATH}/latest/${ARCH_INFO}-linux/include
-  ori_mod=$(stat -c %a ${arch_include_dir})
-  if [ "$(id -u)" != 0 ] && [ ! -w "${arch_include_dir}" ]; then
-    chmod u+w -R "${arch_include_dir}" 2>/dev/null
-  fi
-  [ -d ${arch_include_dir}/aclnn_kernels ] && rm -rf "${arch_include_dir}/aclnn_kernels"
-
-  [ -d ${arch_include_dir}/aclnnop ] && rm -rf "${arch_include_dir}/aclnnop"
-
-  [ -L ${arch_include_dir}/es/es_math ] && rm -rf "${arch_include_dir}/es/es_math"
-
-  chmod ${ori_mod} ${arch_include_dir}
-}
-
 logandprint "[INFO]: Begin uninstall the opp module."
 
 main() {
@@ -266,8 +236,6 @@ main() {
   unsetenv
 
   remove_ops_transformer
-
-  remote_all_soft_link
 
   if [ "${UNINSTALL_MODE}" != "upgrade" ]; then
     remove_dir_if_empty ${TARGET_VERSION_DIR}

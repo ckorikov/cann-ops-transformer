@@ -17,7 +17,7 @@ if [ -d "${CANN_PATH}/opp" ]; then
     INSATLL_PATH=$(cd $(dirname ${REAL_SHELL_PATH})/../../../../../ && pwd)
     _ASCEND_OPP_PATH="${CANN_PATH}/opp"
     if [ "$MULTI_VERSION" = "multi_version" ]; then
-        _ASCEND_OPP_PATH="${INSATLL_PATH}/latest/opp"
+        _ASCEND_OPP_PATH="${INSATLL_PATH}/cann/opp"
     fi
 fi  
 
@@ -28,7 +28,7 @@ if [ -d ${pylib_path} ];then
     export PYTHONPATH=$PYTHONPATH:${pylib_path}
 fi
 
-library_path="${_ASCEND_OPP_PATH}/latest/lib64"
+library_path="${_ASCEND_OPP_PATH}/cann/lib64"
 ld_library_path="${LD_LIBRARY_PATH}"
 num=$(echo ":${ld_library_path}:" | grep ":${library_path}:" | wc -l)
 if [ "${num}" -eq 0 ]; then
