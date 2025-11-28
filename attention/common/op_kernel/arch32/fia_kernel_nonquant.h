@@ -279,13 +279,15 @@ __aicore__ inline void FiaKernelNonQuant<FIAT, CubeBlockType, VecBlockType, FdBl
 template <typename FIAT, typename CubeBlockType, typename VecBlockType, typename FdBlockType>
 __aicore__ inline void FiaKernelNonQuant<FIAT, CubeBlockType, VecBlockType, FdBlockType>::InitOutputSingleCore()
 {
+    // TND、NTD场景,S1和actualSeq相等, 不需要初始化
+    if constexpr (LAYOUT_T == FIA_LAYOUT::TND || LAYOUT_T == FIA_LAYOUT::NTD) {
+        return;
+    }
+
     if (usedCoreNum != 0) {
         uint32_t initOutputEventId = 0U;
         SetFlag<AscendC::HardEvent::MTE3_V>(initOutputEventId);
         uint64_t tSize = constInfo.batchSize * constInfo.qSeqSize;
-        if constexpr (LAYOUT_T == FIA_LAYOUT::TND || LAYOUT_T == FIA_LAYOUT::NTD) {
-            tSize = qActSeqLensParser.GetTSize();
-        }
         uint64_t totalOutputSize = tSize * constInfo.qHeadNum * constInfo.headDim;
         uint64_t singleCoreSize = (totalOutputSize + (2 * usedCoreNum) - 1) / (2 * usedCoreNum); // 2 means c:v = 1:2
         uint64_t tailSize = totalOutputSize - tmpBlockIdx * singleCoreSize;

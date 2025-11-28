@@ -266,13 +266,14 @@ template <typename FIAT, typename CubeBlockType, typename VecBlockType, typename
 __aicore__ inline void FiaKernelNonQuantMla<FIAT, CubeBlockType, VecBlockType, FdBlockType>::
     InitOutputSingleCore()
 {
+    // TND、NTD场景,S1和actualSeq相等,不需要初始化
+    if constexpr (LAYOUT_T == FIA_LAYOUT::TND || LAYOUT_T == FIA_LAYOUT::NTD) {
+        return;
+    }
     if (usedCoreNum != 0) {
         uint32_t initOutputEventId = 0U;
         SetFlag<AscendC::HardEvent::MTE3_V>(initOutputEventId);
         uint64_t tSize = constInfo.batchSize * constInfo.qSeqSize;
-        if constexpr (LAYOUT_T == FIA_LAYOUT::TND || LAYOUT_T == FIA_LAYOUT::NTD) {
-            tSize = qActSeqLensParser.GetTSize();
-        }
         uint64_t totalOutputSize = tSize * constInfo.qHeadNum * constInfo.headDim;
         uint64_t singleCoreSize = (totalOutputSize + (2 * usedCoreNum) - 1) / (2 * usedCoreNum); // 2 means c:v = 1:2
         uint64_t tailSize = totalOutputSize - tmpBlockIdx * singleCoreSize;
@@ -324,7 +325,11 @@ __aicore__ inline void FiaKernelNonQuantMla<FIAT, CubeBlockType, VecBlockType, F
     tilingData = tiling;
     if (aiCoreIdx >= tilingData->baseParams.usedCoreNum) {
         if ASCEND_IS_AIV {
-            SyncAll();  // 硬同步要求所有核都进行同步，此处对未使用核进行数据同步
+            if constexpr (LAYOUT_T == FIA_LAYOUT::TND || LAYOUT_T == FIA_LAYOUT::NTD) {
+                return;
+            }
+            // superkernel 场景，启动核数大于实际运行核数时，未启动的核仅需要保留 SyncAll
+            SyncAll();
         }
         return;
     }
