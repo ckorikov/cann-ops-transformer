@@ -12,6 +12,7 @@
 #define OP_HOST_OP_API_ACLNN_GROUPED_MATMUL_SWIGLU_QUANT_V2_UTILS_H
 
 #include "aclnn_grouped_matmul_swiglu_quant_utils.h"
+#include "util/math_util.h"
 
 namespace gmmSwigluQuantV2 {
 
@@ -24,6 +25,12 @@ constexpr size_t LAST_SECOND_DIM_INDEX = 2;
 constexpr size_t LAST_THIRD_DIM_INDEX = 3;
 constexpr int64_t MXFP_MULTI_BASE_SIZE = 2L;
 constexpr size_t MX_SPLIT_M_SCALE_DIM = 4UL;
+constexpr size_t MX_X_DIM = 2UL;
+constexpr size_t MX_X_SCALE_DIM = 3UL;
+constexpr size_t MX_WEIGHT_DIM = 3UL;
+constexpr size_t MX_WEIGHT_SCALE_DIM = 4UL;
+constexpr size_t MX_OUTPUT_DIM = 2UL;
+constexpr size_t MX_OUTPUT_SCALE_DIM = 3UL;
 constexpr int64_t SWIGLU_SPLIT_FACTOR = 2L;
 constexpr int64_t SWIGLU_SPLIT_SIZE = 64L;
 
@@ -122,17 +129,29 @@ protected:
         }
     }
 
-    bool CheckInputOutDims() override
-    {
-        return true;
-    }
-
-    bool CheckInputOutShape() override
+    bool CheckMXTranspose()
     {
         // 判断weight和weightScale是否转置，是则对两者进行转置动作
-        bool transposeweightScale = IsTransposeForMxShape((*gmmDsqParams_.weightScale)[0]);
-        bool transposeweight = IsTransposeLastTwoDims((*gmmDsqParams_.weight)[0]);
-        if (transposeweightScale && transposeweight) {
+        bool transposeWeightScale = IsTransposeForMxShape((*gmmDsqParams_.weightScale)[0]);
+        bool transposeWeight = IsTransposeLastTwoDims((*gmmDsqParams_.weight)[0]);
+        bool transposeX = IsTransposeLastTwoDims(gmmDsqParams_.x);
+        bool transposeXScale = IsTransposeLastTwoDims(gmmDsqParams_.xScale);
+
+        if (transposeWeightScale != transposeWeight) {
+            OP_LOGE(ACLNN_ERR_PARAM_INVALID,
+                    "The transposition of weightScale/weight should be equal, but actual transpositions are %s/%s.",
+                    transposeWeightScale ? "true" : "false", transposeWeight ? "true" : "false");
+            return false;
+        }
+        
+        if (transposeX || transposeXScale) {
+            OP_LOGE(ACLNN_ERR_PARAM_INVALID,
+                    "The transposition of x/xScale should be false, but actual transposition are %s/%s.",
+                    transposeX ? "true" : "false", transposeXScale ? "true" : "false");
+            return false;
+        }
+
+        if (transposeWeightScale && transposeWeight) {
             gmmDsqParams_.transposeWeight = true;
             auto uniqueExecutor = CREATE_EXECUTOR();
             CHECK_RET(uniqueExecutor.get() != nullptr, ACLNN_ERR_INNER_CREATE_EXECUTOR);
@@ -149,21 +168,123 @@ protected:
         return true;
     }
 
-    bool CheckDtypeValid() override
+    bool CheckFp8DtypeValid()
     {
         size_t wLength = gmmDsqParams_.weight->Size();
         for (size_t i = 0; i < wLength; i++) {
-            const aclTensor* wScale = (*gmmDsqParams_.weightScale)[i];
-            const aclTensor* w = (*gmmDsqParams_.weight)[i];      
-            OP_CHECK_DTYPE_NOT_SUPPORT(w, WEIGHT_DTYPE_SUPPORT_LIST, return false);
-            OP_CHECK_DTYPE_NOT_SUPPORT(wScale, WEIGHT_SCALE_DTYPE_SUPPORT_LIST, return false);
+            const aclTensor* weightScale = (*gmmDsqParams_.weightScale)[i];
+            const aclTensor* weight = (*gmmDsqParams_.weight)[i];      
+            OP_CHECK_DTYPE_NOT_SUPPORT(weight, WEIGHT_DTYPE_SUPPORT_LIST, return false);
+            OP_CHECK_DTYPE_NOT_SUPPORT(weightScale, WEIGHT_SCALE_DTYPE_SUPPORT_LIST, return false);
         }
         OP_CHECK_DTYPE_NOT_SUPPORT(gmmDsqParams_.x, X_DTYPE_SUPPORT_LIST, return false);
         OP_CHECK_DTYPE_NOT_SUPPORT(gmmDsqParams_.xScale, X_SCALE_DTYPE_SUPPORT_LIST, return false);
         OP_CHECK_DTYPE_NOT_SUPPORT(gmmDsqParams_.groupList, GROUP_LIST_DTYPE_SUPPORT_LIST, return false);
         OP_CHECK_DTYPE_NOT_SUPPORT(gmmDsqParams_.output, QUANTOUT_DTYPE_SUPPORT_LIST, return false);
         OP_CHECK_DTYPE_NOT_SUPPORT(gmmDsqParams_.outputScale, QUANTSCALEOUT_DTYPE_SUPPORT_LIST, return false);
+        return true;
+    }
 
+    bool CheckFp4DtypeValid()
+    {
+        return true;
+    }
+    
+    bool CheckInputOutDims() override
+    {
+        auto xDimNumber = gmmDsqParams_.x->GetViewShape().GetDimNum();
+        auto xScaleDimNumber = gmmDsqParams_.xScale->GetViewShape().GetDimNum();
+        auto outputDimNumber = gmmDsqParams_.output->GetViewShape().GetDimNum();
+        auto outputScaleDimNumber = gmmDsqParams_.outputScale->GetViewShape().GetDimNum();
+        CHECK_COND(xDimNumber == MX_X_DIM, ACLNN_ERR_PARAM_INVALID,
+                        "The dim num of x should be equal 2, current dim is %lu", xDimNumber);
+        CHECK_COND(xScaleDimNumber == MX_X_SCALE_DIM, ACLNN_ERR_PARAM_INVALID,
+                        "The dim num of xScale should be equal 3, current dim is %lu", xScaleDimNumber);
+        CHECK_COND(outputDimNumber == MX_OUTPUT_DIM, ACLNN_ERR_PARAM_INVALID,
+                        "The dim num of output should be equal 2, current dim is %lu", outputDimNumber);
+        CHECK_COND(outputScaleDimNumber == MX_OUTPUT_SCALE_DIM, ACLNN_ERR_PARAM_INVALID,
+                        "The dim num of outputScale should be equal 3, current dim is %lu", outputScaleDimNumber);
+        CHECK_COND(gmmDsqParams_.weight->Size() == gmmDsqParams_.weightScale->Size(), ACLNN_ERR_PARAM_INVALID,
+                        "The size of weightScale should be equal to weight");
+        for (size_t i = 0; i < gmmDsqParams_.weight->Size(); i++) {
+            auto weightDimNumber = ((*gmmDsqParams_.weight)[i])->GetViewShape().GetDimNum();
+            auto weightScaleDimNumber = ((*gmmDsqParams_.weightScale)[i])->GetViewShape().GetDimNum();
+            CHECK_COND(weightScaleDimNumber == MX_WEIGHT_SCALE_DIM, ACLNN_ERR_PARAM_INVALID,
+                        "The dim num of weightScale should be equal 4, current dim is %lu", weightScaleDimNumber);
+            CHECK_COND(weightDimNumber == MX_WEIGHT_DIM, ACLNN_ERR_PARAM_INVALID,
+                        "The dim num of weight should be equal 3, current dim is %lu", weightDimNumber);
+        }
+        return true;
+    }
+
+    bool CheckInputOutShape() override
+    {
+        CHECK_COND(CheckMXTranspose(), ACLNN_ERR_PARAM_INVALID, "CheckMXTranspose failed");
+        int64_t m = gmmDsqParams_.x->GetViewShape().GetDim(0); // 从x的第0维获取m
+        int64_t k = gmmDsqParams_.x->GetViewShape().GetDim(1); // 从x的第1维获取k
+        // 转置情况下从weight的第1维获取n，非转置情况下从weight的第2维获取n
+        int64_t n = gmmDsqParams_.transposeWeight ? ((*gmmDsqParams_.weight)[0])->GetViewShape().GetDim(1) : 
+                                                    ((*gmmDsqParams_.weight)[0])->GetViewShape().GetDim(2);
+        int64_t e = ((*gmmDsqParams_.weight)[0])->GetViewShape().GetDim(0); // 从weight的第0维获取e
+
+        // x的shape期望为[M, K]
+        op::Shape xExpectShape = {m, k};
+        // xScale的shape期望为[M, CeilDiv(K, 64), 2]
+        op::Shape xScaleExpectShape = {m, Ops::Base::CeilDiv(k, SWIGLU_SPLIT_SIZE), SWIGLU_SPLIT_FACTOR};
+        // weight的shape期望为[E, K, N]
+        op::Shape weightExpectShape = {e, k, n};
+        // weightScale的shape期望为[E, CeilDiv(K, 64), N, 2]
+        op::Shape weightScaleExpectShape = {e, Ops::Base::CeilDiv(k, SWIGLU_SPLIT_SIZE), n, SWIGLU_SPLIT_FACTOR};
+        // weight转置的shape期望为[E, N, K]
+        op::Shape weightTransExpectShape = {e, n, k};
+        // weightScale转置的shape期望为[E, N, CeilDiv(K, 64), 2]
+        op::Shape weightScaleTransExpectShape = {e, n, Ops::Base::CeilDiv(k, SWIGLU_SPLIT_SIZE), SWIGLU_SPLIT_FACTOR};
+        int64_t nAfterHalve = static_cast<int64_t>(n / SWIGLU_SPLIT_FACTOR);
+        // output的shape期望为[M, N / 2]
+        op::Shape outputExpectShape = {m, nAfterHalve};
+        // outputScale的shape期望为[M, CeilDiv(N / 2, 64), 2]
+        op::Shape outputScaleExpectShape = {m, Ops::Base::CeilDiv(nAfterHalve, SWIGLU_SPLIT_SIZE), SWIGLU_SPLIT_FACTOR};
+
+        OP_CHECK_SHAPE_NOT_EQUAL_WITH_EXPECTED_SIZE(gmmDsqParams_.x, xExpectShape, return false);
+        OP_CHECK_SHAPE_NOT_EQUAL_WITH_EXPECTED_SIZE(gmmDsqParams_.xScale, xScaleExpectShape, return false);
+        OP_CHECK_SHAPE_NOT_EQUAL_WITH_EXPECTED_SIZE(gmmDsqParams_.output, outputExpectShape, return false);
+        OP_CHECK_SHAPE_NOT_EQUAL_WITH_EXPECTED_SIZE(gmmDsqParams_.outputScale, outputScaleExpectShape, return false);
+
+        const aclTensor* weightScale = (*gmmDsqParams_.weightScale)[0];
+        const aclTensor* weight = (*gmmDsqParams_.weight)[0];
+        if (gmmDsqParams_.transposeWeight) {
+            OP_CHECK_SHAPE_NOT_EQUAL_WITH_EXPECTED_SIZE(weightScale, weightScaleTransExpectShape, return false);
+            OP_CHECK_SHAPE_NOT_EQUAL_WITH_EXPECTED_SIZE(weight, weightTransExpectShape, return false);
+        } else {
+            OP_CHECK_SHAPE_NOT_EQUAL_WITH_EXPECTED_SIZE(weightScale, weightScaleExpectShape, return false);
+            OP_CHECK_SHAPE_NOT_EQUAL_WITH_EXPECTED_SIZE(weight, weightExpectShape, return false);
+        }
+        
+        // groupList的长度应等于weight的专家数
+        int64_t groupListLen = gmmDsqParams_.groupList->GetViewShape().GetDim(0);
+        if (groupListLen != e) {
+            OP_LOGE(ACLNN_ERR_PARAM_INVALID,
+                    "Length of 'groupList' should be equal to the number of experts in weight");
+            return false;
+        }
+        return true;
+    }
+
+    bool CheckDtypeValid() override
+    {
+        DataType xDtype = gmmDsqParams_.x->GetDataType();
+        DataType weightDtype = ((*gmmDsqParams_.weight)[0])->GetDataType();   
+        if ((xDtype == DataType::DT_FLOAT8_E4M3FN || xDtype == DataType::DT_FLOAT8_E5M2) &&
+                   (weightDtype == DataType::DT_FLOAT8_E4M3FN || weightDtype == DataType::DT_FLOAT8_E5M2)) {
+            return CheckFp8DtypeValid();
+        } else if ((xDtype == DataType::DT_FLOAT4_E2M1 || xDtype == DataType::DT_FLOAT4_E1M2) &&
+                   (weightDtype == DataType::DT_FLOAT4_E2M1 || weightDtype == DataType::DT_FLOAT4_E1M2)) {
+            return CheckFp4DtypeValid();
+        } else {
+            OP_LOGE(ACLNN_ERR_PARAM_INVALID, "Quant case with x dtype %s and weight dtype %s is not supported.",
+                    op::ToString(xDtype).GetString(), op::ToString(weightDtype).GetString());
+            return false;
+        }
         return true;
     }
 
@@ -171,31 +292,45 @@ protected:
     {
         size_t wLength = gmmDsqParams_.weight->Size();
         for (size_t i = 0; i < wLength; i++) {
-            const aclTensor* wScale = (*gmmDsqParams_.weightScale)[i];
-            const aclTensor* w = (*gmmDsqParams_.weight)[i];
-            CHECK_COND(w->GetStorageFormat() == Format::FORMAT_ND, ACLNN_ERR_PARAM_INVALID,
-                "Format of weight should be ND, current format is %s",
-               op::ToString(w->GetStorageFormat()).GetString());
-            CHECK_COND(wScale->GetStorageFormat() == Format::FORMAT_ND, ACLNN_ERR_PARAM_INVALID,
-                "Format of weightScale should be ND, current format is %s",
-               op::ToString(wScale->GetStorageFormat()).GetString());
+            const aclTensor* weightScale = (*gmmDsqParams_.weightScale)[i];
+            const aclTensor* weight = (*gmmDsqParams_.weight)[i];
+            if (op::IsPrivateFormat(weight->GetStorageFormat())) {
+                OP_LOGE(ACLNN_ERR_PARAM_INVALID, "Format of weight should be ND, current format is format is %s",
+                        op::ToString(weight->GetStorageFormat()).GetString());
+                return false;
+            }
+            if (op::IsPrivateFormat(weightScale->GetStorageFormat())) {
+                OP_LOGE(ACLNN_ERR_PARAM_INVALID, "Format of weightScale should be ND, current format is format is %s",
+                        op::ToString(weightScale->GetStorageFormat()).GetString());
+                return false;
+            }
         }
-        CHECK_COND(gmmDsqParams_.x->GetStorageFormat() == Format::FORMAT_ND, ACLNN_ERR_PARAM_INVALID,
-               "Format of x should be ND, current format is format is %s",
-               op::ToString(gmmDsqParams_.x->GetStorageFormat()).GetString());
-        CHECK_COND(gmmDsqParams_.xScale->GetStorageFormat() == Format::FORMAT_ND, ACLNN_ERR_PARAM_INVALID,
-                "Format of xScale should be ND, current format is %s",
-               op::ToString(gmmDsqParams_.xScale->GetStorageFormat()).GetString());
-        CHECK_COND(gmmDsqParams_.groupList->GetStorageFormat() == Format::FORMAT_ND, ACLNN_ERR_PARAM_INVALID,
-                "Format of groupList should be ND, current format is  %s",
-               op::ToString(gmmDsqParams_.groupList->GetStorageFormat()).GetString());
-        CHECK_COND(gmmDsqParams_.output->GetStorageFormat() == Format::FORMAT_ND, ACLNN_ERR_PARAM_INVALID,
-                "Format of output should be ND, current format is %s",
-               op::ToString(gmmDsqParams_.output->GetStorageFormat()).GetString());
-        CHECK_COND(gmmDsqParams_.outputScale->GetStorageFormat() == Format::FORMAT_ND, ACLNN_ERR_PARAM_INVALID,
-                "Format of outputScale should be ND, current format is %s",
-               op::ToString(gmmDsqParams_.outputScale->GetStorageFormat()).GetString());
         
+        if (op::IsPrivateFormat(gmmDsqParams_.x->GetStorageFormat())) {
+            OP_LOGE(ACLNN_ERR_PARAM_INVALID, "Format of x should be ND, current format is format is %s",
+               op::ToString(gmmDsqParams_.x->GetStorageFormat()).GetString());
+            return false;
+        }
+        if (op::IsPrivateFormat(gmmDsqParams_.xScale->GetStorageFormat())) {
+            OP_LOGE(ACLNN_ERR_PARAM_INVALID, "Format of xScale should be ND, current format is format is %s",
+               op::ToString(gmmDsqParams_.xScale->GetStorageFormat()).GetString());
+            return false;
+        }
+        if (op::IsPrivateFormat(gmmDsqParams_.groupList->GetStorageFormat())) {
+            OP_LOGE(ACLNN_ERR_PARAM_INVALID, "Format of groupList should be ND, current format is format is %s",
+               op::ToString(gmmDsqParams_.groupList->GetStorageFormat()).GetString());
+            return false;
+        }
+        if (op::IsPrivateFormat(gmmDsqParams_.output->GetStorageFormat())) {
+            OP_LOGE(ACLNN_ERR_PARAM_INVALID, "Format of output should be ND, current format is format is %s",
+               op::ToString(gmmDsqParams_.output->GetStorageFormat()).GetString());
+            return false;
+        }
+        if (op::IsPrivateFormat(gmmDsqParams_.outputScale->GetStorageFormat())) {
+            OP_LOGE(ACLNN_ERR_PARAM_INVALID, "Format of outputScale should be ND, current format is format is %s",
+               op::ToString(gmmDsqParams_.outputScale->GetStorageFormat()).GetString());
+            return false;
+        }
         return true;
     }
 };

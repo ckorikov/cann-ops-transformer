@@ -170,6 +170,18 @@ protected:
             return false;
         }
 
+        if (!gmmDsqParams_.weight || !gmmDsqParams_.weightScale) {
+            OP_LOGE(ACLNN_ERR_PARAM_INVALID,
+            "The weight or weightScale is nullptr.");
+            return false;
+        }
+
+        if ((*gmmDsqParams_.weight)[0]->IsEmpty() || (*gmmDsqParams_.weightScale)[0]->IsEmpty()) {
+            OP_LOGE(ACLNN_ERR_PARAM_INVALID,
+            "The weight or weightScale is an empty container.");
+            return false;
+        }
+
         return true;
     }
 
@@ -242,19 +254,33 @@ protected:
         return ACLNN_SUCCESS;
     }
 
+    aclnnStatus DataContiguousWeight(const aclTensorList *&tensors) const
+    {
+        std::vector<const aclTensor *> tensorsVec;
+        const aclTensor *contiguousTensor = nullptr;
+        for (size_t i = 0; i < tensors->Size(); ++i) {
+            const aclTensor *tensor = (*tensors)[i];
+            if (!IsPrivateFormat(tensor->GetStorageFormat())) {
+                contiguousTensor = l0op::Contiguous(tensor, l0Executor_);
+                CHECK_RET(contiguousTensor != nullptr, ACLNN_ERR_INNER_NULLPTR);
+                tensorsVec.push_back(contiguousTensor);
+            } else {
+                tensorsVec.push_back(tensor);
+            }
+        }
+        tensors = l0Executor_->AllocTensorList(tensorsVec.data(), tensorsVec.size());
+        return ACLNN_SUCCESS;
+    }
+
     virtual aclnnStatus CovertDataContiguous()
     {
         aclTensorList *emptyWeightAssistMatrixList = nullptr;
         CheckOptionalTensorListEmpty(gmmDsqParams_.weightAssistMatrix);
         CreateEmptyTensor(aclDataType::ACL_FLOAT, gmmDsqParams_.weightAssistMatrix,
             emptyWeightAssistMatrixList);
-        for (size_t i = 0; i < gmmDsqParams_.weight->Size(); i++) {
-            auto *w = (*gmmDsqParams_.weight)[i];
-            if (!IsPrivateFormat(w->GetStorageFormat())) {
-                w = l0op::Contiguous(w, l0Executor_);
-            }
-        }
 
+        CHECK_COND(DataContiguousWeight(gmmDsqParams_.weight) == ACLNN_SUCCESS, ACLNN_ERR_INNER_NULLPTR,
+                    "Contiguous weight failed.");
         CHECK_COND(DataContiguous(gmmDsqParams_.weightScale) == ACLNN_SUCCESS, ACLNN_ERR_INNER_NULLPTR,
                     "Contiguous weightScale failed.");
 
@@ -283,14 +309,16 @@ public:
         auto uniqueExecutor = CREATE_EXECUTOR();
         CHECK_RET(uniqueExecutor.get() != nullptr, ACLNN_ERR_INNER_CREATE_EXECUTOR);
         l0Executor_ = uniqueExecutor.get();
+
+        auto ret = CheckParams();
+        CHECK_RET(ret == ACLNN_SUCCESS, ret);
+        
         for (size_t i = 0; i < gmmDsqParams_.weight->Size(); i++) {
             auto *w = (*gmmDsqParams_.weight)[i];
             if (IsPrivateFormat(w->GetStorageFormat())) {
                 w->SetOriginalShape(w->GetViewShape());
             }
         }
-        auto ret = CheckParams();
-        CHECK_RET(ret == ACLNN_SUCCESS, ret);
 
         // 空Tensor场景
         if (gmmDsqParams_.output->IsEmpty() || gmmDsqParams_.groupList->IsEmpty() || gmmDsqParams_.outputScale->IsEmpty()) {
