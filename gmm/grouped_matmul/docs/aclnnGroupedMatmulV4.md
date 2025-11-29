@@ -28,7 +28,7 @@
     - <term>昇腾910_95 AI处理器</term>：
       - 支持静态量化（1.pertensor-perchannel(T-C)；2.pertensor-pertensor(T-T)）BFLOAT16，FLOAT16和FLOAT32输出，带bias，不带激活场景。
       - 支持动态量化（1.pertoken-perchannel(K-C)；2.pertoken-pertensor(K-T)；3.pertensor-pertensor(T-T)；4.pertensor-perchannel(T-C)；4.mx量化；5.pergroup-perblock(G-B)）BFLOAT16，FLOAT16和FLOAT32输出，带bias，不带激活场景。
-      - 支持伪量化weight是INT8、FLOAT8_E5M2、FLOAT8_E4M3FN、HIFLOAT8的输入，不带激活场景，仅支持perchannel模式。
+      - 支持伪量化weight是INT8、INT4、FLOAT8_E5M2、FLOAT8_E4M3FN、HIFLOAT8的输入，不带激活场景，仅支持perchannel模式。
 
     **说明：**
     - 单tensor指一个tensor list中所有分组的tensor在groupType指定的分组轴上合并为1个；否则为多tensor。
@@ -94,7 +94,7 @@
   -   weight（aclTensorList *，计算输入）：Device侧的aclTensorList，公式中的weight，支持的最大长度为128个。
       - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：数据类型支持FLOAT16、BFLOAT16、FLOAT32、INT8、INT4，[数据格式](../../../docs/zh/context/数据格式.md)支持ND和FRACTAL_NZ格式。
       - <term>Atlas 推理系列产品</term>：数据类型支持FLOAT16，[数据格式](../../../docs/zh/context/数据格式.md)仅支持FRACTAL_NZ格式。
-      - <term>昇腾910_95 AI处理器</term>：数据类型支持FLOAT8_E4M3FN、FLOAT8_E5M2、INT8、HIFLOAT8、FLOAT16、BFLOAT16、FLOAT4_E1M2、FLOAT4_E2M1，[数据格式](../../../docs/zh/context/数据格式.m)仅支持ND格式。
+      - <term>昇腾910_95 AI处理器</term>：数据类型支持FLOAT8_E4M3FN、FLOAT8_E5M2、INT8、INT4、HIFLOAT8、FLOAT16、BFLOAT16、FLOAT4_E1M2、FLOAT4_E2M1，[数据格式](../../../docs/zh/context/数据格式.m)仅支持ND格式。
   -   biasOptional（aclTensorList *，计算输入）：可选参数，Device侧的aclTensorList，公式中的bias，[数据格式](../../../docs/zh/context/数据格式.md)支持ND，长度与weight相同。
       - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：数据类型支持FLOAT16、FLOAT32、INT32。
       - <term>Atlas 推理系列产品</term>：数据类型支持FLOAT16。
@@ -341,11 +341,12 @@
       - 不为空的参数支持的数据类型组合要满足下表
         |groupType| x       | weight  | biasOptional |antiquantScaleOptional|antiquantOffsetOptional| out     |
         |:-------:|:-------:|:-------:| :------      |:------|:------|:------|
-        |-1/0   |BFLOAT16     |INT8     |BFLOAT16/FLOAT32/null| BFLOAT16 | BFLOAT16/null | BFLOAT16 |
-        |-1/0   |FLOAT16     |INT8     |FLOAT16/null    | FLOAT16 | FLOAT16/null | FLOAT16 |
+        |-1/0   |BFLOAT16     |INT8/INT4     |BFLOAT16/FLOAT32/null| BFLOAT16 | BFLOAT16/null | BFLOAT16 |
+        |-1/0   |FLOAT16     |INT8/INT4     |FLOAT16/null    | FLOAT16 | FLOAT16/null | FLOAT16 |
         |0   |BFLOAT16     |FLOAT8_E5M2/FLOAT8_E4M3FN/HIFLOAT8 |BFLOAT16/FLOAT32/null| BFLOAT16 | null | BFLOAT16 |
         |0   |FLOAT16     |FLOAT8_E5M2/FLOAT8_E4M3FN/HIFLOAT8    |FLOAT16/null    | FLOAT16 | null | FLOAT16 |
       - 当weight的数据类型为FLOAT8_E5M2、FLOAT8_E4M3FN、HIFLOAT8时，antiquantOffsetOptional仅支持传入空指针或空tensorList，weight仅支持转置。
+      - 若weight的类型为INT4，则weight中每一组tensor的最后一维大小都应是偶数。$weight_i$的最后一维指weight不转置时$weight_i$的N轴或当weight转置时$weight_i$的K轴。
       - antiquantScaleOptional和非空的biasOptional、antiquantOffsetOptional要满足下表（其中g为matmul组数即分组数）：
         |groupType| 使用场景 | shape限制 |
         |:---------:|:---------:| :------ |

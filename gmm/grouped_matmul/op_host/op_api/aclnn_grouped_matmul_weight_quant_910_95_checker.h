@@ -37,6 +37,7 @@ private:
                                  const std::string &tensorType) const;
     aclnnStatus CheckTensorShape(const aclTensorList *tensorList, size_t idx, const std::string &tensorType) const;
 
+    aclnnStatus CheckWeightInnerAxisEven(size_t idx) const;
     aclnnStatus CheckDimNumAndFormat(size_t idx) const;
     aclnnStatus CheckTransposeStatus() const;
     aclnnStatus CheckDimValue(size_t idx) const;
@@ -51,6 +52,7 @@ private:
     bool IsA16W8ND() const;
     bool IsA16F8ND() const;
     bool IsS8S4NZ() const;
+    bool IsA16W4() const;
 
 private:
     GroupedMatmulParams gmmParams_;

@@ -17,6 +17,8 @@
 
 #include <graph/utils/type_utils.h>
 #include <sstream>
+#include <map>
+#include <unordered_set>
 
 #include "../grouped_matmul_tiling.h"
 #include "../../../op_kernel/arch35/grouped_matmul_tiling_data_apt.h"
@@ -233,6 +235,27 @@ public:
     bool SetTiling(gert::TilingContext *context);
 
 protected:
+    bool SetShapeList(const gert::TilingContext *context);
+    bool CheckTensorListSize(const gert::TilingContext *context);
+    bool CheckTensorDtype(const gert::TilingContext *context, uint32_t attrIdx, size_t idx,
+                          const ge::DataType &tensorDtype, const std::string &tensorType) const;
+    bool IsNzFormat(const gert::TilingContext *context, uint32_t attrIdx, size_t idx) const;
+    bool CheckXAndWeightFormat(const gert::TilingContext *context, size_t idx) const;
+    bool CheckNotNullPtr(const gert::TilingContext *context, uint32_t attrIdx, size_t idx) const;
+    bool CheckNotNull(const gert::TilingContext *context, size_t idx) const;
+    bool CheckTensorDimEqualTarget(const gert::TilingContext *context, uint32_t attrIdx, size_t idx, uint32_t targetDim,
+                                   const std::string &tensorType) const;
+    bool CheckTensorDimSingleXSingleWeightSingleY(const gert::TilingContext *context, size_t idx) const;
+    bool CheckTensorDimMultiXMultiWeightMultiY(const gert::TilingContext *context, size_t idx) const;
+    bool CheckTensorDim(const gert::TilingContext *context, size_t idx) const;
+    bool CheckTensorShape(const gert::TilingContext *context, uint32_t attrIdx, size_t idx,
+                          const std::string &tensorType) const;
+    bool CheckDimValue(const gert::TilingContext *context, size_t idx) const;
+    bool CheckWeightInnerAxisEven(const gert::TilingContext *context, size_t idx) const;
+    bool CheckXAndWeightShape(const gert::TilingContext *context) const;
+    bool CheckEveryTensor(const gert::TilingContext *context) const;
+    bool CheckGroupList(const gert::TilingContext *context) const;
+    bool CheckRequiredInputs(const gert::TilingContext *context);
     bool AnalyzeAttr(const gert::TilingContext *context);
     bool AnalyzeInput(const gert::TilingContext *context);
     bool CalcResplitTiling(const gert::TilingContext *context);
@@ -240,9 +263,16 @@ protected:
     void SetMatMulTiling();
     void SetTilingKey(gert::TilingContext *context);
     bool SetCustomParam(gert::TilingContext *context);
-    bool CheckAttr(const gert::TilingContext *context) const;
+    bool IsA16W4ND() const;
+    bool CheckUnsupportDataFlow(const gert::TilingContext *context) const;
+    bool CheckAntiQuantDtype(const gert::TilingContext *context) const;
+    bool CheckBiasDtype(const gert::TilingContext *context) const;
+    bool CheckGroupTypeAndSplitItem(const gert::TilingContext *context) const;
+    bool CheckTransposeStatus(const gert::TilingContext *context) const;
     bool SetShapeListSplitMSingleXSingleWeightSingleY(const gert::TilingContext *context);
     bool SetShapeListMultiXMultiWeightMultiY(const gert::TilingContext *context);
+    uint16_t GetTensorListSize(const gert::TilingContext *context, uint32_t attrIdx) const;
+    void GetNumOfInputs(const gert::TilingContext *context);
     bool SetAntiquantGroupSize(const gert::TilingContext *context);
     bool GetC0Size(const gert::TilingContext *context, ge::DataType dtype, uint64_t &c0Size) const;
     void CalcFullBlockDimResplitTiling(uint64_t c0Size);
@@ -278,9 +308,17 @@ private:
     uint32_t groupSize_ = 0;
     uint8_t cubeBlockDimN_ = 0;
 
+    uint16_t numX_ = 0;
+    uint16_t numWeight_ = 0;
+    uint16_t numBias_ = 0;
+    uint16_t numAntiquantScale_ = 0;
+    uint16_t numAntiquantOffset_ = 0;
+
     ge::DataType xDType_ = ge::DT_UNDEFINED;
     ge::DataType weightDtype_ = ge::DT_UNDEFINED;
+    ge::DataType biasDtype_ = ge::DT_UNDEFINED;
     ge::DataType antiquantScaleDtype_ = ge::DT_UNDEFINED;
+    ge::DataType antiquantOffsetDtype_ = ge::DT_UNDEFINED;
 
     TailBlockResplitParam resplitParam_;
     TilingKeyConfigure tilingKeyConfig_;

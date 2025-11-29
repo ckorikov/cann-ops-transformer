@@ -53,7 +53,7 @@ private:
     const TCubeTiling *mmTiling_;
 
     GM_ADDR xGm_;
-    GM_ADDR weightB8Gm_;
+    GM_ADDR weightGm_;
     GM_ADDR antiquantScaleGm_;
     GM_ADDR antiquantOffsetGm_;
     GM_ADDR biasGm_;
@@ -82,7 +82,7 @@ __aicore__ inline void GMMWeightQuantBasicController<xType, wType, biasType, yTy
     nListGm_ = gmmArrayAddrIn + MKN_LIST_LEN * 2;
 
     xGm_ = x;
-    weightB8Gm_ = weight;
+    weightGm_ = weight;
     antiquantScaleGm_ = antiquantScale;
     antiquantOffsetGm_ = antiquantOffset;
     biasGm_ = bias;
@@ -197,7 +197,7 @@ __aicore__ inline void GMMWeightQuantBasicController<xType, wType, biasType, yTy
     uint64_t &antiquantParamsBaseOffset, const BasicBlockOffsetParam &offsetParam)
 {
     __gm__ xType *xGm;
-    __gm__ wType *weightB8Gm;
+    __gm__ wType *weightGm;
     __gm__ xType *antiquantScaleGm;
     __gm__ xType *antiquantOffsetGm;
     __gm__ biasType *biasGm;
@@ -215,20 +215,24 @@ __aicore__ inline void GMMWeightQuantBasicController<xType, wType, biasType, yTy
     }
 
     if (gmmBaseTiling_->singleWeight == 0) {
-        weightB8Gm = GetTensorAddr<wType>(groupIdx, weightB8Gm_);
+        weightGm = GetTensorAddr<wType>(groupIdx, weightGm_);
         antiquantScaleGm = GetTensorAddr<xType>(groupIdx, antiquantScaleGm_);
         antiquantOffsetGm = GetTensorAddr<xType>(groupIdx, antiquantOffsetGm_);
         biasGm = GetTensorAddr<biasType>(groupIdx, biasGm_);
     } else {
-        weightB8Gm = GetTensorAddr<wType>(0, weightB8Gm_) + weightBaseOffset;
+        weightGm = GetTensorAddr<wType>(0, weightGm_) + weightBaseOffset;
         antiquantScaleGm = GetTensorAddr<xType>(0, antiquantScaleGm_) + antiquantParamsBaseOffset;
         antiquantOffsetGm = GetTensorAddr<xType>(0, antiquantOffsetGm_) + antiquantParamsBaseOffset;
         biasGm = GetTensorAddr<biasType>(0, biasGm_) + antiquantParamsBaseOffset;
     }
-    wqmmBasicBlock_.UpdateGlobalAddr(xGm, weightB8Gm, antiquantScaleGm, antiquantOffsetGm, nullptr, nullptr, biasGm,
+    wqmmBasicBlock_.UpdateGlobalAddr(xGm, weightGm, antiquantScaleGm, antiquantOffsetGm, nullptr, nullptr, biasGm,
                                      yGm, mmTiling_->isBias, true);
     xBaseOffset += offsetParam.mSize * offsetParam.kSize;
-    weightBaseOffset += offsetParam.nSize * offsetParam.kSize;
+    if constexpr (IsSameType<wType, int4b_t>::value) {
+        weightBaseOffset += (offsetParam.nSize * offsetParam.kSize) >> 1;
+    } else {
+        weightBaseOffset += offsetParam.nSize * offsetParam.kSize;
+    }
     antiquantParamsBaseOffset += offsetParam.nSize;
     yBaseOffset += offsetParam.mSize * offsetParam.nSize;
 }
