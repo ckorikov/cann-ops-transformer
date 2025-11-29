@@ -103,6 +103,12 @@ public:
     {
         matmul_.SetTensorScaleB(scaleBGlobal, isTransposeB);
     }
+
+    __aicore__ inline void SetBias(const AscendC::GlobalTensor<typename BiasType::T>& biasGlobal)
+    {
+        matmul_.SetBias(biasGlobal);
+    }
+
     __aicore__ inline void SetSubBlockIdx(uint8_t subBlockIdx)
     {
         matmul_.SetSubBlockIdx(subBlockIdx);
@@ -123,6 +129,7 @@ public:
     {
         matmul_.GetTensorC(gm, enAtomic);
     }
+
     __aicore__ inline void operator()(const AscendC::GlobalTensor<typename AType::T>& aGlobal,
                                       const AscendC::GlobalTensor<typename BType::T>& bGlobal,
                                       const AscendC::GlobalTensor<AscendC::fp8_e8m0_t>& scaleAGlobal,
@@ -139,6 +146,26 @@ public:
         matmul_.Iterate();
         matmul_.GetTensorC(ubCmatrix, 0, true);
     }
+
+    __aicore__ inline void operator()(const AscendC::GlobalTensor<typename AType::T>& aGlobal,
+                                    const AscendC::GlobalTensor<typename BType::T>& bGlobal,
+                                    const AscendC::GlobalTensor<AscendC::fp8_e8m0_t>& scaleAGlobal,
+                                    const AscendC::GlobalTensor<AscendC::fp8_e8m0_t>& scaleBGlobal,
+                                    const AscendC::GlobalTensor<typename BiasType::T>& biasGlobal,
+                                    const AscendC::LocalTensor<typename CType::T>& ubCmatrix,
+                                    const AscendC::Std::tuple<int32_t, int32_t, int32_t>& singleShape,
+                                    bool isTransposeA = false, bool isTransposeB = false)
+    {
+        matmul_.SetSingleShape(Get<0>(singleShape), Get<1>(singleShape), Get<2>(singleShape)); // 2: idx of k
+        matmul_.SetTensorA(aGlobal, isTransposeA);
+        matmul_.SetTensorB(bGlobal, isTransposeB);
+        matmul_.SetTensorScaleA(scaleAGlobal, isTransposeA);
+        matmul_.SetTensorScaleB(scaleBGlobal, isTransposeB);
+        matmul_.SetBias(biasGlobal);
+        matmul_.Iterate();
+        matmul_.GetTensorC(ubCmatrix, 0, true);
+    }
+
     __aicore__ inline void End()
     {
         matmul_.End();

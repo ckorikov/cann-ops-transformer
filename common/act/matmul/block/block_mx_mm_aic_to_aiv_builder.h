@@ -9,12 +9,13 @@
  */
 
 /*!
- * \file block_quant_matmul_builder.h
+ * \file block_mx_mm_aic_to_aiv_builder.h
  * \brief
  */
 
-#ifndef MATMUL_BLOCK_GMM_SWIGLU_BUILDER_H
-#define MATMUL_BLOCK_GMM_SWIGLU_BUILDER_H
+#ifndef BLOCK_MX_MM_AIC_TO_AIV_BUILDER_H
+#define BLOCK_MX_MM_AIC_TO_AIV_BUILDER_H
+
 
 #include "kernel_operator.h"
 
@@ -30,17 +31,17 @@
 namespace Act {
 namespace Gemm {
 namespace Block {
-template <class AType_, class LayoutA_, class BType_, class LayoutB_, class CType_, class LayoutC_, class L1TileShape_,
-          class L0TileShape_, class BlockScheduler_, class BlockMatmulPolicy_ = QuantMatmulWithTileMultiBlock<>,
+template <class AType_, class LayoutA_, class BType_, class LayoutB_, class BiasType_, class CType_, class LayoutC_,
+          class L1TileShape_, class L0TileShape_, class BlockScheduler_, class BlockMatmulPolicy_ = QuantMatmulWithTileMultiBlock<>,
           class TileCopyParam_ = void, typename Enable_ = void>
-class BlockGmmSwigluBuilder {
+class BlockMxMmAicToAivBuilder {
     static_assert(AscendC::Std::always_false_v<BlockMatmulPolicy_>,
-                  "BlockGmmSwigluBuilder is not implemented for this BlockMatmulPolicy");
+                  "BlockMxMmAicToAivBuilder is not implemented for this BlockMatmulPolicy");
 };
 
-template <class AType_, class LayoutA_, class BType_, class LayoutB_, class CType_, class LayoutC_, class L1TileShape_,
+template <class AType_, class LayoutA_, class BType_, class LayoutB_, class BiasType_, class CType_, class LayoutC_, class L1TileShape_,
           class L0TileShape_, class BlockScheduler_, class BlockMatmulPolicy_, class TileCopyParam_>
-class BlockGmmSwigluBuilder<AType_, LayoutA_, BType_, LayoutB_, CType_, LayoutC_, L1TileShape_, L0TileShape_,
+class BlockMxMmAicToAivBuilder<AType_, LayoutA_, BType_, LayoutB_, BiasType_, CType_, LayoutC_, L1TileShape_, L0TileShape_,
                               BlockScheduler_, BlockMatmulPolicy_, TileCopyParam_,
                               AscendC::Std::enable_if_t<AscendC::Std::is_base_of_v<QuantMatmulWithTileMultiBlock<>,
                               BlockMatmulPolicy_>>> {
@@ -48,6 +49,7 @@ public:
     using AType = AType_;
     using BType = BType_;
     using CType = CType_;
+    using BiasType = BiasType_;
     using L1TileShape = L1TileShape_;
     using L0TileShape = L0TileShape_;
     using LayoutA = LayoutA_;
@@ -68,7 +70,7 @@ public:
     using BMatmulType =
         matmul::MatmulTypeWithScale<AscendC::TPosition::GM, AscendC::TPosition::GM, formatB, BType, transB>;
     using CMatmulType = AscendC::MatmulType<AscendC::TPosition::VECIN, formatC, CType>;
-    using BiasMatmulType = AscendC::MatmulType<AscendC::TPosition::GM, CubeFormat::ND, float>; // null, placeholder
+    using BiasMatmulType = AscendC::MatmulType<AscendC::TPosition::GM, CubeFormat::ND, BiasType>;
 
     using BlockMmadOp =
         Block::BlockMmad<BlockMatmulPolicy, L1TileShape, L0TileShape, AMatmulType, BMatmulType, CMatmulType,
@@ -90,14 +92,15 @@ public:
         GM_ADDR x1ScaleGmAddr{nullptr};
         GM_ADDR cGmAddr{nullptr};
         GM_ADDR groupListGmAddr{nullptr};
+        GM_ADDR biasGmAddr{nullptr};
     };
 
     // params
     using Params = Arguments;
 
-    __aicore__ inline BlockGmmSwigluBuilder() {}
+    __aicore__ inline BlockMxMmAicToAivBuilder() {}
 
-    __aicore__ inline ~BlockGmmSwigluBuilder() {}
+    __aicore__ inline ~BlockMxMmAicToAivBuilder() {}
 
     __host_aicore__ static size_t GetWorkspaceSize()
     {
@@ -114,11 +117,6 @@ public:
         return Status::success;
     }
 
-    __host_aicore__ static Params InitParams(Arguments args)
-    {
-        Params params = {args.aGmAddr, args.bGmAddr, args.x1ScaleGmAddr, args.x2ScaleGmAddr, args.cGmAddr};
-        return params;
-    }
 };
 } // namespace Block
 } // namespace Gemm

@@ -17,7 +17,7 @@
 #define GROUPED_MATMUL_SWIGLU_QUANT_V2_MIX_ONLINE_DYNAMIC_H
 
 #include "act/matmul/kernel/kernel_gmm_swiglu_mxquant.h"
-#include "act/matmul/block/block_gmm_swiglu_builder.h"
+#include "act/matmul/block/block_mx_mm_aic_to_aiv_builder.h"
 #include "act/matmul/block/block_scheduler_gmm_aswt_with_tail_split.h"
 
 using namespace Act::Gemm;
@@ -41,6 +41,7 @@ __aicore__ inline void GmmSwigluAswt(GM_ADDR x, GM_ADDR weight, GM_ADDR weightSc
     using LayoutB = layoutB;
     using LayoutC = layout::RowMajorAlign;
     using weightscaleType = AscendC::fp8_e8m0_t;
+    using BiasType = float;
     // 定义scheduler类型
     using BlockScheduler = GroupedMatmulAswtWithTailSplitScheduler;
     // 定义MMAD类型
@@ -50,7 +51,7 @@ __aicore__ inline void GmmSwigluAswt(GM_ADDR x, GM_ADDR weight, GM_ADDR weightSc
                                                           true>;
     // 定义shape的形状，tuple保存 m n k batch
     using ProblemShape = MatmulShape;
-    using BlockMmad = Block::BlockGmmSwigluBuilder<AType, LayoutA, BType, LayoutB, C1Type, LayoutC, L1TileShape,
+    using BlockMmad = Block::BlockMxMmAicToAivBuilder<AType, LayoutA, BType, LayoutB, BiasType, C1Type, LayoutC, L1TileShape,
                                                  L0TileShape, BlockScheduler, QuantMatmulWithTileMultiBlock<>,
                         Tile::TileCopy<Arch::Ascend910_95, Tile::CopyInAndCopyOutSplitMWithParams>>;
     using QGmmKernel =
