@@ -87,6 +87,7 @@ struct TilingIndexes {
 enum class KvCacheLayout : uint32_t {
     KV_CACHE_BSH = 0,
     KV_CACHE_BNSD = 1,
+    KV_CACHE_NZ = 2,
 };
 
 enum class TilingInOutMode : uint32_t {

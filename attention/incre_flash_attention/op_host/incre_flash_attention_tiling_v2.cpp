@@ -725,15 +725,18 @@ ge::graphStatus IFATilingV2::CheckKvCache() {
   sMax_ = maxBlockNumPerSeq_ * blockSize_;
   seqSize_ = sMax_;
   uint32_t kDimNum = context_->key.shape->GetStorageShape().GetDimNum();
-  OP_CHECK_IF((kDimNum != NUM3 && kDimNum != 4),
-             OP_LOGE(context_->opName, "When Page Attention is enabled, kvCache dimensions[%u] should be 3 or 4", kDimNum),
+  OP_CHECK_IF((kDimNum != NUM3 && kDimNum != 4 && kDimNum != 5),
+             OP_LOGE(context_->opName, "When Page Attention is enabled, kvCache dimensions[%u] should be 3 or 4 or 5", kDimNum),
              return ge::GRAPH_FAILED);
   if (kDimNum == 3U) { // BSH
     pageAttentionKvLayoutType_ = KvCacheLayout::KV_CACHE_BSH;
-    pageAttentionKvLayoutTypefaRun_ = static_cast<uint8_t>(0);
-  } else { // BNSD
+    pageAttentionKvLayoutTypefaRun_ = static_cast<uint8_t>(KvCacheLayout::KV_CACHE_BSH);
+  } else if (kDimNum == 4U) { // BNSD
     pageAttentionKvLayoutType_ = KvCacheLayout::KV_CACHE_BNSD;
-    pageAttentionKvLayoutTypefaRun_ = static_cast<uint8_t>(1);
+    pageAttentionKvLayoutTypefaRun_ = static_cast<uint8_t>(KvCacheLayout::KV_CACHE_BNSD);
+  } else { // NZ
+    pageAttentionKvLayoutType_ = KvCacheLayout::KV_CACHE_NZ;
+    pageAttentionKvLayoutTypefaRun_ = static_cast<uint8_t>(KvCacheLayout::KV_CACHE_NZ);
   }
   paBlockNumSumfaRun_ = static_cast<int32_t>(kDimNum);
   const std::string inputLayoutStr = context_->layOut;
@@ -780,7 +783,7 @@ ge::graphStatus IFATilingV2::CheckKvCacheValue(uint32_t kDimNum) const {
                  OP_LOGE(context_->opName, "When Page Attention is enabled, H of kvCache[%u] should be %u", hOfKeyCache, hOfKey),
                  return ge::GRAPH_FAILED);
     }
-  } else { // BNSD
+  } else if (kDimNum == 4U) { // BNSD
     uint32_t nOfKey = context_->key.shape->GetStorageShape().GetDim(NUM1);
     uint32_t blockSize = context_->key.shape->GetStorageShape().GetDim(NUM2);
     uint32_t dimOfKey = context_->key.shape->GetStorageShape().GetDim(NUM3);
@@ -802,6 +805,36 @@ ge::graphStatus IFATilingV2::CheckKvCacheValue(uint32_t kDimNum) const {
                  OP_LOGE(context_->opName, "When Page Attention is enabled, headDim of kvCache[%u] should be %u", dimOfKey, headDim_),
                  return ge::GRAPH_FAILED);
     }
+  } else {
+      uint32_t nOfKey = context_->key.shape->GetStorageShape().GetDim(NUM1);
+      uint32_t d1OfKey = context_->key.shape->GetStorageShape().GetDim(NUM2);
+      uint32_t blockSize = context_->key.shape->GetStorageShape().GetDim(NUM3);
+      uint32_t d0OfKey = context_->key.shape->GetStorageShape().GetDim(NUM4);
+      OP_CHECK_IF((nOfKey != numKvHeads_),
+              OP_LOGE(context_->opName, "When Page Attention is enabled, numHeads of kvCache[%u] should be %u", nOfKey, numKvHeads_),
+              return ge::GRAPH_FAILED);
+      OP_CHECK_IF((blockSize != blockSize_),
+              OP_LOGE(context_->opName, "When Page Attention is enabled, blockSize of kvCache[%u] should be %u", blockSize, blockSize_),
+              return ge::GRAPH_FAILED);
+      OP_CHECK_IF((d0OfKey != BLOCK_SIZE),
+              OP_LOGE(context_->opName,
+              "When Page Attention is enabled, if input kv dataType is INT32, d0OfKey of kvCache[%u] should be %u; "
+              "if input kv dataType is INT4, d0OfKey of kvCache[%u] should be %u",
+              d0OfKey, BLOCK_SIZE / NUM8, d0OfKey, BLOCK_SIZE),
+              return ge::GRAPH_FAILED);
+      uint32_t dimOfKey = d1OfKey * d0OfKey;
+      if (inputKvType_ == ge::DT_INT4) {
+        OP_CHECK_IF((dimOfKey != headDim_),
+                  OP_LOGE(context_->opName,
+                  "When Page Attention is enabled, if input kv dataType is INT32, headDim of kvCache[%u] should be %u; "
+                  "if input kv dataType is INT4, headDim of kvCache[%u] should be %u",
+                  dimOfKey / NUM8, headDim_ / NUM8, dimOfKey, headDim_),
+                  return ge::GRAPH_FAILED);
+      } else {
+        OP_CHECK_IF((dimOfKey != headDim_),
+                  OP_LOGE(context_->opName, "When Page Attention is enabled, headDim of kvCache[%u] should be %u", dimOfKey, headDim_),
+                  return ge::GRAPH_FAILED);
+      }
   }
   return ge::GRAPH_SUCCESS;
 }
@@ -2138,6 +2171,16 @@ ge::graphStatus IFATilingV2::CheckAntiQuantParam(const int64_t antiquantMode, co
       OP_LOGE(context_->opName, "Datatype of antiquant scale and antiquant offset should be the same.");
       return ge::GRAPH_FAILED;
     }
+  }
+
+  if (pageAttentionFlag_ && pageAttentionKvLayoutType_ == KvCacheLayout::KV_CACHE_NZ) {
+    OP_CHECK_IF((inputKvType_ == ge::DT_FLOAT4_E2M1 || inputKvType_ == ge::DT_FLOAT4_E1M2 || inputKvType_ == ge::DT_FLOAT8_E5M2),
+              OP_LOGE(context_->opName, "When input key/value dataType is fp4 or fp8_e5m2, antiquant pa_nz is not supported."),
+              return ge::GRAPH_FAILED);
+    OP_CHECK_IF((antiquantMode != PER_CHANNEL_MODE && antiquantMode != PER_TENSOR_HEAD_MODE),  // pa_nz : per-tensor per-channel and per-tensor-head
+              OP_LOGE(context_->opName,
+                        "When antiquantMode is per-token or per-token-group, antiquant pa_nz is not supported."),
+              return ge::GRAPH_FAILED);
   }
 
   return ge::GRAPH_SUCCESS;
